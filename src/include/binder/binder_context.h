@@ -34,120 +34,156 @@ namespace binder {
  */
 class BinderContext {
  public:
+  /**
+   * Initializes the BinderContext object which has an empty regular table map and an empty nested table map.
+   * It also takes in a pointer to the binder context's upper context, and the constructor determines the depth of the
+   * current context based on the upper context. These two fields are used in nested queries.
+   * @param upper_context Pointer to the upper level binder context of the current binder context.
+   *
+   */
   explicit BinderContext(BinderContext *upper_context) : upper_context_(upper_context) {
     if (upper_context != nullptr) depth_ = upper_context->depth_ + 1;
   }
 
   /**
-   * @brief Update the table alias map given a table reference (in the from
-   * clause)
+   * Update the table alias map given a table reference (in the from clause)
+   * @param accessor Pointer to the catalog accessor object
+   * @param table_ref Pointer to the table ref object
    */
   void AddRegularTable(catalog::CatalogAccessor *accessor, parser::TableRef *table_ref);
 
   /**
-   * @brief Update the table alias map given a table reference (in the from
-   * clause)
+   * Update the table alias map given a table reference (in the from clause)
+   * @param accessor Pointer to the catalog accessor object
+   * @param db_name Name of the database
+   * @param table_name Name of the table
+   * @param table_alias Alias of the table
    */
   void AddRegularTable(catalog::CatalogAccessor *accessor, const std::string &db_name, const std::string &table_name,
                        const std::string &table_alias);
 
   /**
-   * @brief Update the nested table alias map
+   * Update the nested table alias map
+   * @param table_alias Alias of the table
+   * @param select_list List of select columns
    */
   void AddNestedTable(const std::string &table_alias,
                       const std::vector<std::shared_ptr<parser::AbstractExpression>> &select_list);
 
   /**
-   * @brief Check if the current context has any table
+   * Check if the current context has any table
+   * @param current_context Pointer to the current binder context object
    */
   static bool HasTables(const BinderContext *current_context) {
     if (current_context == nullptr) return false;
     return (!current_context->regular_table_alias_map_.empty() || !current_context->nested_table_alias_map_.empty());
   }
 
+  /**
+   * Check if the column name is in the schema
+   * @param schema Schema object
+   * @param col_name Name of the column
+   * @return true if the column is in the schema, false otherwise
+   */
   static bool ColumnInSchema(const catalog::Schema &schema, const std::string &col_name);
 
+  /**
+   * Construct the column position tuple given column name and the corresponding column value expression.
+   * Note that this is just a helper function and it is independent of the context.
+   * @param col_name Name of the column
+   * @param tuple Tuple of database oid, table oid, and schema object
+   * @param expr Column value expression
+   */
   static void GetColumnPosTuple(const std::string &col_name,
                                 std::tuple<catalog::db_oid_t, catalog::table_oid_t, catalog::Schema> tuple,
                                 parser::ColumnValueExpression *expr);
 
+  /**
+   * Construct the column position tuple given only the column value expression and the context.
+   * Also internally update the column value expression according to the values in the context
+   * @param current_context Pointer to the current binder context
+   * @param expr Column value expression
+   * @return Returns true if the column is found in the alias maps of the current context; false otherwise
+   */
   static bool GetColumnPosTuple(BinderContext *current_context, parser::ColumnValueExpression *expr);
 
   /**
-   * @brief Construct the column position tuple given column name and the
-   *  corresponding table obj. Also set the value type
-   *  Note that this is just a helper function and it is independent of
-   *  the context.
-   *
-   * @param col_name The column name
-   * @param schema the table
-   * @param col_pos_tuple The tuple of <db id, table id, column id>
-   * @param value_type The value type of the column
-   *
-   * @return If the col_pos_tuple is retrieved successfully, return true,
-   *  otherwise return false
-   */
-  //  static bool GetColumnPosTuple(const std::string &col_name, std::shared_ptr<catalog::Schema> schema,
-  //      std::tuple<catalog::db_oid_t, catalog::table_oid_t, catalog::col_oid_t> &col_pos_tuple, type::TypeId
-  //      &value_type);
-
-  /**
-   * @brief Construct the column position tuple given only the column name and
-   *  the context. Also set the value type based on column type
-   *  This function is used when the table alias is absent in the
-   *  TupleValueExpression
-   *
-   * @param current_context The current context
-   * @param col_name The current column name
-   * @param col_pos_tuple the tuple of <db id, table id, column id>
-   * @param table_alias The table alias
-   * @param value_type The value type of the column
-   * @param depth The depth of the context we find this column
-   *
-   * @return If the col_pos_tuple is retrieved successfully return true,
-   * otherwise return false
-   */
-  //  static bool GetColumnPosTuple(std::shared_ptr<BinderContext> current_context,
-  //                                const std::string &col_name,
-  //                                std::tuple<catalog::db_oid_t, catalog::table_oid_t, catalog::col_oid_t>
-  //                                &col_pos_tuple, std::string &table_alias, type::TypeId &value_type, int &depth);
-
-  /**
-   * @brief Construct the table obj given the table alias
-   *
-   * @param current_context The current context
-   * @param alias The table alias
-   * @param schema The retrieved table object
-   * @param depth The depth of the context that found the table
-   *
-   * @return Return true on success, false otherwise
+   * Check if the table alias can be found in the alias maps of the current context or the upper contexts.
+   * This function internally updates the depth of the expression if the alias is successfully found
+   * @param current_context Current binder context
+   * @param alias Table alias
+   * @param expr Column value expression
+   * @return Return true if the alias is found, false otherwise
    */
   static bool GetRegularTableObj(BinderContext *current_context, const std::string &alias,
                                  parser::ColumnValueExpression *expr,
                                  std::tuple<catalog::db_oid_t, catalog::table_oid_t, catalog::Schema> *tuple);
 
+  /**
+   * Check if the table, represented by the table alias, has the column indicated by the column name.
+   * This function internally updates the information of the expression if the column is successfully found
+   * @param current_context Current binder context
+   * @param alias Table alias
+   * @param col_name Name of the column
+   * @param expr Column value expression
+   * @return Return true if the column is found, false otherwise
+   */
   static bool CheckNestedTableColumn(BinderContext *current_context, const std::string &alias,
                                      const std::string &col_name, parser::ColumnValueExpression *expr);
 
+  /**
+   * Get the pointer to the upper context of the current context
+   * @return Pointer to the upper binder context
+   */
   BinderContext *GetUpperContext() { return upper_context_; }
 
   // TODO(Ling): not sure if we should do assign or move... will the calling method still need it?
   //  we don't have function calling this two functions in peloton even
+  /**
+   * Set the upper context of the current context
+   * @param upper_context Pointer to the upper binder context
+   */
   void SetUpperContext(BinderContext *upper_context) { upper_context_ = upper_context; }
 
+  /**
+   * Set the depth of the current context
+   * @param depth Depth of the context
+   */
   void SetDepth(int depth) { depth_ = depth; }
 
+  /**
+   * Get the depth of the current context
+   * @return depth of the current binder context
+   */
   int GetDepth() { return depth_; }
 
+  /**
+   * Generate list of column value expression that covers all columns in the alias maps of the current context
+   * @param exprs Pointer to the list of column value expression.
+   * The generated column value expressions will be placed in this list.
+   */
   void GenerateAllColumnExpressions(std::vector<std::shared_ptr<parser::AbstractExpression>> *exprs);
 
  private:
-  /** @brief Map table alias to table obj */
-
+  /**
+   * Map table alias to a tuple of database oid, table oid, and schema of the table
+   */
   std::unordered_map<std::string, std::tuple<catalog::db_oid_t, catalog::table_oid_t, catalog::Schema>>
       regular_table_alias_map_;
+
+  /**
+   * Map the table alias to maps which is from table alias to the value type
+   */
   std::unordered_map<std::string, std::unordered_map<std::string, type::TypeId>> nested_table_alias_map_;
+
+  /**
+   * Upper binder context of the current binder context
+   */
   BinderContext *upper_context_;
+
+  /**
+   * depth of the current binder context
+   */
   int depth_ = 0;
 };
 
