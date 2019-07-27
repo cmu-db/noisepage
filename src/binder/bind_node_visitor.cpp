@@ -149,7 +149,7 @@ void BindNodeVisitor::Visit(parser::DeleteStatement *node) {
   context_ = nullptr;
 }
 
-void BindNodeVisitor::Visit(parser::LimitDescription *) {}
+void BindNodeVisitor::Visit(parser::LimitDescription *node) {}
 
 void BindNodeVisitor::Visit(parser::CopyStatement *node) {
   context_ = new BinderContext(nullptr);
@@ -167,7 +167,7 @@ void BindNodeVisitor::Visit(parser::CopyStatement *node) {
   }
 }
 
-void BindNodeVisitor::Visit(parser::CreateFunctionStatement *) {}
+void BindNodeVisitor::Visit(parser::CreateFunctionStatement *node) {}
 
 void BindNodeVisitor::Visit(parser::CreateStatement *node) { node->TryBindDatabaseName(default_database_name_); }
 
@@ -184,14 +184,14 @@ void BindNodeVisitor::Visit(parser::InsertStatement *node) {
   context_ = nullptr;
 }
 void BindNodeVisitor::Visit(parser::DropStatement *node) { node->TryBindDatabaseName(default_database_name_); }
-void BindNodeVisitor::Visit(parser::PrepareStatement *) {}
-void BindNodeVisitor::Visit(parser::ExecuteStatement *) {}
-void BindNodeVisitor::Visit(parser::TransactionStatement *) {}
+void BindNodeVisitor::Visit(parser::PrepareStatement *node) {}
+void BindNodeVisitor::Visit(parser::ExecuteStatement *node) {}
+void BindNodeVisitor::Visit(parser::TransactionStatement *node) {}
 void BindNodeVisitor::Visit(parser::AnalyzeStatement *node) {
   node->GetAnalyzeTable()->TryBindDatabaseName(default_database_name_);
 }
 
-void BindNodeVisitor::Visit(parser::ConstantValueExpression *) {}
+void BindNodeVisitor::Visit(parser::ConstantValueExpression *expr) {}
 
 void BindNodeVisitor::Visit(parser::ColumnValueExpression *expr) {
   // TODO(Ling): consider remove precondition check if the *_oid_ will never be initialized till binder
