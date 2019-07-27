@@ -42,9 +42,7 @@ class ConstantValueExpression : public AbstractExpression {
    * Copies this ConstantValueExpression
    * @returns copy of this
    */
-  const AbstractExpression *Copy() const override {
-    return new ConstantValueExpression(*this);
-  }
+  const AbstractExpression *Copy() const override { return new ConstantValueExpression(*this); }
 
   /**
    * Creates a copy of the current AbstractExpression with new children implanted.

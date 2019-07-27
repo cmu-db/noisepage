@@ -1,5 +1,5 @@
-#include "common/hash_util.h"
 #include "optimizer/properties.h"
+#include "common/hash_util.h"
 #include "optimizer/property.h"
 #include "optimizer/property_visitor.h"
 
@@ -62,8 +62,6 @@ common::hash_t PropertySort::Hash() const {
  * PropertySort's Accept function for the visitor
  * @param v Visitor
  */
-void PropertySort::Accept(PropertyVisitor *v) const {
-  v->Visit(this);
-}
+void PropertySort::Accept(PropertyVisitor *v) const { v->Visit(this); }
 
 }  // namespace terrier::optimizer

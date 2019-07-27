@@ -244,8 +244,7 @@ TEST(ExpressionTests, ConjunctionExpressionTest) {
   c_expr_1->DeriveReturnValueType();
   EXPECT_EQ(c_expr_1->GetReturnValueType(), type::TypeId::BOOLEAN);
   EXPECT_EQ(c_expr_1->GetChildrenSize(), children1cp.size());
-  for (size_t i = 0; i < c_expr_1->GetChildrenSize(); i++)
-    EXPECT_EQ(*(c_expr_1->GetChild(i).get()), *(children1cp[i]));
+  for (size_t i = 0; i < c_expr_1->GetChildrenSize(); i++) EXPECT_EQ(*(c_expr_1->GetChild(i).get()), *(children1cp[i]));
 
   // Private members depth will be initialized as -1 and has_subquery as false.
   EXPECT_EQ(c_expr_1->GetDepth(), -1);
@@ -418,8 +417,7 @@ TEST(ExpressionTests, AggregateExpressionJsonTest) {
   // Deserialize expression
   auto *deserialized_expression = DeserializeExpression(json);
   EXPECT_EQ(*original_expr, *deserialized_expression);
-  EXPECT_EQ(original_expr->IsDistinct(),
-            dynamic_cast<AggregateExpression *>(deserialized_expression)->IsDistinct());
+  EXPECT_EQ(original_expr->IsDistinct(), dynamic_cast<AggregateExpression *>(deserialized_expression)->IsDistinct());
 
   delete copy;
   delete original_expr;
@@ -585,8 +583,8 @@ TEST(ExpressionTests, OperatorExpressionTest) {
   // Following testcases will test only methods unique to the specific child class
 
   auto op_ret_type = type::TypeId::BOOLEAN;
-  auto op_expr_1 = new OperatorExpression(ExpressionType::OPERATOR_NOT, op_ret_type,
-                                          std::vector<const AbstractExpression *>());
+  auto op_expr_1 =
+      new OperatorExpression(ExpressionType::OPERATOR_NOT, op_ret_type, std::vector<const AbstractExpression *>());
   op_expr_1->DeriveReturnValueType();
   EXPECT_TRUE(op_expr_1->GetReturnValueType() == type::TypeId::BOOLEAN);
   op_expr_1->DeriveExpressionName();

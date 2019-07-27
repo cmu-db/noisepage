@@ -1,7 +1,7 @@
 #include <memory>
 
-#include "loggers/optimizer_logger.h"
 #include "loggers/main_logger.h"
+#include "loggers/optimizer_logger.h"
 
 namespace terrier::optimizer {
 

@@ -1,12 +1,12 @@
 #pragma once
 
 #include <memory>
-#include <vector>
 #include <unordered_map>
+#include <vector>
 
-#include "optimizer/pattern.h"
-#include "optimizer/optimize_context.h"
 #include "optimizer/operator_expression.h"
+#include "optimizer/optimize_context.h"
+#include "optimizer/pattern.h"
 
 namespace terrier::optimizer {
 
@@ -59,10 +59,7 @@ enum class RuleType : uint32_t {
 /**
  * Enum defining sets of rewrite rules
  */
-enum class RewriteRuleSetName : uint32_t {
-  PREDICATE_PUSH_DOWN = 0,
-  UNNEST_SUBQUERY
-};
+enum class RewriteRuleSetName : uint32_t { PREDICATE_PUSH_DOWN = 0, UNNEST_SUBQUERY };
 
 /* Constant defining a physical rule's promise */
 static const uint32_t PHYS_PROMISE = 3;
@@ -78,24 +75,20 @@ class Rule {
   /**
    * Destructor for Rule
    */
-  virtual ~Rule() {
-    delete match_pattern;
-  }
+  virtual ~Rule() { delete match_pattern; }
 
   /**
    * Gets the match pattern for the rule
    * @returns match pattern
    */
-  Pattern* GetMatchPattern() const { return match_pattern; }
+  Pattern *GetMatchPattern() const { return match_pattern; }
 
   /**
    * Returns whether this rule is a physical rule or not
    * by checking LogicalPhysicalDelimiter and RewriteDelimiter.
    * @returns whether the rule is a physical transformation
    */
-  bool IsPhysical() const {
-    return type_ > RuleType::LogicalPhysicalDelimiter && type_ < RuleType::RewriteDelimiter;
-  }
+  bool IsPhysical() const { return type_ > RuleType::LogicalPhysicalDelimiter && type_ < RuleType::RewriteDelimiter; }
 
   /**
    * Gets the type of the rule
@@ -156,10 +149,8 @@ class Rule {
    * @param transformed Vector of "after" operator trees
    * @param context The current optimization context
    */
-  virtual void Transform(
-      OperatorExpression *input,
-      std::vector<OperatorExpression*> *transformed,
-      OptimizeContext *context) const = 0;
+  virtual void Transform(OperatorExpression *input, std::vector<OperatorExpression *> *transformed,
+                         OptimizeContext *context) const = 0;
 
  protected:
   /**
@@ -239,8 +230,12 @@ class RuleSet {
    * Destructor
    */
   ~RuleSet() {
-    for (auto rule : transformation_rules_) { delete rule; }
-    for (auto rule : implementation_rules_) { delete rule; }
+    for (auto rule : transformation_rules_) {
+      delete rule;
+    }
+    for (auto rule : implementation_rules_) {
+      delete rule;
+    }
     for (auto &it : rewrite_rules_map_) {
       for (auto rule : it.second) {
         delete rule;
@@ -252,20 +247,20 @@ class RuleSet {
    * Adds a transformation rule to the RuleSet
    * @param rule Rule to add
    */
-  inline void AddTransformationRule(Rule* rule) { transformation_rules_.push_back(rule); }
+  inline void AddTransformationRule(Rule *rule) { transformation_rules_.push_back(rule); }
 
   /**
    * Adds an implementation rule to the RuleSet
    * @param rule Rule to add
    */
-  inline void AddImplementationRule(Rule* rule) { implementation_rules_.push_back(rule); }
+  inline void AddImplementationRule(Rule *rule) { implementation_rules_.push_back(rule); }
 
   /**
    * Adds a rewrite rule to the RuleSet
    * @param set Rewrie RuleSet to add the rule to
    * @param rule Rule to add
    */
-  inline void AddRewriteRule(RewriteRuleSetName set, Rule* rule) {
+  inline void AddRewriteRule(RewriteRuleSetName set, Rule *rule) {
     rewrite_rules_map_[static_cast<uint32_t>(set)].push_back(rule);
   }
 
@@ -273,24 +268,20 @@ class RuleSet {
    * Gets all stored transformation rules
    * @returns vector of transformation rules
    */
-  std::vector<Rule*> &GetTransformationRules() {
-    return transformation_rules_;
-  }
+  std::vector<Rule *> &GetTransformationRules() { return transformation_rules_; }
 
   /**
    * Gets all stored implementation rules
    * @returns vector of implementation rules
    */
-  std::vector<Rule*> &GetImplementationRules() {
-    return implementation_rules_;
-  }
+  std::vector<Rule *> &GetImplementationRules() { return implementation_rules_; }
 
   /**
    * Gets all stored rules in a given RuleSet
    * @param set Rewrite RuleSet to fetch
    * @returns vector of rules in that rewrite ruleset group
    */
-  std::vector<Rule*> &GetRewriteRulesByName(RewriteRuleSetName set) {
+  std::vector<Rule *> &GetRewriteRulesByName(RewriteRuleSetName set) {
     return rewrite_rules_map_[static_cast<uint32_t>(set)];
   }
 
@@ -298,17 +289,17 @@ class RuleSet {
   /**
    * Vector of logical transformation rules
    */
-  std::vector<Rule*> transformation_rules_;
+  std::vector<Rule *> transformation_rules_;
 
   /**
    * Vector of physical implementation rules
    */
-  std::vector<Rule*> implementation_rules_;
+  std::vector<Rule *> implementation_rules_;
 
   /**
    * Map from RewriteRuleSetName (uint32_t) -> vector of rules
    */
-  std::unordered_map<uint32_t, std::vector<Rule*>> rewrite_rules_map_;
+  std::unordered_map<uint32_t, std::vector<Rule *>> rewrite_rules_map_;
 };
 
 }  // namespace terrier::optimizer

@@ -158,10 +158,11 @@ class LogicalExternalFileGet : public OperatorNode<LogicalExternalFileGet> {
    * @param delimiter character used as delimiter
    * @param quote character used for quotation
    * @param escape character used for escape sequences
+   * @param null_string null string identifier
    * @return an LogicalExternalFileGet operator
    */
   static Operator make(parser::ExternalFileFormat format, std::string file_name, char delimiter, char quote,
-                       char escape);
+                       char escape, std::string null_string);
 
   /**
    * Copy
@@ -197,6 +198,11 @@ class LogicalExternalFileGet : public OperatorNode<LogicalExternalFileGet> {
    */
   char GetEscape() const { return escape_; }
 
+  /**
+   * @return null string identifier
+   */
+  const std::string &GetNullString() const { return null_string_; }
+
  private:
   /**
    * File format
@@ -222,6 +228,11 @@ class LogicalExternalFileGet : public OperatorNode<LogicalExternalFileGet> {
    * Character used for escape sequences
    */
   char escape_;
+
+  /**
+   * Null String identifier
+   */
+  std::string null_string_;
 };
 
 /**
@@ -974,11 +985,12 @@ class LogicalUpdate : public OperatorNode<LogicalUpdate> {
   /**
    * @param database_oid OID of the database
    * @param namespace_oid OID of the namespace
+   * @param table_alias Table's Alias
    * @param table_oid OID of the table
    * @param updates the update clauses from the SET portion of the query
    * @return
    */
-  static Operator make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
+  static Operator make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid, std::string table_alias,
                        catalog::table_oid_t table_oid,
                        std::vector<common::ManagedPointer<parser::UpdateClause>> &&updates);
 
@@ -1002,6 +1014,11 @@ class LogicalUpdate : public OperatorNode<LogicalUpdate> {
   const catalog::namespace_oid_t &GetNamespaceOid() const { return namespace_oid_; }
 
   /**
+   * @return table alias
+   */
+  const std::string &GetTableAlias() const { return table_alias_; }
+
+  /**
    * @return OID of the table
    */
   const catalog::table_oid_t &GetTableOid() const { return table_oid_; }
@@ -1021,6 +1038,11 @@ class LogicalUpdate : public OperatorNode<LogicalUpdate> {
    * OID of the namespace
    */
   catalog::namespace_oid_t namespace_oid_;
+
+  /**
+   * Table Alias
+   */
+  std::string table_alias_;
 
   /**
    * OID of the table

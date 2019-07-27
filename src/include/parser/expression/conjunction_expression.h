@@ -59,7 +59,7 @@ class ConjunctionExpression : public AbstractExpression {
    * @param children New ConjunctionExpression's children
    */
   ConjunctionExpression(const ConjunctionExpression &other, std::vector<const AbstractExpression *> &&children)
-    : AbstractExpression(other) {
+      : AbstractExpression(other) {
     children_ = children;
   }
 };

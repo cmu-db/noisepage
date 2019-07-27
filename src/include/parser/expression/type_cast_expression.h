@@ -57,7 +57,7 @@ class TypeCastExpression : public AbstractExpression {
    * @param children new TypeCastExpression's children
    */
   TypeCastExpression(const TypeCastExpression &other, std::vector<const AbstractExpression *> &&children)
-    : AbstractExpression(other) {
+      : AbstractExpression(other) {
     children_ = children;
   }
 };

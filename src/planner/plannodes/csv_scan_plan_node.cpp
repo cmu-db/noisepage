@@ -1,6 +1,8 @@
-#include "planner/plannodes/csv_scan_plan_node.h"
 #include <memory>
 #include <string>
+#include <vector>
+
+#include "planner/plannodes/csv_scan_plan_node.h"
 
 namespace terrier::planner {
 
@@ -22,6 +24,7 @@ common::hash_t CSVScanPlanNode::Hash() const {
   // Null String
   hash = common::HashUtil::CombineHashes(hash, std::hash<std::string>{}(null_string_));
 
+  hash = common::HashUtil::CombineHashInRange(hash, value_types_.begin(), value_types_.end());
   return hash;
 }
 
@@ -46,7 +49,7 @@ bool CSVScanPlanNode::operator==(const AbstractPlanNode &rhs) const {
   // Null String
   if (null_string_ != other.null_string_) return false;
 
-  return true;
+  return value_types_ == other.value_types_;
 }
 
 nlohmann::json CSVScanPlanNode::ToJson() const {
@@ -56,6 +59,7 @@ nlohmann::json CSVScanPlanNode::ToJson() const {
   j["quote"] = quote_;
   j["escape"] = escape_;
   j["null_string"] = null_string_;
+  j["value_types"] = value_types_;
   return j;
 }
 
@@ -66,6 +70,7 @@ void CSVScanPlanNode::FromJson(const nlohmann::json &j) {
   quote_ = j.at("quote").get<char>();
   escape_ = j.at("escape").get<char>();
   null_string_ = j.at("null_string").get<std::string>();
+  value_types_ = j.at("value_types").get<std::vector<type::TypeId>>();
 }
 
 }  // namespace terrier::planner

@@ -13,11 +13,17 @@
 #include "type/transient_value.h"
 #include "type/type_id.h"
 
+namespace terrier::optimizer {
+class PlanGenerator;
+}
+
 namespace terrier::parser {
 /**
  * An abstract parser expression. Dumb and immutable.
  */
 class AbstractExpression {
+  friend class PlanGenerator;  // Access to DeriveReturnValueType
+
  protected:
   /**
    * Instantiates a new abstract expression. Because these are logical expressions, everything should be known
@@ -187,7 +193,7 @@ class AbstractExpression {
    */
   virtual void AcceptChildren(SqlNodeVisitor *v) {
     for (auto &child : children_) {
-      const_cast<parser::AbstractExpression*>(child)->Accept(v);
+      const_cast<parser::AbstractExpression *>(child)->Accept(v);
     }
   }
 

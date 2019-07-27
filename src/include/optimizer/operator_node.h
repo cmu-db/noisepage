@@ -153,8 +153,7 @@ class Operator {
   /**
    * Copy constructor for Operator
    */
-  Operator(const Operator &op)
-    : node_(op.node_->Copy()) {}
+  Operator(const Operator &op) : node_(op.node_->Copy()) {}
 
   /**
    * Move constructor for operator
@@ -217,9 +216,7 @@ class Operator {
   /**
    * Destructor
    */
-  ~Operator() {
-    delete node_;
-  }
+  ~Operator() { delete node_; }
 
   /**
    * Re-interpret the operator
@@ -241,7 +238,7 @@ class Operator {
   /**
    * Pointer to the base operator
    */
-  BaseOperatorNode* node_ = nullptr;
+  BaseOperatorNode *node_ = nullptr;
 };
 }  // namespace terrier::optimizer
 

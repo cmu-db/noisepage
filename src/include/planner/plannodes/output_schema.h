@@ -53,11 +53,8 @@ class OutputSchema {
      * Instantiates a Column object, primary to be used for building a Schema object
      * @param name column name
      * @param type SQL type for this column
-     * @param nullable is column nullable
-     * @param oid internal unique identifier for this column
      */
-    Column(std::string name, const type::TypeId type, const bool nullable, const catalog::col_oid_t oid)
-        : name_(std::move(name)), type_(type), nullable_(nullable), oid_(oid) {
+    Column(std::string name, const type::TypeId type) : name_(std::move(name)), type_(type) {
       TERRIER_ASSERT(type_ != type::TypeId::INVALID, "Attribute type cannot be INVALID.");
     }
 
@@ -77,23 +74,11 @@ class OutputSchema {
     type::TypeId GetType() const { return type_; }
 
     /**
-     * @return true if the column is nullable, false otherwise
-     */
-    bool GetNullable() const { return nullable_; }
-
-    /**
-     * @return internal unique identifier for this column
-     */
-    catalog::col_oid_t GetOid() const { return oid_; }
-
-    /**
      * @return the hashed value for this column based on name and OID
      */
     common::hash_t Hash() const {
       common::hash_t hash = common::HashUtil::Hash(name_);
       hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(type_));
-      hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(oid_));
-      hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(nullable_));
       return hash;
     }
 
@@ -106,12 +91,6 @@ class OutputSchema {
 
       // Type
       if (type_ != rhs.type_) return false;
-
-      // Nullable
-      if (nullable_ != rhs.nullable_) return false;
-
-      // Oid
-      if (oid_ != rhs.oid_) return false;
 
       return true;
     }
@@ -130,8 +109,6 @@ class OutputSchema {
       nlohmann::json j;
       j["name"] = name_;
       j["type"] = type_;
-      j["nullable"] = nullable_;
-      j["oid"] = oid_;
       return j;
     }
 
@@ -141,15 +118,11 @@ class OutputSchema {
     void FromJson(const nlohmann::json &j) {
       name_ = j.at("name").get<std::string>();
       type_ = j.at("type").get<type::TypeId>();
-      nullable_ = j.at("nullable").get<bool>();
-      oid_ = j.at("oid").get<catalog::col_oid_t>();
     }
 
    private:
     std::string name_;
     type::TypeId type_;
-    bool nullable_;
-    catalog::col_oid_t oid_;
   };
 
   /**
@@ -168,6 +141,12 @@ class OutputSchema {
      * Default constructor used for deserialization
      */
     DerivedColumn() = default;
+
+    /**
+     * Copies the DerivedColumn
+     * @returns copy
+     */
+    DerivedColumn *Copy() const { return new DerivedColumn(column_, expr_->Copy()); }
 
     ~DerivedColumn() { delete expr_; }
 
@@ -280,6 +259,19 @@ class OutputSchema {
    */
   OutputSchema() = default;
 
+  /**
+   * Copies the OutputSchema
+   * @returns copy
+   */
+  std::shared_ptr<OutputSchema> Copy() const {
+    std::vector<DerivedTarget> targets;
+    for (auto &target : targets_) {
+      targets.emplace_back(target.first, target.second->Copy());
+    }
+
+    return std::make_shared<OutputSchema>(columns_, std::move(targets), direct_map_list_);
+  }
+
   ~OutputSchema() {
     for (const auto &pair : targets_) {
       delete pair.second;
@@ -290,9 +282,9 @@ class OutputSchema {
    * @param col_id offset into the schema specifying which Column to access
    * @return description of the schema for a specific column
    */
-  Column GetColumn(const storage::col_id_t col_id) const {
-    TERRIER_ASSERT((!col_id) < columns_.size(), "column id is out of bounds for this Schema");
-    return columns_[!col_id];
+  Column GetColumn(size_t col_id) const {
+    TERRIER_ASSERT(col_id < columns_.size(), "column id is out of bounds for this Schema");
+    return columns_[col_id];
   }
   /**
    * @return the vector of columns that are part of this schema
@@ -329,8 +321,8 @@ class OutputSchema {
     if (columns_ != rhs.columns_) return false;
 
     // Targets
-    std::function<bool (const DerivedTarget&, const DerivedTarget&)> cmp = [](
-      const DerivedTarget &left, const DerivedTarget &right) {
+    std::function<bool(const DerivedTarget &, const DerivedTarget &)> cmp = [](const DerivedTarget &left,
+                                                                               const DerivedTarget &right) {
       if (left.first != right.first) return false;
       if (left.second == nullptr && right.second == nullptr) return true;
       if (left.second == nullptr || right.second == nullptr) return false;

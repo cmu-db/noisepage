@@ -166,7 +166,7 @@ bool AbstractExpression::DeriveSubqueryFlag() {
     has_subquery_ = true;
   } else {
     for (auto &child : children_) {
-      if (const_cast<parser::AbstractExpression*>(child)->DeriveSubqueryFlag()) {
+      if (const_cast<parser::AbstractExpression *>(child)->DeriveSubqueryFlag()) {
         has_subquery_ = true;
         break;
       }
@@ -178,7 +178,7 @@ bool AbstractExpression::DeriveSubqueryFlag() {
 int AbstractExpression::DeriveDepth() {
   if (depth_ < 0) {
     for (auto &child : children_) {
-      auto child_depth = const_cast<parser::AbstractExpression*>(child)->DeriveDepth();
+      auto child_depth = const_cast<parser::AbstractExpression *>(child)->DeriveDepth();
       if (child_depth >= 0 && (depth_ == -1 || child_depth < depth_)) depth_ = child_depth;
     }
   }
@@ -196,7 +196,7 @@ void AbstractExpression::DeriveExpressionName() {
   auto op_str = ExpressionTypeToString(expression_type_, true);
   for (auto &child : children_) {
     if (!first) expression_name_ += " ";
-    const_cast<parser::AbstractExpression*>(child)->DeriveExpressionName();
+    const_cast<parser::AbstractExpression *>(child)->DeriveExpressionName();
     expression_name_ += op_str + " " + child->expression_name_;
     first = false;
   }

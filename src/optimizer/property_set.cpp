@@ -1,10 +1,10 @@
+#include "optimizer/property_set.h"
 #include "common/hash_util.h"
 #include "loggers/optimizer_logger.h"
-#include "optimizer/property_set.h"
 
 namespace terrier::optimizer {
 
-void PropertySet::AddProperty(Property* property) {
+void PropertySet::AddProperty(Property *property) {
   OPTIMIZER_LOG_TRACE("Add property with type %d", static_cast<int>(property->Type()));
   auto iter = properties_.begin();
   for (; iter != properties_.end(); iter++) {
@@ -17,7 +17,7 @@ void PropertySet::AddProperty(Property* property) {
   properties_.insert(iter, property);
 }
 
-const Property* PropertySet::GetPropertyOfType(PropertyType type) const {
+const Property *PropertySet::GetPropertyOfType(PropertyType type) const {
   for (auto &prop : properties_) {
     if (prop->Type() == type) {
       return prop;
@@ -45,9 +45,7 @@ bool PropertySet::operator>=(const PropertySet &r) const {
   return true;
 }
 
-bool PropertySet::operator==(const PropertySet &r) const {
-  return *this >= r && r >= *this;
-}
+bool PropertySet::operator==(const PropertySet &r) const { return *this >= r && r >= *this; }
 
 common::hash_t PropertySet::Hash() const {
   size_t prop_size = properties_.size();

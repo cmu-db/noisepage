@@ -40,9 +40,9 @@ class ChildPropertyDeriver : public OperatorVisitor {
    * @param accessor CatalogAccessor for use
    * @returns pair of possible input output properties pairs
    */
-  std::vector<std::pair<PropertySet*, std::vector<PropertySet*>>>
-  GetProperties(GroupExpression *gexpr, PropertySet* requirements,
-                Memo *memo, catalog::CatalogAccessor *accessor);
+  std::vector<std::pair<PropertySet *, std::vector<PropertySet *>>> GetProperties(GroupExpression *gexpr,
+                                                                                  PropertySet *requirements, Memo *memo,
+                                                                                  catalog::CatalogAccessor *accessor);
 
   /**
    * Visitor function for TableFreeScan
@@ -193,13 +193,13 @@ class ChildPropertyDeriver : public OperatorVisitor {
    * Derives properties for a JOIN
    */
   void DeriveForJoin();
-  PropertySet* requirements_;
+  PropertySet *requirements_;
 
   /**
    * The derived output property set and input property sets, note that a
    * operator may have more than one children
    */
-  std::vector<std::pair<PropertySet*, std::vector<PropertySet*>>> output_;
+  std::vector<std::pair<PropertySet *, std::vector<PropertySet *>>> output_;
 
   /**
    * We need the memo and gexpr because some property may depend on child's schema

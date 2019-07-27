@@ -18,9 +18,6 @@ common::hash_t DeletePlanNode::Hash() const {
   // Hash table_oid
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_oid_));
 
-  // Hash delete_condition
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(delete_condition_->Hash()));
-
   return hash;
 }
 
@@ -38,9 +35,6 @@ bool DeletePlanNode::operator==(const AbstractPlanNode &rhs) const {
   // Table OID
   if (table_oid_ != other.table_oid_) return false;
 
-  // Delete condition
-  if (*GetDeleteCondition() != *other.GetDeleteCondition()) return false;
-
   return true;
 }
 
@@ -49,7 +43,6 @@ nlohmann::json DeletePlanNode::ToJson() const {
   j["database_oid"] = database_oid_;
   j["namespace_oid"] = namespace_oid_;
   j["table_oid"] = table_oid_;
-  j["delete_condition"] = delete_condition_;
   return j;
 }
 
@@ -58,9 +51,6 @@ void DeletePlanNode::FromJson(const nlohmann::json &j) {
   database_oid_ = j.at("database_oid").get<catalog::db_oid_t>();
   namespace_oid_ = j.at("namespace_oid").get<catalog::namespace_oid_t>();
   table_oid_ = j.at("table_oid").get<catalog::table_oid_t>();
-  if (!j.at("delete_condition").is_null()) {
-    delete_condition_ = parser::DeserializeExpression(j.at("delete_condition"));
-  }
 }
 
 }  // namespace terrier::planner

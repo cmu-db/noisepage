@@ -1,15 +1,15 @@
 #pragma once
 
+#include <string>
+#include <tuple>
 #include <unordered_map>
 #include <unordered_set>
-#include <tuple>
-#include <string>
-#include <vector>
 #include <utility>
+#include <vector>
 
-#include "optimizer/optimizer_defs.h"
 #include "optimizer/group_expression.h"
 #include "optimizer/operator_node.h"
+#include "optimizer/optimizer_defs.h"
 #include "optimizer/property.h"
 #include "optimizer/property_set.h"
 
@@ -30,9 +30,7 @@ class Group {
    * @param table_aliases Set of table aliases used by the Group
    */
   Group(GroupID id, std::unordered_set<std::string> table_aliases)
-    : id_(id),
-      table_aliases_(std::move(table_aliases)),
-      has_explored_(false) {}
+      : id_(id), table_aliases_(std::move(table_aliases)), has_explored_(false) {}
 
   /**
    * Destructor
@@ -50,7 +48,7 @@ class Group {
    *
    * The GroupExpression will be owned by this Group
    */
-  void AddExpression(GroupExpression* expr, bool enforced);
+  void AddExpression(GroupExpression *expr, bool enforced);
 
   /**
    * Sets metadata for the cost of an expression w.r.t PropertySet
@@ -62,7 +60,7 @@ class Group {
    * @note properties becomes owned by Group!
    * @note properties lifetime after not guaranteed
    */
-  bool SetExpressionCost(GroupExpression *expr, double cost, PropertySet* properties);
+  bool SetExpressionCost(GroupExpression *expr, double cost, PropertySet *properties);
 
   /**
    * Gets the best expression existing for a group satisfying
@@ -71,7 +69,7 @@ class Group {
    * @param properties PropertySet to use for search
    * @returns GroupExpression satisfing the PropertySet
    */
-  GroupExpression *GetBestExpression(PropertySet* properties);
+  GroupExpression *GetBestExpression(PropertySet *properties);
 
   /**
    * Determines whether or not a lowest cost expression exists
@@ -80,30 +78,24 @@ class Group {
    * @param properties PropertySet to use for search
    * @returns Boolean indicating whether expression is found
    */
-  bool HasExpressions(PropertySet* properties) const;
+  bool HasExpressions(PropertySet *properties) const;
 
   /**
    * @returns table aliases for this group
    */
-  inline const std::unordered_set<std::string> &GetTableAliases() const {
-    return table_aliases_;
-  }
+  inline const std::unordered_set<std::string> &GetTableAliases() const { return table_aliases_; }
 
   /**
    * Gets the vector of all logical expressions
    * @returns Logical expressions belonging to this group
    */
-  const std::vector<GroupExpression*> GetLogicalExpressions() const {
-    return logical_expressions_;
-  }
+  const std::vector<GroupExpression *> GetLogicalExpressions() const { return logical_expressions_; }
 
   /**
    * Gets the vector of all physical expressions
    *@returns Physical expressions belonging to this group
    */
-  const std::vector<GroupExpression*> GetPhysicalExpressions() const {
-    return physical_expressions_;
-  }
+  const std::vector<GroupExpression *> GetPhysicalExpressions() const { return physical_expressions_; }
 
   /**
    * Gets the cost lower bound
@@ -157,16 +149,15 @@ class Group {
   // All the table alias this group represents. This will not change once create
   // TODO(boweic) Do not use string, store table alias id
   std::unordered_set<std::string> table_aliases_;
-  std::unordered_map<PropertySet*,
-                     std::tuple<double, GroupExpression *>,
-                     PropSetPtrHash, PropSetPtrEq> lowest_cost_expressions_;
+  std::unordered_map<PropertySet *, std::tuple<double, GroupExpression *>, PropSetPtrHash, PropSetPtrEq>
+      lowest_cost_expressions_;
 
   // Whether equivalent logical expressions have been explored for this group
   bool has_explored_;
 
-  std::vector<GroupExpression*> logical_expressions_;
-  std::vector<GroupExpression*> physical_expressions_;
-  std::vector<GroupExpression*> enforced_exprs_;
+  std::vector<GroupExpression *> logical_expressions_;
+  std::vector<GroupExpression *> physical_expressions_;
+  std::vector<GroupExpression *> enforced_exprs_;
 
   int num_rows_ = -1;
   double cost_lower_bound_ = -1;

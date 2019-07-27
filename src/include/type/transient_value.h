@@ -14,9 +14,10 @@ class ConstantValueExpression;
 }
 
 namespace terrier::optimizer {
+class PlanGenerator;
 class IndexScan;
 class IndexUtil;
-}
+}  // namespace terrier::optimizer
 
 namespace terrier::type {
 class TransientValueFactory;
@@ -35,8 +36,10 @@ class TransientValue {
   friend class TransientValueFactory;                     // Access to constructor
   friend class TransientValuePeeker;                      // Access to GetAs
   friend class terrier::parser::ConstantValueExpression;  // Access to copy constructor, json methods
-  friend class terrier::optimizer::IndexScan;             // Access to copy constructor
-  friend class terrier::optimizer::IndexUtil;             // Access to copy constructor for extracting values from CVE
+
+  friend class terrier::optimizer::PlanGenerator;  // Access to copy constructor
+  friend class terrier::optimizer::IndexScan;      // Access to copy constructor
+  friend class terrier::optimizer::IndexUtil;      // Access to copy constructor for extracting values from CVE
 
  public:
   /**

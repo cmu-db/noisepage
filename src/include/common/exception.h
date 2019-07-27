@@ -19,6 +19,7 @@ namespace terrier {
 #define NETWORK_PROCESS_EXCEPTION(msg) NetworkProcessException(msg, __FILE__, __LINE__)
 #define SETTINGS_EXCEPTION(msg) SettingsException(msg, __FILE__, __LINE__)
 #define OPTIMIZER_EXCEPTION(msg) OptimizerException(msg, __FILE__, __LINE__)
+#define SYNTAX_EXCEPTION(msg) SyntaxException(msg, __FILE__, __LINE__)
 
 /**
  * Exception types
@@ -31,7 +32,8 @@ enum class ExceptionType : uint8_t {
   NETWORK,
   PARSER,
   SETTINGS,
-  OPTIMIZER
+  OPTIMIZER,
+  SYNTAX
 };
 
 /**
@@ -124,5 +126,6 @@ DEFINE_EXCEPTION(NetworkProcessException, ExceptionType::NETWORK);
 DEFINE_EXCEPTION(SettingsException, ExceptionType::SETTINGS);
 DEFINE_EXCEPTION(OptimizerException, ExceptionType::OPTIMIZER);
 DEFINE_EXCEPTION(ConversionException, ExceptionType::CONVERSION);
+DEFINE_EXCEPTION(SyntaxException, ExceptionType::SYNTAX);
 
 }  // namespace terrier

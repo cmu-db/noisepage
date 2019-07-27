@@ -9,7 +9,7 @@
 
 namespace terrier::planner {
 
-using SortKey = std::pair<catalog::col_oid_t, OrderByOrderingType>;
+using SortKey = std::pair<const parser::AbstractExpression *, OrderByOrderingType>;
 
 /**
  * Plan node for order by operator
@@ -29,11 +29,16 @@ class OrderByPlanNode : public AbstractPlanNode {
     DISALLOW_COPY_AND_MOVE(Builder);
 
     /**
-     * @param key column id for key to sort
+     * A sort key needs to be an expression because with a ORDER BY [clause],
+     * the [clause] doesn't have to refer to a base column. It can refer to a
+     * derived column or be a computed expression that the execution engine
+     * will need to evaluate.
+     *
+     * @param key expression to OrderBy
      * @param ordering ordering (ASC or DESC) for key
      * @return builder object
      */
-    Builder &AddSortKey(catalog::col_oid_t key, OrderByOrderingType ordering) {
+    Builder &AddSortKey(const parser::AbstractExpression *key, OrderByOrderingType ordering) {
       sort_keys_.emplace_back(key, ordering);
       return *this;
     }

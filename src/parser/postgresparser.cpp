@@ -187,9 +187,7 @@ std::unique_ptr<SQLStatement> PostgresParser::NodeTransform(Node *node) {
   return result;
 }
 
-const AbstractExpression *PostgresParser::ExprTransform(Node *node) {
-  return ExprTransform(node, nullptr);
-}
+const AbstractExpression *PostgresParser::ExprTransform(Node *node) { return ExprTransform(node, nullptr); }
 
 const AbstractExpression *PostgresParser::ExprTransform(Node *node, char *alias) {
   if (node == nullptr) {

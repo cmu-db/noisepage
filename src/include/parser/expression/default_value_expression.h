@@ -21,14 +21,14 @@ class DefaultValueExpression : public AbstractExpression {
    * Copies this DefaultValueExpression
    * @returns copy of this
    */
-  const AbstractExpression* Copy() const override { return new DefaultValueExpression(*this); }
+  const AbstractExpression *Copy() const override { return new DefaultValueExpression(*this); }
 
   /**
    * Copies this DefaultValueExpression with new children
    * @param children Children of new DefaultValueExpression
    * @returns copy of this with new children
    */
-  const AbstractExpression* CopyWithChildren(std::vector<const AbstractExpression*> children) const override {
+  const AbstractExpression *CopyWithChildren(std::vector<const AbstractExpression *> children) const override {
     TERRIER_ASSERT(children.empty(), "DefaultValueExpression should have 0 children");
     return Copy();
   }

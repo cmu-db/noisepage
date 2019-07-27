@@ -80,7 +80,7 @@ class OperatorExpression : public AbstractExpression {
    * @param children new OperatorExpression's children
    */
   OperatorExpression(const OperatorExpression &other, std::vector<const AbstractExpression *> &&children)
-    : AbstractExpression(other) {
+      : AbstractExpression(other) {
     children_ = children;
   }
 };

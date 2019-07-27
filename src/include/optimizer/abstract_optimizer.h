@@ -1,18 +1,18 @@
 #pragma once
 
 #include <memory>
-#include <vector>
 #include <utility>
+#include <vector>
 
 #include "common/managed_pointer.h"
 
-#include "parser/parser_defs.h"
 #include "parser/expression/abstract_expression.h"
+#include "parser/parser_defs.h"
 
 #include "settings/settings_manager.h"
 
-#include "optimizer/property_set.h"
 #include "optimizer/operator_expression.h"
+#include "optimizer/property_set.h"
 
 namespace terrier::planner {
 class AbstractPlanNode;
@@ -40,17 +40,14 @@ struct QueryInfo {
    * @param exprs Output expressions of the query
    * @param props Physical properties of the output (QueryInfo will own)
    */
-  QueryInfo(parser::StatementType type,
-            std::vector<common::ManagedPointer<parser::AbstractExpression>> &&exprs,
-            PropertySet* props)
+  QueryInfo(parser::StatementType type, std::vector<common::ManagedPointer<parser::AbstractExpression>> &&exprs,
+            PropertySet *props)
       : stmt_type_(type), output_exprs_(exprs), physical_props_(props) {}
 
   /**
    * Destructor
    */
-  ~QueryInfo() {
-    delete physical_props_;
-  }
+  ~QueryInfo() { delete physical_props_; }
 
   /**
    * @returns StatementType
@@ -60,21 +57,17 @@ struct QueryInfo {
   /**
    * @returns Output expressions of the query
    */
-  const std::vector<common::ManagedPointer<parser::AbstractExpression>> GetOutputExprs() const {
-    return output_exprs_;
-  }
+  const std::vector<common::ManagedPointer<parser::AbstractExpression>> GetOutputExprs() const { return output_exprs_; }
 
   /**
    * @returns Physical properties of the output owned by QueryInfo
    */
-  PropertySet* GetPhysicalProperties() const {
-    return physical_props_;
-  }
+  PropertySet *GetPhysicalProperties() const { return physical_props_; }
 
  private:
   parser::StatementType stmt_type_;
   std::vector<common::ManagedPointer<parser::AbstractExpression>> output_exprs_;
-  PropertySet* physical_props_;
+  PropertySet *physical_props_;
 };
 
 /**
@@ -101,17 +94,15 @@ class AbstractOptimizer {
    * @param accessor CatalogAccessor for catalog
    * @returns execution plan
    */
-  virtual planner::AbstractPlanNode* BuildPlanTree(
-      OperatorExpression* op_tree,
-      QueryInfo query_info,
-      transaction::TransactionContext *txn,
-      settings::SettingsManager *settings,
-      catalog::CatalogAccessor *accessor) = 0;
+  virtual std::shared_ptr<planner::AbstractPlanNode> BuildPlanTree(OperatorExpression *op_tree, QueryInfo query_info,
+                                                                   transaction::TransactionContext *txn,
+                                                                   settings::SettingsManager *settings,
+                                                                   catalog::CatalogAccessor *accessor) = 0;
 
   /**
    * Reset the optimizer's internal state
    */
-  virtual void Reset(){}
+  virtual void Reset() {}
 };
 
 }  // namespace terrier::optimizer

@@ -73,8 +73,9 @@ TEST(OperatorTests, LogicalInsertTest) {
       std::vector<common::ManagedPointer<parser::AbstractExpression>>(bad_raw_values, std::end(bad_raw_values))};
 
   EXPECT_DEATH(LogicalInsert::make(
-               database_oid, namespace_oid, table_oid, std::vector<catalog::col_oid_t>(columns, std::end(columns)),
-               std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>(bad_values)), "Mismatched");
+                   database_oid, namespace_oid, table_oid, std::vector<catalog::col_oid_t>(columns, std::end(columns)),
+                   std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>(bad_values)),
+               "Mismatched");
   for (auto entry : bad_raw_values) delete entry;
 #endif
 
@@ -193,7 +194,7 @@ TEST(OperatorTests, LogicalUpdateTest) {
   catalog::table_oid_t table_oid(789);
 
   // Check that all of our GET methods work as expected
-  Operator op1 = LogicalUpdate::make(database_oid, namespace_oid, table_oid, {update_clause});
+  Operator op1 = LogicalUpdate::make(database_oid, namespace_oid, "tbl", table_oid, {update_clause});
   EXPECT_EQ(op1.GetType(), OpType::LOGICALUPDATE);
   EXPECT_EQ(op1.As<LogicalUpdate>()->GetDatabaseOid(), database_oid);
   EXPECT_EQ(op1.As<LogicalUpdate>()->GetNamespaceOid(), namespace_oid);
@@ -203,13 +204,13 @@ TEST(OperatorTests, LogicalUpdateTest) {
 
   // Check that if we make a new object with the same values, then it will
   // be equal to our first object and have the same hash
-  Operator op2 = LogicalUpdate::make(database_oid, namespace_oid, table_oid, {update_clause});
+  Operator op2 = LogicalUpdate::make(database_oid, namespace_oid, "tbl", table_oid, {update_clause});
   EXPECT_TRUE(op1 == op2);
   EXPECT_EQ(op1.Hash(), op2.Hash());
 
   // Lastly, make a different object and make sure that it is not equal
   // and that it's hash is not the same!
-  Operator op3 = LogicalUpdate::make(database_oid, namespace_oid, table_oid, {});
+  Operator op3 = LogicalUpdate::make(database_oid, namespace_oid, "tbl", table_oid, {});
   EXPECT_FALSE(op1 == op3);
   EXPECT_NE(op1.Hash(), op3.Hash());
 
@@ -331,19 +332,19 @@ TEST(OperatorTests, LogicalExternalFileGetTest) {
   // LogicalExternalFileGet
   //===--------------------------------------------------------------------===//
   Operator logical_ext_file_get_1 =
-      LogicalExternalFileGet::make(parser::ExternalFileFormat::CSV, "file.txt", ',', '"', '\\');
+      LogicalExternalFileGet::make(parser::ExternalFileFormat::CSV, "file.txt", ',', '"', '\\', "");
   Operator logical_ext_file_get_2 =
-      LogicalExternalFileGet::make(parser::ExternalFileFormat::CSV, "file.txt", ',', '"', '\\');
+      LogicalExternalFileGet::make(parser::ExternalFileFormat::CSV, "file.txt", ',', '"', '\\', "");
   Operator logical_ext_file_get_3 =
-      LogicalExternalFileGet::make(parser::ExternalFileFormat::CSV, "file2.txt", ',', '"', '\\');
+      LogicalExternalFileGet::make(parser::ExternalFileFormat::CSV, "file2.txt", ',', '"', '\\', "");
   Operator logical_ext_file_get_4 =
-      LogicalExternalFileGet::make(parser::ExternalFileFormat::BINARY, "file.txt", ',', '"', '\\');
+      LogicalExternalFileGet::make(parser::ExternalFileFormat::BINARY, "file.txt", ',', '"', '\\', "");
   Operator logical_ext_file_get_5 =
-      LogicalExternalFileGet::make(parser::ExternalFileFormat::CSV, "file.txt", ' ', '"', '\\');
+      LogicalExternalFileGet::make(parser::ExternalFileFormat::CSV, "file.txt", ' ', '"', '\\', "");
   Operator logical_ext_file_get_6 =
-      LogicalExternalFileGet::make(parser::ExternalFileFormat::CSV, "file.txt", ',', '\'', '\\');
+      LogicalExternalFileGet::make(parser::ExternalFileFormat::CSV, "file.txt", ',', '\'', '\\', "");
   Operator logical_ext_file_get_7 =
-      LogicalExternalFileGet::make(parser::ExternalFileFormat::CSV, "file.txt", ',', '"', '&');
+      LogicalExternalFileGet::make(parser::ExternalFileFormat::CSV, "file.txt", ',', '"', '&', "");
 
   EXPECT_EQ(logical_ext_file_get_1.GetType(), OpType::LOGICALEXTERNALFILEGET);
   EXPECT_EQ(logical_ext_file_get_1.GetName(), "LogicalExternalFileGet");

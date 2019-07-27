@@ -272,10 +272,11 @@ class ExternalFileScan : public OperatorNode<ExternalFileScan> {
    * @param delimiter character used as delimiter
    * @param quote character used for quotation
    * @param escape character used for escape sequences
+   * @param null_string null string identifier
    * @return an ExternalFileScan operator
    */
   static Operator make(parser::ExternalFileFormat format, std::string file_name, char delimiter, char quote,
-                       char escape);
+                       char escape, std::string null_string);
 
   /**
    * Copy
@@ -312,6 +313,11 @@ class ExternalFileScan : public OperatorNode<ExternalFileScan> {
    */
   char GetEscape() const { return escape_; }
 
+  /**
+   * @return null string identifier
+   */
+  const std::string &GetNullString() const { return null_string_; }
+
  private:
   /**
    * File format
@@ -337,6 +343,11 @@ class ExternalFileScan : public OperatorNode<ExternalFileScan> {
    * Character used for escape sequences
    */
   char escape_;
+
+  /**
+   * Null String Identifier
+   */
+  std::string null_string_;
 };
 
 /**
@@ -1071,11 +1082,12 @@ class Update : public OperatorNode<Update> {
   /**
    * @param database_oid OID of the database
    * @param namespace_oid OID of the namespace
+   * @param table_alias Table Alias
    * @param table_oid OID of the table
    * @param updates update clause
    * @return an Update operator
    */
-  static Operator make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
+  static Operator make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid, std::string table_alias,
                        catalog::table_oid_t table_oid,
                        std::vector<common::ManagedPointer<parser::UpdateClause>> &&updates);
   /**
@@ -1083,7 +1095,6 @@ class Update : public OperatorNode<Update> {
    * @returns copy of this
    */
   BaseOperatorNode *Copy() const override;
-
 
   bool operator==(const BaseOperatorNode &r) override;
   common::hash_t Hash() const override;
@@ -1097,6 +1108,11 @@ class Update : public OperatorNode<Update> {
    * @return OID of the namespace
    */
   const catalog::namespace_oid_t &GetNamespaceOid() const { return namespace_oid_; }
+
+  /**
+   * @return Table Alias
+   */
+  const std::string &GetTableAlias() const { return table_alias_; }
 
   /**
    * @return OID of the table
@@ -1118,6 +1134,11 @@ class Update : public OperatorNode<Update> {
    * OID of the namespace
    */
   catalog::namespace_oid_t namespace_oid_;
+
+  /**
+   * Table Alias
+   */
+  std::string table_alias_;
 
   /**
    * OID of the table

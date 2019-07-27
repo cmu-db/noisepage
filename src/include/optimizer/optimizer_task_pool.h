@@ -1,8 +1,8 @@
 #pragma once
 
-#include "optimizer/optimizer_task.h"
-#include <stack>
 #include <memory>
+#include <stack>
+#include "optimizer/optimizer_task.h"
 
 namespace terrier::optimizer {
 
@@ -17,7 +17,7 @@ class OptimizerTaskPool {
   /**
    * Virtual interface function for removing a task from the pool
    */
-  virtual OptimizerTask* Pop() = 0;
+  virtual OptimizerTask *Pop() = 0;
 
   /**
    * Virtual interface function for adding a task to the pool
@@ -77,7 +77,7 @@ class OptimizerTaskStack : public OptimizerTaskPool {
   bool Empty() override { return task_stack_.empty(); }
 
  private:
-  std::stack<OptimizerTask*> task_stack_;
+  std::stack<OptimizerTask *> task_stack_;
 };
 
 }  // namespace terrier::optimizer

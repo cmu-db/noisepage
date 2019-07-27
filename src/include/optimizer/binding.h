@@ -1,17 +1,17 @@
 #pragma once
 
 #include <map>
-#include <vector>
-#include <tuple>
 #include <memory>
+#include <tuple>
+#include <vector>
 
 #include "loggers/optimizer_logger.h"
 
-#include "optimizer/operator_node.h"
 #include "optimizer/group.h"
-#include "optimizer/pattern.h"
-#include "optimizer/operator_expression.h"
 #include "optimizer/memo.h"
+#include "optimizer/operator_expression.h"
+#include "optimizer/operator_node.h"
+#include "optimizer/pattern.h"
 
 namespace terrier::optimizer {
 
@@ -25,7 +25,7 @@ class BindingIterator {
    * Constructor for a binding iterator
    * @param memo Memo to be used
    */
-  explicit BindingIterator(const Memo& memo) : memo_(memo) {}
+  explicit BindingIterator(const Memo &memo) : memo_(memo) {}
 
   /**
    * Default destructor
@@ -42,7 +42,7 @@ class BindingIterator {
    * Virtual function for getting the next binding
    * @returns next OperatorExpression that matches
    */
-  virtual OperatorExpression* Next() = 0;
+  virtual OperatorExpression *Next() = 0;
 
  protected:
   /**
@@ -63,13 +63,13 @@ class GroupBindingIterator : public BindingIterator {
    * @param id ID of the Group for binding
    * @param pattern Pattern to bind
    */
-  GroupBindingIterator(const Memo& memo, GroupID id, Pattern* pattern)
-    : BindingIterator(memo),
-      group_id_(id),
-      pattern_(pattern),
-      target_group_(memo_.GetGroupByID(id)),
-      num_group_items_(target_group_->GetLogicalExpressions().size()),
-      current_item_index_(0) {
+  GroupBindingIterator(const Memo &memo, GroupID id, Pattern *pattern)
+      : BindingIterator(memo),
+        group_id_(id),
+        pattern_(pattern),
+        target_group_(memo_.GetGroupByID(id)),
+        num_group_items_(target_group_->GetLogicalExpressions().size()),
+        current_item_index_(0) {
     OPTIMIZER_LOG_TRACE("Attempting to bind on group %d", id);
   }
 
@@ -83,7 +83,7 @@ class GroupBindingIterator : public BindingIterator {
    * Virtual function for getting the next binding
    * @returns next OperatorExpression that matches
    */
-  OperatorExpression* Next() override;
+  OperatorExpression *Next() override;
 
  private:
   /**
@@ -94,7 +94,7 @@ class GroupBindingIterator : public BindingIterator {
   /**
    * Pattern to try binding to
    */
-  Pattern* pattern_;
+  Pattern *pattern_;
 
   /**
    * Pointer to the group with GroupID group_id_
@@ -129,7 +129,7 @@ class GroupExprBindingIterator : public BindingIterator {
    * @param gexpr GroupExpression to bind to
    * @param pattern Pattern to bind
    */
-  GroupExprBindingIterator(const Memo& memo, GroupExpression *gexpr, Pattern* pattern);
+  GroupExprBindingIterator(const Memo &memo, GroupExpression *gexpr, Pattern *pattern);
 
   /**
    * Destructor
@@ -155,7 +155,7 @@ class GroupExprBindingIterator : public BindingIterator {
    * Pointer returned must be deleted by caller when done.
    * @returns next OperatorExpression that matches
    */
-  OperatorExpression* Next() override {
+  OperatorExpression *Next() override {
     TERRIER_ASSERT(current_binding_, "binding must exist");
     auto binding = current_binding_;
     current_binding_ = nullptr;
@@ -166,7 +166,7 @@ class GroupExprBindingIterator : public BindingIterator {
   /**
    * GroupExpression to bind with
    */
-  GroupExpression* gexpr_;
+  GroupExpression *gexpr_;
 
   /**
    * Flag indicating whether first binding or not
@@ -181,12 +181,12 @@ class GroupExprBindingIterator : public BindingIterator {
   /**
    * Current binding
    */
-  OperatorExpression* current_binding_;
+  OperatorExpression *current_binding_;
 
   /**
    * Stored bindings for children expressions
    */
-  std::vector<std::vector<OperatorExpression*>> children_bindings_;
+  std::vector<std::vector<OperatorExpression *>> children_bindings_;
 
   /**
    * Position indicators tracking progress within children_bindings_

@@ -1,12 +1,14 @@
-#include "planner/plannodes/seq_scan_plan_node.h"
+#include <vector>
+
 #include "common/hash_util.h"
+#include "planner/plannodes/seq_scan_plan_node.h"
 
 namespace terrier::planner {
 
 common::hash_t SeqScanPlanNode::Hash() const {
   common::hash_t hash = AbstractScanPlanNode::Hash();
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_oid_));
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(column_ids_));
+  hash = common::HashUtil::CombineHashInRange(hash, column_ids_.begin(), column_ids_.end());
   return hash;
 }
 

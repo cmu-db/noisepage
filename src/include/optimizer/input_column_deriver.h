@@ -34,11 +34,10 @@ class InputColumnDeriver : public OperatorVisitor {
    * Pointers returned are not ManagedPointer. However, the returned pointers
    * should not be deleted or ever modified.
    */
-  std::pair<std::vector<const parser::AbstractExpression*>,
-            std::vector<std::vector<const parser::AbstractExpression*>>>
-  DeriveInputColumns(GroupExpression *gexpr, PropertySet* properties,
-                     std::vector<const parser::AbstractExpression*> required_cols,
-                     Memo *memo);
+  std::pair<std::vector<const parser::AbstractExpression *>,
+            std::vector<std::vector<const parser::AbstractExpression *>>>
+  DeriveInputColumns(GroupExpression *gexpr, PropertySet *properties,
+                     std::vector<const parser::AbstractExpression *> required_cols, Memo *memo);
 
   /**
    * Visit function to derive input/output columns for TableFreeScan
@@ -189,7 +188,7 @@ class InputColumnDeriver : public OperatorVisitor {
    * Helper to derive the output columns of a scan operator.
    * A scan operator has no input columns, and the output columns are the set
    * of all columns required (i.e required_cols_).
-  */
+   */
   void ScanHelper();
 
   /**
@@ -202,7 +201,7 @@ class InputColumnDeriver : public OperatorVisitor {
    * TupleValueExpressions required by AggregateExpression from required_cols_.
    *
    * @param op Visiting BaseOperatorNode
-  */
+   */
   void AggregateHelper(const BaseOperatorNode *op);
 
   /**
@@ -217,16 +216,15 @@ class InputColumnDeriver : public OperatorVisitor {
    * NOTE:
    * - This function assumes the build side is the Left Child
    * - This function assumes the probe side is the Right Child
-   * TODO(wz2): Better abstraction/identification of build/probe rather than hard-coded
    *
    * @param op Visiting BaseOperatorNode
-  */
+   */
   void JoinHelper(const BaseOperatorNode *op);
 
   /**
    * Passes down the list of required columns as input columns
    * Sets output_input_cols_ = (required_cols, {required_cols_})
-  */
+   */
   void Passdown();
 
   /**
@@ -243,19 +241,19 @@ class InputColumnDeriver : public OperatorVisitor {
    * The derived output columns and input columns, note that the current
    * operator may have more than one children
    */
-  std::pair<std::vector<const parser::AbstractExpression*>,
-            std::vector<std::vector<const parser::AbstractExpression*>>>
+  std::pair<std::vector<const parser::AbstractExpression *>,
+            std::vector<std::vector<const parser::AbstractExpression *>>>
       output_input_cols_;
 
   /**
    * The required columns
    */
-  std::vector<const parser::AbstractExpression*> required_cols_;
+  std::vector<const parser::AbstractExpression *> required_cols_;
 
   /**
    * The required physical properties
    */
-  PropertySet* properties_;
+  PropertySet *properties_;
 };
 
 }  // namespace terrier::optimizer

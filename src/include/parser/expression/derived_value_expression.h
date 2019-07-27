@@ -31,9 +31,7 @@ class DerivedValueExpression : public AbstractExpression {
    * Copies this DerivedValueExpression
    * @returns copy of this
    */
-  const AbstractExpression *Copy() const override {
-    return new DerivedValueExpression(*this);
-  }
+  const AbstractExpression *Copy() const override { return new DerivedValueExpression(*this); }
 
   /**
    * Copies this DerivedValueExpression with new children
@@ -41,7 +39,7 @@ class DerivedValueExpression : public AbstractExpression {
    * @returns copy of this with new children
    */
   const AbstractExpression *CopyWithChildren(
-    UNUSED_ATTRIBUTE std::vector<const AbstractExpression *> children) const override {
+      UNUSED_ATTRIBUTE std::vector<const AbstractExpression *> children) const override {
     TERRIER_ASSERT(children.empty(), "DerivedValueExpression should have no children");
     return Copy();
   }

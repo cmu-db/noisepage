@@ -1,14 +1,14 @@
-#include <utility>
-#include <unordered_set>
 #include <string>
+#include <unordered_set>
+#include <utility>
 
 #include "optimizer/group_expression.h"
-#include "optimizer/memo.h"
 #include "optimizer/logical_operators.h"
+#include "optimizer/memo.h"
 
 namespace terrier::optimizer {
 
-GroupExpression *Memo::InsertExpression(GroupExpression* gexpr, GroupID target_group, bool enforced) {
+GroupExpression *Memo::InsertExpression(GroupExpression *gexpr, GroupID target_group, bool enforced) {
   // If leaf, then just return
   if (gexpr->Op().GetType() == OpType::LEAF) {
     const auto *leaf = gexpr->Op().As<LeafOperator>();
@@ -45,7 +45,7 @@ GroupExpression *Memo::InsertExpression(GroupExpression* gexpr, GroupID target_g
   return gexpr;
 }
 
-GroupID Memo::AddNewGroup(GroupExpression* gexpr) {
+GroupID Memo::AddNewGroup(GroupExpression *gexpr) {
   auto new_group_id = static_cast<GroupID>(groups_.size());
 
   // Find out the table alias that this group represents

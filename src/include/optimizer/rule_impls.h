@@ -27,7 +27,7 @@ class InnerJoinCommutativity : public Rule {
    * @param context Current OptimizeContext executing under
    * @returns Whether the input OperatorExpression passes the check
    */
-  bool Check(OperatorExpression* plan, OptimizeContext *context) const override;
+  bool Check(OperatorExpression *plan, OptimizeContext *context) const override;
 
   /**
    * Transforms the input expression using the given rule
@@ -35,8 +35,7 @@ class InnerJoinCommutativity : public Rule {
    * @param transformed Vector of transformed OperatorExpressions
    * @param context Current OptimizeContext executing under
    */
-  void Transform(OperatorExpression* input,
-                 std::vector<OperatorExpression*> *transformed,
+  void Transform(OperatorExpression *input, std::vector<OperatorExpression *> *transformed,
                  OptimizeContext *context) const override;
 };
 
@@ -57,7 +56,7 @@ class InnerJoinAssociativity : public Rule {
    * @param context Current OptimizeContext executing under
    * @returns Whether the input OperatorExpression passes the check
    */
-  bool Check(OperatorExpression* plan, OptimizeContext *context) const override;
+  bool Check(OperatorExpression *plan, OptimizeContext *context) const override;
 
   /**
    * Transforms the input expression using the given rule
@@ -65,8 +64,7 @@ class InnerJoinAssociativity : public Rule {
    * @param transformed Vector of transformed OperatorExpressions
    * @param context Current OptimizeContext executing under
    */
-  void Transform(OperatorExpression* input,
-                 std::vector<OperatorExpression*> *transformed,
+  void Transform(OperatorExpression *input, std::vector<OperatorExpression *> *transformed,
                  OptimizeContext *context) const override;
 };
 
@@ -90,7 +88,7 @@ class GetToSeqScan : public Rule {
    * @param context Current OptimizeContext executing under
    * @returns Whether the input OperatorExpression passes the check
    */
-  bool Check(OperatorExpression* plan, OptimizeContext *context) const override;
+  bool Check(OperatorExpression *plan, OptimizeContext *context) const override;
 
   /**
    * Transforms the input expression using the given rule
@@ -98,8 +96,7 @@ class GetToSeqScan : public Rule {
    * @param transformed Vector of transformed OperatorExpressions
    * @param context Current OptimizeContext executing under
    */
-  void Transform(OperatorExpression* input,
-                 std::vector<OperatorExpression*> *transformed,
+  void Transform(OperatorExpression *input, std::vector<OperatorExpression *> *transformed,
                  OptimizeContext *context) const override;
 };
 
@@ -119,7 +116,7 @@ class LogicalExternalFileGetToPhysical : public Rule {
    * @param context Current OptimizeContext executing under
    * @returns Whether the input OperatorExpression passes the check
    */
-  bool Check(OperatorExpression* plan, OptimizeContext *context) const override;
+  bool Check(OperatorExpression *plan, OptimizeContext *context) const override;
 
   /**
    * Transforms the input expression using the given rule
@@ -127,8 +124,7 @@ class LogicalExternalFileGetToPhysical : public Rule {
    * @param transformed Vector of transformed OperatorExpressions
    * @param context Current OptimizeContext executing under
    */
-  void Transform(OperatorExpression* input,
-                 std::vector<OperatorExpression*> *transformed,
+  void Transform(OperatorExpression *input, std::vector<OperatorExpression *> *transformed,
                  OptimizeContext *context) const override;
 };
 
@@ -149,7 +145,7 @@ class GetToTableFreeScan : public Rule {
    * @param context Current OptimizeContext executing under
    * @returns Whether the input OperatorExpression passes the check
    */
-  bool Check(OperatorExpression* plan, OptimizeContext *context) const override;
+  bool Check(OperatorExpression *plan, OptimizeContext *context) const override;
 
   /**
    * Transforms the input expression using the given rule
@@ -157,8 +153,7 @@ class GetToTableFreeScan : public Rule {
    * @param transformed Vector of transformed OperatorExpressions
    * @param context Current OptimizeContext executing under
    */
-  void Transform(OperatorExpression* input,
-                 std::vector<OperatorExpression*> *transformed,
+  void Transform(OperatorExpression *input, std::vector<OperatorExpression *> *transformed,
                  OptimizeContext *context) const override;
 };
 
@@ -178,7 +173,7 @@ class GetToIndexScan : public Rule {
    * @param context Current OptimizeContext executing under
    * @returns Whether the input OperatorExpression passes the check
    */
-  bool Check(OperatorExpression* plan, OptimizeContext *context) const override;
+  bool Check(OperatorExpression *plan, OptimizeContext *context) const override;
 
   /**
    * Transforms the input expression using the given rule
@@ -186,8 +181,7 @@ class GetToIndexScan : public Rule {
    * @param transformed Vector of transformed OperatorExpressions
    * @param context Current OptimizeContext executing under
    */
-  void Transform(OperatorExpression* input,
-                 std::vector<OperatorExpression*> *transformed,
+  void Transform(OperatorExpression *input, std::vector<OperatorExpression *> *transformed,
                  OptimizeContext *context) const override;
 };
 
@@ -207,7 +201,7 @@ class LogicalQueryDerivedGetToPhysical : public Rule {
    * @param context Current OptimizeContext executing under
    * @returns Whether the input OperatorExpression passes the check
    */
-  bool Check(OperatorExpression* plan, OptimizeContext *context) const override;
+  bool Check(OperatorExpression *plan, OptimizeContext *context) const override;
 
   /**
    * Transforms the input expression using the given rule
@@ -215,8 +209,7 @@ class LogicalQueryDerivedGetToPhysical : public Rule {
    * @param transformed Vector of transformed OperatorExpressions
    * @param context Current OptimizeContext executing under
    */
-  void Transform(OperatorExpression* input,
-                 std::vector<OperatorExpression*> *transformed,
+  void Transform(OperatorExpression *input, std::vector<OperatorExpression *> *transformed,
                  OptimizeContext *context) const override;
 };
 
@@ -236,7 +229,7 @@ class LogicalDeleteToPhysical : public Rule {
    * @param context Current OptimizeContext executing under
    * @returns Whether the input OperatorExpression passes the check
    */
-  bool Check(OperatorExpression* plan, OptimizeContext *context) const override;
+  bool Check(OperatorExpression *plan, OptimizeContext *context) const override;
 
   /**
    * Transforms the input expression using the given rule
@@ -244,8 +237,7 @@ class LogicalDeleteToPhysical : public Rule {
    * @param transformed Vector of transformed OperatorExpressions
    * @param context Current OptimizeContext executing under
    */
-  void Transform(OperatorExpression* input,
-                 std::vector<OperatorExpression*> *transformed,
+  void Transform(OperatorExpression *input, std::vector<OperatorExpression *> *transformed,
                  OptimizeContext *context) const override;
 };
 
@@ -265,7 +257,7 @@ class LogicalUpdateToPhysical : public Rule {
    * @param context Current OptimizeContext executing under
    * @returns Whether the input OperatorExpression passes the check
    */
-  bool Check(OperatorExpression* plan, OptimizeContext *context) const override;
+  bool Check(OperatorExpression *plan, OptimizeContext *context) const override;
 
   /**
    * Transforms the input expression using the given rule
@@ -273,8 +265,7 @@ class LogicalUpdateToPhysical : public Rule {
    * @param transformed Vector of transformed OperatorExpressions
    * @param context Current OptimizeContext executing under
    */
-  void Transform(OperatorExpression* input,
-                 std::vector<OperatorExpression*> *transformed,
+  void Transform(OperatorExpression *input, std::vector<OperatorExpression *> *transformed,
                  OptimizeContext *context) const override;
 };
 
@@ -294,7 +285,7 @@ class LogicalInsertToPhysical : public Rule {
    * @param context Current OptimizeContext executing under
    * @returns Whether the input OperatorExpression passes the check
    */
-  bool Check(OperatorExpression* plan, OptimizeContext *context) const override;
+  bool Check(OperatorExpression *plan, OptimizeContext *context) const override;
 
   /**
    * Transforms the input expression using the given rule
@@ -302,8 +293,7 @@ class LogicalInsertToPhysical : public Rule {
    * @param transformed Vector of transformed OperatorExpressions
    * @param context Current OptimizeContext executing under
    */
-  void Transform(OperatorExpression* input,
-                 std::vector<OperatorExpression*> *transformed,
+  void Transform(OperatorExpression *input, std::vector<OperatorExpression *> *transformed,
                  OptimizeContext *context) const override;
 };
 
@@ -323,7 +313,7 @@ class LogicalInsertSelectToPhysical : public Rule {
    * @param context Current OptimizeContext executing under
    * @returns Whether the input OperatorExpression passes the check
    */
-  bool Check(OperatorExpression* plan, OptimizeContext *context) const override;
+  bool Check(OperatorExpression *plan, OptimizeContext *context) const override;
 
   /**
    * Transforms the input expression using the given rule
@@ -331,8 +321,7 @@ class LogicalInsertSelectToPhysical : public Rule {
    * @param transformed Vector of transformed OperatorExpressions
    * @param context Current OptimizeContext executing under
    */
-  void Transform(OperatorExpression* input,
-                 std::vector<OperatorExpression*> *transformed,
+  void Transform(OperatorExpression *input, std::vector<OperatorExpression *> *transformed,
                  OptimizeContext *context) const override;
 };
 
@@ -352,7 +341,7 @@ class LogicalGroupByToHashGroupBy : public Rule {
    * @param context Current OptimizeContext executing under
    * @returns Whether the input OperatorExpression passes the check
    */
-  bool Check(OperatorExpression* plan, OptimizeContext *context) const override;
+  bool Check(OperatorExpression *plan, OptimizeContext *context) const override;
 
   /**
    * Transforms the input expression using the given rule
@@ -360,8 +349,7 @@ class LogicalGroupByToHashGroupBy : public Rule {
    * @param transformed Vector of transformed OperatorExpressions
    * @param context Current OptimizeContext executing under
    */
-  void Transform(OperatorExpression* input,
-                 std::vector<OperatorExpression*> *transformed,
+  void Transform(OperatorExpression *input, std::vector<OperatorExpression *> *transformed,
                  OptimizeContext *context) const override;
 };
 
@@ -381,7 +369,7 @@ class LogicalAggregateToPhysical : public Rule {
    * @param context Current OptimizeContext executing under
    * @returns Whether the input OperatorExpression passes the check
    */
-  bool Check(OperatorExpression* plan, OptimizeContext *context) const override;
+  bool Check(OperatorExpression *plan, OptimizeContext *context) const override;
 
   /**
    * Transforms the input expression using the given rule
@@ -389,8 +377,7 @@ class LogicalAggregateToPhysical : public Rule {
    * @param transformed Vector of transformed OperatorExpressions
    * @param context Current OptimizeContext executing under
    */
-  void Transform(OperatorExpression* input,
-                 std::vector<OperatorExpression*> *transformed,
+  void Transform(OperatorExpression *input, std::vector<OperatorExpression *> *transformed,
                  OptimizeContext *context) const override;
 };
 
@@ -410,7 +397,7 @@ class InnerJoinToInnerNLJoin : public Rule {
    * @param context Current OptimizeContext executing under
    * @returns Whether the input OperatorExpression passes the check
    */
-  bool Check(OperatorExpression* plan, OptimizeContext *context) const override;
+  bool Check(OperatorExpression *plan, OptimizeContext *context) const override;
 
   /**
    * Transforms the input expression using the given rule
@@ -418,8 +405,7 @@ class InnerJoinToInnerNLJoin : public Rule {
    * @param transformed Vector of transformed OperatorExpressions
    * @param context Current OptimizeContext executing under
    */
-  void Transform(OperatorExpression* input,
-                 std::vector<OperatorExpression*> *transformed,
+  void Transform(OperatorExpression *input, std::vector<OperatorExpression *> *transformed,
                  OptimizeContext *context) const override;
 };
 
@@ -439,7 +425,7 @@ class InnerJoinToInnerHashJoin : public Rule {
    * @param context Current OptimizeContext executing under
    * @returns Whether the input OperatorExpression passes the check
    */
-  bool Check(OperatorExpression* plan, OptimizeContext *context) const override;
+  bool Check(OperatorExpression *plan, OptimizeContext *context) const override;
 
   /**
    * Transforms the input expression using the given rule
@@ -447,8 +433,7 @@ class InnerJoinToInnerHashJoin : public Rule {
    * @param transformed Vector of transformed OperatorExpressions
    * @param context Current OptimizeContext executing under
    */
-  void Transform(OperatorExpression* input,
-                 std::vector<OperatorExpression*> *transformed,
+  void Transform(OperatorExpression *input, std::vector<OperatorExpression *> *transformed,
                  OptimizeContext *context) const override;
 };
 
@@ -468,7 +453,7 @@ class ImplementDistinct : public Rule {
    * @param context Current OptimizeContext executing under
    * @returns Whether the input OperatorExpression passes the check
    */
-  bool Check(OperatorExpression* plan, OptimizeContext *context) const override;
+  bool Check(OperatorExpression *plan, OptimizeContext *context) const override;
 
   /**
    * Transforms the input expression using the given rule
@@ -476,8 +461,7 @@ class ImplementDistinct : public Rule {
    * @param transformed Vector of transformed OperatorExpressions
    * @param context Current OptimizeContext executing under
    */
-  void Transform(OperatorExpression* input,
-                 std::vector<OperatorExpression*> *transformed,
+  void Transform(OperatorExpression *input, std::vector<OperatorExpression *> *transformed,
                  OptimizeContext *context) const override;
 };
 
@@ -497,7 +481,7 @@ class ImplementLimit : public Rule {
    * @param context Current OptimizeContext executing under
    * @returns Whether the input OperatorExpression passes the check
    */
-  bool Check(OperatorExpression* plan, OptimizeContext *context) const override;
+  bool Check(OperatorExpression *plan, OptimizeContext *context) const override;
 
   /**
    * Transforms the input expression using the given rule
@@ -505,8 +489,7 @@ class ImplementLimit : public Rule {
    * @param transformed Vector of transformed OperatorExpressions
    * @param context Current OptimizeContext executing under
    */
-  void Transform(OperatorExpression* input,
-                 std::vector<OperatorExpression*> *transformed,
+  void Transform(OperatorExpression *input, std::vector<OperatorExpression *> *transformed,
                  OptimizeContext *context) const override;
 };
 
@@ -526,7 +509,7 @@ class LogicalExportToPhysicalExport : public Rule {
    * @param context Current OptimizeContext executing under
    * @returns Whether the input OperatorExpression passes the check
    */
-  bool Check(OperatorExpression* plan, OptimizeContext *context) const override;
+  bool Check(OperatorExpression *plan, OptimizeContext *context) const override;
 
   /**
    * Transforms the input expression using the given rule
@@ -534,8 +517,7 @@ class LogicalExportToPhysicalExport : public Rule {
    * @param transformed Vector of transformed OperatorExpressions
    * @param context Current OptimizeContext executing under
    */
-  void Transform(OperatorExpression* input,
-                 std::vector<OperatorExpression*> *transformed,
+  void Transform(OperatorExpression *input, std::vector<OperatorExpression *> *transformed,
                  OptimizeContext *context) const override;
 };
 
@@ -562,7 +544,7 @@ class PushFilterThroughJoin : public Rule {
    * @param context Current OptimizeContext executing under
    * @returns Whether the input OperatorExpression passes the check
    */
-  bool Check(OperatorExpression* plan, OptimizeContext *context) const override;
+  bool Check(OperatorExpression *plan, OptimizeContext *context) const override;
 
   /**
    * Transforms the input expression using the given rule
@@ -570,8 +552,7 @@ class PushFilterThroughJoin : public Rule {
    * @param transformed Vector of transformed OperatorExpressions
    * @param context Current OptimizeContext executing under
    */
-  void Transform(OperatorExpression* input,
-                 std::vector<OperatorExpression*> *transformed,
+  void Transform(OperatorExpression *input, std::vector<OperatorExpression *> *transformed,
                  OptimizeContext *context) const override;
 };
 
@@ -591,7 +572,7 @@ class CombineConsecutiveFilter : public Rule {
    * @param context Current OptimizeContext executing under
    * @returns Whether the input OperatorExpression passes the check
    */
-  bool Check(OperatorExpression* plan, OptimizeContext *context) const override;
+  bool Check(OperatorExpression *plan, OptimizeContext *context) const override;
 
   /**
    * Transforms the input expression using the given rule
@@ -599,8 +580,7 @@ class CombineConsecutiveFilter : public Rule {
    * @param transformed Vector of transformed OperatorExpressions
    * @param context Current OptimizeContext executing under
    */
-  void Transform(OperatorExpression* input,
-                 std::vector<OperatorExpression*> *transformed,
+  void Transform(OperatorExpression *input, std::vector<OperatorExpression *> *transformed,
                  OptimizeContext *context) const override;
 };
 
@@ -621,7 +601,7 @@ class PushFilterThroughAggregation : public Rule {
    * @param context Current OptimizeContext executing under
    * @returns Whether the input OperatorExpression passes the check
    */
-  bool Check(OperatorExpression* plan, OptimizeContext *context) const override;
+  bool Check(OperatorExpression *plan, OptimizeContext *context) const override;
 
   /**
    * Transforms the input expression using the given rule
@@ -629,8 +609,7 @@ class PushFilterThroughAggregation : public Rule {
    * @param transformed Vector of transformed OperatorExpressions
    * @param context Current OptimizeContext executing under
    */
-  void Transform(OperatorExpression* input,
-                 std::vector<OperatorExpression*> *transformed,
+  void Transform(OperatorExpression *input, std::vector<OperatorExpression *> *transformed,
                  OptimizeContext *context) const override;
 };
 
@@ -652,7 +631,7 @@ class EmbedFilterIntoGet : public Rule {
    * @param context Current OptimizeContext executing under
    * @returns Whether the input OperatorExpression passes the check
    */
-  bool Check(OperatorExpression* plan, OptimizeContext *context) const override;
+  bool Check(OperatorExpression *plan, OptimizeContext *context) const override;
 
   /**
    * Transforms the input expression using the given rule
@@ -660,8 +639,7 @@ class EmbedFilterIntoGet : public Rule {
    * @param transformed Vector of transformed OperatorExpressions
    * @param context Current OptimizeContext executing under
    */
-  void Transform(OperatorExpression* input,
-                 std::vector<OperatorExpression*> *transformed,
+  void Transform(OperatorExpression *input, std::vector<OperatorExpression *> *transformed,
                  OptimizeContext *context) const override;
 };
 
@@ -698,7 +676,7 @@ class MarkJoinToInnerJoin : public Rule {
    * @param context Current OptimizeContext executing under
    * @returns Whether the input OperatorExpression passes the check
    */
-  bool Check(OperatorExpression* plan, OptimizeContext *context) const override;
+  bool Check(OperatorExpression *plan, OptimizeContext *context) const override;
 
   /**
    * Transforms the input expression using the given rule
@@ -706,8 +684,7 @@ class MarkJoinToInnerJoin : public Rule {
    * @param transformed Vector of transformed OperatorExpressions
    * @param context Current OptimizeContext executing under
    */
-  void Transform(OperatorExpression* input,
-                 std::vector<OperatorExpression*> *transformed,
+  void Transform(OperatorExpression *input, std::vector<OperatorExpression *> *transformed,
                  OptimizeContext *context) const override;
 };
 ///////////////////////////////////////////////////////////////////////////////
@@ -733,7 +710,7 @@ class SingleJoinToInnerJoin : public Rule {
    * @param context Current OptimizeContext executing under
    * @returns Whether the input OperatorExpression passes the check
    */
-  bool Check(OperatorExpression* plan, OptimizeContext *context) const override;
+  bool Check(OperatorExpression *plan, OptimizeContext *context) const override;
 
   /**
    * Transforms the input expression using the given rule
@@ -741,8 +718,7 @@ class SingleJoinToInnerJoin : public Rule {
    * @param transformed Vector of transformed OperatorExpressions
    * @param context Current OptimizeContext executing under
    */
-  void Transform(OperatorExpression* input,
-                 std::vector<OperatorExpression*> *transformed,
+  void Transform(OperatorExpression *input, std::vector<OperatorExpression *> *transformed,
                  OptimizeContext *context) const override;
 };
 
@@ -769,7 +745,7 @@ class PullFilterThroughMarkJoin : public Rule {
    * @param context Current OptimizeContext executing under
    * @returns Whether the input OperatorExpression passes the check
    */
-  bool Check(OperatorExpression* plan, OptimizeContext *context) const override;
+  bool Check(OperatorExpression *plan, OptimizeContext *context) const override;
 
   /**
    * Transforms the input expression using the given rule
@@ -777,8 +753,7 @@ class PullFilterThroughMarkJoin : public Rule {
    * @param transformed Vector of transformed OperatorExpressions
    * @param context Current OptimizeContext executing under
    */
-  void Transform(OperatorExpression* input,
-                 std::vector<OperatorExpression*> *transformed,
+  void Transform(OperatorExpression *input, std::vector<OperatorExpression *> *transformed,
                  OptimizeContext *context) const override;
 };
 
@@ -805,7 +780,7 @@ class PullFilterThroughAggregation : public Rule {
    * @param context Current OptimizeContext executing under
    * @returns Whether the input OperatorExpression passes the check
    */
-  bool Check(OperatorExpression* plan, OptimizeContext *context) const override;
+  bool Check(OperatorExpression *plan, OptimizeContext *context) const override;
 
   /**
    * Transforms the input expression using the given rule
@@ -813,8 +788,7 @@ class PullFilterThroughAggregation : public Rule {
    * @param transformed Vector of transformed OperatorExpressions
    * @param context Current OptimizeContext executing under
    */
-  void Transform(OperatorExpression* input,
-                 std::vector<OperatorExpression*> *transformed,
+  void Transform(OperatorExpression *input, std::vector<OperatorExpression *> *transformed,
                  OptimizeContext *context) const override;
 };
 }  // namespace terrier::optimizer

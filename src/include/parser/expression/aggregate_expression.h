@@ -83,7 +83,7 @@ class AggregateExpression : public AbstractExpression {
       case ExpressionType::AGGREGATE_MIN:
       case ExpressionType::AGGREGATE_SUM:
         TERRIER_ASSERT(this->GetChildrenSize() >= 1, "No column name given.");
-        const_cast<parser::AbstractExpression*>(this->GetChild(0).get())->DeriveReturnValueType();
+        const_cast<parser::AbstractExpression *>(this->GetChild(0).get())->DeriveReturnValueType();
         this->SetReturnValueType(this->GetChild(0)->GetReturnValueType());
         break;
       case ExpressionType::AGGREGATE_AVG:
@@ -121,9 +121,8 @@ class AggregateExpression : public AbstractExpression {
    * @param other AggregateExpression to copy from
    * @param children Children of the new AggregateExpression
    */
-  AggregateExpression(const AggregateExpression &other, std::vector<const AbstractExpression*> &&children)
-    : AbstractExpression(other),
-      distinct_(other.distinct_) {
+  AggregateExpression(const AggregateExpression &other, std::vector<const AbstractExpression *> &&children)
+      : AbstractExpression(other), distinct_(other.distinct_) {
     children_ = children;
   }
 

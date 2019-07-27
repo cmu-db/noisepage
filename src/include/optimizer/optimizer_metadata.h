@@ -5,8 +5,8 @@
 
 #include "common/settings.h"
 #include "optimizer/cost_model/abstract_cost_model.h"
-#include "optimizer/memo.h"
 #include "optimizer/group_expression.h"
+#include "optimizer/memo.h"
 #include "optimizer/rule.h"
 
 namespace terrier {
@@ -34,9 +34,7 @@ class OptimizerMetadata {
    * Constructor for OptimizerMetadata
    * @param cost_model Cost Model to be stored by OptimizerMetadata
    */
-  explicit OptimizerMetadata(AbstractCostModel *cost_model)
-      : cost_model_(cost_model),
-        task_pool_(nullptr) {}
+  explicit OptimizerMetadata(AbstractCostModel *cost_model) : cost_model_(cost_model), task_pool_(nullptr) {}
 
   /**
    * Destructor
@@ -47,7 +45,9 @@ class OptimizerMetadata {
     delete cost_model_;
     delete task_pool_;
 
-    for (auto *ctx : track_list_) { delete ctx; }
+    for (auto *ctx : track_list_) {
+      delete ctx;
+    }
   }
 
   /**
@@ -63,34 +63,26 @@ class OptimizerMetadata {
   /**
    * Gets the CatalogAccessor
    */
-  catalog::CatalogAccessor *GetCatalogAccessor() {
-    return accessor_;
-  }
+  catalog::CatalogAccessor *GetCatalogAccessor() { return accessor_; }
 
   /**
    * Adds a OptimizeContext to the tracking list
    * @param ctx OptimizeContext to add to tracking
    * TODO(wz2): narrow object lifecycle to parent task
    */
-  void AddOptimizeContext(OptimizeContext *ctx) {
-    track_list_.push_back(ctx);
-  }
+  void AddOptimizeContext(OptimizeContext *ctx) { track_list_.push_back(ctx); }
 
   /**
    * Pushes a task to the task pool managed
    * @param task Task to push
    */
-  void PushTask(OptimizerTask *task) {
-    task_pool_->Push(task);
-  }
+  void PushTask(OptimizerTask *task) { task_pool_->Push(task); }
 
   /**
    * Gets the cost model
    * @returns Cost Model
    */
-  AbstractCostModel *GetCostModel() {
-    return cost_model_;
-  }
+  AbstractCostModel *GetCostModel() { return cost_model_; }
 
   /**
    * Relinquishes control of CostModel
@@ -108,23 +100,17 @@ class OptimizerMetadata {
    * Gets the transaction
    * @returns transaction
    */
-  transaction::TransactionContext *GetTxn() {
-    return txn_;
-  }
+  transaction::TransactionContext *GetTxn() { return txn_; }
 
   /**
    * Sets the transaction
    */
-  void SetTxn(transaction::TransactionContext *txn) {
-    txn_ = txn;
-  }
+  void SetTxn(transaction::TransactionContext *txn) { txn_ = txn; }
 
   /**
    * Sets the CatalogAccessor
    */
-  void SetCatalogAccessor(catalog::CatalogAccessor *accessor) {
-    accessor_ = accessor;
-  }
+  void SetCatalogAccessor(catalog::CatalogAccessor *accessor) { accessor_ = accessor; }
 
   /**
    * Set the task pool tracked by the OptimizerMetadata.
@@ -149,7 +135,7 @@ class OptimizerMetadata {
    * @param expr OperatorExpression to convert
    * @returns GroupExpression representing OperatorExpression
    */
-  GroupExpression* MakeGroupExpression(OperatorExpression* expr) {
+  GroupExpression *MakeGroupExpression(OperatorExpression *expr) {
     std::vector<GroupID> child_groups;
     for (auto &child : expr->GetChildren()) {
       // Create a GroupExpression for the child
@@ -179,7 +165,7 @@ class OptimizerMetadata {
    * @param gexpr Places the newly created GroupExpression
    * @returns Whether the OperatorExpression already exists
    */
-  bool RecordTransformedExpression(OperatorExpression* expr, GroupExpression** gexpr) {
+  bool RecordTransformedExpression(OperatorExpression *expr, GroupExpression **gexpr) {
     return RecordTransformedExpression(expr, gexpr, UNDEFINED_GROUP);
   }
 
@@ -194,7 +180,7 @@ class OptimizerMetadata {
    * @param target_group ID of the Group that the OperatorExpression belongs to
    * @returns Whether the OperatorExpression already exists
    */
-  bool RecordTransformedExpression(OperatorExpression* expr, GroupExpression** gexpr, GroupID target_group) {
+  bool RecordTransformedExpression(OperatorExpression *expr, GroupExpression **gexpr, GroupID target_group) {
     auto new_gexpr = MakeGroupExpression(expr);
     auto ptr = memo_.InsertExpression(new_gexpr, target_group, false);
     TERRIER_ASSERT(ptr, "Root of expr should not fail insertion");
@@ -213,7 +199,7 @@ class OptimizerMetadata {
    * @param expr OperatorExpression to store into the group
    * @param target_group ID of the Group to replace
    */
-  void ReplaceRewritedExpression(OperatorExpression* expr, GroupID target_group) {
+  void ReplaceRewritedExpression(OperatorExpression *expr, GroupID target_group) {
     memo_.EraseExpression(target_group);
     auto ret = memo_.InsertExpression(MakeGroupExpression(expr), target_group, false);
     TERRIER_ASSERT(ret, "Root expr should always be inserted");
@@ -233,7 +219,7 @@ class OptimizerMetadata {
   /**
    * Cost Model pointer
    */
-  AbstractCostModel* cost_model_;
+  AbstractCostModel *cost_model_;
 
   /**
    * Pool of Optimizer tasks to execute
@@ -248,12 +234,12 @@ class OptimizerMetadata {
   /**
    * TransactionContxt used for execution
    */
-  transaction::TransactionContext* txn_;
+  transaction::TransactionContext *txn_;
 
   /**
    * List to track OptimizeContext created
    */
-  std::vector<OptimizeContext*> track_list_;
+  std::vector<OptimizeContext *> track_list_;
 };
 
 }  // namespace optimizer

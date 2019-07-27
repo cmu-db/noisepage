@@ -37,9 +37,7 @@ class CaseExpression : public AbstractExpression {
      * Copies this WhenClause
      * @returns copy of this
      */
-    WhenClause *Copy() const {
-      return new WhenClause(condition_->Copy(), then_->Copy());
-    }
+    WhenClause *Copy() const { return new WhenClause(condition_->Copy(), then_->Copy()); }
 
     ~WhenClause() {
       delete condition_;
@@ -156,9 +154,7 @@ class CaseExpression : public AbstractExpression {
    * Copies this CaseExpression
    * @returns copy of this
    */
-  const AbstractExpression *Copy() const override {
-    return new CaseExpression(*this);
-  }
+  const AbstractExpression *Copy() const override { return new CaseExpression(*this); }
 
   /**
    * Creates a copy of the current AbstractExpression with new children implanted.
@@ -167,7 +163,7 @@ class CaseExpression : public AbstractExpression {
    * @returns copy of this
    */
   const AbstractExpression *CopyWithChildren(
-    UNUSED_ATTRIBUTE std::vector<const AbstractExpression *> children) const override {
+      UNUSED_ATTRIBUTE std::vector<const AbstractExpression *> children) const override {
     TERRIER_ASSERT(children.empty(), "CaseExpression should have no children");
     return Copy();
   }
@@ -235,8 +231,7 @@ class CaseExpression : public AbstractExpression {
    * Relies on AbstractExpression copy constructor for base members.
    * @param other CaseExpression to copy from
    */
-  CaseExpression(const CaseExpression &other)
-    : AbstractExpression(other) {
+  CaseExpression(const CaseExpression &other) : AbstractExpression(other) {
     for (auto clause : other.when_clauses_) {
       when_clauses_.push_back(clause->Copy());
     }
@@ -254,7 +249,7 @@ class CaseExpression : public AbstractExpression {
   /**
    * default conditon and result case
    */
-  const AbstractExpression* default_expr_;
+  const AbstractExpression *default_expr_;
 };
 
 DEFINE_JSON_DECLARATIONS(CaseExpression::WhenClause);

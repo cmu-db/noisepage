@@ -58,8 +58,8 @@ class ComparisonExpression : public AbstractExpression {
    * @param other ComparisonExpression to copy from
    * @param children Children of the new ComparisonExpression
    */
-  ComparisonExpression(const ComparisonExpression &other, std::vector<const AbstractExpression*> &&children)
-    : AbstractExpression(other) {
+  ComparisonExpression(const ComparisonExpression &other, std::vector<const AbstractExpression *> &&children)
+      : AbstractExpression(other) {
     children_ = children;
   }
 };

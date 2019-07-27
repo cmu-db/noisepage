@@ -12,9 +12,7 @@ class PropertyVisitor;
 /**
  * Enum defining the types of properties
  */
-enum class PropertyType {
-  SORT
-};
+enum class PropertyType { SORT };
 
 /**
  * Abstract interface defining a physical property (i.e sort).
@@ -43,7 +41,7 @@ class Property {
   /**
    * Copy
    */
-  virtual Property* Copy() = 0;
+  virtual Property *Copy() = 0;
 
   /**
    * Hashes the given Property
@@ -58,9 +56,7 @@ class Property {
    * Checks whether this >= r
    * @returns TRUE if this and r share the same type
    */
-  virtual bool operator>=(const Property &r) const {
-    return Type() == r.Type();
-  }
+  virtual bool operator>=(const Property &r) const { return Type() == r.Type(); }
 
   /**
    * Accept function used for visitor pattern

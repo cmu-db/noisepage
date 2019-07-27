@@ -20,7 +20,7 @@ class PropertyEnforcer : public PropertyVisitor {
    * @param property Property to enforce
    * @returns GroupExpression that enforces this property
    */
-  GroupExpression* EnforceProperty(GroupExpression* gexpr, Property* property);
+  GroupExpression *EnforceProperty(GroupExpression *gexpr, Property *property);
 
   /**
    * Implementation of the Visit function for PropertySort
@@ -29,8 +29,8 @@ class PropertyEnforcer : public PropertyVisitor {
   void Visit(const PropertySort *prop) override;
 
  private:
-  GroupExpression* input_gexpr_;
-  GroupExpression* output_gexpr_;
+  GroupExpression *input_gexpr_;
+  GroupExpression *output_gexpr_;
 };
 
 }  // namespace terrier::optimizer

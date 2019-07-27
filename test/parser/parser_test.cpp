@@ -718,8 +718,10 @@ TEST_F(ParserTestBase, OldGroupByTest) {
 
   EXPECT_EQ(2, group_by->GetGroupByColumnsSize());
   // Assume the parsed column order is the same as in the query
-  EXPECT_EQ("id", reinterpret_cast<const ColumnValueExpression *>(group_by->GetGroupByColumn(0).get())->GetColumnName());
-  EXPECT_EQ("name", reinterpret_cast<const ColumnValueExpression *>(group_by->GetGroupByColumn(1).get())->GetColumnName());
+  EXPECT_EQ("id",
+            reinterpret_cast<const ColumnValueExpression *>(group_by->GetGroupByColumn(0).get())->GetColumnName());
+  EXPECT_EQ("name",
+            reinterpret_cast<const ColumnValueExpression *>(group_by->GetGroupByColumn(1).get())->GetColumnName());
 
   auto having = statement->GetSelectGroupBy()->GetHaving();
   EXPECT_EQ(ExpressionType::COMPARE_GREATER_THAN, having->GetExpressionType());

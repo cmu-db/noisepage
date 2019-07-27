@@ -1,5 +1,6 @@
-#include <vector>
+#include <string>
 #include <unordered_set>
+#include <vector>
 
 #include "optimizer/optimizer_defs.h"
 #include "optimizer/util.h"
@@ -7,20 +8,18 @@
 
 namespace terrier::optimizer::util {
 
-void ExtractEquiJoinKeys(
-    const std::vector<AnnotatedExpression> join_predicates,
-    std::vector<common::ManagedPointer<parser::AbstractExpression>> *left_keys,
-    std::vector<common::ManagedPointer<parser::AbstractExpression>> *right_keys,
-    const std::unordered_set<std::string> &left_alias,
-    const std::unordered_set<std::string> &right_alias) {
-
+void ExtractEquiJoinKeys(const std::vector<AnnotatedExpression> &join_predicates,
+                         std::vector<common::ManagedPointer<parser::AbstractExpression>> *left_keys,
+                         std::vector<common::ManagedPointer<parser::AbstractExpression>> *right_keys,
+                         const std::unordered_set<std::string> &left_alias,
+                         const std::unordered_set<std::string> &right_alias) {
   for (auto &expr_unit : join_predicates) {
     auto expr = expr_unit.GetExpr();
     if (expr->GetExpressionType() == parser::ExpressionType::COMPARE_EQUAL) {
       auto l_expr = expr->GetChild(0);
       auto r_expr = expr->GetChild(1);
       TERRIER_ASSERT(l_expr->GetExpressionType() != parser::ExpressionType::VALUE_TUPLE &&
-                     r_expr->GetExpressionType() != parser::ExpressionType::VALUE_TUPLE,
+                         r_expr->GetExpressionType() != parser::ExpressionType::VALUE_TUPLE,
                      "DerivedValue should not exist here");
 
       // equi-join between two ColumnValueExpressions
@@ -28,8 +27,8 @@ void ExtractEquiJoinKeys(
           r_expr->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE) {
         auto l_tv_expr = l_expr.CastManagedPointerTo<const parser::ColumnValueExpression>();
         auto r_tv_expr = r_expr.CastManagedPointerTo<const parser::ColumnValueExpression>();
-        auto l_expr = const_cast<parser::ColumnValueExpression*>(l_tv_expr.get());
-        auto r_expr = const_cast<parser::ColumnValueExpression*>(r_tv_expr.get());
+        auto l_expr = const_cast<parser::ColumnValueExpression *>(l_tv_expr.get());
+        auto r_expr = const_cast<parser::ColumnValueExpression *>(r_tv_expr.get());
 
         // Assign keys based on left and right join tables
         // l_tv_expr/r_tv_expr should not be modified later...

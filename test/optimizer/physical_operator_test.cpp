@@ -252,13 +252,13 @@ TEST(OperatorTests, ExternalFileScanTest) {
   //===--------------------------------------------------------------------===//
   // ExternalFileScan
   //===--------------------------------------------------------------------===//
-  Operator ext_file_scan_1 = ExternalFileScan::make(parser::ExternalFileFormat::CSV, "file.txt", ',', '"', '\\');
-  Operator ext_file_scan_2 = ExternalFileScan::make(parser::ExternalFileFormat::CSV, "file.txt", ',', '"', '\\');
-  Operator ext_file_scan_3 = ExternalFileScan::make(parser::ExternalFileFormat::CSV, "file2.txt", ',', '"', '\\');
-  Operator ext_file_scan_4 = ExternalFileScan::make(parser::ExternalFileFormat::BINARY, "file.txt", ',', '"', '\\');
-  Operator ext_file_scan_5 = ExternalFileScan::make(parser::ExternalFileFormat::CSV, "file.txt", ' ', '"', '\\');
-  Operator ext_file_scan_6 = ExternalFileScan::make(parser::ExternalFileFormat::CSV, "file.txt", ',', '\'', '\\');
-  Operator ext_file_scan_7 = ExternalFileScan::make(parser::ExternalFileFormat::CSV, "file.txt", ',', '"', '&');
+  Operator ext_file_scan_1 = ExternalFileScan::make(parser::ExternalFileFormat::CSV, "file.txt", ',', '"', '\\', "");
+  Operator ext_file_scan_2 = ExternalFileScan::make(parser::ExternalFileFormat::CSV, "file.txt", ',', '"', '\\', "");
+  Operator ext_file_scan_3 = ExternalFileScan::make(parser::ExternalFileFormat::CSV, "file2.txt", ',', '"', '\\', "");
+  Operator ext_file_scan_4 = ExternalFileScan::make(parser::ExternalFileFormat::BINARY, "file.txt", ',', '"', '\\', "");
+  Operator ext_file_scan_5 = ExternalFileScan::make(parser::ExternalFileFormat::CSV, "file.txt", ' ', '"', '\\', "");
+  Operator ext_file_scan_6 = ExternalFileScan::make(parser::ExternalFileFormat::CSV, "file.txt", ',', '\'', '\\', "");
+  Operator ext_file_scan_7 = ExternalFileScan::make(parser::ExternalFileFormat::CSV, "file.txt", ',', '"', '&', "");
 
   EXPECT_EQ(ext_file_scan_1.GetType(), OpType::EXTERNALFILESCAN);
   EXPECT_EQ(ext_file_scan_1.GetName(), "ExternalFileScan");
@@ -879,7 +879,7 @@ TEST(OperatorTests, UpdateTest) {
   catalog::table_oid_t table_oid(789);
 
   // Check that all of our GET methods work as expected
-  Operator op1 = Update::make(database_oid, namespace_oid, table_oid, {update_clause});
+  Operator op1 = Update::make(database_oid, namespace_oid, "tbl", table_oid, {update_clause});
   EXPECT_EQ(op1.GetType(), OpType::UPDATE);
   EXPECT_EQ(op1.As<Update>()->GetDatabaseOid(), database_oid);
   EXPECT_EQ(op1.As<Update>()->GetNamespaceOid(), namespace_oid);
@@ -889,13 +889,13 @@ TEST(OperatorTests, UpdateTest) {
 
   // Check that if we make a new object with the same values, then it will
   // be equal to our first object and have the same hash
-  Operator op2 = Update::make(database_oid, namespace_oid, table_oid, {update_clause});
+  Operator op2 = Update::make(database_oid, namespace_oid, "tbl", table_oid, {update_clause});
   EXPECT_TRUE(op1 == op2);
   EXPECT_EQ(op1.Hash(), op2.Hash());
 
   // Lastly, make a different object and make sure that it is not equal
   // and that it's hash is not the same!
-  Operator op3 = Update::make(database_oid, namespace_oid, table_oid, {});
+  Operator op3 = Update::make(database_oid, namespace_oid, "tbl", table_oid, {});
   EXPECT_FALSE(op1 == op3);
   EXPECT_NE(op1.Hash(), op3.Hash());
 

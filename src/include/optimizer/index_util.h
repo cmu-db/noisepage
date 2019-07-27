@@ -1,14 +1,15 @@
 #pragma once
 
-#include <vector>
-#include <utility>
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
+#include <utility>
+#include <vector>
 
 #include "catalog/catalog_accessor.h"
 #include "catalog/index_schema.h"
 #include "optimizer/properties.h"
+#include "parser/expression_util.h"
 
 namespace terrier::optimizer {
 
@@ -121,10 +122,8 @@ class IndexUtil {
    * @param accessor CatalogAccessor
    * @returns TRUE if the specified index can fulfill sort property
    */
-  static bool SatisfiesSortWithIndex(const PropertySort *prop,
-                                     catalog::table_oid_t tbl_oid,
-                                     catalog::index_oid_t idx_oid,
-                                     catalog::CatalogAccessor *accessor) {
+  static bool SatisfiesSortWithIndex(const PropertySort *prop, catalog::table_oid_t tbl_oid,
+                                     catalog::index_oid_t idx_oid, catalog::CatalogAccessor *accessor) {
     TERRIER_ASSERT(CheckSortProperty(prop), "pre-cond not satisfied");
 
     // TODO(wz2): Future consider more elaborate indexes
@@ -156,7 +155,7 @@ class IndexUtil {
     for (size_t idx = 0; idx < sort_col_size; idx++) {
       // Compare col_oid_t directly due to "Base Column" requirement
       auto *expr = prop->GetSortColumn(idx).get();
-      auto *tv_expr = dynamic_cast<const parser::ColumnValueExpression *>(expr);
+      auto *tv_expr = dynamic_cast<parser::ColumnValueExpression *>(expr);
       TERRIER_ASSERT(tv_expr, "ColumnValueExpression expected");
 
       // Sort(a,b,c) cannot be fulfilled by Index(a,c,b)
@@ -178,8 +177,7 @@ class IndexUtil {
    * @param predicates Predicates to populate metadata with
    * @param metadata IndexUtilMetadata
    */
-  static void PopulateMetadata(const std::vector<AnnotatedExpression> &predicates,
-                               IndexUtilMetadata *metadata) {
+  static void PopulateMetadata(const std::vector<AnnotatedExpression> &predicates, IndexUtilMetadata *metadata) {
     // List of column OIDs that predicates are built against
     std::vector<catalog::col_oid_t> key_column_id_list;
 
@@ -225,7 +223,7 @@ class IndexUtil {
       // If found valid tv_expr and value_expr, update col_id_list, expr_type_list and val_list
       if (tv_expr != nullptr) {
         // Get the column's col_oid_t from catalog
-        auto col_expr = dynamic_cast<const parser::ColumnValueExpression*>(tv_expr);
+        auto col_expr = dynamic_cast<const parser::ColumnValueExpression *>(tv_expr);
         TERRIER_ASSERT(col_expr, "ColumnValueExpression expected");
 
         auto col_oid = col_expr->GetColumnOid();
@@ -236,7 +234,7 @@ class IndexUtil {
         expr_type_list.push_back(expr_type);
 
         if (value_expr->GetExpressionType() == parser::ExpressionType::VALUE_CONSTANT) {
-          auto cve = dynamic_cast<const parser::ConstantValueExpression*>(value_expr);
+          auto cve = dynamic_cast<const parser::ConstantValueExpression *>(value_expr);
           TERRIER_ASSERT(cve, "ConstantValueExpression expected");
 
           // Update value_list
@@ -269,10 +267,8 @@ class IndexUtil {
    * @param accessor CatalogAccessor
    * @returns Whether index can be used
    */
-  static bool SatisfiesPredicateWithIndex(catalog::table_oid_t tbl_oid,
-                                          catalog::index_oid_t index_oid,
-                                          IndexUtilMetadata *preds_metadata,
-                                          IndexUtilMetadata *output_metadata,
+  static bool SatisfiesPredicateWithIndex(catalog::table_oid_t tbl_oid, catalog::index_oid_t index_oid,
+                                          IndexUtilMetadata *preds_metadata, IndexUtilMetadata *output_metadata,
                                           catalog::CatalogAccessor *accessor) {
     auto &index_schema = accessor->GetIndexSchema(index_oid);
     if (!SatisfiesBaseColumnRequirement(index_schema)) {
@@ -291,7 +287,9 @@ class IndexUtil {
     }
 
     std::unordered_set<catalog::col_oid_t> index_cols;
-    for (auto &id : mapped_cols) { index_cols.insert(id); }
+    for (auto &id : mapped_cols) {
+      index_cols.insert(id);
+    }
 
     std::vector<catalog::col_oid_t> output_col_list;
     std::vector<parser::ExpressionType> output_expr_list;
@@ -301,8 +299,7 @@ class IndexUtil {
     auto &input_col_list = preds_metadata->GetPredicateColumnIds();
     auto &input_expr_list = preds_metadata->GetPredicateExprTypes();
     auto &input_val_list = preds_metadata->GetPredicateValues();
-    TERRIER_ASSERT(input_col_list.size() == input_expr_list.size() &&
-                   input_col_list.size() == input_val_list.size(),
+    TERRIER_ASSERT(input_col_list.size() == input_expr_list.size() && input_col_list.size() == input_val_list.size(),
                    "Predicate metadata should all be equal length vectors");
 
     for (size_t offset = 0; offset < input_col_list.size(); offset++) {
@@ -350,11 +347,9 @@ class IndexUtil {
    * @param col_oids Vector to place col_oid_t translations
    * @returns TRUE if conversion successful
    */
-  static bool GetIndexColOid(catalog::table_oid_t tbl_oid,
-                             const catalog::IndexSchema &schema,
-                             catalog::CatalogAccessor *accessor,
-                             std::vector<catalog::col_oid_t> *col_oids) {
-    TERRIER_ASSERT(SatisfiesBaseColumnRequirement(schema),  "GetIndexColOid() pre-cond not satisfied");
+  static bool GetIndexColOid(catalog::table_oid_t tbl_oid, const catalog::IndexSchema &schema,
+                             catalog::CatalogAccessor *accessor, std::vector<catalog::col_oid_t> *col_oids) {
+    TERRIER_ASSERT(SatisfiesBaseColumnRequirement(schema), "GetIndexColOid() pre-cond not satisfied");
     catalog::Schema tbl_schema = accessor->GetSchema(tbl_oid);
     if (tbl_schema.GetColumns().size() < schema.GetColumns().size()) {
       return false;
@@ -368,7 +363,7 @@ class IndexUtil {
     for (auto &column : schema.GetColumns()) {
       auto *expr = column.StoredExpression().get();
       if (expr->GetExpressionType() == parser::ExpressionType::VALUE_TUPLE) {
-        auto *tv_expr = dynamic_cast<const parser::ColumnValueExpression*>(expr);
+        auto *tv_expr = dynamic_cast<const parser::ColumnValueExpression *>(expr);
         TERRIER_ASSERT(tv_expr, "ColumnValueExpression expected");
 
         if (accessor->GetTableOid(tv_expr->GetTableName()) != tbl_oid) {

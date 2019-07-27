@@ -1,13 +1,21 @@
-#include "loggers/optimizer_logger.h"
 #include "optimizer/group.h"
+#include "loggers/optimizer_logger.h"
 
 namespace terrier::optimizer {
 
 Group::~Group() {
-  for (auto expr : logical_expressions_) { delete expr; }
-  for (auto expr : physical_expressions_) { delete expr; }
-  for (auto expr : enforced_exprs_) { delete expr; }
-  for (auto it : lowest_cost_expressions_) { delete it.first; }
+  for (auto expr : logical_expressions_) {
+    delete expr;
+  }
+  for (auto expr : physical_expressions_) {
+    delete expr;
+  }
+  for (auto expr : enforced_exprs_) {
+    delete expr;
+  }
+  for (auto it : lowest_cost_expressions_) {
+    delete it.first;
+  }
 }
 
 void Group::EraseLogicalExpression() {
@@ -17,7 +25,7 @@ void Group::EraseLogicalExpression() {
   logical_expressions_.clear();
 }
 
-void Group::AddExpression(GroupExpression* expr, bool enforced) {
+void Group::AddExpression(GroupExpression *expr, bool enforced) {
   // Do duplicate detection
   expr->SetGroupID(id_);
   if (enforced)
@@ -28,9 +36,9 @@ void Group::AddExpression(GroupExpression* expr, bool enforced) {
     logical_expressions_.push_back(expr);
 }
 
-bool Group::SetExpressionCost(GroupExpression *expr, double cost, PropertySet* properties) {
-  OPTIMIZER_LOG_TRACE("Adding expression cost on group %d with op %s",
-            expr->GetGroupID(), expr->Op().GetName().c_str());
+bool Group::SetExpressionCost(GroupExpression *expr, double cost, PropertySet *properties) {
+  OPTIMIZER_LOG_TRACE("Adding expression cost on group %d with op %s", expr->GetGroupID(),
+                      expr->Op().GetName().c_str());
 
   auto it = lowest_cost_expressions_.find(properties);
   if (it == lowest_cost_expressions_.end()) {
@@ -50,7 +58,7 @@ bool Group::SetExpressionCost(GroupExpression *expr, double cost, PropertySet* p
   return false;
 }
 
-GroupExpression *Group::GetBestExpression(PropertySet* properties) {
+GroupExpression *Group::GetBestExpression(PropertySet *properties) {
   auto it = lowest_cost_expressions_.find(properties);
   if (it != lowest_cost_expressions_.end()) {
     return std::get<1>(it->second);
@@ -59,7 +67,7 @@ GroupExpression *Group::GetBestExpression(PropertySet* properties) {
   return nullptr;
 }
 
-bool Group::HasExpressions(PropertySet* properties) const {
+bool Group::HasExpressions(PropertySet *properties) const {
   const auto &it = lowest_cost_expressions_.find(properties);
   return (it != lowest_cost_expressions_.end());
 }

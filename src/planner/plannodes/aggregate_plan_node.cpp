@@ -7,6 +7,8 @@ namespace terrier::planner {
 common::hash_t AggregatePlanNode::Hash() const {
   common::hash_t hash = AbstractPlanNode::Hash();
 
+  hash = common::HashUtil::CombineHashInRange(hash, groupby_offsets_.begin(), groupby_offsets_.end());
+
   // Having Clause Predicate
   if (having_clause_predicate_ != nullptr) {
     hash = common::HashUtil::CombineHashes(hash, having_clause_predicate_->Hash());
@@ -45,7 +47,9 @@ bool AggregatePlanNode::operator==(const AbstractPlanNode &rhs) const {
   }
 
   // Aggregate Strategy
-  return (aggregate_strategy_ == other.aggregate_strategy_);
+  if (aggregate_strategy_ != other.aggregate_strategy_) return false;
+
+  return groupby_offsets_ == other.groupby_offsets_;
 }
 
 nlohmann::json AggregatePlanNode::ToJson() const {
@@ -53,6 +57,7 @@ nlohmann::json AggregatePlanNode::ToJson() const {
   j["having_clause_predicate"] = having_clause_predicate_;
   j["aggregate_terms"] = aggregate_terms_;
   j["aggregate_strategy"] = aggregate_strategy_;
+  j["groupby_offsets"] = groupby_offsets_;
   return j;
 }
 
@@ -69,6 +74,8 @@ void AggregatePlanNode::FromJson(const nlohmann::json &j) {
   }
 
   aggregate_strategy_ = j.at("aggregate_strategy").get<AggregateStrategyType>();
+
+  groupby_offsets_ = j.at("groupby_offsets").get<std::vector<unsigned>>();
 }
 
 }  // namespace terrier::planner

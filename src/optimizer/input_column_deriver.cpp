@@ -1,13 +1,13 @@
-#include <utility>
 #include <string>
+#include <utility>
 #include <vector>
 
-#include "parser/expression_util.h"
 #include "optimizer/input_column_deriver.h"
 #include "optimizer/memo.h"
 #include "optimizer/operator_expression.h"
 #include "optimizer/physical_operators.h"
 #include "optimizer/properties.h"
+#include "parser/expression_util.h"
 #include "storage/data_table.h"
 
 namespace terrier::optimizer {
@@ -15,20 +15,20 @@ namespace terrier::optimizer {
 /**
  * Definition for first type of pair
  */
-using PT1 = std::vector<const parser::AbstractExpression*>;
+using PT1 = std::vector<const parser::AbstractExpression *>;
 
 /**
  * Definition for second type of pair
  * This is defined here to make following code more readable and
  * also to satisfy clang-tidy.
  */
-using PT2 = std::vector<std::vector<const parser::AbstractExpression*>>;
+using PT2 = std::vector<std::vector<const parser::AbstractExpression *>>;
 
 InputColumnDeriver::InputColumnDeriver() = default;
 
-std::pair<PT1,PT2> InputColumnDeriver::DeriveInputColumns(GroupExpression *gexpr, PropertySet* properties,
-                                                          std::vector<const parser::AbstractExpression*> required_cols,
-                                                          Memo *memo) {
+std::pair<PT1, PT2> InputColumnDeriver::DeriveInputColumns(
+    GroupExpression *gexpr, PropertySet *properties, std::vector<const parser::AbstractExpression *> required_cols,
+    Memo *memo) {
   properties_ = properties;
   gexpr_ = gexpr;
   required_cols_ = std::move(required_cols);
@@ -52,11 +52,11 @@ void InputColumnDeriver::Visit(const QueryDerivedScan *op) {
     parser::ExpressionUtil::GetTupleValueExprs(&output_cols_map, expr);
   }
 
-  auto output_cols = std::vector<const parser::AbstractExpression*>(output_cols_map.size());
-  std::vector<const parser::AbstractExpression*> input_cols(output_cols.size());
+  auto output_cols = std::vector<const parser::AbstractExpression *>(output_cols_map.size());
+  std::vector<const parser::AbstractExpression *> input_cols(output_cols.size());
   auto alias_expr_map = op->GetAliasToExprMap();
   for (auto &entry : output_cols_map) {
-    auto tv_expr = dynamic_cast<const parser::ColumnValueExpression*>(entry.first);
+    auto tv_expr = dynamic_cast<const parser::ColumnValueExpression *>(entry.first);
     TERRIER_ASSERT(tv_expr, "GetTupleValueExprs should only find ColumnValueExpressions");
     output_cols[entry.second] = tv_expr;
 
@@ -84,11 +84,11 @@ void InputColumnDeriver::Visit(const Limit *op) {
   }
 
   auto sort_expressions = op->GetSortExpressions();
-  for (const auto& sort_column : sort_expressions) {
+  for (const auto &sort_column : sort_expressions) {
     input_cols_set.insert(sort_column.get());
   }
 
-  std::vector<const parser::AbstractExpression*> cols;
+  std::vector<const parser::AbstractExpression *> cols;
   for (const auto &expr : input_cols_set) {
     cols.push_back(expr);
   }
@@ -117,7 +117,7 @@ void InputColumnDeriver::Visit(UNUSED_ATTRIBUTE const OrderBy *op) {
     input_cols_set.insert(sort_prop->GetSortColumn(idx).get());
   }
 
-  std::vector<const parser::AbstractExpression*> cols;
+  std::vector<const parser::AbstractExpression *> cols;
   for (auto &expr : input_cols_set) {
     cols.push_back(expr);
   }
@@ -126,29 +126,17 @@ void InputColumnDeriver::Visit(UNUSED_ATTRIBUTE const OrderBy *op) {
   output_input_cols_ = std::make_pair(std::move(cols), std::move(child_cols));
 }
 
-void InputColumnDeriver::Visit(const HashGroupBy *op) {
-  AggregateHelper(op);
-}
+void InputColumnDeriver::Visit(const HashGroupBy *op) { AggregateHelper(op); }
 
-void InputColumnDeriver::Visit(const SortGroupBy *op) {
-  AggregateHelper(op);
-}
+void InputColumnDeriver::Visit(const SortGroupBy *op) { AggregateHelper(op); }
 
-void InputColumnDeriver::Visit(const Aggregate *op) {
-  AggregateHelper(op);
-}
+void InputColumnDeriver::Visit(const Aggregate *op) { AggregateHelper(op); }
 
-void InputColumnDeriver::Visit(UNUSED_ATTRIBUTE const Distinct *op) {
-  Passdown();
-}
+void InputColumnDeriver::Visit(UNUSED_ATTRIBUTE const Distinct *op) { Passdown(); }
 
-void InputColumnDeriver::Visit(const InnerNLJoin *op) {
-  JoinHelper(op);
-}
+void InputColumnDeriver::Visit(const InnerNLJoin *op) { JoinHelper(op); }
 
-void InputColumnDeriver::Visit(UNUSED_ATTRIBUTE const LeftNLJoin *op) {
-  TERRIER_ASSERT(0, "LeftNLJoin not supported");
-}
+void InputColumnDeriver::Visit(UNUSED_ATTRIBUTE const LeftNLJoin *op) { TERRIER_ASSERT(0, "LeftNLJoin not supported"); }
 
 void InputColumnDeriver::Visit(UNUSED_ATTRIBUTE const RightNLJoin *op) {
   TERRIER_ASSERT(0, "RightNLJoin not supported");
@@ -158,9 +146,7 @@ void InputColumnDeriver::Visit(UNUSED_ATTRIBUTE const OuterNLJoin *op) {
   TERRIER_ASSERT(0, "OuterNLJoin not supported");
 }
 
-void InputColumnDeriver::Visit(const InnerHashJoin *op) {
-  JoinHelper(op);
-}
+void InputColumnDeriver::Visit(const InnerHashJoin *op) { JoinHelper(op); }
 
 void InputColumnDeriver::Visit(UNUSED_ATTRIBUTE const LeftHashJoin *op) {
   TERRIER_ASSERT(0, "LeftHashJoin not supported");
@@ -175,25 +161,17 @@ void InputColumnDeriver::Visit(UNUSED_ATTRIBUTE const OuterHashJoin *op) {
 }
 
 void InputColumnDeriver::Visit(UNUSED_ATTRIBUTE const Insert *op) {
-  auto input = std::vector<std::vector<const parser::AbstractExpression*>>{};
+  auto input = std::vector<std::vector<const parser::AbstractExpression *>>{};
   output_input_cols_ = std::make_pair(std::move(required_cols_), std::move(input));
 }
 
-void InputColumnDeriver::Visit(UNUSED_ATTRIBUTE const InsertSelect *op) {
-  Passdown();
-}
+void InputColumnDeriver::Visit(UNUSED_ATTRIBUTE const InsertSelect *op) { Passdown(); }
 
-void InputColumnDeriver::Visit(UNUSED_ATTRIBUTE const Delete *op) {
-  Passdown();
-}
+void InputColumnDeriver::Visit(UNUSED_ATTRIBUTE const Delete *op) { Passdown(); }
 
-void InputColumnDeriver::Visit(UNUSED_ATTRIBUTE const Update *op) {
-  Passdown();
-}
+void InputColumnDeriver::Visit(UNUSED_ATTRIBUTE const Update *op) { Passdown(); }
 
-void InputColumnDeriver::Visit(UNUSED_ATTRIBUTE const ExportExternalFile *op) {
-  Passdown();
-}
+void InputColumnDeriver::Visit(UNUSED_ATTRIBUTE const ExportExternalFile *op) { Passdown(); }
 
 void InputColumnDeriver::ScanHelper() {
   // Derive all output columns from required_cols_.
@@ -203,13 +181,13 @@ void InputColumnDeriver::ScanHelper() {
     parser::ExpressionUtil::GetTupleValueExprs(&output_cols_map, expr);
   }
 
-  auto output_cols = std::vector<const parser::AbstractExpression*>(output_cols_map.size());
+  auto output_cols = std::vector<const parser::AbstractExpression *>(output_cols_map.size());
   for (auto &entry : output_cols_map) {
     output_cols[entry.second] = entry.first;
   }
 
   // Scan does not have input columns
-  auto input = std::vector<std::vector<const parser::AbstractExpression*>>{};
+  auto input = std::vector<std::vector<const parser::AbstractExpression *>>{};
   output_input_cols_ = std::make_pair(std::move(output_cols), std::move(input));
 }
 
@@ -219,8 +197,8 @@ void InputColumnDeriver::AggregateHelper(const BaseOperatorNode *op) {
   unsigned int output_col_idx = 0;
   for (auto &expr : required_cols_) {
     // Get all AggregateExpressions and ColumnValueExpressions in expr
-    std::vector<const parser::AggregateExpression*> aggr_exprs;
-    std::vector<const parser::ColumnValueExpression*> tv_exprs;
+    std::vector<const parser::AggregateExpression *> aggr_exprs;
+    std::vector<const parser::ColumnValueExpression *> tv_exprs;
     parser::ExpressionUtil::GetTupleAndAggregateExprs(&aggr_exprs, &tv_exprs, expr);
 
     for (auto &aggr_expr : aggr_exprs) {
@@ -269,14 +247,14 @@ void InputColumnDeriver::AggregateHelper(const BaseOperatorNode *op) {
   }
 
   // Create the input_cols vector
-  std::vector<const parser::AbstractExpression*> input_cols;
+  std::vector<const parser::AbstractExpression *> input_cols;
   for (auto &col : input_cols_set) {
     input_cols.push_back(col);
   }
 
   // Create the output_cols vector
   output_col_idx = static_cast<unsigned int>(output_cols_map.size());
-  std::vector<const parser::AbstractExpression*> output_cols(output_col_idx);
+  std::vector<const parser::AbstractExpression *> output_cols(output_col_idx);
   for (auto &expr_idx_pair : output_cols_map) {
     output_cols[expr_idx_pair.second] = expr_idx_pair.first;
   }
@@ -329,7 +307,7 @@ void InputColumnDeriver::JoinHelper(const BaseOperatorNode *op) {
   auto &build_table_aliases = memo_->GetGroupByID(gexpr_->GetChildGroupId(0))->GetTableAliases();
   auto &probe_table_aliases = memo_->GetGroupByID(gexpr_->GetChildGroupId(1))->GetTableAliases();
   for (auto &col : input_cols_set) {
-    const parser::ColumnValueExpression* tv_expr;
+    const parser::ColumnValueExpression *tv_expr;
     if (col->GetExpressionType() == parser::ExpressionType::VALUE_TUPLE) {
       tv_expr = dynamic_cast<const parser::ColumnValueExpression *>(col);
       TERRIER_ASSERT(tv_expr, "col should be a ColumnValueExpression");
@@ -345,7 +323,7 @@ void InputColumnDeriver::JoinHelper(const BaseOperatorNode *op) {
       }
 
       // We get only the first ColumnValueExpression (should probably assert check this)
-      tv_expr = dynamic_cast<const parser::ColumnValueExpression*>(*(tv_exprs.begin()));
+      tv_expr = dynamic_cast<const parser::ColumnValueExpression *>(*(tv_exprs.begin()));
       TERRIER_ASSERT(tv_expr, "GetTupleValueExprs should only return ColumnValueExpression");
       TERRIER_ASSERT(tv_exprs.size() == 1, "Uh oh, multiple TVEs in AggregateExpression found");
     }
@@ -362,19 +340,19 @@ void InputColumnDeriver::JoinHelper(const BaseOperatorNode *op) {
   }
 
   // Derive output columns
-  std::vector<const parser::AbstractExpression*> output_cols(output_cols_map.size());
+  std::vector<const parser::AbstractExpression *> output_cols(output_cols_map.size());
   for (auto &expr_idx_pair : output_cols_map) {
     output_cols[expr_idx_pair.second] = expr_idx_pair.first;
   }
 
   // Derive build columns (first element of input column vector)
-  std::vector<const parser::AbstractExpression*> build_cols;
+  std::vector<const parser::AbstractExpression *> build_cols;
   for (auto &col : build_table_cols_set) {
     build_cols.push_back(col);
   }
 
   // Derive probe columns (second element of input column vector)
-  std::vector<const parser::AbstractExpression*> probe_cols;
+  std::vector<const parser::AbstractExpression *> probe_cols;
   for (auto &col : probe_table_cols_set) {
     probe_cols.push_back(col);
   }
@@ -384,7 +362,7 @@ void InputColumnDeriver::JoinHelper(const BaseOperatorNode *op) {
 }
 
 void InputColumnDeriver::Passdown() {
-  auto input = std::vector<std::vector<const parser::AbstractExpression*>>{required_cols_};
+  auto input = std::vector<std::vector<const parser::AbstractExpression *>>{required_cols_};
   output_input_cols_ = std::make_pair(std::move(required_cols_), std::move(input));
 }
 

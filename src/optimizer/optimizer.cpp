@@ -1,14 +1,15 @@
 #include <memory>
+#include <utility>
 #include <vector>
 
-#include "common/scoped_timer.h"
 #include "common/exception.h"
+#include "common/scoped_timer.h"
 
-#include "optimizer/optimizer.h"
 #include "optimizer/binding.h"
 #include "optimizer/input_column_deriver.h"
 #include "optimizer/operator_visitor.h"
 #include "optimizer/optimize_context.h"
+#include "optimizer/optimizer.h"
 #include "optimizer/optimizer_task_pool.h"
 #include "optimizer/plan_generator.h"
 #include "optimizer/properties.h"
@@ -24,13 +25,10 @@ void Optimizer::Reset() {
   metadata_ = OptimizerMetadata(metadata_.ReleaseCostModel());
 }
 
-planner::AbstractPlanNode* Optimizer::BuildPlanTree(
-    OperatorExpression* op_tree,
-    QueryInfo query_info,
-    transaction::TransactionContext *txn,
-    settings::SettingsManager *settings,
-    catalog::CatalogAccessor *accessor) {
-
+std::shared_ptr<planner::AbstractPlanNode> Optimizer::BuildPlanTree(OperatorExpression *op_tree, QueryInfo query_info,
+                                                                    transaction::TransactionContext *txn,
+                                                                    settings::SettingsManager *settings,
+                                                                    catalog::CatalogAccessor *accessor) {
   metadata_.SetTxn(txn);
   metadata_.SetCatalogAccessor(accessor);
 
@@ -45,7 +43,7 @@ planner::AbstractPlanNode* Optimizer::BuildPlanTree(
   PropertySet *phys_properties = query_info.GetPhysicalProperties();
 
   // Give raw pointers to ChooseBestPlan
-  std::vector<const parser::AbstractExpression*> output_exprs;
+  std::vector<const parser::AbstractExpression *> output_exprs;
   for (auto expr : query_info.GetOutputExprs()) {
     output_exprs.push_back(expr.get());
   }
@@ -68,26 +66,19 @@ planner::AbstractPlanNode* Optimizer::BuildPlanTree(
   }
 }
 
-planner::AbstractPlanNode* Optimizer::ChooseBestPlan(
-    GroupID id,
-    PropertySet* required_props,
-    const std::vector<const parser::AbstractExpression *> &required_cols,
-    settings::SettingsManager *settings,
-    catalog::CatalogAccessor *accessor,
-    transaction::TransactionContext *txn) {
-
+std::shared_ptr<planner::AbstractPlanNode> Optimizer::ChooseBestPlan(
+    GroupID id, PropertySet *required_props, const std::vector<const parser::AbstractExpression *> &required_cols,
+    settings::SettingsManager *settings, catalog::CatalogAccessor *accessor, transaction::TransactionContext *txn) {
   Group *group = metadata_.GetMemo().GetGroupByID(id);
   auto gexpr = group->GetBestExpression(required_props);
 
-  OPTIMIZER_LOG_TRACE("Choosing best plan for group %d with op %s",
-            gexpr->GetGroupID(), gexpr->Op().GetName().c_str());
+  OPTIMIZER_LOG_TRACE("Choosing best plan for group %d with op %s", gexpr->GetGroupID(), gexpr->Op().GetName().c_str());
 
   std::vector<GroupID> child_groups = gexpr->GetChildGroupIDs();
 
   // required_input_props is owned by the GroupExpression
   auto required_input_props = gexpr->GetInputProperties(required_props);
-  TERRIER_ASSERT(required_input_props.size() == child_groups.size(),
-                 "input properties and group size mismatch");
+  TERRIER_ASSERT(required_input_props.size() == child_groups.size(), "input properties and group size mismatch");
 
   // Firstly derive input/output columns
   InputColumnDeriver deriver;
@@ -95,12 +86,11 @@ planner::AbstractPlanNode* Optimizer::ChooseBestPlan(
 
   auto &output_cols = output_input_cols_pair.first;
   auto &input_cols = output_input_cols_pair.second;
-  TERRIER_ASSERT(input_cols.size() == required_input_props.size(),
-                 "input columns and input properties size mismatch");
+  TERRIER_ASSERT(input_cols.size() == required_input_props.size(), "input columns and input properties size mismatch");
 
   // Derive chidren plans first because they are useful in the derivation of
   // root plan. Also keep propagate expression to column offset mapping
-  std::vector<planner::AbstractPlanNode*> children_plans;
+  std::vector<std::shared_ptr<planner::AbstractPlanNode>> children_plans;
   std::vector<ExprMap> children_expr_map;
   for (size_t i = 0; i < child_groups.size(); ++i) {
     ExprMap child_expr_map;
@@ -112,7 +102,7 @@ planner::AbstractPlanNode* Optimizer::ChooseBestPlan(
     auto child_plan = ChooseBestPlan(child_groups[i], required_input_props[i], input_cols[i], settings, accessor, txn);
     TERRIER_ASSERT(child_plan != nullptr, "child should have derived a non-null plan...");
 
-    children_plans.push_back(child_plan);
+    children_plans.emplace_back(std::move(child_plan));
     children_expr_map.push_back(child_expr_map);
   }
 
@@ -120,19 +110,13 @@ planner::AbstractPlanNode* Optimizer::ChooseBestPlan(
   OperatorExpression *op = new OperatorExpression(Operator(gexpr->Op()), {});
 
   PlanGenerator generator;
-  auto plan = generator.ConvertOpExpression(op, required_props, required_cols,
-                                            output_cols, std::move(children_plans),
-                                            std::move(children_expr_map), group->GetNumRows(),
-                                            settings, accessor, txn);
+  auto plan = generator.ConvertOpExpression(op, required_props, required_cols, output_cols, std::move(children_plans),
+                                            std::move(children_expr_map), settings, accessor, txn);
   OPTIMIZER_LOG_TRACE("Finish Choosing best plan for group %d", id);
   return plan;
 }
 
-void Optimizer::OptimizeLoop(
-    int root_group_id,
-    PropertySet* required_props,
-    settings::SettingsManager *settings) {
-
+void Optimizer::OptimizeLoop(int root_group_id, PropertySet *required_props, settings::SettingsManager *settings) {
   auto root_context = new OptimizeContext(&metadata_, required_props->Copy());
   auto task_stack = new OptimizerTaskStack();
   metadata_.SetTaskPool(task_stack);
@@ -152,12 +136,8 @@ void Optimizer::OptimizeLoop(
   ExecuteTaskStack(task_stack, root_group_id, root_context, settings);
 }
 
-void Optimizer::ExecuteTaskStack(
-    OptimizerTaskStack *task_stack,
-    int root_group_id,
-    OptimizeContext* root_context,
-    settings::SettingsManager *settings) {
-
+void Optimizer::ExecuteTaskStack(OptimizerTaskStack *task_stack, int root_group_id, OptimizeContext *root_context,
+                                 settings::SettingsManager *settings) {
   auto root_group = metadata_.GetMemo().GetGroupByID(root_group_id);
   const auto timeout_limit = static_cast<uint64_t>(settings->GetInt(settings::Param::task_execution_timeout));
   const auto &required_props = root_context->GetRequiredProperties();

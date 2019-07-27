@@ -108,9 +108,7 @@ class ColumnValueExpression : public AbstractExpression {
    * Copies this ColumnValueExpression
    * @returns copy of this
    */
-  const AbstractExpression *Copy() const override {
-    return new ColumnValueExpression(*this);
-  }
+  const AbstractExpression *Copy() const override { return new ColumnValueExpression(*this); }
 
   /**
    * Copies this ColumnValueExpression with new children

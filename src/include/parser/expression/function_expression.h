@@ -112,8 +112,7 @@ class FunctionExpression : public AbstractExpression {
    * @parma children new FunctionExpression's children
    */
   FunctionExpression(const FunctionExpression &other, std::vector<const AbstractExpression *> &&children)
-    : AbstractExpression(other),
-      func_name_(other.func_name_) {
+      : AbstractExpression(other), func_name_(other.func_name_) {
     children_ = children;
   }
 

@@ -1,12 +1,12 @@
 #pragma once
 
 #include <algorithm>
-#include <memory>
-#include <vector>
 #include <cstdlib>
+#include <memory>
 #include <string>
-#include <unordered_set>
 #include <unordered_map>
+#include <unordered_set>
+#include <vector>
 
 #include "common/managed_pointer.h"
 #include "parser/expression/abstract_expression.h"
@@ -23,8 +23,7 @@ namespace terrier::optimizer::util {
  * @return True if the second set is a subset of the first one
  */
 template <class T>
-bool IsSubset(const std::unordered_set<T> &super_set,
-              const std::unordered_set<T> &child_set) {
+bool IsSubset(const std::unordered_set<T> &super_set, const std::unordered_set<T> &child_set) {
   for (auto &element : child_set) {
     if (super_set.find(element) == super_set.end()) return false;
   }
@@ -41,11 +40,10 @@ bool IsSubset(const std::unordered_set<T> &super_set,
  * @param left_alias Alias set for left table
  * @param right_alias Alias set for right table
  */
-void ExtractEquiJoinKeys(
-    const std::vector<AnnotatedExpression> &join_predicates,
-    std::vector<common::ManagedPointer<parser::AbstractExpression>> *left_keys,
-    std::vector<common::ManagedPointer<parser::AbstractExpression>> *right_keys,
-    const std::unordered_set<std::string> &left_alias,
-    const std::unordered_set<std::string> &right_alias);
+void ExtractEquiJoinKeys(const std::vector<AnnotatedExpression> &join_predicates,
+                         std::vector<common::ManagedPointer<parser::AbstractExpression>> *left_keys,
+                         std::vector<common::ManagedPointer<parser::AbstractExpression>> *right_keys,
+                         const std::unordered_set<std::string> &left_alias,
+                         const std::unordered_set<std::string> &right_alias);
 
 }  // namespace terrier::optimizer::util

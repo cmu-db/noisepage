@@ -19,9 +19,8 @@ namespace terrier::planner {
 
 class PlanNodeTest : public TerrierTest {
  public:
-  static std::shared_ptr<OutputSchema> BuildOneColumnSchema(std::string name, const type::TypeId type,
-                                                            const bool nullable, const catalog::col_oid_t oid) {
-    OutputSchema::Column col(std::move(name), type, nullable, oid);
+  static std::shared_ptr<OutputSchema> BuildOneColumnSchema(std::string name, const type::TypeId type) {
+    OutputSchema::Column col(std::move(name), type);
     std::vector<OutputSchema::Column> cols;
     cols.push_back(col);
     auto schema = std::make_shared<OutputSchema>(cols);
@@ -39,8 +38,7 @@ TEST(PlanNodeTest, AnalyzePlanTest) {
   auto plan = builder.SetDatabaseOid(db_oid)
                   .SetNamespaceOid(ns_oid)
                   .SetTableOid(table_oid)
-                  .SetOutputSchema(
-                      PlanNodeTest::BuildOneColumnSchema("col1", type::TypeId::INTEGER, false, catalog::col_oid_t(1)))
+                  .SetOutputSchema(PlanNodeTest::BuildOneColumnSchema("col1", type::TypeId::INTEGER))
                   .Build();
 
   EXPECT_TRUE(plan != nullptr);
@@ -54,8 +52,7 @@ TEST(PlanNodeTest, AnalyzePlanTest) {
   auto plan2 = builder2.SetDatabaseOid(catalog::db_oid_t(db_oid))
                    .SetNamespaceOid(catalog::namespace_oid_t(2))
                    .SetTableOid(table_oid)
-                   .SetOutputSchema(
-                       PlanNodeTest::BuildOneColumnSchema("col1", type::TypeId::INTEGER, false, catalog::col_oid_t(1)))
+                   .SetOutputSchema(PlanNodeTest::BuildOneColumnSchema("col1", type::TypeId::INTEGER))
                    .Build();
   EXPECT_EQ(plan->GetDatabaseOid(), plan2->GetDatabaseOid());
   EXPECT_EQ(plan->GetNamespaceOid(), plan2->GetNamespaceOid());
@@ -69,7 +66,7 @@ TEST(PlanNodeTest, AnalyzePlanTest) {
     catalog::db_oid_t other_db_oid = db_oid;
     catalog::namespace_oid_t other_ns_oid = ns_oid;
     catalog::table_oid_t other_table_oid = table_oid;
-    auto other_schema = PlanNodeTest::BuildOneColumnSchema("col1", type::TypeId::INTEGER, false, catalog::col_oid_t(1));
+    auto other_schema = PlanNodeTest::BuildOneColumnSchema("col1", type::TypeId::INTEGER);
 
     switch (i) {
       case 0:
@@ -82,7 +79,7 @@ TEST(PlanNodeTest, AnalyzePlanTest) {
         other_table_oid = catalog::table_oid_t(777);
         break;
       case 3:
-        other_schema = PlanNodeTest::BuildOneColumnSchema("XXXX", type::TypeId::INTEGER, false, catalog::col_oid_t(1));
+        other_schema = PlanNodeTest::BuildOneColumnSchema("XXXX", type::TypeId::INTEGER);
         break;
     }
 
@@ -153,9 +150,7 @@ TEST(PlanNodeTest, HashJoinPlanTest) {
   HashJoinPlanNode::Builder hash_join_builder;
 
   // Build left scan
-  auto seq_scan_1 = seq_scan_builder
-                        .SetOutputSchema(PlanNodeTest::BuildOneColumnSchema("col1", type::TypeId::INTEGER, false,
-                                                                            catalog::col_oid_t(1)))
+  auto seq_scan_1 = seq_scan_builder.SetOutputSchema(PlanNodeTest::BuildOneColumnSchema("col1", type::TypeId::INTEGER))
                         .SetTableOid(catalog::table_oid_t(1))
                         .SetDatabaseOid(catalog::db_oid_t(0))
                         .SetScanPredicate(new parser::StarExpression())
@@ -171,10 +166,7 @@ TEST(PlanNodeTest, HashJoinPlanTest) {
   EXPECT_FALSE(seq_scan_1->IsForUpdate());
   EXPECT_TRUE(seq_scan_1->IsParallel());
 
-  auto seq_scan_2 = seq_scan_builder
-                        .SetOutputSchema(PlanNodeTest::BuildOneColumnSchema("col2", type::TypeId::INTEGER, false,
-                                                                            catalog::col_oid_t(2)))
-
+  auto seq_scan_2 = seq_scan_builder.SetOutputSchema(PlanNodeTest::BuildOneColumnSchema("col2", type::TypeId::INTEGER))
                         .SetTableOid(catalog::table_oid_t(2))
                         .SetDatabaseOid(catalog::db_oid_t(0))
                         .SetScanPredicate(new parser::StarExpression())
@@ -190,9 +182,7 @@ TEST(PlanNodeTest, HashJoinPlanTest) {
   EXPECT_FALSE(seq_scan_2->IsForUpdate());
   EXPECT_TRUE(seq_scan_2->IsParallel());
 
-  auto hash_plan = hash_builder
-                       .SetOutputSchema(PlanNodeTest::BuildOneColumnSchema("col2", type::TypeId::INTEGER, false,
-                                                                           catalog::col_oid_t(2)))
+  auto hash_plan = hash_builder.SetOutputSchema(PlanNodeTest::BuildOneColumnSchema("col2", type::TypeId::INTEGER))
                        .AddHashKey(new parser::ColumnValueExpression("col2", "table2"))
                        .AddChild(std::move(seq_scan_2))
                        .Build();
@@ -209,8 +199,7 @@ TEST(PlanNodeTest, HashJoinPlanTest) {
       new parser::ComparisonExpression(parser::ExpressionType::COMPARE_EQUAL, std::move(expr_children));
 
   auto hash_join_plan = hash_join_builder.SetJoinType(LogicalJoinType::INNER)
-                            .SetOutputSchema(PlanNodeTest::BuildOneColumnSchema("col1", type::TypeId::INTEGER, false,
-                                                                                catalog::col_oid_t(1)))
+                            .SetOutputSchema(PlanNodeTest::BuildOneColumnSchema("col1", type::TypeId::INTEGER))
                             .SetJoinPredicate(cmp_expression)
                             .AddChild(std::move(seq_scan_1))
                             .AddChild(std::move(hash_plan))

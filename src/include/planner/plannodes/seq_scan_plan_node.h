@@ -39,7 +39,7 @@ class SeqScanPlanNode : public AbstractScanPlanNode {
     }
 
     /**
-     * @param column_Ids OIDs of columns to scan
+     * @param column_ids OIDs of columns to scan
      * @return builder object
      */
     Builder &SetColumnIds(std::vector<catalog::col_oid_t> &&column_ids) {
@@ -52,10 +52,9 @@ class SeqScanPlanNode : public AbstractScanPlanNode {
      * @return plan node
      */
     std::shared_ptr<SeqScanPlanNode> Build() {
-      return std::shared_ptr<SeqScanPlanNode>(new SeqScanPlanNode(std::move(children_), std::move(output_schema_),
-                                                                  scan_predicate_, std::move(column_ids_),
-                                                                  is_for_update_, is_parallel_,
-                                                                  database_oid_, namespace_oid_, table_oid_));
+      return std::shared_ptr<SeqScanPlanNode>(
+          new SeqScanPlanNode(std::move(children_), std::move(output_schema_), scan_predicate_, std::move(column_ids_),
+                              is_for_update_, is_parallel_, database_oid_, namespace_oid_, table_oid_));
     }
 
    protected:
@@ -83,12 +82,13 @@ class SeqScanPlanNode : public AbstractScanPlanNode {
    */
   SeqScanPlanNode(std::vector<std::shared_ptr<AbstractPlanNode>> &&children,
                   std::shared_ptr<OutputSchema> output_schema, const parser::AbstractExpression *predicate,
-                  std::vector<catalog::col_oid_t> &&column_ids,
-                  bool is_for_update, bool is_parallel, catalog::db_oid_t database_oid,
-                  catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid)
+                  std::vector<catalog::col_oid_t> &&column_ids, bool is_for_update, bool is_parallel,
+                  catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
+                  catalog::table_oid_t table_oid)
       : AbstractScanPlanNode(std::move(children), std::move(output_schema), predicate, is_for_update, is_parallel,
                              database_oid, namespace_oid),
-        column_ids_(std::move(column_ids)), table_oid_(table_oid) {}
+        column_ids_(std::move(column_ids)),
+        table_oid_(table_oid) {}
 
  public:
   /**

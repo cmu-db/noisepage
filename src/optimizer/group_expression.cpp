@@ -2,15 +2,14 @@
 #include <vector>
 
 #include "common/hash_util.h"
-#include "optimizer/group_expression.h"
 #include "optimizer/group.h"
+#include "optimizer/group_expression.h"
 #include "optimizer/rule.h"
 
 namespace terrier::optimizer {
 
-void GroupExpression::SetLocalHashTable(PropertySet* output_properties,
-                                        std::vector<PropertySet*> input_properties_list,
-                                        double cost) {
+void GroupExpression::SetLocalHashTable(PropertySet *output_properties,
+                                        std::vector<PropertySet *> input_properties_list, double cost) {
   auto it = lowest_cost_table_.find(output_properties);
   if (it == lowest_cost_table_.end()) {
     // No other cost to compare against
@@ -27,7 +26,9 @@ void GroupExpression::SetLocalHashTable(PropertySet* output_properties,
 
     // Cleanup any memory allocations by contract
     delete output_properties;
-    for (auto prop : pending_deletion) { delete prop; }
+    for (auto prop : pending_deletion) {
+      delete prop;
+    }
   }
 }
 

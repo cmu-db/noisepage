@@ -5,8 +5,8 @@
 
 #include "common/hash_util.h"
 #include "common/managed_pointer.h"
-#include "planner/plannodes/plan_node_defs.h"
 #include "optimizer/property.h"
+#include "planner/plannodes/plan_node_defs.h"
 
 namespace terrier::optimizer {
 
@@ -22,23 +22,18 @@ class PropertySort : public Property {
    */
   PropertySort(std::vector<common::ManagedPointer<parser::AbstractExpression>> sort_columns,
                std::vector<planner::OrderByOrderingType> sort_ascending)
-    : sort_columns_(std::move(sort_columns)),
-      sort_ascending_(std::move(sort_ascending)) {}
+      : sort_columns_(std::move(sort_columns)), sort_ascending_(std::move(sort_ascending)) {}
 
   /**
    * Returns the type of PropertySort
    * @returns PropertyType::SORT
    */
-  PropertyType Type() const override {
-    return PropertyType::SORT;
-  }
+  PropertyType Type() const override { return PropertyType::SORT; }
 
   /**
    * Copy
    */
-  PropertySort* Copy() override {
-    return new PropertySort(sort_columns_, sort_ascending_);
-  }
+  PropertySort *Copy() override { return new PropertySort(sort_columns_, sort_ascending_); }
 
   /**
    * Gets the number of sort columns

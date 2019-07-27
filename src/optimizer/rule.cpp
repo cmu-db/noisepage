@@ -1,5 +1,5 @@
-#include "optimizer/rule_impls.h"
 #include "optimizer/group_expression.h"
+#include "optimizer/rule_impls.h"
 
 namespace terrier::optimizer {
 

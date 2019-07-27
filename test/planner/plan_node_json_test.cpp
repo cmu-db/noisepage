@@ -9,6 +9,7 @@
 #include "parser/expression/comparison_expression.h"
 #include "parser/expression/conjunction_expression.h"
 #include "parser/expression/constant_value_expression.h"
+#include "parser/expression/derived_value_expression.h"
 #include "planner/plannodes/aggregate_plan_node.h"
 #include "planner/plannodes/analyze_plan_node.h"
 #include "planner/plannodes/create_database_plan_node.h"
@@ -56,7 +57,7 @@ class PlanNodeJsonTest : public TerrierTest {
    * @return dummy output schema
    */
   static std::shared_ptr<OutputSchema> BuildDummyOutputSchema() {
-    OutputSchema::Column col("dummy_col", type::TypeId::INTEGER, true, catalog::col_oid_t(0));
+    OutputSchema::Column col("dummy_col", type::TypeId::INTEGER);
     std::vector<OutputSchema::Column> cols;
     cols.push_back(col);
     auto schema = std::make_shared<OutputSchema>(cols);
@@ -90,7 +91,7 @@ class PlanNodeJsonTest : public TerrierTest {
 // NOLINTNEXTLINE
 TEST(PlanNodeJsonTest, OutputSchemaJsonTest) {
   // Test Column serialization
-  OutputSchema::Column col("col1", type::TypeId::BOOLEAN, false /* nullable */, catalog::col_oid_t(0));
+  OutputSchema::Column col("col1", type::TypeId::BOOLEAN);
   auto col_json = col.ToJson();
   EXPECT_FALSE(col_json.is_null());
 
@@ -136,8 +137,7 @@ TEST(PlanNodeJsonTest, AggregatePlanNodeJsonTest) {
 
   std::vector<const parser::AbstractExpression *> children;
   children.push_back(PlanNodeJsonTest::BuildDummyPredicate());
-  auto *agg_term =
-      new parser::AggregateExpression(parser::ExpressionType::AGGREGATE_COUNT, std::move(children), false);
+  auto *agg_term = new parser::AggregateExpression(parser::ExpressionType::AGGREGATE_COUNT, std::move(children), false);
 
   AggregatePlanNode::Builder builder;
   auto plan_node = builder.SetOutputSchema(PlanNodeJsonTest::BuildDummyOutputSchema())
@@ -483,7 +483,6 @@ TEST(PlanNodeJsonTest, DeletePlanNodeTest) {
   auto plan_node = builder.SetDatabaseOid(catalog::db_oid_t(1))
                        .SetNamespaceOid(catalog::namespace_oid_t(0))
                        .SetTableOid(catalog::table_oid_t(2))
-                       .SetDeleteCondition(PlanNodeJsonTest::BuildDummyPredicate())
                        .Build();
 
   // Serialize to Json
@@ -743,13 +742,19 @@ TEST(PlanNodeJsonTest, IndexScanPlanNodeJsonTest) {
 // NOLINTNEXTLINE
 TEST(PlanNodeJsonTest, InsertPlanNodeJsonTest) {
   // Construct InsertPlanNode
+  std::vector<const parser::AbstractExpression *> free_exprs;
 
   // Values Generator
-  auto get_values = [](int offset, int num_cols) {
-    std::vector<type::TransientValue> tuple;
-    tuple.push_back(type::TransientValueFactory::GetInteger(offset));
+  auto get_values = [&](int offset, int num_cols) {
+    std::vector<const parser::AbstractExpression *> tuple;
+
+    auto ptr = new parser::ConstantValueExpression(type::TransientValueFactory::GetInteger(offset));
+    free_exprs.push_back(ptr);
+    tuple.push_back(ptr);
     for (; num_cols - 1 > 0; num_cols--) {
-      tuple.push_back(type::TransientValueFactory::GetBoolean(true));
+      auto cve = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+      free_exprs.push_back(cve);
+      tuple.push_back(cve);
     }
     return tuple;
   };
@@ -797,6 +802,21 @@ TEST(PlanNodeJsonTest, InsertPlanNodeJsonTest) {
   auto insert_plan2 = std::dynamic_pointer_cast<InsertPlanNode>(deserialized_plan2);
   EXPECT_NE(*plan_node, *insert_plan2);
   EXPECT_NE(plan_node->Hash(), insert_plan2->Hash());
+
+  for (auto ptr : free_exprs) {
+    delete ptr;
+  }
+  for (auto idx = 0; idx < static_cast<int>(insert_plan->GetBulkInsertCount()); idx++) {
+    for (auto &ptr : insert_plan->GetValues(idx)) {
+      delete ptr;
+    }
+  }
+
+  for (auto idx = 0; idx < static_cast<int>(insert_plan2->GetBulkInsertCount()); idx++) {
+    for (auto &ptr : insert_plan2->GetValues(idx)) {
+      delete ptr;
+    }
+  }
 }
 
 // NOLINTNEXTLINE
@@ -845,9 +865,12 @@ TEST(PlanNodeJsonTest, NestedLoopJoinPlanNodeJoinTest) {
 TEST(PlanNodeJsonTest, OrderByPlanNodeJsonTest) {
   // Construct OrderByPlanNode
   OrderByPlanNode::Builder builder;
+  auto sortkey1 = new parser::DerivedValueExpression(type::TypeId::INTEGER, 0, 0);
+  auto sortkey2 = new parser::DerivedValueExpression(type::TypeId::INTEGER, 0, 1);
+
   auto plan_node = builder.SetOutputSchema(PlanNodeJsonTest::BuildDummyOutputSchema())
-                       .AddSortKey(catalog::col_oid_t(0), OrderByOrderingType::ASC)
-                       .AddSortKey(catalog::col_oid_t(1), OrderByOrderingType::DESC)
+                       .AddSortKey(sortkey1, OrderByOrderingType::ASC)
+                       .AddSortKey(sortkey2, OrderByOrderingType::DESC)
                        .SetLimit(10)
                        .SetOffset(10)
                        .Build();
@@ -863,6 +886,13 @@ TEST(PlanNodeJsonTest, OrderByPlanNodeJsonTest) {
   auto order_by_plan = std::dynamic_pointer_cast<OrderByPlanNode>(deserialized_plan);
   EXPECT_EQ(*plan_node, *order_by_plan);
   EXPECT_EQ(plan_node->Hash(), order_by_plan->Hash());
+
+  delete sortkey1;
+  delete sortkey2;
+
+  for (auto &key : order_by_plan->GetSortKeys()) {
+    delete key.first;
+  }
 }
 
 // NOLINTNEXTLINE

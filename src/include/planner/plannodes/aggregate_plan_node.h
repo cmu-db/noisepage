@@ -43,6 +43,15 @@ class AggregatePlanNode : public AbstractPlanNode {
     }
 
     /**
+     * @param groupby_offsets
+     * @return builder object
+     */
+    Builder &SetGroupByColOffsets(std::vector<unsigned> groupby_offsets) {
+      groupby_offsets_ = std::move(groupby_offsets);
+      return *this;
+    }
+
+    /**
      * @param predicate having clause predicate to use for aggregate term
      * @return builder object
      */
@@ -66,11 +75,17 @@ class AggregatePlanNode : public AbstractPlanNode {
      */
     std::shared_ptr<AggregatePlanNode> Build() {
       return std::shared_ptr<AggregatePlanNode>(
-          new AggregatePlanNode(std::move(children_), std::move(output_schema_), having_clause_predicate_,
-                                std::move(aggregate_terms_), aggregate_strategy_));
+          new AggregatePlanNode(std::move(children_), std::move(output_schema_), std::move(groupby_offsets_),
+                                having_clause_predicate_, std::move(aggregate_terms_), aggregate_strategy_));
     }
 
    protected:
+    /**
+     * GroupBy column offsets
+     * This will effectively let us support SELECT [AGGR] FROM [TBL] GROUP BY [COL],[COL]
+     * TODO(wz2): Eventually support GROUP BY [expression]
+     */
+    std::vector<unsigned> groupby_offsets_;
     /**
      * Predicate for having clause if it exists
      */
@@ -94,11 +109,12 @@ class AggregatePlanNode : public AbstractPlanNode {
    * @param aggregate_strategy aggregation strategy to be used
    */
   AggregatePlanNode(std::vector<std::shared_ptr<AbstractPlanNode>> &&children,
-                    std::shared_ptr<OutputSchema> output_schema,
+                    std::shared_ptr<OutputSchema> output_schema, std::vector<unsigned> groupby_offsets,
                     const parser::AbstractExpression *having_clause_predicate,
                     std::vector<parser::AggregateExpression *> aggregate_terms,
                     AggregateStrategyType aggregate_strategy)
       : AbstractPlanNode(std::move(children), std::move(output_schema)),
+        groupby_offsets_(std::move(groupby_offsets)),
         having_clause_predicate_(having_clause_predicate),
         aggregate_terms_(std::move(aggregate_terms)),
         aggregate_strategy_(aggregate_strategy) {}
@@ -121,6 +137,11 @@ class AggregatePlanNode : public AbstractPlanNode {
   //===--------------------------------------------------------------------===//
   // ACCESSORS
   //===--------------------------------------------------------------------===//
+
+  /**
+   * Gets the offsets of columns to groupby
+   */
+  const std::vector<unsigned> &GetGroupByColumnOffsets() const { return groupby_offsets_; }
 
   /**
    * @return pointer to predicate for having clause
@@ -155,6 +176,11 @@ class AggregatePlanNode : public AbstractPlanNode {
   void FromJson(const nlohmann::json &j) override;
 
  private:
+  /**
+   * List of column offsets to group by.
+   * These offsets are indexes into the tuple produced by the child
+   */
+  std::vector<unsigned> groupby_offsets_;
   const parser::AbstractExpression *having_clause_predicate_;
   std::vector<parser::AggregateExpression *> aggregate_terms_;
   AggregateStrategyType aggregate_strategy_;

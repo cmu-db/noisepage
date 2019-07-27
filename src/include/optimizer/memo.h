@@ -4,9 +4,9 @@
 #include <unordered_set>
 #include <vector>
 
-#include "optimizer/operator_expression.h"
 #include "optimizer/group.h"
 #include "optimizer/group_expression.h"
+#include "optimizer/operator_expression.h"
 
 namespace terrier::optimizer {
 
@@ -19,7 +19,7 @@ struct GExprPtrHash {
    * @param s GroupExpression to hash
    * @returns hash code
    */
-  std::size_t operator()(GroupExpression* const& s) const { return s->Hash(); }
+  std::size_t operator()(GroupExpression *const &s) const { return s->Hash(); }
 };
 
 /**
@@ -32,9 +32,7 @@ struct GExprPtrEq {
    * @param t2 GroupExpression to check equality with against t1
    * @returns TRUE if equal
    */
-  bool operator()(GroupExpression* const& t1, GroupExpression* const& t2) const {
-    return *t1 == *t2;
-  }
+  bool operator()(GroupExpression *const &t1, GroupExpression *const &t2) const { return *t1 == *t2; }
 };
 
 /**
@@ -58,7 +56,7 @@ class Memo {
   }
 
   /**
-   * Adds a group expression into the proper group in the memo, 
+   * Adds a group expression into the proper group in the memo,
    * checking for duplicates.
    *
    * @note
@@ -70,12 +68,12 @@ class Memo {
    * @returns Existing expression if found. Otherwise, return the new expr.
    *          Returns nullptr if the gexpr is a placeholder (Wildcard)
    */
-  GroupExpression* InsertExpression(GroupExpression* gexpr, bool enforced) {
+  GroupExpression *InsertExpression(GroupExpression *gexpr, bool enforced) {
     return InsertExpression(gexpr, UNDEFINED_GROUP, enforced);
   }
 
   /**
-   * Adds a group expression into the proper group in the memo, 
+   * Adds a group expression into the proper group in the memo,
    * checking for duplicates.
    *
    * @note
@@ -88,16 +86,14 @@ class Memo {
    * @returns Existing expression if found. Otherwise, return the new expr
    *          Returns nullptr if the gexpr is a placeholder (Wildcard)
    */
-  GroupExpression* InsertExpression(GroupExpression *gexpr, GroupID target_group, bool enforced);
+  GroupExpression *InsertExpression(GroupExpression *gexpr, GroupID target_group, bool enforced);
 
   /**
    * Gets the group with certain ID
    * @param id ID of the group to get
    * @returns Group with specified ID
    */
-  Group* GetGroupByID(GroupID id) const {
-    return groups_[id];
-  }
+  Group *GetGroupByID(GroupID id) const { return groups_[id]; }
 
   /**
    * When a rewrite rule is applied, first replace original gexpr
@@ -117,11 +113,11 @@ class Memo {
    * @param gexpr GroupExpression to collect metadata from
    * @returns GroupID of the new group
    */
-  GroupID AddNewGroup(GroupExpression* gexpr);
+  GroupID AddNewGroup(GroupExpression *gexpr);
 
   // The group owns the group expressions, not the memo
-  std::unordered_set<GroupExpression*, GExprPtrHash, GExprPtrEq> group_expressions_;
-  std::vector<Group*> groups_;
+  std::unordered_set<GroupExpression *, GExprPtrHash, GExprPtrEq> group_expressions_;
+  std::vector<Group *> groups_;
 };
 
 }  // namespace terrier::optimizer
