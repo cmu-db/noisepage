@@ -30,12 +30,23 @@ class CatalogAccessor;
 namespace binder {
 
 /**
- * @brief Interface to be notified of the composition of a bind node.
+ * Interface to be notified of the composition of a bind node.
  */
 class BindNodeVisitor : public SqlNodeVisitor {
  public:
+  /**
+   * Initialize the bind node visitor object with a pointer to a catalog accessor, and a default database name
+   * @param catalog_accessor Pointer to a catalog accessor
+   * @param default_database_name Default database name
+   */
   BindNodeVisitor(catalog::CatalogAccessor *catalog_accessor, std::string default_database_name);
-  ~BindNodeVisitor() { delete context_; }
+  ~BindNodeVisitor() override { delete context_; }
+
+  /**
+   * Perform binding on the passed in tree. Bind the ids according to the names in the tree.
+   * For example, bind the corresponding database oid to an expression, which has a database name
+   * @param tree Parsed in AST tree of the SQL statement
+   */
   void BindNameToNode(parser::SQLStatement *tree);
   void Visit(parser::SelectStatement *node) override;
 
