@@ -130,7 +130,7 @@ TEST_F(BinderCorrectnessTest, SelectStatementComplexTest) {
   // Test regular table name
   LOG_INFO("Parsing sql query");
   std::string selectSQL =
-      "SELECT A.a1, B.b2 FROM A INNER JOIN b ON a.a1 = b.b1 WHERE a1 < 100 "
+      "SELECT A.A1, B.B2 FROM A INNER JOIN b ON a.a1 = b.b1 WHERE a1 < 100 "
       "GROUP BY A.a1, B.b2 HAVING a1 > 50 ORDER BY a1";
 
   auto parse_tree = parser_.BuildParseTree(selectSQL);
