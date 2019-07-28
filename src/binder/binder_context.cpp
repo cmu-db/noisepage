@@ -171,6 +171,7 @@ void BinderContext::GenerateAllColumnExpressions(std::vector<std::shared_ptr<par
       tv_expr->SetDatabaseOID(std::get<0>(entry.second));
       tv_expr->SetTableOID(std::get<1>(entry.second));
       tv_expr->SetColumnOID(col_obj.Oid());
+      tv_expr->SetDepth(depth_);
 
       exprs->emplace_back(tv_expr);
     }
@@ -184,6 +185,8 @@ void BinderContext::GenerateAllColumnExpressions(std::vector<std::shared_ptr<par
           std::make_shared<parser::ColumnValueExpression>(std::string(table_alias), std::string(col_entry.first));
       tv_expr->SetReturnValueType(col_entry.second);
       tv_expr->DeriveExpressionName();
+      tv_expr->SetDepth(depth_);
+
       // All derived columns do not have bound oids, thus keep them as INVALID_OIDs
       exprs->emplace_back(tv_expr);
     }
