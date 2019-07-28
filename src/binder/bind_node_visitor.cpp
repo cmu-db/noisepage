@@ -27,9 +27,7 @@ BindNodeVisitor::BindNodeVisitor(catalog::CatalogAccessor *catalog_accessor, std
 void BindNodeVisitor::BindNameToNode(parser::SQLStatement *tree) { tree->Accept(this); }
 
 void BindNodeVisitor::Visit(parser::SelectStatement *node) {
-  // TODO(Ling): remove make shared ... Use raw pointers
   context_ = new BinderContext(context_);
-  //  context_ = std::make_shared<BinderContext>(context_);
 
   if (node->GetSelectTable() != nullptr) node->GetSelectTable()->Accept(this);
 
@@ -54,10 +52,7 @@ void BindNodeVisitor::Visit(parser::SelectStatement *node) {
     select_element->Accept(this);
 
     // Derive depth for all exprs in the select clause
-    if (select_element->GetExpressionType() == parser::ExpressionType::STAR)
-      select_element->SetDepth(context_->GetDepth());
-    else
-      select_element->DeriveDepth();
+    select_element->DeriveDepth();
 
     select_element->DeriveSubqueryFlag();
 

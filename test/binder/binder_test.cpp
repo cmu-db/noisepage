@@ -133,6 +133,7 @@ TEST_F(BinderCorrectnessTest, SelectStatementComplexTest) {
   auto parse_tree = parser_.BuildParseTree(selectSQL);
   auto selectStmt = dynamic_cast<parser::SelectStatement *>(parse_tree[0].get());
   binder_->BindNameToNode(selectStmt);
+  EXPECT_EQ(0, selectStmt->GetDepth());
 
   // Check select_list
   LOG_INFO("Checking select list");
@@ -141,12 +142,14 @@ TEST_F(BinderCorrectnessTest, SelectStatementComplexTest) {
   EXPECT_EQ(col_expr->GetTableOid(), table_a_oid_);            // A.a1
   EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(1));  // A.a1; columns are indexed from 1
   EXPECT_EQ(type::TypeId::INTEGER, col_expr->GetReturnValueType());
+  EXPECT_EQ(0, col_expr->GetDepth());
 
   col_expr = dynamic_cast<const parser::ColumnValueExpression *>(selectStmt->GetSelectColumns()[1].get());
   EXPECT_EQ(col_expr->GetDatabaseOid(), db_oid_);              // B.b2
   EXPECT_EQ(col_expr->GetTableOid(), table_b_oid_);            // B.b2
   EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(2));  // B.b2; columns are indexed from 1
   EXPECT_EQ(type::TypeId::VARCHAR, col_expr->GetReturnValueType());
+  EXPECT_EQ(0, col_expr->GetDepth());
 
   // Check join condition
   LOG_INFO("Checking join condition");
@@ -156,6 +159,7 @@ TEST_F(BinderCorrectnessTest, SelectStatementComplexTest) {
   EXPECT_EQ(col_expr->GetTableOid(), table_a_oid_);            // A.a1
   EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(1));  // A.a1; columns are indexed from 1
   EXPECT_EQ(type::TypeId::INTEGER, col_expr->GetReturnValueType());
+  EXPECT_EQ(0, col_expr->GetDepth());
 
   col_expr = dynamic_cast<const parser::ColumnValueExpression *>(
       selectStmt->GetSelectTable()->GetJoin()->GetJoinCondition()->GetChild(1).get());
@@ -164,6 +168,7 @@ TEST_F(BinderCorrectnessTest, SelectStatementComplexTest) {
   EXPECT_EQ(col_expr->GetTableOid(), table_b_oid_);            // B.b1
   EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(1));  // B.b1; columns are indexed from 1
   EXPECT_EQ(type::TypeId::INTEGER, col_expr->GetReturnValueType());
+  EXPECT_EQ(0, col_expr->GetDepth());
 
   // Check Where clause
   LOG_INFO("Checking where clause");
@@ -172,6 +177,7 @@ TEST_F(BinderCorrectnessTest, SelectStatementComplexTest) {
   EXPECT_EQ(col_expr->GetTableOid(), table_a_oid_);            // A.a1
   EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(1));  // A.a1; columns are indexed from 1
   EXPECT_EQ(type::TypeId::INTEGER, col_expr->GetReturnValueType());
+  EXPECT_EQ(0, col_expr->GetDepth());
 
   // Check Group By and Having
   LOG_INFO("Checking group by");
@@ -180,12 +186,14 @@ TEST_F(BinderCorrectnessTest, SelectStatementComplexTest) {
   EXPECT_EQ(col_expr->GetTableOid(), table_a_oid_);            // A.a1
   EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(1));  // A.a1; columns are indexed from 1
   EXPECT_EQ(type::TypeId::INTEGER, col_expr->GetReturnValueType());
+  EXPECT_EQ(0, col_expr->GetDepth());
 
   col_expr = dynamic_cast<const parser::ColumnValueExpression *>(selectStmt->GetSelectGroupBy()->GetColumns()[1].get());
   EXPECT_EQ(col_expr->GetDatabaseOid(), db_oid_);              // B.b2
   EXPECT_EQ(col_expr->GetTableOid(), table_b_oid_);            // B.b2
   EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(2));  // B.b2; columns are indexed from 1
   EXPECT_EQ(type::TypeId::VARCHAR, col_expr->GetReturnValueType());
+  EXPECT_EQ(0, col_expr->GetDepth());
 
   col_expr = dynamic_cast<const parser::ColumnValueExpression *>(
       selectStmt->GetSelectGroupBy()->GetHaving()->GetChild(0).get());
@@ -193,6 +201,7 @@ TEST_F(BinderCorrectnessTest, SelectStatementComplexTest) {
   EXPECT_EQ(col_expr->GetTableOid(), table_a_oid_);            // A.a1
   EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(1));  // A.a1; columns are indexed from 1
   EXPECT_EQ(type::TypeId::INTEGER, col_expr->GetReturnValueType());
+  EXPECT_EQ(0, col_expr->GetDepth());
 
   // Check Order By
   LOG_INFO("Checking order by");
@@ -202,6 +211,7 @@ TEST_F(BinderCorrectnessTest, SelectStatementComplexTest) {
   EXPECT_EQ(col_expr->GetTableOid(), table_a_oid_);            // A.a1
   EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(1));  // A.a1; columns are indexed from 1
   EXPECT_EQ(type::TypeId::INTEGER, col_expr->GetReturnValueType());
+  EXPECT_EQ(0, col_expr->GetDepth());
 }
 
 // NOLINTNEXTLINE
@@ -213,6 +223,7 @@ TEST_F(BinderCorrectnessTest, SelectStatementStarTest) {
   auto parse_tree = parser_.BuildParseTree(selectSQL);
   auto selectStmt = dynamic_cast<parser::SelectStatement *>(parse_tree[0].get());
   binder_->BindNameToNode(selectStmt);
+  EXPECT_EQ(0, selectStmt->GetDepth());
 
   // Check select_list
   LOG_INFO("Checking select list expansion");
@@ -226,6 +237,7 @@ TEST_F(BinderCorrectnessTest, SelectStatementStarTest) {
   bool b2_exists = false;
   for (auto &col_abs_expr : columns) {
     auto col_expr = dynamic_cast<const parser::ColumnValueExpression *>(col_abs_expr.get());
+    EXPECT_EQ(0, col_expr->GetDepth());
 
     if (col_expr->GetDatabaseOid() == db_oid_ && col_expr->GetTableOid() == table_a_oid_) {
       EXPECT_EQ(col_expr->GetTableName(), "a");
@@ -272,6 +284,7 @@ TEST_F(BinderCorrectnessTest, SelectStatementStarComplextTest) {
   auto parse_tree = parser_.BuildParseTree(selectSQL);
   auto selectStmt = dynamic_cast<parser::SelectStatement *>(parse_tree[0].get());
   binder_->BindNameToNode(selectStmt);
+  EXPECT_EQ(0, selectStmt->GetDepth());
 
   // Check select_list
   LOG_INFO("Checking select list expansion");
@@ -287,9 +300,11 @@ TEST_F(BinderCorrectnessTest, SelectStatementStarComplextTest) {
 
   for (auto &col_abs_expr : columns) {
     auto col_expr = dynamic_cast<const parser::ColumnValueExpression *>(col_abs_expr.get());
+    EXPECT_EQ(col_expr->GetDepth(), 0); // not from derived subquery
 
     if (col_expr->GetDatabaseOid() == db_oid_ && col_expr->GetTableOid() == table_a_oid_) {
       EXPECT_EQ(col_expr->GetTableName(), "a");
+
       if (col_expr->GetColumnOid() == catalog::col_oid_t(1) &&
           type::TypeId::INTEGER == col_expr->GetReturnValueType()) {
         a1_exists = true;
@@ -343,6 +358,7 @@ TEST_F(BinderCorrectnessTest, SelectStatementStarComplextTest) {
   EXPECT_EQ(col_expr->GetTableOid(), catalog::INVALID_TABLE_OID);
   EXPECT_EQ(col_expr->GetColumnOid(), catalog::INVALID_COLUMN_OID);
   EXPECT_EQ(type::TypeId::VARCHAR, col_expr->GetReturnValueType());
+  EXPECT_EQ(col_expr->GetDepth(), 0); // not from derived subquery
 
   col_expr = dynamic_cast<const parser::ColumnValueExpression *>(
       selectStmt->GetSelectTable()->GetJoin()->GetJoinCondition()->GetChild(1).get());
@@ -352,6 +368,15 @@ TEST_F(BinderCorrectnessTest, SelectStatementStarComplextTest) {
   EXPECT_EQ(col_expr->GetTableOid(), table_a_oid_);            // A.a1
   EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(1));  // A.a1; columns are indexed from 1
   EXPECT_EQ(type::TypeId::INTEGER, col_expr->GetReturnValueType());
+  EXPECT_EQ(col_expr->GetDepth(), 0); // not from derived subquery
+
+  // check right table
+  LOG_INFO("Checking right table of the join; nested");
+  auto right_tb = dynamic_cast<parser::SelectStatement *>(
+      selectStmt->GetSelectTable()->GetJoin()->GetRightTable()->GetSelect().get());
+  EXPECT_EQ(right_tb->GetDepth(), 1);
+  for (auto &col : right_tb->GetSelectColumns())
+    EXPECT_EQ(col->GetDepth(), 1); // not from derived subquery
 }
 
 // NOLINTNEXTLINE
@@ -436,11 +461,10 @@ TEST_F(BinderCorrectnessTest, BindDepthTest) {
   // Test regular table name
   LOG_INFO("Parsing sql query");
   // TODO(ling): select a, (sub select sth)
-  //  select a, b from A, (subselect sth)
+
   std::string selectSQL =
       "SELECT A.a1 FROM A WHERE A.a1 IN (SELECT b1 FROM B WHERE b1 = 2 AND "
       "b2 > (SELECT a1 FROM A WHERE a2 > 0)) AND EXISTS (SELECT b1 FROM B WHERE B.b1 = A.a1)";
-
   auto parse_tree = parser_.BuildParseTree(selectSQL);
   auto selectStmt = dynamic_cast<parser::SelectStatement *>(parse_tree[0].get());
   binder_->BindNameToNode(selectStmt);
@@ -459,56 +483,79 @@ TEST_F(BinderCorrectnessTest, BindDepthTest) {
 
   // A.a1 IN (SELECT b1 FROM B WHERE b1 = 2 AND b2 > (SELECT a1 FROM A WHERE a2 > 0))
   auto in_expr = selectStmt->GetSelectCondition()->GetChild(0);  // A compare_in expression
+  EXPECT_EQ(0, in_expr->GetDepth());
+
   auto in_tv_expr = in_expr->GetChild(0);                        // A.a1
-  // SELECT b1 FROM B WHERE b1 = 2 AND b2 > (SELECT a1 FROM A WHERE a2 > 0)
+  EXPECT_EQ(0, in_tv_expr->GetDepth());
+
+  // subquery expression
   auto in_sub_expr = in_expr->GetChild(1);
+  EXPECT_EQ(1, in_sub_expr->GetDepth());
+  EXPECT_TRUE(in_sub_expr->HasSubquery());
+
+  // SELECT b1 FROM B WHERE b1 = 2 AND b2 > (SELECT a1 FROM A WHERE a2 > 0)
   auto in_sub_expr_select = dynamic_cast<parser::SubqueryExpression *>(in_sub_expr.get())->GetSubselect();
+  EXPECT_EQ(1, in_sub_expr_select->GetDepth());
+
   auto in_sub_expr_select_ele = in_sub_expr_select->GetSelectColumns()[0].get();  // b1
+  EXPECT_EQ(1, in_sub_expr_select_ele->GetDepth());
+
   // WHERE b1 = 2 AND b2 > (SELECT a1 FROM A WHERE a2 > 0)
   auto in_sub_expr_select_where = in_sub_expr_select->GetSelectCondition().get();
+  EXPECT_EQ(1, in_sub_expr_select_where->GetDepth());
+
   // b1 = 2
   auto in_sub_expr_select_where_left = in_sub_expr_select_where->GetChild(0);
+  EXPECT_EQ(1, in_sub_expr_select_where_left->GetDepth());
+
   // b2 > (SELECT a1 FROM A WHERE a2 > 0)
   auto in_sub_expr_select_where_right = in_sub_expr_select_where->GetChild(1);
+  EXPECT_EQ(1, in_sub_expr_select_where_right->GetDepth());
+
   auto in_sub_expr_select_where_right_tv = in_sub_expr_select_where_right->GetChild(0);  // b2
-  // SELECT a1 FROM A WHERE a2 > 0
+  EXPECT_EQ(1, in_sub_expr_select_where_right_tv->GetDepth());
+
+  // a subquery expression
   auto in_sub_expr_select_where_right_sub = in_sub_expr_select_where_right->GetChild(1);
+  EXPECT_EQ(2, in_sub_expr_select_where_right_sub->GetDepth());
+  EXPECT_TRUE(in_sub_expr->HasSubquery());
+
+  // SELECT a1 FROM A WHERE a2 > 0
   auto in_sub_expr_select_where_right_sub_select =
       dynamic_cast<parser::SubqueryExpression *>(in_sub_expr_select_where_right_sub.get())->GetSubselect();
+  EXPECT_EQ(2, in_sub_expr_select_where_right_sub_select->GetDepth());
+
   // WHERE a2 > 0
   auto in_sub_expr_select_where_right_sub_select_where =
       in_sub_expr_select_where_right_sub_select->GetSelectCondition().get();
+  EXPECT_EQ(2, in_sub_expr_select_where_right_sub_select_where->GetDepth());
+
   // a1
   auto in_sub_expr_select_where_right_sub_select_ele =
       in_sub_expr_select_where_right_sub_select->GetSelectColumns()[0].get();
+  EXPECT_EQ(2, in_sub_expr_select_where_right_sub_select_ele->GetDepth());
 
   // EXISTS (SELECT b1 FROM B WHERE B.b1 = A.a1)
   auto exists_expr = selectStmt->GetSelectCondition()->GetChild(1);  // An operator_exists expression
+  EXPECT_EQ(0, exists_expr->GetDepth());
+
+  // a subquery expression
   auto exists_sub_expr = exists_expr->GetChild(0);
+  EXPECT_EQ(0, exists_sub_expr->GetDepth());
+  EXPECT_TRUE(in_sub_expr->HasSubquery());
+
   // a select statement: SELECT b1 FROM B WHERE B.b1 = A.a1
   auto exists_sub_expr_select = dynamic_cast<parser::SubqueryExpression *>(exists_sub_expr.get())->GetSubselect();
+  EXPECT_EQ(1, exists_sub_expr_select->GetDepth());
+
   // WHERE B.b1 = A.a1
   auto exists_sub_expr_select_where = exists_sub_expr_select->GetSelectCondition().get();
-  auto exists_sub_expr_select_ele = exists_sub_expr_select->GetSelectColumns()[0].get();  // b1
-
-  EXPECT_EQ(0, in_expr->GetDepth());
-  EXPECT_EQ(0, exists_expr->GetDepth());
-  EXPECT_EQ(0, exists_sub_expr->GetDepth());
-  EXPECT_EQ(1, exists_sub_expr_select->GetDepth());
   EXPECT_EQ(0, exists_sub_expr_select_where->GetDepth());
+
+  auto exists_sub_expr_select_ele = exists_sub_expr_select->GetSelectColumns()[0].get();  // b1
   EXPECT_EQ(1, exists_sub_expr_select_ele->GetDepth());
-  EXPECT_EQ(0, in_tv_expr->GetDepth());
-  EXPECT_EQ(1, in_sub_expr->GetDepth());
-  EXPECT_EQ(1, in_sub_expr_select->GetDepth());
-  EXPECT_EQ(1, in_sub_expr_select_where->GetDepth());
-  EXPECT_EQ(1, in_sub_expr_select_ele->GetDepth());
-  EXPECT_EQ(1, in_sub_expr_select_where_left->GetDepth());
-  EXPECT_EQ(1, in_sub_expr_select_where_right->GetDepth());
-  EXPECT_EQ(1, in_sub_expr_select_where_right_tv->GetDepth());
-  EXPECT_EQ(2, in_sub_expr_select_where_right_sub->GetDepth());
-  EXPECT_EQ(2, in_sub_expr_select_where_right_sub_select->GetDepth());
-  EXPECT_EQ(2, in_sub_expr_select_where_right_sub_select_where->GetDepth());
-  EXPECT_EQ(2, in_sub_expr_select_where_right_sub_select_ele->GetDepth());
+
+
 }
 
 // NOLINTNEXTLINE
