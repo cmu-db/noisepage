@@ -39,14 +39,14 @@ class PropertySort : public Property {
    * Gets the number of sort columns
    * @returns Number of sort columns
    */
-  inline size_t GetSortColumnSize() const { return sort_columns_.size(); }
+  size_t GetSortColumnSize() const { return sort_columns_.size(); }
 
   /**
    * Gets a sort column at specified index
    * @param idx Index of sort column to retrieve
    * @returns Sort Column
    */
-  inline common::ManagedPointer<parser::AbstractExpression> GetSortColumn(size_t idx) const {
+  common::ManagedPointer<parser::AbstractExpression> GetSortColumn(size_t idx) const {
     return sort_columns_[idx];
   }
 
@@ -55,7 +55,7 @@ class PropertySort : public Property {
    * @param idx Index of ascending flag to retrieve
    * @returns Whether sort column at index idx is sorted in ascending order
    */
-  inline planner::OrderByOrderingType GetSortAscending(int idx) const { return sort_ascending_[idx]; }
+  planner::OrderByOrderingType GetSortAscending(int idx) const { return sort_ascending_[idx]; }
 
   /**
    * Hashes this PropertySort

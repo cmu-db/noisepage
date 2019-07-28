@@ -77,12 +77,12 @@ class OptimizerTask {
   /**
    * @returns Memo used
    */
-  inline Memo &GetMemo() const;
+  Memo &GetMemo() const;
 
   /**
    * @returns RuleSet used
    */
-  inline RuleSet &GetRuleSet() const;
+  RuleSet &GetRuleSet() const;
 
   /**
    * Convenience to push a task onto same task pool

@@ -83,7 +83,7 @@ class Group {
   /**
    * @returns table aliases for this group
    */
-  inline const std::unordered_set<std::string> &GetTableAliases() const { return table_aliases_; }
+  const std::unordered_set<std::string> &GetTableAliases() const { return table_aliases_; }
 
   /**
    * Gets the vector of all logical expressions
@@ -102,18 +102,18 @@ class Group {
    * @note currently not set anywhere...
    * @returns lower cost bound
    */
-  inline double GetCostLB() { return cost_lower_bound_; }
+  double GetCostLB() { return cost_lower_bound_; }
 
   /**
    * Sets a flag indicating the group has been explored
    */
-  inline void SetExplorationFlag() { has_explored_ = true; }
+  void SetExplorationFlag() { has_explored_ = true; }
 
   /**
    * Checks whether this group has been explored yet.
    * @returns TRUE if explored
    */
-  inline bool HasExplored() { return has_explored_; }
+  bool HasExplored() { return has_explored_; }
 
   /**
    * Gets the estimated cardinality in # rows
@@ -125,7 +125,7 @@ class Group {
    * Gets this Group's GroupID
    * @returns GroupID of this group
    */
-  inline GroupID GetID() const { return id_; }
+  GroupID GetID() const { return id_; }
 
   /**
    * Erase the logical expression stored by this group.
@@ -137,7 +137,7 @@ class Group {
    * Gets the logical expression stored by this group.
    * Should only be called during rewrite phase.
    */
-  inline GroupExpression *GetLogicalExpression() {
+  GroupExpression *GetLogicalExpression() {
     TERRIER_ASSERT(logical_expressions_.size() == 1, "There should exist only 1 logical expression");
     TERRIER_ASSERT(physical_expressions_.empty(), "No physical expressions should be present");
     return logical_expressions_[0];

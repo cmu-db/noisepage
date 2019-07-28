@@ -45,7 +45,7 @@ class Pattern {
    * Gets number of children
    * @returns number of children
    */
-  inline size_t GetChildPatternsSize() const { return children.size(); }
+  size_t GetChildPatternsSize() const { return children.size(); }
 
   /**
    * Gets the operator this Pattern supposed to represent

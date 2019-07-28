@@ -94,13 +94,13 @@ class Rule {
    * Gets the type of the rule
    * @returns the type of the rule
    */
-  inline RuleType GetType() { return type_; }
+  RuleType GetType() { return type_; }
 
   /**
    * Gets the index of the rule w.r.t to bitmask
    * @returns index of the rule for bitmask
    */
-  inline uint32_t GetRuleIdx() { return static_cast<uint32_t>(type_); }
+  uint32_t GetRuleIdx() { return static_cast<uint32_t>(type_); }
 
   /**
    * Indicates whether the rule is a logical rule or not
@@ -247,20 +247,20 @@ class RuleSet {
    * Adds a transformation rule to the RuleSet
    * @param rule Rule to add
    */
-  inline void AddTransformationRule(Rule *rule) { transformation_rules_.push_back(rule); }
+  void AddTransformationRule(Rule *rule) { transformation_rules_.push_back(rule); }
 
   /**
    * Adds an implementation rule to the RuleSet
    * @param rule Rule to add
    */
-  inline void AddImplementationRule(Rule *rule) { implementation_rules_.push_back(rule); }
+  void AddImplementationRule(Rule *rule) { implementation_rules_.push_back(rule); }
 
   /**
    * Adds a rewrite rule to the RuleSet
    * @param set Rewrie RuleSet to add the rule to
    * @param rule Rule to add
    */
-  inline void AddRewriteRule(RewriteRuleSetName set, Rule *rule) {
+  void AddRewriteRule(RewriteRuleSetName set, Rule *rule) {
     rewrite_rules_map_[static_cast<uint32_t>(set)].push_back(rule);
   }
 

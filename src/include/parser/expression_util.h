@@ -31,7 +31,7 @@ class ExpressionUtil {
    * @param expr expression to check
    * @returns whether expr is an aggregate
    */
-  inline static bool IsAggregateExpression(const AbstractExpression *expr) {
+  static bool IsAggregateExpression(const AbstractExpression *expr) {
     return IsAggregateExpression(expr->GetExpressionType());
   }
 
@@ -40,7 +40,7 @@ class ExpressionUtil {
    * @param type ExpressionType to check
    * @returns whether type is an aggregate
    */
-  inline static bool IsAggregateExpression(ExpressionType type) {
+  static bool IsAggregateExpression(ExpressionType type) {
     switch (type) {
       case ExpressionType::AGGREGATE_COUNT:
       case ExpressionType::AGGREGATE_SUM:
@@ -58,7 +58,7 @@ class ExpressionUtil {
    * @param type ExpressionType to check
    * @returns whether type is an operation
    */
-  inline static bool IsOperatorExpression(ExpressionType type) {
+  static bool IsOperatorExpression(ExpressionType type) {
     switch (type) {
       case ExpressionType::OPERATOR_PLUS:
       case ExpressionType::OPERATOR_MINUS:
@@ -85,7 +85,7 @@ class ExpressionUtil {
    * @param type ExpressionType (should be comparison type) to reverse
    * @returns the ExpressionType that is the logical reverse of the input
    */
-  inline static ExpressionType ReverseComparisonExpressionType(ExpressionType type) {
+  static ExpressionType ReverseComparisonExpressionType(ExpressionType type) {
     switch (type) {
       case ExpressionType::COMPARE_GREATER_THAN:
         return ExpressionType::COMPARE_LESS_THAN_OR_EQUAL_TO;

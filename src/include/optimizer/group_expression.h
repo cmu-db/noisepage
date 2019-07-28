@@ -151,7 +151,7 @@ class GroupExpression {
    * Gets number of children groups
    * @returns Number of child groups
    */
-  inline size_t GetChildrenGroupsSize() const { return child_groups.size(); }
+  size_t GetChildrenGroupsSize() const { return child_groups.size(); }
 
  private:
   GroupID group_id;
