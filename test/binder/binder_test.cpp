@@ -73,15 +73,12 @@ class BinderCorrectnessTest : public TerrierTest {
     auto table_a = new storage::SqlTable(&block_store_, schema_a);
     EXPECT_TRUE(accessor_->SetTablePointer(table_a_oid_, table_a));
 
-    EXPECT_EQ(accessor_->GetTableOid("a"), table_a_oid_);
-
     txn_manager_->Commit(txn_, TestCallbacks::EmptyCallback, nullptr);
     delete accessor_;
 
     // create Table B
     txn_ = txn_manager_->BeginTransaction();
     accessor_ = catalog_->GetAccessor(txn_, db_oid_);
-    EXPECT_EQ(accessor_->GetTableOid("a"), table_a_oid_);
 
     // Create the column definition (no OIDs) for CREATE TABLE b(b1 int, B2 varchar)
     std::vector<catalog::Schema::Column> cols_b;
@@ -143,13 +140,12 @@ TEST_F(BinderCorrectnessTest, SelectStatementComplexTest) {
   EXPECT_EQ(col_expr->GetDatabaseOid(), db_oid_);              // A.a1
   EXPECT_EQ(col_expr->GetTableOid(), table_a_oid_);            // A.a1
   EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(1));  // A.a1; columns are indexed from 1
-
   EXPECT_EQ(type::TypeId::INTEGER, col_expr->GetReturnValueType());
+
   col_expr = dynamic_cast<const parser::ColumnValueExpression *>(selectStmt->GetSelectColumns()[1].get());
   EXPECT_EQ(col_expr->GetDatabaseOid(), db_oid_);              // B.b2
   EXPECT_EQ(col_expr->GetTableOid(), table_b_oid_);            // B.b2
   EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(2));  // B.b2; columns are indexed from 1
-
   EXPECT_EQ(type::TypeId::VARCHAR, col_expr->GetReturnValueType());
 
   // Check join condition
@@ -159,14 +155,15 @@ TEST_F(BinderCorrectnessTest, SelectStatementComplexTest) {
   EXPECT_EQ(col_expr->GetDatabaseOid(), db_oid_);              // A.a1
   EXPECT_EQ(col_expr->GetTableOid(), table_a_oid_);            // A.a1
   EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(1));  // A.a1; columns are indexed from 1
+  EXPECT_EQ(type::TypeId::INTEGER, col_expr->GetReturnValueType());
 
   col_expr = dynamic_cast<const parser::ColumnValueExpression *>(
       selectStmt->GetSelectTable()->GetJoin()->GetJoinCondition()->GetChild(1).get());
 
-  //  EXPECT_EQ(col_expr->GetBoundOid(), make_tuple(db_oid, table_b_oid_, 0));  // b.b1
   EXPECT_EQ(col_expr->GetDatabaseOid(), db_oid_);              // B.b1
   EXPECT_EQ(col_expr->GetTableOid(), table_b_oid_);            // B.b1
   EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(1));  // B.b1; columns are indexed from 1
+  EXPECT_EQ(type::TypeId::INTEGER, col_expr->GetReturnValueType());
 
   // Check Where clause
   LOG_INFO("Checking where clause");
@@ -174,6 +171,7 @@ TEST_F(BinderCorrectnessTest, SelectStatementComplexTest) {
   EXPECT_EQ(col_expr->GetDatabaseOid(), db_oid_);              // A.a1
   EXPECT_EQ(col_expr->GetTableOid(), table_a_oid_);            // A.a1
   EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(1));  // A.a1; columns are indexed from 1
+  EXPECT_EQ(type::TypeId::INTEGER, col_expr->GetReturnValueType());
 
   // Check Group By and Having
   LOG_INFO("Checking group by");
@@ -181,17 +179,20 @@ TEST_F(BinderCorrectnessTest, SelectStatementComplexTest) {
   EXPECT_EQ(col_expr->GetDatabaseOid(), db_oid_);              // A.a1
   EXPECT_EQ(col_expr->GetTableOid(), table_a_oid_);            // A.a1
   EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(1));  // A.a1; columns are indexed from 1
+  EXPECT_EQ(type::TypeId::INTEGER, col_expr->GetReturnValueType());
 
   col_expr = dynamic_cast<const parser::ColumnValueExpression *>(selectStmt->GetSelectGroupBy()->GetColumns()[1].get());
   EXPECT_EQ(col_expr->GetDatabaseOid(), db_oid_);              // B.b2
   EXPECT_EQ(col_expr->GetTableOid(), table_b_oid_);            // B.b2
   EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(2));  // B.b2; columns are indexed from 1
+  EXPECT_EQ(type::TypeId::VARCHAR, col_expr->GetReturnValueType());
 
   col_expr = dynamic_cast<const parser::ColumnValueExpression *>(
       selectStmt->GetSelectGroupBy()->GetHaving()->GetChild(0).get());
   EXPECT_EQ(col_expr->GetDatabaseOid(), db_oid_);              // A.a1
   EXPECT_EQ(col_expr->GetTableOid(), table_a_oid_);            // A.a1
   EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(1));  // A.a1; columns are indexed from 1
+  EXPECT_EQ(type::TypeId::INTEGER, col_expr->GetReturnValueType());
 
   // Check Order By
   LOG_INFO("Checking order by");
@@ -200,9 +201,159 @@ TEST_F(BinderCorrectnessTest, SelectStatementComplexTest) {
   EXPECT_EQ(col_expr->GetDatabaseOid(), db_oid_);              // A.a1
   EXPECT_EQ(col_expr->GetTableOid(), table_a_oid_);            // A.a1
   EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(1));  // A.a1; columns are indexed from 1
+  EXPECT_EQ(type::TypeId::INTEGER, col_expr->GetReturnValueType());
 }
 
-#ifndef NDEBUG
+// NOLINTNEXTLINE
+TEST_F(BinderCorrectnessTest, SelectStatementStarTest) {
+  // Check if star expression is correctly processed
+  LOG_INFO("Checking STAR expression in select and subselect");
+
+  std::string selectSQL = "SELECT * FROM A LEFT OUTER JOIN B ON A.A1 < B.B1";
+  auto parse_tree = parser_.BuildParseTree(selectSQL);
+  auto selectStmt = dynamic_cast<parser::SelectStatement *>(parse_tree[0].get());
+  binder_->BindNameToNode(selectStmt);
+
+  // Check select_list
+  LOG_INFO("Checking select list expansion");
+
+  auto columns = selectStmt->GetSelectColumns();
+  EXPECT_EQ(columns.size(), 4);
+
+  bool a1_exists = false;
+  bool a2_exists = false;
+  bool b1_exists = false;
+  bool b2_exists = false;
+  for (auto &col_abs_expr : columns) {
+    auto col_expr = dynamic_cast<const parser::ColumnValueExpression *>(col_abs_expr.get());
+
+    if (col_expr->GetDatabaseOid() == db_oid_ && col_expr->GetTableOid() == table_a_oid_) {
+      EXPECT_EQ(col_expr->GetTableName(), "a");
+      if (col_expr->GetColumnOid() == catalog::col_oid_t(1) &&
+          type::TypeId::INTEGER == col_expr->GetReturnValueType()) {
+        a1_exists = true;
+        EXPECT_EQ(col_expr->GetColumnName(), "a1");
+      }
+      if (col_expr->GetColumnOid() == catalog::col_oid_t(2) &&
+          type::TypeId::VARCHAR == col_expr->GetReturnValueType()) {
+        a2_exists = true;
+        EXPECT_EQ(col_expr->GetColumnName(), "a2");
+      }
+    }
+
+    if (col_expr->GetDatabaseOid() == db_oid_ && col_expr->GetTableOid() == table_b_oid_) {
+      EXPECT_EQ(col_expr->GetTableName(), "b");
+      if (col_expr->GetColumnOid() == catalog::col_oid_t(1) &&
+          type::TypeId::INTEGER == col_expr->GetReturnValueType()) {
+        b1_exists = true;
+        EXPECT_EQ(col_expr->GetColumnName(), "b1");
+      }
+      if (col_expr->GetColumnOid() == catalog::col_oid_t(2) &&
+          type::TypeId::VARCHAR == col_expr->GetReturnValueType()) {
+        b2_exists = true;
+        EXPECT_EQ(col_expr->GetColumnName(), "b2");
+      }
+    }
+  }
+
+  EXPECT_TRUE(a1_exists);
+  EXPECT_TRUE(a2_exists);
+  EXPECT_TRUE(b1_exists);
+  EXPECT_TRUE(b2_exists);
+}
+
+// NOLINTNEXTLINE
+TEST_F(BinderCorrectnessTest, SelectStatementStarComplextTest) {
+  // Check if star expression is correctly processed
+  LOG_INFO("Checking STAR expression in nested select from.");
+
+  std::string selectSQL =
+      "SELECT * FROM A LEFT OUTER JOIN (SELECT * FROM B INNER JOIN A ON B1 = A1) AS C ON C.B2 = a.A1";
+  auto parse_tree = parser_.BuildParseTree(selectSQL);
+  auto selectStmt = dynamic_cast<parser::SelectStatement *>(parse_tree[0].get());
+  binder_->BindNameToNode(selectStmt);
+
+  // Check select_list
+  LOG_INFO("Checking select list expansion");
+  auto columns = selectStmt->GetSelectColumns();
+  EXPECT_EQ(columns.size(), 6);
+
+  bool a1_exists = false;
+  bool a2_exists = false;
+  bool c_a1_exists = false;
+  bool c_a2_exists = false;
+  bool c_b1_exists = false;
+  bool c_b2_exists = false;
+
+  for (auto &col_abs_expr : columns) {
+    auto col_expr = dynamic_cast<const parser::ColumnValueExpression *>(col_abs_expr.get());
+
+    if (col_expr->GetDatabaseOid() == db_oid_ && col_expr->GetTableOid() == table_a_oid_) {
+      EXPECT_EQ(col_expr->GetTableName(), "a");
+      if (col_expr->GetColumnOid() == catalog::col_oid_t(1) &&
+          type::TypeId::INTEGER == col_expr->GetReturnValueType()) {
+        a1_exists = true;
+        EXPECT_EQ(col_expr->GetColumnName(), "a1");
+      }
+      if (col_expr->GetColumnOid() == catalog::col_oid_t(2) &&
+          type::TypeId::VARCHAR == col_expr->GetReturnValueType()) {
+        a2_exists = true;
+        EXPECT_EQ(col_expr->GetColumnName(), "a2");
+      }
+    }
+
+    if (col_expr->GetDatabaseOid() == catalog::INVALID_DATABASE_OID &&
+        col_expr->GetTableOid() == catalog::INVALID_TABLE_OID &&
+        col_expr->GetColumnOid() == catalog::INVALID_COLUMN_OID) {
+      EXPECT_EQ(col_expr->GetTableName(), "c");
+
+      if (col_expr->GetColumnName() == "a1") {
+        c_a1_exists = true;
+        EXPECT_EQ(type::TypeId::INTEGER, col_expr->GetReturnValueType());
+      }
+      if (col_expr->GetColumnName() == "a2") {
+        c_a2_exists = true;
+        EXPECT_EQ(type::TypeId::VARCHAR, col_expr->GetReturnValueType());
+      }
+      if (col_expr->GetColumnName() == "b1") {
+        c_b1_exists = true;
+        EXPECT_EQ(type::TypeId::INTEGER, col_expr->GetReturnValueType());
+      }
+      if (col_expr->GetColumnName() == "b2") {
+        c_b2_exists = true;
+        EXPECT_EQ(type::TypeId::VARCHAR, col_expr->GetReturnValueType());
+      }
+    }
+  }
+
+  EXPECT_TRUE(a1_exists);
+  EXPECT_TRUE(a2_exists);
+  EXPECT_TRUE(c_a1_exists);
+  EXPECT_TRUE(c_a2_exists);
+  EXPECT_TRUE(c_b1_exists);
+  EXPECT_TRUE(c_b2_exists);
+
+  // Check join condition
+  LOG_INFO("Checking join condition");
+  auto col_expr = dynamic_cast<const parser::ColumnValueExpression *>(
+      selectStmt->GetSelectTable()->GetJoin()->GetJoinCondition()->GetChild(0).get());
+  EXPECT_EQ(col_expr->GetColumnName(), "b2");  // C.B2
+  EXPECT_EQ(col_expr->GetTableName(), "c");
+  EXPECT_EQ(col_expr->GetDatabaseOid(), catalog::INVALID_DATABASE_OID);
+  EXPECT_EQ(col_expr->GetTableOid(), catalog::INVALID_TABLE_OID);
+  EXPECT_EQ(col_expr->GetColumnOid(), catalog::INVALID_COLUMN_OID);
+  EXPECT_EQ(type::TypeId::VARCHAR, col_expr->GetReturnValueType());
+
+  col_expr = dynamic_cast<const parser::ColumnValueExpression *>(
+      selectStmt->GetSelectTable()->GetJoin()->GetJoinCondition()->GetChild(1).get());
+  EXPECT_EQ(col_expr->GetColumnName(), "a1");                  // A.a1
+  EXPECT_EQ(col_expr->GetTableName(), "a");                    // A.a1
+  EXPECT_EQ(col_expr->GetDatabaseOid(), db_oid_);              // A.a1
+  EXPECT_EQ(col_expr->GetTableOid(), table_a_oid_);            // A.a1
+  EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(1));  // A.a1; columns are indexed from 1
+  EXPECT_EQ(type::TypeId::INTEGER, col_expr->GetReturnValueType());
+}
+
 // NOLINTNEXTLINE
 TEST_F(BinderCorrectnessTest, SelectStatementDupAliasTest) {
   // Check alias ambiguous
@@ -213,7 +364,6 @@ TEST_F(BinderCorrectnessTest, SelectStatementDupAliasTest) {
   auto selectStmt = dynamic_cast<parser::SelectStatement *>(parse_tree[0].get());
   EXPECT_THROW(binder_->BindNameToNode(selectStmt), BinderException);
 }
-#endif
 
 // NOLINTNEXTLINE
 TEST_F(BinderCorrectnessTest, SelectStatementDiffTableSameSchemaTest) {
