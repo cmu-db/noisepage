@@ -20,7 +20,7 @@ class GarbageCollectorThread {
    */
   BOOST_DI_INJECT(GarbageCollectorThread, transaction::TransactionManager *txn_manager,
                   (named = GC_PERIOD) std::chrono::milliseconds gc_period)
-      : gc_(txn_manager),
+      : gc_(txn_manager, nullptr),
         run_gc_(true),
         gc_paused_(false),
         gc_period_(gc_period),

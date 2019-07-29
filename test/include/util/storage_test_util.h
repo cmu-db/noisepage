@@ -13,6 +13,7 @@
 #include "gtest/gtest.h"
 #include "parser/expression/abstract_expression.h"
 #include "parser/expression/constant_value_expression.h"
+#include "storage/data_table.h"
 #include "storage/index/compact_ints_key.h"
 #include "storage/index/index_defs.h"
 #include "storage/storage_defs.h"
@@ -100,7 +101,7 @@ class StorageTestUtil {
     std::bernoulli_distribution coin(1 - null_bias);
     // TODO(Tianyu): I don't think this matters as a tunable thing?
     // Make sure we have a mix of inlined and non-inlined values
-    std::uniform_int_distribution<uint32_t> varlen_size(1, 2 * storage::VarlenEntry::InlineThreshold());
+    std::uniform_int_distribution<uint32_t> varlen_size(1, 5 * storage::VarlenEntry::InlineThreshold());
     // For every column in the project list, populate its attribute with random bytes or set to null based on coin flip
     for (uint16_t projection_list_idx = 0; projection_list_idx < row->NumColumns(); projection_list_idx++) {
       storage::col_id_t col = row->ColumnIds()[projection_list_idx];
@@ -161,14 +162,17 @@ class StorageTestUtil {
     return col_ids;
   }
 
+  // Populate a block with random tuple according to the given parameters. Returns a mapping of the tuples in each slot.
   template <class Random>
   static std::unordered_map<storage::TupleSlot, storage::ProjectedRow *> PopulateBlockRandomly(
-      const storage::BlockLayout &layout, storage::RawBlock *block, double empty_ratio, Random *const generator) {
+      storage::DataTable *table, storage::RawBlock *block, double empty_ratio, Random *const generator) {
+    const storage::BlockLayout &layout = table->GetBlockLayout();
     std::unordered_map<storage::TupleSlot, storage::ProjectedRow *> result;
     std::bernoulli_distribution coin(empty_ratio);
     // TODO(Tianyu): Do we ever want to tune this for tests?
     const double null_ratio = 0.1;
-    storage::TupleAccessStrategy accessor(layout);  // Have to construct one since we don't have access to data table
+    // TODO(Tianyu): Have to construct one since we don't have access to data table private members.
+    storage::TupleAccessStrategy accessor(layout);
     auto initializer =
         storage::ProjectedRowInitializer::Create(layout, StorageTestUtil::ProjectionListAllColumns(layout));
     for (uint32_t i = 0; i < layout.NumSlots(); i++) {
@@ -191,6 +195,45 @@ class StorageTestUtil {
         storage::StorageUtil::CopyAttrFromProjection(accessor, slot, *redo, j);
     }
     TERRIER_ASSERT(block->insert_head_ == layout.NumSlots(), "The block should be considered full at this point");
+    return result;
+  }
+
+  // Populate a block with random tuple according to the given parameters. Does not retain the values inserted for
+  // performance. Returns the number of non-empty slots in the block after population.
+  template <class Random>
+  static uint32_t PopulateBlockRandomlyNoBookkeeping(storage::DataTable *table, storage::RawBlock *block,
+                                                     double empty_ratio, Random *const generator) {
+    const storage::BlockLayout &layout = table->GetBlockLayout();
+    uint32_t result = 0;
+    std::bernoulli_distribution coin(empty_ratio);
+    // TODO(Tianyu): Do we ever want to tune this for tests?
+    const double null_ratio = 0.1;
+    // TODO(Tianyu): Have to construct one since we don't have access to data table private members.
+    storage::TupleAccessStrategy accessor(layout);
+    accessor.InitializeRawBlock(table, block, storage::layout_version_t(0));
+    storage::ProjectedRowInitializer initializer =
+        storage::ProjectedRowInitializer::Create(layout, StorageTestUtil::ProjectionListAllColumns(layout));
+    auto *redo_buffer = common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize());
+    storage::ProjectedRow *redo = initializer.InitializeRow(redo_buffer);
+    for (uint32_t i = 0; i < layout.NumSlots(); i++) {
+      storage::TupleSlot slot;
+      bool ret UNUSED_ATTRIBUTE = accessor.Allocate(block, &slot);
+      TERRIER_ASSERT(ret && slot == storage::TupleSlot(block, i),
+                     "slot allocation should happen sequentially and succeed");
+      if (coin(*generator)) {
+        // slot will be marked empty
+        accessor.Deallocate(slot);
+        continue;
+      }
+      result++;
+      StorageTestUtil::PopulateRandomRow(redo, layout, null_ratio, generator);
+      // Copy without transactions to simulate a version-free block
+      accessor.SetNotNull(slot, VERSION_POINTER_COLUMN_ID);
+      for (uint16_t j = 0; j < redo->NumColumns(); j++)
+        storage::StorageUtil::CopyAttrFromProjection(accessor, slot, *redo, j);
+    }
+    TERRIER_ASSERT(block->insert_head_ == layout.NumSlots(), "The block should be considered full at this point");
+    delete[] redo_buffer;
     return result;
   }
 
@@ -266,6 +309,33 @@ class StorageTestUtil {
       if (memcmp(one_content, other_content, attr_size) != 0) return false;
     }
     return true;
+  }
+
+  static storage::ProjectedRow *ProjectedRowDeepCopy(const storage::BlockLayout &layout,
+                                                     const storage::ProjectedRow &original) {
+    byte *result_buf = common::AllocationUtil::AllocateAligned(original.Size());
+    std::memcpy(result_buf, &original, original.Size());
+    auto *result = reinterpret_cast<storage::ProjectedRow *>(result_buf);
+
+    for (uint16_t projection_list_index = 0; projection_list_index < original.NumColumns(); projection_list_index++) {
+      storage::col_id_t col_id = result->ColumnIds()[projection_list_index];
+      const byte *original_val = original.AccessWithNullCheck(projection_list_index);
+      if (!layout.IsVarlen(col_id)) continue;
+
+      auto *original_entry = reinterpret_cast<const storage::VarlenEntry *>(original_val);
+      if (original_entry == nullptr) continue;
+
+      auto *copied_entry = reinterpret_cast<storage::VarlenEntry *>(result->AccessForceNotNull(projection_list_index));
+      if (original_entry->IsInlined()) {
+        *copied_entry = *original_entry;
+      } else {
+        byte *copied_content = common::AllocationUtil::AllocateAligned(original_entry->Size());
+        std::memcpy(copied_content, original_entry->Content(), original_entry->Size());
+        // Always needs reclaim because we just made a copy
+        *copied_entry = storage::VarlenEntry::Create(copied_content, original_entry->Size(), true);
+      }
+    }
+    return result;
   }
 
   template <class RowType>
