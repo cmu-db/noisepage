@@ -37,7 +37,7 @@ void DatabaseCatalog::Bootstrap(transaction::TransactionContext *const txn) {
 
   // pg_namespace and associated indexes
   retval = CreateTableEntry(txn, NAMESPACE_TABLE_OID, NAMESPACE_CATALOG_NAMESPACE_OID, "pg_namespace",
-                            Schema(postgres::Builder::GetNamespaceTableSchema()));
+                            postgres::Builder::GetNamespaceTableSchema());
   TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
   retval = SetTablePointer(txn, NAMESPACE_TABLE_OID, namespaces_);
   TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
@@ -56,7 +56,7 @@ void DatabaseCatalog::Bootstrap(transaction::TransactionContext *const txn) {
 
   // pg_class and associated indexes
   retval = CreateTableEntry(txn, CLASS_TABLE_OID, NAMESPACE_CATALOG_NAMESPACE_OID, "pg_class",
-                            Schema(postgres::Builder::GetClassTableSchema()));
+                            postgres::Builder::GetClassTableSchema());
   TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
   retval = SetTablePointer(txn, CLASS_TABLE_OID, classes_);
   TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
@@ -81,7 +81,7 @@ void DatabaseCatalog::Bootstrap(transaction::TransactionContext *const txn) {
 
   // pg_index and associated indexes
   retval = CreateTableEntry(txn, INDEX_TABLE_OID, NAMESPACE_CATALOG_NAMESPACE_OID, "pg_index",
-                            Schema(postgres::Builder::GetIndexTableSchema()));
+                            postgres::Builder::GetIndexTableSchema());
   TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
   retval = SetTablePointer(txn, INDEX_TABLE_OID, indexes_);
   TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
@@ -100,7 +100,7 @@ void DatabaseCatalog::Bootstrap(transaction::TransactionContext *const txn) {
 
   // pg_attribute and associated indexes
   retval = CreateTableEntry(txn, COLUMN_TABLE_OID, NAMESPACE_CATALOG_NAMESPACE_OID, "pg_attribute",
-                            Schema(postgres::Builder::GetColumnTableSchema()));
+                            postgres::Builder::GetColumnTableSchema());
   TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
   retval = SetTablePointer(txn, COLUMN_TABLE_OID, columns_);
   TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
@@ -125,7 +125,7 @@ void DatabaseCatalog::Bootstrap(transaction::TransactionContext *const txn) {
 
   // pg_type and associated indexes
   retval = CreateTableEntry(txn, TYPE_TABLE_OID, NAMESPACE_CATALOG_NAMESPACE_OID, "pg_type",
-                            Schema(postgres::Builder::GetTypeTableSchema()));
+                            postgres::Builder::GetTypeTableSchema());
   TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
   retval = SetTablePointer(txn, TYPE_TABLE_OID, types_);
   TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
@@ -150,7 +150,7 @@ void DatabaseCatalog::Bootstrap(transaction::TransactionContext *const txn) {
 
   // pg_constraint and associated indexes
   retval = CreateTableEntry(txn, CONSTRAINT_TABLE_OID, NAMESPACE_CATALOG_NAMESPACE_OID, "pg_constraint",
-                            Schema(postgres::Builder::GetConstraintTableSchema()));
+                            postgres::Builder::GetConstraintTableSchema());
   TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
   retval = SetTablePointer(txn, CONSTRAINT_TABLE_OID, constraints_);
   TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
