@@ -1634,7 +1634,7 @@ Column DatabaseCatalog::MakeColumn(storage::ProjectedRow *const pr,
   auto col_len = *reinterpret_cast<uint16_t *>(pr->AccessForceNotNull(pr_map.at(ATTLEN_COL_OID)));
   auto col_null = !(*reinterpret_cast<bool *>(pr->AccessForceNotNull(pr_map.at(ATTNOTNULL_COL_OID))));
   auto *col_expr =
-      reinterpret_cast<storage::VarlenEntry *>(pr->AccessForceNotNull(pr_map.at(ADBIN_COL_OID)));
+      reinterpret_cast<storage::VarlenEntry *>(pr->AccessForceNotNull(pr_map.at(ADSRC_COL_OID)));
 
   auto expr = parser::DeserializeExpression(nlohmann::json::parse(col_expr->StringView()));
 
