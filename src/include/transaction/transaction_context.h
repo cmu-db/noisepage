@@ -12,6 +12,8 @@
 
 namespace terrier::storage {
 class GarbageCollector;
+class LogManager;
+class BlockCompactor;
 class LogSerializerTask;
 class SqlTable;
 class WriteAheadLoggingTests;
@@ -147,6 +149,12 @@ class TransactionContext {
     storage::DeleteRecord::Initialize(redo_buffer_.NewEntry(size), start_time_, db_oid, table_oid, slot);
   }
 
+  // TODO(Tianyu): We need to discuss what happens to the loose_ptrs field now that we have deferred actions.
+  /**
+   * @return whether the transaction is read-only
+   */
+  bool IsReadOnly() const { return undo_buffer_.Empty() && loose_ptrs_.empty(); }
+
   /**
    * Defers an action to be called if and only if the transaction aborts.  Actions executed LIFO.
    * @param a the action to be executed
@@ -178,6 +186,7 @@ class TransactionContext {
  private:
   friend class storage::GarbageCollector;
   friend class TransactionManager;
+  friend class storage::BlockCompactor;
   friend class storage::LogSerializerTask;
   friend class storage::SqlTable;
   friend class storage::WriteAheadLoggingTests;  // Needs access to redo buffer
