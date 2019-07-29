@@ -140,7 +140,7 @@ class IndexSchema {
       SetTypeId(j.at("type").get<type::TypeId>());
       SetMaxVarlenSize(j.at("max_varlen_size").get<uint16_t>());
       SetNullable(j.at("nullable").get<bool>());
-      SetOid(j.at("oid").get<col_oid_t>());
+      SetOid(j.at("oid").get<indexkeycol_oid_t>());
       default_value_ = j.at("default_value").get<std::shared_ptr<parser::AbstractExpression>>();
     }
 
@@ -267,8 +267,19 @@ class IndexSchema {
    * @return deserialized schema object
    */
   std::shared_ptr<Schema> static DeserializeSchema(const nlohmann::json &j) {
-    auto columns = j.at("columns").get<std::vector<Schema::Column>>();
-    return std::make_shared<Schema>(columns);
+    auto columns = j.at("columns").get<std::vector<IndexSchema::Column>>();
+    auto unique = j.at("unique").get<bool>();
+    auto primary = j.at("primary").get<bool>();
+    auto exclusion = j.at("exclusion").get<bool>();
+    auto immediate = j.at("immediate").get<bool>();
+
+    auto schema = std::make_shared<Schema>(columns, unique, primary, exclusion, immediate);
+
+    schema->SetValid(j.at("valid").get<bool>());
+    schema->SetReady(j.at("ready").get<bool>());
+    schema->SetLive(j.at("live").get<bool>());
+
+    return schema;
   }
 
  private:
