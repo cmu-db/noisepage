@@ -273,7 +273,7 @@ class IndexSchema {
     auto exclusion = j.at("exclusion").get<bool>();
     auto immediate = j.at("immediate").get<bool>();
 
-    auto schema = std::make_shared<Schema>(columns, unique, primary, exclusion, immediate);
+    auto schema = std::make_shared<IndexSchema>(columns, unique, primary, exclusion, immediate);
 
     schema->SetValid(j.at("valid").get<bool>());
     schema->SetReady(j.at("ready").get<bool>());
