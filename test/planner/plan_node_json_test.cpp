@@ -784,7 +784,7 @@ TEST(PlanNodeJsonTest, InsertPlanNodeJsonTest) {
                         .AddValues(get_values(1, 3))
                         .AddParameterInfo(0, catalog::col_oid_t(0))
                         .AddParameterInfo(1, catalog::col_oid_t(1))
-                        .AddParameterInfo(8, catalog::col_oid_t(999))
+                        .AddParameterInfo(2, catalog::col_oid_t(2))
                         .Build();
   auto json2 = plan_node2->ToJson();
   EXPECT_FALSE(json2.is_null());

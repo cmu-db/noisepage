@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdint>
 #include <memory>
 #include <string>
 #include <tuple>
@@ -74,7 +75,13 @@ class InsertPlanNode : public AbstractPlanNode {
      * @return builder object
      */
     Builder &AddParameterInfo(uint32_t value_idx, catalog::col_oid_t col_oid) {
-      parameter_info_.emplace(value_idx, col_oid);
+      TERRIER_ASSERT(!values_.empty(), "Should add values before setting parameters");
+      TERRIER_ASSERT(!col_oid < values_[0].size(), "Index greater than column size");
+      for (auto i = static_cast<int>(parameter_info_.size()); i < static_cast<int>(values_[0].size()); i++) {
+        // Use UINT32_MAX as the placeholder, not very clean
+        parameter_info_.emplace_back(catalog::col_oid_t(UINT32_MAX));
+      }
+      parameter_info_[value_idx] = col_oid;
       return *this;
     }
 
@@ -85,6 +92,9 @@ class InsertPlanNode : public AbstractPlanNode {
     std::shared_ptr<InsertPlanNode> Build() {
       TERRIER_ASSERT(!values_.empty(), "Can't have an empty insert plan");
       TERRIER_ASSERT(values_[0].size() == parameter_info_.size(), "Must have parameter info for each value");
+      for (const auto &pi : parameter_info_) {
+        TERRIER_ASSERT(pi != catalog::col_oid_t(UINT32_MAX), "Must have parameter info for each value");
+      }
       return std::shared_ptr<InsertPlanNode>(new InsertPlanNode(std::move(children_), std::move(output_schema_),
                                                                 database_oid_, namespace_oid_, table_oid_,
                                                                 std::move(values_), std::move(parameter_info_)));
@@ -117,7 +127,7 @@ class InsertPlanNode : public AbstractPlanNode {
      * values_[t], the value at index i (values_[t][i]) should be inserted into column parameter_info_[i]
      * @warning This relies on the assumption that values are ordered the same for every tuple in the bulk insert
      */
-    std::unordered_map<uint32_t /* value index */, catalog::col_oid_t> parameter_info_;
+    std::vector<catalog::col_oid_t> parameter_info_;
   };
 
  private:
@@ -133,7 +143,7 @@ class InsertPlanNode : public AbstractPlanNode {
   InsertPlanNode(std::vector<std::shared_ptr<AbstractPlanNode>> &&children, std::shared_ptr<OutputSchema> output_schema,
                  catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid,
                  std::vector<std::vector<type::TransientValue>> &&values,
-                 std::unordered_map<uint32_t, catalog::col_oid_t> &&parameter_info)
+                 std::vector<catalog::col_oid_t> &&parameter_info)
       : AbstractPlanNode(std::move(children), std::move(output_schema)),
         database_oid_(database_oid),
         namespace_oid_(namespace_oid),
@@ -177,13 +187,13 @@ class InsertPlanNode : public AbstractPlanNode {
   /**
    * @return the information of insert parameters
    */
-  const std::unordered_map<uint32_t, catalog::col_oid_t> &GetParameterInfo() const { return parameter_info_; }
+  const std::vector<catalog::col_oid_t> &GetParameterInfo() const { return parameter_info_; }
 
   /**
-   * @param value_idx index of value being inserted
+   * @param value_idx index of value being inserte
    * @return OID of column where value should be inserted
    */
-  const catalog::col_oid_t GetColumnOidForValue(uint32_t value_idx) const { return parameter_info_.at(value_idx); }
+  const catalog::col_oid_t GetColumnOidForValue(uint32_t value_idx) const { return parameter_info_[value_idx]; }
 
   /**
    * @return number of tuples to insert
@@ -228,7 +238,7 @@ class InsertPlanNode : public AbstractPlanNode {
    * values_[t], the value at index i (values_[t][i]) should be inserted into column parameter_info_[i]
    * @warning This relies on the assumption that values are ordered the same for every tuple in the bulk insert
    */
-  std::unordered_map<uint32_t /* value index */, catalog::col_oid_t> parameter_info_;
+  std::vector<catalog::col_oid_t> parameter_info_;
 };
 
 DEFINE_JSON_DECLARATIONS(InsertPlanNode);
