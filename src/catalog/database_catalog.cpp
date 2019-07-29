@@ -749,7 +749,8 @@ table_oid_t DatabaseCatalog::GetTableOid(transaction::TransactionContext *const 
 
 bool DatabaseCatalog::SetTablePointer(transaction::TransactionContext *const txn, const table_oid_t table,
                                       const storage::SqlTable *const table_ptr) {
-  txn->RegisterAbortAction([=]() { delete table_ptr; });
+  auto *tm = txn->GetTransactionManager();
+  txn->RegisterAbortAction([=]() { tm->DeferAction([=]() { delete table_ptr; }); });
   return SetClassPointer(txn, table, table_ptr);
 }
 
