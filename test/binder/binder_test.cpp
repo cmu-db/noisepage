@@ -44,7 +44,7 @@ class BinderCorrectnessTest : public TerrierTest {
 
   void SetUpTables() {
     txn_manager_ = new transaction::TransactionManager(&buffer_pool_, true, LOGGING_DISABLED);
-    gc_ = new storage::GarbageCollector(txn_manager_);
+    gc_ = new storage::GarbageCollector(txn_manager_, nullptr);
     // new catalog requires txn_manage and block_store as parameters
     catalog_ = new catalog::Catalog(txn_manager_, &block_store_);
 
