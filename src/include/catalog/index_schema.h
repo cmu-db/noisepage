@@ -208,7 +208,7 @@ class IndexSchema {
   /**
    * @return true if this schema is for a unique index
    */
-  bool Immdeiate() const { return is_immediate_; }
+  bool Immediate() const { return is_immediate_; }
 
  private:
   friend class DatabaseCatalog;

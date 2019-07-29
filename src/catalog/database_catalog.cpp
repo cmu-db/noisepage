@@ -749,7 +749,7 @@ table_oid_t DatabaseCatalog::GetTableOid(transaction::TransactionContext *const 
 
 bool DatabaseCatalog::SetTablePointer(transaction::TransactionContext *const txn, const table_oid_t table,
                                       const storage::SqlTable *const table_ptr) {
-  txn->RegisterAbortAction([=]() { delete table_ptr; })
+  txn->RegisterAbortAction([=]() { delete table_ptr; });
   return SetClassPointer(txn, table, table_ptr);
 }
 
@@ -1018,7 +1018,7 @@ bool DatabaseCatalog::SetClassPointer(transaction::TransactionContext *const txn
 
 bool DatabaseCatalog::SetIndexPointer(transaction::TransactionContext *const txn, const index_oid_t index,
                                       const storage::index::Index *const index_ptr) {
-  txn->RegisterAbortAction([=]() { delete index_ptr; })
+  txn->RegisterAbortAction([=]() { delete index_ptr; });
   return SetClassPointer(txn, index, index_ptr);
 }
 
@@ -1249,18 +1249,18 @@ bool DatabaseCatalog::CreateIndexEntry(transaction::TransactionContext *const tx
 
   // Write boolean values to PR
   *(reinterpret_cast<bool *>(indexes_insert_pr->AccessForceNotNull(pr_map[INDISUNIQUE_COL_OID]))) =
-      schema->is_unique_;
+      schema.is_unique_;
   *(reinterpret_cast<bool *>(indexes_insert_pr->AccessForceNotNull(pr_map[INDISPRIMARY_COL_OID]))) =
-      schema->is_primary_;
+      schema.is_primary_;
   *(reinterpret_cast<bool *>(indexes_insert_pr->AccessForceNotNull(pr_map[INDISEXCLUSION_COL_OID]))) =
-      schema->is_exclusion_;
+      schema.is_exclusion_;
   *(reinterpret_cast<bool *>(indexes_insert_pr->AccessForceNotNull(pr_map[INDIMMEDIATE_COL_OID]))) =
-      schema->is_immediate_;
+      schema.is_immediate_;
   *(reinterpret_cast<bool *>(indexes_insert_pr->AccessForceNotNull(pr_map[INDISVALID_COL_OID]))) =
-      schema->is_valid_;
+      schema.is_valid_;
   *(reinterpret_cast<bool *>(indexes_insert_pr->AccessForceNotNull(pr_map[INDISREADY_COL_OID]))) =
-      schema->is_ready_;
-  *(reinterpret_cast<bool *>(indexes_insert_pr->AccessForceNotNull(pr_map[INDISLIVE_COL_OID]))) = schema->is_live_;
+      schema.is_ready_;
+  *(reinterpret_cast<bool *>(indexes_insert_pr->AccessForceNotNull(pr_map[INDISLIVE_COL_OID]))) = schema.is_live_;
 
   // Insert into pg_index table
   const auto indexes_tuple_slot = indexes_->Insert(txn, indexes_insert_redo);
@@ -1312,7 +1312,7 @@ bool DatabaseCatalog::CreateIndexEntry(transaction::TransactionContext *const tx
   auto *const update_redo = txn->StageWrite(db_oid_, CLASS_TABLE_OID, pr_init);
   auto *const update_pr = update_redo->Delta();
 
-  update_redo->SetTupleSlot(tuple_slot);
+  update_redo->SetTupleSlot(class_tuple_slot);
   *reinterpret_cast<Schema **>(update_pr->AccessForceNotNull(0)) = new_schema;
   auto UNUSED_ATTRIBUTE res = classes_->Update(txn, update_redo);
   TERRIER_ASSERT(res, "Updating an uncommitted insert should not fail");
