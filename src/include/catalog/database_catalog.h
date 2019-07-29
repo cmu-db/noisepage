@@ -242,8 +242,8 @@ class DatabaseCatalog {
    * @param default_val default value
    * @return whether insertion is successful
    */
-  template <typename Column, typename ClassOid>
-  bool CreateColumn(transaction::TransactionContext *txn, ClassOid class_oid, const Column &col);
+  template <typename Column, typename ClassOid, typename ColOid>
+  bool CreateColumn(transaction::TransactionContext *txn, ClassOid class_oid, ColOid col_oid, const Column &col);
 
   /**
    * Get entry from pg_attribute
@@ -253,8 +253,8 @@ class DatabaseCatalog {
    * @param class_oid oid of table or index
    * @return the column from pg_attribute
    */
-  template <typename Column, typename ClassOid, typename ColOid>
-  std::unique_ptr<Column> GetColumn(transaction::TransactionContext *txn, ClassOid class_oid, ColOid col_oid);
+  // template <typename Column, typename ClassOid, typename ColOid>
+  // Column GetColumn(transaction::TransactionContext *txn, ClassOid class_oid, ColOid col_oid);
   // TODO(Matt): make this return stack object
 
   /**
@@ -265,7 +265,7 @@ class DatabaseCatalog {
    * @return the column from pg_attribute
    */
   template <typename Column, typename ClassOid, typename ColOid>
-  std::vector<std::unique_ptr<Column>> GetColumns(transaction::TransactionContext *txn, ClassOid class_oid);
+  std::vector<Column> GetColumns(transaction::TransactionContext *txn, ClassOid class_oid);
   // TODO(Matt): make this return stack object
 
   /**
@@ -317,7 +317,7 @@ class DatabaseCatalog {
 
   void TearDown(transaction::TransactionContext *txn);
   bool CreateTableEntry(transaction::TransactionContext *txn, table_oid_t table_oid, namespace_oid_t ns_oid,
-                        const std::string &name, Schema *schema);
+                        const std::string &name, const Schema &schema);
 
   friend class Catalog;
   friend class postgres::Builder;
@@ -409,6 +409,6 @@ class DatabaseCatalog {
    * @return heap-allocated column managed by unique_ptr
    */
   template <typename Column, typename ColOid>
-  static std::unique_ptr<Column> MakeColumn(storage::ProjectedRow *pr, const storage::ProjectionMap &pr_map);
+  static Column MakeColumn(storage::ProjectedRow *pr, const storage::ProjectionMap &pr_map);
 };
 }  // namespace terrier::catalog

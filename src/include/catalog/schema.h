@@ -51,7 +51,7 @@ class Schema {
           attr_size_(type::TypeUtil::GetTypeSize(type_)),
           nullable_(nullable),
           oid_(INVALID_COLUMN_OID),
-          default_value_(common::ManagedPointer<const parser::AbstractExpression>(&default_value)) {
+          default_value_(default_value.Copy()) {
       TERRIER_ASSERT(attr_size_ == 1 || attr_size_ == 2 || attr_size_ == 4 || attr_size_ == 8,
                      "This constructor is meant for non-VARLEN columns.");
       TERRIER_ASSERT(type_ != type::TypeId::INVALID, "Attribute type cannot be INVALID.");
@@ -73,9 +73,17 @@ class Schema {
           max_varlen_size_(max_varlen_size),
           nullable_(nullable),
           oid_(INVALID_COLUMN_OID),
-          default_value_(common::ManagedPointer<const parser::AbstractExpression>(&default_value)) {
+          default_value_(default_value.Copy()) {
       TERRIER_ASSERT(attr_size_ == VARLEN_COLUMN, "This constructor is meant for VARLEN columns.");
       TERRIER_ASSERT(type_ != type::TypeId::INVALID, "Attribute type cannot be INVALID.");
+    }
+
+    /**
+     * Destructor for a Column object.  Deallocates the abstract expression that it owns.
+     */
+    ~Column() {
+      // TODO (John) This should be uncommented once #386 is in
+      // delete default_value_;
     }
 
     /**
@@ -113,7 +121,9 @@ class Schema {
     /**
      * @return default value expression
      */
-    common::ManagedPointer<const parser::AbstractExpression> StoredExpression() const { return default_value_; }
+    common::ManagedPointer<const parser::AbstractExpression> StoredExpression() const {
+      return common::ManagedPointer(default_value_.get());
+    }
 
     /**
      * Default constructor for deserialization
@@ -154,7 +164,9 @@ class Schema {
     uint16_t max_varlen_size_;
     bool nullable_;
     col_oid_t oid_;
-    common::ManagedPointer<const parser::AbstractExpression> default_value_;
+
+    // TODO (John) this should go back to being a raw pointer once #386 is in
+    std::shared_ptr<const parser::AbstractExpression> default_value_;
 
     void SetOid(col_oid_t oid) { oid_ = oid; }
 

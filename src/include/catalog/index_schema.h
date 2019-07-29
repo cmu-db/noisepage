@@ -44,7 +44,7 @@ class IndexSchema {
         : name_(std::move(name)),
           oid_(INVALID_INDEXKEYCOL_OID),
           packed_type_(0),
-          definition_(common::ManagedPointer<const parser::AbstractExpression>(&definition)) {
+          definition_(definition.Copy()) {
       TERRIER_ASSERT(!(type_id == type::TypeId::VARCHAR || type_id == type::TypeId::VARBINARY),
                      "Non-varlen constructor.");
       SetTypeId(type_id);
@@ -64,11 +64,19 @@ class IndexSchema {
         : name_(std::move(name)),
           oid_(INVALID_INDEXKEYCOL_OID),
           packed_type_(0),
-          definition_(common::ManagedPointer<const parser::AbstractExpression>(&definition)) {
+          definition_(definition.Copy()) {
       TERRIER_ASSERT(type_id == type::TypeId::VARCHAR || type_id == type::TypeId::VARBINARY, "Varlen constructor.");
       SetTypeId(type_id);
       SetNullable(nullable);
       SetMaxVarlenSize(max_varlen_size);
+    }
+
+    /**
+     * Destructor for a Column object.  Deallocates the abstract expression that it owns.
+     */
+    ~Column() {
+      // TODO (John) This should be uncommented once #386 is in
+      // delete definition_;
     }
 
     /**
@@ -84,7 +92,9 @@ class IndexSchema {
     /**
      * @return definition expression
      */
-    common::ManagedPointer<const parser::AbstractExpression> StoredExpression() const { return definition_; }
+    common::ManagedPointer<const parser::AbstractExpression> StoredExpression() const {
+      return common::ManagedPointer(definition_.get());
+    }
 
     /**
      * @warning only defined for varlen types
@@ -116,8 +126,9 @@ class IndexSchema {
     std::string name_;
     indexkeycol_oid_t oid_;
     uint32_t packed_type_;
-    common::ManagedPointer<const parser::AbstractExpression> definition_;
-    std::string serialized_expression_;
+
+    // TODO (John) this should go back to being a raw pointer once #386 is in
+    std::shared_ptr<const parser::AbstractExpression> definition_;
 
     // TODO(John): Should these "OIDS" be implicitly set by the index in the columns?
     void SetOid(indexkeycol_oid_t oid) { oid_ = oid; }
