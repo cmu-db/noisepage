@@ -355,7 +355,8 @@ bool DatabaseCatalog::CreateColumn(transaction::TransactionContext *const txn, c
   auto type_entry = reinterpret_cast<type::TypeId *>(redo->Delta()->AccessForceNotNull(table_pm[ATTTYPID_COL_OID]));
   auto len_entry = reinterpret_cast<uint16_t *>(redo->Delta()->AccessForceNotNull(table_pm[ATTLEN_COL_OID]));
   auto notnull_entry = reinterpret_cast<bool *>(redo->Delta()->AccessForceNotNull(table_pm[ATTNOTNULL_COL_OID]));
-  auto dbin_entry = reinterpret_cast<parser::AbstractExpression **>(redo->Delta()->AccessForceNotNull(table_pm[ADBIN_COL_OID]));
+  auto dbin_entry =
+      reinterpret_cast<parser::AbstractExpression **>(redo->Delta()->AccessForceNotNull(table_pm[ADBIN_COL_OID]));
   auto dsrc_entry =
       reinterpret_cast<storage::VarlenEntry *>(redo->Delta()->AccessForceNotNull(table_pm[ADSRC_COL_OID]));
   *oid_entry = col_oid;
@@ -403,7 +404,7 @@ bool DatabaseCatalog::CreateColumn(transaction::TransactionContext *const txn, c
   pr = oid_pri.InitializeRow(buffer);
   // Write the attributes in the ProjectedRow. These hardcoded indexkeycol_oids come from
   // Builder::GetColumnOidIndexSchema()
-  *(reinterpret_cast<ColOid *>(pr->AccessForceNotNull(oid_pm.at(indexkeycol_oid_t(2))))) =col_oid;
+  *(reinterpret_cast<ColOid *>(pr->AccessForceNotNull(oid_pm.at(indexkeycol_oid_t(2))))) = col_oid;
   *(reinterpret_cast<ClassOid *>(pr->AccessForceNotNull(oid_pm.at(indexkeycol_oid_t(1))))) = class_oid;
 
   bool UNUSED_ATTRIBUTE result = columns_oid_index_->InsertUnique(txn, *pr, tupleslot);
@@ -465,8 +466,7 @@ bool DatabaseCatalog::CreateColumn(transaction::TransactionContext *const txn, c
 // }
 
 template <typename Column, typename ClassOid, typename ColOid>
-std::vector<Column> DatabaseCatalog::GetColumns(transaction::TransactionContext *const txn,
-                                                                 const ClassOid class_oid) {
+std::vector<Column> DatabaseCatalog::GetColumns(transaction::TransactionContext *const txn, const ClassOid class_oid) {
   // Step 1: Read Index
   const std::vector<col_oid_t> table_oids{ATTNUM_COL_OID, ATTNAME_COL_OID,    ATTTYPID_COL_OID,
                                           ATTLEN_COL_OID, ATTNOTNULL_COL_OID, ADSRC_COL_OID};
@@ -544,10 +544,11 @@ bool DatabaseCatalog::DeleteColumns(transaction::TransactionContext *const txn, 
         reinterpret_cast<const uint32_t *const>(pr->AccessWithNullCheck(table_pm[ATTNUM_COL_OID]));
     TERRIER_ASSERT(col_name != nullptr, "OID shouldn't be NULL.");
 
-    auto *stored_expression = *reinterpret_cast<parser::AbstractExpression **>(pr->AccessForceNotNull(table_pm[ADBIN_COL_OID]));
+    auto *stored_expression =
+        *reinterpret_cast<parser::AbstractExpression **>(pr->AccessForceNotNull(table_pm[ADBIN_COL_OID]));
 
     if (stored_expression != nullptr) {
-      txn->RegisterCommitAction([=] () { delete stored_expression; });
+      txn->RegisterCommitAction([=]() { delete stored_expression; });
     }
 
     // 2. Delete from the table
@@ -1249,18 +1250,14 @@ bool DatabaseCatalog::CreateIndexEntry(transaction::TransactionContext *const tx
   *(reinterpret_cast<table_oid_t *>(rel_oid_ptr)) = table_oid;
 
   // Write boolean values to PR
-  *(reinterpret_cast<bool *>(indexes_insert_pr->AccessForceNotNull(pr_map[INDISUNIQUE_COL_OID]))) =
-      schema.is_unique_;
-  *(reinterpret_cast<bool *>(indexes_insert_pr->AccessForceNotNull(pr_map[INDISPRIMARY_COL_OID]))) =
-      schema.is_primary_;
+  *(reinterpret_cast<bool *>(indexes_insert_pr->AccessForceNotNull(pr_map[INDISUNIQUE_COL_OID]))) = schema.is_unique_;
+  *(reinterpret_cast<bool *>(indexes_insert_pr->AccessForceNotNull(pr_map[INDISPRIMARY_COL_OID]))) = schema.is_primary_;
   *(reinterpret_cast<bool *>(indexes_insert_pr->AccessForceNotNull(pr_map[INDISEXCLUSION_COL_OID]))) =
       schema.is_exclusion_;
   *(reinterpret_cast<bool *>(indexes_insert_pr->AccessForceNotNull(pr_map[INDIMMEDIATE_COL_OID]))) =
       schema.is_immediate_;
-  *(reinterpret_cast<bool *>(indexes_insert_pr->AccessForceNotNull(pr_map[INDISVALID_COL_OID]))) =
-      schema.is_valid_;
-  *(reinterpret_cast<bool *>(indexes_insert_pr->AccessForceNotNull(pr_map[INDISREADY_COL_OID]))) =
-      schema.is_ready_;
+  *(reinterpret_cast<bool *>(indexes_insert_pr->AccessForceNotNull(pr_map[INDISVALID_COL_OID]))) = schema.is_valid_;
+  *(reinterpret_cast<bool *>(indexes_insert_pr->AccessForceNotNull(pr_map[INDISREADY_COL_OID]))) = schema.is_ready_;
   *(reinterpret_cast<bool *>(indexes_insert_pr->AccessForceNotNull(pr_map[INDISLIVE_COL_OID]))) = schema.is_live_;
 
   // Insert into pg_index table
@@ -1297,7 +1294,6 @@ bool DatabaseCatalog::CreateIndexEntry(transaction::TransactionContext *const tx
   // Free the buffer, we are finally done
   delete[] index_buffer;
 
-
   // Write the col oids into a new Schema object
   indexkeycol_oid_t curr_col_oid(1);
   for (auto &col : schema.GetColumns()) {
@@ -1305,11 +1301,12 @@ bool DatabaseCatalog::CreateIndexEntry(transaction::TransactionContext *const tx
     if (!result) return false;
   }
 
-  std::vector<IndexSchema::Column> cols = GetColumns<IndexSchema::Column, index_oid_t, indexkeycol_oid_t>(txn, index_oid);
+  std::vector<IndexSchema::Column> cols =
+      GetColumns<IndexSchema::Column, index_oid_t, indexkeycol_oid_t>(txn, index_oid);
   auto *new_schema = new IndexSchema(cols, schema.Unique(), schema.Primary(), schema.Exclusion(), schema.Immediate());
   txn->RegisterAbortAction([=]() { delete new_schema; });
 
-  pr_init = classes_->InitializerForProjectedRow({ REL_SCHEMA_COL_OID }).first;
+  pr_init = classes_->InitializerForProjectedRow({REL_SCHEMA_COL_OID}).first;
   auto *const update_redo = txn->StageWrite(db_oid_, CLASS_TABLE_OID, pr_init);
   auto *const update_pr = update_redo->Delta();
 
@@ -1530,7 +1527,6 @@ bool DatabaseCatalog::CreateTableEntry(transaction::TransactionContext *const tx
 
   delete[] index_buffer;
 
-
   // Write the col oids into a new Schema object
   col_oid_t curr_col_oid(1);
   for (auto &col : schema.GetColumns()) {
@@ -1542,7 +1538,7 @@ bool DatabaseCatalog::CreateTableEntry(transaction::TransactionContext *const tx
   auto *new_schema = new Schema(cols);
   txn->RegisterAbortAction([=]() { delete new_schema; });
 
-  pr_init = classes_->InitializerForProjectedRow({ REL_SCHEMA_COL_OID }).first;
+  pr_init = classes_->InitializerForProjectedRow({REL_SCHEMA_COL_OID}).first;
   auto *const update_redo = txn->StageWrite(db_oid_, CLASS_TABLE_OID, pr_init);
   auto *const update_pr = update_redo->Delta();
 
@@ -1639,29 +1635,31 @@ std::pair<void *, postgres::ClassKind> DatabaseCatalog::GetClassSchemaPtrKind(tr
 }
 
 template <typename Column, typename ColOid>
-Column DatabaseCatalog::MakeColumn(storage::ProjectedRow *const pr,
-                                                    const storage::ProjectionMap &pr_map) {
+Column DatabaseCatalog::MakeColumn(storage::ProjectedRow *const pr, const storage::ProjectionMap &pr_map) {
   auto col_oid = *reinterpret_cast<uint32_t *>(pr->AccessForceNotNull(pr_map.at(ATTNUM_COL_OID)));
   auto col_name = reinterpret_cast<storage::VarlenEntry *>(pr->AccessForceNotNull(pr_map.at(ATTNAME_COL_OID)));
   auto col_type = *reinterpret_cast<type::TypeId *>(pr->AccessForceNotNull(pr_map.at(ATTTYPID_COL_OID)));
   auto col_len = *reinterpret_cast<uint16_t *>(pr->AccessForceNotNull(pr_map.at(ATTLEN_COL_OID)));
   auto col_null = !(*reinterpret_cast<bool *>(pr->AccessForceNotNull(pr_map.at(ATTNOTNULL_COL_OID))));
-  auto *col_expr =
-      reinterpret_cast<storage::VarlenEntry *>(pr->AccessForceNotNull(pr_map.at(ADSRC_COL_OID)));
+  auto *col_expr = reinterpret_cast<storage::VarlenEntry *>(pr->AccessForceNotNull(pr_map.at(ADSRC_COL_OID)));
 
   auto expr = parser::DeserializeExpression(nlohmann::json::parse(col_expr->StringView()));
 
   std::string name(reinterpret_cast<const char *>(col_name->Content()), col_name->Size());
-  Column col = (col_type == type::TypeId::VARCHAR || col_type == type::TypeId::VARBINARY) ? Column(name, col_type, col_len, col_null, *expr) : Column(name, col_type, col_null, *expr);
+  Column col = (col_type == type::TypeId::VARCHAR || col_type == type::TypeId::VARBINARY)
+                   ? Column(name, col_type, col_len, col_null, *expr)
+                   : Column(name, col_type, col_null, *expr);
   col.SetOid(ColOid(col_oid));
   return col;
 }
 
 template bool DatabaseCatalog::CreateColumn<Schema::Column, table_oid_t>(transaction::TransactionContext *const txn,
-                                                                         const table_oid_t class_oid, const col_oid_t col_oid,
+                                                                         const table_oid_t class_oid,
+                                                                         const col_oid_t col_oid,
                                                                          const Schema::Column &col);
 template bool DatabaseCatalog::CreateColumn<IndexSchema::Column, index_oid_t>(
-    transaction::TransactionContext *const txn, const index_oid_t class_oid, const indexkeycol_oid_t col_oid, const IndexSchema::Column &col);
+    transaction::TransactionContext *const txn, const index_oid_t class_oid, const indexkeycol_oid_t col_oid,
+    const IndexSchema::Column &col);
 
 // template Schema::Column DatabaseCatalog::GetColumn<Schema::Column, table_oid_t, col_oid_t>(
 //     transaction::TransactionContext *const txn, const table_oid_t class_oid, const col_oid_t col_oid);
@@ -1670,9 +1668,8 @@ template bool DatabaseCatalog::CreateColumn<IndexSchema::Column, index_oid_t>(
 // DatabaseCatalog::GetColumn<IndexSchema::Column, index_oid_t, indexkeycol_oid_t>(
 //     transaction::TransactionContext *const txn, const index_oid_t class_oid, const indexkeycol_oid_t col_oid);
 
-template std::vector<Schema::Column>
-DatabaseCatalog::GetColumns<Schema::Column, table_oid_t, col_oid_t>(transaction::TransactionContext *const txn,
-                                                                    const table_oid_t class_oid);
+template std::vector<Schema::Column> DatabaseCatalog::GetColumns<Schema::Column, table_oid_t, col_oid_t>(
+    transaction::TransactionContext *const txn, const table_oid_t class_oid);
 
 template std::vector<IndexSchema::Column>
 DatabaseCatalog::GetColumns<IndexSchema::Column, index_oid_t, indexkeycol_oid_t>(
@@ -1684,8 +1681,8 @@ template bool DatabaseCatalog::DeleteColumns<Schema::Column, table_oid_t>(transa
 template bool DatabaseCatalog::DeleteColumns<IndexSchema::Column, index_oid_t>(
     transaction::TransactionContext *const txn, const index_oid_t class_oid);
 
-template Schema::Column DatabaseCatalog::MakeColumn<Schema::Column, col_oid_t>(
-    storage::ProjectedRow *const pr, const storage::ProjectionMap &pr_map);
+template Schema::Column DatabaseCatalog::MakeColumn<Schema::Column, col_oid_t>(storage::ProjectedRow *const pr,
+                                                                               const storage::ProjectionMap &pr_map);
 
 template IndexSchema::Column DatabaseCatalog::MakeColumn<IndexSchema::Column, indexkeycol_oid_t>(
     storage::ProjectedRow *const pr, const storage::ProjectionMap &pr_map);

@@ -41,10 +41,7 @@ class IndexSchema {
      * @param definition definition of this attribute
      */
     Column(std::string name, type::TypeId type_id, bool nullable, const parser::AbstractExpression &definition)
-        : name_(std::move(name)),
-          oid_(INVALID_INDEXKEYCOL_OID),
-          packed_type_(0),
-          definition_(definition.Copy()) {
+        : name_(std::move(name)), oid_(INVALID_INDEXKEYCOL_OID), packed_type_(0), definition_(definition.Copy()) {
       TERRIER_ASSERT(!(type_id == type::TypeId::VARCHAR || type_id == type::TypeId::VARBINARY),
                      "Non-varlen constructor.");
       SetTypeId(type_id);
@@ -61,10 +58,7 @@ class IndexSchema {
      */
     Column(std::string name, type::TypeId type_id, uint16_t max_varlen_size, bool nullable,
            const parser::AbstractExpression &definition)
-        : name_(std::move(name)),
-          oid_(INVALID_INDEXKEYCOL_OID),
-          packed_type_(0),
-          definition_(definition.Copy()) {
+        : name_(std::move(name)), oid_(INVALID_INDEXKEYCOL_OID), packed_type_(0), definition_(definition.Copy()) {
       TERRIER_ASSERT(type_id == type::TypeId::VARCHAR || type_id == type::TypeId::VARBINARY, "Varlen constructor.");
       SetTypeId(type_id);
       SetNullable(nullable);
