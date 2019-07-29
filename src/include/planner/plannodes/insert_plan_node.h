@@ -69,7 +69,6 @@ class InsertPlanNode : public AbstractPlanNode {
     }
 
     /**
-     * @param value_idx index of value in values vector
      * @param col_oid oid of column where value at value_idx should be inserted
      * @return builder object
      */
