@@ -114,7 +114,6 @@ void BindNodeVisitor::Visit(parser::OrderByDescription *node) {
 
 void BindNodeVisitor::Visit(parser::UpdateStatement *node) {
   context_ = new BinderContext(nullptr);
-  //  context_ = std::make_shared<BinderContext>(nullptr);
 
   node->GetUpdateTable()->Accept(this);
   if (node->GetUpdateCondition() != nullptr) node->GetUpdateCondition()->Accept(this);
@@ -131,7 +130,6 @@ void BindNodeVisitor::Visit(parser::UpdateStatement *node) {
 
 void BindNodeVisitor::Visit(parser::DeleteStatement *node) {
   context_ = new BinderContext(nullptr);
-  //  context_ = std::make_shared<BinderContext>(nullptr);
   node->GetDeletionTable()->TryBindDatabaseName(default_database_name_);
   auto table = node->GetDeletionTable();
   context_->AddRegularTable(catalog_accessor_, table->GetDatabaseName(), table->GetTableName(), table->GetTableName());
@@ -148,7 +146,6 @@ void BindNodeVisitor::Visit(parser::LimitDescription *node) {}
 
 void BindNodeVisitor::Visit(parser::CopyStatement *node) {
   context_ = new BinderContext(nullptr);
-  //  context_ = std::make_shared<BinderContext>(nullptr);
   if (node->GetCopyTable() != nullptr) {
     node->GetCopyTable()->Accept(this);
 
@@ -169,7 +166,6 @@ void BindNodeVisitor::Visit(parser::CreateStatement *node) { node->TryBindDataba
 void BindNodeVisitor::Visit(parser::InsertStatement *node) {
   context_ = new BinderContext(nullptr);
   node->GetInsertionTable()->TryBindDatabaseName(default_database_name_);
-  //  context_ = std::make_shared<BinderContext>(nullptr);
 
   auto table = node->GetInsertionTable();
   context_->AddRegularTable(catalog_accessor_, table->GetDatabaseName(), table->GetTableName(), table->GetTableName());
