@@ -10,7 +10,7 @@
 #include "util/tpcc/tpcc_defs.h"
 #include "util/tpcc/util.h"
 #include "util/tpcc/worker.h"
-#include "util/transaction_benchmark_util.h"
+#include "util/data_table_benchmark_util.h"
 
 namespace terrier::tpcc {
 

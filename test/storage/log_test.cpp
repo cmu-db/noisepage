@@ -135,7 +135,6 @@ class WriteAheadLoggingTests : public TerrierTest {
         // Read how many bytes this varlen actually is.
         const auto varlen_attribute_size = in->ReadValue<uint32_t>();
         // Allocate a varlen buffer of this many bytes.
-        // TODO(Gus): Only allocate if varlen is not inlined
         auto *varlen_attribute_content = common::AllocationUtil::AllocateAligned(varlen_attribute_size);
         // Fill the entry with the next bytes from the log file.
         in->Read(varlen_attribute_content, varlen_attribute_size);

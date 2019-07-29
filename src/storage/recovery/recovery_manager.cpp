@@ -92,7 +92,7 @@ void RecoveryManager::ReplayRedoRecord(transaction::TransactionContext *txn, Red
     // Stage the write. This way the recovery operation is logged if logging is enabled.
     // We stage the write after the insert because Insert sets the tuple slot on the redo record, so we need that
     // to happen before we copy the record into the txn redo buffer.
-    TERRIER_ASSERT(redo_record->GetTupleSlot() == new_tuple_slot,
+    TERRIER_ASSERT(record->GetTupleSlot() == new_tuple_slot,
                    "Insert should update redo record with new tuple slot");
     txn->StageRecoveryWrite(record);
     // Create a mapping of the old to new tuple. The new tuple slot should be used for future updates and deletes.
@@ -153,8 +153,7 @@ void RecoveryManager::UpdateIndexesOnTable(transaction::TransactionContext *txn,
     sql_table_ptr->Select(txn, tuple_slot, index_pr);
     if (insert) {
       bool result UNUSED_ATTRIBUTE =
-          (index->GetConstraintType() == index::ConstraintType::UNIQUE ? index->InsertUnique : index->Insert)(
-              txn, *index_pr, tuple_slot);
+          (index->GetConstraintType() == index::ConstraintType::UNIQUE) ? index->InsertUnique(txn, *index_pr, tuple_slot) : index->Insert(txn, *index_pr, tuple_slot);
       TERRIER_ASSERT(result, "Insert into index should always succeed for a committed transaction");
     } else {
       index->Delete(txn, *index_pr, tuple_slot);
@@ -171,7 +170,7 @@ uint32_t RecoveryManager::ProcessSpecialCaseCatalogRecord(
     auto db_catalog = GetDatabaseCatalog(txn, redo_record->GetDatabaseOid());
     auto table_oid = redo_record->GetTableOid();
 
-    TERRIER_ASSERT(table_oid == catalog::DATABASE_TABLE_OID || catalog::CLASS_TABLE_OID,
+    TERRIER_ASSERT(table_oid == catalog::DATABASE_TABLE_OID || table_oid == catalog::CLASS_TABLE_OID,
                    "Special case redo records should only modify pg_class or pg_database");
 
     if (table_oid == catalog::CLASS_TABLE_OID) {
@@ -200,7 +199,7 @@ uint32_t RecoveryManager::ProcessSpecialCaseCatalogRecord(
         auto *buffer = common::AllocationUtil::AllocateAligned(pr_init.ProjectedRowSize());
         auto *pr = pr_init.InitializeRow(buffer);
         pg_class_ptr->Select(txn, GetTupleSlotMapping(redo_record->GetTupleSlot()), pr);
-        auto class_oid = *(reinterpret_cast<uint32_t*>(pr->AccessWithNullCheck(pr_map[catalog::RELOID_COL_OID]));
+        auto class_oid = *(reinterpret_cast<uint32_t*>(pr->AccessWithNullCheck(pr_map[catalog::RELOID_COL_OID])));
         auto class_kind UNUSED_ATTRIBUTE = *(reinterpret_cast<catalog::postgres::ClassKind*>(pr->AccessWithNullCheck(pr_map[catalog::RELKIND_COL_OID])));
         TERRIER_ASSERT(class_kind = catalog::postgres::ClassKind::REGULAR_TABLE, "Updates to schemas in pg_class should only happen for tables");
 

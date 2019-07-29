@@ -106,6 +106,7 @@ class Catalog {
   CatalogAccessor *GetAccessor(transaction::TransactionContext *txn, db_oid_t database);
 
  private:
+  friend class storage::RecoveryManager;
   transaction::TransactionManager *txn_manager_;
   storage::BlockStore *catalog_block_store_;
   std::atomic<db_oid_t> next_oid_;
@@ -113,6 +114,18 @@ class Catalog {
   storage::SqlTable *databases_;
   storage::index::Index *databases_name_index_;
   storage::index::Index *databases_oid_index_;
+
+  /**
+ * Atomically updates the next oid counter to the max of the current count and the provided next oid
+ * @param oid next oid to move oid counter to
+ */
+  void UpdateNextOid(db_oid_t oid) {
+    db_oid_t expected, desired;
+    do {
+      expected = next_oid_.load();
+      desired = std::max(expected, oid);
+    } while (!next_oid_.compare_exchange_strong(expected, desired));
+  }
 
   /**
    * Creates a new database entry.

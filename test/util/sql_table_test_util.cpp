@@ -125,8 +125,6 @@ LargeSqlTableTestObject::~LargeSqlTableTestObject() {
     for (auto &table_pair : db_pair.second) {
       auto *metadata = table_pair.second;
       delete[] metadata->buffer_;
-      delete metadata->schema_;
-      delete metadata->table_;
       delete metadata;
     }
   }
@@ -176,8 +174,8 @@ void LargeSqlTableTestObject::PopulateInitialTables(uint16_t num_databases, uint
 
   for (uint16_t db_idx = 0; db_idx < num_databases; db_idx++) {
     // Create database in catalog
-    auto database_oid = catalog_.CreateDatabase(initial_txn_, "database" + std::to_string(db_idx));
-    TERRIER_ASSERT(db_oid != INVALID_DATABASE_OID, "Database creation should always succeed");
+    auto database_oid = catalog_.CreateDatabase(initial_txn_, "database" + std::to_string(db_idx), true);
+    TERRIER_ASSERT(database_oid != INVALID_DATABASE_OID, "Database creation should always succeed");
     database_oids_.emplace_back(database_oid);
 
     for (uint16_t table_idx = 0; table_idx < num_tables; table_idx++) {

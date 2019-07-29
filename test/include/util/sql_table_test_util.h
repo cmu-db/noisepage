@@ -266,9 +266,7 @@ class LargeSqlTableTestObject {
   const storage::SqlTable *GetTable(catalog::db_oid_t db_oid, catalog::table_oid_t table_oid) {
     TERRIER_ASSERT(tables_.find(db_oid) != tables_.end(), "Requested database was not created");
     TERRIER_ASSERT(tables_[db_oid].find(table_oid) != tables_[db_oid].end(), "Requested table was not created");
-    return auto sql_table_ptr =
-               test_object_->catalog_.GetDatabaseCatalog(txn_, database_oid)->GetTable(txn_, table_oid);
-    ;
+    return catalog_.GetDatabaseCatalog(txn_, database_oid)->GetTable(txn_, table_oid);
   }
 
   /**
@@ -279,7 +277,7 @@ class LargeSqlTableTestObject {
   const catalog::Schema *GetSchemaForTable(catalog::db_oid_t db_oid, catalog::table_oid_t table_oid) {
     TERRIER_ASSERT(tables_.find(db_oid) != tables_.end(), "Requested database was not created");
     TERRIER_ASSERT(tables_[db_oid].find(table_oid) != tables_[db_oid].end(), "Requested table was not created");
-    return tables_[db_oid][table_oid]->schema_;
+    return catalog_.GetDatabaseCatalog(txn, db_oid)->GetSchema(txn, table_oid);
   }
 
   const std::vector<storage::TupleSlot> &GetTupleSlotsForTable(catalog::db_oid_t db_oid,

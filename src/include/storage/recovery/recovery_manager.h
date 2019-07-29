@@ -52,7 +52,7 @@ class RecoveryManager : public common::DedicatedThreadOwner {
    * @param txn_manager txn manager to use for re-executing recovered transactions
    * @param thread_registry thread registry to register tasks
    */
-  explicit RecoveryManager(AbstractLogProvider *log_provider, common::ManagedPointer<catalog::Catalog> *catalog,
+  explicit RecoveryManager(AbstractLogProvider *log_provider, common::ManagedPointer<catalog::Catalog> catalog,
                            transaction::TransactionManager *txn_manager,
                            common::ManagedPointer<terrier::common::DedicatedThreadRegistry> thread_registry,
                            BlockStore *store)
@@ -96,7 +96,7 @@ class RecoveryManager : public common::DedicatedThreadOwner {
   AbstractLogProvider *log_provider_;
 
   // Catalog to fetch table pointers
-  common::ManagedPointer<catalog::Catalog> *catalog_;
+  common::ManagedPointer<catalog::Catalog> catalog_;
 
   // Transaction manager to create transactions for recovery
   transaction::TransactionManager *txn_manager_;
