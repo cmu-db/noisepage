@@ -1,6 +1,5 @@
 #pragma once
 
-#include <cstdint>
 #include <memory>
 #include <string>
 #include <tuple>
@@ -74,14 +73,9 @@ class InsertPlanNode : public AbstractPlanNode {
      * @param col_oid oid of column where value at value_idx should be inserted
      * @return builder object
      */
-    Builder &AddParameterInfo(uint32_t value_idx, catalog::col_oid_t col_oid) {
-      TERRIER_ASSERT(!values_.empty(), "Should add values before setting parameters");
-      TERRIER_ASSERT(!col_oid < values_[0].size(), "Index greater than column size");
-      for (auto i = static_cast<int>(parameter_info_.size()); i < static_cast<int>(values_[0].size()); i++) {
-        // Use UINT32_MAX as the placeholder, not very clean
-        parameter_info_.emplace_back(catalog::col_oid_t(UINT32_MAX));
-      }
-      parameter_info_[value_idx] = col_oid;
+    Builder &AddParameterInfo(catalog::col_oid_t col_oid) {
+      // We rely on the caller to push col idx in order
+      parameter_info_.emplace_back(col_oid);
       return *this;
     }
 
@@ -91,10 +85,7 @@ class InsertPlanNode : public AbstractPlanNode {
      */
     std::shared_ptr<InsertPlanNode> Build() {
       TERRIER_ASSERT(!values_.empty(), "Can't have an empty insert plan");
-      TERRIER_ASSERT(values_[0].size() == parameter_info_.size(), "Must have parameter info for each value");
-      for (const auto &pi : parameter_info_) {
-        TERRIER_ASSERT(pi != catalog::col_oid_t(UINT32_MAX), "Must have parameter info for each value");
-      }
+      TERRIER_ASSERT(values_[0].size() == parameter_info_.size(), "Must have one col idx for each field of value");
       return std::shared_ptr<InsertPlanNode>(new InsertPlanNode(std::move(children_), std::move(output_schema_),
                                                                 database_oid_, namespace_oid_, table_oid_,
                                                                 std::move(values_), std::move(parameter_info_)));
@@ -190,10 +181,10 @@ class InsertPlanNode : public AbstractPlanNode {
   const std::vector<catalog::col_oid_t> &GetParameterInfo() const { return parameter_info_; }
 
   /**
-   * @param value_idx index of value being inserte
+   * @param value_idx index of value being inserted
    * @return OID of column where value should be inserted
    */
-  const catalog::col_oid_t GetColumnOidForValue(uint32_t value_idx) const { return parameter_info_[value_idx]; }
+  const catalog::col_oid_t GetColumnOidForValue(uint32_t value_idx) const { return parameter_info_.at(value_idx); }
 
   /**
    * @return number of tuples to insert
