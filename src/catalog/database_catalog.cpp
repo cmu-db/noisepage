@@ -348,7 +348,7 @@ bool DatabaseCatalog::CreateColumn(transaction::TransactionContext *const txn, c
   auto [table_pri, table_pm] = columns_->InitializerForProjectedRow(table_oids);
   auto *const redo = txn->StageWrite(db_oid_, COLUMN_TABLE_OID, table_pri);
   // Write the attributes in the Redo Record
-  auto oid_entry = reinterpret_cast<uint32_t *>(redo->Delta()->AccessForceNotNull(table_pm[ATTNUM_COL_OID]));
+  auto oid_entry = reinterpret_cast<ColOid *>(redo->Delta()->AccessForceNotNull(table_pm[ATTNUM_COL_OID]));
   auto relid_entry = reinterpret_cast<ClassOid *>(redo->Delta()->AccessForceNotNull(table_pm[ATTRELID_COL_OID]));
   auto name_entry =
       reinterpret_cast<storage::VarlenEntry *>(redo->Delta()->AccessForceNotNull(table_pm[ATTNAME_COL_OID]));
@@ -358,7 +358,7 @@ bool DatabaseCatalog::CreateColumn(transaction::TransactionContext *const txn, c
   auto dbin_entry = reinterpret_cast<parser::AbstractExpression **>(redo->Delta()->AccessForceNotNull(table_pm[ADBIN_COL_OID]));
   auto dsrc_entry =
       reinterpret_cast<storage::VarlenEntry *>(redo->Delta()->AccessForceNotNull(table_pm[ADSRC_COL_OID]));
-  *oid_entry = static_cast<uint32_t>(col_oid);
+  *oid_entry = col_oid;
   *relid_entry = class_oid;
   const auto name_varlen = storage::StorageUtil::CreateVarlen(col.Name());
 
@@ -403,8 +403,7 @@ bool DatabaseCatalog::CreateColumn(transaction::TransactionContext *const txn, c
   pr = oid_pri.InitializeRow(buffer);
   // Write the attributes in the ProjectedRow. These hardcoded indexkeycol_oids come from
   // Builder::GetColumnOidIndexSchema()
-  *(reinterpret_cast<uint32_t *>(pr->AccessForceNotNull(oid_pm.at(indexkeycol_oid_t(2))))) =
-      static_cast<uint32_t>(col_oid);
+  *(reinterpret_cast<ColOid *>(pr->AccessForceNotNull(oid_pm.at(indexkeycol_oid_t(2))))) =col_oid;
   *(reinterpret_cast<ClassOid *>(pr->AccessForceNotNull(oid_pm.at(indexkeycol_oid_t(1))))) = class_oid;
 
   bool UNUSED_ATTRIBUTE result = columns_oid_index_->InsertUnique(txn, *pr, tupleslot);
@@ -613,7 +612,7 @@ bool DatabaseCatalog::DeleteTable(transaction::TransactionContext *const txn, co
   auto *const key_pr = oid_pri.InitializeRow(buffer);
 
   // Find the entry using the index
-  *(reinterpret_cast<uint32_t *>(key_pr->AccessForceNotNull(0))) = static_cast<uint32_t>(table);
+  *(reinterpret_cast<table_oid_t *>(key_pr->AccessForceNotNull(0))) = table;
   std::vector<storage::TupleSlot> index_results;
   classes_oid_index_->ScanKey(*txn, *key_pr, &index_results);
   if (index_results.empty()) {
@@ -661,7 +660,7 @@ bool DatabaseCatalog::DeleteTable(transaction::TransactionContext *const txn, co
 
   // Delete from oid_index
   auto *index_pr = oid_index_init.InitializeRow(buffer);
-  *(reinterpret_cast<uint32_t *const>(index_pr->AccessForceNotNull(0))) = static_cast<uint32_t>(table_oid);
+  *(reinterpret_cast<table_oid_t *const>(index_pr->AccessForceNotNull(0))) = table_oid;
   classes_oid_index_->Delete(txn, *index_pr, index_results[0]);
 
   // Delete from name_index
@@ -672,7 +671,7 @@ bool DatabaseCatalog::DeleteTable(transaction::TransactionContext *const txn, co
 
   // Delete from namespace_index
   index_pr = ns_index_init.InitializeRow(buffer);
-  *(reinterpret_cast<uint32_t *const>(index_pr->AccessForceNotNull(0))) = static_cast<uint32_t>(ns_oid);
+  *(reinterpret_cast<namespace_oid_t *const>(index_pr->AccessForceNotNull(0))) = ns_oid;
   classes_namespace_index_->Delete(txn, *index_pr, index_results[0]);
 
   // Everything succeeded from an MVCC standpoint, register deferred action for the GC with txn manager. See base
@@ -809,7 +808,7 @@ std::vector<index_oid_t> DatabaseCatalog::GetIndexes(transaction::TransactionCon
 
   // Find all entries for the given table using the index
   auto *key_pr = oid_pri.InitializeRow(buffer);
-  *(reinterpret_cast<uint32_t *>(key_pr->AccessForceNotNull(0))) = static_cast<uint32_t>(table);
+  *(reinterpret_cast<table_oid_t *>(key_pr->AccessForceNotNull(0))) = table;
   std::vector<storage::TupleSlot> index_scan_results;
   indexes_table_index_->ScanKey(*txn, *key_pr, &index_scan_results);
 
@@ -851,7 +850,7 @@ bool DatabaseCatalog::DeleteIndex(transaction::TransactionContext *txn, index_oi
   auto *key_pr = class_oid_pri.InitializeRow(buffer);
 
   // Find the entry using the index
-  *(reinterpret_cast<uint32_t *>(key_pr->AccessForceNotNull(0))) = static_cast<uint32_t>(index);
+  *(reinterpret_cast<index_oid_t *>(key_pr->AccessForceNotNull(0))) = index;
   std::vector<storage::TupleSlot> index_results;
   classes_oid_index_->ScanKey(*txn, *key_pr, &index_results);
   if (index_results.empty()) {
@@ -896,7 +895,7 @@ bool DatabaseCatalog::DeleteIndex(transaction::TransactionContext *txn, index_oi
 
   // Delete from classes_oid_index_
   auto *index_pr = class_oid_index_init.InitializeRow(buffer);
-  *(reinterpret_cast<uint32_t *const>(index_pr->AccessForceNotNull(0))) = static_cast<uint32_t>(table_oid);
+  *(reinterpret_cast<table_oid_t *const>(index_pr->AccessForceNotNull(0))) = table_oid;
   classes_oid_index_->Delete(txn, *index_pr, index_results[0]);
 
   // Delete from classes_name_index_
@@ -907,7 +906,7 @@ bool DatabaseCatalog::DeleteIndex(transaction::TransactionContext *txn, index_oi
 
   // Delete from classes_namespace_index_
   index_pr = class_ns_index_init.InitializeRow(buffer);
-  *(reinterpret_cast<uint32_t *const>(index_pr->AccessForceNotNull(0))) = static_cast<uint32_t>(ns_oid);
+  *(reinterpret_cast<namespace_oid_t *const>(index_pr->AccessForceNotNull(0))) = ns_oid;
   classes_namespace_index_->Delete(txn, *index_pr, index_results[0]);
 
   // Now we need to delete from pg_index and its indexes
@@ -924,7 +923,7 @@ bool DatabaseCatalog::DeleteIndex(transaction::TransactionContext *txn, index_oi
   // Find the entry in pg_index using the oid index
   index_results.clear();
   key_pr = index_oid_pr.InitializeRow(buffer);
-  *(reinterpret_cast<uint32_t *>(key_pr->AccessForceNotNull(0))) = static_cast<uint32_t>(index);
+  *(reinterpret_cast<index_oid_t *>(key_pr->AccessForceNotNull(0))) = index;
   indexes_oid_index_->ScanKey(*txn, *key_pr, &index_results);
   if (index_results.empty()) {
     // TODO(Matt): we should verify what postgres does in this case
@@ -957,12 +956,12 @@ bool DatabaseCatalog::DeleteIndex(transaction::TransactionContext *txn, index_oi
 
   // Delete from indexes_oid_index
   index_pr = index_oid_pr.InitializeRow(buffer);
-  *(reinterpret_cast<uint32_t *const>(index_pr->AccessForceNotNull(0))) = static_cast<uint32_t>(index);
+  *(reinterpret_cast<index_oid_t *const>(index_pr->AccessForceNotNull(0))) = index;
   indexes_oid_index_->Delete(txn, *index_pr, index_results[0]);
 
   // Delete from indexes_table_index
   index_pr = index_table_pr.InitializeRow(buffer);
-  *(reinterpret_cast<uint32_t *const>(index_pr->AccessForceNotNull(0))) = static_cast<uint32_t>(table_oid);
+  *(reinterpret_cast<table_oid_t *const>(index_pr->AccessForceNotNull(0))) = table_oid;
   indexes_table_index_->Delete(txn, *index_pr, index_results[0]);
 
   // Everything succeeded from an MVCC standpoint, so register a deferred action for the GC to delete the index with txn
@@ -994,7 +993,7 @@ bool DatabaseCatalog::SetClassPointer(transaction::TransactionContext *const txn
   auto *const key_pr = oid_pri.InitializeRow(buffer);
 
   // Find the entry using the index
-  *(reinterpret_cast<uint32_t *>(key_pr->AccessForceNotNull(0))) = static_cast<uint32_t>(oid);
+  *(reinterpret_cast<ClassOid *>(key_pr->AccessForceNotNull(0))) = oid;
   std::vector<storage::TupleSlot> index_results;
   classes_oid_index_->ScanKey(*txn, *key_pr, &index_results);
   if (index_results.empty()) {
@@ -1162,7 +1161,7 @@ bool DatabaseCatalog::CreateIndexEntry(transaction::TransactionContext *const tx
   // Write the index_oid into the PR
   auto index_oid_offset = pr_map[RELOID_COL_OID];
   auto *index_oid_ptr = class_insert_pr->AccessForceNotNull(index_oid_offset);
-  *(reinterpret_cast<uint32_t *>(index_oid_ptr)) = static_cast<uint32_t>(index_oid);
+  *(reinterpret_cast<index_oid_t *>(index_oid_ptr)) = index_oid;
 
   const auto name_varlen = storage::StorageUtil::CreateVarlen(name);
 
@@ -1174,7 +1173,7 @@ bool DatabaseCatalog::CreateIndexEntry(transaction::TransactionContext *const tx
   // Write the ns_oid into the PR
   const auto ns_offset = pr_map[RELNAMESPACE_COL_OID];
   auto *const ns_ptr = class_insert_pr->AccessForceNotNull(ns_offset);
-  *(reinterpret_cast<uint32_t *>(ns_ptr)) = static_cast<uint32_t>(ns_oid);
+  *(reinterpret_cast<namespace_oid_t *>(ns_ptr)) = ns_oid;
 
   // Write the kind into the PR
   const auto kind_offset = pr_map[RELKIND_COL_OID];
@@ -1209,7 +1208,7 @@ bool DatabaseCatalog::CreateIndexEntry(transaction::TransactionContext *const tx
 
   // Insert into oid_index
   auto *index_pr = class_oid_index_init.InitializeRow(index_buffer);
-  *(reinterpret_cast<uint32_t *>(index_pr->AccessForceNotNull(0))) = static_cast<uint32_t>(index_oid);
+  *(reinterpret_cast<index_oid_t *>(index_pr->AccessForceNotNull(0))) = index_oid;
   if (!classes_oid_index_->InsertUnique(txn, *index_pr, class_tuple_slot)) {
     // There was an oid conflict and we need to abort.  Free the buffer and
     // return INVALID_TABLE_OID to indicate the database was not created.
@@ -1230,7 +1229,7 @@ bool DatabaseCatalog::CreateIndexEntry(transaction::TransactionContext *const tx
 
   // Insert into namespace_index
   index_pr = class_ns_index_init.InitializeRow(index_buffer);
-  *(reinterpret_cast<uint32_t *>(index_pr->AccessForceNotNull(0))) = static_cast<uint32_t>(ns_oid);
+  *(reinterpret_cast<namespace_oid_t *>(index_pr->AccessForceNotNull(0))) = ns_oid;
   const auto result UNUSED_ATTRIBUTE = classes_namespace_index_->Insert(txn, *index_pr, class_tuple_slot);
   TERRIER_ASSERT(result, "Insertion into non-unique namespace index failed.");
 
@@ -1242,12 +1241,12 @@ bool DatabaseCatalog::CreateIndexEntry(transaction::TransactionContext *const tx
   // Write the index_oid into the PR
   index_oid_offset = pr_map[INDOID_COL_OID];
   index_oid_ptr = indexes_insert_pr->AccessForceNotNull(index_oid_offset);
-  *(reinterpret_cast<uint32_t *>(index_oid_ptr)) = static_cast<uint32_t>(index_oid);
+  *(reinterpret_cast<index_oid_t *>(index_oid_ptr)) = index_oid;
 
   // Write the table_oid for the table the index is for into the PR
   const auto rel_oid_offset = pr_map[INDRELID_COL_OID];
   auto *const rel_oid_ptr = indexes_insert_pr->AccessForceNotNull(rel_oid_offset);
-  *(reinterpret_cast<uint32_t *>(rel_oid_ptr)) = static_cast<uint32_t>(table_oid);
+  *(reinterpret_cast<table_oid_t *>(rel_oid_ptr)) = table_oid;
 
   // Write boolean values to PR
   *(reinterpret_cast<bool *>(indexes_insert_pr->AccessForceNotNull(pr_map[INDISUNIQUE_COL_OID]))) =
@@ -1277,7 +1276,7 @@ bool DatabaseCatalog::CreateIndexEntry(transaction::TransactionContext *const tx
 
   // Insert into indexes_oid_index
   index_pr = indexes_oid_index_init.InitializeRow(index_buffer);
-  *(reinterpret_cast<uint32_t *>(index_pr->AccessForceNotNull(0))) = static_cast<uint32_t>(index_oid);
+  *(reinterpret_cast<index_oid_t *>(index_pr->AccessForceNotNull(0))) = index_oid;
   if (!indexes_oid_index_->InsertUnique(txn, *index_pr, indexes_tuple_slot)) {
     // There was an oid conflict and we need to abort.  Free the buffer and
     // return INVALID_TABLE_OID to indicate the database was not created.
@@ -1287,7 +1286,7 @@ bool DatabaseCatalog::CreateIndexEntry(transaction::TransactionContext *const tx
 
   // Insert into (non-unique) indexes_table_index
   index_pr = indexes_table_index_init.InitializeRow(index_buffer);
-  *(reinterpret_cast<uint32_t *>(index_pr->AccessForceNotNull(0))) = static_cast<uint32_t>(table_oid);
+  *(reinterpret_cast<table_oid_t *>(index_pr->AccessForceNotNull(0))) = table_oid;
   if (!indexes_table_index_->Insert(txn, *index_pr, indexes_tuple_slot)) {
     // There was duplicate value. Free the buffer and
     // return INVALID_TABLE_OID to indicate the database was not created.
@@ -1345,7 +1344,7 @@ void DatabaseCatalog::InsertType(transaction::TransactionContext *txn, type::Typ
   // Populate oid
   auto offset = col_map[TYPOID_COL_OID];
   auto type_oid = GetTypeOidForType(internal_type);
-  *(reinterpret_cast<uint32_t *>(delta->AccessForceNotNull(offset))) = static_cast<uint32_t>(type_oid);
+  *(reinterpret_cast<type_oid_t *>(delta->AccessForceNotNull(offset))) = type_oid;
 
   // Populate type name
   offset = col_map[TYPNAME_COL_OID];
@@ -1355,7 +1354,7 @@ void DatabaseCatalog::InsertType(transaction::TransactionContext *txn, type::Typ
 
   // Populate namespace
   offset = col_map[TYPNAMESPACE_COL_OID];
-  *(reinterpret_cast<uint32_t *>(delta->AccessForceNotNull(offset))) = static_cast<uint32_t>(namespace_oid);
+  *(reinterpret_cast<namespace_oid_t *>(delta->AccessForceNotNull(offset))) = namespace_oid;
 
   // Populate len
   offset = col_map[TYPLEN_COL_OID];
@@ -1457,19 +1456,19 @@ bool DatabaseCatalog::CreateTableEntry(transaction::TransactionContext *const tx
   // Write the ns_oid into the PR
   const auto ns_offset = pr_map[RELNAMESPACE_COL_OID];
   auto *const ns_ptr = insert_pr->AccessForceNotNull(ns_offset);
-  *(reinterpret_cast<uint32_t *>(ns_ptr)) = static_cast<uint32_t>(ns_oid);
+  *(reinterpret_cast<namespace_oid_t *>(ns_ptr)) = ns_oid;
 
   // Write the table_oid into the PR
   const auto table_oid_offset = pr_map[RELOID_COL_OID];
   auto *const table_oid_ptr = insert_pr->AccessForceNotNull(table_oid_offset);
-  *(reinterpret_cast<uint32_t *>(table_oid_ptr)) = static_cast<uint32_t>(table_oid);
+  *(reinterpret_cast<table_oid_t *>(table_oid_ptr)) = table_oid;
 
   auto next_col_oid = col_oid_t(static_cast<uint32_t>(schema.GetColumns().size() + 1));
 
   // Write the next_col_oid into the PR
   const auto next_col_oid_offset = pr_map[REL_NEXTCOLOID_COL_OID];
   auto *const next_col_oid_ptr = insert_pr->AccessForceNotNull(next_col_oid_offset);
-  *(reinterpret_cast<uint32_t *>(next_col_oid_ptr)) = static_cast<uint32_t>(next_col_oid);
+  *(reinterpret_cast<col_oid_t *>(next_col_oid_ptr)) = next_col_oid;
 
   // Write the schema_ptr as nullptr into the PR (need to update once we've recreated the columns)
   const auto schema_ptr_offset = pr_map[REL_SCHEMA_COL_OID];
@@ -1504,7 +1503,7 @@ bool DatabaseCatalog::CreateTableEntry(transaction::TransactionContext *const tx
 
   // Insert into oid_index
   auto *index_pr = oid_index_init.InitializeRow(index_buffer);
-  *(reinterpret_cast<uint32_t *>(index_pr->AccessForceNotNull(0))) = static_cast<uint32_t>(table_oid);
+  *(reinterpret_cast<table_oid_t *>(index_pr->AccessForceNotNull(0))) = table_oid;
   if (!classes_oid_index_->InsertUnique(txn, *index_pr, tuple_slot)) {
     // There was an oid conflict and we need to abort.  Free the buffer and
     // return INVALID_TABLE_OID to indicate the database was not created.
@@ -1525,7 +1524,7 @@ bool DatabaseCatalog::CreateTableEntry(transaction::TransactionContext *const tx
 
   // Insert into namespace_index
   index_pr = ns_index_init.InitializeRow(index_buffer);
-  *(reinterpret_cast<uint32_t *>(index_pr->AccessForceNotNull(0))) = static_cast<uint32_t>(ns_oid);
+  *(reinterpret_cast<namespace_oid_t *>(index_pr->AccessForceNotNull(0))) = ns_oid;
   const auto result UNUSED_ATTRIBUTE = classes_namespace_index_->Insert(txn, *index_pr, tuple_slot);
   TERRIER_ASSERT(result, "Insertion into non-unique namespace index failed.");
 
