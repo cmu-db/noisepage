@@ -1,5 +1,6 @@
 #pragma once
 
+#include <memory>
 #include <string>
 #include <utility>
 #include <vector>
@@ -69,7 +70,7 @@ class IndexSchema {
      * Destructor for a Column object.  Deallocates the abstract expression that it owns.
      */
     ~Column() {
-      // TODO (John) This should be uncommented once #386 is in
+      // TODO(John) This should be uncommented once #386 is in
       // delete definition_;
     }
 
@@ -121,7 +122,7 @@ class IndexSchema {
     indexkeycol_oid_t oid_;
     uint32_t packed_type_;
 
-    // TODO (John) this should go back to being a raw pointer once #386 is in
+    // TODO(John) this should go back to being a raw pointer once #386 is in
     std::shared_ptr<const parser::AbstractExpression> definition_;
 
     // TODO(John): Should these "OIDS" be implicitly set by the index in the columns?

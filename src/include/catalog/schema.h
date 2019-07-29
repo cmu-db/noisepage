@@ -82,7 +82,7 @@ class Schema {
      * Destructor for a Column object.  Deallocates the abstract expression that it owns.
      */
     ~Column() {
-      // TODO (John) This should be uncommented once #386 is in
+      // TODO(John) This should be uncommented once #386 is in
       // delete default_value_;
     }
 
@@ -167,7 +167,7 @@ class Schema {
     bool nullable_;
     col_oid_t oid_;
 
-    // TODO (John) this should go back to being a raw pointer once #386 is in
+    // TODO(John) this should go back to being a raw pointer once #386 is in
     std::shared_ptr<parser::AbstractExpression> default_value_;
 
     void SetOid(col_oid_t oid) { oid_ = oid; }
