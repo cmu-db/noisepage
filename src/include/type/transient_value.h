@@ -198,7 +198,7 @@ class TransientValue {
    */
   void FromJson(const nlohmann::json &j) {
     type_ = j.at("type").get<TypeId>();
-    if (Type() == TypeId::VARCHAR) {
+    if (Type() == TypeId::VARCHAR && !Null()) {
       data_ = 0;
       CopyVarChar(reinterpret_cast<const char *const>(j.at("data").get<std::string>().c_str()));
 
