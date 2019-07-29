@@ -397,11 +397,6 @@ bool DatabaseCatalog::CreateColumn(transaction::TransactionContext *const txn, c
     return false;
   }
 
-  // Clean up the varlen's buffer in the case it wasn't inlined.
-  if (!name_varlen.IsInlined()) {
-    delete[] name_varlen.Content();
-  }
-
   // Step 3: Insert into oid index
   const auto oid_pri = columns_oid_index_->GetProjectedRowInitializer();
   const auto oid_pm = columns_oid_index_->GetKeyOidToOffsetMap();
