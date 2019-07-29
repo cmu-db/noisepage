@@ -90,7 +90,7 @@ class IndexSchema {
      * @return definition expression
      */
     common::ManagedPointer<const parser::AbstractExpression> StoredExpression() const {
-      return common::ManagedPointer(definition_.get());
+      return common::ManagedPointer(static_cast<const parser::AbstractExpression *>(definition_.get()));
     }
 
     /**
