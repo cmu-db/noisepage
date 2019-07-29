@@ -749,6 +749,7 @@ table_oid_t DatabaseCatalog::GetTableOid(transaction::TransactionContext *const 
 
 bool DatabaseCatalog::SetTablePointer(transaction::TransactionContext *const txn, const table_oid_t table,
                                       const storage::SqlTable *const table_ptr) {
+  txn->RegisterAbortAction([=]() { delete table_ptr; })
   return SetClassPointer(txn, table, table_ptr);
 }
 
@@ -1017,6 +1018,7 @@ bool DatabaseCatalog::SetClassPointer(transaction::TransactionContext *const txn
 
 bool DatabaseCatalog::SetIndexPointer(transaction::TransactionContext *const txn, const index_oid_t index,
                                       const storage::index::Index *const index_ptr) {
+  txn->RegisterAbortAction([=]() { delete index_ptr; })
   return SetClassPointer(txn, index, index_ptr);
 }
 
@@ -1142,18 +1144,12 @@ void DatabaseCatalog::TearDown(transaction::TransactionContext *txn) {
   // and other operation.  Therefore, we need to defer the deallocation on delete
   txn->RegisterCommitAction([=] { txn->GetTransactionManager()->DeferAction(dbc_nuke); });
 
-  // If we are in an abort scenario, then creation failed and we need to teardown.
-  // Since the aborting transaction is the only one that can see the changes, we
-  // need to scan in that actions context, but are safe to immediately deallocate.
-  txn->RegisterAbortAction([=] { txn->GetTransactionManager()->DeferAction(dbc_nuke); });
-
   delete[] buffer;
 }
 
 bool DatabaseCatalog::CreateIndexEntry(transaction::TransactionContext *const txn, const namespace_oid_t ns_oid,
                                        const table_oid_t table_oid, const index_oid_t index_oid,
                                        const std::string &name, const IndexSchema &schema) {
-  auto idx_schema = new IndexSchema(schema);
   // First, insert into pg_class
   // NOLINTNEXTLINE
   auto [pr_init, pr_map] = classes_->InitializerForProjectedRow(PG_CLASS_ALL_COL_OIDS);
@@ -1186,7 +1182,7 @@ bool DatabaseCatalog::CreateIndexEntry(transaction::TransactionContext *const tx
   // Write the index_schema_ptr into the PR
   const auto index_schema_ptr_offset = pr_map[REL_SCHEMA_COL_OID];
   auto *const index_schema_ptr_ptr = class_insert_pr->AccessForceNotNull(index_schema_ptr_offset);
-  *(reinterpret_cast<IndexSchema **>(index_schema_ptr_ptr)) = idx_schema;
+  *(reinterpret_cast<IndexSchema **>(index_schema_ptr_ptr)) = nullptr;
 
   // Set next_col_oid to NULL because indexes don't need col_oid
   const auto next_col_oid_offset = pr_map[REL_NEXTCOLOID_COL_OID];
@@ -1253,18 +1249,18 @@ bool DatabaseCatalog::CreateIndexEntry(transaction::TransactionContext *const tx
 
   // Write boolean values to PR
   *(reinterpret_cast<bool *>(indexes_insert_pr->AccessForceNotNull(pr_map[INDISUNIQUE_COL_OID]))) =
-      idx_schema->is_unique_;
+      schema->is_unique_;
   *(reinterpret_cast<bool *>(indexes_insert_pr->AccessForceNotNull(pr_map[INDISPRIMARY_COL_OID]))) =
-      idx_schema->is_primary_;
+      schema->is_primary_;
   *(reinterpret_cast<bool *>(indexes_insert_pr->AccessForceNotNull(pr_map[INDISEXCLUSION_COL_OID]))) =
-      idx_schema->is_exclusion_;
+      schema->is_exclusion_;
   *(reinterpret_cast<bool *>(indexes_insert_pr->AccessForceNotNull(pr_map[INDIMMEDIATE_COL_OID]))) =
-      idx_schema->is_immediate_;
+      schema->is_immediate_;
   *(reinterpret_cast<bool *>(indexes_insert_pr->AccessForceNotNull(pr_map[INDISVALID_COL_OID]))) =
-      idx_schema->is_valid_;
+      schema->is_valid_;
   *(reinterpret_cast<bool *>(indexes_insert_pr->AccessForceNotNull(pr_map[INDISREADY_COL_OID]))) =
-      idx_schema->is_ready_;
-  *(reinterpret_cast<bool *>(indexes_insert_pr->AccessForceNotNull(pr_map[INDISLIVE_COL_OID]))) = idx_schema->is_live_;
+      schema->is_ready_;
+  *(reinterpret_cast<bool *>(indexes_insert_pr->AccessForceNotNull(pr_map[INDISLIVE_COL_OID]))) = schema->is_live_;
 
   // Insert into pg_index table
   const auto indexes_tuple_slot = indexes_->Insert(txn, indexes_insert_redo);
@@ -1299,6 +1295,27 @@ bool DatabaseCatalog::CreateIndexEntry(transaction::TransactionContext *const tx
 
   // Free the buffer, we are finally done
   delete[] index_buffer;
+
+
+  // Write the col oids into a new Schema object
+  indexkeycol_oid_t curr_col_oid(1);
+  for (auto &col : schema.GetColumns()) {
+    auto result = CreateColumn(txn, index_oid, curr_col_oid++, col);
+    if (!result) return false;
+  }
+
+  std::vector<IndexSchema::Column> cols = GetColumns<IndexSchema::Column, index_oid_t, indexkeycol_oid_t>(txn, index_oid);
+  auto *new_schema = new IndexSchema(cols, schema.Unique(), schema.Primary(), schema.Exclusion(), schema.Immediate());
+  txn->RegisterAbortAction([=]() { delete new_schema; });
+
+  pr_init = classes_->InitializerForProjectedRow({ REL_SCHEMA_COL_OID }).first;
+  auto *const update_redo = txn->StageWrite(db_oid_, CLASS_TABLE_OID, pr_init);
+  auto *const update_pr = update_redo->Delta();
+
+  update_redo->SetTupleSlot(tuple_slot);
+  *reinterpret_cast<Schema **>(update_pr->AccessForceNotNull(0)) = new_schema;
+  auto UNUSED_ATTRIBUTE res = classes_->Update(txn, update_redo);
+  TERRIER_ASSERT(res, "Updating an uncommitted insert should not fail");
 
   return true;
 }

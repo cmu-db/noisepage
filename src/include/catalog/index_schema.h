@@ -195,6 +195,21 @@ class IndexSchema {
    */
   bool Unique() const { return is_unique_; }
 
+  /**
+   * @return true if this schema is for a unique index
+   */
+  bool Primary() const { return is_primary_; }
+
+  /**
+   * @return true if this schema is for a unique index
+   */
+  bool Exclusion() const { return is_exclusion_; }
+
+  /**
+   * @return true if this schema is for a unique index
+   */
+  bool Immdeiate() const { return is_immediate_; }
+
  private:
   friend class DatabaseCatalog;
   std::vector<Column> columns_;
