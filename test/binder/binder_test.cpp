@@ -231,6 +231,8 @@ TEST_F(BinderCorrectnessTest, SelectStatementStarTest) {
   auto columns = selectStmt->GetSelectColumns();
   EXPECT_EQ(columns.size(), 4);
 
+  // check if all required columns exist regardless of order, are they come from traversing unordered maps
+
   bool a1_exists = false;
   bool a2_exists = false;
   bool b1_exists = false;
@@ -238,32 +240,32 @@ TEST_F(BinderCorrectnessTest, SelectStatementStarTest) {
   for (auto &col_abs_expr : columns) {
     auto col_expr = dynamic_cast<const parser::ColumnValueExpression *>(col_abs_expr.get());
     EXPECT_EQ(0, col_expr->GetDepth());
+    EXPECT_EQ(col_expr->GetDatabaseOid(), db_oid_);
 
-    if (col_expr->GetDatabaseOid() == db_oid_ && col_expr->GetTableOid() == table_a_oid_) {
+    if (col_expr->GetTableOid() == table_a_oid_) {
       EXPECT_EQ(col_expr->GetTableName(), "a");
-      if (col_expr->GetColumnOid() == catalog::col_oid_t(1) &&
-          type::TypeId::INTEGER == col_expr->GetReturnValueType()) {
+      if (col_expr->GetColumnName() == "a1") {
         a1_exists = true;
-        EXPECT_EQ(col_expr->GetColumnName(), "a1");
+        EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(1));
+        EXPECT_EQ(type::TypeId::INTEGER, col_expr->GetReturnValueType());
       }
-      if (col_expr->GetColumnOid() == catalog::col_oid_t(2) &&
-          type::TypeId::VARCHAR == col_expr->GetReturnValueType()) {
+      if (col_expr->GetColumnName() == "a2") {
         a2_exists = true;
-        EXPECT_EQ(col_expr->GetColumnName(), "a2");
+        EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(2));
+        EXPECT_EQ(type::TypeId::VARCHAR, col_expr->GetReturnValueType());
       }
     }
-
-    if (col_expr->GetDatabaseOid() == db_oid_ && col_expr->GetTableOid() == table_b_oid_) {
+    if (col_expr->GetTableOid() == table_b_oid_) {
       EXPECT_EQ(col_expr->GetTableName(), "b");
-      if (col_expr->GetColumnOid() == catalog::col_oid_t(1) &&
-          type::TypeId::INTEGER == col_expr->GetReturnValueType()) {
+      if (col_expr->GetColumnName() == "b1") {
         b1_exists = true;
-        EXPECT_EQ(col_expr->GetColumnName(), "b1");
+        EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(1));
+        EXPECT_EQ(type::TypeId::INTEGER, col_expr->GetReturnValueType());
       }
-      if (col_expr->GetColumnOid() == catalog::col_oid_t(2) &&
-          type::TypeId::VARCHAR == col_expr->GetReturnValueType()) {
+      if (col_expr->GetColumnName() == "b2") {
         b2_exists = true;
-        EXPECT_EQ(col_expr->GetColumnName(), "b2");
+        EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(2));
+        EXPECT_EQ(type::TypeId::VARCHAR, col_expr->GetReturnValueType());
       }
     }
   }
@@ -291,6 +293,8 @@ TEST_F(BinderCorrectnessTest, SelectStatementStarComplextTest) {
   auto columns = selectStmt->GetSelectColumns();
   EXPECT_EQ(columns.size(), 6);
 
+  // check if all required columns exist regardless of order, are they come from traversing unordered maps
+
   bool a1_exists = false;
   bool a2_exists = false;
   bool c_a1_exists = false;
@@ -300,15 +304,16 @@ TEST_F(BinderCorrectnessTest, SelectStatementStarComplextTest) {
 
   for (auto &col_abs_expr : columns) {
     auto col_expr = dynamic_cast<const parser::ColumnValueExpression *>(col_abs_expr.get());
-    EXPECT_EQ(col_expr->GetDepth(), 0); // not from derived subquery
+    EXPECT_EQ(col_expr->GetDepth(), 0);  // not from derived subquery
 
     if (col_expr->GetDatabaseOid() == db_oid_ && col_expr->GetTableOid() == table_a_oid_) {
       EXPECT_EQ(col_expr->GetTableName(), "a");
 
       if (col_expr->GetColumnOid() == catalog::col_oid_t(1) &&
           type::TypeId::INTEGER == col_expr->GetReturnValueType()) {
-        a1_exists = true;
         EXPECT_EQ(col_expr->GetColumnName(), "a1");
+
+        a1_exists = true;
       }
       if (col_expr->GetColumnOid() == catalog::col_oid_t(2) &&
           type::TypeId::VARCHAR == col_expr->GetReturnValueType()) {
@@ -358,7 +363,7 @@ TEST_F(BinderCorrectnessTest, SelectStatementStarComplextTest) {
   EXPECT_EQ(col_expr->GetTableOid(), catalog::INVALID_TABLE_OID);
   EXPECT_EQ(col_expr->GetColumnOid(), catalog::INVALID_COLUMN_OID);
   EXPECT_EQ(type::TypeId::VARCHAR, col_expr->GetReturnValueType());
-  EXPECT_EQ(col_expr->GetDepth(), 0); // not from derived subquery
+  EXPECT_EQ(col_expr->GetDepth(), 0);  // not from derived subquery
 
   col_expr = dynamic_cast<const parser::ColumnValueExpression *>(
       selectStmt->GetSelectTable()->GetJoin()->GetJoinCondition()->GetChild(1).get());
@@ -368,15 +373,79 @@ TEST_F(BinderCorrectnessTest, SelectStatementStarComplextTest) {
   EXPECT_EQ(col_expr->GetTableOid(), table_a_oid_);            // A.a1
   EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(1));  // A.a1; columns are indexed from 1
   EXPECT_EQ(type::TypeId::INTEGER, col_expr->GetReturnValueType());
-  EXPECT_EQ(col_expr->GetDepth(), 0); // not from derived subquery
+  EXPECT_EQ(col_expr->GetDepth(), 0);  // not from derived subquery
 
   // check right table
-  LOG_INFO("Checking right table of the join; nested");
+  LOG_INFO("Checking nested table of the join");
   auto right_tb = dynamic_cast<parser::SelectStatement *>(
       selectStmt->GetSelectTable()->GetJoin()->GetRightTable()->GetSelect().get());
-  EXPECT_EQ(right_tb->GetDepth(), 1);
-  for (auto &col : right_tb->GetSelectColumns())
-    EXPECT_EQ(col->GetDepth(), 1); // not from derived subquery
+  EXPECT_EQ(right_tb->GetDepth(), 1);  // 1 level subselect
+  LOG_INFO("Checking nested column select list");
+
+  columns = right_tb->GetSelectColumns();
+  EXPECT_EQ(columns.size(), 4);
+
+  // check if all required columns exist regardless of order, are they come from traversing unordered maps
+  a1_exists = false;
+  a2_exists = false;
+  bool b1_exists = false;
+  bool b2_exists = false;
+  for (auto &col_abs_expr : columns) {
+    col_expr = dynamic_cast<const parser::ColumnValueExpression *>(col_abs_expr.get());
+    EXPECT_EQ(1, col_expr->GetDepth());
+    EXPECT_EQ(col_expr->GetDatabaseOid(), db_oid_);
+
+    if (col_expr->GetTableOid() == table_a_oid_) {
+      EXPECT_EQ(col_expr->GetTableName(), "a");
+      if (col_expr->GetColumnName() == "a1") {
+        a1_exists = true;
+        EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(1));
+        EXPECT_EQ(type::TypeId::INTEGER, col_expr->GetReturnValueType());
+      }
+      if (col_expr->GetColumnName() == "a2") {
+        a2_exists = true;
+        EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(2));
+        EXPECT_EQ(type::TypeId::VARCHAR, col_expr->GetReturnValueType());
+      }
+    }
+    if (col_expr->GetTableOid() == table_b_oid_) {
+      EXPECT_EQ(col_expr->GetTableName(), "b");
+      if (col_expr->GetColumnName() == "b1") {
+        b1_exists = true;
+        EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(1));
+        EXPECT_EQ(type::TypeId::INTEGER, col_expr->GetReturnValueType());
+      }
+      if (col_expr->GetColumnName() == "b2") {
+        b2_exists = true;
+        EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(2));
+        EXPECT_EQ(type::TypeId::VARCHAR, col_expr->GetReturnValueType());
+      }
+    }
+  }
+  EXPECT_TRUE(a1_exists);
+  EXPECT_TRUE(a2_exists);
+  EXPECT_TRUE(b1_exists);
+  EXPECT_TRUE(b2_exists);
+
+  LOG_INFO("Checking nested table's join condition");
+  auto join = right_tb->GetSelectTable()->GetJoin()->GetJoinCondition();
+  // TODO(Ling): the join condition expression still has depth -1;
+  //  but the left and right column value expressions have correct depth;
+  //  Left for the optimizer to decide if depth of the `ON A1 = B1` is necessary to be set to 1
+
+  col_expr = dynamic_cast<const parser::ColumnValueExpression *>(join->GetChild(0).get());
+  EXPECT_EQ(col_expr->GetDatabaseOid(), db_oid_);              // B.b1
+  EXPECT_EQ(col_expr->GetTableOid(), table_b_oid_);            // B.b1
+  EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(1));  // B.b1; columns are indexed from 1
+  EXPECT_EQ(type::TypeId::INTEGER, col_expr->GetReturnValueType());
+  EXPECT_EQ(1, col_expr->GetDepth());
+
+  col_expr = dynamic_cast<const parser::ColumnValueExpression *>(join->GetChild(1).get());
+  EXPECT_EQ(col_expr->GetDatabaseOid(), db_oid_);              // A.a1
+  EXPECT_EQ(col_expr->GetTableOid(), table_a_oid_);            // A.a1
+  EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(1));  // A.a1; columns are indexed from 1
+  EXPECT_EQ(type::TypeId::INTEGER, col_expr->GetReturnValueType());
+  EXPECT_EQ(1, col_expr->GetDepth());
 }
 
 // NOLINTNEXTLINE
@@ -469,7 +538,7 @@ TEST_F(BinderCorrectnessTest, BindDepthTest) {
   auto selectStmt = dynamic_cast<parser::SelectStatement *>(parse_tree[0].get());
   binder_->BindNameToNode(selectStmt);
 
-  // Check select depth
+  // Check select depthGetSelectCondition
   EXPECT_EQ(0, selectStmt->GetDepth());
 
   // Check select_list
@@ -485,7 +554,7 @@ TEST_F(BinderCorrectnessTest, BindDepthTest) {
   auto in_expr = selectStmt->GetSelectCondition()->GetChild(0);  // A compare_in expression
   EXPECT_EQ(0, in_expr->GetDepth());
 
-  auto in_tv_expr = in_expr->GetChild(0);                        // A.a1
+  auto in_tv_expr = in_expr->GetChild(0);  // A.a1
   EXPECT_EQ(0, in_tv_expr->GetDepth());
 
   // subquery expression
@@ -550,12 +619,20 @@ TEST_F(BinderCorrectnessTest, BindDepthTest) {
 
   // WHERE B.b1 = A.a1
   auto exists_sub_expr_select_where = exists_sub_expr_select->GetSelectCondition().get();
-  EXPECT_EQ(0, exists_sub_expr_select_where->GetDepth());
+  EXPECT_EQ(0, exists_sub_expr_select_where->GetDepth());  // comparison expression take the highest level of depth; 0
+
+  // b1 refer to column on the same level as the subselect
+  auto exists_sub_expr_select_where_left =
+      dynamic_cast<const parser::ColumnValueExpression *>(exists_sub_expr_select_where->GetChild(0).get());
+  EXPECT_EQ(1, exists_sub_expr_select_where_left->GetDepth());
+
+  // a1 refer to column on subselect's upper level
+  auto exists_sub_expr_select_where_right =
+      dynamic_cast<const parser::ColumnValueExpression *>(exists_sub_expr_select_where->GetChild(1).get());
+  EXPECT_EQ(0, exists_sub_expr_select_where_right->GetDepth());
 
   auto exists_sub_expr_select_ele = exists_sub_expr_select->GetSelectColumns()[0].get();  // b1
   EXPECT_EQ(1, exists_sub_expr_select_ele->GetDepth());
-
-
 }
 
 // NOLINTNEXTLINE
