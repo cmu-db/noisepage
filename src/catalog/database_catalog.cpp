@@ -1640,7 +1640,7 @@ Column DatabaseCatalog::MakeColumn(storage::ProjectedRow *const pr,
   auto expr = nlohmann::json::parse(col_expr->StringView()).get<parser::AbstractExpression>();
 
   std::string name(reinterpret_cast<const char *>(col_name->Content()), col_name->Size());
-  Column col = (col_type == type::TypeId::VARCHAR || col_type == type::TypeId::VARBINARY) ? Column(name, col_type, col_len, col_null, *col_expr) : Column(name, col_type, col_null, *col_expr);
+  Column col = (col_type == type::TypeId::VARCHAR || col_type == type::TypeId::VARBINARY) ? Column(name, col_type, col_len, col_null, *expr) : Column(name, col_type, col_null, *expr);
   col.SetOid(ColOid(col_oid));
   return col;
 }
