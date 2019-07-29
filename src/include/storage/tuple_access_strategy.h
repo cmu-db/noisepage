@@ -60,31 +60,28 @@ class TupleAccessStrategy {
     ArrowBlockMetadata &GetArrowBlockMetadata() { return *reinterpret_cast<ArrowBlockMetadata *>(block_.content_); }
 
     // return reference to attr_offsets. Use as an array.
-    uint32_t *AttrOffets(const BlockLayout &layout) {
+    uint32_t *AttrOffsets(const BlockLayout &layout) {
       return reinterpret_cast<uint32_t *>(block_.content_ + ArrowBlockMetadata::Size(layout.NumColumns()));
     }
 
     // return reference to the bitmap for slots. Use as a member
     common::RawConcurrentBitmap *SlotAllocationBitmap(const BlockLayout &layout) {
       return reinterpret_cast<common::RawConcurrentBitmap *>(
-          StorageUtil::AlignedPtr(sizeof(uint64_t), AttrOffets(layout) + layout.NumColumns()));
+          StorageUtil::AlignedPtr(sizeof(uint64_t), AttrOffsets(layout) + layout.NumColumns()));
     }
 
     // return the miniblock for the column at the given offset.
     MiniBlock *Column(const BlockLayout &layout, const col_id_t col_id) {
-      byte *head = reinterpret_cast<byte *>(this) + AttrOffets(layout)[!col_id];
+      byte *head = reinterpret_cast<byte *>(this) + AttrOffsets(layout)[!col_id];
       return reinterpret_cast<MiniBlock *>(head);
     }
 
     // return reference to num_slots. Use as a member.
     uint32_t &NumSlots() { return *reinterpret_cast<uint32_t *>(block_.content_); }
 
-    // return reference to attr_offsets. Use as an array.
-    uint32_t *AttrOffsets() { return &NumSlots() + 1; }
-
     // return reference to num_attrs. Use as a member.
     uint16_t &NumAttrs(const BlockLayout &layout) {
-      return *reinterpret_cast<uint16_t *>(AttrOffsets() + layout.NumColumns());
+      return *reinterpret_cast<uint16_t *>(AttrOffsets(layout) + layout.NumColumns());
     }
 
     RawBlock block_;
@@ -230,6 +227,14 @@ class TupleAccessStrategy {
    * @return true if the allocation succeeded, false if no space could be found.
    */
   bool Allocate(RawBlock *block, TupleSlot *slot) const;
+
+  /**
+   * @param block the block to access
+   * @return pointer to the allocation bitmap of the block
+   */
+  common::RawConcurrentBitmap *AllocationBitmap(RawBlock *block) const {
+    return reinterpret_cast<Block *>(block)->SlotAllocationBitmap(layout_);
+  }
 
   /**
    * Deallocates a slot.
