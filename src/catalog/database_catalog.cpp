@@ -14,7 +14,6 @@
 #include "catalog/postgres/pg_namespace.h"
 #include "catalog/postgres/pg_type.h"
 #include "catalog/schema.h"
-#include "common/json.h"
 #include "storage/index/index.h"
 #include "storage/sql_table.h"
 #include "transaction/transaction_context.h"
@@ -1637,7 +1636,7 @@ Column DatabaseCatalog::MakeColumn(storage::ProjectedRow *const pr,
   auto *col_expr =
       reinterpret_cast<storage::VarlenEntry *>(pr->AccessForceNotNull(pr_map.at(ADBIN_COL_OID)));
 
-  auto expr = new parser::AbstractExpression(nlohmann::json::parse(col_expr->StringView()).get<parser::AbstractExpression>());
+  auto expr = parser::AbstractExpression::DeserializeExpression(nlohmann::json::parse(col_expr->StringView()));
 
   std::string name(reinterpret_cast<const char *>(col_name->Content()), col_name->Size());
   Column col = (col_type == type::TypeId::VARCHAR || col_type == type::TypeId::VARBINARY) ? Column(name, col_type, col_len, col_null, *expr) : Column(name, col_type, col_null, *expr);
