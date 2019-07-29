@@ -1313,7 +1313,7 @@ bool DatabaseCatalog::CreateIndexEntry(transaction::TransactionContext *const tx
   auto *const update_pr = update_redo->Delta();
 
   update_redo->SetTupleSlot(class_tuple_slot);
-  *reinterpret_cast<Schema **>(update_pr->AccessForceNotNull(0)) = new_schema;
+  *reinterpret_cast<IndexSchema **>(update_pr->AccessForceNotNull(0)) = new_schema;
   auto UNUSED_ATTRIBUTE res = classes_->Update(txn, update_redo);
   TERRIER_ASSERT(res, "Updating an uncommitted insert should not fail");
 
