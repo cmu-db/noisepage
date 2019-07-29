@@ -11,6 +11,9 @@
 #include "transaction/transaction_context.h"
 
 namespace terrier::catalog::postgres {
+/**
+ * Helper class for building tables and indexes for postgres catalog.
+ */
 class Builder {
  public:
   Builder() = delete;
@@ -37,14 +40,6 @@ class Builder {
    * @return an initialized DatabaseCatalog
    */
   static DatabaseCatalog *CreateDatabaseCatalog(storage::BlockStore *block_store, db_oid_t oid);
-
-  /**
-   * Bootstraps the catalog's own metadata into itself
-   * @param txn for the operations
-   * @param catalog to bootstrap
-   * @return an initialized DatabaseCatalog
-   */
-  static void BootstrapDatabaseCatalog(transaction::TransactionContext *txn, DatabaseCatalog *catalog);
 
   /**
    * @return schema object for pg_attribute table
@@ -77,99 +72,118 @@ class Builder {
   static Schema GetTypeTableSchema();
 
   /**
+   * @param db oid in which the indexed table exists
    * @return schema object for the oid index on pg_namespace
    */
-  static IndexSchema GetNamespaceOidIndexSchema();
+  static IndexSchema GetNamespaceOidIndexSchema(db_oid_t db);
 
   /**
+   * @param db oid in which the indexed table exists
    * @return schema object for the name index on pg_namespace
    */
-  static IndexSchema GetNamespaceNameIndexSchema();
+  static IndexSchema GetNamespaceNameIndexSchema(db_oid_t db);
 
   /**
+   * @param db oid in which the indexed table exists
    * @return schema object for the oid index on pg_class
    */
-  static IndexSchema GetClassOidIndexSchema();
+  static IndexSchema GetClassOidIndexSchema(db_oid_t db);
 
   /**
+   * @param db oid in which the indexed table exists
    * @return schema object for the namespace/name index on pg_class
    */
-  static IndexSchema GetClassNameIndexSchema();
+  static IndexSchema GetClassNameIndexSchema(db_oid_t db);
 
   /**
+   * @param db oid in which the indexed table exists
    * @return schema object for the namespace index on pg_class
    */
-  static IndexSchema GetClassNamespaceIndexSchema();
+  static IndexSchema GetClassNamespaceIndexSchema(db_oid_t db);
 
   /**
+   * @param db oid in which the indexed table exists
    * @return schema object for the oid index on pg_index
    */
-  static IndexSchema GetIndexOidIndexSchema();
+  static IndexSchema GetIndexOidIndexSchema(db_oid_t db);
 
   /**
+   * @param db oid in which the indexed table exists
    * @return schema object for table index on pg_index
    */
-  static IndexSchema GetIndexTableIndexSchema();
+  static IndexSchema GetIndexTableIndexSchema(db_oid_t db);
 
   /**
+   * @param db oid in which the indexed table exists
    * @return schema object for the table/oid index on pg_attribute
    */
-  static IndexSchema GetColumnOidIndexSchema();
+  static IndexSchema GetColumnOidIndexSchema(db_oid_t db);
 
   /**
+   * @param db oid in which the indexed table exists
    * @return schema object for the namespace/name index on pg_attribute
    */
-  static IndexSchema GetColumnNameIndexSchema();
+  static IndexSchema GetColumnNameIndexSchema(db_oid_t db);
 
   /**
+   * @param db oid in which the indexed table exists
    * @return schema object for the class (index and table) index on pg_attribute
    */
-  static IndexSchema GetColumnClassIndexSchema();
+  static IndexSchema GetColumnClassIndexSchema(db_oid_t db);
 
   /**
+   * @param db oid in which the indexed table exists
    * @return schema object for the oid index on pg_type
    */
-  static IndexSchema GetTypeOidIndexSchema();
+  static IndexSchema GetTypeOidIndexSchema(db_oid_t db);
 
   /**
+   * @param db oid in which the indexed table exists
    * @return schema object for the namespace/name index on pg_type
    */
-  static IndexSchema GetTypeNameIndexSchema();
+  static IndexSchema GetTypeNameIndexSchema(db_oid_t db);
 
   /**
+   * @param db oid in which the indexed table exists
    * @return schema object for the namespace index on pg_type
    */
-  static IndexSchema GetTypeNamespaceIndexSchema();
+  static IndexSchema GetTypeNamespaceIndexSchema(db_oid_t db);
 
   /**
+   * @param db oid in which the indexed table exists
    * @return schema object for the oid index on pg_constraint
    */
-  static IndexSchema GetConstraintOidIndexSchema();
+  static IndexSchema GetConstraintOidIndexSchema(db_oid_t db);
 
   /**
+   * @param db oid in which the indexed table exists
    * @return schema object for the namespace/name index on pg_constraint
    */
-  static IndexSchema GetConstraintNameIndexSchema();
+  static IndexSchema GetConstraintNameIndexSchema(db_oid_t db);
 
   /**
+   * @param db oid in which the indexed table exists
    * @return schema object for the namespace index on pg_constraint
    */
-  static IndexSchema GetConstraintNamespaceIndexSchema();
+  static IndexSchema GetConstraintNamespaceIndexSchema(db_oid_t db);
 
   /**
+   * @param db oid in which the indexed table exists
    * @return schema object for the table index on pg_constraint
    */
-  static IndexSchema GetConstraintTableIndexSchema();
+  static IndexSchema GetConstraintTableIndexSchema(db_oid_t db);
 
   /**
+   * @param db oid in which the indexed table exists
    * @return schema object for the index index on pg_constraint
    */
-  static IndexSchema GetConstraintIndexIndexSchema();
+  static IndexSchema GetConstraintIndexIndexSchema(db_oid_t db);
 
   /**
+   * @param db oid in which the indexed table exists
    * @return schema object for the foreign key index on pg_constraint
    */
-  static IndexSchema GetConstraintForeignTableIndexSchema();
+  static IndexSchema GetConstraintForeignTableIndexSchema(db_oid_t db);
 
   /**
    * Instantiate a new unique index with the given schema and oid

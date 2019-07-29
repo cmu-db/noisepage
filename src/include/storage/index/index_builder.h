@@ -33,6 +33,9 @@ class IndexBuilder {
   Index *Build() const {
     TERRIER_ASSERT(!key_schema_.GetColumns().empty(), "Cannot build an index without a KeySchema.");
     TERRIER_ASSERT(constraint_type_ != ConstraintType::INVALID, "Cannot build an index without a ConstraintType.");
+    TERRIER_ASSERT((constraint_type_ == ConstraintType::DEFAULT && !key_schema_.Unique()) ||
+                       (constraint_type_ == ConstraintType::UNIQUE && key_schema_.Unique()),
+                   "ContraintType should match the IndexSchema's is_unique flag.");
 
     IndexMetadata metadata(key_schema_);
 
@@ -44,8 +47,8 @@ class IndexBuilder {
 
     for (uint16_t i = 0; use_compact_ints && i < key_cols.size(); i++) {
       const auto &attr = key_cols[i];
-      use_compact_ints = use_compact_ints && !attr.IsNullable() && CompactIntsOk(attr.GetType());  // key type ok?
-      key_size += type::TypeUtil::GetTypeSize(attr.GetType());
+      use_compact_ints = use_compact_ints && !attr.Nullable() && CompactIntsOk(attr.Type());  // key type ok?
+      key_size += type::TypeUtil::GetTypeSize(attr.Type());
       use_compact_ints = use_compact_ints && key_size <= sizeof(uint64_t) * INTSKEY_MAX_SLOTS;  // key size fits?
     }
 
@@ -116,7 +119,7 @@ class IndexBuilder {
 
   Index *BuildBwTreeGenericKey(catalog::index_oid_t index_oid, ConstraintType constraint_type,
                                IndexMetadata metadata) const {
-    const auto pr_size = metadata.GetProjectedRowInitializer().ProjectedRowSize();
+    const auto pr_size = metadata.GetInlinedPRInitializer().ProjectedRowSize();
     Index *index = nullptr;
 
     const auto key_size =

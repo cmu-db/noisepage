@@ -30,6 +30,7 @@ class WriteAheadLoggingTests : public TerrierTest {
  protected:
   auto Injector(const LargeDataTableTestConfiguration &config) {
     return di::make_injector<di::TestBindingPolicy>(
+        di::storage_injector(), di::bind<AccessObserver>().in(di::disabled),
         di::storage_injector(), di::bind<LargeDataTableTestConfiguration>().to(config),
         di::bind<std::default_random_engine>().in(di::terrier_singleton),  // need to be universal across injectors
         di::bind<uint64_t>().named(storage::BlockStore::SIZE_LIMIT).to(static_cast<uint64_t>(1000)),
@@ -134,6 +135,7 @@ class WriteAheadLoggingTests : public TerrierTest {
         // Read how many bytes this varlen actually is.
         const auto varlen_attribute_size = in->ReadValue<uint32_t>();
         // Allocate a varlen buffer of this many bytes.
+        // TODO(Gus): Only allocate if varlen is not inlined
         auto *varlen_attribute_content = common::AllocationUtil::AllocateAligned(varlen_attribute_size);
         // Fill the entry with the next bytes from the log file.
         in->Read(varlen_attribute_content, varlen_attribute_size);
@@ -308,7 +310,7 @@ TEST_F(WriteAheadLoggingTests, AbortRecordTest) {
   auto col = catalog::Schema::Column(
       "attribute", type::TypeId::INTEGER, false,
       parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
-  StorageTestUtil::ForceOid(col, catalog::col_oid_t(0));
+  StorageTestUtil::ForceOid(&(col), catalog::col_oid_t(0));
   auto table_schema = catalog::Schema(std::vector<catalog::Schema::Column>({col}));
   storage::SqlTable sql_table(injector.create<storage::BlockStore *>(), table_schema);
   auto tuple_initializer = sql_table.InitializerForProjectedRow({catalog::col_oid_t(0)}).first;
@@ -386,7 +388,7 @@ TEST_F(WriteAheadLoggingTests, NoAbortRecordTest) {
   auto col = catalog::Schema::Column(
       "attribute", type::TypeId::INTEGER, false,
       parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
-  StorageTestUtil::ForceOid(col, catalog::col_oid_t(0));
+  StorageTestUtil::ForceOid(&(col), catalog::col_oid_t(0));
   auto table_schema = catalog::Schema(std::vector<catalog::Schema::Column>({col}));
   storage::SqlTable sql_table(injector.create<storage::BlockStore *>(), table_schema);
   auto tuple_initializer = sql_table.InitializerForProjectedRow({catalog::col_oid_t(0)}).first;

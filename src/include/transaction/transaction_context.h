@@ -12,6 +12,8 @@
 
 namespace terrier::storage {
 class GarbageCollector;
+class LogManager;
+class BlockCompactor;
 class LogSerializerTask;
 class SqlTable;
 class WriteAheadLoggingTests;
@@ -148,6 +150,12 @@ class TransactionContext {
     storage::DeleteRecord::Initialize(redo_buffer_.NewEntry(size), start_time_, db_oid, table_oid, slot);
   }
 
+  // TODO(Tianyu): We need to discuss what happens to the loose_ptrs field now that we have deferred actions.
+  /**
+   * @return whether the transaction is read-only
+   */
+  bool IsReadOnly() const { return undo_buffer_.Empty() && loose_ptrs_.empty(); }
+
   /**
    * Defers an action to be called if and only if the transaction aborts.  Actions executed LIFO.
    * @param a the action to be executed
@@ -170,9 +178,16 @@ class TransactionContext {
    */
   TransactionManager *GetTransactionManager() { return txn_mgr_; }
 
+  /**
+   * Flips the TransactionContext's internal flag that it cannot commit to true. This is checked by the
+   * TransactionManager.
+   */
+  void MustAbort() { must_abort_ = true; }
+
  private:
   friend class storage::GarbageCollector;
   friend class TransactionManager;
+  friend class storage::BlockCompactor;
   friend class storage::LogSerializerTask;
   friend class storage::SqlTable;
   friend class storage::WriteAheadLoggingTests;  // Needs access to redo buffer
@@ -200,7 +215,12 @@ class TransactionContext {
   // eliminate the a-b-a race described in DataTable::Select.
   bool aborted_ = false;
 
-  /**
+  // This flag is used to denote that a physical change to the storage layer (tables or indexes) has occurred that
+  // cannot be allowed to commit. Currently, it is flipped by indexes (on unique-key conflicts) or SqlTable (write-write
+  // conflicts) and checked in Commit().
+  bool must_abort_ = false;
+
+    /**
    * @warning This method is ONLY for recovery
    * Copy the log record into the transaction's redo buffer. This method can be used for Redo and Delete records
    * @tparam T record type

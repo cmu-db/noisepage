@@ -43,4 +43,4 @@ enum class ClassKind : char {
   FOREIGN_TABLE = 'f',
 };
 
-} // namespace terrier::catalog::postgres
+}  // namespace terrier::catalog::postgres

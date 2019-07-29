@@ -15,6 +15,7 @@
 
 #include "parser/expression/aggregate_expression.h"
 #include "parser/expression/case_expression.h"
+#include "parser/expression/column_value_expression.h"
 #include "parser/expression/comparison_expression.h"
 #include "parser/expression/conjunction_expression.h"
 #include "parser/expression/constant_value_expression.h"
@@ -24,7 +25,6 @@
 #include "parser/expression/parameter_value_expression.h"
 #include "parser/expression/star_expression.h"
 #include "parser/expression/subquery_expression.h"
-#include "parser/expression/tuple_value_expression.h"
 #include "parser/expression/type_cast_expression.h"
 #include "parser/pg_trigger.h"
 #include "parser/postgresparser.h"
@@ -186,8 +186,8 @@ std::unique_ptr<SQLStatement> PostgresParser::NodeTransform(Node *node) {
   }
   return result;
 }
-
-std::unique_ptr<AbstractExpression> PostgresParser::ExprTransform(Node *node) {
+std::unique_ptr<AbstractExpression> PostgresParser::ExprTransform(Node *node) { return ExprTransform(node, nullptr); }
+std::unique_ptr<AbstractExpression> PostgresParser::ExprTransform(Node *node, char *alias) {
   if (node == nullptr) {
     return nullptr;
   }
@@ -211,7 +211,7 @@ std::unique_ptr<AbstractExpression> PostgresParser::ExprTransform(Node *node) {
       break;
     }
     case T_ColumnRef: {
-      expr = ColumnRefTransform(reinterpret_cast<ColumnRef *>(node));
+      expr = ColumnRefTransform(reinterpret_cast<ColumnRef *>(node), alias);
       break;
     }
     case T_FuncCall: {
@@ -317,6 +317,9 @@ ExpressionType PostgresParser::StringToExpressionType(const std::string &parser_
   if (str == "CONJUNCTION_OR") {
     return ExpressionType::CONJUNCTION_OR;
   }
+  if (str == "COLUMN_VALUE") {
+    return ExpressionType::COLUMN_VALUE;
+  }
   if (str == "VALUE_CONSTANT") {
     return ExpressionType::VALUE_CONSTANT;
   }
@@ -340,9 +343,6 @@ ExpressionType PostgresParser::StringToExpressionType(const std::string &parser_
   }
   if (str == "AGGREGATE_COUNT") {
     return ExpressionType::AGGREGATE_COUNT;
-  }
-  if (str == "AGGREGATE_COUNT_STAR") {
-    return ExpressionType::AGGREGATE_COUNT_STAR;
   }
   if (str == "AGGREGATE_SUM") {
     return ExpressionType::AGGREGATE_SUM;
@@ -373,9 +373,6 @@ ExpressionType PostgresParser::StringToExpressionType(const std::string &parser_
   }
   if (str == "ROW_SUBQUERY") {
     return ExpressionType::ROW_SUBQUERY;
-  }
-  if (str == "SELECT_SUBQUERY") {
-    return ExpressionType::SELECT_SUBQUERY;
   }
   if (str == "STAR") {
     return ExpressionType::STAR;
@@ -521,23 +518,29 @@ std::unique_ptr<AbstractExpression> PostgresParser::CaseExprTransform(CaseExpr *
   return result;
 }
 
-// Postgres.ColumnRef -> terrier.TupleValueExpression | terrier.StarExpression
-std::unique_ptr<AbstractExpression> PostgresParser::ColumnRefTransform(ColumnRef *root) {
+// Postgres.ColumnRef -> terrier.ColumnValueExpression | terrier.StarExpression
+std::unique_ptr<AbstractExpression> PostgresParser::ColumnRefTransform(ColumnRef *root, char *alias) {
   std::unique_ptr<AbstractExpression> result;
   List *fields = root->fields;
   auto node = reinterpret_cast<Node *>(fields->head->data.ptr_value);
   switch (node->type) {
     case T_String: {
       // TODO(WAN): verify the old system is doing the right thing
+      std::string col_name;
+      std::string table_name;
       if (fields->length == 1) {
-        auto col_name = reinterpret_cast<value *>(node)->val.str;
-        result = std::make_unique<TupleValueExpression>(col_name, "");
+        col_name = reinterpret_cast<value *>(node)->val.str;
+        table_name = "";
       } else {
         auto next_node = reinterpret_cast<Node *>(fields->head->next->data.ptr_value);
-        auto col_name = reinterpret_cast<value *>(next_node)->val.str;
-        auto table_name = reinterpret_cast<value *>(node)->val.str;
-        result = std::make_unique<TupleValueExpression>(col_name, table_name);
+        col_name = reinterpret_cast<value *>(next_node)->val.str;
+        table_name = reinterpret_cast<value *>(node)->val.str;
       }
+
+      if (alias != nullptr)
+        result = std::make_unique<ColumnValueExpression>("", table_name, col_name, std::string(alias));
+      else
+        result = std::make_unique<ColumnValueExpression>("", table_name, col_name);
       break;
     }
     case T_A_Star: {
@@ -610,7 +613,7 @@ std::unique_ptr<AbstractExpression> PostgresParser::NullTestTransform(NullTest *
 
   switch (root->arg->type) {
     case T_ColumnRef: {
-      auto arg_expr = ColumnRefTransform(reinterpret_cast<ColumnRef *>(root->arg));
+      auto arg_expr = ColumnRefTransform(reinterpret_cast<ColumnRef *>(root->arg), nullptr);
       children.emplace_back(std::move(arg_expr));
       break;
     }
@@ -696,27 +699,23 @@ std::unique_ptr<AbstractExpression> PostgresParser::ValueTransform(value val) {
   std::unique_ptr<AbstractExpression> result;
   switch (val.type) {
     case T_Integer: {
-      auto v = type::TransientValueFactory::GetInteger(val.val.ival);
-      result = std::make_unique<ConstantValueExpression>(v);
+      result = std::make_unique<ConstantValueExpression>(type::TransientValueFactory::GetInteger(val.val.ival));
       break;
     }
 
     case T_String: {
-      auto v = type::TransientValueFactory::GetVarChar(val.val.str);
-      result = std::make_unique<ConstantValueExpression>(v);
+      result = std::make_unique<ConstantValueExpression>(type::TransientValueFactory::GetVarChar(val.val.str));
       break;
     }
 
     case T_Float: {
-      auto v = type::TransientValueFactory::GetDecimal(std::stod(val.val.str));
-      result = std::make_unique<ConstantValueExpression>(v);
+      result =
+          std::make_unique<ConstantValueExpression>(type::TransientValueFactory::GetDecimal(std::stod(val.val.str)));
       break;
     }
 
     case T_Null: {
-      auto v = type::TransientValueFactory::GetBoolean(false);
-      v.SetNull(true);
-      result = std::make_unique<ConstantValueExpression>(v);
+      result = std::make_unique<ConstantValueExpression>(type::TransientValueFactory::GetNull(type::TypeId::INVALID));
       break;
     }
 
@@ -765,7 +764,7 @@ std::unique_ptr<SelectStatement> PostgresParser::SelectTransform(SelectStmt *roo
   return result;
 }
 
-// Postgres.SelectStmt.whereClause -> terrier.SelectStatement.select_
+// Postgres.SelectStmt.targetList -> terrier.SelectStatement.select_
 std::vector<std::shared_ptr<AbstractExpression>> PostgresParser::TargetTransform(List *root) {
   // Postgres parses 'SELECT;' to nullptr
   if (root == nullptr) {
@@ -775,13 +774,7 @@ std::vector<std::shared_ptr<AbstractExpression>> PostgresParser::TargetTransform
   std::vector<std::shared_ptr<AbstractExpression>> result;
   for (auto cell = root->head; cell != nullptr; cell = cell->next) {
     auto target = reinterpret_cast<ResTarget *>(cell->data.ptr_value);
-    /*
-      TODO(WAN): the heck was this doing here?
-      if (target->name != nullptr) {
-        expr->alias = target->name;
-      }
-    */
-    result.emplace_back(ExprTransform(target->val));
+    result.emplace_back(ExprTransform(target->val, target->name));
   }
   return result;
 }

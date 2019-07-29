@@ -1,23 +1,25 @@
 #pragma once
 
+#include <string>
+#include <utility>
 #include <vector>
 #include "catalog/catalog_defs.h"
 #include "parser/expression/abstract_expression.h"
 #include "type/type_id.h"
 
 namespace terrier {
-  class StorageTestUtil;
+class StorageTestUtil;
 }
 
 namespace terrier::tpcc {
-  class Schemas;
+class Schemas;
 }
 
 namespace terrier::catalog {
 class DatabaseCatalog;
 
 namespace postgres {
-  class Builder;
+class Builder;
 }
 
 /**
@@ -33,12 +35,16 @@ class IndexSchema {
    public:
     /**
      * Non-varlen constructor for index key columns.
-     * @param oid key column oid
-     * @param nullable whether the column is nullable
+     * @param name column name (column name or "expr")
      * @param type_id the non-varlen type of the column
+     * @param nullable whether the column is nullable
+     * @param definition definition of this attribute
      */
-    Column(type::TypeId type_id, bool nullable, const parser::AbstractExpression &expression)
-        : oid_(INVALID_INDEXKEYCOL_OID), packed_type_(0) {
+    Column(std::string name, type::TypeId type_id, bool nullable, const parser::AbstractExpression &definition)
+        : name_(std::move(name)),
+          oid_(INVALID_INDEXKEYCOL_OID),
+          packed_type_(0),
+          definition_(common::ManagedPointer<const parser::AbstractExpression>(&definition)) {
       TERRIER_ASSERT(!(type_id == type::TypeId::VARCHAR || type_id == type::TypeId::VARBINARY),
                      "Non-varlen constructor.");
       SetTypeId(type_id);
@@ -47,13 +53,18 @@ class IndexSchema {
 
     /**
      * Varlen constructor for index key columns.
-     * @param oid key column oid
-     * @param nullable whether the column is nullable
+     * @param name column name (column name or "expr")
      * @param type_id the varlen type of the column
      * @param max_varlen_size the maximum varlen size
+     * @param nullable whether the column is nullable
+     * @param definition definition of this attribute
      */
-    Column(type::TypeId type_id, bool nullable, const parser::AbstractExpression &expression, uint16_t max_varlen_size)
-        : oid_(INVALID_INDEXKEYCOL_OID), packed_type_(0) {
+    Column(std::string name, type::TypeId type_id, uint16_t max_varlen_size, bool nullable,
+           const parser::AbstractExpression &definition)
+        : name_(std::move(name)),
+          oid_(INVALID_INDEXKEYCOL_OID),
+          packed_type_(0),
+          definition_(common::ManagedPointer<const parser::AbstractExpression>(&definition)) {
       TERRIER_ASSERT(type_id == type::TypeId::VARCHAR || type_id == type::TypeId::VARBINARY, "Varlen constructor.");
       SetTypeId(type_id);
       SetNullable(nullable);
@@ -61,43 +72,40 @@ class IndexSchema {
     }
 
     /**
-     * Copy constructor that handles deep copying of expressions by reserializing the expression
-     * @param original column to be copied
+     * @return column name
      */
-    Column(const Column &original)
-        : oid_(original.oid_),
-          packed_type_(original.packed_type_),
-          expression_(nullptr),
-          serialized_expression_(original.serialized_expression_) {}
-
+    const std::string &Name() const { return name_; }
 
     /**
      * @return oid of this key column
      */
-    indexkeycol_oid_t GetOid() const { return oid_; }
+    indexkeycol_oid_t Oid() const { return oid_; }
+
+    /**
+     * @return definition expression
+     */
+    common::ManagedPointer<const parser::AbstractExpression> StoredExpression() const { return definition_; }
 
     /**
      * @warning only defined for varlen types
      * @return maximum varlen size of this varlen column
      */
-    uint16_t GetMaxVarlenSize() const { return static_cast<uint16_t>((packed_type_ & MASK_VARLEN) >> OFFSET_VARLEN); }
+    uint16_t MaxVarlenSize() const { return static_cast<uint16_t>((packed_type_ & MASK_VARLEN) >> OFFSET_VARLEN); }
+
+    /**
+     * @return size of the attribute in bytes. Varlen attributes have the sign bit set.
+     */
+    uint8_t AttrSize() const { return type::TypeUtil::GetTypeSize(Type()); }
 
     /**
      * @return type of this key column
      */
-    type::TypeId GetType() const { return static_cast<type::TypeId>(packed_type_ & MASK_TYPE); }
+    type::TypeId Type() const { return static_cast<type::TypeId>(packed_type_ & MASK_TYPE); }
 
     /**
      * @return true if this column is nullable
      */
-    bool IsNullable() const { return static_cast<bool>(packed_type_ & MASK_NULLABLE); }
-
-    /**
-     * Note(Amadou): I added this to make sure this has the same name as Schema::Column
-     * This way we can make templatized classes can use both classes interchangeably.
-     * @return true if this column is nullable
-     */
-    bool GetNullable() const { return static_cast<bool>(packed_type_ & MASK_NULLABLE); }
+    bool Nullable() const { return static_cast<bool>(packed_type_ & MASK_NULLABLE); }
 
    private:
     static constexpr uint32_t MASK_VARLEN = 0x00FFFF00;
@@ -105,9 +113,10 @@ class IndexSchema {
     static constexpr uint32_t MASK_TYPE = 0x0000007F;
     static constexpr uint32_t OFFSET_VARLEN = 8;
 
+    std::string name_;
     indexkeycol_oid_t oid_;
     uint32_t packed_type_;
-    parser::AbstractExpression *expression_;
+    common::ManagedPointer<const parser::AbstractExpression> definition_;
     std::string serialized_expression_;
 
     // TODO(John): Should these "OIDS" be implicitly set by the index in the columns?
@@ -144,7 +153,8 @@ class IndexSchema {
    * @param is_exclusion indicating whether this index is for exclusion constraints
    * @param is_immediate indicating that the uniqueness check fails at insertion time
    */
-  IndexSchema(std::vector<Column> columns, bool is_unique, bool is_primary, bool is_exclusion, bool is_immediate)
+  IndexSchema(std::vector<Column> columns, const bool is_unique, const bool is_primary, const bool is_exclusion,
+              const bool is_immediate)
       : columns_(std::move(columns)),
         is_unique_(is_unique),
         is_primary_(is_primary),
@@ -152,7 +162,9 @@ class IndexSchema {
         is_immediate_(is_immediate),
         is_valid_(false),
         is_ready_(false),
-        is_live_(true) {}
+        is_live_(true) {
+    TERRIER_ASSERT((is_primary && is_unique) || (!is_primary), "is_primary requires is_unique to be true as well.");
+  }
 
   IndexSchema() = default;
 
@@ -167,6 +179,11 @@ class IndexSchema {
    */
   const Column &GetColumn(int index) const { return columns_.at(index); }
 
+  /**
+   * @return true if this schema is for a unique index
+   */
+  bool Unique() const { return is_unique_; }
+
  private:
   friend class DatabaseCatalog;
   std::vector<Column> columns_;
@@ -178,9 +195,9 @@ class IndexSchema {
   bool is_ready_;
   bool is_live_;
 
-  void SetValid(bool is_valid) { is_valid_ = is_valid; }
-  void SetReady(bool is_ready) { is_ready_ = is_ready; }
-  void SetLive(bool is_live) { is_live_ = is_live; }
+  void SetValid(const bool is_valid) { is_valid_ = is_valid; }
+  void SetReady(const bool is_ready) { is_ready_ = is_ready; }
+  void SetLive(const bool is_live) { is_live_ = is_live; }
 
   friend class Catalog;
   friend class postgres::Builder;

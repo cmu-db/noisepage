@@ -11,7 +11,7 @@ namespace terrier {
 class GarbageCollectorBenchmark : public benchmark::Fixture {
  public:
   void StartGC(transaction::TransactionManager *const txn_manager) {
-    gc_ = new storage::GarbageCollector(txn_manager);
+    gc_ = new storage::GarbageCollector(txn_manager, nullptr);
     run_gc_ = true;
     gc_thread_ = std::thread([this] { GCThreadLoop(); });
   }

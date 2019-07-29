@@ -13,7 +13,7 @@ namespace terrier {
 
 class DeferredActionsTest : public TerrierTest {
  protected:
-  DeferredActionsTest() : gc_(&txn_mgr_) {}
+  DeferredActionsTest() : gc_(&txn_mgr_, nullptr) {}
 
   void SetUp() override { TerrierTest::SetUp(); }
 

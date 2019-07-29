@@ -1,5 +1,8 @@
 #pragma once
 
+#include <memory>
+#include <string>
+#include <utility>
 #include <vector>
 
 #include "catalog/catalog_defs.h"
@@ -28,6 +31,12 @@ namespace terrier::catalog {
 class DatabaseCatalog {
  public:
   /**
+   * Adds the default/mandatory entries into the catalog that describe itself
+   * @param txn for the operation
+   */
+  void Bootstrap(transaction::TransactionContext *txn);
+
+  /**
    * Creates a new namespace within the database
    * @param txn for the operation
    * @param name of the new namespace
@@ -41,10 +50,10 @@ class DatabaseCatalog {
    * objects within the namespace cannot be deleted (i.e. write-write conflicts
    * exist).
    * @param txn for the operation
-   * @param ns OID to be deleted
-   * @param true if the deletion succeeded, otherwise false
+   * @param ns_oid OID to be deleted
+   * @return true if the deletion succeeded, otherwise false
    */
-  bool DeleteNamespace(transaction::TransactionContext *txn, namespace_oid_t ns);
+  bool DeleteNamespace(transaction::TransactionContext *txn, namespace_oid_t ns_oid);
 
   /**
    * Resolve a namespace name to its OID.
@@ -59,7 +68,7 @@ class DatabaseCatalog {
    * @param txn for the operation
    * @param ns OID of the namespace the table belongs to
    * @param name of the new table
-   * @param columns that comprise the new table
+   * @param schema columns of the new table
    * @return OID of the new table or INVALID_TABLE_OID if the operation failed
    * @warning This function does not allocate the storage for the table.  The
    * transaction is responsible for setting the table pointer via a separate
@@ -98,6 +107,7 @@ class DatabaseCatalog {
 
   /**
    * Inform the catalog of where the underlying storage for a table is
+   * @param txn for the operation
    * @param table OID in the catalog
    * @param table_ptr to the memory where the storage is
    * @return whether the operation was successful
@@ -105,15 +115,15 @@ class DatabaseCatalog {
    * catalog will take ownership of it and schedule its deletion with the GC
    * at the appropriate time.
    */
-  bool SetTablePointer(transaction::TransactionContext *txn, table_oid_t table, storage::SqlTable *table_ptr);
+  bool SetTablePointer(transaction::TransactionContext *txn, table_oid_t table, const storage::SqlTable *table_ptr);
 
   /**
    * Obtain the storage pointer for a SQL table
+   * @param txn for the operation
    * @param table to which we want the storage object
    * @return the storage object corresponding to the passed OID
    */
   common::ManagedPointer<storage::SqlTable> GetTable(transaction::TransactionContext *txn, table_oid_t table);
-
 
   /**
    * Apply a new schema to the given table.  The changes should modify the latest
@@ -145,7 +155,7 @@ class DatabaseCatalog {
    * @param table being queried
    * @return vector of OIDs for all of the constraints that apply to this table
    */
-  std::vector<constraint_oid_t> GetConstraints(transaction::TransactionContext *txn, table_oid_t);
+  std::vector<constraint_oid_t> GetConstraints(transaction::TransactionContext *txn, table_oid_t table);
 
   /**
    * A list of all indexes on the given table
@@ -153,7 +163,7 @@ class DatabaseCatalog {
    * @param table being queried
    * @return vector of OIDs for all of the indexes on this table
    */
-  std::vector<index_oid_t> GetIndexes(transaction::TransactionContext *txn, table_oid_t oid);
+  std::vector<index_oid_t> GetIndexes(transaction::TransactionContext *txn, table_oid_t table);
 
   /**
    * Create the catalog entries for a new index.
@@ -164,9 +174,8 @@ class DatabaseCatalog {
    * @param schema describing the new index
    * @return OID of the new index or INVALID_INDEX_OID if creation failed
    */
-  // TODO(Gus, john): We should really be passing in a ref to a schema, and creating a pointer to a copy of it. Currently we just store the pointer given inside the catalog, but the can run the risk of the caller already deleting the index schema
   index_oid_t CreateIndex(transaction::TransactionContext *txn, namespace_oid_t ns, const std::string &name,
-                          table_oid_t table, IndexSchema *schema);
+                          table_oid_t table, const IndexSchema &schema);
 
   /**
    * Delete an index.  Any constraints that utilize this index must be deleted
@@ -194,20 +203,21 @@ class DatabaseCatalog {
    */
   const IndexSchema &GetIndexSchema(transaction::TransactionContext *txn, index_oid_t index);
 
- /**
-  * Inform the catalog of where the underlying implementation of the index is
- * @param index OID in the catalog
- * @param index_ptr to the memory where the index is
- * @return whether the operation was successful
- * @warning The index pointer that is passed in must be on the heap as the
- * catalog will take ownership of it and schedule its deletion with the GC
- * at the appropriate time.
- */
-  bool SetIndexPointer(transaction::TransactionContext *txn, index_oid_t index, storage::index::Index *index_ptr);
-
+  /**
+   * Inform the catalog of where the underlying implementation of the index is
+   * @param txn for the operation
+   * @param index OID in the catalog
+   * @param index_ptr to the memory where the index is
+   * @return whether the operation was successful
+   * @warning The index pointer that is passed in must be on the heap as the
+   * catalog will take ownership of it and schedule its deletion with the GC
+   * at the appropriate time.
+   */
+  bool SetIndexPointer(transaction::TransactionContext *txn, index_oid_t index, const storage::index::Index *index_ptr);
 
   /**
    * Obtain the pointer to the index
+   * @param txn transaction to use
    * @param index to which we want a pointer
    * @return the pointer to the index
    */
@@ -232,21 +242,8 @@ class DatabaseCatalog {
    * @param default_val default value
    * @return whether insertion is successful
    */
-  template <typename Column>
-  bool CreateAttribute(transaction::TransactionContext *txn, uint32_t class_oid, const Column &col,
-                            const parser::AbstractExpression *default_val);
-
-  /**
-   * Get entry from pg_attribute
-   * @tparam Column type of columns
-   * @param txn txn to use
-   * @param col_name name of the column
-   * @param class_oid oid of table or index
-   * @return the column from pg_attribute
-   */
-  template <typename Column>
-  std::unique_ptr<Column> GetAttribute(transaction::TransactionContext *txn, storage::VarlenEntry *col_name,
-                                            uint32_t class_oid);
+  template <typename Column, typename ClassOid>
+  bool CreateColumn(transaction::TransactionContext *txn, ClassOid class_oid, const Column &col);
 
   /**
    * Get entry from pg_attribute
@@ -256,8 +253,9 @@ class DatabaseCatalog {
    * @param class_oid oid of table or index
    * @return the column from pg_attribute
    */
-  template <typename Column>
-  std::unique_ptr<Column> GetAttribute(transaction::TransactionContext *txn, uint32_t col_oid, uint32_t class_oid);
+  template <typename Column, typename ClassOid, typename ColOid>
+  std::unique_ptr<Column> GetColumn(transaction::TransactionContext *txn, ClassOid class_oid, ColOid col_oid);
+  // TODO(Matt): make this return stack object
 
   /**
    * Get entries from pg_attribute
@@ -266,8 +264,9 @@ class DatabaseCatalog {
    * @param class_oid oid of table or index
    * @return the column from pg_attribute
    */
-  template <typename Column>
-  std::vector<std::unique_ptr<Column>> GetAttributes(transaction::TransactionContext *txn, uint32_t class_oid);
+  template <typename Column, typename ClassOid, typename ColOid>
+  std::vector<std::unique_ptr<Column>> GetColumns(transaction::TransactionContext *txn, ClassOid class_oid);
+  // TODO(Matt): make this return stack object
 
   /**
    * Delete entries from pg_attribute
@@ -275,8 +274,8 @@ class DatabaseCatalog {
    * @param txn txn to use
    * @return the column from pg_attribute
    */
-  template <typename Column>
-  void DeleteColumns(transaction::TransactionContext *txn, uint32_t class_oid);
+  template <typename Column, typename ClassOid>
+  bool DeleteColumns(transaction::TransactionContext *txn, ClassOid class_oid);
 
   storage::SqlTable *namespaces_;
   storage::index::Index *namespaces_oid_index_;
@@ -314,27 +313,14 @@ class DatabaseCatalog {
 
   const db_oid_t db_oid_;
 
-  DatabaseCatalog(db_oid_t oid) : db_oid_(oid) {}
+  explicit DatabaseCatalog(db_oid_t oid) : db_oid_(oid) {}
 
   void TearDown(transaction::TransactionContext *txn);
-  bool CreateTableEntry(transaction::TransactionContext *txn, table_oid_t table_oid, namespace_oid_t ns,
-                        const std::string &name, const Schema &schema);
+  bool CreateTableEntry(transaction::TransactionContext *txn, table_oid_t table_oid, namespace_oid_t ns_oid,
+                        const std::string &name, Schema *schema);
 
   friend class Catalog;
   friend class postgres::Builder;
-  friend class storage::RecoveryManager;
-
-  /**
-   * Atomically updates the next oid counter to the max of the current count and the provided next oid
-   * @param oid next oid to move oid counter to
-   */
-  void UpdateNextOid(uint32_t oid) {
-    uint32_t expected, desired;
-    do {
-      expected = next_oid_.load();
-      desired = std::max(expected, oid);
-    } while (!next_oid_.compare_exchange_strong(expected, desired));
-  }
 
   /**
    * Helper method to create index entries into pg_class and pg_indexes.
@@ -346,8 +332,8 @@ class DatabaseCatalog {
    * @param schema describing the new index
    * @return true if creation succeeded, false otherwise
    */
-  bool CreateIndexEntry(transaction::TransactionContext *const txn,
-  const namespace_oid_t ns_oid, table_oid_t table_oid, const index_oid_t index_oid, const std::string &name, const IndexSchema *schema);
+  bool CreateIndexEntry(transaction::TransactionContext *txn, namespace_oid_t ns_oid, table_oid_t table_oid,
+                        index_oid_t index_oid, const std::string &name, const IndexSchema &schema);
 
   /**
    * Bootstraps the built-in types found in type::Type
@@ -376,21 +362,53 @@ class DatabaseCatalog {
   type_oid_t GetTypeOidForType(type::TypeId type);
 
   /**
-   * Helper function to query the oid and kind from [pg_class](https://www.postgresql.org/docs/9.3/catalog-pg-class.html)
+   * Helper function to query the oid and kind from
+   * [pg_class](https://www.postgresql.org/docs/9.3/catalog-pg-class.html)
    * @param txn transaction to query
    * @param namespace_oid the namespace oid
    * @param name name of the table, index, view, etc.
    * @return a pair of oid and ClassKind
    */
-  std::pair<uint32_t, postgres::ClassKind> getClassOidKind(transaction::TransactionContext *txn, namespace_oid_t ns_oid, const std::string &name);
+  std::pair<uint32_t, postgres::ClassKind> GetClassOidKind(transaction::TransactionContext *txn, namespace_oid_t ns_oid,
+                                                           const std::string &name);
 
   /**
    * Helper function to query an object pointer form pg_class
    * @param txn transaction to query
    * @param oid oid to object
-   * @return pair of ptr to and ClassKind of object requested. ptr will be nullptr if no entry was found for the given oid
+   * @return pair of ptr to and ClassKind of object requested. ptr will be nullptr if no entry was found for the given
+   * oid
    */
-  std::pair<void*, postgres::ClassKind> GetClassPtrKind(transaction::TransactionContext *txn, uint32_t oid);
+  std::pair<void *, postgres::ClassKind> GetClassPtrKind(transaction::TransactionContext *txn, uint32_t oid);
 
+  /**
+   * Helper function to query a schema pointer form pg_class
+   * @param txn transaction to query
+   * @param oid oid to object
+   * @return pair of ptr to schema and ClassKind of object requested. ptr will be nullptr if no entry was found for the
+   * given oid
+   */
+  std::pair<void *, postgres::ClassKind> GetClassSchemaPtrKind(transaction::TransactionContext *txn, uint32_t oid);
+
+  /**
+   * Helper method since SetIndexPointer and SetTablePointer are basically indentical outside of input types
+   * @tparam ClassOid either index_oid_t or table_oid_t
+   * @tparam Class either Index or SqlTable
+   * @param txn transaction to query
+   * @param oid oid to object
+   * @param pointer pointer to set
+   * @return true if successful
+   */
+  template <typename ClassOid, typename Class>
+  bool SetClassPointer(transaction::TransactionContext *txn, ClassOid oid, const Class *pointer);
+
+  /**
+   * @tparam Column column type (either index or table)
+   * @param pr ProjectedRow to populate
+   * @param table_pm ProjectionMap for the ProjectedRow
+   * @return heap-allocated column managed by unique_ptr
+   */
+  template <typename Column, typename ColOid>
+  static std::unique_ptr<Column> MakeColumn(storage::ProjectedRow *pr, const storage::ProjectionMap &pr_map);
 };
 }  // namespace terrier::catalog

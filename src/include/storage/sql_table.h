@@ -44,7 +44,6 @@ class SqlTable {
    *
    * @param store the Block store to use.
    * @param schema the initial Schema of this SqlTable
-   * @param oid unique identifier for this SqlTable
    */
   SqlTable(BlockStore *store, const catalog::Schema &schema);
 
@@ -76,12 +75,17 @@ class SqlTable {
    */
   bool Update(transaction::TransactionContext *const txn, RedoRecord *const redo) const {
     TERRIER_ASSERT(redo->GetTupleSlot() != TupleSlot(nullptr, 0), "TupleSlot was never set in this RedoRecord.");
-    // TODO(Gus): resolve what to do with this TODO since it doesnt apply for recovery
-    //    TERRIER_ASSERT(redo == reinterpret_cast<LogRecord *>(txn->redo_buffer_.LastRecord())
-    //                               ->LogRecord::GetUnderlyingRecordBodyAs<RedoRecord>(),
-    //                   "This RedoRecord is not the most recent entry in the txn's RedoBuffer. Was StageWrite called "
-    //                   "immediately before?");
-    return table_.data_table->Update(txn, redo->GetTupleSlot(), *(redo->Delta()));
+    TERRIER_ASSERT(redo == reinterpret_cast<LogRecord *>(txn->redo_buffer_.LastRecord())
+                               ->LogRecord::GetUnderlyingRecordBodyAs<RedoRecord>(),
+                   "This RedoRecord is not the most recent entry in the txn's RedoBuffer. Was StageWrite called "
+                   "immediately before?");
+    const auto result = table_.data_table->Update(txn, redo->GetTupleSlot(), *(redo->Delta()));
+    if (!result) {
+      // For MVCC correctness, this txn must now abort for the GC to clean up the version chain in the DataTable
+      // correctly.
+      txn->MustAbort();
+    }
+    return result;
   }
 
   /**
@@ -111,14 +115,21 @@ class SqlTable {
    * @return true if successful, false otherwise
    */
   bool Delete(transaction::TransactionContext *const txn, const TupleSlot slot) {
-    // TODO(Gus): resolve what to do with this TODO since it doesnt apply for recovery
-    //    TERRIER_ASSERT(
-    //        reinterpret_cast<LogRecord *>(txn->redo_buffer_.LastRecord())
-    //                ->GetUnderlyingRecordBodyAs<DeleteRecord>()
-    //                ->GetTupleSlot() == slot,
-    //        "This Delete is not the most recent entry in the txn's RedoBuffer. Was StageDelete called immediately
-    //        before?");
-    return table_.data_table->Delete(txn, slot);
+//    TERRIER_ASSERT(txn->redo_buffer_.LastRecord() != nullptr,
+//                   "The RedoBuffer is empty even though StageDelete should have been called.");
+//    TERRIER_ASSERT(
+//        reinterpret_cast<LogRecord *>(txn->redo_buffer_.LastRecord())
+//                ->GetUnderlyingRecordBodyAs<DeleteRecord>()
+//                ->GetTupleSlot() == slot,
+//        "This Delete is not the most recent entry in the txn's RedoBuffer. Was StageDelete called immediately before?");
+
+    const auto result = table_.data_table->Delete(txn, slot);
+    if (!result) {
+      // For MVCC correctness, this txn must now abort for the GC to clean up the version chain in the DataTable
+      // correctly.
+      txn->MustAbort();
+    }
+    return result;
   }
 
   /**

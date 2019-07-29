@@ -7,6 +7,7 @@
 #include "catalog/catalog_defs.h"
 #include "catalog/database_catalog.h"
 #include "catalog/index_schema.h"
+#include "catalog/postgres/pg_namespace.h"
 #include "catalog/schema.h"
 #include "common/managed_pointer.h"
 #include "storage/index/index.h"
@@ -117,7 +118,7 @@ class CatalogAccessor {
    * schema object after this call, they should use the GetSchema function to
    * obtain the authoritative schema for this table.
    */
-  table_oid_t CreateTable(namespace_oid_t ns, const std::string &name, Schema *schema);
+  table_oid_t CreateTable(namespace_oid_t ns, const std::string &name, const Schema &schema);
 
   /**
    * Rename the table from its current string to the new one.  The renaming could fail
@@ -223,7 +224,7 @@ class CatalogAccessor {
    * @param schema describing the new index
    * @return OID for the index, INVALID_INDEX_OID if the operation failed
    */
-  index_oid_t CreateIndex(namespace_oid_t ns, table_oid_t table, const std::string &name, IndexSchema *schema);
+  index_oid_t CreateIndex(namespace_oid_t ns, table_oid_t table, const std::string &name, const IndexSchema &schema);
 
   /**
    * Gets the schema that was used to define the index
@@ -272,7 +273,7 @@ class CatalogAccessor {
    */
   CatalogAccessor(Catalog *catalog, common::ManagedPointer<DatabaseCatalog> dbc, transaction::TransactionContext *txn,
                   db_oid_t database)
-      : catalog_(catalog), dbc_(dbc), txn_(txn), db_oid_(database) {}
+      : catalog_(catalog), dbc_(dbc), txn_(txn), db_oid_(database), search_path_({NAMESPACE_DEFAULT_NAMESPACE_OID}) {}
   friend class Catalog;
 };
 

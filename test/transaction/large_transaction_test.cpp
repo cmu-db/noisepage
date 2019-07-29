@@ -11,7 +11,7 @@ class LargeTransactionTests : public TerrierTest {
   void RunTest(const LargeDataTableTestConfiguration &config) {
     for (uint32_t iteration = 0; iteration < config.NumIterations(); iteration++) {
       auto injector = di::make_injector<di::TestBindingPolicy>(
-          di::storage_injector(),
+          di::storage_injector(), di::bind<storage::AccessObserver>().in(di::disabled),
           di::bind<common::DedicatedThreadRegistry>().in(
               di::disabled)[di::override],                                 // no need for thread registry in this test
           di::bind<storage::LogManager>().in(di::disabled)[di::override],  // no need for logging in this test

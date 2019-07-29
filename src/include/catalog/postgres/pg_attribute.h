@@ -1,5 +1,7 @@
 #pragma once
 
+#include <memory>
+#include <string>
 #include "catalog/index_schema.h"
 #include "catalog/schema.h"
 #include "parser/expression/abstract_expression.h"
@@ -32,61 +34,10 @@ namespace terrier::catalog::postgres {
 // locking during DDL operations which is not an issue in this system
 #define ADBIN_COL_OID col_oid_t(7)  // BIGINT (assumes 64-bit pointers)
 #define ADSRC_COL_OID col_oid_t(8)  // VARCHAR
-
-/**
- * Helper classes
- */
-class AttributeHelper {
- public:
-  template <typename Column>
-  static std::unique_ptr<Column> MakeColumn(storage::ProjectedRow *pr, storage::ProjectionMap table_pm) {
-    auto col_oid = *reinterpret_cast<uint32_t *>(pr->AccessForceNotNull(table_pm[ATTNUM_COL_OID]));
-    auto col_name = reinterpret_cast<storage::VarlenEntry *>(pr->AccessForceNotNull(table_pm[ATTNAME_COL_OID]));
-    auto col_type = *reinterpret_cast<type::TypeId *>(pr->AccessForceNotNull(table_pm[ATTTYPID_COL_OID]));
-    auto col_len = *reinterpret_cast<uint32_t *>(pr->AccessForceNotNull(table_pm[ATTLEN_COL_OID]));
-    auto col_null = !(*reinterpret_cast<bool *>(pr->AccessForceNotNull(table_pm[ATTNOTNULL_COL_OID])));
-    auto *col_expr =
-        reinterpret_cast<const parser::AbstractExpression *>(pr->AccessForceNotNull(table_pm[ADBIN_COL_OID]));
-    std::unique_ptr<Column> col;
-    if constexpr (std::is_same_v<Column, IndexSchema::Column>) {
-      if (col_type == type::TypeId::VARCHAR || col_type == type::TypeId::VARBINARY) {
-        col = std::make_unique<IndexSchema::Column>(col_type, col_null, *col_expr, col_len);
-      } else {
-        col = std::make_unique<IndexSchema::Column>(col_type, col_null, *col_expr);
-      }
-      col->SetOid(indexkeycol_oid_t(col_oid));
-    } else {  // NOLINT
-      std::string name(reinterpret_cast<const char *>(col_name->Content()), col_name->Size());
-      if (col_type == type::TypeId::VARCHAR || col_type == type::TypeId::VARBINARY) {
-        col = std::make_unique<Schema::Column>(name, col_type, col_null, *col_expr, col_len);
-      } else {
-        col = std::make_unique<Schema::Column>(name, col_type, col_null, *col_expr);
-      }
-      col->SetOid(col_oid_t(col_oid));
-    }
-    return col;
+#define PG_ATTRIBUTE_ALL_COL_OIDS                                                                            \
+  {                                                                                                          \
+    ATTNUM_COL_OID, ATTRELID_COL_OID, ATTNAME_COL_OID, ATTTYPID_COL_OID, ATTLEN_COL_OID, ATTNOTNULL_COL_OID, \
+        ADBIN_COL_OID, ADSRC_COL_OID                                                                         \
   }
 
-  static storage::VarlenEntry CreateVarlen(const std::string &str) {
-    storage::VarlenEntry varlen;
-    if (str.size() > storage::VarlenEntry::InlineThreshold()) {
-      byte *contents = common::AllocationUtil::AllocateAligned(str.size());
-      std::memcpy(contents, str.data(), str.size());
-      varlen = storage::VarlenEntry::Create(contents, static_cast<uint32_t>(str.size()), true);
-    } else {
-      varlen = storage::VarlenEntry::CreateInline(reinterpret_cast<const byte *>(str.data()),
-                                                  static_cast<uint32_t>(str.size()));
-    }
-    return varlen;
-  }
-
-  template <typename Column>
-  static storage::VarlenEntry MakeNameVarlen(const Column &col) {
-    if constexpr (std::is_class_v<Column, IndexSchema::Column>) {
-      return CreateVarlen(std::to_string(col.GetOid()));
-    } else {  // NOLINT
-      return CreateVarlen(col.GetName());
-    }
-  }
-};
 }  // namespace terrier::catalog::postgres

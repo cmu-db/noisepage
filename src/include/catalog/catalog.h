@@ -1,5 +1,6 @@
 #pragma once
 
+#include <string>
 #include <vector>
 
 #include "catalog/catalog_defs.h"
@@ -54,19 +55,11 @@ class Catalog {
    * Creates a new database instance.
    * @param txn that creates the database
    * @param name of the new database
+   * @param bootstrap indicates whether or not to perform bootstrap routine
    * @return OID of the database or INVALID_DATABASE_OID if the operation failed
    *   (which should only occur if there is already a database with that name)
    */
-  db_oid_t CreateDatabase(transaction::TransactionContext *txn, const std::string &name);
-
-  /**
-   * Creates a new database instance with a given OID. Can be used by recovery manager during recovery
-   * @param txn that creates the database
-   * @param name of the new database
-   * @param oid of the new database to create
-   * @return true of operation suceeded, false otherwise
-   */
-  bool CreateDatabase(transaction::TransactionContext *txn, const std::string &name, db_oid_t database);
+  db_oid_t CreateDatabase(transaction::TransactionContext *txn, const std::string &name, bool bootstrap);
 
   /**
    * Deletes the given database.  This operation will fail if there is any DDL
@@ -105,16 +98,6 @@ class Catalog {
   common::ManagedPointer<DatabaseCatalog> GetDatabaseCatalog(transaction::TransactionContext *txn, db_oid_t database);
 
   /**
-   * Gets the database-specific catalog object.
-   * @param txn for the catalog query
-   * @param name of the database whose catalog will be returned
-   * @return DatabaseCatalog object which has catalog information for the
-   *   specific database
-   */
-  common::ManagedPointer<DatabaseCatalog> GetDatabaseCatalog(transaction::TransactionContext *txn,
-                                                             const std::string &name);
-
-  /**
    * Creates a new accessor into the catalog which will handle transactionality and sequencing of catalog operations.
    * @param txn for all subsequent catalog queries
    * @param database in which this transaction is scoped
@@ -123,7 +106,6 @@ class Catalog {
   CatalogAccessor *GetAccessor(transaction::TransactionContext *txn, db_oid_t database);
 
  private:
-  friend class storage::RecoveryManager;
   transaction::TransactionManager *txn_manager_;
   storage::BlockStore *catalog_block_store_;
   std::atomic<db_oid_t> next_oid_;
@@ -131,18 +113,6 @@ class Catalog {
   storage::SqlTable *databases_;
   storage::index::Index *databases_name_index_;
   storage::index::Index *databases_oid_index_;
-
-  /**
-   * Atomically updates the next oid counter to the max of the current count and the provided next oid
-   * @param oid next oid to move oid counter to
-   */
-  void UpdateNextOid(db_oid_t oid) {
-    db_oid_t expected, desired;
-    do {
-      expected = next_oid_.load();
-      desired = std::max(expected, oid);
-    } while (!next_oid_.compare_exchange_strong(expected, desired));
-  }
 
   /**
    * Creates a new database entry.

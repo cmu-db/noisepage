@@ -1,3 +1,7 @@
+#include <string>
+#include <utility>
+#include <vector>
+
 #include "catalog/catalog.h"
 #include "catalog/catalog_accessor.h"
 #include "catalog/database_catalog.h"
@@ -10,7 +14,7 @@
 
 namespace terrier::catalog {
 
-Catalog::Catalog(transaction::TransactionManager *txn_manager, storage::BlockStore *block_store)
+Catalog::Catalog(transaction::TransactionManager *const txn_manager, storage::BlockStore *const block_store)
     : txn_manager_(txn_manager), catalog_block_store_(block_store), next_oid_(1) {
   databases_ = new storage::SqlTable(block_store, postgres::Builder::GetDatabaseTableSchema());
   databases_oid_index_ =
@@ -20,13 +24,12 @@ Catalog::Catalog(transaction::TransactionManager *txn_manager, storage::BlockSto
 }
 
 void Catalog::TearDown() {
-  auto txn = txn_manager_->BeginTransaction();
+  auto *txn = txn_manager_->BeginTransaction();
   // Get a projected column on DatabaseCatalog pointers for scanning the table
-  std::vector<col_oid_t> cols;
-  cols.emplace_back(DAT_CATALOG_COL_OID);
+  const std::vector<col_oid_t> cols{DAT_CATALOG_COL_OID};
 
   // Only one column, so we only need the initializer and not the ProjectionMap
-  auto pci = databases_->InitializerForProjectedColumns(cols, 100).first;
+  const auto pci = databases_->InitializerForProjectedColumns(cols, 100).first;
 
   // This could potentially be optimized by calculating this size and hard-coding a byte array on the stack
   byte *buffer = common::AllocationUtil::AllocateAligned(pci.ProjectedColumnsSize());
@@ -69,20 +72,24 @@ void Catalog::TearDown() {
   txn_manager_->Commit(txn, [](void *) {}, nullptr);
 }
 
-db_oid_t Catalog::CreateDatabase(transaction::TransactionContext *txn, const std::string &name) {
+db_oid_t Catalog::CreateDatabase(transaction::TransactionContext *const txn, const std::string &name,
+                                 const bool bootstrap) {
   // Instantiate the DatabaseCatalog
-  db_oid_t db_oid = next_oid_++;
-  return (Catalog::CreateDatabase(txn, name, db_oid)) ? db_oid : INVALID_DATABASE_OID;
-}
-
-bool Catalog::CreateDatabase(transaction::TransactionContext *txn, const std::string &name, db_oid_t db_oid) {
+  const db_oid_t db_oid = next_oid_++;
   DatabaseCatalog *dbc = postgres::Builder::CreateDatabaseCatalog(catalog_block_store_, db_oid);
-  txn->RegisterAbortAction([=]() { delete dbc; });
-  return Catalog::CreateDatabaseEntry(txn, db_oid, name, dbc);
+  if (bootstrap) dbc->Bootstrap(txn);
+  txn->RegisterAbortAction([=]() {
+    dbc->TearDown(txn);
+    delete dbc;
+  });
+  const auto success = Catalog::CreateDatabaseEntry(txn, db_oid, name, dbc);
+  if (!success) return INVALID_DATABASE_OID;
+
+  return db_oid;
 }
 
-bool Catalog::DeleteDatabase(transaction::TransactionContext *txn, db_oid_t database) {
-  auto *dbc = DeleteDatabaseEntry(txn, database);
+bool Catalog::DeleteDatabase(transaction::TransactionContext *const txn, const db_oid_t database) {
+  auto *const dbc = DeleteDatabaseEntry(txn, database);
   if (dbc == nullptr) return false;
 
   // Ensure the deferred action is created now in order to eagerly bind references
@@ -91,43 +98,35 @@ bool Catalog::DeleteDatabase(transaction::TransactionContext *txn, db_oid_t data
 
   // Defer the de-allocation on commit because we need to scan the tables to find
   // live references at deletion that need to be deleted.
-  txn->RegisterCommitAction(
-      [=, del_action{std::move(del_action)}]() { txn_manager_->DeferAction(std::move(del_action)); });
+  txn->RegisterCommitAction([=, del_action{std::move(del_action)}]() { txn_manager_->DeferAction(del_action); });
   return true;
 }
 
-bool Catalog::RenameDatabase(transaction::TransactionContext *txn, db_oid_t database, const std::string &name) {
+bool Catalog::RenameDatabase(transaction::TransactionContext *const txn, const db_oid_t database,
+                             const std::string &name) {
   // Name is indexed so this is a delete and insert at the physical level
-  auto *dbc = DeleteDatabaseEntry(txn, database);
+  auto *const dbc = DeleteDatabaseEntry(txn, database);
   if (dbc == nullptr) return false;
   return CreateDatabaseEntry(txn, database, name, dbc);
 }
 
-db_oid_t Catalog::GetDatabaseOid(transaction::TransactionContext *txn, const std::string &name) {
-  std::vector<storage::TupleSlot> index_results;
-  auto name_pri = databases_name_index_->GetProjectedRowInitializer();
+db_oid_t Catalog::GetDatabaseOid(transaction::TransactionContext *const txn, const std::string &name) {
+  const auto name_pri = databases_name_index_->GetProjectedRowInitializer();
 
-  // Create the necessary varlen for storage operations
-  storage::VarlenEntry name_varlen;
-  byte *varlen_contents = nullptr;
-  if (name.size() > storage::VarlenEntry::InlineThreshold()) {
-    varlen_contents = common::AllocationUtil::AllocateAligned(name.size());
-    std::memcpy(varlen_contents, name.data(), name.size());
-    name_varlen = storage::VarlenEntry::Create(varlen_contents, static_cast<uint>(name.size()), true);
-  } else {
-    name_varlen = storage::VarlenEntry::CreateInline(reinterpret_cast<const byte *const>(name.data()),
-                                                     static_cast<uint>(name.size()));
-  }
+  const auto name_varlen = storage::StorageUtil::CreateVarlen(name);
 
   // Name is a larger projected row (16-byte key vs 4-byte key), sow we can reuse
   // the buffer for both index operations if we allocate to the larger one.
   auto *const buffer = common::AllocationUtil::AllocateAligned(name_pri.ProjectedRowSize());
-  auto pr = name_pri.InitializeRow(buffer);
+  auto *pr = name_pri.InitializeRow(buffer);
   *(reinterpret_cast<storage::VarlenEntry *>(pr->AccessForceNotNull(0))) = name_varlen;
 
+  std::vector<storage::TupleSlot> index_results;
   databases_name_index_->ScanKey(*txn, *pr, &index_results);
-  if (varlen_contents != nullptr) {
-    delete[] varlen_contents;
+
+  // Clean up the varlen's buffer in the case it wasn't inlined.
+  if (!name_varlen.IsInlined()) {
+    delete[] name_varlen.Content();
   }
 
   if (index_results.empty()) {
@@ -145,18 +144,17 @@ db_oid_t Catalog::GetDatabaseOid(transaction::TransactionContext *txn, const std
   return db_oid;
 }
 
-common::ManagedPointer<DatabaseCatalog> Catalog::GetDatabaseCatalog(transaction::TransactionContext *txn,
-                                                                    db_oid_t database) {
-  std::vector<storage::TupleSlot> index_results;
-  auto oid_pri = databases_name_index_->GetProjectedRowInitializer();
+common::ManagedPointer<DatabaseCatalog> Catalog::GetDatabaseCatalog(transaction::TransactionContext *const txn,
+                                                                    const db_oid_t database) {
+  const auto oid_pri = databases_name_index_->GetProjectedRowInitializer();
 
   // Name is a larger projected row (16-byte key vs 4-byte key), sow we can reuse
   // the buffer for both index operations if we allocate to the larger one.
-  byte *buffer = common::AllocationUtil::AllocateAligned(oid_pri.ProjectedRowSize());
-  auto pr = oid_pri.InitializeRow(buffer);
-  auto *oid = reinterpret_cast<db_oid_t *>(pr->AccessForceNotNull(0));
-  *oid = database;
+  byte *const buffer = common::AllocationUtil::AllocateAligned(oid_pri.ProjectedRowSize());
+  auto *pr = oid_pri.InitializeRow(buffer);
+  *(reinterpret_cast<db_oid_t *>(pr->AccessForceNotNull(0))) = database;
 
+  std::vector<storage::TupleSlot> index_results;
   databases_oid_index_->ScanKey(*txn, *pr, &index_results);
   if (index_results.empty()) {
     delete[] buffer;
@@ -164,61 +162,13 @@ common::ManagedPointer<DatabaseCatalog> Catalog::GetDatabaseCatalog(transaction:
   }
   TERRIER_ASSERT(index_results.size() == 1, "Database name not unique in index");
 
-  std::vector<col_oid_t> table_oids;
-  table_oids.emplace_back(DAT_CATALOG_COL_OID);
-  auto table_pri = databases_->InitializerForProjectedRow(table_oids).first;
+  const std::vector<col_oid_t> table_oids{DAT_CATALOG_COL_OID};
+  const auto table_pri = databases_->InitializerForProjectedRow(table_oids).first;
   pr = table_pri.InitializeRow(buffer);
-  if (!databases_->Select(txn, index_results[0], pr)) {
-    // Nothing visible
-    delete[] buffer;
-    return common::ManagedPointer<DatabaseCatalog>(nullptr);
-  }
+  const auto UNUSED_ATTRIBUTE result = databases_->Select(txn, index_results[0], pr);
+  TERRIER_ASSERT(result, "Index scan did a visibility check, so Select shouldn't fail at this point.");
 
-  auto dbc = *reinterpret_cast<DatabaseCatalog **>(pr->AccessForceNotNull(0));
-  delete[] buffer;
-  return common::ManagedPointer(dbc);
-}
-
-common::ManagedPointer<DatabaseCatalog> Catalog::GetDatabaseCatalog(transaction::TransactionContext *txn,
-                                                                    const std::string &name) {
-  std::vector<storage::TupleSlot> index_results;
-  auto name_pri = databases_name_index_->GetProjectedRowInitializer();
-
-  // Create the necessary varlen for storage operations
-  storage::VarlenEntry name_varlen;
-  if (name.size() > storage::VarlenEntry::InlineThreshold()) {
-    byte *contents = common::AllocationUtil::AllocateAligned(name.size());
-    std::memcpy(contents, name.data(), name.size());
-    name_varlen = storage::VarlenEntry::Create(contents, static_cast<uint>(name.size()), true);
-  } else {
-    name_varlen = storage::VarlenEntry::CreateInline((byte *)(name.data()), static_cast<uint>(name.size()));
-  }
-
-  // Name is a larger projected row (16-byte key vs 4-byte key), sow we can reuse
-  // the buffer for both index operations if we allocate to the larger one.
-  byte *buffer = common::AllocationUtil::AllocateAligned(name_pri.ProjectedRowSize());
-  auto pr = name_pri.InitializeRow(buffer);
-  auto *varlen = reinterpret_cast<storage::VarlenEntry *>(pr->AccessForceNotNull(0));
-  *varlen = name_varlen;
-
-  databases_oid_index_->ScanKey(*txn, *pr, &index_results);
-  if (index_results.empty()) {
-    delete[] buffer;
-    return common::ManagedPointer<DatabaseCatalog>(nullptr);
-  }
-  TERRIER_ASSERT(index_results.size() == 1, "Database name not unique in index");
-
-  std::vector<col_oid_t> table_oids;
-  table_oids.emplace_back(DAT_CATALOG_COL_OID);
-  auto table_pri = databases_->InitializerForProjectedRow(table_oids).first;
-  pr = table_pri.InitializeRow(buffer);
-  if (!databases_->Select(txn, index_results[0], pr)) {
-    // Nothing visible
-    delete[] buffer;
-    return common::ManagedPointer<DatabaseCatalog>(nullptr);
-  }
-
-  auto dbc = *reinterpret_cast<DatabaseCatalog **>(pr->AccessForceNotNull(0));
+  const auto dbc = *(reinterpret_cast<DatabaseCatalog **>(pr->AccessForceNotNull(0)));
   delete[] buffer;
   return common::ManagedPointer(dbc);
 }
@@ -229,51 +179,38 @@ CatalogAccessor *Catalog::GetAccessor(transaction::TransactionContext *txn, db_o
   return new CatalogAccessor(this, dbc, txn, database);
 }
 
-bool Catalog::CreateDatabaseEntry(transaction::TransactionContext *txn, db_oid_t db, const std::string &name,
-                                  DatabaseCatalog *dbc) {
-  // Create the necessary varlen for storage operations
-  storage::VarlenEntry name_varlen;
-  if (name.size() > storage::VarlenEntry::InlineThreshold()) {
-    byte *contents = common::AllocationUtil::AllocateAligned(name.size());
-    std::memcpy(contents, name.data(), name.size());
-    name_varlen = storage::VarlenEntry::Create(contents, static_cast<uint>(name.size()), true);
-  } else {
-    name_varlen = storage::VarlenEntry::CreateInline((byte *)(name.data()), static_cast<uint>(name.size()));
-  }
-  // Ensure we delete the database if the transaction aborts
-  txn->RegisterAbortAction([=]() { delete dbc; });
+bool Catalog::CreateDatabaseEntry(transaction::TransactionContext *const txn, const db_oid_t db,
+                                  const std::string &name, DatabaseCatalog *const dbc) {
+  const auto name_varlen = storage::StorageUtil::CreateVarlen(name);
 
   // Create the redo record for inserting into the table
   std::vector<col_oid_t> table_oids;
   table_oids.emplace_back(DATOID_COL_OID);
   table_oids.emplace_back(DATNAME_COL_OID);
   table_oids.emplace_back(DAT_CATALOG_COL_OID);
+  // NOLINTNEXTLINE Matt: this is C++17 which lint hates
   auto [pri, pm] = databases_->InitializerForProjectedRow(table_oids);
-  auto *redo = txn->StageWrite(INVALID_DATABASE_OID, DATABASE_TABLE_OID, pri);
+  auto *const redo = txn->StageWrite(INVALID_DATABASE_OID, DATABASE_TABLE_OID, pri);
 
   // Populate the projected row
-  auto *oid = reinterpret_cast<db_oid_t *>(redo->Delta()->AccessForceNotNull(pm[DATOID_COL_OID]));
-  auto *name_v = reinterpret_cast<storage::VarlenEntry *>(redo->Delta()->AccessForceNotNull(pm[DATNAME_COL_OID]));
-  auto *ptr = reinterpret_cast<DatabaseCatalog **>(redo->Delta()->AccessForceNotNull(pm[DAT_CATALOG_COL_OID]));
-  *oid = db;
-  *name_v = name_varlen;
-  *ptr = dbc;
+  *(reinterpret_cast<db_oid_t *>(redo->Delta()->AccessForceNotNull(pm[DATOID_COL_OID]))) = db;
+  *(reinterpret_cast<storage::VarlenEntry *>(redo->Delta()->AccessForceNotNull(pm[DATNAME_COL_OID]))) = name_varlen;
+  *(reinterpret_cast<DatabaseCatalog **>(redo->Delta()->AccessForceNotNull(pm[DAT_CATALOG_COL_OID]))) = dbc;
 
   // Insert into the table to get the tuple slot
-  auto tupleslot = databases_->Insert(txn, redo);
+  const auto tupleslot = databases_->Insert(txn, redo);
 
-  auto name_pri = databases_name_index_->GetProjectedRowInitializer();
-  auto oid_pri = databases_oid_index_->GetProjectedRowInitializer();
+  const auto name_pri = databases_name_index_->GetProjectedRowInitializer();
+  const auto oid_pri = databases_oid_index_->GetProjectedRowInitializer();
 
   // Name is a larger projected row (16-byte key vs 4-byte key), sow we can reuse
   // the buffer for both index operations if we allocate to the larger one.
-  byte *buffer = common::AllocationUtil::AllocateAligned(name_pri.ProjectedRowSize());
+  byte *const buffer = common::AllocationUtil::AllocateAligned(name_pri.ProjectedRowSize());
 
   // Insert into the name index (checks for name collisions)
-  auto pr = name_pri.InitializeRow(buffer);
+  auto *pr = name_pri.InitializeRow(buffer);
   // There's only a single column in the key, so there is no need to check OID to key column
-  name_v = reinterpret_cast<storage::VarlenEntry *>(pr->AccessForceNotNull(0));
-  *name_v = name_varlen;
+  *(reinterpret_cast<storage::VarlenEntry *>(pr->AccessForceNotNull(0))) = name_varlen;
 
   if (!databases_name_index_->InsertUnique(txn, *pr, tupleslot)) {
     // There was a name conflict and we need to abort.  Free the buffer and
@@ -285,8 +222,7 @@ bool Catalog::CreateDatabaseEntry(transaction::TransactionContext *txn, db_oid_t
   // Insert into the OID index (should never fail)
   pr = oid_pri.InitializeRow(buffer);
   // There's only a single column in the key, so there is no need to check OID to key column
-  oid = reinterpret_cast<db_oid_t *>(pr->AccessForceNotNull(0));
-  *oid = db;
+  *(reinterpret_cast<db_oid_t *>(pr->AccessForceNotNull(0))) = db;
 
   const bool UNUSED_ATTRIBUTE result = databases_oid_index_->InsertUnique(txn, *pr, tupleslot);
   TERRIER_ASSERT(result, "Assigned database OID failed to be unique");
@@ -298,21 +234,17 @@ bool Catalog::CreateDatabaseEntry(transaction::TransactionContext *txn, db_oid_t
 DatabaseCatalog *Catalog::DeleteDatabaseEntry(transaction::TransactionContext *txn, db_oid_t db) {
   std::vector<storage::TupleSlot> index_results;
 
-  std::vector<col_oid_t> table_oids;
-  table_oids.emplace_back(DATNAME_COL_OID);
-  table_oids.emplace_back(DAT_CATALOG_COL_OID);
-  auto pair = databases_->InitializerForProjectedRow(table_oids);
-  auto table_pri = pair.first;
-  auto table_pri_map = pair.second;
-  auto name_pri = databases_name_index_->GetProjectedRowInitializer();
-  auto oid_pri = databases_oid_index_->GetProjectedRowInitializer();
+  const std::vector<col_oid_t> table_oids{DATNAME_COL_OID, DAT_CATALOG_COL_OID};
+  // NOLINTNEXTLINE
+  auto [table_pri, table_pri_map] = databases_->InitializerForProjectedRow(table_oids);
+  const auto name_pri = databases_name_index_->GetProjectedRowInitializer();
+  const auto oid_pri = databases_oid_index_->GetProjectedRowInitializer();
 
   // Name is a larger projected row (16-byte key vs 4-byte key), sow we can reuse
   // the buffer for both index operations if we allocate to the larger one.
-  byte *buffer = common::AllocationUtil::AllocateAligned(table_pri.ProjectedRowSize());
-  auto pr = oid_pri.InitializeRow(buffer);
-  auto *oid = reinterpret_cast<db_oid_t *>(pr->AccessForceNotNull(0));
-  *oid = db;
+  byte *const buffer = common::AllocationUtil::AllocateAligned(table_pri.ProjectedRowSize());
+  auto *pr = oid_pri.InitializeRow(buffer);
+  *(reinterpret_cast<db_oid_t *>(pr->AccessForceNotNull(0))) = db;
 
   databases_oid_index_->ScanKey(*txn, *pr, &index_results);
   if (index_results.empty()) {
@@ -321,15 +253,12 @@ DatabaseCatalog *Catalog::DeleteDatabaseEntry(transaction::TransactionContext *t
   }
   TERRIER_ASSERT(index_results.size() == 1, "Database OID not unique in index");
 
-  // TODO (John):  This is wrong.  I need to fetch the pointer and varlen and
-  // store both so that we can properly delete the varlen from the name index
   pr = table_pri.InitializeRow(buffer);
-  if (!databases_->Select(txn, index_results[0], pr)) {
-    // Nothing visible
-    delete[] buffer;
-    return nullptr;
-  }
+  const auto UNUSED_ATTRIBUTE result = databases_->Select(txn, index_results[0], pr);
 
+  TERRIER_ASSERT(result, "Index scan did a visibility check, so Select shouldn't fail at this point.");
+
+  txn->StageDelete(INVALID_DATABASE_OID, DATABASE_TABLE_OID, index_results[0]);
   if (!databases_->Delete(txn, index_results[0])) {
     // Someone else has a write-lock
     delete[] buffer;
@@ -343,15 +272,11 @@ DatabaseCatalog *Catalog::DeleteDatabaseEntry(transaction::TransactionContext *t
   auto name = *reinterpret_cast<storage::VarlenEntry *>(pr->AccessForceNotNull(table_pri_map[DATNAME_COL_OID]));
 
   pr = oid_pri.InitializeRow(buffer);
-  auto *oid_v = reinterpret_cast<db_oid_t *>(pr->AccessForceNotNull(0));
-  *oid_v = db;
-  // TODO (Ling): Delete function in index.h returns void, probably because the actual deletion will be deferred.
+  *(reinterpret_cast<db_oid_t *>(pr->AccessForceNotNull(0))) = db;
   databases_oid_index_->Delete(txn, *pr, index_results[0]);
 
   pr = name_pri.InitializeRow(buffer);
-  auto *key = reinterpret_cast<storage::VarlenEntry *>(pr->AccessForceNotNull(0));
-  *key = name;
-  // Need to set the varlen entry in the projected row to the varlen returned above
+  *(reinterpret_cast<storage::VarlenEntry *>(pr->AccessForceNotNull(0))) = name;
   databases_name_index_->Delete(txn, *pr, index_results[0]);
 
   delete[] buffer;

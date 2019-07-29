@@ -5,10 +5,10 @@
 #include <utility>
 #include <vector>
 
+#include "parser/expression/column_value_expression.h"
 #include "parser/expression/comparison_expression.h"
 #include "parser/expression/conjunction_expression.h"
 #include "parser/expression/constant_value_expression.h"
-#include "parser/expression/tuple_value_expression.h"
 #include "planner/plannodes/aggregate_plan_node.h"
 #include "planner/plannodes/analyze_plan_node.h"
 #include "planner/plannodes/create_database_plan_node.h"
@@ -100,7 +100,7 @@ TEST(PlanNodeJsonTest, OutputSchemaJsonTest) {
 
   // Test DerivedColumn serialization
   std::vector<std::shared_ptr<parser::AbstractExpression>> children;
-  children.emplace_back(std::make_shared<parser::TupleValueExpression>("table1", "col1"));
+  children.emplace_back(std::make_shared<parser::ColumnValueExpression>("table1", "col1"));
   children.emplace_back(PlanNodeJsonTest::BuildDummyPredicate());
   auto expr =
       std::make_shared<parser::ComparisonExpression>(parser::ExpressionType::CONJUNCTION_OR, std::move(children));
@@ -134,7 +134,7 @@ TEST(PlanNodeJsonTest, AggregatePlanNodeJsonTest) {
 
   std::vector<std::shared_ptr<parser::AbstractExpression>> children;
   children.push_back(PlanNodeJsonTest::BuildDummyPredicate());
-  auto agg_term = std::make_shared<parser::AggregateExpression>(parser::ExpressionType::AGGREGATE_COUNT_STAR,
+  auto agg_term = std::make_shared<parser::AggregateExpression>(parser::ExpressionType::AGGREGATE_COUNT,
                                                                 std::move(children), false);
   AggregatePlanNode::Builder builder;
   auto plan_node = builder.SetOutputSchema(PlanNodeJsonTest::BuildDummyOutputSchema())
@@ -315,12 +315,18 @@ TEST(PlanNodeJsonTest, CreateTablePlanNodeTest) {
   // Columns
   auto get_schema = []() {
     std::vector<catalog::Schema::Column> columns = {
-        catalog::Schema::Column("a", type::TypeId::INTEGER, false, parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER))),
-        catalog::Schema::Column("u_a", type::TypeId::DECIMAL, false, parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::DECIMAL))),
-        catalog::Schema::Column("u_b", type::TypeId::DATE, true, parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::DATE)))};
-    StorageTestUtil::ForceOid(columns[0], catalog::col_oid_t(1));
-    StorageTestUtil::ForceOid(columns[1], catalog::col_oid_t(2));
-    StorageTestUtil::ForceOid(columns[2], catalog::col_oid_t(3));
+        catalog::Schema::Column(
+            "a", type::TypeId::INTEGER, false,
+            parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER))),
+        catalog::Schema::Column(
+            "u_a", type::TypeId::DECIMAL, false,
+            parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::DECIMAL))),
+        catalog::Schema::Column(
+            "u_b", type::TypeId::DATE, true,
+            parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::DATE)))};
+    StorageTestUtil::ForceOid(&(columns[0]), catalog::col_oid_t(1));
+    StorageTestUtil::ForceOid(&(columns[1]), catalog::col_oid_t(2));
+    StorageTestUtil::ForceOid(&(columns[2]), catalog::col_oid_t(3));
     return std::make_shared<catalog::Schema>(columns);
   };
 
@@ -664,8 +670,8 @@ TEST(PlanNodeJsonTest, HashJoinPlanNodeJoinTest) {
   auto plan_node = builder.SetOutputSchema(PlanNodeJsonTest::BuildDummyOutputSchema())
                        .SetJoinType(LogicalJoinType::INNER)
                        .SetJoinPredicate(PlanNodeJsonTest::BuildDummyPredicate())
-                       .AddLeftHashKey(std::make_shared<parser::TupleValueExpression>("col1", "table1"))
-                       .AddRightHashKey(std::make_shared<parser::TupleValueExpression>("col2", "table2"))
+                       .AddLeftHashKey(std::make_shared<parser::ColumnValueExpression>("table1", "col1"))
+                       .AddRightHashKey(std::make_shared<parser::ColumnValueExpression>("table2", "col2"))
                        .SetBuildBloomFilterFlag(false)
                        .Build();
 
@@ -687,8 +693,8 @@ TEST(PlanNodeJsonTest, HashPlanNodeJsonTest) {
   // Construct HashPlanNode
   HashPlanNode::Builder builder;
   auto plan_node = builder.SetOutputSchema(PlanNodeJsonTest::BuildDummyOutputSchema())
-                       .AddHashKey(std::make_shared<parser::TupleValueExpression>("col1", "table1"))
-                       .AddHashKey(std::make_shared<parser::TupleValueExpression>("col2", "table1"))
+                       .AddHashKey(std::make_shared<parser::ColumnValueExpression>("table1", "col1"))
+                       .AddHashKey(std::make_shared<parser::ColumnValueExpression>("col2", "table1"))
                        .AddChild(PlanNodeJsonTest::BuildDummySeqScanPlan())
                        .Build();
 

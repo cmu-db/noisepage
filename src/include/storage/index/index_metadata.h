@@ -116,7 +116,7 @@ class IndexMetadata {
     auto key_cols = key_schema.GetColumns();
     attr_sizes.reserve(key_cols.size());
     for (const auto &key : key_cols) {
-      attr_sizes.emplace_back(type::TypeUtil::GetTypeSize(key.GetType()));
+      attr_sizes.emplace_back(type::TypeUtil::GetTypeSize(key.Type()));
     }
     return attr_sizes;
   }
@@ -132,13 +132,13 @@ class IndexMetadata {
     auto key_cols = key_schema.GetColumns();
     inlined_attr_sizes.reserve(key_cols.size());
     for (const auto &key : key_cols) {
-      auto key_type = key.GetType();
+      auto key_type = key.Type();
       switch (key_type) {
         case type::TypeId::VARBINARY:
         case type::TypeId::VARCHAR: {
           // Add 4 bytes because we'll prepend a size field. If we're too small, we'll just use a VarlenEntry.
           auto varlen_size =
-              std::max(static_cast<uint16_t>(key.GetMaxVarlenSize() + 4), static_cast<uint16_t>(sizeof(VarlenEntry)));
+              std::max(static_cast<uint16_t>(key.MaxVarlenSize() + 4), static_cast<uint16_t>(sizeof(VarlenEntry)));
           inlined_attr_sizes.emplace_back(varlen_size);
           break;
         }
@@ -156,10 +156,10 @@ class IndexMetadata {
   static bool ComputeMustInlineVarlen(const catalog::IndexSchema &key_schema) {
     auto key_cols = key_schema.GetColumns();
     return std::any_of(key_cols.begin(), key_cols.end(), [](const auto &key) -> bool {
-      switch (key.GetType()) {
+      switch (key.Type()) {
         case type::TypeId::VARBINARY:
         case type::TypeId::VARCHAR:
-          return key.GetMaxVarlenSize() > VarlenEntry::InlineThreshold();
+          return key.MaxVarlenSize() > VarlenEntry::InlineThreshold();
         default:
           break;
       }
@@ -218,7 +218,7 @@ class IndexMetadata {
     auto key_cols = key_schema.GetColumns();
     key_oid_to_offset.reserve(key_cols.size());
     for (uint16_t i = 0; i < key_cols.size(); i++) {
-      key_oid_to_offset[key_cols[i].GetOid()] = pr_offsets[i];
+      key_oid_to_offset[key_cols[i].Oid()] = pr_offsets[i];
     }
     return key_oid_to_offset;
   }

@@ -1,10 +1,13 @@
 #include "catalog/catalog_accessor.h"
+#include <string>
+#include <utility>
+#include <vector>
 #include "catalog/catalog.h"
 
 namespace terrier::catalog {
 db_oid_t CatalogAccessor::GetDatabaseOid(const std::string &name) { return catalog_->GetDatabaseOid(txn_, name); }
 
-db_oid_t CatalogAccessor::CreateDatabase(const std::string &name) { return catalog_->CreateDatabase(txn_, name); }
+db_oid_t CatalogAccessor::CreateDatabase(const std::string &name) { return catalog_->CreateDatabase(txn_, name, true); }
 
 bool CatalogAccessor::DropDatabase(db_oid_t db) { return catalog_->DeleteDatabase(txn_, db); }
 
@@ -24,11 +27,12 @@ table_oid_t CatalogAccessor::GetTableOid(const std::string &name) {
   return INVALID_TABLE_OID;
 }
 
-table_oid_t CatalogAccessor::GetTableOid(namespace_oid_t ns,
-                                         const std::string &name) { return dbc_->GetTableOid(txn_, ns, name); }
+table_oid_t CatalogAccessor::GetTableOid(namespace_oid_t ns, const std::string &name) {
+  return dbc_->GetTableOid(txn_, ns, name);
+}
 
-table_oid_t CatalogAccessor::CreateTable(namespace_oid_t ns, const std::string &name, Schema *schema) {
-  return dbc_->CreateTable(txn_, ns, name, *schema);
+table_oid_t CatalogAccessor::CreateTable(namespace_oid_t ns, const std::string &name, const Schema &schema) {
+  return dbc_->CreateTable(txn_, ns, name, schema);
 }
 
 bool CatalogAccessor::RenameTable(table_oid_t table, const std::string &new_table_name) {
@@ -72,7 +76,7 @@ index_oid_t CatalogAccessor::GetIndexOid(namespace_oid_t ns, const std::string &
 std::vector<index_oid_t> CatalogAccessor::GetIndexOids(table_oid_t table) { return dbc_->GetIndexes(txn_, table); }
 
 index_oid_t CatalogAccessor::CreateIndex(namespace_oid_t ns, table_oid_t table, const std::string &name,
-                                         IndexSchema *schema) {
+                                         const IndexSchema &schema) {
   return dbc_->CreateIndex(txn_, ns, name, table, schema);
 }
 

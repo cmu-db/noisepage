@@ -61,9 +61,8 @@ void TransactionManager::LogCommit(TransactionContext *const txn, const timestam
     // Here we will manually add a commit record and flush the buffer to ensure the logger
     // sees this record.
     byte *const commit_record = txn->redo_buffer_.NewEntry(storage::CommitRecord::Size());
-    const bool is_read_only = txn->undo_buffer_.Empty();
     storage::CommitRecord::Initialize(commit_record, txn->StartTime(), commit_time, callback, callback_arg,
-                                      is_read_only, txn);
+                                      txn->IsReadOnly(), txn);
     // Signal to the log manager that we are ready to be logged out
   } else {
     // Otherwise, logging is disabled. We should pretend to have flushed the record so the rest of the system proceeds
@@ -113,6 +112,9 @@ timestamp_t TransactionManager::UpdatingCommitCriticalSection(TransactionContext
 
 timestamp_t TransactionManager::Commit(TransactionContext *const txn, transaction::callback_fn callback,
                                        void *callback_arg) {
+  TERRIER_ASSERT(!txn->must_abort_,
+                 "This txn was marked that it must abort. Set a breakpoint at TransactionContext::MustAbort() to see a "
+                 "stack trace for when this flag is getting tripped.");
   const timestamp_t result = txn->undo_buffer_.Empty() ? ReadOnlyCommitCriticalSection(txn, callback, callback_arg)
                                                        : UpdatingCommitCriticalSection(txn, callback, callback_arg);
   while (!txn->commit_actions_.empty()) {
@@ -155,8 +157,9 @@ void TransactionManager::LogAbort(TransactionContext *const txn) {
 timestamp_t TransactionManager::Abort(TransactionContext *const txn) {
   // Immediately clear the abort actions stack
   while (!txn->abort_actions_.empty()) {
-    txn->abort_actions_.front()();
+    auto action = txn->abort_actions_.front();
     txn->abort_actions_.pop_front();
+    action();
   }
 
   // We need to beware not to rollback a version chain multiple times, as that is just wasted computation
@@ -327,7 +330,6 @@ void TransactionManager::DeallocateInsertedTupleIfVarlen(TransactionContext *txn
     if (layout.IsVarlen(col_id)) {
       auto *varlen = reinterpret_cast<storage::VarlenEntry *>(accessor.AccessWithNullCheck(undo->Slot(), col_id));
       if (varlen != nullptr) {
-        TERRIER_ASSERT(varlen->NeedReclaim() || varlen->IsInlined(), "Fresh updates cannot be compacted or compressed");
         if (varlen->NeedReclaim()) txn->loose_ptrs_.push_back(varlen->Content());
       }
     }
