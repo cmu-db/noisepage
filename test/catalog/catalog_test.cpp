@@ -25,7 +25,7 @@ struct CatalogTests : public TerrierTest {
 
     // Initialize the transaction manager and GC
     txn_manager_ = new transaction::TransactionManager(&buffer_pool_, true, LOGGING_DISABLED);
-    gc_ = new storage::GarbageCollector(txn_manager_);
+    gc_ = new storage::GarbageCollector(txn_manager_, nullptr);
 
     // Build out the catalog and commit so that it is visible to other transactions
     catalog_ = new catalog::Catalog(txn_manager_, &block_store_);
