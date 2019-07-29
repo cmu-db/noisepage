@@ -404,7 +404,7 @@ bool DatabaseCatalog::CreateColumn(transaction::TransactionContext *const txn, c
   // Write the attributes in the ProjectedRow. These hardcoded indexkeycol_oids come from
   // Builder::GetColumnOidIndexSchema()
   *(reinterpret_cast<uint32_t *>(pr->AccessForceNotNull(oid_pm.at(indexkeycol_oid_t(2))))) =
-      static_cast<uint32_t>(col.Oid());
+      static_cast<uint32_t>(col_oid);
   *(reinterpret_cast<ClassOid *>(pr->AccessForceNotNull(oid_pm.at(indexkeycol_oid_t(1))))) = class_oid;
 
   bool UNUSED_ATTRIBUTE result = columns_oid_index_->InsertUnique(txn, *pr, tupleslot);
