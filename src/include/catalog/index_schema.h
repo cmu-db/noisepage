@@ -301,4 +301,7 @@ class IndexSchema {
   friend class postgres::Builder;
 };
 
+DEFINE_JSON_DECLARATIONS(IndexSchema::Column);
+DEFINE_JSON_DECLARATIONS(IndexSchema);
+
 }  // namespace terrier::catalog
