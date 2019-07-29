@@ -7,12 +7,11 @@
 #include <cerrno>
 #include <cstring>
 #include <string>
+#include "common/constants.h"
 #include "common/macros.h"
 #include "loggers/storage_logger.h"
 
 namespace terrier::storage {
-// TODO(Tianyu): Get rid of magic constant
-#define BUFFER_SIZE (1 << 12)
 
 /**
  * Modernized wrappers around Posix I/O sys calls to hide away the ugliness and use exceptions for error reporting.
@@ -95,44 +94,57 @@ class BufferedLogWriter {
 
   /**
    * Write to the log file the given amount of bytes from the given location in memory, but buffer the write so the
-   * update is only written out when the BufferedLogWriter is persisted.
+   * update is only written out when the BufferedLogWriter is persisted. Note that this function writes to the buffer
+   * only until it is full. If buffer gets full, then call FlushBuffer() and call BufferWrite(..) again with the correct
+   * offset of the data, depending on the number of bytes that were already written.
    * @param data memory location of the bytes to write
    * @param size number of bytes to write
+   * @return number of bytes written. This function only writes until the buffer gets full, so this can be used as the
+   * offset when calling this function again after flushing.
    */
-  void BufferWrite(const void *data, uint32_t size) {
-    if (!CanBuffer(size)) FlushBuffer();
-    // If we still do not have buffer space after flush, the write is too large to be buffered. We should bypass the
-    // buffer and write directly to disk
+  uint32_t BufferWrite(const void *data, uint32_t size) {
+    // If we still do not have buffer space after flush, the write is too large to be buffered. We partially write the
+    // buffer and return the number of bytes written
     if (!CanBuffer(size)) {
-      WriteUnsynced(data, size);
-    } else {
-      TERRIER_ASSERT(CanBuffer(size), "attempting to write to full write buffer");
-      std::memcpy(buffer_ + buffer_size_, data, size);
-      buffer_size_ += size;
+      size = common::Constants::LOG_BUFFER_SIZE - buffer_size_;
     }
+    std::memcpy(buffer_ + buffer_size_, data, size);
+    buffer_size_ += size;
+    return size;
   }
 
   /**
-   * Flush any buffered writes and call fsync to make sure that all writes are consistent.
+   * Call fsync to make sure that all writes are consistent.
    */
   void Persist() {
-    FlushBuffer();
     if (fsync(out_) == -1) throw std::runtime_error("fsync failed with errno " + std::to_string(errno));
   }
 
- private:
-  int out_;  // fd of the output files
-  char buffer_[BUFFER_SIZE];
-  uint32_t buffer_size_ = 0;
-
-  bool CanBuffer(uint32_t size) { return BUFFER_SIZE - buffer_size_ >= size; }
-
-  void WriteUnsynced(const void *data, uint32_t size) { PosixIoWrappers::WriteFully(out_, data, size); }
-
-  void FlushBuffer() {
+  /**
+   * Flush any buffered writes.
+   * @return amount of data flushed
+   */
+  uint64_t FlushBuffer() {
+    auto size = buffer_size_;
     WriteUnsynced(buffer_, buffer_size_);
     buffer_size_ = 0;
+    return size;
   }
+
+  /**
+   * @return if the buffer is full
+   */
+  bool IsBufferFull() { return buffer_size_ == common::Constants::LOG_BUFFER_SIZE; }
+
+ private:
+  int out_;  // fd of the output files
+  char buffer_[common::Constants::LOG_BUFFER_SIZE];
+
+  uint32_t buffer_size_ = 0;
+
+  bool CanBuffer(uint32_t size) { return common::Constants::LOG_BUFFER_SIZE - buffer_size_ >= size; }
+
+  void WriteUnsynced(const void *data, uint32_t size) { PosixIoWrappers::WriteFully(out_, data, size); }
 };
 
 /**
@@ -180,7 +192,7 @@ class BufferedLogReader {
  private:
   int in_;  // or -1 if closed
   uint32_t read_head_ = 0, filled_size_ = 0;
-  char buffer_[BUFFER_SIZE];
+  char buffer_[common::Constants::LOG_BUFFER_SIZE];
 
   void ReadFromBuffer(void *dest, uint32_t size) {
     TERRIER_ASSERT(read_head_ + size <= filled_size_, "Not enough bytes in buffer for the read");

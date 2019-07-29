@@ -126,7 +126,7 @@ if (TERRIER_BUILD_TESTS OR TERRIER_BUILD_BENCHMARKS)
     set(GTEST_STATIC_LIB
         "${GTEST_PREFIX}/lib/${CMAKE_STATIC_LIBRARY_PREFIX}gtest${CMAKE_STATIC_LIBRARY_SUFFIX}")
     set(GTEST_MAIN_STATIC_LIB
-        "${GTEST_PREFIX}/lib/${CMAKE_STATIC_LIBRARY_PREFIX}gtest_main${CMAKE_STATIC_LIBRARY_SUFFIX}")
+        "${GTEST_PREFIX}/lib/${CMAKE_STATIC_LIBRARY_PREFIX}gmock_main${CMAKE_STATIC_LIBRARY_SUFFIX}")
     set(GTEST_VENDORED 1)
     set(GTEST_CMAKE_ARGS -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
         -DCMAKE_INSTALL_PREFIX=${GTEST_PREFIX}
@@ -147,12 +147,12 @@ if (TERRIER_BUILD_TESTS OR TERRIER_BUILD_BENCHMARKS)
   include_directories(SYSTEM ${GTEST_INCLUDE_DIR})
   ADD_THIRDPARTY_LIB(gtest
       STATIC_LIB ${GTEST_STATIC_LIB})
-  ADD_THIRDPARTY_LIB(gtest_main
+  ADD_THIRDPARTY_LIB(gmock_main
       STATIC_LIB ${GTEST_MAIN_STATIC_LIB})
 
   if (GTEST_VENDORED)
     add_dependencies(gtest googletest_ep)
-    add_dependencies(gtest_main googletest_ep)
+    add_dependencies(gmock_main googletest_ep)
   endif ()
 
   # gflags (formerly Googleflags) command line parsing

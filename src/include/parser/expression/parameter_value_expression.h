@@ -32,11 +32,19 @@ class ParameterValueExpression : public AbstractExpression {
    */
   uint32_t GetValueIdx() const { return value_idx_; }
 
+  common::hash_t Hash() const override {
+    common::hash_t hash = AbstractExpression::Hash();
+    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(value_idx_));
+    return hash;
+  }
+
   bool operator==(const AbstractExpression &rhs) const override {
     if (!AbstractExpression::operator==(rhs)) return false;
     auto const &other = dynamic_cast<const ParameterValueExpression &>(rhs);
     return GetValueIdx() == other.GetValueIdx();
   }
+
+  void Accept(SqlNodeVisitor *v) override { v->Visit(this); }
 
   /**
    * @return expression serialized to json
@@ -57,6 +65,9 @@ class ParameterValueExpression : public AbstractExpression {
 
  private:
   // TODO(Tianyu): Can we get a better name for this?
+  /**
+   * Offset of the value that this expression points to in the query's parameter list
+   */
   uint32_t value_idx_;
 };
 

@@ -5,6 +5,7 @@
 #include <utility>
 #include <vector>
 
+#include "common/managed_pointer.h"
 #include "common/sql_node_visitor.h"
 #include "expression/abstract_expression.h"
 #include "parser/sql_statement.h"
@@ -23,8 +24,8 @@ class UpdateClause {
    * @param column column to be updated
    * @param value value to update to
    */
-  UpdateClause(std::string column, std::shared_ptr<AbstractExpression> value)
-      : column_(std::move(column)), value_(std::move(value)) {}
+  UpdateClause(std::string column, common::ManagedPointer<AbstractExpression> value)
+      : column_(std::move(column)), value_(value) {}
   ~UpdateClause() = default;
 
   /**
@@ -35,11 +36,11 @@ class UpdateClause {
   /**
    * @return value to update to
    */
-  std::shared_ptr<AbstractExpression> GetUpdateValue() { return value_; }
+  common::ManagedPointer<AbstractExpression> GetUpdateValue() { return value_; }
 
  private:
   const std::string column_;
-  const std::shared_ptr<AbstractExpression> value_;
+  const common::ManagedPointer<AbstractExpression> value_;
 };
 
 /**

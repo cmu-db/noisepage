@@ -18,7 +18,6 @@ struct TestCallbacks {
 
 class LargeTransactionBenchmarkObject;
 class RandomWorkloadTransaction;
-using TupleEntry = std::pair<storage::TupleSlot, storage::ProjectedRow *>;
 
 /**
  * A RandomWorkloadTransaction class provides a simple interface to simulate a transaction running in the system.
@@ -75,8 +74,6 @@ class RandomWorkloadTransaction {
     return commit_time_;
   }
 
-  std::unordered_map<storage::TupleSlot, storage::ProjectedRow *> *Updates() { return &updates_; }
-
  private:
   friend class LargeTransactionBenchmarkObject;
   LargeTransactionBenchmarkObject *test_object_;
@@ -84,7 +81,6 @@ class RandomWorkloadTransaction {
   // extra bookkeeping for correctness checks
   bool aborted_;
   transaction::timestamp_t start_time_, commit_time_;
-  std::unordered_map<storage::TupleSlot, storage::ProjectedRow *> updates_;
   byte *buffer_;
 };
 
@@ -154,11 +150,11 @@ class LargeTransactionBenchmarkObject {
   storage::DataTable table_;
   transaction::TransactionManager txn_manager_;
   transaction::TransactionContext *initial_txn_;
-  bool gc_on_, wal_on_;
+  bool gc_on_;
   uint64_t abort_count_;
 
   // tuple content is meaningless if bookkeeping is off.
-  std::vector<TupleEntry> last_checked_version_;
+  std::vector<storage::TupleSlot> inserted_tuples_;
   // so we don't have to calculate these over and over again
   storage::ProjectedRowInitializer row_initializer_ =
       storage::ProjectedRowInitializer::Create(layout_, StorageTestUtil::ProjectionListAllColumns(layout_));

@@ -169,6 +169,11 @@ class TransientValue {
   }
 
   /**
+   * @return string representation of the underlying type
+   */
+  std::string ToString() const { return TypeUtil::TypeIdToString(type_); }
+
+  /**
    * @return transient value serialized to json
    * @warning this method is ONLY used for serialization and deserialization. It should NOT be used to peek at the
    * values
@@ -262,7 +267,7 @@ class TransientValue {
     // clear internal buffer
     data_ = 0;
     type_ = other.type_;
-    if (Type() != TypeId::VARCHAR) {
+    if (Type() != TypeId::VARCHAR || other.data_ == 0) {
       data_ = other.data_;
     } else {
       CopyVarChar(reinterpret_cast<const char *const>(other.data_));
@@ -281,14 +286,14 @@ class TransientValue {
    */
   TransientValue &operator=(const TransientValue &other) {
     if (this != &other) {  // self-assignment check expected
-      if (Type() == TypeId::VARCHAR) {
+      if (Type() == TypeId::VARCHAR && data_ != 0) {
         // free VARCHAR buffer
         delete[] reinterpret_cast<char *const>(data_);
       }
       // clear internal buffer
       data_ = 0;
       type_ = other.type_;
-      if (Type() != TypeId::VARCHAR) {
+      if (Type() != TypeId::VARCHAR || other.data_ == 0) {
         data_ = other.data_;
       } else {
         CopyVarChar(reinterpret_cast<const char *const>(other.data_));

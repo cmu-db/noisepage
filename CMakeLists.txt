@@ -364,7 +364,7 @@ set(TERRIER_TEST_LINK_LIBS
     test_util
     terrier_static
     gtest
-    gtest_main
+    gmock_main
     pg_query
     ${CMAKE_DL_LIBS})
 

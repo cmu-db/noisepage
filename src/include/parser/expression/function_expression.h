@@ -32,6 +32,12 @@ class FunctionExpression : public AbstractExpression {
 
   std::shared_ptr<AbstractExpression> Copy() const override { return std::make_shared<FunctionExpression>(*this); }
 
+  common::hash_t Hash() const override {
+    common::hash_t hash = AbstractExpression::Hash();
+    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(func_name_));
+    return hash;
+  }
+
   bool operator==(const AbstractExpression &rhs) const override {
     if (!AbstractExpression::operator==(rhs)) return false;
     auto const &other = dynamic_cast<const FunctionExpression &>(rhs);
@@ -42,6 +48,21 @@ class FunctionExpression : public AbstractExpression {
    * @return function name
    */
   const std::string &GetFuncName() const { return func_name_; }
+
+  void DeriveExpressionName() override {
+    bool first = true;
+    std::string name = this->GetFuncName() + "(";
+    for (auto &child : this->GetChildren()) {
+      if (!first) name.append(",");
+      child->DeriveExpressionName();
+      name.append(child->GetExpressionName());
+      first = false;
+    }
+    name.append(")");
+    this->SetExpressionName(name);
+  }
+
+  void Accept(SqlNodeVisitor *v) override { v->Visit(this); }
 
   /**
    * @return expression serialized to json
@@ -61,6 +82,9 @@ class FunctionExpression : public AbstractExpression {
   }
 
  private:
+  /**
+   * Name of the function
+   */
   std::string func_name_;
 
   // TODO(Tianyu): Why the hell are these things in the parser nodes anyway? Parsers are dumb. They don't know shit.

@@ -1,7 +1,9 @@
 #include "storage/data_table.h"
+#include <pthread.h>
 #include <cstring>
 #include <unordered_map>
 #include "common/allocator.h"
+#include "storage/block_access_controller.h"
 #include "storage/storage_util.h"
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_util.h"
@@ -18,7 +20,9 @@ DataTable::DataTable(BlockStore *const store, const BlockLayout &layout, const l
 DataTable::~DataTable() {
   common::SpinLatch::ScopedSpinLatch guard(&blocks_latch_);
   for (RawBlock *block : blocks_) {
-    DeallocateVarlensOnShutdown(block);
+    StorageUtil::DeallocateVarlens(block, accessor_);
+    for (col_id_t i : accessor_.GetBlockLayout().Varlens())
+      accessor_.GetArrowBlockMetadata(block).GetColumnInfo(accessor_.GetBlockLayout(), i).Deallocate();
     block_store_->Release(block);
   }
 }
@@ -82,6 +86,7 @@ bool DataTable::Update(transaction::TransactionContext *const txn, const TupleSl
                  "The input buffer cannot change the reserved columns, so it should have fewer attributes.");
   TERRIER_ASSERT(redo.NumColumns() > 0, "The input buffer should modify at least one attribute.");
   UndoRecord *const undo = txn->UndoRecordForUpdate(this, slot, redo);
+  slot.GetBlock()->controller_.WaitUntilHot();
   UndoRecord *version_ptr;
   do {
     version_ptr = AtomicallyReadVersionPtr(slot, accessor_);
@@ -145,6 +150,8 @@ void DataTable::InsertInto(transaction::TransactionContext *txn, const Projected
   // At this point, sequential scan down the block can still see this, except it thinks it is logically deleted if we 0
   // the primary key column
   UndoRecord *undo = txn->UndoRecordForInsert(this, dest);
+  TERRIER_ASSERT(dest.GetBlock()->controller_.GetBlockState()->load() == BlockState::HOT,
+                 "Should only be able to insert into hot blocks");
   AtomicallyWriteVersionPtr(dest, accessor_, undo);
   // Set the logically deleted bit to present as the undo record is ready
   accessor_.AccessForceNotNull(dest, VERSION_POINTER_COLUMN_ID);
@@ -158,11 +165,8 @@ void DataTable::InsertInto(transaction::TransactionContext *txn, const Projected
 
 bool DataTable::Delete(transaction::TransactionContext *const txn, const TupleSlot slot) {
   data_table_counter_.IncrementNumDelete(1);
-  // Create a redo
-  // TODO(Tianyu): Is it better to be consistent with the StageWrite behavior where we have caller explicitly
-  // call StageDelete before calling Delete?
-  txn->StageDelete(this, slot);
   UndoRecord *const undo = txn->UndoRecordForDelete(this, slot);
+  slot.GetBlock()->controller_.WaitUntilHot();
   UndoRecord *version_ptr;
   do {
     version_ptr = AtomicallyReadVersionPtr(slot, accessor_);
@@ -213,11 +217,33 @@ bool DataTable::SelectIntoBuffer(transaction::TransactionContext *const txn, con
     // Here we will need to check that the version pointer did not change during our read. If it did, the content
     // we have read might have been rolled back and an abort has already unlinked the associated undo-record,
     // we will have to loop around to avoid a dirty read.
+    //
+    // There is still an a-b-a problem if aborting transactions unlink themselves. Thus, in the system aborting
+    // transactions still check out a timestamp and "commit" after rolling back their changes to guard against this,
+    // The exact interleaving is this:
+    //
+    //      transaction 1         transaction 2
+    //          begin
+    //    read version_ptr
+    //                                begin
+    //                             write a -> a1
+    //          read a1
+    //                            rollback a1 -> a
+    //    check version_ptr
+    //         return a1
+    //
+    // For this to manifest, there has to be high contention on a given tuple slot, and insufficient CPU resources
+    // (way more threads than there are cores, around 8x seems to work) such that threads are frequently swapped
+    // out. compare-and-swap along with the pointer reduces the probability of this happening to be essentially
+    // infinitesimal, but it's still a probabilistic fix. To 100% prevent this race, we have to wait until no
+    // concurrent transaction with the abort that could have had a dirty read is alive to unlink this. The easiest
+    // way to achieve that is to take a timestamp as well when all changes have been rolled back for an aborted
+    // transaction, and let GC handle the unlinking.
   } while (version_ptr != AtomicallyReadVersionPtr(slot, accessor_));
 
   // Nullptr in version chain means no other versions visible to any transaction alive at this point.
   // Alternatively, if the current transaction holds the write lock, it should be able to read its own updates.
-  if (version_ptr == nullptr || version_ptr->Timestamp().load() == txn->TxnId().load()) {
+  if (version_ptr == nullptr || version_ptr->Timestamp().load() == txn->FinishTime()) {
     return visible;
   }
 
@@ -238,8 +264,6 @@ bool DataTable::SelectIntoBuffer(transaction::TransactionContext *const txn, con
       default:
         throw std::runtime_error("unexpected delta record type");
     }
-    // TODO(Matt): This logic might need revisiting if we start recycling slots and a chain can have a delete later in
-    // the chain than an insert.
     version_ptr = version_ptr->Next();
   }
 
@@ -274,7 +298,7 @@ bool DataTable::Visible(const TupleSlot slot, const TupleAccessStrategy &accesso
 bool DataTable::HasConflict(const transaction::TransactionContext &txn, UndoRecord *const version_ptr) const {
   if (version_ptr == nullptr) return false;  // Nobody owns this tuple's write lock, no older version visible
   const transaction::timestamp_t version_timestamp = version_ptr->Timestamp().load();
-  const transaction::timestamp_t txn_id = txn.TxnId().load();
+  const transaction::timestamp_t txn_id = txn.FinishTime();
   const transaction::timestamp_t start_time = txn.StartTime();
   const bool owned_by_other_txn =
       (!transaction::TransactionUtil::Committed(version_timestamp) && version_timestamp != txn_id);
@@ -301,19 +325,6 @@ void DataTable::NewBlock(RawBlock *expected_val) {
   data_table_counter_.IncrementNumNewBlock(1);
 }
 
-void DataTable::DeallocateVarlensOnShutdown(RawBlock *block) {
-  const BlockLayout &layout = accessor_.GetBlockLayout();
-  for (col_id_t col : layout.Varlens()) {
-    for (uint32_t offset = 0; offset < layout.NumSlots(); offset++) {
-      TupleSlot slot(block, offset);
-      if (!accessor_.Allocated(slot)) continue;
-      auto *entry = reinterpret_cast<VarlenEntry *>(accessor_.AccessWithNullCheck(slot, col));
-      // If entry is null here, the varlen entry is a null SQL value.
-      if (entry != nullptr && entry->NeedReclaim()) delete[] entry->Content();
-    }
-  }
-}
-
 bool DataTable::HasConflict(const transaction::TransactionContext &txn, const TupleSlot slot) const {
   UndoRecord *const version_ptr = AtomicallyReadVersionPtr(slot, accessor_);
   return HasConflict(txn, version_ptr);
@@ -331,7 +342,7 @@ bool DataTable::IsVisible(const transaction::TransactionContext &txn, const Tupl
 
   // Nullptr in version chain means no other versions visible to any transaction alive at this point.
   // Alternatively, if the current transaction holds the write lock, it should be able to read its own updates.
-  if (version_ptr == nullptr || version_ptr->Timestamp().load() == txn.TxnId().load()) {
+  if (version_ptr == nullptr || version_ptr->Timestamp().load() == txn.FinishTime()) {
     return visible;
   }
 
@@ -348,8 +359,6 @@ bool DataTable::IsVisible(const transaction::TransactionContext &txn, const Tupl
       case DeltaRecordType::DELETE:
         visible = true;
     }
-    // TODO(Matt): This logic might need revisiting if we start recycling slots and a chain can have a delete later in
-    // the chain than an insert.
     version_ptr = version_ptr->Next();
   }
 

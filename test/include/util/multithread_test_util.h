@@ -16,8 +16,8 @@ namespace terrier {
 /**
  * Thread pool for use in tests to avoid creating and destroying a ton of threads when running multiple iterations
  */
-class MultiThreadTestUtil {
- public:
+struct MultiThreadTestUtil {
+  MultiThreadTestUtil() = delete;
   /**
    * Execute the workload with the specified number of threads and wait for them to finish before
    * returning. This can be done repeatedly if desired. Threads will be reused.

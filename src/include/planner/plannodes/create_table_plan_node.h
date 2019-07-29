@@ -484,24 +484,23 @@ class CreateTablePlanNode : public AbstractPlanNode {
         std::vector<std::string> pri_cols;
 
         for (auto &col : create_stmt->GetColumns()) {
-          type::TypeId val = col->GetValueType(col->GetColumnType());
+          type::TypeId val = col->GetValueType();
 
           // Create column
-          // TODO(Gus,WEN) create columns using the catalog once it is available
-          auto column = catalog::Schema::Column(std::string(col->GetColumnName()), val, false, catalog::col_oid_t(0));
-
-          // Add DEFAULT constraints to the column
-          if (col->GetDefaultExpression() != nullptr) {
-            // Referenced from insert_plan.cpp
-            if (col->GetDefaultExpression()->GetExpressionType() != parser::ExpressionType::VALUE_PARAMETER) {
-              // TODO(Gus,Wen) set default value
-              // parser::ConstantValueExpression *const_expr_elem =
-              //    dynamic_cast<parser::ConstantValueExpression *>(col->GetDefaultExpression().get());
-              // column.SetDefaultValue(const_expr_elem->GetValue());
-            }
+          // TODO(John) The default value expressions in the column definitions are currently shared pointers.
+          // The dereferences below are completely unsafe (there is no safe way to do it), but not fatal at the
+          // moment because we don't actually use them yet... Fixing this requires overhauling the plannodes to strip
+          // away shared pointers.
+          if (col->GetVarlenSize() != 0) {
+            TERRIER_ASSERT(val == type::TypeId::VARCHAR || val == type::TypeId::VARBINARY,
+                           "Variable length types should have a non-zero max varlen size");
+            columns.emplace_back(std::string(col->GetColumnName()), val, col->GetVarlenSize(), false,
+                                 *col->GetDefaultExpression());
+          } else {
+            TERRIER_ASSERT(val != type::TypeId::VARCHAR && val != type::TypeId::VARBINARY,
+                           "Fixed length types should have max varlen of size 0");
+            columns.emplace_back(std::string(col->GetColumnName()), val, false, *col->GetDefaultExpression());
           }
-
-          columns.emplace_back(column);
 
           // Collect Multi-column constraints information
 
