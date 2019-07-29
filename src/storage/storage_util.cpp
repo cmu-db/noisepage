@@ -151,4 +151,17 @@ std::vector<storage::col_id_t> StorageUtil::ProjectionListAllColumns(const stora
   return col_ids;
 }
 
+void StorageUtil::DeallocateVarlens(RawBlock *block, const TupleAccessStrategy &accessor) {
+  const BlockLayout &layout = accessor.GetBlockLayout();
+  for (col_id_t col : layout.Varlens()) {
+    for (uint32_t offset = 0; offset < layout.NumSlots(); offset++) {
+      TupleSlot slot(block, offset);
+      if (!accessor.Allocated(slot)) continue;
+      auto *entry = reinterpret_cast<VarlenEntry *>(accessor.AccessWithNullCheck(slot, col));
+      // If entry is null here, the varlen entry is a null SQL value.
+      if (entry != nullptr && entry->NeedReclaim()) delete[] entry->Content();
+    }
+  }
+}
+
 }  // namespace terrier::storage
