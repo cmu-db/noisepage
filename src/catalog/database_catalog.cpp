@@ -1018,7 +1018,8 @@ bool DatabaseCatalog::SetClassPointer(transaction::TransactionContext *const txn
 
 bool DatabaseCatalog::SetIndexPointer(transaction::TransactionContext *const txn, const index_oid_t index,
                                       const storage::index::Index *const index_ptr) {
-  txn->RegisterAbortAction([=]() { delete index_ptr; });
+  auto *tm = txn->GetTransactionManager();
+  txn->RegisterAbortAction([=]() { tm->DeferAction([=]() { delete index_ptr; }); });
   return SetClassPointer(txn, index, index_ptr);
 }
 
