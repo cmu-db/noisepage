@@ -5,6 +5,7 @@
 #include <utility>
 #include <vector>
 #include "catalog/catalog_defs.h"
+#include "common/json.h"
 #include "common/macros.h"
 #include "parser/expression/abstract_expression.h"
 #include "type/type_id.h"
