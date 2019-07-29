@@ -157,7 +157,7 @@ class IndexSchema {
     uint32_t packed_type_;
 
     // TODO(John) this should go back to being a raw pointer once #386 is in
-    std::shared_ptr<const parser::AbstractExpression> definition_;
+    std::shared_ptr<parser::AbstractExpression> definition_;
 
     // TODO(John): Should these "OIDS" be implicitly set by the index in the columns?
     void SetOid(indexkeycol_oid_t oid) { oid_ = oid; }
