@@ -71,9 +71,10 @@ class InsertPlanNode : public AbstractPlanNode {
     /**
      * @param col_oid oid of column where value at value_idx should be inserted
      * @return builder object
+     * @warning The caller must push column index in order. The ith call to AddParameterInfo means for a value tuple
+     * values_[t], values_[t][i] will be inserted into the column indicated by the input col_oid.
      */
     Builder &AddParameterInfo(catalog::col_oid_t col_oid) {
-      // We rely on the caller to push col idx in order
       parameter_info_.emplace_back(col_oid);
       return *this;
     }
