@@ -4,6 +4,7 @@
 #include "binder/bind_node_visitor.h"
 #include "catalog/catalog.h"
 #include "parser/expression/column_value_expression.h"
+#include "parser/expression/operator_expression.h"
 #include "parser/expression/subquery_expression.h"
 #include "parser/postgresparser.h"
 #include "storage/garbage_collector.h"
@@ -277,7 +278,7 @@ TEST_F(BinderCorrectnessTest, SelectStatementStarTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(BinderCorrectnessTest, SelectStatementStarComplextTest) {
+TEST_F(BinderCorrectnessTest, SelectStatementStarNestedSelectTest) {
   // Check if star expression is correctly processed
   LOG_INFO("Checking STAR expression in nested select from.");
 
@@ -449,6 +450,53 @@ TEST_F(BinderCorrectnessTest, SelectStatementStarComplextTest) {
 }
 
 // NOLINTNEXTLINE
+TEST_F(BinderCorrectnessTest, SelectStatementNestedColumnTest) {
+  // Check if nested select columns are correctly processed
+  LOG_INFO("Checking nested select columns.");
+
+  std::string selectSQL = "SELECT A1, (SELECT B2 FROM B where B2 IS NULL) FROM A";
+  auto parse_tree = parser_.BuildParseTree(selectSQL);
+  auto selectStmt = dynamic_cast<parser::SelectStatement *>(parse_tree[0].get());
+  binder_->BindNameToNode(selectStmt);
+  EXPECT_EQ(0, selectStmt->GetDepth());
+
+  // Check select_list
+  LOG_INFO("Checking select list");
+  auto col_expr = dynamic_cast<const parser::ColumnValueExpression *>(selectStmt->GetSelectColumns()[0].get());
+  EXPECT_EQ(col_expr->GetDatabaseOid(), db_oid_);              // A.a1
+  EXPECT_EQ(col_expr->GetTableOid(), table_a_oid_);            // A.a1
+  EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(1));  // A.a1; columns are indexed from 1
+  EXPECT_EQ(type::TypeId::INTEGER, col_expr->GetReturnValueType());
+  EXPECT_EQ(0, col_expr->GetDepth());
+
+  LOG_INFO("Checking nested select in select list");
+  auto subquery = dynamic_cast<parser::SubqueryExpression *>(selectStmt->GetSelectColumns()[1].get());
+  EXPECT_EQ(subquery->GetDepth(), 1);
+
+  auto subselect = dynamic_cast<parser::SelectStatement *>(subquery->GetSubselect().get());
+  EXPECT_EQ(subselect->GetDepth(), 1);
+
+  LOG_INFO("Checking select list in nested select in select list");
+  col_expr = dynamic_cast<const parser::ColumnValueExpression *>(subselect->GetSelectColumns()[0].get());
+  EXPECT_EQ(col_expr->GetDatabaseOid(), db_oid_);              // B.b2
+  EXPECT_EQ(col_expr->GetTableOid(), table_b_oid_);            // B.b2
+  EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(2));  // B.b2; columns are indexed from 1
+  EXPECT_EQ(type::TypeId::VARCHAR, col_expr->GetReturnValueType());
+  EXPECT_EQ(1, col_expr->GetDepth());
+
+  LOG_INFO("Checking where clause in nested select in select list");
+  auto where = dynamic_cast<const parser::OperatorExpression *>(subselect->GetSelectCondition().get());
+  EXPECT_EQ(where->GetDepth(), 1);
+
+  col_expr = dynamic_cast<const parser::ColumnValueExpression *>(where->GetChild(0).get());
+  EXPECT_EQ(col_expr->GetDatabaseOid(), db_oid_);              // B.b2
+  EXPECT_EQ(col_expr->GetTableOid(), table_b_oid_);            // B.b2
+  EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(2));  // B.b2; columns are indexed from 1
+  EXPECT_EQ(type::TypeId::VARCHAR, col_expr->GetReturnValueType());
+  EXPECT_EQ(1, col_expr->GetDepth());
+}
+
+// NOLINTNEXTLINE
 TEST_F(BinderCorrectnessTest, SelectStatementDupAliasTest) {
   // Check alias ambiguous
   LOG_INFO("Checking duplicate alias and table name.");
@@ -529,7 +577,6 @@ TEST_F(BinderCorrectnessTest, DeleteStatementWhereTest) {
 TEST_F(BinderCorrectnessTest, BindDepthTest) {
   // Test regular table name
   LOG_INFO("Parsing sql query");
-  // TODO(ling): select a, (sub select sth)
 
   std::string selectSQL =
       "SELECT A.a1 FROM A WHERE A.a1 IN (SELECT b1 FROM B WHERE b1 = 2 AND "
