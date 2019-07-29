@@ -127,7 +127,7 @@ class IndexSchema {
       j["max_varlen_size"] = MaxVarlenSize();
       j["nullable"] = Nullable();
       j["oid"] = oid_;
-      j["default_value"] = definition_;
+      j["definition"] = definition_;
       return j;
     }
 
@@ -141,7 +141,7 @@ class IndexSchema {
       SetMaxVarlenSize(j.at("max_varlen_size").get<uint16_t>());
       SetNullable(j.at("nullable").get<bool>());
       SetOid(j.at("oid").get<indexkeycol_oid_t>());
-      default_value_ = j.at("default_value").get<std::shared_ptr<parser::AbstractExpression>>();
+      definition_ = j.at("definition").get<std::shared_ptr<parser::AbstractExpression>>();
     }
 
    private:
