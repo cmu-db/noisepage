@@ -141,6 +141,7 @@ class Schema {
       j["max_varlen_size"] = max_varlen_size_;
       j["nullable"] = nullable_;
       j["oid"] = oid_;
+      j["default_value"] = default_value_;
       return j;
     }
 
@@ -155,6 +156,7 @@ class Schema {
       max_varlen_size_ = j.at("max_varlen_size").get<uint16_t>();
       nullable_ = j.at("nullable").get<bool>();
       oid_ = j.at("oid").get<col_oid_t>();
+      default_value_ = j.at("default_value").get<std::shared_ptr<parser::AbstractExpression>>();
     }
 
    private:
@@ -166,7 +168,7 @@ class Schema {
     col_oid_t oid_;
 
     // TODO (John) this should go back to being a raw pointer once #386 is in
-    std::shared_ptr<const parser::AbstractExpression> default_value_;
+    std::shared_ptr<parser::AbstractExpression> default_value_;
 
     void SetOid(col_oid_t oid) { oid_ = oid; }
 
