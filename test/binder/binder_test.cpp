@@ -645,7 +645,6 @@ TEST_F(BinderCorrectnessTest, OperatorComplexTest) {
   EXPECT_EQ(0, col_expr->GetDepth());
   EXPECT_EQ(type::TypeId::INTEGER, col_expr->GetReturnValueType());
 
-
   auto subquery = dynamic_cast<parser::SubqueryExpression *>(selectStmt->GetSelectCondition()->GetChild(1).get());
   auto subselect = dynamic_cast<parser::SelectStatement *>(subquery->GetSubselect().get());
 
