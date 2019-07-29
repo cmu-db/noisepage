@@ -14,6 +14,7 @@
 #include "catalog/postgres/pg_namespace.h"
 #include "catalog/postgres/pg_type.h"
 #include "catalog/schema.h"
+#include "common/json.h"
 #include "storage/index/index.h"
 #include "storage/sql_table.h"
 #include "transaction/transaction_context.h"
@@ -475,7 +476,7 @@ std::vector<Column> DatabaseCatalog::GetColumns(transaction::TransactionContext 
                                                                  const ClassOid class_oid) {
   // Step 1: Read Index
   const std::vector<col_oid_t> table_oids{ATTNUM_COL_OID, ATTNAME_COL_OID,    ATTTYPID_COL_OID,
-                                          ATTLEN_COL_OID, ATTNOTNULL_COL_OID, ADBIN_COL_OID};
+                                          ATTLEN_COL_OID, ATTNOTNULL_COL_OID, ADSRC_COL_OID};
   // NOLINTNEXTLINE
   auto [table_pri, table_pm] = columns_->InitializerForProjectedRow(table_oids);
   const auto class_pri = columns_class_index_->GetProjectedRowInitializer();
@@ -1634,7 +1635,9 @@ Column DatabaseCatalog::MakeColumn(storage::ProjectedRow *const pr,
   auto col_len = *reinterpret_cast<uint16_t *>(pr->AccessForceNotNull(pr_map.at(ATTLEN_COL_OID)));
   auto col_null = !(*reinterpret_cast<bool *>(pr->AccessForceNotNull(pr_map.at(ATTNOTNULL_COL_OID))));
   auto *col_expr =
-      reinterpret_cast<parser::AbstractExpression *>(pr->AccessForceNotNull(pr_map.at(ADBIN_COL_OID)));
+      reinterpret_cast<VarlenEntry *>(pr->AccessForceNotNull(pr_map.at(ADBIN_COL_OID)));
+
+  auto expr = json::parse(col_expr->StringView()).get<parser::AbstractExpression>();
 
   std::string name(reinterpret_cast<const char *>(col_name->Content()), col_name->Size());
   Column col = (col_type == type::TypeId::VARCHAR || col_type == type::TypeId::VARBINARY) ? Column(name, col_type, col_len, col_null, *col_expr) : Column(name, col_type, col_null, *col_expr);
