@@ -69,14 +69,6 @@ class IndexSchema {
     }
 
     /**
-     * Destructor for a Column object.  Deallocates the abstract expression that it owns.
-     */
-    ~Column() {
-      // TODO(John) This should be uncommented once #386 is in
-      // delete definition_;
-    }
-
-    /**
      * @return column name
      */
     const std::string &Name() const { return name_; }
