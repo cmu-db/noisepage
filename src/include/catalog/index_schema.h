@@ -149,7 +149,7 @@ class IndexSchema {
       SetMaxVarlenSize(j.at("max_varlen_size").get<uint16_t>());
       SetNullable(j.at("nullable").get<bool>());
       SetOid(j.at("oid").get<indexkeycol_oid_t>());
-      definition_ = j.at("definition").get<std::shared_ptr<parser::AbstractExpression>>();
+      definition_ = parser::AbstractExpression::DeserializeExpression(j.at("definition"));
     }
 
    private:
