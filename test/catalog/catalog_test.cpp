@@ -25,7 +25,7 @@ struct CatalogTests : public TerrierTest {
 
     // Initialize the transaction manager and GC
     txn_manager_ = new transaction::TransactionManager(&buffer_pool_, true, LOGGING_DISABLED);
-    gc_ = new storage::GarbageCollector(txn_manager_);
+    gc_ = new storage::GarbageCollector(txn_manager_, nullptr);
 
     // Build out the catalog and commit so that it is visible to other transactions
     catalog_ = new catalog::Catalog(txn_manager_, &block_store_);
@@ -344,6 +344,29 @@ TEST_F(CatalogTests, SearchPathTest) {
   accessor->SetSearchPath({test_ns_oid, public_ns_oid});
   EXPECT_EQ(accessor->GetTableOid("test_table"), public_table_oid);
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+  delete accessor;
+}
+
+/*
+ * Check that the normalize function in CatalogAccessor behaves correctly
+ */
+// NOLINTNEXTLINE
+TEST_F(CatalogTests, NameNormalizationTest) {
+  auto txn = txn_manager_->BeginTransaction();
+  auto accessor = catalog_->GetAccessor(txn, db_);
+  auto ns_oid = accessor->CreateNamespace("TeSt_NaMeSpAcE");
+  EXPECT_NE(ns_oid, catalog::INVALID_NAMESPACE_OID);
+  txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+  delete accessor;
+
+  txn = txn_manager_->BeginTransaction();
+  accessor = catalog_->GetAccessor(txn, db_);
+  EXPECT_EQ(catalog::INVALID_NAMESPACE_OID, accessor->CreateNamespace("TEST_NAMESPACE"));  // should conflict
+  EXPECT_EQ(ns_oid, accessor->GetNamespaceOid("TEST_NAMESPACE"));                          // Should succeed
+  auto dbc = catalog_->GetDatabaseCatalog(txn, db_);
+  EXPECT_EQ(ns_oid, dbc->GetNamespaceOid(txn, "test_namespace"));  // Should match (normalized form)
+  EXPECT_EQ(catalog::INVALID_NAMESPACE_OID, dbc->GetNamespaceOid(txn, "TeSt_NaMeSpAcE"));  // Not normalized
+  txn_manager_->Abort(txn);
   delete accessor;
 }
 
