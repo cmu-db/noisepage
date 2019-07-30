@@ -165,7 +165,7 @@ class Schema {
       max_varlen_size_ = j.at("max_varlen_size").get<uint16_t>();
       nullable_ = j.at("nullable").get<bool>();
       oid_ = j.at("oid").get<col_oid_t>();
-      default_value_ = parser::AbstractExpression::DeserializeExpression(j.at("default_value"));
+      default_value_ = parser::DeserializeExpression(j.at("default_value"));
     }
 
    private:
