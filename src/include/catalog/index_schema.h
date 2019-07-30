@@ -63,6 +63,7 @@ class IndexSchema {
            const parser::AbstractExpression &definition)
         : name_(std::move(name)), oid_(INVALID_INDEXKEYCOL_OID), packed_type_(0), definition_(definition.Copy()) {
       TERRIER_ASSERT(type_id == type::TypeId::VARCHAR || type_id == type::TypeId::VARBINARY, "Varlen constructor.");
+      TERRIER_ASSERT(definition_.use_count() == 1, "This expression should only be shared using managed pointers");
       SetTypeId(type_id);
       SetNullable(nullable);
       SetMaxVarlenSize(max_varlen_size);
@@ -82,6 +83,7 @@ class IndexSchema {
      * @return definition expression
      */
     common::ManagedPointer<const parser::AbstractExpression> StoredExpression() const {
+      TERRIER_ASSERT(definition_.use_count() == 1, "This expression should only be shared using managed pointers");
       return common::ManagedPointer(static_cast<const parser::AbstractExpression *>(definition_.get()));
     }
 

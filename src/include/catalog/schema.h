@@ -76,6 +76,7 @@ class Schema {
           default_value_(default_value.Copy()) {
       TERRIER_ASSERT(attr_size_ == VARLEN_COLUMN, "This constructor is meant for VARLEN columns.");
       TERRIER_ASSERT(type_ != type::TypeId::INVALID, "Attribute type cannot be INVALID.");
+      TERRIER_ASSERT(default_value_.use_count() == 1, "This expression should only be shared using managed pointers");
     }
 
     /**
@@ -114,6 +115,7 @@ class Schema {
      * @return default value expression
      */
     common::ManagedPointer<const parser::AbstractExpression> StoredExpression() const {
+      TERRIER_ASSERT(default_value_.use_count() == 1, "This expression should only be shared using managed pointers");
       return common::ManagedPointer(static_cast<const parser::AbstractExpression *>(default_value_.get()));
     }
 
