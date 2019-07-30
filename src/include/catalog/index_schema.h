@@ -74,7 +74,7 @@ class IndexSchema {
      * @param old_column to be copied
      */
     Column(const Column &old_column)
-        : name_(old_column.name), oid_(old_column.oid_), packed_type_(0), definition_(old_column.definition_.Copy()) {
+        : name_(old_column.name_), oid_(old_column.oid_), packed_type_(0), definition_(old_column.definition_->Copy()) {
       TERRIER_ASSERT(definition_.use_count() == 1, "This expression should only be shared using managed pointers");
       SetTypeId(old_column.Type());
       SetNullable(old_column.Nullable());

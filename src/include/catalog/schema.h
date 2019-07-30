@@ -84,12 +84,12 @@ class Schema {
      * @param old_column to be copied
      */
     Column(const Column &old_column)
-        : name_(old_column.name_)
-          type_(old_column.type_)
-          attr_size_(old_column.attr_size_)
-          nullable_(old_column.nullable_)
-          oid_(old_column.oid_)
-          default_value_(old_column.default_value_.Copy()) {
+        : name_(old_column.name_),
+          type_(old_column.type_),
+          attr_size_(old_column.attr_size_),
+          nullable_(old_column.nullable_),
+          oid_(old_column.oid_),
+          default_value_(old_column.default_value_->Copy()) {
       TERRIER_ASSERT(type_ != type::TypeId::INVALID, "Attribute type cannot be INVALID.");
       TERRIER_ASSERT(default_value_.use_count() == 1, "This expression should only be shared using managed pointers");
     }
