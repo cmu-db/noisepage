@@ -212,7 +212,9 @@ TEST(ExpressionTests, NullConstantValueExpressionJsonTest) {
   auto original_expr =
       std::make_shared<ConstantValueExpression>(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR));
 
-  EXPECT_EQ(*original_expr, *(original_expr->Copy()));
+  auto copy = original_expr->Copy();
+  EXPECT_EQ(*original_expr, *copy);
+  delete copy;
 
   // Serialize expression
   auto json = original_expr->ToJson();
@@ -227,7 +229,8 @@ TEST(ExpressionTests, NullConstantValueExpressionJsonTest) {
   // Deserialize expression
   auto deserialized_expression = DeserializeExpression(json);
   EXPECT_EQ(*original_expr, *deserialized_expression);
-  EXPECT_TRUE(static_cast<ConstantValueExpression *>(deserialized_expression.get())->GetValue().Null());
+  EXPECT_TRUE(static_cast<ConstantValueExpression *>(deserialized_expression)->GetValue().Null());
+  delete deserialized_expression;
 }
 
 // NOLINTNEXTLINE

@@ -13,6 +13,8 @@
 #include "planner/plannodes/hash_join_plan_node.h"
 #include "planner/plannodes/hash_plan_node.h"
 #include "planner/plannodes/seq_scan_plan_node.h"
+#include "planner/plannodes/aggregate_plan_node.h"
+#include "planner/plannodes/csv_scan_plan_node.h"
 #include "util/test_harness.h"
 
 namespace terrier::planner {
@@ -209,5 +211,206 @@ TEST(PlanNodeTest, HashJoinPlanTest) {
   EXPECT_EQ(2, hash_join_plan->GetChildrenSize());
   EXPECT_EQ(LogicalJoinType::INNER, hash_join_plan->GetLogicalJoinType());
   EXPECT_EQ(parser::ExpressionType::COMPARE_EQUAL, hash_join_plan->GetJoinPredicate()->GetExpressionType());
+}
+
+// NOLINTNEXTLINE
+TEST(PlanNodeTest, AggregatePlanTest) {
+  auto *predicate = new parser::StarExpression();
+  auto *cve = new parser::ColumnValueExpression("tbl", "col1");
+  auto *aggr_term = new parser::AggregateExpression(parser::ExpressionType::AGGREGATE_COUNT, {cve}, false);
+
+  planner::AggregatePlanNode::Builder builder;
+  builder.AddAggregateTerm(aggr_term);
+  builder.SetGroupByColOffsets({0});
+  builder.SetHavingClausePredicate(predicate);
+  builder.SetAggregateStrategyType(planner::AggregateStrategyType::HASH);
+  builder.SetOutputSchema(PlanNodeTest::BuildOneColumnSchema("col1", type::TypeId::INTEGER));
+  auto plan = builder.Build();
+
+  EXPECT_TRUE(plan != nullptr);
+  EXPECT_EQ(PlanNodeType::AGGREGATE, plan->GetPlanNodeType());
+  EXPECT_EQ(plan->GetAggregateStrategyType(), planner::AggregateStrategyType::HASH);
+  EXPECT_EQ(plan->GetAggregateTerms().size(), 1);
+  EXPECT_EQ(*plan->GetAggregateTerms()[0], *aggr_term);
+  EXPECT_EQ(*plan->GetHavingClausePredicate(), *predicate);
+
+  planner::AggregatePlanNode::Builder builder2;
+  auto aggr_copy = reinterpret_cast<const parser::AggregateExpression*>(aggr_term->Copy());
+  auto nc_aggr = const_cast<parser::AggregateExpression*>(aggr_copy);
+  auto predicate2 = predicate->Copy();
+
+  builder2.AddAggregateTerm(nc_aggr);
+  builder2.SetGroupByColOffsets({0});
+  builder2.SetHavingClausePredicate(predicate2);
+  builder2.SetAggregateStrategyType(planner::AggregateStrategyType::HASH);
+  builder2.SetOutputSchema(PlanNodeTest::BuildOneColumnSchema("col1", type::TypeId::INTEGER));
+  auto plan2 = builder2.Build();
+  EXPECT_EQ(*plan, *plan2);
+  EXPECT_EQ(plan->Hash(), plan2->Hash());
+
+  // Make different variations of the plan node and make
+  // sure that they are not equal
+  for (int i = 0; i < 4; i++) {
+    auto other_predicate = predicate->Copy();
+    std::vector<unsigned> col_offsets = {0};
+    auto other_strategy = planner::AggregateStrategyType::HASH;
+    auto other_aggr = aggr_term->Copy();
+    auto other_schema = PlanNodeTest::BuildOneColumnSchema("col1", type::TypeId::INTEGER);
+
+    switch (i) {
+      case 0:
+        delete other_predicate;
+        other_predicate = new parser::ColumnValueExpression("tbl", "col");
+        break;
+      case 1:
+        col_offsets = {1,2};
+        break;
+      case 2: {
+        delete other_aggr;
+        auto *o_cve = new parser::ColumnValueExpression("tbl", "col");
+        other_aggr = new parser::AggregateExpression(parser::ExpressionType::AGGREGATE_MAX, {o_cve}, false);
+        break;
+      }
+      case 3:
+        other_schema = PlanNodeTest::BuildOneColumnSchema("XXXX", type::TypeId::INTEGER);
+        break;
+    }
+
+    auto other_aggr_term = reinterpret_cast<const parser::AggregateExpression*>(other_aggr);
+    auto nc_other_aggr = const_cast<parser::AggregateExpression*>(other_aggr_term);
+
+    planner::AggregatePlanNode::Builder builder3;
+    auto plan3 = builder3.AddAggregateTerm(nc_other_aggr)
+                         .SetGroupByColOffsets(col_offsets)
+                         .SetHavingClausePredicate(other_predicate)
+                         .SetAggregateStrategyType(other_strategy)
+                         .SetOutputSchema(other_schema)
+                         .Build();
+    EXPECT_NE(*plan, *plan3);
+    EXPECT_NE(plan->Hash(), plan3->Hash());
+  }
+}
+
+// NOLINTNEXTLINE
+TEST(PlanNodeTest, CSVScanPlanTest) {
+  catalog::db_oid_t db_oid(1);
+  catalog::namespace_oid_t ns_oid(2);
+  std::string file_name = "/home/file.txt";
+  char delimiter = ',';
+  char quote = '"';
+  char escape = '\\';
+  std::string null_string = "";
+  std::vector<type::TypeId> value_types = { type::TypeId::INTEGER };
+
+  planner::CSVScanPlanNode::Builder builder;
+  auto plan = builder.SetDatabaseOid(db_oid)
+                     .SetNamespaceOid(ns_oid)
+                     .SetIsParallelFlag(true)
+                     .SetIsForUpdateFlag(false)
+                     .SetFileName(file_name)
+                     .SetDelimiter(delimiter)
+                     .SetQuote(quote)
+                     .SetEscape(escape)
+                     .SetNullString(null_string)
+                     .SetValueTypes(value_types)
+                     .SetOutputSchema(PlanNodeTest::BuildOneColumnSchema("col1", type::TypeId::INTEGER))
+                     .Build();
+
+  EXPECT_TRUE(plan != nullptr);
+  EXPECT_EQ(PlanNodeType::CSVSCAN, plan->GetPlanNodeType());
+  EXPECT_EQ(plan->GetDatabaseOid(), db_oid);
+  EXPECT_EQ(plan->GetNamespaceOid(), ns_oid);
+  EXPECT_EQ(plan->GetFileName(), file_name);
+  EXPECT_EQ(plan->GetDelimiterChar(), delimiter);
+  EXPECT_EQ(plan->GetQuoteChar(), quote);
+  EXPECT_EQ(plan->GetEscapeChar(), escape);
+  EXPECT_EQ(plan->GetNullString(), null_string);
+  EXPECT_EQ(plan->GetValueTypes(), value_types);
+  EXPECT_EQ(plan->IsForUpdate(), false);
+  EXPECT_EQ(plan->IsParallel(), true);
+
+  planner::CSVScanPlanNode::Builder builder2;
+  auto plan2 = builder2.SetDatabaseOid(db_oid)
+                       .SetNamespaceOid(ns_oid)
+                       .SetIsParallelFlag(true)
+                       .SetIsForUpdateFlag(false)
+                       .SetFileName(file_name)
+                       .SetDelimiter(delimiter)
+                       .SetQuote(quote)
+                       .SetEscape(escape)
+                       .SetNullString(null_string)
+                       .SetValueTypes(value_types)
+                       .SetOutputSchema(PlanNodeTest::BuildOneColumnSchema("col1", type::TypeId::INTEGER))
+                       .Build();
+  EXPECT_EQ(*plan, *plan2);
+  EXPECT_EQ(plan->Hash(), plan2->Hash());
+
+  // Make different variations of the plan node and make
+  // sure that they are not equal
+  for (int i = 0; i < 11; i++) {
+    catalog::db_oid_t o_db_oid(1);
+    catalog::namespace_oid_t o_ns_oid(2);
+    std::string o_file_name = "/home/file.txt";
+    char o_delimiter = ',';
+    char o_quote = '"';
+    char o_escape = '\\';
+    std::string o_null_string = "";
+    std::vector<type::TypeId> o_value_types = { type::TypeId::INTEGER };
+    auto o_schema = PlanNodeTest::BuildOneColumnSchema("col1", type::TypeId::INTEGER);
+    auto o_parallel = true;
+    auto o_update = false;
+
+    switch (i) {
+      case 0:
+        o_db_oid = catalog::db_oid_t(999);
+        break;
+      case 1:
+        o_ns_oid = catalog::namespace_oid_t(3);
+        break;
+      case 2:
+        o_file_name = "/home/file2.txt";
+        break;
+      case 3:
+        o_delimiter = ' ';
+        break;
+      case 4:
+        o_quote = 'q';
+        break;
+      case 5:
+        o_escape = '\0';
+        break;
+      case 6:
+        o_null_string = "NULL";
+        break;
+      case 7:
+        o_value_types = { type::TypeId::VARCHAR };
+        break;
+      case 8:
+        o_schema = PlanNodeTest::BuildOneColumnSchema("XXXX", type::TypeId::INTEGER);
+        break;
+      case 9:
+        o_parallel = false;
+        break;
+      case 10:
+        o_update = true;
+        break;
+    }
+
+    planner::CSVScanPlanNode::Builder builder3;
+    auto plan3 = builder3.SetDatabaseOid(o_db_oid)
+                         .SetNamespaceOid(o_ns_oid)
+                         .SetIsParallelFlag(o_parallel)
+                         .SetIsForUpdateFlag(o_update)
+                         .SetFileName(o_file_name)
+                         .SetDelimiter(o_delimiter)
+                         .SetQuote(o_quote)
+                         .SetEscape(o_escape)
+                         .SetNullString(o_null_string)
+                         .SetValueTypes(o_value_types)
+                         .SetOutputSchema(o_schema)
+                         .Build();
+    EXPECT_NE(*plan, *plan3);
+    EXPECT_NE(plan->Hash(), plan3->Hash());
+  }
 }
 }  // namespace terrier::planner

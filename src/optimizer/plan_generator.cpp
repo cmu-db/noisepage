@@ -644,9 +644,12 @@ void PlanGenerator::BuildAggregatePlan(
     if (parser::ExpressionUtil::IsAggregateExpression(expr->GetExpressionType())) {
       // We need to evaluate the expression first, convert ColumnValue => DerivedValue
       auto eval = parser::ExpressionUtil::EvaluateExpression(children_expr_map_, expr);
-      RegisterPointerCleanup<const parser::AbstractExpression>(eval, true, true);
+
+      // AggregatePlanNode owns AggregateTerm
+      // RegisterPointerCleanup<const parser::AbstractExpression>(eval, true, true);
       TERRIER_ASSERT(parser::ExpressionUtil::IsAggregateExpression(eval->GetExpressionType()),
                      "Evaluated AggregateExpression should still be an aggregate expression");
+
       auto agg_expr = reinterpret_cast<const parser::AggregateExpression *>(eval);
 
       // Maps the aggregate value in the right tuple to the output
@@ -675,10 +678,13 @@ void PlanGenerator::BuildAggregatePlan(
   // Generate the output schema
   auto output_schema = std::make_shared<planner::OutputSchema>(std::move(columns), std::move(tl), std::move(dml));
 
+  // Prepare having clause
   auto eval_have = parser::ExpressionUtil::EvaluateExpression({output_expr_map}, having_predicate);
   auto predicate = parser::ExpressionUtil::ConvertExprCVNodes(eval_have, {output_expr_map});
-  RegisterPointerCleanup<const parser::AbstractExpression>(predicate, true, true);
   delete eval_have;
+
+  // AggregatePlanNode owns HavingClausePredicate
+  // RegisterPointerCleanup<const parser::AbstractExpression>(predicate, true, true);
 
   output_plan_ = builder.SetHavingClausePredicate(predicate)
                      .SetAggregateStrategyType(aggr_type)

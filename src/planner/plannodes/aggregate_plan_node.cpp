@@ -34,7 +34,7 @@ bool AggregatePlanNode::operator==(const AbstractPlanNode &rhs) const {
   if ((having_clause_predicate_ == nullptr && other.having_clause_predicate_ != nullptr) ||
       (having_clause_predicate_ != nullptr && other.having_clause_predicate_ == nullptr))
     return false;
-  if (having_clause_predicate_ != nullptr && *having_clause_predicate_ != *having_clause_predicate_) return false;
+  if (having_clause_predicate_ != nullptr && *having_clause_predicate_ != *other.having_clause_predicate_) return false;
 
   // Aggregation Terms
   if (aggregate_terms_.size() != other.GetAggregateTerms().size()) return false;
