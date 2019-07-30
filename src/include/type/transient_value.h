@@ -201,7 +201,6 @@ class TransientValue {
     if (Type() == TypeId::VARCHAR && !Null()) {
       data_ = 0;
       CopyVarChar(reinterpret_cast<const char *const>(j.at("data").get<std::string>().c_str()));
-
     } else {
       data_ = j.at("data").get<uintptr_t>();
     }
