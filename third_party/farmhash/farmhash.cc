@@ -454,7 +454,7 @@ STATIC_INLINE uint64_t HashLen0to16(const char *s, size_t len) {
     uint8_t b = s[len >> 1];
     uint8_t c = s[len - 1];
     uint32_t y = static_cast<uint32_t>(a) + (static_cast<uint32_t>(b) << 8);
-    uint32_t z = len + (static_cast<uint32_t>(c) << 2);
+    uint32_t z = static_cast<uint32_t>(len) + (static_cast<uint32_t>(c) << 2);
     return ShiftMix(y * k2 ^ z * k0) * k2;
   }
   return k2;
@@ -779,7 +779,10 @@ STATIC_INLINE __m128i Shuf(__m128i x, __m128i y) { return _mm_shuffle_epi8(y, x)
 STATIC_INLINE uint64_t Hash64Long(const char *s, size_t n, uint64_t seed0, uint64_t seed1) {
   const __m128i kShuf = _mm_set_epi8(4, 11, 10, 5, 8, 15, 6, 9, 12, 2, 14, 13, 0, 7, 3, 1);
   const __m128i kMult =
-      _mm_set_epi8(0xbd, 0xd6, 0x33, 0x39, 0x45, 0x54, 0xfa, 0x03, 0x34, 0x3e, 0x33, 0xed, 0xcc, 0x9e, 0x2d, 0x51);
+      _mm_set_epi8(static_cast<char>(0xbd), static_cast<char>(0xd6), static_cast<char>(0x33), static_cast<char>(0x39),
+                   static_cast<char>(0x45), static_cast<char>(0x54), static_cast<char>(0xfa), static_cast<char>(0x03),
+                   static_cast<char>(0x34), static_cast<char>(0x3e), static_cast<char>(0x33), static_cast<char>(0xed),
+                   static_cast<char>(0xcc), static_cast<char>(0x9e), static_cast<char>(0x2d), static_cast<char>(0x51));
   uint64_t seed2 = (seed0 + 113) * (seed1 + 9);
   uint64_t seed3 = (Rotate(seed0, 23) + 27) * (Rotate(seed1, 30) + 111);
   __m128i d0 = _mm_cvtsi64_si128(seed0);
@@ -789,11 +792,11 @@ STATIC_INLINE uint64_t Hash64Long(const char *s, size_t n, uint64_t seed0, uint6
   __m128i d4 = Xor(d0, d1);
   __m128i d5 = Xor(d1, d2);
   __m128i d6 = Xor(d2, d4);
-  __m128i d7 = _mm_set1_epi32(seed2 >> 32);
+  __m128i d7 = _mm_set1_epi32(static_cast<int>(seed2 >> 32));
   __m128i d8 = Mul(kMult, d2);
-  __m128i d9 = _mm_set1_epi32(seed3 >> 32);
-  __m128i d10 = _mm_set1_epi32(seed3);
-  __m128i d11 = Add(d2, _mm_set1_epi32(seed2));
+  __m128i d9 = _mm_set1_epi32(static_cast<int>(seed3 >> 32));
+  __m128i d10 = _mm_set1_epi32(static_cast<int>(seed3));
+  __m128i d11 = Add(d2, _mm_set1_epi32(static_cast<int>(seed2)));
   const char *end = s + (n & ~static_cast<size_t>(255));
   do {
     __m128i z;
@@ -1005,7 +1008,7 @@ STATIC_INLINE uint32_t Hash32Len13to24(const char *s, size_t len, uint32_t seed 
   uint32_t d = Fetch(s + (len >> 1));
   uint32_t e = Fetch(s);
   uint32_t f = Fetch(s + len - 4);
-  uint32_t h = d * c1 + len + seed;
+  uint32_t h = d * c1 + static_cast<uint32_t>(len) + seed;
   a = Rotate(a, 12) + f;
   h = Mur(c, h) + a;
   a = Rotate(a, 3) + c;
@@ -1023,11 +1026,11 @@ STATIC_INLINE uint32_t Hash32Len0to4(const char *s, size_t len, uint32_t seed = 
     b = b * c1 + v;
     c ^= b;
   }
-  return fmix(Mur(b, Mur(len, c)));
+  return fmix(Mur(b, Mur(static_cast<uint32_t>(len), c)));
 }
 
 STATIC_INLINE uint32_t Hash32Len5to12(const char *s, size_t len, uint32_t seed = 0) {
-  uint32_t a = len, b = len * 5, c = 9, d = b + seed;
+  uint32_t a = static_cast<uint32_t>(len), b = static_cast<uint32_t>(len * 5), c = 9, d = b + seed;
   a += Fetch(s);
   b += Fetch(s + len - 4);
   c += Fetch(s + ((len >> 1) & 4));
@@ -1040,7 +1043,7 @@ uint32_t Hash32(const char *s, size_t len) {
   }
 
   // len > 24
-  uint32_t h = len, g = c1 * len, f = g;
+  uint32_t h = static_cast<uint32_t>(len), g = c1 * static_cast<uint32_t>(len), f = g;
   uint32_t a0 = Rotate(Fetch(s + len - 4) * c1, 17) * c2;
   uint32_t a1 = Rotate(Fetch(s + len - 8) * c1, 17) * c2;
   uint32_t a2 = Rotate(Fetch(s + len - 16) * c1, 17) * c2;
@@ -1099,7 +1102,7 @@ uint32_t Hash32WithSeed(const char *s, size_t len, uint32_t seed) {
     else
       return Hash32Len0to4(s, len, seed);
   }
-  uint32_t h = Hash32Len13to24(s, 24, seed ^ len);
+  uint32_t h = Hash32Len13to24(s, 24, static_cast<uint32_t>(seed ^ len));
   return Mur(Hash32(s + 24, len - 24) + seed, h);
 }
 }  // namespace farmhashmk
@@ -1146,7 +1149,7 @@ uint32_t Hash32(const char *s, size_t len) {
   }
 
   if (len < 40) {
-    uint32_t a = len, b = seed * c2, c = a + b;
+    uint32_t a = static_cast<uint32_t>(len), b = seed * c2, c = a + b;
     a += Fetch(s + len - 4);
     b += Fetch(s + len - 20);
     c += Fetch(s + len - 16);
@@ -1200,7 +1203,7 @@ uint32_t Hash32(const char *s, size_t len) {
     k = Add(k, _mm_shuffle_epi8(f, h));
     f = Add(f, g);
     g = Add(g, f);
-    g = Add(_mm_set1_epi32(len), Mulc1(g));
+    g = Add(_mm_set1_epi32(static_cast<uint32_t>(len)), Mulc1(g));
   } else {
     // len >= 80
     // The following is loosely modelled after farmhashmk::Hash32.
@@ -1245,7 +1248,7 @@ uint32_t Hash32(const char *s, size_t len) {
     }
 
     if (len != 0) {
-      h = Add(h, _mm_set1_epi32(len));
+      h = Add(h, _mm_set1_epi32(static_cast<uint32_t>(len)));
       s = s + len - 80;
       Chunk();
     }
@@ -1305,7 +1308,7 @@ uint32_t Hash32WithSeed(const char *s, size_t len, uint32_t seed) {
     else
       return farmhashmk::Hash32Len0to4(s, len, seed);
   }
-  uint32_t h = farmhashmk::Hash32Len13to24(s, 24, seed ^ len);
+  uint32_t h = farmhashmk::Hash32Len13to24(s, 24, static_cast<uint32_t>(seed ^ len));
   return _mm_crc32_u32(Hash32(s + 24, len - 24) + seed, h);
 }
 
@@ -1354,7 +1357,7 @@ uint32_t Hash32(const char *s, size_t len) {
   }
 
   if (len < 40) {
-    uint32_t a = len, b = seed * c2, c = a + b;
+    uint32_t a = static_cast<uint32_t>(len), b = seed * c2, c = a + b;
     a += Fetch(s + len - 4);
     b += Fetch(s + len - 20);
     c += Fetch(s + len - 16);
@@ -1406,7 +1409,7 @@ uint32_t Hash32(const char *s, size_t len) {
     k = Add(k, _mm_shuffle_epi8(f, h));
     f = Add(f, g);
     g = Add(g, f);
-    g = Add(_mm_set1_epi32(len), Mulc1(g));
+    g = Add(_mm_set1_epi32(static_cast<uint32_t>(len)), Mulc1(g));
   } else {
     // len >= 80
     // The following is loosely modelled after farmhashmk::Hash32.
@@ -1445,7 +1448,7 @@ uint32_t Hash32(const char *s, size_t len) {
     }
 
     if (len != 0) {
-      h = Add(h, _mm_set1_epi32(len));
+      h = Add(h, _mm_set1_epi32(static_cast<uint32_t>(len)));
       s = s + len - 80;
       Chunk();
     }
@@ -1503,7 +1506,7 @@ uint32_t Hash32WithSeed(const char *s, size_t len, uint32_t seed) {
     else
       return farmhashmk::Hash32Len0to4(s, len, seed);
   }
-  uint32_t h = farmhashmk::Hash32Len13to24(s, 24, seed ^ len);
+  uint32_t h = farmhashmk::Hash32Len13to24(s, 24, static_cast<uint32_t>(seed ^ len));
   return _mm_crc32_u32(Hash32(s + 24, len - 24) + seed, h);
 }
 
@@ -1530,7 +1533,7 @@ STATIC_INLINE uint32_t Hash32Len13to24(const char *s, size_t len) {
   uint32_t d = Fetch(s + (len >> 1));
   uint32_t e = Fetch(s);
   uint32_t f = Fetch(s + len - 4);
-  uint32_t h = len;
+  uint32_t h = static_cast<uint32_t>(len);
 
   return fmix(Mur(f, Mur(e, Mur(d, Mur(c, Mur(b, Mur(a, h)))))));
 }
@@ -1543,11 +1546,11 @@ STATIC_INLINE uint32_t Hash32Len0to4(const char *s, size_t len) {
     b = b * c1 + v;
     c ^= b;
   }
-  return fmix(Mur(b, Mur(len, c)));
+  return fmix(Mur(b, Mur(static_cast<uint32_t>(len), c)));
 }
 
 STATIC_INLINE uint32_t Hash32Len5to12(const char *s, size_t len) {
-  uint32_t a = len, b = len * 5, c = 9, d = b;
+  uint32_t a = static_cast<uint32_t>(len), b = static_cast<uint32_t>(len * 5), c = 9, d = b;
   a += Fetch(s);
   b += Fetch(s + len - 4);
   c += Fetch(s + ((len >> 1) & 4));
@@ -1560,7 +1563,7 @@ uint32_t Hash32(const char *s, size_t len) {
   }
 
   // len > 24
-  uint32_t h = len, g = c1 * len, f = g;
+  uint32_t h = static_cast<uint32_t>(len), g = static_cast<uint32_t>(c1 * len), f = g;
   uint32_t a0 = Rotate(Fetch(s + len - 4) * c1, 17) * c2;
   uint32_t a1 = Rotate(Fetch(s + len - 8) * c1, 17) * c2;
   uint32_t a2 = Rotate(Fetch(s + len - 16) * c1, 17) * c2;
@@ -1630,7 +1633,7 @@ uint32_t Hash32WithSeed(const char *s, size_t len, uint32_t seed) {
     else
       return farmhashmk::Hash32Len0to4(s, len, seed);
   }
-  uint32_t h = farmhashmk::Hash32Len13to24(s, 24, seed ^ len);
+  uint32_t h = farmhashmk::Hash32Len13to24(s, 24, static_cast<uint32_t>(seed ^ len));
   return Mur(Hash32(s + 24, len - 24) + seed, h);
 }
 
@@ -1676,7 +1679,7 @@ STATIC_INLINE uint64_t HashLen0to16(const char *s, size_t len) {
     uint8_t b = s[len >> 1];
     uint8_t c = s[len - 1];
     uint32_t y = static_cast<uint32_t>(a) + (static_cast<uint32_t>(b) << 8);
-    uint32_t z = len + (static_cast<uint32_t>(c) << 2);
+    uint32_t z = static_cast<uint32_t>(len) + (static_cast<uint32_t>(c) << 2);
     return ShiftMix(y * k2 ^ z * k0) * k2;
   }
   return k2;
