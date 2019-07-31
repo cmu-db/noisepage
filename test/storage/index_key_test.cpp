@@ -9,6 +9,8 @@
 #include "portable_endian/portable_endian.h"
 #include "storage/garbage_collector.h"
 #include "storage/index/compact_ints_key.h"
+#include "storage/index/generic_key.h"
+#include "storage/index/hash_key.h"
 #include "storage/index/index_builder.h"
 #include "storage/projected_row.h"
 #include "storage/sql_table.h"
@@ -24,7 +26,7 @@
 
 namespace terrier::storage::index {
 
-class BwTreeKeyTests : public TerrierTest {
+class IndexKeyTests : public TerrierTest {
  public:
   std::default_random_engine generator_;
   std::vector<byte *> loose_pointers_;
@@ -408,7 +410,7 @@ bool CompactIntsFromProjectedRowCmp(const IndexMetadata &metadata, const storage
 
 // Test that we generate the right metadata for CompactIntsKey compatible schemas
 // NOLINTNEXTLINE
-TEST_F(BwTreeKeyTests, IndexMetadataCompactIntsKeyTest) {
+TEST_F(IndexKeyTests, IndexMetadataCompactIntsKeyTest) {
   // INPUT:
   //    key_schema            {INTEGER, INTEGER, BIGINT, TINYINT, SMALLINT}
   //    oids                  {20, 21, 22, 23, 24}
@@ -509,7 +511,7 @@ TEST_F(BwTreeKeyTests, IndexMetadataCompactIntsKeyTest) {
 
 // Test that we generate the right metadata for GenericKey schemas that don't need to manually inline varlens
 // NOLINTNEXTLINE
-TEST_F(BwTreeKeyTests, IndexMetadataGenericKeyNoMustInlineVarlenTest) {
+TEST_F(IndexKeyTests, IndexMetadataGenericKeyNoMustInlineVarlenTest) {
   // INPUT:
   //    key_schema            {INTEGER, VARCHAR(8), VARCHAR(0), TINYINT, VARCHAR(12)}
   //    oids                  {20, 21, 22, 23, 24}
@@ -604,7 +606,7 @@ TEST_F(BwTreeKeyTests, IndexMetadataGenericKeyNoMustInlineVarlenTest) {
 
 // Test that we generate the right metadata for GenericKey schemas that need to manually inline varlens
 // NOLINTNEXTLINE
-TEST_F(BwTreeKeyTests, IndexMetadataGenericKeyMustInlineVarlenTest) {
+TEST_F(IndexKeyTests, IndexMetadataGenericKeyMustInlineVarlenTest) {
   // INPUT:
   //    key_schema            {INTEGER, VARCHAR(50), VARCHAR(8), TINYINT, VARCHAR(90)}
   //    oids                  {20, 21, 22, 23, 24}
@@ -705,7 +707,7 @@ TEST_F(BwTreeKeyTests, IndexMetadataGenericKeyMustInlineVarlenTest) {
  * 5. Expect cmp(key_A, key_B) == (data_A < data_B)
  */
 // NOLINTNEXTLINE
-TEST_F(BwTreeKeyTests, RandomCompactIntsKeyTest) {
+TEST_F(IndexKeyTests, RandomCompactIntsKeyTest) {
   const uint32_t num_iterations = 1000;
 
   for (uint32_t i = 0; i < num_iterations; i++) {
@@ -862,7 +864,7 @@ void CompactIntsKeyBasicTest(type::TypeId type_id, Random *const generator) {
 
 // Verify basic key construction and value setting and comparator, equality, and hash operations for various key sizes.
 // NOLINTNEXTLINE
-TEST_F(BwTreeKeyTests, CompactIntsKeyBasicTest) {
+TEST_F(IndexKeyTests, CompactIntsKeyBasicTest) {
   CompactIntsKeyBasicTest<1, int8_t>(type::TypeId::TINYINT, &generator_);
   CompactIntsKeyBasicTest<1, int16_t>(type::TypeId::SMALLINT, &generator_);
   CompactIntsKeyBasicTest<1, int32_t>(type::TypeId::INTEGER, &generator_);
@@ -957,7 +959,7 @@ void NumericComparisons(const type::TypeId type_id, const bool nullable) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(BwTreeKeyTests, CompactIntsKeyNumericComparisons) {
+TEST_F(IndexKeyTests, CompactIntsKeyNumericComparisons) {
   NumericComparisons<CompactIntsKey<1>, int8_t>(type::TypeId::TINYINT, false);
   NumericComparisons<CompactIntsKey<1>, int16_t>(type::TypeId::SMALLINT, false);
   NumericComparisons<CompactIntsKey<1>, int32_t>(type::TypeId::INTEGER, false);
@@ -965,7 +967,7 @@ TEST_F(BwTreeKeyTests, CompactIntsKeyNumericComparisons) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(BwTreeKeyTests, GenericKeyNumericComparisons) {
+TEST_F(IndexKeyTests, GenericKeyNumericComparisons) {
   NumericComparisons<GenericKey<64>, int8_t>(type::TypeId::TINYINT, true);
   NumericComparisons<GenericKey<64>, int16_t>(type::TypeId::SMALLINT, true);
   NumericComparisons<GenericKey<64>, int32_t>(type::TypeId::INTEGER, true);
@@ -975,8 +977,85 @@ TEST_F(BwTreeKeyTests, GenericKeyNumericComparisons) {
   NumericComparisons<GenericKey<64>, uint64_t>(type::TypeId::TIMESTAMP, true);
 }
 
+template <typename KeyType, typename CType>
+void UnorderedNumericComparisons(const type::TypeId type_id, const bool nullable) {
+  std::vector<catalog::IndexSchema::Column> key_cols;
+  key_cols.emplace_back("", type_id, true,
+                        parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type_id)));
+  StorageTestUtil::ForceOid(&(key_cols.back()), catalog::indexkeycol_oid_t(0));
+
+  const IndexMetadata metadata(catalog::IndexSchema(key_cols, false, false, false, true));
+  const auto &initializer = metadata.GetProjectedRowInitializer();
+
+  auto *const pr_buffer = common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize());
+  std::memset(pr_buffer, 0, initializer.ProjectedRowSize());
+  auto *const pr = initializer.InitializeRow(pr_buffer);
+
+  CType data = 15;
+  *reinterpret_cast<CType *>(pr->AccessForceNotNull(0)) = data;
+  KeyType key1, key2;
+  key1.SetFromProjectedRow(*pr, metadata);
+  key2.SetFromProjectedRow(*pr, metadata);
+
+  // lhs: 15, rhs: 15
+  EXPECT_TRUE(std::equal_to<KeyType>()(key1, key2));
+  EXPECT_EQ(std::hash<KeyType>()(key1), std::hash<KeyType>()(key2));
+
+  data = 72;
+  *reinterpret_cast<CType *>(pr->AccessForceNotNull(0)) = data;
+  key2.SetFromProjectedRow(*pr, metadata);
+
+  // lhs: 15, rhs: 72
+  EXPECT_FALSE(std::equal_to<KeyType>()(key1, key2));
+  EXPECT_NE(std::hash<KeyType>()(key1), std::hash<KeyType>()(key2));
+
+  data = 116;
+  *reinterpret_cast<CType *>(pr->AccessForceNotNull(0)) = data;
+  key1.SetFromProjectedRow(*pr, metadata);
+
+  // lhs: 116, rhs: 72
+  EXPECT_FALSE(std::equal_to<KeyType>()(key1, key2));
+  EXPECT_NE(std::hash<KeyType>()(key1), std::hash<KeyType>()(key2));
+
+  if (nullable) {
+    pr->SetNull(0);
+    key1.SetFromProjectedRow(*pr, metadata);
+
+    // lhs: NULL, rhs: 72
+    EXPECT_FALSE(std::equal_to<KeyType>()(key1, key2));
+    EXPECT_NE(std::hash<KeyType>()(key1), std::hash<KeyType>()(key2));
+
+    key2.SetFromProjectedRow(*pr, metadata);
+
+    // lhs: NULL, rhs: NULL
+    EXPECT_TRUE(std::equal_to<KeyType>()(key1, key2));
+    EXPECT_EQ(std::hash<KeyType>()(key1), std::hash<KeyType>()(key2));
+
+    data = 15;
+    *reinterpret_cast<CType *>(pr->AccessForceNotNull(0)) = data;
+    key1.SetFromProjectedRow(*pr, metadata);
+
+    // lhs: 15, rhs: NULL
+    EXPECT_FALSE(std::equal_to<KeyType>()(key1, key2));
+    EXPECT_NE(std::hash<KeyType>()(key1), std::hash<KeyType>()(key2));
+  }
+
+  delete[] pr_buffer;
+}
+
 // NOLINTNEXTLINE
-TEST_F(BwTreeKeyTests, GenericKeyInlineVarlenComparisons) {
+TEST_F(IndexKeyTests, HashKeyNumericComparisons) {
+  UnorderedNumericComparisons<HashKey<8>, int8_t>(type::TypeId::TINYINT, false);
+  UnorderedNumericComparisons<HashKey<8>, int16_t>(type::TypeId::SMALLINT, false);
+  UnorderedNumericComparisons<HashKey<8>, int32_t>(type::TypeId::INTEGER, false);
+  UnorderedNumericComparisons<HashKey<8>, uint32_t>(type::TypeId::DATE, false);
+  UnorderedNumericComparisons<HashKey<8>, int64_t>(type::TypeId::BIGINT, false);
+  UnorderedNumericComparisons<HashKey<8>, double>(type::TypeId::DECIMAL, false);
+  UnorderedNumericComparisons<HashKey<8>, uint64_t>(type::TypeId::TIMESTAMP, false);
+}
+
+// NOLINTNEXTLINE
+TEST_F(IndexKeyTests, GenericKeyInlineVarlenComparisons) {
   std::vector<catalog::IndexSchema::Column> key_cols;
   key_cols.emplace_back("", type::TypeId::VARCHAR, 12, true,
                         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR)));
@@ -1084,7 +1163,7 @@ TEST_F(BwTreeKeyTests, GenericKeyInlineVarlenComparisons) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(BwTreeKeyTests, GenericKeyNonInlineVarlenComparisons) {
+TEST_F(IndexKeyTests, GenericKeyNonInlineVarlenComparisons) {
   std::vector<catalog::IndexSchema::Column> key_cols;
   key_cols.emplace_back("", type::TypeId::VARCHAR, 20, true,
                         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR)));
@@ -1137,7 +1216,7 @@ TEST_F(BwTreeKeyTests, GenericKeyNonInlineVarlenComparisons) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(BwTreeKeyTests, CompactIntsBuilderTest) {
+TEST_F(IndexKeyTests, CompactIntsKeyBuilderTest) {
   const uint32_t num_iters = 100;
 
   for (uint32_t i = 0; i < num_iters; i++) {
@@ -1153,7 +1232,7 @@ TEST_F(BwTreeKeyTests, CompactIntsBuilderTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(BwTreeKeyTests, GenericKeyBuilderTest) {
+TEST_F(IndexKeyTests, GenericKeyBuilderTest) {
   const uint32_t num_iters = 100;
 
   const std::vector<type::TypeId> generic_key_types{
@@ -1173,6 +1252,25 @@ TEST_F(BwTreeKeyTests, GenericKeyBuilderTest) {
   }
 }
 
+// NOLINTNEXTLINE
+TEST_F(IndexKeyTests, HashKeyBuilderTest) {
+  const uint32_t num_iters = 100;
+
+  for (uint32_t i = 0; i < num_iters; i++) {
+    const auto key_schema = StorageTestUtil::RandomCompactIntsKeySchema(&generator_);
+
+    IndexBuilder builder;
+    builder.SetConstraintType(ConstraintType::DEFAULT)
+        .SetKeySchema(key_schema)
+        .SetOid(catalog::index_oid_t(i))
+        .SetOrdered(false);
+    auto *index = builder.Build();
+    BasicOps(index);
+
+    delete index;
+  }
+}
+
 /**
  * This test exercises an edge case detected while incorporating the catalog that had a VARCHAR(63) attribute. The
  * IndexBuilder was looking at the user-facing PR size rather than the inlined PR size, so the computation of the key
@@ -1181,7 +1279,7 @@ TEST_F(BwTreeKeyTests, GenericKeyBuilderTest) {
  * IndexBuilder.
  */
 // NOLINTNEXTLINE
-TEST_F(BwTreeKeyTests, GenericKeyBuilderVarlenSizeEdgeCaseTest) {
+TEST_F(IndexKeyTests, GenericKeyBuilderVarlenSizeEdgeCaseTest) {
   std::vector<catalog::IndexSchema::Column> key_cols;
   key_cols.emplace_back("", type::TypeId::VARCHAR, 64, false,
                         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR)));

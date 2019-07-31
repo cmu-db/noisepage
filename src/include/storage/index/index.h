@@ -26,15 +26,7 @@ namespace terrier::storage::index {
  */
 class Index {
  private:
-  // make friends with our keys so that they can see our metadata
-  friend class CompactIntsKey<1>;
-  friend class CompactIntsKey<2>;
-  friend class CompactIntsKey<3>;
-  friend class CompactIntsKey<4>;
-  friend class GenericKey<64>;
-  friend class GenericKey<128>;
-  friend class GenericKey<256>;
-  friend class BwTreeKeyTests;
+  friend class IndexKeyTests;
 
   const ConstraintType constraint_type_;
 

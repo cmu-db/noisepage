@@ -31,7 +31,8 @@ class IndexMetadata {
         compact_ints_offsets_(std::move(other.compact_ints_offsets_)),
         key_oid_to_offset_(std::move(other.key_oid_to_offset_)),
         initializer_(std::move(other.initializer_)),
-        inlined_initializer_(std::move(other.inlined_initializer_)) {}
+        inlined_initializer_(std::move(other.inlined_initializer_)),
+        key_size_(std::accumulate(attr_sizes_.cbegin(), attr_sizes_.cend(), 0)) {}
 
   /**
    * Precomputes metadata for the given key schema.
@@ -47,7 +48,8 @@ class IndexMetadata {
         initializer_(
             ProjectedRowInitializer::Create(GetRealAttrSizes(attr_sizes_), ComputePROffsets(inlined_attr_sizes_))),
         inlined_initializer_(
-            ProjectedRowInitializer::Create(inlined_attr_sizes_, ComputePROffsets(inlined_attr_sizes_))) {}
+            ProjectedRowInitializer::Create(inlined_attr_sizes_, ComputePROffsets(inlined_attr_sizes_))),
+        key_size_(std::accumulate(attr_sizes_.cbegin(), attr_sizes_.cend(), 0)) {}
 
   /**
    * @return index key schema
@@ -91,11 +93,16 @@ class IndexMetadata {
    */
   const ProjectedRowInitializer &GetInlinedPRInitializer() const { return inlined_initializer_; }
 
+  /**
+   * @return sum of attribute sizes, NOT inlined attribute sizes
+   */
+  const uint16_t KeySize() const { return key_size_; }
+
  private:
   DISALLOW_COPY(IndexMetadata);
-  FRIEND_TEST(BwTreeKeyTests, IndexMetadataCompactIntsKeyTest);
-  FRIEND_TEST(BwTreeKeyTests, IndexMetadataGenericKeyNoMustInlineVarlenTest);
-  FRIEND_TEST(BwTreeKeyTests, IndexMetadataGenericKeyMustInlineVarlenTest);
+  FRIEND_TEST(IndexKeyTests, IndexMetadataCompactIntsKeyTest);
+  FRIEND_TEST(IndexKeyTests, IndexMetadataGenericKeyNoMustInlineVarlenTest);
+  FRIEND_TEST(IndexKeyTests, IndexMetadataGenericKeyMustInlineVarlenTest);
 
   catalog::IndexSchema key_schema_;                                             // for GenericKey
   std::vector<uint8_t> attr_sizes_;                                             // for CompactIntsKey
@@ -105,6 +112,7 @@ class IndexMetadata {
   std::unordered_map<catalog::indexkeycol_oid_t, uint16_t> key_oid_to_offset_;  // for execution layer
   ProjectedRowInitializer initializer_;                                         // user-facing initializer
   ProjectedRowInitializer inlined_initializer_;                                 // for GenericKey, internal only
+  uint16_t key_size_;
 
   /**
    * Computes the attribute sizes as given by the key schema.

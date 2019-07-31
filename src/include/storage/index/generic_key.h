@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "common/hash_util.h"
+#include "farmhash/farmhash.h"
 #include "storage/index/index_metadata.h"
 #include "storage/projected_row.h"
 #include "storage/storage_defs.h"
@@ -227,27 +228,19 @@ struct hash<terrier::storage::index::GenericKey<KeySize>> {
     const auto &key_schema = metadata.GetSchema();
     const auto &inlined_attr_sizes = metadata.GetInlinedAttributeSizes();
 
-    uint64_t running_hash = terrier::common::HashUtil::Hash(metadata);
+    uint64_t running_hash = 0;
 
     const auto *const pr = key.GetProjectedRow();
-
-    running_hash = terrier::common::HashUtil::CombineHashes(running_hash, terrier::common::HashUtil::Hash(pr->Size()));
-    running_hash =
-        terrier::common::HashUtil::CombineHashes(running_hash, terrier::common::HashUtil::Hash(pr->NumColumns()));
 
     const auto &key_cols = key_schema.GetColumns();
     for (uint16_t i = 0; i < key_cols.size(); i++) {
       const auto offset = static_cast<uint16_t>(pr->ColumnIds()[i]);
       const byte *const attr = pr->AccessWithNullCheck(offset);
       if (attr == nullptr) {
-        // attribute is NULL, just hash the nullptr to contribute something to the hash
-        running_hash = terrier::common::HashUtil::CombineHashes(running_hash, terrier::common::HashUtil::Hash(attr));
         continue;
       }
 
-      // just hash the attribute bytes for inlined attributes
-      running_hash = terrier::common::HashUtil::CombineHashes(
-          running_hash, terrier::common::HashUtil::HashBytes(attr, inlined_attr_sizes[i]));
+      running_hash = util::Hash64WithSeed(reinterpret_cast<const char *>(attr), inlined_attr_sizes[i], running_hash);
     }
 
     return running_hash;
