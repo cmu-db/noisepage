@@ -18,7 +18,7 @@ db_oid_t CatalogAccessor::CreateDatabase(std::string name) {
 bool CatalogAccessor::DropDatabase(db_oid_t db) { return catalog_->DeleteDatabase(txn_, db); }
 
 void CatalogAccessor::SetSearchPath(std::vector<namespace_oid_t> namespaces) {
-  TERRIER_ASSERT(namespaces.size() > 0, "search path cannot be empty");
+  TERRIER_ASSERT(namespaces.empty(), "search path cannot be empty");
   default_namespace_ = namespaces[0];
 
   for (auto ns : namespaces) {
