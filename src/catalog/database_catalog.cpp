@@ -1088,12 +1088,16 @@ void DatabaseCatalog::TearDown(transaction::TransactionContext *txn) {
     for (uint i = 0; i < pc->NumTuples(); i++) {
       switch (classes[i]) {
         case postgres::ClassKind::REGULAR_TABLE:
-          table_schemas.emplace_back(reinterpret_cast<Schema *>(schemas[i]));
-          tables.emplace_back(reinterpret_cast<storage::SqlTable *>(objects[i]));
+          if (schemas[i] != nullptr)
+            table_schemas.emplace_back(reinterpret_cast<Schema *>(schemas[i]));
+          if (objects[i] != nullptr)
+            tables.emplace_back(reinterpret_cast<storage::SqlTable *>(objects[i]));
           break;
         case postgres::ClassKind::INDEX:
-          index_schemas.emplace_back(reinterpret_cast<IndexSchema *>(schemas[i]));
-          indexes.emplace_back(reinterpret_cast<storage::index::Index *>(objects[i]));
+          if (schemas[i] != nullptr)
+            index_schemas.emplace_back(reinterpret_cast<IndexSchema *>(schemas[i]));
+          if (objects[i] != nullptr)
+            indexes.emplace_back(reinterpret_cast<storage::index::Index *>(objects[i]));
           break;
         default:
           throw std::runtime_error("Unimplemented destructor needed");
