@@ -354,7 +354,7 @@ TEST_F(CatalogTests, UserSearchPathTest) {
 TEST_F(CatalogTests, CatalogSearchPathTest) {
   auto txn = txn_manager_->BeginTransaction();
   auto accessor = catalog_->GetAccessor(txn, db_);
-  EXPECT_EQ(accessor->GetTableOid("pg_namespace"), NAMESPACE_TABLE_OID);
+  EXPECT_EQ(accessor->GetTableOid("pg_namespace"), catalog::NAMESPACE_TABLE_OID);
 
   // Create the column definition (no OIDs)
   std::vector<catalog::Schema::Column> cols;
@@ -367,18 +367,19 @@ TEST_F(CatalogTests, CatalogSearchPathTest) {
   // Check whether name conflict is inserted into the proper default (first in search path) and masked by implicit
   // addition of 'pg_catalog' at start of search path
   auto user_table_oid = accessor->CreateTable(accessor->GetDefaultNamespace(), "pg_namespace", tmp_schema);
-  EXPECT_EQ(accessor->GetTableOid(NAMESPACE_DEFAULT_NAMESPACE_OID, "pg_namespace"), user_table_oid);
-  EXPECT_EQ(accessor->GetTableOid("pg_namespace"), NAMESPACE_TABLE_OID);
+  EXPECT_EQ(accessor->GetTableOid(catalog::NAMESPACE_DEFAULT_NAMESPACE_OID, "pg_namespace"), user_table_oid);
+  EXPECT_EQ(accessor->GetTableOid("pg_namespace"), catalog::NAMESPACE_TABLE_OID);
 
   // Explicitly set 'pg_catalog' as second in the search path and check proper searching
-  accessor->SetSearchPath({NAMESPACE_DEFAULT_NAMESPACE_OID, NAMESPACE_CATALOG_NAMESPACE_OID});
+  accessor->SetSearchPath({catalog::NAMESPACE_DEFAULT_NAMESPACE_OID, catalog::NAMESPACE_CATALOG_NAMESPACE_OID});
   EXPECT_EQ(accessor->GetTableOid("pg_namespace"), user_table_oid);
-  EXPECT_EQ(accessor->GetTableOid(NAMESPACE_CATALOG_NAMESPACE_OID, "pg_namespace"), NAMESPACE_TABLE_OID);
+  EXPECT_EQ(accessor->GetTableOid(catalog::NAMESPACE_CATALOG_NAMESPACE_OID, "pg_namespace"),
+                                  catalog::NAMESPACE_TABLE_OID);
 
   // Return to implicit declaration to ensure logic works correctly
-  accessor->SetSearchPath({NAMESPACE_DEFAULT_NAMESPACE_OID});
-  EXPECT_EQ(accessor->GetTableOid(NAMESPACE_DEFAULT_NAMESPACE_OID, "pg_namespace"), user_table_oid);
-  EXPECT_EQ(accessor->GetTableOid("pg_namespace"), NAMESPACE_TABLE_OID);
+  accessor->SetSearchPath({catalog::NAMESPACE_DEFAULT_NAMESPACE_OID});
+  EXPECT_EQ(accessor->GetTableOid(catalog::NAMESPACE_DEFAULT_NAMESPACE_OID, "pg_namespace"), user_table_oid);
+  EXPECT_EQ(accessor->GetTableOid("pg_namespace"), catalog::NAMESPACE_TABLE_OID);
 }
 
 /*
