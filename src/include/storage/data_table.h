@@ -224,6 +224,9 @@ class DataTable {
   friend class index::BwTreeIndex;
   template <typename KeyType>
   friend class index::HashIndex;
+  // The block compactor elides transactional protection in the gather/compression phase and
+  // needs raw access to the underlying table.
+  friend class BlockCompactor;
 
   BlockStore *const block_store_;
   const layout_version_t layout_version_;
@@ -276,8 +279,6 @@ class DataTable {
 
   // Allocates a new block to be used as insertion head.
   void NewBlock(RawBlock *expected_val);
-
-  void DeallocateVarlensOnShutdown(RawBlock *block);
 
   /**
    * Determine if a Tuple is visible (present and not deleted) to the given transaction. It's effectively Select's logic
