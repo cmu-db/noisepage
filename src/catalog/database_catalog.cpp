@@ -1055,7 +1055,7 @@ void DatabaseCatalog::TearDown(transaction::TransactionContext *txn) {
   std::tie(pci, pm) = constraints_->InitializerForProjectedColumns(col_oids, 100);
   pc = pci.Initialize(buffer);
 
-  exprs = reinterpret_cast<parser::AbstractExpression **>(pc->ColumnStart(0));
+  auto exprs = reinterpret_cast<parser::AbstractExpression **>(pc->ColumnStart(0));
 
   table_iter = constraints_->begin();
   while (table_iter != constraints_->end()) {
