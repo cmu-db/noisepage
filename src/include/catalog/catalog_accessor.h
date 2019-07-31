@@ -68,7 +68,7 @@ class CatalogAccessor {
   /**
    * @return the current default namespace (first one in search path)
    */
-  namespace_oid_t GetDefaultNamespace() { return search_path_[0]; }
+  namespace_oid_t GetDefaultNamespace() { return default_namespace_; }
 
   /**
    * Given a namespace name, resolve it to the corresponding OID
@@ -265,6 +265,7 @@ class CatalogAccessor {
   transaction::TransactionContext *txn_;
   db_oid_t db_oid_;
   std::vector<namespace_oid_t> search_path_;
+  namespace_oid_t default_namespace_;
 
   /**
    * A helper function to ensure that user-defined object names are standardized prior to doing catalog operations
@@ -282,7 +283,11 @@ class CatalogAccessor {
    */
   CatalogAccessor(Catalog *catalog, common::ManagedPointer<DatabaseCatalog> dbc, transaction::TransactionContext *txn,
                   db_oid_t database)
-      : catalog_(catalog), dbc_(dbc), txn_(txn), db_oid_(database), search_path_({NAMESPACE_DEFAULT_NAMESPACE_OID}) {}
+      : catalog_(catalog),
+        dbc_(dbc),
+        txn_(txn),
+        db_oid_(database),
+        search_path_({NAMESPACE_CATALOG_NAMESPACE_OID, NAMESPACE_DEFAULT_NAMESPACE_OID}) {}
   friend class Catalog;
 };
 

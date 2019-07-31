@@ -17,7 +17,24 @@ db_oid_t CatalogAccessor::CreateDatabase(std::string name) {
 
 bool CatalogAccessor::DropDatabase(db_oid_t db) { return catalog_->DeleteDatabase(txn_, db); }
 
-void CatalogAccessor::SetSearchPath(std::vector<namespace_oid_t> namespaces) { search_path_ = std::move(namespaces); }
+void CatalogAccessor::SetSearchPath(std::vector<namespace_oid_t> namespaces) {
+  TERRIER_ASSERT(namespaces.size() > 0, "search path cannot be empty");
+  default_namespace_ = namespaces[0];
+
+  for (auto ns : namespaces) {
+    // Check if 'pg_catalog is explicitly set'
+    if (ns == NAMESPACE_CATALOG_NAMESPACE_OID) {
+      search_path_ = std::move(namespaces);
+      return;
+    }
+  }
+
+  std::vector<namespace_oid_t> path;
+  path.reserve(namespaces.size() + 1);
+  path.emplace_back(NAMESPACE_CATALOG_NAMESPACE_OID);
+  for (auto ns : namespaces)
+    path.emplace_back(ns);
+}
 
 namespace_oid_t CatalogAccessor::GetNamespaceOid(std::string name) {
   NormalizeObjectName(&name);
