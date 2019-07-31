@@ -114,6 +114,8 @@ class DatabaseCatalog {
    * @warning The table pointer that is passed in must be on the heap as the
    * catalog will take ownership of it and schedule its deletion with the GC
    * at the appropriate time.
+   * @warning It is unsafe to call delete on the SqlTable pointer after calling
+   * this function regardless of the return status.
    */
   bool SetTablePointer(transaction::TransactionContext *txn, table_oid_t table, const storage::SqlTable *table_ptr);
 
@@ -212,6 +214,8 @@ class DatabaseCatalog {
    * @warning The index pointer that is passed in must be on the heap as the
    * catalog will take ownership of it and schedule its deletion with the GC
    * at the appropriate time.
+   * @warning It is unsafe to call delete on the Index pointer after calling
+   * this function regardless of the return status.
    */
   bool SetIndexPointer(transaction::TransactionContext *txn, index_oid_t index, const storage::index::Index *index_ptr);
 

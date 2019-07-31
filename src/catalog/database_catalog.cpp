@@ -355,8 +355,6 @@ bool DatabaseCatalog::CreateColumn(transaction::TransactionContext *const txn, c
   auto type_entry = reinterpret_cast<type::TypeId *>(redo->Delta()->AccessForceNotNull(table_pm[ATTTYPID_COL_OID]));
   auto len_entry = reinterpret_cast<uint16_t *>(redo->Delta()->AccessForceNotNull(table_pm[ATTLEN_COL_OID]));
   auto notnull_entry = reinterpret_cast<bool *>(redo->Delta()->AccessForceNotNull(table_pm[ATTNOTNULL_COL_OID]));
-  auto dbin_entry =
-      reinterpret_cast<parser::AbstractExpression **>(redo->Delta()->AccessForceNotNull(table_pm[ADBIN_COL_OID]));
   auto dsrc_entry =
       reinterpret_cast<storage::VarlenEntry *>(redo->Delta()->AccessForceNotNull(table_pm[ADSRC_COL_OID]));
   *oid_entry = col_oid;
@@ -369,8 +367,6 @@ bool DatabaseCatalog::CreateColumn(transaction::TransactionContext *const txn, c
   *len_entry = (col.Type() == type::TypeId::VARCHAR || col.Type() == type::TypeId::VARBINARY) ? col.MaxVarlenSize()
                                                                                               : col.AttrSize();
   *notnull_entry = !col.Nullable();
-  // TODO(John) implement deep copy of the abstract expression and store the pointer once #386 is in
-  *dbin_entry = nullptr;
   storage::VarlenEntry dsrc_varlen = storage::StorageUtil::CreateVarlen(col.StoredExpression()->ToJson().dump());
   *dsrc_entry = dsrc_varlen;
   // Finally, insert into the table to get the tuple slot
@@ -424,47 +420,6 @@ bool DatabaseCatalog::CreateColumn(transaction::TransactionContext *const txn, c
   return true;
 }
 
-// template <typename Column, typename ClassOid, typename ColOid>
-// Column DatabaseCatalog::GetColumn(transaction::TransactionContext *const txn, const ClassOid class_oid,
-//                                                    const ColOid col_oid) {
-//   // Step 1: Read Index
-//   const std::vector<col_oid_t> table_oids{ATTNUM_COL_OID, ATTNAME_COL_OID,    ATTTYPID_COL_OID,
-//                                           ATTLEN_COL_OID, ATTNOTNULL_COL_OID, ADBIN_COL_OID};
-//   // NOLINTNEXTLINE
-//   auto [table_pri, table_pm] = columns_->InitializerForProjectedRow(table_oids);
-//   const auto oid_pri = columns_oid_index_->GetProjectedRowInitializer();
-//   const auto oid_pm = columns_oid_index_->GetKeyOidToOffsetMap();
-//   // Buffer is large enough to hold all prs
-//   byte *buffer = common::AllocationUtil::AllocateAligned(table_pri.ProjectedRowSize());
-//   // Scan the oid index
-//   auto pr = oid_pri.InitializeRow(buffer);
-//   // Write the attributes in the ProjectedRow. These hardcoded indexkeycol_oids come from
-//   // Builder::GetColumnOidIndexSchema()
-//   *(reinterpret_cast<ColOid *>(pr->AccessForceNotNull(oid_pm.at(indexkeycol_oid_t(2))))) = col_oid;
-//   *(reinterpret_cast<ClassOid *>(pr->AccessForceNotNull(oid_pm.at(indexkeycol_oid_t(1))))) = class_oid;
-//   std::vector<storage::TupleSlot> index_results;
-//   columns_oid_index_->ScanKey(*txn, *pr, &index_results);
-//   if (index_results.empty()) {
-//     // attribute not found in the index, so attribute doesn't exist. Free the buffer and return nullptr to indicate
-//     // failure
-//     delete[] buffer;
-//     return nullptr;
-//   }
-//   TERRIER_ASSERT(index_results.size() == 1, "Columns oid not unique in index");
-//   const auto tuple_slot = index_results[0];
-
-//   // Step 2: Scan the table to get the column
-//   pr = table_pri.InitializeRow(buffer);
-//   const auto UNUSED_ATTRIBUTE result = columns_->Select(txn, tuple_slot, pr);
-//   TERRIER_ASSERT(result, "Index scan did a visibility check, so Select shouldn't fail at this point.");
-
-//   auto col = MakeColumn<Column, ColOid>(pr, table_pm);
-
-//   // Finish
-//   delete[] buffer;
-//   return col;
-// }
-
 template <typename Column, typename ClassOid, typename ColOid>
 std::vector<Column> DatabaseCatalog::GetColumns(transaction::TransactionContext *const txn, const ClassOid class_oid) {
   // Step 1: Read Index
@@ -510,7 +465,7 @@ template <typename Column, typename ClassOid>
 bool DatabaseCatalog::DeleteColumns(transaction::TransactionContext *const txn, const ClassOid class_oid) {
   // Step 1: Read Index
   const std::vector<col_oid_t> table_oids{ATTNUM_COL_OID, ATTNAME_COL_OID,    ATTTYPID_COL_OID,
-                                          ATTLEN_COL_OID, ATTNOTNULL_COL_OID, ADBIN_COL_OID};
+                                          ATTLEN_COL_OID, ATTNOTNULL_COL_OID};
   // NOLINTNEXTLINE
   auto [table_pri, table_pm] = columns_->InitializerForProjectedRow(table_oids);
   const auto class_pri = columns_class_index_->GetProjectedRowInitializer();
@@ -543,13 +498,6 @@ bool DatabaseCatalog::DeleteColumns(transaction::TransactionContext *const txn, 
     const auto *const col_oid =
         reinterpret_cast<const uint32_t *const>(pr->AccessWithNullCheck(table_pm[ATTNUM_COL_OID]));
     TERRIER_ASSERT(col_name != nullptr, "OID shouldn't be NULL.");
-
-    auto *stored_expression =
-        *reinterpret_cast<parser::AbstractExpression **>(pr->AccessForceNotNull(table_pm[ADBIN_COL_OID]));
-
-    if (stored_expression != nullptr) {
-      txn->RegisterCommitAction([=]() { delete stored_expression; });
-    }
 
     // 2. Delete from the table
     txn->StageDelete(db_oid_, COLUMN_TABLE_OID, slot);
@@ -750,6 +698,9 @@ table_oid_t DatabaseCatalog::GetTableOid(transaction::TransactionContext *const 
 bool DatabaseCatalog::SetTablePointer(transaction::TransactionContext *const txn, const table_oid_t table,
                                       const storage::SqlTable *const table_ptr) {
   auto *tm = txn->GetTransactionManager();
+
+  // We need to defer the deletion because their may be subsequent undo records into this table that need to be GCed
+  // before we can safely delete this.
   txn->RegisterAbortAction([=]() { tm->DeferAction([=]() { delete table_ptr; }); });
   return SetClassPointer(txn, table, table_ptr);
 }
@@ -1020,6 +971,9 @@ bool DatabaseCatalog::SetClassPointer(transaction::TransactionContext *const txn
 bool DatabaseCatalog::SetIndexPointer(transaction::TransactionContext *const txn, const index_oid_t index,
                                       const storage::index::Index *const index_ptr) {
   auto *tm = txn->GetTransactionManager();
+
+  // This needs to be deferred because if any items were subsequently inserted into this index, they will have deferred
+  // abort actions that will be above this action on the abort stack.  The defer ensures we execute after them.
   txn->RegisterAbortAction([=]() { tm->DeferAction([=]() { delete index_ptr; }); });
   return SetClassPointer(txn, index, index_ptr);
 }
@@ -1092,23 +1046,6 @@ void DatabaseCatalog::TearDown(transaction::TransactionContext *txn) {
         default:
           throw std::runtime_error("Unimplemented destructor needed");
       }
-    }
-  }
-
-  // pg_attribute (expressions)
-  col_oids.clear();
-  col_oids.emplace_back(ADBIN_COL_OID);
-  std::tie(pci, pm) = columns_->InitializerForProjectedColumns(col_oids, 100);
-  pc = pci.Initialize(buffer);
-
-  auto exprs = reinterpret_cast<parser::AbstractExpression **>(pc->ColumnStart(0));
-
-  table_iter = columns_->begin();
-  while (table_iter != columns_->end()) {
-    columns_->Scan(txn, &table_iter, pc);
-
-    for (uint i = 0; i < pc->NumTuples(); i++) {
-      expressions.emplace_back(exprs[i]);
     }
   }
 
