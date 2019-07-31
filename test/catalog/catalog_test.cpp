@@ -380,6 +380,10 @@ TEST_F(CatalogTests, CatalogSearchPathTest) {
   accessor->SetSearchPath({catalog::NAMESPACE_DEFAULT_NAMESPACE_OID});
   EXPECT_EQ(accessor->GetTableOid(catalog::NAMESPACE_DEFAULT_NAMESPACE_OID, "pg_namespace"), user_table_oid);
   EXPECT_EQ(accessor->GetTableOid("pg_namespace"), catalog::NAMESPACE_TABLE_OID);
+
+  // Close out
+  txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+  delete accessor;
 }
 
 /*
