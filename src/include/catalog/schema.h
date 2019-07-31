@@ -87,6 +87,7 @@ class Schema {
         : name_(old_column.name_),
           type_(old_column.type_),
           attr_size_(old_column.attr_size_),
+          max_varlen_size_(old_column.max_varlen_size_),
           nullable_(old_column.nullable_),
           oid_(old_column.oid_),
           default_value_(old_column.default_value_->Copy()) {
