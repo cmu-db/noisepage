@@ -374,7 +374,7 @@ TEST_F(CatalogTests, CatalogSearchPathTest) {
   accessor->SetSearchPath({catalog::NAMESPACE_DEFAULT_NAMESPACE_OID, catalog::NAMESPACE_CATALOG_NAMESPACE_OID});
   EXPECT_EQ(accessor->GetTableOid("pg_namespace"), user_table_oid);
   EXPECT_EQ(accessor->GetTableOid(catalog::NAMESPACE_CATALOG_NAMESPACE_OID, "pg_namespace"),
-                                  catalog::NAMESPACE_TABLE_OID);
+            catalog::NAMESPACE_TABLE_OID);
 
   // Return to implicit declaration to ensure logic works correctly
   accessor->SetSearchPath({catalog::NAMESPACE_DEFAULT_NAMESPACE_OID});

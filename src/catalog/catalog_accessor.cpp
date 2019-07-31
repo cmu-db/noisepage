@@ -32,8 +32,7 @@ void CatalogAccessor::SetSearchPath(std::vector<namespace_oid_t> namespaces) {
   search_path_.clear();
   search_path_.reserve(namespaces.size() + 1);
   search_path_.emplace_back(NAMESPACE_CATALOG_NAMESPACE_OID);
-  for (auto ns : namespaces)
-    search_path_.emplace_back(ns);
+  for (auto ns : namespaces) search_path_.emplace_back(ns);
 }
 
 namespace_oid_t CatalogAccessor::GetNamespaceOid(std::string name) {
