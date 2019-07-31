@@ -57,10 +57,9 @@ class IndexBuilder {
     if (ordered_) {
       if (use_compact_ints) return BuildBwTreeIntsKey(index_oid_, constraint_type_, key_size, std::move(metadata));
       return BuildBwTreeGenericKey(index_oid_, constraint_type_, std::move(metadata));
-    } else {
-      if (use_compact_ints) return BuildHashIntsKey(index_oid_, constraint_type_, key_size, std::move(metadata));
-      return BuildHashGenericKey(index_oid_, constraint_type_, std::move(metadata));
     }
+    if (use_compact_ints) return BuildHashIntsKey(index_oid_, constraint_type_, key_size, std::move(metadata));
+    return BuildHashGenericKey(index_oid_, constraint_type_, std::move(metadata));
   }
 
   /**
@@ -90,6 +89,10 @@ class IndexBuilder {
     return *this;
   }
 
+  /**
+   * @param ordered true if the index should support ordered scans, false otherwise (point queries only)
+   * @return the builder object
+   */
   IndexBuilder &SetOrdered(const bool ordered) {
     ordered_ = ordered;
     return *this;

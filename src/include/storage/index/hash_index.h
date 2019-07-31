@@ -3,7 +3,7 @@
 #include <functional>
 #include <unordered_set>
 #include <utility>
-#include <variant>
+#include <variant>  // NOLINT (Matt): lint thinks this C++17 header is a C header because it only knows C++11
 #include <vector>
 #include "libcuckoo/cuckoohash_map.hh"
 #include "storage/index/index.h"
@@ -68,19 +68,17 @@ class HashIndex final : public Index {
         if (std::holds_alternative<TupleSlot>(value)) {
           // It's just a TupleSlot, functor should return true for uprase to erase it
           return true;
-        } else {
-          auto &value_map = std::get<ValueMap>(value);
-          if (value_map.size() == 1) {
-            // ValueMap only has 1 element, functor should return true for uprase to erase it
-            TERRIER_ASSERT(value_map.count(location) == 1, "location must be the only value in the ValueMap.");
-            return true;
-          } else {
-            // ValueMap contains multiple elements, erase the element for location
-            const bool UNUSED_ATTRIBUTE erase_result = value_map.erase(location);
-            TERRIER_ASSERT(erase_result, "Erasing from the ValueMap should not fail.");
-            return false;
-          }
         }
+        auto &value_map = std::get<ValueMap>(value);
+        if (value_map.size() == 1) {
+          // ValueMap only has 1 element, functor should return true for uprase to erase it
+          TERRIER_ASSERT(value_map.count(location) == 1, "location must be the only value in the ValueMap.");
+          return true;
+        }
+        // ValueMap contains multiple elements, erase the element for location
+        const auto UNUSED_ATTRIBUTE erase_result = value_map.erase(location);
+        TERRIER_ASSERT(erase_result == 1, "Erasing from the ValueMap should not fail.");
+        return false;
       };
 
       const bool UNUSED_ATTRIBUTE uprase_result = hash_map_->uprase_fn(index_key, abort_key_found_fn);
@@ -149,19 +147,17 @@ class HashIndex final : public Index {
           if (std::holds_alternative<TupleSlot>(value)) {
             // It's just a TupleSlot, functor should return true for uprase to erase it
             return true;
-          } else {
-            auto &value_map = std::get<ValueMap>(value);
-            if (value_map.size() == 1) {
-              // ValueMap only has 1 element, functor should return true for uprase to erase it
-              TERRIER_ASSERT(value_map.count(location) == 1, "location must be the only value in the ValueMap.");
-              return true;
-            } else {
-              // ValueMap contains multiple elements, erase the element for location
-              const bool UNUSED_ATTRIBUTE erase_result = value_map.erase(location);
-              TERRIER_ASSERT(erase_result, "Erasing from the ValueMap should not fail.");
-              return false;
-            }
           }
+          auto &value_map = std::get<ValueMap>(value);
+          if (value_map.size() == 1) {
+            // ValueMap only has 1 element, functor should return true for uprase to erase it
+            TERRIER_ASSERT(value_map.count(location) == 1, "location must be the only value in the ValueMap.");
+            return true;
+          }
+          // ValueMap contains multiple elements, erase the element for location
+          const auto UNUSED_ATTRIBUTE erase_result = value_map.erase(location);
+          TERRIER_ASSERT(erase_result == 1, "Erasing from the ValueMap should not fail.");
+          return false;
         };
 
         const bool UNUSED_ATTRIBUTE uprase_result = hash_map_->uprase_fn(index_key, abort_key_found_fn);
@@ -193,19 +189,17 @@ class HashIndex final : public Index {
           if (std::holds_alternative<TupleSlot>(value)) {
             // It's just a TupleSlot, functor should return true for uprase to erase it
             return true;
-          } else {
-            auto &value_map = std::get<ValueMap>(value);
-            if (value_map.size() == 1) {
-              // ValueMap only has 1 element, functor should return true for uprase to erase it
-              TERRIER_ASSERT(value_map.count(location) == 1, "location must be the only value in the ValueMap.");
-              return true;
-            } else {
-              // ValueMap contains multiple elements, erase the element for location
-              const bool UNUSED_ATTRIBUTE erase_result = value_map.erase(location);
-              TERRIER_ASSERT(erase_result, "Erasing from the ValueMap should not fail.");
-              return false;
-            }
           }
+          auto &value_map = std::get<ValueMap>(value);
+          if (value_map.size() == 1) {
+            // ValueMap only has 1 element, functor should return true for uprase to erase it
+            TERRIER_ASSERT(value_map.count(location) == 1, "location must be the only value in the ValueMap.");
+            return true;
+          }
+          // ValueMap contains multiple elements, erase the element for location
+          const auto UNUSED_ATTRIBUTE erase_result = value_map.erase(location);
+          TERRIER_ASSERT(erase_result == 1, "Erasing from the ValueMap should not fail.");
+          return false;
         };
 
         const bool UNUSED_ATTRIBUTE uprase_result = hash_map_->uprase_fn(index_key, abort_key_found_fn);
