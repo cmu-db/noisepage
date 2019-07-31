@@ -464,8 +464,8 @@ std::vector<Column> DatabaseCatalog::GetColumns(transaction::TransactionContext 
 template <typename Column, typename ClassOid>
 bool DatabaseCatalog::DeleteColumns(transaction::TransactionContext *const txn, const ClassOid class_oid) {
   // Step 1: Read Index
-  const std::vector<col_oid_t> table_oids{ATTNUM_COL_OID, ATTNAME_COL_OID,    ATTTYPID_COL_OID,
-                                          ATTLEN_COL_OID, ATTNOTNULL_COL_OID};
+  const std::vector<col_oid_t> table_oids{ATTNUM_COL_OID, ATTNAME_COL_OID, ATTTYPID_COL_OID, ATTLEN_COL_OID,
+                                          ATTNOTNULL_COL_OID};
   // NOLINTNEXTLINE
   auto [table_pri, table_pm] = columns_->InitializerForProjectedRow(table_oids);
   const auto class_pri = columns_class_index_->GetProjectedRowInitializer();
