@@ -32,7 +32,7 @@ class IndexMetadata {
         key_oid_to_offset_(std::move(other.key_oid_to_offset_)),
         initializer_(std::move(other.initializer_)),
         inlined_initializer_(std::move(other.inlined_initializer_)),
-        key_size_(std::accumulate(attr_sizes_.cbegin(), attr_sizes_.cend(), 0)) {}
+        key_size_(std::accumulate(attr_sizes_.cbegin(), attr_sizes_.cend(), static_cast<uint16_t>(0))) {}
 
   /**
    * Precomputes metadata for the given key schema.
@@ -49,7 +49,7 @@ class IndexMetadata {
             ProjectedRowInitializer::Create(GetRealAttrSizes(attr_sizes_), ComputePROffsets(inlined_attr_sizes_))),
         inlined_initializer_(
             ProjectedRowInitializer::Create(inlined_attr_sizes_, ComputePROffsets(inlined_attr_sizes_))),
-        key_size_(std::accumulate(attr_sizes_.cbegin(), attr_sizes_.cend(), 0)) {}
+        key_size_(std::accumulate(attr_sizes_.cbegin(), attr_sizes_.cend(), static_cast<uint16_t>(0))) {}
 
   /**
    * @return index key schema
