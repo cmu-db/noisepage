@@ -287,7 +287,8 @@ class CatalogAccessor {
         dbc_(dbc),
         txn_(txn),
         db_oid_(database),
-        search_path_({NAMESPACE_CATALOG_NAMESPACE_OID, NAMESPACE_DEFAULT_NAMESPACE_OID}) {}
+        search_path_({NAMESPACE_CATALOG_NAMESPACE_OID, NAMESPACE_DEFAULT_NAMESPACE_OID}),
+        default_namespace_(NAMESPACE_DEFAULT_NAMESPACE_OID) {}
   friend class Catalog;
 };
 
