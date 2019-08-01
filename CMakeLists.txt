@@ -39,7 +39,7 @@ set(TERRIER_VERSION_PATCH "${terrier_VERSION_PATCH}")
 if (TERRIER_VERSION_MAJOR STREQUAL "" OR
         TERRIER_VERSION_MINOR STREQUAL "" OR
         TERRIER_VERSION_PATCH STREQUAL "")
-  MESSAGE(FATAL_ERROR "Failed to determine Terrier version from '${TERRIER_VERSION}'")
+    MESSAGE(FATAL_ERROR "Failed to determine Terrier version from '${TERRIER_VERSION}'")
 endif ()
 
 # The SO version is also the ABI version
@@ -63,12 +63,12 @@ include(GNUInstallDirs)
 
 # Compatibility with CMake 3.1
 if (POLICY CMP0054)
-  # http://www.cmake.org/cmake/help/v3.1/policy/CMP0054.html
-  cmake_policy(SET CMP0054 NEW)
+    # http://www.cmake.org/cmake/help/v3.1/policy/CMP0054.html
+    cmake_policy(SET CMP0054 NEW)
 endif ()
 
 if (APPLE)
-  cmake_policy(SET CMP0068 NEW)
+    cmake_policy(SET CMP0068 NEW)
 endif ()
 
 set(BUILD_SUPPORT_DIR "${CMAKE_SOURCE_DIR}/build-support")
@@ -121,11 +121,11 @@ option(TERRIER_VERBOSE_LINT
         OFF)
 
 if (NOT TERRIER_BUILD_TESTS)
-  set(NO_TESTS 1)
+    set(NO_TESTS 1)
 endif ()
 
 if (NOT TERRIER_BUILD_BENCHMARKS)
-  set(NO_BENCHMARKS 1)
+    set(NO_BENCHMARKS 1)
 endif ()
 
 ###################################################
@@ -135,10 +135,10 @@ endif ()
 set(CLANG_TOOLS_VERSION "6.0")
 find_package(ClangTools)
 if ("$ENV{CMAKE_EXPORT_COMPILE_COMMANDS}" STREQUAL "1" OR CLANG_TIDY_FOUND)
-  # Generate a Clang compile_commands.json "compilation database" file for use
-  # with various development tools, such as Vim's YouCompleteMe plugin.
-  # See http://clang.llvm.org/docs/JSONCompilationDatabase.html
-  set(CMAKE_EXPORT_COMPILE_COMMANDS 1)
+    # Generate a Clang compile_commands.json "compilation database" file for use
+    # with various development tools, such as Vim's YouCompleteMe plugin.
+    # See http://clang.llvm.org/docs/JSONCompilationDatabase.html
+    set(CMAKE_EXPORT_COMPILE_COMMANDS 1)
 endif ()
 
 # data directory for SSL
@@ -183,11 +183,11 @@ include(san-config)
 
 if (TERRIER_GENERATE_COVERAGE)
 
-  if (NOT "${CMAKE_BUILD_TYPE}" STREQUAL "DEBUG")
-    message(FATAL_ERROR "Coverage can only be generated with a debug build type!")
-  endif ()
+    if (NOT "${CMAKE_BUILD_TYPE}" STREQUAL "DEBUG")
+        message(FATAL_ERROR "Coverage can only be generated with a debug build type!")
+    endif ()
 
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --coverage")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --coverage")
 endif ()
 
 # CMAKE_CXX_FLAGS now fully assembled
@@ -197,47 +197,47 @@ message(STATUS "CMAKE_CXX_FLAGS: ${CMAKE_CXX_FLAGS}")
 # "make check-lint" and "make check-censored" targets
 ###########################################################
 if (NOT TERRIER_VERBOSE_LINT)
-  set(TERRIER_LINT_QUIET "--quiet")
+    set(TERRIER_LINT_QUIET "--quiet")
 endif ()
 
 if (UNIX)
 
-  file(GLOB_RECURSE LINT_FILES
-          "${CMAKE_CURRENT_SOURCE_DIR}/src/*.h"
-          "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp"
-          "${CMAKE_CURRENT_SOURCE_DIR}/test/*.h"
-          "${CMAKE_CURRENT_SOURCE_DIR}/test/*.cpp"
-          "${CMAKE_CURRENT_SOURCE_DIR}/benchmark/*.h"
-          "${CMAKE_CURRENT_SOURCE_DIR}/benchmark/*.cpp"
-          )
+    file(GLOB_RECURSE LINT_FILES
+            "${CMAKE_CURRENT_SOURCE_DIR}/src/*.h"
+            "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/test/*.h"
+            "${CMAKE_CURRENT_SOURCE_DIR}/test/*.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/benchmark/*.h"
+            "${CMAKE_CURRENT_SOURCE_DIR}/benchmark/*.cpp"
+            )
 
-  find_program(CPPLINT_BIN NAMES cpplint cpplint.py HINTS ${BUILD_SUPPORT_DIR})
-  message(STATUS "Found cpplint executable at ${CPPLINT_BIN}")
+    find_program(CPPLINT_BIN NAMES cpplint cpplint.py HINTS ${BUILD_SUPPORT_DIR})
+    message(STATUS "Found cpplint executable at ${CPPLINT_BIN}")
 
-  # Full lint
-  # Balancing act: cpplint.py takes a non-trivial time to launch,
-  # so process 12 files per invocation, while still ensuring parallelism
-  add_custom_target(check-lint echo '${LINT_FILES}' | xargs -n12 -P8
-          ${CPPLINT_BIN}
-          --verbose=2 ${TERRIER_LINT_QUIET}
-          --linelength=120
-          --filter=-legal/copyright,-build/header_guard
-          )
+    # Full lint
+    # Balancing act: cpplint.py takes a non-trivial time to launch,
+    # so process 12 files per invocation, while still ensuring parallelism
+    add_custom_target(check-lint echo '${LINT_FILES}' | xargs -n12 -P8
+            ${CPPLINT_BIN}
+            --verbose=2 ${TERRIER_LINT_QUIET}
+            --linelength=120
+            --filter=-legal/copyright,-build/header_guard
+            )
 
-  set(CENSOR_FILES ${LINT_FILES})
+    set(CENSOR_FILES ${LINT_FILES})
 
-  # If whitelisting becomes necessary, do it here. Make it harder so that people try not to do it.
-  #  list(REMOVE_ITEM CENSOR_FILES
-  #
-  #      )
+    # If whitelisting becomes necessary, do it here. Make it harder so that people try not to do it.
+    #  list(REMOVE_ITEM CENSOR_FILES
+    #
+    #      )
 
-  add_custom_target(check-censored
-          grep --invert-match -n -e '^ *//' -e '^ *[*]' ${CENSOR_FILES} # check all uncommented lines w/ line num
-          | grep -i -f ${BUILD_SUPPORT_DIR}/bad_words.txt               # for bad words, not case sensitive
-          | grep --invert-match -e 'NOLINT'                             # the count of them that aren't NOLINT
-          || exit 0                                                     # if nothing found, return 0
-          && exit 1                                                     # else return 1, note || && left-associative
-          )
+    add_custom_target(check-censored
+            grep --invert-match -n -e '^ *//' -e '^ *[*]' ${CENSOR_FILES} # check all uncommented lines w/ line num
+            | grep -i -f ${BUILD_SUPPORT_DIR}/bad_words.txt               # for bad words, not case sensitive
+            | grep --invert-match -e 'NOLINT'                             # the count of them that aren't NOLINT
+            || exit 0                                                     # if nothing found, return 0
+            && exit 1                                                     # else return 1, note || && left-associative
+            )
 endif (UNIX)
 
 ###########################################################
@@ -273,18 +273,18 @@ add_custom_target(check-format ${BUILD_SUPPORT_DIR}/run_clang_format.py
 # "make check-clang-tidy" target
 ###########################################################
 if (${CLANG_TIDY_FOUND})
-  # runs clang-tidy and exits with a non-zero exit code if any errors are found.
-  # note that clang-tidy automatically looks for a .clang-tidy file in parent directories
-  add_custom_target(check-clang-tidy
-          ${BUILD_SUPPORT_DIR}/run-clang-tidy.py                            # run LLVM's clang-tidy script
-          -clang-tidy-binary ${CLANG_TIDY_BIN}                              # using our clang-tidy binary
-          -p ${CMAKE_BINARY_DIR}                                            # using cmake's generated compile commands
-          )
-  if (TERRIER_BUILD_BENCHMARKS)
-    add_dependencies(check-clang-tidy benchmark gtest)                  # clang-tidy needs their headers to exist
-  elseif (TERRIER_BUILD_TESTS)
-    add_dependencies(check-clang-tidy gtest)                            # clang-tidy needs their headers to exist
-  endif()
+    # runs clang-tidy and exits with a non-zero exit code if any errors are found.
+    # note that clang-tidy automatically looks for a .clang-tidy file in parent directories
+    add_custom_target(check-clang-tidy
+            ${BUILD_SUPPORT_DIR}/run-clang-tidy.py                            # run LLVM's clang-tidy script
+            -clang-tidy-binary ${CLANG_TIDY_BIN}                              # using our clang-tidy binary
+            -p ${CMAKE_BINARY_DIR}                                            # using cmake's generated compile commands
+            )
+    if (TERRIER_BUILD_BENCHMARKS)
+        add_dependencies(check-clang-tidy benchmark gtest gflags)               # clang-tidy needs their headers to exist
+    elseif (TERRIER_BUILD_TESTS)
+        add_dependencies(check-clang-tidy gtest gflags)                         # clang-tidy needs their headers to exist
+    endif ()
 
 endif ()
 
@@ -298,18 +298,18 @@ string(TOLOWER ${CMAKE_BUILD_TYPE} BUILD_SUBDIR_NAME)
 # If build in-source, create the latest symlink. If build out-of-source, which is
 # preferred, simply output the binaries in the build folder
 if (${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_CURRENT_BINARY_DIR})
-  set(BUILD_OUTPUT_ROOT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/build/${BUILD_SUBDIR_NAME}/")
-  # Link build/latest to the current build directory, to avoid developers
-  # accidentally running the latest debug build when in fact they're building
-  # release builds.
-  FILE(MAKE_DIRECTORY ${BUILD_OUTPUT_ROOT_DIRECTORY})
-  if (NOT APPLE)
-    set(MORE_ARGS "-T")
-  endif ()
-  EXECUTE_PROCESS(COMMAND ln ${MORE_ARGS} -sf ${BUILD_OUTPUT_ROOT_DIRECTORY}
-          ${CMAKE_CURRENT_BINARY_DIR}/build/latest)
+    set(BUILD_OUTPUT_ROOT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/build/${BUILD_SUBDIR_NAME}/")
+    # Link build/latest to the current build directory, to avoid developers
+    # accidentally running the latest debug build when in fact they're building
+    # release builds.
+    FILE(MAKE_DIRECTORY ${BUILD_OUTPUT_ROOT_DIRECTORY})
+    if (NOT APPLE)
+        set(MORE_ARGS "-T")
+    endif ()
+    EXECUTE_PROCESS(COMMAND ln ${MORE_ARGS} -sf ${BUILD_OUTPUT_ROOT_DIRECTORY}
+            ${CMAKE_CURRENT_BINARY_DIR}/build/latest)
 else ()
-  set(BUILD_OUTPUT_ROOT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/${BUILD_SUBDIR_NAME}/")
+    set(BUILD_OUTPUT_ROOT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/${BUILD_SUBDIR_NAME}/")
 endif ()
 
 # where to put generated archives (.a files)
@@ -325,40 +325,38 @@ set(EXECUTABLE_OUTPUT_PATH "${BUILD_OUTPUT_ROOT_DIRECTORY}")
 
 include_directories(${PROJECT_SOURCE_DIR}/src/include)
 if (${COMPILER_FAMILY} STREQUAL "gcc")
-  include_directories(SYSTEM ${PROJECT_SOURCE_DIR}/third_party)
-else()
-  include_directories(${PROJECT_SOURCE_DIR}/third_party)
-endif()
+    include_directories(SYSTEM ${PROJECT_SOURCE_DIR}/third_party)
+else ()
+    include_directories(${PROJECT_SOURCE_DIR}/third_party)
+endif ()
 include_directories(${PROJECT_SOURCE_DIR}/test/include)
 include_directories(${PROJECT_SOURCE_DIR}/benchmark/include)
 include_directories(${PROJECT_BINARY_DIR})
 
 # needed for BwTree
 if (CMAKE_COMPILER_IS_GNUCXX)
-  set(TERRIER_LINK_LIBS ${TERRIER_LINK_LIBS} atomic)
-endif()
+    set(TERRIER_LINK_LIBS ${TERRIER_LINK_LIBS} atomic)
+endif ()
 
 set(TERRIER_LINK_LIBS
         ${TERRIER_LINK_LIBS}
         gflags
-        ${PTHREAD_LIBRARY}
-        gflags
-        pg_query)
-
-set(TERRIER_TEST_LINK_LIBS
-        test_util
-        terrier_static
-        gtest
-        gmock_main
         pg_query
         ${CMAKE_DL_LIBS})
 
-set(TERRIER_BENCHMARK_LINK_LIBS
+set(TERRIER_DEPENDENCIES
+        gflags)
+
+set(TERRIER_TEST_LINK_LIBS
+        ${TERRIER_LINK_LIBS}
         test_util
-        benchmark_util
-        terrier_static
         gtest
-        pg_query)
+        gmock_main)
+
+set(TERRIER_BENCHMARK_LINK_LIBS
+        ${TERRIER_LINK_LIBS}
+        benchmark_util
+        benchmark)
 
 # ---[ Subdirectories
 add_subdirectory(src)
