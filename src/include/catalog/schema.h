@@ -51,7 +51,7 @@ class Schema {
           attr_size_(type::TypeUtil::GetTypeSize(type_)),
           nullable_(nullable),
           oid_(INVALID_COLUMN_OID),
-          default_value_(common::ManagedPointer<const parser::AbstractExpression>(&default_value)) {
+          default_value_(default_value.Copy()) {
       TERRIER_ASSERT(attr_size_ == 1 || attr_size_ == 2 || attr_size_ == 4 || attr_size_ == 8,
                      "This constructor is meant for non-VARLEN columns.");
       TERRIER_ASSERT(type_ != type::TypeId::INVALID, "Attribute type cannot be INVALID.");
@@ -73,9 +73,26 @@ class Schema {
           max_varlen_size_(max_varlen_size),
           nullable_(nullable),
           oid_(INVALID_COLUMN_OID),
-          default_value_(common::ManagedPointer<const parser::AbstractExpression>(&default_value)) {
+          default_value_(default_value.Copy()) {
       TERRIER_ASSERT(attr_size_ == VARLEN_COLUMN, "This constructor is meant for VARLEN columns.");
       TERRIER_ASSERT(type_ != type::TypeId::INVALID, "Attribute type cannot be INVALID.");
+      TERRIER_ASSERT(default_value_.use_count() == 1, "This expression should only be shared using managed pointers");
+    }
+
+    /**
+     * Overrides default copy constructor to ensure we do a deep copy on the abstract expressions
+     * @param old_column to be copied
+     */
+    Column(const Column &old_column)
+        : name_(old_column.name_),
+          type_(old_column.type_),
+          attr_size_(old_column.attr_size_),
+          max_varlen_size_(old_column.max_varlen_size_),
+          nullable_(old_column.nullable_),
+          oid_(old_column.oid_),
+          default_value_(old_column.default_value_->Copy()) {
+      TERRIER_ASSERT(type_ != type::TypeId::INVALID, "Attribute type cannot be INVALID.");
+      TERRIER_ASSERT(default_value_.use_count() == 1, "This expression should only be shared using managed pointers");
     }
 
     /**
@@ -113,7 +130,10 @@ class Schema {
     /**
      * @return default value expression
      */
-    common::ManagedPointer<const parser::AbstractExpression> StoredExpression() const { return default_value_; }
+    common::ManagedPointer<const parser::AbstractExpression> StoredExpression() const {
+      TERRIER_ASSERT(default_value_.use_count() == 1, "This expression should only be shared using managed pointers");
+      return common::ManagedPointer(static_cast<const parser::AbstractExpression *>(default_value_.get()));
+    }
 
     /**
      * Default constructor for deserialization
@@ -131,6 +151,7 @@ class Schema {
       j["max_varlen_size"] = max_varlen_size_;
       j["nullable"] = nullable_;
       j["oid"] = oid_;
+      j["default_value"] = default_value_;
       return j;
     }
 
@@ -145,6 +166,7 @@ class Schema {
       max_varlen_size_ = j.at("max_varlen_size").get<uint16_t>();
       nullable_ = j.at("nullable").get<bool>();
       oid_ = j.at("oid").get<col_oid_t>();
+      default_value_ = parser::DeserializeExpression(j.at("default_value"));
     }
 
    private:
@@ -154,7 +176,9 @@ class Schema {
     uint16_t max_varlen_size_;
     bool nullable_;
     col_oid_t oid_;
-    common::ManagedPointer<const parser::AbstractExpression> default_value_;
+
+    // TODO(John) this should become a unique_ptr as part of addressing #489
+    std::shared_ptr<parser::AbstractExpression> default_value_;
 
     void SetOid(col_oid_t oid) { oid_ = oid; }
 
