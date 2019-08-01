@@ -1925,7 +1925,7 @@ void Setup() {
       b += a;
       a = (a ^ (a >> 41)) * k0;
       b = (b ^ (b >> 41)) * k0 + i;
-      uint8_t u = b >> 37;
+      uint8_t u = static_cast(uint8_t)(b >> 37);
       memcpy(global_data + i, &u, 1);  // uint8_t -> char
     }
   }
@@ -2429,19 +2429,19 @@ bool Test(int offset, int len = 0) {
   {
     uint128_t u = farmhashcc::Fingerprint128(global_data + offset, len);
     uint64_t h = Uint128Low64(u);
-    Check(h >> 32);
+    Check(static_cast<uint32_t>(h >> 32));
     Check((h << 32) >> 32);
     h = Uint128High64(u);
-    Check(h >> 32);
+    Check(static_cast<uint32_t>(h >> 32));
     Check((h << 32) >> 32);
   }
   {
     uint128_t u = farmhashcc::CityHash128WithSeed(global_data + offset, len, Uint128(SEED0, SEED1));
     uint64_t h = Uint128Low64(u);
-    Check(h >> 32);
+    Check(static_cast<uint32_t>(h >> 32));
     Check((h << 32) >> 32);
     h = Uint128High64(u);
-    Check(h >> 32);
+    Check(static_cast<uint32_t>(h >> 32));
     Check((h << 32) >> 32);
   }
 
@@ -3153,17 +3153,17 @@ bool Test(int offset, int len = 0) {
   }
   {
     uint64_t h = farmhashna::Hash64WithSeeds(global_data + offset, len, SEED0, SEED1);
-    Check(h >> 32);
+    Check(static_cast<uint32_t>(h >> 32));
     Check((h << 32) >> 32);
   }
   {
     uint64_t h = farmhashna::Hash64WithSeed(global_data + offset, len, SEED);
-    Check(h >> 32);
+    Check(static_cast<uint32_t>(h >> 32));
     Check((h << 32) >> 32);
   }
   {
     uint64_t h = farmhashna::Hash64(global_data + offset, len);
-    Check(h >> 32);
+    Check(static_cast<uint32_t>(h >> 32));
     Check((h << 32) >> 32);
   }
 
@@ -4393,17 +4393,17 @@ bool Test(int offset, int len = 0) {
   }
   {
     uint64_t h = farmhashte::Hash64WithSeeds(global_data + offset, len, SEED0, SEED1);
-    Check(h >> 32);
+    Check(static_cast<uint32_t>(h >> 32));
     Check((h << 32) >> 32);
   }
   {
     uint64_t h = farmhashte::Hash64WithSeed(global_data + offset, len, SEED);
-    Check(h >> 32);
+    Check(static_cast<uint32_t>(h >> 32));
     Check((h << 32) >> 32);
   }
   {
     uint64_t h = farmhashte::Hash64(global_data + offset, len);
-    Check(h >> 32);
+    Check(static_cast<uint32_t>(h >> 32));
     Check((h << 32) >> 32);
   }
 
@@ -4769,12 +4769,12 @@ bool Test(int offset, int len = 0) {
   }
   {
     uint64_t h = farmhashuo::Hash64WithSeed(global_data + offset, len, SEED);
-    Check(h >> 32);
+    Check(static_cast<uint32_t>(h >> 32));
     Check((h << 32) >> 32);
   }
   {
     uint64_t h = farmhashuo::Hash64(global_data + offset, len);
-    Check(h >> 32);
+    Check(static_cast<uint32_t>(h >> 32));
     Check((h << 32) >> 32);
   }
 
@@ -5217,17 +5217,17 @@ bool Test(int offset, int len = 0) {
   }
   {
     uint64_t h = farmhashxo::Hash64WithSeeds(global_data + offset, len, SEED0, SEED1);
-    Check(h >> 32);
+    Check(static_cast<uint32_t>(h >> 32));
     Check((h << 32) >> 32);
   }
   {
     uint64_t h = farmhashxo::Hash64WithSeed(global_data + offset, len, SEED);
-    Check(h >> 32);
+    Check(static_cast<uint32_t>(h >> 32));
     Check((h << 32) >> 32);
   }
   {
     uint64_t h = farmhashxo::Hash64(global_data + offset, len);
-    Check(h >> 32);
+    Check(static_cast<uint32_t>(h >> 32));
     Check((h << 32) >> 32);
   }
 
