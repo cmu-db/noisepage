@@ -1925,7 +1925,7 @@ void Setup() {
       b += a;
       a = (a ^ (a >> 41)) * k0;
       b = (b ^ (b >> 41)) * k0 + i;
-      uint8_t u = static_cast(uint8_t)(b >> 37);
+      uint8_t u = static_cast<uint8_t>(b >> 37);
       memcpy(global_data + i, &u, 1);  // uint8_t -> char
     }
   }
