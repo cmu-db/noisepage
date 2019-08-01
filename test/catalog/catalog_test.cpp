@@ -54,28 +54,28 @@ struct CatalogTests : public TerrierTest {
     TerrierTest::TearDown();
   }
 
-  void VerifyCatalogTables(catalog::CatalogAccessor *accessor) {
-    auto ns_oid = accessor->GetNamespaceOid("pg_catalog");
+  void VerifyCatalogTables(const catalog::CatalogAccessor &accessor) {
+    auto ns_oid = accessor.GetNamespaceOid("pg_catalog");
     EXPECT_NE(ns_oid, catalog::INVALID_NAMESPACE_OID);
     EXPECT_EQ(ns_oid, catalog::NAMESPACE_CATALOG_NAMESPACE_OID);
 
-    VerifyTablePresent(accessor, ns_oid, "pg_attribute");
-    VerifyTablePresent(accessor, ns_oid, "pg_class");
-    VerifyTablePresent(accessor, ns_oid, "pg_constraint");
-    VerifyTablePresent(accessor, ns_oid, "pg_index");
-    VerifyTablePresent(accessor, ns_oid, "pg_namespace");
-    VerifyTablePresent(accessor, ns_oid, "pg_type");
+    VerifyTablePresent(*accessor, ns_oid, "pg_attribute");
+    VerifyTablePresent(*accessor, ns_oid, "pg_class");
+    VerifyTablePresent(*accessor, ns_oid, "pg_constraint");
+    VerifyTablePresent(*accessor, ns_oid, "pg_index");
+    VerifyTablePresent(*accessor, ns_oid, "pg_namespace");
+    VerifyTablePresent(*accessor, ns_oid, "pg_type");
   }
 
-  void VerifyTablePresent(std::unique_ptr<catalog::CatalogAccessor> accessor, catalog::namespace_oid_t ns_oid,
+  void VerifyTablePresent(const catalog::CatalogAccessor &accessor, catalog::namespace_oid_t ns_oid,
                           const std::string &table_name) {
-    auto table_oid = accessor->GetTableOid(ns_oid, table_name);
+    auto table_oid = accessor.GetTableOid(ns_oid, table_name);
     EXPECT_NE(table_oid, catalog::INVALID_TABLE_OID);
   }
 
-  void VerifyTableAbsent(std::unique_ptr<catalog::CatalogAccessor> accessor, catalog::namespace_oid_t ns_oid,
+  void VerifyTableAbsent(const catalog::CatalogAccessor &accessor, catalog::namespace_oid_t ns_oid,
                          const std::string &table_name) {
-    auto table_oid = accessor->GetTableOid(ns_oid, table_name);
+    auto table_oid = accessor.GetTableOid(ns_oid, table_name);
     EXPECT_EQ(table_oid, catalog::INVALID_TABLE_OID);
   }
 
@@ -100,7 +100,7 @@ TEST_F(CatalogTests, DatabaseTest) {
   EXPECT_NE(db_oid, catalog::INVALID_DATABASE_OID);
   auto accessor = catalog_->GetAccessor(txn, db_oid);
   EXPECT_NE(accessor, nullptr);
-  VerifyCatalogTables(accessor);  // Check visibility to me
+  VerifyCatalogTables(*accessor);  // Check visibility to me
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
   // Cannot add a database twice
@@ -115,7 +115,7 @@ TEST_F(CatalogTests, DatabaseTest) {
   txn = txn_manager_->BeginTransaction();
   accessor = catalog_->GetAccessor(txn, db_oid);
   EXPECT_NE(accessor, nullptr);
-  VerifyCatalogTables(accessor);  // Check visibility to me
+  VerifyCatalogTables(*accessor);  // Check visibility to me
   tmp_oid = accessor->GetDatabaseOid("test_database");
   EXPECT_TRUE(accessor->DropDatabase(tmp_oid));
   tmp_oid = accessor->GetDatabaseOid("test_database");
@@ -140,7 +140,7 @@ TEST_F(CatalogTests, NamespaceTest) {
   EXPECT_NE(accessor, nullptr);
   auto ns_oid = accessor->CreateNamespace("test_namespace");
   EXPECT_NE(ns_oid, catalog::INVALID_NAMESPACE_OID);
-  VerifyCatalogTables(accessor);  // Check visibility to me
+  VerifyCatalogTables(*accessor);  // Check visibility to me
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
   txn = txn_manager_->BeginTransaction();
@@ -154,7 +154,7 @@ TEST_F(CatalogTests, NamespaceTest) {
   txn = txn_manager_->BeginTransaction();
   accessor = catalog_->GetAccessor(txn, db_);
   EXPECT_NE(accessor, nullptr);
-  VerifyCatalogTables(accessor);  // Check visibility to me
+  VerifyCatalogTables(*accessor);  // Check visibility to me
   ns_oid = accessor->GetNamespaceOid("test_namespace");
   EXPECT_TRUE(accessor->DropNamespace(ns_oid));
   ns_oid = accessor->GetNamespaceOid("test_namespace");
@@ -185,7 +185,7 @@ TEST_F(CatalogTests, UserTableTest) {
 
   auto table_oid = accessor->CreateTable(accessor->GetDefaultNamespace(), "test_table", tmp_schema);
   EXPECT_NE(table_oid, catalog::INVALID_TABLE_OID);
-  VerifyTablePresent(accessor, accessor->GetDefaultNamespace(), "test_table");
+  VerifyTablePresent(*accessor, accessor->GetDefaultNamespace(), "test_table");
   // Check lookup via search path
   EXPECT_EQ(table_oid, accessor->GetTableOid("test_table"));
   EXPECT_EQ(accessor->GetTable(table_oid), nullptr);  // Check that allocation has not happened
@@ -280,7 +280,7 @@ TEST_F(CatalogTests, UserSearchPathTest) {
   EXPECT_EQ(public_ns_oid, catalog::NAMESPACE_DEFAULT_NAMESPACE_OID);
   auto test_ns_oid = accessor->CreateNamespace("test");
   EXPECT_NE(test_ns_oid, catalog::INVALID_NAMESPACE_OID);
-  VerifyCatalogTables(accessor);  // Check visibility to me
+  VerifyCatalogTables(*accessor);  // Check visibility to me
 
   // Create the column definition (no OIDs)
   std::vector<catalog::Schema::Column> cols;
