@@ -262,7 +262,7 @@ class CatalogAccessor {
  private:
   const common::ManagedPointer<Catalog> catalog_;
   const common::ManagedPointer<DatabaseCatalog> dbc_;
-  const transaction::TransactionContext *txn_;
+  transaction::TransactionContext *txn_;
   const db_oid_t db_oid_;
   std::vector<namespace_oid_t> search_path_;
   namespace_oid_t default_namespace_;
