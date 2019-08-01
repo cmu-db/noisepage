@@ -204,9 +204,7 @@ uint32_t RecoveryManager::ProcessSpecialCaseCatalogRecord(
         TERRIER_ASSERT(class_kind = catalog::postgres::ClassKind::REGULAR_TABLE, "Updates to schemas in pg_class should only happen for tables");
 
         // Step 2: Query pg_attribute for the columns and recreate the schema
-        std::vector<std::unique_ptr<catalog::Schema::Column>> ptr_cols = db_catalog->GetAttributes(txn, class_oid);
-        std::vector<catalog::Schema::Column> schema_cols;
-        for (auto col : ptr_cols) schema_cols.push_back(*col);
+        auto schema_cols = db_catalog->GetColumns<catalog::Schema::Column>(txn, class_oid);
         auto *schema = new catalog::Schema(std::move(schema_cols));
 
         // Step 3: Update the schema in the catalog
@@ -230,9 +228,7 @@ uint32_t RecoveryManager::ProcessSpecialCaseCatalogRecord(
         // Case on whether we are creating a table or index
         if (class_kind == catalog::postgres::ClassKind::REGULAR_TABLE) {
           // Step 2: Query pg_attribute for the columns of the table
-          auto ptr_cols = db_catalog->GetAttributes<catalog::Schema::Column>(txn, class_oid);
-          std::vector<catalog::Schema::Column> schema_cols;
-          for (auto col : ptr_cols) schema_cols.push_back(*col);
+          auto schema_cols = db_catalog->GetColumns<catalog::Schema::Column>(txn, class_oid);
 
           // Step 3: Create schema and object
           auto *schema = new catalog::Schema(std::move(schema_cols));
@@ -248,7 +244,7 @@ uint32_t RecoveryManager::ProcessSpecialCaseCatalogRecord(
 
         } else if (class_kind == catalog::postgres::ClassKind::INDEX) {
           // Step 2: Query pg_attribute for the columns of the index
-          auto ptr_cols = db_catalog->GetAttributes<catalog::IndexSchema::Column>(txn, class_oid);
+          auto index_cols = db_catalog->GetColumns<catalog::IndexSchema::Column>(txn, class_oid);
 
           // Step 3: Query pg_index for the metadata we need for the index schema
           auto pg_indexes_index = db_catalog->indexes_oid_index_;
@@ -276,8 +272,6 @@ uint32_t RecoveryManager::ProcessSpecialCaseCatalogRecord(
               *(reinterpret_cast<bool *>(pr->AccessWithNullCheck(pg_index_pr_map[catalog::INDIMMEDIATE_COL_OID])));
 
           // Step 4: Create IndexSchema and index object
-          std::vector<catalog::IndexSchema::Column> index_cols(ptr_cols.size());
-          for (auto col : ptr_cols) index_cols.push_back(*col);
           auto *index_schema = new catalog::IndexSchema(index_cols, is_unique, is_primary, is_exclusion, is_immediate);
           auto *index =
               index::IndexBuilder()

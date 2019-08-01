@@ -175,7 +175,7 @@ void LargeSqlTableTestObject::PopulateInitialTables(uint16_t num_databases, uint
   for (uint16_t db_idx = 0; db_idx < num_databases; db_idx++) {
     // Create database in catalog
     auto database_oid = catalog_.CreateDatabase(initial_txn_, "database" + std::to_string(db_idx), true);
-    TERRIER_ASSERT(database_oid != INVALID_DATABASE_OID, "Database creation should always succeed");
+    TERRIER_ASSERT(database_oid != catalog::INVALID_DATABASE_OID, "Database creation should always succeed");
     database_oids_.emplace_back(database_oid);
 
     for (uint16_t table_idx = 0; table_idx < num_tables; table_idx++) {
@@ -185,7 +185,7 @@ void LargeSqlTableTestObject::PopulateInitialTables(uint16_t num_databases, uint
       auto db_catalog_ptr = catalog_.GetDatabaseCatalog(initial_txn_, database_oid);
       auto table_oid = db_catalog_ptr->CreateTable(initial_txn_, CatalogTestUtil::test_namespace_oid,
                                                    "table" + std::to_string(table_idx), *schema);
-      TERRIER_ASSERT(table_oid != INVALID_TABLE_OID, "Table creation should always succeed");
+      TERRIER_ASSERT(table_oid != catalog::INVALID_TABLE_OID, "Table creation should always succeed");
       table_oids_[database_oid].emplace_back(table_oid);
       auto *sql_table = new storage::SqlTable(block_store, *schema);
       auto result UNUSED_ATTRIBUTE = db_catalog_ptr->SetTablePointer(initial_txn_, table_oid, sql_table);

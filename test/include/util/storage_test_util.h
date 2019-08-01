@@ -354,8 +354,8 @@ class StorageTestUtil {
     return result;
   }
 
-  static bool SqlTableEqualDeep(const storage::BlockLayout &layout, const storage::SqlTable *table_one,
-                                const storage::SqlTable *table_two,
+  static bool SqlTableEqualDeep(const storage::BlockLayout &layout, common::ManagedPointer<storage::SqlTable> table_one,
+                                common::ManagedPointer<storage::SqlTable> table_two,
                                 const std::vector<storage::TupleSlot> &table_one_tuples,
                                 const std::unordered_map<storage::TupleSlot, storage::TupleSlot> &tuple_slot_map,
                                 transaction::TransactionManager *txn_manager) {

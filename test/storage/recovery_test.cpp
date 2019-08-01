@@ -1,6 +1,7 @@
 #include <unordered_map>
 #include <vector>
 #include "gtest/gtest.h"
+#include "catalog/catalog.h"
 #include "main/db_main.h"
 #include "storage/garbage_collector_thread.h"
 #include "storage/recovery/disk_log_provider.h"
@@ -70,47 +71,51 @@ TEST_F(RecoveryTests, SingleTableTest) {
                                        .SetLogManager(log_manager_)
                                        .build();
 
-  EXPECT_EQ(1, tested.GetDatabases().size());
-  auto database_oid = tested.GetDatabases()[0];
-  EXPECT_EQ(1, tested.GetTablesForDatabase(database_oid).size());
-  auto table_oid = tested.GetTablesForDatabase(database_oid)[0];
-
   // Run transactions
   tested.SimulateOltp(100, 4);
   log_manager_->PersistAndStop();
 
-  auto *original_sql_table = tested.GetTable(database_oid, table_oid);
-  auto *table_schema = tested.GetSchemaForTable(database_oid, table_oid);
-
-  // Create recovery table and dummy catalog
-  auto *recovered_sql_table = new storage::SqlTable(&block_store_, *table_schema, table_oid);
-  storage::RecoveryCatalog catalog;
-  catalog[database_oid][table_oid] = recovered_sql_table;
+  // Get SQL table the test object created
+  EXPECT_EQ(1, tested.GetDatabases().size());
+  auto database_oid = tested.GetDatabases()[0];
+  EXPECT_EQ(1, tested.GetTablesForDatabase(database_oid).size());
+  auto table_oid = tested.GetTablesForDatabase(database_oid)[0];
+  auto original_sql_table = tested.GetTable(database_oid, table_oid);
 
   // Start a transaction manager with logging disabled, we don't want to log the log replaying
-  transaction::TransactionManager recovery_txn_manager_{&pool_, true, LOGGING_DISABLED};
+  transaction::TransactionManager recovery_txn_manager{&pool_, true, LOGGING_DISABLED};
+
+  // Create catalog for recovery
+  catalog::Catalog recovered_catalog(&recovery_txn_manager, &block_store_);
 
   // Instantiate recovery manager, and recover the tables.
   DiskLogProvider log_provider(LOG_FILE_NAME);
   recovery_manager_ =
-      new RecoveryManager(&log_provider, &catalog, &recovery_txn_manager_, common::ManagedPointer(&thread_registry_));
+      new RecoveryManager(&log_provider, &recovered_catalog, &recovery_txn_manager, common::ManagedPointer(&thread_registry_), &block_store_);
   recovery_manager_->StartRecovery();
   recovery_manager_->FinishRecovery();
+
+  // Get Recovered table
+  auto *txn = recovery_txn_manager.BeginTransaction();
+  auto db_catalog = recovered_catalog.GetDatabaseCatalog(txn, database_oid);
+  EXPECT_TRUE(db_catalog != nullptr);
+  auto recovered_sql_table = db_catalog->GetTable(txn, table_oid);
+  EXPECT_TRUE(recovered_sql_table != nullptr);
+  recovery_txn_manager.Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
   // Check we recovered all the original tuples
   EXPECT_TRUE(StorageTestUtil::SqlTableEqualDeep(original_sql_table->Layout(), original_sql_table, recovered_sql_table,
                                                  tested.GetTupleSlotsForTable(database_oid, table_oid),
-                                                 recovery_manager_->tuple_slot_map_, &recovery_txn_manager_));
+                                                 recovery_manager_->tuple_slot_map_, &recovery_txn_manager));
 
   // Delete test txns
   gc_thread_ = new storage::GarbageCollectorThread(tested.GetTxnManager(), gc_period_);
   delete gc_thread_;
 
   // Delete recovery txns
-  gc_thread_ = new storage::GarbageCollectorThread(&recovery_txn_manager_, gc_period_);
+  gc_thread_ = new storage::GarbageCollectorThread(&recovery_txn_manager, gc_period_);
   delete gc_thread_;
   delete recovery_manager_;
-  delete recovered_sql_table;
   delete log_manager_;
 }
 

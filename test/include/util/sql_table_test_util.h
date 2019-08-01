@@ -72,7 +72,7 @@ class RandomSqlTableTransaction {
   friend class LargeSqlTableTestObject;
   LargeSqlTableTestObject *test_object_;
   transaction::TransactionContext *txn_;
-  // extra bookkeeping for correctness checks
+  // extra bookkeeping for abort count
   bool aborted_;
 };
 
@@ -263,10 +263,13 @@ class LargeSqlTableTestObject {
    * @param table_oid table oid
    * @return SqlTable pointer for requested table
    */
-  const storage::SqlTable *GetTable(catalog::db_oid_t db_oid, catalog::table_oid_t table_oid) {
+  const common::ManagedPointer<storage::SqlTable> GetTable(catalog::db_oid_t db_oid, catalog::table_oid_t table_oid) {
     TERRIER_ASSERT(tables_.find(db_oid) != tables_.end(), "Requested database was not created");
     TERRIER_ASSERT(tables_[db_oid].find(table_oid) != tables_[db_oid].end(), "Requested table was not created");
-    return catalog_.GetDatabaseCatalog(txn_, database_oid)->GetTable(txn_, table_oid);
+    auto txn = txn_manager_.BeginTransaction();
+    auto result = catalog_.GetDatabaseCatalog(txn, db_oid)->GetTable(txn, table_oid);
+    txn_manager_.Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+    return result;
   }
 
   /**
@@ -274,10 +277,13 @@ class LargeSqlTableTestObject {
    * @param table_oid table oid
    * @return schema requested table
    */
-  const catalog::Schema *GetSchemaForTable(catalog::db_oid_t db_oid, catalog::table_oid_t table_oid) {
+  const catalog::Schema GetSchemaForTable(catalog::db_oid_t db_oid, catalog::table_oid_t table_oid) {
     TERRIER_ASSERT(tables_.find(db_oid) != tables_.end(), "Requested database was not created");
     TERRIER_ASSERT(tables_[db_oid].find(table_oid) != tables_[db_oid].end(), "Requested table was not created");
-    return catalog_.GetDatabaseCatalog(txn, db_oid)->GetSchema(txn, table_oid);
+    auto txn = txn_manager_.BeginTransaction();
+    auto result = catalog_.GetDatabaseCatalog(txn, db_oid)->GetSchema(txn, table_oid);
+    txn_manager_.Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+    return result;
   }
 
   const std::vector<storage::TupleSlot> &GetTupleSlotsForTable(catalog::db_oid_t db_oid,
@@ -300,7 +306,6 @@ class LargeSqlTableTestObject {
    * @param block_store the block store to use for the underlying data table
    * @param buffer_pool the buffer pool to use for simulated transactions
    * @param generator the random generator to use for the test
-   * @param gc_on whether gc is enabled
    */
   LargeSqlTableTestObject(uint16_t num_databases, uint16_t num_tables, uint16_t max_columns,
                           uint32_t initial_table_size, uint32_t txn_length,
