@@ -263,15 +263,13 @@ class CatalogAccessor {
    * Instantiates a new accessor into the catalog for the given database.
    * @param catalog pointer to the catalog being accessed
    * @param txn the transaction context for this accessor
-   * @param database the OID of the database
    * @warning This constructor should never be called directly.  Instead you should get accessors from the catalog.
    */
   CatalogAccessor(common::ManagedPointer<Catalog> catalog, common::ManagedPointer<DatabaseCatalog> dbc,
-                  transaction::TransactionContext *txn, db_oid_t database)
+                  transaction::TransactionContext *txn)
       : catalog_(catalog),
         dbc_(dbc),
         txn_(txn),
-        db_oid_(database),
         search_path_({NAMESPACE_CATALOG_NAMESPACE_OID, NAMESPACE_DEFAULT_NAMESPACE_OID}),
         default_namespace_(NAMESPACE_DEFAULT_NAMESPACE_OID) {}
 
@@ -279,7 +277,6 @@ class CatalogAccessor {
   const common::ManagedPointer<Catalog> catalog_;
   const common::ManagedPointer<DatabaseCatalog> dbc_;
   transaction::TransactionContext *txn_;
-  const db_oid_t db_oid_;
   std::vector<namespace_oid_t> search_path_;
   namespace_oid_t default_namespace_;
 
