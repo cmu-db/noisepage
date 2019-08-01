@@ -824,7 +824,7 @@ bool DatabaseCatalog::DeleteIndex(transaction::TransactionContext *txn, index_oi
 
   // Select the tuple out of the table before deletion. We need the attributes to do index deletions later
   auto *table_pr = class_pr_init.InitializeRow(buffer);
-  auto result = classes_->Select(txn, index_results[0], table_pr);
+  result = classes_->Select(txn, index_results[0], table_pr);
   TERRIER_ASSERT(result, "Select must succeed if the index scan gave a visible result.");
 
   // Delete from pg_classes table
