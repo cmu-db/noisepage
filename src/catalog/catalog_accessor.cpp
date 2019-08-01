@@ -23,7 +23,7 @@ void CatalogAccessor::SetSearchPath(std::vector<namespace_oid_t> namespaces) {
   default_namespace_ = namespaces[0];
   search_path_ = std::move(namespaces);
 
-    // Check if 'pg_catalog is explicitly set'
+  // Check if 'pg_catalog is explicitly set'
   for (auto &ns : search_path_)
     if (ns == NAMESPACE_CATALOG_NAMESPACE_OID) return;
 
@@ -102,7 +102,9 @@ index_oid_t CatalogAccessor::GetIndexOid(namespace_oid_t ns, std::string name) c
   return dbc_->GetIndexOid(txn_, ns, name);
 }
 
-std::vector<index_oid_t> CatalogAccessor::GetIndexOids(table_oid_t table) const { return dbc_->GetIndexes(txn_, table); }
+std::vector<index_oid_t> CatalogAccessor::GetIndexOids(table_oid_t table) const {
+  return dbc_->GetIndexes(txn_, table);
+}
 
 index_oid_t CatalogAccessor::CreateIndex(namespace_oid_t ns, table_oid_t table, std::string name,
                                          const IndexSchema &schema) const {
@@ -110,7 +112,9 @@ index_oid_t CatalogAccessor::CreateIndex(namespace_oid_t ns, table_oid_t table, 
   return dbc_->CreateIndex(txn_, ns, name, table, schema);
 }
 
-const IndexSchema &CatalogAccessor::GetIndexSchema(index_oid_t index) const { return dbc_->GetIndexSchema(txn_, index); }
+const IndexSchema &CatalogAccessor::GetIndexSchema(index_oid_t index) const {
+  return dbc_->GetIndexSchema(txn_, index);
+}
 
 bool CatalogAccessor::DropIndex(index_oid_t index) const { return dbc_->DeleteIndex(txn_, index); }
 
