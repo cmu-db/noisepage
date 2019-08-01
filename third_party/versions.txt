@@ -29,3 +29,17 @@ GBENCHMARK_VERSION=1.4.1
 # branch: v1.x
 # commit hash: 8179b26388d118fa887030f2609560ec287531dd
 # commit hash date: 7 Aug 2018
+
+# farmhash
+# url: https://github.com/google/farmhash.git
+# branch: master
+# commit hash: 0d859a811870d10f53a594927d0d0b97573ad06d
+# commit hash date: 13 May 2019
+# modifications: converted some implicit casts to static_casts to clean up -wpedantic warnings in GCC. formatted
+
+# libcuckoo
+# url: https://github.com/efficient/libcuckoo.git
+# branch: master
+# commit hash: f3138045810b2c2e9b59dbede296b4a5194af4f9
+# commit hash date: 24 Dec 2018
+# modifications: replaced their own-rolled spinlock with TBB's to get exponential backoff with pause. formatted
