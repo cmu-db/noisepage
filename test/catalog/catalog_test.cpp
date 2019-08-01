@@ -6,7 +6,6 @@
 #include "catalog/catalog_accessor.h"
 #include "catalog/catalog_defs.h"
 #include "catalog/postgres/pg_namespace.h"
-#include "common/managed_pointer.h"
 #include "parser/expression/column_value_expression.h"
 #include "parser/expression/constant_value_expression.h"
 #include "storage/garbage_collector.h"
@@ -68,13 +67,13 @@ struct CatalogTests : public TerrierTest {
     VerifyTablePresent(accessor, ns_oid, "pg_type");
   }
 
-  void VerifyTablePresent(common::ManagedPointer<catalog::CatalogAccessor> accessor, catalog::namespace_oid_t ns_oid,
+  void VerifyTablePresent(std::unique_ptr<catalog::CatalogAccessor> accessor, catalog::namespace_oid_t ns_oid,
                           const std::string &table_name) {
     auto table_oid = accessor->GetTableOid(ns_oid, table_name);
     EXPECT_NE(table_oid, catalog::INVALID_TABLE_OID);
   }
 
-  void VerifyTableAbsent(common::ManagedPointer<catalog::CatalogAccessor> accessor, catalog::namespace_oid_t ns_oid,
+  void VerifyTableAbsent(std::unique_ptr<catalog::CatalogAccessor> accessor, catalog::namespace_oid_t ns_oid,
                          const std::string &table_name) {
     auto table_oid = accessor->GetTableOid(ns_oid, table_name);
     EXPECT_EQ(table_oid, catalog::INVALID_TABLE_OID);
