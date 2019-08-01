@@ -1598,13 +1598,6 @@ template bool DatabaseCatalog::CreateColumn<IndexSchema::Column, index_oid_t>(
     transaction::TransactionContext *const txn, const index_oid_t class_oid, const indexkeycol_oid_t col_oid,
     const IndexSchema::Column &col);
 
-// template Schema::Column DatabaseCatalog::GetColumn<Schema::Column, table_oid_t, col_oid_t>(
-//     transaction::TransactionContext *const txn, const table_oid_t class_oid, const col_oid_t col_oid);
-
-// template IndexSchema::Column
-// DatabaseCatalog::GetColumn<IndexSchema::Column, index_oid_t, indexkeycol_oid_t>(
-//     transaction::TransactionContext *const txn, const index_oid_t class_oid, const indexkeycol_oid_t col_oid);
-
 template std::vector<Schema::Column> DatabaseCatalog::GetColumns<Schema::Column, table_oid_t, col_oid_t>(
     transaction::TransactionContext *const txn, const table_oid_t class_oid);
 

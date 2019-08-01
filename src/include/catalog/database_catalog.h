@@ -248,19 +248,6 @@ class DatabaseCatalog {
    */
   template <typename Column, typename ClassOid, typename ColOid>
   bool CreateColumn(transaction::TransactionContext *txn, ClassOid class_oid, ColOid col_oid, const Column &col);
-
-  /**
-   * Get entry from pg_attribute
-   * @tparam Column type of columns
-   * @param txn txn to use
-   * @param col_oid oid of the table or index column
-   * @param class_oid oid of table or index
-   * @return the column from pg_attribute
-   */
-  // template <typename Column, typename ClassOid, typename ColOid>
-  // Column GetColumn(transaction::TransactionContext *txn, ClassOid class_oid, ColOid col_oid);
-  // TODO(Matt): make this return stack object
-
   /**
    * Get entries from pg_attribute
    * @tparam Column type of columns
@@ -270,7 +257,6 @@ class DatabaseCatalog {
    */
   template <typename Column, typename ClassOid, typename ColOid>
   std::vector<Column> GetColumns(transaction::TransactionContext *txn, ClassOid class_oid);
-  // TODO(Matt): make this return stack object
 
   /**
    * Delete entries from pg_attribute
