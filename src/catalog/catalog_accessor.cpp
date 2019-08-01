@@ -20,19 +20,13 @@ bool CatalogAccessor::DropDatabase(db_oid_t db) { return catalog_->DeleteDatabas
 void CatalogAccessor::SetSearchPath(std::vector<namespace_oid_t> namespaces) {
   TERRIER_ASSERT(!namespaces.empty(), "search path cannot be empty");
   default_namespace_ = namespaces[0];
+  search_path_ = std::move(namespaces);
 
-  for (auto ns : namespaces) {
     // Check if 'pg_catalog is explicitly set'
-    if (ns == NAMESPACE_CATALOG_NAMESPACE_OID) {
-      search_path_ = std::move(namespaces);
-      return;
-    }
-  }
+  for (auto ns : namespaces)
+    if (ns == NAMESPACE_CATALOG_NAMESPACE_OID) return;
 
-  search_path_.clear();
-  search_path_.reserve(namespaces.size() + 1);
-  search_path_.emplace_back(NAMESPACE_CATALOG_NAMESPACE_OID);
-  for (auto ns : namespaces) search_path_.emplace_back(ns);
+  search_path_.emplace(search_path_.begin(), NAMESPACE_CATALOG_NAMESPACE_OID);
 }
 
 namespace_oid_t CatalogAccessor::GetNamespaceOid(std::string name) {
