@@ -551,7 +551,7 @@ table_oid_t DatabaseCatalog::CreateTable(transaction::TransactionContext *const 
 
 bool DatabaseCatalog::DeleteTable(transaction::TransactionContext *const txn, const table_oid_t table) {
   // We should respect foreign key relations and attempt to delete the table's columns first
-  auto result = DeleteColumns(txn, table);
+  auto result = DeleteColumns<Schema::Column, table_oid_t>(txn, table);
   if (!result) return false;
 
   const auto oid_pri = classes_oid_index_->GetProjectedRowInitializer();
@@ -795,7 +795,7 @@ index_oid_t DatabaseCatalog::CreateIndex(transaction::TransactionContext *txn, n
 
 bool DatabaseCatalog::DeleteIndex(transaction::TransactionContext *txn, index_oid_t index) {
   // We should respect foreign key relations and attempt to delete the table's columns first
-  auto result = DeleteColumns(txn, index);
+  auto result = DeleteColumns<IndexSchema::Column, indexkeycol_oid_t>(txn, index);
   if (!result) return false;
 
   // Initialize PRs for pg_class
