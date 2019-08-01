@@ -177,7 +177,7 @@ std::unique_ptr<CatalogAccessor> Catalog::GetAccessor(transaction::TransactionCo
   auto dbc = this->GetDatabaseCatalog(txn, database);
   if (dbc == nullptr) return nullptr;
   auto accessor = new CatalogAccessor(common::ManagedPointer(this), dbc, txn, database);
-  return std::make_unique(accessor);
+  return std::make_unique<CatalogAccessor>(accessor);
 }
 
 bool Catalog::CreateDatabaseEntry(transaction::TransactionContext *const txn, const db_oid_t db,
