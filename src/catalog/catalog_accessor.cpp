@@ -67,7 +67,7 @@ bool CatalogAccessor::RenameTable(table_oid_t table, std::string new_table_name)
 
 bool CatalogAccessor::DropTable(table_oid_t table) const { return dbc_->DeleteTable(txn_, table); }
 
-bool CatalogAccessor::SetTablePointer(table_oid_t table, storage::SqlTable *table_ptr) {
+bool CatalogAccessor::SetTablePointer(table_oid_t table, storage::SqlTable *table_ptr) const {
   return dbc_->SetTablePointer(txn_, table, table_ptr);
 }
 
