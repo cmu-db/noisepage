@@ -550,6 +550,10 @@ table_oid_t DatabaseCatalog::CreateTable(transaction::TransactionContext *const 
 }
 
 bool DatabaseCatalog::DeleteTable(transaction::TransactionContext *const txn, const table_oid_t table) {
+  // We should respect foreign key relations and attempt to delete the table's columns first
+  auto result = DeleteColumns(txn, table);
+  if (!result) return false;
+
   const auto oid_pri = classes_oid_index_->GetProjectedRowInitializer();
 
   // NOLINTNEXTLINE
@@ -575,7 +579,7 @@ bool DatabaseCatalog::DeleteTable(transaction::TransactionContext *const txn, co
 
   // Select the tuple out of the table before deletion. We need the attributes to do index deletions later
   auto *const table_pr = pr_init.InitializeRow(buffer);
-  auto result = classes_->Select(txn, index_results[0], table_pr);
+  result = classes_->Select(txn, index_results[0], table_pr);
   TERRIER_ASSERT(result, "Select must succeed if the index scan gave a visible result.");
 
   // Delete from pg_classes table
@@ -697,11 +701,11 @@ table_oid_t DatabaseCatalog::GetTableOid(transaction::TransactionContext *const 
 
 bool DatabaseCatalog::SetTablePointer(transaction::TransactionContext *const txn, const table_oid_t table,
                                       const storage::SqlTable *const table_ptr) {
-  auto *tm = txn->GetTransactionManager();
+  auto *txn_manager = txn->GetTransactionManager();
 
   // We need to defer the deletion because their may be subsequent undo records into this table that need to be GCed
   // before we can safely delete this.
-  txn->RegisterAbortAction([=]() { tm->DeferAction([=]() { delete table_ptr; }); });
+  txn->RegisterAbortAction([=]() { txn_manager->DeferAction([=]() { delete table_ptr; }); });
   return SetClassPointer(txn, table, table_ptr);
 }
 
@@ -790,6 +794,10 @@ index_oid_t DatabaseCatalog::CreateIndex(transaction::TransactionContext *txn, n
 }
 
 bool DatabaseCatalog::DeleteIndex(transaction::TransactionContext *txn, index_oid_t index) {
+  // We should respect foreign key relations and attempt to delete the table's columns first
+  auto result = DeleteColumns(txn, index);
+  if (!result) return false;
+
   // Initialize PRs for pg_class
   const auto class_oid_pri = classes_oid_index_->GetProjectedRowInitializer();
   // NOLINTNEXTLINE
@@ -970,11 +978,11 @@ bool DatabaseCatalog::SetClassPointer(transaction::TransactionContext *const txn
 
 bool DatabaseCatalog::SetIndexPointer(transaction::TransactionContext *const txn, const index_oid_t index,
                                       const storage::index::Index *const index_ptr) {
-  auto *tm = txn->GetTransactionManager();
+  auto *txn_manager = txn->GetTransactionManager();
 
   // This needs to be deferred because if any items were subsequently inserted into this index, they will have deferred
   // abort actions that will be above this action on the abort stack.  The defer ensures we execute after them.
-  txn->RegisterAbortAction([=]() { tm->DeferAction([=]() { delete index_ptr; }); });
+  txn->RegisterAbortAction([=]() { txn_manager->DeferAction([=]() { delete index_ptr; }); });
   return SetClassPointer(txn, index, index_ptr);
 }
 
@@ -1234,8 +1242,8 @@ bool DatabaseCatalog::CreateIndexEntry(transaction::TransactionContext *const tx
   // Write the col oids into a new Schema object
   indexkeycol_oid_t curr_col_oid(1);
   for (auto &col : schema.GetColumns()) {
-    auto result = CreateColumn(txn, index_oid, curr_col_oid++, col);
-    if (!result) return false;
+    auto success = CreateColumn(txn, index_oid, curr_col_oid++, col);
+    if (!success) return false;
   }
 
   std::vector<IndexSchema::Column> cols =
@@ -1467,8 +1475,8 @@ bool DatabaseCatalog::CreateTableEntry(transaction::TransactionContext *const tx
   // Write the col oids into a new Schema object
   col_oid_t curr_col_oid(1);
   for (auto &col : schema.GetColumns()) {
-    auto result = CreateColumn(txn, table_oid, curr_col_oid++, col);
-    if (!result) return false;
+    auto success = CreateColumn(txn, table_oid, curr_col_oid++, col);
+    if (!success) return false;
   }
 
   std::vector<Schema::Column> cols = GetColumns<Schema::Column, table_oid_t, col_oid_t>(txn, table_oid);

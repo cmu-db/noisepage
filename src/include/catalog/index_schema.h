@@ -162,7 +162,7 @@ class IndexSchema {
     indexkeycol_oid_t oid_;
     uint32_t packed_type_;
 
-    // TODO(John) this should go back to being a raw pointer once #386 is in
+    // TODO(John) this should become a unique_ptr as part of addressing #489
     std::shared_ptr<parser::AbstractExpression> definition_;
 
     // TODO(John): Should these "OIDS" be implicitly set by the index in the columns?
