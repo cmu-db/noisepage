@@ -69,12 +69,13 @@ class InsertPlanNode : public AbstractPlanNode {
     }
 
     /**
-     * @param value_idx index of value in values vector
      * @param col_oid oid of column where value at value_idx should be inserted
      * @return builder object
+     * @warning The caller must push column index in order. The ith call to AddParameterInfo means for a value tuple
+     * values_[t], values_[t][i] will be inserted into the column indicated by the input col_oid.
      */
-    Builder &AddParameterInfo(uint32_t value_idx, catalog::col_oid_t col_oid) {
-      parameter_info_.emplace(value_idx, col_oid);
+    Builder &AddParameterInfo(catalog::col_oid_t col_oid) {
+      parameter_info_.emplace_back(col_oid);
       return *this;
     }
 
@@ -117,7 +118,7 @@ class InsertPlanNode : public AbstractPlanNode {
      * values_[t], the value at index i (values_[t][i]) should be inserted into column parameter_info_[i]
      * @warning This relies on the assumption that values are ordered the same for every tuple in the bulk insert
      */
-    std::unordered_map<uint32_t /* value index */, catalog::col_oid_t> parameter_info_;
+    std::vector<catalog::col_oid_t> parameter_info_;
   };
 
  private:
@@ -133,7 +134,7 @@ class InsertPlanNode : public AbstractPlanNode {
   InsertPlanNode(std::vector<std::shared_ptr<AbstractPlanNode>> &&children, std::shared_ptr<OutputSchema> output_schema,
                  catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid,
                  std::vector<std::vector<type::TransientValue>> &&values,
-                 std::unordered_map<uint32_t, catalog::col_oid_t> &&parameter_info)
+                 std::vector<catalog::col_oid_t> &&parameter_info)
       : AbstractPlanNode(std::move(children), std::move(output_schema)),
         database_oid_(database_oid),
         namespace_oid_(namespace_oid),
@@ -177,7 +178,7 @@ class InsertPlanNode : public AbstractPlanNode {
   /**
    * @return the information of insert parameters
    */
-  const std::unordered_map<uint32_t, catalog::col_oid_t> &GetParameterInfo() const { return parameter_info_; }
+  const std::vector<catalog::col_oid_t> &GetParameterInfo() const { return parameter_info_; }
 
   /**
    * @param value_idx index of value being inserted
@@ -228,7 +229,7 @@ class InsertPlanNode : public AbstractPlanNode {
    * values_[t], the value at index i (values_[t][i]) should be inserted into column parameter_info_[i]
    * @warning This relies on the assumption that values are ordered the same for every tuple in the bulk insert
    */
-  std::unordered_map<uint32_t /* value index */, catalog::col_oid_t> parameter_info_;
+  std::vector<catalog::col_oid_t> parameter_info_;
 };
 
 DEFINE_JSON_DECLARATIONS(InsertPlanNode);
