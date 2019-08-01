@@ -795,7 +795,7 @@ index_oid_t DatabaseCatalog::CreateIndex(transaction::TransactionContext *txn, n
 
 bool DatabaseCatalog::DeleteIndex(transaction::TransactionContext *txn, index_oid_t index) {
   // We should respect foreign key relations and attempt to delete the table's columns first
-  auto result = DeleteColumns<IndexSchema::Column, indexkeycol_oid_t>(txn, index);
+  auto result = DeleteColumns<IndexSchema::Column, index_oid_t>(txn, index);
   if (!result) return false;
 
   // Initialize PRs for pg_class
