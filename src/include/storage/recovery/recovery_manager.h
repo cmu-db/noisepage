@@ -88,9 +88,7 @@ class RecoveryManager : public common::DedicatedThreadOwner {
   uint32_t GetRecoveredTxnCount() const { return recovered_txns_; }
 
  private:
-  FRIEND_TEST(RecoveryTests, SingleTableTest);
-  FRIEND_TEST(RecoveryTests, HighAbortRateTest);
-  FRIEND_TEST(RecoveryTests, MultiDatabaseTest);
+  friend class RecoveryTests;
 
   // Log provider for reading in logs
   AbstractLogProvider *log_provider_;

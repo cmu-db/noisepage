@@ -47,76 +47,78 @@ class RecoveryTests : public TerrierTest {
     unlink(LOG_FILE_NAME);
     TerrierTest::TearDown();
   }
+
+  void RunTest(LargeSqlTableTestConfiguration &config) {
+    // Initialize table and run workload with logging enabled
+    log_manager_ = new LogManager(LOG_FILE_NAME, num_log_buffers_, log_serialization_interval_, log_persist_interval_,
+                                  log_persist_threshold_, &pool_, common::ManagedPointer(&thread_registry_));
+    log_manager_->Start();
+    LargeSqlTableTestObject tested = LargeSqlTableTestObject(config, &block_store_, &pool_, &generator_, log_manager_);
+
+    // Run transactions and fully persist all changes
+    tested.SimulateOltp(100, 4);
+    log_manager_->PersistAndStop();
+
+    // Start a transaction manager with logging disabled, we don't want to log the log replaying
+    transaction::TransactionManager recovery_txn_manager{&pool_, true, LOGGING_DISABLED};
+
+    // Create catalog for recovery
+    catalog::Catalog recovered_catalog(&recovery_txn_manager, &block_store_);
+
+    // Instantiate recovery manager, and recover the tables.
+    DiskLogProvider log_provider(LOG_FILE_NAME);
+    recovery_manager_ =
+        new RecoveryManager(&log_provider, &recovered_catalog, &recovery_txn_manager, common::ManagedPointer(&thread_registry_), &block_store_);
+    recovery_manager_->StartRecovery();
+    recovery_manager_->FinishRecovery();
+
+    // Check we recovered all the original tables
+    for (auto &database_oid : tested.GetDatabases()) {
+      for (auto &table_oid : tested.GetTablesForDatabase(database_oid)) {
+        // Get original sql table
+        auto original_sql_table = tested.GetTable(database_oid, table_oid);
+
+        // Get Recovered table
+        auto *txn = recovery_txn_manager.BeginTransaction();
+        auto db_catalog = recovered_catalog.GetDatabaseCatalog(txn, database_oid);
+        EXPECT_TRUE(db_catalog != nullptr);
+        auto recovered_sql_table = db_catalog->GetTable(txn, table_oid);
+        EXPECT_TRUE(recovered_sql_table != nullptr);
+        recovery_txn_manager.Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+
+        EXPECT_TRUE(StorageTestUtil::SqlTableEqualDeep(original_sql_table->Layout(), original_sql_table, recovered_sql_table,
+                                                       tested.GetTupleSlotsForTable(database_oid, table_oid),
+                                                       recovery_manager_->tuple_slot_map_, &recovery_txn_manager));
+      }
+    }
+
+    // Delete test txns
+    gc_thread_ = new storage::GarbageCollectorThread(tested.GetTxnManager(), gc_period_);
+    delete gc_thread_;
+
+    // Delete recovery txns
+    gc_thread_ = new storage::GarbageCollectorThread(&recovery_txn_manager, gc_period_);
+    delete gc_thread_;
+    delete recovery_manager_;
+    delete log_manager_;
+  }
 };
 
 // This test inserts some tuples into a single table. It then recreates the test table from
 // the log, and verifies that this new table is the same as the original table
 // NOLINTNEXTLINE
 TEST_F(RecoveryTests, SingleTableTest) {
-  // Initialize table and run workload with logging enabled
-  log_manager_ = new LogManager(LOG_FILE_NAME, num_log_buffers_, log_serialization_interval_, log_persist_interval_,
-                                log_persist_threshold_, &pool_, common::ManagedPointer(&thread_registry_));
-  log_manager_->Start();
-  LargeSqlTableTestObject tested = LargeSqlTableTestObject::Builder()
-                                       .SetNumDatabases(1)
-                                       .SetNumTables(1)
-                                       .SetMaxColumns(5)
-                                       .SetInitialTableSize(1000)
-                                       .SetTxnLength(5)
-                                       .SetUpdateSelectDeleteRatio({0.7, 0.2, 0.1})
-                                       .SetBlockStore(&block_store_)
-                                       .SetBufferPool(&pool_)
-                                       .SetGenerator(&generator_)
-                                       .SetVarlenAllowed(true)
-                                       .SetLogManager(log_manager_)
-                                       .build();
 
-  // Run transactions
-  tested.SimulateOltp(100, 4);
-  log_manager_->PersistAndStop();
-
-  // Get SQL table the test object created
-  EXPECT_EQ(1, tested.GetDatabases().size());
-  auto database_oid = tested.GetDatabases()[0];
-  EXPECT_EQ(1, tested.GetTablesForDatabase(database_oid).size());
-  auto table_oid = tested.GetTablesForDatabase(database_oid)[0];
-  auto original_sql_table = tested.GetTable(database_oid, table_oid);
-
-  // Start a transaction manager with logging disabled, we don't want to log the log replaying
-  transaction::TransactionManager recovery_txn_manager{&pool_, true, LOGGING_DISABLED};
-
-  // Create catalog for recovery
-  catalog::Catalog recovered_catalog(&recovery_txn_manager, &block_store_);
-
-  // Instantiate recovery manager, and recover the tables.
-  DiskLogProvider log_provider(LOG_FILE_NAME);
-  recovery_manager_ =
-      new RecoveryManager(&log_provider, &recovered_catalog, &recovery_txn_manager, common::ManagedPointer(&thread_registry_), &block_store_);
-  recovery_manager_->StartRecovery();
-  recovery_manager_->FinishRecovery();
-
-  // Get Recovered table
-  auto *txn = recovery_txn_manager.BeginTransaction();
-  auto db_catalog = recovered_catalog.GetDatabaseCatalog(txn, database_oid);
-  EXPECT_TRUE(db_catalog != nullptr);
-  auto recovered_sql_table = db_catalog->GetTable(txn, table_oid);
-  EXPECT_TRUE(recovered_sql_table != nullptr);
-  recovery_txn_manager.Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
-
-  // Check we recovered all the original tuples
-  EXPECT_TRUE(StorageTestUtil::SqlTableEqualDeep(original_sql_table->Layout(), original_sql_table, recovered_sql_table,
-                                                 tested.GetTupleSlotsForTable(database_oid, table_oid),
-                                                 recovery_manager_->tuple_slot_map_, &recovery_txn_manager));
-
-  // Delete test txns
-  gc_thread_ = new storage::GarbageCollectorThread(tested.GetTxnManager(), gc_period_);
-  delete gc_thread_;
-
-  // Delete recovery txns
-  gc_thread_ = new storage::GarbageCollectorThread(&recovery_txn_manager, gc_period_);
-  delete gc_thread_;
-  delete recovery_manager_;
-  delete log_manager_;
+  LargeSqlTableTestConfiguration config = LargeSqlTableTestConfiguration::Builder()
+      .SetNumDatabases(1)
+      .SetNumTables(1)
+      .SetMaxColumns(5)
+      .SetInitialTableSize(1000)
+      .SetTxnLength(5)
+      .SetUpdateSelectDeleteRatio({0.7, 0.2, 0.1})
+      .SetVarlenAllowed(true)
+      .build();
+  RecoveryTests::RunTest(config);
 }
 
 // This test checks that we recover correctly in a high abort rate workload. We achieve the high abort rate by having
@@ -125,140 +127,32 @@ TEST_F(RecoveryTests, SingleTableTest) {
 // fill quickly.
 // NOLINTNEXTLINE
 TEST_F(RecoveryTests, HighAbortRateTest) {
-  // Initialize table and run workload with logging enabled
-  log_manager_ = new LogManager(LOG_FILE_NAME, num_log_buffers_, log_serialization_interval_, log_persist_interval_,
-                                log_persist_threshold_, &pool_, common::ManagedPointer(&thread_registry_));
-  log_manager_->Start();
-  LargeSqlTableTestObject tested = LargeSqlTableTestObject::Builder()
-                                       .SetNumDatabases(1)
-                                       .SetNumTables(1)
-                                       .SetMaxColumns(1000)
-                                       .SetInitialTableSize(1000)
-                                       .SetTxnLength(20)
-                                       .SetUpdateSelectDeleteRatio({0.7, 0.2, 0.0})
-                                       .SetBlockStore(&block_store_)
-                                       .SetBufferPool(&pool_)
-                                       .SetGenerator(&generator_)
-                                       .SetVarlenAllowed(true)
-                                       .SetLogManager(log_manager_)
-                                       .build();
-
-  EXPECT_EQ(1, tested.GetDatabases().size());
-  auto database_oid = tested.GetDatabases()[0];
-  EXPECT_EQ(1, tested.GetTablesForDatabase(database_oid).size());
-  auto table_oid = tested.GetTablesForDatabase(database_oid)[0];
-
-  // Run transactions
-  tested.SimulateOltp(100, 4);
-  log_manager_->PersistAndStop();
-
-  auto *original_sql_table = tested.GetTable(database_oid, table_oid);
-  auto *table_schema = tested.GetSchemaForTable(database_oid, table_oid);
-
-  // Create recovery table and dummy catalog
-  auto *recovered_sql_table = new storage::SqlTable(&block_store_, *table_schema, table_oid);
-  storage::RecoveryCatalog catalog;
-  catalog[database_oid][table_oid] = recovered_sql_table;
-
-  // Start a transaction manager with logging disabled, we don't want to log the log replaying
-  transaction::TransactionManager recovery_txn_manager_{&pool_, true, LOGGING_DISABLED};
-
-  // Instantiate recovery manager, and recover the tables.
-  DiskLogProvider log_provider(LOG_FILE_NAME);
-  recovery_manager_ =
-      new RecoveryManager(&log_provider, &catalog, &recovery_txn_manager_, common::ManagedPointer(&thread_registry_));
-  recovery_manager_->StartRecovery();
-  recovery_manager_->FinishRecovery();
-
-  // Check we recovered all the original tuples
-  EXPECT_TRUE(StorageTestUtil::SqlTableEqualDeep(original_sql_table->Layout(), original_sql_table, recovered_sql_table,
-                                                 tested.GetTupleSlotsForTable(database_oid, table_oid),
-                                                 recovery_manager_->tuple_slot_map_, &recovery_txn_manager_));
-  // Delete test txns
-  gc_thread_ = new storage::GarbageCollectorThread(tested.GetTxnManager(), gc_period_);
-  delete gc_thread_;
-
-  // Delete recovery txns
-  gc_thread_ = new storage::GarbageCollectorThread(&recovery_txn_manager_, gc_period_);
-  delete gc_thread_;
-  delete recovery_manager_;
-  delete recovered_sql_table;
-  delete log_manager_;
+  LargeSqlTableTestConfiguration config = LargeSqlTableTestConfiguration::Builder()
+      .SetNumDatabases(1)
+      .SetNumTables(1)
+      .SetMaxColumns(1000)
+      .SetInitialTableSize(1000)
+      .SetTxnLength(20)
+      .SetUpdateSelectDeleteRatio({0.7, 0.3, 0.0})
+      .SetVarlenAllowed(true)
+      .build();
+  RecoveryTests::RunTest(config);
 }
 
 // This test inserts some tuples into multiple tables across multiple databases. It then recovers these tables, and
 // verifies that the recovered tables are equal to the test tables.
 // NOLINTNEXTLINE
 TEST_F(RecoveryTests, MultiDatabaseTest) {
-  // Initialize table and run workload with logging enabled
-  log_manager_ = new LogManager(LOG_FILE_NAME, num_log_buffers_, log_serialization_interval_, log_persist_interval_,
-                                log_persist_threshold_, &pool_, common::ManagedPointer(&thread_registry_));
-  log_manager_->Start();
-  LargeSqlTableTestObject tested = LargeSqlTableTestObject::Builder()
-                                       .SetNumDatabases(3)
-                                       .SetNumTables(5)
-                                       .SetMaxColumns(5)
-                                       .SetInitialTableSize(100)
-                                       .SetTxnLength(5)
-                                       .SetUpdateSelectDeleteRatio({0.9, 0.0, 0.1})
-                                       .SetBlockStore(&block_store_)
-                                       .SetBufferPool(&pool_)
-                                       .SetGenerator(&generator_)
-                                       .SetVarlenAllowed(true)
-                                       .SetLogManager(log_manager_)
-                                       .build();
-
-  // Run transactions
-  tested.SimulateOltp(100, 4);
-  log_manager_->PersistAndStop();
-
-  // Create dummy catalog containing all the tables
-  storage::RecoveryCatalog catalog;
-  for (auto &db_oid : tested.GetDatabases()) {
-    for (auto &table_oid : tested.GetTablesForDatabase(db_oid)) {
-      auto *table_schema = tested.GetSchemaForTable(db_oid, table_oid);
-      catalog[db_oid][table_oid] = new storage::SqlTable(&block_store_, *table_schema, table_oid);
-    }
-  }
-
-  // Start a transaction manager with logging disabled, we don't want to log the log replaying
-  transaction::TransactionManager recovery_txn_manager_{&pool_, true, LOGGING_DISABLED};
-
-  // Instantiate recovery manager, and recover the tables.
-  DiskLogProvider log_provider(LOG_FILE_NAME);
-  recovery_manager_ =
-      new RecoveryManager(&log_provider, &catalog, &recovery_txn_manager_, common::ManagedPointer(&thread_registry_));
-  recovery_manager_->StartRecovery();
-  recovery_manager_->FinishRecovery();
-
-  // Check that recovered tables are equal to original tables
-  for (auto &db_oid : tested.GetDatabases()) {
-    for (auto &table_oid : tested.GetTablesForDatabase(db_oid)) {
-      auto *original_sql_table = tested.GetTable(db_oid, table_oid);
-      auto *recovered_sql_table = catalog[db_oid][table_oid];
-      EXPECT_TRUE(StorageTestUtil::SqlTableEqualDeep(
-          original_sql_table->Layout(), original_sql_table, recovered_sql_table,
-          tested.GetTupleSlotsForTable(db_oid, table_oid), recovery_manager_->tuple_slot_map_, &recovery_txn_manager_));
-    }
-  }
-
-  // Delete test txns
-  gc_thread_ = new storage::GarbageCollectorThread(tested.GetTxnManager(), gc_period_);
-  delete gc_thread_;
-
-  // Delete recovery txns
-  gc_thread_ = new storage::GarbageCollectorThread(&recovery_txn_manager_, gc_period_);
-  delete gc_thread_;
-  delete recovery_manager_;
-
-  // Delete recovered tables
-  for (auto &db_oid : tested.GetDatabases()) {
-    for (auto &table_oid : tested.GetTablesForDatabase(db_oid)) {
-      delete catalog[db_oid][table_oid];
-    }
-  }
-
-  delete log_manager_;
+  LargeSqlTableTestConfiguration config = LargeSqlTableTestConfiguration::Builder()
+      .SetNumDatabases(3)
+      .SetNumTables(5)
+      .SetMaxColumns(5)
+      .SetInitialTableSize(100)
+      .SetTxnLength(5)
+      .SetUpdateSelectDeleteRatio({0.9, 0.0, 0.1})
+      .SetVarlenAllowed(true)
+      .build();
+  RecoveryTests::RunTest(config);
 }
 
 }  // namespace terrier::storage

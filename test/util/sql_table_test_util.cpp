@@ -102,21 +102,18 @@ void RandomSqlTableTransaction::Finish() {
     test_object_->txn_manager_.Commit(txn_, transaction::TransactionUtil::EmptyCallback, nullptr);
 }
 
-LargeSqlTableTestObject::LargeSqlTableTestObject(uint16_t num_databases, uint16_t num_tables, uint16_t max_columns,
-                                                 uint32_t initial_table_size, uint32_t txn_length,
-                                                 std::vector<double> update_select_delete_ratio,
+LargeSqlTableTestObject::LargeSqlTableTestObject(const LargeSqlTableTestConfiguration &config,
                                                  storage::BlockStore *block_store,
-                                                 storage::RecordBufferSegmentPool *buffer_pool,
-                                                 std::default_random_engine *generator,
-                                                 storage::LogManager *log_manager, bool varlen_allowed)
-    : txn_length_(txn_length),
-      update_select_delete_ratio_(std::move(update_select_delete_ratio)),
+                                                 storage::RecordBufferSegmentPool *buffer_pool, std::default_random_engine *generator,
+                                                 storage::LogManager *log_manager)
+    : txn_length_(config.txn_length_),
+      update_select_delete_ratio_(std::move(config.update_select_delete_ratio_)),
       generator_(generator),
       txn_manager_(buffer_pool, true /* gc on */, log_manager),
       catalog_(catalog::Catalog(&txn_manager_, block_store)) {
   // Bootstrap the table to have the specified number of tuples
   TERRIER_ASSERT(update_select_delete_ratio_.size() == 3, "Update/Select/Delete ratio should be three numbers");
-  PopulateInitialTables(num_databases, num_tables, max_columns, initial_table_size, varlen_allowed, block_store,
+  PopulateInitialTables(config.num_databases_, config.num_tables_, config.max_columns_, config.initial_table_size_, config.varlen_allowed_, block_store,
                         generator_);
 }
 

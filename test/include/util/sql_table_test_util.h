@@ -19,86 +19,15 @@ using TupleEntry = std::pair<storage::TupleSlot, storage::ProjectedRow *>;
 using TableSnapshot = std::unordered_map<storage::TupleSlot, storage::ProjectedRow *>;
 using VersionedSnapshots = std::map<transaction::timestamp_t, TableSnapshot>;
 
-/**
- * A RandomSqlTableTransaction class provides a simple interface to simulate a transaction that interfaces with the
- * SqlTable layer running in the system. Does not provide bookkeeping for correctness functionality.
- */
-class RandomSqlTableTransaction {
- public:
-  /**
-   * Initializes a new RandomSqlTableTransaction to work on the given test object
-   * @param test_object the test object that runs this transaction
-   */
-  explicit RandomSqlTableTransaction(LargeSqlTableTestObject *test_object);
-
-  /**
-   * Destructs a random workload transaction
-   */
-  ~RandomSqlTableTransaction();
-
-  /**
-   * Randomly updates a tuple, using the given generator as source of randomness.
-   *
-   * @tparam Random the type of random generator to use
-   * @param generator the random generator to use
-   */
-  template <class Random>
-  void RandomUpdate(Random *generator);
-
-  /**
-   * Randomly deletes a tuple, using the given generator as source of randomness.
-   *
-   * @tparam Random the type of random generator to use
-   * @param generator the random generator to use
-   */
-  template <class Random>
-  void RandomDelete(Random *generator);
-
-  /**
-   * Randomly selects a tuple, using the given generator as source of randomness.
-   *
-   * @tparam Random the type of random generator to use
-   * @param generator the random generator to use
-   */
-  template <class Random>
-  void RandomSelect(Random *generator);
-
-  /**
-   * Finish the simulation of this transaction. The underlying transaction will either commit or abort.
-   */
-  void Finish();
-
- private:
-  friend class LargeSqlTableTestObject;
-  LargeSqlTableTestObject *test_object_;
-  transaction::TransactionContext *txn_;
-  // extra bookkeeping for abort count
-  bool aborted_;
-};
 
 /**
- * A LargeSqlTableTestObject can bootstrap multiple databases and tables, and runs randomly generated workloads
- * concurrently against the tables to simulate a real run of the system.
- *
- * So far we only do updates and selects, as inserts and deletes are not given much special meaning without the index.
+ * Defines the test configurations to be used for a LargeSqlTableTestObject
  */
-class LargeSqlTableTestObject {
- private:
-  /*
-   * Holds meta data for tables created by test object
-   */
-  struct SqlTableMetadata {
-    // Tuple slots inserted into this sql table
-    std::vector<storage::TupleSlot> inserted_tuples_;
-    // Latch to protect inserted tuples to allow for concurrent transactions
-    common::SpinLatch inserted_tuples_latch_;
-    // Buffer for select queries. Not thread safe, but since we aren't doing bookkeeping, it doesn't matter
-    byte *buffer_;
-  };
+class LargeSqlTableTestConfiguration {
 
  public:
   /**
-   * Builder class for LargeSqlTableTestObject
+   * Builder class for LargeSqlTableTestConfiguration
    */
   class Builder {
    public:
@@ -159,56 +88,21 @@ class LargeSqlTableTestObject {
     }
 
     /**
-     * @param block_store the block store to use for the underlying data table
-     * @return self-reference for method chaining
-     */
-    Builder &SetBlockStore(storage::BlockStore *block_store) {
-      builder_block_store_ = block_store;
-      return *this;
-    }
-
-    /**
-     * @param buffer_pool the buffer pool to use for simulated transactions
-     * @return self-reference for method chaining
-     */
-    Builder &SetBufferPool(storage::RecordBufferSegmentPool *buffer_pool) {
-      builder_buffer_pool_ = buffer_pool;
-      return *this;
-    }
-
-    /**
-     * @param generator the random generator to use for the test
-     * @return self-reference for method chaining
-     */
-    Builder &SetGenerator(std::default_random_engine *generator) {
-      builder_generator_ = generator;
-      return *this;
-    }
-
-    /**
-     * @param log_manager the log manager to use for this test object, or nullptr (LOGGING_DISABLED) if
-     *                    logging is not needed.
-     * @return self-reference for method chaining
-     */
-    Builder &SetLogManager(storage::LogManager *log_manager) {
-      builder_log_manager_ = log_manager;
-      return *this;
-    }
-
-    /**
      * @param varlen_allowed if we allow varlen columns to show up in the block layout
      * @return self-reference for method chaining
      */
     Builder &SetVarlenAllowed(bool varlen_allowed) {
-      varlen_allowed_ = varlen_allowed;
+      builder_varlen_allowed_ = varlen_allowed;
       return *this;
     }
 
     /**
-     * @return the constructed LargeSqlTableTestObject using the parameters provided
+     * @return the constructed LargeSqlTableTestConfiguration using the parameters provided
      * (or default ones if not supplied).
      */
-    LargeSqlTableTestObject build();
+    LargeSqlTableTestConfiguration build() {
+      return {builder_num_databases_, builder_num_tables_, builder_max_columns_, builder_initial_table_size_, builder_txn_length_, builder_update_select_delete_ratio_, builder_varlen_allowed_};
+    }
 
    private:
     uint16_t builder_num_databases_ = 1;
@@ -217,13 +111,124 @@ class LargeSqlTableTestObject {
     uint32_t builder_initial_table_size_ = 25;
     uint32_t builder_txn_length_ = 25;
     std::vector<double> builder_update_select_delete_ratio_;
-    storage::BlockStore *builder_block_store_ = nullptr;
-    storage::RecordBufferSegmentPool *builder_buffer_pool_ = nullptr;
-    std::default_random_engine *builder_generator_ = nullptr;
-    storage::LogManager *builder_log_manager_ = LOGGING_DISABLED;
-    bool varlen_allowed_ = false;
+    bool builder_varlen_allowed_ = false;
   };
 
+  /**
+   * @param num_databases number of databases to create
+   * @param num_tables number of tables per database to create
+   * @param max_columns the max number of columns in each generated test table
+   * @param initial_table_size number of tuples each table should have
+   * @param txn_length length of every simulated transaction, in number of operations (select or update)
+   * @param update_select_delete_ratio the ratio of updates vs. select vs. deletes in the generated transaction (e.g.
+   * {0.2, 0.7. 0.1} will be 20% updates, 70% reads, and 10% deletes)
+   * @param varlen_allowed true if varlen columns are allowed
+   */
+  LargeSqlTableTestConfiguration(const uint16_t num_databases, const uint16_t num_tables, const uint16_t max_columns,
+  const uint32_t initial_table_size, const uint32_t txn_length, const std::vector<double> update_select_delete_ratio,
+  const bool varlen_allowed) : num_databases_(num_databases), num_tables_(num_tables), max_columns_(max_columns), initial_table_size_(initial_table_size), txn_length_(txn_length), update_select_delete_ratio_(std::move(update_select_delete_ratio)), varlen_allowed_(varlen_allowed) {}
+
+ private:
+  friend class LargeSqlTableTestObject;
+  uint16_t num_databases_;
+  uint16_t num_tables_;
+  uint16_t max_columns_;
+  uint32_t initial_table_size_;
+  uint32_t txn_length_;
+  std::vector<double> update_select_delete_ratio_;
+  bool varlen_allowed_;
+};
+/**
+ * A RandomSqlTableTransaction class provides a simple interface to simulate a transaction that interfaces with the
+ * SqlTable layer running in the system. Does not provide bookkeeping for correctness functionality.
+ */
+class RandomSqlTableTransaction {
+ public:
+  /**
+   * Initializes a new RandomSqlTableTransaction to work on the given test object
+   * @param test_object the test object that runs this transaction
+   */
+  explicit RandomSqlTableTransaction(LargeSqlTableTestObject *test_object);
+
+  /**
+   * Destructs a random workload transaction
+   */
+  ~RandomSqlTableTransaction();
+
+  /**
+   * Randomly updates a tuple, using the given generator as source of randomness.
+   *
+   * @tparam Random the type of random generator to use
+   * @param generator the random generator to use
+   */
+  template <class Random>
+  void RandomUpdate(Random *generator);
+
+  /**
+   * Randomly deletes a tuple, using the given generator as source of randomness.
+   *
+   * @tparam Random the type of random generator to use
+   * @param generator the random generator to use
+   */
+  template <class Random>
+  void RandomDelete(Random *generator);
+
+  /**
+   * Randomly selects a tuple, using the given generator as source of randomness.
+   *
+   * @tparam Random the type of random generator to use
+   * @param generator the random generator to use
+   */
+  template <class Random>
+  void RandomSelect(Random *generator);
+
+  /**
+   * Finish the simulation of this transaction. The underlying transaction will either commit or abort.
+   */
+  void Finish();
+
+ private:
+  friend class LargeSqlTableTestObject;
+  LargeSqlTableTestObject *test_object_;
+  transaction::TransactionContext *txn_;
+  // extra bookkeeping for abort count
+  bool aborted_;
+};
+
+  // TODO(Gus): Add indexes
+/**
+ * A LargeSqlTableTestObject can bootstrap multiple databases and tables, and runs randomly generated workloads
+ * concurrently against the tables to simulate a real run of the system.
+ *
+ * The test object supports, updates, selects, and deletes
+ */
+class LargeSqlTableTestObject {
+ private:
+  /*
+   * Holds meta data for tables created by test object
+   */
+  struct SqlTableMetadata {
+    // Tuple slots inserted into this sql table
+    std::vector<storage::TupleSlot> inserted_tuples_;
+    // Latch to protect inserted tuples to allow for concurrent transactions
+    common::SpinLatch inserted_tuples_latch_;
+    // Buffer for select queries. Not thread safe, but since we aren't doing bookkeeping, it doesn't matter
+    byte *buffer_;
+  };
+
+ public:
+
+  /**
+ * Initializes a test object with the given configuration
+   * @param test configuration object
+ * @param block_store the block store to use for the underlying data table
+ * @param buffer_pool the buffer pool to use for simulated transactions
+ * @param generator the random generator to use for the test
+ */
+  LargeSqlTableTestObject(const LargeSqlTableTestConfiguration &config,
+                          storage::BlockStore *block_store,
+                          storage::RecordBufferSegmentPool *buffer_pool, std::default_random_engine *generator,
+                          storage::LogManager *log_manager);
   /**
    * Destructs a LargeSqlTableTestObject
    */
@@ -294,25 +299,6 @@ class LargeSqlTableTestObject {
   }
 
  private:
-  /**
-   * Initializes a test object with the given configuration
-   * @param num_databases number of databases to create
-   * @param num_tables number of tables per database to create
-   * @param max_columns the max number of columns in each generated test table
-   * @param initial_table_size number of tuples each table should have
-   * @param txn_length length of every simulated transaction, in number of operations (select or update)
-   * @param update_select_delete_ratio the ratio of updates vs. select vs. deletes in the generated transaction (e.g.
-   * {0.2, 0.7. 0.1} will be 20% updates, 70% reads, and 10% deletes)
-   * @param block_store the block store to use for the underlying data table
-   * @param buffer_pool the buffer pool to use for simulated transactions
-   * @param generator the random generator to use for the test
-   */
-  LargeSqlTableTestObject(uint16_t num_databases, uint16_t num_tables, uint16_t max_columns,
-                          uint32_t initial_table_size, uint32_t txn_length,
-                          std::vector<double> update_select_delete_ratio, storage::BlockStore *block_store,
-                          storage::RecordBufferSegmentPool *buffer_pool, std::default_random_engine *generator,
-                          storage::LogManager *log_manager, bool varlen_allowed);
-
   void SimulateOneTransaction(RandomSqlTableTransaction *txn, uint32_t txn_id);
 
   template <class Random>
