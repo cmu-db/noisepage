@@ -153,9 +153,6 @@ Schema Builder::GetColumnTableSchema() {
   columns.emplace_back("attnotnull", type::TypeId::BOOLEAN, false, MakeNull(type::TypeId::BOOLEAN));
   columns.back().SetOid(ATTNOTNULL_COL_OID);
 
-  columns.emplace_back("adbin", type::TypeId::BIGINT, false, MakeNull(type::TypeId::BIGINT));
-  columns.back().SetOid(ADBIN_COL_OID);
-
   columns.emplace_back("adsrc", type::TypeId::VARCHAR, 4096, false, MakeNull(type::TypeId::VARCHAR));
   columns.back().SetOid(ADSRC_COL_OID);
 
