@@ -28,12 +28,13 @@ list(APPEND TERRIER_SRCS ${PROJECT_SOURCE_DIR}/third_party/nlohmann/json.hpp)
 # farmhash
 file(GLOB_RECURSE FARMHASH_SOURCES ${PROJECT_SOURCE_DIR}/third_party/farmhash/*.cc ${PROJECT_SOURCE_DIR}/third_party/farmhash/*.h)
 list(APPEND TERRIER_SRCS ${FARMHASH_SOURCES})
+add_executable(farmhash_selftest ${PROJECT_SOURCE_DIR}/third_party/farmhash/farmhash.cc)
+target_compile_definitions(farmhash_selftest PUBLIC -DFARMHASHSELFTEST)
 
 # libcuckoo
 file(GLOB_RECURSE LIBCUCKOO_SOURCES ${PROJECT_SOURCE_DIR}/third_party/libcuckoo/*.hh)
 list(APPEND TERRIER_SRCS ${LIBCUCKOO_SOURCES})
-add_executable(farmhash_selftest ${PROJECT_SOURCE_DIR}/third_party/farmhash/farmhash.cc)
-set_source_files_properties(${PROJECT_SOURCE_DIR}/third_party/farmhash/farmhash.cc PROPERTIES COMPILE_FLAGS "-DFARMHASHSELFTEST" )
+#set_source_files_properties(${PROJECT_SOURCE_DIR}/third_party/farmhash/farmhash.cc PROPERTIES COMPILE_FLAGS "-DFARMHASHSELFTEST" )
 
 ###############################################
 # Terrier library
