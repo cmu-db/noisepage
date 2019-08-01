@@ -260,10 +260,10 @@ class CatalogAccessor {
   common::ManagedPointer<storage::index::Index> GetIndex(index_oid_t index);
 
  private:
-  Catalog *catalog_;
-  common::ManagedPointer<DatabaseCatalog> dbc_;
-  transaction::TransactionContext *txn_;
-  db_oid_t db_oid_;
+  const common::ManagedPointer<Catalog> catalog_;
+  const common::ManagedPointer<DatabaseCatalog> dbc_;
+  const transaction::TransactionContext *txn_;
+  const db_oid_t db_oid_;
   std::vector<namespace_oid_t> search_path_;
   namespace_oid_t default_namespace_;
 

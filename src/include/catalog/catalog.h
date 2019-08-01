@@ -103,7 +103,7 @@ class Catalog {
    * @param database in which this transaction is scoped
    * @return a CatalogAccessor object for use with this transaction
    */
-  CatalogAccessor *GetAccessor(transaction::TransactionContext *txn, db_oid_t database);
+  std::unique_ptr<CatalogAccessor> GetAccessor(transaction::TransactionContext *txn, db_oid_t database);
 
  private:
   transaction::TransactionManager *txn_manager_;
