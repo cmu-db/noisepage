@@ -281,8 +281,8 @@ class CatalogAccessor {
    * @param txn the transaction context for this accessor
    * @param database the OID of the database
    */
-  CatalogAccessor(Catalog *catalog, common::ManagedPointer<DatabaseCatalog> dbc, transaction::TransactionContext *txn,
-                  db_oid_t database)
+  CatalogAccessor(common::ManagedPointer<Catalog> catalog, common::ManagedPointer<DatabaseCatalog> dbc,
+                  transaction::TransactionContext *txn, db_oid_t database)
       : catalog_(catalog),
         dbc_(dbc),
         txn_(txn),
