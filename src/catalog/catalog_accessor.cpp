@@ -19,12 +19,14 @@ bool CatalogAccessor::DropDatabase(db_oid_t db) const { return catalog_->DeleteD
 
 void CatalogAccessor::SetSearchPath(std::vector<namespace_oid_t> namespaces) {
   TERRIER_ASSERT(!namespaces.empty(), "search path cannot be empty");
+
   default_namespace_ = namespaces[0];
   search_path_ = std::move(namespaces);
 
     // Check if 'pg_catalog is explicitly set'
-  for (auto ns : namespaces)
+  for (auto ns : namespaces) {
     if (ns == NAMESPACE_CATALOG_NAMESPACE_OID) return;
+  }
 
   search_path_.emplace(search_path_.begin(), NAMESPACE_CATALOG_NAMESPACE_OID);
 }
