@@ -220,7 +220,7 @@ class TransactionContext {
   // conflicts) and checked in Commit().
   bool must_abort_ = false;
 
-    /**
+  /**
    * @warning This method is ONLY for recovery
    * Copy the log record into the transaction's redo buffer. This method can be used for Redo and Delete records
    * @tparam T record type

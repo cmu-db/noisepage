@@ -1,5 +1,6 @@
 #pragma once
 
+#include <algorithm>
 #include <memory>
 #include <string>
 #include <utility>
@@ -323,11 +324,10 @@ class DatabaseCatalog {
   friend class postgres::Builder;
   friend class storage::RecoveryManager;
 
-
   /**
- * Atomically updates the next oid counter to the max of the current count and the provided next oid
- * @param oid next oid to move oid counter to
- */
+   * Atomically updates the next oid counter to the max of the current count and the provided next oid
+   * @param oid next oid to move oid counter to
+   */
   void UpdateNextOid(uint32_t oid) {
     uint32_t expected, desired;
     do {

@@ -1,7 +1,7 @@
 #include <unordered_map>
 #include <vector>
-#include "gtest/gtest.h"
 #include "catalog/catalog.h"
+#include "gtest/gtest.h"
 #include "main/db_main.h"
 #include "storage/garbage_collector_thread.h"
 #include "storage/recovery/disk_log_provider.h"
@@ -48,7 +48,7 @@ class RecoveryTests : public TerrierTest {
     TerrierTest::TearDown();
   }
 
-  void RunTest(LargeSqlTableTestConfiguration &config) {
+  void RunTest(const LargeSqlTableTestConfiguration &config) {
     // Initialize table and run workload with logging enabled
     log_manager_ = new LogManager(LOG_FILE_NAME, num_log_buffers_, log_serialization_interval_, log_persist_interval_,
                                   log_persist_threshold_, &pool_, common::ManagedPointer(&thread_registry_));
@@ -67,8 +67,8 @@ class RecoveryTests : public TerrierTest {
 
     // Instantiate recovery manager, and recover the tables.
     DiskLogProvider log_provider(LOG_FILE_NAME);
-    recovery_manager_ =
-        new RecoveryManager(&log_provider, &recovered_catalog, &recovery_txn_manager, common::ManagedPointer(&thread_registry_), &block_store_);
+    recovery_manager_ = new RecoveryManager(&log_provider, &recovered_catalog, &recovery_txn_manager,
+                                            common::ManagedPointer(&thread_registry_), &block_store_);
     recovery_manager_->StartRecovery();
     recovery_manager_->FinishRecovery();
 
@@ -86,7 +86,8 @@ class RecoveryTests : public TerrierTest {
         EXPECT_TRUE(recovered_sql_table != nullptr);
         recovery_txn_manager.Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
-        EXPECT_TRUE(StorageTestUtil::SqlTableEqualDeep(original_sql_table->Layout(), original_sql_table, recovered_sql_table,
+        EXPECT_TRUE(StorageTestUtil::SqlTableEqualDeep(original_sql_table->Layout(), original_sql_table,
+                                                       recovered_sql_table,
                                                        tested.GetTupleSlotsForTable(database_oid, table_oid),
                                                        recovery_manager_->tuple_slot_map_, &recovery_txn_manager));
       }
@@ -108,16 +109,15 @@ class RecoveryTests : public TerrierTest {
 // the log, and verifies that this new table is the same as the original table
 // NOLINTNEXTLINE
 TEST_F(RecoveryTests, SingleTableTest) {
-
   LargeSqlTableTestConfiguration config = LargeSqlTableTestConfiguration::Builder()
-      .SetNumDatabases(1)
-      .SetNumTables(1)
-      .SetMaxColumns(5)
-      .SetInitialTableSize(1000)
-      .SetTxnLength(5)
-      .SetUpdateSelectDeleteRatio({0.7, 0.2, 0.1})
-      .SetVarlenAllowed(true)
-      .build();
+                                              .SetNumDatabases(1)
+                                              .SetNumTables(1)
+                                              .SetMaxColumns(5)
+                                              .SetInitialTableSize(1000)
+                                              .SetTxnLength(5)
+                                              .SetUpdateSelectDeleteRatio({0.7, 0.2, 0.1})
+                                              .SetVarlenAllowed(true)
+                                              .build();
   RecoveryTests::RunTest(config);
 }
 
@@ -128,14 +128,14 @@ TEST_F(RecoveryTests, SingleTableTest) {
 // NOLINTNEXTLINE
 TEST_F(RecoveryTests, HighAbortRateTest) {
   LargeSqlTableTestConfiguration config = LargeSqlTableTestConfiguration::Builder()
-      .SetNumDatabases(1)
-      .SetNumTables(1)
-      .SetMaxColumns(1000)
-      .SetInitialTableSize(1000)
-      .SetTxnLength(20)
-      .SetUpdateSelectDeleteRatio({0.7, 0.3, 0.0})
-      .SetVarlenAllowed(true)
-      .build();
+                                              .SetNumDatabases(1)
+                                              .SetNumTables(1)
+                                              .SetMaxColumns(1000)
+                                              .SetInitialTableSize(1000)
+                                              .SetTxnLength(20)
+                                              .SetUpdateSelectDeleteRatio({0.7, 0.3, 0.0})
+                                              .SetVarlenAllowed(true)
+                                              .build();
   RecoveryTests::RunTest(config);
 }
 
@@ -144,14 +144,14 @@ TEST_F(RecoveryTests, HighAbortRateTest) {
 // NOLINTNEXTLINE
 TEST_F(RecoveryTests, MultiDatabaseTest) {
   LargeSqlTableTestConfiguration config = LargeSqlTableTestConfiguration::Builder()
-      .SetNumDatabases(3)
-      .SetNumTables(5)
-      .SetMaxColumns(5)
-      .SetInitialTableSize(100)
-      .SetTxnLength(5)
-      .SetUpdateSelectDeleteRatio({0.9, 0.0, 0.1})
-      .SetVarlenAllowed(true)
-      .build();
+                                              .SetNumDatabases(3)
+                                              .SetNumTables(5)
+                                              .SetMaxColumns(5)
+                                              .SetInitialTableSize(100)
+                                              .SetTxnLength(5)
+                                              .SetUpdateSelectDeleteRatio({0.9, 0.0, 0.1})
+                                              .SetVarlenAllowed(true)
+                                              .build();
   RecoveryTests::RunTest(config);
 }
 

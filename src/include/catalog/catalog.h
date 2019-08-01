@@ -1,5 +1,6 @@
 #pragma once
 
+#include <algorithm>
 #include <string>
 #include <vector>
 
@@ -116,9 +117,9 @@ class Catalog {
   storage::index::Index *databases_oid_index_;
 
   /**
- * Atomically updates the next oid counter to the max of the current count and the provided next oid
- * @param oid next oid to move oid counter to
- */
+   * Atomically updates the next oid counter to the max of the current count and the provided next oid
+   * @param oid next oid to move oid counter to
+   */
   void UpdateNextOid(db_oid_t oid) {
     db_oid_t expected, desired;
     do {

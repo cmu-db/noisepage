@@ -115,13 +115,14 @@ class SqlTable {
    * @return true if successful, false otherwise
    */
   bool Delete(transaction::TransactionContext *const txn, const TupleSlot slot) {
-//    TERRIER_ASSERT(txn->redo_buffer_.LastRecord() != nullptr,
-//                   "The RedoBuffer is empty even though StageDelete should have been called.");
-//    TERRIER_ASSERT(
-//        reinterpret_cast<LogRecord *>(txn->redo_buffer_.LastRecord())
-//                ->GetUnderlyingRecordBodyAs<DeleteRecord>()
-//                ->GetTupleSlot() == slot,
-//        "This Delete is not the most recent entry in the txn's RedoBuffer. Was StageDelete called immediately before?");
+    //    TERRIER_ASSERT(txn->redo_buffer_.LastRecord() != nullptr,
+    //                   "The RedoBuffer is empty even though StageDelete should have been called.");
+    //    TERRIER_ASSERT(
+    //        reinterpret_cast<LogRecord *>(txn->redo_buffer_.LastRecord())
+    //                ->GetUnderlyingRecordBodyAs<DeleteRecord>()
+    //                ->GetTupleSlot() == slot,
+    //        "This Delete is not the most recent entry in the txn's RedoBuffer. Was StageDelete called immediately
+    //        before?");
 
     const auto result = table_.data_table->Delete(txn, slot);
     if (!result) {

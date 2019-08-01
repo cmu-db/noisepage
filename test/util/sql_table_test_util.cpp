@@ -104,7 +104,8 @@ void RandomSqlTableTransaction::Finish() {
 
 LargeSqlTableTestObject::LargeSqlTableTestObject(const LargeSqlTableTestConfiguration &config,
                                                  storage::BlockStore *block_store,
-                                                 storage::RecordBufferSegmentPool *buffer_pool, std::default_random_engine *generator,
+                                                 storage::RecordBufferSegmentPool *buffer_pool,
+                                                 std::default_random_engine *generator,
                                                  storage::LogManager *log_manager)
     : txn_length_(config.txn_length_),
       update_select_delete_ratio_(std::move(config.update_select_delete_ratio_)),
@@ -113,8 +114,8 @@ LargeSqlTableTestObject::LargeSqlTableTestObject(const LargeSqlTableTestConfigur
       catalog_(catalog::Catalog(&txn_manager_, block_store)) {
   // Bootstrap the table to have the specified number of tuples
   TERRIER_ASSERT(update_select_delete_ratio_.size() == 3, "Update/Select/Delete ratio should be three numbers");
-  PopulateInitialTables(config.num_databases_, config.num_tables_, config.max_columns_, config.initial_table_size_, config.varlen_allowed_, block_store,
-                        generator_);
+  PopulateInitialTables(config.num_databases_, config.num_tables_, config.max_columns_, config.initial_table_size_,
+                        config.varlen_allowed_, block_store, generator_);
 }
 
 LargeSqlTableTestObject::~LargeSqlTableTestObject() {

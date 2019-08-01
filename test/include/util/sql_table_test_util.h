@@ -19,12 +19,10 @@ using TupleEntry = std::pair<storage::TupleSlot, storage::ProjectedRow *>;
 using TableSnapshot = std::unordered_map<storage::TupleSlot, storage::ProjectedRow *>;
 using VersionedSnapshots = std::map<transaction::timestamp_t, TableSnapshot>;
 
-
 /**
  * Defines the test configurations to be used for a LargeSqlTableTestObject
  */
 class LargeSqlTableTestConfiguration {
-
  public:
   /**
    * Builder class for LargeSqlTableTestConfiguration
@@ -101,7 +99,9 @@ class LargeSqlTableTestConfiguration {
      * (or default ones if not supplied).
      */
     LargeSqlTableTestConfiguration build() {
-      return {builder_num_databases_, builder_num_tables_, builder_max_columns_, builder_initial_table_size_, builder_txn_length_, builder_update_select_delete_ratio_, builder_varlen_allowed_};
+      return {builder_num_databases_,      builder_num_tables_, builder_max_columns_,
+              builder_initial_table_size_, builder_txn_length_, builder_update_select_delete_ratio_,
+              builder_varlen_allowed_};
     }
 
    private:
@@ -125,8 +125,15 @@ class LargeSqlTableTestConfiguration {
    * @param varlen_allowed true if varlen columns are allowed
    */
   LargeSqlTableTestConfiguration(const uint16_t num_databases, const uint16_t num_tables, const uint16_t max_columns,
-  const uint32_t initial_table_size, const uint32_t txn_length, const std::vector<double> update_select_delete_ratio,
-  const bool varlen_allowed) : num_databases_(num_databases), num_tables_(num_tables), max_columns_(max_columns), initial_table_size_(initial_table_size), txn_length_(txn_length), update_select_delete_ratio_(std::move(update_select_delete_ratio)), varlen_allowed_(varlen_allowed) {}
+                                 const uint32_t initial_table_size, const uint32_t txn_length,
+                                 const std::vector<double> update_select_delete_ratio, const bool varlen_allowed)
+      : num_databases_(num_databases),
+        num_tables_(num_tables),
+        max_columns_(max_columns),
+        initial_table_size_(initial_table_size),
+        txn_length_(txn_length),
+        update_select_delete_ratio_(std::move(update_select_delete_ratio)),
+        varlen_allowed_(varlen_allowed) {}
 
  private:
   friend class LargeSqlTableTestObject;
@@ -195,7 +202,7 @@ class RandomSqlTableTransaction {
   bool aborted_;
 };
 
-  // TODO(Gus): Add indexes
+// TODO(Gus): Add indexes
 /**
  * A LargeSqlTableTestObject can bootstrap multiple databases and tables, and runs randomly generated workloads
  * concurrently against the tables to simulate a real run of the system.
@@ -217,16 +224,14 @@ class LargeSqlTableTestObject {
   };
 
  public:
-
   /**
- * Initializes a test object with the given configuration
+   * Initializes a test object with the given configuration
    * @param test configuration object
- * @param block_store the block store to use for the underlying data table
- * @param buffer_pool the buffer pool to use for simulated transactions
- * @param generator the random generator to use for the test
- */
-  LargeSqlTableTestObject(const LargeSqlTableTestConfiguration &config,
-                          storage::BlockStore *block_store,
+   * @param block_store the block store to use for the underlying data table
+   * @param buffer_pool the buffer pool to use for simulated transactions
+   * @param generator the random generator to use for the test
+   */
+  LargeSqlTableTestObject(const LargeSqlTableTestConfiguration &config, storage::BlockStore *block_store,
                           storage::RecordBufferSegmentPool *buffer_pool, std::default_random_engine *generator,
                           storage::LogManager *log_manager);
   /**

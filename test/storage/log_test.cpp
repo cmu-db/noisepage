@@ -30,8 +30,8 @@ class WriteAheadLoggingTests : public TerrierTest {
  protected:
   auto Injector(const LargeDataTableTestConfiguration &config) {
     return di::make_injector<di::TestBindingPolicy>(
-        di::storage_injector(), di::bind<AccessObserver>().in(di::disabled),
-        di::storage_injector(), di::bind<LargeDataTableTestConfiguration>().to(config),
+        di::storage_injector(), di::bind<AccessObserver>().in(di::disabled), di::storage_injector(),
+        di::bind<LargeDataTableTestConfiguration>().to(config),
         di::bind<std::default_random_engine>().in(di::terrier_singleton),  // need to be universal across injectors
         di::bind<uint64_t>().named(storage::BlockStore::SIZE_LIMIT).to(static_cast<uint64_t>(1000)),
         di::bind<uint64_t>().named(storage::BlockStore::REUSE_LIMIT).to(static_cast<uint64_t>(1000)),

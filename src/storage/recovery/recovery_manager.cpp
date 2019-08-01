@@ -1,4 +1,6 @@
-#include <storage/index/index_builder.h>
+#include <algorithm>
+#include <string>
+#include <utility>
 #include <vector>
 
 #include "storage/recovery/recovery_manager.h"
@@ -6,6 +8,7 @@
 #include "catalog/postgres/pg_class.h"
 #include "catalog/postgres/pg_database.h"
 #include "catalog/postgres/pg_index.h"
+#include "storage/index/index_builder.h"
 #include "storage/write_ahead_log/log_io.h"
 
 namespace terrier::storage {
@@ -92,8 +95,7 @@ void RecoveryManager::ReplayRedoRecord(transaction::TransactionContext *txn, Red
     // Stage the write. This way the recovery operation is logged if logging is enabled.
     // We stage the write after the insert because Insert sets the tuple slot on the redo record, so we need that
     // to happen before we copy the record into the txn redo buffer.
-    TERRIER_ASSERT(record->GetTupleSlot() == new_tuple_slot,
-                   "Insert should update redo record with new tuple slot");
+    TERRIER_ASSERT(record->GetTupleSlot() == new_tuple_slot, "Insert should update redo record with new tuple slot");
     txn->StageRecoveryWrite(record);
     // Create a mapping of the old to new tuple. The new tuple slot should be used for future updates and deletes.
     tuple_slot_map_[old_tuple_slot] = new_tuple_slot;
@@ -152,8 +154,9 @@ void RecoveryManager::UpdateIndexesOnTable(transaction::TransactionContext *txn,
     // Select each time. This would just require copying into the PR each time
     sql_table_ptr->Select(txn, tuple_slot, index_pr);
     if (insert) {
-      bool result UNUSED_ATTRIBUTE =
-          (index->GetConstraintType() == index::ConstraintType::UNIQUE) ? index->InsertUnique(txn, *index_pr, tuple_slot) : index->Insert(txn, *index_pr, tuple_slot);
+      bool result UNUSED_ATTRIBUTE = (index->GetConstraintType() == index::ConstraintType::UNIQUE)
+                                         ? index->InsertUnique(txn, *index_pr, tuple_slot)
+                                         : index->Insert(txn, *index_pr, tuple_slot);
       TERRIER_ASSERT(result, "Insert into index should always succeed for a committed transaction");
     } else {
       index->Delete(txn, *index_pr, tuple_slot);
@@ -192,16 +195,17 @@ uint32_t RecoveryManager::ProcessSpecialCaseCatalogRecord(
         return 0;                                                     // No additional logs processed
 
       } else if (updated_pg_class_oid == catalog::REL_SCHEMA_COL_OID) {  // Case 2
-
         // Step 1: Get the class oid for the object we're updating
         auto [pr_init, pr_map] =
             pg_class_ptr->InitializerForProjectedRow({catalog::RELOID_COL_OID, catalog::RELKIND_COL_OID});
         auto *buffer = common::AllocationUtil::AllocateAligned(pr_init.ProjectedRowSize());
         auto *pr = pr_init.InitializeRow(buffer);
         pg_class_ptr->Select(txn, GetTupleSlotMapping(redo_record->GetTupleSlot()), pr);
-        auto class_oid = *(reinterpret_cast<uint32_t*>(pr->AccessWithNullCheck(pr_map[catalog::RELOID_COL_OID])));
-        auto class_kind UNUSED_ATTRIBUTE = *(reinterpret_cast<catalog::postgres::ClassKind*>(pr->AccessWithNullCheck(pr_map[catalog::RELKIND_COL_OID])));
-        TERRIER_ASSERT(class_kind = catalog::postgres::ClassKind::REGULAR_TABLE, "Updates to schemas in pg_class should only happen for tables");
+        auto class_oid = *(reinterpret_cast<uint32_t *>(pr->AccessWithNullCheck(pr_map[catalog::RELOID_COL_OID])));
+        auto class_kind UNUSED_ATTRIBUTE = *(reinterpret_cast<catalog::postgres::ClassKind *>(
+            pr->AccessWithNullCheck(pr_map[catalog::RELKIND_COL_OID])));
+        TERRIER_ASSERT(class_kind = catalog::postgres::ClassKind::REGULAR_TABLE,
+                       "Updates to schemas in pg_class should only happen for tables");
 
         // Step 2: Query pg_attribute for the columns and recreate the schema
         auto schema_cols = db_catalog->GetColumns<catalog::Schema::Column>(txn, class_oid);
@@ -212,7 +216,7 @@ uint32_t RecoveryManager::ProcessSpecialCaseCatalogRecord(
         TERRIER_ASSERT(result, "Schema update should always succeed during replaying");
         delete[] buffer;
 
-        return 0; // No additional logs processed
+        return 0;  // No additional logs processed
 
       } else if (updated_pg_class_oid == catalog::REL_PTR_COL_OID) {  // Case 3
         // An update to the ptr column of pg_class means that we have inserted all necessary metadata into the other
@@ -349,7 +353,6 @@ uint32_t RecoveryManager::ProcessSpecialCaseCatalogRecord(
           if (next_redo_record->GetDatabaseOid() == delete_record->GetDatabaseOid() &&
               next_redo_record->GetTableOid() == delete_record->GetTableOid() &&
               IsInsertRecord(next_redo_record)) {  // next record is an insert into the same pg_class
-
             // Step 3: Get the oid and kind of the object being inserted
             auto [pr_init, pr_map] =
                 pg_class->InitializerForProjectedRow(GetOidsForRedoRecord(pg_class, next_redo_record));
@@ -440,7 +443,6 @@ uint32_t RecoveryManager::ProcessSpecialCaseCatalogRecord(
           if (next_redo_record->GetDatabaseOid() == delete_record->GetDatabaseOid() &&
               next_redo_record->GetTableOid() == delete_record->GetTableOid() &&
               IsInsertRecord(next_redo_record)) {  // next record is an insert into the same pg_class
-
             // Step 3: Get the oid and name for the database being created
             auto [pr_init, pr_map] =
                 pg_database->InitializerForProjectedRow(GetOidsForRedoRecord(pg_database, next_redo_record));
