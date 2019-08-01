@@ -112,6 +112,10 @@ option(TERRIER_GENERATE_COVERAGE
         "Build with C++ code coverage enabled"
         OFF)
 
+option(TERRIER_USE_JEMALLOC
+        "Dynamically link jemalloc as the memory allocator."
+        OFF)
+
 option(TERRIER_VERBOSE_THIRDPARTY_BUILD
         "If off, output from ExternalProjects will be logged to files rather than shown"
         OFF)
@@ -348,13 +352,11 @@ set(TERRIER_DEPENDENCIES
         gflags)
 
 set(TERRIER_TEST_LINK_LIBS
-        ${TERRIER_LINK_LIBS}
         test_util
         gtest
         gmock_main)
 
 set(TERRIER_BENCHMARK_LINK_LIBS
-        ${TERRIER_LINK_LIBS}
         benchmark_util
         benchmark)
 
