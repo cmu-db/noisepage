@@ -176,8 +176,7 @@ common::ManagedPointer<DatabaseCatalog> Catalog::GetDatabaseCatalog(transaction:
 std::unique_ptr<CatalogAccessor> Catalog::GetAccessor(transaction::TransactionContext *txn, db_oid_t database) {
   auto dbc = this->GetDatabaseCatalog(txn, database);
   if (dbc == nullptr) return nullptr;
-  auto accessor = new CatalogAccessor(common::ManagedPointer(this), dbc, txn, database);
-  return std::make_unique<CatalogAccessor>(accessor);
+  return std::make_unique<CatalogAccessor>(common::ManagedPointer(this), dbc, txn, database);
 }
 
 bool Catalog::CreateDatabaseEntry(transaction::TransactionContext *const txn, const db_oid_t db,

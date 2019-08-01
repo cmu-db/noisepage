@@ -259,6 +259,22 @@ class CatalogAccessor {
    */
   common::ManagedPointer<storage::index::Index> GetIndex(index_oid_t index) const;
 
+  /**
+   * Instantiates a new accessor into the catalog for the given database.
+   * @param catalog pointer to the catalog being accessed
+   * @param txn the transaction context for this accessor
+   * @param database the OID of the database
+   * @warning This constructor should never be called directly.  Instead you should get accessors from the catalog.
+   */
+  CatalogAccessor(common::ManagedPointer<Catalog> catalog, common::ManagedPointer<DatabaseCatalog> dbc,
+                  transaction::TransactionContext *txn, db_oid_t database)
+      : catalog_(catalog),
+        dbc_(dbc),
+        txn_(txn),
+        db_oid_(database),
+        search_path_({NAMESPACE_CATALOG_NAMESPACE_OID, NAMESPACE_DEFAULT_NAMESPACE_OID}),
+        default_namespace_(NAMESPACE_DEFAULT_NAMESPACE_OID) {}
+
  private:
   const common::ManagedPointer<Catalog> catalog_;
   const common::ManagedPointer<DatabaseCatalog> dbc_;
@@ -274,22 +290,6 @@ class CatalogAccessor {
   static void NormalizeObjectName(std::string *name) {
     std::transform(name->begin(), name->end(), name->begin(), [](auto &&c) { return std::tolower(c); });
   }
-
-  /**
-   * Instantiates a new accessor into the catalog for the given database.
-   * @param catalog pointer to the catalog being accessed
-   * @param txn the transaction context for this accessor
-   * @param database the OID of the database
-   */
-  CatalogAccessor(common::ManagedPointer<Catalog> catalog, common::ManagedPointer<DatabaseCatalog> dbc,
-                  transaction::TransactionContext *txn, db_oid_t database)
-      : catalog_(catalog),
-        dbc_(dbc),
-        txn_(txn),
-        db_oid_(database),
-        search_path_({NAMESPACE_CATALOG_NAMESPACE_OID, NAMESPACE_DEFAULT_NAMESPACE_OID}),
-        default_namespace_(NAMESPACE_DEFAULT_NAMESPACE_OID) {}
-  friend class Catalog;
 };
 
 }  // namespace terrier::catalog
