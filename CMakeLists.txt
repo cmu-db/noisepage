@@ -343,8 +343,8 @@ if (CMAKE_COMPILER_IS_GNUCXX)
 endif ()
 
 set(TERRIER_LINK_LIBS
-        ${TERRIER_LINK_LIBS}
         gflags
+        ${TERRIER_LINK_LIBS}
         pg_query)
 
 set(TERRIER_DEPENDENCIES
@@ -352,13 +352,19 @@ set(TERRIER_DEPENDENCIES
 
 set(TERRIER_TEST_LINK_LIBS
         test_util
+        terrier_static
         gtest
         gmock_main
+        gflags
         ${CMAKE_DL_LIBS})
 
 set(TERRIER_BENCHMARK_LINK_LIBS
         benchmark_util
-        benchmark)
+        terrier_static
+        benchmark
+        gtest
+        gmock_main
+        gflags)
 
 # ---[ Subdirectories
 add_subdirectory(src)
