@@ -5,12 +5,15 @@
 #include <utility>
 #include <variant>  // NOLINT (Matt): lint thinks this C++17 header is a C header because it only knows C++11
 #include <vector>
+#include "farmhash/farmhash.h"
 #include "libcuckoo/cuckoohash_map.hh"
 #include "storage/index/index.h"
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_manager.h"
 
 namespace terrier::storage::index {
+
+#define INITIAL_CUCKOOHASH_MAP_SIZE 256
 
 /**
  * Wrapper around libcuckoo's hash map.
@@ -21,11 +24,18 @@ class HashIndex final : public Index {
   friend class IndexBuilder;
 
  private:
-  using ValueMap = std::unordered_set<TupleSlot>;
+  struct TupleSlotHash {
+    std::size_t operator()(const TupleSlot &slot) const {
+      return util::Hash64(reinterpret_cast<const char *>(&slot), sizeof(TupleSlot));
+    }
+  };
+
+  using ValueMap = std::unordered_set<TupleSlot, TupleSlotHash>;
   using ValueType = std::variant<TupleSlot, ValueMap>;
 
   HashIndex(const catalog::index_oid_t oid, const ConstraintType constraint_type, IndexMetadata metadata)
-      : Index(constraint_type, std::move(metadata)), hash_map_{new cuckoohash_map<KeyType, ValueType>(256)} {}
+      : Index(constraint_type, std::move(metadata)),
+        hash_map_{new cuckoohash_map<KeyType, ValueType>(INITIAL_CUCKOOHASH_MAP_SIZE)} {}
 
   cuckoohash_map<KeyType, ValueType> *const hash_map_;
 
