@@ -50,10 +50,10 @@ class HashKey {
 
     const auto key_size = metadata.KeySize();
 
+    // NOLINTNEXTLINE (Matt): tidy thinks this has side-effects. I disagree.
     TERRIER_ASSERT(std::invoke([&]() -> bool {
                      for (uint16_t i = 0; i < from.NumColumns(); i++) {
-                       const byte *const attr = from.AccessWithNullCheck(i);
-                       if (attr == nullptr) return false;
+                       if (from.IsNull(i)) return false;
                      }
                      return true;
                    }),
