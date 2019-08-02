@@ -262,6 +262,7 @@ class CatalogAccessor {
   /**
    * Instantiates a new accessor into the catalog for the given database.
    * @param catalog pointer to the catalog being accessed
+   * @param dbc pointer to the database catalog being accessed
    * @param txn the transaction context for this accessor
    * @warning This constructor should never be called directly.  Instead you should get accessors from the catalog.
    */
