@@ -1,7 +1,13 @@
-fun main() -> int {
-  var count = 0
-  for (vec in test_2@[batch=2048]) {
-    count = count + @filterLt(vec, "test_2.col3", 500)
+fun main(execCtx: *ExecutionContext) -> int64 {
+  var ret = 0
+  var tvi: TableVectorIterator
+  @tableIterConstructBind(&tvi, "test_ns", "test_2", execCtx)
+  @tableIterPerformInit(&tvi)
+  for (; @tableIterAdvance(&tvi);) {
+    var pci = @tableIterGetPCI(&tvi)
+    ret = ret + @filterLt(pci, 3, 3, 500)
+    @pciReset(pci)
   }
-  return count
+  @tableIterClose(&tvi)
+  return ret
 }

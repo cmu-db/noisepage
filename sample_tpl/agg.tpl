@@ -40,7 +40,9 @@ fun updateAgg(agg: *Agg, pci: *ProjectedColumnsIterator) -> nil {
 fun pipeline_1(execCtx: *ExecutionContext, state: *State) -> nil {
   var ht = &state.table
   var tvi: TableVectorIterator
-  for (@tableIterInit(&tvi, "test_1", execCtx); @tableIterAdvance(&tvi); ) {
+  @tableIterConstructBind(&tvi, "test_ns", "test_1", execCtx)
+  @tableIterPerformInit(&tvi)
+  for (@tableIterAdvance(&tvi)) {
     var vec = @tableIterGetPCI(&tvi)
     for (; @pciHasNext(vec); @pciAdvance(vec)) {
       var hash_val = @hash(@pciGetInt(vec, 1))

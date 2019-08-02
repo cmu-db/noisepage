@@ -6,10 +6,12 @@
 #include <unordered_map>
 #include <utility>
 #include <vector>
-#include "catalog/accessor.h"
 #include "catalog/schema.h"
+#include "catalog/catalog_accessor.h"
 #include "transaction/transaction_context.h"
 #include "type/type_id.h"
+#include "parser/expression/constant_value_expression.h"
+#include "type/transient_value_factory.h"
 
 namespace tpl::sql {
 
@@ -32,7 +34,7 @@ struct IndexInfo {
   /**
    * Index Schema
    */
-  terrier::storage::index::IndexKeySchema schema;
+  std::unique_ptr<terrier::catalog::IndexSchema> schema;
 
   /**
    * Mapping from index column to table column
@@ -83,11 +85,9 @@ class SchemaReader {
  public:
   /**
    * Constructor
-   * @param accessor catalog accessor to use.
    */
-  explicit SchemaReader(terrier::catalog::CatalogAccessor *accessor)
-      : accessor_{accessor},
-        type_names_{{"tinyint", terrier::type::TypeId::TINYINT}, {"smallint", terrier::type::TypeId::SMALLINT},
+  explicit SchemaReader()
+       : type_names_{{"tinyint", terrier::type::TypeId::TINYINT}, {"smallint", terrier::type::TypeId::SMALLINT},
                     {"int", terrier::type::TypeId::INTEGER},     {"bigint", terrier::type::TypeId::BIGINT},
                     {"bool", terrier::type::TypeId::BOOLEAN},    {"real", terrier::type::TypeId::DECIMAL},
                     {"decimal", terrier::type::TypeId::DECIMAL}, {"varchar", terrier::type::TypeId::VARCHAR},
@@ -128,15 +128,16 @@ class SchemaReader {
       // Read index name and num_index_cols
       *in >> index_info->index_name >> num_index_cols;
       // Read each index column
+      std::vector<terrier::catalog::IndexSchema::Column> index_cols;
       uint16_t col_idx;
       for (uint32_t j = 0; j < num_index_cols; j++) {
         *in >> col_idx;
         index_info->index_map.emplace_back(col_idx);
-        terrier::catalog::indexkeycol_oid_t col_oid(accessor_->GetNextOid());
         const auto &table_column = table_info->schema->GetColumn(col_idx);
-        index_info->schema.emplace_back(col_oid, table_column.GetType(), table_column.GetNullable());
+        index_cols.emplace_back("index_col" + std::to_string(col_idx), table_column. Type(), table_column.Nullable(), DummyCVE());
       }
       // Update list of indexes
+      index_info->schema = std::make_unique<terrier::catalog::IndexSchema>(index_cols, false, false, false, false);
       table_info->indexes.emplace_back(std::move(index_info));
     }
   }
@@ -152,13 +153,12 @@ class SchemaReader {
     bool nullable;
     for (uint32_t i = 0; i < num_cols; i++) {
       *in >> col_name >> col_type_str >> nullable;
-      terrier::catalog::col_oid_t col_oid{accessor_->GetNextOid()};
       col_type = type_names_.at(col_type_str);
       if (col_type == terrier::type::TypeId::VARCHAR) {
         *in >> varchar_size;
-        cols.emplace_back(col_name, col_type, varchar_size, nullable, col_oid);
+        cols.emplace_back(col_name, col_type, varchar_size, nullable, DummyCVE());
       } else {
-        cols.emplace_back(col_name, col_type, nullable, col_oid);
+        cols.emplace_back(col_name, col_type, nullable, DummyCVE());
       }
       std::cout << "Read column: ";
       std::cout << "col_name=" << col_name << ", ";
@@ -166,14 +166,16 @@ class SchemaReader {
       if (col_type == terrier::type::TypeId::VARCHAR) {
         std::cout << "varchar_size=" << varchar_size << ", ";
       }
-      std::cout << "nullable=" << nullable << ", ";
-      std::cout << "col_oid=" << !col_oid << std::endl;
+      std::cout << "nullable=" << nullable << std::endl;
     }
     return cols;
   }
 
+  terrier::parser::ConstantValueExpression DummyCVE() {
+    return terrier::parser::ConstantValueExpression(terrier::type::TransientValueFactory::GetInteger(0));
+  }
+
  private:
-  terrier::catalog::CatalogAccessor *accessor_;
   // Supported types
   const std::unordered_map<std::string, terrier::type::TypeId> type_names_;
 };

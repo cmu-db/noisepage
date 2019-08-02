@@ -19,8 +19,9 @@ class SampleOutput {
    * Initialize test output schemas
    */
   void InitTestOutput() {
-    // Sample output formats:
-    terrier::planner::OutputSchema::Column int_col{terrier::type::TypeId::INTEGER, true, nullptr};
+    // Sample output formats
+    terrier::catalog::col_oid_t col_oid{0};
+    terrier::planner::OutputSchema::Column int_col{"dummy", terrier::type::TypeId::INTEGER, true, col_oid};
     // Create schemas with up to 10 integer columns.
     for (int i = 0; i < 10; i++) {
       std::vector<terrier::planner::OutputSchema::Column> cols;
@@ -40,10 +41,11 @@ class SampleOutput {
 
  private:
   void InitTPCHOutput() {
-    terrier::planner::OutputSchema::Column int_col{terrier::type::TypeId::INTEGER, true, nullptr};
-    terrier::planner::OutputSchema::Column real_col{terrier::type::TypeId::DECIMAL, true, nullptr};
-    terrier::planner::OutputSchema::Column date_col{terrier::type::TypeId::DATE, true, nullptr};
-    terrier::planner::OutputSchema::Column string_col{terrier::type::TypeId::VARCHAR, true, nullptr};
+    terrier::catalog::col_oid_t col_oid{0};
+    terrier::planner::OutputSchema::Column int_col{"dummy", terrier::type::TypeId::INTEGER, true, col_oid};
+    terrier::planner::OutputSchema::Column real_col{"dummy", terrier::type::TypeId::DECIMAL, true, col_oid};
+    terrier::planner::OutputSchema::Column date_col{"dummy", terrier::type::TypeId::DATE, true, col_oid};
+    terrier::planner::OutputSchema::Column string_col{"dummy", terrier::type::TypeId::VARCHAR, true, col_oid};
     // Q1 (two strings, 7 reals, 1 int)
     {
       std::vector<terrier::planner::OutputSchema::Column> cols{};
@@ -53,7 +55,7 @@ class SampleOutput {
       for (u32 i = 0; i < u32(7); i++) {
         cols.emplace_back(real_col);
       }
-      cols.emplace_back(string_col);
+      cols.emplace_back(int_col);
       schemas_.emplace("tpch_q1", terrier::planner::OutputSchema(cols));
     }
 

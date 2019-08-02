@@ -303,10 +303,19 @@ class BytecodeEmitter {
    * Emit TVI init code
    * @param bytecode init bytecode
    * @param iter TVI to initialize
-   * @param table_oid oid of the table
+   * @param table_oid oid of the sql table
    * @param exec_ctx execution context
    */
-  void EmitTableIterInit(Bytecode bytecode, LocalVar iter, u32 table_oid, LocalVar exec_ctx);
+  void EmitTableIterConstruct(Bytecode bytecode, LocalVar iter, u32 table_oid, LocalVar exec_ctx);
+
+
+  /**
+   * Emit bytecode to add a column for scanning
+   * @param bytecode bytecode to emit
+   * @param iter TVI and index iterator
+   * @param col_oid oid of the column
+   */
+  void EmitAddCol(Bytecode bytecode, LocalVar iter, u32 col_oid);
 
   /**
    * Emit a parallel table scan
@@ -321,7 +330,7 @@ class BytecodeEmitter {
    * @param pci PCI to read
    * @param col_idx index of the column to read
    */
-  void EmitPCIGet(Bytecode bytecode, LocalVar out, LocalVar pci, u32 col_idx);
+  void EmitPCIGet(Bytecode bytecode, LocalVar out, LocalVar pci, u16 col_idx);
 
   /**
    * Filter a column in the iterator by a constant value
@@ -411,16 +420,8 @@ class BytecodeEmitter {
    * @param index_oid oid of the index to use
    * @param exec_ctx the execution context
    */
-  void EmitIndexIteratorInit(Bytecode bytecode, LocalVar iter, uint32_t table_oid, uint32_t index_oid,
+  void EmitIndexIteratorConstruct(Bytecode bytecode, LocalVar iter, uint32_t table_oid, uint32_t index_oid,
                              LocalVar exec_ctx);
-
-  /**
-   * Emit code to scan a key
-   * @param bytecode scanKey bytecode
-   * @param iter index iterator to use to scan a key
-   * @param key key to scan
-   */
-  void EmitIndexIteratorScanKey(Bytecode bytecode, LocalVar iter, LocalVar key);
 
   /**
    * Emit code to free an index iterator
@@ -436,7 +437,16 @@ class BytecodeEmitter {
    * @param iter index iterator to use
    * @param col_idx index of the column to access
    */
-  void EmitIndexIteratorGet(Bytecode bytecode, LocalVar out, LocalVar iter, u32 col_idx);
+  void EmitIndexIteratorGet(Bytecode bytecode, LocalVar out, LocalVar iter, u16 col_idx);
+
+  /**
+   * Emit code to set the index's scan key
+   * @param bytecode bytecode corresponding to the column type
+   * @param iter index iterator to use
+   * @param col_idx index of the column to set
+   * @param val value to write
+   */
+  void EmitIndexIteratorSetKey(Bytecode bytecode, LocalVar iter, u16 col_idx, LocalVar val);
 
   /**
    * Initialize a StringVal from a char array

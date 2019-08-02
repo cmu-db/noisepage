@@ -208,7 +208,7 @@ class ComparisonFunctions {
         return 1;
       }
     }
-    return RawStringCompare(v1.ptr, v1.len, v2.ptr, v2.len, min_len);
+    return RawStringCompare(v1.Content(), v1.len, v2.Content(), v2.len, min_len);
   }
 };
 

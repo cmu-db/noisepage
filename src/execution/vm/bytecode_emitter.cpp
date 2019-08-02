@@ -249,16 +249,21 @@ void BytecodeEmitter::EmitThreadStateContainerReset(LocalVar tls, LocalVar state
   EmitAll(Bytecode::ThreadStateContainerReset, tls, state_size, init_fn, destroy_fn, ctx);
 }
 
-void BytecodeEmitter::EmitTableIterInit(Bytecode bytecode, LocalVar iter, u32 table_oid, LocalVar exec_ctx) {
+void BytecodeEmitter::EmitTableIterConstruct(Bytecode bytecode, LocalVar iter, u32 table_oid, LocalVar exec_ctx) {
   EmitAll(bytecode, iter, table_oid, exec_ctx);
 }
+
+void BytecodeEmitter::EmitAddCol(Bytecode bytecode, LocalVar iter, u32 col_oid) {
+  EmitAll(bytecode, iter, col_oid);
+}
+
 
 void BytecodeEmitter::EmitParallelTableScan(u32 db_oid, u32 table_oid, LocalVar ctx, LocalVar thread_states,
                                             FunctionId scan_fn) {
   EmitAll(Bytecode::ParallelScanTable, db_oid, table_oid, ctx, thread_states, scan_fn);
 }
 
-void BytecodeEmitter::EmitPCIGet(Bytecode bytecode, LocalVar out, LocalVar pci, u32 col_idx) {
+void BytecodeEmitter::EmitPCIGet(Bytecode bytecode, LocalVar out, LocalVar pci, u16 col_idx) {
   EmitAll(bytecode, out, pci, col_idx);
 }
 
@@ -312,19 +317,19 @@ void BytecodeEmitter::EmitOutputSetNull(Bytecode bytecode, LocalVar exec_ctx, Lo
   EmitAll(bytecode, exec_ctx, idx);
 }
 
-void BytecodeEmitter::EmitIndexIteratorInit(Bytecode bytecode, LocalVar iter, uint32_t table_oid, uint32_t index_oid,
+void BytecodeEmitter::EmitIndexIteratorConstruct(Bytecode bytecode, LocalVar iter, uint32_t table_oid, uint32_t index_oid,
                                             LocalVar exec_ctx) {
   EmitAll(bytecode, iter, table_oid, index_oid, exec_ctx);
 }
 
-void BytecodeEmitter::EmitIndexIteratorScanKey(Bytecode bytecode, LocalVar iter, LocalVar key) {
-  EmitAll(bytecode, iter, key);
-}
-
 void BytecodeEmitter::EmitIndexIteratorFree(Bytecode bytecode, LocalVar iter) { EmitAll(bytecode, iter); }
 
-void BytecodeEmitter::EmitIndexIteratorGet(Bytecode bytecode, LocalVar out, LocalVar iter, u32 col_idx) {
+void BytecodeEmitter::EmitIndexIteratorGet(Bytecode bytecode, LocalVar out, LocalVar iter, u16 col_idx) {
   EmitAll(bytecode, out, iter, col_idx);
+}
+
+void BytecodeEmitter::EmitIndexIteratorSetKey(Bytecode bytecode, LocalVar iter, u16 col_idx, LocalVar val) {
+  EmitAll(bytecode, iter, col_idx, val);
 }
 
 void BytecodeEmitter::EmitInitString(Bytecode bytecode, LocalVar out, u64 length, uintptr_t data) {

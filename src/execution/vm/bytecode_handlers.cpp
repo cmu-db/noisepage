@@ -23,11 +23,13 @@ void OpThreadStateContainerFree(tpl::sql::ThreadStateContainer *const thread_sta
 // Table Vector Iterator
 // ---------------------------------------------------------
 
-void OpTableVectorIteratorInit(tpl::sql::TableVectorIterator *iter, u32 table_oid,
+void OpTableVectorIteratorConstruct(tpl::sql::TableVectorIterator *iter, u32 table_oid,
                                tpl::exec::ExecutionContext *exec_ctx) {
   TPL_ASSERT(iter != nullptr, "Null iterator to initialize");
   new (iter) tpl::sql::TableVectorIterator(table_oid, exec_ctx);
 }
+
+
 
 void OpTableVectorIteratorPerformInit(tpl::sql::TableVectorIterator *iter) { iter->Init(); }
 
@@ -36,40 +38,40 @@ void OpTableVectorIteratorFree(tpl::sql::TableVectorIterator *iter) {
   iter->~TableVectorIterator();
 }
 
-void OpPCIFilterEqual(u32 *size, tpl::sql::ProjectedColumnsIterator *iter, u32 col_id, i8 type, i64 val) {
+void OpPCIFilterEqual(u64 *size, tpl::sql::ProjectedColumnsIterator *iter, u32 col_idx, i8 type, i64 val) {
   auto sql_type = static_cast<terrier::type::TypeId>(type);
   auto v = iter->MakeFilterVal(val, sql_type);
-  *size = iter->FilterColByVal<std::equal_to>(col_id, sql_type, v);
+  *size = iter->FilterColByVal<std::equal_to>(col_idx, sql_type, v);
 }
 
-void OpPCIFilterGreaterThan(u32 *size, tpl::sql::ProjectedColumnsIterator *iter, u32 col_id, i8 type, i64 val) {
+void OpPCIFilterGreaterThan(u64 *size, tpl::sql::ProjectedColumnsIterator *iter, u32 col_idx, i8 type, i64 val) {
   auto sql_type = static_cast<terrier::type::TypeId>(type);
   auto v = iter->MakeFilterVal(val, sql_type);
-  *size = iter->FilterColByVal<std::greater>(col_id, sql_type, v);
+  *size = iter->FilterColByVal<std::greater>(col_idx, sql_type, v);
 }
 
-void OpPCIFilterGreaterThanEqual(u32 *size, tpl::sql::ProjectedColumnsIterator *iter, u32 col_id, i8 type, i64 val) {
+void OpPCIFilterGreaterThanEqual(u64 *size, tpl::sql::ProjectedColumnsIterator *iter, u32 col_idx, i8 type, i64 val) {
   auto sql_type = static_cast<terrier::type::TypeId>(type);
   auto v = iter->MakeFilterVal(val, sql_type);
-  *size = iter->FilterColByVal<std::greater_equal>(col_id, sql_type, v);
+  *size = iter->FilterColByVal<std::greater_equal>(col_idx, sql_type, v);
 }
 
-void OpPCIFilterLessThan(u32 *size, tpl::sql::ProjectedColumnsIterator *iter, u32 col_id, i8 type, i64 val) {
+void OpPCIFilterLessThan(u64 *size, tpl::sql::ProjectedColumnsIterator *iter, u32 col_idx, i8 type, i64 val) {
   auto sql_type = static_cast<terrier::type::TypeId>(type);
   auto v = iter->MakeFilterVal(val, sql_type);
-  *size = iter->FilterColByVal<std::less>(col_id, sql_type, v);
+  *size = iter->FilterColByVal<std::less>(col_idx, sql_type, v);
 }
 
-void OpPCIFilterLessThanEqual(u32 *size, tpl::sql::ProjectedColumnsIterator *iter, u32 col_id, i8 type, i64 val) {
+void OpPCIFilterLessThanEqual(u64 *size, tpl::sql::ProjectedColumnsIterator *iter, u32 col_idx, i8 type, i64 val) {
   auto sql_type = static_cast<terrier::type::TypeId>(type);
   auto v = iter->MakeFilterVal(val, sql_type);
-  *size = iter->FilterColByVal<std::less_equal>(col_id, sql_type, v);
+  *size = iter->FilterColByVal<std::less_equal>(col_idx, sql_type, v);
 }
 
-void OpPCIFilterNotEqual(u32 *size, tpl::sql::ProjectedColumnsIterator *iter, u32 col_id, i8 type, i64 val) {
+void OpPCIFilterNotEqual(u64 *size, tpl::sql::ProjectedColumnsIterator *iter, u32 col_idx, i8 type, i64 val) {
   auto sql_type = static_cast<terrier::type::TypeId>(type);
   auto v = iter->MakeFilterVal(val, sql_type);
-  *size = iter->FilterColByVal<std::not_equal_to>(col_id, sql_type, v);
+  *size = iter->FilterColByVal<std::not_equal_to>(col_idx, sql_type, v);
 }
 
 // ---------------------------------------------------------
@@ -179,40 +181,20 @@ void OpOutputFinalize(tpl::exec::ExecutionContext *exec_ctx) { exec_ctx->GetOutp
 // Insert
 // ------------------------------------------------------------
 void OpInsert(tpl::exec::ExecutionContext *exec_ctx, u32 table_oid, byte *values_ptr) {
-  // find the table we want to insert to
-  auto table = exec_ctx->GetAccessor()->GetUserTable(static_cast<terrier::catalog::table_oid_t>(table_oid));
-  auto sql_table = table->GetSqlTable();
-  auto *const txn = exec_ctx->GetTxn();
-
-  // create insertion buffer
-  auto *pri = table->GetPRI();
-  auto *insert_buffer = terrier::common::AllocationUtil::AllocateAligned(pri->ProjectedRowSize());
-  auto *insert = pri->InitializeRow(insert_buffer);
-
-  // copy data into insertion buffer
-  u16 index = 0;
-  u16 offset = 0;
-
-  auto schema_cols = sql_table->GetSchema().GetColumns();
-  for (const auto &col : schema_cols) {
-    // TODO(tanujnay112): figure out nulls
-    uint8_t current_size = col.GetAttrSize();
-    byte *data = insert->AccessForceNotNull(index);
-    std::memcpy(data, values_ptr + offset, current_size);
-    index = static_cast<u16>(index + 1);
-    offset = static_cast<u16>(offset + current_size);
-  }
-
-  sql_table->Insert(txn, *insert);
+  // TODO(Amadou): Implement me once a builtin ProjectedRow is implemented.
 }
 
 // -------------------------------------------------------------------
 // Index Iterator
 // -------------------------------------------------------------------
-void OpIndexIteratorInit(tpl::sql::IndexIterator *iter, uint32_t table_oid, uint32_t index_oid,
+void OpIndexIteratorConstruct(tpl::sql::IndexIterator *iter, uint32_t table_oid, uint32_t index_oid,
                          tpl::exec::ExecutionContext *exec_ctx) {
   new (iter) tpl::sql::IndexIterator(table_oid, index_oid, exec_ctx);
 }
+
+void OpIndexIteratorPerformInit(tpl::sql::IndexIterator *iter) { iter->Init(); }
+
+
 void OpIndexIteratorFree(tpl::sql::IndexIterator *iter) { iter->~IndexIterator(); }
 
 }  //

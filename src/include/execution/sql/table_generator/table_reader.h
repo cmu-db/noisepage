@@ -25,7 +25,7 @@ class TableReader {
    * Constructor
    * @param exec_ctx execution context to use
    */
-  explicit TableReader(exec::ExecutionContext *exec_ctx) : exec_ctx_{exec_ctx} {}
+  explicit TableReader(exec::ExecutionContext *exec_ctx, terrier::storage::BlockStore * store, terrier::catalog::namespace_oid_t ns_oid) : exec_ctx_{exec_ctx}, store_{store}, ns_oid_{ns_oid} {}
 
   /**
    * Read a table given a schema file and a data file
@@ -37,11 +37,10 @@ class TableReader {
 
  private:
   // Calls the accessor's create table
-  terrier::catalog::SqlTableHelper *CreateTable(TableInfo *info);
+  terrier::catalog::table_oid_t CreateTable(TableInfo *info);
 
   // Calls the accessor's create index
-  std::vector<terrier::catalog::CatalogIndex *> CreateIndexes(TableInfo *info,
-                                                              terrier::catalog::SqlTableHelper *catalog_table);
+  std::vector<terrier::catalog::index_oid_t> CreateIndexes(TableInfo *info, terrier::catalog::table_oid_t table_oid);
 
   // Writes a column according to its type.
   void WriteTableCol(terrier::storage::ProjectedRow *insert_pr, uint16_t col_offset, terrier::type::TypeId type,
@@ -51,5 +50,7 @@ class TableReader {
   // Postgres NULL string
   static constexpr const char *null_string = "\\N";
   exec::ExecutionContext *exec_ctx_;
+  terrier::storage::BlockStore * store_;
+  terrier::catalog::namespace_oid_t ns_oid_;
 };
 }  // namespace tpl::sql

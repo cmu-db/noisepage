@@ -99,7 +99,8 @@ namespace tpl::vm {
   F(ThreadStateContainerFree, OperandType::Local)                                                                     \
                                                                                                                       \
   /* Table Vector Iterator */                                                                                         \
-  F(TableVectorIteratorInit, OperandType::Local, OperandType::UImm4, OperandType::Local)                              \
+  F(TableVectorIteratorConstruct, OperandType::Local, OperandType::UImm4, OperandType::Local)                              \
+  F(TableVectorIteratorAddCol, OperandType::Local, OperandType::UImm4)                              \
   F(TableVectorIteratorPerformInit, OperandType::Local)                                                               \
   F(TableVectorIteratorNext, OperandType::Local, OperandType::Local)                                                  \
   F(TableVectorIteratorFree, OperandType::Local)                                                                      \
@@ -116,22 +117,24 @@ namespace tpl::vm {
   F(PCIMatch, OperandType::Local, OperandType::Local)                                                                 \
   F(PCIReset, OperandType::Local)                                                                                     \
   F(PCIResetFiltered, OperandType::Local)                                                                             \
-  F(PCIGetSmallInt, OperandType::Local, OperandType::Local, OperandType::UImm4)                                       \
-  F(PCIGetInteger, OperandType::Local, OperandType::Local, OperandType::UImm4)                                        \
-  F(PCIGetBigInt, OperandType::Local, OperandType::Local, OperandType::UImm4)                                         \
-  F(PCIGetReal, OperandType::Local, OperandType::Local, OperandType::UImm4)                                           \
-  F(PCIGetDouble, OperandType::Local, OperandType::Local, OperandType::UImm4)                                         \
-  F(PCIGetDecimal, OperandType::Local, OperandType::Local, OperandType::UImm4)                                        \
-  F(PCIGetDate, OperandType::Local, OperandType::Local, OperandType::UImm4)                                           \
-  F(PCIGetVarlen, OperandType::Local, OperandType::Local, OperandType::UImm4)                                         \
-  F(PCIGetSmallIntNull, OperandType::Local, OperandType::Local, OperandType::UImm4)                                   \
-  F(PCIGetIntegerNull, OperandType::Local, OperandType::Local, OperandType::UImm4)                                    \
-  F(PCIGetBigIntNull, OperandType::Local, OperandType::Local, OperandType::UImm4)                                     \
-  F(PCIGetRealNull, OperandType::Local, OperandType::Local, OperandType::UImm4)                                       \
-  F(PCIGetDoubleNull, OperandType::Local, OperandType::Local, OperandType::UImm4)                                     \
-  F(PCIGetDecimalNull, OperandType::Local, OperandType::Local, OperandType::UImm4)                                    \
-  F(PCIGetDateNull, OperandType::Local, OperandType::Local, OperandType::UImm4)                                       \
-  F(PCIGetVarlenNull, OperandType::Local, OperandType::Local, OperandType::UImm4)                                     \
+  F(PCIGetTinyInt, OperandType::Local, OperandType::Local, OperandType::UImm2)                                       \
+  F(PCIGetSmallInt, OperandType::Local, OperandType::Local, OperandType::UImm2)                                       \
+  F(PCIGetInteger, OperandType::Local, OperandType::Local, OperandType::UImm2)                                        \
+  F(PCIGetBigInt, OperandType::Local, OperandType::Local, OperandType::UImm2)                                         \
+  F(PCIGetReal, OperandType::Local, OperandType::Local, OperandType::UImm2)                                           \
+  F(PCIGetDouble, OperandType::Local, OperandType::Local, OperandType::UImm2)                                         \
+  F(PCIGetDecimal, OperandType::Local, OperandType::Local, OperandType::UImm2)                                        \
+  F(PCIGetDate, OperandType::Local, OperandType::Local, OperandType::UImm2)                                           \
+  F(PCIGetVarlen, OperandType::Local, OperandType::Local, OperandType::UImm2)                                         \
+  F(PCIGetTinyIntNull, OperandType::Local, OperandType::Local, OperandType::UImm2)                                   \
+  F(PCIGetSmallIntNull, OperandType::Local, OperandType::Local, OperandType::UImm2)                                   \
+  F(PCIGetIntegerNull, OperandType::Local, OperandType::Local, OperandType::UImm2)                                    \
+  F(PCIGetBigIntNull, OperandType::Local, OperandType::Local, OperandType::UImm2)                                     \
+  F(PCIGetRealNull, OperandType::Local, OperandType::Local, OperandType::UImm2)                                       \
+  F(PCIGetDoubleNull, OperandType::Local, OperandType::Local, OperandType::UImm2)                                     \
+  F(PCIGetDecimalNull, OperandType::Local, OperandType::Local, OperandType::UImm2)                                    \
+  F(PCIGetDateNull, OperandType::Local, OperandType::Local, OperandType::UImm2)                                       \
+  F(PCIGetVarlenNull, OperandType::Local, OperandType::Local, OperandType::UImm2)                                     \
   F(PCIFilterEqual, OperandType::Local, OperandType::Local, OperandType::UImm4, OperandType::Imm1, OperandType::Imm8) \
   F(PCIFilterGreaterThan, OperandType::Local, OperandType::Local, OperandType::UImm4, OperandType::Imm1,              \
     OperandType::Imm8)                                                                                                \
@@ -323,22 +326,32 @@ namespace tpl::vm {
   F(Insert, OperandType::Local, OperandType::Local, OperandType::Local)                                               \
                                                                                                                       \
   /* Index Iterator */                                                                                                \
-  F(IndexIteratorInit, OperandType::Local, OperandType::UImm4, OperandType::UImm4, OperandType::Local)                \
-  F(IndexIteratorScanKey, OperandType::Local, OperandType::Local)                                                     \
+  F(IndexIteratorConstruct, OperandType::Local, OperandType::UImm4, OperandType::UImm4, OperandType::Local)                \
+  F(IndexIteratorAddCol, OperandType::Local, OperandType::UImm4)                              \
+  F(IndexIteratorPerformInit, OperandType::Local)                \
+  F(IndexIteratorScanKey, OperandType::Local)                                                     \
   F(IndexIteratorFree, OperandType::Local)                                                                            \
   F(IndexIteratorAdvance, OperandType::Local, OperandType::Local)                                                     \
-  F(IndexIteratorGetSmallInt, OperandType::Local, OperandType::Local, OperandType::UImm4)                             \
-  F(IndexIteratorGetInteger, OperandType::Local, OperandType::Local, OperandType::UImm4)                              \
-  F(IndexIteratorGetBigInt, OperandType::Local, OperandType::Local, OperandType::UImm4)                               \
-  F(IndexIteratorGetDecimal, OperandType::Local, OperandType::Local, OperandType::UImm4)                              \
-  F(IndexIteratorGetReal, OperandType::Local, OperandType::Local, OperandType::UImm4)                                 \
-  F(IndexIteratorGetDouble, OperandType::Local, OperandType::Local, OperandType::UImm4)                               \
-  F(IndexIteratorGetSmallIntNull, OperandType::Local, OperandType::Local, OperandType::UImm4)                         \
-  F(IndexIteratorGetIntegerNull, OperandType::Local, OperandType::Local, OperandType::UImm4)                          \
-  F(IndexIteratorGetBigIntNull, OperandType::Local, OperandType::Local, OperandType::UImm4)                           \
-  F(IndexIteratorGetDecimalNull, OperandType::Local, OperandType::Local, OperandType::UImm4)                          \
-  F(IndexIteratorGetRealNull, OperandType::Local, OperandType::Local, OperandType::UImm4)                             \
-  F(IndexIteratorGetDoubleNull, OperandType::Local, OperandType::Local, OperandType::UImm4)                           \
+  F(IndexIteratorGetTinyInt, OperandType::Local, OperandType::Local, OperandType::UImm2)                             \
+  F(IndexIteratorGetSmallInt, OperandType::Local, OperandType::Local, OperandType::UImm2)                             \
+  F(IndexIteratorGetInteger, OperandType::Local, OperandType::Local, OperandType::UImm2)                              \
+  F(IndexIteratorGetBigInt, OperandType::Local, OperandType::Local, OperandType::UImm2)                               \
+  F(IndexIteratorGetDecimal, OperandType::Local, OperandType::Local, OperandType::UImm2)                              \
+  F(IndexIteratorGetReal, OperandType::Local, OperandType::Local, OperandType::UImm2)                                 \
+  F(IndexIteratorGetDouble, OperandType::Local, OperandType::Local, OperandType::UImm2)                               \
+  F(IndexIteratorGetTinyIntNull, OperandType::Local, OperandType::Local, OperandType::UImm2)                         \
+  F(IndexIteratorGetSmallIntNull, OperandType::Local, OperandType::Local, OperandType::UImm2)                         \
+  F(IndexIteratorGetIntegerNull, OperandType::Local, OperandType::Local, OperandType::UImm2)                          \
+  F(IndexIteratorGetBigIntNull, OperandType::Local, OperandType::Local, OperandType::UImm2)                           \
+  F(IndexIteratorGetDecimalNull, OperandType::Local, OperandType::Local, OperandType::UImm2)                          \
+  F(IndexIteratorGetRealNull, OperandType::Local, OperandType::Local, OperandType::UImm2)                             \
+  F(IndexIteratorGetDoubleNull, OperandType::Local, OperandType::Local, OperandType::UImm2) \
+  F(IndexIteratorSetKeyTinyInt, OperandType::Local, OperandType::UImm2, OperandType::Local)                         \
+  F(IndexIteratorSetKeySmallInt, OperandType::Local, OperandType::UImm2, OperandType::Local)                         \
+  F(IndexIteratorSetKeyInt, OperandType::Local, OperandType::UImm2, OperandType::Local)                         \
+  F(IndexIteratorSetKeyBigInt, OperandType::Local, OperandType::UImm2, OperandType::Local)                         \
+  F(IndexIteratorSetKeyReal, OperandType::Local, OperandType::UImm2, OperandType::Local)                         \
+  F(IndexIteratorSetKeyDouble, OperandType::Local, OperandType::UImm2, OperandType::Local)                         \
                                                                                                                       \
   /* Trig functions */                                                                                                \
   F(Pi, OperandType::Local)                                                                                           \

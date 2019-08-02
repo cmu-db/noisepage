@@ -20,7 +20,7 @@ constexpr u32 test1_size = 10000;
 /**
  * Size of the second table
  */
-constexpr u32 test2_size = 100;
+constexpr u32 test2_size = 1000;
 
 /**
  * Helper class to generate test tables and their indexes.
@@ -38,7 +38,7 @@ class TableGenerator {
    * Constructor
    * @param exec_ctx execution context of the test
    */
-  explicit TableGenerator(exec::ExecutionContext *exec_ctx) : exec_ctx_{exec_ctx}, table_reader{exec_ctx} {}
+  explicit TableGenerator(exec::ExecutionContext *exec_ctx, terrier::storage::BlockStore * store, terrier::catalog::namespace_oid_t ns_oid) : exec_ctx_{exec_ctx}, store_{store}, ns_oid_{ns_oid}, table_reader{exec_ctx, store, ns_oid} {}
 
   /**
    * Generate the tables withing a directory
@@ -65,6 +65,8 @@ class TableGenerator {
 
  private:
   exec::ExecutionContext *exec_ctx_;
+  terrier::storage::BlockStore * store_;
+  terrier::catalog::namespace_oid_t ns_oid_;
   TableReader table_reader;
 
   /**
@@ -139,6 +141,11 @@ class TableGenerator {
    */
   struct IndexColumn {
     /**
+     * Name of the column
+     */
+    const char * name_;
+
+    /**
      * Type of the column
      */
     const terrier::type::TypeId type_;
@@ -149,13 +156,13 @@ class TableGenerator {
     /**
      * Index in the original table
      */
-    uint32_t table_col_idx_;  //
+    uint32_t table_col_idx_;
 
     /**
      * Constructor
      */
-    IndexColumn(const terrier::type::TypeId type, bool nullable, uint32_t table_col_idx)
-        : type_(type), nullable_(nullable), table_col_idx_(table_col_idx) {}
+    IndexColumn(const char * name, const terrier::type::TypeId type, bool nullable, uint32_t table_col_idx)
+        : name_(name), type_(type), nullable_(nullable), table_col_idx_(table_col_idx) {}
   };
 
   /**
@@ -192,10 +199,13 @@ class TableGenerator {
   std::pair<byte *, u32 *> GenerateColumnData(const ColumnInsertMeta &col_meta, u32 num_rows);
 
   // Fill a given table according to its metadata
-  void FillTable(terrier::catalog::SqlTableHelper *catalog_table, const TableInsertMeta &table_meta);
+  void FillTable(terrier::catalog::table_oid_t table_oid, terrier::common::ManagedPointer<terrier::storage::SqlTable> table, const terrier::catalog::Schema & schema, const TableInsertMeta &table_meta);
 
-  void FillIndex(const std::shared_ptr<terrier::catalog::CatalogIndex> &catalog_index,
-                 terrier::catalog::SqlTableHelper *catalog_table, const IndexInsertMeta &index_meta);
+  void FillIndex(terrier::common::ManagedPointer<terrier::storage::index::Index> index, const terrier::catalog::IndexSchema & index_schema, const IndexInsertMeta & index_meta, terrier::common::ManagedPointer<terrier::storage::SqlTable> table, const terrier::catalog::Schema & table_schema);
+
+  terrier::parser::ConstantValueExpression DummyCVE() {
+    return terrier::parser::ConstantValueExpression(terrier::type::TransientValueFactory::GetInteger(0));
+  }
 };
 
 }  // namespace tpl::sql

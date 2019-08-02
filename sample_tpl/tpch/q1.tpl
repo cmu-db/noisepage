@@ -96,7 +96,9 @@ fun setUpState(execCtx: *ExecutionContext, state: *State) -> nil {
 fun pipeline1(execCtx: *ExecutionContext, state: *State) -> nil {
   // Pipeline 1 (Aggregating)
   var tvi: TableVectorIterator
-  for (@tableIterInit(&tvi, "lineitem", execCtx); @tableIterAdvance(&tvi); ) {
+  @tableIterConstructBind(&tvi, "test_ns", "lineitem", execCtx)
+  @tableIterPerformInit(&tvi)
+  for (; @tableIterAdvance(&tvi); ) {
     var vec = @tableIterGetPCI(&tvi)
     for (; @pciHasNext(vec); @pciAdvance(vec)) {
       var agg_values : AggValues

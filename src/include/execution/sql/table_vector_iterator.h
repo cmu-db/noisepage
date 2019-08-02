@@ -38,6 +38,14 @@ class TableVectorIterator {
   ~TableVectorIterator();
 
   /**
+   * Add a column to the list of columns to scan
+   * @param col_oid oid of the column to scan
+   */
+  void AddCol(u32 col_oid) {
+    col_oids_.emplace_back(col_oid);
+  };
+
+  /**
    * This class cannot be copied or moved
    */
   DISALLOW_COPY_AND_MOVE(TableVectorIterator);
@@ -89,7 +97,8 @@ class TableVectorIterator {
   ProjectedColumnsIterator pci_;
   const table_oid_t table_oid_;
   // SqlTable to iterate over
-  terrier::catalog::SqlTableHelper *catalog_table_;
+  terrier::common::ManagedPointer<terrier::storage::SqlTable> table_{nullptr};
+  std::vector<terrier::catalog::col_oid_t> col_oids_{};
   // A PC and its buffer.
   byte *buffer_ = nullptr;
   terrier::storage::ProjectedColumns *projected_columns_ = nullptr;

@@ -68,9 +68,8 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
   // Initialize terrier objects
   terrier::storage::BlockStore block_store(1000, 1000);
   terrier::storage::RecordBufferSegmentPool buffer_pool(100000, 100000);
-  terrier::storage::LogManager log_manager("log_file.log", &buffer_pool);
-  terrier::transaction::TransactionManager txn_manager(&buffer_pool, true, &log_manager);
-  terrier::storage::GarbageCollector gc(&txn_manager);
+  terrier::transaction::TransactionManager txn_manager(&buffer_pool, true, nullptr);
+  terrier::storage::GarbageCollector gc(&txn_manager, nullptr);
   auto *txn = txn_manager.BeginTransaction();
 
   // Get the correct output format for this test
@@ -79,17 +78,18 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
   auto output_schema = sample_output.GetSchema(kOutputName.data());
 
   // Make the catalog accessor
-  terrier::catalog::Catalog catalog(&txn_manager, txn);
-  auto db_oid = terrier::catalog::DEFAULT_DATABASE_OID;
-  auto ns_oid = catalog.CreateNameSpace(txn, db_oid, "test_namespace");
-  auto accessor = catalog.GetAccessor(txn, db_oid, ns_oid);
+  terrier::catalog::Catalog catalog(&txn_manager, &block_store);
+
+  auto db_oid = catalog.CreateDatabase(txn, "test_db", true);
+  auto accessor = std::unique_ptr<terrier::catalog::CatalogAccessor>(catalog.GetAccessor(txn, db_oid));
+  auto ns_oid = accessor->CreateNamespace("test_ns");
 
   // Make the execution context
   exec::OutputPrinter printer(output_schema);
-  exec::ExecutionContext exec_ctx{txn, printer, output_schema, std::move(accessor)};
+  exec::ExecutionContext exec_ctx{db_oid, txn, printer, output_schema, std::move(accessor)};
 
-  // Genereate test tables
-  sql::TableGenerator table_generator{&exec_ctx};
+  // Generate test tables
+  sql::TableGenerator table_generator{&exec_ctx, &block_store, ns_oid};
   table_generator.GenerateTestTables();
   table_generator.GenerateTableFromFile("../sample_tpl/tables/lineitem.schema", "../sample_tpl/tables/lineitem.data");
 
@@ -167,20 +167,20 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
     util::ScopedTimer<std::milli> timer(&interp_exec_ms);
 
     if (kIsSQL) {
-      std::function<u32(exec::ExecutionContext *)> main;
+      std::function<i64(exec::ExecutionContext *)> main;
       if (!module->GetFunction("main", vm::ExecutionMode::Interpret, &main)) {
         EXECUTION_LOG_ERROR(
             "Missing 'main' entry function with signature "
-            "(*ExecutionContext)->int32");
+            "(*ExecutionContext)->int64");
         return;
       }
       auto memory = std::make_unique<sql::MemoryPool>(nullptr);
       exec_ctx.SetMemoryPool(std::move(memory));
       EXECUTION_LOG_INFO("VM main() returned: {}", main(&exec_ctx));
     } else {
-      std::function<u32()> main;
+      std::function<i64()> main;
       if (!module->GetFunction("main", vm::ExecutionMode::Interpret, &main)) {
-        EXECUTION_LOG_ERROR("Missing 'main' entry function with signature ()->int32");
+        EXECUTION_LOG_ERROR("Missing 'main' entry function with signature ()->int64");
         return;
       }
       EXECUTION_LOG_INFO("VM main() returned: {}", main());
@@ -191,24 +191,24 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
   // Adaptive
   //
 
-  {
+  /*{
     util::ScopedTimer<std::milli> timer(&adaptive_exec_ms);
 
     if (kIsSQL) {
-      std::function<u32(exec::ExecutionContext *)> main;
+      std::function<i64(exec::ExecutionContext *)> main;
       if (!module->GetFunction("main", vm::ExecutionMode::Adaptive, &main)) {
         EXECUTION_LOG_ERROR(
             "Missing 'main' entry function with signature "
-            "(*ExecutionContext)->int32");
+            "(*ExecutionContext)->int64");
         return;
       }
       auto memory = std::make_unique<sql::MemoryPool>(nullptr);
       exec_ctx.SetMemoryPool(std::move(memory));
       EXECUTION_LOG_INFO("ADAPTIVE main() returned: {}", main(&exec_ctx));
     } else {
-      std::function<u32()> main;
+      std::function<i64()> main;
       if (!module->GetFunction("main", vm::ExecutionMode::Adaptive, &main)) {
-        EXECUTION_LOG_ERROR("Missing 'main' entry function with signature ()->int32");
+        EXECUTION_LOG_ERROR("Missing 'main' entry function with signature ()->int64");
         return;
       }
       EXECUTION_LOG_INFO("ADAPTIVE main() returned: {}", main());
@@ -222,25 +222,25 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
     util::ScopedTimer<std::milli> timer(&jit_exec_ms);
 
     if (kIsSQL) {
-      std::function<u32(exec::ExecutionContext *)> main;
+      std::function<i64(exec::ExecutionContext *)> main;
       if (!module->GetFunction("main", vm::ExecutionMode::Compiled, &main)) {
         EXECUTION_LOG_ERROR(
             "Missing 'main' entry function with signature "
-            "(*ExecutionContext)->int32");
+            "(*ExecutionContext)->int64");
         return;
       }
       auto memory = std::make_unique<sql::MemoryPool>(nullptr);
       exec_ctx.SetMemoryPool(std::move(memory));
       EXECUTION_LOG_INFO("JIT main() returned: {}", main(&exec_ctx));
     } else {
-      std::function<u32()> main;
+      std::function<i64()> main;
       if (!module->GetFunction("main", vm::ExecutionMode::Compiled, &main)) {
-        EXECUTION_LOG_ERROR("Missing 'main' entry function with signature ()->int32");
+        EXECUTION_LOG_ERROR("Missing 'main' entry function with signature ()->int64");
         return;
       }
       EXECUTION_LOG_INFO("JIT main() returned: {}", main());
     }
-  }
+  }*/
 
   // Dump stats
   EXECUTION_LOG_INFO(
@@ -248,7 +248,7 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
       "Adaptive Exec.: {} ms, Jit+Exec.: {} ms",
       parse_ms, typecheck_ms, codegen_ms, interp_exec_ms, adaptive_exec_ms, jit_exec_ms);
   txn_manager.Commit(txn, [](void *) {}, nullptr);
-  log_manager.Shutdown();
+  catalog.TearDown();
   gc.PerformGarbageCollection();
   gc.PerformGarbageCollection();
 }

@@ -4,7 +4,7 @@ struct S {
 }
 
 fun compare(a: *S, b: *S) -> bool {
-  var b = (a->a < b->a)
+  var b = (a.a < b.a)
   return b
 }
 

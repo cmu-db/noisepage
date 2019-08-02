@@ -490,11 +490,18 @@ void VM::Interpret(const u8 *ip, Frame *frame) {
   // Table Vector and ProjectedColumns Iterator (PCI) ops
   // -------------------------------------------------------
 
-  OP(TableVectorIteratorInit) : {
+  OP(TableVectorIteratorConstruct) : {
     auto *iter = frame->LocalAt<sql::TableVectorIterator *>(READ_LOCAL_ID());
     auto table_oid = READ_UIMM4();
     auto exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
-    OpTableVectorIteratorInit(iter, table_oid, exec_ctx);
+    OpTableVectorIteratorConstruct(iter, table_oid, exec_ctx);
+    DISPATCH_NEXT();
+  }
+
+  OP(TableVectorIteratorAddCol) : {
+    auto *iter = frame->LocalAt<sql::TableVectorIterator *>(READ_LOCAL_ID());
+    auto col_oid = READ_UIMM4();
+    OpTableVectorIteratorAddCol(iter, col_oid);
     DISPATCH_NEXT();
   }
 
@@ -600,17 +607,18 @@ void VM::Interpret(const u8 *ip, Frame *frame) {
   OP(PCIGet##type_str) : {                                                        \
     auto *result = frame->LocalAt<type *>(READ_LOCAL_ID());                       \
     auto *pci = frame->LocalAt<sql::ProjectedColumnsIterator *>(READ_LOCAL_ID()); \
-    auto col_idx = READ_UIMM4();                                                  \
+    auto col_idx = READ_UIMM2();                                                  \
     OpPCIGet##type_str(result, pci, col_idx);                                     \
     DISPATCH_NEXT();                                                              \
   }                                                                               \
   OP(PCIGet##type_str##Null) : {                                                  \
     auto *result = frame->LocalAt<type *>(READ_LOCAL_ID());                       \
     auto *pci = frame->LocalAt<sql::ProjectedColumnsIterator *>(READ_LOCAL_ID()); \
-    auto col_idx = READ_UIMM4();                                                  \
+    auto col_idx = READ_UIMM2();                                                  \
     OpPCIGet##type_str##Null(result, pci, col_idx);                               \
     DISPATCH_NEXT();                                                              \
   }
+  GEN_PCI_ACCESS(TinyInt, sql::Integer)
   GEN_PCI_ACCESS(SmallInt, sql::Integer)
   GEN_PCI_ACCESS(Integer, sql::Integer)
   GEN_PCI_ACCESS(BigInt, sql::Integer)
@@ -623,7 +631,7 @@ void VM::Interpret(const u8 *ip, Frame *frame) {
 
 #define GEN_PCI_FILTER(Op)                                                         \
   OP(PCIFilter##Op) : {                                                            \
-    auto *size = frame->LocalAt<u32 *>(READ_LOCAL_ID());                           \
+    auto *size = frame->LocalAt<u64 *>(READ_LOCAL_ID());                           \
     auto *iter = frame->LocalAt<sql::ProjectedColumnsIterator *>(READ_LOCAL_ID()); \
     auto col_idx = READ_UIMM4();                                                   \
     auto type = READ_IMM1();                                                       \
@@ -1387,19 +1395,31 @@ void VM::Interpret(const u8 *ip, Frame *frame) {
   // -------------------------------------------------------
   // Index Iterator
   // -------------------------------------------------------
-  OP(IndexIteratorInit) : {
+  OP(IndexIteratorConstruct) : {
     auto *iter = frame->LocalAt<sql::IndexIterator *>(READ_LOCAL_ID());
     auto table_oid = READ_UIMM4();
     auto index_oid = READ_UIMM4();
     auto exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
-    OpIndexIteratorInit(iter, table_oid, index_oid, exec_ctx);
+    OpIndexIteratorConstruct(iter, table_oid, index_oid, exec_ctx);
+    DISPATCH_NEXT();
+  }
+
+  OP(IndexIteratorPerformInit) : {
+    auto *iter = frame->LocalAt<sql::IndexIterator *>(READ_LOCAL_ID());
+    OpIndexIteratorPerformInit(iter);
+    DISPATCH_NEXT();
+  }
+
+  OP(IndexIteratorAddCol) : {
+    auto *iter = frame->LocalAt<sql::IndexIterator *>(READ_LOCAL_ID());
+    auto col_oid = READ_UIMM4();
+    OpIndexIteratorAddCol(iter, col_oid);
     DISPATCH_NEXT();
   }
 
   OP(IndexIteratorScanKey) : {
     auto *iter = frame->LocalAt<sql::IndexIterator *>(READ_LOCAL_ID());
-    auto *key = frame->LocalAt<byte *>(READ_LOCAL_ID());
-    OpIndexIteratorScanKey(iter, key);
+    OpIndexIteratorScanKey(iter);
     DISPATCH_NEXT();
   }
 
@@ -1424,17 +1444,18 @@ void VM::Interpret(const u8 *ip, Frame *frame) {
   OP(IndexIteratorGet##type_str) : {                                    \
     auto *result = frame->LocalAt<type *>(READ_LOCAL_ID());             \
     auto *iter = frame->LocalAt<sql::IndexIterator *>(READ_LOCAL_ID()); \
-    auto col_idx = READ_UIMM4();                                        \
+    auto col_idx = READ_UIMM2();                                        \
     OpIndexIteratorGet##type_str(result, iter, col_idx);                \
     DISPATCH_NEXT();                                                    \
   }                                                                     \
   OP(IndexIteratorGet##type_str##Null) : {                              \
     auto *result = frame->LocalAt<type *>(READ_LOCAL_ID());             \
     auto *iter = frame->LocalAt<sql::IndexIterator *>(READ_LOCAL_ID()); \
-    auto col_idx = READ_UIMM4();                                        \
+    auto col_idx = READ_UIMM2();                                        \
     OpIndexIteratorGet##type_str##Null(result, iter, col_idx);          \
     DISPATCH_NEXT();                                                    \
   }
+  GEN_INDEX_ITERATOR_ACCESS(TinyInt, sql::Integer)
   GEN_INDEX_ITERATOR_ACCESS(SmallInt, sql::Integer)
   GEN_INDEX_ITERATOR_ACCESS(Integer, sql::Integer)
   GEN_INDEX_ITERATOR_ACCESS(BigInt, sql::Integer)
@@ -1442,6 +1463,23 @@ void VM::Interpret(const u8 *ip, Frame *frame) {
   GEN_INDEX_ITERATOR_ACCESS(Double, sql::Real)
   GEN_INDEX_ITERATOR_ACCESS(Decimal, sql::Decimal)
 #undef GEN_INDEX_ITERATOR_ACCESS
+
+
+#define GEN_INDEX_ITERATOR_SET(type_str, type)                       \
+  OP(IndexIteratorSetKey##type_str) : {                                    \
+    auto *iter = frame->LocalAt<sql::IndexIterator *>(READ_LOCAL_ID()); \
+    auto col_idx = READ_UIMM2();                                        \
+    auto val = frame->LocalAt<type *>(READ_LOCAL_ID()); \
+    OpIndexIteratorSetKey##type_str(iter, col_idx, val);                \
+    DISPATCH_NEXT();                                                    \
+  }
+  GEN_INDEX_ITERATOR_SET(TinyInt, sql::Integer)
+  GEN_INDEX_ITERATOR_SET(SmallInt, sql::Integer)
+  GEN_INDEX_ITERATOR_SET(Int, sql::Integer)
+  GEN_INDEX_ITERATOR_SET(BigInt, sql::Integer)
+  GEN_INDEX_ITERATOR_SET(Real, sql::Real)
+  GEN_INDEX_ITERATOR_SET(Double, sql::Real)
+#undef GEN_INDEX_ITERATOR_SET
 
   // -------------------------------------------------------
   // Real-value functions

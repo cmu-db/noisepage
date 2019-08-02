@@ -183,6 +183,7 @@ struct Decimal : public Val {
 
 /**
  * A SQL string
+ * TODO(Amadou): Check if the object's layout is optimal
  */
 struct StringVal : public Val {
   /**
@@ -191,9 +192,14 @@ struct StringVal : public Val {
   static constexpr std::size_t kMaxStingLen = 1 * GB;
 
   /**
+   * Padding for inlining
+   */
+  char prefix_[sizeof(uint64_t) - sizeof(bool)];
+
+  /**
    * Raw string
    */
-  char *ptr;
+  const char *ptr;
 
   /**
    * String length
@@ -206,28 +212,22 @@ struct StringVal : public Val {
    * @param str The byte sequence.
    * @param len The length of the sequence.
    */
-  StringVal(char *str, u32 len) noexcept : Val(str == nullptr), ptr(str), len(len) {}
+  StringVal(const char *str, u32 len) noexcept : Val(str == nullptr), len(len) {
+    if (!is_null) {
+      if (len <= InlineThreshold()) {
+        std::memcpy(prefix_, str, len);
+      } else {
+        ptr = str;
+      }
+    }
+  }
 
   /**
    * Create a string value (i.e., view) over the C-style null-terminated string.
    * Note that no copy is made.
    * @param str The C-string.
    */
-  explicit StringVal(const char *str) noexcept : StringVal(const_cast<char *>(str), u32(strlen(str))) {}
-
-  /**
-   * Create a new string using the given memory pool and length.
-   * @param memory The memory pool to allocate this string's contents from
-   * @param len The size of the string
-   */
-  StringVal(exec::ExecutionContext::StringAllocator *memory, std::size_t len) : ptr(nullptr), len(u32(len)) {
-    if (TPL_UNLIKELY(len > kMaxStingLen)) {
-      this->len = 0;
-      this->is_null = true;
-    } else {
-      ptr = reinterpret_cast<char *>(memory->Allocate(len));
-    }
-  }
+  explicit StringVal(const char *str) noexcept : StringVal(str, u32(strlen(str))) {}
 
   /**
    * Compare if this (potentially nullable) string value is equivalent to
@@ -245,6 +245,9 @@ struct StringVal : public Val {
     if (len != that.len) {
       return false;
     }
+    if (len <= InlineThreshold()) {
+      return memcmp(prefix_, that.prefix_, len) == 0;
+    }
     return ptr == that.ptr || memcmp(ptr, that.ptr, len) == 0;
   }
 
@@ -259,6 +262,47 @@ struct StringVal : public Val {
    * Create a NULL varchar/string
    */
   static StringVal Null() { return StringVal(static_cast<char *>(nullptr), 0); }
+
+  /**
+   * @return the raw content
+   */
+  const char * Content() const {
+    if (len < InlineThreshold()) {return prefix_;}
+    return ptr;
+  }
+
+  /**
+   * Preallocate a StringVal whose content will be filled afterwards.
+   * @param result what to allocate
+   * @param memory allocator to use
+   * @param len length of the string
+   * @return a buffer that can be filled
+   */
+  static char* PreAllocate(StringVal *result, exec::ExecutionContext::StringAllocator *memory, uint32_t len) {
+    // Inlined
+    if (len <= InlineThreshold()) {
+      *result = StringVal(len);
+      return result->prefix_;
+    }
+    // Out of line
+    if (TPL_UNLIKELY(len > kMaxStingLen)) {
+      return nullptr;
+    }
+    auto * ptr = memory->Allocate(len);
+    *result = StringVal(ptr, len);
+    return ptr;
+  }
+
+  /**
+   * @return threshold for inlining.
+   */
+  static uint32_t InlineThreshold() {
+    return terrier::storage::VarlenEntry::InlineThreshold();
+  }
+ private:
+
+  // Used to pre allocated inlined strings
+  StringVal(uint32_t len) : Val(false), len(len) {}
 };
 
 /**

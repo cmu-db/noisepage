@@ -46,11 +46,13 @@ fun pipeline_1(execCtx: *ExecutionContext, state: *State) -> nil {
 
   // Setup the iterator and iterate
   var tvi: TableVectorIterator
-  for (@tableIterInit(&tvi, "test_1", execCtx); @tableIterAdvance(&tvi); ) {
+  @tableIterConstructBind(&tvi, "test_ns", "test_1", execCtx)
+  @tableIterPerformInit(&tvi)
+  for (@tableIterAdvance(&tvi)) {
     var vec = @tableIterGetPCI(&tvi)
     @filterLt(vec, "colA", 5000)
     iters[0] = vec
-    @aggHTProcessBatch(ht, &iters, hashFn, keyCheck, constructAgg, updateAgg)
+    @aggHTProcessBatch(ht, &iters, hashFn, keyCheck, constructAgg, updateAgg, false)
   }
   @tableIterClose(&tvi)
 }

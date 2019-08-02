@@ -842,6 +842,7 @@ std::vector<index_oid_t> DatabaseCatalog::GetIndexes(transaction::TransactionCon
 index_oid_t DatabaseCatalog::CreateIndex(transaction::TransactionContext *txn, namespace_oid_t ns,
                                          const std::string &name, table_oid_t table, const IndexSchema &schema) {
   const index_oid_t index_oid = static_cast<index_oid_t>(next_oid_++);
+
   return CreateIndexEntry(txn, ns, table, index_oid, name, schema) ? index_oid : INVALID_INDEX_OID;
 }
 
@@ -1163,6 +1164,12 @@ bool DatabaseCatalog::CreateIndexEntry(transaction::TransactionContext *const tx
                                        const table_oid_t table_oid, const index_oid_t index_oid,
                                        const std::string &name, const IndexSchema &schema) {
   auto idx_schema = new IndexSchema(schema);
+  // TODO(Amadou): Remove this before merging.
+  // Write the col oids into a new Schema object
+  indexkeycol_oid_t next_col_oid(1);
+  for (auto &column : idx_schema->columns_) {
+    column.oid_ = next_col_oid++;
+  }
   // First, insert into pg_class
   // NOLINTNEXTLINE
   auto [pr_init, pr_map] = classes_->InitializerForProjectedRow(PG_CLASS_ALL_COL_OIDS);

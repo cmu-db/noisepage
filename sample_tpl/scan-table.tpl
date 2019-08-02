@@ -1,7 +1,9 @@
-fun main(execCtx: *ExecutionContext) -> int {
-  var ret :int = 0
+fun main(execCtx: *ExecutionContext) -> int64 {
+  var ret = 0
   var tvi: TableVectorIterator
-  for (@tableIterInit(&tvi, "test_1", execCtx); @tableIterAdvance(&tvi); ) {
+  @tableIterConstructBind(&tvi, "test_ns", "test_1", execCtx)
+  @tableIterPerformInit(&tvi)
+  for (@tableIterAdvance(&tvi)) {
     var pci = @tableIterGetPCI(&tvi)
     for (; @pciHasNext(pci); @pciAdvance(pci)) {
       var cola = @pciGetInt(pci, 0)

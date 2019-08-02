@@ -17,7 +17,7 @@ namespace tpl::sql::test {
 
 class StringFunctionsTests : public TplTest {
  public:
-  StringFunctionsTests() : ctx_(nullptr, nullptr, nullptr, nullptr) {}
+  StringFunctionsTests() : ctx_(terrier::catalog::db_oid_t(0), nullptr, nullptr, nullptr, nullptr) {}
 
   exec::ExecutionContext *ctx() { return &ctx_; }
 

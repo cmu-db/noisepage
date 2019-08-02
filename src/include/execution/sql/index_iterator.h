@@ -3,15 +3,11 @@
 #include <memory>
 #include <vector>
 #include "catalog/catalog_defs.h"
-#include "catalog/catalog_index.h"
-#include "catalog/catalog_sql_table.h"
 #include "execution/exec/execution_context.h"
 #include "execution/sql/projected_columns_iterator.h"
 #include "storage/storage_defs.h"
 
 namespace tpl::sql {
-using terrier::catalog::CatalogIndex;
-using terrier::catalog::SqlTableHelper;
 using terrier::storage::ProjectedRow;
 using terrier::storage::TupleSlot;
 using terrier::transaction::TransactionContext;
@@ -29,52 +25,90 @@ class IndexIterator {
    */
   explicit IndexIterator(uint32_t table_oid, uint32_t index_oid, exec::ExecutionContext *exec_ctx);
 
+
+  void Init();
+
   /**
    * Frees allocated resources.
    */
   ~IndexIterator();
 
   /**
-   * Wrapper around the index's ScanKey
-   * @param sql_key key to scan.
+   * Add a column to the list of columns to select
+   * @param col_oid oid of the column to select
    */
-  void ScanKey(byte *sql_key);
+  void AddCol(u32 col_oid) {
+    col_oids_.emplace_back(col_oid);
+  }
+
+  /**
+   * Wrapper around the index's ScanKey
+   */
+  void ScanKey() {
+    // Scan the index
+    tuples_.clear();
+    curr_index_ = 0;
+    index_->ScanKey(*exec_ctx_->GetTxn(), *index_pr_, &tuples_);
+  }
 
   /**
    * Advances the iterator. Return true if successful
    * @return whether the iterator was advanced or not.
    */
-  bool Advance();
+  bool Advance() {
+    if (curr_index_ < tuples_.size()) {
+      table_->Select(exec_ctx_->GetTxn(), tuples_[curr_index_], table_pr_);
+      ++curr_index_;
+      return true;
+    }
+    return false;
+  }
 
   /**
    * Get a pointer to the value in the column at index @em col_idx
    * @tparam T The desired data type stored in the vector projection
-   * @tparam nullable Whether the column is NULLable
+   * @tparam Nullable Whether the column is NULLable
    * @param col_idx The index of the column to read from
    * @param[out] null null Whether the given column is null
    * @return The typed value at the current iterator position in the column
    */
-  template <typename T, bool nullable>
-  const T *Get(u32 col_idx, bool *null) const;
+  template <typename T, bool Nullable>
+  const T *Get(u16 col_idx, bool *null) const {
+    if constexpr (Nullable) {
+      TPL_ASSERT(null != nullptr, "Missing output variable for NULL indicator");
+      *null = table_pr_->IsNull(col_idx);
+    }
+    return reinterpret_cast<T *>(table_pr_->AccessWithNullCheck(col_idx));
+  }
+
+  /**
+   * Sets the index key value at the given index
+   * @tparam T type of value
+   * @param col_idx index of the key
+   * @param value value to write
+   * @param null whether the value is null
+   */
+  template <typename T>
+  void SetKey(u16 col_idx, T value, bool null) {
+    if (null) {
+      index_pr_->SetNull(static_cast<u16>(col_idx));
+    } else {
+      *reinterpret_cast<T*>(index_pr_->AccessForceNotNull(col_idx)) = value;
+    }
+  }
 
  private:
   exec::ExecutionContext *exec_ctx_;
-  std::vector<TupleSlot> index_values_;
   uint32_t curr_index_ = 0;
-  byte *index_buffer_ = nullptr;
-  byte *row_buffer_ = nullptr;
-  ProjectedRow *index_pr_ = nullptr;
-  ProjectedRow *row_pr_ = nullptr;
-  std::shared_ptr<CatalogIndex> catalog_index_ = nullptr;
-  SqlTableHelper *catalog_table_ = nullptr;
+  byte *index_buffer_;
+  byte *table_buffer_;
+  ProjectedRow *index_pr_;
+  ProjectedRow *table_pr_;
+  terrier::common::ManagedPointer<terrier::storage::index::Index> index_;
+  terrier::common::ManagedPointer<terrier::storage::SqlTable> table_;
+  const terrier::catalog::Schema & schema_;
+  std::vector<terrier::catalog::col_oid_t> col_oids_;
+  std::vector<TupleSlot> tuples_{};
 };
 
-template <typename T, bool Nullable>
-inline const T *IndexIterator::Get(u32 col_idx, bool *null) const {
-  if constexpr (Nullable) {
-    TPL_ASSERT(null != nullptr, "Missing output variable for NULL indicator");
-    *null = row_pr_->IsNull(static_cast<u16>(col_idx));
-  }
-  return reinterpret_cast<T *>(row_pr_->AccessWithNullCheck(static_cast<u16>(col_idx)));
-}
 }  // namespace tpl::sql
