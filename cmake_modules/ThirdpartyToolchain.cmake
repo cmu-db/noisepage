@@ -103,6 +103,10 @@ if ("${MAKE}" STREQUAL "")
     find_program(MAKE make)
 endif ()
 
+# pthreads
+find_library(PTHREAD_LIBRARY pthread)
+message(STATUS "Found pthread: ${PTHREAD_LIBRARY}")
+
 if (TERRIER_BUILD_TESTS OR TERRIER_BUILD_BENCHMARKS)
     add_custom_target(unittest ctest -L unittest)
 
@@ -240,9 +244,6 @@ endif ()
 
 set(TERRIER_LINK_LIBS "")
 
-# pthreads
-find_library(PTHREAD_LIBRARY pthread)
-message(STATUS "Found pthread: ${PTHREAD_LIBRARY}")
 list(APPEND TERRIER_LINK_LIBS ${PTHREAD_LIBRARY})
 
 # JeMalloc

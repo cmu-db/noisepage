@@ -345,8 +345,7 @@ endif ()
 set(TERRIER_LINK_LIBS
         ${TERRIER_LINK_LIBS}
         gflags
-        pg_query
-        ${CMAKE_DL_LIBS})
+        pg_query)
 
 set(TERRIER_DEPENDENCIES
         gflags)
@@ -354,7 +353,8 @@ set(TERRIER_DEPENDENCIES
 set(TERRIER_TEST_LINK_LIBS
         test_util
         gtest
-        gmock_main)
+        gmock_main
+        ${CMAKE_DL_LIBS})
 
 set(TERRIER_BENCHMARK_LINK_LIBS
         benchmark_util
