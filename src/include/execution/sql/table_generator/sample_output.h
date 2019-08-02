@@ -22,6 +22,10 @@ class SampleOutput {
     // Sample output formats
     terrier::catalog::col_oid_t col_oid{0};
     terrier::planner::OutputSchema::Column int_col{"dummy", terrier::type::TypeId::INTEGER, true, col_oid};
+    terrier::planner::OutputSchema::Column real_col{"dummy", terrier::type::TypeId::DECIMAL, true, col_oid};
+    terrier::planner::OutputSchema::Column date_col{"dummy", terrier::type::TypeId::DATE, true, col_oid};
+    terrier::planner::OutputSchema::Column string_col{"dummy", terrier::type::TypeId::VARCHAR, true, col_oid};
+
     // Create schemas with up to 10 integer columns.
     for (int i = 0; i < 10; i++) {
       std::vector<terrier::planner::OutputSchema::Column> cols;
@@ -30,6 +34,17 @@ class SampleOutput {
       }
       schemas_.emplace("schema" + std::to_string(i + 1), terrier::planner::OutputSchema(cols));
     }
+
+    // Create a schema that has all types
+    {
+      std::vector<terrier::planner::OutputSchema::Column> cols;
+      cols.emplace_back(int_col);
+      cols.emplace_back(real_col);
+      cols.emplace_back(date_col);
+      cols.emplace_back(string_col);
+      schemas_.emplace("all_types", terrier::planner::OutputSchema(cols));
+    }
+
     InitTPCHOutput();
   }
 
@@ -59,13 +74,13 @@ class SampleOutput {
       schemas_.emplace("tpch_q1", terrier::planner::OutputSchema(cols));
     }
 
-    // TODO(Amadou): Fix the type of these others queries
-    // Q6 (one Integer)
+    // Q6 (one real)
     {
-      std::vector<terrier::planner::OutputSchema::Column> cols{int_col};
-      schemas_.emplace("tpch_q2", terrier::planner::OutputSchema(cols));
+      std::vector<terrier::planner::OutputSchema::Column> cols{real_col};
+      schemas_.emplace("tpch_q6", terrier::planner::OutputSchema(cols));
     }
 
+    // TODO(Amadou): Fix the type of these others queries
     // Q4 (two Integers)
     {
       std::vector<terrier::planner::OutputSchema::Column> cols{};

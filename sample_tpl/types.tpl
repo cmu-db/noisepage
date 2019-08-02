@@ -9,7 +9,9 @@ struct output_struct {
 fun main(execCtx: *ExecutionContext) -> int {
   var out : *output_struct
   var tvi: TableVectorIterator
-  for (@tableIterInit(&tvi, "types1", execCtx); @tableIterAdvance(&tvi); ) {
+  @tableIterConstructBind(&tvi, "test_ns", "types1", execCtx)
+  @tableIterPerformInit(&tvi)
+  for (@tableIterAdvance(&tvi)) {
     var pci = @tableIterGetPCI(&tvi)
     for (; @pciHasNext(pci); @pciAdvance(pci)) {
       out = @ptrCast(*output_struct, @outputAlloc(execCtx))
@@ -21,5 +23,5 @@ fun main(execCtx: *ExecutionContext) -> int {
     }
   }
   @outputFinalize(execCtx)
-  return 0
+  return 37
 }

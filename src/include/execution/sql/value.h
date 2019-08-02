@@ -267,7 +267,7 @@ struct StringVal : public Val {
    * @return the raw content
    */
   const char * Content() const {
-    if (len < InlineThreshold()) {return prefix_;}
+    if (len <= InlineThreshold()) {return prefix_;}
     return ptr;
   }
 

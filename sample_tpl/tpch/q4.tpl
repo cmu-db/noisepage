@@ -89,10 +89,12 @@ fun teardownState(execCtx: *ExecutionContext, state: *State) -> nil {
 
 // Pipeline 1 (Join Build)
 fun pipeline1(execCtx: *ExecutionContext, state: *State) -> nil {
-  var tvi: TableVectorIterator
   var orders_row: OrdersRow
   // Step 1: Sequential Scan
-  for (@tableIterInit(&tvi, "test_1", execCtx); @tableIterAdvance(&tvi); ) {
+  var tvi: TableVectorIterator
+  @tableIterConstructBind(&tvi, "test_ns", "test_1", execCtx)
+  @tableIterPerformInit(&tvi)
+  for (@tableIterAdvance(&tvi)) {
     var vec = @tableIterGetPCI(&tvi)
     for (; @pciHasNext(vec); @pciAdvance(vec)) {
       // TODO: Replace with right condition and offsets
@@ -117,10 +119,12 @@ fun pipeline1(execCtx: *ExecutionContext, state: *State) -> nil {
 // Pipeline 2 (Join Probe up to Agg)
 fun pipeline2(execCtx: *ExecutionContext, state: *State) -> nil {
   var lineitem_row: LineItemRow
-  var tvi : TableVectorIterator
   var orders_row: *OrdersRow
   // Step 1: Sequential Scan
-  for (@tableIterInit(&tvi, "test_1", execCtx); @tableIterAdvance(&tvi); ) {
+  var tvi: TableVectorIterator
+  @tableIterConstructBind(&tvi, "test_ns", "test_1", execCtx)
+  @tableIterPerformInit(&tvi)
+  for (@tableIterAdvance(&tvi)) {
     var vec = @tableIterGetPCI(&tvi)
     for (; @pciHasNext(vec); @pciAdvance(vec)) {
       lineitem_row.l_orderkey = @pciGetInt(vec, 0)

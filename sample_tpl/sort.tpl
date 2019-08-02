@@ -26,9 +26,11 @@ fun tearDownState(state: *State) -> nil {
 fun pipeline_1(execCtx: *ExecutionContext, state: *State) -> nil {
   var sorter = &state.sorter
   var tvi: TableVectorIterator
-  for (@tableIterInit(&tvi, "test_1", execCtx); @tableIterAdvance(&tvi); ) {
+  @tableIterConstructBind(&tvi, "test_ns", "test_1", execCtx)
+  @tableIterPerformInit(&tvi)
+  for (@tableIterAdvance(&tvi)) {
     var pci = @tableIterGetPCI(&tvi)
-    @filterLt(pci, "test_1.colA", 2000)
+    @filterLt(pci, 0, 4, 2000)
     for (; @pciHasNextFiltered(pci); @pciAdvanceFiltered(pci)) {
       var row = @ptrCast(*Row, @sorterInsert(sorter))
       row.a = @pciGetInt(pci, 0)

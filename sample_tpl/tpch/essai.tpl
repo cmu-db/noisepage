@@ -75,7 +75,7 @@ fun pipeline1(execCtx: *ExecutionContext, state: *State) -> nil {
 }
 
 
-fun main(execCtx: *ExecutionContext) -> int32 {
+fun main(execCtx: *ExecutionContext) -> int64 {
     var state: State
     setUpState(execCtx, &state)
     pipeline1(execCtx, &state)

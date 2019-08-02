@@ -197,10 +197,12 @@ fun teardownState(execCtx: *ExecutionContext, state: *State) -> nil {
 // Scan Region table and build HT1
 fun pipeline1(execCtx: *ExecutionContext, state: *State) -> nil {
   // Step 1: Sequential Scan
-  var tvi: TableVectorIterator
   var vec: *ProjectedColumnsIterator
   var region_row: RegionRow
-  for (@tableIterInit(&tvi, "test_1", execCtx); @tableIterAdvance(&tvi); ) {
+  var tvi: TableVectorIterator
+  @tableIterConstructBind(&tvi, "test_ns", "test_1", execCtx)
+  @tableIterPerformInit(&tvi)
+  for (@tableIterAdvance(&tvi)) {
     vec = @tableIterGetPCI(&tvi)
     for (; @pciHasNext(vec); @pciAdvance(vec)) {
       region_row.r_regionkey = @pciGetInt(vec, 1)
@@ -222,10 +224,12 @@ fun pipeline1(execCtx: *ExecutionContext, state: *State) -> nil {
 // Scan Nation table, probe HT1, build HT2
 fun pipeline2(execCtx: *ExecutionContext, state: *State) -> nil {
   // Step 1: Sequential Scan
-  var tvi: TableVectorIterator
   var vec: *ProjectedColumnsIterator
   var nation_row: NationRow
-  for (@tableIterInit(&tvi, "test_1", execCtx); @tableIterAdvance(&tvi); ) {
+  var tvi: TableVectorIterator
+  @tableIterConstructBind(&tvi, "test_ns", "test_1", execCtx)
+  @tableIterPerformInit(&tvi)
+  for (@tableIterAdvance(&tvi)) {
     vec = @tableIterGetPCI(&tvi)
     for (; @pciHasNext(vec); @pciAdvance(vec)) {
       nation_row.n_name = @pciGetInt(vec, 1)
@@ -255,10 +259,12 @@ fun pipeline2(execCtx: *ExecutionContext, state: *State) -> nil {
 // Scan Customer table, probe HT2, build HT3
 fun pipeline3(execCtx: *ExecutionContext, state: *State) -> nil {
   // Step 1: Sequential Scan
-  var tvi: TableVectorIterator
   var vec: *ProjectedColumnsIterator
   var customer_row: CustomerRow
-  for (@tableIterInit(&tvi, "test_1", execCtx); @tableIterAdvance(&tvi); ) {
+  var tvi: TableVectorIterator
+  @tableIterConstructBind(&tvi, "test_ns", "test_1", execCtx)
+  @tableIterPerformInit(&tvi)
+  for (@tableIterAdvance(&tvi)) {
     vec = @tableIterGetPCI(&tvi)
     for (; @pciHasNext(vec); @pciAdvance(vec)) {
       customer_row.c_custkey = @pciGetInt(vec, 1)
@@ -288,10 +294,12 @@ fun pipeline3(execCtx: *ExecutionContext, state: *State) -> nil {
 // Scan Orders table, probe HT3, build HT4
 fun pipeline4(execCtx: *ExecutionContext, state: *State) -> nil {
   // Step 1: Sequential Scan
-  var tvi: TableVectorIterator
   var vec: *ProjectedColumnsIterator
   var orders_row: OrdersRow
-  for (@tableIterInit(&tvi, "test_1", execCtx); @tableIterAdvance(&tvi); ) {
+  var tvi: TableVectorIterator
+  @tableIterConstructBind(&tvi, "test_ns", "test_1", execCtx)
+  @tableIterPerformInit(&tvi)
+  for (@tableIterAdvance(&tvi)) {
     vec = @tableIterGetPCI(&tvi)
     for (; @pciHasNext(vec); @pciAdvance(vec)) {
       orders_row.o_custkey = @pciGetInt(vec, 1)
@@ -323,10 +331,12 @@ fun pipeline4(execCtx: *ExecutionContext, state: *State) -> nil {
 // Scan Supply, build join HT5
 fun pipeline5(execCtx: *ExecutionContext, state: *State) -> nil {
   // Step 1: Sequential Scan
-  var tvi: TableVectorIterator
   var vec: *ProjectedColumnsIterator
   var supply_row: SupplyRow
-  for (@tableIterInit(&tvi, "test_1", execCtx); @tableIterAdvance(&tvi); ) {
+  var tvi: TableVectorIterator
+  @tableIterConstructBind(&tvi, "test_ns", "test_1", execCtx)
+  @tableIterPerformInit(&tvi)
+  for (@tableIterAdvance(&tvi)) {
     vec = @tableIterGetPCI(&tvi)
     for (; @pciHasNext(vec); @pciAdvance(vec)) {
       supply_row.s_suppkey = @pciGetInt(vec, 1)
@@ -349,10 +359,12 @@ fun pipeline5(execCtx: *ExecutionContext, state: *State) -> nil {
 // Scan Lineitem, probe HT4, probe HT5, build agg HT
 fun pipeline6(execCtx: *ExecutionContext, state: *State) -> nil {
   // Step 1: Sequential Scan
-  var tvi: TableVectorIterator
   var vec: *ProjectedColumnsIterator
   var lineitem_row: LineitemRow
-  for (@tableIterInit(&tvi, "test_1", execCtx); @tableIterAdvance(&tvi); ) {
+  var tvi: TableVectorIterator
+  @tableIterConstructBind(&tvi, "test_ns", "test_1", execCtx)
+  @tableIterPerformInit(&tvi)
+  for (@tableIterAdvance(&tvi)) {
     vec = @tableIterGetPCI(&tvi)
     for (; @pciHasNext(vec); @pciAdvance(vec)) {
       lineitem_row.l_orderkey = @pciGetInt(vec, 1)

@@ -116,7 +116,7 @@ Sema::CheckResult Sema::CheckArithmeticOperands(parsing::Token::Type op, const S
     auto new_left = ImplCastExprToType(left, right->type(), ast::CastKind::FloatToSqlReal);
     return {right->type(), new_left, right};
   }
-  // Sql Integer <- Primitive int
+  // Sql Float <- Primitive Float
   if (left->type()->IsSpecificBuiltin(ast::BuiltinType::Real) && right->type()->IsFloatType()) {
     auto new_right = ImplCastExprToType(right, left->type(), ast::CastKind::FloatToSqlReal);
     return {left->type(), left, new_right};
@@ -193,20 +193,32 @@ Sema::CheckResult Sema::CheckComparisonOperands(parsing::Token::Type op, const S
     return {built_ret_type(left->type()), left, right};
   }
 
-  // Cache a SQL integer type here because it's used throughout this function
-  ast::Type *const sql_int_type = ast::BuiltinType::Get(context(), ast::BuiltinType::Integer);
-
-  // If either the left or right types aren't SQL integers, cast them up to one
-  if (!right->type()->IsSpecificBuiltin(ast::BuiltinType::Integer)) {
-    right = ImplCastExprToType(right, sql_int_type, ast::CastKind::IntToSqlInt);
+  // Primitive float -> Sql Float
+  if (left->type()->IsFloatType() && right->type()->IsSpecificBuiltin(ast::BuiltinType::Real)) {
+    auto new_left = ImplCastExprToType(left, right->type(), ast::CastKind::FloatToSqlReal);
+    return {built_ret_type(right->type()), new_left, right};
   }
 
-  if (!left->type()->IsSpecificBuiltin(ast::BuiltinType::Integer)) {
-    left = ImplCastExprToType(left, sql_int_type, ast::CastKind::IntToSqlInt);
+  // Sql Float <- Primitive Float
+  if (left->type()->IsSpecificBuiltin(ast::BuiltinType::Real) && right->type()->IsFloatType()) {
+    auto new_right = ImplCastExprToType(right, left->type(), ast::CastKind::FloatToSqlReal);
+    return {built_ret_type(left->type()), left, new_right};
   }
 
-  // Done
-  return {built_ret_type(left->type()), left, right};
+  // Primitive int -> Sql Integer
+  if (left->type()->IsIntegerType() && right->type()->IsSpecificBuiltin(ast::BuiltinType::Integer)) {
+    auto new_left = ImplCastExprToType(left, right->type(), ast::CastKind::IntToSqlInt);
+    return {built_ret_type(right->type()), new_left, right};
+  }
+  // Sql Integer <- Primitive int
+  if (left->type()->IsSpecificBuiltin(ast::BuiltinType::Integer) && right->type()->IsIntegerType()) {
+    auto new_right = ImplCastExprToType(right, left->type(), ast::CastKind::IntToSqlInt);
+    return {built_ret_type(left->type()), left, new_right};
+  }
+
+  // TODO(Amadou): Add more types if necessary
+  error_reporter()->Report(pos, ErrorMessages::kIllegalTypesForBinary, op, left->type(), right->type());
+  return {nullptr, left, right};
 }
 
 bool Sema::CheckAssignmentConstraints(ast::Type *target_type, ast::Expr **expr) {
@@ -215,11 +227,13 @@ bool Sema::CheckAssignmentConstraints(ast::Type *target_type, ast::Expr **expr) 
     return true;
   }
 
-  // Integer expansion
+  // Integer resizing
+  // TODO(Amadou): Figure out integer casting rules. This just resizes the integer.
+  // I don't think it handles sign bit expansions and things like that.
   if (target_type->IsIntegerType() && (*expr)->type()->IsIntegerType()) {
-    if (target_type->size() > (*expr)->type()->size()) {
+    //if (target_type->size() > (*expr)->type()->size()) {
       *expr = ImplCastExprToType(*expr, target_type, ast::CastKind::IntegralCast);
-    }
+    //}
     return true;
   }
 

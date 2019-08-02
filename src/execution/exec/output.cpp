@@ -77,7 +77,7 @@ void OutputPrinter::operator()(byte *tuples, u32 num_tuples, u32 tuple_size) {
           if (val->is_null) {
             ss << "NULL";
           } else {
-            ss.write(val->prefix_, val->len);
+            ss.write(val->Content(), val->len);
             ss.put('\0');
           }
           break;

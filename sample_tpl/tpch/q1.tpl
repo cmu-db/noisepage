@@ -74,13 +74,13 @@ fun compareFn(lhs: *SorterRow, rhs: *SorterRow) -> int32 {
     return -1
   }
   if (lhs.l_returnflag > rhs.l_returnflag) {
-      return 1
+    return 1
   }
   if (lhs.l_linestatus > rhs.l_linestatus) {
-        return -1
+    return -1
   }
   if (lhs.l_linestatus > rhs.l_linestatus) {
-        return 1
+    return 1
   }
   return 0
 }
@@ -97,6 +97,7 @@ fun pipeline1(execCtx: *ExecutionContext, state: *State) -> nil {
   // Pipeline 1 (Aggregating)
   var tvi: TableVectorIterator
   @tableIterConstructBind(&tvi, "test_ns", "lineitem", execCtx)
+  // TODO: Only read in required columns by calling @tableIterAddCol.
   @tableIterPerformInit(&tvi)
   for (; @tableIterAdvance(&tvi); ) {
     var vec = @tableIterGetPCI(&tvi)
@@ -191,7 +192,7 @@ fun teardownState(execCtx: *ExecutionContext, state: *State) -> nil {
 }
 
 
-fun main(execCtx: *ExecutionContext) -> int32 {
+fun main(execCtx: *ExecutionContext) -> int {
     var state: State
     setUpState(execCtx, &state)
     pipeline1(execCtx, &state)

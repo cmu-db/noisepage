@@ -785,6 +785,15 @@ class ReturnStmt : public Stmt {
    */
   Expr *ret() { return ret_; }
 
+
+  /**
+   * Sets the return statement. This is used for casting.
+   * @param new_ret new return statement.
+   */
+  void set_return(Expr* new_ret) {
+    ret_ = new_ret;
+  }
+
   /**
    * Checks whether the given node is an ReturnStmt.
    * @param node node to check
