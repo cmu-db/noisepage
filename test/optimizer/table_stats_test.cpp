@@ -47,7 +47,7 @@ TEST(TableStatsTests, AddColumnStatsTest) {
   auto column_stats_obj_insert = ColumnStats(catalog::db_oid_t(1), catalog::table_oid_t(1), catalog::col_oid_t(6), 5, 4,
                                              0.2, {3, 4, 5}, {2, 2, 2}, {1.0, 5.0}, true);
 
-  table_stats_obj.AddColumnStats(std::make_unique<ColumnStats>(column_stats_obj_insert));
+  ASSERT_EQ(true, table_stats_obj.AddColumnStats(std::make_unique<ColumnStats>(column_stats_obj_insert)));
   ASSERT_EQ(catalog::col_oid_t(6), (table_stats_obj.GetColumnStats(catalog::col_oid_t(6)))->GetColumnID());
 }
 
@@ -88,6 +88,7 @@ TEST(TableStatsTests, GetCardinalityTest) {
                  {column_stats_obj_1, column_stats_obj_2, column_stats_obj_3, column_stats_obj_4, column_stats_obj_5});
 
   ASSERT_EQ(table_stats_obj.GetCardinality(catalog::col_oid_t(2)), 4);
+  ASSERT_EQ(table_stats_obj.GetCardinality(catalog::col_oid_t(6)), 0);
 }
 
 // NOLINTNEXTLINE
@@ -165,6 +166,8 @@ TEST(TableStatsTests, RemoveColumnStatsTest) {
 
   ASSERT_EQ(table_stats_obj.RemoveColumnStats(catalog::col_oid_t(5)), true);
   ASSERT_EQ(table_stats_obj.GetColumnStats(catalog::col_oid_t(5)), nullptr);
+
+  ASSERT_EQ(table_stats_obj.RemoveColumnStats(catalog::col_oid_t(6)), false);
 }
 
 // NOLINTNEXTLINE

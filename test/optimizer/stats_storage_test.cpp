@@ -25,6 +25,8 @@ TEST(StatsStorageTests, GetTableStatsTest) {
   auto stats_storage = StatsStorage();
   stats_storage.InsertTableStats(catalog::db_oid_t(1), catalog::table_oid_t(1), std::move(table_stats_obj));
   EXPECT_FALSE(stats_storage.GetTableStats(catalog::db_oid_t(1), catalog::table_oid_t(1)) == nullptr);
+
+  ASSERT_EQ(stats_storage.GetTableStats(catalog::db_oid_t(2), catalog::table_oid_t(1)), nullptr);
 }
 
 // NOLINTNEXTLINE
@@ -65,5 +67,7 @@ TEST(StatsStorageTests, DeleteTableStatsTest) {
   auto stats_storage = StatsStorage();
   stats_storage.InsertTableStats(catalog::db_oid_t(1), catalog::table_oid_t(1), std::move(table_stats_obj));
   ASSERT_EQ(true, stats_storage.DeleteTableStats(catalog::db_oid_t(1), catalog::table_oid_t(1)));
+
+  ASSERT_EQ(false, stats_storage.DeleteTableStats(catalog::db_oid_t(2), catalog::table_oid_t(1)));
 }
 }  // namespace terrier::optimizer
