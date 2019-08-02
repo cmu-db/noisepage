@@ -113,7 +113,7 @@ TEST(BlockAccessControllerTest, MultipleReaders) {
     });
     WAIT_UNTIL(reader1_acquired && reader2_acquired)
     tested.WaitUntilHot();
-    EXPECT_TRUE(REACHED(reader1_releasing) && REACHED(reader1_releasing));
+    EXPECT_TRUE(REACHED(reader1_releasing) && REACHED(reader2_releasing));
     EXPECT_EQ(tested.GetBlockState()->load(), storage::BlockState::HOT);
     reader1.join();
     reader2.join();
