@@ -360,11 +360,13 @@ set(TERRIER_TEST_LINK_LIBS
 
 set(TERRIER_BENCHMARK_LINK_LIBS
         benchmark_util
+        test_util
         terrier_static
         benchmark
         gtest
         gmock_main
-        gflags)
+        gflags
+        ${CMAKE_DL_LIBS})
 
 # ---[ Subdirectories
 add_subdirectory(src)
