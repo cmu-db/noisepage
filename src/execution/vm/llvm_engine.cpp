@@ -34,6 +34,8 @@
 #include "execution/vm/bytecode_traits.h"
 #include "loggers/execution_logger.h"
 
+extern void *__dso_handle __attribute__ ((__visibility__ ("hidden")));
+
 namespace tpl::vm {
 
 namespace {
@@ -62,6 +64,11 @@ class LLVMEngine::TPLMemoryManager : public llvm::SectionMemoryManager {
     if (const auto iter = symbols_.find(name); iter != symbols_.end()) {
       EXECUTION_LOG_TRACE("Symbol '{}' found in cache ...", name);
       return llvm::JITSymbol(iter->second);
+    }
+
+    if (name == "__dso_handle") {
+      EXECUTION_LOG_TRACE("'__dso_handle' resolved to {} ...", reinterpret_cast<uint64_t>(&__dso_handle));
+      return {reinterpret_cast<uint64_t>(&__dso_handle), {}};
     }
 
     EXECUTION_LOG_TRACE("Symbol '{}' not found in cache, checking process ...", name);
