@@ -219,6 +219,7 @@ class StrongTypeAlias {
   void FromJson(const nlohmann::json &j) { val_ = j.get<IntType>(); }
 
  private:
+  friend struct std::atomic<terrier::common::StrongTypeAlias<Tag, IntType>>; // CAS operators need access to val_
   IntType val_;
 };
 }  // namespace terrier::common
@@ -301,7 +302,7 @@ struct atomic<terrier::common::StrongTypeAlias<Tag, IntType>> {
    */
   // NOLINTNEXTLINE
   bool compare_exchange_weak(t &expected, t desired, memory_order order = memory_order_seq_cst) volatile noexcept {
-    return underlying_.compare_exchange_weak(!expected, !desired, order);
+    return underlying_.compare_exchange_weak(expected.val_, !desired, order);
   }
 
   /**
@@ -316,7 +317,7 @@ struct atomic<terrier::common::StrongTypeAlias<Tag, IntType>> {
    */
   // NOLINTNEXTLINE
   bool compare_exchange_strong(t &expected, t desired, memory_order order = memory_order_seq_cst) volatile noexcept {
-    return underlying_.compare_exchange_strong(!expected, !desired, order);
+    return underlying_.compare_exchange_strong(expected.val_, !desired, order);
   }
 
   /**
