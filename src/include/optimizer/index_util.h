@@ -366,8 +366,10 @@ class IndexUtil {
         auto *tv_expr = dynamic_cast<const parser::ColumnValueExpression *>(expr);
         TERRIER_ASSERT(tv_expr, "ColumnValueExpression expected");
 
-        if (accessor->GetTableOid(tv_expr->GetTableName()) != tbl_oid) {
-          return false;  // table not match???
+        if (tv_expr->GetColumnOid() != catalog::INVALID_COLUMN_OID) {
+          // IndexSchema's expression's col_oid is bound
+          col_oids->push_back(tv_expr->GetColumnOid());
+          continue;
         }
 
         auto it = schema_col.find(tv_expr->GetColumnName());

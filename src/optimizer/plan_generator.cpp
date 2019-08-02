@@ -251,7 +251,7 @@ void PlanGenerator::Visit(const IndexScan *op) {
   // An IndexScan (for now at least) will output all columns of its table
   std::vector<catalog::col_oid_t> column_ids = GenerateColumnsForScan();
 
-  catalog::table_oid_t tbl_oid = accessor_->GetTableOid(op->GetTableAlias());
+  catalog::table_oid_t tbl_oid = accessor_->GetTableOid(op->GetNamespaceOID(), op->GetTableAlias());
   auto output_schema = GenerateScanOutputSchema(tbl_oid);
 
   // Generate the predicate in the scan
