@@ -2,13 +2,12 @@
 #include "catalog/catalog_accessor.h"
 #include "storage/garbage_collector.h"
 #include "transaction/transaction_manager.h"
-#include "util/tpcc/builder.h"
 #include "util/test_harness.h"
+#include "util/tpcc/builder.h"
 
 namespace terrier {
 
 struct TpccPlanTest : public TerrierTest {
-
   catalog::table_oid_t CreateTable(catalog::CatalogAccessor *accessor, std::string tbl_name, catalog::Schema schema) {
     auto tbl_oid = accessor->CreateTable(accessor->GetDefaultNamespace(), tbl_name, schema);
     EXPECT_NE(tbl_oid, catalog::INVALID_TABLE_OID);
@@ -21,7 +20,8 @@ struct TpccPlanTest : public TerrierTest {
     return tbl_oid;
   }
 
-  void CreateIndex(catalog::CatalogAccessor *accessor, catalog::table_oid_t tbl_oid, std::string idx_name, catalog::IndexSchema schema, bool is_primary) {
+  void CreateIndex(catalog::CatalogAccessor *accessor, catalog::table_oid_t tbl_oid, std::string idx_name,
+                   catalog::IndexSchema schema, bool is_primary) {
     auto idx_oid = accessor->CreateIndex(accessor->GetDefaultNamespace(), tbl_oid, idx_name, schema);
     EXPECT_NE(idx_oid, catalog::INVALID_INDEX_OID);
 
@@ -30,8 +30,10 @@ struct TpccPlanTest : public TerrierTest {
 
     storage::index::IndexBuilder index_builder;
     index_builder.SetOid(idx_oid).SetKeySchema(schema);
-    if (is_primary) index_builder.SetConstraintType(storage::index::ConstraintType::UNIQUE);
-    else index_builder.SetConstraintType(storage::index::ConstraintType::DEFAULT);
+    if (is_primary)
+      index_builder.SetConstraintType(storage::index::ConstraintType::UNIQUE);
+    else
+      index_builder.SetConstraintType(storage::index::ConstraintType::DEFAULT);
 
     auto index = index_builder.Build();
     EXPECT_TRUE(accessor->SetIndexPointer(idx_oid, index));
@@ -65,16 +67,26 @@ struct TpccPlanTest : public TerrierTest {
     tbl_order_ = CreateTable(accessor, "ORDER", order_schema);
     tbl_order_line_ = CreateTable(accessor, "ORDER-LINE", order_line_schema);
 
-    CreateIndex(accessor, tbl_warehouse_, "PK_WAREHOUSE", tpcc::Schemas::BuildWarehousePrimaryIndexSchema(warehouse_schema, &oid_counter), true);
-    CreateIndex(accessor, tbl_district_, "PK_DISTRICT", tpcc::Schemas::BuildDistrictPrimaryIndexSchema(district_schema, &oid_counter), true);
-    CreateIndex(accessor, tbl_customer_, "PK_CUSTOMER", tpcc::Schemas::BuildCustomerPrimaryIndexSchema(customer_schema, &oid_counter), true);
-    CreateIndex(accessor, tbl_customer_, "SK_CUSTOMER", tpcc::Schemas::BuildCustomerSecondaryIndexSchema(customer_schema, &oid_counter), false);
-    CreateIndex(accessor, tbl_new_order_, "PK_NEW-ORDER", tpcc::Schemas::BuildNewOrderPrimaryIndexSchema(new_order_schema, &oid_counter), true);
-    CreateIndex(accessor, tbl_order_, "PK_ORDER", tpcc::Schemas::BuildOrderPrimaryIndexSchema(order_schema, &oid_counter), true);
-    CreateIndex(accessor, tbl_order_, "SK_ORDER", tpcc::Schemas::BuildOrderSecondaryIndexSchema(order_schema, &oid_counter), true);
-    CreateIndex(accessor, tbl_order_line_, "PK_ORDER-LINE", tpcc::Schemas::BuildOrderLinePrimaryIndexSchema(order_line_schema, &oid_counter), true);
-    CreateIndex(accessor, tbl_item_, "PK_ITEM", tpcc::Schemas::BuildItemPrimaryIndexSchema(item_schema, &oid_counter), true);
-    CreateIndex(accessor, tbl_stock_, "PK_STOCK", tpcc::Schemas::BuildStockPrimaryIndexSchema(stock_schema, &oid_counter), true);
+    CreateIndex(accessor, tbl_warehouse_, "PK_WAREHOUSE",
+                tpcc::Schemas::BuildWarehousePrimaryIndexSchema(warehouse_schema, &oid_counter), true);
+    CreateIndex(accessor, tbl_district_, "PK_DISTRICT",
+                tpcc::Schemas::BuildDistrictPrimaryIndexSchema(district_schema, &oid_counter), true);
+    CreateIndex(accessor, tbl_customer_, "PK_CUSTOMER",
+                tpcc::Schemas::BuildCustomerPrimaryIndexSchema(customer_schema, &oid_counter), true);
+    CreateIndex(accessor, tbl_customer_, "SK_CUSTOMER",
+                tpcc::Schemas::BuildCustomerSecondaryIndexSchema(customer_schema, &oid_counter), false);
+    CreateIndex(accessor, tbl_new_order_, "PK_NEW-ORDER",
+                tpcc::Schemas::BuildNewOrderPrimaryIndexSchema(new_order_schema, &oid_counter), true);
+    CreateIndex(accessor, tbl_order_, "PK_ORDER",
+                tpcc::Schemas::BuildOrderPrimaryIndexSchema(order_schema, &oid_counter), true);
+    CreateIndex(accessor, tbl_order_, "SK_ORDER",
+                tpcc::Schemas::BuildOrderSecondaryIndexSchema(order_schema, &oid_counter), true);
+    CreateIndex(accessor, tbl_order_line_, "PK_ORDER-LINE",
+                tpcc::Schemas::BuildOrderLinePrimaryIndexSchema(order_line_schema, &oid_counter), true);
+    CreateIndex(accessor, tbl_item_, "PK_ITEM", tpcc::Schemas::BuildItemPrimaryIndexSchema(item_schema, &oid_counter),
+                true);
+    CreateIndex(accessor, tbl_stock_, "PK_STOCK",
+                tpcc::Schemas::BuildStockPrimaryIndexSchema(stock_schema, &oid_counter), true);
 
     delete accessor;
     txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
@@ -134,6 +146,5 @@ struct TpccPlanTest : public TerrierTest {
   catalog::table_oid_t tbl_order_;
   catalog::table_oid_t tbl_order_line_;
 };
-
 
 }  // namespace terrier

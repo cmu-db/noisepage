@@ -46,9 +46,7 @@ class PropertySort : public Property {
    * @param idx Index of sort column to retrieve
    * @returns Sort Column
    */
-  common::ManagedPointer<parser::AbstractExpression> GetSortColumn(size_t idx) const {
-    return sort_columns_[idx];
-  }
+  common::ManagedPointer<parser::AbstractExpression> GetSortColumn(size_t idx) const { return sort_columns_[idx]; }
 
   /**
    * Gets whether a sort column is sorted ascending
