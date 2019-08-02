@@ -123,7 +123,7 @@ class TableStats {
   void FromJson(const nlohmann::json &j) {
     database_id_ = j.at("database_id").get<catalog::db_oid_t>();
     table_id_ = j.at("table_id").get<catalog::table_oid_t>();
-    num_rows_ = j.at("num_rows").get<double>();
+    num_rows_ = j.at("num_rows").get<size_t>();
     is_base_table_ = j.at("is_base_table").get<bool>();
   }
 
