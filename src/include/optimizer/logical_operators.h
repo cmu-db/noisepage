@@ -26,7 +26,7 @@ namespace terrier::optimizer {
 /**
  * Operator that represents another group
  */
-class LeafOperator : OperatorNode<LeafOperator> {
+class LeafOperator : public OperatorNode<LeafOperator> {
  public:
   /**
    * Make a LeafOperator

@@ -189,14 +189,14 @@ class Operator {
    * @param rhs other
    * @return true if the two operators are logically equal, false otherwise
    */
-  bool operator==(const Operator &rhs);
+  bool operator==(const Operator &rhs) const;
 
   /**
    * Logical inequality check
    * @param rhs other
    * @return true if the two operators are logically not equal, false otherwise
    */
-  bool operator!=(const Operator &rhs) { return !operator==(rhs); }
+  bool operator!=(const Operator &rhs) const { return !operator==(rhs); }
 
   /**
    * @return true if the operator is defined, false otherwise

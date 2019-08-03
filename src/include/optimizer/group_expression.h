@@ -70,7 +70,7 @@ class GroupExpression {
    * @returns Child's GroupID
    */
   GroupID GetChildGroupId(int child_idx) const {
-    TERRIER_ASSERT(child_idx < 0 || static_cast<size_t>(child_idx) >= child_groups.size(),
+    TERRIER_ASSERT(child_idx >= 0 && static_cast<size_t>(child_idx) < child_groups.size(),
                    "child_idx is out of bounds");
     return child_groups[child_idx];
   }

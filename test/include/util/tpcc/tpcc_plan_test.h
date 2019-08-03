@@ -1,5 +1,9 @@
+#include <string>
+
 #include "catalog/catalog.h"
 #include "catalog/catalog_accessor.h"
+#include "optimizer/cost_model/trivial_cost_model.h"
+#include "optimizer/optimizer.h"
 #include "storage/garbage_collector.h"
 #include "transaction/transaction_manager.h"
 #include "util/test_harness.h"

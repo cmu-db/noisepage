@@ -91,7 +91,6 @@ void PlanGenerator::CorrectOutputPlanWithProjection() {
       // Evaluate the expression and add to target list
       // final_col will be freed by DerivedColumn
 
-      // TODO(boweic) : integrate the following two functions
       auto conv_col = parser::ExpressionUtil::ConvertExprCVNodes(col, {child_expr_map});
       auto final_col = parser::ExpressionUtil::EvaluateExpression(output_expr_maps, conv_col);
       delete conv_col;
@@ -129,7 +128,7 @@ void PlanGenerator::Visit(UNUSED_ATTRIBUTE const TableFreeScan *op) {
 
 std::vector<const parser::AbstractExpression *> PlanGenerator::GenerateTableColumnValueExprs(
     const std::string &alias, catalog::db_oid_t db_oid, catalog::table_oid_t tbl_oid) {
-  // TODO(boweic): we seems to provide all columns here, in case where there are
+  // @note(boweic): we seems to provide all columns here, in case where there are
   // a lot of attributes and we're only visiting a few this is not efficient
   auto &schema = accessor_->GetSchema(tbl_oid);
   auto &columns = schema.GetColumns();
@@ -274,11 +273,10 @@ void PlanGenerator::Visit(const IndexScan *op) {
 
   auto index_desc = planner::IndexScanDesc(std::move(tuple_oids), std::move(expr_list), std::move(value_list));
 
-  // TODO(wz2): How do we derive the IsForUpdateFlag?
   output_plan_ = planner::IndexScanPlanNode::Builder()
                      .SetOutputSchema(std::move(output_schema))
                      .SetScanPredicate(predicate)
-                     .SetIsForUpdateFlag(false)
+                     .SetIsForUpdateFlag(op->GetIsForUpdate())
                      .SetIsParallelFlag(false)
                      .SetDatabaseOid(op->GetDatabaseOID())
                      .SetNamespaceOid(op->GetNamespaceOID())
