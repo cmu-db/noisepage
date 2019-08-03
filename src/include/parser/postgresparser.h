@@ -89,12 +89,13 @@ class PostgresParser {
 
   // expressions
   static const AbstractExpression *ExprTransform(Node *node);
+  static const AbstractExpression *ExprTransform(Node *node, char *alias);
   static ExpressionType StringToExpressionType(const std::string &parser_str);
 
   static const AbstractExpression *AExprTransform(A_Expr *root);
   static const AbstractExpression *BoolExprTransform(BoolExpr *root);
   static const AbstractExpression *CaseExprTransform(CaseExpr *root);
-  static const AbstractExpression *ColumnRefTransform(ColumnRef *root);
+  static const AbstractExpression *ColumnRefTransform(ColumnRef *root, char *alias);
   static const AbstractExpression *ConstTransform(A_Const *root);
   static const AbstractExpression *FuncCallTransform(FuncCall *root);
   static const AbstractExpression *NullTestTransform(NullTest *root);

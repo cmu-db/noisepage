@@ -5,25 +5,21 @@
 namespace terrier::planner {
 
 common::hash_t SetOpPlanNode::Hash() const {
-  auto type = GetPlanNodeType();
-  common::hash_t hash = common::HashUtil::Hash(&type);
+  common::hash_t hash = AbstractPlanNode::Hash();
 
   // Hash set_op
-  auto set_op = GetSetOp();
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&set_op));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(set_op_));
 
-  return common::HashUtil::CombineHashes(hash, AbstractPlanNode::Hash());
+  return hash;
 }
 
 bool SetOpPlanNode::operator==(const AbstractPlanNode &rhs) const {
-  if (GetPlanNodeType() != rhs.GetPlanNodeType()) return false;
+  if (!AbstractPlanNode::operator==(rhs)) return false;
 
   auto &other = dynamic_cast<const SetOpPlanNode &>(rhs);
 
   // Set op
-  if (GetSetOp() != other.GetSetOp()) return false;
-
-  return AbstractPlanNode::operator==(rhs);
+  return (set_op_ == other.set_op_);
 }
 
 nlohmann::json SetOpPlanNode::ToJson() const {

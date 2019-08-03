@@ -1,12 +1,12 @@
 #pragma once
 
-#include <vector>
 #include <memory>
+#include <vector>
 
 #include "optimizer/abstract_optimizer.h"
 #include "optimizer/cost_model/abstract_cost_model.h"
-#include "optimizer/property_set.h"
 #include "optimizer/optimizer_metadata.h"
+#include "optimizer/property_set.h"
 
 namespace terrier {
 
@@ -14,9 +14,9 @@ namespace planner {
 class AbstractPlanNode;
 }  // namespace planner
 
-namespace optimizer {
-class OperatorExpression;
-}  // namespace optimizer
+namespace catalog {
+class CatalogAccessor;
+}
 
 namespace transaction {
 class TransactionContext;
@@ -24,20 +24,23 @@ class TransactionContext;
 
 namespace optimizer {
 
-enum CostModels {TRIVIAL};
+class OperatorExpression;
 
-//===--------------------------------------------------------------------===//
-// Optimizer
-//===--------------------------------------------------------------------===//
+/**
+ * Optimizer class that implements the AbstractOptimizer abstract class
+ */
 class Optimizer : public AbstractOptimizer {
  public:
+  /**
+   * Disallow copy and move
+   */
   DISALLOW_COPY_AND_MOVE(Optimizer);
 
   /**
    * Constructor for Optimizer with a cost_model
-   * @param cost_model Cost Model to use for the optimizer
+   * @param model Cost Model to use for the optimizer
    */
-  explicit Optimizer(CostModels cost_model = CostModels::TRIVIAL);
+  explicit Optimizer(AbstractCostModel *model) : metadata_(model) {}
 
   /**
    * Build the plan tree for query execution
@@ -45,13 +48,13 @@ class Optimizer : public AbstractOptimizer {
    * @param query_info Information about the query
    * @param txn TransactionContext
    * @param settings SettingsManager to read settings from
+   * @param accessor CatalogAccessor for catalog
    * @returns execution plan
    */
-  planner::AbstractPlanNode* BuildPlanTree(
-      OperatorExpression* op_tree,
-      QueryInfo query_info,
-      transaction::TransactionContext *txn,
-      settings::SettingsManager *settings) override;
+  std::shared_ptr<planner::AbstractPlanNode> BuildPlanTree(OperatorExpression *op_tree, QueryInfo query_info,
+                                                           transaction::TransactionContext *txn,
+                                                           settings::SettingsManager *settings,
+                                                           catalog::CatalogAccessor *accessor) override;
 
   /**
    * Invoke a single optimization pass through the entire query.
@@ -60,10 +63,7 @@ class Optimizer : public AbstractOptimizer {
    * @param required_props Physical properties to enforce
    * @param settings SettingsManager to read settings from
    */
-  void OptimizeLoop(
-      int root_group_id,
-      PropertySet* required_props,
-      settings::SettingsManager *settings);
+  void OptimizeLoop(int root_group_id, PropertySet *required_props, settings::SettingsManager *settings);
 
   /**
    * Reset the optimizer state
@@ -83,11 +83,14 @@ class Optimizer : public AbstractOptimizer {
    * @param id ID of the group to produce the best physical operator
    * @param requirements Set of properties produced operator tree must satisfy
    * @param required_cols AbstractExpression tree output columns group must generate
+   * @param settings SettingsManager
+   * @param accessor CatalogAccessor
+   * @param txn TransactionContext
    * @returns Lowest cost plan
    */
-  planner::AbstractPlanNode* ChooseBestPlan(
-      GroupID id, PropertySet* required_props,
-      std::vector<const parser::AbstractExpression *> required_cols);
+  std::shared_ptr<planner::AbstractPlanNode> ChooseBestPlan(
+      GroupID id, PropertySet *required_props, const std::vector<const parser::AbstractExpression *> &required_cols,
+      settings::SettingsManager *settings, catalog::CatalogAccessor *accessor, transaction::TransactionContext *txn);
 
   /**
    * Execute elements of given optimization task stack and ensure that we
@@ -99,11 +102,8 @@ class Optimizer : public AbstractOptimizer {
    * @param root_context OptimizerContext to use that maintains required properties
    * @param settings SettingsManager to read settings from
    */
-  void ExecuteTaskStack(
-      OptimizerTaskStack* task_stack,
-      int root_group_id,
-      OptimizeContext* root_context,
-      settings::SettingsManager *settings);
+  void ExecuteTaskStack(OptimizerTaskStack *task_stack, int root_group_id, OptimizeContext *root_context,
+                        settings::SettingsManager *settings);
 
   // Metadata
   OptimizerMetadata metadata_;

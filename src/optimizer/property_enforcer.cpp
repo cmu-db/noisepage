@@ -1,24 +1,22 @@
-#include "optimizer/property_enforcer.h"
+#include <utility>
+#include <vector>
+
 #include "optimizer/physical_operators.h"
-#include "optimizer/property.h"
 #include "optimizer/properties.h"
+#include "optimizer/property.h"
+#include "optimizer/property_enforcer.h"
 
-namespace terrier {
-namespace optimizer {
+namespace terrier::optimizer {
 
-GroupExpression* PropertyEnforcer::EnforceProperty(GroupExpression* gexpr, Property* property) {
+GroupExpression *PropertyEnforcer::EnforceProperty(GroupExpression *gexpr, Property *property) {
   input_gexpr_ = gexpr;
   property->Accept(this);
   return output_gexpr_;
 }
 
-/**
- * Implementation of the Visit function for PropertySort
- */
-void PropertyEnforcer::Visit(const PropertySort *) {
+void PropertyEnforcer::Visit(const PropertySort *prop) {
   std::vector<GroupID> child_groups(1, input_gexpr_->GetGroupID());
-  output_gexpr_ = new GroupExpression(OrderBy::make(), child_groups);
+  output_gexpr_ = new GroupExpression(OrderBy::make(), std::move(child_groups));
 }
 
-}  // namespace optimizer
-}  // namespace terrier
+}  // namespace terrier::optimizer

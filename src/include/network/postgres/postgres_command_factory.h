@@ -5,10 +5,11 @@
 namespace terrier::network {
 
 /**
- * CommandFactory is where we convert input packet to traffic cop commands.
+ * PostgresCommandFactory constructs PostgresNetworkCommands that parses input packets to API calls
+ * into traffic cop
  */
 
-class CommandFactory {
+class PostgresCommandFactory {
  public:
   /**
    * Convert a Postgres packet to command.
@@ -17,7 +18,7 @@ class CommandFactory {
    */
   virtual std::shared_ptr<PostgresNetworkCommand> PostgresPacketToCommand(PostgresInputPacket *packet);
 
-  virtual ~CommandFactory() = default;
+  virtual ~PostgresCommandFactory() = default;
 };
 
 }  // namespace terrier::network

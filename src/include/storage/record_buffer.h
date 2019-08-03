@@ -330,7 +330,7 @@ class RedoBuffer {
    * @param buffer_pool The buffer pool to draw buffer segments from. Must be the same buffer pool the log manager uses.
    */
   RedoBuffer(LogManager *log_manager, RecordBufferSegmentPool *buffer_pool)
-      : log_manager_(log_manager), buffer_pool_(buffer_pool) {}
+      : has_flushed_(false), log_manager_(log_manager), buffer_pool_(buffer_pool) {}
 
   /**
    * Reserve a redo record with the given size, in bytes. The returned pointer is guaranteed to be valid until NewEntry
@@ -343,16 +343,26 @@ class RedoBuffer {
   /**
    * Flush all contents of the redo buffer to be logged out, effectively closing this redo buffer. No further entries
    * can be written to this redo buffer after the function returns.
-   * @param committed whether the transaction holding this RedoBuffer is committed
+   * @param flush_buffer whether the transaction holding this RedoBuffer should flush the its redo buffer
    */
-  void Finalize(bool committed);
+  void Finalize(bool flush_buffer);
 
   /**
    * @return a pointer to the beginning of the last record requested, or nullptr if no record exists.
    */
   byte *LastRecord() const { return last_record_; }
 
+  /**
+   * @return true if this buffer has previously flushed to the log manager
+   */
+  bool HasFlushed() const { return has_flushed_; }
+
  private:
+  // Flag to denote if this RedoBuffer has flushed records to the log manager already.
+  // We use this to determine if we should write an abort record, since we only need to write an abort record if this
+  // buffer has previously flushed logs to the log manager. In the case of recovery, the abort record helps it discard
+  // changes from aborted txns
+  bool has_flushed_;
   LogManager *const log_manager_;
   RecordBufferSegmentPool *const buffer_pool_;
   RecordBufferSegment *buffer_seg_ = nullptr;

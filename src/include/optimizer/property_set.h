@@ -1,15 +1,17 @@
 #pragma once
 
 #include <memory>
+#include <utility>
 #include <vector>
 
 #include "common/hash_util.h"
 #include "optimizer/property.h"
 
-namespace terrier {
-namespace optimizer {
+namespace terrier::optimizer {
 
-// A set of physical properties
+/**
+ * PropertySet represents a set of properties
+ */
 class PropertySet {
  public:
   /**
@@ -29,8 +31,8 @@ class PropertySet {
   /**
    * Copy
    */
-  PropertySet* Copy() {
-    std::vector<Property*> props;
+  PropertySet *Copy() {
+    std::vector<Property *> props;
     for (auto prop : properties_) {
       props.push_back(prop->Copy());
     }
@@ -43,29 +45,26 @@ class PropertySet {
    * PropertySet acquires ownership of the property.
    * @param properties properties to add to PropertySet
    */
-  explicit PropertySet(std::vector<Property*> properties)
-    : properties_(std::move(properties)) {}
+  explicit PropertySet(std::vector<Property *> properties) : properties_(std::move(properties)) {}
 
   /**
    * Gets the properties in the PropertySet
    * @returns properties stored in PropertySet
    */
-  const std::vector<Property*> &Properties() const {
-    return properties_;
-  }
+  const std::vector<Property *> &Properties() const { return properties_; }
 
   /**
    * Adds a property to the PropertySet
    * @param property Property to add to PropertySet
    */
-  void AddProperty(Property* property);
+  void AddProperty(Property *property);
 
   /**
    * Gets a property of a given type from PropertySet
    * @param type Type of the property to retrieve
    * @returns nullptr or pointer to property
    */
-  const Property* GetPropertyOfType(PropertyType type) const;
+  const Property *GetPropertyOfType(PropertyType type) const;
 
   /**
    * Gets a property of a given type with additional type-check
@@ -108,7 +107,7 @@ class PropertySet {
   bool operator==(const PropertySet &r) const;
 
  private:
-  std::vector<Property*> properties_;
+  std::vector<Property *> properties_;
 };
 
 /**
@@ -120,9 +119,7 @@ struct PropSetPtrHash {
    * @param s PropertySet to hash
    * @returns hash code
    */
-  std::size_t operator()(PropertySet* const& s) const {
-    return s->Hash();
-  }
+  std::size_t operator()(PropertySet *const &s) const { return s->Hash(); }
 };
 
 /**
@@ -135,20 +132,33 @@ struct PropSetPtrEq {
    * @param t2 Other PropertySet
    * @returns whether t1 is equal to t2
    */
-  bool operator()(PropertySet* const& t1, PropertySet* const& t2) const {
-    return *t1 == *t2;
-  }
+  bool operator()(PropertySet *const &t1, PropertySet *const &t2) const { return *t1 == *t2; }
 };
 
-} // namespace optimizer 
-} // namespace terrier 
+}  // namespace terrier::optimizer
 
 namespace std {
 
+/**
+ * Implementation of std::hash for PropertySet
+ */
 template <>
 struct hash<terrier::optimizer::PropertySet> {
+  /**
+   * Defines argument_type to be PropertySet
+   */
   using argument_type = terrier::optimizer::PropertySet;
+
+  /**
+   * Defines result_type to be size_t
+   */
   using result_type = std::size_t;
+
+  /**
+   * Implementation of hash() for PropertySet
+   * @param s PropertySet to hash
+   * @returns hash code
+   */
   result_type operator()(argument_type const &s) const { return s.Hash(); }
 };
 

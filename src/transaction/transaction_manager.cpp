@@ -39,15 +39,14 @@ TransactionContext *TransactionManager::BeginTransaction() {
 
 void TransactionManager::LogCommit(TransactionContext *const txn, const timestamp_t commit_time,
                                    const callback_fn callback, void *const callback_arg) {
-  txn->TxnId().store(commit_time);
+  txn->finish_time_.store(commit_time);
   if (log_manager_ != LOGGING_DISABLED) {
     // At this point the commit has already happened for the rest of the system.
     // Here we will manually add a commit record and flush the buffer to ensure the logger
     // sees this record.
     byte *const commit_record = txn->redo_buffer_.NewEntry(storage::CommitRecord::Size());
-    const bool is_read_only = txn->undo_buffer_.Empty();
     storage::CommitRecord::Initialize(commit_record, txn->StartTime(), commit_time, callback, callback_arg,
-                                      is_read_only, txn);
+                                      txn->IsReadOnly(), txn);
     // Signal to the log manager that we are ready to be logged out
   } else {
     // Otherwise, logging is disabled. We should pretend to have flushed the record so the rest of the system proceeds
@@ -97,6 +96,9 @@ timestamp_t TransactionManager::UpdatingCommitCriticalSection(TransactionContext
 
 timestamp_t TransactionManager::Commit(TransactionContext *const txn, transaction::callback_fn callback,
                                        void *callback_arg) {
+  TERRIER_ASSERT(!txn->must_abort_,
+                 "This txn was marked that it must abort. Set a breakpoint at TransactionContext::MustAbort() to see a "
+                 "stack trace for when this flag is getting tripped.");
   const timestamp_t result = txn->undo_buffer_.Empty() ? ReadOnlyCommitCriticalSection(txn, callback, callback_arg)
                                                        : UpdatingCommitCriticalSection(txn, callback, callback_arg);
   while (!txn->commit_actions_.empty()) {
@@ -118,11 +120,30 @@ timestamp_t TransactionManager::Commit(TransactionContext *const txn, transactio
   return result;
 }
 
+void TransactionManager::LogAbort(TransactionContext *const txn) {
+  if (log_manager_ != LOGGING_DISABLED) {
+    // If we are logging the AbortRecord, then the transaction must have previously flushed records, so it must have
+    // made updates
+    TERRIER_ASSERT(!txn->undo_buffer_.Empty(), "Should not log AbortRecord for read only txn");
+    // Here we will manually add an abort record and flush the buffer to ensure the logger
+    // sees this record.
+    byte *const abort_record = txn->redo_buffer_.NewEntry(storage::AbortRecord::Size());
+    storage::AbortRecord::Initialize(abort_record, txn->StartTime(), txn);
+    // Signal to the log manager that we are ready to be logged out
+  } else {
+    // Otherwise, logging is disabled. We should pretend to have flushed the record so the rest of the system proceeds
+    // correctly
+    txn->log_processed_ = true;
+  }
+  txn->redo_buffer_.Finalize(true);
+}
+
 timestamp_t TransactionManager::Abort(TransactionContext *const txn) {
   // Immediately clear the abort actions stack
   while (!txn->abort_actions_.empty()) {
-    txn->abort_actions_.front()();
+    auto action = txn->abort_actions_.front();
     txn->abort_actions_.pop_front();
+    action();
   }
 
   // We need to beware not to rollback a version chain multiple times, as that is just wasted computation
@@ -142,16 +163,24 @@ timestamp_t TransactionManager::Abort(TransactionContext *const txn) {
   // There is no need to flip these timestamps in a critical section, because readers can never see the aborted
   // version either way, unlike in the commit case, where unrepeatable reads may occur.
   for (auto &it : txn->undo_buffer_) it.Timestamp().store(abort_time);
-  txn->TxnId().store(abort_time);
+  txn->finish_time_.store(abort_time);
   txn->aborted_ = true;
 
   // The last update might not have been installed, and thus Rollback would miss it if it contains a
   // varlen entry whose memory content needs to be freed. We have to check for this case manually.
   GCLastUpdateOnAbort(txn);
-  // Discard the redo buffer that is not yet logged out
-  txn->redo_buffer_.Finalize(false);
-  // Since there is nothing to log, we can mark it as processed
-  txn->log_processed_ = true;
+
+  // We flush the buffer containing an AbortRecord only if this transaction has previously flushed a RedoBuffer. This
+  // way the Recovery manager knows to rollback changes for the aborted transaction.
+  if (txn->redo_buffer_.HasFlushed()) {
+    LogAbort(txn);
+  } else {
+    // Discard the redo buffer that is not yet logged out
+    txn->redo_buffer_.Finalize(false);
+    // Since there is nothing to log, we can mark it as processed
+    txn->log_processed_ = true;
+  }
+
   {
     // In a critical section, remove this transaction from the table of running transactions
     common::SpinLatch::ScopedSpinLatch guard(&curr_running_txns_latch_);
@@ -232,9 +261,9 @@ void TransactionManager::Rollback(TransactionContext *txn, const storage::UndoRe
   storage::UndoRecord *undo_record = table->AtomicallyReadVersionPtr(slot, accessor);
   // In a loop, we will need to undo all updates belonging to this transaction. Because we do not unlink undo records,
   // otherwise this ends up being a quadratic operation to rollback the first record not yet rolled back in the chain.
-  TERRIER_ASSERT(undo_record != nullptr && undo_record->Timestamp().load() == txn->txn_id_.load(),
+  TERRIER_ASSERT(undo_record != nullptr && undo_record->Timestamp().load() == txn->finish_time_.load(),
                  "Attempting to rollback on a TupleSlot where this txn does not hold the write lock!");
-  while (undo_record != nullptr && undo_record->Timestamp().load() == txn->txn_id_.load()) {
+  while (undo_record != nullptr && undo_record->Timestamp().load() == txn->finish_time_.load()) {
     switch (undo_record->Type()) {
       case storage::DeltaRecordType::UPDATE:
         // Re-apply the before image
@@ -285,7 +314,6 @@ void TransactionManager::DeallocateInsertedTupleIfVarlen(TransactionContext *txn
     if (layout.IsVarlen(col_id)) {
       auto *varlen = reinterpret_cast<storage::VarlenEntry *>(accessor.AccessWithNullCheck(undo->Slot(), col_id));
       if (varlen != nullptr) {
-        TERRIER_ASSERT(varlen->NeedReclaim() || varlen->IsInlined(), "Fresh updates cannot be compacted or compressed");
         if (varlen->NeedReclaim()) txn->loose_ptrs_.push_back(varlen->Content());
       }
     }

@@ -26,13 +26,44 @@ class NestedLoopJoinPlanNode : public AbstractJoinPlanNode {
     DISALLOW_COPY_AND_MOVE(Builder);
 
     /**
+     * Set left keys
+     * @param left_keys Left keys
+     * @returns builder object
+     */
+    Builder &SetLeftKeys(std::vector<const parser::AbstractExpression *> left_keys) {
+      left_keys_ = std::move(left_keys);
+      return *this;
+    }
+
+    /**
+     * Set right keys
+     * @param right_keys Right keys
+     * @returns builder object
+     */
+    Builder &SetRightKeys(std::vector<const parser::AbstractExpression *> right_keys) {
+      right_keys_ = std::move(right_keys);
+      return *this;
+    }
+
+    /**
      * Build the nested loop join plan node
      * @return plan node
      */
     std::shared_ptr<NestedLoopJoinPlanNode> Build() {
-      return std::shared_ptr<NestedLoopJoinPlanNode>(
-          new NestedLoopJoinPlanNode(std::move(children_), std::move(output_schema_), join_type_, join_predicate_));
+      return std::shared_ptr<NestedLoopJoinPlanNode>(new NestedLoopJoinPlanNode(
+          std::move(children_), std::move(output_schema_), join_type_, join_predicate_, left_keys_, right_keys_));
     }
+
+   protected:
+    /**
+     * Left keys
+     */
+    std::vector<const parser::AbstractExpression *> left_keys_;
+
+    /**
+     * Right keys
+     */
+    std::vector<const parser::AbstractExpression *> right_keys_;
   };
 
  private:
@@ -44,8 +75,12 @@ class NestedLoopJoinPlanNode : public AbstractJoinPlanNode {
    */
   NestedLoopJoinPlanNode(std::vector<std::shared_ptr<AbstractPlanNode>> &&children,
                          std::shared_ptr<OutputSchema> output_schema, LogicalJoinType join_type,
-                         const parser::AbstractExpression *predicate)
-      : AbstractJoinPlanNode(std::move(children), std::move(output_schema), join_type, predicate) {}
+                         const parser::AbstractExpression *predicate,
+                         std::vector<const parser::AbstractExpression *> left_keys,
+                         std::vector<const parser::AbstractExpression *> right_keys)
+      : AbstractJoinPlanNode(std::move(children), std::move(output_schema), join_type, predicate),
+        left_keys_(std::move(left_keys)),
+        right_keys_(std::move(right_keys)) {}
 
  public:
   /**
@@ -61,6 +96,16 @@ class NestedLoopJoinPlanNode : public AbstractJoinPlanNode {
   PlanNodeType GetPlanNodeType() const override { return PlanNodeType::NESTLOOP; }
 
   /**
+   * @return left keys
+   */
+  const std::vector<const parser::AbstractExpression *> &GetLeftKeys() const { return left_keys_; }
+
+  /**
+   * @return right keys
+   */
+  const std::vector<const parser::AbstractExpression *> &GetRightKeys() const { return right_keys_; }
+
+  /**
    * @return the NestedLooped value of this plan node
    */
   common::hash_t Hash() const override;
@@ -69,6 +114,17 @@ class NestedLoopJoinPlanNode : public AbstractJoinPlanNode {
 
   nlohmann::json ToJson() const override;
   void FromJson(const nlohmann::json &j) override;
+
+ private:
+  /**
+   * Left keys
+   */
+  std::vector<const parser::AbstractExpression *> left_keys_;
+
+  /**
+   * Right keys
+   */
+  std::vector<const parser::AbstractExpression *> right_keys_;
 };
 
 DEFINE_JSON_DECLARATIONS(NestedLoopJoinPlanNode);

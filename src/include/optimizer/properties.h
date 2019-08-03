@@ -1,14 +1,18 @@
 #pragma once
 
+#include <utility>
+#include <vector>
+
 #include "common/hash_util.h"
 #include "common/managed_pointer.h"
-#include "parser/expression/tuple_value_expression.h"
 #include "optimizer/property.h"
+#include "planner/plannodes/plan_node_defs.h"
 
-namespace terrier {
-namespace optimizer {
+namespace terrier::optimizer {
 
-// Specifies the required sorting order of the query
+/**
+ * Implementation of the sort property
+ */
 class PropertySort : public Property {
  public:
   /**
@@ -17,46 +21,39 @@ class PropertySort : public Property {
    * @param sort_ascending Whether each sort_column is ascending or descending
    */
   PropertySort(std::vector<common::ManagedPointer<parser::AbstractExpression>> sort_columns,
-               std::vector<bool> sort_ascending)
-    : sort_columns_(std::move(sort_columns)),
-      sort_ascending_(std::move(sort_ascending)) {}
+               std::vector<planner::OrderByOrderingType> sort_ascending)
+      : sort_columns_(std::move(sort_columns)), sort_ascending_(std::move(sort_ascending)) {}
 
   /**
    * Returns the type of PropertySort
    * @returns PropertyType::SORT
    */
-  PropertyType Type() const override {
-    return PropertyType::SORT;
-  }
+  PropertyType Type() const override { return PropertyType::SORT; }
 
   /**
    * Copy
    */
-  PropertySort* Copy() {
-    return new PropertySort(sort_columns_, sort_ascending_);
-  }
+  PropertySort *Copy() override { return new PropertySort(sort_columns_, sort_ascending_); }
 
   /**
    * Gets the number of sort columns
    * @returns Number of sort columns
    */
-  inline size_t GetSortColumnSize() const { return sort_columns_.size(); }
+  size_t GetSortColumnSize() const { return sort_columns_.size(); }
 
   /**
    * Gets a sort column at specified index
    * @param idx Index of sort column to retrieve
    * @returns Sort Column
    */
-  inline common::ManagedPointer<parser::AbstractExpression> GetSortColumn(size_t idx) const {
-    return sort_columns_[idx];
-  }
+  common::ManagedPointer<parser::AbstractExpression> GetSortColumn(size_t idx) const { return sort_columns_[idx]; }
 
   /**
    * Gets whether a sort column is sorted ascending
    * @param idx Index of ascending flag to retrieve
    * @returns Whether sort column at index idx is sorted in ascending order
    */
-  inline bool GetSortAscending(int idx) const { return sort_ascending_[idx]; }
+  planner::OrderByOrderingType GetSortAscending(int idx) const { return sort_ascending_[idx]; }
 
   /**
    * Hashes this PropertySort
@@ -82,8 +79,7 @@ class PropertySort : public Property {
 
  private:
   std::vector<common::ManagedPointer<parser::AbstractExpression>> sort_columns_;
-  std::vector<bool> sort_ascending_;
+  std::vector<planner::OrderByOrderingType> sort_ascending_;
 };
 
-}  // namespace optimizer
-}  // namespace terrier
+}  // namespace terrier::optimizer

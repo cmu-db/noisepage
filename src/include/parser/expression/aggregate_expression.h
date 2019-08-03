@@ -3,9 +3,9 @@
 #include <memory>
 #include <utility>
 #include <vector>
+#include "common/exception.h"
 #include "parser/expression/abstract_expression.h"
 #include "parser/expression_defs.h"
-#include "type/type_id.h"
 
 namespace terrier::parser {
 
@@ -28,23 +28,37 @@ class AggregateExpression : public AbstractExpression {
    */
   AggregateExpression() = default;
 
+  /**
+   * Default destructor
+   */
   ~AggregateExpression() override = default;
 
+  /**
+   * Creates a copy of the current AbstractExpression
+   * @returns Copy of this
+   */
   const AbstractExpression *Copy() const override {
     std::vector<const AbstractExpression *> children;
     for (const auto *child : children_) {
       children.emplace_back(child->Copy());
     }
-    return new AggregateExpression(GetExpressionType(), children, distinct_);
+    return CopyWithChildren(std::move(children));
   }
 
   /**
    * Creates a copy of the current AbstractExpression with new children implanted.
    * The children should not be owned by any other AbstractExpression.
    * @param children New children to be owned by the copy
+   * @returns copy of this with new children
    */
   const AbstractExpression *CopyWithChildren(std::vector<const AbstractExpression *> children) const override {
-    return new AggregateExpression(GetExpressionType(), children, distinct_);
+    return new AggregateExpression(*this, std::move(children));
+  }
+
+  common::hash_t Hash() const override {
+    common::hash_t hash = AbstractExpression::Hash();
+    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(distinct_));
+    return hash;
   }
 
   bool operator==(const AbstractExpression &rhs) const override {
@@ -57,6 +71,31 @@ class AggregateExpression : public AbstractExpression {
    * @return true if we should eliminate duplicate values in aggregate function calculations
    */
   bool IsDistinct() const { return distinct_; }
+
+  void DeriveReturnValueType() override {
+    auto expr_type = this->GetExpressionType();
+    switch (expr_type) {
+      case ExpressionType::AGGREGATE_COUNT:
+        this->SetReturnValueType(type::TypeId::INTEGER);
+        break;
+        // keep the type of the base
+      case ExpressionType::AGGREGATE_MAX:
+      case ExpressionType::AGGREGATE_MIN:
+      case ExpressionType::AGGREGATE_SUM:
+        TERRIER_ASSERT(this->GetChildrenSize() >= 1, "No column name given.");
+        const_cast<parser::AbstractExpression *>(this->GetChild(0).get())->DeriveReturnValueType();
+        this->SetReturnValueType(this->GetChild(0)->GetReturnValueType());
+        break;
+      case ExpressionType::AGGREGATE_AVG:
+        this->SetReturnValueType(type::TypeId::DECIMAL);
+        break;
+      default:
+        throw PARSER_EXCEPTION(
+            ("Not a valid aggregation expression type: " + std::to_string(static_cast<int>(expr_type))).c_str());
+    }
+  }
+
+  void Accept(SqlNodeVisitor *v) override { v->Visit(this); }
 
   /**
    * @return expression serialized to json
@@ -76,6 +115,20 @@ class AggregateExpression : public AbstractExpression {
   }
 
  private:
+  /**
+   * Copy constructor for AggregateExpression.
+   * Relies on AbstractExpression copy constructor for base members
+   * @param other AggregateExpression to copy from
+   * @param children Children of the new AggregateExpression
+   */
+  AggregateExpression(const AggregateExpression &other, std::vector<const AbstractExpression *> &&children)
+      : AbstractExpression(other), distinct_(other.distinct_) {
+    children_ = children;
+  }
+
+  /**
+   * If duplicate rows will be removed
+   */
   bool distinct_;
 };
 

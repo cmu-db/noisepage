@@ -32,21 +32,32 @@ class FunctionExpression : public AbstractExpression {
 
   ~FunctionExpression() override = default;
 
+  /**
+   * Copies this FunctionExpression
+   * @returns copy of this
+   */
   const AbstractExpression *Copy() const override {
     std::vector<const AbstractExpression *> children;
     for (const auto *child : children_) {
       children.emplace_back(child->Copy());
     }
-    return new FunctionExpression(func_name_, GetReturnValueType(), children);
+    return CopyWithChildren(std::move(children));
   }
 
   /**
    * Creates a copy of the current AbstractExpression with new children implanted.
    * The children should not be owned by any other AbstractExpression.
    * @param children New children to be owned by the copy
+   * @returns copy of this with new children
    */
   const AbstractExpression *CopyWithChildren(std::vector<const AbstractExpression *> children) const override {
-    return new FunctionExpression(func_name_, GetReturnValueType(), children);
+    return new FunctionExpression(*this, std::move(children));
+  }
+
+  common::hash_t Hash() const override {
+    common::hash_t hash = AbstractExpression::Hash();
+    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(func_name_));
+    return hash;
   }
 
   bool operator==(const AbstractExpression &rhs) const override {
@@ -59,6 +70,22 @@ class FunctionExpression : public AbstractExpression {
    * @return function name
    */
   const std::string &GetFuncName() const { return func_name_; }
+
+  void DeriveExpressionName() override {
+    bool first = true;
+    std::string name = this->GetFuncName() + "(";
+    for (auto &child : children_) {
+      if (!first) name.append(",");
+
+      const_cast<parser::AbstractExpression *>(child)->DeriveExpressionName();
+      name.append(child->GetExpressionName());
+      first = false;
+    }
+    name.append(")");
+    this->SetExpressionName(name);
+  }
+
+  void Accept(SqlNodeVisitor *v) override { v->Visit(this); }
 
   /**
    * @return expression serialized to json
@@ -78,6 +105,20 @@ class FunctionExpression : public AbstractExpression {
   }
 
  private:
+  /**
+   * Copy constructor for FunctionExpression
+   * Relies on AbstractExpression copy constructor for base members
+   * @param other Other FunctionExpression to copy from
+   * @parma children new FunctionExpression's children
+   */
+  FunctionExpression(const FunctionExpression &other, std::vector<const AbstractExpression *> &&children)
+      : AbstractExpression(other), func_name_(other.func_name_) {
+    children_ = children;
+  }
+
+  /**
+   * Name of the function
+   */
   std::string func_name_;
 
   // TODO(Tianyu): Why the hell are these things in the parser nodes anyway? Parsers are dumb. They don't know shit.

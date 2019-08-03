@@ -1,13 +1,18 @@
 #pragma once
 
 #include <memory>
-#include "optimizer/pattern.h"
-#include "optimizer/optimize_context.h"
+#include <unordered_map>
+#include <vector>
+
 #include "optimizer/operator_expression.h"
+#include "optimizer/optimize_context.h"
+#include "optimizer/pattern.h"
 
-namespace terrier {
-namespace optimizer {
+namespace terrier::optimizer {
 
+/**
+ * Enum defining the types of rules
+ */
 enum class RuleType : uint32_t {
   // Transformation rules (logical -> logical)
   INNER_JOIN_COMMUTE = 0,
@@ -54,10 +59,7 @@ enum class RuleType : uint32_t {
 /**
  * Enum defining sets of rewrite rules
  */
-enum class RewriteRuleSetName : uint32_t {
-  PREDICATE_PUSH_DOWN = 0,
-  UNNEST_SUBQUERY
-};
+enum class RewriteRuleSetName : uint32_t { PREDICATE_PUSH_DOWN = 0, UNNEST_SUBQUERY };
 
 /* Constant defining a physical rule's promise */
 static const uint32_t PHYS_PROMISE = 3;
@@ -73,56 +75,52 @@ class Rule {
   /**
    * Destructor for Rule
    */
-  virtual ~Rule() {
-    delete match_pattern;
-  }
+  virtual ~Rule() { delete match_pattern; }
 
   /**
    * Gets the match pattern for the rule
    * @returns match pattern
    */
-  Pattern* GetMatchPattern() const { return match_pattern; }
+  Pattern *GetMatchPattern() const { return match_pattern; }
 
   /**
    * Returns whether this rule is a physical rule or not
    * by checking LogicalPhysicalDelimiter and RewriteDelimiter.
-   * @param whether the rule is a physical transformation
+   * @returns whether the rule is a physical transformation
    */
-  bool IsPhysical() const {
-    return type_ > RuleType::LogicalPhysicalDelimiter && type_ < RuleType::RewriteDelimiter;
-  }
+  bool IsPhysical() const { return type_ > RuleType::LogicalPhysicalDelimiter && type_ < RuleType::RewriteDelimiter; }
 
   /**
    * Gets the type of the rule
    * @returns the type of the rule
    */
-  inline RuleType GetType() { return type_; }
+  RuleType GetType() { return type_; }
 
   /**
    * Gets the index of the rule w.r.t to bitmask
    * @returns index of the rule for bitmask
    */
-  inline uint32_t GetRuleIdx() { return static_cast<uint32_t>(type_); }
+  uint32_t GetRuleIdx() { return static_cast<uint32_t>(type_); }
 
   /**
    * Indicates whether the rule is a logical rule or not
-   * @param whether the rule is a logical rule
+   * @returns whether the rule is a logical rule
    */
   bool IsLogical() const { return type_ < RuleType::LogicalPhysicalDelimiter; }
 
   /**
    * Indicates whether the rule is a rewrite rule or not
-   * @param whether the rule is a rewrite rule
+   * @returns whether the rule is a rewrite rule
    */
   bool IsRewrite() const { return type_ > RuleType::RewriteDelimiter; }
 
   /**
-   *  Get the promise of the current rule for a expression in the current
-   *  context. Currently we only differentiate physical and logical rules.
-   *  Physical rules have higher promise, and will be applied before logical
-   *  rules. If the rule is not applicable because the pattern does not match,
-   *  the promise should be 0, which indicates that we should not apply this
-   *  rule
+   * Get the promise of the current rule for a expression in the current
+   * context. Currently we only differentiate physical and logical rules.
+   * Physical rules have higher promise, and will be applied before logical
+   * rules. If the rule is not applicable because the pattern does not match,
+   * the promise should be 0, which indicates that we should not apply this
+   * rule.
    *
    * @param group_expr The current group expression to apply the rule
    * @param context The current context for the optimization
@@ -132,15 +130,15 @@ class Rule {
   virtual int Promise(GroupExpression *group_expr, OptimizeContext *context) const;
 
   /**
-   *  Check if the rule is applicable for the operator expression. The
-   *  input operator expression should have the required "before" pattern, but
-   *  other conditions may prevent us from applying the rule. For example, if
-   *  the logical join does not specify a join key, we could not transform it
-   *  into a hash join because we need the join key to build the hash table
+   * Check if the rule is applicable for the operator expression. The
+   * input operator expression should have the required "before" pattern, but
+   * other conditions may prevent us from applying the rule. For example, if
+   * the logical join does not specify a join key, we could not transform it
+   * into a hash join because we need the join key to build the hash table
    *
-   *  @param expr The "before" operator expression
-   *  @param context The current context for the optimization
-   *  @return If the rule is applicable, return true, otherwise return false
+   * @param expr The "before" operator expression
+   * @param context The current context for the optimization
+   * @return If the rule is applicable, return true, otherwise return false
    */
   virtual bool Check(OperatorExpression *expr, OptimizeContext *context) const = 0;
 
@@ -151,13 +149,18 @@ class Rule {
    * @param transformed Vector of "after" operator trees
    * @param context The current optimization context
    */
-  virtual void Transform(
-      OperatorExpression *input,
-      std::vector<OperatorExpression*> &transformed,
-      OptimizeContext *context) const = 0;
+  virtual void Transform(OperatorExpression *input, std::vector<OperatorExpression *> *transformed,
+                         OptimizeContext *context) const = 0;
 
  protected:
+  /**
+   * Match pattern for the rule to be used
+   */
   Pattern *match_pattern;
+
+  /**
+   * Type of the rule
+   */
   RuleType type_;
 };
 
@@ -166,29 +169,50 @@ class Rule {
  * The struct does not own the rule.
  */
 struct RuleWithPromise {
+ public:
   /**
    * Constructor
    * @param rule Pointer to rule
    * @param promise Promise of the rule
    */
-  RuleWithPromise(Rule *rule, int promise) : rule(rule), promise(promise) {}
+  RuleWithPromise(Rule *rule, int promise) : rule_(rule), promise_(promise) {}
 
-  Rule *rule;
-  int promise;
+  /**
+   * Gets the rule
+   * @returns Rule
+   */
+  Rule *GetRule() { return rule_; }
+
+  /**
+   * Gets the promise
+   * @returns Promise
+   */
+  int GetPromise() { return promise_; }
 
   /**
    * Checks whether this is less than another RuleWithPromise by comparing promise.
    * @param r Other RuleWithPromise to compare against
    * @returns TRUE if this < r
    */
-  bool operator<(const RuleWithPromise &r) const { return promise < r.promise; }
+  bool operator<(const RuleWithPromise &r) const { return promise_ < r.promise_; }
 
   /**
    * Checks whether this is larger than another RuleWithPromise by comparing promise.
    * @param r Other RuleWithPromise to compare against
    * @returns TRUE if this > r
    */
-  bool operator>(const RuleWithPromise &r) const { return promise > r.promise; }
+  bool operator>(const RuleWithPromise &r) const { return promise_ > r.promise_; }
+
+ private:
+  /**
+   * Rule
+   */
+  Rule *rule_;
+
+  /**
+   * Promise
+   */
+  int promise_;
 };
 
 /**
@@ -206,8 +230,12 @@ class RuleSet {
    * Destructor
    */
   ~RuleSet() {
-    for (auto rule : transformation_rules_) { delete rule; }
-    for (auto rule : implementation_rules_) { delete rule; }
+    for (auto rule : transformation_rules_) {
+      delete rule;
+    }
+    for (auto rule : implementation_rules_) {
+      delete rule;
+    }
     for (auto &it : rewrite_rules_map_) {
       for (auto rule : it.second) {
         delete rule;
@@ -219,20 +247,20 @@ class RuleSet {
    * Adds a transformation rule to the RuleSet
    * @param rule Rule to add
    */
-  inline void AddTransformationRule(Rule* rule) { transformation_rules_.push_back(rule); }
+  void AddTransformationRule(Rule *rule) { transformation_rules_.push_back(rule); }
 
   /**
    * Adds an implementation rule to the RuleSet
    * @param rule Rule to add
    */
-  inline void AddImplementationRule(Rule* rule) { implementation_rules_.push_back(rule); }
+  void AddImplementationRule(Rule *rule) { implementation_rules_.push_back(rule); }
 
   /**
    * Adds a rewrite rule to the RuleSet
    * @param set Rewrie RuleSet to add the rule to
    * @param rule Rule to add
    */
-  inline void AddRewriteRule(RewriteRuleSetName set, Rule* rule) {
+  void AddRewriteRule(RewriteRuleSetName set, Rule *rule) {
     rewrite_rules_map_[static_cast<uint32_t>(set)].push_back(rule);
   }
 
@@ -240,32 +268,38 @@ class RuleSet {
    * Gets all stored transformation rules
    * @returns vector of transformation rules
    */
-  std::vector<Rule*> &GetTransformationRules() {
-    return transformation_rules_;
-  }
+  std::vector<Rule *> &GetTransformationRules() { return transformation_rules_; }
 
   /**
    * Gets all stored implementation rules
    * @returns vector of implementation rules
    */
-  std::vector<Rule*> &GetImplementationRules() {
-    return implementation_rules_;
-  }
+  std::vector<Rule *> &GetImplementationRules() { return implementation_rules_; }
 
   /**
    * Gets all stored rules in a given RuleSet
-   * @param Rewrite RuleSet to fetch
+   * @param set Rewrite RuleSet to fetch
    * @returns vector of rules in that rewrite ruleset group
    */
-  std::vector<Rule*> &GetRewriteRulesByName(RewriteRuleSetName set) {
+  std::vector<Rule *> &GetRewriteRulesByName(RewriteRuleSetName set) {
     return rewrite_rules_map_[static_cast<uint32_t>(set)];
   }
 
  private:
-  std::vector<Rule*> transformation_rules_;
-  std::vector<Rule*> implementation_rules_;
-  std::unordered_map<uint32_t, std::vector<Rule*>> rewrite_rules_map_;
+  /**
+   * Vector of logical transformation rules
+   */
+  std::vector<Rule *> transformation_rules_;
+
+  /**
+   * Vector of physical implementation rules
+   */
+  std::vector<Rule *> implementation_rules_;
+
+  /**
+   * Map from RewriteRuleSetName (uint32_t) -> vector of rules
+   */
+  std::unordered_map<uint32_t, std::vector<Rule *>> rewrite_rules_map_;
 };
 
-}  // namespace optimizer
-}  // namespace terrier
+}  // namespace terrier::optimizer

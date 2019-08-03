@@ -3,40 +3,68 @@
 #include "optimizer/rule.h"
 
 #include <memory>
+#include <vector>
 
-namespace terrier {
-namespace optimizer {
+namespace terrier::optimizer {
 
 //===--------------------------------------------------------------------===//
 // Transformation rules
 //===--------------------------------------------------------------------===//
 
 /**
- * @brief (A join B) -> (B join A)
+ * Rule transforms (A JOIN B) -> (B JOIN A)
  */
 class InnerJoinCommutativity : public Rule {
  public:
+  /**
+   * Constructor
+   */
   InnerJoinCommutativity();
 
-  bool Check(OperatorExpression* plan, OptimizeContext *context) const override;
+  /**
+   * Checks whether the given rule can be applied
+   * @param plan OperatorExpression to check
+   * @param context Current OptimizeContext executing under
+   * @returns Whether the input OperatorExpression passes the check
+   */
+  bool Check(OperatorExpression *plan, OptimizeContext *context) const override;
 
-  void Transform(OperatorExpression* input,
-                 std::vector<OperatorExpression*> &transformed,
+  /**
+   * Transforms the input expression using the given rule
+   * @param input Input OperatorExpression to transform
+   * @param transformed Vector of transformed OperatorExpressions
+   * @param context Current OptimizeContext executing under
+   */
+  void Transform(OperatorExpression *input, std::vector<OperatorExpression *> *transformed,
                  OptimizeContext *context) const override;
 };
 
 /**
- * @brief (A join B) join C -> A join (B join C)
+ * Rule transforms (A JOIN B) JOIN C -> A JOIN (B JOIN C)
  */
 
 class InnerJoinAssociativity : public Rule {
  public:
+  /**
+   * Constructor
+   */
   InnerJoinAssociativity();
 
-  bool Check(OperatorExpression* plan, OptimizeContext *context) const override;
+  /**
+   * Checks whether the given rule can be applied
+   * @param plan OperatorExpression to check
+   * @param context Current OptimizeContext executing under
+   * @returns Whether the input OperatorExpression passes the check
+   */
+  bool Check(OperatorExpression *plan, OptimizeContext *context) const override;
 
-  void Transform(OperatorExpression* input,
-                 std::vector<OperatorExpression*> &transformed,
+  /**
+   * Transforms the input expression using the given rule
+   * @param input Input OperatorExpression to transform
+   * @param transformed Vector of transformed OperatorExpressions
+   * @param context Current OptimizeContext executing under
+   */
+  void Transform(OperatorExpression *input, std::vector<OperatorExpression *> *transformed,
                  OptimizeContext *context) const override;
 };
 
@@ -45,224 +73,451 @@ class InnerJoinAssociativity : public Rule {
 //===--------------------------------------------------------------------===//
 
 /**
- * @brief (Logical Scan -> Sequential Scan)
+ * Rule transforms Logical Scan -> Sequential Scan
  */
 class GetToSeqScan : public Rule {
  public:
+  /**
+   * Constructor
+   */
   GetToSeqScan();
 
-  bool Check(OperatorExpression* plan, OptimizeContext *context) const override;
+  /**
+   * Checks whether the given rule can be applied
+   * @param plan OperatorExpression to check
+   * @param context Current OptimizeContext executing under
+   * @returns Whether the input OperatorExpression passes the check
+   */
+  bool Check(OperatorExpression *plan, OptimizeContext *context) const override;
 
-  void Transform(OperatorExpression* input,
-                 std::vector<OperatorExpression*> &transformed,
-                 OptimizeContext *context) const override;
-};
-
-class LogicalExternalFileGetToPhysical : public Rule {
- public:
-  LogicalExternalFileGetToPhysical();
-
-  bool Check(OperatorExpression* plan, OptimizeContext *context) const override;
-
-  void Transform(OperatorExpression* input,
-                 std::vector<OperatorExpression*> &transformed,
+  /**
+   * Transforms the input expression using the given rule
+   * @param input Input OperatorExpression to transform
+   * @param transformed Vector of transformed OperatorExpressions
+   * @param context Current OptimizeContext executing under
+   */
+  void Transform(OperatorExpression *input, std::vector<OperatorExpression *> *transformed,
                  OptimizeContext *context) const override;
 };
 
 /**
- * @brief Generate dummy scan for queries like "SELECT 1", there's no actual
+ * Rule transforms LogicalExternalFileGet -> ExternalFileGet
+ */
+class LogicalExternalFileGetToPhysical : public Rule {
+ public:
+  /**
+   * Constructor
+   */
+  LogicalExternalFileGetToPhysical();
+
+  /**
+   * Checks whether the given rule can be applied
+   * @param plan OperatorExpression to check
+   * @param context Current OptimizeContext executing under
+   * @returns Whether the input OperatorExpression passes the check
+   */
+  bool Check(OperatorExpression *plan, OptimizeContext *context) const override;
+
+  /**
+   * Transforms the input expression using the given rule
+   * @param input Input OperatorExpression to transform
+   * @param transformed Vector of transformed OperatorExpressions
+   * @param context Current OptimizeContext executing under
+   */
+  void Transform(OperatorExpression *input, std::vector<OperatorExpression *> *transformed,
+                 OptimizeContext *context) const override;
+};
+
+/**
+ * Generate dummy scan for queries like "SELECT 1", there's no actual
  * table to generate
  */
 class GetToTableFreeScan : public Rule {
  public:
+  /**
+   * Constructor
+   */
   GetToTableFreeScan();
 
-  bool Check(OperatorExpression* plan, OptimizeContext *context) const override;
+  /**
+   * Checks whether the given rule can be applied
+   * @param plan OperatorExpression to check
+   * @param context Current OptimizeContext executing under
+   * @returns Whether the input OperatorExpression passes the check
+   */
+  bool Check(OperatorExpression *plan, OptimizeContext *context) const override;
 
-  void Transform(OperatorExpression* input,
-                 std::vector<OperatorExpression*> &transformed,
+  /**
+   * Transforms the input expression using the given rule
+   * @param input Input OperatorExpression to transform
+   * @param transformed Vector of transformed OperatorExpressions
+   * @param context Current OptimizeContext executing under
+   */
+  void Transform(OperatorExpression *input, std::vector<OperatorExpression *> *transformed,
                  OptimizeContext *context) const override;
 };
 
 /**
- * @brief (Logical Scan -> Index Scan)
+ * Rule transforms Logical Scan -> Index Scan
  */
 class GetToIndexScan : public Rule {
  public:
+  /**
+   * Constructor
+   */
   GetToIndexScan();
 
-  bool Check(OperatorExpression* plan, OptimizeContext *context) const override;
+  /**
+   * Checks whether the given rule can be applied
+   * @param plan OperatorExpression to check
+   * @param context Current OptimizeContext executing under
+   * @returns Whether the input OperatorExpression passes the check
+   */
+  bool Check(OperatorExpression *plan, OptimizeContext *context) const override;
 
-  void Transform(OperatorExpression* input,
-                 std::vector<OperatorExpression*> &transformed,
+  /**
+   * Transforms the input expression using the given rule
+   * @param input Input OperatorExpression to transform
+   * @param transformed Vector of transformed OperatorExpressions
+   * @param context Current OptimizeContext executing under
+   */
+  void Transform(OperatorExpression *input, std::vector<OperatorExpression *> *transformed,
                  OptimizeContext *context) const override;
 };
 
 /**
- * @brief Transforming query derived scan for nested query
+ * Rule that transforms query derived scans for nested queries
  */
 class LogicalQueryDerivedGetToPhysical : public Rule {
  public:
+  /**
+   * Constructor
+   */
   LogicalQueryDerivedGetToPhysical();
 
-  bool Check(OperatorExpression* plan, OptimizeContext *context) const override;
+  /**
+   * Checks whether the given rule can be applied
+   * @param plan OperatorExpression to check
+   * @param context Current OptimizeContext executing under
+   * @returns Whether the input OperatorExpression passes the check
+   */
+  bool Check(OperatorExpression *plan, OptimizeContext *context) const override;
 
-  void Transform(OperatorExpression* input,
-                 std::vector<OperatorExpression*> &transformed,
+  /**
+   * Transforms the input expression using the given rule
+   * @param input Input OperatorExpression to transform
+   * @param transformed Vector of transformed OperatorExpressions
+   * @param context Current OptimizeContext executing under
+   */
+  void Transform(OperatorExpression *input, std::vector<OperatorExpression *> *transformed,
                  OptimizeContext *context) const override;
 };
 
 /**
- * @brief (Logical Delete -> Physical Delete)
+ * Rule transforms LogicalDelete -> Delete
  */
 class LogicalDeleteToPhysical : public Rule {
  public:
+  /**
+   * Constructor
+   */
   LogicalDeleteToPhysical();
 
-  bool Check(OperatorExpression* plan, OptimizeContext *context) const override;
+  /**
+   * Checks whether the given rule can be applied
+   * @param plan OperatorExpression to check
+   * @param context Current OptimizeContext executing under
+   * @returns Whether the input OperatorExpression passes the check
+   */
+  bool Check(OperatorExpression *plan, OptimizeContext *context) const override;
 
-  void Transform(OperatorExpression* input,
-                 std::vector<OperatorExpression*> &transformed,
+  /**
+   * Transforms the input expression using the given rule
+   * @param input Input OperatorExpression to transform
+   * @param transformed Vector of transformed OperatorExpressions
+   * @param context Current OptimizeContext executing under
+   */
+  void Transform(OperatorExpression *input, std::vector<OperatorExpression *> *transformed,
                  OptimizeContext *context) const override;
 };
 
 /**
- * @brief (Logical Update -> Physical Update)
+ * Rule transforms LogicalUpdate -> Update
  */
 class LogicalUpdateToPhysical : public Rule {
  public:
+  /**
+   * Constructor
+   */
   LogicalUpdateToPhysical();
 
-  bool Check(OperatorExpression* plan, OptimizeContext *context) const override;
+  /**
+   * Checks whether the given rule can be applied
+   * @param plan OperatorExpression to check
+   * @param context Current OptimizeContext executing under
+   * @returns Whether the input OperatorExpression passes the check
+   */
+  bool Check(OperatorExpression *plan, OptimizeContext *context) const override;
 
-  void Transform(OperatorExpression* input,
-                 std::vector<OperatorExpression*> &transformed,
+  /**
+   * Transforms the input expression using the given rule
+   * @param input Input OperatorExpression to transform
+   * @param transformed Vector of transformed OperatorExpressions
+   * @param context Current OptimizeContext executing under
+   */
+  void Transform(OperatorExpression *input, std::vector<OperatorExpression *> *transformed,
                  OptimizeContext *context) const override;
 };
 
 /**
- * @brief (Logical Insert -> Physical Insert)
+ * Rule transforms LogicalInsert -> Insert
  */
 class LogicalInsertToPhysical : public Rule {
  public:
+  /**
+   * Constructor
+   */
   LogicalInsertToPhysical();
 
-  bool Check(OperatorExpression* plan, OptimizeContext *context) const override;
+  /**
+   * Checks whether the given rule can be applied
+   * @param plan OperatorExpression to check
+   * @param context Current OptimizeContext executing under
+   * @returns Whether the input OperatorExpression passes the check
+   */
+  bool Check(OperatorExpression *plan, OptimizeContext *context) const override;
 
-  void Transform(OperatorExpression* input,
-                 std::vector<OperatorExpression*> &transformed,
+  /**
+   * Transforms the input expression using the given rule
+   * @param input Input OperatorExpression to transform
+   * @param transformed Vector of transformed OperatorExpressions
+   * @param context Current OptimizeContext executing under
+   */
+  void Transform(OperatorExpression *input, std::vector<OperatorExpression *> *transformed,
                  OptimizeContext *context) const override;
 };
 
 /**
- * @brief (Logical Insert Select -> Physical Insert Select)
+ * Rule transforms LogicalInsertSelect -> InsertSelect
  */
 class LogicalInsertSelectToPhysical : public Rule {
  public:
+  /**
+   * Constructor
+   */
   LogicalInsertSelectToPhysical();
 
-  bool Check(OperatorExpression* plan, OptimizeContext *context) const override;
+  /**
+   * Checks whether the given rule can be applied
+   * @param plan OperatorExpression to check
+   * @param context Current OptimizeContext executing under
+   * @returns Whether the input OperatorExpression passes the check
+   */
+  bool Check(OperatorExpression *plan, OptimizeContext *context) const override;
 
-  void Transform(OperatorExpression* input,
-                 std::vector<OperatorExpression*> &transformed,
+  /**
+   * Transforms the input expression using the given rule
+   * @param input Input OperatorExpression to transform
+   * @param transformed Vector of transformed OperatorExpressions
+   * @param context Current OptimizeContext executing under
+   */
+  void Transform(OperatorExpression *input, std::vector<OperatorExpression *> *transformed,
                  OptimizeContext *context) const override;
 };
 
 /**
- * @brief (Logical Group by -> Hash Group by)
+ * Rule transforms LogicalGroupBy -> HashGroupBy
  */
 class LogicalGroupByToHashGroupBy : public Rule {
  public:
+  /**
+   * Constructor
+   */
   LogicalGroupByToHashGroupBy();
 
-  bool Check(OperatorExpression* plan, OptimizeContext *context) const override;
+  /**
+   * Checks whether the given rule can be applied
+   * @param plan OperatorExpression to check
+   * @param context Current OptimizeContext executing under
+   * @returns Whether the input OperatorExpression passes the check
+   */
+  bool Check(OperatorExpression *plan, OptimizeContext *context) const override;
 
-  void Transform(OperatorExpression* input,
-                 std::vector<OperatorExpression*> &transformed,
+  /**
+   * Transforms the input expression using the given rule
+   * @param input Input OperatorExpression to transform
+   * @param transformed Vector of transformed OperatorExpressions
+   * @param context Current OptimizeContext executing under
+   */
+  void Transform(OperatorExpression *input, std::vector<OperatorExpression *> *transformed,
                  OptimizeContext *context) const override;
 };
 
 /**
- * @brief (Logical Aggregate -> Physical Aggregate)
+ * Rule transforms LogicalAggregate -> Aggregate
  */
 class LogicalAggregateToPhysical : public Rule {
  public:
+  /**
+   * Constructor
+   */
   LogicalAggregateToPhysical();
 
-  bool Check(OperatorExpression* plan, OptimizeContext *context) const override;
+  /**
+   * Checks whether the given rule can be applied
+   * @param plan OperatorExpression to check
+   * @param context Current OptimizeContext executing under
+   * @returns Whether the input OperatorExpression passes the check
+   */
+  bool Check(OperatorExpression *plan, OptimizeContext *context) const override;
 
-  void Transform(OperatorExpression* input,
-                 std::vector<OperatorExpression*> &transformed,
+  /**
+   * Transforms the input expression using the given rule
+   * @param input Input OperatorExpression to transform
+   * @param transformed Vector of transformed OperatorExpressions
+   * @param context Current OptimizeContext executing under
+   */
+  void Transform(OperatorExpression *input, std::vector<OperatorExpression *> *transformed,
                  OptimizeContext *context) const override;
 };
 
 /**
- * @brief (Logical Inner Join -> Inner Nested-Loop Join)
+ * Rule transforms Logical Inner Join to InnerNLJoin
  */
 class InnerJoinToInnerNLJoin : public Rule {
  public:
+  /**
+   * Constructor
+   */
   InnerJoinToInnerNLJoin();
 
-  bool Check(OperatorExpression* plan, OptimizeContext *context) const override;
+  /**
+   * Checks whether the given rule can be applied
+   * @param plan OperatorExpression to check
+   * @param context Current OptimizeContext executing under
+   * @returns Whether the input OperatorExpression passes the check
+   */
+  bool Check(OperatorExpression *plan, OptimizeContext *context) const override;
 
-  void Transform(OperatorExpression* input,
-                 std::vector<OperatorExpression*> &transformed,
+  /**
+   * Transforms the input expression using the given rule
+   * @param input Input OperatorExpression to transform
+   * @param transformed Vector of transformed OperatorExpressions
+   * @param context Current OptimizeContext executing under
+   */
+  void Transform(OperatorExpression *input, std::vector<OperatorExpression *> *transformed,
                  OptimizeContext *context) const override;
 };
 
 /**
- * @brief (Logical Inner Join -> Inner Hash Join)
+ * Rule transforms Logical Inner Join to InnerHashJoin
  */
 class InnerJoinToInnerHashJoin : public Rule {
  public:
+  /**
+   * Constructor
+   */
   InnerJoinToInnerHashJoin();
 
-  bool Check(OperatorExpression* plan, OptimizeContext *context) const override;
+  /**
+   * Checks whether the given rule can be applied
+   * @param plan OperatorExpression to check
+   * @param context Current OptimizeContext executing under
+   * @returns Whether the input OperatorExpression passes the check
+   */
+  bool Check(OperatorExpression *plan, OptimizeContext *context) const override;
 
-  void Transform(OperatorExpression* input,
-                 std::vector<OperatorExpression*> &transformed,
+  /**
+   * Transforms the input expression using the given rule
+   * @param input Input OperatorExpression to transform
+   * @param transformed Vector of transformed OperatorExpressions
+   * @param context Current OptimizeContext executing under
+   */
+  void Transform(OperatorExpression *input, std::vector<OperatorExpression *> *transformed,
                  OptimizeContext *context) const override;
 };
 
 /**
- * @brief (Logical Distinct -> Physical Distinct)
+ * Rule transforms LogicalDistinct -> Distinct
  */
 class ImplementDistinct : public Rule {
  public:
+  /**
+   * Constructor
+   */
   ImplementDistinct();
 
-  bool Check(OperatorExpression* plan, OptimizeContext *context) const override;
+  /**
+   * Checks whether the given rule can be applied
+   * @param plan OperatorExpression to check
+   * @param context Current OptimizeContext executing under
+   * @returns Whether the input OperatorExpression passes the check
+   */
+  bool Check(OperatorExpression *plan, OptimizeContext *context) const override;
 
-  void Transform(OperatorExpression* input,
-                 std::vector<OperatorExpression*> &transformed,
+  /**
+   * Transforms the input expression using the given rule
+   * @param input Input OperatorExpression to transform
+   * @param transformed Vector of transformed OperatorExpressions
+   * @param context Current OptimizeContext executing under
+   */
+  void Transform(OperatorExpression *input, std::vector<OperatorExpression *> *transformed,
                  OptimizeContext *context) const override;
 };
 
 /**
- * @brief (Logical Limit -> Physical Limit)
+ * Rule transforms LogicalLimit -> Limit
  */
 class ImplementLimit : public Rule {
  public:
+  /**
+   * Constructor
+   */
   ImplementLimit();
 
-  bool Check(OperatorExpression* plan, OptimizeContext *context) const override;
+  /**
+   * Checks whether the given rule can be applied
+   * @param plan OperatorExpression to check
+   * @param context Current OptimizeContext executing under
+   * @returns Whether the input OperatorExpression passes the check
+   */
+  bool Check(OperatorExpression *plan, OptimizeContext *context) const override;
 
-  void Transform(OperatorExpression* input,
-                 std::vector<OperatorExpression*> &transformed,
+  /**
+   * Transforms the input expression using the given rule
+   * @param input Input OperatorExpression to transform
+   * @param transformed Vector of transformed OperatorExpressions
+   * @param context Current OptimizeContext executing under
+   */
+  void Transform(OperatorExpression *input, std::vector<OperatorExpression *> *transformed,
                  OptimizeContext *context) const override;
 };
 
 /**
- * @brief Logical Export to External File -> Physical Export to External file
+ * Rule transforms Logical Export -> Physical Export
  */
 class LogicalExportToPhysicalExport : public Rule {
  public:
+  /**
+   * Constructor
+   */
   LogicalExportToPhysicalExport();
 
-  bool Check(OperatorExpression* plan, OptimizeContext *context) const override;
+  /**
+   * Checks whether the given rule can be applied
+   * @param plan OperatorExpression to check
+   * @param context Current OptimizeContext executing under
+   * @returns Whether the input OperatorExpression passes the check
+   */
+  bool Check(OperatorExpression *plan, OptimizeContext *context) const override;
 
-  void Transform(OperatorExpression* input,
-                 std::vector<OperatorExpression*> &transformed,
+  /**
+   * Transforms the input expression using the given rule
+   * @param input Input OperatorExpression to transform
+   * @param transformed Vector of transformed OperatorExpressions
+   * @param context Current OptimizeContext executing under
+   */
+  void Transform(OperatorExpression *input, std::vector<OperatorExpression *> *transformed,
                  OptimizeContext *context) const override;
 };
 
@@ -271,63 +526,120 @@ class LogicalExportToPhysicalExport : public Rule {
 //===--------------------------------------------------------------------===//
 
 /**
- * @brief perform predicate push-down to push a filter through join. For
- *  example, For query "SELECT test.a, test.b FROM test, test1 WHERE test.a = 5"
- *  we could push "test.a=5" through the join to evaluate at the table scan
- *  level
+ * Rule performs predicate push-down to push a filter through join. For
+ * example, for query "SELECT test.a, test.b FROM test, test1 WHERE test.a = 5"
+ * we could push "test.a=5" through the join to evaluate at the table scan
+ * level
  */
 class PushFilterThroughJoin : public Rule {
  public:
+  /**
+   * Constructor
+   */
   PushFilterThroughJoin();
 
-  bool Check(OperatorExpression* plan, OptimizeContext *context) const override;
+  /**
+   * Checks whether the given rule can be applied
+   * @param plan OperatorExpression to check
+   * @param context Current OptimizeContext executing under
+   * @returns Whether the input OperatorExpression passes the check
+   */
+  bool Check(OperatorExpression *plan, OptimizeContext *context) const override;
 
-  void Transform(OperatorExpression* input,
-                 std::vector<OperatorExpression*> &transformed,
+  /**
+   * Transforms the input expression using the given rule
+   * @param input Input OperatorExpression to transform
+   * @param transformed Vector of transformed OperatorExpressions
+   * @param context Current OptimizeContext executing under
+   */
+  void Transform(OperatorExpression *input, std::vector<OperatorExpression *> *transformed,
                  OptimizeContext *context) const override;
 };
 
 /**
- * @brief Combine multiple filters into one single filter using conjunction
+ * Rule transforms consecutive filters into a single filter
  */
 class CombineConsecutiveFilter : public Rule {
  public:
+  /**
+   * Constructor
+   */
   CombineConsecutiveFilter();
 
-  bool Check(OperatorExpression* plan, OptimizeContext *context) const override;
+  /**
+   * Checks whether the given rule can be applied
+   * @param plan OperatorExpression to check
+   * @param context Current OptimizeContext executing under
+   * @returns Whether the input OperatorExpression passes the check
+   */
+  bool Check(OperatorExpression *plan, OptimizeContext *context) const override;
 
-  void Transform(OperatorExpression* input,
-                 std::vector<OperatorExpression*> &transformed,
+  /**
+   * Transforms the input expression using the given rule
+   * @param input Input OperatorExpression to transform
+   * @param transformed Vector of transformed OperatorExpressions
+   * @param context Current OptimizeContext executing under
+   */
+  void Transform(OperatorExpression *input, std::vector<OperatorExpression *> *transformed,
                  OptimizeContext *context) const override;
 };
 
 /**
- * @brief perform predicate push-down to push a filter through aggregation, also
+ * Rule performs predicate push-down to push a filter through aggregation, also
  * will embed filter into aggregation operator if appropriate.
  */
 class PushFilterThroughAggregation : public Rule {
  public:
+  /**
+   * Constructor
+   */
   PushFilterThroughAggregation();
 
-  bool Check(OperatorExpression* plan, OptimizeContext *context) const override;
+  /**
+   * Checks whether the given rule can be applied
+   * @param plan OperatorExpression to check
+   * @param context Current OptimizeContext executing under
+   * @returns Whether the input OperatorExpression passes the check
+   */
+  bool Check(OperatorExpression *plan, OptimizeContext *context) const override;
 
-  void Transform(OperatorExpression* input,
-                 std::vector<OperatorExpression*> &transformed,
+  /**
+   * Transforms the input expression using the given rule
+   * @param input Input OperatorExpression to transform
+   * @param transformed Vector of transformed OperatorExpressions
+   * @param context Current OptimizeContext executing under
+   */
+  void Transform(OperatorExpression *input, std::vector<OperatorExpression *> *transformed,
                  OptimizeContext *context) const override;
 };
+
 /**
- * @brief Embed a filter into a scan operator. After predicate push-down, we
- * eliminate all filters in the operator trees, predicates should be associated
+ * Rule embeds a filter into a scan operator. After predicate push-down, we
+ * eliminate all filters in the operator trees. Predicates should be associated
  * with get or join
  */
 class EmbedFilterIntoGet : public Rule {
  public:
+  /**
+   * Constructor
+   */
   EmbedFilterIntoGet();
 
-  bool Check(OperatorExpression* plan, OptimizeContext *context) const override;
+  /**
+   * Checks whether the given rule can be applied
+   * @param plan OperatorExpression to check
+   * @param context Current OptimizeContext executing under
+   * @returns Whether the input OperatorExpression passes the check
+   */
+  bool Check(OperatorExpression *plan, OptimizeContext *context) const override;
 
-  void Transform(OperatorExpression* input,
-                 std::vector<OperatorExpression*> &transformed,
+  /**
+   * Transforms the input expression using the given rule
+   * @param input Input OperatorExpression to transform
+   * @param transformed Vector of transformed OperatorExpressions
+   * @param context Current OptimizeContext executing under
+   */
+  void Transform(OperatorExpression *input, std::vector<OperatorExpression *> *transformed,
                  OptimizeContext *context) const override;
 };
 
@@ -345,28 +657,68 @@ enum class UnnestPromise { Low = 1, High };
 /// MarkJoinGetToInnerJoin
 class MarkJoinToInnerJoin : public Rule {
  public:
+  /**
+   * Constructor
+   */
   MarkJoinToInnerJoin();
 
-  int Promise(GroupExpression *group_expr,OptimizeContext *context) const override;
+  /**
+   * Gets the rule's promise to apply against a GroupExpression
+   * @param group_expr GroupExpression to compute promise from
+   * @param context OptimizeContext currently executing under
+   * @returns The promise value of applying the rule for ordering
+   */
+  int Promise(GroupExpression *group_expr, OptimizeContext *context) const override;
 
-  bool Check(OperatorExpression* plan, OptimizeContext *context) const override;
+  /**
+   * Checks whether the given rule can be applied
+   * @param plan OperatorExpression to check
+   * @param context Current OptimizeContext executing under
+   * @returns Whether the input OperatorExpression passes the check
+   */
+  bool Check(OperatorExpression *plan, OptimizeContext *context) const override;
 
-  void Transform(OperatorExpression* input,
-                 std::vector<OperatorExpression*> &transformed,
+  /**
+   * Transforms the input expression using the given rule
+   * @param input Input OperatorExpression to transform
+   * @param transformed Vector of transformed OperatorExpressions
+   * @param context Current OptimizeContext executing under
+   */
+  void Transform(OperatorExpression *input, std::vector<OperatorExpression *> *transformed,
                  OptimizeContext *context) const override;
 };
 ///////////////////////////////////////////////////////////////////////////////
 /// SingleJoinToInnerJoin
 class SingleJoinToInnerJoin : public Rule {
  public:
+  /**
+   * Constructor
+   */
   SingleJoinToInnerJoin();
 
+  /**
+   * Gets the rule's promise to apply against a GroupExpression
+   * @param group_expr GroupExpression to compute promise from
+   * @param context OptimizeContext currently executing under
+   * @returns The promise value of applying the rule for ordering
+   */
   int Promise(GroupExpression *group_expr, OptimizeContext *context) const override;
 
-  bool Check(OperatorExpression* plan, OptimizeContext *context) const override;
+  /**
+   * Checks whether the given rule can be applied
+   * @param plan OperatorExpression to check
+   * @param context Current OptimizeContext executing under
+   * @returns Whether the input OperatorExpression passes the check
+   */
+  bool Check(OperatorExpression *plan, OptimizeContext *context) const override;
 
-  void Transform(OperatorExpression* input,
-                 std::vector<OperatorExpression*> &transformed,
+  /**
+   * Transforms the input expression using the given rule
+   * @param input Input OperatorExpression to transform
+   * @param transformed Vector of transformed OperatorExpressions
+   * @param context Current OptimizeContext executing under
+   */
+  void Transform(OperatorExpression *input, std::vector<OperatorExpression *> *transformed,
                  OptimizeContext *context) const override;
 };
 
@@ -374,14 +726,34 @@ class SingleJoinToInnerJoin : public Rule {
 /// PullFilterThroughMarkJoin
 class PullFilterThroughMarkJoin : public Rule {
  public:
+  /**
+   * Constructor
+   */
   PullFilterThroughMarkJoin();
 
+  /**
+   * Gets the rule's promise to apply against a GroupExpression
+   * @param group_expr GroupExpression to compute promise from
+   * @param context OptimizeContext currently executing under
+   * @returns The promise value of applying the rule for ordering
+   */
   int Promise(GroupExpression *group_expr, OptimizeContext *context) const override;
 
-  bool Check(OperatorExpression* plan, OptimizeContext *context) const override;
+  /**
+   * Checks whether the given rule can be applied
+   * @param plan OperatorExpression to check
+   * @param context Current OptimizeContext executing under
+   * @returns Whether the input OperatorExpression passes the check
+   */
+  bool Check(OperatorExpression *plan, OptimizeContext *context) const override;
 
-  void Transform(OperatorExpression* input,
-                 std::vector<OperatorExpression*> &transformed,
+  /**
+   * Transforms the input expression using the given rule
+   * @param input Input OperatorExpression to transform
+   * @param transformed Vector of transformed OperatorExpressions
+   * @param context Current OptimizeContext executing under
+   */
+  void Transform(OperatorExpression *input, std::vector<OperatorExpression *> *transformed,
                  OptimizeContext *context) const override;
 };
 
@@ -389,15 +761,34 @@ class PullFilterThroughMarkJoin : public Rule {
 /// PullFilterThroughAggregation
 class PullFilterThroughAggregation : public Rule {
  public:
+  /**
+   * Constructor
+   */
   PullFilterThroughAggregation();
 
+  /**
+   * Gets the rule's promise to apply against a GroupExpression
+   * @param group_expr GroupExpression to compute promise from
+   * @param context OptimizeContext currently executing under
+   * @returns The promise value of applying the rule for ordering
+   */
   int Promise(GroupExpression *group_expr, OptimizeContext *context) const override;
 
-  bool Check(OperatorExpression* plan, OptimizeContext *context) const override;
+  /**
+   * Checks whether the given rule can be applied
+   * @param plan OperatorExpression to check
+   * @param context Current OptimizeContext executing under
+   * @returns Whether the input OperatorExpression passes the check
+   */
+  bool Check(OperatorExpression *plan, OptimizeContext *context) const override;
 
-  void Transform(OperatorExpression* input,
-                 std::vector<OperatorExpression*> &transformed,
+  /**
+   * Transforms the input expression using the given rule
+   * @param input Input OperatorExpression to transform
+   * @param transformed Vector of transformed OperatorExpressions
+   * @param context Current OptimizeContext executing under
+   */
+  void Transform(OperatorExpression *input, std::vector<OperatorExpression *> *transformed,
                  OptimizeContext *context) const override;
 };
-}  // namespace optimizer
-}  // namespace terrier
+}  // namespace terrier::optimizer

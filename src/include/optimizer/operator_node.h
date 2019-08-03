@@ -29,6 +29,12 @@ class BaseOperatorNode {
   virtual ~BaseOperatorNode() = default;
 
   /**
+   * Copy
+   * @returns copy of this
+   */
+  virtual BaseOperatorNode *Copy() const = 0;
+
+  /**
    * Utility method for visitor pattern
    * @param v operator visitor for visitor pattern
    */
@@ -91,6 +97,12 @@ class OperatorNode : public BaseOperatorNode {
   void Accept(OperatorVisitor *v) const override;
 
   /**
+   * Copy
+   * @returns copy of this
+   */
+  BaseOperatorNode *Copy() const override = 0;
+
+  /**
    * @return string name of the underlying operator
    */
   std::string GetName() const override { return std::string(name_); }
@@ -137,6 +149,20 @@ class Operator {
    * @param node a BaseOperatorNode that specifies basic information about the operator to be created
    */
   explicit Operator(BaseOperatorNode *node);
+
+  /**
+   * Copy constructor for Operator
+   */
+  Operator(const Operator &op) : node_(op.node_->Copy()) {}
+
+  /**
+   * Move constructor for operator
+   * @param op Other operator to move-construct from
+   */
+  Operator(Operator &&op) noexcept {
+    node_ = op.node_;
+    op.node_ = nullptr;
+  }
 
   /**
    * Calls corresponding visitor to this operator node
@@ -188,9 +214,9 @@ class Operator {
   bool IsPhysical() const;
 
   /**
-   * default destructor, the content of the Operator should be explicitly managed
+   * Destructor
    */
-  ~Operator() = default;
+  ~Operator() { delete node_; }
 
   /**
    * Re-interpret the operator
@@ -212,7 +238,7 @@ class Operator {
   /**
    * Pointer to the base operator
    */
-  BaseOperatorNode* node_;
+  BaseOperatorNode *node_ = nullptr;
 };
 }  // namespace terrier::optimizer
 

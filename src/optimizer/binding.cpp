@@ -1,15 +1,14 @@
+#include <utility>
+#include <vector>
+
 #include "optimizer/binding.h"
 
 #include "loggers/optimizer_logger.h"
 #include "optimizer/operator_visitor.h"
 #include "optimizer/optimizer.h"
 
-namespace terrier {
-namespace optimizer {
+namespace terrier::optimizer {
 
-//===--------------------------------------------------------------------===//
-// Group Binding Iterator
-//===--------------------------------------------------------------------===//
 bool GroupBindingIterator::HasNext() {
   OPTIMIZER_LOG_TRACE("HasNext");
   if (pattern_->Type() == OpType::LEAF) {
@@ -43,7 +42,7 @@ bool GroupBindingIterator::HasNext() {
   return current_iterator_ != nullptr;
 }
 
-OperatorExpression* GroupBindingIterator::Next() {
+OperatorExpression *GroupBindingIterator::Next() {
   if (pattern_->Type() == OpType::LEAF) {
     current_item_index_ = num_group_items_;
     return new OperatorExpression(LeafOperator::make(group_id_), {});
@@ -52,45 +51,34 @@ OperatorExpression* GroupBindingIterator::Next() {
   return current_iterator_->Next();
 }
 
-//===--------------------------------------------------------------------===//
-// Item Binding Iterator
-//===--------------------------------------------------------------------===//
-GroupExprBindingIterator::GroupExprBindingIterator(
-    const Memo &memo, GroupExpression *gexpr, Pattern* pattern)
-    : BindingIterator(memo),
-      gexpr_(gexpr),
-      pattern_(pattern),
-      first_(true),
-      has_next_(false),
-      current_binding_(nullptr) {
-
+GroupExprBindingIterator::GroupExprBindingIterator(const Memo &memo, GroupExpression *gexpr, Pattern *pattern)
+    : BindingIterator(memo), gexpr_(gexpr), first_(true), has_next_(false), current_binding_(nullptr) {
   if (gexpr->Op().GetType() != pattern->Type()) {
     // Check root node type
     return;
   }
 
   const std::vector<GroupID> &child_groups = gexpr->GetChildGroupIDs();
-  const std::vector<Pattern*> &child_patterns = pattern->Children();
+  const std::vector<Pattern *> &child_patterns = pattern->Children();
 
   if (child_groups.size() != child_patterns.size()) {
     // Check make sure sizes are equal
     return;
   }
 
-  OPTIMIZER_LOG_TRACE(
-      "Attempting to bind on group %d with expression of type %s, children size %lu",
-      gexpr->GetGroupID(), gexpr->Op().GetName().c_str(), child_groups.size());
+  OPTIMIZER_LOG_TRACE("Attempting to bind on group %d with expression of type %s, children size %lu",
+                      gexpr->GetGroupID(), gexpr->Op().GetName().c_str(), child_groups.size());
 
   // Find all bindings for children
   children_bindings_.resize(child_groups.size(), {});
   children_bindings_pos_.resize(child_groups.size(), 0);
 
   // Get first level children
-  std::vector<OperatorExpression*> children;
+  std::vector<OperatorExpression *> children;
 
   for (size_t i = 0; i < child_groups.size(); ++i) {
     // Try to find a match in the given group
-    std::vector<OperatorExpression*> &child_bindings = children_bindings_[i];
+    std::vector<OperatorExpression *> &child_bindings = children_bindings_[i];
     GroupBindingIterator iterator(memo_, child_groups[i], child_patterns[i]);
 
     // Get all bindings
@@ -98,17 +86,17 @@ GroupExprBindingIterator::GroupExprBindingIterator(
       child_bindings.push_back(iterator.Next());
     }
 
-    if (child_bindings.size() == 0) {
+    if (child_bindings.empty()) {
       // Child binding failed
       return;
     }
 
-    // PUsh a copy
+    // Push a copy
     children.push_back(child_bindings[0]->Copy());
   }
 
   has_next_ = true;
-  current_binding_ = new OperatorExpression(gexpr->Op(), std::move(children));
+  current_binding_ = new OperatorExpression(Operator(gexpr->Op()), std::move(children));
 }
 
 bool GroupExprBindingIterator::HasNext() {
@@ -122,7 +110,7 @@ bool GroupExprBindingIterator::HasNext() {
     // The first child to be modified
     int first_modified_idx = static_cast<int>(children_bindings_pos_.size()) - 1;
     for (; first_modified_idx >= 0; --first_modified_idx) {
-      const std::vector<OperatorExpression*> &child_binding = children_bindings_[first_modified_idx];
+      const std::vector<OperatorExpression *> &child_binding = children_bindings_[first_modified_idx];
 
       // Try to increment idx from the back
       size_t new_pos = ++children_bindings_pos_[first_modified_idx];
@@ -137,19 +125,18 @@ bool GroupExprBindingIterator::HasNext() {
       // We have explored all combinations of the child bindings
       has_next_ = false;
     } else {
-      std::vector<OperatorExpression*> children;
+      std::vector<OperatorExpression *> children;
       for (size_t idx = 0; idx < children_bindings_pos_.size(); ++idx) {
-        const std::vector<OperatorExpression*> &child_binding = children_bindings_[idx];
+        const std::vector<OperatorExpression *> &child_binding = children_bindings_[idx];
         children.push_back(child_binding[children_bindings_pos_[idx]]->Copy());
       }
 
       TERRIER_ASSERT(!current_binding_, "Next() should have been called");
-      current_binding_ = new OperatorExpression(gexpr_->Op(), std::move(children));
+      current_binding_ = new OperatorExpression(Operator(gexpr_->Op()), std::move(children));
     }
   }
 
   return has_next_;
 }
 
-}  // namespace optimizer
-}  // namespace terrier
+}  // namespace terrier::optimizer

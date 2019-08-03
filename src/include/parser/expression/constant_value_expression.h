@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <utility>
 #include <vector>
 #include "common/hash_util.h"
 #include "parser/expression/abstract_expression.h"
@@ -17,8 +18,8 @@ class ConstantValueExpression : public AbstractExpression {
    * Instantiate a new constant value expression.
    * @param value value to be held
    */
-  explicit ConstantValueExpression(const type::TransientValue &value)
-      : AbstractExpression(ExpressionType::VALUE_CONSTANT, value.Type(), {}), value_(value) {}
+  explicit ConstantValueExpression(type::TransientValue value)
+      : AbstractExpression(ExpressionType::VALUE_CONSTANT, value.Type(), {}), value_(std::move(value)) {}
 
   /**
    * Default constructor for deserialization
@@ -37,22 +38,36 @@ class ConstantValueExpression : public AbstractExpression {
     return value_ == const_expr.GetValue();
   }
 
-  const AbstractExpression *Copy() const override { return new ConstantValueExpression(type::TransientValue(value_)); }
+  /**
+   * Copies this ConstantValueExpression
+   * @returns copy of this
+   */
+  const AbstractExpression *Copy() const override { return new ConstantValueExpression(*this); }
 
   /**
    * Creates a copy of the current AbstractExpression with new children implanted.
    * The children should not be owned by any other AbstractExpression.
    * @param children New children to be owned by the copy
+   * @returns copy of this with new children
    */
   const AbstractExpression *CopyWithChildren(std::vector<const AbstractExpression *> children) const override {
     TERRIER_ASSERT(children.empty(), "COnstantValueExpression should have 0 children");
     return Copy();
   }
 
+  void DeriveExpressionName() override {
+    if (!this->GetAlias().empty())
+      this->SetExpressionName(this->GetAlias());
+    else
+      this->SetExpressionName(value_.ToString());
+  }
+
   /**
    * @return the constant value stored in this expression
    */
   type::TransientValue GetValue() const { return value_; }
+
+  void Accept(SqlNodeVisitor *v) override { v->Visit(this); }
 
   /**
    * @return expression serialized to json
@@ -78,6 +93,16 @@ class ConstantValueExpression : public AbstractExpression {
   }
 
  private:
+  /**
+   * Copy constructor for ConstantValueExpresison
+   * Relies on AbstractExpression copy constructor for base members
+   * @param other Other ConstantValueExpression to copy from
+   */
+  ConstantValueExpression(const ConstantValueExpression &other) = default;
+
+  /**
+   * Value of the constant value expression
+   */
   type::TransientValue value_;
 };
 

@@ -142,29 +142,38 @@ class AbstractPlanNode {
    * @return hash of the plan node
    */
   virtual common::hash_t Hash() const {
-    auto type = GetPlanNodeType();
-    common::hash_t hash = common::HashUtil::Hash(&type);
-    hash = common::HashUtil::CombineHashes(hash, GetOutputSchema()->Hash());
-    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(GetPlanNodeType()));
-    for (auto &child : GetChildren()) {
+    // PlanNodeType
+    common::hash_t hash = common::HashUtil::Hash(GetPlanNodeType());
+
+    // OutputSchema
+    if (output_schema_ != nullptr) {
+      hash = common::HashUtil::CombineHashes(hash, output_schema_->Hash());
+    }
+
+    // Children
+    for (const auto &child : GetChildren()) {
       hash = common::HashUtil::CombineHashes(hash, child->Hash());
     }
     return hash;
   }
 
   /**
+   * Perform a deep comparison of a plan node
    * @param rhs other node to compare against
    * @return true if plan node and its children are equal
    */
   virtual bool operator==(const AbstractPlanNode &rhs) const {
     if (GetPlanNodeType() != rhs.GetPlanNodeType()) return false;
-    auto output_schema = GetOutputSchema();
-    auto other_output_schema = rhs.GetOutputSchema();
-    if ((output_schema == nullptr && other_output_schema != nullptr) ||
-        (output_schema != nullptr && other_output_schema == nullptr))
-      return false;
-    if (output_schema != nullptr && *output_schema != *other_output_schema) return false;
 
+    // OutputSchema
+    auto other_output_schema = rhs.GetOutputSchema();
+    if ((output_schema_ == nullptr && other_output_schema != nullptr) ||
+        (output_schema_ != nullptr && other_output_schema == nullptr)) {
+      return false;
+    }
+    if (output_schema_ != nullptr && *output_schema_ != *other_output_schema) return false;
+
+    // Children
     auto num = GetChildren().size();
     if (num != rhs.GetChildren().size()) return false;
     for (unsigned int i = 0; i < num; i++) {

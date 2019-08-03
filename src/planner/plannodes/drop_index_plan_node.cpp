@@ -3,47 +3,43 @@
 #include <utility>
 
 namespace terrier::planner {
+
 common::hash_t DropIndexPlanNode::Hash() const {
-  auto type = GetPlanNodeType();
-  common::hash_t hash = common::HashUtil::Hash(&type);
+  common::hash_t hash = AbstractPlanNode::Hash();
 
   // Hash databse_oid
-  auto database_oid = GetDatabaseOid();
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&database_oid));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_oid_));
 
   // Hash namespace oid
-  auto namespace_oid = GetNamespaceOid();
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&namespace_oid));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(namespace_oid_));
 
   // Hash index_oid
-  auto index_oid = GetIndexOid();
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&index_oid));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(index_oid_));
 
   // Hash if_exists_
-  auto if_exist = IsIfExists();
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&if_exist));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(if_exists_));
 
-  return common::HashUtil::CombineHashes(hash, AbstractPlanNode::Hash());
+  return hash;
 }
 
 bool DropIndexPlanNode::operator==(const AbstractPlanNode &rhs) const {
-  if (GetPlanNodeType() != rhs.GetPlanNodeType()) return false;
+  if (!AbstractPlanNode::operator==(rhs)) return false;
 
   auto &other = dynamic_cast<const DropIndexPlanNode &>(rhs);
 
   // Database OID
-  if (GetDatabaseOid() != other.GetDatabaseOid()) return false;
+  if (database_oid_ != other.database_oid_) return false;
 
   // Namespace OID
-  if (GetNamespaceOid() != other.GetNamespaceOid()) return false;
+  if (namespace_oid_ != other.namespace_oid_) return false;
 
   // Index OID
-  if (GetIndexOid() != other.GetIndexOid()) return false;
+  if (index_oid_ != other.index_oid_) return false;
 
   // If exists
-  if (IsIfExists() != other.IsIfExists()) return false;
+  if (if_exists_ != other.if_exists_) return false;
 
-  return AbstractPlanNode::operator==(rhs);
+  return true;
 }
 
 nlohmann::json DropIndexPlanNode::ToJson() const {

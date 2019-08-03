@@ -6,6 +6,7 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
+#include "catalog/index_schema.h"
 #include "catalog/schema.h"
 #include "storage/garbage_collector.h"
 #include "storage/projected_row.h"
@@ -34,7 +35,7 @@ struct Util {
     std::vector<catalog::col_oid_t> col_oids;
     col_oids.reserve(cols.size());
     for (const auto &col : cols) {
-      col_oids.emplace_back(col.GetOid());
+      col_oids.emplace_back(col.Oid());
     }
     return col_oids;
   }
@@ -43,20 +44,21 @@ struct Util {
   static void SetTupleAttribute(const catalog::Schema &schema, const uint32_t col_offset,
                                 const storage::ProjectionMap &projection_map, storage::ProjectedRow *const pr,
                                 T value) {
-    TERRIER_ASSERT((schema.GetColumn(col_offset).GetAttrSize() & INT8_MAX) == sizeof(T), "Invalid attribute size.");
-    const auto col_oid = schema.GetColumn(col_offset).GetOid();
+    TERRIER_ASSERT((schema.GetColumn(col_offset).AttrSize() & INT8_MAX) == sizeof(T), "Invalid attribute size.");
+    const auto col_oid = schema.GetColumn(col_offset).Oid();
     const auto attr_offset = projection_map.at(col_oid);
     auto *const attr = pr->AccessForceNotNull(attr_offset);
     *reinterpret_cast<T *>(attr) = value;
   }
 
   template <typename T>
-  static void SetKeyAttribute(const storage::index::IndexKeySchema &schema, const uint32_t col_offset,
+  static void SetKeyAttribute(const catalog::IndexSchema &schema, const uint32_t col_offset,
                               const std::unordered_map<catalog::indexkeycol_oid_t, uint16_t> &projection_map,
                               storage::ProjectedRow *const pr, T value) {
-    TERRIER_ASSERT((type::TypeUtil::GetTypeSize(schema.at(col_offset).GetType()) & INT8_MAX) == sizeof(T),
+    auto key_cols = schema.GetColumns();
+    TERRIER_ASSERT((type::TypeUtil::GetTypeSize(key_cols.at(col_offset).Type()) & INT8_MAX) == sizeof(T),
                    "Invalid attribute size.");
-    const auto col_oid = schema.at(col_offset).GetOid();
+    const auto col_oid = key_cols.at(col_offset).Oid();
     const auto attr_offset = static_cast<uint16_t>(projection_map.at(col_oid));
     auto *const attr = pr->AccessForceNotNull(attr_offset);
     *reinterpret_cast<T *>(attr) = value;

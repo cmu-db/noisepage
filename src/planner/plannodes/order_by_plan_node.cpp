@@ -5,40 +5,49 @@
 namespace terrier::planner {
 
 common::hash_t OrderByPlanNode::Hash() const {
-  auto type = GetPlanNodeType();
-  common::hash_t hash = common::HashUtil::Hash(&type);
+  common::hash_t hash = AbstractPlanNode::Hash();
 
-  for (const auto &sort_key : GetSortKeys()) {
-    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&sort_key.first));
-    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&sort_key.second));
+  // Sort Keys
+  for (const auto &sort_key : sort_keys_) {
+    hash = common::HashUtil::CombineHashes(hash, sort_key.first->Hash());
+    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(sort_key.second));
   }
 
-  hash = common::HashUtil::CombineHashes(hash, GetOutputSchema()->Hash());
+  // Inlined Limit Stuff
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(has_limit_));
+  if (has_limit_) {
+    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(limit_));
+    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(offset_));
+  }
 
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&has_limit_));
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&limit_));
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&offset_));
-
-  return common::HashUtil::CombineHashes(hash, AbstractPlanNode::Hash());
+  return hash;
 }
 
 bool OrderByPlanNode::operator==(const AbstractPlanNode &rhs) const {
-  if (GetPlanNodeType() != rhs.GetPlanNodeType()) {
-    return false;
-  }
+  if (!AbstractPlanNode::operator==(rhs)) return false;
 
   auto &other = static_cast<const OrderByPlanNode &>(rhs);
 
   // Sort Keys
-  if (GetSortKeys() != other.GetSortKeys()) {
-    return false;
+  if (sort_keys_.size() != other.sort_keys_.size()) return false;
+  for (auto i = 0u; i < sort_keys_.size(); i++) {
+    auto &sort_key = sort_keys_[i];
+    auto &other_sort_key = other.sort_keys_[i];
+    if (sort_key.second != other_sort_key.second) return false;
+    if (*sort_key.first != *other_sort_key.first) return false;
   }
 
-  // Limit/Offset
-  if (HasLimit() != other.HasLimit()) return false;
-  if (HasLimit() && (GetOffset() != other.GetOffset() || GetLimit() != other.GetLimit())) return false;
+  //  Inlined Limit Stuff
+  if (has_limit_ != other.has_limit_) return false;
+  if (has_limit_) {
+    // Limit
+    if (limit_ != other.limit_) return false;
 
-  return AbstractPlanNode::operator==(rhs);
+    // Offset
+    if (offset_ != other.offset_) return false;
+  }
+
+  return true;
 }
 
 nlohmann::json OrderByPlanNode::ToJson() const {
@@ -52,7 +61,11 @@ nlohmann::json OrderByPlanNode::ToJson() const {
 
 void OrderByPlanNode::FromJson(const nlohmann::json &j) {
   AbstractPlanNode::FromJson(j);
-  sort_keys_ = j.at("sort_keys").get<std::vector<std::pair<catalog::col_oid_t, OrderByOrderingType>>>();
+  auto sort_keys = j.at("sort_keys").get<std::vector<std::pair<nlohmann::json, OrderByOrderingType>>>();
+  for (auto &pair : sort_keys) {
+    sort_keys_.emplace_back(parser::DeserializeExpression(pair.first), pair.second);
+  }
+
   has_limit_ = j.at("has_limit").get<bool>();
   limit_ = j.at("limit").get<size_t>();
   offset_ = j.at("offset").get<size_t>();

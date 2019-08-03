@@ -28,12 +28,11 @@ class OperatorExpression {
    * Copy
    */
   OperatorExpression *Copy() {
-    std::vector<OperatorExpression*> child;
-    for (auto op : children_) { child.push_back(op->Copy()); }
-
-    // Copy constructor here
-    Operator op_copy = op_;
-    return new OperatorExpression(std::move(op_copy), std::move(child));
+    std::vector<OperatorExpression *> child;
+    for (auto op : children_) {
+      child.push_back(op->Copy());
+    }
+    return new OperatorExpression(Operator(op_), std::move(child));
   }
 
   /**

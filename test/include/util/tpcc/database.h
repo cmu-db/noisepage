@@ -2,6 +2,7 @@
 
 #include <utility>
 #include "catalog/catalog_defs.h"
+#include "catalog/index_schema.h"
 #include "common/macros.h"
 #include "storage/index/index.h"
 #include "storage/index/index_defs.h"
@@ -65,16 +66,16 @@ class Database {
   storage::SqlTable *const order_table_;
   storage::SqlTable *const order_line_table_;
 
-  const storage::index::IndexKeySchema item_primary_index_schema_;
-  const storage::index::IndexKeySchema warehouse_primary_index_schema_;
-  const storage::index::IndexKeySchema stock_primary_index_schema_;
-  const storage::index::IndexKeySchema district_primary_index_schema_;
-  const storage::index::IndexKeySchema customer_primary_index_schema_;
-  const storage::index::IndexKeySchema customer_secondary_index_schema_;
-  const storage::index::IndexKeySchema new_order_primary_index_schema_;
-  const storage::index::IndexKeySchema order_primary_index_schema_;
-  const storage::index::IndexKeySchema order_secondary_index_schema_;
-  const storage::index::IndexKeySchema order_line_primary_index_schema_;
+  const catalog::IndexSchema item_primary_index_schema_;
+  const catalog::IndexSchema warehouse_primary_index_schema_;
+  const catalog::IndexSchema stock_primary_index_schema_;
+  const catalog::IndexSchema district_primary_index_schema_;
+  const catalog::IndexSchema customer_primary_index_schema_;
+  const catalog::IndexSchema customer_secondary_index_schema_;
+  const catalog::IndexSchema new_order_primary_index_schema_;
+  const catalog::IndexSchema order_primary_index_schema_;
+  const catalog::IndexSchema order_secondary_index_schema_;
+  const catalog::IndexSchema order_line_primary_index_schema_;
 
   storage::index::Index *const item_primary_index_;
   storage::index::Index *const warehouse_primary_index_;
@@ -110,16 +111,11 @@ class Database {
            storage::SqlTable *const district, storage::SqlTable *const customer, storage::SqlTable *const history,
            storage::SqlTable *const new_order, storage::SqlTable *const order, storage::SqlTable *const order_line,
 
-           storage::index::IndexKeySchema item_primary_index_schema,
-           storage::index::IndexKeySchema warehouse_primary_index_schema,
-           storage::index::IndexKeySchema stock_primary_index_schema,
-           storage::index::IndexKeySchema district_primary_index_schema,
-           storage::index::IndexKeySchema customer_primary_index_schema,
-           storage::index::IndexKeySchema customer_secondary_index_schema,
-           storage::index::IndexKeySchema new_order_primary_index_schema,
-           storage::index::IndexKeySchema order_primary_index_schema,
-           storage::index::IndexKeySchema order_secondary_index_schema,
-           storage::index::IndexKeySchema order_line_primary_index_schema,
+           catalog::IndexSchema item_primary_index_schema, catalog::IndexSchema warehouse_primary_index_schema,
+           catalog::IndexSchema stock_primary_index_schema, catalog::IndexSchema district_primary_index_schema,
+           catalog::IndexSchema customer_primary_index_schema, catalog::IndexSchema customer_secondary_index_schema,
+           catalog::IndexSchema new_order_primary_index_schema, catalog::IndexSchema order_primary_index_schema,
+           catalog::IndexSchema order_secondary_index_schema, catalog::IndexSchema order_line_primary_index_schema,
 
            storage::index::Index *const item_index, storage::index::Index *const warehouse_index,
            storage::index::Index *const stock_index, storage::index::Index *const district_index,

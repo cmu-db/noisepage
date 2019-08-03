@@ -201,8 +201,8 @@ TEST_F(TupleAccessStrategyTests, Alignment) {
     // test layout, not the content.
     tested.InitializeRawBlock(nullptr, raw_block_, storage::layout_version_t(0));
 
-    for (uint16_t i = 0; i < layout.NumColumns(); i++) {
-      storage::col_id_t col_id(i);
+    for (uint16_t j = 0; j < layout.NumColumns(); j++) {
+      storage::col_id_t col_id(j);
       auto alignment = layout.AttrSize(col_id) > 8 ? 8 : layout.AttrSize(col_id);  // no need to align above 8 bytes
       StorageTestUtil::CheckAlignment(tested.ColumnStart(raw_block_, col_id), alignment);
       StorageTestUtil::CheckAlignment(tested.ColumnNullBitmap(raw_block_, col_id), 8);

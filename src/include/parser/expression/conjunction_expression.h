@@ -4,8 +4,6 @@
 #include <utility>
 #include <vector>
 #include "parser/expression/abstract_expression.h"
-#include "parser/expression_defs.h"
-#include "type/type_id.h"
 
 namespace terrier::parser {
 
@@ -29,35 +27,41 @@ class ConjunctionExpression : public AbstractExpression {
 
   ~ConjunctionExpression() override = default;
 
+  /**
+   * Copies ConjunctionExpression
+   * @returns copy of this
+   */
   const AbstractExpression *Copy() const override {
     std::vector<const AbstractExpression *> children;
     for (const auto *child : children_) {
       children.emplace_back(child->Copy());
     }
-    return new ConjunctionExpression(GetExpressionType(), children);
+    return CopyWithChildren(std::move(children));
   }
 
   /**
    * Creates a copy of the current AbstractExpression with new children implanted.
    * The children should not be owned by any other AbstractExpression.
    * @param children New children to be owned by the copy
+   * @returns copy of this with new children
    */
   const AbstractExpression *CopyWithChildren(std::vector<const AbstractExpression *> children) const override {
-    return new ConjunctionExpression(GetExpressionType(), children);
-  }
-  /**
-   * @return expression serialized to json
-   */
-  nlohmann::json ToJson() const override {
-    nlohmann::json j = AbstractExpression::ToJson();
-
-    return j;
+    return new ConjunctionExpression(*this, std::move(children));
   }
 
+  void Accept(SqlNodeVisitor *v) override { v->Visit(this); }
+
+ private:
   /**
-   * @param j json to deserialize
+   * Copy constructor for ConjunctionExpression
+   * Relies on AbstractExpression Copy constructor for base members
+   * @param other Other ConjunctionExpression to copy from
+   * @param children New ConjunctionExpression's children
    */
-  void FromJson(const nlohmann::json &j) override { AbstractExpression::FromJson(j); }
+  ConjunctionExpression(const ConjunctionExpression &other, std::vector<const AbstractExpression *> &&children)
+      : AbstractExpression(other) {
+    children_ = children;
+  }
 };
 
 DEFINE_JSON_DECLARATIONS(ConjunctionExpression);

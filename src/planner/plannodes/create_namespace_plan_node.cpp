@@ -6,32 +6,31 @@
 #include "parser/parser_defs.h"
 
 namespace terrier::planner {
+
 common::hash_t CreateNamespacePlanNode::Hash() const {
-  auto type = GetPlanNodeType();
-  common::hash_t hash = common::HashUtil::Hash(&type);
+  common::hash_t hash = AbstractPlanNode::Hash();
 
   // Hash database_oid
-  auto database_oid = GetDatabaseOid();
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&database_oid));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_oid_));
 
-  // Hash schema_name
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(GetNamespaceName()));
+  // Hash namespace_name
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(namespace_name_));
 
-  return common::HashUtil::CombineHashes(hash, AbstractPlanNode::Hash());
+  return hash;
 }
 
 bool CreateNamespacePlanNode::operator==(const AbstractPlanNode &rhs) const {
-  if (GetPlanNodeType() != rhs.GetPlanNodeType()) return false;
+  if (!AbstractPlanNode::operator==(rhs)) return false;
 
   auto &other = dynamic_cast<const CreateNamespacePlanNode &>(rhs);
 
   // Database OID
-  if (GetDatabaseOid() != other.GetDatabaseOid()) return false;
+  if (database_oid_ != other.database_oid_) return false;
 
   // Schema name
   if (GetNamespaceName() != other.GetNamespaceName()) return false;
 
-  return AbstractPlanNode::operator==(rhs);
+  return true;
 }
 
 nlohmann::json CreateNamespacePlanNode::ToJson() const {

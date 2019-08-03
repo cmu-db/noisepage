@@ -1,4 +1,5 @@
 #include "optimizer/physical_operators.h"
+#include <algorithm>
 #include <memory>
 #include <string>
 #include <unordered_map>
@@ -13,6 +14,8 @@ namespace terrier::optimizer {
 //===--------------------------------------------------------------------===//
 // TableFreeScan
 //===--------------------------------------------------------------------===//
+BaseOperatorNode *TableFreeScan::Copy() const { return new TableFreeScan(*this); }
+
 Operator TableFreeScan::make() {
   auto *table_free_scan = new TableFreeScan;
   return Operator(table_free_scan);
@@ -32,6 +35,8 @@ common::hash_t TableFreeScan::Hash() const {
 //===--------------------------------------------------------------------===//
 // SeqScan
 //===--------------------------------------------------------------------===//
+BaseOperatorNode *SeqScan::Copy() const { return new SeqScan(*this); }
+
 Operator SeqScan::make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
                        catalog::table_oid_t table_oid, std::vector<AnnotatedExpression> &&predicates,
                        std::string table_alias, bool is_for_update) {
@@ -73,6 +78,25 @@ common::hash_t SeqScan::Hash() const {
 //===--------------------------------------------------------------------===//
 // IndexScan
 //===--------------------------------------------------------------------===//
+BaseOperatorNode *IndexScan::Copy() const {
+  auto *scan = new IndexScan;
+  scan->database_oid_ = database_oid_;
+  scan->namespace_oid_ = namespace_oid_;
+  scan->index_oid_ = index_oid_;
+  scan->table_alias_ = table_alias_;
+  scan->is_for_update_ = is_for_update_;
+  scan->predicates_ = predicates_;
+  scan->key_column_oid_list_ = key_column_oid_list_;
+  scan->expr_type_list_ = expr_type_list_;
+
+  for (auto &val : value_list_) {
+    type::TransientValue copy(val);
+    scan->value_list_.push_back(std::move(copy));
+  }
+
+  return scan;
+}
+
 Operator IndexScan::make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
                          catalog::index_oid_t index_oid, std::vector<AnnotatedExpression> &&predicates,
                          std::string table_alias, bool is_for_update,
@@ -137,14 +161,17 @@ common::hash_t IndexScan::Hash() const {
 //===--------------------------------------------------------------------===//
 // External file scan
 //===--------------------------------------------------------------------===//
+BaseOperatorNode *ExternalFileScan::Copy() const { return new ExternalFileScan(*this); }
+
 Operator ExternalFileScan::make(parser::ExternalFileFormat format, std::string file_name, char delimiter, char quote,
-                                char escape) {
+                                char escape, std::string null_string) {
   auto *get = new ExternalFileScan();
   get->format_ = format;
   get->file_name_ = std::move(file_name);
   get->delimiter_ = delimiter;
   get->quote_ = quote;
   get->escape_ = escape;
+  get->null_string_ = std::move(null_string);
   return Operator(get);
 }
 
@@ -152,7 +179,7 @@ bool ExternalFileScan::operator==(const BaseOperatorNode &r) {
   if (r.GetType() != OpType::EXTERNALFILESCAN) return false;
   const auto &get = *dynamic_cast<const ExternalFileScan *>(&r);
   return (format_ == get.format_ && file_name_ == get.file_name_ && delimiter_ == get.delimiter_ &&
-          quote_ == get.quote_ && escape_ == get.escape_);
+          quote_ == get.quote_ && escape_ == get.escape_ && null_string_ == get.null_string_);
 }
 
 common::hash_t ExternalFileScan::Hash() const {
@@ -162,12 +189,15 @@ common::hash_t ExternalFileScan::Hash() const {
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(delimiter_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(quote_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(escape_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(null_string_));
   return hash;
 }
 
 //===--------------------------------------------------------------------===//
 // Query derived scan
 //===--------------------------------------------------------------------===//
+BaseOperatorNode *QueryDerivedScan::Copy() const { return new QueryDerivedScan(*this); }
+
 Operator QueryDerivedScan::make(
     std::string table_alias,
     std::unordered_map<std::string, common::ManagedPointer<parser::AbstractExpression>> &&alias_to_expr_map) {
@@ -198,6 +228,8 @@ common::hash_t QueryDerivedScan::Hash() const {
 //===--------------------------------------------------------------------===//
 // OrderBy
 //===--------------------------------------------------------------------===//
+BaseOperatorNode *OrderBy::Copy() const { return new OrderBy(*this); }
+
 Operator OrderBy::make() {
   auto *order_by = new OrderBy;
 
@@ -218,6 +250,8 @@ common::hash_t OrderBy::Hash() const {
 //===--------------------------------------------------------------------===//
 // PhysicalLimit
 //===--------------------------------------------------------------------===//
+BaseOperatorNode *Limit::Copy() const { return new Limit(*this); }
+
 Operator Limit::make(size_t offset, size_t limit,
                      std::vector<common::ManagedPointer<parser::AbstractExpression>> &&sort_columns,
                      std::vector<planner::OrderByOrderingType> &&sort_directions) {
@@ -251,6 +285,8 @@ common::hash_t Limit::Hash() const {
 //===--------------------------------------------------------------------===//
 // InnerNLJoin
 //===--------------------------------------------------------------------===//
+BaseOperatorNode *InnerNLJoin::Copy() const { return new InnerNLJoin(*this); }
+
 Operator InnerNLJoin::make(std::vector<AnnotatedExpression> &&join_predicates,
                            std::vector<common::ManagedPointer<parser::AbstractExpression>> &&left_keys,
                            std::vector<common::ManagedPointer<parser::AbstractExpression>> &&right_keys) {
@@ -295,6 +331,8 @@ bool InnerNLJoin::operator==(const BaseOperatorNode &r) {
 //===--------------------------------------------------------------------===//
 // LeftNLJoin
 //===--------------------------------------------------------------------===//
+BaseOperatorNode *LeftNLJoin::Copy() const { return new LeftNLJoin(*this); }
+
 Operator LeftNLJoin::make(common::ManagedPointer<parser::AbstractExpression> join_predicate) {
   auto *join = new LeftNLJoin();
   join->join_predicate_ = join_predicate;
@@ -315,6 +353,8 @@ bool LeftNLJoin::operator==(const BaseOperatorNode &r) {
 //===--------------------------------------------------------------------===//
 // RightNLJoin
 //===--------------------------------------------------------------------===//
+BaseOperatorNode *RightNLJoin::Copy() const { return new RightNLJoin(*this); }
+
 Operator RightNLJoin::make(common::ManagedPointer<parser::AbstractExpression> join_predicate) {
   auto *join = new RightNLJoin();
   join->join_predicate_ = join_predicate;
@@ -336,6 +376,8 @@ bool RightNLJoin::operator==(const BaseOperatorNode &r) {
 //===--------------------------------------------------------------------===//
 // OuterNLJoin
 //===--------------------------------------------------------------------===//
+BaseOperatorNode *OuterNLJoin::Copy() const { return new OuterNLJoin(*this); }
+
 Operator OuterNLJoin::make(common::ManagedPointer<parser::AbstractExpression> join_predicate) {
   auto *join = new OuterNLJoin();
   join->join_predicate_ = join_predicate;
@@ -357,6 +399,8 @@ bool OuterNLJoin::operator==(const BaseOperatorNode &r) {
 //===--------------------------------------------------------------------===//
 // InnerHashJoin
 //===--------------------------------------------------------------------===//
+BaseOperatorNode *InnerHashJoin::Copy() const { return new InnerHashJoin(*this); }
+
 Operator InnerHashJoin::make(std::vector<AnnotatedExpression> &&join_predicates,
                              std::vector<common::ManagedPointer<parser::AbstractExpression>> &&left_keys,
                              std::vector<common::ManagedPointer<parser::AbstractExpression>> &&right_keys) {
@@ -400,6 +444,8 @@ bool InnerHashJoin::operator==(const BaseOperatorNode &r) {
 //===--------------------------------------------------------------------===//
 // LeftHashJoin
 //===--------------------------------------------------------------------===//
+BaseOperatorNode *LeftHashJoin::Copy() const { return new LeftHashJoin(*this); }
+
 Operator LeftHashJoin::make(common::ManagedPointer<parser::AbstractExpression> join_predicate) {
   auto *join = new LeftHashJoin();
   join->join_predicate_ = join_predicate;
@@ -421,6 +467,8 @@ bool LeftHashJoin::operator==(const BaseOperatorNode &r) {
 //===--------------------------------------------------------------------===//
 // RightHashJoin
 //===--------------------------------------------------------------------===//
+BaseOperatorNode *RightHashJoin::Copy() const { return new RightHashJoin(*this); }
+
 Operator RightHashJoin::make(common::ManagedPointer<parser::AbstractExpression> join_predicate) {
   auto *join = new RightHashJoin();
   join->join_predicate_ = join_predicate;
@@ -442,6 +490,8 @@ bool RightHashJoin::operator==(const BaseOperatorNode &r) {
 //===--------------------------------------------------------------------===//
 // OuterHashJoin
 //===--------------------------------------------------------------------===//
+BaseOperatorNode *OuterHashJoin::Copy() const { return new OuterHashJoin(*this); }
+
 Operator OuterHashJoin::make(common::ManagedPointer<parser::AbstractExpression> join_predicate) {
   auto *join = new OuterHashJoin();
   join->join_predicate_ = join_predicate;
@@ -463,6 +513,8 @@ bool OuterHashJoin::operator==(const BaseOperatorNode &r) {
 //===--------------------------------------------------------------------===//
 // Insert
 //===--------------------------------------------------------------------===//
+BaseOperatorNode *Insert::Copy() const { return new Insert(*this); }
+
 Operator Insert::make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
                       catalog::table_oid_t table_oid, std::vector<catalog::col_oid_t> &&columns,
                       std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>> &&values) {
@@ -512,6 +564,8 @@ bool Insert::operator==(const BaseOperatorNode &r) {
 //===--------------------------------------------------------------------===//
 // InsertSelect
 //===--------------------------------------------------------------------===//
+BaseOperatorNode *InsertSelect::Copy() const { return new InsertSelect(*this); }
+
 Operator InsertSelect::make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
                             catalog::table_oid_t table_oid) {
   auto *insert_op = new InsertSelect;
@@ -541,14 +595,14 @@ bool InsertSelect::operator==(const BaseOperatorNode &r) {
 //===--------------------------------------------------------------------===//
 // Delete
 //===--------------------------------------------------------------------===//
+BaseOperatorNode *Delete::Copy() const { return new Delete(*this); }
+
 Operator Delete::make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
-                      catalog::table_oid_t table_oid,
-                      common::ManagedPointer<parser::AbstractExpression> delete_condition) {
+                      catalog::table_oid_t table_oid) {
   auto *delete_op = new Delete;
   delete_op->database_oid_ = database_oid;
   delete_op->namespace_oid_ = namespace_oid;
   delete_op->table_oid_ = table_oid;
-  delete_op->delete_condition_ = delete_condition;
   return Operator(delete_op);
 }
 
@@ -557,7 +611,6 @@ common::hash_t Delete::Hash() const {
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_oid_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(namespace_oid_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_oid_));
-  hash = common::HashUtil::CombineHashes(hash, delete_condition_->Hash());
   return hash;
 }
 
@@ -566,19 +619,21 @@ bool Delete::operator==(const BaseOperatorNode &r) {
   const Delete &node = *dynamic_cast<const Delete *>(&r);
   if (database_oid_ != node.database_oid_) return false;
   if (namespace_oid_ != node.namespace_oid_) return false;
-  if (table_oid_ != node.table_oid_) return false;
-  return (*delete_condition_ == *(node.delete_condition_));
+  return table_oid_ == node.table_oid_;
 }
 
 //===--------------------------------------------------------------------===//
 // Update
 //===--------------------------------------------------------------------===//
-Operator Update::make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
+BaseOperatorNode *Update::Copy() const { return new Update(*this); }
+
+Operator Update::make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid, std::string table_alias,
                       catalog::table_oid_t table_oid,
                       std::vector<common::ManagedPointer<parser::UpdateClause>> &&updates) {
   auto *op = new Update;
   op->database_oid_ = database_oid;
   op->namespace_oid_ = namespace_oid;
+  op->table_alias_ = std::move(table_alias);
   op->table_oid_ = table_oid;
   op->updates_ = updates;
   return Operator(op);
@@ -588,6 +643,7 @@ common::hash_t Update::Hash() const {
   common::hash_t hash = BaseOperatorNode::Hash();
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_oid_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(namespace_oid_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_alias_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_oid_));
   hash = common::HashUtil::CombineHashInRange(hash, updates_.begin(), updates_.end());
   return hash;
@@ -600,12 +656,14 @@ bool Update::operator==(const BaseOperatorNode &r) {
   if (namespace_oid_ != node.namespace_oid_) return false;
   if (table_oid_ != node.table_oid_) return false;
   if (updates_ != node.updates_) return false;
-  return (true);
+  return table_alias_ == node.table_alias_;
 }
 
 //===--------------------------------------------------------------------===//
 // ExportExternalFile
 //===--------------------------------------------------------------------===//
+BaseOperatorNode *ExportExternalFile::Copy() const { return new ExportExternalFile(*this); }
+
 Operator ExportExternalFile::make(parser::ExternalFileFormat format, std::string file_name, char delimiter, char quote,
                                   char escape) {
   auto *export_op = new ExportExternalFile();
@@ -637,6 +695,8 @@ common::hash_t ExportExternalFile::Hash() const {
 //===--------------------------------------------------------------------===//
 // HashGroupBy
 //===--------------------------------------------------------------------===//
+BaseOperatorNode *HashGroupBy::Copy() const { return new HashGroupBy(*this); }
+
 Operator HashGroupBy::make(std::vector<common::ManagedPointer<parser::AbstractExpression>> &&columns,
                            std::vector<AnnotatedExpression> &&having) {
   auto *agg = new HashGroupBy;
@@ -674,6 +734,8 @@ common::hash_t HashGroupBy::Hash() const {
 //===--------------------------------------------------------------------===//
 // SortGroupBy
 //===--------------------------------------------------------------------===//
+BaseOperatorNode *SortGroupBy::Copy() const { return new SortGroupBy(*this); }
+
 Operator SortGroupBy::make(std::vector<common::ManagedPointer<parser::AbstractExpression>> &&columns,
                            std::vector<AnnotatedExpression> &&having) {
   auto *agg = new SortGroupBy;
@@ -711,6 +773,8 @@ common::hash_t SortGroupBy::Hash() const {
 //===--------------------------------------------------------------------===//
 // Aggregate
 //===--------------------------------------------------------------------===//
+BaseOperatorNode *Aggregate::Copy() const { return new Aggregate(*this); }
+
 Operator Aggregate::make() {
   auto *agg = new Aggregate;
   return Operator(agg);
@@ -730,6 +794,8 @@ common::hash_t Aggregate::Hash() const {
 //===--------------------------------------------------------------------===//
 // Hash
 //===--------------------------------------------------------------------===//
+BaseOperatorNode *Distinct::Copy() const { return new Distinct(*this); }
+
 Operator Distinct::make() {
   auto *hash = new Distinct;
   return Operator(hash);

@@ -1,9 +1,9 @@
-#include <string>
 #include "optimizer/operator_node.h"
+#include <string>
 
 namespace terrier::optimizer {
 
-Operator::Operator() noexcept : node_(nullptr) {}
+Operator::Operator() noexcept = default;
 
 Operator::Operator(BaseOperatorNode *node) : node_(node) {}
 

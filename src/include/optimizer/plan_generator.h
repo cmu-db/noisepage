@@ -1,7 +1,12 @@
 #pragma once
 
+#include <memory>
+#include <string>
+#include <vector>
+
 #include "catalog/schema.h"
 #include "optimizer/operator_visitor.h"
+#include "transaction/transaction_context.h"
 
 namespace terrier {
 
@@ -12,158 +17,326 @@ class NestedLoopJoinPlanNode;
 class ProjectionPlanNode;
 class SeqScanPlanNode;
 class AggregatePlanNode;
+class OutputSchema;
+}  // namespace planner
 
-// TODO(wz2): Do we port this?
-class ProjectInfo;
-}
-
-namespace transaction {
-class TransactionContext;
-}
+namespace settings {
+class SettingsManager;
+}  // namespace settings
 
 namespace optimizer {
+
 class PropertySet;
 class OperatorExpression;
-}
 
-// TODO(wz2): Revisit this when there is a catalog
-namespace catalog {
-class TableCatalogEntry;
-}
-
-namespace optimizer {
-
-enum class AggregateType {
-  INVALID = -1,
-  SORTED = 1,
-  HASH = 2,
-  PLAIN = 3  // no group-by
-};
-
+/**
+ * Plan Generator for generating plans from Operators
+ */
 class PlanGenerator : public OperatorVisitor {
  public:
+  /**
+   * Constructor
+   */
   PlanGenerator();
 
-  planner::AbstractPlanNode* ConvertOpExpression(
-      OperatorExpression* op,
-      PropertySet* required_props,
-      std::vector<const parser::AbstractExpression *> required_cols,
-      std::vector<const parser::AbstractExpression *> output_cols,
-      std::vector<planner::AbstractPlanNode*> &children_plans,
-      std::vector<ExprMap> children_expr_map,
-      int estimated_cardinality);
+  /**
+   * Converts an operator expression into a plan node.
+   *
+   * @param op OperatorExpression to convert
+   * @param required_props Required properties
+   * @param required_cols Columns that are required to be output
+   * @param output_cols Columns output by the Operator
+   * @param children_plans Children plan nodes
+   * @param children_expr_map Vector of children expression -> col offset mapping
+   * @param settings SettingsManager
+   * @param accessor CatalogAccessor
+   * @param txn TransactionContext
+   * @returns Output plan node
+   */
+  std::shared_ptr<planner::AbstractPlanNode> ConvertOpExpression(
+      OperatorExpression *op, PropertySet *required_props,
+      const std::vector<const parser::AbstractExpression *> &required_cols,
+      const std::vector<const parser::AbstractExpression *> &output_cols,
+      std::vector<std::shared_ptr<planner::AbstractPlanNode>> &&children_plans,
+      std::vector<ExprMap> &&children_expr_map, settings::SettingsManager *settings, catalog::CatalogAccessor *accessor,
+      transaction::TransactionContext *txn);
 
-  void Visit(const TableFreeScan *) override;
-  void Visit(const SeqScan *) override;
-  void Visit(const IndexScan *) override;
-  void Visit(const ExternalFileScan *) override;
-  void Visit(const QueryDerivedScan *) override;
-  void Visit(const OrderBy *) override;
-  void Visit(const Limit *) override;
-  void Visit(const InnerNLJoin *) override;
-  void Visit(const LeftNLJoin *) override;
-  void Visit(const RightNLJoin *) override;
-  void Visit(const OuterNLJoin *) override;
-  void Visit(const InnerHashJoin *) override;
-  void Visit(const LeftHashJoin *) override;
-  void Visit(const RightHashJoin *) override;
-  void Visit(const OuterHashJoin *) override;
-  void Visit(const Insert *) override;
-  void Visit(const InsertSelect *) override;
-  void Visit(const Delete *) override;
-  void Visit(const Update *) override;
-  void Visit(const HashGroupBy *) override;
-  void Visit(const SortGroupBy *) override;
-  void Visit(const Distinct *) override;
-  void Visit(const Aggregate *) override;
-  void Visit(const ExportExternalFile *) override;
+  /**
+   * Visitor function for a TableFreeScan operator
+   * @param op TableFreeScan operator being visited
+   */
+  void Visit(const TableFreeScan *op) override;
+
+  /**
+   * Visitor function for a SeqScan operator
+   * @param op SeqScan operator being visited
+   */
+  void Visit(const SeqScan *op) override;
+
+  /**
+   * Visitor function for a IndexScan operator
+   * @param op IndexScan operator being visited
+   */
+  void Visit(const IndexScan *op) override;
+
+  /**
+   * Visitor function for a ExternalFileScan operator
+   * @param op ExternalFileScan operator being visited
+   */
+  void Visit(const ExternalFileScan *op) override;
+
+  /**
+   * Visitor function for a QueryDerivedScan operator
+   * @param op QueryDerivedScan operator being visited
+   */
+  void Visit(const QueryDerivedScan *op) override;
+
+  /**
+   * Visitor function for a OrdreBy operator
+   * @param op OrderBy operator being visited
+   */
+  void Visit(const OrderBy *op) override;
+
+  /**
+   * Visitor function for a Limit operator
+   * @param op Limit operator being visited
+   */
+  void Visit(const Limit *op) override;
+
+  /**
+   * Visitor function for a InnerNLJoin operator
+   * @param op InnerNLJoin operator being visited
+   */
+  void Visit(const InnerNLJoin *op) override;
+
+  /**
+   * Visitor function for a LeftNLJoin operator
+   * @param op LeftNLJoin operator being visited
+   */
+  void Visit(const LeftNLJoin *op) override;
+
+  /**
+   * Visitor function for a RightNLJoin operator
+   * @param op RightNLJoin operator being visited
+   */
+  void Visit(const RightNLJoin *op) override;
+
+  /**
+   * Visitor function for a OuterNLJoin operator
+   * @param op OuterNLJoin operator being visited
+   */
+  void Visit(const OuterNLJoin *op) override;
+
+  /**
+   * Visitor function for a InnerHashJoin operator
+   * @param op InnerHashJoin operator being visited
+   */
+  void Visit(const InnerHashJoin *op) override;
+
+  /**
+   * Visitor function for a LeftHashJoin operator
+   * @param op LeftHashJoin operator being visited
+   */
+  void Visit(const LeftHashJoin *op) override;
+
+  /**
+   * Visitor function for a RightHashJoin operator
+   * @param op RightHashJoin operator being visited
+   */
+  void Visit(const RightHashJoin *op) override;
+
+  /**
+   * Visitor function for a OuterHashJoin operator
+   * @param op OuterHashJoin operator being visited
+   */
+  void Visit(const OuterHashJoin *op) override;
+
+  /**
+   * Visitor function for a Insert operator
+   * @param op Insert operator being visited
+   */
+  void Visit(const Insert *op) override;
+
+  /**
+   * Visitor function for a InsertSelect operator
+   * @param op InsertSelect operator being visited
+   */
+  void Visit(const InsertSelect *op) override;
+
+  /**
+   * Visitor function for a Delete operator
+   * @param op Delete operator being visited
+   */
+  void Visit(const Delete *op) override;
+
+  /**
+   * Visitor function for a Update operator
+   * @param op Update operator being visited
+   */
+  void Visit(const Update *op) override;
+
+  /**
+   * Visitor function for a HashGroupBy operator
+   * @param op HashGroupBy operator being visited
+   */
+  void Visit(const HashGroupBy *op) override;
+
+  /**
+   * Visitor function for a SortGroupBy operator
+   * @param op SortGroupBy operator being visited
+   */
+  void Visit(const SortGroupBy *op) override;
+
+  /**
+   * Visitor function for a Distinct operator
+   * @param op Distinct operator being visited
+   */
+  void Visit(const Distinct *op) override;
+
+  /**
+   * Visitor function for a Aggregate operator
+   * @param op Aggregate operator being visited
+   */
+  void Visit(const Aggregate *op) override;
+
+  /**
+   * Visitor function for a ExportExternalFile operator
+   * @param op ExportExternalFile operator being visited
+   */
+  void Visit(const ExportExternalFile *op) override;
 
  private:
   /**
-   * @brief Generate all tuple value expressions of a base table
-   *
-   * @param alias Table alias, we used it to construct the tuple value
-   *  expression
-   * @param table The table object
-   *
-   * @return a vector of tuple value expression representing column name to
-   *  table column id mapping
+   * Register a pointer to be deleted on transaction commit/abort
+   * @param ptr Pointer to delete
+   * @param onCommit Whether to delete on transaction commit
+   * @param onAbort Whether to delete on transaction abort
    */
-  std::vector<const parser::AbstractExpression*>
-  GenerateTableTVExprs(const std::string &alias, catalog::TableCatalogEntry *table);
+  template <class T>
+  void RegisterPointerCleanup(const void *ptr, bool onCommit, bool onAbort) {
+    if (onCommit) {
+      txn_->RegisterCommitAction([&]() { delete reinterpret_cast<T *>(ptr); });
+    }
+
+    if (onAbort) {
+      txn_->RegisterAbortAction([&]() { delete reinterpret_cast<T *>(ptr); });
+    }
+  }
 
   /**
-   * @brief Generate the column oids vector for a scan plan
+   * Generate all tuple value expressions of a base table
+   *
+   * @param alias Table alias used in constructing ColumnValue
+   * @param db_oid Database OID
+   * @param tbl_oid Table OID for catalog lookup
+   *
+   * @return a vector of tuple value expression representing column name to
+   * table column id mapping
+   */
+  std::vector<const parser::AbstractExpression *> GenerateTableColumnValueExprs(const std::string &alias,
+                                                                                catalog::db_oid_t db_oid,
+                                                                                catalog::table_oid_t tbl_oid);
+
+  /**
+   * Generate the column oids vector for a scan plan
    *
    * @return a vector of column oid indicating which columns to scan
    */
   std::vector<catalog::col_oid_t> GenerateColumnsForScan();
 
   /**
-   * @brief Generate a predicate expression for scan plans
+   * Generates the OutputSchema for a scan.
+   * The OutputSchema contains only those columns in output_cols_
+   * @param tbl_oid Table OID of scan table
+   * @returns OutputSchema
+   */
+  std::shared_ptr<planner::OutputSchema> GenerateScanOutputSchema(catalog::table_oid_t tbl_oid);
+
+  /**
+   * Generate a predicate expression for scan plans
    *
    * @param predicate_expr the original expression
    * @param alias the table alias
-   * @param table the table object
+   * @param db_oid Database OID
+   * @param tbl_oid Table OID for catalog lookup
    *
    * @return a predicate that is already evaluated, which could be used to
-   *  generate a scan plan i.e. all tuple idx are set
+   * generate a scan plan i.e. all tuple idx are set
    */
-  const parser::AbstractExpression* GeneratePredicateForScan(
-      const parser::AbstractExpression* predicate_expr,
-      const std::string &alias,
-      catalog::TableCatalogEntry* table);
+  const parser::AbstractExpression *GeneratePredicateForScan(const parser::AbstractExpression *predicate_expr,
+                                                             const std::string &alias, catalog::db_oid_t db_oid,
+                                                             catalog::table_oid_t tbl_oid);
 
   /**
-   * @brief Generate projection info and projection schema for join
-   *
-   * @param proj_info The projection info object
-   * @param proj_schema The projection schema object
+   * Generate projection info and projection schema for join
+   * @returns output schema of projection
    */
-  void GenerateProjectionForJoin(
-      std::unique_ptr<const planner::ProjectInfo> &proj_info,
-      const catalog::Schema &proj_schema);
+  std::shared_ptr<planner::OutputSchema> GenerateProjectionForJoin();
 
   /**
-   * @brief Check required columns and output_cols, see if we need to add
-   *  projection on top of the current output plan, this should be done after
-   *  the output plan produciing output columns is generated
+   * The Plan node's OutputSchema may not match the required columns. As such,
+   * this function adds a projection on top of the output plan which will ensure
+   * that the correct output columns is generated. This is done by adding a
+   * ProjectionPlan.
    */
-  void BuildProjectionPlan();
-  void BuildAggregatePlan(
-      AggregateType aggr_type,
-      const std::vector<const parser::AbstractExpression> *groupby_cols,
-      const parser::AbstractExpression* having);
+  void CorrectOutputPlanWithProjection();
 
   /**
-   * @brief The required output property. Note that we have previously enforced
-   *  properties so this is fulfilled by the current operator
+   * Constructs an Aggregate Plan
+   * @param aggr_type AggregateType
+   * @param groupby_cols Vector of GroupBy expressions
+   * @param having_predicate Having clause expression
    */
-  PropertySet* required_props_;
+  void BuildAggregatePlan(planner::AggregateStrategyType aggr_type,
+                          const std::vector<common::ManagedPointer<parser::AbstractExpression>> *groupby_cols,
+                          const parser::AbstractExpression *having_predicate);
 
   /**
-   * @brief Required columns, this may not be fulfilled by the operator, but we
-   *  can always generate a projection if the output column does not fulfill the
-   *  requirement
+   * The required output property. Note that we have previously enforced
+   * properties so this is fulfilled by the current operator
+   */
+  PropertySet *required_props_;
+
+  /**
+   * Required columns, this may not be fulfilled by the operator, but we
+   * can always generate a projection if the output column does not fulfill the
+   * requirement
    */
   std::vector<const parser::AbstractExpression *> required_cols_;
 
   /**
-   * @brief The output columns, which can be fulfilled by the current operator.
+   * The output columns, which can be fulfilled by the current operator.
    */
   std::vector<const parser::AbstractExpression *> output_cols_;
-  std::vector<planner::AbstractPlanNode *> children_plans_;
 
   /**
-   * @brief The expression maps (expression -> tuple idx)
+   * Vector of child plans
+   */
+  std::vector<std::shared_ptr<planner::AbstractPlanNode>> children_plans_;
+
+  /**
+   * The expression maps (expression -> tuple idx)
    */
   std::vector<ExprMap> children_expr_map_;
 
   /**
-   * @brief The final output plan
+   * Final output plan
    */
-  planner::AbstractPlanNode* output_plan_;
+  std::shared_ptr<planner::AbstractPlanNode> output_plan_;
 
+  /**
+   * Settings Manager
+   */
+  settings::SettingsManager *settings_;
+
+  /**
+   * CatalogAccessor
+   */
+  catalog::CatalogAccessor *accessor_;
+
+  /**
+   * Transaction Context executing under
+   */
   transaction::TransactionContext *txn_;
 };
 

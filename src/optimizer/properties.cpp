@@ -1,12 +1,9 @@
-#include "common/hash_util.h"
 #include "optimizer/properties.h"
+#include "common/hash_util.h"
 #include "optimizer/property.h"
 #include "optimizer/property_visitor.h"
 
-namespace terrier {
-namespace optimizer {
-
-/*************** PropertySort *****************/
+namespace terrier::optimizer {
 
 /**
  * Checks whether this is greater than or equal to another property.
@@ -54,7 +51,9 @@ common::hash_t PropertySort::Hash() const {
   size_t num_sort_columns = sort_columns_.size();
   for (size_t i = 0; i < num_sort_columns; ++i) {
     hash = common::HashUtil::CombineHashes(hash, sort_columns_[i]->Hash());
-    hash = common::HashUtil::CombineHashes(hash, sort_ascending_[i]);
+
+    auto asc_hash = common::HashUtil::Hash<planner::OrderByOrderingType>(sort_ascending_[i]);
+    hash = common::HashUtil::CombineHashes(hash, asc_hash);
   }
   return hash;
 }
@@ -63,9 +62,6 @@ common::hash_t PropertySort::Hash() const {
  * PropertySort's Accept function for the visitor
  * @param v Visitor
  */
-void PropertySort::Accept(PropertyVisitor *v) const {
-  v->Visit((const PropertySort *)this);
-}
+void PropertySort::Accept(PropertyVisitor *v) const { v->Visit(this); }
 
-}  // namespace optimizer
-}  // namespace terrier
+}  // namespace terrier::optimizer

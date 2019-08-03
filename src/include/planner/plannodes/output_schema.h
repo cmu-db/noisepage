@@ -53,11 +53,8 @@ class OutputSchema {
      * Instantiates a Column object, primary to be used for building a Schema object
      * @param name column name
      * @param type SQL type for this column
-     * @param nullable is column nullable
-     * @param oid internal unique identifier for this column
      */
-    Column(std::string name, const type::TypeId type, const bool nullable, const catalog::col_oid_t oid)
-        : name_(std::move(name)), type_(type), nullable_(nullable), oid_(oid) {
+    Column(std::string name, const type::TypeId type) : name_(std::move(name)), type_(type) {
       TERRIER_ASSERT(type_ != type::TypeId::INVALID, "Attribute type cannot be INVALID.");
     }
 
@@ -70,30 +67,34 @@ class OutputSchema {
      * @return column name
      */
     const std::string &GetName() const { return name_; }
+
     /**
      * @return SQL type for this column
      */
     type::TypeId GetType() const { return type_; }
-    /**
-     * @return true if the column is nullable, false otherwise
-     */
-    bool GetNullable() const { return nullable_; }
-    /**
-     * @return internal unique identifier for this column
-     */
-    catalog::col_oid_t GetOid() const { return oid_; }
+
     /**
      * @return the hashed value for this column based on name and OID
      */
     common::hash_t Hash() const {
       common::hash_t hash = common::HashUtil::Hash(name_);
-      hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(oid_));
+      hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(type_));
       return hash;
     }
+
     /**
      * @return whether the two columns are equal
      */
-    bool operator==(const Column &rhs) const { return name_ == rhs.name_ && type_ == rhs.type_ && oid_ == rhs.oid_; }
+    bool operator==(const Column &rhs) const {
+      // Name
+      if (name_ != rhs.name_) return false;
+
+      // Type
+      if (type_ != rhs.type_) return false;
+
+      return true;
+    }
+
     /**
      * Inequality check
      * @param rhs other
@@ -108,8 +109,6 @@ class OutputSchema {
       nlohmann::json j;
       j["name"] = name_;
       j["type"] = type_;
-      j["nullable"] = nullable_;
-      j["oid"] = oid_;
       return j;
     }
 
@@ -119,15 +118,11 @@ class OutputSchema {
     void FromJson(const nlohmann::json &j) {
       name_ = j.at("name").get<std::string>();
       type_ = j.at("type").get<type::TypeId>();
-      nullable_ = j.at("nullable").get<bool>();
-      oid_ = j.at("oid").get<catalog::col_oid_t>();
     }
 
    private:
     std::string name_;
     type::TypeId type_;
-    bool nullable_;
-    catalog::col_oid_t oid_;
   };
 
   /**
@@ -147,13 +142,29 @@ class OutputSchema {
      */
     DerivedColumn() = default;
 
+    /**
+     * Copies the DerivedColumn
+     * @returns copy
+     */
+    DerivedColumn *Copy() const { return new DerivedColumn(column_, expr_->Copy()); }
+
     ~DerivedColumn() { delete expr_; }
+
+    /**
+     * @return the intermediate column definition
+     */
+    const Column &GetColumn() const { return column_; }
+
+    /**
+     * @return the expression used to derive the intermediate column
+     */
+    const parser::AbstractExpression *GetExpression() const { return expr_; }
 
     /**
      * Hash the current DerivedColumn.
      */
     common::hash_t Hash() const {
-      common::hash_t hash = common::HashUtil::Hash(column_);
+      common::hash_t hash = column_.Hash();
       hash = common::HashUtil::CombineHashes(hash, expr_->Hash());
       return hash;
     }
@@ -164,14 +175,17 @@ class OutputSchema {
      * @return true if the two derived columns are the same
      */
     bool operator==(const DerivedColumn &rhs) const {
+      // Derived Column
       if (column_ != rhs.column_) return false;
 
+      // Expression
       if ((expr_ == nullptr && rhs.expr_ != nullptr) || (expr_ != nullptr && rhs.expr_ == nullptr)) {
         return false;
       }
       if (expr_ != nullptr && *expr_ != *rhs.expr_) {
         return false;
       }
+
       return true;
     }
 
@@ -202,6 +216,7 @@ class OutputSchema {
       }
     }
 
+   private:
     /**
      * Intermediate column
      */
@@ -240,15 +255,22 @@ class OutputSchema {
   }
 
   /**
-   * Copy constructs an OutputSchema.
-   * @param other the OutputSchema to be copied
-   */
-  OutputSchema(const OutputSchema &other) = default;
-
-  /**
    * Default constructor for deserialization
    */
   OutputSchema() = default;
+
+  /**
+   * Copies the OutputSchema
+   * @returns copy
+   */
+  std::shared_ptr<OutputSchema> Copy() const {
+    std::vector<DerivedTarget> targets;
+    for (auto &target : targets_) {
+      targets.emplace_back(target.first, target.second->Copy());
+    }
+
+    return std::make_shared<OutputSchema>(columns_, std::move(targets), direct_map_list_);
+  }
 
   ~OutputSchema() {
     for (const auto &pair : targets_) {
@@ -260,20 +282,14 @@ class OutputSchema {
    * @param col_id offset into the schema specifying which Column to access
    * @return description of the schema for a specific column
    */
-  Column GetColumn(const storage::col_id_t col_id) const {
-    TERRIER_ASSERT((!col_id) < columns_.size(), "column id is out of bounds for this Schema");
-    return columns_[!col_id];
+  Column GetColumn(size_t col_id) const {
+    TERRIER_ASSERT(col_id < columns_.size(), "column id is out of bounds for this Schema");
+    return columns_[col_id];
   }
   /**
    * @return the vector of columns that are part of this schema
    */
   const std::vector<Column> &GetColumns() const { return columns_; }
-
-  /**
-   * Make a copy of this OutputSchema
-   * @return shared pointer to the copy
-   */
-  std::shared_ptr<OutputSchema> Copy() const { return std::make_shared<OutputSchema>(*this); }
 
   /**
    * Hash the current OutputSchema.
@@ -301,22 +317,23 @@ class OutputSchema {
    * @return true if the two OutputSchema are the same
    */
   bool operator==(const OutputSchema &rhs) const {
-    if (targets_.size() != rhs.targets_.size()) return false;
-    for (size_t i = 0; i < targets_.size(); i++) {
-      // Check offsets are equal
-      if (targets_[i].first != rhs.targets_[i].first) return false;
+    // Columns
+    if (columns_ != rhs.columns_) return false;
 
-      // Check DerivedColumns are equal
-      auto *col = targets_[i].second;
-      auto *other_col = rhs.targets_[i].second;
-      if ((col == nullptr && other_col != nullptr) || (col != nullptr && other_col == nullptr)) {
-        return false;
-      }
-      if (col != nullptr && *col != *other_col) {
-        return false;
-      }
-    }
-    return (columns_ == rhs.columns_) && (direct_map_list_ == rhs.direct_map_list_);
+    // Targets
+    std::function<bool(const DerivedTarget &, const DerivedTarget &)> cmp = [](const DerivedTarget &left,
+                                                                               const DerivedTarget &right) {
+      if (left.first != right.first) return false;
+      if (left.second == nullptr && right.second == nullptr) return true;
+      if (left.second == nullptr || right.second == nullptr) return false;
+      return (*left.second == *right.second);
+    };
+    if (!std::equal(targets_.begin(), targets_.end(), rhs.targets_.begin(), cmp)) return false;
+
+    // Direct Map List
+    if (direct_map_list_ != rhs.direct_map_list_) return false;
+
+    return true;
   }
 
   /**

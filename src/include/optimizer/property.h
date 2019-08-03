@@ -3,18 +3,20 @@
 #include <typeinfo>
 
 #include "common/hash_util.h"
-#include "optimizer_defs.h"
+#include "optimizer/optimizer_defs.h"
 
-namespace terrier {
-namespace optimizer {
+namespace terrier::optimizer {
 
 class PropertyVisitor;
 
-enum class PropertyType {
-  SORT
-};
+/**
+ * Enum defining the types of properties
+ */
+enum class PropertyType { SORT };
 
-/*
+/**
+ * Abstract interface defining a physical property (i.e sort).
+ *
  * Physical properties are those fields that can be directly added to the plan,
  * and don't need to perform transformations on.
  *
@@ -39,7 +41,7 @@ class Property {
   /**
    * Copy
    */
-  virtual Property* Copy() = 0;
+  virtual Property *Copy() = 0;
 
   /**
    * Hashes the given Property
@@ -54,9 +56,7 @@ class Property {
    * Checks whether this >= r
    * @returns TRUE if this and r share the same type
    */
-  virtual bool operator>=(const Property &r) const {
-    return Type() == r.Type();
-  }
+  virtual bool operator>=(const Property &r) const { return Type() == r.Type(); }
 
   /**
    * Accept function used for visitor pattern
@@ -64,6 +64,10 @@ class Property {
    */
   virtual void Accept(PropertyVisitor *v) const = 0;
 
+  /**
+   * Casts a generic Property to a specialized class
+   * @returns specialized pointer or nullptr if invalid
+   */
   template <typename T>
   const T *As() const {
     if (typeid(*this) == typeid(T)) {
@@ -71,8 +75,6 @@ class Property {
     }
     return nullptr;
   }
-
 };
 
-} // namespace optimizer
-} // namespace terrier
+}  // namespace terrier::optimizer

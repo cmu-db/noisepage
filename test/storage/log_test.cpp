@@ -1,11 +1,16 @@
+#include <memory>
+#include <string>
 #include <unordered_map>
 #include <vector>
+#include "di/di_help.h"
+#include "di/injectors.h"
 #include "gtest/gtest.h"
 #include "main/db_main.h"
 #include "settings/settings_callbacks.h"
 #include "settings/settings_manager.h"
 #include "storage/data_table.h"
 #include "storage/garbage_collector_thread.h"
+#include "storage/sql_table.h"
 #include "storage/write_ahead_log/log_manager.h"
 #include "transaction/transaction_manager.h"
 #include "type/transient_value_factory.h"
@@ -24,38 +29,43 @@
 namespace terrier::storage {
 class WriteAheadLoggingTests : public TerrierTest {
  protected:
-  storage::LogManager *log_manager_;
-
-  // Settings for log manager
-  const uint64_t num_log_buffers_ = 100;
-  const std::chrono::milliseconds log_serialization_interval_{10};
-  const std::chrono::milliseconds log_persist_interval_{20};
-  const uint64_t log_persist_threshold_ = (1 << 20);  // 1MB
-
-  std::default_random_engine generator_;
-  storage::RecordBufferSegmentPool pool_{2000, 100};
-  storage::BlockStore block_store_{100, 100};
-
-  const std::chrono::milliseconds gc_period_{10};
-  storage::GarbageCollectorThread *gc_thread_;
+  auto Injector(const LargeTransactionTestConfiguration &config) {
+    return di::make_injector<di::TestBindingPolicy>(
+        di::storage_injector(), di::bind<AccessObserver>().in(di::disabled),
+        di::bind<LargeTransactionTestConfiguration>().to(config),
+        di::bind<std::default_random_engine>().in(di::terrier_singleton),  // need to be universal across injectors
+        di::bind<uint64_t>().named(storage::BlockStore::SIZE_LIMIT).to(static_cast<uint64_t>(1000)),
+        di::bind<uint64_t>().named(storage::BlockStore::REUSE_LIMIT).to(static_cast<uint64_t>(1000)),
+        di::bind<uint64_t>().named(storage::RecordBufferSegmentPool::SIZE_LIMIT).to(static_cast<uint64_t>(10000)),
+        di::bind<uint64_t>().named(storage::RecordBufferSegmentPool::REUSE_LIMIT).to(static_cast<uint64_t>(10000)),
+        di::bind<bool>().named(transaction::TransactionManager::GC_ENABLED).to(true),
+        di::bind<std::chrono::milliseconds>()
+            .named(storage::GarbageCollectorThread::GC_PERIOD)
+            .to(std::chrono::milliseconds(10)),
+        di::bind<std::string>().named(storage::LogManager::LOG_FILE_PATH).to(std::string(LOG_FILE_NAME)),
+        di::bind<uint64_t>().named(storage::LogManager::NUM_BUFFERS).to(static_cast<uint64_t>(100)),
+        di::bind<std::chrono::milliseconds>()
+            .named(storage::LogManager::SERIALIZATION_INTERVAL)
+            .to(std::chrono::milliseconds(10)),
+        di::bind<std::chrono::milliseconds>()
+            .named(storage::LogManager::PERSIST_INTERVAL)
+            .to(std::chrono::milliseconds(20)),
+        di::bind<uint64_t>().named(storage::LogManager::PERSIST_THRESHOLD).to(static_cast<uint64_t>((1u << 20u))));
+  }
 
   void SetUp() override {
     // Unlink log file incase one exists from previous test iteration
     unlink(LOG_FILE_NAME);
-    log_manager_ = new LogManager(LOG_FILE_NAME, num_log_buffers_, log_serialization_interval_, log_persist_interval_,
-                                  log_persist_threshold_, &pool_);
     TerrierTest::SetUp();
   }
 
   void TearDown() override {
     // Delete log file
     unlink(LOG_FILE_NAME);
-    delete log_manager_;
-    DedicatedThreadRegistry::GetInstance().TearDown();
     TerrierTest::TearDown();
   }
 
-  storage::LogRecord *ReadNextRecord(storage::BufferedLogReader *in, const storage::BlockLayout &block_layout) {
+  static storage::LogRecord *ReadNextRecord(storage::BufferedLogReader *in, const storage::BlockLayout &block_layout) {
     auto size = in->ReadValue<uint32_t>();
     byte *buf = common::AllocationUtil::AllocateAligned(size);
     auto record_type = in->ReadValue<storage::LogRecordType>();
@@ -67,6 +77,8 @@ class WriteAheadLoggingTests : public TerrierTest {
       // not read-only.
       return storage::CommitRecord::Initialize(buf, txn_begin, txn_commit, nullptr, nullptr, false, nullptr);
     }
+
+    if (record_type == storage::LogRecordType::ABORT) return storage::AbortRecord::Initialize(buf, txn_begin, nullptr);
 
     // TODO(Tianyu): Without a lookup mechanism this oid is not exactly meaningful. Implement lookup when possible
     auto database_oid = in->ReadValue<catalog::db_oid_t>();
@@ -141,35 +153,36 @@ class WriteAheadLoggingTests : public TerrierTest {
 
     return result;
   }
+
+  storage::RedoBuffer &GetRedoBuffer(transaction::TransactionContext *txn) { return txn->redo_buffer_; }
 };
 
 // This test uses the LargeTransactionTestObject to simulate some number of transactions with logging turned on, and
 // then reads the logged out content to make sure they are correct
 // NOLINTNEXTLINE
 TEST_F(WriteAheadLoggingTests, LargeLogTest) {
+  auto config = LargeTransactionTestConfiguration::Builder()
+                    .SetNumTxns(100)
+                    .SetNumConcurrentTxns(4)
+                    .SetUpdateSelectRatio({0.5, 0.5})
+                    .SetTxnLength(5)
+                    .SetInitialTableSize(1000)
+                    .SetMaxColumns(5)
+                    .SetVarlenAllowed(true)
+                    .Build();
+  auto injector = Injector(config);
+  auto log_manager = injector.create<storage::LogManager *>();
+  log_manager->Start();
+  auto tested = injector.create<std::unique_ptr<LargeTransactionTestObject>>();
   // Each transaction does 5 operations. The update-select ratio of operations is 50%-50%.
-  log_manager_->Start();
-  LargeTransactionTestObject tested = LargeTransactionTestObject::Builder()
-                                          .SetMaxColumns(5)
-                                          .SetInitialTableSize(1)
-                                          .SetTxnLength(5)
-                                          .SetUpdateSelectRatio({0.5, 0.5})
-                                          .SetBlockStore(&block_store_)
-                                          .SetBufferPool(&pool_)
-                                          .SetGenerator(&generator_)
-                                          .SetGcOn(true)
-                                          .SetVarlenAllowed(true)
-                                          .SetBookkeeping(true)
-                                          .SetLogManager(log_manager_)
-                                          .build();
-  auto result = tested.SimulateOltp(100, 4);
-  log_manager_->PersistAndStop();
+  auto result = tested->SimulateOltp(100, 4);
+  log_manager->PersistAndStop();
 
   std::unordered_map<transaction::timestamp_t, RandomWorkloadTransaction *> txns_map;
   for (auto *txn : result.first) txns_map[txn->BeginTimestamp()] = txn;
   // At this point all the log records should have been written out, we can start reading stuff back in.
   storage::BufferedLogReader in(LOG_FILE_NAME);
-  const auto &block_layout = tested.Layout();
+  const auto &block_layout = tested->Layout();
   while (in.HasMore()) {
     storage::LogRecord *log_record = ReadNextRecord(&in, block_layout);
     if (log_record->TxnBegin() == transaction::timestamp_t(0)) {
@@ -200,7 +213,7 @@ TEST_F(WriteAheadLoggingTests, LargeLogTest) {
       // so we are not checking it
       auto update_it = it->second->Updates()->find(redo->GetTupleSlot());
       EXPECT_NE(it->second->Updates()->end(), update_it);
-      EXPECT_TRUE(StorageTestUtil::ProjectionListEqualDeep(tested.Layout(), update_it->second, redo->Delta()));
+      EXPECT_TRUE(StorageTestUtil::ProjectionListEqualDeep(tested->Layout(), update_it->second, redo->Delta()));
       delete[] reinterpret_cast<byte *>(update_it->second);
       it->second->Updates()->erase(update_it);
     }
@@ -218,8 +231,9 @@ TEST_F(WriteAheadLoggingTests, LargeLogTest) {
 
   // We perform GC at the end because we need the transactions to compare against the deserialized logs, thus we can
   // only reclaim their resources after that's done
-  gc_thread_ = new storage::GarbageCollectorThread(tested.GetTxnManager(), gc_period_);
-  delete gc_thread_;
+  auto *gc = injector.create<storage::GarbageCollector *>();
+  gc->PerformGarbageCollection();
+  gc->PerformGarbageCollection();
 
   for (auto *txn : result.first) delete txn;
   for (auto *txn : result.second) delete txn;
@@ -230,29 +244,28 @@ TEST_F(WriteAheadLoggingTests, LargeLogTest) {
 // NOLINTNEXTLINE
 TEST_F(WriteAheadLoggingTests, ReadOnlyTransactionsGenerateNoLogTest) {
   // Each transaction is read-only (update-select ratio of 0-100). Also, no need for bookkeeping.
-  log_manager_->Start();
-  LargeTransactionTestObject tested = LargeTransactionTestObject::Builder()
-                                          .SetMaxColumns(5)
-                                          .SetInitialTableSize(1)
-                                          .SetTxnLength(5)
-                                          .SetUpdateSelectRatio({0.0, 1.0})
-                                          .SetBlockStore(&block_store_)
-                                          .SetBufferPool(&pool_)
-                                          .SetGenerator(&generator_)
-                                          .SetGcOn(true)
-                                          .SetBookkeeping(false)
-                                          .SetLogManager(log_manager_)
-                                          .build();
-
-  auto result = tested.SimulateOltp(1000, 4);
-  log_manager_->PersistAndStop();
+  auto config = LargeTransactionTestConfiguration::Builder()
+                    .SetNumTxns(100)
+                    .SetNumConcurrentTxns(4)
+                    .SetUpdateSelectRatio({0.0, 1.0})
+                    .SetTxnLength(5)
+                    .SetInitialTableSize(1000)
+                    .SetMaxColumns(5)
+                    .SetVarlenAllowed(true)
+                    .Build();
+  auto injector = Injector(config);
+  auto log_manager = injector.create<storage::LogManager *>();
+  log_manager->Start();
+  auto tested = injector.create<std::unique_ptr<LargeTransactionTestObject>>();
+  auto result = tested->SimulateOltp(1000, 4);
+  log_manager->PersistAndStop();
 
   // Read-only workload has completed. Read the log file back in to check that no records were produced for these
   // transactions.
   int log_records_count = 0;
   storage::BufferedLogReader in(LOG_FILE_NAME);
   while (in.HasMore()) {
-    storage::LogRecord *log_record = ReadNextRecord(&in, tested.Layout());
+    storage::LogRecord *log_record = ReadNextRecord(&in, tested->Layout());
     if (log_record->TxnBegin() == transaction::timestamp_t(0)) {
       // (TODO) Currently following pattern from LargeLogTest of skipping the initial transaction. When the transaction
       // testing framework changes, fix this.
@@ -266,11 +279,155 @@ TEST_F(WriteAheadLoggingTests, ReadOnlyTransactionsGenerateNoLogTest) {
 
   // We perform GC at the end because we need the transactions to compare against the deserialized logs, thus we can
   // only reclaim their resources after that's done
-  gc_thread_ = new storage::GarbageCollectorThread(tested.GetTxnManager(), gc_period_);
-  delete gc_thread_;
+  auto *gc = injector.create<storage::GarbageCollector *>();
+  gc->PerformGarbageCollection();
+  gc->PerformGarbageCollection();
 
   EXPECT_EQ(log_records_count, 0);
   for (auto *txn : result.first) delete txn;
   for (auto *txn : result.second) delete txn;
+}
+
+// This test simulates a transaction that has previously flushed its buffer, and then aborts. We then check that it
+// correctly flushed out an abort record
+// NOLINTNEXTLINE
+TEST_F(WriteAheadLoggingTests, AbortRecordTest) {
+  auto injector = Injector(LargeTransactionTestConfiguration::Empty());  // config can be empty because we do not inject
+                                                                         // LargeTransactionTestObject here
+  auto *log_manager = injector.create<storage::LogManager *>();
+  log_manager->Start();
+
+  // Create SQLTable
+  auto col = catalog::Schema::Column(
+      "attribute", type::TypeId::INTEGER, false,
+      parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
+  StorageTestUtil::ForceOid(&(col), catalog::col_oid_t(0));
+  auto table_schema = catalog::Schema(std::vector<catalog::Schema::Column>({col}));
+  storage::SqlTable sql_table(injector.create<storage::BlockStore *>(), table_schema);
+  auto tuple_initializer = sql_table.InitializerForProjectedRow({catalog::col_oid_t(0)}).first;
+
+  auto *txn_manager = injector.create<transaction::TransactionManager *>();
+  // Initialize first transaction, this txn will write a single tuple
+  auto *first_txn = txn_manager->BeginTransaction();
+  auto *insert_redo =
+      first_txn->StageWrite(CatalogTestUtil::test_db_oid, CatalogTestUtil::test_table_oid, tuple_initializer);
+  auto *insert_tuple = insert_redo->Delta();
+  *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = 1;
+  auto first_tuple_slot = sql_table.Insert(first_txn, insert_redo);
+  EXPECT_TRUE(!first_txn->Aborted());
+
+  // Initialize the second txn, this one will write until it has flushed a buffer to the log manager
+  auto second_txn = txn_manager->BeginTransaction();
+  int32_t insert_value = 2;
+  while (!GetRedoBuffer(second_txn).HasFlushed()) {
+    insert_redo =
+        second_txn->StageWrite(CatalogTestUtil::test_db_oid, CatalogTestUtil::test_table_oid, tuple_initializer);
+    insert_tuple = insert_redo->Delta();
+    *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = insert_value++;
+    sql_table.Insert(second_txn, insert_redo);
+  }
+  EXPECT_TRUE(GetRedoBuffer(second_txn).HasFlushed());
+  EXPECT_TRUE(!second_txn->Aborted());
+
+  // Now the second txn will try to update the tuple the first txn wrote, and thus will abort. We expect this txn to
+  // write an abort record
+  auto update_redo =
+      second_txn->StageWrite(CatalogTestUtil::test_db_oid, CatalogTestUtil::test_table_oid, tuple_initializer);
+  auto update_tuple = update_redo->Delta();
+  *reinterpret_cast<int32_t *>(update_tuple->AccessForceNotNull(0)) = 0;
+  update_redo->SetTupleSlot(first_tuple_slot);
+  EXPECT_FALSE(sql_table.Update(second_txn, update_redo));
+
+  // Commit first txn and abort the second
+  txn_manager->Commit(first_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+  txn_manager->Abort(second_txn);
+  EXPECT_TRUE(second_txn->Aborted());
+
+  // Shut down log manager
+  log_manager->PersistAndStop();
+
+  // Read records, look for the abort record
+  bool found_abort_record = false;
+  storage::BufferedLogReader in(LOG_FILE_NAME);
+  while (in.HasMore()) {
+    storage::LogRecord *log_record = ReadNextRecord(&in, sql_table.table_.layout);
+    if (log_record->RecordType() == LogRecordType::ABORT) {
+      found_abort_record = true;
+      auto *abort_record = log_record->GetUnderlyingRecordBodyAs<storage::AbortRecord>();
+      EXPECT_EQ(LogRecordType::ABORT, abort_record->RecordType());
+      EXPECT_EQ(second_txn->StartTime(), log_record->TxnBegin());
+    }
+    delete[] reinterpret_cast<byte *>(log_record);
+  }
+  EXPECT_TRUE(found_abort_record);
+
+  // Perform GC, will clean up transactions for us
+  auto *gc = injector.create<storage::GarbageCollector *>();
+  gc->PerformGarbageCollection();
+  gc->PerformGarbageCollection();
+}
+
+// This test verifies that we don't write an abort record for an aborted transaction that never flushed its redo buffer
+// NOLINTNEXTLINE
+TEST_F(WriteAheadLoggingTests, NoAbortRecordTest) {
+  auto injector = Injector(LargeTransactionTestConfiguration::Empty());  // config can be empty because we do not inject
+                                                                         // LargeTransactionTestObject here
+  auto *log_manager = injector.create<storage::LogManager *>();
+  log_manager->Start();
+
+  // Create SQLTable
+  auto col = catalog::Schema::Column(
+      "attribute", type::TypeId::INTEGER, false,
+      parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
+  StorageTestUtil::ForceOid(&(col), catalog::col_oid_t(0));
+  auto table_schema = catalog::Schema(std::vector<catalog::Schema::Column>({col}));
+  storage::SqlTable sql_table(injector.create<storage::BlockStore *>(), table_schema);
+  auto tuple_initializer = sql_table.InitializerForProjectedRow({catalog::col_oid_t(0)}).first;
+
+  // Initialize first transaction, this txn will write a single tuple
+  auto *txn_manager = injector.create<transaction::TransactionManager *>();
+  auto *first_txn = txn_manager->BeginTransaction();
+  auto *insert_redo =
+      first_txn->StageWrite(CatalogTestUtil::test_db_oid, CatalogTestUtil::test_table_oid, tuple_initializer);
+  auto *insert_tuple = insert_redo->Delta();
+  *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = 1;
+  auto first_tuple_slot = sql_table.Insert(first_txn, insert_redo);
+  EXPECT_TRUE(!first_txn->Aborted());
+
+  // Initialize the second txn, this txn will try to update the tuple the first txn wrote, and thus will abort. We
+  // expect this txn to not write an abort record
+  auto second_txn = txn_manager->BeginTransaction();
+  auto update_redo =
+      second_txn->StageWrite(CatalogTestUtil::test_db_oid, CatalogTestUtil::test_table_oid, tuple_initializer);
+  auto update_tuple = update_redo->Delta();
+  *reinterpret_cast<int32_t *>(update_tuple->AccessForceNotNull(0)) = 0;
+  update_redo->SetTupleSlot(first_tuple_slot);
+  EXPECT_FALSE(sql_table.Update(second_txn, update_redo));
+  EXPECT_FALSE(GetRedoBuffer(second_txn).HasFlushed());
+
+  // Commit first txn and abort the second
+  txn_manager->Commit(first_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+  txn_manager->Abort(second_txn);
+  EXPECT_TRUE(second_txn->Aborted());
+
+  // Shut down log manager
+  log_manager->PersistAndStop();
+
+  // Read records, make sure we don't see an abort record
+  bool found_abort_record = false;
+  storage::BufferedLogReader in(LOG_FILE_NAME);
+  while (in.HasMore()) {
+    storage::LogRecord *log_record = ReadNextRecord(&in, sql_table.table_.layout);
+    if (log_record->RecordType() == LogRecordType::ABORT) {
+      found_abort_record = true;
+    }
+    delete[] reinterpret_cast<byte *>(log_record);
+  }
+  EXPECT_FALSE(found_abort_record);
+
+  // Perform GC, will clean up transactions for us
+  auto *gc = injector.create<storage::GarbageCollector *>();
+  gc->PerformGarbageCollection();
+  gc->PerformGarbageCollection();
 }
 }  // namespace terrier::storage

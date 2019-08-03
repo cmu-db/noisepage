@@ -23,8 +23,18 @@ static constexpr double DEFAULT_INDEX_TUPLE_COST = 0.005;
 // query.
 static constexpr double DEFAULT_OPERATOR_COST = 0.0025;
 
-class AbstractCostModel : public terrier::optimizer::OperatorVisitor {
+/**
+ * Interface defining a cost model.
+ * A cost model's primary entrypoint is CalculateCost()
+ */
+class AbstractCostModel : public OperatorVisitor {
  public:
+  /**
+   * Costs a GroupExpression
+   * @param gexpr GroupExpression to calculate cost for
+   * @param memo Memo object containing all relevant groups
+   * @param txn TransactionContext that query is generated under
+   */
   virtual double CalculateCost(GroupExpression *gexpr, Memo *memo, transaction::TransactionContext *txn) = 0;
 };
 

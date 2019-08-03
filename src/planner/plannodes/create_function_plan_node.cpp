@@ -6,111 +6,77 @@
 namespace terrier::planner {
 
 common::hash_t CreateFunctionPlanNode::Hash() const {
-  auto type = GetPlanNodeType();
-  common::hash_t hash = common::HashUtil::Hash(&type);
+  common::hash_t hash = AbstractPlanNode::Hash();
 
   // Hash database_oid
-  auto database_oid = GetDatabaseOid();
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&database_oid));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_oid_));
 
   // Hash namespace oid
-  auto namespace_oid = GetNamespaceOid();
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&namespace_oid));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(namespace_oid_));
 
   // Hash language
-  auto language = GetUDFLanguage();
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&language));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(language_));
 
   // Hash function_param_names
-  for (const auto &function_param_name : function_param_names_) {
-    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(function_param_name));
-  }
+  hash = common::HashUtil::CombineHashInRange(hash, function_param_names_.begin(), function_param_names_.end());
 
   // Hash function_param_types
-  for (const auto &function_param_type : function_param_types_) {
-    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(function_param_type));
-  }
+  hash = common::HashUtil::CombineHashInRange(hash, function_param_types_.begin(), function_param_types_.end());
 
   // Hash function_body
-  // Hash function_param_types
-  for (const auto &function_body_comp : function_body_) {
-    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(function_body_comp));
-  }
+  hash = common::HashUtil::CombineHashInRange(hash, function_body_.begin(), function_body_.end());
 
   // Hash is_replace
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&is_replace_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(is_replace_));
 
   // Hash function_name
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(function_name_));
 
   // Hash return_type
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&return_type_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(return_type_));
 
   // Hash param_count
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&param_count_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(param_count_));
 
-  return common::HashUtil::CombineHashes(hash, AbstractPlanNode::Hash());
+  return hash;
 }
 
 bool CreateFunctionPlanNode::operator==(const AbstractPlanNode &rhs) const {
-  if (GetPlanNodeType() != rhs.GetPlanNodeType()) return false;
+  if (!AbstractPlanNode::operator==(rhs)) return false;
 
   auto &other = dynamic_cast<const CreateFunctionPlanNode &>(rhs);
 
   // Database OID
-  if (GetDatabaseOid() != other.GetDatabaseOid()) return false;
+  if (database_oid_ != other.database_oid_) return false;
 
   // Namespace OID
-  if (GetNamespaceOid() != other.GetNamespaceOid()) return false;
+  if (namespace_oid_ != other.namespace_oid_) return false;
 
   // Language
-  if (GetUDFLanguage() != other.GetUDFLanguage()) return false;
+  if (language_ != other.language_) return false;
 
   // Function param names
-  const auto &function_param_names = GetFunctionParameterNames();
-  const auto &other_function_param_names = other.GetFunctionParameterNames();
-  if (function_param_names.size() != other_function_param_names.size()) return false;
-
-  for (size_t i = 0; i < function_param_names.size(); i++) {
-    if (function_param_names[i] != other_function_param_names[i]) {
-      return false;
-    }
-  }
+  if (function_param_names_ != other.function_param_names_) return false;
 
   // Function param types
-  const auto &function_param_types = GetFunctionParameterTypes();
-  const auto &other_function_param_types = other.GetFunctionParameterTypes();
-  if (function_param_types.size() != other_function_param_types.size()) return false;
-
-  for (size_t i = 0; i < function_param_types.size(); i++) {
-    if (function_param_types[i] != other_function_param_types[i]) {
-      return false;
-    }
-  }
+  if (function_param_types_ != other.function_param_types_) return false;
 
   // Function body
-  const auto &function_body = GetFunctionBody();
-  const auto &other_function_body = other.GetFunctionBody();
-  if (function_body.size() != other_function_body.size()) return false;
-
-  for (size_t i = 0; i < function_body.size(); i++) {
-    if (function_body[i] != other_function_body[i]) {
-      return false;
-    }
-  }
+  if (function_body_ != other.function_body_) return false;
 
   // Is replace
-  if (IsReplace() != other.IsReplace()) return false;
+  if (is_replace_ != other.is_replace_) return false;
 
   // Function name
-  if (GetFunctionName() != other.GetFunctionName()) return false;
+  if (function_name_ != other.function_name_) return false;
 
   // Return type
-  if (GetReturnType() != other.GetReturnType()) return false;
+  if (return_type_ != other.return_type_) return false;
 
   // Param count
-  if (GetParamCount() != other.GetParamCount()) return false;
-  return AbstractPlanNode::operator==(rhs);
+  if (param_count_ != other.param_count_) return false;
+
+  return true;
 }
 
 nlohmann::json CreateFunctionPlanNode::ToJson() const {

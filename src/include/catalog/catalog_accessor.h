@@ -1,12 +1,14 @@
 #pragma once
 
+#include <algorithm>
 #include <string>
 #include <utility>
 #include <vector>
 
 #include "catalog/catalog_defs.h"
-#include "catalog/default_value.h"
-#include "catalog/index_key_schema.h"
+#include "catalog/database_catalog.h"
+#include "catalog/index_schema.h"
+#include "catalog/postgres/pg_namespace.h"
 #include "catalog/schema.h"
 #include "common/managed_pointer.h"
 #include "storage/index/index.h"
@@ -35,20 +37,19 @@ class Catalog;
  */
 class CatalogAccessor {
  public:
-
   /**
    * Given a database name, resolve it to the corresponding OID
    * @param name of the database
    * @return OID for the database, INVALID_DATABASE_OID if the database does not exist
    */
-  db_oid_t GetDatabaseOid(const std::string &name);
+  db_oid_t GetDatabaseOid(std::string name);
 
   /**
    * Given a database name, create a new database entry in the catalog and assign it an OID
    * @param name of the new database
    * @return OID for the database, INVALID_DATABASE_OID if the database already exists
    */
-  db_oid_t CreateDatabase(const std::string &name);
+  db_oid_t CreateDatabase(std::string name);
 
   /**
    * Drop all entries in the catalog that belong to the database, including the database entry
@@ -74,14 +75,14 @@ class CatalogAccessor {
    * @param name of the namespace
    * @return OID of the namespace, INVALID_NAMESPACE_OID if the namespace was not found
    */
-  namespace_oid_t GetNamespaceOid(const std::string &name);
+  namespace_oid_t GetNamespaceOid(std::string name);
 
   /**
    * Given a namespace name, resolve it to the corresponding OID
    * @param name of the namespace
    * @return OID of the namespace, INVALID_NAMESPACE_OID if the namespace was not found
    */
-  namespace_oid_t CreateNamespace(const std::string &name);
+  namespace_oid_t CreateNamespace(std::string name);
 
   /**
    * Drop all entries in the catalog that belong to the namespace, including the namespace entry
@@ -95,7 +96,7 @@ class CatalogAccessor {
    * @param name of the table
    * @return OID of the table, INVALID_TABLE_OID if the table was not found
    */
-  table_oid_t GetTableOid(const std::string &name);
+  table_oid_t GetTableOid(std::string name);
 
   /**
    * Given a table name and its owning namespace, resolve it to the corresponding OID
@@ -103,7 +104,7 @@ class CatalogAccessor {
    * @param name of the table
    * @return OID of the table, INVALID_TABLE_OID if the table was not found
    */
-  table_oid_t GetTableOid(namespace_oid_t ns, const std::string &name);
+  table_oid_t GetTableOid(namespace_oid_t ns, std::string name);
 
   /**
    * Given a table name, create a new table entry in the catalog and assign it an OID. This
@@ -118,7 +119,7 @@ class CatalogAccessor {
    * schema object after this call, they should use the GetSchema function to
    * obtain the authoritative schema for this table.
    */
-  table_oid_t CreateTable(namespace_oid_t ns, const std::string &name, Schema *schema);
+  table_oid_t CreateTable(namespace_oid_t ns, std::string name, const Schema &schema);
 
   /**
    * Rename the table from its current string to the new one.  The renaming could fail
@@ -130,7 +131,7 @@ class CatalogAccessor {
    *
    * @note This operation will write-lock the table entry until the transaction closes.
    */
-  bool RenameTable(table_oid_t table, const std::string &new_table_name);
+  bool RenameTable(table_oid_t table, std::string new_table_name);
 
   /**
    * Drop the table and all corresponding indices from the catalog.
@@ -156,7 +157,7 @@ class CatalogAccessor {
    * @param table to which we want the storage object
    * @return the storage object corresponding to the passed OID
    */
-  common::ManagedPointer<storage::SqlTable *> GetTable(table_oid_t table);
+  common::ManagedPointer<storage::SqlTable> GetTable(table_oid_t table);
 
   /**
    * Apply a new schema to the given table.  The changes should modify the latest
@@ -185,21 +186,21 @@ class CatalogAccessor {
    * @param table being queried
    * @return vector of OIDs for all of the constraints that apply to this table
    */
-  std::vector<constraint_oid_t> GetConstraints(table_oid_t);
+  std::vector<constraint_oid_t> GetConstraints(table_oid_t table);
 
   /**
    * A list of all indexes on the given table
    * @param table being queried
    * @return vector of OIDs for all of the indexes on this table
    */
-  std::vector<index_oid_t> GetIndexes(table_oid_t);
+  std::vector<index_oid_t> GetIndexes(table_oid_t table);
 
   /**
    * Given an index name, resolve it to the corresponding OID
    * @param name of the index
    * @return OID of the index, INVALID_INDEX_OID if the index was not found
    */
-  index_oid_t GetIndexOid(const std::string &name);
+  index_oid_t GetIndexOid(std::string name);
 
   /**
    * Given an index name and the owning namespace, resolve it to the corresponding OID
@@ -207,7 +208,7 @@ class CatalogAccessor {
    * @param name of the index
    * @return OID of the index, INVALID_INDEX_OID if the index was not found
    */
-  index_oid_t GetIndexOid(namespace_oid_t ns, const std::string &name);
+  index_oid_t GetIndexOid(namespace_oid_t ns, std::string name);
 
   /**
    * Given a table, find all indexes for data in that table
@@ -221,12 +222,10 @@ class CatalogAccessor {
    * @param ns is the namespace in which the index will exist
    * @param table on which this index exists
    * @param name of the index
-   * @param constraint type of the index
-   * @param keys is a vector of definitions for the individual keys of the index
+   * @param schema describing the new index
    * @return OID for the index, INVALID_INDEX_OID if the operation failed
    */
-  index_oid_t CreateIndex(namespace_oid_t ns, table_oid_t table, const std::string &name,
-                          storage::index::ConstraintType constraint, IndexSchema *IndexSchema);
+  index_oid_t CreateIndex(namespace_oid_t ns, table_oid_t table, std::string name, const IndexSchema &schema);
 
   /**
    * Gets the schema that was used to define the index
@@ -258,20 +257,22 @@ class CatalogAccessor {
    * @param index to which we want a pointer
    * @return the pointer to the index
    */
-  common::ManagedPointer<storage::index::Index *> GetIndex(index_oid_t index);
-
-  /**
-   * Gets the schema used to define the index
-   * @param index being queried
-   * @return the index schema
-   */
-  const IndexSchema &GetIndexSchema(index_oid_t index);
+  common::ManagedPointer<storage::index::Index> GetIndex(index_oid_t index);
 
  private:
   Catalog *catalog_;
+  common::ManagedPointer<DatabaseCatalog> dbc_;
   transaction::TransactionContext *txn_;
-  db_oid_t db_;
+  db_oid_t db_oid_;
   std::vector<namespace_oid_t> search_path_;
+
+  /**
+   * A helper function to ensure that user-defined object names are standardized prior to doing catalog operations
+   * @param name of object that should be sanitized/normalized
+   */
+  static void NormalizeObjectName(std::string *name) {
+    std::transform(name->begin(), name->end(), name->begin(), [](auto &&c) { return std::tolower(c); });
+  }
 
   /**
    * Instantiates a new accessor into the catalog for the given database.
@@ -279,7 +280,9 @@ class CatalogAccessor {
    * @param txn the transaction context for this accessor
    * @param database the OID of the database
    */
-  CatalogAccessor(Catalog *catalog, transaction::TransactionContext *txn, db_oid_t database);
+  CatalogAccessor(Catalog *catalog, common::ManagedPointer<DatabaseCatalog> dbc, transaction::TransactionContext *txn,
+                  db_oid_t database)
+      : catalog_(catalog), dbc_(dbc), txn_(txn), db_oid_(database), search_path_({NAMESPACE_DEFAULT_NAMESPACE_OID}) {}
   friend class Catalog;
 };
 

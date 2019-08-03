@@ -5,12 +5,12 @@
 #include "loggers/index_logger.h"
 #include "loggers/main_logger.h"
 #include "loggers/network_logger.h"
+#include "loggers/optimizer_logger.h"
 #include "loggers/parser_logger.h"
 #include "loggers/settings_logger.h"
 #include "loggers/storage_logger.h"
 #include "loggers/test_logger.h"
 #include "loggers/transaction_logger.h"
-#include "loggers/optimizer_logger.h"
 
 namespace terrier {
 

@@ -12,8 +12,11 @@
 
 namespace terrier::storage {
 class GarbageCollector;
+class LogManager;
+class BlockCompactor;
 class LogSerializerTask;
 class SqlTable;
+class WriteAheadLoggingTests;
 }  // namespace terrier::storage
 
 namespace terrier::transaction {
@@ -25,23 +28,32 @@ class TransactionContext {
   /**
    * Constructs a new transaction context.
    *
+   * @warning In the src/ folder this should only be called in TransactionManager::BeginTransaction to adhere to MVCC
+   * semantics. Tests are allowed to deterministically construct them in ways that violate the current MVCC semantics.
    * @warning Beware that the buffer pool given must be the same one the log manager uses,
    * if logging is enabled.
-   * @param start the start timestamp of the transaction
-   * @param txn_id the id of the transaction, should be larger than all start time and commit time
+   * @param start the start timestamp of the transaction. Should be unique within the system.
+   * @param finish in HyPer parlance this is txn id. Should be larger than all start times and commit times in current
+   * MVCC semantics
    * @param buffer_pool the buffer pool to draw this transaction's undo buffer from
    * @param log_manager pointer to log manager in the system, or nullptr, if logging is disabled
    * @param transaction_manager pointer to transaction manager in the system (used for action framework)
    */
-  TransactionContext(const timestamp_t start, const timestamp_t txn_id,
+  TransactionContext(const timestamp_t start, const timestamp_t finish,
                      storage::RecordBufferSegmentPool *const buffer_pool, storage::LogManager *const log_manager,
                      TransactionManager *transaction_manager)
       : start_time_(start),
-        txn_id_(txn_id),
+        finish_time_(finish),
         undo_buffer_(buffer_pool),
         redo_buffer_(log_manager, buffer_pool),
         txn_mgr_(transaction_manager) {}
 
+  /**
+   * @warning In the src/ folder this should only be called by the Garbage Collector to adhere to MVCC semantics. Tests
+   * are allowed to deterministically delete them in ways that violate the current MVCC semantics, but you should really
+   * know what you're doing when you delete a TransactionContext since its UndoRecords may still be pointed to by a
+   * DataTable.
+   */
   ~TransactionContext() {
     for (const byte *ptr : loose_ptrs_) delete[] ptr;
   }
@@ -54,19 +66,18 @@ class TransactionContext {
   bool Aborted() const { return aborted_; }
 
   /**
-   * @return start time of this transaction
+   * @return start time of this transaction. Can be used as a unique identifier of this object in the current MVCC
+   * semantics because it is both constant and unique within the system
    */
   timestamp_t StartTime() const { return start_time_; }
 
   /**
-   * @return id of this transaction
+   * @return finish time of this transaction if it has been aborted or logged as a commit. Otherwise, current
+   * MVCC semantics define it as StartTime + INT64_MIN. TransactionContexts generated outside of the TransactionManager
+   * (i.e. in tests) may not reflect this. Should NOT be used as a unique identifier of this object because its value
+   * changes at txn completion in the current MVCC semantics.
    */
-  const std::atomic<timestamp_t> &TxnId() const { return txn_id_; }
-
-  /**
-   * @return id of this transaction
-   */
-  std::atomic<timestamp_t> &TxnId() { return txn_id_; }
+  timestamp_t FinishTime() const { return finish_time_.load(); }
 
   /**
    * Reserve space on this transaction's undo buffer for a record to log the update given
@@ -78,7 +89,7 @@ class TransactionContext {
   storage::UndoRecord *UndoRecordForUpdate(storage::DataTable *const table, const storage::TupleSlot slot,
                                            const storage::ProjectedRow &redo) {
     const uint32_t size = storage::UndoRecord::Size(redo);
-    return storage::UndoRecord::InitializeUpdate(undo_buffer_.NewEntry(size), txn_id_.load(), slot, table, redo);
+    return storage::UndoRecord::InitializeUpdate(undo_buffer_.NewEntry(size), finish_time_.load(), slot, table, redo);
   }
 
   /**
@@ -89,7 +100,7 @@ class TransactionContext {
    */
   storage::UndoRecord *UndoRecordForInsert(storage::DataTable *const table, const storage::TupleSlot slot) {
     byte *const result = undo_buffer_.NewEntry(sizeof(storage::UndoRecord));
-    return storage::UndoRecord::InitializeInsert(result, txn_id_.load(), slot, table);
+    return storage::UndoRecord::InitializeInsert(result, finish_time_.load(), slot, table);
   }
 
   /**
@@ -100,7 +111,7 @@ class TransactionContext {
    */
   storage::UndoRecord *UndoRecordForDelete(storage::DataTable *const table, const storage::TupleSlot slot) {
     byte *const result = undo_buffer_.NewEntry(sizeof(storage::UndoRecord));
-    return storage::UndoRecord::InitializeDelete(result, txn_id_.load(), slot, table);
+    return storage::UndoRecord::InitializeDelete(result, finish_time_.load(), slot, table);
   }
 
   /**
@@ -138,6 +149,12 @@ class TransactionContext {
     storage::DeleteRecord::Initialize(redo_buffer_.NewEntry(size), start_time_, db_oid, table_oid, slot);
   }
 
+  // TODO(Tianyu): We need to discuss what happens to the loose_ptrs field now that we have deferred actions.
+  /**
+   * @return whether the transaction is read-only
+   */
+  bool IsReadOnly() const { return undo_buffer_.Empty() && loose_ptrs_.empty(); }
+
   /**
    * Defers an action to be called if and only if the transaction aborts.  Actions executed LIFO.
    * @param a the action to be executed
@@ -160,13 +177,21 @@ class TransactionContext {
    */
   TransactionManager *GetTransactionManager() { return txn_mgr_; }
 
+  /**
+   * Flips the TransactionContext's internal flag that it cannot commit to true. This is checked by the
+   * TransactionManager.
+   */
+  void MustAbort() { must_abort_ = true; }
+
  private:
   friend class storage::GarbageCollector;
   friend class TransactionManager;
+  friend class storage::BlockCompactor;
   friend class storage::LogSerializerTask;
   friend class storage::SqlTable;
+  friend class storage::WriteAheadLoggingTests;  // Needs access to redo buffer
   const timestamp_t start_time_;
-  std::atomic<timestamp_t> txn_id_;
+  std::atomic<timestamp_t> finish_time_;
   storage::UndoBuffer undo_buffer_;
   storage::RedoBuffer redo_buffer_;
   // TODO(Tianyu): Maybe not so much of a good idea to do this. Make explicit queue in GC?
@@ -187,5 +212,10 @@ class TransactionContext {
   // We need to know if the transaction is aborted. Even aborted transactions need an "abort" timestamp in order to
   // eliminate the a-b-a race described in DataTable::Select.
   bool aborted_ = false;
+
+  // This flag is used to denote that a physical change to the storage layer (tables or indexes) has occurred that
+  // cannot be allowed to commit. Currently, it is flipped by indexes (on unique-key conflicts) or SqlTable (write-write
+  // conflicts) and checked in Commit().
+  bool must_abort_ = false;
 };
 }  // namespace terrier::transaction
