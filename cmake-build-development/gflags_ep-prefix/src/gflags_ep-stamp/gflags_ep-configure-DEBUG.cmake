@@ -1,7 +1,7 @@
 
 cmake_minimum_required(VERSION 3.13)
 
-set(command "/Applications/CLion.app/Contents/bin/cmake/mac/bin/cmake;-DCMAKE_BUILD_TYPE=DEBUG;-DCMAKE_INSTALL_PREFIX=/Users/vivianhuang/Desktop/terrier/cmake-build-development/gflags_ep-prefix/src/gflags_ep;-DBUILD_SHARED_LIBS=OFF;-DBUILD_STATIC_LIBS=ON;-DBUILD_PACKAGING=OFF;-DBUILD_TESTING=OFF;-DBUILD_CONFIG_TESTS=OFF;-DINSTALL_HEADERS=ON;-DCMAKE_CXX_FLAGS_DEBUG= -Qunused-arguments -ggdb -O0 -fno-omit-frame-pointer -fno-optimize-sibling-calls -g -fPIC;-DCMAKE_C_FLAGS_DEBUG=  -fPIC;-DCMAKE_CXX_FLAGS= -Qunused-arguments -ggdb -O0 -fno-omit-frame-pointer -fno-optimize-sibling-calls -g -fPIC;-GCodeBlocks - Unix Makefiles;/Users/vivianhuang/Desktop/terrier/cmake-build-development/gflags_ep-prefix/src/gflags_ep")
+set(command "/Applications/CLion.app/Contents/bin/cmake/mac/bin/cmake;-DCMAKE_BUILD_TYPE=DEBUG;-DCMAKE_INSTALL_PREFIX=/Users/vivianhuang/Desktop/terrier/cmake-build-development/gflags_ep-prefix/src/gflags_ep;-DBUILD_SHARED_LIBS=OFF;-DBUILD_STATIC_LIBS=ON;-DBUILD_PACKAGING=OFF;-DBUILD_TESTING=OFF;-DBUILD_CONFIG_TESTS=OFF;-DINSTALL_HEADERS=ON;-DCMAKE_CXX_FLAGS_DEBUG= -Qunused-arguments -ggdb -O0 -fno-omit-frame-pointer -fno-optimize-sibling-calls -g -fPIC;-DCMAKE_C_FLAGS_DEBUG= -g -fPIC;-DCMAKE_CXX_FLAGS= -Qunused-arguments -ggdb -O0 -fno-omit-frame-pointer -fno-optimize-sibling-calls -g -fPIC;-GCodeBlocks - Unix Makefiles;/Users/vivianhuang/Desktop/terrier/cmake-build-development/gflags_ep-prefix/src/gflags_ep")
 set(log_merged "")
 set(log_output_on_failure "")
 set(stdout_log "/Users/vivianhuang/Desktop/terrier/cmake-build-development/gflags_ep-prefix/src/gflags_ep-stamp/gflags_ep-configure-out.log")

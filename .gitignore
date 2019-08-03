@@ -246,6 +246,7 @@ cmake_build
 .cmake_build
 cmake-build-debug
 cmake-build-release
+cmake-build-benchmarking
 
 # Generated documentation
 apidoc/doc

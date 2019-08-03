@@ -167,7 +167,7 @@ clean: CMakeFiles/check-lint.dir/clean
 CMakeFiles/gbenchmark_ep.dir/all:
 	$(MAKE) -f CMakeFiles/gbenchmark_ep.dir/build.make CMakeFiles/gbenchmark_ep.dir/depend
 	$(MAKE) -f CMakeFiles/gbenchmark_ep.dir/build.make CMakeFiles/gbenchmark_ep.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles --progress-num=12,13,14,15 "Built target gbenchmark_ep"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles --progress-num=12,13,14 "Built target gbenchmark_ep"
 .PHONY : CMakeFiles/gbenchmark_ep.dir/all
 
 # Include target in all.
@@ -177,7 +177,7 @@ all: CMakeFiles/gbenchmark_ep.dir/all
 
 # Build rule for subdir invocation for target.
 CMakeFiles/gbenchmark_ep.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 4
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 3
 	$(MAKE) -f CMakeFiles/Makefile2 CMakeFiles/gbenchmark_ep.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 0
 .PHONY : CMakeFiles/gbenchmark_ep.dir/rule
@@ -201,8 +201,8 @@ clean: CMakeFiles/gbenchmark_ep.dir/clean
 # Target rules for target CMakeFiles/check-clang-tidy.dir
 
 # All Build rule for target.
-CMakeFiles/check-clang-tidy.dir/all: CMakeFiles/gbenchmark_ep.dir/all
 CMakeFiles/check-clang-tidy.dir/all: CMakeFiles/googletest_ep.dir/all
+CMakeFiles/check-clang-tidy.dir/all: CMakeFiles/gbenchmark_ep.dir/all
 	$(MAKE) -f CMakeFiles/check-clang-tidy.dir/build.make CMakeFiles/check-clang-tidy.dir/depend
 	$(MAKE) -f CMakeFiles/check-clang-tidy.dir/build.make CMakeFiles/check-clang-tidy.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles --progress-num= "Built target check-clang-tidy"
@@ -210,7 +210,7 @@ CMakeFiles/check-clang-tidy.dir/all: CMakeFiles/googletest_ep.dir/all
 
 # Build rule for subdir invocation for target.
 CMakeFiles/check-clang-tidy.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 7
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 6
 	$(MAKE) -f CMakeFiles/Makefile2 CMakeFiles/check-clang-tidy.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 0
 .PHONY : CMakeFiles/check-clang-tidy.dir/rule
@@ -301,7 +301,7 @@ clean: CMakeFiles/intrinsics_gen.dir/clean
 CMakeFiles/gflags_ep.dir/all:
 	$(MAKE) -f CMakeFiles/gflags_ep.dir/build.make CMakeFiles/gflags_ep.dir/depend
 	$(MAKE) -f CMakeFiles/gflags_ep.dir/build.make CMakeFiles/gflags_ep.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles --progress-num=16,17,18 "Built target gflags_ep"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles --progress-num=15,16 "Built target gflags_ep"
 .PHONY : CMakeFiles/gflags_ep.dir/all
 
 # Include target in all.
@@ -311,7 +311,7 @@ all: CMakeFiles/gflags_ep.dir/all
 
 # Build rule for subdir invocation for target.
 CMakeFiles/gflags_ep.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 3
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 2
 	$(MAKE) -f CMakeFiles/Makefile2 CMakeFiles/gflags_ep.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 0
 .PHONY : CMakeFiles/gflags_ep.dir/rule
@@ -338,7 +338,7 @@ clean: CMakeFiles/gflags_ep.dir/clean
 CMakeFiles/googletest_ep.dir/all:
 	$(MAKE) -f CMakeFiles/googletest_ep.dir/build.make CMakeFiles/googletest_ep.dir/depend
 	$(MAKE) -f CMakeFiles/googletest_ep.dir/build.make CMakeFiles/googletest_ep.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles --progress-num=19,20,21 "Built target googletest_ep"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles --progress-num=17,18,19 "Built target googletest_ep"
 .PHONY : CMakeFiles/googletest_ep.dir/all
 
 # Include target in all.
@@ -372,13 +372,13 @@ clean: CMakeFiles/googletest_ep.dir/clean
 # Target rules for target CMakeFiles/runbenchmark.dir
 
 # All Build rule for target.
+CMakeFiles/runbenchmark.dir/all: benchmark/transaction/CMakeFiles/large_transaction_benchmark.dir/all
 CMakeFiles/runbenchmark.dir/all: benchmark/storage/CMakeFiles/data_table_benchmark.dir/all
 CMakeFiles/runbenchmark.dir/all: benchmark/storage/CMakeFiles/garbage_collector_benchmark.dir/all
 CMakeFiles/runbenchmark.dir/all: benchmark/storage/CMakeFiles/bwtree_benchmark.dir/all
 CMakeFiles/runbenchmark.dir/all: benchmark/storage/CMakeFiles/tuple_access_strategy_benchmark.dir/all
 CMakeFiles/runbenchmark.dir/all: benchmark/storage/CMakeFiles/logging_benchmark.dir/all
 CMakeFiles/runbenchmark.dir/all: benchmark/integration/CMakeFiles/tpcc_benchmark.dir/all
-CMakeFiles/runbenchmark.dir/all: benchmark/transaction/CMakeFiles/large_transaction_benchmark.dir/all
 	$(MAKE) -f CMakeFiles/runbenchmark.dir/build.make CMakeFiles/runbenchmark.dir/depend
 	$(MAKE) -f CMakeFiles/runbenchmark.dir/build.make CMakeFiles/runbenchmark.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles --progress-num= "Built target runbenchmark"
@@ -386,7 +386,7 @@ CMakeFiles/runbenchmark.dir/all: benchmark/transaction/CMakeFiles/large_transact
 
 # Build rule for subdir invocation for target.
 CMakeFiles/runbenchmark.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 69
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 72
 	$(MAKE) -f CMakeFiles/Makefile2 CMakeFiles/runbenchmark.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 0
 .PHONY : CMakeFiles/runbenchmark.dir/rule
@@ -422,6 +422,10 @@ CMakeFiles/unittest.dir/all: test/network/CMakeFiles/network_test.dir/all
 CMakeFiles/unittest.dir/all: test/parser/CMakeFiles/pg_parser_test.dir/all
 CMakeFiles/unittest.dir/all: test/parser/CMakeFiles/parser_test.dir/all
 CMakeFiles/unittest.dir/all: test/parser/CMakeFiles/expression_test.dir/all
+CMakeFiles/unittest.dir/all: test/optimizer/CMakeFiles/trivial_cost_model_test.dir/all
+CMakeFiles/unittest.dir/all: test/optimizer/CMakeFiles/physical_operator_test.dir/all
+CMakeFiles/unittest.dir/all: test/optimizer/CMakeFiles/operator_expression_test.dir/all
+CMakeFiles/unittest.dir/all: test/optimizer/CMakeFiles/logical_operator_test.dir/all
 CMakeFiles/unittest.dir/all: test/storage/CMakeFiles/tuple_access_strategy_test.dir/all
 CMakeFiles/unittest.dir/all: test/storage/CMakeFiles/data_table_concurrent_test.dir/all
 CMakeFiles/unittest.dir/all: test/storage/CMakeFiles/large_garbage_collector_test.dir/all
@@ -442,10 +446,6 @@ CMakeFiles/unittest.dir/all: test/type/CMakeFiles/transient_value_test.dir/all
 CMakeFiles/unittest.dir/all: test/settings/CMakeFiles/settings_test.dir/all
 CMakeFiles/unittest.dir/all: test/planner/CMakeFiles/plan_node_json_test.dir/all
 CMakeFiles/unittest.dir/all: test/planner/CMakeFiles/plan_node_test.dir/all
-CMakeFiles/unittest.dir/all: test/optimizer/CMakeFiles/trivial_cost_model_test.dir/all
-CMakeFiles/unittest.dir/all: test/optimizer/CMakeFiles/physical_operator_test.dir/all
-CMakeFiles/unittest.dir/all: test/optimizer/CMakeFiles/operator_expression_test.dir/all
-CMakeFiles/unittest.dir/all: test/optimizer/CMakeFiles/logical_operator_test.dir/all
 CMakeFiles/unittest.dir/all: test/traffic_cop/CMakeFiles/traffic_cop_test.dir/all
 CMakeFiles/unittest.dir/all: test/integration/CMakeFiles/tpcc_test.dir/all
 	$(MAKE) -f CMakeFiles/unittest.dir/build.make CMakeFiles/unittest.dir/depend
@@ -455,7 +455,7 @@ CMakeFiles/unittest.dir/all: test/integration/CMakeFiles/tpcc_test.dir/all
 
 # Build rule for subdir invocation for target.
 CMakeFiles/unittest.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 88
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 89
 	$(MAKE) -f CMakeFiles/Makefile2 CMakeFiles/unittest.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 0
 .PHONY : CMakeFiles/unittest.dir/rule
@@ -510,7 +510,7 @@ src/CMakeFiles/terrier.dir/all: src/CMakeFiles/terrier_shared.dir/all
 src/CMakeFiles/terrier.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 	$(MAKE) -f src/CMakeFiles/terrier.dir/build.make src/CMakeFiles/terrier.dir/depend
 	$(MAKE) -f src/CMakeFiles/terrier.dir/build.make src/CMakeFiles/terrier.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles --progress-num=58 "Built target terrier"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles --progress-num=54 "Built target terrier"
 .PHONY : src/CMakeFiles/terrier.dir/all
 
 # Include target in all.
@@ -520,7 +520,7 @@ all: src/CMakeFiles/terrier.dir/all
 
 # Build rule for subdir invocation for target.
 src/CMakeFiles/terrier.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 54
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 56
 	$(MAKE) -f CMakeFiles/Makefile2 src/CMakeFiles/terrier.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 0
 .PHONY : src/CMakeFiles/terrier.dir/rule
@@ -547,7 +547,7 @@ clean: src/CMakeFiles/terrier.dir/clean
 src/CMakeFiles/terrier_static.dir/all: src/CMakeFiles/terrier_objlib.dir/all
 	$(MAKE) -f src/CMakeFiles/terrier_static.dir/build.make src/CMakeFiles/terrier_static.dir/depend
 	$(MAKE) -f src/CMakeFiles/terrier_static.dir/build.make src/CMakeFiles/terrier_static.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles --progress-num= "Built target terrier_static"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles --progress-num=90 "Built target terrier_static"
 .PHONY : src/CMakeFiles/terrier_static.dir/all
 
 # Include target in all.
@@ -557,7 +557,7 @@ all: src/CMakeFiles/terrier_static.dir/all
 
 # Build rule for subdir invocation for target.
 src/CMakeFiles/terrier_static.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 30
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 36
 	$(MAKE) -f CMakeFiles/Makefile2 src/CMakeFiles/terrier_static.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 0
 .PHONY : src/CMakeFiles/terrier_static.dir/rule
@@ -586,7 +586,7 @@ src/CMakeFiles/terrier_shared.dir/all: src/CMakeFiles/terrier_objlib.dir/all
 src/CMakeFiles/terrier_shared.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 	$(MAKE) -f src/CMakeFiles/terrier_shared.dir/build.make src/CMakeFiles/terrier_shared.dir/depend
 	$(MAKE) -f src/CMakeFiles/terrier_shared.dir/build.make src/CMakeFiles/terrier_shared.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles --progress-num=89 "Built target terrier_shared"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles --progress-num= "Built target terrier_shared"
 .PHONY : src/CMakeFiles/terrier_shared.dir/all
 
 # Include target in all.
@@ -596,7 +596,7 @@ all: src/CMakeFiles/terrier_shared.dir/all
 
 # Build rule for subdir invocation for target.
 src/CMakeFiles/terrier_shared.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 53
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 55
 	$(MAKE) -f CMakeFiles/Makefile2 src/CMakeFiles/terrier_shared.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 0
 .PHONY : src/CMakeFiles/terrier_shared.dir/rule
@@ -623,7 +623,7 @@ clean: src/CMakeFiles/terrier_shared.dir/clean
 src/CMakeFiles/terrier_objlib.dir/all:
 	$(MAKE) -f src/CMakeFiles/terrier_objlib.dir/build.make src/CMakeFiles/terrier_objlib.dir/depend
 	$(MAKE) -f src/CMakeFiles/terrier_objlib.dir/build.make src/CMakeFiles/terrier_objlib.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles --progress-num=59,60,61,62,63,64,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88 "Built target terrier_objlib"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles --progress-num=55,56,57,58,59,60,61,62,63,64,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88,89 "Built target terrier_objlib"
 .PHONY : src/CMakeFiles/terrier_objlib.dir/all
 
 # Include target in all.
@@ -633,7 +633,7 @@ all: src/CMakeFiles/terrier_objlib.dir/all
 
 # Build rule for subdir invocation for target.
 src/CMakeFiles/terrier_objlib.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 30
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 35
 	$(MAKE) -f CMakeFiles/Makefile2 src/CMakeFiles/terrier_objlib.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 0
 .PHONY : src/CMakeFiles/terrier_objlib.dir/rule
@@ -678,7 +678,7 @@ src/libpg_query.a/preinstall:
 src/libpg_query.a/CMakeFiles/pg_query.dir/all:
 	$(MAKE) -f src/libpg_query.a/CMakeFiles/pg_query.dir/build.make src/libpg_query.a/CMakeFiles/pg_query.dir/depend
 	$(MAKE) -f src/libpg_query.a/CMakeFiles/pg_query.dir/build.make src/libpg_query.a/CMakeFiles/pg_query.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles --progress-num=33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51 "Built target pg_query"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles --progress-num=31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48 "Built target pg_query"
 .PHONY : src/libpg_query.a/CMakeFiles/pg_query.dir/all
 
 # Include target in all.
@@ -688,7 +688,7 @@ all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 
 # Build rule for subdir invocation for target.
 src/libpg_query.a/CMakeFiles/pg_query.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 19
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 18
 	$(MAKE) -f CMakeFiles/Makefile2 src/libpg_query.a/CMakeFiles/pg_query.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 0
 .PHONY : src/libpg_query.a/CMakeFiles/pg_query.dir/rule
@@ -716,12 +716,12 @@ test/all: test/CMakeFiles/test_util.dir/all
 test/all: test/common/all
 test/all: test/network/all
 test/all: test/parser/all
+test/all: test/optimizer/all
 test/all: test/storage/all
 test/all: test/transaction/all
 test/all: test/type/all
 test/all: test/settings/all
 test/all: test/planner/all
-test/all: test/optimizer/all
 test/all: test/traffic_cop/all
 test/all: test/integration/all
 
@@ -732,12 +732,12 @@ test/clean: test/CMakeFiles/test_util.dir/clean
 test/clean: test/common/clean
 test/clean: test/network/clean
 test/clean: test/parser/clean
+test/clean: test/optimizer/clean
 test/clean: test/storage/clean
 test/clean: test/transaction/clean
 test/clean: test/type/clean
 test/clean: test/settings/clean
 test/clean: test/planner/clean
-test/clean: test/optimizer/clean
 test/clean: test/traffic_cop/clean
 test/clean: test/integration/clean
 
@@ -747,12 +747,12 @@ test/clean: test/integration/clean
 test/preinstall: test/common/preinstall
 test/preinstall: test/network/preinstall
 test/preinstall: test/parser/preinstall
+test/preinstall: test/optimizer/preinstall
 test/preinstall: test/storage/preinstall
 test/preinstall: test/transaction/preinstall
 test/preinstall: test/type/preinstall
 test/preinstall: test/settings/preinstall
 test/preinstall: test/planner/preinstall
-test/preinstall: test/optimizer/preinstall
 test/preinstall: test/traffic_cop/preinstall
 test/preinstall: test/integration/preinstall
 
@@ -767,7 +767,7 @@ test/CMakeFiles/test_util.dir/all: CMakeFiles/googletest_ep.dir/all
 test/CMakeFiles/test_util.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 	$(MAKE) -f test/CMakeFiles/test_util.dir/build.make test/CMakeFiles/test_util.dir/depend
 	$(MAKE) -f test/CMakeFiles/test_util.dir/build.make test/CMakeFiles/test_util.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles --progress-num=90,91,92,93 "Built target test_util"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles --progress-num=91,92,93 "Built target test_util"
 .PHONY : test/CMakeFiles/test_util.dir/all
 
 # Include target in all.
@@ -777,7 +777,7 @@ all: test/CMakeFiles/test_util.dir/all
 
 # Build rule for subdir invocation for target.
 test/CMakeFiles/test_util.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 29
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 26
 	$(MAKE) -f CMakeFiles/Makefile2 test/CMakeFiles/test_util.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 0
 .PHONY : test/CMakeFiles/test_util.dir/rule
@@ -836,8 +836,8 @@ test/common/preinstall:
 test/common/CMakeFiles/worker_pool_test.dir/all: CMakeFiles/gflags_ep.dir/all
 test/common/CMakeFiles/worker_pool_test.dir/all: CMakeFiles/googletest_ep.dir/all
 test/common/CMakeFiles/worker_pool_test.dir/all: src/CMakeFiles/terrier_static.dir/all
-test/common/CMakeFiles/worker_pool_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 test/common/CMakeFiles/worker_pool_test.dir/all: test/CMakeFiles/test_util.dir/all
+test/common/CMakeFiles/worker_pool_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 	$(MAKE) -f test/common/CMakeFiles/worker_pool_test.dir/build.make test/common/CMakeFiles/worker_pool_test.dir/depend
 	$(MAKE) -f test/common/CMakeFiles/worker_pool_test.dir/build.make test/common/CMakeFiles/worker_pool_test.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles --progress-num=100 "Built target worker_pool_test"
@@ -850,7 +850,7 @@ all: test/common/CMakeFiles/worker_pool_test.dir/all
 
 # Build rule for subdir invocation for target.
 test/common/CMakeFiles/worker_pool_test.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 60
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 63
 	$(MAKE) -f CMakeFiles/Makefile2 test/common/CMakeFiles/worker_pool_test.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 0
 .PHONY : test/common/CMakeFiles/worker_pool_test.dir/rule
@@ -877,8 +877,8 @@ clean: test/common/CMakeFiles/worker_pool_test.dir/clean
 test/common/CMakeFiles/performance_counter_test.dir/all: CMakeFiles/gflags_ep.dir/all
 test/common/CMakeFiles/performance_counter_test.dir/all: CMakeFiles/googletest_ep.dir/all
 test/common/CMakeFiles/performance_counter_test.dir/all: src/CMakeFiles/terrier_static.dir/all
-test/common/CMakeFiles/performance_counter_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 test/common/CMakeFiles/performance_counter_test.dir/all: test/CMakeFiles/test_util.dir/all
+test/common/CMakeFiles/performance_counter_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 	$(MAKE) -f test/common/CMakeFiles/performance_counter_test.dir/build.make test/common/CMakeFiles/performance_counter_test.dir/depend
 	$(MAKE) -f test/common/CMakeFiles/performance_counter_test.dir/build.make test/common/CMakeFiles/performance_counter_test.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles --progress-num= "Built target performance_counter_test"
@@ -891,7 +891,7 @@ all: test/common/CMakeFiles/performance_counter_test.dir/all
 
 # Build rule for subdir invocation for target.
 test/common/CMakeFiles/performance_counter_test.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 59
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 62
 	$(MAKE) -f CMakeFiles/Makefile2 test/common/CMakeFiles/performance_counter_test.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 0
 .PHONY : test/common/CMakeFiles/performance_counter_test.dir/rule
@@ -918,11 +918,11 @@ clean: test/common/CMakeFiles/performance_counter_test.dir/clean
 test/common/CMakeFiles/concurrent_bitmap_test.dir/all: CMakeFiles/gflags_ep.dir/all
 test/common/CMakeFiles/concurrent_bitmap_test.dir/all: CMakeFiles/googletest_ep.dir/all
 test/common/CMakeFiles/concurrent_bitmap_test.dir/all: src/CMakeFiles/terrier_static.dir/all
-test/common/CMakeFiles/concurrent_bitmap_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 test/common/CMakeFiles/concurrent_bitmap_test.dir/all: test/CMakeFiles/test_util.dir/all
+test/common/CMakeFiles/concurrent_bitmap_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 	$(MAKE) -f test/common/CMakeFiles/concurrent_bitmap_test.dir/build.make test/common/CMakeFiles/concurrent_bitmap_test.dir/depend
 	$(MAKE) -f test/common/CMakeFiles/concurrent_bitmap_test.dir/build.make test/common/CMakeFiles/concurrent_bitmap_test.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles --progress-num= "Built target concurrent_bitmap_test"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles --progress-num=5 "Built target concurrent_bitmap_test"
 .PHONY : test/common/CMakeFiles/concurrent_bitmap_test.dir/all
 
 # Include target in all.
@@ -932,7 +932,7 @@ all: test/common/CMakeFiles/concurrent_bitmap_test.dir/all
 
 # Build rule for subdir invocation for target.
 test/common/CMakeFiles/concurrent_bitmap_test.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 59
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 63
 	$(MAKE) -f CMakeFiles/Makefile2 test/common/CMakeFiles/concurrent_bitmap_test.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 0
 .PHONY : test/common/CMakeFiles/concurrent_bitmap_test.dir/rule
@@ -959,11 +959,11 @@ clean: test/common/CMakeFiles/concurrent_bitmap_test.dir/clean
 test/common/CMakeFiles/object_pool_test.dir/all: CMakeFiles/gflags_ep.dir/all
 test/common/CMakeFiles/object_pool_test.dir/all: CMakeFiles/googletest_ep.dir/all
 test/common/CMakeFiles/object_pool_test.dir/all: src/CMakeFiles/terrier_static.dir/all
-test/common/CMakeFiles/object_pool_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 test/common/CMakeFiles/object_pool_test.dir/all: test/CMakeFiles/test_util.dir/all
+test/common/CMakeFiles/object_pool_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 	$(MAKE) -f test/common/CMakeFiles/object_pool_test.dir/build.make test/common/CMakeFiles/object_pool_test.dir/depend
 	$(MAKE) -f test/common/CMakeFiles/object_pool_test.dir/build.make test/common/CMakeFiles/object_pool_test.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles --progress-num=29 "Built target object_pool_test"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles --progress-num= "Built target object_pool_test"
 .PHONY : test/common/CMakeFiles/object_pool_test.dir/all
 
 # Include target in all.
@@ -973,7 +973,7 @@ all: test/common/CMakeFiles/object_pool_test.dir/all
 
 # Build rule for subdir invocation for target.
 test/common/CMakeFiles/object_pool_test.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 60
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 62
 	$(MAKE) -f CMakeFiles/Makefile2 test/common/CMakeFiles/object_pool_test.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 0
 .PHONY : test/common/CMakeFiles/object_pool_test.dir/rule
@@ -1000,8 +1000,8 @@ clean: test/common/CMakeFiles/object_pool_test.dir/clean
 test/common/CMakeFiles/bitmap_test.dir/all: CMakeFiles/gflags_ep.dir/all
 test/common/CMakeFiles/bitmap_test.dir/all: CMakeFiles/googletest_ep.dir/all
 test/common/CMakeFiles/bitmap_test.dir/all: src/CMakeFiles/terrier_static.dir/all
-test/common/CMakeFiles/bitmap_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 test/common/CMakeFiles/bitmap_test.dir/all: test/CMakeFiles/test_util.dir/all
+test/common/CMakeFiles/bitmap_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 	$(MAKE) -f test/common/CMakeFiles/bitmap_test.dir/build.make test/common/CMakeFiles/bitmap_test.dir/depend
 	$(MAKE) -f test/common/CMakeFiles/bitmap_test.dir/build.make test/common/CMakeFiles/bitmap_test.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles --progress-num= "Built target bitmap_test"
@@ -1014,7 +1014,7 @@ all: test/common/CMakeFiles/bitmap_test.dir/all
 
 # Build rule for subdir invocation for target.
 test/common/CMakeFiles/bitmap_test.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 59
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 62
 	$(MAKE) -f CMakeFiles/Makefile2 test/common/CMakeFiles/bitmap_test.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 0
 .PHONY : test/common/CMakeFiles/bitmap_test.dir/rule
@@ -1041,11 +1041,11 @@ clean: test/common/CMakeFiles/bitmap_test.dir/clean
 test/common/CMakeFiles/hash_util_test.dir/all: CMakeFiles/gflags_ep.dir/all
 test/common/CMakeFiles/hash_util_test.dir/all: CMakeFiles/googletest_ep.dir/all
 test/common/CMakeFiles/hash_util_test.dir/all: src/CMakeFiles/terrier_static.dir/all
-test/common/CMakeFiles/hash_util_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 test/common/CMakeFiles/hash_util_test.dir/all: test/CMakeFiles/test_util.dir/all
+test/common/CMakeFiles/hash_util_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 	$(MAKE) -f test/common/CMakeFiles/hash_util_test.dir/build.make test/common/CMakeFiles/hash_util_test.dir/depend
 	$(MAKE) -f test/common/CMakeFiles/hash_util_test.dir/build.make test/common/CMakeFiles/hash_util_test.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles --progress-num= "Built target hash_util_test"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles --progress-num=20 "Built target hash_util_test"
 .PHONY : test/common/CMakeFiles/hash_util_test.dir/all
 
 # Include target in all.
@@ -1055,7 +1055,7 @@ all: test/common/CMakeFiles/hash_util_test.dir/all
 
 # Build rule for subdir invocation for target.
 test/common/CMakeFiles/hash_util_test.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 59
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 63
 	$(MAKE) -f CMakeFiles/Makefile2 test/common/CMakeFiles/hash_util_test.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 0
 .PHONY : test/common/CMakeFiles/hash_util_test.dir/rule
@@ -1082,11 +1082,11 @@ clean: test/common/CMakeFiles/hash_util_test.dir/clean
 test/common/CMakeFiles/managed_pointer_test.dir/all: CMakeFiles/gflags_ep.dir/all
 test/common/CMakeFiles/managed_pointer_test.dir/all: CMakeFiles/googletest_ep.dir/all
 test/common/CMakeFiles/managed_pointer_test.dir/all: src/CMakeFiles/terrier_static.dir/all
-test/common/CMakeFiles/managed_pointer_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 test/common/CMakeFiles/managed_pointer_test.dir/all: test/CMakeFiles/test_util.dir/all
+test/common/CMakeFiles/managed_pointer_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 	$(MAKE) -f test/common/CMakeFiles/managed_pointer_test.dir/build.make test/common/CMakeFiles/managed_pointer_test.dir/depend
 	$(MAKE) -f test/common/CMakeFiles/managed_pointer_test.dir/build.make test/common/CMakeFiles/managed_pointer_test.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles --progress-num=27 "Built target managed_pointer_test"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles --progress-num=25 "Built target managed_pointer_test"
 .PHONY : test/common/CMakeFiles/managed_pointer_test.dir/all
 
 # Include target in all.
@@ -1096,7 +1096,7 @@ all: test/common/CMakeFiles/managed_pointer_test.dir/all
 
 # Build rule for subdir invocation for target.
 test/common/CMakeFiles/managed_pointer_test.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 60
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 63
 	$(MAKE) -f CMakeFiles/Makefile2 test/common/CMakeFiles/managed_pointer_test.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 0
 .PHONY : test/common/CMakeFiles/managed_pointer_test.dir/rule
@@ -1123,11 +1123,11 @@ clean: test/common/CMakeFiles/managed_pointer_test.dir/clean
 test/common/CMakeFiles/stat_registry_test.dir/all: CMakeFiles/gflags_ep.dir/all
 test/common/CMakeFiles/stat_registry_test.dir/all: CMakeFiles/googletest_ep.dir/all
 test/common/CMakeFiles/stat_registry_test.dir/all: src/CMakeFiles/terrier_static.dir/all
-test/common/CMakeFiles/stat_registry_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 test/common/CMakeFiles/stat_registry_test.dir/all: test/CMakeFiles/test_util.dir/all
+test/common/CMakeFiles/stat_registry_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 	$(MAKE) -f test/common/CMakeFiles/stat_registry_test.dir/build.make test/common/CMakeFiles/stat_registry_test.dir/depend
 	$(MAKE) -f test/common/CMakeFiles/stat_registry_test.dir/build.make test/common/CMakeFiles/stat_registry_test.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles --progress-num=56 "Built target stat_registry_test"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles --progress-num=53 "Built target stat_registry_test"
 .PHONY : test/common/CMakeFiles/stat_registry_test.dir/all
 
 # Include target in all.
@@ -1137,7 +1137,7 @@ all: test/common/CMakeFiles/stat_registry_test.dir/all
 
 # Build rule for subdir invocation for target.
 test/common/CMakeFiles/stat_registry_test.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 60
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 63
 	$(MAKE) -f CMakeFiles/Makefile2 test/common/CMakeFiles/stat_registry_test.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 0
 .PHONY : test/common/CMakeFiles/stat_registry_test.dir/rule
@@ -1182,11 +1182,11 @@ test/network/preinstall:
 test/network/CMakeFiles/network_test.dir/all: CMakeFiles/gflags_ep.dir/all
 test/network/CMakeFiles/network_test.dir/all: CMakeFiles/googletest_ep.dir/all
 test/network/CMakeFiles/network_test.dir/all: src/CMakeFiles/terrier_static.dir/all
-test/network/CMakeFiles/network_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 test/network/CMakeFiles/network_test.dir/all: test/CMakeFiles/test_util.dir/all
+test/network/CMakeFiles/network_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 	$(MAKE) -f test/network/CMakeFiles/network_test.dir/build.make test/network/CMakeFiles/network_test.dir/depend
 	$(MAKE) -f test/network/CMakeFiles/network_test.dir/build.make test/network/CMakeFiles/network_test.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles --progress-num= "Built target network_test"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles --progress-num=27 "Built target network_test"
 .PHONY : test/network/CMakeFiles/network_test.dir/all
 
 # Include target in all.
@@ -1196,7 +1196,7 @@ all: test/network/CMakeFiles/network_test.dir/all
 
 # Build rule for subdir invocation for target.
 test/network/CMakeFiles/network_test.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 59
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 63
 	$(MAKE) -f CMakeFiles/Makefile2 test/network/CMakeFiles/network_test.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 0
 .PHONY : test/network/CMakeFiles/network_test.dir/rule
@@ -1245,11 +1245,11 @@ test/parser/preinstall:
 test/parser/CMakeFiles/pg_parser_test.dir/all: CMakeFiles/gflags_ep.dir/all
 test/parser/CMakeFiles/pg_parser_test.dir/all: CMakeFiles/googletest_ep.dir/all
 test/parser/CMakeFiles/pg_parser_test.dir/all: src/CMakeFiles/terrier_static.dir/all
-test/parser/CMakeFiles/pg_parser_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 test/parser/CMakeFiles/pg_parser_test.dir/all: test/CMakeFiles/test_util.dir/all
+test/parser/CMakeFiles/pg_parser_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 	$(MAKE) -f test/parser/CMakeFiles/pg_parser_test.dir/build.make test/parser/CMakeFiles/pg_parser_test.dir/depend
 	$(MAKE) -f test/parser/CMakeFiles/pg_parser_test.dir/build.make test/parser/CMakeFiles/pg_parser_test.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles --progress-num=32 "Built target pg_parser_test"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles --progress-num=30 "Built target pg_parser_test"
 .PHONY : test/parser/CMakeFiles/pg_parser_test.dir/all
 
 # Include target in all.
@@ -1259,7 +1259,7 @@ all: test/parser/CMakeFiles/pg_parser_test.dir/all
 
 # Build rule for subdir invocation for target.
 test/parser/CMakeFiles/pg_parser_test.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 60
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 63
 	$(MAKE) -f CMakeFiles/Makefile2 test/parser/CMakeFiles/pg_parser_test.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 0
 .PHONY : test/parser/CMakeFiles/pg_parser_test.dir/rule
@@ -1286,11 +1286,11 @@ clean: test/parser/CMakeFiles/pg_parser_test.dir/clean
 test/parser/CMakeFiles/parser_test.dir/all: CMakeFiles/gflags_ep.dir/all
 test/parser/CMakeFiles/parser_test.dir/all: CMakeFiles/googletest_ep.dir/all
 test/parser/CMakeFiles/parser_test.dir/all: src/CMakeFiles/terrier_static.dir/all
-test/parser/CMakeFiles/parser_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 test/parser/CMakeFiles/parser_test.dir/all: test/CMakeFiles/test_util.dir/all
+test/parser/CMakeFiles/parser_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 	$(MAKE) -f test/parser/CMakeFiles/parser_test.dir/build.make test/parser/CMakeFiles/parser_test.dir/depend
 	$(MAKE) -f test/parser/CMakeFiles/parser_test.dir/build.make test/parser/CMakeFiles/parser_test.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles --progress-num=31 "Built target parser_test"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles --progress-num=29 "Built target parser_test"
 .PHONY : test/parser/CMakeFiles/parser_test.dir/all
 
 # Include target in all.
@@ -1300,7 +1300,7 @@ all: test/parser/CMakeFiles/parser_test.dir/all
 
 # Build rule for subdir invocation for target.
 test/parser/CMakeFiles/parser_test.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 60
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 63
 	$(MAKE) -f CMakeFiles/Makefile2 test/parser/CMakeFiles/parser_test.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 0
 .PHONY : test/parser/CMakeFiles/parser_test.dir/rule
@@ -1327,11 +1327,11 @@ clean: test/parser/CMakeFiles/parser_test.dir/clean
 test/parser/CMakeFiles/expression_test.dir/all: CMakeFiles/gflags_ep.dir/all
 test/parser/CMakeFiles/expression_test.dir/all: CMakeFiles/googletest_ep.dir/all
 test/parser/CMakeFiles/expression_test.dir/all: src/CMakeFiles/terrier_static.dir/all
-test/parser/CMakeFiles/expression_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 test/parser/CMakeFiles/expression_test.dir/all: test/CMakeFiles/test_util.dir/all
+test/parser/CMakeFiles/expression_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 	$(MAKE) -f test/parser/CMakeFiles/expression_test.dir/build.make test/parser/CMakeFiles/expression_test.dir/depend
 	$(MAKE) -f test/parser/CMakeFiles/expression_test.dir/build.make test/parser/CMakeFiles/expression_test.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles --progress-num=10 "Built target expression_test"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles --progress-num= "Built target expression_test"
 .PHONY : test/parser/CMakeFiles/expression_test.dir/all
 
 # Include target in all.
@@ -1341,7 +1341,7 @@ all: test/parser/CMakeFiles/expression_test.dir/all
 
 # Build rule for subdir invocation for target.
 test/parser/CMakeFiles/expression_test.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 60
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 62
 	$(MAKE) -f CMakeFiles/Makefile2 test/parser/CMakeFiles/expression_test.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 0
 .PHONY : test/parser/CMakeFiles/expression_test.dir/rule
@@ -1358,6 +1358,194 @@ test/parser/CMakeFiles/expression_test.dir/clean:
 
 # clean rule for target.
 clean: test/parser/CMakeFiles/expression_test.dir/clean
+
+.PHONY : clean
+
+#=============================================================================
+# Directory level rules for directory test/optimizer
+
+# Convenience name for "all" pass in the directory.
+test/optimizer/all: test/optimizer/CMakeFiles/trivial_cost_model_test.dir/all
+test/optimizer/all: test/optimizer/CMakeFiles/physical_operator_test.dir/all
+test/optimizer/all: test/optimizer/CMakeFiles/operator_expression_test.dir/all
+test/optimizer/all: test/optimizer/CMakeFiles/logical_operator_test.dir/all
+
+.PHONY : test/optimizer/all
+
+# Convenience name for "clean" pass in the directory.
+test/optimizer/clean: test/optimizer/CMakeFiles/trivial_cost_model_test.dir/clean
+test/optimizer/clean: test/optimizer/CMakeFiles/physical_operator_test.dir/clean
+test/optimizer/clean: test/optimizer/CMakeFiles/operator_expression_test.dir/clean
+test/optimizer/clean: test/optimizer/CMakeFiles/logical_operator_test.dir/clean
+
+.PHONY : test/optimizer/clean
+
+# Convenience name for "preinstall" pass in the directory.
+test/optimizer/preinstall:
+
+.PHONY : test/optimizer/preinstall
+
+#=============================================================================
+# Target rules for target test/optimizer/CMakeFiles/trivial_cost_model_test.dir
+
+# All Build rule for target.
+test/optimizer/CMakeFiles/trivial_cost_model_test.dir/all: CMakeFiles/gflags_ep.dir/all
+test/optimizer/CMakeFiles/trivial_cost_model_test.dir/all: CMakeFiles/googletest_ep.dir/all
+test/optimizer/CMakeFiles/trivial_cost_model_test.dir/all: src/CMakeFiles/terrier_static.dir/all
+test/optimizer/CMakeFiles/trivial_cost_model_test.dir/all: test/CMakeFiles/test_util.dir/all
+test/optimizer/CMakeFiles/trivial_cost_model_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
+	$(MAKE) -f test/optimizer/CMakeFiles/trivial_cost_model_test.dir/build.make test/optimizer/CMakeFiles/trivial_cost_model_test.dir/depend
+	$(MAKE) -f test/optimizer/CMakeFiles/trivial_cost_model_test.dir/build.make test/optimizer/CMakeFiles/trivial_cost_model_test.dir/build
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles --progress-num=97 "Built target trivial_cost_model_test"
+.PHONY : test/optimizer/CMakeFiles/trivial_cost_model_test.dir/all
+
+# Include target in all.
+all: test/optimizer/CMakeFiles/trivial_cost_model_test.dir/all
+
+.PHONY : all
+
+# Build rule for subdir invocation for target.
+test/optimizer/CMakeFiles/trivial_cost_model_test.dir/rule: cmake_check_build_system
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 63
+	$(MAKE) -f CMakeFiles/Makefile2 test/optimizer/CMakeFiles/trivial_cost_model_test.dir/all
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 0
+.PHONY : test/optimizer/CMakeFiles/trivial_cost_model_test.dir/rule
+
+# Convenience name for target.
+trivial_cost_model_test: test/optimizer/CMakeFiles/trivial_cost_model_test.dir/rule
+
+.PHONY : trivial_cost_model_test
+
+# clean rule for target.
+test/optimizer/CMakeFiles/trivial_cost_model_test.dir/clean:
+	$(MAKE) -f test/optimizer/CMakeFiles/trivial_cost_model_test.dir/build.make test/optimizer/CMakeFiles/trivial_cost_model_test.dir/clean
+.PHONY : test/optimizer/CMakeFiles/trivial_cost_model_test.dir/clean
+
+# clean rule for target.
+clean: test/optimizer/CMakeFiles/trivial_cost_model_test.dir/clean
+
+.PHONY : clean
+
+#=============================================================================
+# Target rules for target test/optimizer/CMakeFiles/physical_operator_test.dir
+
+# All Build rule for target.
+test/optimizer/CMakeFiles/physical_operator_test.dir/all: CMakeFiles/gflags_ep.dir/all
+test/optimizer/CMakeFiles/physical_operator_test.dir/all: CMakeFiles/googletest_ep.dir/all
+test/optimizer/CMakeFiles/physical_operator_test.dir/all: src/CMakeFiles/terrier_static.dir/all
+test/optimizer/CMakeFiles/physical_operator_test.dir/all: test/CMakeFiles/test_util.dir/all
+test/optimizer/CMakeFiles/physical_operator_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
+	$(MAKE) -f test/optimizer/CMakeFiles/physical_operator_test.dir/build.make test/optimizer/CMakeFiles/physical_operator_test.dir/depend
+	$(MAKE) -f test/optimizer/CMakeFiles/physical_operator_test.dir/build.make test/optimizer/CMakeFiles/physical_operator_test.dir/build
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles --progress-num=49 "Built target physical_operator_test"
+.PHONY : test/optimizer/CMakeFiles/physical_operator_test.dir/all
+
+# Include target in all.
+all: test/optimizer/CMakeFiles/physical_operator_test.dir/all
+
+.PHONY : all
+
+# Build rule for subdir invocation for target.
+test/optimizer/CMakeFiles/physical_operator_test.dir/rule: cmake_check_build_system
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 63
+	$(MAKE) -f CMakeFiles/Makefile2 test/optimizer/CMakeFiles/physical_operator_test.dir/all
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 0
+.PHONY : test/optimizer/CMakeFiles/physical_operator_test.dir/rule
+
+# Convenience name for target.
+physical_operator_test: test/optimizer/CMakeFiles/physical_operator_test.dir/rule
+
+.PHONY : physical_operator_test
+
+# clean rule for target.
+test/optimizer/CMakeFiles/physical_operator_test.dir/clean:
+	$(MAKE) -f test/optimizer/CMakeFiles/physical_operator_test.dir/build.make test/optimizer/CMakeFiles/physical_operator_test.dir/clean
+.PHONY : test/optimizer/CMakeFiles/physical_operator_test.dir/clean
+
+# clean rule for target.
+clean: test/optimizer/CMakeFiles/physical_operator_test.dir/clean
+
+.PHONY : clean
+
+#=============================================================================
+# Target rules for target test/optimizer/CMakeFiles/operator_expression_test.dir
+
+# All Build rule for target.
+test/optimizer/CMakeFiles/operator_expression_test.dir/all: CMakeFiles/gflags_ep.dir/all
+test/optimizer/CMakeFiles/operator_expression_test.dir/all: CMakeFiles/googletest_ep.dir/all
+test/optimizer/CMakeFiles/operator_expression_test.dir/all: src/CMakeFiles/terrier_static.dir/all
+test/optimizer/CMakeFiles/operator_expression_test.dir/all: test/CMakeFiles/test_util.dir/all
+test/optimizer/CMakeFiles/operator_expression_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
+	$(MAKE) -f test/optimizer/CMakeFiles/operator_expression_test.dir/build.make test/optimizer/CMakeFiles/operator_expression_test.dir/depend
+	$(MAKE) -f test/optimizer/CMakeFiles/operator_expression_test.dir/build.make test/optimizer/CMakeFiles/operator_expression_test.dir/build
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles --progress-num=28 "Built target operator_expression_test"
+.PHONY : test/optimizer/CMakeFiles/operator_expression_test.dir/all
+
+# Include target in all.
+all: test/optimizer/CMakeFiles/operator_expression_test.dir/all
+
+.PHONY : all
+
+# Build rule for subdir invocation for target.
+test/optimizer/CMakeFiles/operator_expression_test.dir/rule: cmake_check_build_system
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 63
+	$(MAKE) -f CMakeFiles/Makefile2 test/optimizer/CMakeFiles/operator_expression_test.dir/all
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 0
+.PHONY : test/optimizer/CMakeFiles/operator_expression_test.dir/rule
+
+# Convenience name for target.
+operator_expression_test: test/optimizer/CMakeFiles/operator_expression_test.dir/rule
+
+.PHONY : operator_expression_test
+
+# clean rule for target.
+test/optimizer/CMakeFiles/operator_expression_test.dir/clean:
+	$(MAKE) -f test/optimizer/CMakeFiles/operator_expression_test.dir/build.make test/optimizer/CMakeFiles/operator_expression_test.dir/clean
+.PHONY : test/optimizer/CMakeFiles/operator_expression_test.dir/clean
+
+# clean rule for target.
+clean: test/optimizer/CMakeFiles/operator_expression_test.dir/clean
+
+.PHONY : clean
+
+#=============================================================================
+# Target rules for target test/optimizer/CMakeFiles/logical_operator_test.dir
+
+# All Build rule for target.
+test/optimizer/CMakeFiles/logical_operator_test.dir/all: CMakeFiles/gflags_ep.dir/all
+test/optimizer/CMakeFiles/logical_operator_test.dir/all: CMakeFiles/googletest_ep.dir/all
+test/optimizer/CMakeFiles/logical_operator_test.dir/all: src/CMakeFiles/terrier_static.dir/all
+test/optimizer/CMakeFiles/logical_operator_test.dir/all: test/CMakeFiles/test_util.dir/all
+test/optimizer/CMakeFiles/logical_operator_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
+	$(MAKE) -f test/optimizer/CMakeFiles/logical_operator_test.dir/build.make test/optimizer/CMakeFiles/logical_operator_test.dir/depend
+	$(MAKE) -f test/optimizer/CMakeFiles/logical_operator_test.dir/build.make test/optimizer/CMakeFiles/logical_operator_test.dir/build
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles --progress-num= "Built target logical_operator_test"
+.PHONY : test/optimizer/CMakeFiles/logical_operator_test.dir/all
+
+# Include target in all.
+all: test/optimizer/CMakeFiles/logical_operator_test.dir/all
+
+.PHONY : all
+
+# Build rule for subdir invocation for target.
+test/optimizer/CMakeFiles/logical_operator_test.dir/rule: cmake_check_build_system
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 62
+	$(MAKE) -f CMakeFiles/Makefile2 test/optimizer/CMakeFiles/logical_operator_test.dir/all
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 0
+.PHONY : test/optimizer/CMakeFiles/logical_operator_test.dir/rule
+
+# Convenience name for target.
+logical_operator_test: test/optimizer/CMakeFiles/logical_operator_test.dir/rule
+
+.PHONY : logical_operator_test
+
+# clean rule for target.
+test/optimizer/CMakeFiles/logical_operator_test.dir/clean:
+	$(MAKE) -f test/optimizer/CMakeFiles/logical_operator_test.dir/build.make test/optimizer/CMakeFiles/logical_operator_test.dir/clean
+.PHONY : test/optimizer/CMakeFiles/logical_operator_test.dir/clean
+
+# clean rule for target.
+clean: test/optimizer/CMakeFiles/logical_operator_test.dir/clean
 
 .PHONY : clean
 
@@ -1410,8 +1598,8 @@ test/storage/preinstall:
 test/storage/CMakeFiles/tuple_access_strategy_test.dir/all: CMakeFiles/gflags_ep.dir/all
 test/storage/CMakeFiles/tuple_access_strategy_test.dir/all: CMakeFiles/googletest_ep.dir/all
 test/storage/CMakeFiles/tuple_access_strategy_test.dir/all: src/CMakeFiles/terrier_static.dir/all
-test/storage/CMakeFiles/tuple_access_strategy_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 test/storage/CMakeFiles/tuple_access_strategy_test.dir/all: test/CMakeFiles/test_util.dir/all
+test/storage/CMakeFiles/tuple_access_strategy_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 	$(MAKE) -f test/storage/CMakeFiles/tuple_access_strategy_test.dir/build.make test/storage/CMakeFiles/tuple_access_strategy_test.dir/depend
 	$(MAKE) -f test/storage/CMakeFiles/tuple_access_strategy_test.dir/build.make test/storage/CMakeFiles/tuple_access_strategy_test.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles --progress-num=98 "Built target tuple_access_strategy_test"
@@ -1424,7 +1612,7 @@ all: test/storage/CMakeFiles/tuple_access_strategy_test.dir/all
 
 # Build rule for subdir invocation for target.
 test/storage/CMakeFiles/tuple_access_strategy_test.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 60
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 63
 	$(MAKE) -f CMakeFiles/Makefile2 test/storage/CMakeFiles/tuple_access_strategy_test.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 0
 .PHONY : test/storage/CMakeFiles/tuple_access_strategy_test.dir/rule
@@ -1451,11 +1639,11 @@ clean: test/storage/CMakeFiles/tuple_access_strategy_test.dir/clean
 test/storage/CMakeFiles/data_table_concurrent_test.dir/all: CMakeFiles/gflags_ep.dir/all
 test/storage/CMakeFiles/data_table_concurrent_test.dir/all: CMakeFiles/googletest_ep.dir/all
 test/storage/CMakeFiles/data_table_concurrent_test.dir/all: src/CMakeFiles/terrier_static.dir/all
-test/storage/CMakeFiles/data_table_concurrent_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 test/storage/CMakeFiles/data_table_concurrent_test.dir/all: test/CMakeFiles/test_util.dir/all
+test/storage/CMakeFiles/data_table_concurrent_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 	$(MAKE) -f test/storage/CMakeFiles/data_table_concurrent_test.dir/build.make test/storage/CMakeFiles/data_table_concurrent_test.dir/depend
 	$(MAKE) -f test/storage/CMakeFiles/data_table_concurrent_test.dir/build.make test/storage/CMakeFiles/data_table_concurrent_test.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles --progress-num=7 "Built target data_table_concurrent_test"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles --progress-num= "Built target data_table_concurrent_test"
 .PHONY : test/storage/CMakeFiles/data_table_concurrent_test.dir/all
 
 # Include target in all.
@@ -1465,7 +1653,7 @@ all: test/storage/CMakeFiles/data_table_concurrent_test.dir/all
 
 # Build rule for subdir invocation for target.
 test/storage/CMakeFiles/data_table_concurrent_test.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 60
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 62
 	$(MAKE) -f CMakeFiles/Makefile2 test/storage/CMakeFiles/data_table_concurrent_test.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 0
 .PHONY : test/storage/CMakeFiles/data_table_concurrent_test.dir/rule
@@ -1492,11 +1680,11 @@ clean: test/storage/CMakeFiles/data_table_concurrent_test.dir/clean
 test/storage/CMakeFiles/large_garbage_collector_test.dir/all: CMakeFiles/gflags_ep.dir/all
 test/storage/CMakeFiles/large_garbage_collector_test.dir/all: CMakeFiles/googletest_ep.dir/all
 test/storage/CMakeFiles/large_garbage_collector_test.dir/all: src/CMakeFiles/terrier_static.dir/all
-test/storage/CMakeFiles/large_garbage_collector_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 test/storage/CMakeFiles/large_garbage_collector_test.dir/all: test/CMakeFiles/test_util.dir/all
+test/storage/CMakeFiles/large_garbage_collector_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 	$(MAKE) -f test/storage/CMakeFiles/large_garbage_collector_test.dir/build.make test/storage/CMakeFiles/large_garbage_collector_test.dir/depend
 	$(MAKE) -f test/storage/CMakeFiles/large_garbage_collector_test.dir/build.make test/storage/CMakeFiles/large_garbage_collector_test.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles --progress-num=22 "Built target large_garbage_collector_test"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles --progress-num=21 "Built target large_garbage_collector_test"
 .PHONY : test/storage/CMakeFiles/large_garbage_collector_test.dir/all
 
 # Include target in all.
@@ -1506,7 +1694,7 @@ all: test/storage/CMakeFiles/large_garbage_collector_test.dir/all
 
 # Build rule for subdir invocation for target.
 test/storage/CMakeFiles/large_garbage_collector_test.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 60
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 63
 	$(MAKE) -f CMakeFiles/Makefile2 test/storage/CMakeFiles/large_garbage_collector_test.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 0
 .PHONY : test/storage/CMakeFiles/large_garbage_collector_test.dir/rule
@@ -1533,11 +1721,11 @@ clean: test/storage/CMakeFiles/large_garbage_collector_test.dir/clean
 test/storage/CMakeFiles/storage_util_test.dir/all: CMakeFiles/gflags_ep.dir/all
 test/storage/CMakeFiles/storage_util_test.dir/all: CMakeFiles/googletest_ep.dir/all
 test/storage/CMakeFiles/storage_util_test.dir/all: src/CMakeFiles/terrier_static.dir/all
-test/storage/CMakeFiles/storage_util_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 test/storage/CMakeFiles/storage_util_test.dir/all: test/CMakeFiles/test_util.dir/all
+test/storage/CMakeFiles/storage_util_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 	$(MAKE) -f test/storage/CMakeFiles/storage_util_test.dir/build.make test/storage/CMakeFiles/storage_util_test.dir/depend
 	$(MAKE) -f test/storage/CMakeFiles/storage_util_test.dir/build.make test/storage/CMakeFiles/storage_util_test.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles --progress-num=57 "Built target storage_util_test"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles --progress-num= "Built target storage_util_test"
 .PHONY : test/storage/CMakeFiles/storage_util_test.dir/all
 
 # Include target in all.
@@ -1547,7 +1735,7 @@ all: test/storage/CMakeFiles/storage_util_test.dir/all
 
 # Build rule for subdir invocation for target.
 test/storage/CMakeFiles/storage_util_test.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 60
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 62
 	$(MAKE) -f CMakeFiles/Makefile2 test/storage/CMakeFiles/storage_util_test.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 0
 .PHONY : test/storage/CMakeFiles/storage_util_test.dir/rule
@@ -1574,11 +1762,11 @@ clean: test/storage/CMakeFiles/storage_util_test.dir/clean
 test/storage/CMakeFiles/projected_row_test.dir/all: CMakeFiles/gflags_ep.dir/all
 test/storage/CMakeFiles/projected_row_test.dir/all: CMakeFiles/googletest_ep.dir/all
 test/storage/CMakeFiles/projected_row_test.dir/all: src/CMakeFiles/terrier_static.dir/all
-test/storage/CMakeFiles/projected_row_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 test/storage/CMakeFiles/projected_row_test.dir/all: test/CMakeFiles/test_util.dir/all
+test/storage/CMakeFiles/projected_row_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 	$(MAKE) -f test/storage/CMakeFiles/projected_row_test.dir/build.make test/storage/CMakeFiles/projected_row_test.dir/depend
 	$(MAKE) -f test/storage/CMakeFiles/projected_row_test.dir/build.make test/storage/CMakeFiles/projected_row_test.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles --progress-num=55 "Built target projected_row_test"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles --progress-num=51 "Built target projected_row_test"
 .PHONY : test/storage/CMakeFiles/projected_row_test.dir/all
 
 # Include target in all.
@@ -1588,7 +1776,7 @@ all: test/storage/CMakeFiles/projected_row_test.dir/all
 
 # Build rule for subdir invocation for target.
 test/storage/CMakeFiles/projected_row_test.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 60
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 63
 	$(MAKE) -f CMakeFiles/Makefile2 test/storage/CMakeFiles/projected_row_test.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 0
 .PHONY : test/storage/CMakeFiles/projected_row_test.dir/rule
@@ -1615,11 +1803,11 @@ clean: test/storage/CMakeFiles/projected_row_test.dir/clean
 test/storage/CMakeFiles/log_test.dir/all: CMakeFiles/gflags_ep.dir/all
 test/storage/CMakeFiles/log_test.dir/all: CMakeFiles/googletest_ep.dir/all
 test/storage/CMakeFiles/log_test.dir/all: src/CMakeFiles/terrier_static.dir/all
-test/storage/CMakeFiles/log_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 test/storage/CMakeFiles/log_test.dir/all: test/CMakeFiles/test_util.dir/all
+test/storage/CMakeFiles/log_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 	$(MAKE) -f test/storage/CMakeFiles/log_test.dir/build.make test/storage/CMakeFiles/log_test.dir/depend
 	$(MAKE) -f test/storage/CMakeFiles/log_test.dir/build.make test/storage/CMakeFiles/log_test.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles --progress-num=25 "Built target log_test"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles --progress-num=23 "Built target log_test"
 .PHONY : test/storage/CMakeFiles/log_test.dir/all
 
 # Include target in all.
@@ -1629,7 +1817,7 @@ all: test/storage/CMakeFiles/log_test.dir/all
 
 # Build rule for subdir invocation for target.
 test/storage/CMakeFiles/log_test.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 60
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 63
 	$(MAKE) -f CMakeFiles/Makefile2 test/storage/CMakeFiles/log_test.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 0
 .PHONY : test/storage/CMakeFiles/log_test.dir/rule
@@ -1656,8 +1844,8 @@ clean: test/storage/CMakeFiles/log_test.dir/clean
 test/storage/CMakeFiles/delta_record_test.dir/all: CMakeFiles/gflags_ep.dir/all
 test/storage/CMakeFiles/delta_record_test.dir/all: CMakeFiles/googletest_ep.dir/all
 test/storage/CMakeFiles/delta_record_test.dir/all: src/CMakeFiles/terrier_static.dir/all
-test/storage/CMakeFiles/delta_record_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 test/storage/CMakeFiles/delta_record_test.dir/all: test/CMakeFiles/test_util.dir/all
+test/storage/CMakeFiles/delta_record_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 	$(MAKE) -f test/storage/CMakeFiles/delta_record_test.dir/build.make test/storage/CMakeFiles/delta_record_test.dir/depend
 	$(MAKE) -f test/storage/CMakeFiles/delta_record_test.dir/build.make test/storage/CMakeFiles/delta_record_test.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles --progress-num=9 "Built target delta_record_test"
@@ -1670,7 +1858,7 @@ all: test/storage/CMakeFiles/delta_record_test.dir/all
 
 # Build rule for subdir invocation for target.
 test/storage/CMakeFiles/delta_record_test.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 60
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 63
 	$(MAKE) -f CMakeFiles/Makefile2 test/storage/CMakeFiles/delta_record_test.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 0
 .PHONY : test/storage/CMakeFiles/delta_record_test.dir/rule
@@ -1697,11 +1885,11 @@ clean: test/storage/CMakeFiles/delta_record_test.dir/clean
 test/storage/CMakeFiles/bwtree_test.dir/all: CMakeFiles/gflags_ep.dir/all
 test/storage/CMakeFiles/bwtree_test.dir/all: CMakeFiles/googletest_ep.dir/all
 test/storage/CMakeFiles/bwtree_test.dir/all: src/CMakeFiles/terrier_static.dir/all
-test/storage/CMakeFiles/bwtree_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 test/storage/CMakeFiles/bwtree_test.dir/all: test/CMakeFiles/test_util.dir/all
+test/storage/CMakeFiles/bwtree_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 	$(MAKE) -f test/storage/CMakeFiles/bwtree_test.dir/build.make test/storage/CMakeFiles/bwtree_test.dir/depend
 	$(MAKE) -f test/storage/CMakeFiles/bwtree_test.dir/build.make test/storage/CMakeFiles/bwtree_test.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles --progress-num=5 "Built target bwtree_test"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles --progress-num=4 "Built target bwtree_test"
 .PHONY : test/storage/CMakeFiles/bwtree_test.dir/all
 
 # Include target in all.
@@ -1711,7 +1899,7 @@ all: test/storage/CMakeFiles/bwtree_test.dir/all
 
 # Build rule for subdir invocation for target.
 test/storage/CMakeFiles/bwtree_test.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 60
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 63
 	$(MAKE) -f CMakeFiles/Makefile2 test/storage/CMakeFiles/bwtree_test.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 0
 .PHONY : test/storage/CMakeFiles/bwtree_test.dir/rule
@@ -1738,11 +1926,11 @@ clean: test/storage/CMakeFiles/bwtree_test.dir/clean
 test/storage/CMakeFiles/bwtree_key_test.dir/all: CMakeFiles/gflags_ep.dir/all
 test/storage/CMakeFiles/bwtree_key_test.dir/all: CMakeFiles/googletest_ep.dir/all
 test/storage/CMakeFiles/bwtree_key_test.dir/all: src/CMakeFiles/terrier_static.dir/all
-test/storage/CMakeFiles/bwtree_key_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 test/storage/CMakeFiles/bwtree_key_test.dir/all: test/CMakeFiles/test_util.dir/all
+test/storage/CMakeFiles/bwtree_key_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 	$(MAKE) -f test/storage/CMakeFiles/bwtree_key_test.dir/build.make test/storage/CMakeFiles/bwtree_key_test.dir/depend
 	$(MAKE) -f test/storage/CMakeFiles/bwtree_key_test.dir/build.make test/storage/CMakeFiles/bwtree_key_test.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles --progress-num=4 "Built target bwtree_key_test"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles --progress-num= "Built target bwtree_key_test"
 .PHONY : test/storage/CMakeFiles/bwtree_key_test.dir/all
 
 # Include target in all.
@@ -1752,7 +1940,7 @@ all: test/storage/CMakeFiles/bwtree_key_test.dir/all
 
 # Build rule for subdir invocation for target.
 test/storage/CMakeFiles/bwtree_key_test.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 60
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 62
 	$(MAKE) -f CMakeFiles/Makefile2 test/storage/CMakeFiles/bwtree_key_test.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 0
 .PHONY : test/storage/CMakeFiles/bwtree_key_test.dir/rule
@@ -1779,11 +1967,11 @@ clean: test/storage/CMakeFiles/bwtree_key_test.dir/clean
 test/storage/CMakeFiles/garbage_collector_test.dir/all: CMakeFiles/gflags_ep.dir/all
 test/storage/CMakeFiles/garbage_collector_test.dir/all: CMakeFiles/googletest_ep.dir/all
 test/storage/CMakeFiles/garbage_collector_test.dir/all: src/CMakeFiles/terrier_static.dir/all
-test/storage/CMakeFiles/garbage_collector_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 test/storage/CMakeFiles/garbage_collector_test.dir/all: test/CMakeFiles/test_util.dir/all
+test/storage/CMakeFiles/garbage_collector_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 	$(MAKE) -f test/storage/CMakeFiles/garbage_collector_test.dir/build.make test/storage/CMakeFiles/garbage_collector_test.dir/depend
 	$(MAKE) -f test/storage/CMakeFiles/garbage_collector_test.dir/build.make test/storage/CMakeFiles/garbage_collector_test.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles --progress-num= "Built target garbage_collector_test"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles --progress-num=11 "Built target garbage_collector_test"
 .PHONY : test/storage/CMakeFiles/garbage_collector_test.dir/all
 
 # Include target in all.
@@ -1793,7 +1981,7 @@ all: test/storage/CMakeFiles/garbage_collector_test.dir/all
 
 # Build rule for subdir invocation for target.
 test/storage/CMakeFiles/garbage_collector_test.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 59
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 63
 	$(MAKE) -f CMakeFiles/Makefile2 test/storage/CMakeFiles/garbage_collector_test.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 0
 .PHONY : test/storage/CMakeFiles/garbage_collector_test.dir/rule
@@ -1820,11 +2008,11 @@ clean: test/storage/CMakeFiles/garbage_collector_test.dir/clean
 test/storage/CMakeFiles/data_table_test.dir/all: CMakeFiles/gflags_ep.dir/all
 test/storage/CMakeFiles/data_table_test.dir/all: CMakeFiles/googletest_ep.dir/all
 test/storage/CMakeFiles/data_table_test.dir/all: src/CMakeFiles/terrier_static.dir/all
-test/storage/CMakeFiles/data_table_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 test/storage/CMakeFiles/data_table_test.dir/all: test/CMakeFiles/test_util.dir/all
+test/storage/CMakeFiles/data_table_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 	$(MAKE) -f test/storage/CMakeFiles/data_table_test.dir/build.make test/storage/CMakeFiles/data_table_test.dir/depend
 	$(MAKE) -f test/storage/CMakeFiles/data_table_test.dir/build.make test/storage/CMakeFiles/data_table_test.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles --progress-num=8 "Built target data_table_test"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles --progress-num=7 "Built target data_table_test"
 .PHONY : test/storage/CMakeFiles/data_table_test.dir/all
 
 # Include target in all.
@@ -1834,7 +2022,7 @@ all: test/storage/CMakeFiles/data_table_test.dir/all
 
 # Build rule for subdir invocation for target.
 test/storage/CMakeFiles/data_table_test.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 60
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 63
 	$(MAKE) -f CMakeFiles/Makefile2 test/storage/CMakeFiles/data_table_test.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 0
 .PHONY : test/storage/CMakeFiles/data_table_test.dir/rule
@@ -1861,8 +2049,8 @@ clean: test/storage/CMakeFiles/data_table_test.dir/clean
 test/storage/CMakeFiles/varlen_entry_test.dir/all: CMakeFiles/gflags_ep.dir/all
 test/storage/CMakeFiles/varlen_entry_test.dir/all: CMakeFiles/googletest_ep.dir/all
 test/storage/CMakeFiles/varlen_entry_test.dir/all: src/CMakeFiles/terrier_static.dir/all
-test/storage/CMakeFiles/varlen_entry_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 test/storage/CMakeFiles/varlen_entry_test.dir/all: test/CMakeFiles/test_util.dir/all
+test/storage/CMakeFiles/varlen_entry_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 	$(MAKE) -f test/storage/CMakeFiles/varlen_entry_test.dir/build.make test/storage/CMakeFiles/varlen_entry_test.dir/depend
 	$(MAKE) -f test/storage/CMakeFiles/varlen_entry_test.dir/build.make test/storage/CMakeFiles/varlen_entry_test.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles --progress-num=99 "Built target varlen_entry_test"
@@ -1875,7 +2063,7 @@ all: test/storage/CMakeFiles/varlen_entry_test.dir/all
 
 # Build rule for subdir invocation for target.
 test/storage/CMakeFiles/varlen_entry_test.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 60
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 63
 	$(MAKE) -f CMakeFiles/Makefile2 test/storage/CMakeFiles/varlen_entry_test.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 0
 .PHONY : test/storage/CMakeFiles/varlen_entry_test.dir/rule
@@ -1902,8 +2090,8 @@ clean: test/storage/CMakeFiles/varlen_entry_test.dir/clean
 test/storage/CMakeFiles/bwtree_index_test.dir/all: CMakeFiles/gflags_ep.dir/all
 test/storage/CMakeFiles/bwtree_index_test.dir/all: CMakeFiles/googletest_ep.dir/all
 test/storage/CMakeFiles/bwtree_index_test.dir/all: src/CMakeFiles/terrier_static.dir/all
-test/storage/CMakeFiles/bwtree_index_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 test/storage/CMakeFiles/bwtree_index_test.dir/all: test/CMakeFiles/test_util.dir/all
+test/storage/CMakeFiles/bwtree_index_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 	$(MAKE) -f test/storage/CMakeFiles/bwtree_index_test.dir/build.make test/storage/CMakeFiles/bwtree_index_test.dir/depend
 	$(MAKE) -f test/storage/CMakeFiles/bwtree_index_test.dir/build.make test/storage/CMakeFiles/bwtree_index_test.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles --progress-num=3 "Built target bwtree_index_test"
@@ -1916,7 +2104,7 @@ all: test/storage/CMakeFiles/bwtree_index_test.dir/all
 
 # Build rule for subdir invocation for target.
 test/storage/CMakeFiles/bwtree_index_test.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 60
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 63
 	$(MAKE) -f CMakeFiles/Makefile2 test/storage/CMakeFiles/bwtree_index_test.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 0
 .PHONY : test/storage/CMakeFiles/bwtree_index_test.dir/rule
@@ -1965,11 +2153,11 @@ test/transaction/preinstall:
 test/transaction/CMakeFiles/mvcc_test.dir/all: CMakeFiles/gflags_ep.dir/all
 test/transaction/CMakeFiles/mvcc_test.dir/all: CMakeFiles/googletest_ep.dir/all
 test/transaction/CMakeFiles/mvcc_test.dir/all: src/CMakeFiles/terrier_static.dir/all
-test/transaction/CMakeFiles/mvcc_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 test/transaction/CMakeFiles/mvcc_test.dir/all: test/CMakeFiles/test_util.dir/all
+test/transaction/CMakeFiles/mvcc_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 	$(MAKE) -f test/transaction/CMakeFiles/mvcc_test.dir/build.make test/transaction/CMakeFiles/mvcc_test.dir/depend
 	$(MAKE) -f test/transaction/CMakeFiles/mvcc_test.dir/build.make test/transaction/CMakeFiles/mvcc_test.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles --progress-num=28 "Built target mvcc_test"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles --progress-num=26 "Built target mvcc_test"
 .PHONY : test/transaction/CMakeFiles/mvcc_test.dir/all
 
 # Include target in all.
@@ -1979,7 +2167,7 @@ all: test/transaction/CMakeFiles/mvcc_test.dir/all
 
 # Build rule for subdir invocation for target.
 test/transaction/CMakeFiles/mvcc_test.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 60
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 63
 	$(MAKE) -f CMakeFiles/Makefile2 test/transaction/CMakeFiles/mvcc_test.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 0
 .PHONY : test/transaction/CMakeFiles/mvcc_test.dir/rule
@@ -2006,11 +2194,11 @@ clean: test/transaction/CMakeFiles/mvcc_test.dir/clean
 test/transaction/CMakeFiles/large_transaction_test.dir/all: CMakeFiles/gflags_ep.dir/all
 test/transaction/CMakeFiles/large_transaction_test.dir/all: CMakeFiles/googletest_ep.dir/all
 test/transaction/CMakeFiles/large_transaction_test.dir/all: src/CMakeFiles/terrier_static.dir/all
-test/transaction/CMakeFiles/large_transaction_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 test/transaction/CMakeFiles/large_transaction_test.dir/all: test/CMakeFiles/test_util.dir/all
+test/transaction/CMakeFiles/large_transaction_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 	$(MAKE) -f test/transaction/CMakeFiles/large_transaction_test.dir/build.make test/transaction/CMakeFiles/large_transaction_test.dir/depend
 	$(MAKE) -f test/transaction/CMakeFiles/large_transaction_test.dir/build.make test/transaction/CMakeFiles/large_transaction_test.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles --progress-num=24 "Built target large_transaction_test"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles --progress-num= "Built target large_transaction_test"
 .PHONY : test/transaction/CMakeFiles/large_transaction_test.dir/all
 
 # Include target in all.
@@ -2020,7 +2208,7 @@ all: test/transaction/CMakeFiles/large_transaction_test.dir/all
 
 # Build rule for subdir invocation for target.
 test/transaction/CMakeFiles/large_transaction_test.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 60
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 62
 	$(MAKE) -f CMakeFiles/Makefile2 test/transaction/CMakeFiles/large_transaction_test.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 0
 .PHONY : test/transaction/CMakeFiles/large_transaction_test.dir/rule
@@ -2047,11 +2235,11 @@ clean: test/transaction/CMakeFiles/large_transaction_test.dir/clean
 test/transaction/CMakeFiles/deferred_actions_test.dir/all: CMakeFiles/gflags_ep.dir/all
 test/transaction/CMakeFiles/deferred_actions_test.dir/all: CMakeFiles/googletest_ep.dir/all
 test/transaction/CMakeFiles/deferred_actions_test.dir/all: src/CMakeFiles/terrier_static.dir/all
-test/transaction/CMakeFiles/deferred_actions_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 test/transaction/CMakeFiles/deferred_actions_test.dir/all: test/CMakeFiles/test_util.dir/all
+test/transaction/CMakeFiles/deferred_actions_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 	$(MAKE) -f test/transaction/CMakeFiles/deferred_actions_test.dir/build.make test/transaction/CMakeFiles/deferred_actions_test.dir/depend
 	$(MAKE) -f test/transaction/CMakeFiles/deferred_actions_test.dir/build.make test/transaction/CMakeFiles/deferred_actions_test.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles --progress-num= "Built target deferred_actions_test"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles --progress-num=8 "Built target deferred_actions_test"
 .PHONY : test/transaction/CMakeFiles/deferred_actions_test.dir/all
 
 # Include target in all.
@@ -2061,7 +2249,7 @@ all: test/transaction/CMakeFiles/deferred_actions_test.dir/all
 
 # Build rule for subdir invocation for target.
 test/transaction/CMakeFiles/deferred_actions_test.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 59
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 63
 	$(MAKE) -f CMakeFiles/Makefile2 test/transaction/CMakeFiles/deferred_actions_test.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 0
 .PHONY : test/transaction/CMakeFiles/deferred_actions_test.dir/rule
@@ -2106,8 +2294,8 @@ test/type/preinstall:
 test/type/CMakeFiles/transient_value_test.dir/all: CMakeFiles/gflags_ep.dir/all
 test/type/CMakeFiles/transient_value_test.dir/all: CMakeFiles/googletest_ep.dir/all
 test/type/CMakeFiles/transient_value_test.dir/all: src/CMakeFiles/terrier_static.dir/all
-test/type/CMakeFiles/transient_value_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 test/type/CMakeFiles/transient_value_test.dir/all: test/CMakeFiles/test_util.dir/all
+test/type/CMakeFiles/transient_value_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 	$(MAKE) -f test/type/CMakeFiles/transient_value_test.dir/build.make test/type/CMakeFiles/transient_value_test.dir/depend
 	$(MAKE) -f test/type/CMakeFiles/transient_value_test.dir/build.make test/type/CMakeFiles/transient_value_test.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles --progress-num=96 "Built target transient_value_test"
@@ -2120,7 +2308,7 @@ all: test/type/CMakeFiles/transient_value_test.dir/all
 
 # Build rule for subdir invocation for target.
 test/type/CMakeFiles/transient_value_test.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 60
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 63
 	$(MAKE) -f CMakeFiles/Makefile2 test/type/CMakeFiles/transient_value_test.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 0
 .PHONY : test/type/CMakeFiles/transient_value_test.dir/rule
@@ -2165,11 +2353,11 @@ test/settings/preinstall:
 test/settings/CMakeFiles/settings_test.dir/all: CMakeFiles/gflags_ep.dir/all
 test/settings/CMakeFiles/settings_test.dir/all: CMakeFiles/googletest_ep.dir/all
 test/settings/CMakeFiles/settings_test.dir/all: src/CMakeFiles/terrier_static.dir/all
-test/settings/CMakeFiles/settings_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 test/settings/CMakeFiles/settings_test.dir/all: test/CMakeFiles/test_util.dir/all
+test/settings/CMakeFiles/settings_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 	$(MAKE) -f test/settings/CMakeFiles/settings_test.dir/build.make test/settings/CMakeFiles/settings_test.dir/depend
 	$(MAKE) -f test/settings/CMakeFiles/settings_test.dir/build.make test/settings/CMakeFiles/settings_test.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles --progress-num= "Built target settings_test"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles --progress-num=52 "Built target settings_test"
 .PHONY : test/settings/CMakeFiles/settings_test.dir/all
 
 # Include target in all.
@@ -2179,7 +2367,7 @@ all: test/settings/CMakeFiles/settings_test.dir/all
 
 # Build rule for subdir invocation for target.
 test/settings/CMakeFiles/settings_test.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 59
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 63
 	$(MAKE) -f CMakeFiles/Makefile2 test/settings/CMakeFiles/settings_test.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 0
 .PHONY : test/settings/CMakeFiles/settings_test.dir/rule
@@ -2226,11 +2414,11 @@ test/planner/preinstall:
 test/planner/CMakeFiles/plan_node_json_test.dir/all: CMakeFiles/gflags_ep.dir/all
 test/planner/CMakeFiles/plan_node_json_test.dir/all: CMakeFiles/googletest_ep.dir/all
 test/planner/CMakeFiles/plan_node_json_test.dir/all: src/CMakeFiles/terrier_static.dir/all
-test/planner/CMakeFiles/plan_node_json_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 test/planner/CMakeFiles/plan_node_json_test.dir/all: test/CMakeFiles/test_util.dir/all
+test/planner/CMakeFiles/plan_node_json_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 	$(MAKE) -f test/planner/CMakeFiles/plan_node_json_test.dir/build.make test/planner/CMakeFiles/plan_node_json_test.dir/depend
 	$(MAKE) -f test/planner/CMakeFiles/plan_node_json_test.dir/build.make test/planner/CMakeFiles/plan_node_json_test.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles --progress-num=53 "Built target plan_node_json_test"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles --progress-num=50 "Built target plan_node_json_test"
 .PHONY : test/planner/CMakeFiles/plan_node_json_test.dir/all
 
 # Include target in all.
@@ -2240,7 +2428,7 @@ all: test/planner/CMakeFiles/plan_node_json_test.dir/all
 
 # Build rule for subdir invocation for target.
 test/planner/CMakeFiles/plan_node_json_test.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 60
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 63
 	$(MAKE) -f CMakeFiles/Makefile2 test/planner/CMakeFiles/plan_node_json_test.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 0
 .PHONY : test/planner/CMakeFiles/plan_node_json_test.dir/rule
@@ -2267,11 +2455,11 @@ clean: test/planner/CMakeFiles/plan_node_json_test.dir/clean
 test/planner/CMakeFiles/plan_node_test.dir/all: CMakeFiles/gflags_ep.dir/all
 test/planner/CMakeFiles/plan_node_test.dir/all: CMakeFiles/googletest_ep.dir/all
 test/planner/CMakeFiles/plan_node_test.dir/all: src/CMakeFiles/terrier_static.dir/all
-test/planner/CMakeFiles/plan_node_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 test/planner/CMakeFiles/plan_node_test.dir/all: test/CMakeFiles/test_util.dir/all
+test/planner/CMakeFiles/plan_node_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 	$(MAKE) -f test/planner/CMakeFiles/plan_node_test.dir/build.make test/planner/CMakeFiles/plan_node_test.dir/depend
 	$(MAKE) -f test/planner/CMakeFiles/plan_node_test.dir/build.make test/planner/CMakeFiles/plan_node_test.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles --progress-num=54 "Built target plan_node_test"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles --progress-num= "Built target plan_node_test"
 .PHONY : test/planner/CMakeFiles/plan_node_test.dir/all
 
 # Include target in all.
@@ -2281,7 +2469,7 @@ all: test/planner/CMakeFiles/plan_node_test.dir/all
 
 # Build rule for subdir invocation for target.
 test/planner/CMakeFiles/plan_node_test.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 60
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 62
 	$(MAKE) -f CMakeFiles/Makefile2 test/planner/CMakeFiles/plan_node_test.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 0
 .PHONY : test/planner/CMakeFiles/plan_node_test.dir/rule
@@ -2298,194 +2486,6 @@ test/planner/CMakeFiles/plan_node_test.dir/clean:
 
 # clean rule for target.
 clean: test/planner/CMakeFiles/plan_node_test.dir/clean
-
-.PHONY : clean
-
-#=============================================================================
-# Directory level rules for directory test/optimizer
-
-# Convenience name for "all" pass in the directory.
-test/optimizer/all: test/optimizer/CMakeFiles/trivial_cost_model_test.dir/all
-test/optimizer/all: test/optimizer/CMakeFiles/physical_operator_test.dir/all
-test/optimizer/all: test/optimizer/CMakeFiles/operator_expression_test.dir/all
-test/optimizer/all: test/optimizer/CMakeFiles/logical_operator_test.dir/all
-
-.PHONY : test/optimizer/all
-
-# Convenience name for "clean" pass in the directory.
-test/optimizer/clean: test/optimizer/CMakeFiles/trivial_cost_model_test.dir/clean
-test/optimizer/clean: test/optimizer/CMakeFiles/physical_operator_test.dir/clean
-test/optimizer/clean: test/optimizer/CMakeFiles/operator_expression_test.dir/clean
-test/optimizer/clean: test/optimizer/CMakeFiles/logical_operator_test.dir/clean
-
-.PHONY : test/optimizer/clean
-
-# Convenience name for "preinstall" pass in the directory.
-test/optimizer/preinstall:
-
-.PHONY : test/optimizer/preinstall
-
-#=============================================================================
-# Target rules for target test/optimizer/CMakeFiles/trivial_cost_model_test.dir
-
-# All Build rule for target.
-test/optimizer/CMakeFiles/trivial_cost_model_test.dir/all: CMakeFiles/gflags_ep.dir/all
-test/optimizer/CMakeFiles/trivial_cost_model_test.dir/all: CMakeFiles/googletest_ep.dir/all
-test/optimizer/CMakeFiles/trivial_cost_model_test.dir/all: src/CMakeFiles/terrier_static.dir/all
-test/optimizer/CMakeFiles/trivial_cost_model_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
-test/optimizer/CMakeFiles/trivial_cost_model_test.dir/all: test/CMakeFiles/test_util.dir/all
-	$(MAKE) -f test/optimizer/CMakeFiles/trivial_cost_model_test.dir/build.make test/optimizer/CMakeFiles/trivial_cost_model_test.dir/depend
-	$(MAKE) -f test/optimizer/CMakeFiles/trivial_cost_model_test.dir/build.make test/optimizer/CMakeFiles/trivial_cost_model_test.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles --progress-num= "Built target trivial_cost_model_test"
-.PHONY : test/optimizer/CMakeFiles/trivial_cost_model_test.dir/all
-
-# Include target in all.
-all: test/optimizer/CMakeFiles/trivial_cost_model_test.dir/all
-
-.PHONY : all
-
-# Build rule for subdir invocation for target.
-test/optimizer/CMakeFiles/trivial_cost_model_test.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 59
-	$(MAKE) -f CMakeFiles/Makefile2 test/optimizer/CMakeFiles/trivial_cost_model_test.dir/all
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 0
-.PHONY : test/optimizer/CMakeFiles/trivial_cost_model_test.dir/rule
-
-# Convenience name for target.
-trivial_cost_model_test: test/optimizer/CMakeFiles/trivial_cost_model_test.dir/rule
-
-.PHONY : trivial_cost_model_test
-
-# clean rule for target.
-test/optimizer/CMakeFiles/trivial_cost_model_test.dir/clean:
-	$(MAKE) -f test/optimizer/CMakeFiles/trivial_cost_model_test.dir/build.make test/optimizer/CMakeFiles/trivial_cost_model_test.dir/clean
-.PHONY : test/optimizer/CMakeFiles/trivial_cost_model_test.dir/clean
-
-# clean rule for target.
-clean: test/optimizer/CMakeFiles/trivial_cost_model_test.dir/clean
-
-.PHONY : clean
-
-#=============================================================================
-# Target rules for target test/optimizer/CMakeFiles/physical_operator_test.dir
-
-# All Build rule for target.
-test/optimizer/CMakeFiles/physical_operator_test.dir/all: CMakeFiles/gflags_ep.dir/all
-test/optimizer/CMakeFiles/physical_operator_test.dir/all: CMakeFiles/googletest_ep.dir/all
-test/optimizer/CMakeFiles/physical_operator_test.dir/all: src/CMakeFiles/terrier_static.dir/all
-test/optimizer/CMakeFiles/physical_operator_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
-test/optimizer/CMakeFiles/physical_operator_test.dir/all: test/CMakeFiles/test_util.dir/all
-	$(MAKE) -f test/optimizer/CMakeFiles/physical_operator_test.dir/build.make test/optimizer/CMakeFiles/physical_operator_test.dir/depend
-	$(MAKE) -f test/optimizer/CMakeFiles/physical_operator_test.dir/build.make test/optimizer/CMakeFiles/physical_operator_test.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles --progress-num=52 "Built target physical_operator_test"
-.PHONY : test/optimizer/CMakeFiles/physical_operator_test.dir/all
-
-# Include target in all.
-all: test/optimizer/CMakeFiles/physical_operator_test.dir/all
-
-.PHONY : all
-
-# Build rule for subdir invocation for target.
-test/optimizer/CMakeFiles/physical_operator_test.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 60
-	$(MAKE) -f CMakeFiles/Makefile2 test/optimizer/CMakeFiles/physical_operator_test.dir/all
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 0
-.PHONY : test/optimizer/CMakeFiles/physical_operator_test.dir/rule
-
-# Convenience name for target.
-physical_operator_test: test/optimizer/CMakeFiles/physical_operator_test.dir/rule
-
-.PHONY : physical_operator_test
-
-# clean rule for target.
-test/optimizer/CMakeFiles/physical_operator_test.dir/clean:
-	$(MAKE) -f test/optimizer/CMakeFiles/physical_operator_test.dir/build.make test/optimizer/CMakeFiles/physical_operator_test.dir/clean
-.PHONY : test/optimizer/CMakeFiles/physical_operator_test.dir/clean
-
-# clean rule for target.
-clean: test/optimizer/CMakeFiles/physical_operator_test.dir/clean
-
-.PHONY : clean
-
-#=============================================================================
-# Target rules for target test/optimizer/CMakeFiles/operator_expression_test.dir
-
-# All Build rule for target.
-test/optimizer/CMakeFiles/operator_expression_test.dir/all: CMakeFiles/gflags_ep.dir/all
-test/optimizer/CMakeFiles/operator_expression_test.dir/all: CMakeFiles/googletest_ep.dir/all
-test/optimizer/CMakeFiles/operator_expression_test.dir/all: src/CMakeFiles/terrier_static.dir/all
-test/optimizer/CMakeFiles/operator_expression_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
-test/optimizer/CMakeFiles/operator_expression_test.dir/all: test/CMakeFiles/test_util.dir/all
-	$(MAKE) -f test/optimizer/CMakeFiles/operator_expression_test.dir/build.make test/optimizer/CMakeFiles/operator_expression_test.dir/depend
-	$(MAKE) -f test/optimizer/CMakeFiles/operator_expression_test.dir/build.make test/optimizer/CMakeFiles/operator_expression_test.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles --progress-num=30 "Built target operator_expression_test"
-.PHONY : test/optimizer/CMakeFiles/operator_expression_test.dir/all
-
-# Include target in all.
-all: test/optimizer/CMakeFiles/operator_expression_test.dir/all
-
-.PHONY : all
-
-# Build rule for subdir invocation for target.
-test/optimizer/CMakeFiles/operator_expression_test.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 60
-	$(MAKE) -f CMakeFiles/Makefile2 test/optimizer/CMakeFiles/operator_expression_test.dir/all
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 0
-.PHONY : test/optimizer/CMakeFiles/operator_expression_test.dir/rule
-
-# Convenience name for target.
-operator_expression_test: test/optimizer/CMakeFiles/operator_expression_test.dir/rule
-
-.PHONY : operator_expression_test
-
-# clean rule for target.
-test/optimizer/CMakeFiles/operator_expression_test.dir/clean:
-	$(MAKE) -f test/optimizer/CMakeFiles/operator_expression_test.dir/build.make test/optimizer/CMakeFiles/operator_expression_test.dir/clean
-.PHONY : test/optimizer/CMakeFiles/operator_expression_test.dir/clean
-
-# clean rule for target.
-clean: test/optimizer/CMakeFiles/operator_expression_test.dir/clean
-
-.PHONY : clean
-
-#=============================================================================
-# Target rules for target test/optimizer/CMakeFiles/logical_operator_test.dir
-
-# All Build rule for target.
-test/optimizer/CMakeFiles/logical_operator_test.dir/all: CMakeFiles/gflags_ep.dir/all
-test/optimizer/CMakeFiles/logical_operator_test.dir/all: CMakeFiles/googletest_ep.dir/all
-test/optimizer/CMakeFiles/logical_operator_test.dir/all: src/CMakeFiles/terrier_static.dir/all
-test/optimizer/CMakeFiles/logical_operator_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
-test/optimizer/CMakeFiles/logical_operator_test.dir/all: test/CMakeFiles/test_util.dir/all
-	$(MAKE) -f test/optimizer/CMakeFiles/logical_operator_test.dir/build.make test/optimizer/CMakeFiles/logical_operator_test.dir/depend
-	$(MAKE) -f test/optimizer/CMakeFiles/logical_operator_test.dir/build.make test/optimizer/CMakeFiles/logical_operator_test.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles --progress-num=26 "Built target logical_operator_test"
-.PHONY : test/optimizer/CMakeFiles/logical_operator_test.dir/all
-
-# Include target in all.
-all: test/optimizer/CMakeFiles/logical_operator_test.dir/all
-
-.PHONY : all
-
-# Build rule for subdir invocation for target.
-test/optimizer/CMakeFiles/logical_operator_test.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 60
-	$(MAKE) -f CMakeFiles/Makefile2 test/optimizer/CMakeFiles/logical_operator_test.dir/all
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 0
-.PHONY : test/optimizer/CMakeFiles/logical_operator_test.dir/rule
-
-# Convenience name for target.
-logical_operator_test: test/optimizer/CMakeFiles/logical_operator_test.dir/rule
-
-.PHONY : logical_operator_test
-
-# clean rule for target.
-test/optimizer/CMakeFiles/logical_operator_test.dir/clean:
-	$(MAKE) -f test/optimizer/CMakeFiles/logical_operator_test.dir/build.make test/optimizer/CMakeFiles/logical_operator_test.dir/clean
-.PHONY : test/optimizer/CMakeFiles/logical_operator_test.dir/clean
-
-# clean rule for target.
-clean: test/optimizer/CMakeFiles/logical_operator_test.dir/clean
 
 .PHONY : clean
 
@@ -2514,8 +2514,8 @@ test/traffic_cop/preinstall:
 test/traffic_cop/CMakeFiles/traffic_cop_test.dir/all: CMakeFiles/gflags_ep.dir/all
 test/traffic_cop/CMakeFiles/traffic_cop_test.dir/all: CMakeFiles/googletest_ep.dir/all
 test/traffic_cop/CMakeFiles/traffic_cop_test.dir/all: src/CMakeFiles/terrier_static.dir/all
-test/traffic_cop/CMakeFiles/traffic_cop_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 test/traffic_cop/CMakeFiles/traffic_cop_test.dir/all: test/CMakeFiles/test_util.dir/all
+test/traffic_cop/CMakeFiles/traffic_cop_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 	$(MAKE) -f test/traffic_cop/CMakeFiles/traffic_cop_test.dir/build.make test/traffic_cop/CMakeFiles/traffic_cop_test.dir/depend
 	$(MAKE) -f test/traffic_cop/CMakeFiles/traffic_cop_test.dir/build.make test/traffic_cop/CMakeFiles/traffic_cop_test.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles --progress-num=95 "Built target traffic_cop_test"
@@ -2528,7 +2528,7 @@ all: test/traffic_cop/CMakeFiles/traffic_cop_test.dir/all
 
 # Build rule for subdir invocation for target.
 test/traffic_cop/CMakeFiles/traffic_cop_test.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 60
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 63
 	$(MAKE) -f CMakeFiles/Makefile2 test/traffic_cop/CMakeFiles/traffic_cop_test.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 0
 .PHONY : test/traffic_cop/CMakeFiles/traffic_cop_test.dir/rule
@@ -2573,11 +2573,11 @@ test/integration/preinstall:
 test/integration/CMakeFiles/tpcc_test.dir/all: CMakeFiles/gflags_ep.dir/all
 test/integration/CMakeFiles/tpcc_test.dir/all: CMakeFiles/googletest_ep.dir/all
 test/integration/CMakeFiles/tpcc_test.dir/all: src/CMakeFiles/terrier_static.dir/all
-test/integration/CMakeFiles/tpcc_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 test/integration/CMakeFiles/tpcc_test.dir/all: test/CMakeFiles/test_util.dir/all
+test/integration/CMakeFiles/tpcc_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 	$(MAKE) -f test/integration/CMakeFiles/tpcc_test.dir/build.make test/integration/CMakeFiles/tpcc_test.dir/depend
 	$(MAKE) -f test/integration/CMakeFiles/tpcc_test.dir/build.make test/integration/CMakeFiles/tpcc_test.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles --progress-num=94 "Built target tpcc_test"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles --progress-num= "Built target tpcc_test"
 .PHONY : test/integration/CMakeFiles/tpcc_test.dir/all
 
 # Include target in all.
@@ -2587,7 +2587,7 @@ all: test/integration/CMakeFiles/tpcc_test.dir/all
 
 # Build rule for subdir invocation for target.
 test/integration/CMakeFiles/tpcc_test.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 60
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 62
 	$(MAKE) -f CMakeFiles/Makefile2 test/integration/CMakeFiles/tpcc_test.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 0
 .PHONY : test/integration/CMakeFiles/tpcc_test.dir/rule
@@ -2637,8 +2637,8 @@ benchmark/preinstall: benchmark/transaction/preinstall
 # Target rules for target benchmark/CMakeFiles/benchmark_util.dir
 
 # All Build rule for target.
-benchmark/CMakeFiles/benchmark_util.dir/all: CMakeFiles/gbenchmark_ep.dir/all
 benchmark/CMakeFiles/benchmark_util.dir/all: CMakeFiles/googletest_ep.dir/all
+benchmark/CMakeFiles/benchmark_util.dir/all: CMakeFiles/gbenchmark_ep.dir/all
 	$(MAKE) -f benchmark/CMakeFiles/benchmark_util.dir/build.make benchmark/CMakeFiles/benchmark_util.dir/depend
 	$(MAKE) -f benchmark/CMakeFiles/benchmark_util.dir/build.make benchmark/CMakeFiles/benchmark_util.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles --progress-num=1 "Built target benchmark_util"
@@ -2651,7 +2651,7 @@ all: benchmark/CMakeFiles/benchmark_util.dir/all
 
 # Build rule for subdir invocation for target.
 benchmark/CMakeFiles/benchmark_util.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 8
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 7
 	$(MAKE) -f CMakeFiles/Makefile2 benchmark/CMakeFiles/benchmark_util.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 0
 .PHONY : benchmark/CMakeFiles/benchmark_util.dir/rule
@@ -2701,12 +2701,12 @@ benchmark/storage/preinstall:
 # Target rules for target benchmark/storage/CMakeFiles/data_table_benchmark.dir
 
 # All Build rule for target.
-benchmark/storage/CMakeFiles/data_table_benchmark.dir/all: CMakeFiles/gbenchmark_ep.dir/all
 benchmark/storage/CMakeFiles/data_table_benchmark.dir/all: CMakeFiles/gflags_ep.dir/all
 benchmark/storage/CMakeFiles/data_table_benchmark.dir/all: CMakeFiles/googletest_ep.dir/all
 benchmark/storage/CMakeFiles/data_table_benchmark.dir/all: src/CMakeFiles/terrier_static.dir/all
-benchmark/storage/CMakeFiles/data_table_benchmark.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
+benchmark/storage/CMakeFiles/data_table_benchmark.dir/all: CMakeFiles/gbenchmark_ep.dir/all
 benchmark/storage/CMakeFiles/data_table_benchmark.dir/all: test/CMakeFiles/test_util.dir/all
+benchmark/storage/CMakeFiles/data_table_benchmark.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 benchmark/storage/CMakeFiles/data_table_benchmark.dir/all: benchmark/CMakeFiles/benchmark_util.dir/all
 	$(MAKE) -f benchmark/storage/CMakeFiles/data_table_benchmark.dir/build.make benchmark/storage/CMakeFiles/data_table_benchmark.dir/depend
 	$(MAKE) -f benchmark/storage/CMakeFiles/data_table_benchmark.dir/build.make benchmark/storage/CMakeFiles/data_table_benchmark.dir/build
@@ -2720,7 +2720,7 @@ all: benchmark/storage/CMakeFiles/data_table_benchmark.dir/all
 
 # Build rule for subdir invocation for target.
 benchmark/storage/CMakeFiles/data_table_benchmark.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 65
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 67
 	$(MAKE) -f CMakeFiles/Makefile2 benchmark/storage/CMakeFiles/data_table_benchmark.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 0
 .PHONY : benchmark/storage/CMakeFiles/data_table_benchmark.dir/rule
@@ -2744,16 +2744,16 @@ clean: benchmark/storage/CMakeFiles/data_table_benchmark.dir/clean
 # Target rules for target benchmark/storage/CMakeFiles/garbage_collector_benchmark.dir
 
 # All Build rule for target.
-benchmark/storage/CMakeFiles/garbage_collector_benchmark.dir/all: CMakeFiles/gbenchmark_ep.dir/all
 benchmark/storage/CMakeFiles/garbage_collector_benchmark.dir/all: CMakeFiles/gflags_ep.dir/all
 benchmark/storage/CMakeFiles/garbage_collector_benchmark.dir/all: CMakeFiles/googletest_ep.dir/all
 benchmark/storage/CMakeFiles/garbage_collector_benchmark.dir/all: src/CMakeFiles/terrier_static.dir/all
-benchmark/storage/CMakeFiles/garbage_collector_benchmark.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
+benchmark/storage/CMakeFiles/garbage_collector_benchmark.dir/all: CMakeFiles/gbenchmark_ep.dir/all
 benchmark/storage/CMakeFiles/garbage_collector_benchmark.dir/all: test/CMakeFiles/test_util.dir/all
+benchmark/storage/CMakeFiles/garbage_collector_benchmark.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 benchmark/storage/CMakeFiles/garbage_collector_benchmark.dir/all: benchmark/CMakeFiles/benchmark_util.dir/all
 	$(MAKE) -f benchmark/storage/CMakeFiles/garbage_collector_benchmark.dir/build.make benchmark/storage/CMakeFiles/garbage_collector_benchmark.dir/depend
 	$(MAKE) -f benchmark/storage/CMakeFiles/garbage_collector_benchmark.dir/build.make benchmark/storage/CMakeFiles/garbage_collector_benchmark.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles --progress-num=11 "Built target garbage_collector_benchmark"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles --progress-num=10 "Built target garbage_collector_benchmark"
 .PHONY : benchmark/storage/CMakeFiles/garbage_collector_benchmark.dir/all
 
 # Include target in all.
@@ -2763,7 +2763,7 @@ all: benchmark/storage/CMakeFiles/garbage_collector_benchmark.dir/all
 
 # Build rule for subdir invocation for target.
 benchmark/storage/CMakeFiles/garbage_collector_benchmark.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 65
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 67
 	$(MAKE) -f CMakeFiles/Makefile2 benchmark/storage/CMakeFiles/garbage_collector_benchmark.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 0
 .PHONY : benchmark/storage/CMakeFiles/garbage_collector_benchmark.dir/rule
@@ -2787,12 +2787,12 @@ clean: benchmark/storage/CMakeFiles/garbage_collector_benchmark.dir/clean
 # Target rules for target benchmark/storage/CMakeFiles/bwtree_benchmark.dir
 
 # All Build rule for target.
-benchmark/storage/CMakeFiles/bwtree_benchmark.dir/all: CMakeFiles/gbenchmark_ep.dir/all
 benchmark/storage/CMakeFiles/bwtree_benchmark.dir/all: CMakeFiles/gflags_ep.dir/all
 benchmark/storage/CMakeFiles/bwtree_benchmark.dir/all: CMakeFiles/googletest_ep.dir/all
 benchmark/storage/CMakeFiles/bwtree_benchmark.dir/all: src/CMakeFiles/terrier_static.dir/all
-benchmark/storage/CMakeFiles/bwtree_benchmark.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
+benchmark/storage/CMakeFiles/bwtree_benchmark.dir/all: CMakeFiles/gbenchmark_ep.dir/all
 benchmark/storage/CMakeFiles/bwtree_benchmark.dir/all: test/CMakeFiles/test_util.dir/all
+benchmark/storage/CMakeFiles/bwtree_benchmark.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 benchmark/storage/CMakeFiles/bwtree_benchmark.dir/all: benchmark/CMakeFiles/benchmark_util.dir/all
 	$(MAKE) -f benchmark/storage/CMakeFiles/bwtree_benchmark.dir/build.make benchmark/storage/CMakeFiles/bwtree_benchmark.dir/depend
 	$(MAKE) -f benchmark/storage/CMakeFiles/bwtree_benchmark.dir/build.make benchmark/storage/CMakeFiles/bwtree_benchmark.dir/build
@@ -2806,7 +2806,7 @@ all: benchmark/storage/CMakeFiles/bwtree_benchmark.dir/all
 
 # Build rule for subdir invocation for target.
 benchmark/storage/CMakeFiles/bwtree_benchmark.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 65
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 67
 	$(MAKE) -f CMakeFiles/Makefile2 benchmark/storage/CMakeFiles/bwtree_benchmark.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 0
 .PHONY : benchmark/storage/CMakeFiles/bwtree_benchmark.dir/rule
@@ -2830,16 +2830,16 @@ clean: benchmark/storage/CMakeFiles/bwtree_benchmark.dir/clean
 # Target rules for target benchmark/storage/CMakeFiles/tuple_access_strategy_benchmark.dir
 
 # All Build rule for target.
-benchmark/storage/CMakeFiles/tuple_access_strategy_benchmark.dir/all: CMakeFiles/gbenchmark_ep.dir/all
 benchmark/storage/CMakeFiles/tuple_access_strategy_benchmark.dir/all: CMakeFiles/gflags_ep.dir/all
 benchmark/storage/CMakeFiles/tuple_access_strategy_benchmark.dir/all: CMakeFiles/googletest_ep.dir/all
 benchmark/storage/CMakeFiles/tuple_access_strategy_benchmark.dir/all: src/CMakeFiles/terrier_static.dir/all
-benchmark/storage/CMakeFiles/tuple_access_strategy_benchmark.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
+benchmark/storage/CMakeFiles/tuple_access_strategy_benchmark.dir/all: CMakeFiles/gbenchmark_ep.dir/all
 benchmark/storage/CMakeFiles/tuple_access_strategy_benchmark.dir/all: test/CMakeFiles/test_util.dir/all
+benchmark/storage/CMakeFiles/tuple_access_strategy_benchmark.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 benchmark/storage/CMakeFiles/tuple_access_strategy_benchmark.dir/all: benchmark/CMakeFiles/benchmark_util.dir/all
 	$(MAKE) -f benchmark/storage/CMakeFiles/tuple_access_strategy_benchmark.dir/build.make benchmark/storage/CMakeFiles/tuple_access_strategy_benchmark.dir/depend
 	$(MAKE) -f benchmark/storage/CMakeFiles/tuple_access_strategy_benchmark.dir/build.make benchmark/storage/CMakeFiles/tuple_access_strategy_benchmark.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles --progress-num=97 "Built target tuple_access_strategy_benchmark"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles --progress-num= "Built target tuple_access_strategy_benchmark"
 .PHONY : benchmark/storage/CMakeFiles/tuple_access_strategy_benchmark.dir/all
 
 # Include target in all.
@@ -2849,7 +2849,7 @@ all: benchmark/storage/CMakeFiles/tuple_access_strategy_benchmark.dir/all
 
 # Build rule for subdir invocation for target.
 benchmark/storage/CMakeFiles/tuple_access_strategy_benchmark.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 65
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 66
 	$(MAKE) -f CMakeFiles/Makefile2 benchmark/storage/CMakeFiles/tuple_access_strategy_benchmark.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 0
 .PHONY : benchmark/storage/CMakeFiles/tuple_access_strategy_benchmark.dir/rule
@@ -2873,16 +2873,16 @@ clean: benchmark/storage/CMakeFiles/tuple_access_strategy_benchmark.dir/clean
 # Target rules for target benchmark/storage/CMakeFiles/logging_benchmark.dir
 
 # All Build rule for target.
-benchmark/storage/CMakeFiles/logging_benchmark.dir/all: CMakeFiles/gbenchmark_ep.dir/all
 benchmark/storage/CMakeFiles/logging_benchmark.dir/all: CMakeFiles/gflags_ep.dir/all
 benchmark/storage/CMakeFiles/logging_benchmark.dir/all: CMakeFiles/googletest_ep.dir/all
 benchmark/storage/CMakeFiles/logging_benchmark.dir/all: src/CMakeFiles/terrier_static.dir/all
-benchmark/storage/CMakeFiles/logging_benchmark.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
+benchmark/storage/CMakeFiles/logging_benchmark.dir/all: CMakeFiles/gbenchmark_ep.dir/all
 benchmark/storage/CMakeFiles/logging_benchmark.dir/all: test/CMakeFiles/test_util.dir/all
+benchmark/storage/CMakeFiles/logging_benchmark.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 benchmark/storage/CMakeFiles/logging_benchmark.dir/all: benchmark/CMakeFiles/benchmark_util.dir/all
 	$(MAKE) -f benchmark/storage/CMakeFiles/logging_benchmark.dir/build.make benchmark/storage/CMakeFiles/logging_benchmark.dir/depend
 	$(MAKE) -f benchmark/storage/CMakeFiles/logging_benchmark.dir/build.make benchmark/storage/CMakeFiles/logging_benchmark.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles --progress-num= "Built target logging_benchmark"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles --progress-num=24 "Built target logging_benchmark"
 .PHONY : benchmark/storage/CMakeFiles/logging_benchmark.dir/all
 
 # Include target in all.
@@ -2892,7 +2892,7 @@ all: benchmark/storage/CMakeFiles/logging_benchmark.dir/all
 
 # Build rule for subdir invocation for target.
 benchmark/storage/CMakeFiles/logging_benchmark.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 64
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 67
 	$(MAKE) -f CMakeFiles/Makefile2 benchmark/storage/CMakeFiles/logging_benchmark.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 0
 .PHONY : benchmark/storage/CMakeFiles/logging_benchmark.dir/rule
@@ -2934,16 +2934,16 @@ benchmark/integration/preinstall:
 # Target rules for target benchmark/integration/CMakeFiles/tpcc_benchmark.dir
 
 # All Build rule for target.
-benchmark/integration/CMakeFiles/tpcc_benchmark.dir/all: CMakeFiles/gbenchmark_ep.dir/all
 benchmark/integration/CMakeFiles/tpcc_benchmark.dir/all: CMakeFiles/gflags_ep.dir/all
 benchmark/integration/CMakeFiles/tpcc_benchmark.dir/all: CMakeFiles/googletest_ep.dir/all
 benchmark/integration/CMakeFiles/tpcc_benchmark.dir/all: src/CMakeFiles/terrier_static.dir/all
-benchmark/integration/CMakeFiles/tpcc_benchmark.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
+benchmark/integration/CMakeFiles/tpcc_benchmark.dir/all: CMakeFiles/gbenchmark_ep.dir/all
 benchmark/integration/CMakeFiles/tpcc_benchmark.dir/all: test/CMakeFiles/test_util.dir/all
+benchmark/integration/CMakeFiles/tpcc_benchmark.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 benchmark/integration/CMakeFiles/tpcc_benchmark.dir/all: benchmark/CMakeFiles/benchmark_util.dir/all
 	$(MAKE) -f benchmark/integration/CMakeFiles/tpcc_benchmark.dir/build.make benchmark/integration/CMakeFiles/tpcc_benchmark.dir/depend
 	$(MAKE) -f benchmark/integration/CMakeFiles/tpcc_benchmark.dir/build.make benchmark/integration/CMakeFiles/tpcc_benchmark.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles --progress-num= "Built target tpcc_benchmark"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles --progress-num=94 "Built target tpcc_benchmark"
 .PHONY : benchmark/integration/CMakeFiles/tpcc_benchmark.dir/all
 
 # Include target in all.
@@ -2953,7 +2953,7 @@ all: benchmark/integration/CMakeFiles/tpcc_benchmark.dir/all
 
 # Build rule for subdir invocation for target.
 benchmark/integration/CMakeFiles/tpcc_benchmark.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 64
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 67
 	$(MAKE) -f CMakeFiles/Makefile2 benchmark/integration/CMakeFiles/tpcc_benchmark.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 0
 .PHONY : benchmark/integration/CMakeFiles/tpcc_benchmark.dir/rule
@@ -2995,16 +2995,16 @@ benchmark/transaction/preinstall:
 # Target rules for target benchmark/transaction/CMakeFiles/large_transaction_benchmark.dir
 
 # All Build rule for target.
-benchmark/transaction/CMakeFiles/large_transaction_benchmark.dir/all: CMakeFiles/gbenchmark_ep.dir/all
 benchmark/transaction/CMakeFiles/large_transaction_benchmark.dir/all: CMakeFiles/gflags_ep.dir/all
 benchmark/transaction/CMakeFiles/large_transaction_benchmark.dir/all: CMakeFiles/googletest_ep.dir/all
 benchmark/transaction/CMakeFiles/large_transaction_benchmark.dir/all: src/CMakeFiles/terrier_static.dir/all
-benchmark/transaction/CMakeFiles/large_transaction_benchmark.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
+benchmark/transaction/CMakeFiles/large_transaction_benchmark.dir/all: CMakeFiles/gbenchmark_ep.dir/all
 benchmark/transaction/CMakeFiles/large_transaction_benchmark.dir/all: test/CMakeFiles/test_util.dir/all
+benchmark/transaction/CMakeFiles/large_transaction_benchmark.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 benchmark/transaction/CMakeFiles/large_transaction_benchmark.dir/all: benchmark/CMakeFiles/benchmark_util.dir/all
 	$(MAKE) -f benchmark/transaction/CMakeFiles/large_transaction_benchmark.dir/build.make benchmark/transaction/CMakeFiles/large_transaction_benchmark.dir/depend
 	$(MAKE) -f benchmark/transaction/CMakeFiles/large_transaction_benchmark.dir/build.make benchmark/transaction/CMakeFiles/large_transaction_benchmark.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles --progress-num=23 "Built target large_transaction_benchmark"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles --progress-num=22 "Built target large_transaction_benchmark"
 .PHONY : benchmark/transaction/CMakeFiles/large_transaction_benchmark.dir/all
 
 # Include target in all.
@@ -3014,7 +3014,7 @@ all: benchmark/transaction/CMakeFiles/large_transaction_benchmark.dir/all
 
 # Build rule for subdir invocation for target.
 benchmark/transaction/CMakeFiles/large_transaction_benchmark.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 65
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 67
 	$(MAKE) -f CMakeFiles/Makefile2 benchmark/transaction/CMakeFiles/large_transaction_benchmark.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/vivianhuang/Desktop/terrier/cmake-build-benchmarking/CMakeFiles 0
 .PHONY : benchmark/transaction/CMakeFiles/large_transaction_benchmark.dir/rule

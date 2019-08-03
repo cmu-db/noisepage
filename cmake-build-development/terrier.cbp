@@ -5,7 +5,7 @@
 		<Option title="terrier"/>
 		<Option makefile_is_custom="1"/>
 		<Option compiler="gcc"/>
-		<Option virtualFolders="CMake Files\;CMake Files\third_party\;CMake Files\third_party\libpg_query\;CMake Files\cmake_modules\;CMake Files\cmake-build-development\;CMake Files\cmake-build-development\googletest_ep-prefix\;CMake Files\cmake-build-development\googletest_ep-prefix\tmp\;CMake Files\cmake-build-development\gflags_ep-prefix\;CMake Files\cmake-build-development\gflags_ep-prefix\tmp\;CMake Files\cmake-build-development\gbenchmark_ep-prefix\;CMake Files\cmake-build-development\gbenchmark_ep-prefix\tmp\;CMake Files\..\;CMake Files\..\..\;CMake Files\..\..\..\;CMake Files\..\..\..\..\;CMake Files\..\..\..\..\usr\;CMake Files\..\..\..\..\usr\local\;CMake Files\..\..\..\..\usr\local\Cellar\;CMake Files\..\..\..\..\usr\local\Cellar\llvm@6\;CMake Files\..\..\..\..\usr\local\Cellar\llvm@6\6.0.1_1\;CMake Files\..\..\..\..\usr\local\Cellar\llvm@6\6.0.1_1\lib\;CMake Files\..\..\..\..\usr\local\Cellar\llvm@6\6.0.1_1\lib\cmake\;CMake Files\..\..\..\..\usr\local\Cellar\llvm@6\6.0.1_1\lib\cmake\llvm\;CMake Files\src\;CMake Files\test\;CMake Files\test\common\;CMake Files\test\network\;CMake Files\test\parser\;CMake Files\test\storage\;CMake Files\test\transaction\;CMake Files\test\type\;CMake Files\test\settings\;CMake Files\test\planner\;CMake Files\test\optimizer\;CMake Files\test\traffic_cop\;CMake Files\test\integration\;CMake Files\benchmark\;CMake Files\benchmark\storage\;CMake Files\benchmark\integration\;CMake Files\benchmark\transaction\;"/>
+		<Option virtualFolders="CMake Files\;CMake Files\third_party\;CMake Files\third_party\libpg_query\;CMake Files\cmake_modules\;CMake Files\cmake-build-development\;CMake Files\cmake-build-development\googletest_ep-prefix\;CMake Files\cmake-build-development\googletest_ep-prefix\tmp\;CMake Files\cmake-build-development\gflags_ep-prefix\;CMake Files\cmake-build-development\gflags_ep-prefix\tmp\;CMake Files\cmake-build-development\gbenchmark_ep-prefix\;CMake Files\cmake-build-development\gbenchmark_ep-prefix\tmp\;CMake Files\..\;CMake Files\..\..\;CMake Files\..\..\..\;CMake Files\..\..\..\..\;CMake Files\..\..\..\..\usr\;CMake Files\..\..\..\..\usr\local\;CMake Files\..\..\..\..\usr\local\Cellar\;CMake Files\..\..\..\..\usr\local\Cellar\llvm@6\;CMake Files\..\..\..\..\usr\local\Cellar\llvm@6\6.0.1_1\;CMake Files\..\..\..\..\usr\local\Cellar\llvm@6\6.0.1_1\lib\;CMake Files\..\..\..\..\usr\local\Cellar\llvm@6\6.0.1_1\lib\cmake\;CMake Files\..\..\..\..\usr\local\Cellar\llvm@6\6.0.1_1\lib\cmake\llvm\;CMake Files\src\;CMake Files\test\;CMake Files\test\common\;CMake Files\test\network\;CMake Files\test\parser\;CMake Files\test\optimizer\;CMake Files\test\storage\;CMake Files\test\transaction\;CMake Files\test\type\;CMake Files\test\settings\;CMake Files\test\planner\;CMake Files\test\traffic_cop\;CMake Files\test\integration\;CMake Files\benchmark\;CMake Files\benchmark\storage\;CMake Files\benchmark\integration\;CMake Files\benchmark\transaction\;"/>
 		<Build>
 			<Target title="all">
 				<Option working_dir="/Users/vivianhuang/Desktop/terrier/cmake-build-development"/>
@@ -1315,6 +1315,254 @@
 					<DistClean command="/usr/bin/make -j4 -f &quot;/Users/vivianhuang/Desktop/terrier/cmake-build-development/test/parser/Makefile&quot;  VERBOSE=1 clean"/>
 				</MakeCommands>
 			</Target>
+			<Target title="trivial_cost_model_test">
+				<Option output="/Users/vivianhuang/Desktop/terrier/cmake-build-development/debug/trivial_cost_model_test" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/Users/vivianhuang/Desktop/terrier/cmake-build-development/debug/"/>
+				<Option object_output="./"/>
+				<Option type="1"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add directory="/Users/vivianhuang/Desktop/terrier/src/include"/>
+					<Add directory="/Users/vivianhuang/Desktop/terrier/third_party"/>
+					<Add directory="/Users/vivianhuang/Desktop/terrier/test/include"/>
+					<Add directory="/Users/vivianhuang/Desktop/terrier/benchmark/include"/>
+					<Add directory="/Users/vivianhuang/Desktop/terrier/cmake-build-development"/>
+					<Add directory="/Users/vivianhuang/Desktop/terrier/cmake-build-development/googletest_ep-prefix/src/googletest_ep/include"/>
+					<Add directory="/Users/vivianhuang/Desktop/terrier/cmake-build-development/gflags_ep-prefix/src/gflags_ep/include"/>
+					<Add directory="/Users/vivianhuang/Desktop/terrier/cmake-build-development/gbenchmark_ep/src/gbenchmark_ep-install/include"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/usr/local/Cellar/llvm@6/6.0.1_1/include"/>
+					<Add directory="/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.14.sdk/usr/include"/>
+					<Add directory="/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include/c++/v1"/>
+					<Add directory="/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/10.0.1/include"/>
+					<Add directory="/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include"/>
+					<Add directory="/System/Library/Frameworks"/>
+					<Add directory="/Library/Frameworks"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j4 -f &quot;/Users/vivianhuang/Desktop/terrier/cmake-build-development/test/optimizer/Makefile&quot;  VERBOSE=1 trivial_cost_model_test"/>
+					<CompileFile command="/usr/bin/make -j4 -f &quot;/Users/vivianhuang/Desktop/terrier/cmake-build-development/test/optimizer/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j4 -f &quot;/Users/vivianhuang/Desktop/terrier/cmake-build-development/test/optimizer/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j4 -f &quot;/Users/vivianhuang/Desktop/terrier/cmake-build-development/test/optimizer/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="trivial_cost_model_test/fast">
+				<Option output="/Users/vivianhuang/Desktop/terrier/cmake-build-development/debug/trivial_cost_model_test" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/Users/vivianhuang/Desktop/terrier/cmake-build-development/debug/"/>
+				<Option object_output="./"/>
+				<Option type="1"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add directory="/Users/vivianhuang/Desktop/terrier/src/include"/>
+					<Add directory="/Users/vivianhuang/Desktop/terrier/third_party"/>
+					<Add directory="/Users/vivianhuang/Desktop/terrier/test/include"/>
+					<Add directory="/Users/vivianhuang/Desktop/terrier/benchmark/include"/>
+					<Add directory="/Users/vivianhuang/Desktop/terrier/cmake-build-development"/>
+					<Add directory="/Users/vivianhuang/Desktop/terrier/cmake-build-development/googletest_ep-prefix/src/googletest_ep/include"/>
+					<Add directory="/Users/vivianhuang/Desktop/terrier/cmake-build-development/gflags_ep-prefix/src/gflags_ep/include"/>
+					<Add directory="/Users/vivianhuang/Desktop/terrier/cmake-build-development/gbenchmark_ep/src/gbenchmark_ep-install/include"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/usr/local/Cellar/llvm@6/6.0.1_1/include"/>
+					<Add directory="/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.14.sdk/usr/include"/>
+					<Add directory="/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include/c++/v1"/>
+					<Add directory="/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/10.0.1/include"/>
+					<Add directory="/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include"/>
+					<Add directory="/System/Library/Frameworks"/>
+					<Add directory="/Library/Frameworks"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j4 -f &quot;/Users/vivianhuang/Desktop/terrier/cmake-build-development/test/optimizer/Makefile&quot;  VERBOSE=1 trivial_cost_model_test/fast"/>
+					<CompileFile command="/usr/bin/make -j4 -f &quot;/Users/vivianhuang/Desktop/terrier/cmake-build-development/test/optimizer/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j4 -f &quot;/Users/vivianhuang/Desktop/terrier/cmake-build-development/test/optimizer/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j4 -f &quot;/Users/vivianhuang/Desktop/terrier/cmake-build-development/test/optimizer/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="physical_operator_test">
+				<Option output="/Users/vivianhuang/Desktop/terrier/cmake-build-development/debug/physical_operator_test" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/Users/vivianhuang/Desktop/terrier/cmake-build-development/debug/"/>
+				<Option object_output="./"/>
+				<Option type="1"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add directory="/Users/vivianhuang/Desktop/terrier/src/include"/>
+					<Add directory="/Users/vivianhuang/Desktop/terrier/third_party"/>
+					<Add directory="/Users/vivianhuang/Desktop/terrier/test/include"/>
+					<Add directory="/Users/vivianhuang/Desktop/terrier/benchmark/include"/>
+					<Add directory="/Users/vivianhuang/Desktop/terrier/cmake-build-development"/>
+					<Add directory="/Users/vivianhuang/Desktop/terrier/cmake-build-development/googletest_ep-prefix/src/googletest_ep/include"/>
+					<Add directory="/Users/vivianhuang/Desktop/terrier/cmake-build-development/gflags_ep-prefix/src/gflags_ep/include"/>
+					<Add directory="/Users/vivianhuang/Desktop/terrier/cmake-build-development/gbenchmark_ep/src/gbenchmark_ep-install/include"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/usr/local/Cellar/llvm@6/6.0.1_1/include"/>
+					<Add directory="/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.14.sdk/usr/include"/>
+					<Add directory="/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include/c++/v1"/>
+					<Add directory="/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/10.0.1/include"/>
+					<Add directory="/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include"/>
+					<Add directory="/System/Library/Frameworks"/>
+					<Add directory="/Library/Frameworks"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j4 -f &quot;/Users/vivianhuang/Desktop/terrier/cmake-build-development/test/optimizer/Makefile&quot;  VERBOSE=1 physical_operator_test"/>
+					<CompileFile command="/usr/bin/make -j4 -f &quot;/Users/vivianhuang/Desktop/terrier/cmake-build-development/test/optimizer/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j4 -f &quot;/Users/vivianhuang/Desktop/terrier/cmake-build-development/test/optimizer/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j4 -f &quot;/Users/vivianhuang/Desktop/terrier/cmake-build-development/test/optimizer/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="physical_operator_test/fast">
+				<Option output="/Users/vivianhuang/Desktop/terrier/cmake-build-development/debug/physical_operator_test" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/Users/vivianhuang/Desktop/terrier/cmake-build-development/debug/"/>
+				<Option object_output="./"/>
+				<Option type="1"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add directory="/Users/vivianhuang/Desktop/terrier/src/include"/>
+					<Add directory="/Users/vivianhuang/Desktop/terrier/third_party"/>
+					<Add directory="/Users/vivianhuang/Desktop/terrier/test/include"/>
+					<Add directory="/Users/vivianhuang/Desktop/terrier/benchmark/include"/>
+					<Add directory="/Users/vivianhuang/Desktop/terrier/cmake-build-development"/>
+					<Add directory="/Users/vivianhuang/Desktop/terrier/cmake-build-development/googletest_ep-prefix/src/googletest_ep/include"/>
+					<Add directory="/Users/vivianhuang/Desktop/terrier/cmake-build-development/gflags_ep-prefix/src/gflags_ep/include"/>
+					<Add directory="/Users/vivianhuang/Desktop/terrier/cmake-build-development/gbenchmark_ep/src/gbenchmark_ep-install/include"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/usr/local/Cellar/llvm@6/6.0.1_1/include"/>
+					<Add directory="/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.14.sdk/usr/include"/>
+					<Add directory="/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include/c++/v1"/>
+					<Add directory="/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/10.0.1/include"/>
+					<Add directory="/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include"/>
+					<Add directory="/System/Library/Frameworks"/>
+					<Add directory="/Library/Frameworks"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j4 -f &quot;/Users/vivianhuang/Desktop/terrier/cmake-build-development/test/optimizer/Makefile&quot;  VERBOSE=1 physical_operator_test/fast"/>
+					<CompileFile command="/usr/bin/make -j4 -f &quot;/Users/vivianhuang/Desktop/terrier/cmake-build-development/test/optimizer/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j4 -f &quot;/Users/vivianhuang/Desktop/terrier/cmake-build-development/test/optimizer/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j4 -f &quot;/Users/vivianhuang/Desktop/terrier/cmake-build-development/test/optimizer/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="operator_expression_test">
+				<Option output="/Users/vivianhuang/Desktop/terrier/cmake-build-development/debug/operator_expression_test" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/Users/vivianhuang/Desktop/terrier/cmake-build-development/debug/"/>
+				<Option object_output="./"/>
+				<Option type="1"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add directory="/Users/vivianhuang/Desktop/terrier/src/include"/>
+					<Add directory="/Users/vivianhuang/Desktop/terrier/third_party"/>
+					<Add directory="/Users/vivianhuang/Desktop/terrier/test/include"/>
+					<Add directory="/Users/vivianhuang/Desktop/terrier/benchmark/include"/>
+					<Add directory="/Users/vivianhuang/Desktop/terrier/cmake-build-development"/>
+					<Add directory="/Users/vivianhuang/Desktop/terrier/cmake-build-development/googletest_ep-prefix/src/googletest_ep/include"/>
+					<Add directory="/Users/vivianhuang/Desktop/terrier/cmake-build-development/gflags_ep-prefix/src/gflags_ep/include"/>
+					<Add directory="/Users/vivianhuang/Desktop/terrier/cmake-build-development/gbenchmark_ep/src/gbenchmark_ep-install/include"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/usr/local/Cellar/llvm@6/6.0.1_1/include"/>
+					<Add directory="/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.14.sdk/usr/include"/>
+					<Add directory="/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include/c++/v1"/>
+					<Add directory="/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/10.0.1/include"/>
+					<Add directory="/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include"/>
+					<Add directory="/System/Library/Frameworks"/>
+					<Add directory="/Library/Frameworks"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j4 -f &quot;/Users/vivianhuang/Desktop/terrier/cmake-build-development/test/optimizer/Makefile&quot;  VERBOSE=1 operator_expression_test"/>
+					<CompileFile command="/usr/bin/make -j4 -f &quot;/Users/vivianhuang/Desktop/terrier/cmake-build-development/test/optimizer/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j4 -f &quot;/Users/vivianhuang/Desktop/terrier/cmake-build-development/test/optimizer/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j4 -f &quot;/Users/vivianhuang/Desktop/terrier/cmake-build-development/test/optimizer/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="operator_expression_test/fast">
+				<Option output="/Users/vivianhuang/Desktop/terrier/cmake-build-development/debug/operator_expression_test" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/Users/vivianhuang/Desktop/terrier/cmake-build-development/debug/"/>
+				<Option object_output="./"/>
+				<Option type="1"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add directory="/Users/vivianhuang/Desktop/terrier/src/include"/>
+					<Add directory="/Users/vivianhuang/Desktop/terrier/third_party"/>
+					<Add directory="/Users/vivianhuang/Desktop/terrier/test/include"/>
+					<Add directory="/Users/vivianhuang/Desktop/terrier/benchmark/include"/>
+					<Add directory="/Users/vivianhuang/Desktop/terrier/cmake-build-development"/>
+					<Add directory="/Users/vivianhuang/Desktop/terrier/cmake-build-development/googletest_ep-prefix/src/googletest_ep/include"/>
+					<Add directory="/Users/vivianhuang/Desktop/terrier/cmake-build-development/gflags_ep-prefix/src/gflags_ep/include"/>
+					<Add directory="/Users/vivianhuang/Desktop/terrier/cmake-build-development/gbenchmark_ep/src/gbenchmark_ep-install/include"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/usr/local/Cellar/llvm@6/6.0.1_1/include"/>
+					<Add directory="/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.14.sdk/usr/include"/>
+					<Add directory="/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include/c++/v1"/>
+					<Add directory="/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/10.0.1/include"/>
+					<Add directory="/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include"/>
+					<Add directory="/System/Library/Frameworks"/>
+					<Add directory="/Library/Frameworks"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j4 -f &quot;/Users/vivianhuang/Desktop/terrier/cmake-build-development/test/optimizer/Makefile&quot;  VERBOSE=1 operator_expression_test/fast"/>
+					<CompileFile command="/usr/bin/make -j4 -f &quot;/Users/vivianhuang/Desktop/terrier/cmake-build-development/test/optimizer/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j4 -f &quot;/Users/vivianhuang/Desktop/terrier/cmake-build-development/test/optimizer/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j4 -f &quot;/Users/vivianhuang/Desktop/terrier/cmake-build-development/test/optimizer/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="logical_operator_test">
+				<Option output="/Users/vivianhuang/Desktop/terrier/cmake-build-development/debug/logical_operator_test" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/Users/vivianhuang/Desktop/terrier/cmake-build-development/debug/"/>
+				<Option object_output="./"/>
+				<Option type="1"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add directory="/Users/vivianhuang/Desktop/terrier/src/include"/>
+					<Add directory="/Users/vivianhuang/Desktop/terrier/third_party"/>
+					<Add directory="/Users/vivianhuang/Desktop/terrier/test/include"/>
+					<Add directory="/Users/vivianhuang/Desktop/terrier/benchmark/include"/>
+					<Add directory="/Users/vivianhuang/Desktop/terrier/cmake-build-development"/>
+					<Add directory="/Users/vivianhuang/Desktop/terrier/cmake-build-development/googletest_ep-prefix/src/googletest_ep/include"/>
+					<Add directory="/Users/vivianhuang/Desktop/terrier/cmake-build-development/gflags_ep-prefix/src/gflags_ep/include"/>
+					<Add directory="/Users/vivianhuang/Desktop/terrier/cmake-build-development/gbenchmark_ep/src/gbenchmark_ep-install/include"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/usr/local/Cellar/llvm@6/6.0.1_1/include"/>
+					<Add directory="/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.14.sdk/usr/include"/>
+					<Add directory="/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include/c++/v1"/>
+					<Add directory="/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/10.0.1/include"/>
+					<Add directory="/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include"/>
+					<Add directory="/System/Library/Frameworks"/>
+					<Add directory="/Library/Frameworks"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j4 -f &quot;/Users/vivianhuang/Desktop/terrier/cmake-build-development/test/optimizer/Makefile&quot;  VERBOSE=1 logical_operator_test"/>
+					<CompileFile command="/usr/bin/make -j4 -f &quot;/Users/vivianhuang/Desktop/terrier/cmake-build-development/test/optimizer/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j4 -f &quot;/Users/vivianhuang/Desktop/terrier/cmake-build-development/test/optimizer/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j4 -f &quot;/Users/vivianhuang/Desktop/terrier/cmake-build-development/test/optimizer/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="logical_operator_test/fast">
+				<Option output="/Users/vivianhuang/Desktop/terrier/cmake-build-development/debug/logical_operator_test" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/Users/vivianhuang/Desktop/terrier/cmake-build-development/debug/"/>
+				<Option object_output="./"/>
+				<Option type="1"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add directory="/Users/vivianhuang/Desktop/terrier/src/include"/>
+					<Add directory="/Users/vivianhuang/Desktop/terrier/third_party"/>
+					<Add directory="/Users/vivianhuang/Desktop/terrier/test/include"/>
+					<Add directory="/Users/vivianhuang/Desktop/terrier/benchmark/include"/>
+					<Add directory="/Users/vivianhuang/Desktop/terrier/cmake-build-development"/>
+					<Add directory="/Users/vivianhuang/Desktop/terrier/cmake-build-development/googletest_ep-prefix/src/googletest_ep/include"/>
+					<Add directory="/Users/vivianhuang/Desktop/terrier/cmake-build-development/gflags_ep-prefix/src/gflags_ep/include"/>
+					<Add directory="/Users/vivianhuang/Desktop/terrier/cmake-build-development/gbenchmark_ep/src/gbenchmark_ep-install/include"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/usr/local/Cellar/llvm@6/6.0.1_1/include"/>
+					<Add directory="/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.14.sdk/usr/include"/>
+					<Add directory="/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include/c++/v1"/>
+					<Add directory="/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/10.0.1/include"/>
+					<Add directory="/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include"/>
+					<Add directory="/System/Library/Frameworks"/>
+					<Add directory="/Library/Frameworks"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j4 -f &quot;/Users/vivianhuang/Desktop/terrier/cmake-build-development/test/optimizer/Makefile&quot;  VERBOSE=1 logical_operator_test/fast"/>
+					<CompileFile command="/usr/bin/make -j4 -f &quot;/Users/vivianhuang/Desktop/terrier/cmake-build-development/test/optimizer/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j4 -f &quot;/Users/vivianhuang/Desktop/terrier/cmake-build-development/test/optimizer/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j4 -f &quot;/Users/vivianhuang/Desktop/terrier/cmake-build-development/test/optimizer/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
 			<Target title="tuple_access_strategy_test">
 				<Option output="/Users/vivianhuang/Desktop/terrier/cmake-build-development/debug/tuple_access_strategy_test" prefix_auto="0" extension_auto="0"/>
 				<Option working_dir="/Users/vivianhuang/Desktop/terrier/cmake-build-development/debug/"/>
@@ -2555,254 +2803,6 @@
 					<DistClean command="/usr/bin/make -j4 -f &quot;/Users/vivianhuang/Desktop/terrier/cmake-build-development/test/planner/Makefile&quot;  VERBOSE=1 clean"/>
 				</MakeCommands>
 			</Target>
-			<Target title="trivial_cost_model_test">
-				<Option output="/Users/vivianhuang/Desktop/terrier/cmake-build-development/debug/trivial_cost_model_test" prefix_auto="0" extension_auto="0"/>
-				<Option working_dir="/Users/vivianhuang/Desktop/terrier/cmake-build-development/debug/"/>
-				<Option object_output="./"/>
-				<Option type="1"/>
-				<Option compiler="gcc"/>
-				<Compiler>
-					<Add directory="/Users/vivianhuang/Desktop/terrier/src/include"/>
-					<Add directory="/Users/vivianhuang/Desktop/terrier/third_party"/>
-					<Add directory="/Users/vivianhuang/Desktop/terrier/test/include"/>
-					<Add directory="/Users/vivianhuang/Desktop/terrier/benchmark/include"/>
-					<Add directory="/Users/vivianhuang/Desktop/terrier/cmake-build-development"/>
-					<Add directory="/Users/vivianhuang/Desktop/terrier/cmake-build-development/googletest_ep-prefix/src/googletest_ep/include"/>
-					<Add directory="/Users/vivianhuang/Desktop/terrier/cmake-build-development/gflags_ep-prefix/src/gflags_ep/include"/>
-					<Add directory="/Users/vivianhuang/Desktop/terrier/cmake-build-development/gbenchmark_ep/src/gbenchmark_ep-install/include"/>
-					<Add directory="/usr/local/include"/>
-					<Add directory="/usr/local/Cellar/llvm@6/6.0.1_1/include"/>
-					<Add directory="/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.14.sdk/usr/include"/>
-					<Add directory="/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include/c++/v1"/>
-					<Add directory="/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/10.0.1/include"/>
-					<Add directory="/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include"/>
-					<Add directory="/System/Library/Frameworks"/>
-					<Add directory="/Library/Frameworks"/>
-				</Compiler>
-				<MakeCommands>
-					<Build command="/usr/bin/make -j4 -f &quot;/Users/vivianhuang/Desktop/terrier/cmake-build-development/test/optimizer/Makefile&quot;  VERBOSE=1 trivial_cost_model_test"/>
-					<CompileFile command="/usr/bin/make -j4 -f &quot;/Users/vivianhuang/Desktop/terrier/cmake-build-development/test/optimizer/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
-					<Clean command="/usr/bin/make -j4 -f &quot;/Users/vivianhuang/Desktop/terrier/cmake-build-development/test/optimizer/Makefile&quot;  VERBOSE=1 clean"/>
-					<DistClean command="/usr/bin/make -j4 -f &quot;/Users/vivianhuang/Desktop/terrier/cmake-build-development/test/optimizer/Makefile&quot;  VERBOSE=1 clean"/>
-				</MakeCommands>
-			</Target>
-			<Target title="trivial_cost_model_test/fast">
-				<Option output="/Users/vivianhuang/Desktop/terrier/cmake-build-development/debug/trivial_cost_model_test" prefix_auto="0" extension_auto="0"/>
-				<Option working_dir="/Users/vivianhuang/Desktop/terrier/cmake-build-development/debug/"/>
-				<Option object_output="./"/>
-				<Option type="1"/>
-				<Option compiler="gcc"/>
-				<Compiler>
-					<Add directory="/Users/vivianhuang/Desktop/terrier/src/include"/>
-					<Add directory="/Users/vivianhuang/Desktop/terrier/third_party"/>
-					<Add directory="/Users/vivianhuang/Desktop/terrier/test/include"/>
-					<Add directory="/Users/vivianhuang/Desktop/terrier/benchmark/include"/>
-					<Add directory="/Users/vivianhuang/Desktop/terrier/cmake-build-development"/>
-					<Add directory="/Users/vivianhuang/Desktop/terrier/cmake-build-development/googletest_ep-prefix/src/googletest_ep/include"/>
-					<Add directory="/Users/vivianhuang/Desktop/terrier/cmake-build-development/gflags_ep-prefix/src/gflags_ep/include"/>
-					<Add directory="/Users/vivianhuang/Desktop/terrier/cmake-build-development/gbenchmark_ep/src/gbenchmark_ep-install/include"/>
-					<Add directory="/usr/local/include"/>
-					<Add directory="/usr/local/Cellar/llvm@6/6.0.1_1/include"/>
-					<Add directory="/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.14.sdk/usr/include"/>
-					<Add directory="/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include/c++/v1"/>
-					<Add directory="/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/10.0.1/include"/>
-					<Add directory="/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include"/>
-					<Add directory="/System/Library/Frameworks"/>
-					<Add directory="/Library/Frameworks"/>
-				</Compiler>
-				<MakeCommands>
-					<Build command="/usr/bin/make -j4 -f &quot;/Users/vivianhuang/Desktop/terrier/cmake-build-development/test/optimizer/Makefile&quot;  VERBOSE=1 trivial_cost_model_test/fast"/>
-					<CompileFile command="/usr/bin/make -j4 -f &quot;/Users/vivianhuang/Desktop/terrier/cmake-build-development/test/optimizer/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
-					<Clean command="/usr/bin/make -j4 -f &quot;/Users/vivianhuang/Desktop/terrier/cmake-build-development/test/optimizer/Makefile&quot;  VERBOSE=1 clean"/>
-					<DistClean command="/usr/bin/make -j4 -f &quot;/Users/vivianhuang/Desktop/terrier/cmake-build-development/test/optimizer/Makefile&quot;  VERBOSE=1 clean"/>
-				</MakeCommands>
-			</Target>
-			<Target title="physical_operator_test">
-				<Option output="/Users/vivianhuang/Desktop/terrier/cmake-build-development/debug/physical_operator_test" prefix_auto="0" extension_auto="0"/>
-				<Option working_dir="/Users/vivianhuang/Desktop/terrier/cmake-build-development/debug/"/>
-				<Option object_output="./"/>
-				<Option type="1"/>
-				<Option compiler="gcc"/>
-				<Compiler>
-					<Add directory="/Users/vivianhuang/Desktop/terrier/src/include"/>
-					<Add directory="/Users/vivianhuang/Desktop/terrier/third_party"/>
-					<Add directory="/Users/vivianhuang/Desktop/terrier/test/include"/>
-					<Add directory="/Users/vivianhuang/Desktop/terrier/benchmark/include"/>
-					<Add directory="/Users/vivianhuang/Desktop/terrier/cmake-build-development"/>
-					<Add directory="/Users/vivianhuang/Desktop/terrier/cmake-build-development/googletest_ep-prefix/src/googletest_ep/include"/>
-					<Add directory="/Users/vivianhuang/Desktop/terrier/cmake-build-development/gflags_ep-prefix/src/gflags_ep/include"/>
-					<Add directory="/Users/vivianhuang/Desktop/terrier/cmake-build-development/gbenchmark_ep/src/gbenchmark_ep-install/include"/>
-					<Add directory="/usr/local/include"/>
-					<Add directory="/usr/local/Cellar/llvm@6/6.0.1_1/include"/>
-					<Add directory="/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.14.sdk/usr/include"/>
-					<Add directory="/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include/c++/v1"/>
-					<Add directory="/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/10.0.1/include"/>
-					<Add directory="/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include"/>
-					<Add directory="/System/Library/Frameworks"/>
-					<Add directory="/Library/Frameworks"/>
-				</Compiler>
-				<MakeCommands>
-					<Build command="/usr/bin/make -j4 -f &quot;/Users/vivianhuang/Desktop/terrier/cmake-build-development/test/optimizer/Makefile&quot;  VERBOSE=1 physical_operator_test"/>
-					<CompileFile command="/usr/bin/make -j4 -f &quot;/Users/vivianhuang/Desktop/terrier/cmake-build-development/test/optimizer/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
-					<Clean command="/usr/bin/make -j4 -f &quot;/Users/vivianhuang/Desktop/terrier/cmake-build-development/test/optimizer/Makefile&quot;  VERBOSE=1 clean"/>
-					<DistClean command="/usr/bin/make -j4 -f &quot;/Users/vivianhuang/Desktop/terrier/cmake-build-development/test/optimizer/Makefile&quot;  VERBOSE=1 clean"/>
-				</MakeCommands>
-			</Target>
-			<Target title="physical_operator_test/fast">
-				<Option output="/Users/vivianhuang/Desktop/terrier/cmake-build-development/debug/physical_operator_test" prefix_auto="0" extension_auto="0"/>
-				<Option working_dir="/Users/vivianhuang/Desktop/terrier/cmake-build-development/debug/"/>
-				<Option object_output="./"/>
-				<Option type="1"/>
-				<Option compiler="gcc"/>
-				<Compiler>
-					<Add directory="/Users/vivianhuang/Desktop/terrier/src/include"/>
-					<Add directory="/Users/vivianhuang/Desktop/terrier/third_party"/>
-					<Add directory="/Users/vivianhuang/Desktop/terrier/test/include"/>
-					<Add directory="/Users/vivianhuang/Desktop/terrier/benchmark/include"/>
-					<Add directory="/Users/vivianhuang/Desktop/terrier/cmake-build-development"/>
-					<Add directory="/Users/vivianhuang/Desktop/terrier/cmake-build-development/googletest_ep-prefix/src/googletest_ep/include"/>
-					<Add directory="/Users/vivianhuang/Desktop/terrier/cmake-build-development/gflags_ep-prefix/src/gflags_ep/include"/>
-					<Add directory="/Users/vivianhuang/Desktop/terrier/cmake-build-development/gbenchmark_ep/src/gbenchmark_ep-install/include"/>
-					<Add directory="/usr/local/include"/>
-					<Add directory="/usr/local/Cellar/llvm@6/6.0.1_1/include"/>
-					<Add directory="/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.14.sdk/usr/include"/>
-					<Add directory="/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include/c++/v1"/>
-					<Add directory="/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/10.0.1/include"/>
-					<Add directory="/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include"/>
-					<Add directory="/System/Library/Frameworks"/>
-					<Add directory="/Library/Frameworks"/>
-				</Compiler>
-				<MakeCommands>
-					<Build command="/usr/bin/make -j4 -f &quot;/Users/vivianhuang/Desktop/terrier/cmake-build-development/test/optimizer/Makefile&quot;  VERBOSE=1 physical_operator_test/fast"/>
-					<CompileFile command="/usr/bin/make -j4 -f &quot;/Users/vivianhuang/Desktop/terrier/cmake-build-development/test/optimizer/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
-					<Clean command="/usr/bin/make -j4 -f &quot;/Users/vivianhuang/Desktop/terrier/cmake-build-development/test/optimizer/Makefile&quot;  VERBOSE=1 clean"/>
-					<DistClean command="/usr/bin/make -j4 -f &quot;/Users/vivianhuang/Desktop/terrier/cmake-build-development/test/optimizer/Makefile&quot;  VERBOSE=1 clean"/>
-				</MakeCommands>
-			</Target>
-			<Target title="operator_expression_test">
-				<Option output="/Users/vivianhuang/Desktop/terrier/cmake-build-development/debug/operator_expression_test" prefix_auto="0" extension_auto="0"/>
-				<Option working_dir="/Users/vivianhuang/Desktop/terrier/cmake-build-development/debug/"/>
-				<Option object_output="./"/>
-				<Option type="1"/>
-				<Option compiler="gcc"/>
-				<Compiler>
-					<Add directory="/Users/vivianhuang/Desktop/terrier/src/include"/>
-					<Add directory="/Users/vivianhuang/Desktop/terrier/third_party"/>
-					<Add directory="/Users/vivianhuang/Desktop/terrier/test/include"/>
-					<Add directory="/Users/vivianhuang/Desktop/terrier/benchmark/include"/>
-					<Add directory="/Users/vivianhuang/Desktop/terrier/cmake-build-development"/>
-					<Add directory="/Users/vivianhuang/Desktop/terrier/cmake-build-development/googletest_ep-prefix/src/googletest_ep/include"/>
-					<Add directory="/Users/vivianhuang/Desktop/terrier/cmake-build-development/gflags_ep-prefix/src/gflags_ep/include"/>
-					<Add directory="/Users/vivianhuang/Desktop/terrier/cmake-build-development/gbenchmark_ep/src/gbenchmark_ep-install/include"/>
-					<Add directory="/usr/local/include"/>
-					<Add directory="/usr/local/Cellar/llvm@6/6.0.1_1/include"/>
-					<Add directory="/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.14.sdk/usr/include"/>
-					<Add directory="/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include/c++/v1"/>
-					<Add directory="/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/10.0.1/include"/>
-					<Add directory="/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include"/>
-					<Add directory="/System/Library/Frameworks"/>
-					<Add directory="/Library/Frameworks"/>
-				</Compiler>
-				<MakeCommands>
-					<Build command="/usr/bin/make -j4 -f &quot;/Users/vivianhuang/Desktop/terrier/cmake-build-development/test/optimizer/Makefile&quot;  VERBOSE=1 operator_expression_test"/>
-					<CompileFile command="/usr/bin/make -j4 -f &quot;/Users/vivianhuang/Desktop/terrier/cmake-build-development/test/optimizer/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
-					<Clean command="/usr/bin/make -j4 -f &quot;/Users/vivianhuang/Desktop/terrier/cmake-build-development/test/optimizer/Makefile&quot;  VERBOSE=1 clean"/>
-					<DistClean command="/usr/bin/make -j4 -f &quot;/Users/vivianhuang/Desktop/terrier/cmake-build-development/test/optimizer/Makefile&quot;  VERBOSE=1 clean"/>
-				</MakeCommands>
-			</Target>
-			<Target title="operator_expression_test/fast">
-				<Option output="/Users/vivianhuang/Desktop/terrier/cmake-build-development/debug/operator_expression_test" prefix_auto="0" extension_auto="0"/>
-				<Option working_dir="/Users/vivianhuang/Desktop/terrier/cmake-build-development/debug/"/>
-				<Option object_output="./"/>
-				<Option type="1"/>
-				<Option compiler="gcc"/>
-				<Compiler>
-					<Add directory="/Users/vivianhuang/Desktop/terrier/src/include"/>
-					<Add directory="/Users/vivianhuang/Desktop/terrier/third_party"/>
-					<Add directory="/Users/vivianhuang/Desktop/terrier/test/include"/>
-					<Add directory="/Users/vivianhuang/Desktop/terrier/benchmark/include"/>
-					<Add directory="/Users/vivianhuang/Desktop/terrier/cmake-build-development"/>
-					<Add directory="/Users/vivianhuang/Desktop/terrier/cmake-build-development/googletest_ep-prefix/src/googletest_ep/include"/>
-					<Add directory="/Users/vivianhuang/Desktop/terrier/cmake-build-development/gflags_ep-prefix/src/gflags_ep/include"/>
-					<Add directory="/Users/vivianhuang/Desktop/terrier/cmake-build-development/gbenchmark_ep/src/gbenchmark_ep-install/include"/>
-					<Add directory="/usr/local/include"/>
-					<Add directory="/usr/local/Cellar/llvm@6/6.0.1_1/include"/>
-					<Add directory="/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.14.sdk/usr/include"/>
-					<Add directory="/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include/c++/v1"/>
-					<Add directory="/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/10.0.1/include"/>
-					<Add directory="/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include"/>
-					<Add directory="/System/Library/Frameworks"/>
-					<Add directory="/Library/Frameworks"/>
-				</Compiler>
-				<MakeCommands>
-					<Build command="/usr/bin/make -j4 -f &quot;/Users/vivianhuang/Desktop/terrier/cmake-build-development/test/optimizer/Makefile&quot;  VERBOSE=1 operator_expression_test/fast"/>
-					<CompileFile command="/usr/bin/make -j4 -f &quot;/Users/vivianhuang/Desktop/terrier/cmake-build-development/test/optimizer/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
-					<Clean command="/usr/bin/make -j4 -f &quot;/Users/vivianhuang/Desktop/terrier/cmake-build-development/test/optimizer/Makefile&quot;  VERBOSE=1 clean"/>
-					<DistClean command="/usr/bin/make -j4 -f &quot;/Users/vivianhuang/Desktop/terrier/cmake-build-development/test/optimizer/Makefile&quot;  VERBOSE=1 clean"/>
-				</MakeCommands>
-			</Target>
-			<Target title="logical_operator_test">
-				<Option output="/Users/vivianhuang/Desktop/terrier/cmake-build-development/debug/logical_operator_test" prefix_auto="0" extension_auto="0"/>
-				<Option working_dir="/Users/vivianhuang/Desktop/terrier/cmake-build-development/debug/"/>
-				<Option object_output="./"/>
-				<Option type="1"/>
-				<Option compiler="gcc"/>
-				<Compiler>
-					<Add directory="/Users/vivianhuang/Desktop/terrier/src/include"/>
-					<Add directory="/Users/vivianhuang/Desktop/terrier/third_party"/>
-					<Add directory="/Users/vivianhuang/Desktop/terrier/test/include"/>
-					<Add directory="/Users/vivianhuang/Desktop/terrier/benchmark/include"/>
-					<Add directory="/Users/vivianhuang/Desktop/terrier/cmake-build-development"/>
-					<Add directory="/Users/vivianhuang/Desktop/terrier/cmake-build-development/googletest_ep-prefix/src/googletest_ep/include"/>
-					<Add directory="/Users/vivianhuang/Desktop/terrier/cmake-build-development/gflags_ep-prefix/src/gflags_ep/include"/>
-					<Add directory="/Users/vivianhuang/Desktop/terrier/cmake-build-development/gbenchmark_ep/src/gbenchmark_ep-install/include"/>
-					<Add directory="/usr/local/include"/>
-					<Add directory="/usr/local/Cellar/llvm@6/6.0.1_1/include"/>
-					<Add directory="/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.14.sdk/usr/include"/>
-					<Add directory="/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include/c++/v1"/>
-					<Add directory="/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/10.0.1/include"/>
-					<Add directory="/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include"/>
-					<Add directory="/System/Library/Frameworks"/>
-					<Add directory="/Library/Frameworks"/>
-				</Compiler>
-				<MakeCommands>
-					<Build command="/usr/bin/make -j4 -f &quot;/Users/vivianhuang/Desktop/terrier/cmake-build-development/test/optimizer/Makefile&quot;  VERBOSE=1 logical_operator_test"/>
-					<CompileFile command="/usr/bin/make -j4 -f &quot;/Users/vivianhuang/Desktop/terrier/cmake-build-development/test/optimizer/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
-					<Clean command="/usr/bin/make -j4 -f &quot;/Users/vivianhuang/Desktop/terrier/cmake-build-development/test/optimizer/Makefile&quot;  VERBOSE=1 clean"/>
-					<DistClean command="/usr/bin/make -j4 -f &quot;/Users/vivianhuang/Desktop/terrier/cmake-build-development/test/optimizer/Makefile&quot;  VERBOSE=1 clean"/>
-				</MakeCommands>
-			</Target>
-			<Target title="logical_operator_test/fast">
-				<Option output="/Users/vivianhuang/Desktop/terrier/cmake-build-development/debug/logical_operator_test" prefix_auto="0" extension_auto="0"/>
-				<Option working_dir="/Users/vivianhuang/Desktop/terrier/cmake-build-development/debug/"/>
-				<Option object_output="./"/>
-				<Option type="1"/>
-				<Option compiler="gcc"/>
-				<Compiler>
-					<Add directory="/Users/vivianhuang/Desktop/terrier/src/include"/>
-					<Add directory="/Users/vivianhuang/Desktop/terrier/third_party"/>
-					<Add directory="/Users/vivianhuang/Desktop/terrier/test/include"/>
-					<Add directory="/Users/vivianhuang/Desktop/terrier/benchmark/include"/>
-					<Add directory="/Users/vivianhuang/Desktop/terrier/cmake-build-development"/>
-					<Add directory="/Users/vivianhuang/Desktop/terrier/cmake-build-development/googletest_ep-prefix/src/googletest_ep/include"/>
-					<Add directory="/Users/vivianhuang/Desktop/terrier/cmake-build-development/gflags_ep-prefix/src/gflags_ep/include"/>
-					<Add directory="/Users/vivianhuang/Desktop/terrier/cmake-build-development/gbenchmark_ep/src/gbenchmark_ep-install/include"/>
-					<Add directory="/usr/local/include"/>
-					<Add directory="/usr/local/Cellar/llvm@6/6.0.1_1/include"/>
-					<Add directory="/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.14.sdk/usr/include"/>
-					<Add directory="/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include/c++/v1"/>
-					<Add directory="/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/10.0.1/include"/>
-					<Add directory="/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include"/>
-					<Add directory="/System/Library/Frameworks"/>
-					<Add directory="/Library/Frameworks"/>
-				</Compiler>
-				<MakeCommands>
-					<Build command="/usr/bin/make -j4 -f &quot;/Users/vivianhuang/Desktop/terrier/cmake-build-development/test/optimizer/Makefile&quot;  VERBOSE=1 logical_operator_test/fast"/>
-					<CompileFile command="/usr/bin/make -j4 -f &quot;/Users/vivianhuang/Desktop/terrier/cmake-build-development/test/optimizer/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
-					<Clean command="/usr/bin/make -j4 -f &quot;/Users/vivianhuang/Desktop/terrier/cmake-build-development/test/optimizer/Makefile&quot;  VERBOSE=1 clean"/>
-					<DistClean command="/usr/bin/make -j4 -f &quot;/Users/vivianhuang/Desktop/terrier/cmake-build-development/test/optimizer/Makefile&quot;  VERBOSE=1 clean"/>
-				</MakeCommands>
-			</Target>
 			<Target title="traffic_cop_test">
 				<Option output="/Users/vivianhuang/Desktop/terrier/cmake-build-development/debug/traffic_cop_test" prefix_auto="0" extension_auto="0"/>
 				<Option working_dir="/Users/vivianhuang/Desktop/terrier/cmake-build-development/debug/"/>
@@ -3482,6 +3482,10 @@
 			<Option target="terrier_static"/>
 			<Option target="terrier_shared"/>
 		</Unit>
+		<Unit filename="/Users/vivianhuang/Desktop/terrier/cmake-build-development/src/CMakeFiles/terrier_objlib.dir/loggers/optimizer_logger.cpp.o">
+			<Option target="terrier_static"/>
+			<Option target="terrier_shared"/>
+		</Unit>
 		<Unit filename="/Users/vivianhuang/Desktop/terrier/cmake-build-development/src/CMakeFiles/terrier_objlib.dir/loggers/parser_logger.cpp.o">
 			<Option target="terrier_static"/>
 			<Option target="terrier_shared"/>
@@ -3546,7 +3550,19 @@
 			<Option target="terrier_static"/>
 			<Option target="terrier_shared"/>
 		</Unit>
+		<Unit filename="/Users/vivianhuang/Desktop/terrier/cmake-build-development/src/CMakeFiles/terrier_objlib.dir/optimizer/binding.cpp.o">
+			<Option target="terrier_static"/>
+			<Option target="terrier_shared"/>
+		</Unit>
+		<Unit filename="/Users/vivianhuang/Desktop/terrier/cmake-build-development/src/CMakeFiles/terrier_objlib.dir/optimizer/child_property_deriver.cpp.o">
+			<Option target="terrier_static"/>
+			<Option target="terrier_shared"/>
+		</Unit>
 		<Unit filename="/Users/vivianhuang/Desktop/terrier/cmake-build-development/src/CMakeFiles/terrier_objlib.dir/optimizer/cost_model/trivial_cost_model.cpp.o">
+			<Option target="terrier_static"/>
+			<Option target="terrier_shared"/>
+		</Unit>
+		<Unit filename="/Users/vivianhuang/Desktop/terrier/cmake-build-development/src/CMakeFiles/terrier_objlib.dir/optimizer/group.cpp.o">
 			<Option target="terrier_static"/>
 			<Option target="terrier_shared"/>
 		</Unit>
@@ -3554,7 +3570,15 @@
 			<Option target="terrier_static"/>
 			<Option target="terrier_shared"/>
 		</Unit>
+		<Unit filename="/Users/vivianhuang/Desktop/terrier/cmake-build-development/src/CMakeFiles/terrier_objlib.dir/optimizer/input_column_deriver.cpp.o">
+			<Option target="terrier_static"/>
+			<Option target="terrier_shared"/>
+		</Unit>
 		<Unit filename="/Users/vivianhuang/Desktop/terrier/cmake-build-development/src/CMakeFiles/terrier_objlib.dir/optimizer/logical_operators.cpp.o">
+			<Option target="terrier_static"/>
+			<Option target="terrier_shared"/>
+		</Unit>
+		<Unit filename="/Users/vivianhuang/Desktop/terrier/cmake-build-development/src/CMakeFiles/terrier_objlib.dir/optimizer/memo.cpp.o">
 			<Option target="terrier_static"/>
 			<Option target="terrier_shared"/>
 		</Unit>
@@ -3562,7 +3586,43 @@
 			<Option target="terrier_static"/>
 			<Option target="terrier_shared"/>
 		</Unit>
+		<Unit filename="/Users/vivianhuang/Desktop/terrier/cmake-build-development/src/CMakeFiles/terrier_objlib.dir/optimizer/optimizer.cpp.o">
+			<Option target="terrier_static"/>
+			<Option target="terrier_shared"/>
+		</Unit>
+		<Unit filename="/Users/vivianhuang/Desktop/terrier/cmake-build-development/src/CMakeFiles/terrier_objlib.dir/optimizer/optimizer_task.cpp.o">
+			<Option target="terrier_static"/>
+			<Option target="terrier_shared"/>
+		</Unit>
 		<Unit filename="/Users/vivianhuang/Desktop/terrier/cmake-build-development/src/CMakeFiles/terrier_objlib.dir/optimizer/physical_operators.cpp.o">
+			<Option target="terrier_static"/>
+			<Option target="terrier_shared"/>
+		</Unit>
+		<Unit filename="/Users/vivianhuang/Desktop/terrier/cmake-build-development/src/CMakeFiles/terrier_objlib.dir/optimizer/plan_generator.cpp.o">
+			<Option target="terrier_static"/>
+			<Option target="terrier_shared"/>
+		</Unit>
+		<Unit filename="/Users/vivianhuang/Desktop/terrier/cmake-build-development/src/CMakeFiles/terrier_objlib.dir/optimizer/properties.cpp.o">
+			<Option target="terrier_static"/>
+			<Option target="terrier_shared"/>
+		</Unit>
+		<Unit filename="/Users/vivianhuang/Desktop/terrier/cmake-build-development/src/CMakeFiles/terrier_objlib.dir/optimizer/property_enforcer.cpp.o">
+			<Option target="terrier_static"/>
+			<Option target="terrier_shared"/>
+		</Unit>
+		<Unit filename="/Users/vivianhuang/Desktop/terrier/cmake-build-development/src/CMakeFiles/terrier_objlib.dir/optimizer/property_set.cpp.o">
+			<Option target="terrier_static"/>
+			<Option target="terrier_shared"/>
+		</Unit>
+		<Unit filename="/Users/vivianhuang/Desktop/terrier/cmake-build-development/src/CMakeFiles/terrier_objlib.dir/optimizer/rule.cpp.o">
+			<Option target="terrier_static"/>
+			<Option target="terrier_shared"/>
+		</Unit>
+		<Unit filename="/Users/vivianhuang/Desktop/terrier/cmake-build-development/src/CMakeFiles/terrier_objlib.dir/optimizer/rule_impls.cpp.o">
+			<Option target="terrier_static"/>
+			<Option target="terrier_shared"/>
+		</Unit>
+		<Unit filename="/Users/vivianhuang/Desktop/terrier/cmake-build-development/src/CMakeFiles/terrier_objlib.dir/optimizer/util.cpp.o">
 			<Option target="terrier_static"/>
 			<Option target="terrier_shared"/>
 		</Unit>
@@ -3758,11 +3818,19 @@
 			<Option target="terrier_static"/>
 			<Option target="terrier_shared"/>
 		</Unit>
+		<Unit filename="/Users/vivianhuang/Desktop/terrier/cmake-build-development/src/CMakeFiles/terrier_objlib.dir/storage/write_ahead_log/disk_log_consumer_task.cpp.o">
+			<Option target="terrier_static"/>
+			<Option target="terrier_shared"/>
+		</Unit>
 		<Unit filename="/Users/vivianhuang/Desktop/terrier/cmake-build-development/src/CMakeFiles/terrier_objlib.dir/storage/write_ahead_log/log_io.cpp.o">
 			<Option target="terrier_static"/>
 			<Option target="terrier_shared"/>
 		</Unit>
 		<Unit filename="/Users/vivianhuang/Desktop/terrier/cmake-build-development/src/CMakeFiles/terrier_objlib.dir/storage/write_ahead_log/log_manager.cpp.o">
+			<Option target="terrier_static"/>
+			<Option target="terrier_shared"/>
+		</Unit>
+		<Unit filename="/Users/vivianhuang/Desktop/terrier/cmake-build-development/src/CMakeFiles/terrier_objlib.dir/storage/write_ahead_log/log_serializer_task.cpp.o">
 			<Option target="terrier_static"/>
 			<Option target="terrier_shared"/>
 		</Unit>
@@ -3780,7 +3848,13 @@
 		<Unit filename="/Users/vivianhuang/Desktop/terrier/src/common/utility.cpp">
 			<Option target="terrier_objlib"/>
 		</Unit>
+		<Unit filename="/Users/vivianhuang/Desktop/terrier/src/include/catalog/catalog_accessor.h">
+			<Option target="terrier_objlib"/>
+		</Unit>
 		<Unit filename="/Users/vivianhuang/Desktop/terrier/src/include/catalog/catalog_defs.h">
+			<Option target="terrier_objlib"/>
+		</Unit>
+		<Unit filename="/Users/vivianhuang/Desktop/terrier/src/include/catalog/index_schema.h">
 			<Option target="terrier_objlib"/>
 		</Unit>
 		<Unit filename="/Users/vivianhuang/Desktop/terrier/src/include/catalog/schema.h">
@@ -3799,6 +3873,9 @@
 			<Option target="terrier_objlib"/>
 		</Unit>
 		<Unit filename="/Users/vivianhuang/Desktop/terrier/src/include/common/container/concurrent_bitmap.h">
+			<Option target="terrier_objlib"/>
+		</Unit>
+		<Unit filename="/Users/vivianhuang/Desktop/terrier/src/include/common/container/concurrent_blocking_queue.h">
 			<Option target="terrier_objlib"/>
 		</Unit>
 		<Unit filename="/Users/vivianhuang/Desktop/terrier/src/include/common/container/concurrent_map.h">
@@ -3891,6 +3968,9 @@
 		<Unit filename="/Users/vivianhuang/Desktop/terrier/src/include/loggers/network_logger.h">
 			<Option target="terrier_objlib"/>
 		</Unit>
+		<Unit filename="/Users/vivianhuang/Desktop/terrier/src/include/loggers/optimizer_logger.h">
+			<Option target="terrier_objlib"/>
+		</Unit>
 		<Unit filename="/Users/vivianhuang/Desktop/terrier/src/include/loggers/parser_logger.h">
 			<Option target="terrier_objlib"/>
 		</Unit>
@@ -3954,16 +4034,34 @@
 		<Unit filename="/Users/vivianhuang/Desktop/terrier/src/include/network/terrier_server.h">
 			<Option target="terrier_objlib"/>
 		</Unit>
+		<Unit filename="/Users/vivianhuang/Desktop/terrier/src/include/optimizer/abstract_optimizer.h">
+			<Option target="terrier_objlib"/>
+		</Unit>
+		<Unit filename="/Users/vivianhuang/Desktop/terrier/src/include/optimizer/binding.h">
+			<Option target="terrier_objlib"/>
+		</Unit>
+		<Unit filename="/Users/vivianhuang/Desktop/terrier/src/include/optimizer/child_property_deriver.h">
+			<Option target="terrier_objlib"/>
+		</Unit>
 		<Unit filename="/Users/vivianhuang/Desktop/terrier/src/include/optimizer/cost_model/abstract_cost_model.h">
 			<Option target="terrier_objlib"/>
 		</Unit>
 		<Unit filename="/Users/vivianhuang/Desktop/terrier/src/include/optimizer/cost_model/trivial_cost_model.h">
 			<Option target="terrier_objlib"/>
 		</Unit>
+		<Unit filename="/Users/vivianhuang/Desktop/terrier/src/include/optimizer/group.h">
+			<Option target="terrier_objlib"/>
+		</Unit>
 		<Unit filename="/Users/vivianhuang/Desktop/terrier/src/include/optimizer/group_expression.h">
 			<Option target="terrier_objlib"/>
 		</Unit>
+		<Unit filename="/Users/vivianhuang/Desktop/terrier/src/include/optimizer/input_column_deriver.h">
+			<Option target="terrier_objlib"/>
+		</Unit>
 		<Unit filename="/Users/vivianhuang/Desktop/terrier/src/include/optimizer/logical_operators.h">
+			<Option target="terrier_objlib"/>
+		</Unit>
+		<Unit filename="/Users/vivianhuang/Desktop/terrier/src/include/optimizer/memo.h">
 			<Option target="terrier_objlib"/>
 		</Unit>
 		<Unit filename="/Users/vivianhuang/Desktop/terrier/src/include/optimizer/operator_expression.h">
@@ -3975,10 +4073,55 @@
 		<Unit filename="/Users/vivianhuang/Desktop/terrier/src/include/optimizer/operator_visitor.h">
 			<Option target="terrier_objlib"/>
 		</Unit>
+		<Unit filename="/Users/vivianhuang/Desktop/terrier/src/include/optimizer/optimize_context.h">
+			<Option target="terrier_objlib"/>
+		</Unit>
+		<Unit filename="/Users/vivianhuang/Desktop/terrier/src/include/optimizer/optimizer.h">
+			<Option target="terrier_objlib"/>
+		</Unit>
 		<Unit filename="/Users/vivianhuang/Desktop/terrier/src/include/optimizer/optimizer_defs.h">
 			<Option target="terrier_objlib"/>
 		</Unit>
+		<Unit filename="/Users/vivianhuang/Desktop/terrier/src/include/optimizer/optimizer_metadata.h">
+			<Option target="terrier_objlib"/>
+		</Unit>
+		<Unit filename="/Users/vivianhuang/Desktop/terrier/src/include/optimizer/optimizer_task.h">
+			<Option target="terrier_objlib"/>
+		</Unit>
+		<Unit filename="/Users/vivianhuang/Desktop/terrier/src/include/optimizer/optimizer_task_pool.h">
+			<Option target="terrier_objlib"/>
+		</Unit>
+		<Unit filename="/Users/vivianhuang/Desktop/terrier/src/include/optimizer/pattern.h">
+			<Option target="terrier_objlib"/>
+		</Unit>
 		<Unit filename="/Users/vivianhuang/Desktop/terrier/src/include/optimizer/physical_operators.h">
+			<Option target="terrier_objlib"/>
+		</Unit>
+		<Unit filename="/Users/vivianhuang/Desktop/terrier/src/include/optimizer/plan_generator.h">
+			<Option target="terrier_objlib"/>
+		</Unit>
+		<Unit filename="/Users/vivianhuang/Desktop/terrier/src/include/optimizer/properties.h">
+			<Option target="terrier_objlib"/>
+		</Unit>
+		<Unit filename="/Users/vivianhuang/Desktop/terrier/src/include/optimizer/property.h">
+			<Option target="terrier_objlib"/>
+		</Unit>
+		<Unit filename="/Users/vivianhuang/Desktop/terrier/src/include/optimizer/property_enforcer.h">
+			<Option target="terrier_objlib"/>
+		</Unit>
+		<Unit filename="/Users/vivianhuang/Desktop/terrier/src/include/optimizer/property_set.h">
+			<Option target="terrier_objlib"/>
+		</Unit>
+		<Unit filename="/Users/vivianhuang/Desktop/terrier/src/include/optimizer/property_visitor.h">
+			<Option target="terrier_objlib"/>
+		</Unit>
+		<Unit filename="/Users/vivianhuang/Desktop/terrier/src/include/optimizer/rule.h">
+			<Option target="terrier_objlib"/>
+		</Unit>
+		<Unit filename="/Users/vivianhuang/Desktop/terrier/src/include/optimizer/rule_impls.h">
+			<Option target="terrier_objlib"/>
+		</Unit>
+		<Unit filename="/Users/vivianhuang/Desktop/terrier/src/include/optimizer/util.h">
 			<Option target="terrier_objlib"/>
 		</Unit>
 		<Unit filename="/Users/vivianhuang/Desktop/terrier/src/include/parser/analyze_statement.h">
@@ -4048,6 +4191,9 @@
 			<Option target="terrier_objlib"/>
 		</Unit>
 		<Unit filename="/Users/vivianhuang/Desktop/terrier/src/include/parser/expression_defs.h">
+			<Option target="terrier_objlib"/>
+		</Unit>
+		<Unit filename="/Users/vivianhuang/Desktop/terrier/src/include/parser/expression_util.h">
 			<Option target="terrier_objlib"/>
 		</Unit>
 		<Unit filename="/Users/vivianhuang/Desktop/terrier/src/include/parser/insert_statement.h">
@@ -4278,6 +4424,9 @@
 		<Unit filename="/Users/vivianhuang/Desktop/terrier/src/include/storage/undo_record.h">
 			<Option target="terrier_objlib"/>
 		</Unit>
+		<Unit filename="/Users/vivianhuang/Desktop/terrier/src/include/storage/write_ahead_log/disk_log_consumer_task.h">
+			<Option target="terrier_objlib"/>
+		</Unit>
 		<Unit filename="/Users/vivianhuang/Desktop/terrier/src/include/storage/write_ahead_log/log_io.h">
 			<Option target="terrier_objlib"/>
 		</Unit>
@@ -4285,6 +4434,9 @@
 			<Option target="terrier_objlib"/>
 		</Unit>
 		<Unit filename="/Users/vivianhuang/Desktop/terrier/src/include/storage/write_ahead_log/log_record.h">
+			<Option target="terrier_objlib"/>
+		</Unit>
+		<Unit filename="/Users/vivianhuang/Desktop/terrier/src/include/storage/write_ahead_log/log_serializer_task.h">
 			<Option target="terrier_objlib"/>
 		</Unit>
 		<Unit filename="/Users/vivianhuang/Desktop/terrier/src/include/traffic_cop/portal.h">
@@ -4344,6 +4496,9 @@
 		<Unit filename="/Users/vivianhuang/Desktop/terrier/src/loggers/network_logger.cpp">
 			<Option target="terrier_objlib"/>
 		</Unit>
+		<Unit filename="/Users/vivianhuang/Desktop/terrier/src/loggers/optimizer_logger.cpp">
+			<Option target="terrier_objlib"/>
+		</Unit>
 		<Unit filename="/Users/vivianhuang/Desktop/terrier/src/loggers/parser_logger.cpp">
 			<Option target="terrier_objlib"/>
 		</Unit>
@@ -4395,19 +4550,61 @@
 		<Unit filename="/Users/vivianhuang/Desktop/terrier/src/network/terrier_server.cpp">
 			<Option target="terrier_objlib"/>
 		</Unit>
+		<Unit filename="/Users/vivianhuang/Desktop/terrier/src/optimizer/binding.cpp">
+			<Option target="terrier_objlib"/>
+		</Unit>
+		<Unit filename="/Users/vivianhuang/Desktop/terrier/src/optimizer/child_property_deriver.cpp">
+			<Option target="terrier_objlib"/>
+		</Unit>
 		<Unit filename="/Users/vivianhuang/Desktop/terrier/src/optimizer/cost_model/trivial_cost_model.cpp">
+			<Option target="terrier_objlib"/>
+		</Unit>
+		<Unit filename="/Users/vivianhuang/Desktop/terrier/src/optimizer/group.cpp">
 			<Option target="terrier_objlib"/>
 		</Unit>
 		<Unit filename="/Users/vivianhuang/Desktop/terrier/src/optimizer/group_expression.cpp">
 			<Option target="terrier_objlib"/>
 		</Unit>
+		<Unit filename="/Users/vivianhuang/Desktop/terrier/src/optimizer/input_column_deriver.cpp">
+			<Option target="terrier_objlib"/>
+		</Unit>
 		<Unit filename="/Users/vivianhuang/Desktop/terrier/src/optimizer/logical_operators.cpp">
+			<Option target="terrier_objlib"/>
+		</Unit>
+		<Unit filename="/Users/vivianhuang/Desktop/terrier/src/optimizer/memo.cpp">
 			<Option target="terrier_objlib"/>
 		</Unit>
 		<Unit filename="/Users/vivianhuang/Desktop/terrier/src/optimizer/operator_node.cpp">
 			<Option target="terrier_objlib"/>
 		</Unit>
+		<Unit filename="/Users/vivianhuang/Desktop/terrier/src/optimizer/optimizer.cpp">
+			<Option target="terrier_objlib"/>
+		</Unit>
+		<Unit filename="/Users/vivianhuang/Desktop/terrier/src/optimizer/optimizer_task.cpp">
+			<Option target="terrier_objlib"/>
+		</Unit>
 		<Unit filename="/Users/vivianhuang/Desktop/terrier/src/optimizer/physical_operators.cpp">
+			<Option target="terrier_objlib"/>
+		</Unit>
+		<Unit filename="/Users/vivianhuang/Desktop/terrier/src/optimizer/plan_generator.cpp">
+			<Option target="terrier_objlib"/>
+		</Unit>
+		<Unit filename="/Users/vivianhuang/Desktop/terrier/src/optimizer/properties.cpp">
+			<Option target="terrier_objlib"/>
+		</Unit>
+		<Unit filename="/Users/vivianhuang/Desktop/terrier/src/optimizer/property_enforcer.cpp">
+			<Option target="terrier_objlib"/>
+		</Unit>
+		<Unit filename="/Users/vivianhuang/Desktop/terrier/src/optimizer/property_set.cpp">
+			<Option target="terrier_objlib"/>
+		</Unit>
+		<Unit filename="/Users/vivianhuang/Desktop/terrier/src/optimizer/rule.cpp">
+			<Option target="terrier_objlib"/>
+		</Unit>
+		<Unit filename="/Users/vivianhuang/Desktop/terrier/src/optimizer/rule_impls.cpp">
+			<Option target="terrier_objlib"/>
+		</Unit>
+		<Unit filename="/Users/vivianhuang/Desktop/terrier/src/optimizer/util.cpp">
 			<Option target="terrier_objlib"/>
 		</Unit>
 		<Unit filename="/Users/vivianhuang/Desktop/terrier/src/parser/expression/abstract_expression.cpp">
@@ -4554,10 +4751,16 @@
 		<Unit filename="/Users/vivianhuang/Desktop/terrier/src/storage/tuple_access_strategy.cpp">
 			<Option target="terrier_objlib"/>
 		</Unit>
+		<Unit filename="/Users/vivianhuang/Desktop/terrier/src/storage/write_ahead_log/disk_log_consumer_task.cpp">
+			<Option target="terrier_objlib"/>
+		</Unit>
 		<Unit filename="/Users/vivianhuang/Desktop/terrier/src/storage/write_ahead_log/log_io.cpp">
 			<Option target="terrier_objlib"/>
 		</Unit>
 		<Unit filename="/Users/vivianhuang/Desktop/terrier/src/storage/write_ahead_log/log_manager.cpp">
+			<Option target="terrier_objlib"/>
+		</Unit>
+		<Unit filename="/Users/vivianhuang/Desktop/terrier/src/storage/write_ahead_log/log_serializer_task.cpp">
 			<Option target="terrier_objlib"/>
 		</Unit>
 		<Unit filename="/Users/vivianhuang/Desktop/terrier/src/traffic_cop/sqlite.cpp">
@@ -5109,9 +5312,6 @@
 		<Unit filename="/Users/vivianhuang/Desktop/terrier/cmake_modules/FindLibevent.cmake">
 			<Option virtualFolder="CMake Files\cmake_modules\"/>
 		</Unit>
-		<Unit filename="/Users/vivianhuang/Desktop/terrier/cmake_modules/FindPOSTGRES.cmake">
-			<Option virtualFolder="CMake Files\cmake_modules\"/>
-		</Unit>
 		<Unit filename="/Users/vivianhuang/Desktop/terrier/cmake_modules/FindPQXX.cmake">
 			<Option virtualFolder="CMake Files\cmake_modules\"/>
 		</Unit>
@@ -5172,6 +5372,9 @@
 		<Unit filename="/Users/vivianhuang/Desktop/terrier/test/parser/CMakeLists.txt">
 			<Option virtualFolder="CMake Files\test\parser\"/>
 		</Unit>
+		<Unit filename="/Users/vivianhuang/Desktop/terrier/test/optimizer/CMakeLists.txt">
+			<Option virtualFolder="CMake Files\test\optimizer\"/>
+		</Unit>
 		<Unit filename="/Users/vivianhuang/Desktop/terrier/test/storage/CMakeLists.txt">
 			<Option virtualFolder="CMake Files\test\storage\"/>
 		</Unit>
@@ -5186,9 +5389,6 @@
 		</Unit>
 		<Unit filename="/Users/vivianhuang/Desktop/terrier/test/planner/CMakeLists.txt">
 			<Option virtualFolder="CMake Files\test\planner\"/>
-		</Unit>
-		<Unit filename="/Users/vivianhuang/Desktop/terrier/test/optimizer/CMakeLists.txt">
-			<Option virtualFolder="CMake Files\test\optimizer\"/>
 		</Unit>
 		<Unit filename="/Users/vivianhuang/Desktop/terrier/test/traffic_cop/CMakeLists.txt">
 			<Option virtualFolder="CMake Files\test\traffic_cop\"/>

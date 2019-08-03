@@ -135,9 +135,22 @@ src/CMakeFiles/terrier_objlib.dir/loggers/network_logger.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/terrier_objlib.dir/loggers/network_logger.cpp.s"
 	cd /Users/vivianhuang/Desktop/terrier/cmake-build-development/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/vivianhuang/Desktop/terrier/src/loggers/network_logger.cpp -o CMakeFiles/terrier_objlib.dir/loggers/network_logger.cpp.s
 
+src/CMakeFiles/terrier_objlib.dir/loggers/optimizer_logger.cpp.o: src/CMakeFiles/terrier_objlib.dir/flags.make
+src/CMakeFiles/terrier_objlib.dir/loggers/optimizer_logger.cpp.o: ../src/loggers/optimizer_logger.cpp
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_7) "Building CXX object src/CMakeFiles/terrier_objlib.dir/loggers/optimizer_logger.cpp.o"
+	cd /Users/vivianhuang/Desktop/terrier/cmake-build-development/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/terrier_objlib.dir/loggers/optimizer_logger.cpp.o -c /Users/vivianhuang/Desktop/terrier/src/loggers/optimizer_logger.cpp
+
+src/CMakeFiles/terrier_objlib.dir/loggers/optimizer_logger.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/terrier_objlib.dir/loggers/optimizer_logger.cpp.i"
+	cd /Users/vivianhuang/Desktop/terrier/cmake-build-development/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /Users/vivianhuang/Desktop/terrier/src/loggers/optimizer_logger.cpp > CMakeFiles/terrier_objlib.dir/loggers/optimizer_logger.cpp.i
+
+src/CMakeFiles/terrier_objlib.dir/loggers/optimizer_logger.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/terrier_objlib.dir/loggers/optimizer_logger.cpp.s"
+	cd /Users/vivianhuang/Desktop/terrier/cmake-build-development/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/vivianhuang/Desktop/terrier/src/loggers/optimizer_logger.cpp -o CMakeFiles/terrier_objlib.dir/loggers/optimizer_logger.cpp.s
+
 src/CMakeFiles/terrier_objlib.dir/loggers/parser_logger.cpp.o: src/CMakeFiles/terrier_objlib.dir/flags.make
 src/CMakeFiles/terrier_objlib.dir/loggers/parser_logger.cpp.o: ../src/loggers/parser_logger.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_7) "Building CXX object src/CMakeFiles/terrier_objlib.dir/loggers/parser_logger.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_8) "Building CXX object src/CMakeFiles/terrier_objlib.dir/loggers/parser_logger.cpp.o"
 	cd /Users/vivianhuang/Desktop/terrier/cmake-build-development/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/terrier_objlib.dir/loggers/parser_logger.cpp.o -c /Users/vivianhuang/Desktop/terrier/src/loggers/parser_logger.cpp
 
 src/CMakeFiles/terrier_objlib.dir/loggers/parser_logger.cpp.i: cmake_force
@@ -150,7 +163,7 @@ src/CMakeFiles/terrier_objlib.dir/loggers/parser_logger.cpp.s: cmake_force
 
 src/CMakeFiles/terrier_objlib.dir/loggers/settings_logger.cpp.o: src/CMakeFiles/terrier_objlib.dir/flags.make
 src/CMakeFiles/terrier_objlib.dir/loggers/settings_logger.cpp.o: ../src/loggers/settings_logger.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_8) "Building CXX object src/CMakeFiles/terrier_objlib.dir/loggers/settings_logger.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_9) "Building CXX object src/CMakeFiles/terrier_objlib.dir/loggers/settings_logger.cpp.o"
 	cd /Users/vivianhuang/Desktop/terrier/cmake-build-development/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/terrier_objlib.dir/loggers/settings_logger.cpp.o -c /Users/vivianhuang/Desktop/terrier/src/loggers/settings_logger.cpp
 
 src/CMakeFiles/terrier_objlib.dir/loggers/settings_logger.cpp.i: cmake_force
@@ -163,7 +176,7 @@ src/CMakeFiles/terrier_objlib.dir/loggers/settings_logger.cpp.s: cmake_force
 
 src/CMakeFiles/terrier_objlib.dir/loggers/storage_logger.cpp.o: src/CMakeFiles/terrier_objlib.dir/flags.make
 src/CMakeFiles/terrier_objlib.dir/loggers/storage_logger.cpp.o: ../src/loggers/storage_logger.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_9) "Building CXX object src/CMakeFiles/terrier_objlib.dir/loggers/storage_logger.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_10) "Building CXX object src/CMakeFiles/terrier_objlib.dir/loggers/storage_logger.cpp.o"
 	cd /Users/vivianhuang/Desktop/terrier/cmake-build-development/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/terrier_objlib.dir/loggers/storage_logger.cpp.o -c /Users/vivianhuang/Desktop/terrier/src/loggers/storage_logger.cpp
 
 src/CMakeFiles/terrier_objlib.dir/loggers/storage_logger.cpp.i: cmake_force
@@ -176,7 +189,7 @@ src/CMakeFiles/terrier_objlib.dir/loggers/storage_logger.cpp.s: cmake_force
 
 src/CMakeFiles/terrier_objlib.dir/loggers/test_logger.cpp.o: src/CMakeFiles/terrier_objlib.dir/flags.make
 src/CMakeFiles/terrier_objlib.dir/loggers/test_logger.cpp.o: ../src/loggers/test_logger.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_10) "Building CXX object src/CMakeFiles/terrier_objlib.dir/loggers/test_logger.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_11) "Building CXX object src/CMakeFiles/terrier_objlib.dir/loggers/test_logger.cpp.o"
 	cd /Users/vivianhuang/Desktop/terrier/cmake-build-development/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/terrier_objlib.dir/loggers/test_logger.cpp.o -c /Users/vivianhuang/Desktop/terrier/src/loggers/test_logger.cpp
 
 src/CMakeFiles/terrier_objlib.dir/loggers/test_logger.cpp.i: cmake_force
@@ -189,7 +202,7 @@ src/CMakeFiles/terrier_objlib.dir/loggers/test_logger.cpp.s: cmake_force
 
 src/CMakeFiles/terrier_objlib.dir/loggers/transaction_logger.cpp.o: src/CMakeFiles/terrier_objlib.dir/flags.make
 src/CMakeFiles/terrier_objlib.dir/loggers/transaction_logger.cpp.o: ../src/loggers/transaction_logger.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_11) "Building CXX object src/CMakeFiles/terrier_objlib.dir/loggers/transaction_logger.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_12) "Building CXX object src/CMakeFiles/terrier_objlib.dir/loggers/transaction_logger.cpp.o"
 	cd /Users/vivianhuang/Desktop/terrier/cmake-build-development/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/terrier_objlib.dir/loggers/transaction_logger.cpp.o -c /Users/vivianhuang/Desktop/terrier/src/loggers/transaction_logger.cpp
 
 src/CMakeFiles/terrier_objlib.dir/loggers/transaction_logger.cpp.i: cmake_force
@@ -202,7 +215,7 @@ src/CMakeFiles/terrier_objlib.dir/loggers/transaction_logger.cpp.s: cmake_force
 
 src/CMakeFiles/terrier_objlib.dir/main/db_main.cpp.o: src/CMakeFiles/terrier_objlib.dir/flags.make
 src/CMakeFiles/terrier_objlib.dir/main/db_main.cpp.o: ../src/main/db_main.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_12) "Building CXX object src/CMakeFiles/terrier_objlib.dir/main/db_main.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_13) "Building CXX object src/CMakeFiles/terrier_objlib.dir/main/db_main.cpp.o"
 	cd /Users/vivianhuang/Desktop/terrier/cmake-build-development/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/terrier_objlib.dir/main/db_main.cpp.o -c /Users/vivianhuang/Desktop/terrier/src/main/db_main.cpp
 
 src/CMakeFiles/terrier_objlib.dir/main/db_main.cpp.i: cmake_force
@@ -215,7 +228,7 @@ src/CMakeFiles/terrier_objlib.dir/main/db_main.cpp.s: cmake_force
 
 src/CMakeFiles/terrier_objlib.dir/network/command_factory.cpp.o: src/CMakeFiles/terrier_objlib.dir/flags.make
 src/CMakeFiles/terrier_objlib.dir/network/command_factory.cpp.o: ../src/network/command_factory.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_13) "Building CXX object src/CMakeFiles/terrier_objlib.dir/network/command_factory.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_14) "Building CXX object src/CMakeFiles/terrier_objlib.dir/network/command_factory.cpp.o"
 	cd /Users/vivianhuang/Desktop/terrier/cmake-build-development/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/terrier_objlib.dir/network/command_factory.cpp.o -c /Users/vivianhuang/Desktop/terrier/src/network/command_factory.cpp
 
 src/CMakeFiles/terrier_objlib.dir/network/command_factory.cpp.i: cmake_force
@@ -228,7 +241,7 @@ src/CMakeFiles/terrier_objlib.dir/network/command_factory.cpp.s: cmake_force
 
 src/CMakeFiles/terrier_objlib.dir/network/connection_dispatcher_task.cpp.o: src/CMakeFiles/terrier_objlib.dir/flags.make
 src/CMakeFiles/terrier_objlib.dir/network/connection_dispatcher_task.cpp.o: ../src/network/connection_dispatcher_task.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_14) "Building CXX object src/CMakeFiles/terrier_objlib.dir/network/connection_dispatcher_task.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_15) "Building CXX object src/CMakeFiles/terrier_objlib.dir/network/connection_dispatcher_task.cpp.o"
 	cd /Users/vivianhuang/Desktop/terrier/cmake-build-development/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/terrier_objlib.dir/network/connection_dispatcher_task.cpp.o -c /Users/vivianhuang/Desktop/terrier/src/network/connection_dispatcher_task.cpp
 
 src/CMakeFiles/terrier_objlib.dir/network/connection_dispatcher_task.cpp.i: cmake_force
@@ -241,7 +254,7 @@ src/CMakeFiles/terrier_objlib.dir/network/connection_dispatcher_task.cpp.s: cmak
 
 src/CMakeFiles/terrier_objlib.dir/network/connection_handle.cpp.o: src/CMakeFiles/terrier_objlib.dir/flags.make
 src/CMakeFiles/terrier_objlib.dir/network/connection_handle.cpp.o: ../src/network/connection_handle.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_15) "Building CXX object src/CMakeFiles/terrier_objlib.dir/network/connection_handle.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_16) "Building CXX object src/CMakeFiles/terrier_objlib.dir/network/connection_handle.cpp.o"
 	cd /Users/vivianhuang/Desktop/terrier/cmake-build-development/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/terrier_objlib.dir/network/connection_handle.cpp.o -c /Users/vivianhuang/Desktop/terrier/src/network/connection_handle.cpp
 
 src/CMakeFiles/terrier_objlib.dir/network/connection_handle.cpp.i: cmake_force
@@ -254,7 +267,7 @@ src/CMakeFiles/terrier_objlib.dir/network/connection_handle.cpp.s: cmake_force
 
 src/CMakeFiles/terrier_objlib.dir/network/connection_handle_factory.cpp.o: src/CMakeFiles/terrier_objlib.dir/flags.make
 src/CMakeFiles/terrier_objlib.dir/network/connection_handle_factory.cpp.o: ../src/network/connection_handle_factory.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_16) "Building CXX object src/CMakeFiles/terrier_objlib.dir/network/connection_handle_factory.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_17) "Building CXX object src/CMakeFiles/terrier_objlib.dir/network/connection_handle_factory.cpp.o"
 	cd /Users/vivianhuang/Desktop/terrier/cmake-build-development/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/terrier_objlib.dir/network/connection_handle_factory.cpp.o -c /Users/vivianhuang/Desktop/terrier/src/network/connection_handle_factory.cpp
 
 src/CMakeFiles/terrier_objlib.dir/network/connection_handle_factory.cpp.i: cmake_force
@@ -267,7 +280,7 @@ src/CMakeFiles/terrier_objlib.dir/network/connection_handle_factory.cpp.s: cmake
 
 src/CMakeFiles/terrier_objlib.dir/network/connection_handler_task.cpp.o: src/CMakeFiles/terrier_objlib.dir/flags.make
 src/CMakeFiles/terrier_objlib.dir/network/connection_handler_task.cpp.o: ../src/network/connection_handler_task.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_17) "Building CXX object src/CMakeFiles/terrier_objlib.dir/network/connection_handler_task.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_18) "Building CXX object src/CMakeFiles/terrier_objlib.dir/network/connection_handler_task.cpp.o"
 	cd /Users/vivianhuang/Desktop/terrier/cmake-build-development/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/terrier_objlib.dir/network/connection_handler_task.cpp.o -c /Users/vivianhuang/Desktop/terrier/src/network/connection_handler_task.cpp
 
 src/CMakeFiles/terrier_objlib.dir/network/connection_handler_task.cpp.i: cmake_force
@@ -280,7 +293,7 @@ src/CMakeFiles/terrier_objlib.dir/network/connection_handler_task.cpp.s: cmake_f
 
 src/CMakeFiles/terrier_objlib.dir/network/network_io_wrapper.cpp.o: src/CMakeFiles/terrier_objlib.dir/flags.make
 src/CMakeFiles/terrier_objlib.dir/network/network_io_wrapper.cpp.o: ../src/network/network_io_wrapper.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_18) "Building CXX object src/CMakeFiles/terrier_objlib.dir/network/network_io_wrapper.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_19) "Building CXX object src/CMakeFiles/terrier_objlib.dir/network/network_io_wrapper.cpp.o"
 	cd /Users/vivianhuang/Desktop/terrier/cmake-build-development/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/terrier_objlib.dir/network/network_io_wrapper.cpp.o -c /Users/vivianhuang/Desktop/terrier/src/network/network_io_wrapper.cpp
 
 src/CMakeFiles/terrier_objlib.dir/network/network_io_wrapper.cpp.i: cmake_force
@@ -293,7 +306,7 @@ src/CMakeFiles/terrier_objlib.dir/network/network_io_wrapper.cpp.s: cmake_force
 
 src/CMakeFiles/terrier_objlib.dir/network/postgres/postgres_network_commands.cpp.o: src/CMakeFiles/terrier_objlib.dir/flags.make
 src/CMakeFiles/terrier_objlib.dir/network/postgres/postgres_network_commands.cpp.o: ../src/network/postgres/postgres_network_commands.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_19) "Building CXX object src/CMakeFiles/terrier_objlib.dir/network/postgres/postgres_network_commands.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_20) "Building CXX object src/CMakeFiles/terrier_objlib.dir/network/postgres/postgres_network_commands.cpp.o"
 	cd /Users/vivianhuang/Desktop/terrier/cmake-build-development/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/terrier_objlib.dir/network/postgres/postgres_network_commands.cpp.o -c /Users/vivianhuang/Desktop/terrier/src/network/postgres/postgres_network_commands.cpp
 
 src/CMakeFiles/terrier_objlib.dir/network/postgres/postgres_network_commands.cpp.i: cmake_force
@@ -306,7 +319,7 @@ src/CMakeFiles/terrier_objlib.dir/network/postgres/postgres_network_commands.cpp
 
 src/CMakeFiles/terrier_objlib.dir/network/postgres/postgres_protocol_interpreter.cpp.o: src/CMakeFiles/terrier_objlib.dir/flags.make
 src/CMakeFiles/terrier_objlib.dir/network/postgres/postgres_protocol_interpreter.cpp.o: ../src/network/postgres/postgres_protocol_interpreter.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_20) "Building CXX object src/CMakeFiles/terrier_objlib.dir/network/postgres/postgres_protocol_interpreter.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_21) "Building CXX object src/CMakeFiles/terrier_objlib.dir/network/postgres/postgres_protocol_interpreter.cpp.o"
 	cd /Users/vivianhuang/Desktop/terrier/cmake-build-development/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/terrier_objlib.dir/network/postgres/postgres_protocol_interpreter.cpp.o -c /Users/vivianhuang/Desktop/terrier/src/network/postgres/postgres_protocol_interpreter.cpp
 
 src/CMakeFiles/terrier_objlib.dir/network/postgres/postgres_protocol_interpreter.cpp.i: cmake_force
@@ -319,7 +332,7 @@ src/CMakeFiles/terrier_objlib.dir/network/postgres/postgres_protocol_interpreter
 
 src/CMakeFiles/terrier_objlib.dir/network/postgres/postgres_protocol_utils.cpp.o: src/CMakeFiles/terrier_objlib.dir/flags.make
 src/CMakeFiles/terrier_objlib.dir/network/postgres/postgres_protocol_utils.cpp.o: ../src/network/postgres/postgres_protocol_utils.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_21) "Building CXX object src/CMakeFiles/terrier_objlib.dir/network/postgres/postgres_protocol_utils.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_22) "Building CXX object src/CMakeFiles/terrier_objlib.dir/network/postgres/postgres_protocol_utils.cpp.o"
 	cd /Users/vivianhuang/Desktop/terrier/cmake-build-development/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/terrier_objlib.dir/network/postgres/postgres_protocol_utils.cpp.o -c /Users/vivianhuang/Desktop/terrier/src/network/postgres/postgres_protocol_utils.cpp
 
 src/CMakeFiles/terrier_objlib.dir/network/postgres/postgres_protocol_utils.cpp.i: cmake_force
@@ -332,7 +345,7 @@ src/CMakeFiles/terrier_objlib.dir/network/postgres/postgres_protocol_utils.cpp.s
 
 src/CMakeFiles/terrier_objlib.dir/network/terrier_server.cpp.o: src/CMakeFiles/terrier_objlib.dir/flags.make
 src/CMakeFiles/terrier_objlib.dir/network/terrier_server.cpp.o: ../src/network/terrier_server.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_22) "Building CXX object src/CMakeFiles/terrier_objlib.dir/network/terrier_server.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_23) "Building CXX object src/CMakeFiles/terrier_objlib.dir/network/terrier_server.cpp.o"
 	cd /Users/vivianhuang/Desktop/terrier/cmake-build-development/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/terrier_objlib.dir/network/terrier_server.cpp.o -c /Users/vivianhuang/Desktop/terrier/src/network/terrier_server.cpp
 
 src/CMakeFiles/terrier_objlib.dir/network/terrier_server.cpp.i: cmake_force
@@ -343,9 +356,35 @@ src/CMakeFiles/terrier_objlib.dir/network/terrier_server.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/terrier_objlib.dir/network/terrier_server.cpp.s"
 	cd /Users/vivianhuang/Desktop/terrier/cmake-build-development/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/vivianhuang/Desktop/terrier/src/network/terrier_server.cpp -o CMakeFiles/terrier_objlib.dir/network/terrier_server.cpp.s
 
+src/CMakeFiles/terrier_objlib.dir/optimizer/binding.cpp.o: src/CMakeFiles/terrier_objlib.dir/flags.make
+src/CMakeFiles/terrier_objlib.dir/optimizer/binding.cpp.o: ../src/optimizer/binding.cpp
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_24) "Building CXX object src/CMakeFiles/terrier_objlib.dir/optimizer/binding.cpp.o"
+	cd /Users/vivianhuang/Desktop/terrier/cmake-build-development/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/terrier_objlib.dir/optimizer/binding.cpp.o -c /Users/vivianhuang/Desktop/terrier/src/optimizer/binding.cpp
+
+src/CMakeFiles/terrier_objlib.dir/optimizer/binding.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/terrier_objlib.dir/optimizer/binding.cpp.i"
+	cd /Users/vivianhuang/Desktop/terrier/cmake-build-development/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /Users/vivianhuang/Desktop/terrier/src/optimizer/binding.cpp > CMakeFiles/terrier_objlib.dir/optimizer/binding.cpp.i
+
+src/CMakeFiles/terrier_objlib.dir/optimizer/binding.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/terrier_objlib.dir/optimizer/binding.cpp.s"
+	cd /Users/vivianhuang/Desktop/terrier/cmake-build-development/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/vivianhuang/Desktop/terrier/src/optimizer/binding.cpp -o CMakeFiles/terrier_objlib.dir/optimizer/binding.cpp.s
+
+src/CMakeFiles/terrier_objlib.dir/optimizer/child_property_deriver.cpp.o: src/CMakeFiles/terrier_objlib.dir/flags.make
+src/CMakeFiles/terrier_objlib.dir/optimizer/child_property_deriver.cpp.o: ../src/optimizer/child_property_deriver.cpp
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_25) "Building CXX object src/CMakeFiles/terrier_objlib.dir/optimizer/child_property_deriver.cpp.o"
+	cd /Users/vivianhuang/Desktop/terrier/cmake-build-development/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/terrier_objlib.dir/optimizer/child_property_deriver.cpp.o -c /Users/vivianhuang/Desktop/terrier/src/optimizer/child_property_deriver.cpp
+
+src/CMakeFiles/terrier_objlib.dir/optimizer/child_property_deriver.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/terrier_objlib.dir/optimizer/child_property_deriver.cpp.i"
+	cd /Users/vivianhuang/Desktop/terrier/cmake-build-development/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /Users/vivianhuang/Desktop/terrier/src/optimizer/child_property_deriver.cpp > CMakeFiles/terrier_objlib.dir/optimizer/child_property_deriver.cpp.i
+
+src/CMakeFiles/terrier_objlib.dir/optimizer/child_property_deriver.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/terrier_objlib.dir/optimizer/child_property_deriver.cpp.s"
+	cd /Users/vivianhuang/Desktop/terrier/cmake-build-development/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/vivianhuang/Desktop/terrier/src/optimizer/child_property_deriver.cpp -o CMakeFiles/terrier_objlib.dir/optimizer/child_property_deriver.cpp.s
+
 src/CMakeFiles/terrier_objlib.dir/optimizer/cost_model/trivial_cost_model.cpp.o: src/CMakeFiles/terrier_objlib.dir/flags.make
 src/CMakeFiles/terrier_objlib.dir/optimizer/cost_model/trivial_cost_model.cpp.o: ../src/optimizer/cost_model/trivial_cost_model.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_23) "Building CXX object src/CMakeFiles/terrier_objlib.dir/optimizer/cost_model/trivial_cost_model.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_26) "Building CXX object src/CMakeFiles/terrier_objlib.dir/optimizer/cost_model/trivial_cost_model.cpp.o"
 	cd /Users/vivianhuang/Desktop/terrier/cmake-build-development/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/terrier_objlib.dir/optimizer/cost_model/trivial_cost_model.cpp.o -c /Users/vivianhuang/Desktop/terrier/src/optimizer/cost_model/trivial_cost_model.cpp
 
 src/CMakeFiles/terrier_objlib.dir/optimizer/cost_model/trivial_cost_model.cpp.i: cmake_force
@@ -356,9 +395,22 @@ src/CMakeFiles/terrier_objlib.dir/optimizer/cost_model/trivial_cost_model.cpp.s:
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/terrier_objlib.dir/optimizer/cost_model/trivial_cost_model.cpp.s"
 	cd /Users/vivianhuang/Desktop/terrier/cmake-build-development/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/vivianhuang/Desktop/terrier/src/optimizer/cost_model/trivial_cost_model.cpp -o CMakeFiles/terrier_objlib.dir/optimizer/cost_model/trivial_cost_model.cpp.s
 
+src/CMakeFiles/terrier_objlib.dir/optimizer/group.cpp.o: src/CMakeFiles/terrier_objlib.dir/flags.make
+src/CMakeFiles/terrier_objlib.dir/optimizer/group.cpp.o: ../src/optimizer/group.cpp
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_27) "Building CXX object src/CMakeFiles/terrier_objlib.dir/optimizer/group.cpp.o"
+	cd /Users/vivianhuang/Desktop/terrier/cmake-build-development/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/terrier_objlib.dir/optimizer/group.cpp.o -c /Users/vivianhuang/Desktop/terrier/src/optimizer/group.cpp
+
+src/CMakeFiles/terrier_objlib.dir/optimizer/group.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/terrier_objlib.dir/optimizer/group.cpp.i"
+	cd /Users/vivianhuang/Desktop/terrier/cmake-build-development/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /Users/vivianhuang/Desktop/terrier/src/optimizer/group.cpp > CMakeFiles/terrier_objlib.dir/optimizer/group.cpp.i
+
+src/CMakeFiles/terrier_objlib.dir/optimizer/group.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/terrier_objlib.dir/optimizer/group.cpp.s"
+	cd /Users/vivianhuang/Desktop/terrier/cmake-build-development/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/vivianhuang/Desktop/terrier/src/optimizer/group.cpp -o CMakeFiles/terrier_objlib.dir/optimizer/group.cpp.s
+
 src/CMakeFiles/terrier_objlib.dir/optimizer/group_expression.cpp.o: src/CMakeFiles/terrier_objlib.dir/flags.make
 src/CMakeFiles/terrier_objlib.dir/optimizer/group_expression.cpp.o: ../src/optimizer/group_expression.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_24) "Building CXX object src/CMakeFiles/terrier_objlib.dir/optimizer/group_expression.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_28) "Building CXX object src/CMakeFiles/terrier_objlib.dir/optimizer/group_expression.cpp.o"
 	cd /Users/vivianhuang/Desktop/terrier/cmake-build-development/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/terrier_objlib.dir/optimizer/group_expression.cpp.o -c /Users/vivianhuang/Desktop/terrier/src/optimizer/group_expression.cpp
 
 src/CMakeFiles/terrier_objlib.dir/optimizer/group_expression.cpp.i: cmake_force
@@ -369,9 +421,22 @@ src/CMakeFiles/terrier_objlib.dir/optimizer/group_expression.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/terrier_objlib.dir/optimizer/group_expression.cpp.s"
 	cd /Users/vivianhuang/Desktop/terrier/cmake-build-development/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/vivianhuang/Desktop/terrier/src/optimizer/group_expression.cpp -o CMakeFiles/terrier_objlib.dir/optimizer/group_expression.cpp.s
 
+src/CMakeFiles/terrier_objlib.dir/optimizer/input_column_deriver.cpp.o: src/CMakeFiles/terrier_objlib.dir/flags.make
+src/CMakeFiles/terrier_objlib.dir/optimizer/input_column_deriver.cpp.o: ../src/optimizer/input_column_deriver.cpp
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_29) "Building CXX object src/CMakeFiles/terrier_objlib.dir/optimizer/input_column_deriver.cpp.o"
+	cd /Users/vivianhuang/Desktop/terrier/cmake-build-development/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/terrier_objlib.dir/optimizer/input_column_deriver.cpp.o -c /Users/vivianhuang/Desktop/terrier/src/optimizer/input_column_deriver.cpp
+
+src/CMakeFiles/terrier_objlib.dir/optimizer/input_column_deriver.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/terrier_objlib.dir/optimizer/input_column_deriver.cpp.i"
+	cd /Users/vivianhuang/Desktop/terrier/cmake-build-development/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /Users/vivianhuang/Desktop/terrier/src/optimizer/input_column_deriver.cpp > CMakeFiles/terrier_objlib.dir/optimizer/input_column_deriver.cpp.i
+
+src/CMakeFiles/terrier_objlib.dir/optimizer/input_column_deriver.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/terrier_objlib.dir/optimizer/input_column_deriver.cpp.s"
+	cd /Users/vivianhuang/Desktop/terrier/cmake-build-development/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/vivianhuang/Desktop/terrier/src/optimizer/input_column_deriver.cpp -o CMakeFiles/terrier_objlib.dir/optimizer/input_column_deriver.cpp.s
+
 src/CMakeFiles/terrier_objlib.dir/optimizer/logical_operators.cpp.o: src/CMakeFiles/terrier_objlib.dir/flags.make
 src/CMakeFiles/terrier_objlib.dir/optimizer/logical_operators.cpp.o: ../src/optimizer/logical_operators.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_25) "Building CXX object src/CMakeFiles/terrier_objlib.dir/optimizer/logical_operators.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_30) "Building CXX object src/CMakeFiles/terrier_objlib.dir/optimizer/logical_operators.cpp.o"
 	cd /Users/vivianhuang/Desktop/terrier/cmake-build-development/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/terrier_objlib.dir/optimizer/logical_operators.cpp.o -c /Users/vivianhuang/Desktop/terrier/src/optimizer/logical_operators.cpp
 
 src/CMakeFiles/terrier_objlib.dir/optimizer/logical_operators.cpp.i: cmake_force
@@ -382,9 +447,22 @@ src/CMakeFiles/terrier_objlib.dir/optimizer/logical_operators.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/terrier_objlib.dir/optimizer/logical_operators.cpp.s"
 	cd /Users/vivianhuang/Desktop/terrier/cmake-build-development/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/vivianhuang/Desktop/terrier/src/optimizer/logical_operators.cpp -o CMakeFiles/terrier_objlib.dir/optimizer/logical_operators.cpp.s
 
+src/CMakeFiles/terrier_objlib.dir/optimizer/memo.cpp.o: src/CMakeFiles/terrier_objlib.dir/flags.make
+src/CMakeFiles/terrier_objlib.dir/optimizer/memo.cpp.o: ../src/optimizer/memo.cpp
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_31) "Building CXX object src/CMakeFiles/terrier_objlib.dir/optimizer/memo.cpp.o"
+	cd /Users/vivianhuang/Desktop/terrier/cmake-build-development/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/terrier_objlib.dir/optimizer/memo.cpp.o -c /Users/vivianhuang/Desktop/terrier/src/optimizer/memo.cpp
+
+src/CMakeFiles/terrier_objlib.dir/optimizer/memo.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/terrier_objlib.dir/optimizer/memo.cpp.i"
+	cd /Users/vivianhuang/Desktop/terrier/cmake-build-development/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /Users/vivianhuang/Desktop/terrier/src/optimizer/memo.cpp > CMakeFiles/terrier_objlib.dir/optimizer/memo.cpp.i
+
+src/CMakeFiles/terrier_objlib.dir/optimizer/memo.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/terrier_objlib.dir/optimizer/memo.cpp.s"
+	cd /Users/vivianhuang/Desktop/terrier/cmake-build-development/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/vivianhuang/Desktop/terrier/src/optimizer/memo.cpp -o CMakeFiles/terrier_objlib.dir/optimizer/memo.cpp.s
+
 src/CMakeFiles/terrier_objlib.dir/optimizer/operator_node.cpp.o: src/CMakeFiles/terrier_objlib.dir/flags.make
 src/CMakeFiles/terrier_objlib.dir/optimizer/operator_node.cpp.o: ../src/optimizer/operator_node.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_26) "Building CXX object src/CMakeFiles/terrier_objlib.dir/optimizer/operator_node.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_32) "Building CXX object src/CMakeFiles/terrier_objlib.dir/optimizer/operator_node.cpp.o"
 	cd /Users/vivianhuang/Desktop/terrier/cmake-build-development/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/terrier_objlib.dir/optimizer/operator_node.cpp.o -c /Users/vivianhuang/Desktop/terrier/src/optimizer/operator_node.cpp
 
 src/CMakeFiles/terrier_objlib.dir/optimizer/operator_node.cpp.i: cmake_force
@@ -395,9 +473,35 @@ src/CMakeFiles/terrier_objlib.dir/optimizer/operator_node.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/terrier_objlib.dir/optimizer/operator_node.cpp.s"
 	cd /Users/vivianhuang/Desktop/terrier/cmake-build-development/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/vivianhuang/Desktop/terrier/src/optimizer/operator_node.cpp -o CMakeFiles/terrier_objlib.dir/optimizer/operator_node.cpp.s
 
+src/CMakeFiles/terrier_objlib.dir/optimizer/optimizer.cpp.o: src/CMakeFiles/terrier_objlib.dir/flags.make
+src/CMakeFiles/terrier_objlib.dir/optimizer/optimizer.cpp.o: ../src/optimizer/optimizer.cpp
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_33) "Building CXX object src/CMakeFiles/terrier_objlib.dir/optimizer/optimizer.cpp.o"
+	cd /Users/vivianhuang/Desktop/terrier/cmake-build-development/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/terrier_objlib.dir/optimizer/optimizer.cpp.o -c /Users/vivianhuang/Desktop/terrier/src/optimizer/optimizer.cpp
+
+src/CMakeFiles/terrier_objlib.dir/optimizer/optimizer.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/terrier_objlib.dir/optimizer/optimizer.cpp.i"
+	cd /Users/vivianhuang/Desktop/terrier/cmake-build-development/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /Users/vivianhuang/Desktop/terrier/src/optimizer/optimizer.cpp > CMakeFiles/terrier_objlib.dir/optimizer/optimizer.cpp.i
+
+src/CMakeFiles/terrier_objlib.dir/optimizer/optimizer.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/terrier_objlib.dir/optimizer/optimizer.cpp.s"
+	cd /Users/vivianhuang/Desktop/terrier/cmake-build-development/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/vivianhuang/Desktop/terrier/src/optimizer/optimizer.cpp -o CMakeFiles/terrier_objlib.dir/optimizer/optimizer.cpp.s
+
+src/CMakeFiles/terrier_objlib.dir/optimizer/optimizer_task.cpp.o: src/CMakeFiles/terrier_objlib.dir/flags.make
+src/CMakeFiles/terrier_objlib.dir/optimizer/optimizer_task.cpp.o: ../src/optimizer/optimizer_task.cpp
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_34) "Building CXX object src/CMakeFiles/terrier_objlib.dir/optimizer/optimizer_task.cpp.o"
+	cd /Users/vivianhuang/Desktop/terrier/cmake-build-development/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/terrier_objlib.dir/optimizer/optimizer_task.cpp.o -c /Users/vivianhuang/Desktop/terrier/src/optimizer/optimizer_task.cpp
+
+src/CMakeFiles/terrier_objlib.dir/optimizer/optimizer_task.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/terrier_objlib.dir/optimizer/optimizer_task.cpp.i"
+	cd /Users/vivianhuang/Desktop/terrier/cmake-build-development/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /Users/vivianhuang/Desktop/terrier/src/optimizer/optimizer_task.cpp > CMakeFiles/terrier_objlib.dir/optimizer/optimizer_task.cpp.i
+
+src/CMakeFiles/terrier_objlib.dir/optimizer/optimizer_task.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/terrier_objlib.dir/optimizer/optimizer_task.cpp.s"
+	cd /Users/vivianhuang/Desktop/terrier/cmake-build-development/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/vivianhuang/Desktop/terrier/src/optimizer/optimizer_task.cpp -o CMakeFiles/terrier_objlib.dir/optimizer/optimizer_task.cpp.s
+
 src/CMakeFiles/terrier_objlib.dir/optimizer/physical_operators.cpp.o: src/CMakeFiles/terrier_objlib.dir/flags.make
 src/CMakeFiles/terrier_objlib.dir/optimizer/physical_operators.cpp.o: ../src/optimizer/physical_operators.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_27) "Building CXX object src/CMakeFiles/terrier_objlib.dir/optimizer/physical_operators.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_35) "Building CXX object src/CMakeFiles/terrier_objlib.dir/optimizer/physical_operators.cpp.o"
 	cd /Users/vivianhuang/Desktop/terrier/cmake-build-development/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/terrier_objlib.dir/optimizer/physical_operators.cpp.o -c /Users/vivianhuang/Desktop/terrier/src/optimizer/physical_operators.cpp
 
 src/CMakeFiles/terrier_objlib.dir/optimizer/physical_operators.cpp.i: cmake_force
@@ -408,9 +512,100 @@ src/CMakeFiles/terrier_objlib.dir/optimizer/physical_operators.cpp.s: cmake_forc
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/terrier_objlib.dir/optimizer/physical_operators.cpp.s"
 	cd /Users/vivianhuang/Desktop/terrier/cmake-build-development/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/vivianhuang/Desktop/terrier/src/optimizer/physical_operators.cpp -o CMakeFiles/terrier_objlib.dir/optimizer/physical_operators.cpp.s
 
+src/CMakeFiles/terrier_objlib.dir/optimizer/plan_generator.cpp.o: src/CMakeFiles/terrier_objlib.dir/flags.make
+src/CMakeFiles/terrier_objlib.dir/optimizer/plan_generator.cpp.o: ../src/optimizer/plan_generator.cpp
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_36) "Building CXX object src/CMakeFiles/terrier_objlib.dir/optimizer/plan_generator.cpp.o"
+	cd /Users/vivianhuang/Desktop/terrier/cmake-build-development/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/terrier_objlib.dir/optimizer/plan_generator.cpp.o -c /Users/vivianhuang/Desktop/terrier/src/optimizer/plan_generator.cpp
+
+src/CMakeFiles/terrier_objlib.dir/optimizer/plan_generator.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/terrier_objlib.dir/optimizer/plan_generator.cpp.i"
+	cd /Users/vivianhuang/Desktop/terrier/cmake-build-development/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /Users/vivianhuang/Desktop/terrier/src/optimizer/plan_generator.cpp > CMakeFiles/terrier_objlib.dir/optimizer/plan_generator.cpp.i
+
+src/CMakeFiles/terrier_objlib.dir/optimizer/plan_generator.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/terrier_objlib.dir/optimizer/plan_generator.cpp.s"
+	cd /Users/vivianhuang/Desktop/terrier/cmake-build-development/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/vivianhuang/Desktop/terrier/src/optimizer/plan_generator.cpp -o CMakeFiles/terrier_objlib.dir/optimizer/plan_generator.cpp.s
+
+src/CMakeFiles/terrier_objlib.dir/optimizer/properties.cpp.o: src/CMakeFiles/terrier_objlib.dir/flags.make
+src/CMakeFiles/terrier_objlib.dir/optimizer/properties.cpp.o: ../src/optimizer/properties.cpp
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_37) "Building CXX object src/CMakeFiles/terrier_objlib.dir/optimizer/properties.cpp.o"
+	cd /Users/vivianhuang/Desktop/terrier/cmake-build-development/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/terrier_objlib.dir/optimizer/properties.cpp.o -c /Users/vivianhuang/Desktop/terrier/src/optimizer/properties.cpp
+
+src/CMakeFiles/terrier_objlib.dir/optimizer/properties.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/terrier_objlib.dir/optimizer/properties.cpp.i"
+	cd /Users/vivianhuang/Desktop/terrier/cmake-build-development/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /Users/vivianhuang/Desktop/terrier/src/optimizer/properties.cpp > CMakeFiles/terrier_objlib.dir/optimizer/properties.cpp.i
+
+src/CMakeFiles/terrier_objlib.dir/optimizer/properties.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/terrier_objlib.dir/optimizer/properties.cpp.s"
+	cd /Users/vivianhuang/Desktop/terrier/cmake-build-development/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/vivianhuang/Desktop/terrier/src/optimizer/properties.cpp -o CMakeFiles/terrier_objlib.dir/optimizer/properties.cpp.s
+
+src/CMakeFiles/terrier_objlib.dir/optimizer/property_enforcer.cpp.o: src/CMakeFiles/terrier_objlib.dir/flags.make
+src/CMakeFiles/terrier_objlib.dir/optimizer/property_enforcer.cpp.o: ../src/optimizer/property_enforcer.cpp
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_38) "Building CXX object src/CMakeFiles/terrier_objlib.dir/optimizer/property_enforcer.cpp.o"
+	cd /Users/vivianhuang/Desktop/terrier/cmake-build-development/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/terrier_objlib.dir/optimizer/property_enforcer.cpp.o -c /Users/vivianhuang/Desktop/terrier/src/optimizer/property_enforcer.cpp
+
+src/CMakeFiles/terrier_objlib.dir/optimizer/property_enforcer.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/terrier_objlib.dir/optimizer/property_enforcer.cpp.i"
+	cd /Users/vivianhuang/Desktop/terrier/cmake-build-development/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /Users/vivianhuang/Desktop/terrier/src/optimizer/property_enforcer.cpp > CMakeFiles/terrier_objlib.dir/optimizer/property_enforcer.cpp.i
+
+src/CMakeFiles/terrier_objlib.dir/optimizer/property_enforcer.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/terrier_objlib.dir/optimizer/property_enforcer.cpp.s"
+	cd /Users/vivianhuang/Desktop/terrier/cmake-build-development/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/vivianhuang/Desktop/terrier/src/optimizer/property_enforcer.cpp -o CMakeFiles/terrier_objlib.dir/optimizer/property_enforcer.cpp.s
+
+src/CMakeFiles/terrier_objlib.dir/optimizer/property_set.cpp.o: src/CMakeFiles/terrier_objlib.dir/flags.make
+src/CMakeFiles/terrier_objlib.dir/optimizer/property_set.cpp.o: ../src/optimizer/property_set.cpp
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_39) "Building CXX object src/CMakeFiles/terrier_objlib.dir/optimizer/property_set.cpp.o"
+	cd /Users/vivianhuang/Desktop/terrier/cmake-build-development/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/terrier_objlib.dir/optimizer/property_set.cpp.o -c /Users/vivianhuang/Desktop/terrier/src/optimizer/property_set.cpp
+
+src/CMakeFiles/terrier_objlib.dir/optimizer/property_set.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/terrier_objlib.dir/optimizer/property_set.cpp.i"
+	cd /Users/vivianhuang/Desktop/terrier/cmake-build-development/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /Users/vivianhuang/Desktop/terrier/src/optimizer/property_set.cpp > CMakeFiles/terrier_objlib.dir/optimizer/property_set.cpp.i
+
+src/CMakeFiles/terrier_objlib.dir/optimizer/property_set.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/terrier_objlib.dir/optimizer/property_set.cpp.s"
+	cd /Users/vivianhuang/Desktop/terrier/cmake-build-development/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/vivianhuang/Desktop/terrier/src/optimizer/property_set.cpp -o CMakeFiles/terrier_objlib.dir/optimizer/property_set.cpp.s
+
+src/CMakeFiles/terrier_objlib.dir/optimizer/rule.cpp.o: src/CMakeFiles/terrier_objlib.dir/flags.make
+src/CMakeFiles/terrier_objlib.dir/optimizer/rule.cpp.o: ../src/optimizer/rule.cpp
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_40) "Building CXX object src/CMakeFiles/terrier_objlib.dir/optimizer/rule.cpp.o"
+	cd /Users/vivianhuang/Desktop/terrier/cmake-build-development/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/terrier_objlib.dir/optimizer/rule.cpp.o -c /Users/vivianhuang/Desktop/terrier/src/optimizer/rule.cpp
+
+src/CMakeFiles/terrier_objlib.dir/optimizer/rule.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/terrier_objlib.dir/optimizer/rule.cpp.i"
+	cd /Users/vivianhuang/Desktop/terrier/cmake-build-development/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /Users/vivianhuang/Desktop/terrier/src/optimizer/rule.cpp > CMakeFiles/terrier_objlib.dir/optimizer/rule.cpp.i
+
+src/CMakeFiles/terrier_objlib.dir/optimizer/rule.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/terrier_objlib.dir/optimizer/rule.cpp.s"
+	cd /Users/vivianhuang/Desktop/terrier/cmake-build-development/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/vivianhuang/Desktop/terrier/src/optimizer/rule.cpp -o CMakeFiles/terrier_objlib.dir/optimizer/rule.cpp.s
+
+src/CMakeFiles/terrier_objlib.dir/optimizer/rule_impls.cpp.o: src/CMakeFiles/terrier_objlib.dir/flags.make
+src/CMakeFiles/terrier_objlib.dir/optimizer/rule_impls.cpp.o: ../src/optimizer/rule_impls.cpp
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_41) "Building CXX object src/CMakeFiles/terrier_objlib.dir/optimizer/rule_impls.cpp.o"
+	cd /Users/vivianhuang/Desktop/terrier/cmake-build-development/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/terrier_objlib.dir/optimizer/rule_impls.cpp.o -c /Users/vivianhuang/Desktop/terrier/src/optimizer/rule_impls.cpp
+
+src/CMakeFiles/terrier_objlib.dir/optimizer/rule_impls.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/terrier_objlib.dir/optimizer/rule_impls.cpp.i"
+	cd /Users/vivianhuang/Desktop/terrier/cmake-build-development/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /Users/vivianhuang/Desktop/terrier/src/optimizer/rule_impls.cpp > CMakeFiles/terrier_objlib.dir/optimizer/rule_impls.cpp.i
+
+src/CMakeFiles/terrier_objlib.dir/optimizer/rule_impls.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/terrier_objlib.dir/optimizer/rule_impls.cpp.s"
+	cd /Users/vivianhuang/Desktop/terrier/cmake-build-development/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/vivianhuang/Desktop/terrier/src/optimizer/rule_impls.cpp -o CMakeFiles/terrier_objlib.dir/optimizer/rule_impls.cpp.s
+
+src/CMakeFiles/terrier_objlib.dir/optimizer/util.cpp.o: src/CMakeFiles/terrier_objlib.dir/flags.make
+src/CMakeFiles/terrier_objlib.dir/optimizer/util.cpp.o: ../src/optimizer/util.cpp
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_42) "Building CXX object src/CMakeFiles/terrier_objlib.dir/optimizer/util.cpp.o"
+	cd /Users/vivianhuang/Desktop/terrier/cmake-build-development/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/terrier_objlib.dir/optimizer/util.cpp.o -c /Users/vivianhuang/Desktop/terrier/src/optimizer/util.cpp
+
+src/CMakeFiles/terrier_objlib.dir/optimizer/util.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/terrier_objlib.dir/optimizer/util.cpp.i"
+	cd /Users/vivianhuang/Desktop/terrier/cmake-build-development/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /Users/vivianhuang/Desktop/terrier/src/optimizer/util.cpp > CMakeFiles/terrier_objlib.dir/optimizer/util.cpp.i
+
+src/CMakeFiles/terrier_objlib.dir/optimizer/util.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/terrier_objlib.dir/optimizer/util.cpp.s"
+	cd /Users/vivianhuang/Desktop/terrier/cmake-build-development/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/vivianhuang/Desktop/terrier/src/optimizer/util.cpp -o CMakeFiles/terrier_objlib.dir/optimizer/util.cpp.s
+
 src/CMakeFiles/terrier_objlib.dir/parser/expression/abstract_expression.cpp.o: src/CMakeFiles/terrier_objlib.dir/flags.make
 src/CMakeFiles/terrier_objlib.dir/parser/expression/abstract_expression.cpp.o: ../src/parser/expression/abstract_expression.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_28) "Building CXX object src/CMakeFiles/terrier_objlib.dir/parser/expression/abstract_expression.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_43) "Building CXX object src/CMakeFiles/terrier_objlib.dir/parser/expression/abstract_expression.cpp.o"
 	cd /Users/vivianhuang/Desktop/terrier/cmake-build-development/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/terrier_objlib.dir/parser/expression/abstract_expression.cpp.o -c /Users/vivianhuang/Desktop/terrier/src/parser/expression/abstract_expression.cpp
 
 src/CMakeFiles/terrier_objlib.dir/parser/expression/abstract_expression.cpp.i: cmake_force
@@ -423,7 +618,7 @@ src/CMakeFiles/terrier_objlib.dir/parser/expression/abstract_expression.cpp.s: c
 
 src/CMakeFiles/terrier_objlib.dir/parser/postgresparser.cpp.o: src/CMakeFiles/terrier_objlib.dir/flags.make
 src/CMakeFiles/terrier_objlib.dir/parser/postgresparser.cpp.o: ../src/parser/postgresparser.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_29) "Building CXX object src/CMakeFiles/terrier_objlib.dir/parser/postgresparser.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_44) "Building CXX object src/CMakeFiles/terrier_objlib.dir/parser/postgresparser.cpp.o"
 	cd /Users/vivianhuang/Desktop/terrier/cmake-build-development/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/terrier_objlib.dir/parser/postgresparser.cpp.o -c /Users/vivianhuang/Desktop/terrier/src/parser/postgresparser.cpp
 
 src/CMakeFiles/terrier_objlib.dir/parser/postgresparser.cpp.i: cmake_force
@@ -436,7 +631,7 @@ src/CMakeFiles/terrier_objlib.dir/parser/postgresparser.cpp.s: cmake_force
 
 src/CMakeFiles/terrier_objlib.dir/parser/select_statement.cpp.o: src/CMakeFiles/terrier_objlib.dir/flags.make
 src/CMakeFiles/terrier_objlib.dir/parser/select_statement.cpp.o: ../src/parser/select_statement.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_30) "Building CXX object src/CMakeFiles/terrier_objlib.dir/parser/select_statement.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_45) "Building CXX object src/CMakeFiles/terrier_objlib.dir/parser/select_statement.cpp.o"
 	cd /Users/vivianhuang/Desktop/terrier/cmake-build-development/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/terrier_objlib.dir/parser/select_statement.cpp.o -c /Users/vivianhuang/Desktop/terrier/src/parser/select_statement.cpp
 
 src/CMakeFiles/terrier_objlib.dir/parser/select_statement.cpp.i: cmake_force
@@ -449,7 +644,7 @@ src/CMakeFiles/terrier_objlib.dir/parser/select_statement.cpp.s: cmake_force
 
 src/CMakeFiles/terrier_objlib.dir/parser/table_ref.cpp.o: src/CMakeFiles/terrier_objlib.dir/flags.make
 src/CMakeFiles/terrier_objlib.dir/parser/table_ref.cpp.o: ../src/parser/table_ref.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_31) "Building CXX object src/CMakeFiles/terrier_objlib.dir/parser/table_ref.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_46) "Building CXX object src/CMakeFiles/terrier_objlib.dir/parser/table_ref.cpp.o"
 	cd /Users/vivianhuang/Desktop/terrier/cmake-build-development/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/terrier_objlib.dir/parser/table_ref.cpp.o -c /Users/vivianhuang/Desktop/terrier/src/parser/table_ref.cpp
 
 src/CMakeFiles/terrier_objlib.dir/parser/table_ref.cpp.i: cmake_force
@@ -462,7 +657,7 @@ src/CMakeFiles/terrier_objlib.dir/parser/table_ref.cpp.s: cmake_force
 
 src/CMakeFiles/terrier_objlib.dir/planner/plannodes/abstract_join_plan_node.cpp.o: src/CMakeFiles/terrier_objlib.dir/flags.make
 src/CMakeFiles/terrier_objlib.dir/planner/plannodes/abstract_join_plan_node.cpp.o: ../src/planner/plannodes/abstract_join_plan_node.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_32) "Building CXX object src/CMakeFiles/terrier_objlib.dir/planner/plannodes/abstract_join_plan_node.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_47) "Building CXX object src/CMakeFiles/terrier_objlib.dir/planner/plannodes/abstract_join_plan_node.cpp.o"
 	cd /Users/vivianhuang/Desktop/terrier/cmake-build-development/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/terrier_objlib.dir/planner/plannodes/abstract_join_plan_node.cpp.o -c /Users/vivianhuang/Desktop/terrier/src/planner/plannodes/abstract_join_plan_node.cpp
 
 src/CMakeFiles/terrier_objlib.dir/planner/plannodes/abstract_join_plan_node.cpp.i: cmake_force
@@ -475,7 +670,7 @@ src/CMakeFiles/terrier_objlib.dir/planner/plannodes/abstract_join_plan_node.cpp.
 
 src/CMakeFiles/terrier_objlib.dir/planner/plannodes/abstract_plan_node.cpp.o: src/CMakeFiles/terrier_objlib.dir/flags.make
 src/CMakeFiles/terrier_objlib.dir/planner/plannodes/abstract_plan_node.cpp.o: ../src/planner/plannodes/abstract_plan_node.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_33) "Building CXX object src/CMakeFiles/terrier_objlib.dir/planner/plannodes/abstract_plan_node.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_48) "Building CXX object src/CMakeFiles/terrier_objlib.dir/planner/plannodes/abstract_plan_node.cpp.o"
 	cd /Users/vivianhuang/Desktop/terrier/cmake-build-development/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/terrier_objlib.dir/planner/plannodes/abstract_plan_node.cpp.o -c /Users/vivianhuang/Desktop/terrier/src/planner/plannodes/abstract_plan_node.cpp
 
 src/CMakeFiles/terrier_objlib.dir/planner/plannodes/abstract_plan_node.cpp.i: cmake_force
@@ -488,7 +683,7 @@ src/CMakeFiles/terrier_objlib.dir/planner/plannodes/abstract_plan_node.cpp.s: cm
 
 src/CMakeFiles/terrier_objlib.dir/planner/plannodes/abstract_scan_plan_node.cpp.o: src/CMakeFiles/terrier_objlib.dir/flags.make
 src/CMakeFiles/terrier_objlib.dir/planner/plannodes/abstract_scan_plan_node.cpp.o: ../src/planner/plannodes/abstract_scan_plan_node.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_34) "Building CXX object src/CMakeFiles/terrier_objlib.dir/planner/plannodes/abstract_scan_plan_node.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_49) "Building CXX object src/CMakeFiles/terrier_objlib.dir/planner/plannodes/abstract_scan_plan_node.cpp.o"
 	cd /Users/vivianhuang/Desktop/terrier/cmake-build-development/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/terrier_objlib.dir/planner/plannodes/abstract_scan_plan_node.cpp.o -c /Users/vivianhuang/Desktop/terrier/src/planner/plannodes/abstract_scan_plan_node.cpp
 
 src/CMakeFiles/terrier_objlib.dir/planner/plannodes/abstract_scan_plan_node.cpp.i: cmake_force
@@ -501,7 +696,7 @@ src/CMakeFiles/terrier_objlib.dir/planner/plannodes/abstract_scan_plan_node.cpp.
 
 src/CMakeFiles/terrier_objlib.dir/planner/plannodes/aggregate_plan_node.cpp.o: src/CMakeFiles/terrier_objlib.dir/flags.make
 src/CMakeFiles/terrier_objlib.dir/planner/plannodes/aggregate_plan_node.cpp.o: ../src/planner/plannodes/aggregate_plan_node.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_35) "Building CXX object src/CMakeFiles/terrier_objlib.dir/planner/plannodes/aggregate_plan_node.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_50) "Building CXX object src/CMakeFiles/terrier_objlib.dir/planner/plannodes/aggregate_plan_node.cpp.o"
 	cd /Users/vivianhuang/Desktop/terrier/cmake-build-development/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/terrier_objlib.dir/planner/plannodes/aggregate_plan_node.cpp.o -c /Users/vivianhuang/Desktop/terrier/src/planner/plannodes/aggregate_plan_node.cpp
 
 src/CMakeFiles/terrier_objlib.dir/planner/plannodes/aggregate_plan_node.cpp.i: cmake_force
@@ -514,7 +709,7 @@ src/CMakeFiles/terrier_objlib.dir/planner/plannodes/aggregate_plan_node.cpp.s: c
 
 src/CMakeFiles/terrier_objlib.dir/planner/plannodes/analyze_plan_node.cpp.o: src/CMakeFiles/terrier_objlib.dir/flags.make
 src/CMakeFiles/terrier_objlib.dir/planner/plannodes/analyze_plan_node.cpp.o: ../src/planner/plannodes/analyze_plan_node.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_36) "Building CXX object src/CMakeFiles/terrier_objlib.dir/planner/plannodes/analyze_plan_node.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_51) "Building CXX object src/CMakeFiles/terrier_objlib.dir/planner/plannodes/analyze_plan_node.cpp.o"
 	cd /Users/vivianhuang/Desktop/terrier/cmake-build-development/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/terrier_objlib.dir/planner/plannodes/analyze_plan_node.cpp.o -c /Users/vivianhuang/Desktop/terrier/src/planner/plannodes/analyze_plan_node.cpp
 
 src/CMakeFiles/terrier_objlib.dir/planner/plannodes/analyze_plan_node.cpp.i: cmake_force
@@ -527,7 +722,7 @@ src/CMakeFiles/terrier_objlib.dir/planner/plannodes/analyze_plan_node.cpp.s: cma
 
 src/CMakeFiles/terrier_objlib.dir/planner/plannodes/create_database_plan_node.cpp.o: src/CMakeFiles/terrier_objlib.dir/flags.make
 src/CMakeFiles/terrier_objlib.dir/planner/plannodes/create_database_plan_node.cpp.o: ../src/planner/plannodes/create_database_plan_node.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_37) "Building CXX object src/CMakeFiles/terrier_objlib.dir/planner/plannodes/create_database_plan_node.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_52) "Building CXX object src/CMakeFiles/terrier_objlib.dir/planner/plannodes/create_database_plan_node.cpp.o"
 	cd /Users/vivianhuang/Desktop/terrier/cmake-build-development/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/terrier_objlib.dir/planner/plannodes/create_database_plan_node.cpp.o -c /Users/vivianhuang/Desktop/terrier/src/planner/plannodes/create_database_plan_node.cpp
 
 src/CMakeFiles/terrier_objlib.dir/planner/plannodes/create_database_plan_node.cpp.i: cmake_force
@@ -540,7 +735,7 @@ src/CMakeFiles/terrier_objlib.dir/planner/plannodes/create_database_plan_node.cp
 
 src/CMakeFiles/terrier_objlib.dir/planner/plannodes/create_function_plan_node.cpp.o: src/CMakeFiles/terrier_objlib.dir/flags.make
 src/CMakeFiles/terrier_objlib.dir/planner/plannodes/create_function_plan_node.cpp.o: ../src/planner/plannodes/create_function_plan_node.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_38) "Building CXX object src/CMakeFiles/terrier_objlib.dir/planner/plannodes/create_function_plan_node.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_53) "Building CXX object src/CMakeFiles/terrier_objlib.dir/planner/plannodes/create_function_plan_node.cpp.o"
 	cd /Users/vivianhuang/Desktop/terrier/cmake-build-development/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/terrier_objlib.dir/planner/plannodes/create_function_plan_node.cpp.o -c /Users/vivianhuang/Desktop/terrier/src/planner/plannodes/create_function_plan_node.cpp
 
 src/CMakeFiles/terrier_objlib.dir/planner/plannodes/create_function_plan_node.cpp.i: cmake_force
@@ -553,7 +748,7 @@ src/CMakeFiles/terrier_objlib.dir/planner/plannodes/create_function_plan_node.cp
 
 src/CMakeFiles/terrier_objlib.dir/planner/plannodes/create_index_plan_node.cpp.o: src/CMakeFiles/terrier_objlib.dir/flags.make
 src/CMakeFiles/terrier_objlib.dir/planner/plannodes/create_index_plan_node.cpp.o: ../src/planner/plannodes/create_index_plan_node.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_39) "Building CXX object src/CMakeFiles/terrier_objlib.dir/planner/plannodes/create_index_plan_node.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_54) "Building CXX object src/CMakeFiles/terrier_objlib.dir/planner/plannodes/create_index_plan_node.cpp.o"
 	cd /Users/vivianhuang/Desktop/terrier/cmake-build-development/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/terrier_objlib.dir/planner/plannodes/create_index_plan_node.cpp.o -c /Users/vivianhuang/Desktop/terrier/src/planner/plannodes/create_index_plan_node.cpp
 
 src/CMakeFiles/terrier_objlib.dir/planner/plannodes/create_index_plan_node.cpp.i: cmake_force
@@ -566,7 +761,7 @@ src/CMakeFiles/terrier_objlib.dir/planner/plannodes/create_index_plan_node.cpp.s
 
 src/CMakeFiles/terrier_objlib.dir/planner/plannodes/create_namespace_plan_node.cpp.o: src/CMakeFiles/terrier_objlib.dir/flags.make
 src/CMakeFiles/terrier_objlib.dir/planner/plannodes/create_namespace_plan_node.cpp.o: ../src/planner/plannodes/create_namespace_plan_node.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_40) "Building CXX object src/CMakeFiles/terrier_objlib.dir/planner/plannodes/create_namespace_plan_node.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_55) "Building CXX object src/CMakeFiles/terrier_objlib.dir/planner/plannodes/create_namespace_plan_node.cpp.o"
 	cd /Users/vivianhuang/Desktop/terrier/cmake-build-development/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/terrier_objlib.dir/planner/plannodes/create_namespace_plan_node.cpp.o -c /Users/vivianhuang/Desktop/terrier/src/planner/plannodes/create_namespace_plan_node.cpp
 
 src/CMakeFiles/terrier_objlib.dir/planner/plannodes/create_namespace_plan_node.cpp.i: cmake_force
@@ -579,7 +774,7 @@ src/CMakeFiles/terrier_objlib.dir/planner/plannodes/create_namespace_plan_node.c
 
 src/CMakeFiles/terrier_objlib.dir/planner/plannodes/create_table_plan_node.cpp.o: src/CMakeFiles/terrier_objlib.dir/flags.make
 src/CMakeFiles/terrier_objlib.dir/planner/plannodes/create_table_plan_node.cpp.o: ../src/planner/plannodes/create_table_plan_node.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_41) "Building CXX object src/CMakeFiles/terrier_objlib.dir/planner/plannodes/create_table_plan_node.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_56) "Building CXX object src/CMakeFiles/terrier_objlib.dir/planner/plannodes/create_table_plan_node.cpp.o"
 	cd /Users/vivianhuang/Desktop/terrier/cmake-build-development/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/terrier_objlib.dir/planner/plannodes/create_table_plan_node.cpp.o -c /Users/vivianhuang/Desktop/terrier/src/planner/plannodes/create_table_plan_node.cpp
 
 src/CMakeFiles/terrier_objlib.dir/planner/plannodes/create_table_plan_node.cpp.i: cmake_force
@@ -592,7 +787,7 @@ src/CMakeFiles/terrier_objlib.dir/planner/plannodes/create_table_plan_node.cpp.s
 
 src/CMakeFiles/terrier_objlib.dir/planner/plannodes/create_trigger_plan_node.cpp.o: src/CMakeFiles/terrier_objlib.dir/flags.make
 src/CMakeFiles/terrier_objlib.dir/planner/plannodes/create_trigger_plan_node.cpp.o: ../src/planner/plannodes/create_trigger_plan_node.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_42) "Building CXX object src/CMakeFiles/terrier_objlib.dir/planner/plannodes/create_trigger_plan_node.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_57) "Building CXX object src/CMakeFiles/terrier_objlib.dir/planner/plannodes/create_trigger_plan_node.cpp.o"
 	cd /Users/vivianhuang/Desktop/terrier/cmake-build-development/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/terrier_objlib.dir/planner/plannodes/create_trigger_plan_node.cpp.o -c /Users/vivianhuang/Desktop/terrier/src/planner/plannodes/create_trigger_plan_node.cpp
 
 src/CMakeFiles/terrier_objlib.dir/planner/plannodes/create_trigger_plan_node.cpp.i: cmake_force
@@ -605,7 +800,7 @@ src/CMakeFiles/terrier_objlib.dir/planner/plannodes/create_trigger_plan_node.cpp
 
 src/CMakeFiles/terrier_objlib.dir/planner/plannodes/create_view_plan_node.cpp.o: src/CMakeFiles/terrier_objlib.dir/flags.make
 src/CMakeFiles/terrier_objlib.dir/planner/plannodes/create_view_plan_node.cpp.o: ../src/planner/plannodes/create_view_plan_node.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_43) "Building CXX object src/CMakeFiles/terrier_objlib.dir/planner/plannodes/create_view_plan_node.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_58) "Building CXX object src/CMakeFiles/terrier_objlib.dir/planner/plannodes/create_view_plan_node.cpp.o"
 	cd /Users/vivianhuang/Desktop/terrier/cmake-build-development/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/terrier_objlib.dir/planner/plannodes/create_view_plan_node.cpp.o -c /Users/vivianhuang/Desktop/terrier/src/planner/plannodes/create_view_plan_node.cpp
 
 src/CMakeFiles/terrier_objlib.dir/planner/plannodes/create_view_plan_node.cpp.i: cmake_force
@@ -618,7 +813,7 @@ src/CMakeFiles/terrier_objlib.dir/planner/plannodes/create_view_plan_node.cpp.s:
 
 src/CMakeFiles/terrier_objlib.dir/planner/plannodes/csv_scan_plan_node.cpp.o: src/CMakeFiles/terrier_objlib.dir/flags.make
 src/CMakeFiles/terrier_objlib.dir/planner/plannodes/csv_scan_plan_node.cpp.o: ../src/planner/plannodes/csv_scan_plan_node.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_44) "Building CXX object src/CMakeFiles/terrier_objlib.dir/planner/plannodes/csv_scan_plan_node.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_59) "Building CXX object src/CMakeFiles/terrier_objlib.dir/planner/plannodes/csv_scan_plan_node.cpp.o"
 	cd /Users/vivianhuang/Desktop/terrier/cmake-build-development/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/terrier_objlib.dir/planner/plannodes/csv_scan_plan_node.cpp.o -c /Users/vivianhuang/Desktop/terrier/src/planner/plannodes/csv_scan_plan_node.cpp
 
 src/CMakeFiles/terrier_objlib.dir/planner/plannodes/csv_scan_plan_node.cpp.i: cmake_force
@@ -631,7 +826,7 @@ src/CMakeFiles/terrier_objlib.dir/planner/plannodes/csv_scan_plan_node.cpp.s: cm
 
 src/CMakeFiles/terrier_objlib.dir/planner/plannodes/delete_plan_node.cpp.o: src/CMakeFiles/terrier_objlib.dir/flags.make
 src/CMakeFiles/terrier_objlib.dir/planner/plannodes/delete_plan_node.cpp.o: ../src/planner/plannodes/delete_plan_node.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_45) "Building CXX object src/CMakeFiles/terrier_objlib.dir/planner/plannodes/delete_plan_node.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_60) "Building CXX object src/CMakeFiles/terrier_objlib.dir/planner/plannodes/delete_plan_node.cpp.o"
 	cd /Users/vivianhuang/Desktop/terrier/cmake-build-development/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/terrier_objlib.dir/planner/plannodes/delete_plan_node.cpp.o -c /Users/vivianhuang/Desktop/terrier/src/planner/plannodes/delete_plan_node.cpp
 
 src/CMakeFiles/terrier_objlib.dir/planner/plannodes/delete_plan_node.cpp.i: cmake_force
@@ -644,7 +839,7 @@ src/CMakeFiles/terrier_objlib.dir/planner/plannodes/delete_plan_node.cpp.s: cmak
 
 src/CMakeFiles/terrier_objlib.dir/planner/plannodes/drop_database_plan_node.cpp.o: src/CMakeFiles/terrier_objlib.dir/flags.make
 src/CMakeFiles/terrier_objlib.dir/planner/plannodes/drop_database_plan_node.cpp.o: ../src/planner/plannodes/drop_database_plan_node.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_46) "Building CXX object src/CMakeFiles/terrier_objlib.dir/planner/plannodes/drop_database_plan_node.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_61) "Building CXX object src/CMakeFiles/terrier_objlib.dir/planner/plannodes/drop_database_plan_node.cpp.o"
 	cd /Users/vivianhuang/Desktop/terrier/cmake-build-development/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/terrier_objlib.dir/planner/plannodes/drop_database_plan_node.cpp.o -c /Users/vivianhuang/Desktop/terrier/src/planner/plannodes/drop_database_plan_node.cpp
 
 src/CMakeFiles/terrier_objlib.dir/planner/plannodes/drop_database_plan_node.cpp.i: cmake_force
@@ -657,7 +852,7 @@ src/CMakeFiles/terrier_objlib.dir/planner/plannodes/drop_database_plan_node.cpp.
 
 src/CMakeFiles/terrier_objlib.dir/planner/plannodes/drop_index_plan_node.cpp.o: src/CMakeFiles/terrier_objlib.dir/flags.make
 src/CMakeFiles/terrier_objlib.dir/planner/plannodes/drop_index_plan_node.cpp.o: ../src/planner/plannodes/drop_index_plan_node.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_47) "Building CXX object src/CMakeFiles/terrier_objlib.dir/planner/plannodes/drop_index_plan_node.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_62) "Building CXX object src/CMakeFiles/terrier_objlib.dir/planner/plannodes/drop_index_plan_node.cpp.o"
 	cd /Users/vivianhuang/Desktop/terrier/cmake-build-development/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/terrier_objlib.dir/planner/plannodes/drop_index_plan_node.cpp.o -c /Users/vivianhuang/Desktop/terrier/src/planner/plannodes/drop_index_plan_node.cpp
 
 src/CMakeFiles/terrier_objlib.dir/planner/plannodes/drop_index_plan_node.cpp.i: cmake_force
@@ -670,7 +865,7 @@ src/CMakeFiles/terrier_objlib.dir/planner/plannodes/drop_index_plan_node.cpp.s: 
 
 src/CMakeFiles/terrier_objlib.dir/planner/plannodes/drop_namespace_plan_node.cpp.o: src/CMakeFiles/terrier_objlib.dir/flags.make
 src/CMakeFiles/terrier_objlib.dir/planner/plannodes/drop_namespace_plan_node.cpp.o: ../src/planner/plannodes/drop_namespace_plan_node.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_48) "Building CXX object src/CMakeFiles/terrier_objlib.dir/planner/plannodes/drop_namespace_plan_node.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_63) "Building CXX object src/CMakeFiles/terrier_objlib.dir/planner/plannodes/drop_namespace_plan_node.cpp.o"
 	cd /Users/vivianhuang/Desktop/terrier/cmake-build-development/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/terrier_objlib.dir/planner/plannodes/drop_namespace_plan_node.cpp.o -c /Users/vivianhuang/Desktop/terrier/src/planner/plannodes/drop_namespace_plan_node.cpp
 
 src/CMakeFiles/terrier_objlib.dir/planner/plannodes/drop_namespace_plan_node.cpp.i: cmake_force
@@ -683,7 +878,7 @@ src/CMakeFiles/terrier_objlib.dir/planner/plannodes/drop_namespace_plan_node.cpp
 
 src/CMakeFiles/terrier_objlib.dir/planner/plannodes/drop_table_plan_node.cpp.o: src/CMakeFiles/terrier_objlib.dir/flags.make
 src/CMakeFiles/terrier_objlib.dir/planner/plannodes/drop_table_plan_node.cpp.o: ../src/planner/plannodes/drop_table_plan_node.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_49) "Building CXX object src/CMakeFiles/terrier_objlib.dir/planner/plannodes/drop_table_plan_node.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_64) "Building CXX object src/CMakeFiles/terrier_objlib.dir/planner/plannodes/drop_table_plan_node.cpp.o"
 	cd /Users/vivianhuang/Desktop/terrier/cmake-build-development/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/terrier_objlib.dir/planner/plannodes/drop_table_plan_node.cpp.o -c /Users/vivianhuang/Desktop/terrier/src/planner/plannodes/drop_table_plan_node.cpp
 
 src/CMakeFiles/terrier_objlib.dir/planner/plannodes/drop_table_plan_node.cpp.i: cmake_force
@@ -696,7 +891,7 @@ src/CMakeFiles/terrier_objlib.dir/planner/plannodes/drop_table_plan_node.cpp.s: 
 
 src/CMakeFiles/terrier_objlib.dir/planner/plannodes/drop_trigger_plan_node.cpp.o: src/CMakeFiles/terrier_objlib.dir/flags.make
 src/CMakeFiles/terrier_objlib.dir/planner/plannodes/drop_trigger_plan_node.cpp.o: ../src/planner/plannodes/drop_trigger_plan_node.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_50) "Building CXX object src/CMakeFiles/terrier_objlib.dir/planner/plannodes/drop_trigger_plan_node.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_65) "Building CXX object src/CMakeFiles/terrier_objlib.dir/planner/plannodes/drop_trigger_plan_node.cpp.o"
 	cd /Users/vivianhuang/Desktop/terrier/cmake-build-development/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/terrier_objlib.dir/planner/plannodes/drop_trigger_plan_node.cpp.o -c /Users/vivianhuang/Desktop/terrier/src/planner/plannodes/drop_trigger_plan_node.cpp
 
 src/CMakeFiles/terrier_objlib.dir/planner/plannodes/drop_trigger_plan_node.cpp.i: cmake_force
@@ -709,7 +904,7 @@ src/CMakeFiles/terrier_objlib.dir/planner/plannodes/drop_trigger_plan_node.cpp.s
 
 src/CMakeFiles/terrier_objlib.dir/planner/plannodes/drop_view_plan_node.cpp.o: src/CMakeFiles/terrier_objlib.dir/flags.make
 src/CMakeFiles/terrier_objlib.dir/planner/plannodes/drop_view_plan_node.cpp.o: ../src/planner/plannodes/drop_view_plan_node.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_51) "Building CXX object src/CMakeFiles/terrier_objlib.dir/planner/plannodes/drop_view_plan_node.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_66) "Building CXX object src/CMakeFiles/terrier_objlib.dir/planner/plannodes/drop_view_plan_node.cpp.o"
 	cd /Users/vivianhuang/Desktop/terrier/cmake-build-development/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/terrier_objlib.dir/planner/plannodes/drop_view_plan_node.cpp.o -c /Users/vivianhuang/Desktop/terrier/src/planner/plannodes/drop_view_plan_node.cpp
 
 src/CMakeFiles/terrier_objlib.dir/planner/plannodes/drop_view_plan_node.cpp.i: cmake_force
@@ -722,7 +917,7 @@ src/CMakeFiles/terrier_objlib.dir/planner/plannodes/drop_view_plan_node.cpp.s: c
 
 src/CMakeFiles/terrier_objlib.dir/planner/plannodes/export_external_file_plan_node.cpp.o: src/CMakeFiles/terrier_objlib.dir/flags.make
 src/CMakeFiles/terrier_objlib.dir/planner/plannodes/export_external_file_plan_node.cpp.o: ../src/planner/plannodes/export_external_file_plan_node.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_52) "Building CXX object src/CMakeFiles/terrier_objlib.dir/planner/plannodes/export_external_file_plan_node.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_67) "Building CXX object src/CMakeFiles/terrier_objlib.dir/planner/plannodes/export_external_file_plan_node.cpp.o"
 	cd /Users/vivianhuang/Desktop/terrier/cmake-build-development/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/terrier_objlib.dir/planner/plannodes/export_external_file_plan_node.cpp.o -c /Users/vivianhuang/Desktop/terrier/src/planner/plannodes/export_external_file_plan_node.cpp
 
 src/CMakeFiles/terrier_objlib.dir/planner/plannodes/export_external_file_plan_node.cpp.i: cmake_force
@@ -735,7 +930,7 @@ src/CMakeFiles/terrier_objlib.dir/planner/plannodes/export_external_file_plan_no
 
 src/CMakeFiles/terrier_objlib.dir/planner/plannodes/hash_join_plan_node.cpp.o: src/CMakeFiles/terrier_objlib.dir/flags.make
 src/CMakeFiles/terrier_objlib.dir/planner/plannodes/hash_join_plan_node.cpp.o: ../src/planner/plannodes/hash_join_plan_node.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_53) "Building CXX object src/CMakeFiles/terrier_objlib.dir/planner/plannodes/hash_join_plan_node.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_68) "Building CXX object src/CMakeFiles/terrier_objlib.dir/planner/plannodes/hash_join_plan_node.cpp.o"
 	cd /Users/vivianhuang/Desktop/terrier/cmake-build-development/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/terrier_objlib.dir/planner/plannodes/hash_join_plan_node.cpp.o -c /Users/vivianhuang/Desktop/terrier/src/planner/plannodes/hash_join_plan_node.cpp
 
 src/CMakeFiles/terrier_objlib.dir/planner/plannodes/hash_join_plan_node.cpp.i: cmake_force
@@ -748,7 +943,7 @@ src/CMakeFiles/terrier_objlib.dir/planner/plannodes/hash_join_plan_node.cpp.s: c
 
 src/CMakeFiles/terrier_objlib.dir/planner/plannodes/hash_plan_node.cpp.o: src/CMakeFiles/terrier_objlib.dir/flags.make
 src/CMakeFiles/terrier_objlib.dir/planner/plannodes/hash_plan_node.cpp.o: ../src/planner/plannodes/hash_plan_node.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_54) "Building CXX object src/CMakeFiles/terrier_objlib.dir/planner/plannodes/hash_plan_node.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_69) "Building CXX object src/CMakeFiles/terrier_objlib.dir/planner/plannodes/hash_plan_node.cpp.o"
 	cd /Users/vivianhuang/Desktop/terrier/cmake-build-development/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/terrier_objlib.dir/planner/plannodes/hash_plan_node.cpp.o -c /Users/vivianhuang/Desktop/terrier/src/planner/plannodes/hash_plan_node.cpp
 
 src/CMakeFiles/terrier_objlib.dir/planner/plannodes/hash_plan_node.cpp.i: cmake_force
@@ -761,7 +956,7 @@ src/CMakeFiles/terrier_objlib.dir/planner/plannodes/hash_plan_node.cpp.s: cmake_
 
 src/CMakeFiles/terrier_objlib.dir/planner/plannodes/index_scan_plan_node.cpp.o: src/CMakeFiles/terrier_objlib.dir/flags.make
 src/CMakeFiles/terrier_objlib.dir/planner/plannodes/index_scan_plan_node.cpp.o: ../src/planner/plannodes/index_scan_plan_node.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_55) "Building CXX object src/CMakeFiles/terrier_objlib.dir/planner/plannodes/index_scan_plan_node.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_70) "Building CXX object src/CMakeFiles/terrier_objlib.dir/planner/plannodes/index_scan_plan_node.cpp.o"
 	cd /Users/vivianhuang/Desktop/terrier/cmake-build-development/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/terrier_objlib.dir/planner/plannodes/index_scan_plan_node.cpp.o -c /Users/vivianhuang/Desktop/terrier/src/planner/plannodes/index_scan_plan_node.cpp
 
 src/CMakeFiles/terrier_objlib.dir/planner/plannodes/index_scan_plan_node.cpp.i: cmake_force
@@ -774,7 +969,7 @@ src/CMakeFiles/terrier_objlib.dir/planner/plannodes/index_scan_plan_node.cpp.s: 
 
 src/CMakeFiles/terrier_objlib.dir/planner/plannodes/insert_plan_node.cpp.o: src/CMakeFiles/terrier_objlib.dir/flags.make
 src/CMakeFiles/terrier_objlib.dir/planner/plannodes/insert_plan_node.cpp.o: ../src/planner/plannodes/insert_plan_node.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_56) "Building CXX object src/CMakeFiles/terrier_objlib.dir/planner/plannodes/insert_plan_node.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_71) "Building CXX object src/CMakeFiles/terrier_objlib.dir/planner/plannodes/insert_plan_node.cpp.o"
 	cd /Users/vivianhuang/Desktop/terrier/cmake-build-development/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/terrier_objlib.dir/planner/plannodes/insert_plan_node.cpp.o -c /Users/vivianhuang/Desktop/terrier/src/planner/plannodes/insert_plan_node.cpp
 
 src/CMakeFiles/terrier_objlib.dir/planner/plannodes/insert_plan_node.cpp.i: cmake_force
@@ -787,7 +982,7 @@ src/CMakeFiles/terrier_objlib.dir/planner/plannodes/insert_plan_node.cpp.s: cmak
 
 src/CMakeFiles/terrier_objlib.dir/planner/plannodes/limit_plan_node.cpp.o: src/CMakeFiles/terrier_objlib.dir/flags.make
 src/CMakeFiles/terrier_objlib.dir/planner/plannodes/limit_plan_node.cpp.o: ../src/planner/plannodes/limit_plan_node.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_57) "Building CXX object src/CMakeFiles/terrier_objlib.dir/planner/plannodes/limit_plan_node.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_72) "Building CXX object src/CMakeFiles/terrier_objlib.dir/planner/plannodes/limit_plan_node.cpp.o"
 	cd /Users/vivianhuang/Desktop/terrier/cmake-build-development/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/terrier_objlib.dir/planner/plannodes/limit_plan_node.cpp.o -c /Users/vivianhuang/Desktop/terrier/src/planner/plannodes/limit_plan_node.cpp
 
 src/CMakeFiles/terrier_objlib.dir/planner/plannodes/limit_plan_node.cpp.i: cmake_force
@@ -800,7 +995,7 @@ src/CMakeFiles/terrier_objlib.dir/planner/plannodes/limit_plan_node.cpp.s: cmake
 
 src/CMakeFiles/terrier_objlib.dir/planner/plannodes/nested_loop_join_plan_node.cpp.o: src/CMakeFiles/terrier_objlib.dir/flags.make
 src/CMakeFiles/terrier_objlib.dir/planner/plannodes/nested_loop_join_plan_node.cpp.o: ../src/planner/plannodes/nested_loop_join_plan_node.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_58) "Building CXX object src/CMakeFiles/terrier_objlib.dir/planner/plannodes/nested_loop_join_plan_node.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_73) "Building CXX object src/CMakeFiles/terrier_objlib.dir/planner/plannodes/nested_loop_join_plan_node.cpp.o"
 	cd /Users/vivianhuang/Desktop/terrier/cmake-build-development/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/terrier_objlib.dir/planner/plannodes/nested_loop_join_plan_node.cpp.o -c /Users/vivianhuang/Desktop/terrier/src/planner/plannodes/nested_loop_join_plan_node.cpp
 
 src/CMakeFiles/terrier_objlib.dir/planner/plannodes/nested_loop_join_plan_node.cpp.i: cmake_force
@@ -813,7 +1008,7 @@ src/CMakeFiles/terrier_objlib.dir/planner/plannodes/nested_loop_join_plan_node.c
 
 src/CMakeFiles/terrier_objlib.dir/planner/plannodes/order_by_plan_node.cpp.o: src/CMakeFiles/terrier_objlib.dir/flags.make
 src/CMakeFiles/terrier_objlib.dir/planner/plannodes/order_by_plan_node.cpp.o: ../src/planner/plannodes/order_by_plan_node.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_59) "Building CXX object src/CMakeFiles/terrier_objlib.dir/planner/plannodes/order_by_plan_node.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_74) "Building CXX object src/CMakeFiles/terrier_objlib.dir/planner/plannodes/order_by_plan_node.cpp.o"
 	cd /Users/vivianhuang/Desktop/terrier/cmake-build-development/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/terrier_objlib.dir/planner/plannodes/order_by_plan_node.cpp.o -c /Users/vivianhuang/Desktop/terrier/src/planner/plannodes/order_by_plan_node.cpp
 
 src/CMakeFiles/terrier_objlib.dir/planner/plannodes/order_by_plan_node.cpp.i: cmake_force
@@ -826,7 +1021,7 @@ src/CMakeFiles/terrier_objlib.dir/planner/plannodes/order_by_plan_node.cpp.s: cm
 
 src/CMakeFiles/terrier_objlib.dir/planner/plannodes/projection_plan_node.cpp.o: src/CMakeFiles/terrier_objlib.dir/flags.make
 src/CMakeFiles/terrier_objlib.dir/planner/plannodes/projection_plan_node.cpp.o: ../src/planner/plannodes/projection_plan_node.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_60) "Building CXX object src/CMakeFiles/terrier_objlib.dir/planner/plannodes/projection_plan_node.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_75) "Building CXX object src/CMakeFiles/terrier_objlib.dir/planner/plannodes/projection_plan_node.cpp.o"
 	cd /Users/vivianhuang/Desktop/terrier/cmake-build-development/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/terrier_objlib.dir/planner/plannodes/projection_plan_node.cpp.o -c /Users/vivianhuang/Desktop/terrier/src/planner/plannodes/projection_plan_node.cpp
 
 src/CMakeFiles/terrier_objlib.dir/planner/plannodes/projection_plan_node.cpp.i: cmake_force
@@ -839,7 +1034,7 @@ src/CMakeFiles/terrier_objlib.dir/planner/plannodes/projection_plan_node.cpp.s: 
 
 src/CMakeFiles/terrier_objlib.dir/planner/plannodes/result_plan_node.cpp.o: src/CMakeFiles/terrier_objlib.dir/flags.make
 src/CMakeFiles/terrier_objlib.dir/planner/plannodes/result_plan_node.cpp.o: ../src/planner/plannodes/result_plan_node.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_61) "Building CXX object src/CMakeFiles/terrier_objlib.dir/planner/plannodes/result_plan_node.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_76) "Building CXX object src/CMakeFiles/terrier_objlib.dir/planner/plannodes/result_plan_node.cpp.o"
 	cd /Users/vivianhuang/Desktop/terrier/cmake-build-development/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/terrier_objlib.dir/planner/plannodes/result_plan_node.cpp.o -c /Users/vivianhuang/Desktop/terrier/src/planner/plannodes/result_plan_node.cpp
 
 src/CMakeFiles/terrier_objlib.dir/planner/plannodes/result_plan_node.cpp.i: cmake_force
@@ -852,7 +1047,7 @@ src/CMakeFiles/terrier_objlib.dir/planner/plannodes/result_plan_node.cpp.s: cmak
 
 src/CMakeFiles/terrier_objlib.dir/planner/plannodes/seq_scan_plan_node.cpp.o: src/CMakeFiles/terrier_objlib.dir/flags.make
 src/CMakeFiles/terrier_objlib.dir/planner/plannodes/seq_scan_plan_node.cpp.o: ../src/planner/plannodes/seq_scan_plan_node.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_62) "Building CXX object src/CMakeFiles/terrier_objlib.dir/planner/plannodes/seq_scan_plan_node.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_77) "Building CXX object src/CMakeFiles/terrier_objlib.dir/planner/plannodes/seq_scan_plan_node.cpp.o"
 	cd /Users/vivianhuang/Desktop/terrier/cmake-build-development/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/terrier_objlib.dir/planner/plannodes/seq_scan_plan_node.cpp.o -c /Users/vivianhuang/Desktop/terrier/src/planner/plannodes/seq_scan_plan_node.cpp
 
 src/CMakeFiles/terrier_objlib.dir/planner/plannodes/seq_scan_plan_node.cpp.i: cmake_force
@@ -865,7 +1060,7 @@ src/CMakeFiles/terrier_objlib.dir/planner/plannodes/seq_scan_plan_node.cpp.s: cm
 
 src/CMakeFiles/terrier_objlib.dir/planner/plannodes/set_op_plan_node.cpp.o: src/CMakeFiles/terrier_objlib.dir/flags.make
 src/CMakeFiles/terrier_objlib.dir/planner/plannodes/set_op_plan_node.cpp.o: ../src/planner/plannodes/set_op_plan_node.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_63) "Building CXX object src/CMakeFiles/terrier_objlib.dir/planner/plannodes/set_op_plan_node.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_78) "Building CXX object src/CMakeFiles/terrier_objlib.dir/planner/plannodes/set_op_plan_node.cpp.o"
 	cd /Users/vivianhuang/Desktop/terrier/cmake-build-development/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/terrier_objlib.dir/planner/plannodes/set_op_plan_node.cpp.o -c /Users/vivianhuang/Desktop/terrier/src/planner/plannodes/set_op_plan_node.cpp
 
 src/CMakeFiles/terrier_objlib.dir/planner/plannodes/set_op_plan_node.cpp.i: cmake_force
@@ -878,7 +1073,7 @@ src/CMakeFiles/terrier_objlib.dir/planner/plannodes/set_op_plan_node.cpp.s: cmak
 
 src/CMakeFiles/terrier_objlib.dir/planner/plannodes/update_plan_node.cpp.o: src/CMakeFiles/terrier_objlib.dir/flags.make
 src/CMakeFiles/terrier_objlib.dir/planner/plannodes/update_plan_node.cpp.o: ../src/planner/plannodes/update_plan_node.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_64) "Building CXX object src/CMakeFiles/terrier_objlib.dir/planner/plannodes/update_plan_node.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_79) "Building CXX object src/CMakeFiles/terrier_objlib.dir/planner/plannodes/update_plan_node.cpp.o"
 	cd /Users/vivianhuang/Desktop/terrier/cmake-build-development/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/terrier_objlib.dir/planner/plannodes/update_plan_node.cpp.o -c /Users/vivianhuang/Desktop/terrier/src/planner/plannodes/update_plan_node.cpp
 
 src/CMakeFiles/terrier_objlib.dir/planner/plannodes/update_plan_node.cpp.i: cmake_force
@@ -891,7 +1086,7 @@ src/CMakeFiles/terrier_objlib.dir/planner/plannodes/update_plan_node.cpp.s: cmak
 
 src/CMakeFiles/terrier_objlib.dir/settings/settings_callbacks.cpp.o: src/CMakeFiles/terrier_objlib.dir/flags.make
 src/CMakeFiles/terrier_objlib.dir/settings/settings_callbacks.cpp.o: ../src/settings/settings_callbacks.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_65) "Building CXX object src/CMakeFiles/terrier_objlib.dir/settings/settings_callbacks.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_80) "Building CXX object src/CMakeFiles/terrier_objlib.dir/settings/settings_callbacks.cpp.o"
 	cd /Users/vivianhuang/Desktop/terrier/cmake-build-development/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/terrier_objlib.dir/settings/settings_callbacks.cpp.o -c /Users/vivianhuang/Desktop/terrier/src/settings/settings_callbacks.cpp
 
 src/CMakeFiles/terrier_objlib.dir/settings/settings_callbacks.cpp.i: cmake_force
@@ -904,7 +1099,7 @@ src/CMakeFiles/terrier_objlib.dir/settings/settings_callbacks.cpp.s: cmake_force
 
 src/CMakeFiles/terrier_objlib.dir/settings/settings_manager.cpp.o: src/CMakeFiles/terrier_objlib.dir/flags.make
 src/CMakeFiles/terrier_objlib.dir/settings/settings_manager.cpp.o: ../src/settings/settings_manager.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_66) "Building CXX object src/CMakeFiles/terrier_objlib.dir/settings/settings_manager.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_81) "Building CXX object src/CMakeFiles/terrier_objlib.dir/settings/settings_manager.cpp.o"
 	cd /Users/vivianhuang/Desktop/terrier/cmake-build-development/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/terrier_objlib.dir/settings/settings_manager.cpp.o -c /Users/vivianhuang/Desktop/terrier/src/settings/settings_manager.cpp
 
 src/CMakeFiles/terrier_objlib.dir/settings/settings_manager.cpp.i: cmake_force
@@ -917,7 +1112,7 @@ src/CMakeFiles/terrier_objlib.dir/settings/settings_manager.cpp.s: cmake_force
 
 src/CMakeFiles/terrier_objlib.dir/storage/block_layout.cpp.o: src/CMakeFiles/terrier_objlib.dir/flags.make
 src/CMakeFiles/terrier_objlib.dir/storage/block_layout.cpp.o: ../src/storage/block_layout.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_67) "Building CXX object src/CMakeFiles/terrier_objlib.dir/storage/block_layout.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_82) "Building CXX object src/CMakeFiles/terrier_objlib.dir/storage/block_layout.cpp.o"
 	cd /Users/vivianhuang/Desktop/terrier/cmake-build-development/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/terrier_objlib.dir/storage/block_layout.cpp.o -c /Users/vivianhuang/Desktop/terrier/src/storage/block_layout.cpp
 
 src/CMakeFiles/terrier_objlib.dir/storage/block_layout.cpp.i: cmake_force
@@ -930,7 +1125,7 @@ src/CMakeFiles/terrier_objlib.dir/storage/block_layout.cpp.s: cmake_force
 
 src/CMakeFiles/terrier_objlib.dir/storage/data_table.cpp.o: src/CMakeFiles/terrier_objlib.dir/flags.make
 src/CMakeFiles/terrier_objlib.dir/storage/data_table.cpp.o: ../src/storage/data_table.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_68) "Building CXX object src/CMakeFiles/terrier_objlib.dir/storage/data_table.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_83) "Building CXX object src/CMakeFiles/terrier_objlib.dir/storage/data_table.cpp.o"
 	cd /Users/vivianhuang/Desktop/terrier/cmake-build-development/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/terrier_objlib.dir/storage/data_table.cpp.o -c /Users/vivianhuang/Desktop/terrier/src/storage/data_table.cpp
 
 src/CMakeFiles/terrier_objlib.dir/storage/data_table.cpp.i: cmake_force
@@ -943,7 +1138,7 @@ src/CMakeFiles/terrier_objlib.dir/storage/data_table.cpp.s: cmake_force
 
 src/CMakeFiles/terrier_objlib.dir/storage/garbage_collector.cpp.o: src/CMakeFiles/terrier_objlib.dir/flags.make
 src/CMakeFiles/terrier_objlib.dir/storage/garbage_collector.cpp.o: ../src/storage/garbage_collector.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_69) "Building CXX object src/CMakeFiles/terrier_objlib.dir/storage/garbage_collector.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_84) "Building CXX object src/CMakeFiles/terrier_objlib.dir/storage/garbage_collector.cpp.o"
 	cd /Users/vivianhuang/Desktop/terrier/cmake-build-development/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/terrier_objlib.dir/storage/garbage_collector.cpp.o -c /Users/vivianhuang/Desktop/terrier/src/storage/garbage_collector.cpp
 
 src/CMakeFiles/terrier_objlib.dir/storage/garbage_collector.cpp.i: cmake_force
@@ -956,7 +1151,7 @@ src/CMakeFiles/terrier_objlib.dir/storage/garbage_collector.cpp.s: cmake_force
 
 src/CMakeFiles/terrier_objlib.dir/storage/projected_columns.cpp.o: src/CMakeFiles/terrier_objlib.dir/flags.make
 src/CMakeFiles/terrier_objlib.dir/storage/projected_columns.cpp.o: ../src/storage/projected_columns.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_70) "Building CXX object src/CMakeFiles/terrier_objlib.dir/storage/projected_columns.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_85) "Building CXX object src/CMakeFiles/terrier_objlib.dir/storage/projected_columns.cpp.o"
 	cd /Users/vivianhuang/Desktop/terrier/cmake-build-development/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/terrier_objlib.dir/storage/projected_columns.cpp.o -c /Users/vivianhuang/Desktop/terrier/src/storage/projected_columns.cpp
 
 src/CMakeFiles/terrier_objlib.dir/storage/projected_columns.cpp.i: cmake_force
@@ -969,7 +1164,7 @@ src/CMakeFiles/terrier_objlib.dir/storage/projected_columns.cpp.s: cmake_force
 
 src/CMakeFiles/terrier_objlib.dir/storage/projected_row.cpp.o: src/CMakeFiles/terrier_objlib.dir/flags.make
 src/CMakeFiles/terrier_objlib.dir/storage/projected_row.cpp.o: ../src/storage/projected_row.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_71) "Building CXX object src/CMakeFiles/terrier_objlib.dir/storage/projected_row.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_86) "Building CXX object src/CMakeFiles/terrier_objlib.dir/storage/projected_row.cpp.o"
 	cd /Users/vivianhuang/Desktop/terrier/cmake-build-development/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/terrier_objlib.dir/storage/projected_row.cpp.o -c /Users/vivianhuang/Desktop/terrier/src/storage/projected_row.cpp
 
 src/CMakeFiles/terrier_objlib.dir/storage/projected_row.cpp.i: cmake_force
@@ -982,7 +1177,7 @@ src/CMakeFiles/terrier_objlib.dir/storage/projected_row.cpp.s: cmake_force
 
 src/CMakeFiles/terrier_objlib.dir/storage/record_buffer.cpp.o: src/CMakeFiles/terrier_objlib.dir/flags.make
 src/CMakeFiles/terrier_objlib.dir/storage/record_buffer.cpp.o: ../src/storage/record_buffer.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_72) "Building CXX object src/CMakeFiles/terrier_objlib.dir/storage/record_buffer.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_87) "Building CXX object src/CMakeFiles/terrier_objlib.dir/storage/record_buffer.cpp.o"
 	cd /Users/vivianhuang/Desktop/terrier/cmake-build-development/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/terrier_objlib.dir/storage/record_buffer.cpp.o -c /Users/vivianhuang/Desktop/terrier/src/storage/record_buffer.cpp
 
 src/CMakeFiles/terrier_objlib.dir/storage/record_buffer.cpp.i: cmake_force
@@ -995,7 +1190,7 @@ src/CMakeFiles/terrier_objlib.dir/storage/record_buffer.cpp.s: cmake_force
 
 src/CMakeFiles/terrier_objlib.dir/storage/sql_table.cpp.o: src/CMakeFiles/terrier_objlib.dir/flags.make
 src/CMakeFiles/terrier_objlib.dir/storage/sql_table.cpp.o: ../src/storage/sql_table.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_73) "Building CXX object src/CMakeFiles/terrier_objlib.dir/storage/sql_table.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_88) "Building CXX object src/CMakeFiles/terrier_objlib.dir/storage/sql_table.cpp.o"
 	cd /Users/vivianhuang/Desktop/terrier/cmake-build-development/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/terrier_objlib.dir/storage/sql_table.cpp.o -c /Users/vivianhuang/Desktop/terrier/src/storage/sql_table.cpp
 
 src/CMakeFiles/terrier_objlib.dir/storage/sql_table.cpp.i: cmake_force
@@ -1008,7 +1203,7 @@ src/CMakeFiles/terrier_objlib.dir/storage/sql_table.cpp.s: cmake_force
 
 src/CMakeFiles/terrier_objlib.dir/storage/storage_util.cpp.o: src/CMakeFiles/terrier_objlib.dir/flags.make
 src/CMakeFiles/terrier_objlib.dir/storage/storage_util.cpp.o: ../src/storage/storage_util.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_74) "Building CXX object src/CMakeFiles/terrier_objlib.dir/storage/storage_util.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_89) "Building CXX object src/CMakeFiles/terrier_objlib.dir/storage/storage_util.cpp.o"
 	cd /Users/vivianhuang/Desktop/terrier/cmake-build-development/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/terrier_objlib.dir/storage/storage_util.cpp.o -c /Users/vivianhuang/Desktop/terrier/src/storage/storage_util.cpp
 
 src/CMakeFiles/terrier_objlib.dir/storage/storage_util.cpp.i: cmake_force
@@ -1021,7 +1216,7 @@ src/CMakeFiles/terrier_objlib.dir/storage/storage_util.cpp.s: cmake_force
 
 src/CMakeFiles/terrier_objlib.dir/storage/tuple_access_strategy.cpp.o: src/CMakeFiles/terrier_objlib.dir/flags.make
 src/CMakeFiles/terrier_objlib.dir/storage/tuple_access_strategy.cpp.o: ../src/storage/tuple_access_strategy.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_75) "Building CXX object src/CMakeFiles/terrier_objlib.dir/storage/tuple_access_strategy.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_90) "Building CXX object src/CMakeFiles/terrier_objlib.dir/storage/tuple_access_strategy.cpp.o"
 	cd /Users/vivianhuang/Desktop/terrier/cmake-build-development/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/terrier_objlib.dir/storage/tuple_access_strategy.cpp.o -c /Users/vivianhuang/Desktop/terrier/src/storage/tuple_access_strategy.cpp
 
 src/CMakeFiles/terrier_objlib.dir/storage/tuple_access_strategy.cpp.i: cmake_force
@@ -1032,9 +1227,22 @@ src/CMakeFiles/terrier_objlib.dir/storage/tuple_access_strategy.cpp.s: cmake_for
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/terrier_objlib.dir/storage/tuple_access_strategy.cpp.s"
 	cd /Users/vivianhuang/Desktop/terrier/cmake-build-development/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/vivianhuang/Desktop/terrier/src/storage/tuple_access_strategy.cpp -o CMakeFiles/terrier_objlib.dir/storage/tuple_access_strategy.cpp.s
 
+src/CMakeFiles/terrier_objlib.dir/storage/write_ahead_log/disk_log_consumer_task.cpp.o: src/CMakeFiles/terrier_objlib.dir/flags.make
+src/CMakeFiles/terrier_objlib.dir/storage/write_ahead_log/disk_log_consumer_task.cpp.o: ../src/storage/write_ahead_log/disk_log_consumer_task.cpp
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_91) "Building CXX object src/CMakeFiles/terrier_objlib.dir/storage/write_ahead_log/disk_log_consumer_task.cpp.o"
+	cd /Users/vivianhuang/Desktop/terrier/cmake-build-development/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/terrier_objlib.dir/storage/write_ahead_log/disk_log_consumer_task.cpp.o -c /Users/vivianhuang/Desktop/terrier/src/storage/write_ahead_log/disk_log_consumer_task.cpp
+
+src/CMakeFiles/terrier_objlib.dir/storage/write_ahead_log/disk_log_consumer_task.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/terrier_objlib.dir/storage/write_ahead_log/disk_log_consumer_task.cpp.i"
+	cd /Users/vivianhuang/Desktop/terrier/cmake-build-development/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /Users/vivianhuang/Desktop/terrier/src/storage/write_ahead_log/disk_log_consumer_task.cpp > CMakeFiles/terrier_objlib.dir/storage/write_ahead_log/disk_log_consumer_task.cpp.i
+
+src/CMakeFiles/terrier_objlib.dir/storage/write_ahead_log/disk_log_consumer_task.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/terrier_objlib.dir/storage/write_ahead_log/disk_log_consumer_task.cpp.s"
+	cd /Users/vivianhuang/Desktop/terrier/cmake-build-development/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/vivianhuang/Desktop/terrier/src/storage/write_ahead_log/disk_log_consumer_task.cpp -o CMakeFiles/terrier_objlib.dir/storage/write_ahead_log/disk_log_consumer_task.cpp.s
+
 src/CMakeFiles/terrier_objlib.dir/storage/write_ahead_log/log_io.cpp.o: src/CMakeFiles/terrier_objlib.dir/flags.make
 src/CMakeFiles/terrier_objlib.dir/storage/write_ahead_log/log_io.cpp.o: ../src/storage/write_ahead_log/log_io.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_76) "Building CXX object src/CMakeFiles/terrier_objlib.dir/storage/write_ahead_log/log_io.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_92) "Building CXX object src/CMakeFiles/terrier_objlib.dir/storage/write_ahead_log/log_io.cpp.o"
 	cd /Users/vivianhuang/Desktop/terrier/cmake-build-development/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/terrier_objlib.dir/storage/write_ahead_log/log_io.cpp.o -c /Users/vivianhuang/Desktop/terrier/src/storage/write_ahead_log/log_io.cpp
 
 src/CMakeFiles/terrier_objlib.dir/storage/write_ahead_log/log_io.cpp.i: cmake_force
@@ -1047,7 +1255,7 @@ src/CMakeFiles/terrier_objlib.dir/storage/write_ahead_log/log_io.cpp.s: cmake_fo
 
 src/CMakeFiles/terrier_objlib.dir/storage/write_ahead_log/log_manager.cpp.o: src/CMakeFiles/terrier_objlib.dir/flags.make
 src/CMakeFiles/terrier_objlib.dir/storage/write_ahead_log/log_manager.cpp.o: ../src/storage/write_ahead_log/log_manager.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_77) "Building CXX object src/CMakeFiles/terrier_objlib.dir/storage/write_ahead_log/log_manager.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_93) "Building CXX object src/CMakeFiles/terrier_objlib.dir/storage/write_ahead_log/log_manager.cpp.o"
 	cd /Users/vivianhuang/Desktop/terrier/cmake-build-development/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/terrier_objlib.dir/storage/write_ahead_log/log_manager.cpp.o -c /Users/vivianhuang/Desktop/terrier/src/storage/write_ahead_log/log_manager.cpp
 
 src/CMakeFiles/terrier_objlib.dir/storage/write_ahead_log/log_manager.cpp.i: cmake_force
@@ -1058,9 +1266,22 @@ src/CMakeFiles/terrier_objlib.dir/storage/write_ahead_log/log_manager.cpp.s: cma
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/terrier_objlib.dir/storage/write_ahead_log/log_manager.cpp.s"
 	cd /Users/vivianhuang/Desktop/terrier/cmake-build-development/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/vivianhuang/Desktop/terrier/src/storage/write_ahead_log/log_manager.cpp -o CMakeFiles/terrier_objlib.dir/storage/write_ahead_log/log_manager.cpp.s
 
+src/CMakeFiles/terrier_objlib.dir/storage/write_ahead_log/log_serializer_task.cpp.o: src/CMakeFiles/terrier_objlib.dir/flags.make
+src/CMakeFiles/terrier_objlib.dir/storage/write_ahead_log/log_serializer_task.cpp.o: ../src/storage/write_ahead_log/log_serializer_task.cpp
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_94) "Building CXX object src/CMakeFiles/terrier_objlib.dir/storage/write_ahead_log/log_serializer_task.cpp.o"
+	cd /Users/vivianhuang/Desktop/terrier/cmake-build-development/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/terrier_objlib.dir/storage/write_ahead_log/log_serializer_task.cpp.o -c /Users/vivianhuang/Desktop/terrier/src/storage/write_ahead_log/log_serializer_task.cpp
+
+src/CMakeFiles/terrier_objlib.dir/storage/write_ahead_log/log_serializer_task.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/terrier_objlib.dir/storage/write_ahead_log/log_serializer_task.cpp.i"
+	cd /Users/vivianhuang/Desktop/terrier/cmake-build-development/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /Users/vivianhuang/Desktop/terrier/src/storage/write_ahead_log/log_serializer_task.cpp > CMakeFiles/terrier_objlib.dir/storage/write_ahead_log/log_serializer_task.cpp.i
+
+src/CMakeFiles/terrier_objlib.dir/storage/write_ahead_log/log_serializer_task.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/terrier_objlib.dir/storage/write_ahead_log/log_serializer_task.cpp.s"
+	cd /Users/vivianhuang/Desktop/terrier/cmake-build-development/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/vivianhuang/Desktop/terrier/src/storage/write_ahead_log/log_serializer_task.cpp -o CMakeFiles/terrier_objlib.dir/storage/write_ahead_log/log_serializer_task.cpp.s
+
 src/CMakeFiles/terrier_objlib.dir/traffic_cop/sqlite.cpp.o: src/CMakeFiles/terrier_objlib.dir/flags.make
 src/CMakeFiles/terrier_objlib.dir/traffic_cop/sqlite.cpp.o: ../src/traffic_cop/sqlite.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_78) "Building CXX object src/CMakeFiles/terrier_objlib.dir/traffic_cop/sqlite.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_95) "Building CXX object src/CMakeFiles/terrier_objlib.dir/traffic_cop/sqlite.cpp.o"
 	cd /Users/vivianhuang/Desktop/terrier/cmake-build-development/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/terrier_objlib.dir/traffic_cop/sqlite.cpp.o -c /Users/vivianhuang/Desktop/terrier/src/traffic_cop/sqlite.cpp
 
 src/CMakeFiles/terrier_objlib.dir/traffic_cop/sqlite.cpp.i: cmake_force
@@ -1073,7 +1294,7 @@ src/CMakeFiles/terrier_objlib.dir/traffic_cop/sqlite.cpp.s: cmake_force
 
 src/CMakeFiles/terrier_objlib.dir/transaction/transaction_manager.cpp.o: src/CMakeFiles/terrier_objlib.dir/flags.make
 src/CMakeFiles/terrier_objlib.dir/transaction/transaction_manager.cpp.o: ../src/transaction/transaction_manager.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_79) "Building CXX object src/CMakeFiles/terrier_objlib.dir/transaction/transaction_manager.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_96) "Building CXX object src/CMakeFiles/terrier_objlib.dir/transaction/transaction_manager.cpp.o"
 	cd /Users/vivianhuang/Desktop/terrier/cmake-build-development/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/terrier_objlib.dir/transaction/transaction_manager.cpp.o -c /Users/vivianhuang/Desktop/terrier/src/transaction/transaction_manager.cpp
 
 src/CMakeFiles/terrier_objlib.dir/transaction/transaction_manager.cpp.i: cmake_force
@@ -1086,7 +1307,7 @@ src/CMakeFiles/terrier_objlib.dir/transaction/transaction_manager.cpp.s: cmake_f
 
 src/CMakeFiles/terrier_objlib.dir/__/third_party/bwtree/bwtree.cpp.o: src/CMakeFiles/terrier_objlib.dir/flags.make
 src/CMakeFiles/terrier_objlib.dir/__/third_party/bwtree/bwtree.cpp.o: ../third_party/bwtree/bwtree.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_80) "Building CXX object src/CMakeFiles/terrier_objlib.dir/__/third_party/bwtree/bwtree.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/vivianhuang/Desktop/terrier/cmake-build-development/CMakeFiles --progress-num=$(CMAKE_PROGRESS_97) "Building CXX object src/CMakeFiles/terrier_objlib.dir/__/third_party/bwtree/bwtree.cpp.o"
 	cd /Users/vivianhuang/Desktop/terrier/cmake-build-development/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/terrier_objlib.dir/__/third_party/bwtree/bwtree.cpp.o -c /Users/vivianhuang/Desktop/terrier/third_party/bwtree/bwtree.cpp
 
 src/CMakeFiles/terrier_objlib.dir/__/third_party/bwtree/bwtree.cpp.i: cmake_force
@@ -1103,6 +1324,7 @@ terrier_objlib: src/CMakeFiles/terrier_objlib.dir/loggers/catalog_logger.cpp.o
 terrier_objlib: src/CMakeFiles/terrier_objlib.dir/loggers/index_logger.cpp.o
 terrier_objlib: src/CMakeFiles/terrier_objlib.dir/loggers/main_logger.cpp.o
 terrier_objlib: src/CMakeFiles/terrier_objlib.dir/loggers/network_logger.cpp.o
+terrier_objlib: src/CMakeFiles/terrier_objlib.dir/loggers/optimizer_logger.cpp.o
 terrier_objlib: src/CMakeFiles/terrier_objlib.dir/loggers/parser_logger.cpp.o
 terrier_objlib: src/CMakeFiles/terrier_objlib.dir/loggers/settings_logger.cpp.o
 terrier_objlib: src/CMakeFiles/terrier_objlib.dir/loggers/storage_logger.cpp.o
@@ -1119,11 +1341,25 @@ terrier_objlib: src/CMakeFiles/terrier_objlib.dir/network/postgres/postgres_netw
 terrier_objlib: src/CMakeFiles/terrier_objlib.dir/network/postgres/postgres_protocol_interpreter.cpp.o
 terrier_objlib: src/CMakeFiles/terrier_objlib.dir/network/postgres/postgres_protocol_utils.cpp.o
 terrier_objlib: src/CMakeFiles/terrier_objlib.dir/network/terrier_server.cpp.o
+terrier_objlib: src/CMakeFiles/terrier_objlib.dir/optimizer/binding.cpp.o
+terrier_objlib: src/CMakeFiles/terrier_objlib.dir/optimizer/child_property_deriver.cpp.o
 terrier_objlib: src/CMakeFiles/terrier_objlib.dir/optimizer/cost_model/trivial_cost_model.cpp.o
+terrier_objlib: src/CMakeFiles/terrier_objlib.dir/optimizer/group.cpp.o
 terrier_objlib: src/CMakeFiles/terrier_objlib.dir/optimizer/group_expression.cpp.o
+terrier_objlib: src/CMakeFiles/terrier_objlib.dir/optimizer/input_column_deriver.cpp.o
 terrier_objlib: src/CMakeFiles/terrier_objlib.dir/optimizer/logical_operators.cpp.o
+terrier_objlib: src/CMakeFiles/terrier_objlib.dir/optimizer/memo.cpp.o
 terrier_objlib: src/CMakeFiles/terrier_objlib.dir/optimizer/operator_node.cpp.o
+terrier_objlib: src/CMakeFiles/terrier_objlib.dir/optimizer/optimizer.cpp.o
+terrier_objlib: src/CMakeFiles/terrier_objlib.dir/optimizer/optimizer_task.cpp.o
 terrier_objlib: src/CMakeFiles/terrier_objlib.dir/optimizer/physical_operators.cpp.o
+terrier_objlib: src/CMakeFiles/terrier_objlib.dir/optimizer/plan_generator.cpp.o
+terrier_objlib: src/CMakeFiles/terrier_objlib.dir/optimizer/properties.cpp.o
+terrier_objlib: src/CMakeFiles/terrier_objlib.dir/optimizer/property_enforcer.cpp.o
+terrier_objlib: src/CMakeFiles/terrier_objlib.dir/optimizer/property_set.cpp.o
+terrier_objlib: src/CMakeFiles/terrier_objlib.dir/optimizer/rule.cpp.o
+terrier_objlib: src/CMakeFiles/terrier_objlib.dir/optimizer/rule_impls.cpp.o
+terrier_objlib: src/CMakeFiles/terrier_objlib.dir/optimizer/util.cpp.o
 terrier_objlib: src/CMakeFiles/terrier_objlib.dir/parser/expression/abstract_expression.cpp.o
 terrier_objlib: src/CMakeFiles/terrier_objlib.dir/parser/postgresparser.cpp.o
 terrier_objlib: src/CMakeFiles/terrier_objlib.dir/parser/select_statement.cpp.o
@@ -1172,8 +1408,10 @@ terrier_objlib: src/CMakeFiles/terrier_objlib.dir/storage/record_buffer.cpp.o
 terrier_objlib: src/CMakeFiles/terrier_objlib.dir/storage/sql_table.cpp.o
 terrier_objlib: src/CMakeFiles/terrier_objlib.dir/storage/storage_util.cpp.o
 terrier_objlib: src/CMakeFiles/terrier_objlib.dir/storage/tuple_access_strategy.cpp.o
+terrier_objlib: src/CMakeFiles/terrier_objlib.dir/storage/write_ahead_log/disk_log_consumer_task.cpp.o
 terrier_objlib: src/CMakeFiles/terrier_objlib.dir/storage/write_ahead_log/log_io.cpp.o
 terrier_objlib: src/CMakeFiles/terrier_objlib.dir/storage/write_ahead_log/log_manager.cpp.o
+terrier_objlib: src/CMakeFiles/terrier_objlib.dir/storage/write_ahead_log/log_serializer_task.cpp.o
 terrier_objlib: src/CMakeFiles/terrier_objlib.dir/traffic_cop/sqlite.cpp.o
 terrier_objlib: src/CMakeFiles/terrier_objlib.dir/transaction/transaction_manager.cpp.o
 terrier_objlib: src/CMakeFiles/terrier_objlib.dir/__/third_party/bwtree/bwtree.cpp.o
