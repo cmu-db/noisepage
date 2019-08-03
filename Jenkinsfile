@@ -75,7 +75,7 @@ pipeline {
                     steps {
                         sh 'echo y | sudo ./script/installation/packages.sh'
                         sh 'mkdir build'
-                        sh 'cd build && cmake -DCMAKE_BUILD_TYPE=Release -DTERRIER_USE_ASAN=OFF .. && make -j4'
+                        sh 'cd build && cmake -DCMAKE_BUILD_TYPE=Release -DTERRIER_USE_ASAN=OFF -DTERRIER_USE_JEMALLOC=ON .. && make -j4'
                         sh 'cd build && make runbenchmark -j4'
                         sh 'cd script/micro_bench && ./run_micro_bench.py'
                         archiveArtifacts 'script/micro_bench/*.json'
