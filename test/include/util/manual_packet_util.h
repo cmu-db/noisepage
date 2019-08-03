@@ -87,7 +87,7 @@ class ManualPacketUtil {
     out_buffer[0] = 'X';
     int len = sizeof(int32_t) + sizeof(char);
     reinterpret_cast<int32_t *>(out_buffer + 1)[0] = htonl(len);
-    write(socket_fd, nullptr, len + 1);
+    const auto result UNUSED_ATTRIBUTE = write(socket_fd, nullptr, len + 1);
   }
 
  private:
