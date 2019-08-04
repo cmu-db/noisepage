@@ -10,6 +10,7 @@
 #include "catalog/index_schema.h"
 #include "optimizer/properties.h"
 #include "parser/expression_util.h"
+#include "type/transient_value_factory.h"
 
 namespace terrier::optimizer {
 
@@ -98,8 +99,7 @@ class IndexUtil {
   static bool CheckSortProperty(const PropertySort *prop) {
     auto sort_col_size = prop->GetSortColumnSize();
     for (size_t idx = 0; idx < sort_col_size; idx++) {
-      // TODO(boweic): Only consider ascending sort columns (catalog...)
-      // TODO(wz2): Re-evaluate isBase for complex index selection
+      // TODO(wz2): Consider descending when catalog/index support
       auto isAsc = prop->GetSortAscending(static_cast<int>(idx)) == planner::OrderByOrderingType::ASC;
       auto isBase = IsBaseColumn(prop->GetSortColumn(static_cast<int>(idx)).get());
       if (!isAsc || !isBase) {
@@ -124,11 +124,10 @@ class IndexUtil {
    */
   static bool SatisfiesSortWithIndex(const PropertySort *prop, catalog::table_oid_t tbl_oid,
                                      catalog::index_oid_t idx_oid, catalog::CatalogAccessor *accessor) {
-    TERRIER_ASSERT(CheckSortProperty(prop), "pre-cond not satisfied");
-
-    // TODO(wz2): Future consider more elaborate indexes
     // For now, this logic only considers indexes where the columns
     // all satisfy the "base column" property.
+    TERRIER_ASSERT(CheckSortProperty(prop), "pre-cond not satisfied");
+
     auto &index_schema = accessor->GetIndexSchema(idx_oid);
     if (!SatisfiesBaseColumnRequirement(index_schema)) {
       return false;
@@ -199,23 +198,19 @@ class IndexUtil {
       const parser::AbstractExpression *value_expr = nullptr;
       if (expr->GetChild(0)->GetExpressionType() == parser::ExpressionType::VALUE_TUPLE) {
         auto r_type = expr->GetChild(1)->GetExpressionType();
-        if (r_type == parser::ExpressionType::VALUE_CONSTANT) {
-          // TODO(wz2): ParameterValue issue
-          // || r_type == parser::ExpressionType::VALUE_PARAMETER) {
+        if (r_type == parser::ExpressionType::VALUE_CONSTANT ||
+            r_type == parser::ExpressionType::VALUE_PARAMETER) {
           tv_expr = expr->GetChild(0).get();
           value_expr = expr->GetChild(1).get();
         }
       } else if (expr->GetChild(1)->GetExpressionType() == parser::ExpressionType::VALUE_TUPLE) {
         auto l_type = expr->GetChild(0)->GetExpressionType();
-        if (l_type == parser::ExpressionType::VALUE_CONSTANT) {
-          // TODO(wz2): ParameterValue issue
-          // || l_type == parser::ExpressionType::VALUE_PARAMETER) {
+        if (l_type == parser::ExpressionType::VALUE_CONSTANT ||
+            l_type == parser::ExpressionType::VALUE_PARAMETER) {
           tv_expr = expr->GetChild(1).get();
           value_expr = expr->GetChild(0).get();
 
-          // Get the ExpressionType such that (tv_expr [expr_type] value_expr) is logically
-          // equivalent to original (value_expr [expr_type] tv_expr).
-          // i.e (x > 5) is same as (5 < x)
+          // TODO([Execution Engine]): Does ExpressionType have to be flipped?
           expr_type = parser::ExpressionUtil::ReverseComparisonExpressionType(expr_type);
         }
       }
@@ -241,14 +236,11 @@ class IndexUtil {
           type::TransientValue value = cve->GetValue();
           value_list.emplace_back(std::move(value));
         } else {
-          TERRIER_ASSERT(0, "Fix ParameterValue GitHub Issue");
-          // TODO(wz2): Pending ParameterValue issue
-          // value_list.push_back(
-          //    type::ValueFactory::GetParameterOffsetValue(
-          //        reinterpret_cast<expression::ParameterValueExpression *>(
-          //            value_expr)->GetValueIdx()).Copy());
-          // OPTIMIZER_LOG_TRACE("Parameter offset: %s",
-          //           (*value_list.rbegin()).GetInfo().c_str());
+          auto poe = dynamic_cast<const parser::ParameterValueExpression *>(value_expr);
+          TERRIER_ASSERT(poe, "ParameterValueExpression expected");
+
+          // Update value_list
+          value_list.push_back(type::TransientValueFactory::GetParameterOffset(poe->GetValueIdx()));
         }
       }
     }
