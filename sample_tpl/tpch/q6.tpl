@@ -39,6 +39,7 @@ fun execQuery(execCtx: *ExecutionContext, state: *State) -> nil {
   out.out = @aggResult(&state.sum)
   @outputAdvance(execCtx)
   @outputFinalize(execCtx)
+  @tableIterClose(&tvi)
 }
 
 fun teardownState(execCtx: *ExecutionContext, state: *State) -> nil {

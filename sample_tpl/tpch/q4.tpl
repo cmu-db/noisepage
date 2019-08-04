@@ -149,6 +149,7 @@ fun pipeline2(execCtx: *ExecutionContext, state: *State) -> nil {
       }
     }
   }
+  @tableIterClose(&tvi)
 }
 
 // Pipeline 3 (Sort)

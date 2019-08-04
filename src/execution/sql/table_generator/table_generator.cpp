@@ -105,7 +105,7 @@ std::pair<byte *, u32 *> TableGenerator::GenerateColumnData(const ColumnInsertMe
   if (col_meta.nullable) {
     std::mt19937 generator;
     std::bernoulli_distribution coin(0.1);
-    for (u32 i = 0; i < num_words; i++) {
+    for (u32 i = 0; i < num_rows; i++) {
       if (coin(generator)) util::BitUtil::Set(null_bitmap, i);
     }
   }

@@ -165,7 +165,7 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
   // Interpret
   //
 
-  /*{
+  {
     util::ScopedTimer<std::milli> timer(&interp_exec_ms);
 
     if (kIsSQL) {
@@ -215,7 +215,7 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
       }
       EXECUTION_LOG_INFO("ADAPTIVE main() returned: {}", main());
     }
-  }*/
+  }
 
   //
   // JIT
