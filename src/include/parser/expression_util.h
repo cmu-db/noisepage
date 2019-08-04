@@ -358,21 +358,23 @@ class ExpressionUtil {
       OPTIMIZER_LOG_WARN("EvaluateExpression resulted in an unbound ColumnValueExpression");
       // TERRIER_ASSERT(0, "EvaluateExpression resulted in an unbound ColumnValueExpression");
     } else if (IsAggregateExpression(expr->GetExpressionType())) {
+      /*
+      TODO(wz2, [ExecutionEngine]): If value_idx is somehow needed during aggregation, reviist this
+      Peloton never seems to read from AggregateExpression's value_idx
+
       auto c_aggr_expr = dynamic_cast<const AggregateExpression *>(expr);
       TERRIER_ASSERT(c_aggr_expr, "expr should be AggregateExpression");
 
-      // SetValueIdx(), explicitly cast away const-ness
-      // auto aggr_expr = const_cast<AggregateExpression*>(c_aggr_expr);
+      auto aggr_expr = const_cast<AggregateExpression*>(c_aggr_expr);
 
       for (auto &expr_map : expr_maps) {
         auto iter = expr_map.find(expr);
         if (iter != expr_map.end()) {
-          // TODO(wz2): Discuss this at optimizer meeting (06/18)
-          TERRIER_ASSERT(0, "Missing ValueIdx on AggregateExpression...");
-
-          // aggr_expr->SetValueIdx(iter->second);
+          aggr_expr->SetValueIdx(iter->second);
         }
       }
+
+      */
     } else if (expr->GetExpressionType() == ExpressionType::FUNCTION) {
       /*
       TODO(wz2): Uncomment and fix this when Functions exist
