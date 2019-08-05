@@ -133,7 +133,7 @@ class IndexBuilder {
     } else if (key_size <= 256) {
       index = new BwTreeIndex<GenericKey<256>>(index_oid, constraint_type, std::move(metadata));
     }
-    TERRIER_ASSERT(index != nullptr, "Failed to create an IntsKey index.");
+    TERRIER_ASSERT(index != nullptr, "Failed to create an GenericKey index.");
     return index;
   }
 };

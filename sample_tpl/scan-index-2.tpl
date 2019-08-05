@@ -10,16 +10,16 @@ fun main(execCtx: *ExecutionContext) -> int64 {
   var out : *output_struct
   // Index iterator
   var index : IndexIterator
-  @indexIteratorConstructBind(&index, "test_ns", "test_2", "index_2", execCtx)
-  @indexIteratorAddColBind(&index, "test_ns", "test_2", "col1")
-  @indexIteratorAddColBind(&index, "test_ns", "test_2", "col2")
-  @indexIteratorPerformInit(&index)
-  @indexIteratorSetKeySmallInt(&index, 0, @intToSql(50))
+  @indexIteratorConstructBind(&index, "test_2", "index_2", execCtx, "t2")
+  @indexIteratorAddColBind(&index, "t2", "col1")
+  @indexIteratorAddColBind(&index, "t2", "col2")
+  @indexIteratorPerformInitBind(&index, "t2")
+  @indexIteratorSetKeyBind(&index, "t2", "index_col1", @intToSql(50))
   // Attribute to indicate which iterator to use
   for (@indexIteratorScanKey(&index); @indexIteratorAdvance(&index);) {
     out = @ptrCast(*output_struct, @outputAlloc(execCtx))
-    out.colA = @indexIteratorGetSmallInt(&index, 1)
-    out.colB = @indexIteratorGetIntNull(&index, 0)
+    out.colA = @indexIteratorGetBind(&index, "t2", "col1")
+    out.colB = @indexIteratorGetBind(&index, "t2", "col2")
     @outputAdvance(execCtx)
     res = res + 1
   }

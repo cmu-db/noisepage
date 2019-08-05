@@ -15,6 +15,7 @@ struct Output {
 }
 
 struct State {
+  tvi : TableVectorIterator
   agg_hash_table: AggregationHashTable
   sorter: Sorter
   count : int64 // debug
@@ -59,14 +60,17 @@ struct SorterRow {
   count_order : Integer
 }
 
-fun aggKeyCheck(agg_payload: *AggPayload, agg_values: *AggValues) -> bool {
-  if (agg_payload.l_returnflag != agg_values.l_returnflag) {
-    return false
-  }
-  if (agg_payload.l_linestatus != agg_values.l_linestatus) {
-    return false
-  }
-  return true
+// This should be the first function for binding to occur correctly
+fun setupTables(execCtx: *ExecutionContext, state: *State) -> nil {
+  @tableIterConstructBind(&state.tvi, "lineitem", execCtx, "li")
+  @tableIterAddColBind(&state.tvi, "li", "l_returnflag")
+  @tableIterAddColBind(&state.tvi, "li", "l_linestatus")
+  @tableIterAddColBind(&state.tvi, "li", "l_quantity")
+  @tableIterAddColBind(&state.tvi, "li", "l_extendedprice")
+  @tableIterAddColBind(&state.tvi, "li", "l_discount")
+  @tableIterAddColBind(&state.tvi, "li", "l_tax")
+  @tableIterAddColBind(&state.tvi, "li", "l_shipdate")
+  @tableIterPerformInitBind(&state.tvi, "li")
 }
 
 fun compareFn(lhs: *SorterRow, rhs: *SorterRow) -> int32 {
@@ -85,33 +89,46 @@ fun compareFn(lhs: *SorterRow, rhs: *SorterRow) -> int32 {
   return 0
 }
 
-
 fun setUpState(execCtx: *ExecutionContext, state: *State) -> nil {
   @aggHTInit(&state.agg_hash_table, @execCtxGetMem(execCtx), @sizeOf(AggPayload))
   @sorterInit(&state.sorter, @execCtxGetMem(execCtx), compareFn, @sizeOf(SorterRow))
   state.count = 0
+  setupTables(execCtx, state)
+}
+
+fun teardownState(execCtx: *ExecutionContext, state: *State) -> nil {
+  @aggHTFree(&state.agg_hash_table)
+  @sorterFree(&state.sorter)
+  @tableIterClose(&state.tvi)
+}
+
+fun aggKeyCheck(agg_payload: *AggPayload, agg_values: *AggValues) -> bool {
+  if (agg_payload.l_returnflag != agg_values.l_returnflag) {
+    return false
+  }
+  if (agg_payload.l_linestatus != agg_values.l_linestatus) {
+    return false
+  }
+  return true
 }
 
 
 fun pipeline1(execCtx: *ExecutionContext, state: *State) -> nil {
   // Pipeline 1 (Aggregating)
-  var tvi: TableVectorIterator
-  @tableIterConstructBind(&tvi, "test_ns", "lineitem", execCtx)
-  // TODO: Only read in required columns by calling @tableIterAddCol.
-  @tableIterPerformInit(&tvi)
-  for (; @tableIterAdvance(&tvi); ) {
-    var vec = @tableIterGetPCI(&tvi)
+  var tvi = &state.tvi
+  for (@tableIterAdvance(tvi)) {
+    var vec = @tableIterGetPCI(tvi)
     for (; @pciHasNext(vec); @pciAdvance(vec)) {
       var agg_values : AggValues
-      agg_values.l_returnflag = @pciGetVarlenNull(vec, 0)
-      agg_values.l_linestatus = @pciGetVarlenNull(vec, 1)
-      agg_values.sum_qty = @pciGetDoubleNull(vec, 5)
-      agg_values.sum_base_price = @pciGetDoubleNull(vec, 6)
-      agg_values.sum_disc_price = @pciGetDoubleNull(vec, 6) * @pciGetDoubleNull(vec, 7)
-      agg_values.sum_charge = @pciGetDoubleNull(vec, 6) * @pciGetDoubleNull(vec, 7) * (@floatToSql(1.0) - @pciGetDoubleNull(vec, 8))
-      agg_values.avg_qty = @pciGetDoubleNull(vec, 5)
-      agg_values.avg_price = @pciGetDoubleNull(vec, 6)
-      agg_values.avg_disc = @pciGetDoubleNull(vec, 7)
+      agg_values.l_returnflag = @pciGetBind(vec, "li", "l_returnflag")
+      agg_values.l_linestatus = @pciGetBind(vec, "li", "l_linestatus")
+      agg_values.sum_qty = @pciGetBind(vec, "li", "l_quantity")
+      agg_values.sum_base_price = @pciGetBind(vec, "li", "l_extendedprice")
+      agg_values.sum_disc_price = @pciGetBind(vec, "li", "l_extendedprice") * @pciGetBind(vec, "li", "l_discount")
+      agg_values.sum_charge = @pciGetBind(vec, "li", "l_extendedprice") * @pciGetBind(vec, "li", "l_discount") * (@floatToSql(1.0) - @pciGetBind(vec, "li", "l_tax"))
+      agg_values.avg_qty = @pciGetBind(vec, "li", "l_quantity")
+      agg_values.avg_price = @pciGetBind(vec, "li", "l_extendedprice")
+      agg_values.avg_disc = @pciGetBind(vec, "li", "l_discount")
       agg_values.count_order = @intToSql(1)
       var agg_hash_val = @hash(agg_values.l_returnflag, agg_values.l_linestatus)
       var agg_payload = @ptrCast(*AggPayload, @aggHTLookup(&state.agg_hash_table, agg_hash_val, aggKeyCheck, &agg_values))
@@ -139,7 +156,6 @@ fun pipeline1(execCtx: *ExecutionContext, state: *State) -> nil {
       @aggAdvance(&agg_payload.count_order, &agg_values.count_order)
     }
   }
-  @tableIterClose(&tvi)
 }
 
 fun pipeline2(execCtx: *ExecutionContext, state: *State) -> nil {
@@ -184,11 +200,6 @@ fun pipeline3(execCtx: *ExecutionContext, state: *State) -> nil {
     }
     @sorterIterClose(&sort_iter)
     @outputFinalize(execCtx)
-}
-
-fun teardownState(execCtx: *ExecutionContext, state: *State) -> nil {
-    @aggHTFree(&state.agg_hash_table)
-    @sorterFree(&state.sorter)
 }
 
 

@@ -1,0 +1,12 @@
+customer 8
+c_custkey int 0
+c_name varchar 0 25
+c_address varchar 0 40
+c_nationkey int 0
+c_phone varchar 0 15
+c_acctbal decimal 0
+c_mktsegment varchar 0 10
+c_comment varchar 0 117
+1
+customer_index 1
+0

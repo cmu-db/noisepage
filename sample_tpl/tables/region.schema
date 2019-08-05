@@ -1,0 +1,7 @@
+region 3
+r_regionkey int 0
+r_name varchar 0 55
+r_comment varchar 0 152
+1
+region_index 1
+0

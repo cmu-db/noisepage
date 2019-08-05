@@ -85,12 +85,6 @@ static constexpr const u32 kDefaultVectorSize = 2048;
  */
 static constexpr const u32 kPrefetchDistance = 16;
 
-/**
- * The key for the parser to use in attribute maps to signal
- * whether or not a ForIn loop contains an OID iterator
- */
-static constexpr const char *OID_KEY = "IS_OID";
-
 // Common memory sizes
 /**
  * KB
@@ -106,5 +100,10 @@ static constexpr const u32 MB = KB * KB;
  * GB
  */
 static constexpr const u32 GB = KB * KB * KB;
+
+/**
+ * Namespace used by tests
+ */
+static constexpr const char * TEST_NS = "test_ns";
 
 }  // namespace tpl

@@ -1,0 +1,9 @@
+partsupp 5
+ps_partkey int 0
+ps_suppkey int 0
+ps_availqty int 0
+ps_supplycost decimal 0
+ps_comment varchar 0 199
+1
+partsupp_index 2
+0 1

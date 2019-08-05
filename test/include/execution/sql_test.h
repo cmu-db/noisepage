@@ -36,7 +36,6 @@ class SqlBasedTest : public TplTest {
     ASSERT_NE(test_db_oid_, terrier::catalog::INVALID_DATABASE_OID) << "Default database does not exist";
     auto accessor = catalog_->GetAccessor(test_txn_, test_db_oid_);
     test_ns_oid_ = accessor->CreateNamespace("test_ns");
-    delete accessor;
   }
 
   ~SqlBasedTest() override {
@@ -50,9 +49,13 @@ class SqlBasedTest : public TplTest {
     return test_ns_oid_;
   }
 
+  terrier::storage::BlockStore * BlockStore() {
+    return block_store_.get();
+  }
+
   std::unique_ptr<exec::ExecutionContext> MakeExecCtx(exec::OutputCallback &&callback = nullptr,
                                                       const terrier::planner::OutputSchema *schema = nullptr) {
-    auto accessor = std::unique_ptr<terrier::catalog::CatalogAccessor>(catalog_->GetAccessor(test_txn_, test_db_oid_));
+    auto accessor = catalog_->GetAccessor(test_txn_, test_db_oid_);
     return std::make_unique<exec::ExecutionContext>(test_db_oid_, test_txn_, callback, schema, std::move(accessor));
   }
 

@@ -14,6 +14,7 @@ IndexIterator::IndexIterator(uint32_t table_oid, uint32_t index_oid, exec::Execu
 void IndexIterator::Init() {
   // Initialize projected rows for the index and the table
   if (col_oids_.empty()) {
+    // TODO(Amadou): Better to throw an assertion error now that the schema order is not guaranteed?
     // If no col_oid is passed in read all columns.
     for (const auto & col : schema_.GetColumns()) {
       col_oids_.emplace_back(col.Oid());

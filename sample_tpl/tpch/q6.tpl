@@ -3,31 +3,43 @@ struct outputStruct {
 }
 
 struct State {
+  tvi: TableVectorIterator
   sum: RealSumAggregate
 }
 
+// This should be the first function for binding to occur correctly
+fun setupTables(execCtx: *ExecutionContext, state: *State) -> nil {
+  var tvi: TableVectorIterator
+  @tableIterConstructBind(&state.tvi, "lineitem", execCtx, "li")
+  @tableIterAddColBind(&state.tvi, "li", "l_quantity")
+  @tableIterAddColBind(&state.tvi, "li", "l_extendedprice")
+  @tableIterAddColBind(&state.tvi, "li", "l_discount")
+  @tableIterAddColBind(&state.tvi, "li", "l_shipdate")
+  @tableIterPerformInitBind(&state.tvi, "li")
+}
 
 fun setUpState(execCtx: *ExecutionContext, state: *State) -> nil {
   @aggInit(&state.sum)
+  setupTables(execCtx, state)
+}
+
+fun teardownState(execCtx: *ExecutionContext, state: *State) -> nil {
+  @tableIterClose(&state.tvi)
 }
 
 
 fun execQuery(execCtx: *ExecutionContext, state: *State) -> nil {
   // Pipeline 1 (hashing)
-  var tvi: TableVectorIterator
-  @tableIterConstructBind(&tvi, "test_ns", "lineitem", execCtx)
-  @tableIterAddColBind(&tvi, "test_ns", "lineitem", "l_quantity")
-  @tableIterAddColBind(&tvi, "test_ns", "lineitem", "l_extendedprice")
-  @tableIterAddColBind(&tvi, "test_ns", "lineitem", "l_discount")
-  @tableIterAddColBind(&tvi, "test_ns", "lineitem", "l_shipdate")
-  @tableIterPerformInit(&tvi)
-  for (@tableIterAdvance(&tvi)) {
-    var pci = @tableIterGetPCI(&tvi)
+  var tvi = &state.tvi
+  for (@tableIterAdvance(tvi)) {
+    var pci = @tableIterGetPCI(tvi)
     for (; @pciHasNext(pci); @pciAdvance(pci)) {
-      // TODO: Figure out lineitem column order in storage layer
-      if (@pciGetIntNull(pci, 0) > 24 and @pciGetDoubleNull(pci, 2) > 0.04 and @pciGetDoubleNull(pci, 2) < 0.06
-          and @pciGetDateNull(pci, 3) >= @dateToSql(1994, 1, 1) and @pciGetDateNull(pci, 3) <= @dateToSql(1995, 1, 1)) {
-        var input = @pciGetDoubleNull(pci, 1) * @pciGetDoubleNull(pci, 2)
+      if (@pciGetBind(pci, "li", "l_quantity") > 24.0
+          and @pciGetBind(pci, "li", "l_discount") > 0.04
+          and @pciGetBind(pci, "li", "l_discount") < 0.06
+          and @pciGetBind(pci, "li", "l_shipdate") >= @dateToSql(1994, 1, 1)
+          and @pciGetBind(pci, "li", "l_shipdate") <= @dateToSql(1995, 1, 1)) {
+        var input = @pciGetBind(pci, "li", "l_extendedprice") * @pciGetBind(pci, "li", "l_discount")
         @aggAdvance(&state.sum, &input)
       }
     }
@@ -39,12 +51,7 @@ fun execQuery(execCtx: *ExecutionContext, state: *State) -> nil {
   out.out = @aggResult(&state.sum)
   @outputAdvance(execCtx)
   @outputFinalize(execCtx)
-  @tableIterClose(&tvi)
 }
-
-fun teardownState(execCtx: *ExecutionContext, state: *State) -> nil {
-}
-
 
 fun main(execCtx: *ExecutionContext) -> int32 {
   var state: State

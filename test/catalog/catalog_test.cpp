@@ -54,8 +54,8 @@ struct CatalogTests : public TerrierTest {
     TerrierTest::TearDown();
   }
 
-  void VerifyCatalogTables(catalog::CatalogAccessor *accessor) {
-    auto ns_oid = accessor->GetNamespaceOid("pg_catalog");
+  void VerifyCatalogTables(const catalog::CatalogAccessor &accessor) {
+    auto ns_oid = accessor.GetNamespaceOid("pg_catalog");
     EXPECT_NE(ns_oid, catalog::INVALID_NAMESPACE_OID);
     EXPECT_EQ(ns_oid, catalog::NAMESPACE_CATALOG_NAMESPACE_OID);
 
@@ -67,15 +67,15 @@ struct CatalogTests : public TerrierTest {
     VerifyTablePresent(accessor, ns_oid, "pg_type");
   }
 
-  void VerifyTablePresent(catalog::CatalogAccessor *accessor, catalog::namespace_oid_t ns_oid,
+  void VerifyTablePresent(const catalog::CatalogAccessor &accessor, catalog::namespace_oid_t ns_oid,
                           const std::string &table_name) {
-    auto table_oid = accessor->GetTableOid(ns_oid, table_name);
+    auto table_oid = accessor.GetTableOid(ns_oid, table_name);
     EXPECT_NE(table_oid, catalog::INVALID_TABLE_OID);
   }
 
-  void VerifyTableAbsent(catalog::CatalogAccessor *accessor, catalog::namespace_oid_t ns_oid,
+  void VerifyTableAbsent(const catalog::CatalogAccessor &accessor, catalog::namespace_oid_t ns_oid,
                          const std::string &table_name) {
-    auto table_oid = accessor->GetTableOid(ns_oid, table_name);
+    auto table_oid = accessor.GetTableOid(ns_oid, table_name);
     EXPECT_EQ(table_oid, catalog::INVALID_TABLE_OID);
   }
 
@@ -100,9 +100,8 @@ TEST_F(CatalogTests, DatabaseTest) {
   EXPECT_NE(db_oid, catalog::INVALID_DATABASE_OID);
   auto accessor = catalog_->GetAccessor(txn, db_oid);
   EXPECT_NE(accessor, nullptr);
-  VerifyCatalogTables(accessor);  // Check visibility to me
+  VerifyCatalogTables(*accessor);  // Check visibility to me
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
-  delete accessor;
 
   // Cannot add a database twice
   txn = txn_manager_->BeginTransaction();
@@ -110,27 +109,24 @@ TEST_F(CatalogTests, DatabaseTest) {
   auto tmp_oid = accessor->CreateDatabase("test_database");
   EXPECT_EQ(tmp_oid, catalog::INVALID_DATABASE_OID);  // Should cause a name conflict
   txn_manager_->Abort(txn);
-  delete accessor;
 
   // Get an accessor into the database and validate the catalog tables exist
   // then delete it and verify an invalid OID is now returned for the lookup
   txn = txn_manager_->BeginTransaction();
   accessor = catalog_->GetAccessor(txn, db_oid);
   EXPECT_NE(accessor, nullptr);
-  VerifyCatalogTables(accessor);  // Check visibility to me
+  VerifyCatalogTables(*accessor);  // Check visibility to me
   tmp_oid = accessor->GetDatabaseOid("test_database");
   EXPECT_TRUE(accessor->DropDatabase(tmp_oid));
   tmp_oid = accessor->GetDatabaseOid("test_database");
   EXPECT_EQ(tmp_oid, catalog::INVALID_DATABASE_OID);
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
-  delete accessor;
 
   // Cannot get an accessor to a non-existent database
   txn = txn_manager_->BeginTransaction();
   accessor = catalog_->GetAccessor(txn, db_oid);
   EXPECT_EQ(accessor, nullptr);
   txn_manager_->Abort(txn);
-  delete accessor;
 }
 
 /*
@@ -144,35 +140,31 @@ TEST_F(CatalogTests, NamespaceTest) {
   EXPECT_NE(accessor, nullptr);
   auto ns_oid = accessor->CreateNamespace("test_namespace");
   EXPECT_NE(ns_oid, catalog::INVALID_NAMESPACE_OID);
-  VerifyCatalogTables(accessor);  // Check visibility to me
+  VerifyCatalogTables(*accessor);  // Check visibility to me
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
-  delete accessor;
 
   txn = txn_manager_->BeginTransaction();
   accessor = catalog_->GetAccessor(txn, db_);
   ns_oid = accessor->CreateNamespace("test_namespace");
   EXPECT_EQ(ns_oid, catalog::INVALID_NAMESPACE_OID);  // Should cause a name conflict
   txn_manager_->Abort(txn);
-  delete accessor;
 
   // Get an accessor into the database and validate the catalog tables exist
   // then delete it and verify an invalid OID is now returned for the lookup
   txn = txn_manager_->BeginTransaction();
   accessor = catalog_->GetAccessor(txn, db_);
   EXPECT_NE(accessor, nullptr);
-  VerifyCatalogTables(accessor);  // Check visibility to me
+  VerifyCatalogTables(*accessor);  // Check visibility to me
   ns_oid = accessor->GetNamespaceOid("test_namespace");
   EXPECT_TRUE(accessor->DropNamespace(ns_oid));
   ns_oid = accessor->GetNamespaceOid("test_namespace");
   EXPECT_EQ(ns_oid, catalog::INVALID_NAMESPACE_OID);
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
-  delete accessor;
 
   txn = txn_manager_->BeginTransaction();
   accessor = catalog_->GetAccessor(txn, db_);
   EXPECT_FALSE(accessor->DropNamespace(ns_oid));
   txn_manager_->Abort(txn);
-  delete accessor;
 }
 
 /*
@@ -193,7 +185,7 @@ TEST_F(CatalogTests, UserTableTest) {
 
   auto table_oid = accessor->CreateTable(accessor->GetDefaultNamespace(), "test_table", tmp_schema);
   EXPECT_NE(table_oid, catalog::INVALID_TABLE_OID);
-  VerifyTablePresent(accessor, accessor->GetDefaultNamespace(), "test_table");
+  VerifyTablePresent(*accessor, accessor->GetDefaultNamespace(), "test_table");
   // Check lookup via search path
   EXPECT_EQ(table_oid, accessor->GetTableOid("test_table"));
   EXPECT_EQ(accessor->GetTable(table_oid), nullptr);  // Check that allocation has not happened
@@ -209,7 +201,6 @@ TEST_F(CatalogTests, UserTableTest) {
   EXPECT_TRUE(accessor->SetTablePointer(table_oid, table));
   EXPECT_EQ(common::ManagedPointer(table), accessor->GetTable(table_oid));
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
-  delete accessor;
 
   // Get an accessor into the database and validate the catalog tables exist
   // then delete it and verify an invalid OID is now returned for the lookup
@@ -222,7 +213,6 @@ TEST_F(CatalogTests, UserTableTest) {
   table_oid = accessor->GetTableOid("test_table");
   EXPECT_EQ(table_oid, catalog::INVALID_TABLE_OID);
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
-  delete accessor;
 }
 
 /*
@@ -263,7 +253,6 @@ TEST_F(CatalogTests, UserIndexTest) {
   EXPECT_TRUE(accessor->SetIndexPointer(idx_oid, index));
   EXPECT_EQ(common::ManagedPointer(index), accessor->GetIndex(idx_oid));
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
-  delete accessor;
 
   // Get an accessor into the database and validate the catalog tables exist
   // then delete it and verify an invalid OID is now returned for the lookup
@@ -276,14 +265,13 @@ TEST_F(CatalogTests, UserIndexTest) {
   idx_oid = accessor->GetIndexOid("test_table_index_mabobberwithareallylongnamethatstillneedsmore");
   EXPECT_EQ(idx_oid, catalog::INVALID_INDEX_OID);
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
-  delete accessor;
 }
 
 /*
  * Check behavior of search path
  */
 // NOLINTNEXTLINE
-TEST_F(CatalogTests, SearchPathTest) {
+TEST_F(CatalogTests, UserSearchPathTest) {
   // Create a database and check that it's immediately visible
   auto txn = txn_manager_->BeginTransaction();
   auto accessor = catalog_->GetAccessor(txn, db_);
@@ -292,7 +280,7 @@ TEST_F(CatalogTests, SearchPathTest) {
   EXPECT_EQ(public_ns_oid, catalog::NAMESPACE_DEFAULT_NAMESPACE_OID);
   auto test_ns_oid = accessor->CreateNamespace("test");
   EXPECT_NE(test_ns_oid, catalog::INVALID_NAMESPACE_OID);
-  VerifyCatalogTables(accessor);  // Check visibility to me
+  VerifyCatalogTables(*accessor);  // Check visibility to me
 
   // Create the column definition (no OIDs)
   std::vector<catalog::Schema::Column> cols;
@@ -317,7 +305,6 @@ TEST_F(CatalogTests, SearchPathTest) {
   EXPECT_TRUE(accessor->SetTablePointer(test_table_oid, table));
 
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
-  delete accessor;
 
   // Check that it matches the table in the first namespace in path
   txn = txn_manager_->BeginTransaction();
@@ -334,7 +321,6 @@ TEST_F(CatalogTests, SearchPathTest) {
   table_oid = accessor->CreateTable(test_ns_oid, "test_table", tmp_schema);
   EXPECT_EQ(table_oid, catalog::INVALID_TABLE_OID);
   txn_manager_->Abort(txn);
-  delete accessor;
 
   txn = txn_manager_->BeginTransaction();
   accessor = catalog_->GetAccessor(txn, db_);
@@ -344,7 +330,65 @@ TEST_F(CatalogTests, SearchPathTest) {
   accessor->SetSearchPath({test_ns_oid, public_ns_oid});
   EXPECT_EQ(accessor->GetTableOid("test_table"), public_table_oid);
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
-  delete accessor;
+}
+
+/*
+ * Checks specifically whether the implicit searching of pg_catalog works correctly
+ */
+// NOLINTNEXTLINE
+TEST_F(CatalogTests, CatalogSearchPathTest) {
+  auto txn = txn_manager_->BeginTransaction();
+  auto accessor = catalog_->GetAccessor(txn, db_);
+  EXPECT_EQ(accessor->GetTableOid("pg_namespace"), catalog::NAMESPACE_TABLE_OID);
+
+  // Create the column definition (no OIDs)
+  std::vector<catalog::Schema::Column> cols;
+  cols.emplace_back("id", type::TypeId::INTEGER, false,
+                    parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
+  cols.emplace_back("user_col_1", type::TypeId::INTEGER, false,
+                    parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
+  auto tmp_schema = catalog::Schema(cols);
+
+  // Check whether name conflict is inserted into the proper default (first in search path) and masked by implicit
+  // addition of 'pg_catalog' at start of search path
+  auto user_table_oid = accessor->CreateTable(accessor->GetDefaultNamespace(), "pg_namespace", tmp_schema);
+  EXPECT_EQ(accessor->GetTableOid(catalog::NAMESPACE_DEFAULT_NAMESPACE_OID, "pg_namespace"), user_table_oid);
+  EXPECT_EQ(accessor->GetTableOid("pg_namespace"), catalog::NAMESPACE_TABLE_OID);
+
+  // Explicitly set 'pg_catalog' as second in the search path and check proper searching
+  accessor->SetSearchPath({catalog::NAMESPACE_DEFAULT_NAMESPACE_OID, catalog::NAMESPACE_CATALOG_NAMESPACE_OID});
+  EXPECT_EQ(accessor->GetTableOid("pg_namespace"), user_table_oid);
+  EXPECT_EQ(accessor->GetTableOid(catalog::NAMESPACE_CATALOG_NAMESPACE_OID, "pg_namespace"),
+            catalog::NAMESPACE_TABLE_OID);
+
+  // Return to implicit declaration to ensure logic works correctly
+  accessor->SetSearchPath({catalog::NAMESPACE_DEFAULT_NAMESPACE_OID});
+  EXPECT_EQ(accessor->GetTableOid(catalog::NAMESPACE_DEFAULT_NAMESPACE_OID, "pg_namespace"), user_table_oid);
+  EXPECT_EQ(accessor->GetTableOid("pg_namespace"), catalog::NAMESPACE_TABLE_OID);
+
+  // Close out
+  txn_manager_->Abort(txn);
+}
+
+/*
+ * Check that the normalize function in CatalogAccessor behaves correctly
+ */
+// NOLINTNEXTLINE
+TEST_F(CatalogTests, NameNormalizationTest) {
+  auto txn = txn_manager_->BeginTransaction();
+  auto accessor = catalog_->GetAccessor(txn, db_);
+  auto ns_oid = accessor->CreateNamespace("TeSt_NaMeSpAcE");
+  EXPECT_NE(ns_oid, catalog::INVALID_NAMESPACE_OID);
+  txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+
+  txn = txn_manager_->BeginTransaction();
+  accessor = catalog_->GetAccessor(txn, db_);
+  EXPECT_EQ(catalog::INVALID_NAMESPACE_OID, accessor->CreateNamespace("TEST_NAMESPACE"));  // should conflict
+  EXPECT_EQ(ns_oid, accessor->GetNamespaceOid("TEST_NAMESPACE"));                          // Should succeed
+  auto dbc = catalog_->GetDatabaseCatalog(txn, db_);
+  EXPECT_EQ(ns_oid, dbc->GetNamespaceOid(txn, "test_namespace"));  // Should match (normalized form)
+  EXPECT_EQ(catalog::INVALID_NAMESPACE_OID, dbc->GetNamespaceOid(txn, "TeSt_NaMeSpAcE"));  // Not normalized
+  txn_manager_->Abort(txn);
 }
 
 }  // namespace terrier

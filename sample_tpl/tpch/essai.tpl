@@ -1,4 +1,4 @@
-// This is what the codegen looks like for now.
+// This is what the codegen is supposed to look like for now.
 // It will likely change once I add vectorized operations.
 
 struct Output {
@@ -15,6 +15,7 @@ struct Output {
 }
 
 struct State {
+  tvi : TableVectorIterator
   count : int64 // debug
 }
 
@@ -34,27 +35,38 @@ struct AggValues {
 
 fun setUpState(execCtx: *ExecutionContext, state: *State) -> nil {
   state.count = 0
+  @tableIterConstructBind(&state.tvi, "lineitem", execCtx, "li")
+  @tableIterAddColBind(&state.tvi, "li", "l_returnflag")
+  @tableIterAddColBind(&state.tvi, "li", "l_linestatus")
+  @tableIterAddColBind(&state.tvi, "li", "l_quantity")
+  @tableIterAddColBind(&state.tvi, "li", "l_extendedprice")
+  @tableIterAddColBind(&state.tvi, "li", "l_discount")
+  @tableIterAddColBind(&state.tvi, "li", "l_tax")
+  @tableIterAddColBind(&state.tvi, "li", "l_shipdate")
+  @tableIterPerformInitBind(&state.tvi, "li")
+}
+
+fun teardownState(execCtx: *ExecutionContext, state: *State) -> nil {
+  @tableIterClose(&state.tvi)
 }
 
 
 fun pipeline1(execCtx: *ExecutionContext, state: *State) -> nil {
   // Pipeline 1 (Aggregating)
-  var tvi: TableVectorIterator
-  @tableIterConstructBind(&tvi, "test_ns", "lineitem", execCtx)
-  @tableIterPerformInit(&tvi)
-  for (; @tableIterAdvance(&tvi); ) {
-    var vec = @tableIterGetPCI(&tvi)
+  var li_tvi = &state.tvi
+  for (@tableIterAdvance(li_tvi)) {
+    var vec = @tableIterGetPCI(li_tvi)
     for (; @pciHasNext(vec); @pciAdvance(vec)) {
       var agg_values : AggValues
-      agg_values.l_returnflag = @pciGetVarlenNull(vec, 0)
-      agg_values.l_linestatus = @pciGetVarlenNull(vec, 1)
-      agg_values.sum_qty = @pciGetDoubleNull(vec, 5)
-      agg_values.sum_base_price = @pciGetDoubleNull(vec, 6)
-      agg_values.sum_disc_price = @pciGetDoubleNull(vec, 6) * @pciGetDoubleNull(vec, 7)
-      agg_values.sum_charge = @pciGetDoubleNull(vec, 6) * @pciGetDoubleNull(vec, 7) * (@floatToSql(1.0) - @pciGetDoubleNull(vec, 8))
-      agg_values.avg_qty = @pciGetDoubleNull(vec, 5)
-      agg_values.avg_price = @pciGetDoubleNull(vec, 6)
-      agg_values.avg_disc = @pciGetDoubleNull(vec, 7)
+      agg_values.l_returnflag = @pciGetBind(vec, "li", "l_returnflag")
+      agg_values.l_linestatus = @pciGetBind(vec, "li", "l_linestatus")
+      agg_values.sum_qty = @pciGetBind(vec, "li", "l_quantity")
+      agg_values.sum_base_price = @pciGetBind(vec, "li", "l_extendedprice")
+      agg_values.sum_disc_price = @pciGetBind(vec, "li", "l_extendedprice") * @pciGetBind(vec, "li", "l_discount")
+      agg_values.sum_charge = @pciGetBind(vec, "li", "l_extendedprice") * @pciGetBind(vec, "li", "l_discount") * (@floatToSql(1.0) - @pciGetBind(vec, "li", "l_tax"))
+      agg_values.avg_qty = @pciGetBind(vec, "li", "l_quantity")
+      agg_values.avg_price = @pciGetBind(vec, "li", "l_extendedprice")
+      agg_values.avg_disc = @pciGetBind(vec, "li", "l_discount")
       agg_values.count_order = @intToSql(1)
       var out = @ptrCast(*Output, @outputAlloc(execCtx))
       out.l_returnflag = agg_values.l_returnflag
@@ -71,7 +83,6 @@ fun pipeline1(execCtx: *ExecutionContext, state: *State) -> nil {
     }
   }
   @outputFinalize(execCtx)
-  @tableIterClose(&tvi)
 }
 
 

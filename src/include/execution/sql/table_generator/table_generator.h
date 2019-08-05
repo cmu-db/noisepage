@@ -143,26 +143,25 @@ class TableGenerator {
     /**
      * Name of the column
      */
-    const char * name_;
-
+    const char * name;
     /**
      * Type of the column
      */
-    const terrier::type::TypeId type_;
+    const terrier::type::TypeId type;
     /**
      * Whether the columns is nullable
      */
-    bool nullable_;
+    bool nullable;
     /**
-     * Index in the original table
+     * Column name in the original table
      */
-    uint32_t table_col_idx_;
+    const char * table_col_name;
 
     /**
      * Constructor
      */
-    IndexColumn(const char * name, const terrier::type::TypeId type, bool nullable, uint32_t table_col_idx)
-        : name_(name), type_(type), nullable_(nullable), table_col_idx_(table_col_idx) {}
+    IndexColumn(const char * name, const terrier::type::TypeId type, bool nullable, const char* table_col_name)
+        : name(name), type(type), nullable(nullable), table_col_name(table_col_name) {}
   };
 
   /**

@@ -1,3 +1,4 @@
+#include <memory>
 #include <string>
 #include <utility>
 #include <vector>
@@ -173,10 +174,10 @@ common::ManagedPointer<DatabaseCatalog> Catalog::GetDatabaseCatalog(transaction:
   return common::ManagedPointer(dbc);
 }
 
-CatalogAccessor *Catalog::GetAccessor(transaction::TransactionContext *txn, db_oid_t database) {
+std::unique_ptr<CatalogAccessor> Catalog::GetAccessor(transaction::TransactionContext *txn, db_oid_t database) {
   auto dbc = this->GetDatabaseCatalog(txn, database);
   if (dbc == nullptr) return nullptr;
-  return new CatalogAccessor(this, dbc, txn, database);
+  return std::make_unique<CatalogAccessor>(common::ManagedPointer(this), dbc, txn);
 }
 
 bool Catalog::CreateDatabaseEntry(transaction::TransactionContext *const txn, const db_oid_t db,

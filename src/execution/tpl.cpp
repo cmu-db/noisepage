@@ -82,7 +82,7 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
 
   auto db_oid = catalog.CreateDatabase(txn, "test_db", true);
   auto accessor = std::unique_ptr<terrier::catalog::CatalogAccessor>(catalog.GetAccessor(txn, db_oid));
-  auto ns_oid = accessor->CreateNamespace("test_ns");
+  auto ns_oid = accessor->GetDefaultNamespace();
 
   // Make the execution context
   exec::OutputPrinter printer(output_schema);
@@ -102,7 +102,8 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
   ast::Context context(&region, &error_reporter);
 
   parsing::Scanner scanner(source.data(), source.length());
-  parsing::Parser parser(&scanner, &context);
+  parsing::Rewriter rewriter(&context, exec_ctx.GetAccessor());
+  parsing::Parser parser(&scanner, &context, &rewriter);
 
   double parse_ms = 0.0, typecheck_ms = 0.0, codegen_ms = 0.0, interp_exec_ms = 0.0, adaptive_exec_ms = 0.0,
          jit_exec_ms = 0.0;
@@ -136,7 +137,7 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
   if (error_reporter.HasErrors()) {
     EXECUTION_LOG_ERROR("Type-checking error!");
     error_reporter.PrintErrors();
-    return;
+    throw std::runtime_error("Type Checking Exception!");
   }
 
   // Dump AST

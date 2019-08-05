@@ -16,13 +16,18 @@ class TableVectorIteratorTest : public SqlBasedTest {
     GenerateTestTables(exec_ctx_.get());
   }
 
+ public:
+  terrier::parser::ConstantValueExpression DummyExpr() {
+    return terrier::parser::ConstantValueExpression(terrier::type::TransientValueFactory::GetInteger(0));
+  }
+
  protected:
   /**
    * Execution context to use for the test
    */
   std::unique_ptr<exec::ExecutionContext> exec_ctx_;
 };
-
+/*
 // NOLINTNEXTLINE
 TEST_F(TableVectorIteratorTest, EmptyIteratorTest) {
   //
@@ -119,6 +124,75 @@ TEST_F(TableVectorIteratorTest, IteratorAddColTest) {
   }
   EXPECT_EQ(sql::test2_size, num_tuples);
 }
+*/
+TEST_F(TableVectorIteratorTest, DummyTest) {
+  // Make schema
+  std::vector<terrier::catalog::Schema::Column> cols;
+  cols.emplace_back("colA", terrier::type::TypeId::INTEGER, false, DummyExpr());
+  cols.emplace_back("colB", terrier::type::TypeId::INTEGER, false, DummyExpr());
+  terrier::catalog::Schema tmp_schema{cols};
 
+  // Make table
+  auto table_oid = exec_ctx_->GetAccessor()->CreateTable(NSOid(), "dummy_table", tmp_schema);
+  ASSERT_NE(table_oid, terrier::catalog::INVALID_TABLE_OID);
+  auto & schema = exec_ctx_->GetAccessor()->GetSchema(table_oid);
+  auto * table = new terrier::storage::SqlTable(BlockStore(), schema);
+  exec_ctx_->GetAccessor()->SetTablePointer(table_oid, table);
+
+  // FIRST ISSUE: the schema object itself has been reordered
+  // Prints: colB, colA instead of colA, colB
+  for (const auto & col : schema.GetColumns()) {
+    std::cout << "Col Name: " << col.Name() << std::endl;
+  }
+
+  // Now get the column mapping
+  std::vector<terrier::catalog::col_oid_t> col_oids;
+  for (const auto & col :schema.GetColumns()) {
+    col_oids.emplace_back(col.Oid());
+  }
+  auto pr_map = table->InitializerForProjectedRow(col_oids);
+  auto offset_map = pr_map.second;
+
+  // SECOND ISSUE: the sorting order is not stable (with respect to the initial order colA, colB)
+  // Prints 1, 0 instead of 0, 1
+  auto colA_oid = schema.GetColumn("colA").Oid();
+  auto colB_oid = schema.GetColumn("colB").Oid();
+
+  std::cout << "(ColOID, Offset): (" << !colA_oid  << ", " << offset_map[colA_oid] << ")" << std::endl;
+  std::cout << "(ColOID, Offset): (" << !colB_oid  << ", " << offset_map[colB_oid] << ")" << std::endl;
+}
+
+TEST_F(TableVectorIteratorTest, DummyIndexTest) {
+  // Make schema
+  std::vector<terrier::catalog::Schema::Column> cols;
+  cols.emplace_back("colA", terrier::type::TypeId::INTEGER, false, DummyExpr());
+  cols.emplace_back("colB", terrier::type::TypeId::INTEGER, false, DummyExpr());
+  terrier::catalog::Schema tmp_schema{cols};
+
+  // Make table
+  auto table_oid = exec_ctx_->GetAccessor()->CreateTable(NSOid(), "dummy_table", tmp_schema);
+  ASSERT_NE(table_oid, terrier::catalog::INVALID_TABLE_OID);
+  auto & schema = exec_ctx_->GetAccessor()->GetSchema(table_oid);
+  auto * table = new terrier::storage::SqlTable(BlockStore(), schema);
+  exec_ctx_->GetAccessor()->SetTablePointer(table_oid, table);
+
+  // FIRST ISSUE: the schema object itself has been reordered
+  // Prints: colB, colA instead of colA, colB
+  for (const auto & col : schema.GetColumns()) {
+    std::cout << "Col Name: " << col.Name() << std::endl;
+  }
+
+  // Now get the column mapping
+  auto colA_oid = schema.GetColumn("colA").Oid();
+  auto colB_oid = schema.GetColumn("colB").Oid();
+  std::vector<terrier::catalog::col_oid_t> col_oids{colA_oid, colB_oid};
+  auto pr_map = table->InitializerForProjectedRow(col_oids);
+  auto offset_map = pr_map.second;
+
+  // SECOND ISSUE: the sorting order is not stable (with respect to the initial order colA, colB)
+  // Prints (1, 1), (2, 0) instead of (2, 0), (1, 1)
+  std::cout << "(ColOID, Offset): (" << !colA_oid  << ", " << offset_map[colA_oid] << ")" << std::endl;
+  std::cout << "(ColOID, Offset): (" << !colB_oid  << ", " << offset_map[colB_oid] << ")" << std::endl;
+}
 
 }  // namespace tpl::sql::test

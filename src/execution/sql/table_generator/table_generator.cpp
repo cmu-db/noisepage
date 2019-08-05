@@ -125,6 +125,13 @@ void TableGenerator::FillTable(terrier::catalog::table_oid_t table_oid, terrier:
   auto & pri = pri_map.first;
   auto & offset_map = pri_map.second;
   uint32_t vals_written = 0;
+
+  std::vector<u16> offsets;
+  for (const auto & col_meta : table_meta.col_meta) {
+    const auto & table_col = schema.GetColumn(col_meta.name);
+    offsets.emplace_back(offset_map[table_col.Oid()]);
+  }
+
   for (u32 i = 0; i < num_batches; i++) {
     std::vector<std::pair<byte *, u32 *>> column_data;
 
@@ -139,7 +146,7 @@ void TableGenerator::FillTable(terrier::catalog::table_oid_t table_oid, terrier:
     for (u32 j = 0; j < num_vals; j++) {
       auto *const redo = exec_ctx_->GetTxn()->StageWrite(exec_ctx_->DBOid(), table_oid, pri);
       for (u16 k = 0; k < column_data.size(); k++) {
-        auto offset = offset_map[schema.GetColumn(k).Oid()];
+        auto offset = offsets[k];
         if (table_meta.col_meta[k].nullable && util::BitUtil::Test(column_data[k].second, j)) {
           redo->Delta()->SetNull(offset);
         } else {
@@ -230,6 +237,12 @@ void TableGenerator::FillIndex(terrier::common::ManagedPointer<terrier::storage:
   byte *index_buffer = terrier::common::AllocationUtil::AllocateAligned(index_pri.ProjectedRowSize());
   auto index_pr = index_pri.InitializeRow(index_buffer);
 
+  std::vector<u16> table_offsets;
+  for (const auto & index_col_meta : index_meta.cols) {
+    const auto & table_col = table_schema.GetColumn(index_col_meta.table_col_name);
+    table_offsets.emplace_back(table_offset_map[table_col.Oid()]);
+  }
+
   u32 num_inserted = 0;
   for (const terrier::storage::TupleSlot &slot : *table) {
     // Get table data
@@ -237,10 +250,9 @@ void TableGenerator::FillIndex(terrier::common::ManagedPointer<terrier::storage:
     // Fill up the index data
     for (u32 index_col_idx = 0; index_col_idx < index_meta.cols.size(); index_col_idx++) {
       // Get the offset of this column in the table
-      auto table_col_idx = index_meta.cols[index_col_idx].table_col_idx_;
-      auto table_offset = table_offset_map[table_schema.GetColumn(table_col_idx).Oid()];
+      auto table_offset = table_offsets[index_col_idx];
       // Get the offset of this column in the index
-      auto &index_col = index_schema.GetColumn(index_col_idx);
+      const auto &index_col = index_schema.GetColumn(index_meta.cols[index_col_idx].name);
       u16 index_offset =  index->GetKeyOidToOffsetMap().at(index_col.Oid());
       // Check null and write bytes.
       if (index_col.Nullable() && table_pr->IsNull(table_offset)) {
@@ -267,16 +279,18 @@ void TableGenerator::InitTestIndexes() {
    */
   static const std::vector<IndexInsertMeta> index_metas = {
       // The empty table
-      {"index_empty", "empty_table", {{"index_col", terrier::type::TypeId::INTEGER, false, 0}}},
+      {"index_empty", "empty_table", {{"index_colA", terrier::type::TypeId::INTEGER, false, "colA"}}},
 
       // Table 1
-      {"index_1", "test_1", {{"index_col", terrier::type::TypeId::INTEGER, false, 0}}},
+      {"index_1", "test_1", {{"index_colA", terrier::type::TypeId::INTEGER, false, "colA"}}},
 
       // Table 2: one col
-      {"index_2", "test_2", {{"index_col", terrier::type::TypeId::SMALLINT, false, 0}}},
+      {"index_2", "test_2", {{"index_col1", terrier::type::TypeId::SMALLINT, false, "col1"}}},
 
       // Table 2: two cols
-      {"index_2_multi", "test_2", {{"index_col0", terrier::type::TypeId::INTEGER, true, 1}, {"index_col1", terrier::type::TypeId::SMALLINT, false, 0}}}};
+      {"index_2_multi", "test_2", {{"index_col1", terrier::type::TypeId::SMALLINT, false, "col1"},
+                                   {"index_col2", terrier::type::TypeId::INTEGER, true, "col2"}}}
+  };
 
   terrier::storage::index::IndexBuilder index_builder;
   for (const auto &index_meta : index_metas) {
@@ -289,7 +303,7 @@ void TableGenerator::InitTestIndexes() {
     // Create Index Schema
     std::vector<terrier::catalog::IndexSchema::Column> index_cols;
     for (const auto &col_meta : index_meta.cols) {
-      index_cols.emplace_back(col_meta.name_, col_meta.type_, col_meta.nullable_, DummyCVE());
+      index_cols.emplace_back(col_meta.name, col_meta.type, col_meta.nullable, DummyCVE());
     }
     terrier::catalog::IndexSchema tmp_index_schema{index_cols, false, false, false, false};
     // Create Index

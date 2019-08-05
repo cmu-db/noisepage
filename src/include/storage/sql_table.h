@@ -198,6 +198,8 @@ class SqlTable {
     return {initializer, projection_map};
   }
 
+  ProjectionMap ProjectionMapForOids(const std::vector<catalog::col_oid_t> &col_oids);
+
  private:
   FRIEND_TEST(WriteAheadLoggingTests, AbortRecordTest);
   FRIEND_TEST(WriteAheadLoggingTests, NoAbortRecordTest);

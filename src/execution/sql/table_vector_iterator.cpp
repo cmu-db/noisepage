@@ -28,6 +28,7 @@ bool TableVectorIterator::Init() {
 
   // Initialize the projected column
   if (col_oids_.empty()) {
+    // TODO(Amadou): Better to throw an assertion error now that the schema order is not guaranteed?
     // If no col_oid is passed in read all columns.
     auto & schema = exec_ctx_->GetAccessor()->GetSchema(table_oid_);
     for (const auto & col : schema.GetColumns()) {

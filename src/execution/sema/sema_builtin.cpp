@@ -841,30 +841,6 @@ void Sema::CheckBuiltinTableIterCall(ast::CallExpr *call, ast::Builtin builtin) 
       call->set_type(GetBuiltinType(ast::BuiltinType::Nil));
       break;
     }
-    case ast::Builtin::TableIterConstructBind: {
-      if (!CheckArgCount(call, 4)) {
-        return;
-      }
-
-      // The second argument is the ns name as a literal string
-      if (!call_args[1]->IsStringLiteral()) {
-        ReportIncorrectCallArg(call, 1, ast::StringType::Get(context()));
-        return;
-      }
-      // The third argument is the table name as a literal string
-      if (!call_args[2]->IsStringLiteral()) {
-        ReportIncorrectCallArg(call, 2, ast::StringType::Get(context()));
-        return;
-      }
-      // The fourth argument is the execution context
-      auto exec_ctx_kind = ast::BuiltinType::ExecutionContext;
-      if (!IsPointerToSpecificBuiltin(call_args[3]->type(), exec_ctx_kind)) {
-        ReportIncorrectCallArg(call, 3, GetBuiltinType(exec_ctx_kind)->PointerTo());
-        return;
-      }
-      call->set_type(GetBuiltinType(ast::BuiltinType::Nil));
-      break;
-    }
     case ast::Builtin::TableIterPerformInit: {
       if (!CheckArgCount(call, 1)) {
         return;
@@ -882,29 +858,6 @@ void Sema::CheckBuiltinTableIterCall(ast::CallExpr *call, ast::Builtin builtin) 
         ReportIncorrectCallArg(call, 1, GetBuiltinType(ast::BuiltinType::Int32));
         return;
       }
-      break;
-      call->set_type(GetBuiltinType(ast::BuiltinType::Nil));
-    }
-    case ast::Builtin::TableIterAddColBind: {
-      if (!CheckArgCount(call, 4)) {
-        return;
-      }
-      // The second argument must be the ns's name
-      if (!call->arguments()[1]->type()->IsStringType()) {
-        ReportIncorrectCallArg(call, 1, ast::StringType::Get(context()));
-        return;
-      }
-      // The third argument must be the table's name
-      if (!call->arguments()[2]->type()->IsStringType()) {
-        ReportIncorrectCallArg(call, 2, ast::StringType::Get(context()));
-        return;
-      }
-      // The fourth argument is the columns's name
-      if (!call->arguments()[3]->type()->IsStringType()) {
-        ReportIncorrectCallArg(call, 3, ast::StringType::Get(context()));
-        return;
-      }
-      // return nothing
       call->set_type(GetBuiltinType(ast::BuiltinType::Nil));
       break;
     }
@@ -1046,6 +999,7 @@ void Sema::CheckBuiltinPCICall(ast::CallExpr *call, ast::Builtin builtin) {
     default: { UNREACHABLE("Impossible PCI call"); }
   }
 }
+
 
 void Sema::CheckBuiltinHashCall(ast::CallExpr *call, UNUSED ast::Builtin builtin) {
   if (!CheckArgCountAtLeast(call, 1)) {
@@ -1489,33 +1443,6 @@ void Sema::CheckBuiltinIndexIteratorInit(tpl::ast::CallExpr *call, ast::Builtin 
       }
       break;
     }
-    case ast::Builtin::IndexIteratorConstructBind: {
-      if (!CheckArgCount(call, 5)) {
-        return;
-      }
-      // The second argument must be the ns's name
-      if (!call->arguments()[1]->type()->IsStringType()) {
-        ReportIncorrectCallArg(call, 1, ast::StringType::Get(context()));
-        return;
-      }
-      // The third argument must be the table's name
-      if (!call->arguments()[2]->type()->IsStringType()) {
-        ReportIncorrectCallArg(call, 2, ast::StringType::Get(context()));
-        return;
-      }
-      // The fourth argument is the index's name
-      if (!call->arguments()[3]->type()->IsStringType()) {
-        ReportIncorrectCallArg(call, 3, ast::StringType::Get(context()));
-        return;
-      }
-      // The fifth call argument must an execution context
-      auto exec_ctx_kind = ast::BuiltinType::ExecutionContext;
-      if (!IsPointerToSpecificBuiltin(call->arguments()[4]->type(), exec_ctx_kind)) {
-        ReportIncorrectCallArg(call, 4, GetBuiltinType(exec_ctx_kind)->PointerTo());
-        return;
-      }
-      break;
-    }
     case ast::Builtin::IndexIteratorPerformInit: {
       if (!CheckArgCount(call, 1)) {
         return;
@@ -1531,48 +1458,20 @@ void Sema::CheckBuiltinIndexIteratorInit(tpl::ast::CallExpr *call, ast::Builtin 
 }
 
 void Sema::CheckBuiltinIndexIteratorAddCol(tpl::ast::CallExpr *call, ast::Builtin builtin) {
-
+  if (!CheckArgCount(call, 2)) {
+    return;
+  }
   // First argument must be a pointer to a IndexIterator
   auto index_kind = ast::BuiltinType::IndexIterator;
   if (!IsPointerToSpecificBuiltin(call->arguments()[0]->type(), index_kind)) {
     ReportIncorrectCallArg(call, 0, GetBuiltinType(index_kind)->PointerTo());
     return;
   }
-  switch (builtin) {
-    case ast::Builtin::IndexIteratorAddCol: {
-      if (!CheckArgCount(call, 2)) {
-        return;
-      }
-      // Second argument must a col oid
-      if (!call->arguments()[1]->IsIntegerLiteral()) {
-        ReportIncorrectCallArg(call, 1, GetBuiltinType(ast::BuiltinType::Int32));
-        return;
-      }
-      break;
-    }
-    case ast::Builtin::IndexIteratorAddColBind: {
-      if (!CheckArgCount(call, 4)) {
-        return;
-      }
-      // The second argument must be the ns's name
-      if (!call->arguments()[1]->type()->IsStringType()) {
-        ReportIncorrectCallArg(call, 1, ast::StringType::Get(context()));
-        return;
-      }
-      // The third argument must be the table's name
-      if (!call->arguments()[2]->type()->IsStringType()) {
-        ReportIncorrectCallArg(call, 2, ast::StringType::Get(context()));
-        return;
-      }
-      // The fourth argument is the columns's name
-      if (!call->arguments()[3]->type()->IsStringType()) {
-        ReportIncorrectCallArg(call, 3, ast::StringType::Get(context()));
-        return;
-      }
-      break;
-    }
-    default:
-      UNREACHABLE("Impossible AddCol bytecode");
+
+  // Second argument must a col oid
+  if (!call->arguments()[1]->IsIntegerLiteral()) {
+    ReportIncorrectCallArg(call, 1, GetBuiltinType(ast::BuiltinType::Int32));
+    return;
   }
   // Return a boolean
   call->set_type(ast::BuiltinType::Get(context(), ast::BuiltinType::Nil));
@@ -1753,10 +1652,8 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
       break;
     }
     case ast::Builtin::TableIterConstruct:
-    case ast::Builtin::TableIterConstructBind:
     case ast::Builtin::TableIterPerformInit:
     case ast::Builtin::TableIterAddCol:
-    case ast::Builtin::TableIterAddColBind:
     case ast::Builtin::TableIterAdvance:
     case ast::Builtin::TableIterGetPCI:
     case ast::Builtin::TableIterClose: {
@@ -1923,7 +1820,6 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
       break;
     }
     case ast::Builtin::IndexIteratorConstruct:
-    case ast::Builtin::IndexIteratorConstructBind:
     case ast::Builtin::IndexIteratorPerformInit: {
       CheckBuiltinIndexIteratorInit(call, builtin);
       break;
@@ -1936,8 +1832,7 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
       CheckBuiltinIndexIteratorAdvance(call);
       break;
     }
-    case ast::Builtin::IndexIteratorAddCol:
-    case ast::Builtin::IndexIteratorAddColBind: {
+    case ast::Builtin::IndexIteratorAddCol: {
       CheckBuiltinIndexIteratorAddCol(call, builtin);
       break;
     }

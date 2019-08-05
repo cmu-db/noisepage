@@ -1,0 +1,13 @@
+orders 9
+o_orderkey int 0
+o_custkey int 0
+o_orderstatus varchar 0 1
+o_totalprice decimal 0
+o_orderdate date 0
+o_orderpriority varchar 0 15
+o_clerk varchar 0 15
+o_shippriority int 0
+o_comment varchar 0 79
+1
+orders_index 1
+0
