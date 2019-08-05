@@ -79,23 +79,15 @@ class SampleOutput {
       std::vector<terrier::planner::OutputSchema::Column> cols{real_col};
       schemas_.emplace("tpch_q6", terrier::planner::OutputSchema(cols));
     }
-
-    // TODO(Amadou): Fix the type of these others queries
-    // Q4 (two Integers)
+    // Q4 (one string, one int)
     {
-      std::vector<terrier::planner::OutputSchema::Column> cols{};
-      for (u32 i = 0; i < u32(2); i++) {
-        cols.emplace_back(int_col);
-      }
+      std::vector<terrier::planner::OutputSchema::Column> cols{string_col, int_col};
       schemas_.emplace("tpch_q4", terrier::planner::OutputSchema(cols));
     }
 
-    // Q5 (two Integers)
+    // Q5 (one string, one real)
     {
-      std::vector<terrier::planner::OutputSchema::Column> cols{};
-      for (u32 i = 0; i < u32(2); i++) {
-        cols.emplace_back(int_col);
-      }
+      std::vector<terrier::planner::OutputSchema::Column> cols{string_col, real_col};
       schemas_.emplace("tpch_q5", terrier::planner::OutputSchema(cols));
     }
   }

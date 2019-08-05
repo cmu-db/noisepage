@@ -463,7 +463,7 @@ void BytecodeGenerator::VisitSqlConversionCall(ast::CallExpr *call, ast::Builtin
       auto dest = execution_result()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::StringVal));
       // Copy data into the execution context's buffer.
       auto input = call->arguments()[0]->As<ast::LitExpr>()->raw_string_val();
-      auto input_length = input.length() + 1;
+      auto input_length = input.length();
       auto *data = exec_ctx_->GetStringAllocator()->Allocate(input_length);
       std::memcpy(data, input.data(), input_length);
       // Assign the pointer to a local variable
@@ -1763,7 +1763,6 @@ void BytecodeGenerator::VisitLitExpr(ast::LitExpr *node) {
   TPL_ASSERT(execution_result()->IsRValue(), "Literal expressions cannot be R-Values!");
 
   LocalVar target = execution_result()->GetOrCreateDestination(node->type());
-  std::cout << "LITERAL KIND: " << i32(node->literal_kind()) << std::endl;
   switch (node->literal_kind()) {
     case ast::LitExpr::LitKind::Nil: {
       // Do nothing

@@ -1,65 +1,57 @@
 struct OutputStruct {
-  o_orderpriority: Integer
+  o_orderpriority: StringVal
   order_count: Integer
 }
 
-// Orders Seq Scan output and Left Join input
-struct OrdersRow {
-  o_orderpriority: Integer
+
+struct JoinBuildRow {
   o_orderkey: Integer
-  o_orderdate: Integer
-}
-
-// Lineitem Seq Scan output and Right Join input
-struct LineItemRow {
-  l_receiptdate: Integer
-  l_commitdate: Integer
-  l_orderkey: Integer
-}
-
-// Key of the aggregate
-struct AggKey {
-  o_orderpriority: Integer
+  o_orderpriority: StringVal
 }
 
 // Input & Output of the aggregator
 struct AggRow {
-  key: AggKey
+  o_orderpriority: StringVal
   order_count: CountStarAggregate
 }
 
 // Input & output of the sorter
 struct SorterRow {
-  o_orderpriority: Integer
+  o_orderpriority: StringVal
   order_count: Integer
 }
 
 struct State {
+  l_tvi: TableVectorIterator
+  o_tvi: TableVectorIterator
   join_table: JoinHashTable
   agg_table: AggregationHashTable
   sorter: Sorter
-  count: int32
+  count: int64
+}
+
+fun setupTables(execCtx: *ExecutionContext, state: *State) -> nil {
+  @tableIterConstructBind(&state.l_tvi, "lineitem", execCtx, "l")
+  @tableIterAddColBind(&state.l_tvi, "l", "l_orderkey")
+  @tableIterAddColBind(&state.l_tvi, "l", "l_commitdate")
+  @tableIterAddColBind(&state.l_tvi, "l", "l_receiptdate")
+  @tableIterPerformInitBind(&state.l_tvi, "l")
+
+  @tableIterConstructBind(&state.o_tvi, "orders", execCtx, "o")
+  @tableIterAddColBind(&state.o_tvi, "o", "o_orderpriority")
+  @tableIterAddColBind(&state.o_tvi, "o", "o_orderdate")
+  @tableIterAddColBind(&state.o_tvi, "o", "o_orderkey")
+  @tableIterPerformInitBind(&state.o_tvi, "o")
 }
 
 // Check that two join keys are equal
-fun checkJoinKey(execCtx: *ExecutionContext, probe: *LineItemRow, tuple: *OrdersRow) -> bool {
-  return @sqlToBool(probe.l_orderkey == tuple.o_orderkey)
+fun checkJoinKey(execCtx: *ExecutionContext, probe: *ProjectedColumnsIterator, build_row: *JoinBuildRow) -> bool {
+  return @sqlToBool(@pciGetBind(probe, "l", "l_orderkey") == build_row.o_orderkey)
 }
 
 // Check that the aggregate key already exists
-fun checkAggKey(agg: *AggRow, orders_row: *OrdersRow) -> bool {
-  return @sqlToBool(agg.key.o_orderpriority == orders_row.o_orderpriority)
-}
-
-// Initialize aggregator for a new key
-fun constructAgg(agg: *AggRow, orders_row: *OrdersRow) -> nil {
-  agg.key.o_orderpriority = orders_row.o_orderpriority
-  @aggInit(&agg.order_count)
-
-}
-
-fun updateAgg(agg: *AggRow, orders_row: *OrdersRow) -> nil {
-  @aggAdvance(&agg.order_count, &orders_row.o_orderpriority)
+fun checkAggKey(agg: *AggRow, build_row: *JoinBuildRow) -> bool {
+  return @sqlToBool(agg.o_orderpriority == build_row.o_orderpriority)
 }
 
 // Sorter comparison function
@@ -74,13 +66,16 @@ fun sorterCompare(lhs: *SorterRow, rhs: *SorterRow) -> int32 {
 
 
 fun setUpState(execCtx: *ExecutionContext, state: *State) -> nil {
+  setupTables(execCtx, state)
   @aggHTInit(&state.agg_table, @execCtxGetMem(execCtx), @sizeOf(AggRow))
-  @joinHTInit(&state.join_table, @execCtxGetMem(execCtx), @sizeOf(OrdersRow))
+  @joinHTInit(&state.join_table, @execCtxGetMem(execCtx), @sizeOf(JoinBuildRow))
   @sorterInit(&state.sorter, @execCtxGetMem(execCtx), sorterCompare, @sizeOf(SorterRow))
   state.count = 0
 }
 
 fun teardownState(execCtx: *ExecutionContext, state: *State) -> nil {
+    @tableIterClose(&state.l_tvi)
+    @tableIterClose(&state.o_tvi)
     @aggHTFree(&state.agg_table)
     @sorterFree(&state.sorter)
     @joinHTFree(&state.join_table)
@@ -89,67 +84,52 @@ fun teardownState(execCtx: *ExecutionContext, state: *State) -> nil {
 
 // Pipeline 1 (Join Build)
 fun pipeline1(execCtx: *ExecutionContext, state: *State) -> nil {
-  var orders_row: OrdersRow
-  // Step 1: Sequential Scan
-  var tvi: TableVectorIterator
-  @tableIterConstructBind(&tvi, "test_ns", "test_1", execCtx)
-  @tableIterPerformInit(&tvi)
-  for (@tableIterAdvance(&tvi)) {
-    var vec = @tableIterGetPCI(&tvi)
+  var o_tvi = &state.o_tvi
+  for (@tableIterAdvance(o_tvi)) {
+  state.count = state.count + 1
+    var vec = @tableIterGetPCI(o_tvi)
     for (; @pciHasNext(vec); @pciAdvance(vec)) {
-      // TODO: Replace with right condition and offsets
-      orders_row.o_orderpriority = @pciGetInt(vec, 1)
-      orders_row.o_orderdate = @pciGetInt(vec, 1)
-      orders_row.o_orderkey = @pciGetInt(vec, 0)
-      if (orders_row.o_orderkey < 500) {
+      if (@pciGetBind(vec, "o", "o_orderdate") >= @dateToSql(1993, 07, 01)
+          and @pciGetBind(vec, "o", "o_orderdate") < @dateToSql(1993, 10, 01)) {
         // Step 2: Insert into Hash Table
-        var hash_val = @hash(orders_row.o_orderkey)
-        var build_elem : *OrdersRow = @ptrCast(*OrdersRow, @joinHTInsert(&state.join_table, hash_val))
-        build_elem.o_orderpriority = orders_row.o_orderpriority
-        build_elem.o_orderdate = orders_row.o_orderdate
-        build_elem.o_orderkey = orders_row.o_orderkey
+        var hash_val = @hash(@pciGetBind(vec, "o", "o_orderkey"))
+        var build_row = @ptrCast(*JoinBuildRow, @joinHTInsert(&state.join_table, hash_val))
+        build_row.o_orderkey = @pciGetBind(vec, "o", "o_orderkey")
+        build_row.o_orderpriority = @pciGetBind(vec, "o", "o_orderpriority")
+        state.count = state.count + 1
       }
     }
   }
-  @tableIterClose(&tvi)
   // Build table
   @joinHTBuild(&state.join_table)
 }
 
 // Pipeline 2 (Join Probe up to Agg)
 fun pipeline2(execCtx: *ExecutionContext, state: *State) -> nil {
-  var lineitem_row: LineItemRow
-  var orders_row: *OrdersRow
-  // Step 1: Sequential Scan
-  var tvi: TableVectorIterator
-  @tableIterConstructBind(&tvi, "test_ns", "test_1", execCtx)
-  @tableIterPerformInit(&tvi)
-  for (@tableIterAdvance(&tvi)) {
-    var vec = @tableIterGetPCI(&tvi)
+  var l_tvi = &state.l_tvi
+  for (@tableIterAdvance(l_tvi)) {
+    var vec = @tableIterGetPCI(l_tvi)
     for (; @pciHasNext(vec); @pciAdvance(vec)) {
-      lineitem_row.l_orderkey = @pciGetInt(vec, 0)
-      lineitem_row.l_commitdate = @pciGetInt(vec, 1)
-      lineitem_row.l_receiptdate = @pciGetInt(vec, 1)
-      if (lineitem_row.l_orderkey < 500) {
+      if (@pciGetBind(vec, "l", "l_commitdate") < @pciGetBind(vec, "l", "l_receiptdate")) {
         // Step 2: Probe Join Hash Table
-        var hash_val = @hash(lineitem_row.l_orderkey)
+        var hash_val = @hash(@pciGetBind(vec, "l", "l_orderkey"))
         var hti: JoinHashTableIterator
-        for (@joinHTIterInit(&hti, &state.join_table, hash_val); @joinHTIterHasNext(&hti, checkJoinKey, execCtx, &lineitem_row);) {
-          orders_row = @ptrCast(*OrdersRow, @joinHTIterGetRow(&hti))
+        for (@joinHTIterInit(&hti, &state.join_table, hash_val); @joinHTIterHasNext(&hti, checkJoinKey, execCtx, vec);) {
+          var build_row = @ptrCast(*JoinBuildRow, @joinHTIterGetRow(&hti))
           // Step 3: Build Agg Hash Table
-          var agg_hash_val = @hash(orders_row.o_orderpriority)
-          var agg = @ptrCast(*AggRow, @aggHTLookup(&state.agg_table, agg_hash_val, checkAggKey, orders_row))
+          var agg_hash_val = @hash(build_row.o_orderpriority)
+          var agg = @ptrCast(*AggRow, @aggHTLookup(&state.agg_table, agg_hash_val, checkAggKey, build_row))
           if (agg == nil) {
             agg = @ptrCast(*AggRow, @aggHTInsert(&state.agg_table, agg_hash_val))
-            constructAgg(agg, orders_row)
+            agg.o_orderpriority = build_row.o_orderpriority
+            @aggInit(&agg.order_count)
           }
-          updateAgg(agg, orders_row)
+          @aggAdvance(&agg.order_count, &build_row.o_orderpriority)
         }
         @joinHTIterClose(&hti)
       }
     }
   }
-  @tableIterClose(&tvi)
 }
 
 // Pipeline 3 (Sort)
@@ -161,7 +141,7 @@ fun pipeline3(execCtx: *ExecutionContext, state: *State) -> nil {
     var agg = @ptrCast(*AggRow, @aggHTIterGetRow(agg_iter))
     // Step 2: Build Sorter
     var sorter_row = @ptrCast(*SorterRow, @sorterInsert(&state.sorter))
-    sorter_row.o_orderpriority = agg.key.o_orderpriority
+    sorter_row.o_orderpriority = agg.o_orderpriority
     sorter_row.order_count = @aggResult(&agg.order_count)
   }
   @sorterSort(&state.sorter)
