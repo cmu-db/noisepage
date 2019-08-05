@@ -777,7 +777,7 @@ std::vector<index_oid_t> DatabaseCatalog::GetIndexes(transaction::TransactionCon
   std::vector<index_oid_t> index_oids;
   auto *select_pr = pr_init.InitializeRow(buffer);
   for (auto &slot : index_scan_results) {
-    const auto result UNUSED_ATTRIBUTE = classes_->Select(txn, slot, select_pr);
+    const auto result UNUSED_ATTRIBUTE = indexes_->Select(txn, slot, select_pr);
     TERRIER_ASSERT(result, "Index already verified visibility. This shouldn't fail.");
     index_oids.emplace_back(*(reinterpret_cast<index_oid_t *>(select_pr->AccessForceNotNull(0))));
   }

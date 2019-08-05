@@ -391,4 +391,48 @@ TEST_F(CatalogTests, NameNormalizationTest) {
   txn_manager_->Abort(txn);
 }
 
+// NOLINTNEXTLINE
+TEST_F(CatalogTests, GetIndexes) {
+  auto txn = txn_manager_->BeginTransaction();
+  auto accessor = catalog_->GetAccessor(txn, db_);
+
+  // Create the column definition (no OIDs)
+  std::vector<catalog::Schema::Column> cols;
+  cols.emplace_back("id", type::TypeId::INTEGER, false,
+                    parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
+  auto tmp_schema = catalog::Schema(cols);
+
+  auto table_oid = accessor->CreateTable(accessor->GetDefaultNamespace(), "test_table", tmp_schema);
+  auto schema = accessor->GetSchema(table_oid);
+  auto table = new storage::SqlTable(&block_store_, schema);
+  EXPECT_TRUE(accessor->SetTablePointer(table_oid, table));
+
+  // Create the index
+  std::vector<catalog::IndexSchema::Column> key_cols{catalog::IndexSchema::Column{
+      "id", type::TypeId::INTEGER, false, parser::ColumnValueExpression(db_, table_oid, schema.GetColumn("id").Oid())}};
+  auto index_schema = catalog::IndexSchema(key_cols, true, true, false, true);
+  auto idx_oid = accessor->CreateIndex(accessor->GetDefaultNamespace(), table_oid, "test_table_idx", index_schema);
+  EXPECT_NE(idx_oid, catalog::INVALID_INDEX_OID);
+  auto true_schema = accessor->GetIndexSchema(idx_oid);
+
+  storage::index::IndexBuilder index_builder;
+  index_builder.SetOid(idx_oid).SetKeySchema(true_schema).SetConstraintType(storage::index::ConstraintType::UNIQUE);
+  auto index = index_builder.Build();
+
+  EXPECT_TRUE(accessor->SetIndexPointer(idx_oid, index));
+  EXPECT_EQ(common::ManagedPointer(index), accessor->GetIndex(idx_oid));
+  txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+
+  // Get an accessor into the database
+  txn = txn_manager_->BeginTransaction();
+  accessor = catalog_->GetAccessor(txn, db_);
+  EXPECT_NE(accessor, nullptr);
+
+  // Check that GetIndexes returns the indexes
+  auto idx_oids = accessor->GetIndexes(table_oid);
+  EXPECT_EQ(idx_oids.size(), 1);
+  EXPECT_EQ(idx_oids[0], idx_oid);
+  txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+}
+
 }  // namespace terrier
