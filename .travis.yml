@@ -41,8 +41,6 @@ matrix:
       - docker exec build /bin/sh -c "apt-get -y install curl lcov"
       - docker exec build /bin/sh -c "mkdir -p /repo/build"
       - docker exec build /bin/sh -c "cd /repo/build && cmake -DCMAKE_BUILD_TYPE=debug -DTERRIER_GENERATE_COVERAGE=ON  -DTERRIER_BUILD_BENCHMARKS=OFF .."
-      - docker exec build /bin/sh -c "cd /repo/build && make gflags_ep -j 4"
-      - docker exec build /bin/sh -c "cd /repo/build && make googletest_ep -j 4"
       - docker exec build /bin/sh -c "cd /repo/build && make unittest -j 4"
       - docker exec build /bin/sh -c "cd /repo/build && lcov --directory . --capture --output-file coverage.info" # capture coverage info
       - docker exec build /bin/sh -c "cd /repo/build && lcov --remove coverage.info '/usr/*' --output-file coverage.info" # filter out system
@@ -60,9 +58,6 @@ before_script:
       docker exec build /bin/sh -c "cd /repo/apidoc && touch warnings.txt && doxygen Doxyfile.in 2>warnings.txt && (cat warnings.txt | grep -v Doxyfile.in > warnings.txt || true) && if [ -s warnings.txt ]; then cat warnings.txt; false; fi" &&
       docker exec build /bin/sh -c "mkdir -p /repo/build" &&
       docker exec -e CMAKE_BUILD_TYPE="$CMAKE_BUILD_TYPE" -e TERRIER_USE_ASAN="$TERRIER_USE_ASAN" build /bin/sh -c "cd /repo/build && cmake -DCMAKE_BUILD_TYPE=$CMAKE_BUILD_TYPE -DTERRIER_USE_ASAN=$TERRIER_USE_ASAN .." &&
-      docker exec build /bin/sh -c "cd /repo/build && make gflags_ep -j 4" &&
-      docker exec build /bin/sh -c "cd /repo/build && make googletest_ep -j 4" &&
-      docker exec build /bin/sh -c "cd /repo/build && make gbenchmark_ep -j 4" &&
       docker exec build /bin/sh -c "cd /repo/build && make check-format" &&
       docker exec build /bin/sh -c "cd /repo/build && make check-lint" &&
       docker exec build /bin/sh -c "cd /repo/build && make check-censored";
@@ -76,12 +71,9 @@ before_script:
       mkdir build &&
       cd build &&
       cmake -DCMAKE_BUILD_TYPE=$CMAKE_BUILD_TYPE -DTERRIER_USE_ASAN=$TERRIER_USE_ASAN .. &&
-      ASAN_OPTIONS=detect_container_overflow=0 make gflags_ep &&
-      ASAN_OPTIONS=detect_container_overflow=0 make googletest_ep &&
-      ASAN_OPTIONS=detect_container_overflow=0 make gbenchmark_ep &&
-      ASAN_OPTIONS=detect_container_overflow=0 make check-format &&
-      ASAN_OPTIONS=detect_container_overflow=0 make check-lint &&
-      ASAN_OPTIONS=detect_container_overflow=0 make check-censored;
+      make check-format &&
+      make check-lint &&
+      make check-censored;
     fi
 
 script:
