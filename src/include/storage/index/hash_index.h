@@ -56,16 +56,12 @@ class HashIndex final : public Index {
       if (value_map.size() == 2) {                                                                                     \
         /* functor should replace the ValueMap with a TupleSlot for the other location */                              \
         for (const auto i : value_map) {                                                                               \
-          if (i == location) {                                                                                         \
-            /* This is the location we're trying to remove, just skip it */                                            \
-            continue;                                                                                                  \
-          } else {                                                                                                     \
+          if (i != location) {                                                                                         \
             value = i; /* Assigning TupleSlot type will change the std::variant to TupleSlot and free the ValueMap */  \
             TERRIER_ASSERT(std::holds_alternative<TupleSlot>(value), "value should now be a TupleSlot.");              \
             return false; /* Return false so cuckoohash_map's uprase_fn doesn't erase key/value pair */                \
           }                                                                                                            \
         }                                                                                                              \
-        TERRIER_ASSERT(false, "We shouldn't have been able to reach this point.");                                     \
       }                                                                                                                \
       /* ValueMap contains more than 2 elements, erase location from the ValueMap */                                   \
       const auto UNUSED_ATTRIBUTE erase_result = value_map.erase(location);                                            \
@@ -192,15 +188,13 @@ class HashIndex final : public Index {
     };
 
     const bool UNUSED_ATTRIBUTE uprase_result = hash_map_->uprase_fn(index_key, key_found_fn, location);
-
-    TERRIER_ASSERT(insert_result != uprase_result,
-                   "Either a new key was inserted (uprase_result), or the value already existed and a new value was "
-                   "inserted (insert_result).");
-
     const bool UNUSED_ATTRIBUTE overall_result = insert_result || uprase_result;
 
     TERRIER_ASSERT(predicate_satisfied != overall_result,
                    "Cant have satisfied the predicate and also succeeded to insert.");
+    TERRIER_ASSERT(predicate_satisfied || (insert_result != uprase_result),
+                   "Either a new key was inserted (uprase_result), or the value already existed and a new value was "
+                   "inserted (insert_result).");
 
     if (overall_result) {
       txn->RegisterAbortAction(ERASE_KEY_ACTION);
