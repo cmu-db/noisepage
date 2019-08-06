@@ -196,14 +196,14 @@ class IndexUtil {
       auto expr_type = expr->GetExpressionType();
       const parser::AbstractExpression *tv_expr = nullptr;
       const parser::AbstractExpression *value_expr = nullptr;
-      if (expr->GetChild(0)->GetExpressionType() == parser::ExpressionType::VALUE_TUPLE) {
+      if (expr->GetChild(0)->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE) {
         auto r_type = expr->GetChild(1)->GetExpressionType();
         if (r_type == parser::ExpressionType::VALUE_CONSTANT ||
             r_type == parser::ExpressionType::VALUE_PARAMETER) {
           tv_expr = expr->GetChild(0).get();
           value_expr = expr->GetChild(1).get();
         }
-      } else if (expr->GetChild(1)->GetExpressionType() == parser::ExpressionType::VALUE_TUPLE) {
+      } else if (expr->GetChild(1)->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE) {
         auto l_type = expr->GetChild(0)->GetExpressionType();
         if (l_type == parser::ExpressionType::VALUE_CONSTANT ||
             l_type == parser::ExpressionType::VALUE_PARAMETER) {
@@ -354,7 +354,7 @@ class IndexUtil {
 
     for (auto &column : schema.GetColumns()) {
       auto *expr = column.StoredExpression().get();
-      if (expr->GetExpressionType() == parser::ExpressionType::VALUE_TUPLE) {
+      if (expr->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE) {
         auto *tv_expr = dynamic_cast<const parser::ColumnValueExpression *>(expr);
         TERRIER_ASSERT(tv_expr, "ColumnValueExpression expected");
 
@@ -383,7 +383,7 @@ class IndexUtil {
    * @returns TRUE if base column, false otherwise
    */
   static bool IsBaseColumn(const parser::AbstractExpression *expr) {
-    return (expr->GetExpressionType() == parser::ExpressionType::VALUE_TUPLE);
+    return (expr->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE);
   }
 };
 

@@ -1,13 +1,23 @@
+#include <set>
 #include <string>
+#include <queue>
+#include <unordered_set>
 
 #include "catalog/catalog.h"
 #include "catalog/catalog_accessor.h"
+#include "main/db_main.h"
 #include "optimizer/cost_model/trivial_cost_model.h"
 #include "optimizer/optimizer.h"
+#include "settings/settings_manager.h"
 #include "storage/garbage_collector.h"
 #include "transaction/transaction_manager.h"
 #include "util/test_harness.h"
 #include "util/tpcc/builder.h"
+
+#define __SETTING_GFLAGS_DEFINE__      // NOLINT
+#include "settings/settings_common.h"  // NOLINT
+#include "settings/settings_defs.h"    // NOLINT
+#undef __SETTING_GFLAGS_DEFINE__       // NOLINT
 
 namespace terrier {
 
@@ -67,9 +77,9 @@ struct TpccPlanTest : public TerrierTest {
     tbl_district_ = CreateTable(accessor, "DISTRICT", district_schema);
     tbl_customer_ = CreateTable(accessor, "CUSTOMER", customer_schema);
     tbl_history_ = CreateTable(accessor, "HISTORY", history_schema);
-    tbl_new_order_ = CreateTable(accessor, "NEW-ORDER", new_order_schema);
+    tbl_new_order_ = CreateTable(accessor, "NEW_ORDER", new_order_schema);
     tbl_order_ = CreateTable(accessor, "ORDER", order_schema);
-    tbl_order_line_ = CreateTable(accessor, "ORDER-LINE", order_line_schema);
+    tbl_order_line_ = CreateTable(accessor, "ORDER_LINE", order_line_schema);
 
     CreateIndex(accessor, tbl_warehouse_, "PK_WAREHOUSE",
                 tpcc::Schemas::BuildWarehousePrimaryIndexSchema(warehouse_schema, &oid_counter), true);
@@ -79,13 +89,13 @@ struct TpccPlanTest : public TerrierTest {
                 tpcc::Schemas::BuildCustomerPrimaryIndexSchema(customer_schema, &oid_counter), true);
     CreateIndex(accessor, tbl_customer_, "SK_CUSTOMER",
                 tpcc::Schemas::BuildCustomerSecondaryIndexSchema(customer_schema, &oid_counter), false);
-    CreateIndex(accessor, tbl_new_order_, "PK_NEW-ORDER",
+    CreateIndex(accessor, tbl_new_order_, "PK_NEW_ORDER",
                 tpcc::Schemas::BuildNewOrderPrimaryIndexSchema(new_order_schema, &oid_counter), true);
     CreateIndex(accessor, tbl_order_, "PK_ORDER",
                 tpcc::Schemas::BuildOrderPrimaryIndexSchema(order_schema, &oid_counter), true);
     CreateIndex(accessor, tbl_order_, "SK_ORDER",
                 tpcc::Schemas::BuildOrderSecondaryIndexSchema(order_schema, &oid_counter), true);
-    CreateIndex(accessor, tbl_order_line_, "PK_ORDER-LINE",
+    CreateIndex(accessor, tbl_order_line_, "PK_ORDER_LINE",
                 tpcc::Schemas::BuildOrderLinePrimaryIndexSchema(order_line_schema, &oid_counter), true);
     CreateIndex(accessor, tbl_item_, "PK_ITEM", tpcc::Schemas::BuildItemPrimaryIndexSchema(item_schema, &oid_counter),
                 true);
@@ -97,7 +107,10 @@ struct TpccPlanTest : public TerrierTest {
   }
 
   void SetUp() override {
-    TerrierTest::SetUp();
+    std::unordered_map<settings::Param, settings::ParamInfo> param_map;
+    terrier::settings::SettingsManager::ConstructParamMap(param_map);
+    db_main_ = new DBMain(std::move(param_map));
+    settings_manager_ = db_main_->settings_manager_;
 
     txn_manager_ = new transaction::TransactionManager(&buffer_pool_, true, LOGGING_DISABLED);
     gc_ = new storage::GarbageCollector(txn_manager_, nullptr);
@@ -126,8 +139,84 @@ struct TpccPlanTest : public TerrierTest {
     delete catalog_;
     delete gc_;
     delete txn_manager_;
+    delete db_main_;
+  }
 
-    TerrierTest::TearDown();
+  void BeginTransaction() {
+    txn_ = txn_manager_->BeginTransaction();
+    accessor_ = catalog_->GetAccessor(txn_, db_);
+  }
+
+  void EndTransaction(bool commit) {
+    delete accessor_;
+    if (commit) txn_manager_->Commit(txn_, transaction::TransactionUtil::EmptyCallback, nullptr);
+    else txn_manager_->Abort(txn_);
+  }
+
+  // Get predicates...
+  void GenerateTableAliasSet(const parser::AbstractExpression *expr, std::unordered_set<std::string> &table_alias_set) {
+    if (expr->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE) {
+      table_alias_set.insert(reinterpret_cast<const parser::ColumnValueExpression *>(expr)->GetTableName());
+    } else {
+      for (size_t i = 0; i < expr->GetChildrenSize(); i++)
+        GenerateTableAliasSet(expr->GetChild(i).get(), table_alias_set);
+    }
+  }
+
+  std::vector<optimizer::AnnotatedExpression> ExtractPredicates(const parser::AbstractExpression *expr) {
+    std::vector<const parser::AbstractExpression *> preds;
+    SplitPredicates(expr, preds);
+
+    std::vector<optimizer::AnnotatedExpression> annotated;
+    for (auto &pred : preds) {
+      std::unordered_set<std::string> table_alias;
+      GenerateTableAliasSet(pred, table_alias);
+      annotated.emplace_back(common::ManagedPointer<const parser::AbstractExpression>(pred), std::move(table_alias));
+    }
+
+    return annotated;
+  }
+
+  void SplitPredicates(const parser::AbstractExpression *expr, std::vector<const parser::AbstractExpression *> &preds) {
+    if (expr->GetExpressionType() == parser::ExpressionType::CONJUNCTION_AND) {
+      for (size_t idx = 0; idx < expr->GetChildrenSize(); idx++) {
+        SplitPredicates(expr->GetChild(idx).get(), preds);
+      }
+    } else {
+      preds.push_back(expr);
+    }
+  }
+
+  // Binding ColumnValueExpressions and "anti-duplicate" binding protection
+  void BindColumnValues(const parser::AbstractExpression * expr, catalog::table_oid_t tbl_oid) {
+    std::set<std::string> seen_names;
+    std::queue<const parser::AbstractExpression *> frontier;
+    frontier.push(expr);
+    while (!frontier.empty()) {
+      auto front = frontier.front();
+      frontier.pop();
+
+      for (size_t idx = 0; idx < front->GetChildrenSize(); idx++) {
+        frontier.push(front->GetChild(idx).get());
+      }
+
+      if (front->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE) {
+        auto *cve = reinterpret_cast<const parser::ColumnValueExpression*>(front);
+        EXPECT_TRUE(seen_names.find(cve->GetColumnName()) == seen_names.end());
+        auto *ccve = const_cast<parser::ColumnValueExpression*>(cve);
+
+        seen_names.insert(cve->GetColumnName());
+
+        ccve->SetDatabaseOID(db_);
+        ccve->SetTableOID(tbl_oid);
+
+        auto &schema = accessor_->GetSchema(tbl_oid);
+        auto col_oid = schema.GetColumn(ccve->GetColumnName()).Oid();
+        EXPECT_TRUE(col_oid != catalog::INVALID_COLUMN_OID);
+
+        ccve->SetColumnOID(col_oid);
+      }
+    }
   }
 
   catalog::Catalog *catalog_;
@@ -136,6 +225,13 @@ struct TpccPlanTest : public TerrierTest {
   storage::RecordBufferSegmentPool buffer_pool_{100, 100};
   storage::BlockStore block_store_{100, 100};
   storage::GarbageCollector *gc_;
+
+  DBMain *db_main_;
+  settings::SettingsManager *settings_manager_;
+
+  // Optimizer transaction
+  transaction::TransactionContext *txn_;
+  catalog::CatalogAccessor *accessor_;
 
   catalog::db_oid_t db_;
 

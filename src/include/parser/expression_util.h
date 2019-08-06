@@ -102,27 +102,6 @@ class ExpressionUtil {
 
  public:
   /**
-   * Generate a set of table alias included in an expression
-   */
-  static void GenerateTableAliasSet(const AbstractExpression *expr, std::unordered_set<std::string> *table_alias_set) {
-    if (expr->GetExpressionType() == ExpressionType::COLUMN_VALUE) {
-      auto tv_expr = dynamic_cast<const ColumnValueExpression *>(expr);
-      TERRIER_ASSERT(tv_expr, "tv_expr should be ColumnValueExpression");
-
-      std::string tbl = tv_expr->GetTableName();
-      TERRIER_ASSERT(!tbl.empty(), "Table alias should not be empty");
-      table_alias_set->insert(tbl);
-    } else {
-      TERRIER_ASSERT(expr->GetExpressionType() != ExpressionType::VALUE_TUPLE,
-                     "DerivedValueExpression should not exist.");
-
-      for (size_t i = 0; i < expr->GetChildrenSize(); i++) {
-        GenerateTableAliasSet(expr->GetChild(i).get(), table_alias_set);
-      }
-    }
-  }
-
-  /**
    * @brief TODO(boweic): this function may not be efficient, in the future we
    * may want to add expressions to groups so that we do not need to walk
    * through the expression tree when judging '==' each time
@@ -286,7 +265,7 @@ class ExpressionUtil {
     }
 
     // Here we need a deep copy to void double delete subtree
-    if (expr->GetExpressionType() == ExpressionType::VALUE_TUPLE) {
+    if (expr->GetExpressionType() == ExpressionType::COLUMN_VALUE) {
       expr_map->emplace(expr, expr_map->size());
     }
   }
@@ -304,7 +283,7 @@ class ExpressionUtil {
       GetTupleValueExprs(expr_set, expr->GetChild(i).get());
     }
 
-    if (expr->GetExpressionType() == ExpressionType::VALUE_TUPLE) {
+    if (expr->GetExpressionType() == ExpressionType::COLUMN_VALUE) {
       expr_set->insert(expr);
     }
   }
