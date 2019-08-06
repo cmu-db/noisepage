@@ -1,24 +1,18 @@
 #include <memory>
 #include <random>
-#include <string>
 #include <thread>  //NOLINT
 #include <unordered_map>
 #include <utility>
-#include <vector>
-#include "common/container/concurrent_map.h"
-#include "common/thread_context.h"
 #include "main/db_main.h"
 #include "metrics/metrics_manager.h"
 #include "metrics/metrics_store.h"
 #include "settings/settings_callbacks.h"
 #include "settings/settings_manager.h"
-#include "storage/garbage_collector.h"
 #include "storage/sql_table.h"
 #include "transaction/transaction_defs.h"
 #include "transaction/transaction_manager.h"
 #include "util/catalog_test_util.h"
 #include "util/test_harness.h"
-#include "util/transaction_test_util.h"
 
 #define __SETTING_GFLAGS_DEFINE__      // NOLINT
 #include "settings/settings_common.h"  // NOLINT
@@ -65,7 +59,6 @@ class MetricsTests : public TerrierTest {
   const storage::ProjectedRowInitializer tuple_initializer_{
       sql_table_->InitializerForProjectedRow({catalog::col_oid_t(0)}).first};
 
-  static void EmptySetterCallback(const std::shared_ptr<common::ActionContext> &action_context UNUSED_ATTRIBUTE) {}
 
   void Insert() {
     auto *const insert_txn = txn_manager_->BeginTransaction();
