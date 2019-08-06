@@ -4,7 +4,7 @@
 
 #include "execution/util/macros.h"
 
-namespace tpl::util {
+namespace terrier::util {
 
 /**
  * A cheap and easy spin latch, currently wraps tbb::spin_mutex to optimize for
@@ -61,4 +61,4 @@ class SpinLatch {
   tbb::spin_mutex latch_;
 };
 
-}  // namespace tpl::util
+}  // namespace terrier::util

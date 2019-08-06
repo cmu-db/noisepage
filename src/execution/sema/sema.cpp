@@ -6,7 +6,7 @@
 #include "execution/ast/context.h"
 #include "execution/ast/type.h"
 
-namespace tpl::sema {
+namespace terrier::sema {
 
 Sema::Sema(ast::Context *ctx)
     : ctx_(ctx), error_reporter_(ctx->error_reporter()), scope_(nullptr), num_cached_scopes_(0), curr_func_(nullptr) {}
@@ -21,4 +21,4 @@ ast::Type *Sema::GetBuiltinType(const u16 builtin_kind) {
   return ast::BuiltinType::Get(context(), static_cast<ast::BuiltinType::Kind>(builtin_kind));
 }
 
-}  // namespace tpl::sema
+}  // namespace terrier::sema

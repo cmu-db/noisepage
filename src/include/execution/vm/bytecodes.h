@@ -7,7 +7,7 @@
 #include "execution/util/macros.h"
 #include "execution/vm/bytecode_operands.h"
 
-namespace tpl::vm {
+namespace terrier::vm {
 
 // Creates instances of a given opcode for all integer primitive types
 #define CREATE_FOR_INT_TYPES(F, op, ...) \
@@ -552,4 +552,4 @@ class Bytecodes {
   static const char *kBytecodeHandlerName[];
 };
 
-}  // namespace tpl::vm
+}  // namespace terrier::vm

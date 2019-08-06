@@ -2,7 +2,7 @@
 
 #include "execution/util/math_util.h"
 
-namespace tpl::util::test {
+namespace terrier::util::test {
 
 // NOLINTNEXTLINE
 TEST(MathUtilTest, AlignToTest) {
@@ -14,4 +14,4 @@ TEST(MathUtilTest, AlignToTest) {
   EXPECT_EQ(16u, MathUtil::AlignTo(9, 8));
 }
 
-}  // namespace tpl::util::test
+}  // namespace terrier::util::test

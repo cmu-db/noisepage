@@ -4,7 +4,7 @@
 #include "execution/util/common.h"
 #include "execution/util/macros.h"
 
-namespace tpl::ast {
+namespace terrier::ast {
 
 /**
  * A visitor that fully and recursively traverses an entire AST tree. Clients
@@ -301,4 +301,4 @@ inline void AstTraversalVisitor<Subclass>::VisitFunctionTypeRepr(FunctionTypeRep
 }
 // \endcond
 
-}  // namespace tpl::ast
+}  // namespace terrier::ast

@@ -15,7 +15,7 @@ namespace csv {
 class CSVField;
 }
 
-namespace tpl::sql {
+namespace terrier::sql {
 /**
  * This class reads table from files
  */
@@ -57,4 +57,4 @@ class TableReader {
   terrier::storage::BlockStore *store_;
   terrier::catalog::namespace_oid_t ns_oid_;
 };
-}  // namespace tpl::sql
+}  // namespace terrier::sql

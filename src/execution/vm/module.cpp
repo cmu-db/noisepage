@@ -10,7 +10,7 @@
 #define XBYAK_NO_OP_NAMES
 #include "xbyak/xbyak/xbyak.h"
 
-namespace tpl::vm {
+namespace terrier::vm {
 
 // ---------------------------------------------------------
 // Async Compile Task
@@ -292,4 +292,4 @@ void Module::CompileToMachineCodeAsync() {
   tbb::task::enqueue(*compile_task);
 }
 
-}  // namespace tpl::vm
+}  // namespace terrier::vm

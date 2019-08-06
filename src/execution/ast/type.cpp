@@ -17,7 +17,7 @@
 #include "execution/sql/thread_state_container.h"
 #include "execution/sql/value.h"
 
-namespace tpl::ast {
+namespace terrier::ast {
 
 // ---------------------------------------------------------
 // Type
@@ -105,4 +105,4 @@ StructType::StructType(Context *ctx, u32 size, u32 alignment, util::RegionVector
       fields_(std::move(fields)),
       field_offsets_(std::move(field_offsets)) {}
 
-}  // namespace tpl::ast
+}  // namespace terrier::ast

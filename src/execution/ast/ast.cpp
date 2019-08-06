@@ -2,7 +2,7 @@
 
 #include "execution/ast/type.h"
 
-namespace tpl::ast {
+namespace terrier::ast {
 
 // ---------------------------------------------------------
 // Function Declaration
@@ -128,4 +128,4 @@ bool Stmt::IsTerminating(Stmt *stmt) {
   }
 }
 
-}  // namespace tpl::ast
+}  // namespace terrier::ast

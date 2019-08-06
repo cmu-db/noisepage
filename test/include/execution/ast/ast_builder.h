@@ -10,7 +10,7 @@
 #include "execution/sema/error_reporter.h"
 #include "execution/util/region_containers.h"
 
-namespace tpl::ast::test {
+namespace terrier::ast::test {
 
 class TestAstBuilder {
  public:
@@ -218,4 +218,4 @@ class TestAstBuilder {
   SourcePosition empty_{0, 0};
 };
 
-}  // namespace tpl::ast::test
+}  // namespace terrier::ast::test

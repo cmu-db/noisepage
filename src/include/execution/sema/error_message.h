@@ -5,7 +5,7 @@
 #include "execution/ast/identifier.h"
 #include "execution/util/common.h"
 
-namespace tpl {
+namespace terrier {
 
 namespace ast {
 class Type;
@@ -149,4 +149,4 @@ class ErrorMessages {
 };
 
 }  // namespace sema
-}  // namespace tpl
+}  // namespace terrier

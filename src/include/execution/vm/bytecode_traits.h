@@ -3,7 +3,7 @@
 #include "execution/vm/bytecode_operands.h"
 #include "execution/vm/bytecodes.h"
 
-namespace tpl::vm {
+namespace terrier::vm {
 
 /**
  * Properties of a generic operand type
@@ -69,4 +69,4 @@ struct BytecodeTraits {
   static constexpr const u32 kSize = sizeof(std::underlying_type_t<Bytecode>) + kOperandsSize;
 };
 
-}  // namespace tpl::vm
+}  // namespace terrier::vm

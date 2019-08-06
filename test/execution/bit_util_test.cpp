@@ -2,7 +2,7 @@
 
 #include "execution/util/bit_util.h"
 
-namespace tpl::util::test {
+namespace terrier::util::test {
 
 // NOLINTNEXTLINE
 TEST(BitUtilTest, BitVectorSize) {
@@ -153,4 +153,4 @@ TEST(BitUtilTest, InlinedBitVector) {
   }
 }
 
-}  // namespace tpl::util::test
+}  // namespace terrier::util::test

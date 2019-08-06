@@ -2,7 +2,7 @@
 
 #include <algorithm>
 
-namespace tpl::bandit {
+namespace terrier::bandit {
 
 Agent::Agent(Policy *policy, u32 num_actions, double prior, double gamma)
     : policy_(policy), num_actions_(num_actions), prior_(prior), gamma_(gamma) {
@@ -43,4 +43,4 @@ u32 Agent::GetCurrentOptimalAction() const {
   return static_cast<u32>(std::distance(value_estimates_.begin(), iter_max));
 }
 
-}  // namespace tpl::bandit
+}  // namespace terrier::bandit

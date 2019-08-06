@@ -4,7 +4,7 @@
 
 #include "execution/util/common.h"
 
-namespace tpl::parsing {
+namespace terrier::parsing {
 
 /*
  * List of all tokens + keywords that accepts two callback functions. T() is
@@ -148,4 +148,4 @@ class Token {
   static const u32 kTokenPrecedence[];
 };
 
-}  // namespace tpl::parsing
+}  // namespace terrier::parsing

@@ -9,7 +9,7 @@
 #include "execution/util/macros.h"
 #include "execution/vm/bytecode_module.h"
 
-namespace tpl::bandit {
+namespace terrier::bandit {
 
 /**
  * A multi-armed bandit that executes an action and returns the reward.
@@ -56,4 +56,4 @@ class MultiArmedBandit {
   std::vector<std::string> action_names_;
 };
 
-}  // namespace tpl::bandit
+}  // namespace terrier::bandit

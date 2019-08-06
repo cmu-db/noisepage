@@ -10,11 +10,11 @@
 #include "execution/util/macros.h"
 #include "execution/vm/bytecodes.h"
 
-namespace tpl::ast {
+namespace terrier::ast {
 class Type;
-}  // namespace tpl::ast
+}  // namespace terrier::ast
 
-namespace tpl::vm {
+namespace terrier::vm {
 
 class BytecodeModule;
 class FunctionInfo;
@@ -193,4 +193,4 @@ class LLVMEngine {
   };
 };
 
-}  // namespace tpl::vm
+}  // namespace terrier::vm

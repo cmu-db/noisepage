@@ -9,7 +9,7 @@
 #include "execution/sema/error_reporter.h"
 #include "execution/sema/scope.h"
 
-namespace tpl {
+namespace terrier {
 
 namespace ast {
 class Context;
@@ -257,4 +257,4 @@ class Sema : public ast::AstVisitor<Sema> {
 };
 
 }  // namespace sema
-}  // namespace tpl
+}  // namespace terrier

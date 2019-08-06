@@ -6,7 +6,7 @@
 #include "execution/util/common.h"
 #include "execution/util/macros.h"
 
-namespace tpl::util {
+namespace terrier::util {
 
 namespace internal {
 
@@ -103,4 +103,4 @@ class BitField32 : public internal::BitFieldBase<u32, T, position, size> {};
 template <typename T, unsigned position, unsigned size>
 class BitField64 : public internal::BitFieldBase<u64, T, position, size> {};
 
-}  // namespace tpl::util
+}  // namespace terrier::util

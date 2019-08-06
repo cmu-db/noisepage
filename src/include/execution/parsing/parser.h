@@ -11,7 +11,7 @@
 #include "execution/parsing/scanner.h"
 #include "execution/sema/error_reporter.h"
 
-namespace tpl::parsing {
+namespace terrier::parsing {
 
 /**
  * Parses TPL files.
@@ -157,4 +157,4 @@ class Parser {
   Rewriter *rewriter_;
 };
 
-}  // namespace tpl::parsing
+}  // namespace terrier::parsing

@@ -3,7 +3,7 @@
 #include "execution/util/vector_util.h"
 #include "storage/projected_columns.h"
 
-namespace tpl::sql {
+namespace terrier::sql {
 
 ProjectedColumnsIterator::ProjectedColumnsIterator() : selection_vector_{0} {
   selection_vector_[0] = ProjectedColumnsIterator::kInvalidPos;
@@ -125,4 +125,4 @@ template u32 ProjectedColumnsIterator::FilterColByCol<std::less_equal>(u32, terr
 template u32 ProjectedColumnsIterator::FilterColByCol<std::not_equal_to>(u32, terrier::type::TypeId, u32,
                                                                          terrier::type::TypeId);
 
-}  // namespace tpl::sql
+}  // namespace terrier::sql

@@ -9,7 +9,7 @@
 #include "execution/sql/thread_state_container.h"
 #include "execution/util/hash.h"
 
-namespace tpl::sql::test {
+namespace terrier::sql::test {
 
 /**
  * This is the tuple we insert into the hash table
@@ -233,4 +233,4 @@ TEST_F(JoinHashTableTest, DISABLED_PerfTest) {
   bench(true, num_tuples);
 }
 
-}  // namespace tpl::sql::test
+}  // namespace terrier::sql::test

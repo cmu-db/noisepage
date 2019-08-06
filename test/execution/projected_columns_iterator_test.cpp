@@ -10,7 +10,7 @@
 #include "catalog/catalog.h"
 #include "execution/sql/projected_columns_iterator.h"
 
-namespace tpl::sql::test {
+namespace terrier::sql::test {
 
 ///
 /// This test uses a ProjectedColumns with four columns. The first column,
@@ -449,4 +449,4 @@ TEST_F(ProjectedColumnsIteratorTest, MultipleVectorizedFilterTest) {
   EXPECT_LE(count, 10u);
 }
 
-}  // namespace tpl::sql::test
+}  // namespace terrier::sql::test

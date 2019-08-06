@@ -14,7 +14,7 @@
 #include "transaction/transaction_defs.h"
 #include "type/type_id.h"
 
-namespace tpl::sql::test {
+namespace terrier::sql::test {
 
 /// This is the tuple we insert into the hash table
 template <u8 N>
@@ -233,4 +233,4 @@ TEST_F(JoinHashTableVectorProbeTest, DISABLED_PerfLookupTest) {
   bench(true);
 }
 
-}  // namespace tpl::sql::test
+}  // namespace terrier::sql::test

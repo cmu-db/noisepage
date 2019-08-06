@@ -6,7 +6,7 @@
 #include "execution/vm/bytecodes.h"
 #include "loggers/execution_logger.h"
 
-namespace tpl::vm {
+namespace terrier::vm {
 
 class Module;
 
@@ -42,4 +42,4 @@ class VM {
   const Module *module_;
 };
 
-}  // namespace tpl::vm
+}  // namespace terrier::vm

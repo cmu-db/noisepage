@@ -6,7 +6,7 @@
 #include "execution/vm/module.h"
 #include "execution/vm/module_compiler.h"
 
-namespace tpl::vm::test {
+namespace terrier::vm::test {
 
 class BytecodeGeneratorTest : public TplTest {
  public:
@@ -320,4 +320,4 @@ TEST_F(BytecodeGeneratorTest, FunctionTest) {
   EXPECT_EQ(20, s.b);
 }
 
-}  // namespace tpl::vm::test
+}  // namespace terrier::vm::test

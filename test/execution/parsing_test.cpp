@@ -11,7 +11,7 @@
 #include "execution/parsing/parser.h"
 #include "execution/parsing/scanner.h"
 
-namespace tpl::parsing::test {
+namespace terrier::parsing::test {
 
 class ParserTest : public TplTest {
  public:
@@ -285,4 +285,4 @@ TEST_F(ParserTest, ArrayTypeTest) {
   }
 }
 
-}  // namespace tpl::parsing::test
+}  // namespace terrier::parsing::test

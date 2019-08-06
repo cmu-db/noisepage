@@ -7,7 +7,7 @@
 
 #include "execution/util/region_allocator.h"
 
-namespace tpl::util {
+namespace terrier::util {
 
 /**
  * STL std::vectors backed by a region allocator
@@ -78,4 +78,4 @@ class RegionUnorderedMap
             StlRegionAllocator<std::pair<const Key, Value>>(region)) {}
 };
 
-}  // namespace tpl::util
+}  // namespace terrier::util

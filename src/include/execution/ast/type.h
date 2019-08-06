@@ -9,7 +9,7 @@
 #include "execution/util/region.h"
 #include "execution/util/region_containers.h"
 
-namespace tpl::ast {
+namespace terrier::ast {
 
 class Context;
 
@@ -53,44 +53,44 @@ class Context;
   PRIM(Float64, f64, "float64")                                                  \
                                                                                  \
   /* Non-primitive builtins */                                                   \
-  NON_PRIM(AggregationHashTable, tpl::sql::AggregationHashTable)                 \
-  NON_PRIM(AggregationHashTableIterator, tpl::sql::AggregationHashTableIterator) \
-  NON_PRIM(AggOverflowPartIter, tpl::sql::AggregationOverflowPartitionIterator)  \
-  NON_PRIM(BloomFilter, tpl::sql::BloomFilter)                                   \
-  NON_PRIM(ExecutionContext, tpl::exec::ExecutionContext)                        \
-  NON_PRIM(FilterManager, tpl::sql::FilterManager)                               \
-  NON_PRIM(HashTableEntry, tpl::sql::HashTableEntry)                             \
-  NON_PRIM(JoinHashTable, tpl::sql::JoinHashTable)                               \
-  NON_PRIM(JoinHashTableVectorProbe, tpl::sql::JoinHashTableVectorProbe)         \
-  NON_PRIM(JoinHashTableIterator, tpl::sql::JoinHashTableIterator)               \
-  NON_PRIM(MemoryPool, tpl::sql::MemoryPool)                                     \
-  NON_PRIM(Sorter, tpl::sql::Sorter)                                             \
-  NON_PRIM(SorterIterator, tpl::sql::SorterIterator)                             \
-  NON_PRIM(TableVectorIterator, tpl::sql::TableVectorIterator)                   \
-  NON_PRIM(ThreadStateContainer, tpl::sql::ThreadStateContainer)                 \
-  NON_PRIM(ProjectedColumnsIterator, tpl::sql::ProjectedColumnsIterator)         \
-  NON_PRIM(IndexIterator, tpl::sql::IndexIterator)                               \
+  NON_PRIM(AggregationHashTable, terrier::sql::AggregationHashTable)                 \
+  NON_PRIM(AggregationHashTableIterator, terrier::sql::AggregationHashTableIterator) \
+  NON_PRIM(AggOverflowPartIter, terrier::sql::AggregationOverflowPartitionIterator)  \
+  NON_PRIM(BloomFilter, terrier::sql::BloomFilter)                                   \
+  NON_PRIM(ExecutionContext, terrier::exec::ExecutionContext)                        \
+  NON_PRIM(FilterManager, terrier::sql::FilterManager)                               \
+  NON_PRIM(HashTableEntry, terrier::sql::HashTableEntry)                             \
+  NON_PRIM(JoinHashTable, terrier::sql::JoinHashTable)                               \
+  NON_PRIM(JoinHashTableVectorProbe, terrier::sql::JoinHashTableVectorProbe)         \
+  NON_PRIM(JoinHashTableIterator, terrier::sql::JoinHashTableIterator)               \
+  NON_PRIM(MemoryPool, terrier::sql::MemoryPool)                                     \
+  NON_PRIM(Sorter, terrier::sql::Sorter)                                             \
+  NON_PRIM(SorterIterator, terrier::sql::SorterIterator)                             \
+  NON_PRIM(TableVectorIterator, terrier::sql::TableVectorIterator)                   \
+  NON_PRIM(ThreadStateContainer, terrier::sql::ThreadStateContainer)                 \
+  NON_PRIM(ProjectedColumnsIterator, terrier::sql::ProjectedColumnsIterator)         \
+  NON_PRIM(IndexIterator, terrier::sql::IndexIterator)                               \
                                                                                  \
   /* SQL Aggregate types (if you add, remember to update BuiltinType) */         \
-  NON_PRIM(CountAggregate, tpl::sql::CountAggregate)                             \
-  NON_PRIM(CountStarAggregate, tpl::sql::CountStarAggregate)                     \
-  NON_PRIM(IntegerAvgAggregate, tpl::sql::AvgAggregate)                          \
-  NON_PRIM(IntegerMaxAggregate, tpl::sql::IntegerMaxAggregate)                   \
-  NON_PRIM(IntegerMinAggregate, tpl::sql::IntegerMinAggregate)                   \
-  NON_PRIM(IntegerSumAggregate, tpl::sql::IntegerSumAggregate)                   \
-  NON_PRIM(RealAvgAggregate, tpl::sql::AvgAggregate)                             \
-  NON_PRIM(RealMaxAggregate, tpl::sql::RealMaxAggregate)                         \
-  NON_PRIM(RealMinAggregate, tpl::sql::RealMinAggregate)                         \
-  NON_PRIM(RealSumAggregate, tpl::sql::RealSumAggregate)                         \
+  NON_PRIM(CountAggregate, terrier::sql::CountAggregate)                             \
+  NON_PRIM(CountStarAggregate, terrier::sql::CountStarAggregate)                     \
+  NON_PRIM(IntegerAvgAggregate, terrier::sql::AvgAggregate)                          \
+  NON_PRIM(IntegerMaxAggregate, terrier::sql::IntegerMaxAggregate)                   \
+  NON_PRIM(IntegerMinAggregate, terrier::sql::IntegerMinAggregate)                   \
+  NON_PRIM(IntegerSumAggregate, terrier::sql::IntegerSumAggregate)                   \
+  NON_PRIM(RealAvgAggregate, terrier::sql::AvgAggregate)                             \
+  NON_PRIM(RealMaxAggregate, terrier::sql::RealMaxAggregate)                         \
+  NON_PRIM(RealMinAggregate, terrier::sql::RealMinAggregate)                         \
+  NON_PRIM(RealSumAggregate, terrier::sql::RealSumAggregate)                         \
                                                                                  \
   /* Non-primitive SQL Runtime Values */                                         \
-  SQL(Boolean, tpl::sql::BoolVal)                                                \
-  SQL(Integer, tpl::sql::Integer)                                                \
-  SQL(Real, tpl::sql::Real)                                                      \
-  SQL(Decimal, tpl::sql::Decimal)                                                \
-  SQL(StringVal, tpl::sql::StringVal)                                            \
-  SQL(Date, tpl::sql::Date)                                                      \
-  SQL(Timestamp, tpl::sql::Timestamp)
+  SQL(Boolean, terrier::sql::BoolVal)                                                \
+  SQL(Integer, terrier::sql::Integer)                                                \
+  SQL(Real, terrier::sql::Real)                                                      \
+  SQL(Decimal, terrier::sql::Decimal)                                                \
+  SQL(StringVal, terrier::sql::StringVal)                                            \
+  SQL(Date, terrier::sql::Date)                                                      \
+  SQL(Timestamp, terrier::sql::Timestamp)
 
 // Ignore a builtin
 #define IGNORE_BUILTIN_TYPE (...)
@@ -764,4 +764,4 @@ inline bool Type::IsSqlAggregatorType() const {
   return false;
 }
 
-}  // namespace tpl::ast
+}  // namespace terrier::ast

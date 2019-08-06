@@ -3,7 +3,7 @@
 #include "execution/ast/context.h"
 #include "execution/ast/type.h"
 
-namespace tpl::sema {
+namespace terrier::sema {
 
 void Sema::VisitVariableDecl(ast::VariableDecl *node) {
   if (current_scope()->LookupLocal(node->name()) != nullptr) {
@@ -75,4 +75,4 @@ void Sema::VisitStructDecl(ast::StructDecl *node) {
   current_scope()->Declare(node->name(), struct_type);
 }
 
-}  // namespace tpl::sema
+}  // namespace terrier::sema

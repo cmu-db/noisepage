@@ -12,7 +12,7 @@
 #define MAP_ANONYMOUS MAP_ANON
 #endif
 
-namespace tpl::util {
+namespace terrier::util {
 
 // ---------------------------------------------------------
 // Allocations
@@ -69,4 +69,4 @@ inline void Prefetch(const void *const addr) noexcept {
   __builtin_prefetch(addr, READ ? 0 : 1, static_cast<u8>(LOCALITY));
 }
 
-}  // namespace tpl::util
+}  // namespace terrier::util

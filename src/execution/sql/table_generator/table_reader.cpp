@@ -6,7 +6,7 @@
 #include "execution/sql/table_generator/table_reader.h"
 #include "execution/sql/value.h"
 
-namespace tpl::sql {
+namespace terrier::sql {
 
 uint32_t TableReader::ReadTable(const std::string &schema_file, const std::string &data_file) {
   uint32_t val_written = 0;
@@ -184,4 +184,4 @@ void TableReader::WriteTableCol(terrier::storage::ProjectedRow *insert_pr, uint1
   }
 }
 
-}  // namespace tpl::sql
+}  // namespace terrier::sql

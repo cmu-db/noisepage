@@ -2,7 +2,7 @@
 
 #include <tbb/enumerable_thread_specific.h>
 
-namespace tpl::sql {
+namespace terrier::sql {
 
 /**
  * TODO: track memory usage
@@ -15,4 +15,4 @@ class MemoryTracker {
   tbb::enumerable_thread_specific<Stats> stats_;
 };
 
-}  // namespace tpl::sql
+}  // namespace terrier::sql

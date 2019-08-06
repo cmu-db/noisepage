@@ -9,7 +9,7 @@
 #include "execution/util/common.h"
 #include "execution/util/memory.h"
 
-namespace tpl::sql {
+namespace terrier::sql {
 
 /**
  * Represents a concise hash table.
@@ -228,4 +228,4 @@ inline std::pair<bool, u64> ConciseHashTable::Lookup(const hash_t hash) const {
   return std::pair(exists, pos);
 }
 
-}  // namespace tpl::sql
+}  // namespace terrier::sql

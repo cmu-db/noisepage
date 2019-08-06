@@ -5,7 +5,7 @@
 
 #include "execution/util/common.h"
 
-namespace tpl::bandit {
+namespace terrier::bandit {
 
 class Agent;
 
@@ -176,4 +176,4 @@ class AnnealingEpsilonGreedyPolicy : public EpsilonGreedyPolicy {
   u32 NextAction(Agent *agent) override;
 };
 
-}  // namespace tpl::bandit
+}  // namespace terrier::bandit

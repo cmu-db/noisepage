@@ -12,7 +12,7 @@
 #include "execution/util/region.h"
 #include "execution/util/region_containers.h"
 
-namespace tpl {
+namespace terrier {
 
 namespace sema {
 class Sema;
@@ -1726,4 +1726,4 @@ class StructTypeRepr : public Expr {
 };
 
 }  // namespace ast
-}  // namespace tpl
+}  // namespace terrier

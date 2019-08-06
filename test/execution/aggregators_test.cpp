@@ -3,7 +3,7 @@
 #include "execution/sql/aggregators.h"
 #include "execution/sql/value.h"
 
-namespace tpl::sql::test {
+namespace terrier::sql::test {
 
 class AggregatorsTest : public TplTest {};
 
@@ -489,4 +489,4 @@ TEST_F(AggregatorsTest, Avg) {
   EXPECT_DOUBLE_EQ(0.0, avg1.GetResultAvg().val);
 }
 
-}  // namespace tpl::sql::test
+}  // namespace terrier::sql::test

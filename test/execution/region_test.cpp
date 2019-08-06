@@ -2,7 +2,7 @@
 
 #include "execution/util/region.h"
 
-namespace tpl::util::test {
+namespace terrier::util::test {
 
 class RegionTest : public TplTest {};
 
@@ -24,4 +24,4 @@ TEST_F(RegionTest, Simple) {
   }
 }
 
-}  // namespace tpl::util::test
+}  // namespace terrier::util::test

@@ -7,7 +7,7 @@
 
 #include "execution/parsing/scanner.h"
 
-namespace tpl::parsing::test {
+namespace terrier::parsing::test {
 
 class ScannerTest : public TplTest {};
 
@@ -250,4 +250,4 @@ TEST_F(ScannerTest, CommentTest) {
   RunTests(tests);
 }
 
-}  // namespace tpl::parsing::test
+}  // namespace terrier::parsing::test

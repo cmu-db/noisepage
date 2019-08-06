@@ -7,7 +7,7 @@
 #include "execution/sql/table_vector_iterator.h"
 #include "execution/util/timer.h"
 
-namespace tpl::sql::test {
+namespace terrier::sql::test {
 
 class IndexIteratorTest : public SqlBasedTest {
   void SetUp() override {
@@ -59,4 +59,4 @@ TEST_F(IndexIteratorTest, SimpleIndexIteratorTest) {
   }
 }
 
-}  // namespace tpl::sql::test
+}  // namespace terrier::sql::test

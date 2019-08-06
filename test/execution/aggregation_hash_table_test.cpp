@@ -17,7 +17,7 @@
 #include "execution/sql/thread_state_container.h"
 #include "execution/util/hash.h"
 
-namespace tpl::sql::test {
+namespace terrier::sql::test {
 
 /**
  * An input tuple, this is what we use to probe and update aggregates
@@ -469,4 +469,4 @@ TEST_F(AggregationHashTableTest, ParallelAggregationTest) {
   EXPECT_EQ(num_aggs, qstate.row_count.load(std::memory_order_seq_cst));
 }
 
-}  // namespace tpl::sql::test
+}  // namespace terrier::sql::test

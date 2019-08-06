@@ -7,7 +7,7 @@
 #include "execution/util/memory.h"
 #include "loggers/execution_logger.h"
 
-namespace tpl::util {
+namespace terrier::util {
 
 Region::Region(std::string name) noexcept
     : name_(std::move(name)),
@@ -104,4 +104,4 @@ uintptr_t Region::Expand(std::size_t requested) {
   return position_;
 }
 
-}  // namespace tpl::util
+}  // namespace terrier::util

@@ -5,7 +5,7 @@
 #include "execution/ast/ast.h"
 #include "execution/util/region.h"
 
-namespace tpl::ast {
+namespace terrier::ast {
 
 /**
  * A factory for AST nodes. This factory uses a region allocator to quickly
@@ -341,4 +341,4 @@ class AstNodeFactory {
   util::Region *region_;
 };
 
-}  // namespace tpl::ast
+}  // namespace terrier::ast

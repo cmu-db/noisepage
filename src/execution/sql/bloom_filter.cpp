@@ -6,7 +6,7 @@
 #include "execution/util/bit_util.h"
 #include "execution/util/simd.h"
 
-namespace tpl::sql {
+namespace terrier::sql {
 
 BloomFilter::BloomFilter() = default;
 
@@ -86,4 +86,4 @@ u64 BloomFilter::GetTotalBitsSet() const {
   return count;
 }
 
-}  // namespace tpl::sql
+}  // namespace terrier::sql

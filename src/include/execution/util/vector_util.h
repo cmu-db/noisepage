@@ -5,7 +5,7 @@
 #include "execution/util/common.h"
 #include "execution/util/simd.h"
 
-namespace tpl::util {
+namespace terrier::util {
 
 /**
  * Utility class containing vectorized operations.
@@ -174,4 +174,4 @@ class VectorUtil {
   }
 };
 
-}  // namespace tpl::util
+}  // namespace terrier::util

@@ -11,7 +11,7 @@ namespace terrier::catalog {
 class CatalogAccessor;
 }
 
-namespace tpl::parsing {
+namespace terrier::parsing {
 
 /**
  * This rewriter is ONLY for hand-writen TPL code.
@@ -60,4 +60,4 @@ class Rewriter {
   std::unordered_map<std::string, IndexProjectionMap> index_offsets_;
 };
 
-}  // namespace tpl::parsing
+}  // namespace terrier::parsing

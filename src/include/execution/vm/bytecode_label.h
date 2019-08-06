@@ -5,7 +5,7 @@
 
 #include "execution/util/macros.h"
 
-namespace tpl::vm {
+namespace terrier::vm {
 
 /**
  * A label represents a location in the bytecode and is used as the target of a
@@ -66,4 +66,4 @@ class BytecodeLabel {
   bool bound_{false};
 };
 
-}  // namespace tpl::vm
+}  // namespace terrier::vm

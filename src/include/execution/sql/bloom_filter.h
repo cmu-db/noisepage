@@ -6,7 +6,7 @@
 #include "execution/util/common.h"
 #include "execution/util/macros.h"
 
-namespace tpl::sql {
+namespace terrier::sql {
 
 /**
  * A SIMD-optimized blocked bloom filter. The filter is composed of a contiguous
@@ -145,4 +145,4 @@ inline bool BloomFilter::Contains_Slow(hash_t hash) const {
 }
 #endif
 
-}  // namespace tpl::sql
+}  // namespace terrier::sql

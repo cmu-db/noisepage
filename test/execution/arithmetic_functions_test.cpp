@@ -9,7 +9,7 @@
 #include "execution/sql/value.h"
 #include "execution/util/timer.h"
 
-namespace tpl::sql::test {
+namespace terrier::sql::test {
 
 class ArithmeticFunctionsTests : public TplTest {
  protected:
@@ -304,4 +304,4 @@ TEST_F(ArithmeticFunctionsTests, MathFuncs) {
   };
 }
 
-}  // namespace tpl::sql::test
+}  // namespace terrier::sql::test

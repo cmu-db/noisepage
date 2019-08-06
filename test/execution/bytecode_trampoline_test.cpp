@@ -14,7 +14,7 @@
 #include "execution/vm/module.h"
 #include "execution/vm/module_compiler.h"
 
-namespace tpl::vm::test {
+namespace terrier::vm::test {
 
 //
 // These tests use the trampoline to call into bytecode functions.
@@ -287,4 +287,4 @@ TEST_F(BytecodeTrampolineTest, DISABLED_PerfGenComparisonForSortTest) {
   std::cout << "Std: " << std_ms << " ms" << std::endl;
 }
 
-}  // namespace tpl::vm::test
+}  // namespace terrier::vm::test

@@ -6,7 +6,7 @@
 #include "execution/util/chunked_vector.h"
 #include "execution/util/macros.h"
 
-namespace tpl::sql {
+namespace terrier::sql {
 
 class ThreadStateContainer;
 
@@ -195,4 +195,4 @@ class SorterIterator {
   const IteratorType end_;
 };
 
-}  // namespace tpl::sql
+}  // namespace terrier::sql

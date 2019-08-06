@@ -54,7 +54,7 @@ llvm::cl::opt<bool> kIsSQL("sql", llvm::cl::desc("Is the input a SQL query?"), l
 
 tbb::task_scheduler_init scheduler;
 
-namespace tpl {
+namespace terrier {
 
 static constexpr const char *kExitKeyword = ".exit";
 
@@ -301,13 +301,13 @@ static void RunFile(const std::string &filename) {
  * Initialize all TPL subsystems
  */
 void InitTPL() {
-  tpl::CpuInfo::Instance();
+  terrier::CpuInfo::Instance();
 
   terrier::LoggersUtil::Initialize(false);
 
-  tpl::vm::LLVMEngine::Initialize();
+  terrier::vm::LLVMEngine::Initialize();
 
-  EXECUTION_LOG_INFO("TPL Bytecode Count: {}", tpl::vm::Bytecodes::NumBytecodes());
+  EXECUTION_LOG_INFO("TPL Bytecode Count: {}", terrier::vm::Bytecodes::NumBytecodes());
 
   EXECUTION_LOG_INFO("TPL initialized ...");
 }
@@ -316,7 +316,7 @@ void InitTPL() {
  * Shutdown all TPL subsystems
  */
 void ShutdownTPL() {
-  tpl::vm::LLVMEngine::Shutdown();
+  terrier::vm::LLVMEngine::Shutdown();
   terrier::LoggersUtil::ShutDown();
 
   scheduler.terminate();
@@ -324,11 +324,11 @@ void ShutdownTPL() {
   LOG_INFO("TPL cleanly shutdown ...");
 }
 
-}  // namespace tpl
+}  // namespace terrier
 
 void SignalHandler(i32 sig_num) {
   if (sig_num == SIGINT) {
-    tpl::ShutdownTPL();
+    terrier::ShutdownTPL();
     exit(0);
   }
 }
@@ -351,21 +351,21 @@ int main(int argc, char **argv) {  // NOLINT (bugprone-exception-escape)
   }
 
   // Init TPL
-  tpl::InitTPL();
+  terrier::InitTPL();
 
-  EXECUTION_LOG_INFO("\n{}", tpl::CpuInfo::Instance()->PrettyPrintInfo());
+  EXECUTION_LOG_INFO("\n{}", terrier::CpuInfo::Instance()->PrettyPrintInfo());
 
   EXECUTION_LOG_INFO("Welcome to TPL (ver. {}.{})", TPL_VERSION_MAJOR, TPL_VERSION_MINOR);
 
   // Either execute a TPL program from a source file, or run REPL
   if (!kInputFile.empty()) {
-    tpl::RunFile(kInputFile);
+    terrier::RunFile(kInputFile);
   } else if (argc == 1) {
-    tpl::RunRepl();
+    terrier::RunRepl();
   }
 
   // Cleanup
-  tpl::ShutdownTPL();
+  terrier::ShutdownTPL();
 
   return 0;
 }

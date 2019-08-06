@@ -10,7 +10,7 @@
 #include "execution/ast/ast_visitor.h"
 #include "execution/ast/type.h"
 
-namespace tpl::ast {
+namespace terrier::ast {
 
 class AstDumperImpl : public AstVisitor<AstDumperImpl> {
  public:
@@ -417,4 +417,4 @@ void AstDump::Dump(AstNode *node) {
   print.Run();
 }
 
-}  // namespace tpl::ast
+}  // namespace terrier::ast

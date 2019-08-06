@@ -7,7 +7,7 @@
 #include "loggers/execution_logger.h"
 #include "util/test_harness.h"
 
-namespace tpl {
+namespace terrier {
 
 class TplTest : public terrier::TerrierTest {
  public:
@@ -37,4 +37,4 @@ static inline double Bench(u32 repeat, const F &f) {
   return timer.elapsed() / static_cast<double>(repeat);
 }
 
-}  // namespace tpl
+}  // namespace terrier

@@ -4,7 +4,7 @@
 
 #include "planner/plannodes/output_schema.h"
 
-namespace tpl::exec {
+namespace terrier::exec {
 /**
  * Used by the tpl executable to retrieve hard-coded test output schemas.
  */
@@ -94,4 +94,4 @@ class SampleOutput {
 
   std::unordered_map<std::string, terrier::planner::OutputSchema> schemas_;
 };
-}  // namespace tpl::exec
+}  // namespace terrier::exec

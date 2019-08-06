@@ -10,7 +10,7 @@
 #include "execution/util/timer.h"
 #include "execution/util/vector_util.h"
 
-namespace tpl::util::test {
+namespace terrier::util::test {
 
 template <typename T>
 class PoolArray {
@@ -534,4 +534,4 @@ TEST_F(VectorUtilTest, GatherTest) {
   }
 }
 
-}  // namespace tpl::util::test
+}  // namespace terrier::util::test

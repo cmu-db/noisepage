@@ -6,7 +6,7 @@
 
 #include "execution/util/macros.h"
 
-namespace tpl::ast {
+namespace terrier::ast {
 
 /**
  * A uniqued string identifier in some AST context. This serves as a super-
@@ -69,7 +69,7 @@ class Identifier {
   const char *data_;
 };
 
-}  // namespace tpl::ast
+}  // namespace terrier::ast
 
 namespace llvm {
 
@@ -77,22 +77,22 @@ namespace llvm {
  * Make Identifiers usable from LLVM DenseMaps
  */
 template <>
-struct DenseMapInfo<tpl::ast::Identifier> {
+struct DenseMapInfo<terrier::ast::Identifier> {
   /**
    * @return An empty key
    */
-  static inline tpl::ast::Identifier getEmptyKey() { return tpl::ast::Identifier::GetEmptyKey(); }
+  static inline terrier::ast::Identifier getEmptyKey() { return terrier::ast::Identifier::GetEmptyKey(); }
 
   /**
    * @return A tombstone key
    */
-  static inline tpl::ast::Identifier getTombstoneKey() { return tpl::ast::Identifier::GetTombstoneKey(); }
+  static inline terrier::ast::Identifier getTombstoneKey() { return terrier::ast::Identifier::GetTombstoneKey(); }
 
   /**
    * @param identifier: Identifier to hash
    * @return the hash of the identifier
    */
-  static unsigned getHashValue(const tpl::ast::Identifier identifier) {
+  static unsigned getHashValue(const terrier::ast::Identifier identifier) {
     return DenseMapInfo<const void *>::getHashValue(static_cast<const void *>(identifier.data()));
   }
 
@@ -101,7 +101,7 @@ struct DenseMapInfo<tpl::ast::Identifier> {
    * @param rhs right hand side
    * @return whether lhs == rhs.
    */
-  static bool isEqual(const tpl::ast::Identifier lhs, const tpl::ast::Identifier rhs) { return lhs == rhs; }
+  static bool isEqual(const terrier::ast::Identifier lhs, const terrier::ast::Identifier rhs) { return lhs == rhs; }
 };
 
 }  // namespace llvm
@@ -112,13 +112,13 @@ namespace std {
  * Make Identifiers usable as keys in STL/TPL maps
  */
 template <>
-struct hash<tpl::ast::Identifier> {
+struct hash<terrier::ast::Identifier> {
   /**
    * Hashing operator
    * @param ident identifier to hash
    * @return hash value
    */
-  std::size_t operator()(const tpl::ast::Identifier &ident) const noexcept {
+  std::size_t operator()(const terrier::ast::Identifier &ident) const noexcept {
     std::string_view s(ident.data(), ident.length());
     return std::hash<decltype(s)>()(s);
   }

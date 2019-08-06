@@ -14,11 +14,11 @@ namespace libcount {
 class HLL;
 }  // namespace libcount
 
-namespace tpl::sql::test {
+namespace terrier::sql::test {
 class JoinHashTableTest;
-}  // namespace tpl::sql::test
+}  // namespace terrier::sql::test
 
-namespace tpl::sql {
+namespace terrier::sql {
 
 class ThreadStateContainer;
 class JoinHashTableIterator;
@@ -135,7 +135,7 @@ class JoinHashTable {
   bool use_concise_hash_table() const noexcept { return use_concise_ht_; }
 
  private:
-  friend class tpl::sql::test::JoinHashTableTest;
+  friend class terrier::sql::test::JoinHashTableTest;
 
   // Access a stored entry by index
   HashTableEntry *EntryAt(const u64 idx) noexcept { return reinterpret_cast<HashTableEntry *>(entries_[idx]); }
@@ -304,4 +304,4 @@ inline bool JoinHashTableIterator::HasNext(JoinHashTableIterator::KeyEq key_eq, 
   return false;
 }
 
-}  // namespace tpl::sql
+}  // namespace terrier::sql

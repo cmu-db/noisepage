@@ -6,7 +6,7 @@
 
 #include "execution/util/hash.h"
 
-namespace tpl::util::test {
+namespace terrier::util::test {
 
 class HashTest : public TplTest {};
 
@@ -79,4 +79,4 @@ TEST_F(HashTest, StringHash) {
 #undef CHECK_HASH_METHOD_ON_INPUT
 }
 
-}  // namespace tpl::util::test
+}  // namespace terrier::util::test

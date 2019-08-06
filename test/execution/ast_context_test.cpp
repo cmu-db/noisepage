@@ -7,7 +7,7 @@
 #include "execution/ast/context.h"
 #include "execution/sema/error_reporter.h"
 
-namespace tpl::ast::test {
+namespace terrier::ast::test {
 
 class ContextTest : public TplTest {};
 
@@ -35,4 +35,4 @@ TEST_F(ContextTest, CreateNewStringsTest) {
   }
 }
 
-}  // namespace tpl::ast::test
+}  // namespace terrier::ast::test

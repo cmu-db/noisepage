@@ -9,7 +9,7 @@
 #include "execution/sema/error_reporter.h"
 #include "execution/util/region.h"
 
-namespace tpl::ast::test {
+namespace terrier::ast::test {
 
 class TypeTest : public TplTest {
  public:
@@ -238,4 +238,4 @@ TEST_F(TypeTest, FunctionTypeCacheTest) {
   }
 }
 
-}  // namespace tpl::ast::test
+}  // namespace terrier::ast::test

@@ -10,7 +10,7 @@ namespace llvm {
 class StringRef;
 }  // namespace llvm
 
-namespace tpl {
+namespace terrier {
 
 /**
  * Info about the CPU.
@@ -99,4 +99,4 @@ class CpuInfo {
   util::InlinedBitVector<64> hardware_flags_;
 };
 
-}  // namespace tpl
+}  // namespace terrier

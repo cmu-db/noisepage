@@ -3,7 +3,7 @@
 
 #include "execution/sql/join_hash_table.h"
 
-namespace tpl::sql {
+namespace terrier::sql {
 
 JoinHashTableVectorProbe::JoinHashTableVectorProbe(const JoinHashTable &table)
     : table_(table), match_idx_(0), hashes_{0}, entries_{nullptr} {}
@@ -32,4 +32,4 @@ void JoinHashTableVectorProbe::Prepare(ProjectedColumnsIterator *pci, const Hash
   table_.LookupBatch(pci->num_selected(), hashes_, entries_);
 }
 
-}  // namespace tpl::sql
+}  // namespace terrier::sql

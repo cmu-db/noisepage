@@ -2,7 +2,7 @@
 
 #include "execution/util/common.h"
 
-namespace tpl::vm {
+namespace terrier::vm {
 
 /**
  * This enumeration lists all possible sizes of operands to any bytecode
@@ -85,4 +85,4 @@ class OperandTypes {
   static i32 MaxJumpOffset();
 };
 
-}  // namespace tpl::vm
+}  // namespace terrier::vm

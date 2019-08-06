@@ -12,7 +12,7 @@
 #include "execution/util/timer.h"
 #include "loggers/execution_logger.h"
 
-namespace tpl::sql {
+namespace terrier::sql {
 
 namespace {
 
@@ -130,4 +130,4 @@ bandit::Agent *FilterManager::GetAgentFor(const u32 clause_index) { return &agen
 
 const bandit::Agent *FilterManager::GetAgentFor(const u32 clause_index) const { return &agents_[clause_index]; }
 
-}  // namespace tpl::sql
+}  // namespace terrier::sql

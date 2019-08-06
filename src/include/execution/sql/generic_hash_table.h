@@ -8,7 +8,7 @@
 #include "execution/util/macros.h"
 #include "execution/util/memory.h"
 
-namespace tpl::sql {
+namespace terrier::sql {
 
 /**
  * GenericHashTable serves as a dead-simple hash table for joins and
@@ -453,4 +453,4 @@ inline void GenericHashTableVectorIterator<UseTag>::Refill() {
   }
 }
 
-}  // namespace tpl::sql
+}  // namespace terrier::sql

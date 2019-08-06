@@ -7,7 +7,7 @@
 #include "execution/sql/projected_columns_iterator.h"
 #include "storage/sql_table.h"
 
-namespace tpl::sql {
+namespace terrier::sql {
 using terrier::catalog::db_oid_t;
 using terrier::catalog::namespace_oid_t;
 using terrier::catalog::table_oid_t;
@@ -109,4 +109,4 @@ class TableVectorIterator {
   bool initialized = false;
 };
 
-}  // namespace tpl::sql
+}  // namespace terrier::sql

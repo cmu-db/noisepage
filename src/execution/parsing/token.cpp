@@ -1,6 +1,6 @@
 #include "execution/parsing/token.h"
 
-namespace tpl::parsing {
+namespace terrier::parsing {
 
 #define T(name, str, precedence) #name,
 const char *Token::kTokenNames[] = {TOKENS(T, T)};
@@ -14,4 +14,4 @@ const char *Token::kTokenStrings[] = {TOKENS(T, T)};
 const u32 Token::kTokenPrecedence[] = {TOKENS(T, T)};
 #undef T
 
-}  // namespace tpl::parsing
+}  // namespace terrier::parsing

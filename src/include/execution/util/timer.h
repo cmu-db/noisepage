@@ -2,7 +2,7 @@
 
 #include <chrono>  // NOLINT
 
-namespace tpl::util {
+namespace terrier::util {
 
 /**
  * A simple restartable timer
@@ -83,4 +83,4 @@ class ScopedTimer {
   double *elapsed_;
 };
 
-}  // namespace tpl::util
+}  // namespace terrier::util

@@ -12,11 +12,11 @@
 #include "execution/vm/bytecode_module.h"
 #include "execution/vm/llvm_engine.h"
 
-namespace tpl::vm::test {
+namespace terrier::vm::test {
 class BytecodeTrampolineTest;
-}  // namespace tpl::vm::test
+}  // namespace terrier::vm::test
 
-namespace tpl::vm {
+namespace terrier::vm {
 
 /**
  * An enumeration capturing different execution methods and optimization levels.
@@ -266,4 +266,4 @@ inline bool Module::GetFunction(const std::string &name, const ExecutionMode exe
   return true;
 }
 
-}  // namespace tpl::vm
+}  // namespace terrier::vm

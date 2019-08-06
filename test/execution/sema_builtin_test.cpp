@@ -9,7 +9,7 @@
 
 #include "execution/sema/sema.h"
 
-namespace tpl::sema::test {
+namespace terrier::sema::test {
 
 class SemaBuiltinTest : public TplTest, public ast::test::TestAstBuilder {
  public:
@@ -160,4 +160,4 @@ TEST_F(SemaBuiltinTest, CheckTrigBuiltins) {
   }
 }
 
-}  // namespace tpl::sema::test
+}  // namespace terrier::sema::test

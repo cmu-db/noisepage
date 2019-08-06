@@ -10,7 +10,7 @@
 #error "Don't include <util/simd/avx2.h> directly; instead, include <util/simd.h>"
 #endif
 
-namespace tpl::util::simd {
+namespace terrier::util::simd {
 
 #define USE_GATHER 0
 
@@ -452,7 +452,7 @@ ALWAYS_INLINE inline u32 Vec8Mask::ToPositions(u32 *positions, u32 offset) const
   return __builtin_popcount(mask);
 }
 
-ALWAYS_INLINE inline u32 Vec8Mask::ToPositions(u32 *positions, const tpl::util::simd::Vec8 &pos) const {
+ALWAYS_INLINE inline u32 Vec8Mask::ToPositions(u32 *positions, const terrier::util::simd::Vec8 &pos) const {
   i32 mask = _mm256_movemask_ps(_mm256_castsi256_ps(reg()));
   TPL_ASSERT(mask < 256, "8-bit mask must be less than 256");
   __m128i perm_comp = _mm_loadl_epi64(reinterpret_cast<const __m128i *>(&k8BitMatchLUT[mask]));
@@ -891,4 +891,4 @@ static inline u32 FilterVectorByVector(const T *RESTRICT in_1, const T *RESTRICT
   return out_pos;
 }
 
-}  // namespace tpl::util::simd
+}  // namespace terrier::util::simd

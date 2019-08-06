@@ -4,7 +4,7 @@
 #include <stdexcept>
 #include <string>
 
-namespace tpl::parsing {
+namespace terrier::parsing {
 
 Scanner::Scanner(const std::string &source) : Scanner(source.data(), source.length()) {}
 
@@ -395,4 +395,4 @@ Token::Type Scanner::ScanString() {
   }
 }
 
-}  // namespace tpl::parsing
+}  // namespace terrier::parsing

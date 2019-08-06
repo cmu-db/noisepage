@@ -12,7 +12,7 @@
 #include "execution/exec/execution_context.h"
 #include "execution/vm/bytecode_emitter.h"
 
-namespace tpl::vm {
+namespace terrier::vm {
 
 class BytecodeModule;
 class LoopBuilder;
@@ -179,4 +179,4 @@ class BytecodeGenerator : public ast::AstVisitor<BytecodeGenerator> {
   exec::ExecutionContext *exec_ctx_;
 };
 
-}  // namespace tpl::vm
+}  // namespace terrier::vm

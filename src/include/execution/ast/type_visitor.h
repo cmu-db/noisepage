@@ -2,7 +2,7 @@
 
 #include "execution/ast/type.h"
 
-namespace tpl::ast {
+namespace terrier::ast {
 
 /**
  * Generic visitor for type hierarchies
@@ -43,4 +43,4 @@ class TypeVisitor {
 #undef DISPATCH
 };
 
-}  // namespace tpl::ast
+}  // namespace terrier::ast

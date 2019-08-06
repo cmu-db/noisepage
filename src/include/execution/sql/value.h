@@ -9,7 +9,7 @@
 #include "execution/util/math_util.h"
 #include "type/type_id.h"
 
-namespace tpl::sql {
+namespace terrier::sql {
 
 /**
  * A generic base catch-all SQL value
@@ -456,4 +456,4 @@ struct ValUtil {
   }
 };
 
-}  // namespace tpl::sql
+}  // namespace terrier::sql

@@ -4,7 +4,7 @@
 
 #include "execution/util/region.h"
 
-namespace tpl::util {
+namespace terrier::util {
 
 /**
  * An STL-compliant allocator that uses a region-based strategy
@@ -116,4 +116,4 @@ class LLVMRegionAllocator : public llvm::AllocatorBase<LLVMRegionAllocator> {
   Region *region_;
 };
 
-}  // namespace tpl::util
+}  // namespace terrier::util

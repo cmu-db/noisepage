@@ -2,7 +2,7 @@
 
 #include "execution/vm/bytecodes.h"
 
-namespace tpl::vm::test {
+namespace terrier::vm::test {
 
 class BytecodesTest : public TplTest {};
 
@@ -102,4 +102,4 @@ TEST_F(BytecodesTest, OperandTypesTest) {
   EXPECT_EQ(OperandType::Local, Bytecodes::GetNthOperandType(Bytecode::Add_i32, 2));
 }
 
-}  // namespace tpl::vm::test
+}  // namespace terrier::vm::test

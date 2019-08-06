@@ -5,7 +5,7 @@
 #include "execution/util/macros.h"
 #include "execution/util/timer.h"
 
-namespace tpl::util {
+namespace terrier::util {
 
 /**
  * Stage timer
@@ -87,4 +87,4 @@ class StageTimer {
   std::vector<Stage> stages_;
 };
 
-}  // namespace tpl::util
+}  // namespace terrier::util

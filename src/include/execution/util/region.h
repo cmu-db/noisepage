@@ -9,7 +9,7 @@
 #include "execution/util/macros.h"
 #include "execution/util/math_util.h"
 
-namespace tpl::util {
+namespace terrier::util {
 
 /**
  * A region-based allocator supports fast O(1) time allocations of small chunks
@@ -185,4 +185,4 @@ class RegionObject {
   }
 };
 
-}  // namespace tpl::util
+}  // namespace terrier::util

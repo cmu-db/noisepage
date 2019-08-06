@@ -5,7 +5,7 @@
 
 #include <tbb/tbb.h>  // NOLINT
 
-namespace tpl::sql {
+namespace terrier::sql {
 
 // ---------------------------------------------------------
 // Thread Local State Handle
@@ -100,4 +100,4 @@ void ThreadStateContainer::IterateStates(void *const ctx, ThreadStateContainer::
   }
 }
 
-}  // namespace tpl::sql
+}  // namespace terrier::sql

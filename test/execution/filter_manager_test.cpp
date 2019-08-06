@@ -14,7 +14,7 @@
 #include "execution/sql/table_vector_iterator.h"
 #include "type/type_id.h"
 
-namespace tpl::sql::test {
+namespace terrier::sql::test {
 
 class FilterManagerTest : public SqlBasedTest {
   void SetUp() override {
@@ -101,4 +101,4 @@ TEST_F(FilterManagerTest, AdaptiveFilterManagerTest) {
   EXPECT_EQ(1u, filter.GetOptimalFlavorForClause(0));
 }
 
-}  // namespace tpl::sql::test
+}  // namespace terrier::sql::test

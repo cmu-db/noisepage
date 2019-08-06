@@ -2,7 +2,7 @@
 
 #include "execution/vm/bytecode_emitter.h"
 
-namespace tpl::vm {
+namespace terrier::vm {
 
 // ---------------------------------------------------------
 // Breakable blocks
@@ -56,4 +56,4 @@ void IfThenElseBuilder::Else() { generator()->emitter()->Bind(else_label()); }
 
 void IfThenElseBuilder::JumpToEnd() { generator()->emitter()->EmitJump(Bytecode::Jump, end_label()); }
 
-}  // namespace tpl::vm
+}  // namespace terrier::vm

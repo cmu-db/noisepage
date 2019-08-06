@@ -6,7 +6,7 @@
 
 #include "execution/sql/memory_pool.h"
 
-namespace tpl::sql {
+namespace terrier::sql {
 
 /**
  * This class serves as a container for thread-local data required during query
@@ -190,4 +190,4 @@ class ThreadStateContainer {
   std::unique_ptr<Impl> impl_;
 };
 
-}  // namespace tpl::sql
+}  // namespace terrier::sql

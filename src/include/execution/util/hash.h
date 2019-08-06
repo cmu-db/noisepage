@@ -9,7 +9,7 @@
 #include "execution/util/common.h"
 #include "execution/util/macros.h"
 
-namespace tpl::util {
+namespace terrier::util {
 
 /**
  * Enumeration of the supported hashing methods
@@ -268,4 +268,4 @@ class Hasher {
   static hash_t HashFnv1(const u8 *buf, u32 len) { return HashFnv1(buf, len, kFNV64Seed); }
 };
 
-}  // namespace tpl::util
+}  // namespace terrier::util

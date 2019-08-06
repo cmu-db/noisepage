@@ -48,7 +48,7 @@ using hash_t = u64;
   INT_TYPES(F, __VA_ARGS__) \
   FOR_EACH_FLOAT_TYPE(F, __VA_ARGS__)
 
-namespace tpl {
+namespace terrier {
 
 /**
  * A compact structure used during parsing to capture and describe the position in the source as 1-based line and column
@@ -106,4 +106,4 @@ static constexpr const u32 GB = KB * KB * KB;
  */
 static constexpr const char *TEST_NS = "test_ns";
 
-}  // namespace tpl
+}  // namespace terrier

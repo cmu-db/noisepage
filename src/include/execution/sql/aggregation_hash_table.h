@@ -11,7 +11,7 @@ namespace libcount {
 class HLL;
 }  // namespace libcount
 
-namespace tpl::sql {
+namespace terrier::sql {
 
 class ThreadStateContainer;
 
@@ -485,4 +485,4 @@ class AggregationOverflowPartitionIterator {
   HashTableEntry *curr_;
 };
 
-}  // namespace tpl::sql
+}  // namespace terrier::sql

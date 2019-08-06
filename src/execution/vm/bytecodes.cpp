@@ -4,7 +4,7 @@
 
 #include "execution/vm/bytecode_traits.h"
 
-namespace tpl::vm {
+namespace terrier::vm {
 
 // static
 const char *Bytecodes::kBytecodeNames[] = {
@@ -61,4 +61,4 @@ u32 Bytecodes::GetNthOperandOffset(Bytecode bytecode, u32 operand_index) {
   return offset;
 }
 
-}  // namespace tpl::vm
+}  // namespace terrier::vm

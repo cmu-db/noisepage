@@ -28,7 +28,7 @@
 #include "execution/util/common.h"
 #include "execution/util/math_util.h"
 
-namespace tpl::ast {
+namespace terrier::ast {
 
 // ---------------------------------------------------------
 // Key type used in the cache for struct types in the context
@@ -325,4 +325,4 @@ FunctionType *FunctionType::Get(util::RegionVector<Field> &&params, Type *ret) {
   return func_type;
 }
 
-}  // namespace tpl::ast
+}  // namespace terrier::ast

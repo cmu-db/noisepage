@@ -7,7 +7,7 @@
 #include "execution/sql/table_vector_iterator.h"
 #include "execution/util/timer.h"
 
-namespace tpl::sql::test {
+namespace terrier::sql::test {
 
 class TableVectorIteratorTest : public SqlBasedTest {
   void SetUp() override {
@@ -128,4 +128,4 @@ TEST_F(TableVectorIteratorTest, IteratorAddColTest) {
   EXPECT_EQ(sql::test2_size, num_tuples);
 }
 
-}  // namespace tpl::sql::test
+}  // namespace terrier::sql::test

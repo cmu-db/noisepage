@@ -1,6 +1,6 @@
 #pragma once
 
-namespace tpl::ast {
+namespace terrier::ast {
 
 class AstNode;
 
@@ -16,4 +16,4 @@ class AstDump {
   static void Dump(AstNode *node);
 };
 
-}  // namespace tpl::ast
+}  // namespace terrier::ast

@@ -11,7 +11,7 @@
 #include "execution/sql/table_generator/table_generator.h"
 #include "storage/garbage_collector.h"
 
-namespace tpl {
+namespace terrier {
 
 class SqlBasedTest : public TplTest {
  public:
@@ -74,4 +74,4 @@ class SqlBasedTest : public TplTest {
   terrier::transaction::TransactionContext *test_txn_;
 };
 
-}  // namespace tpl
+}  // namespace terrier

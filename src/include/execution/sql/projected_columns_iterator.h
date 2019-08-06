@@ -9,7 +9,7 @@
 #include "execution/util/macros.h"
 #include "type/type_id.h"
 
-namespace tpl::sql {
+namespace terrier::sql {
 using terrier::storage::ProjectedColumns;
 using terrier::type::TypeId;
 /**
@@ -345,4 +345,4 @@ inline void ProjectedColumnsIterator::RunFilter(const F &filter) {
   ResetFiltered();
 }
 
-}  // namespace tpl::sql
+}  // namespace terrier::sql

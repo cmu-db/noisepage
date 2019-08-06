@@ -16,7 +16,7 @@
 #include "execution/util/timer.h"
 #include "loggers/execution_logger.h"
 
-namespace tpl::sql {
+namespace terrier::sql {
 
 JoinHashTable::JoinHashTable(MemoryPool *memory, u32 tuple_size, bool use_concise_ht)
     : entries_(sizeof(HashTableEntry) + tuple_size, MemoryPoolAllocator<byte>(memory)),
@@ -704,4 +704,4 @@ void JoinHashTable::MergeParallel(const ThreadStateContainer *thread_state_conta
   });
 }
 
-}  // namespace tpl::sql
+}  // namespace terrier::sql

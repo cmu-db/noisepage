@@ -5,7 +5,7 @@
 #include "execution/sql/value.h"
 #include "execution/util/arithmetic_overflow.h"
 
-namespace tpl::sql {
+namespace terrier::sql {
 
 /**
  * Utility class to handle various arithmetic SQL functions.
@@ -408,4 +408,4 @@ inline void ArithmeticFunctions::Log(Real *result, const Real &base, const Real 
   *result = Real(std::log(val.val) / std::log(base.val));
 }
 
-}  // namespace tpl::sql
+}  // namespace terrier::sql

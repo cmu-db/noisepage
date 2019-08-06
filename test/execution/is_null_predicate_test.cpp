@@ -3,7 +3,7 @@
 #include "execution/sql/functions/is_null_predicate.h"
 #include "execution/sql/value.h"
 
-namespace tpl::sql::test {
+namespace terrier::sql::test {
 
 class IsNullPredicateTests : public TplTest {};
 
@@ -13,7 +13,7 @@ TEST_F(IsNullPredicateTests, IsNull) {
   {                                                  \
     auto result = BoolVal::Null();                   \
     const auto val = TYPE::Null();                   \
-    tpl::sql::IsNullPredicate::IsNull(&result, val); \
+    terrier::sql::IsNullPredicate::IsNull(&result, val); \
     EXPECT_FALSE(result.is_null);                    \
     EXPECT_TRUE(result.val);                         \
   }
@@ -34,7 +34,7 @@ TEST_F(IsNullPredicateTests, IsNotNull) {
   {                                                  \
     auto result = BoolVal::Null();                   \
     const auto val = TYPE(INIT);                     \
-    tpl::sql::IsNullPredicate::IsNull(&result, val); \
+    terrier::sql::IsNullPredicate::IsNull(&result, val); \
     EXPECT_FALSE(result.is_null);                    \
     EXPECT_FALSE(result.val);                        \
   }
@@ -53,4 +53,4 @@ TEST_F(IsNullPredicateTests, IsNotNull) {
 #undef CHECK_IS_NOT_NULL_FOR_TYPE
 }
 
-}  // namespace tpl::sql::test
+}  // namespace terrier::sql::test
