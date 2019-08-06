@@ -4,13 +4,12 @@
 #include <string>
 #include <utility>
 #include <vector>
-#include <catalog/catalog_defs.h>
 #include "catalog/catalog_defs.h"
 #include "planner/plannodes/abstract_plan_node.h"
 
 namespace terrier::planner {
 
-using SortKey = std::pair<std::shared_ptr<parser::AbstractExpression>, OrderByOrderingType>;
+using SortKey = std::pair<catalog::col_oid_t, OrderByOrderingType>;
 
 /**
  * Plan node for order by operator
@@ -34,7 +33,7 @@ class OrderByPlanNode : public AbstractPlanNode {
      * @param ordering ordering (ASC or DESC) for key
      * @return builder object
      */
-    Builder &AddSortKey(std::shared_ptr<parser::AbstractExpression> key, OrderByOrderingType ordering) {
+    Builder &AddSortKey(catalog::col_oid_t key, OrderByOrderingType ordering) {
       sort_keys_.emplace_back(key, ordering);
       return *this;
     }

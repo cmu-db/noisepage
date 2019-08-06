@@ -24,7 +24,6 @@ class IndexIteratorTest : public SqlBasedTest {
   std::unique_ptr<exec::ExecutionContext> exec_ctx_;
 };
 
-
 // NOLINTNEXTLINE
 TEST_F(IndexIteratorTest, SimpleIndexIteratorTest) {
   //
@@ -32,9 +31,12 @@ TEST_F(IndexIteratorTest, SimpleIndexIteratorTest) {
   //
 
   auto table_oid = exec_ctx_->GetAccessor()->GetTableOid(NSOid(), "test_1");
+  const auto & schema = exec_ctx_->GetAccessor()->GetSchema(table_oid);
   auto index_oid = exec_ctx_->GetAccessor()->GetIndexOid(NSOid(), "index_1");
   TableVectorIterator table_iter(!table_oid, exec_ctx_.get());
   IndexIterator index_iter{!table_oid, !index_oid, exec_ctx_.get()};
+  table_iter.AddCol(!schema.GetColumn("colA").Oid());
+  index_iter.AddCol(!schema.GetColumn("colA").Oid());
   table_iter.Init();
   index_iter.Init();
   ProjectedColumnsIterator *pci = table_iter.projected_columns_iterator();
@@ -57,4 +59,4 @@ TEST_F(IndexIteratorTest, SimpleIndexIteratorTest) {
   }
 }
 
-}
+}  // namespace tpl::sql::test

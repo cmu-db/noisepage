@@ -200,12 +200,9 @@ void OpThreadStateContainerFree(tpl::sql::ThreadStateContainer *thread_state_con
 // ---------------------------------------------------------
 
 void OpTableVectorIteratorConstruct(tpl::sql::TableVectorIterator *iter, u32 table_oid,
-                               tpl::exec::ExecutionContext *exec_ctx);
+                                    tpl::exec::ExecutionContext *exec_ctx);
 
-
-VM_OP_HOT void OpTableVectorIteratorAddCol(tpl::sql::TableVectorIterator *iter, u32 col_oid) {
-  iter->AddCol(col_oid);
-}
+VM_OP_HOT void OpTableVectorIteratorAddCol(tpl::sql::TableVectorIterator *iter, u32 col_oid) { iter->AddCol(col_oid); }
 
 void OpTableVectorIteratorPerformInit(tpl::sql::TableVectorIterator *iter);
 
@@ -457,8 +454,8 @@ VM_OP_HOT void OpHashReal(hash_t *hash_val, tpl::sql::Real *input) {
 }
 
 VM_OP_HOT void OpHashString(hash_t *hash_val, tpl::sql::StringVal *input) {
-  *hash_val =
-      tpl::util::Hasher::Hash<tpl::util::HashMethod::xxHash3>(reinterpret_cast<const u8 *>(input->Content()), input->len);
+  *hash_val = tpl::util::Hasher::Hash<tpl::util::HashMethod::xxHash3>(reinterpret_cast<const u8 *>(input->Content()),
+                                                                      input->len);
   *hash_val = input->is_null ? 0 : *hash_val;
 }
 
@@ -1181,14 +1178,12 @@ VM_OP_WARM void OpUpper(tpl::exec::ExecutionContext *ctx, tpl::sql::StringVal *r
 // Index Iterator
 // ---------------------------------------------------------------
 void OpIndexIteratorConstruct(tpl::sql::IndexIterator *iter, uint32_t table_oid, uint32_t index_oid,
-                         tpl::exec::ExecutionContext *exec_ctx);
+                              tpl::exec::ExecutionContext *exec_ctx);
 void OpIndexIteratorFree(tpl::sql::IndexIterator *iter);
 
 void OpIndexIteratorPerformInit(tpl::sql::IndexIterator *iter);
 
-VM_OP_HOT void OpIndexIteratorAddCol(tpl::sql::IndexIterator *iter, uint32_t col_oid) {
-  iter->AddCol(col_oid);
-}
+VM_OP_HOT void OpIndexIteratorAddCol(tpl::sql::IndexIterator *iter, uint32_t col_oid) { iter->AddCol(col_oid); }
 
 VM_OP_HOT void OpIndexIteratorScanKey(tpl::sql::IndexIterator *iter) { iter->ScanKey(); }
 

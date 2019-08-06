@@ -94,10 +94,9 @@ Sema::CheckResult Sema::CheckArithmeticOperands(parsing::Token::Type op, const S
     if (left->type()->size() < right->type()->size()) {
       auto new_left = ImplCastExprToType(left, right->type(), ast::CastKind::IntegralCast);
       return {right->type(), new_left, right};
-    } else {
-      auto new_right = ImplCastExprToType(right, left->type(), ast::CastKind::IntegralCast);
-      return {left->type(), left, new_right};
     }
+    auto new_right = ImplCastExprToType(right, left->type(), ast::CastKind::IntegralCast);
+    return {left->type(), left, new_right};
   }
 
   // Primitive int -> Sql Integer
@@ -173,10 +172,9 @@ Sema::CheckResult Sema::CheckComparisonOperands(parsing::Token::Type op, const S
     if (left->type()->size() < right->type()->size()) {
       auto new_left = ImplCastExprToType(left, right->type(), ast::CastKind::IntegralCast);
       return {ast::BuiltinType::Get(context(), ast::BuiltinType::Bool), new_left, right};
-    } else {
-      auto new_right = ImplCastExprToType(right, left->type(), ast::CastKind::IntegralCast);
-      return {ast::BuiltinType::Get(context(), ast::BuiltinType::Bool), left, new_right};
     }
+    auto new_right = ImplCastExprToType(right, left->type(), ast::CastKind::IntegralCast);
+    return {ast::BuiltinType::Get(context(), ast::BuiltinType::Bool), left, new_right};
   }
 
   auto built_ret_type = [this](ast::Type *input_type) {
@@ -231,8 +229,8 @@ bool Sema::CheckAssignmentConstraints(ast::Type *target_type, ast::Expr **expr) 
   // TODO(Amadou): Figure out integer casting rules. This just resizes the integer.
   // I don't think it handles sign bit expansions and things like that.
   if (target_type->IsIntegerType() && (*expr)->type()->IsIntegerType()) {
-    //if (target_type->size() > (*expr)->type()->size()) {
-      *expr = ImplCastExprToType(*expr, target_type, ast::CastKind::IntegralCast);
+    // if (target_type->size() > (*expr)->type()->size()) {
+    *expr = ImplCastExprToType(*expr, target_type, ast::CastKind::IntegralCast);
     //}
     return true;
   }

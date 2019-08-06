@@ -16,7 +16,8 @@ using terrier::storage::DataTable;
 class ThreadStateContainer;
 
 /**
- * An iterator over a table's data in vector-wise fashion
+ * An iterator over a table's data in vector-wise fashion.
+ * TODO(Amadou): Add a Reset() method to avoid reconstructing the object in NL joins.
  */
 class TableVectorIterator {
  public:
@@ -41,9 +42,7 @@ class TableVectorIterator {
    * Add a column to the list of columns to scan
    * @param col_oid oid of the column to scan
    */
-  void AddCol(u32 col_oid) {
-    col_oids_.emplace_back(col_oid);
-  };
+  void AddCol(u32 col_oid) { col_oids_.emplace_back(col_oid); }
 
   /**
    * This class cannot be copied or moved

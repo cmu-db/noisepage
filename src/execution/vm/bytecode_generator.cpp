@@ -279,7 +279,7 @@ void BytecodeGenerator::VisitArrayIndexExpr(ast::IndexExpr *node) {
   LocalVar elem_ptr = current_function()->NewLocal(node->type()->PointerTo());
 
   if (node->index()->IsIntegerLiteral()) {
-    const i32 index = static_cast<i32>(node->index()->As<ast::LitExpr>()->int64_val());
+    const auto index = static_cast<i32>(node->index()->As<ast::LitExpr>()->int64_val());
     TPL_ASSERT(index >= 0, "Array indexes must be non-negative");
     emitter()->EmitLea(elem_ptr, arr, (elem_size * index));
   } else {
@@ -509,7 +509,7 @@ void BytecodeGenerator::VisitBuiltinTableIterCall(ast::CallExpr *call, ast::Buil
       break;
     }
     case ast::Builtin::TableIterAddCol: {
-      auto col_oid = static_cast<u32>(call->arguments()[1]->As<ast::LitExpr>()->int64_val());;
+      auto col_oid = static_cast<u32>(call->arguments()[1]->As<ast::LitExpr>()->int64_val());
       emitter()->EmitAddCol(Bytecode::TableVectorIteratorAddCol, iter, col_oid);
       break;
     }
@@ -768,8 +768,8 @@ void BytecodeGenerator::VisitBuiltinFilterCall(ast::CallExpr *call, ast::Builtin
   // Projected Column Iterator
   LocalVar pci = VisitExpressionForRValue(call->arguments()[0]);
   // Column index
-  u16 col_idx = static_cast<u16>(call->arguments()[1]->As<ast::LitExpr>()->int64_val());
-  i8 col_type = static_cast<i8>(call->arguments()[2]->As<ast::LitExpr>()->int64_val());
+  auto col_idx = static_cast<u16>(call->arguments()[1]->As<ast::LitExpr>()->int64_val());
+  auto col_type = static_cast<i8>(call->arguments()[2]->As<ast::LitExpr>()->int64_val());
   // Filter value
   i64 val = call->arguments()[3]->As<ast::LitExpr>()->int64_val();
 
@@ -1356,7 +1356,7 @@ void BytecodeGenerator::VisitBuiltinIndexIteratorCall(ast::CallExpr *call, ast::
 
   switch (builtin) {
     case ast::Builtin::IndexIteratorConstruct: {
-      auto table_oid = static_cast<u32>(call->arguments()[1]->As<ast::LitExpr>()->int64_val());;
+      auto table_oid = static_cast<u32>(call->arguments()[1]->As<ast::LitExpr>()->int64_val());
       auto index_oid = static_cast<u32>(call->arguments()[2]->As<ast::LitExpr>()->int64_val());
       LocalVar exec_ctx = VisitExpressionForRValue(call->arguments()[3]);
       emitter()->EmitIndexIteratorConstruct(Bytecode::IndexIteratorConstruct, iterator, table_oid, index_oid, exec_ctx);
@@ -1367,7 +1367,7 @@ void BytecodeGenerator::VisitBuiltinIndexIteratorCall(ast::CallExpr *call, ast::
       break;
     }
     case ast::Builtin::IndexIteratorAddCol: {
-      auto col_oid = static_cast<u32>(call->arguments()[1]->As<ast::LitExpr>()->int64_val());;
+      auto col_oid = static_cast<u32>(call->arguments()[1]->As<ast::LitExpr>()->int64_val());
       emitter()->EmitAddCol(Bytecode::IndexIteratorAddCol, iterator, col_oid);
       break;
     }

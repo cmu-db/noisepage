@@ -1,4 +1,6 @@
 #include "storage/sql_table.h"
+#include <algorithm>
+#include <functional>
 #include <set>
 #include <vector>
 #include "common/macros.h"
@@ -102,7 +104,6 @@ ProjectionMap SqlTable::ProjectionMapForOids(const std::vector<catalog::col_oid_
 
   return projection_map;
 }
-
 
 template ProjectionMap SqlTable::ProjectionMapForInitializer<ProjectedColumnsInitializer>(
     const ProjectedColumnsInitializer &initializer) const;

@@ -86,7 +86,7 @@ class Hasher {
    */
   static hash_t CombineHashes(const hash_t first_hash, const hash_t second_hash) {
     // Based on Hash128to64() from cityhash.
-    static constexpr u64 kMul = u64(0x9ddfea08eb382d69);
+    static constexpr auto kMul = u64(0x9ddfea08eb382d69);
     hash_t a = (first_hash ^ second_hash) * kMul;
     a ^= (a >> 47u);
     hash_t b = (second_hash ^ a) * kMul;
@@ -162,7 +162,7 @@ class Hasher {
   template <typename T>
   static auto HashMurmur2(const T val, hash_t seed) -> std::enable_if_t<std::is_arithmetic_v<T>, hash_t> {
     // MurmurHash64A
-    u64 k = static_cast<u64>(val);
+    auto k = static_cast<u64>(val);
     hash_t h = seed ^ 0x8445d61a4e774912 ^ (8 * kMurmur2Prime);
     k *= kMurmur2Prime;
     k ^= k >> kMurmur2R;
@@ -184,8 +184,8 @@ class Hasher {
     // MurmurHash64A
     hash_t h = seed ^ (len * kMurmur2Prime);
 
-    const u64 *data = reinterpret_cast<const u64 *>(buf);
-    const u64 *end = data + (len / 8);
+    const auto *data = reinterpret_cast<const u64 *>(buf);
+    const auto *end = data + (len / 8);
 
     while (data != end) {
       u64 k = *data++;
@@ -198,7 +198,7 @@ class Hasher {
       h *= kMurmur2Prime;
     }
 
-    const u8 *data2 = reinterpret_cast<const u8 *>(data);
+    const auto *data2 = reinterpret_cast<const u8 *>(data);
 
     switch (len & 7) {
       case 7:
@@ -258,7 +258,7 @@ class Hasher {
   }
 
   static hash_t HashFnv1(const u8 *buf, u32 len, hash_t seed) {
-    while (len--) {
+    while (static_cast<bool>(len--)) {
       seed = (*buf ^ seed) * kFNV64Prime;
       ++buf;
     }

@@ -55,7 +55,7 @@ nlohmann::json OrderByPlanNode::ToJson() const {
 
 void OrderByPlanNode::FromJson(const nlohmann::json &j) {
   AbstractPlanNode::FromJson(j);
-  sort_keys_ = j.at("sort_keys").get<std::vector<SortKey >>();
+  sort_keys_ = j.at("sort_keys").get<std::vector<SortKey>>();
   has_limit_ = j.at("has_limit").get<bool>();
   limit_ = j.at("limit").get<size_t>();
   offset_ = j.at("offset").get<size_t>();

@@ -266,8 +266,10 @@ struct StringVal : public Val {
   /**
    * @return the raw content
    */
-  const char * Content() const {
-    if (len <= InlineThreshold()) {return prefix_;}
+  const char *Content() const {
+    if (len <= InlineThreshold()) {
+      return prefix_;
+    }
     return ptr;
   }
 
@@ -278,7 +280,7 @@ struct StringVal : public Val {
    * @param len length of the string
    * @return a buffer that can be filled
    */
-  static char* PreAllocate(StringVal *result, exec::ExecutionContext::StringAllocator *memory, uint32_t len) {
+  static char *PreAllocate(StringVal *result, exec::ExecutionContext::StringAllocator *memory, uint32_t len) {
     // Inlined
     if (len <= InlineThreshold()) {
       *result = StringVal(len);
@@ -288,7 +290,7 @@ struct StringVal : public Val {
     if (TPL_UNLIKELY(len > kMaxStingLen)) {
       return nullptr;
     }
-    auto * ptr = memory->Allocate(len);
+    auto *ptr = memory->Allocate(len);
     *result = StringVal(ptr, len);
     return ptr;
   }
@@ -296,13 +298,11 @@ struct StringVal : public Val {
   /**
    * @return threshold for inlining.
    */
-  static uint32_t InlineThreshold() {
-    return terrier::storage::VarlenEntry::InlineThreshold();
-  }
- private:
+  static uint32_t InlineThreshold() { return terrier::storage::VarlenEntry::InlineThreshold(); }
 
+ private:
   // Used to pre allocated inlined strings
-  StringVal(uint32_t len) : Val(false), len(len) {}
+  explicit StringVal(uint32_t len) : Val(false), len(len) {}
 };
 
 /**

@@ -5,38 +5,33 @@
 
 #include "llvm/ADT/SmallVector.h"
 
+#include "catalog/catalog_accessor.h"
+#include "catalog/catalog_defs.h"
 #include "execution/ast/ast.h"
 #include "execution/ast/ast_node_factory.h"
 #include "execution/ast/context.h"
 #include "execution/ast/type.h"
-#include "execution/util/macros.h"
-#include "execution/sema/error_reporter.h"
 #include "execution/sema/error_message.h"
-#include "catalog/catalog_defs.h"
-#include "catalog/catalog_accessor.h"
-
+#include "execution/sema/error_reporter.h"
+#include "execution/util/macros.h"
 
 namespace tpl::parsing {
 
-Rewriter::Rewriter(tpl::ast::Context *ctx, terrier::catalog::CatalogAccessor * accessor)
-: ctx_(ctx)
-, accessor_(accessor)
-{}
+Rewriter::Rewriter(tpl::ast::Context *ctx, terrier::catalog::CatalogAccessor *accessor)
+    : ctx_(ctx), accessor_(accessor) {}
 
 // Generate a call to the given builtin using the given arguments
-ast::Expr *GenCallBuiltin(ast::Context *ctx, SourcePosition pos,
-                          ast::Builtin builtin,
+ast::Expr *GenCallBuiltin(ast::Context *ctx, SourcePosition pos, ast::Builtin builtin,
                           const llvm::SmallVectorImpl<ast::Expr *> &args) {
-  auto *name = ctx->node_factory()->NewIdentifierExpr(
-      pos, ctx->GetIdentifier(ast::Builtins::GetFunctionName(builtin)));
-  return ctx->node_factory()->NewBuiltinCallExpr(
-      name, {args.begin(), args.end(), ctx->region()});
+  auto *name = ctx->node_factory()->NewIdentifierExpr(pos, ctx->GetIdentifier(ast::Builtins::GetFunctionName(builtin)));
+  return ctx->node_factory()->NewBuiltinCallExpr(name, {args.begin(), args.end(), ctx->region()});
 }
 
-ast::Expr* Rewriter::RewriteBuiltinCall(tpl::ast::CallExpr *call) {
+ast::Expr *Rewriter::RewriteBuiltinCall(tpl::ast::CallExpr *call) {
   ast::Builtin builtin;
   if (!ctx_->IsBuiltinFunction(call->GetFuncName(), &builtin)) {
-    ctx_->error_reporter()->Report(call->function()->position(), sema::ErrorMessages::kInvalidBuiltinFunction, call->GetFuncName());
+    ctx_->error_reporter()->Report(call->function()->position(), sema::ErrorMessages::kInvalidBuiltinFunction,
+                                   call->GetFuncName());
     UNREACHABLE("Function should only be called with a builtin function");
   }
 
@@ -67,10 +62,9 @@ ast::Expr* Rewriter::RewriteBuiltinCall(tpl::ast::CallExpr *call) {
   }
 }
 
-
-ast::Expr* Rewriter::RewritePCIGet(tpl::ast::CallExpr *call, ast::Builtin old_builtin) {
+ast::Expr *Rewriter::RewritePCIGet(tpl::ast::CallExpr *call, ast::Builtin old_builtin) {
   TPL_ASSERT(call->arguments().size() == 3, "PCIGetBind call takes in 3 arguments");
-  ast::Expr* pci = call->arguments()[0];
+  ast::Expr *pci = call->arguments()[0];
   auto alias = call->arguments()[1]->SafeAs<ast::LitExpr>()->raw_string_val().data();
   auto col_name = call->arguments()[2]->SafeAs<ast::LitExpr>()->raw_string_val().data();
 
@@ -103,20 +97,19 @@ ast::Expr* Rewriter::RewritePCIGet(tpl::ast::CallExpr *call, ast::Builtin old_bu
       builtin = nullable ? ast::Builtin::PCIGetVarlenNull : ast::Builtin::PCIGetVarlen;
       break;
     default:
-      // TODO: Support other types.
       UNREACHABLE("Cannot @pciGetBind unsupported type");
   }
 
-  ast::Expr* col_offset_expr = ctx_->node_factory()->NewIntLiteral(pci->position(), col_offset);
+  ast::Expr *col_offset_expr = ctx_->node_factory()->NewIntLiteral(pci->position(), col_offset);
   llvm::SmallVector<ast::Expr *, 2> args = {pci, col_offset_expr};
   return GenCallBuiltin(ctx_, call->position(), builtin, args);
 }
 
-ast::Expr* Rewriter::RewriteTableAndIndexInitCall(tpl::ast::CallExpr *call, ast::Builtin old_builtin) {
+ast::Expr *Rewriter::RewriteTableAndIndexInitCall(tpl::ast::CallExpr *call, ast::Builtin old_builtin) {
   switch (old_builtin) {
     case ast::Builtin::TableIterConstructBind: {
       TPL_ASSERT(call->arguments().size() == 4, "TableIterConstructBind call takes in 4 arguments");
-      ast::Expr* tvi = call->arguments()[0];
+      ast::Expr *tvi = call->arguments()[0];
       auto table_name = call->arguments()[1]->SafeAs<ast::LitExpr>()->raw_string_val().data();
       auto exec_ctx = call->arguments()[2];
       auto alias = call->arguments()[3]->SafeAs<ast::LitExpr>()->raw_string_val().data();
@@ -134,7 +127,7 @@ ast::Expr* Rewriter::RewriteTableAndIndexInitCall(tpl::ast::CallExpr *call, ast:
     }
     case ast::Builtin::IndexIteratorConstructBind: {
       TPL_ASSERT(call->arguments().size() == 5, "IndexIterConstructBind call takes in 5 arguments");
-      ast::Expr* index = call->arguments()[0];
+      ast::Expr *index = call->arguments()[0];
       auto table_name = call->arguments()[1]->SafeAs<ast::LitExpr>()->raw_string_val().data();
       auto index_name = call->arguments()[2]->SafeAs<ast::LitExpr>()->raw_string_val().data();
       auto exec_ctx = call->arguments()[3];
@@ -150,21 +143,22 @@ ast::Expr* Rewriter::RewriteTableAndIndexInitCall(tpl::ast::CallExpr *call, ast:
       index_offsets_[alias] = accessor_->GetIndex(index_oid)->GetKeyOidToOffsetMap();
 
       // Make Call
-      ast::Expr * table_oid_expr = ctx_->node_factory()->NewIntLiteral(index->position(), !table_oid);
-      ast::Expr * index_oid_expr = ctx_->node_factory()->NewIntLiteral(index->position(), !index_oid);
+      ast::Expr *table_oid_expr = ctx_->node_factory()->NewIntLiteral(index->position(), !table_oid);
+      ast::Expr *index_oid_expr = ctx_->node_factory()->NewIntLiteral(index->position(), !index_oid);
       llvm::SmallVector<ast::Expr *, 4> args = {index, table_oid_expr, index_oid_expr, exec_ctx};
       return GenCallBuiltin(ctx_, call->position(), ast::Builtin::IndexIteratorConstruct, args);
     }
     case ast::Builtin::TableIterPerformInitBind:
     case ast::Builtin::IndexIteratorPerformInitBind: {
       TPL_ASSERT(call->arguments().size() == 2, "PerformInitBind call in 2 arguments");
-      ast::Expr* tvi = call->arguments()[0];
+      ast::Expr *tvi = call->arguments()[0];
       auto alias = call->arguments()[1]->SafeAs<ast::LitExpr>()->raw_string_val().data();
 
       // Get Projection map
-      auto builtin = (old_builtin == ast::Builtin::TableIterPerformInitBind) ? ast::Builtin::TableIterPerformInit : ast::Builtin::IndexIteratorPerformInit;
+      auto builtin = (old_builtin == ast::Builtin::TableIterPerformInitBind) ? ast::Builtin::TableIterPerformInit
+                                                                             : ast::Builtin::IndexIteratorPerformInit;
       const auto table_oid = table_oids_[alias];
-      const auto & col_oids = col_oids_[alias];
+      const auto &col_oids = col_oids_[alias];
       auto sql_table = accessor_->GetTable(table_oid);
       table_offsets_[alias] = sql_table->ProjectionMapForOids(col_oids);
       llvm::SmallVector<ast::Expr *, 1> args = {tvi};
@@ -173,30 +167,29 @@ ast::Expr* Rewriter::RewriteTableAndIndexInitCall(tpl::ast::CallExpr *call, ast:
     case ast::Builtin::TableIterAddColBind:
     case ast::Builtin::IndexIteratorAddColBind: {
       TPL_ASSERT(call->arguments().size() == 3, "AddColBind call takes in 3 arguments");
-      ast::Expr* tvi = call->arguments()[0];
+      ast::Expr *tvi = call->arguments()[0];
       auto alias = call->arguments()[1]->SafeAs<ast::LitExpr>()->raw_string_val().data();
       auto col_name = call->arguments()[2]->SafeAs<ast::LitExpr>()->raw_string_val().data();
 
       // Add oid to list
-      const auto & schema = table_schemas_.at(alias);
+      const auto &schema = table_schemas_.at(alias);
       auto col_oid = schema.GetColumn(col_name).Oid();
       col_oids_[alias].emplace_back(col_oid);
 
       // Make Call
-      auto builtin = (old_builtin == ast::Builtin::TableIterAddColBind) ? ast::Builtin::TableIterAddCol : ast::Builtin::IndexIteratorAddCol;
-      ast::Expr * col_oid_expr = ctx_->node_factory()->NewIntLiteral(tvi->position(), !col_oid);
+      auto builtin = (old_builtin == ast::Builtin::TableIterAddColBind) ? ast::Builtin::TableIterAddCol
+                                                                        : ast::Builtin::IndexIteratorAddCol;
+      ast::Expr *col_oid_expr = ctx_->node_factory()->NewIntLiteral(tvi->position(), !col_oid);
       llvm::SmallVector<ast::Expr *, 2> args = {tvi, col_oid_expr};
       return GenCallBuiltin(ctx_, call->position(), builtin, args);
     }
-    default: {
-      UNREACHABLE("Impossible TableIterBind call!!");
-    }
+    default: { UNREACHABLE("Impossible TableIterBind call!!"); }
   }
 }
 
-ast::Expr* Rewriter::RewriteIndexIteratorGet(tpl::ast::CallExpr *call, tpl::ast::Builtin old_builtin) {
+ast::Expr *Rewriter::RewriteIndexIteratorGet(tpl::ast::CallExpr *call, tpl::ast::Builtin old_builtin) {
   TPL_ASSERT(call->arguments().size() == 3, "IndexIteratorGetBind call takes in 3 arguments");
-  ast::Expr* index = call->arguments()[0];
+  ast::Expr *index = call->arguments()[0];
   auto alias = call->arguments()[1]->SafeAs<ast::LitExpr>()->raw_string_val().data();
   auto col_name = call->arguments()[2]->SafeAs<ast::LitExpr>()->raw_string_val().data();
 
@@ -222,31 +215,30 @@ ast::Expr* Rewriter::RewriteIndexIteratorGet(tpl::ast::CallExpr *call, tpl::ast:
     case terrier::type::TypeId::DECIMAL:
       builtin = nullable ? ast::Builtin::IndexIteratorGetDoubleNull : ast::Builtin::IndexIteratorGetDouble;
       break;
-    //case terrier::type::TypeId::DATE:
-      //builtin = nullable ? ast::Builtin::IndexIteratorGetDateNull : ast::Builtin::IndexIteratorGetDate;
-      //break;
-    //case terrier::type::TypeId::VARCHAR:
-      //builtin = nullable ? ast::Builtin::IndexIteratorGetVarlenNull : ast::Builtin::IndexIteratorGetVarlen;
-      //break;
+    // case terrier::type::TypeId::DATE:
+    // builtin = nullable ? ast::Builtin::IndexIteratorGetDateNull : ast::Builtin::IndexIteratorGetDate;
+    // break;
+    // case terrier::type::TypeId::VARCHAR:
+    // builtin = nullable ? ast::Builtin::IndexIteratorGetVarlenNull : ast::Builtin::IndexIteratorGetVarlen;
+    // break;
     default:
-      // TODO: Support other types.
       UNREACHABLE("Cannot @indexIteratorGetBind unsupported type");
   }
 
-  ast::Expr* col_offset_expr = ctx_->node_factory()->NewIntLiteral(index->position(), col_offset);
+  ast::Expr *col_offset_expr = ctx_->node_factory()->NewIntLiteral(index->position(), col_offset);
   llvm::SmallVector<ast::Expr *, 2> args = {index, col_offset_expr};
   return GenCallBuiltin(ctx_, call->position(), builtin, args);
 }
 
-ast::Expr* Rewriter::RewriteIndexIteratorSetKey(tpl::ast::CallExpr *call, tpl::ast::Builtin old_builtin) {
+ast::Expr *Rewriter::RewriteIndexIteratorSetKey(tpl::ast::CallExpr *call, tpl::ast::Builtin old_builtin) {
   TPL_ASSERT(call->arguments().size() == 4, "IndexIteratorGetBind call takes in 3 arguments");
-  ast::Expr* index = call->arguments()[0];
+  ast::Expr *index = call->arguments()[0];
   auto alias = call->arguments()[1]->SafeAs<ast::LitExpr>()->raw_string_val().data();
   auto col_name = call->arguments()[2]->SafeAs<ast::LitExpr>()->raw_string_val().data();
-  ast::Expr* val = call->arguments()[3];
+  ast::Expr *val = call->arguments()[3];
 
-  const auto & index_schema = index_schemas_.at(alias);
-  const auto & offsets = index_offsets_.at(alias);
+  const auto &index_schema = index_schemas_.at(alias);
+  const auto &offsets = index_offsets_.at(alias);
   auto col = index_schema.GetColumn(col_name);
   u32 col_offset = offsets.at(col.Oid());
 
@@ -268,29 +260,27 @@ ast::Expr* Rewriter::RewriteIndexIteratorSetKey(tpl::ast::CallExpr *call, tpl::a
     case terrier::type::TypeId::DECIMAL:
       builtin = ast::Builtin::IndexIteratorSetKeyDouble;
       break;
-      //case terrier::type::TypeId::DATE:
-      //builtin = nullable ? ast::Builtin::IndexIteratorGetDateNull : ast::Builtin::IndexIteratorGetDate;
-      //break;
-      //case terrier::type::TypeId::VARCHAR:
-      //builtin = nullable ? ast::Builtin::IndexIteratorGetVarlenNull : ast::Builtin::IndexIteratorGetVarlen;
-      //break;
+      // case terrier::type::TypeId::DATE:
+      // builtin = nullable ? ast::Builtin::IndexIteratorGetDateNull : ast::Builtin::IndexIteratorGetDate;
+      // break;
+      // case terrier::type::TypeId::VARCHAR:
+      // builtin = nullable ? ast::Builtin::IndexIteratorGetVarlenNull : ast::Builtin::IndexIteratorGetVarlen;
+      // break;
     default:
-      // TODO: Support other types.
       UNREACHABLE("Cannot @indexIteratorSetKeyBind unsupported type");
   }
 
-  ast::Expr* col_offset_expr = ctx_->node_factory()->NewIntLiteral(index->position(), col_offset);
+  ast::Expr *col_offset_expr = ctx_->node_factory()->NewIntLiteral(index->position(), col_offset);
   llvm::SmallVector<ast::Expr *, 3> args = {index, col_offset_expr, val};
   return GenCallBuiltin(ctx_, call->position(), builtin, args);
 }
 
-
-ast::Expr* Rewriter::RewriteFilterCall(tpl::ast::CallExpr *call, tpl::ast::Builtin old_builtin) {
+ast::Expr *Rewriter::RewriteFilterCall(tpl::ast::CallExpr *call, tpl::ast::Builtin old_builtin) {
   TPL_ASSERT(call->arguments().size() == 4, "PCIGetBind call takes in 3 arguments");
-  ast::Expr* pci = call->arguments()[0];
+  ast::Expr *pci = call->arguments()[0];
   auto alias = call->arguments()[1]->SafeAs<ast::LitExpr>()->raw_string_val().data();
   auto col_name = call->arguments()[2]->SafeAs<ast::LitExpr>()->raw_string_val().data();
-  ast::Expr* filter_val = call->arguments()[3];
+  ast::Expr *filter_val = call->arguments()[3];
 
   auto schema = table_schemas_.at(alias);
   auto col = schema.GetColumn(col_name);
@@ -320,8 +310,8 @@ ast::Expr* Rewriter::RewriteFilterCall(tpl::ast::CallExpr *call, tpl::ast::Built
       UNREACHABLE("Impossible @pciFilterBind call!!");
   }
 
-  ast::Expr* col_offset_expr = ctx_->node_factory()->NewIntLiteral(pci->position(), col_offset);
-  ast::Expr* type_expr = ctx_->node_factory()->NewIntLiteral(pci->position(), static_cast<i8>(col.Type()));
+  ast::Expr *col_offset_expr = ctx_->node_factory()->NewIntLiteral(pci->position(), col_offset);
+  ast::Expr *type_expr = ctx_->node_factory()->NewIntLiteral(pci->position(), static_cast<i8>(col.Type()));
   llvm::SmallVector<ast::Expr *, 4> args = {pci, col_offset_expr, type_expr, filter_val};
   return GenCallBuiltin(ctx_, call->position(), builtin, args);
 }

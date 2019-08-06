@@ -202,11 +202,11 @@ class ComparisonFunctions {
     if (min_len == 0) {
       if (v1.len == v2.len) {
         return 0;
-      } else if (v1.len == 0) {
-        return -1;
-      } else {
-        return 1;
       }
+      if (v1.len == 0) {
+        return -1;
+      }
+      return 1;
     }
     return RawStringCompare(v1.Content(), v1.len, v2.Content(), v2.len, min_len);
   }

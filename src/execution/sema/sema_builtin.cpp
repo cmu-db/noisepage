@@ -139,7 +139,6 @@ void Sema::CheckBuiltinFilterCall(ast::CallExpr *call) {
     return;
   }
 
-
   // The third call argument must be an type represented by an integer.
   // TODO(Amadou): This is subject to change. Ideally, there should be a builtin for every type like for PCIGet.
   if (!args[2]->IsIntegerLiteral()) {
@@ -999,7 +998,6 @@ void Sema::CheckBuiltinPCICall(ast::CallExpr *call, ast::Builtin builtin) {
     default: { UNREACHABLE("Impossible PCI call"); }
   }
 }
-
 
 void Sema::CheckBuiltinHashCall(ast::CallExpr *call, UNUSED ast::Builtin builtin) {
   if (!CheckArgCountAtLeast(call, 1)) {

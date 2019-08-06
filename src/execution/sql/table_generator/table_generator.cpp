@@ -1,15 +1,14 @@
 #include "execution/sql/table_generator/table_generator.h"
 #include <algorithm>
 #include <memory>
+#include <random>
 #include <string>
 #include <utility>
 #include <vector>
-#include <random>
 #include "execution/util/bit_util.h"
 #include "loggers/execution_logger.h"
 #include "storage/index/bwtree_index.h"
 #include "storage/index/index_builder.h"
-
 
 namespace tpl::sql {
 
@@ -27,7 +26,8 @@ void TableGenerator::GenerateTPCHTables(const std::string &dir_name) {
       "part", "supplier", "partsupp", "customer", "orders", "lineitem", "nation", "region",
   };
   for (const auto &table_name : tpch_tables) {
-    u32 num_rows = table_reader.ReadTable(dir_name + "/" + table_name + ".schema", dir_name + "/" + table_name + ".data");
+    u32 num_rows =
+        table_reader.ReadTable(dir_name + table_name + ".schema", dir_name + table_name + ".data");
     std::cout << "Wrote " << num_rows << " rows for table " << table_name << std::endl;
   }
 }
@@ -115,21 +115,23 @@ std::pair<byte *, u32 *> TableGenerator::GenerateColumnData(const ColumnInsertMe
 }
 
 // Fill a given table according to its metadata
-void TableGenerator::FillTable(terrier::catalog::table_oid_t table_oid, terrier::common::ManagedPointer<terrier::storage::SqlTable> table, const terrier::catalog::Schema & schema, const TableInsertMeta &table_meta) {
+void TableGenerator::FillTable(terrier::catalog::table_oid_t table_oid,
+                               terrier::common::ManagedPointer<terrier::storage::SqlTable> table,
+                               const terrier::catalog::Schema &schema, const TableInsertMeta &table_meta) {
   u32 batch_size = 10000;
   u32 num_batches = table_meta.num_rows / batch_size + static_cast<u32>(table_meta.num_rows % batch_size != 0);
   std::vector<terrier::catalog::col_oid_t> table_cols;
-  for (const auto & col : schema.GetColumns()) {
+  for (const auto &col : schema.GetColumns()) {
     table_cols.emplace_back(col.Oid());
   }
   auto pri_map = table->InitializerForProjectedRow(table_cols);
-  auto & pri = pri_map.first;
-  auto & offset_map = pri_map.second;
+  auto &pri = pri_map.first;
+  auto &offset_map = pri_map.second;
   uint32_t vals_written = 0;
 
   std::vector<u16> offsets;
-  for (const auto & col_meta : table_meta.col_meta) {
-    const auto & table_col = schema.GetColumn(col_meta.name);
+  for (const auto &col_meta : table_meta.col_meta) {
+    const auto &table_col = schema.GetColumn(col_meta.name);
     offsets.emplace_back(offset_map[table_col.Oid()]);
   }
 
@@ -210,8 +212,8 @@ void TableGenerator::GenerateTestTables() {
     terrier::catalog::Schema tmp_schema(cols);
     // Create Table.
     auto table_oid = exec_ctx_->GetAccessor()->CreateTable(ns_oid_, table_meta.name, tmp_schema);
-    auto & schema = exec_ctx_->GetAccessor()->GetSchema(table_oid);
-    auto * tmp_table = new terrier::storage::SqlTable(store_, schema);
+    auto &schema = exec_ctx_->GetAccessor()->GetSchema(table_oid);
+    auto *tmp_table = new terrier::storage::SqlTable(store_, schema);
     exec_ctx_->GetAccessor()->SetTablePointer(table_oid, tmp_table);
     auto table = exec_ctx_->GetAccessor()->GetTable(table_oid);
     FillTable(table_oid, table, schema, table_meta);
@@ -221,15 +223,18 @@ void TableGenerator::GenerateTestTables() {
   InitTestIndexes();
 }
 
-void TableGenerator::FillIndex(terrier::common::ManagedPointer<terrier::storage::index::Index> index, const terrier::catalog::IndexSchema & index_schema, const IndexInsertMeta & index_meta, terrier::common::ManagedPointer<terrier::storage::SqlTable> table, const terrier::catalog::Schema & table_schema) {
+void TableGenerator::FillIndex(terrier::common::ManagedPointer<terrier::storage::index::Index> index,
+                               const terrier::catalog::IndexSchema &index_schema, const IndexInsertMeta &index_meta,
+                               terrier::common::ManagedPointer<terrier::storage::SqlTable> table,
+                               const terrier::catalog::Schema &table_schema) {
   // Initialize table projected row
   std::vector<terrier::catalog::col_oid_t> table_cols;
-  for (const auto & col : table_schema.GetColumns()) {
+  for (const auto &col : table_schema.GetColumns()) {
     table_cols.emplace_back(col.Oid());
   }
   auto table_pri_map = table->InitializerForProjectedRow(table_cols);
-  auto & table_pri = table_pri_map.first;
-  auto & table_offset_map = table_pri_map.second;
+  auto &table_pri = table_pri_map.first;
+  auto &table_offset_map = table_pri_map.second;
   byte *table_buffer = terrier::common::AllocationUtil::AllocateAligned(table_pri.ProjectedRowSize());
   auto table_pr = table_pri.InitializeRow(table_buffer);
 
@@ -239,8 +244,8 @@ void TableGenerator::FillIndex(terrier::common::ManagedPointer<terrier::storage:
   auto index_pr = index_pri.InitializeRow(index_buffer);
 
   std::vector<u16> table_offsets;
-  for (const auto & index_col_meta : index_meta.cols) {
-    const auto & table_col = table_schema.GetColumn(index_col_meta.table_col_name);
+  for (const auto &index_col_meta : index_meta.cols) {
+    const auto &table_col = table_schema.GetColumn(index_col_meta.table_col_name);
     table_offsets.emplace_back(table_offset_map[table_col.Oid()]);
   }
 
@@ -254,7 +259,7 @@ void TableGenerator::FillIndex(terrier::common::ManagedPointer<terrier::storage:
       auto table_offset = table_offsets[index_col_idx];
       // Get the offset of this column in the index
       const auto &index_col = index_schema.GetColumn(index_meta.cols[index_col_idx].name);
-      u16 index_offset =  index->GetKeyOidToOffsetMap().at(index_col.Oid());
+      u16 index_offset = index->GetKeyOidToOffsetMap().at(index_col.Oid());
       // Check null and write bytes.
       if (index_col.Nullable() && table_pr->IsNull(table_offset)) {
         index_pr->SetNull(index_offset);
@@ -289,17 +294,17 @@ void TableGenerator::InitTestIndexes() {
       {"index_2", "test_2", {{"index_col1", terrier::type::TypeId::SMALLINT, false, "col1"}}},
 
       // Table 2: two cols
-      {"index_2_multi", "test_2", {{"index_col1", terrier::type::TypeId::SMALLINT, false, "col1"},
-                                   {"index_col2", terrier::type::TypeId::INTEGER, true, "col2"}}}
-  };
+      {"index_2_multi",
+       "test_2",
+       {{"index_col1", terrier::type::TypeId::SMALLINT, false, "col1"},
+        {"index_col2", terrier::type::TypeId::INTEGER, true, "col2"}}}};
 
   terrier::storage::index::IndexBuilder index_builder;
   for (const auto &index_meta : index_metas) {
     // Get Corresponding Table
     auto table_oid = exec_ctx_->GetAccessor()->GetTableOid(ns_oid_, index_meta.table_name);
     auto table = exec_ctx_->GetAccessor()->GetTable(table_oid);
-    auto & table_schema = exec_ctx_->GetAccessor()->GetSchema(table_oid);
-
+    auto &table_schema = exec_ctx_->GetAccessor()->GetSchema(table_oid);
 
     // Create Index Schema
     std::vector<terrier::catalog::IndexSchema::Column> index_cols;
@@ -309,11 +314,11 @@ void TableGenerator::InitTestIndexes() {
     terrier::catalog::IndexSchema tmp_index_schema{index_cols, false, false, false, false};
     // Create Index
     auto index_oid = exec_ctx_->GetAccessor()->CreateIndex(ns_oid_, table_oid, index_meta.index_name, tmp_index_schema);
-    auto & index_schema = exec_ctx_->GetAccessor()->GetIndexSchema(index_oid);
+    auto &index_schema = exec_ctx_->GetAccessor()->GetIndexSchema(index_oid);
     index_builder.SetOid(index_oid);
     index_builder.SetConstraintType(terrier::storage::index::ConstraintType::DEFAULT);
     index_builder.SetKeySchema(index_schema);
-    auto * tmp_index = index_builder.Build();
+    auto *tmp_index = index_builder.Build();
     exec_ctx_->GetAccessor()->SetIndexPointer(index_oid, tmp_index);
 
     auto index = exec_ctx_->GetAccessor()->GetIndex(index_oid);

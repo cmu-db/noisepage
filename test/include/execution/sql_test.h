@@ -25,8 +25,7 @@ class SqlBasedTest : public TplTest {
     // Initialize terrier objects
     block_store_ = std::make_unique<terrier::storage::BlockStore>(1000, 1000);
     buffer_pool_ = std::make_unique<terrier::storage::RecordBufferSegmentPool>(100000, 100000);
-    txn_manager_ =
-        std::make_unique<terrier::transaction::TransactionManager>(buffer_pool_.get(), true, nullptr);
+    txn_manager_ = std::make_unique<terrier::transaction::TransactionManager>(buffer_pool_.get(), true, nullptr);
     gc_ = std::make_unique<terrier::storage::GarbageCollector>(txn_manager_.get(), nullptr);
     test_txn_ = txn_manager_->BeginTransaction();
 
@@ -45,13 +44,9 @@ class SqlBasedTest : public TplTest {
     gc_->PerformGarbageCollection();
   }
 
-  terrier::catalog::namespace_oid_t NSOid() {
-    return test_ns_oid_;
-  }
+  terrier::catalog::namespace_oid_t NSOid() { return test_ns_oid_; }
 
-  terrier::storage::BlockStore * BlockStore() {
-    return block_store_.get();
-  }
+  terrier::storage::BlockStore *BlockStore() { return block_store_.get(); }
 
   std::unique_ptr<exec::ExecutionContext> MakeExecCtx(exec::OutputCallback &&callback = nullptr,
                                                       const terrier::planner::OutputSchema *schema = nullptr) {
@@ -59,9 +54,13 @@ class SqlBasedTest : public TplTest {
     return std::make_unique<exec::ExecutionContext>(test_db_oid_, test_txn_, callback, schema, std::move(accessor));
   }
 
-  void GenerateTestTables(exec::ExecutionContext * exec_ctx) {
+  void GenerateTestTables(exec::ExecutionContext *exec_ctx) {
     sql::TableGenerator table_generator{exec_ctx, block_store_.get(), test_ns_oid_};
     table_generator.GenerateTestTables();
+  }
+
+  terrier::parser::ConstantValueExpression DummyCVE() {
+    return terrier::parser::ConstantValueExpression(terrier::type::TransientValueFactory::GetInteger(0));
   }
 
  private:
@@ -70,10 +69,9 @@ class SqlBasedTest : public TplTest {
   std::unique_ptr<terrier::transaction::TransactionManager> txn_manager_;
   std::unique_ptr<terrier::catalog::Catalog> catalog_;
   std::unique_ptr<terrier::storage::GarbageCollector> gc_;
-  terrier::catalog::db_oid_t test_db_oid_{0};;
+  terrier::catalog::db_oid_t test_db_oid_{0};
   terrier::catalog::namespace_oid_t test_ns_oid_;
   terrier::transaction::TransactionContext *test_txn_;
-
 };
 
 }  // namespace tpl

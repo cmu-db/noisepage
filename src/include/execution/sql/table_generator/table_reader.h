@@ -24,8 +24,12 @@ class TableReader {
   /**
    * Constructor
    * @param exec_ctx execution context to use
+   * @param store block store to use when creating tables
+   * @param ns_oid oid of the namespace
    */
-  explicit TableReader(exec::ExecutionContext *exec_ctx, terrier::storage::BlockStore * store, terrier::catalog::namespace_oid_t ns_oid) : exec_ctx_{exec_ctx}, store_{store}, ns_oid_{ns_oid} {}
+  explicit TableReader(exec::ExecutionContext *exec_ctx, terrier::storage::BlockStore *store,
+                       terrier::catalog::namespace_oid_t ns_oid)
+      : exec_ctx_{exec_ctx}, store_{store}, ns_oid_{ns_oid} {}
 
   /**
    * Read a table given a schema file and a data file
@@ -50,7 +54,7 @@ class TableReader {
   // Postgres NULL string
   static constexpr const char *null_string = "\\N";
   exec::ExecutionContext *exec_ctx_;
-  terrier::storage::BlockStore * store_;
+  terrier::storage::BlockStore *store_;
   terrier::catalog::namespace_oid_t ns_oid_;
 };
 }  // namespace tpl::sql

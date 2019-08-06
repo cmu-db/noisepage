@@ -25,7 +25,9 @@ class IndexIterator {
    */
   explicit IndexIterator(uint32_t table_oid, uint32_t index_oid, exec::ExecutionContext *exec_ctx);
 
-
+  /**
+   * Initialize the projected row and begin scanning.
+   */
   void Init();
 
   /**
@@ -37,9 +39,7 @@ class IndexIterator {
    * Add a column to the list of columns to select
    * @param col_oid oid of the column to select
    */
-  void AddCol(u32 col_oid) {
-    col_oids_.emplace_back(col_oid);
-  }
+  void AddCol(u32 col_oid) { col_oids_.emplace_back(col_oid); }
 
   /**
    * Wrapper around the index's ScanKey
@@ -93,7 +93,7 @@ class IndexIterator {
     if (null) {
       index_pr_->SetNull(static_cast<u16>(col_idx));
     } else {
-      *reinterpret_cast<T*>(index_pr_->AccessForceNotNull(col_idx)) = value;
+      *reinterpret_cast<T *>(index_pr_->AccessForceNotNull(col_idx)) = value;
     }
   }
 
@@ -106,7 +106,7 @@ class IndexIterator {
   ProjectedRow *table_pr_;
   terrier::common::ManagedPointer<terrier::storage::index::Index> index_;
   terrier::common::ManagedPointer<terrier::storage::SqlTable> table_;
-  const terrier::catalog::Schema & schema_;
+  const terrier::catalog::Schema &schema_;
   std::vector<terrier::catalog::col_oid_t> col_oids_;
   std::vector<TupleSlot> tuples_{};
 };

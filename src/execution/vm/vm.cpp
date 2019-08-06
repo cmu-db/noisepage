@@ -1464,12 +1464,11 @@ void VM::Interpret(const u8 *ip, Frame *frame) {
   GEN_INDEX_ITERATOR_ACCESS(Decimal, sql::Decimal)
 #undef GEN_INDEX_ITERATOR_ACCESS
 
-
-#define GEN_INDEX_ITERATOR_SET(type_str, type)                       \
-  OP(IndexIteratorSetKey##type_str) : {                                    \
+#define GEN_INDEX_ITERATOR_SET(type_str, type)                          \
+  OP(IndexIteratorSetKey##type_str) : {                                 \
     auto *iter = frame->LocalAt<sql::IndexIterator *>(READ_LOCAL_ID()); \
     auto col_idx = READ_UIMM2();                                        \
-    auto val = frame->LocalAt<type *>(READ_LOCAL_ID()); \
+    auto val = frame->LocalAt<type *>(READ_LOCAL_ID());                 \
     OpIndexIteratorSetKey##type_str(iter, col_idx, val);                \
     DISPATCH_NEXT();                                                    \
   }

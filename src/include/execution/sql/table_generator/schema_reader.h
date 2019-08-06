@@ -6,12 +6,12 @@
 #include <unordered_map>
 #include <utility>
 #include <vector>
-#include "catalog/schema.h"
 #include "catalog/catalog_accessor.h"
-#include "transaction/transaction_context.h"
-#include "type/type_id.h"
+#include "catalog/schema.h"
 #include "parser/expression/constant_value_expression.h"
+#include "transaction/transaction_context.h"
 #include "type/transient_value_factory.h"
+#include "type/type_id.h"
 
 namespace tpl::sql {
 
@@ -86,8 +86,8 @@ class SchemaReader {
   /**
    * Constructor
    */
-  explicit SchemaReader()
-       : type_names_{{"tinyint", terrier::type::TypeId::TINYINT}, {"smallint", terrier::type::TypeId::SMALLINT},
+  SchemaReader()
+      : type_names_{{"tinyint", terrier::type::TypeId::TINYINT}, {"smallint", terrier::type::TypeId::SMALLINT},
                     {"int", terrier::type::TypeId::INTEGER},     {"bigint", terrier::type::TypeId::BIGINT},
                     {"bool", terrier::type::TypeId::BOOLEAN},    {"real", terrier::type::TypeId::DECIMAL},
                     {"decimal", terrier::type::TypeId::DECIMAL}, {"varchar", terrier::type::TypeId::VARCHAR},
@@ -132,7 +132,8 @@ class SchemaReader {
         *in >> col_idx;
         index_info->index_map.emplace_back(col_idx);
         const auto &table_column = table_info->cols[col_idx];
-        index_info->cols.emplace_back("index_col" + std::to_string(col_idx), table_column. Type(), table_column.Nullable(), DummyCVE());
+        index_info->cols.emplace_back("index_col" + std::to_string(col_idx), table_column.Type(),
+                                      table_column.Nullable(), DummyCVE());
       }
       // Update list of indexes
       table_info->indexes.emplace_back(std::move(index_info));

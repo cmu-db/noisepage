@@ -24,12 +24,10 @@ void OpThreadStateContainerFree(tpl::sql::ThreadStateContainer *const thread_sta
 // ---------------------------------------------------------
 
 void OpTableVectorIteratorConstruct(tpl::sql::TableVectorIterator *iter, u32 table_oid,
-                               tpl::exec::ExecutionContext *exec_ctx) {
+                                    tpl::exec::ExecutionContext *exec_ctx) {
   TPL_ASSERT(iter != nullptr, "Null iterator to initialize");
   new (iter) tpl::sql::TableVectorIterator(table_oid, exec_ctx);
 }
-
-
 
 void OpTableVectorIteratorPerformInit(tpl::sql::TableVectorIterator *iter) { iter->Init(); }
 
@@ -188,12 +186,11 @@ void OpInsert(tpl::exec::ExecutionContext *exec_ctx, u32 table_oid, byte *values
 // Index Iterator
 // -------------------------------------------------------------------
 void OpIndexIteratorConstruct(tpl::sql::IndexIterator *iter, uint32_t table_oid, uint32_t index_oid,
-                         tpl::exec::ExecutionContext *exec_ctx) {
+                              tpl::exec::ExecutionContext *exec_ctx) {
   new (iter) tpl::sql::IndexIterator(table_oid, index_oid, exec_ctx);
 }
 
 void OpIndexIteratorPerformInit(tpl::sql::IndexIterator *iter) { iter->Init(); }
-
 
 void OpIndexIteratorFree(tpl::sql::IndexIterator *iter) { iter->~IndexIterator(); }
 

@@ -16,7 +16,7 @@ namespace tpl::sema::test {
 
 class SemaExprTest : public TplTest, public ast::test::TestAstBuilder {
  public:
-  SemaExprTest() : TestAstBuilder() {}
+  SemaExprTest() = default;
 
   void SetUp() override {
     TplTest::SetUp();

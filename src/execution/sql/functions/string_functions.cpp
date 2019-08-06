@@ -36,7 +36,8 @@ void StringFunctions::Substring(UNUSED exec::ExecutionContext *ctx, StringVal *r
 
 namespace {
 
-const char *SearchSubstring(const char *haystack, const std::size_t hay_len, const char *needle, const std::size_t needle_len) {
+const char *SearchSubstring(const char *haystack, const std::size_t hay_len, const char *needle,
+                            const std::size_t needle_len) {
   TPL_ASSERT(needle != nullptr, "No search string provided");
   TPL_ASSERT(needle_len > 0, "No search string provided");
   for (u32 i = 0; i < hay_len + needle_len; i++) {
@@ -106,14 +107,14 @@ void StringFunctions::Repeat(exec::ExecutionContext *ctx, StringVal *result, con
     return;
   }
 
-  char * ptr = StringVal::PreAllocate(result, ctx->GetStringAllocator(), static_cast<u32>(str.len * n.val));
+  char *ptr = StringVal::PreAllocate(result, ctx->GetStringAllocator(), static_cast<u32>(str.len * n.val));
   if (TPL_UNLIKELY(ptr == nullptr)) {
     // Allocation failed
     return;
   }
 
   // Repeat
-  auto * src = str.Content();
+  auto *src = str.Content();
   for (u32 i = 0; i < n.val; i++) {
     std::memcpy(ptr, src, str.len);
     ptr += str.len;
@@ -139,14 +140,14 @@ void StringFunctions::Lpad(exec::ExecutionContext *ctx, StringVal *result, const
     return;
   }
 
-  char * ptr = StringVal::PreAllocate(result, ctx->GetStringAllocator(), static_cast<u32>(len.val));
+  char *ptr = StringVal::PreAllocate(result, ctx->GetStringAllocator(), static_cast<u32>(len.val));
   if (TPL_UNLIKELY(ptr == nullptr)) {
     // Allocation failed
     return;
   }
 
-  auto * pad_src = pad.Content();
-  for (u32 bytes_left = u32(len.val - str.len); bytes_left > 0;) {
+  auto *pad_src = pad.Content();
+  for (auto bytes_left = u32(len.val - str.len); bytes_left > 0;) {
     auto copy_len = std::min(pad.len, bytes_left);
     std::memcpy(ptr, pad_src, copy_len);
     bytes_left -= copy_len;
@@ -175,7 +176,7 @@ void StringFunctions::Rpad(exec::ExecutionContext *ctx, StringVal *result, const
     return;
   }
 
-  char * ptr = StringVal::PreAllocate(result, ctx->GetStringAllocator(), static_cast<u32>(len.val));
+  char *ptr = StringVal::PreAllocate(result, ctx->GetStringAllocator(), static_cast<u32>(len.val));
   if (TPL_UNLIKELY(ptr == nullptr)) {
     // Allocation failed
     return;
@@ -186,8 +187,8 @@ void StringFunctions::Rpad(exec::ExecutionContext *ctx, StringVal *result, const
   ptr += str.len;
 
   // Then padding
-  auto * pad_src = pad.Content();
-  for (u32 bytes_left = u32(len.val - str.len); bytes_left > 0;) {
+  auto *pad_src = pad.Content();
+  for (auto bytes_left = u32(len.val - str.len); bytes_left > 0;) {
     auto copy_len = std::min(pad.len, bytes_left);
     std::memcpy(ptr, pad_src, copy_len);
     bytes_left -= copy_len;
@@ -206,7 +207,7 @@ void StringFunctions::Lower(exec::ExecutionContext *ctx, StringVal *result, cons
     return;
   }
 
-  char * ptr = StringVal::PreAllocate(result, ctx->GetStringAllocator(), str.len);
+  char *ptr = StringVal::PreAllocate(result, ctx->GetStringAllocator(), str.len);
   if (TPL_UNLIKELY(ptr == nullptr)) {
     // Allocation failed
     return;
@@ -224,7 +225,7 @@ void StringFunctions::Upper(exec::ExecutionContext *ctx, StringVal *result, cons
     return;
   }
 
-  char * ptr = StringVal::PreAllocate(result, ctx->GetStringAllocator(), str.len);
+  char *ptr = StringVal::PreAllocate(result, ctx->GetStringAllocator(), str.len);
   if (TPL_UNLIKELY(ptr == nullptr)) {
     // Allocation failed
     return;
@@ -247,13 +248,13 @@ void StringFunctions::Reverse(exec::ExecutionContext *ctx, StringVal *result, co
     return;
   }
 
-  char * ptr = StringVal::PreAllocate(result, ctx->GetStringAllocator(), str.len);
+  char *ptr = StringVal::PreAllocate(result, ctx->GetStringAllocator(), str.len);
   if (TPL_UNLIKELY(ptr == nullptr)) {
     // Allocation failed
     return;
   }
 
-  auto * src = str.Content();
+  auto *src = str.Content();
   std::reverse_copy(src, src + str.len, ptr);
 }
 
@@ -280,7 +281,7 @@ void DoTrim(StringVal *result, const StringVal &str, const StringVal &chars) {
 
   util::InlinedBitVector<256> bitset;
   // Store this variable to avoid reexecuting if statements.
-  auto * chars_content = chars.Content();
+  auto *chars_content = chars.Content();
   for (u32 i = 0; i < chars.len; i++) {
     bitset.Set(u32(chars_content[i]));
   }
@@ -288,7 +289,7 @@ void DoTrim(StringVal *result, const StringVal &str, const StringVal &chars) {
   // The valid range
   i32 begin = 0, end = str.len - 1;
 
-  auto * src = str.Content();
+  auto *src = str.Content();
   if constexpr (TrimLeft) {
     while (begin < static_cast<i32>(str.len) && bitset.Test(u32(src[begin]))) {
       begin++;

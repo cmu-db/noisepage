@@ -7,9 +7,9 @@
 #include "execution/ast/ast_node_factory.h"
 #include "execution/ast/context.h"
 #include "execution/ast/identifier.h"
+#include "execution/parsing/rewriter.h"
 #include "execution/parsing/scanner.h"
 #include "execution/sema/error_reporter.h"
-#include "execution/parsing/rewriter.h"
 
 namespace tpl::parsing {
 
@@ -24,7 +24,7 @@ class Parser {
    * @param context The context
    * @param rewriter The expression rewriter
    */
-  Parser(Scanner *scanner, ast::Context *context, Rewriter * rewriter = nullptr);
+  Parser(Scanner *scanner, ast::Context *context, Rewriter *rewriter = nullptr);
 
   /**
    * This class cannot be copied or moved
@@ -154,7 +154,7 @@ class Parser {
   sema::ErrorReporter *error_reporter_;
 
   // The rewriter
-  Rewriter * rewriter_;
+  Rewriter *rewriter_;
 };
 
 }  // namespace tpl::parsing

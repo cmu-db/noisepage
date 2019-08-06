@@ -324,7 +324,7 @@ TEST_F(AggregatorsTest, MaxReal) {
   // Proper max calculation
   {
     for (i64 i = 0; i < 25; i++) {
-      double j = static_cast<double>(i);
+      auto j = static_cast<double>(i);
 
       // mix in some low numbers
       if (i % 2 == 0) {
@@ -343,7 +343,7 @@ TEST_F(AggregatorsTest, MaxReal) {
   {
     EXPECT_TRUE(max2.GetResultMax().is_null);
     for (i64 i = 23; i < 45; i++) {
-      double j = static_cast<double>(i);
+      auto j = static_cast<double>(i);
 
       // mix in some low numbers
       if (i % 2 == 0) {
@@ -387,7 +387,7 @@ TEST_F(AggregatorsTest, MinReal) {
   // Proper min calculation using min1
   {
     for (i64 i = 0; i < 25; i++) {
-      double j = static_cast<double>(i);
+      auto j = static_cast<double>(i);
 
       // mix in some low numbers
       if (i % 2 == 0) {
@@ -406,7 +406,7 @@ TEST_F(AggregatorsTest, MinReal) {
   {
     EXPECT_TRUE(min2.GetResultMin().is_null);
     for (i64 i = 23; i < 45; i++) {
-      double j = static_cast<double>(i);
+      auto j = static_cast<double>(i);
 
       // mix in some low numbers
       if (i % 2 == 0) {

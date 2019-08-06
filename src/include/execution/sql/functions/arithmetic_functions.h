@@ -231,9 +231,9 @@ class ArithmeticFunctions {
   static void Log(Real *result, const Real &base, const Real &val);
 
   /**
-   * Exponentiation
+   * Exponentiation a ^ b
    */
-  static void Pow(Real *result, const Real &base, const Real &val);
+  static void Pow(Real *result, const Real &a, const Real &b);
 
  private:
   // Cotangent

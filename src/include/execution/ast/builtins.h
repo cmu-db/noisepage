@@ -22,13 +22,13 @@ namespace tpl::ast {
   F(FilterGt, filterGt)                                         \
   F(FilterLe, filterLe)                                         \
   F(FilterLt, filterLt)                                         \
-  F(FilterNe, filterNe)                                      \
-  F(FilterEqBind, filterEqBind)                                         \
-  F(FilterGeBind, filterGeBind)                                         \
-  F(FilterGtBind, filterGtBind)                                         \
-  F(FilterLeBind, filterLeBind)                                         \
-  F(FilterLtBind, filterLtBind)                                         \
-  F(FilterNeBind, filterNeBind)                                         \
+  F(FilterNe, filterNe)                                         \
+  F(FilterEqBind, filterEqBind)                                 \
+  F(FilterGeBind, filterGeBind)                                 \
+  F(FilterGtBind, filterGtBind)                                 \
+  F(FilterLeBind, filterLeBind)                                 \
+  F(FilterLtBind, filterLtBind)                                 \
+  F(FilterNeBind, filterNeBind)                                 \
                                                                 \
   /* Thread State Container */                                  \
   F(ExecutionContextGetMemoryPool, execCtxGetMem)               \
@@ -38,12 +38,12 @@ namespace tpl::ast {
   F(ThreadStateContainerFree, tlsFree)                          \
                                                                 \
   /* Table scans */                                             \
-  F(TableIterConstruct, tableIterConstruct)                               \
-  F(TableIterConstructBind, tableIterConstructBind)                               \
-  F(TableIterPerformInit, tableIterPerformInit)                               \
-  F(TableIterPerformInitBind, tableIterPerformInitBind)                               \
-  F(TableIterAddCol, tableIterAddCol)                               \
-  F(TableIterAddColBind, tableIterAddColBind)                               \
+  F(TableIterConstruct, tableIterConstruct)                     \
+  F(TableIterConstructBind, tableIterConstructBind)             \
+  F(TableIterPerformInit, tableIterPerformInit)                 \
+  F(TableIterPerformInitBind, tableIterPerformInitBind)         \
+  F(TableIterAddCol, tableIterAddCol)                           \
+  F(TableIterAddColBind, tableIterAddColBind)                   \
   F(TableIterAdvance, tableIterAdvance)                         \
   F(TableIterGetPCI, tableIterGetPCI)                           \
   F(TableIterClose, tableIterClose)                             \
@@ -58,7 +58,7 @@ namespace tpl::ast {
   F(PCIMatch, pciMatch)                                         \
   F(PCIReset, pciReset)                                         \
   F(PCIResetFiltered, pciResetFiltered)                         \
-  F(PCIGetTinyInt, pciGetTinyInt)                             \
+  F(PCIGetTinyInt, pciGetTinyInt)                               \
   F(PCIGetSmallInt, pciGetSmallInt)                             \
   F(PCIGetInt, pciGetInt)                                       \
   F(PCIGetBigInt, pciGetBigInt)                                 \
@@ -66,7 +66,7 @@ namespace tpl::ast {
   F(PCIGetDouble, pciGetDouble)                                 \
   F(PCIGetDate, pciGetDate)                                     \
   F(PCIGetVarlen, pciGetVarlen)                                 \
-  F(PCIGetTinyIntNull, pciGetTinyIntNull)                     \
+  F(PCIGetTinyIntNull, pciGetTinyIntNull)                       \
   F(PCIGetSmallIntNull, pciGetSmallIntNull)                     \
   F(PCIGetIntNull, pciGetIntNull)                               \
   F(PCIGetBigIntNull, pciGetBigIntNull)                         \
@@ -74,7 +74,7 @@ namespace tpl::ast {
   F(PCIGetDoubleNull, pciGetDoubleNull)                         \
   F(PCIGetDateNull, pciGetDateNull)                             \
   F(PCIGetVarlenNull, pciGetVarlenNull)                         \
-  F(PCIGetBind, pciGetBind)                         \
+  F(PCIGetBind, pciGetBind)                                     \
                                                                 \
   /* Hashing */                                                 \
   F(Hash, hash)                                                 \
@@ -154,34 +154,34 @@ namespace tpl::ast {
   F(OutputFinalize, outputFinalize)                             \
                                                                 \
   /* Index */                                                   \
-  F(IndexIteratorConstruct, indexIteratorConstruct)                       \
-  F(IndexIteratorConstructBind, indexIteratorConstructBind)                       \
-  F(IndexIteratorPerformInit, indexIteratorPerformInit)                       \
-  F(IndexIteratorPerformInitBind, indexIteratorPerformInitBind)                       \
-  F(IndexIteratorAddCol, indexIteratorAddCol)                       \
-  F(IndexIteratorAddColBind, indexIteratorAddColBind)                       \
+  F(IndexIteratorConstruct, indexIteratorConstruct)             \
+  F(IndexIteratorConstructBind, indexIteratorConstructBind)     \
+  F(IndexIteratorPerformInit, indexIteratorPerformInit)         \
+  F(IndexIteratorPerformInitBind, indexIteratorPerformInitBind) \
+  F(IndexIteratorAddCol, indexIteratorAddCol)                   \
+  F(IndexIteratorAddColBind, indexIteratorAddColBind)           \
   F(IndexIteratorScanKey, indexIteratorScanKey)                 \
   F(IndexIteratorAdvance, indexIteratorAdvance)                 \
-  F(IndexIteratorGetTinyInt, indexIteratorGetTinyInt)         \
+  F(IndexIteratorGetTinyInt, indexIteratorGetTinyInt)           \
   F(IndexIteratorGetSmallInt, indexIteratorGetSmallInt)         \
   F(IndexIteratorGetInt, indexIteratorGetInt)                   \
   F(IndexIteratorGetBigInt, indexIteratorGetBigInt)             \
   F(IndexIteratorGetReal, indexIteratorGetReal)                 \
   F(IndexIteratorGetDouble, indexIteratorGetDouble)             \
-  F(IndexIteratorGetTinyIntNull, indexIteratorGetTinyIntNull)         \
-  F(IndexIteratorGetSmallIntNull, indexIteratorGetSmallIntNull)         \
-  F(IndexIteratorGetIntNull, indexIteratorGetIntNull)                   \
-  F(IndexIteratorGetBigIntNull, indexIteratorGetBigIntNull)             \
-  F(IndexIteratorGetRealNull, indexIteratorGetRealNull)                 \
-  F(IndexIteratorGetDoubleNull, indexIteratorGetDoubleNull)             \
-  F(IndexIteratorGetBind, indexIteratorGetBind)             \
-  F(IndexIteratorSetKeyTinyInt, indexIteratorSetKeyTinyInt)         \
-  F(IndexIteratorSetKeySmallInt, indexIteratorSetKeySmallInt)         \
-  F(IndexIteratorSetKeyInt, indexIteratorSetKeyInt)                   \
-  F(IndexIteratorSetKeyBigInt, indexIteratorSetKeyBigInt)             \
-  F(IndexIteratorSetKeyReal, indexIteratorSetKeyReal)                 \
-  F(IndexIteratorSetKeyDouble, indexIteratorSetKeyDouble)             \
-  F(IndexIteratorSetKeyBind, indexIteratorSetKeyBind)         \
+  F(IndexIteratorGetTinyIntNull, indexIteratorGetTinyIntNull)   \
+  F(IndexIteratorGetSmallIntNull, indexIteratorGetSmallIntNull) \
+  F(IndexIteratorGetIntNull, indexIteratorGetIntNull)           \
+  F(IndexIteratorGetBigIntNull, indexIteratorGetBigIntNull)     \
+  F(IndexIteratorGetRealNull, indexIteratorGetRealNull)         \
+  F(IndexIteratorGetDoubleNull, indexIteratorGetDoubleNull)     \
+  F(IndexIteratorGetBind, indexIteratorGetBind)                 \
+  F(IndexIteratorSetKeyTinyInt, indexIteratorSetKeyTinyInt)     \
+  F(IndexIteratorSetKeySmallInt, indexIteratorSetKeySmallInt)   \
+  F(IndexIteratorSetKeyInt, indexIteratorSetKeyInt)             \
+  F(IndexIteratorSetKeyBigInt, indexIteratorSetKeyBigInt)       \
+  F(IndexIteratorSetKeyReal, indexIteratorSetKeyReal)           \
+  F(IndexIteratorSetKeyDouble, indexIteratorSetKeyDouble)       \
+  F(IndexIteratorSetKeyBind, indexIteratorSetKeyBind)           \
   F(IndexIteratorFree, indexIteratorFree)                       \
                                                                 \
   /* Insert */                                                  \

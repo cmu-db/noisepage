@@ -76,7 +76,7 @@ class StringFunctions {
   /**
    * Pads the right side of the string with min(pad_length, len) characters
    */
-  static void Rpad(exec::ExecutionContext *ctx, StringVal *result, const StringVal &str, const Integer &n,
+  static void Rpad(exec::ExecutionContext *ctx, StringVal *result, const StringVal &str, const Integer &len,
                    const StringVal &pad);
 
   /**

@@ -1,10 +1,10 @@
+#include <storage/index/index_builder.h>
 #include <string>
 #include <vector>
-#include <storage/index/index_builder.h>
 
+#include "csv/csv.h" // NOLINT
 #include "execution/sql/table_generator/table_reader.h"
 #include "execution/sql/value.h"
-#include "csv/csv.h"
 
 namespace tpl::sql {
 
@@ -18,29 +18,29 @@ uint32_t TableReader::ReadTable(const std::string &schema_file, const std::strin
 
   // Init table projected row
   auto table = exec_ctx_->GetAccessor()->GetTable(table_oid);
-  auto & table_schema = exec_ctx_->GetAccessor()->GetSchema(table_oid);
+  auto &table_schema = exec_ctx_->GetAccessor()->GetSchema(table_oid);
   std::vector<terrier::catalog::col_oid_t> table_cols;
-  for (const auto & col : table_schema.GetColumns()) {
+  for (const auto &col : table_schema.GetColumns()) {
     table_cols.emplace_back(col.Oid());
   }
   auto pri_map = table->InitializerForProjectedRow(table_cols);
-  auto & pri = pri_map.first;
+  auto &pri = pri_map.first;
 
   // Init index prs
   std::vector<terrier::storage::ProjectedRow *> index_prs;
   for (const auto &index_oid : index_oids) {
     auto index = exec_ctx_->GetAccessor()->GetIndex(index_oid);
-    auto & index_pri = index->GetProjectedRowInitializer();
+    auto &index_pri = index->GetProjectedRowInitializer();
     byte *index_buffer = terrier::common::AllocationUtil::AllocateAligned(index_pri.ProjectedRowSize());
     auto index_pr = index_pri.InitializeRow(index_buffer);
     index_prs.emplace_back(index_pr);
   }
 
   // Set table column offsets
-  auto & offset_map = pri_map.second;
+  auto &offset_map = pri_map.second;
   std::vector<u16> table_offsets;
-  for (const auto & col_info : table_info->cols) {
-    const auto & col = table_schema.GetColumn(col_info.Name());
+  for (const auto &col_info : table_info->cols) {
+    const auto &col = table_schema.GetColumn(col_info.Name());
     table_offsets.emplace_back(offset_map[col.Oid()]);
   }
 
@@ -74,8 +74,7 @@ uint32_t TableReader::ReadTable(const std::string &schema_file, const std::strin
         u16 table_offset = table_offsets[table_col_idx];
         // Get the offset of this column in the index
         auto &index_col = index_schema.GetColumn(index_col_idx);
-        u16 index_offset =
-            static_cast<u16>(index->GetKeyOidToOffsetMap().at(index_col.Oid()));
+        u16 index_offset = static_cast<u16>(index->GetKeyOidToOffsetMap().at(index_col.Oid()));
         // Check null and write bytes.
         if (index_col.Nullable() && redo->Delta()->IsNull(table_offset)) {
           index_pr->SetNull(index_offset);
@@ -91,8 +90,8 @@ uint32_t TableReader::ReadTable(const std::string &schema_file, const std::strin
   }
 
   // Deallocate
-  for (auto & index_pr : index_prs) {
-    delete [] reinterpret_cast<byte*>(index_pr);
+  for (auto &index_pr : index_prs) {
+    delete[] reinterpret_cast<byte *>(index_pr);
   }
 
   // Return
@@ -102,23 +101,24 @@ uint32_t TableReader::ReadTable(const std::string &schema_file, const std::strin
 terrier::catalog::table_oid_t TableReader::CreateTable(TableInfo *info) {
   terrier::catalog::Schema tmp_schema{info->cols};
   auto table_oid = exec_ctx_->GetAccessor()->CreateTable(ns_oid_, info->table_name, tmp_schema);
-  auto & schema = exec_ctx_->GetAccessor()->GetSchema(table_oid);
+  auto &schema = exec_ctx_->GetAccessor()->GetSchema(table_oid);
   auto sql_table = new terrier::storage::SqlTable(store_, schema);
   exec_ctx_->GetAccessor()->SetTablePointer(table_oid, sql_table);
   return table_oid;
 }
 
-std::vector<terrier::catalog::index_oid_t> TableReader::CreateIndexes(TableInfo *info, terrier::catalog::table_oid_t table_oid) {
+std::vector<terrier::catalog::index_oid_t> TableReader::CreateIndexes(TableInfo *info,
+                                                                      terrier::catalog::table_oid_t table_oid) {
   std::vector<terrier::catalog::index_oid_t> results;
   terrier::storage::index::IndexBuilder index_builder;
   for (const auto &index_info : info->indexes) {
     terrier::catalog::IndexSchema tmp_schema{index_info->cols, false, false, false, false};
     auto index_oid = exec_ctx_->GetAccessor()->CreateIndex(ns_oid_, table_oid, index_info->index_name, tmp_schema);
-    auto & schema = exec_ctx_->GetAccessor()->GetIndexSchema(index_oid);
+    auto &schema = exec_ctx_->GetAccessor()->GetIndexSchema(index_oid);
     index_builder.SetOid(index_oid);
     index_builder.SetConstraintType(terrier::storage::index::ConstraintType::DEFAULT);
     index_builder.SetKeySchema(schema);
-    auto * index = index_builder.Build();
+    auto *index = index_builder.Build();
     exec_ctx_->GetAccessor()->SetIndexPointer(index_oid, index);
     results.emplace_back(index_oid);
   }

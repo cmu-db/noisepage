@@ -37,25 +37,20 @@ class JoinHashTableVectorProbeTest : public SqlBasedTest {
     // TODO(Amadou): Come up with an easier way to create ProjectedColumns.
     // This should be done after the catalog PR is merged in.
     // Create column metadata for every column.
-    terrier::catalog::col_oid_t col_oid_a(exec_ctx_->GetAccessor()->GetNextOid());
-    terrier::catalog::col_oid_t col_oid_b(exec_ctx_->GetAccessor()->GetNextOid());
-    terrier::catalog::Schema::Column col_a =
-        terrier::catalog::Schema::Column("col_a", terrier::type::TypeId::INTEGER, false, col_oid_a);
-    terrier::catalog::Schema::Column col_b =
-        terrier::catalog::Schema::Column("col_b", terrier::type::TypeId::INTEGER, false, col_oid_b);
+    terrier::catalog::Schema::Column col_a("col_a", terrier::type::TypeId::INTEGER, false, DummyCVE());
+    terrier::catalog::Schema::Column col_b("col_b", terrier::type::TypeId::INTEGER, false, DummyCVE());
 
     // Create the table in the catalog.
-    terrier::catalog::Schema schema({col_a, col_b});
-    auto table_oid = exec_ctx_->GetAccessor()->CreateUserTable("hash_join_test_table", schema);
-
-    // Get the table's information.
-    catalog_table_ = exec_ctx_->GetAccessor()->GetUserTable(table_oid);
-    auto sql_table = catalog_table_->GetSqlTable();
+    terrier::catalog::Schema tmp_schema({col_a, col_b});
+    auto table_oid = exec_ctx_->GetAccessor()->CreateTable(NSOid(), "hash_join_test_table", tmp_schema);
+    auto schema = exec_ctx_->GetAccessor()->GetSchema(table_oid);
+    auto sql_table = new terrier::storage::SqlTable(BlockStore(), schema);
+    exec_ctx_->GetAccessor()->SetTablePointer(table_oid, sql_table);
 
     // Create a ProjectedColumns
     std::vector<terrier::catalog::col_oid_t> col_oids;
-    for (const auto &col : sql_table->GetSchema().GetColumns()) {
-      col_oids.emplace_back(col.GetOid());
+    for (const auto &col : schema.GetColumns()) {
+      col_oids.emplace_back(col.Oid());
     }
     auto initializer_map = sql_table->InitializerForProjectedColumns(col_oids, kDefaultVectorSize);
 
@@ -66,7 +61,6 @@ class JoinHashTableVectorProbeTest : public SqlBasedTest {
 
   // Delete allocated objects and remove the created table.
   ~JoinHashTableVectorProbeTest() override {
-    exec_ctx_->GetAccessor()->DeleteUserTable(catalog_table_->Oid());
     delete[] buffer_;
   }
 
@@ -115,7 +109,6 @@ class JoinHashTableVectorProbeTest : public SqlBasedTest {
   terrier::storage::ProjectedColumns *projected_columns_{nullptr};
 
   byte *buffer_{nullptr};
-  terrier::catalog::SqlTableHelper *catalog_table_{nullptr};
   std::unique_ptr<exec::ExecutionContext> exec_ctx_;
 };
 

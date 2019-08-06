@@ -87,28 +87,21 @@ class AggregationHashTableTest : public SqlBasedTest {
   // Helper to make a PCI
   terrier::storage::ProjectedColumns *MakeProjectedColumns() {
     // TODO(Amadou): Come up with an easier way to create ProjectedColumns.
-    // This should be done after the catalog PR is merged in.
-
     // Create column metadata for every column.
-    terrier::catalog::col_oid_t col_oid_key(exec_ctx_->GetAccessor()->GetNextOid());
-    terrier::catalog::col_oid_t col_oid_val(exec_ctx_->GetAccessor()->GetNextOid());
-    terrier::catalog::Schema::Column key_col =
-        terrier::catalog::Schema::Column("key", terrier::type::TypeId::INTEGER, false, col_oid_key);
-    terrier::catalog::Schema::Column val_col =
-        terrier::catalog::Schema::Column("val", terrier::type::TypeId::INTEGER, false, col_oid_val);
+    terrier::catalog::Schema::Column key_col("key", terrier::type::TypeId::INTEGER, false, DummyCVE());
+    terrier::catalog::Schema::Column val_col("val", terrier::type::TypeId::INTEGER, false, DummyCVE());
 
     // Create the table in the catalog.
-    terrier::catalog::Schema schema({key_col, val_col});
-    auto table_oid = exec_ctx_->GetAccessor()->CreateUserTable("agg_test_table", schema);
-
-    // Get the table's information.
-    catalog_table_ = exec_ctx_->GetAccessor()->GetUserTable(table_oid);
-    auto sql_table = catalog_table_->GetSqlTable();
+    terrier::catalog::Schema tmp_schema({key_col, val_col});
+    auto table_oid = exec_ctx_->GetAccessor()->CreateTable(NSOid(), "test_table", tmp_schema);
+    auto schema = exec_ctx_->GetAccessor()->GetSchema(table_oid);
+    auto sql_table = new terrier::storage::SqlTable(BlockStore(), schema);
+    exec_ctx_->GetAccessor()->SetTablePointer(table_oid, sql_table);
 
     // Create a ProjectedColumns
     std::vector<terrier::catalog::col_oid_t> col_oids;
-    for (const auto &col : sql_table->GetSchema().GetColumns()) {
-      col_oids.emplace_back(col.GetOid());
+    for (const auto &col : schema.GetColumns()) {
+      col_oids.emplace_back(col.Oid());
     }
     auto initializer_map = sql_table->InitializerForProjectedColumns(col_oids, kDefaultVectorSize);
     buffer_ = terrier::common::AllocationUtil::AllocateAligned(initializer_map.first.ProjectedColumnsSize());
@@ -118,7 +111,6 @@ class AggregationHashTableTest : public SqlBasedTest {
   }
 
   void FreeProjectedColumns() {
-    exec_ctx_->GetAccessor()->DeleteUserTable(catalog_table_->Oid());
     delete[] buffer_;
   }
 
@@ -136,7 +128,6 @@ class AggregationHashTableTest : public SqlBasedTest {
   // Helpers to create a table and get an PCI
   terrier::storage::ProjectedColumns *projected_columns_{nullptr};
   byte *buffer_{nullptr};
-  terrier::catalog::SqlTableHelper *catalog_table_{nullptr};
 };
 
 // NOLINTNEXTLINE

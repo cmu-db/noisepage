@@ -104,6 +104,6 @@ static constexpr const u32 GB = KB * KB * KB;
 /**
  * Namespace used by tests
  */
-static constexpr const char * TEST_NS = "test_ns";
+static constexpr const char *TEST_NS = "test_ns";
 
 }  // namespace tpl

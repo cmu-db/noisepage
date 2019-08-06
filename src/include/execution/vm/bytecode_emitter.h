@@ -308,7 +308,6 @@ class BytecodeEmitter {
    */
   void EmitTableIterConstruct(Bytecode bytecode, LocalVar iter, u32 table_oid, LocalVar exec_ctx);
 
-
   /**
    * Emit bytecode to add a column for scanning
    * @param bytecode bytecode to emit
@@ -421,7 +420,7 @@ class BytecodeEmitter {
    * @param exec_ctx the execution context
    */
   void EmitIndexIteratorConstruct(Bytecode bytecode, LocalVar iter, uint32_t table_oid, uint32_t index_oid,
-                             LocalVar exec_ctx);
+                                  LocalVar exec_ctx);
 
   /**
    * Emit code to free an index iterator
