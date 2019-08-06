@@ -140,8 +140,7 @@ class Index {
    * @param limit upper bound of number of values to return
    */
   virtual void ScanLimitDescending(const transaction::TransactionContext &txn, const ProjectedRow &low_key,
-                                   const ProjectedRow &high_key, std::vector<TupleSlot> *value_list,
-                                   uint32_t limit) {}
+                                   const ProjectedRow &high_key, std::vector<TupleSlot> *value_list, uint32_t limit) {}
 
   /**
    * @return type of this index

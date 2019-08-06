@@ -53,8 +53,7 @@ class HashIndex final : public Index {
       }                                                                                                               \
       auto &value_map = std::get<ValueMap>(value);                                                                    \
       if (value_map.size() == 2) {                                                                                    \
-        /* functor should replace the ValueMap with a TupleSlot for the other location, otherwise there would be      \
-         * ValueMap with 1 element left */                                                                            \
+        /* functor should replace the ValueMap with a TupleSlot for the other location */                             \
         for (const auto i : value_map) {                                                                              \
           if (i == location) {                                                                                        \
             /* This is the location we're trying to remove, just skip it */                                           \
