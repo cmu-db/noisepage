@@ -73,7 +73,7 @@ static inline bool AggAggKeyEq(const void *agg_tuple_1, const void *agg_tuple_2)
 
 class AggregationHashTableTest : public SqlBasedTest {
  public:
-  AggregationHashTableTest() : SqlBasedTest(), memory_(nullptr), agg_table_(&memory_, sizeof(AggTuple)) {}
+  AggregationHashTableTest() : memory_(nullptr), agg_table_(&memory_, sizeof(AggTuple)) {}
 
   MemoryPool *memory() { return &memory_; }
 

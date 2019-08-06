@@ -3334,16 +3334,16 @@ CONSTEXPR long double get_int_max() {
 }
 
 /** Largest number that can be stored in a 1-bit integer */
-CONSTEXPR_VALUE long double CSV_INT8_MAX = get_int_max<1>();
+CONSTEXPR_VALUE long double CSV_INT8_MAX = get_int_max<1>(); // NOLINT
 
 /** Largest number that can be stored in a 16-bit integer */
-CONSTEXPR_VALUE long double CSV_INT16_MAX = get_int_max<2>();
+CONSTEXPR_VALUE long double CSV_INT16_MAX = get_int_max<2>(); // NOLINT
 
 /** Largest number that can be stored in a 32-bit integer */
-CONSTEXPR_VALUE long double CSV_INT32_MAX = get_int_max<4>();
+CONSTEXPR_VALUE long double CSV_INT32_MAX = get_int_max<4>(); // NOLINT
 
 /** Largest number that can be stored in a 64-bit integer */
-CONSTEXPR_VALUE long double CSV_INT64_MAX = get_int_max<8>();
+CONSTEXPR_VALUE long double CSV_INT64_MAX = get_int_max<8>(); // NOLINT
 
 /** Given a pointer to the start of what is start of
  *  the exponential part of a number written (possibly) in scientific notation
@@ -5185,6 +5185,7 @@ unsigned short CSVRow::split_at(size_t n) const
   return this->buffer->split_buffer[this->start + n];
 }
 
+// NOLINTNEXTLINE
 HEDLEY_NON_NULL(1)
 CSVRow::iterator::iterator(const CSVRow* _reader, int _i)
     : daddy(_reader), i(_i) {

@@ -37,7 +37,7 @@ class ArithmeticOverflow {
    * @return True if the addition overflowed; false otherwise.
    */
   template <typename T>
-  static bool Add(const T a, const T b, T *res) {
+  static bool Add(T a, T b, T *res) {
     return __builtin_add_overflow(a, b, res);
   }
 
@@ -120,7 +120,7 @@ class ArithmeticOverflow {
    * @return True if the subtraction overflowed; false otherwise.
    */
   template <typename T>
-  static bool Sub(const T a, const T b, T *res) {
+  static bool Sub(T a, T b, T *res) {
     return __builtin_sub_overflow(a, b, res);
   }
 
@@ -200,10 +200,10 @@ class ArithmeticOverflow {
    * @param a The first operand.
    * @param b The second operand.
    * @param[out] res Where the result of the multiplication is written to.
-   * @return True if the subtraction overflowed; false otherwise.
+   * @return True if the subtraction overflowed; false otherwise.sql
    */
   template <typename T>
-  static bool Mul(const T a, const T b, T *res) {
+  static bool Mul(T a, T b, T *res) {
     return __builtin_mul_overflow(a, b, res);
   }
 

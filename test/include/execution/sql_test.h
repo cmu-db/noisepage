@@ -15,7 +15,7 @@ namespace terrier {
 
 class SqlBasedTest : public TplTest {
  public:
-  SqlBasedTest() : TplTest() {}
+  SqlBasedTest() = default;
 
   void SetUp() override {
     // NOTE: Do not move these into the constructor unless you change the loggers' initialization first.
