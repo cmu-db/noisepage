@@ -108,7 +108,7 @@ class Index {
    * @param[out] value_list the values associated with the keys
    */
   virtual void ScanAscending(const transaction::TransactionContext &txn, const ProjectedRow &low_key,
-                             const ProjectedRow &high_key, std::vector<TupleSlot> *value_list) = 0;
+                             const ProjectedRow &high_key, std::vector<TupleSlot> *value_list) {}
 
   /**
    * Finds all the values between the given keys in our index, sorted in descending order.
@@ -118,7 +118,7 @@ class Index {
    * @param[out] value_list the values associated with the keys
    */
   virtual void ScanDescending(const transaction::TransactionContext &txn, const ProjectedRow &low_key,
-                              const ProjectedRow &high_key, std::vector<TupleSlot> *value_list) = 0;
+                              const ProjectedRow &high_key, std::vector<TupleSlot> *value_list) {}
 
   /**
    * Finds the first limit # of values between the given keys in our index, sorted in ascending order.
@@ -129,7 +129,7 @@ class Index {
    * @param limit upper bound of number of values to return
    */
   virtual void ScanLimitAscending(const transaction::TransactionContext &txn, const ProjectedRow &low_key,
-                                  const ProjectedRow &high_key, std::vector<TupleSlot> *value_list, uint32_t limit) = 0;
+                                  const ProjectedRow &high_key, std::vector<TupleSlot> *value_list, uint32_t limit) {}
 
   /**
    * Finds the first limit # of values between the given keys in our index, sorted in descending order.
@@ -141,7 +141,7 @@ class Index {
    */
   virtual void ScanLimitDescending(const transaction::TransactionContext &txn, const ProjectedRow &low_key,
                                    const ProjectedRow &high_key, std::vector<TupleSlot> *value_list,
-                                   uint32_t limit) = 0;
+                                   uint32_t limit) {}
 
   /**
    * @return type of this index

@@ -61,7 +61,9 @@ class BwTreeIndex final : public Index {
     // The predicate checks if any matching keys have write-write conflicts or are still visible to the calling txn.
     auto predicate = [txn](const TupleSlot slot) -> bool {
       const auto *const data_table = slot.GetBlock()->data_table_;
-      return data_table->HasConflict(*txn, slot) || data_table->IsVisible(*txn, slot);
+      const auto has_conflict = data_table->HasConflict(*txn, slot);
+      const auto is_visible = data_table->IsVisible(*txn, slot);
+      return has_conflict || is_visible;
     };
 
     const bool result = bwtree_->ConditionalInsert(index_key, location, predicate, &predicate_satisfied);

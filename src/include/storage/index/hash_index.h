@@ -39,6 +39,41 @@ class HashIndex final : public Index {
 
   cuckoohash_map<KeyType, ValueType> *const hash_map_;
 
+  /**
+   * The lambda below is used for aborted inserts as well as committed deletes to perform the erase logic. Macros are
+   * ugly but you can't define a macro that captures location outside of the scope of that variable, and cuckoohash_map
+   * doesn't allow
+   */
+#define ERASE_KEY_ACTION                                                                                              \
+  [=]() {                                                                                                             \
+    auto key_found_fn = [location](ValueType &value) -> bool {                                                        \
+      if (std::holds_alternative<TupleSlot>(value)) {                                                                 \
+        /* It's just a TupleSlot, functor should return true for cuckoohash_map's uprase_fn to erase it */            \
+        return true;                                                                                                  \
+      }                                                                                                               \
+      auto &value_map = std::get<ValueMap>(value);                                                                    \
+      if (value_map.size() == 2) {                                                                                    \
+        /* functor should replace the ValueMap with a TupleSlot for the other location, otherwise there would be      \
+         * ValueMap with 1 element left */                                                                            \
+        for (const auto i : value_map) {                                                                              \
+          if (i == location) {                                                                                        \
+            /* This is the location we're trying to remove, just skip it */                                           \
+            continue;                                                                                                 \
+          } else {                                                                                                    \
+            value = i; /* Assigning TupleSlot type will change the std::variant to TupleSlot and free the ValueMap */ \
+            return false; /* Return false so cuckoohash_map's uprase_fn doesn't erase it */                           \
+          }                                                                                                           \
+        }                                                                                                             \
+      }                                                                                                               \
+      /* ValueMap contains more than 2 elements, erase location from the ValueMap */                                  \
+      const auto UNUSED_ATTRIBUTE erase_result = value_map.erase(location);                                           \
+      TERRIER_ASSERT(erase_result == 1, "Erasing from the ValueMap should not fail.");                                \
+      return false; /* Return false so cuckoohash_map's uprase_fn doesn't erase it */                                 \
+    };                                                                                                                \
+    const bool UNUSED_ATTRIBUTE uprase_result = hash_map_->uprase_fn(index_key, key_found_fn);                        \
+    TERRIER_ASSERT(!uprase_result, "This operation should NOT insert a new key into the cuckoohash_map.");            \
+  }
+
  public:
   ~HashIndex() final { delete hash_map_; }
 
@@ -73,27 +108,7 @@ class HashIndex final : public Index {
                    "inserted (insert_result).");
 
     // Register an abort action with the txn context in case of rollback
-    txn->RegisterAbortAction([=]() {
-      auto abort_key_found_fn = [location](ValueType &value) -> bool {
-        if (std::holds_alternative<TupleSlot>(value)) {
-          // It's just a TupleSlot, functor should return true for uprase to erase it
-          return true;
-        }
-        auto &value_map = std::get<ValueMap>(value);
-        if (value_map.size() == 1) {
-          // ValueMap only has 1 element, functor should return true for uprase to erase it
-          TERRIER_ASSERT(value_map.count(location) == 1, "location must be the only value in the ValueMap.");
-          return true;
-        }
-        // ValueMap contains multiple elements, erase the element for location
-        const auto UNUSED_ATTRIBUTE erase_result = value_map.erase(location);
-        TERRIER_ASSERT(erase_result == 1, "Erasing from the ValueMap should not fail.");
-        return false;
-      };
-
-      const bool UNUSED_ATTRIBUTE uprase_result = hash_map_->uprase_fn(index_key, abort_key_found_fn);
-      TERRIER_ASSERT(!uprase_result, "This operation should NOT insert a new key into the cuckoohash_map.");
-    });
+    txn->RegisterAbortAction(ERASE_KEY_ACTION);
 
     return true;
   }
@@ -152,27 +167,7 @@ class HashIndex final : public Index {
     const bool UNUSED_ATTRIBUTE overall_result = insert_result || uprase_result;
 
     if (overall_result) {
-      txn->RegisterAbortAction([=]() {
-        auto abort_key_found_fn = [location](ValueType &value) -> bool {
-          if (std::holds_alternative<TupleSlot>(value)) {
-            // It's just a TupleSlot, functor should return true for uprase to erase it
-            return true;
-          }
-          auto &value_map = std::get<ValueMap>(value);
-          if (value_map.size() == 1) {
-            // ValueMap only has 1 element, functor should return true for uprase to erase it
-            TERRIER_ASSERT(value_map.count(location) == 1, "location must be the only value in the ValueMap.");
-            return true;
-          }
-          // ValueMap contains multiple elements, erase the element for location
-          const auto UNUSED_ATTRIBUTE erase_result = value_map.erase(location);
-          TERRIER_ASSERT(erase_result == 1, "Erasing from the ValueMap should not fail.");
-          return false;
-        };
-
-        const bool UNUSED_ATTRIBUTE uprase_result = hash_map_->uprase_fn(index_key, abort_key_found_fn);
-        TERRIER_ASSERT(!uprase_result, "This operation should NOT insert a new key into the cuckoohash_map.");
-      });
+      txn->RegisterAbortAction(ERASE_KEY_ACTION);
     } else {
       // Presumably you've already made modifications to a DataTable (the source of the TupleSlot argument to this
       // function) however, the index found a constraint violation and cannot allow that operation to succeed. For MVCC
@@ -193,29 +188,7 @@ class HashIndex final : public Index {
 
     // Register a deferred action for the GC with txn manager. See base function comment.
     auto *const txn_manager = txn->GetTransactionManager();
-    txn->RegisterCommitAction([=]() {
-      txn_manager->DeferAction([=]() {
-        auto abort_key_found_fn = [location](ValueType &value) -> bool {
-          if (std::holds_alternative<TupleSlot>(value)) {
-            // It's just a TupleSlot, functor should return true for uprase to erase it
-            return true;
-          }
-          auto &value_map = std::get<ValueMap>(value);
-          if (value_map.size() == 1) {
-            // ValueMap only has 1 element, functor should return true for uprase to erase it
-            TERRIER_ASSERT(value_map.count(location) == 1, "location must be the only value in the ValueMap.");
-            return true;
-          }
-          // ValueMap contains multiple elements, erase the element for location
-          const auto UNUSED_ATTRIBUTE erase_result = value_map.erase(location);
-          TERRIER_ASSERT(erase_result == 1, "Erasing from the ValueMap should not fail.");
-          return false;
-        };
-
-        const bool UNUSED_ATTRIBUTE uprase_result = hash_map_->uprase_fn(index_key, abort_key_found_fn);
-        TERRIER_ASSERT(!uprase_result, "This operation should NOT insert a new key into the cuckoohash_map.");
-      });
-    });
+    txn->RegisterCommitAction([=]() { txn_manager->DeferAction(ERASE_KEY_ACTION); });
   }
 
   void ScanKey(const transaction::TransactionContext &txn, const ProjectedRow &key,
@@ -246,27 +219,7 @@ class HashIndex final : public Index {
                    "Invalid number of results for unique index.");
   }
 
-  void ScanAscending(const transaction::TransactionContext &txn, const ProjectedRow &low_key,
-                     const ProjectedRow &high_key, std::vector<TupleSlot> *value_list) final {
-    TERRIER_ASSERT(false, "Range scans not supported on HashIndex.");
-  }
-
-  void ScanDescending(const transaction::TransactionContext &txn, const ProjectedRow &low_key,
-                      const ProjectedRow &high_key, std::vector<TupleSlot> *value_list) final {
-    TERRIER_ASSERT(false, "Range scans not supported on HashIndex.");
-  }
-
-  void ScanLimitAscending(const transaction::TransactionContext &txn, const ProjectedRow &low_key,
-                          const ProjectedRow &high_key, std::vector<TupleSlot> *value_list,
-                          const uint32_t limit) final {
-    TERRIER_ASSERT(false, "Range scans not supported on HashIndex.");
-  }
-
-  void ScanLimitDescending(const transaction::TransactionContext &txn, const ProjectedRow &low_key,
-                           const ProjectedRow &high_key, std::vector<TupleSlot> *value_list,
-                           const uint32_t limit) final {
-    TERRIER_ASSERT(false, "Range scans not supported on HashIndex.");
-  }
+#undef ERASE_KEY_ACTION
 };
 
 }  // namespace terrier::storage::index
