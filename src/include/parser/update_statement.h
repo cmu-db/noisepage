@@ -31,12 +31,12 @@ class UpdateClause {
   /**
    * @return column to be updated
    */
-  std::string GetColumnName() { return column_; }
+  std::string GetColumnName() const { return column_; }
 
   /**
    * @return value to update to
    */
-  common::ManagedPointer<const AbstractExpression> GetUpdateValue() {
+  common::ManagedPointer<const AbstractExpression> GetUpdateValue() const {
     return common::ManagedPointer<const AbstractExpression>(value_);
   }
 

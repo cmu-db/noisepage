@@ -9,8 +9,8 @@
 namespace terrier::optimizer::util {
 
 void ExtractEquiJoinKeys(const std::vector<AnnotatedExpression> &join_predicates,
-                         std::vector<common::ManagedPointer<parser::AbstractExpression>> *left_keys,
-                         std::vector<common::ManagedPointer<parser::AbstractExpression>> *right_keys,
+                         std::vector<common::ManagedPointer<const parser::AbstractExpression>> *left_keys,
+                         std::vector<common::ManagedPointer<const parser::AbstractExpression>> *right_keys,
                          const std::unordered_set<std::string> &left_alias,
                          const std::unordered_set<std::string> &right_alias) {
   for (auto &expr_unit : join_predicates) {

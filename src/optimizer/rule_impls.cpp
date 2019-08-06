@@ -302,7 +302,7 @@ void LogicalQueryDerivedGetToPhysical::Transform(OperatorExpression *input,
   const auto get = input->GetOp().As<LogicalQueryDerivedGet>();
 
   auto tbl_alias = std::string(get->GetTableAlias());
-  std::unordered_map<std::string, common::ManagedPointer<parser::AbstractExpression>> expr_map;
+  std::unordered_map<std::string, common::ManagedPointer<const parser::AbstractExpression>> expr_map;
   expr_map = get->GetAliasToExprMap();
 
   auto input_child = input->GetChildren()[0];
@@ -391,7 +391,7 @@ void LogicalUpdateToPhysical::Transform(OperatorExpression *input, std::vector<O
   TERRIER_ASSERT(input->GetChildren().size() == 1, "LogicalUpdate should have 1 child");
   auto child = input->GetChildren()[0]->Copy();
 
-  std::vector<common::ManagedPointer<parser::UpdateClause>> cls = update_op->GetUpdateClauses();
+  std::vector<common::ManagedPointer<const parser::UpdateClause>> cls = update_op->GetUpdateClauses();
   auto result =
       new OperatorExpression(Update::make(update_op->GetDatabaseOid(), update_op->GetNamespaceOid(),
                                           update_op->GetTableAlias(), update_op->GetTableOid(), std::move(cls)),
@@ -419,7 +419,7 @@ void LogicalInsertToPhysical::Transform(OperatorExpression *input, std::vector<O
   TERRIER_ASSERT(input->GetChildren().empty(), "LogicalInsert should have 0 children");
 
   std::vector<catalog::col_oid_t> cols = insert_op->GetColumns();
-  std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>> vals = insert_op->GetValues();
+  std::vector<std::vector<common::ManagedPointer<const parser::AbstractExpression>>> vals = insert_op->GetValues();
   auto result = new OperatorExpression(Insert::make(insert_op->GetDatabaseOid(), insert_op->GetNamespaceOid(),
                                                     insert_op->GetTableOid(), std::move(cols), std::move(vals)),
                                        {});
@@ -476,7 +476,7 @@ void LogicalGroupByToHashGroupBy::Transform(OperatorExpression *input, std::vect
   const auto agg_op = input->GetOp().As<LogicalAggregateAndGroupBy>();
   TERRIER_ASSERT(input->GetChildren().size() == 1, "LogicalAggregateAndGroupBy should have 1 child");
 
-  std::vector<common::ManagedPointer<parser::AbstractExpression>> cols = agg_op->GetColumns();
+  std::vector<common::ManagedPointer<const parser::AbstractExpression>> cols = agg_op->GetColumns();
   std::vector<AnnotatedExpression> having = agg_op->GetHaving();
 
   auto child = input->GetChildren()[0]->Copy();
@@ -544,8 +544,8 @@ void InnerJoinToInnerNLJoin::Transform(OperatorExpression *input, std::vector<Op
   auto right_group_id = children[1]->GetOp().As<LeafOperator>()->GetOriginGroup();
   auto &left_group_alias = context->GetMetadata()->GetMemo().GetGroupByID(left_group_id)->GetTableAliases();
   auto &right_group_alias = context->GetMetadata()->GetMemo().GetGroupByID(right_group_id)->GetTableAliases();
-  std::vector<common::ManagedPointer<parser::AbstractExpression>> left_keys;
-  std::vector<common::ManagedPointer<parser::AbstractExpression>> right_keys;
+  std::vector<common::ManagedPointer<const parser::AbstractExpression>> left_keys;
+  std::vector<common::ManagedPointer<const parser::AbstractExpression>> right_keys;
 
   std::vector<AnnotatedExpression> join_preds = inner_join->GetJoinPredicates();
   util::ExtractEquiJoinKeys(join_preds, &left_keys, &right_keys, left_group_alias, right_group_alias);
@@ -592,8 +592,8 @@ void InnerJoinToInnerHashJoin::Transform(OperatorExpression *input, std::vector<
   auto right_group_id = children[1]->GetOp().As<LeafOperator>()->GetOriginGroup();
   auto &left_group_alias = context->GetMetadata()->GetMemo().GetGroupByID(left_group_id)->GetTableAliases();
   auto &right_group_alias = context->GetMetadata()->GetMemo().GetGroupByID(right_group_id)->GetTableAliases();
-  std::vector<common::ManagedPointer<parser::AbstractExpression>> left_keys;
-  std::vector<common::ManagedPointer<parser::AbstractExpression>> right_keys;
+  std::vector<common::ManagedPointer<const parser::AbstractExpression>> left_keys;
+  std::vector<common::ManagedPointer<const parser::AbstractExpression>> right_keys;
 
   std::vector<AnnotatedExpression> join_preds = inner_join->GetJoinPredicates();
   util::ExtractEquiJoinKeys(join_preds, &left_keys, &right_keys, left_group_alias, right_group_alias);
@@ -655,7 +655,7 @@ void ImplementLimit::Transform(OperatorExpression *input, std::vector<OperatorEx
   const auto limit_op = input->GetOp().As<LogicalLimit>();
   TERRIER_ASSERT(input->GetChildren().size() == 1, "LogicalLimit should have 1 child");
 
-  std::vector<common::ManagedPointer<parser::AbstractExpression>> sorts = limit_op->GetSortExpressions();
+  std::vector<common::ManagedPointer<const parser::AbstractExpression>> sorts = limit_op->GetSortExpressions();
   std::vector<planner::OrderByOrderingType> types = limit_op->GetSortDirections();
   auto child = input->GetChildren()[0]->Copy();
   auto result_plan = new OperatorExpression(
@@ -832,7 +832,7 @@ void PushFilterThroughAggregation::Transform(OperatorExpression *input, std::vec
     pushdown = new OperatorExpression(LogicalFilter::make(std::move(pushdown_predicates)), {leaf});
   }
 
-  std::vector<common::ManagedPointer<parser::AbstractExpression>> cols = aggregation_op->GetColumns();
+  std::vector<common::ManagedPointer<const parser::AbstractExpression>> cols = aggregation_op->GetColumns();
 
   auto agg_child = pushdown != nullptr ? pushdown : leaf;
   auto output = new OperatorExpression(
@@ -1060,7 +1060,7 @@ void PullFilterThroughAggregation::Transform(OperatorExpression *input, std::vec
 
   std::vector<AnnotatedExpression> correlated_predicates;
   std::vector<AnnotatedExpression> normal_predicates;
-  std::vector<common::ManagedPointer<parser::AbstractExpression>> new_groupby_cols;
+  std::vector<common::ManagedPointer<const parser::AbstractExpression>> new_groupby_cols;
   for (auto &predicate : predicates) {
     if (util::IsSubset(child_group_aliases_set, predicate.GetTableAliasSet())) {
       normal_predicates.emplace_back(predicate);
@@ -1070,9 +1070,9 @@ void PullFilterThroughAggregation::Transform(OperatorExpression *input, std::vec
       correlated_predicates.emplace_back(predicate);
       auto root_expr = predicate.GetExpr();
       if (root_expr->GetChild(0)->GetDepth() < root_expr->GetDepth()) {
-        new_groupby_cols.emplace_back(const_cast<parser::AbstractExpression *>(root_expr->GetChild(1).get()));
+        new_groupby_cols.emplace_back(root_expr->GetChild(1).get());
       } else {
-        new_groupby_cols.emplace_back(const_cast<parser::AbstractExpression *>(root_expr->GetChild(0).get()));
+        new_groupby_cols.emplace_back(root_expr->GetChild(0).get());
       }
     }
   }

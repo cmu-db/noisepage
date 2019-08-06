@@ -85,10 +85,7 @@ void ChildPropertyDeriver::Visit(UNUSED_ATTRIBUTE const SortGroupBy *op) {
   // Child must provide sort for Groupby columns
   // TODO(wz2): Descending support? Catalog flag?
   std::vector<planner::OrderByOrderingType> sort_ascending(op->GetColumns().size(), planner::OrderByOrderingType::ASC);
-  std::vector<common::ManagedPointer<parser::AbstractExpression>> sort_cols;
-  for (auto &col : op->GetColumns()) {
-    sort_cols.push_back(col);
-  }
+  std::vector<common::ManagedPointer<const parser::AbstractExpression>> sort_cols = op->GetColumns();
 
   auto sort_prop = new PropertySort(sort_cols, std::move(sort_ascending));
   auto prop_set = new PropertySet(std::vector<Property *>{sort_prop});
@@ -104,7 +101,7 @@ void ChildPropertyDeriver::Visit(const Limit *op) {
   std::vector<PropertySet *> child_input_properties{new PropertySet()};
   auto provided_prop = new PropertySet();
   if (!op->GetSortExpressions().empty()) {
-    const std::vector<common::ManagedPointer<parser::AbstractExpression>> &exprs = op->GetSortExpressions();
+    const std::vector<common::ManagedPointer<const parser::AbstractExpression>> &exprs = op->GetSortExpressions();
     const std::vector<planner::OrderByOrderingType> &sorts{op->GetSortAscending()};
     provided_prop->AddProperty(new PropertySort(exprs, sorts));
   }

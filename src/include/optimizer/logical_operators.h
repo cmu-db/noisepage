@@ -247,7 +247,7 @@ class LogicalQueryDerivedGet : public OperatorNode<LogicalQueryDerivedGet> {
    */
   static Operator make(
       std::string table_alias,
-      std::unordered_map<std::string, common::ManagedPointer<parser::AbstractExpression>> &&alias_to_expr_map);
+      std::unordered_map<std::string, common::ManagedPointer<const parser::AbstractExpression>> &&alias_to_expr_map);
 
   /**
    * Copy
@@ -267,7 +267,7 @@ class LogicalQueryDerivedGet : public OperatorNode<LogicalQueryDerivedGet> {
   /**
    * @return map from table aliases to expressions
    */
-  const std::unordered_map<std::string, common::ManagedPointer<parser::AbstractExpression>> &GetAliasToExprMap() const {
+  const std::unordered_map<std::string, common::ManagedPointer<const parser::AbstractExpression>> &GetAliasToExprMap() const {
     return alias_to_expr_map_;
   }
 
@@ -280,7 +280,7 @@ class LogicalQueryDerivedGet : public OperatorNode<LogicalQueryDerivedGet> {
   /**
    * Map from table aliases to expressions
    */
-  std::unordered_map<std::string, common::ManagedPointer<parser::AbstractExpression>> alias_to_expr_map_;
+  std::unordered_map<std::string, common::ManagedPointer<const parser::AbstractExpression>> alias_to_expr_map_;
 };
 
 /**
@@ -327,7 +327,7 @@ class LogicalProjection : public OperatorNode<LogicalProjection> {
    * @param expressions list of AbstractExpressions in the projection list.
    * @return a LogicalProjection operator
    */
-  static Operator make(std::vector<common::ManagedPointer<parser::AbstractExpression>> &&expressions);
+  static Operator make(std::vector<common::ManagedPointer<const parser::AbstractExpression>> &&expressions);
 
   /**
    * Copy
@@ -342,13 +342,13 @@ class LogicalProjection : public OperatorNode<LogicalProjection> {
   /**
    * @return vector of predicates
    */
-  const std::vector<common::ManagedPointer<parser::AbstractExpression>> &GetExpressions() const { return expressions_; }
+  const std::vector<common::ManagedPointer<const parser::AbstractExpression>> &GetExpressions() const { return expressions_; }
 
  private:
   /**
    * Each entry in the projection list is an AbstractExpression
    */
-  std::vector<common::ManagedPointer<parser::AbstractExpression>> expressions_;
+  std::vector<common::ManagedPointer<const parser::AbstractExpression>> expressions_;
 };
 
 /**
@@ -512,7 +512,7 @@ class LogicalLeftJoin : public OperatorNode<LogicalLeftJoin> {
    * @param join_predicate condition of the join
    * @return a LeftJoin operator
    */
-  static Operator make(common::ManagedPointer<parser::AbstractExpression> join_predicate);
+  static Operator make(common::ManagedPointer<const parser::AbstractExpression> join_predicate);
 
   /**
    * Copy
@@ -527,13 +527,13 @@ class LogicalLeftJoin : public OperatorNode<LogicalLeftJoin> {
   /**
    * @return pointer to the join predicate expression
    */
-  const common::ManagedPointer<parser::AbstractExpression> &GetJoinPredicate() const { return join_predicate_; }
+  const common::ManagedPointer<const parser::AbstractExpression> &GetJoinPredicate() const { return join_predicate_; }
 
  private:
   /**
    * Join predicate
    */
-  common::ManagedPointer<parser::AbstractExpression> join_predicate_;
+  common::ManagedPointer<const parser::AbstractExpression> join_predicate_;
 };
 
 /**
@@ -545,7 +545,7 @@ class LogicalRightJoin : public OperatorNode<LogicalRightJoin> {
    * @param join_predicate condition of the join
    * @return a RightJoin operator
    */
-  static Operator make(common::ManagedPointer<parser::AbstractExpression> join_predicate);
+  static Operator make(common::ManagedPointer<const parser::AbstractExpression> join_predicate);
 
   /**
    * Copy
@@ -560,13 +560,13 @@ class LogicalRightJoin : public OperatorNode<LogicalRightJoin> {
   /**
    * @return pointer to the join predicate expression
    */
-  const common::ManagedPointer<parser::AbstractExpression> &GetJoinPredicate() const { return join_predicate_; }
+  const common::ManagedPointer<const parser::AbstractExpression> &GetJoinPredicate() const { return join_predicate_; }
 
  private:
   /**
    * Join predicate
    */
-  common::ManagedPointer<parser::AbstractExpression> join_predicate_;
+  common::ManagedPointer<const parser::AbstractExpression> join_predicate_;
 };
 
 /**
@@ -578,7 +578,7 @@ class LogicalOuterJoin : public OperatorNode<LogicalOuterJoin> {
    * @param join_predicate condition of the join
    * @return an OuterJoin operator
    */
-  static Operator make(common::ManagedPointer<parser::AbstractExpression> join_predicate);
+  static Operator make(common::ManagedPointer<const parser::AbstractExpression> join_predicate);
 
   /**
    * Copy
@@ -593,13 +593,13 @@ class LogicalOuterJoin : public OperatorNode<LogicalOuterJoin> {
   /**
    * @return pointer to the join predicate expression
    */
-  const common::ManagedPointer<parser::AbstractExpression> &GetJoinPredicate() const { return join_predicate_; }
+  const common::ManagedPointer<const parser::AbstractExpression> &GetJoinPredicate() const { return join_predicate_; }
 
  private:
   /**
    * Join predicate
    */
-  common::ManagedPointer<parser::AbstractExpression> join_predicate_;
+  common::ManagedPointer<const parser::AbstractExpression> join_predicate_;
 };
 
 /**
@@ -611,7 +611,7 @@ class LogicalSemiJoin : public OperatorNode<LogicalSemiJoin> {
    * @param join_predicate condition of the join
    * @return a SemiJoin operator
    */
-  static Operator make(common::ManagedPointer<parser::AbstractExpression> join_predicate);
+  static Operator make(common::ManagedPointer<const parser::AbstractExpression> join_predicate);
 
   /**
    * Copy
@@ -626,13 +626,13 @@ class LogicalSemiJoin : public OperatorNode<LogicalSemiJoin> {
   /**
    * @return pointer to the join predicate expression
    */
-  const common::ManagedPointer<parser::AbstractExpression> &GetJoinPredicate() const { return join_predicate_; }
+  const common::ManagedPointer<const parser::AbstractExpression> &GetJoinPredicate() const { return join_predicate_; }
 
  private:
   /**
    * Join predicate
    */
-  common::ManagedPointer<parser::AbstractExpression> join_predicate_;
+  common::ManagedPointer<const parser::AbstractExpression> join_predicate_;
 };
 
 /**
@@ -649,14 +649,14 @@ class LogicalAggregateAndGroupBy : public OperatorNode<LogicalAggregateAndGroupB
    * @param columns columns to group by
    * @return a GroupBy operator
    */
-  static Operator make(std::vector<common::ManagedPointer<parser::AbstractExpression>> &&columns);
+  static Operator make(std::vector<common::ManagedPointer<const parser::AbstractExpression>> &&columns);
 
   /**
    * @param columns columns to group by
    * @param having HAVING clause
    * @return a GroupBy operator
    */
-  static Operator make(std::vector<common::ManagedPointer<parser::AbstractExpression>> &&columns,
+  static Operator make(std::vector<common::ManagedPointer<const parser::AbstractExpression>> &&columns,
                        std::vector<AnnotatedExpression> &&having);
 
   /**
@@ -672,7 +672,7 @@ class LogicalAggregateAndGroupBy : public OperatorNode<LogicalAggregateAndGroupB
   /**
    * @return vector of columns
    */
-  const std::vector<common::ManagedPointer<parser::AbstractExpression>> &GetColumns() const { return columns_; }
+  const std::vector<common::ManagedPointer<const parser::AbstractExpression>> &GetColumns() const { return columns_; }
 
   /**
    * @return vector of having expressions
@@ -683,7 +683,7 @@ class LogicalAggregateAndGroupBy : public OperatorNode<LogicalAggregateAndGroupB
   /**
    * Columns to group by
    */
-  std::vector<common::ManagedPointer<parser::AbstractExpression>> columns_;
+  std::vector<common::ManagedPointer<const parser::AbstractExpression>> columns_;
 
   /**
    * Expression of HAVING clause
@@ -706,7 +706,7 @@ class LogicalInsert : public OperatorNode<LogicalInsert> {
    */
   static Operator make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
                        catalog::table_oid_t table_oid, std::vector<catalog::col_oid_t> &&columns,
-                       std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>> &&values);
+                       std::vector<std::vector<common::ManagedPointer<const parser::AbstractExpression>>> &&values);
 
   /**
    * Copy
@@ -740,7 +740,7 @@ class LogicalInsert : public OperatorNode<LogicalInsert> {
   /**
    * @return The expression objects to insert
    */
-  const std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>> &GetValues() const {
+  const std::vector<std::vector<common::ManagedPointer<const parser::AbstractExpression>>> &GetValues() const {
     return values_;
   }
 
@@ -769,7 +769,7 @@ class LogicalInsert : public OperatorNode<LogicalInsert> {
    * The expression objects to insert.
    * The offset of an entry in this list corresponds to the offset in the columns_ list.
    */
-  std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>> values_;
+  std::vector<std::vector<common::ManagedPointer<const parser::AbstractExpression>>> values_;
 };
 
 /**
@@ -863,7 +863,7 @@ class LogicalLimit : public OperatorNode<LogicalLimit> {
    * @return
    */
   static Operator make(size_t offset, size_t limit,
-                       std::vector<common::ManagedPointer<parser::AbstractExpression>> &&sort_exprs,
+                       std::vector<common::ManagedPointer<const parser::AbstractExpression>> &&sort_exprs,
                        std::vector<planner::OrderByOrderingType> &&sort_directions);
 
   /**
@@ -888,7 +888,7 @@ class LogicalLimit : public OperatorNode<LogicalLimit> {
   /**
    * @return inlined ORDER BY expressions (can be empty)
    */
-  const std::vector<common::ManagedPointer<parser::AbstractExpression>> &GetSortExpressions() const {
+  const std::vector<common::ManagedPointer<const parser::AbstractExpression>> &GetSortExpressions() const {
     return sort_exprs_;
   }
 
@@ -914,7 +914,7 @@ class LogicalLimit : public OperatorNode<LogicalLimit> {
    * internal order, then the limit operator will generate sort plan with
    * limit as a optimization.
    */
-  std::vector<common::ManagedPointer<parser::AbstractExpression>> sort_exprs_;
+  std::vector<common::ManagedPointer<const parser::AbstractExpression>> sort_exprs_;
 
   /**
    * The sort direction of sort expressions
@@ -992,7 +992,7 @@ class LogicalUpdate : public OperatorNode<LogicalUpdate> {
    */
   static Operator make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid, std::string table_alias,
                        catalog::table_oid_t table_oid,
-                       std::vector<common::ManagedPointer<parser::UpdateClause>> &&updates);
+                       std::vector<common::ManagedPointer<const parser::UpdateClause>> &&updates);
 
   /**
    * Copy
@@ -1026,7 +1026,7 @@ class LogicalUpdate : public OperatorNode<LogicalUpdate> {
   /**
    * @return the update clauses from the SET portion of the query
    */
-  const std::vector<common::ManagedPointer<parser::UpdateClause>> &GetUpdateClauses() const { return updates_; }
+  const std::vector<common::ManagedPointer<const parser::UpdateClause>> &GetUpdateClauses() const { return updates_; }
 
  private:
   /**
@@ -1052,7 +1052,7 @@ class LogicalUpdate : public OperatorNode<LogicalUpdate> {
   /**
    * The update clauses from the SET portion of the query
    */
-  std::vector<common::ManagedPointer<parser::UpdateClause>> updates_;
+  std::vector<common::ManagedPointer<const parser::UpdateClause>> updates_;
 };
 
 /**

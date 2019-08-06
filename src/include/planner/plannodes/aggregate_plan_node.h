@@ -37,7 +37,7 @@ class AggregatePlanNode : public AbstractPlanNode {
      * @param term aggregate term to be added
      * @return builder object
      */
-    Builder &AddAggregateTerm(parser::AggregateExpression *term) {
+    Builder &AddAggregateTerm(const parser::AggregateExpression *term) {
       aggregate_terms_.emplace_back(term);
       return *this;
     }
@@ -93,7 +93,7 @@ class AggregatePlanNode : public AbstractPlanNode {
     /**
      * List of aggregate terms for aggregation
      */
-    std::vector<parser::AggregateExpression *> aggregate_terms_;
+    std::vector<const parser::AggregateExpression *> aggregate_terms_;
     /**
      * Strategy to use for aggregation
      */
@@ -111,7 +111,7 @@ class AggregatePlanNode : public AbstractPlanNode {
   AggregatePlanNode(std::vector<std::shared_ptr<AbstractPlanNode>> &&children,
                     std::shared_ptr<OutputSchema> output_schema, std::vector<unsigned> groupby_offsets,
                     const parser::AbstractExpression *having_clause_predicate,
-                    std::vector<parser::AggregateExpression *> aggregate_terms,
+                    std::vector<const parser::AggregateExpression *> aggregate_terms,
                     AggregateStrategyType aggregate_strategy)
       : AbstractPlanNode(std::move(children), std::move(output_schema)),
         groupby_offsets_(std::move(groupby_offsets)),
@@ -153,7 +153,7 @@ class AggregatePlanNode : public AbstractPlanNode {
   /**
    * @return vector of aggregate terms
    */
-  const std::vector<parser::AggregateExpression *> &GetAggregateTerms() const { return aggregate_terms_; }
+  const std::vector<const parser::AggregateExpression *> &GetAggregateTerms() const { return aggregate_terms_; }
 
   /**
    * @return aggregation strategy
@@ -182,7 +182,7 @@ class AggregatePlanNode : public AbstractPlanNode {
    */
   std::vector<unsigned> groupby_offsets_;
   const parser::AbstractExpression *having_clause_predicate_;
-  std::vector<parser::AggregateExpression *> aggregate_terms_;
+  std::vector<const parser::AggregateExpression *> aggregate_terms_;
   AggregateStrategyType aggregate_strategy_;
 };
 DEFINE_JSON_DECLARATIONS(AggregatePlanNode);

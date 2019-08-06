@@ -101,7 +101,7 @@ class AnnotatedExpression {
    * @param expr expression to be annotated
    * @param table_alias_set an unordered set of table aliases
    */
-  AnnotatedExpression(common::ManagedPointer<parser::AbstractExpression> expr,
+  AnnotatedExpression(common::ManagedPointer<const parser::AbstractExpression> expr,
                       std::unordered_set<std::string> &&table_alias_set)
       : expr_(expr), table_alias_set_(std::move(table_alias_set)) {}
 
@@ -114,7 +114,7 @@ class AnnotatedExpression {
   /**
    * @return the expresion to be annotated
    */
-  common::ManagedPointer<parser::AbstractExpression> GetExpr() const { return expr_; }
+  common::ManagedPointer<const parser::AbstractExpression> GetExpr() const { return expr_; }
 
   /**
    * @return the unordered set of table aliases
@@ -147,7 +147,7 @@ class AnnotatedExpression {
   /**
    * Expression to be annotated
    */
-  common::ManagedPointer<parser::AbstractExpression> expr_;
+  common::ManagedPointer<const parser::AbstractExpression> expr_;
 
   /**
    * Unordered set of table aliases

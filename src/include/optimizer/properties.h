@@ -20,7 +20,7 @@ class PropertySort : public Property {
    * @param sort_columns vector of AbstractExpressions representing sort columns
    * @param sort_ascending Whether each sort_column is ascending or descending
    */
-  PropertySort(std::vector<common::ManagedPointer<parser::AbstractExpression>> sort_columns,
+  PropertySort(std::vector<common::ManagedPointer<const parser::AbstractExpression>> sort_columns,
                std::vector<planner::OrderByOrderingType> sort_ascending)
       : sort_columns_(std::move(sort_columns)), sort_ascending_(std::move(sort_ascending)) {}
 
@@ -46,7 +46,7 @@ class PropertySort : public Property {
    * @param idx Index of sort column to retrieve
    * @returns Sort Column
    */
-  common::ManagedPointer<parser::AbstractExpression> GetSortColumn(size_t idx) const { return sort_columns_[idx]; }
+  common::ManagedPointer<const parser::AbstractExpression> GetSortColumn(size_t idx) const { return sort_columns_[idx]; }
 
   /**
    * Gets whether a sort column is sorted ascending
@@ -78,7 +78,7 @@ class PropertySort : public Property {
   void Accept(PropertyVisitor *v) const override;
 
  private:
-  std::vector<common::ManagedPointer<parser::AbstractExpression>> sort_columns_;
+  std::vector<common::ManagedPointer<const parser::AbstractExpression>> sort_columns_;
   std::vector<planner::OrderByOrderingType> sort_ascending_;
 };
 

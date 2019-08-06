@@ -221,7 +221,7 @@ void InputColumnDeriver::AggregateHelper(const BaseOperatorNode *op) {
     }
   }
 
-  std::vector<common::ManagedPointer<parser::AbstractExpression>> groupby_cols;
+  std::vector<common::ManagedPointer<const parser::AbstractExpression>> groupby_cols;
   std::vector<AnnotatedExpression> having_exprs;
   if (op->GetType() == OpType::HASHGROUPBY) {
     auto groupby = reinterpret_cast<const HashGroupBy *>(op);
@@ -265,8 +265,8 @@ void InputColumnDeriver::AggregateHelper(const BaseOperatorNode *op) {
 
 void InputColumnDeriver::JoinHelper(const BaseOperatorNode *op) {
   std::vector<AnnotatedExpression> join_conds;
-  std::vector<common::ManagedPointer<parser::AbstractExpression>> left_keys;
-  std::vector<common::ManagedPointer<parser::AbstractExpression>> right_keys;
+  std::vector<common::ManagedPointer<const parser::AbstractExpression>> left_keys;
+  std::vector<common::ManagedPointer<const parser::AbstractExpression>> right_keys;
   if (op->GetType() == OpType::INNERHASHJOIN) {
     auto join_op = reinterpret_cast<const InnerHashJoin *>(op);
     join_conds = join_op->GetJoinPredicates();

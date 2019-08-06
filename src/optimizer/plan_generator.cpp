@@ -620,7 +620,7 @@ void PlanGenerator::Visit(UNUSED_ATTRIBUTE const OuterHashJoin *op) {
 
 void PlanGenerator::BuildAggregatePlan(
     planner::AggregateStrategyType aggr_type,
-    const std::vector<common::ManagedPointer<parser::AbstractExpression>> *groupby_cols,
+    const std::vector<common::ManagedPointer<const parser::AbstractExpression>> *groupby_cols,
     const parser::AbstractExpression *having_predicate) {
   TERRIER_ASSERT(children_expr_map_.size() == 1, "Aggregate needs 1 child plan");
   auto &child_expr_map = children_expr_map_[0];

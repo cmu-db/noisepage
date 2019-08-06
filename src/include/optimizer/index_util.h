@@ -154,7 +154,7 @@ class IndexUtil {
     for (size_t idx = 0; idx < sort_col_size; idx++) {
       // Compare col_oid_t directly due to "Base Column" requirement
       auto *expr = prop->GetSortColumn(idx).get();
-      auto *tv_expr = dynamic_cast<parser::ColumnValueExpression *>(expr);
+      auto *tv_expr = dynamic_cast<const parser::ColumnValueExpression *>(expr);
       TERRIER_ASSERT(tv_expr, "ColumnValueExpression expected");
 
       // Sort(a,b,c) cannot be fulfilled by Index(a,c,b)

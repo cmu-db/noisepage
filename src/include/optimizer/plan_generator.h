@@ -288,7 +288,7 @@ class PlanGenerator : public OperatorVisitor {
    * @param having_predicate Having clause expression
    */
   void BuildAggregatePlan(planner::AggregateStrategyType aggr_type,
-                          const std::vector<common::ManagedPointer<parser::AbstractExpression>> *groupby_cols,
+                          const std::vector<common::ManagedPointer<const parser::AbstractExpression>> *groupby_cols,
                           const parser::AbstractExpression *having_predicate);
 
   /**
