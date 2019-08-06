@@ -69,9 +69,9 @@ void RecoveryManager::ReplayTransaction(LogRecord *log_record) {
       }
 
       if (buffered_record->RecordType() == LogRecordType::REDO) {
-        ReplayRedoRecord(txn, buffered_record->GetUnderlyingRecordBodyAs<RedoRecord>());
+        ReplayRedoRecord(txn, buffered_record);
       } else {
-        ReplayDeleteRecord(txn, buffered_record->GetUnderlyingRecordBodyAs<DeleteRecord>());
+        ReplayDeleteRecord(txn, buffered_record);
       }
 
       delete[] reinterpret_cast<byte *>(buffered_record);
@@ -83,45 +83,47 @@ void RecoveryManager::ReplayTransaction(LogRecord *log_record) {
   delete[] reinterpret_cast<byte *>(log_record);
 }
 
-void RecoveryManager::ReplayRedoRecord(transaction::TransactionContext *txn, RedoRecord *record) {
-  auto sql_table_ptr = GetSqlTable(txn, record->GetDatabaseOid(), record->GetTableOid());
-  if (IsInsertRecord(record)) {
+void RecoveryManager::ReplayRedoRecord(transaction::TransactionContext *txn, LogRecord *record) {
+  auto *redo_record = record->GetUnderlyingRecordBodyAs<RedoRecord>();
+  auto sql_table_ptr = GetSqlTable(txn, redo_record->GetDatabaseOid(), redo_record->GetTableOid());
+  if (IsInsertRecord(redo_record)) {
     // Save the old tuple slot, and reset the tuple slot in the record
-    auto old_tuple_slot = record->GetTupleSlot();
-    record->SetTupleSlot(TupleSlot(nullptr, 0));
+    auto old_tuple_slot = redo_record->GetTupleSlot();
+    redo_record->SetTupleSlot(TupleSlot(nullptr, 0));
     // Insert will always succeed
-    auto new_tuple_slot = sql_table_ptr->Insert(txn, record);
-    UpdateIndexesOnTable(txn, record->GetDatabaseOid(), record->GetTableOid(), new_tuple_slot, true /* insert */);
+    auto new_tuple_slot = sql_table_ptr->Insert(txn, redo_record);
+    UpdateIndexesOnTable(txn, redo_record->GetDatabaseOid(), redo_record->GetTableOid(), new_tuple_slot, true /* insert */);
     // Stage the write. This way the recovery operation is logged if logging is enabled.
     // We stage the write after the insert because Insert sets the tuple slot on the redo record, so we need that
     // to happen before we copy the record into the txn redo buffer.
-    TERRIER_ASSERT(record->GetTupleSlot() == new_tuple_slot, "Insert should update redo record with new tuple slot");
+    TERRIER_ASSERT(redo_record->GetTupleSlot() == new_tuple_slot, "Insert should update redo record with new tuple slot");
     txn->StageRecoveryWrite(record);
     // Create a mapping of the old to new tuple. The new tuple slot should be used for future updates and deletes.
     tuple_slot_map_[old_tuple_slot] = new_tuple_slot;
   } else {
-    auto new_tuple_slot = tuple_slot_map_[record->GetTupleSlot()];
-    record->SetTupleSlot(new_tuple_slot);
+    auto new_tuple_slot = tuple_slot_map_[redo_record->GetTupleSlot()];
+    redo_record->SetTupleSlot(new_tuple_slot);
     // Stage the write. This way the recovery operation is logged if logging is enabled
     txn->StageRecoveryWrite(record);
-    bool result UNUSED_ATTRIBUTE = sql_table_ptr->Update(txn, record);
+    bool result UNUSED_ATTRIBUTE = sql_table_ptr->Update(txn, redo_record);
     TERRIER_ASSERT(result, "Buffered changes should always succeed during commit");
   }
 }
 
-void RecoveryManager::ReplayDeleteRecord(transaction::TransactionContext *txn, DeleteRecord *record) {
+void RecoveryManager::ReplayDeleteRecord(transaction::TransactionContext *txn, LogRecord *record) {
+  auto *delete_record = record->GetUnderlyingRecordBodyAs<DeleteRecord>();
   // Get tuple slot
-  auto new_tuple_slot = GetTupleSlotMapping(record->GetTupleSlot());
+  auto new_tuple_slot = GetTupleSlotMapping(delete_record->GetTupleSlot());
 
   // Delete the tuple
-  auto sql_table_ptr = GetSqlTable(txn, record->GetDatabaseOid(), record->GetTableOid());
+  auto sql_table_ptr = GetSqlTable(txn, delete_record->GetDatabaseOid(), delete_record->GetTableOid());
   // Stage the delete. This way the recovery operation is logged if logging is enabled
-  txn->StageDelete(record->GetDatabaseOid(), record->GetTableOid(), new_tuple_slot);
-  UpdateIndexesOnTable(txn, record->GetDatabaseOid(), record->GetTableOid(), new_tuple_slot, false /* delete */);
+  txn->StageDelete(delete_record->GetDatabaseOid(), delete_record->GetTableOid(), new_tuple_slot);
+  UpdateIndexesOnTable(txn, delete_record->GetDatabaseOid(), delete_record->GetTableOid(), new_tuple_slot, false /* delete */);
   bool result UNUSED_ATTRIBUTE = sql_table_ptr->Delete(txn, new_tuple_slot);
   TERRIER_ASSERT(result, "Buffered changes should always succeed during commit");
   // We can delete the TupleSlot from the map
-  tuple_slot_map_.erase(record->GetTupleSlot());
+  tuple_slot_map_.erase(delete_record->GetTupleSlot());
 }
 
 void RecoveryManager::UpdateIndexesOnTable(transaction::TransactionContext *txn, const catalog::db_oid_t db_oid,
@@ -170,7 +172,6 @@ uint32_t RecoveryManager::ProcessSpecialCaseCatalogRecord(
   auto *curr_record = buffered_changes->at(start_idx).first;
   if (curr_record->RecordType() == LogRecordType::REDO) {
     auto *redo_record = curr_record->GetUnderlyingRecordBodyAs<RedoRecord>();
-    auto db_catalog = GetDatabaseCatalog(txn, redo_record->GetDatabaseOid());
     auto table_oid = redo_record->GetTableOid();
 
     TERRIER_ASSERT(table_oid == catalog::DATABASE_TABLE_OID || table_oid == catalog::CLASS_TABLE_OID,
@@ -178,13 +179,13 @@ uint32_t RecoveryManager::ProcessSpecialCaseCatalogRecord(
 
     if (table_oid == catalog::CLASS_TABLE_OID) {
       TERRIER_ASSERT(!IsInsertRecord(redo_record), "Special case pg_class record should only be updates");
+      auto db_catalog = GetDatabaseCatalog(txn, redo_record->GetDatabaseOid());
 
       // Updates to pg_class has 3 special cases:
       //  1. If we update the next col oid, we don't need to do anything
       //  2. If we update the schema column, we need to reconstruct the new schema, and use the catalog API to update
       //  pg_class
       //  3. If we update the ptr column, this means we've inserted a new object and we need to recreate the object.
-
       //  out which special case we have
       auto pg_class_ptr = db_catalog->classes_;
       auto redo_record_oids = GetOidsForRedoRecord(pg_class_ptr, redo_record);
@@ -204,11 +205,11 @@ uint32_t RecoveryManager::ProcessSpecialCaseCatalogRecord(
         auto class_oid = *(reinterpret_cast<uint32_t *>(pr->AccessWithNullCheck(pr_map[catalog::RELOID_COL_OID])));
         auto class_kind UNUSED_ATTRIBUTE = *(reinterpret_cast<catalog::postgres::ClassKind *>(
             pr->AccessWithNullCheck(pr_map[catalog::RELKIND_COL_OID])));
-        TERRIER_ASSERT(class_kind = catalog::postgres::ClassKind::REGULAR_TABLE,
+        TERRIER_ASSERT(class_kind == catalog::postgres::ClassKind::REGULAR_TABLE,
                        "Updates to schemas in pg_class should only happen for tables");
 
         // Step 2: Query pg_attribute for the columns and recreate the schema
-        auto schema_cols = db_catalog->GetColumns<catalog::Schema::Column>(txn, class_oid);
+        auto schema_cols = db_catalog->GetColumns<catalog::Schema::Column, catalog::table_oid_t, catalog::col_oid_t>(txn, catalog::table_oid_t(class_oid));
         auto *schema = new catalog::Schema(std::move(schema_cols));
 
         // Step 3: Update the schema in the catalog
@@ -226,13 +227,13 @@ uint32_t RecoveryManager::ProcessSpecialCaseCatalogRecord(
         auto *buffer = common::AllocationUtil::AllocateAligned(pr_init.ProjectedRowSize());
         auto *pr = pr_init.InitializeRow(buffer);
         pg_class_ptr->Select(txn, GetTupleSlotMapping(redo_record->GetTupleSlot()), pr);
-        auto class_oid = *(reinterpret_cast<uint32_t*>(pr->AccessWithNullCheck(pr_map[catalog::RELOID_COL_OID]));
+        auto class_oid = *(reinterpret_cast<uint32_t*>(pr->AccessWithNullCheck(pr_map[catalog::RELOID_COL_OID])));
         auto class_kind = *(reinterpret_cast<catalog::postgres::ClassKind*>(pr->AccessWithNullCheck(pr_map[catalog::RELKIND_COL_OID])));
 
         // Case on whether we are creating a table or index
         if (class_kind == catalog::postgres::ClassKind::REGULAR_TABLE) {
           // Step 2: Query pg_attribute for the columns of the table
-          auto schema_cols = db_catalog->GetColumns<catalog::Schema::Column>(txn, class_oid);
+          auto schema_cols = db_catalog->GetColumns<catalog::Schema::Column, catalog::table_oid_t, catalog::col_oid_t>(txn, catalog::table_oid_t(class_oid));
 
           // Step 3: Create schema and object
           auto *schema = new catalog::Schema(std::move(schema_cols));
@@ -248,7 +249,7 @@ uint32_t RecoveryManager::ProcessSpecialCaseCatalogRecord(
 
         } else if (class_kind == catalog::postgres::ClassKind::INDEX) {
           // Step 2: Query pg_attribute for the columns of the index
-          auto index_cols = db_catalog->GetColumns<catalog::IndexSchema::Column>(txn, class_oid);
+          auto index_cols = db_catalog->GetColumns<catalog::IndexSchema::Column, catalog::index_oid_t, catalog::indexkeycol_oid_t>(txn, catalog::index_oid_t(class_oid));
 
           // Step 3: Query pg_index for the metadata we need for the index schema
           auto pg_indexes_index = db_catalog->indexes_oid_index_;
@@ -258,7 +259,7 @@ uint32_t RecoveryManager::ProcessSpecialCaseCatalogRecord(
           pg_indexes_index->ScanKey(*txn, *pr, &tuple_slot_result);
           TERRIER_ASSERT(tuple_slot_result.size() == 1, "Index scan should yield one result");
 
-          auto [pg_index_pr_init, pg_index_pr_map] = db_catalog->indexes_->ProjectionMapForInitializer(
+          auto [pg_index_pr_init, pg_index_pr_map] = db_catalog->indexes_->InitializerForProjectedRow(
               {catalog::INDISUNIQUE_COL_OID, catalog::INDISPRIMARY_COL_OID, catalog::INDISEXCLUSION_COL_OID,
                catalog::INDIMMEDIATE_COL_OID});
           delete[] buffer;  // Delete old buffer, it won't be large enough for this PR
@@ -314,16 +315,11 @@ uint32_t RecoveryManager::ProcessSpecialCaseCatalogRecord(
       TERRIER_ASSERT(pr_map.find(catalog::DATNAME_COL_OID) != pr_map.end(), "PR Map must contain database name");
       catalog::db_oid_t db_oid(
           *(reinterpret_cast<uint32_t *>(redo_record->Delta()->AccessWithNullCheck(pr_map[catalog::DATOID_COL_OID]))));
-      VarlenEntry name_varlen = *(reinterpret_cast<VarlenEntry*>(redo_record->Delta()->AccessWithNullCheck(pr_map[catalog::DATNAME_COL_OID]))));
-      std::string name_string;
-      if (name_varlen.IsInlined()) {
-        name_string = std::string(reinterpret_cast<char *>(name_varlen.Prefix()), name_varlen.Size());
-      } else {
-        name_string = std::string(reinterpret_cast<char *>(name_varlen.Content()), name_varlen.Size());
-      }
+      VarlenEntry name_varlen = *(reinterpret_cast<VarlenEntry*>(redo_record->Delta()->AccessWithNullCheck(pr_map[catalog::DATNAME_COL_OID])));
+      std::string name_string(name_varlen.StringView());
 
       // Step 2: Recreate the database
-      auto result UNUSED_ATTRIBUTE = catalog_->CreateDatabase(txn, name_string, db_oid);
+      auto result UNUSED_ATTRIBUTE = catalog_->CreateDatabase(txn, name_string, true, db_oid);
       TERRIER_ASSERT(result, "Database recreation should succeed");
       catalog_->UpdateNextOid(db_oid);
 
@@ -340,7 +336,7 @@ uint32_t RecoveryManager::ProcessSpecialCaseCatalogRecord(
       auto *buffer = common::AllocationUtil::AllocateAligned(pr_init.ProjectedRowSize());
       auto *pr = pr_init.InitializeRow(buffer);
       pg_class->Select(txn, GetTupleSlotMapping(delete_record->GetTupleSlot()), pr);
-      auto class_oid = *(reinterpret_cast<uint32_t*>(pr->AccessWithNullCheck(pr_map[catalog::RELOID_COL_OID]));
+      auto class_oid = *(reinterpret_cast<uint32_t*>(pr->AccessWithNullCheck(pr_map[catalog::RELOID_COL_OID])));
       auto class_kind = *(reinterpret_cast<catalog::postgres::ClassKind*>(pr->AccessWithNullCheck(pr_map[catalog::RELKIND_COL_OID])));
       delete[] buffer;
 
@@ -369,13 +365,8 @@ uint32_t RecoveryManager::ProcessSpecialCaseCatalogRecord(
               TERRIER_ASSERT(class_kind == catalog::postgres::ClassKind::REGULAR_TABLE && class_kind == next_class_kind,
                              "We only allow renaming of tables");
               // Step 4: Extract out the new name
-              VarlenEntry name_varlen = *(reinterpret_cast<VarlenEntry*>(next_redo_record->Delta()->AccessWithNullCheck(pr_map[catalog::RELNAME_COL_OID]))));
-              std::string name_string;
-              if (name_varlen.IsInlined()) {
-                name_string = std::string(reinterpret_cast<char *>(name_varlen.Prefix()), name_varlen.Size());
-              } else {
-                name_string = std::string(reinterpret_cast<char *>(name_varlen.Content()), name_varlen.Size());
-              }
+              VarlenEntry name_varlen = *(reinterpret_cast<VarlenEntry*>(next_redo_record->Delta()->AccessWithNullCheck(pr_map[catalog::RELNAME_COL_OID])));
+              std::string name_string(name_varlen.StringView());
 
               // Step 5: Rename the table
               auto result UNUSED_ATTRIBUTE = GetDatabaseCatalog(txn, next_redo_record->GetDatabaseOid())
@@ -383,7 +374,7 @@ uint32_t RecoveryManager::ProcessSpecialCaseCatalogRecord(
               TERRIER_ASSERT(result, "Renaming should always succeed during replaying");
 
               // Step 6: Update metadata and clean up additional record processed. We need to use the indexes on
-              // pg_class to find what tuple slot we just inserted into Get new tuple slot using oid index
+              // pg_class to find what tuple slot we just inserted into. We get the new tuple slot using the oid index.
               auto pg_class_oid_index = GetDatabaseCatalog(txn, next_redo_record->GetDatabaseOid())->classes_oid_index_;
               auto pr_init = pg_class_oid_index->GetProjectedRowInitializer();
               buffer = common::AllocationUtil::AllocateAligned(pr_init.ProjectedRowSize());
@@ -392,7 +383,7 @@ uint32_t RecoveryManager::ProcessSpecialCaseCatalogRecord(
               std::vector<TupleSlot> tuple_slot_result;
               pg_class_oid_index->ScanKey(*txn, *pr, &tuple_slot_result);
               TERRIER_ASSERT(tuple_slot_result.size() == 1, "Index scan should only yield one result");
-              tuple_slot_map_[next_redo_record] = tuple_slot_result[0];
+              tuple_slot_map_[next_redo_record->GetTupleSlot()] = tuple_slot_result[0];
               delete[] buffer;
               tuple_slot_map_.erase(delete_record->GetTupleSlot());
               delete[] reinterpret_cast<byte *>(next_redo_record);
@@ -431,7 +422,7 @@ uint32_t RecoveryManager::ProcessSpecialCaseCatalogRecord(
       auto *buffer = common::AllocationUtil::AllocateAligned(pr_init.ProjectedRowSize());
       auto *pr = pr_init.InitializeRow(buffer);
       pg_database->Select(txn, GetTupleSlotMapping(delete_record->GetTupleSlot()), pr);
-      auto db_oid = *(reinterpret_cast<uint32_t*>(pr->AccessWithNullCheck(pr_map[catalog::DATOID_COL_OID]));
+      auto db_oid = *(reinterpret_cast<catalog::db_oid_t*>(pr->AccessWithNullCheck(pr_map[catalog::DATOID_COL_OID])));
       delete[] buffer;
 
       // Step 2: We need to handle the case where we are just renaming a database, in this case we don't wan't to delete the database.
@@ -448,35 +439,30 @@ uint32_t RecoveryManager::ProcessSpecialCaseCatalogRecord(
                 pg_database->InitializerForProjectedRow(GetOidsForRedoRecord(pg_database, next_redo_record));
             TERRIER_ASSERT(pr_map.find(catalog::DATOID_COL_OID) != pr_map.end(), "PR Map must contain class oid");
             TERRIER_ASSERT(pr_map.find(catalog::DATNAME_COL_OID) != pr_map.end(), "PR Map must contain class name");
-            auto next_db_oid = *(reinterpret_cast<uint32_t *>(
+            auto next_db_oid = *(reinterpret_cast<catalog::db_oid_t *>(
                 next_redo_record->Delta()->AccessWithNullCheck(pr_map[catalog::DATOID_COL_OID])));
 
             // If the oid matches on the next record, this is a renaming
             if (db_oid == next_db_oid) {
               // Step 4: Extract out the new name
-              VarlenEntry name_varlen = *(reinterpret_cast<VarlenEntry*>(next_redo_record->Delta()->AccessWithNullCheck(pr_map[catalog::DATNAME_COL_OID]))));
-              std::string name_string;
-              if (name_varlen.IsInlined()) {
-                name_string = std::string(reinterpret_cast<char *>(name_varlen.Prefix()), name_varlen.Size());
-              } else {
-                name_string = std::string(reinterpret_cast<char *>(name_varlen.Content()), name_varlen.Size());
-              }
+              VarlenEntry name_varlen = *(reinterpret_cast<VarlenEntry*>(next_redo_record->Delta()->AccessWithNullCheck(pr_map[catalog::DATNAME_COL_OID])));
+              std::string name_string(name_varlen.StringView());
 
               // Step 5: Rename the database
               auto result UNUSED_ATTRIBUTE = catalog_->RenameDatabase(txn, next_db_oid, name_string);
               TERRIER_ASSERT(result, "Renaming of database should always succeed during replaying");
 
               // Step 6: Update metadata and clean up additional record processed. We need to use the indexes on
-              // pg_database to find what tuple slot we just inserted into Get new tuple slot using oid index
+              // pg_database to find what tuple slot we just inserted into. We get the new tuple slot using the oid index.
               auto pg_database_oid_index = catalog_->databases_oid_index_;
               auto pr_init = pg_database_oid_index->GetProjectedRowInitializer();
               buffer = common::AllocationUtil::AllocateAligned(pr_init.ProjectedRowSize());
               pr = pr_init.InitializeRow(buffer);
-              *(reinterpret_cast<uint32_t *>(pr->AccessForceNotNull(0))) = next_db_oid;
+              *(reinterpret_cast<uint32_t *>(pr->AccessForceNotNull(0))) = static_cast<uint32_t>(next_db_oid);
               std::vector<TupleSlot> tuple_slot_result;
               pg_database_oid_index->ScanKey(*txn, *pr, &tuple_slot_result);
               TERRIER_ASSERT(tuple_slot_result.size() == 1, "Index scan should only yield one result");
-              tuple_slot_map_[next_redo_record] = tuple_slot_result[0];
+              tuple_slot_map_[next_redo_record->GetTupleSlot()] = tuple_slot_result[0];
               delete[] buffer;
               tuple_slot_map_.erase(delete_record->GetTupleSlot());
               delete[] reinterpret_cast<byte *>(next_redo_record);

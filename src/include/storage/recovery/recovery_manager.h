@@ -244,14 +244,14 @@ class RecoveryManager : public common::DedicatedThreadOwner {
    * @param txn txn to use for replay
    * @param record record to replay
    */
-  void ReplayRedoRecord(transaction::TransactionContext *txn, RedoRecord *record);
+  void ReplayRedoRecord(transaction::TransactionContext *txn, LogRecord *record);
 
   /**
    * Replays a delete record. Updates necessary metadata
    * @param txn txn to use for delete
    * @param record record to replay
    */
-  void ReplayDeleteRecord(transaction::TransactionContext *txn, DeleteRecord *record);
+  void ReplayDeleteRecord(transaction::TransactionContext *txn, LogRecord *record);
 
   /**
    * Returns the list of col oids this redo record modified

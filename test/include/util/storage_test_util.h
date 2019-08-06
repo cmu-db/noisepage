@@ -33,6 +33,8 @@ class StorageTestUtil {
   StorageTestUtil() = delete;
 
 #define TO_INT(p) reinterpret_cast<uintptr_t>(p)
+
+#define MAX_TEST_VARLEN_SIZE (5 * storage::VarlenEntry::InlineThreshold())
   /**
    * Check if memory address represented by val in [lower, upper)
    * @tparam A type of ptr
@@ -114,7 +116,7 @@ class StorageTestUtil {
     std::bernoulli_distribution coin(1 - null_bias);
     // TODO(Tianyu): I don't think this matters as a tunable thing?
     // Make sure we have a mix of inlined and non-inlined values
-    std::uniform_int_distribution<uint32_t> varlen_size(1, 5 * storage::VarlenEntry::InlineThreshold());
+    std::uniform_int_distribution<uint32_t> varlen_size(1, MAX_TEST_VARLEN_SIZE);
     // For every column in the project list, populate its attribute with random bytes or set to null based on coin flip
     for (uint16_t projection_list_idx = 0; projection_list_idx < row->NumColumns(); projection_list_idx++) {
       storage::col_id_t col = row->ColumnIds()[projection_list_idx];
@@ -570,14 +572,19 @@ class StorageTestUtil {
     if (allow_varlen) possible_attr_types.push_back(type::TypeId::VARCHAR);
 
     std::vector<catalog::Schema::Column> columns;
+    columns.reserve(num_attrs);
 
     for (uint16_t i = 0; i < num_attrs; i++) {
       auto random_type = *RandomTestUtil::UniformRandomElement(&possible_attr_types, generator);
+
+      catalog::Schema::Column col;
       if (random_type == type::TypeId::VARCHAR) {
-        columns.emplace_back("col" + std::to_string(i), random_type, VARLEN_COLUMN, false, catalog::col_oid_t(i));
+        col = catalog::Schema::Column("col" + std::to_string(i), random_type, MAX_TEST_VARLEN_SIZE, false, parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
       } else {
-        columns.emplace_back("col" + std::to_string(i), random_type, false, catalog::col_oid_t(i));
+        col = catalog::Schema::Column("col" + std::to_string(i), random_type, false, parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
       }
+      col.SetOid(catalog::col_oid_t(i));
+      columns.push_back(col);
     }
 
     return new catalog::Schema(columns);

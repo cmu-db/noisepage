@@ -125,8 +125,19 @@ class Catalog {
     do {
       expected = next_oid_.load();
       desired = std::max(expected, oid);
-    } while (!next_oid_.compare_exchange_strong(expected, desired));
+    } while (!next_oid_.compare_exchange_weak(expected, desired));
   }
+
+/**
+ * Helper for CreateDatabase. This method can be used by recovery manager to create a database with a specific oid
+   * @param txn that creates the database
+   * @param name of the new database
+   * @param bootstrap indicates whether or not to perform bootstrap routine
+ * @param db_oid oid for new database
+ * @return true if creation succeeded, false otherwise
+ */
+  bool CreateDatabase(transaction::TransactionContext *const txn, const std::string &name,
+                               const bool bootstrap, const catalog::db_oid_t db_oid);
 
   /**
    * Creates a new database entry.

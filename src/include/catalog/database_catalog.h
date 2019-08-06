@@ -323,7 +323,7 @@ class DatabaseCatalog {
     do {
       expected = next_oid_.load();
       desired = std::max(expected, oid);
-    } while (!next_oid_.compare_exchange_strong(expected, desired));
+    } while (!next_oid_.compare_exchange_weak(expected, desired));
   }
 
   /**

@@ -212,11 +212,5 @@ void LargeSqlTableTestObject::PopulateInitialTables(uint16_t num_databases, uint
   txn_manager_.Commit(initial_txn_, transaction::TransactionUtil::EmptyCallback, nullptr);
 }
 
-LargeSqlTableTestObject LargeSqlTableTestObject::Builder::build() {
-  return {builder_num_databases_,      builder_num_tables_,  builder_max_columns_,
-          builder_initial_table_size_, builder_txn_length_,  builder_update_select_delete_ratio_,
-          builder_block_store_,        builder_buffer_pool_, builder_generator_,
-          builder_log_manager_,        varlen_allowed_};
-}
 
 }  // namespace terrier

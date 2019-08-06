@@ -86,6 +86,11 @@ class StrongTypeAlias {
   /**
    * @return the underlying value.
    */
+  IntType &operator!() { return val_; }
+
+  /**
+   * @return the underlying value.
+   */
   const IntType &operator!() const { return val_; }
 
   /**
@@ -302,7 +307,7 @@ struct atomic<terrier::common::StrongTypeAlias<Tag, IntType>> {
    */
   // NOLINTNEXTLINE
   bool compare_exchange_weak(t &expected, t desired, memory_order order = memory_order_seq_cst) volatile noexcept {
-    return underlying_.compare_exchange_weak(expected.val_, !desired, order);
+    return underlying_.compare_exchange_weak(!expected, !desired, order);
   }
 
   /**
@@ -317,7 +322,7 @@ struct atomic<terrier::common::StrongTypeAlias<Tag, IntType>> {
    */
   // NOLINTNEXTLINE
   bool compare_exchange_strong(t &expected, t desired, memory_order order = memory_order_seq_cst) volatile noexcept {
-    return underlying_.compare_exchange_strong(expected.val_, !desired, order);
+    return underlying_.compare_exchange_strong(!expected, !desired, order);
   }
 
   /**
