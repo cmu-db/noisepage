@@ -34,7 +34,6 @@ target_compile_definitions(farmhash_selftest PUBLIC -DFARMHASHSELFTEST)
 # libcuckoo
 file(GLOB_RECURSE LIBCUCKOO_SOURCES ${PROJECT_SOURCE_DIR}/third_party/libcuckoo/*.hh)
 list(APPEND TERRIER_SRCS ${LIBCUCKOO_SOURCES})
-#set_source_files_properties(${PROJECT_SOURCE_DIR}/third_party/farmhash/farmhash.cc PROPERTIES COMPILE_FLAGS "-DFARMHASHSELFTEST" )
 
 ###############################################
 # Terrier library

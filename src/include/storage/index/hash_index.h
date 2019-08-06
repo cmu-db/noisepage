@@ -44,33 +44,37 @@ class HashIndex final : public Index {
    * ugly but you can't define a macro that captures location outside of the scope of that variable, and cuckoohash_map
    * doesn't allow
    */
-#define ERASE_KEY_ACTION                                                                                              \
-  [=]() {                                                                                                             \
-    auto key_found_fn = [location](ValueType &value) -> bool {                                                        \
-      if (std::holds_alternative<TupleSlot>(value)) {                                                                 \
-        /* It's just a TupleSlot, functor should return true for cuckoohash_map's uprase_fn to erase it */            \
-        return true;                                                                                                  \
-      }                                                                                                               \
-      auto &value_map = std::get<ValueMap>(value);                                                                    \
-      if (value_map.size() == 2) {                                                                                    \
-        /* functor should replace the ValueMap with a TupleSlot for the other location */                             \
-        for (const auto i : value_map) {                                                                              \
-          if (i == location) {                                                                                        \
-            /* This is the location we're trying to remove, just skip it */                                           \
-            continue;                                                                                                 \
-          } else {                                                                                                    \
-            value = i; /* Assigning TupleSlot type will change the std::variant to TupleSlot and free the ValueMap */ \
-            return false; /* Return false so cuckoohash_map's uprase_fn doesn't erase it */                           \
-          }                                                                                                           \
-        }                                                                                                             \
-      }                                                                                                               \
-      /* ValueMap contains more than 2 elements, erase location from the ValueMap */                                  \
-      const auto UNUSED_ATTRIBUTE erase_result = value_map.erase(location);                                           \
-      TERRIER_ASSERT(erase_result == 1, "Erasing from the ValueMap should not fail.");                                \
-      return false; /* Return false so cuckoohash_map's uprase_fn doesn't erase it */                                 \
-    };                                                                                                                \
-    const bool UNUSED_ATTRIBUTE uprase_result = hash_map_->uprase_fn(index_key, key_found_fn);                        \
-    TERRIER_ASSERT(!uprase_result, "This operation should NOT insert a new key into the cuckoohash_map.");            \
+#define ERASE_KEY_ACTION                                                                                               \
+  [=]() {                                                                                                              \
+    /* See the underlying container's API for more details, but the lambda below is invoked when the key is found. */  \
+    auto key_found_fn = [location](ValueType &value) -> bool {                                                         \
+      if (std::holds_alternative<TupleSlot>(value)) {                                                                  \
+        /* It's just a TupleSlot, functor should return true for cuckoohash_map's uprase_fn to erase key/value pair */ \
+        return true;                                                                                                   \
+      }                                                                                                                \
+      auto &value_map = std::get<ValueMap>(value);                                                                     \
+      if (value_map.size() == 2) {                                                                                     \
+        /* functor should replace the ValueMap with a TupleSlot for the other location */                              \
+        for (const auto i : value_map) {                                                                               \
+          if (i == location) {                                                                                         \
+            /* This is the location we're trying to remove, just skip it */                                            \
+            continue;                                                                                                  \
+          } else {                                                                                                     \
+            value = i; /* Assigning TupleSlot type will change the std::variant to TupleSlot and free the ValueMap */  \
+            TERRIER_ASSERT(std::holds_alternative<TupleSlot>(value), "value should now be a TupleSlot.");              \
+            return false; /* Return false so cuckoohash_map's uprase_fn doesn't erase key/value pair */                \
+          }                                                                                                            \
+        }                                                                                                              \
+        TERRIER_ASSERT(false, "We shouldn't have been able to reach this point.");                                     \
+      }                                                                                                                \
+      /* ValueMap contains more than 2 elements, erase location from the ValueMap */                                   \
+      const auto UNUSED_ATTRIBUTE erase_result = value_map.erase(location);                                            \
+      TERRIER_ASSERT(erase_result == 1, "Erasing from the ValueMap should not fail.");                                 \
+      TERRIER_ASSERT(value_map.size() > 1, "ValueMap should not have fewer than 2 elements.");                         \
+      return false; /* Return false so cuckoohash_map's uprase_fn doesn't erase key/value pair */                      \
+    };                                                                                                                 \
+    const bool UNUSED_ATTRIBUTE uprase_result = hash_map_->uprase_fn(index_key, key_found_fn);                         \
+    TERRIER_ASSERT(!uprase_result, "This operation should NOT insert a new key into the cuckoohash_map.");             \
   }
 
  public:
@@ -86,9 +90,22 @@ class HashIndex final : public Index {
 
     bool UNUSED_ATTRIBUTE insert_result = false;
 
+    /**
+     * See the underlying container's API for more details, but the lambda below is invoked when the key is found.
+     *
+     * Captures:
+     * location the TupleSlot (value) being added to index
+     * insert_result captured by reference so it can be updated in outer scope. true if insert succeeded
+     *
+     * Args:
+     * value the current value for this key value (found by underlying containiner on lookup, then passed to
+     * key_found_fn)
+     *
+     * return true if cuckoohash_map's uprase_fn should delete the key/value pair. For inserts we always return false.
+     */
     auto key_found_fn = [location, &insert_result](ValueType &value) -> bool {
       if (std::holds_alternative<TupleSlot>(value)) {
-        // replace it with a ValueMap
+        // replace the TupleSlot with a ValueMap containing both the old and new inserted value
         const auto existing_location = std::get<TupleSlot>(value);
         value = ValueMap({{location}, {existing_location}}, 2);
         insert_result = true;
@@ -130,18 +147,35 @@ class HashIndex final : public Index {
 
     bool UNUSED_ATTRIBUTE insert_result = false;
 
+    /**
+     * See the underlying container's API for more details, but the lambda below is invoked when the key is found.
+     *
+     * Captures:
+     * location the TupleSlot (value) being added to index
+     * insert_result captured by reference so it can be updated in outer scope. true if insert succeeded
+     * predicate_satisfied captured by reference so it can be updated in outer scope. true if uniqueness
+     * predicate was satisfied (i.e. there's a conflict with the insert)
+     * predicate std::function to evaluate for key uniqueness
+     *
+     * Args:
+     * value the current value for this key value (found by underlying containiner on lookup, then passed to
+     * key_found_fn)
+     *
+     * return true if cuckoohash_map's uprase_fn should delete the key/value pair. For inserts we always return false.
+     */
     auto key_found_fn = [location, &insert_result, &predicate_satisfied, predicate](ValueType &value) -> bool {
       if (std::holds_alternative<TupleSlot>(value)) {
         const auto existing_location = std::get<TupleSlot>(value);
         predicate_satisfied = predicate(existing_location);
         if (!predicate_satisfied) {
-          // existing location is not visible, replace with a ValueMap
+          // replace the TupleSlot with a ValueMap containing both the old and new inserted value
           value = ValueMap({{location}, {existing_location}}, 2);
           insert_result = true;
         }
       } else {
         auto &value_map = std::get<ValueMap>(value);
 
+        // Check all of the existing TupleSlots at this key for conflicts
         for (const auto i : value_map) {
           predicate_satisfied = predicate_satisfied || predicate(i);
         }
@@ -159,11 +193,14 @@ class HashIndex final : public Index {
 
     const bool UNUSED_ATTRIBUTE uprase_result = hash_map_->uprase_fn(index_key, key_found_fn, location);
 
-    TERRIER_ASSERT(predicate_satisfied || (insert_result != uprase_result),
+    TERRIER_ASSERT(insert_result != uprase_result,
                    "Either a new key was inserted (uprase_result), or the value already existed and a new value was "
                    "inserted (insert_result).");
 
     const bool UNUSED_ATTRIBUTE overall_result = insert_result || uprase_result;
+
+    TERRIER_ASSERT(predicate_satisfied != overall_result,
+                   "Cant have satisfied the predicate and also succeeded to insert.");
 
     if (overall_result) {
       txn->RegisterAbortAction(ERASE_KEY_ACTION);
@@ -198,6 +235,17 @@ class HashIndex final : public Index {
     KeyType index_key;
     index_key.SetFromProjectedRow(key, metadata_);
 
+    /**
+     * See the underlying container's API for more details, but the lambda below is invoked when the key is found.
+     *
+     * Captures:
+     * value_list pointer to the vector to be populated with result values
+     * txn reference to the calling txn in order to do visibility checks
+     *
+     * Args:
+     * value the current value for this key value (found by underlying containiner on lookup, then passed to
+     * key_found_fn)
+     */
     auto key_found_fn = [value_list, &txn](const ValueType &value) -> void {
       if (std::holds_alternative<TupleSlot>(value)) {
         const auto existing_location = std::get<TupleSlot>(value);
