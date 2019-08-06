@@ -114,6 +114,8 @@ class DatabaseCatalog {
    * @warning The table pointer that is passed in must be on the heap as the
    * catalog will take ownership of it and schedule its deletion with the GC
    * at the appropriate time.
+   * @warning It is unsafe to call delete on the SqlTable pointer after calling
+   * this function regardless of the return status.
    */
   bool SetTablePointer(transaction::TransactionContext *txn, table_oid_t table, const storage::SqlTable *table_ptr);
 
@@ -212,6 +214,8 @@ class DatabaseCatalog {
    * @warning The index pointer that is passed in must be on the heap as the
    * catalog will take ownership of it and schedule its deletion with the GC
    * at the appropriate time.
+   * @warning It is unsafe to call delete on the Index pointer after calling
+   * this function regardless of the return status.
    */
   bool SetIndexPointer(transaction::TransactionContext *txn, index_oid_t index, const storage::index::Index *index_ptr);
 
@@ -242,21 +246,8 @@ class DatabaseCatalog {
    * @param default_val default value
    * @return whether insertion is successful
    */
-  template <typename Column, typename ClassOid>
-  bool CreateColumn(transaction::TransactionContext *txn, ClassOid class_oid, const Column &col);
-
-  /**
-   * Get entry from pg_attribute
-   * @tparam Column type of columns
-   * @param txn txn to use
-   * @param col_oid oid of the table or index column
-   * @param class_oid oid of table or index
-   * @return the column from pg_attribute
-   */
   template <typename Column, typename ClassOid, typename ColOid>
-  std::unique_ptr<Column> GetColumn(transaction::TransactionContext *txn, ClassOid class_oid, ColOid col_oid);
-  // TODO(Matt): make this return stack object
-
+  bool CreateColumn(transaction::TransactionContext *txn, ClassOid class_oid, ColOid col_oid, const Column &col);
   /**
    * Get entries from pg_attribute
    * @tparam Column type of columns
@@ -265,8 +256,7 @@ class DatabaseCatalog {
    * @return the column from pg_attribute
    */
   template <typename Column, typename ClassOid, typename ColOid>
-  std::vector<std::unique_ptr<Column>> GetColumns(transaction::TransactionContext *txn, ClassOid class_oid);
-  // TODO(Matt): make this return stack object
+  std::vector<Column> GetColumns(transaction::TransactionContext *txn, ClassOid class_oid);
 
   /**
    * Delete entries from pg_attribute
@@ -317,7 +307,7 @@ class DatabaseCatalog {
 
   void TearDown(transaction::TransactionContext *txn);
   bool CreateTableEntry(transaction::TransactionContext *txn, table_oid_t table_oid, namespace_oid_t ns_oid,
-                        const std::string &name, Schema *schema);
+                        const std::string &name, const Schema &schema);
 
   friend class Catalog;
   friend class postgres::Builder;
@@ -409,6 +399,6 @@ class DatabaseCatalog {
    * @return heap-allocated column managed by unique_ptr
    */
   template <typename Column, typename ColOid>
-  static std::unique_ptr<Column> MakeColumn(storage::ProjectedRow *pr, const storage::ProjectionMap &pr_map);
+  static Column MakeColumn(storage::ProjectedRow *pr, const storage::ProjectionMap &pr_map);
 };
 }  // namespace terrier::catalog

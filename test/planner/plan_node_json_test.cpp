@@ -758,8 +758,8 @@ TEST(PlanNodeJsonTest, InsertPlanNodeJsonTest) {
                        .SetTableOid(catalog::table_oid_t(1))
                        .AddValues(get_values(0, 2))
                        .AddValues(get_values(1, 2))
-                       .AddParameterInfo(0, catalog::col_oid_t(0))
-                       .AddParameterInfo(1, catalog::col_oid_t(1))
+                       .AddParameterInfo(catalog::col_oid_t(0))
+                       .AddParameterInfo(catalog::col_oid_t(1))
                        .Build();
 
   // Serialize to Json
@@ -782,9 +782,9 @@ TEST(PlanNodeJsonTest, InsertPlanNodeJsonTest) {
                         .SetTableOid(catalog::table_oid_t(1))
                         .AddValues(get_values(0, 3))
                         .AddValues(get_values(1, 3))
-                        .AddParameterInfo(0, catalog::col_oid_t(0))
-                        .AddParameterInfo(1, catalog::col_oid_t(1))
-                        .AddParameterInfo(8, catalog::col_oid_t(999))
+                        .AddParameterInfo(catalog::col_oid_t(0))
+                        .AddParameterInfo(catalog::col_oid_t(1))
+                        .AddParameterInfo(catalog::col_oid_t(2))
                         .Build();
   auto json2 = plan_node2->ToJson();
   EXPECT_FALSE(json2.is_null());
