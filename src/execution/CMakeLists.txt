@@ -46,6 +46,7 @@ function(tpl_compile_to_ir SRC_FILE)
             COMMAND ${CLANG} ${CLANG_IR_CXX_FLAGS} ${CLANG_IR_CXX_INCLUDES} ${FULL_NAME} -o ${OUTPUT_FILE}
             DEPENDS ${SRC_FILE})
     add_custom_target(${BASE_NAME}_bc ALL DEPENDS ${OUTPUT_FILE})
+    add_dependencies(gen_opt_bc terrier_shared)
     add_dependencies(gen_opt_bc ${BASE_NAME}_bc)
 endfunction(tpl_compile_to_ir)
 
