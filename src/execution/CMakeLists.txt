@@ -30,6 +30,7 @@ set(CLANG_IR_CXX_INCLUDES ${CLANG_IR_CXX_INCLUDES} "-I${PROJECT_SOURCE_DIR}/thir
 set(CLANG_IR_CXX_INCLUDES ${CLANG_IR_CXX_INCLUDES} "-I${PROJECT_SOURCE_DIR}/third_party/portable_endian")
 set(CLANG_IR_CXX_INCLUDES ${CLANG_IR_CXX_INCLUDES} "-I${PROJECT_SOURCE_DIR}/third_party/bwtree")
 set(CLANG_IR_CXX_INCLUDES ${CLANG_IR_CXX_INCLUDES} "-I${PROJECT_SOURCE_DIR}/third_party/")
+set(CLANG_IR_CXX_INCLUDES ${CLANG_IR_CXX_INCLUDES} "-I${GFLAGS_INCLUDE_DIR}")
 set(CLANG_IR_CXX_INCLUDES ${CLANG_IR_CXX_INCLUDES} "-isystem${LLVM_INCLUDE_DIRS}")
 
 # Function to generate rule to cross compile a source file to an IR module.
@@ -48,7 +49,7 @@ function(tpl_compile_to_ir SRC_FILE)
     add_custom_target(${BASE_NAME}_bc ALL DEPENDS ${OUTPUT_FILE})
     add_dependencies(${BASE_NAME}_bc terrier_shared)
     add_dependencies(gen_opt_bc terrier_shared)
-    #add_dependencies(gen_opt_bc ${BASE_NAME}_bc)
+    add_dependencies(gen_opt_bc ${BASE_NAME}_bc)
 endfunction(tpl_compile_to_ir)
 
 # Build the "gen_opt_bc" executable. This is dependent on all cross-compiled bitcode
