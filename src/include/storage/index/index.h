@@ -35,6 +35,7 @@ class Index {
   friend class GenericKey<128>;
   friend class GenericKey<256>;
   friend class BwTreeKeyTests;
+  friend class storage::RecoveryManager;
 
   const ConstraintType constraint_type_;
 

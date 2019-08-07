@@ -7,6 +7,7 @@
 #include <vector>
 #include "catalog/index_schema.h"
 #include "common/macros.h"
+#include "parser/expression/column_value_expression.h"
 #include "storage/index/index_defs.h"
 #include "storage/projected_row.h"
 #include "storage/storage_util.h"

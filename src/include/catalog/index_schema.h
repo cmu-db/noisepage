@@ -8,10 +8,15 @@
 #include "common/json.h"
 #include "common/macros.h"
 #include "parser/expression/abstract_expression.h"
+#include "parser/expression/column_value_expression.h"
 #include "type/type_id.h"
 
 namespace terrier {
 class StorageTestUtil;
+}
+
+namespace terrier::storage {
+class RecoveryManager;
 }
 
 namespace terrier::tpcc {
@@ -292,6 +297,7 @@ class IndexSchema {
 
  private:
   friend class DatabaseCatalog;
+  friend class storage::RecoveryManager;
   std::vector<Column> columns_;
   bool is_unique_;
   bool is_primary_;
@@ -307,6 +313,22 @@ class IndexSchema {
 
   friend class Catalog;
   friend class postgres::Builder;
+
+  /**
+   * @warning This call will fail if this schema has non-expressioned index keys
+   * @return oids of the columns this index schema covers
+   */
+  const std::vector<catalog::col_oid_t> GetIndexedColOids() const {
+    std::vector<catalog::col_oid_t> result;
+    for (auto &col : GetColumns()) {
+      TERRIER_ASSERT(col.StoredExpression() != nullptr, "Index column expr should not be null");
+      TERRIER_ASSERT(col.StoredExpression()->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE,
+                     "Only support fetching oids on non-expressioned index keys");
+      result.push_back(col.StoredExpression().CastManagedPointerTo<const parser::ColumnValueExpression>()->GetColumnOid());
+    }
+    return result;
+  }
+
 };
 
 DEFINE_JSON_DECLARATIONS(IndexSchema::Column);

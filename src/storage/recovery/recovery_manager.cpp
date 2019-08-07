@@ -134,32 +134,87 @@ void RecoveryManager::UpdateIndexesOnTable(transaction::TransactionContext *txn,
 
   if (index_oids.empty()) return;
 
+  auto num_indexes = index_oids.size();
+
   // Fetch all indexes at once so we can get largest PR size we need and reuse buffer
   // TODO(Gus): We can save ourselves a catalog query by passing in the sql table ptr to this function
   auto sql_table_ptr = GetSqlTable(txn, db_oid, table_oid);
-  std::vector<common::ManagedPointer<storage::index::Index>> indexes(index_oids.size());
-  uint32_t byte_size = 0;
+
+  // Stores ptr to index
+  std::vector<common::ManagedPointer<storage::index::Index>> indexes;
+  indexes.reserve(num_indexes);
+
+  // Stores pr initializers to get indexed columns values to insert
+  std::vector<std::pair<ProjectedRowInitializer, ProjectionMap>> table_pr_initializers_pairs;
+  table_pr_initializers_pairs.reserve(num_indexes);
+
+  // Stores index schemas, used to get indexcol_ids
+  std::vector<catalog::IndexSchema> index_schemas;
+  index_schemas.reserve(num_indexes);
+
+  // Buffer for projected row sizes
+  uint32_t table_byte_size = 0;
+  uint32_t index_byte_size = 0;
+
   for (auto &oid : index_oids) {
+    // Get index ptr
     auto index_ptr = db_catalog_ptr->GetIndex(txn, oid);
     indexes.push_back(index_ptr);
+
+    // Get index schema
+    auto schema = db_catalog_ptr->GetIndexSchema(txn, oid);
+    index_schemas.push_back(schema);
+
+    // Get pr initializer
+    auto indexed_attributes = schema.GetIndexedColOids();
+    auto initializer_pair = sql_table_ptr->InitializerForProjectedRow(indexed_attributes);
+    table_pr_initializers_pairs.push_back(initializer_pair);
     // We want to calculate the size of the largest PR we will create
-    byte_size = std::max(byte_size, index_ptr->GetProjectedRowInitializer().ProjectedRowSize());
+    table_byte_size = std::max(table_byte_size, initializer_pair.first.ProjectedRowSize());
+    index_byte_size = std::max(index_byte_size, index_ptr->GetProjectedRowInitializer().ProjectedRowSize());
   }
-  auto *buffer = common::AllocationUtil::AllocateAligned(byte_size);
+  auto *table_buffer = common::AllocationUtil::AllocateAligned(table_byte_size);
+  auto *index_buffer = common::AllocationUtil::AllocateAligned(index_byte_size);
 
   // Delete from each index
   // TODO(Gus): We are going to assume no indexes on expressions below. Having indexes on expressions would require to
   // evaluate expressions and that's a fucking nightmare
-  for (auto index : indexes) {
-    auto index_pr = index->GetProjectedRowInitializer().InitializeRow(buffer);
+  for (uint8_t i = 0; i < indexes.size(); i++) {
     // TODO(Gus): A possible optimization we could do is fetch all attributes we will need at once, instead of calling
     // Select each time. This would just require copying into the PR each time
-    sql_table_ptr->Select(txn, tuple_slot, index_pr);
+    auto index = indexes[i];
+    auto schema = index_schemas[i];
+    auto *table_pr = table_pr_initializers_pairs[i].first.InitializeRow(table_buffer);
+    auto &table_ptr_map = table_pr_initializers_pairs[i].second;
+    sql_table_ptr->Select(txn, tuple_slot, table_pr);
+
+    // Build the index PR
+    auto *index_pr = index->GetProjectedRowInitializer().InitializeRow(index_buffer);
+    // TODO(Gus): if we cache indexed_attributes, we can save ourselves looking at the schema again
+    auto indexed_attributes = schema.GetIndexedColOids();
+    TERRIER_ASSERT(indexed_attributes.size() == table_pr->NumColumns(), "The number of values fetched must be the same as what we want to insert into the index");
+    // Copy in each value from the table select result into the index PR
+    for (auto attr_idx = 0; attr_idx < indexed_attributes.size(); attr_idx++) {
+      auto attr_oid = indexed_attributes[attr_idx];
+      auto index_col_oid = schema.GetColumn(attr_idx).Oid();
+      if (table_pr->IsNull(table_ptr_map[attr_oid])) {
+        index_pr->SetNull(index->GetKeyOidToOffsetMap().at(index_col_oid));
+      } else {
+        auto size = schema.GetColumn(attr_idx).AttrSize() & INT8_MAX;
+        std::memcpy(index_pr->AccessForceNotNull(index->GetKeyOidToOffsetMap().at(index_col_oid)),
+                    table_pr->AccessWithNullCheck(table_ptr_map[attr_oid]),
+                    size);
+      }
+    }
+
     if (insert) {
-      bool result UNUSED_ATTRIBUTE = (index->GetConstraintType() == index::ConstraintType::UNIQUE)
-                                         ? index->InsertUnique(txn, *index_pr, tuple_slot)
-                                         : index->Insert(txn, *index_pr, tuple_slot);
-      TERRIER_ASSERT(result, "Insert into index should always succeed for a committed transaction");
+      // Perform the insert
+      if (index->GetConstraintType() == index::ConstraintType::UNIQUE) {
+        index->InsertUnique(txn, *index_pr, tuple_slot);
+      } else {
+        index->Insert(txn, *index_pr, tuple_slot);
+      }
+      //TERRIER_ASSERT(result, "Insert into index should always succeed for a committed transaction");
     } else {
       index->Delete(txn, *index_pr, tuple_slot);
     }
@@ -487,7 +542,11 @@ std::vector<catalog::col_oid_t> RecoveryManager::GetOidsForRedoRecord(storage::S
                                                                       RedoRecord *record) {
   std::vector<catalog::col_oid_t> result;
   for (uint16_t i = 0; i < record->Delta()->NumColumns(); i++) {
-    result.emplace_back(sql_table->OidForColId(record->Delta()->ColumnIds()[i]));
+    col_id_t col_id = record->Delta()->ColumnIds()[i];
+    // We should ingore the version pointer column, this is a hidden storage layer column
+    if (col_id != VERSION_POINTER_COLUMN_ID) {
+      result.emplace_back(sql_table->OidForColId(col_id));
+    }
   }
   return result;
 }
