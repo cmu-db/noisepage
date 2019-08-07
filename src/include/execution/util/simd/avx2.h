@@ -452,7 +452,7 @@ ALWAYS_INLINE inline u32 Vec8Mask::ToPositions(u32 *positions, u32 offset) const
   return __builtin_popcount(mask);
 }
 
-ALWAYS_INLINE inline u32 Vec8Mask::ToPositions(u32 *positions, const terrier::execution::util::simd::Vec8 &pos) const {
+ALWAYS_INLINE inline u32 Vec8Mask::ToPositions(u32 *positions, const execution::util::simd::Vec8 &pos) const {
   i32 mask = _mm256_movemask_ps(_mm256_castsi256_ps(reg()));
   TPL_ASSERT(mask < 256, "8-bit mask must be less than 256");
   __m128i perm_comp = _mm_loadl_epi64(reinterpret_cast<const __m128i *>(&k8BitMatchLUT[mask]));

@@ -17,7 +17,7 @@
 
 namespace terrier::execution::parsing {
 
-Rewriter::Rewriter(terrier::execution::ast::Context *ctx, terrier::catalog::CatalogAccessor *accessor)
+Rewriter::Rewriter(execution::ast::Context *ctx, terrier::catalog::CatalogAccessor *accessor)
     : ctx_(ctx), accessor_(accessor) {}
 
 // Generate a call to the given builtin using the given arguments
@@ -27,7 +27,7 @@ ast::Expr *GenCallBuiltin(ast::Context *ctx, SourcePosition pos, ast::Builtin bu
   return ctx->node_factory()->NewBuiltinCallExpr(name, {args.begin(), args.end(), ctx->region()});
 }
 
-ast::Expr *Rewriter::RewriteBuiltinCall(terrier::execution::ast::CallExpr *call) {
+ast::Expr *Rewriter::RewriteBuiltinCall(execution::ast::CallExpr *call) {
   ast::Builtin builtin;
   if (!ctx_->IsBuiltinFunction(call->GetFuncName(), &builtin)) {
     ctx_->error_reporter()->Report(call->function()->position(), sema::ErrorMessages::kInvalidBuiltinFunction,
@@ -62,7 +62,7 @@ ast::Expr *Rewriter::RewriteBuiltinCall(terrier::execution::ast::CallExpr *call)
   }
 }
 
-ast::Expr *Rewriter::RewritePCIGet(terrier::execution::ast::CallExpr *call, ast::Builtin old_builtin) {
+ast::Expr *Rewriter::RewritePCIGet(execution::ast::CallExpr *call, ast::Builtin old_builtin) {
   TPL_ASSERT(call->arguments().size() == 3, "PCIGetBind call takes in 3 arguments");
   ast::Expr *pci = call->arguments()[0];
   auto alias = call->arguments()[1]->SafeAs<ast::LitExpr>()->raw_string_val().data();
@@ -105,7 +105,7 @@ ast::Expr *Rewriter::RewritePCIGet(terrier::execution::ast::CallExpr *call, ast:
   return GenCallBuiltin(ctx_, call->position(), builtin, args);
 }
 
-ast::Expr *Rewriter::RewriteTableAndIndexInitCall(terrier::execution::ast::CallExpr *call, ast::Builtin old_builtin) {
+ast::Expr *Rewriter::RewriteTableAndIndexInitCall(execution::ast::CallExpr *call, ast::Builtin old_builtin) {
   switch (old_builtin) {
     case ast::Builtin::TableIterConstructBind: {
       TPL_ASSERT(call->arguments().size() == 4, "TableIterConstructBind call takes in 4 arguments");
@@ -187,7 +187,7 @@ ast::Expr *Rewriter::RewriteTableAndIndexInitCall(terrier::execution::ast::CallE
   }
 }
 
-ast::Expr *Rewriter::RewriteIndexIteratorGet(terrier::execution::ast::CallExpr *call, terrier::execution::ast::Builtin old_builtin) {
+ast::Expr *Rewriter::RewriteIndexIteratorGet(execution::ast::CallExpr *call, execution::ast::Builtin old_builtin) {
   TPL_ASSERT(call->arguments().size() == 3, "IndexIteratorGetBind call takes in 3 arguments");
   ast::Expr *index = call->arguments()[0];
   auto alias = call->arguments()[1]->SafeAs<ast::LitExpr>()->raw_string_val().data();
@@ -230,7 +230,7 @@ ast::Expr *Rewriter::RewriteIndexIteratorGet(terrier::execution::ast::CallExpr *
   return GenCallBuiltin(ctx_, call->position(), builtin, args);
 }
 
-ast::Expr *Rewriter::RewriteIndexIteratorSetKey(terrier::execution::ast::CallExpr *call, terrier::execution::ast::Builtin old_builtin) {
+ast::Expr *Rewriter::RewriteIndexIteratorSetKey(execution::ast::CallExpr *call, execution::ast::Builtin old_builtin) {
   TPL_ASSERT(call->arguments().size() == 4, "IndexIteratorGetBind call takes in 3 arguments");
   ast::Expr *index = call->arguments()[0];
   auto alias = call->arguments()[1]->SafeAs<ast::LitExpr>()->raw_string_val().data();
@@ -275,7 +275,7 @@ ast::Expr *Rewriter::RewriteIndexIteratorSetKey(terrier::execution::ast::CallExp
   return GenCallBuiltin(ctx_, call->position(), builtin, args);
 }
 
-ast::Expr *Rewriter::RewriteFilterCall(terrier::execution::ast::CallExpr *call, terrier::execution::ast::Builtin old_builtin) {
+ast::Expr *Rewriter::RewriteFilterCall(execution::ast::CallExpr *call, execution::ast::Builtin old_builtin) {
   TPL_ASSERT(call->arguments().size() == 4, "PCIGetBind call takes in 3 arguments");
   ast::Expr *pci = call->arguments()[0];
   auto alias = call->arguments()[1]->SafeAs<ast::LitExpr>()->raw_string_val().data();

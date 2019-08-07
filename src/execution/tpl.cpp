@@ -301,13 +301,13 @@ static void RunFile(const std::string &filename) {
  * Initialize all TPL subsystems
  */
 void InitTPL() {
-  terrier::execution::CpuInfo::Instance();
+  execution::CpuInfo::Instance();
 
   terrier::LoggersUtil::Initialize(false);
 
-  terrier::execution::vm::LLVMEngine::Initialize();
+  execution::vm::LLVMEngine::Initialize();
 
-  EXECUTION_LOG_INFO("TPL Bytecode Count: {}", terrier::execution::vm::Bytecodes::NumBytecodes());
+  EXECUTION_LOG_INFO("TPL Bytecode Count: {}", execution::vm::Bytecodes::NumBytecodes());
 
   EXECUTION_LOG_INFO("TPL initialized ...");
 }

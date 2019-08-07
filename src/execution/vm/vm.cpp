@@ -450,7 +450,7 @@ void VM::Interpret(const u8 *ip, Frame *frame) {
 
   OP(ThreadStateContainerInit) : {
     auto *thread_state_container = frame->LocalAt<sql::ThreadStateContainer *>(READ_LOCAL_ID());
-    auto *memory = frame->LocalAt<terrier::execution::sql::MemoryPool *>(READ_LOCAL_ID());
+    auto *memory = frame->LocalAt<execution::sql::MemoryPool *>(READ_LOCAL_ID());
     OpThreadStateContainerInit(thread_state_container, memory);
     DISPATCH_NEXT();
   }
@@ -877,7 +877,7 @@ void VM::Interpret(const u8 *ip, Frame *frame) {
 
   OP(AggregationHashTableInit) : {
     auto *agg_hash_table = frame->LocalAt<sql::AggregationHashTable *>(READ_LOCAL_ID());
-    auto *memory = frame->LocalAt<terrier::execution::sql::MemoryPool *>(READ_LOCAL_ID());
+    auto *memory = frame->LocalAt<execution::sql::MemoryPool *>(READ_LOCAL_ID());
     auto payload_size = frame->LocalAt<u32>(READ_LOCAL_ID());
     OpAggregationHashTableInit(agg_hash_table, memory, payload_size);
     DISPATCH_NEXT();
@@ -1258,7 +1258,7 @@ void VM::Interpret(const u8 *ip, Frame *frame) {
 
   OP(SorterInit) : {
     auto *sorter = frame->LocalAt<sql::Sorter *>(READ_LOCAL_ID());
-    auto *memory = frame->LocalAt<terrier::execution::sql::MemoryPool *>(READ_LOCAL_ID());
+    auto *memory = frame->LocalAt<execution::sql::MemoryPool *>(READ_LOCAL_ID());
     auto cmp_func_id = READ_FUNC_ID();
     auto tuple_size = frame->LocalAt<u32>(READ_LOCAL_ID());
 

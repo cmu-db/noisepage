@@ -681,7 +681,7 @@ void Sema::CheckBuiltinJoinHashTableIterHasNext(ast::CallExpr *call) {
   call->set_type(GetBuiltinType(ast::BuiltinType::Bool));
 }
 
-void Sema::CheckBuiltinJoinHashTableIterGetRow(terrier::execution::ast::CallExpr *call) {
+void Sema::CheckBuiltinJoinHashTableIterGetRow(execution::ast::CallExpr *call) {
   if (!CheckArgCount(call, 1)) {
     return;
   }
@@ -700,7 +700,7 @@ void Sema::CheckBuiltinJoinHashTableIterGetRow(terrier::execution::ast::CallExpr
   call->set_type(ast::BuiltinType::Get(context(), byte_kind)->PointerTo());
 }
 
-void Sema::CheckBuiltinJoinHashTableIterClose(terrier::execution::ast::CallExpr *call) {
+void Sema::CheckBuiltinJoinHashTableIterClose(execution::ast::CallExpr *call) {
   if (!CheckArgCount(call, 1)) {
     return;
   }
@@ -1332,7 +1332,7 @@ void Sema::CheckBuiltinSorterIterCall(ast::CallExpr *call, ast::Builtin builtin)
   }
 }
 
-void Sema::CheckBuiltinOutputAlloc(terrier::execution::ast::CallExpr *call) {
+void Sema::CheckBuiltinOutputAlloc(execution::ast::CallExpr *call) {
   if (!CheckArgCount(call, 1)) {
     return;
   }
@@ -1349,7 +1349,7 @@ void Sema::CheckBuiltinOutputAlloc(terrier::execution::ast::CallExpr *call) {
   call->set_type(ret_type);
 }
 
-void Sema::CheckBuiltinOutputAdvance(terrier::execution::ast::CallExpr *call) {
+void Sema::CheckBuiltinOutputAdvance(execution::ast::CallExpr *call) {
   if (!CheckArgCount(call, 1)) {
     return;
   }
@@ -1365,7 +1365,7 @@ void Sema::CheckBuiltinOutputAdvance(terrier::execution::ast::CallExpr *call) {
   call->set_type(GetBuiltinType(ast::BuiltinType::Nil));
 }
 
-void Sema::CheckBuiltinOutputFinalize(terrier::execution::ast::CallExpr *call) {
+void Sema::CheckBuiltinOutputFinalize(execution::ast::CallExpr *call) {
   if (!CheckArgCount(call, 1)) {
     return;
   }
@@ -1381,7 +1381,7 @@ void Sema::CheckBuiltinOutputFinalize(terrier::execution::ast::CallExpr *call) {
   call->set_type(GetBuiltinType(ast::BuiltinType::Nil));
 }
 
-void Sema::CheckBuiltinInsert(terrier::execution::ast::CallExpr *call) {
+void Sema::CheckBuiltinInsert(execution::ast::CallExpr *call) {
   if (!CheckArgCount(call, 3)) {
     return;
   }
@@ -1389,7 +1389,7 @@ void Sema::CheckBuiltinInsert(terrier::execution::ast::CallExpr *call) {
   call->set_type(GetBuiltinType(ast::BuiltinType::Nil));
 }
 
-void Sema::CheckBuiltinOutputSetNull(terrier::execution::ast::CallExpr *call) {
+void Sema::CheckBuiltinOutputSetNull(execution::ast::CallExpr *call) {
   if (!CheckArgCount(call, 2)) {
     return;
   }
@@ -1411,7 +1411,7 @@ void Sema::CheckBuiltinOutputSetNull(terrier::execution::ast::CallExpr *call) {
   call->set_type(GetBuiltinType(ast::BuiltinType::Nil));
 }
 
-void Sema::CheckBuiltinIndexIteratorInit(terrier::execution::ast::CallExpr *call, ast::Builtin builtin) {
+void Sema::CheckBuiltinIndexIteratorInit(execution::ast::CallExpr *call, ast::Builtin builtin) {
   // First argument must be a pointer to a IndexIterator
   const auto index_kind = ast::BuiltinType::IndexIterator;
   if (!IsPointerToSpecificBuiltin(call->arguments()[0]->type(), index_kind)) {
@@ -1455,7 +1455,7 @@ void Sema::CheckBuiltinIndexIteratorInit(terrier::execution::ast::CallExpr *call
   call->set_type(GetBuiltinType(ast::BuiltinType::Nil));
 }
 
-void Sema::CheckBuiltinIndexIteratorAddCol(terrier::execution::ast::CallExpr *call, ast::Builtin builtin) {
+void Sema::CheckBuiltinIndexIteratorAddCol(execution::ast::CallExpr *call, ast::Builtin builtin) {
   if (!CheckArgCount(call, 2)) {
     return;
   }
@@ -1475,7 +1475,7 @@ void Sema::CheckBuiltinIndexIteratorAddCol(terrier::execution::ast::CallExpr *ca
   call->set_type(ast::BuiltinType::Get(context(), ast::BuiltinType::Nil));
 }
 
-void Sema::CheckBuiltinIndexIteratorScanKey(terrier::execution::ast::CallExpr *call) {
+void Sema::CheckBuiltinIndexIteratorScanKey(execution::ast::CallExpr *call) {
   if (!CheckArgCount(call, 1)) {
     return;
   }
@@ -1489,7 +1489,7 @@ void Sema::CheckBuiltinIndexIteratorScanKey(terrier::execution::ast::CallExpr *c
   call->set_type(GetBuiltinType(ast::BuiltinType::Nil));
 }
 
-void Sema::CheckBuiltinIndexIteratorAdvance(terrier::execution::ast::CallExpr *call) {
+void Sema::CheckBuiltinIndexIteratorAdvance(execution::ast::CallExpr *call) {
   if (!CheckArgCount(call, 1)) {
     return;
   }
@@ -1504,7 +1504,7 @@ void Sema::CheckBuiltinIndexIteratorAdvance(terrier::execution::ast::CallExpr *c
   call->set_type(ast::BuiltinType::Get(context(), ast::BuiltinType::Bool));
 }
 
-void Sema::CheckBuiltinIndexIteratorGet(terrier::execution::ast::CallExpr *call, ast::Builtin builtin) {
+void Sema::CheckBuiltinIndexIteratorGet(execution::ast::CallExpr *call, ast::Builtin builtin) {
   if (!CheckArgCount(call, 2)) {
     return;
   }
@@ -1543,7 +1543,7 @@ void Sema::CheckBuiltinIndexIteratorGet(terrier::execution::ast::CallExpr *call,
   }
 }
 
-void Sema::CheckBuiltinIndexIteratorSetKey(terrier::execution::ast::CallExpr *call, ast::Builtin builtin) {
+void Sema::CheckBuiltinIndexIteratorSetKey(execution::ast::CallExpr *call, ast::Builtin builtin) {
   if (!CheckArgCount(call, 3)) {
     return;
   }
@@ -1583,7 +1583,7 @@ void Sema::CheckBuiltinIndexIteratorSetKey(terrier::execution::ast::CallExpr *ca
   call->set_type(GetBuiltinType(ast::BuiltinType::Nil));
 }
 
-void Sema::CheckBuiltinIndexIteratorFree(terrier::execution::ast::CallExpr *call) {
+void Sema::CheckBuiltinIndexIteratorFree(execution::ast::CallExpr *call) {
   if (!CheckArgCount(call, 1)) {
     return;
   }

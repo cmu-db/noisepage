@@ -32,7 +32,7 @@ class TypePrinter : public TypeVisitor<TypePrinter> {
   llvm::raw_ostream &out_;
 };
 
-void terrier::execution::ast::TypePrinter::VisitBuiltinType(const BuiltinType *type) { os() << type->tpl_name(); }
+void execution::ast::TypePrinter::VisitBuiltinType(const BuiltinType *type) { os() << type->tpl_name(); }
 
 void TypePrinter::VisitFunctionType(const FunctionType *type) {
   os() << "(";
@@ -79,7 +79,7 @@ void TypePrinter::VisitArrayType(const ArrayType *type) {
   Visit(type->element_type());
 }
 
-void terrier::execution::ast::TypePrinter::VisitMapType(const MapType *type) {
+void execution::ast::TypePrinter::VisitMapType(const MapType *type) {
   os() << "map[";
   Visit(type->key_type());
   os() << "]";

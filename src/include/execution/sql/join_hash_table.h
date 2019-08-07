@@ -135,7 +135,7 @@ class JoinHashTable {
   bool use_concise_hash_table() const noexcept { return use_concise_ht_; }
 
  private:
-  friend class terrier::execution::sql::test::JoinHashTableTest;
+  friend class execution::sql::test::JoinHashTableTest;
 
   // Access a stored entry by index
   HashTableEntry *EntryAt(const u64 idx) noexcept { return reinterpret_cast<HashTableEntry *>(entries_[idx]); }
