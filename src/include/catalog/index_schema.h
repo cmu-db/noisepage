@@ -324,11 +324,11 @@ class IndexSchema {
       TERRIER_ASSERT(col.StoredExpression() != nullptr, "Index column expr should not be null");
       TERRIER_ASSERT(col.StoredExpression()->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE,
                      "Only support fetching oids on non-expressioned index keys");
-      result.push_back(col.StoredExpression().CastManagedPointerTo<const parser::ColumnValueExpression>()->GetColumnOid());
+      result.push_back(
+          col.StoredExpression().CastManagedPointerTo<const parser::ColumnValueExpression>()->GetColumnOid());
     }
     return result;
   }
-
 };
 
 DEFINE_JSON_DECLARATIONS(IndexSchema::Column);

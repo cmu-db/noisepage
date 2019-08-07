@@ -51,6 +51,7 @@ class RecoveryManager : public common::DedicatedThreadOwner {
    * @param catalog system catalog to interface with sql tables
    * @param txn_manager txn manager to use for re-executing recovered transactions
    * @param thread_registry thread registry to register tasks
+   * @param store block store used for SQLTable creation during recovery
    */
   explicit RecoveryManager(AbstractLogProvider *log_provider, common::ManagedPointer<catalog::Catalog> catalog,
                            transaction::TransactionManager *txn_manager,
@@ -179,8 +180,8 @@ class RecoveryManager : public common::DedicatedThreadOwner {
    * @param tuple tuple slot to delete
    * @param insert true if we should insert into the index, false if we should delete
    */
-  void UpdateIndexesOnTable(transaction::TransactionContext *txn, const catalog::db_oid_t db_oid,
-                            const catalog::table_oid_t table_oid, const TupleSlot &tuple, bool insert);
+  void UpdateIndexesOnTable(transaction::TransactionContext *txn, catalog::db_oid_t db_oid,
+                            catalog::table_oid_t table_oid, const TupleSlot &tuple_slot, bool insert);
 
   /**
    * Returns whether a delete or redo record is a special case catalog record. The special cases we consider are:
@@ -195,21 +196,22 @@ class RecoveryManager : public common::DedicatedThreadOwner {
   bool IsSpecialCaseCatalogRecord(const LogRecord *record) {
     TERRIER_ASSERT(record->RecordType() == LogRecordType::REDO || record->RecordType() == LogRecordType::DELETE,
                    "Special case catalog records must only be delete or redo records");
+
     if (record->RecordType() == LogRecordType::REDO) {
       auto *redo_record = record->GetUnderlyingRecordBodyAs<RedoRecord>();
       if (IsInsertRecord(redo_record)) {
         // Case 3
         return redo_record->GetTableOid() == catalog::DATABASE_TABLE_OID;
-      } else {
-        // Case 1
-        return redo_record->GetTableOid() == catalog::CLASS_TABLE_OID;
       }
-    } else {
-      // Case 2 and 4
-      auto *delete_record = record->GetUnderlyingRecordBodyAs<DeleteRecord>();
-      return delete_record->GetTableOid() == catalog::DATABASE_TABLE_OID ||
-             delete_record->GetTableOid() == catalog::CLASS_TABLE_OID;
+
+      // Case 1
+      return redo_record->GetTableOid() == catalog::CLASS_TABLE_OID;
     }
+
+    // Case 2 and 4
+    auto *delete_record = record->GetUnderlyingRecordBodyAs<DeleteRecord>();
+    return delete_record->GetTableOid() == catalog::DATABASE_TABLE_OID ||
+           delete_record->GetTableOid() == catalog::CLASS_TABLE_OID;
   }
 
   /**

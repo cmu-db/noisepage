@@ -579,9 +579,13 @@ class StorageTestUtil {
 
       catalog::Schema::Column col;
       if (random_type == type::TypeId::VARCHAR) {
-        col = catalog::Schema::Column("col" + std::to_string(i), random_type, MAX_TEST_VARLEN_SIZE, false, parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
+        col = catalog::Schema::Column(
+            "col" + std::to_string(i), random_type, MAX_TEST_VARLEN_SIZE, false,
+            parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
       } else {
-        col = catalog::Schema::Column("col" + std::to_string(i), random_type, false, parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
+        col = catalog::Schema::Column(
+            "col" + std::to_string(i), random_type, false,
+            parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
       }
       col.SetOid(catalog::col_oid_t(i));
       columns.push_back(col);

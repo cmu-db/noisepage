@@ -212,5 +212,4 @@ void LargeSqlTableTestObject::PopulateInitialTables(uint16_t num_databases, uint
   txn_manager_.Commit(initial_txn_, transaction::TransactionUtil::EmptyCallback, nullptr);
 }
 
-
 }  // namespace terrier

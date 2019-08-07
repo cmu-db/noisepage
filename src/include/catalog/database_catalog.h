@@ -402,8 +402,7 @@ class DatabaseCatalog {
    * @param schema object schema to insert
    * @return true if succesfull
    */
-  bool SetTableSchemaPointer(transaction::TransactionContext *const txn, const table_oid_t oid,
-                             const Schema *const schema);
+  bool SetTableSchemaPointer(transaction::TransactionContext *txn, table_oid_t oid, const Schema *schema);
 
   /**
    * Sets an index's schema in pg_class
@@ -413,8 +412,7 @@ class DatabaseCatalog {
    * @param schema object schema to insert
    * @return true if succesfull
    */
-  bool SetIndexSchemaPointer(transaction::TransactionContext *const txn, const index_oid_t oid,
-                                        const IndexSchema *const schema);
+  bool SetIndexSchemaPointer(transaction::TransactionContext *txn, index_oid_t oid, const IndexSchema *schema);
 
   /**
    * Inserts a provided pointer into a given pg_class column. Can be used for class object and schema pointers
@@ -429,7 +427,7 @@ class DatabaseCatalog {
    * @return true if successful
    */
   template <typename ClassOid, typename Class>
-  bool SetClassPointer(transaction::TransactionContext *txn, ClassOid oid, const Class *pointer, const col_oid_t class_col);
+  bool SetClassPointer(transaction::TransactionContext *txn, ClassOid oid, const Class *pointer, col_oid_t class_col);
 
   /**
    * @tparam Column column type (either index or table)

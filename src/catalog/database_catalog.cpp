@@ -940,18 +940,15 @@ bool DatabaseCatalog::DeleteIndex(transaction::TransactionContext *txn, index_oi
   return true;
 }
 
-bool DatabaseCatalog::SetTableSchemaPointer(transaction::TransactionContext *const txn,
-                                            const table_oid_t oid,
+bool DatabaseCatalog::SetTableSchemaPointer(transaction::TransactionContext *const txn, const table_oid_t oid,
                                             const Schema *const schema) {
   return SetClassPointer(txn, oid, schema, REL_SCHEMA_COL_OID);
 }
 
-bool DatabaseCatalog::SetIndexSchemaPointer(transaction::TransactionContext *const txn,
-                                            const index_oid_t oid,
+bool DatabaseCatalog::SetIndexSchemaPointer(transaction::TransactionContext *const txn, const index_oid_t oid,
                                             const IndexSchema *const schema) {
   return SetClassPointer(txn, oid, schema, REL_SCHEMA_COL_OID);
 }
-
 
 template <typename ClassOid, typename Ptr>
 bool DatabaseCatalog::SetClassPointer(transaction::TransactionContext *const txn, const ClassOid oid,

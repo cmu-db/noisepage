@@ -67,8 +67,9 @@ class RecoveryTests : public TerrierTest {
 
     // Instantiate recovery manager, and recover the tables.
     DiskLogProvider log_provider(LOG_FILE_NAME);
-    recovery_manager_ = new RecoveryManager(&log_provider, common::ManagedPointer(&recovered_catalog), &recovery_txn_manager,
-                                            common::ManagedPointer(&thread_registry_), &block_store_);
+    recovery_manager_ =
+        new RecoveryManager(&log_provider, common::ManagedPointer(&recovered_catalog), &recovery_txn_manager,
+                            common::ManagedPointer(&thread_registry_), &block_store_);
     recovery_manager_->StartRecovery();
     recovery_manager_->FinishRecovery();
 

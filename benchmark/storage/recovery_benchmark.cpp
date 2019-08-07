@@ -40,7 +40,7 @@ class RecoveryBenchmark : public benchmark::Fixture {
    * @param state benchmark state
    * @param config config to use for test object
    */
-  void RunBenchmark(benchmark::State &state, const LargeSqlTableTestConfiguration &config) {
+  void RunBenchmark(benchmark::State *state, const LargeSqlTableTestConfiguration &config) {
     uint32_t recovered_txns = 0;
 
     // NOLINTNEXTLINE
@@ -52,7 +52,8 @@ class RecoveryBenchmark : public benchmark::Fixture {
           new storage::LogManager(LOG_FILE_NAME, num_log_buffers_, log_serialization_interval_, log_persist_interval_,
                                   log_persist_threshold_, &buffer_pool_, common::ManagedPointer(&thread_registry_));
       log_manager_->Start();
-      LargeSqlTableTestObject tested = LargeSqlTableTestObject(config, &block_store_, &buffer_pool_, &generator_, log_manager_);
+      LargeSqlTableTestObject tested =
+          LargeSqlTableTestObject(config, &block_store_, &buffer_pool_, &generator_, log_manager_);
 
       // Run the test object and log all transactions
       tested.SimulateOltp(num_txns_, num_concurrent_txns_);
@@ -66,8 +67,9 @@ class RecoveryBenchmark : public benchmark::Fixture {
 
       // Instantiate recovery manager, and recover the tables.
       storage::DiskLogProvider log_provider(LOG_FILE_NAME);
-      recovery_manager_ = new storage::RecoveryManager(&log_provider, common::ManagedPointer(&recovered_catalog), &recovery_txn_manager,
-                                              common::ManagedPointer(&thread_registry_), &block_store_);
+      recovery_manager_ =
+          new storage::RecoveryManager(&log_provider, common::ManagedPointer(&recovered_catalog), &recovery_txn_manager,
+                                       common::ManagedPointer(&thread_registry_), &block_store_);
 
       uint64_t elapsed_ms;
       {
@@ -77,7 +79,7 @@ class RecoveryBenchmark : public benchmark::Fixture {
         recovered_txns += recovery_manager_->GetRecoveredTxnCount();
       }
 
-      state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
+      state->SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
 
       // Delete test txns
       gc_thread_ = new storage::GarbageCollectorThread(tested.GetTxnManager(), gc_period_);
@@ -89,7 +91,7 @@ class RecoveryBenchmark : public benchmark::Fixture {
       delete recovery_manager_;
       delete log_manager_;
     }
-    state.SetItemsProcessed(recovered_txns);
+    state->SetItemsProcessed(recovered_txns);
   }
 };
 
@@ -99,16 +101,16 @@ class RecoveryBenchmark : public benchmark::Fixture {
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(RecoveryBenchmark, OLTPWorkload)(benchmark::State &state) {
   LargeSqlTableTestConfiguration config = LargeSqlTableTestConfiguration::Builder()
-      .SetNumDatabases(1)
-      .SetNumTables(1)
-      .SetMaxColumns(5)
-      .SetInitialTableSize(initial_table_size_)
-      .SetTxnLength(5)
-      .SetUpdateSelectDeleteRatio({0.6, 0.3, 0.1})
-      .SetVarlenAllowed(true)
-      .build();
+                                              .SetNumDatabases(1)
+                                              .SetNumTables(1)
+                                              .SetMaxColumns(5)
+                                              .SetInitialTableSize(initial_table_size_)
+                                              .SetTxnLength(5)
+                                              .SetUpdateSelectDeleteRatio({0.6, 0.3, 0.1})
+                                              .SetVarlenAllowed(true)
+                                              .build();
 
-  RunBenchmark(state, config);
+  RunBenchmark(&state, config);
 }
 
 /**
@@ -118,16 +120,16 @@ BENCHMARK_DEFINE_F(RecoveryBenchmark, OLTPWorkload)(benchmark::State &state) {
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(RecoveryBenchmark, HighAbortRate)(benchmark::State &state) {
   LargeSqlTableTestConfiguration config = LargeSqlTableTestConfiguration::Builder()
-      .SetNumDatabases(1)
-      .SetNumTables(1)
-      .SetMaxColumns(100)
-      .SetInitialTableSize(initial_table_size_)
-      .SetTxnLength(40)
-      .SetUpdateSelectDeleteRatio({0.8, 0.2, 0.0})
-      .SetVarlenAllowed(true)
-      .build();
+                                              .SetNumDatabases(1)
+                                              .SetNumTables(1)
+                                              .SetMaxColumns(100)
+                                              .SetInitialTableSize(initial_table_size_)
+                                              .SetTxnLength(40)
+                                              .SetUpdateSelectDeleteRatio({0.8, 0.2, 0.0})
+                                              .SetVarlenAllowed(true)
+                                              .build();
 
-  RunBenchmark(state, config);
+  RunBenchmark(&state, config);
 }
 
 BENCHMARK_REGISTER_F(RecoveryBenchmark, OLTPWorkload)->Unit(benchmark::kMillisecond)->UseManualTime()->MinTime(3);

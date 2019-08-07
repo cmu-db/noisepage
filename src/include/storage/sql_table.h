@@ -76,10 +76,10 @@ class SqlTable {
   bool Update(transaction::TransactionContext *const txn, RedoRecord *const redo) const {
     TERRIER_ASSERT(redo->GetTupleSlot() != TupleSlot(nullptr, 0), "TupleSlot was never set in this RedoRecord.");
     // TODO(Gus): resolve what to do with this TODO since it doesnt apply for recovery
-//    TERRIER_ASSERT(redo == reinterpret_cast<LogRecord *>(txn->redo_buffer_.LastRecord())
-//                               ->LogRecord::GetUnderlyingRecordBodyAs<RedoRecord>(),
-//                   "This RedoRecord is not the most recent entry in the txn's RedoBuffer. Was StageWrite called "
-//                   "immediately before?");
+    //    TERRIER_ASSERT(redo == reinterpret_cast<LogRecord *>(txn->redo_buffer_.LastRecord())
+    //                               ->LogRecord::GetUnderlyingRecordBodyAs<RedoRecord>(),
+    //                   "This RedoRecord is not the most recent entry in the txn's RedoBuffer. Was StageWrite called "
+    //                   "immediately before?");
     const auto result = table_.data_table->Update(txn, redo->GetTupleSlot(), *(redo->Delta()));
     if (!result) {
       // For MVCC correctness, this txn must now abort for the GC to clean up the version chain in the DataTable
@@ -241,6 +241,6 @@ class SqlTable {
    * @param col_id given col id
    * @return col oid for the provided col id
    */
-  catalog::col_oid_t OidForColId(const col_id_t col_id) const;
+  catalog::col_oid_t OidForColId(col_id_t col_id) const;
 };
 }  // namespace terrier::storage
