@@ -27,8 +27,8 @@ class SampleOutput {
     terrier::planner::OutputSchema::Column string_col{"dummy", terrier::type::TypeId::VARCHAR, true, col_oid};
 
     // Create schemas with up to 10 integer columns.
-    for (int i = 0; i < 10; i++) {
-      std::vector<terrier::planner::OutputSchema::Column> cols(i, int_col);
+    for (u32 i = 0; i < 10; i++) {
+      std::vector<terrier::planner::OutputSchema::Column> cols(i + 1, int_col);
       schemas_.emplace("schema" + std::to_string(i + 1), terrier::planner::OutputSchema(cols));
     }
 
