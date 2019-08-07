@@ -6,7 +6,7 @@
 #include "execution/ast/context.h"
 #include "execution/ast/type.h"
 
-namespace terrier::sema {
+namespace terrier::execution::sema {
 
 void Sema::VisitAssignmentStmt(ast::AssignmentStmt *node) {
   ast::Type *src_type = Resolve(node->source());
@@ -162,4 +162,4 @@ void Sema::VisitReturnStmt(ast::ReturnStmt *node) {
   }
 }
 
-}  // namespace terrier::sema
+}  // namespace terrier::execution::sema

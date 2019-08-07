@@ -4,7 +4,7 @@
 #include "execution/sql/projected_columns_iterator.h"
 #include "execution/util/common.h"
 
-namespace terrier::sql {
+namespace terrier::execution::sql {
 
 class JoinHashTable;
 
@@ -91,4 +91,4 @@ inline const HashTableEntry *JoinHashTableVectorProbe::GetNextOutput(ProjectedCo
   return nullptr;
 }
 
-}  // namespace terrier::sql
+}  // namespace terrier::execution::sql

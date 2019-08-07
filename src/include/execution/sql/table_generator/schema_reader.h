@@ -13,7 +13,7 @@
 #include "type/transient_value_factory.h"
 #include "type/type_id.h"
 
-namespace terrier::sql {
+namespace terrier::execution::sql {
 
 // Maps from index columns to table columns.
 using IndexTableMap = std::vector<uint16_t>;
@@ -177,4 +177,4 @@ class SchemaReader {
   // Supported types
   const std::unordered_map<std::string, terrier::type::TypeId> type_names_;
 };
-}  // namespace terrier::sql
+}  // namespace terrier::execution::sql

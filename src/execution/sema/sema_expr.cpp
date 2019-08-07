@@ -6,7 +6,7 @@
 
 #include "loggers/execution_logger.h"
 
-namespace terrier::sema {
+namespace terrier::execution::sema {
 
 void Sema::VisitBadExpr(ast::BadExpr *node) { TPL_ASSERT(false, "Bad expression in type checker!"); }
 
@@ -338,4 +338,4 @@ void Sema::VisitMemberExpr(ast::MemberExpr *node) {
   node->set_type(member_type);
 }
 
-}  // namespace terrier::sema
+}  // namespace terrier::execution::sema

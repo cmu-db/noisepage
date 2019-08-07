@@ -10,7 +10,7 @@
 #include "execution/sql/table_generator/table_reader.h"
 #include "transaction/transaction_context.h"
 
-namespace terrier::sql {
+namespace terrier::execution::sql {
 
 // Keep small so that nested loop join won't take too long.
 /**
@@ -216,4 +216,4 @@ class TableGenerator {
   }
 };
 
-}  // namespace terrier::sql
+}  // namespace terrier::execution::sql

@@ -4,7 +4,7 @@
 
 #include "planner/plannodes/output_schema.h"
 
-namespace terrier::exec {
+namespace terrier::execution::exec {
 /**
  * Used by the tpl executable to retrieve hard-coded test output schemas.
  */

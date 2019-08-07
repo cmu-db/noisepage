@@ -13,7 +13,7 @@
 #include "execution/util/common.h"
 #include "planner/plannodes/output_schema.h"
 
-namespace terrier::exec {
+namespace terrier::execution::exec {
 
 // Assumes the user of the callback knows the output schema
 // So it can get read attributes itself.
@@ -102,4 +102,4 @@ class OutputPrinter {
   const terrier::planner::OutputSchema *schema_;
 };
 
-}  // namespace terrier::exec
+}  // namespace terrier::execution::exec

@@ -5,7 +5,7 @@
 #include "execution/ast/context.h"
 #include "execution/ast/type.h"
 
-namespace terrier::sema {
+namespace terrier::execution::sema {
 
 void Sema::VisitArrayTypeRepr(ast::ArrayTypeRepr *node) {
   u64 arr_len = 0;
@@ -91,4 +91,4 @@ void Sema::VisitMapTypeRepr(ast::MapTypeRepr *node) {
   node->set_type(ast::MapType::Get(key_type, value_type));
 }
 
-}  // namespace terrier::sema
+}  // namespace terrier::execution::sema

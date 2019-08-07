@@ -7,7 +7,7 @@
 #include "execution/vm/bytecode_function_info.h"
 #include "execution/vm/bytecodes.h"
 
-namespace terrier::vm {
+namespace terrier::execution::vm {
 
 class BytecodeLabel;
 
@@ -511,4 +511,4 @@ class BytecodeEmitter {
   std::vector<u8> *bytecode_;
 };
 
-}  // namespace terrier::vm
+}  // namespace terrier::execution::vm

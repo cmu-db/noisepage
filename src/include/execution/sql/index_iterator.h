@@ -7,7 +7,7 @@
 #include "execution/sql/projected_columns_iterator.h"
 #include "storage/storage_defs.h"
 
-namespace terrier::sql {
+namespace terrier::execution::sql {
 using terrier::storage::ProjectedRow;
 using terrier::storage::TupleSlot;
 using terrier::transaction::TransactionContext;
@@ -111,4 +111,4 @@ class IndexIterator {
   std::vector<TupleSlot> tuples_{};
 };
 
-}  // namespace terrier::sql
+}  // namespace terrier::execution::sql

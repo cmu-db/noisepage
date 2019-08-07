@@ -7,7 +7,7 @@
 #include "execution/util/common.h"
 #include "execution/util/macros.h"
 
-namespace terrier::parsing {
+namespace terrier::execution::parsing {
 
 /**
  * Text Scanner
@@ -156,4 +156,4 @@ class Scanner {
   TokenDesc next_;
 };
 
-}  // namespace terrier::parsing
+}  // namespace terrier::execution::parsing

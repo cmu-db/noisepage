@@ -3,7 +3,7 @@
 #include "execution/sql/concise_hash_table.h"
 #include "execution/util/bit_util.h"
 
-namespace terrier::sql {
+namespace terrier::execution::sql {
 
 ConciseHashTable::ConciseHashTable(u32 probe_threshold) : probe_limit_(probe_threshold) {}
 
@@ -40,4 +40,4 @@ void ConciseHashTable::Build() {
   built_ = true;
 }
 
-}  // namespace terrier::sql
+}  // namespace terrier::execution::sql

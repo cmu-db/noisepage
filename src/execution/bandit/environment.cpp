@@ -9,7 +9,7 @@
 
 u32 current_partition;
 
-namespace terrier::bandit {
+namespace terrier::execution::bandit {
 
 void Environment::Reset() { agent_->Reset(); }
 
@@ -41,4 +41,4 @@ void Environment::Run(u32 num_trials, std::vector<double> *rewards, std::vector<
   }
 }
 
-}  // namespace terrier::bandit
+}  // namespace terrier::execution::bandit

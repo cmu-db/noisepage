@@ -15,7 +15,7 @@
 #include "execution/vm/control_flow_builders.h"
 #include "loggers/execution_logger.h"
 
-namespace terrier::vm {
+namespace terrier::execution::vm {
 
 // ---------------------------------------------------------
 // Expression Result Scope
@@ -2287,4 +2287,4 @@ std::unique_ptr<BytecodeModule> BytecodeGenerator::Compile(ast::AstNode *root, e
   return std::make_unique<BytecodeModule>(name, std::move(generator.bytecode_), std::move(generator.functions_));
 }
 
-}  // namespace terrier::vm
+}  // namespace terrier::execution::vm

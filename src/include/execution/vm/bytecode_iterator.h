@@ -5,7 +5,7 @@
 #include "execution/util/common.h"
 #include "execution/vm/bytecodes.h"
 
-namespace terrier::vm {
+namespace terrier::execution::vm {
 
 class LocalVar;
 
@@ -159,4 +159,4 @@ class BytecodeIterator {
   std::size_t curr_offset_;
 };
 
-}  // namespace terrier::vm
+}  // namespace terrier::execution::vm

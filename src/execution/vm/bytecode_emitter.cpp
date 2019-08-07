@@ -5,7 +5,7 @@
 
 #include "execution/vm/bytecode_label.h"
 
-namespace terrier::vm {
+namespace terrier::execution::vm {
 
 void BytecodeEmitter::EmitDeref(Bytecode bytecode, LocalVar dest, LocalVar src) {
   TPL_ASSERT(bytecode == Bytecode::Deref1 || bytecode == Bytecode::Deref2 || bytecode == Bytecode::Deref4 ||
@@ -333,4 +333,4 @@ void BytecodeEmitter::EmitInitString(Bytecode bytecode, LocalVar out, u64 length
   EmitAll(bytecode, out, length, data);
 }
 
-}  // namespace terrier::vm
+}  // namespace terrier::execution::vm

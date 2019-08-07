@@ -1,7 +1,7 @@
 #include "execution/exec/output.h"
 #include "execution/sql/value.h"
 
-namespace terrier::exec {
+namespace terrier::execution::exec {
 using terrier::type::TypeId;
 
 OutputBuffer::~OutputBuffer() { delete[] tuples_; }
@@ -93,4 +93,4 @@ void OutputPrinter::operator()(byte *tuples, u32 num_tuples, u32 tuple_size) {
   printed_++;
   std::cout << ss.str() << std::endl;
 }
-}  // namespace terrier::exec
+}  // namespace terrier::execution::exec

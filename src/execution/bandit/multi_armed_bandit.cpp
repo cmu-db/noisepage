@@ -3,7 +3,7 @@
 #include "execution/util/timer.h"
 #include "execution/vm/module.h"
 
-namespace terrier::bandit {
+namespace terrier::execution::bandit {
 
 double MultiArmedBandit::ExecutionTimeToReward(double time) {
   // TODO(siva): Fix me!
@@ -34,4 +34,4 @@ double MultiArmedBandit::ExecuteAction(u32 action) {
   return ExecutionTimeToReward(exec_ms);
 }
 
-}  // namespace terrier::bandit
+}  // namespace terrier::execution::bandit

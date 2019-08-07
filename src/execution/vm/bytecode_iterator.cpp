@@ -5,7 +5,7 @@
 #include "execution/vm/bytecode_function_info.h"
 #include "execution/vm/bytecode_traits.h"
 
-namespace terrier::vm {
+namespace terrier::execution::vm {
 
 BytecodeIterator::BytecodeIterator(const std::vector<u8> &bytecode, std::size_t start, std::size_t end)
     : bytecodes_(bytecode), start_offset_(start), end_offset_(end), curr_offset_(start) {}
@@ -142,4 +142,4 @@ u32 BytecodeIterator::CurrentBytecodeSize() const {
   return size;
 }
 
-}  // namespace terrier::vm
+}  // namespace terrier::execution::vm

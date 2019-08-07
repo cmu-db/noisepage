@@ -5,7 +5,7 @@
 
 #include "execution/util/memory.h"
 
-namespace terrier::sql {
+namespace terrier::execution::sql {
 
 // If the allocation size is larger than this value, use huge pages
 std::atomic<std::size_t> MemoryPool::kMmapThreshold = 64 * MB;
@@ -53,4 +53,4 @@ void MemoryPool::Deallocate(void *ptr, std::size_t size) {
 
 void MemoryPool::SetMMapSizeThreshold(const std::size_t size) { kMmapThreshold = size; }
 
-}  // namespace terrier::sql
+}  // namespace terrier::execution::sql

@@ -2,7 +2,7 @@
 
 #include "execution/ast/type.h"
 
-namespace terrier::ast {
+namespace terrier::execution::ast {
 
 /**
  * Generic visitor for type hierarchies
@@ -43,4 +43,4 @@ class TypeVisitor {
 #undef DISPATCH
 };
 
-}  // namespace terrier::ast
+}  // namespace terrier::execution::ast

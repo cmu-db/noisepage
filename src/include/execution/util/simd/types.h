@@ -2,7 +2,7 @@
 
 #include "execution/util/common.h"
 
-namespace terrier::util::simd {
+namespace terrier::execution::util::simd {
 
 alignas(64) static constexpr const u64 k8BitMatchLUT[256] = {
     0x0001020304050607ull, 0x0102030405060700ull, 0x0002030405060701ull, 0x0203040506070100ull, 0x0001030405060702ull,
@@ -64,4 +64,4 @@ alignas(64) static constexpr const u64 k4BitMatchLUT[16] = {
     0x0000000100020003ull, 0x0001000200030000ull, 0x0000000200030001ull, 0x0002000300010000ull,
     0x0000000100030002ull, 0x0001000300020000ull, 0x0000000300020001ull, 0x0003000200010000ull};
 
-}  // namespace terrier::util::simd
+}  // namespace terrier::execution::util::simd

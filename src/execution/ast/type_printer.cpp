@@ -7,7 +7,7 @@
 
 #include "execution/ast/type_visitor.h"
 
-namespace terrier::ast {
+namespace terrier::execution::ast {
 
 namespace {
 
@@ -32,7 +32,7 @@ class TypePrinter : public TypeVisitor<TypePrinter> {
   llvm::raw_ostream &out_;
 };
 
-void terrier::ast::TypePrinter::VisitBuiltinType(const BuiltinType *type) { os() << type->tpl_name(); }
+void terrier::execution::ast::TypePrinter::VisitBuiltinType(const BuiltinType *type) { os() << type->tpl_name(); }
 
 void TypePrinter::VisitFunctionType(const FunctionType *type) {
   os() << "(";
@@ -79,7 +79,7 @@ void TypePrinter::VisitArrayType(const ArrayType *type) {
   Visit(type->element_type());
 }
 
-void terrier::ast::TypePrinter::VisitMapType(const MapType *type) {
+void terrier::execution::ast::TypePrinter::VisitMapType(const MapType *type) {
   os() << "map[";
   Visit(type->key_type());
   os() << "]";
@@ -99,4 +99,4 @@ std::string Type::ToString(const Type *type) {
   return buffer.str();
 }
 
-}  // namespace terrier::ast
+}  // namespace terrier::execution::ast

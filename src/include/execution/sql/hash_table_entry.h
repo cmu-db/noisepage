@@ -2,7 +2,7 @@
 
 #include "execution/util/common.h"
 
-namespace terrier::sql {
+namespace terrier::execution::sql {
 
 /**
  * Type of a slot
@@ -46,4 +46,4 @@ struct HashTableEntry {
   }
 };
 
-}  // namespace terrier::sql
+}  // namespace terrier::execution::sql

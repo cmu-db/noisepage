@@ -3,7 +3,7 @@
 #include "execution/util/common.h"
 #include "execution/util/macros.h"
 
-namespace terrier::util::simd {
+namespace terrier::execution::util::simd {
 
 /**
  * Stores the width of a lane
@@ -34,7 +34,7 @@ struct Lane {
   static constexpr const u32 count = Bitwidth::value / (sizeof(T) * 8);
 };
 
-}  // namespace terrier::util::simd
+}  // namespace terrier::execution::util::simd
 
 #define SIMD_TOP_LEVEL
 

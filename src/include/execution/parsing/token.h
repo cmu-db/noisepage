@@ -4,7 +4,7 @@
 
 #include "execution/util/common.h"
 
-namespace terrier::parsing {
+namespace terrier::execution::parsing {
 
 /*
  * List of all tokens + keywords that accepts two callback functions. T() is
@@ -148,4 +148,4 @@ class Token {
   static const u32 kTokenPrecedence[];
 };
 
-}  // namespace terrier::parsing
+}  // namespace terrier::execution::parsing

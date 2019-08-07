@@ -4,7 +4,7 @@
 
 #include "execution/sql/value.h"
 
-namespace terrier::sql {
+namespace terrier::execution::sql {
 
 /**
  * Comparison functions for SQL values.
@@ -259,4 +259,4 @@ BINARY_COMPARISON_ALL_TYPES(Ne, !=);
 #undef BINARY_COMPARISON_NUMERIC_FN_HIDE_NULL
 #undef BINARY_COMPARISON_DATE_FN_HIDE_NULL
 
-}  // namespace terrier::sql
+}  // namespace terrier::execution::sql

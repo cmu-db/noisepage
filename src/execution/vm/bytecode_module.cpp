@@ -10,7 +10,7 @@
 
 #include "execution/ast/type.h"
 
-namespace terrier::vm {
+namespace terrier::execution::vm {
 
 BytecodeModule::BytecodeModule(std::string name, std::vector<u8> &&code, std::vector<FunctionInfo> &&functions)
     : name_(std::move(name)), code_(std::move(code)), functions_(std::move(functions)) {}
@@ -70,4 +70,4 @@ void BytecodeModule::PrettyPrint(std::ostream *os) {
   }
 }
 
-}  // namespace terrier::vm
+}  // namespace terrier::execution::vm

@@ -4,7 +4,7 @@
 #include "execution/ast/context.h"
 #include "execution/ast/type.h"
 
-namespace terrier::sema {
+namespace terrier::execution::sema {
 
 void Sema::ReportIncorrectCallArg(ast::CallExpr *call, u32 index, ast::Type *expected) {
   error_reporter()->Report(call->position(), ErrorMessages::kIncorrectCallArgType, call->GetFuncName(), expected, index,
@@ -269,4 +269,4 @@ bool Sema::CheckAssignmentConstraints(ast::Type *target_type, ast::Expr **expr) 
   return false;
 }
 
-}  // namespace terrier::sema
+}  // namespace terrier::execution::sema

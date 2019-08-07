@@ -9,7 +9,7 @@
 #include "execution/util/macros.h"
 #include "execution/util/spin_latch.h"
 
-namespace terrier::sql {
+namespace terrier::execution::sql {
 
 class MemoryTracker;
 
@@ -231,4 +231,4 @@ class MemPoolVector : public std::vector<T, MemoryPoolAllocator<T>> {
       : BaseType(first, last, MemoryPoolAllocator<T>(memory)) {}
 };
 
-}  // namespace terrier::sql
+}  // namespace terrier::execution::sql

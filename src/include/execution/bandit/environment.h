@@ -6,7 +6,7 @@
 #include "execution/bandit/multi_armed_bandit.h"
 #include "execution/util/common.h"
 
-namespace terrier::bandit {
+namespace terrier::execution::bandit {
 
 /**
  * The environment for running the multi-armed bandit.
@@ -44,4 +44,4 @@ class Environment {
   Agent *agent_;
 };
 
-}  // namespace terrier::bandit
+}  // namespace terrier::execution::bandit

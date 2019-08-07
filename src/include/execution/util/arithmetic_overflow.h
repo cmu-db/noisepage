@@ -4,7 +4,7 @@
 
 #include "execution/util/common.h"
 
-namespace terrier::util {
+namespace terrier::execution::util {
 
 /**
  * Utility class to handle arithmetic operations that can overflow.
@@ -278,4 +278,4 @@ class ArithmeticOverflow {
   }
 };
 
-}  // namespace terrier::util
+}  // namespace terrier::execution::util

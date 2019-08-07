@@ -3,7 +3,7 @@
 #include "execution/sql/generic_hash_table.h"
 #include "execution/util/math_util.h"
 
-namespace terrier::sql {
+namespace terrier::execution::sql {
 
 GenericHashTable::GenericHashTable(float load_factor) noexcept : load_factor_(load_factor) {}
 
@@ -30,4 +30,4 @@ void GenericHashTable::SetSize(u64 new_size) {
   entries_ = util::MallocHugeArray<std::atomic<HashTableEntry *>>(capacity_);
 }
 
-}  // namespace terrier::sql
+}  // namespace terrier::execution::sql

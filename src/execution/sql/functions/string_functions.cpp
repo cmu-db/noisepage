@@ -5,7 +5,7 @@
 #include "execution/exec/execution_context.h"
 #include "execution/util/bit_util.h"
 
-namespace terrier::sql {
+namespace terrier::execution::sql {
 
 void StringFunctions::Substring(UNUSED exec::ExecutionContext *ctx, StringVal *result, const StringVal &str,
                                 const Integer &pos, const Integer &len) {
@@ -360,4 +360,4 @@ void StringFunctions::Right(UNUSED exec::ExecutionContext *ctx, StringVal *resul
   }
 }
 
-}  // namespace terrier::sql
+}  // namespace terrier::execution::sql

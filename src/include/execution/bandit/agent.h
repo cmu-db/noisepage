@@ -5,7 +5,7 @@
 #include "execution/bandit/policy.h"
 #include "execution/util/common.h"
 
-namespace terrier::bandit {
+namespace terrier::execution::bandit {
 
 /**
  * An Agent is able to take one of a set of actions at each time step. The
@@ -88,4 +88,4 @@ class Agent {
   u32 last_action_;
 };
 
-}  // namespace terrier::bandit
+}  // namespace terrier::execution::bandit

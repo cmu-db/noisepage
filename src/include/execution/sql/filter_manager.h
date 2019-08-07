@@ -8,7 +8,7 @@
 #include "execution/util/common.h"
 #include "execution/util/macros.h"
 
-namespace terrier::sql {
+namespace terrier::execution::sql {
 
 class ProjectedColumnsIterator;
 
@@ -114,4 +114,4 @@ class FilterManager {
   bool finalized_{false};
 };
 
-}  // namespace terrier::sql
+}  // namespace terrier::execution::sql

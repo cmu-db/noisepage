@@ -10,7 +10,7 @@
 #include "storage/index/bwtree_index.h"
 #include "storage/index/index_builder.h"
 
-namespace terrier::sql {
+namespace terrier::execution::sql {
 
 ///////////////////////////////////////////////
 /// Generating tables from files
@@ -326,4 +326,4 @@ void TableGenerator::InitTestIndexes() {
     FillIndex(index, index_schema, index_meta, table, table_schema);
   }
 }
-}  // namespace terrier::sql
+}  // namespace terrier::execution::sql

@@ -7,7 +7,7 @@
 #include "execution/ast/type.h"
 #include "execution/util/math_util.h"
 
-namespace terrier::vm {
+namespace terrier::execution::vm {
 
 // ---------------------------------------------------------
 // Local Information
@@ -100,4 +100,4 @@ const LocalInfo *FunctionInfo::LookupLocalInfoByOffset(u32 offset) const {
   return nullptr;
 }
 
-}  // namespace terrier::vm
+}  // namespace terrier::execution::vm

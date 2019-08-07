@@ -10,11 +10,11 @@
 #include "execution/util/macros.h"
 #include "execution/vm/bytecodes.h"
 
-namespace terrier::ast {
+namespace terrier::execution::ast {
 class Type;
-}  // namespace terrier::ast
+}  // namespace terrier::execution::ast
 
-namespace terrier::vm {
+namespace terrier::execution::vm {
 
 class BytecodeModule;
 class FunctionInfo;
@@ -193,4 +193,4 @@ class LLVMEngine {
   };
 };
 
-}  // namespace terrier::vm
+}  // namespace terrier::execution::vm

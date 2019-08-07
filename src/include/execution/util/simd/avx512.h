@@ -6,7 +6,7 @@
 #include "execution/util/macros.h"
 #include "execution/util/simd/types.h"
 
-namespace terrier::util::simd {
+namespace terrier::execution::util::simd {
 
 #define USE_GATHER 1
 
@@ -944,4 +944,4 @@ static inline u32 FilterVectorByVector(const T *RESTRICT in_1, const T *RESTRICT
   return out_pos;
 }
 
-}  // namespace terrier::util::simd
+}  // namespace terrier::execution::util::simd

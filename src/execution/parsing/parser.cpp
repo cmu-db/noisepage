@@ -7,7 +7,7 @@
 
 #include "execution/sema/error_reporter.h"
 
-namespace terrier::parsing {
+namespace terrier::execution::parsing {
 
 static std::unordered_set<Token::Type> kTopLevelDecls = {Token::Type::STRUCT, Token::Type::FUN};
 
@@ -721,4 +721,4 @@ ast::Expr *Parser::ParseMapType() {
   return node_factory_->NewMapType(position, key_type, value_type);
 }
 
-}  // namespace terrier::parsing
+}  // namespace terrier::execution::parsing

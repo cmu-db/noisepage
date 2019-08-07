@@ -8,7 +8,7 @@
 
 #include "loggers/execution_logger.h"
 
-namespace terrier::sema {
+namespace terrier::execution::sema {
 
 namespace {
 #define F(id, str, arg_types) str,
@@ -93,4 +93,4 @@ void ErrorReporter::PrintErrors() {
   EXECUTION_LOG_ERROR("{}", error_str.c_str());
 }
 
-}  // namespace terrier::sema
+}  // namespace terrier::execution::sema

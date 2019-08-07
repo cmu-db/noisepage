@@ -5,7 +5,7 @@
 #include "execution/ast/identifier.h"
 #include "execution/util/common.h"
 
-namespace terrier {
+namespace terrier::execution {
 
 namespace ast {
 class Decl;
@@ -81,4 +81,4 @@ class Scope {
 };
 
 }  // namespace sema
-}  // namespace terrier
+}  // namespace terrier::execution

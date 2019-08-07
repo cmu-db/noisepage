@@ -2,7 +2,7 @@
 
 #include "execution/util/common.h"
 
-namespace terrier::ast {
+namespace terrier::execution::ast {
 
 // The list of all builtin functions
 // Args: internal name, function name
@@ -225,4 +225,4 @@ class Builtins {
   static const char *kBuiltinFunctionNames[];
 };
 
-}  // namespace terrier::ast
+}  // namespace terrier::execution::ast

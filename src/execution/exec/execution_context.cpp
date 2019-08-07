@@ -1,7 +1,7 @@
 #include "execution/exec/execution_context.h"
 #include "execution/sql/value.h"
 
-namespace terrier::exec {
+namespace terrier::execution::exec {
 
 ExecutionContext::StringAllocator::StringAllocator() : region_("") {}
 
@@ -23,4 +23,4 @@ uint32_t ExecutionContext::ComputeTupleSize(const terrier::planner::OutputSchema
   return tuple_size;
 }
 
-}  // namespace terrier::exec
+}  // namespace terrier::execution::exec

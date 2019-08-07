@@ -10,7 +10,7 @@
 #include "execution/util/common.h"
 #include "execution/util/macros.h"
 
-namespace terrier {
+namespace terrier::execution {
 
 namespace ast {
 class FunctionType;
@@ -334,4 +334,4 @@ class FunctionInfo {
 };
 
 }  // namespace vm
-}  // namespace terrier
+}  // namespace terrier::execution

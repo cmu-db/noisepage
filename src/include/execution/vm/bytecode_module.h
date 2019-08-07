@@ -8,7 +8,7 @@
 #include "execution/vm/bytecode_iterator.h"
 #include "execution/vm/vm.h"
 
-namespace terrier::vm {
+namespace terrier::execution::vm {
 
 /**
  * A module represents all code in a single TPL source file
@@ -104,4 +104,4 @@ class BytecodeModule {
   const std::vector<FunctionInfo> functions_;
 };
 
-}  // namespace terrier::vm
+}  // namespace terrier::execution::vm

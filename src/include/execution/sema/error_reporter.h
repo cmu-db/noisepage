@@ -10,7 +10,7 @@
 #include "execution/util/common.h"
 #include "execution/util/region_containers.h"
 
-namespace terrier {
+namespace terrier::execution {
 
 namespace ast {
 class Type;
@@ -145,4 +145,4 @@ class ErrorReporter {
 };
 
 }  // namespace sema
-}  // namespace terrier
+}  // namespace terrier::execution

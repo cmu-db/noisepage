@@ -5,7 +5,7 @@
 #include "execution/util/macros.h"
 #include "execution/util/timer.h"
 
-namespace terrier::util {
+namespace terrier::execution::util {
 
 /**
  * Stage timer
@@ -87,4 +87,4 @@ class StageTimer {
   std::vector<Stage> stages_;
 };
 
-}  // namespace terrier::util
+}  // namespace terrier::execution::util

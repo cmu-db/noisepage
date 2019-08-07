@@ -7,7 +7,7 @@
 #include "execution/util/macros.h"
 #include "execution/util/math_util.h"
 
-namespace terrier::util {
+namespace terrier::execution::util {
 
 /**
  * Utility class to deal with bit-level operations.
@@ -264,4 +264,4 @@ class InlinedBitVector : public BitVectorBase<InlinedBitVector<NumBits>> {
   u32 bits_[NumBits / BitUtil::kBitWordSize];
 };
 
-}  // namespace terrier::util
+}  // namespace terrier::execution::util

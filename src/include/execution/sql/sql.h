@@ -2,7 +2,7 @@
 
 #include "execution/util/common.h"
 
-namespace terrier::sql {
+namespace terrier::execution::sql {
 
 /**
  * The possible column encodings
@@ -20,4 +20,4 @@ enum class ColumnEncoding : u8 {
  */
 enum class JoinType : u8 { Inner, Outer, Left, Right, Anti, Semi };
 
-}  // namespace terrier::sql
+}  // namespace terrier::execution::sql

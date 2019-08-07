@@ -4,7 +4,7 @@
 #include <stdexcept>
 #include <string>
 
-namespace terrier::parsing {
+namespace terrier::execution::parsing {
 
 Scanner::Scanner(const std::string &source) : Scanner(source.data(), source.length()) {}
 
@@ -395,4 +395,4 @@ Token::Type Scanner::ScanString() {
   }
 }
 
-}  // namespace terrier::parsing
+}  // namespace terrier::execution::parsing

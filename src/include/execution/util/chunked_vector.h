@@ -10,7 +10,7 @@
 #include "execution/util/region.h"
 #include "execution/util/region_containers.h"
 
-namespace terrier::util {
+namespace terrier::execution::util {
 
 /**
  * A ChunkedVector is similar to STL's std::vector, but with three important
@@ -884,4 +884,4 @@ class ChunkedVectorT {
   // The generic vector
   ChunkedVector<ReboundAlloc> vec_;
 };
-}  // namespace terrier::util
+}  // namespace terrier::execution::util

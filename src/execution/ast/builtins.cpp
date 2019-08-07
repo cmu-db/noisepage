@@ -1,6 +1,6 @@
 #include "execution/ast/builtins.h"
 
-namespace terrier::ast {
+namespace terrier::execution::ast {
 
 // static
 const char *Builtins::kBuiltinFunctionNames[] = {
@@ -9,4 +9,4 @@ const char *Builtins::kBuiltinFunctionNames[] = {
 #undef ENTRY
 };
 
-}  // namespace terrier::ast
+}  // namespace terrier::execution::ast

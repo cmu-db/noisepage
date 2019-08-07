@@ -4,11 +4,11 @@
 
 #include "execution/sql/value.h"
 
-namespace terrier::exec {
+namespace terrier::execution::exec {
 class ExecutionContext;
 }
 
-namespace terrier::sql {
+namespace terrier::execution::sql {
 
 /**
  * Utility class to handle SQL string manipulations.
@@ -124,4 +124,4 @@ class StringFunctions {
   static void Upper(exec::ExecutionContext *ctx, StringVal *result, const StringVal &str);
 };
 
-}  // namespace terrier::sql
+}  // namespace terrier::execution::sql

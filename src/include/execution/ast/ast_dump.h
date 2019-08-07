@@ -1,6 +1,6 @@
 #pragma once
 
-namespace terrier::ast {
+namespace terrier::execution::ast {
 
 class AstNode;
 
@@ -16,4 +16,4 @@ class AstDump {
   static void Dump(AstNode *node);
 };
 
-}  // namespace terrier::ast
+}  // namespace terrier::execution::ast

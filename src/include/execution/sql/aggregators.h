@@ -7,7 +7,7 @@
 #include "execution/util/common.h"
 #include "execution/util/macros.h"
 
-namespace terrier::sql {
+namespace terrier::execution::sql {
 
 // ---------------------------------------------------------
 // Count
@@ -526,4 +526,4 @@ class AvgAggregate {
   u64 count_{0};
 };
 
-}  // namespace terrier::sql
+}  // namespace terrier::execution::sql

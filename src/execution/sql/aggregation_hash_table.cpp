@@ -17,7 +17,7 @@
 #include "execution/util/vector_util.h"
 #include "loggers/execution_logger.h"
 
-namespace terrier::sql {
+namespace terrier::execution::sql {
 
 AggregationHashTable::AggregationHashTable(MemoryPool *memory, std::size_t payload_size)
     : AggregationHashTable(memory, payload_size, kDefaultInitialTableSize) {}
@@ -445,4 +445,4 @@ void AggregationHashTable::ExecuteParallelPartitionedScan(void *query_state, Thr
   });
 }
 
-}  // namespace terrier::sql
+}  // namespace terrier::execution::sql

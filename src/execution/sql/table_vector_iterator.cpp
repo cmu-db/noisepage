@@ -8,7 +8,7 @@
 #include "tbb/parallel_for.h"
 #include "tbb/task_scheduler_init.h"
 
-namespace terrier::sql {
+namespace terrier::execution::sql {
 
 using terrier::catalog::col_oid_t;
 using terrier::catalog::Schema;
@@ -64,4 +64,4 @@ bool TableVectorIterator::ParallelScan(u32 db_oid, u32 table_oid, void *const qu
   return false;
 }
 
-}  // namespace terrier::sql
+}  // namespace terrier::execution::sql

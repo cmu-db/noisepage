@@ -3,7 +3,7 @@
 #include "execution/vm/bytecode_generator.h"
 #include "execution/vm/bytecode_label.h"
 
-namespace terrier::vm {
+namespace terrier::execution::vm {
 
 /**
  * Base class for all control-flow builders
@@ -162,4 +162,4 @@ class IfThenElseBuilder : public ControlFlowBuilder {
   BytecodeLabel end_label_;
 };
 
-}  // namespace terrier::vm
+}  // namespace terrier::execution::vm

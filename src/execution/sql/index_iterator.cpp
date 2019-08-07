@@ -1,7 +1,7 @@
 #include "execution/sql/index_iterator.h"
 #include "execution/sql/value.h"
 
-namespace terrier::sql {
+namespace terrier::execution::sql {
 
 IndexIterator::IndexIterator(uint32_t table_oid, uint32_t index_oid, exec::ExecutionContext *exec_ctx)
     : exec_ctx_(exec_ctx),
@@ -35,4 +35,4 @@ IndexIterator::~IndexIterator() {
   delete[] index_buffer_;
   delete[] table_buffer_;
 }
-}  // namespace terrier::sql
+}  // namespace terrier::execution::sql

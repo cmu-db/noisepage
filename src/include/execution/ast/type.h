@@ -9,7 +9,7 @@
 #include "execution/util/region.h"
 #include "execution/util/region_containers.h"
 
-namespace terrier::ast {
+namespace terrier::execution::ast {
 
 class Context;
 
@@ -53,44 +53,44 @@ class Context;
   PRIM(Float64, f64, "float64")                                                  \
                                                                                  \
   /* Non-primitive builtins */                                                   \
-  NON_PRIM(AggregationHashTable, terrier::sql::AggregationHashTable)                 \
-  NON_PRIM(AggregationHashTableIterator, terrier::sql::AggregationHashTableIterator) \
-  NON_PRIM(AggOverflowPartIter, terrier::sql::AggregationOverflowPartitionIterator)  \
-  NON_PRIM(BloomFilter, terrier::sql::BloomFilter)                                   \
-  NON_PRIM(ExecutionContext, terrier::exec::ExecutionContext)                        \
-  NON_PRIM(FilterManager, terrier::sql::FilterManager)                               \
-  NON_PRIM(HashTableEntry, terrier::sql::HashTableEntry)                             \
-  NON_PRIM(JoinHashTable, terrier::sql::JoinHashTable)                               \
-  NON_PRIM(JoinHashTableVectorProbe, terrier::sql::JoinHashTableVectorProbe)         \
-  NON_PRIM(JoinHashTableIterator, terrier::sql::JoinHashTableIterator)               \
-  NON_PRIM(MemoryPool, terrier::sql::MemoryPool)                                     \
-  NON_PRIM(Sorter, terrier::sql::Sorter)                                             \
-  NON_PRIM(SorterIterator, terrier::sql::SorterIterator)                             \
-  NON_PRIM(TableVectorIterator, terrier::sql::TableVectorIterator)                   \
-  NON_PRIM(ThreadStateContainer, terrier::sql::ThreadStateContainer)                 \
-  NON_PRIM(ProjectedColumnsIterator, terrier::sql::ProjectedColumnsIterator)         \
-  NON_PRIM(IndexIterator, terrier::sql::IndexIterator)                               \
+  NON_PRIM(AggregationHashTable, terrier::execution::sql::AggregationHashTable)                 \
+  NON_PRIM(AggregationHashTableIterator, terrier::execution::sql::AggregationHashTableIterator) \
+  NON_PRIM(AggOverflowPartIter, terrier::execution::sql::AggregationOverflowPartitionIterator)  \
+  NON_PRIM(BloomFilter, terrier::execution::sql::BloomFilter)                                   \
+  NON_PRIM(ExecutionContext, terrier::execution::exec::ExecutionContext)                        \
+  NON_PRIM(FilterManager, terrier::execution::sql::FilterManager)                               \
+  NON_PRIM(HashTableEntry, terrier::execution::sql::HashTableEntry)                             \
+  NON_PRIM(JoinHashTable, terrier::execution::sql::JoinHashTable)                               \
+  NON_PRIM(JoinHashTableVectorProbe, terrier::execution::sql::JoinHashTableVectorProbe)         \
+  NON_PRIM(JoinHashTableIterator, terrier::execution::sql::JoinHashTableIterator)               \
+  NON_PRIM(MemoryPool, terrier::execution::sql::MemoryPool)                                     \
+  NON_PRIM(Sorter, terrier::execution::sql::Sorter)                                             \
+  NON_PRIM(SorterIterator, terrier::execution::sql::SorterIterator)                             \
+  NON_PRIM(TableVectorIterator, terrier::execution::sql::TableVectorIterator)                   \
+  NON_PRIM(ThreadStateContainer, terrier::execution::sql::ThreadStateContainer)                 \
+  NON_PRIM(ProjectedColumnsIterator, terrier::execution::sql::ProjectedColumnsIterator)         \
+  NON_PRIM(IndexIterator, terrier::execution::sql::IndexIterator)                               \
                                                                                  \
   /* SQL Aggregate types (if you add, remember to update BuiltinType) */         \
-  NON_PRIM(CountAggregate, terrier::sql::CountAggregate)                             \
-  NON_PRIM(CountStarAggregate, terrier::sql::CountStarAggregate)                     \
-  NON_PRIM(IntegerAvgAggregate, terrier::sql::AvgAggregate)                          \
-  NON_PRIM(IntegerMaxAggregate, terrier::sql::IntegerMaxAggregate)                   \
-  NON_PRIM(IntegerMinAggregate, terrier::sql::IntegerMinAggregate)                   \
-  NON_PRIM(IntegerSumAggregate, terrier::sql::IntegerSumAggregate)                   \
-  NON_PRIM(RealAvgAggregate, terrier::sql::AvgAggregate)                             \
-  NON_PRIM(RealMaxAggregate, terrier::sql::RealMaxAggregate)                         \
-  NON_PRIM(RealMinAggregate, terrier::sql::RealMinAggregate)                         \
-  NON_PRIM(RealSumAggregate, terrier::sql::RealSumAggregate)                         \
+  NON_PRIM(CountAggregate, terrier::execution::sql::CountAggregate)                             \
+  NON_PRIM(CountStarAggregate, terrier::execution::sql::CountStarAggregate)                     \
+  NON_PRIM(IntegerAvgAggregate, terrier::execution::sql::AvgAggregate)                          \
+  NON_PRIM(IntegerMaxAggregate, terrier::execution::sql::IntegerMaxAggregate)                   \
+  NON_PRIM(IntegerMinAggregate, terrier::execution::sql::IntegerMinAggregate)                   \
+  NON_PRIM(IntegerSumAggregate, terrier::execution::sql::IntegerSumAggregate)                   \
+  NON_PRIM(RealAvgAggregate, terrier::execution::sql::AvgAggregate)                             \
+  NON_PRIM(RealMaxAggregate, terrier::execution::sql::RealMaxAggregate)                         \
+  NON_PRIM(RealMinAggregate, terrier::execution::sql::RealMinAggregate)                         \
+  NON_PRIM(RealSumAggregate, terrier::execution::sql::RealSumAggregate)                         \
                                                                                  \
   /* Non-primitive SQL Runtime Values */                                         \
-  SQL(Boolean, terrier::sql::BoolVal)                                                \
-  SQL(Integer, terrier::sql::Integer)                                                \
-  SQL(Real, terrier::sql::Real)                                                      \
-  SQL(Decimal, terrier::sql::Decimal)                                                \
-  SQL(StringVal, terrier::sql::StringVal)                                            \
-  SQL(Date, terrier::sql::Date)                                                      \
-  SQL(Timestamp, terrier::sql::Timestamp)
+  SQL(Boolean, terrier::execution::sql::BoolVal)                                                \
+  SQL(Integer, terrier::execution::sql::Integer)                                                \
+  SQL(Real, terrier::execution::sql::Real)                                                      \
+  SQL(Decimal, terrier::execution::sql::Decimal)                                                \
+  SQL(StringVal, terrier::execution::sql::StringVal)                                            \
+  SQL(Date, terrier::execution::sql::Date)                                                      \
+  SQL(Timestamp, terrier::execution::sql::Timestamp)
 
 // Ignore a builtin
 #define IGNORE_BUILTIN_TYPE (...)
@@ -764,4 +764,4 @@ inline bool Type::IsSqlAggregatorType() const {
   return false;
 }
 
-}  // namespace terrier::ast
+}  // namespace terrier::execution::ast

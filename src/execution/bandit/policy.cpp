@@ -11,7 +11,7 @@
 
 #define MAX_EXPLORATION_VALUE 1000
 
-namespace terrier::bandit {
+namespace terrier::execution::bandit {
 
 Policy::Policy(Kind kind)
     : kind_(kind), generator_(std::chrono::high_resolution_clock::now().time_since_epoch().count()) {}
@@ -84,4 +84,4 @@ u32 AnnealingEpsilonGreedyPolicy::NextAction(Agent *const agent) {
   return EpsilonGreedyPolicy::NextAction(agent);
 }
 
-}  // namespace terrier::bandit
+}  // namespace terrier::execution::bandit

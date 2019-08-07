@@ -2,7 +2,7 @@
 
 #include "execution/sql/value.h"
 
-namespace terrier::sql {
+namespace terrier::execution::sql {
 
 /**
  * Utility class to check NULL-ness of SQL values.
@@ -25,4 +25,4 @@ class IsNullPredicate {
   static void IsNotNull(BoolVal *result, const Val &val) { *result = BoolVal(!val.is_null); }
 };
 
-}  // namespace terrier::sql
+}  // namespace terrier::execution::sql

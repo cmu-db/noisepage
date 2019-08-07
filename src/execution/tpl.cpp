@@ -54,7 +54,7 @@ llvm::cl::opt<bool> kIsSQL("sql", llvm::cl::desc("Is the input a SQL query?"), l
 
 tbb::task_scheduler_init scheduler;
 
-namespace terrier {
+namespace terrier::execution {
 
 static constexpr const char *kExitKeyword = ".exit";
 
@@ -301,13 +301,13 @@ static void RunFile(const std::string &filename) {
  * Initialize all TPL subsystems
  */
 void InitTPL() {
-  terrier::CpuInfo::Instance();
+  terrier::execution::CpuInfo::Instance();
 
   terrier::LoggersUtil::Initialize(false);
 
-  terrier::vm::LLVMEngine::Initialize();
+  terrier::execution::vm::LLVMEngine::Initialize();
 
-  EXECUTION_LOG_INFO("TPL Bytecode Count: {}", terrier::vm::Bytecodes::NumBytecodes());
+  EXECUTION_LOG_INFO("TPL Bytecode Count: {}", terrier::execution::vm::Bytecodes::NumBytecodes());
 
   EXECUTION_LOG_INFO("TPL initialized ...");
 }
@@ -316,7 +316,7 @@ void InitTPL() {
  * Shutdown all TPL subsystems
  */
 void ShutdownTPL() {
-  terrier::vm::LLVMEngine::Shutdown();
+  terrier::execution::vm::LLVMEngine::Shutdown();
   terrier::LoggersUtil::ShutDown();
 
   scheduler.terminate();
@@ -324,11 +324,11 @@ void ShutdownTPL() {
   LOG_INFO("TPL cleanly shutdown ...");
 }
 
-}  // namespace terrier
+}  // namespace terrier::execution
 
 void SignalHandler(i32 sig_num) {
   if (sig_num == SIGINT) {
-    terrier::ShutdownTPL();
+    terrier::execution::ShutdownTPL();
     exit(0);
   }
 }
@@ -351,21 +351,21 @@ int main(int argc, char **argv) {  // NOLINT (bugprone-exception-escape)
   }
 
   // Init TPL
-  terrier::InitTPL();
+  terrier::execution::InitTPL();
 
-  EXECUTION_LOG_INFO("\n{}", terrier::CpuInfo::Instance()->PrettyPrintInfo());
+  EXECUTION_LOG_INFO("\n{}", terrier::execution::CpuInfo::Instance()->PrettyPrintInfo());
 
   EXECUTION_LOG_INFO("Welcome to TPL (ver. {}.{})", TPL_VERSION_MAJOR, TPL_VERSION_MINOR);
 
   // Either execute a TPL program from a source file, or run REPL
   if (!kInputFile.empty()) {
-    terrier::RunFile(kInputFile);
+    terrier::execution::RunFile(kInputFile);
   } else if (argc == 1) {
-    terrier::RunRepl();
+    terrier::execution::RunRepl();
   }
 
   // Cleanup
-  terrier::ShutdownTPL();
+  terrier::execution::ShutdownTPL();
 
   return 0;
 }
