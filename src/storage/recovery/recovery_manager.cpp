@@ -8,6 +8,10 @@
 #include "catalog/postgres/pg_class.h"
 #include "catalog/postgres/pg_database.h"
 #include "catalog/postgres/pg_index.h"
+#include "catalog/postgres/pg_namespace.h"
+#include "catalog/postgres/pg_attribute.h"
+#include "catalog/postgres/pg_constraint.h"
+#include "catalog/postgres/pg_type.h"
 #include "storage/index/index_builder.h"
 #include "storage/write_ahead_log/log_io.h"
 
@@ -130,40 +134,124 @@ void RecoveryManager::UpdateIndexesOnTable(transaction::TransactionContext *txn,
                                            const catalog::table_oid_t table_oid, const TupleSlot &tuple_slot,
                                            const bool insert) {
   auto db_catalog_ptr = GetDatabaseCatalog(txn, db_oid);
-  auto index_oids = db_catalog_ptr->GetIndexes(txn, table_oid);
-
-  if (index_oids.empty()) return;
-
-  auto num_indexes = index_oids.size();
-
-  // Fetch all indexes at once so we can get largest PR size we need and reuse buffer
-  // TODO(Gus): We can save ourselves a catalog query by passing in the sql table ptr to this function
-  auto sql_table_ptr = GetSqlTable(txn, db_oid, table_oid);
 
   // Stores ptr to index
   std::vector<common::ManagedPointer<storage::index::Index>> indexes;
-  indexes.reserve(num_indexes);
+
+  // Stores index schemas, used to get indexcol_ids
+  std::vector<catalog::IndexSchema> index_schemas;
+
+  // We don't bootstrap the database catalog during recovery, so this means that indexes on catalog tables may not yet
+  // be entries in pg_index. Thus, we hardcode these to update
+
+  if (table_oid == catalog::DATABASE_TABLE_OID) {
+    indexes.emplace_back(catalog_->databases_name_index_);
+    index_schemas.push_back(catalog_->databases_name_index_->metadata_.GetSchema());
+
+    indexes.emplace_back(catalog_->databases_oid_index_);
+    index_schemas.push_back(catalog_->databases_oid_index_->metadata_.GetSchema());
+
+  } else if (table_oid == catalog::NAMESPACE_TABLE_OID) {
+    indexes.emplace_back(db_catalog_ptr->namespaces_oid_index_);
+    index_schemas.push_back(db_catalog_ptr->namespaces_oid_index_->metadata_.GetSchema());
+
+    indexes.emplace_back(db_catalog_ptr->namespaces_name_index_);
+    index_schemas.push_back(db_catalog_ptr->namespaces_name_index_->metadata_.GetSchema());
+
+  } else if (table_oid == catalog::CLASS_TABLE_OID) {
+
+    indexes.emplace_back(db_catalog_ptr->classes_oid_index_);
+    index_schemas.push_back(db_catalog_ptr->classes_oid_index_->metadata_.GetSchema());
+
+    indexes.emplace_back(db_catalog_ptr->classes_name_index_);
+    index_schemas.push_back(db_catalog_ptr->classes_name_index_->metadata_.GetSchema());
+
+    indexes.emplace_back(db_catalog_ptr->classes_namespace_index_);
+    index_schemas.push_back(db_catalog_ptr->classes_namespace_index_->metadata_.GetSchema());
+
+  } else if (table_oid == catalog::COLUMN_TABLE_OID) {
+    indexes.emplace_back(db_catalog_ptr->columns_oid_index_);
+    index_schemas.push_back(db_catalog_ptr->columns_oid_index_->metadata_.GetSchema());
+
+    indexes.emplace_back(db_catalog_ptr->columns_name_index_);
+    index_schemas.push_back(db_catalog_ptr->columns_name_index_->metadata_.GetSchema());
+
+    indexes.emplace_back(db_catalog_ptr->columns_class_index_);
+    index_schemas.push_back(db_catalog_ptr->columns_class_index_->metadata_.GetSchema());
+
+  } else if (table_oid == catalog::CONSTRAINT_TABLE_OID) {
+    indexes.emplace_back(db_catalog_ptr->constraints_oid_index_);
+    index_schemas.push_back(db_catalog_ptr->constraints_oid_index_->metadata_.GetSchema());
+
+    indexes.emplace_back(db_catalog_ptr->constraints_name_index_);
+    index_schemas.push_back(db_catalog_ptr->constraints_name_index_->metadata_.GetSchema());
+
+    indexes.emplace_back(db_catalog_ptr->constraints_namespace_index_);
+    index_schemas.push_back(db_catalog_ptr->constraints_namespace_index_->metadata_.GetSchema());
+
+    indexes.emplace_back(db_catalog_ptr->constraints_table_index_);
+    index_schemas.push_back(db_catalog_ptr->constraints_table_index_->metadata_.GetSchema());
+
+    indexes.emplace_back(db_catalog_ptr->constraints_index_index_);
+    index_schemas.push_back(db_catalog_ptr->constraints_index_index_->metadata_.GetSchema());
+
+    indexes.emplace_back(db_catalog_ptr->constraints_foreigntable_index_);
+    index_schemas.push_back(db_catalog_ptr->constraints_foreigntable_index_->metadata_.GetSchema());
+
+  } else if (table_oid == catalog::INDEX_TABLE_OID) {
+    indexes.emplace_back(db_catalog_ptr->indexes_oid_index_);
+    index_schemas.push_back(db_catalog_ptr->indexes_oid_index_->metadata_.GetSchema());
+
+    indexes.emplace_back(db_catalog_ptr->indexes_table_index_);
+    index_schemas.push_back(db_catalog_ptr->indexes_table_index_->metadata_.GetSchema());
+
+  } else if (table_oid == catalog::TYPE_TABLE_OID) {
+    indexes.emplace_back(db_catalog_ptr->types_oid_index_);
+    index_schemas.push_back(db_catalog_ptr->types_oid_index_->metadata_.GetSchema());
+
+    indexes.emplace_back(db_catalog_ptr->types_name_index_);
+    index_schemas.push_back(db_catalog_ptr->types_name_index_->metadata_.GetSchema());
+
+    indexes.emplace_back(db_catalog_ptr->types_namespace_index_);
+    index_schemas.push_back(db_catalog_ptr->types_namespace_index_->metadata_.GetSchema());
+
+  } else { // Non-catalog table
+    auto index_oids = db_catalog_ptr->GetIndexes(txn, table_oid);
+    indexes.reserve(index_oids.size());
+    index_schemas.reserve(index_oids.size());
+
+    for (auto &oid : index_oids) {
+      // Get index ptr
+      auto index_ptr = db_catalog_ptr->GetIndex(txn, oid);
+      indexes.push_back(index_ptr);
+
+      // Get index schema
+      auto schema = db_catalog_ptr->GetIndexSchema(txn, oid);
+      index_schemas.push_back(schema);
+    }
+  }
+
+  // If there's no indexes on the table, we can return
+  if (indexes.empty()) return;
+
+  auto num_indexes = indexes.size();
 
   // Stores pr initializers to get indexed columns values to insert
   std::vector<std::pair<ProjectedRowInitializer, ProjectionMap>> table_pr_initializers_pairs;
   table_pr_initializers_pairs.reserve(num_indexes);
 
-  // Stores index schemas, used to get indexcol_ids
-  std::vector<catalog::IndexSchema> index_schemas;
-  index_schemas.reserve(num_indexes);
+  // TODO(Gus): We can save ourselves a catalog query by passing in the sql table ptr to this function
+  auto sql_table_ptr = GetSqlTable(txn, db_oid, table_oid);
 
   // Buffer for projected row sizes
   uint32_t table_byte_size = 0;
   uint32_t index_byte_size = 0;
 
-  for (auto &oid : index_oids) {
-    // Get index ptr
-    auto index_ptr = db_catalog_ptr->GetIndex(txn, oid);
-    indexes.push_back(index_ptr);
+  // Fetch all initializers, and compute largest PR size
+  for (auto i = 0; i < indexes.size(); i++) {
 
-    // Get index schema
-    auto schema = db_catalog_ptr->GetIndexSchema(txn, oid);
-    index_schemas.push_back(schema);
+    auto index_ptr = indexes[i];
+    auto &schema = index_schemas[i];
 
     // Get pr initializer
     auto indexed_attributes = schema.GetIndexedColOids();
@@ -173,10 +261,10 @@ void RecoveryManager::UpdateIndexesOnTable(transaction::TransactionContext *txn,
     table_byte_size = std::max(table_byte_size, initializer_pair.first.ProjectedRowSize());
     index_byte_size = std::max(index_byte_size, index_ptr->GetProjectedRowInitializer().ProjectedRowSize());
   }
+
   auto *table_buffer = common::AllocationUtil::AllocateAligned(table_byte_size);
   auto *index_buffer = common::AllocationUtil::AllocateAligned(index_byte_size);
 
-  // Delete from each index
   // TODO(Gus): We are going to assume no indexes on expressions below. Having indexes on expressions would require to
   // evaluate expressions and that's a fucking nightmare
   for (uint8_t i = 0; i < indexes.size(); i++) {
@@ -209,12 +297,8 @@ void RecoveryManager::UpdateIndexesOnTable(transaction::TransactionContext *txn,
 
     if (insert) {
       // Perform the insert
-      if (index->GetConstraintType() == index::ConstraintType::UNIQUE) {
-        index->InsertUnique(txn, *index_pr, tuple_slot);
-      } else {
-        index->Insert(txn, *index_pr, tuple_slot);
-      }
-      //TERRIER_ASSERT(result, "Insert into index should always succeed for a committed transaction");
+      bool result UNUSED_ATTRIBUTE = (index->GetConstraintType() == index::ConstraintType::UNIQUE) ? index->InsertUnique(txn, *index_pr, tuple_slot) : index->Insert(txn, *index_pr, tuple_slot);
+      TERRIER_ASSERT(result, "Insert into index should always succeed for a committed transaction");
     } else {
       index->Delete(txn, *index_pr, tuple_slot);
     }
@@ -251,26 +335,28 @@ uint32_t RecoveryManager::ProcessSpecialCaseCatalogRecord(
         return 0;                                                     // No additional logs processed
 
       } else if (updated_pg_class_oid == catalog::REL_SCHEMA_COL_OID) {  // Case 2
+        // TODO(Gus): Find out why a record like this exists
+
         // Step 1: Get the class oid for the object we're updating
-        auto [pr_init, pr_map] =
-            pg_class_ptr->InitializerForProjectedRow({catalog::RELOID_COL_OID, catalog::RELKIND_COL_OID});
-        auto *buffer = common::AllocationUtil::AllocateAligned(pr_init.ProjectedRowSize());
-        auto *pr = pr_init.InitializeRow(buffer);
-        pg_class_ptr->Select(txn, GetTupleSlotMapping(redo_record->GetTupleSlot()), pr);
-        auto class_oid = *(reinterpret_cast<uint32_t *>(pr->AccessWithNullCheck(pr_map[catalog::RELOID_COL_OID])));
-        auto class_kind UNUSED_ATTRIBUTE = *(reinterpret_cast<catalog::postgres::ClassKind *>(
-            pr->AccessWithNullCheck(pr_map[catalog::RELKIND_COL_OID])));
-        TERRIER_ASSERT(class_kind == catalog::postgres::ClassKind::REGULAR_TABLE,
-                       "Updates to schemas in pg_class should only happen for tables");
-
-        // Step 2: Query pg_attribute for the columns and recreate the schema
-        auto schema_cols = db_catalog->GetColumns<catalog::Schema::Column, catalog::table_oid_t, catalog::col_oid_t>(txn, catalog::table_oid_t(class_oid));
-        auto *schema = new catalog::Schema(std::move(schema_cols));
-
-        // Step 3: Update the schema in the catalog
-        auto result UNUSED_ATTRIBUTE = db_catalog->UpdateSchema(txn, catalog::table_oid_t(class_oid), schema);
-        TERRIER_ASSERT(result, "Schema update should always succeed during replaying");
-        delete[] buffer;
+//        auto [pr_init, pr_map] =
+//            pg_class_ptr->InitializerForProjectedRow({catalog::RELOID_COL_OID, catalog::RELKIND_COL_OID});
+//        auto *buffer = common::AllocationUtil::AllocateAligned(pr_init.ProjectedRowSize());
+//        auto *pr = pr_init.InitializeRow(buffer);
+//        pg_class_ptr->Select(txn, GetTupleSlotMapping(redo_record->GetTupleSlot()), pr);
+//        auto class_oid = *(reinterpret_cast<uint32_t *>(pr->AccessWithNullCheck(pr_map[catalog::RELOID_COL_OID])));
+//        auto class_kind UNUSED_ATTRIBUTE = *(reinterpret_cast<catalog::postgres::ClassKind *>(
+//            pr->AccessWithNullCheck(pr_map[catalog::RELKIND_COL_OID])));
+//        TERRIER_ASSERT(class_kind == catalog::postgres::ClassKind::REGULAR_TABLE,
+//                       "Updates to schemas in pg_class should only happen for tables");
+//
+//        // Step 2: Query pg_attribute for the columns and recreate the schema
+//        auto schema_cols = db_catalog->GetColumns<catalog::Schema::Column, catalog::table_oid_t, catalog::col_oid_t>(txn, catalog::table_oid_t(class_oid));
+//        auto *schema = new catalog::Schema(std::move(schema_cols));
+//
+//        // Step 3: Update the schema in the catalog
+//        auto result UNUSED_ATTRIBUTE = db_catalog->SetTableSchemaPointer(txn, catalog::table_oid_t(class_oid), schema);
+//        TERRIER_ASSERT(result, "Schema update should always succeed during replaying");
+//        delete[] buffer;
 
         return 0;  // No additional logs processed
 
@@ -285,6 +371,10 @@ uint32_t RecoveryManager::ProcessSpecialCaseCatalogRecord(
         auto class_oid = *(reinterpret_cast<uint32_t*>(pr->AccessWithNullCheck(pr_map[catalog::RELOID_COL_OID])));
         auto class_kind = *(reinterpret_cast<catalog::postgres::ClassKind*>(pr->AccessWithNullCheck(pr_map[catalog::RELKIND_COL_OID])));
 
+        // We skip creation of catalog tables/indexes, these are already done when CreateDatabase is called
+        // All catalog tables/indexes have OIDS less than START_OID
+        if (class_oid < START_OID) return 0;
+
         // Case on whether we are creating a table or index
         if (class_kind == catalog::postgres::ClassKind::REGULAR_TABLE) {
           // Step 2: Query pg_attribute for the columns of the table
@@ -296,7 +386,7 @@ uint32_t RecoveryManager::ProcessSpecialCaseCatalogRecord(
 
           // Step 4: Set pointers in catalog
           db_catalog->SetTablePointer(txn, catalog::table_oid_t(class_oid), new_sql_table);
-          db_catalog->UpdateSchema(txn, catalog::table_oid_t(class_oid), schema);
+          db_catalog->SetTableSchemaPointer(txn, catalog::table_oid_t(class_oid), schema);
           db_catalog->UpdateNextOid(class_oid);
 
           delete[] buffer;
@@ -342,8 +432,7 @@ uint32_t RecoveryManager::ProcessSpecialCaseCatalogRecord(
 
           // Step 5: Set pointers in catalog
           db_catalog->SetIndexPointer(txn, catalog::index_oid_t(class_oid), index);
-          // TODO(Gus): Update the index schema
-          // db_catalog->UpdateSchema(txn, catalog::index_oid_t(class_oid), index_schema);
+          db_catalog->SetIndexSchemaPointer(txn, catalog::index_oid_t(class_oid), index_schema);
           db_catalog->UpdateNextOid(class_oid);
 
           delete[] buffer;
@@ -374,7 +463,7 @@ uint32_t RecoveryManager::ProcessSpecialCaseCatalogRecord(
       std::string name_string(name_varlen.StringView());
 
       // Step 2: Recreate the database
-      auto result UNUSED_ATTRIBUTE = catalog_->CreateDatabase(txn, name_string, true, db_oid);
+      auto result UNUSED_ATTRIBUTE = catalog_->CreateDatabase(txn, name_string, false, db_oid);
       TERRIER_ASSERT(result, "Database recreation should succeed");
       catalog_->UpdateNextOid(db_oid);
 
@@ -537,6 +626,37 @@ uint32_t RecoveryManager::ProcessSpecialCaseCatalogRecord(
     }
   }
 }
+
+
+common::ManagedPointer<storage::SqlTable> RecoveryManager::GetSqlTable(transaction::TransactionContext *txn, catalog::db_oid_t db_oid,
+                                                      catalog::table_oid_t table_oid) {
+  auto db_catalog_ptr = GetDatabaseCatalog(txn, db_oid);
+
+  common::ManagedPointer<storage::SqlTable> table_ptr;
+
+  // Cant use a switch statement here because table_oid_t is not const
+  if (table_oid == catalog::DATABASE_TABLE_OID) {
+    table_ptr = common::ManagedPointer(catalog_->databases_);
+  } else if (table_oid == catalog::CLASS_TABLE_OID) {
+    table_ptr = common::ManagedPointer(db_catalog_ptr->classes_);
+  } else if (table_oid == catalog::NAMESPACE_TABLE_OID) {
+    table_ptr = common::ManagedPointer(db_catalog_ptr->namespaces_);
+  } else if (table_oid == catalog::COLUMN_TABLE_OID) {
+    table_ptr = common::ManagedPointer(db_catalog_ptr->columns_);
+  } else if (table_oid == catalog::CONSTRAINT_TABLE_OID) {
+    table_ptr = common::ManagedPointer(db_catalog_ptr->constraints_);
+  } else if (table_oid == catalog::INDEX_TABLE_OID) {
+    table_ptr = common::ManagedPointer(db_catalog_ptr->indexes_);
+  } else if (table_oid == catalog::TYPE_TABLE_OID) {
+    table_ptr = common::ManagedPointer(db_catalog_ptr->types_);
+  } else {
+    table_ptr = db_catalog_ptr->GetTable(txn, table_oid);
+  }
+
+  TERRIER_ASSERT(table_ptr != nullptr, "Table is not in the catalog for the given oid");
+  return table_ptr;
+}
+
 
 std::vector<catalog::col_oid_t> RecoveryManager::GetOidsForRedoRecord(storage::SqlTable *sql_table,
                                                                       RedoRecord *record) {

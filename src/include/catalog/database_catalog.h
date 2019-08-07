@@ -395,16 +395,41 @@ class DatabaseCatalog {
   std::pair<void *, postgres::ClassKind> GetClassSchemaPtrKind(transaction::TransactionContext *txn, uint32_t oid);
 
   /**
-   * Helper method since SetIndexPointer and SetTablePointer are basically indentical outside of input types
+   * Sets a table's schema in pg_class
+   * @warning Should only be used by recovery
+   * @param txn transaction to query
+   * @param oid oid to object
+   * @param schema object schema to insert
+   * @return true if succesfull
+   */
+  bool SetTableSchemaPointer(transaction::TransactionContext *const txn, const table_oid_t oid,
+                             const Schema *const schema);
+
+  /**
+   * Sets an index's schema in pg_class
+   * @warning Should only be used by recovery
+   * @param txn transaction to query
+   * @param oid oid to object
+   * @param schema object schema to insert
+   * @return true if succesfull
+   */
+  bool SetIndexSchemaPointer(transaction::TransactionContext *const txn, const index_oid_t oid,
+                                        const IndexSchema *const schema);
+
+  /**
+   * Inserts a provided pointer into a given pg_class column. Can be used for class object and schema pointers
+   * Helper method since SetIndexPointer/SetTablePointer and SetIndexSchemaPointer/SetTableSchemaPointer
+   * are basically indentical outside of input types
    * @tparam ClassOid either index_oid_t or table_oid_t
    * @tparam Class either Index or SqlTable
    * @param txn transaction to query
    * @param oid oid to object
    * @param pointer pointer to set
+   * @param class_col pg_class column to insert pointer into
    * @return true if successful
    */
   template <typename ClassOid, typename Class>
-  bool SetClassPointer(transaction::TransactionContext *txn, ClassOid oid, const Class *pointer);
+  bool SetClassPointer(transaction::TransactionContext *txn, ClassOid oid, const Class *pointer, const col_oid_t class_col);
 
   /**
    * @tparam Column column type (either index or table)

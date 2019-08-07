@@ -167,12 +167,7 @@ class RecoveryManager : public common::DedicatedThreadOwner {
    * @return pointer to requested Sql table
    */
   common::ManagedPointer<storage::SqlTable> GetSqlTable(transaction::TransactionContext *txn, catalog::db_oid_t db_oid,
-                                                        catalog::table_oid_t table_oid) {
-    auto db_catalog_ptr = GetDatabaseCatalog(txn, db_oid);
-    auto table_ptr = db_catalog_ptr->GetTable(txn, table_oid);
-    TERRIER_ASSERT(table_ptr != nullptr, "Table in the catalog for the given oid");
-    return table_ptr;
-  }
+                                                        catalog::table_oid_t table_oid);
 
   /**
    * Inserts or deletes a tuple slot from all indexes on a table.

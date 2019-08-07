@@ -72,6 +72,9 @@ class RecoveryTests : public TerrierTest {
     recovery_manager_->StartRecovery();
     recovery_manager_->FinishRecovery();
 
+    // We need to start the log manager because we will be doing queries into the LargeSqlTableTestObject's catalog
+    log_manager_->Start();
+
     // Check we recovered all the original tables
     for (auto &database_oid : tested.GetDatabases()) {
       for (auto &table_oid : tested.GetTablesForDatabase(database_oid)) {
@@ -92,6 +95,8 @@ class RecoveryTests : public TerrierTest {
                                                        recovery_manager_->tuple_slot_map_, &recovery_txn_manager));
       }
     }
+
+    log_manager_->PersistAndStop();
 
     // Delete test txns
     gc_thread_ = new storage::GarbageCollectorThread(tested.GetTxnManager(), gc_period_);

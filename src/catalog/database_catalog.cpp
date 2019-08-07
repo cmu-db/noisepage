@@ -706,7 +706,7 @@ bool DatabaseCatalog::SetTablePointer(transaction::TransactionContext *const txn
   // We need to defer the deletion because their may be subsequent undo records into this table that need to be GCed
   // before we can safely delete this.
   txn->RegisterAbortAction([=]() { txn_manager->DeferAction([=]() { delete table_ptr; }); });
-  return SetClassPointer(txn, table, table_ptr);
+  return SetClassPointer(txn, table, table_ptr, REL_PTR_COL_OID);
 }
 
 /**
@@ -940,14 +940,27 @@ bool DatabaseCatalog::DeleteIndex(transaction::TransactionContext *txn, index_oi
   return true;
 }
 
-template <typename ClassOid, typename Class>
+bool DatabaseCatalog::SetTableSchemaPointer(transaction::TransactionContext *const txn,
+                                            const table_oid_t oid,
+                                            const Schema *const schema) {
+  return SetClassPointer(txn, oid, schema, REL_SCHEMA_COL_OID);
+}
+
+bool DatabaseCatalog::SetIndexSchemaPointer(transaction::TransactionContext *const txn,
+                                            const index_oid_t oid,
+                                            const IndexSchema *const schema) {
+  return SetClassPointer(txn, oid, schema, REL_SCHEMA_COL_OID);
+}
+
+
+template <typename ClassOid, typename Ptr>
 bool DatabaseCatalog::SetClassPointer(transaction::TransactionContext *const txn, const ClassOid oid,
-                                      const Class *const pointer) {
+                                      const Ptr *const pointer, const col_oid_t class_col) {
   TERRIER_ASSERT(pointer != nullptr, "Why are you inserting nullptr here? That seems wrong.");
   const auto oid_pri = classes_oid_index_->GetProjectedRowInitializer();
 
   // Do not need to store the projection map because it is only a single column
-  auto pr_init = classes_->InitializerForProjectedRow({REL_PTR_COL_OID}).first;
+  auto pr_init = classes_->InitializerForProjectedRow({class_col}).first;
   TERRIER_ASSERT(pr_init.ProjectedRowSize() >= oid_pri.ProjectedRowSize(), "Buffer must allocated to fit largest PR");
   auto *const buffer = common::AllocationUtil::AllocateAligned(pr_init.ProjectedRowSize());
   auto *const key_pr = oid_pri.InitializeRow(buffer);
@@ -968,8 +981,8 @@ bool DatabaseCatalog::SetClassPointer(transaction::TransactionContext *const txn
   auto *update_redo = txn->StageWrite(db_oid_, CLASS_TABLE_OID, pr_init);
   update_redo->SetTupleSlot(index_results[0]);
   auto *update_pr = update_redo->Delta();
-  auto *const table_ptr_ptr = update_pr->AccessForceNotNull(0);
-  *(reinterpret_cast<const Class **>(table_ptr_ptr)) = pointer;
+  auto *const class_ptr_ptr = update_pr->AccessForceNotNull(0);
+  *(reinterpret_cast<const Ptr **>(class_ptr_ptr)) = pointer;
 
   // Finish
   delete[] buffer;
@@ -983,7 +996,7 @@ bool DatabaseCatalog::SetIndexPointer(transaction::TransactionContext *const txn
   // This needs to be deferred because if any items were subsequently inserted into this index, they will have deferred
   // abort actions that will be above this action on the abort stack.  The defer ensures we execute after them.
   txn->RegisterAbortAction([=]() { txn_manager->DeferAction([=]() { delete index_ptr; }); });
-  return SetClassPointer(txn, index, index_ptr);
+  return SetClassPointer(txn, index, index_ptr, REL_PTR_COL_OID);
 }
 
 common::ManagedPointer<storage::index::Index> DatabaseCatalog::GetIndex(transaction::TransactionContext *txn,
