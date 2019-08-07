@@ -31,47 +31,47 @@ class Schemas {
 
     // 2*W unique IDs
     warehouse_columns.emplace_back(
-        "W_ID", type::TypeId::TINYINT, false,
+        "w_id", type::TypeId::TINYINT, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::TINYINT)));
     warehouse_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // variable text, size 10
     warehouse_columns.emplace_back(
-        "W_NAME", type::TypeId::VARCHAR, 10, false,
+        "w_name", type::TypeId::VARCHAR, 10, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR)));
     warehouse_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // variable text, size 20
     warehouse_columns.emplace_back(
-        "W_STREET_1", type::TypeId::VARCHAR, 20, false,
+        "w_street_1", type::TypeId::VARCHAR, 20, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR)));
     warehouse_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // variable text, size 20
     warehouse_columns.emplace_back(
-        "W_STREET_2", type::TypeId::VARCHAR, 20, false,
+        "w_street_2", type::TypeId::VARCHAR, 20, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR)));
     warehouse_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // variable text, size 20
     warehouse_columns.emplace_back(
-        "W_CITY", type::TypeId::VARCHAR, 20, false,
+        "w_city", type::TypeId::VARCHAR, 20, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR)));
     warehouse_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // fixed text, size 2
     warehouse_columns.emplace_back(
-        "W_STATE", type::TypeId::VARCHAR, 2, false,
+        "w_state", type::TypeId::VARCHAR, 2, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR)));
     warehouse_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // fixed text, size 9
     warehouse_columns.emplace_back(
-        "W_ZIP", type::TypeId::VARCHAR, 9, false,
+        "w_zip", type::TypeId::VARCHAR, 9, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR)));
     warehouse_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // signed numeric(4,4)
     warehouse_columns.emplace_back(
-        "W_TAX", type::TypeId::DECIMAL, false,
+        "w_tax", type::TypeId::DECIMAL, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::DECIMAL)));
     warehouse_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // signed numeric(12,2)
     warehouse_columns.emplace_back(
-        "W_YTD", type::TypeId::DECIMAL, false,
+        "w_ytd", type::TypeId::DECIMAL, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::DECIMAL)));
     warehouse_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
 
@@ -114,57 +114,57 @@ class Schemas {
 
     // 20 unique IDs
     district_columns.emplace_back(
-        "D_ID", type::TypeId::TINYINT, false,
+        "d_id", type::TypeId::TINYINT, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::TINYINT)));
     district_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // 2*W unique IDs
     district_columns.emplace_back(
-        "D_W_ID", type::TypeId::TINYINT, false,
+        "d_w_id", type::TypeId::TINYINT, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::TINYINT)));
     district_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // variable text, size 10
     district_columns.emplace_back(
-        "D_NAME", type::TypeId::VARCHAR, 10, false,
+        "d_name", type::TypeId::VARCHAR, 10, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR)));
     district_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // variable text, size 20
     district_columns.emplace_back(
-        "D_STREET_1", type::TypeId::VARCHAR, 20, false,
+        "d_street_1", type::TypeId::VARCHAR, 20, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR)));
     district_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // variable text, size 20
     district_columns.emplace_back(
-        "D_STREET_2", type::TypeId::VARCHAR, 20, false,
+        "d_street_2", type::TypeId::VARCHAR, 20, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR)));
     district_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // variable text, size 20
     district_columns.emplace_back(
-        "D_CITY", type::TypeId::VARCHAR, 20, false,
+        "d_city", type::TypeId::VARCHAR, 20, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR)));
     district_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // fixed text, size 2
     district_columns.emplace_back(
-        "D_STATE", type::TypeId::VARCHAR, 2, false,
+        "d_state", type::TypeId::VARCHAR, 2, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR)));
     district_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // fixed text, size 9
     district_columns.emplace_back(
-        "D_ZIP", type::TypeId::VARCHAR, 9, false,
+        "d_zip", type::TypeId::VARCHAR, 9, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR)));
     district_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // signed numeric(4,4)
     district_columns.emplace_back(
-        "D_TAX", type::TypeId::DECIMAL, false,
+        "d_tax", type::TypeId::DECIMAL, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::DECIMAL)));
     district_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // signed numeric(12,2)
     district_columns.emplace_back(
-        "D_YTD", type::TypeId::DECIMAL, false,
+        "d_ytd", type::TypeId::DECIMAL, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::DECIMAL)));
     district_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // 10,000,000 unique IDs
     district_columns.emplace_back(
-        "D_NEXT_O_ID", type::TypeId::INTEGER, false,
+        "d_next_o_id", type::TypeId::INTEGER, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
     district_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
 
@@ -210,107 +210,107 @@ class Schemas {
 
     // 96,000 unique IDs
     customer_columns.emplace_back(
-        "C_ID", type::TypeId::INTEGER, false,
+        "c_id", type::TypeId::INTEGER, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
     customer_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // 20 unique IDs
     customer_columns.emplace_back(
-        "C_D_ID", type::TypeId::TINYINT, false,
+        "c_d_id", type::TypeId::TINYINT, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::TINYINT)));
     customer_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // 2*W unique IDs
     customer_columns.emplace_back(
-        "C_W_ID", type::TypeId::TINYINT, false,
+        "c_w_id", type::TypeId::TINYINT, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::TINYINT)));
     customer_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // variable text, size 16
     customer_columns.emplace_back(
-        "C_FIRST", type::TypeId::VARCHAR, 16, false,
+        "c_first", type::TypeId::VARCHAR, 16, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR)));
     customer_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // fixed text, size 2
     customer_columns.emplace_back(
-        "C_MIDDLE", type::TypeId::VARCHAR, 2, false,
+        "c_middle", type::TypeId::VARCHAR, 2, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR)));
     customer_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // variable text, size 16
     customer_columns.emplace_back(
-        "C_LAST", type::TypeId::VARCHAR, 16, false,
+        "c_last", type::TypeId::VARCHAR, 16, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR)));
     customer_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // variable text, size 20
     customer_columns.emplace_back(
-        "C_STREET_1", type::TypeId::VARCHAR, 20, false,
+        "c_street_1", type::TypeId::VARCHAR, 20, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR)));
     customer_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // variable text, size 20
     customer_columns.emplace_back(
-        "C_STREET_2", type::TypeId::VARCHAR, 20, false,
+        "c_street_2", type::TypeId::VARCHAR, 20, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR)));
     customer_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // variable text, size 20
     customer_columns.emplace_back(
-        "C_CITY", type::TypeId::VARCHAR, 20, false,
+        "c_city", type::TypeId::VARCHAR, 20, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR)));
     customer_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // fixed text, size 2
     customer_columns.emplace_back(
-        "C_STATE", type::TypeId::VARCHAR, 2, false,
+        "c_state", type::TypeId::VARCHAR, 2, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR)));
     customer_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // fixed text, size 9
     customer_columns.emplace_back(
-        "C_ZIP", type::TypeId::VARCHAR, 9, false,
+        "c_zip", type::TypeId::VARCHAR, 9, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR)));
     customer_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // fixed text, size 16
     customer_columns.emplace_back(
-        "C_PHONE", type::TypeId::VARCHAR, 16, false,
+        "c_phone", type::TypeId::VARCHAR, 16, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR)));
     customer_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // date and time
     customer_columns.emplace_back(
-        "C_SINCE", type::TypeId::TIMESTAMP, false,
+        "c_since", type::TypeId::TIMESTAMP, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::TIMESTAMP)));
     customer_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // fixed text, size 2
     customer_columns.emplace_back(
-        "C_CREDIT", type::TypeId::VARCHAR, 2, false,
+        "c_credit", type::TypeId::VARCHAR, 2, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR)));
     customer_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // signed numeric(12,2)
     customer_columns.emplace_back(
-        "C_CREDIT_LIM", type::TypeId::DECIMAL, false,
+        "c_credit_lim", type::TypeId::DECIMAL, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::DECIMAL)));
     customer_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // signed numeric(4,4)
     customer_columns.emplace_back(
-        "C_DISCOUNT", type::TypeId::DECIMAL, false,
+        "c_discount", type::TypeId::DECIMAL, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::DECIMAL)));
     customer_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // signed numeric(12,2)
     customer_columns.emplace_back(
-        "C_BALANCE", type::TypeId::DECIMAL, false,
+        "c_balance", type::TypeId::DECIMAL, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::DECIMAL)));
     customer_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // signed numeric(12,2)
     customer_columns.emplace_back(
-        "C_YTD_PAYMENT", type::TypeId::DECIMAL, false,
+        "c_ytd_payment", type::TypeId::DECIMAL, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::DECIMAL)));
     customer_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // numeric(4)
     customer_columns.emplace_back(
-        "C_PAYMENT_CNT", type::TypeId::SMALLINT, false,
+        "c_payment_cnt", type::TypeId::SMALLINT, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::SMALLINT)));
     customer_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // numeric(4)
     customer_columns.emplace_back(
-        "C_DELIVERY_CNT", type::TypeId::SMALLINT, false,
+        "c_delivery_cnt", type::TypeId::SMALLINT, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::SMALLINT)));
     customer_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // variable text, size 500
     customer_columns.emplace_back(
-        "C_DATA", type::TypeId::VARCHAR, 500, false,
+        "c_data", type::TypeId::VARCHAR, 500, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR)));
     customer_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
 
@@ -393,42 +393,42 @@ class Schemas {
 
     // 96,000 unique IDs
     history_columns.emplace_back(
-        "H_C_ID", type::TypeId::INTEGER, false,
+        "h_c_id", type::TypeId::INTEGER, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
     history_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // 20 unique IDs
     history_columns.emplace_back(
-        "H_C_D_ID", type::TypeId::TINYINT, false,
+        "h_c_d_id", type::TypeId::TINYINT, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::TINYINT)));
     history_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // 2*W unique IDs
     history_columns.emplace_back(
-        "H_C_W_ID", type::TypeId::TINYINT, false,
+        "h_c_w_id", type::TypeId::TINYINT, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::TINYINT)));
     history_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // 20 unique IDs
     history_columns.emplace_back(
-        "H_D_ID", type::TypeId::TINYINT, false,
+        "h_d_id", type::TypeId::TINYINT, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::TINYINT)));
     history_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // 2*W unique IDs
     history_columns.emplace_back(
-        "H_W_ID", type::TypeId::TINYINT, false,
+        "h_w_id", type::TypeId::TINYINT, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::TINYINT)));
     history_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // date and time
     history_columns.emplace_back(
-        "H_DATE", type::TypeId::TIMESTAMP, false,
+        "h_date", type::TypeId::TIMESTAMP, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::TIMESTAMP)));
     history_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // signed numeric(6,2)
     history_columns.emplace_back(
-        "H_AMOUNT", type::TypeId::DECIMAL, false,
+        "h_amount", type::TypeId::DECIMAL, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::DECIMAL)));
     history_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // variable text, size 24
     history_columns.emplace_back(
-        "H_DATA", type::TypeId::VARCHAR, 24, false,
+        "h_data", type::TypeId::VARCHAR, 24, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR)));
     history_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
 
@@ -448,17 +448,17 @@ class Schemas {
 
     // 10,000,000 unique IDs
     new_order_columns.emplace_back(
-        "NO_O_ID", type::TypeId::INTEGER, false,
+        "no_o_id", type::TypeId::INTEGER, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
     new_order_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // 20 unique IDs
     new_order_columns.emplace_back(
-        "NO_D_ID", type::TypeId::TINYINT, false,
+        "no_d_id", type::TypeId::TINYINT, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::TINYINT)));
     new_order_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // 2*W unique IDs
     new_order_columns.emplace_back(
-        "NO_W_ID", type::TypeId::TINYINT, false,
+        "no_w_id", type::TypeId::TINYINT, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::TINYINT)));
     new_order_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
 
@@ -511,42 +511,42 @@ class Schemas {
 
     // 10,000,000 unique IDs
     order_columns.emplace_back(
-        "O_ID", type::TypeId::INTEGER, false,
+        "o_id", type::TypeId::INTEGER, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
     order_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // 20 unique IDs
     order_columns.emplace_back(
-        "O_D_ID", type::TypeId::TINYINT, false,
+        "o_d_id", type::TypeId::TINYINT, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::TINYINT)));
     order_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // 2*W unique IDs
     order_columns.emplace_back(
-        "O_W_ID", type::TypeId::TINYINT, false,
+        "o_w_id", type::TypeId::TINYINT, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::TINYINT)));
     order_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // 96,000 unique IDs
     order_columns.emplace_back(
-        "O_C_ID", type::TypeId::INTEGER, false,
+        "o_c_id", type::TypeId::INTEGER, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
     order_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // date and time
     order_columns.emplace_back(
-        "O_ENTRY_D", type::TypeId::TIMESTAMP, false,
+        "o_entry_d", type::TypeId::TIMESTAMP, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::TIMESTAMP)));
     order_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // 10 unique IDs, or null
     order_columns.emplace_back(
-        "O_CARRIER_ID", type::TypeId::TINYINT, true,
+        "o_carrier_id", type::TypeId::TINYINT, true,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::TINYINT)));
     order_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // numeric(2)
     order_columns.emplace_back(
-        "O_OL_CNT", type::TypeId::TINYINT, false,
+        "o_ol_cnt", type::TypeId::TINYINT, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::TINYINT)));
     order_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // numeric(1)
     order_columns.emplace_back(
-        "O_ALL_LOCAL", type::TypeId::TINYINT, false,
+        "o_all_local", type::TypeId::TINYINT, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::TINYINT)));
     order_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
 
@@ -632,52 +632,52 @@ class Schemas {
 
     // 10,000,000 unique IDs
     order_line_columns.emplace_back(
-        "OL_O_ID", type::TypeId::INTEGER, false,
+        "ol_o_id", type::TypeId::INTEGER, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
     order_line_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // 20 unique IDs
     order_line_columns.emplace_back(
-        "OL_D_ID", type::TypeId::TINYINT, false,
+        "ol_d_id", type::TypeId::TINYINT, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::TINYINT)));
     order_line_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // 2*W unique IDs
     order_line_columns.emplace_back(
-        "OL_W_ID", type::TypeId::TINYINT, false,
+        "ol_w_id", type::TypeId::TINYINT, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::TINYINT)));
     order_line_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // 15 unique IDs
     order_line_columns.emplace_back(
-        "OL_NUMBER", type::TypeId::TINYINT, false,
+        "ol_number", type::TypeId::TINYINT, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::TINYINT)));
     order_line_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // 200,000 unique IDs
     order_line_columns.emplace_back(
-        "OL_I_ID", type::TypeId::INTEGER, false,
+        "ol_i_id", type::TypeId::INTEGER, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
     order_line_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // 2*W unique IDs
     order_line_columns.emplace_back(
-        "OL_SUPPLY_W_ID", type::TypeId::TINYINT, false,
+        "ol_supply_w_id", type::TypeId::TINYINT, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::TINYINT)));
     order_line_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // date and time, or null
     order_line_columns.emplace_back(
-        "OL_DELIVERY_D", type::TypeId::TIMESTAMP, true,
+        "ol_delivery_d", type::TypeId::TIMESTAMP, true,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::TIMESTAMP)));
     order_line_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // numeric(2)
     order_line_columns.emplace_back(
-        "OL_QUANTITY", type::TypeId::TINYINT, false,
+        "ol_quantity", type::TypeId::TINYINT, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::TINYINT)));
     order_line_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // signed numeric(6,2)
     order_line_columns.emplace_back(
-        "OL_AMOUNT", type::TypeId::DECIMAL, false,
+        "ol_amount", type::TypeId::DECIMAL, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::DECIMAL)));
     order_line_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // fixed text, size 24
     order_line_columns.emplace_back(
-        "OL_DIST_INFO", type::TypeId::VARCHAR, 24, false,
+        "ol_dist_info", type::TypeId::VARCHAR, 24, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR)));
     order_line_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
 
@@ -735,27 +735,27 @@ class Schemas {
 
     // 200,000 unique IDs
     item_columns.emplace_back(
-        "I_ID", type::TypeId::INTEGER, false,
+        "i_id", type::TypeId::INTEGER, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
     item_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // 200,000 unique IDs
     item_columns.emplace_back(
-        "I_IM_ID", type::TypeId::INTEGER, false,
+        "i_im_id", type::TypeId::INTEGER, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
     item_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // variable text, size 24
     item_columns.emplace_back(
-        "I_NAME", type::TypeId::VARCHAR, 24, false,
+        "i_name", type::TypeId::VARCHAR, 24, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR)));
     item_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // numeric(5,2)
     item_columns.emplace_back(
-        "I_PRICE", type::TypeId::DECIMAL, false,
+        "i_price", type::TypeId::DECIMAL, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::DECIMAL)));
     item_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // variable text, size 50
     item_columns.emplace_back(
-        "I_DATA", type::TypeId::VARCHAR, 50, false,
+        "i_data", type::TypeId::VARCHAR, 50, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR)));
     item_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
 
@@ -795,87 +795,87 @@ class Schemas {
 
     // 200,000 unique IDs
     stock_columns.emplace_back(
-        "S_I_ID", type::TypeId::INTEGER, false,
+        "s_i_id", type::TypeId::INTEGER, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
     stock_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // 2*W unique IDs
     stock_columns.emplace_back(
-        "S_W_ID", type::TypeId::TINYINT, false,
+        "s_w_id", type::TypeId::TINYINT, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::TINYINT)));
     stock_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // signed numeric(4)
     stock_columns.emplace_back(
-        "S_QUANTITY", type::TypeId::SMALLINT, false,
+        "s_quantity", type::TypeId::SMALLINT, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::SMALLINT)));
     stock_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // fixed text, size 24
     stock_columns.emplace_back(
-        "S_DIST_01", type::TypeId::VARCHAR, 24, false,
+        "s_dist_01", type::TypeId::VARCHAR, 24, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR)));
     stock_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // fixed text, size 24
     stock_columns.emplace_back(
-        "S_DIST_02", type::TypeId::VARCHAR, 24, false,
+        "s_dist_02", type::TypeId::VARCHAR, 24, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR)));
     stock_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // fixed text, size 24
     stock_columns.emplace_back(
-        "S_DIST_03", type::TypeId::VARCHAR, 24, false,
+        "s_dist_03", type::TypeId::VARCHAR, 24, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR)));
     stock_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // fixed text, size 24
     stock_columns.emplace_back(
-        "S_DIST_04", type::TypeId::VARCHAR, 24, false,
+        "s_dist_04", type::TypeId::VARCHAR, 24, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR)));
     stock_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // fixed text, size 24
     stock_columns.emplace_back(
-        "S_DIST_05", type::TypeId::VARCHAR, 24, false,
+        "s_dist_05", type::TypeId::VARCHAR, 24, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR)));
     stock_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // fixed text, size 24
     stock_columns.emplace_back(
-        "S_DIST_06", type::TypeId::VARCHAR, 24, false,
+        "s_dist_06", type::TypeId::VARCHAR, 24, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR)));
     stock_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // fixed text, size 24
     stock_columns.emplace_back(
-        "S_DIST_07", type::TypeId::VARCHAR, 24, false,
+        "s_dist_07", type::TypeId::VARCHAR, 24, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR)));
     stock_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // fixed text, size 24
     stock_columns.emplace_back(
-        "S_DIST_08", type::TypeId::VARCHAR, 24, false,
+        "s_dist_08", type::TypeId::VARCHAR, 24, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR)));
     stock_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // fixed text, size 24
     stock_columns.emplace_back(
-        "S_DIST_09", type::TypeId::VARCHAR, 24, false,
+        "s_dist_09", type::TypeId::VARCHAR, 24, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR)));
     stock_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // fixed text, size 24
     stock_columns.emplace_back(
-        "S_DIST_10", type::TypeId::VARCHAR, 24, false,
+        "s_dist_10", type::TypeId::VARCHAR, 24, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR)));
     stock_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // numeric(8)
     stock_columns.emplace_back(
-        "S_YTD", type::TypeId::INTEGER, false,
+        "s_ytd", type::TypeId::INTEGER, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
     stock_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // numeric(4)
     stock_columns.emplace_back(
-        "S_ORDER_CNT", type::TypeId::SMALLINT, false,
+        "s_order_cnt", type::TypeId::SMALLINT, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::SMALLINT)));
     stock_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // numeric(4)
     stock_columns.emplace_back(
-        "S_REMOTE_CNT", type::TypeId::SMALLINT, false,
+        "s_remote_cnt", type::TypeId::SMALLINT, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::SMALLINT)));
     stock_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // variable text, size 50
     stock_columns.emplace_back(
-        "S_DATA", type::TypeId::VARCHAR, 50, false,
+        "s_data", type::TypeId::VARCHAR, 50, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR)));
     stock_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
 
