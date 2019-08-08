@@ -7,11 +7,11 @@ pipeline {
         stage('Build') {
             parallel {
 
-                stage('macOS 10.14/Apple clang-1001.0.46.4/llvm-6.0.1 (Debug/ASAN)') {
+                stage('macOS 10.14/Apple clang-1001.0.46.4/llvm-8.0.1 (Debug/ASAN)') {
                     agent { label 'macos' }
                     environment {
                         ASAN_OPTIONS="detect_container_overflow=0"
-                        LLVM_DIR="/usr/local/Cellar/llvm@6/6.0.1"
+                        LLVM_DIR="/usr/local/Cellar/llvm/8.0.1"
                     }
                     steps {
                         sh 'echo y | ./script/installation/packages.sh'
@@ -23,7 +23,7 @@ pipeline {
                     }
                 }
 
-                stage('Ubuntu Bionic/gcc-7.3.0/llvm-6.0.0 (Debug/ASAN)') {
+                stage('Ubuntu Bionic/gcc-7.3.0/llvm-8.0.1 (Debug/ASAN)') {
                     agent {
                         docker {
                             image 'ubuntu:bionic'
@@ -40,11 +40,11 @@ pipeline {
                     }
                 }
 
-                stage('macOS 10.14/Apple clang-1001.0.46.4/llvm-6.0.1 (Release/unittest)') {
+                stage('macOS 10.14/Apple clang-1001.0.46.4/llvm-8.0.1 (Release/unittest)') {
                     agent { label 'macos' }
                     environment {
                         ASAN_OPTIONS="detect_container_overflow=0"
-                        LLVM_DIR="/usr/local/Cellar/llvm@6/6.0.1"
+                        LLVM_DIR="/usr/local/Cellar/llvm/8.0.1"
                     }
                     steps {
                         sh 'echo y | ./script/installation/packages.sh'
@@ -55,7 +55,7 @@ pipeline {
                     }
                 }
 
-                stage('Ubuntu Bionic/gcc-7.3.0/llvm-6.0.0 (Release/unittest)') {
+                stage('Ubuntu Bionic/gcc-7.3.0/llvm-8.0.1 (Release/unittest)') {
                     agent {
                         docker {
                             image 'ubuntu:bionic'
@@ -70,7 +70,7 @@ pipeline {
                     }
                 }
 
-                stage('Ubuntu Bionic/gcc-7.3.0/llvm-6.0.0 (Release/benchmark)') {
+                stage('Ubuntu Bionic/gcc-7.3.0/llvm-8.0.1 (Release/benchmark)') {
                     agent { label 'benchmark' }
                     steps {
                         sh 'echo y | sudo ./script/installation/packages.sh'
