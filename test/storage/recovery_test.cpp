@@ -29,8 +29,7 @@ class RecoveryTests : public TerrierTest {
   storage::RecordBufferSegmentPool pool_{2000, 100};
   storage::BlockStore block_store_{100, 100};
 
-  const std::chrono::milliseconds gc_period_{10};
-  storage::GarbageCollectorThread *gc_thread_;
+  storage::GarbageCollector* gc_;
   common::DedicatedThreadRegistry thread_registry_;
 
   void SetUp() override {
@@ -93,18 +92,17 @@ class RecoveryTests : public TerrierTest {
       }
     }
 
-    // Delete test txns
-    gc_thread_ = new storage::GarbageCollectorThread(tested->GetTxnManager(), gc_period_);
-    delete gc_thread_;
+    // Clean up test object
     delete tested;
-
     log_manager.PersistAndStop();
 
-    // Delete recovery txns
-    gc_thread_ = new storage::GarbageCollectorThread(&recovery_txn_manager, gc_period_);
-    delete gc_thread_;
-
+    // Perform GC 3 times to fully clean up catalog
     recovered_catalog.TearDown();
+    gc_ = new storage::GarbageCollector(&recovery_txn_manager, nullptr);
+    gc_->PerformGarbageCollection();
+    gc_->PerformGarbageCollection();
+    gc_->PerformGarbageCollection();
+    delete gc_;
   }
 };
 

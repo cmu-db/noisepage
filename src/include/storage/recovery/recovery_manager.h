@@ -257,5 +257,13 @@ class RecoveryManager : public common::DedicatedThreadOwner {
    * @return list of oids
    */
   std::vector<catalog::col_oid_t> GetOidsForRedoRecord(storage::SqlTable *sql_table, RedoRecord *record);
+
+  /**
+   * @param oid oid of catalog index
+   * @param db_catalog database catalog that has given index
+   * @return pointer to catalog index
+   */
+  storage::index::Index* GetCatalogIndex(catalog::index_oid_t oid, common::ManagedPointer<catalog::DatabaseCatalog>& db_catalog);
+
 };
 }  // namespace terrier::storage

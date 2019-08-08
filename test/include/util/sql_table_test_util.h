@@ -8,6 +8,7 @@
 #include "gtest/gtest.h"
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_manager.h"
+#include "storage/garbage_collector.h"
 #include "util/storage_test_util.h"
 #include "util/test_harness.h"
 
@@ -315,6 +316,7 @@ class LargeSqlTableTestObject {
   std::vector<double> update_select_delete_ratio_;
   std::default_random_engine *generator_;
   transaction::TransactionManager txn_manager_;
+  storage::GarbageCollector gc_;
   catalog::Catalog catalog_;
   transaction::TransactionContext *initial_txn_;
   uint64_t abort_count_ = 0;

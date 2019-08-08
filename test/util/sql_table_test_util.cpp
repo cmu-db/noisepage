@@ -111,6 +111,7 @@ LargeSqlTableTestObject::LargeSqlTableTestObject(const LargeSqlTableTestConfigur
       update_select_delete_ratio_(std::move(config.update_select_delete_ratio_)),
       generator_(generator),
       txn_manager_(buffer_pool, true /* gc on */, log_manager),
+      gc_(storage::GarbageCollector(&txn_manager_, nullptr)),
       catalog_(catalog::Catalog(&txn_manager_, block_store)) {
   // Bootstrap the table to have the specified number of tuples
   TERRIER_ASSERT(update_select_delete_ratio_.size() == 3, "Update/Select/Delete ratio should be three numbers");
@@ -127,6 +128,10 @@ LargeSqlTableTestObject::~LargeSqlTableTestObject() {
     }
   }
   catalog_.TearDown();
+
+  gc_.PerformGarbageCollection();
+  gc_.PerformGarbageCollection();
+  gc_.PerformGarbageCollection();
 }
 
 // Caller is responsible for freeing the returned results if bookkeeping is on.

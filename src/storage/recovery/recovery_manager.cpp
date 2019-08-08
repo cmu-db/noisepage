@@ -353,26 +353,28 @@ uint32_t RecoveryManager::ProcessSpecialCaseCatalogRecord(
         auto class_kind = *(reinterpret_cast<catalog::postgres::ClassKind *>(
             pr->AccessWithNullCheck(pr_map[catalog::RELKIND_COL_OID])));
 
-        // We skip creation of catalog tables/indexes, these are already done when CreateDatabase is called
-        // All catalog tables/indexes have OIDS less than START_OID
-        if (class_oid < START_OID) {
-          // TODO(Gus): Set table and index pointers for catalog tables here
-          return 0;
-        }
-
         // Case on whether we are creating a table or index
         if (class_kind == catalog::postgres::ClassKind::REGULAR_TABLE) {
           // Step 2: Query pg_attribute for the columns of the table
           auto schema_cols = db_catalog->GetColumns<catalog::Schema::Column, catalog::table_oid_t, catalog::col_oid_t>(
               txn, catalog::table_oid_t(class_oid));
 
-          // Step 3: Create schema and object
+          // Step 3: Create and set schema in catalog
           auto *schema = new catalog::Schema(std::move(schema_cols));
-          auto *new_sql_table = new SqlTable(block_store_, *schema);
+          bool result UNUSED_ATTRIBUTE = db_catalog->SetTableSchemaPointer(txn, catalog::table_oid_t(class_oid), schema);
+          TERRIER_ASSERT(result, "Setting table schema pointer should succeed, entry should be in pg_class already");
 
-          // Step 4: Set pointers in catalog
-          db_catalog->SetTablePointer(txn, catalog::table_oid_t(class_oid), new_sql_table);
-          db_catalog->SetTableSchemaPointer(txn, catalog::table_oid_t(class_oid), schema);
+          // Step 4: Create and set table pointers in catalog
+          storage::SqlTable *sql_table;
+          if (class_oid < START_OID) {         // All catalog tables/indexes have OIDS less than START_OID
+            sql_table = GetSqlTable(txn, redo_record->GetDatabaseOid(), catalog::table_oid_t(class_oid)).get();
+          } else {
+            sql_table = new SqlTable(block_store_, *schema);
+          }
+          result = db_catalog->SetTablePointer(txn, catalog::table_oid_t(class_oid), sql_table);
+          TERRIER_ASSERT(result, "Setting table pointer should succeed, entry should be in pg_class already");
+
+          // Step 5: Update catalog oid
           db_catalog->UpdateNextOid(class_oid);
 
           delete[] buffer;
@@ -410,18 +412,27 @@ uint32_t RecoveryManager::ProcessSpecialCaseCatalogRecord(
           bool is_immediate =
               *(reinterpret_cast<bool *>(pr->AccessWithNullCheck(pg_index_pr_map[catalog::INDIMMEDIATE_COL_OID])));
 
-          // Step 4: Create IndexSchema and index object
+          // Step 4: Create and set IndexSchema in catalog
           auto *index_schema = new catalog::IndexSchema(index_cols, is_unique, is_primary, is_exclusion, is_immediate);
-          auto *index =
-              index::IndexBuilder()
-                  .SetOid(catalog::index_oid_t(class_oid))
-                  .SetConstraintType(is_unique ? index::ConstraintType::UNIQUE : index::ConstraintType::DEFAULT)
-                  .SetKeySchema(*index_schema)
-                  .Build();
+          result = db_catalog->SetIndexSchemaPointer(txn, catalog::index_oid_t(class_oid), index_schema);
+          TERRIER_ASSERT(result, "Setting index schema pointer should succeed, entry should be in pg_class already");
 
-          // Step 5: Set pointers in catalog
-          db_catalog->SetIndexPointer(txn, catalog::index_oid_t(class_oid), index);
-          db_catalog->SetIndexSchemaPointer(txn, catalog::index_oid_t(class_oid), index_schema);
+          // Step 5: Create and set index pointer in catalog
+          storage::index::Index* index;
+          if (class_oid < START_OID) {         // All catalog tables/indexes have OIDS less than START_OID
+            index = GetCatalogIndex(catalog::index_oid_t(class_oid), db_catalog);
+          } else {
+            index =
+                index::IndexBuilder()
+                    .SetOid(catalog::index_oid_t(class_oid))
+                    .SetConstraintType(is_unique ? index::ConstraintType::UNIQUE : index::ConstraintType::DEFAULT)
+                    .SetKeySchema(*index_schema)
+                    .Build();
+          }
+          result = db_catalog->SetIndexPointer(txn, catalog::index_oid_t(class_oid), index);
+          TERRIER_ASSERT(result, "Setting index pointer should succeed, entry should be in pg_class already");
+
+          // Step 6: Update catalog oid
           db_catalog->UpdateNextOid(class_oid);
 
           delete[] buffer;
@@ -668,6 +679,53 @@ std::vector<catalog::col_oid_t> RecoveryManager::GetOidsForRedoRecord(storage::S
     }
   }
   return result;
+}
+
+storage::index::Index* RecoveryManager::GetCatalogIndex(catalog::index_oid_t oid,
+                                                        common::ManagedPointer<catalog::DatabaseCatalog>& db_catalog) {
+  TERRIER_ASSERT(!oid < START_OID, "Oid must be a valid catalog oid");
+
+  if (oid == catalog::NAMESPACE_OID_INDEX_OID) {
+    return db_catalog->namespaces_oid_index_;
+  } else if (oid == catalog::NAMESPACE_NAME_INDEX_OID) {
+    return db_catalog->namespaces_name_index_;
+  } else if (oid == catalog::CLASS_OID_INDEX_OID) {
+    return db_catalog->classes_oid_index_;
+  } else if (oid == catalog::CLASS_NAME_INDEX_OID) {
+    return db_catalog->classes_name_index_;
+  } else if (oid == catalog::CLASS_NAMESPACE_INDEX_OID) {
+    return db_catalog->classes_namespace_index_;
+  } else if (oid == catalog::INDEX_OID_INDEX_OID) {
+    return db_catalog->indexes_oid_index_;
+  } else if (oid == catalog::INDEX_TABLE_INDEX_OID) {
+    return db_catalog->indexes_table_index_;
+  } else if (oid == catalog::COLUMN_OID_INDEX_OID) {
+    return db_catalog->columns_oid_index_;
+  } else if (oid == catalog::COLUMN_NAME_INDEX_OID) {
+    return db_catalog->columns_name_index_;
+  } else if (oid == catalog::COLUMN_CLASS_INDEX_OID) {
+    return db_catalog->columns_class_index_;
+  } else if (oid == catalog::TYPE_OID_INDEX_OID) {
+    return db_catalog->types_oid_index_;
+  } else if (oid == catalog::TYPE_NAME_INDEX_OID) {
+    return db_catalog->types_name_index_;
+  } else if (oid == catalog::TYPE_NAMESPACE_INDEX_OID) {
+    return db_catalog->types_namespace_index_;
+  } else if (oid == catalog::CONSTRAINT_OID_INDEX_OID) {
+    return db_catalog->constraints_oid_index_;
+  } else if (oid == catalog::CONSTRAINT_NAME_INDEX_OID) {
+    return db_catalog->constraints_name_index_;
+  } else if (oid == catalog::CONSTRAINT_NAMESPACE_INDEX_OID) {
+    return db_catalog->constraints_namespace_index_;
+  } else if (oid == catalog::CONSTRAINT_TABLE_INDEX_OID) {
+    return db_catalog->constraints_table_index_;
+  } else if (oid == catalog::CONSTRAINT_INDEX_INDEX_OID) {
+    return db_catalog->constraints_index_index_;
+  } else if (oid == catalog::CONSTRAINT_FOREIGNTABLE_INDEX_OID) {
+    return db_catalog->constraints_foreigntable_index_;
+  } else {
+    TERRIER_ASSERT(false, "This oid does not belong to any catalog index");
+  }
 }
 
 }  // namespace terrier::storage
