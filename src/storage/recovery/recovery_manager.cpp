@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <string>
+#include <unordered_set>
 #include <utility>
 #include <vector>
 
@@ -236,68 +237,62 @@ void RecoveryManager::UpdateIndexesOnTable(transaction::TransactionContext *txn,
   // If there's no indexes on the table, we can return
   if (indexes.empty()) return;
 
-  auto num_indexes = indexes.size();
-
-  // Stores pr initializers to get indexed columns values to insert
-  std::vector<std::pair<ProjectedRowInitializer, ProjectionMap>> table_pr_initializers_pairs;
-  table_pr_initializers_pairs.reserve(num_indexes);
-
   // TODO(Gus): We can save ourselves a catalog query by passing in the sql table ptr to this function
   auto sql_table_ptr = GetSqlTable(txn, db_oid, table_oid);
 
   // Buffer for projected row sizes
-  uint32_t table_byte_size = 0;
   uint32_t index_byte_size = 0;
 
-  // Fetch all initializers, and compute largest PR size
+  // Stores all the attributes a table is indexed on so we can fetch their values with a single select
+  std::unordered_set<catalog::col_oid_t> all_indexed_attributes;
+
+  // Determine all indexed attributes. Also compute largest PR size we need for index PRs.
   for (auto i = 0; i < indexes.size(); i++) {
     auto index_ptr = indexes[i];
     auto &schema = index_schemas[i];
 
-    // Get pr initializer
+    // Get attributes
     auto indexed_attributes = schema.GetIndexedColOids();
-    auto initializer_pair = sql_table_ptr->InitializerForProjectedRow(indexed_attributes);
-    table_pr_initializers_pairs.push_back(initializer_pair);
-    // We want to calculate the size of the largest PR we will create
-    table_byte_size = std::max(table_byte_size, initializer_pair.first.ProjectedRowSize());
+    all_indexed_attributes.insert(indexed_attributes.begin(), indexed_attributes.end());
+
+    // We want to calculate the size of the largest PR we will need to create create
     index_byte_size = std::max(index_byte_size, index_ptr->GetProjectedRowInitializer().ProjectedRowSize());
   }
 
-  auto *table_buffer = common::AllocationUtil::AllocateAligned(table_byte_size);
+  // Create the table PR and select from the table
+  auto [pr_init, pr_map] = sql_table_ptr->InitializerForProjectedRow(
+      std::vector<catalog::col_oid_t>(all_indexed_attributes.begin(), all_indexed_attributes.end()));
+  auto *table_buffer = common::AllocationUtil::AllocateAligned(pr_init.ProjectedRowSize());
+  auto table_pr = pr_init.InitializeRow(table_buffer);
+  sql_table_ptr->Select(txn, tuple_slot, table_pr);
+
+  // Allocate index buffer
   auto *index_buffer = common::AllocationUtil::AllocateAligned(index_byte_size);
 
   // TODO(Gus): We are going to assume no indexes on expressions below. Having indexes on expressions would require to
   // evaluate expressions and that's a fucking nightmare
   for (uint8_t i = 0; i < indexes.size(); i++) {
-    // TODO(Gus): A possible optimization we could do is fetch all attributes we will need at once, instead of calling
-    // Select each time. This would just require copying into the PR each time
     auto index = indexes[i];
     auto schema = index_schemas[i];
-    auto *table_pr = table_pr_initializers_pairs[i].first.InitializeRow(table_buffer);
-    auto &table_ptr_map = table_pr_initializers_pairs[i].second;
-    sql_table_ptr->Select(txn, tuple_slot, table_pr);
 
     // Build the index PR
     auto *index_pr = index->GetProjectedRowInitializer().InitializeRow(index_buffer);
-    // TODO(Gus): if we cache indexed_attributes, we can save ourselves looking at the schema again
     auto indexed_attributes = schema.GetIndexedColOids();
-    TERRIER_ASSERT(indexed_attributes.size() == table_pr->NumColumns(),
-                   "The number of values fetched must be the same as what we want to insert into the index");
+
     // Copy in each value from the table select result into the index PR
     for (auto attr_idx = 0; attr_idx < indexed_attributes.size(); attr_idx++) {
       auto attr_oid = indexed_attributes[attr_idx];
       auto index_col_oid = schema.GetColumn(attr_idx).Oid();
-      if (table_pr->IsNull(table_ptr_map[attr_oid])) {
+      if (table_pr->IsNull(pr_map[attr_oid])) {
         index_pr->SetNull(index->GetKeyOidToOffsetMap().at(index_col_oid));
       } else {
         auto size = schema.GetColumn(attr_idx).AttrSize() & INT8_MAX;
         std::memcpy(index_pr->AccessForceNotNull(index->GetKeyOidToOffsetMap().at(index_col_oid)),
-                    table_pr->AccessWithNullCheck(table_ptr_map[attr_oid]), size);
+                    table_pr->AccessWithNullCheck(pr_map[attr_oid]), size);
       }
     }
 
     if (insert) {
-      // Perform the insert
       bool result UNUSED_ATTRIBUTE = (index->GetConstraintType() == index::ConstraintType::UNIQUE)
                                          ? index->InsertUnique(txn, *index_pr, tuple_slot)
                                          : index->Insert(txn, *index_pr, tuple_slot);
@@ -329,7 +324,7 @@ uint32_t RecoveryManager::ProcessSpecialCaseCatalogRecord(
       // Updates to pg_class has 3 special cases:
       //  1. If we update the next col oid, we don't need to do anything
       //  2. If we update the schema column, we need to reconstruct the new schema, and use the catalog API to update
-      //  pg_class
+      //  pg_class, as well as update the SqlTable
       //  3. If we update the ptr column, this means we've inserted a new object and we need to recreate the object.
       //  out which special case we have
       auto pg_class_ptr = db_catalog->classes_;
@@ -341,33 +336,7 @@ uint32_t RecoveryManager::ProcessSpecialCaseCatalogRecord(
         return 0;                                                     // No additional logs processed
 
       } else if (updated_pg_class_oid == catalog::REL_SCHEMA_COL_OID) {  // Case 2
-        // TODO(Gus): Find out why a record like this exists
-        // TODO(Gus): I suspect its because the schema update is done separate at the end of create table
-        // entry6666666666666666
-
-        // Step 1: Get the class oid for the object we're updating
-        //        auto[pr_init, pr_map] =
-        //            pg_class_ptr->InitializerForProjectedRow({catalog::RELOID_COL_OID, catalog::RELKIND_COL_OID});
-        //        auto *buffer = common::AllocationUtil::AllocateAligned(pr_init.ProjectedRowSize());
-        //        auto *pr = pr_init.InitializeRow(buffer);
-        //        pg_class_ptr->Select(txn, GetTupleSlotMapping(redo_record->GetTupleSlot()), pr);
-        //        auto class_oid = *(reinterpret_cast<uint32_t
-        //        *>(pr->AccessWithNullCheck(pr_map[catalog::RELOID_COL_OID]))); auto class_kind UNUSED_ATTRIBUTE =
-        //        *(reinterpret_cast<catalog::postgres::ClassKind *>(
-        //            pr->AccessWithNullCheck(pr_map[catalog::RELKIND_COL_OID])));
-        //        TERRIER_ASSERT(class_kind == catalog::postgres::ClassKind::REGULAR_TABLE,
-        //                       "Updates to schemas in pg_class should only happen for tables");
-        //
-        //        // Step 2: Query pg_attribute for the columns and recreate the schema
-        //        auto schema_cols = db_catalog->GetColumns<catalog::Schema::Column, catalog::table_oid_t,
-        //        catalog::col_oid_t>(txn, catalog::table_oid_t(class_oid)); auto *schema = new
-        //        catalog::Schema(std::move(schema_cols));
-        //
-        //        // Step 3: Update the schema in the catalog
-        //        auto result UNUSED_ATTRIBUTE = db_catalog->SetTableSchemaPointer(txn, catalog::table_oid_t(class_oid),
-        //        schema); TERRIER_ASSERT(result, "Schema update should always succeed during replaying"); delete[]
-        //        buffer;
-
+        // TODO(Gus): Add support for recovering DDL changes.
         return 0;  // No additional logs processed
 
       } else if (updated_pg_class_oid == catalog::REL_PTR_COL_OID) {  // Case 3
