@@ -5,13 +5,13 @@
 #include <utility>
 #include <vector>
 
-#include "execution/tpl_test.h"  // NOLINT
+#include "execution/tpl_test.h"
 
 #include "execution/ast/ast_dump.h"
 #include "execution/parsing/parser.h"
 #include "execution/parsing/scanner.h"
 
-namespace terrier::parsing::test {
+namespace terrier::execution::parsing::test {
 
 class ParserTest : public TplTest {
  public:
@@ -285,4 +285,4 @@ TEST_F(ParserTest, ArrayTypeTest) {
   }
 }
 
-}  // namespace terrier::parsing::test
+}  // namespace terrier::execution::parsing::test

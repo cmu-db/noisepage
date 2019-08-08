@@ -3,11 +3,11 @@
 #include <string>
 #include <vector>
 
-#include "execution/tpl_test.h"  // NOLINT
+#include "execution/tpl_test.h"
 
 #include "execution/parsing/scanner.h"
 
-namespace terrier::parsing::test {
+namespace terrier::execution::parsing::test {
 
 class ScannerTest : public TplTest {};
 
@@ -250,4 +250,4 @@ TEST_F(ScannerTest, CommentTest) {
   RunTests(tests);
 }
 
-}  // namespace terrier::parsing::test
+}  // namespace terrier::execution::parsing::test

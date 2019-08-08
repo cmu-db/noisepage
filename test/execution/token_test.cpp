@@ -1,10 +1,10 @@
 #include <functional>
 
-#include "execution/tpl_test.h"  // NOLINT
+#include "execution/tpl_test.h"
 
 #include "execution/parsing/scanner.h"
 
-namespace terrier::parsing::test {
+namespace terrier::execution::parsing::test {
 
 class TokenTest : public TplTest {};
 
@@ -25,4 +25,4 @@ TEST_F(TokenTest, ComparisonOpTest) {
   EXPECT_TRUE(Token::IsCompareOp(Token::Type::LESS_EQUAL));
 }
 
-}  // namespace terrier::parsing::test
+}  // namespace terrier::execution::parsing::test

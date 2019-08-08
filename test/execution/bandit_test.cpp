@@ -5,7 +5,7 @@
 #include <utility>
 #include <vector>
 
-#include "execution/tpl_test.h"  // NOLINT
+#include "execution/tpl_test.h"
 
 // From test
 #include "execution/vm/module_compiler.h"
@@ -17,7 +17,7 @@
 
 #define NUM_EXPERIMENTS 10
 
-namespace terrier::vm::test {
+namespace terrier::execution::vm::test {
 
 struct TestConf {
   std::string pred1;
@@ -262,4 +262,4 @@ std::vector<TestConf> confs = {{"row.colA >= 10000000", "row.colA < 10000000", "
 
 INSTANTIATE_TEST_CASE_P(SimpleTestInstance, BanditTest, ::testing::ValuesIn(confs));
 
-}  // namespace terrier::vm::test
+}  // namespace terrier::execution::vm::test

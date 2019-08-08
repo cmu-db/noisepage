@@ -2,7 +2,7 @@
 #include <string>
 #include <vector>
 
-#include "csv/csv.h" // NOLINT
+#include "csv/csv.h"  // NOLINT
 #include "execution/sql/table_generator/table_reader.h"
 #include "execution/sql/value.h"
 
@@ -14,12 +14,12 @@ uint32_t TableReader::ReadTable(const std::string &schema_file, const std::strin
   SchemaReader schema_reader{};
   auto table_info = schema_reader.ReadTableInfo(schema_file);
   auto table_oid = CreateTable(table_info.get());
-  std::vector<terrier::catalog::index_oid_t> index_oids = CreateIndexes(table_info.get(), table_oid);
+  std::vector<catalog::index_oid_t> index_oids = CreateIndexes(table_info.get(), table_oid);
 
   // Init table projected row
   auto table = exec_ctx_->GetAccessor()->GetTable(table_oid);
   auto &table_schema = exec_ctx_->GetAccessor()->GetSchema(table_oid);
-  std::vector<terrier::catalog::col_oid_t> table_cols;
+  std::vector<catalog::col_oid_t> table_cols;
   for (const auto &col : table_schema.GetColumns()) {
     table_cols.emplace_back(col.Oid());
   }
@@ -27,11 +27,11 @@ uint32_t TableReader::ReadTable(const std::string &schema_file, const std::strin
   auto &pri = pri_map.first;
 
   // Init index prs
-  std::vector<terrier::storage::ProjectedRow *> index_prs;
+  std::vector<storage::ProjectedRow *> index_prs;
   for (const auto &index_oid : index_oids) {
     auto index = exec_ctx_->GetAccessor()->GetIndex(index_oid);
     auto &index_pri = index->GetProjectedRowInitializer();
-    byte *index_buffer = terrier::common::AllocationUtil::AllocateAligned(index_pri.ProjectedRowSize());
+    byte *index_buffer = common::AllocationUtil::AllocateAligned(index_pri.ProjectedRowSize());
     auto index_pr = index_pri.InitializeRow(index_buffer);
     index_prs.emplace_back(index_pr);
   }
@@ -80,7 +80,7 @@ uint32_t TableReader::ReadTable(const std::string &schema_file, const std::strin
           index_pr->SetNull(index_offset);
         } else {
           byte *index_data = index_pr->AccessForceNotNull(index_offset);
-          uint8_t type_size = terrier::type::TypeUtil::GetTypeSize(index_col.Type()) & static_cast<uint8_t>(0x7f);
+          uint8_t type_size = type::TypeUtil::GetTypeSize(index_col.Type()) & static_cast<uint8_t>(0x7f);
           std::memcpy(index_data, redo->Delta()->AccessForceNotNull(table_offset), type_size);
         }
       }
@@ -98,25 +98,24 @@ uint32_t TableReader::ReadTable(const std::string &schema_file, const std::strin
   return val_written;
 }
 
-terrier::catalog::table_oid_t TableReader::CreateTable(TableInfo *info) {
-  terrier::catalog::Schema tmp_schema{info->cols};
+catalog::table_oid_t TableReader::CreateTable(TableInfo *info) {
+  catalog::Schema tmp_schema{info->cols};
   auto table_oid = exec_ctx_->GetAccessor()->CreateTable(ns_oid_, info->table_name, tmp_schema);
   auto &schema = exec_ctx_->GetAccessor()->GetSchema(table_oid);
-  auto sql_table = new terrier::storage::SqlTable(store_, schema);
+  auto sql_table = new storage::SqlTable(store_, schema);
   exec_ctx_->GetAccessor()->SetTablePointer(table_oid, sql_table);
   return table_oid;
 }
 
-std::vector<terrier::catalog::index_oid_t> TableReader::CreateIndexes(TableInfo *info,
-                                                                      terrier::catalog::table_oid_t table_oid) {
-  std::vector<terrier::catalog::index_oid_t> results;
-  terrier::storage::index::IndexBuilder index_builder;
+std::vector<catalog::index_oid_t> TableReader::CreateIndexes(TableInfo *info, catalog::table_oid_t table_oid) {
+  std::vector<catalog::index_oid_t> results;
+  storage::index::IndexBuilder index_builder;
   for (const auto &index_info : info->indexes) {
-    terrier::catalog::IndexSchema tmp_schema{index_info->cols, false, false, false, false};
+    catalog::IndexSchema tmp_schema{index_info->cols, false, false, false, false};
     auto index_oid = exec_ctx_->GetAccessor()->CreateIndex(ns_oid_, table_oid, index_info->index_name, tmp_schema);
     auto &schema = exec_ctx_->GetAccessor()->GetIndexSchema(index_oid);
     index_builder.SetOid(index_oid);
-    index_builder.SetConstraintType(terrier::storage::index::ConstraintType::DEFAULT);
+    index_builder.SetConstraintType(storage::index::ConstraintType::DEFAULT);
     index_builder.SetKeySchema(schema);
     auto *index = index_builder.Build();
     exec_ctx_->GetAccessor()->SetIndexPointer(index_oid, index);
@@ -125,8 +124,8 @@ std::vector<terrier::catalog::index_oid_t> TableReader::CreateIndexes(TableInfo 
   return results;
 }
 
-void TableReader::WriteTableCol(terrier::storage::ProjectedRow *insert_pr, uint16_t col_offset,
-                                terrier::type::TypeId type, csv::CSVField *field) {
+void TableReader::WriteTableCol(storage::ProjectedRow *insert_pr, uint16_t col_offset, type::TypeId type,
+                                csv::CSVField *field) {
   if (*field == null_string) {
     insert_pr->SetNull(col_offset);
     std::cout << "setting null" << std::endl;
@@ -134,48 +133,48 @@ void TableReader::WriteTableCol(terrier::storage::ProjectedRow *insert_pr, uint1
   }
   byte *insert_offset = insert_pr->AccessForceNotNull(col_offset);
   switch (type) {
-    case terrier::type::TypeId::TINYINT: {
+    case type::TypeId::TINYINT: {
       auto val = field->get<int8_t>();
       std::memcpy(insert_offset, &val, sizeof(int8_t));
       break;
     }
-    case terrier::type::TypeId::SMALLINT: {
+    case type::TypeId::SMALLINT: {
       auto val = field->get<int16_t>();
       std::memcpy(insert_offset, &val, sizeof(int16_t));
       break;
     }
-    case terrier::type::TypeId::INTEGER: {
+    case type::TypeId::INTEGER: {
       auto val = field->get<int32_t>();
       std::memcpy(insert_offset, &val, sizeof(int32_t));
       break;
     }
-    case terrier::type::TypeId::BIGINT: {
+    case type::TypeId::BIGINT: {
       auto val = field->get<int64_t>();
       std::memcpy(insert_offset, &val, sizeof(int64_t));
       break;
     }
-    case terrier::type::TypeId::DECIMAL: {
+    case type::TypeId::DECIMAL: {
       auto val = field->get<f64>();
       std::memcpy(insert_offset, &val, sizeof(f64));
       break;
     }
-    case terrier::type::TypeId::DATE: {
+    case type::TypeId::DATE: {
       auto val = sql::ValUtil::StringToDate(field->get<std::string>());
       std::memcpy(insert_offset, &val.int_val, sizeof(u32));
       break;
     }
-    case terrier::type::TypeId::VARCHAR: {
+    case type::TypeId::VARCHAR: {
       auto val = field->get<std::string_view>();
       auto content_size = static_cast<uint32_t>(val.size());
-      if (content_size <= terrier::storage::VarlenEntry::InlineThreshold()) {
-        *reinterpret_cast<terrier::storage::VarlenEntry *>(insert_offset) =
-            terrier::storage::VarlenEntry::CreateInline(reinterpret_cast<const byte *>(val.data()), content_size);
+      if (content_size <= storage::VarlenEntry::InlineThreshold()) {
+        *reinterpret_cast<storage::VarlenEntry *>(insert_offset) =
+            storage::VarlenEntry::CreateInline(reinterpret_cast<const byte *>(val.data()), content_size);
       } else {
         // TODO(Amadou): Use execCtx allocator
-        auto content = reinterpret_cast<byte *>(terrier::common::AllocationUtil::AllocateAligned(content_size));
+        auto content = reinterpret_cast<byte *>(common::AllocationUtil::AllocateAligned(content_size));
         std::memcpy(content, val.data(), content_size);
-        *reinterpret_cast<terrier::storage::VarlenEntry *>(insert_offset) =
-            terrier::storage::VarlenEntry::Create(content, content_size, true);
+        *reinterpret_cast<storage::VarlenEntry *>(insert_offset) =
+            storage::VarlenEntry::Create(content, content_size, true);
       }
       break;
     }

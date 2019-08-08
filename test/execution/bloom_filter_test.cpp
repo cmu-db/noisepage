@@ -2,12 +2,12 @@
 #include <unordered_set>
 #include <vector>
 
-#include "execution/tpl_test.h"  // NOLINT
+#include "execution/tpl_test.h"
 
 #include "execution/sql/bloom_filter.h"
 #include "execution/util/hash.h"
 
-namespace terrier::sql::test {
+namespace terrier::execution::sql::test {
 
 class BloomFilterTest : public TplTest {};
 
@@ -102,4 +102,4 @@ TEST_F(BloomFilterTest, ComprehensiveTest) {
   }
 }
 
-}  // namespace terrier::sql::test
+}  // namespace terrier::execution::sql::test

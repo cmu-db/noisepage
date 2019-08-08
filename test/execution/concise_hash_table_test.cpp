@@ -1,13 +1,13 @@
 #include <random>
 #include <vector>
 
-#include "execution/tpl_test.h"  // NOLINT
+#include "execution/tpl_test.h"
 
 #include "execution/sql/concise_hash_table.h"
 #include "execution/util/hash.h"
 #include "execution/util/macros.h"
 
-namespace terrier::sql::test {
+namespace terrier::execution::sql::test {
 
 /// This is the tuple we insert into the hash table
 struct Tuple {
@@ -236,4 +236,4 @@ TEST_F(ConciseHashTableTest, MultiGroupBuildTest) {
   }
 }
 
-}  // namespace terrier::sql::test
+}  // namespace terrier::execution::sql::test

@@ -7,15 +7,13 @@
 #include "loggers/execution_logger.h"
 #include "util/test_harness.h"
 
-namespace terrier {
+namespace terrier::execution {
 
 class TplTest : public terrier::TerrierTest {
  public:
   TplTest() { CpuInfo::Instance(); }
 
   void SetUp() override { terrier::TerrierTest::SetUp(); }
-
-  const char *GetTestName() const { return ::testing::UnitTest::GetInstance()->current_test_info()->name(); }
 };
 
 template <typename F>
@@ -37,4 +35,4 @@ static inline double Bench(u32 repeat, const F &f) {
   return timer.elapsed() / static_cast<double>(repeat);
 }
 
-}  // namespace terrier
+}  // namespace terrier::execution

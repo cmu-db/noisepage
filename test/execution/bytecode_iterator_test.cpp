@@ -1,6 +1,6 @@
 #include <vector>
 
-#include "execution/tpl_test.h"  // NOLINT
+#include "execution/tpl_test.h"
 
 #include "execution/util/region.h"
 #include "execution/vm/bytecode_emitter.h"
@@ -8,7 +8,7 @@
 #include "execution/vm/bytecode_label.h"
 #include "execution/vm/vm.h"
 
-namespace terrier::vm::test {
+namespace terrier::execution::vm::test {
 
 class BytecodeIteratorTest : public TplTest {
  public:
@@ -86,4 +86,4 @@ TEST_F(BytecodeIteratorTest, JumpTest) {
   EXPECT_EQ(v1, iter.GetLocalOperand(2));
 }
 
-}  // namespace terrier::vm::test
+}  // namespace terrier::execution::vm::test

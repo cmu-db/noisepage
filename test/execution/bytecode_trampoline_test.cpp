@@ -7,14 +7,14 @@
 
 #include "ips4o/ips4o.hpp"
 
-#include "execution/tpl_test.h"  // NOLINT
+#include "execution/tpl_test.h"
 
 #include "execution/sql/sorter.h"
 #include "execution/sql/value.h"
 #include "execution/vm/module.h"
 #include "execution/vm/module_compiler.h"
 
-namespace terrier::vm::test {
+namespace terrier::execution::vm::test {
 
 //
 // These tests use the trampoline to call into bytecode functions.
@@ -287,4 +287,4 @@ TEST_F(BytecodeTrampolineTest, DISABLED_PerfGenComparisonForSortTest) {
   std::cout << "Std: " << std_ms << " ms" << std::endl;
 }
 
-}  // namespace terrier::vm::test
+}  // namespace terrier::execution::vm::test

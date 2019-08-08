@@ -1,9 +1,9 @@
-#include "execution/tpl_test.h"  // NOLINT
+#include "execution/tpl_test.h"
 
 #include "execution/ast/ast.h"
 #include "execution/ast/ast_node_factory.h"
 
-namespace terrier::ast::test {
+namespace terrier::execution::ast::test {
 
 class AstTest : public TplTest {
  public:
@@ -117,4 +117,4 @@ TEST_F(AstTest, HierechyTest) {
   }
 }
 
-}  // namespace terrier::ast::test
+}  // namespace terrier::execution::ast::test

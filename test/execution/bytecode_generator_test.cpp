@@ -1,12 +1,12 @@
 #include <string>
 
-#include "execution/tpl_test.h"  // NOLINT
+#include "execution/tpl_test.h"
 
 // From test
 #include "execution/vm/module.h"
 #include "execution/vm/module_compiler.h"
 
-namespace terrier::vm::test {
+namespace terrier::execution::vm::test {
 
 class BytecodeGeneratorTest : public TplTest {
  public:
@@ -320,4 +320,4 @@ TEST_F(BytecodeGeneratorTest, FunctionTest) {
   EXPECT_EQ(20, s.b);
 }
 
-}  // namespace terrier::vm::test
+}  // namespace terrier::execution::vm::test

@@ -1,6 +1,6 @@
 #pragma once
 
-#include <tbb/spin_mutex.h>  // NOLINT
+#include "tbb/spin_mutex.h"
 
 #include "execution/util/macros.h"
 

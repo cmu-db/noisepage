@@ -7,14 +7,14 @@
 #include <utility>
 #include <vector>
 
-#include "execution/sql_test.h"  // NOLINT
+#include "execution/sql_test.h"
 
 #include "catalog/catalog.h"
 #include "execution/sql/filter_manager.h"
 #include "execution/sql/table_vector_iterator.h"
 #include "type/type_id.h"
 
-namespace terrier::sql::test {
+namespace terrier::execution::sql::test {
 
 class FilterManagerTest : public SqlBasedTest {
   void SetUp() override {
@@ -49,7 +49,7 @@ u32 Hobbled_TaaT_Lt_500(ProjectedColumnsIterator *pci) {
 
 u32 Vectorized_Lt_500(ProjectedColumnsIterator *pci) {
   ProjectedColumnsIterator::FilterVal param{.i = 500};
-  return pci->FilterColByVal<std::less>(Col::A, terrier::type::TypeId ::INTEGER, param);
+  return pci->FilterColByVal<std::less>(Col::A, type::TypeId ::INTEGER, param);
 }
 
 // NOLINTNEXTLINE
@@ -101,4 +101,4 @@ TEST_F(FilterManagerTest, AdaptiveFilterManagerTest) {
   EXPECT_EQ(1u, filter.GetOptimalFlavorForClause(0));
 }
 
-}  // namespace terrier::sql::test
+}  // namespace terrier::execution::sql::test

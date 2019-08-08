@@ -161,4 +161,4 @@ std::string CpuInfo::PrettyPrintInfo() const {
   return ss.str();
 }
 
-}  // namespace terrier
+}  // namespace terrier::execution

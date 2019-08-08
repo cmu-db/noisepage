@@ -2,14 +2,14 @@
 #include <utility>
 #include <vector>
 
-#include "execution/tpl_test.h"  // NOLINT
+#include "execution/tpl_test.h"
 
 // From test
 #include "execution/ast/ast_builder.h"
 
 #include "execution/sema/sema.h"
 
-namespace terrier::sema::test {
+namespace terrier::execution::sema::test {
 
 class SemaBuiltinTest : public TplTest, public ast::test::TestAstBuilder {
  public:
@@ -160,4 +160,4 @@ TEST_F(SemaBuiltinTest, CheckTrigBuiltins) {
   }
 }
 
-}  // namespace terrier::sema::test
+}  // namespace terrier::execution::sema::test

@@ -1,8 +1,8 @@
-#include "execution/tpl_test.h"  // NOLINT
+#include "execution/tpl_test.h"
 
 #include "execution/util/bit_util.h"
 
-namespace terrier::util::test {
+namespace terrier::execution::util::test {
 
 // NOLINTNEXTLINE
 TEST(BitUtilTest, BitVectorSize) {
@@ -153,4 +153,4 @@ TEST(BitUtilTest, InlinedBitVector) {
   }
 }
 
-}  // namespace terrier::util::test
+}  // namespace terrier::execution::util::test

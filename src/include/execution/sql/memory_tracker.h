@@ -1,6 +1,6 @@
 #pragma once
 
-#include <tbb/enumerable_thread_specific.h>
+#include "tbb/enumerable_thread_specific.h"
 
 namespace terrier::execution::sql {
 

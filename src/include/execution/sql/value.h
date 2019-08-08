@@ -298,7 +298,7 @@ struct StringVal : public Val {
   /**
    * @return threshold for inlining.
    */
-  static uint32_t InlineThreshold() { return terrier::storage::VarlenEntry::InlineThreshold(); }
+  static uint32_t InlineThreshold() { return storage::VarlenEntry::InlineThreshold(); }
 
  private:
   // Used to pre allocated inlined strings
@@ -328,7 +328,7 @@ struct Date : public Val {
    * Constructor
    * @param date date value from a TransientValue
    */
-  explicit Date(terrier::type::date_t date) noexcept : Val(false), int_val{!date} {}
+  explicit Date(type::date_t date) noexcept : Val(false), int_val{!date} {}
 
   /**
    * Constructor
@@ -389,23 +389,23 @@ struct ValUtil {
    * @param type a terrier type
    * @return the size of the corresponding sql type
    */
-  static u32 GetSqlSize(terrier::type::TypeId type) {
+  static u32 GetSqlSize(type::TypeId type) {
     switch (type) {
-      case terrier::type::TypeId::TINYINT:
-      case terrier::type::TypeId::SMALLINT:
-      case terrier::type::TypeId::INTEGER:
-      case terrier::type::TypeId::BIGINT:
+      case type::TypeId::TINYINT:
+      case type::TypeId::SMALLINT:
+      case type::TypeId::INTEGER:
+      case type::TypeId::BIGINT:
         return static_cast<u32>(util::MathUtil::AlignTo(sizeof(Integer), 8));
-      case terrier::type::TypeId::BOOLEAN:
+      case type::TypeId::BOOLEAN:
         return static_cast<u32>(util::MathUtil::AlignTo(sizeof(BoolVal), 8));
-      case terrier::type::TypeId::DATE:
-      case terrier::type::TypeId::TIMESTAMP:
+      case type::TypeId::DATE:
+      case type::TypeId::TIMESTAMP:
         return static_cast<u32>(util::MathUtil::AlignTo(sizeof(Date), 8));
-      case terrier::type::TypeId::DECIMAL:
+      case type::TypeId::DECIMAL:
         // TODO(Amadou): We only support reals for now. Switch to Decima once it's implemented
         return static_cast<u32>(util::MathUtil::AlignTo(sizeof(Real), 8));
-      case terrier::type::TypeId::VARCHAR:
-      case terrier::type::TypeId::VARBINARY:
+      case type::TypeId::VARCHAR:
+      case type::TypeId::VARBINARY:
         return static_cast<u32>(util::MathUtil::AlignTo(sizeof(StringVal), 8));
       default:
         return 0;

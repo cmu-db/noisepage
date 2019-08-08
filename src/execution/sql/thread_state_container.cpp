@@ -3,7 +3,7 @@
 #include <memory>
 #include <vector>
 
-#include <tbb/tbb.h>  // NOLINT
+#include "tbb/tbb.h"
 
 namespace terrier::execution::sql {
 

@@ -2,12 +2,12 @@
 #include <unordered_map>
 #include <vector>
 
-#include "execution/tpl_test.h"  // NOLINT
+#include "execution/tpl_test.h"
 
 #include "execution/sql/generic_hash_table.h"
 #include "execution/util/hash.h"
 
-namespace terrier::sql::test {
+namespace terrier::execution::sql::test {
 
 class GenericHashTableTest : public TplTest {};
 
@@ -236,4 +236,4 @@ TEST_F(GenericHashTableTest, DISABLED_PerfIterationTest) {
   EXECUTION_LOG_INFO("TaaT: {:.2f}, VaaT: {:2f}", taat_ms, vaat_ms);
 }
 
-}  // namespace terrier::sql::test
+}  // namespace terrier::execution::sql::test

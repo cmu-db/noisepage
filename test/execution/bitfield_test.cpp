@@ -1,8 +1,8 @@
-#include "execution/tpl_test.h"  // NOLINT
+#include "execution/tpl_test.h"
 
 #include "execution/util/bitfield.h"
 
-namespace terrier::util::test {
+namespace terrier::execution::util::test {
 
 // NOLINTNEXTLINE
 TEST(BitfieldTest, SingleElementTest) {
@@ -95,4 +95,4 @@ TEST(BitfieldTest, BooleanElementTest) {
   EXPECT_FALSE(BF::Decode(bitfield_3));
 }
 
-}  // namespace terrier::util::test
+}  // namespace terrier::execution::util::test

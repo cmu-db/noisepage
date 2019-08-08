@@ -1,8 +1,8 @@
-#include "execution/tpl_test.h"  // NOLINT
+#include "execution/tpl_test.h"
 
 #include "execution/vm/bytecodes.h"
 
-namespace terrier::vm::test {
+namespace terrier::execution::vm::test {
 
 class BytecodesTest : public TplTest {};
 
@@ -102,4 +102,4 @@ TEST_F(BytecodesTest, OperandTypesTest) {
   EXPECT_EQ(OperandType::Local, Bytecodes::GetNthOperandType(Bytecode::Add_i32, 2));
 }
 
-}  // namespace terrier::vm::test
+}  // namespace terrier::execution::vm::test

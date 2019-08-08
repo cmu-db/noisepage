@@ -1,8 +1,8 @@
-#include "execution/tpl_test.h"  // NOLINT
+#include "execution/tpl_test.h"
 
 #include "execution/util/math_util.h"
 
-namespace terrier::util::test {
+namespace terrier::execution::util::test {
 
 // NOLINTNEXTLINE
 TEST(MathUtilTest, AlignToTest) {
@@ -14,4 +14,4 @@ TEST(MathUtilTest, AlignToTest) {
   EXPECT_EQ(16u, MathUtil::AlignTo(9, 8));
 }
 
-}  // namespace terrier::util::test
+}  // namespace terrier::execution::util::test

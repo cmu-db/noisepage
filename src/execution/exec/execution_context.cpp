@@ -15,7 +15,7 @@ void ExecutionContext::StringAllocator::Deallocate(UNUSED char *str) {
   // No-op. Bulk de-allocated upon destruction.
 }
 
-uint32_t ExecutionContext::ComputeTupleSize(const terrier::planner::OutputSchema *schema) {
+uint32_t ExecutionContext::ComputeTupleSize(const planner::OutputSchema *schema) {
   uint32_t tuple_size = 0;
   for (const auto &col : schema->GetColumns()) {
     tuple_size += sql::ValUtil::GetSqlSize(col.GetType());

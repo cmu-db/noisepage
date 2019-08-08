@@ -7,7 +7,7 @@
 #include <utility>
 #include <vector>
 
-#include "execution/tpl_test.h"  // NOLINT
+#include "execution/tpl_test.h"
 
 #include <tbb/tbb.h>  // NOLINT
 
@@ -31,7 +31,7 @@
 
 #define TestAllIntegral(FuncName, Args...) TestAllSigned(FuncName, Args) TestAllUnsigned(FuncName, Args)
 
-namespace terrier::sql::test {
+namespace terrier::execution::sql::test {
 
 class SorterTest : public TplTest {
  public:
@@ -257,7 +257,7 @@ void TestParallelSort(const std::vector<u32> &sorter_sizes) {
 
   // Create container
   auto memory = std::make_unique<MemoryPool>(nullptr);
-  exec::ExecutionContext exec_ctx(terrier::catalog::INVALID_DATABASE_OID, nullptr, nullptr, nullptr, nullptr);
+  exec::ExecutionContext exec_ctx(catalog::INVALID_DATABASE_OID, nullptr, nullptr, nullptr, nullptr);
   exec_ctx.SetMemoryPool(std::move(memory));
   ThreadStateContainer container(exec_ctx.GetMemoryPool());
 
@@ -323,4 +323,4 @@ TEST_F(SorterTest, UnbalancedParallelSortTest) {
   }
 }
 
-}  // namespace terrier::sql::test
+}  // namespace terrier::execution::sql::test

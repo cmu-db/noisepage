@@ -180,15 +180,18 @@ VM_OP_HOT void OpExecutionContextGetMemoryPool(terrier::execution::sql::MemoryPo
   *memory = exec_ctx->GetMemoryPool();
 }
 
-void OpThreadStateContainerInit(terrier::execution::sql::ThreadStateContainer *thread_state_container, terrier::execution::sql::MemoryPool *memory);
+void OpThreadStateContainerInit(terrier::execution::sql::ThreadStateContainer *thread_state_container,
+                                terrier::execution::sql::MemoryPool *memory);
 
-VM_OP_HOT void OpThreadStateContainerReset(terrier::execution::sql::ThreadStateContainer *thread_state_container, u32 size,
-                                           terrier::execution::sql::ThreadStateContainer::InitFn init_fn,
-                                           terrier::execution::sql::ThreadStateContainer::DestroyFn destroy_fn, void *ctx) {
+VM_OP_HOT void OpThreadStateContainerReset(terrier::execution::sql::ThreadStateContainer *thread_state_container,
+                                           u32 size, terrier::execution::sql::ThreadStateContainer::InitFn init_fn,
+                                           terrier::execution::sql::ThreadStateContainer::DestroyFn destroy_fn,
+                                           void *ctx) {
   thread_state_container->Reset(size, init_fn, destroy_fn, ctx);
 }
 
-VM_OP_HOT void OpThreadStateContainerIterate(terrier::execution::sql::ThreadStateContainer *thread_state_container, void *const state,
+VM_OP_HOT void OpThreadStateContainerIterate(terrier::execution::sql::ThreadStateContainer *thread_state_container,
+                                             void *const state,
                                              terrier::execution::sql::ThreadStateContainer::IterateFn iterate_fn) {
   thread_state_container->IterateStates(state, iterate_fn);
 }
@@ -202,7 +205,9 @@ void OpThreadStateContainerFree(terrier::execution::sql::ThreadStateContainer *t
 void OpTableVectorIteratorConstruct(terrier::execution::sql::TableVectorIterator *iter, u32 table_oid,
                                     terrier::execution::exec::ExecutionContext *exec_ctx);
 
-VM_OP_HOT void OpTableVectorIteratorAddCol(terrier::execution::sql::TableVectorIterator *iter, u32 col_oid) { iter->AddCol(col_oid); }
+VM_OP_HOT void OpTableVectorIteratorAddCol(terrier::execution::sql::TableVectorIterator *iter, u32 col_oid) {
+  iter->AddCol(col_oid);
+}
 
 void OpTableVectorIteratorPerformInit(terrier::execution::sql::TableVectorIterator *iter);
 
@@ -227,7 +232,9 @@ VM_OP_HOT void OpPCIIsFiltered(bool *is_filtered, terrier::execution::sql::Proje
   *is_filtered = pci->IsFiltered();
 }
 
-VM_OP_HOT void OpPCIHasNext(bool *has_more, terrier::execution::sql::ProjectedColumnsIterator *pci) { *has_more = pci->HasNext(); }
+VM_OP_HOT void OpPCIHasNext(bool *has_more, terrier::execution::sql::ProjectedColumnsIterator *pci) {
+  *has_more = pci->HasNext();
+}
 
 VM_OP_HOT void OpPCIHasNextFiltered(bool *has_more, terrier::execution::sql::ProjectedColumnsIterator *pci) {
   *has_more = pci->HasNextFiltered();
@@ -243,7 +250,8 @@ VM_OP_HOT void OpPCIReset(terrier::execution::sql::ProjectedColumnsIterator *pci
 
 VM_OP_HOT void OpPCIResetFiltered(terrier::execution::sql::ProjectedColumnsIterator *pci) { pci->ResetFiltered(); }
 
-VM_OP_HOT void OpPCIGetTinyInt(terrier::execution::sql::Integer *out, terrier::execution::sql::ProjectedColumnsIterator *iter, u16 col_idx) {
+VM_OP_HOT void OpPCIGetTinyInt(terrier::execution::sql::Integer *out,
+                               terrier::execution::sql::ProjectedColumnsIterator *iter, u16 col_idx) {
   // Read
   auto *ptr = iter->Get<i8, false>(col_idx, nullptr);
   TPL_ASSERT(ptr != nullptr, "Null pointer when trying to read integer");
@@ -253,7 +261,8 @@ VM_OP_HOT void OpPCIGetTinyInt(terrier::execution::sql::Integer *out, terrier::e
   out->val = *ptr;
 }
 
-VM_OP_HOT void OpPCIGetSmallInt(terrier::execution::sql::Integer *out, terrier::execution::sql::ProjectedColumnsIterator *iter, u16 col_idx) {
+VM_OP_HOT void OpPCIGetSmallInt(terrier::execution::sql::Integer *out,
+                                terrier::execution::sql::ProjectedColumnsIterator *iter, u16 col_idx) {
   // Read
   auto *ptr = iter->Get<i16, false>(col_idx, nullptr);
   TPL_ASSERT(ptr != nullptr, "Null pointer when trying to read integer");
@@ -263,7 +272,8 @@ VM_OP_HOT void OpPCIGetSmallInt(terrier::execution::sql::Integer *out, terrier::
   out->val = *ptr;
 }
 
-VM_OP_HOT void OpPCIGetInteger(terrier::execution::sql::Integer *out, terrier::execution::sql::ProjectedColumnsIterator *iter, u16 col_idx) {
+VM_OP_HOT void OpPCIGetInteger(terrier::execution::sql::Integer *out,
+                               terrier::execution::sql::ProjectedColumnsIterator *iter, u16 col_idx) {
   // Read
   auto *ptr = iter->Get<i32, false>(col_idx, nullptr);
   TPL_ASSERT(ptr != nullptr, "Null pointer when trying to read integer");
@@ -273,7 +283,8 @@ VM_OP_HOT void OpPCIGetInteger(terrier::execution::sql::Integer *out, terrier::e
   out->val = *ptr;
 }
 
-VM_OP_HOT void OpPCIGetBigInt(terrier::execution::sql::Integer *out, terrier::execution::sql::ProjectedColumnsIterator *iter, u16 col_idx) {
+VM_OP_HOT void OpPCIGetBigInt(terrier::execution::sql::Integer *out,
+                              terrier::execution::sql::ProjectedColumnsIterator *iter, u16 col_idx) {
   // Read
   auto *ptr = iter->Get<i64, false>(col_idx, nullptr);
   TPL_ASSERT(ptr != nullptr, "Null pointer when trying to read integer");
@@ -283,7 +294,8 @@ VM_OP_HOT void OpPCIGetBigInt(terrier::execution::sql::Integer *out, terrier::ex
   out->val = *ptr;
 }
 
-VM_OP_HOT void OpPCIGetReal(terrier::execution::sql::Real *out, terrier::execution::sql::ProjectedColumnsIterator *iter, u16 col_idx) {
+VM_OP_HOT void OpPCIGetReal(terrier::execution::sql::Real *out, terrier::execution::sql::ProjectedColumnsIterator *iter,
+                            u16 col_idx) {
   // Read
   auto *ptr = iter->Get<f32, false>(col_idx, nullptr);
   TPL_ASSERT(ptr != nullptr, "Null pointer when trying to read real value");
@@ -293,7 +305,8 @@ VM_OP_HOT void OpPCIGetReal(terrier::execution::sql::Real *out, terrier::executi
   out->val = *ptr;
 }
 
-VM_OP_HOT void OpPCIGetDouble(terrier::execution::sql::Real *out, terrier::execution::sql::ProjectedColumnsIterator *iter, u16 col_idx) {
+VM_OP_HOT void OpPCIGetDouble(terrier::execution::sql::Real *out,
+                              terrier::execution::sql::ProjectedColumnsIterator *iter, u16 col_idx) {
   // Read
   auto *ptr = iter->Get<f64, false>(col_idx, nullptr);
   TPL_ASSERT(ptr != nullptr, "Null pointer when trying to read double value");
@@ -303,8 +316,8 @@ VM_OP_HOT void OpPCIGetDouble(terrier::execution::sql::Real *out, terrier::execu
   out->val = *ptr;
 }
 
-VM_OP_HOT void OpPCIGetDecimal(terrier::execution::sql::Decimal *out, UNUSED terrier::execution::sql::ProjectedColumnsIterator *iter,
-                               UNUSED u16 col_idx) {
+VM_OP_HOT void OpPCIGetDecimal(terrier::execution::sql::Decimal *out,
+                               UNUSED terrier::execution::sql::ProjectedColumnsIterator *iter, UNUSED u16 col_idx) {
   // TODO(Amadou): Implement once the representation of Decimal is settled upon.
   // The sql::Decimal class does not seem to match the storage layer's DECIMAL type as it needs a precision and
   // a scale.
@@ -312,7 +325,8 @@ VM_OP_HOT void OpPCIGetDecimal(terrier::execution::sql::Decimal *out, UNUSED ter
   out->val = 0;
 }
 
-VM_OP_HOT void OpPCIGetDate(terrier::execution::sql::Date *out, terrier::execution::sql::ProjectedColumnsIterator *iter, u16 col_idx) {
+VM_OP_HOT void OpPCIGetDate(terrier::execution::sql::Date *out, terrier::execution::sql::ProjectedColumnsIterator *iter,
+                            u16 col_idx) {
   // Read
   auto *ptr = iter->Get<u32, false>(col_idx, nullptr);
   TPL_ASSERT(ptr != nullptr, "Null pointer when trying to read date");
@@ -322,7 +336,8 @@ VM_OP_HOT void OpPCIGetDate(terrier::execution::sql::Date *out, terrier::executi
   out->int_val = *ptr;
 }
 
-VM_OP_HOT void OpPCIGetVarlen(terrier::execution::sql::StringVal *out, terrier::execution::sql::ProjectedColumnsIterator *iter, u16 col_idx) {
+VM_OP_HOT void OpPCIGetVarlen(terrier::execution::sql::StringVal *out,
+                              terrier::execution::sql::ProjectedColumnsIterator *iter, u16 col_idx) {
   // Read
   auto *varlen = iter->Get<terrier::storage::VarlenEntry, false>(col_idx, nullptr);
   TPL_ASSERT(varlen != nullptr, "Null pointer when trying to read varlen");
@@ -331,7 +346,8 @@ VM_OP_HOT void OpPCIGetVarlen(terrier::execution::sql::StringVal *out, terrier::
   *out = terrier::execution::sql::StringVal(reinterpret_cast<const char *>(varlen->Content()), varlen->Size());
 }
 
-VM_OP_HOT void OpPCIGetTinyIntNull(terrier::execution::sql::Integer *out, terrier::execution::sql::ProjectedColumnsIterator *iter, u16 col_idx) {
+VM_OP_HOT void OpPCIGetTinyIntNull(terrier::execution::sql::Integer *out,
+                                   terrier::execution::sql::ProjectedColumnsIterator *iter, u16 col_idx) {
   // Read
   bool null = false;
   auto *ptr = iter->Get<i8, true>(col_idx, &null);
@@ -342,7 +358,8 @@ VM_OP_HOT void OpPCIGetTinyIntNull(terrier::execution::sql::Integer *out, terrie
   out->val = *ptr;
 }
 
-VM_OP_HOT void OpPCIGetSmallIntNull(terrier::execution::sql::Integer *out, terrier::execution::sql::ProjectedColumnsIterator *iter, u16 col_idx) {
+VM_OP_HOT void OpPCIGetSmallIntNull(terrier::execution::sql::Integer *out,
+                                    terrier::execution::sql::ProjectedColumnsIterator *iter, u16 col_idx) {
   // Read
   bool null = false;
   auto *ptr = iter->Get<i16, true>(col_idx, &null);
@@ -353,7 +370,8 @@ VM_OP_HOT void OpPCIGetSmallIntNull(terrier::execution::sql::Integer *out, terri
   out->val = *ptr;
 }
 
-VM_OP_HOT void OpPCIGetIntegerNull(terrier::execution::sql::Integer *out, terrier::execution::sql::ProjectedColumnsIterator *iter, u16 col_idx) {
+VM_OP_HOT void OpPCIGetIntegerNull(terrier::execution::sql::Integer *out,
+                                   terrier::execution::sql::ProjectedColumnsIterator *iter, u16 col_idx) {
   // Read
   bool null = false;
   auto *ptr = iter->Get<i32, true>(col_idx, &null);
@@ -364,7 +382,8 @@ VM_OP_HOT void OpPCIGetIntegerNull(terrier::execution::sql::Integer *out, terrie
   out->val = *ptr;
 }
 
-VM_OP_HOT void OpPCIGetBigIntNull(terrier::execution::sql::Integer *out, terrier::execution::sql::ProjectedColumnsIterator *iter, u16 col_idx) {
+VM_OP_HOT void OpPCIGetBigIntNull(terrier::execution::sql::Integer *out,
+                                  terrier::execution::sql::ProjectedColumnsIterator *iter, u16 col_idx) {
   // Read
   bool null = false;
   auto *ptr = iter->Get<i64, true>(col_idx, &null);
@@ -375,7 +394,8 @@ VM_OP_HOT void OpPCIGetBigIntNull(terrier::execution::sql::Integer *out, terrier
   out->val = *ptr;
 }
 
-VM_OP_HOT void OpPCIGetRealNull(terrier::execution::sql::Real *out, terrier::execution::sql::ProjectedColumnsIterator *iter, u16 col_idx) {
+VM_OP_HOT void OpPCIGetRealNull(terrier::execution::sql::Real *out,
+                                terrier::execution::sql::ProjectedColumnsIterator *iter, u16 col_idx) {
   // Read
   bool null = false;
   auto *ptr = iter->Get<f32, true>(col_idx, &null);
@@ -386,7 +406,8 @@ VM_OP_HOT void OpPCIGetRealNull(terrier::execution::sql::Real *out, terrier::exe
   out->val = *ptr;
 }
 
-VM_OP_HOT void OpPCIGetDoubleNull(terrier::execution::sql::Real *out, terrier::execution::sql::ProjectedColumnsIterator *iter, u16 col_idx) {
+VM_OP_HOT void OpPCIGetDoubleNull(terrier::execution::sql::Real *out,
+                                  terrier::execution::sql::ProjectedColumnsIterator *iter, u16 col_idx) {
   // Read
   bool null = false;
   auto *ptr = iter->Get<f64, true>(col_idx, &null);
@@ -397,12 +418,14 @@ VM_OP_HOT void OpPCIGetDoubleNull(terrier::execution::sql::Real *out, terrier::e
   out->val = *ptr;
 }
 
-VM_OP_HOT void OpPCIGetDecimalNull(terrier::execution::sql::Decimal *out, terrier::execution::sql::ProjectedColumnsIterator *iter, u16 col_idx) {
+VM_OP_HOT void OpPCIGetDecimalNull(terrier::execution::sql::Decimal *out,
+                                   terrier::execution::sql::ProjectedColumnsIterator *iter, u16 col_idx) {
   out->val = 0;
   out->is_null = false;
 }
 
-VM_OP_HOT void OpPCIGetDateNull(terrier::execution::sql::Date *out, terrier::execution::sql::ProjectedColumnsIterator *iter, u16 col_idx) {
+VM_OP_HOT void OpPCIGetDateNull(terrier::execution::sql::Date *out,
+                                terrier::execution::sql::ProjectedColumnsIterator *iter, u16 col_idx) {
   // Read
   bool null = false;
   auto *ptr = iter->Get<u32, true>(col_idx, &null);
@@ -413,7 +436,8 @@ VM_OP_HOT void OpPCIGetDateNull(terrier::execution::sql::Date *out, terrier::exe
   out->int_val = *ptr;
 }
 
-VM_OP_HOT void OpPCIGetVarlenNull(terrier::execution::sql::StringVal *out, terrier::execution::sql::ProjectedColumnsIterator *iter, u16 col_idx) {
+VM_OP_HOT void OpPCIGetVarlenNull(terrier::execution::sql::StringVal *out,
+                                  terrier::execution::sql::ProjectedColumnsIterator *iter, u16 col_idx) {
   // Read
   bool null = false;
   auto *varlen = iter->Get<terrier::storage::VarlenEntry, true>(col_idx, &null);
@@ -427,17 +451,23 @@ VM_OP_HOT void OpPCIGetVarlenNull(terrier::execution::sql::StringVal *out, terri
   }
 }
 
-void OpPCIFilterEqual(u64 *size, terrier::execution::sql::ProjectedColumnsIterator *iter, u32 col_idx, i8 type, i64 val);
+void OpPCIFilterEqual(u64 *size, terrier::execution::sql::ProjectedColumnsIterator *iter, u32 col_idx, i8 type,
+                      i64 val);
 
-void OpPCIFilterGreaterThan(u64 *size, terrier::execution::sql::ProjectedColumnsIterator *iter, u32 col_idx, i8 type, i64 val);
+void OpPCIFilterGreaterThan(u64 *size, terrier::execution::sql::ProjectedColumnsIterator *iter, u32 col_idx, i8 type,
+                            i64 val);
 
-void OpPCIFilterGreaterThanEqual(u64 *size, terrier::execution::sql::ProjectedColumnsIterator *iter, u32 col_idx, i8 type, i64 val);
+void OpPCIFilterGreaterThanEqual(u64 *size, terrier::execution::sql::ProjectedColumnsIterator *iter, u32 col_idx,
+                                 i8 type, i64 val);
 
-void OpPCIFilterLessThan(u64 *size, terrier::execution::sql::ProjectedColumnsIterator *iter, u32 col_idx, i8 type, i64 val);
+void OpPCIFilterLessThan(u64 *size, terrier::execution::sql::ProjectedColumnsIterator *iter, u32 col_idx, i8 type,
+                         i64 val);
 
-void OpPCIFilterLessThanEqual(u64 *size, terrier::execution::sql::ProjectedColumnsIterator *iter, u32 col_idx, i8 type, i64 val);
+void OpPCIFilterLessThanEqual(u64 *size, terrier::execution::sql::ProjectedColumnsIterator *iter, u32 col_idx, i8 type,
+                              i64 val);
 
-void OpPCIFilterNotEqual(u64 *size, terrier::execution::sql::ProjectedColumnsIterator *iter, u32 col_idx, i8 type, i64 val);
+void OpPCIFilterNotEqual(u64 *size, terrier::execution::sql::ProjectedColumnsIterator *iter, u32 col_idx, i8 type,
+                         i64 val);
 
 // ---------------------------------------------------------
 // Hashing
@@ -454,8 +484,8 @@ VM_OP_HOT void OpHashReal(hash_t *hash_val, terrier::execution::sql::Real *input
 }
 
 VM_OP_HOT void OpHashString(hash_t *hash_val, terrier::execution::sql::StringVal *input) {
-  *hash_val = terrier::execution::util::Hasher::Hash<terrier::execution::util::HashMethod::xxHash3>(reinterpret_cast<const u8 *>(input->Content()),
-                                                                      input->len);
+  *hash_val = terrier::execution::util::Hasher::Hash<terrier::execution::util::HashMethod::xxHash3>(
+      reinterpret_cast<const u8 *>(input->Content()), input->len);
   *hash_val = input->is_null ? 0 : *hash_val;
 }
 
@@ -471,11 +501,13 @@ void OpFilterManagerInit(terrier::execution::sql::FilterManager *filter_manager)
 
 void OpFilterManagerStartNewClause(terrier::execution::sql::FilterManager *filter_manager);
 
-void OpFilterManagerInsertFlavor(terrier::execution::sql::FilterManager *filter_manager, terrier::execution::sql::FilterManager::MatchFn flavor);
+void OpFilterManagerInsertFlavor(terrier::execution::sql::FilterManager *filter_manager,
+                                 terrier::execution::sql::FilterManager::MatchFn flavor);
 
 void OpFilterManagerFinalize(terrier::execution::sql::FilterManager *filter_manager);
 
-void OpFilterManagerRunFilters(terrier::execution::sql::FilterManager *filter_manager, terrier::execution::sql::ProjectedColumnsIterator *pci);
+void OpFilterManagerRunFilters(terrier::execution::sql::FilterManager *filter_manager,
+                               terrier::execution::sql::ProjectedColumnsIterator *pci);
 
 void OpFilterManagerFree(terrier::execution::sql::FilterManager *filter_manager);
 
@@ -483,7 +515,9 @@ void OpFilterManagerFree(terrier::execution::sql::FilterManager *filter_manager)
 // Scalar SQL comparisons
 // ---------------------------------------------------------
 
-VM_OP_HOT void OpForceBoolTruth(bool *result, terrier::execution::sql::BoolVal *input) { *result = input->ForceTruth(); }
+VM_OP_HOT void OpForceBoolTruth(bool *result, terrier::execution::sql::BoolVal *input) {
+  *result = input->ForceTruth();
+}
 
 VM_OP_HOT void OpInitBool(terrier::execution::sql::BoolVal *result, bool input) {
   result->is_null = false;
@@ -514,30 +548,36 @@ VM_OP_HOT void OpInitVarlen(terrier::execution::sql::StringVal *result, uintptr_
   *result = terrier::execution::sql::StringVal(reinterpret_cast<const char *>(varlen->Content()), varlen->Size());
 }
 
-#define GEN_SQL_COMPARISONS(TYPE)                                                                            \
-  VM_OP_HOT void OpGreaterThan##TYPE(terrier::execution::sql::BoolVal *const result, const terrier::execution::sql::TYPE *const left,      \
-                                     const terrier::execution::sql::TYPE *const right) {                                    \
-    terrier::execution::sql::ComparisonFunctions::Gt##TYPE(result, *left, *right);                                          \
-  }                                                                                                          \
-  VM_OP_HOT void OpGreaterThanEqual##TYPE(terrier::execution::sql::BoolVal *const result, const terrier::execution::sql::TYPE *const left, \
-                                          const terrier::execution::sql::TYPE *const right) {                               \
-    terrier::execution::sql::ComparisonFunctions::Ge##TYPE(result, *left, *right);                                          \
-  }                                                                                                          \
-  VM_OP_HOT void OpEqual##TYPE(terrier::execution::sql::BoolVal *const result, const terrier::execution::sql::TYPE *const left,            \
-                               const terrier::execution::sql::TYPE *const right) {                                          \
-    terrier::execution::sql::ComparisonFunctions::Eq##TYPE(result, *left, *right);                                          \
-  }                                                                                                          \
-  VM_OP_HOT void OpLessThan##TYPE(terrier::execution::sql::BoolVal *const result, const terrier::execution::sql::TYPE *const left,         \
-                                  const terrier::execution::sql::TYPE *const right) {                                       \
-    terrier::execution::sql::ComparisonFunctions::Lt##TYPE(result, *left, *right);                                          \
-  }                                                                                                          \
-  VM_OP_HOT void OpLessThanEqual##TYPE(terrier::execution::sql::BoolVal *const result, const terrier::execution::sql::TYPE *const left,    \
-                                       const terrier::execution::sql::TYPE *const right) {                                  \
-    terrier::execution::sql::ComparisonFunctions::Le##TYPE(result, *left, *right);                                          \
-  }                                                                                                          \
-  VM_OP_HOT void OpNotEqual##TYPE(terrier::execution::sql::BoolVal *const result, const terrier::execution::sql::TYPE *const left,         \
-                                  const terrier::execution::sql::TYPE *const right) {                                       \
-    terrier::execution::sql::ComparisonFunctions::Ne##TYPE(result, *left, *right);                                          \
+#define GEN_SQL_COMPARISONS(TYPE)                                                             \
+  VM_OP_HOT void OpGreaterThan##TYPE(terrier::execution::sql::BoolVal *const result,          \
+                                     const terrier::execution::sql::TYPE *const left,         \
+                                     const terrier::execution::sql::TYPE *const right) {      \
+    terrier::execution::sql::ComparisonFunctions::Gt##TYPE(result, *left, *right);            \
+  }                                                                                           \
+  VM_OP_HOT void OpGreaterThanEqual##TYPE(terrier::execution::sql::BoolVal *const result,     \
+                                          const terrier::execution::sql::TYPE *const left,    \
+                                          const terrier::execution::sql::TYPE *const right) { \
+    terrier::execution::sql::ComparisonFunctions::Ge##TYPE(result, *left, *right);            \
+  }                                                                                           \
+  VM_OP_HOT void OpEqual##TYPE(terrier::execution::sql::BoolVal *const result,                \
+                               const terrier::execution::sql::TYPE *const left,               \
+                               const terrier::execution::sql::TYPE *const right) {            \
+    terrier::execution::sql::ComparisonFunctions::Eq##TYPE(result, *left, *right);            \
+  }                                                                                           \
+  VM_OP_HOT void OpLessThan##TYPE(terrier::execution::sql::BoolVal *const result,             \
+                                  const terrier::execution::sql::TYPE *const left,            \
+                                  const terrier::execution::sql::TYPE *const right) {         \
+    terrier::execution::sql::ComparisonFunctions::Lt##TYPE(result, *left, *right);            \
+  }                                                                                           \
+  VM_OP_HOT void OpLessThanEqual##TYPE(terrier::execution::sql::BoolVal *const result,        \
+                                       const terrier::execution::sql::TYPE *const left,       \
+                                       const terrier::execution::sql::TYPE *const right) {    \
+    terrier::execution::sql::ComparisonFunctions::Le##TYPE(result, *left, *right);            \
+  }                                                                                           \
+  VM_OP_HOT void OpNotEqual##TYPE(terrier::execution::sql::BoolVal *const result,             \
+                                  const terrier::execution::sql::TYPE *const left,            \
+                                  const terrier::execution::sql::TYPE *const right) {         \
+    terrier::execution::sql::ComparisonFunctions::Ne##TYPE(result, *left, *right);            \
   }
 
 GEN_SQL_COMPARISONS(Integer)
@@ -549,39 +589,46 @@ GEN_SQL_COMPARISONS(Date)
 // ----------------------------------
 // SQL arithmetic
 // ---------------------------------
-VM_OP_WARM void OpAbsInteger(terrier::execution::sql::Integer *const result, const terrier::execution::sql::Integer *const left) {
+VM_OP_WARM void OpAbsInteger(terrier::execution::sql::Integer *const result,
+                             const terrier::execution::sql::Integer *const left) {
   terrier::execution::sql::ArithmeticFunctions::Abs(result, *left);
 }
 
-VM_OP_WARM void OpAbsReal(terrier::execution::sql::Real *const result, const terrier::execution::sql::Real *const left) {
+VM_OP_WARM void OpAbsReal(terrier::execution::sql::Real *const result,
+                          const terrier::execution::sql::Real *const left) {
   terrier::execution::sql::ArithmeticFunctions::Abs(result, *left);
 }
 
-VM_OP_HOT void OpAddInteger(terrier::execution::sql::Integer *const result, const terrier::execution::sql::Integer *const left,
+VM_OP_HOT void OpAddInteger(terrier::execution::sql::Integer *const result,
+                            const terrier::execution::sql::Integer *const left,
                             const terrier::execution::sql::Integer *const right) {
   UNUSED bool overflow;
   terrier::execution::sql::ArithmeticFunctions::Add(result, *left, *right, &overflow);
 }
 
-VM_OP_HOT void OpSubInteger(terrier::execution::sql::Integer *const result, const terrier::execution::sql::Integer *const left,
+VM_OP_HOT void OpSubInteger(terrier::execution::sql::Integer *const result,
+                            const terrier::execution::sql::Integer *const left,
                             const terrier::execution::sql::Integer *const right) {
   UNUSED bool overflow;
   terrier::execution::sql::ArithmeticFunctions::Sub(result, *left, *right, &overflow);
 }
 
-VM_OP_HOT void OpMulInteger(terrier::execution::sql::Integer *const result, const terrier::execution::sql::Integer *const left,
+VM_OP_HOT void OpMulInteger(terrier::execution::sql::Integer *const result,
+                            const terrier::execution::sql::Integer *const left,
                             const terrier::execution::sql::Integer *const right) {
   UNUSED bool overflow;
   terrier::execution::sql::ArithmeticFunctions::Mul(result, *left, *right, &overflow);
 }
 
-VM_OP_HOT void OpDivInteger(terrier::execution::sql::Integer *const result, const terrier::execution::sql::Integer *const left,
+VM_OP_HOT void OpDivInteger(terrier::execution::sql::Integer *const result,
+                            const terrier::execution::sql::Integer *const left,
                             const terrier::execution::sql::Integer *const right) {
   UNUSED bool div_by_zero = false;
   terrier::execution::sql::ArithmeticFunctions::IntDiv(result, *left, *right, &div_by_zero);
 }
 
-VM_OP_HOT void OpRemInteger(terrier::execution::sql::Integer *const result, const terrier::execution::sql::Integer *const left,
+VM_OP_HOT void OpRemInteger(terrier::execution::sql::Integer *const result,
+                            const terrier::execution::sql::Integer *const left,
                             const terrier::execution::sql::Integer *const right) {
   UNUSED bool div_by_zero = false;
   terrier::execution::sql::ArithmeticFunctions::IntMod(result, *left, *right, &div_by_zero);
@@ -618,32 +665,37 @@ VM_OP_HOT void OpRemReal(terrier::execution::sql::Real *const result, const terr
 // SQL Aggregations
 // ---------------------------------------------------------
 
-void OpAggregationHashTableInit(terrier::execution::sql::AggregationHashTable *agg_hash_table, terrier::execution::sql::MemoryPool *memory,
-                                u32 payload_size);
+void OpAggregationHashTableInit(terrier::execution::sql::AggregationHashTable *agg_hash_table,
+                                terrier::execution::sql::MemoryPool *memory, u32 payload_size);
 
-VM_OP_HOT void OpAggregationHashTableInsert(byte **result, terrier::execution::sql::AggregationHashTable *agg_hash_table,
+VM_OP_HOT void OpAggregationHashTableInsert(byte **result,
+                                            terrier::execution::sql::AggregationHashTable *agg_hash_table,
                                             hash_t hash_val) {
   *result = agg_hash_table->Insert(hash_val);
 }
 
-VM_OP_HOT void OpAggregationHashTableLookup(byte **result, terrier::execution::sql::AggregationHashTable *const agg_hash_table,
+VM_OP_HOT void OpAggregationHashTableLookup(byte **result,
+                                            terrier::execution::sql::AggregationHashTable *const agg_hash_table,
                                             const hash_t hash_val,
-                                            const terrier::execution::sql::AggregationHashTable::KeyEqFn key_eq_fn, void *iters[]) {
+                                            const terrier::execution::sql::AggregationHashTable::KeyEqFn key_eq_fn,
+                                            void *iters[]) {
   *result = agg_hash_table->Lookup(hash_val, key_eq_fn, iters);
 }
 
-VM_OP_HOT void OpAggregationHashTableProcessBatch(terrier::execution::sql::AggregationHashTable *const agg_hash_table,
-                                                  terrier::execution::sql::ProjectedColumnsIterator *iters[],
-                                                  const terrier::execution::sql::AggregationHashTable::HashFn hash_fn,
-                                                  const terrier::execution::sql::AggregationHashTable::KeyEqFn key_eq_fn,
-                                                  const terrier::execution::sql::AggregationHashTable::InitAggFn init_agg_fn,
-                                                  const terrier::execution::sql::AggregationHashTable::AdvanceAggFn merge_agg_fn) {
+VM_OP_HOT void OpAggregationHashTableProcessBatch(
+    terrier::execution::sql::AggregationHashTable *const agg_hash_table,
+    terrier::execution::sql::ProjectedColumnsIterator *iters[],
+    const terrier::execution::sql::AggregationHashTable::HashFn hash_fn,
+    const terrier::execution::sql::AggregationHashTable::KeyEqFn key_eq_fn,
+    const terrier::execution::sql::AggregationHashTable::InitAggFn init_agg_fn,
+    const terrier::execution::sql::AggregationHashTable::AdvanceAggFn merge_agg_fn) {
   agg_hash_table->ProcessBatch(iters, hash_fn, key_eq_fn, init_agg_fn, merge_agg_fn);
 }
 
 VM_OP_HOT void OpAggregationHashTableTransferPartitions(
-    terrier::execution::sql::AggregationHashTable *const agg_hash_table, terrier::execution::sql::ThreadStateContainer *const thread_state_container,
-    const u32 agg_ht_offset, const terrier::execution::sql::AggregationHashTable::MergePartitionFn merge_partition_fn) {
+    terrier::execution::sql::AggregationHashTable *const agg_hash_table,
+    terrier::execution::sql::ThreadStateContainer *const thread_state_container, const u32 agg_ht_offset,
+    const terrier::execution::sql::AggregationHashTable::MergePartitionFn merge_partition_fn) {
   agg_hash_table->TransferMemoryAndPartitions(thread_state_container, agg_ht_offset, merge_partition_fn);
 }
 
@@ -659,34 +711,39 @@ void OpAggregationHashTableFree(terrier::execution::sql::AggregationHashTable *a
 void OpAggregationHashTableIteratorInit(terrier::execution::sql::AggregationHashTableIterator *iter,
                                         terrier::execution::sql::AggregationHashTable *agg_hash_table);
 
-VM_OP_HOT void OpAggregationHashTableIteratorHasNext(bool *has_more, terrier::execution::sql::AggregationHashTableIterator *iter) {
+VM_OP_HOT void OpAggregationHashTableIteratorHasNext(bool *has_more,
+                                                     terrier::execution::sql::AggregationHashTableIterator *iter) {
   *has_more = iter->HasNext();
 }
 
-VM_OP_HOT void OpAggregationHashTableIteratorNext(terrier::execution::sql::AggregationHashTableIterator *iter) { iter->Next(); }
+VM_OP_HOT void OpAggregationHashTableIteratorNext(terrier::execution::sql::AggregationHashTableIterator *iter) {
+  iter->Next();
+}
 
-VM_OP_HOT void OpAggregationHashTableIteratorGetRow(const byte **row, terrier::execution::sql::AggregationHashTableIterator *iter) {
+VM_OP_HOT void OpAggregationHashTableIteratorGetRow(const byte **row,
+                                                    terrier::execution::sql::AggregationHashTableIterator *iter) {
   *row = iter->GetCurrentAggregateRow();
 }
 
 void OpAggregationHashTableIteratorFree(terrier::execution::sql::AggregationHashTableIterator *iter);
 
-VM_OP_HOT void OpAggregationOverflowPartitionIteratorHasNext(bool *has_more,
-                                                             terrier::execution::sql::AggregationOverflowPartitionIterator *iter) {
+VM_OP_HOT void OpAggregationOverflowPartitionIteratorHasNext(
+    bool *has_more, terrier::execution::sql::AggregationOverflowPartitionIterator *iter) {
   *has_more = iter->HasNext();
 }
 
-VM_OP_HOT void OpAggregationOverflowPartitionIteratorNext(terrier::execution::sql::AggregationOverflowPartitionIterator *iter) {
+VM_OP_HOT void OpAggregationOverflowPartitionIteratorNext(
+    terrier::execution::sql::AggregationOverflowPartitionIterator *iter) {
   iter->Next();
 }
 
-VM_OP_HOT void OpAggregationOverflowPartitionIteratorGetHash(hash_t *hash_val,
-                                                             terrier::execution::sql::AggregationOverflowPartitionIterator *iter) {
+VM_OP_HOT void OpAggregationOverflowPartitionIteratorGetHash(
+    hash_t *hash_val, terrier::execution::sql::AggregationOverflowPartitionIterator *iter) {
   *hash_val = iter->GetHash();
 }
 
-VM_OP_HOT void OpAggregationOverflowPartitionIteratorGetRow(const byte **row,
-                                                            terrier::execution::sql::AggregationOverflowPartitionIterator *iter) {
+VM_OP_HOT void OpAggregationOverflowPartitionIteratorGetRow(
+    const byte **row, terrier::execution::sql::AggregationOverflowPartitionIterator *iter) {
   *row = iter->GetPayload();
 }
 
@@ -694,18 +751,25 @@ VM_OP_HOT void OpAggregationOverflowPartitionIteratorGetRow(const byte **row,
 // COUNT
 //
 
-VM_OP_HOT void OpCountAggregateInit(terrier::execution::sql::CountAggregate *agg) { new (agg) terrier::execution::sql::CountAggregate(); }
+VM_OP_HOT void OpCountAggregateInit(terrier::execution::sql::CountAggregate *agg) {
+  new (agg) terrier::execution::sql::CountAggregate();
+}
 
-VM_OP_HOT void OpCountAggregateAdvance(terrier::execution::sql::CountAggregate *agg, terrier::execution::sql::Val *val) { agg->Advance(*val); }
+VM_OP_HOT void OpCountAggregateAdvance(terrier::execution::sql::CountAggregate *agg,
+                                       terrier::execution::sql::Val *val) {
+  agg->Advance(*val);
+}
 
-VM_OP_HOT void OpCountAggregateMerge(terrier::execution::sql::CountAggregate *agg_1, terrier::execution::sql::CountAggregate *agg_2) {
+VM_OP_HOT void OpCountAggregateMerge(terrier::execution::sql::CountAggregate *agg_1,
+                                     terrier::execution::sql::CountAggregate *agg_2) {
   TPL_ASSERT(agg_2 != nullptr, "Null aggregate!");
   agg_1->Merge(*agg_2);
 }
 
 VM_OP_HOT void OpCountAggregateReset(terrier::execution::sql::CountAggregate *agg) { agg->Reset(); }
 
-VM_OP_HOT void OpCountAggregateGetResult(terrier::execution::sql::Integer *result, terrier::execution::sql::CountAggregate *agg) {
+VM_OP_HOT void OpCountAggregateGetResult(terrier::execution::sql::Integer *result,
+                                         terrier::execution::sql::CountAggregate *agg) {
   *result = agg->GetCountResult();
 }
 
@@ -715,9 +779,12 @@ VM_OP_HOT void OpCountAggregateFree(terrier::execution::sql::CountAggregate *agg
 // COUNT(*)
 //
 
-VM_OP_HOT void OpCountStarAggregateInit(terrier::execution::sql::CountStarAggregate *agg) { new (agg) terrier::execution::sql::CountStarAggregate(); }
+VM_OP_HOT void OpCountStarAggregateInit(terrier::execution::sql::CountStarAggregate *agg) {
+  new (agg) terrier::execution::sql::CountStarAggregate();
+}
 
-VM_OP_HOT void OpCountStarAggregateAdvance(terrier::execution::sql::CountStarAggregate *agg, const terrier::execution::sql::Val *val) {
+VM_OP_HOT void OpCountStarAggregateAdvance(terrier::execution::sql::CountStarAggregate *agg,
+                                           const terrier::execution::sql::Val *val) {
   agg->Advance(*val);
 }
 
@@ -728,11 +795,14 @@ VM_OP_HOT void OpCountStarAggregateMerge(terrier::execution::sql::CountStarAggre
 
 VM_OP_HOT void OpCountStarAggregateReset(terrier::execution::sql::CountStarAggregate *agg) { agg->Reset(); }
 
-VM_OP_HOT void OpCountStarAggregateGetResult(terrier::execution::sql::Integer *result, const terrier::execution::sql::CountStarAggregate *agg) {
+VM_OP_HOT void OpCountStarAggregateGetResult(terrier::execution::sql::Integer *result,
+                                             const terrier::execution::sql::CountStarAggregate *agg) {
   *result = agg->GetCountResult();
 }
 
-VM_OP_HOT void OpCountStarAggregateFree(terrier::execution::sql::CountStarAggregate *agg) { agg->~CountStarAggregate(); }
+VM_OP_HOT void OpCountStarAggregateFree(terrier::execution::sql::CountStarAggregate *agg) {
+  agg->~CountStarAggregate();
+}
 
 //
 // SUM(int_type)
@@ -742,7 +812,8 @@ VM_OP_HOT void OpIntegerSumAggregateInit(terrier::execution::sql::IntegerSumAggr
   new (agg) terrier::execution::sql::IntegerSumAggregate();
 }
 
-VM_OP_HOT void OpIntegerSumAggregateAdvance(terrier::execution::sql::IntegerSumAggregate *agg, const terrier::execution::sql::Integer *val) {
+VM_OP_HOT void OpIntegerSumAggregateAdvance(terrier::execution::sql::IntegerSumAggregate *agg,
+                                            const terrier::execution::sql::Integer *val) {
   agg->Advance(*val);
 }
 
@@ -753,11 +824,14 @@ VM_OP_HOT void OpIntegerSumAggregateMerge(terrier::execution::sql::IntegerSumAgg
 
 VM_OP_HOT void OpIntegerSumAggregateReset(terrier::execution::sql::IntegerSumAggregate *agg) { agg->Reset(); }
 
-VM_OP_HOT void OpIntegerSumAggregateGetResult(terrier::execution::sql::Integer *result, const terrier::execution::sql::IntegerSumAggregate *agg) {
+VM_OP_HOT void OpIntegerSumAggregateGetResult(terrier::execution::sql::Integer *result,
+                                              const terrier::execution::sql::IntegerSumAggregate *agg) {
   *result = agg->GetResultSum();
 }
 
-VM_OP_HOT void OpIntegerSumAggregateFree(terrier::execution::sql::IntegerSumAggregate *agg) { agg->~IntegerSumAggregate(); }
+VM_OP_HOT void OpIntegerSumAggregateFree(terrier::execution::sql::IntegerSumAggregate *agg) {
+  agg->~IntegerSumAggregate();
+}
 
 //
 // MAX(int_type)
@@ -767,7 +841,8 @@ VM_OP_HOT void OpIntegerMaxAggregateInit(terrier::execution::sql::IntegerMaxAggr
   new (agg) terrier::execution::sql::IntegerMaxAggregate();
 }
 
-VM_OP_HOT void OpIntegerMaxAggregateAdvance(terrier::execution::sql::IntegerMaxAggregate *agg, const terrier::execution::sql::Integer *val) {
+VM_OP_HOT void OpIntegerMaxAggregateAdvance(terrier::execution::sql::IntegerMaxAggregate *agg,
+                                            const terrier::execution::sql::Integer *val) {
   agg->Advance(*val);
 }
 
@@ -778,11 +853,14 @@ VM_OP_HOT void OpIntegerMaxAggregateMerge(terrier::execution::sql::IntegerMaxAgg
 
 VM_OP_HOT void OpIntegerMaxAggregateReset(terrier::execution::sql::IntegerMaxAggregate *agg) { agg->Reset(); }
 
-VM_OP_HOT void OpIntegerMaxAggregateGetResult(terrier::execution::sql::Integer *result, const terrier::execution::sql::IntegerMaxAggregate *agg) {
+VM_OP_HOT void OpIntegerMaxAggregateGetResult(terrier::execution::sql::Integer *result,
+                                              const terrier::execution::sql::IntegerMaxAggregate *agg) {
   *result = agg->GetResultMax();
 }
 
-VM_OP_HOT void OpIntegerMaxAggregateFree(terrier::execution::sql::IntegerMaxAggregate *agg) { agg->~IntegerMaxAggregate(); }
+VM_OP_HOT void OpIntegerMaxAggregateFree(terrier::execution::sql::IntegerMaxAggregate *agg) {
+  agg->~IntegerMaxAggregate();
+}
 
 //
 // MIN(int_type)
@@ -792,7 +870,8 @@ VM_OP_HOT void OpIntegerMinAggregateInit(terrier::execution::sql::IntegerMinAggr
   new (agg) terrier::execution::sql::IntegerMinAggregate();
 }
 
-VM_OP_HOT void OpIntegerMinAggregateAdvance(terrier::execution::sql::IntegerMinAggregate *agg, const terrier::execution::sql::Integer *val) {
+VM_OP_HOT void OpIntegerMinAggregateAdvance(terrier::execution::sql::IntegerMinAggregate *agg,
+                                            const terrier::execution::sql::Integer *val) {
   agg->Advance(*val);
 }
 
@@ -803,29 +882,37 @@ VM_OP_HOT void OpIntegerMinAggregateMerge(terrier::execution::sql::IntegerMinAgg
 
 VM_OP_HOT void OpIntegerMinAggregateReset(terrier::execution::sql::IntegerMinAggregate *agg) { agg->Reset(); }
 
-VM_OP_HOT void OpIntegerMinAggregateGetResult(terrier::execution::sql::Integer *result, const terrier::execution::sql::IntegerMinAggregate *agg) {
+VM_OP_HOT void OpIntegerMinAggregateGetResult(terrier::execution::sql::Integer *result,
+                                              const terrier::execution::sql::IntegerMinAggregate *agg) {
   *result = agg->GetResultMin();
 }
 
-VM_OP_HOT void OpIntegerMinAggregateFree(terrier::execution::sql::IntegerMinAggregate *agg) { agg->~IntegerMinAggregate(); }
+VM_OP_HOT void OpIntegerMinAggregateFree(terrier::execution::sql::IntegerMinAggregate *agg) {
+  agg->~IntegerMinAggregate();
+}
 
 //
 // SUM(real)
 //
 
-VM_OP_HOT void OpRealSumAggregateInit(terrier::execution::sql::RealSumAggregate *agg) { new (agg) terrier::execution::sql::RealSumAggregate(); }
+VM_OP_HOT void OpRealSumAggregateInit(terrier::execution::sql::RealSumAggregate *agg) {
+  new (agg) terrier::execution::sql::RealSumAggregate();
+}
 
-VM_OP_HOT void OpRealSumAggregateAdvance(terrier::execution::sql::RealSumAggregate *agg, const terrier::execution::sql::Real *val) {
+VM_OP_HOT void OpRealSumAggregateAdvance(terrier::execution::sql::RealSumAggregate *agg,
+                                         const terrier::execution::sql::Real *val) {
   agg->Advance(*val);
 }
 
-VM_OP_HOT void OpRealSumAggregateMerge(terrier::execution::sql::RealSumAggregate *agg_1, const terrier::execution::sql::RealSumAggregate *agg_2) {
+VM_OP_HOT void OpRealSumAggregateMerge(terrier::execution::sql::RealSumAggregate *agg_1,
+                                       const terrier::execution::sql::RealSumAggregate *agg_2) {
   agg_1->Merge(*agg_2);
 }
 
 VM_OP_HOT void OpRealSumAggregateReset(terrier::execution::sql::RealSumAggregate *agg) { agg->Reset(); }
 
-VM_OP_HOT void OpRealSumAggregateGetResult(terrier::execution::sql::Real *result, const terrier::execution::sql::RealSumAggregate *agg) {
+VM_OP_HOT void OpRealSumAggregateGetResult(terrier::execution::sql::Real *result,
+                                           const terrier::execution::sql::RealSumAggregate *agg) {
   *result = agg->GetResultSum();
 }
 
@@ -835,19 +922,24 @@ VM_OP_HOT void OpRealSumAggregateFree(terrier::execution::sql::RealSumAggregate 
 // MAX(real_type)
 //
 
-VM_OP_HOT void OpRealMaxAggregateInit(terrier::execution::sql::RealMaxAggregate *agg) { new (agg) terrier::execution::sql::RealMaxAggregate(); }
+VM_OP_HOT void OpRealMaxAggregateInit(terrier::execution::sql::RealMaxAggregate *agg) {
+  new (agg) terrier::execution::sql::RealMaxAggregate();
+}
 
-VM_OP_HOT void OpRealMaxAggregateAdvance(terrier::execution::sql::RealMaxAggregate *agg, const terrier::execution::sql::Real *val) {
+VM_OP_HOT void OpRealMaxAggregateAdvance(terrier::execution::sql::RealMaxAggregate *agg,
+                                         const terrier::execution::sql::Real *val) {
   agg->Advance(*val);
 }
 
-VM_OP_HOT void OpRealMaxAggregateMerge(terrier::execution::sql::RealMaxAggregate *agg_1, const terrier::execution::sql::RealMaxAggregate *agg_2) {
+VM_OP_HOT void OpRealMaxAggregateMerge(terrier::execution::sql::RealMaxAggregate *agg_1,
+                                       const terrier::execution::sql::RealMaxAggregate *agg_2) {
   agg_1->Merge(*agg_2);
 }
 
 VM_OP_HOT void OpRealMaxAggregateReset(terrier::execution::sql::RealMaxAggregate *agg) { agg->Reset(); }
 
-VM_OP_HOT void OpRealMaxAggregateGetResult(terrier::execution::sql::Real *result, const terrier::execution::sql::RealMaxAggregate *agg) {
+VM_OP_HOT void OpRealMaxAggregateGetResult(terrier::execution::sql::Real *result,
+                                           const terrier::execution::sql::RealMaxAggregate *agg) {
   *result = agg->GetResultMax();
 }
 
@@ -857,19 +949,24 @@ VM_OP_HOT void OpRealMaxAggregateFree(terrier::execution::sql::RealMaxAggregate 
 // MIN(real_type)
 //
 
-VM_OP_HOT void OpRealMinAggregateInit(terrier::execution::sql::RealMinAggregate *agg) { new (agg) terrier::execution::sql::RealMinAggregate(); }
+VM_OP_HOT void OpRealMinAggregateInit(terrier::execution::sql::RealMinAggregate *agg) {
+  new (agg) terrier::execution::sql::RealMinAggregate();
+}
 
-VM_OP_HOT void OpRealMinAggregateAdvance(terrier::execution::sql::RealMinAggregate *agg, const terrier::execution::sql::Real *val) {
+VM_OP_HOT void OpRealMinAggregateAdvance(terrier::execution::sql::RealMinAggregate *agg,
+                                         const terrier::execution::sql::Real *val) {
   agg->Advance(*val);
 }
 
-VM_OP_HOT void OpRealMinAggregateMerge(terrier::execution::sql::RealMinAggregate *agg_1, const terrier::execution::sql::RealMinAggregate *agg_2) {
+VM_OP_HOT void OpRealMinAggregateMerge(terrier::execution::sql::RealMinAggregate *agg_1,
+                                       const terrier::execution::sql::RealMinAggregate *agg_2) {
   agg_1->Merge(*agg_2);
 }
 
 VM_OP_HOT void OpRealMinAggregateReset(terrier::execution::sql::RealMinAggregate *agg) { agg->Reset(); }
 
-VM_OP_HOT void OpRealMinAggregateGetResult(terrier::execution::sql::Real *result, const terrier::execution::sql::RealMinAggregate *agg) {
+VM_OP_HOT void OpRealMinAggregateGetResult(terrier::execution::sql::Real *result,
+                                           const terrier::execution::sql::RealMinAggregate *agg) {
   *result = agg->GetResultMin();
 }
 
@@ -879,21 +976,29 @@ VM_OP_HOT void OpRealMinAggregateFree(terrier::execution::sql::RealMinAggregate 
 // AVG
 //
 
-VM_OP_HOT void OpAvgAggregateInit(terrier::execution::sql::AvgAggregate *agg) { new (agg) terrier::execution::sql::AvgAggregate(); }
+VM_OP_HOT void OpAvgAggregateInit(terrier::execution::sql::AvgAggregate *agg) {
+  new (agg) terrier::execution::sql::AvgAggregate();
+}
 
-VM_OP_HOT void OpIntegerAvgAggregateAdvance(terrier::execution::sql::AvgAggregate *agg, const terrier::execution::sql::Integer *val) {
+VM_OP_HOT void OpIntegerAvgAggregateAdvance(terrier::execution::sql::AvgAggregate *agg,
+                                            const terrier::execution::sql::Integer *val) {
   agg->Advance(*val);
 }
 
-VM_OP_HOT void OpRealAvgAggregateAdvance(terrier::execution::sql::AvgAggregate *agg, const terrier::execution::sql::Real *val) { agg->Advance(*val); }
+VM_OP_HOT void OpRealAvgAggregateAdvance(terrier::execution::sql::AvgAggregate *agg,
+                                         const terrier::execution::sql::Real *val) {
+  agg->Advance(*val);
+}
 
-VM_OP_HOT void OpAvgAggregateMerge(terrier::execution::sql::AvgAggregate *agg_1, const terrier::execution::sql::AvgAggregate *agg_2) {
+VM_OP_HOT void OpAvgAggregateMerge(terrier::execution::sql::AvgAggregate *agg_1,
+                                   const terrier::execution::sql::AvgAggregate *agg_2) {
   agg_1->Merge(*agg_2);
 }
 
 VM_OP_HOT void OpAvgAggregateReset(terrier::execution::sql::AvgAggregate *agg) { agg->Reset(); }
 
-VM_OP_HOT void OpAvgAggregateGetResult(terrier::execution::sql::Real *result, const terrier::execution::sql::AvgAggregate *agg) {
+VM_OP_HOT void OpAvgAggregateGetResult(terrier::execution::sql::Real *result,
+                                       const terrier::execution::sql::AvgAggregate *agg) {
   *result = agg->GetResultAvg();
 }
 
@@ -902,16 +1007,19 @@ VM_OP_HOT void OpAvgAggregateFree(terrier::execution::sql::AvgAggregate *agg) { 
 // Hash Joins
 // ---------------------------------------------------------
 
-void OpJoinHashTableInit(terrier::execution::sql::JoinHashTable *join_hash_table, terrier::execution::sql::MemoryPool *memory, u32 tuple_size);
+void OpJoinHashTableInit(terrier::execution::sql::JoinHashTable *join_hash_table,
+                         terrier::execution::sql::MemoryPool *memory, u32 tuple_size);
 
-VM_OP_HOT void OpJoinHashTableAllocTuple(byte **result, terrier::execution::sql::JoinHashTable *join_hash_table, hash_t hash) {
+VM_OP_HOT void OpJoinHashTableAllocTuple(byte **result, terrier::execution::sql::JoinHashTable *join_hash_table,
+                                         hash_t hash) {
   *result = join_hash_table->AllocInputTuple(hash);
 }
 
 void OpJoinHashTableBuild(terrier::execution::sql::JoinHashTable *join_hash_table);
 
 void OpJoinHashTableBuildParallel(terrier::execution::sql::JoinHashTable *join_hash_table,
-                                  terrier::execution::sql::ThreadStateContainer *thread_state_container, u32 jht_offset);
+                                  terrier::execution::sql::ThreadStateContainer *thread_state_container,
+                                  u32 jht_offset);
 
 VM_OP_HOT void OpJoinHashTableIterInit(terrier::execution::sql::JoinHashTableIterator *result,
                                        terrier::execution::sql::JoinHashTable *join_hash_table, hash_t hash) {
@@ -919,12 +1027,13 @@ VM_OP_HOT void OpJoinHashTableIterInit(terrier::execution::sql::JoinHashTableIte
 }
 
 VM_OP_HOT void OpJoinHashTableIterHasNext(bool *has_more, terrier::execution::sql::JoinHashTableIterator *iterator,
-                                          terrier::execution::sql::JoinHashTableIterator::KeyEq key_eq, void *opaque_ctx,
-                                          void *probe_tuple) {
+                                          terrier::execution::sql::JoinHashTableIterator::KeyEq key_eq,
+                                          void *opaque_ctx, void *probe_tuple) {
   *has_more = iterator->HasNext(key_eq, opaque_ctx, probe_tuple);
 }
 
-VM_OP_HOT void OpJoinHashTableIterGetRow(const byte **result, terrier::execution::sql::JoinHashTableIterator *iterator) {
+VM_OP_HOT void OpJoinHashTableIterGetRow(const byte **result,
+                                         terrier::execution::sql::JoinHashTableIterator *iterator) {
   *result = iterator->NextMatch()->payload;
 }
 
@@ -938,10 +1047,12 @@ void OpJoinHashTableFree(terrier::execution::sql::JoinHashTable *join_hash_table
 // Sorting
 // ---------------------------------------------------------
 
-void OpSorterInit(terrier::execution::sql::Sorter *sorter, terrier::execution::sql::MemoryPool *memory, terrier::execution::sql::Sorter::ComparisonFunction cmp_fn,
-                  u32 tuple_size);
+void OpSorterInit(terrier::execution::sql::Sorter *sorter, terrier::execution::sql::MemoryPool *memory,
+                  terrier::execution::sql::Sorter::ComparisonFunction cmp_fn, u32 tuple_size);
 
-VM_OP_HOT void OpSorterAllocTuple(byte **result, terrier::execution::sql::Sorter *sorter) { *result = sorter->AllocInputTuple(); }
+VM_OP_HOT void OpSorterAllocTuple(byte **result, terrier::execution::sql::Sorter *sorter) {
+  *result = sorter->AllocInputTuple();
+}
 
 VM_OP_HOT void OpSorterAllocTupleTopK(byte **result, terrier::execution::sql::Sorter *sorter, u64 top_k) {
   *result = sorter->AllocInputTupleTopK(top_k);
@@ -953,21 +1064,26 @@ VM_OP_HOT void OpSorterAllocTupleTopKFinish(terrier::execution::sql::Sorter *sor
 
 void OpSorterSort(terrier::execution::sql::Sorter *sorter);
 
-void OpSorterSortParallel(terrier::execution::sql::Sorter *sorter, terrier::execution::sql::ThreadStateContainer *thread_state_container,
-                          u32 sorter_offset);
+void OpSorterSortParallel(terrier::execution::sql::Sorter *sorter,
+                          terrier::execution::sql::ThreadStateContainer *thread_state_container, u32 sorter_offset);
 
-void OpSorterSortTopKParallel(terrier::execution::sql::Sorter *sorter, terrier::execution::sql::ThreadStateContainer *thread_state_container,
-                              u32 sorter_offset, u64 top_k);
+void OpSorterSortTopKParallel(terrier::execution::sql::Sorter *sorter,
+                              terrier::execution::sql::ThreadStateContainer *thread_state_container, u32 sorter_offset,
+                              u64 top_k);
 
 void OpSorterFree(terrier::execution::sql::Sorter *sorter);
 
 void OpSorterIteratorInit(terrier::execution::sql::SorterIterator *iter, terrier::execution::sql::Sorter *sorter);
 
-VM_OP_HOT void OpSorterIteratorHasNext(bool *has_more, terrier::execution::sql::SorterIterator *iter) { *has_more = iter->HasNext(); }
+VM_OP_HOT void OpSorterIteratorHasNext(bool *has_more, terrier::execution::sql::SorterIterator *iter) {
+  *has_more = iter->HasNext();
+}
 
 VM_OP_HOT void OpSorterIteratorNext(terrier::execution::sql::SorterIterator *iter) { iter->Next(); }
 
-VM_OP_HOT void OpSorterIteratorGetRow(const byte **row, terrier::execution::sql::SorterIterator *iter) { *row = iter->GetRow(); }
+VM_OP_HOT void OpSorterIteratorGetRow(const byte **row, terrier::execution::sql::SorterIterator *iter) {
+  *row = iter->GetRow();
+}
 
 void OpSorterIteratorFree(terrier::execution::sql::SorterIterator *iter);
 
@@ -975,7 +1091,9 @@ void OpSorterIteratorFree(terrier::execution::sql::SorterIterator *iter);
 // Trig functions
 // ---------------------------------------------------------
 
-VM_OP_WARM void OpPi(terrier::execution::sql::Real *result) { terrier::execution::sql::ArithmeticFunctions::Pi(result); }
+VM_OP_WARM void OpPi(terrier::execution::sql::Real *result) {
+  terrier::execution::sql::ArithmeticFunctions::Pi(result);
+}
 
 VM_OP_WARM void OpE(terrier::execution::sql::Real *result) { terrier::execution::sql::ArithmeticFunctions::E(result); }
 
@@ -991,7 +1109,8 @@ VM_OP_WARM void OpAtan(terrier::execution::sql::Real *result, const terrier::exe
   terrier::execution::sql::ArithmeticFunctions::Atan(result, *input);
 }
 
-VM_OP_WARM void OpAtan2(terrier::execution::sql::Real *result, const terrier::execution::sql::Real *arg_1, const terrier::execution::sql::Real *arg_2) {
+VM_OP_WARM void OpAtan2(terrier::execution::sql::Real *result, const terrier::execution::sql::Real *arg_1,
+                        const terrier::execution::sql::Real *arg_2) {
   terrier::execution::sql::ArithmeticFunctions::Atan2(result, *arg_1, *arg_2);
 }
 
@@ -1047,7 +1166,9 @@ VM_OP_WARM void OpTruncate(terrier::execution::sql::Real *result, const terrier:
   terrier::execution::sql::ArithmeticFunctions::Truncate(result, *v);
 }
 
-VM_OP_WARM void OpLn(terrier::execution::sql::Real *result, const terrier::execution::sql::Real *v) { terrier::execution::sql::ArithmeticFunctions::Ln(result, *v); }
+VM_OP_WARM void OpLn(terrier::execution::sql::Real *result, const terrier::execution::sql::Real *v) {
+  terrier::execution::sql::ArithmeticFunctions::Ln(result, *v);
+}
 
 VM_OP_WARM void OpLog2(terrier::execution::sql::Real *result, const terrier::execution::sql::Real *v) {
   terrier::execution::sql::ArithmeticFunctions::Log2(result, *v);
@@ -1073,15 +1194,18 @@ VM_OP_WARM void OpRound(terrier::execution::sql::Real *result, const terrier::ex
   terrier::execution::sql::ArithmeticFunctions::Round(result, *v);
 }
 
-VM_OP_WARM void OpRoundUpTo(terrier::execution::sql::Real *result, const terrier::execution::sql::Real *v, const terrier::execution::sql::Integer *scale) {
+VM_OP_WARM void OpRoundUpTo(terrier::execution::sql::Real *result, const terrier::execution::sql::Real *v,
+                            const terrier::execution::sql::Integer *scale) {
   terrier::execution::sql::ArithmeticFunctions::RoundUpTo(result, *v, *scale);
 }
 
-VM_OP_WARM void OpLog(terrier::execution::sql::Real *result, const terrier::execution::sql::Real *base, const terrier::execution::sql::Real *val) {
+VM_OP_WARM void OpLog(terrier::execution::sql::Real *result, const terrier::execution::sql::Real *base,
+                      const terrier::execution::sql::Real *val) {
   terrier::execution::sql::ArithmeticFunctions::Log(result, *base, *val);
 }
 
-VM_OP_WARM void OpPow(terrier::execution::sql::Real *result, const terrier::execution::sql::Real *base, const terrier::execution::sql::Real *val) {
+VM_OP_WARM void OpPow(terrier::execution::sql::Real *result, const terrier::execution::sql::Real *base,
+                      const terrier::execution::sql::Real *val) {
   terrier::execution::sql::ArithmeticFunctions::Pow(result, *base, *val);
 }
 
@@ -1106,31 +1230,35 @@ VM_OP_WARM void OpCharLength(terrier::execution::exec::ExecutionContext *ctx, te
   terrier::execution::sql::StringFunctions::CharLength(ctx, result, *str);
 }
 
-VM_OP_WARM void OpLeft(terrier::execution::exec::ExecutionContext *ctx, terrier::execution::sql::StringVal *result, const terrier::execution::sql::StringVal *str,
-                       const terrier::execution::sql::Integer *n) {
+VM_OP_WARM void OpLeft(terrier::execution::exec::ExecutionContext *ctx, terrier::execution::sql::StringVal *result,
+                       const terrier::execution::sql::StringVal *str, const terrier::execution::sql::Integer *n) {
   terrier::execution::sql::StringFunctions::Left(ctx, result, *str, *n);
 }
 
-VM_OP_WARM void OpLength(terrier::execution::exec::ExecutionContext *ctx, terrier::execution::sql::Integer *result, const terrier::execution::sql::StringVal *str) {
+VM_OP_WARM void OpLength(terrier::execution::exec::ExecutionContext *ctx, terrier::execution::sql::Integer *result,
+                         const terrier::execution::sql::StringVal *str) {
   terrier::execution::sql::StringFunctions::Length(ctx, result, *str);
 }
 
-VM_OP_WARM void OpLower(terrier::execution::exec::ExecutionContext *ctx, terrier::execution::sql::StringVal *result, const terrier::execution::sql::StringVal *str) {
+VM_OP_WARM void OpLower(terrier::execution::exec::ExecutionContext *ctx, terrier::execution::sql::StringVal *result,
+                        const terrier::execution::sql::StringVal *str) {
   terrier::execution::sql::StringFunctions::Lower(ctx, result, *str);
 }
 
-VM_OP_WARM void OpLPad(terrier::execution::exec::ExecutionContext *ctx, terrier::execution::sql::StringVal *result, const terrier::execution::sql::StringVal *str,
-                       const terrier::execution::sql::Integer *len, const terrier::execution::sql::StringVal *pad) {
+VM_OP_WARM void OpLPad(terrier::execution::exec::ExecutionContext *ctx, terrier::execution::sql::StringVal *result,
+                       const terrier::execution::sql::StringVal *str, const terrier::execution::sql::Integer *len,
+                       const terrier::execution::sql::StringVal *pad) {
   terrier::execution::sql::StringFunctions::Lpad(ctx, result, *str, *len, *pad);
 }
 
-VM_OP_WARM void OpLTrim(terrier::execution::exec::ExecutionContext *ctx, terrier::execution::sql::StringVal *result, const terrier::execution::sql::StringVal *str,
+VM_OP_WARM void OpLTrim(terrier::execution::exec::ExecutionContext *ctx, terrier::execution::sql::StringVal *result,
+                        const terrier::execution::sql::StringVal *str,
                         const terrier::execution::sql::StringVal *chars) {
   terrier::execution::sql::StringFunctions::Ltrim(ctx, result, *str, *chars);
 }
 
-VM_OP_WARM void OpRepeat(terrier::execution::exec::ExecutionContext *ctx, terrier::execution::sql::StringVal *result, const terrier::execution::sql::StringVal *str,
-                         const terrier::execution::sql::Integer *n) {
+VM_OP_WARM void OpRepeat(terrier::execution::exec::ExecutionContext *ctx, terrier::execution::sql::StringVal *result,
+                         const terrier::execution::sql::StringVal *str, const terrier::execution::sql::Integer *n) {
   terrier::execution::sql::StringFunctions::Repeat(ctx, result, *str, *n);
 }
 
@@ -1139,23 +1267,26 @@ VM_OP_WARM void OpReverse(terrier::execution::exec::ExecutionContext *ctx, terri
   terrier::execution::sql::StringFunctions::Reverse(ctx, result, *str);
 }
 
-VM_OP_WARM void OpRight(terrier::execution::exec::ExecutionContext *ctx, terrier::execution::sql::StringVal *result, const terrier::execution::sql::StringVal *str,
-                        const terrier::execution::sql::Integer *n) {
+VM_OP_WARM void OpRight(terrier::execution::exec::ExecutionContext *ctx, terrier::execution::sql::StringVal *result,
+                        const terrier::execution::sql::StringVal *str, const terrier::execution::sql::Integer *n) {
   terrier::execution::sql::StringFunctions::Right(ctx, result, *str, *n);
 }
 
-VM_OP_WARM void OpRPad(terrier::execution::exec::ExecutionContext *ctx, terrier::execution::sql::StringVal *result, const terrier::execution::sql::StringVal *str,
-                       const terrier::execution::sql::Integer *n, const terrier::execution::sql::StringVal *pad) {
+VM_OP_WARM void OpRPad(terrier::execution::exec::ExecutionContext *ctx, terrier::execution::sql::StringVal *result,
+                       const terrier::execution::sql::StringVal *str, const terrier::execution::sql::Integer *n,
+                       const terrier::execution::sql::StringVal *pad) {
   terrier::execution::sql::StringFunctions::Rpad(ctx, result, *str, *n, *pad);
 }
 
-VM_OP_WARM void OpRTrim(terrier::execution::exec::ExecutionContext *ctx, terrier::execution::sql::StringVal *result, const terrier::execution::sql::StringVal *str,
+VM_OP_WARM void OpRTrim(terrier::execution::exec::ExecutionContext *ctx, terrier::execution::sql::StringVal *result,
+                        const terrier::execution::sql::StringVal *str,
                         const terrier::execution::sql::StringVal *chars) {
   terrier::execution::sql::StringFunctions::Rtrim(ctx, result, *str, *chars);
 }
 
 VM_OP_WARM void OpSplitPart(terrier::execution::exec::ExecutionContext *ctx, terrier::execution::sql::StringVal *result,
-                            const terrier::execution::sql::StringVal *str, const terrier::execution::sql::StringVal *delim,
+                            const terrier::execution::sql::StringVal *str,
+                            const terrier::execution::sql::StringVal *delim,
                             const terrier::execution::sql::Integer *field) {
   terrier::execution::sql::StringFunctions::SplitPart(ctx, result, *str, *delim, *field);
 }
@@ -1166,12 +1297,13 @@ VM_OP_WARM void OpSubstring(terrier::execution::exec::ExecutionContext *ctx, ter
   terrier::execution::sql::StringFunctions::Substring(ctx, result, *str, *pos, *len);
 }
 
-VM_OP_WARM void OpTrim(terrier::execution::exec::ExecutionContext *ctx, terrier::execution::sql::StringVal *result, const terrier::execution::sql::StringVal *str,
-                       const terrier::execution::sql::StringVal *chars) {
+VM_OP_WARM void OpTrim(terrier::execution::exec::ExecutionContext *ctx, terrier::execution::sql::StringVal *result,
+                       const terrier::execution::sql::StringVal *str, const terrier::execution::sql::StringVal *chars) {
   terrier::execution::sql::StringFunctions::Trim(ctx, result, *str, *chars);
 }
 
-VM_OP_WARM void OpUpper(terrier::execution::exec::ExecutionContext *ctx, terrier::execution::sql::StringVal *result, const terrier::execution::sql::StringVal *str) {
+VM_OP_WARM void OpUpper(terrier::execution::exec::ExecutionContext *ctx, terrier::execution::sql::StringVal *result,
+                        const terrier::execution::sql::StringVal *str) {
   terrier::execution::sql::StringFunctions::Upper(ctx, result, *str);
 }
 // ---------------------------------------------------------------
@@ -1183,13 +1315,18 @@ void OpIndexIteratorFree(terrier::execution::sql::IndexIterator *iter);
 
 void OpIndexIteratorPerformInit(terrier::execution::sql::IndexIterator *iter);
 
-VM_OP_HOT void OpIndexIteratorAddCol(terrier::execution::sql::IndexIterator *iter, uint32_t col_oid) { iter->AddCol(col_oid); }
+VM_OP_HOT void OpIndexIteratorAddCol(terrier::execution::sql::IndexIterator *iter, uint32_t col_oid) {
+  iter->AddCol(col_oid);
+}
 
 VM_OP_HOT void OpIndexIteratorScanKey(terrier::execution::sql::IndexIterator *iter) { iter->ScanKey(); }
 
-VM_OP_HOT void OpIndexIteratorAdvance(bool *has_more, terrier::execution::sql::IndexIterator *iter) { *has_more = iter->Advance(); }
+VM_OP_HOT void OpIndexIteratorAdvance(bool *has_more, terrier::execution::sql::IndexIterator *iter) {
+  *has_more = iter->Advance();
+}
 
-VM_OP_HOT void OpIndexIteratorGetTinyInt(terrier::execution::sql::Integer *out, terrier::execution::sql::IndexIterator *iter, u16 col_idx) {
+VM_OP_HOT void OpIndexIteratorGetTinyInt(terrier::execution::sql::Integer *out,
+                                         terrier::execution::sql::IndexIterator *iter, u16 col_idx) {
   // Read
   auto *ptr = iter->Get<i16, false>(col_idx, nullptr);
   TPL_ASSERT(ptr != nullptr, "Null pointer when trying to read integer");
@@ -1199,7 +1336,8 @@ VM_OP_HOT void OpIndexIteratorGetTinyInt(terrier::execution::sql::Integer *out, 
   out->val = *ptr;
 }
 
-VM_OP_HOT void OpIndexIteratorGetSmallInt(terrier::execution::sql::Integer *out, terrier::execution::sql::IndexIterator *iter, u16 col_idx) {
+VM_OP_HOT void OpIndexIteratorGetSmallInt(terrier::execution::sql::Integer *out,
+                                          terrier::execution::sql::IndexIterator *iter, u16 col_idx) {
   // Read
   auto *ptr = iter->Get<i16, false>(col_idx, nullptr);
   TPL_ASSERT(ptr != nullptr, "Null pointer when trying to read integer");
@@ -1209,7 +1347,8 @@ VM_OP_HOT void OpIndexIteratorGetSmallInt(terrier::execution::sql::Integer *out,
   out->val = *ptr;
 }
 
-VM_OP_HOT void OpIndexIteratorGetInteger(terrier::execution::sql::Integer *out, terrier::execution::sql::IndexIterator *iter, u16 col_idx) {
+VM_OP_HOT void OpIndexIteratorGetInteger(terrier::execution::sql::Integer *out,
+                                         terrier::execution::sql::IndexIterator *iter, u16 col_idx) {
   // Read
   auto *ptr = iter->Get<i32, false>(col_idx, nullptr);
   TPL_ASSERT(ptr != nullptr, "Null pointer when trying to read integer");
@@ -1219,7 +1358,8 @@ VM_OP_HOT void OpIndexIteratorGetInteger(terrier::execution::sql::Integer *out, 
   out->val = *ptr;
 }
 
-VM_OP_HOT void OpIndexIteratorGetBigInt(terrier::execution::sql::Integer *out, terrier::execution::sql::IndexIterator *iter, u16 col_idx) {
+VM_OP_HOT void OpIndexIteratorGetBigInt(terrier::execution::sql::Integer *out,
+                                        terrier::execution::sql::IndexIterator *iter, u16 col_idx) {
   // Read
   auto *ptr = iter->Get<i64, false>(col_idx, nullptr);
   TPL_ASSERT(ptr != nullptr, "Null pointer when trying to read integer");
@@ -1229,7 +1369,8 @@ VM_OP_HOT void OpIndexIteratorGetBigInt(terrier::execution::sql::Integer *out, t
   out->val = *ptr;
 }
 
-VM_OP_HOT void OpIndexIteratorGetReal(terrier::execution::sql::Real *out, terrier::execution::sql::IndexIterator *iter, u16 col_idx) {
+VM_OP_HOT void OpIndexIteratorGetReal(terrier::execution::sql::Real *out, terrier::execution::sql::IndexIterator *iter,
+                                      u16 col_idx) {
   // Read
   auto *ptr = iter->Get<f32, false>(col_idx, nullptr);
   TPL_ASSERT(ptr != nullptr, "Null pointer when trying to read integer");
@@ -1239,7 +1380,8 @@ VM_OP_HOT void OpIndexIteratorGetReal(terrier::execution::sql::Real *out, terrie
   out->val = *ptr;
 }
 
-VM_OP_HOT void OpIndexIteratorGetDouble(terrier::execution::sql::Real *out, terrier::execution::sql::IndexIterator *iter, u16 col_idx) {
+VM_OP_HOT void OpIndexIteratorGetDouble(terrier::execution::sql::Real *out,
+                                        terrier::execution::sql::IndexIterator *iter, u16 col_idx) {
   // Read
   auto *ptr = iter->Get<f64, false>(col_idx, nullptr);
   TPL_ASSERT(ptr != nullptr, "Null pointer when trying to read integer");
@@ -1249,14 +1391,15 @@ VM_OP_HOT void OpIndexIteratorGetDouble(terrier::execution::sql::Real *out, terr
   out->val = *ptr;
 }
 
-VM_OP_HOT void OpIndexIteratorGetDecimal(terrier::execution::sql::Decimal *out, UNUSED terrier::execution::sql::IndexIterator *iter,
-                                         UNUSED u16 col_idx) {
+VM_OP_HOT void OpIndexIteratorGetDecimal(terrier::execution::sql::Decimal *out,
+                                         UNUSED terrier::execution::sql::IndexIterator *iter, UNUSED u16 col_idx) {
   // Set
   out->is_null = false;
   out->val = 0;
 }
 
-VM_OP_HOT void OpIndexIteratorGetTinyIntNull(terrier::execution::sql::Integer *out, terrier::execution::sql::IndexIterator *iter, u16 col_idx) {
+VM_OP_HOT void OpIndexIteratorGetTinyIntNull(terrier::execution::sql::Integer *out,
+                                             terrier::execution::sql::IndexIterator *iter, u16 col_idx) {
   // Read
   bool null = false;
   auto *ptr = iter->Get<i8, true>(col_idx, &null);
@@ -1266,7 +1409,8 @@ VM_OP_HOT void OpIndexIteratorGetTinyIntNull(terrier::execution::sql::Integer *o
   out->val = null ? 0 : *ptr;
 }
 
-VM_OP_HOT void OpIndexIteratorGetSmallIntNull(terrier::execution::sql::Integer *out, terrier::execution::sql::IndexIterator *iter, u16 col_idx) {
+VM_OP_HOT void OpIndexIteratorGetSmallIntNull(terrier::execution::sql::Integer *out,
+                                              terrier::execution::sql::IndexIterator *iter, u16 col_idx) {
   // Read
   bool null = false;
   auto *ptr = iter->Get<i16, true>(col_idx, &null);
@@ -1276,7 +1420,8 @@ VM_OP_HOT void OpIndexIteratorGetSmallIntNull(terrier::execution::sql::Integer *
   out->val = null ? 0 : *ptr;
 }
 
-VM_OP_HOT void OpIndexIteratorGetIntegerNull(terrier::execution::sql::Integer *out, terrier::execution::sql::IndexIterator *iter, u16 col_idx) {
+VM_OP_HOT void OpIndexIteratorGetIntegerNull(terrier::execution::sql::Integer *out,
+                                             terrier::execution::sql::IndexIterator *iter, u16 col_idx) {
   // Read
   bool null = false;
   auto *ptr = iter->Get<i32, true>(col_idx, &null);
@@ -1286,7 +1431,8 @@ VM_OP_HOT void OpIndexIteratorGetIntegerNull(terrier::execution::sql::Integer *o
   out->val = null ? 0 : *ptr;
 }
 
-VM_OP_HOT void OpIndexIteratorGetBigIntNull(terrier::execution::sql::Integer *out, terrier::execution::sql::IndexIterator *iter, u16 col_idx) {
+VM_OP_HOT void OpIndexIteratorGetBigIntNull(terrier::execution::sql::Integer *out,
+                                            terrier::execution::sql::IndexIterator *iter, u16 col_idx) {
   // Read
   bool null = false;
   auto *ptr = iter->Get<i64, true>(col_idx, &null);
@@ -1296,7 +1442,8 @@ VM_OP_HOT void OpIndexIteratorGetBigIntNull(terrier::execution::sql::Integer *ou
   out->val = null ? 0 : *ptr;
 }
 
-VM_OP_HOT void OpIndexIteratorGetRealNull(terrier::execution::sql::Real *out, terrier::execution::sql::IndexIterator *iter, u16 col_idx) {
+VM_OP_HOT void OpIndexIteratorGetRealNull(terrier::execution::sql::Real *out,
+                                          terrier::execution::sql::IndexIterator *iter, u16 col_idx) {
   // Read
   bool null = false;
   auto *ptr = iter->Get<f32, true>(col_idx, &null);
@@ -1306,7 +1453,8 @@ VM_OP_HOT void OpIndexIteratorGetRealNull(terrier::execution::sql::Real *out, te
   out->val = null ? 0 : *ptr;
 }
 
-VM_OP_HOT void OpIndexIteratorGetDoubleNull(terrier::execution::sql::Real *out, terrier::execution::sql::IndexIterator *iter, u16 col_idx) {
+VM_OP_HOT void OpIndexIteratorGetDoubleNull(terrier::execution::sql::Real *out,
+                                            terrier::execution::sql::IndexIterator *iter, u16 col_idx) {
   // Read
   bool null = false;
   auto *ptr = iter->Get<f64, true>(col_idx, &null);
@@ -1316,32 +1464,39 @@ VM_OP_HOT void OpIndexIteratorGetDoubleNull(terrier::execution::sql::Real *out, 
   out->val = null ? 0 : *ptr;
 }
 
-VM_OP_HOT void OpIndexIteratorGetDecimalNull(terrier::execution::sql::Decimal *out, terrier::execution::sql::IndexIterator *iter, u16 col_idx) {
+VM_OP_HOT void OpIndexIteratorGetDecimalNull(terrier::execution::sql::Decimal *out,
+                                             terrier::execution::sql::IndexIterator *iter, u16 col_idx) {
   out->val = 0;
   out->is_null = false;
 }
 
-VM_OP_HOT void OpIndexIteratorSetKeyTinyInt(terrier::execution::sql::IndexIterator *iter, u16 col_idx, terrier::execution::sql::Integer *val) {
+VM_OP_HOT void OpIndexIteratorSetKeyTinyInt(terrier::execution::sql::IndexIterator *iter, u16 col_idx,
+                                            terrier::execution::sql::Integer *val) {
   iter->SetKey(col_idx, static_cast<i8>(val->val), val->is_null);
 }
 
-VM_OP_HOT void OpIndexIteratorSetKeySmallInt(terrier::execution::sql::IndexIterator *iter, u16 col_idx, terrier::execution::sql::Integer *val) {
+VM_OP_HOT void OpIndexIteratorSetKeySmallInt(terrier::execution::sql::IndexIterator *iter, u16 col_idx,
+                                             terrier::execution::sql::Integer *val) {
   iter->SetKey(col_idx, static_cast<i16>(val->val), val->is_null);
 }
 
-VM_OP_HOT void OpIndexIteratorSetKeyInt(terrier::execution::sql::IndexIterator *iter, u16 col_idx, terrier::execution::sql::Integer *val) {
+VM_OP_HOT void OpIndexIteratorSetKeyInt(terrier::execution::sql::IndexIterator *iter, u16 col_idx,
+                                        terrier::execution::sql::Integer *val) {
   iter->SetKey(col_idx, static_cast<i32>(val->val), val->is_null);
 }
 
-VM_OP_HOT void OpIndexIteratorSetKeyBigInt(terrier::execution::sql::IndexIterator *iter, u16 col_idx, terrier::execution::sql::Integer *val) {
+VM_OP_HOT void OpIndexIteratorSetKeyBigInt(terrier::execution::sql::IndexIterator *iter, u16 col_idx,
+                                           terrier::execution::sql::Integer *val) {
   iter->SetKey(col_idx, static_cast<i64>(val->val), val->is_null);
 }
 
-VM_OP_HOT void OpIndexIteratorSetKeyReal(terrier::execution::sql::IndexIterator *iter, u16 col_idx, terrier::execution::sql::Real *val) {
+VM_OP_HOT void OpIndexIteratorSetKeyReal(terrier::execution::sql::IndexIterator *iter, u16 col_idx,
+                                         terrier::execution::sql::Real *val) {
   iter->SetKey(col_idx, static_cast<f32>(val->val), val->is_null);
 }
 
-VM_OP_HOT void OpIndexIteratorSetKeyDouble(terrier::execution::sql::IndexIterator *iter, u16 col_idx, terrier::execution::sql::Real *val) {
+VM_OP_HOT void OpIndexIteratorSetKeyDouble(terrier::execution::sql::IndexIterator *iter, u16 col_idx,
+                                           terrier::execution::sql::Real *val) {
   iter->SetKey(col_idx, static_cast<f64>(val->val), val->is_null);
 }
 

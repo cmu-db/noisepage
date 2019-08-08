@@ -75,7 +75,7 @@ class Sema : public ast::AstVisitor<Sema> {
   }
 
   // Convert the given schema into a row type
-  ast::Type *GetRowTypeFromSqlSchema(const terrier::catalog::Schema &schema);
+  ast::Type *GetRowTypeFromSqlSchema(const catalog::Schema &schema);
 
   // Create a builtin type
   ast::Type *GetBuiltinType(u16 builtin_kind);

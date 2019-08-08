@@ -5,13 +5,13 @@
 
 #include "gtest/gtest.h"
 
-#include "execution/tpl_test.h"  // NOLINT
+#include "execution/tpl_test.h"
 
 #include "execution/exec/execution_context.h"
 #include "execution/sql/table_generator/table_generator.h"
 #include "storage/garbage_collector.h"
 
-namespace terrier {
+namespace terrier::execution {
 
 class SqlBasedTest : public TplTest {
  public:
@@ -23,16 +23,16 @@ class SqlBasedTest : public TplTest {
     // initialized after the loggers.
     TplTest::SetUp();
     // Initialize terrier objects
-    block_store_ = std::make_unique<terrier::storage::BlockStore>(1000, 1000);
-    buffer_pool_ = std::make_unique<terrier::storage::RecordBufferSegmentPool>(100000, 100000);
-    txn_manager_ = std::make_unique<terrier::transaction::TransactionManager>(buffer_pool_.get(), true, nullptr);
-    gc_ = std::make_unique<terrier::storage::GarbageCollector>(txn_manager_.get(), nullptr);
+    block_store_ = std::make_unique<storage::BlockStore>(1000, 1000);
+    buffer_pool_ = std::make_unique<storage::RecordBufferSegmentPool>(100000, 100000);
+    txn_manager_ = std::make_unique<transaction::TransactionManager>(buffer_pool_.get(), true, nullptr);
+    gc_ = std::make_unique<storage::GarbageCollector>(txn_manager_.get(), nullptr);
     test_txn_ = txn_manager_->BeginTransaction();
 
     // Create catalog and test namespace
-    catalog_ = std::make_unique<terrier::catalog::Catalog>(txn_manager_.get(), block_store_.get());
+    catalog_ = std::make_unique<catalog::Catalog>(txn_manager_.get(), block_store_.get());
     test_db_oid_ = catalog_->CreateDatabase(test_txn_, "test_db", true);
-    ASSERT_NE(test_db_oid_, terrier::catalog::INVALID_DATABASE_OID) << "Default database does not exist";
+    ASSERT_NE(test_db_oid_, catalog::INVALID_DATABASE_OID) << "Default database does not exist";
     auto accessor = catalog_->GetAccessor(test_txn_, test_db_oid_);
     test_ns_oid_ = accessor->CreateNamespace("test_ns");
   }
@@ -44,12 +44,12 @@ class SqlBasedTest : public TplTest {
     gc_->PerformGarbageCollection();
   }
 
-  terrier::catalog::namespace_oid_t NSOid() { return test_ns_oid_; }
+  catalog::namespace_oid_t NSOid() { return test_ns_oid_; }
 
-  terrier::storage::BlockStore *BlockStore() { return block_store_.get(); }
+  storage::BlockStore *BlockStore() { return block_store_.get(); }
 
   std::unique_ptr<exec::ExecutionContext> MakeExecCtx(exec::OutputCallback &&callback = nullptr,
-                                                      const terrier::planner::OutputSchema *schema = nullptr) {
+                                                      const planner::OutputSchema *schema = nullptr) {
     auto accessor = catalog_->GetAccessor(test_txn_, test_db_oid_);
     return std::make_unique<exec::ExecutionContext>(test_db_oid_, test_txn_, callback, schema, std::move(accessor));
   }
@@ -59,19 +59,19 @@ class SqlBasedTest : public TplTest {
     table_generator.GenerateTestTables();
   }
 
-  terrier::parser::ConstantValueExpression DummyCVE() {
-    return terrier::parser::ConstantValueExpression(terrier::type::TransientValueFactory::GetInteger(0));
+  parser::ConstantValueExpression DummyCVE() {
+    return parser::ConstantValueExpression(type::TransientValueFactory::GetInteger(0));
   }
 
  private:
-  std::unique_ptr<terrier::storage::BlockStore> block_store_;
-  std::unique_ptr<terrier::storage::RecordBufferSegmentPool> buffer_pool_;
-  std::unique_ptr<terrier::transaction::TransactionManager> txn_manager_;
-  std::unique_ptr<terrier::catalog::Catalog> catalog_;
-  std::unique_ptr<terrier::storage::GarbageCollector> gc_;
-  terrier::catalog::db_oid_t test_db_oid_{0};
-  terrier::catalog::namespace_oid_t test_ns_oid_;
-  terrier::transaction::TransactionContext *test_txn_;
+  std::unique_ptr<storage::BlockStore> block_store_;
+  std::unique_ptr<storage::RecordBufferSegmentPool> buffer_pool_;
+  std::unique_ptr<transaction::TransactionManager> txn_manager_;
+  std::unique_ptr<catalog::Catalog> catalog_;
+  std::unique_ptr<storage::GarbageCollector> gc_;
+  catalog::db_oid_t test_db_oid_{0};
+  catalog::namespace_oid_t test_ns_oid_;
+  transaction::TransactionContext *test_txn_;
 };
 
-}  // namespace terrier
+}  // namespace terrier::execution

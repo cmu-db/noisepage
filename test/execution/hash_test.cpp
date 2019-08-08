@@ -2,11 +2,11 @@
 #include <utility>
 #include <vector>
 
-#include "execution/tpl_test.h"  // NOLINT
+#include "execution/tpl_test.h"
 
 #include "execution/util/hash.h"
 
-namespace terrier::util::test {
+namespace terrier::execution::util::test {
 
 class HashTest : public TplTest {};
 
@@ -79,4 +79,4 @@ TEST_F(HashTest, StringHash) {
 #undef CHECK_HASH_METHOD_ON_INPUT
 }
 
-}  // namespace terrier::util::test
+}  // namespace terrier::execution::util::test

@@ -1,6 +1,6 @@
 #include <string>
 
-#include "execution/tpl_test.h"  // NOLINT
+#include "execution/tpl_test.h"
 
 #include "execution/ast/ast.h"
 #include "execution/ast/ast_node_factory.h"
@@ -9,7 +9,7 @@
 #include "execution/parsing/scanner.h"
 #include "execution/sema/sema.h"
 
-namespace terrier::ast::test {
+namespace terrier::execution::ast::test {
 
 class AstTraversalVisitorTest : public TplTest {
  public:
@@ -307,4 +307,4 @@ TEST_F(AstTraversalVisitorTest, CountIfTest) {
   }
 }
 
-}  // namespace terrier::ast::test
+}  // namespace terrier::execution::ast::test

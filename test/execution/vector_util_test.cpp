@@ -4,13 +4,13 @@
 #include <utility>
 #include <vector>
 
-#include "execution/tpl_test.h"  // NOLINT
+#include "execution/tpl_test.h"
 
 #include "execution/sql/memory_pool.h"
 #include "execution/util/timer.h"
 #include "execution/util/vector_util.h"
 
-namespace terrier::util::test {
+namespace terrier::execution::util::test {
 
 template <typename T>
 class PoolArray {
@@ -534,4 +534,4 @@ TEST_F(VectorUtilTest, GatherTest) {
   }
 }
 
-}  // namespace terrier::util::test
+}  // namespace terrier::execution::util::test

@@ -4,12 +4,12 @@
 #include <utility>
 #include <vector>
 
-#include "execution/tpl_test.h"  // NOLINT
+#include "execution/tpl_test.h"
 
 #include "execution/util/chunked_vector.h"
 #include "ips4o/ips4o.hpp"
 
-namespace terrier::util::test {
+namespace terrier::execution::util::test {
 
 class ChunkedVectorTest : public TplTest {};
 
@@ -483,4 +483,4 @@ TEST_F(ChunkedVectorTest, DISABLED_PerfRandomAccessTest) {
   std::cout << "ChunkedVector: " << chunked_ms << " ms" << std::endl;
 }
 
-}  // namespace terrier::util::test
+}  // namespace terrier::execution::util::test

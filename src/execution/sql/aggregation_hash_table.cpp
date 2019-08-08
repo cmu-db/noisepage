@@ -4,7 +4,7 @@
 #include <utility>
 #include <vector>
 
-#include <tbb/tbb.h>  // NOLINT
+#include "tbb/tbb.h"
 
 #include "count/hll.h"
 

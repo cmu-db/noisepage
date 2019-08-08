@@ -9,13 +9,6 @@
 #include "tbb/task_scheduler_init.h"
 
 namespace terrier::execution::sql {
-
-using terrier::catalog::col_oid_t;
-using terrier::catalog::Schema;
-using terrier::common::AllocationUtil;
-using terrier::storage::DataTable;
-using terrier::transaction::TransactionContext;
-
 TableVectorIterator::TableVectorIterator(u32 table_oid, exec::ExecutionContext *exec_ctx)
     : table_oid_(table_oid), exec_ctx_(exec_ctx) {}
 
@@ -36,12 +29,12 @@ bool TableVectorIterator::Init() {
     }
   }
   auto pc_map = table_->InitializerForProjectedColumns(col_oids_, kDefaultVectorSize);
-  buffer_ = AllocationUtil::AllocateAligned(pc_map.first.ProjectedColumnsSize());
+  buffer_ = common::AllocationUtil::AllocateAligned(pc_map.first.ProjectedColumnsSize());
   projected_columns_ = pc_map.first.Initialize(buffer_);
   initialized = true;
 
   // Begin iterating
-  iter_ = std::make_unique<DataTable::SlotIterator>(table_->begin());
+  iter_ = std::make_unique<storage::DataTable::SlotIterator>(table_->begin());
   return true;
 }
 

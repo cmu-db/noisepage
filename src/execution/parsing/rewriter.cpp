@@ -17,8 +17,7 @@
 
 namespace terrier::execution::parsing {
 
-Rewriter::Rewriter(execution::ast::Context *ctx, terrier::catalog::CatalogAccessor *accessor)
-    : ctx_(ctx), accessor_(accessor) {}
+Rewriter::Rewriter(execution::ast::Context *ctx, catalog::CatalogAccessor *accessor) : ctx_(ctx), accessor_(accessor) {}
 
 // Generate a call to the given builtin using the given arguments
 ast::Expr *GenCallBuiltin(ast::Context *ctx, SourcePosition pos, ast::Builtin builtin,
@@ -75,25 +74,25 @@ ast::Expr *Rewriter::RewritePCIGet(execution::ast::CallExpr *call, ast::Builtin 
   bool nullable = col.Nullable();
   ast::Builtin builtin;
   switch (col.Type()) {
-    case terrier::type::TypeId::INTEGER:
+    case type::TypeId::INTEGER:
       builtin = nullable ? ast::Builtin::PCIGetIntNull : ast::Builtin::PCIGetInt;
       break;
-    case terrier::type::TypeId::TINYINT:
+    case type::TypeId::TINYINT:
       builtin = nullable ? ast::Builtin::PCIGetTinyIntNull : ast::Builtin::PCIGetTinyInt;
       break;
-    case terrier::type::TypeId::SMALLINT:
+    case type::TypeId::SMALLINT:
       builtin = nullable ? ast::Builtin::PCIGetSmallIntNull : ast::Builtin::PCIGetSmallInt;
       break;
-    case terrier::type::TypeId::BIGINT:
+    case type::TypeId::BIGINT:
       builtin = nullable ? ast::Builtin::PCIGetBigIntNull : ast::Builtin::PCIGetBigInt;
       break;
-    case terrier::type::TypeId::DECIMAL:
+    case type::TypeId::DECIMAL:
       builtin = nullable ? ast::Builtin::PCIGetDoubleNull : ast::Builtin::PCIGetDouble;
       break;
-    case terrier::type::TypeId::DATE:
+    case type::TypeId::DATE:
       builtin = nullable ? ast::Builtin::PCIGetDateNull : ast::Builtin::PCIGetDate;
       break;
-    case terrier::type::TypeId::VARCHAR:
+    case type::TypeId::VARCHAR:
       builtin = nullable ? ast::Builtin::PCIGetVarlenNull : ast::Builtin::PCIGetVarlen;
       break;
     default:
@@ -200,25 +199,25 @@ ast::Expr *Rewriter::RewriteIndexIteratorGet(execution::ast::CallExpr *call, exe
   bool nullable = col.Nullable();
   ast::Builtin builtin;
   switch (col.Type()) {
-    case terrier::type::TypeId::INTEGER:
+    case type::TypeId::INTEGER:
       builtin = nullable ? ast::Builtin::IndexIteratorGetIntNull : ast::Builtin::IndexIteratorGetInt;
       break;
-    case terrier::type::TypeId::TINYINT:
+    case type::TypeId::TINYINT:
       builtin = nullable ? ast::Builtin::IndexIteratorGetTinyIntNull : ast::Builtin::IndexIteratorGetTinyInt;
       break;
-    case terrier::type::TypeId::SMALLINT:
+    case type::TypeId::SMALLINT:
       builtin = nullable ? ast::Builtin::IndexIteratorGetSmallIntNull : ast::Builtin::IndexIteratorGetSmallInt;
       break;
-    case terrier::type::TypeId::BIGINT:
+    case type::TypeId::BIGINT:
       builtin = nullable ? ast::Builtin::IndexIteratorGetBigIntNull : ast::Builtin::IndexIteratorGetBigInt;
       break;
-    case terrier::type::TypeId::DECIMAL:
+    case type::TypeId::DECIMAL:
       builtin = nullable ? ast::Builtin::IndexIteratorGetDoubleNull : ast::Builtin::IndexIteratorGetDouble;
       break;
-    // case terrier::type::TypeId::DATE:
+    // case type::TypeId::DATE:
     // builtin = nullable ? ast::Builtin::IndexIteratorGetDateNull : ast::Builtin::IndexIteratorGetDate;
     // break;
-    // case terrier::type::TypeId::VARCHAR:
+    // case type::TypeId::VARCHAR:
     // builtin = nullable ? ast::Builtin::IndexIteratorGetVarlenNull : ast::Builtin::IndexIteratorGetVarlen;
     // break;
     default:
@@ -245,25 +244,25 @@ ast::Expr *Rewriter::RewriteIndexIteratorSetKey(execution::ast::CallExpr *call, 
   ast::Builtin builtin;
 
   switch (col.Type()) {
-    case terrier::type::TypeId::INTEGER:
+    case type::TypeId::INTEGER:
       builtin = ast::Builtin::IndexIteratorSetKeyInt;
       break;
-    case terrier::type::TypeId::TINYINT:
+    case type::TypeId::TINYINT:
       builtin = ast::Builtin::IndexIteratorSetKeyTinyInt;
       break;
-    case terrier::type::TypeId::SMALLINT:
+    case type::TypeId::SMALLINT:
       builtin = ast::Builtin::IndexIteratorSetKeySmallInt;
       break;
-    case terrier::type::TypeId::BIGINT:
+    case type::TypeId::BIGINT:
       builtin = ast::Builtin::IndexIteratorSetKeyBigInt;
       break;
-    case terrier::type::TypeId::DECIMAL:
+    case type::TypeId::DECIMAL:
       builtin = ast::Builtin::IndexIteratorSetKeyDouble;
       break;
-      // case terrier::type::TypeId::DATE:
+      // case type::TypeId::DATE:
       // builtin = nullable ? ast::Builtin::IndexIteratorGetDateNull : ast::Builtin::IndexIteratorGetDate;
       // break;
-      // case terrier::type::TypeId::VARCHAR:
+      // case type::TypeId::VARCHAR:
       // builtin = nullable ? ast::Builtin::IndexIteratorGetVarlenNull : ast::Builtin::IndexIteratorGetVarlen;
       // break;
     default:

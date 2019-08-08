@@ -1,9 +1,9 @@
-#include "execution/tpl_test.h"  // NOLINT
+#include "execution/tpl_test.h"
 
 #include "execution/sql/aggregators.h"
 #include "execution/sql/value.h"
 
-namespace terrier::sql::test {
+namespace terrier::execution::sql::test {
 
 class AggregatorsTest : public TplTest {};
 
@@ -489,4 +489,4 @@ TEST_F(AggregatorsTest, Avg) {
   EXPECT_DOUBLE_EQ(0.0, avg1.GetResultAvg().val);
 }
 
-}  // namespace terrier::sql::test
+}  // namespace terrier::execution::sql::test

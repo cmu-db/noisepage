@@ -40,8 +40,7 @@ class TableGenerator {
    * @param store block store to use when creating tables
    * @param ns_oid oid of the namespace
    */
-  explicit TableGenerator(exec::ExecutionContext *exec_ctx, terrier::storage::BlockStore *store,
-                          terrier::catalog::namespace_oid_t ns_oid)
+  explicit TableGenerator(exec::ExecutionContext *exec_ctx, storage::BlockStore *store, catalog::namespace_oid_t ns_oid)
       : exec_ctx_{exec_ctx}, store_{store}, ns_oid_{ns_oid}, table_reader{exec_ctx, store, ns_oid} {}
 
   /**
@@ -69,8 +68,8 @@ class TableGenerator {
 
  private:
   exec::ExecutionContext *exec_ctx_;
-  terrier::storage::BlockStore *store_;
-  terrier::catalog::namespace_oid_t ns_oid_;
+  storage::BlockStore *store_;
+  catalog::namespace_oid_t ns_oid_;
   TableReader table_reader;
 
   /**
@@ -90,7 +89,7 @@ class TableGenerator {
     /**
      * Type of the column
      */
-    const terrier::type::TypeId type_;
+    const type::TypeId type_;
     /**
      * Whether the column is nullable
      */
@@ -111,7 +110,7 @@ class TableGenerator {
     /**
      * Constructor
      */
-    ColumnInsertMeta(const char *name, const terrier::type::TypeId type, bool nullable, Dist dist, u64 min, u64 max)
+    ColumnInsertMeta(const char *name, const type::TypeId type, bool nullable, Dist dist, u64 min, u64 max)
         : name(name), type_(type), nullable(nullable), dist(dist), min(min), max(max) {}
   };
 
@@ -151,7 +150,7 @@ class TableGenerator {
     /**
      * Type of the column
      */
-    const terrier::type::TypeId type;
+    const type::TypeId type;
     /**
      * Whether the columns is nullable
      */
@@ -164,7 +163,7 @@ class TableGenerator {
     /**
      * Constructor
      */
-    IndexColumn(const char *name, const terrier::type::TypeId type, bool nullable, const char *table_col_name)
+    IndexColumn(const char *name, const type::TypeId type, bool nullable, const char *table_col_name)
         : name(name), type(type), nullable(nullable), table_col_name(table_col_name) {}
   };
 
@@ -202,17 +201,15 @@ class TableGenerator {
   std::pair<byte *, u32 *> GenerateColumnData(const ColumnInsertMeta &col_meta, u32 num_rows);
 
   // Fill a given table according to its metadata
-  void FillTable(terrier::catalog::table_oid_t table_oid,
-                 terrier::common::ManagedPointer<terrier::storage::SqlTable> table,
-                 const terrier::catalog::Schema &schema, const TableInsertMeta &table_meta);
+  void FillTable(catalog::table_oid_t table_oid, common::ManagedPointer<storage::SqlTable> table,
+                 const catalog::Schema &schema, const TableInsertMeta &table_meta);
 
-  void FillIndex(terrier::common::ManagedPointer<terrier::storage::index::Index> index,
-                 const terrier::catalog::IndexSchema &index_schema, const IndexInsertMeta &index_meta,
-                 terrier::common::ManagedPointer<terrier::storage::SqlTable> table,
-                 const terrier::catalog::Schema &table_schema);
+  void FillIndex(common::ManagedPointer<storage::index::Index> index, const catalog::IndexSchema &index_schema,
+                 const IndexInsertMeta &index_meta, common::ManagedPointer<storage::SqlTable> table,
+                 const catalog::Schema &table_schema);
 
   terrier::parser::ConstantValueExpression DummyCVE() {
-    return terrier::parser::ConstantValueExpression(terrier::type::TransientValueFactory::GetInteger(0));
+    return terrier::parser::ConstantValueExpression(type::TransientValueFactory::GetInteger(0));
   }
 };
 

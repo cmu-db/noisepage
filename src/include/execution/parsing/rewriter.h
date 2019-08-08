@@ -27,7 +27,7 @@ class Rewriter {
    * @param ctx The ast context
    * @param accessor The catalog accessor
    */
-  Rewriter(ast::Context *ctx, terrier::catalog::CatalogAccessor *accessor);
+  Rewriter(ast::Context *ctx, catalog::CatalogAccessor *accessor);
 
   /**
    * Attempts to rewrite a builtin call.
@@ -39,7 +39,7 @@ class Rewriter {
   ast::Expr *RewriteBuiltinCall(ast::CallExpr *call);
 
  private:
-  using IndexProjectionMap = std::unordered_map<terrier::catalog::indexkeycol_oid_t, uint16_t>;
+  using IndexProjectionMap = std::unordered_map<catalog::indexkeycol_oid_t, uint16_t>;
 
   ast::Expr *RewritePCIGet(ast::CallExpr *call, ast::Builtin old_builtin);
   ast::Expr *RewriteTableAndIndexInitCall(ast::CallExpr *call, ast::Builtin old_builtin);
@@ -48,15 +48,15 @@ class Rewriter {
   ast::Expr *RewriteFilterCall(ast::CallExpr *call, ast::Builtin old_builtin);
 
   ast::Context *ctx_;
-  terrier::catalog::CatalogAccessor *accessor_;
+  catalog::CatalogAccessor *accessor_;
   // Map from alias to table oid
-  std::unordered_map<std::string, terrier::catalog::table_oid_t> table_oids_;
+  std::unordered_map<std::string, catalog::table_oid_t> table_oids_;
 
   // Caches to avoid multiple catalog calls.
-  std::unordered_map<std::string, terrier::catalog::Schema> table_schemas_;
-  std::unordered_map<std::string, std::vector<terrier::catalog::col_oid_t>> col_oids_;
-  std::unordered_map<std::string, terrier::storage::ProjectionMap> table_offsets_;
-  std::unordered_map<std::string, terrier::catalog::IndexSchema> index_schemas_;
+  std::unordered_map<std::string, catalog::Schema> table_schemas_;
+  std::unordered_map<std::string, std::vector<catalog::col_oid_t>> col_oids_;
+  std::unordered_map<std::string, storage::ProjectionMap> table_offsets_;
+  std::unordered_map<std::string, catalog::IndexSchema> index_schemas_;
   std::unordered_map<std::string, IndexProjectionMap> index_offsets_;
 };
 

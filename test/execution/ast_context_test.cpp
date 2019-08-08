@@ -1,13 +1,13 @@
 #include <string>
 #include <unordered_set>
 
-#include "execution/tpl_test.h"  // NOLINT
+#include "execution/tpl_test.h"
 
 #include "execution/ast/ast_node_factory.h"
 #include "execution/ast/context.h"
 #include "execution/sema/error_reporter.h"
 
-namespace terrier::ast::test {
+namespace terrier::execution::ast::test {
 
 class ContextTest : public TplTest {};
 
@@ -35,4 +35,4 @@ TEST_F(ContextTest, CreateNewStringsTest) {
   }
 }
 
-}  // namespace terrier::ast::test
+}  // namespace terrier::execution::ast::test

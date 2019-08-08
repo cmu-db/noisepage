@@ -10,7 +10,7 @@
 #include "transaction/transaction_manager.h"
 
 namespace terrier::execution::exec {
-using terrier::transaction::TransactionContext;
+using transaction::TransactionContext;
 
 /**
  * Execution Context: Stores information handed in by upper layers.
@@ -66,9 +66,8 @@ class ExecutionContext {
    * @param schema the schema of the output
    * @param accessor the catalog accessor of this query
    */
-  ExecutionContext(terrier::catalog::db_oid_t db_oid, TransactionContext *txn, const OutputCallback &callback,
-                   const terrier::planner::OutputSchema *schema,
-                   std::unique_ptr<terrier::catalog::CatalogAccessor> &&accessor)
+  ExecutionContext(catalog::db_oid_t db_oid, TransactionContext *txn, const OutputCallback &callback,
+                   const planner::OutputSchema *schema, std::unique_ptr<catalog::CatalogAccessor> &&accessor)
       : db_oid_(db_oid),
         txn_(txn),
         buffer_(schema == nullptr
@@ -106,24 +105,24 @@ class ExecutionContext {
    * @param schema the schema of the output
    * @return the size of tuple with this final_schema
    */
-  static uint32_t ComputeTupleSize(const terrier::planner::OutputSchema *schema);
+  static uint32_t ComputeTupleSize(const planner::OutputSchema *schema);
 
   /**
    * @return the catalog accessor
    */
-  terrier::catalog::CatalogAccessor *GetAccessor() { return accessor_.get(); }
+  catalog::CatalogAccessor *GetAccessor() { return accessor_.get(); }
 
   /**
    * @return the db oid
    */
-  terrier::catalog::db_oid_t DBOid() { return db_oid_; }
+  catalog::db_oid_t DBOid() { return db_oid_; }
 
  private:
-  terrier::catalog::db_oid_t db_oid_;
+  catalog::db_oid_t db_oid_;
   TransactionContext *txn_;
   std::unique_ptr<OutputBuffer> buffer_;
   std::unique_ptr<sql::MemoryPool> mem_pool_{nullptr};
   StringAllocator string_allocator_;
-  std::unique_ptr<terrier::catalog::CatalogAccessor> accessor_;
+  std::unique_ptr<catalog::CatalogAccessor> accessor_;
 };
 }  // namespace terrier::execution::exec

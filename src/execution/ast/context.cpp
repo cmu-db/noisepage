@@ -39,8 +39,6 @@ namespace terrier::execution::ast {
  */
 llvm::hash_code hash_value(const Field &field) { return llvm::hash_combine(field.name.data(), field.type); }
 
-using terrier::type::TypeId;
-
 struct StructTypeKeyInfo {
   struct KeyTy {
     const util::RegionVector<Field> &elements;

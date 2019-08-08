@@ -3,13 +3,13 @@
 #include <random>
 #include <vector>
 
-#include "execution/tpl_test.h"  // NOLINT
+#include "execution/tpl_test.h"
 
 #include "execution/sql/functions/arithmetic_functions.h"
 #include "execution/sql/value.h"
 #include "execution/util/timer.h"
 
-namespace terrier::sql::test {
+namespace terrier::execution::sql::test {
 
 class ArithmeticFunctionsTests : public TplTest {
  protected:
@@ -304,4 +304,4 @@ TEST_F(ArithmeticFunctionsTests, MathFuncs) {
   };
 }
 
-}  // namespace terrier::sql::test
+}  // namespace terrier::execution::sql::test

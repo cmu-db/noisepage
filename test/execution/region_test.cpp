@@ -1,8 +1,8 @@
-#include "execution/tpl_test.h"  // NOLINT
+#include "execution/tpl_test.h"
 
 #include "execution/util/region.h"
 
-namespace terrier::util::test {
+namespace terrier::execution::util::test {
 
 class RegionTest : public TplTest {};
 
@@ -24,4 +24,4 @@ TEST_F(RegionTest, Simple) {
   }
 }
 
-}  // namespace terrier::util::test
+}  // namespace terrier::execution::util::test

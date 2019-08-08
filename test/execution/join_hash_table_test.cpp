@@ -1,7 +1,7 @@
 #include <random>
 #include <vector>
 
-#include "execution/tpl_test.h"  // NOLINT
+#include "execution/tpl_test.h"
 
 #include <tbb/tbb.h>  // NOLINT
 
@@ -9,7 +9,7 @@
 #include "execution/sql/thread_state_container.h"
 #include "execution/util/hash.h"
 
-namespace terrier::sql::test {
+namespace terrier::execution::sql::test {
 
 /**
  * This is the tuple we insert into the hash table
@@ -233,4 +233,4 @@ TEST_F(JoinHashTableTest, DISABLED_PerfTest) {
   bench(true, num_tuples);
 }
 
-}  // namespace terrier::sql::test
+}  // namespace terrier::execution::sql::test

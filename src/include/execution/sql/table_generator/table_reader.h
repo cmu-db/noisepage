@@ -27,8 +27,7 @@ class TableReader {
    * @param store block store to use when creating tables
    * @param ns_oid oid of the namespace
    */
-  explicit TableReader(exec::ExecutionContext *exec_ctx, terrier::storage::BlockStore *store,
-                       terrier::catalog::namespace_oid_t ns_oid)
+  explicit TableReader(exec::ExecutionContext *exec_ctx, storage::BlockStore *store, catalog::namespace_oid_t ns_oid)
       : exec_ctx_{exec_ctx}, store_{store}, ns_oid_{ns_oid} {}
 
   /**
@@ -41,20 +40,19 @@ class TableReader {
 
  private:
   // Calls the accessor's create table
-  terrier::catalog::table_oid_t CreateTable(TableInfo *info);
+  catalog::table_oid_t CreateTable(TableInfo *info);
 
   // Calls the accessor's create index
-  std::vector<terrier::catalog::index_oid_t> CreateIndexes(TableInfo *info, terrier::catalog::table_oid_t table_oid);
+  std::vector<catalog::index_oid_t> CreateIndexes(TableInfo *info, catalog::table_oid_t table_oid);
 
   // Writes a column according to its type.
-  void WriteTableCol(terrier::storage::ProjectedRow *insert_pr, uint16_t col_offset, terrier::type::TypeId type,
-                     csv::CSVField *field);
+  void WriteTableCol(storage::ProjectedRow *insert_pr, uint16_t col_offset, type::TypeId type, csv::CSVField *field);
 
  private:
   // Postgres NULL string
   static constexpr const char *null_string = "\\N";
   exec::ExecutionContext *exec_ctx_;
-  terrier::storage::BlockStore *store_;
-  terrier::catalog::namespace_oid_t ns_oid_;
+  storage::BlockStore *store_;
+  catalog::namespace_oid_t ns_oid_;
 };
 }  // namespace terrier::execution::sql

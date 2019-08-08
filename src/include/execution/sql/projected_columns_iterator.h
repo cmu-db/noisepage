@@ -10,8 +10,6 @@
 #include "type/type_id.h"
 
 namespace terrier::execution::sql {
-using terrier::storage::ProjectedColumns;
-using terrier::type::TypeId;
 /**
  * An iterator over projections. A ProjectedColumnsIterator allows both
  * tuple-at-a-time iteration over a vector projection and vector-at-a-time
@@ -33,7 +31,7 @@ class ProjectedColumnsIterator {
    * Create an iterator over the given projection @em projected_column
    * @param projected_column The projection to iterate over
    */
-  explicit ProjectedColumnsIterator(ProjectedColumns *projected_column);
+  explicit ProjectedColumnsIterator(storage::ProjectedColumns *projected_column);
 
   /**
    * This class cannot be copied or moved
@@ -50,7 +48,7 @@ class ProjectedColumnsIterator {
    * Reset this iterator to begin iteration over the given projection @em projected_column
    * @param projected_column The projection to iterate over
    */
-  void SetProjectedColumn(ProjectedColumns *projected_column);
+  void SetProjectedColumn(storage::ProjectedColumns *projected_column);
 
   // -------------------------------------------------------
   // Tuple-at-a-time API
@@ -171,15 +169,15 @@ class ProjectedColumnsIterator {
    * @param type type of the value
    * @return filter val of the given type
    */
-  FilterVal MakeFilterVal(i64 val, TypeId type) {
+  FilterVal MakeFilterVal(i64 val, type::TypeId type) {
     switch (type) {
-      case TypeId::TINYINT:
+      case type::TypeId::TINYINT:
         return FilterVal{.ti = static_cast<i8>(val)};
-      case TypeId::SMALLINT:
+      case type::TypeId::SMALLINT:
         return FilterVal{.si = static_cast<i16>(val)};
-      case TypeId::INTEGER:
+      case type::TypeId::INTEGER:
         return FilterVal{.i = static_cast<i32>(val)};
-      case TypeId::BIGINT:
+      case type::TypeId::BIGINT:
         return FilterVal{.bi = static_cast<i64>(val)};
       default:
         throw std::runtime_error("Filter not supported on type");
@@ -195,7 +193,7 @@ class ProjectedColumnsIterator {
    * @return The number of selected elements.
    */
   template <template <typename> typename Op>
-  u32 FilterColByVal(u32 col_idx, terrier::type::TypeId type, FilterVal val);
+  u32 FilterColByVal(u32 col_idx, type::TypeId type, FilterVal val);
 
   /**
    * Filter the column at index @em col_idx_1 with the contents of the column
@@ -208,7 +206,7 @@ class ProjectedColumnsIterator {
    * @return The number of selected elements.
    */
   template <template <typename> typename Op>
-  u32 FilterColByCol(u32 col_idx_1, terrier::type::TypeId type_1, u32 col_idx_2, terrier::type::TypeId type_2);
+  u32 FilterColByCol(u32 col_idx_1, type::TypeId type_1, u32 col_idx_2, type::TypeId type_2);
 
   /**
    * Return the number of selected tuples after any filters have been applied
@@ -229,7 +227,7 @@ class ProjectedColumnsIterator {
   alignas(CACHELINE_SIZE) u32 selection_vector_[kDefaultVectorSize];
 
   // The projected column we are iterating over.
-  ProjectedColumns *projected_column_{nullptr};
+  storage::ProjectedColumns *projected_column_{nullptr};
 
   // The current raw position in the ProjectedColumns we're pointing to
   u32 curr_idx_{0};

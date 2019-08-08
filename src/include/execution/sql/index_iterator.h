@@ -8,10 +8,6 @@
 #include "storage/storage_defs.h"
 
 namespace terrier::execution::sql {
-using terrier::storage::ProjectedRow;
-using terrier::storage::TupleSlot;
-using terrier::transaction::TransactionContext;
-
 /**
  * Allows iteration for indices from TPL.
  */
@@ -102,13 +98,13 @@ class IndexIterator {
   uint32_t curr_index_ = 0;
   byte *index_buffer_;
   byte *table_buffer_;
-  ProjectedRow *index_pr_;
-  ProjectedRow *table_pr_;
-  terrier::common::ManagedPointer<terrier::storage::index::Index> index_;
-  terrier::common::ManagedPointer<terrier::storage::SqlTable> table_;
-  const terrier::catalog::Schema &schema_;
-  std::vector<terrier::catalog::col_oid_t> col_oids_;
-  std::vector<TupleSlot> tuples_{};
+  storage::ProjectedRow *index_pr_;
+  storage::ProjectedRow *table_pr_;
+  common::ManagedPointer<storage::index::Index> index_;
+  common::ManagedPointer<storage::SqlTable> table_;
+  const catalog::Schema &schema_;
+  std::vector<catalog::col_oid_t> col_oids_;
+  std::vector<storage::TupleSlot> tuples_{};
 };
 
 }  // namespace terrier::execution::sql

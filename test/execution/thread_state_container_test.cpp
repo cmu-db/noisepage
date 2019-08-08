@@ -7,11 +7,11 @@
 
 #include <tbb/tbb.h>  // NOLINT
 
-#include "execution/tpl_test.h"  // NOLINT
+#include "execution/tpl_test.h"
 
 #include "execution/sql/thread_state_container.h"
 
-namespace terrier::sql::test {
+namespace terrier::execution::sql::test {
 
 class ThreadStateContainerTest : public TplTest {
  protected:
@@ -138,4 +138,4 @@ TEST_F(ThreadStateContainerTest, SimpleContainerTest) {
   }
 }
 
-}  // namespace terrier::sql::test
+}  // namespace terrier::execution::sql::test

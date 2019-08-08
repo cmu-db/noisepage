@@ -3,7 +3,7 @@
 #include <random>
 #include <vector>
 
-#include "execution/sql_test.h"  // NOLINT
+#include "execution/sql_test.h"
 
 #include "catalog/catalog.h"
 #include "execution/sql/join_hash_table.h"
@@ -14,7 +14,7 @@
 #include "transaction/transaction_defs.h"
 #include "type/type_id.h"
 
-namespace terrier::sql::test {
+namespace terrier::execution::sql::test {
 
 /// This is the tuple we insert into the hash table
 template <u8 N>
@@ -37,36 +37,34 @@ class JoinHashTableVectorProbeTest : public SqlBasedTest {
     // TODO(Amadou): Come up with an easier way to create ProjectedColumns.
     // This should be done after the catalog PR is merged in.
     // Create column metadata for every column.
-    terrier::catalog::Schema::Column col_a("col_a", terrier::type::TypeId::INTEGER, false, DummyCVE());
-    terrier::catalog::Schema::Column col_b("col_b", terrier::type::TypeId::INTEGER, false, DummyCVE());
+    catalog::Schema::Column col_a("col_a", type::TypeId::INTEGER, false, DummyCVE());
+    catalog::Schema::Column col_b("col_b", type::TypeId::INTEGER, false, DummyCVE());
 
     // Create the table in the catalog.
-    terrier::catalog::Schema tmp_schema({col_a, col_b});
+    catalog::Schema tmp_schema({col_a, col_b});
     auto table_oid = exec_ctx_->GetAccessor()->CreateTable(NSOid(), "hash_join_test_table", tmp_schema);
     auto schema = exec_ctx_->GetAccessor()->GetSchema(table_oid);
-    auto sql_table = new terrier::storage::SqlTable(BlockStore(), schema);
+    auto sql_table = new storage::SqlTable(BlockStore(), schema);
     exec_ctx_->GetAccessor()->SetTablePointer(table_oid, sql_table);
 
     // Create a ProjectedColumns
-    std::vector<terrier::catalog::col_oid_t> col_oids;
+    std::vector<catalog::col_oid_t> col_oids;
     for (const auto &col : schema.GetColumns()) {
       col_oids.emplace_back(col.Oid());
     }
     auto initializer_map = sql_table->InitializerForProjectedColumns(col_oids, kDefaultVectorSize);
 
-    buffer_ = terrier::common::AllocationUtil::AllocateAligned(initializer_map.first.ProjectedColumnsSize());
+    buffer_ = common::AllocationUtil::AllocateAligned(initializer_map.first.ProjectedColumnsSize());
     projected_columns_ = initializer_map.first.Initialize(buffer_);
     projected_columns_->SetNumTuples(kDefaultVectorSize);
   }
 
   // Delete allocated objects and remove the created table.
-  ~JoinHashTableVectorProbeTest() override {
-    delete[] buffer_;
-  }
+  ~JoinHashTableVectorProbeTest() override { delete[] buffer_; }
 
   MemoryPool *memory() { return &memory_; }
 
-  terrier::storage::ProjectedColumns *GetProjectedColumns() { return projected_columns_; }
+  storage::ProjectedColumns *GetProjectedColumns() { return projected_columns_; }
 
  protected:
   template <u8 N, typename F>
@@ -106,7 +104,7 @@ class JoinHashTableVectorProbeTest : public SqlBasedTest {
 
  private:
   MemoryPool memory_;
-  terrier::storage::ProjectedColumns *projected_columns_{nullptr};
+  storage::ProjectedColumns *projected_columns_{nullptr};
 
   byte *buffer_{nullptr};
   std::unique_ptr<exec::ExecutionContext> exec_ctx_;
@@ -233,4 +231,4 @@ TEST_F(JoinHashTableVectorProbeTest, DISABLED_PerfLookupTest) {
   bench(true);
 }
 
-}  // namespace terrier::sql::test
+}  // namespace terrier::execution::sql::test
