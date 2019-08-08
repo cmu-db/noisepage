@@ -29,7 +29,7 @@ class RecoveryTests : public TerrierTest {
   storage::RecordBufferSegmentPool pool_{2000, 100};
   storage::BlockStore block_store_{100, 100};
 
-  storage::GarbageCollector* gc_;
+  storage::GarbageCollector *gc_;
   common::DedicatedThreadRegistry thread_registry_;
 
   void SetUp() override {
@@ -47,9 +47,10 @@ class RecoveryTests : public TerrierTest {
   void RunTest(const LargeSqlTableTestConfiguration &config) {
     // Initialize table and run workload with logging enabled
     LogManager log_manager(LOG_FILE_NAME, num_log_buffers_, log_serialization_interval_, log_persist_interval_,
-                                  log_persist_threshold_, &pool_, common::ManagedPointer(&thread_registry_));
+                           log_persist_threshold_, &pool_, common::ManagedPointer(&thread_registry_));
     log_manager.Start();
-    LargeSqlTableTestObject* tested = new LargeSqlTableTestObject(config, &block_store_, &pool_, &generator_, &log_manager);
+    LargeSqlTableTestObject *tested =
+        new LargeSqlTableTestObject(config, &block_store_, &pool_, &generator_, &log_manager);
 
     // Run transactions and fully persist all changes
     tested->SimulateOltp(100, 4);
@@ -64,7 +65,7 @@ class RecoveryTests : public TerrierTest {
     // Instantiate recovery manager, and recover the tables.
     DiskLogProvider log_provider(LOG_FILE_NAME);
     RecoveryManager recovery_manager(&log_provider, common::ManagedPointer(&recovered_catalog), &recovery_txn_manager,
-                            common::ManagedPointer(&thread_registry_), &block_store_);
+                                     common::ManagedPointer(&thread_registry_), &block_store_);
     recovery_manager.StartRecovery();
     recovery_manager.FinishRecovery();
 

@@ -263,7 +263,7 @@ class RecoveryManager : public common::DedicatedThreadOwner {
    * @param db_catalog database catalog that has given index
    * @return pointer to catalog index
    */
-  storage::index::Index* GetCatalogIndex(catalog::index_oid_t oid, common::ManagedPointer<catalog::DatabaseCatalog>& db_catalog);
-
+  storage::index::Index *GetCatalogIndex(catalog::index_oid_t oid,
+                                         const common::ManagedPointer<catalog::DatabaseCatalog> &db_catalog);
 };
 }  // namespace terrier::storage
