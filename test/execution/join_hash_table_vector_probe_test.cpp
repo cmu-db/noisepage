@@ -60,9 +60,7 @@ class JoinHashTableVectorProbeTest : public SqlBasedTest {
   }
 
   // Delete allocated objects and remove the created table.
-  ~JoinHashTableVectorProbeTest() override {
-    delete[] buffer_;
-  }
+  ~JoinHashTableVectorProbeTest() override { delete[] buffer_; }
 
   MemoryPool *memory() { return &memory_; }
 

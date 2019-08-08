@@ -26,8 +26,7 @@ void TableGenerator::GenerateTPCHTables(const std::string &dir_name) {
       "part", "supplier", "partsupp", "customer", "orders", "lineitem", "nation", "region",
   };
   for (const auto &table_name : tpch_tables) {
-    u32 num_rows =
-        table_reader.ReadTable(dir_name + table_name + ".schema", dir_name + table_name + ".data");
+    u32 num_rows = table_reader.ReadTable(dir_name + table_name + ".schema", dir_name + table_name + ".data");
     std::cout << "Wrote " << num_rows << " rows for table " << table_name << std::endl;
   }
 }

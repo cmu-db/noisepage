@@ -31,7 +31,7 @@ TEST_F(IndexIteratorTest, SimpleIndexIteratorTest) {
   //
 
   auto table_oid = exec_ctx_->GetAccessor()->GetTableOid(NSOid(), "test_1");
-  const auto & schema = exec_ctx_->GetAccessor()->GetSchema(table_oid);
+  const auto &schema = exec_ctx_->GetAccessor()->GetSchema(table_oid);
   auto index_oid = exec_ctx_->GetAccessor()->GetIndexOid(NSOid(), "index_1");
   TableVectorIterator table_iter(!table_oid, exec_ctx_.get());
   IndexIterator index_iter{!table_oid, !index_oid, exec_ctx_.get()};

@@ -35,24 +35,24 @@ class Context;
 //           implementations, but can also be created and manipulated from TPL
 //           code. We specialize these because we also want to add SQL-level
 //           type information to these builtins.
-#define BUILTIN_TYPE_LIST(PRIM, NON_PRIM, SQL)                                   \
-  /* Primitive types */                                                          \
-  PRIM(Nil, u8, "nil")                                                           \
-  PRIM(Bool, bool, "bool")                                                       \
-  PRIM(Int8, i8, "int8")                                                         \
-  PRIM(Int16, i16, "int16")                                                      \
-  PRIM(Int32, i32, "int32")                                                      \
-  PRIM(Int64, i64, "int64")                                                      \
-  PRIM(Uint8, u8, "uint8")                                                       \
-  PRIM(Uint16, u16, "uint16")                                                    \
-  PRIM(Uint32, u32, "uint32")                                                    \
-  PRIM(Uint64, u64, "uint64")                                                    \
-  PRIM(Int128, i128, "int128")                                                   \
-  PRIM(Uint128, u128, "uint128")                                                 \
-  PRIM(Float32, f32, "float32")                                                  \
-  PRIM(Float64, f64, "float64")                                                  \
-                                                                                 \
-  /* Non-primitive builtins */                                                   \
+#define BUILTIN_TYPE_LIST(PRIM, NON_PRIM, SQL)                                       \
+  /* Primitive types */                                                              \
+  PRIM(Nil, u8, "nil")                                                               \
+  PRIM(Bool, bool, "bool")                                                           \
+  PRIM(Int8, i8, "int8")                                                             \
+  PRIM(Int16, i16, "int16")                                                          \
+  PRIM(Int32, i32, "int32")                                                          \
+  PRIM(Int64, i64, "int64")                                                          \
+  PRIM(Uint8, u8, "uint8")                                                           \
+  PRIM(Uint16, u16, "uint16")                                                        \
+  PRIM(Uint32, u32, "uint32")                                                        \
+  PRIM(Uint64, u64, "uint64")                                                        \
+  PRIM(Int128, i128, "int128")                                                       \
+  PRIM(Uint128, u128, "uint128")                                                     \
+  PRIM(Float32, f32, "float32")                                                      \
+  PRIM(Float64, f64, "float64")                                                      \
+                                                                                     \
+  /* Non-primitive builtins */                                                       \
   NON_PRIM(AggregationHashTable, terrier::sql::AggregationHashTable)                 \
   NON_PRIM(AggregationHashTableIterator, terrier::sql::AggregationHashTableIterator) \
   NON_PRIM(AggOverflowPartIter, terrier::sql::AggregationOverflowPartitionIterator)  \
@@ -70,8 +70,8 @@ class Context;
   NON_PRIM(ThreadStateContainer, terrier::sql::ThreadStateContainer)                 \
   NON_PRIM(ProjectedColumnsIterator, terrier::sql::ProjectedColumnsIterator)         \
   NON_PRIM(IndexIterator, terrier::sql::IndexIterator)                               \
-                                                                                 \
-  /* SQL Aggregate types (if you add, remember to update BuiltinType) */         \
+                                                                                     \
+  /* SQL Aggregate types (if you add, remember to update BuiltinType) */             \
   NON_PRIM(CountAggregate, terrier::sql::CountAggregate)                             \
   NON_PRIM(CountStarAggregate, terrier::sql::CountStarAggregate)                     \
   NON_PRIM(IntegerAvgAggregate, terrier::sql::AvgAggregate)                          \
@@ -82,8 +82,8 @@ class Context;
   NON_PRIM(RealMaxAggregate, terrier::sql::RealMaxAggregate)                         \
   NON_PRIM(RealMinAggregate, terrier::sql::RealMinAggregate)                         \
   NON_PRIM(RealSumAggregate, terrier::sql::RealSumAggregate)                         \
-                                                                                 \
-  /* Non-primitive SQL Runtime Values */                                         \
+                                                                                     \
+  /* Non-primitive SQL Runtime Values */                                             \
   SQL(Boolean, terrier::sql::BoolVal)                                                \
   SQL(Integer, terrier::sql::Integer)                                                \
   SQL(Real, terrier::sql::Real)                                                      \

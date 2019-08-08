@@ -48,7 +48,8 @@ void OpPCIFilterGreaterThan(u64 *size, terrier::sql::ProjectedColumnsIterator *i
   *size = iter->FilterColByVal<std::greater>(col_idx, sql_type, v);
 }
 
-void OpPCIFilterGreaterThanEqual(u64 *size, terrier::sql::ProjectedColumnsIterator *iter, u32 col_idx, i8 type, i64 val) {
+void OpPCIFilterGreaterThanEqual(u64 *size, terrier::sql::ProjectedColumnsIterator *iter, u32 col_idx, i8 type,
+                                 i64 val) {
   auto sql_type = static_cast<terrier::type::TypeId>(type);
   auto v = iter->MakeFilterVal(val, sql_type);
   *size = iter->FilterColByVal<std::greater_equal>(col_idx, sql_type, v);
@@ -76,17 +77,21 @@ void OpPCIFilterNotEqual(u64 *size, terrier::sql::ProjectedColumnsIterator *iter
 // Filter Manager
 // ---------------------------------------------------------
 
-void OpFilterManagerInit(terrier::sql::FilterManager *filter_manager) { new (filter_manager) terrier::sql::FilterManager(); }
+void OpFilterManagerInit(terrier::sql::FilterManager *filter_manager) {
+  new (filter_manager) terrier::sql::FilterManager();
+}
 
 void OpFilterManagerStartNewClause(terrier::sql::FilterManager *filter_manager) { filter_manager->StartNewClause(); }
 
-void OpFilterManagerInsertFlavor(terrier::sql::FilterManager *filter_manager, terrier::sql::FilterManager::MatchFn flavor) {
+void OpFilterManagerInsertFlavor(terrier::sql::FilterManager *filter_manager,
+                                 terrier::sql::FilterManager::MatchFn flavor) {
   filter_manager->InsertClauseFlavor(flavor);
 }
 
 void OpFilterManagerFinalize(terrier::sql::FilterManager *filter_manager) { filter_manager->Finalize(); }
 
-void OpFilterManagerRunFilters(terrier::sql::FilterManager *filter_manager, terrier::sql::ProjectedColumnsIterator *pci) {
+void OpFilterManagerRunFilters(terrier::sql::FilterManager *filter_manager,
+                               terrier::sql::ProjectedColumnsIterator *pci) {
   filter_manager->RunFilters(pci);
 }
 
@@ -96,7 +101,8 @@ void OpFilterManagerFree(terrier::sql::FilterManager *filter_manager) { filter_m
 // Join Hash Table
 // ---------------------------------------------------------
 
-void OpJoinHashTableInit(terrier::sql::JoinHashTable *join_hash_table, terrier::sql::MemoryPool *memory, u32 tuple_size) {
+void OpJoinHashTableInit(terrier::sql::JoinHashTable *join_hash_table, terrier::sql::MemoryPool *memory,
+                         u32 tuple_size) {
   new (join_hash_table) terrier::sql::JoinHashTable(memory, tuple_size);
 }
 

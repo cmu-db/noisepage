@@ -110,9 +110,7 @@ class AggregationHashTableTest : public SqlBasedTest {
     return projected_columns_;
   }
 
-  void FreeProjectedColumns() {
-    delete[] buffer_;
-  }
+  void FreeProjectedColumns() { delete[] buffer_; }
 
  protected:
   /**

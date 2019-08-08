@@ -2,7 +2,7 @@
 #include <string>
 #include <vector>
 
-#include "csv/csv.h" // NOLINT
+#include "csv/csv.h"  // NOLINT
 #include "execution/sql/table_generator/table_reader.h"
 #include "execution/sql/value.h"
 

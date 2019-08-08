@@ -47,7 +47,7 @@ TEST_F(TableVectorIteratorTest, SimpleIteratorTest) {
   //
 
   auto table_oid = exec_ctx_->GetAccessor()->GetTableOid(NSOid(), "test_1");
-  const auto & schema = exec_ctx_->GetAccessor()->GetSchema(table_oid);
+  const auto &schema = exec_ctx_->GetAccessor()->GetSchema(table_oid);
   TableVectorIterator iter(!table_oid, exec_ctx_.get());
   iter.AddCol(!schema.GetColumn("colA").Oid());
   iter.Init();
@@ -57,7 +57,7 @@ TEST_F(TableVectorIteratorTest, SimpleIteratorTest) {
   i32 prev_val{0};
   while (iter.Advance()) {
     for (; pci->HasNext(); pci->Advance()) {
-      auto* val = pci->Get<i32, false>(0, nullptr);
+      auto *val = pci->Get<i32, false>(0, nullptr);
       if (num_tuples > 0) {
         ASSERT_EQ(*val, prev_val + 1);
       }
@@ -86,7 +86,7 @@ TEST_F(TableVectorIteratorTest, NullableTypesIteratorTest) {
   while (iter.Advance()) {
     for (; pci->HasNext(); pci->Advance()) {
       // The serial column is the smallest one (SmallInt type), so it should be the last index in the storage layer.
-      auto* val = pci->Get<i16, false>(3, nullptr);
+      auto *val = pci->Get<i16, false>(3, nullptr);
       if (num_tuples > 0) {
         ASSERT_EQ(*val, prev_val + 1);
       }
@@ -106,7 +106,7 @@ TEST_F(TableVectorIteratorTest, IteratorAddColTest) {
 
   auto table_oid = exec_ctx_->GetAccessor()->GetTableOid(NSOid(), "test_2");
   TableVectorIterator iter(!table_oid, exec_ctx_.get());
-  const auto & schema = exec_ctx_->GetAccessor()->GetSchema(table_oid);
+  const auto &schema = exec_ctx_->GetAccessor()->GetSchema(table_oid);
   iter.AddCol(!schema.GetColumn("col1").Oid());
   iter.Init();
   ProjectedColumnsIterator *pci = iter.projected_columns_iterator();
@@ -116,7 +116,7 @@ TEST_F(TableVectorIteratorTest, IteratorAddColTest) {
   while (iter.Advance()) {
     for (; pci->HasNext(); pci->Advance()) {
       // Because we only specified one column, its index is 0 instead of three
-      auto* val = pci->Get<i16, false>(0, nullptr);
+      auto *val = pci->Get<i16, false>(0, nullptr);
       if (num_tuples > 0) {
         ASSERT_EQ(*val, prev_val + 1);
       }

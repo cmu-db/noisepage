@@ -9,13 +9,13 @@ class IsNullPredicateTests : public TplTest {};
 
 // NOLINTNEXTLINE
 TEST_F(IsNullPredicateTests, IsNull) {
-#define CHECK_IS_NULL_FOR_TYPE(TYPE)                 \
-  {                                                  \
-    auto result = BoolVal::Null();                   \
-    const auto val = TYPE::Null();                   \
+#define CHECK_IS_NULL_FOR_TYPE(TYPE)                     \
+  {                                                      \
+    auto result = BoolVal::Null();                       \
+    const auto val = TYPE::Null();                       \
     terrier::sql::IsNullPredicate::IsNull(&result, val); \
-    EXPECT_FALSE(result.is_null);                    \
-    EXPECT_TRUE(result.val);                         \
+    EXPECT_FALSE(result.is_null);                        \
+    EXPECT_TRUE(result.val);                             \
   }
 
   CHECK_IS_NULL_FOR_TYPE(BoolVal);
@@ -30,13 +30,13 @@ TEST_F(IsNullPredicateTests, IsNull) {
 
 // NOLINTNEXTLINE
 TEST_F(IsNullPredicateTests, IsNotNull) {
-#define CHECK_IS_NOT_NULL_FOR_TYPE(TYPE, INIT)       \
-  {                                                  \
-    auto result = BoolVal::Null();                   \
-    const auto val = TYPE(INIT);                     \
+#define CHECK_IS_NOT_NULL_FOR_TYPE(TYPE, INIT)           \
+  {                                                      \
+    auto result = BoolVal::Null();                       \
+    const auto val = TYPE(INIT);                         \
     terrier::sql::IsNullPredicate::IsNull(&result, val); \
-    EXPECT_FALSE(result.is_null);                    \
-    EXPECT_FALSE(result.val);                        \
+    EXPECT_FALSE(result.is_null);                        \
+    EXPECT_FALSE(result.val);                            \
   }
 
   CHECK_IS_NOT_NULL_FOR_TYPE(BoolVal, false);

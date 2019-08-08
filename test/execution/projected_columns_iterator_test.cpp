@@ -158,9 +158,7 @@ class ProjectedColumnsIteratorTest : public SqlBasedTest {
   }
 
   // Delete allocated objects and remove the created table.
-  ~ProjectedColumnsIteratorTest() override {
-    delete[] buffer_;
-  }
+  ~ProjectedColumnsIteratorTest() override { delete[] buffer_; }
 
   // Used to test various ProjectedColumn sizes
   void SetSize(u32 size) { projected_columns_->SetNumTuples(size); }
