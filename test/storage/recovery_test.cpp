@@ -19,9 +19,6 @@
 namespace terrier::storage {
 class RecoveryTests : public TerrierTest {
  protected:
-  storage::LogManager *log_manager_;
-  storage::RecoveryManager *recovery_manager_;
-
   // Settings for log manager
   const uint64_t num_log_buffers_ = 100;
   const std::chrono::milliseconds log_serialization_interval_{10};
@@ -50,14 +47,14 @@ class RecoveryTests : public TerrierTest {
 
   void RunTest(const LargeSqlTableTestConfiguration &config) {
     // Initialize table and run workload with logging enabled
-    log_manager_ = new LogManager(LOG_FILE_NAME, num_log_buffers_, log_serialization_interval_, log_persist_interval_,
+    LogManager log_manager(LOG_FILE_NAME, num_log_buffers_, log_serialization_interval_, log_persist_interval_,
                                   log_persist_threshold_, &pool_, common::ManagedPointer(&thread_registry_));
-    log_manager_->Start();
-    LargeSqlTableTestObject tested = LargeSqlTableTestObject(config, &block_store_, &pool_, &generator_, log_manager_);
+    log_manager.Start();
+    LargeSqlTableTestObject* tested = new LargeSqlTableTestObject(config, &block_store_, &pool_, &generator_, &log_manager);
 
     // Run transactions and fully persist all changes
-    tested.SimulateOltp(100, 4);
-    log_manager_->PersistAndStop();
+    tested->SimulateOltp(100, 4);
+    log_manager.PersistAndStop();
 
     // Start a transaction manager with logging disabled, we don't want to log the log replaying
     transaction::TransactionManager recovery_txn_manager{&pool_, true, LOGGING_DISABLED};
@@ -67,20 +64,19 @@ class RecoveryTests : public TerrierTest {
 
     // Instantiate recovery manager, and recover the tables.
     DiskLogProvider log_provider(LOG_FILE_NAME);
-    recovery_manager_ =
-        new RecoveryManager(&log_provider, common::ManagedPointer(&recovered_catalog), &recovery_txn_manager,
+    RecoveryManager recovery_manager(&log_provider, common::ManagedPointer(&recovered_catalog), &recovery_txn_manager,
                             common::ManagedPointer(&thread_registry_), &block_store_);
-    recovery_manager_->StartRecovery();
-    recovery_manager_->FinishRecovery();
+    recovery_manager.StartRecovery();
+    recovery_manager.FinishRecovery();
 
     // We need to start the log manager because we will be doing queries into the LargeSqlTableTestObject's catalog
-    log_manager_->Start();
+    log_manager.Start();
 
     // Check we recovered all the original tables
-    for (auto &database_oid : tested.GetDatabases()) {
-      for (auto &table_oid : tested.GetTablesForDatabase(database_oid)) {
+    for (auto &database_oid : tested->GetDatabases()) {
+      for (auto &table_oid : tested->GetTablesForDatabase(database_oid)) {
         // Get original sql table
-        auto original_sql_table = tested.GetTable(database_oid, table_oid);
+        auto original_sql_table = tested->GetTable(database_oid, table_oid);
 
         // Get Recovered table
         auto *txn = recovery_txn_manager.BeginTransaction();
@@ -92,22 +88,23 @@ class RecoveryTests : public TerrierTest {
 
         EXPECT_TRUE(StorageTestUtil::SqlTableEqualDeep(original_sql_table->Layout(), original_sql_table,
                                                        recovered_sql_table,
-                                                       tested.GetTupleSlotsForTable(database_oid, table_oid),
-                                                       recovery_manager_->tuple_slot_map_, &recovery_txn_manager));
+                                                       tested->GetTupleSlotsForTable(database_oid, table_oid),
+                                                       recovery_manager.tuple_slot_map_, &recovery_txn_manager));
       }
     }
 
-    log_manager_->PersistAndStop();
-
     // Delete test txns
-    gc_thread_ = new storage::GarbageCollectorThread(tested.GetTxnManager(), gc_period_);
+    gc_thread_ = new storage::GarbageCollectorThread(tested->GetTxnManager(), gc_period_);
     delete gc_thread_;
+    delete tested;
+
+    log_manager.PersistAndStop();
 
     // Delete recovery txns
     gc_thread_ = new storage::GarbageCollectorThread(&recovery_txn_manager, gc_period_);
     delete gc_thread_;
-    delete recovery_manager_;
-    delete log_manager_;
+
+    recovered_catalog.TearDown();
   }
 };
 
