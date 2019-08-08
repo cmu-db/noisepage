@@ -253,7 +253,7 @@ class PostgresPacketWriter {
    * Writes error responses to the client
    * @param error_status The error messages to send
    */
-  void WriteErrorResponse(std::vector<std::pair<NetworkMessageType, std::string>> error_status) {
+  void WriteErrorResponse(const std::vector<std::pair<NetworkMessageType, std::string>> &error_status) {
     BeginPacket(NetworkMessageType::ERROR_RESPONSE);
 
     for (const auto &entry : error_status) AppendRawValue(entry.first).AppendString(entry.second);
