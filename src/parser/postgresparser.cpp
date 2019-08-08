@@ -632,7 +632,9 @@ std::unique_ptr<AbstractExpression> PostgresParser::NullTestTransform(NullTest *
       children.emplace_back(std::move(arg_expr));
       break;
     }
-    default: { PARSER_LOG_AND_THROW("NullTestTransform", "ArgExpr type", root->arg->type); }
+    default: {
+      PARSER_LOG_AND_THROW("NullTestTransform", "ArgExpr type", root->arg->type);
+    }
   }
 
   ExpressionType type =
@@ -678,7 +680,9 @@ std::unique_ptr<AbstractExpression> PostgresParser::SubqueryExprTransform(SubLin
       result = std::move(subquery_expr);
       break;
     }
-    default: { PARSER_LOG_AND_THROW("SubqueryExprTransform", "Sublink type", node->subLinkType); }
+    default: {
+      PARSER_LOG_AND_THROW("SubqueryExprTransform", "Sublink type", node->subLinkType);
+    }
   }
 
   return result;
@@ -719,7 +723,9 @@ std::unique_ptr<AbstractExpression> PostgresParser::ValueTransform(value val) {
       break;
     }
 
-    default: { PARSER_LOG_AND_THROW("ValueTransform", "Value type", val.type); }
+    default: {
+      PARSER_LOG_AND_THROW("ValueTransform", "Value type", val.type);
+    }
   }
   return result;
 }
@@ -805,7 +811,9 @@ std::unique_ptr<TableRef> PostgresParser::FromTransform(SelectStmt *select_root)
           refs.emplace_back(RangeSubselectTransform(reinterpret_cast<RangeSubselect *>(node)));
           break;
         }
-        default: { PARSER_LOG_AND_THROW("FromTransform", "FromType", node->type); }
+        default: {
+          PARSER_LOG_AND_THROW("FromTransform", "FromType", node->type);
+        }
       }
     }
     auto result = TableRef::CreateTableRefByList(std::move(refs));
@@ -830,7 +838,9 @@ std::unique_ptr<TableRef> PostgresParser::FromTransform(SelectStmt *select_root)
       result = RangeSubselectTransform(reinterpret_cast<RangeSubselect *>(node));
       break;
     }
-    default: { PARSER_LOG_AND_THROW("FromTransform", "FromType", node->type); }
+    default: {
+      PARSER_LOG_AND_THROW("FromTransform", "FromType", node->type);
+    }
   }
 
   return result;
@@ -883,14 +893,18 @@ std::unique_ptr<OrderByDescription> PostgresParser::OrderByTransform(List *order
             types.emplace_back(kOrderAsc);
             break;
           }
-          default: { PARSER_LOG_AND_THROW("OrderByTransform", "Sortby type", sort->sortby_dir); }
+          default: {
+            PARSER_LOG_AND_THROW("OrderByTransform", "Sortby type", sort->sortby_dir);
+          }
         }
 
         auto target = sort->node;
         exprs.emplace_back(ExprTransform(target));
         break;
       }
-      default: { PARSER_LOG_AND_THROW("OrderByTransform", "OrderBy type", temp->type); }
+      default: {
+        PARSER_LOG_AND_THROW("OrderByTransform", "OrderBy type", temp->type);
+      }
     }
   }
 
@@ -935,7 +949,9 @@ std::unique_ptr<JoinDefinition> PostgresParser::JoinTransform(JoinExpr *root) {
       type = JoinType::SEMI;
       break;
     }
-    default: { PARSER_LOG_AND_THROW("JoinTransform", "JoinType", root->jointype); }
+    default: {
+      PARSER_LOG_AND_THROW("JoinTransform", "JoinType", root->jointype);
+    }
   }
 
   std::unique_ptr<TableRef> left;
@@ -953,7 +969,9 @@ std::unique_ptr<JoinDefinition> PostgresParser::JoinTransform(JoinExpr *root) {
       left = TableRef::CreateTableRefByJoin(std::move(join));
       break;
     }
-    default: { PARSER_LOG_AND_THROW("JoinTransform", "JoinArgType", root->larg->type); }
+    default: {
+      PARSER_LOG_AND_THROW("JoinTransform", "JoinArgType", root->larg->type);
+    }
   }
 
   std::unique_ptr<TableRef> right;
@@ -971,7 +989,9 @@ std::unique_ptr<JoinDefinition> PostgresParser::JoinTransform(JoinExpr *root) {
       right = TableRef::CreateTableRefByJoin(std::move(join));
       break;
     }
-    default: { PARSER_LOG_AND_THROW("JoinTransform", "Right JoinArgType", root->rarg->type); }
+    default: {
+      PARSER_LOG_AND_THROW("JoinTransform", "Right JoinArgType", root->rarg->type);
+    }
   }
 
   std::unique_ptr<AbstractExpression> condition;
@@ -992,7 +1012,9 @@ std::unique_ptr<JoinDefinition> PostgresParser::JoinTransform(JoinExpr *root) {
       condition = BoolExprTransform(reinterpret_cast<BoolExpr *>(root->quals));
       break;
     }
-    default: { PARSER_LOG_AND_THROW("JoinTransform", "Join condition type", root->quals->type); }
+    default: {
+      PARSER_LOG_AND_THROW("JoinTransform", "Join condition type", root->quals->type);
+    }
   }
 
   auto result = std::make_unique<JoinDefinition>(type, std::move(left), std::move(right), std::move(condition));
@@ -1309,7 +1331,9 @@ std::unique_ptr<SQLStatement> PostgresParser::CreateSchemaTransform(CreateSchema
         schema_name = authrole->rolename;
         break;
       }
-      default: { PARSER_LOG_AND_THROW("CreateSchemaTransform", "AuthRole", root->authrole->type); }
+      default: {
+        PARSER_LOG_AND_THROW("CreateSchemaTransform", "AuthRole", root->authrole->type);
+      }
     }
   }
 
@@ -1413,11 +1437,15 @@ PostgresParser::ColumnDefTransResult PostgresParser::ColumnDefTransform(ColumnDe
             varlen = static_cast<size_t>(reinterpret_cast<A_Const *>(node)->val.val.ival);
             break;
           }
-          default: { PARSER_LOG_AND_THROW("ColumnDefTransform", "typmods", node_type); }
+          default: {
+            PARSER_LOG_AND_THROW("ColumnDefTransform", "typmods", node_type);
+          }
         }
         break;
       }
-      default: { PARSER_LOG_AND_THROW("ColumnDefTransform", "typmods", node->type); }
+      default: {
+        PARSER_LOG_AND_THROW("ColumnDefTransform", "typmods", node->type);
+      }
     }
   }
 
@@ -1481,7 +1509,9 @@ PostgresParser::ColumnDefTransResult PostgresParser::ColumnDefTransform(ColumnDe
           check_expr = ExprTransform(constraint->raw_expr);
           break;
         }
-        default: { PARSER_LOG_AND_THROW("ColumnDefTransform", "Constraint", constraint->contype); }
+        default: {
+          PARSER_LOG_AND_THROW("ColumnDefTransform", "Constraint", constraint->contype);
+        }
       }
     }
   }
@@ -1576,7 +1606,9 @@ std::unique_ptr<AbstractExpression> PostgresParser::WhenTransform(Node *root) {
       result = BoolExprTransform(reinterpret_cast<BoolExpr *>(root));
       break;
     }
-    default: { PARSER_LOG_AND_THROW("WhenTransform", "WHEN type", root->type); }
+    default: {
+      PARSER_LOG_AND_THROW("WhenTransform", "WHEN type", root->type);
+    }
   }
   return result;
 }
@@ -1604,7 +1636,9 @@ std::unique_ptr<DropStatement> PostgresParser::DropTransform(DropStmt *root) {
     case ObjectType::OBJECT_TRIGGER: {
       return DropTriggerTransform(root);
     }
-    default: { PARSER_LOG_AND_THROW("DropTransform", "Drop ObjectType", root->removeType); }
+    default: {
+      PARSER_LOG_AND_THROW("DropTransform", "Drop ObjectType", root->removeType);
+    }
   }
 }
 
@@ -1759,7 +1793,9 @@ std::vector<std::shared_ptr<AbstractExpression>> PostgresParser::ParamListTransf
         result.emplace_back(FuncCallTransform(node));
         break;
       }
-      default: { PARSER_LOG_AND_THROW("ParamListTransform", "ExpressionType", param->type); }
+      default: {
+        PARSER_LOG_AND_THROW("ParamListTransform", "ExpressionType", param->type);
+      }
     }
   }
 
@@ -1841,7 +1877,9 @@ std::unique_ptr<std::vector<std::vector<std::shared_ptr<AbstractExpression>>>> P
           cur_result.emplace_back(std::make_unique<DefaultValueExpression>());
           break;
         }
-        default: { PARSER_LOG_AND_THROW("ValueListsTransform", "Value type", expr->type); }
+        default: {
+          PARSER_LOG_AND_THROW("ValueListsTransform", "Value type", expr->type);
+        }
       }
     }
     result->emplace_back(std::move(cur_result));
@@ -1866,7 +1904,9 @@ std::unique_ptr<TransactionStatement> PostgresParser::TransactionTransform(Trans
       result = std::make_unique<TransactionStatement>(TransactionStatement::kRollback);
       break;
     }
-    default: { PARSER_LOG_AND_THROW("TransactionTransform", "TRANSACTION statement type", transaction_stmt->kind); }
+    default: {
+      PARSER_LOG_AND_THROW("TransactionTransform", "TRANSACTION statement type", transaction_stmt->kind);
+    }
   }
   return result;
 }
@@ -1905,7 +1945,9 @@ std::unique_ptr<AnalyzeStatement> PostgresParser::VacuumTransform(VacuumStmt *ro
       result = std::make_unique<AnalyzeStatement>(std::move(analyze_table), std::move(analyze_columns));
       break;
     }
-    default: { PARSER_LOG_AND_THROW("VacuumTransform", "Vacuum", root->options); }
+    default: {
+      PARSER_LOG_AND_THROW("VacuumTransform", "Vacuum", root->options);
+    }
   }
 
   return result;

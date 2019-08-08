@@ -395,7 +395,8 @@ class PostgresPacketWriter {
    * @param query The query string to be parsed
    * @param params Supplied parameter object types in the query
    */
-  void WriteParseCommand(const std::string &destinationStmt, const std::string &query, std::vector<int32_t> params) {
+  void WriteParseCommand(const std::string &destinationStmt, const std::string &query,
+                         const std::vector<int32_t> &params) {
     PostgresPacketWriter &writer = BeginPacket(NetworkMessageType::PARSE_COMMAND)
                                        .AppendString(destinationStmt)
                                        .AppendString(query)

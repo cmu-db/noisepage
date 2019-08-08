@@ -70,7 +70,8 @@ void Catalog::TearDown() {
 
   // The transaction was read-only and we do not need any side-effects
   // so we use an empty lambda for the callback function.
-  txn_manager_->Commit(txn, [](void *) {}, nullptr);
+  txn_manager_->Commit(
+      txn, [](void *) {}, nullptr);
 }
 
 db_oid_t Catalog::CreateDatabase(transaction::TransactionContext *const txn, const std::string &name,
@@ -288,7 +289,8 @@ transaction::Action Catalog::DeallocateDatabaseCatalog(DatabaseCatalog *dbc) {
   return [=]() {
     auto txn = txn_manager_->BeginTransaction();
     dbc->TearDown(txn);
-    txn_manager_->Commit(txn, [](void *) {}, nullptr);
+    txn_manager_->Commit(
+        txn, [](void *) {}, nullptr);
     delete dbc;
   };
 }
