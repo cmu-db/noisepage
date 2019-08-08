@@ -1,4 +1,4 @@
-#include "execution/sql/table_generator/table_generator.h"
+#include "execution/table_generator/table_generator.h"
 #include <algorithm>
 #include <memory>
 #include <random>
@@ -27,7 +27,7 @@ void TableGenerator::GenerateTPCHTables(const std::string &dir_name) {
   };
   for (const auto &table_name : tpch_tables) {
     u32 num_rows = table_reader.ReadTable(dir_name + table_name + ".schema", dir_name + table_name + ".data");
-    std::cout << "Wrote " << num_rows << " rows for table " << table_name << std::endl;
+    EXECUTION_LOG_INFO("Wrote {} into table {}.", num_rows, table_name);
   }
 }
 
@@ -166,7 +166,7 @@ void TableGenerator::FillTable(catalog::table_oid_t table_oid, common::ManagedPo
       std::free(col_data.second);
     }
   }
-  std::cout << "Wrote " << vals_written << " tuples into table " << table_meta.name << std::endl;
+  EXECUTION_LOG_INFO("Wrote {} tuples into table {}.", vals_written, table_meta.name);
 }
 
 void TableGenerator::GenerateTestTables() {
@@ -215,7 +215,6 @@ void TableGenerator::GenerateTestTables() {
     exec_ctx_->GetAccessor()->SetTablePointer(table_oid, tmp_table);
     auto table = exec_ctx_->GetAccessor()->GetTable(table_oid);
     FillTable(table_oid, table, schema, table_meta);
-    EXECUTION_LOG_INFO("Created Table {}", table_meta.name);
   }
 
   InitTestIndexes();
@@ -273,7 +272,7 @@ void TableGenerator::FillIndex(common::ManagedPointer<storage::index::Index> ind
   // Cleanup
   delete[] table_buffer;
   delete[] index_buffer;
-  std::cout << "Insert " << num_inserted << " tuples into " << index_meta.index_name << std::endl;
+  EXECUTION_LOG_INFO("Wrote {} tuples into index {}.", num_inserted, index_meta.index_name);
 }
 
 void TableGenerator::InitTestIndexes() {

@@ -79,7 +79,7 @@ class OutputBuffer {
 
 /**
  * Only For Debugging.
- * A OutputCallback that prints tuples to std::cout.
+ * A OutputCallback that prints tuples to standard out.
  */
 class OutputPrinter {
  public:

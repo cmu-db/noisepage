@@ -6,7 +6,7 @@
 #include <vector>
 
 #include "execution/exec/execution_context.h"
-#include "execution/sql/table_generator/schema_reader.h"
+#include "schema_reader.h"
 #include "transaction/transaction_context.h"
 #include "type/type_id.h"
 

@@ -4,8 +4,6 @@
 
 file(GLOB_RECURSE TERRIER_SRCS ${PROJECT_SOURCE_DIR}/src/*.cpp ${PROJECT_SOURCE_DIR}/src/include/*.h)
 list(REMOVE_ITEM TERRIER_SRCS ${PROJECT_SOURCE_DIR}/src/main/terrier.cpp)
-list(REMOVE_ITEM TERRIER_SRCS ${PROJECT_SOURCE_DIR}/src/execution/tpl.cpp)
-list(REMOVE_ITEM TERRIER_SRCS ${PROJECT_SOURCE_DIR}/src/execution/vm/gen_opt_bc.cpp)
 
 ###############################################
 # Third party sources
@@ -94,9 +92,3 @@ ADD_TERRIER_LIB(terrier
 ###############################################
 add_executable(terrier main/terrier.cpp)
 target_link_libraries(terrier terrier_shared)
-
-
-###############################################
-# TPL executable & bytecodes
-###############################################
-add_subdirectory(execution)

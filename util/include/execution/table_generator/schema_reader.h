@@ -158,13 +158,6 @@ class SchemaReader {
       } else {
         cols.emplace_back(col_name, col_type, nullable, DummyCVE());
       }
-      std::cout << "Read column: ";
-      std::cout << "col_name=" << col_name << ", ";
-      std::cout << "col_type=" << col_type_str << ", ";
-      if (col_type == type::TypeId::VARCHAR) {
-        std::cout << "varchar_size=" << varchar_size << ", ";
-      }
-      std::cout << "nullable=" << nullable << std::endl;
     }
     return cols;
   }

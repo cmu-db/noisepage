@@ -7,7 +7,7 @@
 #include <vector>
 #include "catalog/catalog.h"
 #include "execution/exec/execution_context.h"
-#include "execution/sql/table_generator/table_reader.h"
+#include "table_reader.h"
 #include "transaction/transaction_context.h"
 
 namespace terrier::execution::sql {

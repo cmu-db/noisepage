@@ -3,7 +3,7 @@
 #include <vector>
 
 #include "csv/csv.h"  // NOLINT
-#include "execution/sql/table_generator/table_reader.h"
+#include "execution/table_generator/table_reader.h"
 #include "execution/sql/value.h"
 
 namespace terrier::execution::sql {

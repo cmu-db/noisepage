@@ -334,6 +334,7 @@ else ()
     include_directories(${PROJECT_SOURCE_DIR}/third_party)
 endif ()
 include_directories(${PROJECT_SOURCE_DIR}/test/include)
+#include_directories(${PROJECT_SOURCE_DIR}/util/include)
 include_directories(${PROJECT_SOURCE_DIR}/benchmark/include)
 include_directories(${PROJECT_BINARY_DIR})
 
@@ -372,6 +373,7 @@ set(TERRIER_BENCHMARK_LINK_LIBS
 add_subdirectory(src)
 add_subdirectory(test)
 add_subdirectory(benchmark)
+add_subdirectory(util)
 
 # xxHash (for TPL)
 add_subdirectory(third_party/xxHash/cmake_unofficial)

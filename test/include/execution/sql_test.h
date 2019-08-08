@@ -8,7 +8,7 @@
 #include "execution/tpl_test.h"
 
 #include "execution/exec/execution_context.h"
-#include "execution/sql/table_generator/table_generator.h"
+#include "execution/table_generator/table_generator.h"
 #include "storage/garbage_collector.h"
 
 namespace terrier::execution {

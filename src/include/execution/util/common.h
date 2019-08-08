@@ -100,10 +100,4 @@ static constexpr const u32 MB = KB * KB;
  * GB
  */
 static constexpr const u32 GB = KB * KB * KB;
-
-/**
- * Namespace used by tests
- */
-static constexpr const char *TEST_NS = "test_ns";
-
 }  // namespace terrier

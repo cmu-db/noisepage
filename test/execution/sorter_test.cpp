@@ -142,6 +142,7 @@ void TestTopKRandomTupleSize(const u32 num_iters, const u32 max_elems, Random *g
   }
 }
 
+
 // NOLINTNEXTLINE
 TEST_F(SorterTest, SortTest) {
   const uint32_t num_iters = 5;
@@ -159,7 +160,7 @@ TEST_F(SorterTest, TopKTest) {
 // NOLINTNEXTLINE
 TEST_F(SorterTest, DISABLED_PerfSortTest) {
   // TODO(Amadou): Figure out a way to avoid manually changing this. Maybe
-  // metaprogramming?
+  // metaprogramming? Also this should go to benchmarks.
   using data = std::array<byte, 128>;
   using int_type = uint32_t;
 
@@ -186,7 +187,6 @@ TEST_F(SorterTest, DISABLED_PerfSortTest) {
   std::vector<data, MemoryPoolAllocator<data>> vec{MemoryPoolAllocator<data>(&memory)};
   util::ChunkedVectorT<data, MemoryPoolAllocator<data>> chunk_vec{MemoryPoolAllocator<data>(&memory)};
   sql::Sorter sorter(&memory, sorter_cmp_fn, sizeof(data));
-  std::cout << "Sizeof(data) is " << (sizeof(data)) << std::endl;
 
   // Fill up the regular vector. This is our reference.
   for (int_type i = 0; i < num_elems; i++) {
@@ -225,9 +225,9 @@ TEST_F(SorterTest, DISABLED_PerfSortTest) {
   }
 
   std::cout << std::fixed << std::setprecision(4);
-  std::cout << "std::sort(std::vector): " << stdvec_ms << " ms" << std::endl;
-  std::cout << "ips4o::sort(ChunkedVector): " << chunk_ms << " ms" << std::endl;
-  std::cout << "Sorter.Sort(): " << sorter_ms << " ms" << std::endl;
+  EXECUTION_LOG_INFO("std::sort(std::vector): {} ms", stdvec_ms);
+  EXECUTION_LOG_INFO("ips4o::sort(ChunkedVector): {} ms", chunk_ms);
+  EXECUTION_LOG_INFO("Sorter.sort(): {} ms", sorter_ms);
 }
 
 template <u32 N>

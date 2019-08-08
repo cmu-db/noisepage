@@ -1,15 +1,25 @@
+# Util Files
+file(GLOB_RECURSE UTIL_SRCS ${PROJECT_SOURCE_DIR}/util/*.cpp ${PROJECT_SOURCE_DIR}/util/include/*.h)
+list(REMOVE_ITEM UTIL_SRCS ${PROJECT_SOURCE_DIR}/util/execution/tpl.cpp)
+list(REMOVE_ITEM UTIL_SRCS ${PROJECT_SOURCE_DIR}/util/execution/gen_opt_bc.cpp)
+list(REMOVE_ITEM UTIL_SRCS ${PROJECT_SOURCE_DIR}/util/execution/bytecode_handlers_ir.cpp)
+add_library(util_static STATIC ${UTIL_SRCS})
+target_link_libraries(util_static terrier_static ${TERRIER_LINK_LIBS})
+add_dependencies(util_static terrier_static)
+
+
 # The version number.
 set(TPL_VERSION_MAJOR 0)
 set(TPL_VERSION_MINOR 1)
 
 # configure a header file to pass some of the CMake settings to the source code
 configure_file (
-        "${PROJECT_SOURCE_DIR}/src/execution/tpl.h.in"
+        "execution/tpl.h.in"
         "${PROJECT_BINARY_DIR}/execution/tpl.h"
 )
 
 # Find CLANG
-set(SUPPORTED_CLANGS "clang++-7" "clang++-6.0" "clang++")
+set(SUPPORTED_CLANGS "clang++-7")
 
 find_program(CLANG NAMES ${SUPPORTED_CLANGS})
 if (NOT EXISTS ${CLANG})
@@ -39,7 +49,7 @@ set(CLANG_IR_CXX_INCLUDES ${CLANG_IR_CXX_INCLUDES} "-isystem${LLVM_INCLUDE_DIRS}
 # e.g. COMPILE_TO_IR(test.cpp) generates the "test_bc" make target.
 # Modified from Apache Impala.
 function(tpl_compile_to_ir SRC_FILE)
-    set(FULL_NAME "${PROJECT_SOURCE_DIR}/src/execution/${SRC_FILE}")
+    set(FULL_NAME "${PROJECT_SOURCE_DIR}/util/${SRC_FILE}")
     get_filename_component(BASE_NAME ${FULL_NAME} NAME_WE)
     set(OUTPUT_FILE "${CMAKE_BINARY_DIR}/${BASE_NAME}.bc")
     add_custom_command(
@@ -47,28 +57,28 @@ function(tpl_compile_to_ir SRC_FILE)
             COMMAND ${CLANG} ${CLANG_IR_CXX_FLAGS} ${CLANG_IR_CXX_INCLUDES} ${FULL_NAME} -o ${OUTPUT_FILE}
             DEPENDS ${SRC_FILE})
     add_custom_target(${BASE_NAME}_bc ALL DEPENDS ${OUTPUT_FILE})
-    add_dependencies(${BASE_NAME}_bc terrier_shared)
-    add_dependencies(gen_opt_bc terrier_shared)
+    add_dependencies(${BASE_NAME}_bc util_static)
+    add_dependencies(gen_opt_bc util_static)
     add_dependencies(gen_opt_bc ${BASE_NAME}_bc)
 endfunction(tpl_compile_to_ir)
 
 # Build the "gen_opt_bc" executable. This is dependent on all cross-compiled bitcode
 # set up through tpl_compile_to_ir()
-add_executable(gen_opt_bc "${PROJECT_SOURCE_DIR}/src/execution/vm/gen_opt_bc.cpp")
+add_executable(gen_opt_bc "execution/gen_opt_bc.cpp")
 target_link_libraries(gen_opt_bc ${TERRIER_LINK_LIBS})
 
 # Cross-compile the bytecode handlers
-tpl_compile_to_ir(vm/bytecode_handlers_ir.cpp)
+tpl_compile_to_ir(execution/bytecode_handlers_ir.cpp)
 
 ##################################################
 #
 # TPL executable
 #
 ##################################################
-set(tpl_main "${PROJECT_SOURCE_DIR}/src/execution/tpl.cpp")
+set(tpl_main "execution/tpl.cpp")
 add_executable(tpl ${tpl_main})
 add_dependencies(tpl gen_opt_bc)
-target_link_libraries(tpl terrier_shared)
+target_link_libraries(tpl util_static)
 
 ##################################################
 #
