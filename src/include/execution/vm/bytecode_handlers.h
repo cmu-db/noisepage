@@ -721,7 +721,7 @@ VM_OP_HOT void OpAggregationHashTableIteratorNext(terrier::execution::sql::Aggre
 }
 
 VM_OP_HOT void OpAggregationHashTableIteratorGetRow(const byte **row,
-                                                    terrier::execution::sql::AggregationHashTableIterator *iter) {
+                           terrier::execution::sql::AggregationHashTableIterator *iter) {
   *row = iter->GetCurrentAggregateRow();
 }
 

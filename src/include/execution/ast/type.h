@@ -92,6 +92,7 @@ class Context;
   SQL(Date, terrier::execution::sql::Date)                                                      \
   SQL(Timestamp, terrier::execution::sql::Timestamp)
 
+
 // Ignore a builtin
 #define IGNORE_BUILTIN_TYPE (...)
 

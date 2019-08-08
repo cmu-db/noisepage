@@ -130,8 +130,6 @@ class ProjectedColumnsIteratorTest : public SqlBasedTest {
   }
 
   void InitializeColumns() {
-    // TODO(Amadou): Come up with an easier way to create ProjectedColumns.
-    // This should be done after the perso_catalog PR is merged in.
     // Create column metadata for every column.
     catalog::Schema::Column col_a("col_a", type::TypeId::SMALLINT, false, DummyCVE());
     catalog::Schema::Column col_b("col_b", type::TypeId::INTEGER, false, DummyCVE());
