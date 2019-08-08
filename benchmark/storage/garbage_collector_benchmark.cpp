@@ -58,7 +58,7 @@ BENCHMARK_DEFINE_F(GarbageCollectorBenchmark, UnlinkTime)(benchmark::State &stat
     // generate our table and instantiate GC
     LargeDataTableBenchmarkObject tested({8, 8, 8}, initial_table_size, txn_length, update_select_ratio, &block_store_,
                                          &buffer_pool_, &generator_, true);
-    gc_ = new storage::GarbageCollector(tested.GetTxnManager());
+    gc_ = new storage::GarbageCollector(tested.GetTxnManager(), nullptr);
 
     // clean up insert txn
     gc_->PerformGarbageCollection();
@@ -97,7 +97,7 @@ BENCHMARK_DEFINE_F(GarbageCollectorBenchmark, ReclaimTime)(benchmark::State &sta
     // generate our table and instantiate GC
     LargeDataTableBenchmarkObject tested({8, 8, 8}, initial_table_size, txn_length, update_select_ratio, &block_store_,
                                          &buffer_pool_, &generator_, true);
-    gc_ = new storage::GarbageCollector(tested.GetTxnManager());
+    gc_ = new storage::GarbageCollector(tested.GetTxnManager(), nullptr);
 
     // clean up insert txn
     gc_->PerformGarbageCollection();

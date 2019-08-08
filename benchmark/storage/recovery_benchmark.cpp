@@ -44,7 +44,7 @@ class RecoveryBenchmark : public benchmark::Fixture {
     uint32_t recovered_txns = 0;
 
     // NOLINTNEXTLINE
-    for (auto _ : state) {
+    for (auto _ : *state) {
       // Blow away log file after every benchmark iteration
       unlink(LOG_FILE_NAME);
       // Initialize table and run workload with logging enabled

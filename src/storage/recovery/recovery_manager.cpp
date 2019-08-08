@@ -247,7 +247,7 @@ void RecoveryManager::UpdateIndexesOnTable(transaction::TransactionContext *txn,
   std::unordered_set<catalog::col_oid_t> all_indexed_attributes;
 
   // Determine all indexed attributes. Also compute largest PR size we need for index PRs.
-  for (auto i = 0; i < indexes.size(); i++) {
+  for (size_t i = 0; i < indexes.size(); i++) {
     auto index_ptr = indexes[i];
     auto &schema = index_schemas[i];
 
@@ -281,7 +281,7 @@ void RecoveryManager::UpdateIndexesOnTable(transaction::TransactionContext *txn,
     auto indexed_attributes = schema.GetIndexedColOids();
 
     // Copy in each value from the table select result into the index PR
-    for (auto attr_idx = 0; attr_idx < indexed_attributes.size(); attr_idx++) {
+    for (size_t attr_idx = 0; attr_idx < indexed_attributes.size(); attr_idx++) {
       auto attr_oid = indexed_attributes[attr_idx];
       auto index_col_oid = schema.GetColumn(attr_idx).Oid();
       if (table_pr->IsNull(pr_map[attr_oid])) {
@@ -440,8 +440,9 @@ uint32_t RecoveryManager::ProcessSpecialCaseCatalogRecord(
 
       // Step 1: Extract inserted values from the PR in redo record
       storage::SqlTable *pg_database = catalog_->databases_;
-      // NOLINTNEXTLINE
-      auto [pr_init, pr_map] = pg_database->InitializerForProjectedRow(GetOidsForRedoRecord(pg_database, redo_record));
+      ProjectionMap pr_map;
+      std::tie(std::ignore, pr_map) =
+          pg_database->InitializerForProjectedRow(GetOidsForRedoRecord(pg_database, redo_record));
       TERRIER_ASSERT(pr_map.find(catalog::DATOID_COL_OID) != pr_map.end(), "PR Map must contain database oid");
       TERRIER_ASSERT(pr_map.find(catalog::DATNAME_COL_OID) != pr_map.end(), "PR Map must contain database name");
       catalog::db_oid_t db_oid(
@@ -484,8 +485,8 @@ uint32_t RecoveryManager::ProcessSpecialCaseCatalogRecord(
               next_redo_record->GetTableOid() == delete_record->GetTableOid() &&
               IsInsertRecord(next_redo_record)) {  // next record is an insert into the same pg_class
                                                    // Step 3: Get the oid and kind of the object being inserted
-                                                   // NOLINTNEXTLINE
-            auto [pr_init, pr_map] =
+            ProjectionMap pr_map;
+            std::tie(std::ignore, pr_map) =
                 pg_class->InitializerForProjectedRow(GetOidsForRedoRecord(pg_class, next_redo_record));
             TERRIER_ASSERT(pr_map.find(catalog::RELOID_COL_OID) != pr_map.end(), "PR Map must contain class oid");
             TERRIER_ASSERT(pr_map.find(catalog::RELNAME_COL_OID) != pr_map.end(), "PR Map must contain class name");
@@ -572,8 +573,8 @@ uint32_t RecoveryManager::ProcessSpecialCaseCatalogRecord(
               next_redo_record->GetTableOid() == delete_record->GetTableOid() &&
               IsInsertRecord(next_redo_record)) {  // next record is an insert into the same pg_class
             // Step 3: Get the oid and name for the database being created
-            // NOLINTNEXTLINE
-            auto [pr_init, pr_map] =
+            ProjectionMap pr_map;
+            std::tie(std::ignore, pr_map) =
                 pg_database->InitializerForProjectedRow(GetOidsForRedoRecord(pg_database, next_redo_record));
             TERRIER_ASSERT(pr_map.find(catalog::DATOID_COL_OID) != pr_map.end(), "PR Map must contain class oid");
             TERRIER_ASSERT(pr_map.find(catalog::DATNAME_COL_OID) != pr_map.end(), "PR Map must contain class name");
