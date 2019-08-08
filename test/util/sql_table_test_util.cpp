@@ -126,6 +126,7 @@ LargeSqlTableTestObject::~LargeSqlTableTestObject() {
       delete metadata;
     }
   }
+  catalog_.TearDown();
 }
 
 // Caller is responsible for freeing the returned results if bookkeeping is on.
