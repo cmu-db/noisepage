@@ -2,7 +2,6 @@
 
 #include <atomic>
 #include <memory>
-#include <mutex>  // NOLINT
 #include <string>
 #include <utility>
 

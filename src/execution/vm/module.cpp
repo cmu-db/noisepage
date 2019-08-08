@@ -1,7 +1,6 @@
 #include "execution/vm/module.h"
 
 #include <memory>
-#include <mutex>
 #include <string>
 #include <utility>
 

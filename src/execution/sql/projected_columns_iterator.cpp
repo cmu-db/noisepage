@@ -1,7 +1,7 @@
 #include "execution/sql/projected_columns_iterator.h"
-#include "type/type_id.h"
 #include "execution/util/vector_util.h"
 #include "storage/projected_columns.h"
+#include "type/type_id.h"
 
 namespace terrier::execution::sql {
 
