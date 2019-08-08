@@ -355,7 +355,10 @@ uint32_t RecoveryManager::ProcessSpecialCaseCatalogRecord(
 
         // We skip creation of catalog tables/indexes, these are already done when CreateDatabase is called
         // All catalog tables/indexes have OIDS less than START_OID
-        if (class_oid < START_OID) return 0;
+        if (class_oid < START_OID) {
+          // TODO(Gus): Set table and index pointers for catalog tables here
+          return 0;
+        }
 
         // Case on whether we are creating a table or index
         if (class_kind == catalog::postgres::ClassKind::REGULAR_TABLE) {
