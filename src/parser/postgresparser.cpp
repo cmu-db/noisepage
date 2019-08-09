@@ -40,8 +40,7 @@
   PARSER_LOG_DEBUG(#FN_NAME #TYPE_MSG " {} unsupported", ARG); \
   throw PARSER_EXCEPTION(#FN_NAME ":" #TYPE_MSG " unsupported")
 
-namespace terrier {
-namespace parser {
+namespace terrier::parser {
 
 PostgresParser::PostgresParser() = default;
 
@@ -1970,5 +1969,4 @@ std::unique_ptr<VariableSetStatement> PostgresParser::VariableSetTransform(UNUSE
   return result;
 }
 
-}  // namespace parser
-}  // namespace terrier
+}  // namespace terrier::parser

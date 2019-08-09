@@ -56,7 +56,7 @@ struct RandomTestUtil {
    * @param repeat the number of times this should be done.
    */
   template <typename Random>
-  static void InvokeWorkloadWithDistribution(std::vector<std::function<void()>> workloads,
+  static void InvokeWorkloadWithDistribution(const std::vector<std::function<void()>> &workloads,
                                              std::vector<double> probabilities, Random *generator,
                                              uint32_t repeat = 1) {
     TERRIER_ASSERT(probabilities.size() == workloads.size(), "Probabilities and workloads must have the same size.");

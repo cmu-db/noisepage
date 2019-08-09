@@ -65,6 +65,8 @@ bool OrderStatus::Execute(transaction::TransactionManager *const txn_manager, Da
   bool UNUSED_ATTRIBUTE select_result = db->customer_table_->Select(txn, customer_slot, customer_select_tuple);
   TERRIER_ASSERT(select_result, "Customer table doesn't change (no new entries). All lookups should succeed.");
 
+  TERRIER_ASSERT(customer_select_tuple->AccessWithNullCheck(c_id_select_pr_offset) != nullptr,
+                 "This is a non-NULLable field.");
   const auto UNUSED_ATTRIBUTE c_id =
       !args.use_c_last
           ? args.c_id

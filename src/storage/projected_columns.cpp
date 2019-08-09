@@ -5,7 +5,7 @@
 #include <utility>
 #include <vector>
 namespace terrier::storage {
-const uint32_t ProjectedColumns::AttrSizeForColumn(uint16_t col_id) {
+uint32_t ProjectedColumns::AttrSizeForColumn(const uint16_t col_id) {
   TERRIER_ASSERT(col_id < num_cols_, "Cannot get size for out-of-bounds column");
   uint8_t shift;
   for (shift = 0; shift < NUM_ATTR_BOUNDARIES; shift++) {

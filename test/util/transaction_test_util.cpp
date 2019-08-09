@@ -104,7 +104,7 @@ SimulationResult LargeTransactionTestObject::SimulateOltp(uint32_t num_transacti
   txns.resize(num_transactions);
   // Either for correctness checking, or to cleanup memory afterwards, we need to retain these
   // test objects
-  workload = [&](uint32_t) {
+  workload = [&](const uint32_t unused_uint32) {
     for (uint32_t txn_id = txns_run++; txn_id < num_transactions; txn_id = txns_run++) {
       txns[txn_id] = new RandomWorkloadTransaction(this);
       SimulateOneTransaction(txns[txn_id], txn_id);

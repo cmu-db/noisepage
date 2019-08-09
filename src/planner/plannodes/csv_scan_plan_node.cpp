@@ -5,7 +5,7 @@
 namespace terrier::planner {
 
 common::hash_t CSVScanPlanNode::Hash() const {
-  common::hash_t hash = AbstractPlanNode::Hash();
+  common::hash_t hash = AbstractPlanNode::Hash();  // NOLINT: bugprone-parent-virtual-call: this appears intentional?
 
   // Filename
   hash = common::HashUtil::CombineHashes(hash, std::hash<std::string>{}(file_name_));
