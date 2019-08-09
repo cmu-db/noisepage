@@ -394,7 +394,7 @@ bool DatabaseCatalog::CreateColumn(transaction::TransactionContext *const txn, c
   // Write the attributes in the ProjectedRow. These hardcoded indexkeycol_oids come from
   // Builder::GetColumnOidIndexSchema()
   *(reinterpret_cast<ClassOid *>(pr->AccessForceNotNull(0))) = class_oid;
-  *(reinterpret_cast<ColOid *>(pr->AccessForceNotNull(1)) = col_oid;
+  *(reinterpret_cast<ColOid *>(pr->AccessForceNotNull(1))) = col_oid;
 
   bool UNUSED_ATTRIBUTE result = columns_oid_index_->InsertUnique(txn, *pr, tupleslot);
   TERRIER_ASSERT(result, "Assigned OIDs failed to be unique.");
