@@ -70,10 +70,7 @@ void RecoveryManager::ReplayTransaction(LogRecord *log_record) {
 
       if (IsSpecialCaseCatalogRecord(buffered_record)) {
         idx += ProcessSpecialCaseCatalogRecord(txn, &buffered_changes_map_[log_record->TxnBegin()], idx);
-        continue;
-      }
-
-      if (buffered_record->RecordType() == LogRecordType::REDO) {
+      } else if (buffered_record->RecordType() == LogRecordType::REDO) {
         ReplayRedoRecord(txn, buffered_record);
       } else {
         ReplayDeleteRecord(txn, buffered_record);
@@ -683,7 +680,7 @@ std::vector<catalog::col_oid_t> RecoveryManager::GetOidsForRedoRecord(storage::S
 
 storage::index::Index *RecoveryManager::GetCatalogIndex(
     catalog::index_oid_t oid, const common::ManagedPointer<catalog::DatabaseCatalog> &db_catalog) {
-  TERRIER_ASSERT(!oid < START_OID, "Oid must be a valid catalog oid");
+  TERRIER_ASSERT((!oid) < START_OID, "Oid must be a valid catalog oid");
 
   if (oid == catalog::NAMESPACE_OID_INDEX_OID) {
     return db_catalog->namespaces_oid_index_;

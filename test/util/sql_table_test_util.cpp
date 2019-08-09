@@ -154,6 +154,7 @@ uint64_t LargeSqlTableTestObject::SimulateOltp(uint32_t num_transactions, uint32
   // We only need to deallocate, and return, if gc is on, this loop is a no-op
   for (RandomSqlTableTransaction *txn : txns) {
     if (txn->aborted_) abort_count_++;
+    delete txn;
   }
   return abort_count_;
 }
@@ -193,6 +194,8 @@ void LargeSqlTableTestObject::PopulateInitialTables(uint16_t num_databases, uint
       table_oids_[database_oid].emplace_back(table_oid);
       auto *sql_table = new storage::SqlTable(block_store, *schema);
       auto result UNUSED_ATTRIBUTE = db_catalog_ptr->SetTablePointer(initial_txn_, table_oid, sql_table);
+      TERRIER_ASSERT(result, "Setting table pointer in catalog should succeed");
+      delete schema;
 
       // Create row initializer
       auto &layout = sql_table->Layout();

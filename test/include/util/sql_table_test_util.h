@@ -159,9 +159,10 @@ class RandomSqlTableTransaction {
   explicit RandomSqlTableTransaction(LargeSqlTableTestObject *test_object);
 
   /**
-   * Destructs a random workload transaction
+   * Destructs a random workload transaction. Does not delete underlyign txn,
+   * garbage collection will clean that up.
    */
-  ~RandomSqlTableTransaction();
+  ~RandomSqlTableTransaction() = default;
 
   /**
    * Randomly updates a tuple, using the given generator as source of randomness.
