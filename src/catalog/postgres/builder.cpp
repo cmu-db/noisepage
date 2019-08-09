@@ -104,8 +104,6 @@ DatabaseCatalog *Builder::CreateDatabaseCatalog(storage::BlockStore *block_store
   // Indexes on pg_attribute
   dbc->columns_oid_index_ = Builder::BuildUniqueIndex(Builder::GetColumnOidIndexSchema(oid), COLUMN_OID_INDEX_OID);
   dbc->columns_name_index_ = Builder::BuildUniqueIndex(Builder::GetColumnNameIndexSchema(oid), COLUMN_NAME_INDEX_OID);
-  dbc->columns_class_index_ =
-      Builder::BuildLookupIndex(Builder::GetColumnClassIndexSchema(oid), COLUMN_CLASS_INDEX_OID);
 
   // Indexes on pg_type
   dbc->types_oid_index_ = Builder::BuildUniqueIndex(Builder::GetTypeOidIndexSchema(oid), TYPE_OID_INDEX_OID);
@@ -438,21 +436,6 @@ IndexSchema Builder::GetColumnNameIndexSchema(db_oid_t db) {
 
   // Unique, not primary
   IndexSchema schema(columns, true, false, false, true);
-  schema.SetValid(true);
-  schema.SetReady(true);
-
-  return schema;
-}
-
-IndexSchema Builder::GetColumnClassIndexSchema(db_oid_t db) {
-  std::vector<IndexSchema::Column> columns;
-
-  columns.emplace_back("attrelid", type::TypeId::INTEGER, false,
-                       parser::ColumnValueExpression(db, COLUMN_TABLE_OID, ATTRELID_COL_OID));
-  columns.back().SetOid(indexkeycol_oid_t(1));
-
-  // Not unique
-  IndexSchema schema(columns, false, false, false, true);
   schema.SetValid(true);
   schema.SetReady(true);
 
