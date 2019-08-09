@@ -78,8 +78,8 @@ ProjectionMap SqlTable::ProjectionMapForOids(const std::vector<catalog::col_oid_
   // Populate the projection map using the in-order iterator on std::map
   ProjectionMap projection_map;
   uint16_t i = 0;
-  for (auto [UNUSED col_id, oid] : inverse_map)
-    projection_map[oid] = i++;
+  for (auto &iter : inverse_map)
+    projection_map[iter.second] = i++;
 
   return projection_map;
 }

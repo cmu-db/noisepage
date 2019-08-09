@@ -107,12 +107,10 @@ class Payment {
         warehouse_select_pr_initializer(
             db->warehouse_table_
                 ->InitializerForProjectedRow(
-                    {w_name_oid, w_street_1_oid, w_street_2_oid, w_city_oid, w_state_oid, w_zip_oid, w_ytd_oid})
-                .first),
+                    {w_name_oid, w_street_1_oid, w_street_2_oid, w_city_oid, w_state_oid, w_zip_oid, w_ytd_oid})),
         warehouse_select_pr_map(db->warehouse_table_
-                                    ->InitializerForProjectedRow({w_name_oid, w_street_1_oid, w_street_2_oid,
-                                                                  w_city_oid, w_state_oid, w_zip_oid, w_ytd_oid})
-                                    .second),
+                                    ->ProjectionMapForOids({w_name_oid, w_street_1_oid, w_street_2_oid,
+                                                            w_city_oid, w_state_oid, w_zip_oid, w_ytd_oid})),
         w_name_select_pr_offset(static_cast<uint8_t>(warehouse_select_pr_map.at(w_name_oid))),
         w_ytd_select_pr_offset(static_cast<uint8_t>(warehouse_select_pr_map.at(w_ytd_oid))),
         warehouse_update_pr_initializer(db->warehouse_table_->InitializerForProjectedRow({w_ytd_oid})),
@@ -132,12 +130,11 @@ class Payment {
         d_ytd_oid(db->district_schema_.GetColumn(9).Oid()),
         district_select_pr_initializer(db->district_table_
                                            ->InitializerForProjectedRow({d_name_oid, d_street_1_oid, d_street_2_oid,
-                                                                         d_city_oid, d_state_oid, d_zip_oid, d_ytd_oid})
-                                           .first),
+                                                                         d_city_oid, d_state_oid, d_zip_oid,
+                                                                         d_ytd_oid})),
         district_select_pr_map(db->district_table_
-                                   ->InitializerForProjectedRow({d_name_oid, d_street_1_oid, d_street_2_oid, d_city_oid,
-                                                                 d_state_oid, d_zip_oid, d_ytd_oid})
-                                   .second),
+                                   ->ProjectionMapForOids({d_name_oid, d_street_1_oid, d_street_2_oid, d_city_oid,
+                                                           d_state_oid, d_zip_oid, d_ytd_oid})),
         d_name_select_pr_offset(static_cast<uint8_t>(district_select_pr_map.at(d_name_oid))),
         d_ytd_select_pr_offset(static_cast<uint8_t>(district_select_pr_map.at(d_ytd_oid))),
         district_update_pr_initializer(db->district_table_->InitializerForProjectedRow({d_ytd_oid})),
@@ -176,11 +173,9 @@ class Payment {
         c_payment_cnt_select_pr_offset(static_cast<uint8_t>(customer_select_pr_map.at(c_payment_cnt_oid))),
         c_data_select_pr_offset(static_cast<uint8_t>(customer_select_pr_map.at(c_data_oid))),
         customer_update_pr_initializer(
-            db->customer_table_->InitializerForProjectedRow({c_balance_oid, c_ytd_payment_oid, c_payment_cnt_oid})
-                .first),
+            db->customer_table_->InitializerForProjectedRow({c_balance_oid, c_ytd_payment_oid, c_payment_cnt_oid})),
         customer_update_pr_map(
-            db->customer_table_->InitializerForProjectedRow({c_balance_oid, c_ytd_payment_oid, c_payment_cnt_oid})
-                .second),
+            db->customer_table_->ProjectionMapForOids({c_balance_oid, c_ytd_payment_oid, c_payment_cnt_oid})),
         c_balance_update_pr_offset(static_cast<uint8_t>(customer_update_pr_map.at(c_balance_oid))),
         c_ytd_payment_update_pr_offset(static_cast<uint8_t>(customer_update_pr_map.at(c_ytd_payment_oid))),
         c_payment_cnt_update_pr_offset(static_cast<uint8_t>(customer_update_pr_map.at(c_payment_cnt_oid))),

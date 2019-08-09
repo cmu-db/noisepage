@@ -89,12 +89,10 @@ class OrderStatus {
         c_first_pr_initializer(db->customer_table_->InitializerForProjectedRow({c_first_oid})),
         customer_select_pr_initializer(
             db->customer_table_
-                ->InitializerForProjectedRow({c_id_oid, c_balance_oid, c_first_oid, c_middle_oid, c_last_oid})
-                .first),
+                ->InitializerForProjectedRow({c_id_oid, c_balance_oid, c_first_oid, c_middle_oid, c_last_oid})),
         customer_select_pr_map(
             db->customer_table_
-                ->InitializerForProjectedRow({c_id_oid, c_balance_oid, c_first_oid, c_middle_oid, c_last_oid})
-                .second),
+                ->ProjectionMapForOids({c_id_oid, c_balance_oid, c_first_oid, c_middle_oid, c_last_oid})),
 
         c_id_select_pr_offset(static_cast<uint8_t>(customer_select_pr_map.at(c_id_oid))),
         c_balance_select_pr_offset(static_cast<uint8_t>(customer_select_pr_map.at(c_balance_oid))),
@@ -134,8 +132,7 @@ class OrderStatus {
         order_line_select_pr_initializer(
             db->order_line_table_
                 ->InitializerForProjectedRow(
-                    {ol_i_id_oid, ol_supply_w_id_oid, ol_quantity_oid, ol_amount_oid, ol_delivery_d_oid})
-                .first)
+                    {ol_i_id_oid, ol_supply_w_id_oid, ol_quantity_oid, ol_amount_oid, ol_delivery_d_oid}))
 
   {}
 
