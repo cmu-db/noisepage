@@ -466,9 +466,10 @@ bool DatabaseCatalog::DeleteColumns(transaction::TransactionContext *const txn, 
   // NOLINTNEXTLINE
   auto [table_pri, table_pm] = columns_->InitializerForProjectedRow(table_oids);
   const auto oid_pri = columns_oid_index_->GetProjectedRowInitializer();
+  const auto name_pri = columns_name_index_->GetProjectedRowInitializer()''
   // Buffer is large enough to hold all prs
   byte *const buffer = common::AllocationUtil::AllocateAligned(table_pri.ProjectedRowSize());
-  byte *const key_buffer = common::AllocationUtil::AllocateAligned(oid_pri.ProjectedRowSize());
+  byte *const key_buffer = common::AllocationUtil::AllocateAligned(name_pri.ProjectedRowSize());
   // Scan the class index
   auto *pr = oid_pri.InitializeRow(buffer);
   auto *pr_high = oid_pri.InitializeRow(key_buffer);
@@ -494,8 +495,6 @@ bool DatabaseCatalog::DeleteColumns(transaction::TransactionContext *const txn, 
 
   // Step 2: Scan the table to get the columns
   pr = table_pri.InitializeRow(buffer);
-  byte *const key_buffer = common::AllocationUtil::AllocateAligned(
-      columns_name_index_->GetProjectedRowInitializer().ProjectedRowSize());  // should be biggest index key PR
   for (const auto &slot : index_results) {
     // 1. Extract attributes from the tuple for the index deletions
     auto UNUSED_ATTRIBUTE result = columns_->Select(txn, slot, pr);
