@@ -44,10 +44,11 @@ class RecoveryBenchmark : public benchmark::Fixture {
       // Blow away log file after every benchmark iteration
       unlink(LOG_FILE_NAME);
       // Initialize table and run workload with logging enabled
-      storage::LogManager log_manager(LOG_FILE_NAME, num_log_buffers_, log_serialization_interval_, log_persist_interval_,
-                                  log_persist_threshold_, &buffer_pool_, common::ManagedPointer(&thread_registry_));
+      storage::LogManager log_manager(LOG_FILE_NAME, num_log_buffers_, log_serialization_interval_,
+                                      log_persist_interval_, log_persist_threshold_, &buffer_pool_,
+                                      common::ManagedPointer(&thread_registry_));
       log_manager.Start();
-      LargeSqlTableTestObject* tested =
+      LargeSqlTableTestObject *tested =
           new LargeSqlTableTestObject(config, &block_store_, &buffer_pool_, &generator_, &log_manager);
 
       // Run the test object and log all transactions
@@ -62,8 +63,9 @@ class RecoveryBenchmark : public benchmark::Fixture {
 
       // Instantiate recovery manager, and recover the tables.
       storage::DiskLogProvider log_provider(LOG_FILE_NAME);
-      storage::RecoveryManager recovery_manager(&log_provider, common::ManagedPointer(&recovered_catalog), &recovery_txn_manager,
-                                       common::ManagedPointer(&thread_registry_), &block_store_);
+      storage::RecoveryManager recovery_manager(&log_provider, common::ManagedPointer(&recovered_catalog),
+                                                &recovery_txn_manager, common::ManagedPointer(&thread_registry_),
+                                                &block_store_);
 
       uint64_t elapsed_ms;
       {
@@ -82,7 +84,7 @@ class RecoveryBenchmark : public benchmark::Fixture {
 
       // Call GC 3 times to fully clean up catalog
       recovered_catalog.TearDown();
-      auto* gc = new storage::GarbageCollector(&recovery_txn_manager, nullptr);
+      auto *gc = new storage::GarbageCollector(&recovery_txn_manager, nullptr);
       gc->PerformGarbageCollection();
       gc->PerformGarbageCollection();
       gc->PerformGarbageCollection();
