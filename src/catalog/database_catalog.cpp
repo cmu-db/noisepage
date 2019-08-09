@@ -459,7 +459,7 @@ std::vector<Column> DatabaseCatalog::GetColumns(transaction::TransactionContext 
 // TODO(Matt): we need a DeleteColumn()
 
 template <typename Column, typename ClassOid>
-bool DatabaseCatalog::DeleteColumns(transaction::TransactionContext *const txn, ClassOid class_oid) {
+bool DatabaseCatalog::DeleteColumns(transaction::TransactionContext *const txn, const ClassOid class_oid) {
   // Step 1: Read Index
   const std::vector<col_oid_t> table_oids{ATTNUM_COL_OID, ATTNAME_COL_OID, ATTTYPID_COL_OID, ATTLEN_COL_OID,
                                           ATTNOTNULL_COL_OID};
@@ -479,8 +479,9 @@ bool DatabaseCatalog::DeleteColumns(transaction::TransactionContext *const txn, 
   *(reinterpret_cast<ClassOid *>(pr->AccessForceNotNull(0))) = class_oid;
   *(reinterpret_cast<uint32_t *>(pr->AccessForceNotNull(1))) = 0;
 
+  auto next_oid = ClassOid(!class_oid + 1);
   // Low key (class + 1, INVALID_COLUMN_OID) [using uint32_t to avoid adding ColOid to template]
-  *(reinterpret_cast<ClassOid *>(key_pr->AccessForceNotNull(0))) = ++class_oid;
+  *(reinterpret_cast<ClassOid *>(key_pr->AccessForceNotNull(0))) = class_oid;
   *(reinterpret_cast<uint32_t *>(key_pr->AccessForceNotNull(1))) = 0;
   std::vector<storage::TupleSlot> index_results;
   columns_oid_index_->ScanAscending(*txn, *pr, *key_pr, &index_results);
@@ -504,7 +505,7 @@ bool DatabaseCatalog::DeleteColumns(transaction::TransactionContext *const txn, 
     TERRIER_ASSERT(col_name != nullptr, "Name shouldn't be NULL.");
     const auto *const col_oid =
         reinterpret_cast<const uint32_t *const>(pr->AccessWithNullCheck(table_pm[ATTNUM_COL_OID]));
-    TERRIER_ASSERT(col_name != nullptr, "OID shouldn't be NULL.");
+    TERRIER_ASSERT(col_oid != nullptr, "OID shouldn't be NULL.");
 
     // 2. Delete from the table
     txn->StageDelete(db_oid_, COLUMN_TABLE_OID, slot);
