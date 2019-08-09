@@ -96,7 +96,7 @@ class IndexMetadata {
   /**
    * @return sum of attribute sizes, NOT inlined attribute sizes
    */
-  const uint16_t KeySize() const { return key_size_; }
+  uint16_t KeySize() const { return key_size_; }
 
  private:
   DISALLOW_COPY(IndexMetadata);
