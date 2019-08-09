@@ -13,7 +13,7 @@
 static_assert(BYTE_SIZE == 8U, "BYTE_SIZE should be set to 8!");
 
 // n must be [0, 7], all 0 except for 1 on the nth bit in LSB order.
-#define LSB_ONE_HOT_MASK(n) (1u << n)
+#define LSB_ONE_HOT_MASK(n) (1U << n)
 // n must be [0, 7], all 1 except for 0 on the nth bit in LSB order
 #define LSB_ONE_COLD_MASK(n) (0xFF - LSB_ONE_HOT_MASK(n))
 

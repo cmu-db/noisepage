@@ -13,7 +13,7 @@ const uint32_t ProjectedColumns::AttrSizeForColumn(uint16_t col_id) {
   }
   TERRIER_ASSERT(shift <= NUM_ATTR_BOUNDARIES, "Out-of-bounds attribute size");
   TERRIER_ASSERT(shift >= 0, "Out-of-bounds attribute size");
-  return 16u >> shift;
+  return 16U >> shift;
 }
 
 ProjectedColumnsInitializer::ProjectedColumnsInitializer(const BlockLayout &layout, std::vector<col_id_t> col_ids,
