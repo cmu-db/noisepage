@@ -48,8 +48,7 @@ class RecoveryBenchmark : public benchmark::Fixture {
                                       log_persist_interval_, log_persist_threshold_, &buffer_pool_,
                                       common::ManagedPointer(&thread_registry_));
       log_manager.Start();
-      LargeSqlTableTestObject *tested =
-          new LargeSqlTableTestObject(config, &block_store_, &buffer_pool_, &generator_, &log_manager);
+      auto *tested = new LargeSqlTableTestObject(config, &block_store_, &buffer_pool_, &generator_, &log_manager);
 
       // Run the test object and log all transactions
       tested->SimulateOltp(num_txns_, num_concurrent_txns_);

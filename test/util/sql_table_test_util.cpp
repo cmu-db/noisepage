@@ -108,7 +108,7 @@ LargeSqlTableTestObject::LargeSqlTableTestObject(const LargeSqlTableTestConfigur
                                                  std::default_random_engine *generator,
                                                  storage::LogManager *log_manager)
     : txn_length_(config.txn_length_),
-      update_select_delete_ratio_(std::move(config.update_select_delete_ratio_)),
+      update_select_delete_ratio_(config.update_select_delete_ratio_),
       generator_(generator),
       txn_manager_(buffer_pool, true /* gc on */, log_manager),
       gc_(storage::GarbageCollector(&txn_manager_, nullptr)),

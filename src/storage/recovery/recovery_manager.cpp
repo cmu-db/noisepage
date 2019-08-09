@@ -332,12 +332,14 @@ uint32_t RecoveryManager::ProcessSpecialCaseCatalogRecord(
 
       if (updated_pg_class_oid == catalog::REL_NEXTCOLOID_COL_OID) {  // Case 1
         return 0;                                                     // No additional logs processed
+      }
 
-      } else if (updated_pg_class_oid == catalog::REL_SCHEMA_COL_OID) {  // Case 2
+      if (updated_pg_class_oid == catalog::REL_SCHEMA_COL_OID) {  // Case 2
         // TODO(Gus): Add support for recovering DDL changes.
         return 0;  // No additional logs processed
+      }
 
-      } else if (updated_pg_class_oid == catalog::REL_PTR_COL_OID) {  // Case 3
+      if (updated_pg_class_oid == catalog::REL_PTR_COL_OID) {  // Case 3
         // An update to the ptr column of pg_class means that we have inserted all necessary metadata into the other
         // pg_class tables, and we now Step 1: Get the class oid and kind for the object we're updating
         // NOLINTNEXTLINE
@@ -377,8 +379,9 @@ uint32_t RecoveryManager::ProcessSpecialCaseCatalogRecord(
 
           delete[] buffer;
           return 0;  // No additional records processed
+        }
 
-        } else if (class_kind == catalog::postgres::ClassKind::INDEX) {
+        if (class_kind == catalog::postgres::ClassKind::INDEX) {
           // Step 2: Query pg_attribute for the columns of the index
           auto index_cols =
               db_catalog->GetColumns<catalog::IndexSchema::Column, catalog::index_oid_t, catalog::indexkeycol_oid_t>(
@@ -434,10 +437,9 @@ uint32_t RecoveryManager::ProcessSpecialCaseCatalogRecord(
 
           delete[] buffer;
           return 0;
-
-        } else {
-          TERRIER_ASSERT(false, "Only support recovery of regular tables and indexes");
         }
+
+        TERRIER_ASSERT(false, "Only support recovery of regular tables and indexes");
 
       } else {
         throw std::runtime_error("Unexpected oid updated during replay of update to pg_class");
@@ -559,79 +561,78 @@ uint32_t RecoveryManager::ProcessSpecialCaseCatalogRecord(
       tuple_slot_map_.erase(delete_record->GetTupleSlot());
 
       return 0;  // No additional logs processed
+    }
 
-    } else {
-      TERRIER_ASSERT(delete_record->GetTableOid() == catalog::DATABASE_TABLE_OID,
-                     "Special case for delete should be on pg_class or pg_database");
+    TERRIER_ASSERT(delete_record->GetTableOid() == catalog::DATABASE_TABLE_OID,
+                   "Special case for delete should be on pg_class or pg_database");
 
-      // Step 1: Determine the database oid for the database that is being deleted
-      storage::SqlTable *pg_database = catalog_->databases_;
-      // NOLINTNEXTLINE
-      auto [pr_init, pr_map] = pg_database->InitializerForProjectedRow({catalog::DATOID_COL_OID});
-      auto *buffer = common::AllocationUtil::AllocateAligned(pr_init.ProjectedRowSize());
-      auto *pr = pr_init.InitializeRow(buffer);
-      pg_database->Select(txn, GetTupleSlotMapping(delete_record->GetTupleSlot()), pr);
-      auto db_oid = *(reinterpret_cast<catalog::db_oid_t *>(pr->AccessWithNullCheck(pr_map[catalog::DATOID_COL_OID])));
-      delete[] buffer;
+    // Step 1: Determine the database oid for the database that is being deleted
+    storage::SqlTable *pg_database = catalog_->databases_;
+    // NOLINTNEXTLINE
+    auto [pr_init, pr_map] = pg_database->InitializerForProjectedRow({catalog::DATOID_COL_OID});
+    auto *buffer = common::AllocationUtil::AllocateAligned(pr_init.ProjectedRowSize());
+    auto *pr = pr_init.InitializeRow(buffer);
+    pg_database->Select(txn, GetTupleSlotMapping(delete_record->GetTupleSlot()), pr);
+    auto db_oid = *(reinterpret_cast<catalog::db_oid_t *>(pr->AccessWithNullCheck(pr_map[catalog::DATOID_COL_OID])));
+    delete[] buffer;
 
-      // Step 2: We need to handle the case where we are just renaming a database, in this case we don't wan't to delete
-      // the database. A rename appears as a delete followed by an insert with the same OID.
-      if (start_idx + 1 < buffered_changes->size()) {  // there is one more record
-        auto *next_record = buffered_changes->at(start_idx + 1).first;
-        if (next_record->RecordType() == LogRecordType::REDO) {  // next record is a redo record
-          auto *next_redo_record = next_record->GetUnderlyingRecordBodyAs<RedoRecord>();
-          if (next_redo_record->GetDatabaseOid() == delete_record->GetDatabaseOid() &&
-              next_redo_record->GetTableOid() == delete_record->GetTableOid() &&
-              IsInsertRecord(next_redo_record)) {  // next record is an insert into the same pg_class
-            // Step 3: Get the oid and name for the database being created
-            ProjectionMap pr_map;
-            std::tie(std::ignore, pr_map) =
-                pg_database->InitializerForProjectedRow(GetOidsForRedoRecord(pg_database, next_redo_record));
-            TERRIER_ASSERT(pr_map.find(catalog::DATOID_COL_OID) != pr_map.end(), "PR Map must contain class oid");
-            TERRIER_ASSERT(pr_map.find(catalog::DATNAME_COL_OID) != pr_map.end(), "PR Map must contain class name");
-            auto next_db_oid = *(reinterpret_cast<catalog::db_oid_t *>(
-                next_redo_record->Delta()->AccessWithNullCheck(pr_map[catalog::DATOID_COL_OID])));
+    // Step 2: We need to handle the case where we are just renaming a database, in this case we don't wan't to delete
+    // the database. A rename appears as a delete followed by an insert with the same OID.
+    if (start_idx + 1 < buffered_changes->size()) {  // there is one more record
+      auto *next_record = buffered_changes->at(start_idx + 1).first;
+      if (next_record->RecordType() == LogRecordType::REDO) {  // next record is a redo record
+        auto *next_redo_record = next_record->GetUnderlyingRecordBodyAs<RedoRecord>();
+        if (next_redo_record->GetDatabaseOid() == delete_record->GetDatabaseOid() &&
+            next_redo_record->GetTableOid() == delete_record->GetTableOid() &&
+            IsInsertRecord(next_redo_record)) {  // next record is an insert into the same pg_class
+          // Step 3: Get the oid and name for the database being created
+          ProjectionMap pr_map;
+          std::tie(std::ignore, pr_map) =
+              pg_database->InitializerForProjectedRow(GetOidsForRedoRecord(pg_database, next_redo_record));
+          TERRIER_ASSERT(pr_map.find(catalog::DATOID_COL_OID) != pr_map.end(), "PR Map must contain class oid");
+          TERRIER_ASSERT(pr_map.find(catalog::DATNAME_COL_OID) != pr_map.end(), "PR Map must contain class name");
+          auto next_db_oid = *(reinterpret_cast<catalog::db_oid_t *>(
+              next_redo_record->Delta()->AccessWithNullCheck(pr_map[catalog::DATOID_COL_OID])));
 
-            // If the oid matches on the next record, this is a renaming
-            if (db_oid == next_db_oid) {
-              // Step 4: Extract out the new name
-              VarlenEntry name_varlen = *(reinterpret_cast<VarlenEntry *>(
-                  next_redo_record->Delta()->AccessWithNullCheck(pr_map[catalog::DATNAME_COL_OID])));
-              std::string name_string(name_varlen.StringView());
+          // If the oid matches on the next record, this is a renaming
+          if (db_oid == next_db_oid) {
+            // Step 4: Extract out the new name
+            VarlenEntry name_varlen = *(reinterpret_cast<VarlenEntry *>(
+                next_redo_record->Delta()->AccessWithNullCheck(pr_map[catalog::DATNAME_COL_OID])));
+            std::string name_string(name_varlen.StringView());
 
-              // Step 5: Rename the database
-              auto result UNUSED_ATTRIBUTE = catalog_->RenameDatabase(txn, next_db_oid, name_string);
-              TERRIER_ASSERT(result, "Renaming of database should always succeed during replaying");
+            // Step 5: Rename the database
+            auto result UNUSED_ATTRIBUTE = catalog_->RenameDatabase(txn, next_db_oid, name_string);
+            TERRIER_ASSERT(result, "Renaming of database should always succeed during replaying");
 
-              // Step 6: Update metadata and clean up additional record processed. We need to use the indexes on
-              // pg_database to find what tuple slot we just inserted into. We get the new tuple slot using the oid
-              // index.
-              auto pg_database_oid_index = catalog_->databases_oid_index_;
-              auto pr_init = pg_database_oid_index->GetProjectedRowInitializer();
-              buffer = common::AllocationUtil::AllocateAligned(pr_init.ProjectedRowSize());
-              pr = pr_init.InitializeRow(buffer);
-              *(reinterpret_cast<uint32_t *>(pr->AccessForceNotNull(0))) = static_cast<uint32_t>(next_db_oid);
-              std::vector<TupleSlot> tuple_slot_result;
-              pg_database_oid_index->ScanKey(*txn, *pr, &tuple_slot_result);
-              TERRIER_ASSERT(tuple_slot_result.size() == 1, "Index scan should only yield one result");
-              tuple_slot_map_[next_redo_record->GetTupleSlot()] = tuple_slot_result[0];
-              delete[] buffer;
-              tuple_slot_map_.erase(delete_record->GetTupleSlot());
-              delete[] reinterpret_cast<byte *>(next_redo_record);
+            // Step 6: Update metadata and clean up additional record processed. We need to use the indexes on
+            // pg_database to find what tuple slot we just inserted into. We get the new tuple slot using the oid
+            // index.
+            auto pg_database_oid_index = catalog_->databases_oid_index_;
+            auto pr_init = pg_database_oid_index->GetProjectedRowInitializer();
+            buffer = common::AllocationUtil::AllocateAligned(pr_init.ProjectedRowSize());
+            pr = pr_init.InitializeRow(buffer);
+            *(reinterpret_cast<uint32_t *>(pr->AccessForceNotNull(0))) = static_cast<uint32_t>(next_db_oid);
+            std::vector<TupleSlot> tuple_slot_result;
+            pg_database_oid_index->ScanKey(*txn, *pr, &tuple_slot_result);
+            TERRIER_ASSERT(tuple_slot_result.size() == 1, "Index scan should only yield one result");
+            tuple_slot_map_[next_redo_record->GetTupleSlot()] = tuple_slot_result[0];
+            delete[] buffer;
+            tuple_slot_map_.erase(delete_record->GetTupleSlot());
+            delete[] reinterpret_cast<byte *>(next_redo_record);
 
-              return 1;  // We processed an additional record
-            }
+            return 1;  // We processed an additional record
           }
         }
       }
-
-      // Step 3: If it wasn't a renaming, we simply need to drop the database
-      catalog_->DeleteDatabase(txn, db_oid);
-
-      // Step 4: Clean up any metadata
-      tuple_slot_map_.erase(delete_record->GetTupleSlot());
-      return 0;  // No additional logs processed
     }
+
+    // Step 3: If it wasn't a renaming, we simply need to drop the database
+    catalog_->DeleteDatabase(txn, db_oid);
+
+    // Step 4: Clean up any metadata
+    tuple_slot_map_.erase(delete_record->GetTupleSlot());
+    return 0;  // No additional logs processed
   }
 }
 
@@ -682,47 +683,50 @@ storage::index::Index *RecoveryManager::GetCatalogIndex(
     catalog::index_oid_t oid, const common::ManagedPointer<catalog::DatabaseCatalog> &db_catalog) {
   TERRIER_ASSERT((!oid) < START_OID, "Oid must be a valid catalog oid");
 
+  storage::index::Index *index;
   if (oid == catalog::NAMESPACE_OID_INDEX_OID) {
-    return db_catalog->namespaces_oid_index_;
+    index = db_catalog->namespaces_oid_index_;
   } else if (oid == catalog::NAMESPACE_NAME_INDEX_OID) {
-    return db_catalog->namespaces_name_index_;
+    index = db_catalog->namespaces_name_index_;
   } else if (oid == catalog::CLASS_OID_INDEX_OID) {
-    return db_catalog->classes_oid_index_;
+    index = db_catalog->classes_oid_index_;
   } else if (oid == catalog::CLASS_NAME_INDEX_OID) {
-    return db_catalog->classes_name_index_;
+    index = db_catalog->classes_name_index_;
   } else if (oid == catalog::CLASS_NAMESPACE_INDEX_OID) {
-    return db_catalog->classes_namespace_index_;
+    index = db_catalog->classes_namespace_index_;
   } else if (oid == catalog::INDEX_OID_INDEX_OID) {
-    return db_catalog->indexes_oid_index_;
+    index = db_catalog->indexes_oid_index_;
   } else if (oid == catalog::INDEX_TABLE_INDEX_OID) {
-    return db_catalog->indexes_table_index_;
+    index = db_catalog->indexes_table_index_;
   } else if (oid == catalog::COLUMN_OID_INDEX_OID) {
-    return db_catalog->columns_oid_index_;
+    index = db_catalog->columns_oid_index_;
   } else if (oid == catalog::COLUMN_NAME_INDEX_OID) {
-    return db_catalog->columns_name_index_;
+    index = db_catalog->columns_name_index_;
   } else if (oid == catalog::COLUMN_CLASS_INDEX_OID) {
-    return db_catalog->columns_class_index_;
+    index = db_catalog->columns_class_index_;
   } else if (oid == catalog::TYPE_OID_INDEX_OID) {
-    return db_catalog->types_oid_index_;
+    index = db_catalog->types_oid_index_;
   } else if (oid == catalog::TYPE_NAME_INDEX_OID) {
-    return db_catalog->types_name_index_;
+    index = db_catalog->types_name_index_;
   } else if (oid == catalog::TYPE_NAMESPACE_INDEX_OID) {
-    return db_catalog->types_namespace_index_;
+    index = db_catalog->types_namespace_index_;
   } else if (oid == catalog::CONSTRAINT_OID_INDEX_OID) {
-    return db_catalog->constraints_oid_index_;
+    index = db_catalog->constraints_oid_index_;
   } else if (oid == catalog::CONSTRAINT_NAME_INDEX_OID) {
-    return db_catalog->constraints_name_index_;
+    index = db_catalog->constraints_name_index_;
   } else if (oid == catalog::CONSTRAINT_NAMESPACE_INDEX_OID) {
-    return db_catalog->constraints_namespace_index_;
+    index = db_catalog->constraints_namespace_index_;
   } else if (oid == catalog::CONSTRAINT_TABLE_INDEX_OID) {
-    return db_catalog->constraints_table_index_;
+    index = db_catalog->constraints_table_index_;
   } else if (oid == catalog::CONSTRAINT_INDEX_INDEX_OID) {
-    return db_catalog->constraints_index_index_;
+    index = db_catalog->constraints_index_index_;
   } else if (oid == catalog::CONSTRAINT_FOREIGNTABLE_INDEX_OID) {
-    return db_catalog->constraints_foreigntable_index_;
+    index = db_catalog->constraints_foreigntable_index_;
   } else {
     TERRIER_ASSERT(false, "This oid does not belong to any catalog index");
   }
+
+  return index;
 }
 
 }  // namespace terrier::storage

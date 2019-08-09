@@ -127,13 +127,13 @@ class LargeSqlTableTestConfiguration {
    */
   LargeSqlTableTestConfiguration(const uint16_t num_databases, const uint16_t num_tables, const uint16_t max_columns,
                                  const uint32_t initial_table_size, const uint32_t txn_length,
-                                 const std::vector<double> &update_select_delete_ratio, const bool varlen_allowed)
+                                 std::vector<double> update_select_delete_ratio, const bool varlen_allowed)
       : num_databases_(num_databases),
         num_tables_(num_tables),
         max_columns_(max_columns),
         initial_table_size_(initial_table_size),
         txn_length_(txn_length),
-        update_select_delete_ratio_(update_select_delete_ratio),
+        update_select_delete_ratio_(std::move(update_select_delete_ratio)),
         varlen_allowed_(varlen_allowed) {}
 
  private:

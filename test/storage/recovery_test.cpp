@@ -49,8 +49,7 @@ class RecoveryTests : public TerrierTest {
     LogManager log_manager(LOG_FILE_NAME, num_log_buffers_, log_serialization_interval_, log_persist_interval_,
                            log_persist_threshold_, &pool_, common::ManagedPointer(&thread_registry_));
     log_manager.Start();
-    LargeSqlTableTestObject *tested =
-        new LargeSqlTableTestObject(config, &block_store_, &pool_, &generator_, &log_manager);
+    auto *tested = new LargeSqlTableTestObject(config, &block_store_, &pool_, &generator_, &log_manager);
 
     // Run transactions and fully persist all changes
     tested->SimulateOltp(100, 4);
