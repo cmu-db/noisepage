@@ -228,7 +228,7 @@ class IndexSchema {
    * @param index in the column vector for the requested column
    * @return requested key column
    */
-  const Column &GetColumn(int index) const { return columns_.at(index); }
+  const Column &GetColumn(uint32_t index) const { return columns_.at(index); }
 
   /**
    * @return true if this schema is for a unique index

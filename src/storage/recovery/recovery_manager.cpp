@@ -244,7 +244,7 @@ void RecoveryManager::UpdateIndexesOnTable(transaction::TransactionContext *txn,
   std::unordered_set<catalog::col_oid_t> all_indexed_attributes;
 
   // Determine all indexed attributes. Also compute largest PR size we need for index PRs.
-  for (size_t i = 0; i < indexes.size(); i++) {
+  for (uint32_t i = 0; i < indexes.size(); i++) {
     auto index_ptr = indexes[i];
     auto &schema = index_schemas[i];
 
@@ -278,7 +278,7 @@ void RecoveryManager::UpdateIndexesOnTable(transaction::TransactionContext *txn,
     auto indexed_attributes = schema.GetIndexedColOids();
 
     // Copy in each value from the table select result into the index PR
-    for (size_t attr_idx = 0; attr_idx < indexed_attributes.size(); attr_idx++) {
+    for (uint32_t attr_idx = 0; attr_idx < indexed_attributes.size(); attr_idx++) {
       auto attr_oid = indexed_attributes[attr_idx];
       auto index_col_oid = schema.GetColumn(attr_idx).Oid();
       if (table_pr->IsNull(pr_map[attr_oid])) {
