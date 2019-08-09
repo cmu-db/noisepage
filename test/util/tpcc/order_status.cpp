@@ -65,12 +65,10 @@ bool OrderStatus::Execute(transaction::TransactionManager *const txn_manager, Da
   bool UNUSED_ATTRIBUTE select_result = db->customer_table_->Select(txn, customer_slot, customer_select_tuple);
   TERRIER_ASSERT(select_result, "Customer table doesn't change (no new entries). All lookups should succeed.");
 
-  TERRIER_ASSERT(customer_select_tuple->AccessWithNullCheck(c_id_select_pr_offset) != nullptr,
-                 "This is a non-NULLable field.");
-  const auto UNUSED_ATTRIBUTE c_id =
-      !args.use_c_last
-          ? args.c_id
-          : *reinterpret_cast<int32_t *>(customer_select_tuple->AccessWithNullCheck(c_id_select_pr_offset));
+  const auto *const c_id_ptr =
+      reinterpret_cast<int32_t *>(customer_select_tuple->AccessWithNullCheck(c_id_select_pr_offset));
+  TERRIER_ASSERT(c_id_ptr != nullptr, "This is a non-NULLable field.");
+  const auto UNUSED_ATTRIBUTE c_id = !args.use_c_last ? args.c_id : *c_id_ptr;
   TERRIER_ASSERT(c_id >= 1 && c_id <= 3000, "Invalid c_id read from the Customer table.");
 
   // look up in secondary Order index

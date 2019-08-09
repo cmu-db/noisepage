@@ -127,8 +127,7 @@ TEST_F(BlockCompactorTest, CompactionTest) {
         }
       }
     }
-    txn_manager.Commit(
-        txn, transaction::TransactionUtil::EmptyCallback, nullptr);  // Commit: will be cleaned up by GC
+    txn_manager.Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);  // Commit: will be cleaned up by GC
     delete[] buffer;
 
     for (auto &entry : tuple_set) {
@@ -226,8 +225,7 @@ TEST_F(BlockCompactorTest, GatherTest) {
       }
     }
 
-    txn_manager.Commit(
-        txn, [](void *) -> void {}, nullptr);  // Commit: will be cleaned up by GC
+    txn_manager.Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);  // Commit: will be cleaned up by GC
     delete[] buffer;
 
     for (auto &entry : tuple_set) {
@@ -343,8 +341,7 @@ TEST_F(BlockCompactorTest, DictionaryCompressionTest) {
       }
     }
 
-    txn_manager.Commit(
-        txn, transaction::TransactionUtil::EmptyCallback, nullptr);  // Commit: will be cleaned up by GC
+    txn_manager.Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);  // Commit: will be cleaned up by GC
     delete[] buffer;
 
     for (auto &entry : tuple_set) {

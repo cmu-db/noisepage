@@ -6,14 +6,9 @@
 ## This script will install all the packages that are needed to
 ## build and run the DBMS.
 ##
-## Note: On newer versions of Ubuntu (17.04), this script
-## will not install the correct version of g++. You will have
-## to use 'update-alternatives' to configure the default of
-## g++ manually.
-##
 ## Supported environments:
 ##  * Ubuntu 18.04
-##  * MacOS
+##  * macOS
 ## =================================================================
 
 main() {

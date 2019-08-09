@@ -29,6 +29,8 @@ Checks:     '
             -bugprone-exception-escape,
             -bugprone-macro-parentheses,
             -bugprone-too-small-loop-variable,
+            -clang-analyzer-cplusplus.NewDelete,
+            -clang-analyzer-cplusplus.NewDeleteLeaks,
             -google-readability-braces-around-statements,
             -modernize-use-nodiscard,
             -modernize-avoid-c-arrays,
