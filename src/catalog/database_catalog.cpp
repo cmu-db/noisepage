@@ -1287,9 +1287,8 @@ void DatabaseCatalog::InsertType(transaction::TransactionContext *txn, type::Typ
   table_col_oids.emplace_back(TYPLEN_COL_OID);
   table_col_oids.emplace_back(TYPBYVAL_COL_OID);
   table_col_oids.emplace_back(TYPTYPE_COL_OID);
-  auto initializer_pair = types_->InitializerForProjectedRow(table_col_oids);
-  auto initializer = initializer_pair.first;
-  auto col_map = initializer_pair.second;
+  auto initializer = types_->InitializerForProjectedRow(table_col_oids);
+  auto col_map = types_->ProjectionMapForOids(table_col_oids);
 
   // Stage the write into the table
   auto redo_record = txn->StageWrite(db_oid_, TYPE_TABLE_OID, initializer);
