@@ -77,7 +77,7 @@ class ResultPlanNode : public AbstractPlanNode {
   /**
    * @return the tuple in the storage layer
    */
-  const std::shared_ptr<parser::AbstractExpression> GetExpression() const { return expr_; }
+  std::shared_ptr<parser::AbstractExpression> GetExpression() const { return expr_; }
 
   /**
    * @return the type of this plan node

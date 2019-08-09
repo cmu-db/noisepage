@@ -22,7 +22,7 @@ TEST(HashUtilTests, HashTest) {
   }
 
   // FLOAT
-  std::vector<float> vals1 = {std::numeric_limits<float>::min(), 0.0f, std::numeric_limits<float>::max() - 1.0f};
+  std::vector<float> vals1 = {std::numeric_limits<float>::min(), 0.0F, std::numeric_limits<float>::max() - 1.0F};
   for (const auto &val : vals1) {
     auto copy = val;  // NOLINT
     EXPECT_EQ(common::HashUtil::Hash(val), common::HashUtil::Hash(copy));
