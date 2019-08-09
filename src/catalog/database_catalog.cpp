@@ -514,11 +514,7 @@ bool DatabaseCatalog::DeleteColumns(transaction::TransactionContext *const txn, 
       delete[] buffer;
       delete[] key_buffer;
       return false;
-      // TODO(Matt): what happens if you only manage to partially delete the columns? does abort alone suffice? I think
-      // we've covered due to MVCC semantics
     }
-
-    // TODO(Matt): defer the delete for the pointer stored in ADBIN after #386 is in
 
     // 4. Delete from oid index
     key_pr = oid_pri.InitializeRow(key_buffer);
