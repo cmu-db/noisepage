@@ -521,7 +521,6 @@ bool DatabaseCatalog::DeleteColumns(transaction::TransactionContext *const txn, 
     // TODO(Matt): defer the delete for the pointer stored in ADBIN after #386 is in
 
     // 4. Delete from oid index
-    oid_pri = columns_oid_index_->GetProjectedRowInitializer();
     key_pr = oid_pri.InitializeRow(key_buffer);
     // Write the attributes in the ProjectedRow. These hardcoded indexkeycol_oids come from
     // Builder::GetColumnOidIndexSchema()
@@ -530,7 +529,6 @@ bool DatabaseCatalog::DeleteColumns(transaction::TransactionContext *const txn, 
     columns_oid_index_->Delete(txn, *key_pr, slot);
 
     // 5. Delete from name index
-    auto name_pri = columns_name_index_->GetProjectedRowInitializer();
     key_pr = name_pri.InitializeRow(key_buffer);
     // Write the attributes in the ProjectedRow. We know the offsets without the map because of the ordering of
     // attribute sizes
