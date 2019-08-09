@@ -36,7 +36,6 @@ TransactionContext *TransactionManager::BeginTransaction() {
   return result;
 }
 
-// TODO(Gus): TEMPORARY, remove after timestamp manager is brought in
 TransactionContext *TransactionManager::BeginTransaction(timestamp_t timestamp) {
   // Ensure we do not return from this function if there are ongoing write commits
   common::Gate::ScopedExit gate(&txn_gate_);

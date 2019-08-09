@@ -224,7 +224,6 @@ class StrongTypeAlias {
   void FromJson(const nlohmann::json &j) { val_ = j.get<IntType>(); }
 
  private:
-  friend struct std::atomic<terrier::common::StrongTypeAlias<Tag, IntType>>;  // CAS operators need access to val_
   IntType val_;
 };
 }  // namespace terrier::common

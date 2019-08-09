@@ -358,7 +358,6 @@ class StorageTestUtil {
                                 const std::vector<storage::TupleSlot> &table_one_tuples,
                                 const std::unordered_map<storage::TupleSlot, storage::TupleSlot> &tuple_slot_map,
                                 transaction::TransactionManager *txn_manager) {
-    // TODO(Gus): Maybe change the txn timestamp, this is a hack
     // Set timestamp to be max to ensure most up to date snapshot
     auto *txn = txn_manager->BeginTransaction(transaction::timestamp_t(INT64_MAX));
 

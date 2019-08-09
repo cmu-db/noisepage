@@ -10,13 +10,6 @@
 namespace terrier::storage {
 
 /**
- * TODO(Gus): Replace when catalog is brought in
- * Temporary "catalog" to use for recovery. Maps a database oid to a map that maps table oids to SQL table pointers
- */
-using RecoveryCatalog =
-    std::unordered_map<catalog::db_oid_t, std::unordered_map<catalog::table_oid_t, storage::SqlTable *>>;
-
-/**
  * @@brief Abstract class for log providers
  * A log provider is an object that supplies logs to the recovery manager from an arbitrary source (log file, network,
  * etc). A provider should implement the Read method in such a way that it appears like it is reading contigous memory

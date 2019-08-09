@@ -224,7 +224,7 @@ class TransactionContext {
    * @warning This method is ONLY for recovery
    * Copy the log record into the transaction's redo buffer.
    * @param record log record to copy
-   * @warning If you call StageRecoveryUpdate, the operation WILL be logged to disk. If you StageRecoveryUpdate anything
+   * @warning If you call StageRecoveryWrite, the operation WILL be logged to disk. If you StageRecoveryWrite anything
    * that you didn't succeed in writing into the table or decide you don't want to use, the transaction MUST abort.
    */
   void StageRecoveryWrite(storage::LogRecord *record) {
