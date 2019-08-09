@@ -17,8 +17,8 @@ pipeline {
                         sh 'echo y | ./script/installation/packages.sh'
                         sh 'mkdir build'
                         sh 'cd build && cmake -DCMAKE_BUILD_TYPE=Debug -DTERRIER_USE_ASAN=ON .. && make -j4'
-                        sh 'cd build && make check-clang-tidy -j4'
-                        sh 'cd build && make unittest -j4'
+                        sh 'cd build && make check-clang-tidy'
+                        sh 'cd build && make unittest'
                         sh 'cd build && python ../script/testing/junit/run_junit.py'
                     }
                 }
@@ -34,8 +34,8 @@ pipeline {
                         sh 'echo y | sudo ./script/installation/packages.sh'
                         sh 'mkdir build'
                         sh 'cd build && cmake -DCMAKE_BUILD_TYPE=Debug -DTERRIER_USE_ASAN=ON .. && make -j4'
-                        sh 'cd build && make check-clang-tidy -j4'
-                        sh 'cd build && make unittest -j4'
+                        sh 'cd build && make check-clang-tidy'
+                        sh 'cd build && make unittest'
                         sh 'cd build && python ../script/testing/junit/run_junit.py'
                     }
                 }
@@ -50,7 +50,7 @@ pipeline {
                         sh 'echo y | ./script/installation/packages.sh'
                         sh 'mkdir build'
                         sh 'cd build && cmake -DCMAKE_BUILD_TYPE=Release -DTERRIER_USE_ASAN=OFF .. && make -j4'
-                        sh 'cd build && make unittest -j4'
+                        sh 'cd build && make unittest'
                         sh 'cd build && python ../script/testing/junit/run_junit.py --build_type=release'
                     }
                 }
@@ -65,7 +65,7 @@ pipeline {
                         sh 'echo y | sudo ./script/installation/packages.sh'
                         sh 'mkdir build'
                         sh 'cd build && cmake -DCMAKE_BUILD_TYPE=Release -DTERRIER_USE_ASAN=OFF .. && make -j4'
-                        sh 'cd build && make unittest -j4'
+                        sh 'cd build && make unittest'
                         sh 'cd build && python ../script/testing/junit/run_junit.py --build_type=release'
                     }
                 }
@@ -76,7 +76,7 @@ pipeline {
                         sh 'echo y | sudo ./script/installation/packages.sh'
                         sh 'mkdir build'
                         sh 'cd build && cmake -DCMAKE_BUILD_TYPE=Release -DTERRIER_USE_ASAN=OFF -DTERRIER_USE_JEMALLOC=ON .. && make -j4'
-                        sh 'cd build && make runbenchmark -j4'
+                        sh 'cd build && make runbenchmark'
                         sh 'cd script/micro_bench && ./run_micro_bench.py'
                         archiveArtifacts 'script/micro_bench/*.json'
                         junit 'script/micro_bench/*.xml'
