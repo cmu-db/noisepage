@@ -472,7 +472,7 @@ bool DatabaseCatalog::DeleteColumns(transaction::TransactionContext *const txn, 
   byte *const key_buffer = common::AllocationUtil::AllocateAligned(name_pri.ProjectedRowSize());
   // Scan the class index
   auto *pr = oid_pri.InitializeRow(buffer);
-  auto *pr_high = oid_pri.InitializeRow(key_buffer);
+  auto *key_pr = oid_pri.InitializeRow(key_buffer);
 
   // Write the attributes in the ProjectedRow
   // Low key (class, INVALID_COLUMN_OID) [using uint32_t to avoid adding ColOid to template]
@@ -480,10 +480,10 @@ bool DatabaseCatalog::DeleteColumns(transaction::TransactionContext *const txn, 
   *(reinterpret_cast<uint32_t *>(pr->AccessForceNotNull(1))) = 0;
 
   // Low key (class + 1, INVALID_COLUMN_OID) [using uint32_t to avoid adding ColOid to template]
-  *(reinterpret_cast<ClassOid *>(pr_high->AccessForceNotNull(0))) = ++class_oid;
-  *(reinterpret_cast<uint32_t *>(pr_high->AccessForceNotNull(1))) = 0;
+  *(reinterpret_cast<ClassOid *>(key_pr->AccessForceNotNull(0))) = ++class_oid;
+  *(reinterpret_cast<uint32_t *>(key_pr->AccessForceNotNull(1))) = 0;
   std::vector<storage::TupleSlot> index_results;
-  columns_oid_index_->ScanAscending(*txn, *pr, *pr_high, &index_results);
+  columns_oid_index_->ScanAscending(*txn, *pr, *key_pr, &index_results);
 
   if (index_results.empty()) {
     delete[] buffer;
