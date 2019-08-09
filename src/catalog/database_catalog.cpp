@@ -390,12 +390,11 @@ bool DatabaseCatalog::CreateColumn(transaction::TransactionContext *const txn, c
 
   // Step 3: Insert into oid index
   const auto oid_pri = columns_oid_index_->GetProjectedRowInitializer();
-  const auto oid_pm = columns_oid_index_->GetKeyOidToOffsetMap();
   pr = oid_pri.InitializeRow(buffer);
   // Write the attributes in the ProjectedRow. These hardcoded indexkeycol_oids come from
   // Builder::GetColumnOidIndexSchema()
-  *(reinterpret_cast<ColOid *>(pr->AccessForceNotNull(oid_pm.at(indexkeycol_oid_t(2))))) = col_oid;
-  *(reinterpret_cast<ClassOid *>(pr->AccessForceNotNull(oid_pm.at(indexkeycol_oid_t(1))))) = class_oid;
+  *(reinterpret_cast<ClassOid *>(pr->AccessForceNotNull(0))) = class_oid;
+  *(reinterpret_cast<ColOid *>(pr->AccessForceNotNull(1)) = col_oid;
 
   bool UNUSED_ATTRIBUTE result = columns_oid_index_->InsertUnique(txn, *pr, tupleslot);
   TERRIER_ASSERT(result, "Assigned OIDs failed to be unique.");
@@ -425,7 +424,7 @@ std::vector<Column> DatabaseCatalog::GetColumns(transaction::TransactionContext 
   *(reinterpret_cast<ClassOid *>(pr->AccessForceNotNull(0))) = class_oid;
   *(reinterpret_cast<uint32_t *>(pr->AccessForceNotNull(1))) = 0;
 
-  // Low key (class + 1, INVALID_COLUMN_OID) [using uint32_t to avoid adding ColOid to template]
+  // High key (class + 1, INVALID_COLUMN_OID) [using uint32_t to avoid adding ColOid to template]
   *(reinterpret_cast<ClassOid *>(pr_high->AccessForceNotNull(0))) = ++class_oid;
   *(reinterpret_cast<uint32_t *>(pr_high->AccessForceNotNull(1))) = 0;
   std::vector<storage::TupleSlot> index_results;
@@ -480,7 +479,7 @@ bool DatabaseCatalog::DeleteColumns(transaction::TransactionContext *const txn, 
   *(reinterpret_cast<uint32_t *>(pr->AccessForceNotNull(1))) = 0;
 
   auto next_oid = ClassOid(!class_oid + 1);
-  // Low key (class + 1, INVALID_COLUMN_OID) [using uint32_t to avoid adding ColOid to template]
+  // High key (class + 1, INVALID_COLUMN_OID) [using uint32_t to avoid adding ColOid to template]
   *(reinterpret_cast<ClassOid *>(key_pr->AccessForceNotNull(0))) = next_oid;
   *(reinterpret_cast<uint32_t *>(key_pr->AccessForceNotNull(1))) = 0;
   std::vector<storage::TupleSlot> index_results;
