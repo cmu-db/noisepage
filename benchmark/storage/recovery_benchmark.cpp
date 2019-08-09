@@ -23,10 +23,6 @@ class RecoveryBenchmark : public benchmark::Fixture {
   storage::RecordBufferSegmentPool buffer_pool_{1000000, 1000000};
   std::default_random_engine generator_;
   const uint32_t num_concurrent_txns_ = 4;
-  storage::LogManager *log_manager_ = nullptr;
-  storage::RecoveryManager *recovery_manager_ = nullptr;
-  storage::GarbageCollectorThread *gc_thread_ = nullptr;
-  const std::chrono::milliseconds gc_period_{10};
   common::DedicatedThreadRegistry thread_registry_;
 
   // Settings for log manager
@@ -48,16 +44,15 @@ class RecoveryBenchmark : public benchmark::Fixture {
       // Blow away log file after every benchmark iteration
       unlink(LOG_FILE_NAME);
       // Initialize table and run workload with logging enabled
-      log_manager_ =
-          new storage::LogManager(LOG_FILE_NAME, num_log_buffers_, log_serialization_interval_, log_persist_interval_,
+      storage::LogManager log_manager(LOG_FILE_NAME, num_log_buffers_, log_serialization_interval_, log_persist_interval_,
                                   log_persist_threshold_, &buffer_pool_, common::ManagedPointer(&thread_registry_));
-      log_manager_->Start();
-      LargeSqlTableTestObject tested =
-          LargeSqlTableTestObject(config, &block_store_, &buffer_pool_, &generator_, log_manager_);
+      log_manager.Start();
+      LargeSqlTableTestObject* tested =
+          new LargeSqlTableTestObject(config, &block_store_, &buffer_pool_, &generator_, &log_manager);
 
       // Run the test object and log all transactions
-      tested.SimulateOltp(num_txns_, num_concurrent_txns_);
-      log_manager_->PersistAndStop();
+      tested->SimulateOltp(num_txns_, num_concurrent_txns_);
+      log_manager.PersistAndStop();
 
       // Start a transaction manager with logging disabled, we don't want to log the log replaying
       transaction::TransactionManager recovery_txn_manager{&buffer_pool_, true, LOGGING_DISABLED};
@@ -67,29 +62,31 @@ class RecoveryBenchmark : public benchmark::Fixture {
 
       // Instantiate recovery manager, and recover the tables.
       storage::DiskLogProvider log_provider(LOG_FILE_NAME);
-      recovery_manager_ =
-          new storage::RecoveryManager(&log_provider, common::ManagedPointer(&recovered_catalog), &recovery_txn_manager,
+      storage::RecoveryManager recovery_manager(&log_provider, common::ManagedPointer(&recovered_catalog), &recovery_txn_manager,
                                        common::ManagedPointer(&thread_registry_), &block_store_);
 
       uint64_t elapsed_ms;
       {
         common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
-        recovery_manager_->StartRecovery();
-        recovery_manager_->FinishRecovery();
-        recovered_txns += recovery_manager_->GetRecoveredTxnCount();
+        recovery_manager.StartRecovery();
+        recovery_manager.FinishRecovery();
+        recovered_txns += recovery_manager.GetRecoveredTxnCount();
       }
 
       state->SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
 
       // Delete test txns
-      gc_thread_ = new storage::GarbageCollectorThread(tested.GetTxnManager(), gc_period_);
-      delete gc_thread_;
+      log_manager.Start();
+      delete tested;
+      log_manager.PersistAndStop();
 
-      // Delete recovery txns
-      gc_thread_ = new storage::GarbageCollectorThread(&recovery_txn_manager, gc_period_);
-      delete gc_thread_;
-      delete recovery_manager_;
-      delete log_manager_;
+      // Call GC 3 times to fully clean up catalog
+      recovered_catalog.TearDown();
+      auto* gc = new storage::GarbageCollector(&recovery_txn_manager, nullptr);
+      gc->PerformGarbageCollection();
+      gc->PerformGarbageCollection();
+      gc->PerformGarbageCollection();
+      delete gc;
     }
     state->SetItemsProcessed(recovered_txns);
   }
