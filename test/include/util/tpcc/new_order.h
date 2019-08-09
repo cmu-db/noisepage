@@ -237,11 +237,9 @@ class NewOrder {
         s_remote_cnt_oid(db->stock_schema_.GetColumn(15).Oid()),
         s_data_oid(db->stock_schema_.GetColumn(16).Oid()),
         stock_update_pr_initializer(
-            db->stock_table_->InitializerForProjectedRow({s_quantity_oid, s_ytd_oid, s_order_cnt_oid, s_remote_cnt_oid})
-                .first),
+            db->stock_table_->InitializerForProjectedRow({s_quantity_oid, s_ytd_oid, s_order_cnt_oid, s_remote_cnt_oid})),
         stock_update_pr_map(
-            db->stock_table_->InitializerForProjectedRow({s_quantity_oid, s_ytd_oid, s_order_cnt_oid, s_remote_cnt_oid})
-                .second),
+            db->stock_table_->ProjectionMapForOids({s_quantity_oid, s_ytd_oid, s_order_cnt_oid, s_remote_cnt_oid})),
 
         s_quantity_update_pr_offset(static_cast<uint8_t>(stock_update_pr_map.at(s_quantity_oid))),
         s_ytd_update_pr_offset(static_cast<uint8_t>(stock_update_pr_map.at(s_ytd_oid))),
@@ -256,8 +254,7 @@ class NewOrder {
         order_line_insert_pr_initializer(
             db->order_line_table_->InitializerForProjectedRow(Util::AllColOidsForSchema(db->order_line_schema_))),
         order_line_insert_pr_map(
-            db->order_line_table_->InitializerForProjectedRow(Util::AllColOidsForSchema(db->order_line_schema_))
-                .second),
+            db->order_line_table_->ProjectionMapForOids(Util::AllColOidsForSchema(db->order_line_schema_))),
         ol_o_id_insert_pr_offset(
             static_cast<uint8_t>(order_line_insert_pr_map.at(db->order_line_schema_.GetColumn(0).Oid()))),
         ol_d_id_insert_pr_offset(
