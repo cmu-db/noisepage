@@ -66,7 +66,7 @@ class DataTable {
      * post-fix increment.
      * @return copy of the iterator equal to this before increment
      */
-    const SlotIterator operator++(int) {
+    SlotIterator operator++(int) {
       SlotIterator copy = *this;
       operator++();
       return copy;

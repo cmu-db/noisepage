@@ -62,7 +62,7 @@ class BlockCompactorBenchmark : public benchmark::Fixture {
       for (storage::RawBlock *block : blocks) block_store_.Release(block);
       state.SetIterationTime(static_cast<double>(gather_ms + compaction_ms) / 1000.0);
     }
-    state.SetItemsProcessed(static_cast<int64_t>(num_blocks_ * state.iterations()));
+    state.SetItemsProcessed(static_cast<int64_t>(num_blocks_ * state.iterations()));  // NOLINT
   }
 
   // NOLINTNEXTLINE
@@ -95,7 +95,7 @@ class BlockCompactorBenchmark : public benchmark::Fixture {
       for (storage::RawBlock *block : blocks) block_store_.Release(block);
       state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
     }
-    state.SetItemsProcessed(static_cast<int64_t>(num_blocks_ * state.iterations()));
+    state.SetItemsProcessed(static_cast<int64_t>(num_blocks_ * state.iterations()));  // NOLINT
   }
 
   // NOLINTNEXTLINE
@@ -129,7 +129,7 @@ class BlockCompactorBenchmark : public benchmark::Fixture {
       for (storage::RawBlock *block : blocks) block_store_.Release(block);
       state.SetIterationTime(static_cast<double>(time) / 1000.0);
     }
-    state.SetItemsProcessed(static_cast<int64_t>(num_blocks_ * state.iterations()));
+    state.SetItemsProcessed(static_cast<int64_t>(num_blocks_ * state.iterations()));  // NOLINT
   }
 };
 
