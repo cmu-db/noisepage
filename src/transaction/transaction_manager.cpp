@@ -238,7 +238,7 @@ TransactionQueue TransactionManager::CompletedTransactionsForGC() {
   return std::move(completed_txns_);
 }
 
-void TransactionManager::DeferAction(Action a) {
+void TransactionManager::DeferAction(const Action &a) {
   TERRIER_ASSERT(GCEnabled(), "Need GC enabled for deferred actions to be executed.");
   common::SpinLatch::ScopedSpinLatch guard(&deferred_actions_latch_);
   deferred_actions_.push({time_.load(), a});

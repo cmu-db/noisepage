@@ -121,10 +121,12 @@ bool Payment::Execute(transaction::TransactionManager *const txn_manager, Databa
   select_result = db->customer_table_->Select(txn, customer_slot, customer_select_tuple);
   TERRIER_ASSERT(select_result, "Customer table doesn't change (no new entries). All lookups should succeed.");
 
-  const auto c_id =
-      !args.use_c_last
-          ? args.c_id
-          : *reinterpret_cast<int32_t *>(customer_select_tuple->AccessWithNullCheck(c_id_select_pr_offset));
+  const auto *const c_id_ptr =
+      reinterpret_cast<int32_t *>(customer_select_tuple->AccessWithNullCheck(c_id_select_pr_offset));
+  TERRIER_ASSERT(c_id_ptr != nullptr, "This is a non-NULLable field.");
+  const auto UNUSED_ATTRIBUTE c_id = !args.use_c_last ? args.c_id : *c_id_ptr;
+  TERRIER_ASSERT(c_id >= 1 && c_id <= 3000, "Invalid c_id read from the Customer table.");
+
   const auto c_balance =
       *reinterpret_cast<double *>(customer_select_tuple->AccessWithNullCheck(c_balance_select_pr_offset));
   const auto c_ytd_payment =
@@ -135,7 +137,6 @@ bool Payment::Execute(transaction::TransactionManager *const txn_manager, Databa
       *reinterpret_cast<storage::VarlenEntry *>(customer_select_tuple->AccessWithNullCheck(c_credit_select_pr_offset));
   const auto c_data =
       *reinterpret_cast<storage::VarlenEntry *>(customer_select_tuple->AccessWithNullCheck(c_data_select_pr_offset));
-  TERRIER_ASSERT(c_id >= 1 && c_id <= 3000, "Invalid c_id read from the Customer table.");
 
   // Update customer
   auto *const customer_update_redo =
