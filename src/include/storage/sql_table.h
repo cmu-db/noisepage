@@ -198,6 +198,13 @@ class SqlTable {
     return {initializer, projection_map};
   }
 
+  /**
+   * Generate a projection map given column oids
+   * @param col_oids oids that will be scanned.
+   * @return the projection map
+   */
+  ProjectionMap ProjectionMapForOids(const std::vector<catalog::col_oid_t> &col_oids);
+
  private:
   FRIEND_TEST(WriteAheadLoggingTests, AbortRecordTest);
   FRIEND_TEST(WriteAheadLoggingTests, NoAbortRecordTest);

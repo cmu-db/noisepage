@@ -84,6 +84,24 @@ ProjectionMap SqlTable::ProjectionMapForInitializer(const ProjectionInitializerT
   return projection_map;
 }
 
+ProjectionMap SqlTable::ProjectionMapForOids(const std::vector<catalog::col_oid_t> &col_oids) {
+  // Resolve OIDs to storage IDs
+  auto col_ids = ColIdsForOids(col_oids);
+
+  // Use std::map to effectively sort OIDs by their corresponding ID
+  std::map<col_id_t, catalog::col_oid_t> inverse_map;
+  for (uint16_t i = 0; i < col_oids.size(); i++)
+    inverse_map[col_ids[i]] = col_oids[i];
+
+  // Populate the projection map using the in-order iterator on std::map
+  ProjectionMap projection_map;
+  uint16_t i = 0;
+  for (auto [_, oid] : inverse_map)
+    projection_map[oid] = i++;
+
+  return projection_map;
+}
+
 template ProjectionMap SqlTable::ProjectionMapForInitializer<ProjectedColumnsInitializer>(
     const ProjectedColumnsInitializer &initializer) const;
 template ProjectionMap SqlTable::ProjectionMapForInitializer<ProjectedRowInitializer>(
