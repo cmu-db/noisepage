@@ -65,17 +65,17 @@ install_mac() {
   # Update Homebrew.
   brew update
   # Install packages.
-  brew install cmake
-  brew install doxygen
-  brew install git
-  brew install jemalloc
-  brew install libevent
-  brew install libpqxx
-  brew install llvm@8
-  brew install openssl
-  brew install postgresql
-  brew install tbb
-  brew install ant
+  brew ls --versions cmake || brew install cmake
+  brew ls --versions doxygen || brew install doxygen
+  brew ls --versions git || brew install git
+  brew ls --versions jemalloc || brew install jemalloc
+  brew ls --versions libevent || brew install libevent
+  brew ls --versions libpqxx || brew install libpqxx
+  (brew ls --versions llvm | grep 8) || brew install llvm@8
+  brew ls --versions openssl || brew install openssl
+  brew ls --versions postgresql || brew install postgresql
+  brew ls --versions tbb || brew install tbb
+  brew ls --version ant || brew install ant
 }
 
 install_linux() {
