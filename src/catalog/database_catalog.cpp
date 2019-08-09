@@ -421,12 +421,15 @@ std::vector<Column> DatabaseCatalog::GetColumns(transaction::TransactionContext 
   auto *pr_high = oid_pri.InitializeRow(key_buffer);
 
   // Write the attributes in the ProjectedRow
-  *(reinterpret_cast<ColOid *>(pr->AccessForceNotNull(0))) = ColOid(0);
-  *(reinterpret_cast<ClassOid *>(pr->AccessForceNotNull(1))) = class_oid;
-  *(reinterpret_cast<ColOid *>(pr_high->AccessForceNotNull(0))) = ColOid(0);
-  *(reinterpret_cast<ClassOid *>(pr_high->AccessForceNotNull(1))) = ++class_oid;
+  // Low key (class, INVALID_COLUMN_OID) [using uint32_t to avoid adding ColOid to template]
+  *(reinterpret_cast<ClassOid *>(pr->AccessForceNotNull(0))) = class_oid;
+  *(reinterpret_cast<uint32_t *>(pr->AccessForceNotNull(1))) = 0;
+
+  // Low key (class + 1, INVALID_COLUMN_OID) [using uint32_t to avoid adding ColOid to template]
+  *(reinterpret_cast<ClassOid *>(pr_high->AccessForceNotNull(0))) = ++class_oid;
+  *(reinterpret_cast<uint32_t *>(pr_high->AccessForceNotNull(1))) = 0;
   std::vector<storage::TupleSlot> index_results;
-  columns_class_index_->ScanAscending(*txn, *pr, *pr_high, &index_results);
+  columns_oid_index_->ScanAscending(*txn, *pr, *pr_high, &index_results);
 
   if (index_results.empty()) {
     // class not found in the index, so class doesn't exist. Free the buffer and return nullptr to indicate failure
@@ -471,12 +474,15 @@ bool DatabaseCatalog::DeleteColumns(transaction::TransactionContext *const txn, 
   auto *pr_high = oid_pri.InitializeRow(key_buffer);
 
   // Write the attributes in the ProjectedRow
+  // Low key (class, INVALID_COLUMN_OID) [using uint32_t to avoid adding ColOid to template]
   *(reinterpret_cast<ClassOid *>(pr->AccessForceNotNull(0))) = class_oid;
-  *(reinterpret_cast<ColOid *>(pr->AccessForceNotNull(1))) = ColOid(0);
+  *(reinterpret_cast<uint32_t *>(pr->AccessForceNotNull(1))) = 0;
+
+  // Low key (class + 1, INVALID_COLUMN_OID) [using uint32_t to avoid adding ColOid to template]
   *(reinterpret_cast<ClassOid *>(pr_high->AccessForceNotNull(0))) = ++class_oid;
-  *(reinterpret_cast<ColOid *>(pr_high->AccessForceNotNull(1))) = ColOid(0);
+  *(reinterpret_cast<uint32_t *>(pr_high->AccessForceNotNull(1))) = 0;
   std::vector<storage::TupleSlot> index_results;
-  columns_class_index_->ScanAscending(*txn, *pr, *pr_high, &index_results);
+  columns_oid_index_->ScanAscending(*txn, *pr, *pr_high, &index_results);
 
   if (index_results.empty()) {
     delete[] buffer;
