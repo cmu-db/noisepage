@@ -39,7 +39,7 @@ class BinderCorrectnessTest : public TerrierTest {
   parser::PostgresParser parser_;
   transaction::TransactionManager *txn_manager_;
   transaction::TransactionContext *txn_;
-  catalog::CatalogAccessor *accessor_;
+  std::unique_ptr<catalog::CatalogAccessor> accessor_;
   binder::BindNodeVisitor *binder_;
 
   void SetUpTables() {
@@ -76,7 +76,7 @@ class BinderCorrectnessTest : public TerrierTest {
     EXPECT_TRUE(accessor_->SetTablePointer(table_a_oid_, table_a));
 
     txn_manager_->Commit(txn_, TestCallbacks::EmptyCallback, nullptr);
-    delete accessor_;
+    accessor_.reset(nullptr);
 
     // create Table B
     txn_ = txn_manager_->BeginTransaction();
@@ -92,7 +92,7 @@ class BinderCorrectnessTest : public TerrierTest {
     auto table_b = new storage::SqlTable(&block_store_, schema_b);
     EXPECT_TRUE(accessor_->SetTablePointer(table_b_oid_, table_b));
     txn_manager_->Commit(txn_, TestCallbacks::EmptyCallback, nullptr);
-    delete accessor_;
+    accessor_.reset(nullptr);
   }
 
   void TearDownTables() {
@@ -117,7 +117,7 @@ class BinderCorrectnessTest : public TerrierTest {
 
   void TearDown() override {
     txn_manager_->Commit(txn_, TestCallbacks::EmptyCallback, nullptr);
-    delete accessor_;
+    accessor_.reset(nullptr);
     delete binder_;
     TearDownTables();
     TerrierTest::TearDown();
