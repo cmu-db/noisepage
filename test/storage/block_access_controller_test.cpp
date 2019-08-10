@@ -37,7 +37,7 @@ TEST(BlockAccessControllerTest, WriterPreemption) {
 // Tests that the freezing flag blocks both readers and writers
 // NOLINTNEXTLINE
 TEST(BlockAccessControllerTest, FreezingBlocksBoth) {
-  const uint32_t iteration = 100;
+  const uint32_t iteration = 10000;
   for (uint32_t i = 0; i < iteration; i++) {
     storage::BlockAccessController tested;
     tested.Initialize();
@@ -60,27 +60,27 @@ TEST(BlockAccessControllerTest, FreezingBlocksBoth) {
 // Tests that writer blocks future readers but waits for reader exit
 // NOLINTNEXTLINE
 TEST(BlockAccessControllerTest, ReaderWriter) {
-  const uint32_t iteration = 100;
+  const uint32_t iteration = 10000;
   for (uint32_t i = 0; i < iteration; i++) {
     storage::BlockAccessController tested;
     tested.Initialize();
     tested.GetBlockState()->store(storage::BlockState::FROZEN);
     DECLARE_PROGRAM_POINT(read_acquired)
-    DECLARE_PROGRAM_POINT(read_released)
+    DECLARE_PROGRAM_POINT(read_releasing)
     std::thread reader([&] {
       EXPECT_TRUE(tested.TryAcquireInPlaceRead());
       PROGRAM_POINT(read_acquired)
       // Block the reader until the write has executed
       WAIT_UNTIL(tested.GetBlockState()->load() == storage::BlockState::HOT)
       EXPECT_FALSE(tested.TryAcquireInPlaceRead());
-      PROGRAM_POINT(read_released)
+      PROGRAM_POINT(read_releasing)
       tested.ReleaseInPlaceRead();
     });
 
     WAIT_UNTIL(read_acquired)
     tested.WaitUntilHot();
     // The thread should only be unblocked when the reader has released the lock
-    EXPECT_TRUE(read_released);
+    EXPECT_TRUE(read_releasing);
     EXPECT_EQ(tested.GetBlockState()->load(), storage::BlockState::HOT);
     reader.join();
   }
@@ -89,31 +89,31 @@ TEST(BlockAccessControllerTest, ReaderWriter) {
 // Tests that writer waits for all readers to exit
 // NOLINTNEXTLINE
 TEST(BlockAccessControllerTest, MultipleReaders) {
-  const uint32_t iteration = 100;
+  const uint32_t iteration = 10000;
   for (uint32_t i = 0; i < iteration; i++) {
     storage::BlockAccessController tested;
     tested.Initialize();
     tested.GetBlockState()->store(storage::BlockState::FROZEN);
     DECLARE_PROGRAM_POINT(reader1_acquired)
-    DECLARE_PROGRAM_POINT(reader1_released)
+    DECLARE_PROGRAM_POINT(reader1_releasing)
     DECLARE_PROGRAM_POINT(reader2_acquired)
-    DECLARE_PROGRAM_POINT(reader2_released)
+    DECLARE_PROGRAM_POINT(reader2_releasing)
     std::thread reader1([&] {
       EXPECT_TRUE(tested.TryAcquireInPlaceRead());
       PROGRAM_POINT(reader1_acquired)
+      PROGRAM_POINT(reader1_releasing)
       tested.ReleaseInPlaceRead();
-      PROGRAM_POINT(reader1_released)
     });
 
     std::thread reader2([&] {
       EXPECT_TRUE(tested.TryAcquireInPlaceRead());
       PROGRAM_POINT(reader2_acquired)
+      PROGRAM_POINT(reader2_releasing)
       tested.ReleaseInPlaceRead();
-      PROGRAM_POINT(reader2_released)
     });
     WAIT_UNTIL(reader1_acquired && reader2_acquired)
     tested.WaitUntilHot();
-    EXPECT_TRUE(REACHED(reader1_released) && REACHED(reader1_released));
+    EXPECT_TRUE(REACHED(reader1_releasing) && REACHED(reader2_releasing));
     EXPECT_EQ(tested.GetBlockState()->load(), storage::BlockState::HOT);
     reader1.join();
     reader2.join();

@@ -21,7 +21,7 @@
 
 namespace terrier {
 
-struct TpccPlanTest : public TerrierTest {
+class TpccPlanTest : public TerrierTest {
   catalog::table_oid_t CreateTable(catalog::CatalogAccessor *accessor, std::string tbl_name, catalog::Schema schema) {
     auto tbl_oid = accessor->CreateTable(accessor->GetDefaultNamespace(), tbl_name, schema);
     EXPECT_NE(tbl_oid, catalog::INVALID_TABLE_OID);
@@ -57,7 +57,7 @@ struct TpccPlanTest : public TerrierTest {
     // Registers everything we need with the catalog
     // We don't actually need SqlTables/Indexes/Data
     auto txn = txn_manager_->BeginTransaction();
-    auto accessor = catalog_->GetAccessor(txn, db_);
+    auto accessor = catalog_->GetAccessor(txn, db_).release();
 
     // Following logic taken from util/tpcc/builder.cpp
     uint32_t oid_counter = 0;
@@ -144,7 +144,7 @@ struct TpccPlanTest : public TerrierTest {
 
   void BeginTransaction() {
     txn_ = txn_manager_->BeginTransaction();
-    accessor_ = catalog_->GetAccessor(txn_, db_);
+    accessor_ = catalog_->GetAccessor(txn_, db_).release();
   }
 
   void EndTransaction(bool commit) {

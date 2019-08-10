@@ -748,15 +748,13 @@ void PlanGenerator::Visit(const Insert *op) {
   if (op->GetColumns().empty()) {
     // INSERT INTO tbl VALUES (...)
     // Generate column ids from underlying table
-    for (auto idx = 0; idx < static_cast<int>(num_tbl_cols); idx++) {
-      builder.AddParameterInfo(idx, tbl_cols[idx].Oid());
+    for (auto &col : tbl_cols) {
+      builder.AddParameterInfo(col.Oid());
     }
   } else {
     // INSERT INTO tbl (col,....) VALUES (....)
-    unsigned idx = 0;
     for (auto &col : op->GetColumns()) {
-      builder.AddParameterInfo(idx, col);
-      idx++;
+      builder.AddParameterInfo(col);
     }
   }
 
