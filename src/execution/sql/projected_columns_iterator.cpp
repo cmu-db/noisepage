@@ -84,7 +84,9 @@ u32 ProjectedColumnsIterator::FilterColByVal(u32 col_idx, type::TypeId type, Fil
     case type::TypeId::BIGINT: {
       return FilterColByValImpl<i64, Op>(col_idx, val.bi);
     }
-    default: { throw std::runtime_error("Filter not supported on type"); }
+    default: {
+      throw std::runtime_error("Filter not supported on type");
+    }
   }
 }
 
@@ -103,7 +105,9 @@ u32 ProjectedColumnsIterator::FilterColByCol(const u32 col_idx_1, type::TypeId t
     case type::TypeId::BIGINT: {
       return FilterColByColImpl<i64, Op>(col_idx_1, col_idx_2);
     }
-    default: { throw std::runtime_error("Filter not supported on type"); }
+    default: {
+      throw std::runtime_error("Filter not supported on type");
+    }
   }
 }
 

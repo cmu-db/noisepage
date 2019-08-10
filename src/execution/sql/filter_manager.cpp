@@ -34,7 +34,9 @@ std::unique_ptr<bandit::Policy> CreatePolicy(bandit::Policy::Kind policy_kind) {
     case bandit::Policy::Kind::FixedAction: {
       return std::make_unique<bandit::FixedActionPolicy>(0);
     }
-    default: { UNREACHABLE("Impossible bandit policy kind"); }
+    default: {
+      UNREACHABLE("Impossible bandit policy kind");
+    }
   }
 }
 
