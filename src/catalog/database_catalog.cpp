@@ -49,7 +49,7 @@ void DatabaseCatalog::Bootstrap(transaction::TransactionContext *const txn) {
   TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
 
   retval = CreateIndexEntry(txn, NAMESPACE_CATALOG_NAMESPACE_OID, NAMESPACE_TABLE_OID, NAMESPACE_NAME_INDEX_OID,
-                            "pg_namespace_name_index", postgres::Builder::GetNamespaceOidIndexSchema(db_oid_));
+                            "pg_namespace_name_index", postgres::Builder::GetNamespaceNameIndexSchema(db_oid_));
   TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
   retval = SetIndexPointer(txn, NAMESPACE_NAME_INDEX_OID, namespaces_name_index_);
   TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
