@@ -21,8 +21,8 @@
 
 namespace terrier::binder {
 
-BindNodeVisitor::BindNodeVisitor(catalog::CatalogAccessor *catalog_accessor, std::string default_database_name)
-    : catalog_accessor_(catalog_accessor), default_database_name_(std::move(default_database_name)) {}
+BindNodeVisitor::BindNodeVisitor(std::unique_ptr<catalog::CatalogAccessor> &catalog_accessor, std::string default_database_name)
+    : catalog_accessor_(std::move(catalog_accessor)), default_database_name_(std::move(default_database_name)) {}
 
 void BindNodeVisitor::BindNameToNode(parser::SQLStatement *tree) { tree->Accept(this); }
 
@@ -225,7 +225,7 @@ void BindNodeVisitor::Visit(parser::CaseExpression *expr) {
 void BindNodeVisitor::Visit(parser::SubqueryExpression *expr) { expr->GetSubselect()->Accept(this); }
 
 void BindNodeVisitor::Visit(parser::StarExpression *expr) {
-  if (!BinderContext::HasTables(context_)) {
+  if (context_ == nullptr || !context_->HasTables()) {
     throw BINDER_EXCEPTION("Invalid [Expression :: STAR].");
   }
 }

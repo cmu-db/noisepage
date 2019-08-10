@@ -50,7 +50,7 @@ class BinderContext {
    * @param accessor Pointer to the catalog accessor object
    * @param table_ref Pointer to the table ref object
    */
-  void AddRegularTable(catalog::CatalogAccessor *accessor, parser::TableRef *table_ref);
+  void AddRegularTable(std::unique_ptr<catalog::CatalogAccessor> &accessor, parser::TableRef *table_ref);
 
   /**
    * Update the table alias map given a table reference (in the from clause)
@@ -59,7 +59,7 @@ class BinderContext {
    * @param table_name Name of the table
    * @param table_alias Alias of the table
    */
-  void AddRegularTable(catalog::CatalogAccessor *accessor, const std::string &db_name, const std::string &table_name,
+  void AddRegularTable(std::unique_ptr<catalog::CatalogAccessor> &accessor, const std::string &db_name, const std::string &table_name,
                        const std::string &table_alias);
 
   /**
@@ -74,9 +74,8 @@ class BinderContext {
    * Check if the current context has any table
    * @param current_context Pointer to the current binder context object
    */
-  static bool HasTables(const BinderContext *current_context) {
-    if (current_context == nullptr) return false;
-    return (!current_context->regular_table_alias_map_.empty() || !current_context->nested_table_alias_map_.empty());
+  bool HasTables() {
+    return (!regular_table_alias_map_.empty() || !nested_table_alias_map_.empty());
   }
 
   /**
