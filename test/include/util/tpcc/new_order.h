@@ -287,9 +287,9 @@ class NewOrder {
     stock_select_initializers.reserve(10);
     for (uint8_t d_id = 0; d_id < 10; d_id++) {
       const auto s_dist_xx_oid = db->stock_schema_.GetColumn(3 + d_id).Oid();
-      stock_select_initializers.emplace_back({(db->stock_table_->InitializerForProjectedRow(
+      stock_select_initializers.emplace_back(std::pair((db->stock_table_->InitializerForProjectedRow(
           {s_quantity_oid, s_dist_xx_oid, s_ytd_oid, s_order_cnt_oid, s_remote_cnt_oid, s_data_oid})),
-          db->stock_table_->ProjectionMapForOids({s_quantity_oid, s_dist_xx_oid, s_ytd_oid, s_order_cnt_oid, s_remote_cnt_oid, s_data_oid})});
+          db->stock_table_->ProjectionMapForOids({s_quantity_oid, s_dist_xx_oid, s_ytd_oid, s_order_cnt_oid, s_remote_cnt_oid, s_data_oid}));
     }
     stock_select_pr_offsets.reserve(10);
     for (uint8_t d_id = 0; d_id < 10; d_id++) {
