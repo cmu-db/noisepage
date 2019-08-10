@@ -36,7 +36,7 @@ class BindNodeVisitor : public SqlNodeVisitor {
    * @param catalog_accessor Pointer to a catalog accessor
    * @param default_database_name Default database name
    */
-  BindNodeVisitor(std::unique_ptr<catalog::CatalogAccessor> &catalog_accessor, std::string default_database_name);
+  BindNodeVisitor(std::unique_ptr<catalog::CatalogAccessor> catalog_accessor, std::string default_database_name);
   ~BindNodeVisitor() override { delete context_; }
 
   /**

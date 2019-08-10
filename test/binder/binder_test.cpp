@@ -1,5 +1,6 @@
 #include <memory>
 #include <string>
+#include <utility>
 #include <vector>
 #include "binder/bind_node_visitor.h"
 #include "catalog/catalog.h"
@@ -112,7 +113,7 @@ class BinderCorrectnessTest : public TerrierTest {
     // prepare for testing
     txn_ = txn_manager_->BeginTransaction();
     accessor_ = catalog_->GetAccessor(txn_, db_oid_);
-    binder_ = new binder::BindNodeVisitor(accessor_, default_database_name_);
+    binder_ = new binder::BindNodeVisitor(std::move(accessor_), default_database_name_);
   }
 
   void TearDown() override {

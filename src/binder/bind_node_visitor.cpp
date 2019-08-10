@@ -21,7 +21,8 @@
 
 namespace terrier::binder {
 
-BindNodeVisitor::BindNodeVisitor(std::unique_ptr<catalog::CatalogAccessor> &catalog_accessor, std::string default_database_name)
+BindNodeVisitor::BindNodeVisitor(std::unique_ptr<catalog::CatalogAccessor> catalog_accessor,
+                                 std::string default_database_name)
     : catalog_accessor_(std::move(catalog_accessor)), default_database_name_(std::move(default_database_name)) {}
 
 void BindNodeVisitor::BindNameToNode(parser::SQLStatement *tree) { tree->Accept(this); }
@@ -174,6 +175,7 @@ void BindNodeVisitor::Visit(parser::InsertStatement *node) {
   delete context_;
   context_ = nullptr;
 }
+
 void BindNodeVisitor::Visit(parser::DropStatement *node) { node->TryBindDatabaseName(default_database_name_); }
 void BindNodeVisitor::Visit(parser::PrepareStatement *node) {}
 void BindNodeVisitor::Visit(parser::ExecuteStatement *node) {}

@@ -13,12 +13,14 @@
 
 namespace terrier::binder {
 
-void BinderContext::AddRegularTable(std::unique_ptr<catalog::CatalogAccessor> &accessor, parser::TableRef *table_ref) {
+void BinderContext::AddRegularTable(const std::unique_ptr<catalog::CatalogAccessor> &accessor,
+                                    parser::TableRef *table_ref) {
   AddRegularTable(accessor, table_ref->GetDatabaseName(), table_ref->GetTableName(), table_ref->GetAlias());
 }
 
-void BinderContext::AddRegularTable(std::unique_ptr<catalog::CatalogAccessor> &accessor, const std::string &db_name,
-                                    const std::string &table_name, const std::string &table_alias) {
+void BinderContext::AddRegularTable(const std::unique_ptr<catalog::CatalogAccessor> &accessor,
+                                    const std::string &db_name, const std::string &table_name,
+                                    const std::string &table_alias) {
   auto db_id = accessor->GetDatabaseOid(db_name);
   auto table_id = accessor->GetTableOid(table_name);
 
