@@ -228,6 +228,7 @@ inline bool Module::GetFunction(const std::string &name, const ExecutionMode exe
     }
     case ExecutionMode::Interpret: {
       *func = [this, func_info](ArgTypes... args) -> Ret {
+        // NOLINTNEXTLINE: bugprone-suspicious-semicolon: seems like a false positive because of constexpr
         if constexpr (std::is_void_v<Ret>) {
           // Create a temporary on-stack buffer and copy all arguments
           u8 arg_buffer[(0ul + ... + sizeof(args))];

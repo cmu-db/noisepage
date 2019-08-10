@@ -233,7 +233,7 @@ class ChunkedVector {
      * @param offset to add to the iterator
      * @return the new iterator with the added offset
      */
-    const Iterator operator+(const i64 &offset) const {
+    Iterator operator+(const i64 &offset) const {
       Iterator copy(*this);
       copy += offset;
       return copy;
@@ -244,7 +244,7 @@ class ChunkedVector {
      * @param offset to subtract from the iterator
      * @return the new iterator with the subtracted offset
      */
-    const Iterator operator-(const i64 &offset) const {
+    Iterator operator-(const i64 &offset) const {
       Iterator copy(*this);
       copy -= offset;
       return copy;
@@ -274,7 +274,7 @@ class ChunkedVector {
      * Post-increment
      * @return the new incremented iterator
      */
-    const Iterator operator++(int) noexcept {
+    Iterator operator++(int) noexcept {
       Iterator copy(*this);
       ++(*this);
       return copy;
@@ -304,7 +304,7 @@ class ChunkedVector {
      * Post-decrement
      * @return the new decremented operator
      */
-    const Iterator operator--(int) noexcept {
+    Iterator operator--(int) noexcept {
       Iterator copy(*this);
       ++(*this);
       return copy;
@@ -677,14 +677,14 @@ class ChunkedVectorT {
      * @param offset to add to the iterator
      * @return the new iterator with the added offset
      */
-    const Iterator operator+(const i64 &offset) const noexcept { return Iterator(iter_ + offset); }
+    Iterator operator+(const i64 &offset) const noexcept { return Iterator(iter_ + offset); }
 
     /**
      * Subtraction
      * @param offset to subtract from the iterator
      * @return the new iterator with the subtracted offset
      */
-    const Iterator operator-(const i64 &offset) const noexcept { return Iterator(iter_ - offset); }
+    Iterator operator-(const i64 &offset) const noexcept { return Iterator(iter_ - offset); }
 
     /**
      * Pre-increment
@@ -699,7 +699,7 @@ class ChunkedVectorT {
      * Post-increment
      * @return the new incremented iterator
      */
-    const Iterator operator++(int) noexcept { return Iterator(iter_++); }
+    Iterator operator++(int) noexcept { return Iterator(iter_++); }
 
     /**
      * Pre-decrement
@@ -714,7 +714,7 @@ class ChunkedVectorT {
      * Post-decrement
      * @return the new decremented operator
      */
-    const Iterator operator--(int) noexcept { return Iterator(iter_--); }
+    Iterator operator--(int) noexcept { return Iterator(iter_--); }
 
     /**
      * Indexing

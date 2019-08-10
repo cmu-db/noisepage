@@ -329,6 +329,7 @@ inline void GenericHashTableIterator<UseTag>::Next() noexcept {
   while (entries_index_ < table_.capacity()) {
     curr_entry_ = table_.entries_[entries_index_++].load(std::memory_order_relaxed);
 
+    // NOLINTNEXTLINE: bugprone-suspicious-semicolon: seems like a false positive because of constexpr
     if constexpr (UseTag) {
       curr_entry_ = GenericHashTable::UntagPointer(curr_entry_);
     }

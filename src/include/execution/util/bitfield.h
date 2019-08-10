@@ -72,6 +72,7 @@ class BitFieldBase {
    * @return the value encoded in the bitfield
    */
   ALWAYS_INLINE static constexpr T Decode(S storage) {
+    // NOLINTNEXTLINE: bugprone-suspicious-semicolon: seems like a false positive because of constexpr
     if constexpr (std::is_same_v<T, bool>) {
       return static_cast<T>(storage & kMask);
     }

@@ -47,6 +47,7 @@ byte *JoinHashTable::AllocInputTuple(const hash_t hash) {
 template <bool Prefetch>
 void JoinHashTable::BuildGenericHashTableInternal() noexcept {
   for (u64 idx = 0, prefetch_idx = kPrefetchDistance; idx < entries_.size(); idx++, prefetch_idx++) {
+    // NOLINTNEXTLINE: bugprone-suspicious-semicolon: seems like a false positive because of constexpr
     if constexpr (Prefetch) {
       if (TPL_LIKELY(prefetch_idx < entries_.size())) {
         auto *prefetch_entry = EntryAt(prefetch_idx);
@@ -79,6 +80,7 @@ void JoinHashTable::BuildGenericHashTable() noexcept {
 template <bool Prefetch>
 void JoinHashTable::InsertIntoConciseHashTable() noexcept {
   for (u64 idx = 0, prefetch_idx = kPrefetchDistance; idx < entries_.size(); idx++, prefetch_idx++) {
+    // NOLINTNEXTLINE: bugprone-suspicious-semicolon: seems like a false positive because of constexpr
     if constexpr (Prefetch) {
       if (TPL_LIKELY(prefetch_idx < entries_.size())) {
         auto *prefetch_entry = EntryAt(prefetch_idx);
@@ -264,6 +266,7 @@ void JoinHashTable::ReorderMainEntries() noexcept {
     const u64 num_buf_entries = reorder_buf.num_entries();
 
     for (u64 idx = 0, prefetch_idx = idx + kPrefetchDistance; idx < num_buf_entries; idx++, prefetch_idx++) {
+      // NOLINTNEXTLINE: bugprone-suspicious-semicolon: seems like a false positive because of constexpr
       if constexpr (PrefetchCHT) {
         if (TPL_LIKELY(prefetch_idx < num_buf_entries)) {
           auto *pf_entry = reorder_buf.BufEntryAt<HashTableEntry>(prefetch_idx);
@@ -278,6 +281,7 @@ void JoinHashTable::ReorderMainEntries() noexcept {
 
     u64 buf_write_idx = 0;
     for (u64 idx = 0, prefetch_idx = idx + kPrefetchDistance; idx < num_buf_entries; idx++, prefetch_idx++) {
+      // NOLINTNEXTLINE: bugprone-suspicious-semicolon: seems like a false positive because of constexpr
       if constexpr (PrefetchEntries) {
         if (TPL_LIKELY(prefetch_idx < num_buf_entries)) {
           util::Prefetch<false, Locality::Low>(targets[prefetch_idx]);
@@ -368,6 +372,7 @@ void JoinHashTable::ReorderOverflowEntries() noexcept {
 
     for (u64 idx = start, write_idx = 0, prefetch_idx = idx + kPrefetchDistance; idx < end;
          idx++, write_idx++, prefetch_idx++) {
+      // NOLINTNEXTLINE: bugprone-suspicious-semicolon: seems like a false positive because of constexpr
       if constexpr (PrefetchCHT) {
         if (TPL_LIKELY(prefetch_idx < end)) {
           HashTableEntry *prefetch_entry = EntryAt(prefetch_idx);
@@ -415,6 +420,7 @@ void JoinHashTable::ReorderOverflowEntries() noexcept {
 
     // For each overflow entry, find its main entry parent in the overflow chain
     for (u64 idx = 0, prefetch_idx = idx + kPrefetchDistance; idx < num_buf_entries; idx++, prefetch_idx++) {
+      // NOLINTNEXTLINE: bugprone-suspicious-semicolon: seems like a false positive because of constexpr
       if constexpr (PrefetchCHT) {
         if (TPL_LIKELY(prefetch_idx < num_buf_entries)) {
           auto *pf_entry = reorder_buf.BufEntryAt<HashTableEntry>(prefetch_idx);
@@ -431,6 +437,7 @@ void JoinHashTable::ReorderOverflowEntries() noexcept {
     // to acquire a slot in the overflow arena.
     u64 buf_write_idx = 0;
     for (u64 idx = 0, prefetch_idx = idx + kPrefetchDistance; idx < num_buf_entries; idx++, prefetch_idx++) {
+      // NOLINTNEXTLINE: bugprone-suspicious-semicolon: seems like a false positive because of constexpr
       if constexpr (PrefetchEntries) {
         if (TPL_LIKELY(prefetch_idx < num_buf_entries)) {
           util::Prefetch<false, Locality::Low>(parents[prefetch_idx]);
@@ -588,6 +595,7 @@ void JoinHashTable::LookupBatchInGenericHashTableInternal(u32 num_tuples, const 
 
   // Initial lookup
   for (u32 idx = 0, prefetch_idx = kPrefetchDistance; idx < num_tuples; idx++, prefetch_idx++) {
+    // NOLINTNEXTLINE: bugprone-suspicious-semicolon: seems like a false positive because of constexpr
     if constexpr (Prefetch) {
       if (TPL_LIKELY(prefetch_idx < num_tuples)) {
         generic_hash_table_.PrefetchChainHead<true>(hashes[prefetch_idx]);
@@ -612,6 +620,7 @@ template <bool Prefetch>
 void JoinHashTable::LookupBatchInConciseHashTableInternal(u32 num_tuples, const hash_t hashes[],
                                                           const HashTableEntry *results[]) const {
   for (u32 idx = 0, prefetch_idx = kPrefetchDistance; idx < num_tuples; idx++, prefetch_idx++) {
+    // NOLINTNEXTLINE: bugprone-suspicious-semicolon: seems like a false positive because of constexpr
     if constexpr (Prefetch) {
       if (TPL_LIKELY(prefetch_idx < num_tuples)) {
         concise_hash_table_.PrefetchSlotGroup<true>(hashes[prefetch_idx]);
@@ -650,6 +659,7 @@ void JoinHashTable::MergeIncomplete(JoinHashTable *source) {
 
   // First, merge entries in the source table into ours
   for (u64 idx = 0, prefetch_idx = kPrefetchDistance; idx < source->num_elements(); idx++, prefetch_idx++) {
+    // NOLINTNEXTLINE: bugprone-suspicious-semicolon: seems like a false positive because of constexpr
     if constexpr (Prefetch) {
       if (TPL_LIKELY(prefetch_idx < source->num_elements())) {
         auto *prefetch_entry = source->EntryAt(prefetch_idx);

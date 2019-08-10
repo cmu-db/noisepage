@@ -80,7 +80,7 @@ class StageTimer {
   /**
    * Access information on all stages.
    */
-  const std::vector<Stage> GetStages() const { return stages_; }
+  const std::vector<Stage> &GetStages() const { return stages_; }
 
  private:
   util::Timer<ResolutionRatio> timer_;

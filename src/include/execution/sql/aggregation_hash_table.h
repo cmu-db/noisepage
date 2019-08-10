@@ -455,7 +455,7 @@ class AggregationOverflowPartitionIterator {
    * to. It is assumed the caller has checked there is data in the iterator.
    * @return The hash value of the current overflow entry.
    */
-  const hash_t GetHash() const { return curr_->hash; }
+  hash_t GetHash() const { return curr_->hash; }
 
   /**
    * Get the payload of the overflow entry the iterator is currently pointing

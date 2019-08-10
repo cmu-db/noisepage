@@ -115,12 +115,12 @@ class Token {
   /**
    * Get the precedence of a given token
    */
-  static const u32 GetPrecedence(Type type) { return kTokenPrecedence[static_cast<u32>(type)]; }
+  static u32 GetPrecedence(Type type) { return kTokenPrecedence[static_cast<u32>(type)]; }
 
   /**
    * Get the lowest operator precedence we support
    */
-  static const u32 LowestPrecedence() { return 0; }
+  static u32 LowestPrecedence() { return 0; }
 
   /**
    * Is the given token a comparison operator?
