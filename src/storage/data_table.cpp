@@ -15,6 +15,8 @@ DataTable::DataTable(BlockStore *const store, const BlockLayout &layout, const l
                  "First column must have size 8 for the version chain.");
   TERRIER_ASSERT(layout.NumColumns() > NUM_RESERVED_COLUMNS,
                  "First column is reserved for version info, second column is reserved for logical delete.");
+  if (block_store_ != nullptr) NewBlock();
+  insertion_head_= blocks_.begin();
 }
 
 DataTable::~DataTable() {
@@ -74,7 +76,7 @@ DataTable::SlotIterator DataTable::end() const {
   // 0 to denote that this is the case. This solution makes increment logic simple and natural.
   if (blocks_.empty()) return {this, blocks_.end(), 0};
   auto last_block = --blocks_.end();
-  uint32_t insert_head = (*last_block)->insert_head_;
+  uint32_t insert_head = (*last_block)->GetInsertHead();
   // Last block is full, return the default end iterator that doesn't point to anything
   if (insert_head == accessor_.GetBlockLayout().NumSlots()) return {this, blocks_.end(), 0};
   // Otherwise, insert head points to the slot that will be inserted next, which would be exactly what we want.
@@ -121,6 +123,25 @@ bool DataTable::Update(transaction::TransactionContext *const txn, const TupleSl
 
   return true;
 }
+//auto tgl_bit = [](auto val) { return val ^ (1 << 31); };
+auto set_bit = [](auto val) { return val | (1 << 31); };
+auto clr_bit = [](auto val) { return val & ~(1 << 31); };
+bool DataTable::trySetInsertStatus(RawBlock *block) {
+  uint32_t old_val = clr_bit(block->insert_head_.load());
+  return block->insert_head_.compare_exchange_weak(old_val, set_bit(old_val));
+}
+
+void DataTable::checkMoveHead(std::list<RawBlock *>::iterator block) {
+  //common::SpinLatch::ScopedSpinLatch guard(&ini_latch_);
+  //insertion_head_.compare_exchange_strong(block, block++);
+  if (block == insertion_head_) {
+    insertion_head_++;
+  }
+
+  if (insertion_head_ == blocks_.end()) {
+    insertion_head_ = NewBlock();
+  }
+}
 
 TupleSlot DataTable::Insert(transaction::TransactionContext *const txn, const ProjectedRow &redo) {
   TERRIER_ASSERT(redo.NumColumns() == accessor_.GetBlockLayout().NumColumns() - NUM_RESERVED_COLUMNS,
@@ -133,12 +154,34 @@ TupleSlot DataTable::Insert(transaction::TransactionContext *const txn, const Pr
   // to change the insertion head. We do not expect this loop to be executed more than
   // twice, but there is technically a possibility for blocks with only a few slots.
   TupleSlot result;
+  std::list<RawBlock *>::iterator block = insertion_head_;
+  //printf("I am in %lld\n", reinterpret_cast<int64_t >(pthread_self()));
   while (true) {
-    RawBlock *block = insertion_head_.load();
-    if (block != nullptr && accessor_.Allocate(block, &result)) break;
-    NewBlock(block);
+    // No free block left
+    if (block == blocks_.end()) {
+      //printf("New %zu %d %d\n", blocks_.size(), block == blocks_.end(), blocks_.empty());
+      block = NewBlock();
+      //printf("New: %zu %lld %d\n", blocks_.size(), reinterpret_cast<int64_t >(pthread_self()), block == blocks_.end());
+    } else if (trySetInsertStatus(*block)) {
+      // No one is inserting into this block
+      if (accessor_.Allocate(*block, &result)) {
+        //printf("Succeed %lld\n", reinterpret_cast<int64_t >(pthread_self()));
+        break;
+      }
+      // if the header is full, move the insertion_header
+      checkMoveHead(block);
+      // The block is full, try next block
+      ++block;
+      //printf("Full\n");
+    } else { // The block is inserting by other txn
+      // Try next block
+      ++block;
+      //printf("Busy\n");
+    }
   }
   InsertInto(txn, redo, result);
+  // Flip back insert status
+  (*block)->insert_head_ = clr_bit((*block)->insert_head_.load());
   data_table_counter_.IncrementNumInsert(1);
   return result;
 }
@@ -314,15 +357,16 @@ bool DataTable::CompareAndSwapVersionPtr(const TupleSlot slot, const TupleAccess
   return reinterpret_cast<std::atomic<UndoRecord *> *>(ptr_location)->compare_exchange_strong(expected, desired);
 }
 
-void DataTable::NewBlock(RawBlock *expected_val) {
+std::list<RawBlock *>::iterator DataTable::NewBlock() {
   common::SpinLatch::ScopedSpinLatch guard(&blocks_latch_);
   // Want to stop early if another thread is already getting a new block
-  if (expected_val != insertion_head_) return;
+  //if (expected_val != insertion_head_) return;
   RawBlock *new_block = block_store_->Get();
   accessor_.InitializeRawBlock(this, new_block, layout_version_);
   blocks_.push_back(new_block);
-  insertion_head_ = new_block;
+  //insertion_head_ = new_block;
   data_table_counter_.IncrementNumNewBlock(1);
+  return --blocks_.end();
 }
 
 bool DataTable::HasConflict(const transaction::TransactionContext &txn, const TupleSlot slot) const {

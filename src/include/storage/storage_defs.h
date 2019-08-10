@@ -48,7 +48,8 @@ class DataTable;
  *
  * @warning If you change the layout please also change the way header sizes are computed in block layout!
  */
-struct alignas(common::Constants::BLOCK_SIZE) RawBlock {
+class alignas(common::Constants::BLOCK_SIZE) RawBlock {
+ public:
   /**
    * Data Table for this RawBlock. This is used by indexes and GC to get back to the DataTable given only a TupleSlot
    */
@@ -68,6 +69,9 @@ struct alignas(common::Constants::BLOCK_SIZE) RawBlock {
    * The insert head tells us where the next insertion should take place. Notice that this counter is never
    * decreased as slot recycling does not happen on the fly with insertions. A background compaction process
    * scans through blocks and free up slots.
+   * Since the block size is less then (1<<20) the uppper 12 bits of insert_head_ is free. We use the first bit (1<<31)
+   * to indicate if the block is insertable.
+   * If the first bit is 0, the block is insertable, otherwise one txn is inserting to this block
    */
   std::atomic<uint32_t> insert_head_;
   /**
@@ -82,7 +86,11 @@ struct alignas(common::Constants::BLOCK_SIZE) RawBlock {
   byte content_[common::Constants::BLOCK_SIZE - sizeof(uintptr_t) - sizeof(uint16_t) - sizeof(layout_version_t) -
                 sizeof(uint32_t) - sizeof(BlockAccessController)];
   // A Block needs to always be aligned to 1 MB, so we can get free bytes to
-  // store offsets within a block in ine 8-byte word.
+  // store offsets within a block in ine 8-byte word
+
+  std::atomic<uint32_t> GetInsertHead() {
+    return (~(1<<31)) & insert_head_.load();
+  }
 };
 
 /**

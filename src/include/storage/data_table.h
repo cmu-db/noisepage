@@ -241,7 +241,9 @@ class DataTable {
   mutable common::SpinLatch blocks_latch_;
   // to avoid having to grab a latch every time we insert. Failures are very, very infrequent since these
   // only happen when blocks are full, thus we can afford to be optimistic
-  std::atomic<RawBlock *> insertion_head_ = nullptr;
+  std::list<RawBlock *>::iterator insertion_head_;
+  void checkMoveHead(std::list<RawBlock *>::iterator block);
+  bool trySetInsertStatus(RawBlock *block);
   mutable DataTableCounter data_table_counter_;
 
   // A templatized version for select, so that we can use the same code for both row and column access.
@@ -275,7 +277,7 @@ class DataTable {
                                 UndoRecord *desired);
 
   // Allocates a new block to be used as insertion head.
-  void NewBlock(RawBlock *expected_val);
+  std::list<RawBlock *>::iterator NewBlock();
 
   /**
    * Determine if a Tuple is visible (present and not deleted) to the given transaction. It's effectively Select's logic

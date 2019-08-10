@@ -194,7 +194,7 @@ class StorageTestUtil {
       for (uint16_t j = 0; j < redo->NumColumns(); j++)
         storage::StorageUtil::CopyAttrFromProjection(accessor, slot, *redo, j);
     }
-    TERRIER_ASSERT(block->insert_head_ == layout.NumSlots(), "The block should be considered full at this point");
+    TERRIER_ASSERT(block->GetInsertHead() == layout.NumSlots(), "The block should be considered full at this point");
     return result;
   }
 
@@ -232,7 +232,7 @@ class StorageTestUtil {
       for (uint16_t j = 0; j < redo->NumColumns(); j++)
         storage::StorageUtil::CopyAttrFromProjection(accessor, slot, *redo, j);
     }
-    TERRIER_ASSERT(block->insert_head_ == layout.NumSlots(), "The block should be considered full at this point");
+    TERRIER_ASSERT(block->GetInsertHead() == layout.NumSlots(), "The block should be considered full at this point");
     delete[] redo_buffer;
     return result;
   }
