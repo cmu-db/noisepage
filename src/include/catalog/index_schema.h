@@ -230,7 +230,7 @@ class IndexSchema {
    * @return description of the schema for a specific column
    * @throw std::out_of_range if the column doesn't exist.
    */
-  Column GetColumn(const std::string &name) const {
+  const Column &GetColumn(const std::string &name) const {
     for (auto &c : columns_) {
       if (c.Name() == name) {
         return c;

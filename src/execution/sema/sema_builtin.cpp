@@ -840,6 +840,24 @@ void Sema::CheckBuiltinTableIterCall(ast::CallExpr *call, ast::Builtin builtin) 
       call->set_type(GetBuiltinType(ast::BuiltinType::Nil));
       break;
     }
+    case ast::Builtin::TableIterConstructBind: {
+      if (!CheckArgCount(call, 3)) {
+        return;
+      }
+      // The second argument is the table name as a literal string
+      if (!call_args[1]->IsStringLiteral()) {
+        ReportIncorrectCallArg(call, 1, ast::StringType::Get(context()));
+        return;
+      }
+      // The third argument is the execution context
+      auto exec_ctx_kind = ast::BuiltinType::ExecutionContext;
+      if (!IsPointerToSpecificBuiltin(call_args[2]->type(), exec_ctx_kind)) {
+        ReportIncorrectCallArg(call, 2, GetBuiltinType(exec_ctx_kind)->PointerTo());
+        return;
+      }
+      call->set_type(GetBuiltinType(ast::BuiltinType::Nil));
+      break;
+    }
     case ast::Builtin::TableIterPerformInit: {
       if (!CheckArgCount(call, 1)) {
         return;
@@ -1441,6 +1459,28 @@ void Sema::CheckBuiltinIndexIteratorInit(execution::ast::CallExpr *call, ast::Bu
       }
       break;
     }
+    case ast::Builtin::IndexIteratorConstructBind: {
+      if (!CheckArgCount(call, 4)) {
+        return;
+      }
+      // The second argument must be the table's name
+      if (!call->arguments()[1]->type()->IsStringType()) {
+        ReportIncorrectCallArg(call, 1, ast::StringType::Get(context()));
+        return;
+      }
+      // The third argument is the index's name
+      if (!call->arguments()[2]->type()->IsStringType()) {
+        ReportIncorrectCallArg(call, 2, ast::StringType::Get(context()));
+        return;
+      }
+      // The fourth call argument must an execution context
+      auto exec_ctx_kind = ast::BuiltinType::ExecutionContext;
+      if (!IsPointerToSpecificBuiltin(call->arguments()[3]->type(), exec_ctx_kind)) {
+        ReportIncorrectCallArg(call, 3, GetBuiltinType(exec_ctx_kind)->PointerTo());
+        return;
+      }
+      break;
+    }
     case ast::Builtin::IndexIteratorPerformInit: {
       if (!CheckArgCount(call, 1)) {
         return;
@@ -1650,6 +1690,7 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
       break;
     }
     case ast::Builtin::TableIterConstruct:
+    case ast::Builtin::TableIterConstructBind:
     case ast::Builtin::TableIterPerformInit:
     case ast::Builtin::TableIterAddCol:
     case ast::Builtin::TableIterAdvance:
@@ -1818,6 +1859,7 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
       break;
     }
     case ast::Builtin::IndexIteratorConstruct:
+    case ast::Builtin::IndexIteratorConstructBind:
     case ast::Builtin::IndexIteratorPerformInit: {
       CheckBuiltinIndexIteratorInit(call, builtin);
       break;

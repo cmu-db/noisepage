@@ -88,6 +88,16 @@ class BytecodeModule {
    */
   std::size_t num_functions() const { return functions_.size(); }
 
+  uint32_t num_bytecodes() const {
+    uint32_t num = 0;
+    BytecodeIterator iter(code_, 0, code_.size());
+    while (!iter.Done()) {
+      num++;
+      iter.Advance();
+    }
+    return num;
+  }
+
  private:
   friend class VM;
 

@@ -19,7 +19,7 @@ namespace terrier::execution::sql {
 using IndexTableMap = std::vector<uint16_t>;
 
 /**
- * Stores info about an index read from a file
+ * Stores info about an index
  */
 struct IndexInfo {
   /**
@@ -40,10 +40,25 @@ struct IndexInfo {
    * Mapping from index column to table column
    */
   IndexTableMap index_map;
+
+  /**
+   * Physical Index
+   */
+  common::ManagedPointer<storage::index::Index> index_ptr{nullptr};
+
+  /**
+   * Precomputed offsets into the projected row
+   */
+  std::vector<uint16_t> offsets{};
+
+  /**
+   * Projected row to use for inserts
+   */
+  storage::ProjectedRow * index_pr;
 };
 
 /**
- * Stores table information read from a file
+ * Stores table information
  */
 struct TableInfo {
   /**

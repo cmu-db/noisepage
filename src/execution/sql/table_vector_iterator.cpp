@@ -20,14 +20,7 @@ bool TableVectorIterator::Init() {
   TPL_ASSERT(table_ != nullptr, "Table must exist!!");
 
   // Initialize the projected column
-  if (col_oids_.empty()) {
-    // TODO(Amadou): Better to throw an assertion error now that the schema order is not guaranteed?
-    // If no col_oid is passed in read all columns.
-    auto &schema = exec_ctx_->GetAccessor()->GetSchema(table_oid_);
-    for (const auto &col : schema.GetColumns()) {
-      col_oids_.emplace_back(col.Oid());
-    }
-  }
+  TERRIER_ASSERT(!col_oids_.empty(), "There must be at least one col oid!");
   auto pc_map = table_->InitializerForProjectedColumns(col_oids_, kDefaultVectorSize);
   buffer_ = common::AllocationUtil::AllocateAligned(pc_map.first.ProjectedColumnsSize());
   projected_columns_ = pc_map.first.Initialize(buffer_);

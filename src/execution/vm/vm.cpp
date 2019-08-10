@@ -728,8 +728,8 @@ void VM::Interpret(const u8 *ip, Frame *frame) {
 
   OP(ForceBoolTruth) : {
     auto *result = frame->LocalAt<bool *>(READ_LOCAL_ID());
-    auto *sql_int = frame->LocalAt<sql::BoolVal *>(READ_LOCAL_ID());
-    OpForceBoolTruth(result, sql_int);
+    auto *sql_bool = frame->LocalAt<sql::BoolVal *>(READ_LOCAL_ID());
+    OpForceBoolTruth(result, sql_bool);
     DISPATCH_NEXT();
   }
 

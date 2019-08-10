@@ -34,7 +34,7 @@ class SqlBasedTest : public TplTest {
     test_db_oid_ = catalog_->CreateDatabase(test_txn_, "test_db", true);
     ASSERT_NE(test_db_oid_, catalog::INVALID_DATABASE_OID) << "Default database does not exist";
     auto accessor = catalog_->GetAccessor(test_txn_, test_db_oid_);
-    test_ns_oid_ = accessor->CreateNamespace("test_ns");
+    test_ns_oid_ = accessor->GetDefaultNamespace();
   }
 
   ~SqlBasedTest() override {

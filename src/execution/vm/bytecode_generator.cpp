@@ -504,6 +504,18 @@ void BytecodeGenerator::VisitBuiltinTableIterCall(ast::CallExpr *call, ast::Buil
       emitter()->EmitTableIterConstruct(Bytecode::TableVectorIteratorConstruct, iter, table_oid, exec_ctx);
       break;
     }
+    case ast::Builtin::TableIterConstructBind: {
+      auto ns_oid = exec_ctx_->GetAccessor()->GetDefaultNamespace();
+      // The second argument is the table name
+      ast::Identifier table_name = call->arguments()[1]->As<ast::LitExpr>()->raw_string_val();
+      auto table_oid = exec_ctx_->GetAccessor()->GetTableOid(ns_oid, table_name.data());
+      TPL_ASSERT(table_oid != terrier::catalog::INVALID_TABLE_OID, "Table does not exists");
+      // The fourth argument should be the execution context
+      LocalVar exec_ctx = VisitExpressionForRValue(call->arguments()[2]);
+      // Emit the initialization codes
+      emitter()->EmitTableIterConstruct(Bytecode::TableVectorIteratorConstruct, iter, !table_oid, exec_ctx);
+      break;
+    }
     case ast::Builtin::TableIterPerformInit: {
       emitter()->Emit(Bytecode::TableVectorIteratorPerformInit, iter);
       break;
@@ -1362,6 +1374,22 @@ void BytecodeGenerator::VisitBuiltinIndexIteratorCall(ast::CallExpr *call, ast::
       emitter()->EmitIndexIteratorConstruct(Bytecode::IndexIteratorConstruct, iterator, table_oid, index_oid, exec_ctx);
       break;
     }
+    case ast::Builtin::IndexIteratorConstructBind: {
+      auto ns_oid = exec_ctx_->GetAccessor()->GetDefaultNamespace();
+      // Table Name
+      std::string table_name(call->arguments()[1]->As<ast::LitExpr>()->raw_string_val().data());
+      auto table_oid = exec_ctx_->GetAccessor()->GetTableOid(ns_oid, table_name);
+      TPL_ASSERT(table_oid != terrier::catalog::INVALID_TABLE_OID, "Table does not exists");
+      // Index Name
+      std::string index_name(call->arguments()[2]->As<ast::LitExpr>()->raw_string_val().data());
+      auto index_oid = exec_ctx_->GetAccessor()->GetIndexOid(ns_oid, index_name);
+      TPL_ASSERT(index_oid != terrier::catalog::INVALID_INDEX_OID, "Index does not exists");
+      // Exec Ctx
+      LocalVar exec_ctx = VisitExpressionForRValue(call->arguments()[3]);
+      emitter()->EmitIndexIteratorConstruct(Bytecode::IndexIteratorConstruct, iterator, !table_oid, !index_oid,
+                                            exec_ctx);
+      break;
+    }
     case ast::Builtin::IndexIteratorPerformInit: {
       emitter()->Emit(Bytecode::IndexIteratorPerformInit, iterator);
       break;
@@ -1535,6 +1563,7 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
       break;
     }
     case ast::Builtin::TableIterConstruct:
+    case ast::Builtin::TableIterConstructBind:
     case ast::Builtin::TableIterPerformInit:
     case ast::Builtin::TableIterAddCol:
     case ast::Builtin::TableIterAdvance:
@@ -1677,6 +1706,7 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
       VisitBuiltinInsertCall(call, builtin);
       break;
     case ast::Builtin::IndexIteratorConstruct:
+    case ast::Builtin::IndexIteratorConstructBind:
     case ast::Builtin::IndexIteratorAddCol:
     case ast::Builtin::IndexIteratorPerformInit:
     case ast::Builtin::IndexIteratorScanKey:

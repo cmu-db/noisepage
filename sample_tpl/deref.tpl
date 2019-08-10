@@ -1,3 +1,6 @@
+// Test pointer dereference.
+// Should output 404
+
 fun set(a: *int8, b: *int16, c: *int32, d: *int64) -> void {
   *c = 404
   return

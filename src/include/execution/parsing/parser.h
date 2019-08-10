@@ -7,7 +7,6 @@
 #include "execution/ast/ast_node_factory.h"
 #include "execution/ast/context.h"
 #include "execution/ast/identifier.h"
-#include "execution/parsing/rewriter.h"
 #include "execution/parsing/scanner.h"
 #include "execution/sema/error_reporter.h"
 
@@ -22,9 +21,8 @@ class Parser {
    * Build a parser instance using the given scanner and AST context
    * @param scanner The scanner used to read input tokens
    * @param context The context
-   * @param rewriter The expression rewriter
    */
-  Parser(Scanner *scanner, ast::Context *context, Rewriter *rewriter = nullptr);
+  Parser(Scanner *scanner, ast::Context *context);
 
   /**
    * This class cannot be copied or moved
@@ -152,9 +150,6 @@ class Parser {
 
   // The error reporter
   sema::ErrorReporter *error_reporter_;
-
-  // The rewriter
-  Rewriter *rewriter_;
 };
 
 }  // namespace terrier::execution::parsing

@@ -11,12 +11,11 @@ namespace terrier::execution::parsing {
 
 static std::unordered_set<Token::Type> kTopLevelDecls = {Token::Type::STRUCT, Token::Type::FUN};
 
-Parser::Parser(Scanner *scanner, ast::Context *context, Rewriter *rewriter)
+Parser::Parser(Scanner *scanner, ast::Context *context)
     : scanner_(scanner),
       context_(context),
       node_factory_(context->node_factory()),
-      error_reporter_(context->error_reporter()),
-      rewriter_(rewriter) {}
+      error_reporter_(context->error_reporter()) {}
 
 ast::AstNode *Parser::Parse() {
   util::RegionVector<ast::Decl *> decls(region());
@@ -496,9 +495,7 @@ ast::Expr *Parser::ParseOperand() {
         }
       }
       Expect(Token::Type::RIGHT_PAREN);
-      ast::CallExpr *builtin_call = node_factory_->NewBuiltinCallExpr(func_name, std::move(args));
-      if (rewriter_ == nullptr) return builtin_call;
-      return rewriter_->RewriteBuiltinCall(builtin_call);
+      return node_factory_->NewBuiltinCallExpr(func_name, std::move(args));
     }
     case Token::Type::IDENTIFIER: {
       Next();

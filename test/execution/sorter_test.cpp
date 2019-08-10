@@ -142,7 +142,6 @@ void TestTopKRandomTupleSize(const u32 num_iters, const u32 max_elems, Random *g
   }
 }
 
-
 // NOLINTNEXTLINE
 TEST_F(SorterTest, SortTest) {
   const uint32_t num_iters = 5;

@@ -8,8 +8,8 @@ fun main(execCtx: *ExecutionContext) -> int {
   var out : *output_struct
   var tvi: TableVectorIterator
   @tableIterConstructBind(&tvi, "test_1", execCtx, "t1")
-  @tableIterAddColBind(&tvi, "t1", "colA")
-  @tableIterAddColBind(&tvi, "t1", "colB")
+  @tableIterAddCol(&tvi, 1)
+  @tableIterAddCol(&tvi, 2)
   @tableIterPerformInitBind(&tvi, "t1")
   for (@tableIterAdvance(&tvi)) {
     var pci = @tableIterGetPCI(&tvi)

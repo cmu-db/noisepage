@@ -334,7 +334,7 @@ else ()
     include_directories(${PROJECT_SOURCE_DIR}/third_party)
 endif ()
 include_directories(${PROJECT_SOURCE_DIR}/test/include)
-#include_directories(${PROJECT_SOURCE_DIR}/util/include)
+include_directories(${PROJECT_SOURCE_DIR}/util/include)
 include_directories(${PROJECT_SOURCE_DIR}/benchmark/include)
 include_directories(${PROJECT_BINARY_DIR})
 

@@ -23,12 +23,6 @@ namespace terrier::execution::ast {
   F(FilterLe, filterLe)                                         \
   F(FilterLt, filterLt)                                         \
   F(FilterNe, filterNe)                                         \
-  F(FilterEqBind, filterEqBind)                                 \
-  F(FilterGeBind, filterGeBind)                                 \
-  F(FilterGtBind, filterGtBind)                                 \
-  F(FilterLeBind, filterLeBind)                                 \
-  F(FilterLtBind, filterLtBind)                                 \
-  F(FilterNeBind, filterNeBind)                                 \
                                                                 \
   /* Thread State Container */                                  \
   F(ExecutionContextGetMemoryPool, execCtxGetMem)               \
@@ -41,9 +35,7 @@ namespace terrier::execution::ast {
   F(TableIterConstruct, tableIterConstruct)                     \
   F(TableIterConstructBind, tableIterConstructBind)             \
   F(TableIterPerformInit, tableIterPerformInit)                 \
-  F(TableIterPerformInitBind, tableIterPerformInitBind)         \
   F(TableIterAddCol, tableIterAddCol)                           \
-  F(TableIterAddColBind, tableIterAddColBind)                   \
   F(TableIterAdvance, tableIterAdvance)                         \
   F(TableIterGetPCI, tableIterGetPCI)                           \
   F(TableIterClose, tableIterClose)                             \
@@ -74,7 +66,6 @@ namespace terrier::execution::ast {
   F(PCIGetDoubleNull, pciGetDoubleNull)                         \
   F(PCIGetDateNull, pciGetDateNull)                             \
   F(PCIGetVarlenNull, pciGetVarlenNull)                         \
-  F(PCIGetBind, pciGetBind)                                     \
                                                                 \
   /* Hashing */                                                 \
   F(Hash, hash)                                                 \
@@ -157,9 +148,7 @@ namespace terrier::execution::ast {
   F(IndexIteratorConstruct, indexIteratorConstruct)             \
   F(IndexIteratorConstructBind, indexIteratorConstructBind)     \
   F(IndexIteratorPerformInit, indexIteratorPerformInit)         \
-  F(IndexIteratorPerformInitBind, indexIteratorPerformInitBind) \
   F(IndexIteratorAddCol, indexIteratorAddCol)                   \
-  F(IndexIteratorAddColBind, indexIteratorAddColBind)           \
   F(IndexIteratorScanKey, indexIteratorScanKey)                 \
   F(IndexIteratorAdvance, indexIteratorAdvance)                 \
   F(IndexIteratorGetTinyInt, indexIteratorGetTinyInt)           \
@@ -174,14 +163,12 @@ namespace terrier::execution::ast {
   F(IndexIteratorGetBigIntNull, indexIteratorGetBigIntNull)     \
   F(IndexIteratorGetRealNull, indexIteratorGetRealNull)         \
   F(IndexIteratorGetDoubleNull, indexIteratorGetDoubleNull)     \
-  F(IndexIteratorGetBind, indexIteratorGetBind)                 \
   F(IndexIteratorSetKeyTinyInt, indexIteratorSetKeyTinyInt)     \
   F(IndexIteratorSetKeySmallInt, indexIteratorSetKeySmallInt)   \
   F(IndexIteratorSetKeyInt, indexIteratorSetKeyInt)             \
   F(IndexIteratorSetKeyBigInt, indexIteratorSetKeyBigInt)       \
   F(IndexIteratorSetKeyReal, indexIteratorSetKeyReal)           \
   F(IndexIteratorSetKeyDouble, indexIteratorSetKeyDouble)       \
-  F(IndexIteratorSetKeyBind, indexIteratorSetKeyBind)           \
   F(IndexIteratorFree, indexIteratorFree)                       \
                                                                 \
   /* Insert */                                                  \

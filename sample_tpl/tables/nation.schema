@@ -1,8 +1,0 @@
-nation 4
-n_nationkey int 0
-n_name varchar 0 25
-n_regionkey int 0
-n_comment varchar 0 152
-1
-nation_index 1
-0

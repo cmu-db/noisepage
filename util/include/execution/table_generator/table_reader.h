@@ -39,14 +39,17 @@ class TableReader {
   uint32_t ReadTable(const std::string &schema_file, const std::string &data_file);
 
  private:
-  // Calls the accessor's create table
+  // Create table
   catalog::table_oid_t CreateTable(TableInfo *info);
 
-  // Calls the accessor's create index
-  std::vector<catalog::index_oid_t> CreateIndexes(TableInfo *info, catalog::table_oid_t table_oid);
+  // Create indexes
+  void CreateIndexes(TableInfo *info, catalog::table_oid_t table_oid);
 
   // Writes a column according to its type.
   void WriteTableCol(storage::ProjectedRow *insert_pr, uint16_t col_offset, type::TypeId type, csv::CSVField *field);
+
+  // Write an index entry
+  void WriteIndexEntry(IndexInfo * index_info, storage::ProjectedRow * table_pr, const std::vector<u16> & table_offsets, const storage::TupleSlot & slot);
 
  private:
   // Postgres NULL string
