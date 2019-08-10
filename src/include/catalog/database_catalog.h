@@ -284,7 +284,6 @@ class DatabaseCatalog {
   storage::SqlTable *columns_;
   storage::index::Index *columns_oid_index_;   // indexed on class OID and column OID
   storage::index::Index *columns_name_index_;  // indexed on class OID and column name
-  storage::index::Index *columns_class_index_;
 
   storage::SqlTable *types_;
   storage::index::Index *types_oid_index_;

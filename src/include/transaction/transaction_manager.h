@@ -93,7 +93,7 @@ class TransactionManager {
    * transaction) is more recent than the time this function was called.
    * @param a functional implementation of the action that is deferred
    */
-  void DeferAction(Action a);
+  void DeferAction(const Action &a);
 
   /**
    * Transfers the buffered list of deferred actions to the GC for eventual

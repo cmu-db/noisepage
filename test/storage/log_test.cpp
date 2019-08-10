@@ -48,7 +48,7 @@ class WriteAheadLoggingTests : public TerrierTest {
         di::bind<std::chrono::milliseconds>()
             .named(storage::LogManager::PERSIST_INTERVAL)
             .to(std::chrono::milliseconds(20)),
-        di::bind<uint64_t>().named(storage::LogManager::PERSIST_THRESHOLD).to(static_cast<uint64_t>((1u << 20u))));
+        di::bind<uint64_t>().named(storage::LogManager::PERSIST_THRESHOLD).to(static_cast<uint64_t>((1U << 20U))));
   }
 
   void SetUp() override {

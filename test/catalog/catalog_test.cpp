@@ -207,11 +207,10 @@ TEST_F(CatalogTests, UserTableTest) {
   txn = txn_manager_->BeginTransaction();
   accessor = catalog_->GetAccessor(txn, db_);
   EXPECT_NE(accessor, nullptr);
-  table_oid = accessor->GetTableOid("test_table");
-  EXPECT_NE(table_oid, catalog::INVALID_TABLE_OID);
+
+  VerifyTablePresent(*accessor, accessor->GetDefaultNamespace(), "test_table");
   EXPECT_TRUE(accessor->DropTable(table_oid));
-  table_oid = accessor->GetTableOid("test_table");
-  EXPECT_EQ(table_oid, catalog::INVALID_TABLE_OID);
+  VerifyTableAbsent(*accessor, accessor->GetDefaultNamespace(), "test_table");
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 }
 

@@ -78,7 +78,7 @@ class Exception : public std::runtime_error {
   /**
    * @return the line number that threw the exception
    */
-  const int get_line() const { return line_; }
+  int get_line() const { return line_; }
 
  protected:
   /**
