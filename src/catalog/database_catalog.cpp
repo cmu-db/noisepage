@@ -117,12 +117,6 @@ void DatabaseCatalog::Bootstrap(transaction::TransactionContext *const txn) {
   retval = SetIndexPointer(txn, COLUMN_NAME_INDEX_OID, columns_name_index_);
   TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
 
-  retval = CreateIndexEntry(txn, NAMESPACE_CATALOG_NAMESPACE_OID, COLUMN_TABLE_OID, COLUMN_CLASS_INDEX_OID,
-                            "pg_attribute_class_index", postgres::Builder::GetColumnClassIndexSchema(db_oid_));
-  TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
-  retval = SetIndexPointer(txn, COLUMN_CLASS_INDEX_OID, columns_class_index_);
-  TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
-
   // pg_type and associated indexes
   retval = CreateTableEntry(txn, TYPE_TABLE_OID, NAMESPACE_CATALOG_NAMESPACE_OID, "pg_type",
                             postgres::Builder::GetTypeTableSchema());
@@ -400,23 +394,13 @@ bool DatabaseCatalog::CreateColumn(transaction::TransactionContext *const txn, c
 
   // Step 3: Insert into oid index
   const auto oid_pri = columns_oid_index_->GetProjectedRowInitializer();
-  const auto oid_pm = columns_oid_index_->GetKeyOidToOffsetMap();
   pr = oid_pri.InitializeRow(buffer);
   // Write the attributes in the ProjectedRow. These hardcoded indexkeycol_oids come from
   // Builder::GetColumnOidIndexSchema()
-  *(reinterpret_cast<ColOid *>(pr->AccessForceNotNull(oid_pm.at(indexkeycol_oid_t(2))))) = col_oid;
-  *(reinterpret_cast<ClassOid *>(pr->AccessForceNotNull(oid_pm.at(indexkeycol_oid_t(1))))) = class_oid;
+  *(reinterpret_cast<ClassOid *>(pr->AccessForceNotNull(0))) = class_oid;
+  *(reinterpret_cast<ColOid *>(pr->AccessForceNotNull(1))) = col_oid;
 
   bool UNUSED_ATTRIBUTE result = columns_oid_index_->InsertUnique(txn, *pr, tupleslot);
-  TERRIER_ASSERT(result, "Assigned OIDs failed to be unique.");
-
-  // Step 4: Insert into class index
-  const auto class_pri = columns_class_index_->GetProjectedRowInitializer();
-  pr = class_pri.InitializeRow(buffer);
-  // Write the attributes in the ProjectedRow
-  *(reinterpret_cast<ClassOid *>(pr->AccessForceNotNull(0))) = class_oid;
-
-  result = columns_class_index_->Insert(txn, *pr, tupleslot);
   TERRIER_ASSERT(result, "Assigned OIDs failed to be unique.");
 
   // Finish
@@ -425,25 +409,37 @@ bool DatabaseCatalog::CreateColumn(transaction::TransactionContext *const txn, c
 }
 
 template <typename Column, typename ClassOid, typename ColOid>
-std::vector<Column> DatabaseCatalog::GetColumns(transaction::TransactionContext *const txn, const ClassOid class_oid) {
+std::vector<Column> DatabaseCatalog::GetColumns(transaction::TransactionContext *const txn, ClassOid class_oid) {
   // Step 1: Read Index
   const std::vector<col_oid_t> table_oids{ATTNUM_COL_OID, ATTNAME_COL_OID,    ATTTYPID_COL_OID,
                                           ATTLEN_COL_OID, ATTNOTNULL_COL_OID, ADSRC_COL_OID};
 
   auto table_pri = columns_->InitializerForProjectedRow(table_oids);
   auto table_pm = columns_->ProjectionMapForOids(table_oids);
-  const auto class_pri = columns_class_index_->GetProjectedRowInitializer();
+  const auto oid_pri = columns_oid_index_->GetProjectedRowInitializer();
+  
   // Buffer is large enough to hold all prs
   byte *const buffer = common::AllocationUtil::AllocateAligned(table_pri.ProjectedRowSize());
+  byte *const key_buffer = common::AllocationUtil::AllocateAligned(oid_pri.ProjectedRowSize());
   // Scan the class index
-  auto *pr = class_pri.InitializeRow(buffer);
+  auto *pr = oid_pri.InitializeRow(buffer);
+  auto *pr_high = oid_pri.InitializeRow(key_buffer);
+
   // Write the attributes in the ProjectedRow
+  // Low key (class, INVALID_COLUMN_OID) [using uint32_t to avoid adding ColOid to template]
   *(reinterpret_cast<ClassOid *>(pr->AccessForceNotNull(0))) = class_oid;
+  *(reinterpret_cast<uint32_t *>(pr->AccessForceNotNull(1))) = 0;
+
+  // High key (class + 1, INVALID_COLUMN_OID) [using uint32_t to avoid adding ColOid to template]
+  *(reinterpret_cast<ClassOid *>(pr_high->AccessForceNotNull(0))) = ++class_oid;
+  *(reinterpret_cast<uint32_t *>(pr_high->AccessForceNotNull(1))) = 0;
   std::vector<storage::TupleSlot> index_results;
-  columns_class_index_->ScanKey(*txn, *pr, &index_results);
+  columns_oid_index_->ScanAscending(*txn, *pr, *pr_high, &index_results);
+
   if (index_results.empty()) {
     // class not found in the index, so class doesn't exist. Free the buffer and return nullptr to indicate failure
     delete[] buffer;
+    delete[] key_buffer;
     return {};
   }
 
@@ -461,6 +457,7 @@ std::vector<Column> DatabaseCatalog::GetColumns(transaction::TransactionContext 
 
   // Finish
   delete[] buffer;
+  delete[] key_buffer;
   return cols;
 }
 
@@ -474,14 +471,28 @@ bool DatabaseCatalog::DeleteColumns(transaction::TransactionContext *const txn, 
 
   auto table_pri = columns_->InitializerForProjectedRow(table_oids);
   auto table_pm = columns_->ProjectionMapForOids(table_oids);
-  const auto class_pri = columns_class_index_->GetProjectedRowInitializer();
+  const auto oid_pri = columns_oid_index_->GetProjectedRowInitializer();
+  const auto name_pri = columns_name_index_->GetProjectedRowInitializer();
+  
   // Buffer is large enough to hold all prs
   byte *const buffer = common::AllocationUtil::AllocateAligned(table_pri.ProjectedRowSize());
+  byte *const key_buffer = common::AllocationUtil::AllocateAligned(name_pri.ProjectedRowSize());
   // Scan the class index
-  auto *pr = class_pri.InitializeRow(buffer);
+  auto *pr = oid_pri.InitializeRow(buffer);
+  auto *key_pr = oid_pri.InitializeRow(key_buffer);
+
+  // Write the attributes in the ProjectedRow
+  // Low key (class, INVALID_COLUMN_OID) [using uint32_t to avoid adding ColOid to template]
   *(reinterpret_cast<ClassOid *>(pr->AccessForceNotNull(0))) = class_oid;
+  *(reinterpret_cast<uint32_t *>(pr->AccessForceNotNull(1))) = 0;
+
+  auto next_oid = ClassOid(!class_oid + 1);
+  // High key (class + 1, INVALID_COLUMN_OID) [using uint32_t to avoid adding ColOid to template]
+  *(reinterpret_cast<ClassOid *>(key_pr->AccessForceNotNull(0))) = next_oid;
+  *(reinterpret_cast<uint32_t *>(key_pr->AccessForceNotNull(1))) = 0;
   std::vector<storage::TupleSlot> index_results;
-  columns_class_index_->ScanKey(*txn, *pr, &index_results);
+  columns_oid_index_->ScanAscending(*txn, *pr, *key_pr, &index_results);
+
   if (index_results.empty()) {
     delete[] buffer;
     return false;
@@ -492,8 +503,6 @@ bool DatabaseCatalog::DeleteColumns(transaction::TransactionContext *const txn, 
 
   // Step 2: Scan the table to get the columns
   pr = table_pri.InitializeRow(buffer);
-  byte *const key_buffer = common::AllocationUtil::AllocateAligned(
-      columns_name_index_->GetProjectedRowInitializer().ProjectedRowSize());  // should be biggest index key PR
   for (const auto &slot : index_results) {
     // 1. Extract attributes from the tuple for the index deletions
     auto UNUSED_ATTRIBUTE result = columns_->Select(txn, slot, pr);
@@ -503,7 +512,7 @@ bool DatabaseCatalog::DeleteColumns(transaction::TransactionContext *const txn, 
     TERRIER_ASSERT(col_name != nullptr, "Name shouldn't be NULL.");
     const auto *const col_oid =
         reinterpret_cast<const uint32_t *const>(pr->AccessWithNullCheck(table_pm[ATTNUM_COL_OID]));
-    TERRIER_ASSERT(col_name != nullptr, "OID shouldn't be NULL.");
+    TERRIER_ASSERT(col_oid != nullptr, "OID shouldn't be NULL.");
 
     // 2. Delete from the table
     txn->StageDelete(db_oid_, COLUMN_TABLE_OID, slot);
@@ -513,29 +522,17 @@ bool DatabaseCatalog::DeleteColumns(transaction::TransactionContext *const txn, 
       delete[] buffer;
       delete[] key_buffer;
       return false;
-      // TODO(Matt): what happens if you only manage to partially delete the columns? does abort alone suffice? I think
-      // we've covered due to MVCC semantics
     }
 
-    // TODO(Matt): defer the delete for the pointer stored in ADBIN after #386 is in
-
-    // 3. Delete from class index
-    auto *key_pr = class_pri.InitializeRow(key_buffer);
-    *(reinterpret_cast<ClassOid *>(key_pr->AccessForceNotNull(0))) = class_oid;
-    columns_class_index_->Delete(txn, *key_pr, slot);
-
     // 4. Delete from oid index
-    auto oid_pri = columns_oid_index_->GetProjectedRowInitializer();
-    const auto oid_pm = columns_oid_index_->GetKeyOidToOffsetMap();
     key_pr = oid_pri.InitializeRow(key_buffer);
     // Write the attributes in the ProjectedRow. These hardcoded indexkeycol_oids come from
     // Builder::GetColumnOidIndexSchema()
-    *(reinterpret_cast<uint32_t *>(key_pr->AccessForceNotNull(oid_pm.at(indexkeycol_oid_t(2))))) = *col_oid;
-    *(reinterpret_cast<ClassOid *>(key_pr->AccessForceNotNull(oid_pm.at(indexkeycol_oid_t(1))))) = class_oid;
+    *(reinterpret_cast<ClassOid *>(key_pr->AccessForceNotNull(0))) = class_oid;
+    *(reinterpret_cast<uint32_t *>(key_pr->AccessForceNotNull(1))) = *col_oid;
     columns_oid_index_->Delete(txn, *key_pr, slot);
 
     // 5. Delete from name index
-    auto name_pri = columns_name_index_->GetProjectedRowInitializer();
     key_pr = name_pri.InitializeRow(key_buffer);
     // Write the attributes in the ProjectedRow. We know the offsets without the map because of the ordering of
     // attribute sizes

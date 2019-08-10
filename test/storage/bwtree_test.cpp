@@ -287,13 +287,13 @@ TEST_F(BwTreeTests, ConcurrentMixed) {
     tree->AssignGCID(gcid);
     if ((id % 2) == 0) {
       for (uint32_t i = 0; i < key_num; i++) {
-        int key = num_threads_ * i + id;
+        int key = num_threads_ * i + id;  // NOLINT
 
         tree->Insert(key, key);
       }
     } else {
       for (uint32_t i = 0; i < key_num; i++) {
-        int key = num_threads_ * i + id - 1;
+        int key = num_threads_ * i + id - 1;  // NOLINT
 
         while (!tree->Delete(key, key)) {
         }

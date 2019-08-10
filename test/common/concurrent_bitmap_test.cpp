@@ -22,7 +22,7 @@ TEST(ConcurrentBitmapTests, SimpleCorrectnessTest) {
   const uint32_t max_bitmap_size = 1000;
 
   for (uint32_t iter = 0; iter < num_bitmap_sizes; ++iter) {
-    auto num_elements = std::uniform_int_distribution(1u, max_bitmap_size)(generator);
+    auto num_elements = std::uniform_int_distribution(1U, max_bitmap_size)(generator);
     common::RawConcurrentBitmap *bitmap = common::RawConcurrentBitmap::Allocate(num_elements);
 
     // Verify bitmap initialized to all 0s
@@ -56,11 +56,11 @@ TEST(ConcurrentBitmapTests, FirstUnsetPosTest) {
   const uint32_t num_bitmap_sizes = 50;
   // Maximum bitmap size.
   const uint32_t max_bitmap_size = 1000;
-  uint32_t pos;
+  uint32_t pos = 0;
 
   // test a wide range of sizes
   for (uint32_t iter = 0; iter < num_bitmap_sizes; ++iter) {
-    auto num_elements = std::uniform_int_distribution(1u, max_bitmap_size)(generator);
+    auto num_elements = std::uniform_int_distribution(1U, max_bitmap_size)(generator);
     common::RawConcurrentBitmap *bitmap = common::RawConcurrentBitmap::Allocate(num_elements);
 
     // should return false if we start searching out of range
@@ -168,7 +168,7 @@ TEST(ConcurrentBitmapTests, ConcurrentFirstUnsetPosTest) {
   common::WorkerPool thread_pool(num_threads, {});
 
   for (uint32_t iter = 0; iter < num_iters; ++iter) {
-    const uint32_t num_elements = std::uniform_int_distribution(1u, max_elements)(generator);
+    const uint32_t num_elements = std::uniform_int_distribution(1U, max_elements)(generator);
     common::RawConcurrentBitmap *bitmap = common::RawConcurrentBitmap::Allocate(num_elements);
     std::vector<std::vector<uint32_t>> elements(num_threads);
 
@@ -213,7 +213,7 @@ TEST(ConcurrentBitmapTests, ConcurrentCorrectnessTest) {
   common::WorkerPool thread_pool(num_threads, {});
 
   for (uint32_t iter = 0; iter < num_iters; ++iter) {
-    const uint32_t num_elements = std::uniform_int_distribution(1u, max_elements)(generator);
+    const uint32_t num_elements = std::uniform_int_distribution(1U, max_elements)(generator);
     common::RawConcurrentBitmap *bitmap = common::RawConcurrentBitmap::Allocate(num_elements);
     std::vector<std::vector<uint32_t>> elements(num_threads);
 
