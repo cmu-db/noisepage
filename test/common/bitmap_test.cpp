@@ -22,7 +22,7 @@ TEST(BitmapTests, ByteMultipleCorrectnessTest) {
 
   for (uint32_t iter = 0; iter < num_bitmap_sizes; ++iter) {
     // Test a byte-multiple sized bitmap
-    auto multiplier = std::uniform_int_distribution(1u, max_size_multiplier)(generator);
+    auto multiplier = std::uniform_int_distribution(1U, max_size_multiplier)(generator);
     const uint32_t num_elements_aligned = 16 * multiplier;
 
     common::RawBitmap *aligned_bitmap = common::RawBitmap::Allocate(num_elements_aligned);
@@ -59,8 +59,8 @@ TEST(BitmapTests, NonByteMultipleCorrectnessTest) {
 
   for (uint32_t iter = 0; iter < num_bitmap_sizes; ++iter) {
     // Test a non-byte-multiple sized bitmap
-    auto multiplier = std::uniform_int_distribution(1u, max_size_multiplier)(generator);
-    auto offset = std::uniform_int_distribution(1u, BYTE_SIZE - 1)(generator);
+    auto multiplier = std::uniform_int_distribution(1U, max_size_multiplier)(generator);
+    auto offset = std::uniform_int_distribution(1U, BYTE_SIZE - 1)(generator);
     const uint32_t num_elements_aligned = 16 * multiplier + offset;
 
     common::RawBitmap *aligned_bitmap = common::RawBitmap::Allocate(num_elements_aligned);
@@ -97,7 +97,7 @@ TEST(BitmapTests, WordUnalignedCorrectnessTest) {
 
   for (uint32_t iter = 0; iter < num_bitmap_sizes; ++iter) {
     // Test a byte-multiple sized bitmap
-    auto multiplier = std::uniform_int_distribution(1u, max_size_multiplier)(generator);
+    auto multiplier = std::uniform_int_distribution(1U, max_size_multiplier)(generator);
     const uint32_t num_elements = 16 * multiplier;
 
     // provision enough space for the bitmap elements, plus padding because we're going to make it unaligned to wordsize

@@ -173,7 +173,7 @@ class InsertPlanNode : public AbstractPlanNode {
    * @param idx index of tuple in values vecor
    * @return values to be inserted
    */
-  const std::vector<type::TransientValue> &GetValues(uint32_t idx) const { return values_[idx]; }
+  const std::vector<type::TransientValue> &GetValues(const uint32_t idx) const { return values_[idx]; }
 
   /**
    * @return the information of insert parameters
@@ -184,7 +184,7 @@ class InsertPlanNode : public AbstractPlanNode {
    * @param value_idx index of value being inserted
    * @return OID of column where value should be inserted
    */
-  const catalog::col_oid_t GetColumnOidForValue(uint32_t value_idx) const { return parameter_info_.at(value_idx); }
+  catalog::col_oid_t GetColumnOidForValue(const uint32_t value_idx) const { return parameter_info_.at(value_idx); }
 
   /**
    * @return number of tuples to insert

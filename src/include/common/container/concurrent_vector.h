@@ -46,7 +46,7 @@ class ConcurrentVector {
      * postfix-increment
      * @return iterator equal to this iterator before increment
      */
-    const Iterator operator++(int) {
+    Iterator operator++(int) {
       Iterator result(it_++);
       return result;
     }
