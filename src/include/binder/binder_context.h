@@ -93,7 +93,7 @@ class BinderContext {
    * @param tuple Tuple of database oid, table oid, and schema object
    * @param expr Column value expression
    */
-  static void GetColumnPosTuple(const std::string &col_name,
+  static void SetColumnPosTuple(const std::string &col_name,
                                 std::tuple<catalog::db_oid_t, catalog::table_oid_t, catalog::Schema> tuple,
                                 parser::ColumnValueExpression *expr);
 
@@ -104,7 +104,7 @@ class BinderContext {
    * @param expr Column value expression
    * @return Returns true if the column is found in the alias maps of the current context; false otherwise
    */
-  static bool GetColumnPosTuple(BinderContext *current_context, parser::ColumnValueExpression *expr);
+  bool SetColumnPosTuple(parser::ColumnValueExpression *expr);
 
   /**
    * Check if the table alias can be found in the alias maps of the current context or the upper contexts.
