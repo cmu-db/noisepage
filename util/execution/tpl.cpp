@@ -98,7 +98,6 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
   // Comment out to make more tables available at runtime
   // table_generator.GenerateTPCHTables(<path_to_tpch_dir>);
   // table_generator.GenerateTableFromFile(<path_to_schema>, <path_to_data>);
-  table_generator.GenerateTPCHTables("../../tpl_tables/tables/");
 
   // Let's scan the source
   util::Region region("repl-ast");
