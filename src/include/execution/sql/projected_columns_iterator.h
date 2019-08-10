@@ -253,6 +253,7 @@ class ProjectedColumnsIterator {
 // desired column's input data
 template <typename T, bool Nullable>
 inline const T *ProjectedColumnsIterator::Get(u32 col_idx, bool *null) const {
+  // NOLINTNEXTLINE: bugprone-suspicious-semicolon: seems like a false positive because of constexpr
   if constexpr (Nullable) {
     TPL_ASSERT(null != nullptr, "Missing output variable for NULL indicator");
     *null = !projected_column_->ColumnNullBitmap(static_cast<u16>(col_idx))->Test(curr_idx_);

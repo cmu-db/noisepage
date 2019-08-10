@@ -234,6 +234,7 @@ void AggregationHashTable::ComputeHashAndLoadInitialImpl(ProjectedColumnsIterato
 
   // Load entries
   for (u32 idx = 0, prefetch_idx = kPrefetchDistance; idx < num_elems; idx++, prefetch_idx++) {
+    // NOLINTNEXTLINE: bugprone-suspicious-semicolon: seems like a false positive because of constexpr
     if constexpr (Prefetch) {
       if (TPL_LIKELY(prefetch_idx < num_elems)) {
         // NOLINTNEXTLINE

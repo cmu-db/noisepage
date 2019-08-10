@@ -290,12 +290,14 @@ void DoTrim(StringVal *result, const StringVal &str, const StringVal &chars) {
   i32 begin = 0, end = str.len - 1;
 
   auto *src = str.Content();
+  // NOLINTNEXTLINE: bugprone-suspicious-semicolon: seems like a false positive because of constexpr
   if constexpr (TrimLeft) {
     while (begin < static_cast<i32>(str.len) && bitset.Test(u32(src[begin]))) {
       begin++;
     }
   }
 
+  // NOLINTNEXTLINE: bugprone-suspicious-semicolon: seems like a false positive because of constexpr
   if constexpr (TrimRight) {
     while (begin <= end && bitset.Test(u32(src[end]))) {
       end--;
