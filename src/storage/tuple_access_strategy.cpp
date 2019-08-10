@@ -43,7 +43,7 @@ void TupleAccessStrategy::InitializeRawBlock(storage::DataTable *const data_tabl
 
 bool TupleAccessStrategy::Allocate(RawBlock *const block, TupleSlot *const slot) const {
   common::RawConcurrentBitmap *bitmap = reinterpret_cast<Block *>(block)->SlotAllocationBitmap(layout_);
-  const uint32_t start = block->insert_head_;
+  const uint32_t start = block->GetInsertHead();
 
   // We are not allowed to insert into this block any more
   if (start == layout_.NumSlots()) return false;
