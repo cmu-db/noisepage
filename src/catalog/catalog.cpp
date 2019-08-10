@@ -1,3 +1,4 @@
+#include <memory>
 #include <string>
 #include <utility>
 #include <vector>
@@ -11,6 +12,7 @@
 #include "storage/projected_row.h"
 #include "storage/sql_table.h"
 #include "storage/storage_defs.h"
+#include "transaction/transaction_util.h"
 
 namespace terrier::catalog {
 
@@ -54,7 +56,7 @@ void Catalog::TearDown() {
   txn->RegisterCommitAction([=, db_cats{std::move(db_cats)}]() {
     for (auto db : db_cats) {
       auto del_action = DeallocateDatabaseCatalog(db);
-      txn_manager_->DeferAction(std::move(del_action));
+      txn_manager_->DeferAction(del_action);
     }
     // Pass vars to the deferral by value
     txn_manager_->DeferAction([=]() {
@@ -69,7 +71,7 @@ void Catalog::TearDown() {
 
   // The transaction was read-only and we do not need any side-effects
   // so we use an empty lambda for the callback function.
-  txn_manager_->Commit(txn, [](void *) {}, nullptr);
+  txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 }
 
 db_oid_t Catalog::CreateDatabase(transaction::TransactionContext *const txn, const std::string &name,
@@ -173,10 +175,10 @@ common::ManagedPointer<DatabaseCatalog> Catalog::GetDatabaseCatalog(transaction:
   return common::ManagedPointer(dbc);
 }
 
-CatalogAccessor *Catalog::GetAccessor(transaction::TransactionContext *txn, db_oid_t database) {
+std::unique_ptr<CatalogAccessor> Catalog::GetAccessor(transaction::TransactionContext *txn, db_oid_t database) {
   auto dbc = this->GetDatabaseCatalog(txn, database);
   if (dbc == nullptr) return nullptr;
-  return new CatalogAccessor(this, dbc, txn, database);
+  return std::make_unique<CatalogAccessor>(common::ManagedPointer(this), dbc, txn);
 }
 
 bool Catalog::CreateDatabaseEntry(transaction::TransactionContext *const txn, const db_oid_t db,
@@ -283,11 +285,11 @@ DatabaseCatalog *Catalog::DeleteDatabaseEntry(transaction::TransactionContext *t
   return dbc;
 }
 
-transaction::Action Catalog::DeallocateDatabaseCatalog(DatabaseCatalog *dbc) {
+transaction::Action Catalog::DeallocateDatabaseCatalog(DatabaseCatalog *const dbc) {
   return [=]() {
     auto txn = txn_manager_->BeginTransaction();
     dbc->TearDown(txn);
-    txn_manager_->Commit(txn, [](void *) {}, nullptr);
+    txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
     delete dbc;
   };
 }

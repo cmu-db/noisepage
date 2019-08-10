@@ -202,6 +202,30 @@ TEST(ExpressionTests, ConstantValueExpressionJsonTest) {
 }
 
 // NOLINTNEXTLINE
+TEST(ExpressionTests, NullConstantValueExpressionJsonTest) {
+  // Create expression
+  auto original_expr =
+      std::make_shared<ConstantValueExpression>(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR));
+
+  EXPECT_EQ(*original_expr, *(original_expr->Copy()));
+
+  // Serialize expression
+  auto json = original_expr->ToJson();
+  EXPECT_FALSE(json.is_null());
+
+  const auto from_json_expr = new ConstantValueExpression();
+  from_json_expr->FromJson(json);
+  EXPECT_TRUE(*original_expr == *from_json_expr);
+
+  delete from_json_expr;
+
+  // Deserialize expression
+  auto deserialized_expression = DeserializeExpression(json);
+  EXPECT_EQ(*original_expr, *deserialized_expression);
+  EXPECT_TRUE(static_cast<ConstantValueExpression *>(deserialized_expression.get())->GetValue().Null());
+}
+
+// NOLINTNEXTLINE
 TEST(ExpressionTests, ConjunctionExpressionTest) {
   std::vector<std::shared_ptr<AbstractExpression>> children1;
   children1.emplace_back(std::make_shared<ConstantValueExpression>(type::TransientValueFactory::GetBoolean(true)));

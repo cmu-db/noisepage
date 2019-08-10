@@ -44,6 +44,9 @@ enum class BlockState : uint32_t {
  * reading transactionally if the block is not frozen.
  */
 class BlockAccessController {
+  // We do some reinterpret_casting between uint64_t and the std::pair below, so we want to assert the object size.
+  static_assert(sizeof(std::pair<BlockState, uint32_t>) == sizeof(uint64_t));
+
  public:
   /**
    * Initialize the block access controller.
@@ -125,13 +128,14 @@ class BlockAccessController {
 
   std::pair<BlockState, uint32_t> AtomicallyLoadMembers() {
     uint64_t curr_value = reinterpret_cast<std::atomic<uint64_t> *>(bytes_)->load();
-    return *reinterpret_cast<std::pair<BlockState, uint32_t> *>(&curr_value);
+    const auto *const curr_state = reinterpret_cast<const std::pair<BlockState, uint32_t> *const>(&curr_value);
+    return *curr_state;
   }
 
   bool UpdateAtomically(const std::pair<BlockState, uint32_t> &expected, std::pair<BlockState, uint32_t> desired) {
-    uint64_t expected_bytes = *reinterpret_cast<const uint64_t *>(&expected);
-    return reinterpret_cast<std::atomic<uint64_t> *>(bytes_)->compare_exchange_strong(
-        expected_bytes, *reinterpret_cast<uint64_t *>(&desired));
+    auto expected_bytes = *reinterpret_cast<const uint64_t *const>(&expected);
+    const auto *const desired_bytes = reinterpret_cast<const uint64_t *const>(&desired);
+    return reinterpret_cast<std::atomic<uint64_t> *>(bytes_)->compare_exchange_strong(expected_bytes, *desired_bytes);
   }
 };
 }  // namespace terrier::storage
