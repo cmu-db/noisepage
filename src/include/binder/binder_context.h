@@ -113,9 +113,8 @@ class BinderContext {
    * @param tuple Tuple of database oid, table oid, and schema object
    * @return Return true if the alias is found, false otherwise
    */
-  static bool GetRegularTableObj(BinderContext *current_context, const std::string &alias,
-                                 parser::ColumnValueExpression *expr,
-                                 std::tuple<catalog::db_oid_t, catalog::table_oid_t, catalog::Schema> *tuple);
+  bool GetRegularTableObj(const std::string &alias, parser::ColumnValueExpression *expr,
+                          std::tuple<catalog::db_oid_t, catalog::table_oid_t, catalog::Schema> *tuple);
 
   /**
    * Check if the table, represented by the table alias, has the column indicated by the column name.
@@ -126,8 +125,8 @@ class BinderContext {
    * @param expr Column value expression
    * @return Return true if the column is found, false otherwise
    */
-  static bool CheckNestedTableColumn(BinderContext *current_context, const std::string &alias,
-                                     const std::string &col_name, parser::ColumnValueExpression *expr);
+  bool CheckNestedTableColumn(const std::string &alias, const std::string &col_name,
+                              parser::ColumnValueExpression *expr);
 
   /**
    * Get the pointer to the upper context of the current context
