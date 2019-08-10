@@ -68,7 +68,7 @@ bool BinderContext::ColumnInSchema(const catalog::Schema &schema, const std::str
   return true;
 }
 
-void BinderContext::GetColumnPosTuple(const std::string &col_name,
+void BinderContext::SetColumnPosTuple(const std::string &col_name,
                                       std::tuple<catalog::db_oid_t, catalog::table_oid_t, catalog::Schema> tuple,
                                       parser::ColumnValueExpression *expr) {
   auto column_object = std::get<2>(tuple).GetColumn(col_name);
@@ -79,11 +79,12 @@ void BinderContext::GetColumnPosTuple(const std::string &col_name,
   expr->SetReturnValueType(column_object.Type());
 }
 
-bool BinderContext::GetColumnPosTuple(BinderContext *current_context, parser::ColumnValueExpression *expr) {
+bool BinderContext::SetColumnPosTuple(parser::ColumnValueExpression *expr) {
   auto col_name = expr->GetColumnName();
   std::transform(col_name.begin(), col_name.end(), col_name.begin(), ::tolower);
 
   bool find_matched = false;
+  auto current_context = this;
   while (current_context != nullptr) {
     // Check regular table
     for (auto &entry : current_context->regular_table_alias_map_) {
@@ -92,7 +93,7 @@ bool BinderContext::GetColumnPosTuple(BinderContext *current_context, parser::Co
         if (!find_matched) {
           // First match
           find_matched = true;
-          GetColumnPosTuple(col_name, entry.second, expr);
+          SetColumnPosTuple(col_name, entry.second, expr);
           expr->SetTableName(entry.first);
         } else {
           throw BINDER_EXCEPTION(("Ambiguous column name " + col_name).c_str());

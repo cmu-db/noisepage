@@ -10,6 +10,7 @@
 namespace terrier {
 
 namespace parser {
+class SQLStatement;
 class CaseExpression;
 class ConstantValueExpression;
 class ColumnValueExpression;
@@ -17,10 +18,6 @@ class SubqueryExpression;
 class StarExpression;
 class OperatorExpression;
 class AggregateExpression;
-}  // namespace parser
-
-namespace parser {
-class SQLStatement;
 }  // namespace parser
 
 namespace catalog {

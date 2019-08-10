@@ -199,7 +199,7 @@ void BindNodeVisitor::Visit(parser::ColumnValueExpression *expr) {
 
     // Table name not specified in the expression. Loop through all the table in the binder context.
     if (table_name.empty()) {
-      if (!BinderContext::GetColumnPosTuple(context_, expr)) {
+      if (context_ == nullptr || !context_->SetColumnPosTuple(expr)) {
         throw BINDER_EXCEPTION(("Cannot find column " + col_name).c_str());
       }
     } else {
@@ -208,7 +208,7 @@ void BindNodeVisitor::Visit(parser::ColumnValueExpression *expr) {
         if (!BinderContext::ColumnInSchema(std::get<2>(tuple), col_name)) {
           throw BINDER_EXCEPTION(("Cannot find column " + col_name).c_str());
         }
-        BinderContext::GetColumnPosTuple(col_name, tuple, expr);
+        BinderContext::SetColumnPosTuple(col_name, tuple, expr);
       } else if (!BinderContext::CheckNestedTableColumn(context_, table_name, col_name, expr)) {
         throw BINDER_EXCEPTION(("Invalid table reference " + expr->GetTableName()).c_str());
       }
