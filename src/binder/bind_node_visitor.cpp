@@ -206,12 +206,12 @@ void BindNodeVisitor::Visit(parser::ColumnValueExpression *expr) {
       }
     } else {
       // Table name is present
-      if (BinderContext::GetRegularTableObj(context_, table_name, expr, &tuple)) {
+      if (context_ != nullptr && context_->GetRegularTableObj(table_name, expr, &tuple)) {
         if (!BinderContext::ColumnInSchema(std::get<2>(tuple), col_name)) {
           throw BINDER_EXCEPTION(("Cannot find column " + col_name).c_str());
         }
         BinderContext::SetColumnPosTuple(col_name, tuple, expr);
-      } else if (!BinderContext::CheckNestedTableColumn(context_, table_name, col_name, expr)) {
+      } else if (context_ == nullptr || !context_->CheckNestedTableColumn(table_name, col_name, expr)) {
         throw BINDER_EXCEPTION(("Invalid table reference " + expr->GetTableName()).c_str());
       }
     }
