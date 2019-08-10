@@ -19,9 +19,9 @@ configure_file (
 )
 
 # Find CLANG
-set(SUPPORTED_CLANGS "clang++-7")
+set(SUPPORTED_CLANGS "clang++-8" "clang++")
 
-find_program(CLANG NAMES ${SUPPORTED_CLANGS})
+find_program(CLANG NAMES ${SUPPORTED_CLANGS}) #TODO(Matt): this should follow the logic of FindClangTools if we actually need clang++ on macOS to come from LLVM 8 rather than AppleClang
 if (NOT EXISTS ${CLANG})
     message(FATAL_ERROR "Unable to locate clang++.")
 else()
