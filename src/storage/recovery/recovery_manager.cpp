@@ -176,9 +176,6 @@ void RecoveryManager::UpdateIndexesOnTable(transaction::TransactionContext *txn,
     indexes.emplace_back(db_catalog_ptr->columns_name_index_);
     index_schemas.push_back(db_catalog_ptr->columns_name_index_->metadata_.GetSchema());
 
-    indexes.emplace_back(db_catalog_ptr->columns_class_index_);
-    index_schemas.push_back(db_catalog_ptr->columns_class_index_->metadata_.GetSchema());
-
   } else if (table_oid == catalog::CONSTRAINT_TABLE_OID) {
     indexes.emplace_back(db_catalog_ptr->constraints_oid_index_);
     index_schemas.push_back(db_catalog_ptr->constraints_oid_index_->metadata_.GetSchema());
@@ -508,7 +505,6 @@ uint32_t RecoveryManager::ProcessSpecialCaseCatalogRecord(
         if (next_redo_record->GetDatabaseOid() == delete_record->GetDatabaseOid() &&
             next_redo_record->GetTableOid() == delete_record->GetTableOid() &&
             IsInsertRecord(next_redo_record)) {  // Condition 3: next record is an insert into the same pg_class
-
           // Step 3: Get the oid and kind of the object being inserted
           ProjectionMap pr_map;
           std::tie(std::ignore, pr_map) =
@@ -713,8 +709,6 @@ storage::index::Index *RecoveryManager::GetCatalogIndex(
     index = db_catalog->columns_oid_index_;
   } else if (oid == catalog::COLUMN_NAME_INDEX_OID) {
     index = db_catalog->columns_name_index_;
-  } else if (oid == catalog::COLUMN_CLASS_INDEX_OID) {
-    index = db_catalog->columns_class_index_;
   } else if (oid == catalog::TYPE_OID_INDEX_OID) {
     index = db_catalog->types_oid_index_;
   } else if (oid == catalog::TYPE_NAME_INDEX_OID) {
