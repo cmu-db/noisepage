@@ -38,8 +38,7 @@ class SqlBasedTest : public TplTest {
   }
 
   ~SqlBasedTest() override {
-    txn_manager_->Commit(
-        test_txn_, [](void *) {}, nullptr);
+    txn_manager_->Commit(test_txn_, transaction::TransactionUtil::EmptyCallback, nullptr);
     catalog_->TearDown();
     gc_->PerformGarbageCollection();
     gc_->PerformGarbageCollection();

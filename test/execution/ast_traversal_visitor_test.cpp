@@ -171,6 +171,7 @@ class FunctionFinder : public AstTraversalVisitor<FunctionFinder<CountLiterals>>
   explicit FunctionFinder(ast::AstNode *root) : AstTraversalVisitor<SelfT>(root), num_funcs_(0) {}
 
   void VisitFunctionDecl(ast::FunctionDecl *decl) {
+    // NOLINTNEXTLINE: bugprone-suspicious-semicolon: seems like a false positive because of constexpr
     if constexpr (!CountLiterals) {
       num_funcs_++;
     }
@@ -178,6 +179,7 @@ class FunctionFinder : public AstTraversalVisitor<FunctionFinder<CountLiterals>>
   }
 
   void VisitFunctionLitExpr(ast::FunctionLitExpr *expr) {
+    // NOLINTNEXTLINE: bugprone-suspicious-semicolon: seems like a false positive because of constexpr
     if constexpr (CountLiterals) {
       num_funcs_++;
     }

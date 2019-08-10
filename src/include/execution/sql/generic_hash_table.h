@@ -448,6 +448,7 @@ inline void GenericHashTableVectorIterator<UseTag>::Refill() {
 
     // Move to next bucket
     next_ = table_.entries_[entries_index_++].load(std::memory_order_relaxed);
+    // NOLINTNEXTLINE: bugprone-suspicious-semicolon: seems like a false positive because of constexpr
     if constexpr (UseTag) {
       next_ = GenericHashTable::UntagPointer(next_);
     }

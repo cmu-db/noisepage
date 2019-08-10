@@ -254,7 +254,7 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
       "Parse: {} ms, Type-check: {} ms, Code-gen: {} ms, Interp. Exec.: {} ms, "
       "Adaptive Exec.: {} ms, Jit+Exec.: {} ms",
       parse_ms, typecheck_ms, codegen_ms, interp_exec_ms, adaptive_exec_ms, jit_exec_ms);
-  txn_manager.Commit(txn, [](void *) {}, nullptr);
+  txn_manager.Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
   catalog.TearDown();
   gc.PerformGarbageCollection();
   gc.PerformGarbageCollection();
