@@ -417,7 +417,7 @@ std::vector<Column> DatabaseCatalog::GetColumns(transaction::TransactionContext 
   auto table_pri = columns_->InitializerForProjectedRow(table_oids);
   auto table_pm = columns_->ProjectionMapForOids(table_oids);
   const auto oid_pri = columns_oid_index_->GetProjectedRowInitializer();
-  
+
   // Buffer is large enough to hold all prs
   byte *const buffer = common::AllocationUtil::AllocateAligned(table_pri.ProjectedRowSize());
   byte *const key_buffer = common::AllocationUtil::AllocateAligned(oid_pri.ProjectedRowSize());
@@ -473,7 +473,7 @@ bool DatabaseCatalog::DeleteColumns(transaction::TransactionContext *const txn, 
   auto table_pm = columns_->ProjectionMapForOids(table_oids);
   const auto oid_pri = columns_oid_index_->GetProjectedRowInitializer();
   const auto name_pri = columns_name_index_->GetProjectedRowInitializer();
-  
+
   // Buffer is large enough to hold all prs
   byte *const buffer = common::AllocationUtil::AllocateAligned(table_pri.ProjectedRowSize());
   byte *const key_buffer = common::AllocationUtil::AllocateAligned(name_pri.ProjectedRowSize());
@@ -558,7 +558,6 @@ bool DatabaseCatalog::DeleteTable(transaction::TransactionContext *const txn, co
   if (!result) return false;
 
   const auto oid_pri = classes_oid_index_->GetProjectedRowInitializer();
-
 
   auto pr_init = classes_->InitializerForProjectedRow(PG_CLASS_ALL_COL_OIDS);
   auto pr_map = classes_->ProjectionMapForOids(PG_CLASS_ALL_COL_OIDS);
@@ -1397,7 +1396,6 @@ void DatabaseCatalog::BootstrapTypes(transaction::TransactionContext *txn) {
 
 bool DatabaseCatalog::CreateTableEntry(transaction::TransactionContext *const txn, const table_oid_t table_oid,
                                        const namespace_oid_t ns_oid, const std::string &name, const Schema &schema) {
-
   auto pr_init = classes_->InitializerForProjectedRow(PG_CLASS_ALL_COL_OIDS);
   auto pr_map = classes_->ProjectionMapForOids(PG_CLASS_ALL_COL_OIDS);
 

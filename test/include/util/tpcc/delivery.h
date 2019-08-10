@@ -118,8 +118,7 @@ class Delivery {
         c_d_id_key_oid(db->customer_primary_index_schema_.GetColumn(1).Oid()),
         c_w_id_key_oid(db->customer_primary_index_schema_.GetColumn(0).Oid()),
 
-        customer_pr_initializer(
-            db->customer_table_->InitializerForProjectedRow({c_balance_oid, c_delivery_cnt_oid})),
+        customer_pr_initializer(db->customer_table_->InitializerForProjectedRow({c_balance_oid, c_delivery_cnt_oid})),
         customer_pr_map(db->customer_table_->ProjectionMapForOids({c_balance_oid, c_delivery_cnt_oid})),
         c_balance_pr_offset(static_cast<uint8_t>(customer_pr_map.at(c_balance_oid))),
         c_delivery_cnt_pr_offset(static_cast<uint8_t>(customer_pr_map.at(c_delivery_cnt_oid))),

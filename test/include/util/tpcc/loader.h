@@ -45,7 +45,8 @@ struct Loader {
     // Warehouse tuple
     const auto warehouse_tuple_col_oids = Util::AllColOidsForSchema(db->warehouse_schema_);
 
-    const auto warehouse_tuple_pr_initializer = db->warehouse_table_->InitializerForProjectedRow(warehouse_tuple_col_oids);
+    const auto warehouse_tuple_pr_initializer =
+        db->warehouse_table_->InitializerForProjectedRow(warehouse_tuple_col_oids);
     const auto warehouse_tuple_pr_map = db->warehouse_table_->ProjectionMapForOids(warehouse_tuple_col_oids);
 
     // Warehouse key
@@ -109,7 +110,8 @@ struct Loader {
     // New Order tuple
     const auto new_order_tuple_col_oids = Util::AllColOidsForSchema(db->new_order_schema_);
 
-    const auto new_order_tuple_pr_initializer = db->new_order_table_->InitializerForProjectedRow(new_order_tuple_col_oids);
+    const auto new_order_tuple_pr_initializer =
+        db->new_order_table_->InitializerForProjectedRow(new_order_tuple_col_oids);
     const auto new_order_tuple_pr_map = db->new_order_table_->ProjectionMapForOids(new_order_tuple_col_oids);
 
     // New Order key
@@ -119,7 +121,8 @@ struct Loader {
     // Order Line tuple
     const auto order_line_tuple_col_oids = Util::AllColOidsForSchema(db->order_line_schema_);
 
-    const auto order_line_tuple_pr_initializer = db->order_line_table_->InitializerForProjectedRow(order_line_tuple_col_oids);
+    const auto order_line_tuple_pr_initializer =
+        db->order_line_table_->InitializerForProjectedRow(order_line_tuple_col_oids);
     const auto order_line_tuple_pr_map = db->order_line_table_->ProjectionMapForOids(order_line_tuple_col_oids);
 
     // Order Line key

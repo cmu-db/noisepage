@@ -145,8 +145,7 @@ class NewOrder {
         // District metadata
         d_tax_oid(db->district_schema_.GetColumn(8).Oid()),
         d_next_o_id_oid(db->district_schema_.GetColumn(10).Oid()),
-        district_select_pr_initializer(
-            db->district_table_->InitializerForProjectedRow({d_tax_oid, d_next_o_id_oid})),
+        district_select_pr_initializer(db->district_table_->InitializerForProjectedRow({d_tax_oid, d_next_o_id_oid})),
         district_select_pr_map(db->district_table_->ProjectionMapForOids({d_tax_oid, d_next_o_id_oid})),
         d_id_key_pr_offset(static_cast<uint8_t>(db->district_primary_index_->GetKeyOidToOffsetMap().at(
             db->district_primary_index_schema_.GetColumn(1).Oid()))),
@@ -162,8 +161,7 @@ class NewOrder {
         c_credit_oid(db->customer_schema_.GetColumn(13).Oid()),
         customer_select_pr_initializer(
             db->customer_table_->InitializerForProjectedRow({c_discount_oid, c_last_oid, c_credit_oid})),
-        customer_select_pr_map(
-            db->customer_table_->ProjectionMapForOids({c_discount_oid, c_last_oid, c_credit_oid})),
+        customer_select_pr_map(db->customer_table_->ProjectionMapForOids({c_discount_oid, c_last_oid, c_credit_oid})),
         c_discount_select_pr_offset(static_cast<uint8_t>(customer_select_pr_map.at(c_discount_oid))),
         c_id_key_pr_offset(static_cast<uint8_t>(db->customer_primary_index_->GetKeyOidToOffsetMap().at(
             db->customer_primary_index_schema_.GetColumn(2).Oid()))),
@@ -193,8 +191,7 @@ class NewOrder {
         // Order metadata
         order_insert_pr_initializer(
             db->order_table_->InitializerForProjectedRow(Util::AllColOidsForSchema(db->order_schema_))),
-        order_insert_pr_map(
-            db->order_table_->ProjectionMapForOids(Util::AllColOidsForSchema(db->order_schema_))),
+        order_insert_pr_map(db->order_table_->ProjectionMapForOids(Util::AllColOidsForSchema(db->order_schema_))),
         o_id_insert_pr_offset(static_cast<uint8_t>(order_insert_pr_map.at(db->order_schema_.GetColumn(0).Oid()))),
         o_d_id_insert_pr_offset(static_cast<uint8_t>(order_insert_pr_map.at(db->order_schema_.GetColumn(1).Oid()))),
         o_w_id_insert_pr_offset(static_cast<uint8_t>(order_insert_pr_map.at(db->order_schema_.GetColumn(2).Oid()))),
@@ -224,8 +221,7 @@ class NewOrder {
         i_price_oid(db->item_schema_.GetColumn(3).Oid()),
         i_name_oid(db->item_schema_.GetColumn(2).Oid()),
         i_data_oid(db->item_schema_.GetColumn(4).Oid()),
-        item_select_pr_initializer(
-            db->item_table_->InitializerForProjectedRow({i_price_oid, i_name_oid, i_data_oid})),
+        item_select_pr_initializer(db->item_table_->InitializerForProjectedRow({i_price_oid, i_name_oid, i_data_oid})),
         item_select_pr_map(db->item_table_->ProjectionMapForOids({i_price_oid, i_name_oid, i_data_oid})),
         i_price_select_pr_offset(static_cast<uint8_t>(item_select_pr_map.at(i_price_oid))),
         i_data_select_pr_offset(static_cast<uint8_t>(item_select_pr_map.at(i_data_oid))),
@@ -236,8 +232,8 @@ class NewOrder {
         s_order_cnt_oid(db->stock_schema_.GetColumn(14).Oid()),
         s_remote_cnt_oid(db->stock_schema_.GetColumn(15).Oid()),
         s_data_oid(db->stock_schema_.GetColumn(16).Oid()),
-        stock_update_pr_initializer(
-            db->stock_table_->InitializerForProjectedRow({s_quantity_oid, s_ytd_oid, s_order_cnt_oid, s_remote_cnt_oid})),
+        stock_update_pr_initializer(db->stock_table_->InitializerForProjectedRow(
+            {s_quantity_oid, s_ytd_oid, s_order_cnt_oid, s_remote_cnt_oid})),
         stock_update_pr_map(
             db->stock_table_->ProjectionMapForOids({s_quantity_oid, s_ytd_oid, s_order_cnt_oid, s_remote_cnt_oid})),
 
@@ -287,9 +283,11 @@ class NewOrder {
     stock_select_initializers.reserve(10);
     for (uint8_t d_id = 0; d_id < 10; d_id++) {
       const auto s_dist_xx_oid = db->stock_schema_.GetColumn(3 + d_id).Oid();
-      stock_select_initializers.emplace_back(std::pair((db->stock_table_->InitializerForProjectedRow(
-          {s_quantity_oid, s_dist_xx_oid, s_ytd_oid, s_order_cnt_oid, s_remote_cnt_oid, s_data_oid})),
-          db->stock_table_->ProjectionMapForOids({s_quantity_oid, s_dist_xx_oid, s_ytd_oid, s_order_cnt_oid, s_remote_cnt_oid, s_data_oid})));
+      stock_select_initializers.emplace_back(
+          std::pair((db->stock_table_->InitializerForProjectedRow(
+                        {s_quantity_oid, s_dist_xx_oid, s_ytd_oid, s_order_cnt_oid, s_remote_cnt_oid, s_data_oid})),
+                    db->stock_table_->ProjectionMapForOids(
+                        {s_quantity_oid, s_dist_xx_oid, s_ytd_oid, s_order_cnt_oid, s_remote_cnt_oid, s_data_oid})));
     }
     stock_select_pr_offsets.reserve(10);
     for (uint8_t d_id = 0; d_id < 10; d_id++) {
