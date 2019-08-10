@@ -172,7 +172,7 @@ class TableRef {
   /**
    * @return alias
    */
-  std::string GetAlias() {
+  const std::string GetAlias() {
     if (alias_.empty()) alias_ = table_info_->GetTableName();
     return alias_;
   }

@@ -152,7 +152,7 @@ class BinderContext {
    * Get the depth of the current context
    * @return depth of the current binder context
    */
-  int GetDepth() { return depth_; }
+  const int GetDepth() { return depth_; }
 
   /**
    * Generate list of column value expression that covers all columns in the alias maps of the current context
