@@ -275,7 +275,7 @@ class LargeSqlTableTestObject {
    * @param table_oid table oid
    * @return SqlTable pointer for requested table
    */
-  const common::ManagedPointer<storage::SqlTable> GetTable(catalog::db_oid_t db_oid, catalog::table_oid_t table_oid) {
+  common::ManagedPointer<storage::SqlTable> GetTable(catalog::db_oid_t db_oid, catalog::table_oid_t table_oid) {
     TERRIER_ASSERT(tables_.find(db_oid) != tables_.end(), "Requested database was not created");
     TERRIER_ASSERT(tables_[db_oid].find(table_oid) != tables_[db_oid].end(), "Requested table was not created");
     auto txn = txn_manager_.BeginTransaction();
@@ -289,7 +289,7 @@ class LargeSqlTableTestObject {
    * @param table_oid table oid
    * @return schema requested table
    */
-  const catalog::Schema GetSchemaForTable(catalog::db_oid_t db_oid, catalog::table_oid_t table_oid) {
+  catalog::Schema GetSchemaForTable(catalog::db_oid_t db_oid, catalog::table_oid_t table_oid) {
     TERRIER_ASSERT(tables_.find(db_oid) != tables_.end(), "Requested database was not created");
     TERRIER_ASSERT(tables_[db_oid].find(table_oid) != tables_[db_oid].end(), "Requested table was not created");
     auto txn = txn_manager_.BeginTransaction();

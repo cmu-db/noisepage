@@ -142,7 +142,7 @@ uint64_t LargeSqlTableTestObject::SimulateOltp(uint32_t num_transactions, uint32
   std::atomic<uint32_t> txns_run = 0;
   // Either for correctness checking, or to cleanup memory afterwards, we need to retain these
   // test objects
-  workload = [&](uint32_t) {
+  workload = [&](uint32_t /*unused*/) {
     for (uint32_t txn_id = txns_run++; txn_id < num_transactions; txn_id = txns_run++) {
       txns[txn_id] = new RandomSqlTableTransaction(this);
       SimulateOneTransaction(txns[txn_id], txn_id);

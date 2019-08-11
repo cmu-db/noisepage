@@ -318,7 +318,7 @@ class IndexSchema {
    * @warning This call will fail if this schema has non-expressioned index keys
    * @return oids of the columns this index schema covers
    */
-  const std::vector<catalog::col_oid_t> GetIndexedColOids() const {
+  std::vector<catalog::col_oid_t> GetIndexedColOids() const {
     std::vector<catalog::col_oid_t> result;
     for (auto &col : GetColumns()) {
       TERRIER_ASSERT(col.StoredExpression() != nullptr, "Index column expr should not be null");
