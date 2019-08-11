@@ -59,7 +59,6 @@ class MetricsTests : public TerrierTest {
   const storage::ProjectedRowInitializer tuple_initializer_{
       sql_table_->InitializerForProjectedRow({catalog::col_oid_t(0)}).first};
 
-
   void Insert() {
     auto *const insert_txn = txn_manager_->BeginTransaction();
     auto *const insert_redo =
@@ -69,6 +68,8 @@ class MetricsTests : public TerrierTest {
     sql_table_->Insert(insert_txn, insert_redo);
     txn_manager_->Commit(insert_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
   }
+
+  static void EmptySetterCallback(const std::shared_ptr<common::ActionContext> &action_context UNUSED_ATTRIBUTE) {}
 };
 
 /**
