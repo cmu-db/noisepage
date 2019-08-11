@@ -104,18 +104,13 @@ class Payment {
         w_state_oid(db->warehouse_schema_.GetColumn(5).Oid()),
         w_zip_oid(db->warehouse_schema_.GetColumn(6).Oid()),
         w_ytd_oid(db->warehouse_schema_.GetColumn(8).Oid()),
-        warehouse_select_pr_initializer(
-            db->warehouse_table_
-                ->InitializerForProjectedRow(
-                    {w_name_oid, w_street_1_oid, w_street_2_oid, w_city_oid, w_state_oid, w_zip_oid, w_ytd_oid})
-                .first),
-        warehouse_select_pr_map(db->warehouse_table_
-                                    ->InitializerForProjectedRow({w_name_oid, w_street_1_oid, w_street_2_oid,
-                                                                  w_city_oid, w_state_oid, w_zip_oid, w_ytd_oid})
-                                    .second),
+        warehouse_select_pr_initializer(db->warehouse_table_->InitializerForProjectedRow(
+            {w_name_oid, w_street_1_oid, w_street_2_oid, w_city_oid, w_state_oid, w_zip_oid, w_ytd_oid})),
+        warehouse_select_pr_map(db->warehouse_table_->ProjectionMapForOids(
+            {w_name_oid, w_street_1_oid, w_street_2_oid, w_city_oid, w_state_oid, w_zip_oid, w_ytd_oid})),
         w_name_select_pr_offset(static_cast<uint8_t>(warehouse_select_pr_map.at(w_name_oid))),
         w_ytd_select_pr_offset(static_cast<uint8_t>(warehouse_select_pr_map.at(w_ytd_oid))),
-        warehouse_update_pr_initializer(db->warehouse_table_->InitializerForProjectedRow({w_ytd_oid}).first),
+        warehouse_update_pr_initializer(db->warehouse_table_->InitializerForProjectedRow({w_ytd_oid})),
 
         // District metadata
         d_id_key_pr_offset(static_cast<uint8_t>(db->district_primary_index_->GetKeyOidToOffsetMap().at(
@@ -130,17 +125,13 @@ class Payment {
         d_state_oid(db->district_schema_.GetColumn(6).Oid()),
         d_zip_oid(db->district_schema_.GetColumn(7).Oid()),
         d_ytd_oid(db->district_schema_.GetColumn(9).Oid()),
-        district_select_pr_initializer(db->district_table_
-                                           ->InitializerForProjectedRow({d_name_oid, d_street_1_oid, d_street_2_oid,
-                                                                         d_city_oid, d_state_oid, d_zip_oid, d_ytd_oid})
-                                           .first),
-        district_select_pr_map(db->district_table_
-                                   ->InitializerForProjectedRow({d_name_oid, d_street_1_oid, d_street_2_oid, d_city_oid,
-                                                                 d_state_oid, d_zip_oid, d_ytd_oid})
-                                   .second),
+        district_select_pr_initializer(db->district_table_->InitializerForProjectedRow(
+            {d_name_oid, d_street_1_oid, d_street_2_oid, d_city_oid, d_state_oid, d_zip_oid, d_ytd_oid})),
+        district_select_pr_map(db->district_table_->ProjectionMapForOids(
+            {d_name_oid, d_street_1_oid, d_street_2_oid, d_city_oid, d_state_oid, d_zip_oid, d_ytd_oid})),
         d_name_select_pr_offset(static_cast<uint8_t>(district_select_pr_map.at(d_name_oid))),
         d_ytd_select_pr_offset(static_cast<uint8_t>(district_select_pr_map.at(d_ytd_oid))),
-        district_update_pr_initializer(db->district_table_->InitializerForProjectedRow({d_ytd_oid}).first),
+        district_update_pr_initializer(db->district_table_->InitializerForProjectedRow({d_ytd_oid})),
 
         // Customer metadata
         c_id_key_pr_offset(static_cast<uint8_t>(db->customer_primary_index_->GetKeyOidToOffsetMap().at(
@@ -156,11 +147,11 @@ class Payment {
         c_w_id_name_key_pr_offset(static_cast<uint8_t>(db->customer_secondary_index_->GetKeyOidToOffsetMap().at(
             db->customer_secondary_index_schema_.GetColumn(0).Oid()))),
         c_first_pr_initializer(
-            db->customer_table_->InitializerForProjectedRow({db->customer_schema_.GetColumn(3).Oid()}).first),
+            db->customer_table_->InitializerForProjectedRow({db->customer_schema_.GetColumn(3).Oid()})),
         customer_select_pr_initializer(
-            db->customer_table_->InitializerForProjectedRow(Util::AllColOidsForSchema(db->customer_schema_)).first),
+            db->customer_table_->InitializerForProjectedRow(Util::AllColOidsForSchema(db->customer_schema_))),
         customer_select_pr_map(
-            db->customer_table_->InitializerForProjectedRow(Util::AllColOidsForSchema(db->customer_schema_)).second),
+            db->customer_table_->ProjectionMapForOids(Util::AllColOidsForSchema(db->customer_schema_))),
 
         c_id_oid(db->customer_schema_.GetColumn(0).Oid()),
         c_credit_oid(db->customer_schema_.GetColumn(13).Oid()),
@@ -176,20 +167,17 @@ class Payment {
         c_payment_cnt_select_pr_offset(static_cast<uint8_t>(customer_select_pr_map.at(c_payment_cnt_oid))),
         c_data_select_pr_offset(static_cast<uint8_t>(customer_select_pr_map.at(c_data_oid))),
         customer_update_pr_initializer(
-            db->customer_table_->InitializerForProjectedRow({c_balance_oid, c_ytd_payment_oid, c_payment_cnt_oid})
-                .first),
+            db->customer_table_->InitializerForProjectedRow({c_balance_oid, c_ytd_payment_oid, c_payment_cnt_oid})),
         customer_update_pr_map(
-            db->customer_table_->InitializerForProjectedRow({c_balance_oid, c_ytd_payment_oid, c_payment_cnt_oid})
-                .second),
+            db->customer_table_->ProjectionMapForOids({c_balance_oid, c_ytd_payment_oid, c_payment_cnt_oid})),
         c_balance_update_pr_offset(static_cast<uint8_t>(customer_update_pr_map.at(c_balance_oid))),
         c_ytd_payment_update_pr_offset(static_cast<uint8_t>(customer_update_pr_map.at(c_ytd_payment_oid))),
         c_payment_cnt_update_pr_offset(static_cast<uint8_t>(customer_update_pr_map.at(c_payment_cnt_oid))),
-        c_data_pr_initializer(db->customer_table_->InitializerForProjectedRow({c_data_oid}).first),
+        c_data_pr_initializer(db->customer_table_->InitializerForProjectedRow({c_data_oid})),
 
         history_insert_pr_initializer(
-            db->history_table_->InitializerForProjectedRow(Util::AllColOidsForSchema(db->history_schema_)).first),
-        history_insert_pr_map(
-            db->history_table_->InitializerForProjectedRow(Util::AllColOidsForSchema(db->history_schema_)).second),
+            db->history_table_->InitializerForProjectedRow(Util::AllColOidsForSchema(db->history_schema_))),
+        history_insert_pr_map(db->history_table_->ProjectionMapForOids(Util::AllColOidsForSchema(db->history_schema_))),
 
         h_c_id_insert_pr_offset(static_cast<uint8_t>(history_insert_pr_map.at(db->history_schema_.GetColumn(0).Oid()))),
         h_c_d_id_insert_pr_offset(

@@ -312,7 +312,7 @@ TEST_F(WriteAheadLoggingTests, AbortRecordTest) {
   StorageTestUtil::ForceOid(&(col), catalog::col_oid_t(0));
   auto table_schema = catalog::Schema(std::vector<catalog::Schema::Column>({col}));
   storage::SqlTable sql_table(injector.create<storage::BlockStore *>(), table_schema);
-  auto tuple_initializer = sql_table.InitializerForProjectedRow({catalog::col_oid_t(0)}).first;
+  auto tuple_initializer = sql_table.InitializerForProjectedRow({catalog::col_oid_t(0)});
 
   auto *txn_manager = injector.create<transaction::TransactionManager *>();
   // Initialize first transaction, this txn will write a single tuple
@@ -390,7 +390,7 @@ TEST_F(WriteAheadLoggingTests, NoAbortRecordTest) {
   StorageTestUtil::ForceOid(&(col), catalog::col_oid_t(0));
   auto table_schema = catalog::Schema(std::vector<catalog::Schema::Column>({col}));
   storage::SqlTable sql_table(injector.create<storage::BlockStore *>(), table_schema);
-  auto tuple_initializer = sql_table.InitializerForProjectedRow({catalog::col_oid_t(0)}).first;
+  auto tuple_initializer = sql_table.InitializerForProjectedRow({catalog::col_oid_t(0)});
 
   // Initialize first transaction, this txn will write a single tuple
   auto *txn_manager = injector.create<transaction::TransactionManager *>();

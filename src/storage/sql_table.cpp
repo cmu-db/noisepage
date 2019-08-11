@@ -66,18 +66,18 @@ std::vector<col_id_t> SqlTable::ColIdsForOids(const std::vector<catalog::col_oid
   return col_ids;
 }
 
-template <class ProjectionInitializerType>
-ProjectionMap SqlTable::ProjectionMapForInitializer(const ProjectionInitializerType &initializer) const {
+ProjectionMap SqlTable::ProjectionMapForOids(const std::vector<catalog::col_oid_t> &col_oids) {
+  // Resolve OIDs to storage IDs
+  auto col_ids = ColIdsForOids(col_oids);
+
+  // Use std::map to effectively sort OIDs by their corresponding ID
+  std::map<col_id_t, catalog::col_oid_t> inverse_map;
+  for (uint16_t i = 0; i < col_oids.size(); i++) inverse_map[col_ids[i]] = col_oids[i];
+
+  // Populate the projection map using the in-order iterator on std::map
   ProjectionMap projection_map;
-  // for every attribute in the initializer
-  for (uint16_t i = 0; i < initializer.NumColumns(); i++) {
-    // extract the underlying col_id it refers to
-    const col_id_t col_id_at_offset = initializer.ColId(i);
-    // find the key (col_oid) in the table's map corresponding to the value (col_id)
-    const catalog::col_oid_t oid = OidForColId(col_id_at_offset);
-    // insert the mapping from col_oid to projection offset
-    projection_map[oid] = i;
-  }
+  uint16_t i = 0;
+  for (auto &iter : inverse_map) projection_map[iter.second] = i++;
 
   return projection_map;
 }

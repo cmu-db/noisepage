@@ -219,7 +219,7 @@ class BwTreeKeyTests : public TerrierTest {
                          parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
     catalog::Schema schema{columns};
     storage::SqlTable sql_table(&block_store, schema);
-    const auto &tuple_initializer = sql_table.InitializerForProjectedRow({catalog::col_oid_t(0)}).first;
+    const auto &tuple_initializer = sql_table.InitializerForProjectedRow({catalog::col_oid_t(0)});
 
     transaction::TransactionManager txn_manager(&buffer_pool, true, LOGGING_DISABLED);
     storage::GarbageCollector gc_manager(&txn_manager, nullptr);

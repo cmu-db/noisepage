@@ -166,46 +166,41 @@ class SqlTable {
    * to col_id for the Initializer's constructor so that the execution layer doesn't need to know anything about col_id.
    * @param col_oids set of col_oids to be projected
    * @param max_tuples the maximum number of tuples to store in the ProjectedColumn
-   * @return pair of: initializer to create ProjectedColumns, and a mapping between col_oid and the offset within the
-   * ProjectedColumn
+   * @return initializer to create ProjectedColumns
    * @warning col_oids must be a set (no repeats)
    */
-  std::pair<ProjectedColumnsInitializer, ProjectionMap> InitializerForProjectedColumns(
-      const std::vector<catalog::col_oid_t> &col_oids, const uint32_t max_tuples) const {
+  ProjectedColumnsInitializer InitializerForProjectedColumns(const std::vector<catalog::col_oid_t> &col_oids,
+                                                             const uint32_t max_tuples) const {
     TERRIER_ASSERT((std::set<catalog::col_oid_t>(col_oids.cbegin(), col_oids.cend())).size() == col_oids.size(),
                    "There should not be any duplicated in the col_ids!");
     auto col_ids = ColIdsForOids(col_oids);
     TERRIER_ASSERT(col_ids.size() == col_oids.size(),
                    "Projection should be the same number of columns as requested col_oids.");
-    ProjectedColumnsInitializer initializer(table_.layout, col_ids, max_tuples);
-    auto projection_map = ProjectionMapForInitializer<ProjectedColumnsInitializer>(initializer);
-    TERRIER_ASSERT(projection_map.size() == col_oids.size(),
-                   "ProjectionMap be the same number of columns as requested col_oids.");
-    return {initializer, projection_map};
+    return ProjectedColumnsInitializer(table_.layout, col_ids, max_tuples);
   }
 
   /**
    * Generates an ProjectedRowInitializer for the execution layer to use. This performs the translation from col_oid to
    * col_id for the Initializer's constructor so that the execution layer doesn't need to know anything about col_id.
    * @param col_oids set of col_oids to be projected
-   * @return pair of: initializer to create ProjectedRow, and a mapping between col_oid and the offset within the
-   * ProjectedRow to create ProjectedColumns, and a mapping between col_oid and the offset within the
-   * ProjectedColumn
+   * @return initializer to create ProjectedRow
    * @warning col_oids must be a set (no repeats)
    */
-  std::pair<ProjectedRowInitializer, ProjectionMap> InitializerForProjectedRow(
-      const std::vector<catalog::col_oid_t> &col_oids) const {
+  ProjectedRowInitializer InitializerForProjectedRow(const std::vector<catalog::col_oid_t> &col_oids) const {
     TERRIER_ASSERT((std::set<catalog::col_oid_t>(col_oids.cbegin(), col_oids.cend())).size() == col_oids.size(),
                    "There should not be any duplicated in the col_ids!");
     auto col_ids = ColIdsForOids(col_oids);
     TERRIER_ASSERT(col_ids.size() == col_oids.size(),
                    "Projection should be the same number of columns as requested col_oids.");
-    ProjectedRowInitializer initializer = ProjectedRowInitializer::Create(table_.layout, col_ids);
-    auto projection_map = ProjectionMapForInitializer<ProjectedRowInitializer>(initializer);
-    TERRIER_ASSERT(projection_map.size() == col_oids.size(),
-                   "ProjectionMap be the same number of columns as requested col_oids.");
-    return {initializer, projection_map};
+    return ProjectedRowInitializer::Create(table_.layout, col_ids);
   }
+
+  /**
+   * Generate a projection map given column oids
+   * @param col_oids oids that will be scanned.
+   * @return the projection map
+   */
+  ProjectionMap ProjectionMapForOids(const std::vector<catalog::col_oid_t> &col_oids);
 
   /**
    * @return layout of the underlying data table
