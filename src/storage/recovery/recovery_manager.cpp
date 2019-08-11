@@ -254,9 +254,10 @@ void RecoveryManager::UpdateIndexesOnTable(transaction::TransactionContext *txn,
   }
 
   // Create the table PR and select from the table
-  // NOLINTNEXTLINE
-  auto [pr_init, pr_map] = sql_table_ptr->InitializerForProjectedRow(
-      std::vector<catalog::col_oid_t>(all_indexed_attributes.begin(), all_indexed_attributes.end()));
+  std::vector<catalog::col_oid_t> col_oids =
+      std::vector<catalog::col_oid_t>(all_indexed_attributes.begin(), all_indexed_attributes.end());
+  auto pr_init = sql_table_ptr->InitializerForProjectedRow(col_oids);
+  auto pr_map = sql_table_ptr->ProjectionMapForOids(col_oids);
   auto *table_buffer = common::AllocationUtil::AllocateAligned(pr_init.ProjectedRowSize());
   auto table_pr = pr_init.InitializeRow(table_buffer);
   sql_table_ptr->Select(txn, tuple_slot, table_pr);
@@ -341,9 +342,9 @@ uint32_t RecoveryManager::ProcessSpecialCaseCatalogRecord(
         // An update to the ptr column of pg_class means that we have inserted all necessary metadata into the other
         // catalog tables, and we can now recreate the object
         // Step 1: Get the class oid and kind for the object we're updating
-        // NOLINTNEXTLINE
-        auto [pr_init, pr_map] =
-            pg_class_ptr->InitializerForProjectedRow({catalog::RELOID_COL_OID, catalog::RELKIND_COL_OID});
+        std::vector<catalog::col_oid_t> col_oids = {catalog::RELOID_COL_OID, catalog::RELKIND_COL_OID};
+        auto pr_init = pg_class_ptr->InitializerForProjectedRow(col_oids);
+        auto pr_map = pg_class_ptr->ProjectionMapForOids(col_oids);
         auto *buffer = common::AllocationUtil::AllocateAligned(pr_init.ProjectedRowSize());
         auto *pr = pr_init.InitializeRow(buffer);
         pg_class_ptr->Select(txn, GetTupleSlotMapping(redo_record->GetTupleSlot()), pr);
@@ -395,9 +396,11 @@ uint32_t RecoveryManager::ProcessSpecialCaseCatalogRecord(
           TERRIER_ASSERT(tuple_slot_result.size() == 1, "Index scan should yield one result");
 
           // NOLINTNEXTLINE
-          auto [pg_index_pr_init, pg_index_pr_map] = db_catalog->indexes_->InitializerForProjectedRow(
-              {catalog::INDISUNIQUE_COL_OID, catalog::INDISPRIMARY_COL_OID, catalog::INDISEXCLUSION_COL_OID,
-               catalog::INDIMMEDIATE_COL_OID});
+          col_oids.clear();
+          col_oids = {catalog::INDISUNIQUE_COL_OID, catalog::INDISPRIMARY_COL_OID, catalog::INDISEXCLUSION_COL_OID,
+                      catalog::INDIMMEDIATE_COL_OID};
+          auto pg_index_pr_init = db_catalog->indexes_->InitializerForProjectedRow(col_oids);
+          auto pg_index_pr_map = db_catalog->indexes_->ProjectionMapForOids(col_oids);
           delete[] buffer;  // Delete old buffer, it won't be large enough for this PR
           buffer = common::AllocationUtil::AllocateAligned(pg_index_pr_init.ProjectedRowSize());
           pr = pg_index_pr_init.InitializeRow(buffer);
@@ -452,9 +455,7 @@ uint32_t RecoveryManager::ProcessSpecialCaseCatalogRecord(
 
     // Step 1: Extract inserted values from the PR in redo record
     storage::SqlTable *pg_database = catalog_->databases_;
-    ProjectionMap pr_map;
-    std::tie(std::ignore, pr_map) =
-        pg_database->InitializerForProjectedRow(GetOidsForRedoRecord(pg_database, redo_record));
+    auto pr_map = pg_database->ProjectionMapForOids(GetOidsForRedoRecord(pg_database, redo_record));
     TERRIER_ASSERT(pr_map.find(catalog::DATOID_COL_OID) != pr_map.end(), "PR Map must contain database oid");
     TERRIER_ASSERT(pr_map.find(catalog::DATNAME_COL_OID) != pr_map.end(), "PR Map must contain database name");
     catalog::db_oid_t db_oid(
@@ -486,8 +487,9 @@ uint32_t RecoveryManager::ProcessSpecialCaseCatalogRecord(
   if (delete_record->GetTableOid() == catalog::CLASS_TABLE_OID) {
     // Step 1: Determine the object oid and type that is being deleted
     storage::SqlTable *pg_class = GetDatabaseCatalog(txn, delete_record->GetDatabaseOid())->classes_;
-    // NOLINTNEXTLINE
-    auto [pr_init, pr_map] = pg_class->InitializerForProjectedRow({catalog::RELOID_COL_OID, catalog::RELKIND_COL_OID});
+    std::vector<catalog::col_oid_t> col_oids = {catalog::RELOID_COL_OID, catalog::RELKIND_COL_OID};
+    auto pr_init = pg_class->InitializerForProjectedRow(col_oids);
+    auto pr_map = pg_class->ProjectionMapForOids(col_oids);
     auto *buffer = common::AllocationUtil::AllocateAligned(pr_init.ProjectedRowSize());
     auto *pr = pr_init.InitializeRow(buffer);
     pg_class->Select(txn, GetTupleSlotMapping(delete_record->GetTupleSlot()), pr);
@@ -506,9 +508,7 @@ uint32_t RecoveryManager::ProcessSpecialCaseCatalogRecord(
             next_redo_record->GetTableOid() == delete_record->GetTableOid() &&
             IsInsertRecord(next_redo_record)) {  // Condition 3: next record is an insert into the same pg_class
           // Step 3: Get the oid and kind of the object being inserted
-          ProjectionMap pr_map;
-          std::tie(std::ignore, pr_map) =
-              pg_class->InitializerForProjectedRow(GetOidsForRedoRecord(pg_class, next_redo_record));
+          auto pr_map = pg_class->ProjectionMapForOids(GetOidsForRedoRecord(pg_class, next_redo_record));
           TERRIER_ASSERT(pr_map.find(catalog::RELOID_COL_OID) != pr_map.end(), "PR Map must contain class oid");
           TERRIER_ASSERT(pr_map.find(catalog::RELNAME_COL_OID) != pr_map.end(), "PR Map must contain class name");
           TERRIER_ASSERT(pr_map.find(catalog::RELKIND_COL_OID) != pr_map.end(), "PR Map must contain class kind");
@@ -576,7 +576,8 @@ uint32_t RecoveryManager::ProcessSpecialCaseCatalogRecord(
   // Step 1: Determine the database oid for the database that is being deleted
   storage::SqlTable *pg_database = catalog_->databases_;
   // NOLINTNEXTLINE
-  auto [pr_init, pr_map] = pg_database->InitializerForProjectedRow({catalog::DATOID_COL_OID});
+  auto pr_init = pg_database->InitializerForProjectedRow({catalog::DATOID_COL_OID});
+  auto pr_map = pg_database->ProjectionMapForOids({catalog::DATOID_COL_OID});
   auto *buffer = common::AllocationUtil::AllocateAligned(pr_init.ProjectedRowSize());
   auto *pr = pr_init.InitializeRow(buffer);
   pg_database->Select(txn, GetTupleSlotMapping(delete_record->GetTupleSlot()), pr);
@@ -594,9 +595,7 @@ uint32_t RecoveryManager::ProcessSpecialCaseCatalogRecord(
           next_redo_record->GetTableOid() == delete_record->GetTableOid() &&
           IsInsertRecord(next_redo_record)) {  // next record is an insert into the same pg_class
         // Step 3: Get the oid and name for the database being created
-        ProjectionMap pr_map;
-        std::tie(std::ignore, pr_map) =
-            pg_database->InitializerForProjectedRow(GetOidsForRedoRecord(pg_database, next_redo_record));
+        auto pr_map = pg_database->ProjectionMapForOids(GetOidsForRedoRecord(pg_database, next_redo_record));
         TERRIER_ASSERT(pr_map.find(catalog::DATOID_COL_OID) != pr_map.end(), "PR Map must contain class oid");
         TERRIER_ASSERT(pr_map.find(catalog::DATNAME_COL_OID) != pr_map.end(), "PR Map must contain class name");
         auto next_db_oid = *(reinterpret_cast<catalog::db_oid_t *>(

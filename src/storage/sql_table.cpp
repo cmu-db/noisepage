@@ -87,10 +87,4 @@ catalog::col_oid_t SqlTable::OidForColId(const col_id_t col_id) const {
                                       [&](const auto &oid_to_id) -> bool { return oid_to_id.second == col_id; });
   return oid_to_id->first;
 }
-
-template ProjectionMap SqlTable::ProjectionMapForInitializer<ProjectedColumnsInitializer>(
-    const ProjectedColumnsInitializer &initializer) const;
-template ProjectionMap SqlTable::ProjectionMapForInitializer<ProjectedRowInitializer>(
-    const ProjectedRowInitializer &initializer) const;
-
 }  // namespace terrier::storage

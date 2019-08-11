@@ -222,16 +222,6 @@ class SqlTable {
   std::vector<col_id_t> ColIdsForOids(const std::vector<catalog::col_oid_t> &col_oids) const;
 
   /**
-   * Given a ProjectionInitializer, returns a map between col_oid and the offset within the projection to access that
-   * column
-   * @tparam ProjectionInitializerType ProjectedRowInitializer or ProjectedColumnsInitializer
-   * @param initializer the initializer to generate a map for
-   * @return the projection map for this initializer
-   */
-  template <class ProjectionInitializerType>
-  ProjectionMap ProjectionMapForInitializer(const ProjectionInitializerType &initializer) const;
-
-  /**
    * Returns the col oid for the given col id
    * @param col_id given col id
    * @return col oid for the provided col id
