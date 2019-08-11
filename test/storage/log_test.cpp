@@ -8,6 +8,7 @@
 #include "main/db_main.h"
 #include "storage/data_table.h"
 #include "storage/garbage_collector_thread.h"
+#include "storage/projected_row.h"
 #include "storage/sql_table.h"
 #include "storage/write_ahead_log/log_manager.h"
 #include "transaction/transaction_manager.h"

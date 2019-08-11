@@ -48,7 +48,7 @@ void RecoveryManager::ReplayTransaction(LogRecord *log_record) {
   // If we are aborting, we can free and discard all buffered changes. Nothing needs to be replayed
   // We flag this as unlikely as its unlikely that abort records will be flushed to disk
   if (unlikely_branch(log_record->RecordType() == LogRecordType::ABORT)) {
-    for (auto buffered_pair : buffered_changes_map_[log_record->TxnBegin()]) {
+    for (auto &buffered_pair : buffered_changes_map_[log_record->TxnBegin()]) {
       delete[] reinterpret_cast<byte *>(buffered_pair.first);
       for (auto *entry : buffered_pair.second) {
         delete[] entry;
