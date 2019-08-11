@@ -43,7 +43,7 @@ class BwTreeIndexTests : public TerrierTest {
     StorageTestUtil::ForceOid(&(col), catalog::col_oid_t(1));
     table_schema_ = catalog::Schema({col});
     sql_table_ = new storage::SqlTable(&block_store_, table_schema_);
-    tuple_initializer_ = sql_table_->InitializerForProjectedRow({catalog::col_oid_t(1)}).first;
+    tuple_initializer_ = sql_table_->InitializerForProjectedRow({catalog::col_oid_t(1)});
 
     std::vector<catalog::IndexSchema::Column> keycols;
     keycols.emplace_back(
