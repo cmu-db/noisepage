@@ -583,12 +583,18 @@ uint32_t RecoveryManager::ProcessSpecialCaseCatalogRecord(
     return 0;  // No additional logs processed
   }
 
-  // A delete into pg_attribute means we are dropping a column. There are two cases:
+  // A delete into pg_attribute means we are deleting a column. There are two cases:
   //  1. Drop column: This requires some additional processing to actually clean up the column
   //  2. Cascading delete from drop table: In this case, we don't process the record because the DeleteTable catalog
   //  function will clean up the columns
   if (delete_record->GetTableOid() == catalog::COLUMN_TABLE_OID) {
     return 0;  // Case 2, no additional records processed
+  }
+
+  // A delete into pg_index means we are dropping an index. In this case, we dont process the record because the
+  // DeleteIndex catalog function will cleanup the entry in pg_index for us.
+  if (delete_record->GetTableOid() == catalog::INDEX_TABLE_OID) {
+    return 0;  // No additional logs processed
   }
 
   TERRIER_ASSERT(delete_record->GetTableOid() == catalog::DATABASE_TABLE_OID,

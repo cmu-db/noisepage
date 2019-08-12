@@ -46,6 +46,15 @@ class RecoveryTests : public TerrierTest {
     TerrierTest::TearDown();
   }
 
+  catalog::IndexSchema DummyIndexSchema() {
+    std::vector<catalog::IndexSchema::Column> keycols;
+    keycols.emplace_back(
+        "", type::TypeId::INTEGER, false,
+        parser::ColumnValueExpression(catalog::db_oid_t(0), catalog::table_oid_t(0), catalog::col_oid_t(1)));
+    StorageTestUtil::ForceOid(&(keycols[0]), catalog::indexkeycol_oid_t(1));
+    return catalog::IndexSchema(keycols, true, true, false, true);
+  }
+
   void RunTest(const LargeSqlTableTestConfiguration &config) {
     // Initialize table and run workload with logging enabled
     LogManager log_manager(LOG_FILE_NAME, num_log_buffers_, log_serialization_interval_, log_persist_interval_,
@@ -228,9 +237,11 @@ TEST_F(RecoveryTests, DropTableTest) {
   // Create the table
   txn = txn_manager.BeginTransaction();
   auto db_catalog = catalog.GetDatabaseCatalog(txn, db_oid);
-  auto table_oid =
-      db_catalog->CreateTable(txn, namespace_oid, table_name, *(StorageTestUtil::RandomSchemaNoVarlen(5, &generator_)));
+  auto table_schema = *(StorageTestUtil::RandomSchemaNoVarlen(5, &generator_));
+  auto table_oid = db_catalog->CreateTable(txn, namespace_oid, table_name, table_schema);
   EXPECT_TRUE(table_oid != catalog::INVALID_TABLE_OID);
+  auto *table_ptr = new storage::SqlTable(&block_store_, table_schema);
+  EXPECT_TRUE(db_catalog->SetTablePointer(txn, table_oid, table_ptr));
   txn_manager.Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
   // Drop the table
@@ -265,6 +276,80 @@ TEST_F(RecoveryTests, DropTableTest) {
   // Assert the table we deleted doesn't exist
   EXPECT_EQ(catalog::INVALID_TABLE_OID, db_catalog->GetTableOid(txn, namespace_oid, table_name));
   EXPECT_FALSE(db_catalog->GetTable(txn, table_oid));
+  recovery_txn_manager.Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+}
+
+// Tests that we correctly process records corresponding to a drop index command.
+TEST_F(RecoveryTests, DropIndexTest) {
+  std::string database_name = "testdb";
+  auto namespace_oid = catalog::NAMESPACE_DEFAULT_NAMESPACE_OID;
+  std::string table_name = "testtable";
+  std::string index_name = "testindex";
+  // Bring up original components
+  LogManager log_manager(LOG_FILE_NAME, num_log_buffers_, log_serialization_interval_, log_persist_interval_,
+                         log_persist_threshold_, &pool_, common::ManagedPointer(&thread_registry_));
+  log_manager.Start();
+  transaction::TransactionManager txn_manager{&pool_, true, &log_manager};
+  catalog::Catalog catalog(&txn_manager, &block_store_);
+
+  // Create database
+  auto *txn = txn_manager.BeginTransaction();
+  auto db_oid = catalog.CreateDatabase(txn, database_name, true /* bootstrap */);
+  EXPECT_TRUE(db_oid != catalog::INVALID_DATABASE_OID);
+  txn_manager.Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+
+  // Create the table
+  txn = txn_manager.BeginTransaction();
+  auto db_catalog = catalog.GetDatabaseCatalog(txn, db_oid);
+  auto table_schema = *(StorageTestUtil::RandomSchemaNoVarlen(5, &generator_));
+  auto table_oid = db_catalog->CreateTable(txn, namespace_oid, table_name, table_schema);
+  EXPECT_TRUE(table_oid != catalog::INVALID_TABLE_OID);
+  auto *table_ptr = new storage::SqlTable(&block_store_, table_schema);
+  EXPECT_TRUE(db_catalog->SetTablePointer(txn, table_oid, table_ptr));
+  txn_manager.Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+
+  // Create the index
+  txn = txn_manager.BeginTransaction();
+  auto index_oid = db_catalog->CreateIndex(txn, namespace_oid, index_name, table_oid, DummyIndexSchema());
+  EXPECT_TRUE(index_oid != catalog::INVALID_INDEX_OID);
+  txn_manager.Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+
+  // Drop the index
+  txn = txn_manager.BeginTransaction();
+  EXPECT_TRUE(db_catalog->DeleteIndex(txn, index_oid));
+  txn_manager.Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+
+  // Guarantee persist of log records
+  log_manager.PersistAndStop();
+
+  /* CRASH */
+
+  // Start a transaction manager with logging disabled, we don't want to log the log replaying
+  transaction::TransactionManager recovery_txn_manager{&pool_, true, LOGGING_DISABLED};
+
+  // Create catalog for recovery
+  catalog::Catalog recovered_catalog(&recovery_txn_manager, &block_store_);
+
+  // Instantiate recovery manager, and recover the catalog.
+  DiskLogProvider log_provider(LOG_FILE_NAME);
+  RecoveryManager recovery_manager(&log_provider, common::ManagedPointer(&recovered_catalog), &recovery_txn_manager,
+                                   common::ManagedPointer(&thread_registry_), &block_store_);
+  recovery_manager.StartRecovery();
+  recovery_manager.FinishRecovery();
+
+  // Assert the database we created exists
+  txn = recovery_txn_manager.BeginTransaction();
+  EXPECT_EQ(db_oid, recovered_catalog.GetDatabaseOid(txn, database_name));
+  db_catalog = recovered_catalog.GetDatabaseCatalog(txn, db_oid);
+  EXPECT_TRUE(db_catalog);
+
+  // Assert the table we created exists
+  EXPECT_EQ(table_oid, db_catalog->GetTableOid(txn, namespace_oid, table_name));
+  EXPECT_TRUE(db_catalog->GetTable(txn, table_oid));
+
+  // Assert the index we deleted doesn't exist
+  EXPECT_EQ(0, db_catalog->GetIndexes(txn, table_oid).size());
+  EXPECT_FALSE(db_catalog->GetIndex(txn, index_oid));
   recovery_txn_manager.Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 }
 
@@ -326,11 +411,13 @@ TEST_F(RecoveryTests, DropNamespaceTest) {
   recovery_txn_manager.Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 }
 
-// Tests that we correctly process cascading deletes originating from a drop database command.
+// Tests that we correctly process cascading deletes originating from a drop database command. This means cascading
+// deletes of tables and indexes
 TEST_F(RecoveryTests, DropDatabaseCascadeDeleteTest) {
   std::string database_name = "testdb";
   auto namespace_oid = catalog::NAMESPACE_DEFAULT_NAMESPACE_OID;
   std::string table_name = "testtable";
+  std::string index_name = "testindex";
   // Bring up original components
   LogManager log_manager(LOG_FILE_NAME, num_log_buffers_, log_serialization_interval_, log_persist_interval_,
                          log_persist_threshold_, &pool_, common::ManagedPointer(&thread_registry_));
@@ -344,12 +431,18 @@ TEST_F(RecoveryTests, DropDatabaseCascadeDeleteTest) {
   EXPECT_TRUE(db_oid != catalog::INVALID_DATABASE_OID);
   txn_manager.Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
-  // Create the table
+  // Create a table
   txn = txn_manager.BeginTransaction();
   auto db_catalog = catalog.GetDatabaseCatalog(txn, db_oid);
   auto table_oid =
       db_catalog->CreateTable(txn, namespace_oid, table_name, *(StorageTestUtil::RandomSchemaNoVarlen(5, &generator_)));
   EXPECT_TRUE(table_oid != catalog::INVALID_TABLE_OID);
+  txn_manager.Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+
+  // Create an index
+  txn = txn_manager.BeginTransaction();
+  auto index_oid = db_catalog->CreateIndex(txn, namespace_oid, index_name, table_oid, DummyIndexSchema());
+  EXPECT_TRUE(index_oid != catalog::INVALID_INDEX_OID);
   txn_manager.Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
   // Drop the database

@@ -9,6 +9,7 @@
 #include "catalog/catalog_defs.h"
 #include "catalog/postgres/pg_attribute.h"
 #include "catalog/postgres/pg_database.h"
+#include "catalog/postgres/pg_index.h"
 #include "common/dedicated_thread_owner.h"
 #include "storage/recovery/abstract_log_provider.h"
 #include "storage/sql_table.h"
@@ -215,6 +216,7 @@ class RecoveryManager : public common::DedicatedThreadOwner {
     auto *delete_record = record->GetUnderlyingRecordBodyAs<DeleteRecord>();
     return delete_record->GetTableOid() == catalog::DATABASE_TABLE_OID ||
            delete_record->GetTableOid() == catalog::CLASS_TABLE_OID ||
+           delete_record->GetTableOid() == catalog::INDEX_TABLE_OID ||
            delete_record->GetTableOid() == catalog::COLUMN_TABLE_OID;
   }
 
