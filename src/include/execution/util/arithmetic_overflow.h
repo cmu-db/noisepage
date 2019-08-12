@@ -60,7 +60,7 @@ class ArithmeticOverflow {
    * @return True if the addition overflowed; false otherwise.
    */
   static bool Add(const i64 a, const i64 b, i64 *res) {
-#ifdef __clang__
+#ifdef __APPLE__
     return __builtin_saddll_overflow(a, b, res);
 #else
     return __builtin_saddl_overflow(a, b, res);
@@ -99,7 +99,7 @@ class ArithmeticOverflow {
    * @return True if the addition overflowed; false otherwise.
    */
   static bool Add(const u64 a, const u64 b, u64 *res) {
-#ifdef __clang__
+#ifdef __APPLE__
     return __builtin_uaddll_overflow(a, b, res);
 #else
     return __builtin_uaddl_overflow(a, b, res);
@@ -155,7 +155,7 @@ class ArithmeticOverflow {
    * @return True if the subtraction overflowed; false otherwise.
    */
   static bool Sub(const i64 a, const i64 b, i64 *res) {
-#ifdef __clang__
+#ifdef __APPLE__
     return __builtin_ssubll_overflow(a, b, res);
 #else
     return __builtin_ssubl_overflow(a, b, res);
@@ -194,7 +194,7 @@ class ArithmeticOverflow {
    * @return True if the subtraction overflowed; false otherwise.
    */
   static bool Sub(const u64 a, const u64 b, u64 *res) {
-#ifdef __clang__
+#ifdef __APPLE__
     return __builtin_usubll_overflow(a, b, res);
 #else
     return __builtin_usubl_overflow(a, b, res);
@@ -250,7 +250,7 @@ class ArithmeticOverflow {
    * @return True if the subtraction overflowed; false otherwise.
    */
   static bool Mul(const i64 a, const i64 b, i64 *res) {
-#ifdef __clang__
+#ifdef __APPLE__
     return __builtin_smulll_overflow(a, b, res);
 #else
     return __builtin_smull_overflow(a, b, res);
@@ -293,7 +293,7 @@ class ArithmeticOverflow {
    * @return True if the subtraction overflowed; false otherwise.
    */
   static bool Mul(const u64 a, const u64 b, u64 *res) {
-#ifdef __clang__
+#ifdef __APPLE__
     return __builtin_umulll_overflow(a, b, res);
 #else
     return __builtin_umull_overflow(a, b, res);

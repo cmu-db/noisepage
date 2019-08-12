@@ -821,7 +821,7 @@ struct FilterVecSizer<i64> {
   using VecMask = Vec4Mask;
 };
 
-#ifdef __clang__  // GCC typedefs intptr_t as int64_t, but Clang does not so we need this instantiation
+#ifdef __APPLE__  // need this explicit instantiation
 /**
  * intptr_t Filter
  */
