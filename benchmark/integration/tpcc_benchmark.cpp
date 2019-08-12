@@ -37,7 +37,7 @@ class TPCCBenchmark : public benchmark::Fixture {
   storage::BlockStore block_store_{blockstore_size_limit_, blockstore_reuse_limit_};
   storage::RecordBufferSegmentPool buffer_pool_{buffersegment_size_limit_, buffersegment_reuse_limit_};
   std::default_random_engine generator_;
-  storage::LogManager *log_manager_ = LOGGING_DISABLED;  // logging enabled will override this value
+  storage::LogManager *log_manager_ = DISABLED;  // logging enabled will override this value
 
   // Settings for log manager
   const uint64_t num_log_buffers_ = 100;
@@ -53,6 +53,7 @@ class TPCCBenchmark : public benchmark::Fixture {
   TransactionWeights txn_weights;                            // default txn_weights. See definition for values
 
   common::WorkerPool thread_pool_{static_cast<uint32_t>(num_threads_), {}};
+  common::DedicatedThreadRegistry thread_registry;
 
   storage::GarbageCollector *gc_;
   storage::GarbageCollectorThread *gc_thread_ = nullptr;
@@ -105,7 +106,7 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithoutLogging)(benchmark::State &
     // run the TPCC workload to completion, timing the execution
     uint64_t elapsed_ms;
     {
-      common::ScopedTimer timer(&elapsed_ms);
+      common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
       for (int8_t i = 0; i < num_threads_; i++) {
         thread_pool_.SubmitTask([i, tpcc_db, &txn_manager, precomputed_args, &workers] {
           Workload(i, tpcc_db, &txn_manager, precomputed_args, &workers);
@@ -161,7 +162,8 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithLogging)(benchmark::State &sta
     unlink(LOG_FILE_NAME);
     // we need transactions, TPCC database, and GC
     log_manager_ = new storage::LogManager(LOG_FILE_NAME, num_log_buffers_, log_serialization_interval_,
-                                           log_persist_interval_, log_persist_threshold_, &buffer_pool_);
+                                           log_persist_interval_, log_persist_threshold_, &buffer_pool_,
+                                           common::ManagedPointer<common::DedicatedThreadRegistry>(&thread_registry));
     log_manager_->Start();
     transaction::TimestampManager timestamp_manager;
     transaction::DeferredActionManager deferred_action_manager(&timestamp_manager);
@@ -188,7 +190,7 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithLogging)(benchmark::State &sta
     // run the TPCC workload to completion, timing the execution
     uint64_t elapsed_ms;
     {
-      common::ScopedTimer timer(&elapsed_ms);
+      common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
       for (int8_t i = 0; i < num_threads_; i++) {
         thread_pool_.SubmitTask([i, tpcc_db, &txn_manager, precomputed_args, &workers] {
           Workload(i, tpcc_db, &txn_manager, precomputed_args, &workers);

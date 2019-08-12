@@ -1,4 +1,5 @@
 #include <random>
+#include <string>
 #include <vector>
 #include "common/macros.h"
 #include "common/scoped_timer.h"
@@ -41,7 +42,7 @@ class TPCCTests : public TerrierTest {
   storage::BlockStore block_store_{blockstore_size_limit_, blockstore_reuse_limit_};
   storage::RecordBufferSegmentPool buffer_pool_{buffersegment_size_limit_, buffersegment_reuse_limit_};
   std::default_random_engine generator_;
-  storage::LogManager *log_manager_ = LOGGING_DISABLED;  // logging enabled will override this value
+  storage::LogManager *log_manager_ = DISABLED;  // logging enabled will override this value
 
   const int8_t num_threads_ = 4;  // defines the number of terminals (workers running txns) and warehouses for the
   // benchmark. Sometimes called scale factor
@@ -49,6 +50,7 @@ class TPCCTests : public TerrierTest {
   TransactionWeights txn_weights;                           // default txn_weights. See definition for values
 
   common::WorkerPool thread_pool_{static_cast<uint32_t>(num_threads_), {}};
+  common::DedicatedThreadRegistry *thread_registry_ = nullptr;
 
   // Settings for log manager
   const uint64_t num_log_buffers_ = 100;
@@ -127,9 +129,11 @@ TEST_F(TPCCTests, WithLogging) {
   thread_pool_.SetNumWorkers(num_threads_);
   thread_pool_.Startup();
 
+  thread_registry_ = new common::DedicatedThreadRegistry;
   // we need transactions, TPCC database, and GC
-  log_manager_ = new storage::LogManager(LOG_FILE_NAME, num_log_buffers_, log_serialization_interval_,
-                                         log_persist_interval_, log_persist_threshold_, &buffer_pool_);
+  log_manager_ =
+      new storage::LogManager(LOG_FILE_NAME, num_log_buffers_, log_serialization_interval_, log_persist_interval_,
+                              log_persist_threshold_, &buffer_pool_, common::ManagedPointer(thread_registry_));
   log_manager_->Start();
   transaction::TimestampManager timestamp_manager;
   transaction::DeferredActionManager deferred_action_manager(&timestamp_manager);
@@ -172,7 +176,11 @@ TEST_F(TPCCTests, WithLogging) {
   log_manager_->PersistAndStop();
   delete log_manager_;
   delete gc_thread_;
+<<<<<<< HEAD
   delete gc_;
+=======
+  delete thread_registry_;
+>>>>>>> master
   delete tpcc_db;
 
   CleanUpVarlensInPrecomputedArgs(&precomputed_args);

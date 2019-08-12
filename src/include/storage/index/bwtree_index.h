@@ -21,7 +21,7 @@ class BwTreeIndex final : public Index {
 
  private:
   BwTreeIndex(const catalog::index_oid_t oid, const ConstraintType constraint_type, IndexMetadata metadata)
-      : Index(oid, constraint_type, std::move(metadata)),
+      : Index(constraint_type, std::move(metadata)),
         bwtree_{new third_party::bwtree::BwTree<KeyType, TupleSlot>{false}} {}
 
   third_party::bwtree::BwTree<KeyType, TupleSlot> *const bwtree_;
@@ -38,6 +38,9 @@ class BwTreeIndex final : public Index {
     index_key.SetFromProjectedRow(tuple, metadata_);
     const bool result = bwtree_->Insert(index_key, location, false);
 
+    TERRIER_ASSERT(
+        result,
+        "non-unique index shouldn't fail to insert. If it did, something went wrong deep inside the BwTree itself.");
     if (result) {
       // Register an abort action with the txn context in case of rollback
       txn->RegisterAbortAction([=](transaction::DeferredActionManager *) {
@@ -45,7 +48,6 @@ class BwTreeIndex final : public Index {
         TERRIER_ASSERT(result, "Delete on the index failed.");
       });
     }
-
     return result;
   }
 
@@ -73,6 +75,11 @@ class BwTreeIndex final : public Index {
         const bool UNUSED_ATTRIBUTE result = bwtree_->Delete(index_key, location);
         TERRIER_ASSERT(result, "Delete on the index failed.");
       });
+    } else {
+      // Presumably you've already made modifications to a DataTable (the source of the TupleSlot argument to this
+      // function) however, the index found a constraint violation and cannot allow that operation to succeed. For MVCC
+      // correctness, this txn must now abort for the GC to clean up the version chain in the DataTable correctly.
+      txn->MustAbort();
     }
 
     return result;

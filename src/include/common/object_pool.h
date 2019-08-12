@@ -64,8 +64,8 @@ class AllocatorFailureException : public std::exception {
 template <typename T, class Allocator = ByteAlignedAllocator<T>>
 class ObjectPool {
  public:
-  DECLARE_ANNOTATION(SIZE_LIMIT);
-  DECLARE_ANNOTATION(REUSE_LIMIT);
+  DECLARE_ANNOTATION(SIZE_LIMIT)
+  DECLARE_ANNOTATION(REUSE_LIMIT)
   /**
    * Initializes a new object pool with the supplied limit to the number of
    * objects reused.

@@ -15,14 +15,13 @@ TransactionContext *TransactionManager::BeginTransaction() {
 void TransactionManager::LogCommit(TransactionContext *const txn, const timestamp_t commit_time,
                                    const callback_fn callback, void *const callback_arg) {
   txn->finish_time_.store(commit_time);
-  if (log_manager_ != LOGGING_DISABLED) {
+  if (log_manager_ != DISABLED) {
     // At this point the commit has already happened for the rest of the system.
     // Here we will manually add a commit record and flush the buffer to ensure the logger
     // sees this record.
     byte *const commit_record = txn->redo_buffer_.NewEntry(storage::CommitRecord::Size());
-    const bool is_read_only = txn->undo_buffer_.Empty();
     storage::CommitRecord::Initialize(commit_record, txn->StartTime(), commit_time, callback, callback_arg,
-                                      is_read_only, txn);
+                                      txn->IsReadOnly(), txn);
     // Signal to the log manager that we are ready to be logged out
   } else {
     // Otherwise, logging is disabled. We should pretend to have flushed the record so the rest of the system proceeds
@@ -72,6 +71,9 @@ timestamp_t TransactionManager::UpdatingCommitCriticalSection(TransactionContext
 
 timestamp_t TransactionManager::Commit(TransactionContext *const txn, transaction::callback_fn callback,
                                        void *callback_arg) {
+  TERRIER_ASSERT(!txn->must_abort_,
+                 "This txn was marked that it must abort. Set a breakpoint at TransactionContext::MustAbort() to see a "
+                 "stack trace for when this flag is getting tripped.");
   const timestamp_t result = txn->undo_buffer_.Empty() ? ReadOnlyCommitCriticalSection(txn, callback, callback_arg)
                                                        : UpdatingCommitCriticalSection(txn, callback, callback_arg);
   while (!txn->commit_actions_.empty()) {
@@ -93,7 +95,7 @@ timestamp_t TransactionManager::Commit(TransactionContext *const txn, transactio
 }
 
 void TransactionManager::LogAbort(TransactionContext *const txn) {
-  if (log_manager_ != LOGGING_DISABLED) {
+  if (log_manager_ != DISABLED) {
     // If we are logging the AbortRecord, then the transaction must have previously flushed records, so it must have
     // made updates
     TERRIER_ASSERT(!txn->undo_buffer_.Empty(), "Should not log AbortRecord for read only txn");
@@ -203,6 +205,20 @@ TransactionQueue TransactionManager::CompletedTransactionsForGC() {
   return std::move(completed_txns_);
 }
 
+<<<<<<< HEAD
+=======
+void TransactionManager::DeferAction(const Action &a) {
+  TERRIER_ASSERT(GCEnabled(), "Need GC enabled for deferred actions to be executed.");
+  common::SpinLatch::ScopedSpinLatch guard(&deferred_actions_latch_);
+  deferred_actions_.push({time_.load(), a});
+}
+
+std::queue<std::pair<timestamp_t, Action>> TransactionManager::DeferredActionsForGC() {
+  common::SpinLatch::ScopedSpinLatch guard(&deferred_actions_latch_);
+  return std::move(deferred_actions_);
+}
+
+>>>>>>> master
 void TransactionManager::Rollback(TransactionContext *txn, const storage::UndoRecord &record) const {
   // No latch required for transaction-local operation
   storage::DataTable *const table = record.Table();
@@ -265,7 +281,6 @@ void TransactionManager::DeallocateInsertedTupleIfVarlen(TransactionContext *txn
     if (layout.IsVarlen(col_id)) {
       auto *varlen = reinterpret_cast<storage::VarlenEntry *>(accessor.AccessWithNullCheck(undo->Slot(), col_id));
       if (varlen != nullptr) {
-        TERRIER_ASSERT(varlen->NeedReclaim() || varlen->IsInlined(), "Fresh updates cannot be compacted or compressed");
         if (varlen->NeedReclaim()) txn->loose_ptrs_.push_back(varlen->Content());
       }
     }

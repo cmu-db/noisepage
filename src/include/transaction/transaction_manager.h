@@ -23,7 +23,7 @@ namespace terrier::transaction {
 class TransactionManager {
   // TODO(Tianyu): Implement the global transaction tables
  public:
-  DECLARE_ANNOTATION(GC_ENABLED);
+  DECLARE_ANNOTATION(GC_ENABLED)
   /**
    * Initializes a new transaction manager. Transactions will use the given object pool as source of their undo
    * buffers.
@@ -31,7 +31,7 @@ class TransactionManager {
    * @param deferred_action_manager deferred action manager to use for transactions
    * @param buffer_pool the buffer pool to use for transaction undo buffers
    * @param gc_enabled true if txns should be stored in a local queue to hand off to the GC, false otherwise
-   * @param log_manager the log manager in the system, or LOGGING_DISABLED(nulllptr) if logging is turned off.
+   * @param log_manager the log manager in the system, or DISABLED(nulllptr) if logging is turned off.
    */
   BOOST_DI_INJECT(TransactionManager, TimestampManager *timestamp_manager,
                   DeferredActionManager *deferred_action_manager, storage::RecordBufferSegmentPool *buffer_pool,

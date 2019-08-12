@@ -1,5 +1,7 @@
 #pragma once
 
+#include <string>
+#include "common/exception.h"
 #include "common/macros.h"
 
 namespace terrier::parser {
@@ -38,6 +40,8 @@ enum class ExpressionType : uint8_t {
   CONJUNCTION_AND,
   CONJUNCTION_OR,
 
+  COLUMN_VALUE,
+
   VALUE_CONSTANT,
   VALUE_PARAMETER,
   VALUE_TUPLE,
@@ -48,7 +52,6 @@ enum class ExpressionType : uint8_t {
   VALUE_DEFAULT,
 
   AGGREGATE_COUNT,
-  AGGREGATE_COUNT_STAR,
   AGGREGATE_SUM,
   AGGREGATE_MIN,
   AGGREGATE_MAX,
@@ -63,7 +66,6 @@ enum class ExpressionType : uint8_t {
   OPERATOR_COALESCE,
 
   ROW_SUBQUERY,
-  SELECT_SUBQUERY,
 
   STAR,
   PLACEHOLDER,
@@ -71,5 +73,14 @@ enum class ExpressionType : uint8_t {
   FUNCTION_REF,
   TABLE_REF
 };
+
+/**
+ * When short_str is true, return a short version of ExpressionType string
+ * For example, + instead of Operator_Plus. It's used to generate the expression name
+ * @param type Expression Type
+ * @param short_str Flag if a short version of the Expression Type should be returned
+ * @return String representation of the Expression Type
+ */
+std::string ExpressionTypeToString(ExpressionType type, bool short_str);
 
 }  // namespace terrier::parser

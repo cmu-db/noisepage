@@ -6,7 +6,7 @@ namespace terrier::planner {
 common::hash_t DropTriggerPlanNode::Hash() const {
   common::hash_t hash = AbstractPlanNode::Hash();
 
-  // Hash databse_oid
+  // Hash database_oid
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_oid_));
 
   // Hash namespace oid

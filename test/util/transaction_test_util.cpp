@@ -86,7 +86,7 @@ LargeTransactionTestObject::LargeTransactionTestObject(const LargeTransactionTes
       table_(block_store, layout_, storage::layout_version_t(0)),
       txn_manager_(txn_manager),
       gc_on_(txn_manager->GCEnabled()),
-      wal_on_(log_manager != LOGGING_DISABLED) {
+      wal_on_(log_manager != DISABLED) {
   // Bootstrap the table to have the specified number of tuples
   PopulateInitialTable(config.InitialTableSize(), generator_);
 }
@@ -104,7 +104,7 @@ SimulationResult LargeTransactionTestObject::SimulateOltp(uint32_t num_transacti
   txns.resize(num_transactions);
   // Either for correctness checking, or to cleanup memory afterwards, we need to retain these
   // test objects
-  workload = [&](uint32_t) {
+  workload = [&](uint32_t /*unused*/) {
     for (uint32_t txn_id = txns_run++; txn_id < num_transactions; txn_id = txns_run++) {
       txns[txn_id] = new RandomWorkloadTransaction(this);
       SimulateOneTransaction(txns[txn_id], txn_id);

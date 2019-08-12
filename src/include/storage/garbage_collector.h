@@ -4,6 +4,7 @@
 #include <unordered_set>
 #include <utility>
 #include "common/shared_latch.h"
+#include "storage/access_observer.h"
 #include "storage/index/index.h"
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_defs.h"
@@ -23,15 +24,21 @@ class GarbageCollector {
    * Constructor for the Garbage Collector that requires a pointer to the TransactionManager. This is necessary for the
    * GC to invoke the TM's function for handing off the completed transactions queue.
    * @param txn_manager pointer to the TransactionManager
+   * @param observer the access observer attached to this GC. The GC reports every record gc-ed to the observer if
+   *                 it is not null. The observer can then gain insight invoke other components to perform actions.
+   *                 The observer's function implementation needs to be lightweight because it is called on the GC
+   *                 thread.
    */
   // TODO(Tianyu): Eventually the GC will be re-written to be purely on the deferred action manager. which will
   //  eliminate this perceived redundancy of taking in a transaction manager.
   GarbageCollector(transaction::TimestampManager *timestamp_manager,
                    transaction::DeferredActionManager *deferred_action_manager,
-                   transaction::TransactionManager *txn_manager)
+                   transaction::TransactionManager *txn_manager,
+                   AccessObserver *observer)
       : timestamp_manager_(timestamp_manager),
         deferred_action_manager_(deferred_action_manager),
         txn_manager_(txn_manager),
+        observer_(observer),
         last_unlinked_{0} {
     TERRIER_ASSERT(txn_manager_->GCEnabled(),
                    "The TransactionManager needs to be instantiated with gc_enabled true for GC to work!");
@@ -89,6 +96,7 @@ class GarbageCollector {
   transaction::TimestampManager *timestamp_manager_;
   transaction::DeferredActionManager *deferred_action_manager_;
   transaction::TransactionManager *const txn_manager_;
+  AccessObserver *observer_;
   // timestamp of the last time GC unlinked anything. We need this to know when unlinked versions are safe to deallocate
   transaction::timestamp_t last_unlinked_;
   // queue of txns that have been unlinked, and should possible be deleted on next GC run

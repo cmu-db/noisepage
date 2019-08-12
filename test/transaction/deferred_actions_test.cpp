@@ -26,8 +26,8 @@ class DeferredActionsTest : public TerrierTest {
   transaction::TimestampManager timestamp_manager_;
   transaction::DeferredActionManager deferred_action_manager_{&timestamp_manager_};
   transaction::TransactionManager txn_mgr_{&timestamp_manager_, &deferred_action_manager_, &buffer_pool_, true,
-                                           LOGGING_DISABLED};
-  storage::GarbageCollector gc_{&timestamp_manager_, &deferred_action_manager_, &txn_mgr_};
+                                           DISABLED};
+  storage::GarbageCollector gc_{&timestamp_manager_, &deferred_action_manager_, &txn_mgr_, DISABLED};
 };
 
 // Test that abort actions do not execute before the transaction aborts and that
@@ -54,38 +54,12 @@ TEST_F(DeferredActionsTest, AbortAction) {
 // that abort actions are never executed.
 // NOLINTNEXTLINE
 TEST_F(DeferredActionsTest, CommitAction) {
-  // Setup an entire database so that we can do a updating commit
-  auto col_oid = catalog::col_oid_t(42);
-  std::vector<catalog::col_oid_t> col_oids;
-  col_oids.emplace_back(col_oid);
-
-  std::vector<catalog::Schema::Column> cols;
-  cols.emplace_back("dummy", type::TypeId::INTEGER, false, col_oid);
-
-  storage::BlockStore block_store{100, 100};
-  catalog::Schema schema(cols);
-  storage::SqlTable table(&block_store, schema, catalog::table_oid_t(24));
-
-  auto row_pair = table.InitializerForProjectedRow(col_oids);
-  auto pri = new storage::ProjectedRowInitializer(std::get<0>(row_pair));
-  auto pr_map = new storage::ProjectionMap(std::get<1>(row_pair));
-
   auto *txn = txn_mgr_.BeginTransaction();
-
-  auto insert_redo = txn->StageWrite(CatalogTestUtil::test_db_oid, CatalogTestUtil::test_table_oid, *pri);
-  auto insert = insert_redo->Delta();
 
   bool aborted = false;
   bool committed = false;
   txn->RegisterAbortAction([&](transaction::DeferredActionManager *) { aborted = true; });
   txn->RegisterCommitAction([&](transaction::DeferredActionManager *) { committed = true; });
-
-  EXPECT_FALSE(aborted);
-  EXPECT_FALSE(committed);
-
-  auto *data = reinterpret_cast<int32_t *>(insert->AccessForceNotNull(pr_map->at(col_oid)));
-  *data = 42;
-  table.Insert(txn, insert_redo);
 
   EXPECT_FALSE(aborted);
   EXPECT_FALSE(committed);
@@ -97,10 +71,6 @@ TEST_F(DeferredActionsTest, CommitAction) {
 
   gc_.PerformGarbageCollection();
   gc_.PerformGarbageCollection();
-
-  insert = nullptr;
-  delete pr_map;
-  delete pri;
 }
 
 // Test that the GC performs available deferred actions when PerformGarbageCollection is called
@@ -222,25 +192,7 @@ TEST_F(DeferredActionsTest, AbortBootstrapDefer) {
 // chain that conditionally executes only on commit.
 // NOLINTNEXTLINE
 TEST_F(DeferredActionsTest, CommitBootstrapDefer) {
-  auto col_oid = catalog::col_oid_t(42);
-  std::vector<catalog::col_oid_t> col_oids;
-  col_oids.emplace_back(col_oid);
-
-  std::vector<catalog::Schema::Column> cols;
-  cols.emplace_back("dummy", type::TypeId::INTEGER, false, col_oid);
-
-  storage::BlockStore block_store{100, 100};
-  catalog::Schema schema(cols);
-  storage::SqlTable table(&block_store, schema, catalog::table_oid_t(24));
-
-  auto row_pair = table.InitializerForProjectedRow(col_oids);
-  auto pri = new storage::ProjectedRowInitializer(std::get<0>(row_pair));
-  auto pr_map = new storage::ProjectionMap(std::get<1>(row_pair));
-
   auto *txn = txn_mgr_.BeginTransaction();
-
-  auto insert_redo = txn->StageWrite(CatalogTestUtil::test_db_oid, CatalogTestUtil::test_table_oid, *pri);
-  auto insert = insert_redo->Delta();
 
   bool defer1 = false;
   bool defer2 = false;
@@ -255,15 +207,6 @@ TEST_F(DeferredActionsTest, CommitBootstrapDefer) {
       deferred_action_manager->RegisterDeferredAction([&](transaction::timestamp_t) { defer2 = true; });
     });
   });
-
-  EXPECT_FALSE(aborted);
-  EXPECT_FALSE(committed);
-  EXPECT_FALSE(defer1);
-  EXPECT_FALSE(defer2);
-
-  auto *data = reinterpret_cast<int32_t *>(insert->AccessForceNotNull(pr_map->at(col_oid)));
-  *data = 42;
-  table.Insert(txn, insert_redo);
 
   EXPECT_FALSE(aborted);
   EXPECT_FALSE(committed);
@@ -297,9 +240,5 @@ TEST_F(DeferredActionsTest, CommitBootstrapDefer) {
   EXPECT_TRUE(committed);
   EXPECT_TRUE(defer1);
   EXPECT_TRUE(defer2);
-
-  insert = nullptr;
-  delete pr_map;
-  delete pri;
 }
 }  // namespace terrier

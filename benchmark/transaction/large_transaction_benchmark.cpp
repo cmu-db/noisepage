@@ -36,7 +36,7 @@ BENCHMARK_DEFINE_F(LargeTransactionBenchmark, TPCCish)(benchmark::State &state) 
     gc_thread_ = new storage::GarbageCollectorThread(gc_, gc_period_);
     uint64_t elapsed_ms;
     {
-      common::ScopedTimer timer(&elapsed_ms);
+      common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
       abort_count += tested.SimulateOltp(num_txns, num_concurrent_txns_);
     }
     state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
@@ -63,7 +63,7 @@ BENCHMARK_DEFINE_F(LargeTransactionBenchmark, HighAbortRate)(benchmark::State &s
     gc_thread_ = new storage::GarbageCollectorThread(gc_, gc_period_);
     uint64_t elapsed_ms;
     {
-      common::ScopedTimer timer(&elapsed_ms);
+      common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
       abort_count += tested.SimulateOltp(num_txns, num_concurrent_txns_);
     }
     state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
@@ -90,7 +90,7 @@ BENCHMARK_DEFINE_F(LargeTransactionBenchmark, SingleStatementInsert)(benchmark::
     gc_thread_ = new storage::GarbageCollectorThread(gc_, gc_period_);
     uint64_t elapsed_ms;
     {
-      common::ScopedTimer timer(&elapsed_ms);
+      common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
       abort_count += tested.SimulateOltp(num_txns, num_concurrent_txns_);
     }
     state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
@@ -116,7 +116,7 @@ BENCHMARK_DEFINE_F(LargeTransactionBenchmark, SingleStatementUpdate)(benchmark::
     gc_thread_ = new storage::GarbageCollectorThread(gc_, gc_period_);
     uint64_t elapsed_ms;
     {
-      common::ScopedTimer timer(&elapsed_ms);
+      common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
       abort_count += tested.SimulateOltp(num_txns, num_concurrent_txns_);
     }
     state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
@@ -143,7 +143,7 @@ BENCHMARK_DEFINE_F(LargeTransactionBenchmark, SingleStatementSelect)(benchmark::
     gc_thread_ = new storage::GarbageCollectorThread(gc_, gc_period_);
     uint64_t elapsed_ms;
     {
-      common::ScopedTimer timer(&elapsed_ms);
+      common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
       abort_count += tested.SimulateOltp(num_txns, num_concurrent_txns_);
     }
     state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);

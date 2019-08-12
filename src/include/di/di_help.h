@@ -4,7 +4,48 @@
 #include "boost/di/di.h"
 #include "common/macros.h"
 #include "common/managed_pointer.h"
-#define DECLARE_ANNOTATION(name) static constexpr auto name = [] {}
+// This is a simplifying macro for
+// https://boost-experimental.github.io/di/user_guide/index.html#BOOST_DI_INJECT_TRAITS
+//
+// To use this macro, declare in a class:
+// DECLARE_ANNOTATION(WIDTH)
+// DECLARE_ANNOTATION(HEIGHT)
+// Then, mark the constructor with macro:
+// BOOST_DI_INJECT(A, (named = WIDTH) int width, (named = HEIGHT) int height)
+//
+// Now the two values can be differentiated during binding with the .named() clause.
+#define DECLARE_ANNOTATION(name) static constexpr auto name = [] {};
+
+// Force boost::di to treat ManagedPointer as a smart pointer
+BOOST_DI_NAMESPACE_BEGIN
+namespace aux {
+/**
+ * Remove ManagedPointer from given type
+ * @tparam T input type
+ */
+template <class T>
+struct remove_smart_ptr<terrier::common::ManagedPointer<T>> {
+  /**
+   * Re-constructed type
+   */
+  using type = T;
+};
+
+/**
+ * Construct underlying type from ManagedPointer
+ * @tparam T input type
+ */
+template <class T>
+struct deref_type<terrier::common::ManagedPointer<T>> {
+  /**
+   * Re-constructed type
+   */
+  using type = remove_qualifiers_t<typename deref_type<T>::type>;
+};
+}  // namespace aux
+BOOST_DI_NAMESPACE_END
+
+>>>>>>> master
 namespace terrier::di {
 // Effectively merges the boost::di namespace with terrier-specific helpers and wrappers
 using namespace boost::di;  // NOLINT
@@ -14,17 +55,19 @@ using namespace boost::di;  // NOLINT
  * @tparam T the type to test
  */
 template <class T>
-struct named : di::policies::detail::type_op {
+
+struct named : policies::detail::type_op {
   /**
-   * see boost::di doc
+   * see boost::di doc https://boost-experimental.github.io/di/user_guide/index.html#policies
    * @tparam TArg
    */
   template <class TArg>
-  struct apply : di::aux::integral_constant<bool, !di::aux::is_same<di::no_name, typename TArg::name>::value> {};
+  struct apply : aux::integral_constant<bool, !aux::is_same<no_name, typename TArg::name>::value> {};
 };
 
-/*
+/**
  * This policy ensures that no default values is used, and all parameters being injected are bound
+ * see https://boost-experimental.github.io/di/user_guide/index.html#policies
  */
 // TODO(Tianyu): I believe this will just ensure there is at least a bind clause for anything injected.
 // Does't matter whether it's in() or to().
@@ -35,25 +78,26 @@ class StrictBindingPolicy : public di::config {
    * @return strict binding policy
    */
   static auto policies(...) noexcept {
-    using namespace di::policies;  // NOLINT
-    return di::make_policies(constructible(is_bound<di::_>{}));
+    using namespace policies;  // NOLINT
+    return make_policies(constructible(is_bound<_>{}));
   }
 };
 
-/*
+/**
  * This policy ensures that all named values is bound. It is okay if some values are default.
+ * see https://boost-experimental.github.io/di/user_guide/index.html#policies
  */
-class TestBindingPolicy : public di::config {
+class TestBindingPolicy : public config {
  public:
   /**
    * @param ... vararg input
    * @return strict binding policy
    */
   static auto policies(...) noexcept {
-    using namespace di::policies;             // NOLINT
-    using namespace di::policies::operators;  // NOLINT
+    using namespace policies;             // NOLINT
+    using namespace policies::operators;  // NOLINT
     // Unnamed unbound variables are most likely not
-    return di::make_policies(constructible(is_bound<di::_>{} || !named<di::_>{}));
+    return di::make_policies(constructible(is_bound<_>{} || !named<_>{}));
   }
 };
 
@@ -75,7 +119,7 @@ class TerrierWrapper {
    * @tparam I target managed pointer's underlying type
    * @return cast to managed pointer
    */
-  template <class I, __BOOST_DI_REQUIRES(di::aux::is_convertible<TExpected *, I *>::value) = 0>
+  template <class I, __BOOST_DI_REQUIRES(aux::is_convertible<TExpected *, I *>::value) = 0>
   inline operator common::ManagedPointer<I>() const noexcept {  // NOLINT
     return common::ManagedPointer<I>(wrapped);
   }
@@ -102,19 +146,30 @@ class TerrierWrapper {
  * This module injects objects with lifetime the same as the injector. All injected object
  * share the same instance if injected from the same injector. Think of this as a singleton
  * that has the lifetime of the injector instead of the process.
+ *
+ * see https://boost-experimental.github.io/di/user_guide/index.html#scopes
  */
 class TerrierSharedModule {
  public:
+  /**
+   * Implementation of the scope. see boost::di doc
+   * @tparam TExpected
+   * @tparam TGiven
+   */
   template <class TExpected, class TGiven>
   class scope {
    public:
-    // TODO(Tianyu): Not sure about this. This is the referrable flag used for boost::di's singleton scope.
+    // TODO(Tianyu): Not sure if this is relevant as we prohibit injection of non-const references.
+    // This is the referrable flag used for boost::di's singleton scope.
+    /**
+     * See https://boost-experimental.github.io/di/user_guide/index.html#scopes
+     */
     template <class T_, class>
-    using is_referable = typename di::wrappers::shared<di::scopes::singleton, TExpected &>::template is_referable<T_>;
+    using is_referable = typename wrappers::shared<scopes::singleton, TExpected &>::template is_referable<T_>;
 
     /**
      * @tparam TProvider provider type
-     * @return see boost::di doc
+     * @return see https://boost-experimental.github.io/di/user_guide/index.html#scopes
      */
     template <class, class, class TProvider>
     static TerrierWrapper<TExpected, TGiven> try_create(const TProvider &);
@@ -122,7 +177,7 @@ class TerrierSharedModule {
     /**
      * @tparam TProvider provider type
      * @param provider provider
-     * @return see boost::di doc
+     * @return see https://boost-experimental.github.io/di/user_guide/index.html#scopes
      */
     template <class, class, class TProvider>
     TerrierWrapper<TExpected, TGiven> create(const TProvider &provider) {
@@ -145,19 +200,30 @@ class TerrierSharedModule {
  * This module injects objects with lifetime the same as the injector. All injected object
  * share the same instance if injected from the same injector. Think of this as a singleton
  * that has the lifetime of the injector instead of the process.
+ *
+ * see https://boost-experimental.github.io/di/user_guide/index.html#scopes
  */
 class TerrierSingleton {
  public:
+  /**
+   * Implementation of the scope. see boost::di doc
+   * @tparam TExpected
+   * @tparam TGiven
+   */
   template <class TExpected, class TGiven>
   class scope {
    public:
-    // TODO(Tianyu): Not sure about this. This is the referrable flag used for boost::di's singleton scope.
+    // TODO(Tianyu): Not sure if this is relevant as we prohibit injection of non-const references.
+    // This is the referrable flag used for boost::di's singleton scope.
+    /**
+     * See https://boost-experimental.github.io/di/user_guide/index.html#scopes
+     */
     template <class T_, class>
-    using is_referable = typename di::wrappers::shared<di::scopes::singleton, TExpected &>::template is_referable<T_>;
+    using is_referable = typename wrappers::shared<scopes::singleton, TExpected &>::template is_referable<T_>;
 
     /**
      * @tparam TProvider provider type
-     * @return see boost::di doc
+     * @return see https://boost-experimental.github.io/di/user_guide/index.html#scopes
      */
     template <class, class, class TProvider>
     static TerrierWrapper<TExpected, TGiven> try_create(const TProvider &);
@@ -165,18 +231,29 @@ class TerrierSingleton {
     /**
      * @tparam TProvider provider type
      * @param provider provider
-     * @return see boost::di doc
+     * @return see https://boost-experimental.github.io/di/user_guide/index.html#scopes
      */
     template <class, class, class TProvider>
     TerrierWrapper<TExpected, TGiven> create(const TProvider &provider) {
-      static auto object(provider.get(di::type_traits::stack{}));
+      static auto object(provider.get(type_traits::stack{}));
       return &object;
     }
   };
 };
 
+/**
+ * Injects nullptr for any component requiring a T * for bound T's. This is useful to mark a component as disabled
+ * in the tests
+ *
+ * see https://boost-experimental.github.io/di/user_guide/index.html#scopes
+ */
 class DisabledModule {
  public:
+  /**
+   * Implementation of the scope. see boost::di doc
+   * @tparam TExpected
+   * @tparam TGiven
+   */
   template <class TExpected, class TGiven>
   class scope {
     /**
@@ -202,6 +279,9 @@ class DisabledModule {
 
    public:
     // TODO(Tianyu): Not sure about this. This is the referrable flag used for boost::di's singleton scope.
+    /**
+     * See boost::di doc
+     */
     template <class T_, class>
     using is_referable = typename di::wrappers::shared<di::scopes::singleton, TExpected &>::template is_referable<T_>;
 
@@ -225,11 +305,17 @@ class DisabledModule {
 };
 
 /**
- * Use this as the scope object to use for TerrierModule.
- *
+ * Binds a type under the shared module scope.
  * Pretty much always, you should use this as the default scope over boost:di provided ones.
  */
 static TerrierSharedModule UNUSED_ATTRIBUTE terrier_shared_module{};
+/**
+ * Disabled scope that injects nullptr
+ */
 static DisabledModule UNUSED_ATTRIBUTE disabled{};
+/**
+ * Singleton that has lifetime of the entire app (static). This is useful for e.g. random number generator
+ * across tests
+ */
 static TerrierSingleton UNUSED_ATTRIBUTE terrier_singleton{};
 }  // namespace terrier::di

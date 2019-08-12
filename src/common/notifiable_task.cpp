@@ -9,7 +9,9 @@ NotifiableTask::NotifiableTask(int task_id) : task_id_(task_id) {
   base_ = EventUtil::EventBaseNew();
   // For exiting a loop
   terminate_ = RegisterManualEvent(
-      [](int, int16_t, void *arg) { EventUtil::EventBaseLoopExit(static_cast<struct event_base *>(arg), nullptr); },
+      [](int /*unused*/, int16_t /*unused*/, void *arg) {
+        EventUtil::EventBaseLoopExit(static_cast<struct event_base *>(arg), nullptr);
+      },
       base_);
 }
 

@@ -175,11 +175,10 @@ struct ColumnDefinition {
   }
 
   /**
-   * @param type data type
    * @return type ID
    */
-  static type::TypeId GetValueType(DataType type) {
-    switch (type) {
+  type::TypeId GetValueType() {
+    switch (type_) {
       case DataType::INT:
       case DataType::INTEGER:
         return type::TypeId::INTEGER;
