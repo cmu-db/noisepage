@@ -1,3 +1,4 @@
+#include <string>
 #include <unordered_map>
 #include <vector>
 #include "catalog/catalog.h"
@@ -158,8 +159,6 @@ TEST_F(RecoveryTests, MultiDatabaseTest) {
                                               .build();
   RecoveryTests::RunTest(config);
 }
-
-// TODO(Gus): Add an abort test
 
 // Tests that we correctly process records corresponding to a drop database command.
 TEST_F(RecoveryTests, DropDatabaseTest) {
