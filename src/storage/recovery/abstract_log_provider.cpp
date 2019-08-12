@@ -54,7 +54,7 @@ std::pair<LogRecord *, std::vector<byte *>> AbstractLogProvider::ReadNextRecord(
   }
 
   // Initialize the redo record.
-  auto initializer = storage::ProjectedRowInitializer(attr_sizes, col_ids);
+  auto initializer = storage::ProjectedRowInitializer::Create(attr_sizes, col_ids);
   auto *result = storage::RedoRecord::Initialize(buf, txn_begin, database_oid, table_oid, initializer);
   auto *record_body = result->GetUnderlyingRecordBodyAs<RedoRecord>();
   record_body->SetTupleSlot(tuple_slot);
