@@ -59,7 +59,13 @@ class ArithmeticOverflow {
    * @param[out] res Where the result of the addition is written to.
    * @return True if the addition overflowed; false otherwise.
    */
-  static bool Add(const i64 a, const i64 b, i64 *res) { return __builtin_saddl_overflow(a, b, res); }
+  static bool Add(const i64 a, const i64 b, i64 *res) {
+#ifdef __clang__
+    return __builtin_saddll_overflow(a, b, res);
+#else
+    return __builtin_saddl_overflow(a, b, res);
+#endif
+  }
 
   /**
    * Add two signed 128-bit integer values and store their result in @em res.
@@ -92,7 +98,13 @@ class ArithmeticOverflow {
    * @param[out] res Where the result of the addition is written to.
    * @return True if the addition overflowed; false otherwise.
    */
-  static bool Add(const u64 a, const u64 b, u64 *res) { return __builtin_uaddl_overflow(a, b, res); }
+  static bool Add(const u64 a, const u64 b, u64 *res) {
+#ifdef __clang__
+    return __builtin_uaddll_overflow(a, b, res);
+#else
+    return __builtin_uaddl_overflow(a, b, res);
+#endif
+  }
 
   /**
    * Add two unsigned 64-bit integer values and store their result in @em res.
@@ -142,7 +154,13 @@ class ArithmeticOverflow {
    * @param[out] res Where the result of the subtraction is written to.
    * @return True if the subtraction overflowed; false otherwise.
    */
-  static bool Sub(const i64 a, const i64 b, i64 *res) { return __builtin_ssubl_overflow(a, b, res); }
+  static bool Sub(const i64 a, const i64 b, i64 *res) {
+#ifdef __clang__
+    return __builtin_ssubll_overflow(a, b, res);
+#else
+    return __builtin_ssubl_overflow(a, b, res);
+#endif
+  }
 
   /**
    * Subtract two signed 128-bit values and store their result in @em res.
@@ -175,7 +193,13 @@ class ArithmeticOverflow {
    * @param[out] res Where the result of the subtraction is written to.
    * @return True if the subtraction overflowed; false otherwise.
    */
-  static bool Sub(const u64 a, const u64 b, u64 *res) { return __builtin_usubl_overflow(a, b, res); }
+  static bool Sub(const u64 a, const u64 b, u64 *res) {
+#ifdef __clang__
+    return __builtin_usubll_overflow(a, b, res);
+#else
+    return __builtin_usubl_overflow(a, b, res);
+#endif
+  }
 
   /**
    * Subtract two unsigned 128-bit values and store their result in @em res.
@@ -225,7 +249,13 @@ class ArithmeticOverflow {
    * @param[out] res Where the result of the multiplication is written to.
    * @return True if the subtraction overflowed; false otherwise.
    */
-  static bool Mul(const i64 a, const i64 b, i64 *res) { return __builtin_smull_overflow(a, b, res); }
+  static bool Mul(const i64 a, const i64 b, i64 *res) {
+#ifdef __clang__
+    return __builtin_smulll_overflow(a, b, res);
+#else
+    return __builtin_smull_overflow(a, b, res);
+#endif
+  }
 
   /**
    * Multiply two signed 128-bit integer values and store their result in @em
@@ -262,7 +292,13 @@ class ArithmeticOverflow {
    * @param[out] res Where the result of the multiplication is written to.
    * @return True if the subtraction overflowed; false otherwise.
    */
-  static bool Mul(const u64 a, const u64 b, u64 *res) { return __builtin_umull_overflow(a, b, res); }
+  static bool Mul(const u64 a, const u64 b, u64 *res) {
+#ifdef __clang__
+    return __builtin_umulll_overflow(a, b, res);
+#else
+    return __builtin_umull_overflow(a, b, res);
+#endif
+  }
 
   /**
    * Multiply two unsigned 128-bit integer values and store their result in @em
