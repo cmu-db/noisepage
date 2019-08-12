@@ -1,5 +1,5 @@
 #include "execution/sql/functions/is_null_predicate.h"
-#include <time.h>
+#include <ctime>
 #include "execution/sql/value.h"
 #include "execution/tpl_test.h"
 
