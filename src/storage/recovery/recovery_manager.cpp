@@ -92,23 +92,21 @@ void RecoveryManager::ReplayRedoRecord(transaction::TransactionContext *txn, Log
     // Save the old tuple slot, and reset the tuple slot in the record
     auto old_tuple_slot = redo_record->GetTupleSlot();
     redo_record->SetTupleSlot(TupleSlot(nullptr, 0));
+    // Stage the write. This way the recovery operation is logged if logging is enabled.
+    redo_record = txn->StageRecoveryWrite(record);
     // Insert will always succeed
     auto new_tuple_slot = sql_table_ptr->Insert(txn, redo_record);
     UpdateIndexesOnTable(txn, redo_record->GetDatabaseOid(), redo_record->GetTableOid(), new_tuple_slot,
                          true /* insert */);
-    // Stage the write. This way the recovery operation is logged if logging is enabled.
-    // We stage the write after the insert because Insert sets the tuple slot on the redo record, so we need that
-    // to happen before we copy the record into the txn redo buffer.
     TERRIER_ASSERT(redo_record->GetTupleSlot() == new_tuple_slot,
                    "Insert should update redo record with new tuple slot");
-    txn->StageRecoveryWrite(record);
     // Create a mapping of the old to new tuple. The new tuple slot should be used for future updates and deletes.
     tuple_slot_map_[old_tuple_slot] = new_tuple_slot;
   } else {
     auto new_tuple_slot = tuple_slot_map_[redo_record->GetTupleSlot()];
     redo_record->SetTupleSlot(new_tuple_slot);
     // Stage the write. This way the recovery operation is logged if logging is enabled
-    txn->StageRecoveryWrite(record);
+    redo_record = txn->StageRecoveryWrite(record);
     bool result UNUSED_ATTRIBUTE = sql_table_ptr->Update(txn, redo_record);
     TERRIER_ASSERT(result, "Buffered changes should always succeed during commit");
   }

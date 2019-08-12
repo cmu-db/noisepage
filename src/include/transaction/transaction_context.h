@@ -224,11 +224,14 @@ class TransactionContext {
    * @warning This method is ONLY for recovery
    * Copy the log record into the transaction's redo buffer.
    * @param record log record to copy
+   * @return pointer to RedoRecord's location in transaction buffer
    * @warning If you call StageRecoveryWrite, the operation WILL be logged to disk. If you StageRecoveryWrite anything
    * that you didn't succeed in writing into the table or decide you don't want to use, the transaction MUST abort.
    */
-  void StageRecoveryWrite(storage::LogRecord *record) {
-    memcpy(redo_buffer_.NewEntry(record->Size()), record, record->Size());
+  storage::RedoRecord *StageRecoveryWrite(storage::LogRecord *record) {
+    auto record_location = redo_buffer_.NewEntry(record->Size());
+    memcpy(record_location, record, record->Size());
+    return reinterpret_cast<storage::LogRecord *>(record_location)->GetUnderlyingRecordBodyAs<storage::RedoRecord>();
   }
 };
 }  // namespace terrier::transaction
