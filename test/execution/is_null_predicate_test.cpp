@@ -1,8 +1,7 @@
-#include "execution/tpl_test.h"
-
-#include <time.h>
 #include "execution/sql/functions/is_null_predicate.h"
+#include <time.h>
 #include "execution/sql/value.h"
+#include "execution/tpl_test.h"
 
 namespace terrier::execution::sql::test {
 
