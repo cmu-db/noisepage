@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "catalog/catalog_defs.h"
+#include "catalog/postgres/pg_attribute.h"
 #include "catalog/postgres/pg_database.h"
 #include "common/dedicated_thread_owner.h"
 #include "storage/recovery/abstract_log_provider.h"
@@ -184,11 +185,13 @@ class RecoveryManager : public common::DedicatedThreadOwner {
                             catalog::table_oid_t table_oid, const TupleSlot &tuple_slot, bool insert);
 
   /**
+   * NYS: Not yet supported
    * Returns whether a delete or redo record is a special case catalog record. The special cases we consider are:
-   *   1. Updates into pg_class (updating a pointer, updating a schema, update to next col_oid)
+   *   1. Updates into pg_class (updating a pointer, updating a schema (NYS), update to next col_oid)
    *   2. Delete into pg_class (renaming a table/index, drop a table/index)
    *   3. Insert into pg_database (creating a database)
    *   4. Delete into pg_database (renaming a database, drop a database)
+   *   5. Delete into pg_attribute (drop column (NYS) / cascading delete from drop table)
    * @warning Relies on the assumption that catalog tables have a hardcoded OID that is the same for all databases
    * @param record log record we want to determine if its a special case
    * @return true if log record is a special case catalog record, false otherwise
@@ -208,10 +211,11 @@ class RecoveryManager : public common::DedicatedThreadOwner {
       return redo_record->GetTableOid() == catalog::CLASS_TABLE_OID;
     }
 
-    // Case 2 and 4
+    // Case 2, 4, and 5
     auto *delete_record = record->GetUnderlyingRecordBodyAs<DeleteRecord>();
     return delete_record->GetTableOid() == catalog::DATABASE_TABLE_OID ||
-           delete_record->GetTableOid() == catalog::CLASS_TABLE_OID;
+           delete_record->GetTableOid() == catalog::CLASS_TABLE_OID ||
+           delete_record->GetTableOid() == catalog::COLUMN_TABLE_OID;
   }
 
   /**

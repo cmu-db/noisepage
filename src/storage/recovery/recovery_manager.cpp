@@ -123,10 +123,10 @@ void RecoveryManager::ReplayDeleteRecord(transaction::TransactionContext *txn, L
   auto sql_table_ptr = GetSqlTable(txn, delete_record->GetDatabaseOid(), delete_record->GetTableOid());
   // Stage the delete. This way the recovery operation is logged if logging is enabled
   txn->StageDelete(delete_record->GetDatabaseOid(), delete_record->GetTableOid(), new_tuple_slot);
-  UpdateIndexesOnTable(txn, delete_record->GetDatabaseOid(), delete_record->GetTableOid(), new_tuple_slot,
-                       false /* delete */);
   bool result UNUSED_ATTRIBUTE = sql_table_ptr->Delete(txn, new_tuple_slot);
   TERRIER_ASSERT(result, "Buffered changes should always succeed during commit");
+  UpdateIndexesOnTable(txn, delete_record->GetDatabaseOid(), delete_record->GetTableOid(), new_tuple_slot,
+                       false /* delete */);
   // We can delete the TupleSlot from the map
   tuple_slot_map_.erase(delete_record->GetTupleSlot());
 }
@@ -469,6 +469,19 @@ uint32_t RecoveryManager::ProcessSpecialCaseCatalogRecord(
     TERRIER_ASSERT(result, "Database recreation should succeed");
     catalog_->UpdateNextOid(db_oid);
 
+    // Step 3: Update metadata. We need to use the indexes on pg_database to find what tuple slot we just inserted into.
+    // We get the new tuple slot using the oid index.
+    auto pg_database_oid_index = catalog_->databases_oid_index_;
+    auto pr_init = pg_database_oid_index->GetProjectedRowInitializer();
+    auto *buffer = common::AllocationUtil::AllocateAligned(pr_init.ProjectedRowSize());
+    auto *pr = pr_init.InitializeRow(buffer);
+    *(reinterpret_cast<catalog::db_oid_t *>(pr->AccessForceNotNull(0))) = db_oid;
+    std::vector<TupleSlot> tuple_slot_result;
+    pg_database_oid_index->ScanKey(*txn, *pr, &tuple_slot_result);
+    TERRIER_ASSERT(tuple_slot_result.size() == 1, "Index scan should only yield one result");
+    tuple_slot_map_[redo_record->GetTupleSlot()] = tuple_slot_result[0];
+    delete[] buffer;
+
     return 0;  // No additional records processed
   }
 
@@ -568,6 +581,14 @@ uint32_t RecoveryManager::ProcessSpecialCaseCatalogRecord(
     tuple_slot_map_.erase(delete_record->GetTupleSlot());
 
     return 0;  // No additional logs processed
+  }
+
+  // A delete into pg_attribute means we are dropping a column. There are two cases:
+  //  1. Drop column: This requires some additional processing to actually clean up the column
+  //  2. Cascading delete from drop table: In this case, we don't process the record because the DeleteTable catalog
+  //  function will clean up the columns
+  if (delete_record->GetTableOid() == catalog::COLUMN_TABLE_OID) {
+    return 0;  // Case 2, no additional records processed
   }
 
   TERRIER_ASSERT(delete_record->GetTableOid() == catalog::DATABASE_TABLE_OID,
