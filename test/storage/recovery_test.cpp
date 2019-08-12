@@ -269,6 +269,64 @@ TEST_F(RecoveryTests, DropTableTest) {
   recovery_txn_manager.Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 }
 
+// Tests that we correctly process records corresponding to a drop namespace command.
+TEST_F(RecoveryTests, DropNamespaceTest) {
+  std::string database_name = "testdb";
+  std::string namespace_name = "testnamespace";
+  // Bring up original components
+  LogManager log_manager(LOG_FILE_NAME, num_log_buffers_, log_serialization_interval_, log_persist_interval_,
+                         log_persist_threshold_, &pool_, common::ManagedPointer(&thread_registry_));
+  log_manager.Start();
+  transaction::TransactionManager txn_manager{&pool_, true, &log_manager};
+  catalog::Catalog catalog(&txn_manager, &block_store_);
+
+  // Create database
+  auto *txn = txn_manager.BeginTransaction();
+  auto db_oid = catalog.CreateDatabase(txn, database_name, true /* bootstrap */);
+  EXPECT_TRUE(db_oid != catalog::INVALID_DATABASE_OID);
+  txn_manager.Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+
+  // Create the namespace
+  txn = txn_manager.BeginTransaction();
+  auto db_catalog = catalog.GetDatabaseCatalog(txn, db_oid);
+  auto namespace_oid = db_catalog->CreateNamespace(txn, namespace_name);
+  EXPECT_TRUE(namespace_oid != catalog::INVALID_NAMESPACE_OID);
+  txn_manager.Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+
+  // Drop the namespace
+  txn = txn_manager.BeginTransaction();
+  EXPECT_TRUE(db_catalog->DeleteNamespace(txn, namespace_oid));
+  txn_manager.Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+
+  // Guarantee persist of log records
+  log_manager.PersistAndStop();
+
+  /* CRASH */
+
+  // Start a transaction manager with logging disabled, we don't want to log the log replaying
+  transaction::TransactionManager recovery_txn_manager{&pool_, true, LOGGING_DISABLED};
+
+  // Create catalog for recovery
+  catalog::Catalog recovered_catalog(&recovery_txn_manager, &block_store_);
+
+  // Instantiate recovery manager, and recover the catalog.
+  DiskLogProvider log_provider(LOG_FILE_NAME);
+  RecoveryManager recovery_manager(&log_provider, common::ManagedPointer(&recovered_catalog), &recovery_txn_manager,
+                                   common::ManagedPointer(&thread_registry_), &block_store_);
+  recovery_manager.StartRecovery();
+  recovery_manager.FinishRecovery();
+
+  // Assert the database we created exists
+  txn = recovery_txn_manager.BeginTransaction();
+  EXPECT_EQ(db_oid, recovered_catalog.GetDatabaseOid(txn, database_name));
+  db_catalog = recovered_catalog.GetDatabaseCatalog(txn, db_oid);
+  EXPECT_TRUE(db_catalog);
+
+  // Assert the namespace we deleted doesn't exist
+  EXPECT_EQ(catalog::INVALID_NAMESPACE_OID, db_catalog->GetNamespaceOid(txn, namespace_name));
+  recovery_txn_manager.Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+}
+
 // Tests that we correctly process cascading deletes originating from a drop database command.
 TEST_F(RecoveryTests, DropDatabaseCascadeDeleteTest) {
   std::string database_name = "testdb";
@@ -325,7 +383,4 @@ TEST_F(RecoveryTests, DropDatabaseCascadeDeleteTest) {
   EXPECT_EQ(catalog::INVALID_DATABASE_OID, recovered_catalog.GetDatabaseOid(txn, database_name));
   EXPECT_FALSE(recovered_catalog.GetDatabaseCatalog(txn, db_oid));
 }
-
-// TODO(Gus): Drop namespace test
-
 }  // namespace terrier::storage
