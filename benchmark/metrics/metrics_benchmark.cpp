@@ -231,26 +231,29 @@ BENCHMARK_DEFINE_F(MetricsBenchmark, AggregateScalability)(benchmark::State &sta
   state.SetItemsProcessed(state.iterations() * num_iters_ * num_threads_);
 }
 
-BENCHMARK_REGISTER_F(MetricsBenchmark, RecordScalability)->Unit(benchmark::kMillisecond)->UseManualTime()->MinTime(3);
-BENCHMARK_REGISTER_F(MetricsBenchmark, AggregateScalability)->Unit(benchmark::kNanosecond)->UseManualTime()->Iterations(10);
-
-// BENCHMARK_REGISTER_F(MetricsBenchmark, AlwaysTimerNoConditional)
-//    ->Unit(benchmark::kMicrosecond)
-//    ->UseManualTime()
-//    ->Iterations(12);
-// BENCHMARK_REGISTER_F(MetricsBenchmark, AlwaysTimerConditional)
-//    ->Unit(benchmark::kMicrosecond)
-//    ->UseManualTime()
-//    ->Iterations(12);
-// BENCHMARK_REGISTER_F(MetricsBenchmark, NeverTimerNoConditional)
-//    ->Unit(benchmark::kMicrosecond)
-//    ->UseManualTime()
-//    ->Iterations(240);
-// BENCHMARK_REGISTER_F(MetricsBenchmark, NeverTimerConditional)
-//    ->Unit(benchmark::kMicrosecond)
-//    ->UseManualTime()
-//    ->Iterations(240);
 // BENCHMARK_REGISTER_F(MetricsBenchmark,
-// SometimesTimer)->Unit(benchmark::kMicrosecond)->UseManualTime()->Iterations(24);
+// RecordScalability)->Unit(benchmark::kMillisecond)->UseManualTime()->MinTime(3);
+// BENCHMARK_REGISTER_F(MetricsBenchmark, AggregateScalability)
+//    ->Unit(benchmark::kNanosecond)
+//    ->UseManualTime()
+//    ->Iterations(10);
+
+BENCHMARK_REGISTER_F(MetricsBenchmark, AlwaysTimerNoConditional)
+    ->Unit(benchmark::kMicrosecond)
+    ->UseManualTime()
+    ->Iterations(12);
+BENCHMARK_REGISTER_F(MetricsBenchmark, AlwaysTimerConditional)
+    ->Unit(benchmark::kMicrosecond)
+    ->UseManualTime()
+    ->Iterations(12);
+BENCHMARK_REGISTER_F(MetricsBenchmark, NeverTimerNoConditional)
+    ->Unit(benchmark::kMicrosecond)
+    ->UseManualTime()
+    ->Iterations(240);
+BENCHMARK_REGISTER_F(MetricsBenchmark, NeverTimerConditional)
+    ->Unit(benchmark::kMicrosecond)
+    ->UseManualTime()
+    ->Iterations(240);
+BENCHMARK_REGISTER_F(MetricsBenchmark, SometimesTimer)->Unit(benchmark::kMicrosecond)->UseManualTime()->Iterations(24);
 
 }  // namespace terrier

@@ -85,7 +85,7 @@ class MetricsStore {
   /**
    * MetricsManager pointer that created this MetricsStore
    */
-  const common::ManagedPointer<metrics::MetricsManager> MetricsManager() const { return metrics_manager_; }
+  common::ManagedPointer<metrics::MetricsManager> MetricsManager() const { return metrics_manager_; }
 
  private:
   friend class MetricsManager;

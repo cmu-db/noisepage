@@ -1,5 +1,6 @@
 #include <memory>
 #include <random>
+#include <string>
 #include <thread>  //NOLINT
 #include <unordered_map>
 #include <utility>
