@@ -4,11 +4,8 @@
 #include "storage/record_buffer.h"
 #include "storage/storage_defs.h"
 #include "storage/write_ahead_log/log_manager.h"
-<<<<<<< HEAD
 #include "transaction/deferred_action_manager.h"
 #include "transaction/timestamp_manager.h"
-=======
->>>>>>> master
 #include "transaction/transaction_manager.h"
 
 namespace terrier::di {

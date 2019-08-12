@@ -32,7 +32,7 @@ BENCHMARK_DEFINE_F(LargeTransactionBenchmark, TPCCish)(benchmark::State &state) 
   for (auto _ : state) {
     LargeTransactionBenchmarkObject tested(attr_sizes, initial_table_size, txn_length, insert_update_select_ratio,
                                            &block_store_, &buffer_pool_, &generator_, true);
-    gc_ = new storage::GarbageCollector(tested.GetTimestampManager(), DISABLED, tested.GetTxnManager());
+    gc_ = new storage::GarbageCollector(tested.GetTimestampManager(), DISABLED, tested.GetTxnManager(), DISABLED);
     gc_thread_ = new storage::GarbageCollectorThread(gc_, gc_period_);
     uint64_t elapsed_ms;
     {
@@ -59,7 +59,7 @@ BENCHMARK_DEFINE_F(LargeTransactionBenchmark, HighAbortRate)(benchmark::State &s
     // use a smaller table to make aborts more likely
     LargeTransactionBenchmarkObject tested(attr_sizes, 1000, txn_length, insert_update_select_ratio, &block_store_,
                                            &buffer_pool_, &generator_, true);
-    gc_ = new storage::GarbageCollector(tested.GetTimestampManager(), DISABLED, tested.GetTxnManager());
+    gc_ = new storage::GarbageCollector(tested.GetTimestampManager(), DISABLED, tested.GetTxnManager(), DISABLED);
     gc_thread_ = new storage::GarbageCollectorThread(gc_, gc_period_);
     uint64_t elapsed_ms;
     {
@@ -86,7 +86,7 @@ BENCHMARK_DEFINE_F(LargeTransactionBenchmark, SingleStatementInsert)(benchmark::
     // don't need any initial tuples
     LargeTransactionBenchmarkObject tested(attr_sizes, 0, txn_length, insert_update_select_ratio, &block_store_,
                                            &buffer_pool_, &generator_, true);
-    gc_ = new storage::GarbageCollector(tested.GetTimestampManager(), DISABLED, tested.GetTxnManager());
+    gc_ = new storage::GarbageCollector(tested.GetTimestampManager(), DISABLED, tested.GetTxnManager(), DISABLED);
     gc_thread_ = new storage::GarbageCollectorThread(gc_, gc_period_);
     uint64_t elapsed_ms;
     {
@@ -112,7 +112,7 @@ BENCHMARK_DEFINE_F(LargeTransactionBenchmark, SingleStatementUpdate)(benchmark::
   for (auto _ : state) {
     LargeTransactionBenchmarkObject tested(attr_sizes, initial_table_size, txn_length, insert_update_select_ratio,
                                            &block_store_, &buffer_pool_, &generator_, true);
-    gc_ = new storage::GarbageCollector(tested.GetTimestampManager(), DISABLED, tested.GetTxnManager());
+    gc_ = new storage::GarbageCollector(tested.GetTimestampManager(), DISABLED, tested.GetTxnManager(), DISABLED);
     gc_thread_ = new storage::GarbageCollectorThread(gc_, gc_period_);
     uint64_t elapsed_ms;
     {
@@ -139,7 +139,7 @@ BENCHMARK_DEFINE_F(LargeTransactionBenchmark, SingleStatementSelect)(benchmark::
     LargeTransactionBenchmarkObject tested(attr_sizes, initial_table_size, txn_length, insert_update_select_ratio,
                                            &block_store_, &buffer_pool_, &generator_, true);
 
-    gc_ = new storage::GarbageCollector(tested.GetTimestampManager(), DISABLED, tested.GetTxnManager());
+    gc_ = new storage::GarbageCollector(tested.GetTimestampManager(), DISABLED, tested.GetTxnManager(), DISABLED);
     gc_thread_ = new storage::GarbageCollectorThread(gc_, gc_period_);
     uint64_t elapsed_ms;
     {

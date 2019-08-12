@@ -500,7 +500,6 @@ TEST_F(GarbageCollectorTests, AbortUpdate1) {
     GarbageCollectorDataTableTestObject tested(&block_store_, max_columns_, &generator_);
     storage::GarbageCollector gc(&timestamp_manager, DISABLED, &txn_manager, DISABLED);
 
-
     auto *insert_tuple = tested.GenerateRandomTuple(&generator_);
 
     // insert the tuple to be Updated later
@@ -572,7 +571,6 @@ TEST_F(GarbageCollectorTests, AbortUpdate2) {
     GarbageCollectorDataTableTestObject tested(&block_store_, max_columns_, &generator_);
     storage::GarbageCollector gc(&timestamp_manager, DISABLED, &txn_manager, DISABLED);
 
-
     auto *insert_tuple = tested.GenerateRandomTuple(&generator_);
 
     // insert the tuple to be Updated later
@@ -643,7 +641,6 @@ TEST_F(GarbageCollectorTests, InsertUpdate1) {
     transaction::TransactionManager txn_manager(&timestamp_manager, DISABLED, &buffer_pool_, true, DISABLED);
     GarbageCollectorDataTableTestObject tested(&block_store_, max_columns_, &generator_);
     storage::GarbageCollector gc(&timestamp_manager, DISABLED, &txn_manager, DISABLED);
-
 
     auto *txn0 = txn_manager.BeginTransaction();
 

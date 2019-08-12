@@ -205,20 +205,6 @@ TransactionQueue TransactionManager::CompletedTransactionsForGC() {
   return std::move(completed_txns_);
 }
 
-<<<<<<< HEAD
-=======
-void TransactionManager::DeferAction(const Action &a) {
-  TERRIER_ASSERT(GCEnabled(), "Need GC enabled for deferred actions to be executed.");
-  common::SpinLatch::ScopedSpinLatch guard(&deferred_actions_latch_);
-  deferred_actions_.push({time_.load(), a});
-}
-
-std::queue<std::pair<timestamp_t, Action>> TransactionManager::DeferredActionsForGC() {
-  common::SpinLatch::ScopedSpinLatch guard(&deferred_actions_latch_);
-  return std::move(deferred_actions_);
-}
-
->>>>>>> master
 void TransactionManager::Rollback(TransactionContext *txn, const storage::UndoRecord &record) const {
   // No latch required for transaction-local operation
   storage::DataTable *const table = record.Table();

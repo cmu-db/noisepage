@@ -54,7 +54,7 @@ BENCHMARK_DEFINE_F(LoggingBenchmark, TPCCish)(benchmark::State &state) {
     // log all of the Inserts from table creation
     log_manager_->ForceFlush();
 
-    gc_ = new storage::GarbageCollector(tested.GetTimestampManager(), DISABLED, tested.GetTxnManager());
+    gc_ = new storage::GarbageCollector(tested.GetTimestampManager(), DISABLED, tested.GetTxnManager(), DISABLED);
     gc_thread_ = new storage::GarbageCollectorThread(gc_, gc_period_);
     uint64_t elapsed_ms;
     {
@@ -93,7 +93,7 @@ BENCHMARK_DEFINE_F(LoggingBenchmark, HighAbortRate)(benchmark::State &state) {
     // log all of the Inserts from table creation
     log_manager_->ForceFlush();
 
-    gc_ = new storage::GarbageCollector(tested.GetTimestampManager(), DISABLED, tested.GetTxnManager());
+    gc_ = new storage::GarbageCollector(tested.GetTimestampManager(), DISABLED, tested.GetTxnManager(), DISABLED);
     gc_thread_ = new storage::GarbageCollectorThread(gc_, gc_period_);
     uint64_t elapsed_ms;
     {
@@ -131,7 +131,7 @@ BENCHMARK_DEFINE_F(LoggingBenchmark, SingleStatementInsert)(benchmark::State &st
     // log all of the Inserts from table creation
     log_manager_->ForceFlush();
 
-    gc_ = new storage::GarbageCollector(tested.GetTimestampManager(), DISABLED, tested.GetTxnManager());
+    gc_ = new storage::GarbageCollector(tested.GetTimestampManager(), DISABLED, tested.GetTxnManager(), DISABLED);
     gc_thread_ = new storage::GarbageCollectorThread(gc_, gc_period_);
     uint64_t elapsed_ms;
     {
@@ -169,7 +169,7 @@ BENCHMARK_DEFINE_F(LoggingBenchmark, SingleStatementUpdate)(benchmark::State &st
     // log all of the Inserts from table creation
     log_manager_->ForceFlush();
 
-    gc_ = new storage::GarbageCollector(tested.GetTimestampManager(), DISABLED, tested.GetTxnManager());
+    gc_ = new storage::GarbageCollector(tested.GetTimestampManager(), DISABLED, tested.GetTxnManager(), DISABLED);
     gc_thread_ = new storage::GarbageCollectorThread(gc_, gc_period_);
     uint64_t elapsed_ms;
     {
@@ -207,7 +207,7 @@ BENCHMARK_DEFINE_F(LoggingBenchmark, SingleStatementSelect)(benchmark::State &st
     // log all of the Inserts from table creation
     log_manager_->ForceFlush();
 
-    gc_ = new storage::GarbageCollector(tested.GetTimestampManager(), DISABLED, tested.GetTxnManager());
+    gc_ = new storage::GarbageCollector(tested.GetTimestampManager(), DISABLED, tested.GetTxnManager(), DISABLED);
     gc_thread_ = new storage::GarbageCollectorThread(gc_, gc_period_);
     uint64_t elapsed_ms;
     {

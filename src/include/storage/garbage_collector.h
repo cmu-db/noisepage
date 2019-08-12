@@ -33,8 +33,7 @@ class GarbageCollector {
   //  eliminate this perceived redundancy of taking in a transaction manager.
   GarbageCollector(transaction::TimestampManager *timestamp_manager,
                    transaction::DeferredActionManager *deferred_action_manager,
-                   transaction::TransactionManager *txn_manager,
-                   AccessObserver *observer)
+                   transaction::TransactionManager *txn_manager, AccessObserver *observer)
       : timestamp_manager_(timestamp_manager),
         deferred_action_manager_(deferred_action_manager),
         txn_manager_(txn_manager),

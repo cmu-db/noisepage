@@ -97,7 +97,7 @@ TEST_F(TPCCTests, WithoutLogging) {
   // populate the tables and indexes
   Loader::PopulateDatabase(&txn_manager, &generator_, tpcc_db, workers);
 
-  gc_ = new storage::GarbageCollector(&timestamp_manager, &deferred_action_manager, &txn_manager);
+  gc_ = new storage::GarbageCollector(&timestamp_manager, &deferred_action_manager, &txn_manager, DISABLED);
   gc_thread_ = new storage::GarbageCollectorThread(gc_, gc_period_);
   Util::RegisterIndexesForGC(&(gc_thread_->GetGarbageCollector()), tpcc_db);
   std::this_thread::sleep_for(std::chrono::seconds(2));  // Let GC clean up
@@ -159,7 +159,7 @@ TEST_F(TPCCTests, WithLogging) {
   log_manager_->ForceFlush();
 
   // Let GC clean up
-  gc_ = new storage::GarbageCollector(&timestamp_manager, &deferred_action_manager, &txn_manager);
+  gc_ = new storage::GarbageCollector(&timestamp_manager, &deferred_action_manager, &txn_manager, DISABLED);
   gc_thread_ = new storage::GarbageCollectorThread(gc_, gc_period_);
   Util::RegisterIndexesForGC(&(gc_thread_->GetGarbageCollector()), tpcc_db);
   std::this_thread::sleep_for(std::chrono::seconds(2));
@@ -176,11 +176,8 @@ TEST_F(TPCCTests, WithLogging) {
   log_manager_->PersistAndStop();
   delete log_manager_;
   delete gc_thread_;
-<<<<<<< HEAD
   delete gc_;
-=======
   delete thread_registry_;
->>>>>>> master
   delete tpcc_db;
 
   CleanUpVarlensInPrecomputedArgs(&precomputed_args);

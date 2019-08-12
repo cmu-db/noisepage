@@ -53,18 +53,19 @@ void Catalog::TearDown() {
   }
 
   // Pass vars by value except for db_cats which we move
-  txn->RegisterCommitAction([=, db_cats{std::move(db_cats)}]() {
-    for (auto db : db_cats) {
-      auto del_action = DeallocateDatabaseCatalog(db);
-      txn_manager_->DeferAction(del_action);
-    }
-    // Pass vars to the deferral by value
-    txn_manager_->DeferAction([=]() {
-      delete databases_oid_index_;   // Delete the OID index
-      delete databases_name_index_;  // Delete the name index
-      delete databases_;             // Delete the table
-    });
-  });
+  txn->RegisterCommitAction(
+      [=, db_cats{std::move(db_cats)}](transaction::DeferredActionManager *deferred_action_manager) {
+        for (auto db : db_cats) {
+          auto del_action = DeallocateDatabaseCatalog(db);
+          deferred_action_manager->RegisterDeferredAction(del_action);
+        }
+        // Pass vars to the deferral by value
+        deferred_action_manager->RegisterDeferredAction([=](transaction::timestamp_t) {
+          delete databases_oid_index_;   // Delete the OID index
+          delete databases_name_index_;  // Delete the name index
+          delete databases_;             // Delete the table
+        });
+      });
 
   // Deallocate the buffer (not needed if hard-coded to be on stack).
   delete[] buffer;
@@ -80,7 +81,7 @@ db_oid_t Catalog::CreateDatabase(transaction::TransactionContext *const txn, con
   const db_oid_t db_oid = next_oid_++;
   DatabaseCatalog *dbc = postgres::Builder::CreateDatabaseCatalog(catalog_block_store_, db_oid);
   if (bootstrap) dbc->Bootstrap(txn);
-  txn->RegisterAbortAction([=]() {
+  txn->RegisterAbortAction([=](transaction::DeferredActionManager *deferred_action_manager) {
     dbc->TearDown(txn);
     delete dbc;
   });
@@ -100,7 +101,10 @@ bool Catalog::DeleteDatabase(transaction::TransactionContext *const txn, const d
 
   // Defer the de-allocation on commit because we need to scan the tables to find
   // live references at deletion that need to be deleted.
-  txn->RegisterCommitAction([=, del_action{std::move(del_action)}]() { txn_manager_->DeferAction(del_action); });
+  txn->RegisterCommitAction(
+      [=, del_action{std::move(del_action)}](transaction::DeferredActionManager *deferred_action_manager) {
+        deferred_action_manager->RegisterDeferredAction(del_action);
+      });
   return true;
 }
 
@@ -287,8 +291,8 @@ DatabaseCatalog *Catalog::DeleteDatabaseEntry(transaction::TransactionContext *t
   return dbc;
 }
 
-transaction::Action Catalog::DeallocateDatabaseCatalog(DatabaseCatalog *const dbc) {
-  return [=]() {
+transaction::DeferredAction Catalog::DeallocateDatabaseCatalog(DatabaseCatalog *const dbc) {
+  return [=](transaction::timestamp_t) {
     auto txn = txn_manager_->BeginTransaction();
     dbc->TearDown(txn);
     txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);

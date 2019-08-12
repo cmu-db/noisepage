@@ -140,6 +140,6 @@ class Catalog {
    * @param dbc pointing to the appropriate database catalog object
    * @return the action which can be deferred to the appropriate moment.
    */
-  transaction::Action DeallocateDatabaseCatalog(DatabaseCatalog *dbc);
+  transaction::DeferredAction DeallocateDatabaseCatalog(DatabaseCatalog *dbc);
 };
 }  // namespace terrier::catalog

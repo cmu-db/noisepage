@@ -77,7 +77,8 @@ class BwTreeIndexTests : public TerrierTest {
  protected:
   void SetUp() override {
     TerrierTest::SetUp();
-    gc_ = new storage::GarbageCollector(&timestamp_manager_, &deferred_action_mangaer_, &txn_manager_);
+
+    gc_ = new storage::GarbageCollector(&timestamp_manager_, &deferred_action_mangaer_, &txn_manager_, DISABLED);
     gc_thread_ = new storage::GarbageCollectorThread(gc_, gc_period_);
 
     unique_index_ = (IndexBuilder()

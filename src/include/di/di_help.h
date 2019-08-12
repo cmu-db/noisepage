@@ -45,7 +45,6 @@ struct deref_type<terrier::common::ManagedPointer<T>> {
 }  // namespace aux
 BOOST_DI_NAMESPACE_END
 
->>>>>>> master
 namespace terrier::di {
 // Effectively merges the boost::di namespace with terrier-specific helpers and wrappers
 using namespace boost::di;  // NOLINT
