@@ -1,3 +1,4 @@
+#include <array>
 #include <memory>
 #include <vector>
 
@@ -35,7 +36,8 @@ TEST_F(TableVectorIteratorTest, EmptyIteratorTest) {
   // Check to see that iteration doesn't begin without an input block
   //
   auto table_oid = exec_ctx_->GetAccessor()->GetTableOid(NSOid(), "empty_table");
-  TableVectorIterator iter(!table_oid, exec_ctx_.get());
+  std::array<u32, 1> col_oids{1};
+  TableVectorIterator iter(!table_oid, exec_ctx_.get(), col_oids.data(), static_cast<u32>(col_oids.size()));
   iter.Init();
   ASSERT_FALSE(iter.Advance());
 }
@@ -47,9 +49,8 @@ TEST_F(TableVectorIteratorTest, SimpleIteratorTest) {
   //
 
   auto table_oid = exec_ctx_->GetAccessor()->GetTableOid(NSOid(), "test_1");
-  const auto &schema = exec_ctx_->GetAccessor()->GetSchema(table_oid);
-  TableVectorIterator iter(!table_oid, exec_ctx_.get());
-  iter.AddCol(!schema.GetColumn("colA").Oid());
+  std::array<u32, 1> col_oids{1};
+  TableVectorIterator iter(!table_oid, exec_ctx_.get(), col_oids.data(), static_cast<u32>(col_oids.size()));
   iter.Init();
   ProjectedColumnsIterator *pci = iter.projected_columns_iterator();
 
@@ -70,14 +71,15 @@ TEST_F(TableVectorIteratorTest, SimpleIteratorTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(TableVectorIteratorTest, NullableTypesIteratorTest) {
+TEST_F(TableVectorIteratorTest, MultipleTypesIteratorTest) {
   //
   // Ensure we iterate over the whole table even the types of the columns are
   // different
   //
 
   auto table_oid = exec_ctx_->GetAccessor()->GetTableOid(NSOid(), "test_2");
-  TableVectorIterator iter(!table_oid, exec_ctx_.get());
+  std::array<u32, 4> col_oids{1, 2, 3, 4};
+  TableVectorIterator iter(!table_oid, exec_ctx_.get(), col_oids.data(), static_cast<u32>(col_oids.size()));
   iter.Init();
   ProjectedColumnsIterator *pci = iter.projected_columns_iterator();
 
@@ -99,15 +101,14 @@ TEST_F(TableVectorIteratorTest, NullableTypesIteratorTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(TableVectorIteratorTest, IteratorAddColTest) {
+TEST_F(TableVectorIteratorTest, IteratorColOidsTest) {
   //
   // Ensure we only iterate over specified columns
   //
 
   auto table_oid = exec_ctx_->GetAccessor()->GetTableOid(NSOid(), "test_2");
-  TableVectorIterator iter(!table_oid, exec_ctx_.get());
-  const auto &schema = exec_ctx_->GetAccessor()->GetSchema(table_oid);
-  iter.AddCol(!schema.GetColumn("col1").Oid());
+  std::array<u32, 1> col_oids{1};
+  TableVectorIterator iter(!table_oid, exec_ctx_.get(), col_oids.data(), static_cast<u32>(col_oids.size()));
   iter.Init();
   ProjectedColumnsIterator *pci = iter.projected_columns_iterator();
 

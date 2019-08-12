@@ -25,19 +25,15 @@ class TableVectorIterator {
    * Create a new vectorized iterator over the given table
    * @param table_oid oid of the table
    * @param exec_ctx execution context of the query
+   * @param col_oids array column oids to scan
+   * @param num_oids length of the array
    */
-  explicit TableVectorIterator(u32 table_oid, exec::ExecutionContext *exec_ctx);
+  explicit TableVectorIterator(u32 table_oid, exec::ExecutionContext *exec_ctx, u32 *col_oids, u32 num_oids);
 
   /**
    * Destructor
    */
   ~TableVectorIterator();
-
-  /**
-   * Add a column to the list of columns to scan
-   * @param col_oid oid of the column to scan
-   */
-  void AddCol(u32 col_oid) { col_oids_.emplace_back(col_oid); }
 
   /**
    * This class cannot be copied or moved
@@ -87,19 +83,18 @@ class TableVectorIterator {
                            ScanFn scan_fn, u32 min_grain_size = kMinBlockRangeSize);
 
  private:
+  const catalog::table_oid_t table_oid_;
+  exec::ExecutionContext *exec_ctx_;
+  std::vector<catalog::col_oid_t> col_oids_{};
   // The PCI
   ProjectedColumnsIterator pci_;
-  const catalog::table_oid_t table_oid_;
   // SqlTable to iterate over
   common::ManagedPointer<storage::SqlTable> table_{nullptr};
-  std::vector<catalog::col_oid_t> col_oids_{};
   // A PC and its buffer.
-  byte *buffer_ = nullptr;
+  void *buffer_ = nullptr;
   storage::ProjectedColumns *projected_columns_ = nullptr;
-
   // Iterator of the slots in the PC
   std::unique_ptr<storage::DataTable::SlotIterator> iter_ = nullptr;
-  exec::ExecutionContext *exec_ctx_;
 
   bool initialized = false;
 };

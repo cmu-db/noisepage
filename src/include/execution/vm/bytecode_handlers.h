@@ -202,12 +202,8 @@ void OpThreadStateContainerFree(terrier::execution::sql::ThreadStateContainer *t
 // Table Vector Iterator
 // ---------------------------------------------------------
 
-void OpTableVectorIteratorConstruct(terrier::execution::sql::TableVectorIterator *iter, u32 table_oid,
-                                    terrier::execution::exec::ExecutionContext *exec_ctx);
-
-VM_OP_HOT void OpTableVectorIteratorAddCol(terrier::execution::sql::TableVectorIterator *iter, u32 col_oid) {
-  iter->AddCol(col_oid);
-}
+void OpTableVectorIteratorInit(terrier::execution::sql::TableVectorIterator *iter, u32 table_oid,
+                               terrier::execution::exec::ExecutionContext *exec_ctx, u32 *col_oids, u32 num_oids);
 
 void OpTableVectorIteratorPerformInit(terrier::execution::sql::TableVectorIterator *iter);
 
@@ -1309,15 +1305,11 @@ VM_OP_WARM void OpUpper(terrier::execution::exec::ExecutionContext *ctx, terrier
 // ---------------------------------------------------------------
 // Index Iterator
 // ---------------------------------------------------------------
-void OpIndexIteratorConstruct(terrier::execution::sql::IndexIterator *iter, uint32_t table_oid, uint32_t index_oid,
-                              terrier::execution::exec::ExecutionContext *exec_ctx);
+void OpIndexIteratorInit(terrier::execution::sql::IndexIterator *iter, uint32_t table_oid, uint32_t index_oid,
+                         terrier::execution::exec::ExecutionContext *exec_ctx, u32 *col_oids, u32 num_oids);
 void OpIndexIteratorFree(terrier::execution::sql::IndexIterator *iter);
 
 void OpIndexIteratorPerformInit(terrier::execution::sql::IndexIterator *iter);
-
-VM_OP_HOT void OpIndexIteratorAddCol(terrier::execution::sql::IndexIterator *iter, uint32_t col_oid) {
-  iter->AddCol(col_oid);
-}
 
 VM_OP_HOT void OpIndexIteratorScanKey(terrier::execution::sql::IndexIterator *iter) { iter->ScanKey(); }
 

@@ -9,10 +9,12 @@
 #include "tbb/task_scheduler_init.h"
 
 namespace terrier::execution::sql {
-TableVectorIterator::TableVectorIterator(u32 table_oid, exec::ExecutionContext *exec_ctx)
-    : table_oid_(table_oid), exec_ctx_(exec_ctx) {}
+TableVectorIterator::TableVectorIterator(u32 table_oid, exec::ExecutionContext *exec_ctx, u32 *col_oids, u32 num_oids)
+    : table_oid_(table_oid), exec_ctx_(exec_ctx), col_oids_(col_oids, col_oids + num_oids) {}
 
-TableVectorIterator::~TableVectorIterator() { delete[] buffer_; }
+TableVectorIterator::~TableVectorIterator() {
+  exec_ctx_->GetMemoryPool()->Deallocate(buffer_, projected_columns_->Size());
+}
 
 bool TableVectorIterator::Init() {
   // Find the table
@@ -22,7 +24,7 @@ bool TableVectorIterator::Init() {
   // Initialize the projected column
   TERRIER_ASSERT(!col_oids_.empty(), "There must be at least one col oid!");
   auto pc_map = table_->InitializerForProjectedColumns(col_oids_, kDefaultVectorSize);
-  buffer_ = common::AllocationUtil::AllocateAligned(pc_map.first.ProjectedColumnsSize());
+  buffer_ = exec_ctx_->GetMemoryPool()->AllocateAligned(pc_map.first.ProjectedColumnsSize(), sizeof(u64), false);
   projected_columns_ = pc_map.first.Initialize(buffer_);
   initialized = true;
 

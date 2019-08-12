@@ -152,7 +152,6 @@ class Sema : public ast::AstVisitor<Sema> {
   void CheckBuiltinOutputFinalize(ast::CallExpr *call);
   void CheckBuiltinInsert(ast::CallExpr *call);
   void CheckBuiltinIndexIteratorInit(ast::CallExpr *call, ast::Builtin builtin);
-  void CheckBuiltinIndexIteratorAddCol(ast::CallExpr *call, ast::Builtin builtin);
   void CheckBuiltinIndexIteratorAdvance(ast::CallExpr *call);
   void CheckBuiltinIndexIteratorGet(ast::CallExpr *call, ast::Builtin builtin);
   void CheckBuiltinIndexIteratorSetKey(ast::CallExpr *call, ast::Builtin builtin);

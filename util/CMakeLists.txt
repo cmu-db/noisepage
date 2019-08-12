@@ -3,9 +3,9 @@ file(GLOB_RECURSE UTIL_SRCS ${PROJECT_SOURCE_DIR}/util/*.cpp ${PROJECT_SOURCE_DI
 list(REMOVE_ITEM UTIL_SRCS ${PROJECT_SOURCE_DIR}/util/execution/tpl.cpp)
 list(REMOVE_ITEM UTIL_SRCS ${PROJECT_SOURCE_DIR}/util/execution/gen_opt_bc.cpp)
 list(REMOVE_ITEM UTIL_SRCS ${PROJECT_SOURCE_DIR}/util/execution/bytecode_handlers_ir.cpp)
-add_library(util_shared SHARED ${UTIL_SRCS})
-target_link_libraries(util_shared terrier_shared ${TERRIER_LINK_LIBS})
-add_dependencies(util_shared terrier_shared)
+add_library(util_static STATIC ${UTIL_SRCS})
+target_link_libraries(util_static terrier_static ${TERRIER_LINK_LIBS})
+add_dependencies(util_static terrier_static)
 
 
 # The version number.
@@ -56,8 +56,8 @@ function(tpl_compile_to_ir SRC_FILE)
             OUTPUT ${OUTPUT_FILE}
             COMMAND ${CLANG} ${CLANG_IR_CXX_FLAGS} ${CLANG_IR_CXX_INCLUDES} ${FULL_NAME} -o ${OUTPUT_FILE}
             DEPENDS ${SRC_FILE})
-    add_custom_target(${BASE_NAME}_bc ALL DEPENDS ${OUTPUT_FILE})
-    add_dependencies(${BASE_NAME}_bc util_shared)
+    add_custom_target(${BASE_NAME}_bc ALL DEPENDS ${OUTPUT_FILE} ${TERRIER_SRCS} ${UTIL_SRCS})
+    add_dependencies(${BASE_NAME}_bc util_static)
     add_dependencies(gen_opt_bc ${BASE_NAME}_bc)
 endfunction(tpl_compile_to_ir)
 
@@ -77,7 +77,7 @@ tpl_compile_to_ir(execution/bytecode_handlers_ir.cpp)
 set(tpl_main "execution/tpl.cpp")
 add_executable(tpl ${tpl_main})
 add_dependencies(tpl gen_opt_bc)
-target_link_libraries(tpl util_shared)
+target_link_libraries(tpl util_static)
 
 ##################################################
 #

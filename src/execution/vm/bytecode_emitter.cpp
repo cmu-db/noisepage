@@ -249,8 +249,9 @@ void BytecodeEmitter::EmitThreadStateContainerReset(LocalVar tls, LocalVar state
   EmitAll(Bytecode::ThreadStateContainerReset, tls, state_size, init_fn, destroy_fn, ctx);
 }
 
-void BytecodeEmitter::EmitTableIterConstruct(Bytecode bytecode, LocalVar iter, u32 table_oid, LocalVar exec_ctx) {
-  EmitAll(bytecode, iter, table_oid, exec_ctx);
+void BytecodeEmitter::EmitTableIterInit(Bytecode bytecode, LocalVar iter, u32 table_oid, LocalVar exec_ctx,
+                                        LocalVar col_oids, uint32_t num_oids) {
+  EmitAll(bytecode, iter, table_oid, exec_ctx, col_oids, num_oids);
 }
 
 void BytecodeEmitter::EmitAddCol(Bytecode bytecode, LocalVar iter, u32 col_oid) { EmitAll(bytecode, iter, col_oid); }
@@ -314,9 +315,9 @@ void BytecodeEmitter::EmitOutputSetNull(Bytecode bytecode, LocalVar exec_ctx, Lo
   EmitAll(bytecode, exec_ctx, idx);
 }
 
-void BytecodeEmitter::EmitIndexIteratorConstruct(Bytecode bytecode, LocalVar iter, uint32_t table_oid,
-                                                 uint32_t index_oid, LocalVar exec_ctx) {
-  EmitAll(bytecode, iter, table_oid, index_oid, exec_ctx);
+void BytecodeEmitter::EmitIndexIteratorInit(Bytecode bytecode, LocalVar iter, uint32_t table_oid, uint32_t index_oid,
+                                            LocalVar exec_ctx, LocalVar col_oids, uint32_t num_oids) {
+  EmitAll(bytecode, iter, table_oid, index_oid, exec_ctx, col_oids, num_oids);
 }
 
 void BytecodeEmitter::EmitIndexIteratorFree(Bytecode bytecode, LocalVar iter) { EmitAll(bytecode, iter); }

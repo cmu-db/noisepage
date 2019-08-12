@@ -490,18 +490,13 @@ void VM::Interpret(const u8 *ip, Frame *frame) {
   // Table Vector and ProjectedColumns Iterator (PCI) ops
   // -------------------------------------------------------
 
-  OP(TableVectorIteratorConstruct) : {
+  OP(TableVectorIteratorInit) : {
     auto *iter = frame->LocalAt<sql::TableVectorIterator *>(READ_LOCAL_ID());
     auto table_oid = READ_UIMM4();
     auto exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
-    OpTableVectorIteratorConstruct(iter, table_oid, exec_ctx);
-    DISPATCH_NEXT();
-  }
-
-  OP(TableVectorIteratorAddCol) : {
-    auto *iter = frame->LocalAt<sql::TableVectorIterator *>(READ_LOCAL_ID());
-    auto col_oid = READ_UIMM4();
-    OpTableVectorIteratorAddCol(iter, col_oid);
+    auto col_oids = frame->LocalAt<u32 *>(READ_LOCAL_ID());
+    auto num_oids = READ_UIMM4();
+    OpTableVectorIteratorInit(iter, table_oid, exec_ctx, col_oids, num_oids);
     DISPATCH_NEXT();
   }
 
@@ -1395,25 +1390,20 @@ void VM::Interpret(const u8 *ip, Frame *frame) {
   // -------------------------------------------------------
   // Index Iterator
   // -------------------------------------------------------
-  OP(IndexIteratorConstruct) : {
+  OP(IndexIteratorInit) : {
     auto *iter = frame->LocalAt<sql::IndexIterator *>(READ_LOCAL_ID());
     auto table_oid = READ_UIMM4();
     auto index_oid = READ_UIMM4();
     auto exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
-    OpIndexIteratorConstruct(iter, table_oid, index_oid, exec_ctx);
+    auto col_oids = frame->LocalAt<u32 *>(READ_LOCAL_ID());
+    auto num_oids = READ_UIMM4();
+    OpIndexIteratorInit(iter, table_oid, index_oid, exec_ctx, col_oids, num_oids);
     DISPATCH_NEXT();
   }
 
   OP(IndexIteratorPerformInit) : {
     auto *iter = frame->LocalAt<sql::IndexIterator *>(READ_LOCAL_ID());
     OpIndexIteratorPerformInit(iter);
-    DISPATCH_NEXT();
-  }
-
-  OP(IndexIteratorAddCol) : {
-    auto *iter = frame->LocalAt<sql::IndexIterator *>(READ_LOCAL_ID());
-    auto col_oid = READ_UIMM4();
-    OpIndexIteratorAddCol(iter, col_oid);
     DISPATCH_NEXT();
   }
 

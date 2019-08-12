@@ -18,8 +18,11 @@ class IndexIterator {
    * @param table_oid oid of the table
    * @param index_oid oid of the index to iterate over.
    * @param exec_ctx execution containing of this query
+   * @param col_oids oids of the table columns
+   * @param num_oids number of oids
    */
-  explicit IndexIterator(uint32_t table_oid, uint32_t index_oid, exec::ExecutionContext *exec_ctx);
+  explicit IndexIterator(uint32_t table_oid, uint32_t index_oid, exec::ExecutionContext *exec_ctx, u32 *col_oids,
+                         u32 num_oids);
 
   /**
    * Initialize the projected row and begin scanning.
@@ -30,12 +33,6 @@ class IndexIterator {
    * Frees allocated resources.
    */
   ~IndexIterator();
-
-  /**
-   * Add a column to the list of columns to select
-   * @param col_oid oid of the column to select
-   */
-  void AddCol(u32 col_oid) { col_oids_.emplace_back(col_oid); }
 
   /**
    * Wrapper around the index's ScanKey
@@ -96,15 +93,15 @@ class IndexIterator {
 
  private:
   exec::ExecutionContext *exec_ctx_;
-  uint32_t curr_index_ = 0;
-  byte *index_buffer_;
-  byte *table_buffer_;
-  storage::ProjectedRow *index_pr_;
-  storage::ProjectedRow *table_pr_;
+  std::vector<catalog::col_oid_t> col_oids_;
   common::ManagedPointer<storage::index::Index> index_;
   common::ManagedPointer<storage::SqlTable> table_;
-  const catalog::Schema &schema_;
-  std::vector<catalog::col_oid_t> col_oids_;
+
+  uint32_t curr_index_ = 0;
+  void *index_buffer_;
+  void *table_buffer_;
+  storage::ProjectedRow *index_pr_;
+  storage::ProjectedRow *table_pr_;
   std::vector<storage::TupleSlot> tuples_{};
 };
 

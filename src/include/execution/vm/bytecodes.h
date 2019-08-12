@@ -99,8 +99,8 @@ namespace terrier::execution::vm {
   F(ThreadStateContainerFree, OperandType::Local)                                                                     \
                                                                                                                       \
   /* Table Vector Iterator */                                                                                         \
-  F(TableVectorIteratorConstruct, OperandType::Local, OperandType::UImm4, OperandType::Local)                         \
-  F(TableVectorIteratorAddCol, OperandType::Local, OperandType::UImm4)                                                \
+  F(TableVectorIteratorInit, OperandType::Local, OperandType::UImm4, OperandType::Local, OperandType::Local,          \
+    OperandType::UImm4)                                                                                               \
   F(TableVectorIteratorPerformInit, OperandType::Local)                                                               \
   F(TableVectorIteratorNext, OperandType::Local, OperandType::Local)                                                  \
   F(TableVectorIteratorFree, OperandType::Local)                                                                      \
@@ -326,8 +326,8 @@ namespace terrier::execution::vm {
   F(Insert, OperandType::Local, OperandType::Local, OperandType::Local)                                               \
                                                                                                                       \
   /* Index Iterator */                                                                                                \
-  F(IndexIteratorConstruct, OperandType::Local, OperandType::UImm4, OperandType::UImm4, OperandType::Local)           \
-  F(IndexIteratorAddCol, OperandType::Local, OperandType::UImm4)                                                      \
+  F(IndexIteratorInit, OperandType::Local, OperandType::UImm4, OperandType::UImm4, OperandType::Local,                \
+    OperandType::Local, OperandType::UImm4)                                                                           \
   F(IndexIteratorPerformInit, OperandType::Local)                                                                     \
   F(IndexIteratorScanKey, OperandType::Local)                                                                         \
   F(IndexIteratorFree, OperandType::Local)                                                                            \

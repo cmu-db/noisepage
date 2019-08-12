@@ -32,10 +32,8 @@ namespace terrier::execution::ast {
   F(ThreadStateContainerFree, tlsFree)                          \
                                                                 \
   /* Table scans */                                             \
-  F(TableIterConstruct, tableIterConstruct)                     \
-  F(TableIterConstructBind, tableIterConstructBind)             \
-  F(TableIterPerformInit, tableIterPerformInit)                 \
-  F(TableIterAddCol, tableIterAddCol)                           \
+  F(TableIterInit, tableIterInit)                               \
+  F(TableIterInitBind, tableIterInitBind)                       \
   F(TableIterAdvance, tableIterAdvance)                         \
   F(TableIterGetPCI, tableIterGetPCI)                           \
   F(TableIterClose, tableIterClose)                             \
@@ -145,10 +143,8 @@ namespace terrier::execution::ast {
   F(OutputFinalize, outputFinalize)                             \
                                                                 \
   /* Index */                                                   \
-  F(IndexIteratorConstruct, indexIteratorConstruct)             \
-  F(IndexIteratorConstructBind, indexIteratorConstructBind)     \
-  F(IndexIteratorPerformInit, indexIteratorPerformInit)         \
-  F(IndexIteratorAddCol, indexIteratorAddCol)                   \
+  F(IndexIteratorInit, indexIteratorInit)                       \
+  F(IndexIteratorInitBind, indexIteratorInitBind)               \
   F(IndexIteratorScanKey, indexIteratorScanKey)                 \
   F(IndexIteratorAdvance, indexIteratorAdvance)                 \
   F(IndexIteratorGetTinyInt, indexIteratorGetTinyInt)           \

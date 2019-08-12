@@ -162,7 +162,6 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
   if (kPrintTbc) {
     bytecode_module->PrettyPrint(&std::cout);
   }
-  EXECUTION_LOG_INFO("Number of bytecodes {}", bytecode_module->num_bytecodes());
 
   auto module = std::make_unique<vm::Module>(std::move(bytecode_module));
 

@@ -305,8 +305,11 @@ class BytecodeEmitter {
    * @param iter TVI to initialize
    * @param table_oid oid of the sql table
    * @param exec_ctx execution context
+   * @param col_oids array of oids
+   * @param num_oids length of the array
    */
-  void EmitTableIterConstruct(Bytecode bytecode, LocalVar iter, u32 table_oid, LocalVar exec_ctx);
+  void EmitTableIterInit(Bytecode bytecode, LocalVar iter, u32 table_oid, LocalVar exec_ctx, LocalVar col_oids,
+                         uint32_t num_oids);
 
   /**
    * Emit bytecode to add a column for scanning
@@ -418,9 +421,11 @@ class BytecodeEmitter {
    * @param table_oid oid of the table owning the index
    * @param index_oid oid of the index to use
    * @param exec_ctx the execution context
+   * @param col_oids array of oids
+   * @param num_oids length of the array
    */
-  void EmitIndexIteratorConstruct(Bytecode bytecode, LocalVar iter, uint32_t table_oid, uint32_t index_oid,
-                                  LocalVar exec_ctx);
+  void EmitIndexIteratorInit(Bytecode bytecode, LocalVar iter, uint32_t table_oid, uint32_t index_oid,
+                             LocalVar exec_ctx, LocalVar col_oids, uint32_t num_oids);
 
   /**
    * Emit code to free an index iterator

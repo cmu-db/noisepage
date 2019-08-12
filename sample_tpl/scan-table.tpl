@@ -6,9 +6,10 @@
 fun main(execCtx: *ExecutionContext) -> int64 {
   var ret = 0
   var tvi: TableVectorIterator
-  @tableIterConstructBind(&tvi, "test_1", execCtx)
-  @tableIterAddCol(&tvi, 1) // colA
-  @tableIterPerformInit(&tvi)
+  var oids: [1]uint32
+  oids[0] = 1
+
+  @tableIterInitBind(&tvi, "test_1", execCtx, oids)
   for (@tableIterAdvance(&tvi)) {
     var pci = @tableIterGetPCI(&tvi)
     for (; @pciHasNext(pci); @pciAdvance(pci)) {

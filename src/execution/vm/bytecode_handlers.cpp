@@ -23,10 +23,10 @@ void OpThreadStateContainerFree(terrier::execution::sql::ThreadStateContainer *c
 // Table Vector Iterator
 // ---------------------------------------------------------
 
-void OpTableVectorIteratorConstruct(terrier::execution::sql::TableVectorIterator *iter, u32 table_oid,
-                                    terrier::execution::exec::ExecutionContext *exec_ctx) {
+void OpTableVectorIteratorInit(terrier::execution::sql::TableVectorIterator *iter, u32 table_oid,
+                               terrier::execution::exec::ExecutionContext *exec_ctx, u32 *col_oids, u32 num_oids) {
   TPL_ASSERT(iter != nullptr, "Null iterator to initialize");
-  new (iter) terrier::execution::sql::TableVectorIterator(table_oid, exec_ctx);
+  new (iter) terrier::execution::sql::TableVectorIterator(table_oid, exec_ctx, col_oids, num_oids);
 }
 
 void OpTableVectorIteratorPerformInit(terrier::execution::sql::TableVectorIterator *iter) { iter->Init(); }
@@ -200,9 +200,9 @@ void OpInsert(terrier::execution::exec::ExecutionContext *exec_ctx, u32 table_oi
 // -------------------------------------------------------------------
 // Index Iterator
 // -------------------------------------------------------------------
-void OpIndexIteratorConstruct(terrier::execution::sql::IndexIterator *iter, uint32_t table_oid, uint32_t index_oid,
-                              terrier::execution::exec::ExecutionContext *exec_ctx) {
-  new (iter) terrier::execution::sql::IndexIterator(table_oid, index_oid, exec_ctx);
+void OpIndexIteratorInit(terrier::execution::sql::IndexIterator *iter, uint32_t table_oid, uint32_t index_oid,
+                         terrier::execution::exec::ExecutionContext *exec_ctx, u32 *col_oids, u32 num_oids) {
+  new (iter) terrier::execution::sql::IndexIterator(table_oid, index_oid, exec_ctx, col_oids, num_oids);
 }
 
 void OpIndexIteratorPerformInit(terrier::execution::sql::IndexIterator *iter) { iter->Init(); }

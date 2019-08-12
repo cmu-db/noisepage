@@ -836,8 +836,8 @@ void Sema::CheckBuiltinTableIterCall(ast::CallExpr *call, ast::Builtin builtin) 
   }
 
   switch (builtin) {
-    case ast::Builtin::TableIterConstruct: {
-      if (!CheckArgCount(call, 3)) {
+    case ast::Builtin::TableIterInit: {
+      if (!CheckArgCount(call, 4)) {
         return;
       }
       // The second argument is a table oid
@@ -851,11 +851,21 @@ void Sema::CheckBuiltinTableIterCall(ast::CallExpr *call, ast::Builtin builtin) 
         ReportIncorrectCallArg(call, 2, GetBuiltinType(exec_ctx_kind)->PointerTo());
         return;
       }
+      // The fourth argument is a u32 array
+      if (!call_args[3]->type()->IsArrayType()) {
+        ReportIncorrectCallArg(call, 3, "Fourth argument should be a fixed length uint32 array");
+        return;
+      }
+      auto *arr_type = call_args[3]->type()->SafeAs<ast::ArrayType>();
+      auto u32_kind = ast::BuiltinType::Uint32;
+      if (!arr_type->element_type()->IsSpecificBuiltin(u32_kind) || !arr_type->HasKnownLength()) {
+        ReportIncorrectCallArg(call, 3, "Fourth argument should be a fixed length uint32 array");
+      }
       call->set_type(GetBuiltinType(ast::BuiltinType::Nil));
       break;
     }
-    case ast::Builtin::TableIterConstructBind: {
-      if (!CheckArgCount(call, 3)) {
+    case ast::Builtin::TableIterInitBind: {
+      if (!CheckArgCount(call, 4)) {
         return;
       }
       // The second argument is the table name as a literal string
@@ -869,25 +879,15 @@ void Sema::CheckBuiltinTableIterCall(ast::CallExpr *call, ast::Builtin builtin) 
         ReportIncorrectCallArg(call, 2, GetBuiltinType(exec_ctx_kind)->PointerTo());
         return;
       }
-      call->set_type(GetBuiltinType(ast::BuiltinType::Nil));
-      break;
-    }
-    case ast::Builtin::TableIterPerformInit: {
-      if (!CheckArgCount(call, 1)) {
+      // The fourth argument is a u32 array
+      if (!call_args[3]->type()->IsArrayType()) {
+        ReportIncorrectCallArg(call, 3, "Fourth argument should be a uint32 array");
         return;
       }
-      // Return nothing
-      call->set_type(GetBuiltinType(ast::BuiltinType::Nil));
-      break;
-    }
-    case ast::Builtin::TableIterAddCol: {
-      if (!CheckArgCount(call, 2)) {
-        return;
-      }
-      // Second argument must a col oid
-      if (!call->arguments()[1]->IsIntegerLiteral()) {
-        ReportIncorrectCallArg(call, 1, GetBuiltinType(ast::BuiltinType::Int32));
-        return;
+      auto *arr_type = call_args[3]->type()->SafeAs<ast::ArrayType>();
+      auto u32_kind = ast::BuiltinType::Uint32;
+      if (!arr_type->element_type()->IsSpecificBuiltin(u32_kind)) {
+        ReportIncorrectCallArg(call, 3, "Fourth argument should be a uint32 array");
       }
       call->set_type(GetBuiltinType(ast::BuiltinType::Nil));
       break;
@@ -1463,8 +1463,8 @@ void Sema::CheckBuiltinIndexIteratorInit(execution::ast::CallExpr *call, ast::Bu
     return;
   }
   switch (builtin) {
-    case ast::Builtin::IndexIteratorConstruct: {
-      if (!CheckArgCount(call, 4)) {
+    case ast::Builtin::IndexIteratorInit: {
+      if (!CheckArgCount(call, 5)) {
         return;
       }
       // The second argument is a table oid
@@ -1483,9 +1483,19 @@ void Sema::CheckBuiltinIndexIteratorInit(execution::ast::CallExpr *call, ast::Bu
         ReportIncorrectCallArg(call, 3, GetBuiltinType(exec_ctx_kind)->PointerTo());
         return;
       }
+      // The fifth argument is a u32 array
+      if (!call->arguments()[4]->type()->IsArrayType()) {
+        ReportIncorrectCallArg(call, 4, "Fifth argument should be a fixed length uint32 array");
+        return;
+      }
+      auto *arr_type = call->arguments()[4]->type()->SafeAs<ast::ArrayType>();
+      auto u32_kind = ast::BuiltinType::Uint32;
+      if (!arr_type->element_type()->IsSpecificBuiltin(u32_kind) || !arr_type->HasKnownLength()) {
+        ReportIncorrectCallArg(call, 4, "Fifth argument should be a fixed length uint32 array");
+      }
       break;
     }
-    case ast::Builtin::IndexIteratorConstructBind: {
+    case ast::Builtin::IndexIteratorInitBind: {
       if (!CheckArgCount(call, 4)) {
         return;
       }
@@ -1505,11 +1515,15 @@ void Sema::CheckBuiltinIndexIteratorInit(execution::ast::CallExpr *call, ast::Bu
         ReportIncorrectCallArg(call, 3, GetBuiltinType(exec_ctx_kind)->PointerTo());
         return;
       }
-      break;
-    }
-    case ast::Builtin::IndexIteratorPerformInit: {
-      if (!CheckArgCount(call, 1)) {
+      // The fifth argument is a u32 array
+      if (!call->arguments()[4]->type()->IsArrayType()) {
+        ReportIncorrectCallArg(call, 4, "Fifth argument should be a fixed length uint32 array");
         return;
+      }
+      auto *arr_type = call->arguments()[4]->type()->SafeAs<ast::ArrayType>();
+      auto u32_kind = ast::BuiltinType::Uint32;
+      if (!arr_type->element_type()->IsSpecificBuiltin(u32_kind) || !arr_type->HasKnownLength()) {
+        ReportIncorrectCallArg(call, 4, "Fifth argument should be a fixed length uint32 array");
       }
       break;
     }
@@ -1519,26 +1533,6 @@ void Sema::CheckBuiltinIndexIteratorInit(execution::ast::CallExpr *call, ast::Bu
 
   // Return nothing
   call->set_type(GetBuiltinType(ast::BuiltinType::Nil));
-}
-
-void Sema::CheckBuiltinIndexIteratorAddCol(execution::ast::CallExpr *call, ast::Builtin builtin) {
-  if (!CheckArgCount(call, 2)) {
-    return;
-  }
-  // First argument must be a pointer to a IndexIterator
-  auto index_kind = ast::BuiltinType::IndexIterator;
-  if (!IsPointerToSpecificBuiltin(call->arguments()[0]->type(), index_kind)) {
-    ReportIncorrectCallArg(call, 0, GetBuiltinType(index_kind)->PointerTo());
-    return;
-  }
-
-  // Second argument must a col oid
-  if (!call->arguments()[1]->IsIntegerLiteral()) {
-    ReportIncorrectCallArg(call, 1, GetBuiltinType(ast::BuiltinType::Int32));
-    return;
-  }
-  // Return a boolean
-  call->set_type(ast::BuiltinType::Get(context(), ast::BuiltinType::Nil));
 }
 
 void Sema::CheckBuiltinIndexIteratorScanKey(execution::ast::CallExpr *call) {
@@ -1715,10 +1709,8 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
       CheckBuiltinThreadStateContainerCall(call, builtin);
       break;
     }
-    case ast::Builtin::TableIterConstruct:
-    case ast::Builtin::TableIterConstructBind:
-    case ast::Builtin::TableIterPerformInit:
-    case ast::Builtin::TableIterAddCol:
+    case ast::Builtin::TableIterInit:
+    case ast::Builtin::TableIterInitBind:
     case ast::Builtin::TableIterAdvance:
     case ast::Builtin::TableIterGetPCI:
     case ast::Builtin::TableIterClose: {
@@ -1884,9 +1876,8 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
       CheckBuiltinInsert(call);
       break;
     }
-    case ast::Builtin::IndexIteratorConstruct:
-    case ast::Builtin::IndexIteratorConstructBind:
-    case ast::Builtin::IndexIteratorPerformInit: {
+    case ast::Builtin::IndexIteratorInit:
+    case ast::Builtin::IndexIteratorInitBind: {
       CheckBuiltinIndexIteratorInit(call, builtin);
       break;
     }
@@ -1896,10 +1887,6 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
     }
     case ast::Builtin::IndexIteratorAdvance: {
       CheckBuiltinIndexIteratorAdvance(call);
-      break;
-    }
-    case ast::Builtin::IndexIteratorAddCol: {
-      CheckBuiltinIndexIteratorAddCol(call, builtin);
       break;
     }
     case ast::Builtin::IndexIteratorGetTinyInt:
