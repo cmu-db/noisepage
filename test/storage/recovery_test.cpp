@@ -161,6 +161,7 @@ TEST_F(RecoveryTests, MultiDatabaseTest) {
 
 // TODO(Gus): Add an abort test
 
+// Tests that we correctly process records corresponding to a drop database command.
 TEST_F(RecoveryTests, DropDatabaseTest) {
   std::string database_name = "testdb";
   // Bring up original components
@@ -207,6 +208,7 @@ TEST_F(RecoveryTests, DropDatabaseTest) {
   EXPECT_FALSE(recovered_catalog.GetDatabaseCatalog(txn, db_oid));
 }
 
+// Tests that we correctly process records corresponding to a drop table command.
 TEST_F(RecoveryTests, DropTableTest) {
   std::string database_name = "testdb";
   auto namespace_oid = catalog::NAMESPACE_DEFAULT_NAMESPACE_OID;
@@ -267,8 +269,63 @@ TEST_F(RecoveryTests, DropTableTest) {
   recovery_txn_manager.Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 }
 
-// TODO(Gus): Drop namespace test
+// Tests that we correctly process cascading deletes originating from a drop database command.
+TEST_F(RecoveryTests, DropDatabaseCascadeDeleteTest) {
+  std::string database_name = "testdb";
+  auto namespace_oid = catalog::NAMESPACE_DEFAULT_NAMESPACE_OID;
+  std::string table_name = "testtable";
+  // Bring up original components
+  LogManager log_manager(LOG_FILE_NAME, num_log_buffers_, log_serialization_interval_, log_persist_interval_,
+                         log_persist_threshold_, &pool_, common::ManagedPointer(&thread_registry_));
+  log_manager.Start();
+  transaction::TransactionManager txn_manager{&pool_, true, &log_manager};
+  catalog::Catalog catalog(&txn_manager, &block_store_);
 
-// TODO(Gus): test cascading delete: drop a database with a table in it already
+  // Create database
+  auto *txn = txn_manager.BeginTransaction();
+  auto db_oid = catalog.CreateDatabase(txn, database_name, true /* bootstrap */);
+  EXPECT_TRUE(db_oid != catalog::INVALID_DATABASE_OID);
+  txn_manager.Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+
+  // Create the table
+  txn = txn_manager.BeginTransaction();
+  auto db_catalog = catalog.GetDatabaseCatalog(txn, db_oid);
+  auto table_oid =
+      db_catalog->CreateTable(txn, namespace_oid, table_name, *(StorageTestUtil::RandomSchemaNoVarlen(5, &generator_)));
+  EXPECT_TRUE(table_oid != catalog::INVALID_TABLE_OID);
+  txn_manager.Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+
+  // Drop the database
+  txn = txn_manager.BeginTransaction();
+  EXPECT_TRUE(catalog.DeleteDatabase(txn, db_oid));
+  txn_manager.Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+  EXPECT_EQ(catalog::INVALID_DATABASE_OID, catalog.GetDatabaseOid(txn, database_name));
+  EXPECT_FALSE(catalog.GetDatabaseCatalog(txn, db_oid));
+
+  // Guarantee persist of log records
+  log_manager.PersistAndStop();
+
+  /* CRASH */
+
+  // Start a transaction manager with logging disabled, we don't want to log the log replaying
+  transaction::TransactionManager recovery_txn_manager{&pool_, true, LOGGING_DISABLED};
+
+  // Create catalog for recovery
+  catalog::Catalog recovered_catalog(&recovery_txn_manager, &block_store_);
+
+  // Instantiate recovery manager, and recover the catalog.
+  DiskLogProvider log_provider(LOG_FILE_NAME);
+  RecoveryManager recovery_manager(&log_provider, common::ManagedPointer(&recovered_catalog), &recovery_txn_manager,
+                                   common::ManagedPointer(&thread_registry_), &block_store_);
+  recovery_manager.StartRecovery();
+  recovery_manager.FinishRecovery();
+
+  // Assert the database does not exist
+  txn = recovery_txn_manager.BeginTransaction();
+  EXPECT_EQ(catalog::INVALID_DATABASE_OID, recovered_catalog.GetDatabaseOid(txn, database_name));
+  EXPECT_FALSE(recovered_catalog.GetDatabaseCatalog(txn, db_oid));
+}
+
+// TODO(Gus): Drop namespace test
 
 }  // namespace terrier::storage
