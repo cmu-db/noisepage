@@ -3629,7 +3629,8 @@ namespace internals {
 #include <unistd.h>
 const int PAGE_SIZE = getpagesize();
 #else
-//const int PAGE_SIZE = 4096; Already defined on macOS @ /usr/include/mach/i386/vm_param.h:98
+#undef PAGE_SIZE // Already defined on macOS @ /usr/include/mach/i386/vm_param.h
+const int PAGE_SIZE = 4096;
 #endif
 
 /** For functions that lazy load a large CSV, this determines how
@@ -5663,3 +5664,7 @@ unsigned short ColumnPositions::split_at(int n) const {
 }
 }
 }
+
+#if __APPLE__
+#define PAGE_SIZE               I386_PGBYTES
+#endif
