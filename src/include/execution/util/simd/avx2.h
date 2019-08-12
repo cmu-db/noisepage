@@ -822,6 +822,21 @@ struct FilterVecSizer<i64> {
 };
 
 /**
+ * intptr_t Filter
+ */
+template <>
+struct FilterVecSizer<intptr_t> {
+  /**
+   * Four 64-bit integer values.
+   */
+  using Vec = Vec4;
+  /**
+   * Mask for four 64-bit integer values.
+   */
+  using VecMask = Vec4Mask;
+};
+
+/**
  * Arbitrary Filter
  */
 template <typename T>
