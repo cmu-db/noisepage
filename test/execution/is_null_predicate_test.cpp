@@ -1,5 +1,6 @@
 #include "execution/tpl_test.h"
 
+#include <time.h>
 #include "execution/sql/functions/is_null_predicate.h"
 #include "execution/sql/value.h"
 
@@ -46,7 +47,7 @@ TEST_F(IsNullPredicateTests, IsNotNull) {
   CHECK_IS_NOT_NULL_FOR_TYPE(Date, 44);
   {
     struct timespec ts;
-    timespec_get(&ts, TIME_UTC);
+    clock_gettime(CLOCK_REALTIME, &ts);
     CHECK_IS_NOT_NULL_FOR_TYPE(Timestamp, ts);
   }
 
