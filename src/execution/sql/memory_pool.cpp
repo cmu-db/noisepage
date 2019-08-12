@@ -8,7 +8,7 @@
 namespace terrier::execution::sql {
 
 // If the allocation size is larger than this value, use huge pages
-std::atomic<std::size_t> MemoryPool::kMmapThreshold = 64 * MB;
+std::atomic<u64> MemoryPool::kMmapThreshold = 64 * MB;
 
 // Minimum alignment to abide by
 static constexpr u32 kMinMallocAlignment = 8;
@@ -32,7 +32,7 @@ void *MemoryPool::AllocateAligned(const std::size_t size, const std::size_t alig
         buf = std::malloc(size);
       }
     } else {
-      buf = std::aligned_alloc(alignment, size);
+      buf = util::MallocAligned(alignment, size);
       if (clear) {
         std::memset(buf, 0, size);
       }
