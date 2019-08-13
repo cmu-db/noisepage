@@ -3,26 +3,27 @@ struct output_struct {
   col2: Integer
 }
 
-// SELECT colB, colC from test_1 WHERE colA < 500
+// SELECT col1, col2 from test_2 WHERE col1 < 500
 fun main(execCtx: *ExecutionContext) -> int {
+  var count = 0
   var out : *output_struct
   var tvi: TableVectorIterator
-  @tableIterConstructBind(&tvi, "test_1", execCtx, "t1")
-  @tableIterAddCol(&tvi, 1)
-  @tableIterAddCol(&tvi, 2)
-  @tableIterPerformInitBind(&tvi, "t1")
+  var oids: [2]uint32
+  oids[0] = 1 // col1
+  oids[1] = 2 // col2
+  @tableIterInitBind(&tvi, "test_2", execCtx, oids)
   for (@tableIterAdvance(&tvi)) {
     var pci = @tableIterGetPCI(&tvi)
     for (; @pciHasNext(pci); @pciAdvance(pci)) {
-      if (@pciGetBind(pci, "t1", "colA") < 500) {
+      if (@pciGetSmallInt(pci, 1) < 500) {
         out = @ptrCast(*output_struct, @outputAlloc(execCtx))
-        out.col1 = @pciGetBind(pci, "t1", "colA")
-        out.col2 = @pciGetBind(pci, "t1", "colB")
-        @outputAdvance(execCtx)
+        out.col1 = @pciGetSmallInt(pci, 1)
+        out.col2 = @pciGetIntNull(pci, 0)
+        count = count + 1
       }
     }
   }
   @outputFinalize(execCtx)
   @tableIterClose(&tvi)
-  return 0
+  return count
 }

@@ -1393,22 +1393,6 @@ void Sema::CheckBuiltinOutputAlloc(execution::ast::CallExpr *call) {
   call->set_type(ret_type);
 }
 
-void Sema::CheckBuiltinOutputAdvance(execution::ast::CallExpr *call) {
-  if (!CheckArgCount(call, 1)) {
-    return;
-  }
-
-  // The first call argument must an execution context
-  auto exec_ctx_kind = ast::BuiltinType::ExecutionContext;
-  if (!IsPointerToSpecificBuiltin(call->arguments()[0]->type(), exec_ctx_kind)) {
-    ReportIncorrectCallArg(call, 0, GetBuiltinType(exec_ctx_kind)->PointerTo());
-    return;
-  }
-
-  // Return nothing
-  call->set_type(GetBuiltinType(ast::BuiltinType::Nil));
-}
-
 void Sema::CheckBuiltinOutputFinalize(execution::ast::CallExpr *call) {
   if (!CheckArgCount(call, 1)) {
     return;
@@ -1427,28 +1411,6 @@ void Sema::CheckBuiltinOutputFinalize(execution::ast::CallExpr *call) {
 
 void Sema::CheckBuiltinInsert(execution::ast::CallExpr *call) {
   if (!CheckArgCount(call, 3)) {
-    return;
-  }
-  // Return nothing
-  call->set_type(GetBuiltinType(ast::BuiltinType::Nil));
-}
-
-void Sema::CheckBuiltinOutputSetNull(execution::ast::CallExpr *call) {
-  if (!CheckArgCount(call, 2)) {
-    return;
-  }
-
-  // The first call argument must an execution context
-  auto exec_ctx_kind = ast::BuiltinType::ExecutionContext;
-  if (!IsPointerToSpecificBuiltin(call->arguments()[0]->type(), exec_ctx_kind)) {
-    ReportIncorrectCallArg(call, 0, GetBuiltinType(exec_ctx_kind)->PointerTo());
-    return;
-  }
-
-  // The argument should be an integer
-  auto *entry_size_type = call->arguments()[1]->type();
-  if (!entry_size_type->IsIntegerType()) {
-    ReportIncorrectCallArg(call, 1, GetBuiltinType(ast::BuiltinType::Uint32));
     return;
   }
   // Return nothing
@@ -1496,7 +1458,7 @@ void Sema::CheckBuiltinIndexIteratorInit(execution::ast::CallExpr *call, ast::Bu
       break;
     }
     case ast::Builtin::IndexIteratorInitBind: {
-      if (!CheckArgCount(call, 4)) {
+      if (!CheckArgCount(call, 5)) {
         return;
       }
       // The second argument must be the table's name
@@ -1858,14 +1820,6 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
     }
     case ast::Builtin::OutputAlloc: {
       CheckBuiltinOutputAlloc(call);
-      break;
-    }
-    case ast::Builtin::OutputAdvance: {
-      CheckBuiltinOutputAdvance(call);
-      break;
-    }
-    case ast::Builtin::OutputSetNull: {
-      CheckBuiltinOutputSetNull(call);
       break;
     }
     case ast::Builtin::OutputFinalize: {

@@ -182,12 +182,6 @@ void OpOutputAlloc(terrier::execution::exec::ExecutionContext *exec_ctx, byte **
   *result = exec_ctx->GetOutputBuffer()->AllocOutputSlot();
 }
 
-void OpOutputAdvance(terrier::execution::exec::ExecutionContext *exec_ctx) { exec_ctx->GetOutputBuffer()->Advance(); }
-
-void OpOutputSetNull(terrier::execution::exec::ExecutionContext *exec_ctx, u32 idx) {
-  exec_ctx->GetOutputBuffer()->SetNull(static_cast<u16>(idx), true);
-}
-
 void OpOutputFinalize(terrier::execution::exec::ExecutionContext *exec_ctx) { exec_ctx->GetOutputBuffer()->Finalize(); }
 
 // -------------------------------------------------------------

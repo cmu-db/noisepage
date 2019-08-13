@@ -318,9 +318,7 @@ namespace terrier::execution::vm {
                                                                                                                       \
   /* Output */                                                                                                        \
   F(OutputAlloc, OperandType::Local, OperandType::Local)                                                              \
-  F(OutputAdvance, OperandType::Local)                                                                                \
   F(OutputFinalize, OperandType::Local)                                                                               \
-  F(OutputSetNull, OperandType::Local, OperandType::Local)                                                            \
                                                                                                                       \
   /* Insert */                                                                                                        \
   F(Insert, OperandType::Local, OperandType::Local, OperandType::Local)                                               \

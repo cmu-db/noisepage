@@ -107,3 +107,18 @@ set_target_properties(tpl gen_opt_bc
         LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib"
         RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
         )
+
+##################################################
+#
+# Check TPL files
+#
+##################################################
+
+add_custom_target(check-tpl
+        DEPENDS tpl
+        COMMAND ${BUILD_SUPPORT_DIR}/run_tpl_tests.py
+        -b ${CMAKE_BINARY_DIR}/bin/tpl
+        -f ${PROJECT_SOURCE_DIR}/sample_tpl/tpl_tests.txt
+        -t ${PROJECT_SOURCE_DIR}/sample_tpl
+        -d ${CMAKE_BINARY_DIR}
+        )

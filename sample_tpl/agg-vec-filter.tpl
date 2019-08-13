@@ -6,6 +6,7 @@
 
 struct State {
   table: AggregationHashTable
+  count: int32
 }
 
 struct Agg {
@@ -17,6 +18,7 @@ struct Agg {
 
 fun setUpState(execCtx: *ExecutionContext, state: *State) -> nil {
   @aggHTInit(&state.table, @execCtxGetMem(execCtx), @sizeOf(Agg))
+  state.count = 0
 }
 
 fun tearDownState(state: *State) -> nil {
@@ -52,17 +54,27 @@ fun pipeline_1(execCtx: *ExecutionContext, state: *State) -> nil {
 
   // Setup the iterator and iterate
   var tvi: TableVectorIterator
-  @tableIterConstructBind(&tvi, "test_ns", "test_1", execCtx)
-  @tableIterAddCol(&tvi, 1)
-  @tableIterAddCol(&tvi, 2)
-  @tableIterPerformInit(&tvi)
+  var col_oids : [2]uint32
+  col_oids[0] = 1
+  col_oids[1] = 2
+  @tableIterInitBind(&tvi, "test_1", execCtx, col_oids)
   for (@tableIterAdvance(&tvi)) {
     var vec = @tableIterGetPCI(&tvi)
-    @filterLt(vec, "colA", 5000)
+    @filterLt(vec, 0, 4, 5000)
     iters[0] = vec
     @aggHTProcessBatch(ht, &iters, hashFn, keyCheck, constructAgg, updateAgg, false)
   }
   @tableIterClose(&tvi)
+}
+
+fun pipeline_2(execCtx: *ExecutionContext, state: *State) -> nil {
+  var agg_ht_iter: AggregationHashTableIterator
+  var iter = &agg_ht_iter
+  for (@aggHTIterInit(iter, &state.table); @aggHTIterHasNext(iter); @aggHTIterNext(iter)) {
+    var agg = @ptrCast(*Agg, @aggHTIterGetRow(iter))
+    state.count = state.count + 1
+  }
+  @aggHTIterClose(iter)
 }
 
 fun main(execCtx: *ExecutionContext) -> int32 {
@@ -74,8 +86,13 @@ fun main(execCtx: *ExecutionContext) -> int32 {
   // Run pipeline 1
   pipeline_1(execCtx, &state)
 
+  // Run pipeline 2
+  pipeline_2(execCtx, &state)
+
+  var ret = state.count
+
   // Cleanup
   tearDownState(&state)
 
-  return 0
+  return ret
 }

@@ -60,7 +60,8 @@ TEST_F(FilterManagerTest, SimpleFilterManagerTest) {
   filter.InsertClauseFlavor(Vectorized_Lt_500);
   filter.Finalize();
   auto table_oid = exec_ctx_->GetAccessor()->GetTableOid(NSOid(), "test_1");
-  TableVectorIterator tvi(!table_oid, exec_ctx_.get());
+  std::array<u32, 1> col_oids{1};
+  TableVectorIterator tvi(!table_oid, exec_ctx_.get(), col_oids.data(), static_cast<u32>(col_oids.size()));
   for (tvi.Init(); tvi.Advance();) {
     auto *pci = tvi.projected_columns_iterator();
 
@@ -83,7 +84,8 @@ TEST_F(FilterManagerTest, AdaptiveFilterManagerTest) {
   filter.InsertClauseFlavor(Vectorized_Lt_500);
   filter.Finalize();
   auto table_oid = exec_ctx_->GetAccessor()->GetTableOid(NSOid(), "test_1");
-  TableVectorIterator tvi(!table_oid, exec_ctx_.get());
+  std::array<u32, 1> col_oids{1};
+  TableVectorIterator tvi(!table_oid, exec_ctx_.get(), col_oids.data(), static_cast<u32>(col_oids.size()));
   for (tvi.Init(); tvi.Advance();) {
     auto *pci = tvi.projected_columns_iterator();
 

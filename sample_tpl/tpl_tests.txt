@@ -3,11 +3,11 @@
 ################################################################################
 
 array.tpl,false,44
-array-reference.tpl,false,9
+array-iterate.tpl,false,110
 call.tpl,false,70
+compare.tpl,false,1
 deref.tpl,false,404
 fib.tpl,false,832040
-function_pointer.tpl,false,20
 if.tpl,false,2
 if-2.tpl,false,1
 if-3.tpl,false,100
@@ -16,14 +16,13 @@ loop.tpl,false,45
 loop2.tpl,false,2195224853
 loop3.tpl,false,0
 loop4.tpl,false,3407912752
-map.tpl,false,10
 nil.tpl,false,0
 param.tpl,false,10
 pointer.tpl,false,10
+point.tpl,false,-20
 scope.tpl,false,3
 short-circuit.tpl,false,1
 simple.tpl,false,44
-single-line-comment.tpl,false,46
 struct.tpl,false,10
 struct-debug.tpl,false,100000
 struct-field-use.tpl,false,30
@@ -32,6 +31,8 @@ struct-nested-2.tpl,false,10
 struct-pointer.tpl,false,440
 test.tpl,false,356405
 while.tpl,false,10
+return-exp.tpl,false,2
+scope-2.tpl,false,42
 
 ################################################################################
 # TPL SQL tests
@@ -39,13 +40,18 @@ while.tpl,false,10
 
 agg.tpl,true,10
 agg-vec.tpl,true,10
-agg-vec-filter.tpl,true,0
-join.tpl,true,0
-parallel-join.tpl,true,0
-parallel-scan.tpl,true,0
+agg-vec-filter.tpl,true,10
+join.tpl,true,100786
+#parallel-join.tpl,true,0
+#parallel-scan.tpl,true,0
 scan-table.tpl,true,500
-scan-table-2.tpl,true,1999950
-scan-table-3.tpl,true,2000000
+scan-table-2.tpl,true,500
+scan-table-3.tpl,true,9950
+scan-table-4.tpl,true,5
 scan-vpi-iter.tpl,true,500
 sort.tpl,true,2000
-vec-filter.tpl,true,500
+vec-filter.tpl,true,3000
+output1.tpl,true,500
+scan-index.tpl,true,1
+scan-index-2.tpl,true,1
+join-index.tpl,true,894

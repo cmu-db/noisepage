@@ -10,14 +10,14 @@
 #include <vector>
 #include "catalog/catalog_defs.h"
 #include "catalog/schema.h"
+#include "execution/sql/memory_pool.h"
 #include "execution/util/common.h"
 #include "planner/plannodes/output_schema.h"
 
 namespace terrier::execution::exec {
 
-// Assumes the user of the callback knows the output schema
-// So it can get read attributes itself.
-// Params: tuples, null_bitmap, num_tuples, ;
+// Callback function
+// Params: tuples, num_tuples, tuple_size;
 using OutputCallback = std::function<void(byte *, u32, u32)>;
 
 /**
@@ -36,29 +36,25 @@ class OutputBuffer {
    * @param tuple_size size of output tuples
    * @param callback upper layer callback
    */
-  explicit OutputBuffer(u16 num_cols, u32 tuple_size, OutputCallback callback)
-      : num_tuples_(0),
+  explicit OutputBuffer(sql::MemoryPool *memory_pool, u16 num_cols, u32 tuple_size, OutputCallback callback)
+      : memory_pool_(memory_pool),
+        num_tuples_(0),
         tuple_size_(tuple_size),
-        tuples_(new byte[batch_size_ * tuple_size]),
+        tuples_(reinterpret_cast<byte *>(memory_pool->AllocateAligned(batch_size_ * tuple_size, sizeof(u64), false))),
         callback_(std::move(callback)) {}
 
   /**
    * @return an output slot to be written to.
    */
-  byte *AllocOutputSlot() { return tuples_ + tuple_size_ * num_tuples_; }
-
-  /**
-   * Advances the slot
-   */
-  void Advance();
-
-  /**
-   * Sets a particular tuple to null depending on value
-   * TODO(Amadou): Remove if unneeded.
-   * @param col_idx index of column
-   * @param value whether to set to null or not
-   */
-  void SetNull(u16 col_idx, bool value) {}
+  byte *AllocOutputSlot() {
+    if (num_tuples_ == batch_size_) {
+      callback_(tuples_, num_tuples_, tuple_size_);
+      num_tuples_ = 0;
+    }
+    // Return the current slot and advance to the to the next one.
+    num_tuples_++;
+    return tuples_ + tuple_size_ * (num_tuples_ - 1);
+  }
 
   /**
    * Called at the end of execution to return the final few tuples.
@@ -71,6 +67,7 @@ class OutputBuffer {
   ~OutputBuffer();
 
  private:
+  sql::MemoryPool *memory_pool_;
   u32 num_tuples_;
   u32 tuple_size_;
   byte *tuples_;

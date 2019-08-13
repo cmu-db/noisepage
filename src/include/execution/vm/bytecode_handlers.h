@@ -1504,10 +1504,6 @@ void OpInsert(terrier::execution::exec::ExecutionContext *exec_ctx, u32 table_oi
 
 void OpOutputAlloc(terrier::execution::exec::ExecutionContext *exec_ctx, byte **result);
 
-void OpOutputAdvance(terrier::execution::exec::ExecutionContext *exec_ctx);
-
-void OpOutputSetNull(terrier::execution::exec::ExecutionContext *exec_ctx, u32 idx);
-
 void OpOutputFinalize(terrier::execution::exec::ExecutionContext *exec_ctx);
 
 }  // extern "C"

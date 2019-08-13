@@ -1,4 +1,8 @@
-// This file performs index nested loop join of two tables
+// Perform an index join loop for the queury:
+// SELECT test_1.colA, test_1.colB, test_2.col1, test_2.col2 FROM test_1, test_2 WHERE test_1.colA=test_2.col1 AND test_1.colB=test_2.col2
+// The return value is non-deterministic. It is expected to be 900 (actually 894 the tested machine). This is because
+// 10% of the potential 1000 columns contain NULLs.
+// There should also be an std out output where the columns are similar
 
 struct Output {
   test1_colA: Integer
@@ -16,36 +20,31 @@ fun setupState(state : *State, execCtx : *ExecutionContext) -> nil {
   state.count = 0
 }
 
-// SELECT test_1.colA, test_1.colB, test_2.col1, test_2.col2 FROM test_1, test_2 WHERE test_1.colA=test_2.col1 AND test_1.colB=test_2.col2
-// The two columns outputted should be the same
 fun pipeline0(state : *State, execCtx : *ExecutionContext) -> nil {
+  var col_oids: [2]uint32
+  col_oids[0] = 1 // colA
+  col_oids[1] = 2 // colB
+
   var tvi : TableVectorIterator
-  @tableIterConstructBind(&tvi, "test_1", execCtx, "t1")
-  @tableIterAddColBind(&tvi, "t1", "colA")
-  @tableIterAddColBind(&tvi, "t1", "colB")
-  @tableIterPerformInitBind(&tvi, "t1")
+  @tableIterInitBind(&tvi, "test_1", execCtx, col_oids)
 
   var index : IndexIterator
-  @indexIteratorConstructBind(&index, "test_2", "index_2_multi", execCtx, "t2")
-  @indexIteratorAddColBind(&index, "t2", "col1")
-  @indexIteratorAddColBind(&index, "t2", "col2")
-  @indexIteratorPerformInitBind(&index, "t2")
+  @indexIteratorInitBind(&index, "test_2", "index_2_multi", execCtx, col_oids)
 
   // Iterate
   for (@tableIterAdvance(&tvi)) {
     var pci = @tableIterGetPCI(&tvi)
     for (; @pciHasNext(pci); @pciAdvance(pci)) {
       // Note that the storage layer reorders columns in test_2
-      @indexIteratorSetKeyBind(&index, "t2", "index_col1", @pciGetBind(pci, "t1", "colA"))
-      @indexIteratorSetKeyBind(&index, "t2", "index_col2", @pciGetBind(pci, "t1", "colB"))
+      @indexIteratorSetKeySmallInt(&index, 1, @pciGetInt(pci, 0))
+      @indexIteratorSetKeyInt(&index, 0, @pciGetInt(pci, 1))
       for (@indexIteratorScanKey(&index); @indexIteratorAdvance(&index);) {
         var out = @ptrCast(*Output, @outputAlloc(execCtx))
-        out.test1_colA = @pciGetBind(pci, "t1", "colA")
-        out.test1_colB = @pciGetBind(pci, "t1", "colB")
-        out.test2_col1 = @indexIteratorGetBind(&index, "t2", "col1")
-        out.test2_col2 = @indexIteratorGetBind(&index, "t2", "col2")
+        out.test1_colA = @pciGetInt(pci, 0)
+        out.test1_colB = @pciGetInt(pci, 1)
+        out.test2_col1 = @indexIteratorGetSmallInt(&index, 0)
+        out.test2_col2 = @indexIteratorGetIntNull(&index, 1)
         state.count = state.count + 1
-        @outputAdvance(execCtx)
       }
     }
   }

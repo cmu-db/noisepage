@@ -1,26 +1,32 @@
+// Perform(using an index):
+//
+// SELECT col1, col2 from test_2 WHERE col1 = 50
+//
+// Should return 1 (number of matching tuples)
+// Should also output "50, 7" to std out (the output tuple). The "7" is non deterministic.
+
 struct output_struct {
-  colA: Integer
-  colB: Integer
+  col1: Integer
+  col2: Integer
 }
 
-// SELECT * FROM test_1 WHERE colA=500;
 fun main(execCtx: *ExecutionContext) -> int64 {
   var res = 0
   // output variable
   var out : *output_struct
   // Index iterator
   var index : IndexIterator
-  @indexIteratorConstructBind(&index, "test_2", "index_2", execCtx, "t2")
-  @indexIteratorAddColBind(&index, "t2", "col1")
-  @indexIteratorAddColBind(&index, "t2", "col2")
-  @indexIteratorPerformInitBind(&index, "t2")
-  @indexIteratorSetKeyBind(&index, "t2", "index_col1", @intToSql(50))
+  var col_oids: [2]uint32
+  col_oids[0] = 1 // col1
+  col_oids[1] = 2 // col2
+  @indexIteratorInitBind(&index, "test_2", "index_2", execCtx, col_oids)
+  @indexIteratorSetKeySmallInt(&index, 0, @intToSql(50)) // Set index_col1
   // Attribute to indicate which iterator to use
   for (@indexIteratorScanKey(&index); @indexIteratorAdvance(&index);) {
     out = @ptrCast(*output_struct, @outputAlloc(execCtx))
-    out.colA = @indexIteratorGetBind(&index, "t2", "col1")
-    out.colB = @indexIteratorGetBind(&index, "t2", "col2")
-    @outputAdvance(execCtx)
+    // Note the reordering of the columns
+    out.col1 = @indexIteratorGetSmallInt(&index, 1)
+    out.col2 = @indexIteratorGetIntNull(&index, 0)
     res = res + 1
   }
   // Finalize output

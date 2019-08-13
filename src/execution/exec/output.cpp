@@ -3,16 +3,7 @@
 
 namespace terrier::execution::exec {
 
-OutputBuffer::~OutputBuffer() { delete[] tuples_; }
-
-void OutputBuffer::Advance() {
-  num_tuples_++;
-  if (num_tuples_ == batch_size_) {
-    callback_(tuples_, num_tuples_, tuple_size_);
-    num_tuples_ = 0;
-    return;
-  }
-}
+OutputBuffer::~OutputBuffer() { memory_pool_->Deallocate(tuples_, batch_size_ * tuple_size_); }
 
 void OutputBuffer::Finalize() {
   if (num_tuples_ > 0) {

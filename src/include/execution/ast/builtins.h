@@ -138,8 +138,6 @@ namespace terrier::execution::ast {
                                                                 \
   /* Output Buffer */                                           \
   F(OutputAlloc, outputAlloc)                                   \
-  F(OutputAdvance, outputAdvance)                               \
-  F(OutputSetNull, outputSetNull)                               \
   F(OutputFinalize, outputFinalize)                             \
                                                                 \
   /* Index */                                                   \

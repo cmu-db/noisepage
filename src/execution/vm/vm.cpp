@@ -1356,19 +1356,6 @@ void VM::Interpret(const u8 *ip, Frame *frame) {
     DISPATCH_NEXT();
   }
 
-  OP(OutputAdvance) : {
-    auto exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
-    OpOutputAdvance(exec_ctx);
-    DISPATCH_NEXT();
-  }
-
-  OP(OutputSetNull) : {
-    auto exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
-    auto idx = frame->LocalAt<u32>(READ_LOCAL_ID());
-    OpOutputSetNull(exec_ctx, idx);
-    DISPATCH_NEXT();
-  }
-
   OP(OutputFinalize) : {
     auto exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
     OpOutputFinalize(exec_ctx);

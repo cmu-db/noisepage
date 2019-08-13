@@ -1386,15 +1386,6 @@ void BytecodeGenerator::VisitBuiltinOutputCall(ast::CallExpr *call, ast::Builtin
       emitter()->EmitOutputAlloc(Bytecode::OutputAlloc, exec_ctx, dest);
       break;
     }
-    case ast::Builtin::OutputAdvance: {
-      emitter()->EmitOutputCall(Bytecode::OutputAdvance, exec_ctx);
-      break;
-    }
-    case ast::Builtin::OutputSetNull: {
-      LocalVar entry_size = VisitExpressionForRValue(call->arguments()[1]);
-      emitter()->EmitOutputSetNull(Bytecode::OutputSetNull, exec_ctx, entry_size);
-      break;
-    }
     case ast::Builtin::OutputFinalize: {
       emitter()->EmitOutputCall(Bytecode::OutputFinalize, exec_ctx);
       break;
@@ -1746,9 +1737,7 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
       break;
     }
     case ast::Builtin::OutputAlloc:
-    case ast::Builtin::OutputAdvance:
     case ast::Builtin::OutputFinalize:
-    case ast::Builtin::OutputSetNull:
       VisitBuiltinOutputCall(call, builtin);
       break;
     case ast::Builtin::Insert:

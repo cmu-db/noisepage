@@ -1,5 +1,6 @@
 #pragma once
 
+#include <memory>
 #include <string>
 #include <unordered_set>
 
@@ -7,6 +8,7 @@
 #include "execution/ast/ast_node_factory.h"
 #include "execution/ast/context.h"
 #include "execution/ast/identifier.h"
+#include "execution/parsing/parsing_context.h"
 #include "execution/parsing/scanner.h"
 #include "execution/sema/error_reporter.h"
 
@@ -150,6 +152,9 @@ class Parser {
 
   // The error reporter
   sema::ErrorReporter *error_reporter_;
+
+  // The parsing context
+  std::unique_ptr<ParsingContext> pctx;
 };
 
 }  // namespace terrier::execution::parsing

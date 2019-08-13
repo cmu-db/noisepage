@@ -14,6 +14,7 @@ using transaction::TransactionContext;
 
 /**
  * Execution Context: Stores information handed in by upper layers.
+ * TODO(Amadou): This class will change once we know exactly what we get from upper layers.
  */
 class ExecutionContext {
  public:
@@ -70,9 +71,10 @@ class ExecutionContext {
                    const planner::OutputSchema *schema, std::unique_ptr<catalog::CatalogAccessor> &&accessor)
       : db_oid_(db_oid),
         txn_(txn),
-        buffer_(schema == nullptr
-                    ? nullptr
-                    : std::make_unique<OutputBuffer>(schema->GetColumns().size(), ComputeTupleSize(schema), callback)),
+        mem_pool_(std::make_unique<sql::MemoryPool>(nullptr)),
+        buffer_(schema == nullptr ? nullptr
+                                  : std::make_unique<OutputBuffer>(mem_pool_.get(), schema->GetColumns().size(),
+                                                                   ComputeTupleSize(schema), callback)),
         accessor_(std::move(accessor)) {}
 
   /**
@@ -120,8 +122,8 @@ class ExecutionContext {
  private:
   catalog::db_oid_t db_oid_;
   TransactionContext *txn_;
+  std::unique_ptr<sql::MemoryPool> mem_pool_;
   std::unique_ptr<OutputBuffer> buffer_;
-  std::unique_ptr<sql::MemoryPool> mem_pool_{nullptr};
   StringAllocator string_allocator_;
   std::unique_ptr<catalog::CatalogAccessor> accessor_;
 };

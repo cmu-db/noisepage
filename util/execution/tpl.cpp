@@ -180,8 +180,6 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
             "(*ExecutionContext)->int64");
         return;
       }
-      auto memory = std::make_unique<sql::MemoryPool>(nullptr);
-      exec_ctx.SetMemoryPool(std::move(memory));
       EXECUTION_LOG_INFO("VM main() returned: {}", main(&exec_ctx));
     } else {
       std::function<i64()> main;
@@ -208,8 +206,6 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
             "(*ExecutionContext)->int64");
         return;
       }
-      auto memory = std::make_unique<sql::MemoryPool>(nullptr);
-      exec_ctx.SetMemoryPool(std::move(memory));
       EXECUTION_LOG_INFO("ADAPTIVE main() returned: {}", main(&exec_ctx));
     } else {
       std::function<i64()> main;
@@ -235,8 +231,6 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
             "(*ExecutionContext)->int64");
         return;
       }
-      auto memory = std::make_unique<sql::MemoryPool>(nullptr);
-      exec_ctx.SetMemoryPool(std::move(memory));
       EXECUTION_LOG_INFO("JIT main() returned: {}", main(&exec_ctx));
     } else {
       std::function<i64()> main;

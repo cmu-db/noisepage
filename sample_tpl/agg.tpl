@@ -41,10 +41,10 @@ fun updateAgg(agg: *Agg, pci: *ProjectedColumnsIterator) -> nil {
 fun pipeline_1(execCtx: *ExecutionContext, state: *State) -> nil {
   var ht = &state.table
   var tvi: TableVectorIterator
-  @tableIterConstructBind(&tvi, "test_ns", "test_1", execCtx)
-  @tableIterAddCol(&tvi, 1)
-  @tableIterAddCol(&tvi, 2)
-  @tableIterPerformInit(&tvi)
+  var col_oids : [2]uint32
+  col_oids[0] = 1
+  col_oids[1] = 2
+  @tableIterInitBind(&tvi, "test_1", execCtx, col_oids)
   for (@tableIterAdvance(&tvi)) {
     var vec = @tableIterGetPCI(&tvi)
     for (; @pciHasNext(vec); @pciAdvance(vec)) {

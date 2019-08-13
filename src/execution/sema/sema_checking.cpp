@@ -151,6 +151,20 @@ Sema::CheckResult Sema::CheckComparisonOperands(parsing::Token::Type op, const S
     return {nullptr, left, right};
   }
 
+  auto built_ret_type = [this](ast::Type *input_type) {
+    if (input_type->IsSpecificBuiltin(ast::BuiltinType::Integer) ||
+        input_type->IsSpecificBuiltin(ast::BuiltinType::Real) ||
+        input_type->IsSpecificBuiltin(ast::BuiltinType::Decimal)) {
+      return ast::BuiltinType::Get(context(), ast::BuiltinType::Boolean);
+    }
+    return ast::BuiltinType::Get(context(), ast::BuiltinType::Bool);
+  };
+
+  // If the input types are the same, we don't need to do any work
+  if (left->type() == right->type()) {
+    return {built_ret_type(left->type()), left, right};
+  }
+
   // Check date and string
   if (left->type()->IsSpecificBuiltin(ast::BuiltinType::Date) &&
       right->type()->IsSpecificBuiltin(ast::BuiltinType::Date)) {
@@ -175,20 +189,6 @@ Sema::CheckResult Sema::CheckComparisonOperands(parsing::Token::Type op, const S
     }
     auto new_right = ImplCastExprToType(right, left->type(), ast::CastKind::IntegralCast);
     return {ast::BuiltinType::Get(context(), ast::BuiltinType::Bool), left, new_right};
-  }
-
-  auto built_ret_type = [this](ast::Type *input_type) {
-    if (input_type->IsSpecificBuiltin(ast::BuiltinType::Integer) ||
-        input_type->IsSpecificBuiltin(ast::BuiltinType::Real) ||
-        input_type->IsSpecificBuiltin(ast::BuiltinType::Decimal)) {
-      return ast::BuiltinType::Get(context(), ast::BuiltinType::Boolean);
-    }
-    return ast::BuiltinType::Get(context(), ast::BuiltinType::Bool);
-  };
-
-  // If the input types are the same, we don't need to do any work
-  if (left->type() == right->type()) {
-    return {built_ret_type(left->type()), left, right};
   }
 
   // Primitive float -> Sql Float

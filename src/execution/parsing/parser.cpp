@@ -1,5 +1,6 @@
 #include "execution/parsing/parser.h"
 
+#include <memory>
 #include <string>
 #include <tuple>
 #include <unordered_set>
@@ -15,7 +16,8 @@ Parser::Parser(Scanner *scanner, ast::Context *context)
     : scanner_(scanner),
       context_(context),
       node_factory_(context->node_factory()),
-      error_reporter_(context->error_reporter()) {}
+      error_reporter_(context->error_reporter()),
+      pctx(std::make_unique<ParsingContext>()) {}
 
 ast::AstNode *Parser::Parse() {
   util::RegionVector<ast::Decl *> decls(region());
@@ -82,7 +84,7 @@ ast::Decl *Parser::ParseFunctionDecl() {
 
   // The function name
   Expect(Token::Type::IDENTIFIER);
-  ast::Identifier name = GetSymbol();
+  ast::Identifier name = pctx->MakeUniqueSymbol(context_, GetSymbol());
 
   // The function literal
   auto *fun = ParseFunctionLitExpr()->As<ast::FunctionLitExpr>();
@@ -101,7 +103,7 @@ ast::Decl *Parser::ParseStructDecl() {
 
   // The struct name
   Expect(Token::Type::IDENTIFIER);
-  ast::Identifier name = GetSymbol();
+  ast::Identifier name = pctx->MakeUniqueSymbol(context_, GetSymbol());
 
   // The type
   auto *struct_type = ParseStructType()->As<ast::StructTypeRepr>();
@@ -122,7 +124,7 @@ ast::Decl *Parser::ParseVariableDecl() {
 
   // The name
   Expect(Token::Type::IDENTIFIER);
-  ast::Identifier name = GetSymbol();
+  ast::Identifier name = pctx->MakeUniqueSymbol(context_, GetSymbol());
 
   // The type (if exists)
   ast::Expr *type = nullptr;
@@ -200,11 +202,16 @@ ast::Stmt *Parser::ParseBlockStmt() {
   util::RegionVector<ast::Stmt *> statements(region());
   statements.reserve(16);
 
+  // Make nested context. Set it as the current one
+  auto old_pctx = std::move(pctx);
+  pctx = old_pctx->NewNestedContext();
   // Loop while we don't see the right brace
   while (peek() != Token::Type::RIGHT_BRACE && peek() != Token::Type::EOS) {
     ast::Stmt *stmt = ParseStmt();
     statements.emplace_back(stmt);
   }
+  // Restore old context.
+  pctx = std::move(old_pctx);
 
   // Eat the right brace
   Expect(Token::Type::RIGHT_BRACE);
@@ -507,7 +514,7 @@ ast::Expr *Parser::ParseOperand() {
     }
     case Token::Type::IDENTIFIER: {
       Next();
-      return node_factory_->NewIdentifierExpr(scanner_->current_position(), GetSymbol());
+      return node_factory_->NewIdentifierExpr(scanner_->current_position(), pctx->GetScopedSymbol(GetSymbol()));
     }
     case Token::Type::INTEGER: {
       Next();
@@ -552,12 +559,17 @@ ast::Expr *Parser::ParseFunctionLitExpr() {
   // FunctionLiteral = Signature FunctionBody ;
   //
   // FunctionBody = Block ;
+  // Make nested context. Set it as the current one
+  auto old_pctx = std::move(pctx);
+  pctx = old_pctx->NewNestedContext();
 
   // Parse the type
   auto *func_type = ParseFunctionType()->As<ast::FunctionTypeRepr>();
-
   // Parse the body
   auto *body = ParseBlockStmt()->As<ast::BlockStmt>();
+
+  // Restore old context
+  pctx = std::move(old_pctx);
 
   // Done
   return node_factory_->NewFunctionLitExpr(func_type, body);
@@ -616,7 +628,7 @@ ast::Expr *Parser::ParseFunctionType() {
     ast::Expr *type = nullptr;
 
     if (Matches(Token::Type::IDENTIFIER)) {
-      ident = GetSymbol();
+      ident = pctx->MakeUniqueSymbol(context_, GetSymbol());
     }
 
     if (Matches(Token::Type::COLON) || ident.data() == nullptr) {

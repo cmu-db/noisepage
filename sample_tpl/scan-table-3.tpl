@@ -7,11 +7,11 @@
 fun main(execCtx: *ExecutionContext) -> int {
   var ret = 0
   var tvi: TableVectorIterator
-  @tableIterConstructBind(&tvi, "test_1", execCtx)
-  @tableIterAddCol(&tvi, 1) // colA
-  @tableIterAddCol(&tvi, 2) // colB
-  @tableIterAddCol(&tvi, 3) // colC
-  @tableIterPerformInit(&tvi)
+  var oids: [3]uint32
+  oids[0] = 1 // colA
+  oids[1] = 2 // colB
+  oids[2] = 3 // colC
+  @tableIterInitBind(&tvi, "test_1", execCtx, oids)
   for (@tableIterAdvance(&tvi)) {
     var pci = @tableIterGetPCI(&tvi)
     for (; @pciHasNext(pci); @pciAdvance(pci)) {

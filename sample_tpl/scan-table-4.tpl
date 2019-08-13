@@ -1,17 +1,17 @@
 // Perform:
 //
-// SELECT cola, colb, colc FROM test_2 WHERE (col1 < col2)
+// SELECT col1, col2 FROM test_2 WHERE (col1 < col2)
 //
-// Should return 5, given default random seed (number of output rows)
+// Should return 5, given default random seed (number of output rows). The expected value is 5.
 
 
 fun main(execCtx: *ExecutionContext) -> int64 {
   var ret = 0
   var tvi: TableVectorIterator
-  @tableIterConstructBind(&tvi, "test_2", execCtx)
-  @tableIterAddCol(&tvi, 1) // col1
-  @tableIterAddCol(&tvi, 2) // col2
-  @tableIterPerformInit(&tvi)
+  var oids: [2]uint32
+  oids[0] = 1 // col1
+  oids[1] = 2 // col2
+  @tableIterInitBind(&tvi, "test_2", execCtx, oids)
   for (; @tableIterAdvance(&tvi); ) {
     var pci = @tableIterGetPCI(&tvi)
     for (; @pciHasNext(pci); @pciAdvance(pci)) {
