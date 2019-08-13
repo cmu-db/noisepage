@@ -660,7 +660,8 @@ uint32_t RecoveryManager::ProcessSpecialCaseCatalogRecord(
   }
 
   // Step 3: If it wasn't a renaming, we simply need to drop the database
-  catalog_->DeleteDatabase(txn, db_oid);
+  auto result UNUSED_ATTRIBUTE = catalog_->DeleteDatabase(txn, db_oid);
+  TERRIER_ASSERT(result, "Database deletion should succeed");
 
   // Step 4: Clean up any metadata
   tuple_slot_map_.erase(delete_record->GetTupleSlot());
