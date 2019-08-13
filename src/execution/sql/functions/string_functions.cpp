@@ -343,8 +343,7 @@ void StringFunctions::Left(UNUSED exec::ExecutionContext *ctx, StringVal *result
     return;
   }
 
-  const auto len = n.val < 0 ? std::max(static_cast<u32>(0), static_cast<u32>(str.len + n.val))
-                             : std::min(str.len, static_cast<u32>(n.val));
+  const auto len = n.val < 0 ? std::max(i64{0}, str.len + n.val) : std::min(str.len, static_cast<u32>(n.val));
   *result = StringVal(str.Content(), u32(len));
 }
 

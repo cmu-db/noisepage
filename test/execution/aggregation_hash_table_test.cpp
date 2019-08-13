@@ -441,8 +441,6 @@ TEST_F(AggregationHashTableTest, ParallelAggregationTest) {
 
   QS qstate{0};
   // Create container
-  auto memory = std::make_unique<MemoryPool>(nullptr);
-  exec_ctx_->SetMemoryPool(std::move(memory));
   ThreadStateContainer container(exec_ctx_->GetMemoryPool());
 
   // Build thread-local tables
