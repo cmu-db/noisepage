@@ -30,14 +30,13 @@ matrix:
         - docker cp . build:/repo
     - os: linux
       dist: trusty
+      compiler: clang
       env:
         - NAME="ubuntu-18.04/clang-8.0.0 (Debug/Dockerfile)" CMAKE_BUILD_TYPE=debug DOCKER=true
       install:
         - docker build -t cmu-db/terrier .
         - docker run -itd --name build cmu-db/terrier
         - docker cp . build:/repo
-        - docker exec build /bin/sh -c "export CC=/usr/bin/clang-8"
-        - docker exec build /bin/sh -c "export CXX=/usr/bin/clang++-8"
     - os: linux
       dist: trusty
       env:
