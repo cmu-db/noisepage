@@ -31,10 +31,10 @@ matrix:
     - os: linux
       dist: trusty
       env:
-        - NAME="ubuntu-18.04/clang-8.0.0 (Debug/Dockerfile)" CMAKE_BUILD_TYPE=debug DOCKER=true CC=/usr/bin/clang-8 CXX=/usr/bin/clang++-8
+        - NAME="ubuntu-18.04/clang-8.0.0 (Debug/Dockerfile)" CMAKE_BUILD_TYPE=debug DOCKER=true
       install:
         - docker build -t cmu-db/terrier .
-        - docker run -itd --name build cmu-db/terrier
+        - docker run -itd -e "CC=/usr/bin/clang-8" -e "CXX=/usr/bin/clang++-8" --name build cmu-db/terrier
         - docker cp . build:/repo
     - os: linux
       dist: trusty
