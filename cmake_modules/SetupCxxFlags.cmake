@@ -143,12 +143,6 @@ else ()
   message(FATAL_ERROR "Unknown build type: ${CMAKE_BUILD_TYPE}")
 endif ()
 
-# jemalloc flags
-if (LINUX)
-  set(JEMALLOC_LINK_FLAGS "-Wl,--no-as-needed")
-  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS}" ${JEMALLOC_LINK_FLAGS})
-endif ()
-
 if ("${CMAKE_CXX_FLAGS}" MATCHES "-DNDEBUG")
   set(TERRIER_DEFINITION_FLAGS "-DNDEBUG")
 else ()

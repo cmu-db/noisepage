@@ -17,12 +17,12 @@ void LogManager::Start() {
   run_log_manager_ = true;
 
   // Register DiskLogConsumerTask
-  disk_log_writer_task_ = DedicatedThreadRegistry::GetInstance().RegisterDedicatedThread<DiskLogConsumerTask>(
-      this /* requester */, log_file_path_.c_str(), persist_interval_, persist_threshold_, &empty_buffer_queue_,
+  disk_log_writer_task_ = thread_registry_->RegisterDedicatedThread<DiskLogConsumerTask>(
+      this /* requester */, persist_interval_, persist_threshold_, &buffers_, &empty_buffer_queue_,
       &disk_consumer_queue_);
 
   // Register LogSerializerTask
-  log_serializer_task_ = DedicatedThreadRegistry::GetInstance().RegisterDedicatedThread<LogSerializerTask>(
+  log_serializer_task_ = thread_registry_->RegisterDedicatedThread<LogSerializerTask>(
       this /* requester */, serialization_interval_, buffer_pool_, &empty_buffer_queue_, &disk_consumer_queue_,
       (network_consumer_task_ == REPLICATION_DISABLED) ? REPLICATION_DISABLED : &network_consumer_queue_,
       &disk_log_writer_task_->disk_log_writer_thread_cv_);
@@ -45,12 +45,11 @@ void LogManager::PersistAndStop() {
   // Signal all tasks to stop. The shutdown of the tasks will trigger any remaining logs to be serialized, writen to the
   // log file, and persisted. The order in which we shut down the tasks is important, we must first serialize, then
   // shutdown the disk consumer task (reverse order of Start())
-  auto result UNUSED_ATTRIBUTE = DedicatedThreadRegistry::GetInstance().StopTask(
-      this, log_serializer_task_.CastManagedPointerTo<DedicatedThreadTask>());
+  auto result UNUSED_ATTRIBUTE =
+      thread_registry_->StopTask(this, log_serializer_task_.CastManagedPointerTo<common::DedicatedThreadTask>());
   TERRIER_ASSERT(result, "LogSerializerTask should have been stopped");
 
-  result = DedicatedThreadRegistry::GetInstance().StopTask(
-      this, disk_log_writer_task_.CastManagedPointerTo<DedicatedThreadTask>());
+  result = thread_registry_->StopTask(this, disk_log_writer_task_.CastManagedPointerTo<common::DedicatedThreadTask>());
   TERRIER_ASSERT(result, "DiskLogConsumerTask should have been stopped");
   TERRIER_ASSERT(disk_consumer_queue_.Empty(), "disk log consumer task should have processed all filled buffers\n");
 

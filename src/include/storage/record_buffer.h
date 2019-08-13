@@ -98,7 +98,7 @@ class IterableBufferSegment {
      * postfix increment
      * @return iterator that is equal to this before increment
      */
-    const Iterator operator++(int) {
+    Iterator operator++(int) {
       Iterator copy = *this;
       operator++();
       return copy;
@@ -239,7 +239,7 @@ class UndoBuffer {
      * postfix-increment
      * @return iterator equal to this iterator before increment
      */
-    const Iterator operator++(int) {
+    Iterator operator++(int) {
       Iterator copy = *this;
       operator++();
       return copy;

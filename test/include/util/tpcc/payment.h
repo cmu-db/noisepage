@@ -97,77 +97,68 @@ class Payment {
   explicit Payment(const Database *const db)
 
       :  // Warehouse metadata
-        w_name_oid(db->warehouse_schema_.GetColumn(1).GetOid()),
-        w_street_1_oid(db->warehouse_schema_.GetColumn(2).GetOid()),
-        w_street_2_oid(db->warehouse_schema_.GetColumn(3).GetOid()),
-        w_city_oid(db->warehouse_schema_.GetColumn(4).GetOid()),
-        w_state_oid(db->warehouse_schema_.GetColumn(5).GetOid()),
-        w_zip_oid(db->warehouse_schema_.GetColumn(6).GetOid()),
-        w_ytd_oid(db->warehouse_schema_.GetColumn(8).GetOid()),
-        warehouse_select_pr_initializer(
-            db->warehouse_table_
-                ->InitializerForProjectedRow(
-                    {w_name_oid, w_street_1_oid, w_street_2_oid, w_city_oid, w_state_oid, w_zip_oid, w_ytd_oid})
-                .first),
-        warehouse_select_pr_map(db->warehouse_table_
-                                    ->InitializerForProjectedRow({w_name_oid, w_street_1_oid, w_street_2_oid,
-                                                                  w_city_oid, w_state_oid, w_zip_oid, w_ytd_oid})
-                                    .second),
+        w_name_oid(db->warehouse_schema_.GetColumn(1).Oid()),
+        w_street_1_oid(db->warehouse_schema_.GetColumn(2).Oid()),
+        w_street_2_oid(db->warehouse_schema_.GetColumn(3).Oid()),
+        w_city_oid(db->warehouse_schema_.GetColumn(4).Oid()),
+        w_state_oid(db->warehouse_schema_.GetColumn(5).Oid()),
+        w_zip_oid(db->warehouse_schema_.GetColumn(6).Oid()),
+        w_ytd_oid(db->warehouse_schema_.GetColumn(8).Oid()),
+        warehouse_select_pr_initializer(db->warehouse_table_->InitializerForProjectedRow(
+            {w_name_oid, w_street_1_oid, w_street_2_oid, w_city_oid, w_state_oid, w_zip_oid, w_ytd_oid})),
+        warehouse_select_pr_map(db->warehouse_table_->ProjectionMapForOids(
+            {w_name_oid, w_street_1_oid, w_street_2_oid, w_city_oid, w_state_oid, w_zip_oid, w_ytd_oid})),
         w_name_select_pr_offset(static_cast<uint8_t>(warehouse_select_pr_map.at(w_name_oid))),
         w_ytd_select_pr_offset(static_cast<uint8_t>(warehouse_select_pr_map.at(w_ytd_oid))),
-        warehouse_update_pr_initializer(db->warehouse_table_->InitializerForProjectedRow({w_ytd_oid}).first),
+        warehouse_update_pr_initializer(db->warehouse_table_->InitializerForProjectedRow({w_ytd_oid})),
 
         // District metadata
-        d_id_key_pr_offset(static_cast<uint8_t>(
-            db->district_primary_index_->GetKeyOidToOffsetMap().at(db->district_primary_index_schema_.at(1).GetOid()))),
-        d_w_id_key_pr_offset(static_cast<uint8_t>(
-            db->district_primary_index_->GetKeyOidToOffsetMap().at(db->district_primary_index_schema_.at(0).GetOid()))),
+        d_id_key_pr_offset(static_cast<uint8_t>(db->district_primary_index_->GetKeyOidToOffsetMap().at(
+            db->district_primary_index_schema_.GetColumn(1).Oid()))),
+        d_w_id_key_pr_offset(static_cast<uint8_t>(db->district_primary_index_->GetKeyOidToOffsetMap().at(
+            db->district_primary_index_schema_.GetColumn(0).Oid()))),
 
-        d_name_oid(db->district_schema_.GetColumn(2).GetOid()),
-        d_street_1_oid(db->district_schema_.GetColumn(3).GetOid()),
-        d_street_2_oid(db->district_schema_.GetColumn(4).GetOid()),
-        d_city_oid(db->district_schema_.GetColumn(5).GetOid()),
-        d_state_oid(db->district_schema_.GetColumn(6).GetOid()),
-        d_zip_oid(db->district_schema_.GetColumn(7).GetOid()),
-        d_ytd_oid(db->district_schema_.GetColumn(9).GetOid()),
-        district_select_pr_initializer(db->district_table_
-                                           ->InitializerForProjectedRow({d_name_oid, d_street_1_oid, d_street_2_oid,
-                                                                         d_city_oid, d_state_oid, d_zip_oid, d_ytd_oid})
-                                           .first),
-        district_select_pr_map(db->district_table_
-                                   ->InitializerForProjectedRow({d_name_oid, d_street_1_oid, d_street_2_oid, d_city_oid,
-                                                                 d_state_oid, d_zip_oid, d_ytd_oid})
-                                   .second),
+        d_name_oid(db->district_schema_.GetColumn(2).Oid()),
+        d_street_1_oid(db->district_schema_.GetColumn(3).Oid()),
+        d_street_2_oid(db->district_schema_.GetColumn(4).Oid()),
+        d_city_oid(db->district_schema_.GetColumn(5).Oid()),
+        d_state_oid(db->district_schema_.GetColumn(6).Oid()),
+        d_zip_oid(db->district_schema_.GetColumn(7).Oid()),
+        d_ytd_oid(db->district_schema_.GetColumn(9).Oid()),
+        district_select_pr_initializer(db->district_table_->InitializerForProjectedRow(
+            {d_name_oid, d_street_1_oid, d_street_2_oid, d_city_oid, d_state_oid, d_zip_oid, d_ytd_oid})),
+        district_select_pr_map(db->district_table_->ProjectionMapForOids(
+            {d_name_oid, d_street_1_oid, d_street_2_oid, d_city_oid, d_state_oid, d_zip_oid, d_ytd_oid})),
         d_name_select_pr_offset(static_cast<uint8_t>(district_select_pr_map.at(d_name_oid))),
         d_ytd_select_pr_offset(static_cast<uint8_t>(district_select_pr_map.at(d_ytd_oid))),
-        district_update_pr_initializer(db->district_table_->InitializerForProjectedRow({d_ytd_oid}).first),
+        district_update_pr_initializer(db->district_table_->InitializerForProjectedRow({d_ytd_oid})),
 
         // Customer metadata
-        c_id_key_pr_offset(static_cast<uint8_t>(
-            db->customer_primary_index_->GetKeyOidToOffsetMap().at(db->customer_primary_index_schema_.at(2).GetOid()))),
-        c_d_id_key_pr_offset(static_cast<uint8_t>(
-            db->customer_primary_index_->GetKeyOidToOffsetMap().at(db->customer_primary_index_schema_.at(1).GetOid()))),
-        c_w_id_key_pr_offset(static_cast<uint8_t>(
-            db->customer_primary_index_->GetKeyOidToOffsetMap().at(db->customer_primary_index_schema_.at(0).GetOid()))),
+        c_id_key_pr_offset(static_cast<uint8_t>(db->customer_primary_index_->GetKeyOidToOffsetMap().at(
+            db->customer_primary_index_schema_.GetColumn(2).Oid()))),
+        c_d_id_key_pr_offset(static_cast<uint8_t>(db->customer_primary_index_->GetKeyOidToOffsetMap().at(
+            db->customer_primary_index_schema_.GetColumn(1).Oid()))),
+        c_w_id_key_pr_offset(static_cast<uint8_t>(db->customer_primary_index_->GetKeyOidToOffsetMap().at(
+            db->customer_primary_index_schema_.GetColumn(0).Oid()))),
         c_last_name_key_pr_offset(static_cast<uint8_t>(db->customer_secondary_index_->GetKeyOidToOffsetMap().at(
-            db->customer_secondary_index_schema_.at(2).GetOid()))),
+            db->customer_secondary_index_schema_.GetColumn(2).Oid()))),
         c_d_id_name_key_pr_offset(static_cast<uint8_t>(db->customer_secondary_index_->GetKeyOidToOffsetMap().at(
-            db->customer_secondary_index_schema_.at(1).GetOid()))),
+            db->customer_secondary_index_schema_.GetColumn(1).Oid()))),
         c_w_id_name_key_pr_offset(static_cast<uint8_t>(db->customer_secondary_index_->GetKeyOidToOffsetMap().at(
-            db->customer_secondary_index_schema_.at(0).GetOid()))),
+            db->customer_secondary_index_schema_.GetColumn(0).Oid()))),
         c_first_pr_initializer(
-            db->customer_table_->InitializerForProjectedRow({db->customer_schema_.GetColumn(3).GetOid()}).first),
+            db->customer_table_->InitializerForProjectedRow({db->customer_schema_.GetColumn(3).Oid()})),
         customer_select_pr_initializer(
-            db->customer_table_->InitializerForProjectedRow(Util::AllColOidsForSchema(db->customer_schema_)).first),
+            db->customer_table_->InitializerForProjectedRow(Util::AllColOidsForSchema(db->customer_schema_))),
         customer_select_pr_map(
-            db->customer_table_->InitializerForProjectedRow(Util::AllColOidsForSchema(db->customer_schema_)).second),
+            db->customer_table_->ProjectionMapForOids(Util::AllColOidsForSchema(db->customer_schema_))),
 
-        c_id_oid(db->customer_schema_.GetColumn(0).GetOid()),
-        c_credit_oid(db->customer_schema_.GetColumn(13).GetOid()),
-        c_balance_oid(db->customer_schema_.GetColumn(16).GetOid()),
-        c_ytd_payment_oid(db->customer_schema_.GetColumn(17).GetOid()),
-        c_payment_cnt_oid(db->customer_schema_.GetColumn(18).GetOid()),
-        c_data_oid(db->customer_schema_.GetColumn(20).GetOid()),
+        c_id_oid(db->customer_schema_.GetColumn(0).Oid()),
+        c_credit_oid(db->customer_schema_.GetColumn(13).Oid()),
+        c_balance_oid(db->customer_schema_.GetColumn(16).Oid()),
+        c_ytd_payment_oid(db->customer_schema_.GetColumn(17).Oid()),
+        c_payment_cnt_oid(db->customer_schema_.GetColumn(18).Oid()),
+        c_data_oid(db->customer_schema_.GetColumn(20).Oid()),
 
         c_id_select_pr_offset(static_cast<uint8_t>(customer_select_pr_map.at(c_id_oid))),
         c_credit_select_pr_offset(static_cast<uint8_t>(customer_select_pr_map.at(c_credit_oid))),
@@ -176,37 +167,29 @@ class Payment {
         c_payment_cnt_select_pr_offset(static_cast<uint8_t>(customer_select_pr_map.at(c_payment_cnt_oid))),
         c_data_select_pr_offset(static_cast<uint8_t>(customer_select_pr_map.at(c_data_oid))),
         customer_update_pr_initializer(
-            db->customer_table_->InitializerForProjectedRow({c_balance_oid, c_ytd_payment_oid, c_payment_cnt_oid})
-                .first),
+            db->customer_table_->InitializerForProjectedRow({c_balance_oid, c_ytd_payment_oid, c_payment_cnt_oid})),
         customer_update_pr_map(
-            db->customer_table_->InitializerForProjectedRow({c_balance_oid, c_ytd_payment_oid, c_payment_cnt_oid})
-                .second),
+            db->customer_table_->ProjectionMapForOids({c_balance_oid, c_ytd_payment_oid, c_payment_cnt_oid})),
         c_balance_update_pr_offset(static_cast<uint8_t>(customer_update_pr_map.at(c_balance_oid))),
         c_ytd_payment_update_pr_offset(static_cast<uint8_t>(customer_update_pr_map.at(c_ytd_payment_oid))),
         c_payment_cnt_update_pr_offset(static_cast<uint8_t>(customer_update_pr_map.at(c_payment_cnt_oid))),
-        c_data_pr_initializer(db->customer_table_->InitializerForProjectedRow({c_data_oid}).first),
+        c_data_pr_initializer(db->customer_table_->InitializerForProjectedRow({c_data_oid})),
 
         history_insert_pr_initializer(
-            db->history_table_->InitializerForProjectedRow(Util::AllColOidsForSchema(db->history_schema_)).first),
-        history_insert_pr_map(
-            db->history_table_->InitializerForProjectedRow(Util::AllColOidsForSchema(db->history_schema_)).second),
+            db->history_table_->InitializerForProjectedRow(Util::AllColOidsForSchema(db->history_schema_))),
+        history_insert_pr_map(db->history_table_->ProjectionMapForOids(Util::AllColOidsForSchema(db->history_schema_))),
 
-        h_c_id_insert_pr_offset(
-            static_cast<uint8_t>(history_insert_pr_map.at(db->history_schema_.GetColumn(0).GetOid()))),
+        h_c_id_insert_pr_offset(static_cast<uint8_t>(history_insert_pr_map.at(db->history_schema_.GetColumn(0).Oid()))),
         h_c_d_id_insert_pr_offset(
-            static_cast<uint8_t>(history_insert_pr_map.at(db->history_schema_.GetColumn(1).GetOid()))),
+            static_cast<uint8_t>(history_insert_pr_map.at(db->history_schema_.GetColumn(1).Oid()))),
         h_c_w_id_insert_pr_offset(
-            static_cast<uint8_t>(history_insert_pr_map.at(db->history_schema_.GetColumn(2).GetOid()))),
-        h_d_id_insert_pr_offset(
-            static_cast<uint8_t>(history_insert_pr_map.at(db->history_schema_.GetColumn(3).GetOid()))),
-        h_w_id_insert_pr_offset(
-            static_cast<uint8_t>(history_insert_pr_map.at(db->history_schema_.GetColumn(4).GetOid()))),
-        h_date_insert_pr_offset(
-            static_cast<uint8_t>(history_insert_pr_map.at(db->history_schema_.GetColumn(5).GetOid()))),
+            static_cast<uint8_t>(history_insert_pr_map.at(db->history_schema_.GetColumn(2).Oid()))),
+        h_d_id_insert_pr_offset(static_cast<uint8_t>(history_insert_pr_map.at(db->history_schema_.GetColumn(3).Oid()))),
+        h_w_id_insert_pr_offset(static_cast<uint8_t>(history_insert_pr_map.at(db->history_schema_.GetColumn(4).Oid()))),
+        h_date_insert_pr_offset(static_cast<uint8_t>(history_insert_pr_map.at(db->history_schema_.GetColumn(5).Oid()))),
         h_amount_insert_pr_offset(
-            static_cast<uint8_t>(history_insert_pr_map.at(db->history_schema_.GetColumn(6).GetOid()))),
-        h_data_insert_pr_offset(
-            static_cast<uint8_t>(history_insert_pr_map.at(db->history_schema_.GetColumn(7).GetOid())))
+            static_cast<uint8_t>(history_insert_pr_map.at(db->history_schema_.GetColumn(6).Oid()))),
+        h_data_insert_pr_offset(static_cast<uint8_t>(history_insert_pr_map.at(db->history_schema_.GetColumn(7).Oid())))
 
   {}
 

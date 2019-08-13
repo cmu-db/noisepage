@@ -12,7 +12,7 @@
 namespace terrier::storage {
 
 std::pair<uint32_t, uint32_t> GarbageCollector::PerformGarbageCollection() {
-  ProcessDeferredActions();
+  if (observer_ != nullptr) observer_->ObserveGCInvocation();
   uint32_t txns_deallocated = ProcessDeallocateQueue();
   STORAGE_LOG_TRACE("GarbageCollector::PerformGarbageCollection(): txns_deallocated: {}", txns_deallocated);
   uint32_t txns_unlinked = ProcessUnlinkQueue();
@@ -24,6 +24,7 @@ std::pair<uint32_t, uint32_t> GarbageCollector::PerformGarbageCollection() {
   }
   STORAGE_LOG_TRACE("GarbageCollector::PerformGarbageCollection(): last_unlinked_: {}",
                     static_cast<uint64_t>(last_unlinked_));
+  ProcessDeferredActions();
   ProcessIndexes();
   return std::make_pair(txns_deallocated, txns_unlinked);
 }
@@ -78,7 +79,8 @@ uint32_t GarbageCollector::ProcessUnlinkQueue() {
   while (!txns_to_unlink_.empty()) {
     txn = txns_to_unlink_.front();
     txns_to_unlink_.pop_front();
-    if (txn->undo_buffer_.Empty()) {
+
+    if (txn->IsReadOnly()) {
       // This is a read-only transaction so this is safe to immediately delete
       delete txn;
       txns_processed++;
@@ -97,6 +99,7 @@ uint32_t GarbageCollector::ProcessUnlinkQueue() {
           ReclaimSlotIfDeleted(&undo_record);
           ReclaimBufferIfVarlen(txn, &undo_record);
         }
+        if (observer_ != nullptr) observer_->ObserveWrite(undo_record.Slot().GetBlock());
       }
       txns_to_deallocate_.push_front(txn);
       txns_processed++;

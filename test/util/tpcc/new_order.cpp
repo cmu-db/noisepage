@@ -141,7 +141,7 @@ bool NewOrder::Execute(transaction::TransactionManager *const txn_manager, Datab
   *reinterpret_cast<int8_t *>(order_secondary_key->AccessForceNotNull(o_w_id_secondary_key_pr_offset)) = args.w_id;
   *reinterpret_cast<int32_t *>(order_secondary_key->AccessForceNotNull(o_c_id_secondary_key_pr_offset)) = args.c_id;
 
-  index_insert_result = db->order_secondary_index_->Insert(txn, *order_secondary_key, order_slot);
+  index_insert_result = db->order_secondary_index_->InsertUnique(txn, *order_secondary_key, order_slot);
   TERRIER_ASSERT(index_insert_result, "Order secondary index insertion failed.");
 
   // for each item in order

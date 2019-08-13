@@ -13,7 +13,7 @@ namespace terrier::storage {
 /**
  * Task that processes buffers handed over by transactions and serializes them into consumer buffers
  */
-class LogSerializerTask : public DedicatedThreadTask {
+class LogSerializerTask : public common::DedicatedThreadTask {
  public:
   /**
    * @param serialization_interval Interval time for when to trigger serialization

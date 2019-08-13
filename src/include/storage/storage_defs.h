@@ -27,7 +27,7 @@ namespace terrier::storage {
 // All tuples potentially visible to txns should have a non-null attribute of version vector.
 // This is not to be confused with a non-null version vector that has value nullptr (0).
 #define VERSION_POINTER_COLUMN_ID ::terrier::storage::col_id_t(0)
-#define NUM_RESERVED_COLUMNS 1u
+#define NUM_RESERVED_COLUMNS 1U
 
 // In type_util.h there are a total of 5 possible inlined attribute sizes:
 // 1, 2, 4, 8, and 16-bytes (16 byte is the structure portion of varlen).
