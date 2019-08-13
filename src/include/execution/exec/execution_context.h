@@ -93,12 +93,6 @@ class ExecutionContext {
   sql::MemoryPool *GetMemoryPool() { return mem_pool_.get(); }
 
   /**
-   * Set the memory pool
-   * @param mem_pool new memory pool
-   */
-  void SetMemoryPool(std::unique_ptr<sql::MemoryPool> &&mem_pool) { mem_pool_ = std::move(mem_pool); }
-
-  /**
    * @return the string allocator
    */
   StringAllocator *GetStringAllocator() { return &string_allocator_; }

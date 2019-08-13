@@ -24,7 +24,7 @@ bool TableVectorIterator::Init() {
   // Initialize the projected column
   TERRIER_ASSERT(!col_oids_.empty(), "There must be at least one col oid!");
   auto pc_map = table_->InitializerForProjectedColumns(col_oids_, kDefaultVectorSize);
-  buffer_ = exec_ctx_->GetMemoryPool()->AllocateAligned(pc_map.first.ProjectedColumnsSize(), sizeof(u64), false);
+  buffer_ = exec_ctx_->GetMemoryPool()->AllocateAligned(pc_map.first.ProjectedColumnsSize(), alignof(u64), false);
   projected_columns_ = pc_map.first.Initialize(buffer_);
   initialized = true;
 

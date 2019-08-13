@@ -52,7 +52,7 @@ llvm::cl::opt<bool> kPrintAst("print-ast", llvm::cl::desc("Print the programs AS
 llvm::cl::opt<bool> kPrintTbc("print-tbc", llvm::cl::desc("Print the generated TPL Bytecode"),
                               llvm::cl::cat(kTplOptionsCategory));
 llvm::cl::opt<std::string> kOutputName("output-name", llvm::cl::desc("Print the output name"),
-                                       llvm::cl::init("schema1"), llvm::cl::cat(kTplOptionsCategory));
+                                       llvm::cl::init("schema10"), llvm::cl::cat(kTplOptionsCategory));
 llvm::cl::opt<bool> kIsSQL("sql", llvm::cl::desc("Is the input a SQL query?"), llvm::cl::cat(kTplOptionsCategory));
 
 tbb::task_scheduler_init scheduler;

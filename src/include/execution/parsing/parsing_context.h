@@ -20,7 +20,7 @@ class ParsingContext {
   /**
    * Creates a new empty parsing context with no parent.
    */
-  ParsingContext() : root_known_symbols_(&known_symbols_), outer_(nullptr) {}
+  ParsingContext() : root_known_symbols_(&known_symbols_) {}
 
   /**
    * Creates a new ParsingContext with the given outer scope and scope level.
@@ -113,6 +113,6 @@ class ParsingContext {
   /* Symbols in this scope. */
   llvm::DenseMap<ast::Identifier, ast::Identifier> symbols_;
   /* Outer scope. */
-  ParsingContext *outer_;
+  ParsingContext *outer_{nullptr};
 };
 }  // namespace terrier::execution::parsing

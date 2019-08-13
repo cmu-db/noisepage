@@ -40,7 +40,7 @@ class OutputBuffer {
       : memory_pool_(memory_pool),
         num_tuples_(0),
         tuple_size_(tuple_size),
-        tuples_(reinterpret_cast<byte *>(memory_pool->AllocateAligned(batch_size_ * tuple_size, sizeof(u64), false))),
+        tuples_(reinterpret_cast<byte *>(memory_pool->AllocateAligned(batch_size_ * tuple_size, alignof(u64), true))),
         callback_(std::move(callback)) {}
 
   /**

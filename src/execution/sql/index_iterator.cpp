@@ -16,12 +16,12 @@ void IndexIterator::Init() {
   auto pri_map = table_->InitializerForProjectedRow(col_oids_);
   // Table's PR
   auto &table_pri = pri_map.first;
-  table_buffer_ = exec_ctx_->GetMemoryPool()->AllocateAligned(table_pri.ProjectedRowSize(), sizeof(u64), false);
+  table_buffer_ = exec_ctx_->GetMemoryPool()->AllocateAligned(table_pri.ProjectedRowSize(), alignof(u64), false);
   table_pr_ = table_pri.InitializeRow(table_buffer_);
 
   // Index's PR
   auto &index_pri = index_->GetProjectedRowInitializer();
-  index_buffer_ = exec_ctx_->GetMemoryPool()->AllocateAligned(index_pri.ProjectedRowSize(), sizeof(u64), false);
+  index_buffer_ = exec_ctx_->GetMemoryPool()->AllocateAligned(index_pri.ProjectedRowSize(), alignof(u64), false);
   index_pr_ = index_pri.InitializeRow(index_buffer_);
 }
 
