@@ -148,10 +148,10 @@ class ProjectedColumnsIteratorTest : public SqlBasedTest {
     for (const auto &col : schema.GetColumns()) {
       col_oids.emplace_back(col.Oid());
     }
-    auto initializer_map = sql_table->InitializerForProjectedColumns(col_oids, kDefaultVectorSize);
-    pm_ = initializer_map.second;
-    buffer_ = common::AllocationUtil::AllocateAligned(initializer_map.first.ProjectedColumnsSize());
-    projected_columns_ = initializer_map.first.Initialize(buffer_);
+    auto pc_init = sql_table->InitializerForProjectedColumns(col_oids, kDefaultVectorSize);
+    pm_ = sql_table->ProjectionMapForOids(col_oids);
+    buffer_ = common::AllocationUtil::AllocateAligned(pc_init.ProjectedColumnsSize());
+    projected_columns_ = pc_init.Initialize(buffer_);
     projected_columns_->SetNumTuples(kDefaultVectorSize);
   }
 

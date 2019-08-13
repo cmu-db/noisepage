@@ -94,9 +94,8 @@ void TableGenerator::FillTable(catalog::table_oid_t table_oid, common::ManagedPo
   for (const auto &col : schema.GetColumns()) {
     table_cols.emplace_back(col.Oid());
   }
-  auto pri_map = table->InitializerForProjectedRow(table_cols);
-  auto &pri = pri_map.first;
-  auto &offset_map = pri_map.second;
+  auto pri = table->InitializerForProjectedRow(table_cols);
+  auto offset_map = table->ProjectionMapForOids(table_cols);
   uint32_t vals_written = 0;
 
   std::vector<u16> offsets;
@@ -200,9 +199,8 @@ void TableGenerator::FillIndex(common::ManagedPointer<storage::index::Index> ind
   for (const auto &col : table_schema.GetColumns()) {
     table_cols.emplace_back(col.Oid());
   }
-  auto table_pri_map = table->InitializerForProjectedRow(table_cols);
-  auto &table_pri = table_pri_map.first;
-  auto &table_offset_map = table_pri_map.second;
+  auto table_pri = table->InitializerForProjectedRow(table_cols);
+  auto table_offset_map = table->ProjectionMapForOids(table_cols);
   byte *table_buffer = common::AllocationUtil::AllocateAligned(table_pri.ProjectedRowSize());
   auto table_pr = table_pri.InitializeRow(table_buffer);
 

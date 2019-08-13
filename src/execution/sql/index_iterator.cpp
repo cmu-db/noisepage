@@ -13,9 +13,8 @@ IndexIterator::IndexIterator(uint32_t table_oid, uint32_t index_oid, exec::Execu
 void IndexIterator::Init() {
   // Initialize projected rows for the index and the table
   TERRIER_ASSERT(!col_oids_.empty(), "There must be at least one col oid!");
-  auto pri_map = table_->InitializerForProjectedRow(col_oids_);
   // Table's PR
-  auto &table_pri = pri_map.first;
+  auto table_pri = table_->InitializerForProjectedRow(col_oids_);
   table_buffer_ = exec_ctx_->GetMemoryPool()->AllocateAligned(table_pri.ProjectedRowSize(), alignof(u64), false);
   table_pr_ = table_pri.InitializeRow(table_buffer_);
 

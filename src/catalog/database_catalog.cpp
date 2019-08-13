@@ -202,8 +202,9 @@ bool DatabaseCatalog::CreateNamespace(transaction::TransactionContext *const txn
   const auto name_varlen = storage::StorageUtil::CreateVarlen(name);
   // Get & Fill Redo Record
   const std::vector<col_oid_t> table_oids{NSPNAME_COL_OID, NSPOID_COL_OID};
-  // NOLINTNEXTLINE
-  auto [pri, pm] = namespaces_->InitializerForProjectedRow(table_oids);
+
+  auto pri = namespaces_->InitializerForProjectedRow(table_oids);
+  auto pm = namespaces_->ProjectionMapForOids(table_oids);
   auto *const redo = txn->StageWrite(db_oid_, NAMESPACE_TABLE_OID, pri);
   // Write the attributes in the Redo Record
   *(reinterpret_cast<namespace_oid_t *>(redo->Delta()->AccessForceNotNull(pm[NSPOID_COL_OID]))) = ns_oid;
@@ -241,8 +242,9 @@ bool DatabaseCatalog::CreateNamespace(transaction::TransactionContext *const txn
 bool DatabaseCatalog::DeleteNamespace(transaction::TransactionContext *const txn, const namespace_oid_t ns_oid) {
   // Step 1: Read the oid index
   const std::vector<col_oid_t> table_oids{NSPNAME_COL_OID};
-  // NOLINTNEXTLINE
-  auto [table_pri, table_pm] = namespaces_->InitializerForProjectedRow(table_oids);
+
+  auto table_pri = namespaces_->InitializerForProjectedRow(table_oids);
+  auto table_pm = namespaces_->ProjectionMapForOids(table_oids);
   // Buffer is large enough for all prs because it's meant to hold 1 VarlenEntry
   byte *const buffer = common::AllocationUtil::AllocateAligned(table_pri.ProjectedRowSize());
   const auto oid_pri = namespaces_oid_index_->GetProjectedRowInitializer();
@@ -295,8 +297,9 @@ bool DatabaseCatalog::DeleteNamespace(transaction::TransactionContext *const txn
 namespace_oid_t DatabaseCatalog::GetNamespaceOid(transaction::TransactionContext *txn, const std::string &name) {
   // Step 1: Read the name index
   const std::vector<col_oid_t> table_oids{NSPOID_COL_OID};
-  // NOLINTNEXTLINE
-  auto [table_pri, table_pm] = namespaces_->InitializerForProjectedRow(table_oids);
+
+  auto table_pri = namespaces_->InitializerForProjectedRow(table_oids);
+  auto table_pm = namespaces_->ProjectionMapForOids(table_oids);
   const auto name_pri = namespaces_name_index_->GetProjectedRowInitializer();
   // Buffer is large enough for all prs because it's meant to hold 1 VarlenEntry
   byte *const buffer = common::AllocationUtil::AllocateAligned(name_pri.ProjectedRowSize());
@@ -338,8 +341,9 @@ bool DatabaseCatalog::CreateColumn(transaction::TransactionContext *const txn, c
                                    const ColOid col_oid, const Column &col) {
   // Step 1: Insert into the table
   const std::vector<col_oid_t> table_oids{PG_ATTRIBUTE_ALL_COL_OIDS};
-  // NOLINTNEXTLINE
-  auto [table_pri, table_pm] = columns_->InitializerForProjectedRow(table_oids);
+
+  auto table_pri = columns_->InitializerForProjectedRow(table_oids);
+  auto table_pm = columns_->ProjectionMapForOids(table_oids);
   auto *const redo = txn->StageWrite(db_oid_, COLUMN_TABLE_OID, table_pri);
   // Write the attributes in the Redo Record
   auto oid_entry = reinterpret_cast<ColOid *>(redo->Delta()->AccessForceNotNull(table_pm[ATTNUM_COL_OID]));
@@ -409,9 +413,11 @@ std::vector<Column> DatabaseCatalog::GetColumns(transaction::TransactionContext 
   // Step 1: Read Index
   const std::vector<col_oid_t> table_oids{ATTNUM_COL_OID, ATTNAME_COL_OID,    ATTTYPID_COL_OID,
                                           ATTLEN_COL_OID, ATTNOTNULL_COL_OID, ADSRC_COL_OID};
-  // NOLINTNEXTLINE
-  auto [table_pri, table_pm] = columns_->InitializerForProjectedRow(table_oids);
+
+  auto table_pri = columns_->InitializerForProjectedRow(table_oids);
+  auto table_pm = columns_->ProjectionMapForOids(table_oids);
   const auto oid_pri = columns_oid_index_->GetProjectedRowInitializer();
+
   // Buffer is large enough to hold all prs
   byte *const buffer = common::AllocationUtil::AllocateAligned(table_pri.ProjectedRowSize());
   byte *const key_buffer = common::AllocationUtil::AllocateAligned(oid_pri.ProjectedRowSize());
@@ -462,10 +468,12 @@ bool DatabaseCatalog::DeleteColumns(transaction::TransactionContext *const txn, 
   // Step 1: Read Index
   const std::vector<col_oid_t> table_oids{ATTNUM_COL_OID, ATTNAME_COL_OID, ATTTYPID_COL_OID, ATTLEN_COL_OID,
                                           ATTNOTNULL_COL_OID};
-  // NOLINTNEXTLINE
-  auto [table_pri, table_pm] = columns_->InitializerForProjectedRow(table_oids);
+
+  auto table_pri = columns_->InitializerForProjectedRow(table_oids);
+  auto table_pm = columns_->ProjectionMapForOids(table_oids);
   const auto oid_pri = columns_oid_index_->GetProjectedRowInitializer();
   const auto name_pri = columns_name_index_->GetProjectedRowInitializer();
+
   // Buffer is large enough to hold all prs
   byte *const buffer = common::AllocationUtil::AllocateAligned(table_pri.ProjectedRowSize());
   byte *const key_buffer = common::AllocationUtil::AllocateAligned(name_pri.ProjectedRowSize());
@@ -551,8 +559,8 @@ bool DatabaseCatalog::DeleteTable(transaction::TransactionContext *const txn, co
 
   const auto oid_pri = classes_oid_index_->GetProjectedRowInitializer();
 
-  // NOLINTNEXTLINE
-  auto [pr_init, pr_map] = classes_->InitializerForProjectedRow(PG_CLASS_ALL_COL_OIDS);
+  auto pr_init = classes_->InitializerForProjectedRow(PG_CLASS_ALL_COL_OIDS);
+  auto pr_map = classes_->ProjectionMapForOids(PG_CLASS_ALL_COL_OIDS);
 
   TERRIER_ASSERT(pr_init.ProjectedRowSize() >= oid_pri.ProjectedRowSize(),
                  "Buffer must be allocated for largest ProjectedRow size");
@@ -667,7 +675,7 @@ std::pair<uint32_t, postgres::ClassKind> DatabaseCatalog::GetClassOidKind(transa
   }
   TERRIER_ASSERT(index_results.size() == 1, "name not unique in classes_name_index_");
 
-  const auto table_pri = classes_->InitializerForProjectedRow({RELOID_COL_OID, RELKIND_COL_OID}).first;
+  const auto table_pri = classes_->InitializerForProjectedRow({RELOID_COL_OID, RELKIND_COL_OID});
   TERRIER_ASSERT(table_pri.ProjectedRowSize() <= name_pri.ProjectedRowSize(),
                  "I want to reuse this buffer because I'm lazy and malloc is slow but it needs to be big enough.");
   pr = table_pri.InitializeRow(buffer);
@@ -752,7 +760,7 @@ std::vector<index_oid_t> DatabaseCatalog::GetIndexes(transaction::TransactionCon
   auto oid_pri = indexes_table_index_->GetProjectedRowInitializer();
 
   // Do not need projection map when there is only one column
-  auto pr_init = indexes_->InitializerForProjectedRow({INDOID_COL_OID}).first;
+  auto pr_init = indexes_->InitializerForProjectedRow({INDOID_COL_OID});
   TERRIER_ASSERT(pr_init.ProjectedRowSize() >= oid_pri.ProjectedRowSize(),
                  "Buffer must be allocated to fit largest PR");
   auto *const buffer = common::AllocationUtil::AllocateAligned(pr_init.ProjectedRowSize());
@@ -796,8 +804,9 @@ bool DatabaseCatalog::DeleteIndex(transaction::TransactionContext *txn, index_oi
 
   // Initialize PRs for pg_class
   const auto class_oid_pri = classes_oid_index_->GetProjectedRowInitializer();
-  // NOLINTNEXTLINE
-  auto [class_pr_init, class_pr_map] = classes_->InitializerForProjectedRow(PG_CLASS_ALL_COL_OIDS);
+
+  auto class_pr_init = classes_->InitializerForProjectedRow(PG_CLASS_ALL_COL_OIDS);
+  auto class_pr_map = classes_->ProjectionMapForOids(PG_CLASS_ALL_COL_OIDS);
 
   // Allocate buffer for largest PR
   TERRIER_ASSERT(class_pr_init.ProjectedRowSize() >= class_oid_pri.ProjectedRowSize(),
@@ -869,8 +878,9 @@ bool DatabaseCatalog::DeleteIndex(transaction::TransactionContext *txn, index_oi
   // Initialize PRs for pg_index
   const auto index_oid_pr = indexes_oid_index_->GetProjectedRowInitializer();
   const auto index_table_pr = indexes_table_index_->GetProjectedRowInitializer();
-  // NOLINTNEXTLINE
-  auto [index_pr_init, index_pr_map] = indexes_->InitializerForProjectedRow({INDOID_COL_OID, INDRELID_COL_OID});
+
+  auto index_pr_init = indexes_->InitializerForProjectedRow({INDOID_COL_OID, INDRELID_COL_OID});
+  auto index_pr_map = indexes_->ProjectionMapForOids({INDOID_COL_OID, INDRELID_COL_OID});
   TERRIER_ASSERT((class_pr_init.ProjectedRowSize() >= index_pr_init.ProjectedRowSize()) &&
                      (class_pr_init.ProjectedRowSize() >= index_oid_pr.ProjectedRowSize()) &&
                      (class_pr_init.ProjectedRowSize() >= index_table_pr.ProjectedRowSize()),
@@ -943,7 +953,7 @@ bool DatabaseCatalog::SetClassPointer(transaction::TransactionContext *const txn
   const auto oid_pri = classes_oid_index_->GetProjectedRowInitializer();
 
   // Do not need to store the projection map because it is only a single column
-  auto pr_init = classes_->InitializerForProjectedRow({REL_PTR_COL_OID}).first;
+  auto pr_init = classes_->InitializerForProjectedRow({REL_PTR_COL_OID});
   TERRIER_ASSERT(pr_init.ProjectedRowSize() >= oid_pri.ProjectedRowSize(), "Buffer must allocated to fit largest PR");
   auto *const buffer = common::AllocationUtil::AllocateAligned(pr_init.ProjectedRowSize());
   auto *const key_pr = oid_pri.InitializeRow(buffer);
@@ -1022,8 +1032,9 @@ void DatabaseCatalog::TearDown(transaction::TransactionContext *txn) {
   col_oids.emplace_back(RELKIND_COL_OID);
   col_oids.emplace_back(REL_SCHEMA_COL_OID);
   col_oids.emplace_back(REL_PTR_COL_OID);
-  // NOLINTNEXTLINE
-  auto [pci, pm] = classes_->InitializerForProjectedColumns(col_oids, 100);
+
+  auto pci = classes_->InitializerForProjectedColumns(col_oids, 100);
+  auto pm = classes_->ProjectionMapForOids(col_oids);
 
   byte *buffer = common::AllocationUtil::AllocateAligned(pci.ProjectedColumnsSize());
   auto pc = pci.Initialize(buffer);
@@ -1056,7 +1067,7 @@ void DatabaseCatalog::TearDown(transaction::TransactionContext *txn) {
   // pg_constraint (expressions)
   col_oids.clear();
   col_oids.emplace_back(CONBIN_COL_OID);
-  std::tie(pci, pm) = constraints_->InitializerForProjectedColumns(col_oids, 100);
+  pci = constraints_->InitializerForProjectedColumns(col_oids, 100);
   pc = pci.Initialize(buffer);
 
   auto exprs = reinterpret_cast<parser::AbstractExpression **>(pc->ColumnStart(0));
@@ -1094,8 +1105,9 @@ bool DatabaseCatalog::CreateIndexEntry(transaction::TransactionContext *const tx
                                        const table_oid_t table_oid, const index_oid_t index_oid,
                                        const std::string &name, const IndexSchema &schema) {
   // First, insert into pg_class
-  // NOLINTNEXTLINE
-  auto [pr_init, pr_map] = classes_->InitializerForProjectedRow(PG_CLASS_ALL_COL_OIDS);
+
+  auto pr_init = classes_->InitializerForProjectedRow(PG_CLASS_ALL_COL_OIDS);
+  auto pr_map = classes_->ProjectionMapForOids(PG_CLASS_ALL_COL_OIDS);
 
   auto *const class_insert_redo = txn->StageWrite(db_oid_, CLASS_TABLE_OID, pr_init);
   auto *const class_insert_pr = class_insert_redo->Delta();
@@ -1176,7 +1188,8 @@ bool DatabaseCatalog::CreateIndexEntry(transaction::TransactionContext *const tx
   TERRIER_ASSERT(result, "Insertion into non-unique namespace index failed.");
 
   // Next, insert index metadata into pg_index
-  std::tie(pr_init, pr_map) = indexes_->InitializerForProjectedRow(PG_INDEX_ALL_COL_OIDS);
+  pr_init = indexes_->InitializerForProjectedRow(PG_INDEX_ALL_COL_OIDS);
+  pr_map = indexes_->ProjectionMapForOids(PG_INDEX_ALL_COL_OIDS);
   auto *const indexes_insert_redo = txn->StageWrite(db_oid_, INDEX_TABLE_OID, pr_init);
   auto *const indexes_insert_pr = indexes_insert_redo->Delta();
 
@@ -1247,7 +1260,7 @@ bool DatabaseCatalog::CreateIndexEntry(transaction::TransactionContext *const tx
   auto *new_schema = new IndexSchema(cols, schema.Unique(), schema.Primary(), schema.Exclusion(), schema.Immediate());
   txn->RegisterAbortAction([=]() { delete new_schema; });
 
-  pr_init = classes_->InitializerForProjectedRow({REL_SCHEMA_COL_OID}).first;
+  pr_init = classes_->InitializerForProjectedRow({REL_SCHEMA_COL_OID});
   auto *const update_redo = txn->StageWrite(db_oid_, CLASS_TABLE_OID, pr_init);
   auto *const update_pr = update_redo->Delta();
 
@@ -1271,9 +1284,8 @@ void DatabaseCatalog::InsertType(transaction::TransactionContext *txn, type::Typ
   table_col_oids.emplace_back(TYPLEN_COL_OID);
   table_col_oids.emplace_back(TYPBYVAL_COL_OID);
   table_col_oids.emplace_back(TYPTYPE_COL_OID);
-  auto initializer_pair = types_->InitializerForProjectedRow(table_col_oids);
-  auto initializer = initializer_pair.first;
-  auto col_map = initializer_pair.second;
+  auto initializer = types_->InitializerForProjectedRow(table_col_oids);
+  auto col_map = types_->ProjectionMapForOids(table_col_oids);
 
   // Stage the write into the table
   auto redo_record = txn->StageWrite(db_oid_, TYPE_TABLE_OID, initializer);
@@ -1385,8 +1397,8 @@ void DatabaseCatalog::BootstrapTypes(transaction::TransactionContext *txn) {
 
 bool DatabaseCatalog::CreateTableEntry(transaction::TransactionContext *const txn, const table_oid_t table_oid,
                                        const namespace_oid_t ns_oid, const std::string &name, const Schema &schema) {
-  // NOLINTNEXTLINE
-  auto [pr_init, pr_map] = classes_->InitializerForProjectedRow(PG_CLASS_ALL_COL_OIDS);
+  auto pr_init = classes_->InitializerForProjectedRow(PG_CLASS_ALL_COL_OIDS);
+  auto pr_map = classes_->ProjectionMapForOids(PG_CLASS_ALL_COL_OIDS);
 
   auto *const insert_redo = txn->StageWrite(db_oid_, CLASS_TABLE_OID, pr_init);
   auto *const insert_pr = insert_redo->Delta();
@@ -1479,7 +1491,7 @@ bool DatabaseCatalog::CreateTableEntry(transaction::TransactionContext *const tx
   auto *new_schema = new Schema(cols);
   txn->RegisterAbortAction([=]() { delete new_schema; });
 
-  pr_init = classes_->InitializerForProjectedRow({REL_SCHEMA_COL_OID}).first;
+  pr_init = classes_->InitializerForProjectedRow({REL_SCHEMA_COL_OID});
   auto *const update_redo = txn->StageWrite(db_oid_, CLASS_TABLE_OID, pr_init);
   auto *const update_pr = update_redo->Delta();
 
@@ -1499,7 +1511,7 @@ std::pair<void *, postgres::ClassKind> DatabaseCatalog::GetClassPtrKind(transact
   auto oid_pri = classes_oid_index_->GetProjectedRowInitializer();
 
   // Since these two attributes are fixed size and one is larger than the other we know PTR will be 0 and KIND will be 1
-  auto pr_init = classes_->InitializerForProjectedRow({REL_PTR_COL_OID, RELKIND_COL_OID}).first;
+  auto pr_init = classes_->InitializerForProjectedRow({REL_PTR_COL_OID, RELKIND_COL_OID});
   TERRIER_ASSERT(pr_init.ProjectedRowSize() >= oid_pri.ProjectedRowSize(),
                  "Buffer must be allocated to fit largest PR");
   auto *const buffer = common::AllocationUtil::AllocateAligned(pr_init.ProjectedRowSize());
@@ -1543,7 +1555,7 @@ std::pair<void *, postgres::ClassKind> DatabaseCatalog::GetClassSchemaPtrKind(tr
   auto oid_pri = classes_oid_index_->GetProjectedRowInitializer();
 
   // Since these two attributes are fixed size and one is larger than the other we know PTR will be 0 and KIND will be 1
-  auto pr_init = classes_->InitializerForProjectedRow({REL_SCHEMA_COL_OID, RELKIND_COL_OID}).first;
+  auto pr_init = classes_->InitializerForProjectedRow({REL_SCHEMA_COL_OID, RELKIND_COL_OID});
   TERRIER_ASSERT(pr_init.ProjectedRowSize() >= oid_pri.ProjectedRowSize(),
                  "Buffer must be allocated to fit largest PR");
   auto *const buffer = common::AllocationUtil::AllocateAligned(pr_init.ProjectedRowSize());
