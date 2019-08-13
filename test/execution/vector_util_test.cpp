@@ -34,7 +34,7 @@ class PoolArray {
 
   ~PoolArray() {
     if (arr_ != nullptr) {
-      TPL_ASSERT(memory_ != nullptr, "No memory pool to return to!");
+      TERRIER_ASSERT(memory_ != nullptr, "No memory pool to return to!");
       memory_->DeallocateArray(arr_, size_);
     }
     arr_ = nullptr;

@@ -71,8 +71,8 @@ class StageTimer {
    * Exit the current stage.
    */
   void ExitStage() {
-    TPL_ASSERT(!stages_.empty(), "Missing call to EnterStage()");
-    TPL_ASSERT(stages_.back().time() == 0, "Duplicate call to ExitStage()");
+    TERRIER_ASSERT(!stages_.empty(), "Missing call to EnterStage()");
+    TERRIER_ASSERT(stages_.back().time() == 0, "Duplicate call to ExitStage()");
     timer_.Stop();
     stages_.back().set_time(timer_.elapsed());
   }

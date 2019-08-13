@@ -56,12 +56,12 @@ inline void FreeHugeArray(T *ptr, std::size_t num_elems) {
 }
 
 inline void *MallocAligned(const std::size_t size, const std::size_t alignment) {
-  TPL_ASSERT(alignment % sizeof(void *) == 0, "Alignment must be a multiple of sizeof(void*)");
-  TPL_ASSERT((alignment & (alignment - 1)) == 0, "Alignment must be a power of two");
+  TERRIER_ASSERT(alignment % sizeof(void *) == 0, "Alignment must be a multiple of sizeof(void*)");
+  TERRIER_ASSERT((alignment & (alignment - 1)) == 0, "Alignment must be a power of two");
   void *ptr = nullptr;
 #if defined(__APPLE__)
   i32 ret UNUSED_ATTRIBUTE = posix_memalign(&ptr, alignment, size);
-  TPL_ASSERT(ret == 0, "Allocation failed");
+  TERRIER_ASSERT(ret == 0, "Allocation failed");
 #else
   ptr = std::aligned_alloc(alignment, size);
 #endif

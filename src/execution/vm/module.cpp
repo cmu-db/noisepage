@@ -163,7 +163,7 @@ class TrampolineGenerator : public Xbyak::CodeGenerator {
     const Xbyak::Reg arg_regs[][6] = {{edi, esi, edx, ecx, r8d, r9d}, {rdi, rsi, rdx, rcx, r8, r9}};
 
     const ast::FunctionType *func_type = func_.func_type();
-    TPL_ASSERT(func_type->num_params() < sizeof(arg_regs), "Too many function arguments");
+    TERRIER_ASSERT(func_type->num_params() < sizeof(arg_regs), "Too many function arguments");
 
     u32 displacement = 0;
     u32 local_idx = 0;
@@ -280,7 +280,7 @@ void Module::CompileToMachineCode() {
     // Setup function pointers
     for (const auto &func_info : bytecode_module_->functions()) {
       auto *jit_function = jit_module_->GetFunctionPointer(func_info.name());
-      TPL_ASSERT(jit_function != nullptr, "Missing function in compiled module!");
+      TERRIER_ASSERT(jit_function != nullptr, "Missing function in compiled module!");
       functions_[func_info.id()].store(jit_function, std::memory_order_relaxed);
     }
   });

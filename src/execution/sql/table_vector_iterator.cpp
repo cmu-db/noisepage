@@ -19,7 +19,7 @@ TableVectorIterator::~TableVectorIterator() {
 bool TableVectorIterator::Init() {
   // Find the table
   table_ = exec_ctx_->GetAccessor()->GetTable(table_oid_);
-  TPL_ASSERT(table_ != nullptr, "Table must exist!!");
+  TERRIER_ASSERT(table_ != nullptr, "Table must exist!!");
 
   // Initialize the projected column
   TERRIER_ASSERT(!col_oids_.empty(), "There must be at least one col oid!");

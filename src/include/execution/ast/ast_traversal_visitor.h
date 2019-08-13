@@ -45,7 +45,7 @@ class AstTraversalVisitor : public AstVisitor<Subclass> {
    * Run the traversal
    */
   void Run() {
-    TPL_ASSERT(root_ != nullptr, "Cannot run traversal on NULL tree");
+    TERRIER_ASSERT(root_ != nullptr, "Cannot run traversal on NULL tree");
     AstVisitor<Subclass>::Visit(root_);
   }
 

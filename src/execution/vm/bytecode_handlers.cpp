@@ -25,14 +25,14 @@ void OpThreadStateContainerFree(terrier::execution::sql::ThreadStateContainer *c
 
 void OpTableVectorIteratorInit(terrier::execution::sql::TableVectorIterator *iter, u32 table_oid,
                                terrier::execution::exec::ExecutionContext *exec_ctx, u32 *col_oids, u32 num_oids) {
-  TPL_ASSERT(iter != nullptr, "Null iterator to initialize");
+  TERRIER_ASSERT(iter != nullptr, "Null iterator to initialize");
   new (iter) terrier::execution::sql::TableVectorIterator(table_oid, exec_ctx, col_oids, num_oids);
 }
 
 void OpTableVectorIteratorPerformInit(terrier::execution::sql::TableVectorIterator *iter) { iter->Init(); }
 
 void OpTableVectorIteratorFree(terrier::execution::sql::TableVectorIterator *iter) {
-  TPL_ASSERT(iter != nullptr, "NULL iterator given to close");
+  TERRIER_ASSERT(iter != nullptr, "NULL iterator given to close");
   iter->~TableVectorIterator();
 }
 
@@ -138,7 +138,7 @@ void OpAggregationHashTableFree(terrier::execution::sql::AggregationHashTable *c
 
 void OpAggregationHashTableIteratorInit(terrier::execution::sql::AggregationHashTableIterator *iter,
                                         terrier::execution::sql::AggregationHashTable *agg_hash_table) {
-  TPL_ASSERT(agg_hash_table != nullptr, "Null hash table");
+  TERRIER_ASSERT(agg_hash_table != nullptr, "Null hash table");
   new (iter) terrier::execution::sql::AggregationHashTableIterator(*agg_hash_table);
 }
 

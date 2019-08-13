@@ -465,7 +465,7 @@ class Bytecodes {
    * @return the type of the operand at the given index
    */
   static OperandType GetNthOperandType(Bytecode bytecode, u32 operand_index) {
-    TPL_ASSERT(operand_index < NumOperands(bytecode), "Accessing out-of-bounds operand number for bytecode");
+    TERRIER_ASSERT(operand_index < NumOperands(bytecode), "Accessing out-of-bounds operand number for bytecode");
     return GetOperandTypes(bytecode)[operand_index];
   }
 
@@ -476,7 +476,7 @@ class Bytecodes {
    * @return the size of the operand at the given index
    */
   static OperandSize GetNthOperandSize(Bytecode bytecode, u32 operand_index) {
-    TPL_ASSERT(operand_index < NumOperands(bytecode), "Accessing out-of-bounds operand number for bytecode");
+    TERRIER_ASSERT(operand_index < NumOperands(bytecode), "Accessing out-of-bounds operand number for bytecode");
     return GetOperandSizes(bytecode)[operand_index];
   }
 
@@ -501,7 +501,7 @@ class Bytecodes {
    * @return byte representation of the given bytecode
    */
   static constexpr std::underlying_type_t<Bytecode> ToByte(Bytecode bytecode) {
-    TPL_ASSERT(bytecode <= Bytecode::Last, "Invalid bytecode");
+    TERRIER_ASSERT(bytecode <= Bytecode::Last, "Invalid bytecode");
     return static_cast<std::underlying_type_t<Bytecode>>(bytecode);
   }
 
@@ -513,7 +513,7 @@ class Bytecodes {
    */
   static constexpr Bytecode FromByte(std::underlying_type_t<Bytecode> val) {
     auto bytecode = static_cast<Bytecode>(val);
-    TPL_ASSERT(bytecode <= Bytecode::Last, "Invalid bytecode");
+    TERRIER_ASSERT(bytecode <= Bytecode::Last, "Invalid bytecode");
     return bytecode;
   }
 

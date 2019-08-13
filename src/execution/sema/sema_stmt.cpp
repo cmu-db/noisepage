@@ -73,7 +73,7 @@ void Sema::VisitForStmt(ast::ForStmt *node) {
   Visit(node->body());
 }
 
-void Sema::VisitForInStmt(ast::ForInStmt *node) { TPL_ASSERT(false, "Not supported"); }
+void Sema::VisitForInStmt(ast::ForInStmt *node) { TERRIER_ASSERT(false, "Not supported"); }
 
 void Sema::VisitExpressionStmt(ast::ExpressionStmt *node) { Visit(node->expression()); }
 

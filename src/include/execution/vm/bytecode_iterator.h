@@ -144,7 +144,7 @@ class BytecodeIterator {
    * @param pos The position to shift the iterator to
    */
   void SetPosition(std::size_t pos) {
-    // TPL_ASSERT(offset < (end_offset() - start_offset()), "Invalid offset");
+    // TERRIER_ASSERT(offset < (end_offset() - start_offset()), "Invalid offset");
     curr_offset_ = start_offset_ + pos;
   }
 

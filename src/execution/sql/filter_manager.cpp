@@ -47,13 +47,13 @@ FilterManager::FilterManager(const bandit::Policy::Kind policy_kind) : policy_(C
 FilterManager::~FilterManager() = default;
 
 void FilterManager::StartNewClause() {
-  TPL_ASSERT(!finalized_, "Cannot modify filter manager after finalization");
+  TERRIER_ASSERT(!finalized_, "Cannot modify filter manager after finalization");
   clauses_.emplace_back();
 }
 
 void FilterManager::InsertClauseFlavor(const FilterManager::MatchFn flavor) {
-  TPL_ASSERT(!finalized_, "Cannot modify filter manager after finalization");
-  TPL_ASSERT(!clauses_.empty(), "Inserting flavor without clause");
+  TERRIER_ASSERT(!finalized_, "Cannot modify filter manager after finalization");
+  TERRIER_ASSERT(!clauses_.empty(), "Inserting flavor without clause");
   clauses_.back().flavors.push_back(flavor);
 }
 
@@ -76,7 +76,7 @@ void FilterManager::Finalize() {
 }
 
 void FilterManager::RunFilters(ProjectedColumnsIterator *const pci) {
-  TPL_ASSERT(finalized_, "Must finalize the filter before it can be used");
+  TERRIER_ASSERT(finalized_, "Must finalize the filter before it can be used");
 
   // Execute the clauses in what we currently believe to be the optimal order
   for (const u32 opt_clause_idx : optimal_clause_order_) {

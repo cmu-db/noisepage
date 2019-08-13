@@ -141,7 +141,7 @@ class Vec8 : public Vec512b {
    * @return the element at the given index
    */
   i64 Extract(u32 index) const {
-    TPL_ASSERT(index < 8, "Out-of-bounds mask element access");
+    TERRIER_ASSERT(index < 8, "Out-of-bounds mask element access");
     alignas(64) i64 x[Size()];
     Store(x);
     return x[index & 7];

@@ -30,7 +30,7 @@ class Identifier {
    * @return the length of the string
    */
   std::size_t length() const {
-    TPL_ASSERT(data_ != nullptr, "Trying to get the length of an invalid identifier");
+    TERRIER_ASSERT(data_ != nullptr, "Trying to get the length of an invalid identifier");
     return std::strlen(data());
   }
 

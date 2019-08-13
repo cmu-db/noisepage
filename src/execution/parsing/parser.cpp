@@ -240,12 +240,12 @@ class Parser::ForHeader {
   bool IsStandard() const { return !IsForIn(); }
 
   std::tuple<ast::Stmt *, ast::Expr *, ast::Stmt *> GetForElements() const {
-    TPL_ASSERT(IsStandard(), "Loop isn't a standard for-loop");
+    TERRIER_ASSERT(IsStandard(), "Loop isn't a standard for-loop");
     return {init, cond, next};
   }
 
   std::tuple<ast::Expr *, ast::Expr *> GetForInElements() const {
-    TPL_ASSERT(IsForIn(), "Loop isn't a for-in");
+    TERRIER_ASSERT(IsForIn(), "Loop isn't a for-in");
     return {target, iter};
   }
 
@@ -286,7 +286,7 @@ Parser::ForHeader Parser::ParseForHeader() {
 
   // If we see an 'in', it's a for-in loop
   if (Matches(Token::Type::IN)) {
-    TPL_ASSERT(cond != nullptr, "Must have parsed can't be null");
+    TERRIER_ASSERT(cond != nullptr, "Must have parsed can't be null");
     ast::Expr *target = MakeExpr(cond);
     ast::Expr *iter = MakeExpr(ParseStmt());
     Expect(Token::Type::RIGHT_PAREN);
@@ -377,7 +377,7 @@ ast::Stmt *Parser::ParseReturnStmt() {
 ast::Expr *Parser::ParseExpr() { return ParseBinaryOpExpr(Token::LowestPrecedence() + 1); }
 
 ast::Expr *Parser::ParseBinaryOpExpr(u32 min_prec) {
-  TPL_ASSERT(min_prec > 0, "The minimum precedence cannot be 0");
+  TERRIER_ASSERT(min_prec > 0, "The minimum precedence cannot be 0");
 
   ast::Expr *left = ParseUnaryOpExpr();
 

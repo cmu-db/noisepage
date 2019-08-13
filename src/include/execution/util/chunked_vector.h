@@ -449,7 +449,7 @@ class ChunkedVector {
    * Access the first element in the vector. Undefined if the vector is empty.
    */
   byte *front() noexcept {
-    TPL_ASSERT(!empty(), "Accessing front() of empty vector");
+    TERRIER_ASSERT(!empty(), "Accessing front() of empty vector");
     return chunks_[0];
   }
 
@@ -457,7 +457,7 @@ class ChunkedVector {
    * Access the first element in the vector. Undefined if the vector is empty.
    */
   const byte *front() const noexcept {
-    TPL_ASSERT(!empty(), "Accessing front() of empty vector");
+    TERRIER_ASSERT(!empty(), "Accessing front() of empty vector");
     return chunks_[0];
   }
 
@@ -465,7 +465,7 @@ class ChunkedVector {
    * Access the last element in the vector. Undefined if the vector is empty.
    */
   byte *back() noexcept {
-    TPL_ASSERT(!empty(), "Accessing back() of empty vector");
+    TERRIER_ASSERT(!empty(), "Accessing back() of empty vector");
     return this->operator[](size() - 1);
   }
 
@@ -473,7 +473,7 @@ class ChunkedVector {
    * Access the last element in the vector. Undefined if the vector is empty.
    */
   const byte *back() const noexcept {
-    TPL_ASSERT(!empty(), "Accessing back() of empty vector");
+    TERRIER_ASSERT(!empty(), "Accessing back() of empty vector");
     return this->operator[](size() - 1);
   }
 
@@ -513,7 +513,7 @@ class ChunkedVector {
    * Remove the last element from the vector.
    */
   void pop_back() {
-    TPL_ASSERT(!empty(), "Popping empty vector");
+    TERRIER_ASSERT(!empty(), "Popping empty vector");
     if (position_ == chunks_[active_chunk_idx_]) {
       end_ = chunks_[--active_chunk_idx_] + ChunkAllocSize(element_size());
       position_ = end_;
@@ -874,7 +874,7 @@ class ChunkedVectorT {
    * Remove the last element from the vector. Undefined if the vector is empty.
    */
   void pop_back() {
-    TPL_ASSERT(!empty(), "Popping from an empty vector");
+    TERRIER_ASSERT(!empty(), "Popping from an empty vector");
     T &removed = back();
     vec_.pop_back();
     removed.~T();

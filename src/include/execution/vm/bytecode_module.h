@@ -34,7 +34,7 @@ class BytecodeModule {
    * @return A pointer to the function's info if it exists; null otherwise
    */
   const FunctionInfo *GetFuncInfoById(const FunctionId func_id) const {
-    TPL_ASSERT(func_id < num_functions(), "Invalid function");
+    TERRIER_ASSERT(func_id < num_functions(), "Invalid function");
     return &functions_[func_id];
   }
 

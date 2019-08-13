@@ -38,8 +38,8 @@ namespace {
 
 const char *SearchSubstring(const char *haystack, const std::size_t hay_len, const char *needle,
                             const std::size_t needle_len) {
-  TPL_ASSERT(needle != nullptr, "No search string provided");
-  TPL_ASSERT(needle_len > 0, "No search string provided");
+  TERRIER_ASSERT(needle != nullptr, "No search string provided");
+  TERRIER_ASSERT(needle_len > 0, "No search string provided");
   for (u32 i = 0; i < hay_len + needle_len; i++) {
     const auto pos = haystack + i;
     if (strncmp(pos, needle, needle_len) == 0) {

@@ -67,7 +67,7 @@ VM_OP_HOT void OpNot(bool *const result, const bool input) { *result = !input; }
 #define MODULAR(type, ...)                                          \
   /* Primitive modulo-remainder (no zero-check) */                  \
   VM_OP_HOT void OpRem##_##type(type *result, type lhs, type rhs) { \
-    TPL_ASSERT(rhs != 0, "Division-by-zero error!");                \
+    TERRIER_ASSERT(rhs != 0, "Division-by-zero error!");                \
     *result = static_cast<type>(lhs % rhs);                         \
   }
 
@@ -88,7 +88,7 @@ INT_TYPES(MODULAR)
                                                                                                               \
   /* Primitive division (no zero-check) */                                                                    \
   VM_OP_HOT void OpDiv##_##type(type *result, type lhs, type rhs) {                                           \
-    TPL_ASSERT(rhs != 0, "Division-by-zero error!");                                                          \
+    TERRIER_ASSERT(rhs != 0, "Division-by-zero error!");                                                          \
     *result = static_cast<type>(lhs / rhs);                                                                   \
   }
 
@@ -250,7 +250,7 @@ VM_OP_HOT void OpPCIGetTinyInt(terrier::execution::sql::Integer *out,
                                terrier::execution::sql::ProjectedColumnsIterator *iter, u16 col_idx) {
   // Read
   auto *ptr = iter->Get<i8, false>(col_idx, nullptr);
-  TPL_ASSERT(ptr != nullptr, "Null pointer when trying to read integer");
+  TERRIER_ASSERT(ptr != nullptr, "Null pointer when trying to read integer");
 
   // Set
   out->is_null = false;
@@ -261,7 +261,7 @@ VM_OP_HOT void OpPCIGetSmallInt(terrier::execution::sql::Integer *out,
                                 terrier::execution::sql::ProjectedColumnsIterator *iter, u16 col_idx) {
   // Read
   auto *ptr = iter->Get<i16, false>(col_idx, nullptr);
-  TPL_ASSERT(ptr != nullptr, "Null pointer when trying to read integer");
+  TERRIER_ASSERT(ptr != nullptr, "Null pointer when trying to read integer");
 
   // Set
   out->is_null = false;
@@ -272,7 +272,7 @@ VM_OP_HOT void OpPCIGetInteger(terrier::execution::sql::Integer *out,
                                terrier::execution::sql::ProjectedColumnsIterator *iter, u16 col_idx) {
   // Read
   auto *ptr = iter->Get<i32, false>(col_idx, nullptr);
-  TPL_ASSERT(ptr != nullptr, "Null pointer when trying to read integer");
+  TERRIER_ASSERT(ptr != nullptr, "Null pointer when trying to read integer");
 
   // Set
   out->is_null = false;
@@ -283,7 +283,7 @@ VM_OP_HOT void OpPCIGetBigInt(terrier::execution::sql::Integer *out,
                               terrier::execution::sql::ProjectedColumnsIterator *iter, u16 col_idx) {
   // Read
   auto *ptr = iter->Get<i64, false>(col_idx, nullptr);
-  TPL_ASSERT(ptr != nullptr, "Null pointer when trying to read integer");
+  TERRIER_ASSERT(ptr != nullptr, "Null pointer when trying to read integer");
 
   // Set
   out->is_null = false;
@@ -294,7 +294,7 @@ VM_OP_HOT void OpPCIGetReal(terrier::execution::sql::Real *out, terrier::executi
                             u16 col_idx) {
   // Read
   auto *ptr = iter->Get<f32, false>(col_idx, nullptr);
-  TPL_ASSERT(ptr != nullptr, "Null pointer when trying to read real value");
+  TERRIER_ASSERT(ptr != nullptr, "Null pointer when trying to read real value");
 
   // Set
   out->is_null = false;
@@ -305,7 +305,7 @@ VM_OP_HOT void OpPCIGetDouble(terrier::execution::sql::Real *out,
                               terrier::execution::sql::ProjectedColumnsIterator *iter, u16 col_idx) {
   // Read
   auto *ptr = iter->Get<f64, false>(col_idx, nullptr);
-  TPL_ASSERT(ptr != nullptr, "Null pointer when trying to read double value");
+  TERRIER_ASSERT(ptr != nullptr, "Null pointer when trying to read double value");
 
   // Set
   out->is_null = false;
@@ -325,7 +325,7 @@ VM_OP_HOT void OpPCIGetDate(terrier::execution::sql::Date *out, terrier::executi
                             u16 col_idx) {
   // Read
   auto *ptr = iter->Get<u32, false>(col_idx, nullptr);
-  TPL_ASSERT(ptr != nullptr, "Null pointer when trying to read date");
+  TERRIER_ASSERT(ptr != nullptr, "Null pointer when trying to read date");
 
   // Set
   out->is_null = false;
@@ -336,7 +336,7 @@ VM_OP_HOT void OpPCIGetVarlen(terrier::execution::sql::StringVal *out,
                               terrier::execution::sql::ProjectedColumnsIterator *iter, u16 col_idx) {
   // Read
   auto *varlen = iter->Get<terrier::storage::VarlenEntry, false>(col_idx, nullptr);
-  TPL_ASSERT(varlen != nullptr, "Null pointer when trying to read varlen");
+  TERRIER_ASSERT(varlen != nullptr, "Null pointer when trying to read varlen");
 
   // Set
   *out = terrier::execution::sql::StringVal(reinterpret_cast<const char *>(varlen->Content()), varlen->Size());
@@ -347,7 +347,7 @@ VM_OP_HOT void OpPCIGetTinyIntNull(terrier::execution::sql::Integer *out,
   // Read
   bool null = false;
   auto *ptr = iter->Get<i8, true>(col_idx, &null);
-  TPL_ASSERT(ptr != nullptr, "Null pointer when trying to read integer");
+  TERRIER_ASSERT(ptr != nullptr, "Null pointer when trying to read integer");
 
   // Set
   out->is_null = null;
@@ -359,7 +359,7 @@ VM_OP_HOT void OpPCIGetSmallIntNull(terrier::execution::sql::Integer *out,
   // Read
   bool null = false;
   auto *ptr = iter->Get<i16, true>(col_idx, &null);
-  TPL_ASSERT(ptr != nullptr, "Null pointer when trying to read integer");
+  TERRIER_ASSERT(ptr != nullptr, "Null pointer when trying to read integer");
 
   // Set
   out->is_null = null;
@@ -371,7 +371,7 @@ VM_OP_HOT void OpPCIGetIntegerNull(terrier::execution::sql::Integer *out,
   // Read
   bool null = false;
   auto *ptr = iter->Get<i32, true>(col_idx, &null);
-  TPL_ASSERT(ptr != nullptr, "Null pointer when trying to read integer");
+  TERRIER_ASSERT(ptr != nullptr, "Null pointer when trying to read integer");
 
   // Set
   out->is_null = null;
@@ -383,7 +383,7 @@ VM_OP_HOT void OpPCIGetBigIntNull(terrier::execution::sql::Integer *out,
   // Read
   bool null = false;
   auto *ptr = iter->Get<i64, true>(col_idx, &null);
-  TPL_ASSERT(ptr != nullptr, "Null pointer when trying to read integer");
+  TERRIER_ASSERT(ptr != nullptr, "Null pointer when trying to read integer");
 
   // Set
   out->is_null = null;
@@ -395,7 +395,7 @@ VM_OP_HOT void OpPCIGetRealNull(terrier::execution::sql::Real *out,
   // Read
   bool null = false;
   auto *ptr = iter->Get<f32, true>(col_idx, &null);
-  TPL_ASSERT(ptr != nullptr, "Null pointer when trying to read real value");
+  TERRIER_ASSERT(ptr != nullptr, "Null pointer when trying to read real value");
 
   // Set
   out->is_null = null;
@@ -407,7 +407,7 @@ VM_OP_HOT void OpPCIGetDoubleNull(terrier::execution::sql::Real *out,
   // Read
   bool null = false;
   auto *ptr = iter->Get<f64, true>(col_idx, &null);
-  TPL_ASSERT(ptr != nullptr, "Null pointer when trying to read double value");
+  TERRIER_ASSERT(ptr != nullptr, "Null pointer when trying to read double value");
 
   // Set
   out->is_null = null;
@@ -425,7 +425,7 @@ VM_OP_HOT void OpPCIGetDateNull(terrier::execution::sql::Date *out,
   // Read
   bool null = false;
   auto *ptr = iter->Get<u32, true>(col_idx, &null);
-  TPL_ASSERT(ptr != nullptr, "Null pointer when trying to read date");
+  TERRIER_ASSERT(ptr != nullptr, "Null pointer when trying to read date");
 
   // Set
   out->is_null = null;
@@ -437,7 +437,7 @@ VM_OP_HOT void OpPCIGetVarlenNull(terrier::execution::sql::StringVal *out,
   // Read
   bool null = false;
   auto *varlen = iter->Get<terrier::storage::VarlenEntry, true>(col_idx, &null);
-  TPL_ASSERT(varlen != nullptr, "Null pointer when trying to read varlen");
+  TERRIER_ASSERT(varlen != nullptr, "Null pointer when trying to read varlen");
 
   // Set
   if (null) {
@@ -758,7 +758,7 @@ VM_OP_HOT void OpCountAggregateAdvance(terrier::execution::sql::CountAggregate *
 
 VM_OP_HOT void OpCountAggregateMerge(terrier::execution::sql::CountAggregate *agg_1,
                                      terrier::execution::sql::CountAggregate *agg_2) {
-  TPL_ASSERT(agg_2 != nullptr, "Null aggregate!");
+  TERRIER_ASSERT(agg_2 != nullptr, "Null aggregate!");
   agg_1->Merge(*agg_2);
 }
 
@@ -1321,7 +1321,7 @@ VM_OP_HOT void OpIndexIteratorGetTinyInt(terrier::execution::sql::Integer *out,
                                          terrier::execution::sql::IndexIterator *iter, u16 col_idx) {
   // Read
   auto *ptr = iter->Get<i16, false>(col_idx, nullptr);
-  TPL_ASSERT(ptr != nullptr, "Null pointer when trying to read integer");
+  TERRIER_ASSERT(ptr != nullptr, "Null pointer when trying to read integer");
 
   // Set
   out->is_null = false;
@@ -1332,7 +1332,7 @@ VM_OP_HOT void OpIndexIteratorGetSmallInt(terrier::execution::sql::Integer *out,
                                           terrier::execution::sql::IndexIterator *iter, u16 col_idx) {
   // Read
   auto *ptr = iter->Get<i16, false>(col_idx, nullptr);
-  TPL_ASSERT(ptr != nullptr, "Null pointer when trying to read integer");
+  TERRIER_ASSERT(ptr != nullptr, "Null pointer when trying to read integer");
 
   // Set
   out->is_null = false;
@@ -1343,7 +1343,7 @@ VM_OP_HOT void OpIndexIteratorGetInteger(terrier::execution::sql::Integer *out,
                                          terrier::execution::sql::IndexIterator *iter, u16 col_idx) {
   // Read
   auto *ptr = iter->Get<i32, false>(col_idx, nullptr);
-  TPL_ASSERT(ptr != nullptr, "Null pointer when trying to read integer");
+  TERRIER_ASSERT(ptr != nullptr, "Null pointer when trying to read integer");
 
   // Set
   out->is_null = false;
@@ -1354,7 +1354,7 @@ VM_OP_HOT void OpIndexIteratorGetBigInt(terrier::execution::sql::Integer *out,
                                         terrier::execution::sql::IndexIterator *iter, u16 col_idx) {
   // Read
   auto *ptr = iter->Get<i64, false>(col_idx, nullptr);
-  TPL_ASSERT(ptr != nullptr, "Null pointer when trying to read integer");
+  TERRIER_ASSERT(ptr != nullptr, "Null pointer when trying to read integer");
 
   // Set
   out->is_null = false;
@@ -1365,7 +1365,7 @@ VM_OP_HOT void OpIndexIteratorGetReal(terrier::execution::sql::Real *out, terrie
                                       u16 col_idx) {
   // Read
   auto *ptr = iter->Get<f32, false>(col_idx, nullptr);
-  TPL_ASSERT(ptr != nullptr, "Null pointer when trying to read integer");
+  TERRIER_ASSERT(ptr != nullptr, "Null pointer when trying to read integer");
 
   // Set
   out->is_null = false;
@@ -1376,7 +1376,7 @@ VM_OP_HOT void OpIndexIteratorGetDouble(terrier::execution::sql::Real *out,
                                         terrier::execution::sql::IndexIterator *iter, u16 col_idx) {
   // Read
   auto *ptr = iter->Get<f64, false>(col_idx, nullptr);
-  TPL_ASSERT(ptr != nullptr, "Null pointer when trying to read integer");
+  TERRIER_ASSERT(ptr != nullptr, "Null pointer when trying to read integer");
 
   // Set
   out->is_null = false;

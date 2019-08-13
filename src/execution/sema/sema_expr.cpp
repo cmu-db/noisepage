@@ -8,7 +8,7 @@
 
 namespace terrier::execution::sema {
 
-void Sema::VisitBadExpr(ast::BadExpr *node) { TPL_ASSERT(false, "Bad expression in type checker!"); }
+void Sema::VisitBadExpr(ast::BadExpr *node) { TERRIER_ASSERT(false, "Bad expression in type checker!"); }
 
 void Sema::VisitBinaryOpExpr(ast::BinaryOpExpr *node) {
   ast::Type *left_type = Resolve(node->left());

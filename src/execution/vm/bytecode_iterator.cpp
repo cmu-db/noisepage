@@ -21,7 +21,7 @@ void BytecodeIterator::Advance() { curr_offset_ += CurrentBytecodeSize(); }
 
 i64 BytecodeIterator::GetImmediateOperand(u32 operand_index) const {
   OperandType operand_type = Bytecodes::GetNthOperandType(CurrentBytecode(), operand_index);
-  TPL_ASSERT(OperandTypes::IsSignedImmediate(operand_type), "Operand type is not a signed immediate");
+  TERRIER_ASSERT(OperandTypes::IsSignedImmediate(operand_type), "Operand type is not a signed immediate");
 
   const u8 *operand_address =
       bytecodes_.data() + curr_offset_ + Bytecodes::GetNthOperandOffset(CurrentBytecode(), operand_index);
@@ -47,7 +47,7 @@ i64 BytecodeIterator::GetImmediateOperand(u32 operand_index) const {
 
 f64 BytecodeIterator::GetFloatImmediateOperand(u32 operand_index) const {
   OperandType operand_type = Bytecodes::GetNthOperandType(CurrentBytecode(), operand_index);
-  TPL_ASSERT(OperandTypes::IsFloatImmediate(operand_type), "Operand type is not a float immediate");
+  TERRIER_ASSERT(OperandTypes::IsFloatImmediate(operand_type), "Operand type is not a float immediate");
 
   const u8 *operand_address =
       bytecodes_.data() + curr_offset_ + Bytecodes::GetNthOperandOffset(CurrentBytecode(), operand_index);
@@ -67,7 +67,7 @@ f64 BytecodeIterator::GetFloatImmediateOperand(u32 operand_index) const {
 
 u64 BytecodeIterator::GetUnsignedImmediateOperand(u32 operand_index) const {
   OperandType operand_type = Bytecodes::GetNthOperandType(CurrentBytecode(), operand_index);
-  TPL_ASSERT(OperandTypes::IsUnsignedImmediate(operand_type), "Operand type is not a signed immediate");
+  TERRIER_ASSERT(OperandTypes::IsUnsignedImmediate(operand_type), "Operand type is not a signed immediate");
 
   const u8 *operand_address =
       bytecodes_.data() + curr_offset_ + Bytecodes::GetNthOperandOffset(CurrentBytecode(), operand_index);
@@ -86,7 +86,7 @@ u64 BytecodeIterator::GetUnsignedImmediateOperand(u32 operand_index) const {
 }
 
 i32 BytecodeIterator::GetJumpOffsetOperand(u32 operand_index) const {
-  TPL_ASSERT(Bytecodes::GetNthOperandType(CurrentBytecode(), operand_index) == OperandType::JumpOffset,
+  TERRIER_ASSERT(Bytecodes::GetNthOperandType(CurrentBytecode(), operand_index) == OperandType::JumpOffset,
              "Operand isn't a jump offset");
   const u8 *operand_address =
       bytecodes_.data() + curr_offset_ + Bytecodes::GetNthOperandOffset(CurrentBytecode(), operand_index);
@@ -95,7 +95,7 @@ i32 BytecodeIterator::GetJumpOffsetOperand(u32 operand_index) const {
 }
 
 LocalVar BytecodeIterator::GetLocalOperand(u32 operand_index) const {
-  TPL_ASSERT(OperandTypes::IsLocal(Bytecodes::GetNthOperandType(CurrentBytecode(), operand_index)),
+  TERRIER_ASSERT(OperandTypes::IsLocal(Bytecodes::GetNthOperandType(CurrentBytecode(), operand_index)),
              "Operand type is not a local variable reference");
   const u8 *operand_address =
       bytecodes_.data() + curr_offset_ + Bytecodes::GetNthOperandOffset(CurrentBytecode(), operand_index);
@@ -105,7 +105,7 @@ LocalVar BytecodeIterator::GetLocalOperand(u32 operand_index) const {
 }
 
 u16 BytecodeIterator::GetLocalCountOperand(u32 operand_index, std::vector<LocalVar> *locals) const {
-  TPL_ASSERT(OperandTypes::IsLocalCount(Bytecodes::GetNthOperandType(CurrentBytecode(), operand_index)),
+  TERRIER_ASSERT(OperandTypes::IsLocalCount(Bytecodes::GetNthOperandType(CurrentBytecode(), operand_index)),
              "Operand type is not a local variable count");
 
   const u8 *operand_address =
@@ -126,7 +126,7 @@ u16 BytecodeIterator::GetLocalCountOperand(u32 operand_index, std::vector<LocalV
 }
 
 u16 BytecodeIterator::GetFunctionIdOperand(u32 operand_index) const {
-  TPL_ASSERT(Bytecodes::GetNthOperandType(CurrentBytecode(), operand_index) == OperandType::FunctionId,
+  TERRIER_ASSERT(Bytecodes::GetNthOperandType(CurrentBytecode(), operand_index) == OperandType::FunctionId,
              "Operand type is not a function");
 
   const u8 *operand_address =

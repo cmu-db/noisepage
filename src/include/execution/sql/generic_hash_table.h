@@ -163,7 +163,7 @@ class GenericHashTable {
     // range [0, kNumTagBits), so we take the log2(kNumTagBits) most significant
     // bits to determine which bit in the tag to set.
     auto tag_bit_pos = hash >> (sizeof(hash_t) * 8 - 4);
-    TPL_ASSERT(tag_bit_pos < kNumTagBits, "Invalid tag!");
+    TERRIER_ASSERT(tag_bit_pos < kNumTagBits, "Invalid tag!");
     return 1ull << (tag_bit_pos + kNumPointerBits);
   }
 
@@ -209,8 +209,8 @@ template <bool Concurrent>
 inline void GenericHashTable::Insert(HashTableEntry *new_entry, hash_t hash) {
   const auto pos = hash & mask_;
 
-  TPL_ASSERT(pos < capacity(), "Computed table position exceeds capacity!");
-  TPL_ASSERT(new_entry->hash == hash, "Hash value not set in entry!");
+  TERRIER_ASSERT(pos < capacity(), "Computed table position exceeds capacity!");
+  TERRIER_ASSERT(new_entry->hash == hash, "Hash value not set in entry!");
 
   if constexpr (Concurrent) {
     std::atomic<HashTableEntry *> &loc = entries_[pos];
@@ -232,8 +232,8 @@ template <bool Concurrent>
 inline void GenericHashTable::InsertTagged(HashTableEntry *new_entry, hash_t hash) {
   const auto pos = hash & mask_;
 
-  TPL_ASSERT(pos < capacity(), "Computed table position exceeds capacity!");
-  TPL_ASSERT(new_entry->hash == hash, "Hash value not set in entry!");
+  TERRIER_ASSERT(pos < capacity(), "Computed table position exceeds capacity!");
+  TERRIER_ASSERT(new_entry->hash == hash, "Hash value not set in entry!");
 
   if constexpr (Concurrent) {
     std::atomic<HashTableEntry *> &loc = entries_[pos];

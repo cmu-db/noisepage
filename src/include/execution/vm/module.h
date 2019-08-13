@@ -101,7 +101,7 @@ class Module {
    * @return The function address if it exists; null otherwise.
    */
   void *GetRawFunctionImpl(const FunctionId func_id) const {
-    TPL_ASSERT(func_id < bytecode_module_->num_functions(), "Out-of-bounds function access");
+    TERRIER_ASSERT(func_id < bytecode_module_->num_functions(), "Out-of-bounds function access");
     return functions_[func_id].load(std::memory_order_relaxed);
   }
 

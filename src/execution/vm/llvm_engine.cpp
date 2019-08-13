@@ -74,7 +74,7 @@ class LLVMEngine::TPLMemoryManager : public llvm::SectionMemoryManager {
     EXECUTION_LOG_TRACE("Symbol '{}' not found in cache, checking process ...", name);
 
     llvm::JITSymbol symbol = llvm::SectionMemoryManager::findSymbol(name);
-    TPL_ASSERT(symbol.getAddress(), "Resolved symbol has no address!");
+    TERRIER_ASSERT(symbol.getAddress(), "Resolved symbol has no address!");
     symbols_[name] = {symbol.getAddress().get(), symbol.getFlags()};
     return symbol;
   }
@@ -207,7 +207,7 @@ llvm::Type *LLVMEngine::TypeMap::GetLLVMType(const ast::Type *type) {
   // Update the cache with the constructed type
   //
 
-  TPL_ASSERT(llvm_type != nullptr, "No LLVM type found!");
+  TERRIER_ASSERT(llvm_type != nullptr, "No LLVM type found!");
 
   iter->second = llvm_type;
 
@@ -215,7 +215,7 @@ llvm::Type *LLVMEngine::TypeMap::GetLLVMType(const ast::Type *type) {
 }
 
 llvm::Type *LLVMEngine::TypeMap::GetLLVMTypeForBuiltin(const ast::BuiltinType *builtin_type) {
-  TPL_ASSERT(!builtin_type->is_primitive(), "Primitive types should be cached!");
+  TERRIER_ASSERT(!builtin_type->is_primitive(), "Primitive types should be cached!");
 
   // For the builtins, we perform a lookup using the C++ name
   const std::string name = builtin_type->cpp_name();
@@ -482,7 +482,7 @@ LLVMEngine::CompiledModuleBuilder::CompiledModuleBuilder(const CompilerOptions &
     llvm::Optional<llvm::Reloc::Model> reloc;
     target_machine_.reset(target->createTargetMachine(
         target_triple, llvm::sys::getHostCPUName(), target_features.getString(), target_options, reloc, {}, {}, true));
-    TPL_ASSERT(target_machine_ != nullptr, "LLVM: Unable to find a suitable target machine!");
+    TERRIER_ASSERT(target_machine_ != nullptr, "LLVM: Unable to find a suitable target machine!");
   }
 
   //
@@ -688,7 +688,7 @@ void LLVMEngine::CompiledModuleBuilder::DefineFunction(const FunctionInfo &func_
           const u16 target_func_id = iter.GetFunctionIdOperand(i);
           auto *target_func_info = tpl_module().GetFuncInfoById(target_func_id);
           auto *target_func = module()->getFunction(target_func_info->name());
-          TPL_ASSERT(target_func != nullptr, "Function doesn't exist in LLVM module");
+          TERRIER_ASSERT(target_func != nullptr, "Function doesn't exist in LLVM module");
           args.push_back(target_func);
           break;
         }
@@ -729,7 +729,7 @@ void LLVMEngine::CompiledModuleBuilder::DefineFunction(const FunctionInfo &func_
             args[i] = ir_builder->CreateIntCast(args[i], expected_type, true);
           }
         } else if (expected_type->isPointerTy()) {
-          TPL_ASSERT(provided_type->isPointerTy(), "Mismatched types");
+          TERRIER_ASSERT(provided_type->isPointerTy(), "Mismatched types");
           args[i] = ir_builder->CreateBitCast(args[i], expected_type);
         }
       }
@@ -778,7 +778,7 @@ void LLVMEngine::CompiledModuleBuilder::DefineFunction(const FunctionInfo &func_
 
         std::size_t branch_target_bb_pos =
             iter.GetPosition() + Bytecodes::GetNthOperandOffset(bytecode, 0) + iter.GetJumpOffsetOperand(0);
-        TPL_ASSERT(blocks[branch_target_bb_pos] != nullptr, "Branch target does not point to valid basic block");
+        TERRIER_ASSERT(blocks[branch_target_bb_pos] != nullptr, "Branch target does not point to valid basic block");
         ir_builder->CreateBr(blocks[branch_target_bb_pos]);
         break;
       }
@@ -793,8 +793,8 @@ void LLVMEngine::CompiledModuleBuilder::DefineFunction(const FunctionInfo &func_
         std::size_t fallthrough_bb_pos = iter.GetPosition() + iter.CurrentBytecodeSize();
         std::size_t branch_target_bb_pos =
             iter.GetPosition() + Bytecodes::GetNthOperandOffset(bytecode, 1) + iter.GetJumpOffsetOperand(1);
-        TPL_ASSERT(blocks[fallthrough_bb_pos] != nullptr, "Branch fallthrough does not point to valid basic block");
-        TPL_ASSERT(blocks[branch_target_bb_pos] != nullptr, "Branch target does not point to valid basic block");
+        TERRIER_ASSERT(blocks[fallthrough_bb_pos] != nullptr, "Branch fallthrough does not point to valid basic block");
+        TERRIER_ASSERT(blocks[branch_target_bb_pos] != nullptr, "Branch target does not point to valid basic block");
 
         auto *check = llvm::ConstantInt::get(type_map()->Int8Type(), 1, false);
         llvm::Value *cond = ir_builder->CreateICmpEQ(args[0], check);
@@ -1012,7 +1012,7 @@ LLVMEngine::CompiledModule::CompiledModule(std::unique_ptr<llvm::MemoryBuffer> o
 LLVMEngine::CompiledModule::~CompiledModule() = default;
 
 void *LLVMEngine::CompiledModule::GetFunctionPointer(const std::string &name) const {
-  TPL_ASSERT(is_loaded(), "Compiled module isn't loaded!");
+  TERRIER_ASSERT(is_loaded(), "Compiled module isn't loaded!");
 
   if (auto iter = functions_.find(name); iter != functions_.end()) {
     return iter->second;

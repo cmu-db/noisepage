@@ -98,7 +98,7 @@ std::pair<byte *, u32 *> TableGenerator::GenerateColumnData(const ColumnInsertMe
 
   // Create bitmap
   u32 *null_bitmap = nullptr;
-  TPL_ASSERT(num_rows != 0, "Cannot have 0 rows.");
+  TERRIER_ASSERT(num_rows != 0, "Cannot have 0 rows.");
   u64 num_words = util::BitUtil::Num32BitWordsFor(num_rows);
   null_bitmap = static_cast<u32 *>(malloc(num_words * sizeof(u32)));
   util::BitUtil::Clear(null_bitmap, num_rows);
@@ -138,7 +138,7 @@ void TableGenerator::FillTable(catalog::table_oid_t table_oid, common::ManagedPo
 
     // Generate column data for all columns
     u32 num_vals = std::min(batch_size, table_meta.num_rows - (i * batch_size));
-    TPL_ASSERT(num_vals != 0, "Can't have empty columns.");
+    TERRIER_ASSERT(num_vals != 0, "Can't have empty columns.");
     for (const auto &col_meta : table_meta.col_meta) {
       column_data.emplace_back(GenerateColumnData(col_meta, num_vals));
     }

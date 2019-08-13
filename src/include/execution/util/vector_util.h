@@ -109,8 +109,8 @@ class VectorUtil {
    */
   template <typename T>
   static u32 Gather(const u32 n, const T *RESTRICT input, const u32 *RESTRICT indexes, T *RESTRICT out) {
-    TPL_ASSERT(input != nullptr, "Input cannot be null");
-    TPL_ASSERT(indexes != nullptr, "Indexes vector cannot be null");
+    TERRIER_ASSERT(input != nullptr, "Input cannot be null");
+    TERRIER_ASSERT(indexes != nullptr, "Indexes vector cannot be null");
 
     for (std::size_t i = 0; i < n; i++) {
       out[i] = input[indexes[i]];

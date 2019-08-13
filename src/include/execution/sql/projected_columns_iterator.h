@@ -255,7 +255,7 @@ template <typename T, bool Nullable>
 inline const T *ProjectedColumnsIterator::Get(u32 col_idx, bool *null) const {
   // NOLINTNEXTLINE: bugprone-suspicious-semicolon: seems like a false positive because of constexpr
   if constexpr (Nullable) {
-    TPL_ASSERT(null != nullptr, "Missing output variable for NULL indicator");
+    TERRIER_ASSERT(null != nullptr, "Missing output variable for NULL indicator");
     *null = !projected_column_->ColumnNullBitmap(static_cast<u16>(col_idx))->Test(curr_idx_);
   }
   const T *col_data = reinterpret_cast<T *>(projected_column_->ColumnStart(static_cast<u16>(col_idx)));
@@ -264,13 +264,13 @@ inline const T *ProjectedColumnsIterator::Get(u32 col_idx, bool *null) const {
 
 template <bool Filtered>
 inline void ProjectedColumnsIterator::SetPosition(u32 idx) {
-  TPL_ASSERT(idx < num_selected(), "Out of bounds access");
+  TERRIER_ASSERT(idx < num_selected(), "Out of bounds access");
   if constexpr (Filtered) {
-    TPL_ASSERT(IsFiltered(), "Attempting to set position in unfiltered PCI");
+    TERRIER_ASSERT(IsFiltered(), "Attempting to set position in unfiltered PCI");
     selection_vector_read_idx_ = idx;
     curr_idx_ = selection_vector_[selection_vector_read_idx_];
   } else {  // NOLINT
-    TPL_ASSERT(!IsFiltered(), "Attempting to set position in filtered PCI");
+    TERRIER_ASSERT(!IsFiltered(), "Attempting to set position in filtered PCI");
     curr_idx_ = idx;
   }
 }

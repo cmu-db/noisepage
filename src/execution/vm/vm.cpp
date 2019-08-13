@@ -27,8 +27,8 @@ class VM::Frame {
    * Constructor
    */
   Frame(u8 *frame_data, std::size_t frame_size) : frame_data_(frame_data), frame_size_(frame_size) {
-    TPL_ASSERT(frame_data_ != nullptr, "Frame data cannot be null");
-    TPL_ASSERT(frame_size_ >= 0, "Frame size must be >= 0");
+    TERRIER_ASSERT(frame_data_ != nullptr, "Frame data cannot be null");
+    TERRIER_ASSERT(frame_size_ >= 0, "Frame size must be >= 0");
     (void)frame_size_;
   }
 
@@ -94,7 +94,7 @@ VM::VM(const Module *module) : module_(module) {}
 void VM::InvokeFunction(const Module *module, const FunctionId func_id, const u8 args[]) {
   // The function's info
   const FunctionInfo *func_info = module->GetFuncInfoById(func_id);
-  TPL_ASSERT(func_info != nullptr, "Function doesn't exist in module!");
+  TERRIER_ASSERT(func_info != nullptr, "Function doesn't exist in module!");
   const std::size_t frame_size = func_info->frame_size();
 
   // Let's try to get some space
@@ -120,7 +120,7 @@ void VM::InvokeFunction(const Module *module, const FunctionId func_id, const u8
 
   // Now get the bytecode for the function and fire it off
   const u8 *bytecode = module->bytecode_module()->GetBytecodeForFunction(*func_info);
-  TPL_ASSERT(bytecode != nullptr, "Bytecode cannot be null");
+  TERRIER_ASSERT(bytecode != nullptr, "Bytecode cannot be null");
   Frame frame(raw_frame, frame_size);
   vm.Interpret(bytecode, &frame);
 
@@ -1674,7 +1674,7 @@ const u8 *VM::ExecuteCall(const u8 *ip, VM::Frame *caller) {
 
   // Lookup the function
   const FunctionInfo *func_info = module_->GetFuncInfoById(func_id);
-  TPL_ASSERT(func_info != nullptr, "Function doesn't exist in module!");
+  TERRIER_ASSERT(func_info != nullptr, "Function doesn't exist in module!");
   const std::size_t frame_size = func_info->frame_size();
 
   // Get some space for the function's frame
@@ -1701,7 +1701,7 @@ const u8 *VM::ExecuteCall(const u8 *ip, VM::Frame *caller) {
 
   // Let's go
   const u8 *bytecode = module_->bytecode_module()->GetBytecodeForFunction(*func_info);
-  TPL_ASSERT(bytecode != nullptr, "Bytecode cannot be null");
+  TERRIER_ASSERT(bytecode != nullptr, "Bytecode cannot be null");
   VM::Frame callee(raw_frame, func_info->frame_size());
   Interpret(bytecode, &callee);
 

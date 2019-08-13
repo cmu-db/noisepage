@@ -643,7 +643,7 @@ void JoinHashTable::LookupBatchInConciseHashTable(u32 num_tuples, const hash_t h
 }
 
 void JoinHashTable::LookupBatch(u32 num_tuples, const hash_t hashes[], const HashTableEntry *results[]) const {
-  TPL_ASSERT(is_built(), "Cannot perform lookup before table is built!");
+  TERRIER_ASSERT(is_built(), "Cannot perform lookup before table is built!");
 
   if (use_concise_hash_table()) {
     LookupBatchInConciseHashTable(num_tuples, hashes, results);

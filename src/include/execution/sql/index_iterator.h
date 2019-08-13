@@ -69,7 +69,7 @@ class IndexIterator {
   const T *Get(u16 col_idx, bool *null) const {
     // NOLINTNEXTLINE: bugprone-suspicious-semicolon: seems like a false positive because of constexpr
     if constexpr (Nullable) {
-      TPL_ASSERT(null != nullptr, "Missing output variable for NULL indicator");
+      TERRIER_ASSERT(null != nullptr, "Missing output variable for NULL indicator");
       *null = table_pr_->IsNull(col_idx);
     }
     return reinterpret_cast<T *>(table_pr_->AccessWithNullCheck(col_idx));

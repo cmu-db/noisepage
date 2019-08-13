@@ -204,7 +204,7 @@ inline void ConciseHashTable::PrefetchSlotGroup(hash_t hash) const {
 }
 
 inline u64 ConciseHashTable::NumFilledSlotsBefore(const ConciseHashTableSlot slot) const {
-  TPL_ASSERT(is_built(), "Table must be built");
+  TERRIER_ASSERT(is_built(), "Table must be built");
 
   const u64 group_idx = slot >> kLogSlotsPerGroup;
   const u64 bit_idx = slot & kGroupBitMask;

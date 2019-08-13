@@ -50,12 +50,12 @@ class BytecodeLabel {
   friend class BytecodeEmitter;
 
   void set_referrer(std::size_t offset) {
-    TPL_ASSERT(!is_bound(), "Cannot set offset reference for already bound label");
+    TERRIER_ASSERT(!is_bound(), "Cannot set offset reference for already bound label");
     referrer_offsets_.push_back(offset);
   }
 
   void BindTo(std::size_t offset) {
-    TPL_ASSERT(!is_bound() && offset != kInvalidOffset, "Cannot rebind an already bound label!");
+    TERRIER_ASSERT(!is_bound() && offset != kInvalidOffset, "Cannot rebind an already bound label!");
     bound_ = true;
     offset_ = offset;
   }

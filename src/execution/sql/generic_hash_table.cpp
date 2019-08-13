@@ -14,7 +14,7 @@ GenericHashTable::~GenericHashTable() {
 }
 
 void GenericHashTable::SetSize(u64 new_size) {
-  TPL_ASSERT(new_size > 0, "New size cannot be zero!");
+  TERRIER_ASSERT(new_size > 0, "New size cannot be zero!");
   if (entries_ != nullptr) {
     util::FreeHugeArray(entries_, capacity());
   }

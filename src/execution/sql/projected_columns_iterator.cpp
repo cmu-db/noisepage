@@ -93,7 +93,7 @@ u32 ProjectedColumnsIterator::FilterColByVal(u32 col_idx, type::TypeId type, Fil
 template <template <typename> typename Op>
 u32 ProjectedColumnsIterator::FilterColByCol(const u32 col_idx_1, type::TypeId type_1, const u32 col_idx_2,
                                              type::TypeId type_2) {
-  TPL_ASSERT(type_1 == type_2, "Incompatible column types for filter");
+  TERRIER_ASSERT(type_1 == type_2, "Incompatible column types for filter");
 
   switch (type_1) {
     case type::TypeId::SMALLINT: {

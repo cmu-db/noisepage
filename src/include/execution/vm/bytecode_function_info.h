@@ -303,7 +303,7 @@ class FunctionInfo {
   // bytecode range has been discovered.
   void set_bytecode_range(std::size_t start_offset, std::size_t end_offset) {
     // Functions must have, at least, one bytecode instruction (i.e., RETURN)
-    TPL_ASSERT(start_offset < end_offset, "Starting offset must be smaller than ending offset");
+    TERRIER_ASSERT(start_offset < end_offset, "Starting offset must be smaller than ending offset");
     bytecode_range_ = std::make_pair(start_offset, end_offset);
   }
 

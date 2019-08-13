@@ -197,7 +197,7 @@ class ComparisonFunctions {
    * @return The appropriate signed value indicating comparison order.
    */
   static i32 Compare(const StringVal &v1, const StringVal &v2) {
-    TPL_ASSERT(!v1.is_null && !v2.is_null, "Both input strings must not be null");
+    TERRIER_ASSERT(!v1.is_null && !v2.is_null, "Both input strings must not be null");
     const auto min_len = std::min(v1.len, v2.len);
     if (min_len == 0) {
       if (v1.len == v2.len) {

@@ -32,7 +32,8 @@ endif ()
 # TODO(Amadou): Given all the CMAKE_CXX_FLAGS clang does not compile.
 # For now I just use copied these flags from the TPL repo. Eventually, we should probably figure out a way to pass this in automatically.
 # TODO(WAN): We really want -fno-rtti for execution, but the dummy catalog? is using TBB which needs it.
-set(CLANG_CXX_FLAGS -std=c++17 -Wall -Werror -mcx16 -march=native -fdiagnostics-color=auto -ggdb -O0 -fno-omit-frame-pointer -fno-optimize-sibling-calls)
+set(CLANG_CXX_FLAGS -std=c++17 -Wall -Werror -mcx16 -march=native -fdiagnostics-color=auto -ggdb -O3 -DNDEBUG )
+message("CLANG_CXX_FLAGS ${CLANG_CXX_FLAGS}")
 set(CLANG_IR_CXX_FLAGS ${CLANG_CXX_FLAGS} "-emit-llvm" "-c")
 separate_arguments(CLANG_IR_CXX_FLAGS)
 set(CLANG_IR_CXX_INCLUDES "-I${PROJECT_SOURCE_DIR}/src/include")

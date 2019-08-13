@@ -166,7 +166,7 @@ class Sema : public ast::AstVisitor<Sema> {
   void EnterScope(Scope::Kind scope_kind) {
     if (num_cached_scopes_ > 0) {
       Scope *scope = scope_cache_[--num_cached_scopes_].release();
-      TPL_ASSERT(scope != nullptr, "Cached scope was null");
+      TERRIER_ASSERT(scope != nullptr, "Cached scope was null");
       scope->Init(current_scope(), scope_kind);
       scope_ = scope;
     } else {
@@ -176,7 +176,7 @@ class Sema : public ast::AstVisitor<Sema> {
 
   // Exit the current scope
   void ExitScope() {
-    TPL_ASSERT(current_scope() != nullptr, "Mismatched scope exit");
+    TERRIER_ASSERT(current_scope() != nullptr, "Mismatched scope exit");
 
     Scope *scope = current_scope();
     scope_ = scope->outer();

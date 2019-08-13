@@ -175,7 +175,7 @@ class SorterIterator {
    * iterator is valid.
    */
   const byte *GetRow() const {
-    TPL_ASSERT(iter_ != end_, "Invalid iterator");
+    TERRIER_ASSERT(iter_ != end_, "Invalid iterator");
     return this->operator*();
   }
 
