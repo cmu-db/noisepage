@@ -26,8 +26,9 @@ fun tearDownState(state: *State) -> nil {
 fun pipeline_1(execCtx: *ExecutionContext, state: *State) -> nil {
   var sorter = &state.sorter
   var tvi: TableVectorIterator
-  var oids: [1]uint32
+  var oids: [2]uint32
   oids[0] = 1 // colA
+  oids[1] = 2 // colB
   @tableIterInitBind(&tvi, "test_1", execCtx, oids)
   for (@tableIterAdvance(&tvi)) {
     var pci = @tableIterGetPCI(&tvi)

@@ -7,8 +7,9 @@
 #include <vector>
 #include "catalog/catalog.h"
 #include "execution/exec/execution_context.h"
-#include "table_reader.h"
 #include "transaction/transaction_context.h"
+#include "type/transient_value_factory.h"
+#include "parser/expression/constant_value_expression.h"
 
 namespace terrier::execution::sql {
 
@@ -24,13 +25,6 @@ constexpr u32 test2_size = 1000;
 
 /**
  * Helper class to generate test tables and their indexes.
- * There are three ways to generate tables:
- * 1. Call GenerateTableFromFile with a .schema file and a .data (csv) files.
- * 2. Call GenerateTestTables. To create more tables with this method, modify the insert_meta variable (to create more
- * tables) or the index_metas variables (to create more indexes).
- * 3. Call GenerateTpchTables to generate tpch tables.
- * TODO(Amadou): Add GenerateTablesFromDir. This will read all .schema files and .data (csv) files in a directory.
- * This requires std::filesystem or boost/filesystem though.
  */
 class TableGenerator {
  public:
@@ -41,36 +35,17 @@ class TableGenerator {
    * @param ns_oid oid of the namespace
    */
   explicit TableGenerator(exec::ExecutionContext *exec_ctx, storage::BlockStore *store, catalog::namespace_oid_t ns_oid)
-      : exec_ctx_{exec_ctx}, store_{store}, ns_oid_{ns_oid}, table_reader{exec_ctx, store, ns_oid} {}
+      : exec_ctx_{exec_ctx}, store_{store}, ns_oid_{ns_oid} {}
 
   /**
-   * Generate the tables withing a directory
-   * @param dir_name directory name
-   */
-  void GenerateTablesFromDir(const std::string &dir_name);
-
-  /**
-   * Generate a table given its schema and data
-   * @param schema_file schema file name
-   * @param data_file data file name
-   */
-  void GenerateTableFromFile(const std::string &schema_file, const std::string &data_file);
-
-  /**
-   * Generate static test tables below.
+   * Generate test tables.
    */
   void GenerateTestTables();
-
-  /**
-   * Generate tpch tables.
-   */
-  void GenerateTPCHTables(const std::string &dir_name);
 
  private:
   exec::ExecutionContext *exec_ctx_;
   storage::BlockStore *store_;
   catalog::namespace_oid_t ns_oid_;
-  TableReader table_reader;
 
   /**
    * Enumeration to characterize the distribution of values in a given column
