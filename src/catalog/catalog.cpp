@@ -1,584 +1,296 @@
 #include <memory>
 #include <string>
-#include <unordered_map>
+#include <utility>
 #include <vector>
 
-#include "catalog/accessor.h"
-#include "catalog/attr_def_handle.h"
 #include "catalog/catalog.h"
-#include "catalog/catalog_index.h"
-#include "catalog/class_handle.h"
-#include "catalog/database_handle.h"
-#include "catalog/settings_handle.h"
-#include "catalog/tablespace_handle.h"
-#include "loggers/catalog_logger.h"
-#include "storage/index/index.h"
+#include "catalog/catalog_accessor.h"
+#include "catalog/database_catalog.h"
+#include "catalog/postgres/builder.h"
+#include "catalog/postgres/pg_database.h"
+#include "storage/projected_columns.h"
+#include "storage/projected_row.h"
+#include "storage/sql_table.h"
 #include "storage/storage_defs.h"
-#include "transaction/transaction_manager.h"
+#include "transaction/transaction_util.h"
 
 namespace terrier::catalog {
 
-std::shared_ptr<Catalog> terrier_catalog;
-
-Catalog::Catalog(transaction::TransactionManager *txn_manager, transaction::TransactionContext *txn)
-    : txn_manager_(txn_manager), oid_(START_OID) {
-  CATALOG_LOG_TRACE("Creating catalog ...");
-  Bootstrap(txn);
-  CATALOG_LOG_TRACE("=======Finished Bootstrapping ======");
+Catalog::Catalog(transaction::TransactionManager *const txn_manager, storage::BlockStore *const block_store)
+    : txn_manager_(txn_manager), catalog_block_store_(block_store), next_oid_(1) {
+  databases_ = new storage::SqlTable(block_store, postgres::Builder::GetDatabaseTableSchema());
+  databases_oid_index_ =
+      postgres::Builder::BuildUniqueIndex(postgres::Builder::GetDatabaseOidIndexSchema(), DATABASE_OID_INDEX_OID);
+  databases_name_index_ =
+      postgres::Builder::BuildUniqueIndex(postgres::Builder::GetDatabaseNameIndexSchema(), DATABASE_NAME_INDEX_OID);
 }
 
-void Catalog::CreateDatabase(transaction::TransactionContext *txn, const std::string &name) {
-  db_oid_t new_db_oid = db_oid_t(GetNextOid());
-  Catalog::AddEntryToPGDatabase(txn, new_db_oid, name);
-  BootstrapDatabase(txn, new_db_oid);
-}
+void Catalog::TearDown() {
+  auto *txn = txn_manager_->BeginTransaction();
+  // Get a projected column on DatabaseCatalog pointers for scanning the table
+  const std::vector<col_oid_t> cols{DAT_CATALOG_COL_OID};
 
-void Catalog::DeleteDatabase(transaction::TransactionContext *txn, const std::string &db_name) {
-  // get database handle
-  auto db_handle = GetDatabaseHandle();
-  auto db_entry = db_handle.GetDatabaseEntry(txn, db_name);
-  auto oid = db_entry->GetOid();
-  // remove entry from pg_database
-  db_handle.DeleteEntry(txn, db_entry);
+  // Only one column, so we only need the initializer and not the ProjectionMap
+  const auto pci = databases_->InitializerForProjectedColumns(cols, 100).first;
 
-  // TODO(pakhtar): delete all user tables
-  // destroy all the non-global tables
-  // this should become just catalog tables
-  DeleteDatabaseTables(oid);
+  // This could potentially be optimized by calculating this size and hard-coding a byte array on the stack
+  byte *buffer = common::AllocationUtil::AllocateAligned(pci.ProjectedColumnsSize());
+  auto pc = pci.Initialize(buffer);
 
-  // delete from the map
-  cat_map_.erase(oid);
-}
+  // We've requested a single column so we know the column index is 0, and since
+  // we will be reusing this same projected column the pointer to the start of
+  // the column is stable.  Therefore we only need to do this cast once before
+  // the loop.
+  auto db_ptrs = reinterpret_cast<DatabaseCatalog **>(pc->ColumnStart(0));
 
-namespace_oid_t Catalog::CreateNameSpace(transaction::TransactionContext *txn, db_oid_t db_oid,
-                                         const std::string &name) {
-  auto db_handle = GetDatabaseHandle();
-  auto ns_handle = db_handle.GetNamespaceTable(txn, db_oid);
-  auto ns_entry = ns_handle.GetNamespaceEntry(txn, name);
-  if (ns_entry == nullptr) {
-    ns_handle.AddEntry(txn, name);
-    ns_entry = ns_handle.GetNamespaceEntry(txn, name);
+  // Scan the table and accumulate the pointers into a vector
+  std::vector<DatabaseCatalog *> db_cats;
+  auto table_iter = databases_->begin();
+  while (table_iter != databases_->end()) {
+    databases_->Scan(txn, &table_iter, pc);
+
+    for (uint i = 0; i < pc->NumTuples(); i++) db_cats.emplace_back(db_ptrs[i]);
   }
-  int32_t ns_oid_int = ns_entry->GetIntegerColumn("oid");
-  return namespace_oid_t(ns_oid_int);
-}
 
-void Catalog::DeleteNameSpace(transaction::TransactionContext *txn, db_oid_t db_oid, namespace_oid_t ns_oid) {
-  auto db_handle = GetDatabaseHandle();
-  auto ns_handle = db_handle.GetNamespaceTable(txn, db_oid);
-
-  auto ns_entry = ns_handle.GetNamespaceEntry(txn, ns_oid);
-  if (ns_entry == nullptr) {
-    return;
-  }
-  ns_handle.DeleteEntry(txn, ns_entry);
-}
-
-table_oid_t Catalog::CreateUserTable(transaction::TransactionContext *txn, db_oid_t db_oid, namespace_oid_t ns_oid,
-                                     const std::string &table_name, const Schema &schema) {
-  auto db_handle = GetDatabaseHandle();
-  auto ns_handle = db_handle.GetNamespaceTable(txn, db_oid);
-  auto table_handle = ns_handle.GetTableHandle(txn, ns_oid);
-
-  // creates the storage table and adds to pg_class
-  auto tbl_rw = table_handle.CreateTable(txn, schema, table_name);
-
-  // ct_map_ is for system tables only, so user tables are not added to it
-
-  // enter attribute information
-  AddColumnsToPGAttribute(txn, db_oid, tbl_rw->GetSqlTable());
-  return tbl_rw->Oid();
-}
-
-void Catalog::DeleteUserTable(transaction::TransactionContext *txn, db_oid_t db_oid, namespace_oid_t ns_oid,
-                              const std::string &table_name) {
-  // convert table name to table_oid
-  auto user_tbl_p = GetUserTable(txn, db_oid, ns_oid, table_name);
-  auto user_tbl_oid = user_tbl_p->Oid();
-
-  DeleteUserTable(txn, db_oid, ns_oid, user_tbl_oid);
-}
-
-void Catalog::DeleteUserTable(transaction::TransactionContext *txn, db_oid_t db_oid, namespace_oid_t ns_oid,
-                              table_oid_t tbl_oid) {
-  auto db_handle = GetDatabaseHandle();
-  auto attr_handle = db_handle.GetAttributeTable(txn, db_oid);
-  auto attrdef_handle = db_handle.GetAttrDefTable(txn, db_oid);
-  auto class_handle = db_handle.GetClassTable(txn, db_oid);
-
-  // get an attribute handle
-  attr_handle.DeleteEntries(txn, tbl_oid);
-
-  // get an attr_def handle
-  attrdef_handle.DeleteEntries(txn, tbl_oid);
-
-  // delete from pg_class
-  auto col_oid = col_oid_t(!tbl_oid);
-  class_handle.DeleteEntry(txn, ns_oid, col_oid);
-}
-
-DatabaseCatalogTable Catalog::GetDatabaseHandle() { return DatabaseCatalogTable(this, pg_database_); }
-
-TablespaceCatalogTable Catalog::GetTablespaceHandle() { return TablespaceCatalogTable(this, pg_tablespace_); }
-
-SettingsCatalogTable Catalog::GetSettingsHandle() { return SettingsCatalogTable(pg_settings_); }
-
-SqlTableHelper *Catalog::GetCatalogTable(db_oid_t db_oid, CatalogTableType cttype) {
-  return cat_map_.at(db_oid).at(cttype);
-}
-
-SqlTableHelper *Catalog::GetUserTable(transaction::TransactionContext *txn, db_oid_t db_oid, namespace_oid_t ns_oid,
-                                      const std::string &name) {
-  try {
-    auto tbl_handle = GetUserTableHandle(txn, db_oid, ns_oid);
-    return tbl_handle.GetTable(txn, name);
-  } catch (const std::out_of_range &e) {
-    return nullptr;
-  }
-}
-
-SqlTableHelper *Catalog::GetUserTable(transaction::TransactionContext *txn, db_oid_t db_oid, namespace_oid_t ns_oid,
-                                      table_oid_t table_oid) {
-  try {
-    auto tbl_handle = GetUserTableHandle(txn, db_oid, ns_oid);
-    return tbl_handle.GetTable(txn, table_oid);
-  } catch (const std::out_of_range &e) {
-    return nullptr;
-  }
-}
-
-TableCatalogView Catalog::GetUserTableHandle(transaction::TransactionContext *txn, db_oid_t db_oid,
-                                             namespace_oid_t ns_oid) {
-  auto db_handle = GetDatabaseHandle();
-  // TODO(pakhtar): error checking...
-  // find the database
-  auto ns_handle = db_handle.GetNamespaceTable(txn, db_oid);
-  auto ns_entry = ns_handle.GetNamespaceEntry(txn, ns_oid);
-  if (ns_entry == nullptr) {
-    throw CATALOG_EXCEPTION("namespace does not exist");
-  }
-  return ns_handle.GetTableHandle(txn, ns_oid);
-}
-
-uint32_t Catalog::GetNextOid() { return oid_++; }
-
-void Catalog::Bootstrap(transaction::TransactionContext *txn) {
-  CATALOG_LOG_TRACE("Bootstrapping global catalogs ...");
-  CreatePGDatabase(table_oid_t(GetNextOid()));
-  PopulatePGDatabase(txn);
-
-  CreatePGTablespace(DEFAULT_DATABASE_OID, table_oid_t(GetNextOid()));
-  PopulatePGTablespace(txn);
-
-  pg_settings_ = SettingsCatalogTable::Create(txn, this, DEFAULT_DATABASE_OID, "pg_settings");
-
-  BootstrapDatabase(txn, DEFAULT_DATABASE_OID);
-}
-
-// TODO(pakhtar): resolve second arg.
-void Catalog::AddColumnsToPGAttribute(transaction::TransactionContext *txn, db_oid_t db_oid,
-                                      const std::shared_ptr<storage::SqlTable> &table) {
-  Schema schema = table->GetSchema();
-  std::vector<Schema::Column> cols = schema.GetColumns();
-  catalog::SqlTableHelper *pg_attribute = GetCatalogTable(db_oid, CatalogTableType::ATTRIBUTE);
-  int32_t col_num = 0;
-  for (auto &c : cols) {
-    std::vector<type::TransientValue> row;
-    row.emplace_back(type::TransientValueFactory::GetInteger(!c.GetOid()));
-    row.emplace_back(type::TransientValueFactory::GetInteger(!table->Oid()));
-    row.emplace_back(type::TransientValueFactory::GetVarChar(c.GetName()));
-
-    // pg_type.oid
-    auto type_handle = GetDatabaseHandle().GetTypeTable(txn, db_oid);
-    auto s_type = ValueTypeIdToSchemaType(c.GetType());
-    auto type_entry = type_handle.GetTypeEntry(txn, s_type);
-    row.emplace_back(type::TransientValueFactory::GetInteger(!type_entry->GetOid()));
-
-    // length of column type. Varlen columns have the sign bit set.
-    // TODO(pakhtar): resolve what to store for varlens.
-    auto attr_size = c.GetAttrSize();
-    row.emplace_back(type::TransientValueFactory::GetInteger(attr_size));
-
-    // column number, starting from 1 for "real" columns.
-    // The first column, 0, is terrier's row oid.
-    row.emplace_back(type::TransientValueFactory::GetInteger(col_num++));
-    pg_attribute->InsertRow(txn, row);
-  }
-}
-
-void Catalog::CreatePGDatabase(table_oid_t table_oid) {
-  CATALOG_LOG_TRACE("Creating pg_database table");
-  // set the oid
-  pg_database_ = new catalog::SqlTableHelper(table_oid);
-
-  // columns we use
-  for (auto col : DatabaseCatalogTable::schema_cols_) {
-    pg_database_->DefineColumn(col.col_name, col.type_id, false, col_oid_t(GetNextOid()));
-  }
-  // create the table
-  pg_database_->Create();
-}
-
-void Catalog::PopulatePGDatabase(transaction::TransactionContext *txn) {
-  std::vector<type::TransientValue> row;
-  db_oid_t terrier_oid = DEFAULT_DATABASE_OID;
-  CATALOG_LOG_TRACE("Populate pg_database table");
-
-  row.emplace_back(type::TransientValueFactory::GetInteger(!terrier_oid));
-  row.emplace_back(type::TransientValueFactory::GetVarChar("terrier"));
-  SetUnusedColumns(&row, DatabaseCatalogTable::schema_cols_);
-  pg_database_->InsertRow(txn, row);
-}
-
-void Catalog::CreatePGTablespace(db_oid_t db_oid, table_oid_t table_oid) {
-  CATALOG_LOG_TRACE("Creating pg_tablespace table");
-  pg_tablespace_ = TablespaceCatalogTable::Create(this, db_oid, "pg_tablespace");
-}
-
-void Catalog::PopulatePGTablespace(transaction::TransactionContext *txn) {
-  CATALOG_LOG_TRACE("Populate pg_tablespace table");
-  auto ts_handle = GetTablespaceHandle();
-
-  ts_handle.AddEntry(txn, "pg_global");
-  ts_handle.AddEntry(txn, "pg_default");
-}
-
-void Catalog::BootstrapDatabase(transaction::TransactionContext *txn, db_oid_t db_oid) {
-  CATALOG_LOG_TRACE("Bootstrapping database oid (db_oid) {}", !db_oid);
-  AddToMap(db_oid, CatalogTableType::DATABASE, pg_database_);
-  AddToMap(db_oid, CatalogTableType::TABLESPACE, pg_tablespace_);
-  AddToMap(db_oid, CatalogTableType::SETTINGS, pg_settings_);
-
-  // Order: pg_attribute -> pg_namespace -> pg_class
-  CreatePGAttribute(txn, db_oid);
-  CreatePGNamespace(txn, db_oid);
-  CreatePGType(txn, db_oid);
-  CreatePGAttrDef(txn, db_oid);
-  CreatePGClass(txn, db_oid);
-
-  std::vector<CatalogTableType> c_tables = {DATABASE, TABLESPACE, ATTRIBUTE, NAMESPACE, CLASS, TYPE, ATTRDEF, SETTINGS};
-  auto add_cols_to_pg_attr = [this, txn, db_oid](const CatalogTableType cttype) {
-    auto table_p = GetCatalogTable(db_oid, cttype);
-    AddColumnsToPGAttribute(txn, db_oid, table_p->GetSqlTable());
-  };
-  std::for_each(c_tables.begin(), c_tables.end(), add_cols_to_pg_attr);
-}
-
-void Catalog::CreatePGAttribute(terrier::transaction::TransactionContext *txn, terrier::catalog::db_oid_t db_oid) {
-  AttributeCatalogTable::Create(txn, this, db_oid, "pg_attribute");
-}
-
-void Catalog::CreatePGAttrDef(transaction::TransactionContext *txn, db_oid_t db_oid) {
-  AttrDefCatalogTable::Create(txn, this, db_oid, "pg_attrdef");
-}
-
-void Catalog::CreatePGNamespace(transaction::TransactionContext *txn, db_oid_t db_oid) {
-  // create the namespace table
-  NamespaceCatalogTable::Create(txn, this, db_oid, "pg_namespace");
-
-  auto ns_handle = GetDatabaseHandle().GetNamespaceTable(txn, db_oid);
-
-  // populate it
-  ns_handle.AddEntry(txn, "pg_catalog");
-  ns_handle.AddEntry(txn, "public");
-}
-
-void Catalog::CreatePGClass(transaction::TransactionContext *txn, db_oid_t db_oid) {
-  std::vector<type::TransientValue> row;
-
-  // create pg_class storage
-  ClassCatalogTable::Create(txn, this, db_oid, "pg_class");
-
-  auto class_handle = GetDatabaseHandle().GetClassTable(txn, db_oid);
-
-  // lookup oids inserted in multiple entries
-  auto pg_catalog_namespace_oid =
-      !GetDatabaseHandle().GetNamespaceTable(txn, db_oid).GetNamespaceEntry(txn, "pg_catalog")->GetOid();
-
-  auto pg_global_ts_oid = !GetTablespaceHandle().GetTablespaceEntry(txn, "pg_global")->GetOid();
-  auto pg_default_ts_oid = !GetTablespaceHandle().GetTablespaceEntry(txn, "pg_default")->GetOid();
-
-  // Insert pg_database
-  // (namespace: catalog, tablespace: global)
-  CATALOG_LOG_TRACE("Inserting pg_database into pg_class ...");
-  auto pg_db_tbl_p = reinterpret_cast<uint64_t>(GetCatalogTable(db_oid, CatalogTableType::DATABASE));
-  auto pg_database_entry_oid = !GetCatalogTable(db_oid, CatalogTableType::DATABASE)->Oid();
-
-  class_handle.AddEntry(txn, pg_db_tbl_p, pg_database_entry_oid, "pg_database", pg_catalog_namespace_oid,
-                        pg_global_ts_oid);
-
-  // Insert pg_tablespace
-  // (namespace: catalog, tablespace: global)
-  CATALOG_LOG_TRACE("Inserting pg_tablespace into pg_class ...");
-  auto pg_ts_tbl_p = reinterpret_cast<uint64_t>(GetCatalogTable(db_oid, CatalogTableType::TABLESPACE));
-  auto pg_tablespace_entry_oid = !GetCatalogTable(db_oid, CatalogTableType::TABLESPACE)->Oid();
-
-  class_handle.AddEntry(txn, pg_ts_tbl_p, pg_tablespace_entry_oid, "pg_tablespace", pg_catalog_namespace_oid,
-                        pg_global_ts_oid);
-
-  // Insert pg_namespace
-  // (namespace: catalog, tablespace: default)
-  CATALOG_LOG_TRACE("Inserting pg_namespace into pg_class ...");
-  auto pg_ns_tbl_p = reinterpret_cast<uint64_t>(GetCatalogTable(db_oid, CatalogTableType::NAMESPACE));
-  auto pg_ns_entry_oid = !GetCatalogTable(db_oid, CatalogTableType::NAMESPACE)->Oid();
-
-  class_handle.AddEntry(txn, pg_ns_tbl_p, pg_ns_entry_oid, "pg_namespace", pg_catalog_namespace_oid, pg_default_ts_oid);
-
-  // Insert pg_class
-  // (namespace: catalog, tablespace: default)
-  auto pg_cls_tbl_p = reinterpret_cast<uint64_t>(GetCatalogTable(db_oid, CatalogTableType::CLASS));
-  auto pg_cls_entry_oid = !GetCatalogTable(db_oid, CatalogTableType::CLASS)->Oid();
-
-  class_handle.AddEntry(txn, pg_cls_tbl_p, pg_cls_entry_oid, "pg_class", pg_catalog_namespace_oid, pg_default_ts_oid);
-
-  // Insert pg_attribute
-  // (namespace: catalog, tablespace: default)
-  auto pg_attr_tbl_p = reinterpret_cast<uint64_t>(GetCatalogTable(db_oid, CatalogTableType::ATTRIBUTE));
-  auto pg_attr_entry_oid = !GetCatalogTable(db_oid, CatalogTableType::ATTRIBUTE)->Oid();
-
-  class_handle.AddEntry(txn, pg_attr_tbl_p, pg_attr_entry_oid, "pg_attribute", pg_catalog_namespace_oid,
-                        pg_default_ts_oid);
-
-  // Insert pg_attrdef
-  // (namespace: catalog, tablespace: default)
-  auto pg_attrdef_tbl_p = reinterpret_cast<uint64_t>(GetCatalogTable(db_oid, CatalogTableType::ATTRDEF));
-  auto pg_attrdef_entry_oid = !GetCatalogTable(db_oid, CatalogTableType::ATTRDEF)->Oid();
-
-  class_handle.AddEntry(txn, pg_attrdef_tbl_p, pg_attrdef_entry_oid, "pg_attrdef", pg_catalog_namespace_oid,
-                        pg_default_ts_oid);
-
-  // Insert pg_type
-  // (namespace: catalog, tablespace: default)
-  auto pg_type_tbl_p = reinterpret_cast<uint64_t>(GetCatalogTable(db_oid, CatalogTableType::TYPE));
-  auto pg_type_entry_oid = !GetCatalogTable(db_oid, CatalogTableType::TYPE)->Oid();
-
-  class_handle.AddEntry(txn, pg_type_tbl_p, pg_type_entry_oid, "pg_type", pg_catalog_namespace_oid, pg_default_ts_oid);
-}
-
-void Catalog::CreatePGType(transaction::TransactionContext *txn, db_oid_t db_oid) {
-  TypeCatalogTable::Create(txn, this, db_oid, "pg_type");
-
-  std::vector<type::TransientValue> row;
-  // TODO(Yesheng): get rid of this strange calling chain
-  auto pg_type_handle = GetDatabaseHandle().GetTypeTable(txn, db_oid);
-  auto catalog_ns_oid =
-      GetDatabaseHandle().GetNamespaceTable(txn, db_oid).GetNamespaceEntry(txn, "pg_catalog")->GetOid();
-
-  // built-in types as in type/type_id.h
-  pg_type_handle.AddEntry(txn, type_oid_t(GetNextOid()), "boolean", catalog_ns_oid,
-                          type::TypeUtil::GetTypeSize(type::TypeId::BOOLEAN), "b");
-  pg_type_handle.AddEntry(txn, type_oid_t(GetNextOid()), "tinyint", catalog_ns_oid,
-                          type::TypeUtil::GetTypeSize(type::TypeId::TINYINT), "b");
-  pg_type_handle.AddEntry(txn, type_oid_t(GetNextOid()), "smallint", catalog_ns_oid,
-                          type::TypeUtil::GetTypeSize(type::TypeId::SMALLINT), "b");
-  pg_type_handle.AddEntry(txn, type_oid_t(GetNextOid()), "integer", catalog_ns_oid,
-                          type::TypeUtil::GetTypeSize(type::TypeId::INTEGER), "b");
-  pg_type_handle.AddEntry(txn, type_oid_t(GetNextOid()), "date", catalog_ns_oid,
-                          type::TypeUtil::GetTypeSize(type::TypeId::DATE), "b");
-  pg_type_handle.AddEntry(txn, type_oid_t(GetNextOid()), "bigint", catalog_ns_oid,
-                          type::TypeUtil::GetTypeSize(type::TypeId::BIGINT), "b");
-  pg_type_handle.AddEntry(txn, type_oid_t(GetNextOid()), "decimal", catalog_ns_oid,
-                          type::TypeUtil::GetTypeSize(type::TypeId::DECIMAL), "b");
-  pg_type_handle.AddEntry(txn, type_oid_t(GetNextOid()), "timestamp", catalog_ns_oid,
-                          type::TypeUtil::GetTypeSize(type::TypeId::TIMESTAMP), "b");
-  pg_type_handle.AddEntry(txn, type_oid_t(GetNextOid()), "varchar", catalog_ns_oid, -1, "b");
-}
-
-void Catalog::DeleteDatabaseTables(db_oid_t db_oid) {
-  auto table_oid_map = cat_map_.at(db_oid);
-  CATALOG_LOG_DEBUG("Deleting tables for db_oid {}", !db_oid);
-  auto tbl = table_oid_map.begin();
-  while (tbl != table_oid_map.end()) {
-    auto tbl_p = tbl->second;
-    tbl++;
-    if ((tbl_p == pg_database_) || (tbl_p == pg_tablespace_) || (tbl_p == pg_settings_)) {
-      continue;
+  // Pass vars by value except for db_cats which we move
+  txn->RegisterCommitAction([=, db_cats{std::move(db_cats)}]() {
+    for (auto db : db_cats) {
+      auto del_action = DeallocateDatabaseCatalog(db);
+      txn_manager_->DeferAction(del_action);
     }
-    delete tbl_p;
-  }
-}
+    // Pass vars to the deferral by value
+    txn_manager_->DeferAction([=]() {
+      delete databases_oid_index_;   // Delete the OID index
+      delete databases_name_index_;  // Delete the name index
+      delete databases_;             // Delete the table
+    });
+  });
 
-void Catalog::DestroyDB(db_oid_t oid) {
-  // Note that we are using shared pointers for SqlTableHelper. Catalog class have references to all the catalog tables,
-  // (i.e, tables that have namespace "pg_catalog") but not user created tables. We cannot use a shared pointer for a
-  // user table because it will be automatically freed if no one holds it.
-  // Since we don't automatically free these tables, we need to free tables when we destroy the database
-  auto txn = txn_manager_->BeginTransaction();
-
-  auto pg_class = GetCatalogTable(oid, CatalogTableType::CLASS);
-  auto pg_class_ptr = pg_class->GetSqlTable();
-
-  // save information needed for (later) reading and writing
-  std::vector<col_oid_t> col_oids;
-  for (const auto &c : pg_class_ptr->GetSchema().GetColumns()) {
-    col_oids.emplace_back(c.GetOid());
-  }
-  auto col_pair = pg_class_ptr->InitializerForProjectedColumns(col_oids, 100);
-  auto *buffer = common::AllocationUtil::AllocateAligned(col_pair.first.ProjectedColumnsSize());
-  storage::ProjectedColumns *columns = col_pair.first.Initialize(buffer);
-  storage::ProjectionMap col_map = col_pair.second;
-  auto it = pg_class_ptr->begin();
-  pg_class_ptr->Scan(txn, &it, columns);
-
-  auto num_rows = columns->NumTuples();
-  CATALOG_LOG_TRACE("We found {} rows in pg_class", num_rows);
-
-  // get the pg_catalog oid
-  auto pg_catalog_oid = GetDatabaseHandle().GetNamespaceTable(txn, oid).NameToOid(txn, "pg_catalog");
-  for (uint32_t i = 0; i < num_rows; i++) {
-    auto row = columns->InterpretAsRow(i);
-    byte *col_p = row.AccessForceNotNull(col_map.at(col_oids[3]));
-    auto nsp_oid = *reinterpret_cast<uint32_t *>(col_p);
-    if (nsp_oid != !pg_catalog_oid) {
-      // user created tables, need to free them
-      byte *addr_col = row.AccessForceNotNull(col_map.at(col_oids[0]));
-      int64_t ptr = *reinterpret_cast<int64_t *>(addr_col);
-      delete reinterpret_cast<SqlTableHelper *>(ptr);
-    }
-  }
+  // Deallocate the buffer (not needed if hard-coded to be on stack).
   delete[] buffer;
-  delete txn;
+
+  // The transaction was read-only and we do not need any side-effects
+  // so we use an empty lambda for the callback function.
+  txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 }
 
-// private methods
+db_oid_t Catalog::CreateDatabase(transaction::TransactionContext *const txn, const std::string &name,
+                                 const bool bootstrap) {
+  // Instantiate the DatabaseCatalog
+  const db_oid_t db_oid = next_oid_++;
+  DatabaseCatalog *dbc = postgres::Builder::CreateDatabaseCatalog(catalog_block_store_, db_oid);
+  if (bootstrap) dbc->Bootstrap(txn);
+  txn->RegisterAbortAction([=]() {
+    dbc->TearDown(txn);
+    delete dbc;
+  });
+  const auto success = Catalog::CreateDatabaseEntry(txn, db_oid, name, dbc);
+  if (!success) return INVALID_DATABASE_OID;
 
-void Catalog::AddEntryToPGDatabase(transaction::TransactionContext *txn, db_oid_t oid, const std::string &name) {
-  std::vector<type::TransientValue> entry;
-  entry.emplace_back(type::TransientValueFactory::GetInteger(!oid));
-  entry.emplace_back(type::TransientValueFactory::GetVarChar(name));
-  SetUnusedColumns(&entry, DatabaseCatalogTable::schema_cols_);
-  pg_database_->InsertRow(txn, entry);
-
-  // map for system catalog tables
-  cat_map_[oid] = std::unordered_map<CatalogTableType, catalog::SqlTableHelper *>();
+  return db_oid;
 }
 
-void Catalog::SetUnusedColumns(std::vector<type::TransientValue> *vec, const std::vector<SchemaCol> &cols) {
-  for (const auto col : cols) {
-    if (col.used) {
-      continue;
-    }
-    switch (col.type_id) {
-      case type::TypeId::BOOLEAN:
-        vec->emplace_back(type::TransientValueFactory::GetBoolean(false));
-        break;
+bool Catalog::DeleteDatabase(transaction::TransactionContext *const txn, const db_oid_t database) {
+  auto *const dbc = DeleteDatabaseEntry(txn, database);
+  if (dbc == nullptr) return false;
 
-      case type::TypeId::TINYINT:
-        vec->emplace_back(type::TransientValueFactory::GetTinyInt(0));
+  // Ensure the deferred action is created now in order to eagerly bind references
+  // and not rely on the catalog still existing at the time the queue is processed
+  auto del_action = DeallocateDatabaseCatalog(dbc);
 
-      case type::TypeId::SMALLINT:
-        vec->emplace_back(type::TransientValueFactory::GetSmallInt(0));
+  // Defer the de-allocation on commit because we need to scan the tables to find
+  // live references at deletion that need to be deleted.
+  txn->RegisterCommitAction([=, del_action{std::move(del_action)}]() { txn_manager_->DeferAction(del_action); });
+  return true;
+}
 
-      case type::TypeId::INTEGER:
-        vec->emplace_back(type::TransientValueFactory::GetInteger(0));
-        break;
+bool Catalog::RenameDatabase(transaction::TransactionContext *const txn, const db_oid_t database,
+                             const std::string &name) {
+  // Name is indexed so this is a delete and insert at the physical level
+  auto *const dbc = DeleteDatabaseEntry(txn, database);
+  if (dbc == nullptr) return false;
+  return CreateDatabaseEntry(txn, database, name, dbc);
+}
 
-      case type::TypeId::BIGINT:
-        vec->emplace_back(type::TransientValueFactory::GetBigInt(0));
+db_oid_t Catalog::GetDatabaseOid(transaction::TransactionContext *const txn, const std::string &name) {
+  const auto name_pri = databases_name_index_->GetProjectedRowInitializer();
 
-      case type::TypeId::DATE:
-        vec->emplace_back(type::TransientValueFactory::GetDate(type::date_t(0)));
+  const auto name_varlen = storage::StorageUtil::CreateVarlen(name);
 
-      case type::TypeId::DECIMAL:
-        vec->emplace_back(type::TransientValueFactory::GetDecimal(0));
+  // Name is a larger projected row (16-byte key vs 4-byte key), sow we can reuse
+  // the buffer for both index operations if we allocate to the larger one.
+  auto *const buffer = common::AllocationUtil::AllocateAligned(name_pri.ProjectedRowSize());
+  auto *pr = name_pri.InitializeRow(buffer);
+  *(reinterpret_cast<storage::VarlenEntry *>(pr->AccessForceNotNull(0))) = name_varlen;
 
-      case type::TypeId::TIMESTAMP:
-        vec->emplace_back(type::TransientValueFactory::GetTimestamp(type::timestamp_t(0)));
+  std::vector<storage::TupleSlot> index_results;
+  databases_name_index_->ScanKey(*txn, *pr, &index_results);
 
-      case type::TypeId::VARCHAR:
-        vec->emplace_back(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR));
-        break;
-
-      default:
-        throw NOT_IMPLEMENTED_EXCEPTION("unsupported type in SetUnusedSchemaColumns (by vec)");
-    }
+  // Clean up the varlen's buffer in the case it wasn't inlined.
+  if (!name_varlen.IsInlined()) {
+    delete[] name_varlen.Content();
   }
-}
 
-std::string Catalog::ValueTypeIdToSchemaType(type::TypeId type_id) {
-  switch (type_id) {
-    case type::TypeId::BOOLEAN:
-      return std::string("boolean");
-
-    case type::TypeId::TINYINT:
-      return std::string("tinyint");
-
-    case type::TypeId::SMALLINT:
-      return std::string("smallint");
-
-    case type::TypeId::INTEGER:
-      return std::string("integer");
-
-    case type::TypeId::BIGINT:
-      return std::string("bigint");
-
-    case type::TypeId::DATE:
-      return std::string("date");
-
-    case type::TypeId::DECIMAL:
-      return std::string("decimal");
-
-    case type::TypeId::TIMESTAMP:
-      return std::string("timestamp");
-
-    case type::TypeId::VARCHAR:
-      return std::string("varchar");
-
-    default:
-      throw NOT_IMPLEMENTED_EXCEPTION("unsupported type in ValueToSchemaType");
+  if (index_results.empty()) {
+    delete[] buffer;
+    return INVALID_DATABASE_OID;
   }
+  TERRIER_ASSERT(index_results.size() == 1, "Database name not unique in index");
+
+  const auto table_pri = databases_->InitializerForProjectedRow({DATOID_COL_OID}).first;
+  pr = table_pri.InitializeRow(buffer);
+  const auto result UNUSED_ATTRIBUTE = databases_->Select(txn, index_results[0], pr);
+  TERRIER_ASSERT(result, "Index already verified visibility. This shouldn't fail.");
+  const auto db_oid = *(reinterpret_cast<const db_oid_t *const>(pr->AccessForceNotNull(0)));
+  delete[] buffer;
+  return db_oid;
 }
 
-void Catalog::Dump(transaction::TransactionContext *txn, const db_oid_t db_oid) {
-  // TODO(pakhtar): add parameter to select database
+common::ManagedPointer<DatabaseCatalog> Catalog::GetDatabaseCatalog(transaction::TransactionContext *const txn,
+                                                                    const db_oid_t database) {
+  const auto oid_pri = databases_name_index_->GetProjectedRowInitializer();
 
-  // dump pg_database
-  auto db_handle = GetDatabaseHandle();
-  CATALOG_LOG_DEBUG("Dumping: {}", !db_oid);
-  CATALOG_LOG_DEBUG("-- pg_database -- ");
-  db_handle.Dump(txn);
+  // Name is a larger projected row (16-byte key vs 4-byte key), sow we can reuse
+  // the buffer for both index operations if we allocate to the larger one.
+  byte *const buffer = common::AllocationUtil::AllocateAligned(oid_pri.ProjectedRowSize());
+  auto *pr = oid_pri.InitializeRow(buffer);
+  *(reinterpret_cast<db_oid_t *>(pr->AccessForceNotNull(0))) = database;
 
-  CATALOG_LOG_DEBUG("");
-  CATALOG_LOG_DEBUG("-- pg_namespace -- ");
-  auto ns_handle = db_handle.GetNamespaceTable(txn, db_oid);
-  ns_handle.Dump(txn);
+  std::vector<storage::TupleSlot> index_results;
+  databases_oid_index_->ScanKey(*txn, *pr, &index_results);
+  if (index_results.empty()) {
+    delete[] buffer;
+    return common::ManagedPointer<DatabaseCatalog>(nullptr);
+  }
+  TERRIER_ASSERT(index_results.size() == 1, "Database name not unique in index");
 
-  // pg_attribute
-  CATALOG_LOG_DEBUG("");
-  CATALOG_LOG_DEBUG("-- pg_attribute -- ");
-  auto attr_handle = db_handle.GetAttributeTable(txn, db_oid);
-  attr_handle.Dump(txn);
+  const std::vector<col_oid_t> table_oids{DAT_CATALOG_COL_OID};
+  const auto table_pri = databases_->InitializerForProjectedRow(table_oids).first;
+  pr = table_pri.InitializeRow(buffer);
+  const auto UNUSED_ATTRIBUTE result = databases_->Select(txn, index_results[0], pr);
+  TERRIER_ASSERT(result, "Index scan did a visibility check, so Select shouldn't fail at this point.");
 
-  // pg_type
-  CATALOG_LOG_DEBUG("");
-  CATALOG_LOG_DEBUG("-- pg_type -- ");
-  auto type_handle = db_handle.GetTypeTable(txn, db_oid);
-  type_handle.Dump(txn);
-
-  // pg_class
-  CATALOG_LOG_DEBUG("");
-  CATALOG_LOG_DEBUG("-- pg_class -- ");
-  auto cls_handle = db_handle.GetClassTable(txn, db_oid);
-  cls_handle.Dump(txn);
+  const auto dbc = *(reinterpret_cast<DatabaseCatalog **>(pr->AccessForceNotNull(0)));
+  delete[] buffer;
+  return common::ManagedPointer(dbc);
 }
 
-index_oid_t Catalog::CreateIndex(transaction::TransactionContext *txn, storage::index::ConstraintType constraint_type,
-                                 const storage::index::IndexKeySchema &schema, const std::string &name) {
-  index_oid_t index_oid(GetNextOid());
-  auto catalog_index = std::make_shared<CatalogIndex>(txn, index_oid, constraint_type, schema);
-  index_map_[index_oid] = catalog_index;
-  index_names_[name] = index_oid;
-  return index_oid;
+std::unique_ptr<CatalogAccessor> Catalog::GetAccessor(transaction::TransactionContext *txn, db_oid_t database) {
+  auto dbc = this->GetDatabaseCatalog(txn, database);
+  if (dbc == nullptr) return nullptr;
+  return std::make_unique<CatalogAccessor>(common::ManagedPointer(this), dbc, txn);
 }
 
-std::shared_ptr<CatalogIndex> Catalog::GetCatalogIndex(index_oid_t index_oid) { return index_map_.at(index_oid); }
+bool Catalog::CreateDatabaseEntry(transaction::TransactionContext *const txn, const db_oid_t db,
+                                  const std::string &name, DatabaseCatalog *const dbc) {
+  const auto name_varlen = storage::StorageUtil::CreateVarlen(name);
 
-index_oid_t Catalog::GetCatalogIndexOid(const std::string &name) { return index_names_.at(name); }
+  // Create the redo record for inserting into the table
+  std::vector<col_oid_t> table_oids;
+  table_oids.emplace_back(DATOID_COL_OID);
+  table_oids.emplace_back(DATNAME_COL_OID);
+  table_oids.emplace_back(DAT_CATALOG_COL_OID);
+  // NOLINTNEXTLINE Matt: this is C++17 which lint hates
+  auto [pri, pm] = databases_->InitializerForProjectedRow(table_oids);
+  auto *const redo = txn->StageWrite(INVALID_DATABASE_OID, DATABASE_TABLE_OID, pri);
 
-std::unique_ptr<CatalogAccessor> Catalog::GetAccessor(terrier::transaction::TransactionContext *txn,
-                                                      terrier::catalog::db_oid_t db_oid,
-                                                      terrier::catalog::namespace_oid_t ns_oid) {
-  return std::make_unique<CatalogAccessor>(txn, this, db_oid, ns_oid);
+  // Populate the projected row
+  *(reinterpret_cast<db_oid_t *>(redo->Delta()->AccessForceNotNull(pm[DATOID_COL_OID]))) = db;
+  *(reinterpret_cast<storage::VarlenEntry *>(redo->Delta()->AccessForceNotNull(pm[DATNAME_COL_OID]))) = name_varlen;
+  *(reinterpret_cast<DatabaseCatalog **>(redo->Delta()->AccessForceNotNull(pm[DAT_CATALOG_COL_OID]))) = dbc;
+
+  // Insert into the table to get the tuple slot
+  const auto tupleslot = databases_->Insert(txn, redo);
+
+  const auto name_pri = databases_name_index_->GetProjectedRowInitializer();
+  const auto oid_pri = databases_oid_index_->GetProjectedRowInitializer();
+
+  // Name is a larger projected row (16-byte key vs 4-byte key), sow we can reuse
+  // the buffer for both index operations if we allocate to the larger one.
+  byte *const buffer = common::AllocationUtil::AllocateAligned(name_pri.ProjectedRowSize());
+
+  // Insert into the name index (checks for name collisions)
+  auto *pr = name_pri.InitializeRow(buffer);
+  // There's only a single column in the key, so there is no need to check OID to key column
+  *(reinterpret_cast<storage::VarlenEntry *>(pr->AccessForceNotNull(0))) = name_varlen;
+
+  if (!databases_name_index_->InsertUnique(txn, *pr, tupleslot)) {
+    // There was a name conflict and we need to abort.  Free the buffer and
+    // return INVALID_DATABASE_OID to indicate the database was not created.
+    delete[] buffer;
+    return false;
+  }
+
+  // Insert into the OID index (should never fail)
+  pr = oid_pri.InitializeRow(buffer);
+  // There's only a single column in the key, so there is no need to check OID to key column
+  *(reinterpret_cast<db_oid_t *>(pr->AccessForceNotNull(0))) = db;
+
+  const bool UNUSED_ATTRIBUTE result = databases_oid_index_->InsertUnique(txn, *pr, tupleslot);
+  TERRIER_ASSERT(result, "Assigned database OID failed to be unique");
+
+  delete[] buffer;
+  return true;
 }
 
+DatabaseCatalog *Catalog::DeleteDatabaseEntry(transaction::TransactionContext *txn, db_oid_t db) {
+  std::vector<storage::TupleSlot> index_results;
+
+  const std::vector<col_oid_t> table_oids{DATNAME_COL_OID, DAT_CATALOG_COL_OID};
+  // NOLINTNEXTLINE
+  auto [table_pri, table_pri_map] = databases_->InitializerForProjectedRow(table_oids);
+  const auto name_pri = databases_name_index_->GetProjectedRowInitializer();
+  const auto oid_pri = databases_oid_index_->GetProjectedRowInitializer();
+
+  // Name is a larger projected row (16-byte key vs 4-byte key), sow we can reuse
+  // the buffer for both index operations if we allocate to the larger one.
+  byte *const buffer = common::AllocationUtil::AllocateAligned(table_pri.ProjectedRowSize());
+  auto *pr = oid_pri.InitializeRow(buffer);
+  *(reinterpret_cast<db_oid_t *>(pr->AccessForceNotNull(0))) = db;
+
+  databases_oid_index_->ScanKey(*txn, *pr, &index_results);
+  if (index_results.empty()) {
+    delete[] buffer;
+    return nullptr;
+  }
+  TERRIER_ASSERT(index_results.size() == 1, "Database OID not unique in index");
+
+  pr = table_pri.InitializeRow(buffer);
+  const auto UNUSED_ATTRIBUTE result = databases_->Select(txn, index_results[0], pr);
+
+  TERRIER_ASSERT(result, "Index scan did a visibility check, so Select shouldn't fail at this point.");
+
+  txn->StageDelete(INVALID_DATABASE_OID, DATABASE_TABLE_OID, index_results[0]);
+  if (!databases_->Delete(txn, index_results[0])) {
+    // Someone else has a write-lock
+    delete[] buffer;
+    return nullptr;
+  }
+
+  // It is safe to use AccessForceNotNull here because we have checked the
+  // tuple's visibility and because the pointer cannot be null in a running
+  // database
+  auto *dbc = *reinterpret_cast<DatabaseCatalog **>(pr->AccessForceNotNull(table_pri_map[DAT_CATALOG_COL_OID]));
+  auto name = *reinterpret_cast<storage::VarlenEntry *>(pr->AccessForceNotNull(table_pri_map[DATNAME_COL_OID]));
+
+  pr = oid_pri.InitializeRow(buffer);
+  *(reinterpret_cast<db_oid_t *>(pr->AccessForceNotNull(0))) = db;
+  databases_oid_index_->Delete(txn, *pr, index_results[0]);
+
+  pr = name_pri.InitializeRow(buffer);
+  *(reinterpret_cast<storage::VarlenEntry *>(pr->AccessForceNotNull(0))) = name;
+  databases_name_index_->Delete(txn, *pr, index_results[0]);
+
+  delete[] buffer;
+  return dbc;
+}
+
+transaction::Action Catalog::DeallocateDatabaseCatalog(DatabaseCatalog *const dbc) {
+  return [=]() {
+    auto txn = txn_manager_->BeginTransaction();
+    dbc->TearDown(txn);
+    txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+    delete dbc;
+  };
+}
 }  // namespace terrier::catalog

@@ -3,19 +3,11 @@
 #include <memory>
 #include <vector>
 #include "catalog/catalog_defs.h"
-#include "catalog/catalog_index.h"
-#include "catalog/catalog_sql_table.h"
 #include "execution/exec/execution_context.h"
 #include "execution/sql/projected_columns_iterator.h"
 #include "storage/storage_defs.h"
 
-namespace tpl::sql {
-using terrier::catalog::CatalogIndex;
-using terrier::catalog::SqlTableHelper;
-using terrier::storage::ProjectedRow;
-using terrier::storage::TupleSlot;
-using terrier::transaction::TransactionContext;
-
+namespace terrier::execution::sql {
 /**
  * Allows iteration for indices from TPL.
  */
@@ -26,8 +18,16 @@ class IndexIterator {
    * @param table_oid oid of the table
    * @param index_oid oid of the index to iterate over.
    * @param exec_ctx execution containing of this query
+   * @param col_oids oids of the table columns
+   * @param num_oids number of oids
    */
-  explicit IndexIterator(uint32_t table_oid, uint32_t index_oid, exec::ExecutionContext *exec_ctx);
+  explicit IndexIterator(uint32_t table_oid, uint32_t index_oid, exec::ExecutionContext *exec_ctx, u32 *col_oids,
+                         u32 num_oids);
+
+  /**
+   * Initialize the projected row and begin scanning.
+   */
+  void Init();
 
   /**
    * Frees allocated resources.
@@ -36,45 +36,73 @@ class IndexIterator {
 
   /**
    * Wrapper around the index's ScanKey
-   * @param sql_key key to scan.
    */
-  void ScanKey(byte *sql_key);
+  void ScanKey() {
+    // Scan the index
+    tuples_.clear();
+    curr_index_ = 0;
+    index_->ScanKey(*exec_ctx_->GetTxn(), *index_pr_, &tuples_);
+  }
 
   /**
    * Advances the iterator. Return true if successful
    * @return whether the iterator was advanced or not.
    */
-  bool Advance();
+  bool Advance() {
+    if (curr_index_ < tuples_.size()) {
+      table_->Select(exec_ctx_->GetTxn(), tuples_[curr_index_], table_pr_);
+      ++curr_index_;
+      return true;
+    }
+    return false;
+  }
 
   /**
    * Get a pointer to the value in the column at index @em col_idx
    * @tparam T The desired data type stored in the vector projection
-   * @tparam nullable Whether the column is NULLable
+   * @tparam Nullable Whether the column is NULLable
    * @param col_idx The index of the column to read from
    * @param[out] null null Whether the given column is null
    * @return The typed value at the current iterator position in the column
    */
-  template <typename T, bool nullable>
-  const T *Get(u32 col_idx, bool *null) const;
+  template <typename T, bool Nullable>
+  const T *Get(u16 col_idx, bool *null) const {
+    // NOLINTNEXTLINE: bugprone-suspicious-semicolon: seems like a false positive because of constexpr
+    if constexpr (Nullable) {
+      TERRIER_ASSERT(null != nullptr, "Missing output variable for NULL indicator");
+      *null = table_pr_->IsNull(col_idx);
+    }
+    return reinterpret_cast<T *>(table_pr_->AccessWithNullCheck(col_idx));
+  }
+
+  /**
+   * Sets the index key value at the given index
+   * @tparam T type of value
+   * @param col_idx index of the key
+   * @param value value to write
+   * @param null whether the value is null
+   */
+  template <typename T>
+  void SetKey(u16 col_idx, T value, bool null) {
+    if (null) {
+      index_pr_->SetNull(static_cast<u16>(col_idx));
+    } else {
+      *reinterpret_cast<T *>(index_pr_->AccessForceNotNull(col_idx)) = value;
+    }
+  }
 
  private:
   exec::ExecutionContext *exec_ctx_;
-  std::vector<TupleSlot> index_values_;
+  std::vector<catalog::col_oid_t> col_oids_;
+  common::ManagedPointer<storage::index::Index> index_;
+  common::ManagedPointer<storage::SqlTable> table_;
+
   uint32_t curr_index_ = 0;
-  byte *index_buffer_ = nullptr;
-  byte *row_buffer_ = nullptr;
-  ProjectedRow *index_pr_ = nullptr;
-  ProjectedRow *row_pr_ = nullptr;
-  std::shared_ptr<CatalogIndex> catalog_index_ = nullptr;
-  SqlTableHelper *catalog_table_ = nullptr;
+  void *index_buffer_;
+  void *table_buffer_;
+  storage::ProjectedRow *index_pr_;
+  storage::ProjectedRow *table_pr_;
+  std::vector<storage::TupleSlot> tuples_{};
 };
 
-template <typename T, bool Nullable>
-inline const T *IndexIterator::Get(u32 col_idx, bool *null) const {
-  if constexpr (Nullable) {
-    TPL_ASSERT(null != nullptr, "Missing output variable for NULL indicator");
-    *null = row_pr_->IsNull(static_cast<u16>(col_idx));
-  }
-  return reinterpret_cast<T *>(row_pr_->AccessWithNullCheck(static_cast<u16>(col_idx)));
-}
-}  // namespace tpl::sql
+}  // namespace terrier::execution::sql

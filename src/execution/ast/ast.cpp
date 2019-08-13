@@ -2,7 +2,7 @@
 
 #include "execution/ast/type.h"
 
-namespace tpl::ast {
+namespace terrier::execution::ast {
 
 // ---------------------------------------------------------
 // Function Declaration
@@ -88,14 +88,14 @@ Identifier CallExpr::GetFuncName() const { return func_->As<IdentifierExpr>()->n
 // ---------------------------------------------------------
 
 bool IndexExpr::IsArrayAccess() const {
-  TPL_ASSERT(object() != nullptr, "Object cannot be NULL");
-  TPL_ASSERT(object() != nullptr, "Cannot determine object type before type checking!");
+  TERRIER_ASSERT(object() != nullptr, "Object cannot be NULL");
+  TERRIER_ASSERT(object() != nullptr, "Cannot determine object type before type checking!");
   return object()->type()->IsArrayType();
 }
 
 bool IndexExpr::IsMapAccess() const {
-  TPL_ASSERT(object() != nullptr, "Object cannot be NULL");
-  TPL_ASSERT(object() != nullptr, "Cannot determine object type before type checking!");
+  TERRIER_ASSERT(object() != nullptr, "Object cannot be NULL");
+  TERRIER_ASSERT(object() != nullptr, "Cannot determine object type before type checking!");
   return object()->type()->IsMapType();
 }
 
@@ -104,7 +104,7 @@ bool IndexExpr::IsMapAccess() const {
 // ---------------------------------------------------------
 
 bool MemberExpr::IsSugaredArrow() const {
-  TPL_ASSERT(object()->type() != nullptr, "Cannot determine sugared-arrow before type checking!");
+  TERRIER_ASSERT(object()->type() != nullptr, "Cannot determine sugared-arrow before type checking!");
   return object()->type()->IsPointerType();
 }
 
@@ -124,8 +124,10 @@ bool Stmt::IsTerminating(Stmt *stmt) {
     case AstNode::Kind::ReturnStmt: {
       return true;
     }
-    default: { return false; }
+    default: {
+      return false;
+    }
   }
 }
 
-}  // namespace tpl::ast
+}  // namespace terrier::execution::ast

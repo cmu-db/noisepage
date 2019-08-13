@@ -7,7 +7,7 @@
 #include "execution/util/memory.h"
 #include "loggers/execution_logger.h"
 
-namespace tpl::util {
+namespace terrier::execution::util {
 
 Region::Region(std::string name) noexcept
     : name_(std::move(name)),
@@ -21,7 +21,7 @@ Region::Region(std::string name) noexcept
 Region::~Region() { FreeAll(); }  // NOLINT (bugprone-exception-escape)
 
 void *Region::Allocate(std::size_t size, std::size_t alignment) {
-  TPL_ASSERT(alignment > 0, "Alignment must be greater than 0");
+  TERRIER_ASSERT(alignment > 0, "Alignment must be greater than 0");
 
   std::size_t adjustment = MathUtil::AlignmentAdjustment(position_, alignment);
 
@@ -39,7 +39,7 @@ void *Region::Allocate(std::size_t size, std::size_t alignment) {
   // 'size' more bytes.
   Expand(size + alignment);
 
-  TPL_ASSERT(position_ < end_, "Region chunk's start position higher than end");
+  TERRIER_ASSERT(position_ < end_, "Region chunk's start position higher than end");
 
   // The new chunk position may not have the desired alignment, fix that now
   uintptr_t aligned_ptr = MathUtil::AlignAddress(position_, alignment);
@@ -104,4 +104,4 @@ uintptr_t Region::Expand(std::size_t requested) {
   return position_;
 }
 
-}  // namespace tpl::util
+}  // namespace terrier::execution::util

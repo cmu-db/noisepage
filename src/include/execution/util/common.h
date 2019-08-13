@@ -48,7 +48,7 @@ using hash_t = u64;
   INT_TYPES(F, __VA_ARGS__) \
   FOR_EACH_FLOAT_TYPE(F, __VA_ARGS__)
 
-namespace tpl {
+namespace terrier {
 
 /**
  * A compact structure used during parsing to capture and describe the position in the source as 1-based line and column
@@ -85,12 +85,6 @@ static constexpr const u32 kDefaultVectorSize = 2048;
  */
 static constexpr const u32 kPrefetchDistance = 16;
 
-/**
- * The key for the parser to use in attribute maps to signal
- * whether or not a ForIn loop contains an OID iterator
- */
-static constexpr const char *OID_KEY = "IS_OID";
-
 // Common memory sizes
 /**
  * KB
@@ -106,5 +100,4 @@ static constexpr const u32 MB = KB * KB;
  * GB
  */
 static constexpr const u32 GB = KB * KB * KB;
-
-}  // namespace tpl
+}  // namespace terrier

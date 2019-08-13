@@ -5,7 +5,7 @@
 #include "execution/util/macros.h"
 #include "execution/util/timer.h"
 
-namespace tpl::util {
+namespace terrier::execution::util {
 
 /**
  * Stage timer
@@ -71,8 +71,8 @@ class StageTimer {
    * Exit the current stage.
    */
   void ExitStage() {
-    TPL_ASSERT(!stages_.empty(), "Missing call to EnterStage()");
-    TPL_ASSERT(stages_.back().time() == 0, "Duplicate call to ExitStage()");
+    TERRIER_ASSERT(!stages_.empty(), "Missing call to EnterStage()");
+    TERRIER_ASSERT(stages_.back().time() == 0, "Duplicate call to ExitStage()");
     timer_.Stop();
     stages_.back().set_time(timer_.elapsed());
   }
@@ -80,11 +80,11 @@ class StageTimer {
   /**
    * Access information on all stages.
    */
-  const std::vector<Stage> GetStages() const { return stages_; }
+  const std::vector<Stage> &GetStages() const { return stages_; }
 
  private:
   util::Timer<ResolutionRatio> timer_;
   std::vector<Stage> stages_;
 };
 
-}  // namespace tpl::util
+}  // namespace terrier::execution::util

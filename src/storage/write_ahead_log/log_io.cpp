@@ -60,8 +60,8 @@ void BufferedLogReader::RefillBuffer() {
   TERRIER_ASSERT(read_head_ == filled_size_, "Refilling a buffer that is not fully read results in loss of data");
   if (in_ == -1) throw std::runtime_error("No more bytes left in the log file");
   read_head_ = 0;
-  filled_size_ = PosixIoWrappers::ReadFully(in_, buffer_, BUFFER_SIZE);
-  if (filled_size_ < BUFFER_SIZE) {
+  filled_size_ = PosixIoWrappers::ReadFully(in_, buffer_, common::Constants::LOG_BUFFER_SIZE);
+  if (filled_size_ < common::Constants::LOG_BUFFER_SIZE) {
     // TODO(Tianyu): Is it better to make this an explicit close?
     PosixIoWrappers::Close(in_);
     in_ = -1;

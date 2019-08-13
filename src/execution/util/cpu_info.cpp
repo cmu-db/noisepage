@@ -19,7 +19,7 @@
 
 #include "loggers/execution_logger.h"
 
-namespace tpl {
+namespace terrier::execution {
 
 struct {
   CpuInfo::Feature feature;
@@ -108,7 +108,7 @@ void CpuInfo::InitCacheInfo() {
   sysctlbyname("hw.cachesize", nullptr, &len, nullptr, 0);
   auto data = std::make_unique<u64[]>(len);
   sysctlbyname("hw.cachesize", data.get(), &len, nullptr, 0);
-  TPL_ASSERT(len / sizeof(uint64_t) >= 3, "Expected three levels of cache!");
+  TERRIER_ASSERT(len / sizeof(uint64_t) >= 3, "Expected three levels of cache!");
 
   // Copy data
   for (u32 idx = 0; idx < kNumCacheLevels; idx++) {
@@ -161,4 +161,4 @@ std::string CpuInfo::PrettyPrintInfo() const {
   return ss.str();
 }
 
-}  // namespace tpl
+}  // namespace terrier::execution

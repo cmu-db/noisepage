@@ -21,5 +21,10 @@ struct Constants {
    */
   // TODO(Tianyu): This number currently is obtained through empirical experiments.
   static const uint16_t MAX_COL = 12500;
+
+  /**
+   * The size of the buffers the log manager uses to buffer serialized logs and "group commit" them when writing to disk
+   */
+  static const uint32_t LOG_BUFFER_SIZE = (1 << 12);
 };
 }  // namespace terrier::common

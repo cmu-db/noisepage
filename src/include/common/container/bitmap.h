@@ -5,15 +5,15 @@
 #include "common/strong_typedef.h"
 
 #ifndef BYTE_SIZE
-#define BYTE_SIZE 8u
+#define BYTE_SIZE 8U
 #endif
 
 // Some platforms would have already defined the macro. But its presence is not standard and thus not portable. Pretty
 // sure this is always 8 bits. If not, consider getting a new machine, and preferably not from another dimension :)
-static_assert(BYTE_SIZE == 8u, "BYTE_SIZE should be set to 8!");
+static_assert(BYTE_SIZE == 8U, "BYTE_SIZE should be set to 8!");
 
 // n must be [0, 7], all 0 except for 1 on the nth bit in LSB order.
-#define LSB_ONE_HOT_MASK(n) (1u << n)
+#define LSB_ONE_HOT_MASK(n) (1U << n)
 // n must be [0, 7], all 1 except for 0 on the nth bit in LSB order
 #define LSB_ONE_COLD_MASK(n) (0xFF - LSB_ONE_HOT_MASK(n))
 

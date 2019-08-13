@@ -1,5 +1,0 @@
-int_col,real_col,date_col,varchar_col
-0,3.7,2000-01-13,First string
-1,8.5,2013-07-17,Second string
-2,13.7,2015-09-16,Third string
-3,37.37,2037-03-07,Fourth string

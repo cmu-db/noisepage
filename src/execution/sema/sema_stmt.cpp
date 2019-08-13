@@ -6,7 +6,7 @@
 #include "execution/ast/context.h"
 #include "execution/ast/type.h"
 
-namespace tpl::sema {
+namespace terrier::execution::sema {
 
 void Sema::VisitAssignmentStmt(ast::AssignmentStmt *node) {
   ast::Type *src_type = Resolve(node->source());
@@ -73,7 +73,7 @@ void Sema::VisitForStmt(ast::ForStmt *node) {
   Visit(node->body());
 }
 
-void Sema::VisitForInStmt(ast::ForInStmt *node) { TPL_ASSERT(false, "Not supported"); }
+void Sema::VisitForInStmt(ast::ForInStmt *node) { TERRIER_ASSERT(false, "Not supported"); }
 
 void Sema::VisitExpressionStmt(ast::ExpressionStmt *node) { Visit(node->expression()); }
 
@@ -155,6 +155,11 @@ void Sema::VisitReturnStmt(ast::ReturnStmt *node) {
                             func_type->return_type());
     return;
   }
+
+  // Cast if necessary
+  if (ret != node->ret()) {
+    node->set_return(ret);
+  }
 }
 
-}  // namespace tpl::sema
+}  // namespace terrier::execution::sema

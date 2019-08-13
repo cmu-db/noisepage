@@ -4,7 +4,7 @@
 #include "execution/sql/projected_columns_iterator.h"
 #include "execution/util/common.h"
 
-namespace tpl::sql {
+namespace terrier::execution::sql {
 
 class JoinHashTable;
 
@@ -63,8 +63,8 @@ class JoinHashTableVectorProbe {
 // reduce function call overhead.
 inline const HashTableEntry *JoinHashTableVectorProbe::GetNextOutput(ProjectedColumnsIterator *const pci,
                                                                      const KeyEqFn key_eq_fn) {
-  TPL_ASSERT(pci != nullptr, "No input PCI!");
-  TPL_ASSERT(match_idx_ < pci->num_selected(), "Continuing past iteration!");
+  TERRIER_ASSERT(pci != nullptr, "No input PCI!");
+  TERRIER_ASSERT(match_idx_ < pci->num_selected(), "Continuing past iteration!");
 
   while (true) {
     // Continue along current chain until we find a match
@@ -91,4 +91,4 @@ inline const HashTableEntry *JoinHashTableVectorProbe::GetNextOutput(ProjectedCo
   return nullptr;
 }
 
-}  // namespace tpl::sql
+}  // namespace terrier::execution::sql

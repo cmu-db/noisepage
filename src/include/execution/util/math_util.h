@@ -8,7 +8,7 @@
 #include "execution/util/common.h"
 #include "execution/util/macros.h"
 
-namespace tpl::util {
+namespace terrier::execution::util {
 
 /**
  * Utility class containing various math/arithmetic functions
@@ -62,7 +62,7 @@ class MathUtil {
    * @return Whether the value has the desired alignment
    */
   static bool IsAligned(u64 value, u64 alignment) {
-    TPL_ASSERT(alignment != 0u && IsPowerOf2(alignment), "Align must be a non-zero power of two.");
+    TERRIER_ASSERT(alignment != 0u && IsPowerOf2(alignment), "Align must be a non-zero power of two.");
     return (value & (alignment - 1)) == 0;
   }
 
@@ -82,7 +82,7 @@ class MathUtil {
    * @return
    */
   static bool IsAlignedGeneric(u64 value, u64 alignment) {
-    TPL_ASSERT(alignment != 0u, "Align must be non-zero.");
+    TERRIER_ASSERT(alignment != 0u, "Align must be non-zero.");
     return (value % alignment) == 0;
   }
 
@@ -111,7 +111,7 @@ class MathUtil {
    * @return The input address aligned to the desired alignment
    */
   static constexpr uintptr_t AlignAddress(uintptr_t addr, std::size_t alignment) {
-    TPL_ASSERT(alignment > 0 && MathUtil::IsPowerOf2(alignment), "Alignment is not a power of two!");
+    TERRIER_ASSERT(alignment > 0 && MathUtil::IsPowerOf2(alignment), "Alignment is not a power of two!");
     return (addr + alignment - 1) & ~(alignment - 1);
   }
 
@@ -128,4 +128,4 @@ class MathUtil {
   }
 };
 
-}  // namespace tpl::util
+}  // namespace terrier::execution::util

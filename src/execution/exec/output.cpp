@@ -1,19 +1,9 @@
 #include "execution/exec/output.h"
 #include "execution/sql/value.h"
 
-namespace tpl::exec {
-using terrier::type::TypeId;
+namespace terrier::execution::exec {
 
-OutputBuffer::~OutputBuffer() { delete[] tuples_; }
-
-void OutputBuffer::Advance() {
-  num_tuples_++;
-  if (num_tuples_ == batch_size_) {
-    callback_(tuples_, num_tuples_, tuple_size_);
-    num_tuples_ = 0;
-    return;
-  }
-}
+OutputBuffer::~OutputBuffer() { memory_pool_->Deallocate(tuples_, batch_size_ * tuple_size_); }
 
 void OutputBuffer::Finalize() {
   if (num_tuples_ > 0) {
@@ -31,10 +21,10 @@ void OutputPrinter::operator()(byte *tuples, u32 num_tuples, u32 tuple_size) {
     for (u16 col = 0; col < schema_->GetColumns().size(); col++) {
       // TODO(Amadou): Figure out to print other types.
       switch (schema_->GetColumns()[col].GetType()) {
-        case TypeId::TINYINT:
-        case TypeId::SMALLINT:
-        case TypeId::BIGINT:
-        case TypeId::INTEGER: {
+        case type::TypeId::TINYINT:
+        case type::TypeId::SMALLINT:
+        case type::TypeId::BIGINT:
+        case type::TypeId::INTEGER: {
           auto *val = reinterpret_cast<sql::Integer *>(tuples + row * tuple_size + curr_offset);
           if (val->is_null)
             ss << "NULL";
@@ -42,7 +32,7 @@ void OutputPrinter::operator()(byte *tuples, u32 num_tuples, u32 tuple_size) {
             ss << val->val;
           break;
         }
-        case TypeId::BOOLEAN: {
+        case type::TypeId::BOOLEAN: {
           auto *val = reinterpret_cast<sql::BoolVal *>(tuples + row * tuple_size + curr_offset);
           if (val->is_null) {
             ss << "NULL";
@@ -55,7 +45,7 @@ void OutputPrinter::operator()(byte *tuples, u32 num_tuples, u32 tuple_size) {
           }
           break;
         }
-        case TypeId::DECIMAL: {
+        case type::TypeId::DECIMAL: {
           auto *val = reinterpret_cast<sql::Real *>(tuples + row * tuple_size + curr_offset);
           if (val->is_null)
             ss << "NULL";
@@ -63,7 +53,7 @@ void OutputPrinter::operator()(byte *tuples, u32 num_tuples, u32 tuple_size) {
             ss << val->val;
           break;
         }
-        case TypeId::DATE: {
+        case type::TypeId::DATE: {
           auto *val = reinterpret_cast<sql::Date *>(tuples + row * tuple_size + curr_offset);
           if (val->is_null) {
             ss << "NULL";
@@ -72,12 +62,12 @@ void OutputPrinter::operator()(byte *tuples, u32 num_tuples, u32 tuple_size) {
           }
           break;
         }
-        case TypeId::VARCHAR: {
+        case type::TypeId::VARCHAR: {
           auto *val = reinterpret_cast<sql::StringVal *>(tuples + row * tuple_size + curr_offset);
           if (val->is_null) {
             ss << "NULL";
           } else {
-            ss.write(val->ptr, val->len);
+            ss.write(val->Content(), val->len);
             ss.put('\0');
           }
           break;
@@ -93,4 +83,4 @@ void OutputPrinter::operator()(byte *tuples, u32 num_tuples, u32 tuple_size) {
   printed_++;
   std::cout << ss.str() << std::endl;
 }
-}  // namespace tpl::exec
+}  // namespace terrier::execution::exec

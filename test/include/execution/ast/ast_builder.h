@@ -10,7 +10,7 @@
 #include "execution/sema/error_reporter.h"
 #include "execution/util/region_containers.h"
 
-namespace tpl::ast::test {
+namespace terrier::execution::ast::test {
 
 class TestAstBuilder {
  public:
@@ -86,7 +86,7 @@ class TestAstBuilder {
    */
   template <parsing::Token::Type OP>
   Expr *Cmp(Expr *left, Expr *right) {
-    TPL_ASSERT(parsing::Token::IsCompareOp(OP), "Not a comparison");
+    TERRIER_ASSERT(parsing::Token::IsCompareOp(OP), "Not a comparison");
     return node_factory()->NewComparisonOpExpr(empty_, OP, left, right);
   }
 
@@ -218,4 +218,4 @@ class TestAstBuilder {
   SourcePosition empty_{0, 0};
 };
 
-}  // namespace tpl::ast::test
+}  // namespace terrier::execution::ast::test

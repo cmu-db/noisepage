@@ -8,6 +8,8 @@
 #include "storage/projected_columns.h"
 #include "storage/projected_row.h"
 #include "storage/storage_defs.h"
+#include "storage/write_ahead_log/log_record.h"
+#include "transaction/transaction_context.h"
 
 namespace terrier::storage {
 
@@ -36,20 +38,13 @@ class SqlTable {
    *
    * @param store the Block store to use.
    * @param schema the initial Schema of this SqlTable
-   * @param oid unique identifier for this SqlTable
    */
-  SqlTable(BlockStore *store, const catalog::Schema &schema, catalog::table_oid_t oid);
+  SqlTable(BlockStore *store, const catalog::Schema &schema);
 
   /**
    * Destructs a SqlTable, frees all its members.
    */
   ~SqlTable() { delete table_.data_table; }
-
-  /**
-   * Get the schema use of the SQL table
-   * @return the schema
-   */
-  catalog::Schema &GetSchema() { return schema_; }
 
   /**
    * Materializes a single tuple from the given slot, as visible at the timestamp of the calling txn.
@@ -64,37 +59,70 @@ class SqlTable {
   }
 
   /**
-   * Update the tuple according to the redo buffer given.
+   * Update the tuple according to the redo buffer given. StageWrite must have been called as well in order for the
+   * operation to be logged.
    *
    * @param txn the calling transaction
-   * @param slot the slot of the tuple to update.
-   * @param redo the desired change to be applied. This should be the after-image of the attributes of interest.
+   * @param redo the desired change to be applied. This should be the after-image of the attributes of interest. The
+   * TupleSlot in this RedoRecord must be set to the intended tuple.
    * @return true if successful, false otherwise
    */
-  bool Update(transaction::TransactionContext *const txn, const TupleSlot slot, const ProjectedRow &redo) const {
-    return table_.data_table->Update(txn, slot, redo);
+  bool Update(transaction::TransactionContext *const txn, RedoRecord *const redo) const {
+    TERRIER_ASSERT(redo->GetTupleSlot() != TupleSlot(nullptr, 0), "TupleSlot was never set in this RedoRecord.");
+    TERRIER_ASSERT(redo == reinterpret_cast<LogRecord *>(txn->redo_buffer_.LastRecord())
+                               ->LogRecord::GetUnderlyingRecordBodyAs<RedoRecord>(),
+                   "This RedoRecord is not the most recent entry in the txn's RedoBuffer. Was StageWrite called "
+                   "immediately before?");
+    const auto result = table_.data_table->Update(txn, redo->GetTupleSlot(), *(redo->Delta()));
+    if (!result) {
+      // For MVCC correctness, this txn must now abort for the GC to clean up the version chain in the DataTable
+      // correctly.
+      txn->MustAbort();
+    }
+    return result;
   }
 
   /**
-   * Inserts a tuple, as given in the redo, and return the slot allocated for the tuple.
+   * Inserts a tuple, as given in the redo, and return the slot allocated for the tuple. StageWrite must have been
+   * called as well in order for the operation to be logged.
    *
    * @param txn the calling transaction
    * @param redo after-image of the inserted tuple.
-   * @return the TupleSlot allocated for this insert, used to identify this tuple's physical location for indexes and
-   * such.
+   * @return TupleSlot for the inserted tuple
    */
-  TupleSlot Insert(transaction::TransactionContext *const txn, const ProjectedRow &redo) const {
-    return table_.data_table->Insert(txn, redo);
+  TupleSlot Insert(transaction::TransactionContext *const txn, RedoRecord *const redo) const {
+    TERRIER_ASSERT(redo->GetTupleSlot() == TupleSlot(nullptr, 0), "TupleSlot was set in this RedoRecord.");
+    TERRIER_ASSERT(redo == reinterpret_cast<LogRecord *>(txn->redo_buffer_.LastRecord())
+                               ->LogRecord::GetUnderlyingRecordBodyAs<RedoRecord>(),
+                   "This RedoRecord is not the most recent entry in the txn's RedoBuffer. Was StageWrite called "
+                   "immediately before?");
+    const auto slot = table_.data_table->Insert(txn, *(redo->Delta()));
+    redo->SetTupleSlot(slot);
+    return slot;
   }
 
   /**
-   * Deletes the given TupleSlot, this will call StageWrite on the provided txn to generate the RedoRecord for delete.
+   * Deletes the given TupleSlot. StageDelete must have been called as well in order for the operation to be logged.
    * @param txn the calling transaction
    * @param slot the slot of the tuple to delete
    * @return true if successful, false otherwise
    */
   bool Delete(transaction::TransactionContext *const txn, const TupleSlot slot) {
-    return table_.data_table->Delete(txn, slot);
+    TERRIER_ASSERT(txn->redo_buffer_.LastRecord() != nullptr,
+                   "The RedoBuffer is empty even though StageDelete should have been called.");
+    TERRIER_ASSERT(
+        reinterpret_cast<LogRecord *>(txn->redo_buffer_.LastRecord())
+                ->GetUnderlyingRecordBodyAs<DeleteRecord>()
+                ->GetTupleSlot() == slot,
+        "This Delete is not the most recent entry in the txn's RedoBuffer. Was StageDelete called immediately before?");
+
+    const auto result = table_.data_table->Delete(txn, slot);
+    if (!result) {
+      // For MVCC correctness, this txn must now abort for the GC to clean up the version chain in the DataTable
+      // correctly.
+      txn->MustAbort();
+    }
+    return result;
   }
 
   /**
@@ -113,11 +141,6 @@ class SqlTable {
             ProjectedColumns *const out_buffer) const {
     return table_.data_table->Scan(txn, start_pos, out_buffer);
   }
-
-  /**
-   * @return table's unique identifier
-   */
-  catalog::table_oid_t Oid() const { return oid_; }
 
   /**
    * @return the first tuple slot contained in the underlying DataTable
@@ -175,10 +198,17 @@ class SqlTable {
     return {initializer, projection_map};
   }
 
+  /**
+   * Generate a projection map given column oids
+   * @param col_oids oids that will be scanned.
+   * @return the projection map
+   */
+  ProjectionMap ProjectionMapForOids(const std::vector<catalog::col_oid_t> &col_oids);
+
  private:
+  FRIEND_TEST(WriteAheadLoggingTests, AbortRecordTest);
+  FRIEND_TEST(WriteAheadLoggingTests, NoAbortRecordTest);
   BlockStore *const block_store_;
-  const catalog::table_oid_t oid_;
-  catalog::Schema schema_;
 
   // Eventually we'll support adding more tables when schema changes. For now we'll always access the one DataTable.
   DataTableVersion table_;

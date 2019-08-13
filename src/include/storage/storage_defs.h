@@ -15,6 +15,8 @@
 #include "common/object_pool.h"
 #include "common/strong_typedef.h"
 #include "storage/block_access_controller.h"
+#include "storage/write_ahead_log/log_io.h"
+#include "transaction/transaction_defs.h"
 
 namespace terrier::storage {
 // Write Ahead Logging:
@@ -24,7 +26,7 @@ namespace terrier::storage {
 // All tuples potentially visible to txns should have a non-null attribute of version vector.
 // This is not to be confused with a non-null version vector that has value nullptr (0).
 #define VERSION_POINTER_COLUMN_ID ::terrier::storage::col_id_t(0)
-#define NUM_RESERVED_COLUMNS 1u
+#define NUM_RESERVED_COLUMNS 1U
 
 // In type_util.h there are a total of 5 possible inlined attribute sizes:
 // 1, 2, 4, 8, and 16-bytes (16 byte is the structure portion of varlen).
@@ -193,14 +195,24 @@ using ProjectionMap = std::unordered_map<catalog::col_oid_t, uint16_t>;
 
 /**
  * Denote whether a record modifies the logical delete column, used when DataTable inspects deltas
- * TODO(Matt): could be used by the GC for recycling
  */
 enum class DeltaRecordType : uint8_t { UPDATE = 0, INSERT, DELETE };
 
 /**
  * Types of LogRecords
  */
-enum class LogRecordType : uint8_t { REDO = 1, DELETE, COMMIT };
+enum class LogRecordType : uint8_t { REDO = 1, DELETE, COMMIT, ABORT };
+
+/**
+ * Callback function and arguments to be called when record is persisted
+ */
+using CommitCallback = std::pair<transaction::callback_fn, void *>;
+
+/**
+ * A BufferedLogWriter containing serialized logs, as well as all commit callbacks for transaction's whose commit are
+ * serialized in this BufferedLogWriter
+ */
+using SerializedLogs = std::pair<BufferedLogWriter *, std::vector<CommitCallback>>;
 
 /**
  * A varlen entry is always a 32-bit size field and the varlen content,

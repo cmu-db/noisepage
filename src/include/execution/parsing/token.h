@@ -4,7 +4,7 @@
 
 #include "execution/util/common.h"
 
-namespace tpl::parsing {
+namespace terrier::execution::parsing {
 
 /*
  * List of all tokens + keywords that accepts two callback functions. T() is
@@ -115,12 +115,12 @@ class Token {
   /**
    * Get the precedence of a given token
    */
-  static const u32 GetPrecedence(Type type) { return kTokenPrecedence[static_cast<u32>(type)]; }
+  static u32 GetPrecedence(Type type) { return kTokenPrecedence[static_cast<u32>(type)]; }
 
   /**
    * Get the lowest operator precedence we support
    */
-  static const u32 LowestPrecedence() { return 0; }
+  static u32 LowestPrecedence() { return 0; }
 
   /**
    * Is the given token a comparison operator?
@@ -148,4 +148,4 @@ class Token {
   static const u32 kTokenPrecedence[];
 };
 
-}  // namespace tpl::parsing
+}  // namespace terrier::execution::parsing

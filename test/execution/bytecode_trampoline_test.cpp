@@ -7,14 +7,14 @@
 
 #include "ips4o/ips4o.hpp"
 
-#include "execution/tpl_test.h"  // NOLINT
+#include "execution/tpl_test.h"
 
 #include "execution/sql/sorter.h"
 #include "execution/sql/value.h"
 #include "execution/vm/module.h"
 #include "execution/vm/module_compiler.h"
 
-namespace tpl::vm::test {
+namespace terrier::execution::vm::test {
 
 //
 // These tests use the trampoline to call into bytecode functions.
@@ -282,9 +282,10 @@ TEST_F(BytecodeTrampolineTest, DISABLED_PerfGenComparisonForSortTest) {
   auto func_ms = bench_func(num2);
   auto std_ms = bench_std(num3);
 
-  std::cout << "Trampoline: " << tramp_ms << " ms, ";
-  std::cout << "Function: " << func_ms << " ms, ";
-  std::cout << "Std: " << std_ms << " ms" << std::endl;
+  // TODO(Amadou): Move this test to benchmark folder.
+  EXECUTION_LOG_INFO("Trampoline: {} ms", tramp_ms);
+  EXECUTION_LOG_INFO("Function: {} ms", func_ms);
+  EXECUTION_LOG_INFO("Std: {} ms", std_ms);
 }
 
-}  // namespace tpl::vm::test
+}  // namespace terrier::execution::vm::test

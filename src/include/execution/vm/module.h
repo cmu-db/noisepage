@@ -2,7 +2,6 @@
 
 #include <atomic>
 #include <memory>
-#include <mutex>  // NOLINT
 #include <string>
 #include <utility>
 
@@ -12,11 +11,11 @@
 #include "execution/vm/bytecode_module.h"
 #include "execution/vm/llvm_engine.h"
 
-namespace tpl::vm::test {
+namespace terrier::execution::vm::test {
 class BytecodeTrampolineTest;
-}  // namespace tpl::vm::test
+}  // namespace terrier::execution::vm::test
 
-namespace tpl::vm {
+namespace terrier::execution::vm {
 
 /**
  * An enumeration capturing different execution methods and optimization levels.
@@ -102,7 +101,7 @@ class Module {
    * @return The function address if it exists; null otherwise.
    */
   void *GetRawFunctionImpl(const FunctionId func_id) const {
-    TPL_ASSERT(func_id < bytecode_module_->num_functions(), "Out-of-bounds function access");
+    TERRIER_ASSERT(func_id < bytecode_module_->num_functions(), "Out-of-bounds function access");
     return functions_[func_id].load(std::memory_order_relaxed);
   }
 
@@ -229,6 +228,7 @@ inline bool Module::GetFunction(const std::string &name, const ExecutionMode exe
     }
     case ExecutionMode::Interpret: {
       *func = [this, func_info](ArgTypes... args) -> Ret {
+        // NOLINTNEXTLINE: bugprone-suspicious-semicolon: seems like a false positive because of constexpr
         if constexpr (std::is_void_v<Ret>) {
           // Create a temporary on-stack buffer and copy all arguments
           u8 arg_buffer[(0ul + ... + sizeof(args))];
@@ -266,4 +266,4 @@ inline bool Module::GetFunction(const std::string &name, const ExecutionMode exe
   return true;
 }
 
-}  // namespace tpl::vm
+}  // namespace terrier::execution::vm

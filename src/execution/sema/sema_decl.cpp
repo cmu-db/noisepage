@@ -3,7 +3,7 @@
 #include "execution/ast/context.h"
 #include "execution/ast/type.h"
 
-namespace tpl::sema {
+namespace terrier::execution::sema {
 
 void Sema::VisitVariableDecl(ast::VariableDecl *node) {
   if (current_scope()->LookupLocal(node->name()) != nullptr) {
@@ -12,7 +12,7 @@ void Sema::VisitVariableDecl(ast::VariableDecl *node) {
   }
 
   // At this point, the variable either has a declared type or an initial value
-  TPL_ASSERT(node->HasTypeDecl() || node->HasInitialValue(),
+  TERRIER_ASSERT(node->HasTypeDecl() || node->HasInitialValue(),
              "Variable has neither a type declaration or an initial "
              "expression. This should have been caught during parsing.");
 
@@ -75,4 +75,4 @@ void Sema::VisitStructDecl(ast::StructDecl *node) {
   current_scope()->Declare(node->name(), struct_type);
 }
 
-}  // namespace tpl::sema
+}  // namespace terrier::execution::sema

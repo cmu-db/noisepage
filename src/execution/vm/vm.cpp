@@ -7,12 +7,13 @@
 
 #include "execution/sql/value.h"
 #include "execution/util/common.h"
+#include "execution/util/memory.h"
 #include "execution/util/timer.h"
 #include "execution/vm/bytecode_function_info.h"
 #include "execution/vm/bytecode_handlers.h"
 #include "execution/vm/module.h"
 
-namespace tpl::vm {
+namespace terrier::execution::vm {
 
 /**
  * An execution frame where all function's local variables and parameters live
@@ -26,8 +27,8 @@ class VM::Frame {
    * Constructor
    */
   Frame(u8 *frame_data, std::size_t frame_size) : frame_data_(frame_data), frame_size_(frame_size) {
-    TPL_ASSERT(frame_data_ != nullptr, "Frame data cannot be null");
-    TPL_ASSERT(frame_size_ >= 0, "Frame size must be >= 0");
+    TERRIER_ASSERT(frame_data_ != nullptr, "Frame data cannot be null");
+    TERRIER_ASSERT(frame_size_ >= 0, "Frame size must be >= 0");
     (void)frame_size_;
   }
 
@@ -93,7 +94,7 @@ VM::VM(const Module *module) : module_(module) {}
 void VM::InvokeFunction(const Module *module, const FunctionId func_id, const u8 args[]) {
   // The function's info
   const FunctionInfo *func_info = module->GetFuncInfoById(func_id);
-  TPL_ASSERT(func_info != nullptr, "Function doesn't exist in module!");
+  TERRIER_ASSERT(func_info != nullptr, "Function doesn't exist in module!");
   const std::size_t frame_size = func_info->frame_size();
 
   // Let's try to get some space
@@ -101,7 +102,7 @@ void VM::InvokeFunction(const Module *module, const FunctionId func_id, const u8
   u8 *raw_frame = nullptr;
   if (frame_size > kMaxStackAllocSize) {
     used_heap = true;
-    raw_frame = static_cast<u8 *>(std::aligned_alloc(alignof(u64), frame_size));
+    raw_frame = static_cast<u8 *>(util::MallocAligned(frame_size, alignof(u64)));
   } else if (frame_size > kSoftMaxStackAllocSize) {
     // TODO(pmenon): Check stack before allocation
     raw_frame = static_cast<u8 *>(alloca(frame_size));
@@ -119,7 +120,7 @@ void VM::InvokeFunction(const Module *module, const FunctionId func_id, const u8
 
   // Now get the bytecode for the function and fire it off
   const u8 *bytecode = module->bytecode_module()->GetBytecodeForFunction(*func_info);
-  TPL_ASSERT(bytecode != nullptr, "Bytecode cannot be null");
+  TERRIER_ASSERT(bytecode != nullptr, "Bytecode cannot be null");
   Frame frame(raw_frame, frame_size);
   vm.Interpret(bytecode, &frame);
 
@@ -450,7 +451,7 @@ void VM::Interpret(const u8 *ip, Frame *frame) {
 
   OP(ThreadStateContainerInit) : {
     auto *thread_state_container = frame->LocalAt<sql::ThreadStateContainer *>(READ_LOCAL_ID());
-    auto *memory = frame->LocalAt<tpl::sql::MemoryPool *>(READ_LOCAL_ID());
+    auto *memory = frame->LocalAt<execution::sql::MemoryPool *>(READ_LOCAL_ID());
     OpThreadStateContainerInit(thread_state_container, memory);
     DISPATCH_NEXT();
   }
@@ -494,7 +495,9 @@ void VM::Interpret(const u8 *ip, Frame *frame) {
     auto *iter = frame->LocalAt<sql::TableVectorIterator *>(READ_LOCAL_ID());
     auto table_oid = READ_UIMM4();
     auto exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
-    OpTableVectorIteratorInit(iter, table_oid, exec_ctx);
+    auto col_oids = frame->LocalAt<u32 *>(READ_LOCAL_ID());
+    auto num_oids = READ_UIMM4();
+    OpTableVectorIteratorInit(iter, table_oid, exec_ctx, col_oids, num_oids);
     DISPATCH_NEXT();
   }
 
@@ -600,17 +603,18 @@ void VM::Interpret(const u8 *ip, Frame *frame) {
   OP(PCIGet##type_str) : {                                                        \
     auto *result = frame->LocalAt<type *>(READ_LOCAL_ID());                       \
     auto *pci = frame->LocalAt<sql::ProjectedColumnsIterator *>(READ_LOCAL_ID()); \
-    auto col_idx = READ_UIMM4();                                                  \
+    auto col_idx = READ_UIMM2();                                                  \
     OpPCIGet##type_str(result, pci, col_idx);                                     \
     DISPATCH_NEXT();                                                              \
   }                                                                               \
   OP(PCIGet##type_str##Null) : {                                                  \
     auto *result = frame->LocalAt<type *>(READ_LOCAL_ID());                       \
     auto *pci = frame->LocalAt<sql::ProjectedColumnsIterator *>(READ_LOCAL_ID()); \
-    auto col_idx = READ_UIMM4();                                                  \
+    auto col_idx = READ_UIMM2();                                                  \
     OpPCIGet##type_str##Null(result, pci, col_idx);                               \
     DISPATCH_NEXT();                                                              \
   }
+  GEN_PCI_ACCESS(TinyInt, sql::Integer)
   GEN_PCI_ACCESS(SmallInt, sql::Integer)
   GEN_PCI_ACCESS(Integer, sql::Integer)
   GEN_PCI_ACCESS(BigInt, sql::Integer)
@@ -623,7 +627,7 @@ void VM::Interpret(const u8 *ip, Frame *frame) {
 
 #define GEN_PCI_FILTER(Op)                                                         \
   OP(PCIFilter##Op) : {                                                            \
-    auto *size = frame->LocalAt<u32 *>(READ_LOCAL_ID());                           \
+    auto *size = frame->LocalAt<u64 *>(READ_LOCAL_ID());                           \
     auto *iter = frame->LocalAt<sql::ProjectedColumnsIterator *>(READ_LOCAL_ID()); \
     auto col_idx = READ_UIMM4();                                                   \
     auto type = READ_IMM1();                                                       \
@@ -720,8 +724,8 @@ void VM::Interpret(const u8 *ip, Frame *frame) {
 
   OP(ForceBoolTruth) : {
     auto *result = frame->LocalAt<bool *>(READ_LOCAL_ID());
-    auto *sql_int = frame->LocalAt<sql::BoolVal *>(READ_LOCAL_ID());
-    OpForceBoolTruth(result, sql_int);
+    auto *sql_bool = frame->LocalAt<sql::BoolVal *>(READ_LOCAL_ID());
+    OpForceBoolTruth(result, sql_bool);
     DISPATCH_NEXT();
   }
 
@@ -869,7 +873,7 @@ void VM::Interpret(const u8 *ip, Frame *frame) {
 
   OP(AggregationHashTableInit) : {
     auto *agg_hash_table = frame->LocalAt<sql::AggregationHashTable *>(READ_LOCAL_ID());
-    auto *memory = frame->LocalAt<tpl::sql::MemoryPool *>(READ_LOCAL_ID());
+    auto *memory = frame->LocalAt<execution::sql::MemoryPool *>(READ_LOCAL_ID());
     auto payload_size = frame->LocalAt<u32>(READ_LOCAL_ID());
     OpAggregationHashTableInit(agg_hash_table, memory, payload_size);
     DISPATCH_NEXT();
@@ -1250,7 +1254,7 @@ void VM::Interpret(const u8 *ip, Frame *frame) {
 
   OP(SorterInit) : {
     auto *sorter = frame->LocalAt<sql::Sorter *>(READ_LOCAL_ID());
-    auto *memory = frame->LocalAt<tpl::sql::MemoryPool *>(READ_LOCAL_ID());
+    auto *memory = frame->LocalAt<execution::sql::MemoryPool *>(READ_LOCAL_ID());
     auto cmp_func_id = READ_FUNC_ID();
     auto tuple_size = frame->LocalAt<u32>(READ_LOCAL_ID());
 
@@ -1353,19 +1357,6 @@ void VM::Interpret(const u8 *ip, Frame *frame) {
     DISPATCH_NEXT();
   }
 
-  OP(OutputAdvance) : {
-    auto exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
-    OpOutputAdvance(exec_ctx);
-    DISPATCH_NEXT();
-  }
-
-  OP(OutputSetNull) : {
-    auto exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
-    auto idx = frame->LocalAt<u32>(READ_LOCAL_ID());
-    OpOutputSetNull(exec_ctx, idx);
-    DISPATCH_NEXT();
-  }
-
   OP(OutputFinalize) : {
     auto exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
     OpOutputFinalize(exec_ctx);
@@ -1392,14 +1383,21 @@ void VM::Interpret(const u8 *ip, Frame *frame) {
     auto table_oid = READ_UIMM4();
     auto index_oid = READ_UIMM4();
     auto exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
-    OpIndexIteratorInit(iter, table_oid, index_oid, exec_ctx);
+    auto col_oids = frame->LocalAt<u32 *>(READ_LOCAL_ID());
+    auto num_oids = READ_UIMM4();
+    OpIndexIteratorInit(iter, table_oid, index_oid, exec_ctx, col_oids, num_oids);
+    DISPATCH_NEXT();
+  }
+
+  OP(IndexIteratorPerformInit) : {
+    auto *iter = frame->LocalAt<sql::IndexIterator *>(READ_LOCAL_ID());
+    OpIndexIteratorPerformInit(iter);
     DISPATCH_NEXT();
   }
 
   OP(IndexIteratorScanKey) : {
     auto *iter = frame->LocalAt<sql::IndexIterator *>(READ_LOCAL_ID());
-    auto *key = frame->LocalAt<byte *>(READ_LOCAL_ID());
-    OpIndexIteratorScanKey(iter, key);
+    OpIndexIteratorScanKey(iter);
     DISPATCH_NEXT();
   }
 
@@ -1424,17 +1422,18 @@ void VM::Interpret(const u8 *ip, Frame *frame) {
   OP(IndexIteratorGet##type_str) : {                                    \
     auto *result = frame->LocalAt<type *>(READ_LOCAL_ID());             \
     auto *iter = frame->LocalAt<sql::IndexIterator *>(READ_LOCAL_ID()); \
-    auto col_idx = READ_UIMM4();                                        \
+    auto col_idx = READ_UIMM2();                                        \
     OpIndexIteratorGet##type_str(result, iter, col_idx);                \
     DISPATCH_NEXT();                                                    \
   }                                                                     \
   OP(IndexIteratorGet##type_str##Null) : {                              \
     auto *result = frame->LocalAt<type *>(READ_LOCAL_ID());             \
     auto *iter = frame->LocalAt<sql::IndexIterator *>(READ_LOCAL_ID()); \
-    auto col_idx = READ_UIMM4();                                        \
+    auto col_idx = READ_UIMM2();                                        \
     OpIndexIteratorGet##type_str##Null(result, iter, col_idx);          \
     DISPATCH_NEXT();                                                    \
   }
+  GEN_INDEX_ITERATOR_ACCESS(TinyInt, sql::Integer)
   GEN_INDEX_ITERATOR_ACCESS(SmallInt, sql::Integer)
   GEN_INDEX_ITERATOR_ACCESS(Integer, sql::Integer)
   GEN_INDEX_ITERATOR_ACCESS(BigInt, sql::Integer)
@@ -1442,6 +1441,22 @@ void VM::Interpret(const u8 *ip, Frame *frame) {
   GEN_INDEX_ITERATOR_ACCESS(Double, sql::Real)
   GEN_INDEX_ITERATOR_ACCESS(Decimal, sql::Decimal)
 #undef GEN_INDEX_ITERATOR_ACCESS
+
+#define GEN_INDEX_ITERATOR_SET(type_str, type)                          \
+  OP(IndexIteratorSetKey##type_str) : {                                 \
+    auto *iter = frame->LocalAt<sql::IndexIterator *>(READ_LOCAL_ID()); \
+    auto col_idx = READ_UIMM2();                                        \
+    auto val = frame->LocalAt<type *>(READ_LOCAL_ID());                 \
+    OpIndexIteratorSetKey##type_str(iter, col_idx, val);                \
+    DISPATCH_NEXT();                                                    \
+  }
+  GEN_INDEX_ITERATOR_SET(TinyInt, sql::Integer)
+  GEN_INDEX_ITERATOR_SET(SmallInt, sql::Integer)
+  GEN_INDEX_ITERATOR_SET(Int, sql::Integer)
+  GEN_INDEX_ITERATOR_SET(BigInt, sql::Integer)
+  GEN_INDEX_ITERATOR_SET(Real, sql::Real)
+  GEN_INDEX_ITERATOR_SET(Double, sql::Real)
+#undef GEN_INDEX_ITERATOR_SET
 
   // -------------------------------------------------------
   // Real-value functions
@@ -1659,7 +1674,7 @@ const u8 *VM::ExecuteCall(const u8 *ip, VM::Frame *caller) {
 
   // Lookup the function
   const FunctionInfo *func_info = module_->GetFuncInfoById(func_id);
-  TPL_ASSERT(func_info != nullptr, "Function doesn't exist in module!");
+  TERRIER_ASSERT(func_info != nullptr, "Function doesn't exist in module!");
   const std::size_t frame_size = func_info->frame_size();
 
   // Get some space for the function's frame
@@ -1667,7 +1682,7 @@ const u8 *VM::ExecuteCall(const u8 *ip, VM::Frame *caller) {
   u8 *raw_frame = nullptr;
   if (frame_size > kMaxStackAllocSize) {
     used_heap = true;
-    raw_frame = static_cast<u8 *>(std::aligned_alloc(alignof(u64), frame_size));
+    raw_frame = static_cast<u8 *>(util::MallocAligned(frame_size, alignof(u64)));
   } else if (frame_size > kSoftMaxStackAllocSize) {
     // TODO(pmenon): Check stack before allocation
     raw_frame = static_cast<u8 *>(alloca(frame_size));
@@ -1686,7 +1701,7 @@ const u8 *VM::ExecuteCall(const u8 *ip, VM::Frame *caller) {
 
   // Let's go
   const u8 *bytecode = module_->bytecode_module()->GetBytecodeForFunction(*func_info);
-  TPL_ASSERT(bytecode != nullptr, "Bytecode cannot be null");
+  TERRIER_ASSERT(bytecode != nullptr, "Bytecode cannot be null");
   VM::Frame callee(raw_frame, func_info->frame_size());
   Interpret(bytecode, &callee);
 
@@ -1697,4 +1712,4 @@ const u8 *VM::ExecuteCall(const u8 *ip, VM::Frame *caller) {
   return ip;
 }
 
-}  // namespace tpl::vm
+}  // namespace terrier::execution::vm

@@ -3,7 +3,7 @@
 #include "execution/sql/generic_hash_table.h"
 #include "execution/util/math_util.h"
 
-namespace tpl::sql {
+namespace terrier::execution::sql {
 
 GenericHashTable::GenericHashTable(float load_factor) noexcept : load_factor_(load_factor) {}
 
@@ -14,7 +14,7 @@ GenericHashTable::~GenericHashTable() {
 }
 
 void GenericHashTable::SetSize(u64 new_size) {
-  TPL_ASSERT(new_size > 0, "New size cannot be zero!");
+  TERRIER_ASSERT(new_size > 0, "New size cannot be zero!");
   if (entries_ != nullptr) {
     util::FreeHugeArray(entries_, capacity());
   }
@@ -30,4 +30,4 @@ void GenericHashTable::SetSize(u64 new_size) {
   entries_ = util::MallocHugeArray<std::atomic<HashTableEntry *>>(capacity_);
 }
 
-}  // namespace tpl::sql
+}  // namespace terrier::execution::sql

@@ -12,7 +12,7 @@
 #include "execution/util/region.h"
 #include "execution/util/region_containers.h"
 
-namespace tpl {
+namespace terrier::execution {
 
 namespace sema {
 class Sema;
@@ -168,7 +168,7 @@ class AstNode : public util::RegionObject {
    */
   template <typename T>
   T *As() {
-    TPL_ASSERT(Is<T>(), "Using unsafe cast on mismatched node types");
+    TERRIER_ASSERT(Is<T>(), "Using unsafe cast on mismatched node types");
     return reinterpret_cast<T *>(this);
   }
 
@@ -181,7 +181,7 @@ class AstNode : public util::RegionObject {
    */
   template <typename T>
   const T *As() const {
-    TPL_ASSERT(Is<T>(), "Using unsafe cast on mismatched node types");
+    TERRIER_ASSERT(Is<T>(), "Using unsafe cast on mismatched node types");
     return reinterpret_cast<const T *>(this);
   }
 
@@ -758,7 +758,7 @@ class IfStmt : public Stmt {
  private:
   friend class sema::Sema;
   void set_condition(Expr *cond) {
-    TPL_ASSERT(cond != nullptr, "Cannot set null condition");
+    TERRIER_ASSERT(cond != nullptr, "Cannot set null condition");
     cond_ = cond;
   }
 
@@ -784,6 +784,12 @@ class ReturnStmt : public Stmt {
    * @return the returned expression
    */
   Expr *ret() { return ret_; }
+
+  /**
+   * Sets the return statement. This is used for casting.
+   * @param new_ret new return statement.
+   */
+  void set_return(Expr *new_ret) { ret_ = new_ret; }
 
   /**
    * Checks whether the given node is an ReturnStmt.
@@ -932,7 +938,7 @@ class BinaryOpExpr : public Expr {
    * @param left new lhs
    */
   void set_left(Expr *left) {
-    TPL_ASSERT(left != nullptr, "Left cannot be null!");
+    TERRIER_ASSERT(left != nullptr, "Left cannot be null!");
     left_ = left;
   }
 
@@ -941,7 +947,7 @@ class BinaryOpExpr : public Expr {
    * @param right new rhs
    */
   void set_right(Expr *right) {
-    TPL_ASSERT(right != nullptr, "Right cannot be null!");
+    TERRIER_ASSERT(right != nullptr, "Right cannot be null!");
     right_ = right;
   }
 
@@ -1024,7 +1030,7 @@ class CallExpr : public Expr {
    * @param expr new argument
    */
   void set_argument(u32 arg_idx, Expr *expr) {
-    TPL_ASSERT(arg_idx < num_args(), "Out-of-bounds argument access");
+    TERRIER_ASSERT(arg_idx < num_args(), "Out-of-bounds argument access");
     args_[arg_idx] = expr;
   }
 
@@ -1087,7 +1093,7 @@ class ComparisonOpExpr : public Expr {
    * @param left new lhs
    */
   void set_left(Expr *left) {
-    TPL_ASSERT(left != nullptr, "Left cannot be null!");
+    TERRIER_ASSERT(left != nullptr, "Left cannot be null!");
     left_ = left;
   }
 
@@ -1096,7 +1102,7 @@ class ComparisonOpExpr : public Expr {
    * @param right new rhs
    */
   void set_right(Expr *right) {
-    TPL_ASSERT(right != nullptr, "Right cannot be null!");
+    TERRIER_ASSERT(right != nullptr, "Right cannot be null!");
     right_ = right;
   }
 
@@ -1392,7 +1398,7 @@ class LitExpr : public Expr {
    * @return the boolean value
    */
   bool bool_val() const {
-    TPL_ASSERT(literal_kind() == LitKind::Boolean, "Getting boolean value from a non-bool expression!");
+    TERRIER_ASSERT(literal_kind() == LitKind::Boolean, "Getting boolean value from a non-bool expression!");
     return boolean_;
   }
 
@@ -1400,7 +1406,7 @@ class LitExpr : public Expr {
    * @return the string value
    */
   Identifier raw_string_val() const {
-    TPL_ASSERT(literal_kind() != LitKind::Nil && literal_kind() != LitKind::Boolean,
+    TERRIER_ASSERT(literal_kind() != LitKind::Nil && literal_kind() != LitKind::Boolean,
                "Getting a raw string value from a non-string or numeric value");
     return str_;
   }
@@ -1409,7 +1415,7 @@ class LitExpr : public Expr {
    * @return the integer value
    */
   i64 int64_val() const {
-    TPL_ASSERT(literal_kind() == LitKind::Int, "Getting integer value from a non-integer literal expression");
+    TERRIER_ASSERT(literal_kind() == LitKind::Int, "Getting integer value from a non-integer literal expression");
     return int64_;
   }
 
@@ -1417,7 +1423,7 @@ class LitExpr : public Expr {
    * @return the float value
    */
   f64 float64_val() const {
-    TPL_ASSERT(literal_kind() == LitKind::Float, "Getting float value from a non-float literal expression");
+    TERRIER_ASSERT(literal_kind() == LitKind::Float, "Getting float value from a non-float literal expression");
     return float64_;
   }
 
@@ -1720,4 +1726,4 @@ class StructTypeRepr : public Expr {
 };
 
 }  // namespace ast
-}  // namespace tpl
+}  // namespace terrier::execution

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <utility>
 #include <vector>
 #include "common/hash_util.h"
 #include "parser/expression/abstract_expression.h"
@@ -17,8 +18,8 @@ class ConstantValueExpression : public AbstractExpression {
    * Instantiate a new constant value expression.
    * @param value value to be held
    */
-  explicit ConstantValueExpression(const type::TransientValue &value)
-      : AbstractExpression(ExpressionType::VALUE_CONSTANT, value.Type(), {}), value_(value) {}
+  explicit ConstantValueExpression(type::TransientValue value)
+      : AbstractExpression(ExpressionType::VALUE_CONSTANT, value.Type(), {}), value_(std::move(value)) {}
 
   /**
    * Default constructor for deserialization
@@ -35,12 +36,21 @@ class ConstantValueExpression : public AbstractExpression {
     return value_ == const_expr.GetValue();
   }
 
+  void DeriveExpressionName() override {
+    if (!this->GetAlias().empty())
+      this->SetExpressionName(this->GetAlias());
+    else
+      this->SetExpressionName(value_.ToString());
+  }
+
   std::shared_ptr<AbstractExpression> Copy() const override { return std::make_shared<ConstantValueExpression>(*this); }
 
   /**
    * @return the constant value stored in this expression
    */
   type::TransientValue GetValue() const { return value_; }
+
+  void Accept(SqlNodeVisitor *v) override { v->Visit(this); }
 
   /**
    * @return expression serialized to json
@@ -66,6 +76,9 @@ class ConstantValueExpression : public AbstractExpression {
   }
 
  private:
+  /**
+   * Value of the constant value expression
+   */
   type::TransientValue value_;
 };
 

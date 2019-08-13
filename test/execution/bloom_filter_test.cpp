@@ -2,12 +2,12 @@
 #include <unordered_set>
 #include <vector>
 
-#include "execution/tpl_test.h"  // NOLINT
+#include "execution/tpl_test.h"
 
 #include "execution/sql/bloom_filter.h"
 #include "execution/util/hash.h"
 
-namespace tpl::sql::test {
+namespace terrier::execution::sql::test {
 
 class BloomFilterTest : public TplTest {};
 
@@ -33,7 +33,7 @@ void GenerateRandom32(std::vector<u32> *vals, u32 n) {
 // Mix in elements from source into the target vector with probability p
 template <typename T>
 void Mix(std::vector<T> *target, const std::vector<T> &source, double p) {
-  TPL_ASSERT(target->size() > source.size(), "Bad sizes!");
+  TERRIER_ASSERT(target->size() > source.size(), "Bad sizes!");
   std::random_device random;
   std::mt19937 g(random());
 
@@ -102,4 +102,4 @@ TEST_F(BloomFilterTest, ComprehensiveTest) {
   }
 }
 
-}  // namespace tpl::sql::test
+}  // namespace terrier::execution::sql::test

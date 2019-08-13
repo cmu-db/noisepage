@@ -1,3 +1,3 @@
-fun main() -> int {
+fun main() -> int64 {
   return 44
 }

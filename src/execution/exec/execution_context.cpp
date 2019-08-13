@@ -1,7 +1,7 @@
 #include "execution/exec/execution_context.h"
 #include "execution/sql/value.h"
 
-namespace tpl::exec {
+namespace terrier::execution::exec {
 
 ExecutionContext::StringAllocator::StringAllocator() : region_("") {}
 
@@ -15,7 +15,7 @@ void ExecutionContext::StringAllocator::Deallocate(UNUSED char *str) {
   // No-op. Bulk de-allocated upon destruction.
 }
 
-uint32_t ExecutionContext::ComputeTupleSize(const terrier::planner::OutputSchema *schema) {
+uint32_t ExecutionContext::ComputeTupleSize(const planner::OutputSchema *schema) {
   uint32_t tuple_size = 0;
   for (const auto &col : schema->GetColumns()) {
     tuple_size += sql::ValUtil::GetSqlSize(col.GetType());
@@ -23,4 +23,4 @@ uint32_t ExecutionContext::ComputeTupleSize(const terrier::planner::OutputSchema
   return tuple_size;
 }
 
-}  // namespace tpl::exec
+}  // namespace terrier::execution::exec

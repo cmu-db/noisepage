@@ -8,7 +8,7 @@
 #include "execution/vm/bytecode_iterator.h"
 #include "execution/vm/vm.h"
 
-namespace tpl::vm {
+namespace terrier::execution::vm {
 
 /**
  * A module represents all code in a single TPL source file
@@ -34,7 +34,7 @@ class BytecodeModule {
    * @return A pointer to the function's info if it exists; null otherwise
    */
   const FunctionInfo *GetFuncInfoById(const FunctionId func_id) const {
-    TPL_ASSERT(func_id < num_functions(), "Invalid function");
+    TERRIER_ASSERT(func_id < num_functions(), "Invalid function");
     return &functions_[func_id];
   }
 
@@ -104,4 +104,4 @@ class BytecodeModule {
   const std::vector<FunctionInfo> functions_;
 };
 
-}  // namespace tpl::vm
+}  // namespace terrier::execution::vm

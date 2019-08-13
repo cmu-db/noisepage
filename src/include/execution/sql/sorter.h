@@ -6,7 +6,7 @@
 #include "execution/util/chunked_vector.h"
 #include "execution/util/macros.h"
 
-namespace tpl::sql {
+namespace terrier::execution::sql {
 
 class ThreadStateContainer;
 
@@ -175,7 +175,7 @@ class SorterIterator {
    * iterator is valid.
    */
   const byte *GetRow() const {
-    TPL_ASSERT(iter_ != end_, "Invalid iterator");
+    TERRIER_ASSERT(iter_ != end_, "Invalid iterator");
     return this->operator*();
   }
 
@@ -195,4 +195,4 @@ class SorterIterator {
   const IteratorType end_;
 };
 
-}  // namespace tpl::sql
+}  // namespace terrier::execution::sql

@@ -3,7 +3,6 @@
 #include <memory>
 #include <unordered_map>
 #include <utility>
-#include "catalog/catalog.h"
 #include "common/action_context.h"
 #include "common/stat_registry.h"
 #include "common/worker_pool.h"
@@ -21,6 +20,14 @@ class SettingsTests;
 class Callbacks;
 }  // namespace settings
 
+namespace storage {
+class WriteAheadLoggingTests;
+}
+
+namespace common {
+class DedicatedThreadRegistry;
+}
+
 /**
  * The DBMain Class holds all the singleton pointers. It has the full knowledge
  * of the whole database systems and serves as a global context of the system.
@@ -28,33 +35,8 @@ class Callbacks;
  */
 class DBMain {
  public:
-  DBMain() = default;
-
   /**
    * The constructor of DBMain
-   * @param param_map a map stores setting values
-   */
-  explicit DBMain(std::unordered_map<settings::Param, settings::ParamInfo> &&param_map)
-      : param_map_(std::move(param_map)) {}
-
-  ~DBMain() {
-    if (initialized) {
-      ForceShutdown();
-      delete gc_thread_;
-      delete settings_manager_;
-      delete catalog_;
-      delete txn_manager_;
-      delete buffer_segment_pool_;
-      delete thread_pool_;
-
-      delete connection_handle_factory_;
-      delete server_;
-      delete command_factory_;
-      delete t_cop_;
-    }
-  }
-
-  /**
    * This function boots the backend components.
    * It initializes the following components in the following order:
    *    Debug loggers
@@ -64,9 +46,29 @@ class DBMain {
    *    Garbage collector thread
    *    Catalog
    *    Settings manager
+   *    Log manager
    *    Worker pool
+   * @param param_map a map stores setting values
    */
-  void Init();
+  explicit DBMain(std::unordered_map<settings::Param, settings::ParamInfo> &&param_map);
+
+  ~DBMain() {
+    ForceShutdown();
+    // TODO(Matt): might as well make these std::unique_ptr, but then will need to refactor other classes to take
+    // ManagedPointers unless we want a bunch of .get()s, which sounds like a future PR
+    delete gc_thread_;
+    delete settings_manager_;
+    delete txn_manager_;
+    delete buffer_segment_pool_;
+    delete thread_pool_;
+    delete log_manager_;
+    delete connection_handle_factory_;
+    delete server_;
+    delete command_factory_;
+    delete provider_;
+    delete t_cop_;
+    delete thread_registry_;
+  }
 
   /**
    * Boots the traffic cop and networking layer, starts the server loop.
@@ -89,18 +91,19 @@ class DBMain {
   std::shared_ptr<common::StatisticsRegistry> main_stat_reg_;
   std::unordered_map<settings::Param, settings::ParamInfo> param_map_;
   transaction::TransactionManager *txn_manager_;
-  catalog::Catalog *catalog_;
   settings::SettingsManager *settings_manager_;
+  storage::LogManager *log_manager_;
   storage::GarbageCollectorThread *gc_thread_;
   network::TerrierServer *server_;
   storage::RecordBufferSegmentPool *buffer_segment_pool_;
   common::WorkerPool *thread_pool_;
-  terrier::traffic_cop::TrafficCop *t_cop_;
-  terrier::network::CommandFactory *command_factory_;
-  terrier::network::ConnectionHandleFactory *connection_handle_factory_;
+  trafficcop::TrafficCop *t_cop_;
+  network::PostgresCommandFactory *command_factory_;
+  network::ConnectionHandleFactory *connection_handle_factory_;
+  network::ProtocolInterpreter::Provider *provider_;
+  common::DedicatedThreadRegistry *thread_registry_;
 
   bool running = false;
-  bool initialized = false;
 
   /**
    * Cleans up and exit.

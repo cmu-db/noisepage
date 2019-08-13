@@ -6,7 +6,7 @@
 #include "execution/util/common.h"
 #include "execution/util/macros.h"
 
-namespace tpl::util {
+namespace terrier::execution::util {
 
 namespace internal {
 
@@ -72,6 +72,7 @@ class BitFieldBase {
    * @return the value encoded in the bitfield
    */
   ALWAYS_INLINE static constexpr T Decode(S storage) {
+    // NOLINTNEXTLINE: bugprone-suspicious-semicolon: seems like a false positive because of constexpr
     if constexpr (std::is_same_v<T, bool>) {
       return static_cast<T>(storage & kMask);
     }
@@ -103,4 +104,4 @@ class BitField32 : public internal::BitFieldBase<u32, T, position, size> {};
 template <typename T, unsigned position, unsigned size>
 class BitField64 : public internal::BitFieldBase<u64, T, position, size> {};
 
-}  // namespace tpl::util
+}  // namespace terrier::execution::util

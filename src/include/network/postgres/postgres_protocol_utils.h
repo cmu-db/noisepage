@@ -253,7 +253,7 @@ class PostgresPacketWriter {
    * Writes error responses to the client
    * @param error_status The error messages to send
    */
-  void WriteErrorResponse(std::vector<std::pair<NetworkMessageType, std::string>> error_status) {
+  void WriteErrorResponse(const std::vector<std::pair<NetworkMessageType, std::string>> &error_status) {
     BeginPacket(NetworkMessageType::ERROR_RESPONSE);
 
     for (const auto &entry : error_status) AppendRawValue(entry.first).AppendString(entry.second);
@@ -361,7 +361,7 @@ class PostgresPacketWriter {
    * Writes a data row.
    * @param values a row's values.
    */
-  void WriteDataRow(const traffic_cop::Row &values) {
+  void WriteDataRow(const trafficcop::Row &values) {
     using type::TransientValuePeeker;
     using type::TypeId;
 
@@ -395,7 +395,8 @@ class PostgresPacketWriter {
    * @param query The query string to be parsed
    * @param params Supplied parameter object types in the query
    */
-  void WriteParseCommand(const std::string &destinationStmt, const std::string &query, std::vector<int32_t> params) {
+  void WriteParseCommand(const std::string &destinationStmt, const std::string &query,
+                         const std::vector<int32_t> &params) {
     PostgresPacketWriter &writer = BeginPacket(NetworkMessageType::PARSE_COMMAND)
                                        .AppendString(destinationStmt)
                                        .AppendString(query)

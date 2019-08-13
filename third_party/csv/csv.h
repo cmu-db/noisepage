@@ -2197,10 +2197,11 @@ HEDLEY_DIAGNOSTIC_PUSH
 #  undef HEDLEY_NON_NULL
 #endif
 #if \
+  not defined __clang__ && ( \
   HEDLEY_HAS_ATTRIBUTE(nonnull) || \
   HEDLEY_GCC_VERSION_CHECK(3,3,0) || \
   HEDLEY_INTEL_VERSION_CHECK(13,0,0) || \
-  HEDLEY_ARM_VERSION_CHECK(4,1,0)
+  HEDLEY_ARM_VERSION_CHECK(4,1,0) )
 #  define HEDLEY_NON_NULL(...) __attribute__((__nonnull__(__VA_ARGS__)))
 #else
 #  define HEDLEY_NON_NULL(...)
@@ -2922,7 +2923,7 @@ using string_view = std::string_view;
 #endif
 
 #ifndef CONSTEXPR
-#define CONSTEXPR inline
+#define CONSTEXPR inline constexpr
 #endif
 }
 /** @file
@@ -3629,6 +3630,7 @@ namespace internals {
 #include <unistd.h>
 const int PAGE_SIZE = getpagesize();
 #else
+#undef PAGE_SIZE // Already defined on macOS @ /usr/include/mach/i386/vm_param.h
 const int PAGE_SIZE = 4096;
 #endif
 
@@ -4824,7 +4826,7 @@ void CSVReader::end_feed() {
 
 CONSTEXPR void CSVReader::handle_unicode_bom(csv::string_view& in) {
   if (!this->unicode_bom_scan) {
-    if (in[0] == 0xEF && in[1] == 0xBB && in[2] == 0xEF) {
+    if (in[0] == static_cast<const char>(0xEF) && in[1] == static_cast<const char>(0xBB) && in[2] == static_cast<const char>(0xEF)) {
       in.remove_prefix(3); // Remove BOM from input string
       this->utf8_bom = true;
     }
@@ -5662,3 +5664,7 @@ unsigned short ColumnPositions::split_at(int n) const {
 }
 }
 }
+
+#if __APPLE__
+#define PAGE_SIZE               I386_PGBYTES
+#endif

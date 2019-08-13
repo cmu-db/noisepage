@@ -1,3 +1,6 @@
+// Test arrays and structs
+// Should output 44
+
 struct S {
   a: int32
   b: int32

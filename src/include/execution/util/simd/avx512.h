@@ -6,7 +6,7 @@
 #include "execution/util/macros.h"
 #include "execution/util/simd/types.h"
 
-namespace tpl::util::simd {
+namespace terrier::execution::util::simd {
 
 #define USE_GATHER 1
 
@@ -141,7 +141,7 @@ class Vec8 : public Vec512b {
    * @return the element at the given index
    */
   i64 Extract(u32 index) const {
-    TPL_ASSERT(index < 8, "Out-of-bounds mask element access");
+    TERRIER_ASSERT(index < 8, "Out-of-bounds mask element access");
     alignas(64) i64 x[Size()];
     Store(x);
     return x[index & 7];
@@ -944,4 +944,4 @@ static inline u32 FilterVectorByVector(const T *RESTRICT in_1, const T *RESTRICT
   return out_pos;
 }
 
-}  // namespace tpl::util::simd
+}  // namespace terrier::execution::util::simd

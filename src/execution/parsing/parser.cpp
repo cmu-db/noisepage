@@ -1,5 +1,6 @@
 #include "execution/parsing/parser.h"
 
+#include <memory>
 #include <string>
 #include <tuple>
 #include <unordered_set>
@@ -7,7 +8,7 @@
 
 #include "execution/sema/error_reporter.h"
 
-namespace tpl::parsing {
+namespace terrier::execution::parsing {
 
 static std::unordered_set<Token::Type> kTopLevelDecls = {Token::Type::STRUCT, Token::Type::FUN};
 
@@ -15,7 +16,8 @@ Parser::Parser(Scanner *scanner, ast::Context *context)
     : scanner_(scanner),
       context_(context),
       node_factory_(context->node_factory()),
-      error_reporter_(context->error_reporter()) {}
+      error_reporter_(context->error_reporter()),
+      pctx(std::make_unique<ParsingContext>()) {}
 
 ast::AstNode *Parser::Parse() {
   util::RegionVector<ast::Decl *> decls(region());
@@ -64,7 +66,9 @@ ast::Decl *Parser::ParseDecl() {
     case Token::Type::FUN: {
       return ParseFunctionDecl();
     }
-    default: { break; }
+    default: {
+      break;
+    }
   }
 
   // Report error, sync up and try again
@@ -80,7 +84,7 @@ ast::Decl *Parser::ParseFunctionDecl() {
 
   // The function name
   Expect(Token::Type::IDENTIFIER);
-  ast::Identifier name = GetSymbol();
+  ast::Identifier name = pctx->MakeUniqueSymbol(context_, GetSymbol());
 
   // The function literal
   auto *fun = ParseFunctionLitExpr()->As<ast::FunctionLitExpr>();
@@ -99,7 +103,7 @@ ast::Decl *Parser::ParseStructDecl() {
 
   // The struct name
   Expect(Token::Type::IDENTIFIER);
-  ast::Identifier name = GetSymbol();
+  ast::Identifier name = pctx->MakeUniqueSymbol(context_, GetSymbol());
 
   // The type
   auto *struct_type = ParseStructType()->As<ast::StructTypeRepr>();
@@ -120,7 +124,7 @@ ast::Decl *Parser::ParseVariableDecl() {
 
   // The name
   Expect(Token::Type::IDENTIFIER);
-  ast::Identifier name = GetSymbol();
+  ast::Identifier name = pctx->MakeUniqueSymbol(context_, GetSymbol());
 
   // The type (if exists)
   ast::Expr *type = nullptr;
@@ -168,7 +172,9 @@ ast::Stmt *Parser::ParseStmt() {
       ast::Decl *var_decl = ParseVariableDecl();
       return node_factory_->NewDeclStmt(var_decl);
     }
-    default: { return ParseSimpleStmt(); }
+    default: {
+      return ParseSimpleStmt();
+    }
   }
 }
 
@@ -196,11 +202,16 @@ ast::Stmt *Parser::ParseBlockStmt() {
   util::RegionVector<ast::Stmt *> statements(region());
   statements.reserve(16);
 
+  // Make nested context. Set it as the current one
+  auto old_pctx = std::move(pctx);
+  pctx = old_pctx->NewNestedContext();
   // Loop while we don't see the right brace
   while (peek() != Token::Type::RIGHT_BRACE && peek() != Token::Type::EOS) {
     ast::Stmt *stmt = ParseStmt();
     statements.emplace_back(stmt);
   }
+  // Restore old context.
+  pctx = std::move(old_pctx);
 
   // Eat the right brace
   Expect(Token::Type::RIGHT_BRACE);
@@ -229,12 +240,12 @@ class Parser::ForHeader {
   bool IsStandard() const { return !IsForIn(); }
 
   std::tuple<ast::Stmt *, ast::Expr *, ast::Stmt *> GetForElements() const {
-    TPL_ASSERT(IsStandard(), "Loop isn't a standard for-loop");
+    TERRIER_ASSERT(IsStandard(), "Loop isn't a standard for-loop");
     return {init, cond, next};
   }
 
   std::tuple<ast::Expr *, ast::Expr *> GetForInElements() const {
-    TPL_ASSERT(IsForIn(), "Loop isn't a for-in");
+    TERRIER_ASSERT(IsForIn(), "Loop isn't a for-in");
     return {target, iter};
   }
 
@@ -275,7 +286,7 @@ Parser::ForHeader Parser::ParseForHeader() {
 
   // If we see an 'in', it's a for-in loop
   if (Matches(Token::Type::IN)) {
-    TPL_ASSERT(cond != nullptr, "Must have parsed can't be null");
+    TERRIER_ASSERT(cond != nullptr, "Must have parsed can't be null");
     ast::Expr *target = MakeExpr(cond);
     ast::Expr *iter = MakeExpr(ParseStmt());
     Expect(Token::Type::RIGHT_PAREN);
@@ -366,7 +377,7 @@ ast::Stmt *Parser::ParseReturnStmt() {
 ast::Expr *Parser::ParseExpr() { return ParseBinaryOpExpr(Token::LowestPrecedence() + 1); }
 
 ast::Expr *Parser::ParseBinaryOpExpr(u32 min_prec) {
-  TPL_ASSERT(min_prec > 0, "The minimum precedence cannot be 0");
+  TERRIER_ASSERT(min_prec > 0, "The minimum precedence cannot be 0");
 
   ast::Expr *left = ParseUnaryOpExpr();
 
@@ -412,7 +423,9 @@ ast::Expr *Parser::ParseUnaryOpExpr() {
       ast::Expr *expr = ParseUnaryOpExpr();
       return node_factory_->NewUnaryOpExpr(position, op, expr);
     }
-    default: { break; }
+    default: {
+      break;
+    }
   }
 
   return ParsePrimaryExpr();
@@ -459,7 +472,9 @@ ast::Expr *Parser::ParsePrimaryExpr() {
         result = node_factory_->NewIndexExpr(result->position(), result, index);
         break;
       }
-      default: { break; }
+      default: {
+        break;
+      }
     }
   } while (Token::IsCallOrMemberOrIndex(peek()));
 
@@ -499,7 +514,7 @@ ast::Expr *Parser::ParseOperand() {
     }
     case Token::Type::IDENTIFIER: {
       Next();
-      return node_factory_->NewIdentifierExpr(scanner_->current_position(), GetSymbol());
+      return node_factory_->NewIdentifierExpr(scanner_->current_position(), pctx->GetScopedSymbol(GetSymbol()));
     }
     case Token::Type::INTEGER: {
       Next();
@@ -529,7 +544,9 @@ ast::Expr *Parser::ParseOperand() {
       Expect(Token::Type::RIGHT_PAREN);
       return expr;
     }
-    default: { break; }
+    default: {
+      break;
+    }
   }
 
   // Error
@@ -542,12 +559,17 @@ ast::Expr *Parser::ParseFunctionLitExpr() {
   // FunctionLiteral = Signature FunctionBody ;
   //
   // FunctionBody = Block ;
+  // Make nested context. Set it as the current one
+  auto old_pctx = std::move(pctx);
+  pctx = old_pctx->NewNestedContext();
 
   // Parse the type
   auto *func_type = ParseFunctionType()->As<ast::FunctionTypeRepr>();
-
   // Parse the body
   auto *body = ParseBlockStmt()->As<ast::BlockStmt>();
+
+  // Restore old context
+  pctx = std::move(old_pctx);
 
   // Done
   return node_factory_->NewFunctionLitExpr(func_type, body);
@@ -576,7 +598,9 @@ ast::Expr *Parser::ParseType() {
     case Token::Type::STRUCT: {
       return ParseStructType();
     }
-    default: { break; }
+    default: {
+      break;
+    }
   }
 
   // Error
@@ -604,7 +628,7 @@ ast::Expr *Parser::ParseFunctionType() {
     ast::Expr *type = nullptr;
 
     if (Matches(Token::Type::IDENTIFIER)) {
-      ident = GetSymbol();
+      ident = pctx->MakeUniqueSymbol(context_, GetSymbol());
     }
 
     if (Matches(Token::Type::COLON) || ident.data() == nullptr) {
@@ -718,4 +742,4 @@ ast::Expr *Parser::ParseMapType() {
   return node_factory_->NewMapType(position, key_type, value_type);
 }
 
-}  // namespace tpl::parsing
+}  // namespace terrier::execution::parsing

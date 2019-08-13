@@ -7,7 +7,7 @@
 #include "execution/util/macros.h"
 #include "execution/util/math_util.h"
 
-namespace tpl::util {
+namespace terrier::execution::util {
 
 /**
  * Utility class to deal with bit-level operations.
@@ -122,7 +122,7 @@ class BitVectorBase {
    * @return true if the bit at the given index is 1, false otherwise
    */
   bool Test(u32 idx) const {
-    TPL_ASSERT(idx < impl()->num_bits(), "Index out of range");
+    TERRIER_ASSERT(idx < impl()->num_bits(), "Index out of range");
     return BitUtil::Test(impl()->bits(), idx);
   }
 
@@ -130,7 +130,7 @@ class BitVectorBase {
    * Set the bit at index idx in the bitvector to 1
    */
   void Set(u32 idx) {
-    TPL_ASSERT(idx < impl()->num_bits(), "Index out of range");
+    TERRIER_ASSERT(idx < impl()->num_bits(), "Index out of range");
     return BitUtil::Set(impl()->bits(), idx);
   }
 
@@ -138,7 +138,7 @@ class BitVectorBase {
    * Set the bit at the given index to the given value
    */
   void SetTo(const u32 idx, const bool val) {
-    TPL_ASSERT(idx < impl()->num_bits(), "Index out of range");
+    TERRIER_ASSERT(idx < impl()->num_bits(), "Index out of range");
     return BitUtil::SetTo(impl()->bits(), idx, val);
   }
 
@@ -146,7 +146,7 @@ class BitVectorBase {
    * Set the bit at index idx in the bitvector to 0
    */
   void Unset(u32 idx) {
-    TPL_ASSERT(idx < impl()->num_bits(), "Index out of range");
+    TERRIER_ASSERT(idx < impl()->num_bits(), "Index out of range");
     return BitUtil::Unset(impl()->bits(), idx);
   }
 
@@ -154,7 +154,7 @@ class BitVectorBase {
    * Flip the bit at index idx in the bitvector
    */
   void Flip(u32 idx) {
-    TPL_ASSERT(idx < impl()->num_bits(), "Index out of range");
+    TERRIER_ASSERT(idx < impl()->num_bits(), "Index out of range");
     return BitUtil::Flip(impl()->bits(), idx);
   }
 
@@ -264,4 +264,4 @@ class InlinedBitVector : public BitVectorBase<InlinedBitVector<NumBits>> {
   u32 bits_[NumBits / BitUtil::kBitWordSize];
 };
 
-}  // namespace tpl::util
+}  // namespace terrier::execution::util

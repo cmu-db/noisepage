@@ -16,10 +16,4 @@
 #define TPL_LIKELY(x) LLVM_LIKELY(x)
 #define TPL_UNLIKELY(x) LLVM_UNLIKELY(x)
 
-#ifdef NDEBUG
-#define TPL_ASSERT(expr, msg) ((void)0)
-#else
-#define TPL_ASSERT(expr, msg) assert((expr) && (msg))
-#endif
-
 #define UNREACHABLE(msg) llvm_unreachable(msg)

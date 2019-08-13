@@ -5,7 +5,7 @@
 #include "execution/sql/value.h"
 #include "execution/util/arithmetic_overflow.h"
 
-namespace tpl::sql {
+namespace terrier::execution::sql {
 
 /**
  * Utility class to handle various arithmetic SQL functions.
@@ -231,9 +231,9 @@ class ArithmeticFunctions {
   static void Log(Real *result, const Real &base, const Real &val);
 
   /**
-   * Exponentiation
+   * Exponentiation a ^ b
    */
-  static void Pow(Real *result, const Real &base, const Real &val);
+  static void Pow(Real *result, const Real &a, const Real &b);
 
  private:
   // Cotangent
@@ -408,4 +408,4 @@ inline void ArithmeticFunctions::Log(Real *result, const Real &base, const Real 
   *result = Real(std::log(val.val) / std::log(base.val));
 }
 
-}  // namespace tpl::sql
+}  // namespace terrier::execution::sql

@@ -10,7 +10,7 @@
 #include "execution/util/region.h"
 #include "execution/util/region_containers.h"
 
-namespace tpl::util {
+namespace terrier::execution::util {
 
 /**
  * A ChunkedVector is similar to STL's std::vector, but with three important
@@ -233,7 +233,7 @@ class ChunkedVector {
      * @param offset to add to the iterator
      * @return the new iterator with the added offset
      */
-    const Iterator operator+(const i64 &offset) const {
+    Iterator operator+(const i64 &offset) const {
       Iterator copy(*this);
       copy += offset;
       return copy;
@@ -244,7 +244,7 @@ class ChunkedVector {
      * @param offset to subtract from the iterator
      * @return the new iterator with the subtracted offset
      */
-    const Iterator operator-(const i64 &offset) const {
+    Iterator operator-(const i64 &offset) const {
       Iterator copy(*this);
       copy -= offset;
       return copy;
@@ -274,7 +274,7 @@ class ChunkedVector {
      * Post-increment
      * @return the new incremented iterator
      */
-    const Iterator operator++(int) noexcept {
+    Iterator operator++(int) noexcept {
       Iterator copy(*this);
       ++(*this);
       return copy;
@@ -304,7 +304,7 @@ class ChunkedVector {
      * Post-decrement
      * @return the new decremented operator
      */
-    const Iterator operator--(int) noexcept {
+    Iterator operator--(int) noexcept {
       Iterator copy(*this);
       ++(*this);
       return copy;
@@ -449,7 +449,7 @@ class ChunkedVector {
    * Access the first element in the vector. Undefined if the vector is empty.
    */
   byte *front() noexcept {
-    TPL_ASSERT(!empty(), "Accessing front() of empty vector");
+    TERRIER_ASSERT(!empty(), "Accessing front() of empty vector");
     return chunks_[0];
   }
 
@@ -457,7 +457,7 @@ class ChunkedVector {
    * Access the first element in the vector. Undefined if the vector is empty.
    */
   const byte *front() const noexcept {
-    TPL_ASSERT(!empty(), "Accessing front() of empty vector");
+    TERRIER_ASSERT(!empty(), "Accessing front() of empty vector");
     return chunks_[0];
   }
 
@@ -465,7 +465,7 @@ class ChunkedVector {
    * Access the last element in the vector. Undefined if the vector is empty.
    */
   byte *back() noexcept {
-    TPL_ASSERT(!empty(), "Accessing back() of empty vector");
+    TERRIER_ASSERT(!empty(), "Accessing back() of empty vector");
     return this->operator[](size() - 1);
   }
 
@@ -473,7 +473,7 @@ class ChunkedVector {
    * Access the last element in the vector. Undefined if the vector is empty.
    */
   const byte *back() const noexcept {
-    TPL_ASSERT(!empty(), "Accessing back() of empty vector");
+    TERRIER_ASSERT(!empty(), "Accessing back() of empty vector");
     return this->operator[](size() - 1);
   }
 
@@ -513,7 +513,7 @@ class ChunkedVector {
    * Remove the last element from the vector.
    */
   void pop_back() {
-    TPL_ASSERT(!empty(), "Popping empty vector");
+    TERRIER_ASSERT(!empty(), "Popping empty vector");
     if (position_ == chunks_[active_chunk_idx_]) {
       end_ = chunks_[--active_chunk_idx_] + ChunkAllocSize(element_size());
       position_ = end_;
@@ -677,14 +677,14 @@ class ChunkedVectorT {
      * @param offset to add to the iterator
      * @return the new iterator with the added offset
      */
-    const Iterator operator+(const i64 &offset) const noexcept { return Iterator(iter_ + offset); }
+    Iterator operator+(const i64 &offset) const noexcept { return Iterator(iter_ + offset); }
 
     /**
      * Subtraction
      * @param offset to subtract from the iterator
      * @return the new iterator with the subtracted offset
      */
-    const Iterator operator-(const i64 &offset) const noexcept { return Iterator(iter_ - offset); }
+    Iterator operator-(const i64 &offset) const noexcept { return Iterator(iter_ - offset); }
 
     /**
      * Pre-increment
@@ -699,7 +699,7 @@ class ChunkedVectorT {
      * Post-increment
      * @return the new incremented iterator
      */
-    const Iterator operator++(int) noexcept { return Iterator(iter_++); }
+    Iterator operator++(int) noexcept { return Iterator(iter_++); }
 
     /**
      * Pre-decrement
@@ -714,7 +714,7 @@ class ChunkedVectorT {
      * Post-decrement
      * @return the new decremented operator
      */
-    const Iterator operator--(int) noexcept { return Iterator(iter_--); }
+    Iterator operator--(int) noexcept { return Iterator(iter_--); }
 
     /**
      * Indexing
@@ -874,7 +874,7 @@ class ChunkedVectorT {
    * Remove the last element from the vector. Undefined if the vector is empty.
    */
   void pop_back() {
-    TPL_ASSERT(!empty(), "Popping from an empty vector");
+    TERRIER_ASSERT(!empty(), "Popping from an empty vector");
     T &removed = back();
     vec_.pop_back();
     removed.~T();
@@ -884,4 +884,4 @@ class ChunkedVectorT {
   // The generic vector
   ChunkedVector<ReboundAlloc> vec_;
 };
-}  // namespace tpl::util
+}  // namespace terrier::execution::util

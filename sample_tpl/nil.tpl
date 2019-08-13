@@ -1,3 +1,6 @@
+// Test nil function calls
+//
+
 fun test() -> nil {}
 
 fun main() -> int32 {

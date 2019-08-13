@@ -10,12 +10,12 @@ extern "C" {
 // Thread State Container
 // ---------------------------------------------------------
 
-void OpThreadStateContainerInit(tpl::sql::ThreadStateContainer *const thread_state_container,
-                                tpl::sql::MemoryPool *const memory) {
-  new (thread_state_container) tpl::sql::ThreadStateContainer(memory);
+void OpThreadStateContainerInit(terrier::execution::sql::ThreadStateContainer *const thread_state_container,
+                                terrier::execution::sql::MemoryPool *const memory) {
+  new (thread_state_container) terrier::execution::sql::ThreadStateContainer(memory);
 }
 
-void OpThreadStateContainerFree(tpl::sql::ThreadStateContainer *const thread_state_container) {
+void OpThreadStateContainerFree(terrier::execution::sql::ThreadStateContainer *const thread_state_container) {
   thread_state_container->~ThreadStateContainer();
 }
 
@@ -23,112 +23,126 @@ void OpThreadStateContainerFree(tpl::sql::ThreadStateContainer *const thread_sta
 // Table Vector Iterator
 // ---------------------------------------------------------
 
-void OpTableVectorIteratorInit(tpl::sql::TableVectorIterator *iter, u32 table_oid,
-                               tpl::exec::ExecutionContext *exec_ctx) {
-  TPL_ASSERT(iter != nullptr, "Null iterator to initialize");
-  new (iter) tpl::sql::TableVectorIterator(table_oid, exec_ctx);
+void OpTableVectorIteratorInit(terrier::execution::sql::TableVectorIterator *iter, u32 table_oid,
+                               terrier::execution::exec::ExecutionContext *exec_ctx, u32 *col_oids, u32 num_oids) {
+  TERRIER_ASSERT(iter != nullptr, "Null iterator to initialize");
+  new (iter) terrier::execution::sql::TableVectorIterator(table_oid, exec_ctx, col_oids, num_oids);
 }
 
-void OpTableVectorIteratorPerformInit(tpl::sql::TableVectorIterator *iter) { iter->Init(); }
+void OpTableVectorIteratorPerformInit(terrier::execution::sql::TableVectorIterator *iter) { iter->Init(); }
 
-void OpTableVectorIteratorFree(tpl::sql::TableVectorIterator *iter) {
-  TPL_ASSERT(iter != nullptr, "NULL iterator given to close");
+void OpTableVectorIteratorFree(terrier::execution::sql::TableVectorIterator *iter) {
+  TERRIER_ASSERT(iter != nullptr, "NULL iterator given to close");
   iter->~TableVectorIterator();
 }
 
-void OpPCIFilterEqual(u32 *size, tpl::sql::ProjectedColumnsIterator *iter, u32 col_id, i8 type, i64 val) {
+void OpPCIFilterEqual(u64 *size, terrier::execution::sql::ProjectedColumnsIterator *iter, u32 col_idx, i8 type,
+                      i64 val) {
   auto sql_type = static_cast<terrier::type::TypeId>(type);
   auto v = iter->MakeFilterVal(val, sql_type);
-  *size = iter->FilterColByVal<std::equal_to>(col_id, sql_type, v);
+  *size = iter->FilterColByVal<std::equal_to>(col_idx, sql_type, v);
 }
 
-void OpPCIFilterGreaterThan(u32 *size, tpl::sql::ProjectedColumnsIterator *iter, u32 col_id, i8 type, i64 val) {
+void OpPCIFilterGreaterThan(u64 *size, terrier::execution::sql::ProjectedColumnsIterator *iter, u32 col_idx, i8 type,
+                            i64 val) {
   auto sql_type = static_cast<terrier::type::TypeId>(type);
   auto v = iter->MakeFilterVal(val, sql_type);
-  *size = iter->FilterColByVal<std::greater>(col_id, sql_type, v);
+  *size = iter->FilterColByVal<std::greater>(col_idx, sql_type, v);
 }
 
-void OpPCIFilterGreaterThanEqual(u32 *size, tpl::sql::ProjectedColumnsIterator *iter, u32 col_id, i8 type, i64 val) {
+void OpPCIFilterGreaterThanEqual(u64 *size, terrier::execution::sql::ProjectedColumnsIterator *iter, u32 col_idx,
+                                 i8 type, i64 val) {
   auto sql_type = static_cast<terrier::type::TypeId>(type);
   auto v = iter->MakeFilterVal(val, sql_type);
-  *size = iter->FilterColByVal<std::greater_equal>(col_id, sql_type, v);
+  *size = iter->FilterColByVal<std::greater_equal>(col_idx, sql_type, v);
 }
 
-void OpPCIFilterLessThan(u32 *size, tpl::sql::ProjectedColumnsIterator *iter, u32 col_id, i8 type, i64 val) {
+void OpPCIFilterLessThan(u64 *size, terrier::execution::sql::ProjectedColumnsIterator *iter, u32 col_idx, i8 type,
+                         i64 val) {
   auto sql_type = static_cast<terrier::type::TypeId>(type);
   auto v = iter->MakeFilterVal(val, sql_type);
-  *size = iter->FilterColByVal<std::less>(col_id, sql_type, v);
+  *size = iter->FilterColByVal<std::less>(col_idx, sql_type, v);
 }
 
-void OpPCIFilterLessThanEqual(u32 *size, tpl::sql::ProjectedColumnsIterator *iter, u32 col_id, i8 type, i64 val) {
+void OpPCIFilterLessThanEqual(u64 *size, terrier::execution::sql::ProjectedColumnsIterator *iter, u32 col_idx, i8 type,
+                              i64 val) {
   auto sql_type = static_cast<terrier::type::TypeId>(type);
   auto v = iter->MakeFilterVal(val, sql_type);
-  *size = iter->FilterColByVal<std::less_equal>(col_id, sql_type, v);
+  *size = iter->FilterColByVal<std::less_equal>(col_idx, sql_type, v);
 }
 
-void OpPCIFilterNotEqual(u32 *size, tpl::sql::ProjectedColumnsIterator *iter, u32 col_id, i8 type, i64 val) {
+void OpPCIFilterNotEqual(u64 *size, terrier::execution::sql::ProjectedColumnsIterator *iter, u32 col_idx, i8 type,
+                         i64 val) {
   auto sql_type = static_cast<terrier::type::TypeId>(type);
   auto v = iter->MakeFilterVal(val, sql_type);
-  *size = iter->FilterColByVal<std::not_equal_to>(col_id, sql_type, v);
+  *size = iter->FilterColByVal<std::not_equal_to>(col_idx, sql_type, v);
 }
 
 // ---------------------------------------------------------
 // Filter Manager
 // ---------------------------------------------------------
 
-void OpFilterManagerInit(tpl::sql::FilterManager *filter_manager) { new (filter_manager) tpl::sql::FilterManager(); }
+void OpFilterManagerInit(terrier::execution::sql::FilterManager *filter_manager) {
+  new (filter_manager) terrier::execution::sql::FilterManager();
+}
 
-void OpFilterManagerStartNewClause(tpl::sql::FilterManager *filter_manager) { filter_manager->StartNewClause(); }
+void OpFilterManagerStartNewClause(terrier::execution::sql::FilterManager *filter_manager) {
+  filter_manager->StartNewClause();
+}
 
-void OpFilterManagerInsertFlavor(tpl::sql::FilterManager *filter_manager, tpl::sql::FilterManager::MatchFn flavor) {
+void OpFilterManagerInsertFlavor(terrier::execution::sql::FilterManager *filter_manager,
+                                 terrier::execution::sql::FilterManager::MatchFn flavor) {
   filter_manager->InsertClauseFlavor(flavor);
 }
 
-void OpFilterManagerFinalize(tpl::sql::FilterManager *filter_manager) { filter_manager->Finalize(); }
+void OpFilterManagerFinalize(terrier::execution::sql::FilterManager *filter_manager) { filter_manager->Finalize(); }
 
-void OpFilterManagerRunFilters(tpl::sql::FilterManager *filter_manager, tpl::sql::ProjectedColumnsIterator *pci) {
+void OpFilterManagerRunFilters(terrier::execution::sql::FilterManager *filter_manager,
+                               terrier::execution::sql::ProjectedColumnsIterator *pci) {
   filter_manager->RunFilters(pci);
 }
 
-void OpFilterManagerFree(tpl::sql::FilterManager *filter_manager) { filter_manager->~FilterManager(); }
+void OpFilterManagerFree(terrier::execution::sql::FilterManager *filter_manager) { filter_manager->~FilterManager(); }
 
 // ---------------------------------------------------------
 // Join Hash Table
 // ---------------------------------------------------------
 
-void OpJoinHashTableInit(tpl::sql::JoinHashTable *join_hash_table, tpl::sql::MemoryPool *memory, u32 tuple_size) {
-  new (join_hash_table) tpl::sql::JoinHashTable(memory, tuple_size);
+void OpJoinHashTableInit(terrier::execution::sql::JoinHashTable *join_hash_table,
+                         terrier::execution::sql::MemoryPool *memory, u32 tuple_size) {
+  new (join_hash_table) terrier::execution::sql::JoinHashTable(memory, tuple_size);
 }
 
-void OpJoinHashTableBuild(tpl::sql::JoinHashTable *join_hash_table) { join_hash_table->Build(); }
+void OpJoinHashTableBuild(terrier::execution::sql::JoinHashTable *join_hash_table) { join_hash_table->Build(); }
 
-void OpJoinHashTableBuildParallel(tpl::sql::JoinHashTable *join_hash_table,
-                                  tpl::sql::ThreadStateContainer *thread_state_container, u32 jht_offset) {
+void OpJoinHashTableBuildParallel(terrier::execution::sql::JoinHashTable *join_hash_table,
+                                  terrier::execution::sql::ThreadStateContainer *thread_state_container,
+                                  u32 jht_offset) {
   join_hash_table->MergeParallel(thread_state_container, jht_offset);
 }
 
-void OpJoinHashTableFree(tpl::sql::JoinHashTable *join_hash_table) { join_hash_table->~JoinHashTable(); }
+void OpJoinHashTableFree(terrier::execution::sql::JoinHashTable *join_hash_table) { join_hash_table->~JoinHashTable(); }
 
 // ---------------------------------------------------------
 // Aggregation Hash Table
 // ---------------------------------------------------------
 
-void OpAggregationHashTableInit(tpl::sql::AggregationHashTable *const agg_hash_table,
-                                tpl::sql::MemoryPool *const memory, const u32 payload_size) {
-  new (agg_hash_table) tpl::sql::AggregationHashTable(memory, payload_size);
+void OpAggregationHashTableInit(terrier::execution::sql::AggregationHashTable *const agg_hash_table,
+                                terrier::execution::sql::MemoryPool *const memory, const u32 payload_size) {
+  new (agg_hash_table) terrier::execution::sql::AggregationHashTable(memory, payload_size);
 }
 
-void OpAggregationHashTableFree(tpl::sql::AggregationHashTable *const agg_hash_table) {
+void OpAggregationHashTableFree(terrier::execution::sql::AggregationHashTable *const agg_hash_table) {
   agg_hash_table->~AggregationHashTable();
 }
 
-void OpAggregationHashTableIteratorInit(tpl::sql::AggregationHashTableIterator *iter,
-                                        tpl::sql::AggregationHashTable *agg_hash_table) {
-  TPL_ASSERT(agg_hash_table != nullptr, "Null hash table");
-  new (iter) tpl::sql::AggregationHashTableIterator(*agg_hash_table);
+void OpAggregationHashTableIteratorInit(terrier::execution::sql::AggregationHashTableIterator *iter,
+                                        terrier::execution::sql::AggregationHashTable *agg_hash_table) {
+  TERRIER_ASSERT(agg_hash_table != nullptr, "Null hash table");
+  new (iter) terrier::execution::sql::AggregationHashTableIterator(*agg_hash_table);
 }
 
-void OpAggregationHashTableIteratorFree(tpl::sql::AggregationHashTableIterator *iter) {
+void OpAggregationHashTableIteratorFree(terrier::execution::sql::AggregationHashTableIterator *iter) {
   iter->~AggregationHashTableIterator();
 }
 
@@ -136,83 +150,57 @@ void OpAggregationHashTableIteratorFree(tpl::sql::AggregationHashTableIterator *
 // Sorters
 // ---------------------------------------------------------
 
-void OpSorterInit(tpl::sql::Sorter *const sorter, tpl::sql::MemoryPool *const memory,
-                  const tpl::sql::Sorter::ComparisonFunction cmp_fn, const u32 tuple_size) {
-  new (sorter) tpl::sql::Sorter(memory, cmp_fn, tuple_size);
+void OpSorterInit(terrier::execution::sql::Sorter *const sorter, terrier::execution::sql::MemoryPool *const memory,
+                  const terrier::execution::sql::Sorter::ComparisonFunction cmp_fn, const u32 tuple_size) {
+  new (sorter) terrier::execution::sql::Sorter(memory, cmp_fn, tuple_size);
 }
 
-void OpSorterSort(tpl::sql::Sorter *sorter) { sorter->Sort(); }
+void OpSorterSort(terrier::execution::sql::Sorter *sorter) { sorter->Sort(); }
 
-void OpSorterSortParallel(tpl::sql::Sorter *sorter, tpl::sql::ThreadStateContainer *thread_state_container,
-                          u32 sorter_offset) {
+void OpSorterSortParallel(terrier::execution::sql::Sorter *sorter,
+                          terrier::execution::sql::ThreadStateContainer *thread_state_container, u32 sorter_offset) {
   sorter->SortParallel(thread_state_container, sorter_offset);
 }
 
-void OpSorterSortTopKParallel(tpl::sql::Sorter *sorter, tpl::sql::ThreadStateContainer *thread_state_container,
-                              u32 sorter_offset, u64 top_k) {
+void OpSorterSortTopKParallel(terrier::execution::sql::Sorter *sorter,
+                              terrier::execution::sql::ThreadStateContainer *thread_state_container, u32 sorter_offset,
+                              u64 top_k) {
   sorter->SortTopKParallel(thread_state_container, sorter_offset, top_k);
 }
 
-void OpSorterFree(tpl::sql::Sorter *sorter) { sorter->~Sorter(); }
+void OpSorterFree(terrier::execution::sql::Sorter *sorter) { sorter->~Sorter(); }
 
-void OpSorterIteratorInit(tpl::sql::SorterIterator *iter, tpl::sql::Sorter *sorter) {
-  new (iter) tpl::sql::SorterIterator(sorter);
+void OpSorterIteratorInit(terrier::execution::sql::SorterIterator *iter, terrier::execution::sql::Sorter *sorter) {
+  new (iter) terrier::execution::sql::SorterIterator(sorter);
 }
 
-void OpSorterIteratorFree(tpl::sql::SorterIterator *iter) { iter->~SorterIterator(); }
+void OpSorterIteratorFree(terrier::execution::sql::SorterIterator *iter) { iter->~SorterIterator(); }
 // -------------------------------------------------------------
 // Output
 // ------------------------------------------------------------
-void OpOutputAlloc(tpl::exec::ExecutionContext *exec_ctx, byte **result) {
+void OpOutputAlloc(terrier::execution::exec::ExecutionContext *exec_ctx, byte **result) {
   *result = exec_ctx->GetOutputBuffer()->AllocOutputSlot();
 }
 
-void OpOutputAdvance(tpl::exec::ExecutionContext *exec_ctx) { exec_ctx->GetOutputBuffer()->Advance(); }
-
-void OpOutputSetNull(tpl::exec::ExecutionContext *exec_ctx, u32 idx) {
-  exec_ctx->GetOutputBuffer()->SetNull(static_cast<u16>(idx), true);
-}
-
-void OpOutputFinalize(tpl::exec::ExecutionContext *exec_ctx) { exec_ctx->GetOutputBuffer()->Finalize(); }
+void OpOutputFinalize(terrier::execution::exec::ExecutionContext *exec_ctx) { exec_ctx->GetOutputBuffer()->Finalize(); }
 
 // -------------------------------------------------------------
 // Insert
 // ------------------------------------------------------------
-void OpInsert(tpl::exec::ExecutionContext *exec_ctx, u32 table_oid, byte *values_ptr) {
-  // find the table we want to insert to
-  auto table = exec_ctx->GetAccessor()->GetUserTable(static_cast<terrier::catalog::table_oid_t>(table_oid));
-  auto sql_table = table->GetSqlTable();
-  auto *const txn = exec_ctx->GetTxn();
-
-  // create insertion buffer
-  auto *pri = table->GetPRI();
-  auto *insert_buffer = terrier::common::AllocationUtil::AllocateAligned(pri->ProjectedRowSize());
-  auto *insert = pri->InitializeRow(insert_buffer);
-
-  // copy data into insertion buffer
-  u16 index = 0;
-  u16 offset = 0;
-
-  auto schema_cols = sql_table->GetSchema().GetColumns();
-  for (const auto &col : schema_cols) {
-    // TODO(tanujnay112): figure out nulls
-    uint8_t current_size = col.GetAttrSize();
-    byte *data = insert->AccessForceNotNull(index);
-    std::memcpy(data, values_ptr + offset, current_size);
-    index = static_cast<u16>(index + 1);
-    offset = static_cast<u16>(offset + current_size);
-  }
-
-  sql_table->Insert(txn, *insert);
+void OpInsert(terrier::execution::exec::ExecutionContext *exec_ctx, u32 table_oid, byte *values_ptr) {
+  // TODO(Amadou): Implement me once a builtin ProjectedRow is implemented.
 }
 
 // -------------------------------------------------------------------
 // Index Iterator
 // -------------------------------------------------------------------
-void OpIndexIteratorInit(tpl::sql::IndexIterator *iter, uint32_t table_oid, uint32_t index_oid,
-                         tpl::exec::ExecutionContext *exec_ctx) {
-  new (iter) tpl::sql::IndexIterator(table_oid, index_oid, exec_ctx);
+void OpIndexIteratorInit(terrier::execution::sql::IndexIterator *iter, uint32_t table_oid, uint32_t index_oid,
+                         terrier::execution::exec::ExecutionContext *exec_ctx, u32 *col_oids, u32 num_oids) {
+  new (iter) terrier::execution::sql::IndexIterator(table_oid, index_oid, exec_ctx, col_oids, num_oids);
 }
-void OpIndexIteratorFree(tpl::sql::IndexIterator *iter) { iter->~IndexIterator(); }
+
+void OpIndexIteratorPerformInit(terrier::execution::sql::IndexIterator *iter) { iter->Init(); }
+
+void OpIndexIteratorFree(terrier::execution::sql::IndexIterator *iter) { iter->~IndexIterator(); }
 
 }  //

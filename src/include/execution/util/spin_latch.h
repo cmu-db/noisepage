@@ -1,10 +1,10 @@
 #pragma once
 
-#include <tbb/spin_mutex.h>  // NOLINT
+#include "tbb/spin_mutex.h"
 
 #include "execution/util/macros.h"
 
-namespace tpl::util {
+namespace terrier::execution::util {
 
 /**
  * A cheap and easy spin latch, currently wraps tbb::spin_mutex to optimize for
@@ -61,4 +61,4 @@ class SpinLatch {
   tbb::spin_mutex latch_;
 };
 
-}  // namespace tpl::util
+}  // namespace terrier::execution::util

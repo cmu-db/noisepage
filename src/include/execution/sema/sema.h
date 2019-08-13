@@ -9,7 +9,7 @@
 #include "execution/sema/error_reporter.h"
 #include "execution/sema/scope.h"
 
-namespace tpl {
+namespace terrier::execution {
 
 namespace ast {
 class Context;
@@ -75,7 +75,7 @@ class Sema : public ast::AstVisitor<Sema> {
   }
 
   // Convert the given schema into a row type
-  ast::Type *GetRowTypeFromSqlSchema(const terrier::catalog::Schema &schema);
+  ast::Type *GetRowTypeFromSqlSchema(const catalog::Schema &schema);
 
   // Create a builtin type
   ast::Type *GetBuiltinType(u16 builtin_kind);
@@ -147,13 +147,12 @@ class Sema : public ast::AstVisitor<Sema> {
   void CheckBuiltinFilterManagerCall(ast::CallExpr *call, ast::Builtin builtin);
   void CheckBuiltinHashCall(ast::CallExpr *call, ast::Builtin builtin);
   void CheckBuiltinOutputAlloc(ast::CallExpr *call);
-  void CheckBuiltinOutputAdvance(ast::CallExpr *call);
-  void CheckBuiltinOutputSetNull(ast::CallExpr *call);
   void CheckBuiltinOutputFinalize(ast::CallExpr *call);
   void CheckBuiltinInsert(ast::CallExpr *call);
-  void CheckBuiltinIndexIteratorInit(ast::CallExpr *call);
+  void CheckBuiltinIndexIteratorInit(ast::CallExpr *call, ast::Builtin builtin);
   void CheckBuiltinIndexIteratorAdvance(ast::CallExpr *call);
   void CheckBuiltinIndexIteratorGet(ast::CallExpr *call, ast::Builtin builtin);
+  void CheckBuiltinIndexIteratorSetKey(ast::CallExpr *call, ast::Builtin builtin);
   void CheckBuiltinIndexIteratorScanKey(ast::CallExpr *call);
   void CheckBuiltinIndexIteratorFree(ast::CallExpr *call);
 
@@ -167,7 +166,7 @@ class Sema : public ast::AstVisitor<Sema> {
   void EnterScope(Scope::Kind scope_kind) {
     if (num_cached_scopes_ > 0) {
       Scope *scope = scope_cache_[--num_cached_scopes_].release();
-      TPL_ASSERT(scope != nullptr, "Cached scope was null");
+      TERRIER_ASSERT(scope != nullptr, "Cached scope was null");
       scope->Init(current_scope(), scope_kind);
       scope_ = scope;
     } else {
@@ -177,7 +176,7 @@ class Sema : public ast::AstVisitor<Sema> {
 
   // Exit the current scope
   void ExitScope() {
-    TPL_ASSERT(current_scope() != nullptr, "Mismatched scope exit");
+    TERRIER_ASSERT(current_scope() != nullptr, "Mismatched scope exit");
 
     Scope *scope = current_scope();
     scope_ = scope->outer();
@@ -255,4 +254,4 @@ class Sema : public ast::AstVisitor<Sema> {
 };
 
 }  // namespace sema
-}  // namespace tpl
+}  // namespace terrier::execution

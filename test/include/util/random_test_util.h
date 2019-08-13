@@ -9,8 +9,8 @@ namespace terrier {
 /**
  * Utility class for random element selection
  */
-class RandomTestUtil {
- public:
+struct RandomTestUtil {
+  RandomTestUtil() = delete;
   /**
    * Selects an element from the supplied vector uniformly at random, using the
    * given random generator.
@@ -56,7 +56,7 @@ class RandomTestUtil {
    * @param repeat the number of times this should be done.
    */
   template <typename Random>
-  static void InvokeWorkloadWithDistribution(std::vector<std::function<void()>> workloads,
+  static void InvokeWorkloadWithDistribution(const std::vector<std::function<void()>> &workloads,
                                              std::vector<double> probabilities, Random *generator,
                                              uint32_t repeat = 1) {
     TERRIER_ASSERT(probabilities.size() == workloads.size(), "Probabilities and workloads must have the same size.");

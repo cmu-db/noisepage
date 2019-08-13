@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 
-#include "execution/tpl_test.h"  // NOLINT
+#include "execution/tpl_test.h"
 
 #include "llvm/ADT/StringRef.h"
 
@@ -13,11 +13,11 @@
 #include "execution/sql/value.h"
 #include "execution/util/timer.h"
 
-namespace tpl::sql::test {
+namespace terrier::execution::sql::test {
 
 class StringFunctionsTests : public TplTest {
  public:
-  StringFunctionsTests() : ctx_(nullptr, nullptr, nullptr, nullptr) {}
+  StringFunctionsTests() : ctx_(catalog::db_oid_t(0), nullptr, nullptr, nullptr, nullptr) {}
 
   exec::ExecutionContext *ctx() { return &ctx_; }
 
@@ -515,4 +515,4 @@ TEST_F(StringFunctionsTests, Trim) {
   EXPECT_TRUE(StringVal("test") == result);
 }
 
-}  // namespace tpl::sql::test
+}  // namespace terrier::execution::sql::test

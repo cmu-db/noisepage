@@ -10,7 +10,7 @@
 #error "Don't include <util/simd/avx2.h> directly; instead, include <util/simd.h>"
 #endif
 
-namespace tpl::util::simd {
+namespace terrier::execution::util::simd {
 
 #define USE_GATHER 0
 
@@ -274,7 +274,7 @@ class Vec8 : public Vec256b {
    * @return the element at the given index
    */
   ALWAYS_INLINE i32 Extract(u32 index) const {
-    TPL_ASSERT(index < 8, "Out-of-bounds mask element access");
+    TERRIER_ASSERT(index < 8, "Out-of-bounds mask element access");
     alignas(32) i32 x[Size()];
     Store(x);
     return x[index & 7];
@@ -444,7 +444,7 @@ class Vec8Mask : public Vec8 {
 
 ALWAYS_INLINE inline u32 Vec8Mask::ToPositions(u32 *positions, u32 offset) const {
   i32 mask = _mm256_movemask_ps(_mm256_castsi256_ps(reg()));
-  TPL_ASSERT(mask < 256, "8-bit mask must be less than 256");
+  TERRIER_ASSERT(mask < 256, "8-bit mask must be less than 256");
   __m128i match_pos_scaled = _mm_loadl_epi64(reinterpret_cast<const __m128i *>(&k8BitMatchLUT[mask]));
   __m256i match_pos = _mm256_cvtepi8_epi32(match_pos_scaled);
   __m256i pos_vec = _mm256_add_epi32(_mm256_set1_epi32(offset), match_pos);
@@ -452,9 +452,9 @@ ALWAYS_INLINE inline u32 Vec8Mask::ToPositions(u32 *positions, u32 offset) const
   return __builtin_popcount(mask);
 }
 
-ALWAYS_INLINE inline u32 Vec8Mask::ToPositions(u32 *positions, const tpl::util::simd::Vec8 &pos) const {
+ALWAYS_INLINE inline u32 Vec8Mask::ToPositions(u32 *positions, const execution::util::simd::Vec8 &pos) const {
   i32 mask = _mm256_movemask_ps(_mm256_castsi256_ps(reg()));
-  TPL_ASSERT(mask < 256, "8-bit mask must be less than 256");
+  TERRIER_ASSERT(mask < 256, "8-bit mask must be less than 256");
   __m128i perm_comp = _mm_loadl_epi64(reinterpret_cast<const __m128i *>(&k8BitMatchLUT[mask]));
   __m256i perm = _mm256_cvtepi8_epi32(perm_comp);
   __m256i perm_pos = _mm256_permutevar8x32_epi32(pos, perm);
@@ -493,7 +493,7 @@ class Vec4Mask : public Vec4 {
    */
   ALWAYS_INLINE inline u32 ToPositions(u32 *positions, u32 offset) const {
     i32 mask = _mm256_movemask_pd(_mm256_castsi256_pd(reg()));
-    TPL_ASSERT(mask < 16, "4-bit mask must be less than 16");
+    TERRIER_ASSERT(mask < 16, "4-bit mask must be less than 16");
     __m128i match_pos_scaled = _mm_loadl_epi64(reinterpret_cast<__m128i *>(const_cast<u64 *>(&k4BitMatchLUT[mask])));
     __m128i match_pos = _mm_cvtepi16_epi32(match_pos_scaled);
     __m128i pos_vec = _mm_add_epi32(_mm_set1_epi32(offset), match_pos);
@@ -509,7 +509,7 @@ class Vec4Mask : public Vec4 {
    */
   ALWAYS_INLINE inline u32 ToPositions(u32 *positions, const Vec4 &pos) const {
     i32 mask = _mm256_movemask_pd(_mm256_castsi256_pd(reg()));
-    TPL_ASSERT(mask < 16, "4-bit mask must be less than 16");
+    TERRIER_ASSERT(mask < 16, "4-bit mask must be less than 16");
 
     // TODO(pmenon): Fix this slowness!
     {
@@ -821,6 +821,23 @@ struct FilterVecSizer<i64> {
   using VecMask = Vec4Mask;
 };
 
+#ifdef __APPLE__  // need this explicit instantiation
+/**
+ * intptr_t Filter
+ */
+template <>
+struct FilterVecSizer<intptr_t> {
+  /**
+   * Four 64-bit integer values.
+   */
+  using Vec = Vec4;
+  /**
+   * Mask for four 64-bit integer values.
+   */
+  using VecMask = Vec4Mask;
+};
+#endif
+
 /**
  * Arbitrary Filter
  */
@@ -891,4 +908,4 @@ static inline u32 FilterVectorByVector(const T *RESTRICT in_1, const T *RESTRICT
   return out_pos;
 }
 
-}  // namespace tpl::util::simd
+}  // namespace terrier::execution::util::simd

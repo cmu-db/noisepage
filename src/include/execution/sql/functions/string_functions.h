@@ -4,11 +4,11 @@
 
 #include "execution/sql/value.h"
 
-namespace tpl::exec {
+namespace terrier::execution::exec {
 class ExecutionContext;
 }
 
-namespace tpl::sql {
+namespace terrier::execution::sql {
 
 /**
  * Utility class to handle SQL string manipulations.
@@ -76,7 +76,7 @@ class StringFunctions {
   /**
    * Pads the right side of the string with min(pad_length, len) characters
    */
-  static void Rpad(exec::ExecutionContext *ctx, StringVal *result, const StringVal &str, const Integer &n,
+  static void Rpad(exec::ExecutionContext *ctx, StringVal *result, const StringVal &str, const Integer &len,
                    const StringVal &pad);
 
   /**
@@ -124,4 +124,4 @@ class StringFunctions {
   static void Upper(exec::ExecutionContext *ctx, StringVal *result, const StringVal &str);
 };
 
-}  // namespace tpl::sql
+}  // namespace terrier::execution::sql

@@ -5,7 +5,7 @@
 
 #include "execution/util/macros.h"
 
-namespace tpl::vm {
+namespace terrier::execution::vm {
 
 /**
  * A label represents a location in the bytecode and is used as the target of a
@@ -50,12 +50,12 @@ class BytecodeLabel {
   friend class BytecodeEmitter;
 
   void set_referrer(std::size_t offset) {
-    TPL_ASSERT(!is_bound(), "Cannot set offset reference for already bound label");
+    TERRIER_ASSERT(!is_bound(), "Cannot set offset reference for already bound label");
     referrer_offsets_.push_back(offset);
   }
 
   void BindTo(std::size_t offset) {
-    TPL_ASSERT(!is_bound() && offset != kInvalidOffset, "Cannot rebind an already bound label!");
+    TERRIER_ASSERT(!is_bound() && offset != kInvalidOffset, "Cannot rebind an already bound label!");
     bound_ = true;
     offset_ = offset;
   }
@@ -66,4 +66,4 @@ class BytecodeLabel {
   bool bound_{false};
 };
 
-}  // namespace tpl::vm
+}  // namespace terrier::execution::vm

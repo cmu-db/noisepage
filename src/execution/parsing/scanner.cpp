@@ -4,7 +4,7 @@
 #include <stdexcept>
 #include <string>
 
-namespace tpl::parsing {
+namespace terrier::execution::parsing {
 
 Scanner::Scanner(const std::string &source) : Scanner(source.data(), source.length()) {}
 
@@ -239,7 +239,9 @@ void Scanner::SkipWhiteSpace() {
         Advance();
         break;
       }
-      default: { return; }
+      default: {
+        return;
+      }
     }
   }
 }
@@ -395,4 +397,4 @@ Token::Type Scanner::ScanString() {
   }
 }
 
-}  // namespace tpl::parsing
+}  // namespace terrier::execution::parsing

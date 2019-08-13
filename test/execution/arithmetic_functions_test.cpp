@@ -3,13 +3,13 @@
 #include <random>
 #include <vector>
 
-#include "execution/tpl_test.h"  // NOLINT
+#include "execution/tpl_test.h"
 
 #include "execution/sql/functions/arithmetic_functions.h"
 #include "execution/sql/value.h"
 #include "execution/util/timer.h"
 
-namespace tpl::sql::test {
+namespace terrier::execution::sql::test {
 
 class ArithmeticFunctionsTests : public TplTest {
  protected:
@@ -67,7 +67,7 @@ TEST_F(ArithmeticFunctionsTests, IntegerValue) {
 
   // Overflow
   {
-    const auto aval = std::numeric_limits<i64>::max() - 1, bval = 4l;
+    const auto aval = std::numeric_limits<i64>::max() - 1, bval = static_cast<i64>(4);
     Integer a(aval), b(bval), result(0);
 
     bool overflow = false;
@@ -77,7 +77,7 @@ TEST_F(ArithmeticFunctionsTests, IntegerValue) {
   }
 
   {
-    const auto aval = std::numeric_limits<i64>::min() + 1, bval = 4l;
+    const auto aval = std::numeric_limits<i64>::min() + 1, bval = static_cast<i64>(4);
     Integer a(aval), b(bval), result(0);
 
     bool overflow = false;
@@ -304,4 +304,4 @@ TEST_F(ArithmeticFunctionsTests, MathFuncs) {
   };
 }
 
-}  // namespace tpl::sql::test
+}  // namespace terrier::execution::sql::test

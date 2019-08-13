@@ -64,7 +64,7 @@ class DataTable {
      * post-fix increment.
      * @return copy of the iterator equal to this before increment
      */
-    const SlotIterator operator++(int) {
+    SlotIterator operator++(int) {
       SlotIterator copy = *this;
       operator++();
       return copy;
@@ -117,13 +117,6 @@ class DataTable {
    * Destructs a DataTable, frees all its blocks and any potential varlen entries.
    */
   ~DataTable();
-
-  // TODO(Matt): I think the concept of a DataTable oid is going away once SqlTable is merged, so this placeholder will
-  // go away
-  /**
-   * @return table oid of this data table
-   */
-  catalog::table_oid_t TableOid() const { return catalog::table_oid_t{0}; }
 
   /**
    * Materializes a single tuple from the given slot, as visible to the transaction given, according to the format
@@ -213,6 +206,12 @@ class DataTable {
    */
   DataTableCounter *GetDataTableCounter() { return &data_table_counter_; }
 
+  /**
+   * Returns a read-only view of this DataTable's BlockLayout.
+   * @return this DataTable's BlockLayout.
+   */
+  const BlockLayout &GetBlockLayout() const { return accessor_.GetBlockLayout(); }
+
  private:
   // The GarbageCollector needs to modify VersionPtrs when pruning version chains
   friend class GarbageCollector;
@@ -222,6 +221,9 @@ class DataTable {
   friend class index::Index;
   template <typename KeyType>
   friend class index::BwTreeIndex;
+  // The block compactor elides transactional protection in the gather/compression phase and
+  // needs raw access to the underlying table.
+  friend class BlockCompactor;
 
   BlockStore *const block_store_;
   const layout_version_t layout_version_;
@@ -274,8 +276,6 @@ class DataTable {
 
   // Allocates a new block to be used as insertion head.
   void NewBlock(RawBlock *expected_val);
-
-  void DeallocateVarlensOnShutdown(RawBlock *block);
 
   /**
    * Determine if a Tuple is visible (present and not deleted) to the given transaction. It's effectively Select's logic

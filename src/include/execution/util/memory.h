@@ -12,7 +12,7 @@
 #define MAP_ANONYMOUS MAP_ANON
 #endif
 
-namespace tpl::util {
+namespace terrier::execution::util {
 
 // ---------------------------------------------------------
 // Allocations
@@ -55,6 +55,19 @@ inline void FreeHugeArray(T *ptr, std::size_t num_elems) {
   FreeHuge(static_cast<void *>(ptr), sizeof(T) * num_elems);
 }
 
+inline void *MallocAligned(const std::size_t size, const std::size_t alignment) {
+  TERRIER_ASSERT(alignment % sizeof(void *) == 0, "Alignment must be a multiple of sizeof(void*)");
+  TERRIER_ASSERT((alignment & (alignment - 1)) == 0, "Alignment must be a power of two");
+  void *ptr = nullptr;
+#if defined(__APPLE__)
+  i32 ret UNUSED_ATTRIBUTE = posix_memalign(&ptr, alignment, size);
+  TERRIER_ASSERT(ret == 0, "Allocation failed");
+#else
+  ptr = std::aligned_alloc(alignment, size);
+#endif
+  return ptr;
+}
+
 // ---------------------------------------------------------
 // Prefetch
 // ---------------------------------------------------------
@@ -69,4 +82,4 @@ inline void Prefetch(const void *const addr) noexcept {
   __builtin_prefetch(addr, READ ? 0 : 1, static_cast<u8>(LOCALITY));
 }
 
-}  // namespace tpl::util
+}  // namespace terrier::execution::util

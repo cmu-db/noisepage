@@ -4,13 +4,13 @@
 #include <utility>
 #include <vector>
 
-#include "execution/tpl_test.h"  // NOLINT
+#include "execution/tpl_test.h"
 
 #include "execution/sql/memory_pool.h"
 #include "execution/util/timer.h"
 #include "execution/util/vector_util.h"
 
-namespace tpl::util::test {
+namespace terrier::execution::util::test {
 
 template <typename T>
 class PoolArray {
@@ -34,7 +34,7 @@ class PoolArray {
 
   ~PoolArray() {
     if (arr_ != nullptr) {
-      TPL_ASSERT(memory_ != nullptr, "No memory pool to return to!");
+      TERRIER_ASSERT(memory_ != nullptr, "No memory pool to return to!");
       memory_->DeallocateArray(arr_, size_);
     }
     arr_ = nullptr;
@@ -534,4 +534,4 @@ TEST_F(VectorUtilTest, GatherTest) {
   }
 }
 
-}  // namespace tpl::util::test
+}  // namespace terrier::execution::util::test

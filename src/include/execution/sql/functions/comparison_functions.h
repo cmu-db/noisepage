@@ -4,7 +4,7 @@
 
 #include "execution/sql/value.h"
 
-namespace tpl::sql {
+namespace terrier::execution::sql {
 
 /**
  * Comparison functions for SQL values.
@@ -197,18 +197,18 @@ class ComparisonFunctions {
    * @return The appropriate signed value indicating comparison order.
    */
   static i32 Compare(const StringVal &v1, const StringVal &v2) {
-    TPL_ASSERT(!v1.is_null && !v2.is_null, "Both input strings must not be null");
+    TERRIER_ASSERT(!v1.is_null && !v2.is_null, "Both input strings must not be null");
     const auto min_len = std::min(v1.len, v2.len);
     if (min_len == 0) {
       if (v1.len == v2.len) {
         return 0;
-      } else if (v1.len == 0) {
-        return -1;
-      } else {
-        return 1;
       }
+      if (v1.len == 0) {
+        return -1;
+      }
+      return 1;
     }
-    return RawStringCompare(v1.ptr, v1.len, v2.ptr, v2.len, min_len);
+    return RawStringCompare(v1.Content(), v1.len, v2.Content(), v2.len, min_len);
   }
 };
 
@@ -259,4 +259,4 @@ BINARY_COMPARISON_ALL_TYPES(Ne, !=);
 #undef BINARY_COMPARISON_NUMERIC_FN_HIDE_NULL
 #undef BINARY_COMPARISON_DATE_FN_HIDE_NULL
 
-}  // namespace tpl::sql
+}  // namespace terrier::execution::sql

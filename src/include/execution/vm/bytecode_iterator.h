@@ -5,7 +5,7 @@
 #include "execution/util/common.h"
 #include "execution/vm/bytecodes.h"
 
-namespace tpl::vm {
+namespace terrier::execution::vm {
 
 class LocalVar;
 
@@ -144,7 +144,7 @@ class BytecodeIterator {
    * @param pos The position to shift the iterator to
    */
   void SetPosition(std::size_t pos) {
-    // TPL_ASSERT(offset < (end_offset() - start_offset()), "Invalid offset");
+    // TERRIER_ASSERT(offset < (end_offset() - start_offset()), "Invalid offset");
     curr_offset_ = start_offset_ + pos;
   }
 
@@ -159,4 +159,4 @@ class BytecodeIterator {
   std::size_t curr_offset_;
 };
 
-}  // namespace tpl::vm
+}  // namespace terrier::execution::vm

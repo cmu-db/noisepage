@@ -3,9 +3,9 @@
 #include <memory>
 #include <vector>
 
-#include <tbb/tbb.h>  // NOLINT
+#include "tbb/tbb.h"
 
-namespace tpl::sql {
+namespace terrier::execution::sql {
 
 // ---------------------------------------------------------
 // Thread Local State Handle
@@ -14,7 +14,7 @@ namespace tpl::sql {
 ThreadStateContainer::TLSHandle::TLSHandle() : container_(nullptr), state_(nullptr) {}
 
 ThreadStateContainer::TLSHandle::TLSHandle(ThreadStateContainer *container) : container_(container) {
-  TPL_ASSERT(container_ != nullptr, "Container must be non-null");
+  TERRIER_ASSERT(container_ != nullptr, "Container must be non-null");
   const auto state_size = container_->state_size_;
   state_ = static_cast<byte *>(container_->memory_->AllocateAligned(state_size, CACHELINE_SIZE, true));
 
@@ -54,7 +54,8 @@ ThreadStateContainer::ThreadStateContainer(MemoryPool *memory)
       destroy_fn_(nullptr),
       ctx_(nullptr),
       impl_(std::make_unique<ThreadStateContainer::Impl>()) {
-  impl_->states = tbb::enumerable_thread_specific<TLSHandle>(this);  // NOLINT
+  impl_->states = tbb::enumerable_thread_specific<TLSHandle>(
+      [&]() { return TLSHandle(this); });
 }
 
 ThreadStateContainer::~ThreadStateContainer() = default;
@@ -100,4 +101,4 @@ void ThreadStateContainer::IterateStates(void *const ctx, ThreadStateContainer::
   }
 }
 
-}  // namespace tpl::sql
+}  // namespace terrier::execution::sql

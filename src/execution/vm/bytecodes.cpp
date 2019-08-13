@@ -4,7 +4,7 @@
 
 #include "execution/vm/bytecode_traits.h"
 
-namespace tpl::vm {
+namespace terrier::execution::vm {
 
 // static
 const char *Bytecodes::kBytecodeNames[] = {
@@ -52,7 +52,7 @@ u32 Bytecodes::MaxBytecodeNameLength() {
 }
 
 u32 Bytecodes::GetNthOperandOffset(Bytecode bytecode, u32 operand_index) {
-  TPL_ASSERT(operand_index < NumOperands(bytecode), "Invalid operand index");
+  TERRIER_ASSERT(operand_index < NumOperands(bytecode), "Invalid operand index");
   u32 offset = sizeof(std::underlying_type_t<Bytecode>);
   for (u32 i = 0; i < operand_index; i++) {
     OperandSize operand_size = GetNthOperandSize(bytecode, i);
@@ -61,4 +61,4 @@ u32 Bytecodes::GetNthOperandOffset(Bytecode bytecode, u32 operand_index) {
   return offset;
 }
 
-}  // namespace tpl::vm
+}  // namespace terrier::execution::vm

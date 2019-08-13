@@ -2,7 +2,7 @@
 
 #include "execution/util/common.h"
 
-namespace tpl::ast {
+namespace terrier::execution::ast {
 
 // The list of all builtin functions
 // Args: internal name, function name
@@ -33,6 +33,7 @@ namespace tpl::ast {
                                                                 \
   /* Table scans */                                             \
   F(TableIterInit, tableIterInit)                               \
+  F(TableIterInitBind, tableIterInitBind)                       \
   F(TableIterAdvance, tableIterAdvance)                         \
   F(TableIterGetPCI, tableIterGetPCI)                           \
   F(TableIterClose, tableIterClose)                             \
@@ -47,6 +48,7 @@ namespace tpl::ast {
   F(PCIMatch, pciMatch)                                         \
   F(PCIReset, pciReset)                                         \
   F(PCIResetFiltered, pciResetFiltered)                         \
+  F(PCIGetTinyInt, pciGetTinyInt)                               \
   F(PCIGetSmallInt, pciGetSmallInt)                             \
   F(PCIGetInt, pciGetInt)                                       \
   F(PCIGetBigInt, pciGetBigInt)                                 \
@@ -54,6 +56,7 @@ namespace tpl::ast {
   F(PCIGetDouble, pciGetDouble)                                 \
   F(PCIGetDate, pciGetDate)                                     \
   F(PCIGetVarlen, pciGetVarlen)                                 \
+  F(PCIGetTinyIntNull, pciGetTinyIntNull)                       \
   F(PCIGetSmallIntNull, pciGetSmallIntNull)                     \
   F(PCIGetIntNull, pciGetIntNull)                               \
   F(PCIGetBigIntNull, pciGetBigIntNull)                         \
@@ -135,19 +138,31 @@ namespace tpl::ast {
                                                                 \
   /* Output Buffer */                                           \
   F(OutputAlloc, outputAlloc)                                   \
-  F(OutputAdvance, outputAdvance)                               \
-  F(OutputSetNull, outputSetNull)                               \
   F(OutputFinalize, outputFinalize)                             \
                                                                 \
   /* Index */                                                   \
   F(IndexIteratorInit, indexIteratorInit)                       \
+  F(IndexIteratorInitBind, indexIteratorInitBind)               \
   F(IndexIteratorScanKey, indexIteratorScanKey)                 \
   F(IndexIteratorAdvance, indexIteratorAdvance)                 \
+  F(IndexIteratorGetTinyInt, indexIteratorGetTinyInt)           \
   F(IndexIteratorGetSmallInt, indexIteratorGetSmallInt)         \
   F(IndexIteratorGetInt, indexIteratorGetInt)                   \
   F(IndexIteratorGetBigInt, indexIteratorGetBigInt)             \
   F(IndexIteratorGetReal, indexIteratorGetReal)                 \
   F(IndexIteratorGetDouble, indexIteratorGetDouble)             \
+  F(IndexIteratorGetTinyIntNull, indexIteratorGetTinyIntNull)   \
+  F(IndexIteratorGetSmallIntNull, indexIteratorGetSmallIntNull) \
+  F(IndexIteratorGetIntNull, indexIteratorGetIntNull)           \
+  F(IndexIteratorGetBigIntNull, indexIteratorGetBigIntNull)     \
+  F(IndexIteratorGetRealNull, indexIteratorGetRealNull)         \
+  F(IndexIteratorGetDoubleNull, indexIteratorGetDoubleNull)     \
+  F(IndexIteratorSetKeyTinyInt, indexIteratorSetKeyTinyInt)     \
+  F(IndexIteratorSetKeySmallInt, indexIteratorSetKeySmallInt)   \
+  F(IndexIteratorSetKeyInt, indexIteratorSetKeyInt)             \
+  F(IndexIteratorSetKeyBigInt, indexIteratorSetKeyBigInt)       \
+  F(IndexIteratorSetKeyReal, indexIteratorSetKeyReal)           \
+  F(IndexIteratorSetKeyDouble, indexIteratorSetKeyDouble)       \
   F(IndexIteratorFree, indexIteratorFree)                       \
                                                                 \
   /* Insert */                                                  \
@@ -191,4 +206,4 @@ class Builtins {
   static const char *kBuiltinFunctionNames[];
 };
 
-}  // namespace tpl::ast
+}  // namespace terrier::execution::ast

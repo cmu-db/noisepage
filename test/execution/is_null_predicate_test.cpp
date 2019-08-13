@@ -1,21 +1,21 @@
-#include "execution/tpl_test.h"  // NOLINT
-
 #include "execution/sql/functions/is_null_predicate.h"
+#include <ctime>
 #include "execution/sql/value.h"
+#include "execution/tpl_test.h"
 
-namespace tpl::sql::test {
+namespace terrier::execution::sql::test {
 
 class IsNullPredicateTests : public TplTest {};
 
 // NOLINTNEXTLINE
 TEST_F(IsNullPredicateTests, IsNull) {
-#define CHECK_IS_NULL_FOR_TYPE(TYPE)                 \
-  {                                                  \
-    auto result = BoolVal::Null();                   \
-    const auto val = TYPE::Null();                   \
-    tpl::sql::IsNullPredicate::IsNull(&result, val); \
-    EXPECT_FALSE(result.is_null);                    \
-    EXPECT_TRUE(result.val);                         \
+#define CHECK_IS_NULL_FOR_TYPE(TYPE)                                \
+  {                                                                 \
+    auto result = BoolVal::Null();                                  \
+    const auto val = TYPE::Null();                                  \
+    terrier::execution::sql::IsNullPredicate::IsNull(&result, val); \
+    EXPECT_FALSE(result.is_null);                                   \
+    EXPECT_TRUE(result.val);                                        \
   }
 
   CHECK_IS_NULL_FOR_TYPE(BoolVal);
@@ -30,13 +30,13 @@ TEST_F(IsNullPredicateTests, IsNull) {
 
 // NOLINTNEXTLINE
 TEST_F(IsNullPredicateTests, IsNotNull) {
-#define CHECK_IS_NOT_NULL_FOR_TYPE(TYPE, INIT)       \
-  {                                                  \
-    auto result = BoolVal::Null();                   \
-    const auto val = TYPE(INIT);                     \
-    tpl::sql::IsNullPredicate::IsNull(&result, val); \
-    EXPECT_FALSE(result.is_null);                    \
-    EXPECT_FALSE(result.val);                        \
+#define CHECK_IS_NOT_NULL_FOR_TYPE(TYPE, INIT)                      \
+  {                                                                 \
+    auto result = BoolVal::Null();                                  \
+    const auto val = TYPE(INIT);                                    \
+    terrier::execution::sql::IsNullPredicate::IsNull(&result, val); \
+    EXPECT_FALSE(result.is_null);                                   \
+    EXPECT_FALSE(result.val);                                       \
   }
 
   CHECK_IS_NOT_NULL_FOR_TYPE(BoolVal, false);
@@ -46,11 +46,11 @@ TEST_F(IsNullPredicateTests, IsNotNull) {
   CHECK_IS_NOT_NULL_FOR_TYPE(Date, 44);
   {
     struct timespec ts;
-    timespec_get(&ts, TIME_UTC);
+    clock_gettime(CLOCK_REALTIME, &ts);
     CHECK_IS_NOT_NULL_FOR_TYPE(Timestamp, ts);
   }
 
 #undef CHECK_IS_NOT_NULL_FOR_TYPE
 }
 
-}  // namespace tpl::sql::test
+}  // namespace terrier::execution::sql::test

@@ -7,16 +7,12 @@
 #include "execution/sql/projected_columns_iterator.h"
 #include "storage/sql_table.h"
 
-namespace tpl::sql {
-using terrier::catalog::db_oid_t;
-using terrier::catalog::namespace_oid_t;
-using terrier::catalog::table_oid_t;
-using terrier::storage::DataTable;
-
+namespace terrier::execution::sql {
 class ThreadStateContainer;
 
 /**
- * An iterator over a table's data in vector-wise fashion
+ * An iterator over a table's data in vector-wise fashion.
+ * TODO(Amadou): Add a Reset() method to avoid reconstructing the object in NL joins.
  */
 class TableVectorIterator {
  public:
@@ -29,8 +25,10 @@ class TableVectorIterator {
    * Create a new vectorized iterator over the given table
    * @param table_oid oid of the table
    * @param exec_ctx execution context of the query
+   * @param col_oids array column oids to scan
+   * @param num_oids length of the array
    */
-  explicit TableVectorIterator(u32 table_oid, exec::ExecutionContext *exec_ctx);
+  explicit TableVectorIterator(u32 table_oid, exec::ExecutionContext *exec_ctx, u32 *col_oids, u32 num_oids);
 
   /**
    * Destructor
@@ -85,20 +83,20 @@ class TableVectorIterator {
                            ScanFn scan_fn, u32 min_grain_size = kMinBlockRangeSize);
 
  private:
+  const catalog::table_oid_t table_oid_;
+  exec::ExecutionContext *exec_ctx_;
+  std::vector<catalog::col_oid_t> col_oids_{};
   // The PCI
   ProjectedColumnsIterator pci_;
-  const table_oid_t table_oid_;
   // SqlTable to iterate over
-  terrier::catalog::SqlTableHelper *catalog_table_;
+  common::ManagedPointer<storage::SqlTable> table_{nullptr};
   // A PC and its buffer.
-  byte *buffer_ = nullptr;
-  terrier::storage::ProjectedColumns *projected_columns_ = nullptr;
-
+  void *buffer_ = nullptr;
+  storage::ProjectedColumns *projected_columns_ = nullptr;
   // Iterator of the slots in the PC
-  std::unique_ptr<DataTable::SlotIterator> iter_ = nullptr;
-  exec::ExecutionContext *exec_ctx_;
+  std::unique_ptr<storage::DataTable::SlotIterator> iter_ = nullptr;
 
   bool initialized = false;
 };
 
-}  // namespace tpl::sql
+}  // namespace terrier::execution::sql

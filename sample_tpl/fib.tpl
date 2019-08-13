@@ -1,4 +1,4 @@
-fun fib(n: int) -> int {
+fun fib(n: int64) -> int64 {
   if (n < 2) {
     return n
   } else {
@@ -6,6 +6,6 @@ fun fib(n: int) -> int {
   }
 }
 
-fun main() -> int {
+fun main() -> int64 {
   return fib(30)
 }

@@ -4,7 +4,7 @@
 #include <vector>
 
 #include "execution/ast/ast_builder.h"
-#include "execution/tpl_test.h"  // NOLINT
+#include "execution/tpl_test.h"
 
 #include "execution/ast/ast_node_factory.h"
 #include "execution/ast/context.h"
@@ -12,11 +12,11 @@
 #include "execution/sema/sema.h"
 #include "execution/util/region_containers.h"
 
-namespace tpl::sema::test {
+namespace terrier::execution::sema::test {
 
 class SemaExprTest : public TplTest, public ast::test::TestAstBuilder {
  public:
-  SemaExprTest() : TestAstBuilder() {}
+  SemaExprTest() = default;
 
   void SetUp() override {
     TplTest::SetUp();
@@ -202,4 +202,4 @@ TEST_F(SemaExprTest, ArrayIndexTest) {
   }
 }
 
-}  // namespace tpl::sema::test
+}  // namespace terrier::execution::sema::test

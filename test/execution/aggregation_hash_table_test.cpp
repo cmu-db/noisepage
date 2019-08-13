@@ -5,7 +5,7 @@
 #include <utility>
 #include <vector>
 
-#include "execution/sql_test.h"  // NOLINT
+#include "execution/sql_test.h"
 
 #include <tbb/tbb.h>  // NOLINT
 
@@ -17,7 +17,7 @@
 #include "execution/sql/thread_state_container.h"
 #include "execution/util/hash.h"
 
-namespace tpl::sql::test {
+namespace terrier::execution::sql::test {
 
 /**
  * An input tuple, this is what we use to probe and update aggregates
@@ -73,7 +73,7 @@ static inline bool AggAggKeyEq(const void *agg_tuple_1, const void *agg_tuple_2)
 
 class AggregationHashTableTest : public SqlBasedTest {
  public:
-  AggregationHashTableTest() : SqlBasedTest(), memory_(nullptr), agg_table_(&memory_, sizeof(AggTuple)) {}
+  AggregationHashTableTest() : memory_(nullptr), agg_table_(&memory_, sizeof(AggTuple)) {}
 
   MemoryPool *memory() { return &memory_; }
 
@@ -85,42 +85,32 @@ class AggregationHashTableTest : public SqlBasedTest {
   }
 
   // Helper to make a PCI
-  terrier::storage::ProjectedColumns *MakeProjectedColumns() {
+  storage::ProjectedColumns *MakeProjectedColumns() {
     // TODO(Amadou): Come up with an easier way to create ProjectedColumns.
-    // This should be done after the catalog PR is merged in.
-
     // Create column metadata for every column.
-    terrier::catalog::col_oid_t col_oid_key(exec_ctx_->GetAccessor()->GetNextOid());
-    terrier::catalog::col_oid_t col_oid_val(exec_ctx_->GetAccessor()->GetNextOid());
-    terrier::catalog::Schema::Column key_col =
-        terrier::catalog::Schema::Column("key", terrier::type::TypeId::INTEGER, false, col_oid_key);
-    terrier::catalog::Schema::Column val_col =
-        terrier::catalog::Schema::Column("val", terrier::type::TypeId::INTEGER, false, col_oid_val);
+    catalog::Schema::Column key_col("key", type::TypeId::INTEGER, false, DummyCVE());
+    catalog::Schema::Column val_col("val", type::TypeId::INTEGER, false, DummyCVE());
 
     // Create the table in the catalog.
-    terrier::catalog::Schema schema({key_col, val_col});
-    auto table_oid = exec_ctx_->GetAccessor()->CreateUserTable("agg_test_table", schema);
-
-    // Get the table's information.
-    catalog_table_ = exec_ctx_->GetAccessor()->GetUserTable(table_oid);
-    auto sql_table = catalog_table_->GetSqlTable();
+    catalog::Schema tmp_schema({key_col, val_col});
+    auto table_oid = exec_ctx_->GetAccessor()->CreateTable(NSOid(), "test_table", tmp_schema);
+    auto schema = exec_ctx_->GetAccessor()->GetSchema(table_oid);
+    auto sql_table = new storage::SqlTable(BlockStore(), schema);
+    exec_ctx_->GetAccessor()->SetTablePointer(table_oid, sql_table);
 
     // Create a ProjectedColumns
-    std::vector<terrier::catalog::col_oid_t> col_oids;
-    for (const auto &col : sql_table->GetSchema().GetColumns()) {
-      col_oids.emplace_back(col.GetOid());
+    std::vector<catalog::col_oid_t> col_oids;
+    for (const auto &col : schema.GetColumns()) {
+      col_oids.emplace_back(col.Oid());
     }
     auto initializer_map = sql_table->InitializerForProjectedColumns(col_oids, kDefaultVectorSize);
-    buffer_ = terrier::common::AllocationUtil::AllocateAligned(initializer_map.first.ProjectedColumnsSize());
+    buffer_ = common::AllocationUtil::AllocateAligned(initializer_map.first.ProjectedColumnsSize());
     projected_columns_ = initializer_map.first.Initialize(buffer_);
     projected_columns_->SetNumTuples(kDefaultVectorSize);
     return projected_columns_;
   }
 
-  void FreeProjectedColumns() {
-    exec_ctx_->GetAccessor()->DeleteUserTable(catalog_table_->Oid());
-    delete[] buffer_;
-  }
+  void FreeProjectedColumns() { delete[] buffer_; }
 
  protected:
   /**
@@ -134,9 +124,8 @@ class AggregationHashTableTest : public SqlBasedTest {
   AggregationHashTable agg_table_;
 
   // Helpers to create a table and get an PCI
-  terrier::storage::ProjectedColumns *projected_columns_{nullptr};
+  storage::ProjectedColumns *projected_columns_{nullptr};
   byte *buffer_{nullptr};
-  terrier::catalog::SqlTableHelper *catalog_table_{nullptr};
 };
 
 // NOLINTNEXTLINE
@@ -452,8 +441,6 @@ TEST_F(AggregationHashTableTest, ParallelAggregationTest) {
 
   QS qstate{0};
   // Create container
-  auto memory = std::make_unique<MemoryPool>(nullptr);
-  exec_ctx_->SetMemoryPool(std::move(memory));
   ThreadStateContainer container(exec_ctx_->GetMemoryPool());
 
   // Build thread-local tables
@@ -478,4 +465,4 @@ TEST_F(AggregationHashTableTest, ParallelAggregationTest) {
   EXPECT_EQ(num_aggs, qstate.row_count.load(std::memory_order_seq_cst));
 }
 
-}  // namespace tpl::sql::test
+}  // namespace terrier::execution::sql::test

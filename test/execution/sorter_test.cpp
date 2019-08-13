@@ -7,7 +7,7 @@
 #include <utility>
 #include <vector>
 
-#include "execution/tpl_test.h"  // NOLINT
+#include "execution/tpl_test.h"
 
 #include <tbb/tbb.h>  // NOLINT
 
@@ -31,7 +31,7 @@
 
 #define TestAllIntegral(FuncName, Args...) TestAllSigned(FuncName, Args) TestAllUnsigned(FuncName, Args)
 
-namespace tpl::sql::test {
+namespace terrier::execution::sql::test {
 
 class SorterTest : public TplTest {
  public:
@@ -159,7 +159,7 @@ TEST_F(SorterTest, TopKTest) {
 // NOLINTNEXTLINE
 TEST_F(SorterTest, DISABLED_PerfSortTest) {
   // TODO(Amadou): Figure out a way to avoid manually changing this. Maybe
-  // metaprogramming?
+  // metaprogramming? Also this should go to benchmarks.
   using data = std::array<byte, 128>;
   using int_type = uint32_t;
 
@@ -186,7 +186,6 @@ TEST_F(SorterTest, DISABLED_PerfSortTest) {
   std::vector<data, MemoryPoolAllocator<data>> vec{MemoryPoolAllocator<data>(&memory)};
   util::ChunkedVectorT<data, MemoryPoolAllocator<data>> chunk_vec{MemoryPoolAllocator<data>(&memory)};
   sql::Sorter sorter(&memory, sorter_cmp_fn, sizeof(data));
-  std::cout << "Sizeof(data) is " << (sizeof(data)) << std::endl;
 
   // Fill up the regular vector. This is our reference.
   for (int_type i = 0; i < num_elems; i++) {
@@ -225,9 +224,9 @@ TEST_F(SorterTest, DISABLED_PerfSortTest) {
   }
 
   std::cout << std::fixed << std::setprecision(4);
-  std::cout << "std::sort(std::vector): " << stdvec_ms << " ms" << std::endl;
-  std::cout << "ips4o::sort(ChunkedVector): " << chunk_ms << " ms" << std::endl;
-  std::cout << "Sorter.Sort(): " << sorter_ms << " ms" << std::endl;
+  EXECUTION_LOG_INFO("std::sort(std::vector): {} ms", stdvec_ms);
+  EXECUTION_LOG_INFO("ips4o::sort(ChunkedVector): {} ms", chunk_ms);
+  EXECUTION_LOG_INFO("Sorter.sort(): {} ms", sorter_ms);
 }
 
 template <u32 N>
@@ -256,9 +255,7 @@ void TestParallelSort(const std::vector<u32> &sorter_sizes) {
   const auto destroy_sorter = [](UNUSED void *ctx, void *s) { reinterpret_cast<Sorter *>(s)->~Sorter(); };
 
   // Create container
-  auto memory = std::make_unique<MemoryPool>(nullptr);
-  exec::ExecutionContext exec_ctx(nullptr, nullptr, nullptr, nullptr);
-  exec_ctx.SetMemoryPool(std::move(memory));
+  exec::ExecutionContext exec_ctx(catalog::INVALID_DATABASE_OID, nullptr, nullptr, nullptr, nullptr);
   ThreadStateContainer container(exec_ctx.GetMemoryPool());
 
   container.Reset(sizeof(Sorter), init_sorter, destroy_sorter, &exec_ctx);
@@ -323,4 +320,4 @@ TEST_F(SorterTest, UnbalancedParallelSortTest) {
   }
 }
 
-}  // namespace tpl::sql::test
+}  // namespace terrier::execution::sql::test

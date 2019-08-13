@@ -1,9 +1,12 @@
-fun main(execCtx: *ExecutionContext) -> int {
-  var ret :int = 0
+fun main(execCtx: *ExecutionContext) -> int64 {
+  var ret = 0
   var tvi: TableVectorIterator
-  for (@tableIterInit(&tvi, "test_1", execCtx); @tableIterAdvance(&tvi);) {
+  var oids: [1]uint32
+  oids[0] = 1 // colA
+  @tableIterInitBind(&tvi, "test_1", execCtx, oids)
+  for (; @tableIterAdvance(&tvi);) {
     var pci = @tableIterGetPCI(&tvi)
-    ret = ret + @filterLt(pci, "test_1.colA", 500)
+    ret = ret + @filterLt(pci, 0, 4, 3000)
     @pciReset(pci)
   }
   @tableIterClose(&tvi)

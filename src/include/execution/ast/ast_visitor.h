@@ -2,7 +2,7 @@
 
 #include "execution/ast/ast.h"
 
-namespace tpl::ast {
+namespace terrier::execution::ast {
 
 /**
  * Base class for AST node visitors. Implemented using the Curiously Recurring
@@ -34,7 +34,9 @@ class AstVisitor {
    */
   RetType Visit(AstNode *node) {
     switch (node->kind()) {
-      default: { llvm_unreachable("Impossible node type"); }
+      default: {
+        llvm_unreachable("Impossible node type");
+      }
 #define T(kind)               \
   case AstNode::Kind::kind: { \
     DISPATCH(kind)            \
@@ -89,4 +91,4 @@ class AstVisitor {
   Subclass *impl() { return static_cast<Subclass *>(this); }
 };
 
-}  // namespace tpl::ast
+}  // namespace terrier::execution::ast

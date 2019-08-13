@@ -4,8 +4,6 @@
 
 file(GLOB_RECURSE TERRIER_SRCS ${PROJECT_SOURCE_DIR}/src/*.cpp ${PROJECT_SOURCE_DIR}/src/include/*.h)
 list(REMOVE_ITEM TERRIER_SRCS ${PROJECT_SOURCE_DIR}/src/main/terrier.cpp)
-list(REMOVE_ITEM TERRIER_SRCS ${PROJECT_SOURCE_DIR}/src/execution/tpl.cpp)
-list(REMOVE_ITEM TERRIER_SRCS ${PROJECT_SOURCE_DIR}/src/execution/vm/gen_opt_bc.cpp)
 
 ###############################################
 # Third party sources
@@ -13,8 +11,8 @@ list(REMOVE_ITEM TERRIER_SRCS ${PROJECT_SOURCE_DIR}/src/execution/vm/gen_opt_bc.
 
 # spdlog
 file(GLOB_RECURSE SPDLOG_SOURCES
-    ${PROJECT_SOURCE_DIR}/third_party/spdlog/*.h
-    )
+        ${PROJECT_SOURCE_DIR}/third_party/spdlog/*.h
+        )
 list(APPEND TERRIER_SRCS ${SPDLOG_SOURCES})
 
 # libpg_query
@@ -80,22 +78,17 @@ list(APPEND TERRIER_STATIC_LINK_LIBS gflags)
 ###############################################
 
 ADD_TERRIER_LIB(terrier
-    SOURCES ${TERRIER_SRCS}
-    SHARED_LINK_FLAGS ${TERRIER_SHARED_LINK_FLAGS}
-    SHARED_LINK_LIBS ${TERRIER_LINK_LIBS}
-    SHARED_PRIVATE_LINK_LIBS ${TERRIERSHARED_PRIVATE_LINK_LIBS}
-    STATIC_LINK_LIBS ${TERRIER_STATIC_LINK_LIBS}
-    STATIC_PRIVATE_LINK_LIBS ${TERRIER_STATIC_PRIVATE_LINK_LIBS}
-    )
+        SOURCES ${TERRIER_SRCS}
+        SHARED_LINK_FLAGS ${TERRIER_SHARED_LINK_FLAGS}
+        SHARED_LINK_LIBS ${TERRIER_LINK_LIBS}
+        SHARED_PRIVATE_LINK_LIBS ${TERRIERSHARED_PRIVATE_LINK_LIBS}
+        STATIC_LINK_LIBS ${TERRIER_STATIC_LINK_LIBS}
+        STATIC_PRIVATE_LINK_LIBS ${TERRIER_STATIC_PRIVATE_LINK_LIBS}
+        DEPENDENCIES ${TERRIER_DEPENDENCIES}
+        )
 
 ###############################################
 # Terrier executable
 ###############################################
 add_executable(terrier main/terrier.cpp)
 target_link_libraries(terrier terrier_shared)
-
-
-###############################################
-# TPL executable & bytecodes
-###############################################
-add_subdirectory(execution)

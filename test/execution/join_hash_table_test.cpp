@@ -1,7 +1,7 @@
 #include <random>
 #include <vector>
 
-#include "execution/tpl_test.h"  // NOLINT
+#include "execution/tpl_test.h"
 
 #include <tbb/tbb.h>  // NOLINT
 
@@ -9,7 +9,7 @@
 #include "execution/sql/thread_state_container.h"
 #include "execution/util/hash.h"
 
-namespace tpl::sql::test {
+namespace terrier::execution::sql::test {
 
 /**
  * This is the tuple we insert into the hash table
@@ -171,9 +171,10 @@ TEST_F(JoinHashTableTest, ParallelBuildTest) {
   MemoryPool memory(nullptr);
   ThreadStateContainer container(&memory);
 
-  container.Reset(sizeof(JoinHashTable),
-                  [](auto *ctx, auto *s) { new (s) JoinHashTable(reinterpret_cast<MemoryPool *>(ctx), sizeof(Tuple)); },
-                  [](auto *ctx, auto *s) { reinterpret_cast<JoinHashTable *>(s)->~JoinHashTable(); }, &memory);
+  container.Reset(
+      sizeof(JoinHashTable),
+      [](auto *ctx, auto *s) { new (s) JoinHashTable(reinterpret_cast<MemoryPool *>(ctx), sizeof(Tuple)); },
+      [](auto *ctx, auto *s) { reinterpret_cast<JoinHashTable *>(s)->~JoinHashTable(); }, &memory);
 
   // Parallel populate hash tables
   tbb::task_scheduler_init sched;
@@ -233,4 +234,4 @@ TEST_F(JoinHashTableTest, DISABLED_PerfTest) {
   bench(true, num_tuples);
 }
 
-}  // namespace tpl::sql::test
+}  // namespace terrier::execution::sql::test

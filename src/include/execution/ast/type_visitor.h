@@ -2,7 +2,7 @@
 
 #include "execution/ast/type.h"
 
-namespace tpl::ast {
+namespace terrier::execution::ast {
 
 /**
  * Generic visitor for type hierarchies
@@ -19,7 +19,9 @@ class TypeVisitor {
    */
   RetType Visit(const Type *type) {
     switch (type->type_id()) {
-      default: { llvm_unreachable("Impossible node type"); }
+      default: {
+        llvm_unreachable("Impossible node type");
+      }
 #define T(TypeClass)            \
   case Type::TypeId::TypeClass: \
     DISPATCH(TypeClass)
@@ -43,4 +45,4 @@ class TypeVisitor {
 #undef DISPATCH
 };
 
-}  // namespace tpl::ast
+}  // namespace terrier::execution::ast

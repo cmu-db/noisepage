@@ -5,10 +5,10 @@
 
 #include "execution/util/memory.h"
 
-namespace tpl::sql {
+namespace terrier::execution::sql {
 
 // If the allocation size is larger than this value, use huge pages
-std::atomic<std::size_t> MemoryPool::kMmapThreshold = 64 * MB;
+std::atomic<u64> MemoryPool::kMmapThreshold = 64 * MB;
 
 // Minimum alignment to abide by
 static constexpr u32 kMinMallocAlignment = 8;
@@ -22,7 +22,7 @@ void *MemoryPool::AllocateAligned(const std::size_t size, const std::size_t alig
 
   if (size >= kMmapThreshold.load(std::memory_order_relaxed)) {
     buf = util::MallocHuge(size);
-    TPL_ASSERT(buf != nullptr, "Null memory pointer");
+    TERRIER_ASSERT(buf != nullptr, "Null memory pointer");
     // No need to clear memory, guaranteed on Linux
   } else {
     if (alignment < kMinMallocAlignment) {
@@ -32,7 +32,7 @@ void *MemoryPool::AllocateAligned(const std::size_t size, const std::size_t alig
         buf = std::malloc(size);
       }
     } else {
-      buf = std::aligned_alloc(alignment, size);
+      buf = util::MallocAligned(size, alignment);
       if (clear) {
         std::memset(buf, 0, size);
       }
@@ -53,4 +53,4 @@ void MemoryPool::Deallocate(void *ptr, std::size_t size) {
 
 void MemoryPool::SetMMapSizeThreshold(const std::size_t size) { kMmapThreshold = size; }
 
-}  // namespace tpl::sql
+}  // namespace terrier::execution::sql

@@ -5,7 +5,7 @@
 #include <utility>
 #include <vector>
 
-#include <tbb/tbb.h>  // NOLINT
+#include "tbb/tbb.h"
 
 #include "llvm/ADT/STLExtras.h"
 
@@ -15,7 +15,7 @@
 #include "execution/util/stage_timer.h"
 #include "loggers/execution_logger.h"
 
-namespace tpl::sql {
+namespace terrier::execution::sql {
 
 Sorter::Sorter(MemoryPool *memory, ComparisonFunction cmp_fn, u32 tuple_size)
     : tuple_storage_(tuple_size, MemoryPoolAllocator<byte>(memory)),
@@ -340,4 +340,4 @@ void Sorter::SortTopKParallel(const ThreadStateContainer *thread_state_container
   tuples_.resize(top_k);
 }
 
-}  // namespace tpl::sql
+}  // namespace terrier::execution::sql

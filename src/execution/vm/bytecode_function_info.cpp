@@ -7,7 +7,7 @@
 #include "execution/ast/type.h"
 #include "execution/util/math_util.h"
 
-namespace tpl::vm {
+namespace terrier::execution::vm {
 
 // ---------------------------------------------------------
 // Local Information
@@ -32,7 +32,7 @@ FunctionInfo::FunctionInfo(FunctionId id, std::string name, ast::FunctionType *f
       num_temps_(0) {}
 
 LocalVar FunctionInfo::NewLocal(ast::Type *type, const std::string &name, LocalInfo::Kind kind) {
-  TPL_ASSERT(!name.empty(), "Local name cannot be empty");
+  TERRIER_ASSERT(!name.empty(), "Local name cannot be empty");
 
   // Bump size to account for the alignment of the new local
   if (!util::MathUtil::IsAligned(frame_size_, type->alignment())) {
@@ -65,7 +65,7 @@ LocalVar FunctionInfo::NewLocal(ast::Type *type, const std::string &name) {
 
 LocalVar FunctionInfo::GetReturnValueLocal() const {
   // This invocation only makes sense if the function actually returns a value
-  TPL_ASSERT(!func_type_->return_type()->IsNilType(),
+  TERRIER_ASSERT(!func_type_->return_type()->IsNilType(),
              "Cannot lookup local slot for function that does not have return value");
   return LocalVar(0u, LocalVar::AddressMode::Address);
 }
@@ -100,4 +100,4 @@ const LocalInfo *FunctionInfo::LookupLocalInfoByOffset(u32 offset) const {
   return nullptr;
 }
 
-}  // namespace tpl::vm
+}  // namespace terrier::execution::vm
