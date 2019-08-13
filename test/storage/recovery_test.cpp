@@ -219,6 +219,7 @@ TEST_F(RecoveryTests, DropDatabaseTest) {
   txn = recovery_txn_manager.BeginTransaction();
   EXPECT_EQ(catalog::INVALID_DATABASE_OID, recovered_catalog.GetDatabaseOid(txn, database_name));
   EXPECT_FALSE(recovered_catalog.GetDatabaseCatalog(txn, db_oid));
+  recovery_txn_manager.Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
   log_manager.Start();
   GarbageCollectCatalogObject(&catalog, &txn_manager);
@@ -248,10 +249,10 @@ TEST_F(RecoveryTests, DropTableTest) {
   // Create the table
   txn = txn_manager.BeginTransaction();
   auto db_catalog = catalog.GetDatabaseCatalog(txn, db_oid);
-  auto table_schema = *(StorageTestUtil::RandomSchemaNoVarlen(5, &generator_));
-  auto table_oid = db_catalog->CreateTable(txn, namespace_oid, table_name, table_schema);
+  auto *table_schema = StorageTestUtil::RandomSchemaNoVarlen(5, &generator_);
+  auto table_oid = db_catalog->CreateTable(txn, namespace_oid, table_name, *table_schema);
   EXPECT_TRUE(table_oid != catalog::INVALID_TABLE_OID);
-  auto *table_ptr = new storage::SqlTable(&block_store_, table_schema);
+  auto *table_ptr = new storage::SqlTable(&block_store_, *table_schema);
   EXPECT_TRUE(db_catalog->SetTablePointer(txn, table_oid, table_ptr));
   txn_manager.Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
@@ -293,6 +294,7 @@ TEST_F(RecoveryTests, DropTableTest) {
   GarbageCollectCatalogObject(&catalog, &txn_manager);
   log_manager.PersistAndStop();
   GarbageCollectCatalogObject(&recovered_catalog, &recovery_txn_manager);
+  delete table_schema;
 }
 
 // Tests that we correctly process records corresponding to a drop index command.
@@ -318,10 +320,10 @@ TEST_F(RecoveryTests, DropIndexTest) {
   // Create the table
   txn = txn_manager.BeginTransaction();
   auto db_catalog = catalog.GetDatabaseCatalog(txn, db_oid);
-  auto table_schema = *(StorageTestUtil::RandomSchemaNoVarlen(5, &generator_));
-  auto table_oid = db_catalog->CreateTable(txn, namespace_oid, table_name, table_schema);
+  auto table_schema = StorageTestUtil::RandomSchemaNoVarlen(5, &generator_);
+  auto table_oid = db_catalog->CreateTable(txn, namespace_oid, table_name, *table_schema);
   EXPECT_TRUE(table_oid != catalog::INVALID_TABLE_OID);
-  auto *table_ptr = new storage::SqlTable(&block_store_, table_schema);
+  auto *table_ptr = new storage::SqlTable(&block_store_, *table_schema);
   EXPECT_TRUE(db_catalog->SetTablePointer(txn, table_oid, table_ptr));
   txn_manager.Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
@@ -380,6 +382,7 @@ TEST_F(RecoveryTests, DropIndexTest) {
   GarbageCollectCatalogObject(&catalog, &txn_manager);
   log_manager.PersistAndStop();
   GarbageCollectCatalogObject(&recovered_catalog, &recovery_txn_manager);
+  delete table_schema;
 }
 
 // Tests that we correctly process records corresponding to a drop namespace command.
@@ -470,10 +473,10 @@ TEST_F(RecoveryTests, DropDatabaseCascadeDeleteTest) {
   // Create the table
   txn = txn_manager.BeginTransaction();
   auto db_catalog = catalog.GetDatabaseCatalog(txn, db_oid);
-  auto table_schema = *(StorageTestUtil::RandomSchemaNoVarlen(5, &generator_));
-  auto table_oid = db_catalog->CreateTable(txn, namespace_oid, table_name, table_schema);
+  auto table_schema = StorageTestUtil::RandomSchemaNoVarlen(5, &generator_);
+  auto table_oid = db_catalog->CreateTable(txn, namespace_oid, table_name, *table_schema);
   EXPECT_TRUE(table_oid != catalog::INVALID_TABLE_OID);
-  auto *table_ptr = new storage::SqlTable(&block_store_, table_schema);
+  auto *table_ptr = new storage::SqlTable(&block_store_, *table_schema);
   EXPECT_TRUE(db_catalog->SetTablePointer(txn, table_oid, table_ptr));
   txn_manager.Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
@@ -519,10 +522,12 @@ TEST_F(RecoveryTests, DropDatabaseCascadeDeleteTest) {
   txn = recovery_txn_manager.BeginTransaction();
   EXPECT_EQ(catalog::INVALID_DATABASE_OID, recovered_catalog.GetDatabaseOid(txn, database_name));
   EXPECT_FALSE(recovered_catalog.GetDatabaseCatalog(txn, db_oid));
+  recovery_txn_manager.Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
   log_manager.Start();
   GarbageCollectCatalogObject(&catalog, &txn_manager);
   log_manager.PersistAndStop();
   GarbageCollectCatalogObject(&recovered_catalog, &recovery_txn_manager);
+  delete table_schema;
 }
 }  // namespace terrier::storage
