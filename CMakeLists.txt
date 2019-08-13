@@ -348,9 +348,7 @@ set(TERRIER_LINK_LIBS
         pg_query)
 
 set(TERRIER_DEPENDENCIES
-        gflags
-        gmock_main
-        gtest)
+        gflags)
 
 set(TERRIER_TEST_LINK_LIBS
         test_util
@@ -374,6 +372,3 @@ set(TERRIER_BENCHMARK_LINK_LIBS
 add_subdirectory(src)
 add_subdirectory(test)
 add_subdirectory(benchmark)
-
-add_dependencies(unittest ${TERRIER_DEPENDENCIES})
-add_dependencies(runbenchmark ${TERRIER_DEPENDENCIES})
