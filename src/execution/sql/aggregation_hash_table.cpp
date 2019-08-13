@@ -41,7 +41,7 @@ AggregationHashTable::AggregationHashTable(MemoryPool *memory, const std::size_t
   // pre-aggregation hash table to be sized to fit in cache. Target L2.
   const u64 l2_size = CpuInfo::Instance()->GetCacheSize(CpuInfo::L2_CACHE);
   flush_threshold_ = static_cast<u64>(std::llround(f32(l2_size) / f32(entries_.element_size()) * kDefaultLoadFactor));
-  flush_threshold_ = std::max(256ul, util::MathUtil::PowerOf2Floor(flush_threshold_));
+  flush_threshold_ = std::max(static_cast<u64>(256), util::MathUtil::PowerOf2Floor(flush_threshold_));
 }
 
 AggregationHashTable::~AggregationHashTable() {

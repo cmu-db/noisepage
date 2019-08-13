@@ -821,6 +821,23 @@ struct FilterVecSizer<i64> {
   using VecMask = Vec4Mask;
 };
 
+#ifdef __APPLE__  // need this explicit instantiation
+/**
+ * intptr_t Filter
+ */
+template <>
+struct FilterVecSizer<intptr_t> {
+  /**
+   * Four 64-bit integer values.
+   */
+  using Vec = Vec4;
+  /**
+   * Mask for four 64-bit integer values.
+   */
+  using VecMask = Vec4Mask;
+};
+#endif
+
 /**
  * Arbitrary Filter
  */
