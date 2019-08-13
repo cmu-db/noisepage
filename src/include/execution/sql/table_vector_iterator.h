@@ -41,16 +41,16 @@ class TableVectorIterator {
   DISALLOW_COPY_AND_MOVE(TableVectorIterator);
 
   /**
-   * Advance the iterator by a vector of input
-   * @return True if there is more data in the iterator; false otherwise
-   */
-  bool Advance();
-
-  /**
    * Initialize the iterator, returning true if the initialization succeeded
    * @return True if the initialization succeeded; false otherwise
    */
   bool Init();
+
+  /**
+   * Advance the iterator by a vector of input
+   * @return True if there is more data in the iterator; false otherwise
+   */
+  bool Advance();
 
   /**
    * @return the iterator over the current active projection

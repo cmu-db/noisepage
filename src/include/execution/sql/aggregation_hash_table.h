@@ -13,10 +13,9 @@ class HLL;
 
 namespace terrier::execution::sql {
 
-class ThreadStateContainer;
-
 // Forward declare
 class AggregationHashTableIterator;
+class ThreadStateContainer;
 class AggregationOverflowPartitionIterator;
 
 /**

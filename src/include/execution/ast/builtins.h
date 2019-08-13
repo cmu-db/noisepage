@@ -163,10 +163,7 @@ namespace terrier::execution::ast {
   F(IndexIteratorSetKeyBigInt, indexIteratorSetKeyBigInt)       \
   F(IndexIteratorSetKeyReal, indexIteratorSetKeyReal)           \
   F(IndexIteratorSetKeyDouble, indexIteratorSetKeyDouble)       \
-  F(IndexIteratorFree, indexIteratorFree)                       \
-                                                                \
-  /* Insert */                                                  \
-  F(Insert, insert)
+  F(IndexIteratorFree, indexIteratorFree)
 
 /**
  * Enum of builtins

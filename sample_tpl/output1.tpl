@@ -1,3 +1,5 @@
+// Test output buffer
+
 struct output_struct {
   col1: Integer
   col2: Integer

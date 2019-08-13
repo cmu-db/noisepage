@@ -27,7 +27,6 @@ class AstTraversalVisitorTest : public TplTest {
     parsing::Parser parser(&scanner, &ctx);
 
     if (error.HasErrors()) {
-      error.PrintErrors();
       return nullptr;
     }
 
@@ -37,7 +36,6 @@ class AstTraversalVisitorTest : public TplTest {
     auto check = sema.Run(root);
 
     if (error.HasErrors()) {
-      error.PrintErrors();
       return nullptr;
     }
 

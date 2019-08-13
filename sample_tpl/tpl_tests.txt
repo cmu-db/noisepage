@@ -1,3 +1,7 @@
+# This file contains tpl tests along with their expected return value
+# To add a test, add an entry with the format: filename,is_sql,expected_return_value
+# The is_sql flag indicates whether an execution context is needed for the test.
+
 ################################################################################
 # TPL tests
 ################################################################################

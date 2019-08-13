@@ -10,8 +10,6 @@
 #include "transaction/transaction_manager.h"
 
 namespace terrier::execution::exec {
-using transaction::TransactionContext;
-
 /**
  * Execution Context: Stores information handed in by upper layers.
  * TODO(Amadou): This class will change once we know exactly what we get from upper layers.
@@ -67,7 +65,7 @@ class ExecutionContext {
    * @param schema the schema of the output
    * @param accessor the catalog accessor of this query
    */
-  ExecutionContext(catalog::db_oid_t db_oid, TransactionContext *txn, const OutputCallback &callback,
+  ExecutionContext(catalog::db_oid_t db_oid, transaction::TransactionContext *txn, const OutputCallback &callback,
                    const planner::OutputSchema *schema, std::unique_ptr<catalog::CatalogAccessor> &&accessor)
       : db_oid_(db_oid),
         txn_(txn),
@@ -80,7 +78,7 @@ class ExecutionContext {
   /**
    * @return the transaction used by this query
    */
-  TransactionContext *GetTxn() { return txn_; }
+  transaction::TransactionContext *GetTxn() { return txn_; }
 
   /**
    * @return the output buffer used by this query
@@ -115,7 +113,7 @@ class ExecutionContext {
 
  private:
   catalog::db_oid_t db_oid_;
-  TransactionContext *txn_;
+  transaction::TransactionContext *txn_;
   std::unique_ptr<sql::MemoryPool> mem_pool_;
   std::unique_ptr<OutputBuffer> buffer_;
   StringAllocator string_allocator_;

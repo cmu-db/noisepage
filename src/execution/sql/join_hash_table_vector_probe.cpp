@@ -9,7 +9,8 @@ JoinHashTableVectorProbe::JoinHashTableVectorProbe(const JoinHashTable &table)
     : table_(table), match_idx_(0), hashes_{0}, entries_{nullptr} {}
 
 void JoinHashTableVectorProbe::Prepare(ProjectedColumnsIterator *pci, const HashFn hash_fn) {
-  TERRIER_ASSERT(pci->num_selected() <= kDefaultVectorSize, "ProjectedColumns size must be less than kDefaultVectorSize");
+  TERRIER_ASSERT(pci->num_selected() <= kDefaultVectorSize,
+                 "ProjectedColumns size must be less than kDefaultVectorSize");
   // Set up
   match_idx_ = 0;
 

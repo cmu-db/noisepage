@@ -1,5 +1,4 @@
 // Test nil function calls
-//
 
 fun test() -> nil {}
 

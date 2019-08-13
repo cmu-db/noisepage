@@ -1,8 +1,8 @@
-// Perform an index join loop for the queury:
+// Perform an index nested loop join for the queury:
 // SELECT test_1.colA, test_1.colB, test_2.col1, test_2.col2 FROM test_1, test_2 WHERE test_1.colA=test_2.col1 AND test_1.colB=test_2.col2
 // The return value is non-deterministic. It is expected to be 900 (actually 894 the tested machine). This is because
 // 10% of the potential 1000 columns contain NULLs.
-// There should also be an std out output where the columns are similar
+// There should also be an std out output where the columns are equal
 
 struct Output {
   test1_colA: Integer

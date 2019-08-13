@@ -1,3 +1,5 @@
+// Test for loops
+
 fun main() -> int32 {
   var c = 0
   for (var i = 0; i < 10000; i = i + 1) {

@@ -1,4 +1,4 @@
-// Perform in vectorized fashion:
+// Perform using hash join:
 //
 // SELECT t1.col_a, t1.col_b, t1'.col_a, t1'.col_b, FROM test_1 AS t1, test_1 AS t1'
 // WHERE t1.col_b = t1'.col_b AND t1.col_a < 1000 AND t1'.col_a < 1000

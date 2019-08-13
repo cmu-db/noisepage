@@ -1,10 +1,11 @@
 #include "execution/ast/ast_dump.h"
 
-#include <iostream>
 #include <string>
 #include <utility>
 
+#include "llvm/ADT/SmallString.h"
 #include "llvm/Support/raw_os_ostream.h"
+#include "llvm/Support/raw_ostream.h"
 
 #include "execution/ast/ast.h"
 #include "execution/ast/ast_visitor.h"
@@ -14,8 +15,8 @@ namespace terrier::execution::ast {
 
 class AstDumperImpl : public AstVisitor<AstDumperImpl> {
  public:
-  explicit AstDumperImpl(AstNode *root, int out_fd)
-      : root_(root), top_level_(true), first_child_(true), out_(out_fd, false) {}
+  explicit AstDumperImpl(AstNode *root, llvm::raw_ostream &out)
+      : root_(root), top_level_(true), first_child_(true), out_(out) {}
 
   void Run() { Visit(root_); }
 
@@ -146,7 +147,7 @@ class AstDumperImpl : public AstVisitor<AstDumperImpl> {
 
   llvm::SmallVector<std::function<void(bool)>, 32> pending_;
 
-  llvm::raw_fd_ostream out_;
+  llvm::raw_ostream &out_;
 };
 
 void AstDumperImpl::VisitFile(File *node) {
@@ -412,9 +413,12 @@ void AstDumperImpl::VisitMapTypeRepr(MapTypeRepr *node) {
   DumpExpr(node->val());
 }
 
-void AstDump::Dump(AstNode *node) {
-  AstDumperImpl print(node, fileno(stderr));
+std::string AstDump::Dump(AstNode *node) {
+  llvm::SmallString<256> buffer;
+  llvm::raw_svector_ostream stream(buffer);
+  AstDumperImpl print(node, stream);
   print.Run();
+  return buffer.str();
 }
 
 }  // namespace terrier::execution::ast

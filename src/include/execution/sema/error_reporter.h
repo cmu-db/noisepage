@@ -69,9 +69,9 @@ class ErrorReporter {
   void Reset() { errors_.clear(); }
 
   /**
-   * Outputs the list of errors
+   * Serializes the list of errors
    */
-  void PrintErrors();
+  std::string SerializeErrors();
 
  private:
   /*

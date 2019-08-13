@@ -320,9 +320,6 @@ namespace terrier::execution::vm {
   F(OutputAlloc, OperandType::Local, OperandType::Local)                                                              \
   F(OutputFinalize, OperandType::Local)                                                                               \
                                                                                                                       \
-  /* Insert */                                                                                                        \
-  F(Insert, OperandType::Local, OperandType::Local, OperandType::Local)                                               \
-                                                                                                                      \
   /* Index Iterator */                                                                                                \
   F(IndexIteratorInit, OperandType::Local, OperandType::UImm4, OperandType::UImm4, OperandType::Local,                \
     OperandType::Local, OperandType::UImm4)                                                                           \

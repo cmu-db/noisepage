@@ -136,7 +136,7 @@ void AggregationHashTable::FlushToOverflowPartitions() {
 
 void AggregationHashTable::AllocateOverflowPartitions() {
   TERRIER_ASSERT((partition_heads_ == nullptr) == (partition_tails_ == nullptr),
-             "Head and tail of overflow partitions list are not equally allocated");
+                 "Head and tail of overflow partitions list are not equally allocated");
 
   if (partition_heads_ == nullptr) {
     partition_heads_ = memory_->AllocateArray<HashTableEntry *>(kDefaultNumPartitions, true);
@@ -359,8 +359,8 @@ void AggregationHashTable::TransferMemoryAndPartitions(
     owned_entries_.emplace_back(std::move(table->entries_));
 
     TERRIER_ASSERT(table->owned_entries_.empty(),
-               "A thread-local aggregation table should not have any owned "
-               "entries themselves. Nested/recursive aggregations not supported.");
+                   "A thread-local aggregation table should not have any owned "
+                   "entries themselves. Nested/recursive aggregations not supported.");
 
     // Now, move over their overflow partitions list
     for (u32 part_idx = 0; part_idx < kDefaultNumPartitions; part_idx++) {
@@ -380,7 +380,8 @@ void AggregationHashTable::TransferMemoryAndPartitions(
 
 AggregationHashTable *AggregationHashTable::BuildTableOverPartition(void *const query_state, const u32 partition_idx) {
   TERRIER_ASSERT(partition_idx < kDefaultNumPartitions, "Out-of-bounds partition access");
-  TERRIER_ASSERT(partition_heads_[partition_idx] != nullptr, "Should not build aggregation table over empty partition!");
+  TERRIER_ASSERT(partition_heads_[partition_idx] != nullptr,
+                 "Should not build aggregation table over empty partition!");
 
   // If the table has already been built, return it
   if (partition_tables_[partition_idx] != nullptr) {
@@ -425,9 +426,9 @@ void AggregationHashTable::ExecuteParallelPartitionedScan(void *query_state, Thr
   //
 
   TERRIER_ASSERT(partition_heads_ != nullptr && merge_partition_fn_ != nullptr,
-             "No overflow partitions allocated, or no merging function "
-             "allocated. Did you call TransferMemoryAndPartitions() before "
-             "issuing the partitioned scan?");
+                 "No overflow partitions allocated, or no merging function "
+                 "allocated. Did you call TransferMemoryAndPartitions() before "
+                 "issuing the partitioned scan?");
 
   // Determine the non-empty overflow partitions
   alignas(CACHELINE_SIZE) u32 nonempty_parts[kDefaultNumPartitions];

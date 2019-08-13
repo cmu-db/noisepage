@@ -9,8 +9,8 @@ namespace terrier::execution::vm {
 
 void BytecodeEmitter::EmitDeref(Bytecode bytecode, LocalVar dest, LocalVar src) {
   TERRIER_ASSERT(bytecode == Bytecode::Deref1 || bytecode == Bytecode::Deref2 || bytecode == Bytecode::Deref4 ||
-                 bytecode == Bytecode::Deref8,
-             "Bytecode is not a Deref code");
+                     bytecode == Bytecode::Deref8,
+                 "Bytecode is not a Deref code");
   EmitAll(bytecode, dest, src);
 }
 
@@ -18,8 +18,8 @@ void BytecodeEmitter::EmitDerefN(LocalVar dest, LocalVar src, u32 len) { EmitAll
 
 void BytecodeEmitter::EmitAssign(Bytecode bytecode, LocalVar dest, LocalVar src) {
   TERRIER_ASSERT(bytecode == Bytecode::Assign1 || bytecode == Bytecode::Assign2 || bytecode == Bytecode::Assign4 ||
-                 bytecode == Bytecode::Assign8,
-             "Bytecode is not an Assign code");
+                     bytecode == Bytecode::Assign8,
+                 "Bytecode is not an Assign code");
   EmitAll(bytecode, dest, src);
 }
 
@@ -49,7 +49,7 @@ void BytecodeEmitter::EmitLeaScaled(LocalVar dest, LocalVar src, LocalVar index,
 
 void BytecodeEmitter::EmitCall(FunctionId func_id, const std::vector<LocalVar> &params) {
   TERRIER_ASSERT(Bytecodes::GetNthOperandSize(Bytecode::Call, 1) == OperandSize::Short,
-             "Expected argument count to be 2-byte short");
+                 "Expected argument count to be 2-byte short");
   TERRIER_ASSERT(params.size() < std::numeric_limits<u16>::max(), "Too many parameters!");
 
   EmitAll(Bytecode::Call, static_cast<u16>(func_id), static_cast<u16>(params.size()));
@@ -72,7 +72,7 @@ void BytecodeEmitter::Bind(BytecodeLabel *label) {
 
     for (const auto &jump_location : jump_locations) {
       TERRIER_ASSERT((curr_offset - jump_location) < std::numeric_limits<i32>::max(),
-                 "Jump delta exceeds 32-bit value for jump offsets!");
+                     "Jump delta exceeds 32-bit value for jump offsets!");
 
       auto delta = static_cast<i32>(curr_offset - jump_location);
       auto *raw_delta = reinterpret_cast<u8 *>(&delta);
@@ -94,7 +94,8 @@ void BytecodeEmitter::EmitJump(BytecodeLabel *label) {
   if (label->is_bound()) {
     // The label is already bound so this must be a backwards jump. We just need
     // to emit the delta offset directly into the bytestream.
-    TERRIER_ASSERT(label->offset() <= curr_offset, "Label for backwards jump cannot be beyond current bytecode position");
+    TERRIER_ASSERT(label->offset() <= curr_offset,
+                   "Label for backwards jump cannot be beyond current bytecode position");
     std::size_t delta = curr_offset - label->offset();
     TERRIER_ASSERT(delta < std::numeric_limits<i32>::max(), "Jump delta exceeds 32-bit value for jump offsets!");
 
@@ -124,27 +125,27 @@ void BytecodeEmitter::EmitConditionalJump(Bytecode bytecode, LocalVar cond, Byte
 void BytecodeEmitter::Emit(Bytecode bytecode, LocalVar operand_1) {
   TERRIER_ASSERT(Bytecodes::NumOperands(bytecode) == 1, "Incorrect operand count for bytecode");
   TERRIER_ASSERT(Bytecodes::GetNthOperandType(bytecode, 0) == OperandType::Local,
-             "Incorrect operand type at index 0 for bytecode");
+                 "Incorrect operand type at index 0 for bytecode");
   EmitAll(bytecode, operand_1);
 }
 
 void BytecodeEmitter::Emit(Bytecode bytecode, LocalVar operand_1, LocalVar operand_2) {
   TERRIER_ASSERT(Bytecodes::NumOperands(bytecode) == 2, "Incorrect operand count for bytecode");
   TERRIER_ASSERT(Bytecodes::GetNthOperandType(bytecode, 0) == OperandType::Local,
-             "Incorrect operand type at index 0 for bytecode");
+                 "Incorrect operand type at index 0 for bytecode");
   TERRIER_ASSERT(Bytecodes::GetNthOperandType(bytecode, 1) == OperandType::Local,
-             "Incorrect operand type at index 1 for bytecode");
+                 "Incorrect operand type at index 1 for bytecode");
   EmitAll(bytecode, operand_1, operand_2);
 }
 
 void BytecodeEmitter::Emit(Bytecode bytecode, LocalVar operand_1, LocalVar operand_2, LocalVar operand_3) {
   TERRIER_ASSERT(Bytecodes::NumOperands(bytecode) == 3, "Incorrect operand count for bytecode");
   TERRIER_ASSERT(Bytecodes::GetNthOperandType(bytecode, 0) == OperandType::Local,
-             "Incorrect operand type at index 0 for bytecode");
+                 "Incorrect operand type at index 0 for bytecode");
   TERRIER_ASSERT(Bytecodes::GetNthOperandType(bytecode, 1) == OperandType::Local,
-             "Incorrect operand type at index 1 for bytecode");
+                 "Incorrect operand type at index 1 for bytecode");
   TERRIER_ASSERT(Bytecodes::GetNthOperandType(bytecode, 2) == OperandType::Local,
-             "Incorrect operand type at index 2 for bytecode");
+                 "Incorrect operand type at index 2 for bytecode");
   EmitAll(bytecode, operand_1, operand_2, operand_3);
 }
 
@@ -152,13 +153,13 @@ void BytecodeEmitter::Emit(Bytecode bytecode, LocalVar operand_1, LocalVar opera
                            LocalVar operand_4) {
   TERRIER_ASSERT(Bytecodes::NumOperands(bytecode) == 4, "Incorrect operand count for bytecode");
   TERRIER_ASSERT(Bytecodes::GetNthOperandType(bytecode, 0) == OperandType::Local,
-             "Incorrect operand type at index 0 for bytecode");
+                 "Incorrect operand type at index 0 for bytecode");
   TERRIER_ASSERT(Bytecodes::GetNthOperandType(bytecode, 1) == OperandType::Local,
-             "Incorrect operand type at index 1 for bytecode");
+                 "Incorrect operand type at index 1 for bytecode");
   TERRIER_ASSERT(Bytecodes::GetNthOperandType(bytecode, 2) == OperandType::Local,
-             "Incorrect operand type at index 2 for bytecode");
+                 "Incorrect operand type at index 2 for bytecode");
   TERRIER_ASSERT(Bytecodes::GetNthOperandType(bytecode, 3) == OperandType::Local,
-             "Incorrect operand type at index 3 for bytecode");
+                 "Incorrect operand type at index 3 for bytecode");
   EmitAll(bytecode, operand_1, operand_2, operand_3, operand_4);
 }
 
@@ -166,15 +167,15 @@ void BytecodeEmitter::Emit(Bytecode bytecode, LocalVar operand_1, LocalVar opera
                            LocalVar operand_4, LocalVar operand_5) {
   TERRIER_ASSERT(Bytecodes::NumOperands(bytecode) == 5, "Incorrect operand count for bytecode");
   TERRIER_ASSERT(Bytecodes::GetNthOperandType(bytecode, 0) == OperandType::Local,
-             "Incorrect operand type at index 0 for bytecode");
+                 "Incorrect operand type at index 0 for bytecode");
   TERRIER_ASSERT(Bytecodes::GetNthOperandType(bytecode, 1) == OperandType::Local,
-             "Incorrect operand type at index 1 for bytecode");
+                 "Incorrect operand type at index 1 for bytecode");
   TERRIER_ASSERT(Bytecodes::GetNthOperandType(bytecode, 2) == OperandType::Local,
-             "Incorrect operand type at index 2 for bytecode");
+                 "Incorrect operand type at index 2 for bytecode");
   TERRIER_ASSERT(Bytecodes::GetNthOperandType(bytecode, 3) == OperandType::Local,
-             "Incorrect operand type at index 3 for bytecode");
+                 "Incorrect operand type at index 3 for bytecode");
   TERRIER_ASSERT(Bytecodes::GetNthOperandType(bytecode, 4) == OperandType::Local,
-             "Incorrect operand type at index 4 for bytecode");
+                 "Incorrect operand type at index 4 for bytecode");
 
   EmitAll(bytecode, operand_1, operand_2, operand_3, operand_4, operand_5);
 }
@@ -183,17 +184,17 @@ void BytecodeEmitter::Emit(Bytecode bytecode, LocalVar operand_1, LocalVar opera
                            LocalVar operand_4, LocalVar operand_5, LocalVar operand_6) {
   TERRIER_ASSERT(Bytecodes::NumOperands(bytecode) == 6, "Incorrect operand count for bytecode");
   TERRIER_ASSERT(Bytecodes::GetNthOperandType(bytecode, 0) == OperandType::Local,
-             "Incorrect operand type at index 0 for bytecode");
+                 "Incorrect operand type at index 0 for bytecode");
   TERRIER_ASSERT(Bytecodes::GetNthOperandType(bytecode, 1) == OperandType::Local,
-             "Incorrect operand type at index 1 for bytecode");
+                 "Incorrect operand type at index 1 for bytecode");
   TERRIER_ASSERT(Bytecodes::GetNthOperandType(bytecode, 2) == OperandType::Local,
-             "Incorrect operand type at index 2 for bytecode");
+                 "Incorrect operand type at index 2 for bytecode");
   TERRIER_ASSERT(Bytecodes::GetNthOperandType(bytecode, 3) == OperandType::Local,
-             "Incorrect operand type at index 3 for bytecode");
+                 "Incorrect operand type at index 3 for bytecode");
   TERRIER_ASSERT(Bytecodes::GetNthOperandType(bytecode, 4) == OperandType::Local,
-             "Incorrect operand type at index 4 for bytecode");
+                 "Incorrect operand type at index 4 for bytecode");
   TERRIER_ASSERT(Bytecodes::GetNthOperandType(bytecode, 5) == OperandType::Local,
-             "Incorrect operand type at index 5 for bytecode");
+                 "Incorrect operand type at index 5 for bytecode");
   EmitAll(bytecode, operand_1, operand_2, operand_3, operand_4, operand_5, operand_6);
 }
 
@@ -201,19 +202,19 @@ void BytecodeEmitter::Emit(Bytecode bytecode, LocalVar operand_1, LocalVar opera
                            LocalVar operand_4, LocalVar operand_5, LocalVar operand_6, LocalVar operand_7) {
   TERRIER_ASSERT(Bytecodes::NumOperands(bytecode) == 7, "Incorrect operand count for bytecode");
   TERRIER_ASSERT(Bytecodes::GetNthOperandType(bytecode, 0) == OperandType::Local,
-             "Incorrect operand type at index 0 for bytecode");
+                 "Incorrect operand type at index 0 for bytecode");
   TERRIER_ASSERT(Bytecodes::GetNthOperandType(bytecode, 1) == OperandType::Local,
-             "Incorrect operand type at index 1 for bytecode");
+                 "Incorrect operand type at index 1 for bytecode");
   TERRIER_ASSERT(Bytecodes::GetNthOperandType(bytecode, 2) == OperandType::Local,
-             "Incorrect operand type at index 2 for bytecode");
+                 "Incorrect operand type at index 2 for bytecode");
   TERRIER_ASSERT(Bytecodes::GetNthOperandType(bytecode, 3) == OperandType::Local,
-             "Incorrect operand type at index 3 for bytecode");
+                 "Incorrect operand type at index 3 for bytecode");
   TERRIER_ASSERT(Bytecodes::GetNthOperandType(bytecode, 4) == OperandType::Local,
-             "Incorrect operand type at index 4 for bytecode");
+                 "Incorrect operand type at index 4 for bytecode");
   TERRIER_ASSERT(Bytecodes::GetNthOperandType(bytecode, 5) == OperandType::Local,
-             "Incorrect operand type at index 5 for bytecode");
+                 "Incorrect operand type at index 5 for bytecode");
   TERRIER_ASSERT(Bytecodes::GetNthOperandType(bytecode, 6) == OperandType::Local,
-             "Incorrect operand type at index 6 for bytecode");
+                 "Incorrect operand type at index 6 for bytecode");
   EmitAll(bytecode, operand_1, operand_2, operand_3, operand_4, operand_5, operand_6, operand_7);
 }
 
@@ -222,21 +223,21 @@ void BytecodeEmitter::Emit(Bytecode bytecode, LocalVar operand_1, LocalVar opera
                            LocalVar operand_8) {
   TERRIER_ASSERT(Bytecodes::NumOperands(bytecode) == 8, "Incorrect operand count for bytecode");
   TERRIER_ASSERT(Bytecodes::GetNthOperandType(bytecode, 0) == OperandType::Local,
-             "Incorrect operand type at index 0 for bytecode");
+                 "Incorrect operand type at index 0 for bytecode");
   TERRIER_ASSERT(Bytecodes::GetNthOperandType(bytecode, 1) == OperandType::Local,
-             "Incorrect operand type at index 1 for bytecode");
+                 "Incorrect operand type at index 1 for bytecode");
   TERRIER_ASSERT(Bytecodes::GetNthOperandType(bytecode, 2) == OperandType::Local,
-             "Incorrect operand type at index 2 for bytecode");
+                 "Incorrect operand type at index 2 for bytecode");
   TERRIER_ASSERT(Bytecodes::GetNthOperandType(bytecode, 3) == OperandType::Local,
-             "Incorrect operand type at index 3 for bytecode");
+                 "Incorrect operand type at index 3 for bytecode");
   TERRIER_ASSERT(Bytecodes::GetNthOperandType(bytecode, 4) == OperandType::Local,
-             "Incorrect operand type at index 4 for bytecode");
+                 "Incorrect operand type at index 4 for bytecode");
   TERRIER_ASSERT(Bytecodes::GetNthOperandType(bytecode, 5) == OperandType::Local,
-             "Incorrect operand type at index 5 for bytecode");
+                 "Incorrect operand type at index 5 for bytecode");
   TERRIER_ASSERT(Bytecodes::GetNthOperandType(bytecode, 6) == OperandType::Local,
-             "Incorrect operand type at index 6 for bytecode");
+                 "Incorrect operand type at index 6 for bytecode");
   TERRIER_ASSERT(Bytecodes::GetNthOperandType(bytecode, 7) == OperandType::Local,
-             "Incorrect operand type at index 7 for bytecode");
+                 "Incorrect operand type at index 7 for bytecode");
   EmitAll(bytecode, operand_1, operand_2, operand_3, operand_4, operand_5, operand_6, operand_7, operand_8);
 }
 

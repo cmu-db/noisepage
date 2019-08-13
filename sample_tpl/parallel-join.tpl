@@ -1,3 +1,6 @@
+// Perform parallel join
+// This will be supported after the parallel scans are added
+
 struct State {
   jht: JoinHashTable
 }

@@ -1409,14 +1409,6 @@ void Sema::CheckBuiltinOutputFinalize(execution::ast::CallExpr *call) {
   call->set_type(GetBuiltinType(ast::BuiltinType::Nil));
 }
 
-void Sema::CheckBuiltinInsert(execution::ast::CallExpr *call) {
-  if (!CheckArgCount(call, 3)) {
-    return;
-  }
-  // Return nothing
-  call->set_type(GetBuiltinType(ast::BuiltinType::Nil));
-}
-
 void Sema::CheckBuiltinIndexIteratorInit(execution::ast::CallExpr *call, ast::Builtin builtin) {
   // First argument must be a pointer to a IndexIterator
   const auto index_kind = ast::BuiltinType::IndexIterator;
@@ -1824,10 +1816,6 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
     }
     case ast::Builtin::OutputFinalize: {
       CheckBuiltinOutputFinalize(call);
-      break;
-    }
-    case ast::Builtin::Insert: {
-      CheckBuiltinInsert(call);
       break;
     }
     case ast::Builtin::IndexIteratorInit:

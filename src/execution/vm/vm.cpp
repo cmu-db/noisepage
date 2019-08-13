@@ -1,9 +1,9 @@
 #include "execution/vm/vm.h"
 
-#include <execution/sql/projected_columns_iterator.h>
 #include <numeric>
 #include <string>
 #include <vector>
+#include "execution/sql/projected_columns_iterator.h"
 
 #include "execution/sql/value.h"
 #include "execution/util/common.h"
@@ -1360,18 +1360,6 @@ void VM::Interpret(const u8 *ip, Frame *frame) {
   OP(OutputFinalize) : {
     auto exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
     OpOutputFinalize(exec_ctx);
-    DISPATCH_NEXT();
-  }
-
-  // -------------------------------------------------------
-  // Inserts
-  // -------------------------------------------------------
-  OP(Insert) : {
-    auto table_id = frame->LocalAt<uint32_t>(READ_LOCAL_ID());
-    auto values = frame->LocalAt<byte *>(READ_LOCAL_ID());
-    auto exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
-    OpInsert(exec_ctx, table_id, values);
-    EXECUTION_LOG_TRACE("Inserted into table ", table_id);
     DISPATCH_NEXT();
   }
 

@@ -67,7 +67,7 @@ VM_OP_HOT void OpNot(bool *const result, const bool input) { *result = !input; }
 #define MODULAR(type, ...)                                          \
   /* Primitive modulo-remainder (no zero-check) */                  \
   VM_OP_HOT void OpRem##_##type(type *result, type lhs, type rhs) { \
-    TERRIER_ASSERT(rhs != 0, "Division-by-zero error!");                \
+    TERRIER_ASSERT(rhs != 0, "Division-by-zero error!");            \
     *result = static_cast<type>(lhs % rhs);                         \
   }
 
@@ -88,7 +88,7 @@ INT_TYPES(MODULAR)
                                                                                                               \
   /* Primitive division (no zero-check) */                                                                    \
   VM_OP_HOT void OpDiv##_##type(type *result, type lhs, type rhs) {                                           \
-    TERRIER_ASSERT(rhs != 0, "Division-by-zero error!");                                                          \
+    TERRIER_ASSERT(rhs != 0, "Division-by-zero error!");                                                      \
     *result = static_cast<type>(lhs / rhs);                                                                   \
   }
 
@@ -1492,13 +1492,6 @@ VM_OP_HOT void OpIndexIteratorSetKeyDouble(terrier::execution::sql::IndexIterato
   iter->SetKey(col_idx, static_cast<f64>(val->val), val->is_null);
 }
 
-// ---------------------------------------------------------------
-// Insert Calls
-// ---------------------------------------------------------------
-
-void OpInsert(terrier::execution::exec::ExecutionContext *exec_ctx, u32 table_oid, byte *values_ptr);
-
-// ---------------------------------------------------------------
 // Output Calls
 // ---------------------------------------------------------------
 

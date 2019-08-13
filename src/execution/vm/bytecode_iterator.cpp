@@ -87,7 +87,7 @@ u64 BytecodeIterator::GetUnsignedImmediateOperand(u32 operand_index) const {
 
 i32 BytecodeIterator::GetJumpOffsetOperand(u32 operand_index) const {
   TERRIER_ASSERT(Bytecodes::GetNthOperandType(CurrentBytecode(), operand_index) == OperandType::JumpOffset,
-             "Operand isn't a jump offset");
+                 "Operand isn't a jump offset");
   const u8 *operand_address =
       bytecodes_.data() + curr_offset_ + Bytecodes::GetNthOperandOffset(CurrentBytecode(), operand_index);
 
@@ -96,7 +96,7 @@ i32 BytecodeIterator::GetJumpOffsetOperand(u32 operand_index) const {
 
 LocalVar BytecodeIterator::GetLocalOperand(u32 operand_index) const {
   TERRIER_ASSERT(OperandTypes::IsLocal(Bytecodes::GetNthOperandType(CurrentBytecode(), operand_index)),
-             "Operand type is not a local variable reference");
+                 "Operand type is not a local variable reference");
   const u8 *operand_address =
       bytecodes_.data() + curr_offset_ + Bytecodes::GetNthOperandOffset(CurrentBytecode(), operand_index);
 
@@ -106,7 +106,7 @@ LocalVar BytecodeIterator::GetLocalOperand(u32 operand_index) const {
 
 u16 BytecodeIterator::GetLocalCountOperand(u32 operand_index, std::vector<LocalVar> *locals) const {
   TERRIER_ASSERT(OperandTypes::IsLocalCount(Bytecodes::GetNthOperandType(CurrentBytecode(), operand_index)),
-             "Operand type is not a local variable count");
+                 "Operand type is not a local variable count");
 
   const u8 *operand_address =
       bytecodes_.data() + curr_offset_ + Bytecodes::GetNthOperandOffset(CurrentBytecode(), operand_index);
@@ -127,7 +127,7 @@ u16 BytecodeIterator::GetLocalCountOperand(u32 operand_index, std::vector<LocalV
 
 u16 BytecodeIterator::GetFunctionIdOperand(u32 operand_index) const {
   TERRIER_ASSERT(Bytecodes::GetNthOperandType(CurrentBytecode(), operand_index) == OperandType::FunctionId,
-             "Operand type is not a function");
+                 "Operand type is not a function");
 
   const u8 *operand_address =
       bytecodes_.data() + curr_offset_ + Bytecodes::GetNthOperandOffset(CurrentBytecode(), operand_index);

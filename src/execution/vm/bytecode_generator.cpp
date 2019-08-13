@@ -1,4 +1,3 @@
-#include <iostream>
 #include <memory>
 #include <string>
 #include <utility>
@@ -326,13 +325,13 @@ void BytecodeGenerator::VisitVariableDecl(ast::VariableDecl *node) {
   ast::Type *type = nullptr;
   if (node->type_repr() != nullptr) {
     TERRIER_ASSERT(node->type_repr()->type() != nullptr,
-               "Variable with explicit type declaration is missing resolved "
-               "type at runtime!");
+                   "Variable with explicit type declaration is missing resolved "
+                   "type at runtime!");
     type = node->type_repr()->type();
   } else {
     TERRIER_ASSERT(node->initial() != nullptr,
-               "Variable without explicit type declaration is missing an "
-               "initialization expression!");
+                   "Variable without explicit type declaration is missing an "
+                   "initialization expression!");
     TERRIER_ASSERT(node->initial()->type() != nullptr, "Variable with initial value is missing resolved type");
     type = node->initial()->type();
   }
@@ -706,8 +705,8 @@ void BytecodeGenerator::VisitBuiltinPCICall(ast::CallExpr *call, ast::Builtin bu
 
 void BytecodeGenerator::VisitBuiltinHashCall(ast::CallExpr *call, UNUSED ast::Builtin builtin) {
   TERRIER_ASSERT(call->type()->size() == sizeof(hash_t),
-             "Hash value size (from return type of @hash) doesn't match actual "
-             "size of hash_t type");
+                 "Hash value size (from return type of @hash) doesn't match actual "
+                 "size of hash_t type");
 
   // hash_val is where we accumulate all the hash values passed to the @hash()
   LocalVar hash_val = execution_result()->GetOrCreateDestination(call->type());
@@ -1396,10 +1395,6 @@ void BytecodeGenerator::VisitBuiltinOutputCall(ast::CallExpr *call, ast::Builtin
   }
 }
 
-void BytecodeGenerator::VisitBuiltinInsertCall(ast::CallExpr *call, ast::Builtin builtin) {
-  UNREACHABLE("Implement Insert after adding a ProjectedRow type");
-}
-
 void BytecodeGenerator::VisitBuiltinIndexIteratorCall(ast::CallExpr *call, ast::Builtin builtin) {
   LocalVar iterator = VisitExpressionForRValue(call->arguments()[0]);
   ast::Context *ctx = call->type()->context();
@@ -1740,9 +1735,6 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
     case ast::Builtin::OutputFinalize:
       VisitBuiltinOutputCall(call, builtin);
       break;
-    case ast::Builtin::Insert:
-      VisitBuiltinInsertCall(call, builtin);
-      break;
     case ast::Builtin::IndexIteratorInit:
     case ast::Builtin::IndexIteratorInitBind:
     case ast::Builtin::IndexIteratorScanKey:
@@ -2040,7 +2032,7 @@ void BytecodeGenerator::VisitSqlCompareOpExpr(ast::ComparisonOpExpr *compare) {
   LocalVar right = VisitExpressionForLValue(compare->right());
 
   TERRIER_ASSERT(compare->left()->type() == compare->right()->type(),
-             "Left and right input types to comparison are not equal");
+                 "Left and right input types to comparison are not equal");
   TERRIER_ASSERT(compare->left()->type()->IsBuiltinType(), "Sql comparison must be done on sql types");
 
   auto builtin_kind = compare->left()->type()->As<ast::BuiltinType>()->kind();

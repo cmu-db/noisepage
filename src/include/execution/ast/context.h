@@ -69,14 +69,14 @@ class Context {
    * @param builtin builtin to find
    * @return the identifier of the builtin function
    */
-  ast::Identifier GetBuiltinFunction(Builtin builtin);
+  Identifier GetBuiltinFunction(Builtin builtin);
 
   /**
    * Get the identifier of a builtin type
    * @param kind kind of the builtin to find
    * @return the identifier of the builtin
    */
-  ast::Identifier GetBuiltinType(BuiltinType::Kind kind);
+  Identifier GetBuiltinType(BuiltinType::Kind kind);
 
   // -------------------------------------------------------
   // Simple accessors

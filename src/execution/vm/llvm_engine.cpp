@@ -861,8 +861,8 @@ void LLVMEngine::CompiledModuleBuilder::Verify() {
   std::string result;
   llvm::raw_string_ostream ostream(result);
   if (bool has_error = llvm::verifyModule(*module(), &ostream); has_error) {
-    // TODO(pmenon): Do something more here ...
     EXECUTION_LOG_ERROR("ERROR IN MODULE:\n{}", ostream.str());
+    UNREACHABLE("Could not compile module");
   }
 }
 

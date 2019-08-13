@@ -1,3 +1,6 @@
+// Perform parallel aggregation
+// This will be supported after the parallel scans are added
+
 struct State {
   table: AggregationHashTable
   count: int32

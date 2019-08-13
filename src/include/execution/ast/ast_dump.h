@@ -1,4 +1,5 @@
 #pragma once
+#include <string>
 
 namespace terrier::execution::ast {
 
@@ -10,10 +11,11 @@ class AstNode;
 class AstDump {
  public:
   /**
-   * Dumps ast to std out
+   * Dumps ast to a string
    * @param node node to dump
+   * @return output string
    */
-  static void Dump(AstNode *node);
+  static std::string Dump(AstNode *node);
 };
 
 }  // namespace terrier::execution::ast

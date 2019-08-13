@@ -1,3 +1,5 @@
+// Test struct fields
+
 struct S {
   z: int
   y: int

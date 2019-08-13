@@ -35,21 +35,19 @@ namespace terrier::execution::util {
 template <typename Alloc = std::allocator<byte>>
 class ChunkedVector {
  public:
-  // clang-format off
-  // We store 256 elements in each chunk of the vector
   /**
+   * We store 256 elements in each chunk.
    * log of 256 = 8
    */
   static constexpr const u32 kLogNumElementsPerChunk = 8;
   /**
-  * Number of elements per chunk = 256
+   * Number of elements per chunk = 256
    */
   static constexpr const u32 kNumElementsPerChunk = (1u << kLogNumElementsPerChunk);
   /**
-  * Bit mask with kLogNumElementsPerChunk ones.
+   * Bit mask with kLogNumElementsPerChunk ones.
    */
   static constexpr const u32 kChunkPositionMask = kNumElementsPerChunk - 1;
-  // clang-format on
 
   /**
    * Construct a chunked vector whose elements have size @em element_size in

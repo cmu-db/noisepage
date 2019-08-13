@@ -1,3 +1,6 @@
+// Perform parallel scan
+// This is not yet supported with the current SQL table API.
+
 struct State {
 }
 

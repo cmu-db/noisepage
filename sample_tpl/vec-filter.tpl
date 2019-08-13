@@ -1,3 +1,9 @@
+// Perform (in vectorized fashion)
+//
+// SELECT colA FROM test_1 WHERE colA < 3000
+//
+// Should return 3000 (number of output rows)
+
 fun main(execCtx: *ExecutionContext) -> int64 {
   var ret = 0
   var tvi: TableVectorIterator

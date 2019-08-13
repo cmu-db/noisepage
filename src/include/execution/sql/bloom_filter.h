@@ -114,35 +114,4 @@ class BloomFilter {
   MemPoolVector<hash_t> lazily_added_hashes_{nullptr};
 };
 
-#if 0
-// ---------------------------------------------------------
-// Implementation below
-// ---------------------------------------------------------
-
-inline void BloomFilter::Add_Slow(hash_t hash) {
-  u32 block_idx = static_cast<u32>(hash & block_mask());
-  Block &block = blocks_[block_idx];
-  u32 alt_hash = static_cast<u32>(hash >> 32);
-  for (u32 i = 0; i < 8; i++) {
-    u32 bit_idx = (alt_hash * kSalts[i]) >> 27;
-    util::BitUtil::Set(&block[i], bit_idx);
-  }
-}
-
-inline bool BloomFilter::Contains_Slow(hash_t hash) const {
-  u32 alt_hash = static_cast<u32>(hash >> 32);
-  u32 block_idx = static_cast<u32>(hash & block_mask());
-
-  Block &block = blocks_[block_idx];
-  for (u32 i = 0; i < 8; i++) {
-    u32 bit_idx = (alt_hash * kSalts[i]) >> 27;
-    if (!util::BitUtil::Test(&block[i], bit_idx)) {
-      return false;
-    }
-  }
-
-  return true;
-}
-#endif
-
 }  // namespace terrier::execution::sql

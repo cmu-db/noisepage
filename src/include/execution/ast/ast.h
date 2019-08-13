@@ -6,7 +6,6 @@
 #include "llvm/Support/Casting.h"
 
 #include "execution/ast/identifier.h"
-// #include "execution/compiler/compiler_defs.h"
 #include "execution/parsing/token.h"
 #include "execution/util/common.h"
 #include "execution/util/region.h"
@@ -1407,7 +1406,7 @@ class LitExpr : public Expr {
    */
   Identifier raw_string_val() const {
     TERRIER_ASSERT(literal_kind() != LitKind::Nil && literal_kind() != LitKind::Boolean,
-               "Getting a raw string value from a non-string or numeric value");
+                   "Getting a raw string value from a non-string or numeric value");
     return str_;
   }
 

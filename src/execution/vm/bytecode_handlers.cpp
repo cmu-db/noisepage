@@ -184,13 +184,6 @@ void OpOutputAlloc(terrier::execution::exec::ExecutionContext *exec_ctx, byte **
 
 void OpOutputFinalize(terrier::execution::exec::ExecutionContext *exec_ctx) { exec_ctx->GetOutputBuffer()->Finalize(); }
 
-// -------------------------------------------------------------
-// Insert
-// ------------------------------------------------------------
-void OpInsert(terrier::execution::exec::ExecutionContext *exec_ctx, u32 table_oid, byte *values_ptr) {
-  // TODO(Amadou): Implement me once a builtin ProjectedRow is implemented.
-}
-
 // -------------------------------------------------------------------
 // Index Iterator
 // -------------------------------------------------------------------
