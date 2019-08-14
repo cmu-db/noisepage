@@ -91,4 +91,4 @@ ADD_TERRIER_LIB(terrier
 # Terrier executable
 ###############################################
 add_executable(terrier main/terrier.cpp)
-target_link_libraries(terrier terrier_shared)
+target_link_libraries(terrier terrier_static ${TERRIER_LINK_LIBS})
