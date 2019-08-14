@@ -1,7 +1,7 @@
 #include <unordered_map>
 
 #include "execution/sql/generic_hash_table.h"
-#include "execution/util/math_util.h"
+#include "common/math_util.h"
 
 namespace terrier::execution::sql {
 
@@ -13,7 +13,7 @@ GenericHashTable::~GenericHashTable() {
   }
 }
 
-void GenericHashTable::SetSize(u64 new_size) {
+void GenericHashTable::SetSize(uint64_t new_size) {
   TERRIER_ASSERT(new_size > 0, "New size cannot be zero!");
   if (entries_ != nullptr) {
     util::FreeHugeArray(entries_, capacity());
@@ -24,7 +24,7 @@ void GenericHashTable::SetSize(u64 new_size) {
     next_size *= 2;
   }
 
-  capacity_ = static_cast<u64>(next_size);
+  capacity_ = static_cast<uint64_t>(next_size);
   mask_ = capacity_ - 1;
   num_elems_ = 0;
   entries_ = util::MallocHugeArray<std::atomic<HashTableEntry *>>(capacity_);

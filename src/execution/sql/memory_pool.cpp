@@ -3,15 +3,16 @@
 #include <cstdlib>
 #include <memory>
 
+#include "common/constants.h"
 #include "execution/util/memory.h"
 
 namespace terrier::execution::sql {
 
 // If the allocation size is larger than this value, use huge pages
-std::atomic<u64> MemoryPool::kMmapThreshold = 64 * MB;
+std::atomic<uint64_t> MemoryPool::kMmapThreshold = 64 * common::Constants::MB;
 
 // Minimum alignment to abide by
-static constexpr u32 kMinMallocAlignment = 8;
+static constexpr uint32_t kMinMallocAlignment = 8;
 
 MemoryPool::MemoryPool(MemoryTracker *tracker) : tracker_(tracker) {}
 

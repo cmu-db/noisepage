@@ -1,6 +1,6 @@
 #pragma once
 
-#include "execution/util/common.h"
+#include "execution/util/execution_common.h"
 #include "execution/util/region_containers.h"
 #include "execution/vm/bytecode_function_info.h"
 #include "execution/vm/bytecodes.h"
@@ -19,7 +19,7 @@ class VM {
    * Invoke the function with ID @em func_id in the module @em module. @em args
    * contains the output and input parameters stored contiguously.
    */
-  static void InvokeFunction(const Module *module, FunctionId func_id, const u8 args[]);
+  static void InvokeFunction(const Module *module, FunctionId func_id, const uint8_t args[]);
 
  private:
   // Private constructor to force users to use InvokeFunction
@@ -32,10 +32,10 @@ class VM {
   class Frame;
 
   // Interpret the given instruction stream using the given execution frame
-  void Interpret(const u8 *ip, Frame *frame);
+  void Interpret(const uint8_t *ip, Frame *frame);
 
   // Execute a call instruction
-  const u8 *ExecuteCall(const u8 *ip, Frame *caller);
+  const uint8_t *ExecuteCall(const uint8_t *ip, Frame *caller);
 
  private:
   // The module

@@ -4,7 +4,7 @@
 #include <limits>
 
 #include "execution/sql/value.h"
-#include "execution/util/common.h"
+#include "execution/util/execution_common.h"
 #include "common/macros.h"
 
 namespace terrier::execution::sql {
@@ -31,7 +31,7 @@ class CountAggregate {
   /**
    * Advance the count based on the NULL-ness of the input value.
    */
-  void Advance(const Val &val) { count_ += static_cast<u64>(!val.is_null); }
+  void Advance(const Val &val) { count_ += static_cast<uint64_t>(!val.is_null); }
 
   /**
    * Merge this count with the @em that count.
@@ -49,7 +49,7 @@ class CountAggregate {
   Integer GetCountResult() const { return Integer(count_); }
 
  private:
-  u64 count_{0};
+  uint64_t count_{0};
 };
 
 // ---------------------------------------------------------
@@ -92,7 +92,7 @@ class CountStarAggregate {
   Integer GetCountResult() const { return Integer(count_); }
 
  private:
-  u64 count_{0};
+  uint64_t count_{0};
 };
 
 // ---------------------------------------------------------
@@ -157,7 +157,7 @@ class IntegerSumAggregate {
   }
 
  private:
-  i64 sum_{0};
+  int64_t sum_{0};
   bool null_{true};
 };
 
@@ -266,7 +266,7 @@ class IntegerMaxAggregate {
    */
   void Reset() {
     null_ = true;
-    max_ = std::numeric_limits<i64>::min();
+    max_ = std::numeric_limits<int64_t>::min();
   }
 
   /**
@@ -279,7 +279,7 @@ class IntegerMaxAggregate {
   }
 
  private:
-  i64 max_{std::numeric_limits<i64>::min()};
+  int64_t max_{std::numeric_limits<int64_t>::min()};
   bool null_{true};
 };
 
@@ -388,7 +388,7 @@ class IntegerMinAggregate {
    */
   void Reset() {
     null_ = true;
-    min_ = std::numeric_limits<i64>::max();
+    min_ = std::numeric_limits<int64_t>::max();
   }
 
   /**
@@ -401,7 +401,7 @@ class IntegerMinAggregate {
   }
 
  private:
-  i64 min_{std::numeric_limits<i64>::max()};
+  int64_t min_{std::numeric_limits<int64_t>::max()};
   bool null_{true};
 };
 
@@ -523,7 +523,7 @@ class AvgAggregate {
 
  private:
   double sum_{0.0};
-  u64 count_{0};
+  uint64_t count_{0};
 };
 
 }  // namespace terrier::execution::sql

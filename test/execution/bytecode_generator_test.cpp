@@ -53,7 +53,7 @@ TEST_F(BytecodeGeneratorTest, SimpleTest) {
     auto module = compiler.CompileToModule(src);
     ASSERT_TRUE(module != nullptr);
 
-    std::function<u32(u32)> mul_20;
+    std::function<uint32_t(uint32_t)> mul_20;
     EXPECT_TRUE(module->GetFunction("mul20", ExecutionMode::Interpret, &mul_20))
         << "Function 'mul20' not found in module";
 
@@ -83,7 +83,7 @@ TEST_F(BytecodeGeneratorTest, BooleanEvaluationTest) {
     auto module = compiler.CompileToModule(src);
     ASSERT_TRUE(module != nullptr);
 
-    std::function<i32(bool)> f;
+    std::function<int32_t(bool)> f;
     EXPECT_TRUE(module->GetFunction("test", ExecutionMode::Interpret, &f)) << "Function 'test' not found in module";
     EXPECT_EQ(10, f(false));
     EXPECT_EQ(-10, f(true));
@@ -146,10 +146,10 @@ TEST_F(BytecodeGeneratorTest, SimpleArithmeticTest) {
   CMP_TEST(cpptype, tpltype, /)        \
   CMP_TEST(cpptype, tpltype, %)
 
-  TEST_ALL_CMP(i8, "int8")
-  TEST_ALL_CMP(i16, "int16")
-  TEST_ALL_CMP(i32, "int32")
-  TEST_ALL_CMP(i64, "int64")
+  TEST_ALL_CMP(int8_t, "int8")
+  TEST_ALL_CMP(int16_t, "int16")
+  TEST_ALL_CMP(int32_t, "int32")
+  TEST_ALL_CMP(int64_t, "int64")
 
 #undef TEST_ALL_CMP
 #undef CMP_TEST
@@ -190,10 +190,10 @@ TEST_F(BytecodeGeneratorTest, ComparisonTest) {
   CMP_TEST(cpptype, tpltype, >=)       \
   CMP_TEST(cpptype, tpltype, !=)
 
-  TEST_ALL_CMP(i8, "int8")
-  TEST_ALL_CMP(i16, "int16")
-  TEST_ALL_CMP(i32, "int32")
-  TEST_ALL_CMP(i64, "int64")
+  TEST_ALL_CMP(int8_t, "int8")
+  TEST_ALL_CMP(int16_t, "int16")
+  TEST_ALL_CMP(int32_t, "int32")
+  TEST_ALL_CMP(int64_t, "int64")
 
 #undef TEST_ALL_CMP
 #undef CMP_TEST
@@ -263,7 +263,7 @@ TEST_F(BytecodeGeneratorTest, FunctionTypeCheckTest) {
     auto module = compiler.CompileToModule(src);
     ASSERT_TRUE(module != nullptr);
 
-    std::function<i32()> f;
+    std::function<int32_t()> f;
     EXPECT_TRUE(module->GetFunction("test", ExecutionMode::Interpret, &f)) << "Function 'test' not found in module";
 
     EXPECT_EQ(10, f());
@@ -279,7 +279,7 @@ TEST_F(BytecodeGeneratorTest, FunctionTypeCheckTest) {
     auto compiler = ModuleCompiler();
     auto module = compiler.CompileToModule(src);
 
-    std::function<i32()> f;
+    std::function<int32_t()> f;
     EXPECT_TRUE(module->GetFunction("test", ExecutionMode::Interpret, &f)) << "Function 'test' not found in module";
 
     EXPECT_EQ(800, f());

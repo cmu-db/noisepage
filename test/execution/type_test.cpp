@@ -44,12 +44,12 @@ TEST_F(TypeTest, StructPaddingTest) {
   // clang-format off
   struct Test {
     bool a;
-    i64  b;
-    i8   c;
-    i32  d;
-    i8   e;
-    i16  f;
-    i64 *g;
+    int64_t  b;
+    int8_t   c;
+    int32_t  d;
+    int8_t   e;
+    int16_t  f;
+    int64_t *g;
   };
   // clang-format on
 
@@ -67,8 +67,8 @@ TEST_F(TypeTest, StructPaddingTest) {
 
   auto *type = ast::StructType::Get(std::move(fields));
 
-  // Expect: [0-1] b, [2-7] pad, [8-15] i64, [16-17] i8_1, [18-19] pad,
-  //         [20-23] i32, [24-25] i8_2, [26-27] i16, [28-31] pad, [32-40] p
+  // Expect: [0-1] b, [2-7] pad, [8-15] int64_t, [16-17] int8_t_1, [18-19] pad,
+  //         [20-23] int32_t, [24-25] int8_t_2, [26-27] int16_t, [28-31] pad, [32-40] p
   EXPECT_EQ(sizeof(Test), type->size());
   EXPECT_EQ(alignof(Test), type->alignment());
   EXPECT_EQ(offsetof(Test, a), type->GetOffsetOfFieldByName(Name("a")));
@@ -167,7 +167,7 @@ TEST_F(TypeTest, StructTypeCacheTest) {
 // NOLINTNEXTLINE
 TEST_F(TypeTest, PointerTypeCacheTest) {
   //
-  // Pointer types should also be cached. Thus, two *i8 types should have
+  // Pointer types should also be cached. Thus, two *int8_t types should have
   // pointer equality in a given context
   //
 

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "execution/util/common.h"
+#include "execution/util/execution_common.h"
 #include "execution/util/cpu_info.h"
 #include "execution/util/timer.h"
 #include "gtest/gtest.h"
@@ -17,7 +17,7 @@ class TplTest : public terrier::TerrierTest {
 };
 
 template <typename F>
-static inline double Bench(u32 repeat, const F &f) {
+static inline double Bench(uint32_t repeat, const F &f) {
   if (repeat > 4) {
     // Warmup
     f();
@@ -27,7 +27,7 @@ static inline double Bench(u32 repeat, const F &f) {
   util::Timer<std::milli> timer;
   timer.Start();
 
-  for (u32 i = 0; i < repeat; i++) {
+  for (uint32_t i = 0; i < repeat; i++) {
     f();
   }
 

@@ -5,6 +5,7 @@
 #include <utility>
 
 #include "tbb/task.h"
+#include "common/constants.h"
 
 #define XBYAK_NO_OP_NAMES
 #include "xbyak/xbyak/xbyak.h"
@@ -53,13 +54,13 @@ Module::Module(std::unique_ptr<BytecodeModule> bytecode_module, std::unique_ptr<
   // the bytecode implementations.
   if (jit_module_ == nullptr) {
     const auto num_functions = bytecode_module_->num_functions();
-    for (u32 idx = 0; idx < num_functions; idx++) {
+    for (uint32_t idx = 0; idx < num_functions; idx++) {
       functions_[idx] = bytecode_trampolines_[idx].code();
     }
   } else {
     const auto num_functions = bytecode_module_->num_functions();
-    for (u32 idx = 0; idx < num_functions; idx++) {
-      auto func_info = bytecode_module_->GetFuncInfoById(static_cast<u16>(idx));
+    for (uint32_t idx = 0; idx < num_functions; idx++) {
+      auto func_info = bytecode_module_->GetFuncInfoById(static_cast<uint16_t>(idx));
       functions_[idx] = jit_module_->GetFunctionPointer(func_info->name());
     }
   }
@@ -82,7 +83,7 @@ class TrampolineGenerator : public Xbyak::CodeGenerator {
    */
   void Generate() {
     // Compute the stack space needed for all arguments
-    const u32 required_stack_space = ComputeRequiredStackSpace();
+    const uint32_t required_stack_space = ComputeRequiredStackSpace();
 
     // Function prologue
     Prologue();
@@ -107,10 +108,10 @@ class TrampolineGenerator : public Xbyak::CodeGenerator {
   }
 
  private:
-  u32 ComputeRequiredStackSpace() const {
+  uint32_t ComputeRequiredStackSpace() const {
     // FunctionInfo tells us the amount of space we need for all input and
     // output arguments, so use that.
-    auto required_stack_space = static_cast<u32>(func_.params_size());
+    auto required_stack_space = static_cast<uint32_t>(func_.params_size());
 
     // If the function has a return type, we need to allocate a temporary
     // return value on the stack for that as well. However, if the return type
@@ -119,20 +120,20 @@ class TrampolineGenerator : public Xbyak::CodeGenerator {
     // argument
     const ast::Type *return_type = func_.func_type()->return_type();
     if (!return_type->IsNilType()) {
-      required_stack_space += static_cast<u32>(util::MathUtil::AlignTo(return_type->size(), sizeof(intptr_t)));
+      required_stack_space += static_cast<uint32_t>(util::MathUtil::AlignTo(return_type->size(), sizeof(intptr_t)));
     }
 
     // Always align to cacheline boundary
-    return static_cast<u32>(util::MathUtil::AlignTo(required_stack_space, common::Constants::CACHELINE_SIZE));
+    return static_cast<uint32_t>(util::MathUtil::AlignTo(required_stack_space, common::Constants::CACHELINE_SIZE));
   }
 
   void Prologue() { push(rbx); }
 
   void Epilogue() { pop(rbx); }
 
-  void AllocStack(u32 size) { sub(rsp, size); }
+  void AllocStack(uint32_t size) { sub(rsp, size); }
 
-  void FreeStack(u32 size) { add(rsp, size); }
+  void FreeStack(uint32_t size) { add(rsp, size); }
 
   // This function pushes all caller arguments onto the stack. We assume that
   // there is enough stack through a previous call to AdjustStack(). There are
@@ -165,8 +166,8 @@ class TrampolineGenerator : public Xbyak::CodeGenerator {
     const ast::FunctionType *func_type = func_.func_type();
     TERRIER_ASSERT(func_type->num_params() < sizeof(arg_regs), "Too many function arguments");
 
-    u32 displacement = 0;
-    u32 local_idx = 0;
+    uint32_t displacement = 0;
+    uint32_t local_idx = 0;
 
     //
     // The first argument to the TBC function is a pointer to the return value.
@@ -174,7 +175,7 @@ class TrampolineGenerator : public Xbyak::CodeGenerator {
     //
 
     if (const ast::Type *return_type = func_type->return_type(); !return_type->IsNilType()) {
-      displacement = static_cast<u32>(util::MathUtil::AlignTo(return_type->size(), sizeof(intptr_t)));
+      displacement = static_cast<uint32_t>(util::MathUtil::AlignTo(return_type->size(), sizeof(intptr_t)));
       mov(ptr[rsp + displacement], rsp);
       local_idx++;
     }
@@ -183,9 +184,9 @@ class TrampolineGenerator : public Xbyak::CodeGenerator {
     // Now comes all the input arguments
     //
 
-    for (u32 idx = 0; idx < func_type->num_params(); idx++, local_idx++) {
+    for (uint32_t idx = 0; idx < func_type->num_params(); idx++, local_idx++) {
       const auto &local_info = func_.locals()[local_idx];
-      auto use_64bit_reg = static_cast<u32>(local_info.size() > sizeof(u32));
+      auto use_64bit_reg = static_cast<uint32_t>(local_info.size() > sizeof(uint32_t));
       mov(ptr[rsp + displacement + local_info.offset()], arg_regs[use_64bit_reg][idx]);
     }
   }
@@ -193,9 +194,9 @@ class TrampolineGenerator : public Xbyak::CodeGenerator {
   void InvokeVMFunction() {
     const ast::FunctionType *func_type = func_.func_type();
     const ast::Type *ret_type = func_type->return_type();
-    u32 ret_type_size = 0;
+    uint32_t ret_type_size = 0;
     if (!ret_type->IsNilType()) {
-      ret_type_size = static_cast<u32>(util::MathUtil::AlignTo(ret_type->size(), sizeof(intptr_t)));
+      ret_type_size = static_cast<uint32_t>(util::MathUtil::AlignTo(ret_type->size(), sizeof(intptr_t)));
     }
 
     // Set up the arguments to VM::InvokeFunction(module, function ID, args)
@@ -228,7 +229,7 @@ class TrampolineGenerator : public Xbyak::CodeGenerator {
 void Module::CreateFunctionTrampoline(const FunctionInfo &func, Trampoline *trampoline) {
   // Allocate memory
   std::error_code error;
-  u32 flags = llvm::sys::Memory::ProtectionFlags::MF_READ | llvm::sys::Memory::ProtectionFlags::MF_WRITE;
+  uint32_t flags = llvm::sys::Memory::ProtectionFlags::MF_READ | llvm::sys::Memory::ProtectionFlags::MF_WRITE;
   llvm::sys::MemoryBlock mem = llvm::sys::Memory::allocateMappedMemory(1 << 12, nullptr, flags, error);
   if (error) {
     EXECUTION_LOG_ERROR("There was an error allocating executable memory {}", error.message());

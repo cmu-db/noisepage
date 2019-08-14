@@ -66,12 +66,12 @@ class TestAstBuilder {
   /**
    * Make an int litera;
    */
-  Expr *IntLit(i32 i) { return node_factory()->NewIntLiteral(empty_, i); }
+  Expr *IntLit(int32_t i) { return node_factory()->NewIntLiteral(empty_, i); }
 
   /**
    * Make a float literal
    */
-  Expr *FloatLit(f32 i) { return node_factory()->NewFloatLiteral(empty_, i); }
+  Expr *FloatLit(float i) { return node_factory()->NewFloatLiteral(empty_, i); }
 
   /**
    * Make a binary op expression
@@ -164,7 +164,7 @@ class TestAstBuilder {
   Expr *PrimIntTypeRepr() { return BuiltinTypeRepr<BuiltinType::Int32>(); }
 
   /**
-   * Get an f32 type
+   * Get an float type
    */
   Expr *PrimFloatTypeRepr() { return BuiltinTypeRepr<BuiltinType::Float32>(); }
 

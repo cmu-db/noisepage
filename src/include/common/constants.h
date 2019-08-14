@@ -31,5 +31,36 @@ struct Constants {
    * The cache line size in bytes
    */
   static const uint8_t CACHELINE_SIZE = 64;
+
+  /**
+   * The number of bits per byte
+   */
+  static constexpr const uint32_t kBitsPerByte = 8;
+
+  /**
+   * The default vector size to use when performing vectorized iteration
+   */
+  static constexpr const uint32_t kDefaultVectorSize = 2048;
+
+  /**
+   * The default prefetch distance to use
+   */
+  static constexpr const uint32_t kPrefetchDistance = 16;
+
+  // Common memory sizes
+  /**
+   * KB
+   */
+  static constexpr const uint32_t KB = 1024;
+
+  /**
+   * MB
+   */
+  static constexpr const uint32_t MB = KB * KB;
+
+  /**
+   * GB
+   */
+  static constexpr const uint32_t GB = KB * KB * KB;
 };
 }  // namespace terrier::common

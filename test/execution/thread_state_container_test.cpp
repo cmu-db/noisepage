@@ -16,7 +16,7 @@ namespace terrier::execution::sql::test {
 class ThreadStateContainerTest : public TplTest {
  protected:
   void ForceCreationOfThreadStates(ThreadStateContainer *container) {
-    std::vector<u32> input(2000);
+    std::vector<uint32_t> input(2000);
     tbb::task_scheduler_init sched;
     tbb::parallel_for_each(input.begin(), input.end(),
                            [&container](auto c) { container->AccessThreadStateOfCurrentThread(); });
@@ -28,16 +28,16 @@ TEST_F(ThreadStateContainerTest, EmptyStateTest) {
   MemoryPool memory(nullptr);
   ThreadStateContainer container(&memory);
   container.Reset(0, nullptr, nullptr, nullptr);
-  UNUSED auto *state = container.AccessThreadStateOfCurrentThread();
+  UNUSED_ATTRIBUTE auto *state = container.AccessThreadStateOfCurrentThread();
   container.Clear();
 }
 
 // NOLINTNEXTLINE
 TEST_F(ThreadStateContainerTest, ComplexObjectContainerTest) {
   struct Object {
-    u64 x{0};
-    u32 arr[10] = {0};
-    u32 arr_2[2] = {44, 23};
+    uint64_t x{0};
+    uint32_t arr[10] = {0};
+    uint32_t arr_2[2] = {44, 23};
     Object *next{nullptr};
     bool initialized{false};
   };
@@ -47,7 +47,7 @@ TEST_F(ThreadStateContainerTest, ComplexObjectContainerTest) {
 
   container.Reset(
       sizeof(Object),
-      [](UNUSED auto *_, auto *s) {
+      [](UNUSED_ATTRIBUTE auto *_, auto *s) {
         // Set some stuff to indicate object is initialized
         auto obj = new (s) Object();
         obj->x = 10;
@@ -77,15 +77,15 @@ TEST_F(ThreadStateContainerTest, ContainerResetTest) {
   //       the count should be zero.
   //
 
-  const u32 init_num = 44;
-  std::atomic<u32> count(init_num);
+  const uint32_t init_num = 44;
+  std::atomic<uint32_t> count(init_num);
 
 #define RESET(N)                                                                                          \
   {                                                                                                       \
     /* Reset the container, add/sub upon creation/destruction by amount */                                \
     container.Reset(                                                                                      \
-        sizeof(u32), [](auto *ctx, UNUSED auto *s) { (*reinterpret_cast<decltype(count) *>(ctx)) += N; }, \
-        [](auto *ctx, UNUSED auto *s) { (*reinterpret_cast<decltype(count) *>(ctx)) -= N; }, &count);     \
+        sizeof(uint32_t), [](auto *ctx, UNUSED_ATTRIBUTE auto *s) { (*reinterpret_cast<decltype(count) *>(ctx)) += N; }, \
+        [](auto *ctx, UNUSED_ATTRIBUTE auto *s) { (*reinterpret_cast<decltype(count) *>(ctx)) -= N; }, &count);     \
     ForceCreationOfThreadStates(&container);                                                              \
   }
 
@@ -110,33 +110,33 @@ TEST_F(ThreadStateContainerTest, SimpleContainerTest) {
   MemoryPool memory(nullptr);
   ThreadStateContainer container(&memory);
   container.Reset(
-      sizeof(u32), [](UNUSED auto *ctx, auto *s) { *reinterpret_cast<u32 *>(s) = 0; }, nullptr, nullptr);
+      sizeof(uint32_t), [](UNUSED_ATTRIBUTE auto *ctx, auto *s) { *reinterpret_cast<uint32_t *>(s) = 0; }, nullptr, nullptr);
 
-  std::vector<u32> input(10000);
+  std::vector<uint32_t> input(10000);
   std::iota(input.begin(), input.end(), 0);
 
   tbb::task_scheduler_init sched;
   tbb::blocked_range r(std::size_t(0), input.size());
   tbb::parallel_for(r, [&container](const auto &range) {
-    auto *state = container.AccessThreadStateOfCurrentThreadAs<u32>();
+    auto *state = container.AccessThreadStateOfCurrentThreadAs<uint32_t>();
     for (auto iter = range.begin(), end = range.end(); iter != end; ++iter) {
       (*state)++;
     }
   });
 
   // Iterate over all to collect counts
-  u32 total = 0;
-  container.ForEach<u32>([&total](const u32 *const count) { total += *count; });
+  uint32_t total = 0;
+  container.ForEach<uint32_t>([&total](const uint32_t *const count) { total += *count; });
   EXPECT_EQ(input.size(), total);
 
   // Manually collect and add
   {
-    std::vector<u32 *> counts;
+    std::vector<uint32_t *> counts;
     container.CollectThreadLocalStateElementsAs(&counts, 0);
     LOG_INFO("{} thread states", counts.size());
 
-    total = static_cast<i32>(
-        std::accumulate(counts.begin(), counts.end(), u32(0), [](u32 partial, const u32 *c) { return partial + *c; }));
+    total = static_cast<int32_t>(
+        std::accumulate(counts.begin(), counts.end(), uint32_t(0), [](uint32_t partial, const uint32_t *c) { return partial + *c; }));
     EXPECT_EQ(input.size(), total);
   }
 }

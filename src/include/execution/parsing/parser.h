@@ -117,7 +117,7 @@ class Parser {
 
   ast::Expr *ParseExpr();
 
-  ast::Expr *ParseBinaryOpExpr(u32 min_prec);
+  ast::Expr *ParseBinaryOpExpr(uint32_t min_prec);
 
   ast::Expr *ParseUnaryOpExpr();
 

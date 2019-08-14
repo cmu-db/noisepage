@@ -4,7 +4,7 @@
 #include <cstddef>
 #include <cstring>
 
-#include "execution/util/common.h"
+#include "execution/util/execution_common.h"
 #include "common/macros.h"
 
 // Needed for some Darwin machine that don't have MAP_ANONYMOUS
@@ -60,7 +60,7 @@ inline void *MallocAligned(const std::size_t size, const std::size_t alignment) 
   TERRIER_ASSERT((alignment & (alignment - 1)) == 0, "Alignment must be a power of two");
   void *ptr = nullptr;
 #if defined(__APPLE__)
-  i32 ret UNUSED_ATTRIBUTE_ATTRIBUTE = posix_memalign(&ptr, alignment, size);
+  int32_t ret UNUSED_ATTRIBUTE_ATTRIBUTE = posix_memalign(&ptr, alignment, size);
   TERRIER_ASSERT(ret == 0, "Allocation failed");
 #else
   ptr = std::aligned_alloc(alignment, size);
@@ -79,7 +79,7 @@ inline void Prefetch(const void *const addr) noexcept {
   // 'rw': indicates read-write intention; 0 is for a read, 1 is for a write
   // 'locality': indicates the degree of temporal locality represented in the
   // range {0-3}. 0 means no locality; 3 is high temporal locality.
-  __builtin_prefetch(addr, READ ? 0 : 1, static_cast<u8>(LOCALITY));
+  __builtin_prefetch(addr, READ ? 0 : 1, static_cast<uint8_t>(LOCALITY));
 }
 
 }  // namespace terrier::execution::util

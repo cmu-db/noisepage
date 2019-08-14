@@ -18,16 +18,16 @@
 #include "execution/sql/thread_state_container.h"
 
 #define TestAllSigned(FuncName, Args...) \
-  FuncName<i8>(Args);                    \
-  FuncName<i16>(Args);                   \
-  FuncName<i32>(Args);                   \
-  FuncName<i64>(Args);
+  FuncName<int8_t>(Args);                    \
+  FuncName<int16_t>(Args);                   \
+  FuncName<int32_t>(Args);                   \
+  FuncName<int64_t>(Args);
 
 #define TestAllUnsigned(FuncName, Args...) \
-  FuncName<u8>(Args);                      \
-  FuncName<u16>(Args);                     \
-  FuncName<u32>(Args);                     \
-  FuncName<u64>(Args);
+  FuncName<uint8_t>(Args);                      \
+  FuncName<uint16_t>(Args);                     \
+  FuncName<uint32_t>(Args);                     \
+  FuncName<uint64_t>(Args);
 
 #define TestAllIntegral(FuncName, Args...) TestAllSigned(FuncName, Args) TestAllUnsigned(FuncName, Args)
 
@@ -39,9 +39,9 @@ class SorterTest : public TplTest {
 };
 
 template <typename IntType, typename Random>
-void TestSortRandomTupleSize(const u32 num_iters, const u32 max_elems, Random *generator) {
+void TestSortRandomTupleSize(const uint32_t num_iters, const uint32_t max_elems, Random *generator) {
   std::uniform_int_distribution<IntType> rng(std::numeric_limits<IntType>::min(), std::numeric_limits<IntType>::max());
-  std::uniform_int_distribution<u32> rng_elems(std::numeric_limits<u32>::min(), std::numeric_limits<u32>::max());
+  std::uniform_int_distribution<uint32_t> rng_elems(std::numeric_limits<uint32_t>::min(), std::numeric_limits<uint32_t>::max());
 
   // We insert tuples of size IntType. It would be nice to std::memcmp, but
   // cmp_fn must be a function pointer which means the lambda cannot capture
@@ -49,13 +49,13 @@ void TestSortRandomTupleSize(const u32 num_iters, const u32 max_elems, Random *g
   // something that we can sizeof(). Limiting ourselves to IntType should be
   // fine.
   constexpr const auto tuple_size = sizeof(IntType);
-  const auto cmp_fn = [](const void *a, const void *b) -> i32 {
+  const auto cmp_fn = [](const void *a, const void *b) -> int32_t {
     const auto val_a = *reinterpret_cast<const IntType *>(a);
     const auto val_b = *reinterpret_cast<const IntType *>(b);
     return val_a < val_b ? -1 : (val_a == val_b ? 0 : 1);
   };
 
-  for (u32 curr_iter = 0; curr_iter < num_iters; curr_iter++) {
+  for (uint32_t curr_iter = 0; curr_iter < num_iters; curr_iter++) {
     // Test a random number of elements.
     const auto num_elems = (rng_elems(*generator) % max_elems) + 1;
 
@@ -69,7 +69,7 @@ void TestSortRandomTupleSize(const u32 num_iters, const u32 max_elems, Random *g
     sql::Sorter sorter(&memory, cmp_fn, tuple_size);
 
     // Randomly create and insert elements to both sorter and reference.
-    for (u32 i = 0; i < num_elems; i++) {
+    for (uint32_t i = 0; i < num_elems; i++) {
       const auto rand_data = rng(*generator);
       reference.emplace_back(rand_data);
       auto *elem = reinterpret_cast<IntType *>(sorter.AllocInputTuple());
@@ -82,7 +82,7 @@ void TestSortRandomTupleSize(const u32 num_iters, const u32 max_elems, Random *g
 
     // Check that the elements are in the same order.
     sql::SorterIterator iter(&sorter);
-    for (u32 i = 0; i < num_elems; i++) {
+    for (uint32_t i = 0; i < num_elems; i++) {
       EXPECT_EQ(*reinterpret_cast<const IntType *>(*iter), reference[i]);
       ++iter;
     }
@@ -90,9 +90,9 @@ void TestSortRandomTupleSize(const u32 num_iters, const u32 max_elems, Random *g
 }
 
 template <typename IntType, typename Random>
-void TestTopKRandomTupleSize(const u32 num_iters, const u32 max_elems, Random *generator) {
+void TestTopKRandomTupleSize(const uint32_t num_iters, const uint32_t max_elems, Random *generator) {
   std::uniform_int_distribution<IntType> rng(std::numeric_limits<IntType>::min(), std::numeric_limits<IntType>::max());
-  std::uniform_int_distribution<u32> rng_elems(std::numeric_limits<u32>::min(), std::numeric_limits<u32>::max());
+  std::uniform_int_distribution<uint32_t> rng_elems(std::numeric_limits<uint32_t>::min(), std::numeric_limits<uint32_t>::max());
 
   // We insert tuples of size IntType. It would be nice to std::memcmp, but
   // cmp_fn must be a function pointer which means the lambda cannot capture
@@ -106,11 +106,11 @@ void TestTopKRandomTupleSize(const u32 num_iters, const u32 max_elems, Random *g
     return val_a < val_b ? -1 : (val_a == val_b ? 0 : 1);
   };
 
-  for (u32 curr_iter = 0; curr_iter < num_iters; curr_iter++) {
+  for (uint32_t curr_iter = 0; curr_iter < num_iters; curr_iter++) {
     // Test a random number of elements.
     const auto num_elems = (rng_elems(*generator) % max_elems) + 1;
     // For a random number of top k.
-    const auto top_k = std::uniform_int_distribution<u32>(1, num_elems)(*generator);
+    const auto top_k = std::uniform_int_distribution<uint32_t>(1, num_elems)(*generator);
 
     // Create a reference top-K min-heap. This contains our real data, and
     // sorter should match it at the end.
@@ -121,7 +121,7 @@ void TestTopKRandomTupleSize(const u32 num_iters, const u32 max_elems, Random *g
     sql::Sorter sorter(&memory, cmp_fn, tuple_size);
 
     // Randomly create and insert elements to both sorter and reference.
-    for (u32 i = 0; i < num_elems; i++) {
+    for (uint32_t i = 0; i < num_elems; i++) {
       const auto rand_data = rng(*generator);
       reference.push(rand_data);
 
@@ -133,7 +133,7 @@ void TestTopKRandomTupleSize(const u32 num_iters, const u32 max_elems, Random *g
     // Check that only the top k elements are left.
     sorter.Sort();  // Sort because the reference is sorted.
     sql::SorterIterator iter(&sorter);
-    for (u32 i = 0; i < top_k; i++) {
+    for (uint32_t i = 0; i < top_k; i++) {
       const auto ref_elem = reference.top();
       reference.pop();
       EXPECT_EQ(*reinterpret_cast<const IntType *>(*iter), ref_elem);
@@ -167,7 +167,7 @@ TEST_F(SorterTest, DISABLED_PerfSortTest) {
   const uint32_t num_elems = 10000000;
 
   // The sort comparison function
-  auto sorter_cmp_fn = [](const void *a, const void *b) -> i32 {
+  auto sorter_cmp_fn = [](const void *a, const void *b) -> int32_t {
     // Just compare the first few bytes
     const auto val_a = *reinterpret_cast<const int_type *>(a);
     const auto val_b = *reinterpret_cast<const int_type *>(b);
@@ -217,7 +217,7 @@ TEST_F(SorterTest, DISABLED_PerfSortTest) {
 
   auto sorter_ms = Bench(1, [&sorter]() { sorter.Sort(); });
 
-  for (u32 i = 0; i < num_elems; i++) {
+  for (uint32_t i = 0; i < num_elems; i++) {
     const auto std_a = *reinterpret_cast<const int_type *>(vec[i].data());
     const auto chunk_a = *reinterpret_cast<const int_type *>(chunk_vec[i].data());
     EXPECT_EQ(std_a, chunk_a);
@@ -229,18 +229,18 @@ TEST_F(SorterTest, DISABLED_PerfSortTest) {
   EXECUTION_LOG_INFO("Sorter.sort(): {} ms", sorter_ms);
 }
 
-template <u32 N>
+template <uint32_t N>
 struct TestTuple {
-  u32 key;
-  u32 data[N];
+  uint32_t key;
+  uint32_t data[N];
 
-  i32 Compare(const TestTuple<N> &other) const { return key - other.key; }
+  int32_t Compare(const TestTuple<N> &other) const { return key - other.key; }
 };
 
 // Generic function to perform a parallel sort. The input parameter indicates
 // the sizes of each thread-local sorter that will be created.
-template <u32 N>
-void TestParallelSort(const std::vector<u32> &sorter_sizes) {
+template <uint32_t N>
+void TestParallelSort(const std::vector<uint32_t> &sorter_sizes) {
   // Comparison function
   static const auto cmp_fn = [](const void *left, const void *right) {
     const auto *l = reinterpret_cast<const TestTuple<N> *>(left);
@@ -252,7 +252,7 @@ void TestParallelSort(const std::vector<u32> &sorter_sizes) {
   const auto init_sorter = [](void *ctx, void *s) {
     new (s) Sorter(reinterpret_cast<exec::ExecutionContext *>(ctx)->GetMemoryPool(), cmp_fn, sizeof(TestTuple<N>));
   };
-  const auto destroy_sorter = [](UNUSED void *ctx, void *s) { reinterpret_cast<Sorter *>(s)->~Sorter(); };
+  const auto destroy_sorter = [](UNUSED_ATTRIBUTE void *ctx, void *s) { reinterpret_cast<Sorter *>(s)->~Sorter(); };
 
   // Create container
   exec::ExecutionContext exec_ctx(catalog::INVALID_DATABASE_OID, nullptr, nullptr, nullptr, nullptr);
@@ -264,7 +264,7 @@ void TestParallelSort(const std::vector<u32> &sorter_sizes) {
   tbb::task_scheduler_init sched;
   tbb::parallel_for_each(sorter_sizes.begin(), sorter_sizes.end(), [&container](auto sorter_size) {
     auto *sorter = container.AccessThreadStateOfCurrentThreadAs<Sorter>();
-    for (u32 i = 0; i < sorter_size; i++) {
+    for (uint32_t i = 0; i < sorter_size; i++) {
       auto *elem = reinterpret_cast<TestTuple<N> *>(sorter->AllocInputTuple());
       elem->key = i;
     }
@@ -274,7 +274,7 @@ void TestParallelSort(const std::vector<u32> &sorter_sizes) {
   Sorter main(exec_ctx.GetMemoryPool(), cmp_fn, sizeof(TestTuple<N>));
   main.SortParallel(&container, 0);
 
-  u32 expected_total_size =
+  uint32_t expected_total_size =
       std::accumulate(sorter_sizes.begin(), sorter_sizes.end(), 0u, [](auto p, auto s) { return p + s; });
 
   EXPECT_TRUE(main.is_sorted());
@@ -311,9 +311,9 @@ TEST_F(SorterTest, SingleThreadLocalParallelSortTest) {
 // NOLINTNEXTLINE
 TEST_F(SorterTest, UnbalancedParallelSortTest) {
   // All imbalance permutations
-  for (u32 x : {0, 1, 10, 100, 1000}) {
-    for (u32 y : {0, 1, 10, 100, 1000}) {
-      for (u32 z : {0, 1, 10, 100, 1000}) {
+  for (uint32_t x : {0, 1, 10, 100, 1000}) {
+    for (uint32_t y : {0, 1, 10, 100, 1000}) {
+      for (uint32_t z : {0, 1, 10, 100, 1000}) {
         TestParallelSort<2>({x, y, z});
       }
     }

@@ -6,7 +6,7 @@
 #include "llvm/IR/LLVMContext.h"
 #include "llvm/Support/MemoryBuffer.h"
 
-#include "execution/util/common.h"
+#include "execution/util/execution_common.h"
 #include "execution/util/macros.h"
 
 //

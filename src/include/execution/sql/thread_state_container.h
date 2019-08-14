@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "execution/sql/memory_pool.h"
+#include "common/strong_typedef.h"
 
 namespace terrier::execution::sql {
 
@@ -121,7 +122,7 @@ class ThreadStateContainer {
     CollectThreadLocalStateElements(&tmp, element_offset);
     container->clear();
     container->resize(tmp.size());
-    for (u32 idx = 0; idx < tmp.size(); idx++) {
+    for (uint32_t idx = 0; idx < tmp.size(); idx++) {
       (*container)[idx] = reinterpret_cast<T *>(tmp[idx]);
     }
   }

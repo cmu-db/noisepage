@@ -177,12 +177,12 @@ class ComparisonFunctions {
    * @param min_len The minimum length between the two input strings.
    * @return The appropriate signed value indicating comparison order.
    */
-  static i32 RawStringCompare(const char *s1, std::size_t len1, const char *s2, std::size_t len2, std::size_t min_len) {
+  static int32_t RawStringCompare(const char *s1, std::size_t len1, const char *s2, std::size_t len2, std::size_t min_len) {
     const auto result = (min_len == 0) ? 0 : std::memcmp(s1, s2, min_len);
     if (result != 0) {
       return result;
     }
-    return i32(len1) - i32(len2);
+    return int32_t(len1) - int32_t(len2);
   }
 
  private:
@@ -196,7 +196,7 @@ class ComparisonFunctions {
    * @param v2 The second string.
    * @return The appropriate signed value indicating comparison order.
    */
-  static i32 Compare(const StringVal &v1, const StringVal &v2) {
+  static int32_t Compare(const StringVal &v1, const StringVal &v2) {
     TERRIER_ASSERT(!v1.is_null && !v2.is_null, "Both input strings must not be null");
     const auto min_len = std::min(v1.len, v2.len);
     if (min_len == 0) {

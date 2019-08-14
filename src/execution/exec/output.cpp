@@ -13,12 +13,12 @@ void OutputBuffer::Finalize() {
   }
 }
 
-void OutputPrinter::operator()(byte *tuples, u32 num_tuples, u32 tuple_size) {
+void OutputPrinter::operator()(byte *tuples, uint32_t num_tuples, uint32_t tuple_size) {
   // Limit the number of tuples printed
   std::stringstream ss{};
-  for (u32 row = 0; row < num_tuples; row++) {
+  for (uint32_t row = 0; row < num_tuples; row++) {
     uint32_t curr_offset = 0;
-    for (u16 col = 0; col < schema_->GetColumns().size(); col++) {
+    for (uint16_t col = 0; col < schema_->GetColumns().size(); col++) {
       // TODO(Amadou): Figure out to print other types.
       switch (schema_->GetColumns()[col].GetType()) {
         case type::TypeId::TINYINT:

@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "tbb/tbb.h"
+#include "common/constants.h"
 
 namespace terrier::execution::sql {
 

@@ -5,7 +5,7 @@
 #include "storage/projected_columns.h"
 
 #include "execution/util/bit_util.h"
-#include "execution/util/common.h"
+#include "execution/util/execution_common.h"
 #include "common/macros.h"
 #include "type/type_id.h"
 
@@ -19,7 +19,7 @@ namespace terrier::execution::sql {
  * on filtered items.
  */
 class ProjectedColumnsIterator {
-  static constexpr const u32 kInvalidPos = std::numeric_limits<u32>::max();
+  static constexpr const uint32_t kInvalidPos = std::numeric_limits<uint32_t>::max();
 
  public:
   /**
@@ -63,7 +63,7 @@ class ProjectedColumnsIterator {
    * @return The typed value at the current iterator position in the column
    */
   template <typename T, bool nullable>
-  const T *Get(u32 col_idx, bool *null) const;
+  const T *Get(uint32_t col_idx, bool *null) const;
 
   /**
    * Set the current iterator position
@@ -71,7 +71,7 @@ class ProjectedColumnsIterator {
    * @param idx The index the iteration should jump to
    */
   template <bool IsFiltered>
-  void SetPosition(u32 idx);
+  void SetPosition(uint32_t idx);
 
   /**
    * Advance the iterator by one tuple
@@ -146,21 +146,21 @@ class ProjectedColumnsIterator {
    */
   union FilterVal {
     /**
-     * an i8 filter value
+     * an int8_t filter value
      */
-    i8 ti;
+    int8_t ti;
     /**
-     * an i16 filter value
+     * an int16_t filter value
      */
-    i16 si;
+    int16_t si;
     /**
-     * an i32 filter value
+     * an int32_t filter value
      */
-    i32 i;
+    int32_t i;
     /**
-     * an i64 filter value
+     * an int64_t filter value
      */
-    i64 bi;
+    int64_t bi;
   };
 
   /**
@@ -169,16 +169,16 @@ class ProjectedColumnsIterator {
    * @param type type of the value
    * @return filter val of the given type
    */
-  FilterVal MakeFilterVal(i64 val, type::TypeId type) {
+  FilterVal MakeFilterVal(int64_t val, type::TypeId type) {
     switch (type) {
       case type::TypeId::TINYINT:
-        return FilterVal{.ti = static_cast<i8>(val)};
+        return FilterVal{.ti = static_cast<int8_t>(val)};
       case type::TypeId::SMALLINT:
-        return FilterVal{.si = static_cast<i16>(val)};
+        return FilterVal{.si = static_cast<int16_t>(val)};
       case type::TypeId::INTEGER:
-        return FilterVal{.i = static_cast<i32>(val)};
+        return FilterVal{.i = static_cast<int32_t>(val)};
       case type::TypeId::BIGINT:
-        return FilterVal{.bi = static_cast<i64>(val)};
+        return FilterVal{.bi = static_cast<int64_t>(val)};
       default:
         throw std::runtime_error("Filter not supported on type");
     }
@@ -193,7 +193,7 @@ class ProjectedColumnsIterator {
    * @return The number of selected elements.
    */
   template <template <typename> typename Op>
-  u32 FilterColByVal(u32 col_idx, type::TypeId type, FilterVal val);
+  uint32_t FilterColByVal(uint32_t col_idx, type::TypeId type, FilterVal val);
 
   /**
    * Filter the column at index @em col_idx_1 with the contents of the column
@@ -206,40 +206,40 @@ class ProjectedColumnsIterator {
    * @return The number of selected elements.
    */
   template <template <typename> typename Op>
-  u32 FilterColByCol(u32 col_idx_1, type::TypeId type_1, u32 col_idx_2, type::TypeId type_2);
+  uint32_t FilterColByCol(uint32_t col_idx_1, type::TypeId type_1, uint32_t col_idx_2, type::TypeId type_2);
 
   /**
    * Return the number of selected tuples after any filters have been applied
    */
-  u32 num_selected() const { return num_selected_; }
+  uint32_t num_selected() const { return num_selected_; }
 
  private:
   // Filter a column by a constant value
   template <typename T, template <typename> typename Op>
-  u32 FilterColByValImpl(u32 col_idx, T val);
+  uint32_t FilterColByValImpl(uint32_t col_idx, T val);
 
   // Filter a column by a second column
   template <typename T, template <typename> typename Op>
-  u32 FilterColByColImpl(u32 col_idx_1, u32 col_idx_2);
+  uint32_t FilterColByColImpl(uint32_t col_idx_1, uint32_t col_idx_2);
 
  private:
   // The selection vector used to filter the ProjectedColumns
-  alignas(common::Constants::CACHELINE_SIZE) u32 selection_vector_[kDefaultVectorSize];
+  alignas(common::Constants::CACHELINE_SIZE) uint32_t selection_vector_[common::Constants::kDefaultVectorSize];
 
   // The projected column we are iterating over.
   storage::ProjectedColumns *projected_column_{nullptr};
 
   // The current raw position in the ProjectedColumns we're pointing to
-  u32 curr_idx_{0};
+  uint32_t curr_idx_{0};
 
   // The number of tuples from the projection that have been selected (filtered)
-  u32 num_selected_{0};
+  uint32_t num_selected_{0};
 
   // The next slot in the selection vector to read from
-  u32 selection_vector_read_idx_{0};
+  uint32_t selection_vector_read_idx_{0};
 
   // The next slot in the selection vector to write into
-  u32 selection_vector_write_idx_{0};
+  uint32_t selection_vector_write_idx_{0};
 };
 
 // ---------------------------------------------------------
@@ -252,18 +252,18 @@ class ProjectedColumnsIterator {
 // Retrieve a single column value (and potentially its NULL indicator) from the
 // desired column's input data
 template <typename T, bool Nullable>
-inline const T *ProjectedColumnsIterator::Get(u32 col_idx, bool *null) const {
+inline const T *ProjectedColumnsIterator::Get(uint32_t col_idx, bool *null) const {
   // NOLINTNEXTLINE: bugprone-suspicious-semicolon: seems like a false positive because of constexpr
   if constexpr (Nullable) {
     TERRIER_ASSERT(null != nullptr, "Missing output variable for NULL indicator");
-    *null = !projected_column_->ColumnNullBitmap(static_cast<u16>(col_idx))->Test(curr_idx_);
+    *null = !projected_column_->ColumnNullBitmap(static_cast<uint16_t>(col_idx))->Test(curr_idx_);
   }
-  const T *col_data = reinterpret_cast<T *>(projected_column_->ColumnStart(static_cast<u16>(col_idx)));
+  const T *col_data = reinterpret_cast<T *>(projected_column_->ColumnStart(static_cast<uint16_t>(col_idx)));
   return &col_data[curr_idx_];
 }
 
 template <bool Filtered>
-inline void ProjectedColumnsIterator::SetPosition(u32 idx) {
+inline void ProjectedColumnsIterator::SetPosition(uint32_t idx) {
   TERRIER_ASSERT(idx < num_selected(), "Out of bounds access");
   if constexpr (Filtered) {
     TERRIER_ASSERT(IsFiltered(), "Attempting to set position in unfiltered PCI");

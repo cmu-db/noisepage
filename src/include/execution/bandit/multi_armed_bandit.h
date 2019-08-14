@@ -5,7 +5,7 @@
 #include <utility>
 #include <vector>
 
-#include "execution/util/common.h"
+#include "execution/util/execution_common.h"
 #include "common/macros.h"
 #include "execution/vm/bytecode_module.h"
 
@@ -23,7 +23,7 @@ class MultiArmedBandit {
    * @param action_names names of the actions to take
    * @param optimal unused for now
    */
-  MultiArmedBandit(vm::Module *module, std::vector<std::string> action_names, u32 optimal = 0)
+  MultiArmedBandit(vm::Module *module, std::vector<std::string> action_names, uint32_t optimal = 0)
       : module_(module), action_names_(std::move(action_names)) {}
 
   /**
@@ -31,7 +31,7 @@ class MultiArmedBandit {
    * @param action to execute
    * @return reward of the action
    */
-  double ExecuteAction(u32 action);
+  double ExecuteAction(uint32_t action);
 
   /**
    * Translates execution time to reward.

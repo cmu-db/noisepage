@@ -4,8 +4,9 @@
 
 #include "execution/sql/hash_table_entry.h"
 #include "execution/sql/memory_pool.h"
-#include "execution/util/common.h"
+#include "execution/util/execution_common.h"
 #include "common/macros.h"
+#include "common/constants.h"
 #include "execution/util/memory.h"
 
 namespace terrier::execution::sql {
@@ -25,10 +26,10 @@ namespace terrier::execution::sql {
  */
 class GenericHashTable {
  private:
-  static constexpr const u32 kNumTagBits = 16;
-  static constexpr const u32 kNumPointerBits = sizeof(u8 *) * 8 - kNumTagBits;
-  static constexpr const u64 kMaskPointer = (~0ull) >> kNumTagBits;
-  static constexpr const u64 kMaskTag = (~0ull) << kNumPointerBits;
+  static constexpr const uint32_t kNumTagBits = 16;
+  static constexpr const uint32_t kNumPointerBits = sizeof(uint8_t *) * 8 - kNumTagBits;
+  static constexpr const uint64_t kMaskPointer = (~0ull) >> kNumTagBits;
+  static constexpr const uint64_t kMaskTag = (~0ull) << kNumPointerBits;
 
  public:
   /**
@@ -72,7 +73,7 @@ class GenericHashTable {
    * elements with good performance.
    * @param new_size The expected number of elements to size the table for
    */
-  void SetSize(u64 new_size);
+  void SetSize(uint64_t new_size);
 
   /**
    * Prefetch the head of the bucket chain for the hash \a hash
@@ -110,18 +111,18 @@ class GenericHashTable {
   /**
    * Return the total number of bytes this hash table has allocated
    */
-  u64 GetTotalMemoryUsage() const { return sizeof(HashTableEntry *) * capacity(); }
+  uint64_t GetTotalMemoryUsage() const { return sizeof(HashTableEntry *) * capacity(); }
 
   /**
    * Return the number of elements stored in this hash table
    */
-  u64 num_elements() const { return num_elems_; }
+  uint64_t num_elements() const { return num_elems_; }
 
   /**
    * Return the maximum number of elements this hash table can store at its
    * current size
    */
-  u64 capacity() const { return capacity_; }
+  uint64_t capacity() const { return capacity_; }
 
   /**
    * The configured load factor for the table's directory. Note that this isn't
@@ -157,7 +158,7 @@ class GenericHashTable {
     return reinterpret_cast<HashTableEntry *>(new_tagged_ptr);
   }
 
-  static u64 TagHash(const hash_t hash) {
+  static uint64_t TagHash(const hash_t hash) {
     // We use the given hash value to obtain a bit position in the tag to set.
     // Thus, we need to extract a sample/signature from the hash value in the
     // range [0, kNumTagBits), so we take the log2(kNumTagBits) most significant
@@ -172,13 +173,13 @@ class GenericHashTable {
   std::atomic<HashTableEntry *> *entries_{nullptr};
 
   // The mask to use to determine the bucket position of an entry given its hash
-  u64 mask_{0};
+  uint64_t mask_{0};
 
   // The capacity of the directory
-  u64 capacity_{0};
+  uint64_t capacity_{0};
 
   // The current number of elements stored in the table
-  u64 num_elems_{0};
+  uint64_t num_elems_{0};
 
   // The current load-factor
   float load_factor_;
@@ -190,12 +191,12 @@ class GenericHashTable {
 
 template <bool ForRead>
 void GenericHashTable::PrefetchChainHead(hash_t hash) const {
-  const u64 pos = hash & mask_;
+  const uint64_t pos = hash & mask_;
   util::Prefetch<ForRead, Locality::Low>(entries_ + pos);
 }
 
 inline HashTableEntry *GenericHashTable::FindChainHead(hash_t hash) const {
-  const u64 pos = hash & mask_;
+  const uint64_t pos = hash & mask_;
   return entries_[pos].load(std::memory_order_relaxed);
 }
 
@@ -257,7 +258,7 @@ template <typename F>
 inline void GenericHashTable::FlushEntries(const F &sink) {
   static_assert(std::is_invocable_v<F, HashTableEntry *>);
 
-  for (u32 idx = 0; idx < capacity_; idx++) {
+  for (uint32_t idx = 0; idx < capacity_; idx++) {
     HashTableEntry *entry = entries_[idx].load(std::memory_order_relaxed);
     while (entry != nullptr) {
       HashTableEntry *next = entry->next;
@@ -309,7 +310,7 @@ class GenericHashTableIterator {
   // The table we're iterating over
   const GenericHashTable &table_;
   // The index into the hash table's entries directory to read from next
-  u64 entries_index_;
+  uint64_t entries_index_;
   // The current entry the iterator is pointing to
   const HashTableEntry *curr_entry_;
 };
@@ -390,12 +391,12 @@ class GenericHashTableVectorIterator {
   // The temporary cache of valid entries
   const HashTableEntry **entry_vec_;
   // The index into the hash table's entries directory to read from next
-  u64 entries_index_;
+  uint64_t entries_index_;
   const HashTableEntry *next_;
   // The index into the entry cache the iterator is pointing to
-  u16 entry_vec_idx_;
+  uint16_t entry_vec_idx_;
   // The number of valid entries in the entry cache
-  u16 entry_vec_end_idx_;
+  uint16_t entry_vec_end_idx_;
 };
 
 template <bool UseTag>
@@ -403,7 +404,7 @@ inline GenericHashTableVectorIterator<UseTag>::GenericHashTableVectorIterator(co
                                                                               MemoryPool *memory) noexcept
     : table_(table),
       memory_(memory),
-      entry_vec_(memory_->AllocateArray<const HashTableEntry *>(kDefaultVectorSize, common::Constants::CACHELINE_SIZE, true)),
+      entry_vec_(memory_->AllocateArray<const HashTableEntry *>(common::Constants::kDefaultVectorSize, common::Constants::CACHELINE_SIZE, true)),
       entries_index_(0),
       next_(nullptr),
       entry_vec_idx_(0),
@@ -413,7 +414,7 @@ inline GenericHashTableVectorIterator<UseTag>::GenericHashTableVectorIterator(co
 
 template <bool UseTag>
 inline GenericHashTableVectorIterator<UseTag>::~GenericHashTableVectorIterator() {
-  memory_->DeallocateArray(entry_vec_, kDefaultVectorSize);
+  memory_->DeallocateArray(entry_vec_, common::Constants::kDefaultVectorSize);
 }
 
 template <bool UseTag>
@@ -431,13 +432,13 @@ inline void GenericHashTableVectorIterator<UseTag>::Refill() {
   while (true) {
     // While we're in the middle of a bucket chain and we have room to insert
     // new entries, continue along the bucket chain.
-    while (next_ != nullptr && entry_vec_end_idx_ < kDefaultVectorSize) {
+    while (next_ != nullptr && entry_vec_end_idx_ < common::Constants::kDefaultVectorSize) {
       entry_vec_[entry_vec_end_idx_++] = next_;
       next_ = next_->next;
     }
 
     // If we've filled up the entries buffer, drop out
-    if (entry_vec_end_idx_ == kDefaultVectorSize) {
+    if (entry_vec_end_idx_ == common::Constants::kDefaultVectorSize) {
       return;
     }
 

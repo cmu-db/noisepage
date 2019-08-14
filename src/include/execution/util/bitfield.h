@@ -3,7 +3,7 @@
 #include <cstdint>
 #include <type_traits>
 
-#include "execution/util/common.h"
+#include "execution/util/execution_common.h"
 #include "common/macros.h"
 
 namespace terrier::execution::util {
@@ -24,23 +24,23 @@ namespace internal {
  * to encode the values. Then, use the Encode/Decode/Update values to modify the
  * underlying storage.
  *
- * For example, assume we want to encode two u16 types into a single u32 raw
+ * For example, assume we want to encode two uint16_t types into a single uint32_t raw
  * bitfield. We would do:
  *
  * class FieldOne : public BitField32<Type1, 0, 16> {};
  * class FieldTwo : public BitField32<Type2, FieldOne::kNextBit, 16> {};
  *
- * Given a raw u32 bitfield, reading type one and type two:
+ * Given a raw uint32_t bitfield, reading type one and type two:
  *
- * Type1 t1 = FieldOne::Decode(u32_storage);
- * Type2 t2 = FieldTwo::Decode(u32_storage);
+ * Type1 t1 = FieldOne::Decode(uint32_t_storage);
+ * Type2 t2 = FieldTwo::Decode(uint32_t_storage);
  *
  * @tparam S The type of the primitive storage type where the bitfield is stored
  * @tparam T The type we encode into the bitfield
  * @tparam shift The number of bits to shift
  * @tparam size The size of the bitfield
  */
-template <typename S, typename T, u64 shift, u64 size>
+template <typename S, typename T, uint64_t shift, uint64_t size>
 class BitFieldBase {
  public:
   /**
@@ -93,15 +93,15 @@ class BitFieldBase {
 }  // namespace internal
 
 template <typename T, unsigned position, unsigned size>
-class BitField8 : public internal::BitFieldBase<u8, T, position, size> {};
+class BitField8 : public internal::BitFieldBase<uint8_t, T, position, size> {};
 
 template <typename T, unsigned position, unsigned size>
-class BitField16 : public internal::BitFieldBase<u16, T, position, size> {};
+class BitField16 : public internal::BitFieldBase<uint16_t, T, position, size> {};
 
 template <typename T, unsigned position, unsigned size>
-class BitField32 : public internal::BitFieldBase<u32, T, position, size> {};
+class BitField32 : public internal::BitFieldBase<uint32_t, T, position, size> {};
 
 template <typename T, unsigned position, unsigned size>
-class BitField64 : public internal::BitFieldBase<u64, T, position, size> {};
+class BitField64 : public internal::BitFieldBase<uint64_t, T, position, size> {};
 
 }  // namespace terrier::execution::util

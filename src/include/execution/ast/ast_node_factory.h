@@ -204,14 +204,14 @@ class AstNodeFactory {
    * @param num integer value
    * @return created integer LitExpr node.
    */
-  LitExpr *NewIntLiteral(const SourcePosition &pos, i64 num) { return new (region_) LitExpr(pos, num); }
+  LitExpr *NewIntLiteral(const SourcePosition &pos, int64_t num) { return new (region_) LitExpr(pos, num); }
 
   /**
    * @param pos source position
    * @param num float value
    * @return created float LitExpr node
    */
-  LitExpr *NewFloatLiteral(const SourcePosition &pos, f64 num) { return new (region_) LitExpr(pos, num); }
+  LitExpr *NewFloatLiteral(const SourcePosition &pos, double num) { return new (region_) LitExpr(pos, num); }
 
   /**
    * @param pos source position

@@ -9,8 +9,8 @@
 #include "tbb/task_scheduler_init.h"
 
 namespace terrier::execution::sql {
-TableVectorIterator::TableVectorIterator(u32 table_oid, exec::ExecutionContext *exec_ctx, u32 *col_oids, u32 num_oids)
-    : table_oid_(table_oid), exec_ctx_(exec_ctx), col_oids_(col_oids, col_oids + num_oids) {}
+TableVectorIterator::TableVectorIterator(exec::ExecutionContext *exec_ctx, uint32_t table_oid, uint32_t *col_oids, uint32_t num_oids)
+    : exec_ctx_(exec_ctx), table_oid_(table_oid), col_oids_(col_oids, col_oids + num_oids) {}
 
 TableVectorIterator::~TableVectorIterator() {
   exec_ctx_->GetMemoryPool()->Deallocate(buffer_, projected_columns_->Size());
@@ -23,8 +23,8 @@ bool TableVectorIterator::Init() {
 
   // Initialize the projected column
   TERRIER_ASSERT(!col_oids_.empty(), "There must be at least one col oid!");
-  auto pc_init = table_->InitializerForProjectedColumns(col_oids_, kDefaultVectorSize);
-  buffer_ = exec_ctx_->GetMemoryPool()->AllocateAligned(pc_init.ProjectedColumnsSize(), alignof(u64), false);
+  auto pc_init = table_->InitializerForProjectedColumns(col_oids_, common::Constants::kDefaultVectorSize);
+  buffer_ = exec_ctx_->GetMemoryPool()->AllocateAligned(pc_init.ProjectedColumnsSize(), alignof(uint64_t), false);
   projected_columns_ = pc_init.Initialize(buffer_);
   initialized = true;
 
@@ -45,9 +45,9 @@ bool TableVectorIterator::Advance() {
   return true;
 }
 
-bool TableVectorIterator::ParallelScan(u32 db_oid, u32 table_oid, void *const query_state,
+bool TableVectorIterator::ParallelScan(uint32_t db_oid, uint32_t table_oid, void *const query_state,
                                        ThreadStateContainer *const thread_states, const ScanFn scan_fn,
-                                       const u32 min_grain_size) {
+                                       const uint32_t min_grain_size) {
   // TODO(Amadou): Implement Me!!
   return false;
 }

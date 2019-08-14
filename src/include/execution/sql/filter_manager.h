@@ -5,7 +5,7 @@
 #include <vector>
 
 #include "execution/bandit/policy.h"
-#include "execution/util/common.h"
+#include "execution/util/execution_common.h"
 #include "common/macros.h"
 
 namespace terrier::execution::sql {
@@ -22,7 +22,7 @@ class FilterManager {
    * A generic filtering function over an input projection. Returns the
    * number of tuples that pass the filter.
    */
-  using MatchFn = u32 (*)(ProjectedColumnsIterator *);
+  using MatchFn = uint32_t (*)(ProjectedColumnsIterator *);
 
   /**
    * A clause in a multi-clause filter. Clauses come in multiple flavors.
@@ -38,7 +38,7 @@ class FilterManager {
     /**
      * Return the number of flavors
      */
-    u32 num_flavors() const { return static_cast<u32>(flavors.size()); }
+    uint32_t num_flavors() const { return static_cast<uint32_t>(flavors.size()); }
   };
 
   /**
@@ -85,27 +85,27 @@ class FilterManager {
    * @param clause_index The index of the clause
    * @return The index of the optimal flavor
    */
-  u32 GetOptimalFlavorForClause(u32 clause_index) const;
+  uint32_t GetOptimalFlavorForClause(uint32_t clause_index) const;
 
  private:
   // Run a specific clause of the filter
-  void RunFilterClause(ProjectedColumnsIterator *pci, u32 clause_index);
+  void RunFilterClause(ProjectedColumnsIterator *pci, uint32_t clause_index);
 
   // Run the given matching function
-  std::pair<u32, double> RunFilterClauseImpl(ProjectedColumnsIterator *pci, FilterManager::MatchFn func);
+  std::pair<uint32_t, double> RunFilterClauseImpl(ProjectedColumnsIterator *pci, FilterManager::MatchFn func);
 
   // Return the clause at the given index in the filter
-  const Clause *ClauseAt(u32 index) const { return &clauses_[index]; }
+  const Clause *ClauseAt(uint32_t index) const { return &clauses_[index]; }
 
   // Return the agent handling the clause at the given index
-  bandit::Agent *GetAgentFor(u32 clause_index);
-  const bandit::Agent *GetAgentFor(u32 clause_index) const;
+  bandit::Agent *GetAgentFor(uint32_t clause_index);
+  const bandit::Agent *GetAgentFor(uint32_t clause_index) const;
 
  private:
   // The clauses in the filter
   std::vector<Clause> clauses_;
   // The optimal order to execute the clauses
-  std::vector<u32> optimal_clause_order_;
+  std::vector<uint32_t> optimal_clause_order_;
   // The adaptive policy to use
   std::unique_ptr<bandit::Policy> policy_;
   // The agents, one per clause

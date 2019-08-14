@@ -2,7 +2,7 @@
 
 #include <vector>
 
-#include "execution/util/common.h"
+#include "execution/util/execution_common.h"
 #include "execution/vm/bytecodes.h"
 
 namespace terrier::execution::vm {
@@ -35,7 +35,7 @@ class BytecodeIterator {
    * @param start The start position
    * @param end The end position
    */
-  BytecodeIterator(const std::vector<u8> &bytecode, std::size_t start, std::size_t end);
+  BytecodeIterator(const std::vector<uint8_t> &bytecode, std::size_t start, std::size_t end);
 
   /**
    * Get the bytecode instruction the iterator is currently pointing to
@@ -63,7 +63,7 @@ class BytecodeIterator {
    * @param operand_index The index of operand to read
    * @return The immediate value, up-casted to a signed 64-bit integer
    */
-  i64 GetImmediateOperand(u32 operand_index) const;
+  int64_t GetImmediateOperand(uint32_t operand_index) const;
 
   /**
    * Read the operand at index @a operand_index for the current bytecode as a
@@ -71,7 +71,7 @@ class BytecodeIterator {
    * @param operand_index The index of operand to read
    * @return The immediate value, up-casted to a double
    */
-  f64 GetFloatImmediateOperand(u32 operand_index) const;
+  double GetFloatImmediateOperand(uint32_t operand_index) const;
 
   /**
    * Read the operand at index @a operand_index for the current bytecode as an
@@ -79,7 +79,7 @@ class BytecodeIterator {
    * @param operand_index The index of the operand to read
    * @return The immediate value, up-casted to an unsigned 64-bit integer
    */
-  u64 GetUnsignedImmediateOperand(u32 operand_index) const;
+  uint64_t GetUnsignedImmediateOperand(uint32_t operand_index) const;
 
   /**
    * Read the operand at index @a operand_index for the current bytecode as a
@@ -87,7 +87,7 @@ class BytecodeIterator {
    * @param operand_index The index of the operand to read
    * @return The jump offset at the given index
    */
-  i32 GetJumpOffsetOperand(u32 operand_index) const;
+  int32_t GetJumpOffsetOperand(uint32_t operand_index) const;
 
   /**
    * Read the operand at index @a operand_index for the current bytecode as a
@@ -95,7 +95,7 @@ class BytecodeIterator {
    * @param operand_index The index of the operand to read
    * @return The operand at the given operand index
    */
-  LocalVar GetLocalOperand(u32 operand_index) const;
+  LocalVar GetLocalOperand(uint32_t operand_index) const;
 
   /**
    * Read the operand at @a operand_index for the current bytecode as a count
@@ -105,7 +105,7 @@ class BytecodeIterator {
    * @param[out] locals output vector of locals
    * @return The number of operands
    */
-  u16 GetLocalCountOperand(u32 operand_index, std::vector<LocalVar> *locals) const;
+  uint16_t GetLocalCountOperand(uint32_t operand_index, std::vector<LocalVar> *locals) const;
 
   /**
    * Read the operand at @a operand_index for the current bytecode as a count
@@ -113,7 +113,7 @@ class BytecodeIterator {
    * @param operand_index The index of the operand to read
    * @return The number of operands
    */
-  u16 GetLocalCountOperand(u32 operand_index) const {
+  uint16_t GetLocalCountOperand(uint32_t operand_index) const {
     std::vector<LocalVar> locals;
     return GetLocalCountOperand(operand_index, &locals);
   }
@@ -124,14 +124,14 @@ class BytecodeIterator {
    * @param operand_index The index of the operand to read
    * @return The encoded function ID
    */
-  u16 GetFunctionIdOperand(u32 operand_index) const;
+  uint16_t GetFunctionIdOperand(uint32_t operand_index) const;
 
   /**
    * Return the total size in bytes of the bytecode instruction the iterator is
    * currently pointing to. This size includes variable length arguments.
    * @return The size, in bytes, of the bytecode this iterator is pointing to
    */
-  u32 CurrentBytecodeSize() const;
+  uint32_t CurrentBytecodeSize() const;
 
   /**
    * Get the current position of the iterator
@@ -150,7 +150,7 @@ class BytecodeIterator {
 
  private:
   // ALL the bytecode instructions for a TPL compilation unit
-  const std::vector<u8> &bytecodes_;
+  const std::vector<uint8_t> &bytecodes_;
   // The range of bytecodes the iterator uses
   const std::size_t start_offset_;
   const std::size_t end_offset_;

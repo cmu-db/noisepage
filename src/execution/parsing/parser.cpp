@@ -370,12 +370,12 @@ ast::Stmt *Parser::ParseReturnStmt() {
 
 ast::Expr *Parser::ParseExpr() { return ParseBinaryOpExpr(Token::LowestPrecedence() + 1); }
 
-ast::Expr *Parser::ParseBinaryOpExpr(u32 min_prec) {
+ast::Expr *Parser::ParseBinaryOpExpr(uint32_t min_prec) {
   TERRIER_ASSERT(min_prec > 0, "The minimum precedence cannot be 0");
 
   ast::Expr *left = ParseUnaryOpExpr();
 
-  for (u32 prec = Token::GetPrecedence(peek()); prec > min_prec; prec--) {
+  for (uint32_t prec = Token::GetPrecedence(peek()); prec > min_prec; prec--) {
     // It's possible that we reach a token that has lower precedence than the
     // minimum (e.g., EOS) so we check and early exit
     if (Token::GetPrecedence(peek()) < min_prec) {
@@ -514,14 +514,14 @@ ast::Expr *Parser::ParseOperand() {
       Next();
       // Convert the number
       char *end = nullptr;
-      i64 num = std::strtoll(GetSymbol().data(), &end, 10);
+      int64_t num = std::strtoll(GetSymbol().data(), &end, 10);
       return node_factory_->NewIntLiteral(scanner_->current_position(), num);
     }
     case Token::Type::FLOAT: {
       Next();
       // Convert the number
       char *end = nullptr;
-      f64 num = std::strtod(GetSymbol().data(), &end);
+      double num = std::strtod(GetSymbol().data(), &end);
       return node_factory_->NewFloatLiteral(scanner_->current_position(), num);
     }
     case Token::Type::STRING: {

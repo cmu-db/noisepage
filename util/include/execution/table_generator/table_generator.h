@@ -17,11 +17,11 @@ namespace terrier::execution::sql {
 /**
  * Size of the first table
  */
-constexpr u32 test1_size = 10000;
+constexpr uint32_t test1_size = 10000;
 /**
  * Size of the second table
  */
-constexpr u32 test2_size = 1000;
+constexpr uint32_t test2_size = 1000;
 
 /**
  * Helper class to generate test tables and their indexes.
@@ -50,7 +50,7 @@ class TableGenerator {
   /**
    * Enumeration to characterize the distribution of values in a given column
    */
-  enum class Dist : u8 { Uniform, Zipf_50, Zipf_75, Zipf_95, Zipf_99, Serial };
+  enum class Dist : uint8_t { Uniform, Zipf_50, Zipf_75, Zipf_95, Zipf_99, Serial };
 
   /**
    * Metadata about the data for a given column. Specifically, the type of the
@@ -76,16 +76,16 @@ class TableGenerator {
     /**
      * Min value of the column
      */
-    u64 min;
+    uint64_t min;
     /**
      * Max value of the column
      */
-    u64 max;
+    uint64_t max;
 
     /**
      * Constructor
      */
-    ColumnInsertMeta(const char *name, const type::TypeId type, bool nullable, Dist dist, u64 min, u64 max)
+    ColumnInsertMeta(const char *name, const type::TypeId type, bool nullable, Dist dist, uint64_t min, uint64_t max)
         : name(name), type_(type), nullable(nullable), dist(dist), min(min), max(max) {}
   };
 
@@ -101,7 +101,7 @@ class TableGenerator {
     /**
      * Number of rows
      */
-    u32 num_rows;
+    uint32_t num_rows;
     /**
      * Columns
      */
@@ -110,7 +110,7 @@ class TableGenerator {
     /**
      * Constructor
      */
-    TableInsertMeta(const char *name, u32 num_rows, std::vector<ColumnInsertMeta> col_meta)
+    TableInsertMeta(const char *name, uint32_t num_rows, std::vector<ColumnInsertMeta> col_meta)
         : name(name), num_rows(num_rows), col_meta(std::move(col_meta)) {}
   };
 
@@ -170,10 +170,10 @@ class TableGenerator {
 
   // Create integer data with the given distribution
   template <typename T>
-  T *CreateNumberColumnData(Dist dist, u32 num_vals, u64 min, u64 max);
+  T *CreateNumberColumnData(Dist dist, uint32_t num_vals, uint64_t min, uint64_t max);
 
   // Generate column data
-  std::pair<byte *, u32 *> GenerateColumnData(const ColumnInsertMeta &col_meta, u32 num_rows);
+  std::pair<byte *, uint32_t *> GenerateColumnData(const ColumnInsertMeta &col_meta, uint32_t num_rows);
 
   // Fill a given table according to its metadata
   void FillTable(catalog::table_oid_t table_oid, common::ManagedPointer<storage::SqlTable> table,

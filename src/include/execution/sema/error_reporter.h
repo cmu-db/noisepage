@@ -7,7 +7,7 @@
 #include "execution/ast/identifier.h"
 #include "execution/parsing/token.h"
 #include "execution/sema/error_message.h"
-#include "execution/util/common.h"
+#include "execution/util/execution_common.h"
 #include "execution/util/region_containers.h"
 
 namespace terrier::execution {
@@ -83,7 +83,7 @@ class ErrorReporter {
 
     explicit MessageArgument(const char *str) : kind_(Kind::CString), raw_str_(str) {}
 
-    explicit MessageArgument(i32 integer) : kind_(Kind::Int), integer_(integer) {}
+    explicit MessageArgument(int32_t integer) : kind_(Kind::Int), integer_(integer) {}
 
     explicit MessageArgument(ast::Identifier str) : MessageArgument(str.data()) {}
 
@@ -106,7 +106,7 @@ class ErrorReporter {
     Kind kind_;
     union {
       const char *raw_str_;
-      i32 integer_;
+      int32_t integer_;
       SourcePosition pos_;
       ast::Type *type_;
     };

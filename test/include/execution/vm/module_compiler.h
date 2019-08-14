@@ -27,8 +27,6 @@ class ModuleCompiler {
     sema::Sema type_check(&ctx_);
     type_check.Run(ast);
 
-    TERRIER_ASSERT(!errors_.HasErrors(), "Compilation failed!");
-
     return ast;
   }
 

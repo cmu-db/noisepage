@@ -1,6 +1,6 @@
 #include "execution/tpl_test.h"
 
-#include "execution/util/math_util.h"
+#include "common/math_util.h"
 
 namespace terrier::execution::util::test {
 

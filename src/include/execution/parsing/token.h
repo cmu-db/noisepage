@@ -2,7 +2,7 @@
 
 #include <cstdint>
 
-#include "execution/util/common.h"
+#include "execution/util/execution_common.h"
 
 namespace terrier::execution::parsing {
 
@@ -87,7 +87,7 @@ class Token {
   /**
    * Enum of possible tokens
    */
-  enum class Type : u8 {
+  enum class Type : uint8_t {
 #define T(name, str, precedence) name,
     TOKENS(T, T)
 #undef T
@@ -100,34 +100,34 @@ class Token {
   /**
    * Number of tokens
    */
-  static const u32 kTokenCount = static_cast<u32>(Type::Last) + 1;
+  static const uint32_t kTokenCount = static_cast<uint32_t>(Type::Last) + 1;
 
   /**
    * Get the name of a given token type
    */
-  static const char *GetName(Type type) { return kTokenNames[static_cast<u32>(type)]; }
+  static const char *GetName(Type type) { return kTokenNames[static_cast<uint32_t>(type)]; }
 
   /**
    * Get the stringified version of a given token type
    */
-  static const char *GetString(Type type) { return kTokenStrings[static_cast<u32>(type)]; }
+  static const char *GetString(Type type) { return kTokenStrings[static_cast<uint32_t>(type)]; }
 
   /**
    * Get the precedence of a given token
    */
-  static u32 GetPrecedence(Type type) { return kTokenPrecedence[static_cast<u32>(type)]; }
+  static uint32_t GetPrecedence(Type type) { return kTokenPrecedence[static_cast<uint32_t>(type)]; }
 
   /**
    * Get the lowest operator precedence we support
    */
-  static u32 LowestPrecedence() { return 0; }
+  static uint32_t LowestPrecedence() { return 0; }
 
   /**
    * Is the given token a comparison operator?
    */
   static bool IsCompareOp(Type op) {
-    return (static_cast<u8>(Type::BANG_EQUAL) <= static_cast<u8>(op) &&
-            static_cast<u8>(op) <= static_cast<u8>(Type::LESS_EQUAL));
+    return (static_cast<uint8_t>(Type::BANG_EQUAL) <= static_cast<uint8_t>(op) &&
+            static_cast<uint8_t>(op) <= static_cast<uint8_t>(Type::LESS_EQUAL));
   }
 
   /**
@@ -145,7 +145,7 @@ class Token {
  private:
   static const char *kTokenNames[];
   static const char *kTokenStrings[];
-  static const u32 kTokenPrecedence[];
+  static const uint32_t kTokenPrecedence[];
 };
 
 }  // namespace terrier::execution::parsing

@@ -41,21 +41,21 @@ void Sema::CheckBuiltinMapCall(UNUSED_ATTRIBUTE ast::CallExpr *call) {}
 void Sema::CheckBuiltinSqlConversionCall(ast::CallExpr *call, ast::Builtin builtin) {
   if (builtin == ast::Builtin::DateToSql) {
     if (!CheckArgCountAtLeast(call, 3)) return;
-    auto u16_kind = ast::BuiltinType::Uint16;
-    auto u8_kind = ast::BuiltinType::Uint8;
-    // First argument (year) is a u16
+    auto uint16_t_kind = ast::BuiltinType::Uint16;
+    auto uint8_t_kind = ast::BuiltinType::Uint8;
+    // First argument (year) is a uint16_t
     if (!call->arguments()[0]->type()->IsIntegerType()) {
-      ReportIncorrectCallArg(call, 0, GetBuiltinType(u16_kind));
+      ReportIncorrectCallArg(call, 0, GetBuiltinType(uint16_t_kind));
       return;
     }
-    // First argument (month) is a u8
+    // First argument (month) is a uint8_t
     if (!call->arguments()[1]->type()->IsIntegerType()) {
-      ReportIncorrectCallArg(call, 1, GetBuiltinType(u8_kind));
+      ReportIncorrectCallArg(call, 1, GetBuiltinType(uint8_t_kind));
       return;
     }
-    // First argument (day) is a u8
+    // First argument (day) is a uint8_t
     if (!call->arguments()[2]->type()->IsIntegerType()) {
-      ReportIncorrectCallArg(call, 2, GetBuiltinType(u8_kind));
+      ReportIncorrectCallArg(call, 2, GetBuiltinType(uint8_t_kind));
       return;
     }
     // Return a date type
@@ -407,7 +407,7 @@ void Sema::CheckBuiltinAggregatorCall(ast::CallExpr *call, ast::Builtin builtin)
     case ast::Builtin::AggInit:
     case ast::Builtin::AggReset: {
       // All arguments to @aggInit() or @aggReset() must be SQL aggregators
-      for (u32 idx = 0; idx < call->num_args(); idx++) {
+      for (uint32_t idx = 0; idx < call->num_args(); idx++) {
         if (!IsPointerToAggregatorValue(args[idx]->type())) {
           error_reporter()->Report(call->position(), ErrorMessages::kNotASQLAggregate, args[idx]->type());
           return;
@@ -851,14 +851,14 @@ void Sema::CheckBuiltinTableIterCall(ast::CallExpr *call, ast::Builtin builtin) 
         ReportIncorrectCallArg(call, 2, GetBuiltinType(exec_ctx_kind)->PointerTo());
         return;
       }
-      // The fourth argument is a u32 array
+      // The fourth argument is a uint32_t array
       if (!call_args[3]->type()->IsArrayType()) {
         ReportIncorrectCallArg(call, 3, "Fourth argument should be a fixed length uint32 array");
         return;
       }
       auto *arr_type = call_args[3]->type()->SafeAs<ast::ArrayType>();
-      auto u32_kind = ast::BuiltinType::Uint32;
-      if (!arr_type->element_type()->IsSpecificBuiltin(u32_kind) || !arr_type->HasKnownLength()) {
+      auto uint32_t_kind = ast::BuiltinType::Uint32;
+      if (!arr_type->element_type()->IsSpecificBuiltin(uint32_t_kind) || !arr_type->HasKnownLength()) {
         ReportIncorrectCallArg(call, 3, "Fourth argument should be a fixed length uint32 array");
       }
       call->set_type(GetBuiltinType(ast::BuiltinType::Nil));
@@ -879,14 +879,14 @@ void Sema::CheckBuiltinTableIterCall(ast::CallExpr *call, ast::Builtin builtin) 
         ReportIncorrectCallArg(call, 2, GetBuiltinType(exec_ctx_kind)->PointerTo());
         return;
       }
-      // The fourth argument is a u32 array
+      // The fourth argument is a uint32_t array
       if (!call_args[3]->type()->IsArrayType()) {
         ReportIncorrectCallArg(call, 3, "Fourth argument should be a uint32 array");
         return;
       }
       auto *arr_type = call_args[3]->type()->SafeAs<ast::ArrayType>();
-      auto u32_kind = ast::BuiltinType::Uint32;
-      if (!arr_type->element_type()->IsSpecificBuiltin(u32_kind)) {
+      auto uint32_t_kind = ast::BuiltinType::Uint32;
+      if (!arr_type->element_type()->IsSpecificBuiltin(uint32_t_kind)) {
         ReportIncorrectCallArg(call, 3, "Fourth argument should be a uint32 array");
       }
       call->set_type(GetBuiltinType(ast::BuiltinType::Nil));
@@ -1072,7 +1072,7 @@ void Sema::CheckBuiltinFilterManagerCall(ast::CallExpr *const call, const ast::B
       break;
     }
     case ast::Builtin::FilterManagerInsertFilter: {
-      for (u32 arg_idx = 1; arg_idx < call->num_args(); arg_idx++) {
+      for (uint32_t arg_idx = 1; arg_idx < call->num_args(); arg_idx++) {
         // clang-format off
         auto *arg_type = call->arguments()[arg_idx]->type()->SafeAs<ast::FunctionType>();
         if (arg_type == nullptr ||                                              // not a function
@@ -1437,14 +1437,14 @@ void Sema::CheckBuiltinIndexIteratorInit(execution::ast::CallExpr *call, ast::Bu
         ReportIncorrectCallArg(call, 3, GetBuiltinType(exec_ctx_kind)->PointerTo());
         return;
       }
-      // The fifth argument is a u32 array
+      // The fifth argument is a uint32_t array
       if (!call->arguments()[4]->type()->IsArrayType()) {
         ReportIncorrectCallArg(call, 4, "Fifth argument should be a fixed length uint32 array");
         return;
       }
       auto *arr_type = call->arguments()[4]->type()->SafeAs<ast::ArrayType>();
-      auto u32_kind = ast::BuiltinType::Uint32;
-      if (!arr_type->element_type()->IsSpecificBuiltin(u32_kind) || !arr_type->HasKnownLength()) {
+      auto uint32_t_kind = ast::BuiltinType::Uint32;
+      if (!arr_type->element_type()->IsSpecificBuiltin(uint32_t_kind) || !arr_type->HasKnownLength()) {
         ReportIncorrectCallArg(call, 4, "Fifth argument should be a fixed length uint32 array");
       }
       break;
@@ -1469,14 +1469,14 @@ void Sema::CheckBuiltinIndexIteratorInit(execution::ast::CallExpr *call, ast::Bu
         ReportIncorrectCallArg(call, 3, GetBuiltinType(exec_ctx_kind)->PointerTo());
         return;
       }
-      // The fifth argument is a u32 array
+      // The fifth argument is a uint32_t array
       if (!call->arguments()[4]->type()->IsArrayType()) {
         ReportIncorrectCallArg(call, 4, "Fifth argument should be a fixed length uint32 array");
         return;
       }
       auto *arr_type = call->arguments()[4]->type()->SafeAs<ast::ArrayType>();
-      auto u32_kind = ast::BuiltinType::Uint32;
-      if (!arr_type->element_type()->IsSpecificBuiltin(u32_kind) || !arr_type->HasKnownLength()) {
+      auto uint32_t_kind = ast::BuiltinType::Uint32;
+      if (!arr_type->element_type()->IsSpecificBuiltin(uint32_t_kind) || !arr_type->HasKnownLength()) {
         ReportIncorrectCallArg(call, 4, "Fifth argument should be a fixed length uint32 array");
       }
       break;

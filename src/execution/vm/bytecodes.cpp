@@ -14,7 +14,7 @@ const char *Bytecodes::kBytecodeNames[] = {
 };
 
 // static
-u32 Bytecodes::kBytecodeOperandCounts[] = {
+uint32_t Bytecodes::kBytecodeOperandCounts[] = {
 #define ENTRY(name, ...) BytecodeTraits<__VA_ARGS__>::kOperandCount,
     BYTECODE_LIST(ENTRY)
 #undef ENTRY
@@ -42,8 +42,8 @@ const char *Bytecodes::kBytecodeHandlerName[] = {
 };
 
 // static
-u32 Bytecodes::MaxBytecodeNameLength() {
-  static constexpr const u32 kMaxInstNameLength = std::max({
+uint32_t Bytecodes::MaxBytecodeNameLength() {
+  static constexpr const uint32_t kMaxInstNameLength = std::max({
 #define ENTRY(name, ...) sizeof(#name),
       BYTECODE_LIST(ENTRY)
 #undef ENTRY
@@ -51,12 +51,12 @@ u32 Bytecodes::MaxBytecodeNameLength() {
   return kMaxInstNameLength;
 }
 
-u32 Bytecodes::GetNthOperandOffset(Bytecode bytecode, u32 operand_index) {
+uint32_t Bytecodes::GetNthOperandOffset(Bytecode bytecode, uint32_t operand_index) {
   TERRIER_ASSERT(operand_index < NumOperands(bytecode), "Invalid operand index");
-  u32 offset = sizeof(std::underlying_type_t<Bytecode>);
-  for (u32 i = 0; i < operand_index; i++) {
+  uint32_t offset = sizeof(std::underlying_type_t<Bytecode>);
+  for (uint32_t i = 0; i < operand_index; i++) {
     OperandSize operand_size = GetNthOperandSize(bytecode, i);
-    offset += static_cast<u32>(operand_size);
+    offset += static_cast<uint32_t>(operand_size);
   }
   return offset;
 }

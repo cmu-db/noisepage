@@ -8,7 +8,7 @@
 namespace terrier::execution::sema {
 
 void Sema::VisitArrayTypeRepr(ast::ArrayTypeRepr *node) {
-  u64 arr_len = 0;
+  uint64_t arr_len = 0;
   if (node->length() != nullptr) {
     if (!node->length()->IsIntegerLiteral()) {
       error_reporter()->Report(node->length()->position(), ErrorMessages::kNonIntegerArrayLength);
@@ -21,7 +21,7 @@ void Sema::VisitArrayTypeRepr(ast::ArrayTypeRepr *node) {
       return;
     }
 
-    arr_len = static_cast<u64>(length);
+    arr_len = static_cast<uint64_t>(length);
   }
 
   ast::Type *elem_type = Resolve(node->element_type());

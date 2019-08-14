@@ -1,6 +1,6 @@
 #pragma once
 
-#include "execution/util/common.h"
+#include "execution/util/execution_common.h"
 
 namespace terrier::execution::ast {
 
@@ -168,7 +168,7 @@ namespace terrier::execution::ast {
 /**
  * Enum of builtins
  */
-enum class Builtin : u8 {
+enum class Builtin : uint8_t {
 #define ENTRY(Name, ...) Name,
   BUILTINS_LIST(ENTRY)
 #undef ENTRY
@@ -185,19 +185,19 @@ class Builtins {
   /**
    * The total number of builtin functions
    */
-  static const u32 kBuiltinsCount = static_cast<u32>(Builtin ::Last) + 1;
+  static const uint32_t kBuiltinsCount = static_cast<uint32_t>(Builtin ::Last) + 1;
 
   /**
    * @return the total number of bytecodes
    */
-  static constexpr u32 NumBuiltins() { return kBuiltinsCount; }
+  static constexpr uint32_t NumBuiltins() { return kBuiltinsCount; }
 
   /**
    * Return the name of the builtin
    * @param builtin builtin to retrieve
    * @return name of the builtin function
    */
-  static const char *GetFunctionName(Builtin builtin) { return kBuiltinFunctionNames[static_cast<u8>(builtin)]; }
+  static const char *GetFunctionName(Builtin builtin) { return kBuiltinFunctionNames[static_cast<uint8_t>(builtin)]; }
 
  private:
   static const char *kBuiltinFunctionNames[];

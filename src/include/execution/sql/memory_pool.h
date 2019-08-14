@@ -5,9 +5,8 @@
 #include <memory>
 #include <vector>
 
-#include "execution/util/common.h"
+#include "execution/util/execution_common.h"
 #include "common/macros.h"
-#include "execution/util/spin_latch.h"
 
 namespace terrier::execution::sql {
 
@@ -112,7 +111,7 @@ class MemoryPool {
   MemoryTracker *tracker_;
 
   //
-  static std::atomic<u64> kMmapThreshold;
+  static std::atomic<uint64_t> kMmapThreshold;
 };
 
 /**

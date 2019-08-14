@@ -25,8 +25,8 @@
 #include "execution/sql/table_vector_iterator.h"
 #include "execution/sql/thread_state_container.h"
 #include "execution/sql/value.h"
-#include "execution/util/common.h"
-#include "execution/util/math_util.h"
+#include "execution/util/execution_common.h"
+#include "common/math_util.h"
 
 namespace terrier::execution::ast {
 
@@ -266,14 +266,14 @@ StructType *StructType::Get(Context *ctx, util::RegionVector<Field> &&fields) {
   if (inserted) {
     // Compute size and alignment. Alignment of struct is alignment of largest
     // struct element.
-    u32 size = 0;
-    u32 alignment = 0;
-    util::RegionVector<u32> field_offsets(ctx->region());
+    uint32_t size = 0;
+    uint32_t alignment = 0;
+    util::RegionVector<uint32_t> field_offsets(ctx->region());
     for (const auto &field : fields) {
       // Check if the type needs to be padded
-      u32 field_align = field.type->alignment();
+      uint32_t field_align = field.type->alignment();
       if (!util::MathUtil::IsAligned(size, field_align)) {
-        size = static_cast<u32>(util::MathUtil::AlignTo(size, field_align));
+        size = static_cast<uint32_t>(util::MathUtil::AlignTo(size, field_align));
       }
 
       // Update size and calculate alignment
