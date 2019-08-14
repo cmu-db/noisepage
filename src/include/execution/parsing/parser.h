@@ -8,7 +8,6 @@
 #include "execution/ast/ast_node_factory.h"
 #include "execution/ast/context.h"
 #include "execution/ast/identifier.h"
-#include "execution/parsing/parsing_context.h"
 #include "execution/parsing/scanner.h"
 #include "execution/sema/error_reporter.h"
 
@@ -48,8 +47,8 @@ class Parser {
 
   // Consume one token. In debug mode, throw an error if the next token isn't
   // what was expected. In release mode, just consume the token without checking
-  void Consume(UNUSED Token::Type expected) {
-    UNUSED Token::Type next = Next();
+  void Consume(UNUSED_ATTRIBUTE Token::Type expected) {
+    UNUSED_ATTRIBUTE Token::Type next = Next();
 #ifndef NDEBUG
     if (next != expected) {
       error_reporter_->Report(scanner_->current_position(), sema::ErrorMessages::kUnexpectedToken, next, expected);
@@ -152,9 +151,6 @@ class Parser {
 
   // The error reporter
   sema::ErrorReporter *error_reporter_;
-
-  // The parsing context
-  std::unique_ptr<ParsingContext> pctx;
 };
 
 }  // namespace terrier::execution::parsing

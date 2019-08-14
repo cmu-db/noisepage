@@ -19,7 +19,7 @@
 #include "execution/sql/table_vector_iterator.h"
 #include "execution/sql/thread_state_container.h"
 #include "execution/util/hash.h"
-#include "execution/util/macros.h"
+#include "common/macros.h"
 
 // All VM bytecode op handlers must use this macro
 #define VM_OP
@@ -167,7 +167,7 @@ VM_OP_HOT bool OpJumpIfTrue(bool cond) { return cond; }
 
 VM_OP_HOT bool OpJumpIfFalse(bool cond) { return !cond; }
 
-VM_OP_HOT void OpCall(UNUSED u16 func_id, UNUSED u16 num_args) {}
+VM_OP_HOT void OpCall(UNUSED_ATTRIBUTE u16 func_id, UNUSED_ATTRIBUTE u16 num_args) {}
 
 VM_OP_HOT void OpReturn() {}
 
@@ -313,7 +313,7 @@ VM_OP_HOT void OpPCIGetDouble(terrier::execution::sql::Real *out,
 }
 
 VM_OP_HOT void OpPCIGetDecimal(terrier::execution::sql::Decimal *out,
-                               UNUSED terrier::execution::sql::ProjectedColumnsIterator *iter, UNUSED u16 col_idx) {
+                               UNUSED_ATTRIBUTE terrier::execution::sql::ProjectedColumnsIterator *iter, UNUSED_ATTRIBUTE u16 col_idx) {
   // TODO(Amadou): Implement once the representation of Decimal is settled upon.
   // The sql::Decimal class does not seem to match the storage layer's DECIMAL type as it needs a precision and
   // a scale.
@@ -598,35 +598,35 @@ VM_OP_WARM void OpAbsReal(terrier::execution::sql::Real *const result,
 VM_OP_HOT void OpAddInteger(terrier::execution::sql::Integer *const result,
                             const terrier::execution::sql::Integer *const left,
                             const terrier::execution::sql::Integer *const right) {
-  UNUSED bool overflow;
+  UNUSED_ATTRIBUTE bool overflow;
   terrier::execution::sql::ArithmeticFunctions::Add(result, *left, *right, &overflow);
 }
 
 VM_OP_HOT void OpSubInteger(terrier::execution::sql::Integer *const result,
                             const terrier::execution::sql::Integer *const left,
                             const terrier::execution::sql::Integer *const right) {
-  UNUSED bool overflow;
+  UNUSED_ATTRIBUTE bool overflow;
   terrier::execution::sql::ArithmeticFunctions::Sub(result, *left, *right, &overflow);
 }
 
 VM_OP_HOT void OpMulInteger(terrier::execution::sql::Integer *const result,
                             const terrier::execution::sql::Integer *const left,
                             const terrier::execution::sql::Integer *const right) {
-  UNUSED bool overflow;
+  UNUSED_ATTRIBUTE bool overflow;
   terrier::execution::sql::ArithmeticFunctions::Mul(result, *left, *right, &overflow);
 }
 
 VM_OP_HOT void OpDivInteger(terrier::execution::sql::Integer *const result,
                             const terrier::execution::sql::Integer *const left,
                             const terrier::execution::sql::Integer *const right) {
-  UNUSED bool div_by_zero = false;
+  UNUSED_ATTRIBUTE bool div_by_zero = false;
   terrier::execution::sql::ArithmeticFunctions::IntDiv(result, *left, *right, &div_by_zero);
 }
 
 VM_OP_HOT void OpRemInteger(terrier::execution::sql::Integer *const result,
                             const terrier::execution::sql::Integer *const left,
                             const terrier::execution::sql::Integer *const right) {
-  UNUSED bool div_by_zero = false;
+  UNUSED_ATTRIBUTE bool div_by_zero = false;
   terrier::execution::sql::ArithmeticFunctions::IntMod(result, *left, *right, &div_by_zero);
 }
 
@@ -647,13 +647,13 @@ VM_OP_HOT void OpMulReal(terrier::execution::sql::Real *const result, const terr
 
 VM_OP_HOT void OpDivReal(terrier::execution::sql::Real *const result, const terrier::execution::sql::Real *const left,
                          const terrier::execution::sql::Real *const right) {
-  UNUSED bool div_by_zero = false;
+  UNUSED_ATTRIBUTE bool div_by_zero = false;
   terrier::execution::sql::ArithmeticFunctions::Div(result, *left, *right, &div_by_zero);
 }
 
 VM_OP_HOT void OpRemReal(terrier::execution::sql::Real *const result, const terrier::execution::sql::Real *const left,
                          const terrier::execution::sql::Real *const right) {
-  UNUSED bool div_by_zero = false;
+  UNUSED_ATTRIBUTE bool div_by_zero = false;
   terrier::execution::sql::ArithmeticFunctions::Mod(result, *left, *right, &div_by_zero);
 }
 
@@ -1384,7 +1384,7 @@ VM_OP_HOT void OpIndexIteratorGetDouble(terrier::execution::sql::Real *out,
 }
 
 VM_OP_HOT void OpIndexIteratorGetDecimal(terrier::execution::sql::Decimal *out,
-                                         UNUSED terrier::execution::sql::IndexIterator *iter, UNUSED u16 col_idx) {
+                                         UNUSED_ATTRIBUTE terrier::execution::sql::IndexIterator *iter, UNUSED_ATTRIBUTE u16 col_idx) {
   // Set
   out->is_null = false;
   out->val = 0;

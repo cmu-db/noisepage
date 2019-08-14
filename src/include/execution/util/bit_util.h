@@ -4,7 +4,7 @@
 #include <utility>
 
 #include "execution/util/common.h"
-#include "execution/util/macros.h"
+#include "common/macros.h"
 #include "execution/util/math_util.h"
 
 namespace terrier::execution::util {

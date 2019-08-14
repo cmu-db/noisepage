@@ -32,7 +32,7 @@ byte *Sorter::AllocInputTuple() {
   return ret;
 }
 
-byte *Sorter::AllocInputTupleTopK(UNUSED u64 top_k) { return AllocInputTuple(); }
+byte *Sorter::AllocInputTupleTopK(UNUSED_ATTRIBUTE u64 top_k) { return AllocInputTuple(); }
 
 void Sorter::AllocInputTupleTopKFinish(const u64 top_k) {
   // If the number of buffered tuples is less than top_k, we're done
@@ -120,7 +120,7 @@ void Sorter::Sort() {
 
   timer.Stop();
 
-  UNUSED double tps = (static_cast<double>(tuples_.size()) / timer.elapsed()) / 1000.0;
+  UNUSED_ATTRIBUTE double tps = (static_cast<double>(tuples_.size()) / timer.elapsed()) / 1000.0;
   EXECUTION_LOG_DEBUG("Sorted {} tuples in {} ms ({:.2f} tps)", tuples_.size(), timer.elapsed(), tps);
 
   // Mark complete

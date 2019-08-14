@@ -27,11 +27,29 @@ void BloomFilter::Init(MemoryPool *memory, u32 num_elems) {
   u64 num_bits = util::MathUtil::PowerOf2Ceil(kBitsPerElement * num_elems);
   u64 num_blocks = util::MathUtil::DivRoundUp(num_bits, sizeof(Block) * kBitsPerByte);
   u64 num_bytes = num_blocks * sizeof(Block);
-  blocks_ = reinterpret_cast<Block *>(memory->AllocateAligned(num_bytes, CACHELINE_SIZE, true));
+  blocks_ = reinterpret_cast<Block *>(memory->AllocateAligned(num_bytes, common::Constants::CACHELINE_SIZE, true));
 
   block_mask_ = static_cast<u32>(num_blocks - 1);
 }
 
+u64 BloomFilter::GetTotalBitsSet() const {
+  u64 count = 0;
+  for (u32 i = 0; i < GetNumBlocks(); i++) {
+    // Note that we process 64-bits at a time, thus we only need four iterations
+    // over a block. We don't use SIMD here because this function isn't
+    // performance-critical.
+    const auto *const chunk = reinterpret_cast<const u64 *>(blocks_[i]);
+    for (u32 j = 0; j < 4; j++) {
+      count += util::BitUtil::CountBits(chunk[j]);
+    }
+  }
+  return count;
+}
+
+
+#if defined(__AVX2__) || defined(__AVX512F__)
+
+// Vectorized version of Add
 void BloomFilter::Add(hash_t hash) {
   auto block_idx = static_cast<u32>(hash & block_mask_);
 
@@ -53,6 +71,7 @@ void BloomFilter::Add(hash_t hash) {
   block.Store(blocks_[block_idx]);
 }
 
+// Vectorized version of Contains
 bool BloomFilter::Contains(hash_t hash) const {
   auto block_idx = static_cast<u32>(hash & block_mask_);
 
@@ -72,18 +91,34 @@ bool BloomFilter::Contains(hash_t hash) const {
   return block.AllBitsAtPositionsSet(masks);
 }
 
-u64 BloomFilter::GetTotalBitsSet() const {
-  u64 count = 0;
-  for (u32 i = 0; i < GetNumBlocks(); i++) {
-    // Note that we process 64-bits at a time, thus we only need four iterations
-    // over a block. We don't use SIMD here because this function isn't
-    // performance-critical.
-    const auto *const chunk = reinterpret_cast<const u64 *>(blocks_[i]);
-    for (u32 j = 0; j < 4; j++) {
-      count += util::BitUtil::CountBits(chunk[j]);
+#else
+
+// Scalar version of Add
+void BloomFilter::Add(hash_t hash) {
+  u32 block_idx = static_cast<u32>(hash & block_mask_);
+  Block &block = blocks_[block_idx];
+  u32 alt_hash = static_cast<u32>(hash >> 32);
+  for (u32 i = 0; i < 8; i++) {
+    u32 bit_idx = (alt_hash * kSalts[i]) >> 27;
+    util::BitUtil::Set(&block[i], bit_idx);
+  }
+}
+
+// Scalar version of Contains
+bool BloomFilter::Contains(hash_t hash) const {
+  u32 alt_hash = static_cast<u32>(hash >> 32);
+  u32 block_idx = static_cast<u32>(hash & block_mask_);
+
+  Block &block = blocks_[block_idx];
+  for (u32 i = 0; i < 8; i++) {
+    u32 bit_idx = (alt_hash * kSalts[i]) >> 27;
+    if (!util::BitUtil::Test(&block[i], bit_idx)) {
+      return false;
     }
   }
-  return count;
+
+  return true;
 }
+#endif
 
 }  // namespace terrier::execution::sql

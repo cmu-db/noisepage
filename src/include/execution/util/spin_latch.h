@@ -2,7 +2,7 @@
 
 #include "tbb/spin_mutex.h"
 
-#include "execution/util/macros.h"
+#include "common/macros.h"
 
 namespace terrier::execution::util {
 

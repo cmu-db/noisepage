@@ -8,7 +8,7 @@
 #include "execution/ast/context.h"
 #include "execution/ast/type.h"
 #include "execution/exec/execution_context.h"
-#include "execution/util/macros.h"
+#include "common/macros.h"
 #include "execution/vm/bytecode_label.h"
 #include "execution/vm/bytecode_module.h"
 #include "execution/vm/control_flow_builders.h"
@@ -157,7 +157,7 @@ void BytecodeGenerator::VisitForStmt(ast::ForStmt *node) {
   loop_builder.JumpToHeader();
 }
 
-void BytecodeGenerator::VisitForInStmt(UNUSED ast::ForInStmt *node) {
+void BytecodeGenerator::VisitForInStmt(UNUSED_ATTRIBUTE ast::ForInStmt *node) {
   TERRIER_ASSERT(false, "For-in statements not supported");
 }
 
@@ -703,7 +703,7 @@ void BytecodeGenerator::VisitBuiltinPCICall(ast::CallExpr *call, ast::Builtin bu
   }
 }
 
-void BytecodeGenerator::VisitBuiltinHashCall(ast::CallExpr *call, UNUSED ast::Builtin builtin) {
+void BytecodeGenerator::VisitBuiltinHashCall(ast::CallExpr *call, UNUSED_ATTRIBUTE ast::Builtin builtin) {
   TERRIER_ASSERT(call->type()->size() == sizeof(hash_t),
                  "Hash value size (from return type of @hash) doesn't match actual "
                  "size of hash_t type");
@@ -1275,7 +1275,7 @@ void BytecodeGenerator::VisitBuiltinSorterIterCall(ast::CallExpr *call, ast::Bui
   }
 }
 
-void BytecodeGenerator::VisitExecutionContextCall(ast::CallExpr *call, UNUSED ast::Builtin builtin) {
+void BytecodeGenerator::VisitExecutionContextCall(ast::CallExpr *call, UNUSED_ATTRIBUTE ast::Builtin builtin) {
   ast::Context *ctx = call->type()->context();
 
   // The memory pool pointer
@@ -1849,7 +1849,7 @@ void BytecodeGenerator::VisitLitExpr(ast::LitExpr *node) {
   execution_result()->set_destination(target.ValueOf());
 }
 
-void BytecodeGenerator::VisitStructDecl(UNUSED ast::StructDecl *node) {
+void BytecodeGenerator::VisitStructDecl(UNUSED_ATTRIBUTE ast::StructDecl *node) {
   // Nothing to do
 }
 

@@ -2,13 +2,15 @@
 
 #include <cassert>
 #include <stdexcept>
+#include "llvm/Support/ErrorHandling.h"
+
 
 //===--------------------------------------------------------------------===//
 // branch predictor hints
 //===--------------------------------------------------------------------===//
 
-#define likely_branch(x) __builtin_expect(!!(x), 1)
-#define unlikely_branch(x) __builtin_expect(!!(x), 0)
+#define LIKELY(x) LLVM_LIKELY(x)
+#define UNLIKELY(x) LLVM_UNLIKELY(x)
 
 //===--------------------------------------------------------------------===//
 // attributes
@@ -31,7 +33,10 @@
 #endif
 
 #define UNUSED_ATTRIBUTE __attribute__((unused))
+
 #define PACKED __attribute__((packed))
+
+#define RESTRICT __restrict__
 
 //===--------------------------------------------------------------------===//
 // ALWAYS_ASSERT
@@ -163,3 +168,8 @@
 // TODO(Tianyu): The easiest thing to do is to write this wrapped in a if on some macro flag (NO_FAKE),
 // and then we can turn this off and on from cmake
 #define FAKED_IN_TEST virtual
+
+//===----------------------------------------------------------------------===//
+// Indicate that a statement should not be reached
+//===----------------------------------------------------------------------===//
+#define UNREACHABLE(msg) llvm_unreachable(msg)

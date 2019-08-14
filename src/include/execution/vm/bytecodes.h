@@ -4,7 +4,7 @@
 #include <cstdint>
 
 #include "execution/util/common.h"
-#include "execution/util/macros.h"
+#include "common/macros.h"
 #include "execution/vm/bytecode_operands.h"
 
 namespace terrier::execution::vm {

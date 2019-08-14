@@ -3,11 +3,11 @@
 #include <immintrin.h>
 
 #include "execution/util/common.h"
-#include "execution/util/macros.h"
+#include "common/macros.h"
 #include "execution/util/simd/types.h"
 
 #ifndef SIMD_TOP_LEVEL
-#error "Don't include <util/simd/avx2.h> directly; instead, include <util/simd.h>"
+#error "Don't include 'execution/util/simd/avx2.h' directly; instead, include 'execution/util/simd.h'"
 #endif
 
 namespace terrier::execution::util::simd {
@@ -208,7 +208,7 @@ ALWAYS_INLINE inline void Vec4::Store(i32 *arr) const {
 
 ALWAYS_INLINE inline void Vec4::Store(i64 *arr) const { Vec256b::Store(reinterpret_cast<void *>(arr)); }
 
-// ---------------------------------------------------------
+// ------------------gre---------------------------------------
 // Vec8 Definition
 // ---------------------------------------------------------
 
@@ -844,9 +844,9 @@ struct FilterVecSizer<intptr_t> {
 template <typename T>
 struct FilterVecSizer<T, std::enable_if_t<std::is_unsigned_v<T>>> : public FilterVecSizer<std::make_signed_t<T>> {};
 
-template <typename T, template <typename> typename Compare>
-static inline u32 FilterVectorByVal(const T *RESTRICT in, u32 in_count, T val, u32 *RESTRICT out,
-                                    const u32 *RESTRICT sel, u32 *RESTRICT in_pos) {
+  template <typename T, template <typename> typename Compare>
+  static inline u32 FilterVectorByVal(const T *RESTRICT in, u32 in_count, T val, u32 *RESTRICT out,
+                                      const u32 *RESTRICT sel, u32 *RESTRICT in_pos) {
   using Vec = typename FilterVecSizer<T>::Vec;
   using VecMask = typename FilterVecSizer<T>::VecMask;
 

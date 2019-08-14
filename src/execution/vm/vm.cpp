@@ -68,7 +68,7 @@ class VM::Frame {
     }
   }
 #else
-  void EnsureInFrame(UNUSED LocalVar var) const {}
+  void EnsureInFrame(UNUSED_ATTRIBUTE LocalVar var) const {}
 #endif
 
  private:
@@ -313,7 +313,7 @@ void VM::Interpret(const u8 *ip, Frame *frame) {
 
   OP(Jump) : {
     auto skip = PEEK_JMP_OFFSET();
-    if (TPL_LIKELY(OpJump())) {
+    if (LIKELY(OpJump())) {
       ip += skip;
     }
     DISPATCH_NEXT();

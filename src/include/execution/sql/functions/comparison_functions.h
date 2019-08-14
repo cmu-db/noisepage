@@ -236,7 +236,10 @@ class ComparisonFunctions {
 
 #define BINARY_COMPARISON_DATE_FN_HIDE_NULL(NAME, TYPE, OP)                                      \
   inline void ComparisonFunctions::NAME##TYPE(BoolVal *result, const TYPE &v1, const TYPE &v2) { \
-    result->is_null = (v1.is_null || v2.is_null);                                                \
+    if (v1.is_null || v2.is_null) {                                                              \
+      *result = BoolVal::Null();                                                                 \
+      return;                                                                                    \
+    }                                                                                            \
     result->val = v1.ymd OP v2.ymd;                                                              \
   }
 

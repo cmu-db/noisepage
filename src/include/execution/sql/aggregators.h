@@ -5,7 +5,7 @@
 
 #include "execution/sql/value.h"
 #include "execution/util/common.h"
-#include "execution/util/macros.h"
+#include "common/macros.h"
 
 namespace terrier::execution::sql {
 
@@ -74,7 +74,7 @@ class CountStarAggregate {
   /**
    * Advance the aggregate by one.
    */
-  void Advance(UNUSED const Val &val) { count_++; }
+  void Advance(UNUSED_ATTRIBUTE const Val &val) { count_++; }
 
   /**
    * Merge this count with the @em that count.

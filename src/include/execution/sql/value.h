@@ -5,7 +5,7 @@
 #include "date/date.h"
 #include "execution/exec/execution_context.h"
 #include "execution/util/common.h"
-#include "execution/util/macros.h"
+#include "common/macros.h"
 #include "execution/util/math_util.h"
 #include "type/type_id.h"
 

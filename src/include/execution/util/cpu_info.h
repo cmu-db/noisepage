@@ -4,7 +4,7 @@
 
 #include "execution/util/bit_util.h"
 #include "execution/util/common.h"
-#include "execution/util/macros.h"
+#include "common/macros.h"
 
 namespace llvm {
 class StringRef;

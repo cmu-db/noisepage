@@ -26,5 +26,10 @@ struct Constants {
    * The size of the buffers the log manager uses to buffer serialized logs and "group commit" them when writing to disk
    */
   static const uint32_t LOG_BUFFER_SIZE = (1 << 12);
+
+  /**
+   * The cache line size in bytes
+   */
+  static const uint8_t CACHELINE_SIZE = 64;
 };
 }  // namespace terrier::common

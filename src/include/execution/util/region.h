@@ -6,7 +6,7 @@
 #include <type_traits>
 
 #include "execution/util/common.h"
-#include "execution/util/macros.h"
+#include "common/macros.h"
 #include "execution/util/math_util.h"
 
 namespace terrier::execution::util {
@@ -180,7 +180,7 @@ class RegionObject {
   /**
    * Should not be called.
    */
-  void operator delete(UNUSED void *ptr, UNUSED Region *region) {
+  void operator delete(UNUSED_ATTRIBUTE void *ptr, UNUSED_ATTRIBUTE Region *region) {
     UNREACHABLE("Calling \"delete\" on region object is forbidden!");
   }
 };

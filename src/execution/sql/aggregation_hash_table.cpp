@@ -156,8 +156,8 @@ void AggregationHashTable::ProcessBatch(ProjectedColumnsIterator *iters[], Aggre
   const u32 num_elems = iters[0]->num_selected();
 
   // Temporary vector for the hash values and hash table entry pointers
-  alignas(CACHELINE_SIZE) hash_t hashes[kDefaultVectorSize];
-  alignas(CACHELINE_SIZE) HashTableEntry *entries[kDefaultVectorSize];
+  alignas(common::Constants::CACHELINE_SIZE) hash_t hashes[kDefaultVectorSize];
+  alignas(common::Constants::CACHELINE_SIZE) HashTableEntry *entries[kDefaultVectorSize];
 
   if (iters[0]->IsFiltered()) {
     ProcessBatchImpl<true>(iters, num_elems, hashes, entries, hash_fn, key_eq_fn, init_agg_fn, advance_agg_fn);
@@ -192,7 +192,7 @@ void AggregationHashTable::LookupBatch(ProjectedColumnsIterator *iters[], u32 nu
   ComputeHashAndLoadInitial<PCIIsFiltered>(iters, num_elems, hashes, entries, hash_fn);
 
   // Determine the indexes of entries that are non-null
-  alignas(CACHELINE_SIZE) u32 group_sel[kDefaultVectorSize];
+  alignas(common::Constants::CACHELINE_SIZE) u32 group_sel[kDefaultVectorSize];
   u32 num_groups = util::VectorUtil::FilterNe(reinterpret_cast<intptr_t *>(entries), iters[0]->num_selected(),
                                               intptr_t(0), group_sel, nullptr);
 
@@ -236,7 +236,7 @@ void AggregationHashTable::ComputeHashAndLoadInitialImpl(ProjectedColumnsIterato
   for (u32 idx = 0, prefetch_idx = kPrefetchDistance; idx < num_elems; idx++, prefetch_idx++) {
     // NOLINTNEXTLINE: bugprone-suspicious-semicolon: seems like a false positive because of constexpr
     if constexpr (Prefetch) {
-      if (TPL_LIKELY(prefetch_idx < num_elems)) {
+      if (LIKELY(prefetch_idx < num_elems)) {
         // NOLINTNEXTLINE
         hash_table_.PrefetchChainHead<false>(hashes[prefetch_idx]);
       }
@@ -287,7 +287,7 @@ void AggregationHashTable::CreateMissingGroups(ProjectedColumnsIterator *iters[]
                                                HashTableEntry *entries[], AggregationHashTable::KeyEqFn key_eq_fn,
                                                AggregationHashTable::InitAggFn init_agg_fn) {
   // Vector storing all the missing group IDs
-  alignas(CACHELINE_SIZE) u32 group_sel[kDefaultVectorSize];
+  alignas(common::Constants::CACHELINE_SIZE) u32 group_sel[kDefaultVectorSize];
 
   // Determine which elements are missing a group
   u32 num_groups =
@@ -314,7 +314,7 @@ template <bool PCIIsFiltered>
 void AggregationHashTable::AdvanceGroups(ProjectedColumnsIterator *iters[], u32 num_elems, HashTableEntry *entries[],
                                          AggregationHashTable::AdvanceAggFn advance_agg_fn) {
   // Vector storing all valid group indexes
-  alignas(CACHELINE_SIZE) u32 group_sel[kDefaultVectorSize];
+  alignas(common::Constants::CACHELINE_SIZE) u32 group_sel[kDefaultVectorSize];
 
   // All non-null entries are groups that should be updated. Find them now.
   u32 num_groups =
@@ -431,7 +431,7 @@ void AggregationHashTable::ExecuteParallelPartitionedScan(void *query_state, Thr
                  "issuing the partitioned scan?");
 
   // Determine the non-empty overflow partitions
-  alignas(CACHELINE_SIZE) u32 nonempty_parts[kDefaultNumPartitions];
+  alignas(common::Constants::CACHELINE_SIZE) u32 nonempty_parts[kDefaultNumPartitions];
   u32 num_nonempty_parts = util::VectorUtil::FilterNe(reinterpret_cast<const intptr_t *>(partition_heads_),
                                                       kDefaultNumPartitions, intptr_t(0), nonempty_parts, nullptr);
 

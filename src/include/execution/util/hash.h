@@ -7,7 +7,7 @@
 #include <type_traits>
 
 #include "execution/util/common.h"
-#include "execution/util/macros.h"
+#include "common/macros.h"
 
 namespace terrier::execution::util {
 
@@ -132,13 +132,13 @@ class Hasher {
     switch (len) {
       case 3:
         hash ^= (static_cast<u64>(buf[2])) << 16u;
-        FALLTHROUGH;
+        TERRIER_FALLTHROUGH;
       case 2:
         hash ^= (static_cast<u64>(buf[1])) << 8u;
-        FALLTHROUGH;
+        TERRIER_FALLTHROUGH;
       case 1:
         hash ^= buf[0];
-        FALLTHROUGH;
+        TERRIER_FALLTHROUGH;
       default:
         break;
     }
@@ -203,22 +203,22 @@ class Hasher {
     switch (len & 7) {
       case 7:
         h ^= u64(data2[6]) << 48;
-        FALLTHROUGH;
+        TERRIER_FALLTHROUGH;
       case 6:
         h ^= u64(data2[5]) << 40;
-        FALLTHROUGH;
+        TERRIER_FALLTHROUGH;
       case 5:
         h ^= u64(data2[4]) << 32;
-        FALLTHROUGH;
+        TERRIER_FALLTHROUGH;
       case 4:
         h ^= u64(data2[3]) << 24;
-        FALLTHROUGH;
+        TERRIER_FALLTHROUGH;
       case 3:
         h ^= u64(data2[2]) << 16;
-        FALLTHROUGH;
+        TERRIER_FALLTHROUGH;
       case 2:
         h ^= u64(data2[1]) << 8;
-        FALLTHROUGH;
+        TERRIER_FALLTHROUGH;
       case 1:
         h ^= u64(data2[0]);
         h *= kMurmur2Prime;

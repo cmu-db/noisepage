@@ -7,7 +7,7 @@
 
 namespace terrier::execution::sql {
 
-void StringFunctions::Substring(UNUSED exec::ExecutionContext *ctx, StringVal *result, const StringVal &str,
+void StringFunctions::Substring(UNUSED_ATTRIBUTE exec::ExecutionContext *ctx, StringVal *result, const StringVal &str,
                                 const Integer &pos, const Integer &len) {
   if (str.is_null || pos.is_null || len.is_null) {
     *result = StringVal::Null();
@@ -51,7 +51,7 @@ const char *SearchSubstring(const char *haystack, const std::size_t hay_len, con
 
 }  // namespace
 
-void StringFunctions::SplitPart(UNUSED exec::ExecutionContext *ctx, StringVal *result, const StringVal &str,
+void StringFunctions::SplitPart(UNUSED_ATTRIBUTE exec::ExecutionContext *ctx, StringVal *result, const StringVal &str,
                                 const StringVal &delim, const Integer &field) {
   if (str.is_null || delim.is_null || field.is_null) {
     *result = StringVal::Null();
@@ -196,7 +196,7 @@ void StringFunctions::Rpad(exec::ExecutionContext *ctx, StringVal *result, const
   }
 }
 
-void StringFunctions::Length(UNUSED exec::ExecutionContext *ctx, Integer *result, const StringVal &str) {
+void StringFunctions::Length(UNUSED_ATTRIBUTE exec::ExecutionContext *ctx, Integer *result, const StringVal &str) {
   result->is_null = str.is_null;
   result->val = str.len;
 }
@@ -309,34 +309,34 @@ void DoTrim(StringVal *result, const StringVal &str, const StringVal &chars) {
 
 }  // namespace
 
-void StringFunctions::Trim(UNUSED exec::ExecutionContext *ctx, StringVal *result, const StringVal &str) {
+void StringFunctions::Trim(UNUSED_ATTRIBUTE exec::ExecutionContext *ctx, StringVal *result, const StringVal &str) {
   DoTrim<true, true>(result, str, StringVal(" "));
 }
 
-void StringFunctions::Trim(UNUSED exec::ExecutionContext *ctx, StringVal *result, const StringVal &str,
+void StringFunctions::Trim(UNUSED_ATTRIBUTE exec::ExecutionContext *ctx, StringVal *result, const StringVal &str,
                            const StringVal &chars) {
   DoTrim<true, true>(result, str, chars);
 }
 
-void StringFunctions::Ltrim(UNUSED exec::ExecutionContext *ctx, StringVal *result, const StringVal &str) {
+void StringFunctions::Ltrim(UNUSED_ATTRIBUTE exec::ExecutionContext *ctx, StringVal *result, const StringVal &str) {
   DoTrim<true, false>(result, str, StringVal(" "));
 }
 
-void StringFunctions::Ltrim(UNUSED exec::ExecutionContext *ctx, StringVal *result, const StringVal &str,
+void StringFunctions::Ltrim(UNUSED_ATTRIBUTE exec::ExecutionContext *ctx, StringVal *result, const StringVal &str,
                             const StringVal &chars) {
   DoTrim<true, false>(result, str, chars);
 }
 
-void StringFunctions::Rtrim(UNUSED exec::ExecutionContext *ctx, StringVal *result, const StringVal &str) {
+void StringFunctions::Rtrim(UNUSED_ATTRIBUTE exec::ExecutionContext *ctx, StringVal *result, const StringVal &str) {
   DoTrim<false, true>(result, str, StringVal(" "));
 }
 
-void StringFunctions::Rtrim(UNUSED exec::ExecutionContext *ctx, StringVal *result, const StringVal &str,
+void StringFunctions::Rtrim(UNUSED_ATTRIBUTE exec::ExecutionContext *ctx, StringVal *result, const StringVal &str,
                             const StringVal &chars) {
   DoTrim<false, true>(result, str, chars);
 }
 
-void StringFunctions::Left(UNUSED exec::ExecutionContext *ctx, StringVal *result, const StringVal &str,
+void StringFunctions::Left(UNUSED_ATTRIBUTE exec::ExecutionContext *ctx, StringVal *result, const StringVal &str,
                            const Integer &n) {
   if (str.is_null || n.is_null) {
     *result = StringVal::Null();
@@ -347,7 +347,7 @@ void StringFunctions::Left(UNUSED exec::ExecutionContext *ctx, StringVal *result
   *result = StringVal(str.Content(), u32(len));
 }
 
-void StringFunctions::Right(UNUSED exec::ExecutionContext *ctx, StringVal *result, const StringVal &str,
+void StringFunctions::Right(UNUSED_ATTRIBUTE exec::ExecutionContext *ctx, StringVal *result, const StringVal &str,
                             const Integer &n) {
   if (str.is_null || n.is_null) {
     *result = StringVal::Null();

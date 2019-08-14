@@ -6,7 +6,7 @@
 #include <vector>
 
 #include "execution/util/common.h"
-#include "execution/util/macros.h"
+#include "common/macros.h"
 #include "execution/util/spin_latch.h"
 
 namespace terrier::execution::sql {

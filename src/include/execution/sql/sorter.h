@@ -4,7 +4,7 @@
 
 #include "execution/sql/memory_pool.h"
 #include "execution/util/chunked_vector.h"
-#include "execution/util/macros.h"
+#include "common/macros.h"
 
 namespace terrier::execution::sql {
 

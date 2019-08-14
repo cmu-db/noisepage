@@ -37,7 +37,11 @@ class VectorUtil {
     static_assert(std::is_same_v<bool, std::invoke_result_t<Op<T>, T, T>>);
 
     u32 in_pos = 0;
+#if defined(__AVX2__) || defined(__AVX512F__)
     u32 out_pos = simd::FilterVectorByVal<T, Op>(in, in_count, val, out, sel, &in_pos);
+#else
+    u32 out_pos = 0;
+#endif
 
     if (sel == nullptr) {
       for (; in_pos < in_count; in_pos++) {
@@ -77,7 +81,11 @@ class VectorUtil {
     static_assert(std::is_same_v<bool, std::invoke_result_t<Op<T>, T, T>>);
 
     u32 in_pos = 0;
+#if defined(__AVX2__) || defined(__AVX512F__)
     u32 out_pos = simd::FilterVectorByVector<T, Op>(in_1, in_2, in_count, out, sel, &in_pos);
+#else
+    u32 out_pos = 0;
+#endif
 
     if (sel == nullptr) {
       for (; in_pos < in_count; in_pos++) {

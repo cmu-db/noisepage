@@ -194,7 +194,7 @@ namespace detail {
 // These functions value-copy a variable number of pass-by-value arguments into
 // a given buffer. It's assumed the buffer is large enough to hold all arguments
 
-inline void CopyAll(UNUSED u8 *buffer) {}
+inline void CopyAll(UNUSED_ATTRIBUTE u8 *buffer) {}
 
 template <typename HeadT, typename... RestT>
 inline void CopyAll(u8 *buffer, const HeadT &head, const RestT &... rest) {
@@ -224,7 +224,7 @@ inline bool Module::GetFunction(const std::string &name, const ExecutionMode exe
   switch (exec_mode) {
     case ExecutionMode::Adaptive: {
       CompileToMachineCodeAsync();
-      FALLTHROUGH;
+      TERRIER_FALLTHROUGH;
     }
     case ExecutionMode::Interpret: {
       *func = [this, func_info](ArgTypes... args) -> Ret {

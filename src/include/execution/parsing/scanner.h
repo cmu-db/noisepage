@@ -5,7 +5,7 @@
 
 #include "execution/parsing/token.h"
 #include "execution/util/common.h"
-#include "execution/util/macros.h"
+#include "common/macros.h"
 
 namespace terrier::execution::parsing {
 

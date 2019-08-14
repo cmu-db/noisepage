@@ -1,7 +1,6 @@
 #pragma once
-
 #include "execution/util/common.h"
-#include "execution/util/macros.h"
+#include "common/macros.h"
 
 namespace terrier::execution::util::simd {
 
@@ -42,8 +41,6 @@ struct Lane {
 #include "execution/util/simd/avx512.h"  // NOLINT
 #elif defined(__AVX2__)
 #include "execution/util/simd/avx2.h"  // NOLINT
-#else
-#error "Compiler must support at least AVX2"
 #endif
 
 #undef SIMD_TOP_LEVEL

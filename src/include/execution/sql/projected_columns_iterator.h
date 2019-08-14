@@ -6,7 +6,7 @@
 
 #include "execution/util/bit_util.h"
 #include "execution/util/common.h"
-#include "execution/util/macros.h"
+#include "common/macros.h"
 #include "type/type_id.h"
 
 namespace terrier::execution::sql {
@@ -224,7 +224,7 @@ class ProjectedColumnsIterator {
 
  private:
   // The selection vector used to filter the ProjectedColumns
-  alignas(CACHELINE_SIZE) u32 selection_vector_[kDefaultVectorSize];
+  alignas(common::Constants::CACHELINE_SIZE) u32 selection_vector_[kDefaultVectorSize];
 
   // The projected column we are iterating over.
   storage::ProjectedColumns *projected_column_{nullptr};

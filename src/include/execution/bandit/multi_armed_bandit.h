@@ -6,7 +6,7 @@
 #include <vector>
 
 #include "execution/util/common.h"
-#include "execution/util/macros.h"
+#include "common/macros.h"
 #include "execution/vm/bytecode_module.h"
 
 namespace terrier::execution::bandit {

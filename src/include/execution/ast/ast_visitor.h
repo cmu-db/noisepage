@@ -51,21 +51,21 @@ class AstVisitor {
    * @param decl node to visit
    * @return default return type
    */
-  RetType VisitDecl(UNUSED Decl *decl) { return RetType(); }
+  RetType VisitDecl(UNUSED_ATTRIBUTE Decl *decl) { return RetType(); }
 
   /**
    * Visits a statement node
    * @param stmt node to visit
    * @return default return type
    */
-  RetType VisitStmt(UNUSED Stmt *stmt) { return RetType(); }
+  RetType VisitStmt(UNUSED_ATTRIBUTE Stmt *stmt) { return RetType(); }
 
   /**
    * Visits a expression node
    * @param expr node to visit
    * @return default return type
    */
-  RetType VisitExpr(UNUSED Expr *expr) { return RetType(); }
+  RetType VisitExpr(UNUSED_ATTRIBUTE Expr *expr) { return RetType(); }
 
 #define T(DeclType) \
   RetType Visit##DeclType(DeclType *node) { DISPATCH(Decl); }

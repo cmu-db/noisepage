@@ -7,7 +7,7 @@
 #include "llvm/Support/MemoryBuffer.h"
 
 #include "execution/util/common.h"
-#include "execution/util/macros.h"
+#include "common/macros.h"
 #include "execution/vm/bytecodes.h"
 
 namespace terrier::execution::ast {

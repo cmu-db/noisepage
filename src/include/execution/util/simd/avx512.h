@@ -3,7 +3,7 @@
 #include <immintrin.h>
 
 #include "execution/util/common.h"
-#include "execution/util/macros.h"
+#include "common/macros.h"
 #include "execution/util/simd/types.h"
 
 namespace terrier::execution::util::simd {

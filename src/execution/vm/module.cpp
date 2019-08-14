@@ -123,7 +123,7 @@ class TrampolineGenerator : public Xbyak::CodeGenerator {
     }
 
     // Always align to cacheline boundary
-    return static_cast<u32>(util::MathUtil::AlignTo(required_stack_space, CACHELINE_SIZE));
+    return static_cast<u32>(util::MathUtil::AlignTo(required_stack_space, common::Constants::CACHELINE_SIZE));
   }
 
   void Prologue() { push(rbx); }

@@ -11,7 +11,7 @@ char *ExecutionContext::StringAllocator::Allocate(std::size_t size) {
   return reinterpret_cast<char *>(region_.Allocate(size));
 }
 
-void ExecutionContext::StringAllocator::Deallocate(UNUSED char *str) {
+void ExecutionContext::StringAllocator::Deallocate(UNUSED_ATTRIBUTE char *str) {
   // No-op. Bulk de-allocated upon destruction.
 }
 

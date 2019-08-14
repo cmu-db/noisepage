@@ -36,7 +36,7 @@ bool AreAllFunctions(const ArgTypes... type) {
 
 }  // namespace
 
-void Sema::CheckBuiltinMapCall(UNUSED ast::CallExpr *call) {}
+void Sema::CheckBuiltinMapCall(UNUSED_ATTRIBUTE ast::CallExpr *call) {}
 
 void Sema::CheckBuiltinSqlConversionCall(ast::CallExpr *call, ast::Builtin builtin) {
   if (builtin == ast::Builtin::DateToSql) {
@@ -730,7 +730,7 @@ void Sema::CheckBuiltinJoinHashTableIterClose(execution::ast::CallExpr *call) {
   call->set_type(GetBuiltinType(ast::BuiltinType::Nil));
 }
 
-void Sema::CheckBuiltinExecutionContextCall(ast::CallExpr *call, UNUSED ast::Builtin builtin) {
+void Sema::CheckBuiltinExecutionContextCall(ast::CallExpr *call, UNUSED_ATTRIBUTE ast::Builtin builtin) {
   if (!CheckArgCount(call, 1)) {
     return;
   }
@@ -1035,7 +1035,7 @@ void Sema::CheckBuiltinPCICall(ast::CallExpr *call, ast::Builtin builtin) {
   }
 }
 
-void Sema::CheckBuiltinHashCall(ast::CallExpr *call, UNUSED ast::Builtin builtin) {
+void Sema::CheckBuiltinHashCall(ast::CallExpr *call, UNUSED_ATTRIBUTE ast::Builtin builtin) {
   if (!CheckArgCountAtLeast(call, 1)) {
     return;
   }
