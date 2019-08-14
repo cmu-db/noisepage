@@ -37,7 +37,6 @@ class TransactionContext {
    * MVCC semantics
    * @param buffer_pool the buffer pool to draw this transaction's undo buffer from
    * @param log_manager pointer to log manager in the system, or nullptr, if logging is disabled
-   * @param transaction_manager pointer to transaction manager in the system (used for action framework)
    */
   TransactionContext(const timestamp_t start, const timestamp_t finish,
                      storage::RecordBufferSegmentPool *const buffer_pool, storage::LogManager *const log_manager)

@@ -23,6 +23,8 @@ class GarbageCollector {
   /**
    * Constructor for the Garbage Collector that requires a pointer to the TransactionManager. This is necessary for the
    * GC to invoke the TM's function for handing off the completed transactions queue.
+   * @param timestamp_manager source of timestamps in the system
+   * @param deferred_action_manager pointer to deferred action manager of the system
    * @param txn_manager pointer to the TransactionManager
    * @param observer the access observer attached to this GC. The GC reports every record gc-ed to the observer if
    *                 it is not null. The observer can then gain insight invoke other components to perform actions.
