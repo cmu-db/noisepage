@@ -26,16 +26,12 @@ list(APPEND TERRIER_SRCS ${BWTREE_SOURCES})
 list(APPEND TERRIER_SRCS ${PROJECT_SOURCE_DIR}/third_party/nlohmann/json.hpp)
 
 # ips4o
-file(GLOB_RECURSE IPS4O_SOURCES
-        ${PROJECT_SOURCE_DIR}/third_party/ips4o/*.hpp
-        )
+file(GLOB_RECURSE IPS4O_SOURCES ${PROJECT_SOURCE_DIR}/third_party/ips4o/*.hpp)
 list(APPEND TERRIER_SRCS ${IPS4O_SOURCES})
 
 
 # xbyak
-file(GLOB_RECURSE XBYAK_SOURCES
-        ${PROJECT_SOURCE_DIR}/third_party/xbyak/*.cpp ${PROJECT_SOURCE_DIR}/third_party/xbyak/*.hpp ${PROJECT_SOURCE_DIR}/third_party/xbyak/*.h
-        )
+file(GLOB_RECURSE XBYAK_SOURCES ${PROJECT_SOURCE_DIR}/third_party/xbyak/*.cpp ${PROJECT_SOURCE_DIR}/third_party/xbyak/*.hpp ${PROJECT_SOURCE_DIR}/third_party/xbyak/*.h)
 list(APPEND TERRIER_SRCS ${XBYAK})
 
 # xxHash
@@ -44,26 +40,8 @@ option(XXHASH_BUNDLED_MODE "Indicate that we're building in bundled mode" ON)
 include_directories(SYSTEM "${PROJECT_SOURCE_DIR}/third_party/xxHash")
 
 # Libcount
-include(ExternalProject)
-ExternalProject_Add(
-        libcount_build
-        PREFIX "${PROJECT_SOURCE_DIR}/third_party/libcount"
-        SOURCE_DIR "${PROJECT_SOURCE_DIR}/third_party/libcount"
-        CONFIGURE_COMMAND ""
-        BUILD_COMMAND make
-        INSTALL_COMMAND ""
-        BUILD_IN_SOURCE 1
-        LOG_BUILD 1
-        BUILD_BYPRODUCTS "${PROJECT_SOURCE_DIR}/third_party/libcount/libcount.a"
-)
-add_library(libcount SHARED IMPORTED)
-set_property(TARGET libcount PROPERTY IMPORTED_LOCATION ${PROJECT_SOURCE_DIR}/third_party/libcount/libcount.a)
-add_dependencies(libcount libcount_build)
-
-include_directories(SYSTEM "${PROJECT_SOURCE_DIR}/third_party/libcount/include")
-list(APPEND TERRIER_STATIC_LINK_LIBS libcount)
-list(APPEND TERRIER_LINK_LIBS libcount)
-
+file(GLOB_RECURSE LIBCOUNT_SOURCES ${PROJECT_SOURCE_DIR}/third_party/libcount/*.cc ${PROJECT_SOURCE_DIR}/third_party/libcount/*.h)
+list(APPEND TERRIER_SRCS ${LIBCOUNT_SOURCES})
 
 # Sqlite 3
 find_package(Sqlite3 REQUIRED)

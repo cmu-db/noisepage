@@ -13,7 +13,7 @@
 // limitations under the License. See the AUTHORS file for names of
 // contributors.
 
-#include "count/utility.h"
+#include "utility.h"
 #include <math.h>
 
 namespace libcount {

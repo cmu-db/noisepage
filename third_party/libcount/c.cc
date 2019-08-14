@@ -14,10 +14,10 @@
    contributors.
 */
 
-#include "count/c.h"
+#include "c.h"
 #include <assert.h>
 #include <stdlib.h>
-#include "count/hll.h"
+#include "hll.h"
 
 #ifdef __cplusplus
 extern "C" {

@@ -14,14 +14,14 @@
 // limitations under the License. See the AUTHORS file for names of
 // contributors.
 
-#include "count/empirical_data.h"
+#include "empirical_data.h"
 #include <assert.h>
 #include <stdio.h>
 #include <algorithm>
 #include <vector>
-#include "count/hll_data.h"
-#include "count/hll_limits.h"
-#include "count/utility.h"
+#include "hll_data.h"
+#include "hll_limits.h"
+#include "utility.h"
 
 namespace libcount {
 

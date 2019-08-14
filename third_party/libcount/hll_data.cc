@@ -23,7 +23,7 @@
 // As such, the data here *is* sorted so that estimate values increase
 // monotonically with their associated array indices.
 
-#include "count/hll_data.h"
+#include "hll_data.h"
 
 extern const double THRESHOLD_DATA[15] = {
     10,      // Precision  4

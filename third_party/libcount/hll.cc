@@ -13,15 +13,15 @@
 // limitations under the License. See the AUTHORS file for names of
 // contributors.
 
-#include "count/hll.h"
+#include "hll.h"
 #include <assert.h>
 #include <errno.h>
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
 #include <algorithm>
-#include "count/empirical_data.h"
-#include "count/utility.h"
+#include "empirical_data.h"
+#include "utility.h"
 
 namespace {
 
