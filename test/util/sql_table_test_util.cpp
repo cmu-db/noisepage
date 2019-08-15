@@ -17,7 +17,7 @@ void RandomSqlTableTransaction::RandomUpdate(Random *generator) {
   const auto table_oid = *(RandomTestUtil::UniformRandomElement(test_object_->table_oids_[database_oid], generator));
   auto &sql_table_metadata = test_object_->tables_[database_oid][table_oid];
   auto sql_table_ptr = test_object_->catalog_.GetDatabaseCatalog(txn_, database_oid)->GetTable(txn_, table_oid);
-  auto &layout = sql_table_ptr->Layout();
+  auto &layout = sql_table_ptr->table_.layout;
 
   // Get random tuple slot to update
   storage::TupleSlot updated;
@@ -89,7 +89,7 @@ void RandomSqlTableTransaction::RandomSelect(Random *generator) {
 
   auto sql_table_ptr = test_object_->catalog_.GetDatabaseCatalog(txn_, database_oid)->GetTable(txn_, table_oid);
   auto initializer = storage::ProjectedRowInitializer::Create(
-      sql_table_ptr->Layout(), StorageTestUtil::ProjectionListAllColumns(sql_table_ptr->Layout()));
+      sql_table_ptr->table_.layout, StorageTestUtil::ProjectionListAllColumns(sql_table_ptr->table_.layout));
 
   storage::ProjectedRow *select = initializer.InitializeRow(sql_table_metadata->buffer_);
   sql_table_ptr->Select(txn_, selected, select);
@@ -198,7 +198,7 @@ void LargeSqlTableTestObject::PopulateInitialTables(uint16_t num_databases, uint
       delete schema;
 
       // Create row initializer
-      auto &layout = sql_table->Layout();
+      auto &layout = sql_table->table_.layout;
       auto initializer =
           storage::ProjectedRowInitializer::Create(layout, StorageTestUtil::ProjectionListAllColumns(layout));
 

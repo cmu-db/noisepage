@@ -11,6 +11,12 @@
 #include "storage/write_ahead_log/log_record.h"
 #include "transaction/transaction_context.h"
 
+namespace terrier {
+// Forward Declaration
+class LargeSqlTableTestObject;
+class RandomSqlTableTransaction;
+}  // namespace terrier
+
 namespace terrier::storage {
 
 /**
@@ -193,13 +199,12 @@ class SqlTable {
    */
   ProjectionMap ProjectionMapForOids(const std::vector<catalog::col_oid_t> &col_oids);
 
-  /**
-   * @return layout of the underlying data table
-   */
-  const storage::BlockLayout &Layout() const { return table_.layout; }
-
  private:
   friend class RecoveryManager;  // Needs access to OID and ID mappings
+  friend class terrier::RandomSqlTableTransaction;
+  friend class terrier::LargeSqlTableTestObject;
+  friend class RecoveryTests;
+
   BlockStore *const block_store_;
 
   // Eventually we'll support adding more tables when schema changes. For now we'll always access the one DataTable.

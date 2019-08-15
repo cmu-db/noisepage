@@ -67,7 +67,7 @@ class WriteAheadLoggingTests : public TerrierTest {
   /**
    * @warning If the serialization format of logs ever changes, this function will need to be updated.
    */
-  storage::LogRecord *ReadNextRecord(storage::BufferedLogReader *in, const storage::BlockLayout &block_layout) {
+  storage::LogRecord *ReadNextRecord(storage::BufferedLogReader *in) {
     auto size = in->ReadValue<uint32_t>();
     byte *buf = common::AllocationUtil::AllocateAligned(size);
     auto record_type = in->ReadValue<storage::LogRecordType>();
@@ -190,9 +190,8 @@ TEST_F(WriteAheadLoggingTests, LargeLogTest) {
   for (auto *txn : result.first) txns_map[txn->BeginTimestamp()] = txn;
   // At this point all the log records should have been written out, we can start reading stuff back in.
   storage::BufferedLogReader in(LOG_FILE_NAME);
-  const auto &block_layout = tested->Layout();
   while (in.HasMore()) {
-    storage::LogRecord *log_record = ReadNextRecord(&in, block_layout);
+    storage::LogRecord *log_record = ReadNextRecord(&in);
     if (log_record->TxnBegin() == transaction::timestamp_t(0)) {
       // TODO(Tianyu): This is hacky, but it will be a pain to extract the initial transaction. The LargeTransactionTest
       //  harness probably needs some refactor (later after wal is in).
@@ -273,7 +272,7 @@ TEST_F(WriteAheadLoggingTests, ReadOnlyTransactionsGenerateNoLogTest) {
   int log_records_count = 0;
   storage::BufferedLogReader in(LOG_FILE_NAME);
   while (in.HasMore()) {
-    storage::LogRecord *log_record = ReadNextRecord(&in, tested->Layout());
+    storage::LogRecord *log_record = ReadNextRecord(&in);
     if (log_record->TxnBegin() == transaction::timestamp_t(0)) {
       // (TODO) Currently following pattern from LargeLogTest of skipping the initial transaction. When the transaction
       // testing framework changes, fix this.
@@ -358,7 +357,7 @@ TEST_F(WriteAheadLoggingTests, AbortRecordTest) {
   bool found_abort_record = false;
   storage::BufferedLogReader in(LOG_FILE_NAME);
   while (in.HasMore()) {
-    storage::LogRecord *log_record = ReadNextRecord(&in, sql_table.Layout());
+    storage::LogRecord *log_record = ReadNextRecord(&in);
     if (log_record->RecordType() == LogRecordType::ABORT) {
       found_abort_record = true;
       auto *abort_record = log_record->GetUnderlyingRecordBodyAs<storage::AbortRecord>();
@@ -425,7 +424,7 @@ TEST_F(WriteAheadLoggingTests, NoAbortRecordTest) {
   bool found_abort_record = false;
   storage::BufferedLogReader in(LOG_FILE_NAME);
   while (in.HasMore()) {
-    storage::LogRecord *log_record = ReadNextRecord(&in, sql_table.Layout());
+    storage::LogRecord *log_record = ReadNextRecord(&in);
     if (log_record->RecordType() == LogRecordType::ABORT) {
       found_abort_record = true;
     }
