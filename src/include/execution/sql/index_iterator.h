@@ -90,7 +90,7 @@ class IndexIterator {
       } else {
         *reinterpret_cast<T *>(index_pr_->AccessForceNotNull(col_idx)) = value;
       }
-    } else { // NOLINT
+    } else {  // NOLINT
       *reinterpret_cast<T *>(index_pr_->AccessForceNotNull(col_idx)) = value;
     }
   }
