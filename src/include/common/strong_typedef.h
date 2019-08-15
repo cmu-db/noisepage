@@ -86,7 +86,7 @@ class StrongTypeAlias {
   /**
    * @return the underlying value.
    */
-  IntType &operator!() { return val_; }
+  constexpr IntType &operator!() { return val_; }
 
   /**
    * @return the underlying value.
