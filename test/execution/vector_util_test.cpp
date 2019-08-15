@@ -71,6 +71,8 @@ class VectorUtilTest : public TplTest {
   sql::MemoryPool pool_;
 };
 
+#if defined(__AVX2__) || defined(__AVX512__)
+
 // NOLINTNEXTLINE
 TEST_F(VectorUtilTest, AccessTest) {
   {
@@ -280,6 +282,8 @@ TEST_F(VectorUtilTest, MaskToPositionTest) {
   EXPECT_EQ(4u, positions[2]);
   EXPECT_EQ(6u, positions[3]);
 }
+
+#endif
 
 template <typename T>
 void SmallScale_NeedleTest() {

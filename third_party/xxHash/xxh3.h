@@ -770,7 +770,13 @@ XXH3_accumulate(       U64* XXH_RESTRICT acc,
      * The unroll statement seems detrimental for WASM (@aras-p) and ARM though.
      */
 #if defined(__clang__) && !defined(__OPTIMIZE_SIZE__) && !defined(__ARM_ARCH) && !defined(__EMSCRIPTEN__)
+/*
+ * TODO(Amadou): Our clang on linux cannot unroll the loop despite the pragma, which causes a compiler error.
+ * We should figure this out.
+ */
+#ifdef __APPLE__
 #  pragma clang loop unroll(enable)
+#endif
 #endif
 
     for (n = 0; n < nbStripes; n++ ) {
