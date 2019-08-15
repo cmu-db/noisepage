@@ -238,6 +238,9 @@ void RecoveryManager::UpdateIndexesOnTable(transaction::TransactionContext *txn,
   // Stores all the attributes a table is indexed on so we can fetch their values with a single select
   std::unordered_set<catalog::col_oid_t> all_indexed_attributes;
 
+  // Cache the index key col oid map so we dont have to compute it again later. Calling GetIndexedColOids is potentially expensive
+  std::unordered_map<common::ManagedPointer<storage::index::Index>, std::unordered_map<catalog::indexkeycol_oid_t, std::vector<catalog::col_oid_t>>> indexed_attributes_map;
+
   // Determine all indexed attributes. Also compute largest PR size we need for index PRs.
   for (uint32_t i = 0; i < indexes.size(); i++) {
     auto index_ptr = indexes[i];
@@ -245,7 +248,10 @@ void RecoveryManager::UpdateIndexesOnTable(transaction::TransactionContext *txn,
 
     // Get attributes
     auto indexed_attributes = schema.GetIndexedColOids();
-    all_indexed_attributes.insert(indexed_attributes.begin(), indexed_attributes.end());
+    indexed_attributes_map[index_ptr] = indexed_attributes;
+    for (auto &iter : indexed_attributes) {
+      all_indexed_attributes.insert(iter.second.begin(), iter.second.end());
+    }
 
     // We want to calculate the size of the largest PR we will need to create create
     index_byte_size = std::max(index_byte_size, index_ptr->GetProjectedRowInitializer().ProjectedRowSize());
@@ -271,18 +277,19 @@ void RecoveryManager::UpdateIndexesOnTable(transaction::TransactionContext *txn,
 
     // Build the index PR
     auto *index_pr = index->GetProjectedRowInitializer().InitializeRow(index_buffer);
-    auto indexed_attributes = schema.GetIndexedColOids();
 
     // Copy in each value from the table select result into the index PR
-    for (uint32_t attr_idx = 0; attr_idx < indexed_attributes.size(); attr_idx++) {
-      auto attr_oid = indexed_attributes[attr_idx];
-      auto index_col_oid = schema.GetColumn(attr_idx).Oid();
-      if (table_pr->IsNull(pr_map[attr_oid])) {
+    for (const auto &col : schema.GetColumns()) {
+      auto index_col_oid = col.Oid();
+      auto &index_key_oids = indexed_attributes_map[index][col.Oid()];
+      TERRIER_ASSERT(index_key_oids.size() == 1, "Only support index keys that are a single column oid");
+      auto oid = index_key_oids[0];
+      if (table_pr->IsNull(pr_map[oid])) {
         index_pr->SetNull(index->GetKeyOidToOffsetMap().at(index_col_oid));
       } else {
-        auto size = schema.GetColumn(attr_idx).AttrSize() & INT8_MAX;
+        auto size = col.AttrSize() & INT8_MAX;
         std::memcpy(index_pr->AccessForceNotNull(index->GetKeyOidToOffsetMap().at(index_col_oid)),
-                    table_pr->AccessWithNullCheck(pr_map[attr_oid]), size);
+                    table_pr->AccessWithNullCheck(pr_map[oid]), size);
       }
     }
 

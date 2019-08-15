@@ -418,15 +418,15 @@ class DatabaseCatalog {
    * Helper method since SetIndexPointer/SetTablePointer and SetIndexSchemaPointer/SetTableSchemaPointer
    * are basically indentical outside of input types
    * @tparam ClassOid either index_oid_t or table_oid_t
-   * @tparam Class either Index or SqlTable
+   * @tparam Ptr either Index or SqlTable
    * @param txn transaction to query
    * @param oid oid to object
    * @param pointer pointer to set
    * @param class_col pg_class column to insert pointer into
    * @return true if successful
    */
-  template <typename ClassOid, typename Class>
-  bool SetClassPointer(transaction::TransactionContext *txn, ClassOid oid, const Class *pointer, col_oid_t class_col);
+  template <typename ClassOid, typename Ptr>
+  bool SetClassPointer(transaction::TransactionContext *txn, ClassOid oid, const Ptr *pointer, col_oid_t class_col);
 
   /**
    * @tparam Column column type (either index or table)

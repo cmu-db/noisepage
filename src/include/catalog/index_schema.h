@@ -191,6 +191,7 @@ class IndexSchema {
 
     friend class DatabaseCatalog;
     friend class postgres::Builder;
+    friend class IndexSchema;
 
     friend class tpcc::Schemas;
     friend class terrier::StorageTestUtil;
@@ -295,6 +296,43 @@ class IndexSchema {
     return schema;
   }
 
+  /**
+   * @warning This call will traverse the entire expression tree, which may be expensive for large expressions. Use with
+   * caution and sparingly.
+   * @return map of index key oid to col_oid contained in that index key
+   */
+  std::unordered_map<indexkeycol_oid_t, std::vector<col_oid_t>> GetIndexedColOids() const {
+    std::unordered_map<indexkeycol_oid_t, std::vector<col_oid_t>> result;
+
+    // We will traverse every expr tree
+    std::deque<std::shared_ptr<parser::AbstractExpression>> expr_queue;
+
+    // Traverse expression tree for each index key
+    for (auto &col : GetColumns()) {
+      TERRIER_ASSERT(col.definition_ != nullptr, "Index column expr should not be null");
+      // Add root of expression of tree for column
+      expr_queue.push_back(col.definition_);
+
+      // Iterate over the tree
+      while (!expr_queue.empty()) {
+        auto expr = expr_queue.front();
+        expr_queue.pop_front();
+
+        TERRIER_ASSERT(expr != nullptr, "We should never be adding null expressions to the queue");
+
+        // If this expr is a column value, add it to the queue
+        if (expr->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE) {
+          result[col.oid_].push_back(std::dynamic_pointer_cast<parser::ColumnValueExpression>(expr)->GetColumnOid());
+        }
+
+        // Add children to queue
+        expr_queue.insert(expr_queue.end(), expr->GetChildren().begin(), expr->GetChildren().end());
+      }
+    }
+
+    return result;
+  }
+
  private:
   friend class DatabaseCatalog;
   friend class storage::RecoveryManager;
@@ -313,22 +351,6 @@ class IndexSchema {
 
   friend class Catalog;
   friend class postgres::Builder;
-
-  /**
-   * @warning This call will fail if this schema has non-expressioned index keys
-   * @return oids of the columns this index schema covers
-   */
-  std::vector<catalog::col_oid_t> GetIndexedColOids() const {
-    std::vector<catalog::col_oid_t> result;
-    for (auto &col : GetColumns()) {
-      TERRIER_ASSERT(col.StoredExpression() != nullptr, "Index column expr should not be null");
-      TERRIER_ASSERT(col.StoredExpression()->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE,
-                     "Only support fetching oids on non-expressioned index keys");
-      result.push_back(
-          col.StoredExpression().CastManagedPointerTo<const parser::ColumnValueExpression>()->GetColumnOid());
-    }
-    return result;
-  }
 };
 
 DEFINE_JSON_DECLARATIONS(IndexSchema::Column);
