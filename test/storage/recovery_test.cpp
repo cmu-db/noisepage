@@ -72,12 +72,12 @@ class RecoveryTests : public TerrierTest {
                            log_persist_threshold_, &pool_, common::ManagedPointer(&thread_registry_));
     log_manager.Start();
     auto *tested = new LargeSqlTableTestObject(config, &block_store_, &pool_, &generator_, &log_manager);
-
-    // Run transactions and fully persist all changes
     tested->SimulateOltp(100, 4);
+
+    // Simulate the system "shutting down". Guarantee persist of log records
     log_manager.PersistAndStop();
 
-    /* CRASH */
+    /* We now "boot up" up the system and start recovery */
 
     // Start a transaction manager with logging disabled, we don't want to log the log replaying
     transaction::TransactionManager recovery_txn_manager{&pool_, true, LOGGING_DISABLED};
@@ -90,7 +90,7 @@ class RecoveryTests : public TerrierTest {
     RecoveryManager recovery_manager(&log_provider, common::ManagedPointer(&recovered_catalog), &recovery_txn_manager,
                                      common::ManagedPointer(&thread_registry_), &block_store_);
     recovery_manager.StartRecovery();
-    recovery_manager.FinishRecovery();
+    recovery_manager.WaitForRecoveryToFinish();
 
     // We need to start the log manager because we will be doing queries into the LargeSqlTableTestObject's catalog
     log_manager.Start();
@@ -99,20 +99,22 @@ class RecoveryTests : public TerrierTest {
     for (auto &database_oid : tested->GetDatabases()) {
       for (auto &table_oid : tested->GetTablesForDatabase(database_oid)) {
         // Get original sql table
-        auto original_sql_table = tested->GetTable(database_oid, table_oid);
+        auto original_txn = tested->GetTxnManager()->BeginTransaction();
+        auto original_sql_table = tested->GetTable(original_txn, database_oid, table_oid);
 
         // Get Recovered table
-        auto *txn = recovery_txn_manager.BeginTransaction();
-        auto db_catalog = recovered_catalog.GetDatabaseCatalog(txn, database_oid);
+        auto *recovery_txn = recovery_txn_manager.BeginTransaction();
+        auto db_catalog = recovered_catalog.GetDatabaseCatalog(recovery_txn, database_oid);
         EXPECT_TRUE(db_catalog != nullptr);
-        auto recovered_sql_table = db_catalog->GetTable(txn, table_oid);
+        auto recovered_sql_table = db_catalog->GetTable(recovery_txn, table_oid);
         EXPECT_TRUE(recovered_sql_table != nullptr);
-        recovery_txn_manager.Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
         EXPECT_TRUE(StorageTestUtil::SqlTableEqualDeep(
             original_sql_table->table_.layout, original_sql_table, recovered_sql_table,
             tested->GetTupleSlotsForTable(database_oid, table_oid), recovery_manager.tuple_slot_map_,
             tested->GetTxnManager(), &recovery_txn_manager));
+        tested->GetTxnManager()->Commit(original_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+        recovery_txn_manager.Commit(recovery_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
       }
     }
 
@@ -197,10 +199,10 @@ TEST_F(RecoveryTests, DropDatabaseTest) {
   EXPECT_EQ(catalog::INVALID_DATABASE_OID, catalog.GetDatabaseOid(txn, database_name));
   EXPECT_FALSE(catalog.GetDatabaseCatalog(txn, db_oid));
 
-  // Guarantee persist of log records
+  // Simulate the system "shutting down". Guarantee persist of log records
   log_manager.PersistAndStop();
 
-  /* CRASH */
+  /* We now "boot up" up the system and start recovery */
 
   // Start a transaction manager with logging disabled, we don't want to log the log replaying
   transaction::TransactionManager recovery_txn_manager{&pool_, true, LOGGING_DISABLED};
@@ -213,7 +215,7 @@ TEST_F(RecoveryTests, DropDatabaseTest) {
   RecoveryManager recovery_manager(&log_provider, common::ManagedPointer(&recovered_catalog), &recovery_txn_manager,
                                    common::ManagedPointer(&thread_registry_), &block_store_);
   recovery_manager.StartRecovery();
-  recovery_manager.FinishRecovery();
+  recovery_manager.WaitForRecoveryToFinish();
 
   // Assert the database we deleted doesn't exist
   txn = recovery_txn_manager.BeginTransaction();
@@ -261,10 +263,10 @@ TEST_F(RecoveryTests, DropTableTest) {
   EXPECT_TRUE(db_catalog->DeleteTable(txn, table_oid));
   txn_manager.Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
-  // Guarantee persist of log records
+  // Simulate the system "shutting down". Guarantee persist of log records
   log_manager.PersistAndStop();
 
-  /* CRASH */
+  /* We now "boot up" up the system and start recovery */
 
   // Start a transaction manager with logging disabled, we don't want to log the log replaying
   transaction::TransactionManager recovery_txn_manager{&pool_, true, LOGGING_DISABLED};
@@ -277,7 +279,7 @@ TEST_F(RecoveryTests, DropTableTest) {
   RecoveryManager recovery_manager(&log_provider, common::ManagedPointer(&recovered_catalog), &recovery_txn_manager,
                                    common::ManagedPointer(&thread_registry_), &block_store_);
   recovery_manager.StartRecovery();
-  recovery_manager.FinishRecovery();
+  recovery_manager.WaitForRecoveryToFinish();
 
   // Assert the database we created exists
   txn = recovery_txn_manager.BeginTransaction();
@@ -345,10 +347,10 @@ TEST_F(RecoveryTests, DropIndexTest) {
   EXPECT_TRUE(db_catalog->DeleteIndex(txn, index_oid));
   txn_manager.Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
-  // Guarantee persist of log records
+  // Simulate the system "shutting down". Guarantee persist of log records
   log_manager.PersistAndStop();
 
-  /* CRASH */
+  /* We now "boot up" up the system and start recovery */
 
   // Start a transaction manager with logging disabled, we don't want to log the log replaying
   transaction::TransactionManager recovery_txn_manager{&pool_, true, LOGGING_DISABLED};
@@ -361,7 +363,7 @@ TEST_F(RecoveryTests, DropIndexTest) {
   RecoveryManager recovery_manager(&log_provider, common::ManagedPointer(&recovered_catalog), &recovery_txn_manager,
                                    common::ManagedPointer(&thread_registry_), &block_store_);
   recovery_manager.StartRecovery();
-  recovery_manager.FinishRecovery();
+  recovery_manager.WaitForRecoveryToFinish();
 
   // Assert the database we created exists
   txn = recovery_txn_manager.BeginTransaction();
@@ -415,10 +417,10 @@ TEST_F(RecoveryTests, DropNamespaceTest) {
   EXPECT_TRUE(db_catalog->DeleteNamespace(txn, namespace_oid));
   txn_manager.Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
-  // Guarantee persist of log records
+  // Simulate the system "shutting down". Guarantee persist of log records
   log_manager.PersistAndStop();
 
-  /* CRASH */
+  /* We now "boot up" up the system and start recovery */
 
   // Start a transaction manager with logging disabled, we don't want to log the log replaying
   transaction::TransactionManager recovery_txn_manager{&pool_, true, LOGGING_DISABLED};
@@ -431,7 +433,7 @@ TEST_F(RecoveryTests, DropNamespaceTest) {
   RecoveryManager recovery_manager(&log_provider, common::ManagedPointer(&recovered_catalog), &recovery_txn_manager,
                                    common::ManagedPointer(&thread_registry_), &block_store_);
   recovery_manager.StartRecovery();
-  recovery_manager.FinishRecovery();
+  recovery_manager.WaitForRecoveryToFinish();
 
   // Assert the database we created exists
   txn = recovery_txn_manager.BeginTransaction();
@@ -500,10 +502,10 @@ TEST_F(RecoveryTests, DropDatabaseCascadeDeleteTest) {
   EXPECT_EQ(catalog::INVALID_DATABASE_OID, catalog.GetDatabaseOid(txn, database_name));
   EXPECT_FALSE(catalog.GetDatabaseCatalog(txn, db_oid));
 
-  // Guarantee persist of log records
+  // Simulate the system "shutting down". Guarantee persist of log records
   log_manager.PersistAndStop();
 
-  /* CRASH */
+  /* We now "boot up" up the system and start recovery */
 
   // Start a transaction manager with logging disabled, we don't want to log the log replaying
   transaction::TransactionManager recovery_txn_manager{&pool_, true, LOGGING_DISABLED};
@@ -516,7 +518,7 @@ TEST_F(RecoveryTests, DropDatabaseCascadeDeleteTest) {
   RecoveryManager recovery_manager(&log_provider, common::ManagedPointer(&recovered_catalog), &recovery_txn_manager,
                                    common::ManagedPointer(&thread_registry_), &block_store_);
   recovery_manager.StartRecovery();
-  recovery_manager.FinishRecovery();
+  recovery_manager.WaitForRecoveryToFinish();
 
   // Assert the database does not exist
   txn = recovery_txn_manager.BeginTransaction();

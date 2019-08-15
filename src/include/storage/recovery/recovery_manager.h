@@ -15,6 +15,10 @@
 #include "storage/sql_table.h"
 #include "transaction/transaction_manager.h"
 
+namespace terrier {
+class RecoveryBenchmark;
+}
+
 namespace terrier::storage {
 
 /**
@@ -76,22 +80,18 @@ class RecoveryManager : public common::DedicatedThreadOwner {
   }
 
   /**
-   * Stops the background recovery task. This will block until recovery finishes, if it has not already.
+   * Blocks until recovery finishes, if it has not already, and stops background thread.
    */
-  void FinishRecovery() {
+  void WaitForRecoveryToFinish() {
     TERRIER_ASSERT(recovery_task_ != nullptr, "Recovery must already have been started");
-    bool result UNUSED_ATTRIBUTE =
-        thread_registry_->StopTask(this, recovery_task_.CastManagedPointerTo<common::DedicatedThreadTask>());
-    TERRIER_ASSERT(result, "Task termination should always succeed");
+    if (!thread_registry_->StopTask(this, recovery_task_.CastManagedPointerTo<common::DedicatedThreadTask>())) {
+      throw std::runtime_error("Recovery task termination failed");
+    }
   }
-
-  /**
-   * @return number of committed txns recovered so far
-   */
-  uint32_t GetRecoveredTxnCount() const { return recovered_txns_; }
 
  private:
   friend class RecoveryTests;
+  friend class terrier::RecoveryBenchmark;
 
   // Log provider for reading in logs
   AbstractLogProvider *log_provider_;
@@ -135,10 +135,12 @@ class RecoveryManager : public common::DedicatedThreadOwner {
   uint32_t RecoverFromLogs();
 
   /**
-   * @brief Replays a transaction corresponding to the given log record log record.
-   * @param log_record abort or commit record for transaction to replay
+   * @brief Process a transaction corresponding to the given log record.
+   * A committed transaction will be replayed, while an aborted transaction will have it's corresponding varlen entries
+   * freed
+   * @param log_record abort or commit record for transaction to process
    */
-  void ReplayTransaction(LogRecord *log_record);
+  void ProcessTransaction(LogRecord *log_record);
 
   /**
    * Handles mapping of old tuple slot (before recovery) to new tuple slot (after recovery)
@@ -180,20 +182,20 @@ class RecoveryManager : public common::DedicatedThreadOwner {
    * @param db_oid database oid for table
    * @param table_oid indexed table
    * @param tuple tuple slot to delete
-   * @param insert true if we should insert into the index, false if we should delete
+   * @param table_pr pointer to PR with values if we should insert into the index, nullptr if we should delete
    */
   void UpdateIndexesOnTable(transaction::TransactionContext *txn, catalog::db_oid_t db_oid,
-                            catalog::table_oid_t table_oid, const TupleSlot &tuple_slot, bool insert);
+                            catalog::table_oid_t table_oid, const TupleSlot &tuple_slot, ProjectedRow *table_pr);
 
   /**
-   * NYS: Not yet supported
+   * NYS = Not yet supported
    * Returns whether a delete or redo record is a special case catalog record. The special cases we consider are:
-   *   1. Updates into pg_class (updating a pointer, updating a schema (NYS), update to next col_oid)
-   *   2. Delete into pg_class (renaming a table/index, drop a table/index)
-   *   3. Insert into pg_database (creating a database)
-   *   4. Delete into pg_database (renaming a database, drop a database)
-   *   5. Delete into pg_attribute (drop column (NYS) / cascading delete from drop table)
-   * @warning Relies on the assumption that catalog tables have a hardcoded OID that is the same for all databases
+   *   1. Insert into pg_database (creating a database)
+   *   2. Updates into pg_class (updating a pointer, updating a schema (NYS), update to next col_oid)
+   *   3. Delete into pg_database (renaming a database, drop a database)
+   *   4. Delete into pg_class (renaming a table/index, drop a table/index)
+   *   5. Delete into pg_index (cascading delete from drop index)
+   *   6. Delete into pg_attribute (drop column (NYS) / cascading delete from drop table)
    * @param record log record we want to determine if its a special case
    * @return true if log record is a special case catalog record, false otherwise
    */
@@ -204,15 +206,15 @@ class RecoveryManager : public common::DedicatedThreadOwner {
     if (record->RecordType() == LogRecordType::REDO) {
       auto *redo_record = record->GetUnderlyingRecordBodyAs<RedoRecord>();
       if (IsInsertRecord(redo_record)) {
-        // Case 3
+        // Case 1
         return redo_record->GetTableOid() == catalog::DATABASE_TABLE_OID;
       }
 
-      // Case 1
+      // Case 2
       return redo_record->GetTableOid() == catalog::CLASS_TABLE_OID;
     }
 
-    // Case 2, 4, and 5
+    // Case 3, 4, 5, and 6
     auto *delete_record = record->GetUnderlyingRecordBodyAs<DeleteRecord>();
     return delete_record->GetTableOid() == catalog::DATABASE_TABLE_OID ||
            delete_record->GetTableOid() == catalog::CLASS_TABLE_OID ||
@@ -262,6 +264,8 @@ class RecoveryManager : public common::DedicatedThreadOwner {
    * @param record record we want oids for
    * @return list of oids
    */
+  // TODO(John): Currently this is being used to extract values from redo records for catalog tables. You should look at
+  // adding constants for col_id_t for catalog tables.
   std::vector<catalog::col_oid_t> GetOidsForRedoRecord(storage::SqlTable *sql_table, RedoRecord *record);
 
   /**

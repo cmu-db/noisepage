@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <string>
+#include <unordered_map>
 #include <unordered_set>
 #include <utility>
 #include <vector>
@@ -25,29 +26,42 @@ uint32_t RecoveryManager::RecoverFromLogs() {
     auto pair = log_provider_->GetNextRecord();
     auto *log_record = pair.first;
 
+    // If we have exhausted all the logs, break from the loop
     if (log_record == nullptr) break;
 
-    // If the record is a commit or abort, we replay it, which will replay all its buffered records. Otherwise, we
-    // buffer the record.
+    // If the record is a commit or abort, we process it by replaying all the records in the case of commits, or
+    // cleaning up the records in the case of aborts. If it's not a commit or abort record, we buffer it.
     if (log_record->RecordType() == LogRecordType::COMMIT || log_record->RecordType() == LogRecordType::ABORT) {
       TERRIER_ASSERT(pair.second.empty(), "Commit or Abort records should not have any varlen pointers");
       if (log_record->RecordType() == LogRecordType::COMMIT) txns_replayed++;
-      ReplayTransaction(log_record);
+      ProcessTransaction(log_record);
     } else {
       buffered_changes_map_[log_record->TxnBegin()].push_back(pair);
     }
   }
-  TERRIER_ASSERT(buffered_changes_map_.empty(), "All buffered changes should have been processed");
+  // If we have unprocessed buffered changes, then these transactions were in-process at the time of system shutdown.
+  // They are unrecoverable, so we need to clean up the memory of their records.
+  if (!buffered_changes_map_.empty()) {
+    for (auto &txn : buffered_changes_map_) {
+      for (auto &buffered_pair : txn.second) {
+        delete[] reinterpret_cast<byte *>(buffered_pair.first);
+        for (auto *entry : buffered_pair.second) {
+          delete[] entry;
+        }
+      }
+    }
+  }
+
   return txns_replayed;
 }
 
-void RecoveryManager::ReplayTransaction(LogRecord *log_record) {
+void RecoveryManager::ProcessTransaction(LogRecord *log_record) {
   TERRIER_ASSERT(log_record->RecordType() == LogRecordType::COMMIT || log_record->RecordType() == LogRecordType::ABORT,
                  "Records should only be replayed when a commit or abort record is seen");
 
   // If we are aborting, we can free and discard all buffered changes. Nothing needs to be replayed
   // We flag this as unlikely as its unlikely that abort records will be flushed to disk
-  if (unlikely_branch(log_record->RecordType() == LogRecordType::ABORT)) {
+  if (UNLIKELY_BRANCH(log_record->RecordType() == LogRecordType::ABORT)) {
     for (auto &buffered_pair : buffered_changes_map_[log_record->TxnBegin()]) {
       delete[] reinterpret_cast<byte *>(buffered_pair.first);
       for (auto *entry : buffered_pair.second) {
@@ -62,7 +76,6 @@ void RecoveryManager::ReplayTransaction(LogRecord *log_record) {
 
     // Apply all buffered changes. They should all succeed. After applying we can safely delete the record
     for (uint32_t idx = 0; idx < buffered_changes_map_[log_record->TxnBegin()].size(); idx++) {
-      bool result UNUSED_ATTRIBUTE = true;
       auto *buffered_record = buffered_changes_map_[log_record->TxnBegin()][idx].first;
       TERRIER_ASSERT(buffered_record->RecordType() == LogRecordType::REDO ||
                          buffered_record->RecordType() == LogRecordType::DELETE,
@@ -93,12 +106,12 @@ void RecoveryManager::ReplayRedoRecord(transaction::TransactionContext *txn, Log
     auto old_tuple_slot = redo_record->GetTupleSlot();
     redo_record->SetTupleSlot(TupleSlot(nullptr, 0));
     // Stage the write. This way the recovery operation is logged if logging is enabled.
-    redo_record = txn->StageRecoveryWrite(record);
+    auto staged_record = txn->StageRecoveryWrite(record);
     // Insert will always succeed
-    auto new_tuple_slot = sql_table_ptr->Insert(txn, redo_record);
-    UpdateIndexesOnTable(txn, redo_record->GetDatabaseOid(), redo_record->GetTableOid(), new_tuple_slot,
-                         true /* insert */);
-    TERRIER_ASSERT(redo_record->GetTupleSlot() == new_tuple_slot,
+    auto new_tuple_slot = sql_table_ptr->Insert(txn, staged_record);
+    UpdateIndexesOnTable(txn, staged_record->GetDatabaseOid(), staged_record->GetTableOid(), new_tuple_slot,
+                         staged_record->Delta());
+    TERRIER_ASSERT(staged_record->GetTupleSlot() == new_tuple_slot,
                    "Insert should update redo record with new tuple slot");
     // Create a mapping of the old to new tuple. The new tuple slot should be used for future updates and deletes.
     tuple_slot_map_[old_tuple_slot] = new_tuple_slot;
@@ -106,8 +119,8 @@ void RecoveryManager::ReplayRedoRecord(transaction::TransactionContext *txn, Log
     auto new_tuple_slot = tuple_slot_map_[redo_record->GetTupleSlot()];
     redo_record->SetTupleSlot(new_tuple_slot);
     // Stage the write. This way the recovery operation is logged if logging is enabled
-    redo_record = txn->StageRecoveryWrite(record);
-    bool result UNUSED_ATTRIBUTE = sql_table_ptr->Update(txn, redo_record);
+    auto staged_record = txn->StageRecoveryWrite(record);
+    bool result UNUSED_ATTRIBUTE = sql_table_ptr->Update(txn, staged_record);
     TERRIER_ASSERT(result, "Buffered changes should always succeed during commit");
   }
 }
@@ -124,14 +137,15 @@ void RecoveryManager::ReplayDeleteRecord(transaction::TransactionContext *txn, L
   bool result UNUSED_ATTRIBUTE = sql_table_ptr->Delete(txn, new_tuple_slot);
   TERRIER_ASSERT(result, "Buffered changes should always succeed during commit");
   UpdateIndexesOnTable(txn, delete_record->GetDatabaseOid(), delete_record->GetTableOid(), new_tuple_slot,
-                       false /* delete */);
+                       nullptr /* delete */);
   // We can delete the TupleSlot from the map
   tuple_slot_map_.erase(delete_record->GetTupleSlot());
 }
 
-void RecoveryManager::UpdateIndexesOnTable(transaction::TransactionContext *txn, const catalog::db_oid_t db_oid,
-                                           const catalog::table_oid_t table_oid, const TupleSlot &tuple_slot,
-                                           const bool insert) {
+void RecoveryManager::UpdateIndexesOnTable(transaction::TransactionContext *txn, catalog::db_oid_t db_oid,
+                                           catalog::table_oid_t table_oid, const TupleSlot &tuple_slot,
+                                           ProjectedRow *table_pr) {
+  bool insert = table_pr != nullptr;
   auto db_catalog_ptr = GetDatabaseCatalog(txn, db_oid);
 
   // Stores ptr to index
@@ -274,14 +288,23 @@ void RecoveryManager::UpdateIndexesOnTable(transaction::TransactionContext *txn,
     index_byte_size = std::max(index_byte_size, index_ptr->GetProjectedRowInitializer().ProjectedRowSize());
   }
 
-  // Create the table PR and select from the table
-  std::vector<catalog::col_oid_t> col_oids =
-      std::vector<catalog::col_oid_t>(all_indexed_attributes.begin(), all_indexed_attributes.end());
-  auto pr_init = sql_table_ptr->InitializerForProjectedRow(col_oids);
-  auto pr_map = sql_table_ptr->ProjectionMapForOids(col_oids);
-  auto *table_buffer = common::AllocationUtil::AllocateAligned(pr_init.ProjectedRowSize());
-  auto table_pr = pr_init.InitializeRow(table_buffer);
-  sql_table_ptr->Select(txn, tuple_slot, table_pr);
+  // The PR map varies whether we are doing an insert or delete. In an insert, the table_pr has all the attributes. For
+  // a delete, we have to query the table, so we only fetch the attributes we need.
+  ProjectionMap pr_map;
+  byte *table_buffer = nullptr;
+
+  if (insert) {
+    pr_map = sql_table_ptr->ProjectionMapForAllOids();
+  } else {
+    // If we need to delete from the index, then we don't have the table PR a priori, so we need to perform a Select.
+    std::vector<catalog::col_oid_t> col_oids =
+        std::vector<catalog::col_oid_t>(all_indexed_attributes.begin(), all_indexed_attributes.end());
+    pr_map = sql_table_ptr->ProjectionMapForOids(col_oids);
+    auto pr_init = sql_table_ptr->InitializerForProjectedRow(col_oids);
+    table_buffer = common::AllocationUtil::AllocateAligned(pr_init.ProjectedRowSize());
+    table_pr = pr_init.InitializeRow(table_buffer);
+    sql_table_ptr->Select(txn, tuple_slot, table_pr);
+  }
 
   // Allocate index buffer
   auto *index_buffer = common::AllocationUtil::AllocateAligned(index_byte_size);

@@ -83,6 +83,15 @@ ProjectionMap SqlTable::ProjectionMapForOids(const std::vector<catalog::col_oid_
   return projection_map;
 }
 
+ProjectionMap SqlTable::ProjectionMapForAllOids() {
+  std::vector<catalog::col_oid_t> all_oids;
+  all_oids.reserve(table_.column_map.size());
+  for (auto &pair : table_.column_map) {
+    all_oids.push_back(pair.first);
+  }
+  return ProjectionMapForOids(all_oids);
+}
+
 catalog::col_oid_t SqlTable::OidForColId(const col_id_t col_id) const {
   const auto oid_to_id = std::find_if(table_.column_map.cbegin(), table_.column_map.cend(),
                                       [&](const auto &oid_to_id) -> bool { return oid_to_id.second == col_id; });

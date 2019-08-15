@@ -7,8 +7,8 @@
 // branch predictor hints
 //===--------------------------------------------------------------------===//
 
-#define likely_branch(x) __builtin_expect(!!(x), 1)
-#define unlikely_branch(x) __builtin_expect(!!(x), 0)
+#define LIKELY_BRANCH(x) __builtin_expect(!!(x), 1)
+#define UNLIKELY_BRANCH(x) __builtin_expect(!!(x), 0)
 
 //===--------------------------------------------------------------------===//
 // attributes

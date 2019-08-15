@@ -1,7 +1,9 @@
 #pragma once
 
+#include <deque>
 #include <memory>
 #include <string>
+#include <unordered_map>
 #include <utility>
 #include <vector>
 #include "catalog/catalog_defs.h"

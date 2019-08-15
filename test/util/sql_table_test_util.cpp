@@ -176,6 +176,7 @@ void LargeSqlTableTestObject::PopulateInitialTables(uint16_t num_databases, uint
                                                     uint32_t num_tuples, bool varlen_allowed,
                                                     storage::BlockStore *block_store, Random *generator) {
   initial_txn_ = txn_manager_.BeginTransaction();
+  auto namespace_name = "test_namespace";
 
   for (uint16_t db_idx = 0; db_idx < num_databases; db_idx++) {
     // Create database in catalog
@@ -183,16 +184,19 @@ void LargeSqlTableTestObject::PopulateInitialTables(uint16_t num_databases, uint
     TERRIER_ASSERT(database_oid != catalog::INVALID_DATABASE_OID, "Database creation should always succeed");
     database_oids_.emplace_back(database_oid);
 
+    // Create test namespace
+    auto db_catalog_ptr = catalog_.GetDatabaseCatalog(initial_txn_, database_oid);
+    auto namespace_oid = db_catalog_ptr->CreateNamespace(initial_txn_, namespace_name);
+
     for (uint16_t table_idx = 0; table_idx < num_tables; table_idx++) {
       // Create Database in catalog
       auto *schema = varlen_allowed ? StorageTestUtil::RandomSchemaWithVarlens(max_columns, generator)
                                     : StorageTestUtil::RandomSchemaNoVarlen(max_columns, generator);
-      auto db_catalog_ptr = catalog_.GetDatabaseCatalog(initial_txn_, database_oid);
-      auto table_oid = db_catalog_ptr->CreateTable(initial_txn_, CatalogTestUtil::test_namespace_oid,
-                                                   "table" + std::to_string(table_idx), *schema);
+      auto table_oid =
+          db_catalog_ptr->CreateTable(initial_txn_, namespace_oid, "table" + std::to_string(table_idx), *schema);
       TERRIER_ASSERT(table_oid != catalog::INVALID_TABLE_OID, "Table creation should always succeed");
       table_oids_[database_oid].emplace_back(table_oid);
-      auto *sql_table = new storage::SqlTable(block_store, *schema);
+      auto *sql_table = new storage::SqlTable(block_store, db_catalog_ptr->GetSchema(initial_txn_, table_oid));
       auto result UNUSED_ATTRIBUTE = db_catalog_ptr->SetTablePointer(initial_txn_, table_oid, sql_table);
       TERRIER_ASSERT(result, "Setting table pointer in catalog should succeed");
       delete schema;

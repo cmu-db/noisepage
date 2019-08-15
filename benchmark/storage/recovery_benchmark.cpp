@@ -70,8 +70,8 @@ class RecoveryBenchmark : public benchmark::Fixture {
       {
         common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
         recovery_manager.StartRecovery();
-        recovery_manager.FinishRecovery();
-        recovered_txns += recovery_manager.GetRecoveredTxnCount();
+        recovery_manager.WaitForRecoveryToFinish();
+        recovered_txns += recovery_manager.recovered_txns_;
       }
 
       state->SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);

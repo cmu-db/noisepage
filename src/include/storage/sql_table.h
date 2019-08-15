@@ -205,6 +205,12 @@ class SqlTable {
   friend class terrier::LargeSqlTableTestObject;
   friend class RecoveryTests;
 
+  /**
+   * Generate a projection map for all the column oids in this table
+   * @return
+   */
+  ProjectionMap ProjectionMapForAllOids();
+
   BlockStore *const block_store_;
 
   // Eventually we'll support adding more tables when schema changes. For now we'll always access the one DataTable.
@@ -218,6 +224,7 @@ class SqlTable {
   std::vector<col_id_t> ColIdsForOids(const std::vector<catalog::col_oid_t> &col_oids) const;
 
   /**
+   * @warning This function is expensive to call and should be used with cautin and sparingly.
    * Returns the col oid for the given col id
    * @param col_id given col id
    * @return col oid for the provided col id
