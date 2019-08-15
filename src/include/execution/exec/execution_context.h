@@ -28,7 +28,7 @@ class ExecutionContext {
     /**
      * Create a new allocator
      */
-    StringAllocator();
+    StringAllocator() : region_("") {}
 
     /**
      * This class cannot be copied or moved.
@@ -38,7 +38,7 @@ class ExecutionContext {
     /**
      * Destroy allocator
      */
-    ~StringAllocator();
+    ~StringAllocator() = default;
 
     /**
      * Allocate a string of the given size..
@@ -48,10 +48,9 @@ class ExecutionContext {
     char *Allocate(std::size_t size);
 
     /**
-     * Deallocate a string allocated from this allocator.
-     * @param str The string to deallocate.
+     * No-op. Bulk de-allocated upon destruction.
      */
-    void Deallocate(char *str);
+    void Deallocate(char *str) {}
 
    private:
     util::Region region_;

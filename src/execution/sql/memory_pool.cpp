@@ -24,7 +24,12 @@ void *MemoryPool::AllocateAligned(const std::size_t size, const std::size_t alig
   if (size >= kMmapThreshold.load(std::memory_order_relaxed)) {
     buf = util::MallocHuge(size);
     TERRIER_ASSERT(buf != nullptr, "Null memory pointer");
-    // No need to clear memory, guaranteed on Linux
+    // No need to clear memory on Linux
+#ifdef __APPLE__
+    if (clear) {
+      std::memset(buf, 0, size);
+    }
+#endif
   } else {
     if (alignment < kMinMallocAlignment) {
       if (clear) {

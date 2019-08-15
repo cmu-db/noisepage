@@ -56,7 +56,7 @@ class LLVMEngine {
    * @param options The compiler options
    * @return The JIT compiled module
    */
-  static std::unique_ptr<CompiledModule> Compile(const BytecodeModule &module, const CompilerOptions &options = {});
+  static std::unique_ptr<CompiledModule> Compile(const BytecodeModule &module, const CompilerOptions &options);
 
   // -------------------------------------------------------
   // Compiler Options
@@ -70,7 +70,7 @@ class LLVMEngine {
     /**
      * Constructor. Turns off all options
      */
-    CompilerOptions() : debug_(false), write_obj_file_(false) {}  // NOLINT
+    CompilerOptions() = default;
 
     /**
      * Set the debug option

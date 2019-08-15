@@ -6,7 +6,7 @@ namespace terrier::execution::ast {
 class AstNode;
 
 /**
- * Class to dump the AST to standard output
+ * Class to dump the AST to a string.
  */
 class AstDump {
  public:
