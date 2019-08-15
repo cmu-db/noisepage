@@ -18,15 +18,15 @@
 #include "execution/sql/thread_state_container.h"
 
 #define TestAllSigned(FuncName, Args...) \
-  FuncName<int8_t>(Args);                    \
-  FuncName<int16_t>(Args);                   \
-  FuncName<int32_t>(Args);                   \
+  FuncName<int8_t>(Args);                \
+  FuncName<int16_t>(Args);               \
+  FuncName<int32_t>(Args);               \
   FuncName<int64_t>(Args);
 
 #define TestAllUnsigned(FuncName, Args...) \
-  FuncName<uint8_t>(Args);                      \
-  FuncName<uint16_t>(Args);                     \
-  FuncName<uint32_t>(Args);                     \
+  FuncName<uint8_t>(Args);                 \
+  FuncName<uint16_t>(Args);                \
+  FuncName<uint32_t>(Args);                \
   FuncName<uint64_t>(Args);
 
 #define TestAllIntegral(FuncName, Args...) TestAllSigned(FuncName, Args) TestAllUnsigned(FuncName, Args)
@@ -41,7 +41,8 @@ class SorterTest : public TplTest {
 template <typename IntType, typename Random>
 void TestSortRandomTupleSize(const uint32_t num_iters, const uint32_t max_elems, Random *generator) {
   std::uniform_int_distribution<IntType> rng(std::numeric_limits<IntType>::min(), std::numeric_limits<IntType>::max());
-  std::uniform_int_distribution<uint32_t> rng_elems(std::numeric_limits<uint32_t>::min(), std::numeric_limits<uint32_t>::max());
+  std::uniform_int_distribution<uint32_t> rng_elems(std::numeric_limits<uint32_t>::min(),
+                                                    std::numeric_limits<uint32_t>::max());
 
   // We insert tuples of size IntType. It would be nice to std::memcmp, but
   // cmp_fn must be a function pointer which means the lambda cannot capture
@@ -92,7 +93,8 @@ void TestSortRandomTupleSize(const uint32_t num_iters, const uint32_t max_elems,
 template <typename IntType, typename Random>
 void TestTopKRandomTupleSize(const uint32_t num_iters, const uint32_t max_elems, Random *generator) {
   std::uniform_int_distribution<IntType> rng(std::numeric_limits<IntType>::min(), std::numeric_limits<IntType>::max());
-  std::uniform_int_distribution<uint32_t> rng_elems(std::numeric_limits<uint32_t>::min(), std::numeric_limits<uint32_t>::max());
+  std::uniform_int_distribution<uint32_t> rng_elems(std::numeric_limits<uint32_t>::min(),
+                                                    std::numeric_limits<uint32_t>::max());
 
   // We insert tuples of size IntType. It would be nice to std::memcmp, but
   // cmp_fn must be a function pointer which means the lambda cannot capture
@@ -154,79 +156,6 @@ TEST_F(SorterTest, TopKTest) {
   const uint32_t num_iters = 5;
   const uint32_t max_elems = 10000;
   TestAllIntegral(TestTopKRandomTupleSize, num_iters, max_elems, &generator_);
-}
-
-// NOLINTNEXTLINE
-TEST_F(SorterTest, DISABLED_PerfSortTest) {
-  // TODO(Amadou): Figure out a way to avoid manually changing this. Maybe
-  // metaprogramming? Also this should go to benchmarks.
-  using data = std::array<byte, 128>;
-  using int_type = uint32_t;
-
-  // 10 million elements
-  const uint32_t num_elems = 10000000;
-
-  // The sort comparison function
-  auto sorter_cmp_fn = [](const void *a, const void *b) -> int32_t {
-    // Just compare the first few bytes
-    const auto val_a = *reinterpret_cast<const int_type *>(a);
-    const auto val_b = *reinterpret_cast<const int_type *>(b);
-    return val_a < val_b ? -1 : (val_a == val_b ? 0 : 1);
-  };
-
-  auto cmp_fn = [](const data &a, const data &b) -> bool {
-    const auto val_a = *reinterpret_cast<const int_type *>(a.data());
-    const auto val_b = *reinterpret_cast<const int_type *>(b.data());
-    return val_a < val_b;
-  };
-
-  // Create the different kinds of vectors.
-  // Some of these are commented out to reduce the memory usage of this test.
-  MemoryPool memory(nullptr);
-  std::vector<data, MemoryPoolAllocator<data>> vec{MemoryPoolAllocator<data>(&memory)};
-  util::ChunkedVectorT<data, MemoryPoolAllocator<data>> chunk_vec{MemoryPoolAllocator<data>(&memory)};
-  sql::Sorter sorter(&memory, sorter_cmp_fn, sizeof(data));
-
-  // Fill up the regular vector. This is our reference.
-  for (int_type i = 0; i < num_elems; i++) {
-    data val;
-    // Only the first few bytes are useful for comparison
-    std::memcpy(val.data(), &i, sizeof(int_type));
-    vec.push_back(val);
-  }
-
-  // Shuffle vector to get a random ordering
-  std::shuffle(vec.begin(), vec.end(), generator_);
-
-  // Fill the ChunkedVectorT<data> and the Sorter instance with the same data
-  for (int_type i = 0; i < num_elems; i++) {
-    chunk_vec.push_back(vec[i]);
-  }
-  for (int_type i = 0; i < num_elems; i++) {
-    auto *elem = sorter.AllocInputTuple();
-    std::memcpy(elem, vec[i].data(), sizeof(int_type));
-  }
-
-  // Run benchmarks
-  // NOTE: keep the number of runs to 1.
-  // Otherwise the vector will be presorted in subsequent runs, which avoids
-  // copies and speeds up the function.
-  auto stdvec_ms = Bench(1, [&vec, &cmp_fn]() { ips4o::sort(vec.begin(), vec.end(), cmp_fn); });
-
-  auto chunk_ms = Bench(1, [&chunk_vec, &cmp_fn]() { ips4o::sort(chunk_vec.begin(), chunk_vec.end(), cmp_fn); });
-
-  auto sorter_ms = Bench(1, [&sorter]() { sorter.Sort(); });
-
-  for (uint32_t i = 0; i < num_elems; i++) {
-    const auto std_a = *reinterpret_cast<const int_type *>(vec[i].data());
-    const auto chunk_a = *reinterpret_cast<const int_type *>(chunk_vec[i].data());
-    EXPECT_EQ(std_a, chunk_a);
-  }
-
-  std::cout << std::fixed << std::setprecision(4);
-  EXECUTION_LOG_INFO("std::sort(std::vector): {} ms", stdvec_ms);
-  EXECUTION_LOG_INFO("ips4o::sort(ChunkedVector): {} ms", chunk_ms);
-  EXECUTION_LOG_INFO("Sorter.sort(): {} ms", sorter_ms);
 }
 
 template <uint32_t N>

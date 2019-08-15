@@ -27,11 +27,11 @@ struct OperandTypeTraits {
 };
 
 // Generate traits for each operand
-#define DECLARE_OPERAND_TYPE(Name, IsSigned, BaseSize)           \
-  template <>                                                    \
-  struct OperandTypeTraits<OperandType::Name> {                  \
-    static constexpr bool kIsSigned = IsSigned;                  \
-    static constexpr OperandSize kOperandSize = BaseSize;        \
+#define DECLARE_OPERAND_TYPE(Name, IsSigned, BaseSize)                     \
+  template <>                                                              \
+  struct OperandTypeTraits<OperandType::Name> {                            \
+    static constexpr bool kIsSigned = IsSigned;                            \
+    static constexpr OperandSize kOperandSize = BaseSize;                  \
     static constexpr uint32_t kSize = static_cast<uint32_t>(kOperandSize); \
   };
 OPERAND_TYPE_LIST(DECLARE_OPERAND_TYPE)

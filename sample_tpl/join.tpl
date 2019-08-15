@@ -39,7 +39,7 @@ fun pipeline_1(execCtx: *ExecutionContext, state: *State) -> nil {
   var col_oids : [2]uint32
   col_oids[0] = 1
   col_oids[1] = 2
-  @tableIterInitBind(&tvi, "test_1", execCtx, col_oids)
+  @tableIterInitBind(&tvi, execCtx, "test_1", col_oids)
   for (@tableIterAdvance(&tvi)) {
     var vec = @tableIterGetPCI(&tvi)
     for (; @pciHasNext(vec); @pciAdvance(vec)) {
@@ -60,7 +60,7 @@ fun pipeline_2(execCtx: *ExecutionContext, state: *State) -> nil {
   var col_oids : [2]uint32
   col_oids[0] = 1
   col_oids[1] = 2
-  @tableIterInitBind(&tvi, "test_1", execCtx, col_oids)
+  @tableIterInitBind(&tvi, execCtx, "test_1", col_oids)
   for (@tableIterAdvance(&tvi)) {
     var vec = @tableIterGetPCI(&tvi)
     for (; @pciHasNext(vec); @pciAdvance(vec)) {

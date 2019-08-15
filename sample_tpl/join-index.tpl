@@ -26,10 +26,10 @@ fun pipeline0(state : *State, execCtx : *ExecutionContext) -> nil {
   col_oids[1] = 2 // colB
 
   var tvi : TableVectorIterator
-  @tableIterInitBind(&tvi, "test_1", execCtx, col_oids)
+  @tableIterInitBind(&tvi, execCtx, "test_1", col_oids)
 
   var index : IndexIterator
-  @indexIteratorInitBind(&index, "test_2", "index_2_multi", execCtx, col_oids)
+  @indexIteratorInitBind(&index, execCtx, "test_2", "index_2_multi", col_oids)
 
   // Iterate
   for (@tableIterAdvance(&tvi)) {

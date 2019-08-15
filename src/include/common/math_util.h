@@ -5,8 +5,8 @@
 
 #include "llvm/Support/MathExtras.h"
 
-#include "execution/util/execution_common.h"
 #include "common/macros.h"
+#include "execution/util/execution_common.h"
 
 namespace terrier::execution::util {
 
@@ -21,7 +21,9 @@ class MathUtil {
    * @param denominator The denominator
    * @return The result of the division rounded up to the next integer value
    */
-  static uint64_t DivRoundUp(uint64_t numerator, uint64_t denominator) { return (numerator + denominator - 1) / denominator; }
+  static uint64_t DivRoundUp(uint64_t numerator, uint64_t denominator) {
+    return (numerator + denominator - 1) / denominator;
+  }
 
   /**
    * Return true if the input value is a power of two > 0

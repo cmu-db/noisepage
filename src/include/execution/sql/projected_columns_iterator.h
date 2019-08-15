@@ -4,9 +4,9 @@
 #include <type_traits>
 #include "storage/projected_columns.h"
 
+#include "common/macros.h"
 #include "execution/util/bit_util.h"
 #include "execution/util/execution_common.h"
-#include "common/macros.h"
 #include "type/type_id.h"
 
 namespace terrier::execution::sql {

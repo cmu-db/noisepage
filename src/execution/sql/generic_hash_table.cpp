@@ -1,7 +1,7 @@
 #include <unordered_map>
 
-#include "execution/sql/generic_hash_table.h"
 #include "common/math_util.h"
+#include "execution/sql/generic_hash_table.h"
 
 namespace terrier::execution::sql {
 

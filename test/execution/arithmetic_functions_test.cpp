@@ -13,7 +13,7 @@ namespace terrier::execution::sql::test {
 
 class ArithmeticFunctionsTests : public TplTest {
  protected:
-  inline double cotan(const double arg) { return (1.0 / std::tan(arg)); }
+  double cotan(const double arg) { return (1.0 / std::tan(arg)); }
 };
 
 // NOLINTNEXTLINE

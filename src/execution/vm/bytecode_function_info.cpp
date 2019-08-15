@@ -4,8 +4,8 @@
 #include <utility>
 #include <vector>
 
-#include "execution/ast/type.h"
 #include "common/math_util.h"
+#include "execution/ast/type.h"
 
 namespace terrier::execution::vm {
 

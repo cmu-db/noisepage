@@ -113,7 +113,7 @@ void FilterManager::RunFilterClause(ProjectedColumnsIterator *const pci, const u
 }
 
 std::pair<uint32_t, double> FilterManager::RunFilterClauseImpl(ProjectedColumnsIterator *const pci,
-                                                          const FilterManager::MatchFn func) {
+                                                               const FilterManager::MatchFn func) {
   // Time and execute the match function, returning the number of selected
   // tuples and the execution time in milliseconds
   util::Timer<> timer;

@@ -4,9 +4,9 @@
 #include <utility>
 #include <vector>
 
+#include "common/macros.h"
 #include "execution/bandit/policy.h"
 #include "execution/util/execution_common.h"
-#include "common/macros.h"
 
 namespace terrier::execution::sql {
 

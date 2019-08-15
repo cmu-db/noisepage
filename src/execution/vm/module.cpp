@@ -4,8 +4,8 @@
 #include <string>
 #include <utility>
 
-#include "tbb/task.h"
 #include "common/constants.h"
+#include "tbb/task.h"
 
 #define XBYAK_NO_OP_NAMES
 #include "xbyak/xbyak/xbyak.h"

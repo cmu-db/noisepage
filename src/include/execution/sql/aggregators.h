@@ -3,9 +3,9 @@
 #include <algorithm>
 #include <limits>
 
+#include "common/macros.h"
 #include "execution/sql/value.h"
 #include "execution/util/execution_common.h"
-#include "common/macros.h"
 
 namespace terrier::execution::sql {
 

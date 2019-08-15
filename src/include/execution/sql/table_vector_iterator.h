@@ -28,7 +28,8 @@ class TableVectorIterator {
    * @param col_oids array column oids to scan
    * @param num_oids length of the array
    */
-  explicit TableVectorIterator(exec::ExecutionContext *exec_ctx, uint32_t table_oid, uint32_t *col_oids, uint32_t num_oids);
+  explicit TableVectorIterator(exec::ExecutionContext *exec_ctx, uint32_t table_oid, uint32_t *col_oids,
+                               uint32_t num_oids);
 
   /**
    * Destructor

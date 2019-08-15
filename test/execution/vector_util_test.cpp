@@ -17,7 +17,9 @@ class PoolArray {
  public:
   PoolArray() = default;
   PoolArray(sql::MemoryPool *memory, uint32_t num_elems)
-      : memory_(memory), arr_(memory_->AllocateArray<T>(num_elems, CACHELINE_SIZE, true)), size_(num_elems) {}
+      : memory_(memory),
+        arr_(memory_->AllocateArray<T>(num_elems, common::Constants::CACHELINE_SIZE, true)),
+        size_(num_elems) {}
   PoolArray(PoolArray &&other) noexcept : memory_(other.memory_), arr_(other.arr_), size_(other.size) {
     other.memory_ = nullptr;
     other.arr_ = nullptr;
@@ -348,8 +350,8 @@ void SmallScale_MultiFilterTest() {
     }
   }
 
-  alignas(CACHELINE_SIZE) uint32_t out[chunk_size] = {0};
-  alignas(CACHELINE_SIZE) uint32_t sel[chunk_size] = {0};
+  alignas(common::Constants::CACHELINE_SIZE) uint32_t out[chunk_size] = {0};
+  alignas(common::Constants::CACHELINE_SIZE) uint32_t sel[chunk_size] = {0};
 
   uint32_t count = 0;
   for (uint32_t offset = 0; offset < num_elems; offset += chunk_size) {
@@ -417,17 +419,17 @@ TEST_F(VectorUtilTest, VectorVectorFilterTest) {
   std::iota(arr_1.begin(), arr_1.end(), 0);
   std::iota(arr_2.begin(), arr_2.end(), 1);
 
-  alignas(CACHELINE_SIZE) uint32_t out[common::Constants::kDefaultVectorSize] = {0};
+  alignas(common::Constants::CACHELINE_SIZE) uint32_t out[common::Constants::kDefaultVectorSize] = {0};
 
-#define CHECK(op, expected_count)                                                              \
-  {                                                                                            \
-    uint32_t count = 0;                                                                             \
-    for (uint32_t offset = 0; offset < num_elems; offset += common::Constants::kDefaultVectorSize) {                   \
-      auto size = std::min(common::Constants::kDefaultVectorSize, num_elems - offset);                            \
-      auto found = VectorUtil::Filter##op(&arr_1[offset], &arr_2[offset], size, out, nullptr); \
-      count += found;                                                                          \
-    }                                                                                          \
-    EXPECT_EQ(expected_count, count);                                                          \
+#define CHECK(op, expected_count)                                                                    \
+  {                                                                                                  \
+    uint32_t count = 0;                                                                              \
+    for (uint32_t offset = 0; offset < num_elems; offset += common::Constants::kDefaultVectorSize) { \
+      auto size = std::min(common::Constants::kDefaultVectorSize, num_elems - offset);               \
+      auto found = VectorUtil::Filter##op(&arr_1[offset], &arr_2[offset], size, out, nullptr);       \
+      count += found;                                                                                \
+    }                                                                                                \
+    EXPECT_EQ(expected_count, count);                                                                \
   }
 
   CHECK(Eq, 0u)
@@ -443,25 +445,25 @@ TEST_F(VectorUtilTest, VectorVectorFilterTest) {
   // Test: fill a1 and a2 with random data. Verify filter with scalar versions.
   //
 
-#define CHECK(vec_op, scalar_op)                                                                   \
-  {                                                                                                \
-    std::random_device random;                                                                     \
-    for (uint32_t idx = 0; idx < num_elems; idx++) {                                                    \
-      arr_1[idx] = (random() % 100);                                                               \
-      arr_2[idx] = (random() % 100);                                                               \
-    }                                                                                              \
-    uint32_t vec_count = 0, scalar_count = 0;                                                           \
-    for (uint32_t offset = 0; offset < num_elems; offset += common::Constants::kDefaultVectorSize) {                       \
-      auto size = std::min(common::Constants::kDefaultVectorSize, num_elems - offset);                                \
-      /* Vector filter*/                                                                           \
-      auto found = VectorUtil::Filter##vec_op(&arr_1[offset], &arr_2[offset], size, out, nullptr); \
-      vec_count += found;                                                                          \
-      /* Scalar filter */                                                                          \
-      for (uint32_t iter = offset, end = iter + size; iter != end; iter++) {                            \
-        scalar_count += arr_1[iter] scalar_op arr_2[iter];                                         \
-      }                                                                                            \
-    }                                                                                              \
-    EXPECT_EQ(scalar_count, vec_count);                                                            \
+#define CHECK(vec_op, scalar_op)                                                                     \
+  {                                                                                                  \
+    std::random_device random;                                                                       \
+    for (uint32_t idx = 0; idx < num_elems; idx++) {                                                 \
+      arr_1[idx] = (random() % 100);                                                                 \
+      arr_2[idx] = (random() % 100);                                                                 \
+    }                                                                                                \
+    uint32_t vec_count = 0, scalar_count = 0;                                                        \
+    for (uint32_t offset = 0; offset < num_elems; offset += common::Constants::kDefaultVectorSize) { \
+      auto size = std::min(common::Constants::kDefaultVectorSize, num_elems - offset);               \
+      /* Vector filter*/                                                                             \
+      auto found = VectorUtil::Filter##vec_op(&arr_1[offset], &arr_2[offset], size, out, nullptr);   \
+      vec_count += found;                                                                            \
+      /* Scalar filter */                                                                            \
+      for (uint32_t iter = offset, end = iter + size; iter != end; iter++) {                         \
+        scalar_count += arr_1[iter] scalar_op arr_2[iter];                                           \
+      }                                                                                              \
+    }                                                                                                \
+    EXPECT_EQ(scalar_count, vec_count);                                                              \
   }
 
   CHECK(Eq, ==)
@@ -472,46 +474,6 @@ TEST_F(VectorUtilTest, VectorVectorFilterTest) {
   CHECK(Ne, !=)
 
 #undef CHECK
-}
-
-// NOLINTNEXTLINE
-TEST_F(VectorUtilTest, DISABLED_PerfSelectTest) {
-  constexpr uint32_t num_elems = 128 * 1024u * 1024u;
-  constexpr const uint32_t chunk_size = 4096;
-
-  std::vector<int32_t> arr(num_elems);
-
-  double load_time = 0.0;
-  {
-    ScopedTimer<std::milli> timer(&load_time);
-
-    std::mt19937 gen;
-    std::uniform_int_distribution<uint32_t> dist(0, 100);
-    for (uint32_t i = 0; i < num_elems; i++) {
-      arr[i] = dist(gen);
-    }
-  }
-
-  std::cout << "Load time: " << load_time << " ms" << std::endl;
-
-  alignas(CACHELINE_SIZE) uint32_t out[chunk_size] = {0};
-
-  for (int32_t sel : {1, 10, 20, 30, 40, 50, 60, 70, 80, 90, 99}) {
-    uint32_t count = 0;
-    double time = 0.0;
-
-    {
-      ScopedTimer<std::milli> timer(&time);
-      for (uint32_t offset = 0; offset < num_elems; offset += chunk_size) {
-        auto size = std::min(chunk_size, num_elems - offset);
-        auto found = VectorUtil::FilterLt(&arr[offset], size, sel, out, nullptr);
-        count += found;
-      }
-    }
-
-    std::cout << "Sel: " << (static_cast<double>(sel) / 100) << ", count: " << count << ", time: " << time << " ms"
-              << std::endl;
-  }
 }
 
 // NOLINTNEXTLINE

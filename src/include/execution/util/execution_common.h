@@ -3,7 +3,6 @@
 #include <cstddef>
 #include <cstdint>
 
-
 /**
  * Type shorthands
  */
@@ -12,19 +11,19 @@
  * Macros to apply functions on all types
  */
 #define FOR_EACH_SIGNED_INT_TYPE(F, ...) \
-  F(int8_t, __VA_ARGS__)                     \
-  F(int16_t, __VA_ARGS__)                    \
-  F(int32_t, __VA_ARGS__)                    \
+  F(int8_t, __VA_ARGS__)                 \
+  F(int16_t, __VA_ARGS__)                \
+  F(int32_t, __VA_ARGS__)                \
   F(int64_t, __VA_ARGS__)
 
 #define FOR_EACH_UNSIGNED_INT_TYPE(F, ...) \
-  F(uint8_t, __VA_ARGS__)                       \
-  F(uint16_t, __VA_ARGS__)                      \
-  F(uint32_t, __VA_ARGS__)                      \
+  F(uint8_t, __VA_ARGS__)                  \
+  F(uint16_t, __VA_ARGS__)                 \
+  F(uint32_t, __VA_ARGS__)                 \
   F(uint64_t, __VA_ARGS__)
 
 #define FOR_EACH_FLOAT_TYPE(F, ...) \
-  F(float, __VA_ARGS__)               \
+  F(float, __VA_ARGS__)             \
   F(double, __VA_ARGS__)
 
 #define INT_TYPES(F, ...)                  \
@@ -55,4 +54,4 @@ struct SourcePosition {
  * Use to classify locality of reference for memory accesses
  */
 enum class Locality : uint8_t { None = 0, Low = 1, Medium = 2, High = 3 };
-}  // namespace terrier
+}  // namespace terrier::execution

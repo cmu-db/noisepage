@@ -6,10 +6,10 @@
 #include <utility>
 #include <vector>
 
+#include "common/strong_typedef.h"
 #include "execution/util/execution_common.h"
 #include "execution/util/region.h"
 #include "execution/util/region_containers.h"
-#include "common/strong_typedef.h"
 
 namespace terrier::execution::util {
 

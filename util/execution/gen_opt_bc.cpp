@@ -6,9 +6,6 @@
 #include "llvm/IR/LLVMContext.h"
 #include "llvm/Support/MemoryBuffer.h"
 
-#include "execution/util/execution_common.h"
-#include "execution/util/macros.h"
-
 //
 // This is a stand-alone executable that reads a bitcode file, cleans, and
 // optimizes it to improve JIT compilation times. The input bitcode file is

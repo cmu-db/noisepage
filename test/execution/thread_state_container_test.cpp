@@ -80,13 +80,14 @@ TEST_F(ThreadStateContainerTest, ContainerResetTest) {
   const uint32_t init_num = 44;
   std::atomic<uint32_t> count(init_num);
 
-#define RESET(N)                                                                                          \
-  {                                                                                                       \
-    /* Reset the container, add/sub upon creation/destruction by amount */                                \
-    container.Reset(                                                                                      \
-        sizeof(uint32_t), [](auto *ctx, UNUSED_ATTRIBUTE auto *s) { (*reinterpret_cast<decltype(count) *>(ctx)) += N; }, \
-        [](auto *ctx, UNUSED_ATTRIBUTE auto *s) { (*reinterpret_cast<decltype(count) *>(ctx)) -= N; }, &count);     \
-    ForceCreationOfThreadStates(&container);                                                              \
+#define RESET(N)                                                                                                \
+  {                                                                                                             \
+    /* Reset the container, add/sub upon creation/destruction by amount */                                      \
+    container.Reset(                                                                                            \
+        sizeof(uint32_t),                                                                                       \
+        [](auto *ctx, UNUSED_ATTRIBUTE auto *s) { (*reinterpret_cast<decltype(count) *>(ctx)) += N; },          \
+        [](auto *ctx, UNUSED_ATTRIBUTE auto *s) { (*reinterpret_cast<decltype(count) *>(ctx)) -= N; }, &count); \
+    ForceCreationOfThreadStates(&container);                                                                    \
   }
 
   RESET(1)
@@ -110,7 +111,8 @@ TEST_F(ThreadStateContainerTest, SimpleContainerTest) {
   MemoryPool memory(nullptr);
   ThreadStateContainer container(&memory);
   container.Reset(
-      sizeof(uint32_t), [](UNUSED_ATTRIBUTE auto *ctx, auto *s) { *reinterpret_cast<uint32_t *>(s) = 0; }, nullptr, nullptr);
+      sizeof(uint32_t), [](UNUSED_ATTRIBUTE auto *ctx, auto *s) { *reinterpret_cast<uint32_t *>(s) = 0; }, nullptr,
+      nullptr);
 
   std::vector<uint32_t> input(10000);
   std::iota(input.begin(), input.end(), 0);
@@ -135,8 +137,8 @@ TEST_F(ThreadStateContainerTest, SimpleContainerTest) {
     container.CollectThreadLocalStateElementsAs(&counts, 0);
     LOG_INFO("{} thread states", counts.size());
 
-    total = static_cast<int32_t>(
-        std::accumulate(counts.begin(), counts.end(), uint32_t(0), [](uint32_t partial, const uint32_t *c) { return partial + *c; }));
+    total = static_cast<int32_t>(std::accumulate(counts.begin(), counts.end(), uint32_t(0),
+                                                 [](uint32_t partial, const uint32_t *c) { return partial + *c; }));
     EXPECT_EQ(input.size(), total);
   }
 }

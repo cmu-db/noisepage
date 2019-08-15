@@ -32,7 +32,7 @@ class VectorUtil {
    */
   template <typename T, template <typename> typename Op>
   static uint32_t FilterVectorByVal(const T *RESTRICT in, const uint32_t in_count, const T val, uint32_t *RESTRICT out,
-                               const uint32_t *RESTRICT sel) {
+                                    const uint32_t *RESTRICT sel) {
     // Simple check to make sure the provided filter operation returns bool
     static_assert(std::is_same_v<bool, std::invoke_result_t<Op<T>, T, T>>);
 
@@ -75,8 +75,8 @@ class VectorUtil {
    * @return The number of elements that pass the filter.
    */
   template <typename T, template <typename> typename Op>
-  static uint32_t FilterVectorByVector(const T *RESTRICT in_1, const T *RESTRICT in_2, const uint32_t in_count, uint32_t *RESTRICT out,
-                                  const uint32_t *RESTRICT sel) {
+  static uint32_t FilterVectorByVector(const T *RESTRICT in_1, const T *RESTRICT in_2, const uint32_t in_count,
+                                       uint32_t *RESTRICT out, const uint32_t *RESTRICT sel) {
     // Simple check to make sure the provided filter operation returns bool
     static_assert(std::is_same_v<bool, std::invoke_result_t<Op<T>, T, T>>);
 
@@ -131,15 +131,16 @@ class VectorUtil {
   // Generate specialized vectorized filters
   // -------------------------------------------------------
 
-#define GEN_FILTER(Op, Comparison)                                                                         \
-  template <typename T>                                                                                    \
-  static uint32_t Filter##Op(const T *RESTRICT in, uint32_t in_count, T val, uint32_t *RESTRICT out, uint32_t *RESTRICT sel) { \
-    return FilterVectorByVal<T, Comparison>(in, in_count, val, out, sel);                                  \
-  }                                                                                                        \
-  template <typename T>                                                                                    \
-  static uint32_t Filter##Op(const T *RESTRICT in_1, const T *RESTRICT in_2, uint32_t in_count, uint32_t *RESTRICT out,   \
-                        uint32_t *RESTRICT sel) {                                                               \
-    return FilterVectorByVector<T, Comparison>(in_1, in_2, in_count, out, sel);                            \
+#define GEN_FILTER(Op, Comparison)                                                                   \
+  template <typename T>                                                                              \
+  static uint32_t Filter##Op(const T *RESTRICT in, uint32_t in_count, T val, uint32_t *RESTRICT out, \
+                             uint32_t *RESTRICT sel) {                                               \
+    return FilterVectorByVal<T, Comparison>(in, in_count, val, out, sel);                            \
+  }                                                                                                  \
+  template <typename T>                                                                              \
+  static uint32_t Filter##Op(const T *RESTRICT in_1, const T *RESTRICT in_2, uint32_t in_count,      \
+                             uint32_t *RESTRICT out, uint32_t *RESTRICT sel) {                       \
+    return FilterVectorByVector<T, Comparison>(in_1, in_2, in_count, out, sel);                      \
   }
   GEN_FILTER(Eq, std::equal_to)
   GEN_FILTER(Gt, std::greater)
@@ -176,8 +177,8 @@ class VectorUtil {
    * @return The number of null elements in the vector.
    */
   template <typename T>
-  static auto SelectNotNull(const T *RESTRICT in, const uint32_t in_count, uint32_t *RESTRICT out, uint32_t *RESTRICT sel)
-      -> std::enable_if_t<std::is_pointer_v<T>, uint32_t> {
+  static auto SelectNotNull(const T *RESTRICT in, const uint32_t in_count, uint32_t *RESTRICT out,
+                            uint32_t *RESTRICT sel) -> std::enable_if_t<std::is_pointer_v<T>, uint32_t> {
     return FilterNe(reinterpret_cast<const intptr_t *>(in), in_count, intptr_t(0), out, sel);
   }
 };

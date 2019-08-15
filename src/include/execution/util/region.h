@@ -5,9 +5,9 @@
 #include <string>
 #include <type_traits>
 
-#include "execution/util/execution_common.h"
 #include "common/macros.h"
 #include "common/math_util.h"
+#include "execution/util/execution_common.h"
 
 namespace terrier::execution::util {
 

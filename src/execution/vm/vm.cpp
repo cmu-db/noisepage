@@ -493,11 +493,11 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {
 
   OP(TableVectorIteratorInit) : {
     auto *iter = frame->LocalAt<sql::TableVectorIterator *>(READ_LOCAL_ID());
-    auto table_oid = READ_UIMM4();
     auto exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
+    auto table_oid = READ_UIMM4();
     auto col_oids = frame->LocalAt<uint32_t *>(READ_LOCAL_ID());
     auto num_oids = READ_UIMM4();
-    OpTableVectorIteratorInit(iter, table_oid, exec_ctx, col_oids, num_oids);
+    OpTableVectorIteratorInit(iter, exec_ctx, table_oid, col_oids, num_oids);
     DISPATCH_NEXT();
   }
 
@@ -627,7 +627,7 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {
 
 #define GEN_PCI_FILTER(Op)                                                         \
   OP(PCIFilter##Op) : {                                                            \
-    auto *size = frame->LocalAt<uint64_t *>(READ_LOCAL_ID());                           \
+    auto *size = frame->LocalAt<uint64_t *>(READ_LOCAL_ID());                      \
     auto *iter = frame->LocalAt<sql::ProjectedColumnsIterator *>(READ_LOCAL_ID()); \
     auto col_idx = READ_UIMM4();                                                   \
     auto type = READ_IMM1();                                                       \
@@ -1368,12 +1368,12 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {
   // -------------------------------------------------------
   OP(IndexIteratorInit) : {
     auto *iter = frame->LocalAt<sql::IndexIterator *>(READ_LOCAL_ID());
+    auto exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
     auto table_oid = READ_UIMM4();
     auto index_oid = READ_UIMM4();
-    auto exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
     auto col_oids = frame->LocalAt<uint32_t *>(READ_LOCAL_ID());
     auto num_oids = READ_UIMM4();
-    OpIndexIteratorInit(iter, table_oid, index_oid, exec_ctx, col_oids, num_oids);
+    OpIndexIteratorInit(iter, exec_ctx, table_oid, index_oid, col_oids, num_oids);
     DISPATCH_NEXT();
   }
 

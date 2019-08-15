@@ -6,9 +6,9 @@
 #include <utility>
 #include <vector>
 
+#include "common/macros.h"
 #include "execution/util/bitfield.h"
 #include "execution/util/execution_common.h"
-#include "common/macros.h"
 
 namespace terrier::execution {
 

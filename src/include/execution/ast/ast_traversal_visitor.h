@@ -1,8 +1,8 @@
 #pragma once
 
+#include "common/macros.h"
 #include "execution/ast/ast_visitor.h"
 #include "execution/util/execution_common.h"
-#include "common/macros.h"
 
 namespace terrier::execution::ast {
 

@@ -9,7 +9,8 @@
 #include "tbb/task_scheduler_init.h"
 
 namespace terrier::execution::sql {
-TableVectorIterator::TableVectorIterator(exec::ExecutionContext *exec_ctx, uint32_t table_oid, uint32_t *col_oids, uint32_t num_oids)
+TableVectorIterator::TableVectorIterator(exec::ExecutionContext *exec_ctx, uint32_t table_oid, uint32_t *col_oids,
+                                         uint32_t num_oids)
     : exec_ctx_(exec_ctx), table_oid_(table_oid), col_oids_(col_oids, col_oids + num_oids) {}
 
 TableVectorIterator::~TableVectorIterator() {

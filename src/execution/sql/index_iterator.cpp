@@ -3,8 +3,8 @@
 
 namespace terrier::execution::sql {
 
-IndexIterator::IndexIterator(exec::ExecutionContext *exec_ctx, uint32_t table_oid, uint32_t index_oid, uint32_t *col_oids,
-                             uint32_t num_oids)
+IndexIterator::IndexIterator(exec::ExecutionContext *exec_ctx, uint32_t table_oid, uint32_t index_oid,
+                             uint32_t *col_oids, uint32_t num_oids)
     : exec_ctx_(exec_ctx),
       col_oids_(col_oids, col_oids + num_oids),
       index_(exec_ctx_->GetAccessor()->GetIndex(catalog::index_oid_t(index_oid))),

@@ -2,11 +2,11 @@
 
 #include <sstream>
 #include <string>
+#include "common/macros.h"
+#include "common/math_util.h"
 #include "date/date.h"
 #include "execution/exec/execution_context.h"
 #include "execution/util/execution_common.h"
-#include "common/macros.h"
-#include "common/math_util.h"
 #include "type/type_id.h"
 
 namespace terrier::execution::sql {
@@ -169,7 +169,8 @@ struct Decimal : public Val {
    * @param precision precision of the decimal
    * @param scale scale of the decimal
    */
-  Decimal(uint64_t val, uint32_t precision, uint32_t scale) noexcept : Val(false), val(val), precision(precision), scale(scale) {}
+  Decimal(uint64_t val, uint32_t precision, uint32_t scale) noexcept
+      : Val(false), val(val), precision(precision), scale(scale) {}
 
   /**
    * @return a NULL decimal value
@@ -344,7 +345,8 @@ struct Date : public Val {
    * @param month month value
    * @param day day value
    */
-  Date(int16_t year, uint8_t month, uint8_t day) noexcept : Val(false), ymd{date::year(year) / date::month(month) / date::day(day)} {}
+  Date(int16_t year, uint8_t month, uint8_t day) noexcept
+      : Val(false), ymd{date::year(year) / date::month(month) / date::day(day)} {}
 
   /**
    * @return a NULL Date.

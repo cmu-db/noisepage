@@ -1049,7 +1049,8 @@ void LLVMEngine::CompiledModule::Load(const BytecodeModule &module) {
     object_code_ = std::move(file_buffer.get());
   }
 
-  EXECUTION_LOG_DEBUG("Object code size: {:.2f} common::Constants::KB", static_cast<double>(GetModuleObjectCodeSizeInBytes()) / 1024.0);
+  EXECUTION_LOG_DEBUG("Object code size: {:.2f} common::Constants::KB",
+                      static_cast<double>(GetModuleObjectCodeSizeInBytes()) / 1024.0);
 
   //
   // We've loaded the object file into an in-memory buffer. We need to convert

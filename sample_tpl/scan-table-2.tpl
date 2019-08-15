@@ -13,7 +13,7 @@ fun main(execCtx: *ExecutionContext) -> int64 {
   oids[2] = 3 // colC
   oids[3] = 4 // colD
 
-  @tableIterInitBind(&tvi, "test_1", execCtx, oids)
+  @tableIterInitBind(&tvi, execCtx, "test_1", oids)
   for (@tableIterAdvance(&tvi)) {
     var pci = @tableIterGetPCI(&tvi)
     for (; @pciHasNext(pci); @pciAdvance(pci)) {

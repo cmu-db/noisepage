@@ -324,7 +324,7 @@ Token::Type Scanner::CheckIdentifierOrKeyword(const char *input, uint32_t input_
 
 #define GROUP_ELEM(str, typ)                                                                             \
   {                                                                                                      \
-    const uint64_t keyword_len = sizeof(str) - 1;                                                             \
+    const uint64_t keyword_len = sizeof(str) - 1;                                                        \
     if (keyword_len == input_len && (str)[1] == input[1] && (keyword_len < 3 || (str)[2] == input[2]) && \
         (keyword_len < 4 || (str)[3] == input[3]) && (keyword_len < 5 || (str)[4] == input[4]) &&        \
         (keyword_len < 6 || (str)[5] == input[5])) {                                                     \

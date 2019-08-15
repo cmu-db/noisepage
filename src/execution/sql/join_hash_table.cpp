@@ -46,7 +46,8 @@ byte *JoinHashTable::AllocInputTuple(const hash_t hash) {
 
 template <bool Prefetch>
 void JoinHashTable::BuildGenericHashTableInternal() noexcept {
-  for (uint64_t idx = 0, prefetch_idx = common::Constants::kPrefetchDistance; idx < entries_.size(); idx++, prefetch_idx++) {
+  for (uint64_t idx = 0, prefetch_idx = common::Constants::kPrefetchDistance; idx < entries_.size();
+       idx++, prefetch_idx++) {
     // NOLINTNEXTLINE: bugprone-suspicious-semicolon: seems like a false positive because of constexpr
     if constexpr (Prefetch) {
       if (LIKELY(prefetch_idx < entries_.size())) {
@@ -79,7 +80,8 @@ void JoinHashTable::BuildGenericHashTable() noexcept {
 
 template <bool Prefetch>
 void JoinHashTable::InsertIntoConciseHashTable() noexcept {
-  for (uint64_t idx = 0, prefetch_idx = common::Constants::kPrefetchDistance; idx < entries_.size(); idx++, prefetch_idx++) {
+  for (uint64_t idx = 0, prefetch_idx = common::Constants::kPrefetchDistance; idx < entries_.size();
+       idx++, prefetch_idx++) {
     // NOLINTNEXTLINE: bugprone-suspicious-semicolon: seems like a false positive because of constexpr
     if constexpr (Prefetch) {
       if (LIKELY(prefetch_idx < entries_.size())) {
@@ -265,7 +267,8 @@ void JoinHashTable::ReorderMainEntries() noexcept {
   while (reorder_buf.Fill()) {
     const uint64_t num_buf_entries = reorder_buf.num_entries();
 
-    for (uint64_t idx = 0, prefetch_idx = idx + common::Constants::kPrefetchDistance; idx < num_buf_entries; idx++, prefetch_idx++) {
+    for (uint64_t idx = 0, prefetch_idx = idx + common::Constants::kPrefetchDistance; idx < num_buf_entries;
+         idx++, prefetch_idx++) {
       // NOLINTNEXTLINE: bugprone-suspicious-semicolon: seems like a false positive because of constexpr
       if constexpr (PrefetchCHT) {
         if (LIKELY(prefetch_idx < num_buf_entries)) {
@@ -280,7 +283,8 @@ void JoinHashTable::ReorderMainEntries() noexcept {
     }
 
     uint64_t buf_write_idx = 0;
-    for (uint64_t idx = 0, prefetch_idx = idx + common::Constants::kPrefetchDistance; idx < num_buf_entries; idx++, prefetch_idx++) {
+    for (uint64_t idx = 0, prefetch_idx = idx + common::Constants::kPrefetchDistance; idx < num_buf_entries;
+         idx++, prefetch_idx++) {
       // NOLINTNEXTLINE: bugprone-suspicious-semicolon: seems like a false positive because of constexpr
       if constexpr (PrefetchEntries) {
         if (LIKELY(prefetch_idx < num_buf_entries)) {
@@ -419,7 +423,8 @@ void JoinHashTable::ReorderOverflowEntries() noexcept {
     const uint64_t num_buf_entries = reorder_buf.num_entries();
 
     // For each overflow entry, find its main entry parent in the overflow chain
-    for (uint64_t idx = 0, prefetch_idx = idx + common::Constants::kPrefetchDistance; idx < num_buf_entries; idx++, prefetch_idx++) {
+    for (uint64_t idx = 0, prefetch_idx = idx + common::Constants::kPrefetchDistance; idx < num_buf_entries;
+         idx++, prefetch_idx++) {
       // NOLINTNEXTLINE: bugprone-suspicious-semicolon: seems like a false positive because of constexpr
       if constexpr (PrefetchCHT) {
         if (LIKELY(prefetch_idx < num_buf_entries)) {
@@ -436,7 +441,8 @@ void JoinHashTable::ReorderOverflowEntries() noexcept {
     // For each overflow entry, look at the overflow count in its main parent
     // to acquire a slot in the overflow arena.
     uint64_t buf_write_idx = 0;
-    for (uint64_t idx = 0, prefetch_idx = idx + common::Constants::kPrefetchDistance; idx < num_buf_entries; idx++, prefetch_idx++) {
+    for (uint64_t idx = 0, prefetch_idx = idx + common::Constants::kPrefetchDistance; idx < num_buf_entries;
+         idx++, prefetch_idx++) {
       // NOLINTNEXTLINE: bugprone-suspicious-semicolon: seems like a false positive because of constexpr
       if constexpr (PrefetchEntries) {
         if (LIKELY(prefetch_idx < num_buf_entries)) {
@@ -658,7 +664,8 @@ void JoinHashTable::MergeIncomplete(JoinHashTable *source) {
   // TODO(pmenon): Support merging build of concise tables
 
   // First, merge entries in the source table into ours
-  for (uint64_t idx = 0, prefetch_idx = common::Constants::kPrefetchDistance; idx < source->num_elements(); idx++, prefetch_idx++) {
+  for (uint64_t idx = 0, prefetch_idx = common::Constants::kPrefetchDistance; idx < source->num_elements();
+       idx++, prefetch_idx++) {
     // NOLINTNEXTLINE: bugprone-suspicious-semicolon: seems like a false positive because of constexpr
     if constexpr (Prefetch) {
       if (LIKELY(prefetch_idx < source->num_elements())) {

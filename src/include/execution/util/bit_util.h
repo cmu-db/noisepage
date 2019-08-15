@@ -3,10 +3,10 @@
 #include <memory>
 #include <utility>
 
-#include "execution/util/execution_common.h"
-#include "common/macros.h"
 #include "common/constants.h"
+#include "common/macros.h"
 #include "common/math_util.h"
+#include "execution/util/execution_common.h"
 
 namespace terrier::execution::util {
 
@@ -42,7 +42,9 @@ class BitUtil {
    * @param num_bits The size of the bit vector, in bits
    * @return The number of words needed to store a bit vector of the given size
    */
-  ALWAYS_INLINE static uint64_t Num32BitWordsFor(uint64_t num_bits) { return MathUtil::DivRoundUp(num_bits, kBitWordSize); }
+  ALWAYS_INLINE static uint64_t Num32BitWordsFor(uint64_t num_bits) {
+    return MathUtil::DivRoundUp(num_bits, kBitWordSize);
+  }
 
   /**
    * Test if the bit at index \a idx is set in the bit vector
@@ -60,7 +62,9 @@ class BitUtil {
    * @param bits The bit vector
    * @param idx The index of the bit to set to 1
    */
-  ALWAYS_INLINE static void Set(uint32_t bits[], const uint32_t idx) { bits[idx / kBitWordSize] |= 1u << (idx % kBitWordSize); }
+  ALWAYS_INLINE static void Set(uint32_t bits[], const uint32_t idx) {
+    bits[idx / kBitWordSize] |= 1u << (idx % kBitWordSize);
+  }
 
   /**
    * Set the bit at index @em idx to the boolean indicated by @em val
@@ -90,7 +94,9 @@ class BitUtil {
    * @param bits bit vector to be modified
    * @param idx index of the bit to flip
    */
-  ALWAYS_INLINE static void Flip(uint32_t bits[], const uint32_t idx) { bits[idx / kBitWordSize] ^= 1u << (idx % kBitWordSize); }
+  ALWAYS_INLINE static void Flip(uint32_t bits[], const uint32_t idx) {
+    bits[idx / kBitWordSize] ^= 1u << (idx % kBitWordSize);
+  }
 
   /**
    * Clear all the bits in the bit vector, setting them to 0
@@ -203,7 +209,8 @@ class BitVector : public BitVectorBase<BitVector> {
   /**
    * Create a new BitVector which provides bitvector access to the given bits, not taking ownership of them
    */
-  BitVector(uint32_t unowned_bits[], uint32_t num_bits) : owned_bits_(nullptr), bits_(unowned_bits), num_bits_(num_bits) {}
+  BitVector(uint32_t unowned_bits[], uint32_t num_bits)
+      : owned_bits_(nullptr), bits_(unowned_bits), num_bits_(num_bits) {}
 
   /**
    * Initializes the BitVector to contain and own num_bits of bits

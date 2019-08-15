@@ -177,7 +177,8 @@ class ComparisonFunctions {
    * @param min_len The minimum length between the two input strings.
    * @return The appropriate signed value indicating comparison order.
    */
-  static int32_t RawStringCompare(const char *s1, std::size_t len1, const char *s2, std::size_t len2, std::size_t min_len) {
+  static int32_t RawStringCompare(const char *s1, std::size_t len1, const char *s2, std::size_t len2,
+                                  std::size_t min_len) {
     const auto result = (min_len == 0) ? 0 : std::memcmp(s1, s2, min_len);
     if (result != 0) {
       return result;

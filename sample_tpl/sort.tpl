@@ -35,7 +35,7 @@ fun pipeline_1(execCtx: *ExecutionContext, state: *State) -> nil {
   var oids: [2]uint32
   oids[0] = 1 // colA
   oids[1] = 2 // colB
-  @tableIterInitBind(&tvi, "test_1", execCtx, oids)
+  @tableIterInitBind(&tvi, execCtx, "test_1", oids)
   for (@tableIterAdvance(&tvi)) {
     var pci = @tableIterGetPCI(&tvi)
     @filterLt(pci, 0, 4, 2000)

@@ -9,17 +9,16 @@ namespace terrier::execution::sql::test {
 class DateFunctionsTests : public TplTest {};
 
 #define CHECK_COMPARSION_NULL(comp, res, lhs, rhs) \
- ComparisonFunctions::comp##Date(&res, lhs, rhs); \
- ASSERT_TRUE(res.is_null)
+  ComparisonFunctions::comp##Date(&res, lhs, rhs); \
+  ASSERT_TRUE(res.is_null)
 
 #define CHECK_COMPARSION_TRUE(comp, res, lhs, rhs) \
- ComparisonFunctions::comp##Date(&res, lhs, rhs); \
- ASSERT_TRUE(!res.is_null && res.val)
+  ComparisonFunctions::comp##Date(&res, lhs, rhs); \
+  ASSERT_TRUE(!res.is_null && res.val)
 
 #define CHECK_COMPARSION_FALSE(comp, res, lhs, rhs) \
- ComparisonFunctions::comp##Date(&res, lhs, rhs); \
- ASSERT_TRUE(!res.is_null && !res.val)
-
+  ComparisonFunctions::comp##Date(&res, lhs, rhs);  \
+  ASSERT_TRUE(!res.is_null && !res.val)
 
 // NOLINTNEXTLINE
 TEST_F(DateFunctionsTests, DateNilTest) {
@@ -130,4 +129,4 @@ TEST_F(DateFunctionsTests, DateExtractTest) {
   ASSERT_EQ(ValUtil::ExtractMonth(date), 8);
   ASSERT_EQ(ValUtil::ExtractDay(date), 11);
 }
-} // namespace terrier::execution::sql::test
+}  // namespace terrier::execution::sql::test

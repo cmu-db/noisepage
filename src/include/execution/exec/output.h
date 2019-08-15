@@ -32,6 +32,7 @@ class OutputBuffer {
 
   /**
    * Constructor
+   * @param memory_pool memory pool to use for buffer allocation
    * @param num_cols number of columns in output tuples
    * @param tuple_size size of output tuples
    * @param callback upper layer callback
@@ -40,7 +41,8 @@ class OutputBuffer {
       : memory_pool_(memory_pool),
         num_tuples_(0),
         tuple_size_(tuple_size),
-        tuples_(reinterpret_cast<byte *>(memory_pool->AllocateAligned(batch_size_ * tuple_size, alignof(uint64_t), true))),
+        tuples_(
+            reinterpret_cast<byte *>(memory_pool->AllocateAligned(batch_size_ * tuple_size, alignof(uint64_t), true))),
         callback_(std::move(callback)) {}
 
   /**

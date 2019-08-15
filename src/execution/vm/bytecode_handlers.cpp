@@ -24,7 +24,8 @@ void OpThreadStateContainerFree(terrier::execution::sql::ThreadStateContainer *c
 // ---------------------------------------------------------
 
 void OpTableVectorIteratorInit(terrier::execution::sql::TableVectorIterator *iter,
-                               terrier::execution::exec::ExecutionContext *exec_ctx, uint32_t table_oid, uint32_t *col_oids, uint32_t num_oids) {
+                               terrier::execution::exec::ExecutionContext *exec_ctx, uint32_t table_oid,
+                               uint32_t *col_oids, uint32_t num_oids) {
   TERRIER_ASSERT(iter != nullptr, "Null iterator to initialize");
   new (iter) terrier::execution::sql::TableVectorIterator(exec_ctx, table_oid, col_oids, num_oids);
 }
@@ -36,43 +37,43 @@ void OpTableVectorIteratorFree(terrier::execution::sql::TableVectorIterator *ite
   iter->~TableVectorIterator();
 }
 
-void OpPCIFilterEqual(uint64_t *size, terrier::execution::sql::ProjectedColumnsIterator *iter, uint32_t col_idx, int8_t type,
-                      int64_t val) {
+void OpPCIFilterEqual(uint64_t *size, terrier::execution::sql::ProjectedColumnsIterator *iter, uint32_t col_idx,
+                      int8_t type, int64_t val) {
   auto sql_type = static_cast<terrier::type::TypeId>(type);
   auto v = iter->MakeFilterVal(val, sql_type);
   *size = iter->FilterColByVal<std::equal_to>(col_idx, sql_type, v);
 }
 
-void OpPCIFilterGreaterThan(uint64_t *size, terrier::execution::sql::ProjectedColumnsIterator *iter, uint32_t col_idx, int8_t type,
-                            int64_t val) {
+void OpPCIFilterGreaterThan(uint64_t *size, terrier::execution::sql::ProjectedColumnsIterator *iter, uint32_t col_idx,
+                            int8_t type, int64_t val) {
   auto sql_type = static_cast<terrier::type::TypeId>(type);
   auto v = iter->MakeFilterVal(val, sql_type);
   *size = iter->FilterColByVal<std::greater>(col_idx, sql_type, v);
 }
 
-void OpPCIFilterGreaterThanEqual(uint64_t *size, terrier::execution::sql::ProjectedColumnsIterator *iter, uint32_t col_idx,
-                                 int8_t type, int64_t val) {
+void OpPCIFilterGreaterThanEqual(uint64_t *size, terrier::execution::sql::ProjectedColumnsIterator *iter,
+                                 uint32_t col_idx, int8_t type, int64_t val) {
   auto sql_type = static_cast<terrier::type::TypeId>(type);
   auto v = iter->MakeFilterVal(val, sql_type);
   *size = iter->FilterColByVal<std::greater_equal>(col_idx, sql_type, v);
 }
 
-void OpPCIFilterLessThan(uint64_t *size, terrier::execution::sql::ProjectedColumnsIterator *iter, uint32_t col_idx, int8_t type,
-                         int64_t val) {
+void OpPCIFilterLessThan(uint64_t *size, terrier::execution::sql::ProjectedColumnsIterator *iter, uint32_t col_idx,
+                         int8_t type, int64_t val) {
   auto sql_type = static_cast<terrier::type::TypeId>(type);
   auto v = iter->MakeFilterVal(val, sql_type);
   *size = iter->FilterColByVal<std::less>(col_idx, sql_type, v);
 }
 
-void OpPCIFilterLessThanEqual(uint64_t *size, terrier::execution::sql::ProjectedColumnsIterator *iter, uint32_t col_idx, int8_t type,
-                              int64_t val) {
+void OpPCIFilterLessThanEqual(uint64_t *size, terrier::execution::sql::ProjectedColumnsIterator *iter, uint32_t col_idx,
+                              int8_t type, int64_t val) {
   auto sql_type = static_cast<terrier::type::TypeId>(type);
   auto v = iter->MakeFilterVal(val, sql_type);
   *size = iter->FilterColByVal<std::less_equal>(col_idx, sql_type, v);
 }
 
-void OpPCIFilterNotEqual(uint64_t *size, terrier::execution::sql::ProjectedColumnsIterator *iter, uint32_t col_idx, int8_t type,
-                         int64_t val) {
+void OpPCIFilterNotEqual(uint64_t *size, terrier::execution::sql::ProjectedColumnsIterator *iter, uint32_t col_idx,
+                         int8_t type, int64_t val) {
   auto sql_type = static_cast<terrier::type::TypeId>(type);
   auto v = iter->MakeFilterVal(val, sql_type);
   *size = iter->FilterColByVal<std::not_equal_to>(col_idx, sql_type, v);
@@ -158,13 +159,14 @@ void OpSorterInit(terrier::execution::sql::Sorter *const sorter, terrier::execut
 void OpSorterSort(terrier::execution::sql::Sorter *sorter) { sorter->Sort(); }
 
 void OpSorterSortParallel(terrier::execution::sql::Sorter *sorter,
-                          terrier::execution::sql::ThreadStateContainer *thread_state_container, uint32_t sorter_offset) {
+                          terrier::execution::sql::ThreadStateContainer *thread_state_container,
+                          uint32_t sorter_offset) {
   sorter->SortParallel(thread_state_container, sorter_offset);
 }
 
 void OpSorterSortTopKParallel(terrier::execution::sql::Sorter *sorter,
-                              terrier::execution::sql::ThreadStateContainer *thread_state_container, uint32_t sorter_offset,
-                              uint64_t top_k) {
+                              terrier::execution::sql::ThreadStateContainer *thread_state_container,
+                              uint32_t sorter_offset, uint64_t top_k) {
   sorter->SortTopKParallel(thread_state_container, sorter_offset, top_k);
 }
 

@@ -249,8 +249,9 @@ class AggregationHashTable {
   // Compute the hash value and perform the table lookup for all elements in the
   // input vector projections.
   template <bool PCIIsFiltered>
-  void ProcessBatchImpl(ProjectedColumnsIterator *iters[], uint32_t num_elems, hash_t hashes[], HashTableEntry *entries[],
-                        HashFn hash_fn, KeyEqFn key_eq_fn, InitAggFn init_agg_fn, AdvanceAggFn advance_agg_fn);
+  void ProcessBatchImpl(ProjectedColumnsIterator *iters[], uint32_t num_elems, hash_t hashes[],
+                        HashTableEntry *entries[], HashFn hash_fn, KeyEqFn key_eq_fn, InitAggFn init_agg_fn,
+                        AdvanceAggFn advance_agg_fn);
 
   // Called from ProcessBatch() to lookup a batch of entries. When the function
   // returns, the hashes vector will contain the hash values of all elements in
@@ -277,8 +278,8 @@ class AggregationHashTable {
   // entries filtered through group_sel. Follows the chain and uses the key
   // equality function to resolve hash collisions.
   template <bool PCIIsFiltered>
-  void FollowNextLoop(ProjectedColumnsIterator *iters[], uint32_t num_elems, uint32_t group_sel[], const hash_t hashes[],
-                      HashTableEntry *entries[], KeyEqFn key_eq_fn) const;
+  void FollowNextLoop(ProjectedColumnsIterator *iters[], uint32_t num_elems, uint32_t group_sel[],
+                      const hash_t hashes[], HashTableEntry *entries[], KeyEqFn key_eq_fn) const;
 
   // Called from ProcessBatch() to create missing groups
   template <bool PCIIsFiltered>

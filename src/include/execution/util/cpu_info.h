@@ -2,9 +2,9 @@
 
 #include <string>
 
+#include "common/macros.h"
 #include "execution/util/bit_util.h"
 #include "execution/util/execution_common.h"
-#include "common/macros.h"
 
 namespace llvm {
 class StringRef;

@@ -2,11 +2,11 @@
 
 #include <atomic>
 
+#include "common/constants.h"
+#include "common/macros.h"
 #include "execution/sql/hash_table_entry.h"
 #include "execution/sql/memory_pool.h"
 #include "execution/util/execution_common.h"
-#include "common/macros.h"
-#include "common/constants.h"
 #include "execution/util/memory.h"
 
 namespace terrier::execution::sql {
@@ -404,7 +404,8 @@ inline GenericHashTableVectorIterator<UseTag>::GenericHashTableVectorIterator(co
                                                                               MemoryPool *memory) noexcept
     : table_(table),
       memory_(memory),
-      entry_vec_(memory_->AllocateArray<const HashTableEntry *>(common::Constants::kDefaultVectorSize, common::Constants::CACHELINE_SIZE, true)),
+      entry_vec_(memory_->AllocateArray<const HashTableEntry *>(common::Constants::kDefaultVectorSize,
+                                                                common::Constants::CACHELINE_SIZE, true)),
       entries_index_(0),
       next_(nullptr),
       entry_vec_idx_(0),

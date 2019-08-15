@@ -4,11 +4,11 @@
 #include <vector>
 
 #include "catalog/catalog.h"
+#include "common/macros.h"
 #include "execution/ast/builtins.h"
 #include "execution/ast/context.h"
 #include "execution/ast/type.h"
 #include "execution/exec/execution_context.h"
-#include "common/macros.h"
 #include "execution/vm/bytecode_label.h"
 #include "execution/vm/bytecode_module.h"
 #include "execution/vm/control_flow_builders.h"
@@ -501,32 +501,32 @@ void BytecodeGenerator::VisitBuiltinTableIterCall(ast::CallExpr *call, ast::Buil
 
   switch (builtin) {
     case ast::Builtin::TableIterInit: {
-      // The second argument is the table as a literal string or as an oid integer literal
-      auto table_oid = static_cast<uint32_t>(call->arguments()[1]->As<ast::LitExpr>()->int64_val());
-      // The third argument should be the execution context
-      LocalVar exec_ctx = VisitExpressionForRValue(call->arguments()[2]);
+      // The second argument should be the execution context
+      LocalVar exec_ctx = VisitExpressionForRValue(call->arguments()[1]);
+      // The third argument is an oid integer literal
+      auto table_oid = static_cast<uint32_t>(call->arguments()[2]->As<ast::LitExpr>()->int64_val());
       // The fourth argument is the array of oids
       auto *arr_type = call->arguments()[3]->type()->As<ast::ArrayType>();
       LocalVar arr = VisitExpressionForLValue(call->arguments()[3]);
       // Emit the initialization codes
-      emitter()->EmitTableIterInit(Bytecode::TableVectorIteratorInit, iter, table_oid, exec_ctx, arr,
+      emitter()->EmitTableIterInit(Bytecode::TableVectorIteratorInit, iter, exec_ctx, table_oid, arr,
                                    static_cast<uint32_t>(arr_type->length()));
       emitter()->Emit(Bytecode::TableVectorIteratorPerformInit, iter);
       break;
     }
     case ast::Builtin::TableIterInitBind: {
+      // The second argument should be the execution context
+      LocalVar exec_ctx = VisitExpressionForRValue(call->arguments()[1]);
+      // The third argument is the table name
+      ast::Identifier table_name = call->arguments()[2]->As<ast::LitExpr>()->raw_string_val();
       auto ns_oid = exec_ctx_->GetAccessor()->GetDefaultNamespace();
-      // The second argument is the table name
-      ast::Identifier table_name = call->arguments()[1]->As<ast::LitExpr>()->raw_string_val();
       auto table_oid = exec_ctx_->GetAccessor()->GetTableOid(ns_oid, table_name.data());
       TERRIER_ASSERT(table_oid != terrier::catalog::INVALID_TABLE_OID, "Table does not exists");
-      // The fourth argument should be the execution context
-      LocalVar exec_ctx = VisitExpressionForRValue(call->arguments()[2]);
       // The fourth argument is the array of oids
       auto *arr_type = call->arguments()[3]->type()->As<ast::ArrayType>();
       LocalVar col_oids = VisitExpressionForLValue(call->arguments()[3]);
       // Emit the initialization codes
-      emitter()->EmitTableIterInit(Bytecode::TableVectorIteratorInit, iter, !table_oid, exec_ctx, col_oids,
+      emitter()->EmitTableIterInit(Bytecode::TableVectorIteratorInit, iter, exec_ctx, !table_oid, col_oids,
                                    static_cast<uint32_t>(arr_type->length()));
       emitter()->Emit(Bytecode::TableVectorIteratorPerformInit, iter);
       break;
@@ -1401,35 +1401,38 @@ void BytecodeGenerator::VisitBuiltinIndexIteratorCall(ast::CallExpr *call, ast::
 
   switch (builtin) {
     case ast::Builtin::IndexIteratorInit: {
-      auto table_oid = static_cast<uint32_t>(call->arguments()[1]->As<ast::LitExpr>()->int64_val());
-      auto index_oid = static_cast<uint32_t>(call->arguments()[2]->As<ast::LitExpr>()->int64_val());
-      LocalVar exec_ctx = VisitExpressionForRValue(call->arguments()[3]);
+      // Execution context
+      LocalVar exec_ctx = VisitExpressionForRValue(call->arguments()[1]);
+      // Table OID
+      auto table_oid = static_cast<uint32_t>(call->arguments()[2]->As<ast::LitExpr>()->int64_val());
+      // Index OID
+      auto index_oid = static_cast<uint32_t>(call->arguments()[3]->As<ast::LitExpr>()->int64_val());
       // Col OIDs
       auto *arr_type = call->arguments()[4]->type()->As<ast::ArrayType>();
       LocalVar col_oids = VisitExpressionForLValue(call->arguments()[4]);
       // Emit the initialization codes
-      emitter()->EmitIndexIteratorInit(Bytecode::IndexIteratorInit, iterator, table_oid, index_oid, exec_ctx, col_oids,
+      emitter()->EmitIndexIteratorInit(Bytecode::IndexIteratorInit, iterator, exec_ctx, table_oid, index_oid, col_oids,
                                        static_cast<uint32_t>(arr_type->length()));
       emitter()->Emit(Bytecode::IndexIteratorPerformInit, iterator);
       break;
     }
     case ast::Builtin::IndexIteratorInitBind: {
-      auto ns_oid = exec_ctx_->GetAccessor()->GetDefaultNamespace();
+      // Exec Ctx
+      LocalVar exec_ctx = VisitExpressionForRValue(call->arguments()[1]);
       // Table Name
-      std::string table_name(call->arguments()[1]->As<ast::LitExpr>()->raw_string_val().data());
+      std::string table_name(call->arguments()[2]->As<ast::LitExpr>()->raw_string_val().data());
+      auto ns_oid = exec_ctx_->GetAccessor()->GetDefaultNamespace();
       auto table_oid = exec_ctx_->GetAccessor()->GetTableOid(ns_oid, table_name);
       TERRIER_ASSERT(table_oid != terrier::catalog::INVALID_TABLE_OID, "Table does not exists");
       // Index Name
-      std::string index_name(call->arguments()[2]->As<ast::LitExpr>()->raw_string_val().data());
+      std::string index_name(call->arguments()[3]->As<ast::LitExpr>()->raw_string_val().data());
       auto index_oid = exec_ctx_->GetAccessor()->GetIndexOid(ns_oid, index_name);
       TERRIER_ASSERT(index_oid != terrier::catalog::INVALID_INDEX_OID, "Index does not exists");
-      // Exec Ctx
-      LocalVar exec_ctx = VisitExpressionForRValue(call->arguments()[3]);
       // Col OIDs
       auto *arr_type = call->arguments()[4]->type()->As<ast::ArrayType>();
       LocalVar col_oids = VisitExpressionForLValue(call->arguments()[4]);
       // Emit the initialization codes
-      emitter()->EmitIndexIteratorInit(Bytecode::IndexIteratorInit, iterator, !table_oid, !index_oid, exec_ctx,
+      emitter()->EmitIndexIteratorInit(Bytecode::IndexIteratorInit, iterator, exec_ctx, !table_oid, !index_oid,
                                        col_oids, static_cast<uint32_t>(arr_type->length()));
       emitter()->Emit(Bytecode::IndexIteratorPerformInit, iterator);
       break;

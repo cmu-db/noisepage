@@ -2,9 +2,9 @@
 
 #include <vector>
 
+#include "common/macros.h"
 #include "execution/sql/memory_pool.h"
 #include "execution/util/chunked_vector.h"
-#include "common/macros.h"
 
 namespace terrier::execution::sql {
 

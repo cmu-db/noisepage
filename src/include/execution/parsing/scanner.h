@@ -3,9 +3,9 @@
 #include <cstdint>
 #include <string>
 
+#include "common/macros.h"
 #include "execution/parsing/token.h"
 #include "execution/util/execution_common.h"
-#include "common/macros.h"
 
 namespace terrier::execution::parsing {
 

@@ -4,8 +4,8 @@
 #include <memory>
 #include <vector>
 
-#include "execution/sql/memory_pool.h"
 #include "common/strong_typedef.h"
+#include "execution/sql/memory_pool.h"
 
 namespace terrier::execution::sql {
 

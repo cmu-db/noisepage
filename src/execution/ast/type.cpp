@@ -90,8 +90,8 @@ FunctionType::FunctionType(util::RegionVector<Field> &&params, Type *ret)
 // ---------------------------------------------------------
 
 MapType::MapType(Type *key_type, Type *val_type)
-    : Type(key_type->context(), sizeof(std::unordered_map<int32_t, int32_t>), alignof(std::unordered_map<int32_t, int32_t>),
-           TypeId::MapType),
+    : Type(key_type->context(), sizeof(std::unordered_map<int32_t, int32_t>),
+           alignof(std::unordered_map<int32_t, int32_t>), TypeId::MapType),
       key_type_(key_type),
       val_type_(val_type) {}
 

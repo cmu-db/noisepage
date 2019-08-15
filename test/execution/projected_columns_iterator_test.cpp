@@ -76,7 +76,8 @@ class ProjectedColumnsIteratorTest : public SqlBasedTest {
     uint32_t num_tuples;
     uint32_t elem_size;
 
-    ColData(std::unique_ptr<byte[]> data, std::unique_ptr<uint32_t[]> nulls, uint32_t num_nulls, uint32_t num_tuples, uint32_t elem_size)
+    ColData(std::unique_ptr<byte[]> data, std::unique_ptr<uint32_t[]> nulls, uint32_t num_nulls, uint32_t num_tuples,
+            uint32_t elem_size)
         : data(std::move(data)),
           nulls(std::move(nulls)),
           num_nulls(num_nulls),
@@ -100,9 +101,11 @@ class ProjectedColumnsIteratorTest : public SqlBasedTest {
     auto cold_null = CreateRandomNullBitmap(num_tuples());
 
     data_.emplace_back(std::move(cola_data), nullptr, 0, num_tuples(), sizeof(int16_t));
-    data_.emplace_back(std::move(colb_data), std::move(colb_null.first), colb_null.second, num_tuples(), sizeof(int32_t));
+    data_.emplace_back(std::move(colb_data), std::move(colb_null.first), colb_null.second, num_tuples(),
+                       sizeof(int32_t));
     data_.emplace_back(std::move(colc_data), nullptr, 0, num_tuples(), sizeof(int32_t));
-    data_.emplace_back(std::move(cold_data), std::move(cold_null.first), cold_null.second, num_tuples(), sizeof(int64_t));
+    data_.emplace_back(std::move(cold_data), std::move(cold_null.first), cold_null.second, num_tuples(),
+                       sizeof(int64_t));
 
     InitializeColumns();
     //  Fill up data
@@ -114,7 +117,8 @@ class ProjectedColumnsIteratorTest : public SqlBasedTest {
       projected_columns_->SetNumTuples(num_tuples);
       if (nulls != nullptr) {
         // Fill up the null bitmap.
-        std::memcpy(projected_columns_->ColumnNullBitmap(col_offset), nulls.get(), num_tuples / common::Constants::kBitsPerByte);
+        std::memcpy(projected_columns_->ColumnNullBitmap(col_offset), nulls.get(),
+                    num_tuples / common::Constants::kBitsPerByte);
         // Because the storage layer treats 1 as non-null, we have to flip the
         // bits.
         for (uint32_t i = 0; i < num_tuples; i++) {

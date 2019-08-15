@@ -3,26 +3,26 @@
 #include <algorithm>
 #include <cstdint>
 
-#include "execution/util/execution_common.h"
 #include "common/macros.h"
+#include "execution/util/execution_common.h"
 #include "execution/vm/bytecode_operands.h"
 
 namespace terrier::execution::vm {
 
 // Creates instances of a given opcode for all integer primitive types
 #define CREATE_FOR_INT_TYPES(F, op, ...) \
-  F(op##_##int8_t, __VA_ARGS__)              \
-  F(op##_##int16_t, __VA_ARGS__)             \
-  F(op##_##int32_t, __VA_ARGS__)             \
-  F(op##_##int64_t, __VA_ARGS__)             \
-  F(op##_##uint8_t, __VA_ARGS__)              \
-  F(op##_##uint16_t, __VA_ARGS__)             \
-  F(op##_##uint32_t, __VA_ARGS__)             \
+  F(op##_##int8_t, __VA_ARGS__)          \
+  F(op##_##int16_t, __VA_ARGS__)         \
+  F(op##_##int32_t, __VA_ARGS__)         \
+  F(op##_##int64_t, __VA_ARGS__)         \
+  F(op##_##uint8_t, __VA_ARGS__)         \
+  F(op##_##uint16_t, __VA_ARGS__)        \
+  F(op##_##uint32_t, __VA_ARGS__)        \
   F(op##_##uint64_t, __VA_ARGS__)
 
 // Creates instances of a given opcode for all floating-point primitive types
 #define CREATE_FOR_FLOAT_TYPES(F, op, ...) \
-  F(op##_##float, __VA_ARGS__)               \
+  F(op##_##float, __VA_ARGS__)             \
   F(op##_##double, __VA_ARGS__)
 
 // Creates instances of a given opcode for *ALL* primitive types
@@ -99,7 +99,7 @@ namespace terrier::execution::vm {
   F(ThreadStateContainerFree, OperandType::Local)                                                                     \
                                                                                                                       \
   /* Table Vector Iterator */                                                                                         \
-  F(TableVectorIteratorInit, OperandType::Local, OperandType::UImm4, OperandType::Local, OperandType::Local,          \
+  F(TableVectorIteratorInit, OperandType::Local, OperandType::Local, OperandType::UImm4, OperandType::Local,          \
     OperandType::UImm4)                                                                                               \
   F(TableVectorIteratorPerformInit, OperandType::Local)                                                               \
   F(TableVectorIteratorNext, OperandType::Local, OperandType::Local)                                                  \
@@ -321,7 +321,7 @@ namespace terrier::execution::vm {
   F(OutputFinalize, OperandType::Local)                                                                               \
                                                                                                                       \
   /* Index Iterator */                                                                                                \
-  F(IndexIteratorInit, OperandType::Local, OperandType::UImm4, OperandType::UImm4, OperandType::Local,                \
+  F(IndexIteratorInit, OperandType::Local, OperandType::Local, OperandType::UImm4, OperandType::UImm4,                \
     OperandType::Local, OperandType::UImm4)                                                                           \
   F(IndexIteratorPerformInit, OperandType::Local)                                                                     \
   F(IndexIteratorScanKey, OperandType::Local)                                                                         \

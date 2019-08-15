@@ -46,7 +46,6 @@ uint64_t BloomFilter::GetTotalBitsSet() const {
   return count;
 }
 
-
 #if defined(__AVX2__) || defined(__AVX512F__)
 
 // Vectorized version of Add

@@ -303,12 +303,12 @@ class BytecodeEmitter {
    * Emit TVI init code
    * @param bytecode init bytecode
    * @param iter TVI to initialize
-   * @param table_oid oid of the sql table
    * @param exec_ctx execution context
+   * @param table_oid oid of the sql table
    * @param col_oids array of oids
    * @param num_oids length of the array
    */
-  void EmitTableIterInit(Bytecode bytecode, LocalVar iter, uint32_t table_oid, LocalVar exec_ctx, LocalVar col_oids,
+  void EmitTableIterInit(Bytecode bytecode, LocalVar iter, LocalVar exec_ctx, uint32_t table_oid, LocalVar col_oids,
                          uint32_t num_oids);
 
   /**
@@ -322,7 +322,8 @@ class BytecodeEmitter {
   /**
    * Emit a parallel table scan
    */
-  void EmitParallelTableScan(uint32_t db_oid, uint32_t table_oid, LocalVar ctx, LocalVar thread_states, FunctionId scan_fn);
+  void EmitParallelTableScan(uint32_t db_oid, uint32_t table_oid, LocalVar ctx, LocalVar thread_states,
+                             FunctionId scan_fn);
 
   // Reading integer values from an iterator
   /**
@@ -343,7 +344,8 @@ class BytecodeEmitter {
    * @param type type of the column
    * @param val filter value
    */
-  void EmitPCIVectorFilter(Bytecode bytecode, LocalVar selected, LocalVar pci, uint32_t col_idx, int8_t type, int64_t val);
+  void EmitPCIVectorFilter(Bytecode bytecode, LocalVar selected, LocalVar pci, uint32_t col_idx, int8_t type,
+                           int64_t val);
 
   /**
    * Insert a filter flavor into the filter manager builder
@@ -418,14 +420,14 @@ class BytecodeEmitter {
    * Emit code to initialize an index iterator
    * @param bytecode index initialization bytecode
    * @param iter iterator in initialize
+   * @param exec_ctx the execution context
    * @param table_oid oid of the table owning the index
    * @param index_oid oid of the index to use
-   * @param exec_ctx the execution context
    * @param col_oids array of oids
    * @param num_oids length of the array
    */
-  void EmitIndexIteratorInit(Bytecode bytecode, LocalVar iter, uint32_t table_oid, uint32_t index_oid,
-                             LocalVar exec_ctx, LocalVar col_oids, uint32_t num_oids);
+  void EmitIndexIteratorInit(Bytecode bytecode, LocalVar iter, LocalVar exec_ctx, uint32_t table_oid,
+                             uint32_t index_oid, LocalVar col_oids, uint32_t num_oids);
 
   /**
    * Emit code to free an index iterator

@@ -5,10 +5,10 @@
 
 #include "llvm/Support/Casting.h"
 
+#include "common/strong_typedef.h"
 #include "execution/ast/identifier.h"
 #include "execution/util/region.h"
 #include "execution/util/region_containers.h"
-#include "common/strong_typedef.h"
 
 namespace terrier::execution::ast {
 
@@ -38,20 +38,20 @@ class Context;
 //           type information to these builtins.
 #define BUILTIN_TYPE_LIST(PRIM, NON_PRIM, SQL)                                                  \
   /* Primitive types */                                                                         \
-  PRIM(Nil, uint8_t, "nil")                                                                          \
+  PRIM(Nil, uint8_t, "nil")                                                                     \
   PRIM(Bool, bool, "bool")                                                                      \
-  PRIM(Int8, int8_t, "int8")                                                                        \
-  PRIM(Int16, int16_t, "int16")                                                                     \
-  PRIM(Int32, int32_t, "int32")                                                                     \
-  PRIM(Int64, int64_t, "int64")                                                                     \
-  PRIM(Uint8, uint8_t, "uint8")                                                                      \
-  PRIM(Uint16, uint16_t, "uint16")                                                                   \
-  PRIM(Uint32, uint32_t, "uint32")                                                                   \
-  PRIM(Uint64, uint64_t, "uint64")                                                                   \
-  PRIM(Int128, int128_t, "int128")                                                                  \
-  PRIM(Uint128, uint128_t, "uint128")                                                                \
-  PRIM(Float32, float, "float32")                                                                 \
-  PRIM(Float64, double, "float64")                                                                 \
+  PRIM(Int8, int8_t, "int8")                                                                    \
+  PRIM(Int16, int16_t, "int16")                                                                 \
+  PRIM(Int32, int32_t, "int32")                                                                 \
+  PRIM(Int64, int64_t, "int64")                                                                 \
+  PRIM(Uint8, uint8_t, "uint8")                                                                 \
+  PRIM(Uint16, uint16_t, "uint16")                                                              \
+  PRIM(Uint32, uint32_t, "uint32")                                                              \
+  PRIM(Uint64, uint64_t, "uint64")                                                              \
+  PRIM(Int128, int128_t, "int128")                                                              \
+  PRIM(Uint128, uint128_t, "uint128")                                                           \
+  PRIM(Float32, float, "float32")                                                               \
+  PRIM(Float64, double, "float64")                                                              \
                                                                                                 \
   /* Non-primitive builtins */                                                                  \
   NON_PRIM(AggregationHashTable, terrier::execution::sql::AggregationHashTable)                 \
@@ -521,7 +521,8 @@ class ArrayType : public Type {
  private:
   // Private constructor
   explicit ArrayType(uint64_t length, Type *elem_type)
-      : Type(elem_type->context(), (length == 0 ? sizeof(uint8_t *) : elem_type->size() * static_cast<uint32_t>(length)),
+      : Type(elem_type->context(),
+             (length == 0 ? sizeof(uint8_t *) : elem_type->size() * static_cast<uint32_t>(length)),
              (length == 0 ? alignof(uint8_t *) : elem_type->alignment()), TypeId::ArrayType),
         length_(length),
         elem_type_(elem_type) {}

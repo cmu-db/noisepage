@@ -34,8 +34,9 @@ TEST_F(IndexIteratorTest, SimpleIndexIteratorTest) {
   auto table_oid = exec_ctx_->GetAccessor()->GetTableOid(NSOid(), "test_1");
   auto index_oid = exec_ctx_->GetAccessor()->GetIndexOid(NSOid(), "index_1");
   std::array<uint32_t, 1> col_oids{1};
-  TableVectorIterator table_iter(!table_oid, exec_ctx_.get(), col_oids.data(), static_cast<uint32_t>(col_oids.size()));
-  IndexIterator index_iter{!table_oid, !index_oid, exec_ctx_.get(), col_oids.data(), static_cast<uint32_t>(col_oids.size())};
+  TableVectorIterator table_iter(exec_ctx_.get(), !table_oid, col_oids.data(), static_cast<uint32_t>(col_oids.size()));
+  IndexIterator index_iter{exec_ctx_.get(), !table_oid, !index_oid, col_oids.data(),
+                           static_cast<uint32_t>(col_oids.size())};
   table_iter.Init();
   index_iter.Init();
   ProjectedColumnsIterator *pci = table_iter.projected_columns_iterator();

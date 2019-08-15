@@ -5,8 +5,8 @@
 #include <memory>
 #include <vector>
 
-#include "execution/util/execution_common.h"
 #include "common/macros.h"
+#include "execution/util/execution_common.h"
 
 namespace terrier::execution::sql {
 

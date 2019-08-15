@@ -3,8 +3,8 @@
 #include <memory>
 #include <vector>
 
-#include "tbb/tbb.h"
 #include "common/constants.h"
+#include "tbb/tbb.h"
 
 namespace terrier::execution::sql {
 
@@ -17,7 +17,8 @@ ThreadStateContainer::TLSHandle::TLSHandle() : container_(nullptr), state_(nullp
 ThreadStateContainer::TLSHandle::TLSHandle(ThreadStateContainer *container) : container_(container) {
   TERRIER_ASSERT(container_ != nullptr, "Container must be non-null");
   const auto state_size = container_->state_size_;
-  state_ = static_cast<byte *>(container_->memory_->AllocateAligned(state_size, common::Constants::CACHELINE_SIZE, true));
+  state_ =
+      static_cast<byte *>(container_->memory_->AllocateAligned(state_size, common::Constants::CACHELINE_SIZE, true));
 
   if (auto init_fn = container_->init_fn_; init_fn != nullptr) {
     init_fn(container_->ctx_, state_);
