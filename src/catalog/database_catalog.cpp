@@ -1131,7 +1131,7 @@ bool DatabaseCatalog::CreateIndexEntry(transaction::TransactionContext *const tx
   // Write the kind into the PR
   const auto kind_offset = pr_map[RELKIND_COL_OID];
   auto *const kind_ptr = class_insert_pr->AccessForceNotNull(kind_offset);
-  *(reinterpret_cast<postgres::ClassKind *>(kind_ptr)) = (postgres::ClassKind::INDEX;
+  *(reinterpret_cast<postgres::ClassKind *>(kind_ptr)) = postgres::ClassKind::INDEX;
 
   // Write the index_schema_ptr into the PR
   const auto index_schema_ptr_offset = pr_map[REL_SCHEMA_COL_OID];
@@ -1259,8 +1259,7 @@ bool DatabaseCatalog::CreateIndexEntry(transaction::TransactionContext *const tx
   std::vector<IndexSchema::Column> cols =
       GetColumns<IndexSchema::Column, index_oid_t, indexkeycol_oid_t>(txn, index_oid);
   auto *new_schema = new IndexSchema(cols, schema.Unique(), schema.Primary(), schema.Exclusion(), schema.Immediate());
-  txn->RegisterAbortAction([=]() {
-    delete new_schema; });
+  txn->RegisterAbortAction([=]() { delete new_schema; });
 
   pr_init = classes_->InitializerForProjectedRow({REL_SCHEMA_COL_OID});
   auto *const update_redo = txn->StageWrite(db_oid_, CLASS_TABLE_OID, pr_init);
