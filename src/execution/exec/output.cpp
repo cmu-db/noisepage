@@ -1,5 +1,6 @@
 #include "execution/exec/output.h"
 #include "execution/sql/value.h"
+#include "loggers/execution_logger.h"
 
 namespace terrier::execution::exec {
 
@@ -80,7 +81,7 @@ void OutputPrinter::operator()(byte *tuples, uint32_t num_tuples, uint32_t tuple
     }
     ss << std::endl;
   }
+  EXECUTION_LOG_INFO("Ouptut batch {}: \n{}", printed_, ss.str());
   printed_++;
-  std::cout << ss.str() << std::endl;
 }
 }  // namespace terrier::execution::exec

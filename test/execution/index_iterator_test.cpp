@@ -46,7 +46,7 @@ TEST_F(IndexIteratorTest, SimpleIndexIteratorTest) {
     for (; pci->HasNext(); pci->Advance()) {
       auto *key = pci->Get<int32_t, false>(0, nullptr);
       // Check that the key can be recovered through the index
-      index_iter.SetKey<int32_t>(0, *key, false);
+      index_iter.SetKey<int32_t, false>(0, *key, false);
       index_iter.ScanKey();
       // One entry should be found
       ASSERT_TRUE(index_iter.Advance());

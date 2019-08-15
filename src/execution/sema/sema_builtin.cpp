@@ -1579,10 +1579,16 @@ void Sema::CheckBuiltinIndexIteratorSetKey(execution::ast::CallExpr *call, ast::
     case ast::Builtin::IndexIteratorSetKeySmallInt:
     case ast::Builtin::IndexIteratorSetKeyInt:
     case ast::Builtin::IndexIteratorSetKeyBigInt:
+    case ast::Builtin::IndexIteratorSetKeyTinyIntNull:
+    case ast::Builtin::IndexIteratorSetKeySmallIntNull:
+    case ast::Builtin::IndexIteratorSetKeyIntNull:
+    case ast::Builtin::IndexIteratorSetKeyBigIntNull:
       arg_kind = ast::BuiltinType::Integer;
       break;
     case ast::Builtin::IndexIteratorGetDouble:
     case ast::Builtin::IndexIteratorGetReal:
+    case ast::Builtin::IndexIteratorGetDoubleNull:
+    case ast::Builtin::IndexIteratorGetRealNull:
       arg_kind = ast::BuiltinType::Real;
       break;
     default:
@@ -1846,11 +1852,18 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
       CheckBuiltinIndexIteratorGet(call, builtin);
       break;
     }
+    case ast::Builtin::IndexIteratorSetKeyTinyInt:
     case ast::Builtin::IndexIteratorSetKeySmallInt:
     case ast::Builtin::IndexIteratorSetKeyInt:
     case ast::Builtin::IndexIteratorSetKeyBigInt:
     case ast::Builtin::IndexIteratorSetKeyDouble:
-    case ast::Builtin::IndexIteratorSetKeyReal: {
+    case ast::Builtin::IndexIteratorSetKeyReal:
+    case ast::Builtin::IndexIteratorSetKeyTinyIntNull:
+    case ast::Builtin::IndexIteratorSetKeySmallIntNull:
+    case ast::Builtin::IndexIteratorSetKeyIntNull:
+    case ast::Builtin::IndexIteratorSetKeyBigIntNull:
+    case ast::Builtin::IndexIteratorSetKeyDoubleNull:
+    case ast::Builtin::IndexIteratorSetKeyRealNull: {
       CheckBuiltinIndexIteratorSetKey(call, builtin);
       break;
     }

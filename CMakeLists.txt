@@ -252,6 +252,17 @@ if (UNIX)
             | grep --invert-match -e 'src/execution/ast/context.cpp.*:.*inline\\b.*'
             | grep --invert-match -e 'src/execution/vm/vm.cpp.*:.*inline\\b.*'
 
+            # Description: Regions, memory pool chunks, and vm stacks are managed using malloc and free
+            | grep --invert-match -e 'src/execution/sql/memory_pool.cpp:.*malloc\(.*'
+            | grep --invert-match -e 'src/execution/sql/memory_pool.cpp:.*calloc\(.*'
+            | grep --invert-match -e 'src/execution/sql/memory_pool.cpp:.*free\(.*'
+            | grep --invert-match -e 'src/execution/util/region.cpp:.*malloc\(.*'
+            | grep --invert-match -e 'src/execution/util/region.cpp:.*free\(.*'
+            | grep --invert-match -e 'src/execution/vm/vm.cpp:.*free\(.*'
+
+            # Description: This one is a false positive on the macro Op##AGG_TYPE##Free
+            | grep --invert-match -e 'src/execution/vm/vm.cpp:.*Free\(.*'
+
             # whitelist-end
             || exit 0                                                     # if nothing found, return 0
             && exit 1                                                     # else return 1, note || && left-associative

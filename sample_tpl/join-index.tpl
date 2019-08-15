@@ -37,13 +37,13 @@ fun pipeline0(state : *State, execCtx : *ExecutionContext) -> nil {
     for (; @pciHasNext(pci); @pciAdvance(pci)) {
       // Note that the storage layer reorders columns in test_2
       @indexIteratorSetKeySmallInt(&index, 1, @pciGetInt(pci, 0))
-      @indexIteratorSetKeyInt(&index, 0, @pciGetInt(pci, 1))
+      @indexIteratorSetKeyIntNull(&index, 0, @pciGetInt(pci, 1))
       for (@indexIteratorScanKey(&index); @indexIteratorAdvance(&index);) {
         var out = @ptrCast(*Output, @outputAlloc(execCtx))
         out.test1_colA = @pciGetInt(pci, 0)
         out.test1_colB = @pciGetInt(pci, 1)
-        out.test2_col1 = @indexIteratorGetSmallInt(&index, 0)
-        out.test2_col2 = @indexIteratorGetIntNull(&index, 1)
+        out.test2_col1 = @indexIteratorGetSmallInt(&index, 1)
+        out.test2_col2 = @indexIteratorGetIntNull(&index, 0)
         state.count = state.count + 1
       }
     }

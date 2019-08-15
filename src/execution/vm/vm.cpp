@@ -1437,6 +1437,13 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {
     auto val = frame->LocalAt<type *>(READ_LOCAL_ID());                 \
     OpIndexIteratorSetKey##type_str(iter, col_idx, val);                \
     DISPATCH_NEXT();                                                    \
+  } \
+  OP(IndexIteratorSetKey##type_str##Null) : {                                 \
+    auto *iter = frame->LocalAt<sql::IndexIterator *>(READ_LOCAL_ID()); \
+    auto col_idx = READ_UIMM2();                                        \
+    auto val = frame->LocalAt<type *>(READ_LOCAL_ID());                 \
+    OpIndexIteratorSetKey##type_str##Null(iter, col_idx, val);                \
+    DISPATCH_NEXT();                                                    \
   }
   GEN_INDEX_ITERATOR_SET(TinyInt, sql::Integer)
   GEN_INDEX_ITERATOR_SET(SmallInt, sql::Integer)

@@ -82,11 +82,15 @@ class IndexIterator {
    * @param value value to write
    * @param null whether the value is null
    */
-  template <typename T>
+  template <typename T, bool Nullable>
   void SetKey(uint16_t col_idx, T value, bool null) {
-    if (null) {
-      index_pr_->SetNull(static_cast<uint16_t>(col_idx));
-    } else {
+    if constexpr (Nullable) {
+      if (null) {
+        index_pr_->SetNull(static_cast<uint16_t>(col_idx));
+      } else {
+        *reinterpret_cast<T *>(index_pr_->AccessForceNotNull(col_idx)) = value;
+      }
+    } else { // NOLINT
       *reinterpret_cast<T *>(index_pr_->AccessForceNotNull(col_idx)) = value;
     }
   }
