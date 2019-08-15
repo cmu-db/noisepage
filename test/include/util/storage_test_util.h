@@ -353,13 +353,25 @@ class StorageTestUtil {
     return result;
   }
 
+  /**
+   * Tests if two sql tables with the same schema have identical visible tuples
+   * @param layout layout of the two sql tables
+   * @param table_one sql table to compare to table_two
+   * @param table_two sql table to compare to table_one
+   * @param table_one_tuples vector of all tuple slots in table one
+   * @param tuple_slot_map mapping of tuple slots in table one to corresponding tuple slots in table two
+   * @param txn_manager_one manager to begin txn to scan table_one
+   * @param txn_manager_two manager to begin txn to scan table_two (can be the same as txn_manager_one)
+   * @return true if tables are equal
+   */
   static bool SqlTableEqualDeep(const storage::BlockLayout &layout, common::ManagedPointer<storage::SqlTable> table_one,
                                 common::ManagedPointer<storage::SqlTable> table_two,
                                 const std::vector<storage::TupleSlot> &table_one_tuples,
                                 const std::unordered_map<storage::TupleSlot, storage::TupleSlot> &tuple_slot_map,
-                                transaction::TransactionManager *txn_manager) {
-    // Set timestamp to be max to ensure most up to date snapshot
-    auto *txn = txn_manager->BeginTransaction(transaction::timestamp_t(INT64_MAX));
+                                transaction::TransactionManager *txn_manager_one,
+                                transaction::TransactionManager *txn_manager_two) {
+    auto *txn_one = txn_manager_one->BeginTransaction();
+    auto *txn_two = txn_manager_two->BeginTransaction();
 
     auto initializer =
         storage::ProjectedRowInitializer::Create(layout, StorageTestUtil::ProjectionListAllColumns(layout));
@@ -371,15 +383,16 @@ class StorageTestUtil {
     // Select each tuple for both tables and perform equality
     bool result = true;
     for (auto &tuple : table_one_tuples) {
-      table_one->Select(txn, tuple, row_one);
-      table_two->Select(txn, tuple_slot_map.at(tuple), row_two);
+      table_one->Select(txn_one, tuple, row_one);
+      table_two->Select(txn_two, tuple_slot_map.at(tuple), row_two);
       if (!ProjectionListEqualDeep(layout, row_one, row_two)) {
         result = false;
         break;
       }
     }
 
-    txn_manager->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+    txn_manager_one->Commit(txn_one, transaction::TransactionUtil::EmptyCallback, nullptr);
+    txn_manager_two->Commit(txn_two, transaction::TransactionUtil::EmptyCallback, nullptr);
     delete[] buffer_one;
     delete[] buffer_two;
     return result;

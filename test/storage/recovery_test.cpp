@@ -109,10 +109,10 @@ class RecoveryTests : public TerrierTest {
         EXPECT_TRUE(recovered_sql_table != nullptr);
         recovery_txn_manager.Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
-        EXPECT_TRUE(StorageTestUtil::SqlTableEqualDeep(original_sql_table->Layout(), original_sql_table,
-                                                       recovered_sql_table,
-                                                       tested->GetTupleSlotsForTable(database_oid, table_oid),
-                                                       recovery_manager.tuple_slot_map_, &recovery_txn_manager));
+        EXPECT_TRUE(StorageTestUtil::SqlTableEqualDeep(
+            original_sql_table->Layout(), original_sql_table, recovered_sql_table,
+            tested->GetTupleSlotsForTable(database_oid, table_oid), recovery_manager.tuple_slot_map_,
+            tested->GetTxnManager(), &recovery_txn_manager));
       }
     }
 

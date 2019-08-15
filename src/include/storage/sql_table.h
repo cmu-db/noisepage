@@ -11,12 +11,6 @@
 #include "storage/write_ahead_log/log_record.h"
 #include "transaction/transaction_context.h"
 
-namespace terrier {
-// Forward Declaration
-class LargeSqlTableTestObject;
-class RandomSqlTableTransaction;
-}  // namespace terrier
-
 namespace terrier::storage {
 
 /**

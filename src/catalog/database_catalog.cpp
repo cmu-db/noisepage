@@ -958,8 +958,10 @@ bool DatabaseCatalog::SetIndexSchemaPointer(transaction::TransactionContext *con
 template <typename ClassOid, typename Ptr>
 bool DatabaseCatalog::SetClassPointer(transaction::TransactionContext *const txn, const ClassOid oid,
                                       const Ptr *const pointer, const col_oid_t class_col) {
-  TERRIER_ASSERT((std::is_same<ClassOid, table_oid_t>::value && (std::is_same<Ptr, storage::SqlTable>::value || std::is_same<Ptr, catalog::Schema>::value)) ||
-                     (std::is_same<ClassOid, index_oid_t>::value && (std::is_same<Ptr, storage::index::Index>::value || std::is_same<Ptr, catalog::IndexSchema>::value)),
+  TERRIER_ASSERT((std::is_same<ClassOid, table_oid_t>::value &&
+                  (std::is_same<Ptr, storage::SqlTable>::value || std::is_same<Ptr, catalog::Schema>::value)) ||
+                     (std::is_same<ClassOid, index_oid_t>::value && (std::is_same<Ptr, storage::index::Index>::value ||
+                                                                     std::is_same<Ptr, catalog::IndexSchema>::value)),
                  "OID type must correspond to the same object type (Table or index)");
   TERRIER_ASSERT(pointer != nullptr, "Why are you inserting nullptr here? That seems wrong.");
   const auto oid_pri = classes_oid_index_->GetProjectedRowInitializer();

@@ -36,22 +36,6 @@ TransactionContext *TransactionManager::BeginTransaction() {
   return result;
 }
 
-TransactionContext *TransactionManager::BeginTransaction(timestamp_t timestamp) {
-  // Ensure we do not return from this function if there are ongoing write commits
-  common::Gate::ScopedExit gate(&txn_gate_);
-
-  {
-    common::SpinLatch::ScopedSpinLatch running_guard(&curr_running_txns_latch_);
-    const auto ret UNUSED_ATTRIBUTE = curr_running_txns_.emplace(timestamp);
-    TERRIER_ASSERT(ret.second, "commit start time should be globally unique");
-  }  // Release latch on current running transactions
-
-  // Do the allocation outside of any critical section
-  auto *const result = new TransactionContext(timestamp, timestamp + INT64_MIN, buffer_pool_, log_manager_, this);
-
-  return result;
-}
-
 void TransactionManager::LogCommit(TransactionContext *const txn, const timestamp_t commit_time,
                                    const callback_fn callback, void *const callback_arg) {
   txn->finish_time_.store(commit_time);

@@ -40,14 +40,6 @@ class TransactionManager {
   TransactionContext *BeginTransaction();
 
   /**
-   * @warning For testing ONLY
-   * Begins a transaction with a specific txn id
-   * @param timestamp begin timestamp for txn
-   * @return transaction context for the newly begun transaction
-   */
-  TransactionContext *BeginTransaction(timestamp_t timestamp);
-
-  /**
    * Commits a transaction, making all of its changes visible to others.
    * @param txn the transaction to commit
    * @param callback function pointer of the callback to invoke when commit is

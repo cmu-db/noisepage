@@ -335,7 +335,6 @@ class IndexSchema {
 
  private:
   friend class DatabaseCatalog;
-  friend class storage::RecoveryManager;
   std::vector<Column> columns_;
   bool is_unique_;
   bool is_primary_;

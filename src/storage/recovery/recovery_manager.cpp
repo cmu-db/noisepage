@@ -238,8 +238,11 @@ void RecoveryManager::UpdateIndexesOnTable(transaction::TransactionContext *txn,
   // Stores all the attributes a table is indexed on so we can fetch their values with a single select
   std::unordered_set<catalog::col_oid_t> all_indexed_attributes;
 
-  // Cache the index key col oid map so we dont have to compute it again later. Calling GetIndexedColOids is potentially expensive
-  std::unordered_map<common::ManagedPointer<storage::index::Index>, std::unordered_map<catalog::indexkeycol_oid_t, std::vector<catalog::col_oid_t>>> indexed_attributes_map;
+  // Cache the index key col oid map so we dont have to compute it again later. Calling GetIndexedColOids is potentially
+  // expensive
+  std::unordered_map<common::ManagedPointer<storage::index::Index>,
+                     std::unordered_map<catalog::indexkeycol_oid_t, std::vector<catalog::col_oid_t>>>
+      indexed_attributes_map;
 
   // Determine all indexed attributes. Also compute largest PR size we need for index PRs.
   for (uint32_t i = 0; i < indexes.size(); i++) {
