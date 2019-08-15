@@ -34,7 +34,7 @@ file(GLOB_RECURSE XBYAK_SOURCES ${PROJECT_SOURCE_DIR}/third_party/xbyak/*.h)
 list(APPEND TERRIER_SRCS ${XBYAK_SOURCES})
 
 # xxHash: used for hashing of large objects (strings, etc.)
-file(GLOB_RECURSE XXHASH_SOURCES ${PROJECT_SOURCE_DIR}/third_party/xxHash/*.h ${PROJECT_SOURCE_DIR}/third_party/xxHash/*.cpp)
+file(GLOB_RECURSE XXHASH_SOURCES ${PROJECT_SOURCE_DIR}/third_party/xxHash/*.h)
 list(APPEND TERRIER_SRCS ${XXHASH_SOURCES})
 
 # libcount
