@@ -76,7 +76,7 @@ install_mac() {
   brew ls --versions openssl || brew install openssl
   brew ls --versions postgresql || brew install postgresql
   brew ls --versions tbb || brew install tbb
-  brew ls --version ant || brew install ant
+  brew ls --versions ant || brew install ant
 }
 
 install_linux() {
