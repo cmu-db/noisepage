@@ -142,88 +142,102 @@ void RecoveryManager::UpdateIndexesOnTable(transaction::TransactionContext *txn,
 
   // We don't bootstrap the database catalog during recovery, so this means that indexes on catalog tables may not yet
   // be entries in pg_index. Thus, we hardcode these to update
+  switch (!table_oid) {
+    case (!catalog::DATABASE_TABLE_OID): {
+      indexes.emplace_back(catalog_->databases_name_index_);
+      index_schemas.push_back(catalog_->databases_name_index_->metadata_.GetSchema());
 
-  if (table_oid == catalog::DATABASE_TABLE_OID) {
-    indexes.emplace_back(catalog_->databases_name_index_);
-    index_schemas.push_back(catalog_->databases_name_index_->metadata_.GetSchema());
-
-    indexes.emplace_back(catalog_->databases_oid_index_);
-    index_schemas.push_back(catalog_->databases_oid_index_->metadata_.GetSchema());
-
-  } else if (table_oid == catalog::NAMESPACE_TABLE_OID) {
-    indexes.emplace_back(db_catalog_ptr->namespaces_oid_index_);
-    index_schemas.push_back(db_catalog_ptr->namespaces_oid_index_->metadata_.GetSchema());
-
-    indexes.emplace_back(db_catalog_ptr->namespaces_name_index_);
-    index_schemas.push_back(db_catalog_ptr->namespaces_name_index_->metadata_.GetSchema());
-
-  } else if (table_oid == catalog::CLASS_TABLE_OID) {
-    indexes.emplace_back(db_catalog_ptr->classes_oid_index_);
-    index_schemas.push_back(db_catalog_ptr->classes_oid_index_->metadata_.GetSchema());
-
-    indexes.emplace_back(db_catalog_ptr->classes_name_index_);
-    index_schemas.push_back(db_catalog_ptr->classes_name_index_->metadata_.GetSchema());
-
-    indexes.emplace_back(db_catalog_ptr->classes_namespace_index_);
-    index_schemas.push_back(db_catalog_ptr->classes_namespace_index_->metadata_.GetSchema());
-
-  } else if (table_oid == catalog::COLUMN_TABLE_OID) {
-    indexes.emplace_back(db_catalog_ptr->columns_oid_index_);
-    index_schemas.push_back(db_catalog_ptr->columns_oid_index_->metadata_.GetSchema());
-
-    indexes.emplace_back(db_catalog_ptr->columns_name_index_);
-    index_schemas.push_back(db_catalog_ptr->columns_name_index_->metadata_.GetSchema());
-
-  } else if (table_oid == catalog::CONSTRAINT_TABLE_OID) {
-    indexes.emplace_back(db_catalog_ptr->constraints_oid_index_);
-    index_schemas.push_back(db_catalog_ptr->constraints_oid_index_->metadata_.GetSchema());
-
-    indexes.emplace_back(db_catalog_ptr->constraints_name_index_);
-    index_schemas.push_back(db_catalog_ptr->constraints_name_index_->metadata_.GetSchema());
-
-    indexes.emplace_back(db_catalog_ptr->constraints_namespace_index_);
-    index_schemas.push_back(db_catalog_ptr->constraints_namespace_index_->metadata_.GetSchema());
-
-    indexes.emplace_back(db_catalog_ptr->constraints_table_index_);
-    index_schemas.push_back(db_catalog_ptr->constraints_table_index_->metadata_.GetSchema());
-
-    indexes.emplace_back(db_catalog_ptr->constraints_index_index_);
-    index_schemas.push_back(db_catalog_ptr->constraints_index_index_->metadata_.GetSchema());
-
-    indexes.emplace_back(db_catalog_ptr->constraints_foreigntable_index_);
-    index_schemas.push_back(db_catalog_ptr->constraints_foreigntable_index_->metadata_.GetSchema());
-
-  } else if (table_oid == catalog::INDEX_TABLE_OID) {
-    indexes.emplace_back(db_catalog_ptr->indexes_oid_index_);
-    index_schemas.push_back(db_catalog_ptr->indexes_oid_index_->metadata_.GetSchema());
-
-    indexes.emplace_back(db_catalog_ptr->indexes_table_index_);
-    index_schemas.push_back(db_catalog_ptr->indexes_table_index_->metadata_.GetSchema());
-
-  } else if (table_oid == catalog::TYPE_TABLE_OID) {
-    indexes.emplace_back(db_catalog_ptr->types_oid_index_);
-    index_schemas.push_back(db_catalog_ptr->types_oid_index_->metadata_.GetSchema());
-
-    indexes.emplace_back(db_catalog_ptr->types_name_index_);
-    index_schemas.push_back(db_catalog_ptr->types_name_index_->metadata_.GetSchema());
-
-    indexes.emplace_back(db_catalog_ptr->types_namespace_index_);
-    index_schemas.push_back(db_catalog_ptr->types_namespace_index_->metadata_.GetSchema());
-
-  } else {  // Non-catalog table
-    auto index_oids = db_catalog_ptr->GetIndexes(txn, table_oid);
-    indexes.reserve(index_oids.size());
-    index_schemas.reserve(index_oids.size());
-
-    for (auto &oid : index_oids) {
-      // Get index ptr
-      auto index_ptr = db_catalog_ptr->GetIndex(txn, oid);
-      indexes.push_back(index_ptr);
-
-      // Get index schema
-      auto schema = db_catalog_ptr->GetIndexSchema(txn, oid);
-      index_schemas.push_back(schema);
+      indexes.emplace_back(catalog_->databases_oid_index_);
+      index_schemas.push_back(catalog_->databases_oid_index_->metadata_.GetSchema());
+      break;
     }
+
+    case (!catalog::NAMESPACE_TABLE_OID): {
+      indexes.emplace_back(db_catalog_ptr->namespaces_oid_index_);
+      index_schemas.push_back(db_catalog_ptr->namespaces_oid_index_->metadata_.GetSchema());
+
+      indexes.emplace_back(db_catalog_ptr->namespaces_name_index_);
+      index_schemas.push_back(db_catalog_ptr->namespaces_name_index_->metadata_.GetSchema());
+      break;
+    }
+
+    case (!catalog::CLASS_TABLE_OID): {
+      indexes.emplace_back(db_catalog_ptr->classes_oid_index_);
+      index_schemas.push_back(db_catalog_ptr->classes_oid_index_->metadata_.GetSchema());
+
+      indexes.emplace_back(db_catalog_ptr->classes_name_index_);
+      index_schemas.push_back(db_catalog_ptr->classes_name_index_->metadata_.GetSchema());
+
+      indexes.emplace_back(db_catalog_ptr->classes_namespace_index_);
+      index_schemas.push_back(db_catalog_ptr->classes_namespace_index_->metadata_.GetSchema());
+      break;
+    }
+
+    case (!catalog::COLUMN_TABLE_OID): {
+      indexes.emplace_back(db_catalog_ptr->columns_oid_index_);
+      index_schemas.push_back(db_catalog_ptr->columns_oid_index_->metadata_.GetSchema());
+
+      indexes.emplace_back(db_catalog_ptr->columns_name_index_);
+      index_schemas.push_back(db_catalog_ptr->columns_name_index_->metadata_.GetSchema());
+      break;
+    }
+
+    case (!catalog::CONSTRAINT_TABLE_OID): {
+      indexes.emplace_back(db_catalog_ptr->constraints_oid_index_);
+      index_schemas.push_back(db_catalog_ptr->constraints_oid_index_->metadata_.GetSchema());
+
+      indexes.emplace_back(db_catalog_ptr->constraints_name_index_);
+      index_schemas.push_back(db_catalog_ptr->constraints_name_index_->metadata_.GetSchema());
+
+      indexes.emplace_back(db_catalog_ptr->constraints_namespace_index_);
+      index_schemas.push_back(db_catalog_ptr->constraints_namespace_index_->metadata_.GetSchema());
+
+      indexes.emplace_back(db_catalog_ptr->constraints_table_index_);
+      index_schemas.push_back(db_catalog_ptr->constraints_table_index_->metadata_.GetSchema());
+
+      indexes.emplace_back(db_catalog_ptr->constraints_index_index_);
+      index_schemas.push_back(db_catalog_ptr->constraints_index_index_->metadata_.GetSchema());
+
+      indexes.emplace_back(db_catalog_ptr->constraints_foreigntable_index_);
+      index_schemas.push_back(db_catalog_ptr->constraints_foreigntable_index_->metadata_.GetSchema());
+      break;
+    }
+
+    case (!catalog::INDEX_TABLE_OID): {
+      indexes.emplace_back(db_catalog_ptr->indexes_oid_index_);
+      index_schemas.push_back(db_catalog_ptr->indexes_oid_index_->metadata_.GetSchema());
+
+      indexes.emplace_back(db_catalog_ptr->indexes_table_index_);
+      index_schemas.push_back(db_catalog_ptr->indexes_table_index_->metadata_.GetSchema());
+      break;
+    }
+
+    case (!catalog::TYPE_TABLE_OID): {
+      indexes.emplace_back(db_catalog_ptr->types_oid_index_);
+      index_schemas.push_back(db_catalog_ptr->types_oid_index_->metadata_.GetSchema());
+
+      indexes.emplace_back(db_catalog_ptr->types_name_index_);
+      index_schemas.push_back(db_catalog_ptr->types_name_index_->metadata_.GetSchema());
+
+      indexes.emplace_back(db_catalog_ptr->types_namespace_index_);
+      index_schemas.push_back(db_catalog_ptr->types_namespace_index_->metadata_.GetSchema());
+      break;
+    }
+
+    default:  // Non-catalog table
+      auto index_oids = db_catalog_ptr->GetIndexes(txn, table_oid);
+      indexes.reserve(index_oids.size());
+      index_schemas.reserve(index_oids.size());
+
+      for (auto &oid : index_oids) {
+        // Get index ptr
+        auto index_ptr = db_catalog_ptr->GetIndex(txn, oid);
+        indexes.push_back(index_ptr);
+
+        // Get index schema
+        auto schema = db_catalog_ptr->GetIndexSchema(txn, oid);
+        index_schemas.push_back(schema);
+      }
   }
 
   // If there's no indexes on the table, we can return
@@ -679,29 +693,43 @@ uint32_t RecoveryManager::ProcessSpecialCaseCatalogRecord(
 }
 
 common::ManagedPointer<storage::SqlTable> RecoveryManager::GetSqlTable(transaction::TransactionContext *txn,
-                                                                       catalog::db_oid_t db_oid,
-                                                                       catalog::table_oid_t table_oid) {
+                                                                       const catalog::db_oid_t db_oid,
+                                                                       const catalog::table_oid_t table_oid) {
+  if (table_oid == catalog::DATABASE_TABLE_OID) {
+    return common::ManagedPointer(catalog_->databases_);
+  }
+
   auto db_catalog_ptr = GetDatabaseCatalog(txn, db_oid);
 
-  common::ManagedPointer<storage::SqlTable> table_ptr;
+  common::ManagedPointer<storage::SqlTable> table_ptr = nullptr;
 
-  // Cant use a switch statement here because table_oid_t is not const
-  if (table_oid == catalog::DATABASE_TABLE_OID) {
-    table_ptr = common::ManagedPointer(catalog_->databases_);
-  } else if (table_oid == catalog::CLASS_TABLE_OID) {
-    table_ptr = common::ManagedPointer(db_catalog_ptr->classes_);
-  } else if (table_oid == catalog::NAMESPACE_TABLE_OID) {
-    table_ptr = common::ManagedPointer(db_catalog_ptr->namespaces_);
-  } else if (table_oid == catalog::COLUMN_TABLE_OID) {
-    table_ptr = common::ManagedPointer(db_catalog_ptr->columns_);
-  } else if (table_oid == catalog::CONSTRAINT_TABLE_OID) {
-    table_ptr = common::ManagedPointer(db_catalog_ptr->constraints_);
-  } else if (table_oid == catalog::INDEX_TABLE_OID) {
-    table_ptr = common::ManagedPointer(db_catalog_ptr->indexes_);
-  } else if (table_oid == catalog::TYPE_TABLE_OID) {
-    table_ptr = common::ManagedPointer(db_catalog_ptr->types_);
-  } else {
-    table_ptr = db_catalog_ptr->GetTable(txn, table_oid);
+  switch (!table_oid) {
+    case (!catalog::CLASS_TABLE_OID): {
+      table_ptr = common::ManagedPointer(db_catalog_ptr->classes_);
+      break;
+    }
+    case (!catalog::NAMESPACE_TABLE_OID): {
+      table_ptr = common::ManagedPointer(db_catalog_ptr->namespaces_);
+      break;
+    }
+    case (!catalog::COLUMN_TABLE_OID): {
+      table_ptr = common::ManagedPointer(db_catalog_ptr->columns_);
+      break;
+    }
+    case (!catalog::CONSTRAINT_TABLE_OID): {
+      table_ptr = common::ManagedPointer(db_catalog_ptr->constraints_);
+      break;
+    }
+    case (!catalog::INDEX_TABLE_OID): {
+      table_ptr = common::ManagedPointer(db_catalog_ptr->indexes_);
+      break;
+    }
+    case (!catalog::TYPE_TABLE_OID): {
+      table_ptr = common::ManagedPointer(db_catalog_ptr->types_);
+      break;
+    }
+    default:
+      table_ptr = db_catalog_ptr->GetTable(txn, table_oid);
   }
 
   TERRIER_ASSERT(table_ptr != nullptr, "Table is not in the catalog for the given oid");
@@ -722,51 +750,85 @@ std::vector<catalog::col_oid_t> RecoveryManager::GetOidsForRedoRecord(storage::S
 }
 
 storage::index::Index *RecoveryManager::GetCatalogIndex(
-    catalog::index_oid_t oid, const common::ManagedPointer<catalog::DatabaseCatalog> &db_catalog) {
+    const catalog::index_oid_t oid, const common::ManagedPointer<catalog::DatabaseCatalog> &db_catalog) {
   TERRIER_ASSERT((!oid) < START_OID, "Oid must be a valid catalog oid");
 
-  storage::index::Index *index = nullptr;
-  if (oid == catalog::NAMESPACE_OID_INDEX_OID) {
-    index = db_catalog->namespaces_oid_index_;
-  } else if (oid == catalog::NAMESPACE_NAME_INDEX_OID) {
-    index = db_catalog->namespaces_name_index_;
-  } else if (oid == catalog::CLASS_OID_INDEX_OID) {
-    index = db_catalog->classes_oid_index_;
-  } else if (oid == catalog::CLASS_NAME_INDEX_OID) {
-    index = db_catalog->classes_name_index_;
-  } else if (oid == catalog::CLASS_NAMESPACE_INDEX_OID) {
-    index = db_catalog->classes_namespace_index_;
-  } else if (oid == catalog::INDEX_OID_INDEX_OID) {
-    index = db_catalog->indexes_oid_index_;
-  } else if (oid == catalog::INDEX_TABLE_INDEX_OID) {
-    index = db_catalog->indexes_table_index_;
-  } else if (oid == catalog::COLUMN_OID_INDEX_OID) {
-    index = db_catalog->columns_oid_index_;
-  } else if (oid == catalog::COLUMN_NAME_INDEX_OID) {
-    index = db_catalog->columns_name_index_;
-  } else if (oid == catalog::TYPE_OID_INDEX_OID) {
-    index = db_catalog->types_oid_index_;
-  } else if (oid == catalog::TYPE_NAME_INDEX_OID) {
-    index = db_catalog->types_name_index_;
-  } else if (oid == catalog::TYPE_NAMESPACE_INDEX_OID) {
-    index = db_catalog->types_namespace_index_;
-  } else if (oid == catalog::CONSTRAINT_OID_INDEX_OID) {
-    index = db_catalog->constraints_oid_index_;
-  } else if (oid == catalog::CONSTRAINT_NAME_INDEX_OID) {
-    index = db_catalog->constraints_name_index_;
-  } else if (oid == catalog::CONSTRAINT_NAMESPACE_INDEX_OID) {
-    index = db_catalog->constraints_namespace_index_;
-  } else if (oid == catalog::CONSTRAINT_TABLE_INDEX_OID) {
-    index = db_catalog->constraints_table_index_;
-  } else if (oid == catalog::CONSTRAINT_INDEX_INDEX_OID) {
-    index = db_catalog->constraints_index_index_;
-  } else if (oid == catalog::CONSTRAINT_FOREIGNTABLE_INDEX_OID) {
-    index = db_catalog->constraints_foreigntable_index_;
-  } else {
-    TERRIER_ASSERT(false, "This oid does not belong to any catalog index");
-  }
+  switch (!oid) {
+    case (!catalog::NAMESPACE_OID_INDEX_OID): {
+      return db_catalog->namespaces_oid_index_;
+    }
 
-  return index;
+    case (!catalog::NAMESPACE_NAME_INDEX_OID): {
+      return db_catalog->namespaces_name_index_;
+    }
+
+    case (!catalog::CLASS_OID_INDEX_OID): {
+      return db_catalog->classes_oid_index_;
+    }
+
+    case (!catalog::CLASS_NAME_INDEX_OID): {
+      return db_catalog->classes_name_index_;
+    }
+
+    case (!catalog::CLASS_NAMESPACE_INDEX_OID): {
+      return db_catalog->classes_namespace_index_;
+    }
+
+    case (!catalog::INDEX_OID_INDEX_OID): {
+      return db_catalog->indexes_oid_index_;
+    }
+
+    case (!catalog::INDEX_TABLE_INDEX_OID): {
+      return db_catalog->indexes_table_index_;
+    }
+
+    case (!catalog::COLUMN_OID_INDEX_OID): {
+      return db_catalog->columns_oid_index_;
+    }
+
+    case (!catalog::COLUMN_NAME_INDEX_OID): {
+      return db_catalog->columns_name_index_;
+    }
+
+    case (!catalog::TYPE_OID_INDEX_OID): {
+      return db_catalog->types_oid_index_;
+    }
+
+    case (!catalog::TYPE_NAME_INDEX_OID): {
+      return db_catalog->types_name_index_;
+    }
+
+    case (!catalog::TYPE_NAMESPACE_INDEX_OID): {
+      return db_catalog->types_namespace_index_;
+    }
+
+    case (!catalog::CONSTRAINT_OID_INDEX_OID): {
+      return db_catalog->constraints_oid_index_;
+    }
+
+    case (!catalog::CONSTRAINT_NAME_INDEX_OID): {
+      return db_catalog->constraints_name_index_;
+    }
+
+    case (!catalog::CONSTRAINT_NAMESPACE_INDEX_OID): {
+      return db_catalog->constraints_namespace_index_;
+    }
+
+    case (!catalog::CONSTRAINT_TABLE_INDEX_OID): {
+      return db_catalog->constraints_table_index_;
+    }
+
+    case (!catalog::CONSTRAINT_INDEX_INDEX_OID): {
+      return db_catalog->constraints_index_index_;
+    }
+
+    case (!catalog::CONSTRAINT_FOREIGNTABLE_INDEX_OID): {
+      return db_catalog->constraints_foreigntable_index_;
+    }
+
+    default:
+      throw std::runtime_error("This oid does not belong to any catalog index");
+  }
 }
 
 }  // namespace terrier::storage
