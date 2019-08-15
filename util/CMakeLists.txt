@@ -32,10 +32,12 @@ endif ()
 # TODO(Amadou): Given all the CMAKE_CXX_FLAGS clang does not compile.
 # For now I just use copied these flags from the TPL repo. Eventually, we should probably figure out a way to pass this in automatically.
 # TODO(WAN): We really want -fno-rtti for execution, but the dummy catalog? is using TBB which needs it.
-set(CLANG_CXX_FLAGS -std=c++17 -Wall -Werror -mcx16 -march=native -fdiagnostics-color=auto -ggdb -O3 -DNDEBUG )
-message("CLANG_CXX_FLAGS ${CLANG_CXX_FLAGS}")
-set(CLANG_IR_CXX_FLAGS ${CLANG_CXX_FLAGS} "-emit-llvm" "-c")
-separate_arguments(CLANG_IR_CXX_FLAGS)
+#set(CLANG_CXX_FLAGS -std=c++17 -Wall -Werror -mcx16 -march=native -fdiagnostics-color=auto -ggdb -O3 -DNDEBUG )
+#message("CLANG_CXX_FLAGS ${CLANG_CXX_FLAGS}")
+set(CLANG_IR_CXX_FLAGS "${CXX_ONLY_FLAGS} ${CXX_OPTIMIZATION_FLAGS} ${CXX_COMMON_FLAGS} ${CLANG_CXX_FLAGS} -emit-llvm -c")
+string(REPLACE "-fPIC" "" CLANG_IR_CXX_FLAGS ${CLANG_IR_CXX_FLAGS})
+
+message(STATUS "CLANG_IR_CXX_FLAGS: ${CLANG_IR_CXX_FLAGS}")
 set(CLANG_IR_CXX_INCLUDES "-I${PROJECT_SOURCE_DIR}/src/include")
 set(CLANG_IR_CXX_INCLUDES ${CLANG_IR_CXX_INCLUDES} "-I${PROJECT_SOURCE_DIR}/third_party/spdlog/include")
 set(CLANG_IR_CXX_INCLUDES ${CLANG_IR_CXX_INCLUDES} "-I${PROJECT_SOURCE_DIR}/third_party/portable_endian")
