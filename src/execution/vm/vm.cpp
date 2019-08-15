@@ -6,7 +6,7 @@
 #include "execution/sql/projected_columns_iterator.h"
 
 #include "execution/sql/value.h"
-#include "execution/util/common.h"
+#include "execution/util/execution_common.h"
 #include "execution/util/memory.h"
 #include "execution/util/timer.h"
 #include "execution/vm/bytecode_function_info.h"
@@ -26,7 +26,7 @@ class VM::Frame {
   /**
    * Constructor
    */
-  Frame(u8 *frame_data, std::size_t frame_size) : frame_data_(frame_data), frame_size_(frame_size) {
+  Frame(uint8_t *frame_data, std::size_t frame_size) : frame_data_(frame_data), frame_size_(frame_size) {
     TERRIER_ASSERT(frame_data_ != nullptr, "Frame data cannot be null");
     TERRIER_ASSERT(frame_size_ >= 0, "Frame size must be >= 0");
     (void)frame_size_;
@@ -42,7 +42,7 @@ class VM::Frame {
    * @return The value of the variable. Note that this is copied!
    */
   template <typename T>
-  T LocalAt(u32 index) const {
+  T LocalAt(uint32_t index) const {
     LocalVar local = LocalVar::Decode(index);
 
     EnsureInFrame(local);
@@ -68,11 +68,11 @@ class VM::Frame {
     }
   }
 #else
-  void EnsureInFrame(UNUSED LocalVar var) const {}
+  void EnsureInFrame(UNUSED_ATTRIBUTE LocalVar var) const {}
 #endif
 
  private:
-  u8 *frame_data_;
+  uint8_t *frame_data_;
   std::size_t frame_size_;
 };
 
@@ -82,16 +82,16 @@ class VM::Frame {
 
 // The maximum amount of stack to use. If the function requires more than 16K
 // bytes, acquire space from the heap.
-static constexpr const u32 kMaxStackAllocSize = 1ull << 14ull;
+static constexpr const uint32_t kMaxStackAllocSize = 1ull << 14ull;
 // A soft-maximum amount of stack to use. If a function's frame requires more
 // than 4K (the soft max), try the stack and fallback to heap. If the function
 // requires less, use the stack.
-static constexpr const u32 kSoftMaxStackAllocSize = 1ull << 12ull;
+static constexpr const uint32_t kSoftMaxStackAllocSize = 1ull << 12ull;
 
 VM::VM(const Module *module) : module_(module) {}
 
 // static
-void VM::InvokeFunction(const Module *module, const FunctionId func_id, const u8 args[]) {
+void VM::InvokeFunction(const Module *module, const FunctionId func_id, const uint8_t args[]) {
   // The function's info
   const FunctionInfo *func_info = module->GetFuncInfoById(func_id);
   TERRIER_ASSERT(func_info != nullptr, "Function doesn't exist in module!");
@@ -99,15 +99,15 @@ void VM::InvokeFunction(const Module *module, const FunctionId func_id, const u8
 
   // Let's try to get some space
   bool used_heap = false;
-  u8 *raw_frame = nullptr;
+  uint8_t *raw_frame = nullptr;
   if (frame_size > kMaxStackAllocSize) {
     used_heap = true;
-    raw_frame = static_cast<u8 *>(util::MallocAligned(frame_size, alignof(u64)));
+    raw_frame = static_cast<uint8_t *>(util::MallocAligned(frame_size, alignof(uint64_t)));
   } else if (frame_size > kSoftMaxStackAllocSize) {
     // TODO(pmenon): Check stack before allocation
-    raw_frame = static_cast<u8 *>(alloca(frame_size));
+    raw_frame = static_cast<uint8_t *>(alloca(frame_size));
   } else {
-    raw_frame = static_cast<u8 *>(alloca(frame_size));
+    raw_frame = static_cast<uint8_t *>(alloca(frame_size));
   }
 
   // Copy args into frame
@@ -119,7 +119,7 @@ void VM::InvokeFunction(const Module *module, const FunctionId func_id, const u8
   VM vm(module);
 
   // Now get the bytecode for the function and fire it off
-  const u8 *bytecode = module->bytecode_module()->GetBytecodeForFunction(*func_info);
+  const uint8_t *bytecode = module->bytecode_module()->GetBytecodeForFunction(*func_info);
   TERRIER_ASSERT(bytecode != nullptr, "Bytecode cannot be null");
   Frame frame(raw_frame, frame_size);
   vm.Interpret(bytecode, &frame);
@@ -133,7 +133,7 @@ void VM::InvokeFunction(const Module *module, const FunctionId func_id, const u8
 namespace {
 
 template <typename T>
-inline ALWAYS_INLINE T Read(const u8 **ip) {
+inline ALWAYS_INLINE T Read(const uint8_t **ip) {
   static_assert(std::is_arithmetic_v<T>,
                 "Read() should only be used to read primitive integer types "
                 "directly from the bytecode instruction stream");
@@ -143,7 +143,7 @@ inline ALWAYS_INLINE T Read(const u8 **ip) {
 }
 
 template <typename T>
-inline ALWAYS_INLINE T Peek(const u8 **ip) {
+inline ALWAYS_INLINE T Peek(const uint8_t **ip) {
   static_assert(std::is_arithmetic_v<T>,
                 "Peek() should only be used to read primitive integer types "
                 "directly from the bytecode instruction stream");
@@ -153,7 +153,7 @@ inline ALWAYS_INLINE T Peek(const u8 **ip) {
 }  // namespace
 
 // NOLINTNEXTLINE (google-readability-function-size,readability-function-size)
-void VM::Interpret(const u8 *ip, Frame *frame) {
+void VM::Interpret(const uint8_t *ip, Frame *frame) {
   static void *kDispatchTable[] = {
 #define ENTRY(name, ...) &&op_##name,
       BYTECODE_LIST(ENTRY)
@@ -174,17 +174,17 @@ void VM::Interpret(const u8 *ip, Frame *frame) {
   // TODO(pmenon): Should these READ/PEEK macros take in a vm::OperandType so
   // that we can infer primitive types using traits? This minimizes number of
   // changes if the underlying offset/bytecode/register sizes changes?
-#define PEEK_JMP_OFFSET() Peek<i32>(&ip)
-#define READ_IMM1() Read<i8>(&ip)
-#define READ_IMM2() Read<i16>(&ip)
-#define READ_IMM4() Read<i32>(&ip)
-#define READ_IMM8() Read<i64>(&ip)
-#define READ_IMM4F() Read<f32>(&ip)
-#define READ_IMM8F() Read<f64>(&ip)
-#define READ_UIMM2() Read<u16>(&ip)
-#define READ_UIMM4() Read<u32>(&ip)
+#define PEEK_JMP_OFFSET() Peek<int32_t>(&ip)
+#define READ_IMM1() Read<int8_t>(&ip)
+#define READ_IMM2() Read<int16_t>(&ip)
+#define READ_IMM4() Read<int32_t>(&ip)
+#define READ_IMM8() Read<int64_t>(&ip)
+#define READ_IMM4F() Read<float>(&ip)
+#define READ_IMM8F() Read<double>(&ip)
+#define READ_UIMM2() Read<uint16_t>(&ip)
+#define READ_UIMM4() Read<uint32_t>(&ip)
 #define READ_JMP_OFFSET() READ_IMM4()
-#define READ_LOCAL_ID() Read<u32>(&ip)
+#define READ_LOCAL_ID() Read<uint32_t>(&ip)
 #define READ_OP() Read<std::underlying_type_t<Bytecode>>(&ip)
 #define READ_FUNC_ID() READ_UIMM2()
 
@@ -313,7 +313,7 @@ void VM::Interpret(const u8 *ip, Frame *frame) {
 
   OP(Jump) : {
     auto skip = PEEK_JMP_OFFSET();
-    if (TPL_LIKELY(OpJump())) {
+    if (LIKELY(OpJump())) {
       ip += skip;
     }
     DISPATCH_NEXT();
@@ -366,10 +366,10 @@ void VM::Interpret(const u8 *ip, Frame *frame) {
     OpDeref##size(dest, src);                             \
     DISPATCH_NEXT();                                      \
   }
-  GEN_DEREF(i8, 1);
-  GEN_DEREF(i16, 2);
-  GEN_DEREF(i32, 4);
-  GEN_DEREF(i64, 8);
+  GEN_DEREF(int8_t, 1);
+  GEN_DEREF(int16_t, 2);
+  GEN_DEREF(int32_t, 4);
+  GEN_DEREF(int64_t, 8);
 #undef GEN_DEREF
 
   OP(DerefN) : {
@@ -392,20 +392,20 @@ void VM::Interpret(const u8 *ip, Frame *frame) {
     OpAssignImm##size(dest, READ_IMM##size());            \
     DISPATCH_NEXT();                                      \
   }
-  GEN_ASSIGN(i8, 1);
-  GEN_ASSIGN(i16, 2);
-  GEN_ASSIGN(i32, 4);
-  GEN_ASSIGN(i64, 8);
+  GEN_ASSIGN(int8_t, 1);
+  GEN_ASSIGN(int16_t, 2);
+  GEN_ASSIGN(int32_t, 4);
+  GEN_ASSIGN(int64_t, 8);
 #undef GEN_ASSIGN
 
   OP(AssignImm4F) : {
-    auto *dest = frame->LocalAt<f32 *>(READ_LOCAL_ID());
+    auto *dest = frame->LocalAt<float *>(READ_LOCAL_ID());
     OpAssignImm4F(dest, READ_IMM4F());
     DISPATCH_NEXT();
   }
 
   OP(AssignImm8F) : {
-    auto *dest = frame->LocalAt<f64 *>(READ_LOCAL_ID());
+    auto *dest = frame->LocalAt<double *>(READ_LOCAL_ID());
     OpAssignImm8F(dest, READ_IMM8F());
     DISPATCH_NEXT();
   }
@@ -421,7 +421,7 @@ void VM::Interpret(const u8 *ip, Frame *frame) {
   OP(LeaScaled) : {
     auto **dest = frame->LocalAt<byte **>(READ_LOCAL_ID());
     auto *src = frame->LocalAt<byte *>(READ_LOCAL_ID());
-    auto index = frame->LocalAt<u32>(READ_LOCAL_ID());
+    auto index = frame->LocalAt<uint32_t>(READ_LOCAL_ID());
     auto scale = READ_UIMM4();
     auto offset = READ_UIMM4();
     OpLeaScaled(dest, src, index, scale, offset);
@@ -469,7 +469,7 @@ void VM::Interpret(const u8 *ip, Frame *frame) {
 
   OP(ThreadStateContainerReset) : {
     auto *thread_state_container = frame->LocalAt<sql::ThreadStateContainer *>(READ_LOCAL_ID());
-    auto size = frame->LocalAt<u32>(READ_LOCAL_ID());
+    auto size = frame->LocalAt<uint32_t>(READ_LOCAL_ID());
     auto init_fn_id = READ_FUNC_ID();
     auto destroy_fn_id = READ_FUNC_ID();
     auto *ctx = frame->LocalAt<void *>(READ_LOCAL_ID());
@@ -493,11 +493,11 @@ void VM::Interpret(const u8 *ip, Frame *frame) {
 
   OP(TableVectorIteratorInit) : {
     auto *iter = frame->LocalAt<sql::TableVectorIterator *>(READ_LOCAL_ID());
-    auto table_oid = READ_UIMM4();
     auto exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
-    auto col_oids = frame->LocalAt<u32 *>(READ_LOCAL_ID());
+    auto table_oid = READ_UIMM4();
+    auto col_oids = frame->LocalAt<uint32_t *>(READ_LOCAL_ID());
     auto num_oids = READ_UIMM4();
-    OpTableVectorIteratorInit(iter, table_oid, exec_ctx, col_oids, num_oids);
+    OpTableVectorIteratorInit(iter, exec_ctx, table_oid, col_oids, num_oids);
     DISPATCH_NEXT();
   }
 
@@ -627,7 +627,7 @@ void VM::Interpret(const u8 *ip, Frame *frame) {
 
 #define GEN_PCI_FILTER(Op)                                                         \
   OP(PCIFilter##Op) : {                                                            \
-    auto *size = frame->LocalAt<u64 *>(READ_LOCAL_ID());                           \
+    auto *size = frame->LocalAt<uint64_t *>(READ_LOCAL_ID());                      \
     auto *iter = frame->LocalAt<sql::ProjectedColumnsIterator *>(READ_LOCAL_ID()); \
     auto col_idx = READ_UIMM4();                                                   \
     auto type = READ_IMM1();                                                       \
@@ -738,7 +738,7 @@ void VM::Interpret(const u8 *ip, Frame *frame) {
 
   OP(InitInteger) : {
     auto *sql_int = frame->LocalAt<sql::Integer *>(READ_LOCAL_ID());
-    auto val = frame->LocalAt<i32>(READ_LOCAL_ID());
+    auto val = frame->LocalAt<int32_t>(READ_LOCAL_ID());
     OpInitInteger(sql_int, val);
     DISPATCH_NEXT();
   }
@@ -752,16 +752,16 @@ void VM::Interpret(const u8 *ip, Frame *frame) {
 
   OP(InitDate) : {
     auto *sql_date = frame->LocalAt<sql::Date *>(READ_LOCAL_ID());
-    auto year = frame->LocalAt<u16>(READ_LOCAL_ID());
-    auto month = frame->LocalAt<u8>(READ_LOCAL_ID());
-    auto day = frame->LocalAt<u8>(READ_LOCAL_ID());
+    auto year = frame->LocalAt<uint16_t>(READ_LOCAL_ID());
+    auto month = frame->LocalAt<uint8_t>(READ_LOCAL_ID());
+    auto day = frame->LocalAt<uint8_t>(READ_LOCAL_ID());
     OpInitDate(sql_date, year, month, day);
     DISPATCH_NEXT();
   }
 
   OP(InitString) : {
     auto *sql_string = frame->LocalAt<sql::StringVal *>(READ_LOCAL_ID());
-    auto length = static_cast<u64>(READ_IMM8());
+    auto length = static_cast<uint64_t>(READ_IMM8());
     auto data = static_cast<uintptr_t>(READ_IMM8());
     OpInitString(sql_string, length, data);
     DISPATCH_NEXT();
@@ -874,7 +874,7 @@ void VM::Interpret(const u8 *ip, Frame *frame) {
   OP(AggregationHashTableInit) : {
     auto *agg_hash_table = frame->LocalAt<sql::AggregationHashTable *>(READ_LOCAL_ID());
     auto *memory = frame->LocalAt<execution::sql::MemoryPool *>(READ_LOCAL_ID());
-    auto payload_size = frame->LocalAt<u32>(READ_LOCAL_ID());
+    auto payload_size = frame->LocalAt<uint32_t>(READ_LOCAL_ID());
     OpAggregationHashTableInit(agg_hash_table, memory, payload_size);
     DISPATCH_NEXT();
   }
@@ -920,7 +920,7 @@ void VM::Interpret(const u8 *ip, Frame *frame) {
   OP(AggregationHashTableTransferPartitions) : {
     auto *agg_hash_table = frame->LocalAt<sql::AggregationHashTable *>(READ_LOCAL_ID());
     auto *thread_state_container = frame->LocalAt<sql::ThreadStateContainer *>(READ_LOCAL_ID());
-    auto agg_ht_offset = frame->LocalAt<u32>(READ_LOCAL_ID());
+    auto agg_ht_offset = frame->LocalAt<uint32_t>(READ_LOCAL_ID());
     auto merge_partition_fn_id = READ_FUNC_ID();
 
     auto merge_partition_fn = reinterpret_cast<sql::AggregationHashTable::MergePartitionFn>(
@@ -1183,7 +1183,7 @@ void VM::Interpret(const u8 *ip, Frame *frame) {
   OP(JoinHashTableInit) : {
     auto *join_hash_table = frame->LocalAt<sql::JoinHashTable *>(READ_LOCAL_ID());
     auto *memory = frame->LocalAt<sql::MemoryPool *>(READ_LOCAL_ID());
-    auto tuple_size = frame->LocalAt<u32>(READ_LOCAL_ID());
+    auto tuple_size = frame->LocalAt<uint32_t>(READ_LOCAL_ID());
     OpJoinHashTableInit(join_hash_table, memory, tuple_size);
     DISPATCH_NEXT();
   }
@@ -1237,7 +1237,7 @@ void VM::Interpret(const u8 *ip, Frame *frame) {
   OP(JoinHashTableBuildParallel) : {
     auto *join_hash_table = frame->LocalAt<sql::JoinHashTable *>(READ_LOCAL_ID());
     auto *thread_state_container = frame->LocalAt<sql::ThreadStateContainer *>(READ_LOCAL_ID());
-    auto jht_offset = frame->LocalAt<u32>(READ_LOCAL_ID());
+    auto jht_offset = frame->LocalAt<uint32_t>(READ_LOCAL_ID());
     OpJoinHashTableBuildParallel(join_hash_table, thread_state_container, jht_offset);
     DISPATCH_NEXT();
   }
@@ -1256,7 +1256,7 @@ void VM::Interpret(const u8 *ip, Frame *frame) {
     auto *sorter = frame->LocalAt<sql::Sorter *>(READ_LOCAL_ID());
     auto *memory = frame->LocalAt<execution::sql::MemoryPool *>(READ_LOCAL_ID());
     auto cmp_func_id = READ_FUNC_ID();
-    auto tuple_size = frame->LocalAt<u32>(READ_LOCAL_ID());
+    auto tuple_size = frame->LocalAt<uint32_t>(READ_LOCAL_ID());
 
     auto cmp_fn = reinterpret_cast<sql::Sorter::ComparisonFunction>(module_->GetRawFunctionImpl(cmp_func_id));
     OpSorterInit(sorter, memory, cmp_fn, tuple_size);
@@ -1273,14 +1273,14 @@ void VM::Interpret(const u8 *ip, Frame *frame) {
   OP(SorterAllocTupleTopK) : {
     auto *result = frame->LocalAt<byte **>(READ_LOCAL_ID());
     auto *sorter = frame->LocalAt<sql::Sorter *>(READ_LOCAL_ID());
-    auto top_k = frame->LocalAt<u64>(READ_LOCAL_ID());
+    auto top_k = frame->LocalAt<uint64_t>(READ_LOCAL_ID());
     OpSorterAllocTupleTopK(result, sorter, top_k);
     DISPATCH_NEXT();
   }
 
   OP(SorterAllocTupleTopKFinish) : {
     auto *sorter = frame->LocalAt<sql::Sorter *>(READ_LOCAL_ID());
-    auto top_k = frame->LocalAt<u64>(READ_LOCAL_ID());
+    auto top_k = frame->LocalAt<uint64_t>(READ_LOCAL_ID());
     OpSorterAllocTupleTopKFinish(sorter, top_k);
     DISPATCH_NEXT();
   }
@@ -1294,7 +1294,7 @@ void VM::Interpret(const u8 *ip, Frame *frame) {
   OP(SorterSortParallel) : {
     auto *sorter = frame->LocalAt<sql::Sorter *>(READ_LOCAL_ID());
     auto *thread_state_container = frame->LocalAt<sql::ThreadStateContainer *>(READ_LOCAL_ID());
-    auto sorter_offset = frame->LocalAt<u32>(READ_LOCAL_ID());
+    auto sorter_offset = frame->LocalAt<uint32_t>(READ_LOCAL_ID());
     OpSorterSortParallel(sorter, thread_state_container, sorter_offset);
     DISPATCH_NEXT();
   }
@@ -1302,8 +1302,8 @@ void VM::Interpret(const u8 *ip, Frame *frame) {
   OP(SorterSortTopKParallel) : {
     auto *sorter = frame->LocalAt<sql::Sorter *>(READ_LOCAL_ID());
     auto *thread_state_container = frame->LocalAt<sql::ThreadStateContainer *>(READ_LOCAL_ID());
-    auto sorter_offset = frame->LocalAt<u32>(READ_LOCAL_ID());
-    auto top_k = frame->LocalAt<u64>(READ_LOCAL_ID());
+    auto sorter_offset = frame->LocalAt<uint32_t>(READ_LOCAL_ID());
+    auto top_k = frame->LocalAt<uint64_t>(READ_LOCAL_ID());
     OpSorterSortTopKParallel(sorter, thread_state_container, sorter_offset, top_k);
     DISPATCH_NEXT();
   }
@@ -1368,12 +1368,12 @@ void VM::Interpret(const u8 *ip, Frame *frame) {
   // -------------------------------------------------------
   OP(IndexIteratorInit) : {
     auto *iter = frame->LocalAt<sql::IndexIterator *>(READ_LOCAL_ID());
+    auto exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
     auto table_oid = READ_UIMM4();
     auto index_oid = READ_UIMM4();
-    auto exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
-    auto col_oids = frame->LocalAt<u32 *>(READ_LOCAL_ID());
+    auto col_oids = frame->LocalAt<uint32_t *>(READ_LOCAL_ID());
     auto num_oids = READ_UIMM4();
-    OpIndexIteratorInit(iter, table_oid, index_oid, exec_ctx, col_oids, num_oids);
+    OpIndexIteratorInit(iter, exec_ctx, table_oid, index_oid, col_oids, num_oids);
     DISPATCH_NEXT();
   }
 
@@ -1655,7 +1655,7 @@ void VM::Interpret(const u8 *ip, Frame *frame) {
   UNREACHABLE("Impossible to reach end of interpreter loop. Bad code!");
 }  // NOLINT (function is too long)
 
-const u8 *VM::ExecuteCall(const u8 *ip, VM::Frame *caller) {
+const uint8_t *VM::ExecuteCall(const uint8_t *ip, VM::Frame *caller) {
   // Read the function ID and the argument count to the function first
   const auto func_id = READ_FUNC_ID();
   const auto num_params = READ_UIMM2();
@@ -1667,19 +1667,19 @@ const u8 *VM::ExecuteCall(const u8 *ip, VM::Frame *caller) {
 
   // Get some space for the function's frame
   bool used_heap = false;
-  u8 *raw_frame = nullptr;
+  uint8_t *raw_frame = nullptr;
   if (frame_size > kMaxStackAllocSize) {
     used_heap = true;
-    raw_frame = static_cast<u8 *>(util::MallocAligned(frame_size, alignof(u64)));
+    raw_frame = static_cast<uint8_t *>(util::MallocAligned(frame_size, alignof(uint64_t)));
   } else if (frame_size > kSoftMaxStackAllocSize) {
     // TODO(pmenon): Check stack before allocation
-    raw_frame = static_cast<u8 *>(alloca(frame_size));
+    raw_frame = static_cast<uint8_t *>(alloca(frame_size));
   } else {
-    raw_frame = static_cast<u8 *>(alloca(frame_size));
+    raw_frame = static_cast<uint8_t *>(alloca(frame_size));
   }
 
   // Set up the arguments to the function
-  for (u32 i = 0; i < num_params; i++) {
+  for (uint32_t i = 0; i < num_params; i++) {
     const LocalInfo &param_info = func_info->locals()[i];
     const void *param = caller->LocalAt<void *>(READ_LOCAL_ID());
     std::memcpy(raw_frame + param_info.offset(), &param, param_info.size());
@@ -1688,7 +1688,7 @@ const u8 *VM::ExecuteCall(const u8 *ip, VM::Frame *caller) {
   EXECUTION_LOG_DEBUG("Executing function '{}'", func_info->name());
 
   // Let's go
-  const u8 *bytecode = module_->bytecode_module()->GetBytecodeForFunction(*func_info);
+  const uint8_t *bytecode = module_->bytecode_module()->GetBytecodeForFunction(*func_info);
   TERRIER_ASSERT(bytecode != nullptr, "Bytecode cannot be null");
   VM::Frame callee(raw_frame, func_info->frame_size());
   Interpret(bytecode, &callee);

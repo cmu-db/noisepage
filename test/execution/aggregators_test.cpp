@@ -25,7 +25,7 @@ TEST_F(AggregatorsTest, Count) {
   {
     // Even inputs are NULL
     CountAggregate count;
-    for (u32 i = 0; i < 10; i++) {
+    for (uint32_t i = 0; i < 10; i++) {
       Integer val = (i % 2 == 0 ? Integer::Null() : Integer(i));
       count.Advance(val);
     }
@@ -39,11 +39,11 @@ TEST_F(AggregatorsTest, CountMerge) {
   CountAggregate count_1, count_2;
 
   // Insert into count_1
-  for (u32 i = 0; i < 100; i++) {
+  for (uint32_t i = 0; i < 100; i++) {
     Integer val = (i % 2 == 0 ? Integer::Null() : Integer(i));
     count_1.Advance(val);
   }
-  for (u32 i = 0; i < 100; i++) {
+  for (uint32_t i = 0; i < 100; i++) {
     Integer val(i);
     count_2.Advance(val);
   }
@@ -73,7 +73,7 @@ TEST_F(AggregatorsTest, SumInteger) {
   {
     // [1, 3, 5, 7, 9]
     IntegerSumAggregate sum;
-    for (u32 i = 0; i < 10; i++) {
+    for (uint32_t i = 0; i < 10; i++) {
       Integer val = (i % 2 == 0 ? Integer::Null() : Integer(i));
       sum.Advance(val);
     }
@@ -89,7 +89,7 @@ TEST_F(AggregatorsTest, SumInteger) {
   {
     // [0..9]
     IntegerSumAggregate sum;
-    for (u32 i = 0; i < 10; i++) {
+    for (uint32_t i = 0; i < 10; i++) {
       Integer val(i);
       sum.Advance(val);
     }
@@ -103,14 +103,14 @@ TEST_F(AggregatorsTest, SumInteger) {
 TEST_F(AggregatorsTest, MergeSumIntegers) {
   IntegerSumAggregate sum1;
   EXPECT_TRUE(sum1.GetResultSum().is_null);
-  for (u64 i = 0; i < 10; i++) {
+  for (uint64_t i = 0; i < 10; i++) {
     auto val = Integer(i);
     sum1.Advance(val);
   }
 
   IntegerSumAggregate sum2;
   EXPECT_TRUE(sum2.GetResultSum().is_null);
-  for (u64 i = 10; i < 20; i++) {
+  for (uint64_t i = 10; i < 20; i++) {
     auto val = Integer(i);
     sum2.Advance(val);
   }
@@ -123,7 +123,7 @@ TEST_F(AggregatorsTest, MergeSumIntegers) {
   sum1.Merge(sum3);
   EXPECT_EQ(190, sum1.GetResultSum().val);
 
-  for (i64 i = 0; i < 20; i++) {
+  for (int64_t i = 0; i < 20; i++) {
     auto val = Integer(-i);
     sum3.Advance(val);
   }
@@ -145,7 +145,7 @@ TEST_F(AggregatorsTest, SumReal) {
   {
     // [1, 3, 5, 7, 9]
     EXPECT_TRUE(sum.GetResultSum().is_null);
-    for (u32 i = 0; i < 10; i++) {
+    for (uint32_t i = 0; i < 10; i++) {
       Real val = (i % 2 == 0 ? Real::Null() : Real(static_cast<double>(i)));
       sum.Advance(val);
     }
@@ -158,7 +158,7 @@ TEST_F(AggregatorsTest, SumReal) {
   {
     // [1, 2, 3, 4, 5, 6, 7, 8, 9]
     EXPECT_TRUE(sum2.GetResultSum().is_null);
-    for (u32 i = 0; i < 10; i++) {
+    for (uint32_t i = 0; i < 10; i++) {
       Real val(static_cast<double>(i));
       sum2.Advance(val);
     }
@@ -197,8 +197,8 @@ TEST_F(AggregatorsTest, MaxInteger) {
 
   // Proper max calculation
   {
-    for (i64 i = 0; i < 25; i++) {
-      i64 j = i;
+    for (int64_t i = 0; i < 25; i++) {
+      int64_t j = i;
 
       // mix in some low numbers
       if (i % 2 == 0) {
@@ -216,8 +216,8 @@ TEST_F(AggregatorsTest, MaxInteger) {
   // Ditto for the second max
   {
     EXPECT_TRUE(max2.GetResultMax().is_null);
-    for (i64 i = 23; i < 45; i++) {
-      i64 j = i;
+    for (int64_t i = 23; i < 45; i++) {
+      int64_t j = i;
 
       // mix in some low numbers
       if (i % 2 == 0) {
@@ -260,8 +260,8 @@ TEST_F(AggregatorsTest, MinInteger) {
 
   // Proper min calculation using min1
   {
-    for (i64 i = 0; i < 25; i++) {
-      i64 j = i;
+    for (int64_t i = 0; i < 25; i++) {
+      int64_t j = i;
 
       // mix in some low numbers
       if (i % 2 == 0) {
@@ -279,8 +279,8 @@ TEST_F(AggregatorsTest, MinInteger) {
   // Proper min calculation, separately, using min2
   {
     EXPECT_TRUE(min2.GetResultMin().is_null);
-    for (i64 i = 23; i < 45; i++) {
-      i64 j = i;
+    for (int64_t i = 23; i < 45; i++) {
+      int64_t j = i;
 
       // mix in some low numbers
       if (i % 2 == 0) {
@@ -323,7 +323,7 @@ TEST_F(AggregatorsTest, MaxReal) {
 
   // Proper max calculation
   {
-    for (i64 i = 0; i < 25; i++) {
+    for (int64_t i = 0; i < 25; i++) {
       auto j = static_cast<double>(i);
 
       // mix in some low numbers
@@ -342,7 +342,7 @@ TEST_F(AggregatorsTest, MaxReal) {
   // Ditto for the second max
   {
     EXPECT_TRUE(max2.GetResultMax().is_null);
-    for (i64 i = 23; i < 45; i++) {
+    for (int64_t i = 23; i < 45; i++) {
       auto j = static_cast<double>(i);
 
       // mix in some low numbers
@@ -386,7 +386,7 @@ TEST_F(AggregatorsTest, MinReal) {
 
   // Proper min calculation using min1
   {
-    for (i64 i = 0; i < 25; i++) {
+    for (int64_t i = 0; i < 25; i++) {
       auto j = static_cast<double>(i);
 
       // mix in some low numbers
@@ -405,7 +405,7 @@ TEST_F(AggregatorsTest, MinReal) {
   // Proper min calculation, separately, using min2
   {
     EXPECT_TRUE(min2.GetResultMin().is_null);
-    for (i64 i = 23; i < 45; i++) {
+    for (int64_t i = 23; i < 45; i++) {
       auto j = static_cast<double>(i);
 
       // mix in some low numbers
@@ -451,7 +451,7 @@ TEST_F(AggregatorsTest, Avg) {
   {
     EXPECT_TRUE(avg1.GetResultAvg().is_null);
     double sum = 0.0, count = 0.0;
-    for (u64 i = 0; i < 25; i++) {
+    for (uint64_t i = 0; i < 25; i++) {
       sum += static_cast<double>(i);
       count++;
       auto val = Integer(i);
@@ -466,7 +466,7 @@ TEST_F(AggregatorsTest, Avg) {
   {
     EXPECT_TRUE(avg2.GetResultAvg().is_null);
     double sum = 0.0, count = 0.0;
-    for (i64 i = 0; i < 25; i++) {
+    for (int64_t i = 0; i < 25; i++) {
       sum += static_cast<double>(-i);
       count++;
       auto val = Integer(-i);

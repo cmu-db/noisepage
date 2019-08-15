@@ -1,13 +1,14 @@
 #pragma once
 
-#include "execution/util/common.h"
+#include "common/strong_typedef.h"
+#include "execution/util/execution_common.h"
 
 namespace terrier::execution::sql {
 
 /**
  * Type of a slot
  */
-using ConciseHashTableSlot = u64;
+using ConciseHashTableSlot = uint64_t;
 
 /**
  * A generic structure used to represent an entry in either a generic hash
@@ -24,7 +25,7 @@ struct HashTableEntry {
     ConciseHashTableSlot cht_slot;
 
     // Used during reordering over overflow entries when constructing a CHT
-    u64 overflow_count;
+    uint64_t overflow_count;
   };
 
   /**

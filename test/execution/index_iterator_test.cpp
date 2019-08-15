@@ -33,9 +33,10 @@ TEST_F(IndexIteratorTest, SimpleIndexIteratorTest) {
 
   auto table_oid = exec_ctx_->GetAccessor()->GetTableOid(NSOid(), "test_1");
   auto index_oid = exec_ctx_->GetAccessor()->GetIndexOid(NSOid(), "index_1");
-  std::array<u32, 1> col_oids{1};
-  TableVectorIterator table_iter(!table_oid, exec_ctx_.get(), col_oids.data(), static_cast<u32>(col_oids.size()));
-  IndexIterator index_iter{!table_oid, !index_oid, exec_ctx_.get(), col_oids.data(), static_cast<u32>(col_oids.size())};
+  std::array<uint32_t, 1> col_oids{1};
+  TableVectorIterator table_iter(exec_ctx_.get(), !table_oid, col_oids.data(), static_cast<uint32_t>(col_oids.size()));
+  IndexIterator index_iter{exec_ctx_.get(), !table_oid, !index_oid, col_oids.data(),
+                           static_cast<uint32_t>(col_oids.size())};
   table_iter.Init();
   index_iter.Init();
   ProjectedColumnsIterator *pci = table_iter.projected_columns_iterator();
@@ -43,13 +44,13 @@ TEST_F(IndexIteratorTest, SimpleIndexIteratorTest) {
   // Iterate through the table.
   while (table_iter.Advance()) {
     for (; pci->HasNext(); pci->Advance()) {
-      auto *key = pci->Get<i32, false>(0, nullptr);
+      auto *key = pci->Get<int32_t, false>(0, nullptr);
       // Check that the key can be recovered through the index
-      index_iter.SetKey<i32>(0, *key, false);
+      index_iter.SetKey<int32_t>(0, *key, false);
       index_iter.ScanKey();
       // One entry should be found
       ASSERT_TRUE(index_iter.Advance());
-      auto *val = index_iter.Get<i32, false>(0, nullptr);
+      auto *val = index_iter.Get<int32_t, false>(0, nullptr);
       ASSERT_EQ(*key, *val);
       // Check that there are no more entries.
       ASSERT_FALSE(index_iter.Advance());

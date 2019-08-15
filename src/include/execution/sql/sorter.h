@@ -2,9 +2,9 @@
 
 #include <vector>
 
+#include "common/macros.h"
 #include "execution/sql/memory_pool.h"
 #include "execution/util/chunked_vector.h"
-#include "execution/util/macros.h"
 
 namespace terrier::execution::sql {
 
@@ -18,7 +18,7 @@ class Sorter {
   /**
    * The interface of the comparison function used to sort tuples
    */
-  using ComparisonFunction = i32 (*)(const void *lhs, const void *rhs);
+  using ComparisonFunction = int32_t (*)(const void *lhs, const void *rhs);
 
   /**
    * Construct a sorter using @em memory as the memory allocator, storing tuples
@@ -27,7 +27,7 @@ class Sorter {
    * @param cmp_fn The sorting comparison function
    * @param tuple_size The sizes of the input tuples in bytes
    */
-  Sorter(MemoryPool *memory, ComparisonFunction cmp_fn, u32 tuple_size);
+  Sorter(MemoryPool *memory, ComparisonFunction cmp_fn, uint32_t tuple_size);
 
   /**
    * Destructor
@@ -51,7 +51,7 @@ class Sorter {
    *
    * @see AllocInputTupleTopKFinish()
    */
-  byte *AllocInputTupleTopK(u64 top_k);
+  byte *AllocInputTupleTopK(uint64_t top_k);
 
   /**
    * Complete the allocation and insertion of a tuple intended for TopK. This
@@ -59,7 +59,7 @@ class Sorter {
    *
    * @see AllocInputTupleTopK()
    */
-  void AllocInputTupleTopKFinish(u64 top_k);
+  void AllocInputTupleTopKFinish(uint64_t top_k);
 
   /**
    * Sort all inserted entries
@@ -76,7 +76,7 @@ class Sorter {
    * @param sorter_offset The offset into the container where the sorter
    *                      instance is.
    */
-  void SortParallel(const ThreadStateContainer *thread_state_container, u32 sorter_offset);
+  void SortParallel(const ThreadStateContainer *thread_state_container, uint32_t sorter_offset);
 
   /**
    * Perform a parallel Top-K of all sorter instances stored in the thread
@@ -89,12 +89,12 @@ class Sorter {
    *                      instance is.
    * @param top_k The number entries at the top the caller cares for.
    */
-  void SortTopKParallel(const ThreadStateContainer *thread_state_container, u32 sorter_offset, u64 top_k);
+  void SortTopKParallel(const ThreadStateContainer *thread_state_container, uint32_t sorter_offset, uint64_t top_k);
 
   /**
    * Return the number of tuples currently in this sorter
    */
-  u64 NumTuples() const { return tuples_.size(); }
+  uint64_t NumTuples() const { return tuples_.size(); }
 
   /**
    * Has this sorter's contents been sorted?

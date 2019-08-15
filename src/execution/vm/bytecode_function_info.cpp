@@ -4,8 +4,8 @@
 #include <utility>
 #include <vector>
 
+#include "common/math_util.h"
 #include "execution/ast/type.h"
-#include "execution/util/math_util.h"
 
 namespace terrier::execution::vm {
 
@@ -13,7 +13,7 @@ namespace terrier::execution::vm {
 // Local Information
 // ---------------------------------------------------------
 
-LocalInfo::LocalInfo(std::string name, ast::Type *type, u32 offset, LocalInfo::Kind kind) noexcept
+LocalInfo::LocalInfo(std::string name, ast::Type *type, uint32_t offset, LocalInfo::Kind kind) noexcept
     : name_(std::move(name)), type_(type), offset_(offset), size_(type->size()), kind_(kind) {}
 
 // ---------------------------------------------------------
@@ -39,7 +39,7 @@ LocalVar FunctionInfo::NewLocal(ast::Type *type, const std::string &name, LocalI
     frame_size_ = util::MathUtil::AlignTo(frame_size_, type->alignment());
   }
 
-  const auto offset = static_cast<u32>(frame_size_);
+  const auto offset = static_cast<uint32_t>(frame_size_);
   locals_.emplace_back(name, type, offset, kind);
 
   frame_size_ += type->size();
@@ -90,7 +90,7 @@ const LocalInfo *FunctionInfo::LookupLocalInfoByName(const std::string &name) co
   return nullptr;
 }
 
-const LocalInfo *FunctionInfo::LookupLocalInfoByOffset(u32 offset) const {
+const LocalInfo *FunctionInfo::LookupLocalInfoByOffset(uint32_t offset) const {
   for (const auto &local_info : locals()) {
     if (local_info.offset() == offset) {
       return &local_info;

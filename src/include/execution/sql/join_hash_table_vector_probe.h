@@ -2,7 +2,7 @@
 
 #include "execution/sql/hash_table_entry.h"
 #include "execution/sql/projected_columns_iterator.h"
-#include "execution/util/common.h"
+#include "execution/util/execution_common.h"
 
 namespace terrier::execution::sql {
 
@@ -48,11 +48,11 @@ class JoinHashTableVectorProbe {
   // The table we're probing
   const JoinHashTable &table_;
   // The current index in the entries output we're iterating over
-  u16 match_idx_;
+  uint16_t match_idx_;
   // The vector of computed hashes
-  hash_t hashes_[kDefaultVectorSize];
+  hash_t hashes_[common::Constants::kDefaultVectorSize];
   // The vector of entries
-  const HashTableEntry *entries_[kDefaultVectorSize];
+  const HashTableEntry *entries_[common::Constants::kDefaultVectorSize];
 };
 
 // ---------------------------------------------------------

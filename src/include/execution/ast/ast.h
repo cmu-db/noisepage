@@ -5,9 +5,10 @@
 
 #include "llvm/Support/Casting.h"
 
+#include "common/strong_typedef.h"
 #include "execution/ast/identifier.h"
 #include "execution/parsing/token.h"
-#include "execution/util/common.h"
+#include "execution/util/execution_common.h"
 #include "execution/util/region.h"
 #include "execution/util/region_containers.h"
 
@@ -117,7 +118,7 @@ class AstNode : public util::RegionObject {
   /**
    * The kind enumeration listing all possible node kinds
    */
-  enum class Kind : u8 { AST_NODES(T) };
+  enum class Kind : uint8_t { AST_NODES(T) };
 #undef T
 
   /**
@@ -814,7 +815,7 @@ class Expr : public AstNode {
   /**
    * Value type
    */
-  enum class Context : u8 {
+  enum class Context : uint8_t {
     LValue,
     RValue,
     Test,
@@ -964,7 +965,7 @@ class CallExpr : public Expr {
   /**
    * Type of call (builtin call or regular function call)
    */
-  enum class CallKind : u8 { Regular, Builtin };
+  enum class CallKind : uint8_t { Regular, Builtin };
 
   /**
    * Constructor for regular calls
@@ -1000,7 +1001,7 @@ class CallExpr : public Expr {
   /**
    * @return the number of arguments to the function this node is calling
    */
-  u32 num_args() const { return static_cast<u32>(args_.size()); }
+  uint32_t num_args() const { return static_cast<uint32_t>(args_.size()); }
 
   /**
    * @return the kind of call this node represents
@@ -1028,7 +1029,7 @@ class CallExpr : public Expr {
    * @param arg_idx index of the argument
    * @param expr new argument
    */
-  void set_argument(u32 arg_idx, Expr *expr) {
+  void set_argument(uint32_t arg_idx, Expr *expr) {
     TERRIER_ASSERT(arg_idx < num_args(), "Out-of-bounds argument access");
     args_[arg_idx] = expr;
   }
@@ -1196,7 +1197,7 @@ class IdentifierExpr : public Expr {
 /**
  * An enumeration capturing all possible casting operations
  */
-enum class CastKind : u8 {
+enum class CastKind : uint8_t {
   // Conversion of a 32-bit integer into a non-nullable SQL Integer value
   IntToSqlInt,
 
@@ -1325,7 +1326,7 @@ class LitExpr : public Expr {
   /**
    * Enum of kinds of literal expressions.
    */
-  enum class LitKind : u8 { Nil, Boolean, Int, Float, String };
+  enum class LitKind : uint8_t { Nil, Boolean, Int, Float, String };
 
   /**
    * Nil constructor
@@ -1354,14 +1355,14 @@ class LitExpr : public Expr {
    * @param pos source position
    * @param num integer value
    */
-  LitExpr(const SourcePosition &pos, i64 num) : Expr(Kind::LitExpr, pos), lit_kind_(LitKind::Int), int64_(num) {}
+  LitExpr(const SourcePosition &pos, int64_t num) : Expr(Kind::LitExpr, pos), lit_kind_(LitKind::Int), int64_(num) {}
 
   /**
    * Float constructor
    * @param pos source position
    * @param num float value
    */
-  LitExpr(const SourcePosition &pos, f64 num) : Expr(Kind::LitExpr, pos), lit_kind_(LitKind::Float), float64_(num) {}
+  LitExpr(const SourcePosition &pos, double num) : Expr(Kind::LitExpr, pos), lit_kind_(LitKind::Float), float64_(num) {}
 
   /**
    * @return the literal kind
@@ -1413,7 +1414,7 @@ class LitExpr : public Expr {
   /**
    * @return the integer value
    */
-  i64 int64_val() const {
+  int64_t int64_val() const {
     TERRIER_ASSERT(literal_kind() == LitKind::Int, "Getting integer value from a non-integer literal expression");
     return int64_;
   }
@@ -1421,7 +1422,7 @@ class LitExpr : public Expr {
   /**
    * @return the float value
    */
-  f64 float64_val() const {
+  double float64_val() const {
     TERRIER_ASSERT(literal_kind() == LitKind::Float, "Getting float value from a non-float literal expression");
     return float64_;
   }
@@ -1443,8 +1444,8 @@ class LitExpr : public Expr {
     bool boolean_;
     Identifier str_;
     byte *bytes_;
-    i64 int64_;
-    f64 float64_;
+    int64_t int64_;
+    double float64_;
   };
 };
 

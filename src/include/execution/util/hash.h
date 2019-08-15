@@ -6,15 +6,16 @@
 #include <string>
 #include <type_traits>
 
-#include "execution/util/common.h"
-#include "execution/util/macros.h"
+#include "common/macros.h"
+#include "common/strong_typedef.h"
+#include "execution/util/execution_common.h"
 
 namespace terrier::execution::util {
 
 /**
  * Enumeration of the supported hashing methods
  */
-enum class HashMethod : u8 { Fnv1, Crc, Murmur2, xxHash3 };
+enum class HashMethod : uint8_t { Fnv1, Crc, Murmur2, xxHash3 };
 
 /**
  * Generic hashing utility class. The main entry points into this utility class
@@ -54,7 +55,7 @@ class Hasher {
    * @return The computed hash value based on the contents of the input buffer.
    */
   template <HashMethod METHOD = HashMethod::Crc>
-  static hash_t Hash(const u8 *buf, u32 len) {
+  static hash_t Hash(const uint8_t *buf, uint32_t len) {
     switch (METHOD) {
       case HashMethod::Fnv1:
         return HashFnv1(buf, len);
@@ -75,7 +76,7 @@ class Hasher {
    */
   template <HashMethod METHOD = HashMethod::Crc>
   static hash_t Hash(const std::string_view s) {
-    return Hash<METHOD>(reinterpret_cast<const u8 *>(s.data()), u32(s.length()));
+    return Hash<METHOD>(reinterpret_cast<const uint8_t *>(s.data()), uint32_t(s.length()));
   }
 
   /**
@@ -86,7 +87,7 @@ class Hasher {
    */
   static hash_t CombineHashes(const hash_t first_hash, const hash_t second_hash) {
     // Based on Hash128to64() from cityhash.
-    static constexpr auto kMul = u64(0x9ddfea08eb382d69);
+    static constexpr auto kMul = uint64_t(0x9ddfea08eb382d69);
     hash_t a = (first_hash ^ second_hash) * kMul;
     a ^= (a >> 47u);
     hash_t b = (second_hash ^ a) * kMul;
@@ -102,8 +103,8 @@ class Hasher {
 
   template <typename T>
   static auto HashCrc(const T val, const hash_t seed) -> std::enable_if_t<std::is_arithmetic_v<T>, hash_t> {
-    u64 result1 = _mm_crc32_u64(seed, static_cast<u64>(val));
-    u64 result2 = _mm_crc32_u64(0x04c11db7, static_cast<u64>(val));
+    uint64_t result1 = _mm_crc32_u64(seed, static_cast<uint64_t>(val));
+    uint64_t result2 = _mm_crc32_u64(0x04c11db7, static_cast<uint64_t>(val));
     return ((result2 << 32u) | result1) * 0x2545F4914F6CDD1Dull;
   }
 
@@ -112,18 +113,18 @@ class Hasher {
     return HashCrc(val, hash_t{0});
   }
 
-  static hash_t HashCrc(const u8 *buf, u32 len, hash_t seed) {
+  static hash_t HashCrc(const uint8_t *buf, uint32_t len, hash_t seed) {
     // Thanks HyPer
-    u64 hash = seed;
+    uint64_t hash = seed;
 
     // Process as many 8-byte chunks as possible
     for (; len >= 8; buf += 8, len -= 8) {
-      hash = HashCrc(*reinterpret_cast<const u64 *>(buf), hash);
+      hash = HashCrc(*reinterpret_cast<const uint64_t *>(buf), hash);
     }
 
     // If there's at least a 4-byte chunk, process that
     if (len >= 4) {
-      hash = HashCrc(*reinterpret_cast<const u32 *>(buf), hash);
+      hash = HashCrc(*reinterpret_cast<const uint32_t *>(buf), hash);
       buf += 4;
       len -= 4;
     }
@@ -131,14 +132,14 @@ class Hasher {
     // Process the tail
     switch (len) {
       case 3:
-        hash ^= (static_cast<u64>(buf[2])) << 16u;
-        FALLTHROUGH;
+        hash ^= (static_cast<uint64_t>(buf[2])) << 16u;
+        TERRIER_FALLTHROUGH;
       case 2:
-        hash ^= (static_cast<u64>(buf[1])) << 8u;
-        FALLTHROUGH;
+        hash ^= (static_cast<uint64_t>(buf[1])) << 8u;
+        TERRIER_FALLTHROUGH;
       case 1:
         hash ^= buf[0];
-        FALLTHROUGH;
+        TERRIER_FALLTHROUGH;
       default:
         break;
     }
@@ -146,7 +147,7 @@ class Hasher {
     return hash;
   }
 
-  static hash_t HashCrc(const u8 *buf, u32 len) { return HashCrc(buf, len, 0); }
+  static hash_t HashCrc(const uint8_t *buf, uint32_t len) { return HashCrc(buf, len, 0); }
 
   // -------------------------------------------------------
   // Murmur2 Hashing
@@ -156,13 +157,13 @@ class Hasher {
   // https://github.com/aappleby/smhasher/blob/master/src/MurmurHash2.cpp
   // 'kMurmur2Prime' and 'kMurmur2R' are mixing constants generated offline.
   // They're not really 'magic', they just happen to work well.
-  static constexpr u64 kMurmur2Prime = 0xc6a4a7935bd1e995;
-  static constexpr i32 kMurmur2R = 47;
+  static constexpr uint64_t kMurmur2Prime = 0xc6a4a7935bd1e995;
+  static constexpr int32_t kMurmur2R = 47;
 
   template <typename T>
   static auto HashMurmur2(const T val, hash_t seed) -> std::enable_if_t<std::is_arithmetic_v<T>, hash_t> {
     // MurmurHash64A
-    auto k = static_cast<u64>(val);
+    auto k = static_cast<uint64_t>(val);
     hash_t h = seed ^ 0x8445d61a4e774912 ^ (8 * kMurmur2Prime);
     k *= kMurmur2Prime;
     k ^= k >> kMurmur2R;
@@ -180,15 +181,15 @@ class Hasher {
     return HashMurmur2(k, 0);
   }
 
-  static hash_t HashMurmur2(const u8 *buf, u32 len, hash_t seed) {
+  static hash_t HashMurmur2(const uint8_t *buf, uint32_t len, hash_t seed) {
     // MurmurHash64A
     hash_t h = seed ^ (len * kMurmur2Prime);
 
-    const auto *data = reinterpret_cast<const u64 *>(buf);
+    const auto *data = reinterpret_cast<const uint64_t *>(buf);
     const auto *end = data + (len / 8);
 
     while (data != end) {
-      u64 k = *data++;
+      uint64_t k = *data++;
 
       k *= kMurmur2Prime;
       k ^= k >> kMurmur2R;
@@ -198,29 +199,29 @@ class Hasher {
       h *= kMurmur2Prime;
     }
 
-    const auto *data2 = reinterpret_cast<const u8 *>(data);
+    const auto *data2 = reinterpret_cast<const uint8_t *>(data);
 
     switch (len & 7) {
       case 7:
-        h ^= u64(data2[6]) << 48;
-        FALLTHROUGH;
+        h ^= uint64_t(data2[6]) << 48;
+        TERRIER_FALLTHROUGH;
       case 6:
-        h ^= u64(data2[5]) << 40;
-        FALLTHROUGH;
+        h ^= uint64_t(data2[5]) << 40;
+        TERRIER_FALLTHROUGH;
       case 5:
-        h ^= u64(data2[4]) << 32;
-        FALLTHROUGH;
+        h ^= uint64_t(data2[4]) << 32;
+        TERRIER_FALLTHROUGH;
       case 4:
-        h ^= u64(data2[3]) << 24;
-        FALLTHROUGH;
+        h ^= uint64_t(data2[3]) << 24;
+        TERRIER_FALLTHROUGH;
       case 3:
-        h ^= u64(data2[2]) << 16;
-        FALLTHROUGH;
+        h ^= uint64_t(data2[2]) << 16;
+        TERRIER_FALLTHROUGH;
       case 2:
-        h ^= u64(data2[1]) << 8;
-        FALLTHROUGH;
+        h ^= uint64_t(data2[1]) << 8;
+        TERRIER_FALLTHROUGH;
       case 1:
-        h ^= u64(data2[0]);
+        h ^= uint64_t(data2[0]);
         h *= kMurmur2Prime;
     }
 
@@ -231,7 +232,7 @@ class Hasher {
     return h;
   }
 
-  static hash_t HashMurmur2(const u8 *buf, u32 len) { return HashMurmur2(buf, len, 0); }
+  static hash_t HashMurmur2(const uint8_t *buf, uint32_t len) { return HashMurmur2(buf, len, 0); }
 
   // -------------------------------------------------------
   // xx3 Hashing
@@ -239,25 +240,25 @@ class Hasher {
 
   template <typename T>
   static auto HashXX3(const T val) -> std::enable_if_t<std::is_arithmetic_v<T>, hash_t> {
-    return HashXX3(reinterpret_cast<const u8 *>(&val), sizeof(T));
+    return HashXX3(reinterpret_cast<const uint8_t *>(&val), sizeof(T));
   }
 
-  static hash_t HashXX3(const u8 *buf, u32 len);
+  static hash_t HashXX3(const uint8_t *buf, uint32_t len);
 
   // -------------------------------------------------------
   // FNV
   // -------------------------------------------------------
 
   // default values recommended by http://isthe.com/chongo/tech/comp/fnv/
-  static constexpr u64 kFNV64Prime = 1099511628211UL;
-  static constexpr u64 kFNV64Seed = 14695981039346656037UL;
+  static constexpr uint64_t kFNV64Prime = 1099511628211UL;
+  static constexpr uint64_t kFNV64Seed = 14695981039346656037UL;
 
   template <typename T>
   static auto HashFnv1(const T val) -> std::enable_if_t<std::is_arithmetic_v<T>, hash_t> {
-    return HashFnv1(reinterpret_cast<const u8 *>(&val), sizeof(T));
+    return HashFnv1(reinterpret_cast<const uint8_t *>(&val), sizeof(T));
   }
 
-  static hash_t HashFnv1(const u8 *buf, u32 len, hash_t seed) {
+  static hash_t HashFnv1(const uint8_t *buf, uint32_t len, hash_t seed) {
     while (static_cast<bool>(len--)) {
       seed = (*buf ^ seed) * kFNV64Prime;
       ++buf;
@@ -265,7 +266,7 @@ class Hasher {
     return seed;
   }
 
-  static hash_t HashFnv1(const u8 *buf, u32 len) { return HashFnv1(buf, len, kFNV64Seed); }
+  static hash_t HashFnv1(const uint8_t *buf, uint32_t len) { return HashFnv1(buf, len, kFNV64Seed); }
 };
 
 }  // namespace terrier::execution::util

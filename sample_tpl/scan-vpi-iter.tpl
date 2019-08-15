@@ -53,7 +53,7 @@ fun main(execCtx: *ExecutionContext) -> int {
   var tvi: TableVectorIterator
   var col_oids : [1]uint32
   col_oids[0] = 1
-  for (@tableIterInitBind(&tvi, "test_1", execCtx, col_oids); @tableIterAdvance(&tvi); ) {
+  for (@tableIterInitBind(&tvi, execCtx, "test_1", col_oids); @tableIterAdvance(&tvi); ) {
     var pci = @tableIterGetPCI(&tvi)
     @filtersRun(&filter, pci)
     ret = ret + count(pci)

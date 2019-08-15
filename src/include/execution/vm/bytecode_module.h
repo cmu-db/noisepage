@@ -22,7 +22,7 @@ class BytecodeModule {
    * @param code The bytecode that makes up the module
    * @param functions The functions within the module
    */
-  BytecodeModule(std::string name, std::vector<u8> &&code, std::vector<FunctionInfo> &&functions);
+  BytecodeModule(std::string name, std::vector<uint8_t> &&code, std::vector<FunctionInfo> &&functions);
 
   /**
    * This class cannot be copied or moved
@@ -91,7 +91,7 @@ class BytecodeModule {
  private:
   friend class VM;
 
-  const u8 *GetBytecodeForFunction(const FunctionInfo &func) const {
+  const uint8_t *GetBytecodeForFunction(const FunctionInfo &func) const {
     // NOLINTNEXTLINE
     auto [start, _] = func.bytecode_range();
     (void)_;
@@ -100,7 +100,7 @@ class BytecodeModule {
 
  private:
   const std::string name_;
-  const std::vector<u8> code_;
+  const std::vector<uint8_t> code_;
   const std::vector<FunctionInfo> functions_;
 };
 

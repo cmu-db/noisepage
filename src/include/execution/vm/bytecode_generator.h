@@ -120,7 +120,7 @@ class BytecodeGenerator : public ast::AstVisitor<BytecodeGenerator> {
   // the result should be stored
   void VisitExpressionForRValue(ast::Expr *expr, LocalVar dest);
 
-  enum class TestFallthrough : u8 { None, Then, Else };
+  enum class TestFallthrough : uint8_t { None, Then, Else };
 
   void VisitExpressionForTest(ast::Expr *expr, BytecodeLabel *then_label, BytecodeLabel *else_label,
                               TestFallthrough fallthrough);
@@ -160,7 +160,7 @@ class BytecodeGenerator : public ast::AstVisitor<BytecodeGenerator> {
 
  private:
   // The bytecode generated during compilation
-  std::vector<u8> bytecode_;
+  std::vector<uint8_t> bytecode_;
 
   // Information about all generated functions
   std::vector<FunctionInfo> functions_;

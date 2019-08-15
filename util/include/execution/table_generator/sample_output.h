@@ -27,7 +27,7 @@ class SampleOutput {
     planner::OutputSchema::Column string_col{"dummy", type::TypeId::VARCHAR, true, col_oid};
 
     // Create schemas with up to 10 integer columns.
-    for (u32 i = 0; i < 10; i++) {
+    for (uint32_t i = 0; i < 10; i++) {
       std::vector<planner::OutputSchema::Column> cols(i + 1, int_col);
       schemas_.emplace("schema" + std::to_string(i + 1), planner::OutputSchema(cols));
     }
@@ -61,10 +61,10 @@ class SampleOutput {
     // Q1 (two strings, 7 reals, 1 int)
     {
       std::vector<planner::OutputSchema::Column> cols{};
-      for (u32 i = 0; i < u32(2); i++) {
+      for (uint32_t i = 0; i < uint32_t(2); i++) {
         cols.emplace_back(string_col);
       }
-      for (u32 i = 0; i < u32(7); i++) {
+      for (uint32_t i = 0; i < uint32_t(7); i++) {
         cols.emplace_back(real_col);
       }
       cols.emplace_back(int_col);

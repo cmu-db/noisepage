@@ -11,7 +11,7 @@ fun main(execCtx: *ExecutionContext) -> int {
   oids[0] = 1 // colA
   oids[1] = 2 // colB
   oids[2] = 3 // colC
-  @tableIterInitBind(&tvi, "test_1", execCtx, oids)
+  @tableIterInitBind(&tvi, execCtx, "test_1", oids)
   for (@tableIterAdvance(&tvi)) {
     var pci = @tableIterGetPCI(&tvi)
     for (; @pciHasNext(pci); @pciAdvance(pci)) {

@@ -103,12 +103,12 @@ TEST_F(ScannerTest, VariableSyntaxTest) {
        }},
 
       // Variable with type
-      {"var x:i32 = 10",
+      {"var x:int32_t = 10",
        {Token::Type::VAR, Token::Type::IDENTIFIER, Token::Type::COLON, Token::Type::IDENTIFIER, Token::Type::EQUAL,
         Token::Type::INTEGER},
        [](Scanner *scanner, uint32_t token_idx) {
          if (token_idx == 3) {
-           EXPECT_EQ("i32", scanner->current_literal());
+           EXPECT_EQ("int32_t", scanner->current_literal());
          }
        }},
       // Variable with float number
@@ -188,7 +188,7 @@ TEST_F(ScannerTest, FunctionSyntaxTest) {
        }},
 
       // Variable with type
-      {"fun test(a:i32){}",
+      {"fun test(a:int32_t){}",
        {Token::Type::FUN, Token::Type::IDENTIFIER, Token::Type::LEFT_PAREN, Token::Type::IDENTIFIER, Token::Type::COLON,
         Token::Type::IDENTIFIER, Token::Type::RIGHT_PAREN, Token::Type::LEFT_BRACE, Token::Type::RIGHT_BRACE},
        [](Scanner *scanner, uint32_t token_idx) {

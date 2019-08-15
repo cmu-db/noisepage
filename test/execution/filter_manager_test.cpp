@@ -32,22 +32,22 @@ class FilterManagerTest : public SqlBasedTest {
   std::unique_ptr<exec::ExecutionContext> exec_ctx_;
 };
 
-enum Col : u8 { A = 0, B = 1, C = 2, D = 3 };
+enum Col : uint8_t { A = 0, B = 1, C = 2, D = 3 };
 
-u32 TaaT_Lt_500(ProjectedColumnsIterator *pci) {
+uint32_t TaaT_Lt_500(ProjectedColumnsIterator *pci) {
   pci->RunFilter([pci]() -> bool {
-    auto cola = *pci->Get<i32, false>(Col::A, nullptr);
+    auto cola = *pci->Get<int32_t, false>(Col::A, nullptr);
     return cola < 500;
   });
   return pci->num_selected();
 }
 
-u32 Hobbled_TaaT_Lt_500(ProjectedColumnsIterator *pci) {
+uint32_t Hobbled_TaaT_Lt_500(ProjectedColumnsIterator *pci) {
   std::this_thread::sleep_for(std::chrono::milliseconds(50));
   return TaaT_Lt_500(pci);
 }
 
-u32 Vectorized_Lt_500(ProjectedColumnsIterator *pci) {
+uint32_t Vectorized_Lt_500(ProjectedColumnsIterator *pci) {
   ProjectedColumnsIterator::FilterVal param{.i = 500};
   return pci->FilterColByVal<std::less>(Col::A, type::TypeId ::INTEGER, param);
 }
@@ -60,8 +60,8 @@ TEST_F(FilterManagerTest, SimpleFilterManagerTest) {
   filter.InsertClauseFlavor(Vectorized_Lt_500);
   filter.Finalize();
   auto table_oid = exec_ctx_->GetAccessor()->GetTableOid(NSOid(), "test_1");
-  std::array<u32, 1> col_oids{1};
-  TableVectorIterator tvi(!table_oid, exec_ctx_.get(), col_oids.data(), static_cast<u32>(col_oids.size()));
+  std::array<uint32_t, 1> col_oids{1};
+  TableVectorIterator tvi(exec_ctx_.get(), !table_oid, col_oids.data(), static_cast<uint32_t>(col_oids.size()));
   for (tvi.Init(); tvi.Advance();) {
     auto *pci = tvi.projected_columns_iterator();
 
@@ -70,7 +70,7 @@ TEST_F(FilterManagerTest, SimpleFilterManagerTest) {
 
     // Check
     pci->ForEach([pci]() {
-      auto cola = *pci->Get<i32, false>(Col::A, nullptr);
+      auto cola = *pci->Get<int32_t, false>(Col::A, nullptr);
       EXPECT_LT(cola, 500);
     });
   }
@@ -84,8 +84,8 @@ TEST_F(FilterManagerTest, AdaptiveFilterManagerTest) {
   filter.InsertClauseFlavor(Vectorized_Lt_500);
   filter.Finalize();
   auto table_oid = exec_ctx_->GetAccessor()->GetTableOid(NSOid(), "test_1");
-  std::array<u32, 1> col_oids{1};
-  TableVectorIterator tvi(!table_oid, exec_ctx_.get(), col_oids.data(), static_cast<u32>(col_oids.size()));
+  std::array<uint32_t, 1> col_oids{1};
+  TableVectorIterator tvi(exec_ctx_.get(), !table_oid, col_oids.data(), static_cast<uint32_t>(col_oids.size()));
   for (tvi.Init(); tvi.Advance();) {
     auto *pci = tvi.projected_columns_iterator();
 
@@ -94,7 +94,7 @@ TEST_F(FilterManagerTest, AdaptiveFilterManagerTest) {
 
     // Check
     pci->ForEach([pci]() {
-      auto cola = *pci->Get<i32, false>(Col::A, nullptr);
+      auto cola = *pci->Get<int32_t, false>(Col::A, nullptr);
       EXPECT_LT(cola, 500);
     });
   }

@@ -49,7 +49,7 @@ TEST_F(BytecodeTrampolineTest, BooleanFunctionTest) {
 
   EXPECT_FALSE(compiler.HasErrors());
 
-  auto less_than = reinterpret_cast<bool (*)(i32, i32)>(GetTrampoline(*module, "lt"));
+  auto less_than = reinterpret_cast<bool (*)(int32_t, int32_t)>(GetTrampoline(*module, "lt"));
 
   EXPECT_EQ(true, less_than(1, 2));
   EXPECT_EQ(false, less_than(2, 1));
@@ -64,7 +64,7 @@ TEST_F(BytecodeTrampolineTest, IntFunctionTest) {
 
     EXPECT_FALSE(compiler.HasErrors());
 
-    auto fn = reinterpret_cast<i32 (*)()>(GetTrampoline(*module, "test"));
+    auto fn = reinterpret_cast<int32_t (*)()>(GetTrampoline(*module, "test"));
 
     EXPECT_EQ(10, fn());
   }
@@ -77,7 +77,7 @@ TEST_F(BytecodeTrampolineTest, IntFunctionTest) {
 
     EXPECT_FALSE(compiler.HasErrors());
 
-    auto fn = reinterpret_cast<i32 (*)(i32, i32)>(GetTrampoline(*module, "add2"));
+    auto fn = reinterpret_cast<int32_t (*)(int32_t, int32_t)>(GetTrampoline(*module, "add2"));
 
     EXPECT_EQ(20, fn(10, 10));
     EXPECT_EQ(10, fn(0, 10));
@@ -93,7 +93,7 @@ TEST_F(BytecodeTrampolineTest, IntFunctionTest) {
 
     EXPECT_FALSE(compiler.HasErrors());
 
-    auto fn = reinterpret_cast<i32 (*)(i32, i32, i32)>(GetTrampoline(*module, "sub3"));
+    auto fn = reinterpret_cast<int32_t (*)(int32_t, int32_t, int32_t)>(GetTrampoline(*module, "sub3"));
 
     EXPECT_EQ(-10, fn(10, 10, 10));
     EXPECT_EQ(10, fn(30, 10, 10));
@@ -113,7 +113,7 @@ TEST_F(BytecodeTrampolineTest, BigIntFunctionTest) {
 
     EXPECT_FALSE(compiler.HasErrors());
 
-    auto fn = reinterpret_cast<i64 (*)(i64, i64, i64)>(GetTrampoline(*module, "mul3"));
+    auto fn = reinterpret_cast<int64_t (*)(int64_t, int64_t, int64_t)>(GetTrampoline(*module, "mul3"));
 
     EXPECT_EQ(6, fn(1, 2, 3));
     EXPECT_EQ(-6, fn(-1, 2, 3));
@@ -133,10 +133,10 @@ TEST_F(BytecodeTrampolineTest, VoidReturnTest) {
 
     EXPECT_FALSE(compiler.HasErrors());
 
-    auto fn = reinterpret_cast<void (*)(i64 *, i64 *, i64 *)>(GetTrampoline(*module, "mul2"));
+    auto fn = reinterpret_cast<void (*)(int64_t *, int64_t *, int64_t *)>(GetTrampoline(*module, "mul2"));
 
-    i64 a = 2, b = 3;
-    i64 ret = 0;
+    int64_t a = 2, b = 3;
+    int64_t ret = 0;
 
     fn(&a, &b, &ret);
     EXPECT_EQ(6, ret);
@@ -156,8 +156,8 @@ TEST_F(BytecodeTrampolineTest, CodeGenComparisonFunctionSorterTest) {
   //
 
   {
-    const u32 nelems = 100;
-    std::vector<i32> numbers(nelems);
+    const uint32_t nelems = 100;
+    std::vector<int32_t> numbers(nelems);
     std::random_device random;
     std::generate(numbers.begin(), numbers.end(), [&random]() { return random() % 100; });
 
@@ -168,7 +168,7 @@ TEST_F(BytecodeTrampolineTest, CodeGenComparisonFunctionSorterTest) {
     auto compiler = ModuleCompiler();
     auto module = compiler.CompileToModule(src);
     EXPECT_FALSE(compiler.HasErrors());
-    auto compare = reinterpret_cast<i32 (*)(const i32, const i32)>(GetTrampoline(*module, "compare"));
+    auto compare = reinterpret_cast<int32_t (*)(const int32_t, const int32_t)>(GetTrampoline(*module, "compare"));
     EXPECT_TRUE(compare != nullptr);
 
     // Try to sort using the generated comparison function
@@ -189,14 +189,14 @@ TEST_F(BytecodeTrampolineTest, CodeGenComparisonFunctionSorterTest) {
 
   {
     struct S {
-      i32 a, b, c, d;
-      S(i32 a, i32 b, i32 c, i32 d) : a(a), b(b), c(c), d(d) {}
+      int32_t a, b, c, d;
+      S(int32_t a, int32_t b, int32_t c, int32_t d) : a(a), b(b), c(c), d(d) {}
     };
 
-    const u32 nelems = 100;
+    const uint32_t nelems = 100;
     std::vector<S> elems;
     std::random_device random;
-    for (u32 i = 0; i < nelems; i++) {
+    for (uint32_t i = 0; i < nelems; i++) {
       elems.emplace_back(random() % 5, random() % 10, random() % 100, random() % 1000);
     }
 
@@ -231,7 +231,7 @@ TEST_F(BytecodeTrampolineTest, DISABLED_PerfGenComparisonForSortTest) {
     auto src = "fun compare(a: int32, b: int32) -> int32 { return a - b }";
     auto compiler = ModuleCompiler();
     auto module = compiler.CompileToModule(src);
-    auto compare = reinterpret_cast<i32 (*)(const i32, const i32)>(GetTrampoline(*module, "compare"));
+    auto compare = reinterpret_cast<int32_t (*)(const int32_t, const int32_t)>(GetTrampoline(*module, "compare"));
 
     util::Timer<std::milli> timer;
     timer.Start();
@@ -242,11 +242,11 @@ TEST_F(BytecodeTrampolineTest, DISABLED_PerfGenComparisonForSortTest) {
     return timer.elapsed();
   };
 
-  UNUSED auto bench_func = [](auto &vec) {
+  UNUSED_ATTRIBUTE auto bench_func = [](auto &vec) {
     auto src = "fun compare(a: int32, b: int32) -> int32 { return a - b }";
     auto compiler = ModuleCompiler();
     auto module = compiler.CompileToModule(src);
-    std::function<i32(const i32, const i32)> compare;
+    std::function<int32_t(const int32_t, const int32_t)> compare;
     EXPECT_TRUE(module->GetFunction("compare", ExecutionMode::Interpret, &compare));
 
     util::Timer<std::milli> timer;
@@ -258,7 +258,7 @@ TEST_F(BytecodeTrampolineTest, DISABLED_PerfGenComparisonForSortTest) {
     return timer.elapsed();
   };
 
-  UNUSED auto bench_std = [](auto &vec) {
+  UNUSED_ATTRIBUTE auto bench_std = [](auto &vec) {
     auto compiler = ModuleCompiler();
     util::Timer<std::milli> timer;
     timer.Start();
@@ -269,10 +269,10 @@ TEST_F(BytecodeTrampolineTest, DISABLED_PerfGenComparisonForSortTest) {
     return timer.elapsed();
   };
 
-  const u32 nelems = 10000000;
-  std::vector<i32> numbers(nelems);
-  i32 x = 0;
-  UNUSED std::random_device random;
+  const uint32_t nelems = 10000000;
+  std::vector<int32_t> numbers(nelems);
+  int32_t x = 0;
+  UNUSED_ATTRIBUTE std::random_device random;
   std::generate(numbers.begin(), numbers.end(), [&x]() { return x++; });
 
   auto num2 = numbers;

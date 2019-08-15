@@ -14,7 +14,9 @@ void BytecodeEmitter::EmitDeref(Bytecode bytecode, LocalVar dest, LocalVar src) 
   EmitAll(bytecode, dest, src);
 }
 
-void BytecodeEmitter::EmitDerefN(LocalVar dest, LocalVar src, u32 len) { EmitAll(Bytecode::DerefN, dest, src, len); }
+void BytecodeEmitter::EmitDerefN(LocalVar dest, LocalVar src, uint32_t len) {
+  EmitAll(Bytecode::DerefN, dest, src, len);
+}
 
 void BytecodeEmitter::EmitAssign(Bytecode bytecode, LocalVar dest, LocalVar src) {
   TERRIER_ASSERT(bytecode == Bytecode::Assign1 || bytecode == Bytecode::Assign2 || bytecode == Bytecode::Assign4 ||
@@ -23,17 +25,17 @@ void BytecodeEmitter::EmitAssign(Bytecode bytecode, LocalVar dest, LocalVar src)
   EmitAll(bytecode, dest, src);
 }
 
-void BytecodeEmitter::EmitAssignImm1(LocalVar dest, i8 val) { EmitAll(Bytecode::AssignImm1, dest, val); }
+void BytecodeEmitter::EmitAssignImm1(LocalVar dest, int8_t val) { EmitAll(Bytecode::AssignImm1, dest, val); }
 
-void BytecodeEmitter::EmitAssignImm2(LocalVar dest, i16 val) { EmitAll(Bytecode::AssignImm2, dest, val); }
+void BytecodeEmitter::EmitAssignImm2(LocalVar dest, int16_t val) { EmitAll(Bytecode::AssignImm2, dest, val); }
 
-void BytecodeEmitter::EmitAssignImm4(LocalVar dest, i32 val) { EmitAll(Bytecode::AssignImm4, dest, val); }
+void BytecodeEmitter::EmitAssignImm4(LocalVar dest, int32_t val) { EmitAll(Bytecode::AssignImm4, dest, val); }
 
-void BytecodeEmitter::EmitAssignImm4F(LocalVar dest, f32 val) { EmitAll(Bytecode::AssignImm4F, dest, val); }
+void BytecodeEmitter::EmitAssignImm4F(LocalVar dest, float val) { EmitAll(Bytecode::AssignImm4F, dest, val); }
 
-void BytecodeEmitter::EmitAssignImm8F(LocalVar dest, f64 val) { EmitAll(Bytecode::AssignImm8F, dest, val); }
+void BytecodeEmitter::EmitAssignImm8F(LocalVar dest, double val) { EmitAll(Bytecode::AssignImm8F, dest, val); }
 
-void BytecodeEmitter::EmitAssignImm8(LocalVar dest, i64 val) { EmitAll(Bytecode::AssignImm8, dest, val); }
+void BytecodeEmitter::EmitAssignImm8(LocalVar dest, int64_t val) { EmitAll(Bytecode::AssignImm8, dest, val); }
 
 void BytecodeEmitter::EmitUnaryOp(Bytecode bytecode, LocalVar dest, LocalVar input) { EmitAll(bytecode, dest, input); }
 
@@ -41,18 +43,20 @@ void BytecodeEmitter::EmitBinaryOp(Bytecode bytecode, LocalVar dest, LocalVar lh
   EmitAll(bytecode, dest, lhs, rhs);
 }
 
-void BytecodeEmitter::EmitLea(LocalVar dest, LocalVar src, u32 offset) { EmitAll(Bytecode::Lea, dest, src, offset); }
+void BytecodeEmitter::EmitLea(LocalVar dest, LocalVar src, uint32_t offset) {
+  EmitAll(Bytecode::Lea, dest, src, offset);
+}
 
-void BytecodeEmitter::EmitLeaScaled(LocalVar dest, LocalVar src, LocalVar index, u32 scale, u32 offset) {
+void BytecodeEmitter::EmitLeaScaled(LocalVar dest, LocalVar src, LocalVar index, uint32_t scale, uint32_t offset) {
   EmitAll(Bytecode::LeaScaled, dest, src, index, scale, offset);
 }
 
 void BytecodeEmitter::EmitCall(FunctionId func_id, const std::vector<LocalVar> &params) {
   TERRIER_ASSERT(Bytecodes::GetNthOperandSize(Bytecode::Call, 1) == OperandSize::Short,
                  "Expected argument count to be 2-byte short");
-  TERRIER_ASSERT(params.size() < std::numeric_limits<u16>::max(), "Too many parameters!");
+  TERRIER_ASSERT(params.size() < std::numeric_limits<uint16_t>::max(), "Too many parameters!");
 
-  EmitAll(Bytecode::Call, static_cast<u16>(func_id), static_cast<u16>(params.size()));
+  EmitAll(Bytecode::Call, static_cast<uint16_t>(func_id), static_cast<uint16_t>(params.size()));
   for (LocalVar local : params) {
     EmitImpl(local);
   }
@@ -71,11 +75,11 @@ void BytecodeEmitter::Bind(BytecodeLabel *label) {
     auto &jump_locations = label->referrer_offsets();
 
     for (const auto &jump_location : jump_locations) {
-      TERRIER_ASSERT((curr_offset - jump_location) < std::numeric_limits<i32>::max(),
+      TERRIER_ASSERT((curr_offset - jump_location) < std::numeric_limits<int32_t>::max(),
                      "Jump delta exceeds 32-bit value for jump offsets!");
 
-      auto delta = static_cast<i32>(curr_offset - jump_location);
-      auto *raw_delta = reinterpret_cast<u8 *>(&delta);
+      auto delta = static_cast<int32_t>(curr_offset - jump_location);
+      auto *raw_delta = reinterpret_cast<uint8_t *>(&delta);
       bytecode_->at(jump_location) = raw_delta[0];
       bytecode_->at(jump_location + 1) = raw_delta[1];
       bytecode_->at(jump_location + 2) = raw_delta[2];
@@ -87,7 +91,7 @@ void BytecodeEmitter::Bind(BytecodeLabel *label) {
 }
 
 void BytecodeEmitter::EmitJump(BytecodeLabel *label) {
-  static const i32 kJumpPlaceholder = std::numeric_limits<i32>::max() - 1;
+  static const int32_t kJumpPlaceholder = std::numeric_limits<int32_t>::max() - 1;
 
   std::size_t curr_offset = position();
 
@@ -97,10 +101,10 @@ void BytecodeEmitter::EmitJump(BytecodeLabel *label) {
     TERRIER_ASSERT(label->offset() <= curr_offset,
                    "Label for backwards jump cannot be beyond current bytecode position");
     std::size_t delta = curr_offset - label->offset();
-    TERRIER_ASSERT(delta < std::numeric_limits<i32>::max(), "Jump delta exceeds 32-bit value for jump offsets!");
+    TERRIER_ASSERT(delta < std::numeric_limits<int32_t>::max(), "Jump delta exceeds 32-bit value for jump offsets!");
 
     // Immediately emit the delta
-    EmitScalarValue(-static_cast<i32>(delta));
+    EmitScalarValue(-static_cast<int32_t>(delta));
   } else {
     // The label is not bound yet so this must be a forward jump. We set the
     // reference position in the label and use a placeholder offset in the
@@ -250,24 +254,26 @@ void BytecodeEmitter::EmitThreadStateContainerReset(LocalVar tls, LocalVar state
   EmitAll(Bytecode::ThreadStateContainerReset, tls, state_size, init_fn, destroy_fn, ctx);
 }
 
-void BytecodeEmitter::EmitTableIterInit(Bytecode bytecode, LocalVar iter, u32 table_oid, LocalVar exec_ctx,
+void BytecodeEmitter::EmitTableIterInit(Bytecode bytecode, LocalVar iter, LocalVar exec_ctx, uint32_t table_oid,
                                         LocalVar col_oids, uint32_t num_oids) {
-  EmitAll(bytecode, iter, table_oid, exec_ctx, col_oids, num_oids);
+  EmitAll(bytecode, iter, exec_ctx, table_oid, col_oids, num_oids);
 }
 
-void BytecodeEmitter::EmitAddCol(Bytecode bytecode, LocalVar iter, u32 col_oid) { EmitAll(bytecode, iter, col_oid); }
+void BytecodeEmitter::EmitAddCol(Bytecode bytecode, LocalVar iter, uint32_t col_oid) {
+  EmitAll(bytecode, iter, col_oid);
+}
 
-void BytecodeEmitter::EmitParallelTableScan(u32 db_oid, u32 table_oid, LocalVar ctx, LocalVar thread_states,
+void BytecodeEmitter::EmitParallelTableScan(uint32_t db_oid, uint32_t table_oid, LocalVar ctx, LocalVar thread_states,
                                             FunctionId scan_fn) {
   EmitAll(Bytecode::ParallelScanTable, db_oid, table_oid, ctx, thread_states, scan_fn);
 }
 
-void BytecodeEmitter::EmitPCIGet(Bytecode bytecode, LocalVar out, LocalVar pci, u16 col_idx) {
+void BytecodeEmitter::EmitPCIGet(Bytecode bytecode, LocalVar out, LocalVar pci, uint16_t col_idx) {
   EmitAll(bytecode, out, pci, col_idx);
 }
 
-void BytecodeEmitter::EmitPCIVectorFilter(Bytecode bytecode, LocalVar selected, LocalVar pci, u32 col_idx, i8 type,
-                                          i64 val) {
+void BytecodeEmitter::EmitPCIVectorFilter(Bytecode bytecode, LocalVar selected, LocalVar pci, uint32_t col_idx,
+                                          int8_t type, int64_t val) {
   EmitAll(bytecode, selected, pci, col_idx, type, val);
 }
 
@@ -316,22 +322,22 @@ void BytecodeEmitter::EmitOutputSetNull(Bytecode bytecode, LocalVar exec_ctx, Lo
   EmitAll(bytecode, exec_ctx, idx);
 }
 
-void BytecodeEmitter::EmitIndexIteratorInit(Bytecode bytecode, LocalVar iter, uint32_t table_oid, uint32_t index_oid,
-                                            LocalVar exec_ctx, LocalVar col_oids, uint32_t num_oids) {
-  EmitAll(bytecode, iter, table_oid, index_oid, exec_ctx, col_oids, num_oids);
+void BytecodeEmitter::EmitIndexIteratorInit(Bytecode bytecode, LocalVar iter, LocalVar exec_ctx, uint32_t table_oid,
+                                            uint32_t index_oid, LocalVar col_oids, uint32_t num_oids) {
+  EmitAll(bytecode, iter, exec_ctx, table_oid, index_oid, col_oids, num_oids);
 }
 
 void BytecodeEmitter::EmitIndexIteratorFree(Bytecode bytecode, LocalVar iter) { EmitAll(bytecode, iter); }
 
-void BytecodeEmitter::EmitIndexIteratorGet(Bytecode bytecode, LocalVar out, LocalVar iter, u16 col_idx) {
+void BytecodeEmitter::EmitIndexIteratorGet(Bytecode bytecode, LocalVar out, LocalVar iter, uint16_t col_idx) {
   EmitAll(bytecode, out, iter, col_idx);
 }
 
-void BytecodeEmitter::EmitIndexIteratorSetKey(Bytecode bytecode, LocalVar iter, u16 col_idx, LocalVar val) {
+void BytecodeEmitter::EmitIndexIteratorSetKey(Bytecode bytecode, LocalVar iter, uint16_t col_idx, LocalVar val) {
   EmitAll(bytecode, iter, col_idx, val);
 }
 
-void BytecodeEmitter::EmitInitString(Bytecode bytecode, LocalVar out, u64 length, uintptr_t data) {
+void BytecodeEmitter::EmitInitString(Bytecode bytecode, LocalVar out, uint64_t length, uintptr_t data) {
   EmitAll(bytecode, out, length, data);
 }
 

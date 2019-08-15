@@ -141,7 +141,7 @@ TEST_F(StringFunctionsTests, SplitPart) {
     llvm::SmallVector<llvm::StringRef, 4> splits;
     s.split(splits, delim);
 
-    for (u32 i = 0; i < splits.size(); i++) {
+    for (uint32_t i = 0; i < splits.size(); i++) {
       StringFunctions::SplitPart(ctx(), &result, x, StringVal(delim), Integer(i + 1));
       auto split = splits[i].str();
       EXPECT_TRUE(StringVal(split.c_str()) == result);

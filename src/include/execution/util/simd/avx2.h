@@ -2,12 +2,12 @@
 
 #include <immintrin.h>
 
-#include "execution/util/common.h"
-#include "execution/util/macros.h"
+#include "common/macros.h"
+#include "execution/util/execution_common.h"
 #include "execution/util/simd/types.h"
 
 #ifndef SIMD_TOP_LEVEL
-#error "Don't include <util/simd/avx2.h> directly; instead, include <util/simd.h>"
+#error "Don't include 'execution/util/simd/avx2.h' directly; instead, include 'execution/util/simd.h'"
 #endif
 
 namespace terrier::execution::util::simd {
@@ -76,7 +76,7 @@ class Vec4 : public Vec256b {
    * Create a vector with 4 copies of val.
    * @param val initial value for entire vector
    */
-  explicit Vec4(i64 val) { reg_ = _mm256_set1_epi64x(val); }
+  explicit Vec4(int64_t val) { reg_ = _mm256_set1_epi64x(val); }
   /**
    * Create a vector whose contents are the 256-bit register reg.
    * @param reg initial contents of the vector
@@ -85,19 +85,47 @@ class Vec4 : public Vec256b {
   /**
    * Create a vector containing the 4 integers in order MSB [val4, val3, val2, val1] LSB.
    */
-  Vec4(i64 val1, i64 val2, i64 val3, i64 val4) { reg_ = _mm256_setr_epi64x(val1, val2, val3, val4); }
+  Vec4(int64_t val1, int64_t val2, int64_t val3, int64_t val4) { reg_ = _mm256_setr_epi64x(val1, val2, val3, val4); }
 
   /**
    * @return number of elements that can be stored in this vector
    */
-  static constexpr u32 Size() { return 4; }
+  static constexpr uint32_t Size() { return 4; }
 
   /**
-   * Load four 64-bit values stored contiguously from the unaligned input pointer. The underlying data type of the
-   * array ptr can be either 32-bit or 64-bit integers. Up-casting is performed when appropriate.
+   * Load and sign-extend four 32-bit values from the input array
    */
-  template <typename T>
-  Vec4 &Load(const T *ptr);
+  Vec4 &Load(const int32_t *ptr);
+
+  /**
+   * Load and sign-extend four 32-bit values from the input array
+   */
+  Vec4 &Load(const uint32_t *ptr) { return Load(reinterpret_cast<const int32_t *>(ptr)); }
+
+  /**
+   * Load four 64-bit values from the input array
+   */
+  Vec4 &Load(const int64_t *ptr);
+
+  /**
+   * Load four 64-bit values from the input array
+   */
+  Vec4 &Load(const uint64_t *ptr) { return Load(reinterpret_cast<const int64_t *>(ptr)); }
+
+#ifdef __APPLE__
+  // NOLINTNEXTLINE (runtime/int)
+  static_assert(sizeof(long) == sizeof(int64_t), "On MacOS, long isn't 64-bits!");
+
+  /**
+   * Load four 64-bit values from the input array
+   */
+  Vec4 &Load(const long *ptr) { return Load(reinterpret_cast<const int64_t *>(ptr)); }  // NOLINT (runtime/int)
+
+  /**
+   * Load four 64-bit values from the input array
+   */
+  Vec4 &Load(const unsigned long *ptr) { return Load(reinterpret_cast<const int64_t *>(ptr)); }  // NOLINT (runtime/int)
+#endif
 
   /**
    * Gather non-contiguous elements from the input array ptr stored at index positions from pos.
@@ -106,28 +134,47 @@ class Vec4 : public Vec256b {
   Vec4 &Gather(const T *ptr, const Vec4 &pos);
 
   /**
-   * Truncates our four 64-bit elements into 32-bit elements and stores them into arr.
+   * Truncates the four 64-bit elements into 32-bit elements and stores them
+   * into the output array.
    */
-  void Store(i32 *arr) const;
-  /**
-   * Stores our four 64-bit elements into arr.
-   */
-  void Store(i64 *arr) const;
+  void Store(int32_t *arr) const;
 
   /**
-   * Store the contents of this vector contiguously into the input array ptr
+   * Truncates the four 64-bit elements into 32-bit elements and stores them
+   * into the output array.
    */
-  template <typename T>
-  typename std::enable_if_t<std::conjunction_v<std::is_integral<T>, std::is_unsigned<T>>> Store(T *arr) const {
-    using SignedType = std::make_signed_t<T>;
-    Store(reinterpret_cast<SignedType *>(arr));
-  }
+  void Store(uint32_t *arr) const { Store(reinterpret_cast<int32_t *>(arr)); }
+
+  /**
+   * Stores the four 64-bit elements in this vector into the output array.
+   */
+  void Store(int64_t *arr) const;
+
+  /**
+   * Stores the four 64-bit elements in this vector into the output array.
+   */
+  void Store(uint64_t *arr) const { Store(reinterpret_cast<int64_t *>(arr)); }
+
+#ifdef __APPLE__
+  // NOLINTNEXTLINE (runtime/int)
+  static_assert(sizeof(long) == sizeof(int64_t), "On MacOS, long isn't 64-bits!");
+
+  /**
+   * Stores the four 64-bit elements in this vector into the output array.
+   */
+  void Store(long *arr) const { Store(reinterpret_cast<int64_t *>(arr)); }  // NOLINT (runtime/int)
+
+  /**
+   * Stores the four 64-bit elements in this vector into the output array.
+   */
+  void Store(unsigned long *arr) const { Store(reinterpret_cast<int64_t *>(arr)); }  // NOLINT (runtime/int)
+#endif
 
   /**
    * Extract the integer at the given index from this vector.
    */
-  i64 Extract(u32 index) const {
-    alignas(32) i64 x[Size()];
+  int64_t Extract(uint32_t index) const {
+    alignas(32) int64_t x[Size()];
     Store(x);
     return x[index & 3];
   }
@@ -135,7 +182,7 @@ class Vec4 : public Vec256b {
   /**
    * Extract the integer at the given index from this vector.
    */
-  i64 operator[](u32 index) const { return Extract(index); }
+  int64_t operator[](uint32_t index) const { return Extract(index); }
 };
 
 // ---------------------------------------------------------
@@ -143,20 +190,9 @@ class Vec4 : public Vec256b {
 // ---------------------------------------------------------
 
 /**
- * Load four 64-bit values stored contiguously from the unaligned input pointer. The underlying data type of the
- * array ptr can be either 32-bit or 64-bit integers. Up-casting is performed when appropriate.
- */
-template <typename T>
-ALWAYS_INLINE inline Vec4 &Vec4::Load(const T *ptr) {
-  using signed_t = std::make_signed_t<T>;
-  return Load<signed_t>(reinterpret_cast<const signed_t *>(ptr));
-}
-
-/**
  * Loads 128 bits from ptr as four 32-bit integers, each 32-bit integer is then sign extended to be 64-bit.
  */
-template <>
-ALWAYS_INLINE inline Vec4 &Vec4::Load<i32>(const i32 *ptr) {
+ALWAYS_INLINE inline Vec4 &Vec4::Load(const int32_t *ptr) {
   auto tmp = _mm_loadu_si128(reinterpret_cast<const __m128i *>(ptr));
   reg_ = _mm256_cvtepi32_epi64(tmp);
   return *this;
@@ -165,8 +201,7 @@ ALWAYS_INLINE inline Vec4 &Vec4::Load<i32>(const i32 *ptr) {
 /**
  * Loads 256 bits from ptr as four 64-bit integers.
  */
-template <>
-ALWAYS_INLINE inline Vec4 &Vec4::Load<i64>(const i64 *ptr) {
+ALWAYS_INLINE inline Vec4 &Vec4::Load(const int64_t *ptr) {
   // Load aligned and unaligned have almost no performance difference on AVX2
   // machines. To alleviate some pain from clients having to know this info
   // we always use an unaligned load.
@@ -187,11 +222,11 @@ ALWAYS_INLINE inline Vec4 &Vec4::Gather(const T *ptr, const Vec4 &pos) {
  * Gathers four 64-bit integers into our vector, sign extending as necessary.
  */
 template <>
-ALWAYS_INLINE inline Vec4 &Vec4::Gather<i64>(const i64 *ptr, const Vec4 &pos) {
+ALWAYS_INLINE inline Vec4 &Vec4::Gather<int64_t>(const int64_t *ptr, const Vec4 &pos) {
 #if USE_GATHER == 1
-  reg_ = _mm256_i64gather_epi64(ptr, pos, 8);
+  reg_ = _mm256_int64_tgather_epi64(ptr, pos, 8);
 #else
-  alignas(32) i64 x[Size()];
+  alignas(32) int64_t x[Size()];
   pos.Store(x);
   reg_ = _mm256_setr_epi64x(ptr[x[0]], ptr[x[1]], ptr[x[2]], ptr[x[3]]);
 #endif
@@ -201,14 +236,14 @@ ALWAYS_INLINE inline Vec4 &Vec4::Gather<i64>(const i64 *ptr, const Vec4 &pos) {
 /**
  * Truncate the four 64-bit values in this vector and store them into the first four elements of the provided array.
  */
-ALWAYS_INLINE inline void Vec4::Store(i32 *arr) const {
+ALWAYS_INLINE inline void Vec4::Store(int32_t *arr) const {
   auto truncated = _mm256_cvtepi64_epi32(reg());
   _mm_store_si128(reinterpret_cast<__m128i *>(arr), truncated);
 }
 
-ALWAYS_INLINE inline void Vec4::Store(i64 *arr) const { Vec256b::Store(reinterpret_cast<void *>(arr)); }
+ALWAYS_INLINE inline void Vec4::Store(int64_t *arr) const { Vec256b::Store(reinterpret_cast<void *>(arr)); }
 
-// ---------------------------------------------------------
+// ------------------gre---------------------------------------
 // Vec8 Definition
 // ---------------------------------------------------------
 
@@ -222,7 +257,7 @@ class Vec8 : public Vec256b {
    * Create a vector with 8 copies of val.
    * @param val initial value for entire vector
    */
-  explicit Vec8(i32 val) { reg_ = _mm256_set1_epi32(val); }
+  explicit Vec8(int32_t val) { reg_ = _mm256_set1_epi32(val); }
   /**
    * Create a vector whose contents are the 256-bit register reg.
    * @param reg initial contents of the vector
@@ -231,16 +266,43 @@ class Vec8 : public Vec256b {
   /**
    * Create a vector containing the 8 integers in order MSB [val8, val7, ..., val1] LSB.
    */
-  Vec8(i32 val1, i32 val2, i32 val3, i32 val4, i32 val5, i32 val6, i32 val7, i32 val8) {
+  Vec8(int32_t val1, int32_t val2, int32_t val3, int32_t val4, int32_t val5, int32_t val6, int32_t val7, int32_t val8) {
     reg_ = _mm256_setr_epi32(val1, val2, val3, val4, val5, val6, val7, val8);
   }
 
   /**
-   * Load eight 32-bit values stored contiguously from the input pointer ptr. The underlying data type of the array
-   * ptr can be either 8-bit, 16-bit, or 32-bit integers. Up-casting is performed when appropriate.
+   * Load and sign-extend 8 8-bit values stored contiguously from the input
+   * pointer array.
    */
-  template <typename T>
-  Vec8 &Load(const T *ptr);
+  Vec8 &Load(const int8_t *ptr);
+
+  /**
+   * Load and sign-extend 8 8-bit values stored contiguously from the input
+   * pointer array.
+   */
+  Vec8 &Load(const uint8_t *ptr) { return Load(reinterpret_cast<const int8_t *>(ptr)); }
+
+  /**
+   * Load and sign-extend 8 16-bit values stored contiguously from the input
+   * pointer array.
+   */
+  Vec8 &Load(const int16_t *ptr);
+
+  /**
+   * Load and sign-extend 8 16-bit values stored contiguously from the input
+   * pointer array.
+   */
+  Vec8 &Load(const uint16_t *ptr) { return Load(reinterpret_cast<const int16_t *>(ptr)); }
+
+  /**
+   * Load 8 32-bit values stored contiguously from the input pointer array.
+   */
+  Vec8 &Load(const int32_t *ptr);
+
+  /**
+   * Load 8 32-bit values stored contiguously from the input pointer array.
+   */
+  Vec8 &Load(const uint32_t *ptr) { return Load(reinterpret_cast<const int32_t *>(ptr)); }
 
   /**
    * Gather non-contiguous elements from the input array ptr stored at index positions from pos.
@@ -254,28 +316,24 @@ class Vec8 : public Vec256b {
   /**
    * Stores our eight 32-bit values into arr.
    */
-  void Store(i32 *arr) const;
+  void Store(int32_t *arr) const;
 
   /**
-   * Store the contents of this vector contiguously into the input array ptr.
+   * Stores our eight 32-bit values into arr.
    */
-  template <typename T>
-  typename std::enable_if_t<std::conjunction_v<std::is_integral<T>, std::is_unsigned<T>>> Store(T *arr) const {
-    using SignedType = std::make_signed_t<T>;
-    Store(reinterpret_cast<SignedType *>(arr));
-  }
+  void Store(uint32_t *arr) const { Store(reinterpret_cast<int32_t *>(arr)); }
 
   /**
    * @return number of elements that can be stored in this vector
    */
-  static constexpr u32 Size() { return 8; }
+  static constexpr uint32_t Size() { return 8; }
 
   /**
    * @return the element at the given index
    */
-  ALWAYS_INLINE i32 Extract(u32 index) const {
+  ALWAYS_INLINE int32_t Extract(uint32_t index) const {
     TERRIER_ASSERT(index < 8, "Out-of-bounds mask element access");
-    alignas(32) i32 x[Size()];
+    alignas(32) int32_t x[Size()];
     Store(x);
     return x[index & 7];
   }
@@ -283,7 +341,7 @@ class Vec8 : public Vec256b {
   /**
    * @return the element at the given index
    */
-  ALWAYS_INLINE i32 operator[](u32 index) const { return Extract(index); }
+  ALWAYS_INLINE int32_t operator[](uint32_t index) const { return Extract(index); }
 };
 
 // ---------------------------------------------------------
@@ -294,18 +352,11 @@ class Vec8 : public Vec256b {
 // equal to 32-bits. Eight elements are always read from the input array, but
 // are up-casted to 32-bits when appropriate.
 
-template <typename T>
-ALWAYS_INLINE inline Vec8 &Vec8::Load(const T *ptr) {
-  using signed_t = std::make_signed_t<T>;
-  return Load<signed_t>(reinterpret_cast<const signed_t *>(ptr));
-}
-
 /**
  * Loads 128 bits from ptr as eight 8-bit integers, each 8-bit integer is then sign extended to be 32-bit.
  * Not a typo: it loads 128 bits.
  */
-template <>
-ALWAYS_INLINE inline Vec8 &Vec8::Load<i8>(const i8 *ptr) {
+ALWAYS_INLINE inline Vec8 &Vec8::Load(const int8_t *ptr) {
   auto tmp = _mm_loadu_si128(reinterpret_cast<const __m128i *>(ptr));
   reg_ = _mm256_cvtepi8_epi32(tmp);
   return *this;
@@ -314,8 +365,7 @@ ALWAYS_INLINE inline Vec8 &Vec8::Load<i8>(const i8 *ptr) {
 /**
  * Loads 128 bits from ptr as eight 16-bit integers, each 16-bit integer is then sign extended to be 32-bit.
  */
-template <>
-ALWAYS_INLINE inline Vec8 &Vec8::Load<i16>(const i16 *ptr) {
+ALWAYS_INLINE inline Vec8 &Vec8::Load(const int16_t *ptr) {
   auto tmp = _mm_loadu_si128(reinterpret_cast<const __m128i *>(ptr));
   reg_ = _mm256_cvtepi16_epi32(tmp);
   return *this;
@@ -324,8 +374,7 @@ ALWAYS_INLINE inline Vec8 &Vec8::Load<i16>(const i16 *ptr) {
 /**
  * Loads 256 bits from ptr as eight 32-bit integers.
  */
-template <>
-ALWAYS_INLINE inline Vec8 &Vec8::Load<i32>(const i32 *ptr) {
+ALWAYS_INLINE inline Vec8 &Vec8::Load(const int32_t *ptr) {
   reg_ = _mm256_loadu_si256(reinterpret_cast<const __m256i *>(ptr));
   return *this;
 }
@@ -351,12 +400,12 @@ ALWAYS_INLINE inline Vec8 &Vec8::Gather(const T *ptr, const Vec8 &pos) {
  * Gathers sixteen 8-bit integers into our vector, sign extending as necessary.
  */
 template <>
-ALWAYS_INLINE inline Vec8 &Vec8::Gather<i8>(const i8 *ptr, const Vec8 &pos) {
+ALWAYS_INLINE inline Vec8 &Vec8::Gather<int8_t>(const int8_t *ptr, const Vec8 &pos) {
 #if USE_GATHER == 1
-  reg_ = _mm256_i32gather_epi32(ptr, pos, 1);
+  reg_ = _mm256_int32_tgather_epi32(ptr, pos, 1);
   reg_ = _mm256_srai_epi32(reg_, 24);
 #else
-  alignas(32) i32 x[Size()];
+  alignas(32) int32_t x[Size()];
   pos.Store(x);
   reg_ = _mm256_setr_epi32(ptr[x[0]], ptr[x[1]], ptr[x[2]], ptr[x[3]], ptr[x[4]], ptr[x[5]], ptr[x[6]], ptr[x[7]]);
 #endif
@@ -367,12 +416,12 @@ ALWAYS_INLINE inline Vec8 &Vec8::Gather<i8>(const i8 *ptr, const Vec8 &pos) {
  * Gathers sixteen 8-bit integers into our vector, sign extending as necessary.
  */
 template <>
-ALWAYS_INLINE inline Vec8 &Vec8::Gather<i16>(const i16 *ptr, const Vec8 &pos) {
+ALWAYS_INLINE inline Vec8 &Vec8::Gather<int16_t>(const int16_t *ptr, const Vec8 &pos) {
 #if USE_GATHER == 1
-  reg_ = _mm256_i32gather_epi32(ptr, pos, 2);
+  reg_ = _mm256_int32_tgather_epi32(ptr, pos, 2);
   reg_ = _mm256_srai_epi32(reg_, 16);
 #else
-  alignas(32) i32 x[Size()];
+  alignas(32) int32_t x[Size()];
   pos.Store(x);
   reg_ = _mm256_setr_epi32(ptr[x[0]], ptr[x[1]], ptr[x[2]], ptr[x[3]], ptr[x[4]], ptr[x[5]], ptr[x[6]], ptr[x[7]]);
 #endif
@@ -383,18 +432,18 @@ ALWAYS_INLINE inline Vec8 &Vec8::Gather<i16>(const i16 *ptr, const Vec8 &pos) {
  * Gathers four 8-bit integers into our vector, sign extending as necessary.
  */
 template <>
-ALWAYS_INLINE inline Vec8 &Vec8::Gather<i32>(const i32 *ptr, const Vec8 &pos) {
+ALWAYS_INLINE inline Vec8 &Vec8::Gather<int32_t>(const int32_t *ptr, const Vec8 &pos) {
 #if USE_GATHER == 1
-  reg_ = _mm256_i32gather_epi32(ptr, pos, 4);
+  reg_ = _mm256_int32_tgather_epi32(ptr, pos, 4);
 #else
-  alignas(32) i32 x[Size()];
+  alignas(32) int32_t x[Size()];
   pos.Store(x);
   reg_ = _mm256_setr_epi32(ptr[x[0]], ptr[x[1]], ptr[x[2]], ptr[x[3]], ptr[x[4]], ptr[x[5]], ptr[x[6]], ptr[x[7]]);
 #endif
   return *this;
 }
 
-ALWAYS_INLINE inline void Vec8::Store(i32 *arr) const { Vec256b::Store(reinterpret_cast<void *>(arr)); }
+ALWAYS_INLINE inline void Vec8::Store(int32_t *arr) const { Vec256b::Store(reinterpret_cast<void *>(arr)); }
 
 // --------------------------------------------------------
 // Vec8Mask Definition
@@ -415,19 +464,19 @@ class Vec8Mask : public Vec8 {
   /**
    * Extract the value of the bit at index idx in this mask.
    */
-  bool Extract(u32 idx) const { return Vec8::Extract(idx) != 0; }
+  bool Extract(uint32_t idx) const { return Vec8::Extract(idx) != 0; }
 
   /**
    * Extract the value of the bit at index idx in this mask.
    */
-  bool operator[](u32 idx) const { return Extract(idx); }
+  bool operator[](uint32_t idx) const { return Extract(idx); }
   /**
    * Updates positions to contiguously contain mask's set positions, with a fixed offset added to every element.
    * @param[out] positions will contain all the set positions in the mask with offset added
    * @param offset fixed amount that will be added to every position
    * @return number of set bits in the mask
    */
-  u32 ToPositions(u32 *positions, u32 offset) const;
+  uint32_t ToPositions(uint32_t *positions, uint32_t offset) const;
 
   /**
    * Updates positions to contiguously contain the masked out positions in pos.
@@ -435,15 +484,15 @@ class Vec8Mask : public Vec8 {
    * @param pos positions to be masked against
    * @return number of set bits in the mask
    */
-  u32 ToPositions(u32 *positions, const Vec8 &pos) const;
+  uint32_t ToPositions(uint32_t *positions, const Vec8 &pos) const;
 };
 
 // ---------------------------------------------------------
 // Vec8Mask Implementation
 // ---------------------------------------------------------
 
-ALWAYS_INLINE inline u32 Vec8Mask::ToPositions(u32 *positions, u32 offset) const {
-  i32 mask = _mm256_movemask_ps(_mm256_castsi256_ps(reg()));
+ALWAYS_INLINE inline uint32_t Vec8Mask::ToPositions(uint32_t *positions, uint32_t offset) const {
+  int32_t mask = _mm256_movemask_ps(_mm256_castsi256_ps(reg()));
   TERRIER_ASSERT(mask < 256, "8-bit mask must be less than 256");
   __m128i match_pos_scaled = _mm_loadl_epi64(reinterpret_cast<const __m128i *>(&k8BitMatchLUT[mask]));
   __m256i match_pos = _mm256_cvtepi8_epi32(match_pos_scaled);
@@ -452,14 +501,14 @@ ALWAYS_INLINE inline u32 Vec8Mask::ToPositions(u32 *positions, u32 offset) const
   return __builtin_popcount(mask);
 }
 
-ALWAYS_INLINE inline u32 Vec8Mask::ToPositions(u32 *positions, const execution::util::simd::Vec8 &pos) const {
-  i32 mask = _mm256_movemask_ps(_mm256_castsi256_ps(reg()));
+ALWAYS_INLINE inline uint32_t Vec8Mask::ToPositions(uint32_t *positions, const execution::util::simd::Vec8 &pos) const {
+  int32_t mask = _mm256_movemask_ps(_mm256_castsi256_ps(reg()));
   TERRIER_ASSERT(mask < 256, "8-bit mask must be less than 256");
   __m128i perm_comp = _mm_loadl_epi64(reinterpret_cast<const __m128i *>(&k8BitMatchLUT[mask]));
   __m256i perm = _mm256_cvtepi8_epi32(perm_comp);
   __m256i perm_pos = _mm256_permutevar8x32_epi32(pos, perm);
   __m256i perm_mask = _mm256_permutevar8x32_epi32(reg(), perm);
-  _mm256_maskstore_epi32(reinterpret_cast<i32 *>(positions), perm_mask, perm_pos);
+  _mm256_maskstore_epi32(reinterpret_cast<int32_t *>(positions), perm_mask, perm_pos);
   return __builtin_popcount(mask);
 }
 
@@ -478,12 +527,12 @@ class Vec4Mask : public Vec4 {
   /**
    * @return true if mask is set at the given index, false otherwise
    */
-  i32 Extract(u32 index) const { return static_cast<i32>(Vec4::Extract(index) != 0); }
+  int32_t Extract(uint32_t index) const { return static_cast<int32_t>(Vec4::Extract(index) != 0); }
 
   /**
    * @return true if mask is set at the given index, false otherwise
    */
-  i32 operator[](u32 index) const { return Extract(index); }
+  int32_t operator[](uint32_t index) const { return Extract(index); }
 
   /**
    * Updates positions to contiguously contain mask's set positions, with a fixed offset added to every element.
@@ -491,10 +540,11 @@ class Vec4Mask : public Vec4 {
    * @param offset fixed amount that will be added to every position
    * @return number of set bits in the mask
    */
-  ALWAYS_INLINE inline u32 ToPositions(u32 *positions, u32 offset) const {
-    i32 mask = _mm256_movemask_pd(_mm256_castsi256_pd(reg()));
+  ALWAYS_INLINE inline uint32_t ToPositions(uint32_t *positions, uint32_t offset) const {
+    int32_t mask = _mm256_movemask_pd(_mm256_castsi256_pd(reg()));
     TERRIER_ASSERT(mask < 16, "4-bit mask must be less than 16");
-    __m128i match_pos_scaled = _mm_loadl_epi64(reinterpret_cast<__m128i *>(const_cast<u64 *>(&k4BitMatchLUT[mask])));
+    __m128i match_pos_scaled =
+        _mm_loadl_epi64(reinterpret_cast<__m128i *>(const_cast<uint64_t *>(&k4BitMatchLUT[mask])));
     __m128i match_pos = _mm_cvtepi16_epi32(match_pos_scaled);
     __m128i pos_vec = _mm_add_epi32(_mm_set1_epi32(offset), match_pos);
     _mm_storeu_si128(reinterpret_cast<__m128i *>(positions), pos_vec);
@@ -507,19 +557,19 @@ class Vec4Mask : public Vec4 {
    * @param pos positions to be masked against
    * @return number of set bits in the mask
    */
-  ALWAYS_INLINE inline u32 ToPositions(u32 *positions, const Vec4 &pos) const {
-    i32 mask = _mm256_movemask_pd(_mm256_castsi256_pd(reg()));
+  ALWAYS_INLINE inline uint32_t ToPositions(uint32_t *positions, const Vec4 &pos) const {
+    int32_t mask = _mm256_movemask_pd(_mm256_castsi256_pd(reg()));
     TERRIER_ASSERT(mask < 16, "4-bit mask must be less than 16");
 
     // TODO(pmenon): Fix this slowness!
     {
-      alignas(32) i64 m_arr[Size()];
-      alignas(32) i64 p_arr[Size()];
+      alignas(32) int64_t m_arr[Size()];
+      alignas(32) int64_t p_arr[Size()];
       Store(m_arr);
       pos.Store(p_arr);
-      for (u32 idx = 0, i = 0; i < 4; i++) {
-        positions[idx] = static_cast<u32>(p_arr[i]);
-        idx += static_cast<u32>(m_arr[i] != 0);
+      for (uint32_t idx = 0, i = 0; i < 4; i++) {
+        positions[idx] = static_cast<uint32_t>(p_arr[i]);
+        idx += static_cast<uint32_t>(m_arr[i] != 0);
       }
     }
 
@@ -616,18 +666,18 @@ ALWAYS_INLINE inline Vec4 &operator^=(Vec4 &a, const Vec4 &b) {
   return a;
 }
 
-ALWAYS_INLINE inline Vec4 operator>>(const Vec4 &a, const u32 shift) { return Vec4(_mm256_srli_epi64(a, shift)); }
+ALWAYS_INLINE inline Vec4 operator>>(const Vec4 &a, const uint32_t shift) { return Vec4(_mm256_srli_epi64(a, shift)); }
 
 // NOLINTNEXTLINE
-ALWAYS_INLINE inline Vec4 &operator>>=(Vec4 &a, const u32 shift) {
+ALWAYS_INLINE inline Vec4 &operator>>=(Vec4 &a, const uint32_t shift) {
   a = a >> shift;
   return a;
 }
 
-ALWAYS_INLINE inline Vec4 operator<<(const Vec4 &a, const u32 shift) { return Vec4(_mm256_slli_epi64(a, shift)); }
+ALWAYS_INLINE inline Vec4 operator<<(const Vec4 &a, const uint32_t shift) { return Vec4(_mm256_slli_epi64(a, shift)); }
 
 // NOLINTNEXTLINE
-ALWAYS_INLINE inline Vec4 &operator<<=(Vec4 &a, const u32 shift) {
+ALWAYS_INLINE inline Vec4 &operator<<=(Vec4 &a, const uint32_t shift) {
   a = a << shift;
   return a;
 }
@@ -719,18 +769,18 @@ ALWAYS_INLINE inline Vec8 &operator^=(Vec8 &a, const Vec8 &b) {
   return a;
 }
 
-ALWAYS_INLINE inline Vec8 operator>>(const Vec8 &a, const u32 shift) { return Vec8(_mm256_srli_epi32(a, shift)); }
+ALWAYS_INLINE inline Vec8 operator>>(const Vec8 &a, const uint32_t shift) { return Vec8(_mm256_srli_epi32(a, shift)); }
 
 // NOLINTNEXTLINE
-ALWAYS_INLINE inline Vec8 &operator>>=(Vec8 &a, const u32 shift) {
+ALWAYS_INLINE inline Vec8 &operator>>=(Vec8 &a, const uint32_t shift) {
   a = a >> shift;
   return a;
 }
 
-ALWAYS_INLINE inline Vec8 operator<<(const Vec8 &a, const u32 shift) { return Vec8(_mm256_slli_epi32(a, shift)); }
+ALWAYS_INLINE inline Vec8 operator<<(const Vec8 &a, const uint32_t shift) { return Vec8(_mm256_slli_epi32(a, shift)); }
 
 // NOLINTNEXTLINE
-ALWAYS_INLINE inline Vec8 &operator<<=(Vec8 &a, const u32 shift) {
+ALWAYS_INLINE inline Vec8 &operator<<=(Vec8 &a, const uint32_t shift) {
   a = a << shift;
   return a;
 }
@@ -762,10 +812,10 @@ template <typename T, typename Enable = void>
 struct FilterVecSizer;
 
 /**
- * i8 Filter
+ * int8_t Filter
  */
 template <>
-struct FilterVecSizer<i8> {
+struct FilterVecSizer<int8_t> {
   /**
    * Eight 32-bit integer values.
    */
@@ -777,10 +827,10 @@ struct FilterVecSizer<i8> {
 };
 
 /**
- * i16 Filter
+ * int16_t Filter
  */
 template <>
-struct FilterVecSizer<i16> {
+struct FilterVecSizer<int16_t> {
   /**
    * Eight 32-bit integer values.
    */
@@ -792,10 +842,10 @@ struct FilterVecSizer<i16> {
 };
 
 /**
- * i32 Filter
+ * int32_t Filter
  */
 template <>
-struct FilterVecSizer<i32> {
+struct FilterVecSizer<int32_t> {
   /**
    * Eight 32-bit integer values.
    */
@@ -807,10 +857,10 @@ struct FilterVecSizer<i32> {
 };
 
 /**
- * i64 Filter
+ * int64_t Filter
  */
 template <>
-struct FilterVecSizer<i64> {
+struct FilterVecSizer<int64_t> {
   /**
    * Four 64-bit integer values.
    */
@@ -845,8 +895,8 @@ template <typename T>
 struct FilterVecSizer<T, std::enable_if_t<std::is_unsigned_v<T>>> : public FilterVecSizer<std::make_signed_t<T>> {};
 
 template <typename T, template <typename> typename Compare>
-static inline u32 FilterVectorByVal(const T *RESTRICT in, u32 in_count, T val, u32 *RESTRICT out,
-                                    const u32 *RESTRICT sel, u32 *RESTRICT in_pos) {
+static inline uint32_t FilterVectorByVal(const T *RESTRICT in, uint32_t in_count, T val, uint32_t *RESTRICT out,
+                                         const uint32_t *RESTRICT sel, uint32_t *RESTRICT in_pos) {
   using Vec = typename FilterVecSizer<T>::Vec;
   using VecMask = typename FilterVecSizer<T>::VecMask;
 
@@ -854,7 +904,7 @@ static inline u32 FilterVectorByVal(const T *RESTRICT in, u32 in_count, T val, u
 
   const Vec xval(val);
 
-  u32 out_pos = 0;
+  uint32_t out_pos = 0;
 
   if (sel == nullptr) {
     Vec in_vec;
@@ -877,14 +927,16 @@ static inline u32 FilterVectorByVal(const T *RESTRICT in, u32 in_count, T val, u
 }
 
 template <typename T, template <typename> typename Compare>
-static inline u32 FilterVectorByVector(const T *RESTRICT in_1, const T *RESTRICT in_2, const u32 in_count,  // NOLINT
-                                       u32 *RESTRICT out, const u32 *RESTRICT sel, u32 *RESTRICT in_pos) {  // NOLINT
+static inline uint32_t FilterVectorByVector(const T *RESTRICT in_1, const T *RESTRICT in_2,
+                                            const uint32_t in_count,  // NOLINT
+                                            uint32_t *RESTRICT out, const uint32_t *RESTRICT sel,
+                                            uint32_t *RESTRICT in_pos) {  // NOLINT
   using Vec = typename FilterVecSizer<T>::Vec;
   using VecMask = typename FilterVecSizer<T>::VecMask;
 
   const Compare cmp{};
 
-  u32 out_pos = 0;
+  uint32_t out_pos = 0;
 
   if (sel == nullptr) {
     Vec in_1_vec, in_2_vec;

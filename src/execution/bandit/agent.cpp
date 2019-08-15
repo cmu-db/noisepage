@@ -4,7 +4,7 @@
 
 namespace terrier::execution::bandit {
 
-Agent::Agent(Policy *policy, u32 num_actions, double prior, double gamma)
+Agent::Agent(Policy *policy, uint32_t num_actions, double prior, double gamma)
     : policy_(policy), num_actions_(num_actions), prior_(prior), gamma_(gamma) {
   Reset();
 }
@@ -18,8 +18,8 @@ void Agent::Reset() {
   time_step_ = 0;
 }
 
-u32 Agent::NextAction() {
-  u32 action = policy_->NextAction(this);
+uint32_t Agent::NextAction() {
+  uint32_t action = policy_->NextAction(this);
   last_action_ = action;
   return action;
 }
@@ -38,9 +38,9 @@ void Agent::Observe(double reward) {
   time_step_++;
 }
 
-u32 Agent::GetCurrentOptimalAction() const {
+uint32_t Agent::GetCurrentOptimalAction() const {
   auto iter_max = std::max_element(value_estimates_.begin(), value_estimates_.end());
-  return static_cast<u32>(std::distance(value_estimates_.begin(), iter_max));
+  return static_cast<uint32_t>(std::distance(value_estimates_.begin(), iter_max));
 }
 
 }  // namespace terrier::execution::bandit

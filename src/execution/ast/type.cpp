@@ -46,13 +46,13 @@ const char *BuiltinType::kCppNames[] = {
 #undef F
 };
 
-const u64 BuiltinType::kSizes[] = {
+const uint64_t BuiltinType::kSizes[] = {
 #define F(BKind, CppType, ...) sizeof(CppType),
     BUILTIN_TYPE_LIST(F, F, F)
 #undef F
 };
 
-const u64 BuiltinType::kAlignments[] = {
+const uint64_t BuiltinType::kAlignments[] = {
 #define F(Kind, CppType, ...) std::alignment_of_v<CppType>,
     BUILTIN_TYPE_LIST(F, F, F)
 #undef F
@@ -90,8 +90,8 @@ FunctionType::FunctionType(util::RegionVector<Field> &&params, Type *ret)
 // ---------------------------------------------------------
 
 MapType::MapType(Type *key_type, Type *val_type)
-    : Type(key_type->context(), sizeof(std::unordered_map<i32, i32>), alignof(std::unordered_map<i32, i32>),
-           TypeId::MapType),
+    : Type(key_type->context(), sizeof(std::unordered_map<int32_t, int32_t>),
+           alignof(std::unordered_map<int32_t, int32_t>), TypeId::MapType),
       key_type_(key_type),
       val_type_(val_type) {}
 
@@ -99,8 +99,8 @@ MapType::MapType(Type *key_type, Type *val_type)
 // Struct Type
 // ---------------------------------------------------------
 
-StructType::StructType(Context *ctx, u32 size, u32 alignment, util::RegionVector<Field> &&fields,
-                       util::RegionVector<u32> &&field_offsets)
+StructType::StructType(Context *ctx, uint32_t size, uint32_t alignment, util::RegionVector<Field> &&fields,
+                       util::RegionVector<uint32_t> &&field_offsets)
     : Type(ctx, size, alignment, TypeId::StructType),
       fields_(std::move(fields)),
       field_offsets_(std::move(field_offsets)) {}

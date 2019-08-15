@@ -118,7 +118,7 @@ void Sema::VisitCallExpr(ast::CallExpr *node) {
   bool has_errors = false;
 
   const auto &actual_args = node->arguments();
-  for (u32 arg_num = 0; arg_num < actual_args.size(); arg_num++) {
+  for (uint32_t arg_num = 0; arg_num < actual_args.size(); arg_num++) {
     ast::Type *expected_type = func_type->params()[arg_num].type;
     ast::Expr *arg = actual_args[arg_num];
 

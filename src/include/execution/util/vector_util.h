@@ -2,7 +2,7 @@
 
 #include <functional>
 
-#include "execution/util/common.h"
+#include "execution/util/execution_common.h"
 #include "execution/util/simd.h"
 
 namespace terrier::execution::util {
@@ -31,25 +31,29 @@ class VectorUtil {
    * @return The number of elements that pass the filter.
    */
   template <typename T, template <typename> typename Op>
-  static u32 FilterVectorByVal(const T *RESTRICT in, const u32 in_count, const T val, u32 *RESTRICT out,
-                               const u32 *RESTRICT sel) {
+  static uint32_t FilterVectorByVal(const T *RESTRICT in, const uint32_t in_count, const T val, uint32_t *RESTRICT out,
+                                    const uint32_t *RESTRICT sel) {
     // Simple check to make sure the provided filter operation returns bool
     static_assert(std::is_same_v<bool, std::invoke_result_t<Op<T>, T, T>>);
 
-    u32 in_pos = 0;
-    u32 out_pos = simd::FilterVectorByVal<T, Op>(in, in_count, val, out, sel, &in_pos);
+    uint32_t in_pos = 0;
+#if defined(__AVX2__) || defined(__AVX512F__)
+    uint32_t out_pos = simd::FilterVectorByVal<T, Op>(in, in_count, val, out, sel, &in_pos);
+#else
+    uint32_t out_pos = 0;
+#endif
 
     if (sel == nullptr) {
       for (; in_pos < in_count; in_pos++) {
         bool cmp = Op<T>()(in[in_pos], val);
         out[out_pos] = in_pos;
-        out_pos += static_cast<u32>(cmp);
+        out_pos += static_cast<uint32_t>(cmp);
       }
     } else {
       for (; in_pos < in_count; in_pos++) {
         bool cmp = Op<T>()(in[sel[in_pos]], val);
         out[out_pos] = sel[in_pos];
-        out_pos += static_cast<u32>(cmp);
+        out_pos += static_cast<uint32_t>(cmp);
       }
     }
 
@@ -71,25 +75,29 @@ class VectorUtil {
    * @return The number of elements that pass the filter.
    */
   template <typename T, template <typename> typename Op>
-  static u32 FilterVectorByVector(const T *RESTRICT in_1, const T *RESTRICT in_2, const u32 in_count, u32 *RESTRICT out,
-                                  const u32 *RESTRICT sel) {
+  static uint32_t FilterVectorByVector(const T *RESTRICT in_1, const T *RESTRICT in_2, const uint32_t in_count,
+                                       uint32_t *RESTRICT out, const uint32_t *RESTRICT sel) {
     // Simple check to make sure the provided filter operation returns bool
     static_assert(std::is_same_v<bool, std::invoke_result_t<Op<T>, T, T>>);
 
-    u32 in_pos = 0;
-    u32 out_pos = simd::FilterVectorByVector<T, Op>(in_1, in_2, in_count, out, sel, &in_pos);
+    uint32_t in_pos = 0;
+#if defined(__AVX2__) || defined(__AVX512F__)
+    uint32_t out_pos = simd::FilterVectorByVector<T, Op>(in_1, in_2, in_count, out, sel, &in_pos);
+#else
+    uint32_t out_pos = 0;
+#endif
 
     if (sel == nullptr) {
       for (; in_pos < in_count; in_pos++) {
         bool cmp = Op<T>()(in_1[in_pos], in_2[in_pos]);
         out[out_pos] = in_pos;
-        out_pos += static_cast<u32>(cmp);
+        out_pos += static_cast<uint32_t>(cmp);
       }
     } else {
       for (; in_pos < in_count; in_pos++) {
         bool cmp = Op<T>()(in_1[sel[in_pos]], in_2[sel[in_pos]]);
         out[out_pos] = sel[in_pos];
-        out_pos += static_cast<u32>(cmp);
+        out_pos += static_cast<uint32_t>(cmp);
       }
     }
 
@@ -108,7 +116,7 @@ class VectorUtil {
    * @return The number of elements that were gathered.
    */
   template <typename T>
-  static u32 Gather(const u32 n, const T *RESTRICT input, const u32 *RESTRICT indexes, T *RESTRICT out) {
+  static uint32_t Gather(const uint32_t n, const T *RESTRICT input, const uint32_t *RESTRICT indexes, T *RESTRICT out) {
     TERRIER_ASSERT(input != nullptr, "Input cannot be null");
     TERRIER_ASSERT(indexes != nullptr, "Indexes vector cannot be null");
 
@@ -123,15 +131,16 @@ class VectorUtil {
   // Generate specialized vectorized filters
   // -------------------------------------------------------
 
-#define GEN_FILTER(Op, Comparison)                                                                         \
-  template <typename T>                                                                                    \
-  static u32 Filter##Op(const T *RESTRICT in, u32 in_count, T val, u32 *RESTRICT out, u32 *RESTRICT sel) { \
-    return FilterVectorByVal<T, Comparison>(in, in_count, val, out, sel);                                  \
-  }                                                                                                        \
-  template <typename T>                                                                                    \
-  static u32 Filter##Op(const T *RESTRICT in_1, const T *RESTRICT in_2, u32 in_count, u32 *RESTRICT out,   \
-                        u32 *RESTRICT sel) {                                                               \
-    return FilterVectorByVector<T, Comparison>(in_1, in_2, in_count, out, sel);                            \
+#define GEN_FILTER(Op, Comparison)                                                                   \
+  template <typename T>                                                                              \
+  static uint32_t Filter##Op(const T *RESTRICT in, uint32_t in_count, T val, uint32_t *RESTRICT out, \
+                             uint32_t *RESTRICT sel) {                                               \
+    return FilterVectorByVal<T, Comparison>(in, in_count, val, out, sel);                            \
+  }                                                                                                  \
+  template <typename T>                                                                              \
+  static uint32_t Filter##Op(const T *RESTRICT in_1, const T *RESTRICT in_2, uint32_t in_count,      \
+                             uint32_t *RESTRICT out, uint32_t *RESTRICT sel) {                       \
+    return FilterVectorByVector<T, Comparison>(in_1, in_2, in_count, out, sel);                      \
   }
   GEN_FILTER(Eq, std::equal_to)
   GEN_FILTER(Gt, std::greater)
@@ -152,8 +161,8 @@ class VectorUtil {
    * @return The number of null elements in the vector.
    */
   template <typename T>
-  static auto SelectNull(const T *RESTRICT in, const u32 in_count, u32 *RESTRICT out, u32 *RESTRICT sel)
-      -> std::enable_if_t<std::is_pointer_v<T>, u32> {
+  static auto SelectNull(const T *RESTRICT in, const uint32_t in_count, uint32_t *RESTRICT out, uint32_t *RESTRICT sel)
+      -> std::enable_if_t<std::is_pointer_v<T>, uint32_t> {
     return FilterEq(reinterpret_cast<const intptr_t *>(in), in_count, intptr_t(0), out, sel);
   }
 
@@ -168,8 +177,8 @@ class VectorUtil {
    * @return The number of null elements in the vector.
    */
   template <typename T>
-  static auto SelectNotNull(const T *RESTRICT in, const u32 in_count, u32 *RESTRICT out, u32 *RESTRICT sel)
-      -> std::enable_if_t<std::is_pointer_v<T>, u32> {
+  static auto SelectNotNull(const T *RESTRICT in, const uint32_t in_count, uint32_t *RESTRICT out,
+                            uint32_t *RESTRICT sel) -> std::enable_if_t<std::is_pointer_v<T>, uint32_t> {
     return FilterNe(reinterpret_cast<const intptr_t *>(in), in_count, intptr_t(0), out, sel);
   }
 };

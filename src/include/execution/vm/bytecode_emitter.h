@@ -3,7 +3,7 @@
 #include <cstdint>
 #include <vector>
 
-#include "execution/util/common.h"
+#include "execution/util/execution_common.h"
 #include "execution/vm/bytecode_function_info.h"
 #include "execution/vm/bytecodes.h"
 
@@ -21,7 +21,7 @@ class BytecodeEmitter {
    * the provided bytecode vector
    * @param bytecode vector to emit bytecodes into
    */
-  explicit BytecodeEmitter(std::vector<u8> *bytecode) : bytecode_(bytecode) {}
+  explicit BytecodeEmitter(std::vector<uint8_t> *bytecode) : bytecode_(bytecode) {}
 
   /**
    * Cannot copy or move this class
@@ -51,7 +51,7 @@ class BytecodeEmitter {
    * @param src what to dereference
    * @param len length of the source object
    */
-  void EmitDerefN(LocalVar dest, LocalVar src, u32 len);
+  void EmitDerefN(LocalVar dest, LocalVar src, uint32_t len);
 
   // -------------------------------------------------------
   // Assignment
@@ -70,42 +70,42 @@ class BytecodeEmitter {
    * @param dest destination variable
    * @param val value to assign
    */
-  void EmitAssignImm1(LocalVar dest, i8 val);
+  void EmitAssignImm1(LocalVar dest, int8_t val);
 
   /**
    * Emit assignment code for 2 byte values.
    * @param dest destination variable
    * @param val value to assign
    */
-  void EmitAssignImm2(LocalVar dest, i16 val);
+  void EmitAssignImm2(LocalVar dest, int16_t val);
 
   /**
    * Emit assignment code for 4 byte values.
    * @param dest destination variable
    * @param val value to assign
    */
-  void EmitAssignImm4(LocalVar dest, i32 val);
+  void EmitAssignImm4(LocalVar dest, int32_t val);
 
   /**
    * Emit assignment code for 4 byte float values.
    * @param dest destination variable
    * @param val value to assign
    */
-  void EmitAssignImm4F(LocalVar dest, f32 val);
+  void EmitAssignImm4F(LocalVar dest, float val);
 
   /**
    * Emit assignment code for 8 byte float values.
    * @param dest destination variable
    * @param val value to assign
    */
-  void EmitAssignImm8F(LocalVar dest, f64 val);
+  void EmitAssignImm8F(LocalVar dest, double val);
 
   /**
    * Emit assignment code for 8 byte values.
    * @param dest destination variable
    * @param val value to assign
    */
-  void EmitAssignImm8(LocalVar dest, i64 val);
+  void EmitAssignImm8(LocalVar dest, int64_t val);
 
   // -------------------------------------------------------
   // Jumps
@@ -142,7 +142,7 @@ class BytecodeEmitter {
    * @param src source variable
    * @param offset offset to load starting from the source variable
    */
-  void EmitLea(LocalVar dest, LocalVar src, u32 offset);
+  void EmitLea(LocalVar dest, LocalVar src, uint32_t offset);
 
   /**
    * Emits scaled Lea code.
@@ -153,7 +153,7 @@ class BytecodeEmitter {
    * @param scale element size
    * @param offset additional offset of the element to load
    */
-  void EmitLeaScaled(LocalVar dest, LocalVar src, LocalVar index, u32 scale, u32 offset);
+  void EmitLeaScaled(LocalVar dest, LocalVar src, LocalVar index, uint32_t scale, uint32_t offset);
 
   // -------------------------------------------------------
   // Calls and returns
@@ -303,12 +303,12 @@ class BytecodeEmitter {
    * Emit TVI init code
    * @param bytecode init bytecode
    * @param iter TVI to initialize
-   * @param table_oid oid of the sql table
    * @param exec_ctx execution context
+   * @param table_oid oid of the sql table
    * @param col_oids array of oids
    * @param num_oids length of the array
    */
-  void EmitTableIterInit(Bytecode bytecode, LocalVar iter, u32 table_oid, LocalVar exec_ctx, LocalVar col_oids,
+  void EmitTableIterInit(Bytecode bytecode, LocalVar iter, LocalVar exec_ctx, uint32_t table_oid, LocalVar col_oids,
                          uint32_t num_oids);
 
   /**
@@ -317,12 +317,13 @@ class BytecodeEmitter {
    * @param iter TVI and index iterator
    * @param col_oid oid of the column
    */
-  void EmitAddCol(Bytecode bytecode, LocalVar iter, u32 col_oid);
+  void EmitAddCol(Bytecode bytecode, LocalVar iter, uint32_t col_oid);
 
   /**
    * Emit a parallel table scan
    */
-  void EmitParallelTableScan(u32 db_oid, u32 table_oid, LocalVar ctx, LocalVar thread_states, FunctionId scan_fn);
+  void EmitParallelTableScan(uint32_t db_oid, uint32_t table_oid, LocalVar ctx, LocalVar thread_states,
+                             FunctionId scan_fn);
 
   // Reading integer values from an iterator
   /**
@@ -332,7 +333,7 @@ class BytecodeEmitter {
    * @param pci PCI to read
    * @param col_idx index of the column to read
    */
-  void EmitPCIGet(Bytecode bytecode, LocalVar out, LocalVar pci, u16 col_idx);
+  void EmitPCIGet(Bytecode bytecode, LocalVar out, LocalVar pci, uint16_t col_idx);
 
   /**
    * Filter a column in the iterator by a constant value
@@ -343,7 +344,8 @@ class BytecodeEmitter {
    * @param type type of the column
    * @param val filter value
    */
-  void EmitPCIVectorFilter(Bytecode bytecode, LocalVar selected, LocalVar pci, u32 col_idx, i8 type, i64 val);
+  void EmitPCIVectorFilter(Bytecode bytecode, LocalVar selected, LocalVar pci, uint32_t col_idx, int8_t type,
+                           int64_t val);
 
   /**
    * Insert a filter flavor into the filter manager builder
@@ -418,14 +420,14 @@ class BytecodeEmitter {
    * Emit code to initialize an index iterator
    * @param bytecode index initialization bytecode
    * @param iter iterator in initialize
+   * @param exec_ctx the execution context
    * @param table_oid oid of the table owning the index
    * @param index_oid oid of the index to use
-   * @param exec_ctx the execution context
    * @param col_oids array of oids
    * @param num_oids length of the array
    */
-  void EmitIndexIteratorInit(Bytecode bytecode, LocalVar iter, uint32_t table_oid, uint32_t index_oid,
-                             LocalVar exec_ctx, LocalVar col_oids, uint32_t num_oids);
+  void EmitIndexIteratorInit(Bytecode bytecode, LocalVar iter, LocalVar exec_ctx, uint32_t table_oid,
+                             uint32_t index_oid, LocalVar col_oids, uint32_t num_oids);
 
   /**
    * Emit code to free an index iterator
@@ -441,7 +443,7 @@ class BytecodeEmitter {
    * @param iter index iterator to use
    * @param col_idx index of the column to access
    */
-  void EmitIndexIteratorGet(Bytecode bytecode, LocalVar out, LocalVar iter, u16 col_idx);
+  void EmitIndexIteratorGet(Bytecode bytecode, LocalVar out, LocalVar iter, uint16_t col_idx);
 
   /**
    * Emit code to set the index's scan key
@@ -450,7 +452,7 @@ class BytecodeEmitter {
    * @param col_idx index of the column to set
    * @param val value to write
    */
-  void EmitIndexIteratorSetKey(Bytecode bytecode, LocalVar iter, u16 col_idx, LocalVar val);
+  void EmitIndexIteratorSetKey(Bytecode bytecode, LocalVar iter, uint16_t col_idx, LocalVar val);
 
   /**
    * Initialize a StringVal from a char array
@@ -459,7 +461,7 @@ class BytecodeEmitter {
    * @param length length of the string
    * @param data pointer to the char array
    */
-  void EmitInitString(Bytecode bytecode, LocalVar out, u64 length, uintptr_t data);
+  void EmitInitString(Bytecode bytecode, LocalVar out, uint64_t length, uintptr_t data);
 
   /**
    * Copy a scalar immediate value into the bytecode stream
@@ -513,7 +515,7 @@ class BytecodeEmitter {
   void EmitJump(BytecodeLabel *label);
 
  private:
-  std::vector<u8> *bytecode_;
+  std::vector<uint8_t> *bytecode_;
 };
 
 }  // namespace terrier::execution::vm

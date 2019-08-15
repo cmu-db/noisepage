@@ -3,7 +3,7 @@
 #include <limits>
 #include <vector>
 
-#include "execution/util/macros.h"
+#include "common/macros.h"
 
 namespace terrier::execution::vm {
 

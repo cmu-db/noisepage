@@ -31,17 +31,17 @@ class AggregationHashTable {
   /**
    * Default initial size
    */
-  static constexpr const u32 kDefaultInitialTableSize = 256;
+  static constexpr const uint32_t kDefaultInitialTableSize = 256;
 
   /**
    * Default number of partitions
    */
-  static constexpr const u32 kDefaultNumPartitions = 512;
+  static constexpr const uint32_t kDefaultNumPartitions = 512;
 
   /**
    * Default libcount precision
    */
-  static constexpr u32 kDefaultHLLPrecision = 10;
+  static constexpr uint32_t kDefaultHLLPrecision = 10;
 
   // -------------------------------------------------------
   // Callback functions to customize aggregations
@@ -99,12 +99,12 @@ class AggregationHashTable {
     /**
      * Number of hash table growth
      */
-    u64 num_growths = 0;
+    uint64_t num_growths = 0;
 
     /**
      * Number of flushes
      */
-    u64 num_flushes = 0;
+    uint64_t num_flushes = 0;
   };
 
   // -------------------------------------------------------
@@ -127,7 +127,7 @@ class AggregationHashTable {
    * @param payload_size The size of the elements in the hash table
    * @param initial_size The initial number of aggregates to support.
    */
-  AggregationHashTable(MemoryPool *memory, std::size_t payload_size, u32 initial_size);
+  AggregationHashTable(MemoryPool *memory, std::size_t payload_size, uint32_t initial_size);
 
   /**
    * This class cannot be copied or moved
@@ -220,7 +220,7 @@ class AggregationHashTable {
   /**
    * How many aggregates are in this table?
    */
-  u64 NumElements() const { return hash_table_.num_elements(); }
+  uint64_t NumElements() const { return hash_table_.num_elements(); }
 
   /**
    * Read-only access to hash table stats
@@ -249,15 +249,16 @@ class AggregationHashTable {
   // Compute the hash value and perform the table lookup for all elements in the
   // input vector projections.
   template <bool PCIIsFiltered>
-  void ProcessBatchImpl(ProjectedColumnsIterator *iters[], u32 num_elems, hash_t hashes[], HashTableEntry *entries[],
-                        HashFn hash_fn, KeyEqFn key_eq_fn, InitAggFn init_agg_fn, AdvanceAggFn advance_agg_fn);
+  void ProcessBatchImpl(ProjectedColumnsIterator *iters[], uint32_t num_elems, hash_t hashes[],
+                        HashTableEntry *entries[], HashFn hash_fn, KeyEqFn key_eq_fn, InitAggFn init_agg_fn,
+                        AdvanceAggFn advance_agg_fn);
 
   // Called from ProcessBatch() to lookup a batch of entries. When the function
   // returns, the hashes vector will contain the hash values of all elements in
   // the input vector, and entries will contain a pointer to the associated
   // element's group aggregate, or null if no group exists.
   template <bool PCIIsFiltered>
-  void LookupBatch(ProjectedColumnsIterator *iters[], u32 num_elems, hash_t hashes[], HashTableEntry *entries[],
+  void LookupBatch(ProjectedColumnsIterator *iters[], uint32_t num_elems, hash_t hashes[], HashTableEntry *entries[],
                    HashFn hash_fn, KeyEqFn key_eq_fn) const;
 
   // Called from LookupBatch() to compute and fill the hashes input vector with
@@ -267,33 +268,33 @@ class AggregationHashTable {
   // pointer to the first (of potentially many) elements in the hash table that
   // match the input hash value.
   template <bool PCIIsFiltered>
-  void ComputeHashAndLoadInitial(ProjectedColumnsIterator *iters[], u32 num_elems, hash_t hashes[],
+  void ComputeHashAndLoadInitial(ProjectedColumnsIterator *iters[], uint32_t num_elems, hash_t hashes[],
                                  HashTableEntry *entries[], HashFn hash_fn) const;
   template <bool PCIIsFiltered, bool Prefetch>
-  void ComputeHashAndLoadInitialImpl(ProjectedColumnsIterator *iters[], u32 num_elems, hash_t hashes[],
+  void ComputeHashAndLoadInitialImpl(ProjectedColumnsIterator *iters[], uint32_t num_elems, hash_t hashes[],
                                      HashTableEntry *entries[], HashFn hash_fn) const;
 
   // Called from LookupBatch() to follow the entry chain of candidate group
   // entries filtered through group_sel. Follows the chain and uses the key
   // equality function to resolve hash collisions.
   template <bool PCIIsFiltered>
-  void FollowNextLoop(ProjectedColumnsIterator *iters[], u32 num_elems, u32 group_sel[], const hash_t hashes[],
-                      HashTableEntry *entries[], KeyEqFn key_eq_fn) const;
+  void FollowNextLoop(ProjectedColumnsIterator *iters[], uint32_t num_elems, uint32_t group_sel[],
+                      const hash_t hashes[], HashTableEntry *entries[], KeyEqFn key_eq_fn) const;
 
   // Called from ProcessBatch() to create missing groups
   template <bool PCIIsFiltered>
-  void CreateMissingGroups(ProjectedColumnsIterator *iters[], u32 num_elems, const hash_t hashes[],
+  void CreateMissingGroups(ProjectedColumnsIterator *iters[], uint32_t num_elems, const hash_t hashes[],
                            HashTableEntry *entries[], KeyEqFn key_eq_fn, InitAggFn init_agg_fn);
 
   // Called from ProcessBatch() to update only the valid entries in the input
   // vector
   template <bool PCIIsFiltered>
-  void AdvanceGroups(ProjectedColumnsIterator *iters[], u32 num_elems, HashTableEntry *entries[],
+  void AdvanceGroups(ProjectedColumnsIterator *iters[], uint32_t num_elems, HashTableEntry *entries[],
                      AdvanceAggFn advance_agg_fn);
 
   // Called during partitioned scan to build an aggregation hash table over a
   // single partition.
-  AggregationHashTable *BuildTableOverPartition(void *query_state, u32 partition_idx);
+  AggregationHashTable *BuildTableOverPartition(void *query_state, uint32_t partition_idx);
 
  private:
   // Memory allocator.
@@ -332,16 +333,16 @@ class AggregationHashTable {
   // The number of elements that can be inserted into the main hash table before
   // we flush into the overflow partitions. We size this so that the entries
   // are roughly L2-sized.
-  u64 flush_threshold_;
+  uint64_t flush_threshold_;
   // The number of bits to shift the hash value to determine its overflow
   // partition.
-  u64 partition_shift_bits_;
+  uint64_t partition_shift_bits_;
 
   // Runtime stats.
   Stats stats_;
 
   // The maximum number of elements in the table before a resize.
-  u64 max_fill_;
+  uint64_t max_fill_;
 };
 
 // ---------------------------------------------------------

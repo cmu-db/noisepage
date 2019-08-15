@@ -42,12 +42,12 @@ namespace {
 
 bool FunctionHasIndirectReturn(const ast::FunctionType *func_type) {
   ast::Type *ret_type = func_type->return_type();
-  return (!ret_type->IsNilType() && ret_type->size() > sizeof(i64));
+  return (!ret_type->IsNilType() && ret_type->size() > sizeof(int64_t));
 }
 
 bool FunctionHasDirectReturn(const ast::FunctionType *func_type) {
   ast::Type *ret_type = func_type->return_type();
-  return (!ret_type->IsNilType() && ret_type->size() <= sizeof(i64));
+  return (!ret_type->IsNilType() && ret_type->size() <= sizeof(int64_t));
 }
 
 }  // namespace
@@ -296,14 +296,14 @@ class LLVMEngine::FunctionLocalsMap {
 
  private:
   llvm::IRBuilder<llvm::ConstantFolder, llvm::IRBuilderDefaultInserter> *ir_builder_;
-  llvm::DenseMap<u32, llvm::Value *> params_;
-  llvm::DenseMap<u32, llvm::Value *> locals_;
+  llvm::DenseMap<uint32_t, llvm::Value *> params_;
+  llvm::DenseMap<uint32_t, llvm::Value *> locals_;
 };
 
 LLVMEngine::FunctionLocalsMap::FunctionLocalsMap(const FunctionInfo &func_info, llvm::Function *func, TypeMap *type_map,
                                                  llvm::IRBuilder<> *ir_builder)
     : ir_builder_(ir_builder) {
-  u32 local_idx = 0;
+  uint32_t local_idx = 0;
 
   const auto &func_locals = func_info.locals();
 
@@ -610,7 +610,7 @@ void LLVMEngine::CompiledModuleBuilder::DefineFunction(const FunctionInfo &func_
   BuildSimpleCFG(func_info, &blocks);
 
   {
-    u32 i = 1;
+    uint32_t i = 1;
     for (auto &[_, block] : blocks) {
       (void)_;
       if (block == nullptr) {
@@ -647,7 +647,7 @@ void LLVMEngine::CompiledModuleBuilder::DefineFunction(const FunctionInfo &func_
 
     // Collect arguments
     llvm::SmallVector<llvm::Value *, 8> args;
-    for (u32 i = 0; i < Bytecodes::NumOperands(bytecode); i++) {
+    for (uint32_t i = 0; i < Bytecodes::NumOperands(bytecode); i++) {
       switch (Bytecodes::GetNthOperandType(bytecode, i)) {
         case OperandType::None: {
           break;
@@ -685,7 +685,7 @@ void LLVMEngine::CompiledModuleBuilder::DefineFunction(const FunctionInfo &func_
           break;
         }
         case OperandType::FunctionId: {
-          const u16 target_func_id = iter.GetFunctionIdOperand(i);
+          const uint16_t target_func_id = iter.GetFunctionIdOperand(i);
           auto *target_func_info = tpl_module().GetFuncInfoById(target_func_id);
           auto *target_func = module()->getFunction(target_func_info->name());
           TERRIER_ASSERT(target_func != nullptr, "Function doesn't exist in LLVM module");
@@ -714,7 +714,7 @@ void LLVMEngine::CompiledModuleBuilder::DefineFunction(const FunctionInfo &func_
 
     const auto issue_call = [&ir_builder](auto *func, auto &args) {
       auto arg_iter = func->arg_begin();
-      for (u32 i = 0; i < args.size(); ++i, ++arg_iter) {
+      for (uint32_t i = 0; i < args.size(); ++i, ++arg_iter) {
         llvm::Type *expected_type = arg_iter->getType();
         llvm::Type *provided_type = args[i]->getType();
 
@@ -1049,7 +1049,8 @@ void LLVMEngine::CompiledModule::Load(const BytecodeModule &module) {
     object_code_ = std::move(file_buffer.get());
   }
 
-  EXECUTION_LOG_DEBUG("Object code size: {:.2f} KB", static_cast<double>(GetModuleObjectCodeSizeInBytes()) / 1024.0);
+  EXECUTION_LOG_DEBUG("Object code size: {:.2f} common::Constants::KB",
+                      static_cast<double>(GetModuleObjectCodeSizeInBytes()) / 1024.0);
 
   //
   // We've loaded the object file into an in-memory buffer. We need to convert

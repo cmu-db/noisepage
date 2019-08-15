@@ -21,7 +21,7 @@ fun main(execCtx: *ExecutionContext) -> int64 {
   var col_oids: [2]uint32
   col_oids[0] = 1 // colA
   col_oids[1] = 2 // colB
-  @indexIteratorInitBind(&index, "test_1", "index_1", execCtx, col_oids)
+  @indexIteratorInitBind(&index, execCtx, "test_1", "index_1", col_oids)
   @indexIteratorSetKeyInt(&index, 0, @intToSql(500)) // Set colA
   // Attribute to indicate which iterator to use
   for (@indexIteratorScanKey(&index); @indexIteratorAdvance(&index);) {

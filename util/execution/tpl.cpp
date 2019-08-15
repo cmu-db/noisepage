@@ -173,7 +173,7 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
     util::ScopedTimer<std::milli> timer(&interp_exec_ms);
 
     if (kIsSQL) {
-      std::function<i64(exec::ExecutionContext *)> main;
+      std::function<int64_t(exec::ExecutionContext *)> main;
       if (!module->GetFunction("main", vm::ExecutionMode::Interpret, &main)) {
         EXECUTION_LOG_ERROR(
             "Missing 'main' entry function with signature "
@@ -182,7 +182,7 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
       }
       EXECUTION_LOG_INFO("VM main() returned: {}", main(&exec_ctx));
     } else {
-      std::function<i64()> main;
+      std::function<int64_t()> main;
       if (!module->GetFunction("main", vm::ExecutionMode::Interpret, &main)) {
         EXECUTION_LOG_ERROR("Missing 'main' entry function with signature ()->int64");
         return;
@@ -199,7 +199,7 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
     util::ScopedTimer<std::milli> timer(&adaptive_exec_ms);
 
     if (kIsSQL) {
-      std::function<i64(exec::ExecutionContext *)> main;
+      std::function<int64_t(exec::ExecutionContext *)> main;
       if (!module->GetFunction("main", vm::ExecutionMode::Adaptive, &main)) {
         EXECUTION_LOG_ERROR(
             "Missing 'main' entry function with signature "
@@ -208,7 +208,7 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
       }
       EXECUTION_LOG_INFO("ADAPTIVE main() returned: {}", main(&exec_ctx));
     } else {
-      std::function<i64()> main;
+      std::function<int64_t()> main;
       if (!module->GetFunction("main", vm::ExecutionMode::Adaptive, &main)) {
         EXECUTION_LOG_ERROR("Missing 'main' entry function with signature ()->int64");
         return;
@@ -224,7 +224,7 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
     util::ScopedTimer<std::milli> timer(&jit_exec_ms);
 
     if (kIsSQL) {
-      std::function<i64(exec::ExecutionContext *)> main;
+      std::function<int64_t(exec::ExecutionContext *)> main;
       if (!module->GetFunction("main", vm::ExecutionMode::Compiled, &main)) {
         EXECUTION_LOG_ERROR(
             "Missing 'main' entry function with signature "
@@ -233,7 +233,7 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
       }
       EXECUTION_LOG_INFO("JIT main() returned: {}", main(&exec_ctx));
     } else {
-      std::function<i64()> main;
+      std::function<int64_t()> main;
       if (!module->GetFunction("main", vm::ExecutionMode::Compiled, &main)) {
         EXECUTION_LOG_ERROR("Missing 'main' entry function with signature ()->int64");
         return;
@@ -322,7 +322,7 @@ void ShutdownTPL() {
 
 }  // namespace terrier::execution
 
-void SignalHandler(i32 sig_num) {
+void SignalHandler(int32_t sig_num) {
   if (sig_num == SIGINT) {
     terrier::execution::ShutdownTPL();
     exit(0);
