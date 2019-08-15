@@ -35,7 +35,7 @@ class IndexSchema {
    * This enum indicates the backing implementation that should be used for the index.  It is a character enum in order
    * to better match PostgreSQL's look and feel when persisted through the catalog.
    */
-  enum class IndexType : char { BWTREE = 'B', HASHTABLE = 'H' };
+  enum class IndexType : char { BWTREE = 'B', HASHMAP = 'H' };
 
   /**
    * A column of the index key has an identifier, type, and describes whether it can be null.
