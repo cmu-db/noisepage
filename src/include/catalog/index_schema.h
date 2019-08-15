@@ -297,12 +297,13 @@ class IndexSchema {
   }
 
   /**
-   * @warning This call will traverse the entire expression tree, which may be expensive for large expressions. Use with
-   * caution and sparingly.
+   * @warning Calling this function for the first time will traverse the entire expression tree for each column, which
+   * may be expensive for large expressions. Use with caution. Since we cache the object, future calls will be free.
    * @return map of index key oid to col_oid contained in that index key
    */
-  std::unordered_map<indexkeycol_oid_t, std::vector<col_oid_t>> GetIndexedColOids() const {
-    std::unordered_map<indexkeycol_oid_t, std::vector<col_oid_t>> result;
+  const std::unordered_map<indexkeycol_oid_t, std::vector<col_oid_t>> &GetIndexedColOids() {
+    // If we've already populated this map, we can just return
+    if (!indexed_oids_map_.empty()) return indexed_oids_map_;
 
     // We will traverse every expr tree
     std::deque<std::shared_ptr<parser::AbstractExpression>> expr_queue;
@@ -322,7 +323,8 @@ class IndexSchema {
 
         // If this expr is a column value, add it to the queue
         if (expr->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE) {
-          result[col.oid_].push_back(std::dynamic_pointer_cast<parser::ColumnValueExpression>(expr)->GetColumnOid());
+          indexed_oids_map_[col.oid_].push_back(
+              std::dynamic_pointer_cast<parser::ColumnValueExpression>(expr)->GetColumnOid());
         }
 
         // Add children to queue
@@ -330,12 +332,13 @@ class IndexSchema {
       }
     }
 
-    return result;
+    return indexed_oids_map_;
   }
 
  private:
   friend class DatabaseCatalog;
   std::vector<Column> columns_;
+  std::unordered_map<indexkeycol_oid_t, std::vector<col_oid_t>> indexed_oids_map_;
   bool is_unique_;
   bool is_primary_;
   bool is_exclusion_;
