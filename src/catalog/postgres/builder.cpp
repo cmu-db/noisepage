@@ -256,6 +256,9 @@ Schema Builder::GetIndexTableSchema() {
   columns.emplace_back("indislive", type::TypeId::BOOLEAN, false, MakeNull(type::TypeId::BOOLEAN));
   columns.back().SetOid(INDISLIVE_COL_OID);
 
+  columns.emplace_back("implementation", type::TypeId::TINYINT, false, MakeNull(type::TypeId::TINYINT));
+  columns.back().SetOid(IND_TYPE_COL_OID);
+
   return Schema(columns);
 }
 

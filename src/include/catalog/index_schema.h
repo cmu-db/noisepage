@@ -32,6 +32,12 @@ class Builder;
 class IndexSchema {
  public:
   /**
+   * This enum indicates the backing implementation that should be used for the index.  It is a character enum in order
+   * to better match PostgreSQL's look and feel when persisted through the catalog.
+   */
+  enum class IndexType : char { BWTREE = 'B', HASHTABLE = 'H' };
+
+  /**
    * A column of the index key has an identifier, type, and describes whether it can be null.
    */
   class Column {
@@ -202,6 +208,7 @@ class IndexSchema {
   IndexSchema(std::vector<Column> columns, const bool is_unique, const bool is_primary, const bool is_exclusion,
               const bool is_immediate)
       : columns_(std::move(columns)),
+        type_(InexType::BWTREE),
         is_unique_(is_unique),
         is_primary_(is_primary),
         is_exclusion_(is_exclusion),
@@ -246,12 +253,23 @@ class IndexSchema {
   bool Immediate() const { return is_immediate_; }
 
   /**
+   * @return the backend that should be used to implement this index
+   */
+  IndexType Type() const { return type_; }
+
+  /**
+   * @param index_type that should be used to back this index
+   */
+  void SetType(IndexType index_type) { type_ = index_type; }
+
+  /**
    * @return serialized schema
    */
   nlohmann::json ToJson() const {
     // Only need to serialize columns_ because col_oid_to_offset is derived from columns_
     nlohmann::json j;
     j["columns"] = columns_;
+    j["type"] = type_;
     j["unique"] = is_unique_;
     j["primary"] = is_primary_;
     j["exclusion"] = is_exclusion_;
@@ -286,6 +304,7 @@ class IndexSchema {
     schema->SetValid(j.at("valid").get<bool>());
     schema->SetReady(j.at("ready").get<bool>());
     schema->SetLive(j.at("live").get<bool>());
+    schema->SetType(j.at("type").get<char>());
 
     return schema;
   }
@@ -293,6 +312,7 @@ class IndexSchema {
  private:
   friend class DatabaseCatalog;
   std::vector<Column> columns_;
+  IndexType type_;
   bool is_unique_;
   bool is_primary_;
   bool is_exclusion_;

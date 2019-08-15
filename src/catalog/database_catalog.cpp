@@ -1212,6 +1212,7 @@ bool DatabaseCatalog::CreateIndexEntry(transaction::TransactionContext *const tx
   *(reinterpret_cast<bool *>(indexes_insert_pr->AccessForceNotNull(pr_map[INDISVALID_COL_OID]))) = schema.is_valid_;
   *(reinterpret_cast<bool *>(indexes_insert_pr->AccessForceNotNull(pr_map[INDISREADY_COL_OID]))) = schema.is_ready_;
   *(reinterpret_cast<bool *>(indexes_insert_pr->AccessForceNotNull(pr_map[INDISLIVE_COL_OID]))) = schema.is_live_;
+  *(reinterpret_cast<char *>(indexes_insert_pr->AccessForceNotNull(pr_map[IND_TYPE_COL_OID]))) = schema.type_;
 
   // Insert into pg_index table
   const auto indexes_tuple_slot = indexes_->Insert(txn, indexes_insert_redo);
