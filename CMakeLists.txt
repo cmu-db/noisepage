@@ -399,6 +399,3 @@ add_subdirectory(src)
 add_subdirectory(test)
 add_subdirectory(benchmark)
 add_subdirectory(util)
-
-# xxHash (for TPL)
-add_subdirectory(third_party/xxHash/cmake_unofficial)

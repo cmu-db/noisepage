@@ -6,7 +6,7 @@
 
 #include "tbb/tbb.h"
 
-#include "count/hll.h"
+#include "libcount/hll.h"
 
 #include "common/math_util.h"
 #include "execution/sql/projected_columns_iterator.h"

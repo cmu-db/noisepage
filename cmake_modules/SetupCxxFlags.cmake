@@ -35,7 +35,7 @@ message("Configured for ${BUILD_WARNING_LEVEL} warning level (set with cmake -DB
 
 string(TOUPPER ${BUILD_WARNING_LEVEL} UPPERCASE_BUILD_WARNING_LEVEL)
 
-set(CXX_ONLY_FLAGS "${CXX_ONLY_FLAGS} -std=c++17 -fPIC -mcx16 -march=native")
+set(CXX_ONLY_FLAGS "${CXX_ONLY_FLAGS} -std=c++17 -fPIC -mcx16 -march=native -fvisibility=hidden")
 
 if ("${UPPERCASE_BUILD_WARNING_LEVEL}" STREQUAL "CHECKIN")
   # Pre-checkin builds

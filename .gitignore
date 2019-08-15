@@ -51,8 +51,6 @@ config-h.in
 autom4te.cache
 *Makefile.in
 *Makefile
-# Make an exception for libcount
-!third_party/libcount/Makefile
 libtool
 aclocal.m4
 config.log

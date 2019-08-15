@@ -7,7 +7,7 @@
 
 #include "tbb/tbb.h"
 
-#include "libcount/include/count/hll.h"
+#include "libcount/hll.h"
 
 #include "execution/sql/memory_pool.h"
 #include "execution/sql/thread_state_container.h"
