@@ -123,10 +123,11 @@ bool DataTable::Update(transaction::TransactionContext *const txn, const TupleSl
 
   return true;
 }
-//auto tgl_bit = [](auto val) { return val ^ (1 << 31); };
-auto set_bit = [](auto val) { return val | (1 << 31); };
+
+
 auto clr_bit = [](auto val) { return val & ~(1 << 31); };
 bool DataTable::trySetInsertStatus(RawBlock *block) {
+  auto set_bit = [](auto val) { return val | (1 << 31); };
   uint32_t old_val = clr_bit(block->insert_head_.load());
   return block->insert_head_.compare_exchange_weak(old_val, set_bit(old_val));
 }
@@ -148,40 +149,39 @@ TupleSlot DataTable::Insert(transaction::TransactionContext *const txn, const Pr
                  "The input buffer never changes the version pointer column, so it should have  exactly 1 fewer "
                  "attribute than the DataTable's layout.");
 
-  // Attempt to allocate a new tuple from the block we are working on right now.
-  // If that block is full, try to request a new block. Because other concurrent
-  // inserts could have already created a new block, we need to use compare and swap
-  // to change the insertion head. We do not expect this loop to be executed more than
-  // twice, but there is technically a possibility for blocks with only a few slots.
+  // Insertion header points to the first block that has free tuple slots
+  // Once a txn arrives, it will start from the insertion header to find the first
+  // idle (no other txn is writing to that block) and non-full block.
+  // If no such block is found, the txn will create a new block.
+  // Before the txn writes to the block, it will set block status to busy.
+  // The first bit of block insert_head_ is used to indicate if the block is busy
+  // If the first bit is 1, it indicates one txn is writing to the block.
   TupleSlot result;
   std::list<RawBlock *>::iterator block = insertion_head_;
-  //printf("I am in %lld\n", reinterpret_cast<int64_t >(pthread_self()));
   while (true) {
     // No free block left
     if (block == blocks_.end()) {
-      //printf("New %zu %d %d\n", blocks_.size(), block == blocks_.end(), blocks_.empty());
       block = NewBlock();
-      //printf("New: %zu %lld %d\n", blocks_.size(), reinterpret_cast<int64_t >(pthread_self()), block == blocks_.end());
     } else if (trySetInsertStatus(*block)) {
       // No one is inserting into this block
       if (accessor_.Allocate(*block, &result)) {
-        //printf("Succeed %lld\n", reinterpret_cast<int64_t >(pthread_self()));
         break;
       }
       // if the header is full, move the insertion_header
+      // Next insert txn will search from the new insertion_header
       checkMoveHead(block);
       // The block is full, try next block
       ++block;
-      //printf("Full\n");
     } else { // The block is inserting by other txn
       // Try next block
       ++block;
-      //printf("Busy\n");
     }
   }
+
   InsertInto(txn, redo, result);
   // Flip back insert status
   (*block)->insert_head_ = clr_bit((*block)->insert_head_.load());
+
   data_table_counter_.IncrementNumInsert(1);
   return result;
 }
