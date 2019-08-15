@@ -208,7 +208,7 @@ class IndexSchema {
   IndexSchema(std::vector<Column> columns, const bool is_unique, const bool is_primary, const bool is_exclusion,
               const bool is_immediate)
       : columns_(std::move(columns)),
-        type_(InexType::BWTREE),
+        type_(IndexType::BWTREE),
         is_unique_(is_unique),
         is_primary_(is_primary),
         is_exclusion_(is_exclusion),
@@ -269,7 +269,7 @@ class IndexSchema {
     // Only need to serialize columns_ because col_oid_to_offset is derived from columns_
     nlohmann::json j;
     j["columns"] = columns_;
-    j["type"] = type_;
+    j["type"] = static_cast<char>(type_);
     j["unique"] = is_unique_;
     j["primary"] = is_primary_;
     j["exclusion"] = is_exclusion_;
@@ -304,7 +304,7 @@ class IndexSchema {
     schema->SetValid(j.at("valid").get<bool>());
     schema->SetReady(j.at("ready").get<bool>());
     schema->SetLive(j.at("live").get<bool>());
-    schema->SetType(j.at("type").get<char>());
+    schema->SetType(static_cast<IndexType>(j.at("type").get<char>()));
 
     return schema;
   }
