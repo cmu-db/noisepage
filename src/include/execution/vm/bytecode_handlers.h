@@ -1473,32 +1473,62 @@ VM_OP_HOT void OpIndexIteratorGetDecimalNull(terrier::execution::sql::Decimal *o
 
 VM_OP_HOT void OpIndexIteratorSetKeyTinyInt(terrier::execution::sql::IndexIterator *iter, uint16_t col_idx,
                                             terrier::execution::sql::Integer *val) {
-  iter->SetKey(col_idx, static_cast<int8_t>(val->val), val->is_null);
+  iter->SetKey<int8_t, false>(col_idx, static_cast<int8_t>(val->val), val->is_null);
 }
 
 VM_OP_HOT void OpIndexIteratorSetKeySmallInt(terrier::execution::sql::IndexIterator *iter, uint16_t col_idx,
                                              terrier::execution::sql::Integer *val) {
-  iter->SetKey(col_idx, static_cast<int16_t>(val->val), val->is_null);
+  iter->SetKey<int16_t, false>(col_idx, static_cast<int16_t>(val->val), val->is_null);
 }
 
 VM_OP_HOT void OpIndexIteratorSetKeyInt(terrier::execution::sql::IndexIterator *iter, uint16_t col_idx,
                                         terrier::execution::sql::Integer *val) {
-  iter->SetKey(col_idx, static_cast<int32_t>(val->val), val->is_null);
+  iter->SetKey<int32_t, false>(col_idx, static_cast<int32_t>(val->val), val->is_null);
 }
 
 VM_OP_HOT void OpIndexIteratorSetKeyBigInt(terrier::execution::sql::IndexIterator *iter, uint16_t col_idx,
                                            terrier::execution::sql::Integer *val) {
-  iter->SetKey(col_idx, static_cast<int64_t>(val->val), val->is_null);
+  iter->SetKey<int64_t, false>(col_idx, static_cast<int64_t>(val->val), val->is_null);
 }
 
 VM_OP_HOT void OpIndexIteratorSetKeyReal(terrier::execution::sql::IndexIterator *iter, uint16_t col_idx,
                                          terrier::execution::sql::Real *val) {
-  iter->SetKey(col_idx, static_cast<float>(val->val), val->is_null);
+  iter->SetKey<float, false>(col_idx, static_cast<float>(val->val), val->is_null);
 }
 
 VM_OP_HOT void OpIndexIteratorSetKeyDouble(terrier::execution::sql::IndexIterator *iter, uint16_t col_idx,
                                            terrier::execution::sql::Real *val) {
-  iter->SetKey(col_idx, static_cast<double>(val->val), val->is_null);
+  iter->SetKey<double, false>(col_idx, static_cast<double>(val->val), val->is_null);
+}
+
+VM_OP_HOT void OpIndexIteratorSetKeyTinyIntNull(terrier::execution::sql::IndexIterator *iter, uint16_t col_idx,
+                                            terrier::execution::sql::Integer *val) {
+  iter->SetKey<int8_t, true>(col_idx, static_cast<int8_t>(val->val), val->is_null);
+}
+
+VM_OP_HOT void OpIndexIteratorSetKeySmallIntNull(terrier::execution::sql::IndexIterator *iter, uint16_t col_idx,
+                                             terrier::execution::sql::Integer *val) {
+  iter->SetKey<int16_t, true>(col_idx, static_cast<int16_t>(val->val), val->is_null);
+}
+
+VM_OP_HOT void OpIndexIteratorSetKeyIntNull(terrier::execution::sql::IndexIterator *iter, uint16_t col_idx,
+                                        terrier::execution::sql::Integer *val) {
+  iter->SetKey<int32_t, true>(col_idx, static_cast<int32_t>(val->val), val->is_null);
+}
+
+VM_OP_HOT void OpIndexIteratorSetKeyBigIntNull(terrier::execution::sql::IndexIterator *iter, uint16_t col_idx,
+                                           terrier::execution::sql::Integer *val) {
+  iter->SetKey<int64_t, true>(col_idx, static_cast<int64_t>(val->val), val->is_null);
+}
+
+VM_OP_HOT void OpIndexIteratorSetKeyRealNull(terrier::execution::sql::IndexIterator *iter, uint16_t col_idx,
+                                         terrier::execution::sql::Real *val) {
+  iter->SetKey<float, true>(col_idx, static_cast<float>(val->val), val->is_null);
+}
+
+VM_OP_HOT void OpIndexIteratorSetKeyDoubleNull(terrier::execution::sql::IndexIterator *iter, uint16_t col_idx,
+                                           terrier::execution::sql::Real *val) {
+  iter->SetKey<double, true>(col_idx, static_cast<double>(val->val), val->is_null);
 }
 
 // Output Calls

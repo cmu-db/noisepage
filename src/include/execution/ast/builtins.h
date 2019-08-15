@@ -163,6 +163,12 @@ namespace terrier::execution::ast {
   F(IndexIteratorSetKeyBigInt, indexIteratorSetKeyBigInt)       \
   F(IndexIteratorSetKeyReal, indexIteratorSetKeyReal)           \
   F(IndexIteratorSetKeyDouble, indexIteratorSetKeyDouble)       \
+  F(IndexIteratorSetKeyTinyIntNull, indexIteratorSetKeyTinyIntNull)     \
+  F(IndexIteratorSetKeySmallIntNull, indexIteratorSetKeySmallIntNull)   \
+  F(IndexIteratorSetKeyIntNull, indexIteratorSetKeyIntNull)             \
+  F(IndexIteratorSetKeyBigIntNull, indexIteratorSetKeyBigIntNull)       \
+  F(IndexIteratorSetKeyRealNull, indexIteratorSetKeyRealNull)           \
+  F(IndexIteratorSetKeyDoubleNull, indexIteratorSetKeyDoubleNull)       \
   F(IndexIteratorFree, indexIteratorFree)
 
 /**

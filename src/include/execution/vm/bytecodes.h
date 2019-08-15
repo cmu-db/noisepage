@@ -347,7 +347,13 @@ namespace terrier::execution::vm {
   F(IndexIteratorSetKeyBigInt, OperandType::Local, OperandType::UImm2, OperandType::Local)                            \
   F(IndexIteratorSetKeyReal, OperandType::Local, OperandType::UImm2, OperandType::Local)                              \
   F(IndexIteratorSetKeyDouble, OperandType::Local, OperandType::UImm2, OperandType::Local)                            \
-                                                                                                                      \
+  F(IndexIteratorSetKeyTinyIntNull, OperandType::Local, OperandType::UImm2, OperandType::Local)                           \
+  F(IndexIteratorSetKeySmallIntNull, OperandType::Local, OperandType::UImm2, OperandType::Local)                          \
+  F(IndexIteratorSetKeyIntNull, OperandType::Local, OperandType::UImm2, OperandType::Local)                               \
+  F(IndexIteratorSetKeyBigIntNull, OperandType::Local, OperandType::UImm2, OperandType::Local)                            \
+  F(IndexIteratorSetKeyRealNull, OperandType::Local, OperandType::UImm2, OperandType::Local)                              \
+  F(IndexIteratorSetKeyDoubleNull, OperandType::Local, OperandType::UImm2, OperandType::Local)                            \
+                                                                                                                    \
   /* Trig functions */                                                                                                \
   F(Pi, OperandType::Local)                                                                                           \
   F(E, OperandType::Local)                                                                                            \

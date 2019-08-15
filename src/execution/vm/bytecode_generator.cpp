@@ -1559,6 +1559,42 @@ void BytecodeGenerator::VisitBuiltinIndexIteratorCall(ast::CallExpr *call, ast::
       emitter()->EmitIndexIteratorSetKey(Bytecode::IndexIteratorSetKeyDouble, iterator, col_idx, val);
       break;
     }
+    case ast::Builtin::IndexIteratorSetKeyTinyIntNull: {
+      auto col_idx = static_cast<uint16_t>(call->arguments()[1]->As<ast::LitExpr>()->int64_val());
+      LocalVar val = VisitExpressionForLValue(call->arguments()[2]);
+      emitter()->EmitIndexIteratorSetKey(Bytecode::IndexIteratorSetKeyTinyIntNull, iterator, col_idx, val);
+      break;
+    }
+    case ast::Builtin::IndexIteratorSetKeySmallIntNull: {
+      auto col_idx = static_cast<uint16_t>(call->arguments()[1]->As<ast::LitExpr>()->int64_val());
+      LocalVar val = VisitExpressionForLValue(call->arguments()[2]);
+      emitter()->EmitIndexIteratorSetKey(Bytecode::IndexIteratorSetKeySmallIntNull, iterator, col_idx, val);
+      break;
+    }
+    case ast::Builtin::IndexIteratorSetKeyIntNull: {
+      auto col_idx = static_cast<uint16_t>(call->arguments()[1]->As<ast::LitExpr>()->int64_val());
+      LocalVar val = VisitExpressionForLValue(call->arguments()[2]);
+      emitter()->EmitIndexIteratorSetKey(Bytecode::IndexIteratorSetKeyIntNull, iterator, col_idx, val);
+      break;
+    }
+    case ast::Builtin::IndexIteratorSetKeyBigIntNull: {
+      auto col_idx = static_cast<uint16_t>(call->arguments()[1]->As<ast::LitExpr>()->int64_val());
+      LocalVar val = VisitExpressionForLValue(call->arguments()[2]);
+      emitter()->EmitIndexIteratorSetKey(Bytecode::IndexIteratorSetKeyBigIntNull, iterator, col_idx, val);
+      break;
+    }
+    case ast::Builtin::IndexIteratorSetKeyRealNull: {
+      auto col_idx = static_cast<uint16_t>(call->arguments()[1]->As<ast::LitExpr>()->int64_val());
+      LocalVar val = VisitExpressionForLValue(call->arguments()[2]);
+      emitter()->EmitIndexIteratorSetKey(Bytecode::IndexIteratorSetKeyRealNull, iterator, col_idx, val);
+      break;
+    }
+    case ast::Builtin::IndexIteratorSetKeyDoubleNull: {
+      auto col_idx = static_cast<uint16_t>(call->arguments()[1]->As<ast::LitExpr>()->int64_val());
+      LocalVar val = VisitExpressionForLValue(call->arguments()[2]);
+      emitter()->EmitIndexIteratorSetKey(Bytecode::IndexIteratorSetKeyDoubleNull, iterator, col_idx, val);
+      break;
+    }
     default: {
       UNREACHABLE("Impossible bytecode");
     }
@@ -1759,6 +1795,14 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
     case ast::Builtin::IndexIteratorSetKeySmallInt:
     case ast::Builtin::IndexIteratorSetKeyInt:
     case ast::Builtin::IndexIteratorSetKeyBigInt:
+    case ast::Builtin::IndexIteratorSetKeyReal:
+    case ast::Builtin::IndexIteratorSetKeyDouble:
+    case ast::Builtin::IndexIteratorSetKeyTinyIntNull:
+    case ast::Builtin::IndexIteratorSetKeySmallIntNull:
+    case ast::Builtin::IndexIteratorSetKeyIntNull:
+    case ast::Builtin::IndexIteratorSetKeyBigIntNull:
+    case ast::Builtin::IndexIteratorSetKeyRealNull:
+    case ast::Builtin::IndexIteratorSetKeyDoubleNull:
       VisitBuiltinIndexIteratorCall(call, builtin);
       break;
     default: {
