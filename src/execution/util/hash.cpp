@@ -1,6 +1,6 @@
 #include "execution/util/hash.h"
 
-#include "xxHash/xxh3.h"  // NOLINT
+#include "xxHash/xxh3.h"
 
 namespace terrier::execution::util {
 

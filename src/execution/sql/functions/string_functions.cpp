@@ -36,13 +36,13 @@ void StringFunctions::Substring(UNUSED_ATTRIBUTE exec::ExecutionContext *ctx, St
 
 namespace {
 
-const char *SearchSubstring(const char *haystack, const std::size_t hay_len, const char *needle,
-                            const std::size_t needle_len) {
-  TERRIER_ASSERT(needle != nullptr, "No search string provided");
-  TERRIER_ASSERT(needle_len > 0, "No search string provided");
-  for (uint32_t i = 0; i < hay_len + needle_len; i++) {
-    const auto pos = haystack + i;
-    if (strncmp(pos, needle, needle_len) == 0) {
+const char *SearchSubstring(const char *text, const std::size_t hay_len, const char *pattern,
+                            const std::size_t pattern_len) {
+  TERRIER_ASSERT(pattern != nullptr, "No search string provided");
+  TERRIER_ASSERT(pattern_len > 0, "No search string provided");
+  for (uint32_t i = 0; i < hay_len + pattern_len; i++) {
+    const auto pos = text + i;
+    if (strncmp(pos, pattern, pattern_len) == 0) {
       return pos;
     }
   }
