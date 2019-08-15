@@ -7,7 +7,7 @@
 #include "tbb/task.h"
 
 #define XBYAK_NO_OP_NAMES
-#include "xbyak/xbyak/xbyak.h"
+#include "xbyak/xbyak.h"
 
 namespace terrier::execution::vm {
 
