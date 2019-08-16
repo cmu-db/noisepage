@@ -13,7 +13,7 @@ set(TPL_VERSION_MAJOR 0)
 set(TPL_VERSION_MINOR 1)
 
 # configure a header file to pass some of the CMake settings to the source code
-configure_file (
+configure_file(
         "execution/tpl.h.in"
         "${PROJECT_BINARY_DIR}/execution/tpl.h"
 )
@@ -24,25 +24,25 @@ set(SUPPORTED_CLANGS "clang++-8" "clang++")
 find_program(CLANG NAMES ${SUPPORTED_CLANGS}) #TODO(Matt): this should follow the logic of FindClangTools if we actually need clang++ on macOS to come from LLVM 8 rather than AppleClang
 if (NOT EXISTS ${CLANG})
     message(FATAL_ERROR "Unable to locate clang++.")
-else()
+else ()
     message(STATUS "Found Clang ${CLANG}")
 endif ()
 
 # Setup compiler arguments to Clang
-set(CLANG_IR_CXX_FLAGS "${CXX_ONLY_FLAGS} ${CXX_OPTIMIZATION_FLAGS} ${CXX_COMMON_FLAGS} ${CLANG_CXX_FLAGS} -emit-llvm -c")
+set(CLANG_IR_CXX_FLAGS "${CXX_ONLY_FLAGS} ${CXX_OPTIMIZATION_FLAGS} ${CXX_COMMON_FLAGS} -emit-llvm -c")
 string(REPLACE "-fPIC" "" CLANG_IR_CXX_FLAGS ${CLANG_IR_CXX_FLAGS})
 
 separate_arguments(CLANG_IR_CXX_FLAGS)
 message(STATUS "CLANG_IR_CXX_FLAGS: ${CLANG_IR_CXX_FLAGS}")
 
 get_property(dirs DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY INCLUDE_DIRECTORIES)
-foreach(dir ${dirs})
+foreach (dir ${dirs})
     list(APPEND CLANG_INCLUDES ${dir})
-endforeach()
+endforeach ()
 list(REMOVE_DUPLICATES CLANG_INCLUDES)
-foreach(dir ${CLANG_INCLUDES})
+foreach (dir ${CLANG_INCLUDES})
     set(CLANG_IR_CXX_INCLUDES ${CLANG_IR_CXX_INCLUDES} "-I${dir}")
-endforeach()
+endforeach ()
 message(STATUS "CLANG_IR_CXX_INCLUDES: ${CLANG_IR_CXX_INCLUDES}")
 
 # Function to generate rule to cross compile a source file to an IR module.
