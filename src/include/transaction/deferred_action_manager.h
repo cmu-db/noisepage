@@ -21,7 +21,7 @@ class DeferredActionManager {
    * Adds the action to a buffered list of deferred actions.  This action will
    * be triggered no sooner than when the epoch (timestamp of oldest running
    * transaction) is more recent than the time this function was called.
-   * @param a functional implementation of the action that is deferred
+   * @param a functional implementation of the action that is deferred. @see DeferredAction
    */
   timestamp_t RegisterDeferredAction(const DeferredAction &a) {
     timestamp_t result = timestamp_manager_->CurrentTime();
@@ -30,6 +30,18 @@ class DeferredActionManager {
       new_deferred_actions_.emplace(result, a);
     }
     return result;
+  }
+
+  /**
+   * Adds the action to a buffered list of deferred actions.  This action will
+   * be triggered no sooner than when the epoch (timestamp of oldest running
+   * transaction) is more recent than the time this function was called.
+   * @param a functional implementation of the action that is deferred
+   */
+  timestamp_t RegisterDeferredAction(const std::function<void()> &a) {
+    // TODO(Tianyu): Will this be a performance problem? Hopefully C++ is smart enough
+    // to optimize out this call...
+    return RegisterDeferredAction([&](timestamp_t /*unused*/) { a(); });
   }
 
   /**

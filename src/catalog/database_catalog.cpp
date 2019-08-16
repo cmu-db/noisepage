@@ -633,7 +633,7 @@ bool DatabaseCatalog::DeleteTable(transaction::TransactionContext *const txn, co
   // Everything succeeded from an MVCC standpoint, register deferred action for the GC with txn manager. See base
   // function comment.
   txn->RegisterCommitAction([=](transaction::DeferredActionManager *deferred_action_manager) {
-    deferred_action_manager->RegisterDeferredAction([=](transaction::timestamp_t) {
+    deferred_action_manager->RegisterDeferredAction([=]() {
       // Defer an action upon commit to delete the table. Delete index will need a double deferral because there could
       // be pending deferred actions on an index
       delete schema_ptr;
@@ -706,7 +706,7 @@ bool DatabaseCatalog::SetTablePointer(transaction::TransactionContext *const txn
   // We need to defer the deletion because their may be subsequent undo records into this table that need to be GCed
   // before we can safely delete this.
   txn->RegisterAbortAction([=](transaction::DeferredActionManager *deferred_action_manager) {
-    deferred_action_manager->RegisterDeferredAction([=](transaction::timestamp_t) { delete table_ptr; });
+    deferred_action_manager->RegisterDeferredAction([=]() { delete table_ptr; });
   });
   return SetClassPointer(txn, table, table_ptr);
 }
@@ -931,8 +931,8 @@ bool DatabaseCatalog::DeleteIndex(transaction::TransactionContext *txn, index_oi
   // Everything succeeded from an MVCC standpoint, so register a deferred action for the GC to delete the index with txn
   // manager. See base function comment.
   txn->RegisterCommitAction([=](transaction::DeferredActionManager *deferred_action_manager) {
-    deferred_action_manager->RegisterDeferredAction([=](transaction::timestamp_t) {
-      deferred_action_manager->RegisterDeferredAction([=](transaction::timestamp_t) {
+    deferred_action_manager->RegisterDeferredAction([=]() {
+      deferred_action_manager->RegisterDeferredAction([=]() {
         delete schema_ptr;
         delete index_ptr;
       });
@@ -984,7 +984,7 @@ bool DatabaseCatalog::SetIndexPointer(transaction::TransactionContext *const txn
   // This needs to be deferred because if any items were subsequently inserted into this index, they will have deferred
   // abort actions that will be above this action on the abort stack.  The defer ensures we execute after them.
   txn->RegisterAbortAction([=](transaction::DeferredActionManager *deferred_action_manager) {
-    deferred_action_manager->RegisterDeferredAction([=](transaction::timestamp_t) { delete index_ptr; });
+    deferred_action_manager->RegisterDeferredAction([=]() { delete index_ptr; });
   });
   return SetClassPointer(txn, index, index_ptr);
 }
@@ -1079,8 +1079,7 @@ void DatabaseCatalog::TearDown(transaction::TransactionContext *txn) {
   }
 
   auto dbc_nuke = [=, tables{std::move(tables)}, indexes{std::move(indexes)}, table_schemas{std::move(table_schemas)},
-                   index_schemas{std::move(index_schemas)},
-                   expressions{std::move(expressions)}](transaction::timestamp_t) {
+                   index_schemas{std::move(index_schemas)}, expressions{std::move(expressions)}]() {
     for (auto table : tables) delete table;
 
     for (auto index : indexes) delete index;
@@ -1258,7 +1257,7 @@ bool DatabaseCatalog::CreateIndexEntry(transaction::TransactionContext *const tx
   std::vector<IndexSchema::Column> cols =
       GetColumns<IndexSchema::Column, index_oid_t, indexkeycol_oid_t>(txn, index_oid);
   auto *new_schema = new IndexSchema(cols, schema.Unique(), schema.Primary(), schema.Exclusion(), schema.Immediate());
-  txn->RegisterAbortAction([=](transaction::DeferredActionManager *) { delete new_schema; });
+  txn->RegisterAbortAction([=]() { delete new_schema; });
 
   pr_init = classes_->InitializerForProjectedRow({REL_SCHEMA_COL_OID});
   auto *const update_redo = txn->StageWrite(db_oid_, CLASS_TABLE_OID, pr_init);
@@ -1489,7 +1488,7 @@ bool DatabaseCatalog::CreateTableEntry(transaction::TransactionContext *const tx
 
   std::vector<Schema::Column> cols = GetColumns<Schema::Column, table_oid_t, col_oid_t>(txn, table_oid);
   auto *new_schema = new Schema(cols);
-  txn->RegisterAbortAction([=](transaction::DeferredActionManager *) { delete new_schema; });
+  txn->RegisterAbortAction([=]() { delete new_schema; });
 
   pr_init = classes_->InitializerForProjectedRow({REL_SCHEMA_COL_OID});
   auto *const update_redo = txn->StageWrite(db_oid_, CLASS_TABLE_OID, pr_init);

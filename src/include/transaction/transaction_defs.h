@@ -29,7 +29,7 @@ using TransactionAction = std::function<void(DeferredActionManager *)>;
  * A DeferredAction is an action that can only be safely performed after all transactions that could
  * have access to something has finished. (e.g. pruning of version chains)
  *
- * When applied, the start time of the oldest transaction alive in the system is supposed. The reason
+ * When applied, the start time of the oldest transaction alive in the system is supplied. The reason
  * for this is that this value can be larger than the timestamp the action originally registered for,
  * and in cases such as GC knowing the actual time enables optimizations.
  */

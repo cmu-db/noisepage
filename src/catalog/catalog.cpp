@@ -60,7 +60,7 @@ void Catalog::TearDown() {
           deferred_action_manager->RegisterDeferredAction(del_action);
         }
         // Pass vars to the deferral by value
-        deferred_action_manager->RegisterDeferredAction([=](transaction::timestamp_t) {
+        deferred_action_manager->RegisterDeferredAction([=]() {
           delete databases_oid_index_;   // Delete the OID index
           delete databases_name_index_;  // Delete the name index
           delete databases_;             // Delete the table
@@ -292,7 +292,7 @@ DatabaseCatalog *Catalog::DeleteDatabaseEntry(transaction::TransactionContext *t
 }
 
 transaction::DeferredAction Catalog::DeallocateDatabaseCatalog(DatabaseCatalog *const dbc) {
-  return [=](transaction::timestamp_t) {
+  return [=]() {
     auto txn = txn_manager_->BeginTransaction();
     dbc->TearDown(txn);
     txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);

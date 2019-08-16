@@ -34,8 +34,7 @@ void BlockCompactor::ProcessCompactionQueue(transaction::DeferredActionManager *
           // are alive at the same time as us flipping the block status flag to cooling. However, we must manually
           // ask the GC to enqueue this block, because no access will be observed from the empty compaction transaction.
           if (cg.txn_->IsReadOnly())
-            deferred_action_manager->RegisterDeferredAction(
-                [this, block](transaction::timestamp_t) { PutInQueue(block); });
+            deferred_action_manager->RegisterDeferredAction([this, block]() { PutInQueue(block); });
           txn_manager->Commit(cg.txn_, transaction::TransactionUtil::EmptyCallback, nullptr);
         } else {
           txn_manager->Abort(cg.txn_);
@@ -51,7 +50,7 @@ void BlockCompactor::ProcessCompactionQueue(transaction::DeferredActionManager *
         GatherVarlens(loose_ptrs, block, block->data_table_);
         controller.GetBlockState()->store(BlockState::FROZEN);
         // When the old variable length values are no longer visible by running transactions, delete them.
-        deferred_action_manager->RegisterDeferredAction([=](transaction::timestamp_t) {
+        deferred_action_manager->RegisterDeferredAction([=]() {
           for (auto *loose_ptr : *loose_ptrs) delete[] loose_ptr;
           delete loose_ptrs;
         });

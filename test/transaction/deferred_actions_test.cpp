@@ -38,8 +38,8 @@ TEST_F(DeferredActionsTest, AbortAction) {
 
   bool aborted = false;
   bool committed = false;
-  txn->RegisterAbortAction([&](transaction::DeferredActionManager *) { aborted = true; });
-  txn->RegisterCommitAction([&](transaction::DeferredActionManager *) { committed = true; });
+  txn->RegisterAbortAction([&]() { aborted = true; });
+  txn->RegisterCommitAction([&]() { committed = true; });
 
   EXPECT_FALSE(aborted);
   EXPECT_FALSE(committed);
@@ -58,8 +58,8 @@ TEST_F(DeferredActionsTest, CommitAction) {
 
   bool aborted = false;
   bool committed = false;
-  txn->RegisterAbortAction([&](transaction::DeferredActionManager *) { aborted = true; });
-  txn->RegisterCommitAction([&](transaction::DeferredActionManager *) { committed = true; });
+  txn->RegisterAbortAction([&]() { aborted = true; });
+  txn->RegisterCommitAction([&]() { committed = true; });
 
   EXPECT_FALSE(aborted);
   EXPECT_FALSE(committed);
@@ -77,7 +77,7 @@ TEST_F(DeferredActionsTest, CommitAction) {
 // NOLINTNEXTLINE
 TEST_F(DeferredActionsTest, SimpleDefer) {
   bool deferred = false;
-  deferred_action_manager_.RegisterDeferredAction([&](transaction::timestamp_t) { deferred = true; });
+  deferred_action_manager_.RegisterDeferredAction([&]() { deferred = true; });
 
   EXPECT_FALSE(deferred);
 
@@ -94,7 +94,7 @@ TEST_F(DeferredActionsTest, DelayedDefer) {
   auto *txn = txn_mgr_.BeginTransaction();
 
   bool deferred = false;
-  deferred_action_manager_.RegisterDeferredAction([&](transaction::timestamp_t) { deferred = true; });
+  deferred_action_manager_.RegisterDeferredAction([&]() { deferred = true; });
 
   EXPECT_FALSE(deferred);
 
@@ -115,9 +115,9 @@ TEST_F(DeferredActionsTest, DelayedDefer) {
 TEST_F(DeferredActionsTest, ChainedDefer) {
   bool defer1 = false;
   bool defer2 = false;
-  deferred_action_manager_.RegisterDeferredAction([&](transaction::timestamp_t) {
+  deferred_action_manager_.RegisterDeferredAction([&]() {
     defer1 = true;
-    deferred_action_manager_.RegisterDeferredAction([&](transaction::timestamp_t) { defer2 = true; });
+    deferred_action_manager_.RegisterDeferredAction([&]() { defer2 = true; });
   });
 
   EXPECT_FALSE(defer1);
@@ -145,12 +145,12 @@ TEST_F(DeferredActionsTest, AbortBootstrapDefer) {
   bool aborted = false;
   bool committed = false;
 
-  txn->RegisterCommitAction([&](transaction::DeferredActionManager *) { committed = true; });
+  txn->RegisterCommitAction([&]() { committed = true; });
   txn->RegisterAbortAction([&](transaction::DeferredActionManager *deferred_action_manager) {
     aborted = true;
-    deferred_action_manager->RegisterDeferredAction([&, deferred_action_manager](transaction::timestamp_t) {
+    deferred_action_manager->RegisterDeferredAction([&, deferred_action_manager]() {
       defer1 = true;
-      deferred_action_manager->RegisterDeferredAction([&](transaction::timestamp_t) { defer2 = true; });
+      deferred_action_manager->RegisterDeferredAction([&]() { defer2 = true; });
     });
   });
 
@@ -199,12 +199,12 @@ TEST_F(DeferredActionsTest, CommitBootstrapDefer) {
   bool aborted = false;
   bool committed = false;
 
-  txn->RegisterAbortAction([&](transaction::DeferredActionManager *) { aborted = true; });
+  txn->RegisterAbortAction([&]() { aborted = true; });
   txn->RegisterCommitAction([&](transaction::DeferredActionManager *deferred_action_manager) {
     committed = true;
-    deferred_action_manager->RegisterDeferredAction([&, deferred_action_manager](transaction::timestamp_t) {
+    deferred_action_manager->RegisterDeferredAction([&, deferred_action_manager]() {
       defer1 = true;
-      deferred_action_manager->RegisterDeferredAction([&](transaction::timestamp_t) { defer2 = true; });
+      deferred_action_manager->RegisterDeferredAction([&]() { defer2 = true; });
     });
   });
 

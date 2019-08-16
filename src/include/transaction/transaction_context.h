@@ -151,16 +151,35 @@ class TransactionContext {
 
   /**
    * Defers an action to be called if and only if the transaction aborts.  Actions executed LIFO.
-   * @param a the action to be executed
+   * @param a the action to be executed. A handle to the system's deferred action manager is supplied
+   * to enable further deferral of actions
    */
   void RegisterAbortAction(const TransactionAction &a) { abort_actions_.push_front(a); }
 
   /**
-   * Defers an action to be called if and only if the transaction commits.  Actions executed LIFO.
-   * @warning these actions are run after commit and are not atomic with the commit itself
+   * Defers an action to be called if and only if the transaction aborts.  Actions executed LIFO.
    * @param a the action to be executed
    */
+  void RegisterAbortAction(const std::function<void()> &a) {
+    RegisterAbortAction([&](transaction::DeferredActionManager * /*unused*/) { a(); });
+  }
+
+  /**
+   * Defers an action to be called if and only if the transaction commits.  Actions executed LIFO.
+   * @warning these actions are run after commit and are not atomic with the commit itself
+   * @param a the action to be executed. A handle to the system's deferred action manager is supplied
+   * to enable further deferral of actions
+   */
   void RegisterCommitAction(const TransactionAction &a) { commit_actions_.push_front(a); }
+
+  /**
+   * Defers an action to be called if and only if the transaction commits.  Actions executed LIFO.
+   * @warning these actions are run after commit and are not atomic with the commit itself
+   * @param a the action to be executed.
+   */
+  void RegisterCommitAction(const TransactionAction &a) {
+    RegisterCommitAction([&](transaction::DeferredActionManager * /*unused*/) { a(); });
+  }
 
   /**
    * Flips the TransactionContext's internal flag that it cannot commit to true. This is checked by the
