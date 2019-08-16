@@ -27,8 +27,8 @@ void RandomSqlTableTransaction::RandomUpdate(Random *generator) {
     updated = *(RandomTestUtil::UniformRandomElement(sql_table_metadata->inserted_tuples_, generator));
   }
   // Generate random update
-  std::vector<storage::col_id_t> update_col_ids = StorageTestUtil::ProjectionListRandomColumns(layout, generator);
-  storage::ProjectedRowInitializer initializer = storage::ProjectedRowInitializer::Create(layout, update_col_ids);
+  auto initializer = sql_table_ptr->InitializerForProjectedRow(
+      StorageTestUtil::RandomNonEmptySubset(sql_table_metadata->col_oids_, generator));
   auto *const record = txn_->StageWrite(database_oid, table_oid, initializer);
   record->SetTupleSlot(updated);
   StorageTestUtil::PopulateRandomRow(record->Delta(), layout, 0.0, generator);
@@ -88,9 +88,7 @@ void RandomSqlTableTransaction::RandomSelect(Random *generator) {
   }
 
   auto sql_table_ptr = test_object_->catalog_.GetDatabaseCatalog(txn_, database_oid)->GetTable(txn_, table_oid);
-  auto initializer = storage::ProjectedRowInitializer::Create(
-      sql_table_ptr->table_.layout, StorageTestUtil::ProjectionListAllColumns(sql_table_ptr->table_.layout));
-
+  auto initializer = sql_table_ptr->InitializerForProjectedRow(sql_table_metadata->col_oids_);
   storage::ProjectedRow *select = initializer.InitializeRow(sql_table_metadata->buffer_);
   sql_table_ptr->Select(txn_, selected, select);
 }
@@ -195,28 +193,33 @@ void LargeSqlTableTestObject::PopulateInitialTables(uint16_t num_databases, uint
       auto table_oid =
           db_catalog_ptr->CreateTable(initial_txn_, namespace_oid, "table" + std::to_string(table_idx), *schema);
       TERRIER_ASSERT(table_oid != catalog::INVALID_TABLE_OID, "Table creation should always succeed");
+      delete schema;
       table_oids_[database_oid].emplace_back(table_oid);
-      auto *sql_table = new storage::SqlTable(block_store, db_catalog_ptr->GetSchema(initial_txn_, table_oid));
+      auto catalog_schema = db_catalog_ptr->GetSchema(initial_txn_, table_oid);
+      auto *sql_table = new storage::SqlTable(block_store, catalog_schema);
       auto result UNUSED_ATTRIBUTE = db_catalog_ptr->SetTablePointer(initial_txn_, table_oid, sql_table);
       TERRIER_ASSERT(result, "Setting table pointer in catalog should succeed");
-      delete schema;
+
+      // Create metadata object
+      auto *metadata = new SqlTableMetadata();
+      metadata->col_oids_.reserve(catalog_schema.GetColumns().size());
+      for (const auto &col : catalog_schema.GetColumns()) {
+        metadata->col_oids_.push_back(col.Oid());
+      }
 
       // Create row initializer
-      auto &layout = sql_table->table_.layout;
-      auto initializer =
-          storage::ProjectedRowInitializer::Create(layout, StorageTestUtil::ProjectionListAllColumns(layout));
+      auto initializer = sql_table->InitializerForProjectedRow(metadata->col_oids_);
 
       // Populate table
       std::vector<storage::TupleSlot> inserted_tuples;
       for (uint32_t i = 0; i < num_tuples; i++) {
         auto *const redo = initial_txn_->StageWrite(database_oid, table_oid, initializer);
-        StorageTestUtil::PopulateRandomRow(redo->Delta(), layout, 0.0, generator);
+        StorageTestUtil::PopulateRandomRow(redo->Delta(), sql_table->table_.layout, 0.0, generator);
         const storage::TupleSlot inserted = sql_table->Insert(initial_txn_, redo);
         inserted_tuples.emplace_back(inserted);
       }
 
-      // Create metadata object
-      auto *metadata = new SqlTableMetadata();
+      // Update metadata object
       metadata->inserted_tuples_ = std::move(inserted_tuples);
       metadata->buffer_ = common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize());
       tables_[database_oid][table_oid] = metadata;

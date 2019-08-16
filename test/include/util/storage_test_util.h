@@ -158,23 +158,26 @@ class StorageTestUtil {
   template <typename Random>
   static std::vector<storage::col_id_t> ProjectionListRandomColumns(const storage::BlockLayout &layout,
                                                                     Random *const generator) {
-    // randomly select a number of columns for this delta to contain. Must be at least 1, but shouldn't be num_cols
-    // since we exclude the version vector column
-    uint16_t num_cols = std::uniform_int_distribution<uint16_t>(
-        1, static_cast<uint16_t>(layout.NumColumns() - NUM_RESERVED_COLUMNS))(*generator);
-
     std::vector<storage::col_id_t> col_ids;
     // Add all of the column ids from the layout to the projection list
     // 0 is version vector so we skip it
     for (uint16_t col = NUM_RESERVED_COLUMNS; col < layout.NumColumns(); col++) col_ids.emplace_back(col);
 
-    // permute the column ids for our random delta
-    std::shuffle(col_ids.begin(), col_ids.end(), *generator);
+    return RandomNonEmptySubset(col_ids, generator);
+  }
 
-    // truncate the projection list
-    col_ids.resize(num_cols);
+  template <typename Random, typename T>
+  static std::vector<T> RandomNonEmptySubset(std::vector<T> elems, Random *const generator) {
+    // randomly select a number of elems for this delta to contain. Must be at least 1
+    uint16_t num_elems = std::uniform_int_distribution<uint16_t>(1, elems.size())(*generator);
 
-    return col_ids;
+    // Permute the elems
+    std::shuffle(elems.begin(), elems.end(), *generator);
+
+    // truncate the list
+    elems.resize(num_elems);
+
+    return elems;
   }
 
   // Populate a block with random tuple according to the given parameters. Returns a mapping of the tuples in each slot.

@@ -217,6 +217,9 @@ class LargeSqlTableTestObject {
    * Holds meta data for tables created by test object
    */
   struct SqlTableMetadata {
+    // Column oids for this table. We cache them to generate random updates. They never change because we don't make ddl
+    // changes
+    std::vector<catalog::col_oid_t> col_oids_;
     // Tuple slots inserted into this sql table
     std::vector<storage::TupleSlot> inserted_tuples_;
     // Latch to protect inserted tuples to allow for concurrent transactions
