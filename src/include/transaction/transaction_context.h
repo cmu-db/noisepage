@@ -161,7 +161,7 @@ class TransactionContext {
    * @param a the action to be executed
    */
   void RegisterAbortAction(const std::function<void()> &a) {
-    RegisterAbortAction([&](transaction::DeferredActionManager * /*unused*/) { a(); });
+    RegisterAbortAction([=](transaction::DeferredActionManager * /*unused*/) { a(); });
   }
 
   /**
@@ -178,7 +178,7 @@ class TransactionContext {
    * @param a the action to be executed.
    */
   void RegisterCommitAction(const std::function<void()> &a) {
-    RegisterCommitAction([&](transaction::DeferredActionManager * /*unused*/) { a(); });
+    RegisterCommitAction([=](transaction::DeferredActionManager * /*unused*/) { a(); });
   }
 
   /**

@@ -41,7 +41,7 @@ class DeferredActionManager {
   timestamp_t RegisterDeferredAction(const std::function<void()> &a) {
     // TODO(Tianyu): Will this be a performance problem? Hopefully C++ is smart enough
     // to optimize out this call...
-    return RegisterDeferredAction([&](timestamp_t /*unused*/) { a(); });
+    return RegisterDeferredAction([=](timestamp_t /*unused*/) { a(); });
   }
 
   /**
