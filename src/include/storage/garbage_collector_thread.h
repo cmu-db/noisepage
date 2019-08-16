@@ -18,7 +18,8 @@ class GarbageCollectorThread {
    * @param gc pointer to the garbage collector object to be run on this thread
    * @param gc_period sleep time between GC invocations
    */
-  BOOST_DI_INJECT(GarbageCollectorThread, GarbageCollector *gc, (named = GC_PERIOD) std::chrono::milliseconds gc_period)
+  BOOST_DI_INJECT(GarbageCollectorThread, GarbageCollector *gc,
+                  (named = GC_PERIOD) std::chrono::milliseconds gc_period)
       : gc_(gc),
         run_gc_(true),
         gc_paused_(false),
