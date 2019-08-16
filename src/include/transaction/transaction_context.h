@@ -177,7 +177,7 @@ class TransactionContext {
    * @warning these actions are run after commit and are not atomic with the commit itself
    * @param a the action to be executed.
    */
-  void RegisterCommitAction(const TransactionAction &a) {
+  void RegisterCommitAction(const std::function<void()> &a) {
     RegisterCommitAction([&](transaction::DeferredActionManager * /*unused*/) { a(); });
   }
 

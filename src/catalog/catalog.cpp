@@ -291,7 +291,7 @@ DatabaseCatalog *Catalog::DeleteDatabaseEntry(transaction::TransactionContext *t
   return dbc;
 }
 
-transaction::DeferredAction Catalog::DeallocateDatabaseCatalog(DatabaseCatalog *const dbc) {
+std::function<void()> Catalog::DeallocateDatabaseCatalog(DatabaseCatalog *const dbc) {
   return [=]() {
     auto txn = txn_manager_->BeginTransaction();
     dbc->TearDown(txn);
