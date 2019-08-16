@@ -37,6 +37,7 @@ endif ()
 set(CLANG_IR_CXX_FLAGS "${CXX_ONLY_FLAGS} ${CXX_OPTIMIZATION_FLAGS} ${CXX_COMMON_FLAGS} ${CLANG_CXX_FLAGS} -emit-llvm -c")
 string(REPLACE "-fPIC" "" CLANG_IR_CXX_FLAGS ${CLANG_IR_CXX_FLAGS})
 
+separate_arguments(CLANG_IR_CXX_FLAGS)
 message(STATUS "CLANG_IR_CXX_FLAGS: ${CLANG_IR_CXX_FLAGS}")
 
 get_property(dirs DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY INCLUDE_DIRECTORIES)
@@ -48,15 +49,6 @@ foreach(dir ${CLANG_INCLUDES})
     set(CLANG_IR_CXX_INCLUDES ${CLANG_IR_CXX_INCLUDES} "-I${dir}")
 endforeach()
 message(STATUS "CLANG_IR_CXX_INCLUDES: ${CLANG_IR_CXX_INCLUDES}")
-
-#
-#set(CLANG_IR_CXX_INCLUDES "-I${PROJECT_SOURCE_DIR}/src/include")
-#set(CLANG_IR_CXX_INCLUDES ${CLANG_IR_CXX_INCLUDES} "-I${PROJECT_SOURCE_DIR}/third_party/spdlog/include")
-#set(CLANG_IR_CXX_INCLUDES ${CLANG_IR_CXX_INCLUDES} "-I${PROJECT_SOURCE_DIR}/third_party/portable_endian")
-#set(CLANG_IR_CXX_INCLUDES ${CLANG_IR_CXX_INCLUDES} "-I${PROJECT_SOURCE_DIR}/third_party/bwtree")
-#set(CLANG_IR_CXX_INCLUDES ${CLANG_IR_CXX_INCLUDES} "-I${PROJECT_SOURCE_DIR}/third_party/")
-#set(CLANG_IR_CXX_INCLUDES ${CLANG_IR_CXX_INCLUDES} "-I${GFLAGS_INCLUDE_DIR}")
-#set(CLANG_IR_CXX_INCLUDES ${CLANG_IR_CXX_INCLUDES} "-isystem${LLVM_INCLUDE_DIRS}")
 
 # Function to generate rule to cross compile a source file to an IR module.
 # When called called with a 'src.cpp' source file it will generate a 'src_bc'
