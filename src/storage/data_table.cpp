@@ -133,12 +133,13 @@ bool DataTable::trySetInsertStatus(RawBlock *block) {
 }
 
 void DataTable::checkMoveHead(std::list<RawBlock *>::iterator block) {
-  //common::SpinLatch::ScopedSpinLatch guard(&ini_latch_);
-  //insertion_head_.compare_exchange_strong(block, block++);
+  common::SpinLatch::ScopedSpinLatch guard(&header_latch_);
   if (block == insertion_head_) {
+    // If the header block is full, move the header to point to the next block
     insertion_head_++;
   }
 
+  // If there are no more free blocks, create a new empty block and  point the insertion_head to it
   if (insertion_head_ == blocks_.end()) {
     insertion_head_ = NewBlock();
   }
@@ -151,7 +152,7 @@ TupleSlot DataTable::Insert(transaction::TransactionContext *const txn, const Pr
 
   // Insertion header points to the first block that has free tuple slots
   // Once a txn arrives, it will start from the insertion header to find the first
-  // idle (no other txn is writing to that block) and non-full block.
+  // idle (no other txn is trying to get tuple slots in that block) and non-full block.
   // If no such block is found, the txn will create a new block.
   // Before the txn writes to the block, it will set block status to busy.
   // The first bit of block insert_head_ is used to indicate if the block is busy
@@ -165,9 +166,12 @@ TupleSlot DataTable::Insert(transaction::TransactionContext *const txn, const Pr
     } else if (trySetInsertStatus(*block)) {
       // No one is inserting into this block
       if (accessor_.Allocate(*block, &result)) {
+        // The block is not full, succeed
         break;
       }
-      // if the header is full, move the insertion_header
+      // Fail to insert into the block, flip back the status bit
+      (*block)->insert_head_ = clr_bit((*block)->insert_head_.load());
+      // if the full block is the insertion_header, move the insertion_header
       // Next insert txn will search from the new insertion_header
       checkMoveHead(block);
       // The block is full, try next block
@@ -178,9 +182,9 @@ TupleSlot DataTable::Insert(transaction::TransactionContext *const txn, const Pr
     }
   }
 
-  InsertInto(txn, redo, result);
-  // Flip back insert status
+  // Do not need to wait unit finish inserting, can flip back the status bit once the thread gets the allocated tuple slot
   (*block)->insert_head_ = clr_bit((*block)->insert_head_.load());
+  InsertInto(txn, redo, result);
 
   data_table_counter_.IncrementNumInsert(1);
   return result;

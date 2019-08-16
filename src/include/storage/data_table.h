@@ -239,7 +239,7 @@ class DataTable {
   // might be on it
   std::list<RawBlock *> blocks_;
   mutable common::SpinLatch blocks_latch_;
-  mutable common::SpinLatch ini_latch_;
+  mutable common::SpinLatch header_latch_;
   // to avoid having to grab a latch every time we insert. Failures are very, very infrequent since these
   // only happen when blocks are full, thus we can afford to be optimistic
   std::list<RawBlock *>::iterator insertion_head_;
