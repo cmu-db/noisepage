@@ -15,7 +15,7 @@ class GarbageCollectorThread {
  public:
   DECLARE_ANNOTATION(GC_PERIOD)
   /**
-   * @param txn_manager pointer to the txn manager for the GC to communicate with
+   * @param gc pointer to the garbage collector object to be run on this thread
    * @param gc_period sleep time between GC invocations
    */
   BOOST_DI_INJECT(GarbageCollectorThread, GarbageCollector *gc, (named = GC_PERIOD) std::chrono::milliseconds gc_period)
