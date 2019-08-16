@@ -29,11 +29,6 @@ else()
 endif ()
 
 # Setup compiler arguments to Clang
-# TODO(Amadou): Given all the CMAKE_CXX_FLAGS clang does not compile.
-# For now I just use copied these flags from the TPL repo. Eventually, we should probably figure out a way to pass this in automatically.
-# TODO(WAN): We really want -fno-rtti for execution, but the dummy catalog? is using TBB which needs it.
-#set(CLANG_CXX_FLAGS -std=c++17 -Wall -Werror -mcx16 -march=native -fdiagnostics-color=auto -ggdb -O3 -DNDEBUG )
-#message("CLANG_CXX_FLAGS ${CLANG_CXX_FLAGS}")
 set(CLANG_IR_CXX_FLAGS "${CXX_ONLY_FLAGS} ${CXX_OPTIMIZATION_FLAGS} ${CXX_COMMON_FLAGS} ${CLANG_CXX_FLAGS} -emit-llvm -c")
 string(REPLACE "-fPIC" "" CLANG_IR_CXX_FLAGS ${CLANG_IR_CXX_FLAGS})
 
