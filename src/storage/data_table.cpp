@@ -124,14 +124,6 @@ bool DataTable::Update(transaction::TransactionContext *const txn, const TupleSl
   return true;
 }
 
-
-auto clr_bit = [](auto val) { return val & ~(1 << 31); };
-bool DataTable::trySetInsertStatus(RawBlock *block) {
-  auto set_bit = [](auto val) { return val | (1 << 31); };
-  uint32_t old_val = clr_bit(block->insert_head_.load());
-  return block->insert_head_.compare_exchange_weak(old_val, set_bit(old_val));
-}
-
 void DataTable::checkMoveHead(std::list<RawBlock *>::iterator block) {
   common::SpinLatch::ScopedSpinLatch guard(&header_latch_);
   if (block == insertion_head_) {
@@ -157,20 +149,26 @@ TupleSlot DataTable::Insert(transaction::TransactionContext *const txn, const Pr
   // Before the txn writes to the block, it will set block status to busy.
   // The first bit of block insert_head_ is used to indicate if the block is busy
   // If the first bit is 1, it indicates one txn is writing to the block.
+
+  // Creating block and getting tuple slots from that block are not not combined into
+  // one atomic function here. It's possible thread 1 creates a new block, thread 2 inserts
+  // into that block. Thread 1 needs to create a new block again. The condition happens when
+  // all blocks are full/busy and multiple threads want to insert at the same time. This should
+  // be rare and will not affect the correctness
   TupleSlot result;
   std::list<RawBlock *>::iterator block = insertion_head_;
   while (true) {
     // No free block left
     if (block == blocks_.end()) {
       block = NewBlock();
-    } else if (trySetInsertStatus(*block)) {
+    } else if (accessor_.SetBlockBusyStatus(*block)) {
       // No one is inserting into this block
       if (accessor_.Allocate(*block, &result)) {
         // The block is not full, succeed
         break;
       }
       // Fail to insert into the block, flip back the status bit
-      (*block)->insert_head_ = clr_bit((*block)->insert_head_.load());
+      accessor_.clearBlockBusyStatus(*block);
       // if the full block is the insertion_header, move the insertion_header
       // Next insert txn will search from the new insertion_header
       checkMoveHead(block);
@@ -183,7 +181,7 @@ TupleSlot DataTable::Insert(transaction::TransactionContext *const txn, const Pr
   }
 
   // Do not need to wait unit finish inserting, can flip back the status bit once the thread gets the allocated tuple slot
-  (*block)->insert_head_ = clr_bit((*block)->insert_head_.load());
+  accessor_.clearBlockBusyStatus(*block);
   InsertInto(txn, redo, result);
 
   data_table_counter_.IncrementNumInsert(1);
@@ -363,12 +361,9 @@ bool DataTable::CompareAndSwapVersionPtr(const TupleSlot slot, const TupleAccess
 
 std::list<RawBlock *>::iterator DataTable::NewBlock() {
   common::SpinLatch::ScopedSpinLatch guard(&blocks_latch_);
-  // Want to stop early if another thread is already getting a new block
-  //if (expected_val != insertion_head_) return;
   RawBlock *new_block = block_store_->Get();
   accessor_.InitializeRawBlock(this, new_block, layout_version_);
   blocks_.push_back(new_block);
-  //insertion_head_ = new_block;
   data_table_counter_.IncrementNumNewBlock(1);
   return --blocks_.end();
 }

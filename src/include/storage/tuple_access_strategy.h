@@ -253,9 +253,32 @@ class TupleAccessStrategy {
    */
   const BlockLayout &GetBlockLayout() const { return layout_; }
 
+  /**
+   * Compare and swap block status to busy. Expect that block to be idle, if yes, set the block status to be busy
+   * @param block the block to compare and set
+   * @return true if the set operation succeeded, false if the block is already busy
+   */
+  bool SetBlockBusyStatus(RawBlock *block) const {
+    uint32_t old_val = clr_bit(block->insert_head_.load());
+    return block->insert_head_.compare_exchange_weak(old_val, set_bit(old_val));
+  }
+
+  /**
+   * Compare and swap block status to idle. Expect that block to be busy, if yes, set the block status to be idle
+   * @param block the block to compare and set
+   * @return true if the set operation succeeded, false if the block is already idle
+   */
+  bool clearBlockBusyStatus(RawBlock *block) const {
+    uint32_t old_val = set_bit(block->insert_head_.load());
+    return block->insert_head_.compare_exchange_weak(old_val, clr_bit(old_val));
+  }
+
  private:
   const BlockLayout layout_;
   // Start of each mini block, in offset to the start of the block
   std::vector<uint32_t> column_offsets_;
+  // Not sure if I should put the two lambdas here
+  uint32_t (*clr_bit)(uint32_t) = [](uint32_t val) { return val & ~(1 << 31); };
+  uint32_t (*set_bit)(uint32_t) = [](uint32_t val) { return val | (1 << 31); };
 };
 }  // namespace terrier::storage
