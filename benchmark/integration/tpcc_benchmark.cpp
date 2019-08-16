@@ -43,7 +43,7 @@ class TPCCBenchmark : public benchmark::Fixture {
   const uint64_t num_log_buffers_ = 100;
   const std::chrono::milliseconds log_serialization_interval_{5};
   const std::chrono::milliseconds log_persist_interval_{10};
-  const uint64_t log_persist_threshold_ = (1u << 20U);  // 1MB
+  const uint64_t log_persist_threshold_ = (1U << 20U);  // 1MB
 
   const bool only_count_new_order_ = false;  // TPC-C specification is to only measure throughput for New Order in final
                                              // result, but most academic papers use all txn types

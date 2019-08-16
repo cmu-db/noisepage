@@ -56,7 +56,7 @@ class TPCCTests : public TerrierTest {
   const uint64_t num_log_buffers_ = 100;
   const std::chrono::milliseconds log_serialization_interval_{10};
   const std::chrono::milliseconds log_persist_interval_{20};
-  const uint64_t log_persist_threshold_ = (1u << 20u);  // 1MB
+  const uint64_t log_persist_threshold_ = (1U << 20U);  // 1MB
 
   storage::GarbageCollector *gc_;
   storage::GarbageCollectorThread *gc_thread_ = nullptr;
