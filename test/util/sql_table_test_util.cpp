@@ -16,8 +16,6 @@ void RandomSqlTableTransaction::RandomUpdate(Random *generator) {
   const auto database_oid = *(RandomTestUtil::UniformRandomElement(test_object_->database_oids_, generator));
   const auto table_oid = *(RandomTestUtil::UniformRandomElement(test_object_->table_oids_[database_oid], generator));
   auto &sql_table_metadata = test_object_->tables_[database_oid][table_oid];
-  auto sql_table_ptr = test_object_->catalog_.GetDatabaseCatalog(txn_, database_oid)->GetTable(txn_, table_oid);
-  auto &layout = sql_table_ptr->table_.layout;
 
   // Get random tuple slot to update
   storage::TupleSlot updated;
@@ -27,11 +25,15 @@ void RandomSqlTableTransaction::RandomUpdate(Random *generator) {
     updated = *(RandomTestUtil::UniformRandomElement(sql_table_metadata->inserted_tuples_, generator));
   }
   // Generate random update
+  // The placement of this get catalog call is important. Its possible that because we take a spin latch above, the OS
+  // will serialize the txns by getting the tuple and quickly doing the operation on the tuple immedietly after. Adding
+  // an expensive call (Like GetTable) will help in having the OS interleave the threads more.
+  auto sql_table_ptr = test_object_->catalog_.GetDatabaseCatalog(txn_, database_oid)->GetTable(txn_, table_oid);
   auto initializer = sql_table_ptr->InitializerForProjectedRow(
       StorageTestUtil::RandomNonEmptySubset(sql_table_metadata->col_oids_, generator));
   auto *const record = txn_->StageWrite(database_oid, table_oid, initializer);
   record->SetTupleSlot(updated);
-  StorageTestUtil::PopulateRandomRow(record->Delta(), layout, 0.0, generator);
+  StorageTestUtil::PopulateRandomRow(record->Delta(), sql_table_ptr->table_.layout, 0.0, generator);
   auto result = sql_table_ptr->Update(txn_, record);
   aborted_ = !result;
 }
@@ -53,7 +55,9 @@ void RandomSqlTableTransaction::RandomDelete(Random *generator) {
     deleted = *(RandomTestUtil::UniformRandomElement(sql_table_metadata->inserted_tuples_, generator));
   }
 
-  // Generate random delete
+  // The placement of this get catalog call is important. Its possible that because we take a spin latch above, the OS
+  // will serialize the txns by getting the tuple and quickly doing the operation on the tuple immedietly after. Adding
+  // an expensive call (Like GetTable) will help in having the OS interleave the threads more.
   auto sql_table_ptr = test_object_->catalog_.GetDatabaseCatalog(txn_, database_oid)->GetTable(txn_, table_oid);
   txn_->StageDelete(database_oid, table_oid, deleted);
   auto result = sql_table_ptr->Delete(txn_, deleted);
@@ -87,6 +91,9 @@ void RandomSqlTableTransaction::RandomSelect(Random *generator) {
     selected = *(RandomTestUtil::UniformRandomElement(sql_table_metadata->inserted_tuples_, generator));
   }
 
+  // The placement of this get catalog call is important. Its possible that because we take a spin latch above, the OS
+  // will serialize the txns by getting the tuple and quickly doing the operation on the tuple immedietly after. Adding
+  // an expensive call (Like GetTable) will help in having the OS interleave the threads more.
   auto sql_table_ptr = test_object_->catalog_.GetDatabaseCatalog(txn_, database_oid)->GetTable(txn_, table_oid);
   auto initializer = sql_table_ptr->InitializerForProjectedRow(sql_table_metadata->col_oids_);
   storage::ProjectedRow *select = initializer.InitializeRow(sql_table_metadata->buffer_);

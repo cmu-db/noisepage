@@ -244,7 +244,8 @@ void RecoveryManager::UpdateIndexesOnTable(transaction::TransactionContext *txn,
       index_schemas.reserve(index_oids.size());
 
       for (auto &oid : index_oids) {
-        // Get index ptr
+        // TODO(Gus, John, Issue #513): These individual calls are inefficient, we should be able to get these objects
+        // with a single call to the catalog Get index ptr
         auto index_ptr = db_catalog_ptr->GetIndex(txn, oid);
         indexes.push_back(index_ptr);
 
