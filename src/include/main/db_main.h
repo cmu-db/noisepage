@@ -57,8 +57,10 @@ class DBMain {
     // TODO(Matt): might as well make these std::unique_ptr, but then will need to refactor other classes to take
     // ManagedPointers unless we want a bunch of .get()s, which sounds like a future PR
     delete gc_thread_;
+    delete garbage_collector_;
     delete settings_manager_;
     delete txn_manager_;
+    delete timestamp_manager_;
     delete buffer_segment_pool_;
     delete thread_pool_;
     delete log_manager_;
