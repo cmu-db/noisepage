@@ -11,19 +11,13 @@ class ColumnStatsTests : public TerrierTest {
 };
 
 // NOLINTNEXTLINE
-TEST(ColumnStatsTests, GetColumnIDTest) {
-  EXPECT_EQ(catalog::col_oid_t(1), column_stats_obj.GetColumnID());
-}
+TEST(ColumnStatsTests, GetColumnIDTest) { EXPECT_EQ(catalog::col_oid_t(1), column_stats_obj.GetColumnID()); }
 
 // NOLINTNEXTLINE
-TEST(ColumnStatsTests, GetNumRowsTest) {
-  EXPECT_EQ(10, column_stats_obj.GetNumRows());
-}
+TEST(ColumnStatsTests, GetNumRowsTest) { EXPECT_EQ(10, column_stats_obj.GetNumRows()); }
 
 // NOLINTNEXTLINE
-TEST(ColumnStatsTests, GetCardinalityTest) {;
-  EXPECT_EQ(4, column_stats_obj.GetCardinality());
-}
+TEST(ColumnStatsTests, GetCardinalityTest) { EXPECT_EQ(4, column_stats_obj.GetCardinality()); }
 
 // NOLINTNEXTLINE
 TEST(ColumnStatsTests, ColumnStatsJsonTest) {

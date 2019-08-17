@@ -53,19 +53,15 @@ TEST(TableStatsTests, GetCardinalityTest) {
 }
 
 // NOLINTNEXTLINE
-TEST(TableStatsTests, GetColumnCountTest) {
-  ASSERT_EQ(table_stats_obj.GetColumnCount(), 5);
-}
+TEST(TableStatsTests, GetColumnCountTest) { ASSERT_EQ(table_stats_obj.GetColumnCount(), 5); }
 
 // NOLINTNEXTLINE
-TEST(TableStatsTests, HasColumnStatsTest) {
-  ASSERT_EQ(table_stats_obj.HasColumnStats(catalog::col_oid_t(5)), true);
-}
+TEST(TableStatsTests, HasColumnStatsTest) { ASSERT_EQ(table_stats_obj.HasColumnStats(catalog::col_oid_t(5)), true); }
 
 // NOLINTNEXTLINE
 TEST(TableStatsTests, GetColumnStatsTest) {
-  ASSERT_EQ(table_stats_obj.GetColumnStats(catalog::col_oid_t(5))->GetColumnID(), catalog::col_oid_t(5));
-}
+  ASSERT_EQ(table_stats_obj.GetColumnStats(catalog::col_oid_t(5))->GetColumnID(),
+      catalog::col_oid_t(5)); }
 
 // NOLINTNEXTLINE
 TEST(TableStatsTests, RemoveColumnStatsTest) {
@@ -75,14 +71,10 @@ TEST(TableStatsTests, RemoveColumnStatsTest) {
 }
 
 // NOLINTNEXTLINE
-TEST(TableStatsTests, IsBaseTableTest) {
-  ASSERT_EQ(table_stats_obj.IsBaseTable(), true);
-}
+TEST(TableStatsTests, IsBaseTableTest) { ASSERT_EQ(table_stats_obj.IsBaseTable(), true); }
 
 // NOLINTNEXTLINE
-TEST(TableStatsTests, GetNumRowsTest) {
-  ASSERT_EQ(table_stats_obj.GetNumRows(), 5);
-}
+TEST(TableStatsTests, GetNumRowsTest) { ASSERT_EQ(table_stats_obj.GetNumRows(), 5); }
 
 // NOLINTNEXTLINE
 TEST(TableStatsTests, TableStatsJsonTest) {
