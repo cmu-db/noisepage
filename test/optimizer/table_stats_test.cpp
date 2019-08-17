@@ -6,7 +6,7 @@
 #include "util/test_harness.h"
 
 namespace terrier::optimizer {
-class ColumnStatsTests : public TerrierTest {
+class TableStatsTests : public TerrierTest {
  public:
   auto column_stats_obj_1 = ColumnStats(catalog::db_oid_t(1), catalog::table_oid_t(1), catalog::col_oid_t(1), 5, 4, 0.2,
                                         {3, 4, 5}, {2, 2, 2}, {1.0, 5.0}, true);
