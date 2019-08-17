@@ -15,7 +15,7 @@
 
 namespace terrier::optimizer {
 /**
- * StatsStorageKey - hashable type for database and table oid pair
+ * Hashable type for database and table oid pair
  */
 using StatsStorageKey = std::pair<terrier::catalog::db_oid_t, terrier::catalog::table_oid_t>;
 }  // namespace terrier::optimizer
@@ -58,14 +58,14 @@ struct equal_to<terrier::optimizer::StatsStorageKey> {
 
 namespace terrier::optimizer {
 /**
- * StatsStorage - manages all the existing table stats objects. Stores them in an
+ * Manages all the existing table stats objects. Stores them in an
  * unordered map and keeps track of them using their database and table oids. Can
  * add, update, or delete table stats objects from the storage map.
  */
 class StatsStorage {
  public:
   /**
-   * GetTableStats - Using given database and table ids,
+   * Using given database and table ids,
    * select a pointer to the TableStats objects in the table stats storage map.
    * @param database_id - oid of database
    * @param table_id - oid of table
@@ -75,7 +75,7 @@ class StatsStorage {
 
  protected:
   /**
-   * InsertTableStats - if there is no corresponding pointer to a TableStats object
+   * If there is no corresponding pointer to a TableStats object
    * for the given database and table ids in the stats storage map, then this function inserts
    * a TableStats pointer in the table stats storage map and returns true. Else, it returns false.
    * (note: you must std::move the TableStats object you pass in.)
@@ -87,7 +87,7 @@ class StatsStorage {
   bool InsertTableStats(catalog::db_oid_t database_id, catalog::table_oid_t table_id, TableStats table_stats);
 
   /**
-   * DeleteTableStats - if there is a corresponding pointer to a TableStats object, then remove
+   * If there is a corresponding pointer to a TableStats object, then remove
    * it and return true. Else, return false.
    * @param database_id - oid of database
    * @param table_id - oid of table
@@ -104,7 +104,7 @@ class StatsStorage {
   FRIEND_TEST(StatsStorageTests, DeleteTableStatsTest);
 
   /**
-   * table_stats_storage - an unordered map mapping StatsStorageKey objects (database_id and table_id) to
+   * An unordered map mapping StatsStorageKey objects (database_id and table_id) to
    * TableStats pointers. This represents the storage for TableStats objects.
    */
   std::unordered_map<StatsStorageKey, std::unique_ptr<TableStats>> table_stats_storage;

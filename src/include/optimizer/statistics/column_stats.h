@@ -8,7 +8,7 @@
 
 namespace terrier::optimizer {
 /**
- * ColumnStats - represents the statistics of a given column. Stores relevant oids,
+ * Represents the statistics of a given column. Stores relevant oids,
  * important trends (most common values/their frequencies in the column), and other
  * useful information.
  */
@@ -47,19 +47,19 @@ class ColumnStats {
   ColumnStats() = default;
 
   /**
-   * GetColumnID - gets the column oid of the column
+   * Gets the column oid of the column
    * @return the column oid
    */
   catalog::col_oid_t GetColumnID() const { return column_id_; }
 
   /**
-   * GetNumRows - gets the number of rows in the column
+   * Gets the number of rows in the column
    * @return the number of rows
    */
   size_t &GetNumRows() { return this->num_rows_; }
 
   /**
-   * GetCardinality - gets the cardinality of the column
+   * Gets the cardinality of the column
    * @return the cardinality
    */
   double &GetCardinality() { return this->cardinality_; }

@@ -4,31 +4,29 @@
 #include "util/test_harness.h"
 
 namespace terrier::optimizer {
-// NOLINTNEXTLINE
-TEST(ColumnStatsTests, GetColumnIDTest) {
+class ColumnStatsTests : public TerrierTest {
+ public:
   auto column_stats_obj = ColumnStats(catalog::db_oid_t(1), catalog::table_oid_t(1), catalog::col_oid_t(1), 10, 4, 0.2,
                                       {3, 4, 5}, {2, 2, 2}, {1.0, 5.0}, true);
+};
+
+// NOLINTNEXTLINE
+TEST(ColumnStatsTests, GetColumnIDTest) {
   EXPECT_EQ(catalog::col_oid_t(1), column_stats_obj.GetColumnID());
 }
 
 // NOLINTNEXTLINE
 TEST(ColumnStatsTests, GetNumRowsTest) {
-  auto column_stats_obj = ColumnStats(catalog::db_oid_t(1), catalog::table_oid_t(1), catalog::col_oid_t(1), 10, 4, 0.2,
-                                      {3, 4, 5}, {2, 2, 2}, {1.0, 5.0}, true);
   EXPECT_EQ(10, column_stats_obj.GetNumRows());
 }
 
 // NOLINTNEXTLINE
-TEST(ColumnStatsTests, GetCardinalityTest) {
-  auto column_stats_obj = ColumnStats(catalog::db_oid_t(1), catalog::table_oid_t(1), catalog::col_oid_t(1), 10, 4, 0.2,
-                                      {3, 4, 5}, {2, 2, 2}, {1.0, 5.0}, true);
+TEST(ColumnStatsTests, GetCardinalityTest) {;
   EXPECT_EQ(4, column_stats_obj.GetCardinality());
 }
 
 // NOLINTNEXTLINE
 TEST(ColumnStatsTests, ColumnStatsJsonTest) {
-  auto column_stats_obj = ColumnStats(catalog::db_oid_t(1), catalog::table_oid_t(1), catalog::col_oid_t(1), 10, 4, 0.2,
-                                      {3, 4, 5}, {2, 2, 2}, {1.0, 5.0}, true);
   auto column_stats_obj_json = column_stats_obj.ToJson();
   EXPECT_FALSE(column_stats_obj_json.is_null());
 

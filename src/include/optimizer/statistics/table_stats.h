@@ -12,7 +12,7 @@
 
 namespace terrier::optimizer {
 /**
- * TableStats - represents the statistics of a given table. Stores relevant oids and
+ * Represents the statistics of a given table. Stores relevant oids and
  * other important information, as well as a list of all the ColumnStats objects for
  * the columns in the table. Can manipulate its ColumnStats objects (adding/deleting).
  */
@@ -40,65 +40,65 @@ class TableStats {
   TableStats() = default;
 
   /**
-   * UpdateNumRows - updates the number of rows in the table and all of its columns
+   * Updates the number of rows in the table and all of its columns
    * @param new_num_rows - the new number of rows to update to
    */
   void UpdateNumRows(size_t new_num_rows);
 
   /**
-   * AddColumnStats - adds a ColumnStats object to the map of ColumnStats objects
+   * Adds a ColumnStats object to the map of ColumnStats objects
    * @param col_stats - ColumnStats object to add
    * @return whether the ColumnStats object is successfully added
    */
   bool AddColumnStats(std::unique_ptr<ColumnStats> col_stats);
 
   /**
-   * ClearColumnStats - removes all the ColumnStats objects in the ColumnStats map
+   * Removes all the ColumnStats objects in the ColumnStats map
    */
   void ClearColumnStats() { column_stats_.clear(); }
 
   /**
-   * GetCardinality - gets the cardinality of a column in the table, given its column id
+   * Gets the cardinality of a column in the table, given its column id
    * @param column_id - the column oid
    * @return the cardinality of the column
    */
   double GetCardinality(catalog::col_oid_t column_id);
 
   /**
-   * GetColumnCount - gets the number of columns in the table
+   * Gets the number of columns in the table
    * @return the number of columns
    */
   size_t GetColumnCount() const { return column_stats_.size(); }
 
   /**
-   * HasColumnStats - checks to see if there's a ColumnStats object for the given column oid
+   * Checks to see if there's a ColumnStats object for the given column oid
    * @param column_id - the oid of the column
    * @return whether the ColumnStats object exists
    */
   bool HasColumnStats(catalog::col_oid_t column_id) const;
 
   /**
-   * GetColumnStats - retrieves the ColumnStats object for the given column oid in the ColumnStats map
+   * Retrieves the ColumnStats object for the given column oid in the ColumnStats map
    * @param column_id - the oid of the column
    * @return the pointer to the ColumnStats object
    */
   common::ManagedPointer<ColumnStats> GetColumnStats(catalog::col_oid_t column_id);
 
   /**
-   * RemoveColumnStats - removes the ColumnStats object for the given column oid in the ColumnStats map
+   * Removes the ColumnStats object for the given column oid in the ColumnStats map
    * @param column_id - the oid of the column
    * @return whether the ColumnStats object was successfully removed
    */
   bool RemoveColumnStats(catalog::col_oid_t column_id);
 
   /**
-   * IsBaseTable - checks to see whether the table is a base table
+   * Checks to see whether the table is a base table
    * @return whether table is base table
    */
   bool IsBaseTable() const { return is_base_table_; }
 
   /**
-   * GetNumRows - gets the number of rows in the table
+   * Gets the number of rows in the table
    * @return the number of rows
    */
   size_t GetNumRows() const { return num_rows_; }
