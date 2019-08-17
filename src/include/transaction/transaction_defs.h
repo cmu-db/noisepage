@@ -21,10 +21,10 @@ using TransactionQueue = std::forward_list<transaction::TransactionContext *>;
 using callback_fn = void (*)(void *);
 
 /**
- * A TransactionAction is applied when the transaction is either committed or aborted (as configured).
+ * A TransactionEndAction is applied when the transaction is either committed or aborted (as configured).
  * It is given a handle to the DeferredActionManager in case it needs to register a deferred action.
  */
-using TransactionAction = std::function<void(DeferredActionManager *)>;
+using TransactionEndAction = std::function<void(DeferredActionManager *)>;
 /**
  * A DeferredAction is an action that can only be safely performed after all transactions that could
  * have access to something has finished. (e.g. pruning of version chains)

@@ -41,13 +41,11 @@ class BwTreeIndex final : public Index {
     TERRIER_ASSERT(
         result,
         "non-unique index shouldn't fail to insert. If it did, something went wrong deep inside the BwTree itself.");
-    if (result) {
-      // Register an abort action with the txn context in case of rollback
-      txn->RegisterAbortAction([=]() {
-        const bool UNUSED_ATTRIBUTE result = bwtree_->Delete(index_key, location);
-        TERRIER_ASSERT(result, "Delete on the index failed.");
-      });
-    }
+    // Register an abort action with the txn context in case of rollback
+    txn->RegisterAbortAction([=]() {
+      const bool UNUSED_ATTRIBUTE result = bwtree_->Delete(index_key, location);
+      TERRIER_ASSERT(result, "Delete on the index failed.");
+    });
     return result;
   }
 
@@ -97,7 +95,7 @@ class BwTreeIndex final : public Index {
     txn->RegisterCommitAction([=](transaction::DeferredActionManager *deferred_action_manager) {
       deferred_action_manager->RegisterDeferredAction([=]() {
         const bool UNUSED_ATTRIBUTE result = bwtree_->Delete(index_key, location);
-        TERRIER_ASSERT(result, "Deferred delete on the index failed.");  // NOLINT
+        TERRIER_ASSERT(result, "Deferred delete on the index failed.");
       });
     });
   }

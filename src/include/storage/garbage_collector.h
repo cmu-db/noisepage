@@ -104,8 +104,6 @@ class GarbageCollector {
   transaction::TransactionQueue txns_to_deallocate_;
   // queue of txns that need to be unlinked
   transaction::TransactionQueue txns_to_unlink_;
-  // queue of unexecuted deferred actions
-  std::queue<std::pair<transaction::timestamp_t, transaction::TransactionAction>> deferred_actions_;
 
   std::unordered_set<index::Index *> indexes_;
   common::SharedLatch indexes_latch_;

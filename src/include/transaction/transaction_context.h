@@ -154,7 +154,7 @@ class TransactionContext {
    * @param a the action to be executed. A handle to the system's deferred action manager is supplied
    * to enable further deferral of actions
    */
-  void RegisterAbortAction(const TransactionAction &a) { abort_actions_.push_front(a); }
+  void RegisterAbortAction(const TransactionEndAction &a) { abort_actions_.push_front(a); }
 
   /**
    * Defers an action to be called if and only if the transaction aborts.  Actions executed LIFO.
@@ -170,7 +170,7 @@ class TransactionContext {
    * @param a the action to be executed. A handle to the system's deferred action manager is supplied
    * to enable further deferral of actions
    */
-  void RegisterCommitAction(const TransactionAction &a) { commit_actions_.push_front(a); }
+  void RegisterCommitAction(const TransactionEndAction &a) { commit_actions_.push_front(a); }
 
   /**
    * Defers an action to be called if and only if the transaction commits.  Actions executed LIFO.
@@ -203,8 +203,8 @@ class TransactionContext {
   std::vector<const byte *> loose_ptrs_;
 
   // These actions will be triggered (not deferred) at abort/commit.
-  std::forward_list<TransactionAction> abort_actions_;
-  std::forward_list<TransactionAction> commit_actions_;
+  std::forward_list<TransactionEndAction> abort_actions_;
+  std::forward_list<TransactionEndAction> commit_actions_;
 
   // log manager will set this to be true when log records are processed (not necessarily flushed, but will not be read
   // again in the future), so it can be garbage-collected safely.

@@ -19,9 +19,6 @@
 #include "transaction/transaction_defs.h"
 
 namespace terrier::storage {
-// TODO(Tianyu): Remove and replace with just the new DISABLED macro
-// Write Ahead Logging:
-
 // All tuples potentially visible to txns should have a non-null attribute of version vector.
 // This is not to be confused with a non-null version vector that has value nullptr (0).
 #define VERSION_POINTER_COLUMN_ID ::terrier::storage::col_id_t(0)

@@ -61,7 +61,6 @@ class DeferredActionManager {
  private:
   TimestampManager *timestamp_manager_;
   // TODO(Tianyu): We might want to change this data structure to be more specialized than std::queue
-  // Both queue should stay sorted in timestamp
   std::queue<std::pair<timestamp_t, DeferredAction>> new_deferred_actions_, back_log_;
   common::SpinLatch deferred_actions_latch_;
 
