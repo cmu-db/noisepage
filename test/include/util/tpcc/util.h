@@ -55,7 +55,7 @@ struct Util {
   static void SetKeyAttribute(const catalog::IndexSchema &schema, const uint32_t col_offset,
                               const std::unordered_map<catalog::indexkeycol_oid_t, uint16_t> &projection_map,
                               storage::ProjectedRow *const pr, T value) {
-    auto key_cols = schema.GetColumns();
+    const auto &key_cols = schema.GetColumns();
     TERRIER_ASSERT((type::TypeUtil::GetTypeSize(key_cols.at(col_offset).Type()) & INT8_MAX) == sizeof(T),
                    "Invalid attribute size.");
     const auto col_oid = key_cols.at(col_offset).Oid();
