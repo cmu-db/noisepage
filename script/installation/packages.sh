@@ -66,6 +66,7 @@ install_mac() {
   brew update
   # Install packages.
   brew ls --versions cmake || brew install cmake
+  brew ls --versions coreutils || brew install coreutils
   brew ls --versions doxygen || brew install doxygen
   brew ls --versions git || brew install git
   brew ls --versions jemalloc || brew install jemalloc
@@ -75,7 +76,7 @@ install_mac() {
   brew ls --versions openssl || brew install openssl
   brew ls --versions postgresql || brew install postgresql
   brew ls --versions tbb || brew install tbb
-  brew ls --version ant || brew install ant
+  brew ls --versions ant || brew install ant
 }
 
 install_linux() {
