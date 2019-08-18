@@ -20,7 +20,7 @@ namespace terrier::execution::vm {
 /**
  * An enumeration capturing different execution methods and optimization levels.
  */
-enum class ExecutionMode : u8 {
+enum class ExecutionMode : uint8_t {
   // Always execute in interpreted mode
   Interpret,
   // Execute in interpreted mode, but trigger a compilation asynchronously. As
@@ -194,11 +194,11 @@ namespace detail {
 // These functions value-copy a variable number of pass-by-value arguments into
 // a given buffer. It's assumed the buffer is large enough to hold all arguments
 
-inline void CopyAll(UNUSED u8 *buffer) {}
+inline void CopyAll(UNUSED_ATTRIBUTE uint8_t *buffer) {}
 
 template <typename HeadT, typename... RestT>
-inline void CopyAll(u8 *buffer, const HeadT &head, const RestT &... rest) {
-  std::memcpy(buffer, reinterpret_cast<const u8 *>(&head), sizeof(head));
+inline void CopyAll(uint8_t *buffer, const HeadT &head, const RestT &... rest) {
+  std::memcpy(buffer, reinterpret_cast<const uint8_t *>(&head), sizeof(head));
   CopyAll(buffer + sizeof(head), rest...);
 }
 
@@ -216,7 +216,7 @@ inline bool Module::GetFunction(const std::string &name, const ExecutionMode exe
   }
 
   // Verify argument counts
-  constexpr const u32 num_params = sizeof...(ArgTypes);
+  constexpr const uint32_t num_params = sizeof...(ArgTypes);
   if (num_params != func_info->func_type()->num_params()) {
     return false;
   }
@@ -224,14 +224,14 @@ inline bool Module::GetFunction(const std::string &name, const ExecutionMode exe
   switch (exec_mode) {
     case ExecutionMode::Adaptive: {
       CompileToMachineCodeAsync();
-      FALLTHROUGH;
+      TERRIER_FALLTHROUGH;
     }
     case ExecutionMode::Interpret: {
       *func = [this, func_info](ArgTypes... args) -> Ret {
         // NOLINTNEXTLINE: bugprone-suspicious-semicolon: seems like a false positive because of constexpr
         if constexpr (std::is_void_v<Ret>) {
           // Create a temporary on-stack buffer and copy all arguments
-          u8 arg_buffer[(0ul + ... + sizeof(args))];
+          uint8_t arg_buffer[(0ul + ... + sizeof(args))];
           detail::CopyAll(arg_buffer, args...);
 
           // Invoke and finish
@@ -242,7 +242,7 @@ inline bool Module::GetFunction(const std::string &name, const ExecutionMode exe
         Ret rv{};
 
         // Create a temporary on-stack buffer and copy all arguments
-        u8 arg_buffer[sizeof(Ret *) + (0ul + ... + sizeof(args))];
+        uint8_t arg_buffer[sizeof(Ret *) + (0ul + ... + sizeof(args))];
         detail::CopyAll(arg_buffer, &rv, args...);
 
         // Invoke and finish

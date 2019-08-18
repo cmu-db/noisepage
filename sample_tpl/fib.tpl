@@ -1,3 +1,5 @@
+// Fibonacci function
+
 fun fib(n: int64) -> int64 {
   if (n < 2) {
     return n

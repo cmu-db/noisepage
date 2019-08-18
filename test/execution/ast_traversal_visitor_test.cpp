@@ -27,7 +27,6 @@ class AstTraversalVisitorTest : public TplTest {
     parsing::Parser parser(&scanner, &ctx);
 
     if (error.HasErrors()) {
-      error.PrintErrors();
       return nullptr;
     }
 
@@ -37,7 +36,6 @@ class AstTraversalVisitorTest : public TplTest {
     auto check = sema.Run(root);
 
     if (error.HasErrors()) {
-      error.PrintErrors();
       return nullptr;
     }
 
@@ -64,17 +62,17 @@ class ForFinder : public AstTraversalVisitor<ForFinder<FindInfinite>> {
   void VisitForStmt(ast::ForStmt *stmt) {
     if constexpr (FindInfinite) {
       bool is_finite_for = (stmt->condition() == nullptr);
-      num_fors_ += static_cast<u32>(is_finite_for);
+      num_fors_ += static_cast<uint32_t>(is_finite_for);
     } else {  // NOLINT
       num_fors_++;
     }
     AstTraversalVisitor<SelfT>::VisitForStmt(stmt);
   }
 
-  u32 num_fors() const { return num_fors_; }
+  uint32_t num_fors() const { return num_fors_; }
 
  private:
-  u32 num_fors_;
+  uint32_t num_fors_;
 };
 
 }  // namespace
@@ -186,10 +184,10 @@ class FunctionFinder : public AstTraversalVisitor<FunctionFinder<CountLiterals>>
     AstTraversalVisitor<SelfT>::VisitFunctionLitExpr(expr);
   }
 
-  u32 num_funcs() const { return num_funcs_; }
+  uint32_t num_funcs() const { return num_funcs_; }
 
  private:
-  u32 num_funcs_;
+  uint32_t num_funcs_;
 };
 
 }  // namespace
@@ -248,10 +246,10 @@ class IfFinder : public AstTraversalVisitor<IfFinder> {
     AstTraversalVisitor<IfFinder>::VisitIfStmt(stmt);
   }
 
-  u32 num_ifs() const { return num_ifs_; }
+  uint32_t num_ifs() const { return num_ifs_; }
 
  private:
-  u32 num_ifs_;
+  uint32_t num_ifs_;
 };
 
 }  // namespace

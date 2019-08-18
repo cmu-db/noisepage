@@ -62,7 +62,7 @@ std::string ErrorReporter::MessageWithArgs::FormatMessage() const {
   }
 
   // Need to format
-  u32 arg_idx = 0;
+  uint32_t arg_idx = 0;
   while (fmt != nullptr) {
     const char *pos = strchr(fmt, '%');
     if (pos == nullptr) {
@@ -83,14 +83,14 @@ std::string ErrorReporter::MessageWithArgs::FormatMessage() const {
   return msg;
 }
 
-void ErrorReporter::PrintErrors() {
+std::string ErrorReporter::SerializeErrors() {
   std::string error_str;
 
   for (const auto &error : errors_) {
     error_str.append(error.FormatMessage()).append("\n");
   }
 
-  EXECUTION_LOG_ERROR("{}", error_str.c_str());
+  return error_str;
 }
 
 }  // namespace terrier::execution::sema

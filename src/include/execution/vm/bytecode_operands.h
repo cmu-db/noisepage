@@ -1,13 +1,13 @@
 #pragma once
 
-#include "execution/util/common.h"
+#include "execution/util/execution_common.h"
 
 namespace terrier::execution::vm {
 
 /**
  * This enumeration lists all possible sizes of operands to any bytecode
  */
-enum class OperandSize : u8 { None = 0, Byte = 1, Short = 2, Int = 4, Long = 8, Float = 4, Double = 8 };
+enum class OperandSize : uint8_t { None = 0, Byte = 1, Short = 2, Int = 4, Long = 8, Float = 4, Double = 8 };
 
 /**
  * This macro list provides information about all possible operand types to a
@@ -31,7 +31,7 @@ enum class OperandSize : u8 { None = 0, Byte = 1, Short = 2, Int = 4, Long = 8, 
 /**
  * This enumeration lists all possible types of operands to any bytecode
  */
-enum class OperandType : u8 {
+enum class OperandType : uint8_t {
 #define OP_TYPE(Name, ...) Name,
   OPERAND_TYPE_LIST(OP_TYPE)
 #undef OP_TYPE
@@ -82,7 +82,7 @@ class OperandTypes {
   /**
    * @return the maximum jump offset
    */
-  static i32 MaxJumpOffset();
+  static int32_t MaxJumpOffset();
 };
 
 }  // namespace terrier::execution::vm

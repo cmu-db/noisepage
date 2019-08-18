@@ -4,7 +4,7 @@
 
 #include "execution/bandit/agent.h"
 #include "execution/bandit/multi_armed_bandit.h"
-#include "execution/util/common.h"
+#include "execution/util/execution_common.h"
 
 namespace terrier::execution::bandit {
 
@@ -34,7 +34,7 @@ class Environment {
    * chosen randomly without replacement. Else, it is chosen from 0 to
    * num_trials.
    */
-  void Run(u32 num_trials, std::vector<double> *rewards, std::vector<u32> *actions, bool shuffle = false);
+  void Run(uint32_t num_trials, std::vector<double> *rewards, std::vector<uint32_t> *actions, bool shuffle = false);
 
  private:
   // Bandit that executes the actions.

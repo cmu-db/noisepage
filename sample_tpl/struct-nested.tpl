@@ -1,3 +1,5 @@
+// Test nested structs
+
 struct X {
   s: int
   n: int

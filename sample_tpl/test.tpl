@@ -1,3 +1,5 @@
+// Random test
+
 fun f1() -> int {
     var x1 = 133 + 353
     var x2 = x1

@@ -3,35 +3,35 @@
 #include <algorithm>
 #include <cstdint>
 
-#include "execution/util/common.h"
-#include "execution/util/macros.h"
+#include "common/macros.h"
+#include "execution/util/execution_common.h"
 #include "execution/vm/bytecode_operands.h"
 
 namespace terrier::execution::vm {
 
 // Creates instances of a given opcode for all integer primitive types
 #define CREATE_FOR_INT_TYPES(F, op, ...) \
-  F(op##_##i8, __VA_ARGS__)              \
-  F(op##_##i16, __VA_ARGS__)             \
-  F(op##_##i32, __VA_ARGS__)             \
-  F(op##_##i64, __VA_ARGS__)             \
-  F(op##_##u8, __VA_ARGS__)              \
-  F(op##_##u16, __VA_ARGS__)             \
-  F(op##_##u32, __VA_ARGS__)             \
-  F(op##_##u64, __VA_ARGS__)
+  F(op##_##int8_t, __VA_ARGS__)          \
+  F(op##_##int16_t, __VA_ARGS__)         \
+  F(op##_##int32_t, __VA_ARGS__)         \
+  F(op##_##int64_t, __VA_ARGS__)         \
+  F(op##_##uint8_t, __VA_ARGS__)         \
+  F(op##_##uint16_t, __VA_ARGS__)        \
+  F(op##_##uint32_t, __VA_ARGS__)        \
+  F(op##_##uint64_t, __VA_ARGS__)
 
 // Creates instances of a given opcode for all floating-point primitive types
 #define CREATE_FOR_FLOAT_TYPES(F, op, ...) \
-  F(op##_##f32, __VA_ARGS__)               \
-  F(op##_##f64, __VA_ARGS__)
+  F(op##_##float, __VA_ARGS__)             \
+  F(op##_##double, __VA_ARGS__)
 
 // Creates instances of a given opcode for *ALL* primitive types
 #define CREATE_FOR_ALL_TYPES(F, op, ...)   \
   CREATE_FOR_INT_TYPES(F, op, __VA_ARGS__) \
   CREATE_FOR_FLOAT_TYPES(F, op, __VA_ARGS__)
 
-#define GET_BASE_FOR_INT_TYPES(op) (op##_i8)
-#define GET_BASE_FOR_FLOAT_TYPES(op) (op##_f32)
+#define GET_BASE_FOR_INT_TYPES(op) (op##_int8_t)
+#define GET_BASE_FOR_FLOAT_TYPES(op) (op##_float)
 #define GET_BASE_FOR_BOOL_TYPES(op) (op##_bool)
 
 /**
@@ -99,7 +99,7 @@ namespace terrier::execution::vm {
   F(ThreadStateContainerFree, OperandType::Local)                                                                     \
                                                                                                                       \
   /* Table Vector Iterator */                                                                                         \
-  F(TableVectorIteratorInit, OperandType::Local, OperandType::UImm4, OperandType::Local, OperandType::Local,          \
+  F(TableVectorIteratorInit, OperandType::Local, OperandType::Local, OperandType::UImm4, OperandType::Local,          \
     OperandType::UImm4)                                                                                               \
   F(TableVectorIteratorPerformInit, OperandType::Local)                                                               \
   F(TableVectorIteratorNext, OperandType::Local, OperandType::Local)                                                  \
@@ -320,11 +320,8 @@ namespace terrier::execution::vm {
   F(OutputAlloc, OperandType::Local, OperandType::Local)                                                              \
   F(OutputFinalize, OperandType::Local)                                                                               \
                                                                                                                       \
-  /* Insert */                                                                                                        \
-  F(Insert, OperandType::Local, OperandType::Local, OperandType::Local)                                               \
-                                                                                                                      \
   /* Index Iterator */                                                                                                \
-  F(IndexIteratorInit, OperandType::Local, OperandType::UImm4, OperandType::UImm4, OperandType::Local,                \
+  F(IndexIteratorInit, OperandType::Local, OperandType::Local, OperandType::UImm4, OperandType::UImm4,                \
     OperandType::Local, OperandType::UImm4)                                                                           \
   F(IndexIteratorPerformInit, OperandType::Local)                                                                     \
   F(IndexIteratorScanKey, OperandType::Local)                                                                         \
@@ -350,6 +347,12 @@ namespace terrier::execution::vm {
   F(IndexIteratorSetKeyBigInt, OperandType::Local, OperandType::UImm2, OperandType::Local)                            \
   F(IndexIteratorSetKeyReal, OperandType::Local, OperandType::UImm2, OperandType::Local)                              \
   F(IndexIteratorSetKeyDouble, OperandType::Local, OperandType::UImm2, OperandType::Local)                            \
+  F(IndexIteratorSetKeyTinyIntNull, OperandType::Local, OperandType::UImm2, OperandType::Local)                       \
+  F(IndexIteratorSetKeySmallIntNull, OperandType::Local, OperandType::UImm2, OperandType::Local)                      \
+  F(IndexIteratorSetKeyIntNull, OperandType::Local, OperandType::UImm2, OperandType::Local)                           \
+  F(IndexIteratorSetKeyBigIntNull, OperandType::Local, OperandType::UImm2, OperandType::Local)                        \
+  F(IndexIteratorSetKeyRealNull, OperandType::Local, OperandType::UImm2, OperandType::Local)                          \
+  F(IndexIteratorSetKeyDoubleNull, OperandType::Local, OperandType::UImm2, OperandType::Local)                        \
                                                                                                                       \
   /* Trig functions */                                                                                                \
   F(Pi, OperandType::Local)                                                                                           \
@@ -401,7 +404,7 @@ namespace terrier::execution::vm {
 /**
  * The single enumeration of all possible bytecode instructions
  */
-enum class Bytecode : u32 {
+enum class Bytecode : uint32_t {
 #define DECLARE_OP(inst, ...) inst,
   BYTECODE_LIST(DECLARE_OP)
 #undef DECLARE_OP
@@ -418,36 +421,36 @@ class Bytecodes {
   /**
    * The total number of bytecode instructions
    */
-  static constexpr const u32 kBytecodeCount = static_cast<u32>(Bytecode::Last) + 1;
+  static constexpr const uint32_t kBytecodeCount = static_cast<uint32_t>(Bytecode::Last) + 1;
 
   /**
    * @return total number of bytecode instructions
    */
-  static constexpr u32 NumBytecodes() { return kBytecodeCount; }
+  static constexpr uint32_t NumBytecodes() { return kBytecodeCount; }
 
   /**
    * @return the maximum length of any bytecode instruction in bytes
    */
-  static u32 MaxBytecodeNameLength();
+  static uint32_t MaxBytecodeNameLength();
 
   /**
    * @param bytecode bytecode to convert
    * @return the string representation of the given bytecode
    */
-  static const char *ToString(Bytecode bytecode) { return kBytecodeNames[static_cast<u32>(bytecode)]; }
+  static const char *ToString(Bytecode bytecode) { return kBytecodeNames[static_cast<uint32_t>(bytecode)]; }
 
   /**
    * @param bytecode bytecode for the number of operands is needed
    * @return the number of operands a bytecode accepts
    */
-  static u32 NumOperands(Bytecode bytecode) { return kBytecodeOperandCounts[static_cast<u32>(bytecode)]; }
+  static uint32_t NumOperands(Bytecode bytecode) { return kBytecodeOperandCounts[static_cast<uint32_t>(bytecode)]; }
 
   /**
    * @param bytecode for which the operand types are needed
    * @return an array of the operand types to the given bytecode
    */
   static const OperandType *GetOperandTypes(Bytecode bytecode) {
-    return kBytecodeOperandTypes[static_cast<u32>(bytecode)];
+    return kBytecodeOperandTypes[static_cast<uint32_t>(bytecode)];
   }
 
   /**
@@ -455,7 +458,7 @@ class Bytecodes {
    * @return an array of the sizes of all operands to the given bytecode
    */
   static const OperandSize *GetOperandSizes(Bytecode bytecode) {
-    return kBytecodeOperandSizes[static_cast<u32>(bytecode)];
+    return kBytecodeOperandSizes[static_cast<uint32_t>(bytecode)];
   }
 
   /**
@@ -464,7 +467,7 @@ class Bytecodes {
    * @param operand_index index of the operand
    * @return the type of the operand at the given index
    */
-  static OperandType GetNthOperandType(Bytecode bytecode, u32 operand_index) {
+  static OperandType GetNthOperandType(Bytecode bytecode, uint32_t operand_index) {
     TERRIER_ASSERT(operand_index < NumOperands(bytecode), "Accessing out-of-bounds operand number for bytecode");
     return GetOperandTypes(bytecode)[operand_index];
   }
@@ -475,7 +478,7 @@ class Bytecodes {
    * @param operand_index index of the operand
    * @return the size of the operand at the given index
    */
-  static OperandSize GetNthOperandSize(Bytecode bytecode, u32 operand_index) {
+  static OperandSize GetNthOperandSize(Bytecode bytecode, uint32_t operand_index) {
     TERRIER_ASSERT(operand_index < NumOperands(bytecode), "Accessing out-of-bounds operand number for bytecode");
     return GetOperandSizes(bytecode)[operand_index];
   }
@@ -487,7 +490,7 @@ class Bytecodes {
    * @param operand_index index of the operand
    * @return the offset of the operand at the given index
    */
-  static u32 GetNthOperandOffset(Bytecode bytecode, u32 operand_index);
+  static uint32_t GetNthOperandOffset(Bytecode bytecode, uint32_t operand_index);
 
   /**
    * @param bytecode bytecode for which the name is needed
@@ -544,7 +547,7 @@ class Bytecodes {
 
  private:
   static const char *kBytecodeNames[];
-  static u32 kBytecodeOperandCounts[];
+  static uint32_t kBytecodeOperandCounts[];
   static const OperandType *kBytecodeOperandTypes[];
   static const OperandSize *kBytecodeOperandSizes[];
   static const char *kBytecodeHandlerName[];

@@ -2,7 +2,7 @@
 
 #include <vector>
 
-#include "execution/util/macros.h"
+#include "common/macros.h"
 #include "execution/util/timer.h"
 
 namespace terrier::execution::util {

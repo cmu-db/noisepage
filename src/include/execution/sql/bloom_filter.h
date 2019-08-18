@@ -2,9 +2,11 @@
 
 #include <vector>
 
+#include "common/constants.h"
+#include "common/macros.h"
+#include "common/strong_typedef.h"
 #include "execution/sql/memory_pool.h"
-#include "execution/util/common.h"
-#include "execution/util/macros.h"
+#include "execution/util/execution_common.h"
 
 namespace terrier::execution::sql {
 
@@ -21,16 +23,16 @@ namespace terrier::execution::sql {
  */
 class BloomFilter {
   // The set of salt values we use to produce alternative hash values
-  alignas(CACHELINE_SIZE) static constexpr const u32 kSalts[8] = {0x47b6137bU, 0x44974d91U, 0x8824ad5bU, 0xa2b7289dU,
-                                                                  0x705495c7U, 0x2df1424bU, 0x9efc4947U, 0x5c6bfb31U};
+  alignas(common::Constants::CACHELINE_SIZE) static constexpr const uint32_t kSalts[8] = {
+      0x47b6137bU, 0x44974d91U, 0x8824ad5bU, 0xa2b7289dU, 0x705495c7U, 0x2df1424bU, 0x9efc4947U, 0x5c6bfb31U};
 
-  static constexpr const u32 kBitsPerElement = 8;
+  static constexpr const uint32_t kBitsPerElement = 8;
 
  public:
   /**
    * A block in this filter (i.e., the sizes of the bloom filter partitions)
    */
-  using Block = u32[8];
+  using Block = uint32_t[8];
 
  public:
   /**
@@ -50,7 +52,7 @@ class BloomFilter {
    * @param memory The allocator where this filter's memory is sourced from
    * @param num_elems The expected number of elements
    */
-  BloomFilter(MemoryPool *memory, u32 num_elems);
+  BloomFilter(MemoryPool *memory, uint32_t num_elems);
 
   /**
    * This class cannot be copied or moved
@@ -67,7 +69,7 @@ class BloomFilter {
    * @param memory The allocator where this filter's memory is sourced from
    * @param num_elems The expected number of elements
    */
-  void Init(MemoryPool *memory, u32 num_elems);
+  void Init(MemoryPool *memory, uint32_t num_elems);
 
   /**
    * Add an element to the bloom filter
@@ -85,20 +87,20 @@ class BloomFilter {
   /**
    * Return the size of the filter in bytes
    */
-  u64 GetSizeInBytes() const { return sizeof(Block) * GetNumBlocks(); }
+  uint64_t GetSizeInBytes() const { return sizeof(Block) * GetNumBlocks(); }
 
   /**
    * Return the number of bits in this filter
    */
-  u64 GetSizeInBits() const { return GetSizeInBytes() * kBitsPerByte; }
+  uint64_t GetSizeInBits() const { return GetSizeInBytes() * common::Constants::kBitsPerByte; }
 
   /**
    * Return the number of set bits in this filter
    */
-  u64 GetTotalBitsSet() const;
+  uint64_t GetTotalBitsSet() const;
 
  private:
-  u32 GetNumBlocks() const { return block_mask_ + 1; }
+  uint32_t GetNumBlocks() const { return block_mask_ + 1; }
 
  private:
   // The memory allocator we use for all allocations
@@ -108,41 +110,10 @@ class BloomFilter {
   Block *blocks_{nullptr};
 
   // The mask used to determine which block a hash goes into
-  u32 block_mask_{0};
+  uint32_t block_mask_{0};
 
   // Temporary vector of lazily added hashes for bulk loading
   MemPoolVector<hash_t> lazily_added_hashes_{nullptr};
 };
-
-#if 0
-// ---------------------------------------------------------
-// Implementation below
-// ---------------------------------------------------------
-
-inline void BloomFilter::Add_Slow(hash_t hash) {
-  u32 block_idx = static_cast<u32>(hash & block_mask());
-  Block &block = blocks_[block_idx];
-  u32 alt_hash = static_cast<u32>(hash >> 32);
-  for (u32 i = 0; i < 8; i++) {
-    u32 bit_idx = (alt_hash * kSalts[i]) >> 27;
-    util::BitUtil::Set(&block[i], bit_idx);
-  }
-}
-
-inline bool BloomFilter::Contains_Slow(hash_t hash) const {
-  u32 alt_hash = static_cast<u32>(hash >> 32);
-  u32 block_idx = static_cast<u32>(hash & block_mask());
-
-  Block &block = blocks_[block_idx];
-  for (u32 i = 0; i < 8; i++) {
-    u32 bit_idx = (alt_hash * kSalts[i]) >> 27;
-    if (!util::BitUtil::Test(&block[i], bit_idx)) {
-      return false;
-    }
-  }
-
-  return true;
-}
-#endif
 
 }  // namespace terrier::execution::sql

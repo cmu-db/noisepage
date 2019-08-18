@@ -78,7 +78,7 @@ class Sema : public ast::AstVisitor<Sema> {
   ast::Type *GetRowTypeFromSqlSchema(const catalog::Schema &schema);
 
   // Create a builtin type
-  ast::Type *GetBuiltinType(u16 builtin_kind);
+  ast::Type *GetBuiltinType(uint16_t builtin_kind);
 
   struct CheckResult {
     ast::Type *result_type;
@@ -86,17 +86,17 @@ class Sema : public ast::AstVisitor<Sema> {
     ast::Expr *right;
   };
 
-  void ReportIncorrectCallArg(ast::CallExpr *call, u32 index, ast::Type *expected);
+  void ReportIncorrectCallArg(ast::CallExpr *call, uint32_t index, ast::Type *expected);
 
-  void ReportIncorrectCallArg(ast::CallExpr *call, u32 index, const char *expected);
+  void ReportIncorrectCallArg(ast::CallExpr *call, uint32_t index, const char *expected);
 
   // Implicitly cast the input expression into the target type using the
   // provided cast kind, also setting the type of the casted expression result.
   ast::Expr *ImplCastExprToType(ast::Expr *expr, ast::Type *target_type, ast::CastKind cast_kind);
 
   // Check the number of arguments to the call; true if good, false otherwise
-  bool CheckArgCount(ast::CallExpr *call, u32 expected_arg_count);
-  bool CheckArgCountAtLeast(ast::CallExpr *call, u32 expected_arg_count);
+  bool CheckArgCount(ast::CallExpr *call, uint32_t expected_arg_count);
+  bool CheckArgCountAtLeast(ast::CallExpr *call, uint32_t expected_arg_count);
 
   // Check boolean logic operands: and, or
   CheckResult CheckLogicalOperands(parsing::Token::Type op, const SourcePosition &pos, ast::Expr *left,
@@ -148,7 +148,6 @@ class Sema : public ast::AstVisitor<Sema> {
   void CheckBuiltinHashCall(ast::CallExpr *call, ast::Builtin builtin);
   void CheckBuiltinOutputAlloc(ast::CallExpr *call);
   void CheckBuiltinOutputFinalize(ast::CallExpr *call);
-  void CheckBuiltinInsert(ast::CallExpr *call);
   void CheckBuiltinIndexIteratorInit(ast::CallExpr *call, ast::Builtin builtin);
   void CheckBuiltinIndexIteratorAdvance(ast::CallExpr *call);
   void CheckBuiltinIndexIteratorGet(ast::CallExpr *call, ast::Builtin builtin);
@@ -246,8 +245,8 @@ class Sema : public ast::AstVisitor<Sema> {
   Scope *scope_;
 
   // A cache of scopes to reduce allocations
-  static constexpr const u32 kScopeCacheSize = 4;
-  u64 num_cached_scopes_;
+  static constexpr const uint32_t kScopeCacheSize = 4;
+  uint64_t num_cached_scopes_;
   std::unique_ptr<Scope> scope_cache_[kScopeCacheSize] = {nullptr};
 
   ast::FunctionLitExpr *curr_func_;

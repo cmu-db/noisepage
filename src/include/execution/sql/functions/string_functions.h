@@ -105,7 +105,7 @@ class StringFunctions {
    * Return the suffix starting at pos
    */
   static void Substring(exec::ExecutionContext *ctx, StringVal *result, const StringVal &str, const Integer &pos) {
-    Substring(ctx, result, str, pos, Integer(std::numeric_limits<i64>::max()));
+    Substring(ctx, result, str, pos, Integer(std::numeric_limits<int64_t>::max()));
   }
 
   /**

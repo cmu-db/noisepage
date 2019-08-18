@@ -1,3 +1,10 @@
+// Perform a vectorized scan for:
+//
+// SELECT * FROM test_1 WHERE cola < 500
+//
+// Should return 500 (number of output rows)
+
+
 fun Lt500(pci: *ProjectedColumnsIterator) -> int32 {
   var param: Integer = @intToSql(500)
   var cola: Integer
@@ -46,7 +53,7 @@ fun main(execCtx: *ExecutionContext) -> int {
   var tvi: TableVectorIterator
   var col_oids : [1]uint32
   col_oids[0] = 1
-  for (@tableIterInitBind(&tvi, "test_1", execCtx, col_oids); @tableIterAdvance(&tvi); ) {
+  for (@tableIterInitBind(&tvi, execCtx, "test_1", col_oids); @tableIterAdvance(&tvi); ) {
     var pci = @tableIterGetPCI(&tvi)
     @filtersRun(&filter, pci)
     ret = ret + count(pci)

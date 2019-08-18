@@ -1,3 +1,5 @@
+// Test struct fields
+
 struct S {
   a : int64
   b : int64

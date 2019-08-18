@@ -4,7 +4,7 @@
 
 #include "llvm/ADT/DenseMapInfo.h"
 
-#include "execution/util/macros.h"
+#include "common/macros.h"
 
 namespace terrier::execution::ast {
 

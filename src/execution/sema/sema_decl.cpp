@@ -13,8 +13,8 @@ void Sema::VisitVariableDecl(ast::VariableDecl *node) {
 
   // At this point, the variable either has a declared type or an initial value
   TERRIER_ASSERT(node->HasTypeDecl() || node->HasInitialValue(),
-             "Variable has neither a type declaration or an initial "
-             "expression. This should have been caught during parsing.");
+                 "Variable has neither a type declaration or an initial "
+                 "expression. This should have been caught during parsing.");
 
   ast::Type *declared_type = nullptr;
   ast::Type *initializer_type = nullptr;

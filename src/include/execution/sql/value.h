@@ -2,11 +2,11 @@
 
 #include <sstream>
 #include <string>
+#include "common/macros.h"
+#include "common/math_util.h"
 #include "date/date.h"
 #include "execution/exec/execution_context.h"
-#include "execution/util/common.h"
-#include "execution/util/macros.h"
-#include "execution/util/math_util.h"
+#include "execution/util/execution_common.h"
 #include "type/type_id.h"
 
 namespace terrier::execution::sql {
@@ -75,20 +75,20 @@ struct Integer : public Val {
   /**
    * raw integer value
    */
-  i64 val;
+  int64_t val;
 
   /**
    * Non-Null constructor
    * @param val raw int value
    */
-  explicit Integer(i64 val) noexcept : Integer(false, val) {}
+  explicit Integer(int64_t val) noexcept : Integer(false, val) {}
 
   /**
    * Generic constructor
    * @param null whether the value is NULL or not
    * @param val the raw int value
    */
-  explicit Integer(bool null, i64 val) noexcept : Val(null), val(val) {}
+  explicit Integer(bool null, int64_t val) noexcept : Val(null), val(val) {}
 
   /**
    * Create a NULL integer
@@ -153,15 +153,15 @@ struct Decimal : public Val {
   /**
    * bit representaion
    */
-  u64 val;
+  uint64_t val;
   /**
    * Precision of the decimal
    */
-  u32 precision;
+  uint32_t precision;
   /**
    * Scale of the decimal
    */
-  u32 scale;
+  uint32_t scale;
 
   /**
    * Constructor
@@ -169,7 +169,8 @@ struct Decimal : public Val {
    * @param precision precision of the decimal
    * @param scale scale of the decimal
    */
-  Decimal(u64 val, u32 precision, u32 scale) noexcept : Val(false), val(val), precision(precision), scale(scale) {}
+  Decimal(uint64_t val, uint32_t precision, uint32_t scale) noexcept
+      : Val(false), val(val), precision(precision), scale(scale) {}
 
   /**
    * @return a NULL decimal value
@@ -189,7 +190,7 @@ struct StringVal : public Val {
   /**
    * Maximum string length
    */
-  static constexpr std::size_t kMaxStingLen = 1 * GB;
+  static constexpr std::size_t kMaxStingLen = 1 * common::Constants::GB;
 
   /**
    * Padding for inlining
@@ -204,7 +205,7 @@ struct StringVal : public Val {
   /**
    * String length
    */
-  u32 len;
+  uint32_t len;
 
   /**
    * Create a string value (i.e., a view) over the given potentially non-null
@@ -212,7 +213,7 @@ struct StringVal : public Val {
    * @param str The byte sequence.
    * @param len The length of the sequence.
    */
-  StringVal(const char *str, u32 len) noexcept : Val(str == nullptr), len(len) {
+  StringVal(const char *str, uint32_t len) noexcept : Val(str == nullptr), len(len) {
     if (!is_null) {
       if (len <= InlineThreshold()) {
         std::memcpy(prefix_, str, len);
@@ -227,7 +228,7 @@ struct StringVal : public Val {
    * Note that no copy is made.
    * @param str The C-string.
    */
-  explicit StringVal(const char *str) noexcept : StringVal(str, u32(strlen(str))) {}
+  explicit StringVal(const char *str) noexcept : StringVal(str, uint32_t(strlen(str))) {}
 
   /**
    * Compare if this (potentially nullable) string value is equivalent to
@@ -287,7 +288,7 @@ struct StringVal : public Val {
       return result->prefix_;
     }
     // Out of line
-    if (TPL_UNLIKELY(len > kMaxStingLen)) {
+    if (UNLIKELY(len > kMaxStingLen)) {
       return nullptr;
     }
     auto *ptr = memory->Allocate(len);
@@ -315,14 +316,14 @@ struct Date : public Val {
    */
   union {
     date::year_month_day ymd;
-    u32 int_val;
+    uint32_t int_val;
   };
 
   /**
    * Constructor
    * @param date date value
    */
-  explicit Date(u32 date) noexcept : Val(false), int_val{date} {}
+  explicit Date(uint32_t date) noexcept : Val(false), int_val{date} {}
 
   /**
    * Constructor
@@ -344,7 +345,8 @@ struct Date : public Val {
    * @param month month value
    * @param day day value
    */
-  Date(i16 year, u8 month, u8 day) noexcept : Val(false), ymd{date::year(year) / date::month(month) / date::day(day)} {}
+  Date(int16_t year, uint8_t month, uint8_t day) noexcept
+      : Val(false), ymd{date::year(year) / date::month(month) / date::day(day)} {}
 
   /**
    * @return a NULL Date.
@@ -389,24 +391,24 @@ struct ValUtil {
    * @param type a terrier type
    * @return the size of the corresponding sql type
    */
-  static u32 GetSqlSize(type::TypeId type) {
+  static uint32_t GetSqlSize(type::TypeId type) {
     switch (type) {
       case type::TypeId::TINYINT:
       case type::TypeId::SMALLINT:
       case type::TypeId::INTEGER:
       case type::TypeId::BIGINT:
-        return static_cast<u32>(util::MathUtil::AlignTo(sizeof(Integer), 8));
+        return static_cast<uint32_t>(util::MathUtil::AlignTo(sizeof(Integer), 8));
       case type::TypeId::BOOLEAN:
-        return static_cast<u32>(util::MathUtil::AlignTo(sizeof(BoolVal), 8));
+        return static_cast<uint32_t>(util::MathUtil::AlignTo(sizeof(BoolVal), 8));
       case type::TypeId::DATE:
       case type::TypeId::TIMESTAMP:
-        return static_cast<u32>(util::MathUtil::AlignTo(sizeof(Date), 8));
+        return static_cast<uint32_t>(util::MathUtil::AlignTo(sizeof(Date), 8));
       case type::TypeId::DECIMAL:
         // TODO(Amadou): We only support reals for now. Switch to Decima once it's implemented
-        return static_cast<u32>(util::MathUtil::AlignTo(sizeof(Real), 8));
+        return static_cast<uint32_t>(util::MathUtil::AlignTo(sizeof(Real), 8));
       case type::TypeId::VARCHAR:
       case type::TypeId::VARBINARY:
-        return static_cast<u32>(util::MathUtil::AlignTo(sizeof(StringVal), 8));
+        return static_cast<uint32_t>(util::MathUtil::AlignTo(sizeof(StringVal), 8));
       default:
         return 0;
     }
@@ -426,17 +428,17 @@ struct ValUtil {
   /**
    * Return the year part of the date
    */
-  static i16 ExtractYear(const Date &date) { return i16(static_cast<int>(date.ymd.year())); }
+  static int16_t ExtractYear(const Date &date) { return int16_t(static_cast<int>(date.ymd.year())); }
 
   /**
    * Return the month part of the date
    */
-  static u8 ExtractMonth(const Date &date) { return u8(static_cast<unsigned>(date.ymd.month())); }
+  static uint8_t ExtractMonth(const Date &date) { return uint8_t(static_cast<unsigned>(date.ymd.month())); }
 
   /**
    * Return the day part of the date
    */
-  static u8 ExtractDay(const Date &date) { return u8(static_cast<unsigned>(date.ymd.day())); }
+  static uint8_t ExtractDay(const Date &date) { return uint8_t(static_cast<unsigned>(date.ymd.day())); }
 
   /**
    * Construct a date object from a string
@@ -445,14 +447,14 @@ struct ValUtil {
    */
   static Date StringToDate(const std::string &str) {
     std::stringstream ss(str);
-    i16 year, month, day;
+    int16_t year, month, day;
     // Token to dismiss the '-' character
-    // Am using the i16 type to prevent the string stream from returning ascii codes.
+    // Am using the int16_t type to prevent the string stream from returning ascii codes.
     char tok;
     ss >> year >> tok;
     ss >> month >> tok;
     ss >> day;
-    return Date(i16(year), u8(month), u8(day));
+    return Date(int16_t(year), uint8_t(month), uint8_t(day));
   }
 };
 

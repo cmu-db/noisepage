@@ -6,7 +6,8 @@
 #include <utility>
 #include <vector>
 
-#include "execution/util/common.h"
+#include "common/strong_typedef.h"
+#include "execution/util/execution_common.h"
 #include "execution/util/region.h"
 #include "execution/util/region_containers.h"
 
@@ -35,21 +36,19 @@ namespace terrier::execution::util {
 template <typename Alloc = std::allocator<byte>>
 class ChunkedVector {
  public:
-  // clang-format off
-  // We store 256 elements in each chunk of the vector
   /**
+   * We store 256 elements in each chunk.
    * log of 256 = 8
    */
-  static constexpr const u32 kLogNumElementsPerChunk = 8;
+  static constexpr const uint32_t kLogNumElementsPerChunk = 8;
   /**
-  * Number of elements per chunk = 256
+   * Number of elements per chunk = 256
    */
-  static constexpr const u32 kNumElementsPerChunk = (1u << kLogNumElementsPerChunk);
+  static constexpr const uint32_t kNumElementsPerChunk = (1u << kLogNumElementsPerChunk);
   /**
-  * Bit mask with kLogNumElementsPerChunk ones.
+   * Bit mask with kLogNumElementsPerChunk ones.
    */
-  static constexpr const u32 kChunkPositionMask = kNumElementsPerChunk - 1;
-  // clang-format on
+  static constexpr const uint32_t kChunkPositionMask = kNumElementsPerChunk - 1;
 
   /**
    * Construct a chunked vector whose elements have size @em element_size in
@@ -134,7 +133,7 @@ class ChunkedVector {
     /**
      * Type of the difference between two iterators
      */
-    using difference_type = i64;
+    using difference_type = int64_t;
     /**
      * Type of the values
      */
@@ -184,15 +183,15 @@ class ChunkedVector {
      * @param offset offset to add to the iterator
      * @return the (same) updated iterator
      */
-    Iterator &operator+=(const i64 &offset) {
+    Iterator &operator+=(const int64_t &offset) {
       // The size (in bytes) of one chunk
-      const i64 chunk_size = ChunkedVector::ChunkAllocSize(element_size_);
+      const int64_t chunk_size = ChunkedVector::ChunkAllocSize(element_size_);
 
       // The total number of bytes between the new and current position
-      const i64 byte_offset = offset * static_cast<i64>(element_size_) + (curr_ - *chunks_iter_);
+      const int64_t byte_offset = offset * static_cast<int64_t>(element_size_) + (curr_ - *chunks_iter_);
 
       // Offset of the new chunk relative to the current chunk
-      i64 chunk_offset;
+      int64_t chunk_offset;
 
       // Optimize for the common case where offset is relatively small. This
       // reduces the number of integer divisions.
@@ -223,7 +222,7 @@ class ChunkedVector {
      * @param offset offset to subtract to the iterator
      * @return the (same) updated iterator
      */
-    Iterator &operator-=(const i64 &offset) {
+    Iterator &operator-=(const int64_t &offset) {
       *this += (-offset);
       return *this;
     }
@@ -233,7 +232,7 @@ class ChunkedVector {
      * @param offset to add to the iterator
      * @return the new iterator with the added offset
      */
-    Iterator operator+(const i64 &offset) const {
+    Iterator operator+(const int64_t &offset) const {
       Iterator copy(*this);
       copy += offset;
       return copy;
@@ -244,7 +243,7 @@ class ChunkedVector {
      * @param offset to subtract from the iterator
      * @return the new iterator with the subtracted offset
      */
-    Iterator operator-(const i64 &offset) const {
+    Iterator operator-(const int64_t &offset) const {
       Iterator copy(*this);
       copy -= offset;
       return copy;
@@ -257,8 +256,8 @@ class ChunkedVector {
      * @return the (same) updated iterator
      */
     Iterator &operator++() noexcept {
-      const i64 chunk_size = ChunkedVector::ChunkAllocSize(element_size_);
-      const i64 byte_offset = static_cast<i64>(element_size_) + (curr_ - *chunks_iter_);
+      const int64_t chunk_size = ChunkedVector::ChunkAllocSize(element_size_);
+      const int64_t byte_offset = static_cast<int64_t>(element_size_) + (curr_ - *chunks_iter_);
       // NOTE: an explicit if statement is a bit faster despite the possibility of
       // branch misprediction.
       if (byte_offset >= chunk_size) {
@@ -287,8 +286,8 @@ class ChunkedVector {
      * @return the (same) updated iterator
      */
     Iterator &operator--() noexcept {
-      const i64 chunk_size = ChunkedVector::ChunkAllocSize(element_size_);
-      const i64 byte_offset = -static_cast<i64>(element_size_) + (curr_ - *chunks_iter_);
+      const int64_t chunk_size = ChunkedVector::ChunkAllocSize(element_size_);
+      const int64_t byte_offset = -static_cast<int64_t>(element_size_) + (curr_ - *chunks_iter_);
       // NOTE: an explicit if statement is a bit faster despite the possibility of
       // branch misprediction.
       if (byte_offset < 0) {
@@ -315,7 +314,7 @@ class ChunkedVector {
      * @param idx index to access
      * @return the element that is idx away from the current position
      */
-    byte *operator[](const i64 &idx) const noexcept { return *(*this + idx); }
+    byte *operator[](const int64_t &idx) const noexcept { return *(*this + idx); }
 
     /**
      * Equality
@@ -368,8 +367,8 @@ class ChunkedVector {
      * @return the number of elements between the two iterators
      */
     difference_type operator-(const Iterator &that) const noexcept {
-      const i64 chunk_size = ChunkedVector::ChunkAllocSize(element_size_);
-      const auto elem_size = static_cast<i64>(element_size_);
+      const int64_t chunk_size = ChunkedVector::ChunkAllocSize(element_size_);
+      const auto elem_size = static_cast<int64_t>(element_size_);
 
       return ((chunks_iter_ - that.chunks_iter_) * chunk_size +
               ((curr_ - *chunks_iter_) - (that.curr_ - *that.chunks_iter_))) /
@@ -657,7 +656,7 @@ class ChunkedVectorT {
      * @param offset offset to add to the iterator
      * @return the (same) updated iterator
      */
-    Iterator &operator+=(const i64 &offset) noexcept {
+    Iterator &operator+=(const int64_t &offset) noexcept {
       iter_ += offset;
       return *this;
     }
@@ -667,7 +666,7 @@ class ChunkedVectorT {
      * @param offset offset to subtract to the iterator
      * @return the (same) updated iterator
      */
-    Iterator &operator-=(const i64 &offset) noexcept {
+    Iterator &operator-=(const int64_t &offset) noexcept {
       iter_ -= offset;
       return *this;
     }
@@ -677,14 +676,14 @@ class ChunkedVectorT {
      * @param offset to add to the iterator
      * @return the new iterator with the added offset
      */
-    Iterator operator+(const i64 &offset) const noexcept { return Iterator(iter_ + offset); }
+    Iterator operator+(const int64_t &offset) const noexcept { return Iterator(iter_ + offset); }
 
     /**
      * Subtraction
      * @param offset to subtract from the iterator
      * @return the new iterator with the subtracted offset
      */
-    Iterator operator-(const i64 &offset) const noexcept { return Iterator(iter_ - offset); }
+    Iterator operator-(const int64_t &offset) const noexcept { return Iterator(iter_ - offset); }
 
     /**
      * Pre-increment
@@ -721,7 +720,7 @@ class ChunkedVectorT {
      * @param idx index to access
      * @return the element that is idx away from the current position
      */
-    T &operator[](const i64 &idx) const noexcept { return *reinterpret_cast<T *>(iter_[idx]); }
+    T &operator[](const int64_t &idx) const noexcept { return *reinterpret_cast<T *>(iter_[idx]); }
 
     /**
      * Equality

@@ -24,13 +24,13 @@ void ProjectedColumnsIterator::SetProjectedColumn(storage::ProjectedColumns *pro
 }
 
 template <typename T, template <typename> typename Op>
-u32 ProjectedColumnsIterator::FilterColByColImpl(const u32 col_idx_1, const u32 col_idx_2) {
+uint32_t ProjectedColumnsIterator::FilterColByColImpl(const uint32_t col_idx_1, const uint32_t col_idx_2) {
   // Get the input column's data
-  const auto *input_1 = reinterpret_cast<const T *>(projected_column_->ColumnStart(static_cast<u16>(col_idx_1)));
-  const auto *input_2 = reinterpret_cast<const T *>(projected_column_->ColumnStart(static_cast<u16>(col_idx_2)));
+  const auto *input_1 = reinterpret_cast<const T *>(projected_column_->ColumnStart(static_cast<uint16_t>(col_idx_1)));
+  const auto *input_2 = reinterpret_cast<const T *>(projected_column_->ColumnStart(static_cast<uint16_t>(col_idx_2)));
 
   // Use the existing selection vector if this PCI has been filtered
-  const u32 *sel_vec = (IsFiltered() ? selection_vector_ : nullptr);
+  const uint32_t *sel_vec = (IsFiltered() ? selection_vector_ : nullptr);
 
   // Filter!
   selection_vector_write_idx_ =
@@ -49,12 +49,12 @@ u32 ProjectedColumnsIterator::FilterColByColImpl(const u32 col_idx_1, const u32 
 
 // Filter an entire column's data by the provided constant value
 template <typename T, template <typename> typename Op>
-u32 ProjectedColumnsIterator::FilterColByValImpl(u32 col_idx, T val) {
+uint32_t ProjectedColumnsIterator::FilterColByValImpl(uint32_t col_idx, T val) {
   // Get the input column's data
-  const auto *input = reinterpret_cast<const T *>(projected_column_->ColumnStart(static_cast<u16>(col_idx)));
+  const auto *input = reinterpret_cast<const T *>(projected_column_->ColumnStart(static_cast<uint16_t>(col_idx)));
 
   // Use the existing selection vector if this PCI has been filtered
-  const u32 *sel_vec = (IsFiltered() ? selection_vector_ : nullptr);
+  const uint32_t *sel_vec = (IsFiltered() ? selection_vector_ : nullptr);
 
   // Filter!
   selection_vector_write_idx_ =
@@ -73,16 +73,16 @@ u32 ProjectedColumnsIterator::FilterColByValImpl(u32 col_idx, T val) {
 
 // Filter an entire column's data by the provided constant value
 template <template <typename> typename Op>
-u32 ProjectedColumnsIterator::FilterColByVal(u32 col_idx, type::TypeId type, FilterVal val) {
+uint32_t ProjectedColumnsIterator::FilterColByVal(uint32_t col_idx, type::TypeId type, FilterVal val) {
   switch (type) {
     case type::TypeId::SMALLINT: {
-      return FilterColByValImpl<i16, Op>(col_idx, val.si);
+      return FilterColByValImpl<int16_t, Op>(col_idx, val.si);
     }
     case type::TypeId::INTEGER: {
-      return FilterColByValImpl<i32, Op>(col_idx, val.i);
+      return FilterColByValImpl<int32_t, Op>(col_idx, val.i);
     }
     case type::TypeId::BIGINT: {
-      return FilterColByValImpl<i64, Op>(col_idx, val.bi);
+      return FilterColByValImpl<int64_t, Op>(col_idx, val.bi);
     }
     default: {
       throw std::runtime_error("Filter not supported on type");
@@ -91,19 +91,19 @@ u32 ProjectedColumnsIterator::FilterColByVal(u32 col_idx, type::TypeId type, Fil
 }
 
 template <template <typename> typename Op>
-u32 ProjectedColumnsIterator::FilterColByCol(const u32 col_idx_1, type::TypeId type_1, const u32 col_idx_2,
-                                             type::TypeId type_2) {
+uint32_t ProjectedColumnsIterator::FilterColByCol(const uint32_t col_idx_1, type::TypeId type_1,
+                                                  const uint32_t col_idx_2, type::TypeId type_2) {
   TERRIER_ASSERT(type_1 == type_2, "Incompatible column types for filter");
 
   switch (type_1) {
     case type::TypeId::SMALLINT: {
-      return FilterColByColImpl<i16, Op>(col_idx_1, col_idx_2);
+      return FilterColByColImpl<int16_t, Op>(col_idx_1, col_idx_2);
     }
     case type::TypeId::INTEGER: {
-      return FilterColByColImpl<i32, Op>(col_idx_1, col_idx_2);
+      return FilterColByColImpl<int32_t, Op>(col_idx_1, col_idx_2);
     }
     case type::TypeId::BIGINT: {
-      return FilterColByColImpl<i64, Op>(col_idx_1, col_idx_2);
+      return FilterColByColImpl<int64_t, Op>(col_idx_1, col_idx_2);
     }
     default: {
       throw std::runtime_error("Filter not supported on type");
@@ -111,17 +111,22 @@ u32 ProjectedColumnsIterator::FilterColByCol(const u32 col_idx_1, type::TypeId t
   }
 }
 
-template u32 ProjectedColumnsIterator::FilterColByVal<std::equal_to>(u32, type::TypeId, FilterVal);
-template u32 ProjectedColumnsIterator::FilterColByVal<std::greater>(u32, type::TypeId, FilterVal);
-template u32 ProjectedColumnsIterator::FilterColByVal<std::greater_equal>(u32, type::TypeId, FilterVal);
-template u32 ProjectedColumnsIterator::FilterColByVal<std::less>(u32, type::TypeId, FilterVal);
-template u32 ProjectedColumnsIterator::FilterColByVal<std::less_equal>(u32, type::TypeId, FilterVal);
-template u32 ProjectedColumnsIterator::FilterColByVal<std::not_equal_to>(u32, type::TypeId, FilterVal);
-template u32 ProjectedColumnsIterator::FilterColByCol<std::equal_to>(u32, type::TypeId, u32, type::TypeId);
-template u32 ProjectedColumnsIterator::FilterColByCol<std::greater>(u32, type::TypeId, u32, type::TypeId);
-template u32 ProjectedColumnsIterator::FilterColByCol<std::greater_equal>(u32, type::TypeId, u32, type::TypeId);
-template u32 ProjectedColumnsIterator::FilterColByCol<std::less>(u32, type::TypeId, u32, type::TypeId);
-template u32 ProjectedColumnsIterator::FilterColByCol<std::less_equal>(u32, type::TypeId, u32, type::TypeId);
-template u32 ProjectedColumnsIterator::FilterColByCol<std::not_equal_to>(u32, type::TypeId, u32, type::TypeId);
+template uint32_t ProjectedColumnsIterator::FilterColByVal<std::equal_to>(uint32_t, type::TypeId, FilterVal);
+template uint32_t ProjectedColumnsIterator::FilterColByVal<std::greater>(uint32_t, type::TypeId, FilterVal);
+template uint32_t ProjectedColumnsIterator::FilterColByVal<std::greater_equal>(uint32_t, type::TypeId, FilterVal);
+template uint32_t ProjectedColumnsIterator::FilterColByVal<std::less>(uint32_t, type::TypeId, FilterVal);
+template uint32_t ProjectedColumnsIterator::FilterColByVal<std::less_equal>(uint32_t, type::TypeId, FilterVal);
+template uint32_t ProjectedColumnsIterator::FilterColByVal<std::not_equal_to>(uint32_t, type::TypeId, FilterVal);
+template uint32_t ProjectedColumnsIterator::FilterColByCol<std::equal_to>(uint32_t, type::TypeId, uint32_t,
+                                                                          type::TypeId);
+template uint32_t ProjectedColumnsIterator::FilterColByCol<std::greater>(uint32_t, type::TypeId, uint32_t,
+                                                                         type::TypeId);
+template uint32_t ProjectedColumnsIterator::FilterColByCol<std::greater_equal>(uint32_t, type::TypeId, uint32_t,
+                                                                               type::TypeId);
+template uint32_t ProjectedColumnsIterator::FilterColByCol<std::less>(uint32_t, type::TypeId, uint32_t, type::TypeId);
+template uint32_t ProjectedColumnsIterator::FilterColByCol<std::less_equal>(uint32_t, type::TypeId, uint32_t,
+                                                                            type::TypeId);
+template uint32_t ProjectedColumnsIterator::FilterColByCol<std::not_equal_to>(uint32_t, type::TypeId, uint32_t,
+                                                                              type::TypeId);
 
 }  // namespace terrier::execution::sql

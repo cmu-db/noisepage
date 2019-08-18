@@ -3,8 +3,8 @@
 
 namespace terrier::execution::sql {
 
-IndexIterator::IndexIterator(uint32_t table_oid, uint32_t index_oid, exec::ExecutionContext *exec_ctx, u32 *col_oids,
-                             u32 num_oids)
+IndexIterator::IndexIterator(exec::ExecutionContext *exec_ctx, uint32_t table_oid, uint32_t index_oid,
+                             uint32_t *col_oids, uint32_t num_oids)
     : exec_ctx_(exec_ctx),
       col_oids_(col_oids, col_oids + num_oids),
       index_(exec_ctx_->GetAccessor()->GetIndex(catalog::index_oid_t(index_oid))),
@@ -13,15 +13,14 @@ IndexIterator::IndexIterator(uint32_t table_oid, uint32_t index_oid, exec::Execu
 void IndexIterator::Init() {
   // Initialize projected rows for the index and the table
   TERRIER_ASSERT(!col_oids_.empty(), "There must be at least one col oid!");
-  auto pri_map = table_->InitializerForProjectedRow(col_oids_);
   // Table's PR
-  auto &table_pri = pri_map.first;
-  table_buffer_ = exec_ctx_->GetMemoryPool()->AllocateAligned(table_pri.ProjectedRowSize(), alignof(u64), false);
+  auto table_pri = table_->InitializerForProjectedRow(col_oids_);
+  table_buffer_ = exec_ctx_->GetMemoryPool()->AllocateAligned(table_pri.ProjectedRowSize(), alignof(uint64_t), false);
   table_pr_ = table_pri.InitializeRow(table_buffer_);
 
   // Index's PR
   auto &index_pri = index_->GetProjectedRowInitializer();
-  index_buffer_ = exec_ctx_->GetMemoryPool()->AllocateAligned(index_pri.ProjectedRowSize(), alignof(u64), false);
+  index_buffer_ = exec_ctx_->GetMemoryPool()->AllocateAligned(index_pri.ProjectedRowSize(), alignof(uint64_t), false);
   index_pr_ = index_pri.InitializeRow(index_buffer_);
 }
 

@@ -1,8 +1,8 @@
-// Perform an index join loop for the queury:
+// Perform an index nested loop join for the queury:
 // SELECT test_1.colA, test_1.colB, test_2.col1, test_2.col2 FROM test_1, test_2 WHERE test_1.colA=test_2.col1 AND test_1.colB=test_2.col2
 // The return value is non-deterministic. It is expected to be 900 (actually 894 the tested machine). This is because
 // 10% of the potential 1000 columns contain NULLs.
-// There should also be an std out output where the columns are similar
+// There should also be an std out output where the columns are equal
 
 struct Output {
   test1_colA: Integer
@@ -26,10 +26,10 @@ fun pipeline0(state : *State, execCtx : *ExecutionContext) -> nil {
   col_oids[1] = 2 // colB
 
   var tvi : TableVectorIterator
-  @tableIterInitBind(&tvi, "test_1", execCtx, col_oids)
+  @tableIterInitBind(&tvi, execCtx, "test_1", col_oids)
 
   var index : IndexIterator
-  @indexIteratorInitBind(&index, "test_2", "index_2_multi", execCtx, col_oids)
+  @indexIteratorInitBind(&index, execCtx, "test_2", "index_2_multi", col_oids)
 
   // Iterate
   for (@tableIterAdvance(&tvi)) {
@@ -37,13 +37,13 @@ fun pipeline0(state : *State, execCtx : *ExecutionContext) -> nil {
     for (; @pciHasNext(pci); @pciAdvance(pci)) {
       // Note that the storage layer reorders columns in test_2
       @indexIteratorSetKeySmallInt(&index, 1, @pciGetInt(pci, 0))
-      @indexIteratorSetKeyInt(&index, 0, @pciGetInt(pci, 1))
+      @indexIteratorSetKeyIntNull(&index, 0, @pciGetInt(pci, 1))
       for (@indexIteratorScanKey(&index); @indexIteratorAdvance(&index);) {
         var out = @ptrCast(*Output, @outputAlloc(execCtx))
         out.test1_colA = @pciGetInt(pci, 0)
         out.test1_colB = @pciGetInt(pci, 1)
-        out.test2_col1 = @indexIteratorGetSmallInt(&index, 0)
-        out.test2_col2 = @indexIteratorGetIntNull(&index, 1)
+        out.test2_col1 = @indexIteratorGetSmallInt(&index, 1)
+        out.test2_col2 = @indexIteratorGetIntNull(&index, 0)
         state.count = state.count + 1
       }
     }

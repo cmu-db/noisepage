@@ -1,3 +1,5 @@
+// Test struct pointer fields
+
 struct S {
   a: int
   b: int

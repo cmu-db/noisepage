@@ -7,11 +7,11 @@ namespace terrier::execution::util::test {
 // NOLINTNEXTLINE
 TEST(BitfieldTest, SingleElementTest) {
   // Try to encode a single 8-bit character element in a 32-bit integer
-  using TestField = BitField32<char, 0, sizeof(char) * kBitsPerByte>;
+  using TestField = BitField32<char, 0, sizeof(char) * common::Constants::kBitsPerByte>;
 
   // First, try a simple test where the character is at position 0
   {
-    u32 s = TestField::Encode('P');
+    uint32_t s = TestField::Encode('P');
 
     EXPECT_EQ('P', TestField::Decode(s));
 
@@ -25,8 +25,8 @@ TEST(BitfieldTest, SingleElementTest) {
   {
     constexpr const char msg[] = "Hello, there!";
 
-    u32 s = 0;
-    for (u32 i = 0; i < sizeof(msg); i++) {
+    uint32_t s = 0;
+    for (uint32_t i = 0; i < sizeof(msg); i++) {
       if (i == 0) {
         s = TestField::Encode(msg[i]);
       } else {
@@ -40,27 +40,27 @@ TEST(BitfieldTest, SingleElementTest) {
 // NOLINTNEXTLINE
 TEST(BitfieldTest, MultiElementTest) {
   // Encode a 16-bit value and an 8-bit value in 32-bit storage
-  using U16_BF = BitField32<u16, 0, sizeof(u16) * kBitsPerByte>;
-  using U8_BF = BitField32<u8, U16_BF::kNextBit, sizeof(u8) * kBitsPerByte>;
+  using U16_BF = BitField32<uint16_t, 0, sizeof(uint16_t) * common::Constants::kBitsPerByte>;
+  using U8_BF = BitField32<uint8_t, U16_BF::kNextBit, sizeof(uint8_t) * common::Constants::kBitsPerByte>;
 
-  u32 s;
+  uint32_t s;
 
   {
-    // First, set the u16 field to 1024, check correct
+    // First, set the uint16_t field to 1024, check correct
 
     s = U16_BF::Encode(1024);
     EXPECT_EQ(1024, U16_BF::Decode(s));
   }
 
   {
-    // Now, set the u8 field ensuring both u16 and u8 are set correctly
+    // Now, set the uint8_t field ensuring both uint16_t and uint8_t are set correctly
     s = U8_BF::Update(s, 44);
     EXPECT_EQ(1024, U16_BF::Decode(s));
     EXPECT_EQ(44, U8_BF::Decode(s));
   }
 
   {
-    // Now, update the previous u8 field from 44 to 55
+    // Now, update the previous uint8_t field from 44 to 55
 
     s = U8_BF::Update(s, 55);
     EXPECT_EQ(1024, U16_BF::Decode(s));
@@ -71,7 +71,7 @@ TEST(BitfieldTest, MultiElementTest) {
 // NOLINTNEXTLINE
 TEST(BitfieldTest, NegativeIntegerTest) {
   // Encode a 16-bit value and an 8-bit value in 32-bit storage
-  using U16_BF = BitField32<i16, 0, sizeof(u16) * kBitsPerByte>;
+  using U16_BF = BitField32<int16_t, 0, sizeof(uint16_t) * common::Constants::kBitsPerByte>;
 
   auto s = U16_BF::Encode(-16);
   EXPECT_EQ(-16, U16_BF::Decode(s));
@@ -83,15 +83,15 @@ TEST(BitfieldTest, BooleanElementTest) {
   using BF = BitField64<bool, 32, 1>;
 
   // Initial should be set to 0
-  u64 bitfield = 0;
+  uint64_t bitfield = 0;
   EXPECT_FALSE(BF::Decode(bitfield));
 
   // Now, set the bit
-  u64 bitfield_2 = BF::Update(bitfield, true);
+  uint64_t bitfield_2 = BF::Update(bitfield, true);
   EXPECT_TRUE(BF::Decode(bitfield_2));
 
   // Now reset the bit
-  u64 bitfield_3 = BF::Update(bitfield_2, false);
+  uint64_t bitfield_3 = BF::Update(bitfield_2, false);
   EXPECT_FALSE(BF::Decode(bitfield_3));
 }
 

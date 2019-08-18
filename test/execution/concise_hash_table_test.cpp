@@ -3,19 +3,19 @@
 
 #include "execution/tpl_test.h"
 
+#include "common/macros.h"
 #include "execution/sql/concise_hash_table.h"
 #include "execution/util/hash.h"
-#include "execution/util/macros.h"
 
 namespace terrier::execution::sql::test {
 
 /// This is the tuple we insert into the hash table
 struct Tuple {
-  u64 a, b, c, d;
+  uint64_t a, b, c, d;
 };
 
 /// The function to determine whether two tuples have equivalent keys
-UNUSED static inline bool TupleKeyEq(UNUSED void *_, void *probe_tuple, void *table_tuple) {
+UNUSED_ATTRIBUTE static bool TupleKeyEq(UNUSED_ATTRIBUTE void *_, void *probe_tuple, void *table_tuple) {
   auto *lhs = reinterpret_cast<const Tuple *>(probe_tuple);
   auto *rhs = reinterpret_cast<const Tuple *>(table_tuple);
   return lhs->a == rhs->a;
@@ -34,8 +34,8 @@ class ConciseHashTableTest : public TplTest {
 
 // NOLINTNEXTLINE
 TEST_F(ConciseHashTableTest, InsertTest) {
-  const u32 num_tuples = 10;
-  const u32 probe_length = 1;
+  const uint32_t num_tuples = 10;
+  const uint32_t probe_length = 1;
 
   ConciseHashTable table(probe_length);
   table.SetSize(num_tuples);
@@ -61,8 +61,8 @@ TEST_F(ConciseHashTableTest, InsertTest) {
 
 // NOLINTNEXTLINE
 TEST_F(ConciseHashTableTest, InsertOverflowTest) {
-  const u32 num_tuples = 20;
-  const u32 probe_length = 1;
+  const uint32_t num_tuples = 20;
+  const uint32_t probe_length = 1;
 
   //
   // Create a CHT with one slot group, 64 slots total
@@ -96,8 +96,8 @@ TEST_F(ConciseHashTableTest, InsertOverflowTest) {
 
 // NOLINTNEXTLINE
 TEST_F(ConciseHashTableTest, MultiGroupInsertTest) {
-  const u32 num_tuples = 100;
-  const u32 probe_length = 1;
+  const uint32_t num_tuples = 100;
+  const uint32_t probe_length = 1;
 
   //
   // Create a CHT with four slot-groups, each having 64 slots
@@ -147,8 +147,8 @@ TEST_F(ConciseHashTableTest, MultiGroupInsertTest) {
 
 // NOLINTNEXTLINE
 TEST_F(ConciseHashTableTest, CornerCaseTest) {
-  const u32 num_tuples = 20;
-  const u32 probe_length = 4;
+  const uint32_t num_tuples = 20;
+  const uint32_t probe_length = 4;
 
   ConciseHashTable table(probe_length);
   table.SetSize(num_tuples);
@@ -180,8 +180,8 @@ TEST_F(ConciseHashTableTest, CornerCaseTest) {
 
 // NOLINTNEXTLINE
 TEST_F(ConciseHashTableTest, BuildTest) {
-  const u32 num_tuples = 20;
-  const u32 probe_length = 2;
+  const uint32_t num_tuples = 20;
+  const uint32_t probe_length = 2;
 
   //
   // Table composed of single group with 64 bits
@@ -194,7 +194,7 @@ TEST_F(ConciseHashTableTest, BuildTest) {
 
   std::vector<ConciseHashTableSlot> inserted;
 
-  for (u32 i = 1; i < 64; i += 2) {
+  for (uint32_t i = 1; i < 64; i += 2) {
     auto *entry = TestEntry(i);
     table.Insert(entry, entry->hash);
     inserted.push_back(entry->cht_slot);
@@ -202,15 +202,15 @@ TEST_F(ConciseHashTableTest, BuildTest) {
 
   table.Build();
 
-  for (u32 i = 0; i < inserted.size(); i++) {
+  for (uint32_t i = 0; i < inserted.size(); i++) {
     EXPECT_EQ(i, table.NumFilledSlotsBefore(inserted[i]));
   }
 }
 
 // NOLINTNEXTLINE
 TEST_F(ConciseHashTableTest, MultiGroupBuildTest) {
-  const u32 num_tuples = 40;
-  const u32 probe_length = 2;
+  const uint32_t num_tuples = 40;
+  const uint32_t probe_length = 2;
 
   //
   // Table composed of two groups totaling 128 bits
@@ -223,7 +223,7 @@ TEST_F(ConciseHashTableTest, MultiGroupBuildTest) {
 
   std::vector<ConciseHashTableSlot> inserted;
 
-  for (u32 i = 1; i < 128; i += 2) {
+  for (uint32_t i = 1; i < 128; i += 2) {
     auto *entry = TestEntry(i);
     table.Insert(entry, entry->hash);
     inserted.push_back(entry->cht_slot);
@@ -231,7 +231,7 @@ TEST_F(ConciseHashTableTest, MultiGroupBuildTest) {
 
   table.Build();
 
-  for (u32 i = 0; i < inserted.size(); i++) {
+  for (uint32_t i = 0; i < inserted.size(); i++) {
     EXPECT_EQ(i, table.NumFilledSlotsBefore(inserted[i]));
   }
 }

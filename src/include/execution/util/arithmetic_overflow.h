@@ -2,7 +2,7 @@
 
 #include <limits>
 
-#include "execution/util/common.h"
+#include "execution/util/execution_common.h"
 
 namespace terrier::execution::util {
 
@@ -12,13 +12,13 @@ namespace terrier::execution::util {
 class ArithmeticOverflow {
  public:
   /**
-   * Minimum i128 value
+   * Minimum int128_t value
    */
-  static constexpr i128 kMinInt128 = std::numeric_limits<i128>::min();
+  static constexpr int128_t kMinInt128 = std::numeric_limits<int128_t>::min();
   /**
-   * Maximum i128 value
+   * Maximum int128_t value
    */
-  static constexpr i128 kMaxInt128 = std::numeric_limits<i128>::max();
+  static constexpr int128_t kMaxInt128 = std::numeric_limits<int128_t>::max();
 
   // Deleted to force only static functions
   ArithmeticOverflow() = delete;
@@ -49,7 +49,7 @@ class ArithmeticOverflow {
    * @param[out] res Where the result of the addition is written to.
    * @return True if the addition overflowed; false otherwise.
    */
-  static bool Add(const i32 a, const i32 b, i32 *res) { return __builtin_sadd_overflow(a, b, res); }
+  static bool Add(const int32_t a, const int32_t b, int32_t *res) { return __builtin_sadd_overflow(a, b, res); }
 
   /**
    * Add two signed 64-bit integer values and store their result in @em res.
@@ -59,7 +59,7 @@ class ArithmeticOverflow {
    * @param[out] res Where the result of the addition is written to.
    * @return True if the addition overflowed; false otherwise.
    */
-  static bool Add(const i64 a, const i64 b, i64 *res) {
+  static bool Add(const int64_t a, const int64_t b, int64_t *res) {
 #ifdef __APPLE__
     return __builtin_saddll_overflow(a, b, res);
 #else
@@ -75,7 +75,7 @@ class ArithmeticOverflow {
    * @param[out] res Where the result of the addition is written to.
    * @return True if the addition overflowed; false otherwise.
    */
-  static bool Add(const i128 a, const i128 b, i128 *res) {
+  static bool Add(const int128_t a, const int128_t b, int128_t *res) {
     *res = a + b;
     return (b > 0 && a > kMaxInt128 - b) || (b < 0 && a < kMinInt128 - b);
   }
@@ -88,7 +88,7 @@ class ArithmeticOverflow {
    * @param[out] res Where the result of the addition is written to.
    * @return True if the addition overflowed; false otherwise.
    */
-  static bool Add(const u32 a, const u32 b, u32 *res) { return __builtin_uadd_overflow(a, b, res); }
+  static bool Add(const uint32_t a, const uint32_t b, uint32_t *res) { return __builtin_uadd_overflow(a, b, res); }
 
   /**
    * Add two unsigned 64-bit integer values and store their result in @em res.
@@ -98,7 +98,7 @@ class ArithmeticOverflow {
    * @param[out] res Where the result of the addition is written to.
    * @return True if the addition overflowed; false otherwise.
    */
-  static bool Add(const u64 a, const u64 b, u64 *res) {
+  static bool Add(const uint64_t a, const uint64_t b, uint64_t *res) {
 #ifdef __APPLE__
     return __builtin_uaddll_overflow(a, b, res);
 #else
@@ -114,7 +114,7 @@ class ArithmeticOverflow {
    * @param[out] res Where the result of the addition is written to.
    * @return True if the addition overflowed; false otherwise.
    */
-  static bool Add(const u128 a, const u128 b, u128 *res) {
+  static bool Add(const uint128_t a, const uint128_t b, uint128_t *res) {
     *res = a + b;
     return (a > kMaxInt128 - b);
   }
@@ -144,7 +144,7 @@ class ArithmeticOverflow {
    * @param[out] res Where the result of the subtraction is written to.
    * @return True if the subtraction overflowed; false otherwise.
    */
-  static bool Sub(const i32 a, const i32 b, i32 *res) { return __builtin_ssub_overflow(a, b, res); }
+  static bool Sub(const int32_t a, const int32_t b, int32_t *res) { return __builtin_ssub_overflow(a, b, res); }
 
   /**
    * Subtract two signed 64-bit values and store their result in @em res. Return
@@ -154,7 +154,7 @@ class ArithmeticOverflow {
    * @param[out] res Where the result of the subtraction is written to.
    * @return True if the subtraction overflowed; false otherwise.
    */
-  static bool Sub(const i64 a, const i64 b, i64 *res) {
+  static bool Sub(const int64_t a, const int64_t b, int64_t *res) {
 #ifdef __APPLE__
     return __builtin_ssubll_overflow(a, b, res);
 #else
@@ -170,7 +170,7 @@ class ArithmeticOverflow {
    * @param[out] res Where the result of the subtraction is written to.
    * @return True if the subtraction overflowed; false otherwise.
    */
-  static bool Sub(const i128 a, const i128 b, i128 *res) {
+  static bool Sub(const int128_t a, const int128_t b, int128_t *res) {
     *res = a - b;
     return (b > 0 && a < kMinInt128 + b) || (b < 0 && a > kMaxInt128 + b);
   }
@@ -183,7 +183,7 @@ class ArithmeticOverflow {
    * @param[out] res Where the result of the subtraction is written to.
    * @return True if the subtraction overflowed; false otherwise.
    */
-  static bool Sub(const u32 a, const u32 b, u32 *res) { return __builtin_usub_overflow(a, b, res); }
+  static bool Sub(const uint32_t a, const uint32_t b, uint32_t *res) { return __builtin_usub_overflow(a, b, res); }
 
   /**
    * Subtract two unsigned 64-bit values and store their result in @em res.
@@ -193,7 +193,7 @@ class ArithmeticOverflow {
    * @param[out] res Where the result of the subtraction is written to.
    * @return True if the subtraction overflowed; false otherwise.
    */
-  static bool Sub(const u64 a, const u64 b, u64 *res) {
+  static bool Sub(const uint64_t a, const uint64_t b, uint64_t *res) {
 #ifdef __APPLE__
     return __builtin_usubll_overflow(a, b, res);
 #else
@@ -209,7 +209,7 @@ class ArithmeticOverflow {
    * @param[out] res Where the result of the subtraction is written to.
    * @return True if the subtraction overflowed; false otherwise.
    */
-  static bool Sub(const u128 a, const u128 b, u128 *res) {
+  static bool Sub(const uint128_t a, const uint128_t b, uint128_t *res) {
     *res = a + b;
     return (a < kMinInt128 + b);
   }
@@ -239,7 +239,7 @@ class ArithmeticOverflow {
    * @param[out] res Where the result of the multiplication is written to.
    * @return True if the subtraction overflowed; false otherwise.
    */
-  static bool Mul(const i32 a, const i32 b, i32 *res) { return __builtin_smul_overflow(a, b, res); }
+  static bool Mul(const int32_t a, const int32_t b, int32_t *res) { return __builtin_smul_overflow(a, b, res); }
 
   /**
    * Multiply two signed 64-bit integer values and store their result in @em
@@ -249,7 +249,7 @@ class ArithmeticOverflow {
    * @param[out] res Where the result of the multiplication is written to.
    * @return True if the subtraction overflowed; false otherwise.
    */
-  static bool Mul(const i64 a, const i64 b, i64 *res) {
+  static bool Mul(const int64_t a, const int64_t b, int64_t *res) {
 #ifdef __APPLE__
     return __builtin_smulll_overflow(a, b, res);
 #else
@@ -265,8 +265,8 @@ class ArithmeticOverflow {
    * @param[out] res Where the result of the multiplication is written to.
    * @return True if the subtraction overflowed; false otherwise.
    */
-  static bool Mul(const i128 a, const i128 b, i128 *res) {
-    *res = static_cast<const u128>(a) * static_cast<const u128>(b);
+  static bool Mul(const int128_t a, const int128_t b, int128_t *res) {
+    *res = static_cast<const uint128_t>(a) * static_cast<const uint128_t>(b);
     if (a == 0 || b == 0) {
       return false;
     }
@@ -282,7 +282,7 @@ class ArithmeticOverflow {
    * @param[out] res Where the result of the multiplication is written to.
    * @return True if the subtraction overflowed; false otherwise.
    */
-  static bool Mul(const u32 a, const u32 b, u32 *res) { return __builtin_umul_overflow(a, b, res); }
+  static bool Mul(const uint32_t a, const uint32_t b, uint32_t *res) { return __builtin_umul_overflow(a, b, res); }
 
   /**
    * Multiply two unsigned 64-bit integer values and store their result in @em
@@ -292,7 +292,7 @@ class ArithmeticOverflow {
    * @param[out] res Where the result of the multiplication is written to.
    * @return True if the subtraction overflowed; false otherwise.
    */
-  static bool Mul(const u64 a, const u64 b, u64 *res) {
+  static bool Mul(const uint64_t a, const uint64_t b, uint64_t *res) {
 #ifdef __APPLE__
     return __builtin_umulll_overflow(a, b, res);
 #else
@@ -308,7 +308,7 @@ class ArithmeticOverflow {
    * @param[out] res Where the result of the multiplication is written to.
    * @return True if the subtraction overflowed; false otherwise.
    */
-  static bool Mul(const u128 a, const u128 b, u128 *res) {
+  static bool Mul(const uint128_t a, const uint128_t b, uint128_t *res) {
     *res = a * b;
     return (a * b) / b != a;
   }

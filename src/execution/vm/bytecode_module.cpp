@@ -2,7 +2,6 @@
 
 #include <algorithm>
 #include <iomanip>
-#include <iostream>
 #include <numeric>
 #include <string>
 #include <utility>
@@ -12,7 +11,7 @@
 
 namespace terrier::execution::vm {
 
-BytecodeModule::BytecodeModule(std::string name, std::vector<u8> &&code, std::vector<FunctionInfo> &&functions)
+BytecodeModule::BytecodeModule(std::string name, std::vector<uint8_t> &&code, std::vector<FunctionInfo> &&functions)
     : name_(std::move(name)), code_(std::move(code)), functions_(std::move(functions)) {}
 
 namespace {
@@ -22,9 +21,9 @@ void PrettyPrintFuncInfo(std::ostream *os, const FunctionInfo &func) {
   *os << "  Frame size " << func.frame_size() << " bytes (" << func.num_params() << " parameter"
       << (func.num_params() > 1 ? "s, " : ", ") << func.locals().size() << " locals)" << std::endl;
 
-  u64 max_local_len = 0;
+  uint64_t max_local_len = 0;
   for (const auto &local : func.locals()) {
-    max_local_len = std::max(max_local_len, static_cast<u64>(local.name().length()));
+    max_local_len = std::max(max_local_len, static_cast<uint64_t>(local.name().length()));
   }
   for (const auto &local : func.locals()) {
     if (local.is_parameter()) {
@@ -40,7 +39,7 @@ void PrettyPrintFuncInfo(std::ostream *os, const FunctionInfo &func) {
 }
 
 void PrettyPrintFuncCode(std::ostream *os, const FunctionInfo &func, BytecodeIterator *iter) {
-  const u32 max_inst_len = Bytecodes::MaxBytecodeNameLength();
+  const uint32_t max_inst_len = Bytecodes::MaxBytecodeNameLength();
   for (; !iter->Done(); iter->Advance()) {
     Bytecode bytecode = iter->CurrentBytecode();
 

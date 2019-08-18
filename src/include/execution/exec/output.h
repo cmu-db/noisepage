@@ -11,14 +11,14 @@
 #include "catalog/catalog_defs.h"
 #include "catalog/schema.h"
 #include "execution/sql/memory_pool.h"
-#include "execution/util/common.h"
+#include "execution/util/execution_common.h"
 #include "planner/plannodes/output_schema.h"
 
 namespace terrier::execution::exec {
 
 // Callback function
 // Params: tuples, num_tuples, tuple_size;
-using OutputCallback = std::function<void(byte *, u32, u32)>;
+using OutputCallback = std::function<void(byte *, uint32_t, uint32_t)>;
 
 /**
  * A class that buffers the output and makes a callback for every batch.
@@ -32,15 +32,17 @@ class OutputBuffer {
 
   /**
    * Constructor
+   * @param memory_pool memory pool to use for buffer allocation
    * @param num_cols number of columns in output tuples
    * @param tuple_size size of output tuples
    * @param callback upper layer callback
    */
-  explicit OutputBuffer(sql::MemoryPool *memory_pool, u16 num_cols, u32 tuple_size, OutputCallback callback)
+  explicit OutputBuffer(sql::MemoryPool *memory_pool, uint16_t num_cols, uint32_t tuple_size, OutputCallback callback)
       : memory_pool_(memory_pool),
         num_tuples_(0),
         tuple_size_(tuple_size),
-        tuples_(reinterpret_cast<byte *>(memory_pool->AllocateAligned(batch_size_ * tuple_size, alignof(u64), true))),
+        tuples_(
+            reinterpret_cast<byte *>(memory_pool->AllocateAligned(batch_size_ * tuple_size, alignof(uint64_t), true))),
         callback_(std::move(callback)) {}
 
   /**
@@ -68,8 +70,8 @@ class OutputBuffer {
 
  private:
   sql::MemoryPool *memory_pool_;
-  u32 num_tuples_;
-  u32 tuple_size_;
+  uint32_t num_tuples_;
+  uint32_t tuple_size_;
   byte *tuples_;
   OutputCallback callback_;
 };
@@ -92,7 +94,7 @@ class OutputPrinter {
    * @param num_tuples number of tuples
    * @param tuple_size size of tuples
    */
-  void operator()(byte *tuples, u32 num_tuples, u32 tuple_size);
+  void operator()(byte *tuples, uint32_t num_tuples, uint32_t tuple_size);
 
  private:
   uint32_t printed_ = 0;

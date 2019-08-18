@@ -86,15 +86,11 @@ class OrderStatus {
         c_middle_oid(db->customer_schema_.GetColumn(4).Oid()),
         c_last_oid(db->customer_schema_.GetColumn(5).Oid()),
 
-        c_first_pr_initializer(db->customer_table_->InitializerForProjectedRow({c_first_oid}).first),
-        customer_select_pr_initializer(
-            db->customer_table_
-                ->InitializerForProjectedRow({c_id_oid, c_balance_oid, c_first_oid, c_middle_oid, c_last_oid})
-                .first),
-        customer_select_pr_map(
-            db->customer_table_
-                ->InitializerForProjectedRow({c_id_oid, c_balance_oid, c_first_oid, c_middle_oid, c_last_oid})
-                .second),
+        c_first_pr_initializer(db->customer_table_->InitializerForProjectedRow({c_first_oid})),
+        customer_select_pr_initializer(db->customer_table_->InitializerForProjectedRow(
+            {c_id_oid, c_balance_oid, c_first_oid, c_middle_oid, c_last_oid})),
+        customer_select_pr_map(db->customer_table_->ProjectionMapForOids(
+            {c_id_oid, c_balance_oid, c_first_oid, c_middle_oid, c_last_oid})),
 
         c_id_select_pr_offset(static_cast<uint8_t>(customer_select_pr_map.at(c_id_oid))),
         c_balance_select_pr_offset(static_cast<uint8_t>(customer_select_pr_map.at(c_balance_oid))),
@@ -113,9 +109,8 @@ class OrderStatus {
         o_entry_d_oid(db->order_schema_.GetColumn(4).Oid()),
         o_carrier_id_oid(db->order_schema_.GetColumn(5).Oid()),
         order_select_pr_initializer(
-            db->order_table_->InitializerForProjectedRow({o_id_oid, o_entry_d_oid, o_carrier_id_oid}).first),
-        order_select_pr_map(
-            db->order_table_->InitializerForProjectedRow({o_id_oid, o_entry_d_oid, o_carrier_id_oid}).second),
+            db->order_table_->InitializerForProjectedRow({o_id_oid, o_entry_d_oid, o_carrier_id_oid})),
+        order_select_pr_map(db->order_table_->ProjectionMapForOids({o_id_oid, o_entry_d_oid, o_carrier_id_oid})),
         o_id_select_pr_offset(static_cast<uint8_t>(order_select_pr_map.at(o_id_oid))),
         ol_o_id_key_pr_offset(static_cast<uint8_t>(db->order_line_primary_index_->GetKeyOidToOffsetMap().at(
             db->order_line_primary_index_schema_.GetColumn(2).Oid()))),
@@ -131,11 +126,8 @@ class OrderStatus {
         ol_quantity_oid(db->order_line_schema_.GetColumn(7).Oid()),
         ol_amount_oid(db->order_line_schema_.GetColumn(8).Oid()),
         ol_delivery_d_oid(db->order_line_schema_.GetColumn(6).Oid()),
-        order_line_select_pr_initializer(
-            db->order_line_table_
-                ->InitializerForProjectedRow(
-                    {ol_i_id_oid, ol_supply_w_id_oid, ol_quantity_oid, ol_amount_oid, ol_delivery_d_oid})
-                .first)
+        order_line_select_pr_initializer(db->order_line_table_->InitializerForProjectedRow(
+            {ol_i_id_oid, ol_supply_w_id_oid, ol_quantity_oid, ol_amount_oid, ol_delivery_d_oid}))
 
   {}
 

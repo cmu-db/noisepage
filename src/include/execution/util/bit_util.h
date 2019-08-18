@@ -3,9 +3,10 @@
 #include <memory>
 #include <utility>
 
-#include "execution/util/common.h"
-#include "execution/util/macros.h"
-#include "execution/util/math_util.h"
+#include "common/constants.h"
+#include "common/macros.h"
+#include "common/math_util.h"
+#include "execution/util/execution_common.h"
 
 namespace terrier::execution::util {
 
@@ -17,7 +18,7 @@ class BitUtil {
   /**
    * The number of bits in one word
    */
-  static constexpr const u32 kBitWordSize = sizeof(u32) * kBitsPerByte;
+  static constexpr const uint32_t kBitWordSize = sizeof(uint32_t) * common::Constants::kBitsPerByte;
 
   // Make sure the number of bits in a word is a power of two to make all these
   // bit operations cheap
@@ -31,7 +32,7 @@ class BitUtil {
    * @return The number of leading zeros
    */
   template <typename T>
-  ALWAYS_INLINE static u64 CountLeadingZeros(T val) {
+  ALWAYS_INLINE static uint64_t CountLeadingZeros(T val) {
     return llvm::countLeadingZeros(val);
   }
 
@@ -41,7 +42,9 @@ class BitUtil {
    * @param num_bits The size of the bit vector, in bits
    * @return The number of words needed to store a bit vector of the given size
    */
-  ALWAYS_INLINE static u64 Num32BitWordsFor(u64 num_bits) { return MathUtil::DivRoundUp(num_bits, kBitWordSize); }
+  ALWAYS_INLINE static uint64_t Num32BitWordsFor(uint64_t num_bits) {
+    return MathUtil::DivRoundUp(num_bits, kBitWordSize);
+  }
 
   /**
    * Test if the bit at index \a idx is set in the bit vector
@@ -49,8 +52,8 @@ class BitUtil {
    * @param idx The index of the bit to check
    * @return True if set; false otherwise
    */
-  ALWAYS_INLINE static bool Test(const u32 bits[], const u32 idx) {
-    const u32 mask = 1u << (idx % kBitWordSize);
+  ALWAYS_INLINE static bool Test(const uint32_t bits[], const uint32_t idx) {
+    const uint32_t mask = 1u << (idx % kBitWordSize);
     return (bits[idx / kBitWordSize] & mask) != 0;
   }
 
@@ -59,7 +62,9 @@ class BitUtil {
    * @param bits The bit vector
    * @param idx The index of the bit to set to 1
    */
-  ALWAYS_INLINE static void Set(u32 bits[], const u32 idx) { bits[idx / kBitWordSize] |= 1u << (idx % kBitWordSize); }
+  ALWAYS_INLINE static void Set(uint32_t bits[], const uint32_t idx) {
+    bits[idx / kBitWordSize] |= 1u << (idx % kBitWordSize);
+  }
 
   /**
    * Set the bit at index @em idx to the boolean indicated by @em val
@@ -67,7 +72,7 @@ class BitUtil {
    * @param idx The index of the bit to set or unset
    * @param val The value to set the bit to
    */
-  ALWAYS_INLINE static void SetTo(u32 bits[], const u32 idx, const bool val) {
+  ALWAYS_INLINE static void SetTo(uint32_t bits[], const uint32_t idx, const bool val) {
     if (val) {
       Set(bits, idx);
     } else {
@@ -80,7 +85,7 @@ class BitUtil {
    * @param bits bit vector to be modified
    * @param idx index of the bit to be set to 0
    */
-  ALWAYS_INLINE static void Unset(u32 bits[], const u32 idx) {
+  ALWAYS_INLINE static void Unset(uint32_t bits[], const uint32_t idx) {
     bits[idx / kBitWordSize] &= ~(1u << (idx % kBitWordSize));
   }
 
@@ -89,23 +94,25 @@ class BitUtil {
    * @param bits bit vector to be modified
    * @param idx index of the bit to flip
    */
-  ALWAYS_INLINE static void Flip(u32 bits[], const u32 idx) { bits[idx / kBitWordSize] ^= 1u << (idx % kBitWordSize); }
+  ALWAYS_INLINE static void Flip(uint32_t bits[], const uint32_t idx) {
+    bits[idx / kBitWordSize] ^= 1u << (idx % kBitWordSize);
+  }
 
   /**
    * Clear all the bits in the bit vector, setting them to 0
    * @param bits bit vector to be cleared
    * @param num_bits size of the bit vector, in bits
    */
-  ALWAYS_INLINE static void Clear(u32 bits[], const u64 num_bits) {
+  ALWAYS_INLINE static void Clear(uint32_t bits[], const uint64_t num_bits) {
     auto num_words = Num32BitWordsFor(num_bits);
-    std::memset(bits, 0, num_words * sizeof(u32));
+    std::memset(bits, 0, num_words * sizeof(uint32_t));
   }
 
   /**
    * Return the number of set bits in the given value
    */
   template <typename T>
-  static u32 CountBits(T val) {
+  static uint32_t CountBits(T val) {
     return llvm::countPopulation(val);
   }
 };
@@ -121,7 +128,7 @@ class BitVectorBase {
   /**
    * @return true if the bit at the given index is 1, false otherwise
    */
-  bool Test(u32 idx) const {
+  bool Test(uint32_t idx) const {
     TERRIER_ASSERT(idx < impl()->num_bits(), "Index out of range");
     return BitUtil::Test(impl()->bits(), idx);
   }
@@ -129,7 +136,7 @@ class BitVectorBase {
   /**
    * Set the bit at index idx in the bitvector to 1
    */
-  void Set(u32 idx) {
+  void Set(uint32_t idx) {
     TERRIER_ASSERT(idx < impl()->num_bits(), "Index out of range");
     return BitUtil::Set(impl()->bits(), idx);
   }
@@ -137,7 +144,7 @@ class BitVectorBase {
   /**
    * Set the bit at the given index to the given value
    */
-  void SetTo(const u32 idx, const bool val) {
+  void SetTo(const uint32_t idx, const bool val) {
     TERRIER_ASSERT(idx < impl()->num_bits(), "Index out of range");
     return BitUtil::SetTo(impl()->bits(), idx, val);
   }
@@ -145,7 +152,7 @@ class BitVectorBase {
   /**
    * Set the bit at index idx in the bitvector to 0
    */
-  void Unset(u32 idx) {
+  void Unset(uint32_t idx) {
     TERRIER_ASSERT(idx < impl()->num_bits(), "Index out of range");
     return BitUtil::Unset(impl()->bits(), idx);
   }
@@ -153,7 +160,7 @@ class BitVectorBase {
   /**
    * Flip the bit at index idx in the bitvector
    */
-  void Flip(u32 idx) {
+  void Flip(uint32_t idx) {
     TERRIER_ASSERT(idx < impl()->num_bits(), "Index out of range");
     return BitUtil::Flip(impl()->bits(), idx);
   }
@@ -166,7 +173,7 @@ class BitVectorBase {
   /**
    * @return true if the bit at the given index is 1, false otherwise
    */
-  bool operator[](u32 idx) const { return Test(idx); }
+  bool operator[](uint32_t idx) const { return Test(idx); }
 
  private:
   Subclass *impl() { return static_cast<Subclass *>(this); }
@@ -186,8 +193,8 @@ class BitVector : public BitVectorBase<BitVector> {
   /**
    * Create a new BitVector with the specified number of bits
    */
-  explicit BitVector(u32 num_bits)
-      : owned_bits_(std::make_unique<u32[]>(BitUtil::Num32BitWordsFor(num_bits))),
+  explicit BitVector(uint32_t num_bits)
+      : owned_bits_(std::make_unique<uint32_t[]>(BitUtil::Num32BitWordsFor(num_bits))),
         bits_(owned_bits_.get()),
         num_bits_(num_bits) {
     ClearAll();
@@ -196,20 +203,21 @@ class BitVector : public BitVectorBase<BitVector> {
   /**
    * Create a new BitVector which takes over the given bits
    */
-  BitVector(std::unique_ptr<u32[]> bits, u32 num_bits)
+  BitVector(std::unique_ptr<uint32_t[]> bits, uint32_t num_bits)
       : owned_bits_(std::move(bits)), bits_(owned_bits_.get()), num_bits_(num_bits) {}
 
   /**
    * Create a new BitVector which provides bitvector access to the given bits, not taking ownership of them
    */
-  BitVector(u32 unowned_bits[], u32 num_bits) : owned_bits_(nullptr), bits_(unowned_bits), num_bits_(num_bits) {}
+  BitVector(uint32_t unowned_bits[], uint32_t num_bits)
+      : owned_bits_(nullptr), bits_(unowned_bits), num_bits_(num_bits) {}
 
   /**
    * Initializes the BitVector to contain and own num_bits of bits
    * @param num_bits number of bits to be created
    */
-  void Init(u32 num_bits) {
-    owned_bits_ = std::make_unique<u32[]>(BitUtil::Num32BitWordsFor(num_bits));
+  void Init(uint32_t num_bits) {
+    owned_bits_ = std::make_unique<uint32_t[]>(BitUtil::Num32BitWordsFor(num_bits));
     bits_ = owned_bits_.get();
     num_bits_ = num_bits;
   }
@@ -217,23 +225,23 @@ class BitVector : public BitVectorBase<BitVector> {
   /**
    * @return number of bits in the bitvector
    */
-  u32 num_bits() const { return num_bits_; }
+  uint32_t num_bits() const { return num_bits_; }
 
   /**
    * @return pointer to bits in the bitvector
    */
-  u32 *bits() const { return bits_; }
+  uint32_t *bits() const { return bits_; }
 
  private:
-  std::unique_ptr<u32[]> owned_bits_{nullptr};
+  std::unique_ptr<uint32_t[]> owned_bits_{nullptr};
 
-  u32 *bits_{nullptr};
+  uint32_t *bits_{nullptr};
 
-  u32 num_bits_{0};
+  uint32_t num_bits_{0};
 };
 
 /** A bit vector that stores the bitset data inline in the class. */
-template <u32 NumBits>
+template <uint32_t NumBits>
 class InlinedBitVector : public BitVectorBase<InlinedBitVector<NumBits>> {
   static_assert(NumBits % BitUtil::kBitWordSize == 0,
                 "Inlined bit vectors only support vectors that are a multiple "
@@ -248,20 +256,20 @@ class InlinedBitVector : public BitVectorBase<InlinedBitVector<NumBits>> {
   /**
    * @return number of bits in the bitvector
    */
-  u32 num_bits() const { return NumBits; }
+  uint32_t num_bits() const { return NumBits; }
 
   /**
    * @return pointer to bits in the bitvector
    */
-  u32 *bits() { return bits_; }
+  uint32_t *bits() { return bits_; }
 
   /**
    * @return const pointer to bits in the bitvector
    */
-  const u32 *bits() const { return bits_; }
+  const uint32_t *bits() const { return bits_; }
 
  private:
-  u32 bits_[NumBits / BitUtil::kBitWordSize];
+  uint32_t bits_[NumBits / BitUtil::kBitWordSize];
 };
 
 }  // namespace terrier::execution::util

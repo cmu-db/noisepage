@@ -16,8 +16,7 @@ Parser::Parser(Scanner *scanner, ast::Context *context)
     : scanner_(scanner),
       context_(context),
       node_factory_(context->node_factory()),
-      error_reporter_(context->error_reporter()),
-      pctx(std::make_unique<ParsingContext>()) {}
+      error_reporter_(context->error_reporter()) {}
 
 ast::AstNode *Parser::Parse() {
   util::RegionVector<ast::Decl *> decls(region());
@@ -84,7 +83,7 @@ ast::Decl *Parser::ParseFunctionDecl() {
 
   // The function name
   Expect(Token::Type::IDENTIFIER);
-  ast::Identifier name = pctx->MakeUniqueSymbol(context_, GetSymbol());
+  ast::Identifier name = GetSymbol();
 
   // The function literal
   auto *fun = ParseFunctionLitExpr()->As<ast::FunctionLitExpr>();
@@ -103,7 +102,7 @@ ast::Decl *Parser::ParseStructDecl() {
 
   // The struct name
   Expect(Token::Type::IDENTIFIER);
-  ast::Identifier name = pctx->MakeUniqueSymbol(context_, GetSymbol());
+  ast::Identifier name = GetSymbol();
 
   // The type
   auto *struct_type = ParseStructType()->As<ast::StructTypeRepr>();
@@ -124,7 +123,7 @@ ast::Decl *Parser::ParseVariableDecl() {
 
   // The name
   Expect(Token::Type::IDENTIFIER);
-  ast::Identifier name = pctx->MakeUniqueSymbol(context_, GetSymbol());
+  ast::Identifier name = GetSymbol();
 
   // The type (if exists)
   ast::Expr *type = nullptr;
@@ -202,16 +201,11 @@ ast::Stmt *Parser::ParseBlockStmt() {
   util::RegionVector<ast::Stmt *> statements(region());
   statements.reserve(16);
 
-  // Make nested context. Set it as the current one
-  auto old_pctx = std::move(pctx);
-  pctx = old_pctx->NewNestedContext();
   // Loop while we don't see the right brace
   while (peek() != Token::Type::RIGHT_BRACE && peek() != Token::Type::EOS) {
     ast::Stmt *stmt = ParseStmt();
     statements.emplace_back(stmt);
   }
-  // Restore old context.
-  pctx = std::move(old_pctx);
 
   // Eat the right brace
   Expect(Token::Type::RIGHT_BRACE);
@@ -376,12 +370,12 @@ ast::Stmt *Parser::ParseReturnStmt() {
 
 ast::Expr *Parser::ParseExpr() { return ParseBinaryOpExpr(Token::LowestPrecedence() + 1); }
 
-ast::Expr *Parser::ParseBinaryOpExpr(u32 min_prec) {
+ast::Expr *Parser::ParseBinaryOpExpr(uint32_t min_prec) {
   TERRIER_ASSERT(min_prec > 0, "The minimum precedence cannot be 0");
 
   ast::Expr *left = ParseUnaryOpExpr();
 
-  for (u32 prec = Token::GetPrecedence(peek()); prec > min_prec; prec--) {
+  for (uint32_t prec = Token::GetPrecedence(peek()); prec > min_prec; prec--) {
     // It's possible that we reach a token that has lower precedence than the
     // minimum (e.g., EOS) so we check and early exit
     if (Token::GetPrecedence(peek()) < min_prec) {
@@ -514,20 +508,20 @@ ast::Expr *Parser::ParseOperand() {
     }
     case Token::Type::IDENTIFIER: {
       Next();
-      return node_factory_->NewIdentifierExpr(scanner_->current_position(), pctx->GetScopedSymbol(GetSymbol()));
+      return node_factory_->NewIdentifierExpr(scanner_->current_position(), GetSymbol());
     }
     case Token::Type::INTEGER: {
       Next();
       // Convert the number
       char *end = nullptr;
-      i64 num = std::strtoll(GetSymbol().data(), &end, 10);
+      int64_t num = std::strtoll(GetSymbol().data(), &end, 10);
       return node_factory_->NewIntLiteral(scanner_->current_position(), num);
     }
     case Token::Type::FLOAT: {
       Next();
       // Convert the number
       char *end = nullptr;
-      f64 num = std::strtod(GetSymbol().data(), &end);
+      double num = std::strtod(GetSymbol().data(), &end);
       return node_factory_->NewFloatLiteral(scanner_->current_position(), num);
     }
     case Token::Type::STRING: {
@@ -559,18 +553,10 @@ ast::Expr *Parser::ParseFunctionLitExpr() {
   // FunctionLiteral = Signature FunctionBody ;
   //
   // FunctionBody = Block ;
-  // Make nested context. Set it as the current one
-  auto old_pctx = std::move(pctx);
-  pctx = old_pctx->NewNestedContext();
-
   // Parse the type
   auto *func_type = ParseFunctionType()->As<ast::FunctionTypeRepr>();
   // Parse the body
   auto *body = ParseBlockStmt()->As<ast::BlockStmt>();
-
-  // Restore old context
-  pctx = std::move(old_pctx);
-
   // Done
   return node_factory_->NewFunctionLitExpr(func_type, body);
 }
@@ -628,7 +614,7 @@ ast::Expr *Parser::ParseFunctionType() {
     ast::Expr *type = nullptr;
 
     if (Matches(Token::Type::IDENTIFIER)) {
-      ident = pctx->MakeUniqueSymbol(context_, GetSymbol());
+      ident = GetSymbol();
     }
 
     if (Matches(Token::Type::COLON) || ident.data() == nullptr) {

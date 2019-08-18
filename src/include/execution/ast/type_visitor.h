@@ -35,7 +35,7 @@ class TypeVisitor {
    * @param type type to visit
    * @return default return type (usually void)
    */
-  RetType VisitType(UNUSED const Type *type) { return RetType(); }
+  RetType VisitType(UNUSED_ATTRIBUTE const Type *type) { return RetType(); }
 
 #define T(Type) \
   RetType Visit##Type(const Type *type) { DISPATCH(Type); }

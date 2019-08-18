@@ -3,15 +3,16 @@
 #include <cstdlib>
 #include <memory>
 
+#include "common/constants.h"
 #include "execution/util/memory.h"
 
 namespace terrier::execution::sql {
 
 // If the allocation size is larger than this value, use huge pages
-std::atomic<u64> MemoryPool::kMmapThreshold = 64 * MB;
+std::atomic<uint64_t> MemoryPool::kMmapThreshold = 64 * common::Constants::MB;
 
 // Minimum alignment to abide by
-static constexpr u32 kMinMallocAlignment = 8;
+static constexpr uint32_t kMinMallocAlignment = 8;
 
 MemoryPool::MemoryPool(MemoryTracker *tracker) : tracker_(tracker) {}
 
@@ -23,7 +24,12 @@ void *MemoryPool::AllocateAligned(const std::size_t size, const std::size_t alig
   if (size >= kMmapThreshold.load(std::memory_order_relaxed)) {
     buf = util::MallocHuge(size);
     TERRIER_ASSERT(buf != nullptr, "Null memory pointer");
-    // No need to clear memory, guaranteed on Linux
+    // No need to clear memory on Linux
+#ifdef __APPLE__
+    if (clear) {
+      std::memset(buf, 0, size);
+    }
+#endif
   } else {
     if (alignment < kMinMallocAlignment) {
       if (clear) {

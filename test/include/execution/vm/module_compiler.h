@@ -27,10 +27,6 @@ class ModuleCompiler {
     sema::Sema type_check(&ctx_);
     type_check.Run(ast);
 
-    if (errors_.HasErrors()) {
-      errors_.PrintErrors();
-    }
-
     return ast;
   }
 

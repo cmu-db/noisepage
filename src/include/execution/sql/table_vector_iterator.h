@@ -19,16 +19,17 @@ class TableVectorIterator {
   /**
    * Minimum block range
    */
-  static constexpr const u32 kMinBlockRangeSize = 2;
+  static constexpr const uint32_t kMinBlockRangeSize = 2;
 
   /**
    * Create a new vectorized iterator over the given table
-   * @param table_oid oid of the table
    * @param exec_ctx execution context of the query
+   * @param table_oid oid of the table
    * @param col_oids array column oids to scan
    * @param num_oids length of the array
    */
-  explicit TableVectorIterator(u32 table_oid, exec::ExecutionContext *exec_ctx, u32 *col_oids, u32 num_oids);
+  explicit TableVectorIterator(exec::ExecutionContext *exec_ctx, uint32_t table_oid, uint32_t *col_oids,
+                               uint32_t num_oids);
 
   /**
    * Destructor
@@ -41,16 +42,16 @@ class TableVectorIterator {
   DISALLOW_COPY_AND_MOVE(TableVectorIterator);
 
   /**
-   * Advance the iterator by a vector of input
-   * @return True if there is more data in the iterator; false otherwise
-   */
-  bool Advance();
-
-  /**
    * Initialize the iterator, returning true if the initialization succeeded
    * @return True if the initialization succeeded; false otherwise
    */
   bool Init();
+
+  /**
+   * Advance the iterator by a vector of input
+   * @return True if there is more data in the iterator; false otherwise
+   */
+  bool Advance();
 
   /**
    * @return the iterator over the current active projection
@@ -79,12 +80,12 @@ class TableVectorIterator {
    * @param scan_fn The callback function invoked for vectors of table input
    * @param min_grain_size The minimum number of blocks to give a scan task
    */
-  static bool ParallelScan(u32 db_oid, u32 table_oid, void *query_state, ThreadStateContainer *thread_states,
-                           ScanFn scan_fn, u32 min_grain_size = kMinBlockRangeSize);
+  static bool ParallelScan(uint32_t db_oid, uint32_t table_oid, void *query_state, ThreadStateContainer *thread_states,
+                           ScanFn scan_fn, uint32_t min_grain_size = kMinBlockRangeSize);
 
  private:
-  const catalog::table_oid_t table_oid_;
   exec::ExecutionContext *exec_ctx_;
+  const catalog::table_oid_t table_oid_;
   std::vector<catalog::col_oid_t> col_oids_{};
   // The PCI
   ProjectedColumnsIterator pci_;

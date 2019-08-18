@@ -1,19 +1,21 @@
 #pragma once
+#include <string>
 
 namespace terrier::execution::ast {
 
 class AstNode;
 
 /**
- * Class to dump the AST to standard output
+ * Class to dump the AST to a string.
  */
 class AstDump {
  public:
   /**
-   * Dumps ast to std out
+   * Dumps ast to a string
    * @param node node to dump
+   * @return output string
    */
-  static void Dump(AstNode *node);
+  static std::string Dump(AstNode *node);
 };
 
 }  // namespace terrier::execution::ast

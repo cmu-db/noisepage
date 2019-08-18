@@ -29,19 +29,19 @@ TEST_F(HashTest, NumericHash) {
     CHECK_HASH_METHOD_ON_INPUT(HashMethod::xxHash3, INPUT); \
   }
 
-  CHECK_HASH_ON_INPUT(i8{-1});
-  CHECK_HASH_ON_INPUT(i16{-22});
-  CHECK_HASH_ON_INPUT(i32{-333});
-  CHECK_HASH_ON_INPUT(i64{-4444});
-  CHECK_HASH_ON_INPUT(u8{1});
-  CHECK_HASH_ON_INPUT(u16{22});
-  CHECK_HASH_ON_INPUT(u32{333});
-  CHECK_HASH_ON_INPUT(u64{444});
-  CHECK_HASH_ON_INPUT(f32{0.0f});
-  CHECK_HASH_ON_INPUT(f32{-213.89f});
-  CHECK_HASH_ON_INPUT(f64{0});
-  CHECK_HASH_ON_INPUT(f64{230984.234});
-  CHECK_HASH_ON_INPUT(f64{-230984.234});
+  CHECK_HASH_ON_INPUT(int8_t{-1});
+  CHECK_HASH_ON_INPUT(int16_t{-22});
+  CHECK_HASH_ON_INPUT(int32_t{-333});
+  CHECK_HASH_ON_INPUT(int64_t{-4444});
+  CHECK_HASH_ON_INPUT(uint8_t{1});
+  CHECK_HASH_ON_INPUT(uint16_t{22});
+  CHECK_HASH_ON_INPUT(uint32_t{333});
+  CHECK_HASH_ON_INPUT(uint64_t{444});
+  CHECK_HASH_ON_INPUT(float{0.0f});
+  CHECK_HASH_ON_INPUT(float{-213.89f});
+  CHECK_HASH_ON_INPUT(double{0});
+  CHECK_HASH_ON_INPUT(double{230984.234});
+  CHECK_HASH_ON_INPUT(double{-230984.234});
 
 #undef CHECK_HASH_ON_INPUT
 #undef CHECK_HASH_METHOD_ON_INPUT
@@ -51,7 +51,7 @@ TEST_F(HashTest, NumericHash) {
 TEST_F(HashTest, StringHash) {
   const auto small_input = "This is a kinda long string";
   auto large_input = std::string();
-  for (u32 i = 0; i < 40; i++) {
+  for (uint32_t i = 0; i < 40; i++) {
     large_input += small_input;
   }
 

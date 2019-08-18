@@ -21,8 +21,8 @@ class IndexIterator {
    * @param col_oids oids of the table columns
    * @param num_oids number of oids
    */
-  explicit IndexIterator(uint32_t table_oid, uint32_t index_oid, exec::ExecutionContext *exec_ctx, u32 *col_oids,
-                         u32 num_oids);
+  explicit IndexIterator(exec::ExecutionContext *exec_ctx, uint32_t table_oid, uint32_t index_oid, uint32_t *col_oids,
+                         uint32_t num_oids);
 
   /**
    * Initialize the projected row and begin scanning.
@@ -66,7 +66,7 @@ class IndexIterator {
    * @return The typed value at the current iterator position in the column
    */
   template <typename T, bool Nullable>
-  const T *Get(u16 col_idx, bool *null) const {
+  const T *Get(uint16_t col_idx, bool *null) const {
     // NOLINTNEXTLINE: bugprone-suspicious-semicolon: seems like a false positive because of constexpr
     if constexpr (Nullable) {
       TERRIER_ASSERT(null != nullptr, "Missing output variable for NULL indicator");
@@ -82,11 +82,15 @@ class IndexIterator {
    * @param value value to write
    * @param null whether the value is null
    */
-  template <typename T>
-  void SetKey(u16 col_idx, T value, bool null) {
-    if (null) {
-      index_pr_->SetNull(static_cast<u16>(col_idx));
-    } else {
+  template <typename T, bool Nullable>
+  void SetKey(uint16_t col_idx, T value, bool null) {
+    if constexpr (Nullable) {
+      if (null) {
+        index_pr_->SetNull(static_cast<uint16_t>(col_idx));
+      } else {
+        *reinterpret_cast<T *>(index_pr_->AccessForceNotNull(col_idx)) = value;
+      }
+    } else {  // NOLINT
       *reinterpret_cast<T *>(index_pr_->AccessForceNotNull(col_idx)) = value;
     }
   }

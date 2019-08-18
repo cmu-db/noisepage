@@ -1,3 +1,7 @@
+# This file contains tpl tests along with their expected return value
+# To add a test, add an entry with the format: filename,is_sql,expected_return_value
+# The is_sql flag indicates whether an execution context is needed for the test.
+
 ################################################################################
 # TPL tests
 ################################################################################
@@ -20,7 +24,6 @@ nil.tpl,false,0
 param.tpl,false,10
 pointer.tpl,false,10
 point.tpl,false,-20
-scope.tpl,false,3
 short-circuit.tpl,false,1
 simple.tpl,false,44
 struct.tpl,false,10
@@ -32,7 +35,8 @@ struct-pointer.tpl,false,440
 test.tpl,false,356405
 while.tpl,false,10
 return-exp.tpl,false,2
-scope-2.tpl,false,42
+# scope.tpl,false,3 <Add after merging Wan's scoping PR>
+# scope-2.tpl,false,42 <Add after merging Wan's scoping PR>
 
 ################################################################################
 # TPL SQL tests

@@ -122,9 +122,8 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
   }
 
   if (error_reporter.HasErrors()) {
-    EXECUTION_LOG_ERROR("Parsing error!");
-    error_reporter.PrintErrors();
-    return;
+    EXECUTION_LOG_ERROR("Parsing errors: \n {}", error_reporter.SerializeErrors());
+    throw std::runtime_error("Parsing Error!");
   }
 
   //
@@ -138,14 +137,13 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
   }
 
   if (error_reporter.HasErrors()) {
-    EXECUTION_LOG_ERROR("Type-checking error!");
-    error_reporter.PrintErrors();
-    throw std::runtime_error("Type Checking Exception!");
+    EXECUTION_LOG_ERROR("Type-checking errors: \n {}", error_reporter.SerializeErrors());
+    throw std::runtime_error("Type Checking Error!");
   }
 
   // Dump AST
   if (kPrintAst) {
-    ast::AstDump::Dump(root);
+    EXECUTION_LOG_INFO("\n{}", ast::AstDump::Dump(root));
   }
 
   //
@@ -160,7 +158,9 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
 
   // Dump Bytecode
   if (kPrintTbc) {
-    bytecode_module->PrettyPrint(&std::cout);
+    std::stringstream ss;
+    bytecode_module->PrettyPrint(&ss);
+    EXECUTION_LOG_INFO("\n{}", ss.str());
   }
 
   auto module = std::make_unique<vm::Module>(std::move(bytecode_module));
@@ -173,7 +173,7 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
     util::ScopedTimer<std::milli> timer(&interp_exec_ms);
 
     if (kIsSQL) {
-      std::function<i64(exec::ExecutionContext *)> main;
+      std::function<int64_t(exec::ExecutionContext *)> main;
       if (!module->GetFunction("main", vm::ExecutionMode::Interpret, &main)) {
         EXECUTION_LOG_ERROR(
             "Missing 'main' entry function with signature "
@@ -182,7 +182,7 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
       }
       EXECUTION_LOG_INFO("VM main() returned: {}", main(&exec_ctx));
     } else {
-      std::function<i64()> main;
+      std::function<int64_t()> main;
       if (!module->GetFunction("main", vm::ExecutionMode::Interpret, &main)) {
         EXECUTION_LOG_ERROR("Missing 'main' entry function with signature ()->int64");
         return;
@@ -199,7 +199,7 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
     util::ScopedTimer<std::milli> timer(&adaptive_exec_ms);
 
     if (kIsSQL) {
-      std::function<i64(exec::ExecutionContext *)> main;
+      std::function<int64_t(exec::ExecutionContext *)> main;
       if (!module->GetFunction("main", vm::ExecutionMode::Adaptive, &main)) {
         EXECUTION_LOG_ERROR(
             "Missing 'main' entry function with signature "
@@ -208,7 +208,7 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
       }
       EXECUTION_LOG_INFO("ADAPTIVE main() returned: {}", main(&exec_ctx));
     } else {
-      std::function<i64()> main;
+      std::function<int64_t()> main;
       if (!module->GetFunction("main", vm::ExecutionMode::Adaptive, &main)) {
         EXECUTION_LOG_ERROR("Missing 'main' entry function with signature ()->int64");
         return;
@@ -224,7 +224,7 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
     util::ScopedTimer<std::milli> timer(&jit_exec_ms);
 
     if (kIsSQL) {
-      std::function<i64(exec::ExecutionContext *)> main;
+      std::function<int64_t(exec::ExecutionContext *)> main;
       if (!module->GetFunction("main", vm::ExecutionMode::Compiled, &main)) {
         EXECUTION_LOG_ERROR(
             "Missing 'main' entry function with signature "
@@ -233,7 +233,7 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
       }
       EXECUTION_LOG_INFO("JIT main() returned: {}", main(&exec_ctx));
     } else {
-      std::function<i64()> main;
+      std::function<int64_t()> main;
       if (!module->GetFunction("main", vm::ExecutionMode::Compiled, &main)) {
         EXECUTION_LOG_ERROR("Missing 'main' entry function with signature ()->int64");
         return;
@@ -322,7 +322,7 @@ void ShutdownTPL() {
 
 }  // namespace terrier::execution
 
-void SignalHandler(i32 sig_num) {
+void SignalHandler(int32_t sig_num) {
   if (sig_num == SIGINT) {
     terrier::execution::ShutdownTPL();
     exit(0);

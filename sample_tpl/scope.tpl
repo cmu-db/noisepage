@@ -1,3 +1,5 @@
+// Test scoping
+
 fun main() -> int {
   var a = 2
   if (a < 10) {             // enter

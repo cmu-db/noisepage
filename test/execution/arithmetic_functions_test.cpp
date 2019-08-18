@@ -13,7 +13,7 @@ namespace terrier::execution::sql::test {
 
 class ArithmeticFunctionsTests : public TplTest {
  protected:
-  inline double cotan(const double arg) { return (1.0 / std::tan(arg)); }
+  double cotan(const double arg) { return (1.0 / std::tan(arg)); }
 };
 
 // NOLINTNEXTLINE
@@ -67,7 +67,7 @@ TEST_F(ArithmeticFunctionsTests, IntegerValue) {
 
   // Overflow
   {
-    const auto aval = std::numeric_limits<i64>::max() - 1, bval = static_cast<i64>(4);
+    const auto aval = std::numeric_limits<int64_t>::max() - 1, bval = static_cast<int64_t>(4);
     Integer a(aval), b(bval), result(0);
 
     bool overflow = false;
@@ -77,7 +77,7 @@ TEST_F(ArithmeticFunctionsTests, IntegerValue) {
   }
 
   {
-    const auto aval = std::numeric_limits<i64>::min() + 1, bval = static_cast<i64>(4);
+    const auto aval = std::numeric_limits<int64_t>::min() + 1, bval = static_cast<int64_t>(4);
     Integer a(aval), b(bval), result(0);
 
     bool overflow = false;
@@ -87,7 +87,7 @@ TEST_F(ArithmeticFunctionsTests, IntegerValue) {
   }
 
   {
-    const auto aval = std::numeric_limits<i64>::max() - 1, bval = aval;
+    const auto aval = std::numeric_limits<int64_t>::max() - 1, bval = aval;
     Integer a(aval), b(bval), result(0);
 
     bool overflow = false;
@@ -171,7 +171,7 @@ TEST_F(ArithmeticFunctionsTests, TrigFunctions) {
   std::mt19937 gen;
   std::uniform_real_distribution dist(1.0, 1000.0);
   std::uniform_real_distribution arc_dist(-1.0, 1.0);
-  for (u32 i = 0; i < 100; i++) {
+  for (uint32_t i = 0; i < 100; i++) {
     inputs.push_back(dist(gen));
     arc_inputs.push_back(arc_dist(gen));
   }
