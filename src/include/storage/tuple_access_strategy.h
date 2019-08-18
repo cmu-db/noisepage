@@ -273,12 +273,12 @@ class TupleAccessStrategy {
     return block->insert_head_.compare_exchange_weak(old_val, clr_bit(old_val));
   }
 
+  static uint32_t clr_bit(uint32_t val) { return val & ~(1 << 31); }
+  static uint32_t set_bit(uint32_t val) { return val | (1 << 31); }
+
  private:
   const BlockLayout layout_;
   // Start of each mini block, in offset to the start of the block
   std::vector<uint32_t> column_offsets_;
-  // Not sure if I should put the two lambdas here
-  uint32_t (*clr_bit)(uint32_t) = [](uint32_t val) { return val & ~(1 << 31); };
-  uint32_t (*set_bit)(uint32_t) = [](uint32_t val) { return val | (1 << 31); };
 };
 }  // namespace terrier::storage

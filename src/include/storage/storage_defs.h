@@ -88,9 +88,7 @@ class alignas(common::Constants::BLOCK_SIZE) RawBlock {
   // A Block needs to always be aligned to 1 MB, so we can get free bytes to
   // store offsets within a block in ine 8-byte word
 
-  std::atomic<uint32_t> GetInsertHead() {
-    return (~(1<<31)) & insert_head_.load();
-  }
+  std::atomic<uint32_t> GetInsertHead() { return (~(1 << 31)) & insert_head_.load(); }
 };
 
 /**

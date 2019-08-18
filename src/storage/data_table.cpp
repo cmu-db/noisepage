@@ -1,6 +1,7 @@
 #include "storage/data_table.h"
 #include <pthread.h>
 #include <cstring>
+#include <list>
 #include <unordered_map>
 #include "common/allocator.h"
 #include "storage/block_access_controller.h"
@@ -16,7 +17,7 @@ DataTable::DataTable(BlockStore *const store, const BlockLayout &layout, const l
   TERRIER_ASSERT(layout.NumColumns() > NUM_RESERVED_COLUMNS,
                  "First column is reserved for version info, second column is reserved for logical delete.");
   if (block_store_ != nullptr) NewBlock();
-  insertion_head_= blocks_.begin();
+  insertion_head_ = blocks_.begin();
 }
 
 DataTable::~DataTable() {
@@ -156,7 +157,7 @@ TupleSlot DataTable::Insert(transaction::TransactionContext *const txn, const Pr
   // all blocks are full/busy and multiple threads want to insert at the same time. This should
   // be rare and will not affect the correctness
   TupleSlot result;
-  std::list<RawBlock *>::iterator block = insertion_head_;
+  auto block = insertion_head_;
   while (true) {
     // No free block left
     if (block == blocks_.end()) {
@@ -174,13 +175,14 @@ TupleSlot DataTable::Insert(transaction::TransactionContext *const txn, const Pr
       checkMoveHead(block);
       // The block is full, try next block
       ++block;
-    } else { // The block is inserting by other txn
+    } else {  // The block is inserting by other txn
       // Try next block
       ++block;
     }
   }
 
-  // Do not need to wait unit finish inserting, can flip back the status bit once the thread gets the allocated tuple slot
+  // Do not need to wait unit finish inserting,
+  // can flip back the status bit once the thread gets the allocated tuple slot
   accessor_.clearBlockBusyStatus(*block);
   InsertInto(txn, redo, result);
 
@@ -360,9 +362,9 @@ bool DataTable::CompareAndSwapVersionPtr(const TupleSlot slot, const TupleAccess
 }
 
 std::list<RawBlock *>::iterator DataTable::NewBlock() {
-  common::SpinLatch::ScopedSpinLatch guard(&blocks_latch_);
   RawBlock *new_block = block_store_->Get();
   accessor_.InitializeRawBlock(this, new_block, layout_version_);
+  common::SpinLatch::ScopedSpinLatch guard(&blocks_latch_);
   blocks_.push_back(new_block);
   data_table_counter_.IncrementNumNewBlock(1);
   return --blocks_.end();
