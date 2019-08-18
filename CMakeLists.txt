@@ -168,15 +168,6 @@ include(ThirdpartyToolchain)
 # Add common flags
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CXX_COMMON_FLAGS}")
 
-# Add compiler flags
-if ("${COMPILER_FAMILY}" STREQUAL "clang")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CLANG_CXX_FLAGS}")
-elseif ("${COMPILER_FAMILY}" STREQUAL "gcc")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${GCC_CXX_FLAGS}")
-else ()
-    message(FATAL_ERROR "Unknown compiler. Version info:\n${COMPILER_VERSION_FULL}")
-endif ()
-
 # For any C code, use the same flags.
 set(CMAKE_C_FLAGS "${CMAKE_CXX_FLAGS}")
 
@@ -205,8 +196,6 @@ endif ()
 # CMAKE_CXX_FLAGS now fully assembled
 #message(STATUS "CXX_ONLY_FLAGS: ${CXX_ONLY_FLAGS}")
 #message(STATUS "CXX_COMMON_FLAGS: ${CXX_COMMON_FLAGS}")
-#message(STATUS "CLANG_CXX_FLAGS: ${CLANG_CXX_FLAGS}")
-#message(STATUS "GCC_CXX_FLAGS: ${GCC_CXX_FLAGS}")
 #message(STATUS "CXX_OPTIMIZATION_FLAGS: ${CXX_OPTIMIZATION_FLAGS}")
 message(STATUS "CMAKE_CXX_FLAGS: ${CMAKE_CXX_FLAGS}")
 

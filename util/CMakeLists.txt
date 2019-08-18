@@ -13,7 +13,7 @@ set(TPL_VERSION_MAJOR 0)
 set(TPL_VERSION_MINOR 1)
 
 # configure a header file to pass some of the CMake settings to the source code
-configure_file (
+configure_file(
         "execution/tpl.h.in"
         "${PROJECT_BINARY_DIR}/execution/tpl.h"
 )
@@ -21,30 +21,29 @@ configure_file (
 # Find CLANG
 set(SUPPORTED_CLANGS "clang++-8" "clang++")
 
-find_program(CLANG NAMES ${SUPPORTED_CLANGS}) #TODO(Matt): this should follow the logic of FindClangTools if we actually need clang++ on macOS to come from LLVM 8 rather than AppleClang
+find_program(CLANG NAMES ${SUPPORTED_CLANGS})
 if (NOT EXISTS ${CLANG})
     message(FATAL_ERROR "Unable to locate clang++.")
-else()
+else ()
     message(STATUS "Found Clang ${CLANG}")
 endif ()
 
 # Setup compiler arguments to Clang
-# TODO(Amadou): Given all the CMAKE_CXX_FLAGS clang does not compile.
-# For now I just use copied these flags from the TPL repo. Eventually, we should probably figure out a way to pass this in automatically.
-# TODO(WAN): We really want -fno-rtti for execution, but the dummy catalog? is using TBB which needs it.
-#set(CLANG_CXX_FLAGS -std=c++17 -Wall -Werror -mcx16 -march=native -fdiagnostics-color=auto -ggdb -O3 -DNDEBUG )
-#message("CLANG_CXX_FLAGS ${CLANG_CXX_FLAGS}")
-set(CLANG_IR_CXX_FLAGS "${CXX_ONLY_FLAGS} ${CXX_OPTIMIZATION_FLAGS} ${CXX_COMMON_FLAGS} ${CLANG_CXX_FLAGS} -emit-llvm -c")
+set(CLANG_IR_CXX_FLAGS "${CXX_ONLY_FLAGS} ${CXX_OPTIMIZATION_FLAGS} ${CXX_COMMON_FLAGS} -emit-llvm -c")
 string(REPLACE "-fPIC" "" CLANG_IR_CXX_FLAGS ${CLANG_IR_CXX_FLAGS})
 
+separate_arguments(CLANG_IR_CXX_FLAGS)
 message(STATUS "CLANG_IR_CXX_FLAGS: ${CLANG_IR_CXX_FLAGS}")
-set(CLANG_IR_CXX_INCLUDES "-I${PROJECT_SOURCE_DIR}/src/include")
-set(CLANG_IR_CXX_INCLUDES ${CLANG_IR_CXX_INCLUDES} "-I${PROJECT_SOURCE_DIR}/third_party/spdlog/include")
-set(CLANG_IR_CXX_INCLUDES ${CLANG_IR_CXX_INCLUDES} "-I${PROJECT_SOURCE_DIR}/third_party/portable_endian")
-set(CLANG_IR_CXX_INCLUDES ${CLANG_IR_CXX_INCLUDES} "-I${PROJECT_SOURCE_DIR}/third_party/bwtree")
-set(CLANG_IR_CXX_INCLUDES ${CLANG_IR_CXX_INCLUDES} "-I${PROJECT_SOURCE_DIR}/third_party/")
-set(CLANG_IR_CXX_INCLUDES ${CLANG_IR_CXX_INCLUDES} "-I${GFLAGS_INCLUDE_DIR}")
-set(CLANG_IR_CXX_INCLUDES ${CLANG_IR_CXX_INCLUDES} "-isystem${LLVM_INCLUDE_DIRS}")
+
+get_property(dirs DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY INCLUDE_DIRECTORIES)
+foreach (dir ${dirs})
+    list(APPEND CLANG_INCLUDES ${dir})
+endforeach ()
+list(REMOVE_DUPLICATES CLANG_INCLUDES)
+foreach (dir ${CLANG_INCLUDES})
+    set(CLANG_IR_CXX_INCLUDES ${CLANG_IR_CXX_INCLUDES} "-I${dir}")
+endforeach ()
+message(STATUS "CLANG_IR_CXX_INCLUDES: ${CLANG_IR_CXX_INCLUDES}")
 
 # Function to generate rule to cross compile a source file to an IR module.
 # When called called with a 'src.cpp' source file it will generate a 'src_bc'
