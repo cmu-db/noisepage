@@ -86,7 +86,7 @@ class alignas(common::Constants::BLOCK_SIZE) RawBlock {
   byte content_[common::Constants::BLOCK_SIZE - sizeof(uintptr_t) - sizeof(uint16_t) - sizeof(layout_version_t) -
                 sizeof(uint32_t) - sizeof(BlockAccessController)];
   // A Block needs to always be aligned to 1 MB, so we can get free bytes to
-  // store offsets within a block in ine 8-byte word
+  // store offsets within a block in one 8-byte word
 
   /**
    * Get the offset of this block. Because the first bit insert_head_ is used to indicate the status
