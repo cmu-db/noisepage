@@ -15,7 +15,7 @@
 #include "execution/compiler/compiler_defs.h"
 
 
-namespace tpl::compiler {
+namespace terrier::execution::compiler {
 
 class FunctionBuilder;
 
@@ -655,4 +655,4 @@ class CodeGen {
   ast::Identifier teardown_fn_;
 };
 
-}  // namespace tpl::compiler
+}  // namespace terrier::execution::compiler

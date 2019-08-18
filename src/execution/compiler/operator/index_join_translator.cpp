@@ -5,16 +5,16 @@
 #include "planner/plannodes/index_join_plan_node.h"
 
 
-namespace tpl::compiler {
+namespace terrier::execution::compiler {
 
 IndexJoinTranslator::IndexJoinTranslator(const terrier::planner::AbstractPlanNode *op,
-                                         tpl::compiler::CodeGen *codegen)
+                                         execution::compiler::CodeGen *codegen)
 : OperatorTranslator(op, codegen)
 , index_iter_(codegen_->NewIdentifier(iter_name_))
 , index_struct_(codegen_->NewIdentifier(index_struct_name_))
 , index_key_(codegen_->NewIdentifier(index_key_name_)){}
 
-void IndexJoinTranslator::InitializeStructs(tpl::util::RegionVector<tpl::ast::Decl *> *decls) {
+void IndexJoinTranslator::InitializeStructs(execution::util::RegionVector<execution::ast::Decl *> *decls) {
   // Create key : type for each index key column
   auto join_op = dynamic_cast<const terrier::planner::IndexJoinPlanNode*>(op_);
   util::RegionVector<ast::FieldDecl *> fields{codegen_->Region()};
@@ -27,7 +27,7 @@ void IndexJoinTranslator::InitializeStructs(tpl::util::RegionVector<tpl::ast::De
   decls->emplace_back(codegen_->MakeStruct(index_struct_, std::move(fields)));
 }
 
-void IndexJoinTranslator::Produce(tpl::compiler::FunctionBuilder *builder) {
+void IndexJoinTranslator::Produce(execution::compiler::FunctionBuilder *builder) {
   // First declare an index iterator
   DeclareIterator(builder);
   // Then declare a key
@@ -56,7 +56,7 @@ ast::Expr* IndexJoinTranslator::GetChildOutput(uint32_t child_idx, uint32_t attr
   }
 }
 
-void IndexJoinTranslator::DeclareIterator(tpl::compiler::FunctionBuilder *builder) {
+void IndexJoinTranslator::DeclareIterator(execution::compiler::FunctionBuilder *builder) {
   // Declare: var index_iter : IndexIterator
   ast::Expr* iter_type = codegen_->BuiltinType(ast::BuiltinType::IndexIterator);
   builder->Append(codegen_->DeclareVariable(index_iter_, iter_type, nullptr));
@@ -66,12 +66,12 @@ void IndexJoinTranslator::DeclareIterator(tpl::compiler::FunctionBuilder *builde
   builder->Append(codegen_->MakeStmt(init_call));
 }
 
-void IndexJoinTranslator::DeclareKey(tpl::compiler::FunctionBuilder *builder) {
+void IndexJoinTranslator::DeclareKey(execution::compiler::FunctionBuilder *builder) {
   // var index_key : IndexKeyStruct
   builder->Append(codegen_->DeclareVariable(index_key_, codegen_->MakeExpr(index_struct_), nullptr));
 }
 
-void IndexJoinTranslator::FillKey(tpl::compiler::FunctionBuilder *builder) {
+void IndexJoinTranslator::FillKey(execution::compiler::FunctionBuilder *builder) {
   // Set key.attr_i = expr_i for each key attribute
   uint32_t attr_idx = 0;
   auto join_op = dynamic_cast<const terrier::planner::IndexJoinPlanNode*>(op_);
@@ -83,7 +83,7 @@ void IndexJoinTranslator::FillKey(tpl::compiler::FunctionBuilder *builder) {
   }
 }
 
-void IndexJoinTranslator::GenForLoop(tpl::compiler::FunctionBuilder *builder) {
+void IndexJoinTranslator::GenForLoop(execution::compiler::FunctionBuilder *builder) {
   // for (@indexIteratorScanKey(&index_iter, ...); @indexIteratorAdvance(&index_iter);)
   // Loop Initialization
   // @indexIteratorScanKey(&index_iter, @ptrCast(*int8, &index_key))
@@ -95,7 +95,7 @@ void IndexJoinTranslator::GenForLoop(tpl::compiler::FunctionBuilder *builder) {
   builder->StartForStmt(loop_init, has_next_call, nullptr);
 }
 
-void IndexJoinTranslator::FreeIterator(tpl::compiler::FunctionBuilder *builder) {
+void IndexJoinTranslator::FreeIterator(execution::compiler::FunctionBuilder *builder) {
   // @indexIteratorFree(&index_iter_)
   ast::Expr * free_call = codegen_->IndexIteratorFree(index_iter_);
   builder->AppendAfter(codegen_->MakeStmt(free_call));

@@ -2,7 +2,7 @@
 #include "execution/compiler/translator_factory.h"
 
 
-namespace tpl::compiler {
+namespace terrier::execution::compiler {
 
 UnaryTranslator::UnaryTranslator(const terrier::parser::AbstractExpression *expression, CodeGen * codegen)
     : ExpressionTranslator(expression, codegen)
@@ -23,4 +23,4 @@ ast::Expr *UnaryTranslator::DeriveExpr(OperatorTranslator * translator) {
   }
   return codegen_->UnaryOp(type, child_expr);
 }
-}  // namespace tpl::compiler
+}  // namespace terrier::execution::compiler

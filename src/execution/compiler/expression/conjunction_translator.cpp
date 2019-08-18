@@ -2,7 +2,7 @@
 #include "execution/compiler/codegen.h"
 #include "execution/compiler/translator_factory.h"
 
-namespace tpl::compiler {
+namespace terrier::execution::compiler {
 
 ConjunctionTranslator::ConjunctionTranslator(const terrier::parser::AbstractExpression *expression,
                                              CodeGen * codegen)
@@ -30,4 +30,4 @@ ast::Expr *ConjunctionTranslator::DeriveExpr(OperatorTranslator * translator) {
   }
   return codegen_->BinaryOp(type, left_expr, right_expr);
 }
-}  // namespace tpl::compiler
+}  // namespace terrier::execution::compiler

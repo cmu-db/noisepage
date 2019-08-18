@@ -2,7 +2,7 @@
 #include "execution/compiler/translator_factory.h"
 
 
-namespace tpl::compiler {
+namespace terrier::execution::compiler {
 NullCheckTranslator::NullCheckTranslator(const terrier::parser::AbstractExpression *expression,
                                          CodeGen * codegen)
     : ExpressionTranslator(expression, codegen)
@@ -19,4 +19,4 @@ ast::Expr *NullCheckTranslator::DeriveExpr(OperatorTranslator * translator) {
   TPL_ASSERT(type == terrier::parser::ExpressionType::OPERATOR_IS_NOT_NULL, "Unsupported expression");
   return codegen_->BinaryOp(parsing::Token::Type::BANG_EQUAL, null_expr, child_expr);
 }
-};  // namespace tpl::compiler
+};  // namespace terrier::execution::compiler

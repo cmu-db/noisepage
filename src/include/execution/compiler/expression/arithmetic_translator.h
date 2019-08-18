@@ -3,7 +3,7 @@
 #include "execution/compiler/expression/expression_translator.h"
 #include "parser/expression/operator_expression.h"
 
-namespace tpl::compiler {
+namespace terrier::execution::compiler {
 
 /**
  * Arithmetic Translator
@@ -23,4 +23,4 @@ class ArithmeticTranslator : public ExpressionTranslator {
   ExpressionTranslator * left_;
   ExpressionTranslator * right_;
 };
-}  // namespace tpl::compiler
+}  // namespace terrier::execution::compiler

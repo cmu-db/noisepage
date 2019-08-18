@@ -6,7 +6,7 @@
 #include "execution/compiler/function_builder.h"
 #include "execution/compiler/operator/operator_translator.h"
 
-namespace tpl::compiler {
+namespace terrier::execution::compiler {
 
 /**
  * A single pipeline
@@ -77,9 +77,9 @@ class Pipeline {
 
     FunctionBuilder builder{codegen_, fn_name, std::move(params), ret_type};
 
-    for (const auto & translator: pipeline_) {
-      translator->Produce(&builder);
-    }
+    //for (const auto & translator: pipeline_) {
+    translator->Produce(&builder);
+    //}
     return builder.Finish();
   }
 
@@ -91,4 +91,4 @@ class Pipeline {
   bool is_parallelizable_{true};
 };
 
-}  // namespace tpl::compiler
+}  // namespace terrier::execution::compiler

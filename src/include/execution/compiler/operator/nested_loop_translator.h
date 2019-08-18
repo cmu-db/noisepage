@@ -5,7 +5,7 @@
 #include "execution/compiler/function_builder.h"
 #include "planner/plannodes/nested_loop_join_plan_node.h"
 
-namespace tpl::compiler {
+namespace terrier::execution::compiler {
 
 class NestedLoopRightTranslator;
 

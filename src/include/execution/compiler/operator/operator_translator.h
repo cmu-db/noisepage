@@ -5,7 +5,7 @@
 #include "execution/compiler/codegen.h"
 
 
-namespace tpl::compiler {
+namespace terrier::execution::compiler {
 
 /**
  * Generic Operator Translator
@@ -63,6 +63,12 @@ class OperatorTranslator {
    * @param builder builder of the pipeline function
    */
   virtual void Produce(FunctionBuilder * builder) = 0;
+
+  /**
+   * Consume code for the operator
+   * @param builder builder of the pipeline function
+   */
+  virtual void Consume(FunctionBuilder * builder) = 0;
 
   /**
    * Casts an operator to a given type
@@ -182,4 +188,4 @@ class OperatorTranslator {
    */
   bool parallelized_pipeline_;
 };
-}  // namespace tpl::compiler
+}  // namespace terrier::execution::compiler

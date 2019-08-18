@@ -8,7 +8,7 @@
 #include "execution/exec/output.h"
 #include "execution/compiler/operator/operator_translator.h"
 
-namespace tpl::compiler {
+namespace terrier::execution::compiler {
 class CompilationContext;
 class ConsumerContext;
 
@@ -77,4 +77,4 @@ class OutputTranslator : public OperatorTranslator {
   ast::Identifier output_var_;
 };
 
-}  // namespace tpl::compiler
+}  // namespace terrier::execution::compiler

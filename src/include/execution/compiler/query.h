@@ -14,11 +14,11 @@ namespace terrier::planner {
 class AbstractPlanNode;
 }
 
-namespace tpl::ast {
+namespace terrier::execution::ast {
 class BlockStmt;
 }
 
-namespace tpl::compiler {
+namespace terrier::execution::compiler {
 
 /**
  * Query to execute.
@@ -93,4 +93,4 @@ class Query {
   exec::ExecutionContext * exec_ctx_;
 };
 
-}  // namespace tpl::compiler
+}  // namespace terrier::execution::compiler

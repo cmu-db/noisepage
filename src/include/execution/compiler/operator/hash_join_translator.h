@@ -3,7 +3,7 @@
 #include "execution/compiler/operator/operator_translator.h"
 #include "execution/compiler/expression/expression_translator.h"
 
-namespace tpl::compiler {
+namespace terrier::execution::compiler {
 
 /*
  * TODO(Amadou): These two classes have a lot in common. The only difference between several of their methods

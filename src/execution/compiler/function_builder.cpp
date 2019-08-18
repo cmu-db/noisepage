@@ -6,7 +6,7 @@
 #include "execution/compiler/codegen.h"
 #include "execution/compiler/compiler_defs.h"
 
-namespace tpl::compiler {
+namespace terrier::execution::compiler {
 
 FunctionBuilder::FunctionBuilder(CodeGen *codegen, ast::Identifier fn_name,
                                  util::RegionVector<ast::FieldDecl *> && fn_params, ast::Expr *fn_ret_type)
@@ -45,4 +45,4 @@ ast::FunctionDecl *FunctionBuilder::Finish() {
   return codegen_->Factory()->NewFunctionDecl(DUMMY_POS, fn_name_, fn_lit);
 }
 
-}  // namespace tpl::compiler
+}  // namespace terrier::execution::compiler

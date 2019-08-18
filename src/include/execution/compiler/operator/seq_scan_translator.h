@@ -4,7 +4,7 @@
 #include "execution/compiler/operator/operator_translator.h"
 #include "parser/expression/tuple_value_expression.h"
 
-namespace tpl::compiler {
+namespace terrier::execution::compiler {
 
 /**
  * SeqScan Translator
@@ -19,6 +19,9 @@ class SeqScanTranslator : public OperatorTranslator {
   SeqScanTranslator(const terrier::planner::AbstractPlanNode * op, CodeGen * codegen);
 
   void Produce(FunctionBuilder * builder) override;
+
+  // This is always a leaf node, so do nothing.
+  void Consume(FunctionBuilder * builder) override {}
 
   // Does nothing
   void InitializeStateFields(util::RegionVector<ast::FieldDecl *> *state_fields) override {}
@@ -100,4 +103,4 @@ class SeqScanTranslator : public OperatorTranslator {
   ast::Identifier pci_type_;
 };
 
-}  // namespace tpl::compiler
+}  // namespace terrier::execution::compiler
