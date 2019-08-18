@@ -169,7 +169,7 @@ TupleSlot DataTable::Insert(transaction::TransactionContext *const txn, const Pr
         break;
       }
       // Fail to insert into the block, flip back the status bit
-      accessor_.clearBlockBusyStatus(*block);
+      accessor_.ClearBlockBusyStatus(*block);
       // if the full block is the insertion_header, move the insertion_header
       // Next insert txn will search from the new insertion_header
       checkMoveHead(block);
@@ -183,7 +183,7 @@ TupleSlot DataTable::Insert(transaction::TransactionContext *const txn, const Pr
 
   // Do not need to wait unit finish inserting,
   // can flip back the status bit once the thread gets the allocated tuple slot
-  accessor_.clearBlockBusyStatus(*block);
+  accessor_.ClearBlockBusyStatus(*block);
   InsertInto(txn, redo, result);
 
   data_table_counter_.IncrementNumInsert(1);
