@@ -4,9 +4,9 @@
 #include "planner/plannodes/hash_join_plan_node.h"
 
 
-namespace tpl::compiler {
+namespace terrier::execution::compiler {
 HashJoinLeftTranslator::HashJoinLeftTranslator(const terrier::planner::AbstractPlanNode *op,
-                                               tpl::compiler::CodeGen *codegen)
+                                               execution::compiler::CodeGen *codegen)
    : OperatorTranslator(op, codegen),
      hash_val_{codegen->NewIdentifier(hash_val_name_)},
      build_struct_{codegen->NewIdentifier(build_struct_name_)},
@@ -114,8 +114,8 @@ ast::Expr* HashJoinLeftTranslator::GetChildOutput(uint32_t child_idx, uint32_t a
 
 
 HashJoinRightTranslator::HashJoinRightTranslator(const terrier::planner::AbstractPlanNode *op,
-                                                 tpl::compiler::CodeGen *codegen,
-                                                 tpl::compiler::OperatorTranslator *left)
+                                                 execution::compiler::CodeGen *codegen,
+                                                 execution::compiler::OperatorTranslator *left)
    : OperatorTranslator{op, codegen}
    , left_(dynamic_cast<HashJoinLeftTranslator *>(left)),
  hash_val_{codegen->NewIdentifier(hash_val_name_)},

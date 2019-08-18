@@ -3,7 +3,7 @@
 #include "execution/compiler/operator/operator_translator.h"
 #include "planner/plannodes/aggregate_plan_node.h"
 
-namespace tpl::compiler {
+namespace terrier::execution::compiler {
 
 // Forward declare
 class AggregateTopTranslator;

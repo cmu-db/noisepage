@@ -1,7 +1,7 @@
 #include "execution/compiler/expression/comparison_translator.h"
 #include "execution/compiler/translator_factory.h"
 
-namespace tpl::compiler {
+namespace terrier::execution::compiler {
 
 ComparisonTranslator::ComparisonTranslator(const terrier::parser::AbstractExpression *expression,
                                            CodeGen * codegen)
@@ -34,4 +34,4 @@ ast::Expr *ComparisonTranslator::DeriveExpr(OperatorTranslator* translator) {
   }
   return codegen_->Compare(type, left_expr, right_expr);
 }
-}  // namespace tpl::compiler
+}  // namespace terrier::execution::compiler

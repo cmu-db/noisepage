@@ -4,7 +4,7 @@
 #include "execution/compiler/translator_factory.h"
 #include "execution/sql/value.h"
 
-namespace tpl::compiler {
+namespace terrier::execution::compiler {
 ConstantTranslator::ConstantTranslator(const terrier::parser::AbstractExpression *expression,
                                        CodeGen * codegen)
     : ExpressionTranslator(expression, codegen) {}
@@ -46,4 +46,4 @@ ast::Expr *ConstantTranslator::DeriveExpr(OperatorTranslator * translator) {
       return nullptr;
   }
 }
-};  // namespace tpl::compiler
+};  // namespace terrier::execution::compiler

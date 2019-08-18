@@ -7,7 +7,7 @@
 #include "execution/compiler/compiler_defs.h"
 #include "execution/util/region_containers.h"
 
-namespace tpl::compiler {
+namespace terrier::execution::compiler {
 
 /**
  * Builder for functions.
@@ -97,4 +97,4 @@ class FunctionBuilder {
   std::list<ast::Stmt*> final_stmts_;
 };
 
-}  // namespace tpl::compiler
+}  // namespace terrier::execution::compiler

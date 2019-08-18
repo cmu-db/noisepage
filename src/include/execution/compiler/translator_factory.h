@@ -5,7 +5,7 @@
 #include "parser/expression/abstract_expression.h"
 #include "planner/plannodes/abstract_plan_node.h"
 #include "execution/util/region.h"
-namespace tpl::compiler {
+namespace terrier::execution::compiler {
 
 class Pipeline;
 class OperatorTranslator;
@@ -30,4 +30,4 @@ class TranslatorFactory {
   static std::unique_ptr<ExpressionTranslator> CreateExpressionTranslator(const terrier::parser::AbstractExpression *expression, CodeGen* codegen);
 };
 
-}  // namespace tpl::compiler
+}  // namespace terrier::execution::compiler

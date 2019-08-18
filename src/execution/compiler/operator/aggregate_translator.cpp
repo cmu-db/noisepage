@@ -3,7 +3,7 @@
 #include "execution/compiler/translator_factory.h"
 #include "execution/compiler/function_builder.h"
 
-namespace tpl::compiler {
+namespace terrier::execution::compiler {
 AggregateBottomTranslator::AggregateBottomTranslator(const terrier::planner::AbstractPlanNode *op, CodeGen *codegen)
     : OperatorTranslator(op, codegen)
     , hash_val_(codegen->NewIdentifier(hash_val_name))
@@ -66,7 +66,11 @@ void AggregateBottomTranslator::InitializeTeardown(util::RegionVector<ast::Stmt 
   teardown_stmts->emplace_back(codegen_->MakeStmt(free_call));
 }
 
-void AggregateBottomTranslator::Produce(FunctionBuilder * builder) {
+void AggregateBottomTranslator::Produce(OperatorTranslator * parent, FunctionBuilder * builder) {
+  prev_translator_->Produce(this, builder);
+}
+
+void AggregateBottomTranslator::Consume(FunctionBuilder * builder) {
   // Generate values to aggregate
   FillValues(builder);
   // Hash Call
@@ -301,13 +305,14 @@ void AggregateBottomTranslator::GenHashCall(FunctionBuilder * builder) {
 ///////////////////////////////////////////////
 
 
-void AggregateTopTranslator::Produce(FunctionBuilder * builder) {
+void AggregateTopTranslator::Produce(OperatorTranslator * parent, FunctionBuilder * builder) {
   DeclareIterator(builder);
   GenHTLoop(builder);
   // Close the iterator after the loop ends.
   CloseIterator(builder);
   DeclareResult(builder);
   GenHaving(builder);
+  parent->Consume(builder);
 }
 
 
@@ -363,7 +368,7 @@ void AggregateTopTranslator::CloseIterator(FunctionBuilder * builder) {
 }
 
 
-void AggregateTopTranslator::GenHaving(tpl::compiler::FunctionBuilder *builder) {
+void AggregateTopTranslator::GenHaving(execution::compiler::FunctionBuilder *builder) {
   auto agg_op = dynamic_cast<const terrier::planner::AggregatePlanNode*>(op_);
   if (agg_op->GetHavingClausePredicate() != nullptr) {
       auto predicate = agg_op->GetHavingClausePredicate().get();

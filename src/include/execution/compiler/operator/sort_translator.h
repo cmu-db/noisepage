@@ -1,7 +1,7 @@
 #pragma once
 #include "execution/compiler/operator/operator_translator.h"
 
-namespace tpl::compiler {
+namespace terrier::execution::compiler {
 
 class SortTopTranslator;
 

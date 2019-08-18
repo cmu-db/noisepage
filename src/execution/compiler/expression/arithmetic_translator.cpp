@@ -1,7 +1,7 @@
 #include "execution/compiler/expression/arithmetic_translator.h"
 #include "execution/compiler/translator_factory.h"
 
-namespace tpl::compiler {
+namespace terrier::execution::compiler {
 
 ArithmeticTranslator::ArithmeticTranslator(const terrier::parser::AbstractExpression *expression, CodeGen * codegen)
     : ExpressionTranslator(expression, codegen),
@@ -34,4 +34,4 @@ ast::Expr *ArithmeticTranslator::DeriveExpr(OperatorTranslator * translator) {
   }
   return codegen_->BinaryOp(type, left_expr, right_expr);
 }
-}  // namespace tpl::compiler
+}  // namespace terrier::execution::compiler

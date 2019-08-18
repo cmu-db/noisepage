@@ -17,7 +17,7 @@
 #include "execution/compiler/pipeline.h"
 #include "execution/util/macros.h"
 
-namespace tpl::compiler {
+namespace terrier::execution::compiler {
 
 std::unique_ptr<OperatorTranslator> TranslatorFactory::CreateRegularTranslator(const terrier::planner::AbstractPlanNode * op,
                                                         CodeGen * codegen) {
@@ -118,4 +118,4 @@ std::unique_ptr<ExpressionTranslator> TranslatorFactory::CreateExpressionTransla
   return nullptr;
 }
 
-}  // namespace tpl::compiler
+}  // namespace terrier::execution::compiler

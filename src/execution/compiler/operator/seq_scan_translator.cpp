@@ -9,7 +9,7 @@
 #include "planner/plannodes/seq_scan_plan_node.h"
 #include "parser/expression/constant_value_expression.h"
 
-namespace tpl::compiler {
+namespace terrier::execution::compiler {
 
 SeqScanTranslator::SeqScanTranslator(const terrier::planner::AbstractPlanNode * op, CodeGen * codegen)
   : OperatorTranslator(op, codegen)
@@ -24,19 +24,26 @@ SeqScanTranslator::SeqScanTranslator(const terrier::planner::AbstractPlanNode * 
 {
 }
 
-void SeqScanTranslator::Produce(FunctionBuilder * builder) {
+void SeqScanTranslator::Produce(OperatorTranslator * parent, FunctionBuilder * builder) {
   DeclareTVI(builder);
   GenTVILoop(builder);
   GenTVIClose(builder); // close after the loop
   DeclarePCI(builder);
 
   // Generate predicate and loop depending on whether we can vectorize or not
+  bool has_if_stmt = false;
   if (has_predicate_ && is_vectorizable_) {
     GenVectorizedPredicate(builder, seqscan_op_->GetScanPredicate().get());
     GenPCILoop(builder);
   } else if (has_predicate_) {
     GenPCILoop(builder);
     GenScanCondition(builder);
+    has_if_stmt = true;
+  }
+  prev_translator_->Consume(builder);
+  builder->FinishBlockStmt();
+  if (has_if_stmt) {
+    builder->FinishBlockStmt();
   }
 }
 
@@ -98,7 +105,7 @@ void SeqScanTranslator::GenScanCondition(FunctionBuilder *builder) {
 }
 
 
-void SeqScanTranslator::GenTVIClose(tpl::compiler::FunctionBuilder *builder) {
+void SeqScanTranslator::GenTVIClose(execution::compiler::FunctionBuilder *builder) {
   // Generate @tableIterClose(&tvi)
   ast::Expr* close_call = codegen_->TableIterClose(tvi_);
   builder->AppendAfter(codegen_->MakeStmt(close_call));
@@ -155,4 +162,4 @@ void SeqScanTranslator::GenVectorizedPredicate(FunctionBuilder * builder, const 
     builder->Append(codegen_->MakeStmt(filter_call));
   }
 }
-}  // namespace tpl::compiler
+}  // namespace terrier::execution::compiler

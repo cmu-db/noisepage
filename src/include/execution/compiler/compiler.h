@@ -12,7 +12,7 @@
 
 
 
-namespace tpl::compiler {
+namespace terrier::execution::compiler {
 /**
  * Compiler is the main class that performs compilation through GeneratePlan.
  */
@@ -38,7 +38,7 @@ class Compiler {
   ast::Decl* GenMainFunction();
   Query *query_;
   CodeGen codegen_;
-  std::vector<Pipeline*> pipelines_;
+  std::vector<std::unique_ptr<Pipeline>> pipelines_;
 };
 
 

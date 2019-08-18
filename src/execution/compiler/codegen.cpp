@@ -4,7 +4,7 @@
 #include <utility>
 #include "type/transient_value_peeker.h"
 
-namespace tpl::compiler {
+namespace terrier::execution::compiler {
 
 CodeGen::CodeGen(Query* query)
 : query_(query)
@@ -89,7 +89,7 @@ ast::Expr* CodeGen::OneArgCall(ast::Builtin builtin, ast::Identifier ident, bool
 
 
 
-ast::Expr* CodeGen::OneArgStateCall(tpl::ast::Builtin builtin, tpl::ast::Identifier ident) {
+ast::Expr* CodeGen::OneArgStateCall(execution::ast::Builtin builtin, execution::ast::Identifier ident) {
   ast::Expr * arg = GetStateMemberPtr(ident);
   return OneArgCall(builtin, arg);
 }
@@ -133,21 +133,21 @@ ast::Expr* CodeGen::TableIterAdvance(ast::Identifier tvi) {
   return OneArgCall(ast::Builtin::TableIterAdvance, tvi, true);
 }
 
-ast::Expr* CodeGen::TableIterGetPCI(tpl::ast::Identifier tvi) {
+ast::Expr* CodeGen::TableIterGetPCI(execution::ast::Identifier tvi) {
   return OneArgCall(ast::Builtin::TableIterGetPCI, tvi, true);
 }
 
 
-ast::Expr* CodeGen::TableIterClose(tpl::ast::Identifier tvi) {
+ast::Expr* CodeGen::TableIterClose(execution::ast::Identifier tvi) {
   return OneArgCall(ast::Builtin::TableIterClose, tvi, true);
 }
 
-ast::Expr* CodeGen::PCIHasNext(tpl::ast::Identifier pci) {
+ast::Expr* CodeGen::PCIHasNext(execution::ast::Identifier pci) {
   return OneArgCall(ast::Builtin::PCIHasNext, pci, false);
 }
 
 
-ast::Expr* CodeGen::PCIAdvance(tpl::ast::Identifier pci) {
+ast::Expr* CodeGen::PCIAdvance(execution::ast::Identifier pci) {
   return OneArgCall(ast::Builtin::PCIAdvance, pci, false);
 }
 
@@ -155,7 +155,7 @@ ast::Expr* CodeGen::PCIAdvance(tpl::ast::Identifier pci) {
 // TODO(Amadou): Depending on whether the column is nullable or not, generate @pciGetTypeNull vs @pciGetType
 // Right now, I am always generating null because it's the safest option.
 // Once the catalog accessor is in, lookup the column type to decide what to call.
-ast::Expr* CodeGen::PCIGet(tpl::ast::Identifier pci, terrier::type::TypeId type, uint32_t idx) {
+ast::Expr* CodeGen::PCIGet(execution::ast::Identifier pci, terrier::type::TypeId type, uint32_t idx) {
   ast::Builtin builtin;
   switch (type) {
     case terrier::type::TypeId::INTEGER:
@@ -221,7 +221,7 @@ ast::Expr *CodeGen::PCIFilter(ast::Identifier pci, terrier::parser::ExpressionTy
 }
 
 
-ast::Expr* CodeGen::Hash(tpl::util::RegionVector<tpl::ast::Expr *> &&args) {
+ast::Expr* CodeGen::Hash(execution::util::RegionVector<execution::ast::Expr *> &&args) {
   ast::Expr * fun = BuiltinFunction(ast::Builtin::Hash);
   return Factory()->NewBuiltinCallExpr(fun, std::move(args));
 }
@@ -234,7 +234,7 @@ ast::Expr* CodeGen::SizeOf(ast::Identifier type_name) {
   return OneArgCall(ast::Builtin::SizeOf, type_name, false);
 }
 
-ast::Expr* CodeGen::InitCall(ast::Builtin builtin, tpl::ast::Identifier object, tpl::ast::Identifier struct_type) {
+ast::Expr* CodeGen::InitCall(ast::Builtin builtin, execution::ast::Identifier object, execution::ast::Identifier struct_type) {
   // Init Function
   ast::Expr * fun = BuiltinFunction(builtin);
   // The object to initialize
@@ -329,7 +329,7 @@ ast::Expr* CodeGen::JoinHashTableInit(ast::Identifier ht, ast::Identifier build_
   return InitCall(ast::Builtin::JoinHashTableInit, ht, build_struct);
 }
 
-ast::Expr* CodeGen::JoinHashTableInsert(tpl::ast::Identifier ht, tpl::ast::Identifier hash_val) {
+ast::Expr* CodeGen::JoinHashTableInsert(execution::ast::Identifier ht, execution::ast::Identifier hash_val) {
   // @joinHTInsert(&state.join_table, hash_val)
   ast::Expr * fun = BuiltinFunction(ast::Builtin::JoinHashTableInsert);
   ast::Expr* join_ht = GetStateMemberPtr(ht);
@@ -338,9 +338,9 @@ ast::Expr* CodeGen::JoinHashTableInsert(tpl::ast::Identifier ht, tpl::ast::Ident
   return Factory()->NewBuiltinCallExpr(fun, std::move(args));
 }
 
-ast::Expr* CodeGen::JoinHashTableIterInit(tpl::ast::Identifier iter,
-                                          tpl::ast::Identifier ht,
-                                          tpl::ast::Identifier hash_val) {
+ast::Expr* CodeGen::JoinHashTableIterInit(execution::ast::Identifier iter,
+                                          execution::ast::Identifier ht,
+                                          execution::ast::Identifier hash_val) {
   // Call @joinHTIterInit(&iter, &state.ht, hash_val)
   ast::Expr * fun = BuiltinFunction(ast::Builtin::JoinHashTableIterInit);
   ast::Expr * iter_ptr = PointerTo(iter);
@@ -350,9 +350,9 @@ ast::Expr* CodeGen::JoinHashTableIterInit(tpl::ast::Identifier iter,
   return Factory()->NewBuiltinCallExpr(fun, std::move(args));
 }
 
-ast::Expr* CodeGen::JoinHashTableIterHasNext(tpl::ast::Identifier iter,
-                                             tpl::ast::Identifier key_check,
-                                             tpl::ast::Identifier probe_row,
+ast::Expr* CodeGen::JoinHashTableIterHasNext(execution::ast::Identifier iter,
+                                             execution::ast::Identifier key_check,
+                                             execution::ast::Identifier probe_row,
                                              bool is_probe_ptr) {
   // @joinHTIterHasNext(&iter, key_check, execCtx, &probe_row)
   ast::Expr * fun = BuiltinFunction(ast::Builtin::JoinHashTableIterHasNext);
@@ -374,24 +374,24 @@ ast::Expr* CodeGen::JoinHashTableIterGetRow(ast::Identifier iter) {
   return OneArgCall(ast::Builtin::JoinHashTableIterGetRow, iter, true);
 }
 
-ast::Expr* CodeGen::JoinHashTableIterClose(tpl::ast::Identifier iter) {
+ast::Expr* CodeGen::JoinHashTableIterClose(execution::ast::Identifier iter) {
   // @joinHTIterClose(&iter)
   return OneArgCall(ast::Builtin::JoinHashTableIterClose, iter, true);
 }
 
-ast::Expr* CodeGen::JoinHashTableBuild(tpl::ast::Identifier ht) {
+ast::Expr* CodeGen::JoinHashTableBuild(execution::ast::Identifier ht) {
   // @joinHTIterBuild&state.ht)
   return OneArgStateCall(ast::Builtin::JoinHashTableBuild, ht);
 }
 
-ast::Expr* CodeGen::JoinHashTableFree(tpl::ast::Identifier ht) {
+ast::Expr* CodeGen::JoinHashTableFree(execution::ast::Identifier ht) {
   // @joinHTIterBuild&state.ht)
   return OneArgStateCall(ast::Builtin::JoinHashTableFree, ht);
 }
 
-ast::Expr* CodeGen::SorterInit(tpl::ast::Identifier sorter,
-                               tpl::ast::Identifier comp_fn,
-                               tpl::ast::Identifier sorter_struct) {
+ast::Expr* CodeGen::SorterInit(execution::ast::Identifier sorter,
+                               execution::ast::Identifier comp_fn,
+                               execution::ast::Identifier sorter_struct) {
   // @sorterInit(&state.sorter, @execCtxGetMem(execCtx), sorterCompare, @sizeOf(SorterStruct))
   // Init Function
   ast::Expr * fun = BuiltinFunction(ast::Builtin::SorterInit);
@@ -408,23 +408,23 @@ ast::Expr* CodeGen::SorterInit(tpl::ast::Identifier sorter,
   return Factory()->NewBuiltinCallExpr(fun, std::move(args));
 }
 
-ast::Expr* CodeGen::SorterInsert(tpl::ast::Identifier sorter) {
+ast::Expr* CodeGen::SorterInsert(execution::ast::Identifier sorter) {
   // @sorterInsert(&state.sorter)
   return OneArgStateCall(ast::Builtin::SorterInsert, sorter);
 }
 
-ast::Expr* CodeGen::SorterSort(tpl::ast::Identifier sorter) {
+ast::Expr* CodeGen::SorterSort(execution::ast::Identifier sorter) {
   // @sorterSort(&state.sorter)
   return OneArgStateCall(ast::Builtin::SorterSort, sorter);
 }
 
-ast::Expr* CodeGen::SorterFree(tpl::ast::Identifier sorter) {
+ast::Expr* CodeGen::SorterFree(execution::ast::Identifier sorter) {
   // @sorterFree(&state.sorter)
   return OneArgStateCall(ast::Builtin::SorterFree, sorter);
 }
 
 
-ast::Expr* CodeGen::SorterIterInit(tpl::ast::Identifier iter, tpl::ast::Identifier sorter) {
+ast::Expr* CodeGen::SorterIterInit(execution::ast::Identifier iter, execution::ast::Identifier sorter) {
   // @sorterIterInit(&iter, &state.sorter)
   ast::Expr * fun = BuiltinFunction(ast::Builtin::SorterIterInit);
   ast::Expr* iter_ptr = PointerTo(iter);
@@ -433,27 +433,27 @@ ast::Expr* CodeGen::SorterIterInit(tpl::ast::Identifier iter, tpl::ast::Identifi
   return Factory()->NewBuiltinCallExpr(fun, std::move(args));
 }
 
-ast::Expr* CodeGen::SorterIterHasNext(tpl::ast::Identifier iter) {
+ast::Expr* CodeGen::SorterIterHasNext(execution::ast::Identifier iter) {
   // @sorterIterHasNext(&iter)
   return OneArgCall(ast::Builtin::SorterIterHasNext, iter, true);
 }
 
-ast::Expr* CodeGen::SorterIterNext(tpl::ast::Identifier iter) {
+ast::Expr* CodeGen::SorterIterNext(execution::ast::Identifier iter) {
   // @sorterIterNext(&iter)
   return OneArgCall(ast::Builtin::SorterIterNext, iter, true);
 }
 
-ast::Expr* CodeGen::SorterIterGetRow(tpl::ast::Identifier iter) {
+ast::Expr* CodeGen::SorterIterGetRow(execution::ast::Identifier iter) {
   // @sorterIterGetRow(&iter)
   return OneArgCall(ast::Builtin::SorterIterGetRow, iter, true);
 }
 
-ast::Expr* CodeGen::SorterIterClose(tpl::ast::Identifier iter) {
+ast::Expr* CodeGen::SorterIterClose(execution::ast::Identifier iter) {
   // @sorterIterClose(&iter)
   return OneArgCall(ast::Builtin::SorterIterClose, iter, true);
 }
 
-ast::Expr* CodeGen::IndexIteratorInit(tpl::ast::Identifier iter, uint32_t table_oid, uint32_t index_oid) {
+ast::Expr* CodeGen::IndexIteratorInit(execution::ast::Identifier iter, uint32_t table_oid, uint32_t index_oid) {
   // @indexIteratorInit(&iter, table_oid, index_oid, execCtx)
   ast::Expr * fun = BuiltinFunction(ast::Builtin::IndexIteratorInit);
   ast::Expr* iter_ptr = PointerTo(iter);
@@ -464,7 +464,7 @@ ast::Expr* CodeGen::IndexIteratorInit(tpl::ast::Identifier iter, uint32_t table_
   return Factory()->NewBuiltinCallExpr(fun, std::move(args));
 }
 
-ast::Expr* CodeGen::IndexIteratorScanKey(tpl::ast::Identifier iter, tpl::ast::Identifier key) {
+ast::Expr* CodeGen::IndexIteratorScanKey(execution::ast::Identifier iter, execution::ast::Identifier key) {
   // @indexIteratorScanKey(&iter, @ptrCast(*int8, &key))
   ast::Expr * fun = BuiltinFunction(ast::Builtin::IndexIteratorScanKey);
   ast::Expr* iter_ptr = PointerTo(iter);
@@ -473,19 +473,19 @@ ast::Expr* CodeGen::IndexIteratorScanKey(tpl::ast::Identifier iter, tpl::ast::Id
   return Factory()->NewBuiltinCallExpr(fun, std::move(args));
 }
 
-ast::Expr* CodeGen::IndexIteratorAdvance(tpl::ast::Identifier iter) {
+ast::Expr* CodeGen::IndexIteratorAdvance(execution::ast::Identifier iter) {
   // @indexIteratorHasNext(&iter)
   return OneArgCall(ast::Builtin::IndexIteratorAdvance, iter, true);
 }
 
 
-ast::Expr* CodeGen::IndexIteratorFree(tpl::ast::Identifier iter) {
+ast::Expr* CodeGen::IndexIteratorFree(execution::ast::Identifier iter) {
   // @indexIteratorFree(&iter)
   return OneArgCall(ast::Builtin::IndexIteratorFree, iter, true);
 }
 
 // TODO(Amadou): Generator GetNull calls if the columns is nullable
-ast::Expr* CodeGen::IndexIteratorGet(tpl::ast::Identifier iter, terrier::type::TypeId type, uint32_t attr_idx) {
+ast::Expr* CodeGen::IndexIteratorGet(execution::ast::Identifier iter, terrier::type::TypeId type, uint32_t attr_idx) {
   // @indexIteratorHasGetType(&iter, attr_idx)
   ast::Builtin builtin;
   switch (type) {
@@ -572,7 +572,7 @@ ast::Expr* CodeGen::BuiltinFunction(ast::Builtin builtin) {
   return MakeExpr(fun);
 }
 
-ast::Expr* CodeGen::BuiltinType(tpl::ast::BuiltinType::Kind kind) {
+ast::Expr* CodeGen::BuiltinType(execution::ast::BuiltinType::Kind kind) {
   ast::Identifier typ = Context()->GetBuiltinType(kind);
   return MakeExpr(typ);
 }
@@ -581,7 +581,7 @@ ast::Expr* CodeGen::PointerType(ast::Expr* base_expr) {
   return Factory()->NewPointerType(DUMMY_POS, base_expr);
 }
 
-ast::Expr* CodeGen::PointerType(tpl::ast::Identifier base_type) {
+ast::Expr* CodeGen::PointerType(execution::ast::Identifier base_type) {
   ast::Expr* base_expr = MakeExpr(base_type);
   return PointerTo(base_expr);
 }
@@ -628,7 +628,7 @@ ast::Stmt* CodeGen::MakeStmt(ast::Expr* expr) {
   return Factory()->NewExpressionStmt(expr);
 }
 
-ast::Stmt* CodeGen::Assign(tpl::ast::Expr *lhs, tpl::ast::Expr *rhs) {
+ast::Stmt* CodeGen::Assign(execution::ast::Expr *lhs, execution::ast::Expr *rhs) {
   return Factory()->NewAssignmentStmt(DUMMY_POS, lhs, rhs);
 }
 
@@ -675,4 +675,4 @@ ast::Expr* CodeGen::StringToSql(std::string_view str) {
   return OneArgCall(ast::Builtin::StringToSql, str_lit);
 }
 
-}  // namespace tpl::compiler
+}  // namespace terrier::execution::compiler

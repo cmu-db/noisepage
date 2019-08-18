@@ -1,13 +1,13 @@
 #include "execution/compiler/operator/output_translator.h"
 
-namespace tpl::compiler {
-OutputTranslator::OutputTranslator(tpl::compiler::CodeGen *codegen)
+namespace terrier::execution::compiler {
+OutputTranslator::OutputTranslator(execution::compiler::CodeGen *codegen)
 : OperatorTranslator(nullptr, codegen)
 , output_struct_(codegen->NewIdentifier(output_struct_name_))
 , output_var_(codegen->NewIdentifier(output_var_name_))
 {}
 
-void OutputTranslator::InitializeStructs(tpl::util::RegionVector<tpl::ast::Decl *> *decls) {
+void OutputTranslator::InitializeStructs(execution::util::RegionVector<execution::ast::Decl *> *decls) {
   util::RegionVector<ast::FieldDecl*> fields(codegen_->Region());
   GetChildOutputFields(&fields, output_field_prefix_);
   num_output_fields_ = static_cast<uint32_t>(fields.size());
@@ -19,7 +19,7 @@ ast::Expr* OutputTranslator::GetField(uint32_t attr_idx) {
   return codegen_->MemberExpr(output_var_, member);
 }
 
-void OutputTranslator::Produce(tpl::compiler::FunctionBuilder *builder) {
+void OutputTranslator::Produce(execution::compiler::FunctionBuilder *builder) {
   // First declare the output variable
   DeclareOutputVariable(builder);
   // Fill in the output
@@ -30,7 +30,7 @@ void OutputTranslator::Produce(tpl::compiler::FunctionBuilder *builder) {
   FinalizeOutput(builder);
 }
 
-void OutputTranslator::DeclareOutputVariable(tpl::compiler::FunctionBuilder *builder) {
+void OutputTranslator::DeclareOutputVariable(execution::compiler::FunctionBuilder *builder) {
   // First generate the call @outputAlloc(execCtx)
   ast::Expr* alloc_call = codegen_->OutputAlloc();
   // The make the @ptrCast call
@@ -39,7 +39,7 @@ void OutputTranslator::DeclareOutputVariable(tpl::compiler::FunctionBuilder *bui
   builder->Append(codegen_->DeclareVariable(output_var_, nullptr, cast_call));
 }
 
-void OutputTranslator::FillOutput(tpl::compiler::FunctionBuilder *builder) {
+void OutputTranslator::FillOutput(execution::compiler::FunctionBuilder *builder) {
   // For each column in the output, set out.col_i = col_i
   for (uint32_t attr_idx = 0; attr_idx < num_output_fields_; attr_idx++) {
     ast::Expr* lhs = GetField(attr_idx);
@@ -48,13 +48,13 @@ void OutputTranslator::FillOutput(tpl::compiler::FunctionBuilder *builder) {
   }
 }
 
-void OutputTranslator::AdvanceOutput(tpl::compiler::FunctionBuilder *builder) {
+void OutputTranslator::AdvanceOutput(execution::compiler::FunctionBuilder *builder) {
   // Call @outputAdvance(execCtx)
   ast::Expr* advance_call = codegen_->OutputAdvance();
   builder->Append(codegen_->MakeStmt(advance_call));
 }
 
-void OutputTranslator::FinalizeOutput(tpl::compiler::FunctionBuilder *builder) {
+void OutputTranslator::FinalizeOutput(execution::compiler::FunctionBuilder *builder) {
   ast::Expr* finalize_call = codegen_->OutputFinalize();
   builder->RegisterFinalStmt(codegen_->MakeStmt(finalize_call));
 }

@@ -1,7 +1,7 @@
 #pragma once
 #include "execution/compiler/expression/expression_translator.h"
 
-namespace tpl::compiler {
+namespace terrier::execution::compiler {
 
 /**
  * Null Check Translator
@@ -20,4 +20,4 @@ class NullCheckTranslator : public ExpressionTranslator {
  private:
   ExpressionTranslator * child_;
 };
-}  // namespace tpl::compiler
+}  // namespace terrier::execution::compiler

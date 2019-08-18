@@ -4,14 +4,14 @@
 #include "loggers/execution_logger.h"
 #include "execution/ast/ast_dump.h"
 
-namespace tpl::compiler {
+namespace terrier::execution::compiler {
 
-Compiler::Compiler(tpl::compiler::Query *query)
+Compiler::Compiler(execution::compiler::Query *query)
 : query_(query)
 , codegen_(query) {
   // Make the pipelines
-  auto  main_pipeline = new Pipeline(&codegen_);
-  MakePipelines(query_->GetPlan(), main_pipeline);
+  auto  main_pipeline = std::make_unique<Pipeline>(&codegen_);
+  MakePipelines(query_->GetPlan(), main_pipeline.get());
   // The query has an ouput
   if (query->GetPlan().GetOutputSchema() != nullptr) {
     auto output_translator = std::make_unique<OutputTranslator>(&codegen_);
@@ -59,8 +59,8 @@ void Compiler::Compile() {
   query_->SetCompiledFile(compiled_file);
 }
 
-void Compiler::GenStateStruct(tpl::util::RegionVector<tpl::ast::Decl *> *top_level,
-                              tpl::util::RegionVector<tpl::ast::FieldDecl *> &&fields) {
+void Compiler::GenStateStruct(execution::util::RegionVector<execution::ast::Decl *> *top_level,
+                              execution::util::RegionVector<execution::ast::FieldDecl *> &&fields) {
   // Make a dummy fields in case no operator has a state
   ast::Identifier dummy_name = codegen_.Context()->GetIdentifier("DUMMY");
   ast::Expr* dummy_type = codegen_.BuiltinType(ast::BuiltinType::Kind::Int32);
@@ -68,13 +68,13 @@ void Compiler::GenStateStruct(tpl::util::RegionVector<tpl::ast::Decl *> *top_lev
   top_level->emplace_back(codegen_.MakeStruct(codegen_.GetStateType(), std::move(fields)));
 }
 
-void Compiler::GenHelperStructsAndFunctions(tpl::util::RegionVector<tpl::ast::Decl *> *top_level,
-                                            tpl::util::RegionVector<tpl::ast::Decl *> &&decls) {
+void Compiler::GenHelperStructsAndFunctions(execution::util::RegionVector<execution::ast::Decl *> *top_level,
+                                            execution::util::RegionVector<execution::ast::Decl *> &&decls) {
   top_level->insert(top_level->end(), decls.begin(), decls.end());
 }
 
-void Compiler::GenFunction(tpl::util::RegionVector<tpl::ast::Decl *> *top_level, ast::Identifier fn_name,
-                                tpl::util::RegionVector<tpl::ast::Stmt *> &&stmts) {
+void Compiler::GenFunction(execution::util::RegionVector<execution::ast::Decl *> *top_level, ast::Identifier fn_name,
+                                execution::util::RegionVector<execution::ast::Stmt *> &&stmts) {
   // Function parameter
   util::RegionVector<ast::FieldDecl*> params = codegen_.ExecParams();
 

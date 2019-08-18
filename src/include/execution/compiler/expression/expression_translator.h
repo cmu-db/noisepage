@@ -6,7 +6,7 @@
 #include "parser/expression/abstract_expression.h"
 #include "execution/compiler/operator/operator_translator.h"
 
-namespace tpl::compiler {
+namespace terrier::execution::compiler {
 
 // clang-format off
 #define COMPARISON_OP(type)                                               \
@@ -80,4 +80,4 @@ class ExpressionTranslator {
    */
   const terrier::parser::AbstractExpression * expression_;
 };
-};  // namespace tpl::compiler
+};  // namespace terrier::execution::compiler

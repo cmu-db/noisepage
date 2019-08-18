@@ -4,9 +4,9 @@
 #include "planner/plannodes/order_by_plan_node.h"
 
 
-namespace tpl::compiler {
+namespace terrier::execution::compiler {
 SortBottomTranslator::SortBottomTranslator(const terrier::planner::AbstractPlanNode *op,
-                                           tpl::compiler::CodeGen *codegen)
+                                           execution::compiler::CodeGen *codegen)
 : OperatorTranslator(op, codegen)
 , sorter_(codegen_->NewIdentifier(sorter_name_))
 , sorter_row_(codegen_->NewIdentifier(sorter_row_name_))
@@ -16,7 +16,7 @@ SortBottomTranslator::SortBottomTranslator(const terrier::planner::AbstractPlanN
 , comp_rhs_(codegen_->NewIdentifier(comp_rhs_name_)){}
 
 
-void SortBottomTranslator::Produce(tpl::compiler::FunctionBuilder *builder) {
+void SortBottomTranslator::Produce(execution::compiler::FunctionBuilder *builder) {
   // First call sorterInsert
   GenSorterInsert(builder);
   // Then fill in the values
@@ -25,7 +25,7 @@ void SortBottomTranslator::Produce(tpl::compiler::FunctionBuilder *builder) {
   GenSorterSort(builder);
 }
 
-void SortBottomTranslator::GenSorterInsert(tpl::compiler::FunctionBuilder *builder) {
+void SortBottomTranslator::GenSorterInsert(execution::compiler::FunctionBuilder *builder) {
   // var sorter_row = @ptrCast(*SorterStruct, @sorterInsert(&state.sorter))
   ast::Expr* insert_call = codegen_->SorterInsert(sorter_);
 
@@ -36,7 +36,7 @@ void SortBottomTranslator::GenSorterInsert(tpl::compiler::FunctionBuilder *build
   builder->Append(codegen_->DeclareVariable(sorter_row_, nullptr, cast_call));
 }
 
-void SortBottomTranslator::FillSorterRow(tpl::compiler::FunctionBuilder *builder) {
+void SortBottomTranslator::FillSorterRow(execution::compiler::FunctionBuilder *builder) {
   // For each child output, set the sorter attribute
   for (uint32_t attr_idx = 0; attr_idx < op_->GetChild(0)->GetOutputSchema()->GetColumns().size(); attr_idx++) {
     ast::Expr* lhs = GetAttribute(sorter_row_, attr_idx);
@@ -45,24 +45,24 @@ void SortBottomTranslator::FillSorterRow(tpl::compiler::FunctionBuilder *builder
   }
 }
 
-void SortBottomTranslator::GenSorterSort(tpl::compiler::FunctionBuilder *builder) {
+void SortBottomTranslator::GenSorterSort(execution::compiler::FunctionBuilder *builder) {
   ast::Expr* sort_call = codegen_->SorterSort(sorter_);
   builder->RegisterFinalStmt(codegen_->MakeStmt(sort_call));
 }
 
-void SortBottomTranslator::InitializeStateFields(tpl::util::RegionVector<tpl::ast::FieldDecl *> *state_fields) {
+void SortBottomTranslator::InitializeStateFields(execution::util::RegionVector<execution::ast::FieldDecl *> *state_fields) {
   // sorter: Sorter
   ast::Expr* sorter_type = codegen_->BuiltinType(ast::BuiltinType::Kind::Sorter);
   state_fields->emplace_back(codegen_->MakeField(sorter_, sorter_type));
 }
 
-void SortBottomTranslator::InitializeStructs(tpl::util::RegionVector<tpl::ast::Decl *> *decls) {
-  util::RegionVector<tpl::ast::FieldDecl *> fields{codegen_->Region()};
+void SortBottomTranslator::InitializeStructs(execution::util::RegionVector<execution::ast::Decl *> *decls) {
+  util::RegionVector<execution::ast::FieldDecl *> fields{codegen_->Region()};
   GetChildOutputFields(&fields, sorter_attr_prefix_);
   decls->emplace_back(codegen_->MakeStruct(sorter_struct_, std::move(fields)));
 }
 
-void SortBottomTranslator::InitializeHelperFunctions(tpl::util::RegionVector<tpl::ast::Decl *> *decls) {
+void SortBottomTranslator::InitializeHelperFunctions(execution::util::RegionVector<execution::ast::Decl *> *decls) {
   // Make a function (lhs *SorterStruct, rhs *SorterStruct) -> int32
   ast::FieldDecl* lhs = codegen_->MakeField(comp_lhs_, codegen_->PointerType(sorter_struct_));
   ast::FieldDecl* rhs = codegen_->MakeField(comp_rhs_, codegen_->PointerType(sorter_struct_));
@@ -74,7 +74,7 @@ void SortBottomTranslator::InitializeHelperFunctions(tpl::util::RegionVector<tpl
 }
 
 
-void SortBottomTranslator::InitializeSetup(tpl::util::RegionVector<tpl::ast::Stmt *> *setup_stmts) {
+void SortBottomTranslator::InitializeSetup(execution::util::RegionVector<execution::ast::Stmt *> *setup_stmts) {
   // @sorterInit(&state.sorter, @execCtxGetMem(execCtx), sorterCompare, @sizeOf(SorterStruct))
   ast::Expr* init_call = codegen_->SorterInit(sorter_, comp_fn_, sorter_struct_);
 
@@ -82,7 +82,7 @@ void SortBottomTranslator::InitializeSetup(tpl::util::RegionVector<tpl::ast::Stm
   setup_stmts->emplace_back(codegen_->MakeStmt(init_call));
 }
 
-void SortBottomTranslator::InitializeTeardown(tpl::util::RegionVector<tpl::ast::Stmt *> *teardown_stmts) {
+void SortBottomTranslator::InitializeTeardown(execution::util::RegionVector<execution::ast::Stmt *> *teardown_stmts) {
   // @sorterFree(&state.sorter)
   ast::Expr* free_call = codegen_->SorterFree(sorter_);
   teardown_stmts->emplace_back(codegen_->MakeStmt(free_call));
@@ -102,13 +102,13 @@ ast::Expr* SortBottomTranslator::GetOutput(uint32_t attr_idx) {
   return GetAttribute(sorter_row_, attr_idx);
 }
 
-ast::Expr* SortBottomTranslator::GetAttribute(tpl::ast::Identifier object, uint32_t attr_idx) {
+ast::Expr* SortBottomTranslator::GetAttribute(execution::ast::Identifier object, uint32_t attr_idx) {
   ast::Identifier member = codegen_->Context()->GetIdentifier(sorter_attr_prefix_ + std::to_string(attr_idx));
   return codegen_->MemberExpr(object, member);
 }
 
 
-void SortBottomTranslator::GenComparisons(tpl::compiler::FunctionBuilder *builder) {
+void SortBottomTranslator::GenComparisons(execution::compiler::FunctionBuilder *builder) {
   // For each order by expr generate this (or its inverse depending on the ordering type):
   // if (lhs.col_i < rhs.col_i) {return -1}
   // if (lhs.col_i > rhs.col_i) {return 1}
@@ -148,13 +148,13 @@ void SortBottomTranslator::GenComparisons(tpl::compiler::FunctionBuilder *builde
 }
 
 SortTopTranslator::SortTopTranslator(const terrier::planner::AbstractPlanNode *op,
-                                     tpl::compiler::CodeGen *codegen,
-                                     tpl::compiler::OperatorTranslator *bottom)
+                                     execution::compiler::CodeGen *codegen,
+                                     execution::compiler::OperatorTranslator *bottom)
 : OperatorTranslator(op, codegen)
 , bottom_(dynamic_cast<SortBottomTranslator*>(bottom))
 , sort_iter_(codegen_->NewIdentifier(iter_name_)){}
 
-void SortTopTranslator::Produce(tpl::compiler::FunctionBuilder *builder) {
+void SortTopTranslator::Produce(execution::compiler::FunctionBuilder *builder) {
   // Declare the iterator
   DeclareIterator(builder);
   // Generate the for loop
@@ -165,12 +165,12 @@ void SortTopTranslator::Produce(tpl::compiler::FunctionBuilder *builder) {
   DeclareResult(builder);
 }
 
-void SortTopTranslator::DeclareIterator(tpl::compiler::FunctionBuilder *builder) {
+void SortTopTranslator::DeclareIterator(execution::compiler::FunctionBuilder *builder) {
   ast::Expr* iter_type = codegen_->BuiltinType(ast::BuiltinType::SorterIterator);
   builder->Append(codegen_->DeclareVariable(sort_iter_, iter_type, nullptr));
 }
 
-void SortTopTranslator::GenForLoop(tpl::compiler::FunctionBuilder *builder) {
+void SortTopTranslator::GenForLoop(execution::compiler::FunctionBuilder *builder) {
   // for (@sorterIterInit(&sort_iter, &state.sorter); @sorterIterHasNext(&sort_iter); @sorterIterNext(&sort_iter))
   // Loop Initialization
   ast::Expr* init_call = codegen_->SorterIterInit(sort_iter_, bottom_->sorter_);
@@ -184,13 +184,13 @@ void SortTopTranslator::GenForLoop(tpl::compiler::FunctionBuilder *builder) {
   builder->StartForStmt(loop_init, has_next_call, loop_update);
 }
 
-void SortTopTranslator::CloseIterator(tpl::compiler::FunctionBuilder *builder) {
+void SortTopTranslator::CloseIterator(execution::compiler::FunctionBuilder *builder) {
   // Call @sorterIterClose(&sort_iter)
   ast::Expr* close_call = codegen_->SorterIterClose(sort_iter_);
   builder->AppendAfter(codegen_->MakeStmt(close_call));
 }
 
-void SortTopTranslator::DeclareResult(tpl::compiler::FunctionBuilder *builder) {
+void SortTopTranslator::DeclareResult(execution::compiler::FunctionBuilder *builder) {
   // var sorter_row = @ptrCast(*SorterRow, @sorterIterGetRow(&sort_iter))
   // @sorterIterGetRow(&sort_iter)
   ast::Expr* get_row_call = codegen_->SorterIterGetRow(sort_iter_);

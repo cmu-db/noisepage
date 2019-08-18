@@ -1,7 +1,7 @@
 #pragma once
 #include "execution/compiler/expression/expression_translator.h"
 
-namespace tpl::compiler {
+namespace terrier::execution::compiler {
 
 /**
  * Constant Translator
@@ -17,4 +17,4 @@ class ConstantTranslator : public ExpressionTranslator {
 
   ast::Expr *DeriveExpr(OperatorTranslator * translator) override;
 };
-}  // namespace tpl::compiler
+}  // namespace terrier::execution::compiler

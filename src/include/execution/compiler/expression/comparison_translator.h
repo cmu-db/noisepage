@@ -1,7 +1,7 @@
 #pragma once
 #include "execution/compiler/expression/expression_translator.h"
 
-namespace tpl::compiler {
+namespace terrier::execution::compiler {
 
 /**
  * Comparison Translator
@@ -21,4 +21,4 @@ class ComparisonTranslator : public ExpressionTranslator {
   ExpressionTranslator * left_;
   ExpressionTranslator * right_;
 };
-}  // namespace tpl::compiler
+}  // namespace terrier::execution::compiler

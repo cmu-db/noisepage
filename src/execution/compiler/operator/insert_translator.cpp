@@ -1,3 +1,3 @@
-namespace tpl::compiler {
+namespace terrier::execution::compiler {
 
-}  // namespace tpl::compiler
+}  // namespace terrier::execution::compiler
