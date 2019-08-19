@@ -44,7 +44,7 @@ AggregationHashTable::AggregationHashTable(MemoryPool *memory, const std::size_t
   const uint64_t l2_size = CpuInfo::Instance()->GetCacheSize(CpuInfo::L2_CACHE);
   flush_threshold_ = static_cast<uint64_t>(
       std::llround(static_cast<float>(l2_size) / static_cast<float>(entries_.element_size()) * kDefaultLoadFactor));
-  flush_threshold_ = std::max(static_cast<uint64_t>(256), util::MathUtil::PowerOf2Floor(flush_threshold_));
+  flush_threshold_ = std::max(static_cast<uint64_t>(256), common::MathUtil::PowerOf2Floor(flush_threshold_));
 }
 
 AggregationHashTable::~AggregationHashTable() {

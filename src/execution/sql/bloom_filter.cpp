@@ -24,8 +24,8 @@ void BloomFilter::Init(MemoryPool *memory, uint32_t num_elems) {
   memory_ = memory;
   lazily_added_hashes_ = MemPoolVector<hash_t>(memory_);
 
-  uint64_t num_bits = util::MathUtil::PowerOf2Ceil(kBitsPerElement * num_elems);
-  uint64_t num_blocks = util::MathUtil::DivRoundUp(num_bits, sizeof(Block) * common::Constants::kBitsPerByte);
+  uint64_t num_bits = common::MathUtil::PowerOf2Ceil(kBitsPerElement * num_elems);
+  uint64_t num_blocks = common::MathUtil::DivRoundUp(num_bits, sizeof(Block) * common::Constants::kBitsPerByte);
   uint64_t num_bytes = num_blocks * sizeof(Block);
   blocks_ = reinterpret_cast<Block *>(memory->AllocateAligned(num_bytes, common::Constants::CACHELINE_SIZE, true));
 

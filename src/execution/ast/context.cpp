@@ -272,8 +272,8 @@ StructType *StructType::Get(Context *ctx, util::RegionVector<Field> &&fields) {
     for (const auto &field : fields) {
       // Check if the type needs to be padded
       uint32_t field_align = field.type->alignment();
-      if (!util::MathUtil::IsAligned(size, field_align)) {
-        size = static_cast<uint32_t>(util::MathUtil::AlignTo(size, field_align));
+      if (!common::MathUtil::IsAligned(size, field_align)) {
+        size = static_cast<uint32_t>(common::MathUtil::AlignTo(size, field_align));
       }
 
       // Update size and calculate alignment

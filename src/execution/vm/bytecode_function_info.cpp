@@ -35,8 +35,8 @@ LocalVar FunctionInfo::NewLocal(ast::Type *type, const std::string &name, LocalI
   TERRIER_ASSERT(!name.empty(), "Local name cannot be empty");
 
   // Bump size to account for the alignment of the new local
-  if (!util::MathUtil::IsAligned(frame_size_, type->alignment())) {
-    frame_size_ = util::MathUtil::AlignTo(frame_size_, type->alignment());
+  if (!common::MathUtil::IsAligned(frame_size_, type->alignment())) {
+    frame_size_ = common::MathUtil::AlignTo(frame_size_, type->alignment());
   }
 
   const auto offset = static_cast<uint32_t>(frame_size_);
