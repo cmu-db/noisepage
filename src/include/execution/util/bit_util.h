@@ -22,7 +22,7 @@ class BitUtil {
 
   // Make sure the number of bits in a word is a power of two to make all these
   // bit operations cheap
-  static_assert(util::MathUtil::IsPowerOf2(kBitWordSize));
+  static_assert(common::MathUtil::IsPowerOf2(kBitWordSize));
 
   /**
    * Count the number of zeroes from the most significant bit to the first 1 in
@@ -43,7 +43,7 @@ class BitUtil {
    * @return The number of words needed to store a bit vector of the given size
    */
   ALWAYS_INLINE static uint64_t Num32BitWordsFor(uint64_t num_bits) {
-    return MathUtil::DivRoundUp(num_bits, kBitWordSize);
+    return common::MathUtil::DivRoundUp(num_bits, kBitWordSize);
   }
 
   /**

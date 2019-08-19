@@ -397,18 +397,18 @@ struct ValUtil {
       case type::TypeId::SMALLINT:
       case type::TypeId::INTEGER:
       case type::TypeId::BIGINT:
-        return static_cast<uint32_t>(util::MathUtil::AlignTo(sizeof(Integer), 8));
+        return static_cast<uint32_t>(common::MathUtil::AlignTo(sizeof(Integer), 8));
       case type::TypeId::BOOLEAN:
-        return static_cast<uint32_t>(util::MathUtil::AlignTo(sizeof(BoolVal), 8));
+        return static_cast<uint32_t>(common::MathUtil::AlignTo(sizeof(BoolVal), 8));
       case type::TypeId::DATE:
       case type::TypeId::TIMESTAMP:
-        return static_cast<uint32_t>(util::MathUtil::AlignTo(sizeof(Date), 8));
+        return static_cast<uint32_t>(common::MathUtil::AlignTo(sizeof(Date), 8));
       case type::TypeId::DECIMAL:
         // TODO(Amadou): We only support reals for now. Switch to Decima once it's implemented
-        return static_cast<uint32_t>(util::MathUtil::AlignTo(sizeof(Real), 8));
+        return static_cast<uint32_t>(common::MathUtil::AlignTo(sizeof(Real), 8));
       case type::TypeId::VARCHAR:
       case type::TypeId::VARBINARY:
-        return static_cast<uint32_t>(util::MathUtil::AlignTo(sizeof(StringVal), 8));
+        return static_cast<uint32_t>(common::MathUtil::AlignTo(sizeof(StringVal), 8));
       default:
         return 0;
     }

@@ -8,7 +8,7 @@
 #include "common/macros.h"
 #include "execution/util/execution_common.h"
 
-namespace terrier::execution::util {
+namespace terrier::common {
 
 /**
  * Utility class containing various math/arithmetic functions
@@ -130,4 +130,4 @@ class MathUtil {
   }
 };
 
-}  // namespace terrier::execution::util
+}  // namespace terrier::common

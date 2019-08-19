@@ -59,7 +59,7 @@ inline void *MallocAligned(const std::size_t size, const std::size_t alignment) 
   TERRIER_ASSERT(alignment % sizeof(void *) == 0, "Alignment must be a multiple of sizeof(void*)");
   TERRIER_ASSERT((alignment & (alignment - 1)) == 0, "Alignment must be a power of two");
   void *ptr = nullptr;
-#if defined(__APPLE__)
+#if defined(__clang__)
   int32_t ret UNUSED_ATTRIBUTE = posix_memalign(&ptr, alignment, size);
   TERRIER_ASSERT(ret == 0, "Allocation failed");
 #else

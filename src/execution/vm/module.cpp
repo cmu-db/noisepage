@@ -120,11 +120,11 @@ class TrampolineGenerator : public Xbyak::CodeGenerator {
     // argument
     const ast::Type *return_type = func_.func_type()->return_type();
     if (!return_type->IsNilType()) {
-      required_stack_space += static_cast<uint32_t>(util::MathUtil::AlignTo(return_type->size(), sizeof(intptr_t)));
+      required_stack_space += static_cast<uint32_t>(common::MathUtil::AlignTo(return_type->size(), sizeof(intptr_t)));
     }
 
     // Always align to cacheline boundary
-    return static_cast<uint32_t>(util::MathUtil::AlignTo(required_stack_space, common::Constants::CACHELINE_SIZE));
+    return static_cast<uint32_t>(common::MathUtil::AlignTo(required_stack_space, common::Constants::CACHELINE_SIZE));
   }
 
   void Prologue() { push(rbx); }
@@ -175,7 +175,7 @@ class TrampolineGenerator : public Xbyak::CodeGenerator {
     //
 
     if (const ast::Type *return_type = func_type->return_type(); !return_type->IsNilType()) {
-      displacement = static_cast<uint32_t>(util::MathUtil::AlignTo(return_type->size(), sizeof(intptr_t)));
+      displacement = static_cast<uint32_t>(common::MathUtil::AlignTo(return_type->size(), sizeof(intptr_t)));
       mov(ptr[rsp + displacement], rsp);
       local_idx++;
     }
@@ -196,7 +196,7 @@ class TrampolineGenerator : public Xbyak::CodeGenerator {
     const ast::Type *ret_type = func_type->return_type();
     uint32_t ret_type_size = 0;
     if (!ret_type->IsNilType()) {
-      ret_type_size = static_cast<uint32_t>(util::MathUtil::AlignTo(ret_type->size(), sizeof(intptr_t)));
+      ret_type_size = static_cast<uint32_t>(common::MathUtil::AlignTo(ret_type->size(), sizeof(intptr_t)));
     }
 
     // Set up the arguments to VM::InvokeFunction(module, function ID, args)

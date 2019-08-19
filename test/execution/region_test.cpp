@@ -17,7 +17,8 @@ TEST_F(RegionTest, Simple) {
     void *ptr = r.Allocate(alloc_size, alignment);
     EXPECT_NE(nullptr, ptr);
 
-    EXPECT_EQ(MathUtil::AlignAddress(reinterpret_cast<uintptr_t>(ptr), alignment), reinterpret_cast<uintptr_t>(ptr));
+    EXPECT_EQ(common::MathUtil::AlignAddress(reinterpret_cast<uintptr_t>(ptr), alignment),
+              reinterpret_cast<uintptr_t>(ptr));
 
     allocated += alloc_size;
     EXPECT_EQ(allocated, r.allocated());

@@ -23,7 +23,7 @@ Region::~Region() { FreeAll(); }  // NOLINT (bugprone-exception-escape)
 void *Region::Allocate(std::size_t size, std::size_t alignment) {
   TERRIER_ASSERT(alignment > 0, "Alignment must be greater than 0");
 
-  std::size_t adjustment = MathUtil::AlignmentAdjustment(position_, alignment);
+  std::size_t adjustment = common::MathUtil::AlignmentAdjustment(position_, alignment);
 
   allocated_ += size;
 
@@ -42,7 +42,7 @@ void *Region::Allocate(std::size_t size, std::size_t alignment) {
   TERRIER_ASSERT(position_ < end_, "Region chunk's start position higher than end");
 
   // The new chunk position may not have the desired alignment, fix that now
-  uintptr_t aligned_ptr = MathUtil::AlignAddress(position_, alignment);
+  uintptr_t aligned_ptr = common::MathUtil::AlignAddress(position_, alignment);
   alignment_waste_ += (aligned_ptr - position_);
   position_ = aligned_ptr + size;
   return reinterpret_cast<void *>(aligned_ptr);
