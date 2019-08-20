@@ -8,8 +8,8 @@
 #include "storage/write_ahead_log/log_manager.h"
 #include "util/sql_table_test_util.h"
 
-#define LOG_FILE_NAME "/mnt/ramdisk/benchmark.txt"
-
+//#define LOG_FILE_NAME "/mnt/ramdisk/benchmark.txt"
+#define LOG_FILE_NAME "benchmark.txt"
 namespace terrier {
 
 class RecoveryBenchmark : public benchmark::Fixture {
@@ -17,10 +17,10 @@ class RecoveryBenchmark : public benchmark::Fixture {
   void SetUp(const benchmark::State &state) final { unlink(LOG_FILE_NAME); }
   void TearDown(const benchmark::State &state) final { unlink(LOG_FILE_NAME); }
 
-  const uint32_t initial_table_size_ = 1000000;
-  const uint32_t num_txns_ = 100000;
+  const uint32_t initial_table_size_ = 10000;
+  const uint32_t num_txns_ = 1000;
   storage::BlockStore block_store_{1000, 1000};
-  storage::RecordBufferSegmentPool buffer_pool_{1000000, 1000000};
+  storage::RecordBufferSegmentPool buffer_pool_{10000, 10000};
   std::default_random_engine generator_;
   const uint32_t num_concurrent_txns_ = 4;
   common::DedicatedThreadRegistry thread_registry_;
@@ -123,8 +123,26 @@ BENCHMARK_DEFINE_F(RecoveryBenchmark, HighAbortRate)(benchmark::State &state) {
                                               .SetMaxColumns(100)
                                               .SetInitialTableSize(initial_table_size_)
                                               .SetTxnLength(40)
-                                              .SetUpdateSelectDeleteRatio({0.8, 0.2, 0.0})
+                                              .SetUpdateSelectDeleteRatio({0.95, 0.0, 0.05})
                                               .SetVarlenAllowed(true)
+                                              .build();
+
+  RunBenchmark(&state, config);
+}
+
+/**
+ * High-stress workload, blast a narrow table with updates (5 statements per txn, 100% updates).
+ */
+// NOLINTNEXTLINE
+BENCHMARK_DEFINE_F(RecoveryBenchmark, HighStress)(benchmark::State &state) {
+  LargeSqlTableTestConfiguration config = LargeSqlTableTestConfiguration::Builder()
+                                              .SetNumDatabases(1)
+                                              .SetNumTables(1)
+                                              .SetMaxColumns(1)
+                                              .SetInitialTableSize(initial_table_size_)
+                                              .SetTxnLength(5)
+                                              .SetUpdateSelectDeleteRatio({1.0, 0.0, 0.0})
+                                              .SetVarlenAllowed(false)
                                               .build();
 
   RunBenchmark(&state, config);
@@ -133,5 +151,7 @@ BENCHMARK_DEFINE_F(RecoveryBenchmark, HighAbortRate)(benchmark::State &state) {
 BENCHMARK_REGISTER_F(RecoveryBenchmark, OLTPWorkload)->Unit(benchmark::kMillisecond)->UseManualTime()->MinTime(3);
 
 BENCHMARK_REGISTER_F(RecoveryBenchmark, HighAbortRate)->Unit(benchmark::kMillisecond)->UseManualTime()->MinTime(10);
+
+BENCHMARK_REGISTER_F(RecoveryBenchmark, HighStress)->Unit(benchmark::kMillisecond)->UseManualTime()->MinTime(3);
 
 }  // namespace terrier
