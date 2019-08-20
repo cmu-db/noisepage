@@ -281,7 +281,7 @@ class TopKElements {
   /**
    * Pretty Print!
    * @param os the output target
-   * @param topk the top-k object to print
+   * @param topK the top-k object to print
    * @return representation of sorted keys and their counts
    */
   friend std::ostream &operator<<(std::ostream &os, const TopKElements<KeyType> &topK) {
