@@ -50,14 +50,9 @@ bool TupleAccessStrategy::Allocate(RawBlock *const block, TupleSlot *const slot)
 
   uint32_t pos = start;
 
-  while (bitmap->FirstUnsetPos(layout_.NumSlots(), pos, &pos)) {
-    if (bitmap->Flip(pos, false)) {
-      *slot = TupleSlot(block, pos);
-      block->insert_head_++;
-      return true;
-    }
-  }
-
-  return false;
+  bitmap->Flip(pos, false);
+  *slot = TupleSlot(block, pos);
+  block->insert_head_++;
+  return true;
 }
 }  // namespace terrier::storage
