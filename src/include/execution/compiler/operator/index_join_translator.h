@@ -26,7 +26,10 @@ class IndexJoinTranslator : public OperatorTranslator {
   void InitializeTeardown(util::RegionVector<ast::Stmt *> *teardown_stmts) override {}
 
   // Produce index scan code.
-  void Produce(FunctionBuilder * builder) override;
+  void Produce(OperatorTranslator * parent, FunctionBuilder * builder) override;
+
+  void Consume(FunctionBuilder * builder) override {}
+
 
   // Pass Through
   ast::Expr * GetOutput(uint32_t attr_idx) override;

@@ -16,7 +16,7 @@ SortBottomTranslator::SortBottomTranslator(const terrier::planner::AbstractPlanN
 , comp_rhs_(codegen_->NewIdentifier(comp_rhs_name_)){}
 
 
-void SortBottomTranslator::Produce(execution::compiler::FunctionBuilder *builder) {
+void SortBottomTranslator::Produce(OperatorTranslator * parent, execution::compiler::FunctionBuilder *builder) {
   // First call sorterInsert
   GenSorterInsert(builder);
   // Then fill in the values
@@ -124,7 +124,7 @@ void SortBottomTranslator::GenComparisons(execution::compiler::FunctionBuilder *
     } else {
       ret_value = 1;
     }
-    ExpressionTranslator * key_translator = TranslatorFactory::CreateExpressionTranslator(order.first.get(), codegen_);
+    std::unique_ptr<ExpressionTranslator> key_translator = TranslatorFactory::CreateExpressionTranslator(order.first.get(), codegen_);
     for (const auto tok : {parsing::Token::Type::LESS, parsing::Token::Type::GREATER}) {
       // Get lhs.col_i
       current_row_ = CurrentRow::Lhs;
@@ -154,7 +154,7 @@ SortTopTranslator::SortTopTranslator(const terrier::planner::AbstractPlanNode *o
 , bottom_(dynamic_cast<SortBottomTranslator*>(bottom))
 , sort_iter_(codegen_->NewIdentifier(iter_name_)){}
 
-void SortTopTranslator::Produce(execution::compiler::FunctionBuilder *builder) {
+void SortTopTranslator::Produce(OperatorTranslator * parent, execution::compiler::FunctionBuilder *builder) {
   // Declare the iterator
   DeclareIterator(builder);
   // Generate the for loop
@@ -208,7 +208,7 @@ ast::Expr* SortTopTranslator::GetChildOutput(uint32_t child_idx, uint32_t attr_i
 
 ast::Expr* SortTopTranslator::GetOutput(uint32_t attr_idx) {
   auto output_expr = op_->GetOutputSchema()->GetColumn(attr_idx).GetExpr();
-  ExpressionTranslator * translator = TranslatorFactory::CreateExpressionTranslator(output_expr, codegen_);
+  std::unique_ptr<ExpressionTranslator> translator = TranslatorFactory::CreateExpressionTranslator(output_expr, codegen_);
   return translator->DeriveExpr(this);
 }
 }

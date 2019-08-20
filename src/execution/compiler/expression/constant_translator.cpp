@@ -27,9 +27,9 @@ ast::Expr *ConstantTranslator::DeriveExpr(OperatorTranslator * translator) {
       return codegen_->BoolLiteral(terrier::type::TransientValuePeeker::PeekBoolean(trans_val));
     case terrier::type::TypeId::DATE: {
       sql::Date date(terrier::type::TransientValuePeeker::PeekDate(trans_val));
-      i16 year = sql::ValUtil::ExtractYear(date);
-      u8 month = sql::ValUtil::ExtractMonth(date);
-      u8 day = sql::ValUtil::ExtractDay(date);
+      int16_t year = sql::ValUtil::ExtractYear(date);
+      uint8_t month = sql::ValUtil::ExtractMonth(date);
+      uint8_t day = sql::ValUtil::ExtractDay(date);
       return codegen_->DateToSql(year, month, day);
     }
     case terrier::type::TypeId::TIMESTAMP:

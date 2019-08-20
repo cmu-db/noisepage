@@ -27,7 +27,7 @@ void IndexJoinTranslator::InitializeStructs(execution::util::RegionVector<execut
   decls->emplace_back(codegen_->MakeStruct(index_struct_, std::move(fields)));
 }
 
-void IndexJoinTranslator::Produce(execution::compiler::FunctionBuilder *builder) {
+void IndexJoinTranslator::Produce(OperatorTranslator* parent, execution::compiler::FunctionBuilder *builder) {
   // First declare an index iterator
   DeclareIterator(builder);
   // Then declare a key
@@ -42,7 +42,7 @@ void IndexJoinTranslator::Produce(execution::compiler::FunctionBuilder *builder)
 
 ast::Expr* IndexJoinTranslator::GetOutput(uint32_t attr_idx) {
   auto output_expr = op_->GetOutputSchema()->GetColumn(attr_idx).GetExpr();
-  ExpressionTranslator * translator = TranslatorFactory::CreateExpressionTranslator(output_expr, codegen_);
+  std::unique_ptr<ExpressionTranslator> translator = TranslatorFactory::CreateExpressionTranslator(output_expr, codegen_);
   return translator->DeriveExpr(this);
 }
 
@@ -78,7 +78,7 @@ void IndexJoinTranslator::FillKey(execution::compiler::FunctionBuilder *builder)
   for (const auto & key: join_op->GetIndexColumns()) {
     ast::Identifier attr_identifer = codegen_->Context()->GetIdentifier(index_key_prefix_ + std::to_string(attr_idx));
     ast::Expr * index_key_attr = codegen_->MemberExpr(index_key_, attr_identifer);
-    ExpressionTranslator * translator = TranslatorFactory::CreateExpressionTranslator(key.get(), codegen_);
+    std::unique_ptr<ExpressionTranslator> translator = TranslatorFactory::CreateExpressionTranslator(key.get(), codegen_);
     builder->Append(codegen_->Assign(index_key_attr, translator->DeriveExpr(this)));
   }
 }

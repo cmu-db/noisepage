@@ -7,6 +7,8 @@
 #include "execution/compiler/expression/null_check_translator.h"
 #include "execution/compiler/expression/tuple_value_translator.h"
 #include "execution/compiler/expression/unary_translator.h"
+#include "execution/compiler/expression/column_value_translator.h"
+#include "execution/compiler/expression/derived_value_translator.h"
 #include "execution/compiler/operator/insert_translator.h"
 #include "execution/compiler/operator/seq_scan_translator.h"
 #include "execution/compiler/operator/aggregate_translator.h"
@@ -15,7 +17,7 @@
 #include "execution/compiler/operator/nested_loop_translator.h"
 #include "execution/compiler/operator/index_join_translator.h"
 #include "execution/compiler/pipeline.h"
-#include "execution/util/macros.h"
+#include "common/macros.h"
 
 namespace terrier::execution::compiler {
 
@@ -108,14 +110,16 @@ std::unique_ptr<ExpressionTranslator> TranslatorFactory::CreateExpressionTransla
   if (CONSTANT_VAL(type)) {
     return std::make_unique<ConstantTranslator>(expression, codegen);
   }
-  if (TUPLE_VAL(type)) {
-    return std::make_unique<TupleValueTranslator>(expression, codegen);
+  if (COLUMN_VAL(type)) {
+    return std::make_unique<ColumnValueTranslator>(expression, codegen);
+  }
+  if (DERIVED_VAL(type)) {
+    return std::make_unique<DerivedValueTranslator>(expression, codegen);
   }
   if (NULL_OP(type)) {
     return std::make_unique<NullCheckTranslator>(expression, codegen);
   }
-  TPL_ASSERT(false, "Unsupported expression");
-  return nullptr;
+  UNREACHABLE("Unsupported expression");
 }
 
 }  // namespace terrier::execution::compiler

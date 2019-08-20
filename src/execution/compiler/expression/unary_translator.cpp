@@ -19,7 +19,7 @@ ast::Expr *UnaryTranslator::DeriveExpr(OperatorTranslator * translator) {
       type = parsing::Token::Type::BANG;
       break;
     default:
-      TPL_ASSERT(false, "Unsupported expression");
+      UNREACHABLE("Unsupported expression");
   }
   return codegen_->UnaryOp(type, child_expr);
 }

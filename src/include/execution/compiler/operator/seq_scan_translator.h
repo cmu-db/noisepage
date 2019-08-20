@@ -2,7 +2,6 @@
 
 #include "planner/plannodes/seq_scan_plan_node.h"
 #include "execution/compiler/operator/operator_translator.h"
-#include "parser/expression/tuple_value_expression.h"
 
 namespace terrier::execution::compiler {
 
@@ -18,7 +17,7 @@ class SeqScanTranslator : public OperatorTranslator {
    */
   SeqScanTranslator(const terrier::planner::AbstractPlanNode * op, CodeGen * codegen);
 
-  void Produce(FunctionBuilder * builder) override;
+  void Produce(OperatorTranslator * parent, FunctionBuilder * builder) override;
 
   // This is always a leaf node, so do nothing.
   void Consume(FunctionBuilder * builder) override {}
@@ -38,11 +37,12 @@ class SeqScanTranslator : public OperatorTranslator {
   // Does nothing
   void InitializeTeardown(util::RegionVector<ast::Stmt *> *teardown_stmts) override {}
 
-  // Get an attribute by making a pci call
   ast::Expr* GetOutput(uint32_t attr_idx) override;
 
-  // For a seq scan, this a pci call too
-  ast::Expr* GetChildOutput(uint32_t child_idx, uint32_t attr_idx, terrier::type::TypeId type) override;
+  // Should not be called here
+  ast::Expr* GetChildOutput(uint32_t child_idx, uint32_t attr_idx, terrier::type::TypeId type) override {
+    UNREACHABLE("SeqScan nodes should use column value expressions");
+  }
 
   // This is a materializer
   bool IsMaterializer(bool * is_ptr) override {
@@ -60,9 +60,15 @@ class SeqScanTranslator : public OperatorTranslator {
     return {&pci_, &pci_type_};
   }
 
+  // Used by column value expression to get a column.
+  ast::Expr * GetTableColumn(const catalog::col_oid_t & col_oid);
+
  private:
   // var tvi : TableVectorIterator
   void DeclareTVI(FunctionBuilder * builder);
+
+  void SetOids(FunctionBuilder * builder);
+
 
   // for (@tableIterInit(&tvi, ...); @tableIterAdvance(&tvi);) {...}
   void GenTVILoop(FunctionBuilder * builder);
@@ -86,17 +92,23 @@ class SeqScanTranslator : public OperatorTranslator {
   // Generated vectorized filters
   void GenVectorizedPredicate(FunctionBuilder * builder, const terrier::parser::AbstractExpression * predicate);
 
-  const terrier::planner::SeqScanPlanNode * seqscan_op_;
+ private:
+  const planner::SeqScanPlanNode * seqscan_op_;
+  const catalog::Schema & schema_;
+  std::vector<catalog::col_oid_t> input_oids_;
+  storage::ProjectionMap pm_;
   bool has_predicate_;
   bool is_vectorizable_;
 
   // Structs, functions and locals
   static constexpr const char * tvi_name_ = "tvi";
+  static constexpr const char * col_oids_name_ = "col_oids";
   static constexpr const char * pci_name_ = "pci";
   static constexpr const char * row_name_ = "row";
   static constexpr const char * table_struct_name_= "TableRow";
   static constexpr const char * pci_type_name_ = "ProjectedColumnsIterator";
   ast::Identifier tvi_;
+  ast::Identifier col_oids_;
   ast::Identifier pci_;
   ast::Identifier row_;
   ast::Identifier table_struct_;

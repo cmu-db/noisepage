@@ -16,7 +16,7 @@ ast::Expr *NullCheckTranslator::DeriveExpr(OperatorTranslator * translator) {
   if (type == terrier::parser::ExpressionType::OPERATOR_IS_NULL) {
     return codegen_->BinaryOp(parsing::Token::Type::EQUAL_EQUAL, null_expr, child_expr);
   }
-  TPL_ASSERT(type == terrier::parser::ExpressionType::OPERATOR_IS_NOT_NULL, "Unsupported expression");
+  TERRIER_ASSERT(type == terrier::parser::ExpressionType::OPERATOR_IS_NOT_NULL, "Unsupported expression");
   return codegen_->BinaryOp(parsing::Token::Type::BANG_EQUAL, null_expr, child_expr);
 }
 };  // namespace terrier::execution::compiler

@@ -35,7 +35,10 @@ class NestedLoopLeftTransaltor : public OperatorTranslator {
   void InitializeTeardown(util::RegionVector<ast::Stmt *> *teardown_stmts) override {}
 
   // Does nothing
-  void Produce(FunctionBuilder * builder) override {}
+  void Produce(OperatorTranslator * parent, FunctionBuilder * builder) override {}
+
+  void Consume(FunctionBuilder * builder) override {}
+
 
   // Pass Through
   ast::Expr * GetOutput(uint32_t attr_idx) override {
@@ -75,18 +78,21 @@ class NestedLoopRightTransaltor : public OperatorTranslator {
   void InitializeTeardown(util::RegionVector<ast::Stmt *> *teardown_stmts) override {}
 
   // Generate an if statement for the scan predicate
-  void Produce(FunctionBuilder * builder) override {
+  void Produce(OperatorTranslator * parent, FunctionBuilder * builder) override {
     // if (join_predicate) {...}
     auto join_op = dynamic_cast<const terrier::planner::NestedLoopJoinPlanNode*>(op_);
-    ExpressionTranslator * translator = TranslatorFactory::CreateExpressionTranslator(join_op->GetJoinPredicate().get(), codegen_);
+    auto translator = TranslatorFactory::CreateExpressionTranslator(join_op->GetJoinPredicate().get(), codegen_);
     ast::Expr * predicate = translator->DeriveExpr(this);
     builder->StartIfStmt(predicate);
   }
 
+  void Consume(FunctionBuilder * builder) override {}
+
+
   // Return the output at the given index
   ast::Expr* GetOutput(uint32_t attr_idx) override {
     auto output_expr = op_->GetOutputSchema()->GetColumn(attr_idx).GetExpr();
-    ExpressionTranslator * translator = TranslatorFactory::CreateExpressionTranslator(output_expr, codegen_);
+    auto translator = TranslatorFactory::CreateExpressionTranslator(output_expr, codegen_);
     return translator->DeriveExpr(this);
   }
 

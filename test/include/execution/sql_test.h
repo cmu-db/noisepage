@@ -64,7 +64,7 @@ class SqlBasedTest : public TplTest {
   }
 
   std::unique_ptr<terrier::catalog::CatalogAccessor> MakeAccessor() {
-    return catalog_->GetAccessor(test_txn_, test_db_oid_, test_ns_oid_);
+    return catalog_->GetAccessor(test_txn_, test_db_oid_);
   }
 
  private:

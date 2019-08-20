@@ -17,6 +17,6 @@ class UnaryTranslator : public ExpressionTranslator {
 
   ast::Expr *DeriveExpr(OperatorTranslator * translator) override;
  private:
-  ExpressionTranslator * child_;
+  std::unique_ptr<ExpressionTranslator> child_;
 };
 }  // namespace terrier::execution::compiler

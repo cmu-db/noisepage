@@ -47,7 +47,8 @@ class Pipeline {
    * @param teardown_stmts list of stmts for the teardown functiono
    */
   void Initialize(util::RegionVector<ast::Decl *> *decls, util::RegionVector<ast::FieldDecl *> *state_fields, util::RegionVector<ast::Stmt *> *setup_stmts, util::RegionVector<ast::Stmt *> *teardown_stmts) {
-    OperatorTranslator * prev_translator = nullptr;
+    OperatorTranslator * child_translator = nullptr;
+    OperatorTranslator * parent_translator = nullptr;
     for (const auto & translator: pipeline_) {
       translator->Prepare(prev_translator, is_vectorizable_, is_parallelizable_);
       translator->InitializeStateFields(state_fields);
@@ -55,7 +56,7 @@ class Pipeline {
       translator->InitializeHelperFunctions(decls);
       translator->InitializeSetup(setup_stmts);
       translator->InitializeTeardown(teardown_stmts);
-      prev_translator = translator;
+      prev_translator = translator.get();
     }
   }
 
@@ -78,7 +79,7 @@ class Pipeline {
     FunctionBuilder builder{codegen_, fn_name, std::move(params), ret_type};
 
     //for (const auto & translator: pipeline_) {
-    translator->Produce(&builder);
+    pipeline_[pipeline_.size() - 1]->Produce(nullptr, &builder);
     //}
     return builder.Finish();
   }

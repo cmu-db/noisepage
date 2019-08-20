@@ -31,25 +31,9 @@ void AggregateBottomTranslator::InitializeStructs(util::RegionVector<ast::Decl *
 
 // Create the key check function.
 void AggregateBottomTranslator::InitializeHelperFunctions(util::RegionVector<ast::Decl *> *decls) {
-  // KeyCheck function
-  // Generate the function type (*AggPayload, *AggValues) -> bool
-  // First make agg_payload: *AggPayload
-  ast::Expr* payload_struct_ptr = codegen_->PointerType(payload_struct_);
-  ast::FieldDecl* param1 = codegen_->MakeField(agg_payload_, payload_struct_ptr);
-
-  // Then make agg_values: *AggValues
-  ast::Expr * values_struct_ptr = codegen_->PointerType(values_struct_);
-  ast::FieldDecl* param2 = codegen_->MakeField(agg_values_, values_struct_ptr);
-
-  // Now create the function
-  util::RegionVector<ast::FieldDecl *> params({param1, param2}, codegen_->Region());
-  ast::Expr* ret_type = codegen_->BuiltinType(ast::BuiltinType::Kind::Bool);
-  FunctionBuilder builder(codegen_, key_check_, std::move(params), ret_type);
-  // Fill up the function
-  GenKeyCheck(&builder);
-  // Add it to top level declarations
-  decls->emplace_back(builder.Finish());
+  GenSingleKeyCheckFn(decls);
 }
+
 
 // Call @aggHTInit on the hash table
 void AggregateBottomTranslator::InitializeSetup(util::RegionVector<ast::Stmt *> *setup_stmts) {
@@ -209,7 +193,7 @@ void AggregateBottomTranslator::FillValues(FunctionBuilder * builder) {
   for (const auto & term : agg_op->GetGroupByTerms()) {
     // Set agg_values.term_i = group_term_i
     ast::Expr * lhs = GetGroupByTerm(agg_values_, term_idx);
-    ExpressionTranslator * term_translator = TranslatorFactory::CreateExpressionTranslator(term.get(), codegen_);
+    auto term_translator = TranslatorFactory::CreateExpressionTranslator(term.get(), codegen_);
     ast::Expr * rhs = term_translator->DeriveExpr(this);
     builder->Append(codegen_->Assign(lhs, rhs));
     term_idx++;
@@ -219,7 +203,7 @@ void AggregateBottomTranslator::FillValues(FunctionBuilder * builder) {
   for (const auto & term: agg_op->GetAggregateTerms()) {
     // Set agg_values.expr_i = agg_expr_i
     ast::Expr * lhs = GetAggTerm(agg_values_, term_idx, false);
-    ExpressionTranslator * term_translator = TranslatorFactory::CreateExpressionTranslator(term->GetChild(0).get(), codegen_);
+    auto term_translator = TranslatorFactory::CreateExpressionTranslator(term->GetChild(0).get(), codegen_);
     ast::Expr * rhs = term_translator->DeriveExpr(this);
     builder->Append(codegen_->Assign(lhs, rhs));
     term_idx++;
@@ -299,6 +283,26 @@ void AggregateBottomTranslator::GenHashCall(FunctionBuilder * builder) {
   builder->Append(codegen_->DeclareVariable(hash_val_, nullptr, hash_call));
 }
 
+void AggregateBottomTranslator::GenSingleKeyCheckFn(util::RegionVector<terrier::execution::ast::Decl *> *decls) {
+  // Generate the function type (*AggPayload, *AggValues) -> bool
+  // First make agg_payload: *AggPayload
+  ast::Expr* payload_struct_ptr = codegen_->PointerType(payload_struct_);
+  ast::FieldDecl* param1 = codegen_->MakeField(agg_payload_, payload_struct_ptr);
+
+  // Then make agg_values: *AggValues
+  ast::Expr * values_struct_ptr = codegen_->PointerType(values_struct_);
+  ast::FieldDecl* param2 = codegen_->MakeField(agg_values_, values_struct_ptr);
+
+  // Now create the function
+  util::RegionVector<ast::FieldDecl *> params({param1, param2}, codegen_->Region());
+  ast::Expr* ret_type = codegen_->BuiltinType(ast::BuiltinType::Kind::Bool);
+  FunctionBuilder builder(codegen_, key_check_, std::move(params), ret_type);
+  // Fill up the function
+  GenKeyCheck(&builder);
+  // Add it to top level declarations
+  decls->emplace_back(builder.Finish());
+}
+
 
 ///////////////////////////////////////////////
 ///// Top Translator
@@ -309,11 +313,21 @@ void AggregateTopTranslator::Produce(OperatorTranslator * parent, FunctionBuilde
   DeclareIterator(builder);
   GenHTLoop(builder);
   // Close the iterator after the loop ends.
-  CloseIterator(builder);
   DeclareResult(builder);
-  GenHaving(builder);
+  bool has_having = GenHaving(builder);
   parent->Consume(builder);
+
+  // Close having statement
+  if (has_having) {
+    builder->FinishBlockStmt();
+  }
+  // Close HT loop
+  builder->FinishBlockStmt();
+  // Close iterator
+  CloseIterator(builder);
 }
+
+
 
 
 ast::Expr* AggregateTopTranslator::GetChildOutput(uint32_t child_idx, uint32_t attr_idx, terrier::type::TypeId type) {
@@ -324,7 +338,7 @@ ast::Expr* AggregateTopTranslator::GetChildOutput(uint32_t child_idx, uint32_t a
 // Let the bottom translator handle this call
 ast::Expr* AggregateTopTranslator::GetOutput(uint32_t attr_idx) {
   auto output_expr = op_->GetOutputSchema()->GetColumn(attr_idx).GetExpr();
-  ExpressionTranslator * translator = TranslatorFactory::CreateExpressionTranslator(output_expr, codegen_);
+  auto translator = TranslatorFactory::CreateExpressionTranslator(output_expr, codegen_);
   return translator->DeriveExpr(this);
 }
 
@@ -364,18 +378,20 @@ void AggregateTopTranslator::DeclareResult(FunctionBuilder * builder) {
 void AggregateTopTranslator::CloseIterator(FunctionBuilder * builder) {
   // Call @aggHTIterCLose(agg_iter)
   ast::Expr* close_call = codegen_->AggHashTableIterClose(agg_iterator_);
-  builder->AppendAfter(codegen_->MakeStmt(close_call));
+  builder->Append(codegen_->MakeStmt(close_call));
 }
 
 
-void AggregateTopTranslator::GenHaving(execution::compiler::FunctionBuilder *builder) {
+bool AggregateTopTranslator::GenHaving(execution::compiler::FunctionBuilder *builder) {
   auto agg_op = dynamic_cast<const terrier::planner::AggregatePlanNode*>(op_);
   if (agg_op->GetHavingClausePredicate() != nullptr) {
       auto predicate = agg_op->GetHavingClausePredicate().get();
       auto translator = TranslatorFactory::CreateExpressionTranslator(predicate, codegen_);
       ast::Expr * cond = translator->DeriveExpr(this);
       builder->StartIfStmt(cond);
+      return true;
   }
+  return false;
 }
 
 }

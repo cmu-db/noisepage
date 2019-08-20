@@ -18,7 +18,7 @@ Compiler::Compiler(execution::compiler::Query *query)
     main_pipeline->Add(std::move(output_translator));
   }
   // Finally add the main pipeline
-  pipelines_.push_back(main_pipeline);
+  pipelines_.push_back(std::move(main_pipeline));
   EXECUTION_LOG_INFO("Made {} pipelines", pipelines_.size());
 }
 

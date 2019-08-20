@@ -36,7 +36,10 @@ class AggregateBottomTranslator : public OperatorTranslator {
   // Call @aggHTFree
   void InitializeTeardown(util::RegionVector<ast::Stmt *> *teardown_stmts) override;
 
-  void Produce(FunctionBuilder * builder) override;
+  void Produce(OperatorTranslator * parent, FunctionBuilder * builder) override;
+
+  void Consume(FunctionBuilder * builder) override;
+
 
   // Pass through to the child
   ast::Expr* GetChildOutput(uint32_t child_idx, uint32_t attr_idx, terrier::type::TypeId type) override;
@@ -114,8 +117,13 @@ class AggregateBottomTranslator : public OperatorTranslator {
   // Generate var agg_hash_val = @hash(groub_by_term1, group_by_term2, ...)
   void GenHashCall(FunctionBuilder * builder);
 
+  // Tuple at a time key check
+  void GenSingleKeyCheckFn(util::RegionVector<ast::Decl *> *decls);
+
   // Make the top translator a friend class.
   friend class AggregateTopTranslator;
+
+ private:
   // The number of group by terms.
   uint32_t num_group_by_terms{0};
 
@@ -177,7 +185,11 @@ class AggregateTopTranslator : public OperatorTranslator {
    * Finally declare the result of the aggregate.
    * Close the iterator after the loop
    */
-  void Produce(FunctionBuilder * builder) override;
+  void Produce(OperatorTranslator * parent, FunctionBuilder * builder) override;
+
+  // This is always a leaf, so do nothing.
+  void Consume(FunctionBuilder * builder) override {}
+
 
   // Let the bottom translator handle these call
   ast::Expr* GetOutput(uint32_t attr_idx) override;
@@ -208,7 +220,8 @@ class AggregateTopTranslator : public OperatorTranslator {
   void CloseIterator(FunctionBuilder * builder);
 
   // Generate an if statement for the having clause
-  void GenHaving(FunctionBuilder * builder);
+  // Return true if if there is a having clause
+  bool GenHaving(FunctionBuilder * builder);
 
 
   // Used to access member of the resulting aggregate

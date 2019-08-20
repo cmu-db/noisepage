@@ -8,7 +8,6 @@
 
 namespace terrier::execution::compiler {
 
-// clang-format off
 #define COMPARISON_OP(type)                                               \
   ((type) <= terrier::parser::ExpressionType::COMPARE_IS_DISTINCT_FROM && \
     (type) >= terrier::parser::ExpressionType::COMPARE_EQUAL)
@@ -25,14 +24,16 @@ namespace terrier::execution::compiler {
   ((type) <= terrier::parser::ExpressionType::CONJUNCTION_OR && \
     (type) >= terrier::parser::ExpressionType::CONJUNCTION_AND)
 
-#define CONSTANT_VAL(type) ((type) <= terrier::parser::ExpressionType::VALUE_CONSTANT)
+#define CONSTANT_VAL(type) ((type) == terrier::parser::ExpressionType::VALUE_CONSTANT)
 
-#define TUPLE_VAL(type) ((type) <= terrier::parser::ExpressionType::VALUE_TUPLE)
+#define COLUMN_VAL(type) ((type) == terrier::parser::ExpressionType::COLUMN_VALUE)
+
+#define DERIVED_VAL(type) ((type) == terrier::parser::ExpressionType::VALUE_TUPLE)
+
 
 #define NULL_OP(type)                                             \
   ((type) >= terrier::parser::ExpressionType::OPERATOR_IS_NULL && \
     (type) <= terrier::parser::ExpressionType::OPERATOR_IS_NOT_NULL)
-// clang-format on
 
 /**
  * Expression Translator

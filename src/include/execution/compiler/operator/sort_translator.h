@@ -29,7 +29,10 @@ class SortBottomTranslator : public OperatorTranslator {
   void InitializeTeardown(util::RegionVector<ast::Stmt *> *teardown_stmts) override;
 
   // Generate sorting code
-  void Produce(FunctionBuilder * builder) override;
+  void Produce(OperatorTranslator * parent, FunctionBuilder * builder) override;
+
+  void Consume(FunctionBuilder * builder) override {}
+
 
   ast::Expr* GetChildOutput(uint32_t child_idx, uint32_t attr_idx, terrier::type::TypeId type) override;
 
@@ -116,7 +119,10 @@ class SortTopTranslator : public OperatorTranslator {
   void InitializeTeardown(util::RegionVector<ast::Stmt *> *teardown_stmts) override {}
 
   // Generate iteration code
-  void Produce(FunctionBuilder * builder) override;
+  void Produce(OperatorTranslator * parent, FunctionBuilder * builder) override;
+
+  void Consume(FunctionBuilder * builder) override {}
+
 
   ast::Expr* GetChildOutput(uint32_t child_idx, uint32_t attr_idx, terrier::type::TypeId type) override;
 
