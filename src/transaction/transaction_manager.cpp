@@ -100,10 +100,10 @@ timestamp_t TransactionManager::Commit(TransactionContext *const txn, transactio
     const size_t ret UNUSED_ATTRIBUTE = curr_running_txns_.erase(start_time);
     TERRIER_ASSERT(ret == 1, "Committed transaction did not exist in global transactions table");
 
-    // If it's not a read-only txn, we want to record the oldest active txn at the time we committed. This is used by
-    // recovery to serialize transactions. For read-only txns, its safe to pass off INVALID_TXN_TIMESTAMP, since they
-    // should not flush log records to disk.
-    if (!is_read_only) {
+    // If it's not a read-only txn and logging is enabled, we want to record the oldest active txn at the time we
+    // committed. This is used by recovery to serialize transactions. For read-only txns, its safe to pass off
+    // INVALID_TXN_TIMESTAMP, since they should not flush log records to disk.
+    if (!is_read_only && log_manager_ != LOGGING_DISABLED) {
       const auto &oldest_txn = std::min_element(curr_running_txns_.cbegin(), curr_running_txns_.cend());
       oldest_active_txn = (oldest_txn != curr_running_txns_.end()) ? *oldest_txn : NO_ACTIVE_TXN;
     }

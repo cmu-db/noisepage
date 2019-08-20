@@ -169,7 +169,7 @@ class StorageTestUtil {
   template <typename Random, typename T>
   static std::vector<T> RandomNonEmptySubset(std::vector<T> elems, Random *const generator) {
     // randomly select a number of elems for this delta to contain. Must be at least 1
-    uint16_t num_elems = std::uniform_int_distribution<uint16_t>(1, elems.size())(*generator);
+    auto num_elems = std::uniform_int_distribution<size_t>(1, elems.size())(*generator);
 
     // Permute the elems
     std::shuffle(elems.begin(), elems.end(), *generator);

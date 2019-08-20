@@ -133,16 +133,14 @@ uint32_t RecoveryManager::ProcessDeferredTransactions(terrier::transaction::time
   upper_bound = (upper_bound == transaction::NO_ACTIVE_TXN) ? transaction::timestamp_t(INT64_MAX) : upper_bound;
 
   for (auto it = deferred_txns_.begin(); it != deferred_txns_.end();) {
-    if (*it > upper_bound) {
-      break;
-    } else {
-      ProcessCommittedTransaction(*it);
-      txns_processed++;
-      // Because we iterate forwards and the elements are sorted, the first element should always be the one we're
-      // looking at
-      TERRIER_ASSERT(it == deferred_txns_.begin(), "We should always be looking at the first element");
-      it = deferred_txns_.erase(it);
-    }
+    if (*it > upper_bound) break;
+
+    ProcessCommittedTransaction(*it);
+    txns_processed++;
+    // Because we iterate forwards and the elements are sorted, the first element should always be the one we're
+    // looking at
+    TERRIER_ASSERT(it == deferred_txns_.begin(), "We should always be looking at the first element");
+    it = deferred_txns_.erase(it);
   }
 
   return txns_processed;
@@ -321,9 +319,8 @@ void RecoveryManager::UpdateIndexesOnTable(transaction::TransactionContext *txn,
   // Buffer for projected row sizes
   uint32_t index_byte_size = 0;
 
-  // Fetch all indexes at once so we can compute largest PR size we need for index PRs.
-  for (uint32_t i = 0; i < indexes.size(); i++) {
-    auto index_ptr = indexes[i];
+  // Compute largest PR size we need for index PRs.
+  for (const auto &index_ptr : indexes) {
     index_byte_size = std::max(index_byte_size, index_ptr->GetProjectedRowInitializer().ProjectedRowSize());
   }
 

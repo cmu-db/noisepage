@@ -167,7 +167,7 @@ class RecoveryManager : public common::DedicatedThreadOwner {
    * @param upper_bound upper bound for replaying
    * @return number of transactions replayed
    */
-  uint32_t ProcessDeferredTransactions(transaction::timestamp_t oldest_active_txn);
+  uint32_t ProcessDeferredTransactions(transaction::timestamp_t upper_bound);
 
   /**
    * Handles mapping of old tuple slot (before recovery) to new tuple slot (after recovery)
