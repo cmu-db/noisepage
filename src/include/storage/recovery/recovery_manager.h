@@ -207,11 +207,14 @@ class RecoveryManager : public common::DedicatedThreadOwner {
    * @param txn transaction to delete with
    * @param db_oid database oid for table
    * @param table_oid indexed table
+   * @param table_ptr pointer to sql table
    * @param tuple tuple slot to delete
-   * @param table_pr pointer to PR with values if we should insert into the index, nullptr if we should delete
+   * @param table_pr pointer to PR with values for index update
+   * @param insert true if we should insert into indexes, false for delete
    */
   void UpdateIndexesOnTable(transaction::TransactionContext *txn, catalog::db_oid_t db_oid,
-                            catalog::table_oid_t table_oid, const TupleSlot &tuple_slot, ProjectedRow *table_pr);
+                            catalog::table_oid_t table_oid, common::ManagedPointer<storage::SqlTable>& table_ptr, const TupleSlot &tuple_slot, ProjectedRow *table_pr,
+                            bool insert);
 
   /**
    * NYS = Not yet supported

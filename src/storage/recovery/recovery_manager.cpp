@@ -159,8 +159,8 @@ void RecoveryManager::ReplayRedoRecord(transaction::TransactionContext *txn, Log
     auto staged_record = txn->StageRecoveryWrite(record);
     // Insert will always succeed
     auto new_tuple_slot = sql_table_ptr->Insert(txn, staged_record);
-    UpdateIndexesOnTable(txn, staged_record->GetDatabaseOid(), staged_record->GetTableOid(), new_tuple_slot,
-                         staged_record->Delta());
+    UpdateIndexesOnTable(txn, staged_record->GetDatabaseOid(), staged_record->GetTableOid(), sql_table_ptr, new_tuple_slot,
+                         staged_record->Delta(), true /* insert */);
     TERRIER_ASSERT(staged_record->GetTupleSlot() == new_tuple_slot,
                    "Insert should update redo record with new tuple slot");
     // Create a mapping of the old to new tuple. The new tuple slot should be used for future updates and deletes.
@@ -179,24 +179,32 @@ void RecoveryManager::ReplayDeleteRecord(transaction::TransactionContext *txn, L
   auto *delete_record = record->GetUnderlyingRecordBodyAs<DeleteRecord>();
   // Get tuple slot
   auto new_tuple_slot = GetTupleSlotMapping(delete_record->GetTupleSlot());
-
-  // Delete the tuple
   auto sql_table_ptr = GetSqlTable(txn, delete_record->GetDatabaseOid(), delete_record->GetTableOid());
+
   // Stage the delete. This way the recovery operation is logged if logging is enabled
   txn->StageDelete(delete_record->GetDatabaseOid(), delete_record->GetTableOid(), new_tuple_slot);
+
+  // Fetch all the values so we can construct index keys after deleting from the sql table
+  auto initializer = sql_table_ptr->InitializerForProjectedRow(sql_table_ptr->GetAllOids());
+  auto *buffer = common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize());
+  auto pr = initializer.InitializeRow(buffer);
+  sql_table_ptr->Select(txn, new_tuple_slot, pr);
+
+  // Delete from the table
   bool result UNUSED_ATTRIBUTE = sql_table_ptr->Delete(txn, new_tuple_slot);
   TERRIER_ASSERT(result, "Buffered changes should always succeed during commit");
-  UpdateIndexesOnTable(txn, delete_record->GetDatabaseOid(), delete_record->GetTableOid(), new_tuple_slot,
-                       nullptr /* delete */);
+
+  // Delete from the indexes
+  UpdateIndexesOnTable(txn, delete_record->GetDatabaseOid(), delete_record->GetTableOid(), sql_table_ptr, new_tuple_slot,
+                       pr, false /* delete */);
   // We can delete the TupleSlot from the map
   tuple_slot_map_.erase(delete_record->GetTupleSlot());
+  delete[] buffer;
 }
 
-// TODO(Gus): Change this to accept a projected row for insert and delete.
 void RecoveryManager::UpdateIndexesOnTable(transaction::TransactionContext *txn, catalog::db_oid_t db_oid,
-                                           catalog::table_oid_t table_oid, const TupleSlot &tuple_slot,
-                                           ProjectedRow *table_pr) {
-  bool insert = table_pr != nullptr;
+                                           catalog::table_oid_t table_oid, common::ManagedPointer<storage::SqlTable>& table_ptr, const TupleSlot &tuple_slot,
+                                           ProjectedRow *table_pr, const bool insert) {
   auto db_catalog_ptr = GetDatabaseCatalog(txn, db_oid);
 
   // Stores ptr to index
@@ -309,55 +317,18 @@ void RecoveryManager::UpdateIndexesOnTable(transaction::TransactionContext *txn,
   // If there's no indexes on the table, we can return
   if (indexes.empty()) return;
 
-  // TODO(Gus): We can save ourselves a catalog query by passing in the sql table ptr to this function
-  auto sql_table_ptr = GetSqlTable(txn, db_oid, table_oid);
-
   // Buffer for projected row sizes
   uint32_t index_byte_size = 0;
 
-  // Stores all the attributes a table is indexed on so we can fetch their values with a single select
-  std::unordered_set<catalog::col_oid_t> all_indexed_attributes;
-
-  // Cache the index key col oid map so we dont have to compute it again later. Calling GetIndexedColOids is potentially
-  // expensive
-  std::unordered_map<common::ManagedPointer<storage::index::Index>,
-                     std::unordered_map<catalog::indexkeycol_oid_t, std::vector<catalog::col_oid_t>>>
-      indexed_attributes_map;
-
-  // Determine all indexed attributes. Also compute largest PR size we need for index PRs.
+  // Fetch all indexes at once so we can compute largest PR size we need for index PRs.
   for (uint32_t i = 0; i < indexes.size(); i++) {
     auto index_ptr = indexes[i];
-    auto &schema = index_schemas[i];
-
-    // Get attributes
-    auto indexed_attributes = schema.GetIndexedColOids();
-    indexed_attributes_map[index_ptr] = indexed_attributes;
-    for (auto &iter : indexed_attributes) {
-      all_indexed_attributes.insert(iter.second.begin(), iter.second.end());
-    }
-
-    // We want to calculate the size of the largest PR we will need to create create
     index_byte_size = std::max(index_byte_size, index_ptr->GetProjectedRowInitializer().ProjectedRowSize());
   }
 
-  // The PR map varies whether we are doing an insert or delete. In an insert, the table_pr has all the attributes. For
-  // a delete, we have to query the table, so we only fetch the attributes we need.
-  ProjectionMap pr_map;
-  byte *table_buffer = nullptr;
-
-  if (insert) {
-    pr_map = sql_table_ptr->ProjectionMapForAllOids();
-  } else {
-    // If we need to delete from the index, then we don't have the table PR a priori, so we need to perform a Select.
-    std::vector<catalog::col_oid_t> col_oids =
-        std::vector<catalog::col_oid_t>(all_indexed_attributes.begin(), all_indexed_attributes.end());
-    pr_map = sql_table_ptr->ProjectionMapForOids(col_oids);
-    auto pr_init = sql_table_ptr->InitializerForProjectedRow(col_oids);
-    table_buffer = common::AllocationUtil::AllocateAligned(pr_init.ProjectedRowSize());
-    table_pr = pr_init.InitializeRow(table_buffer);
-    auto result UNUSED_ATTRIBUTE = sql_table_ptr->Select(txn, tuple_slot, table_pr);
-    TERRIER_ASSERT(result, "Select operation should succeed");
-  }
+  // The table PR, as well as the PR map, should contain all columns
+  auto pr_map = table_ptr->ProjectionMapForAllOids();
+  TERRIER_ASSERT(pr_map.size() == table_pr->NumColumns(), "Projected row should contain all attributes");
 
   // Allocate index buffer
   auto *index_buffer = common::AllocationUtil::AllocateAligned(index_byte_size);
@@ -367,14 +338,15 @@ void RecoveryManager::UpdateIndexesOnTable(transaction::TransactionContext *txn,
   for (uint8_t i = 0; i < indexes.size(); i++) {
     auto index = indexes[i];
     auto schema = index_schemas[i];
+    auto indexed_attributes_map = schema.GetIndexedColOids();
 
     // Build the index PR
     auto *index_pr = index->GetProjectedRowInitializer().InitializeRow(index_buffer);
 
-    // Copy in each value from the table select result into the index PR
+    // Copy in each value from the table PR into the index PR
     for (const auto &col : schema.GetColumns()) {
       auto index_col_oid = col.Oid();
-      auto &index_key_oids = indexed_attributes_map[index][col.Oid()];
+      const auto &index_key_oids = indexed_attributes_map[col.Oid()];
       TERRIER_ASSERT(index_key_oids.size() == 1, "Only support index keys that are a single column oid");
       auto oid = index_key_oids[0];
       if (table_pr->IsNull(pr_map[oid])) {
@@ -396,7 +368,6 @@ void RecoveryManager::UpdateIndexesOnTable(transaction::TransactionContext *txn,
     }
   }
 
-  delete[] table_buffer;
   delete[] index_buffer;
 }
 

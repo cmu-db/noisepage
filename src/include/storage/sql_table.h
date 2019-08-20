@@ -205,9 +205,23 @@ class SqlTable {
   friend class terrier::LargeSqlTableTestObject;
   friend class RecoveryTests;
 
+  // TODO(Gus): We should probably cache this somewhere?
+  /**
+   * Get all column oids for this table
+   * @return oids
+   */
+  std::vector<catalog::col_oid_t> GetAllOids() {
+    std::vector<catalog::col_oid_t> all_oids;
+    all_oids.reserve(table_.column_map.size());
+    for (auto &pair : table_.column_map) {
+      all_oids.push_back(pair.first);
+    }
+    return all_oids;
+  }
+
   /**
    * Generate a projection map for all the column oids in this table
-   * @return
+   * @return the projection map
    */
   ProjectionMap ProjectionMapForAllOids();
 
