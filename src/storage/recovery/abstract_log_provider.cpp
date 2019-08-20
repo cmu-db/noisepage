@@ -17,10 +17,15 @@ std::pair<LogRecord *, std::vector<byte *>> AbstractLogProvider::ReadNextRecord(
   switch (record_type) {
     case (storage::LogRecordType::COMMIT): {
       auto txn_commit = ReadValue<transaction::timestamp_t>();
+      auto oldest_active_txn = ReadValue<transaction::timestamp_t>();
+      TERRIER_ASSERT(oldest_active_txn != transaction::INVALID_TXN_TIMESTAMP,
+                     "What the fuck did you do? INVALID_TXN_TIMESTAMP indicates this was a read only txn, which should "
+                     "never have been flushed to disk/network");
       // Okay to fill in null since nobody will invoke the callback.
       // is_read_only argument is set to false, because we do not write out a commit record for a transaction if it is
       // not read-only.
-      return {storage::CommitRecord::Initialize(buf, txn_begin, txn_commit, nullptr, nullptr, false, nullptr),
+      return {storage::CommitRecord::Initialize(buf, txn_begin, txn_commit, nullptr, nullptr, oldest_active_txn, false,
+                                                nullptr),
               varlen_contents};
     }
 

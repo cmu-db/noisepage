@@ -37,7 +37,8 @@ TransactionContext *TransactionManager::BeginTransaction() {
 }
 
 void TransactionManager::LogCommit(TransactionContext *const txn, const timestamp_t commit_time,
-                                   const callback_fn callback, void *const callback_arg) {
+                                   const callback_fn callback, void *const callback_arg,
+                                   const timestamp_t oldest_active_txn) {
   txn->finish_time_.store(commit_time);
   if (log_manager_ != LOGGING_DISABLED) {
     // At this point the commit has already happened for the rest of the system.
@@ -45,7 +46,7 @@ void TransactionManager::LogCommit(TransactionContext *const txn, const timestam
     // sees this record.
     byte *const commit_record = txn->redo_buffer_.NewEntry(storage::CommitRecord::Size());
     storage::CommitRecord::Initialize(commit_record, txn->StartTime(), commit_time, callback, callback_arg,
-                                      txn->IsReadOnly(), txn);
+                                      oldest_active_txn, txn->IsReadOnly(), txn);
     // Signal to the log manager that we are ready to be logged out
   } else {
     // Otherwise, logging is disabled. We should pretend to have flushed the record so the rest of the system proceeds
@@ -54,17 +55,6 @@ void TransactionManager::LogCommit(TransactionContext *const txn, const timestam
     callback(callback_arg);
   }
   txn->redo_buffer_.Finalize(true);
-}
-
-timestamp_t TransactionManager::ReadOnlyCommitCriticalSection(TransactionContext *const txn, const callback_fn callback,
-                                                              void *const callback_arg) {
-  // No records to update. No commit will ever depend on us. We can do all the work outside of the critical section
-  const timestamp_t commit_time = time_++;
-  // TODO(Tianyu): Notice here that for a read-only transaction, it is necessary to communicate the commit with the
-  // LogManager, so speculative reads are handled properly,  but there is no need to actually write out the read-only
-  // transaction's commit record to disk.
-  LogCommit(txn, commit_time, callback, callback_arg);
-  return commit_time;
 }
 
 timestamp_t TransactionManager::UpdatingCommitCriticalSection(TransactionContext *const txn, const callback_fn callback,
@@ -85,11 +75,8 @@ timestamp_t TransactionManager::UpdatingCommitCriticalSection(TransactionContext
   //  Make sure you solve this problem before you remove this gate for whatever reason.
   common::Gate::ScopedLock gate(&txn_gate_);
   const timestamp_t commit_time = time_++;
-
-  LogCommit(txn, commit_time, callback, callback_arg);
   // flip all timestamps to be committed
   for (auto &it : txn->undo_buffer_) it.Timestamp().store(commit_time);
-
   return commit_time;
 }
 
@@ -98,24 +85,39 @@ timestamp_t TransactionManager::Commit(TransactionContext *const txn, transactio
   TERRIER_ASSERT(!txn->must_abort_,
                  "This txn was marked that it must abort. Set a breakpoint at TransactionContext::MustAbort() to see a "
                  "stack trace for when this flag is getting tripped.");
-  const timestamp_t result = txn->undo_buffer_.Empty() ? ReadOnlyCommitCriticalSection(txn, callback, callback_arg)
-                                                       : UpdatingCommitCriticalSection(txn, callback, callback_arg);
+  bool is_read_only = txn->undo_buffer_.Empty();
+  const timestamp_t result = is_read_only ? ReadOnlyCommitCriticalSection(txn, callback, callback_arg)
+                                          : UpdatingCommitCriticalSection(txn, callback, callback_arg);
   while (!txn->commit_actions_.empty()) {
     txn->commit_actions_.front()();
     txn->commit_actions_.pop_front();
   }
-
+  // Oldest active txn at the time of this commit
+  timestamp_t oldest_active_txn = INVALID_TXN_TIMESTAMP;
   {
     // In a critical section, remove this transaction from the table of running transactions
     common::SpinLatch::ScopedSpinLatch guard(&curr_running_txns_latch_);
     const timestamp_t start_time = txn->StartTime();
     const size_t ret UNUSED_ATTRIBUTE = curr_running_txns_.erase(start_time);
     TERRIER_ASSERT(ret == 1, "Committed transaction did not exist in global transactions table");
+
+    // If it's not a read-only txn, we want to record the oldest active txn at the time we committed. This is used by
+    // recovery to serialize transactions. For read-only txns, its safe to pass off INVALID_TXN_TIMESTAMP, since they
+    // should not flush log records to disk.
+    if (!is_read_only) {
+      const auto &oldest_txn = std::min_element(curr_running_txns_.cbegin(), curr_running_txns_.cend());
+      oldest_active_txn = (oldest_txn != curr_running_txns_.end()) ? *oldest_txn : NO_ACTIVE_TXN;
+    }
+
     // It is not necessary to have to GC process read-only transactions, but it's probably faster to call free off
     // the critical path there anyway
     // Also note here that GC will figure out what varlen entries to GC, as opposed to in the abort case.
     if (gc_enabled_) completed_txns_.push_front(txn);
   }
+  // TODO(Tianyu): Notice here that for a read-only transaction, it is necessary to communicate the commit with the
+  // LogManager, so speculative reads are handled properly,  but there is no need to actually write out the read-only
+  // transaction's commit record to disk.
+  LogCommit(txn, result, callback, callback_arg, oldest_active_txn);
   return result;
 }
 

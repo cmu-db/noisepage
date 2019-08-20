@@ -74,10 +74,13 @@ class WriteAheadLoggingTests : public TerrierTest {
     auto txn_begin = in->ReadValue<transaction::timestamp_t>();
     if (record_type == storage::LogRecordType::COMMIT) {
       auto txn_commit = in->ReadValue<transaction::timestamp_t>();
+      auto oldest_active_txn = in->ReadValue<transaction::timestamp_t>();
+
       // Okay to fill in null since nobody will invoke the callback.
       // is_read_only argument is set to false, because we do not write out a commit record for a transaction if it is
       // not read-only.
-      return storage::CommitRecord::Initialize(buf, txn_begin, txn_commit, nullptr, nullptr, false, nullptr);
+      return storage::CommitRecord::Initialize(buf, txn_begin, txn_commit, nullptr, nullptr, oldest_active_txn, false,
+                                               nullptr);
     }
 
     if (record_type == storage::LogRecordType::ABORT) return storage::AbortRecord::Initialize(buf, txn_begin, nullptr);
@@ -192,7 +195,7 @@ TEST_F(WriteAheadLoggingTests, LargeLogTest) {
   storage::BufferedLogReader in(LOG_FILE_NAME);
   while (in.HasMore()) {
     storage::LogRecord *log_record = ReadNextRecord(&in);
-    if (log_record->TxnBegin() == transaction::timestamp_t(0)) {
+    if (log_record->TxnBegin() == transaction::INITIAL_TXN_TIMESTAMP) {
       // TODO(Tianyu): This is hacky, but it will be a pain to extract the initial transaction. The LargeTransactionTest
       //  harness probably needs some refactor (later after wal is in).
       // This the initial setup transaction.
@@ -273,7 +276,7 @@ TEST_F(WriteAheadLoggingTests, ReadOnlyTransactionsGenerateNoLogTest) {
   storage::BufferedLogReader in(LOG_FILE_NAME);
   while (in.HasMore()) {
     storage::LogRecord *log_record = ReadNextRecord(&in);
-    if (log_record->TxnBegin() == transaction::timestamp_t(0)) {
+    if (log_record->TxnBegin() == transaction::INITIAL_TXN_TIMESTAMP) {
       // (TODO) Currently following pattern from LargeLogTest of skipping the initial transaction. When the transaction
       // testing framework changes, fix this.
       delete[] reinterpret_cast<byte *>(log_record);

@@ -194,7 +194,7 @@ VersionedSnapshots LargeDataTableTestObject::ReconstructVersionedTable(
     std::vector<RandomDataTableTransaction *> *txns) {
   VersionedSnapshots result;
   // empty starting version
-  TableSnapshot *prev = &(result.emplace(transaction::timestamp_t(0), TableSnapshot()).first->second);
+  TableSnapshot *prev = &(result.emplace(transaction::INITIAL_TXN_TIMESTAMP, TableSnapshot()).first->second);
   // populate with initial image of the table
   for (auto &entry : last_checked_version_) (*prev)[entry.first] = CopyTuple(entry.second);
 

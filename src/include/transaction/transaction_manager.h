@@ -115,14 +115,11 @@ class TransactionManager {
   std::queue<std::pair<timestamp_t, Action>> deferred_actions_;
   mutable common::SpinLatch deferred_actions_latch_;
 
-  timestamp_t ReadOnlyCommitCriticalSection(TransactionContext *txn, transaction::callback_fn callback,
-                                            void *callback_arg);
-
   timestamp_t UpdatingCommitCriticalSection(TransactionContext *txn, transaction::callback_fn callback,
                                             void *callback_arg);
 
   void LogCommit(TransactionContext *txn, timestamp_t commit_time, transaction::callback_fn callback,
-                 void *callback_arg);
+                 void *callback_arg, timestamp_t oldest_active_txn);
 
   void LogAbort(TransactionContext *txn);
 

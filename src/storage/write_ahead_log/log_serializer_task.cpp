@@ -161,7 +161,9 @@ void LogSerializerTask::SerializeRecord(const terrier::storage::LogRecord &recor
       break;
     }
     case LogRecordType::COMMIT: {
-      WriteValue(record.GetUnderlyingRecordBodyAs<CommitRecord>()->CommitTime());
+      auto *record_body = record.GetUnderlyingRecordBodyAs<CommitRecord>();
+      WriteValue(record_body->CommitTime());
+      WriteValue(record_body->OldestActiveTxn());
       break;
     }
     case LogRecordType::ABORT: {
