@@ -110,6 +110,13 @@ class RecoveryManager : public common::DedicatedThreadOwner {
   // structure
   std::unordered_map<TupleSlot, TupleSlot> tuple_slot_map_;
 
+  // Used during recovery from log. Stores deferred transactions in reverse sorted order. Transactions are defered when
+  // there is an older active transaction at the time it committed. Even though snapshot isolation would handle
+  // write-write conflicts, DDL changes such as DROP TABLE combined with GC could lead to issues if we don't execute
+  // transactions in complete serial order. We store them in sorted order to be able to execute them in order. Having
+  // them in reverse order allows us faster inserts, since the stream of txn_ids is mostly monotonically increasing.
+  std::list<transaction::timestamp_t> deferred_txns_;
+
   // Used during recovery from log. Maps a the txn id from the persisted txn to its changes we have buffered. We buffer
   // changes until commit time. This ensures serializability, and allows us to skip changes from aborted txns.
   std::unordered_map<transaction::timestamp_t, std::vector<std::pair<LogRecord *, std::vector<byte *>>>>
@@ -135,12 +142,31 @@ class RecoveryManager : public common::DedicatedThreadOwner {
   uint32_t RecoverFromLogs();
 
   /**
-   * @brief Process a transaction corresponding to the given log record.
-   * A committed transaction will be replayed, while an aborted transaction will have it's corresponding varlen entries
-   * freed
-   * @param log_record abort or commit record for transaction to process
+   * @brief Replay a committed transaction corresponding to txn_id.
+   * @param txn_id start timestamp for committed transaction
    */
-  void ProcessTransaction(LogRecord *log_record);
+  void ProcessCommittedTransaction(transaction::timestamp_t txn_id);
+
+  /**
+   * @brief Process an aborted transaction corresponding to txn_id.
+   * Aborted transaction will have it's allocated varlen entries freed
+   * @param txn_id start timestamp for aborted transaction
+   */
+  void ProcessAbortedTransaction(transaction::timestamp_t txn_id);
+
+  /**
+   * Adds transaction to deferred txn list
+   * @param txn_id txn start timestamp for txn to defer
+   */
+  void DeferTransaction(transaction::timestamp_t txn_id);
+
+  /**
+   * Replay any transaction who's txn start time is less than upper_bound. If upper_bound == transaction::NO_ACTIVE_TXN,
+   * it will replay all deferred transactions
+   * @param upper_bound upper bound for replaying
+   * @return number of transactions replayed
+   */
+  uint32_t ProcessDeferredTransactions(transaction::timestamp_t oldest_active_txn);
 
   /**
    * Handles mapping of old tuple slot (before recovery) to new tuple slot (after recovery)

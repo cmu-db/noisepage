@@ -86,8 +86,7 @@ timestamp_t TransactionManager::Commit(TransactionContext *const txn, transactio
                  "This txn was marked that it must abort. Set a breakpoint at TransactionContext::MustAbort() to see a "
                  "stack trace for when this flag is getting tripped.");
   bool is_read_only = txn->undo_buffer_.Empty();
-  const timestamp_t result = is_read_only ? ReadOnlyCommitCriticalSection(txn, callback, callback_arg)
-                                          : UpdatingCommitCriticalSection(txn, callback, callback_arg);
+  const timestamp_t result = is_read_only ? time_++ : UpdatingCommitCriticalSection(txn, callback, callback_arg);
   while (!txn->commit_actions_.empty()) {
     txn->commit_actions_.front()();
     txn->commit_actions_.pop_front();
@@ -113,11 +112,16 @@ timestamp_t TransactionManager::Commit(TransactionContext *const txn, transactio
     // the critical path there anyway
     // Also note here that GC will figure out what varlen entries to GC, as opposed to in the abort case.
     if (gc_enabled_) completed_txns_.push_front(txn);
+
+    // TODO(Tianyu): Notice here that for a read-only transaction, it is necessary to communicate the commit with the
+    // LogManager, so speculative reads are handled properly,  but there is no need to actually write out the read-only
+    // transaction's commit record to disk.
+
+    // Computing the oldest active txn and logging it must be atomic. Otherwise, a previously committed txn that has
+    // removed itself from curr_running_txns_ but has not yet logged could have its logs appear AFTER a txn who
+    // indicates there is no older transactions. This will lead to a problem during recovery/replication.
+    LogCommit(txn, result, callback, callback_arg, oldest_active_txn);
   }
-  // TODO(Tianyu): Notice here that for a read-only transaction, it is necessary to communicate the commit with the
-  // LogManager, so speculative reads are handled properly,  but there is no need to actually write out the read-only
-  // transaction's commit record to disk.
-  LogCommit(txn, result, callback, callback_arg, oldest_active_txn);
   return result;
 }
 

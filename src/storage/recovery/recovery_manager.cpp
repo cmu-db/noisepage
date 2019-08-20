@@ -29,16 +29,40 @@ uint32_t RecoveryManager::RecoverFromLogs() {
     // If we have exhausted all the logs, break from the loop
     if (log_record == nullptr) break;
 
-    // If the record is a commit or abort, we process it by replaying all the records in the case of commits, or
-    // cleaning up the records in the case of aborts. If it's not a commit or abort record, we buffer it.
-    if (log_record->RecordType() == LogRecordType::COMMIT || log_record->RecordType() == LogRecordType::ABORT) {
-      TERRIER_ASSERT(pair.second.empty(), "Commit or Abort records should not have any varlen pointers");
-      if (log_record->RecordType() == LogRecordType::COMMIT) txns_replayed++;
-      ProcessTransaction(log_record);
-    } else {
-      buffered_changes_map_[log_record->TxnBegin()].push_back(pair);
+    switch (log_record->RecordType()) {
+      case (LogRecordType::ABORT): {
+        TERRIER_ASSERT(pair.second.empty(), "Abort records should not have any varlen pointers");
+        ProcessAbortedTransaction(log_record->TxnBegin());
+        delete[] reinterpret_cast<byte *>(log_record);
+        break;
+      }
+
+      case (LogRecordType::COMMIT): {
+        TERRIER_ASSERT(pair.second.empty(), "Commit records should not have any varlen pointers");
+        auto *commit_record = log_record->GetUnderlyingRecordBodyAs<CommitRecord>();
+
+        // We defer all transactions
+        DeferTransaction(log_record->TxnBegin());
+
+        // Process any deferred transactions that are safe to execute
+        txns_replayed += ProcessDeferredTransactions(commit_record->OldestActiveTxn());
+
+        // Clean up the log record
+        delete[] reinterpret_cast<byte *>(log_record);
+        break;
+      }
+
+      default:
+        TERRIER_ASSERT(
+            log_record->RecordType() == LogRecordType::REDO || log_record->RecordType() == LogRecordType::DELETE,
+            "We should only buffer changes for redo or delete records");
+        buffered_changes_map_[log_record->TxnBegin()].push_back(pair);
     }
   }
+  // Process all deferred txns
+  ProcessDeferredTransactions(transaction::NO_ACTIVE_TXN);
+  TERRIER_ASSERT(deferred_txns_.empty(), "We should have no unprocessed deferred transactions at the end of recovery");
+
   // If we have unprocessed buffered changes, then these transactions were in-process at the time of system shutdown.
   // They are unrecoverable, so we need to clean up the memory of their records.
   if (!buffered_changes_map_.empty()) {
@@ -55,47 +79,73 @@ uint32_t RecoveryManager::RecoverFromLogs() {
   return txns_replayed;
 }
 
-void RecoveryManager::ProcessTransaction(LogRecord *log_record) {
-  TERRIER_ASSERT(log_record->RecordType() == LogRecordType::COMMIT || log_record->RecordType() == LogRecordType::ABORT,
-                 "Records should only be replayed when a commit or abort record is seen");
+void RecoveryManager::ProcessCommittedTransaction(terrier::transaction::timestamp_t txn_id) {
+  // Begin a txn to replay changes with.
+  auto *txn = txn_manager_->BeginTransaction();
 
-  // If we are aborting, we can free and discard all buffered changes. Nothing needs to be replayed
-  // We flag this as unlikely as its unlikely that abort records will be flushed to disk
-  if (UNLIKELY_BRANCH(log_record->RecordType() == LogRecordType::ABORT)) {
-    for (auto &buffered_pair : buffered_changes_map_[log_record->TxnBegin()]) {
-      delete[] reinterpret_cast<byte *>(buffered_pair.first);
-      for (auto *entry : buffered_pair.second) {
-        delete[] entry;
-      }
+  // Apply all buffered changes. They should all succeed. After applying we can safely delete the record
+  for (uint32_t idx = 0; idx < buffered_changes_map_[txn_id].size(); idx++) {
+    auto *buffered_record = buffered_changes_map_[txn_id][idx].first;
+    TERRIER_ASSERT(
+        buffered_record->RecordType() == LogRecordType::REDO || buffered_record->RecordType() == LogRecordType::DELETE,
+        "Buffered record must be a redo or delete.");
+
+    if (IsSpecialCaseCatalogRecord(buffered_record)) {
+      idx += ProcessSpecialCaseCatalogRecord(txn, &buffered_changes_map_[txn_id], idx);
+    } else if (buffered_record->RecordType() == LogRecordType::REDO) {
+      ReplayRedoRecord(txn, buffered_record);
+    } else {
+      ReplayDeleteRecord(txn, buffered_record);
     }
-    buffered_changes_map_.erase(log_record->TxnBegin());
-  } else {
-    TERRIER_ASSERT(log_record->RecordType() == LogRecordType::COMMIT, "Should only replay when we see a commit record");
-    // Begin a txn to replay changes with.
-    auto *txn = txn_manager_->BeginTransaction();
 
-    // Apply all buffered changes. They should all succeed. After applying we can safely delete the record
-    for (uint32_t idx = 0; idx < buffered_changes_map_[log_record->TxnBegin()].size(); idx++) {
-      auto *buffered_record = buffered_changes_map_[log_record->TxnBegin()][idx].first;
-      TERRIER_ASSERT(buffered_record->RecordType() == LogRecordType::REDO ||
-                         buffered_record->RecordType() == LogRecordType::DELETE,
-                     "Buffered record must be a redo or delete.");
-
-      if (IsSpecialCaseCatalogRecord(buffered_record)) {
-        idx += ProcessSpecialCaseCatalogRecord(txn, &buffered_changes_map_[log_record->TxnBegin()], idx);
-      } else if (buffered_record->RecordType() == LogRecordType::REDO) {
-        ReplayRedoRecord(txn, buffered_record);
-      } else {
-        ReplayDeleteRecord(txn, buffered_record);
-      }
-
-      delete[] reinterpret_cast<byte *>(buffered_record);
-    }
-    buffered_changes_map_.erase(log_record->TxnBegin());
-    // Commit the txn
-    txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+    delete[] reinterpret_cast<byte *>(buffered_record);
   }
-  delete[] reinterpret_cast<byte *>(log_record);
+  buffered_changes_map_.erase(txn_id);
+  // Commit the txn
+  txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+}
+
+void RecoveryManager::ProcessAbortedTransaction(terrier::transaction::timestamp_t txn_id) {
+  // If we are aborting, we can free and discard all buffered changes. Nothing needs to be replayed
+  for (auto &buffered_pair : buffered_changes_map_[txn_id]) {
+    delete[] reinterpret_cast<byte *>(buffered_pair.first);
+    for (auto *entry : buffered_pair.second) {
+      delete[] entry;
+    }
+  }
+  buffered_changes_map_.erase(txn_id);
+}
+
+void RecoveryManager::DeferTransaction(terrier::transaction::timestamp_t txn_id) {
+  // As an optimization, because we process txns in nearly monotonically increasing order, we iterate from the end to
+  // find the spot where to insert, as the ordered position will most likely be towards the end of the list
+  auto it = deferred_txns_.rbegin();
+  for (; it != deferred_txns_.rend(); it++) {
+    if (*it < txn_id) break;
+  }
+  deferred_txns_.insert((it--).base(), txn_id);
+}
+
+uint32_t RecoveryManager::ProcessDeferredTransactions(terrier::transaction::timestamp_t upper_bound) {
+  auto txns_processed = 0;
+  // If the upper bound indicates NO_ACTIVE_TXN, then its safe to process all deferred txns. We can accomplish this by
+  // setting the upper bound to INT_MAX
+  upper_bound = (upper_bound == transaction::NO_ACTIVE_TXN) ? transaction::timestamp_t(INT64_MAX) : upper_bound;
+
+  for (auto it = deferred_txns_.begin(); it != deferred_txns_.end();) {
+    if (*it > upper_bound) {
+      break;
+    } else {
+      ProcessCommittedTransaction(*it);
+      txns_processed++;
+      // Because we iterate forwards and the elements are sorted, the first element should always be the one we're
+      // looking at
+      TERRIER_ASSERT(it == deferred_txns_.begin(), "We should always be looking at the first element");
+      it = deferred_txns_.erase(it);
+    }
+  }
+
+  return txns_processed;
 }
 
 void RecoveryManager::ReplayRedoRecord(transaction::TransactionContext *txn, LogRecord *record) {
@@ -142,6 +192,7 @@ void RecoveryManager::ReplayDeleteRecord(transaction::TransactionContext *txn, L
   tuple_slot_map_.erase(delete_record->GetTupleSlot());
 }
 
+// TODO(Gus): Change this to accept a projected row for insert and delete.
 void RecoveryManager::UpdateIndexesOnTable(transaction::TransactionContext *txn, catalog::db_oid_t db_oid,
                                            catalog::table_oid_t table_oid, const TupleSlot &tuple_slot,
                                            ProjectedRow *table_pr) {
@@ -304,7 +355,8 @@ void RecoveryManager::UpdateIndexesOnTable(transaction::TransactionContext *txn,
     auto pr_init = sql_table_ptr->InitializerForProjectedRow(col_oids);
     table_buffer = common::AllocationUtil::AllocateAligned(pr_init.ProjectedRowSize());
     table_pr = pr_init.InitializeRow(table_buffer);
-    sql_table_ptr->Select(txn, tuple_slot, table_pr);
+    auto result UNUSED_ATTRIBUTE = sql_table_ptr->Select(txn, tuple_slot, table_pr);
+    TERRIER_ASSERT(result, "Select operation should succeed");
   }
 
   // Allocate index buffer
