@@ -159,8 +159,8 @@ void RecoveryManager::ReplayRedoRecord(transaction::TransactionContext *txn, Log
     auto staged_record = txn->StageRecoveryWrite(record);
     // Insert will always succeed
     auto new_tuple_slot = sql_table_ptr->Insert(txn, staged_record);
-    UpdateIndexesOnTable(txn, staged_record->GetDatabaseOid(), staged_record->GetTableOid(), sql_table_ptr, new_tuple_slot,
-                         staged_record->Delta(), true /* insert */);
+    UpdateIndexesOnTable(txn, staged_record->GetDatabaseOid(), staged_record->GetTableOid(), sql_table_ptr,
+                         new_tuple_slot, staged_record->Delta(), true /* insert */);
     TERRIER_ASSERT(staged_record->GetTupleSlot() == new_tuple_slot,
                    "Insert should update redo record with new tuple slot");
     // Create a mapping of the old to new tuple. The new tuple slot should be used for future updates and deletes.
@@ -195,16 +195,17 @@ void RecoveryManager::ReplayDeleteRecord(transaction::TransactionContext *txn, L
   TERRIER_ASSERT(result, "Buffered changes should always succeed during commit");
 
   // Delete from the indexes
-  UpdateIndexesOnTable(txn, delete_record->GetDatabaseOid(), delete_record->GetTableOid(), sql_table_ptr, new_tuple_slot,
-                       pr, false /* delete */);
+  UpdateIndexesOnTable(txn, delete_record->GetDatabaseOid(), delete_record->GetTableOid(), sql_table_ptr,
+                       new_tuple_slot, pr, false /* delete */);
   // We can delete the TupleSlot from the map
   tuple_slot_map_.erase(delete_record->GetTupleSlot());
   delete[] buffer;
 }
 
 void RecoveryManager::UpdateIndexesOnTable(transaction::TransactionContext *txn, catalog::db_oid_t db_oid,
-                                           catalog::table_oid_t table_oid, common::ManagedPointer<storage::SqlTable>& table_ptr, const TupleSlot &tuple_slot,
-                                           ProjectedRow *table_pr, const bool insert) {
+                                           catalog::table_oid_t table_oid,
+                                           common::ManagedPointer<storage::SqlTable> table_ptr,
+                                           const TupleSlot &tuple_slot, ProjectedRow *table_pr, const bool insert) {
   auto db_catalog_ptr = GetDatabaseCatalog(txn, db_oid);
 
   // Stores ptr to index
@@ -375,151 +376,63 @@ uint32_t RecoveryManager::ProcessSpecialCaseCatalogRecord(
     transaction::TransactionContext *txn, std::vector<std::pair<LogRecord *, std::vector<byte *>>> *buffered_changes,
     uint32_t start_idx) {
   auto *curr_record = buffered_changes->at(start_idx).first;
+  TERRIER_ASSERT(curr_record->RecordType() == LogRecordType::REDO || curr_record->RecordType() == LogRecordType::DELETE,
+                 "Special case catalog record must be redo or delete");
+
+  // Get oid of table this record modifies
+  catalog::table_oid_t table_oid;
+  if (curr_record->RecordType() == LogRecordType::REDO) {
+    table_oid = curr_record->GetUnderlyingRecordBodyAs<RedoRecord>()->GetTableOid();
+  } else {
+    table_oid = curr_record->GetUnderlyingRecordBodyAs<DeleteRecord>()->GetTableOid();
+  }
+
+  switch (!table_oid) {
+    case (!catalog::DATABASE_TABLE_OID): {
+      return ProcessSpecialCasePGDatabaseRecord(txn, buffered_changes, start_idx);
+    }
+
+    case (!catalog::CLASS_TABLE_OID): {
+      return ProcessSpecialCasePGClassRecord(txn, buffered_changes, start_idx);
+    }
+
+    case (!catalog::COLUMN_TABLE_OID): {
+      TERRIER_ASSERT(curr_record->RecordType() == LogRecordType::DELETE,
+                     "Special case pg_attribute record must be a delete");
+      // A delete into pg_attribute means we are deleting a column. There are two cases:
+      //  1. Drop column: This requires some additional processing to actually clean up the column
+      //  2. Cascading delete from drop table: In this case, we don't process the record because the DeleteTable catalog
+      //  function will clean up the columns
+      // We currently don't support Case 1
+      return 0;  // Case 2, no additional records processed
+    }
+
+    case (!catalog::INDEX_TABLE_OID): {
+      TERRIER_ASSERT(curr_record->RecordType() == LogRecordType::DELETE,
+                     "Special case pg_index record must be a delete");
+      // A delete into pg_index means we are dropping an index. In this case, we dont process the record because the
+      // DeleteIndex catalog function will cleanup the entry in pg_index for us.
+      return 0;  // No additional logs processed
+    }
+
+    default:
+      throw std::runtime_error("This table does not require special case logic for record processing");
+  }
+}
+
+uint32_t RecoveryManager::ProcessSpecialCasePGDatabaseRecord(
+    terrier::transaction::TransactionContext *txn,
+    std::vector<std::pair<terrier::storage::LogRecord *, std::vector<terrier::byte *>>> *buffered_changes,
+    uint32_t start_idx) {
+  auto *curr_record = buffered_changes->at(start_idx).first;
+
   if (curr_record->RecordType() == LogRecordType::REDO) {
     auto *redo_record = curr_record->GetUnderlyingRecordBodyAs<RedoRecord>();
-    auto table_oid = redo_record->GetTableOid();
+    TERRIER_ASSERT(redo_record->GetTableOid() == catalog::DATABASE_TABLE_OID,
+                   "This function must be only called with records modifying pg_database");
 
-    TERRIER_ASSERT(table_oid == catalog::DATABASE_TABLE_OID || table_oid == catalog::CLASS_TABLE_OID,
-                   "Special case redo records should only modify pg_class or pg_database");
-
-    if (table_oid == catalog::CLASS_TABLE_OID) {
-      TERRIER_ASSERT(!IsInsertRecord(redo_record), "Special case pg_class record should only be updates");
-      auto db_catalog = GetDatabaseCatalog(txn, redo_record->GetDatabaseOid());
-
-      // Updates to pg_class will happen in the following 3 cases:
-      //  1. If we update the next col oid. In this case, we don't need to do anything special, just apply the update
-      //  2. If we update the schema column, we need to check if this a DDL change (add/drop column). We don't do
-      //  anything yet because we don't support DDL changes in the catalog
-      //  3. If we update the ptr column, this means we've inserted a new object and we need to recreate the object, and
-      //  set the pointer again.
-      auto pg_class_ptr = db_catalog->classes_;
-      auto redo_record_oids = GetOidsForRedoRecord(pg_class_ptr, redo_record);
-      TERRIER_ASSERT(redo_record_oids.size() == 1, "Updates to pg_class should only touch one column");
-      auto updated_pg_class_oid = redo_record_oids[0];
-
-      if (updated_pg_class_oid == catalog::REL_NEXTCOLOID_COL_OID) {  // Case 1
-        ReplayRedoRecord(txn, curr_record);
-        return 0;  // No additional logs processed
-      }
-
-      if (updated_pg_class_oid == catalog::REL_SCHEMA_COL_OID) {  // Case 2
-        // TODO(Gus): Add support for recovering DDL changes.
-        return 0;  // No additional logs processed
-      }
-
-      if (updated_pg_class_oid == catalog::REL_PTR_COL_OID) {  // Case 3
-        // An update to the ptr column of pg_class means that we have inserted all necessary metadata into the other
-        // catalog tables, and we can now recreate the object
-        // Step 1: Get the class oid and kind for the object we're updating
-        std::vector<catalog::col_oid_t> col_oids = {catalog::RELOID_COL_OID, catalog::RELKIND_COL_OID};
-        auto pr_init = pg_class_ptr->InitializerForProjectedRow(col_oids);
-        auto pr_map = pg_class_ptr->ProjectionMapForOids(col_oids);
-        auto *buffer = common::AllocationUtil::AllocateAligned(pr_init.ProjectedRowSize());
-        auto *pr = pr_init.InitializeRow(buffer);
-        pg_class_ptr->Select(txn, GetTupleSlotMapping(redo_record->GetTupleSlot()), pr);
-        auto class_oid = *(reinterpret_cast<uint32_t *>(pr->AccessWithNullCheck(pr_map[catalog::RELOID_COL_OID])));
-        auto class_kind = *(reinterpret_cast<catalog::postgres::ClassKind *>(
-            pr->AccessWithNullCheck(pr_map[catalog::RELKIND_COL_OID])));
-
-        // Case on whether we are creating a table or index
-        if (class_kind == catalog::postgres::ClassKind::REGULAR_TABLE) {
-          // Step 2: Query pg_attribute for the columns of the table
-          auto schema_cols = db_catalog->GetColumns<catalog::Schema::Column, catalog::table_oid_t, catalog::col_oid_t>(
-              txn, catalog::table_oid_t(class_oid));
-
-          // Step 3: Create and set schema in catalog
-          auto *schema = new catalog::Schema(std::move(schema_cols));
-          bool result UNUSED_ATTRIBUTE =
-              db_catalog->SetTableSchemaPointer(txn, catalog::table_oid_t(class_oid), schema);
-          TERRIER_ASSERT(result, "Setting table schema pointer should succeed, entry should be in pg_class already");
-
-          // Step 4: Create and set table pointers in catalog
-          storage::SqlTable *sql_table;
-          if (class_oid < START_OID) {  // All catalog tables/indexes have OIDS less than START_OID
-            sql_table = GetSqlTable(txn, redo_record->GetDatabaseOid(), catalog::table_oid_t(class_oid)).get();
-          } else {
-            sql_table = new SqlTable(block_store_, *schema);
-          }
-          result = db_catalog->SetTablePointer(txn, catalog::table_oid_t(class_oid), sql_table);
-          TERRIER_ASSERT(result, "Setting table pointer should succeed, entry should be in pg_class already");
-
-          // Step 5: Update catalog oid
-          db_catalog->UpdateNextOid(class_oid);
-
-          delete[] buffer;
-          return 0;  // No additional records processed
-        }
-
-        if (class_kind == catalog::postgres::ClassKind::INDEX) {
-          // Step 2: Query pg_attribute for the columns of the index
-          auto index_cols =
-              db_catalog->GetColumns<catalog::IndexSchema::Column, catalog::index_oid_t, catalog::indexkeycol_oid_t>(
-                  txn, catalog::index_oid_t(class_oid));
-
-          // Step 3: Query pg_index for the metadata we need for the index schema
-          auto pg_indexes_index = db_catalog->indexes_oid_index_;
-          pr = pg_indexes_index->GetProjectedRowInitializer().InitializeRow(buffer);
-          *(reinterpret_cast<uint32_t *>(pr->AccessForceNotNull(0))) = class_oid;
-          std::vector<TupleSlot> tuple_slot_result;
-          pg_indexes_index->ScanKey(*txn, *pr, &tuple_slot_result);
-          TERRIER_ASSERT(tuple_slot_result.size() == 1, "Index scan should yield one result");
-
-          // NOLINTNEXTLINE
-          col_oids.clear();
-          col_oids = {catalog::INDISUNIQUE_COL_OID, catalog::INDISPRIMARY_COL_OID, catalog::INDISEXCLUSION_COL_OID,
-                      catalog::INDIMMEDIATE_COL_OID};
-          auto pg_index_pr_init = db_catalog->indexes_->InitializerForProjectedRow(col_oids);
-          auto pg_index_pr_map = db_catalog->indexes_->ProjectionMapForOids(col_oids);
-          delete[] buffer;  // Delete old buffer, it won't be large enough for this PR
-          buffer = common::AllocationUtil::AllocateAligned(pg_index_pr_init.ProjectedRowSize());
-          pr = pg_index_pr_init.InitializeRow(buffer);
-          bool result UNUSED_ATTRIBUTE = db_catalog->indexes_->Select(txn, tuple_slot_result[0], pr);
-          TERRIER_ASSERT(result, "Select into pg_index should succeed during recovery");
-          bool is_unique =
-              *(reinterpret_cast<bool *>(pr->AccessWithNullCheck(pg_index_pr_map[catalog::INDISUNIQUE_COL_OID])));
-          bool is_primary =
-              *(reinterpret_cast<bool *>(pr->AccessWithNullCheck(pg_index_pr_map[catalog::INDISPRIMARY_COL_OID])));
-          bool is_exclusion =
-              *(reinterpret_cast<bool *>(pr->AccessWithNullCheck(pg_index_pr_map[catalog::INDISEXCLUSION_COL_OID])));
-          bool is_immediate =
-              *(reinterpret_cast<bool *>(pr->AccessWithNullCheck(pg_index_pr_map[catalog::INDIMMEDIATE_COL_OID])));
-
-          // Step 4: Create and set IndexSchema in catalog
-          auto *index_schema = new catalog::IndexSchema(index_cols, is_unique, is_primary, is_exclusion, is_immediate);
-          result = db_catalog->SetIndexSchemaPointer(txn, catalog::index_oid_t(class_oid), index_schema);
-          TERRIER_ASSERT(result, "Setting index schema pointer should succeed, entry should be in pg_class already");
-
-          // Step 5: Create and set index pointer in catalog
-          storage::index::Index *index;
-          if (class_oid < START_OID) {  // All catalog tables/indexes have OIDS less than START_OID
-            index = GetCatalogIndex(catalog::index_oid_t(class_oid), db_catalog);
-          } else {
-            index = index::IndexBuilder()
-                        .SetOid(catalog::index_oid_t(class_oid))
-                        .SetConstraintType(is_unique ? index::ConstraintType::UNIQUE : index::ConstraintType::DEFAULT)
-                        .SetKeySchema(*index_schema)
-                        .Build();
-          }
-          result = db_catalog->SetIndexPointer(txn, catalog::index_oid_t(class_oid), index);
-          TERRIER_ASSERT(result, "Setting index pointer should succeed, entry should be in pg_class already");
-
-          // Step 6: Update catalog oid
-          db_catalog->UpdateNextOid(class_oid);
-
-          delete[] buffer;
-          return 0;
-        }
-
-        TERRIER_ASSERT(false, "Only support recovery of regular tables and indexes");
-
-      } else {
-        throw std::runtime_error("Unexpected oid updated during replay of update to pg_class");
-      }
-    }
     // An insert into pg_database is a special case because we need the catalog to actually create the necessary
     // database catalog objects
-    TERRIER_ASSERT(redo_record->GetTableOid() == catalog::DATABASE_TABLE_OID,
-                   "Special case for Redo should be on pg_class or pg_database");
     TERRIER_ASSERT(IsInsertRecord(redo_record), "Special case on pg_database should only be insert");
 
     // Step 1: Extract inserted values from the PR in redo record
@@ -554,124 +467,14 @@ uint32_t RecoveryManager::ProcessSpecialCaseCatalogRecord(
     return 0;  // No additional records processed
   }
 
-  TERRIER_ASSERT(curr_record->RecordType() == LogRecordType::DELETE, "Only delete records should reach this point");
+  TERRIER_ASSERT(curr_record->RecordType() == LogRecordType::DELETE, "Must be delete record at this point");
   auto *delete_record = curr_record->GetUnderlyingRecordBodyAs<DeleteRecord>();
-
-  // A delete into pg_class has two special cases. Either we are deleting an object, or renaming a table (we assume
-  // you can't rename an index). For it to be a table rename, a lot of special conditions need to be true:
-  //  1. There is at least one additional record following the delete record
-  //  2. This additional record is a redo
-  //  3. This additional record is a redo into the same database and pg_class, and is an insert record
-  //  4. This additional record inserts an object with the same OID as the one that was being deleted by the redo
-  //  record
-  // The above conditions are documented in the code below
-  // If any of the above conditions are not true, then this is just a drop table/index.
-  if (delete_record->GetTableOid() == catalog::CLASS_TABLE_OID) {
-    // Step 1: Determine the object oid and type that is being deleted
-    storage::SqlTable *pg_class = GetDatabaseCatalog(txn, delete_record->GetDatabaseOid())->classes_;
-    std::vector<catalog::col_oid_t> col_oids = {catalog::RELOID_COL_OID, catalog::RELKIND_COL_OID};
-    auto pr_init = pg_class->InitializerForProjectedRow(col_oids);
-    auto pr_map = pg_class->ProjectionMapForOids(col_oids);
-    auto *buffer = common::AllocationUtil::AllocateAligned(pr_init.ProjectedRowSize());
-    auto *pr = pr_init.InitializeRow(buffer);
-    pg_class->Select(txn, GetTupleSlotMapping(delete_record->GetTupleSlot()), pr);
-    auto class_oid = *(reinterpret_cast<uint32_t *>(pr->AccessWithNullCheck(pr_map[catalog::RELOID_COL_OID])));
-    auto class_kind =
-        *(reinterpret_cast<catalog::postgres::ClassKind *>(pr->AccessWithNullCheck(pr_map[catalog::RELKIND_COL_OID])));
-    delete[] buffer;
-
-    // Step 2: We need to handle the case where we are just renaming a table, in this case we don't wan't to delete
-    // the table object. A rename appears as a delete followed by an insert with the same OID.
-    if (start_idx + 1 < buffered_changes->size()) {  // Condition 1: there is one more record
-      auto *next_record = buffered_changes->at(start_idx + 1).first;
-      if (next_record->RecordType() == LogRecordType::REDO) {  // Condition 2: next record is a redo record
-        auto *next_redo_record = next_record->GetUnderlyingRecordBodyAs<RedoRecord>();
-        if (next_redo_record->GetDatabaseOid() == delete_record->GetDatabaseOid() &&
-            next_redo_record->GetTableOid() == delete_record->GetTableOid() &&
-            IsInsertRecord(next_redo_record)) {  // Condition 3: next record is an insert into the same pg_class
-          // Step 3: Get the oid and kind of the object being inserted
-          auto pr_map = pg_class->ProjectionMapForOids(GetOidsForRedoRecord(pg_class, next_redo_record));
-          TERRIER_ASSERT(pr_map.find(catalog::RELOID_COL_OID) != pr_map.end(), "PR Map must contain class oid");
-          TERRIER_ASSERT(pr_map.find(catalog::RELNAME_COL_OID) != pr_map.end(), "PR Map must contain class name");
-          TERRIER_ASSERT(pr_map.find(catalog::RELKIND_COL_OID) != pr_map.end(), "PR Map must contain class kind");
-          auto next_class_oid = *(reinterpret_cast<uint32_t *>(
-              next_redo_record->Delta()->AccessWithNullCheck(pr_map[catalog::RELOID_COL_OID])));
-          auto next_class_kind UNUSED_ATTRIBUTE = *(reinterpret_cast<catalog::postgres::ClassKind *>(
-              next_redo_record->Delta()->AccessWithNullCheck(pr_map[catalog::RELKIND_COL_OID])));
-
-          if (class_oid == next_class_oid) {  // Condition 4: If the oid matches on the next record, this is a renaming
-            TERRIER_ASSERT(class_kind == catalog::postgres::ClassKind::REGULAR_TABLE && class_kind == next_class_kind,
-                           "We only allow renaming of tables");
-            // Step 4: Extract out the new name
-            VarlenEntry name_varlen = *(reinterpret_cast<VarlenEntry *>(
-                next_redo_record->Delta()->AccessWithNullCheck(pr_map[catalog::RELNAME_COL_OID])));
-            std::string name_string(name_varlen.StringView());
-
-            // Step 5: Rename the table
-            auto result UNUSED_ATTRIBUTE = GetDatabaseCatalog(txn, next_redo_record->GetDatabaseOid())
-                                               ->RenameTable(txn, catalog::table_oid_t(next_class_oid), name_string);
-            TERRIER_ASSERT(result, "Renaming should always succeed during replaying");
-
-            // Step 6: Update metadata and clean up additional record processed. We need to use the indexes on
-            // pg_class to find what tuple slot we just inserted into. We get the new tuple slot using the oid index.
-            auto pg_class_oid_index = GetDatabaseCatalog(txn, next_redo_record->GetDatabaseOid())->classes_oid_index_;
-            auto pr_init = pg_class_oid_index->GetProjectedRowInitializer();
-            buffer = common::AllocationUtil::AllocateAligned(pr_init.ProjectedRowSize());
-            pr = pr_init.InitializeRow(buffer);
-            *(reinterpret_cast<uint32_t *>(pr->AccessForceNotNull(0))) = next_class_oid;
-            std::vector<TupleSlot> tuple_slot_result;
-            pg_class_oid_index->ScanKey(*txn, *pr, &tuple_slot_result);
-            TERRIER_ASSERT(tuple_slot_result.size() == 1, "Index scan should only yield one result");
-            tuple_slot_map_[next_redo_record->GetTupleSlot()] = tuple_slot_result[0];
-            delete[] buffer;
-            tuple_slot_map_.erase(delete_record->GetTupleSlot());
-            delete[] reinterpret_cast<byte *>(next_redo_record);
-
-            return 1;  // We processed an additional record
-          }
-        }
-      }
-    }
-
-    // Step 3: If it was not a renaming, we call to the catalog to delete the class object
-    bool result UNUSED_ATTRIBUTE;
-    if (class_kind == catalog::postgres::ClassKind::REGULAR_TABLE) {
-      result =
-          GetDatabaseCatalog(txn, delete_record->GetDatabaseOid())->DeleteTable(txn, catalog::table_oid_t(class_oid));
-    } else if (class_kind == catalog::postgres::ClassKind::INDEX) {
-      result =
-          GetDatabaseCatalog(txn, delete_record->GetDatabaseOid())->DeleteIndex(txn, catalog::index_oid_t(class_oid));
-    } else {
-      TERRIER_ASSERT(false, "We only support replaying of dropping of tables and indexes");
-    }
-    TERRIER_ASSERT(result, "Table/index DROP should always succeed");
-
-    // Step 5: Clean up metadata
-    tuple_slot_map_.erase(delete_record->GetTupleSlot());
-
-    return 0;  // No additional logs processed
-  }
-
-  // A delete into pg_attribute means we are deleting a column. There are two cases:
-  //  1. Drop column: This requires some additional processing to actually clean up the column
-  //  2. Cascading delete from drop table: In this case, we don't process the record because the DeleteTable catalog
-  //  function will clean up the columns
-  if (delete_record->GetTableOid() == catalog::COLUMN_TABLE_OID) {
-    return 0;  // Case 2, no additional records processed
-  }
-
-  // A delete into pg_index means we are dropping an index. In this case, we dont process the record because the
-  // DeleteIndex catalog function will cleanup the entry in pg_index for us.
-  if (delete_record->GetTableOid() == catalog::INDEX_TABLE_OID) {
-    return 0;  // No additional logs processed
-  }
 
   TERRIER_ASSERT(delete_record->GetTableOid() == catalog::DATABASE_TABLE_OID,
                  "Special case for delete should be on pg_class or pg_database");
 
   // Step 1: Determine the database oid for the database that is being deleted
   storage::SqlTable *pg_database = catalog_->databases_;
-  // NOLINTNEXTLINE
   auto pr_init = pg_database->InitializerForProjectedRow({catalog::DATOID_COL_OID});
   auto pr_map = pg_database->ProjectionMapForOids({catalog::DATOID_COL_OID});
   auto *buffer = common::AllocationUtil::AllocateAligned(pr_init.ProjectedRowSize());
@@ -691,7 +494,7 @@ uint32_t RecoveryManager::ProcessSpecialCaseCatalogRecord(
           next_redo_record->GetTableOid() == delete_record->GetTableOid() &&
           IsInsertRecord(next_redo_record)) {  // next record is an insert into the same pg_class
         // Step 3: Get the oid and name for the database being created
-        auto pr_map = pg_database->ProjectionMapForOids(GetOidsForRedoRecord(pg_database, next_redo_record));
+        pr_map = pg_database->ProjectionMapForOids(GetOidsForRedoRecord(pg_database, next_redo_record));
         TERRIER_ASSERT(pr_map.find(catalog::DATOID_COL_OID) != pr_map.end(), "PR Map must contain class oid");
         TERRIER_ASSERT(pr_map.find(catalog::DATNAME_COL_OID) != pr_map.end(), "PR Map must contain class name");
         auto next_db_oid = *(reinterpret_cast<catalog::db_oid_t *>(
@@ -712,7 +515,7 @@ uint32_t RecoveryManager::ProcessSpecialCaseCatalogRecord(
           // pg_database to find what tuple slot we just inserted into. We get the new tuple slot using the oid
           // index.
           auto pg_database_oid_index = catalog_->databases_oid_index_;
-          auto pr_init = pg_database_oid_index->GetProjectedRowInitializer();
+          pr_init = pg_database_oid_index->GetProjectedRowInitializer();
           buffer = common::AllocationUtil::AllocateAligned(pr_init.ProjectedRowSize());
           pr = pr_init.InitializeRow(buffer);
           *(reinterpret_cast<uint32_t *>(pr->AccessForceNotNull(0))) = static_cast<uint32_t>(next_db_oid);
@@ -736,6 +539,259 @@ uint32_t RecoveryManager::ProcessSpecialCaseCatalogRecord(
 
   // Step 4: Clean up any metadata
   tuple_slot_map_.erase(delete_record->GetTupleSlot());
+  return 0;  // No additional logs processed
+}
+
+uint32_t RecoveryManager::ProcessSpecialCasePGClassRecord(
+    terrier::transaction::TransactionContext *txn,
+    std::vector<std::pair<terrier::storage::LogRecord *, std::vector<terrier::byte *>>> *buffered_changes,
+    uint32_t start_idx) {
+  auto *curr_record = buffered_changes->at(start_idx).first;
+  if (curr_record->RecordType() == LogRecordType::REDO) {
+    auto *redo_record = curr_record->GetUnderlyingRecordBodyAs<RedoRecord>();
+    TERRIER_ASSERT(redo_record->GetTableOid() == catalog::CLASS_TABLE_OID,
+                   "This function must be only called with records modifying pg_class");
+
+    TERRIER_ASSERT(!IsInsertRecord(redo_record), "Special case pg_class record should only be updates");
+    auto db_catalog = GetDatabaseCatalog(txn, redo_record->GetDatabaseOid());
+
+    // Updates to pg_class will happen in the following 3 cases:
+    //  1. If we update the next col oid. In this case, we don't need to do anything special, just apply the update
+    //  2. If we update the schema column, we need to check if this a DDL change (add/drop column). We don't do
+    //  anything yet because we don't support DDL changes in the catalog
+    //  3. If we update the ptr column, this means we've inserted a new object and we need to recreate the object, and
+    //  set the pointer again.
+    auto pg_class_ptr = db_catalog->classes_;
+    auto redo_record_oids = GetOidsForRedoRecord(pg_class_ptr, redo_record);
+    TERRIER_ASSERT(redo_record_oids.size() == 1, "Updates to pg_class should only touch one column");
+    auto updated_pg_class_oid = redo_record_oids[0];
+
+    switch (!updated_pg_class_oid) {
+      case (!catalog::REL_NEXTCOLOID_COL_OID): {  // Case 1
+        ReplayRedoRecord(txn, curr_record);
+        return 0;  // No additional logs processed
+      }
+
+      case (!catalog::REL_SCHEMA_COL_OID): {  // Case 2
+        // TODO(Gus): Add support for recovering DDL changes.
+        return 0;  // No additional logs processed
+      }
+
+      case (!catalog::REL_PTR_COL_OID): {  // Case 3
+        // An update to the ptr column of pg_class means that we have inserted all necessary metadata into the other
+        // catalog tables, and we can now recreate the object
+        // Step 1: Get the class oid and kind for the object we're updating
+        std::vector<catalog::col_oid_t> col_oids = {catalog::RELOID_COL_OID, catalog::RELKIND_COL_OID};
+        auto pr_init = pg_class_ptr->InitializerForProjectedRow(col_oids);
+        auto pr_map = pg_class_ptr->ProjectionMapForOids(col_oids);
+        auto *buffer = common::AllocationUtil::AllocateAligned(pr_init.ProjectedRowSize());
+        auto *pr = pr_init.InitializeRow(buffer);
+        pg_class_ptr->Select(txn, GetTupleSlotMapping(redo_record->GetTupleSlot()), pr);
+        auto class_oid = *(reinterpret_cast<uint32_t *>(pr->AccessWithNullCheck(pr_map[catalog::RELOID_COL_OID])));
+        auto class_kind = *(reinterpret_cast<catalog::postgres::ClassKind *>(
+            pr->AccessWithNullCheck(pr_map[catalog::RELKIND_COL_OID])));
+
+        switch (class_kind) {
+          case (catalog::postgres::ClassKind::REGULAR_TABLE): {
+            // Step 2: Query pg_attribute for the columns of the table
+            auto schema_cols =
+                db_catalog->GetColumns<catalog::Schema::Column, catalog::table_oid_t, catalog::col_oid_t>(
+                    txn, catalog::table_oid_t(class_oid));
+
+            // Step 3: Create and set schema in catalog
+            auto *schema = new catalog::Schema(std::move(schema_cols));
+            bool result UNUSED_ATTRIBUTE =
+                db_catalog->SetTableSchemaPointer(txn, catalog::table_oid_t(class_oid), schema);
+            TERRIER_ASSERT(result, "Setting table schema pointer should succeed, entry should be in pg_class already");
+
+            // Step 4: Create and set table pointers in catalog
+            storage::SqlTable *sql_table;
+            if (class_oid < START_OID) {  // All catalog tables/indexes have OIDS less than START_OID
+              sql_table = GetSqlTable(txn, redo_record->GetDatabaseOid(), catalog::table_oid_t(class_oid)).get();
+            } else {
+              sql_table = new SqlTable(block_store_, *schema);
+            }
+            result = db_catalog->SetTablePointer(txn, catalog::table_oid_t(class_oid), sql_table);
+            TERRIER_ASSERT(result, "Setting table pointer should succeed, entry should be in pg_class already");
+
+            // Step 5: Update catalog oid
+            db_catalog->UpdateNextOid(class_oid);
+
+            delete[] buffer;
+            return 0;  // No additional records processed
+          }
+
+          case (catalog::postgres::ClassKind::INDEX): {
+            // Step 2: Query pg_attribute for the columns of the index
+            auto index_cols =
+                db_catalog->GetColumns<catalog::IndexSchema::Column, catalog::index_oid_t, catalog::indexkeycol_oid_t>(
+                    txn, catalog::index_oid_t(class_oid));
+
+            // Step 3: Query pg_index for the metadata we need for the index schema
+            auto pg_indexes_index = db_catalog->indexes_oid_index_;
+            pr = pg_indexes_index->GetProjectedRowInitializer().InitializeRow(buffer);
+            *(reinterpret_cast<uint32_t *>(pr->AccessForceNotNull(0))) = class_oid;
+            std::vector<TupleSlot> tuple_slot_result;
+            pg_indexes_index->ScanKey(*txn, *pr, &tuple_slot_result);
+            TERRIER_ASSERT(tuple_slot_result.size() == 1, "Index scan should yield one result");
+
+            // NOLINTNEXTLINE
+            col_oids.clear();
+            col_oids = {catalog::INDISUNIQUE_COL_OID, catalog::INDISPRIMARY_COL_OID, catalog::INDISEXCLUSION_COL_OID,
+                        catalog::INDIMMEDIATE_COL_OID};
+            auto pg_index_pr_init = db_catalog->indexes_->InitializerForProjectedRow(col_oids);
+            auto pg_index_pr_map = db_catalog->indexes_->ProjectionMapForOids(col_oids);
+            delete[] buffer;  // Delete old buffer, it won't be large enough for this PR
+            buffer = common::AllocationUtil::AllocateAligned(pg_index_pr_init.ProjectedRowSize());
+            pr = pg_index_pr_init.InitializeRow(buffer);
+            bool result UNUSED_ATTRIBUTE = db_catalog->indexes_->Select(txn, tuple_slot_result[0], pr);
+            TERRIER_ASSERT(result, "Select into pg_index should succeed during recovery");
+            bool is_unique =
+                *(reinterpret_cast<bool *>(pr->AccessWithNullCheck(pg_index_pr_map[catalog::INDISUNIQUE_COL_OID])));
+            bool is_primary =
+                *(reinterpret_cast<bool *>(pr->AccessWithNullCheck(pg_index_pr_map[catalog::INDISPRIMARY_COL_OID])));
+            bool is_exclusion =
+                *(reinterpret_cast<bool *>(pr->AccessWithNullCheck(pg_index_pr_map[catalog::INDISEXCLUSION_COL_OID])));
+            bool is_immediate =
+                *(reinterpret_cast<bool *>(pr->AccessWithNullCheck(pg_index_pr_map[catalog::INDIMMEDIATE_COL_OID])));
+
+            // Step 4: Create and set IndexSchema in catalog
+            auto *index_schema =
+                new catalog::IndexSchema(index_cols, is_unique, is_primary, is_exclusion, is_immediate);
+            result = db_catalog->SetIndexSchemaPointer(txn, catalog::index_oid_t(class_oid), index_schema);
+            TERRIER_ASSERT(result, "Setting index schema pointer should succeed, entry should be in pg_class already");
+
+            // Step 5: Create and set index pointer in catalog
+            storage::index::Index *index;
+            if (class_oid < START_OID) {  // All catalog tables/indexes have OIDS less than START_OID
+              index = GetCatalogIndex(catalog::index_oid_t(class_oid), db_catalog);
+            } else {
+              index = index::IndexBuilder()
+                          .SetOid(catalog::index_oid_t(class_oid))
+                          .SetConstraintType(is_unique ? index::ConstraintType::UNIQUE : index::ConstraintType::DEFAULT)
+                          .SetKeySchema(*index_schema)
+                          .Build();
+            }
+            result = db_catalog->SetIndexPointer(txn, catalog::index_oid_t(class_oid), index);
+            TERRIER_ASSERT(result, "Setting index pointer should succeed, entry should be in pg_class already");
+
+            // Step 6: Update catalog oid
+            db_catalog->UpdateNextOid(class_oid);
+
+            delete[] buffer;
+            return 0;
+          }
+
+          default:
+            throw std::runtime_error("Only support recovery of regular tables and indexes");
+        }
+      }
+
+      default:
+        throw std::runtime_error("Unexpected oid updated during replay of update to pg_class");
+    }
+  }
+
+  // A delete into pg_class has two special cases. Either we are deleting an object, or renaming a table (we assume
+  // you can't rename an index). For it to be a table rename, a lot of special conditions need to be true:
+  //  1. There is at least one additional record following the delete record
+  //  2. This additional record is a redo
+  //  3. This additional record is a redo into the same database and pg_class, and is an insert record
+  //  4. This additional record inserts an object with the same OID as the one that was being deleted by the redo
+  //  record
+  // The above conditions are documented in the code below
+  // If any of the above conditions are not true, then this is just a drop table/index.
+  TERRIER_ASSERT(curr_record->RecordType() == LogRecordType::DELETE, "Must be delete record at this point");
+  auto *delete_record = curr_record->GetUnderlyingRecordBodyAs<DeleteRecord>();
+
+  // Step 1: Determine the object oid and type that is being deleted
+  auto db_catalog_ptr = GetDatabaseCatalog(txn, delete_record->GetDatabaseOid());
+  storage::SqlTable *pg_class = db_catalog_ptr->classes_;
+  std::vector<catalog::col_oid_t> col_oids = {catalog::RELOID_COL_OID, catalog::RELKIND_COL_OID};
+  auto pr_init = pg_class->InitializerForProjectedRow(col_oids);
+  auto pr_map = pg_class->ProjectionMapForOids(col_oids);
+  auto *buffer = common::AllocationUtil::AllocateAligned(pr_init.ProjectedRowSize());
+  auto *pr = pr_init.InitializeRow(buffer);
+  pg_class->Select(txn, GetTupleSlotMapping(delete_record->GetTupleSlot()), pr);
+  auto class_oid = *(reinterpret_cast<uint32_t *>(pr->AccessWithNullCheck(pr_map[catalog::RELOID_COL_OID])));
+  auto class_kind =
+      *(reinterpret_cast<catalog::postgres::ClassKind *>(pr->AccessWithNullCheck(pr_map[catalog::RELKIND_COL_OID])));
+  delete[] buffer;
+
+  // Step 2: We need to handle the case where we are just renaming a table, in this case we don't wan't to delete
+  // the table object. A rename appears as a delete followed by an insert with the same OID.
+  if (start_idx + 1 < buffered_changes->size()) {  // Condition 1: there is one more record
+    auto *next_record = buffered_changes->at(start_idx + 1).first;
+    if (next_record->RecordType() == LogRecordType::REDO) {  // Condition 2: next record is a redo record
+      auto *next_redo_record = next_record->GetUnderlyingRecordBodyAs<RedoRecord>();
+      if (next_redo_record->GetDatabaseOid() == delete_record->GetDatabaseOid() &&
+          next_redo_record->GetTableOid() == delete_record->GetTableOid() &&
+          IsInsertRecord(next_redo_record)) {  // Condition 3: next record is an insert into the same pg_class
+        // Step 3: Get the oid and kind of the object being inserted
+        auto pr_map = pg_class->ProjectionMapForOids(GetOidsForRedoRecord(pg_class, next_redo_record));
+        TERRIER_ASSERT(pr_map.find(catalog::RELOID_COL_OID) != pr_map.end(), "PR Map must contain class oid");
+        TERRIER_ASSERT(pr_map.find(catalog::RELNAME_COL_OID) != pr_map.end(), "PR Map must contain class name");
+        TERRIER_ASSERT(pr_map.find(catalog::RELKIND_COL_OID) != pr_map.end(), "PR Map must contain class kind");
+        auto next_class_oid = *(reinterpret_cast<uint32_t *>(
+            next_redo_record->Delta()->AccessWithNullCheck(pr_map[catalog::RELOID_COL_OID])));
+        auto next_class_kind UNUSED_ATTRIBUTE = *(reinterpret_cast<catalog::postgres::ClassKind *>(
+            next_redo_record->Delta()->AccessWithNullCheck(pr_map[catalog::RELKIND_COL_OID])));
+
+        if (class_oid == next_class_oid) {  // Condition 4: If the oid matches on the next record, this is a renaming
+          TERRIER_ASSERT(class_kind == catalog::postgres::ClassKind::REGULAR_TABLE && class_kind == next_class_kind,
+                         "We only allow renaming of tables");
+          // Step 4: Extract out the new name
+          VarlenEntry name_varlen = *(reinterpret_cast<VarlenEntry *>(
+              next_redo_record->Delta()->AccessWithNullCheck(pr_map[catalog::RELNAME_COL_OID])));
+          std::string name_string(name_varlen.StringView());
+
+          // Step 5: Rename the table
+          auto result UNUSED_ATTRIBUTE = GetDatabaseCatalog(txn, next_redo_record->GetDatabaseOid())
+                                             ->RenameTable(txn, catalog::table_oid_t(next_class_oid), name_string);
+          TERRIER_ASSERT(result, "Renaming should always succeed during replaying");
+
+          // Step 6: Update metadata and clean up additional record processed. We need to use the indexes on
+          // pg_class to find what tuple slot we just inserted into. We get the new tuple slot using the oid index.
+          auto pg_class_oid_index = GetDatabaseCatalog(txn, next_redo_record->GetDatabaseOid())->classes_oid_index_;
+          auto pr_init = pg_class_oid_index->GetProjectedRowInitializer();
+          buffer = common::AllocationUtil::AllocateAligned(pr_init.ProjectedRowSize());
+          pr = pr_init.InitializeRow(buffer);
+          *(reinterpret_cast<uint32_t *>(pr->AccessForceNotNull(0))) = next_class_oid;
+          std::vector<TupleSlot> tuple_slot_result;
+          pg_class_oid_index->ScanKey(*txn, *pr, &tuple_slot_result);
+          TERRIER_ASSERT(tuple_slot_result.size() == 1, "Index scan should only yield one result");
+          tuple_slot_map_[next_redo_record->GetTupleSlot()] = tuple_slot_result[0];
+          delete[] buffer;
+          tuple_slot_map_.erase(delete_record->GetTupleSlot());
+          delete[] reinterpret_cast<byte *>(next_redo_record);
+
+          return 1;  // We processed an additional record
+        }
+      }
+    }
+  }
+
+  // Step 3: If it was not a renaming, we call to the catalog to delete the class object
+  bool result UNUSED_ATTRIBUTE;
+  switch (class_kind) {
+    case (catalog::postgres::ClassKind::REGULAR_TABLE): {
+      result = db_catalog_ptr->DeleteTable(txn, catalog::table_oid_t(class_oid));
+      break;
+    }
+    case (catalog::postgres::ClassKind::INDEX): {
+      result = db_catalog_ptr->DeleteIndex(txn, catalog::index_oid_t(class_oid));
+      break;
+    }
+
+    default:
+      throw std::runtime_error("Only support recovery of drop table and index");
+  }
+
+  TERRIER_ASSERT(result, "Table/index DROP should always succeed");
+
+  // Step 5: Clean up metadata
+  tuple_slot_map_.erase(delete_record->GetTupleSlot());
+
   return 0;  // No additional logs processed
 }
 

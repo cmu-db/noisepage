@@ -1,11 +1,12 @@
 #pragma once
 
-#include <catalog/catalog.h>
+#include <list>
 #include <string>
 #include <unordered_map>
 #include <utility>
 #include <vector>
 
+#include "catalog/catalog.h"
 #include "catalog/catalog_defs.h"
 #include "catalog/postgres/pg_attribute.h"
 #include "catalog/postgres/pg_database.h"
@@ -213,8 +214,8 @@ class RecoveryManager : public common::DedicatedThreadOwner {
    * @param insert true if we should insert into indexes, false for delete
    */
   void UpdateIndexesOnTable(transaction::TransactionContext *txn, catalog::db_oid_t db_oid,
-                            catalog::table_oid_t table_oid, common::ManagedPointer<storage::SqlTable>& table_ptr, const TupleSlot &tuple_slot, ProjectedRow *table_pr,
-                            bool insert);
+                            catalog::table_oid_t table_oid, common::ManagedPointer<storage::SqlTable> table_ptr,
+                            const TupleSlot &tuple_slot, ProjectedRow *table_pr, bool insert);
 
   /**
    * NYS = Not yet supported
@@ -270,6 +271,28 @@ class RecoveryManager : public common::DedicatedThreadOwner {
    * @return number of EXTRA log records processed
    */
   uint32_t ProcessSpecialCaseCatalogRecord(transaction::TransactionContext *txn,
+                                           std::vector<std::pair<LogRecord *, std::vector<byte *>>> *buffered_changes,
+                                           uint32_t start_idx);
+
+  /**
+   * Processes a record that modifies pg_database.
+   * @param txn transaction to use to replay the catalog changes
+   * @param buffered_changes list of buffered log records
+   * @param start_idx index of current log record in the list
+   * @return number of EXTRA log records processed
+   */
+  uint32_t ProcessSpecialCasePGDatabaseRecord(
+      transaction::TransactionContext *txn, std::vector<std::pair<LogRecord *, std::vector<byte *>>> *buffered_changes,
+      uint32_t start_idx);
+
+  /**
+   * Processes a record that modifies pg_class.
+   * @param txn transaction to use to replay the catalog changes
+   * @param buffered_changes list of buffered log records
+   * @param start_idx index of current log record in the list
+   * @return number of EXTRA log records processed
+   */
+  uint32_t ProcessSpecialCasePGClassRecord(transaction::TransactionContext *txn,
                                            std::vector<std::pair<LogRecord *, std::vector<byte *>>> *buffered_changes,
                                            uint32_t start_idx);
 
