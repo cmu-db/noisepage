@@ -19,16 +19,22 @@ ast::Expr* OutputTranslator::GetField(uint32_t attr_idx) {
   return codegen_->MemberExpr(output_var_, member);
 }
 
-void OutputTranslator::Produce(execution::compiler::FunctionBuilder *builder) {
+void OutputTranslator::Produce(OperatorTranslator * parent, execution::compiler::FunctionBuilder *builder) {
+  // Let the child produce
+  prev_translator_->Produce(this, builder);
+
+  // Call @outputFinalize() at the end of the pipeline.
+  FinalizeOutput(builder);
+}
+
+void OutputTranslator::Consume(terrier::execution::compiler::FunctionBuilder *builder) {
   // First declare the output variable
   DeclareOutputVariable(builder);
   // Fill in the output
   FillOutput(builder);
-  // Advance the output buffer with @outputAdvance()
-  AdvanceOutput(builder);
-  // Register the @outputFinalize() call at the end of the pipepeline.
-  FinalizeOutput(builder);
 }
+
+
 
 void OutputTranslator::DeclareOutputVariable(execution::compiler::FunctionBuilder *builder) {
   // First generate the call @outputAlloc(execCtx)
@@ -48,15 +54,9 @@ void OutputTranslator::FillOutput(execution::compiler::FunctionBuilder *builder)
   }
 }
 
-void OutputTranslator::AdvanceOutput(execution::compiler::FunctionBuilder *builder) {
-  // Call @outputAdvance(execCtx)
-  ast::Expr* advance_call = codegen_->OutputAdvance();
-  builder->Append(codegen_->MakeStmt(advance_call));
-}
-
 void OutputTranslator::FinalizeOutput(execution::compiler::FunctionBuilder *builder) {
   ast::Expr* finalize_call = codegen_->OutputFinalize();
-  builder->RegisterFinalStmt(codegen_->MakeStmt(finalize_call));
+  builder->Append(codegen_->MakeStmt(finalize_call));
 }
 
 }

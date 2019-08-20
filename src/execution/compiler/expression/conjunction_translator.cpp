@@ -26,7 +26,7 @@ ast::Expr *ConjunctionTranslator::DeriveExpr(OperatorTranslator * translator) {
       type = parsing::Token::Type::AND;
       break;
     default:
-      TPL_ASSERT(false, "Unsupported expression");
+      UNREACHABLE("Unsupported expression");
   }
   return codegen_->BinaryOp(type, left_expr, right_expr);
 }

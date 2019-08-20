@@ -14,15 +14,20 @@ HashJoinLeftTranslator::HashJoinLeftTranslator(const terrier::planner::AbstractP
      join_ht_{codegen->NewIdentifier(join_ht_name_)} {}
 
 
-void HashJoinLeftTranslator::Produce(FunctionBuilder *builder) {
+void HashJoinLeftTranslator::Produce(OperatorTranslator * parent, FunctionBuilder *builder) {
+  // Produce the rest of the pipeline
+  prev_translator_->Produce(this, builder);
+  // Call @joinHTBuild at the end of the pipeline
+  GenBuildCall(builder);
+}
+
+void HashJoinLeftTranslator::Consume(FunctionBuilder *builder) {
   // First create the left hash_value.
   GenHashCall(builder);
   // Then call insert
   GenHTInsert(builder);
   // Fill up the build row
   FillBuildRow(builder);
-  // Register the @joinHTBuild at the end of the pipeline
-  RegisterBuildCall(builder);
 }
 
 // Declare the hash table
@@ -56,9 +61,9 @@ void HashJoinLeftTranslator::InitializeTeardown(util::RegionVector<ast::Stmt *> 
 }
 
 // Call @joinHTBuild(&state.join_hash_table)
-void HashJoinLeftTranslator::RegisterBuildCall(FunctionBuilder * builder) {
+void HashJoinLeftTranslator::GenBuildCall(FunctionBuilder * builder) {
   ast::Expr* build_call = codegen_->JoinHashTableBuild(join_ht_);
-  builder->RegisterFinalStmt(codegen_->MakeStmt(build_call));
+  builder->Append(codegen_->MakeStmt(build_call));
 }
 
 
@@ -68,7 +73,7 @@ void HashJoinLeftTranslator::GenHashCall(FunctionBuilder * builder) {
   auto join_op = dynamic_cast<const terrier::planner::HashJoinPlanNode*>(op_);
   util::RegionVector<ast::Expr*> hash_args{codegen_->Region()};
   for (const auto & key: join_op->GetLeftHashKeys()) {
-    ExpressionTranslator * key_translator = TranslatorFactory::CreateExpressionTranslator(key.get(), codegen_);
+    std::unique_ptr<ExpressionTranslator> key_translator = TranslatorFactory::CreateExpressionTranslator(key.get(), codegen_);
     hash_args.emplace_back(key_translator->DeriveExpr(this));
   }
   ast::Expr* hash_call = codegen_->Hash(std::move(hash_args));
@@ -124,19 +129,26 @@ HashJoinRightTranslator::HashJoinRightTranslator(const terrier::planner::Abstrac
  key_check_{codegen->NewIdentifier(key_check_name_)},
  join_iter_{codegen->NewIdentifier(iterator_name_)} {}
 
-void HashJoinRightTranslator::Produce(FunctionBuilder *builder) {
-  // First create the right hash_value
+void HashJoinRightTranslator::Produce(OperatorTranslator* parent, FunctionBuilder *builder) {
+  // Declare the iterator
+  DeclareIterator(builder);
+  // Let right child produce its code
+  prev_translator_->Produce(this, builder);
+  // Let the parent consume
+  parent->Consume(builder);
+  // Close loop and iterator
+  GenIteratorClose(builder);
+}
+
+void HashJoinRightTranslator::Consume(FunctionBuilder *builder) {
+  // Create the right hash_value
   GenHashValue(builder);
   // Materialize the probe tuple if necessary.
   if (!is_child_materializer_) {
     FillProbeRow(builder);
   }
-  // The declare the iterator
-  DeclareIterator(builder);
   // Generate the probe loop
   GenProbeLoop(builder);
-  // Close the iterator after the loop
-  GenIteratorClose(builder);
   // Get the matching tuple
   DeclareMatch(builder);
 }
@@ -144,7 +156,7 @@ void HashJoinRightTranslator::Produce(FunctionBuilder *builder) {
 
 ast::Expr* HashJoinRightTranslator::GetOutput(uint32_t attr_idx) {
   auto output_expr = op_->GetOutputSchema()->GetColumn(attr_idx).GetExpr();
-  ExpressionTranslator * translator = TranslatorFactory::CreateExpressionTranslator(output_expr, codegen_);
+  std::unique_ptr<ExpressionTranslator> translator = TranslatorFactory::CreateExpressionTranslator(output_expr, codegen_);
   return translator->DeriveExpr(this);
 }
 
@@ -241,7 +253,7 @@ void HashJoinRightTranslator::GenHashValue(FunctionBuilder * builder) {
   auto join_op = dynamic_cast<const terrier::planner::HashJoinPlanNode*>(op_);
   util::RegionVector<ast::Expr*> hash_args{codegen_->Region()};
   for (const auto & key: join_op->GetRightHashKeys()) {
-    ExpressionTranslator * key_translator = TranslatorFactory::CreateExpressionTranslator(key.get(), codegen_);
+    std::unique_ptr<ExpressionTranslator> key_translator = TranslatorFactory::CreateExpressionTranslator(key.get(), codegen_);
     hash_args.emplace_back(key_translator->DeriveExpr(this));
   }
   ast::Expr* hash_call = codegen_->Hash(std::move(hash_args));
@@ -288,7 +300,7 @@ void HashJoinRightTranslator::GenProbeLoop(FunctionBuilder * builder) {
 // Call @joinHTIterCLose(&join_iter)
 void HashJoinRightTranslator::GenIteratorClose(FunctionBuilder * builder) {
   ast::Expr* close_call = codegen_->JoinHashTableIterClose(join_iter_);
-  builder->AppendAfter(codegen_->MakeStmt(close_call));
+  builder->Append(codegen_->MakeStmt(close_call));
 }
 
 // var build_row = @ptrCast(*BuildRow, @joinHTIterGetRow(&join_iter))

@@ -20,7 +20,7 @@ class ArithmeticTranslator : public ExpressionTranslator {
   ast::Expr *DeriveExpr(OperatorTranslator * translator) override;
 
  private:
-  ExpressionTranslator * left_;
-  ExpressionTranslator * right_;
+  std::unique_ptr<ExpressionTranslator> left_;
+  std::unique_ptr<ExpressionTranslator> right_;
 };
 }  // namespace terrier::execution::compiler

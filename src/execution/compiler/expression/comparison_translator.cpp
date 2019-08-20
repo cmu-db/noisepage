@@ -30,7 +30,7 @@ ast::Expr *ComparisonTranslator::DeriveExpr(OperatorTranslator* translator) {
       type = parsing::Token::Type::LESS_EQUAL;
       break;
     default:
-      TPL_ASSERT(false, "Unsupported expression");
+      UNREACHABLE("Unsupported expression");
   }
   return codegen_->Compare(type, left_expr, right_expr);
 }

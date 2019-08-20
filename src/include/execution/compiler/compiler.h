@@ -1,6 +1,5 @@
 #pragma once
 
-#include "execution/util/common.h"
 #include "execution/util/region.h"
 #include "execution/compiler/query.h"
 #include "parser/expression/abstract_expression.h"

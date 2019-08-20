@@ -61,6 +61,13 @@ class ColumnValueExpression : public AbstractExpression {
         database_oid_(database_oid),
         table_oid_(table_oid),
         column_oid_(column_oid) {}
+
+  ColumnValueExpression(catalog::db_oid_t database_oid, catalog::table_oid_t table_oid, catalog::col_oid_t column_oid, type::TypeId type)
+      : AbstractExpression(ExpressionType::COLUMN_VALUE, type, {}),
+        database_oid_(database_oid),
+        table_oid_(table_oid),
+        column_oid_(column_oid) {}
+
   /**
    * Default constructor for deserialization
    */

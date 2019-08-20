@@ -30,7 +30,7 @@ ast::Expr *ArithmeticTranslator::DeriveExpr(OperatorTranslator * translator) {
       break;
     default:
       // TODO(tanujnay112): figure out concatenation operation from expressions?
-      TPL_ASSERT(false, "Unsupported expression");
+      UNREACHABLE("Unsupported expression");
   }
   return codegen_->BinaryOp(type, left_expr, right_expr);
 }

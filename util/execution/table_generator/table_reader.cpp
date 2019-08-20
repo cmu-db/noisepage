@@ -22,12 +22,11 @@ uint32_t TableReader::ReadTable(const std::string &schema_file, const std::strin
   for (const auto &col : table_schema.GetColumns()) {
     table_cols.emplace_back(col.Oid());
   }
-  auto pri_map = table->InitializerForProjectedRow(table_cols);
-  auto &pri = pri_map.first;
+  auto pri = table->InitializerForProjectedRow(table_cols);
 
   // Set table column offsets
-  auto &offset_map = pri_map.second;
-  std::vector<u16> table_offsets;
+  auto offset_map = table->ProjectionMapForOids(table_cols);
+  std::vector<uint16_t> table_offsets;
   for (const auto &col_info : table_info->cols) {
     const auto &col = table_schema.GetColumn(col_info.Name());
     table_offsets.emplace_back(offset_map[col.Oid()]);
@@ -110,13 +109,13 @@ void TableReader::CreateIndexes(TableInfo *info, catalog::table_oid_t table_oid)
   }
 }
 
-void TableReader::WriteIndexEntry(IndexInfo * index_info, storage::ProjectedRow * table_pr, const std::vector<u16> & table_offsets, const storage::TupleSlot & slot) {
-  for (u32 index_col_idx = 0; index_col_idx < index_info->offsets.size(); index_col_idx++) {
+void TableReader::WriteIndexEntry(IndexInfo * index_info, storage::ProjectedRow * table_pr, const std::vector<uint16_t> & table_offsets, const storage::TupleSlot & slot) {
+  for (uint32_t index_col_idx = 0; index_col_idx < index_info->offsets.size(); index_col_idx++) {
     // Get the offset of this column in the table
-    u16 table_col_idx = index_info->index_map[index_col_idx];
-    u16 table_offset = table_offsets[table_col_idx];
+    uint16_t table_col_idx = index_info->index_map[index_col_idx];
+    uint16_t table_offset = table_offsets[table_col_idx];
     // Get the offset of this column in the index
-    u16 index_offset = index_info->offsets[index_col_idx];
+    uint16_t index_offset = index_info->offsets[index_col_idx];
     // Check null and write bytes.
     if (index_info->cols[index_col_idx].Nullable() && table_pr->IsNull(table_offset)) {
       index_info->index_pr->SetNull(index_offset);
@@ -161,13 +160,13 @@ void TableReader::WriteTableCol(storage::ProjectedRow *insert_pr, uint16_t col_o
       break;
     }
     case type::TypeId::DECIMAL: {
-      auto val = field->get<f64>();
-      std::memcpy(insert_offset, &val, sizeof(f64));
+      auto val = field->get<double>();
+      std::memcpy(insert_offset, &val, sizeof(double));
       break;
     }
     case type::TypeId::DATE: {
       auto val = sql::ValUtil::StringToDate(field->get<std::string>());
-      std::memcpy(insert_offset, &val.int_val, sizeof(u32));
+      std::memcpy(insert_offset, &val.int_val, sizeof(uint32_t));
       break;
     }
     case type::TypeId::VARCHAR: {

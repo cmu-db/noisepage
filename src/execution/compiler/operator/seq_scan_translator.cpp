@@ -14,9 +14,13 @@ namespace terrier::execution::compiler {
 SeqScanTranslator::SeqScanTranslator(const terrier::planner::AbstractPlanNode * op, CodeGen * codegen)
   : OperatorTranslator(op, codegen)
   , seqscan_op_(static_cast<const terrier::planner::SeqScanPlanNode*>(op))
+  , schema_(codegen->Accessor()->GetSchema(seqscan_op_->GetTableOid()))
+  , input_oids_(seqscan_op_->CollectInputOids())
+  , pm_(codegen->Accessor()->GetTable(seqscan_op_->GetTableOid())->ProjectionMapForOids(input_oids_))
   , has_predicate_(seqscan_op_->GetScanPredicate() != nullptr)
   , is_vectorizable_{IsVectorizable(seqscan_op_->GetScanPredicate().get())}
   , tvi_(codegen->NewIdentifier(tvi_name_))
+  , col_oids_(codegen->NewIdentifier(col_oids_name_))
   , pci_(codegen->NewIdentifier(pci_name_))
   , row_(codegen->NewIdentifier(row_name_))
   , table_struct_(codegen->NewIdentifier(table_struct_name_))
@@ -26,8 +30,8 @@ SeqScanTranslator::SeqScanTranslator(const terrier::planner::AbstractPlanNode * 
 
 void SeqScanTranslator::Produce(OperatorTranslator * parent, FunctionBuilder * builder) {
   DeclareTVI(builder);
+  SetOids(builder);
   GenTVILoop(builder);
-  GenTVIClose(builder); // close after the loop
   DeclarePCI(builder);
 
   // Generate predicate and loop depending on whether we can vectorize or not
@@ -40,24 +44,32 @@ void SeqScanTranslator::Produce(OperatorTranslator * parent, FunctionBuilder * b
     GenScanCondition(builder);
     has_if_stmt = true;
   }
-  prev_translator_->Consume(builder);
-  builder->FinishBlockStmt();
+  parent->Consume(builder);
+  // Close predicate if statement
   if (has_if_stmt) {
     builder->FinishBlockStmt();
   }
+  // Close PCI loop
+  builder->FinishBlockStmt();
+  // Close TVI loop
+  builder->FinishBlockStmt();
+  // Close iterator
+  GenTVIClose(builder);
 }
 
 
 ast::Expr* SeqScanTranslator::GetOutput(uint32_t attr_idx) {
   auto output_expr = op_->GetOutputSchema()->GetColumn(attr_idx).GetExpr();
-  ExpressionTranslator * translator = TranslatorFactory::CreateExpressionTranslator(output_expr, codegen_);
+  auto translator = TranslatorFactory::CreateExpressionTranslator(output_expr, codegen_);
   return translator->DeriveExpr(this);
 }
 
-ast::Expr* SeqScanTranslator::GetChildOutput(uint32_t child_idx, uint32_t attr_idx, terrier::type::TypeId type) {
-  TERRIER_ASSERT(child_idx == 0, "SeqScan node only has one child");
+ast::Expr* SeqScanTranslator::GetTableColumn(const catalog::col_oid_t & col_oid) {
   // Call @pciGetType(pci, index)
-  return codegen_->PCIGet(pci_, type, attr_idx);
+  auto type = schema_.GetColumn(col_oid).Type();
+  auto nullable = schema_.GetColumn(col_oid).Nullable();
+  uint16_t attr_idx = pm_[col_oid];
+  return codegen_->PCIGet(pci_, type, nullable, attr_idx);
 }
 
 void SeqScanTranslator::DeclareTVI(FunctionBuilder * builder) {
@@ -65,12 +77,24 @@ void SeqScanTranslator::DeclareTVI(FunctionBuilder * builder) {
   builder->Append(codegen_->DeclareVariable(tvi_, iter_type, nullptr));
 }
 
+void SeqScanTranslator::SetOids(FunctionBuilder * builder) {
+  // Declare: var col_oids: [num_cols]uint32
+  ast::Expr * arr_type = codegen_->ArrayType(input_oids_.size(), ast::BuiltinType::Kind::Uint32);
+  builder->Append(codegen_->DeclareVariable(col_oids_, arr_type, nullptr));
+
+  // For each oid, set col_oids[i] = col_oid
+  for (uint16_t i = 0; i < input_oids_.size(); i++) {
+    ast::Expr * lhs = codegen_->ArrayAccess(col_oids_, i);
+    ast::Expr * rhs = codegen_->IntLiteral(!input_oids_[i]);
+    builder->Append(codegen_->Assign(lhs, rhs));
+  }
+}
+
 // Generate for(@tableIterInit(&tvi, table, execCtx); @tableIterAdvance(&tvi);) {...}
 void SeqScanTranslator::GenTVILoop(FunctionBuilder *builder) {
   // The init call
-  // TODO: Pass in oids instead of table names
   auto seqscan_op = dynamic_cast<const terrier::planner::SeqScanPlanNode *>(op_);
-  ast::Expr* init_call = codegen_->TableIterInit(tvi_, !seqscan_op->GetTableOid());
+  ast::Expr* init_call = codegen_->TableIterInit(tvi_, !seqscan_op->GetTableOid(), col_oids_);
   ast::Stmt *loop_init = codegen_->MakeStmt(init_call);
   // The advance call
   ast::Expr* advance_call = codegen_->TableIterAdvance(tvi_);
@@ -99,7 +123,7 @@ void SeqScanTranslator::GenPCILoop(FunctionBuilder *builder) {
 void SeqScanTranslator::GenScanCondition(FunctionBuilder *builder) {
   auto predicate = seqscan_op_->GetScanPredicate();
   // Regular codegen
-  ExpressionTranslator * cond_translator = TranslatorFactory::CreateExpressionTranslator(predicate.get(), codegen_);
+  auto cond_translator = TranslatorFactory::CreateExpressionTranslator(predicate.get(), codegen_);
   ast::Expr* cond = cond_translator->DeriveExpr(this);
   builder->StartIfStmt(cond);
 }
@@ -108,9 +132,8 @@ void SeqScanTranslator::GenScanCondition(FunctionBuilder *builder) {
 void SeqScanTranslator::GenTVIClose(execution::compiler::FunctionBuilder *builder) {
   // Generate @tableIterClose(&tvi)
   ast::Expr* close_call = codegen_->TableIterClose(tvi_);
-  builder->AppendAfter(codegen_->MakeStmt(close_call));
+  builder->Append(codegen_->MakeStmt(close_call));
 }
-
 
 bool SeqScanTranslator::IsVectorizable(const terrier::parser::AbstractExpression * predicate) {
   if (predicate == nullptr) return true;
@@ -122,7 +145,7 @@ bool SeqScanTranslator::IsVectorizable(const terrier::parser::AbstractExpression
     // left is TVE and right is constant integer.
     // TODO(Amadou): Add support for floats here and in the SIMD code.
     // TODO(Amadou): Support right TVE and left constant integers. Be sure to flip inequalities while codegening.
-    return predicate->GetChild(0)->GetExpressionType() == terrier::parser::ExpressionType::VALUE_TUPLE &&
+    return predicate->GetChild(0)->GetExpressionType() == terrier::parser::ExpressionType::COLUMN_VALUE &&
           predicate->GetChild(1)->GetExpressionType() == terrier::parser::ExpressionType::VALUE_CONSTANT &&
         (predicate->GetChild(1)->GetReturnValueType() >= terrier::type::TypeId::TINYINT &&
          predicate->GetChild(1)->GetReturnValueType() <= terrier::type::TypeId::BIGINT);
@@ -135,9 +158,9 @@ void SeqScanTranslator::GenVectorizedPredicate(FunctionBuilder * builder, const 
     GenVectorizedPredicate(builder, predicate->GetChild(0).get());
     GenVectorizedPredicate(builder, predicate->GetChild(1).get());
   } else if (COMPARISON_OP(predicate->GetExpressionType())) {
-    auto left_tve = dynamic_cast<const terrier::parser::ExecTupleValueExpression *>(predicate->GetChild(0).get());
-    auto col_idx = left_tve->GetColIdx();
-    auto col_type = left_tve->GetReturnValueType();
+    auto left_cve = dynamic_cast<const terrier::parser::ColumnValueExpression *>(predicate->GetChild(0).get());
+    auto col_idx = pm_[left_cve->GetColumnOid()];
+    auto col_type = schema_.GetColumn(left_cve->GetColumnOid()).Type();
     auto const_val = dynamic_cast<const terrier::parser::ConstantValueExpression*>(predicate->GetChild(1).get());
     auto trans_val = const_val->GetValue();
     auto type = trans_val.Type();

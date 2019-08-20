@@ -6,7 +6,7 @@
 // TODO(Amadou): Currently all checker only work on single integer columns. Ideally, we want them to work on arbitrary expressions,
 // but this is no simple task. We would basically need an expression evaluator on output rows.
 
-namespace tpl::compiler {
+namespace terrier::execution::compiler {
 /**
  * Helper class to check if the output of a query is corrected.
  */
@@ -84,7 +84,7 @@ class NumChecker : public OutputChecker {
    * Constructor
    * @param expected_count the expected number of output tuples
    */
-  NumChecker(i64 expected_count) : expected_count_{expected_count} {}
+  NumChecker(int64_t expected_count) : expected_count_{expected_count} {}
 
   /**
    * Checks if the expected number and the received number are the same
@@ -103,9 +103,9 @@ class NumChecker : public OutputChecker {
 
  private:
   // Current number of tuples
-  i64 curr_count_{0};
+  int64_t curr_count_{0};
   // Expected number of tuples
-  i64 expected_count_;
+  int64_t expected_count_;
 };
 
 /**
@@ -114,7 +114,7 @@ class NumChecker : public OutputChecker {
  */
 class SingleIntComparisonChecker : public OutputChecker {
  public:
-  SingleIntComparisonChecker(std::function<bool(i64, i64)> fn, uint32_t col_idx, i64 rhs) : comp_fn_(fn), col_idx_{col_idx}, rhs_{rhs} {}
+  SingleIntComparisonChecker(std::function<bool(int64_t, int64_t)> fn, uint32_t col_idx, int64_t rhs) : comp_fn_(fn), col_idx_{col_idx}, rhs_{rhs} {}
 
   void CheckCorrectness() override {}
 
@@ -126,9 +126,9 @@ class SingleIntComparisonChecker : public OutputChecker {
   }
 
  private:
-  std::function<bool(i64, i64)> comp_fn_;
+  std::function<bool(int64_t, int64_t)> comp_fn_;
   uint32_t col_idx_;
-  i64 rhs_;
+  int64_t rhs_;
 };
 
 /**
@@ -175,12 +175,12 @@ class SingleIntSumChecker : public OutputChecker {
    * @param col_idx index of column to sum
    * @param expected expected sum
    */
-  SingleIntSumChecker(uint32_t col_idx, i64 expected) : col_idx_{col_idx}, expected_{expected} {}
+  SingleIntSumChecker(uint32_t col_idx, int64_t expected) : col_idx_{col_idx}, expected_{expected} {}
 
   /**
    * Checks of the expected sum and the received sum are the same
    */
-  void CheckCorrectness() {
+  void CheckCorrectness() override {
     EXPECT_EQ(curr_sum_, expected_);
   }
 
@@ -197,8 +197,8 @@ class SingleIntSumChecker : public OutputChecker {
 
  private:
   uint32_t col_idx_;
-  i64 curr_sum_{0};
-  i64 expected_;
+  int64_t curr_sum_{0};
+  int64_t expected_;
 };
 
 /**
@@ -253,7 +253,7 @@ class MultiOutputCallback {
   /**
    * OutputCallback function
    */
-  void operator()(byte *tuples, u32 num_tuples, u32 tuple_size) {
+  void operator()(byte *tuples, uint32_t num_tuples, uint32_t tuple_size) {
     for (auto & callback : callbacks_) {
       callback(tuples, num_tuples, tuple_size);
     }
@@ -279,11 +279,11 @@ class OutputStore {
   /**
    * OutputCallback function. This will gather the output in a vector.
    */
-  void operator()(byte *tuples, u32 num_tuples, u32 tuple_size) {
-    for (u32 row = 0; row < num_tuples; row++) {
+  void operator()(byte *tuples, uint32_t num_tuples, uint32_t tuple_size) {
+    for (uint32_t row = 0; row < num_tuples; row++) {
       uint32_t curr_offset = 0;
       std::vector<sql::Val*> vals;
-      for (u16 col = 0; col < schema_->GetColumns().size(); col++) {
+      for (uint16_t col = 0; col < schema_->GetColumns().size(); col++) {
         // TODO(Amadou): Figure out to print other types.
         switch (schema_->GetColumns()[col].GetType()) {
           case terrier::type::TypeId::TINYINT:

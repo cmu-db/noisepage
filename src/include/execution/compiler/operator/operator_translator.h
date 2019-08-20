@@ -1,7 +1,6 @@
 #pragma once
 
 #include "planner/plannodes/abstract_plan_node.h"
-#include "parser/expression/tuple_value_expression.h"
 #include "execution/compiler/codegen.h"
 
 
@@ -62,7 +61,7 @@ class OperatorTranslator {
    * Produce code for the operator
    * @param builder builder of the pipeline function
    */
-  virtual void Produce(FunctionBuilder * builder) = 0;
+  virtual void Produce(OperatorTranslator * translator, FunctionBuilder * builder) = 0;
 
   /**
    * Consume code for the operator
@@ -181,11 +180,11 @@ class OperatorTranslator {
   /**
    * Whether the whole pipeline is produced in vectorized mode
    */
-  bool vectorized_pipeline_;
+  bool vectorized_pipeline_{false};
 
   /**
    * Whether the whole pipeline is produced in parallel mode
    */
-  bool parallelized_pipeline_;
+  bool parallelized_pipeline_{false};
 };
 }  // namespace terrier::execution::compiler

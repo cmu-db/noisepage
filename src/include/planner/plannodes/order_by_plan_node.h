@@ -33,7 +33,7 @@ class OrderByPlanNode : public AbstractPlanNode {
      * @param ordering ordering (ASC or DESC) for key
      * @return builder object
      */
-    Builder &AddSortKey(catalog::col_oid_t key, OrderByOrderingType ordering) {
+    Builder &AddSortKey(std::shared_ptr<parser::AbstractExpression> key, OrderByOrderingType ordering) {
       sort_keys_.emplace_back(key, ordering);
       return *this;
     }

@@ -4,21 +4,17 @@
 namespace terrier::execution::compiler {
 
 /**
- * Comparison Translator
+ * ColumnValue Translator.
  */
-class ComparisonTranslator : public ExpressionTranslator {
+class ColumnValueTranslator : public ExpressionTranslator {
  public:
   /**
    * Constructor
    * @param expression expression to translate
    * @param codegen code generator to use
    */
-  ComparisonTranslator(const terrier::parser::AbstractExpression *expression, CodeGen * codegen);
+  ColumnValueTranslator(const terrier::parser::AbstractExpression *expression, CodeGen * codegen);
 
   ast::Expr *DeriveExpr(OperatorTranslator * translator) override;
-
- private:
-  std::unique_ptr<ExpressionTranslator> left_;
-  std::unique_ptr<ExpressionTranslator> right_;
 };
 }  // namespace terrier::execution::compiler

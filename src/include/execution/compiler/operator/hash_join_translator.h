@@ -23,8 +23,9 @@ class HashJoinLeftTranslator : public OperatorTranslator {
   HashJoinLeftTranslator(const terrier::planner::AbstractPlanNode *op, CodeGen *codegen);
 
   // Insert tuples into the hash table
-  void Produce(FunctionBuilder * builder) override;
+  void Produce(OperatorTranslator* parent, FunctionBuilder * builder) override;
 
+  void Consume(FunctionBuilder * builder) override;
 
   // Add the join hash table
   void InitializeStateFields(util::RegionVector<ast::FieldDecl *> *state_fields) override;
@@ -61,7 +62,7 @@ class HashJoinLeftTranslator : public OperatorTranslator {
   ast::Expr* GetBuildValue(uint32_t idx);
 
   // Build the hash table
-  void RegisterBuildCall(FunctionBuilder * builder);
+  void GenBuildCall(FunctionBuilder * builder);
 
   // Structs, functions, and locals
   static constexpr const char* hash_val_name_ = "hash_val";
@@ -82,7 +83,10 @@ class HashJoinRightTranslator : public OperatorTranslator {
  public:
   HashJoinRightTranslator(const terrier::planner::AbstractPlanNode *op, CodeGen *codegen, OperatorTranslator * left);
 
-  void Produce(FunctionBuilder* builder) override;
+  void Produce(OperatorTranslator * parent,  FunctionBuilder* builder) override;
+
+
+  void Consume(FunctionBuilder* builder) override;
 
   // Does nothing
   void InitializeStateFields(util::RegionVector<ast::FieldDecl *> *state_fields) override {}

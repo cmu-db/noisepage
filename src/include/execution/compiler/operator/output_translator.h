@@ -9,9 +9,6 @@
 #include "execution/compiler/operator/operator_translator.h"
 
 namespace terrier::execution::compiler {
-class CompilationContext;
-class ConsumerContext;
-
 /**
  * Consumer that generates code for outputting to upper layers.
  */
@@ -23,7 +20,9 @@ class OutputTranslator : public OperatorTranslator {
    */
   explicit OutputTranslator(CodeGen* codegen);
 
-  void Produce(FunctionBuilder * builder) override;
+  void Produce(OperatorTranslator * parent, FunctionBuilder * builder) override;
+
+  void Consume(FunctionBuilder * builder) override;
 
   // Does nothing
   void InitializeStateFields(util::RegionVector<ast::FieldDecl *> *state_fields) override {}

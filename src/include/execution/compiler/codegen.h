@@ -5,9 +5,7 @@
 #include "execution/ast/type.h"
 #include "execution/ast/context.h"
 #include "execution/ast/ast_node_factory.h"
-#include "execution/util/common.h"
 #include "execution/util/region.h"
-#include "execution/util/macros.h"
 #include "type/transient_value.h"
 #include "type/type_id.h"
 #include "parser/expression_defs.h"
@@ -54,6 +52,13 @@ class CodeGen {
    */
   ast::Context * Context() {
     return query_->GetAstContext();
+  }
+
+  /**
+   * @return the catalog accessor
+   */
+  catalog::CatalogAccessor * Accessor() {
+    return query_->GetExecCtx()->GetAccessor();
   }
 
   /**
@@ -195,6 +200,17 @@ class CodeGen {
   ast::Expr* PointerType(ast::Expr* base_expr);
 
   /**
+   * Return the type represented by [num_elems]kind;
+   */
+  ast::Expr* ArrayType(uint64_t num_elems, ast::BuiltinType::Kind kind);
+
+  /**
+   * Return the expression arr[idx]
+   */
+  ast::Expr* ArrayAccess(ast::Identifier arr, uint64_t idx);
+
+
+  /**
    * Declares variable
    * @param name name of the variable
    * @param typ type of the variable (nullptr if inferred)
@@ -241,17 +257,17 @@ class CodeGen {
   /**
    * Convert a raw int to a sql int
    */
-  ast::Expr* IntToSql(i64 num);
+  ast::Expr* IntToSql(int64_t num);
 
   /**
    * Convert a raw float to a sql float
    */
-  ast::Expr* FloatToSql(f64 num);
+  ast::Expr* FloatToSql(double num);
 
   /**
    * Convert to sql date
    */
-  ast::Expr* DateToSql(i16 year, u8 month, u8 day);
+  ast::Expr* DateToSql(int16_t year, uint8_t month, uint8_t day);
 
   /**
    * Convert to sql string
@@ -261,14 +277,14 @@ class CodeGen {
   /**
    * Return the integer literal representing num
    */
-  ast::Expr* IntLiteral(i64 num) {
+  ast::Expr* IntLiteral(int64_t num) {
     return Factory()->NewIntLiteral(DUMMY_POS, num);
   }
 
   /**
    * Return the float literal representing num
    */
-  ast::Expr* FloatLiteral(f64 num) {
+  ast::Expr* FloatLiteral(double num) {
     return Factory()->NewFloatLiteral(DUMMY_POS, num);
   }
 
@@ -370,22 +386,15 @@ class CodeGen {
   ast::Expr *OutputAlloc();
 
   /**
-   * Call outputAdvance(execCtx)
-   */
-  ast::Expr *OutputAdvance();
-
-  /**
    * Call outputFinalize(execCtx)
    */
   ast::Expr *OutputFinalize();
 
 
   /**
-   * @param tvi the iterator to initialize
-   * @param table_oid oid of the table
-   * @return the builtin call tableIterInit(&tvi, table_oid, execCtx)
+   * Call tableIterInit(&tvi, execCtx, col_oids)
    */
-  ast::Expr *TableIterInit(ast::Identifier tvi, uint32_t table_oid);
+  ast::Expr *TableIterInit(ast::Identifier tvi, uint32_t table_oid, ast::Identifier col_oids);
 
   /**
    * Call tableIterAdvance(&tvi)
@@ -413,14 +422,14 @@ class CodeGen {
   ast::Expr *PCIAdvance(ast::Identifier pci, bool filtered);
 
   /**
-   * Call pciGetType(pci, idx)
+   * Call pciGetTypeNullable(pci, idx)
    */
-  ast::Expr *PCIGet(ast::Identifier pci, terrier::type::TypeId type, uint32_t idx);
+  ast::Expr *PCIGet(ast::Identifier pci, terrier::type::TypeId type, bool nullable, uint32_t idx);
 
   /**
    * Call pciSetPosition(pci, idx) or pciSetPositionFiltered(pci, idx)
    */
-  ast::Expr *PCISetPosition(ast::Identifier pci, uint32_t idx, bool filtered);
+  //ast::Expr *PCISetPosition(ast::Identifier pci, uint32_t idx, bool filtered);
 
   /**
    * Call filterCompType(pci, col_idx, col_type, filter_val)
@@ -643,7 +652,7 @@ class CodeGen {
 
 
 
-  u64 id_count_{0};
+  uint64_t id_count_{0};
   Query * query_;
 
   // Identifiers that are always needed

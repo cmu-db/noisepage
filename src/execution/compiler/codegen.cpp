@@ -111,21 +111,18 @@ ast::Expr* CodeGen::OutputAlloc() {
   return OneArgCall(ast::Builtin::OutputAlloc, exec_ctx_var_, false);
 }
 
-ast::Expr* CodeGen::OutputAdvance() {
-  return OneArgCall(ast::Builtin::OutputAdvance, exec_ctx_var_, false);
-}
-
 ast::Expr* CodeGen::OutputFinalize() {
   return OneArgCall(ast::Builtin::OutputFinalize, exec_ctx_var_, false);
 }
 
-ast::Expr* CodeGen::TableIterInit(ast::Identifier tvi, uint32_t table_oid) {
+ast::Expr* CodeGen::TableIterInit(ast::Identifier tvi, uint32_t table_oid, ast::Identifier col_oids) {
   ast::Expr * fun = BuiltinFunction(ast::Builtin::TableIterInit);
   ast::Expr * tvi_ptr = PointerTo(tvi);
-  ast::Expr * table_oid_expr = IntLiteral(static_cast<i32>(table_oid));
+  ast::Expr * table_oid_expr = IntLiteral(static_cast<int64_t>(table_oid));
   ast::Expr * exec_ctx_expr = MakeExpr(exec_ctx_var_);
+  ast::Expr * col_oids_expr = MakeExpr(col_oids);
 
-  util::RegionVector<ast::Expr*> args{{tvi_ptr, table_oid_expr, exec_ctx_expr}, Region()};
+  util::RegionVector<ast::Expr*> args{{tvi_ptr, exec_ctx_expr, table_oid_expr, col_oids_expr}, Region()};
   return Factory()->NewBuiltinCallExpr(fun, std::move(args));
 }
 
@@ -142,39 +139,51 @@ ast::Expr* CodeGen::TableIterClose(execution::ast::Identifier tvi) {
   return OneArgCall(ast::Builtin::TableIterClose, tvi, true);
 }
 
-ast::Expr* CodeGen::PCIHasNext(execution::ast::Identifier pci) {
-  return OneArgCall(ast::Builtin::PCIHasNext, pci, false);
+ast::Expr* CodeGen::PCIHasNext(execution::ast::Identifier pci, bool filtered) {
+  ast::Builtin builtin;
+  if (filtered) {
+    builtin = ast::Builtin ::PCIHasNextFiltered;
+  } else {
+    builtin = ast::Builtin ::PCIHasNext;
+  }
+  return OneArgCall(builtin, pci, false);
 }
 
 
-ast::Expr* CodeGen::PCIAdvance(execution::ast::Identifier pci) {
-  return OneArgCall(ast::Builtin::PCIAdvance, pci, false);
+ast::Expr* CodeGen::PCIAdvance(execution::ast::Identifier pci, bool filtered) {
+  ast::Builtin builtin;
+  if (filtered) {
+    builtin = ast::Builtin ::PCIAdvanceFiltered;
+  } else {
+    builtin = ast::Builtin ::PCIAdvance;
+  }
+  return OneArgCall(builtin, pci, false);
 }
 
 
-// TODO(Amadou): Depending on whether the column is nullable or not, generate @pciGetTypeNull vs @pciGetType
-// Right now, I am always generating null because it's the safest option.
-// Once the catalog accessor is in, lookup the column type to decide what to call.
-ast::Expr* CodeGen::PCIGet(execution::ast::Identifier pci, terrier::type::TypeId type, uint32_t idx) {
+ast::Expr* CodeGen::PCIGet(execution::ast::Identifier pci, terrier::type::TypeId type, bool nullable, uint32_t idx) {
   ast::Builtin builtin;
   switch (type) {
     case terrier::type::TypeId::INTEGER:
-      builtin = ast::Builtin::PCIGetIntNull;
+      builtin = nullable ? ast::Builtin::PCIGetIntNull : ast::Builtin::PCIGetInt;
+      break;
+    case terrier::type::TypeId::TINYINT:
+      builtin = nullable ? ast::Builtin::PCIGetTinyIntNull : ast::Builtin::PCIGetTinyInt;
       break;
     case terrier::type::TypeId::SMALLINT:
-      builtin = ast::Builtin::PCIGetSmallIntNull;
+      builtin = nullable ? ast::Builtin::PCIGetSmallIntNull : ast::Builtin::PCIGetSmallInt;
       break;
     case terrier::type::TypeId::BIGINT:
-      builtin = ast::Builtin::PCIGetBigIntNull;
+      builtin = nullable ? ast::Builtin::PCIGetBigIntNull : ast::Builtin::PCIGetBigInt;
       break;
     case terrier::type::TypeId::DECIMAL:
-      builtin = ast::Builtin ::PCIGetDoubleNull;
+      builtin = nullable ? ast::Builtin ::PCIGetDoubleNull : ast::Builtin::PCIGetDouble;
       break;
     case terrier::type::TypeId::DATE:
-      builtin = ast::Builtin ::PCIGetDateNull;
+      builtin = nullable ? ast::Builtin ::PCIGetDateNull: ast::Builtin::PCIGetDate;
       break;
     case terrier::type::TypeId::VARCHAR:
-      builtin = ast::Builtin ::PCIGetVarlenNull;
+      builtin = nullable ? ast::Builtin ::PCIGetVarlenNull : ast::Builtin::PCIGetVarlen;
       break;
     default:
       // TODO: Support other types.
@@ -215,7 +224,7 @@ ast::Expr *CodeGen::PCIFilter(ast::Identifier pci, terrier::parser::ExpressionTy
   ast::Expr * fun = BuiltinFunction(builtin);
   ast::Expr * pci_expr = MakeExpr(pci);
   ast::Expr * idx_expr = IntLiteral(col_idx);
-  ast::Expr * type_expr = IntLiteral(static_cast<i8>(col_type));
+  ast::Expr * type_expr = IntLiteral(static_cast<int8_t>(col_type));
   util::RegionVector<ast::Expr*> args{{pci_expr, idx_expr, type_expr, filter_val}, Region()};
   return Factory()->NewBuiltinCallExpr(fun, std::move(args));
 }
@@ -457,8 +466,8 @@ ast::Expr* CodeGen::IndexIteratorInit(execution::ast::Identifier iter, uint32_t 
   // @indexIteratorInit(&iter, table_oid, index_oid, execCtx)
   ast::Expr * fun = BuiltinFunction(ast::Builtin::IndexIteratorInit);
   ast::Expr* iter_ptr = PointerTo(iter);
-  ast::Expr* table_oid_expr = IntLiteral(static_cast<i32>(table_oid));
-  ast::Expr* index_oid_expr = IntLiteral(static_cast<i32>(index_oid));
+  ast::Expr* table_oid_expr = IntLiteral(static_cast<int32_t>(table_oid));
+  ast::Expr* index_oid_expr = IntLiteral(static_cast<int32_t>(index_oid));
   ast::Expr* exec_ctx_expr = MakeExpr(exec_ctx_var_);
   util::RegionVector<ast::Expr*> args{{iter_ptr, table_oid_expr, index_oid_expr, exec_ctx_expr}, Region()};
   return Factory()->NewBuiltinCallExpr(fun, std::move(args));
@@ -521,12 +530,12 @@ ast::Expr *CodeGen::PeekValue(const terrier::type::TransientValue &transient_val
     }
     case terrier::type::TypeId::INTEGER: {
       auto val = terrier::type::TransientValuePeeker::PeekInteger(transient_val);
-      return Factory()->NewIntLiteral(DUMMY_POS, static_cast<i32>(val));
+      return Factory()->NewIntLiteral(DUMMY_POS, static_cast<int32_t>(val));
     }
     case terrier::type::TypeId::BIGINT: {
-      // TODO(WAN): the factory's IntLiteral only goes to i32
+      // TODO(WAN): the factory's IntLiteral only goes to int32_t
       auto val = terrier::type::TransientValuePeeker::PeekBigInt(transient_val);
-      return Factory()->NewIntLiteral(DUMMY_POS, static_cast<i32>(val));
+      return Factory()->NewIntLiteral(DUMMY_POS, static_cast<int32_t>(val));
     }
     case terrier::type::TypeId::BOOLEAN: {
       auto val = terrier::type::TransientValuePeeker::PeekBoolean(transient_val);
@@ -587,6 +596,15 @@ ast::Expr* CodeGen::PointerType(execution::ast::Identifier base_type) {
 }
 
 
+ast::Expr* CodeGen::ArrayType(uint64_t num_elems, terrier::execution::ast::BuiltinType::Kind kind) {
+  return Factory()->NewArrayType(DUMMY_POS, IntLiteral(num_elems), BuiltinType(kind));
+}
+
+
+ast::Expr* CodeGen::ArrayAccess(terrier::execution::ast::Identifier arr, uint64_t idx) {
+  return Factory()->NewIndexExpr(DUMMY_POS, MakeExpr(arr), IntLiteral(idx));
+}
+
 #define AGGTYPE(AggName, terrier_type) \
  switch(terrier_type) { \
   case terrier::type::TypeId::TINYINT: \
@@ -604,8 +622,6 @@ ast::Expr* CodeGen::AggregateType(terrier::parser::ExpressionType agg_type, terr
   switch (agg_type) {
     case terrier::parser::ExpressionType::AGGREGATE_COUNT:
       return BuiltinType(ast::BuiltinType::Kind::CountAggregate);
-    case terrier::parser::ExpressionType::AGGREGATE_COUNT_STAR:
-      return BuiltinType(ast::BuiltinType::Kind::CountStarAggregate);
     case terrier::parser::ExpressionType::AGGREGATE_AVG:
       AGGTYPE(AvgAggregate, ret_type);
     case terrier::parser::ExpressionType::AGGREGATE_MIN:
@@ -650,17 +666,17 @@ ast::Expr* CodeGen::MemberExpr(ast::Identifier lhs, ast::Identifier rhs) {
   return Factory()->NewMemberExpr(DUMMY_POS, object, member);
 }
 
-ast::Expr* CodeGen::IntToSql(i64 num) {
+ast::Expr* CodeGen::IntToSql(int64_t num) {
   ast::Expr* int_lit = IntLiteral(num);
   return OneArgCall(ast::Builtin::IntToSql, int_lit);
 }
 
-ast::Expr* CodeGen::FloatToSql(f64 num) {
+ast::Expr* CodeGen::FloatToSql(double num) {
   ast::Expr* float_lit = FloatLiteral(num);
   return OneArgCall(ast::Builtin::FloatToSql, float_lit);
 }
 
-ast::Expr* CodeGen::DateToSql(i16 year, u8 month, u8 day) {
+ast::Expr* CodeGen::DateToSql(int16_t year, uint8_t month, uint8_t day) {
   ast::Expr* fun = BuiltinFunction(ast::Builtin::DateToSql);
   ast::Expr* year_lit = IntLiteral(year);
   ast::Expr* month_lit = IntLiteral(month);
