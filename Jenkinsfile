@@ -19,6 +19,7 @@ pipeline {
                         sh 'cd build && cmake -DCMAKE_BUILD_TYPE=Debug -DTERRIER_USE_ASAN=ON .. && make -j4'
                         sh 'cd build && make check-clang-tidy'
                         sh 'cd build && gtimeout 1h make unittest'
+                        sh 'cd build && gtimeout 1h make check-tpl'
                         sh 'cd build && python ../script/testing/junit/run_junit.py'
                     }
                 }
@@ -36,6 +37,7 @@ pipeline {
                         sh 'cd build && cmake -DCMAKE_BUILD_TYPE=Debug -DTERRIER_USE_ASAN=ON .. && make -j4'
                         sh 'cd build && make check-clang-tidy'
                         sh 'cd build && timeout 1h make unittest'
+                        sh 'cd build && timeout 1h make check-tpl'
                         sh 'cd build && python ../script/testing/junit/run_junit.py'
                     }
                 }
@@ -57,6 +59,7 @@ pipeline {
                         sh 'cd build && cmake -DCMAKE_BUILD_TYPE=Debug -DTERRIER_USE_ASAN=ON .. && make -j4'
                         sh 'cd build && make check-clang-tidy'
                         sh 'cd build && timeout 1h make unittest'
+                        sh 'cd build && timeout 1h make check-tpl'
                         sh 'cd build && python ../script/testing/junit/run_junit.py'
                     }
                 }
@@ -72,6 +75,7 @@ pipeline {
                         sh 'mkdir build'
                         sh 'cd build && cmake -DCMAKE_BUILD_TYPE=Release -DTERRIER_USE_ASAN=OFF .. && make -j4'
                         sh 'cd build && gtimeout 1h make unittest'
+                        sh 'cd build && gtimeout 1h make check-tpl'
                         sh 'cd build && python ../script/testing/junit/run_junit.py --build_type=release'
                     }
                 }
@@ -87,6 +91,7 @@ pipeline {
                         sh 'mkdir build'
                         sh 'cd build && cmake -DCMAKE_BUILD_TYPE=Release -DTERRIER_USE_ASAN=OFF .. && make -j4'
                         sh 'cd build && timeout 1h make unittest'
+                        sh 'cd build && timeout 1h make check-tpl'
                         sh 'cd build && python ../script/testing/junit/run_junit.py --build_type=release'
                     }
                 }
@@ -106,6 +111,7 @@ pipeline {
                         sh 'mkdir build'
                         sh 'cd build && cmake -DCMAKE_BUILD_TYPE=Release -DTERRIER_USE_ASAN=OFF .. && make -j4'
                         sh 'cd build && timeout 1h make unittest'
+                        sh 'cd build && timeout 1h make check-tpl'
                         sh 'cd build && python ../script/testing/junit/run_junit.py --build_type=release'
                     }
                 }
