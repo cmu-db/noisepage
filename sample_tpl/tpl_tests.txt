@@ -45,17 +45,17 @@ return-exp.tpl,false,2
 agg.tpl,true,10
 agg-vec.tpl,true,10
 agg-vec-filter.tpl,true,10
-join.tpl,true,100786
-#parallel-join.tpl,true,0
-#parallel-scan.tpl,true,0
+#join.tpl,true,100786 <Non deterministic>
+#parallel-join.tpl,true,0 <Parallel scan not yet supported>
+#parallel-scan.tpl,true,0 <Parallel scan not yet supported>
 scan-table.tpl,true,500
 scan-table-2.tpl,true,500
 scan-table-3.tpl,true,9950
-scan-table-4.tpl,true,5
+#scan-table-4.tpl,true,5 <Non deterministic>
 scan-vpi-iter.tpl,true,500
 sort.tpl,true,2000
 vec-filter.tpl,true,3000
 output1.tpl,true,500
 scan-index.tpl,true,1
 scan-index-2.tpl,true,1
-join-index.tpl,true,894
+#join-index.tpl,true,894 <Non deterministic>
