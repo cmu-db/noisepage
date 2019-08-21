@@ -13,9 +13,9 @@ class ConjunctionTranslator : public ExpressionTranslator {
    * @param expression expression to translate
    * @param codegen code generator to use
    */
-  ConjunctionTranslator(const terrier::parser::AbstractExpression *expression, CodeGen * codegen);
+  ConjunctionTranslator(const terrier::parser::AbstractExpression *expression, CodeGen *codegen);
 
-  ast::Expr *DeriveExpr(OperatorTranslator * translator) override;
+  ast::Expr *DeriveExpr(OperatorTranslator *translator) override;
 
  private:
   std::unique_ptr<ExpressionTranslator> left_;

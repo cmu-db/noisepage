@@ -1,10 +1,10 @@
-#include "util/test_harness.h"
 #include "execution/sql/value.h"
 #include "planner/plannodes/output_schema.h"
 #include "type/type_id.h"
+#include "util/test_harness.h"
 
-// TODO(Amadou): Currently all checker only work on single integer columns. Ideally, we want them to work on arbitrary expressions,
-// but this is no simple task. We would basically need an expression evaluator on output rows.
+// TODO(Amadou): Currently all checker only work on single integer columns. Ideally, we want them to work on arbitrary
+// expressions, but this is no simple task. We would basically need an expression evaluator on output rows.
 
 namespace terrier::execution::compiler {
 /**
@@ -13,7 +13,7 @@ namespace terrier::execution::compiler {
 class OutputChecker {
  public:
   virtual void CheckCorrectness() = 0;
-  virtual void ProcessBatch(const std::vector<std::vector<sql::Val*>> & output) = 0;
+  virtual void ProcessBatch(const std::vector<std::vector<sql::Val *>> &output) = 0;
 };
 
 /**
@@ -25,8 +25,7 @@ class MultiChecker : public OutputChecker {
    * Constructor
    * @param checkers list of output checkers
    */
-  MultiChecker(std::vector<OutputChecker*> && checkers)
-  : checkers_{std::move(checkers)} {}
+  MultiChecker(std::vector<OutputChecker *> &&checkers) : checkers_{std::move(checkers)} {}
 
   /**
    * Call checkCorrectness on all output checkers
@@ -41,7 +40,7 @@ class MultiChecker : public OutputChecker {
    * Calls all output checkers
    * @param output current output batch
    */
-  void ProcessBatch(const std::vector<std::vector<sql::Val*>> & output) override {
+  void ProcessBatch(const std::vector<std::vector<sql::Val *>> &output) override {
     for (const auto checker : checkers_) {
       checker->ProcessBatch(output);
     }
@@ -49,23 +48,23 @@ class MultiChecker : public OutputChecker {
 
  private:
   // list of checkers
-  std::vector<OutputChecker*> checkers_;
+  std::vector<OutputChecker *> checkers_;
 };
 
-using RowChecker = std::function<void(const std::vector<sql::Val*> &)>;
+using RowChecker = std::function<void(const std::vector<sql::Val *> &)>;
 using CorrectnessFn = std::function<void()>;
 class GenericChecker : public OutputChecker {
  public:
-  GenericChecker(RowChecker row_checker, CorrectnessFn correctness_fn) :
-  row_checker_{row_checker}, correctness_fn_(correctness_fn) {}
+  GenericChecker(RowChecker row_checker, CorrectnessFn correctness_fn)
+      : row_checker_{row_checker}, correctness_fn_(correctness_fn) {}
 
   void CheckCorrectness() override {
     if (bool(correctness_fn_)) correctness_fn_();
   }
 
-  void ProcessBatch(const std::vector<std::vector<sql::Val*>> & output) override {
+  void ProcessBatch(const std::vector<std::vector<sql::Val *>> &output) override {
     if (!bool(row_checker_)) return;
-    for (const auto & vals: output) {
+    for (const auto &vals : output) {
       row_checker_(vals);
     }
   }
@@ -89,17 +88,13 @@ class NumChecker : public OutputChecker {
   /**
    * Checks if the expected number and the received number are the same
    */
-  void CheckCorrectness() override {
-    EXPECT_EQ(curr_count_, expected_count_);
-  }
+  void CheckCorrectness() override { EXPECT_EQ(curr_count_, expected_count_); }
 
   /**
    * Increment the current count
    * @param output current output batch
    */
-  void ProcessBatch(const std::vector<std::vector<sql::Val*>> & output) override {
-    curr_count_ += output.size();
-  }
+  void ProcessBatch(const std::vector<std::vector<sql::Val *>> &output) override { curr_count_ += output.size(); }
 
  private:
   // Current number of tuples
@@ -114,12 +109,13 @@ class NumChecker : public OutputChecker {
  */
 class SingleIntComparisonChecker : public OutputChecker {
  public:
-  SingleIntComparisonChecker(std::function<bool(int64_t, int64_t)> fn, uint32_t col_idx, int64_t rhs) : comp_fn_(fn), col_idx_{col_idx}, rhs_{rhs} {}
+  SingleIntComparisonChecker(std::function<bool(int64_t, int64_t)> fn, uint32_t col_idx, int64_t rhs)
+      : comp_fn_(fn), col_idx_{col_idx}, rhs_{rhs} {}
 
   void CheckCorrectness() override {}
 
-  void ProcessBatch(const std::vector<std::vector<sql::Val*>> & output) override {
-    for (const auto & vals: output) {
+  void ProcessBatch(const std::vector<std::vector<sql::Val *>> &output) override {
+    for (const auto &vals : output) {
       auto int_val = static_cast<const sql::Integer *>(vals[col_idx_]);
       EXPECT_TRUE(comp_fn_(int_val->val, rhs_));
     }
@@ -152,8 +148,8 @@ class SingleIntJoinChecker : public OutputChecker {
    * Checks that the two joined columns are the same
    * @param output current output
    */
-  void ProcessBatch(const std::vector<std::vector<sql::Val*>> & output) override {
-    for (const auto & vals: output) {
+  void ProcessBatch(const std::vector<std::vector<sql::Val *>> &output) override {
+    for (const auto &vals : output) {
       auto val1 = static_cast<const sql::Integer *>(vals[col1_]);
       auto val2 = static_cast<const sql::Integer *>(vals[col2_]);
       EXPECT_EQ(val1->val, val2->val);
@@ -180,16 +176,14 @@ class SingleIntSumChecker : public OutputChecker {
   /**
    * Checks of the expected sum and the received sum are the same
    */
-  void CheckCorrectness() override {
-    EXPECT_EQ(curr_sum_, expected_);
-  }
+  void CheckCorrectness() override { EXPECT_EQ(curr_sum_, expected_); }
 
   /**
    * Update the current sum
    * @param output current output batch
    */
-  void ProcessBatch(const std::vector<std::vector<sql::Val*>> & output) override {
-    for (const auto & vals: output) {
+  void ProcessBatch(const std::vector<std::vector<sql::Val *>> &output) override {
+    for (const auto &vals : output) {
       auto int_val = static_cast<sql::Integer *>(vals[col_idx_]);
       if (!int_val->is_null) curr_sum_ += int_val->val;
     }
@@ -221,8 +215,8 @@ class SingleIntSortChecker : public OutputChecker {
    * Compares each value with the previous one to make sure they are sorted
    * @param output current output batch.
    */
-  void ProcessBatch(const std::vector<std::vector<sql::Val*>> & output) override {
-    for (const auto &vals: output) {
+  void ProcessBatch(const std::vector<std::vector<sql::Val *>> &output) override {
+    for (const auto &vals : output) {
       auto int_val = static_cast<sql::Integer *>(vals[col_idx_]);
       if (int_val->is_null) {
         EXPECT_TRUE(prev_val_.is_null);
@@ -254,10 +248,11 @@ class MultiOutputCallback {
    * OutputCallback function
    */
   void operator()(byte *tuples, uint32_t num_tuples, uint32_t tuple_size) {
-    for (auto & callback : callbacks_) {
+    for (auto &callback : callbacks_) {
       callback(tuples, num_tuples, tuple_size);
     }
   }
+
  private:
   std::vector<exec::OutputCallback> callbacks_;
 };
@@ -272,9 +267,8 @@ class OutputStore {
    * @param checker checker to run
    * @param schema output schema of the query.
    */
-  OutputStore(OutputChecker * checker, const terrier::planner::OutputSchema * schema)
-  : schema_(schema)
-  , checker_(checker){}
+  OutputStore(OutputChecker *checker, const terrier::planner::OutputSchema *schema)
+      : schema_(schema), checker_(checker) {}
 
   /**
    * OutputCallback function. This will gather the output in a vector.
@@ -282,7 +276,7 @@ class OutputStore {
   void operator()(byte *tuples, uint32_t num_tuples, uint32_t tuple_size) {
     for (uint32_t row = 0; row < num_tuples; row++) {
       uint32_t curr_offset = 0;
-      std::vector<sql::Val*> vals;
+      std::vector<sql::Val *> vals;
       for (uint16_t col = 0; col < schema_->GetColumns().size(); col++) {
         // TODO(Amadou): Figure out to print other types.
         switch (schema_->GetColumns()[col].GetType()) {
@@ -327,10 +321,10 @@ class OutputStore {
 
  private:
   // Current output batch
-  std::vector<std::vector<sql::Val*>> output;
+  std::vector<std::vector<sql::Val *>> output;
   // output schema
   const terrier::planner::OutputSchema *schema_;
   // checker to run
-  OutputChecker * checker_;
+  OutputChecker *checker_;
 };
-}
+}  // namespace terrier::execution::compiler

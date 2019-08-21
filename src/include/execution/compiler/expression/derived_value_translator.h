@@ -13,8 +13,8 @@ class DerivedValueTranslator : public ExpressionTranslator {
    * @param expression expression to translate
    * @param codegen code generator to use
    */
-  DerivedValueTranslator(const terrier::parser::AbstractExpression *expression, CodeGen * codegen);
+  DerivedValueTranslator(const terrier::parser::AbstractExpression *expression, CodeGen *codegen);
 
-  ast::Expr *DeriveExpr(OperatorTranslator * translator) override;
+  ast::Expr *DeriveExpr(OperatorTranslator *translator) override;
 };
 }  // namespace terrier::execution::compiler

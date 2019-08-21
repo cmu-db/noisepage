@@ -210,6 +210,15 @@ class IndexSchema {
         is_ready_(false),
         is_live_(true) {
     TERRIER_ASSERT((is_primary && is_unique) || (!is_primary), "is_primary requires is_unique to be true as well.");
+    for (uint32_t i = 0; i < columns_.size(); i++) {
+      // If not all columns assigned OIDs, then clear the map because this is
+      // a definition of a new/modified table not a catalog generated schema.
+      if (columns_[i].Oid() == catalog::INVALID_INDEXKEYCOL_OID) {
+        key_oid_to_offset.clear();
+        return;
+      }
+      key_oid_to_offset[columns_[i].Oid()] = i;
+    }
   }
 
   IndexSchema() = default;
@@ -239,6 +248,16 @@ class IndexSchema {
     // TODO(John): Should this be a TERRIER_ASSERT to have the same semantics
     // as the other accessor methods above?
     throw std::out_of_range("Column name doesn't exist");
+  }
+
+  /**
+   * @param col_oid identifier of a Column in the schema
+   * @return description of the schema for a specific column
+   */
+  const Column &GetColumn(const indexkeycol_oid_t col_oid) const {
+    TERRIER_ASSERT(key_oid_to_offset.count(col_oid) > 0, "col_oid does not exist in this Schema");
+    const uint32_t col_offset = key_oid_to_offset.at(col_oid);
+    return columns_[col_offset];
   }
 
   /**
@@ -316,6 +335,7 @@ class IndexSchema {
   bool is_valid_;
   bool is_ready_;
   bool is_live_;
+  std::unordered_map<indexkeycol_oid_t, uint32_t> key_oid_to_offset;
 
   void SetValid(const bool is_valid) { is_valid_ = is_valid; }
   void SetReady(const bool is_ready) { is_ready_ = is_ready; }

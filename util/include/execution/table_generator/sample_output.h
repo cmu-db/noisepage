@@ -20,11 +20,10 @@ class SampleOutput {
    */
   void InitTestOutput() {
     // Sample output formats
-    catalog::col_oid_t col_oid{0};
-    planner::OutputSchema::Column int_col{"dummy", type::TypeId::INTEGER, true, col_oid};
-    planner::OutputSchema::Column real_col{"dummy", type::TypeId::DECIMAL, true, col_oid};
-    planner::OutputSchema::Column date_col{"dummy", type::TypeId::DATE, true, col_oid};
-    planner::OutputSchema::Column string_col{"dummy", type::TypeId::VARCHAR, true, col_oid};
+    planner::OutputSchema::Column int_col{type::TypeId::INTEGER, true, nullptr};
+    planner::OutputSchema::Column real_col{type::TypeId::DECIMAL, true, nullptr};
+    planner::OutputSchema::Column date_col{type::TypeId::DATE, true, nullptr};
+    planner::OutputSchema::Column string_col{type::TypeId::VARCHAR, true, nullptr};
 
     // Create schemas with up to 10 integer columns.
     for (uint32_t i = 0; i < 10; i++) {
@@ -53,11 +52,10 @@ class SampleOutput {
 
  private:
   void InitTPCHOutput() {
-    catalog::col_oid_t col_oid{0};
-    planner::OutputSchema::Column int_col{"dummy", type::TypeId::INTEGER, true, col_oid};
-    planner::OutputSchema::Column real_col{"dummy", type::TypeId::DECIMAL, true, col_oid};
-    planner::OutputSchema::Column date_col{"dummy", type::TypeId::DATE, true, col_oid};
-    planner::OutputSchema::Column string_col{"dummy", type::TypeId::VARCHAR, true, col_oid};
+    planner::OutputSchema::Column int_col{type::TypeId::INTEGER, true, nullptr};
+    planner::OutputSchema::Column real_col{type::TypeId::DECIMAL, true, nullptr};
+    planner::OutputSchema::Column date_col{type::TypeId::DATE, true, nullptr};
+    planner::OutputSchema::Column string_col{type::TypeId::VARCHAR, true, nullptr};
     // Q1 (two strings, 7 reals, 1 int)
     {
       std::vector<planner::OutputSchema::Column> cols{};

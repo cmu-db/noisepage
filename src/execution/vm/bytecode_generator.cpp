@@ -537,6 +537,10 @@ void BytecodeGenerator::VisitBuiltinTableIterCall(ast::CallExpr *call, ast::Buil
       ExecutionResult()->SetDestination(cond.ValueOf());
       break;
     }
+    case ast::Builtin::TableIterReset: {
+      emitter()->Emit(Bytecode::TableVectorIteratorReset, iter);
+      break;
+    }
     case ast::Builtin::TableIterGetPCI: {
       ast::Type *pci_type = ast::BuiltinType::Get(ctx, ast::BuiltinType::ProjectedColumnsIterator);
       LocalVar pci = ExecutionResult()->GetOrCreateDestination(pci_type);
@@ -1785,6 +1789,7 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
     case ast::Builtin::TableIterInit:
     case ast::Builtin::TableIterInitBind:
     case ast::Builtin::TableIterAdvance:
+    case ast::Builtin::TableIterReset:
     case ast::Builtin::TableIterGetPCI:
     case ast::Builtin::TableIterClose: {
       VisitBuiltinTableIterCall(call, builtin);

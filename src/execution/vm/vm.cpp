@@ -513,6 +513,12 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {
     DISPATCH_NEXT();
   }
 
+  OP(TableVectorIteratorReset) : {
+    auto *iter = frame->LocalAt<sql::TableVectorIterator *>(READ_LOCAL_ID());
+    OpTableVectorIteratorReset(iter);
+    DISPATCH_NEXT();
+  }
+
   OP(TableVectorIteratorFree) : {
     auto *iter = frame->LocalAt<sql::TableVectorIterator *>(READ_LOCAL_ID());
     OpTableVectorIteratorFree(iter);

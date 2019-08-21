@@ -1,14 +1,13 @@
 #include "execution/compiler/expression/unary_translator.h"
 #include "execution/compiler/translator_factory.h"
 
-
 namespace terrier::execution::compiler {
 
-UnaryTranslator::UnaryTranslator(const terrier::parser::AbstractExpression *expression, CodeGen * codegen)
-    : ExpressionTranslator(expression, codegen)
-    , child_(TranslatorFactory::CreateExpressionTranslator(expression->GetChild(0).get(), codegen)){}
+UnaryTranslator::UnaryTranslator(const terrier::parser::AbstractExpression *expression, CodeGen *codegen)
+    : ExpressionTranslator(expression, codegen),
+      child_(TranslatorFactory::CreateExpressionTranslator(expression->GetChild(0).get(), codegen)) {}
 
-ast::Expr *UnaryTranslator::DeriveExpr(OperatorTranslator * translator) {
+ast::Expr *UnaryTranslator::DeriveExpr(OperatorTranslator *translator) {
   auto *child_expr = child_->DeriveExpr(translator);
   parsing::Token::Type type;
   switch (expression_->GetExpressionType()) {

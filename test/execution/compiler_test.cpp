@@ -1,39 +1,39 @@
 #include "catalog/catalog_defs.h"
 
-#include <memory>
 #include <functional>
+#include <limits>
+#include <memory>
 #include <string>
 #include <utility>
 #include <vector>
-#include <limits>
 #include "execution/ast/ast_dump.h"
 
-#include "execution/sql_test.h"  // NOLINT
 #include "execution/compiler/compiler.h"
 #include "execution/compiler/query.h"
 #include "execution/exec/execution_context.h"
 #include "execution/exec/output.h"
 #include "execution/sema/sema.h"
 #include "execution/sql/value.h"
+#include "execution/sql_test.h"  // NOLINT
 #include "execution/vm/bytecode_generator.h"
 #include "execution/vm/bytecode_module.h"
-#include "execution/vm/module.h"
 #include "execution/vm/llvm_engine.h"
+#include "execution/vm/module.h"
 
+#include "planner/plannodes/aggregate_plan_node.h"
+#include "planner/plannodes/hash_join_plan_node.h"
+#include "planner/plannodes/index_join_plan_node.h"
 #include "planner/plannodes/nested_loop_join_plan_node.h"
 #include "planner/plannodes/order_by_plan_node.h"
 #include "planner/plannodes/output_schema.h"
 #include "planner/plannodes/seq_scan_plan_node.h"
-#include "planner/plannodes/index_join_plan_node.h"
-#include "planner/plannodes/aggregate_plan_node.h"
-#include "planner/plannodes/hash_join_plan_node.h"
 #include "type/transient_value.h"
 #include "type/transient_value_factory.h"
 #include "type/type_id.h"
 
 #include "execution/compiler/expression_util.h"
-#include "execution/compiler/output_schema_util.h"
 #include "execution/compiler/output_checker.h"
+#include "execution/compiler/output_schema_util.h"
 
 namespace terrier::execution::compiler::test {
 using namespace terrier::planner;
@@ -41,7 +41,6 @@ using namespace terrier::parser;
 
 class CompilerTest : public SqlBasedTest {
  public:
-
   void SetUp() override {
     SqlBasedTest::SetUp();
     // Make the test tables
@@ -50,10 +49,9 @@ class CompilerTest : public SqlBasedTest {
     table_generator.GenerateTestTables();
   }
 
-  static void CompileAndRun(terrier::planner::AbstractPlanNode *node, exec::ExecutionContext * exec_ctx) {
+  static void CompileAndRun(terrier::planner::AbstractPlanNode *node, exec::ExecutionContext *exec_ctx) {
     // Create the query object, whose region must outlive all the processing.
     execution::compiler::Query query(*node, exec_ctx);
-
 
     // Compile and check for errors
     Compiler compiler(&query);
@@ -77,11 +75,10 @@ class CompilerTest : public SqlBasedTest {
           "(*ExecutionContext)->int32");
       return;
     }
-    //EXECUTION_LOG_INFO("VM main() returned: {}", main(exec_ctx));
+    EXECUTION_LOG_INFO("VM main() returned: {}", main(exec_ctx));
   }
 };
 
-/*
 // NOLINTNEXTLINE
 TEST_F(CompilerTest, SimpleSeqScanTest) {
   // SELECT col1, col2, col1 * col2, col1 >= 100*col2 FROM test_1 WHERE col1 < 500 AND col2 >= 3;
@@ -108,21 +105,20 @@ TEST_F(CompilerTest, SimpleSeqScanTest) {
     auto predicate = ExpressionUtil::ConjunctionAnd(comp1, comp2);
     // Build
     SeqScanPlanNode::Builder builder;
-    seq_scan =
-        builder.SetOutputSchema(schema)
-            .SetScanPredicate(predicate)
-            .SetIsParallelFlag(false)
-            .SetIsForUpdateFlag(false)
-            .SetNamespaceOid(NSOid())
-            .SetTableOid(table_oid)
-            .Build();
+    seq_scan = builder.SetOutputSchema(schema)
+                   .SetScanPredicate(predicate)
+                   .SetIsParallelFlag(false)
+                   .SetIsForUpdateFlag(false)
+                   .SetNamespaceOid(NSOid())
+                   .SetTableOid(table_oid)
+                   .Build();
   }
 
   // Make the output checkers
   SingleIntComparisonChecker col1_checker(std::less<int64_t>(), 0, 500);
   SingleIntComparisonChecker col2_checker(std::greater_equal<int64_t>(), 1, 3);
 
-  MultiChecker multi_checker{std::vector<OutputChecker*>{&col1_checker, &col2_checker}};
+  MultiChecker multi_checker{std::vector<OutputChecker *>{&col1_checker, &col2_checker}};
 
   // Create the execution context
   OutputStore store{&multi_checker, seq_scan->GetOutputSchema().get()};
@@ -134,9 +130,7 @@ TEST_F(CompilerTest, SimpleSeqScanTest) {
   CompileAndRun(seq_scan.get(), exec_ctx.get());
   multi_checker.CheckCorrectness();
 }
-*/
 
-/*
 // NOLINTNEXTLINE
 TEST_F(CompilerTest, SimpleAggregateTest) {
   // SELECT col2, SUM(col1) FROM test_1 WHERE col1 < 1000 GROUP BY col2;
@@ -157,14 +151,13 @@ TEST_F(CompilerTest, SimpleAggregateTest) {
     auto predicate = ExpressionUtil::ComparisonLt(col1, ExpressionUtil::Constant(1000));
     // Build
     SeqScanPlanNode::Builder builder;
-    seq_scan =
-        builder.SetOutputSchema(schema)
-            .SetScanPredicate(predicate)
-            .SetIsParallelFlag(false)
-            .SetIsForUpdateFlag(false)
-            .SetNamespaceOid(NSOid())
-            .SetTableOid(table_oid)
-            .Build();
+    seq_scan = builder.SetOutputSchema(schema)
+                   .SetScanPredicate(predicate)
+                   .SetIsParallelFlag(false)
+                   .SetIsForUpdateFlag(false)
+                   .SetNamespaceOid(NSOid())
+                   .SetTableOid(table_oid)
+                   .Build();
   }
   // Make the aggregate
   std::shared_ptr<AbstractPlanNode> agg;
@@ -184,19 +177,18 @@ TEST_F(CompilerTest, SimpleAggregateTest) {
     auto schema = agg_out.MakeSchema();
     // Build
     AggregatePlanNode::Builder builder;
-    agg =
-        builder.SetOutputSchema(schema)
-            .AddGroupByTerm(agg_out.GetGroupByTerm("col2"))
-            .AddAggregateTerm(agg_out.GetAggTerm("col1"))
-            .AddChild(seq_scan)
-            .SetAggregateStrategyType(AggregateStrategyType::HASH)
-            .SetHavingClausePredicate(nullptr)
-            .Build();
+    agg = builder.SetOutputSchema(schema)
+              .AddGroupByTerm(agg_out.GetGroupByTerm("col2"))
+              .AddAggregateTerm(agg_out.GetAggTerm("col1"))
+              .AddChild(seq_scan)
+              .SetAggregateStrategyType(AggregateStrategyType::HASH)
+              .SetHavingClausePredicate(nullptr)
+              .Build();
   }
   // Make the checkers
   NumChecker num_checker{10};
-  SingleIntSumChecker sum_checker{1, (1000*999) / 2};
-  MultiChecker multi_checker{std::vector<OutputChecker*>{&num_checker, &sum_checker}};
+  SingleIntSumChecker sum_checker{1, (1000 * 999) / 2};
+  MultiChecker multi_checker{std::vector<OutputChecker *>{&num_checker, &sum_checker}};
 
   // Compile and Run
   OutputStore store{&multi_checker, agg->GetOutputSchema().get()};
@@ -208,9 +200,7 @@ TEST_F(CompilerTest, SimpleAggregateTest) {
   CompileAndRun(agg.get(), exec_ctx.get());
   multi_checker.CheckCorrectness();
 }
-*/
 
-/*
 // NOLINTNEXTLINE
 TEST_F(CompilerTest, SimpleAggregateHavingTest) {
   // SELECT col2, SUM(col1) FROM test_1 WHERE col1 < 1000 GROUP BY col2 HAVING col2 >= 3 AND SUM(col1) < 50000;
@@ -231,14 +221,13 @@ TEST_F(CompilerTest, SimpleAggregateHavingTest) {
     auto predicate = ExpressionUtil::ComparisonLt(col1, ExpressionUtil::Constant(1000));
     // Build
     SeqScanPlanNode::Builder builder;
-    seq_scan =
-        builder.SetOutputSchema(schema)
-            .SetScanPredicate(predicate)
-            .SetIsParallelFlag(false)
-            .SetIsForUpdateFlag(false)
-            .SetNamespaceOid(NSOid())
-            .SetTableOid(table_oid)
-            .Build();
+    seq_scan = builder.SetOutputSchema(schema)
+                   .SetScanPredicate(predicate)
+                   .SetIsParallelFlag(false)
+                   .SetIsForUpdateFlag(false)
+                   .SetNamespaceOid(NSOid())
+                   .SetTableOid(table_oid)
+                   .Build();
   }
   // Make the aggregate
   std::shared_ptr<AbstractPlanNode> agg;
@@ -258,24 +247,24 @@ TEST_F(CompilerTest, SimpleAggregateHavingTest) {
     auto schema = agg_out.MakeSchema();
     // Make the having clause
     auto having1 = ExpressionUtil::ComparisonGe(agg_out.GetGroupByTermForOutput("col2"), ExpressionUtil::Constant(3));
-    auto having2 = ExpressionUtil::ComparisonLt(agg_out.GetAggTermForOutput("sum_col1"), ExpressionUtil::Constant(50000));
+    auto having2 =
+        ExpressionUtil::ComparisonLt(agg_out.GetAggTermForOutput("sum_col1"), ExpressionUtil::Constant(50000));
     auto having = ExpressionUtil::ConjunctionAnd(having1, having2);
     // Build
     AggregatePlanNode::Builder builder;
-    agg =
-        builder.SetOutputSchema(schema)
-            .AddGroupByTerm(agg_out.GetGroupByTerm("col2"))
-            .AddAggregateTerm(agg_out.GetAggTerm("col1"))
-            .AddChild(seq_scan)
-            .SetAggregateStrategyType(AggregateStrategyType::HASH)
-            .SetHavingClausePredicate(having)
-            .Build();
+    agg = builder.SetOutputSchema(schema)
+              .AddGroupByTerm(agg_out.GetGroupByTerm("col2"))
+              .AddAggregateTerm(agg_out.GetAggTerm("col1"))
+              .AddChild(seq_scan)
+              .SetAggregateStrategyType(AggregateStrategyType::HASH)
+              .SetHavingClausePredicate(having)
+              .Build();
   }
   // Make the checkers
-  RowChecker row_checker = [](const std::vector<sql::Val*> vals) {
+  RowChecker row_checker = [](const std::vector<sql::Val *> vals) {
     // Read cols
-    auto col2 = static_cast<sql::Integer*>(vals[0]);
-    auto sum_col1 = static_cast<sql::Integer*>(vals[1]);
+    auto col2 = static_cast<sql::Integer *>(vals[0]);
+    auto sum_col1 = static_cast<sql::Integer *>(vals[1]);
     ASSERT_FALSE(col2->is_null || sum_col1->is_null);
     // Check col2 >= 3
     ASSERT_GE(col2->val, 3);
@@ -295,9 +284,6 @@ TEST_F(CompilerTest, SimpleAggregateHavingTest) {
   CompileAndRun(agg.get(), exec_ctx.get());
   checker.CheckCorrectness();
 }
-*/
-
-
 
 // NOLINTNEXTLINE
 TEST_F(CompilerTest, SimpleHashJoinTest) {
@@ -324,14 +310,13 @@ TEST_F(CompilerTest, SimpleHashJoinTest) {
     auto predicate = ExpressionUtil::ComparisonLt(col1, ExpressionUtil::Constant(1000));
     // Build
     SeqScanPlanNode::Builder builder;
-    seq_scan1 =
-        builder.SetOutputSchema(schema)
-            .SetScanPredicate(predicate)
-            .SetIsParallelFlag(false)
-            .SetIsForUpdateFlag(false)
-            .SetNamespaceOid(NSOid())
-            .SetTableOid(table_oid1)
-            .Build();
+    seq_scan1 = builder.SetOutputSchema(schema)
+                    .SetScanPredicate(predicate)
+                    .SetIsParallelFlag(false)
+                    .SetIsForUpdateFlag(false)
+                    .SetNamespaceOid(NSOid())
+                    .SetTableOid(table_oid1)
+                    .Build();
   }
   // Make the second seq scan
   std::shared_ptr<AbstractPlanNode> seq_scan2;
@@ -346,14 +331,13 @@ TEST_F(CompilerTest, SimpleHashJoinTest) {
     auto predicate = ExpressionUtil::ComparisonLt(col1, ExpressionUtil::Constant(80));
     // Build
     SeqScanPlanNode::Builder builder;
-    seq_scan2 =
-        builder.SetOutputSchema(schema)
-            .SetScanPredicate(predicate)
-            .SetIsParallelFlag(false)
-            .SetIsForUpdateFlag(false)
-            .SetNamespaceOid(NSOid())
-            .SetTableOid(table_oid2)
-            .Build();
+    seq_scan2 = builder.SetOutputSchema(schema)
+                    .SetScanPredicate(predicate)
+                    .SetIsParallelFlag(false)
+                    .SetIsForUpdateFlag(false)
+                    .SetNamespaceOid(NSOid())
+                    .SetTableOid(table_oid2)
+                    .Build();
   }
   // Make hash join
   std::shared_ptr<AbstractPlanNode> hash_join;
@@ -377,13 +361,14 @@ TEST_F(CompilerTest, SimpleHashJoinTest) {
     auto predicate = ExpressionUtil::ComparisonEq(t1_col1, t2_col1);
     // Build
     HashJoinPlanNode::Builder builder;
-    hash_join =
-        builder.AddChild(seq_scan1).AddChild(seq_scan2)
-        .SetOutputSchema(schema)
-        .AddLeftHashKey(t1_col1).AddRightHashKey(t2_col1)
-        .SetJoinType(LogicalJoinType::INNER)
-        .SetJoinPredicate(predicate)
-        .Build();
+    hash_join = builder.AddChild(seq_scan1)
+                    .AddChild(seq_scan2)
+                    .SetOutputSchema(schema)
+                    .AddLeftHashKey(t1_col1)
+                    .AddRightHashKey(t2_col1)
+                    .SetJoinType(LogicalJoinType::INNER)
+                    .SetJoinPredicate(predicate)
+                    .Build();
   }
   // Compile and Run
   // 80 hundred rows should be outputted because of the WHERE clause
@@ -391,13 +376,13 @@ TEST_F(CompilerTest, SimpleHashJoinTest) {
   // The 4th column is the sum of the 1nd and 3rd columns
   uint32_t num_output_rows{0};
   uint32_t num_expected_rows{80};
-  RowChecker row_checker = [&num_output_rows, num_expected_rows](const std::vector<sql::Val*> vals) {
+  RowChecker row_checker = [&num_output_rows, num_expected_rows](const std::vector<sql::Val *> vals) {
     // Read cols
-    auto col1 = static_cast<sql::Integer*>(vals[0]);
-    auto col2 = static_cast<sql::Integer*>(vals[1]);
-    auto col3 = static_cast<sql::Integer*>(vals[2]);
-    auto col4 = static_cast<sql::Integer*>(vals[3]);
-    ASSERT_FALSE(col1->is_null || col2->is_null || col3->is_null || col4->is_null);
+    auto col1 = static_cast<sql::Integer *>(vals[0]);
+    auto col2 = static_cast<sql::Integer *>(vals[1]);
+    auto col3 = static_cast<sql::Integer *>(vals[2]);
+    auto col4 = static_cast<sql::Integer *>(vals[3]);
+    ASSERT_FALSE(col1->is_null || col2->is_null);
     // Check join cols
     ASSERT_EQ(col1->val, col2->val);
     // Check that col4 = col1 + col3
@@ -406,10 +391,9 @@ TEST_F(CompilerTest, SimpleHashJoinTest) {
     num_output_rows++;
     ASSERT_LE(num_output_rows, num_expected_rows);
   };
-  CorrectnessFn correcteness_fn = [&num_output_rows, num_expected_rows](){
+  CorrectnessFn correcteness_fn = [&num_output_rows, num_expected_rows]() {
     ASSERT_EQ(num_output_rows, num_expected_rows);
   };
-
 
   GenericChecker checker(row_checker, correcteness_fn);
 
@@ -422,22 +406,20 @@ TEST_F(CompilerTest, SimpleHashJoinTest) {
   CompileAndRun(hash_join.get(), exec_ctx.get());
   checker.CheckCorrectness();
 }
-/*
 
 // NOLINTNEXTLINE
 TEST_F(CompilerTest, SimpleSortTest) {
   // SELECT col1, col2, col1 + col2 FROM test_1 WHERE col1 < 500 ORDER BY col2 ASC, col1 - col2 DESC
   // Get accessor
   auto accessor = MakeAccessor();
-  auto * catalog_table = accessor->GetUserTable("test_1");
-
-  // Make the seq scan
+  auto table_oid = accessor->GetTableOid(NSOid(), "test_1");
+  auto table_schema = accessor->GetSchema(table_oid);
   std::shared_ptr<AbstractPlanNode> seq_scan;
   OutputSchemaHelper seq_scan_out{0};
   {
     // Get Table columns
-    auto col1 = ExpressionUtil::TVE(0, catalog_table->ColNumToOffset(0), terrier::type::TypeId::INTEGER);
-    auto col2 = ExpressionUtil::TVE(0, catalog_table->ColNumToOffset(1), terrier::type::TypeId::INTEGER);
+    auto col1 = ExpressionUtil::CVE(table_schema.GetColumn("colA").Oid(), type::TypeId::INTEGER);
+    auto col2 = ExpressionUtil::CVE(table_schema.GetColumn("colB").Oid(), type::TypeId::INTEGER);
     seq_scan_out.AddOutput("col1", col1);
     seq_scan_out.AddOutput("col2", col2);
     auto schema = seq_scan_out.MakeSchema();
@@ -445,15 +427,13 @@ TEST_F(CompilerTest, SimpleSortTest) {
     auto predicate = ExpressionUtil::ComparisonLt(col1, ExpressionUtil::Constant(500));
     // Build
     SeqScanPlanNode::Builder builder;
-    seq_scan =
-        builder.SetOutputSchema(schema)
-            .SetScanPredicate(predicate)
-            .SetIsParallelFlag(false)
-            .SetIsForUpdateFlag(false)
-            .SetDatabaseOid(accessor->GetDBOid())
-            .SetNamespaceOid(accessor->GetNSOid())
-            .SetTableOid(catalog_table->Oid())
-            .Build();
+    seq_scan = builder.SetOutputSchema(schema)
+                   .SetScanPredicate(predicate)
+                   .SetIsParallelFlag(false)
+                   .SetIsForUpdateFlag(false)
+                   .SetNamespaceOid(NSOid())
+                   .SetTableOid(table_oid)
+                   .Build();
   }
   // Order By
   std::shared_ptr<AbstractPlanNode> order_by;
@@ -473,24 +453,24 @@ TEST_F(CompilerTest, SimpleSortTest) {
     SortKey clause2{diff, OrderByOrderingType::DESC};
     // Build
     OrderByPlanNode::Builder builder;
-    order_by =
-        builder.SetOutputSchema(schema)
-        .AddChild(seq_scan)
-        .AddSortKey(clause1.first, clause1.second)
-        .AddSortKey(clause2.first, clause2.second)
-        .Build();
+    order_by = builder.SetOutputSchema(schema)
+                   .AddChild(seq_scan)
+                   .AddSortKey(clause1.first, clause1.second)
+                   .AddSortKey(clause2.first, clause2.second)
+                   .Build();
   }
   // Checkers:
   // There should be 500 output rows, where col1 < 500.
   // The output should be sorted by col2 ASC, then col1 DESC.
   uint32_t num_output_rows{0};
   uint32_t num_expected_rows{500};
-  i64 curr_col1{std::numeric_limits<i64>::min()};
-  i64 curr_col2{std::numeric_limits<i64>::min()};
-  RowChecker row_checker = [&num_output_rows, &curr_col1, &curr_col2, num_expected_rows](const std::vector<sql::Val*> vals) {
+  int64_t curr_col1{std::numeric_limits<int64_t>::max()};
+  int64_t curr_col2{std::numeric_limits<int64_t>::min()};
+  RowChecker row_checker = [&num_output_rows, &curr_col1, &curr_col2,
+                            num_expected_rows](const std::vector<sql::Val *> vals) {
     // Read cols
-    auto col1 = static_cast<sql::Integer*>(vals[0]);
-    auto col2 = static_cast<sql::Integer*>(vals[1]);
+    auto col1 = static_cast<sql::Integer *>(vals[0]);
+    auto col2 = static_cast<sql::Integer *>(vals[1]);
     ASSERT_FALSE(col1->is_null || col2->is_null);
     // Check col1 and number of outputs
     ASSERT_LT(col1->val, 500);
@@ -505,7 +485,7 @@ TEST_F(CompilerTest, SimpleSortTest) {
     curr_col1 = col1->val;
     curr_col2 = col2->val;
   };
-  CorrectnessFn correcteness_fn = [&num_output_rows, num_expected_rows](){
+  CorrectnessFn correcteness_fn = [&num_output_rows, num_expected_rows]() {
     ASSERT_EQ(num_output_rows, num_expected_rows);
   };
   GenericChecker checker(row_checker, correcteness_fn);
@@ -525,56 +505,54 @@ TEST_F(CompilerTest, SimpleSortTest) {
 TEST_F(CompilerTest, SimpleNestedLoopJoinTest) {
   // SELECT t1.col1, t2.col1, t2.col2, t1.col1 + t2.col2 FROM t1 INNER JOIN t2 ON t1.col1=t2.col1
   // WHERE t1.col1 < 500 AND t2.col1 < 80
-  // TODO(Amadou): Refactor simple join tests because of their similarity.
+  // Get accessor
   auto accessor = MakeAccessor();
-  auto * catalog_table1 = accessor->GetUserTable("test_1");
-  auto * catalog_table2 = accessor->GetUserTable("test_2");
+  auto table_oid1 = accessor->GetTableOid(NSOid(), "test_1");
+  auto table_oid2 = accessor->GetTableOid(NSOid(), "test_2");
+  auto table_schema1 = accessor->GetSchema(table_oid1);
+  auto table_schema2 = accessor->GetSchema(table_oid2);
 
   std::shared_ptr<AbstractPlanNode> seq_scan1;
   OutputSchemaHelper seq_scan_out1{0};
   {
     // Get Table columns
-    auto col1 = ExpressionUtil::TVE(0, catalog_table1->ColNumToOffset(0), terrier::type::TypeId::INTEGER);
-    auto col2 = ExpressionUtil::TVE(0, catalog_table1->ColNumToOffset(1), terrier::type::TypeId::INTEGER);
+    auto col1 = ExpressionUtil::CVE(table_schema1.GetColumn("colA").Oid(), type::TypeId::INTEGER);
+    auto col2 = ExpressionUtil::CVE(table_schema1.GetColumn("colB").Oid(), type::TypeId::INTEGER);
     seq_scan_out1.AddOutput("col1", col1);
     seq_scan_out1.AddOutput("col2", col2);
     auto schema = seq_scan_out1.MakeSchema();
     // Make predicate
-    auto predicate = ExpressionUtil::ComparisonLt(col1, ExpressionUtil::Constant(500));
+    auto predicate = ExpressionUtil::ComparisonLt(col1, ExpressionUtil::Constant(1000));
     // Build
     SeqScanPlanNode::Builder builder;
-    seq_scan1 =
-        builder.SetOutputSchema(schema)
-            .SetScanPredicate(predicate)
-            .SetIsParallelFlag(false)
-            .SetIsForUpdateFlag(false)
-            .SetDatabaseOid(accessor->GetDBOid())
-            .SetNamespaceOid(accessor->GetNSOid())
-            .SetTableOid(catalog_table1->Oid())
-            .Build();
+    seq_scan1 = builder.SetOutputSchema(schema)
+                    .SetScanPredicate(predicate)
+                    .SetIsParallelFlag(false)
+                    .SetIsForUpdateFlag(false)
+                    .SetNamespaceOid(NSOid())
+                    .SetTableOid(table_oid1)
+                    .Build();
   }
   // Make the second seq scan
   std::shared_ptr<AbstractPlanNode> seq_scan2;
   OutputSchemaHelper seq_scan_out2{1};
   {
     // Get Table columns
-    auto col1 = ExpressionUtil::TVE(0, catalog_table2->ColNumToOffset(0), terrier::type::TypeId::SMALLINT);
-    auto col2 = ExpressionUtil::TVE(0, catalog_table2->ColNumToOffset(1), terrier::type::TypeId::INTEGER);
+    auto col1 = ExpressionUtil::CVE(table_schema2.GetColumn("col1").Oid(), type::TypeId::SMALLINT);
+    auto col2 = ExpressionUtil::CVE(table_schema2.GetColumn("col2").Oid(), type::TypeId::INTEGER);
     seq_scan_out2.AddOutput("col1", col1);
     seq_scan_out2.AddOutput("col2", col2);
     auto schema = seq_scan_out2.MakeSchema();
     auto predicate = ExpressionUtil::ComparisonLt(col1, ExpressionUtil::Constant(80));
     // Build
     SeqScanPlanNode::Builder builder;
-    seq_scan2 =
-        builder.SetOutputSchema(schema)
-            .SetScanPredicate(predicate)
-            .SetIsParallelFlag(false)
-            .SetIsForUpdateFlag(false)
-            .SetDatabaseOid(accessor->GetDBOid())
-            .SetNamespaceOid(accessor->GetNSOid())
-            .SetTableOid(catalog_table2->Oid())
-            .Build();
+    seq_scan2 = builder.SetOutputSchema(schema)
+                    .SetScanPredicate(predicate)
+                    .SetIsParallelFlag(false)
+                    .SetIsForUpdateFlag(false)
+                    .SetNamespaceOid(NSOid())
+                    .SetTableOid(table_oid2)
+                    .Build();
   }
   // Make nested loop join
   std::shared_ptr<AbstractPlanNode> nl_join;
@@ -599,12 +577,12 @@ TEST_F(CompilerTest, SimpleNestedLoopJoinTest) {
     // Build
 
     NestedLoopJoinPlanNode::Builder builder;
-    nl_join =
-        builder.AddChild(seq_scan1).AddChild(seq_scan2)
-        .SetOutputSchema(schema)
-        .SetJoinType(LogicalJoinType::INNER)
-        .SetJoinPredicate(predicate)
-        .Build();
+    nl_join = builder.AddChild(seq_scan1)
+                  .AddChild(seq_scan2)
+                  .SetOutputSchema(schema)
+                  .SetJoinType(LogicalJoinType::INNER)
+                  .SetJoinPredicate(predicate)
+                  .Build();
   }
   // Compile and Run
   // 80 hundred rows should be outputted because of the WHERE clause
@@ -612,13 +590,13 @@ TEST_F(CompilerTest, SimpleNestedLoopJoinTest) {
   // The 4th column is the sum of the 1nd and 3rd columns
   uint32_t num_output_rows{0};
   uint32_t num_expected_rows{80};
-  RowChecker row_checker = [&num_output_rows, num_expected_rows](const std::vector<sql::Val*> vals) {
+  RowChecker row_checker = [&num_output_rows, num_expected_rows](const std::vector<sql::Val *> vals) {
     // Read cols
-    auto col1 = static_cast<sql::Integer*>(vals[0]);
-    auto col2 = static_cast<sql::Integer*>(vals[1]);
-    auto col3 = static_cast<sql::Integer*>(vals[2]);
-    auto col4 = static_cast<sql::Integer*>(vals[3]);
-    ASSERT_FALSE(col1->is_null || col2->is_null || col3->is_null || col4->is_null);
+    auto col1 = static_cast<sql::Integer *>(vals[0]);
+    auto col2 = static_cast<sql::Integer *>(vals[1]);
+    auto col3 = static_cast<sql::Integer *>(vals[2]);
+    auto col4 = static_cast<sql::Integer *>(vals[3]);
+    ASSERT_FALSE(col1->is_null || col2->is_null);
     // Check join cols
     ASSERT_EQ(col1->val, col2->val);
     // Check that col4 = col1 + col3
@@ -627,7 +605,7 @@ TEST_F(CompilerTest, SimpleNestedLoopJoinTest) {
     num_output_rows++;
     ASSERT_LE(num_output_rows, num_expected_rows);
   };
-  CorrectnessFn correcteness_fn = [&num_output_rows, num_expected_rows](){
+  CorrectnessFn correcteness_fn = [&num_output_rows, num_expected_rows]() {
     ASSERT_EQ(num_output_rows, num_expected_rows);
   };
   GenericChecker checker(row_checker, correcteness_fn);
@@ -644,10 +622,9 @@ TEST_F(CompilerTest, SimpleNestedLoopJoinTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(CompilerTest, SimpleIndexNestedLoopJoin) {
+TEST_F(CompilerTest, SimpleIndexNestedLoopJoinTest) {
   // SELECT t1.col1, t2.col1, t2.col2, t1.col2 + t2.col2 FROM test_2 AS t2 INNER JOIN test_1 AS t1 ON t1.col1=t2.col1
-  // WHERE t1.col1 < 500
-  // TODO(Amadou): Refactor simple join tests because of their similarity.
+  // WHERE t1.col1 < 500 AND t2.col1 < 80
   // Get accessor
   auto accessor = MakeAccessor();
 
@@ -655,10 +632,11 @@ TEST_F(CompilerTest, SimpleIndexNestedLoopJoin) {
   std::shared_ptr<AbstractPlanNode> seq_scan;
   OutputSchemaHelper seq_scan_out{0};
   {
-    auto * catalog_table2 = accessor->GetUserTable("test_2");
+    auto table_oid2 = accessor->GetTableOid(NSOid(), "test_2");
+    auto table_schema2 = accessor->GetSchema(table_oid2);
     // Get Table columns
-    auto col1 = ExpressionUtil::TVE(0, catalog_table2->ColNumToOffset(0), terrier::type::TypeId::SMALLINT);
-    auto col2 = ExpressionUtil::TVE(0, catalog_table2->ColNumToOffset(1), terrier::type::TypeId::INTEGER);
+    auto col1 = ExpressionUtil::CVE(table_schema2.GetColumn("col1").Oid(), type::TypeId::SMALLINT);
+    auto col2 = ExpressionUtil::CVE(table_schema2.GetColumn("col2").Oid(), type::TypeId::INTEGER);
     seq_scan_out.AddOutput("col1", col1);
     seq_scan_out.AddOutput("col2", col2);
     auto schema = seq_scan_out.MakeSchema();
@@ -666,26 +644,25 @@ TEST_F(CompilerTest, SimpleIndexNestedLoopJoin) {
     auto predicate = ExpressionUtil::ComparisonLt(col1, ExpressionUtil::Constant(80));
     // Build
     SeqScanPlanNode::Builder builder;
-    seq_scan =
-        builder.SetOutputSchema(schema)
-            .SetScanPredicate(predicate)
-            .SetIsParallelFlag(false)
-            .SetIsForUpdateFlag(false)
-            .SetDatabaseOid(accessor->GetDBOid())
-            .SetNamespaceOid(accessor->GetNSOid())
-            .SetTableOid(catalog_table2->Oid())
-            .Build();
+    seq_scan = builder.SetOutputSchema(schema)
+                   .SetScanPredicate(predicate)
+                   .SetIsParallelFlag(false)
+                   .SetIsForUpdateFlag(false)
+                   .SetNamespaceOid(NSOid())
+                   .SetTableOid(table_oid2)
+                   .Build();
   }
   // Make index join
   std::shared_ptr<AbstractPlanNode> index_join;
   OutputSchemaHelper index_join_out{0};
   {
     // Retrieve table and index
-    auto * catalog_table1 = accessor->GetUserTable("test_1");
-    terrier::catalog::index_oid_t index_oid = accessor->GetCatalogIndexOid("index_1");
+    auto table_oid1 = accessor->GetTableOid(NSOid(), "test_1");
+    auto table_schema1 = accessor->GetSchema(table_oid1);
+    auto index_oid1 = accessor->GetIndexOid(NSOid(), "index_1");
     // t1.col1, and t1.col2
-    auto t1_col1 = ExpressionUtil::TVE(1, catalog_table1->ColNumToOffset(0), terrier::type::TypeId::INTEGER);
-    auto t1_col2 = ExpressionUtil::TVE(1, catalog_table1->ColNumToOffset(1), terrier::type::TypeId::INTEGER);
+    auto t1_col1 = ExpressionUtil::CVE(table_schema1.GetColumn("colA").Oid(), type::TypeId::INTEGER);
+    auto t1_col2 = ExpressionUtil::CVE(table_schema1.GetColumn("colB").Oid(), type::TypeId::INTEGER);
     // t2.col1, and t2.col2
     auto t2_col1 = seq_scan_out.GetOutput("col1");
     auto t2_col2 = seq_scan_out.GetOutput("col2");
@@ -701,14 +678,14 @@ TEST_F(CompilerTest, SimpleIndexNestedLoopJoin) {
     auto predicate = ExpressionUtil::ComparisonEq(t1_col1, t2_col1);
     // Build
     IndexJoinPlanNode::Builder builder;
-    index_join =
-        builder.AddChild(seq_scan)
-            .SetIndexOid(index_oid).SetTableOid(catalog_table1->Oid())
-            .AddIndexColum(t2_col1)
-            .SetOutputSchema(schema)
-            .SetJoinType(LogicalJoinType::INNER)
-            .SetJoinPredicate(predicate)
-            .Build();
+    index_join = builder.AddChild(seq_scan)
+                     .SetIndexOid(index_oid1)
+                     .SetTableOid(table_oid1)
+                     .AddIndexColum(catalog::indexkeycol_oid_t(1), t2_col1)
+                     .SetOutputSchema(schema)
+                     .SetJoinType(LogicalJoinType::INNER)
+                     .SetJoinPredicate(predicate)
+                     .Build();
   }
   // Compile and Run
   // 80 hundred rows should be outputted because of the WHERE clause
@@ -716,13 +693,13 @@ TEST_F(CompilerTest, SimpleIndexNestedLoopJoin) {
   // The 4th column is the sum of the 1nd and 3rd columns
   uint32_t num_output_rows{0};
   uint32_t num_expected_rows{80};
-  RowChecker row_checker = [&num_output_rows, num_expected_rows](const std::vector<sql::Val*> vals) {
+  RowChecker row_checker = [&num_output_rows, num_expected_rows](const std::vector<sql::Val *> vals) {
     // Read cols
-    auto col1 = static_cast<sql::Integer*>(vals[0]);
-    auto col2 = static_cast<sql::Integer*>(vals[1]);
-    auto col3 = static_cast<sql::Integer*>(vals[2]);
-    auto col4 = static_cast<sql::Integer*>(vals[3]);
-    ASSERT_FALSE(col1->is_null || col2->is_null || col3->is_null || col4->is_null);
+    auto col1 = static_cast<sql::Integer *>(vals[0]);
+    auto col2 = static_cast<sql::Integer *>(vals[1]);
+    auto col3 = static_cast<sql::Integer *>(vals[2]);
+    auto col4 = static_cast<sql::Integer *>(vals[3]);
+    ASSERT_FALSE(col1->is_null || col2->is_null);
     // Check join cols
     ASSERT_EQ(col1->val, col2->val);
     // Check that col4 = col1 + col3
@@ -731,7 +708,7 @@ TEST_F(CompilerTest, SimpleIndexNestedLoopJoin) {
     num_output_rows++;
     ASSERT_LE(num_output_rows, num_expected_rows);
   };
-  CorrectnessFn correcteness_fn = [&num_output_rows, num_expected_rows](){
+  CorrectnessFn correcteness_fn = [&num_output_rows, num_expected_rows]() {
     ASSERT_EQ(num_output_rows, num_expected_rows);
   };
   GenericChecker checker(row_checker, correcteness_fn);
@@ -739,15 +716,111 @@ TEST_F(CompilerTest, SimpleIndexNestedLoopJoin) {
   // Make Exec Ctx
   OutputStore store{&checker, index_join->GetOutputSchema().get()};
   exec::OutputPrinter printer(index_join->GetOutputSchema().get());
-  MultiOutputCallback callack{std::vector<exec::OutputCallback>{store, printer}};
-  auto exec_ctx = MakeExecCtx(std::move(callack), index_join->GetOutputSchema().get());
+  MultiOutputCallback callback{std::vector<exec::OutputCallback>{store, printer}};
+  auto exec_ctx = MakeExecCtx(std::move(callback), index_join->GetOutputSchema().get());
 
   // Run & Check
   CompileAndRun(index_join.get(), exec_ctx.get());
   checker.CheckCorrectness();
 }
 
+// NOLINTNEXTLINE
+TEST_F(CompilerTest, SimpleIndexNestedLoopJoinMultiColumnTest) {
+  // SELECT t1.col1, t2.col1, t2.col2, t1.col2 + t2.col2 FROM test_1 AS t1 INNER JOIN test_2 AS t2 ON t1.col1=t2.col1
+  // AND t1.col2 = t2.col2 Get accessor
+  auto accessor = MakeAccessor();
 
+  // Make the seq scan: Here test_1 is the outer table
+  std::shared_ptr<AbstractPlanNode> seq_scan;
+  OutputSchemaHelper seq_scan_out{0};
+  {
+    auto table_oid1 = accessor->GetTableOid(NSOid(), "test_1");
+    auto table_schema1 = accessor->GetSchema(table_oid1);
+    // Get Table columns
+    auto col1 = ExpressionUtil::CVE(table_schema1.GetColumn("colA").Oid(), type::TypeId::INTEGER);
+    auto col2 = ExpressionUtil::CVE(table_schema1.GetColumn("colB").Oid(), type::TypeId::INTEGER);
+    seq_scan_out.AddOutput("col1", col1);
+    seq_scan_out.AddOutput("col2", col2);
+    auto schema = seq_scan_out.MakeSchema();
+    // Build
+    SeqScanPlanNode::Builder builder;
+    seq_scan = builder.SetOutputSchema(schema)
+                   .SetScanPredicate(nullptr)
+                   .SetIsParallelFlag(false)
+                   .SetIsForUpdateFlag(false)
+                   .SetNamespaceOid(NSOid())
+                   .SetTableOid(table_oid1)
+                   .Build();
+  }
+  // Make index join
+  std::shared_ptr<AbstractPlanNode> index_join;
+  OutputSchemaHelper index_join_out{0};
+  {
+    // Retrieve table and index
+    auto table_oid2 = accessor->GetTableOid(NSOid(), "test_2");
+    auto table_schema2 = accessor->GetSchema(table_oid2);
+    auto index_oid2 = accessor->GetIndexOid(NSOid(), "index_2_multi");
+    // t2.col1, and t2.col2
+    auto t2_col1 = ExpressionUtil::CVE(table_schema2.GetColumn("col1").Oid(), type::TypeId::INTEGER);
+    auto t2_col2 = ExpressionUtil::CVE(table_schema2.GetColumn("col2").Oid(), type::TypeId::INTEGER);
+    // t1.col1, and t1.col2
+    auto t1_col1 = seq_scan_out.GetOutput("col1");
+    auto t1_col2 = seq_scan_out.GetOutput("col2");
+    // t1.col2 + t2.col2
+    auto sum = ExpressionUtil::OpSum(t1_col1, t2_col2);
+    // Output Schema
+    index_join_out.AddOutput("t1.col1", t1_col1);
+    index_join_out.AddOutput("t2.col1", t2_col1);
+    index_join_out.AddOutput("t2.col2", t2_col2);
+    index_join_out.AddOutput("sum", sum);
+    auto schema = index_join_out.MakeSchema();
+    // Build
+    IndexJoinPlanNode::Builder builder;
+    index_join = builder.AddChild(seq_scan)
+                     .SetIndexOid(index_oid2)
+                     .SetTableOid(table_oid2)
+                     .AddIndexColum(catalog::indexkeycol_oid_t(1), t1_col1)
+                     .AddIndexColum(catalog::indexkeycol_oid_t(2), t1_col2)
+                     .SetOutputSchema(schema)
+                     .SetJoinType(LogicalJoinType::INNER)
+                     .SetJoinPredicate(nullptr)
+                     .Build();
+  }
+  // Compile and Run
+  // The joined cols should be equal
+  // The 4th column is the sum of the 1nd and 3rd columns
+  // With very high probababilty, there should be less 1000 columns outputted due to NULLs.
+  uint32_t max_output_rows{1000};
+  uint32_t num_output_rows{0};
+  RowChecker row_checker = [&num_output_rows, &max_output_rows](const std::vector<sql::Val *> vals) {
+    // Read cols
+    auto col1 = static_cast<sql::Integer *>(vals[0]);
+    auto col2 = static_cast<sql::Integer *>(vals[1]);
+    auto col3 = static_cast<sql::Integer *>(vals[2]);
+    auto col4 = static_cast<sql::Integer *>(vals[3]);
+    ASSERT_FALSE(col1->is_null || col2->is_null);
+    // Check join cols
+    ASSERT_EQ(col1->val, col2->val);
+    // Check that col4 = col1 + col3
+    ASSERT_EQ(col4->val, col1->val + col3->val);
+    num_output_rows++;
+    ASSERT_LT(num_output_rows, max_output_rows);
+  };
+  CorrectnessFn correcteness_fn;
+  GenericChecker checker(row_checker, correcteness_fn);
+
+  // Make Exec Ctx
+  OutputStore store{&checker, index_join->GetOutputSchema().get()};
+  exec::OutputPrinter printer(index_join->GetOutputSchema().get());
+  MultiOutputCallback callback{std::vector<exec::OutputCallback>{store, printer}};
+  auto exec_ctx = MakeExecCtx(std::move(callback), index_join->GetOutputSchema().get());
+
+  // Run & Check
+  CompileAndRun(index_join.get(), exec_ctx.get());
+  checker.CheckCorrectness();
+}
+
+/*
 // NOLINTNEXTLINE
 TEST_F(CompilerTest, TPCHQ1Test) {
   // TODO: This should be in the benchmarks
@@ -879,4 +952,4 @@ TEST_F(CompilerTest, TPCHQ1Test) {
   checker.CheckCorrectness();
 }
 */
-}  // namespace terrier::planner
+}  // namespace terrier::execution::compiler::test

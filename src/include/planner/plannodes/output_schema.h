@@ -17,7 +17,6 @@
 
 namespace terrier::planner {
 
-
 /**
  * TODO(Amadou): I modified this object to make more convenient for the execution engine.
  * Technically, all we need to execute a query is a list of columns type along with the expressions used to
@@ -70,10 +69,7 @@ class OutputSchema {
       return hash;
     }
 
-
-    const parser::AbstractExpression * GetExpr() const {
-      return expr_.get();
-    }
+    const parser::AbstractExpression *GetExpr() const { return expr_.get(); }
 
     /**
      * @return whether the two columns are equal
@@ -85,7 +81,7 @@ class OutputSchema {
       if (expr_ != nullptr && *expr_ != *rhs.expr_) {
         return false;
       }
-      return  type_ == rhs.type_ && nullable_ == rhs.nullable_;
+      return type_ == rhs.type_ && nullable_ == rhs.nullable_;
     }
     /**
      * Inequality check
@@ -126,8 +122,7 @@ class OutputSchema {
    * Instantiates a OutputSchema.
    * @param columns collection of columns
    */
-  explicit OutputSchema(std::vector<Column> columns)
-      : columns_(std::move(columns)){
+  explicit OutputSchema(std::vector<Column> columns) : columns_(std::move(columns)) {
     TERRIER_ASSERT(!columns_.empty() && columns_.size() <= common::Constants::MAX_COL,
                    "Number of columns must be between 1 and MAX_COL.");
   }
@@ -178,9 +173,7 @@ class OutputSchema {
    * @param rhs other
    * @return true if the two OutputSchema are the same
    */
-  bool operator==(const OutputSchema &rhs) const {
-    return (columns_ == rhs.columns_);
-  }
+  bool operator==(const OutputSchema &rhs) const { return (columns_ == rhs.columns_); }
 
   /**
    * Inequality check
@@ -201,9 +194,7 @@ class OutputSchema {
   /**
    * @param j json to deserialize
    */
-  void FromJson(const nlohmann::json &j) {
-    columns_ = j.at("columns").get<std::vector<Column>>();
-  }
+  void FromJson(const nlohmann::json &j) { columns_ = j.at("columns").get<std::vector<Column>>(); }
 
  private:
   std::vector<Column> columns_;
