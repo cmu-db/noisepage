@@ -54,6 +54,11 @@ class TableVectorIterator {
   bool Advance();
 
   /**
+   * Reset the iterator.
+   */
+  void Reset();
+
+  /**
    * @return the iterator over the current active projection
    */
   ProjectedColumnsIterator *projected_columns_iterator() { return &pci_; }

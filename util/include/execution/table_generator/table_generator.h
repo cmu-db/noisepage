@@ -81,6 +81,10 @@ class TableGenerator {
      * Max value of the column
      */
     uint64_t max;
+    /**
+     * Counter to generate serial data
+     */
+    uint64_t serial_counter{0};
 
     /**
      * Constructor
@@ -170,7 +174,7 @@ class TableGenerator {
 
   // Create integer data with the given distribution
   template <typename T>
-  T *CreateNumberColumnData(Dist dist, uint32_t num_vals, uint64_t min, uint64_t max);
+  T *CreateNumberColumnData(Dist dist, uint32_t num_vals, uint64_t serial_counter, uint64_t min, uint64_t max);
 
   // Generate column data
   std::pair<byte *, uint32_t *> GenerateColumnData(const ColumnInsertMeta &col_meta, uint32_t num_rows);

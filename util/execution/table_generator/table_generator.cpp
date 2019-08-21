@@ -12,8 +12,7 @@
 
 namespace terrier::execution::sql {
 template <typename T>
-T *TableGenerator::CreateNumberColumnData(Dist dist, uint32_t num_vals, uint64_t min, uint64_t max) {
-  static uint64_t serial_counter = 0;
+T *TableGenerator::CreateNumberColumnData(Dist dist, uint32_t num_vals, uint64_t serial_counter, uint64_t min, uint64_t max) {
   auto *val = static_cast<T *>(malloc(sizeof(T) * num_vals));
 
   switch (dist) {
@@ -51,18 +50,18 @@ std::pair<byte *, uint32_t *> TableGenerator::GenerateColumnData(const ColumnIns
     }
     case type::TypeId::SMALLINT: {
       col_data =
-          reinterpret_cast<byte *>(CreateNumberColumnData<int16_t>(col_meta.dist, num_rows, col_meta.min, col_meta.max));
+          reinterpret_cast<byte *>(CreateNumberColumnData<int16_t>(col_meta.dist, num_rows, col_meta.serial_counter, col_meta.min, col_meta.max));
       break;
     }
     case type::TypeId::INTEGER: {
       col_data =
-          reinterpret_cast<byte *>(CreateNumberColumnData<int32_t>(col_meta.dist, num_rows, col_meta.min, col_meta.max));
+          reinterpret_cast<byte *>(CreateNumberColumnData<int32_t>(col_meta.dist, num_rows, col_meta.serial_counter, col_meta.min, col_meta.max));
       break;
     }
     case type::TypeId::BIGINT:
     case type::TypeId::DECIMAL: {
       col_data =
-          reinterpret_cast<byte *>(CreateNumberColumnData<int64_t>(col_meta.dist, num_rows, col_meta.min, col_meta.max));
+          reinterpret_cast<byte *>(CreateNumberColumnData<int64_t>(col_meta.dist, num_rows, col_meta.serial_counter, col_meta.min, col_meta.max));
       break;
     }
     default: { throw std::runtime_error("Implement me!"); }

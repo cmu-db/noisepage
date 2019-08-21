@@ -1,7 +1,7 @@
 #pragma once
 
-#include <string>
 #include <list>
+#include <string>
 #include "execution/ast/ast.h"
 #include "execution/compiler/codegen.h"
 #include "execution/compiler/compiler_defs.h"
@@ -21,15 +21,13 @@ class FunctionBuilder {
    * @param fn_params function parameters.
    * @param fn_ret_type function return type
    */
-  FunctionBuilder(CodeGen *codegen, ast::Identifier fn_name, util::RegionVector<ast::FieldDecl *> && fn_params,
+  FunctionBuilder(CodeGen *codegen, ast::Identifier fn_name, util::RegionVector<ast::FieldDecl *> &&fn_params,
                   ast::Expr *fn_ret_type);
 
   /**
    * This class cannot be copied or moved
    */
   DISALLOW_COPY_AND_MOVE(FunctionBuilder);
-
-
 
   /**
    * Appends a stmt to the current block
@@ -76,14 +74,13 @@ class FunctionBuilder {
    * Allows an operator to register a statement that is executed at the end of the pipeline
    * @param stmt statement to register
    */
-  void RegisterFinalStmt(ast::Stmt* stmt) {
-    final_stmts_.push_back(stmt);
-  }
+  void RegisterFinalStmt(ast::Stmt *stmt) { final_stmts_.push_back(stmt); }
 
   /**
    * @return finalized FunctionDecl
    */
   ast::FunctionDecl *Finish();
+
  private:
   CodeGen *codegen_;
   FunctionBuilder *prev_fn_;
@@ -94,7 +91,7 @@ class FunctionBuilder {
 
   ast::BlockStmt *fn_body_;
   std::list<ast::BlockStmt *> blocks_;
-  std::list<ast::Stmt*> final_stmts_;
+  std::list<ast::Stmt *> final_stmts_;
 };
 
 }  // namespace terrier::execution::compiler

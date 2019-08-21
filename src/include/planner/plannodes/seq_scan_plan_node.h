@@ -2,9 +2,9 @@
 
 #include <memory>
 #include <string>
+#include <unordered_set>
 #include <utility>
 #include <vector>
-#include <unordered_set>
 #include "catalog/catalog_defs.h"
 #include "catalog/schema.h"
 #include "parser/expression/abstract_expression.h"
@@ -110,9 +110,9 @@ class SeqScanPlanNode : public AbstractScanPlanNode {
   std::vector<catalog::col_oid_t> CollectInputOids() const {
     std::vector<catalog::col_oid_t> result;
     // Scan predicate
-    CollectOids(&result, GetScanPredicate().get());
+    if (GetScanPredicate() != nullptr) CollectOids(&result, GetScanPredicate().get());
     // Output expressions
-    for (const auto & col: GetOutputSchema()->GetColumns()) {
+    for (const auto &col : GetOutputSchema()->GetColumns()) {
       CollectOids(&result, col.GetExpr());
     }
     // Remove duplicates
@@ -122,13 +122,12 @@ class SeqScanPlanNode : public AbstractScanPlanNode {
   }
 
  private:
-
-  void CollectOids(std::vector<catalog::col_oid_t> * result, const parser::AbstractExpression * expr) const {
+  void CollectOids(std::vector<catalog::col_oid_t> *result, const parser::AbstractExpression *expr) const {
     if (expr->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE) {
-      auto column_val = static_cast<const parser::ColumnValueExpression*>(expr);
+      auto column_val = static_cast<const parser::ColumnValueExpression *>(expr);
       result->emplace_back(column_val->GetColumnOid());
     } else {
-      for (const auto & child: expr->GetChildren()) {
+      for (const auto &child : expr->GetChildren()) {
         CollectOids(result, child.get());
       }
     }

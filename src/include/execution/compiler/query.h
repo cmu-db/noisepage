@@ -2,13 +2,13 @@
 
 #include <string>
 
+#include "catalog/catalog.h"
+#include "execution/ast/ast.h"
+#include "execution/ast/ast_node_factory.h"
+#include "execution/ast/context.h"
+#include "execution/exec/execution_context.h"
 #include "execution/sema/error_reporter.h"
 #include "execution/util/region.h"
-#include "execution/exec/execution_context.h"
-#include "execution/ast/ast.h"
-#include "execution/ast/context.h"
-#include "execution/ast/ast_node_factory.h"
-#include "catalog/catalog.h"
 
 namespace terrier::planner {
 class AbstractPlanNode;
@@ -29,7 +29,7 @@ class Query {
    * Constructor
    * @param node plan node to execute
    */
-  Query(const terrier::planner::AbstractPlanNode &node, exec::ExecutionContext * exec_ctx)
+  Query(const terrier::planner::AbstractPlanNode &node, exec::ExecutionContext *exec_ctx)
       : node_(node),
         region_("QueryRegion"),
         error_reporter_(&region_),
@@ -55,22 +55,22 @@ class Query {
   /**
    * @return the ast context
    */
-  ast::Context *GetAstContext() {return &ast_ctx_;}
+  ast::Context *GetAstContext() { return &ast_ctx_; }
 
   /**
    * @return the ast factory
    */
-  ast::AstNodeFactory * GetFactory() {return &factory_;}
+  ast::AstNodeFactory *GetFactory() { return &factory_; }
 
   /**
    * @return the error reporter
    */
-  sema::ErrorReporter * GetReporter() {return &error_reporter_;}
+  sema::ErrorReporter *GetReporter() { return &error_reporter_; }
 
   /**
    * @return the execution context
    */
-  exec::ExecutionContext * GetExecCtx() {return exec_ctx_;}
+  exec::ExecutionContext *GetExecCtx() { return exec_ctx_; }
 
   /**
    * Sets the final compiled file
@@ -90,7 +90,7 @@ class Query {
   ast::Context ast_ctx_;
   ast::AstNodeFactory factory_;
   ast::File *compiled_file_{nullptr};
-  exec::ExecutionContext * exec_ctx_;
+  exec::ExecutionContext *exec_ctx_;
 };
 
 }  // namespace terrier::execution::compiler

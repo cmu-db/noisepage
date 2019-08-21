@@ -217,6 +217,8 @@ VM_OP_HOT void OpTableVectorIteratorNext(bool *has_more, terrier::execution::sql
 
 void OpTableVectorIteratorFree(terrier::execution::sql::TableVectorIterator *iter);
 
+void OpTableVectorIteratorReset(terrier::execution::sql::TableVectorIterator *iter);
+
 VM_OP_HOT void OpTableVectorIteratorGetPCI(terrier::execution::sql::ProjectedColumnsIterator **pci,
                                            terrier::execution::sql::TableVectorIterator *iter) {
   *pci = iter->projected_columns_iterator();

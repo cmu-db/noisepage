@@ -4,14 +4,12 @@
 
 namespace terrier::execution::compiler {
 
-ConjunctionTranslator::ConjunctionTranslator(const terrier::parser::AbstractExpression *expression,
-                                             CodeGen * codegen)
+ConjunctionTranslator::ConjunctionTranslator(const terrier::parser::AbstractExpression *expression, CodeGen *codegen)
     : ExpressionTranslator(expression, codegen),
       left_(TranslatorFactory::CreateExpressionTranslator(expression_->GetChild(0).get(), codegen_)),
       right_(TranslatorFactory::CreateExpressionTranslator(expression_->GetChild(1).get(), codegen_)) {}
 
-
-ast::Expr *ConjunctionTranslator::DeriveExpr(OperatorTranslator * translator) {
+ast::Expr *ConjunctionTranslator::DeriveExpr(OperatorTranslator *translator) {
   auto *left_expr = left_->DeriveExpr(translator);
   auto *right_expr = right_->DeriveExpr(translator);
   parsing::Token::Type type;

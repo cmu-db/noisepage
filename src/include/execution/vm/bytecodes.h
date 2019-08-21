@@ -103,6 +103,7 @@ namespace terrier::execution::vm {
     OperandType::UImm4)                                                                                               \
   F(TableVectorIteratorPerformInit, OperandType::Local)                                                               \
   F(TableVectorIteratorNext, OperandType::Local, OperandType::Local)                                                  \
+  F(TableVectorIteratorReset, OperandType::Local)                                                                     \
   F(TableVectorIteratorFree, OperandType::Local)                                                                      \
   F(TableVectorIteratorGetPCI, OperandType::Local, OperandType::Local)                                                \
   F(ParallelScanTable, OperandType::UImm4, OperandType::UImm4, OperandType::Local, OperandType::Local,                \

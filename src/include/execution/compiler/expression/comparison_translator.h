@@ -13,9 +13,9 @@ class ComparisonTranslator : public ExpressionTranslator {
    * @param expression expression to translate
    * @param codegen code generator to use
    */
-  ComparisonTranslator(const terrier::parser::AbstractExpression *expression, CodeGen * codegen);
+  ComparisonTranslator(const terrier::parser::AbstractExpression *expression, CodeGen *codegen);
 
-  ast::Expr *DeriveExpr(OperatorTranslator * translator) override;
+  ast::Expr *DeriveExpr(OperatorTranslator *translator) override;
 
  private:
   std::unique_ptr<ExpressionTranslator> left_;

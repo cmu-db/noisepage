@@ -13,8 +13,8 @@ class ConstantTranslator : public ExpressionTranslator {
    * @param expression expression to translate
    * @param codegen code generator to use
    */
-  ConstantTranslator(const terrier::parser::AbstractExpression *expression, CodeGen * codegen);
+  ConstantTranslator(const terrier::parser::AbstractExpression *expression, CodeGen *codegen);
 
-  ast::Expr *DeriveExpr(OperatorTranslator * translator) override;
+  ast::Expr *DeriveExpr(OperatorTranslator *translator) override;
 };
 }  // namespace terrier::execution::compiler

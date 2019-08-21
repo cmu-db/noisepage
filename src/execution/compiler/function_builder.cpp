@@ -9,14 +9,13 @@
 namespace terrier::execution::compiler {
 
 FunctionBuilder::FunctionBuilder(CodeGen *codegen, ast::Identifier fn_name,
-                                 util::RegionVector<ast::FieldDecl *> && fn_params, ast::Expr *fn_ret_type)
+                                 util::RegionVector<ast::FieldDecl *> &&fn_params, ast::Expr *fn_ret_type)
     : codegen_(codegen),
       fn_name_(fn_name),
       fn_params_(std::move(fn_params)),
       fn_ret_type_(fn_ret_type),
       fn_body_(codegen->EmptyBlock()),
-      blocks_{fn_body_} {
-}
+      blocks_{fn_body_} {}
 
 void FunctionBuilder::StartForStmt(ast::Stmt *init, ast::Expr *cond, ast::Stmt *next) {
   auto forblock = codegen_->EmptyBlock();
@@ -30,13 +29,10 @@ void FunctionBuilder::StartIfStmt(ast::Expr *condition) {
   blocks_.emplace_back(ifblock);
 }
 
-
-void FunctionBuilder::FinishBlockStmt() {
-  blocks_.pop_back();
-}
+void FunctionBuilder::FinishBlockStmt() { blocks_.pop_back(); }
 
 ast::FunctionDecl *FunctionBuilder::Finish() {
-  for (const auto & stmt: final_stmts_) {
+  for (const auto &stmt : final_stmts_) {
     fn_body_->AppendStmt(stmt);
   }
   auto fn_ty = codegen_->Factory()->NewFunctionType(DUMMY_POS, std::move(fn_params_), fn_ret_type_);

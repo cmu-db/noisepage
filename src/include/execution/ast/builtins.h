@@ -35,6 +35,7 @@ namespace terrier::execution::ast {
   F(TableIterInit, tableIterInit)                                     \
   F(TableIterInitBind, tableIterInitBind)                             \
   F(TableIterAdvance, tableIterAdvance)                               \
+  F(TableIterReset, tableIterReset)                                   \
   F(TableIterGetPCI, tableIterGetPCI)                                 \
   F(TableIterClose, tableIterClose)                                   \
   F(TableIterParallel, iterateTableParallel)                          \

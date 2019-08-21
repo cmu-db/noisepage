@@ -82,7 +82,6 @@ class AggregatePlanNode : public AbstractPlanNode {
                                 std::move(aggregate_terms_), aggregate_strategy_, std::move(group_by_terms_)));
     }
 
-
    protected:
     /**
      * Predicate for having clause if it exists
@@ -115,13 +114,13 @@ class AggregatePlanNode : public AbstractPlanNode {
   AggregatePlanNode(std::vector<std::shared_ptr<AbstractPlanNode>> &&children,
                     std::shared_ptr<OutputSchema> output_schema,
                     std::shared_ptr<parser::AbstractExpression> having_clause_predicate,
-                    std::vector<AggregateTerm> && aggregate_terms, AggregateStrategyType aggregate_strategy,
+                    std::vector<AggregateTerm> &&aggregate_terms, AggregateStrategyType aggregate_strategy,
                     std::vector<GroupByTerm> &&group_by_terms)
       : AbstractPlanNode(std::move(children), std::move(output_schema)),
         having_clause_predicate_(std::move(having_clause_predicate)),
         aggregate_terms_(std::move(aggregate_terms)),
         aggregate_strategy_(aggregate_strategy),
-        group_by_terms_(std::move(group_by_terms)){}
+        group_by_terms_(std::move(group_by_terms)) {}
 
  public:
   /**
@@ -148,8 +147,8 @@ class AggregatePlanNode : public AbstractPlanNode {
   const std::vector<AggregateTerm> &GetAggregateTerms() const { return aggregate_terms_; }
 
   /**
-  * @return vector of group by terms
-  */
+   * @return vector of group by terms
+   */
   const std::vector<GroupByTerm> &GetGroupByTerms() const { return group_by_terms_; }
 
   /**
