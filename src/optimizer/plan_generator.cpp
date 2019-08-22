@@ -506,13 +506,16 @@ void PlanGenerator::Visit(UNUSED_ATTRIBUTE const Distinct *op) {
 
   auto schema =
       std::make_shared<planner::OutputSchema>(std::move(output_schema_columns), std::move(tl), std::move(dml));
-  auto &builder =
-      planner::HashPlanNode::Builder().SetOutputSchema(std::move(schema)).AddChild(std::move(children_plans_[0]));
+
+  auto builder = new planner::HashPlanNode::Builder();
+  builder->SetOutputSchema(std::move(schema));
+  builder->AddChild(std::move(children_plans_[0]));
   for (auto key : hash_keys) {
-    builder.AddHashKey(key);
+    builder->AddHashKey(key);
   }
 
-  output_plan_ = builder.Build();
+  output_plan_ = builder->Build();
+  delete builder;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -624,27 +627,29 @@ void PlanGenerator::Visit(const InnerHashJoin *op) {
   delete eval_pred;
   RegisterPointerCleanup<const parser::AbstractExpression>(join_predicate, true, true);
 
-  auto &builder = planner::HashJoinPlanNode::Builder().SetOutputSchema(std::move(proj_schema));
+  auto builder = new planner::HashJoinPlanNode::Builder();
+  builder->SetOutputSchema(std::move(proj_schema));
 
   std::vector<ExprMap> l_child_map{std::move(children_expr_map_[0])};
   std::vector<ExprMap> r_child_map{std::move(children_expr_map_[1])};
   for (auto &expr : op->GetLeftKeys()) {
     auto left_key = parser::ExpressionUtil::EvaluateExpression(l_child_map, expr.get());
     RegisterPointerCleanup<const parser::AbstractExpression>(left_key, true, true);
-    builder.AddLeftHashKey(left_key);
+    builder->AddLeftHashKey(left_key);
   }
 
   for (auto &expr : op->GetRightKeys()) {
     auto right_key = parser::ExpressionUtil::EvaluateExpression(r_child_map, expr.get());
     RegisterPointerCleanup<const parser::AbstractExpression>(right_key, true, true);
-    builder.AddRightHashKey(right_key);
+    builder->AddRightHashKey(right_key);
   }
 
   bool bloom = settings_->GetBool(settings::Param::build_bloom_filter);
-  output_plan_ = builder.AddChild(std::move(children_plans_[0]))
-                     .AddChild(std::move(children_plans_[1]))
-                     .SetBuildBloomFilterFlag(bloom)
-                     .Build();
+  builder->AddChild(std::move(children_plans_[0]));
+  builder->AddChild(std::move(children_plans_[1]));
+  builder->SetBuildBloomFilterFlag(bloom);
+  output_plan_ = builder->Build();
+  delete builder;
 }
 
 void PlanGenerator::Visit(UNUSED_ATTRIBUTE const LeftHashJoin *op) {
@@ -670,7 +675,7 @@ void PlanGenerator::BuildAggregatePlan(
   TERRIER_ASSERT(children_expr_map_.size() == 1, "Aggregate needs 1 child plan");
   auto &child_expr_map = children_expr_map_[0];
 
-  auto builder = planner::AggregatePlanNode::Builder();
+  auto builder = new planner::AggregatePlanNode::Builder();
 
   std::vector<planner::OutputSchema::Column> columns;
   std::vector<planner::OutputSchema::DerivedTarget> tl;
@@ -699,7 +704,7 @@ void PlanGenerator::BuildAggregatePlan(
       // See aggregateor.cpp for more detail...
       // TODO([Execution Engine]): make sure this behavior still is correct
       dml.emplace_back(idx, std::make_pair(1, agg_id++));
-      builder.AddAggregateTerm(const_cast<parser::AggregateExpression *>(agg_expr));
+      builder->AddAggregateTerm(const_cast<parser::AggregateExpression *>(agg_expr));
     } else if (child_expr_map.find(expr) != child_expr_map.end()) {
       dml.emplace_back(idx, std::make_pair(0, child_expr_map[expr]));
     } else {
@@ -727,13 +732,15 @@ void PlanGenerator::BuildAggregatePlan(
   delete eval_have;
 
   // AggregatePlanNode owns HavingClausePredicate
+  // TODO(wz2): Fix RegisterPointerCleanup after Plan Nodes ManagedPointer fixes...
   // RegisterPointerCleanup<const parser::AbstractExpression>(predicate, true, true);
 
-  output_plan_ = builder.SetHavingClausePredicate(predicate)
-                     .SetAggregateStrategyType(aggr_type)
-                     .SetGroupByColOffsets(std::move(col_offsets))
-                     .AddChild(std::move(children_plans_[0]))
-                     .Build();
+  builder->SetHavingClausePredicate(predicate);
+  builder->SetAggregateStrategyType(aggr_type);
+  builder->SetGroupByColOffsets(std::move(col_offsets));
+  builder->AddChild(std::move(children_plans_[0]));
+  output_plan_ = builder->Build();
+  delete builder;
 }
 
 void PlanGenerator::Visit(const HashGroupBy *op) {
@@ -759,17 +766,17 @@ void PlanGenerator::Visit(UNUSED_ATTRIBUTE const Aggregate *op) {
 ///////////////////////////////////////////////////////////////////////////////
 
 void PlanGenerator::Visit(const Insert *op) {
-  auto &builder = planner::InsertPlanNode::Builder()
-                      .SetDatabaseOid(op->GetDatabaseOid())
-                      .SetNamespaceOid(op->GetNamespaceOid())
-                      .SetTableOid(op->GetTableOid());
+  auto builder = new planner::InsertPlanNode::Builder();
+  builder->SetDatabaseOid(op->GetDatabaseOid());
+  builder->SetNamespaceOid(op->GetNamespaceOid());
+  builder->SetTableOid(op->GetTableOid());
 
   auto values = op->GetValues();
   for (auto &tuple_value : values) {
     std::vector<const parser::AbstractExpression *> row(tuple_value.size());
     for (auto &col_value : tuple_value) row.push_back(col_value.get());
 
-    builder.AddValues(std::move(row));
+    builder->AddValues(std::move(row));
   }
 
   // The OutputSchema should match the schema of the underlying table...
@@ -787,29 +794,37 @@ void PlanGenerator::Visit(const Insert *op) {
     output_columns.emplace_back(tbl_cols[idx].Name(), tbl_cols[idx].Type());
   }
   auto output = std::make_shared<planner::OutputSchema>(std::move(output_columns), std::move(tl), std::move(dml));
-  builder.SetOutputSchema(output);
+  builder->SetOutputSchema(output);
 
   // This is based on what Peloton does/did with query_to_operator_transformer.cpp
   if (op->GetColumns().empty()) {
     // INSERT INTO tbl VALUES (...)
     // Generate column ids from underlying table
     for (auto &col : tbl_cols) {
-      builder.AddParameterInfo(col.Oid());
+      builder->AddParameterInfo(col.Oid());
     }
   } else {
     // INSERT INTO tbl (col,....) VALUES (....)
     for (auto &col : op->GetColumns()) {
-      builder.AddParameterInfo(col);
+      builder->AddParameterInfo(col);
     }
   }
 
-  output_plan_ = builder.Build();
+  output_plan_ = builder->Build();
+  delete builder;
 }
 
 void PlanGenerator::Visit(const InsertSelect *op) {
   // Schema of InsertSelect is whatever the schema of the child is
   TERRIER_ASSERT(children_plans_.size() == 1, "InsertSelect needs 1 child plan");
-  auto output_schema = children_plans_[0]->GetOutputSchema()->Copy();
+  std::vector<planner::OutputSchema::Column> cols = children_plans_[0]->GetOutputSchema()->GetColumns();
+  std::vector<planner::OutputSchema::DerivedTarget> dl;
+  std::vector<planner::OutputSchema::DirectMap> dml;
+  for (size_t idx = 0; idx < cols.size(); idx++) {
+    unsigned u_idx = static_cast<unsigned>(idx);
+    dml.emplace_back(u_idx, std::make_pair(0, u_idx));
+  }
+  auto output_schema = std::make_shared<planner::OutputSchema>(std::move(cols), std::move(dl), std::move(dml));
 
   output_plan_ = planner::InsertPlanNode::Builder()
                      .SetOutputSchema(std::move(output_schema))
