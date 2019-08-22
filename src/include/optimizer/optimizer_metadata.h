@@ -42,7 +42,6 @@ class OptimizerMetadata {
    * Destroys cost_model and task_pool
    */
   ~OptimizerMetadata() {
-    delete cost_model_;
     delete task_pool_;
 
     for (auto *ctx : track_list_) {
@@ -83,18 +82,6 @@ class OptimizerMetadata {
    * @returns Cost Model
    */
   AbstractCostModel *GetCostModel() { return cost_model_; }
-
-  /**
-   * Relinquishes control of CostModel
-   * @returns Cost model owned by OptimizerMetadata
-   */
-  AbstractCostModel *ReleaseCostModel() {
-    AbstractCostModel *model = cost_model_;
-    TERRIER_ASSERT(model, "OptimizerMetadata must have a valid CostModel");
-
-    cost_model_ = nullptr;
-    return model;
-  }
 
   /**
    * Gets the transaction

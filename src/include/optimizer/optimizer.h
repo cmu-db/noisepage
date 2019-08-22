@@ -40,7 +40,18 @@ class Optimizer : public AbstractOptimizer {
    * Constructor for Optimizer with a cost_model
    * @param model Cost Model to use for the optimizer
    */
-  explicit Optimizer(AbstractCostModel *model) : metadata_(model) {}
+  explicit Optimizer(AbstractCostModel *model) {
+    metadata_ = new OptimizerMetadata(model);
+    cost_model_ = model;
+  }
+
+  /**
+   * Destructor
+   */
+  ~Optimizer() {
+    delete cost_model_;
+    delete metadata_;
+  }
 
   /**
    * Build the plan tree for query execution
@@ -74,7 +85,7 @@ class Optimizer : public AbstractOptimizer {
    * Gets the OptimizerMetadata used and set by the optimizer
    * @returns metadata_
    */
-  OptimizerMetadata &GetMetadata() { return metadata_; }
+  OptimizerMetadata *GetMetadata() { return metadata_; }
 
  private:
   /**
@@ -106,7 +117,8 @@ class Optimizer : public AbstractOptimizer {
                         settings::SettingsManager *settings);
 
   // Metadata
-  OptimizerMetadata metadata_;
+  OptimizerMetadata *metadata_;
+  AbstractCostModel *cost_model_;
 };
 
 }  // namespace optimizer

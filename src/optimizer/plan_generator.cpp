@@ -103,12 +103,15 @@ void PlanGenerator::CorrectOutputPlanWithProjection() {
 
   // We don't actually want shared_ptr but pending another PR
   auto schema = std::make_shared<planner::OutputSchema>(std::move(columns), std::move(tl), std::move(dml));
-  auto &builder = planner::ProjectionPlanNode::Builder().SetOutputSchema(std::move(schema));
+
+  auto *builder = new planner::ProjectionPlanNode::Builder();
+  builder->SetOutputSchema(std::move(schema));
   if (output_plan_ != nullptr) {
-    builder.AddChild(std::move(output_plan_));
+    builder->AddChild(std::move(output_plan_));
   }
 
-  output_plan_ = builder.Build();
+  output_plan_ = builder->Build();
+  delete builder;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -132,7 +135,7 @@ std::vector<const parser::AbstractExpression *> PlanGenerator::GenerateTableColu
   // a lot of attributes and we're only visiting a few this is not efficient
   auto &schema = accessor_->GetSchema(tbl_oid);
   auto &columns = schema.GetColumns();
-  std::vector<const parser::AbstractExpression *> exprs(columns.size());
+  std::vector<const parser::AbstractExpression *> exprs;
   for (auto &column : columns) {
     auto col_oid = column.Oid();
     auto *col_expr = new parser::ColumnValueExpression(alias, column.Name());
@@ -140,6 +143,9 @@ std::vector<const parser::AbstractExpression *> PlanGenerator::GenerateTableColu
     col_expr->SetDatabaseOID(db_oid);
     col_expr->SetTableOID(tbl_oid);
     col_expr->SetColumnOID(col_oid);
+
+    col_expr->DeriveExpressionName();
+    col_expr->DeriveReturnValueType();
     exprs.push_back(col_expr);
   }
 
@@ -164,13 +170,13 @@ std::vector<catalog::col_oid_t> PlanGenerator::GenerateColumnsForScan() {
 }
 
 std::shared_ptr<planner::OutputSchema> PlanGenerator::GenerateScanOutputSchema(catalog::table_oid_t tbl_oid) {
-  // Since the GenerateColumnsForScan only includes col_oid of actual scan columns
-  // the OutputSchema should only contain dml for those columns.
-  auto &schema = accessor_->GetSchema(tbl_oid);
-  auto &columns = schema.GetColumns();
+  // DirectMap provides a map into the actual underlying tuple...
+  // Underlying tuple provided by the table's schema.
+  // TODO[Execution Engine]: Verify this
+  const auto &schema = accessor_->GetSchema(tbl_oid);
   std::unordered_map<catalog::col_oid_t, unsigned> coloid_to_offset;
-  for (size_t idx = 0; idx < columns.size(); idx++) {
-    coloid_to_offset[columns[idx].Oid()] = static_cast<unsigned>(idx);
+  for (size_t idx = 0; idx < schema.GetColumns().size(); idx++) {
+    coloid_to_offset[schema.GetColumns()[idx].Oid()] = static_cast<unsigned>(idx);
   }
 
   std::vector<planner::OutputSchema::DerivedTarget> tl;
@@ -188,7 +194,7 @@ std::shared_ptr<planner::OutputSchema> PlanGenerator::GenerateScanOutputSchema(c
     // output schema of a plan node is literally the columns of the table.
     // there is no such thing as an intermediate column here!
     dml.emplace_back(static_cast<uint32_t>(idx), std::make_pair(0, static_cast<uint32_t>(old_idx)));
-    output_schema_columns.emplace_back(tve->GetExpressionName(), tve->GetReturnValueType());
+    output_schema_columns.emplace_back(tve->GetColumnName(), tve->GetReturnValueType());
     idx++;
   }
 
@@ -363,12 +369,6 @@ void PlanGenerator::Visit(const Limit *op) {
   TERRIER_ASSERT(children_plans_.size() == 1, "Limit needs 1 child plan");
   output_plan_ = std::move(children_plans_[0]);
 
-  auto limit_out = output_plan_->GetOutputSchema()->Copy();
-  auto &builder = planner::LimitPlanNode::Builder()
-                      .SetOutputSchema(std::move(limit_out))
-                      .SetLimit(op->GetLimit())
-                      .SetOffset(op->GetOffset());
-
   if (!op->GetSortExpressions().empty()) {
     // Build order by clause
     TERRIER_ASSERT(children_expr_map_.size() == 1, "Limit needs 1 child expr map");
@@ -377,9 +377,21 @@ void PlanGenerator::Visit(const Limit *op) {
     TERRIER_ASSERT(op->GetSortExpressions().size() == op->GetSortAscending().size(),
                    "Limit sort expressions and sort ascending size should match");
 
-    auto order_out = output_plan_->GetOutputSchema()->Copy();
+    // OrderBy OutputSchema does not add/drop columns. All output columns of OrderBy
+    // are the same as the output columns of the child plan. As such, the OutputSchema
+    // of an OrderBy has the same columns vector as the child OutputSchema, with only
+    // a DirectMapList pointing (i, (0, i)) for any i column.
+    std::vector<planner::OutputSchema::Column> child_columns = children_plans_[0]->GetOutputSchema()->GetColumns();
+    std::vector<planner::OutputSchema::DerivedTarget> child_dl;
+    std::vector<planner::OutputSchema::DirectMap> child_dml;
+    for (size_t idx = 0; idx < child_columns.size(); idx++) {
+      auto u_idx = static_cast<unsigned>(idx);
+      child_dml.emplace_back(u_idx, std::make_pair(0, u_idx));
+    }
+    auto output_schema = std::make_shared<planner::OutputSchema>(std::move(child_columns), std::move(child_dl), std::move(child_dml));
+
     auto &order_build = planner::OrderByPlanNode::Builder()
-                            .SetOutputSchema(std::move(order_out))
+                            .SetOutputSchema(std::move(output_schema))
                             .AddChild(std::move(output_plan_))
                             .SetLimit(op->GetLimit())
                             .SetOffset(op->GetOffset());
@@ -399,7 +411,24 @@ void PlanGenerator::Visit(const Limit *op) {
     output_plan_ = order_build.Build();
   }
 
-  output_plan_ = builder.AddChild(std::move(output_plan_)).Build();
+  // Limit OutputSchema does not add/drop columns. All output columns of Limit
+  // are the same as the output columns of the child plan. As such, the OutputSchema
+  // of an Limit has the same columns vector as the child OutputSchema, with only
+  // a DirectMapList pointing (i, (0, i)) for any i column.
+  std::vector<planner::OutputSchema::Column> child_columns = output_plan_->GetOutputSchema()->GetColumns();
+  std::vector<planner::OutputSchema::DerivedTarget> child_dl;
+  std::vector<planner::OutputSchema::DirectMap> child_dml;
+  for (size_t idx = 0; idx < child_columns.size(); idx++) {
+    auto u_idx = static_cast<unsigned>(idx);
+    child_dml.emplace_back(u_idx, std::make_pair(0, u_idx));
+  }
+  auto limit_out = std::make_shared<planner::OutputSchema>(std::move(child_columns), std::move(child_dl), std::move(child_dml));
+  output_plan_ = planner::LimitPlanNode::Builder()
+                      .SetOutputSchema(std::move(limit_out))
+                      .SetLimit(op->GetLimit())
+                      .SetOffset(op->GetOffset())
+                      .AddChild(std::move(output_plan_))
+                      .Build();
 }
 
 void PlanGenerator::Visit(UNUSED_ATTRIBUTE const OrderBy *op) {
@@ -412,7 +441,21 @@ void PlanGenerator::Visit(UNUSED_ATTRIBUTE const OrderBy *op) {
   TERRIER_ASSERT(sort_prop != nullptr, "OrderBy requires a sort property");
 
   auto sort_columns_size = sort_prop->GetSortColumnSize();
-  auto &builder = planner::OrderByPlanNode::Builder().SetOutputSchema(children_plans_[0]->GetOutputSchema()->Copy());
+
+  auto *builder = new planner::OrderByPlanNode::Builder();
+
+  // OrderBy OutputSchema does not add/drop columns. All output columns of OrderBy
+  // are the same as the output columns of the child plan. As such, the OutputSchema
+  // of an OrderBy has the same columns vector as the child OutputSchema, with only
+  // a DirectMapList pointing (i, (0, i)) for any i column.
+  std::vector<planner::OutputSchema::Column> child_columns = children_plans_[0]->GetOutputSchema()->GetColumns();
+  std::vector<planner::OutputSchema::DerivedTarget> child_dl;
+  std::vector<planner::OutputSchema::DirectMap> child_dml;
+  for (size_t idx = 0; idx < child_columns.size(); idx++) {
+    auto u_idx = static_cast<unsigned>(idx);
+    child_dml.emplace_back(u_idx, std::make_pair(0, u_idx));
+  }
+  builder->SetOutputSchema(std::make_shared<planner::OutputSchema>(std::move(child_columns), std::move(child_dl), std::move(child_dml)));
 
   for (size_t i = 0; i < sort_columns_size; ++i) {
     auto sort_dir = sort_prop->GetSortAscending(static_cast<int>(i));
@@ -422,10 +465,12 @@ void PlanGenerator::Visit(UNUSED_ATTRIBUTE const OrderBy *op) {
     // Need to replace ColumnValueExpression with DerivedValueExpression
     auto eval_expr = parser::ExpressionUtil::EvaluateExpression({child_cols_map}, key);
     RegisterPointerCleanup<const parser::AbstractExpression>(eval_expr, true, true);
-    builder.AddSortKey(eval_expr, sort_dir);
+    builder->AddSortKey(eval_expr, sort_dir);
   }
 
-  output_plan_ = builder.AddChild(std::move(children_plans_[0])).Build();
+  builder->AddChild(std::move(children_plans_[0]));
+  output_plan_ = builder->Build();
+  delete builder;
 }
 
 ///////////////////////////////////////////////////////////////////////////////

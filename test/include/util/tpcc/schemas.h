@@ -93,7 +93,7 @@ class Schemas {
 
     // Primary Key: W_ID
     warehouse_key_schema.emplace_back(
-        "", schema.GetColumn(0).Type(), schema.GetColumn(0).Nullable(),
+        "w_id", schema.GetColumn(0).Type(), schema.GetColumn(0).Nullable(),
         parser::ColumnValueExpression(catalog::INVALID_DATABASE_OID, catalog::table_oid_t(0),
                                       schema.GetColumn(0).Oid()));
     warehouse_key_schema.back().SetOid(static_cast<catalog::indexkeycol_oid_t>(++(*oid_counter)));
@@ -185,11 +185,11 @@ class Schemas {
     district_key_schema.reserve(num_district_primary_index_cols_);
 
     // Primary Key: (D_W_ID, D_ID)
-    district_key_schema.emplace_back("", schema.GetColumn(1).Type(), schema.GetColumn(1).Nullable(),
+    district_key_schema.emplace_back("d_w_id", schema.GetColumn(1).Type(), schema.GetColumn(1).Nullable(),
                                      parser::ColumnValueExpression(catalog::INVALID_DATABASE_OID,
                                                                    catalog::table_oid_t(0), schema.GetColumn(1).Oid()));
     district_key_schema.back().SetOid(static_cast<catalog::indexkeycol_oid_t>(++(*oid_counter)));
-    district_key_schema.emplace_back("", schema.GetColumn(0).Type(), schema.GetColumn(0).Nullable(),
+    district_key_schema.emplace_back("d_id", schema.GetColumn(0).Type(), schema.GetColumn(0).Nullable(),
                                      parser::ColumnValueExpression(catalog::INVALID_DATABASE_OID,
                                                                    catalog::table_oid_t(0), schema.GetColumn(0).Oid()));
     district_key_schema.back().SetOid(static_cast<catalog::indexkeycol_oid_t>(++(*oid_counter)));
@@ -331,15 +331,15 @@ class Schemas {
     customer_key_schema.reserve(num_customer_primary_index_cols_);
 
     // Primary Key: (C_W_ID, C_D_ID, C_ID)
-    customer_key_schema.emplace_back("", schema.GetColumn(2).Type(), schema.GetColumn(2).Nullable(),
+    customer_key_schema.emplace_back("c_w_id", schema.GetColumn(2).Type(), schema.GetColumn(2).Nullable(),
                                      parser::ColumnValueExpression(catalog::INVALID_DATABASE_OID,
                                                                    catalog::table_oid_t(0), schema.GetColumn(2).Oid()));
     customer_key_schema.back().SetOid(static_cast<catalog::indexkeycol_oid_t>(++(*oid_counter)));
-    customer_key_schema.emplace_back("", schema.GetColumn(1).Type(), schema.GetColumn(1).Nullable(),
+    customer_key_schema.emplace_back("c_d_id", schema.GetColumn(1).Type(), schema.GetColumn(1).Nullable(),
                                      parser::ColumnValueExpression(catalog::INVALID_DATABASE_OID,
                                                                    catalog::table_oid_t(0), schema.GetColumn(1).Oid()));
     customer_key_schema.back().SetOid(static_cast<catalog::indexkeycol_oid_t>(++(*oid_counter)));
-    customer_key_schema.emplace_back("", schema.GetColumn(0).Type(), schema.GetColumn(0).Nullable(),
+    customer_key_schema.emplace_back("c_id", schema.GetColumn(0).Type(), schema.GetColumn(0).Nullable(),
                                      parser::ColumnValueExpression(catalog::INVALID_DATABASE_OID,
                                                                    catalog::table_oid_t(0), schema.GetColumn(0).Oid()));
     customer_key_schema.back().SetOid(static_cast<catalog::indexkeycol_oid_t>(++(*oid_counter)));
@@ -362,17 +362,17 @@ class Schemas {
 
     // C_W_ID, C_D_ID, C_LAST for Order Status and Payment transactions
     customer_secondary_key_schema.emplace_back(
-        "", schema.GetColumn(2).Type(), schema.GetColumn(2).Nullable(),
+        "c_w_id", schema.GetColumn(2).Type(), schema.GetColumn(2).Nullable(),
         parser::ColumnValueExpression(catalog::INVALID_DATABASE_OID, catalog::table_oid_t(0),
                                       schema.GetColumn(2).Oid()));
     customer_secondary_key_schema.back().SetOid(static_cast<catalog::indexkeycol_oid_t>(++(*oid_counter)));
     customer_secondary_key_schema.emplace_back(
-        "", schema.GetColumn(1).Type(), schema.GetColumn(1).Nullable(),
+        "c_d_id", schema.GetColumn(1).Type(), schema.GetColumn(1).Nullable(),
         parser::ColumnValueExpression(catalog::INVALID_DATABASE_OID, catalog::table_oid_t(0),
                                       schema.GetColumn(1).Oid()));
     customer_secondary_key_schema.back().SetOid(static_cast<catalog::indexkeycol_oid_t>(++(*oid_counter)));
     customer_secondary_key_schema.emplace_back(
-        "", schema.GetColumn(5).Type(), schema.GetColumn(5).MaxVarlenSize(), schema.GetColumn(5).Nullable(),
+        "c_last", schema.GetColumn(5).Type(), schema.GetColumn(5).MaxVarlenSize(), schema.GetColumn(5).Nullable(),
         parser::ColumnValueExpression(catalog::INVALID_DATABASE_OID, catalog::table_oid_t(0),
                                       schema.GetColumn(5).Oid()));
     customer_secondary_key_schema.back().SetOid(static_cast<catalog::indexkeycol_oid_t>(++(*oid_counter)));
@@ -480,17 +480,17 @@ class Schemas {
 
     // Primary Key: (NO_W_ID, NO_D_ID, NO_O_ID)
     new_order_key_schema.emplace_back(
-        "", schema.GetColumn(2).Type(), schema.GetColumn(2).Nullable(),
+        "no_w_id", schema.GetColumn(2).Type(), schema.GetColumn(2).Nullable(),
         parser::ColumnValueExpression(catalog::INVALID_DATABASE_OID, catalog::table_oid_t(0),
                                       schema.GetColumn(2).Oid()));
     new_order_key_schema.back().SetOid(static_cast<catalog::indexkeycol_oid_t>(++(*oid_counter)));
     new_order_key_schema.emplace_back(
-        "", schema.GetColumn(1).Type(), schema.GetColumn(1).Nullable(),
+        "no_d_id", schema.GetColumn(1).Type(), schema.GetColumn(1).Nullable(),
         parser::ColumnValueExpression(catalog::INVALID_DATABASE_OID, catalog::table_oid_t(0),
                                       schema.GetColumn(1).Oid()));
     new_order_key_schema.back().SetOid(static_cast<catalog::indexkeycol_oid_t>(++(*oid_counter)));
     new_order_key_schema.emplace_back(
-        "", schema.GetColumn(0).Type(), schema.GetColumn(0).Nullable(),
+        "no_o_id", schema.GetColumn(0).Type(), schema.GetColumn(0).Nullable(),
         parser::ColumnValueExpression(catalog::INVALID_DATABASE_OID, catalog::table_oid_t(0),
                                       schema.GetColumn(0).Oid()));
     new_order_key_schema.back().SetOid(static_cast<catalog::indexkeycol_oid_t>(++(*oid_counter)));
@@ -565,15 +565,15 @@ class Schemas {
     order_key_schema.reserve(num_order_primary_index_cols_);
 
     // Primary Key: (O_W_ID, O_D_ID, O_ID)
-    order_key_schema.emplace_back("", schema.GetColumn(2).Type(), schema.GetColumn(2).Nullable(),
+    order_key_schema.emplace_back("o_w_id", schema.GetColumn(2).Type(), schema.GetColumn(2).Nullable(),
                                   parser::ColumnValueExpression(catalog::INVALID_DATABASE_OID, catalog::table_oid_t(0),
                                                                 schema.GetColumn(2).Oid()));
     order_key_schema.back().SetOid(static_cast<catalog::indexkeycol_oid_t>(++(*oid_counter)));
-    order_key_schema.emplace_back("", schema.GetColumn(1).Type(), schema.GetColumn(1).Nullable(),
+    order_key_schema.emplace_back("o_d_id", schema.GetColumn(1).Type(), schema.GetColumn(1).Nullable(),
                                   parser::ColumnValueExpression(catalog::INVALID_DATABASE_OID, catalog::table_oid_t(0),
                                                                 schema.GetColumn(1).Oid()));
     order_key_schema.back().SetOid(static_cast<catalog::indexkeycol_oid_t>(++(*oid_counter)));
-    order_key_schema.emplace_back("", schema.GetColumn(0).Type(), schema.GetColumn(0).Nullable(),
+    order_key_schema.emplace_back("o_id", schema.GetColumn(0).Type(), schema.GetColumn(0).Nullable(),
                                   parser::ColumnValueExpression(catalog::INVALID_DATABASE_OID, catalog::table_oid_t(0),
                                                                 schema.GetColumn(0).Oid()));
     order_key_schema.back().SetOid(static_cast<catalog::indexkeycol_oid_t>(++(*oid_counter)));
@@ -596,22 +596,22 @@ class Schemas {
 
     // O_W_ID, O_D_ID, O_C_ID, O_ID for Order Status transaction
     order_secondary_key_schema.emplace_back(
-        "", schema.GetColumn(2).Type(), schema.GetColumn(2).Nullable(),
+        "o_w_id", schema.GetColumn(2).Type(), schema.GetColumn(2).Nullable(),
         parser::ColumnValueExpression(catalog::INVALID_DATABASE_OID, catalog::table_oid_t(0),
                                       schema.GetColumn(2).Oid()));
     order_secondary_key_schema.back().SetOid(static_cast<catalog::indexkeycol_oid_t>(++(*oid_counter)));
     order_secondary_key_schema.emplace_back(
-        "", schema.GetColumn(1).Type(), schema.GetColumn(1).Nullable(),
+        "o_d_id", schema.GetColumn(1).Type(), schema.GetColumn(1).Nullable(),
         parser::ColumnValueExpression(catalog::INVALID_DATABASE_OID, catalog::table_oid_t(0),
                                       schema.GetColumn(1).Oid()));
     order_secondary_key_schema.back().SetOid(static_cast<catalog::indexkeycol_oid_t>(++(*oid_counter)));
     order_secondary_key_schema.emplace_back(
-        "", schema.GetColumn(3).Type(), schema.GetColumn(3).Nullable(),
+        "o_c_id", schema.GetColumn(3).Type(), schema.GetColumn(3).Nullable(),
         parser::ColumnValueExpression(catalog::INVALID_DATABASE_OID, catalog::table_oid_t(0),
                                       schema.GetColumn(3).Oid()));
     order_secondary_key_schema.back().SetOid(static_cast<catalog::indexkeycol_oid_t>(++(*oid_counter)));
     order_secondary_key_schema.emplace_back(
-        "", schema.GetColumn(0).Type(), schema.GetColumn(0).Nullable(),
+        "o_id", schema.GetColumn(0).Type(), schema.GetColumn(0).Nullable(),
         parser::ColumnValueExpression(catalog::INVALID_DATABASE_OID, catalog::table_oid_t(0),
                                       schema.GetColumn(0).Oid()));
     order_secondary_key_schema.back().SetOid(static_cast<catalog::indexkeycol_oid_t>(++(*oid_counter)));
@@ -699,22 +699,22 @@ class Schemas {
 
     // Primary Key: (OL_W_ID, OL_D_ID, OL_O_ID, OL_NUMBER)
     order_line_key_schema.emplace_back(
-        "", schema.GetColumn(2).Type(), schema.GetColumn(2).Nullable(),
+        "ol_w_id", schema.GetColumn(2).Type(), schema.GetColumn(2).Nullable(),
         parser::ColumnValueExpression(catalog::INVALID_DATABASE_OID, catalog::table_oid_t(0),
                                       schema.GetColumn(2).Oid()));
     order_line_key_schema.back().SetOid(static_cast<catalog::indexkeycol_oid_t>(++(*oid_counter)));
     order_line_key_schema.emplace_back(
-        "", schema.GetColumn(1).Type(), schema.GetColumn(1).Nullable(),
+        "ol_d_id", schema.GetColumn(1).Type(), schema.GetColumn(1).Nullable(),
         parser::ColumnValueExpression(catalog::INVALID_DATABASE_OID, catalog::table_oid_t(0),
                                       schema.GetColumn(1).Oid()));
     order_line_key_schema.back().SetOid(static_cast<catalog::indexkeycol_oid_t>(++(*oid_counter)));
     order_line_key_schema.emplace_back(
-        "", schema.GetColumn(0).Type(), schema.GetColumn(0).Nullable(),
+        "ol_o_id", schema.GetColumn(0).Type(), schema.GetColumn(0).Nullable(),
         parser::ColumnValueExpression(catalog::INVALID_DATABASE_OID, catalog::table_oid_t(0),
                                       schema.GetColumn(0).Oid()));
     order_line_key_schema.back().SetOid(static_cast<catalog::indexkeycol_oid_t>(++(*oid_counter)));
     order_line_key_schema.emplace_back(
-        "", schema.GetColumn(3).Type(), schema.GetColumn(3).Nullable(),
+        "ol_number", schema.GetColumn(3).Type(), schema.GetColumn(3).Nullable(),
         parser::ColumnValueExpression(catalog::INVALID_DATABASE_OID, catalog::table_oid_t(0),
                                       schema.GetColumn(3).Oid()));
     order_line_key_schema.back().SetOid(static_cast<catalog::indexkeycol_oid_t>(++(*oid_counter)));
@@ -774,7 +774,7 @@ class Schemas {
     item_key_schema.reserve(num_item_primary_index_cols_);
 
     // Primary Key: I_ID
-    item_key_schema.emplace_back("", schema.GetColumn(0).Type(), schema.GetColumn(0).Nullable(),
+    item_key_schema.emplace_back("i_id", schema.GetColumn(0).Type(), schema.GetColumn(0).Nullable(),
                                  parser::ColumnValueExpression(catalog::INVALID_DATABASE_OID, catalog::table_oid_t(0),
                                                                schema.GetColumn(0).Oid()));
     item_key_schema.back().SetOid(static_cast<catalog::indexkeycol_oid_t>(++(*oid_counter)));
@@ -894,11 +894,11 @@ class Schemas {
     stock_key_schema.reserve(num_stock_primary_index_cols_);
 
     // Primary Key: (S_W_ID, S_I_ID)
-    stock_key_schema.emplace_back("", schema.GetColumn(1).Type(), schema.GetColumn(1).Nullable(),
+    stock_key_schema.emplace_back("s_w_id", schema.GetColumn(1).Type(), schema.GetColumn(1).Nullable(),
                                   parser::ColumnValueExpression(catalog::INVALID_DATABASE_OID, catalog::table_oid_t(0),
                                                                 schema.GetColumn(1).Oid()));
     stock_key_schema.back().SetOid(static_cast<catalog::indexkeycol_oid_t>(++(*oid_counter)));
-    stock_key_schema.emplace_back("", schema.GetColumn(0).Type(), schema.GetColumn(0).Nullable(),
+    stock_key_schema.emplace_back("s_i_id", schema.GetColumn(0).Type(), schema.GetColumn(0).Nullable(),
                                   parser::ColumnValueExpression(catalog::INVALID_DATABASE_OID, catalog::table_oid_t(0),
                                                                 schema.GetColumn(0).Oid()));
     stock_key_schema.back().SetOid(static_cast<catalog::indexkeycol_oid_t>(++(*oid_counter)));

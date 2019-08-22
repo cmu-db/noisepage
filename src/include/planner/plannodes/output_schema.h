@@ -370,6 +370,16 @@ class OutputSchema {
     direct_map_list_ = j.at("direct_map_list").get<std::vector<DirectMap>>();
   }
 
+  /**
+   * @returns DerivedTargets
+   */
+  const std::vector<DerivedTarget> &GetDerivedTargets() const { return targets_; }
+
+  /**
+   * @returns DirectMapList
+   */
+  const std::vector<DirectMap> &GetDirectMapList() const { return direct_map_list_; }
+
  private:
   std::vector<Column> columns_;
   std::vector<DerivedTarget> targets_;

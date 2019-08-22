@@ -45,11 +45,6 @@ struct QueryInfo {
       : stmt_type_(type), output_exprs_(exprs), physical_props_(props) {}
 
   /**
-   * Destructor
-   */
-  ~QueryInfo() { delete physical_props_; }
-
-  /**
    * @returns StatementType
    */
   parser::StatementType GetStmtType() const { return stmt_type_; }

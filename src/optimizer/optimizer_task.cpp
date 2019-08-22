@@ -310,7 +310,7 @@ void OptimizeInputs::execute() {
       // best expr from the child group
 
       // Add this group expression to group expression hash table
-      std::vector<PropertySet *> input_props_copy{input_props.size()};
+      std::vector<PropertySet *> input_props_copy;
       for (auto i_prop : input_props) {
         input_props_copy.push_back(i_prop->Copy());
       }

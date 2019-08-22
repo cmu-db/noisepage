@@ -308,7 +308,7 @@ class ExpressionUtil {
 
     // Evaluate all children and store new children pointers
     size_t children_size = expr->GetChildrenSize();
-    std::vector<const AbstractExpression *> children(children_size);
+    std::vector<const AbstractExpression *> children;
     for (size_t i = 0; i < children_size; i++) {
       children.push_back(EvaluateExpression(expr_maps, expr->GetChild(i).get()));
     }

@@ -22,6 +22,7 @@
 namespace terrier {
 
 class TpccPlanTest : public TerrierTest {
+ private:
   catalog::table_oid_t CreateTable(catalog::CatalogAccessor *accessor, std::string tbl_name, catalog::Schema schema) {
     auto tbl_oid = accessor->CreateTable(accessor->GetDefaultNamespace(), tbl_name, schema);
     EXPECT_NE(tbl_oid, catalog::INVALID_TABLE_OID);
@@ -106,6 +107,7 @@ class TpccPlanTest : public TerrierTest {
     txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
   }
 
+ public:
   void SetUp() override {
     std::unordered_map<settings::Param, settings::ParamInfo> param_map;
     terrier::settings::SettingsManager::ConstructParamMap(param_map);
@@ -188,7 +190,7 @@ class TpccPlanTest : public TerrierTest {
   }
 
   // Binding ColumnValueExpressions and "anti-duplicate" binding protection
-  void BindColumnValues(const parser::AbstractExpression * expr, catalog::table_oid_t tbl_oid) {
+  void BindColumnValues(const parser::AbstractExpression *expr, catalog::table_oid_t tbl_oid, std::string tbl_alias) {
     std::set<std::string> seen_names;
     std::queue<const parser::AbstractExpression *> frontier;
     frontier.push(expr);
@@ -209,13 +211,19 @@ class TpccPlanTest : public TerrierTest {
 
         ccve->SetDatabaseOID(db_);
         ccve->SetTableOID(tbl_oid);
+        ccve->table_name_ = tbl_alias;
 
         auto &schema = accessor_->GetSchema(tbl_oid);
         auto col_oid = schema.GetColumn(ccve->GetColumnName()).Oid();
         EXPECT_TRUE(col_oid != catalog::INVALID_COLUMN_OID);
 
         ccve->SetColumnOID(col_oid);
+        ccve->SetReturnValueType(schema.GetColumn(ccve->GetColumnName()).Type());
       }
+
+      // Unfortunate binder hack!
+      const_cast<parser::AbstractExpression*>(front)->DeriveExpressionName();
+      const_cast<parser::AbstractExpression*>(front)->DeriveReturnValueType();
     }
   }
 

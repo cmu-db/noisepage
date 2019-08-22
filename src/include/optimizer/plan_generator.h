@@ -215,11 +215,11 @@ class PlanGenerator : public OperatorVisitor {
   template <class T>
   void RegisterPointerCleanup(const void *ptr, bool onCommit, bool onAbort) {
     if (onCommit) {
-      txn_->RegisterCommitAction([&]() { delete reinterpret_cast<T *>(ptr); });
+      txn_->RegisterCommitAction([=]() { delete reinterpret_cast<T *>(ptr); });
     }
 
     if (onAbort) {
-      txn_->RegisterAbortAction([&]() { delete reinterpret_cast<T *>(ptr); });
+      txn_->RegisterAbortAction([=]() { delete reinterpret_cast<T *>(ptr); });
     }
   }
 
@@ -247,7 +247,7 @@ class PlanGenerator : public OperatorVisitor {
   /**
    * Generates the OutputSchema for a scan.
    * The OutputSchema contains only those columns in output_cols_
-   * @param tbl_oid Table OID of scan table
+   * @param tbl_oid Table OID of table being scanned
    * @returns OutputSchema
    */
   std::shared_ptr<planner::OutputSchema> GenerateScanOutputSchema(catalog::table_oid_t tbl_oid);
