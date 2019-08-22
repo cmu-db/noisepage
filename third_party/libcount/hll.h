@@ -20,8 +20,8 @@
 #include <stdint.h>
 #include <algorithm>
 #include <vector>
-#include "count/hll_limits.h"
-#include "count/utility.h"
+#include "hll_limits.h"
+#include "utility.h"
 
 namespace libcount {
 
