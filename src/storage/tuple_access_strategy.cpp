@@ -49,7 +49,9 @@ bool TupleAccessStrategy::Allocate(RawBlock *const block, TupleSlot *const slot)
   if (start == layout_.NumSlots()) return false;
 
   uint32_t pos = start;
-
+  // We do not support concurrent insertion to the same block anymore
+  // Assumption: Different threads cannot insert into the same block at the same time
+  // If the block is not full, the function should always succeed (Flip should always return true)
   bitmap->Flip(pos, false);
   *slot = TupleSlot(block, pos);
   block->insert_head_++;
