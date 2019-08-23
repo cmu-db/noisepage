@@ -5,6 +5,7 @@
 #include "planner/plannodes/seq_scan_plan_node.h"
 #include "planner/plannodes/projection_plan_node.h"
 #include "planner/plannodes/order_by_plan_node.h"
+#include "planner/plannodes/limit_plan_node.h"
 #include "optimizer/properties.h"
 #include "optimizer/property_set.h"
 #include "optimizer/optimizer.h"
@@ -307,6 +308,296 @@ TEST_F(TpccPlanSeqScanTests, SimpleSeqScanSelectWithPredicateOrderBy) {
   EXPECT_EQ(output_schema->GetDirectMapList()[1].second.second, o_id_offset);
 
   delete filter;
+  delete property_set;
+  delete optimizer;
+  delete predicate;
+
+  EndTransaction(true);
+}
+
+// NOLINTNEXTLINE
+TEST_F(TpccPlanSeqScanTests, SimpleSeqScanSelectWithPredicateLimit) {
+  parser::PostgresParser pgparser;
+  std::string query = "SELECT o_id from \"ORDER\" where o_carrier_id = 5 LIMIT 1 OFFSET 2";
+  auto stmt_list = pgparser.BuildParseTree(query);
+  auto sel_stmt = reinterpret_cast<parser::SelectStatement*>(stmt_list[0].get());
+  auto predicate = sel_stmt->GetSelectCondition()->Copy();
+
+  BeginTransaction();
+
+  BindColumnValues(predicate, tbl_order_, "order");
+  BindColumnValues(sel_stmt->GetSelectColumn(0).get(), tbl_order_, "order");
+
+  auto get = new OperatorExpression(LogicalGet::make(db_, accessor_->GetDefaultNamespace(), tbl_order_, {}, "order", false), {});
+
+  // Build Filter
+  auto predicates = ExtractPredicates(predicate);
+  auto children = {get};
+  auto filter = new OperatorExpression(LogicalFilter::make(std::move(predicates)), std::move(children));
+
+  // Limit
+  auto lim_child = {filter};
+  auto offset = sel_stmt->GetSelectLimit()->GetOffset();
+  auto lim = sel_stmt->GetSelectLimit()->GetLimit();
+  auto limit = new OperatorExpression(LogicalLimit::make(offset, lim, {}, {}), std::move(lim_child));
+
+  std::vector<common::ManagedPointer<const parser::AbstractExpression>> output;
+  output.emplace_back(sel_stmt->GetSelectColumn(0).get());
+
+  // Build QueryInfo
+  auto property_set = new PropertySet();
+  auto query_info = QueryInfo(parser::StatementType::SELECT, std::move(output), property_set);
+
+  auto optimizer = new Optimizer(new TrivialCostModel());
+  auto plan = optimizer->BuildPlanTree(limit, query_info, txn_, settings_manager_, accessor_);
+
+  // Expect a Limit <= SeqScan
+  // Hardcoding this is an unfortunate
+  auto &schema = accessor_->GetSchema(tbl_order_);
+
+  // Find column offset that matches with o_carrier_id
+  unsigned carrier_offset = 0;
+  unsigned o_id_offset = 0;
+  for (size_t idx = 0; idx < schema.GetColumns().size(); idx++) {
+    if (schema.GetColumns()[idx].Name() == "o_carrier_id")
+      carrier_offset = static_cast<unsigned>(idx);
+    else if (schema.GetColumns()[idx].Name() == "o_id")
+      o_id_offset = static_cast<unsigned>(idx);
+  }
+
+  EXPECT_EQ(plan->GetChildrenSize(), 1);
+  EXPECT_EQ(plan->GetPlanNodeType(), planner::PlanNodeType::LIMIT);
+  EXPECT_EQ(plan->GetOutputSchema()->GetColumns().size(), 1);
+  EXPECT_EQ(plan->GetOutputSchema()->GetColumn(0).GetName(), "o_id");
+  EXPECT_EQ(plan->GetOutputSchema()->GetColumn(0).GetType(), schema.GetColumn("o_id").Type());
+  EXPECT_EQ(plan->GetOutputSchema()->GetDerivedTargets().size(), 0);
+  EXPECT_EQ(plan->GetOutputSchema()->GetDirectMapList().size(), 1);
+  EXPECT_EQ(plan->GetOutputSchema()->GetDirectMapList()[0].first, 0);
+  EXPECT_EQ(plan->GetOutputSchema()->GetDirectMapList()[0].second.first, 0);
+  EXPECT_EQ(plan->GetOutputSchema()->GetDirectMapList()[0].second.second, 0);
+  auto limit_plan = std::dynamic_pointer_cast<planner::LimitPlanNode>(plan);
+  EXPECT_EQ(limit_plan->GetLimit(), 1);
+  EXPECT_EQ(limit_plan->GetOffset(), 2);
+
+  // Seq Scan
+  auto plans = plan->GetChild(0);
+  EXPECT_EQ(plans->GetChildrenSize(), 0);
+  EXPECT_EQ(plans->GetPlanNodeType(), planner::PlanNodeType::SEQSCAN);
+  auto seq = reinterpret_cast<const planner::SeqScanPlanNode*>(plans);
+
+  // Check scan predicate
+  auto scan_pred = seq->GetScanPredicate();
+  EXPECT_TRUE(scan_pred != nullptr);
+  EXPECT_EQ(scan_pred->GetExpressionType(), parser::ExpressionType::COMPARE_EQUAL);
+  EXPECT_EQ(scan_pred->GetChildrenSize(), 2);
+  EXPECT_EQ(scan_pred->GetChild(0)->GetExpressionType(), parser::ExpressionType::VALUE_TUPLE);
+  EXPECT_EQ(scan_pred->GetChild(1)->GetExpressionType(), parser::ExpressionType::VALUE_CONSTANT);
+  auto *dve = reinterpret_cast<const parser::DerivedValueExpression*>(scan_pred->GetChild(0).get());
+  auto *cve = reinterpret_cast<const parser::ConstantValueExpression*>(scan_pred->GetChild(1).get());
+  EXPECT_EQ(dve->GetTupleIdx(), 0);
+  EXPECT_EQ(dve->GetValueIdx(), carrier_offset); // ValueIdx() should be offset into underlying tuple (all cols)
+  EXPECT_EQ(type::TransientValuePeeker::PeekInteger(cve->GetValue()), 5);
+
+  // Check SeqScan
+  EXPECT_EQ(seq->IsForUpdate(), false);
+  EXPECT_EQ(seq->IsParallel(), settings_manager_->GetBool(settings::Param::parallel_execution));
+  EXPECT_EQ(seq->GetDatabaseOid(), db_);
+  EXPECT_EQ(seq->GetNamespaceOid(), accessor_->GetDefaultNamespace());
+  EXPECT_EQ(seq->GetTableOid(), tbl_order_);
+  EXPECT_EQ(seq->GetColumnIds().size(), 1);
+  EXPECT_EQ(seq->GetColumnIds()[0], schema.GetColumn("o_id").Oid());
+
+  // Check SeqScan OutputSchema
+  auto output_schema = seq->GetOutputSchema();
+  EXPECT_EQ(output_schema->GetColumns().size(), 1);
+  EXPECT_EQ(output_schema->GetColumn(0).GetName(), "o_id");
+  EXPECT_EQ(output_schema->GetColumn(0).GetType(), schema.GetColumn("o_id").Type());
+  EXPECT_EQ(output_schema->GetDerivedTargets().size(), 0);
+  EXPECT_EQ(output_schema->GetDirectMapList().size(), 1);
+  EXPECT_EQ(output_schema->GetDirectMapList()[0].first, 0);
+  EXPECT_EQ(output_schema->GetDirectMapList()[0].second.first, 0);
+  EXPECT_EQ(output_schema->GetDirectMapList()[0].second.second, o_id_offset);
+
+  delete limit;
+  delete property_set;
+  delete optimizer;
+  delete predicate;
+
+  EndTransaction(true);
+}
+
+// NOLINTNEXTLINE
+TEST_F(TpccPlanSeqScanTests, SimpleSeqScanSelectWithPredicateOrderByLimit) {
+  parser::PostgresParser pgparser;
+  std::string query = "SELECT o_id from \"ORDER\" where o_carrier_id = 5 ORDER BY o_ol_cnt DESC LIMIT 1 OFFSET 2";
+  auto stmt_list = pgparser.BuildParseTree(query);
+  auto sel_stmt = reinterpret_cast<parser::SelectStatement*>(stmt_list[0].get());
+  auto predicate = sel_stmt->GetSelectCondition()->Copy();
+
+  BeginTransaction();
+
+  BindColumnValues(predicate, tbl_order_, "order");
+  BindColumnValues(sel_stmt->GetSelectColumn(0).get(), tbl_order_, "order");
+  BindColumnValues(sel_stmt->GetSelectOrderBy()->GetOrderByExpression(0).get(), tbl_order_, "order");
+
+  // Build Get
+  auto get = new OperatorExpression(LogicalGet::make(db_, accessor_->GetDefaultNamespace(), tbl_order_, {}, "order", false), {});
+
+  // Build Filter
+  auto predicates = ExtractPredicates(predicate);
+  auto children = {get};
+  auto filter = new OperatorExpression(LogicalFilter::make(std::move(predicates)), std::move(children));
+
+  std::vector<common::ManagedPointer<const parser::AbstractExpression>> output;
+  output.emplace_back(sel_stmt->GetSelectColumn(0).get());
+
+  // Build SortProperty
+  auto order = sel_stmt->GetSelectOrderBy();
+  std::vector<planner::OrderByOrderingType> sort_dirs;
+  std::vector<common::ManagedPointer<const parser::AbstractExpression>> order_bys;
+  EXPECT_EQ(order->GetOrderByExpressionsSize(), 1);
+  order_bys.push_back(order->GetOrderByExpression(0));
+  sort_dirs.push_back(order->GetOrderByTypes()[0] == parser::OrderType::kOrderAsc ?
+                      planner::OrderByOrderingType::ASC : planner::OrderByOrderingType::DESC);
+
+  auto sort_prop = new PropertySort(order_bys, sort_dirs);
+  auto property_set = new PropertySet();
+  property_set->AddProperty(sort_prop);
+
+  // Build Limit (with internal sort)
+  auto lim_child = {filter}; 
+  auto offset = sel_stmt->GetSelectLimit()->GetOffset();
+  auto lim = sel_stmt->GetSelectLimit()->GetLimit();
+  auto limit = new OperatorExpression(LogicalLimit::make(offset, lim, std::move(order_bys), std::move(sort_dirs)), std::move(lim_child));
+
+  auto query_info = QueryInfo(parser::StatementType::SELECT, std::move(output), property_set);
+
+  auto optimizer = new Optimizer(new TrivialCostModel());
+  auto plan = optimizer->BuildPlanTree(limit, query_info, txn_, settings_manager_, accessor_);
+
+  // Expect a Projection <= Limit <= OrderBy <= SeqScan
+  auto &schema = accessor_->GetSchema(tbl_order_);
+
+  // Find column offset that matches with o_carrier_id
+  unsigned carrier_offset = 0;
+  unsigned o_id_offset = 0;
+  unsigned o_ol_cnt_offset = 0;
+  for (size_t idx = 0; idx < schema.GetColumns().size(); idx++) {
+    if (schema.GetColumns()[idx].Name() == "o_carrier_id")
+      carrier_offset = static_cast<unsigned>(idx);
+    else if (schema.GetColumns()[idx].Name() == "o_id")
+      o_id_offset = static_cast<unsigned>(idx);
+    else if (schema.GetColumns()[idx].Name() == "o_ol_cnt")
+      o_ol_cnt_offset = static_cast<unsigned>(idx);
+  }
+
+  EXPECT_EQ(plan->GetChildrenSize(), 1);
+  EXPECT_EQ(plan->GetPlanNodeType(), planner::PlanNodeType::PROJECTION);
+  EXPECT_EQ(plan->GetOutputSchema()->GetColumns().size(), 1);
+  EXPECT_EQ(plan->GetOutputSchema()->GetColumn(0).GetName(), "o_id");
+  EXPECT_EQ(plan->GetOutputSchema()->GetColumn(0).GetType(), schema.GetColumn("o_id").Type());
+  EXPECT_EQ(plan->GetOutputSchema()->GetDerivedTargets().size(), 0);
+  EXPECT_EQ(plan->GetOutputSchema()->GetDirectMapList().size(), 1);
+  EXPECT_EQ(plan->GetOutputSchema()->GetDirectMapList()[0].first, 0);
+  EXPECT_EQ(plan->GetOutputSchema()->GetDirectMapList()[0].second.first, 0);
+  EXPECT_EQ(plan->GetOutputSchema()->GetDirectMapList()[0].second.second, 1);
+
+  // Limit
+  auto planl = plan->GetChild(0);
+  EXPECT_EQ(planl->GetChildrenSize(), 1);
+  EXPECT_EQ(planl->GetPlanNodeType(), planner::PlanNodeType::LIMIT);
+  auto limit_plan = reinterpret_cast<const planner::LimitPlanNode*>(planl);
+  EXPECT_EQ(limit_plan->GetLimit(), lim);
+  EXPECT_EQ(limit_plan->GetOffset(), offset);
+  EXPECT_EQ(planl->GetOutputSchema()->GetColumns().size(), 2);
+  EXPECT_EQ(planl->GetOutputSchema()->GetColumn(0).GetName(), "o_ol_cnt");
+  EXPECT_EQ(planl->GetOutputSchema()->GetColumn(0).GetType(), schema.GetColumn("o_ol_cnt").Type());
+  EXPECT_EQ(planl->GetOutputSchema()->GetColumn(1).GetName(), "o_id");
+  EXPECT_EQ(planl->GetOutputSchema()->GetColumn(1).GetType(), schema.GetColumn("o_id").Type());
+  EXPECT_EQ(planl->GetOutputSchema()->GetDerivedTargets().size(), 0);
+  EXPECT_EQ(planl->GetOutputSchema()->GetDirectMapList().size(), 2);
+  EXPECT_EQ(planl->GetOutputSchema()->GetDirectMapList()[0].first, 0);
+  EXPECT_EQ(planl->GetOutputSchema()->GetDirectMapList()[0].second.first, 0);
+  EXPECT_EQ(planl->GetOutputSchema()->GetDirectMapList()[0].second.second, 0);
+  EXPECT_EQ(planl->GetOutputSchema()->GetDirectMapList()[1].first, 1);
+  EXPECT_EQ(planl->GetOutputSchema()->GetDirectMapList()[1].second.first, 0);
+  EXPECT_EQ(planl->GetOutputSchema()->GetDirectMapList()[1].second.second, 1);
+
+  // Order By
+  auto planc = planl->GetChild(0);
+  EXPECT_EQ(planc->GetChildrenSize(), 1);
+  EXPECT_EQ(planc->GetPlanNodeType(), planner::PlanNodeType::ORDERBY);
+  auto orderby = reinterpret_cast<const planner::OrderByPlanNode*>(planc);
+  EXPECT_EQ(orderby->HasLimit(), true);
+  EXPECT_EQ(orderby->GetLimit(), lim);
+  EXPECT_EQ(orderby->GetOffset(), offset);
+  EXPECT_EQ(orderby->GetSortKeys().size(), 1);
+  EXPECT_EQ(orderby->GetSortKeys()[0].second, planner::OrderByOrderingType::DESC);
+  auto sortkey = reinterpret_cast<const parser::DerivedValueExpression*>(orderby->GetSortKeys()[0].first);
+  EXPECT_TRUE(sortkey != nullptr);
+  EXPECT_EQ(sortkey->GetExpressionType(), parser::ExpressionType::VALUE_TUPLE);
+  EXPECT_EQ(sortkey->GetTupleIdx(), 0);
+  EXPECT_EQ(sortkey->GetValueIdx(), 0);
+  EXPECT_EQ(planc->GetOutputSchema()->GetColumns().size(), 2);
+  EXPECT_EQ(planc->GetOutputSchema()->GetColumn(0).GetName(), "o_ol_cnt");
+  EXPECT_EQ(planc->GetOutputSchema()->GetColumn(0).GetType(), schema.GetColumn("o_ol_cnt").Type());
+  EXPECT_EQ(planc->GetOutputSchema()->GetColumn(1).GetName(), "o_id");
+  EXPECT_EQ(planc->GetOutputSchema()->GetColumn(1).GetType(), schema.GetColumn("o_id").Type());
+  EXPECT_EQ(planc->GetOutputSchema()->GetDerivedTargets().size(), 0);
+  EXPECT_EQ(planc->GetOutputSchema()->GetDirectMapList().size(), 2);
+  EXPECT_EQ(planc->GetOutputSchema()->GetDirectMapList()[0].first, 0);
+  EXPECT_EQ(planc->GetOutputSchema()->GetDirectMapList()[0].second.first, 0);
+  EXPECT_EQ(planc->GetOutputSchema()->GetDirectMapList()[0].second.second, 0);
+  EXPECT_EQ(planc->GetOutputSchema()->GetDirectMapList()[1].first, 1);
+  EXPECT_EQ(planc->GetOutputSchema()->GetDirectMapList()[1].second.first, 0);
+  EXPECT_EQ(planc->GetOutputSchema()->GetDirectMapList()[1].second.second, 1);
+
+  // Seq Scan
+  auto plans = planc->GetChild(0);
+  EXPECT_EQ(plans->GetChildrenSize(), 0);
+  EXPECT_EQ(plans->GetPlanNodeType(), planner::PlanNodeType::SEQSCAN);
+  auto seq = reinterpret_cast<const planner::SeqScanPlanNode*>(plans);
+
+  // Check scan predicate
+  auto scan_pred = seq->GetScanPredicate();
+  EXPECT_TRUE(scan_pred != nullptr);
+  EXPECT_EQ(scan_pred->GetExpressionType(), parser::ExpressionType::COMPARE_EQUAL);
+  EXPECT_EQ(scan_pred->GetChildrenSize(), 2);
+  EXPECT_EQ(scan_pred->GetChild(0)->GetExpressionType(), parser::ExpressionType::VALUE_TUPLE);
+  EXPECT_EQ(scan_pred->GetChild(1)->GetExpressionType(), parser::ExpressionType::VALUE_CONSTANT);
+  auto *dve = reinterpret_cast<const parser::DerivedValueExpression*>(scan_pred->GetChild(0).get());
+  auto *cve = reinterpret_cast<const parser::ConstantValueExpression*>(scan_pred->GetChild(1).get());
+  EXPECT_EQ(dve->GetTupleIdx(), 0);
+  EXPECT_EQ(dve->GetValueIdx(), carrier_offset); // ValueIdx() should be offset into underlying tuple (all cols)
+  EXPECT_EQ(type::TransientValuePeeker::PeekInteger(cve->GetValue()), 5);
+
+  // Check SeqScan
+  EXPECT_EQ(seq->IsForUpdate(), false);
+  EXPECT_EQ(seq->IsParallel(), settings_manager_->GetBool(settings::Param::parallel_execution));
+  EXPECT_EQ(seq->GetDatabaseOid(), db_);
+  EXPECT_EQ(seq->GetNamespaceOid(), accessor_->GetDefaultNamespace());
+  EXPECT_EQ(seq->GetTableOid(), tbl_order_);
+  EXPECT_EQ(seq->GetColumnIds().size(), 2);
+  EXPECT_EQ(seq->GetColumnIds()[0], schema.GetColumn("o_ol_cnt").Oid());
+  EXPECT_EQ(seq->GetColumnIds()[1], schema.GetColumn("o_id").Oid());
+
+  // Check SeqScan OutputSchema
+  auto output_schema = seq->GetOutputSchema();
+  EXPECT_EQ(output_schema->GetColumns().size(), 2);
+  EXPECT_EQ(output_schema->GetColumn(0).GetName(), "o_ol_cnt");
+  EXPECT_EQ(output_schema->GetColumn(0).GetType(), schema.GetColumn("o_ol_cnt").Type());
+  EXPECT_EQ(output_schema->GetColumn(1).GetName(), "o_id");
+  EXPECT_EQ(output_schema->GetColumn(1).GetType(), schema.GetColumn("o_id").Type());
+  EXPECT_EQ(output_schema->GetDerivedTargets().size(), 0);
+  EXPECT_EQ(output_schema->GetDirectMapList().size(), 2);
+  EXPECT_EQ(output_schema->GetDirectMapList()[0].first, 0);
+  EXPECT_EQ(output_schema->GetDirectMapList()[0].second.first, 0);
+  EXPECT_EQ(output_schema->GetDirectMapList()[0].second.second, o_ol_cnt_offset);
+  EXPECT_EQ(output_schema->GetDirectMapList()[1].first, 1);
+  EXPECT_EQ(output_schema->GetDirectMapList()[1].second.first, 0);
+  EXPECT_EQ(output_schema->GetDirectMapList()[1].second.second, o_id_offset);
+
+  delete limit;
   delete property_set;
   delete optimizer;
   delete predicate;

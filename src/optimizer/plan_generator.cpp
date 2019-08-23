@@ -381,7 +381,7 @@ void PlanGenerator::Visit(const Limit *op) {
     // are the same as the output columns of the child plan. As such, the OutputSchema
     // of an OrderBy has the same columns vector as the child OutputSchema, with only
     // a DirectMapList pointing (i, (0, i)) for any i column.
-    std::vector<planner::OutputSchema::Column> child_columns = children_plans_[0]->GetOutputSchema()->GetColumns();
+    std::vector<planner::OutputSchema::Column> child_columns = output_plan_->GetOutputSchema()->GetColumns();
     std::vector<planner::OutputSchema::DerivedTarget> child_dl;
     std::vector<planner::OutputSchema::DirectMap> child_dml;
     for (size_t idx = 0; idx < child_columns.size(); idx++) {
@@ -390,11 +390,12 @@ void PlanGenerator::Visit(const Limit *op) {
     }
     auto output_schema = std::make_shared<planner::OutputSchema>(std::move(child_columns), std::move(child_dl), std::move(child_dml));
 
-    auto &order_build = planner::OrderByPlanNode::Builder()
-                            .SetOutputSchema(std::move(output_schema))
-                            .AddChild(std::move(output_plan_))
-                            .SetLimit(op->GetLimit())
-                            .SetOffset(op->GetOffset());
+    auto order_build = new planner::OrderByPlanNode::Builder();
+    order_build->SetOutputSchema(std::move(output_schema));
+    order_build->AddChild(std::move(output_plan_));
+    order_build->SetLimit(op->GetLimit());
+    order_build->SetOffset(op->GetOffset());
+
     auto &sort_columns = op->GetSortExpressions();
     auto &sort_flags = op->GetSortAscending();
     auto sort_column_size = sort_columns.size();
@@ -405,10 +406,11 @@ void PlanGenerator::Visit(const Limit *op) {
       // Need to replace ColumnValueExpression with DerivedValueExpression
       auto eval_expr = parser::ExpressionUtil::EvaluateExpression({child_cols_map}, sort_columns[idx].get());
       RegisterPointerCleanup<const parser::AbstractExpression>(eval_expr, true, true);
-      order_build.AddSortKey(eval_expr, sort_flags[idx]);
+      order_build->AddSortKey(eval_expr, sort_flags[idx]);
     }
 
-    output_plan_ = order_build.Build();
+    output_plan_ = order_build->Build();
+    delete order_build;
   }
 
   // Limit OutputSchema does not add/drop columns. All output columns of Limit
