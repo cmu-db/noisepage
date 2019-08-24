@@ -69,8 +69,8 @@ std::pair<LogRecord *, std::vector<byte *>> AbstractLogProvider::ReadNextRecord(
         // Attribute sizes must be 1,2,4,8 or 16 bytes (power of 2 less than 16 that isn't 0)
         if ((attr_size == 0)                            /* Can't be 0 */
             || (attr_size > (VARLEN_COLUMN & INT8_MAX)) /* Can't be larger than 16bytes */
-            || (attr_size &
-                (attr_size - 1))) /* Use some bit arithmatic here, this checks if size is not power of two) */
+            ||
+            (attr_size & (attr_size - 1))) /* Use some bit arithmatic here, this checks if size is not power of two) */
         {
           throw std::runtime_error("Invalid deserialized attribute size");
         }

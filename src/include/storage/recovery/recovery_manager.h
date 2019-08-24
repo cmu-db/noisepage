@@ -1,6 +1,6 @@
 #pragma once
 
-#include <list>
+#include <set>
 #include <string>
 #include <unordered_map>
 #include <utility>
@@ -111,12 +111,11 @@ class RecoveryManager : public common::DedicatedThreadOwner {
   // structure
   std::unordered_map<TupleSlot, TupleSlot> tuple_slot_map_;
 
-  // Used during recovery from log. Stores deferred transactions in reverse sorted order. Transactions are defered when
-  // there is an older active transaction at the time it committed. Even though snapshot isolation would handle
-  // write-write conflicts, DDL changes such as DROP TABLE combined with GC could lead to issues if we don't execute
-  // transactions in complete serial order. We store them in sorted order to be able to execute them in order. Having
-  // them in reverse order allows us faster inserts, since the stream of txn_ids is mostly monotonically increasing.
-  std::list<transaction::timestamp_t> deferred_txns_;
+  // Used during recovery from log. Stores deferred transactions in sorted sorted order to be able to execute them in
+  // serial order. Transactions are defered when there is an older active transaction at the time it committed. Even
+  // though snapshot isolation would handle write-write conflicts, DDL changes such as DROP TABLE combined with GC could
+  // lead to issues if we don't execute transactions in complete serial order.
+  std::set<transaction::timestamp_t> deferred_txns_;
 
   // Used during recovery from log. Maps a the txn id from the persisted txn to its changes we have buffered. We buffer
   // changes until commit time. This ensures serializability, and allows us to skip changes from aborted txns.
@@ -154,12 +153,6 @@ class RecoveryManager : public common::DedicatedThreadOwner {
    * @param txn_id start timestamp for aborted transaction
    */
   void ProcessAbortedTransaction(transaction::timestamp_t txn_id);
-
-  /**
-   * Adds transaction to deferred txn list
-   * @param txn_id txn start timestamp for txn to defer
-   */
-  void DeferTransaction(transaction::timestamp_t txn_id);
 
   /**
    * Replay any transaction who's txn start time is less than upper_bound. If upper_bound == transaction::NO_ACTIVE_TXN,

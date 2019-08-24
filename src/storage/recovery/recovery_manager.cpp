@@ -41,8 +41,8 @@ uint32_t RecoveryManager::RecoverFromLogs() {
         TERRIER_ASSERT(pair.second.empty(), "Commit records should not have any varlen pointers");
         auto *commit_record = log_record->GetUnderlyingRecordBodyAs<CommitRecord>();
 
-        // We defer all transactions
-        DeferTransaction(log_record->TxnBegin());
+        // We defer all transactions initially
+        deferred_txns_.insert(log_record->TxnBegin());
 
         // Process any deferred transactions that are safe to execute
         txns_replayed += ProcessDeferredTransactions(commit_record->OldestActiveTxn());
@@ -116,32 +116,21 @@ void RecoveryManager::ProcessAbortedTransaction(terrier::transaction::timestamp_
   buffered_changes_map_.erase(txn_id);
 }
 
-void RecoveryManager::DeferTransaction(terrier::transaction::timestamp_t txn_id) {
-  // As an optimization, because we process txns in nearly monotonically increasing order, we iterate from the end to
-  // find the spot where to insert, as the ordered position will most likely be towards the end of the list
-  auto it = deferred_txns_.rbegin();
-  for (; it != deferred_txns_.rend(); it++) {
-    if (*it < txn_id) break;
-  }
-  deferred_txns_.insert((it--).base(), txn_id);
-}
-
-uint32_t RecoveryManager::ProcessDeferredTransactions(terrier::transaction::timestamp_t upper_bound) {
+uint32_t RecoveryManager::ProcessDeferredTransactions(terrier::transaction::timestamp_t upper_bound_ts) {
   auto txns_processed = 0;
   // If the upper bound indicates NO_ACTIVE_TXN, then its safe to process all deferred txns. We can accomplish this by
   // setting the upper bound to INT_MAX
-  upper_bound = (upper_bound == transaction::NO_ACTIVE_TXN) ? transaction::timestamp_t(INT64_MAX) : upper_bound;
+  upper_bound_ts =
+      (upper_bound_ts == transaction::NO_ACTIVE_TXN) ? transaction::timestamp_t(INT64_MAX) : upper_bound_ts;
+  auto upper_bound_it = deferred_txns_.upper_bound(upper_bound_ts);
 
-  for (auto it = deferred_txns_.begin(); it != deferred_txns_.end();) {
-    if (*it > upper_bound) break;
-
+  for (auto it = deferred_txns_.begin(); it != upper_bound_it; it++) {
     ProcessCommittedTransaction(*it);
     txns_processed++;
-    // Because we iterate forwards and the elements are sorted, the first element should always be the one we're
-    // looking at
-    TERRIER_ASSERT(it == deferred_txns_.begin(), "We should always be looking at the first element");
-    it = deferred_txns_.erase(it);
   }
+
+  // If we actually processed some txns, remove them from the set
+  if (txns_processed) deferred_txns_.erase(deferred_txns_.begin(), upper_bound_it);
 
   return txns_processed;
 }
@@ -210,7 +199,7 @@ void RecoveryManager::UpdateIndexesOnTable(transaction::TransactionContext *txn,
   std::vector<common::ManagedPointer<storage::index::Index>> indexes;
 
   // Stores index schemas, used to get indexcol_ids
-  std::vector<catalog::IndexSchema> index_schemas;
+  std::vector<catalog::IndexSchema &> index_schemas;
 
   // We don't bootstrap the database catalog during recovery, so this means that indexes on catalog tables may not yet
   // be entries in pg_index. Thus, we hardcode these to update
@@ -308,7 +297,7 @@ void RecoveryManager::UpdateIndexesOnTable(transaction::TransactionContext *txn,
         indexes.push_back(index_ptr);
 
         // Get index schema
-        auto schema = db_catalog_ptr->GetIndexSchema(txn, oid);
+        const auto &schema = db_catalog_ptr->GetIndexSchema(txn, oid);
         index_schemas.push_back(schema);
       }
   }
@@ -413,7 +402,7 @@ uint32_t RecoveryManager::ProcessSpecialCaseCatalogRecord(
     }
 
     default:
-      throw std::runtime_error("This table does not require special case logic for record processing");
+      throw std::logic_error("This table does not require special case logic for record processing");
   }
 }
 
