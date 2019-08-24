@@ -103,7 +103,9 @@ class RecoveryManager : public common::DedicatedThreadOwner {
   // Transaction manager to create transactions for recovery
   transaction::TransactionManager *txn_manager_;
 
-  // Block store, used to create tables during recovery
+  // TODO(Gus): The recovery manager should be passed a specific block store for table construction. Block store
+  // management/assignment is probably a larger system issue that needs to be adddressed. Block store, used to create
+  // tables during recovery
   BlockStore *block_store_;
 
   // Used during recovery from log. Maps old tuple slot to new tuple slot
