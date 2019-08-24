@@ -148,11 +148,11 @@ class RecoveryManager : public common::DedicatedThreadOwner {
   void ProcessCommittedTransaction(transaction::timestamp_t txn_id);
 
   /**
-   * @brief Process an aborted transaction corresponding to txn_id.
-   * Aborted transaction will have it's allocated varlen entries freed
-   * @param txn_id start timestamp for aborted transaction
+   * Defers log records deletes with the transaction manager
+   * @param txn_id txn_id for txn who's records to delete
+   * @param delete_varlens true if we should delete varlens allocated for txn
    */
-  void ProcessAbortedTransaction(transaction::timestamp_t txn_id);
+  void DeferRecordDeletes(transaction::timestamp_t txn_id, bool delete_varlens);
 
   /**
    * Replay any transaction who's txn start time is less than upper_bound. If upper_bound == transaction::NO_ACTIVE_TXN,

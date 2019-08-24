@@ -32,8 +32,8 @@ uint32_t RecoveryManager::RecoverFromLogs() {
     switch (log_record->RecordType()) {
       case (LogRecordType::ABORT): {
         TERRIER_ASSERT(pair.second.empty(), "Abort records should not have any varlen pointers");
-        ProcessAbortedTransaction(log_record->TxnBegin());
-        delete[] reinterpret_cast<byte *>(log_record);
+        DeferRecordDeletes(log_record->TxnBegin(), true);
+        txn_manager_->DeferAction([=] { delete[] reinterpret_cast<byte *>(log_record); });
         break;
       }
 
@@ -48,7 +48,7 @@ uint32_t RecoveryManager::RecoverFromLogs() {
         txns_replayed += ProcessDeferredTransactions(commit_record->OldestActiveTxn());
 
         // Clean up the log record
-        delete[] reinterpret_cast<byte *>(log_record);
+        txn_manager_->DeferAction([=] { delete[] reinterpret_cast<byte *>(log_record); });
         break;
       }
 
@@ -67,12 +67,7 @@ uint32_t RecoveryManager::RecoverFromLogs() {
   // They are unrecoverable, so we need to clean up the memory of their records.
   if (!buffered_changes_map_.empty()) {
     for (auto &txn : buffered_changes_map_) {
-      for (auto &buffered_pair : txn.second) {
-        delete[] reinterpret_cast<byte *>(buffered_pair.first);
-        for (auto *entry : buffered_pair.second) {
-          delete[] entry;
-        }
-      }
+      DeferRecordDeletes(txn.first, true);
     }
   }
 
@@ -97,22 +92,27 @@ void RecoveryManager::ProcessCommittedTransaction(terrier::transaction::timestam
     } else {
       ReplayDeleteRecord(txn, buffered_record);
     }
-
-    delete[] reinterpret_cast<byte *>(buffered_record);
   }
-  buffered_changes_map_.erase(txn_id);
+
+  // Defer deletes of the log records
+  DeferRecordDeletes(txn_id, false);
+
   // Commit the txn
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 }
 
-void RecoveryManager::ProcessAbortedTransaction(terrier::transaction::timestamp_t txn_id) {
-  // If we are aborting, we can free and discard all buffered changes. Nothing needs to be replayed
-  for (auto &buffered_pair : buffered_changes_map_[txn_id]) {
-    delete[] reinterpret_cast<byte *>(buffered_pair.first);
-    for (auto *entry : buffered_pair.second) {
-      delete[] entry;
+void RecoveryManager::DeferRecordDeletes(terrier::transaction::timestamp_t txn_id, bool delete_varlens) {
+  // Capture the changes by value as we need to immediately clear txns from the buffered_changes_map_.
+  txn_manager_->DeferAction([buffered_changes = buffered_changes_map_[txn_id], delete_varlens]() {
+    for (auto &buffered_pair : buffered_changes) {
+      delete[] reinterpret_cast<byte *>(buffered_pair.first);
+      if (delete_varlens) {
+        for (auto *varlen_entry : buffered_pair.second) {
+          delete[] varlen_entry;
+        }
+      }
     }
-  }
+  });
   buffered_changes_map_.erase(txn_id);
 }
 
@@ -199,7 +199,7 @@ void RecoveryManager::UpdateIndexesOnTable(transaction::TransactionContext *txn,
   std::vector<common::ManagedPointer<storage::index::Index>> indexes;
 
   // Stores index schemas, used to get indexcol_ids
-  std::vector<catalog::IndexSchema &> index_schemas;
+  std::vector<catalog::IndexSchema> index_schemas;
 
   // We don't bootstrap the database catalog during recovery, so this means that indexes on catalog tables may not yet
   // be entries in pg_index. Thus, we hardcode these to update
@@ -292,13 +292,9 @@ void RecoveryManager::UpdateIndexesOnTable(transaction::TransactionContext *txn,
 
       for (auto &oid : index_oids) {
         // TODO(Gus, John, Issue #513): These individual calls are inefficient, we should be able to get these objects
-        // with a single call to the catalog Get index ptr
-        auto index_ptr = db_catalog_ptr->GetIndex(txn, oid);
-        indexes.push_back(index_ptr);
-
-        // Get index schema
-        const auto &schema = db_catalog_ptr->GetIndexSchema(txn, oid);
-        index_schemas.push_back(schema);
+        // with a single call to the catalog
+        indexes.push_back(db_catalog_ptr->GetIndex(txn, oid));
+        index_schemas.push_back(db_catalog_ptr->GetIndexSchema(txn, oid));
       }
   }
 
