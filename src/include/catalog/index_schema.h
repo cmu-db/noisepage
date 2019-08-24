@@ -193,7 +193,6 @@ class IndexSchema {
 
     friend class DatabaseCatalog;
     friend class postgres::Builder;
-    friend class IndexSchema;
 
     friend class tpcc::Schemas;
     friend class terrier::StorageTestUtil;
@@ -308,29 +307,30 @@ class IndexSchema {
     if (!indexed_oids_map_.empty()) return indexed_oids_map_;
 
     // We will traverse every expr tree
-    std::deque<std::shared_ptr<parser::AbstractExpression>> expr_queue;
+    std::deque<common::ManagedPointer<const parser::AbstractExpression>> expr_queue;
 
     // Traverse expression tree for each index key
     for (auto &col : GetColumns()) {
-      TERRIER_ASSERT(col.definition_ != nullptr, "Index column expr should not be null");
-      // Add root of expression of tree for column
-      expr_queue.push_back(col.definition_);
+      TERRIER_ASSERT(col.StoredExpression() != nullptr, "Index column expr should not be missing");
+      // Add root of expression of tree for the column
+      expr_queue.push_back(col.StoredExpression());
 
       // Iterate over the tree
       while (!expr_queue.empty()) {
         auto expr = expr_queue.front();
         expr_queue.pop_front();
 
-        TERRIER_ASSERT(expr != nullptr, "We should never be adding null expressions to the queue");
-
         // If this expr is a column value, add it to the queue
         if (expr->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE) {
-          indexed_oids_map_[col.oid_].push_back(
-              std::dynamic_pointer_cast<parser::ColumnValueExpression>(expr)->GetColumnOid());
+          indexed_oids_map_[col.Oid()].push_back(
+              expr.CastManagedPointerTo<const parser::ColumnValueExpression>()->GetColumnOid());
         }
 
         // Add children to queue
-        expr_queue.insert(expr_queue.end(), expr->GetChildren().begin(), expr->GetChildren().end());
+        for (const auto &child : expr->GetChildren()) {
+          TERRIER_ASSERT(child != nullptr, "We should not be adding missing expressions to the queue");
+          expr_queue.emplace_back(child.get());
+        }
       }
     }
 

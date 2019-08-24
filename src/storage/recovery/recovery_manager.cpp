@@ -344,15 +344,15 @@ void RecoveryManager::UpdateIndexesOnTable(transaction::TransactionContext *txn,
     // Copy in each value from the table PR into the index PR
     for (const auto &col : schema.GetColumns()) {
       auto index_col_oid = col.Oid();
-      const auto &index_key_oids = indexed_attributes_map[col.Oid()];
+      const auto &index_key_oids = indexed_attributes_map[index_col_oid];
       TERRIER_ASSERT(index_key_oids.size() == 1, "Only support index keys that are a single column oid");
-      auto oid = index_key_oids[0];
-      if (table_pr->IsNull(pr_map[oid])) {
+      const auto &table_col_oid = index_key_oids[0];
+      if (table_pr->IsNull(pr_map[table_col_oid])) {
         index_pr->SetNull(index->GetKeyOidToOffsetMap().at(index_col_oid));
       } else {
         auto size = col.AttrSize() & INT8_MAX;
         std::memcpy(index_pr->AccessForceNotNull(index->GetKeyOidToOffsetMap().at(index_col_oid)),
-                    table_pr->AccessWithNullCheck(pr_map[oid]), size);
+                    table_pr->AccessWithNullCheck(pr_map[table_col_oid]), size);
       }
     }
 
