@@ -199,89 +199,89 @@ void RecoveryManager::UpdateIndexesOnTable(transaction::TransactionContext *txn,
   std::vector<common::ManagedPointer<storage::index::Index>> indexes;
 
   // Stores index schemas, used to get indexcol_ids
-  std::vector<catalog::IndexSchema> index_schemas;
+  std::vector<const catalog::IndexSchema *> index_schemas;
 
   // We don't bootstrap the database catalog during recovery, so this means that indexes on catalog tables may not yet
   // be entries in pg_index. Thus, we hardcode these to update
   switch (!table_oid) {
     case (!catalog::DATABASE_TABLE_OID): {
       indexes.emplace_back(catalog_->databases_name_index_);
-      index_schemas.push_back(catalog_->databases_name_index_->metadata_.GetSchema());
+      index_schemas.push_back(&catalog_->databases_name_index_->metadata_.GetSchema());
 
       indexes.emplace_back(catalog_->databases_oid_index_);
-      index_schemas.push_back(catalog_->databases_oid_index_->metadata_.GetSchema());
+      index_schemas.push_back(&catalog_->databases_oid_index_->metadata_.GetSchema());
       break;
     }
 
     case (!catalog::NAMESPACE_TABLE_OID): {
       indexes.emplace_back(db_catalog_ptr->namespaces_oid_index_);
-      index_schemas.push_back(db_catalog_ptr->namespaces_oid_index_->metadata_.GetSchema());
+      index_schemas.push_back(&db_catalog_ptr->namespaces_oid_index_->metadata_.GetSchema());
 
       indexes.emplace_back(db_catalog_ptr->namespaces_name_index_);
-      index_schemas.push_back(db_catalog_ptr->namespaces_name_index_->metadata_.GetSchema());
+      index_schemas.push_back(&db_catalog_ptr->namespaces_name_index_->metadata_.GetSchema());
       break;
     }
 
     case (!catalog::CLASS_TABLE_OID): {
       indexes.emplace_back(db_catalog_ptr->classes_oid_index_);
-      index_schemas.push_back(db_catalog_ptr->classes_oid_index_->metadata_.GetSchema());
+      index_schemas.push_back(&db_catalog_ptr->classes_oid_index_->metadata_.GetSchema());
 
       indexes.emplace_back(db_catalog_ptr->classes_name_index_);
-      index_schemas.push_back(db_catalog_ptr->classes_name_index_->metadata_.GetSchema());
+      index_schemas.push_back(&db_catalog_ptr->classes_name_index_->metadata_.GetSchema());
 
       indexes.emplace_back(db_catalog_ptr->classes_namespace_index_);
-      index_schemas.push_back(db_catalog_ptr->classes_namespace_index_->metadata_.GetSchema());
+      index_schemas.push_back(&db_catalog_ptr->classes_namespace_index_->metadata_.GetSchema());
       break;
     }
 
     case (!catalog::COLUMN_TABLE_OID): {
       indexes.emplace_back(db_catalog_ptr->columns_oid_index_);
-      index_schemas.push_back(db_catalog_ptr->columns_oid_index_->metadata_.GetSchema());
+      index_schemas.push_back(&db_catalog_ptr->columns_oid_index_->metadata_.GetSchema());
 
       indexes.emplace_back(db_catalog_ptr->columns_name_index_);
-      index_schemas.push_back(db_catalog_ptr->columns_name_index_->metadata_.GetSchema());
+      index_schemas.push_back(&db_catalog_ptr->columns_name_index_->metadata_.GetSchema());
       break;
     }
 
     case (!catalog::CONSTRAINT_TABLE_OID): {
       indexes.emplace_back(db_catalog_ptr->constraints_oid_index_);
-      index_schemas.push_back(db_catalog_ptr->constraints_oid_index_->metadata_.GetSchema());
+      index_schemas.push_back(&db_catalog_ptr->constraints_oid_index_->metadata_.GetSchema());
 
       indexes.emplace_back(db_catalog_ptr->constraints_name_index_);
-      index_schemas.push_back(db_catalog_ptr->constraints_name_index_->metadata_.GetSchema());
+      index_schemas.push_back(&db_catalog_ptr->constraints_name_index_->metadata_.GetSchema());
 
       indexes.emplace_back(db_catalog_ptr->constraints_namespace_index_);
-      index_schemas.push_back(db_catalog_ptr->constraints_namespace_index_->metadata_.GetSchema());
+      index_schemas.push_back(&db_catalog_ptr->constraints_namespace_index_->metadata_.GetSchema());
 
       indexes.emplace_back(db_catalog_ptr->constraints_table_index_);
-      index_schemas.push_back(db_catalog_ptr->constraints_table_index_->metadata_.GetSchema());
+      index_schemas.push_back(&db_catalog_ptr->constraints_table_index_->metadata_.GetSchema());
 
       indexes.emplace_back(db_catalog_ptr->constraints_index_index_);
-      index_schemas.push_back(db_catalog_ptr->constraints_index_index_->metadata_.GetSchema());
+      index_schemas.push_back(&db_catalog_ptr->constraints_index_index_->metadata_.GetSchema());
 
       indexes.emplace_back(db_catalog_ptr->constraints_foreigntable_index_);
-      index_schemas.push_back(db_catalog_ptr->constraints_foreigntable_index_->metadata_.GetSchema());
+      index_schemas.push_back(&db_catalog_ptr->constraints_foreigntable_index_->metadata_.GetSchema());
       break;
     }
 
     case (!catalog::INDEX_TABLE_OID): {
       indexes.emplace_back(db_catalog_ptr->indexes_oid_index_);
-      index_schemas.push_back(db_catalog_ptr->indexes_oid_index_->metadata_.GetSchema());
+      index_schemas.push_back(&db_catalog_ptr->indexes_oid_index_->metadata_.GetSchema());
 
       indexes.emplace_back(db_catalog_ptr->indexes_table_index_);
-      index_schemas.push_back(db_catalog_ptr->indexes_table_index_->metadata_.GetSchema());
+      index_schemas.push_back(&db_catalog_ptr->indexes_table_index_->metadata_.GetSchema());
       break;
     }
 
     case (!catalog::TYPE_TABLE_OID): {
       indexes.emplace_back(db_catalog_ptr->types_oid_index_);
-      index_schemas.push_back(db_catalog_ptr->types_oid_index_->metadata_.GetSchema());
+      index_schemas.push_back(&db_catalog_ptr->types_oid_index_->metadata_.GetSchema());
 
       indexes.emplace_back(db_catalog_ptr->types_name_index_);
-      index_schemas.push_back(db_catalog_ptr->types_name_index_->metadata_.GetSchema());
+      index_schemas.push_back(&db_catalog_ptr->types_name_index_->metadata_.GetSchema());
 
       indexes.emplace_back(db_catalog_ptr->types_namespace_index_);
-      index_schemas.push_back(db_catalog_ptr->types_namespace_index_->metadata_.GetSchema());
+      index_schemas.push_back(&db_catalog_ptr->types_namespace_index_->metadata_.GetSchema());
       break;
     }
 
@@ -294,7 +294,7 @@ void RecoveryManager::UpdateIndexesOnTable(transaction::TransactionContext *txn,
         // TODO(Gus, John, Issue #513): These individual calls are inefficient, we should be able to get these objects
         // with a single call to the catalog
         indexes.push_back(db_catalog_ptr->GetIndex(txn, oid));
-        index_schemas.push_back(db_catalog_ptr->GetIndexSchema(txn, oid));
+        index_schemas.push_back(&db_catalog_ptr->GetIndexSchema(txn, oid));
       }
   }
 
@@ -320,14 +320,14 @@ void RecoveryManager::UpdateIndexesOnTable(transaction::TransactionContext *txn,
   // evaluate expressions and that's a fucking nightmare
   for (uint8_t i = 0; i < indexes.size(); i++) {
     auto index = indexes[i];
-    auto schema = index_schemas[i];
-    auto indexed_attributes_map = schema.GetIndexedColOids();
+    const auto *schema = index_schemas[i];
+    auto indexed_attributes_map = schema->GetIndexedColOids();
 
     // Build the index PR
     auto *index_pr = index->GetProjectedRowInitializer().InitializeRow(index_buffer);
 
     // Copy in each value from the table PR into the index PR
-    for (const auto &col : schema.GetColumns()) {
+    for (const auto &col : schema->GetColumns()) {
       auto index_col_oid = col.Oid();
       const auto &index_key_oids = indexed_attributes_map[index_col_oid];
       TERRIER_ASSERT(index_key_oids.size() == 1, "Only support index keys that are a single column oid");

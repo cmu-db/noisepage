@@ -217,6 +217,7 @@ class IndexSchema {
         is_ready_(false),
         is_live_(true) {
     TERRIER_ASSERT((is_primary && is_unique) || (!is_primary), "is_primary requires is_unique to be true as well.");
+    ExtractIndexedColOids();
   }
 
   IndexSchema() = default;
@@ -299,13 +300,19 @@ class IndexSchema {
 
   /**
    * @warning Calling this function for the first time will traverse the entire expression tree for each column, which
-   * may be expensive for large expressions. Use with caution. Since we cache the object, future calls will be free.
+   * may be expensive for large expressions. Should only be called once during construction.
    * @return map of index key oid to col_oid contained in that index key
    */
-  const std::unordered_map<indexkeycol_oid_t, std::vector<col_oid_t>> &GetIndexedColOids() {
-    // If we've already populated this map, we can just return
-    if (!indexed_oids_map_.empty()) return indexed_oids_map_;
+  const std::unordered_map<indexkeycol_oid_t, std::vector<col_oid_t>> &GetIndexedColOids() const {
+    return indexed_oids_map_;
+  }
 
+  /**
+   * @warning Calling this function for the first time will traverse the entire expression tree for each column, which
+   * may be expensive for large expressions. Should only be called once during construction.
+   * @return map of index key oid to col_oid contained in that index key
+   */
+  void ExtractIndexedColOids() {
     // We will traverse every expr tree
     std::deque<common::ManagedPointer<const parser::AbstractExpression>> expr_queue;
 
@@ -333,8 +340,6 @@ class IndexSchema {
         }
       }
     }
-
-    return indexed_oids_map_;
   }
 
  private:
