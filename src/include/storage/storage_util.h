@@ -148,7 +148,7 @@ class StorageUtil {
    * @param col_idx index of column
    * @return attribute size of col at index col_idx
    */
-  static uint32_t AttrSizeFromBoundaries(const std::vector<uint16_t> &boundaries, uint16_t col_idx);
+  static uint8_t AttrSizeFromBoundaries(const std::vector<uint16_t> &boundaries, uint16_t col_idx);
 
   /**
    * Return a vector of all the column ids in the layout, excluding columns reserved by the storage layer

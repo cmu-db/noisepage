@@ -141,7 +141,7 @@ std::vector<uint16_t> StorageUtil::ComputeBaseAttributeOffsets(const std::vector
   return offsets;
 }
 
-uint32_t StorageUtil::AttrSizeFromBoundaries(const std::vector<uint16_t> &boundaries, const uint16_t col_idx) {
+uint8_t StorageUtil::AttrSizeFromBoundaries(const std::vector<uint16_t> &boundaries, const uint16_t col_idx) {
   TERRIER_ASSERT(boundaries.size() == NUM_ATTR_BOUNDARIES,
                  "Boudaries vector size should equal to number of boundaries");
   uint8_t shift;
