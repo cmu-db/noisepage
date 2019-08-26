@@ -60,17 +60,18 @@ std::pair<LogRecord *, std::vector<byte *>> AbstractLogProvider::ReadNextRecord(
         col_ids.push_back(col_id);
       }
 
-      // Read in attribute sizes
+      // Read in attribute size boundaries
+      std::vector<uint16_t> attr_size_boundaries;
+      attr_size_boundaries.reserve(NUM_ATTR_BOUNDARIES);
+      for (uint16_t i = 0; i < NUM_ATTR_BOUNDARIES; i++) {
+        attr_size_boundaries.push_back(ReadValue<uint16_t>());
+      }
+
+      // Compute attr sizes
       std::vector<uint8_t> attr_sizes;
       attr_sizes.reserve(num_cols);
-      for (uint16_t i = 0; i < num_cols; i++) {
-        const auto attr_size = ReadValue<uint8_t>();
-
-        // Attribute sizes must be 1,2,4,8 or 16 bytes (power of 2 less than 16 that isn't 0)
-        if ((attr_size == 0) || (attr_size > (VARLEN_COLUMN & INT8_MAX)) || ((attr_size & (attr_size - 1)) != 0)) {
-          throw std::runtime_error("Invalid deserialized attribute size");
-        }
-        attr_sizes.push_back(attr_size);
+      for (uint16_t attr_idx = 0; attr_idx < num_cols; attr_idx++) {
+        attr_sizes.push_back(StorageUtil::AttrSizeFromBoundaries(attr_size_boundaries, attr_idx));
       }
 
       // Initialize the redo record.

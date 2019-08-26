@@ -105,10 +105,18 @@ class WriteAheadLoggingTests : public TerrierTest {
       col_ids[i] = col_id;
     }
 
-    // Read in attribute sizes
-    std::vector<uint8_t> attr_sizes(num_cols);
-    for (uint16_t i = 0; i < num_cols; i++) {
-      attr_sizes[i] = in->ReadValue<uint8_t>();
+    // Read in attribute size boundaries
+    std::vector<uint16_t> attr_size_boundaries;
+    attr_size_boundaries.reserve(NUM_ATTR_BOUNDARIES);
+    for (uint16_t i = 0; i < NUM_ATTR_BOUNDARIES; i++) {
+      attr_size_boundaries.push_back(in->ReadValue<uint16_t>());
+    }
+
+    // Compute attr sizes
+    std::vector<uint8_t> attr_sizes;
+    attr_sizes.reserve(num_cols);
+    for (uint16_t attr_idx = 0; attr_idx < num_cols; attr_idx++) {
+      attr_sizes.push_back(storage::StorageUtil::AttrSizeFromBoundaries(attr_size_boundaries, attr_idx));
     }
 
     // Initialize the redo record.

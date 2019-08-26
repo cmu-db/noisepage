@@ -141,6 +141,42 @@ std::vector<uint16_t> StorageUtil::ComputeBaseAttributeOffsets(const std::vector
   return offsets;
 }
 
+uint32_t StorageUtil::AttrSizeFromBoundaries(const std::vector<uint16_t> &boundaries, const uint16_t col_idx) {
+  TERRIER_ASSERT(boundaries.size() == NUM_ATTR_BOUNDARIES,
+                 "Boudaries vector size should equal to number of boundaries");
+  uint8_t shift;
+  for (shift = 0; shift < NUM_ATTR_BOUNDARIES; shift++) {
+    if (col_idx < boundaries[shift]) break;
+  }
+  TERRIER_ASSERT(shift <= NUM_ATTR_BOUNDARIES, "Out-of-bounds attribute size");
+  TERRIER_ASSERT(shift >= 0, "Out-of-bounds attribute size");
+  return 16U >> shift;
+}
+
+std::vector<uint16_t> StorageUtil::ComputeAttributeSizeBoundaries(
+    const terrier::storage::BlockLayout &layout, const std::vector<terrier::storage::col_id_t> &col_ids) {
+  TERRIER_ASSERT(std::is_sorted(col_ids.begin(), col_ids.end()), "Col Ids must be in sorted order");
+  std::vector<uint16_t> attr_ends(NUM_ATTR_BOUNDARIES, 0);
+  int attr_size_index = 0;
+
+  for (uint32_t i = 0; i < col_ids.size(); i++) {
+    TERRIER_ASSERT(i < (1 << 15), "Out-of-bounds index");
+
+    int attr_size = layout.AttrSize(col_ids[i]);
+    TERRIER_ASSERT(attr_size <= (16 >> attr_size_index), "Out-of-order columns");
+    TERRIER_ASSERT(attr_size <= 16 && attr_size > 0, "Unexpected attribute size");
+    while (attr_size < (16 >> attr_size_index)) {
+      if (attr_size_index < (NUM_ATTR_BOUNDARIES - 1)) attr_ends[attr_size_index + 1] = attr_ends[attr_size_index];
+      attr_size_index++;
+    }
+    TERRIER_ASSERT(attr_size == (16 >> attr_size_index), "Non-power of two attribute size");
+    if (attr_size_index < NUM_ATTR_BOUNDARIES) attr_ends[attr_size_index]++;
+    TERRIER_ASSERT(attr_size_index == NUM_ATTR_BOUNDARIES || attr_ends[attr_size_index] == i + 1,
+                   "Inconsistent state on attribute bounds");
+  }
+  return attr_ends;
+}
+
 std::vector<storage::col_id_t> StorageUtil::ProjectionListAllColumns(const storage::BlockLayout &layout) {
   std::vector<storage::col_id_t> col_ids(layout.NumColumns() - NUM_RESERVED_COLUMNS);
   // Add all of the column ids from the layout to the projection list
