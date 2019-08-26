@@ -136,14 +136,14 @@ class LargeTransactionTestConfiguration {
     bool varlen_allowed_ = false;
   };
 
-  const uint32_t NumIterations() const { return num_iterations_; }
-  const uint32_t NumTxns() const { return num_txns_; }
-  const uint32_t BatchSize() const { return batch_size_; }
-  const uint32_t NumConcurrentTxns() const { return num_concurrent_txns_; }
+  uint32_t NumIterations() const { return num_iterations_; }
+  uint32_t NumTxns() const { return num_txns_; }
+  uint32_t BatchSize() const { return batch_size_; }
+  uint32_t NumConcurrentTxns() const { return num_concurrent_txns_; }
   const std::vector<double> &UpdateSelectRatio() const { return update_select_ratio_; }
-  const uint32_t TxnLength() const { return txn_length_; }
-  const uint32_t InitialTableSize() const { return initial_table_size_; }
-  const uint16_t MaxColumns() const { return max_columns_; }
+  uint32_t TxnLength() const { return txn_length_; }
+  uint32_t InitialTableSize() const { return initial_table_size_; }
+  uint16_t MaxColumns() const { return max_columns_; }
   bool VarlenAllowed() const { return varlen_allowed_; }
 
   static LargeTransactionTestConfiguration Empty() { return Builder().Build(); }

@@ -17,7 +17,7 @@
 #
 # Modified from the Apache Arrow project for the Terrier project.
 
-cmake_minimum_required(VERSION 3.2)
+cmake_minimum_required(VERSION 3.8)
 
 # Extract Terrier version number
 file(READ "${CMAKE_CURRENT_SOURCE_DIR}/build-support/version.xml" POM_XML)
@@ -136,7 +136,7 @@ endif ()
 # COMPILER TOOLS
 ###################################################
 
-set(CLANG_TOOLS_VERSION "6.0")
+set(CLANG_TOOLS_VERSION "8")
 find_package(ClangTools)
 if ("$ENV{CMAKE_EXPORT_COMPILE_COMMANDS}" STREQUAL "1" OR CLANG_TIDY_FOUND)
     # Generate a Clang compile_commands.json "compilation database" file for use

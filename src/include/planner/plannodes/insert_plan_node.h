@@ -184,7 +184,7 @@ class InsertPlanNode : public AbstractPlanNode {
    * @param value_idx index of value being inserted
    * @return OID of column where value should be inserted
    */
-  const catalog::col_oid_t GetColumnOidForValue(uint32_t value_idx) const { return parameter_info_.at(value_idx); }
+  catalog::col_oid_t GetColumnOidForValue(const uint32_t value_idx) const { return parameter_info_.at(value_idx); }
 
   /**
    * @return number of tuples to insert
