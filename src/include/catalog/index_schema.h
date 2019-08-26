@@ -299,17 +299,17 @@ class IndexSchema {
   }
 
   /**
-   * @warning Calling this function for the first time will traverse the entire expression tree for each column, which
-   * may be expensive for large expressions. Should only be called once during construction.
    * @return map of index key oid to col_oid contained in that index key
    */
   const std::unordered_map<indexkeycol_oid_t, std::vector<col_oid_t>> &GetIndexedColOids() const {
+    TERRIER_ASSERT(!indexed_oids_map_.empty(),
+                   "The indexed oids map should not be empty. Was ExtractIndexedColOids called before?");
     return indexed_oids_map_;
   }
 
   /**
-   * @warning Calling this function for the first time will traverse the entire expression tree for each column, which
-   * may be expensive for large expressions. Should only be called once during construction.
+   * @warning Calling this function will traverse the entire expression tree for each column, which may be expensive for
+   * large expressions. Thus, it should only be called once during object construction.
    * @return map of index key oid to col_oid contained in that index key
    */
   void ExtractIndexedColOids() {
