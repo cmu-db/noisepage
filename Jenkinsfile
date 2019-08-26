@@ -14,6 +14,7 @@ pipeline {
                         LLVM_DIR="/usr/local/Cellar/llvm/8.0.1"
                     }
                     steps {
+                        sh 'hostname'
                         sh 'echo y | ./script/installation/packages.sh'
                         sh 'mkdir build'
                         sh 'cd build && cmake -DCMAKE_BUILD_TYPE=Debug -DTERRIER_USE_ASAN=ON .. && make -j4'
@@ -31,6 +32,7 @@ pipeline {
                         }
                     }
                     steps {
+                        sh 'hostname'
                         sh 'echo y | sudo ./script/installation/packages.sh'
                         sh 'mkdir build'
                         sh 'cd build && cmake -DCMAKE_BUILD_TYPE=Debug -DTERRIER_USE_ASAN=ON .. && make -j4'
@@ -52,6 +54,7 @@ pipeline {
                         CXX="/usr/bin/clang++-8"
                     }
                     steps {
+                        sh 'hostname'
                         sh 'echo y | sudo ./script/installation/packages.sh'
                         sh 'mkdir build'
                         sh 'cd build && cmake -DCMAKE_BUILD_TYPE=Debug -DTERRIER_USE_ASAN=ON .. && make -j4'
@@ -68,6 +71,7 @@ pipeline {
                         LLVM_DIR="/usr/local/Cellar/llvm/8.0.1"
                     }
                     steps {
+                        sh 'hostname'
                         sh 'echo y | ./script/installation/packages.sh'
                         sh 'mkdir build'
                         sh 'cd build && cmake -DCMAKE_BUILD_TYPE=Release -DTERRIER_USE_ASAN=OFF .. && make -j4'
@@ -83,6 +87,7 @@ pipeline {
                         }
                     }
                     steps {
+                        sh 'hostname'
                         sh 'echo y | sudo ./script/installation/packages.sh'
                         sh 'mkdir build'
                         sh 'cd build && cmake -DCMAKE_BUILD_TYPE=Release -DTERRIER_USE_ASAN=OFF .. && make -j4'
@@ -102,6 +107,7 @@ pipeline {
                         CXX="/usr/bin/clang++-8"
                     }
                     steps {
+                        sh 'hostname'
                         sh 'echo y | sudo ./script/installation/packages.sh'
                         sh 'mkdir build'
                         sh 'cd build && cmake -DCMAKE_BUILD_TYPE=Release -DTERRIER_USE_ASAN=OFF .. && make -j4'
@@ -113,6 +119,7 @@ pipeline {
                 stage('ubuntu-18.04/gcc-7.3.0 (Release/benchmark)') {
                     agent { label 'benchmark' }
                     steps {
+                        sh 'hostname'
                         sh 'echo y | sudo ./script/installation/packages.sh'
                         sh 'mkdir build'
                         sh 'cd build && cmake -DCMAKE_BUILD_TYPE=Release -DTERRIER_USE_ASAN=OFF -DTERRIER_USE_JEMALLOC=ON .. && make -j4'
