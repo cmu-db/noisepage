@@ -8,9 +8,12 @@
 
 #include "catalog/catalog.h"
 #include "catalog/catalog_defs.h"
+#include "catalog/postgres/builder.h"
 #include "catalog/postgres/pg_attribute.h"
+#include "catalog/postgres/pg_constraint.h"
 #include "catalog/postgres/pg_database.h"
 #include "catalog/postgres/pg_index.h"
+#include "catalog/postgres/pg_namespace.h"
 #include "common/dedicated_thread_owner.h"
 #include "storage/recovery/abstract_log_provider.h"
 #include "storage/sql_table.h"
@@ -69,7 +72,15 @@ class RecoveryManager : public common::DedicatedThreadOwner {
         catalog_(catalog),
         txn_manager_(txn_manager),
         block_store_(store),
-        recovered_txns_(0) {}
+        recovered_txns_(0) {
+    // Initialize catalog_table_schemas_ map
+    catalog_table_schemas_[catalog::CLASS_TABLE_OID] = catalog::postgres::Builder::GetClassTableSchema();
+    catalog_table_schemas_[catalog::NAMESPACE_TABLE_OID] = catalog::postgres::Builder::GetNamespaceTableSchema();
+    catalog_table_schemas_[catalog::COLUMN_TABLE_OID] = catalog::postgres::Builder::GetColumnTableSchema();
+    catalog_table_schemas_[catalog::CONSTRAINT_TABLE_OID] = catalog::postgres::Builder::GetConstraintTableSchema();
+    catalog_table_schemas_[catalog::INDEX_TABLE_OID] = catalog::postgres::Builder::GetIndexTableSchema();
+    catalog_table_schemas_[catalog::TYPE_TABLE_OID] = catalog::postgres::Builder::GetTypeTableSchema();
+  }
 
   /**
    * Starts a background recovery task. Recovery will fully recover until the log provider stops providing logs.
@@ -126,6 +137,10 @@ class RecoveryManager : public common::DedicatedThreadOwner {
 
   // Background recovery task
   common::ManagedPointer<RecoveryTask> recovery_task_ = nullptr;
+
+  // Its possible during recovery that the schemas for catalog tables may not yet exist in pg_class. Thus, we hardcode
+  // them here
+  std::unordered_map<catalog::table_oid_t, catalog::Schema> catalog_table_schemas_;
 
   // Number of recovered txns. Used for benchmarking
   uint32_t recovered_txns_;
@@ -322,5 +337,17 @@ class RecoveryManager : public common::DedicatedThreadOwner {
    */
   storage::index::Index *GetCatalogIndex(catalog::index_oid_t oid,
                                          const common::ManagedPointer<catalog::DatabaseCatalog> &db_catalog);
+
+  /**
+   * Fetches a table's schema. If the table is a catalog table, we return the cached schema, otherwise we go to the
+   * catalog
+   * @param txn txn to use for catalog lookup
+   * @param db_catalog database catalog to use for lookup
+   * @param table_oid oid of table we want schema for
+   * @return schema for table with oid table_oid
+   */
+  const catalog::Schema &GetTableSchema(transaction::TransactionContext *txn,
+                                        const common::ManagedPointer<catalog::DatabaseCatalog> &db_catalog,
+                                        const catalog::table_oid_t table_oid) const;
 };
 }  // namespace terrier::storage

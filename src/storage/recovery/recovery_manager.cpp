@@ -166,13 +166,19 @@ void RecoveryManager::ReplayDeleteRecord(transaction::TransactionContext *txn, L
   auto *delete_record = record->GetUnderlyingRecordBodyAs<DeleteRecord>();
   // Get tuple slot
   auto new_tuple_slot = GetTupleSlotMapping(delete_record->GetTupleSlot());
-  auto sql_table_ptr = GetSqlTable(txn, delete_record->GetDatabaseOid(), delete_record->GetTableOid());
+  auto db_catalog_ptr = GetDatabaseCatalog(txn, delete_record->GetDatabaseOid());
+  auto sql_table_ptr = db_catalog_ptr->GetTable(txn, delete_record->GetTableOid());
+  const auto &schema = GetTableSchema(txn, db_catalog_ptr, delete_record->GetTableOid());
 
   // Stage the delete. This way the recovery operation is logged if logging is enabled
   txn->StageDelete(delete_record->GetDatabaseOid(), delete_record->GetTableOid(), new_tuple_slot);
 
   // Fetch all the values so we can construct index keys after deleting from the sql table
-  auto initializer = sql_table_ptr->InitializerForProjectedRow(sql_table_ptr->GetAllOids());
+  std::vector<catalog::col_oid_t> all_table_oids;
+  for (const auto &col : schema.GetColumns()) {
+    all_table_oids.push_back(col.Oid());
+  }
+  auto initializer = sql_table_ptr->InitializerForProjectedRow(all_table_oids);
   auto *buffer = common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize());
   auto pr = initializer.InitializeRow(buffer);
   sql_table_ptr->Select(txn, new_tuple_slot, pr);
@@ -310,7 +316,12 @@ void RecoveryManager::UpdateIndexesOnTable(transaction::TransactionContext *txn,
   }
 
   // The table PR, as well as the PR map, should contain all columns
-  auto pr_map = table_ptr->ProjectionMapForAllOids();
+  const auto &table_schema = GetTableSchema(txn, db_catalog_ptr, table_oid);
+  std::vector<catalog::col_oid_t> all_table_oids;
+  for (const auto &col : table_schema.GetColumns()) {
+    all_table_oids.push_back(col.Oid());
+  }
+  auto pr_map = table_ptr->ProjectionMapForOids(all_table_oids);
   TERRIER_ASSERT(pr_map.size() == table_pr->NumColumns(), "Projected row should contain all attributes");
 
   // Allocate index buffer
@@ -913,6 +924,17 @@ storage::index::Index *RecoveryManager::GetCatalogIndex(
 
     default:
       throw std::runtime_error("This oid does not belong to any catalog index");
+  }
+}
+
+const catalog::Schema &RecoveryManager::GetTableSchema(
+    transaction::TransactionContext *txn, const common::ManagedPointer<catalog::DatabaseCatalog> &db_catalog,
+    const catalog::table_oid_t table_oid) const {
+  auto search = catalog_table_schemas_.find(table_oid);
+  if (search != catalog_table_schemas_.end()) {
+    return search->second;
+  } else {
+    return db_catalog->GetSchema(txn, table_oid);
   }
 }
 

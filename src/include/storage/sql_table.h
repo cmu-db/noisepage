@@ -205,26 +205,6 @@ class SqlTable {
   friend class terrier::LargeSqlTableTestObject;
   friend class RecoveryTests;
 
-  // TODO(Gus): We should probably cache this somewhere?
-  /**
-   * Get all column oids for this table
-   * @return oids
-   */
-  std::vector<catalog::col_oid_t> GetAllOids() {
-    std::vector<catalog::col_oid_t> all_oids;
-    all_oids.reserve(table_.column_map.size());
-    for (auto &pair : table_.column_map) {
-      all_oids.push_back(pair.first);
-    }
-    return all_oids;
-  }
-
-  /**
-   * Generate a projection map for all the column oids in this table
-   * @return the projection map
-   */
-  ProjectionMap ProjectionMapForAllOids();
-
   BlockStore *const block_store_;
 
   // Eventually we'll support adding more tables when schema changes. For now we'll always access the one DataTable.
@@ -238,7 +218,7 @@ class SqlTable {
   std::vector<col_id_t> ColIdsForOids(const std::vector<catalog::col_oid_t> &col_oids) const;
 
   /**
-   * @warning This function is expensive to call and should be used with cautin and sparingly.
+   * @warning This function is expensive to call and should be used with caution and sparingly.
    * Returns the col oid for the given col id
    * @param col_id given col id
    * @return col oid for the provided col id
