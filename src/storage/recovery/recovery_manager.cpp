@@ -332,17 +332,18 @@ void RecoveryManager::UpdateIndexesOnTable(transaction::TransactionContext *txn,
   for (uint8_t i = 0; i < indexes.size(); i++) {
     auto index = indexes[i];
     const auto *schema = index_schemas[i];
-    auto indexed_attributes_map = schema->GetIndexedColOids();
+    const auto &indexed_attributes = schema->GetIndexedColOids();
 
     // Build the index PR
     auto *index_pr = index->GetProjectedRowInitializer().InitializeRow(index_buffer);
 
     // Copy in each value from the table PR into the index PR
-    for (const auto &col : schema->GetColumns()) {
+    auto num_index_cols = schema->GetColumns().size();
+    TERRIER_ASSERT(num_index_cols == indexed_attributes.size(), "Only support index keys that are a single column oid");
+    for (uint32_t col_idx = 0; col_idx < num_index_cols; col_idx++) {
+      const auto &col = schema->GetColumn(col_idx);
       auto index_col_oid = col.Oid();
-      const auto &index_key_oids = indexed_attributes_map[index_col_oid];
-      TERRIER_ASSERT(index_key_oids.size() == 1, "Only support index keys that are a single column oid");
-      const auto &table_col_oid = index_key_oids[0];
+      const catalog::col_oid_t &table_col_oid = indexed_attributes[col_idx];
       if (table_pr->IsNull(pr_map[table_col_oid])) {
         index_pr->SetNull(index->GetKeyOidToOffsetMap().at(index_col_oid));
       } else {
