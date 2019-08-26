@@ -386,6 +386,7 @@ class StorageTestUtil {
     // Select each tuple for both tables and perform equality
     bool result = true;
     for (auto &tuple : table_one_tuples) {
+      TERRIER_ASSERT(tuple_slot_map.find(tuple) != tuple_slot_map.end(), "No mapping for this tuple slot");
       table_one->Select(txn_one, tuple, row_one);
       table_two->Select(txn_two, tuple_slot_map.at(tuple), row_two);
       if (!ProjectionListEqualDeep(layout, row_one, row_two)) {

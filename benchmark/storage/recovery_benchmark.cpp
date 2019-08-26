@@ -94,7 +94,7 @@ class RecoveryBenchmark : public benchmark::Fixture {
 };
 
 /**
- * Run an OLTP-like workload(5 statements per txn, 60% updates, 30% select, 10% deletes).
+ * Run an OLTP-like workload(5 statements per txn, 10% inserts, 35% updates, 50% select, 5% deletes).
  */
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(RecoveryBenchmark, OLTPWorkload)(benchmark::State &state) {
@@ -104,7 +104,7 @@ BENCHMARK_DEFINE_F(RecoveryBenchmark, OLTPWorkload)(benchmark::State &state) {
                                               .SetMaxColumns(5)
                                               .SetInitialTableSize(initial_table_size_)
                                               .SetTxnLength(5)
-                                              .SetUpdateSelectDeleteRatio({0.6, 0.3, 0.1})
+                                              .SetInsertUpdateSelectDeleteRatio({0.1, 0.35, 0.5, 0.05})
                                               .SetVarlenAllowed(true)
                                               .build();
 
@@ -123,7 +123,7 @@ BENCHMARK_DEFINE_F(RecoveryBenchmark, HighAbortRate)(benchmark::State &state) {
                                               .SetMaxColumns(100)
                                               .SetInitialTableSize(initial_table_size_)
                                               .SetTxnLength(40)
-                                              .SetUpdateSelectDeleteRatio({0.95, 0.0, 0.05})
+                                              .SetInsertUpdateSelectDeleteRatio({0.0, 0.95, 0.0, 0.05})
                                               .SetVarlenAllowed(true)
                                               .build();
 
@@ -131,7 +131,7 @@ BENCHMARK_DEFINE_F(RecoveryBenchmark, HighAbortRate)(benchmark::State &state) {
 }
 
 /**
- * High-stress workload, blast a narrow table with updates (5 statements per txn, 100% updates).
+ * High-stress workload, blast a narrow table with inserts (5 statements per txn, 100% inserts).
  */
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(RecoveryBenchmark, HighStress)(benchmark::State &state) {
@@ -141,7 +141,7 @@ BENCHMARK_DEFINE_F(RecoveryBenchmark, HighStress)(benchmark::State &state) {
                                               .SetMaxColumns(1)
                                               .SetInitialTableSize(initial_table_size_)
                                               .SetTxnLength(5)
-                                              .SetUpdateSelectDeleteRatio({1.0, 0.0, 0.0})
+                                              .SetInsertUpdateSelectDeleteRatio({1.0, 0.0, 0.0, 0.0})
                                               .SetVarlenAllowed(false)
                                               .build();
 

@@ -76,13 +76,14 @@ class LargeSqlTableTestConfiguration {
     }
 
     /**
-     * @param update_select_delete_ratio the ratio of updates vs. select vs. deletes in the generated transaction
-     *                            (e.g. {0.2, 0.7. 0.1} will be 20% updates, 70% reads, and 10% deletes)
-     * @warning the number of deletes should not exceed the number of tuples inserted
+     * @param insert_update_select_delete_ratio the ratio of inserts vs. updates vs. select vs. deletes in the generated
+     * transaction (e.g. {0.1, 0.2, 0.6. 0.1} will be 10% inserts, 20% updates, 60% reads, and 10% deletes)
+     * @warning the number of deletes should not exceed the number of tuples inserted initially
      * @return self-reference for method chaining
      */
-    Builder &SetUpdateSelectDeleteRatio(std::vector<double> update_select_delete_ratio) {
-      builder_update_select_delete_ratio_ = std::move(update_select_delete_ratio);
+    Builder &SetInsertUpdateSelectDeleteRatio(std::vector<double> ratios) {
+      TERRIER_ASSERT(ratios.size() == 4, "Ratio must have four values");
+      builder_insert_update_select_delete_ratio_ = std::move(ratios);
       return *this;
     }
 
@@ -101,7 +102,7 @@ class LargeSqlTableTestConfiguration {
      */
     LargeSqlTableTestConfiguration build() {
       return {builder_num_databases_,      builder_num_tables_, builder_max_columns_,
-              builder_initial_table_size_, builder_txn_length_, builder_update_select_delete_ratio_,
+              builder_initial_table_size_, builder_txn_length_, builder_insert_update_select_delete_ratio_,
               builder_varlen_allowed_};
     }
 
@@ -111,7 +112,7 @@ class LargeSqlTableTestConfiguration {
     uint16_t builder_max_columns_ = 25;
     uint32_t builder_initial_table_size_ = 25;
     uint32_t builder_txn_length_ = 25;
-    std::vector<double> builder_update_select_delete_ratio_;
+    std::vector<double> builder_insert_update_select_delete_ratio_;
     bool builder_varlen_allowed_ = false;
   };
 
@@ -121,19 +122,19 @@ class LargeSqlTableTestConfiguration {
    * @param max_columns the max number of columns in each generated test table
    * @param initial_table_size number of tuples each table should have
    * @param txn_length length of every simulated transaction, in number of operations (select or update)
-   * @param update_select_delete_ratio the ratio of updates vs. select vs. deletes in the generated transaction (e.g.
-   * {0.2, 0.7. 0.1} will be 20% updates, 70% reads, and 10% deletes)
+   * @param insert_update_select_delete_ratio the ratio of inserts vs. updates vs. select vs. deletes in the generated
+   * transaction (e.g. {0.1, 0.2, 0.6. 0.1} will be 10% inserts, 20% updates, 60% reads, and 10% deletes)
    * @param varlen_allowed true if varlen columns are allowed
    */
   LargeSqlTableTestConfiguration(const uint16_t num_databases, const uint16_t num_tables, const uint16_t max_columns,
                                  const uint32_t initial_table_size, const uint32_t txn_length,
-                                 std::vector<double> update_select_delete_ratio, const bool varlen_allowed)
+                                 std::vector<double> insert_update_select_delete_ratio, const bool varlen_allowed)
       : num_databases_(num_databases),
         num_tables_(num_tables),
         max_columns_(max_columns),
         initial_table_size_(initial_table_size),
         txn_length_(txn_length),
-        update_select_delete_ratio_(std::move(update_select_delete_ratio)),
+        insert_update_select_delete_ratio_(std::move(insert_update_select_delete_ratio)),
         varlen_allowed_(varlen_allowed) {}
 
  private:
@@ -143,7 +144,7 @@ class LargeSqlTableTestConfiguration {
   uint16_t max_columns_;
   uint32_t initial_table_size_;
   uint32_t txn_length_;
-  std::vector<double> update_select_delete_ratio_;
+  std::vector<double> insert_update_select_delete_ratio_;
   bool varlen_allowed_;
 };
 /**
@@ -163,6 +164,15 @@ class RandomSqlTableTransaction {
    * garbage collection will clean that up.
    */
   ~RandomSqlTableTransaction() = default;
+
+  /**
+   * Inserts a tuple with random data, using the given generator as source of randomness.
+   *
+   * @tparam Random the type of random generator to use
+   * @param generator the random generator to use
+   */
+  template <class Random>
+  void RandomInsert(Random *generator);
 
   /**
    * Randomly updates a tuple, using the given generator as source of randomness.
@@ -202,6 +212,9 @@ class RandomSqlTableTransaction {
   transaction::TransactionContext *txn_;
   // extra bookkeeping for abort count
   bool aborted_;
+  // We defer adding our inserted tuples into our test objects metadata until we commit
+  std::unordered_map<catalog::db_oid_t, std::unordered_map<catalog::table_oid_t, std::vector<storage::TupleSlot>>>
+      inserted_tuples_;
 };
 
 // TODO(Gus): Add indexes
@@ -301,7 +314,7 @@ class LargeSqlTableTestObject {
 
   friend class RandomSqlTableTransaction;
   uint32_t txn_length_;
-  std::vector<double> update_select_delete_ratio_;
+  std::vector<double> insert_update_select_delete_ratio_;
   std::default_random_engine *generator_;
   transaction::TransactionManager txn_manager_;
   storage::GarbageCollector gc_;

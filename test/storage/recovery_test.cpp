@@ -135,7 +135,7 @@ TEST_F(RecoveryTests, SingleTableTest) {
                                               .SetMaxColumns(5)
                                               .SetInitialTableSize(1000)
                                               .SetTxnLength(5)
-                                              .SetUpdateSelectDeleteRatio({0.7, 0.2, 0.1})
+                                              .SetInsertUpdateSelectDeleteRatio({0.2, 0.5, 0.2, 0.1})
                                               .SetVarlenAllowed(true)
                                               .build();
   RecoveryTests::RunTest(config);
@@ -153,7 +153,7 @@ TEST_F(RecoveryTests, HighAbortRateTest) {
                                               .SetMaxColumns(1000)
                                               .SetInitialTableSize(1000)
                                               .SetTxnLength(20)
-                                              .SetUpdateSelectDeleteRatio({0.7, 0.3, 0.0})
+                                              .SetInsertUpdateSelectDeleteRatio({0.2, 0.5, 0.3, 0.0})
                                               .SetVarlenAllowed(true)
                                               .build();
   RecoveryTests::RunTest(config);
@@ -169,7 +169,7 @@ TEST_F(RecoveryTests, MultiDatabaseTest) {
                                               .SetMaxColumns(5)
                                               .SetInitialTableSize(100)
                                               .SetTxnLength(5)
-                                              .SetUpdateSelectDeleteRatio({0.9, 0.0, 0.1})
+                                              .SetInsertUpdateSelectDeleteRatio({0.3, 0.6, 0.0, 0.1})
                                               .SetVarlenAllowed(true)
                                               .build();
   RecoveryTests::RunTest(config);

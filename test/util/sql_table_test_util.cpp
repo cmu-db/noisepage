@@ -10,6 +10,26 @@ RandomSqlTableTransaction::RandomSqlTableTransaction(LargeSqlTableTestObject *te
     : test_object_(test_object), txn_(test_object->txn_manager_.BeginTransaction()), aborted_(false) {}
 
 template <class Random>
+void RandomSqlTableTransaction::RandomInsert(Random *generator) {
+  if (aborted_) return;
+  // Generate random database and table
+  const auto database_oid = *(RandomTestUtil::UniformRandomElement(test_object_->database_oids_, generator));
+  const auto table_oid = *(RandomTestUtil::UniformRandomElement(test_object_->table_oids_[database_oid], generator));
+  auto &sql_table_metadata = test_object_->tables_[database_oid][table_oid];
+  auto sql_table_ptr = test_object_->catalog_.GetDatabaseCatalog(txn_, database_oid)->GetTable(txn_, table_oid);
+
+  // Generate random insert
+  auto initializer = sql_table_ptr->InitializerForProjectedRow(sql_table_metadata->col_oids_);
+  auto *const record = txn_->StageWrite(database_oid, table_oid, initializer);
+  StorageTestUtil::PopulateRandomRow(record->Delta(), sql_table_ptr->table_.layout, 0.0, generator);
+  record->SetTupleSlot(storage::TupleSlot(nullptr, 0));
+  auto tuple_slot = sql_table_ptr->Insert(txn_, record);
+
+  // Defer addition of tuples until commit in case of aborts
+  inserted_tuples_[database_oid][table_oid].push_back(tuple_slot);
+}
+
+template <class Random>
 void RandomSqlTableTransaction::RandomUpdate(Random *generator) {
   if (aborted_) return;
   // Generate random database and table
@@ -101,10 +121,20 @@ void RandomSqlTableTransaction::RandomSelect(Random *generator) {
 }
 
 void RandomSqlTableTransaction::Finish() {
-  if (aborted_)
+  if (aborted_) {
     test_object_->txn_manager_.Abort(txn_);
-  else
+  } else {
     test_object_->txn_manager_.Commit(txn_, transaction::TransactionUtil::EmptyCallback, nullptr);
+    for (const auto &database : inserted_tuples_) {
+      for (const auto &table : database.second) {
+        auto &metadata = test_object_->tables_[database.first][table.first];
+        {
+          common::SpinLatch::ScopedSpinLatch guard(&metadata->inserted_tuples_latch_);
+          metadata->inserted_tuples_.insert(metadata->inserted_tuples_.end(), table.second.begin(), table.second.end());
+        }
+      }
+    }
+  }
 }
 
 LargeSqlTableTestObject::LargeSqlTableTestObject(const LargeSqlTableTestConfiguration &config,
@@ -113,13 +143,12 @@ LargeSqlTableTestObject::LargeSqlTableTestObject(const LargeSqlTableTestConfigur
                                                  std::default_random_engine *generator,
                                                  storage::LogManager *log_manager)
     : txn_length_(config.txn_length_),
-      update_select_delete_ratio_(config.update_select_delete_ratio_),
+      insert_update_select_delete_ratio_(config.insert_update_select_delete_ratio_),
       generator_(generator),
       txn_manager_(buffer_pool, true /* gc on */, log_manager),
       gc_(storage::GarbageCollector(&txn_manager_, nullptr)),
       catalog_(catalog::Catalog(&txn_manager_, block_store)) {
   // Bootstrap the table to have the specified number of tuples
-  TERRIER_ASSERT(update_select_delete_ratio_.size() == 3, "Update/Select/Delete ratio should be three numbers");
   PopulateInitialTables(config.num_databases_, config.num_tables_, config.max_columns_, config.initial_table_size_,
                         config.varlen_allowed_, block_store, generator_);
 }
@@ -167,11 +196,12 @@ uint64_t LargeSqlTableTestObject::SimulateOltp(uint32_t num_transactions, uint32
 void LargeSqlTableTestObject::SimulateOneTransaction(terrier::RandomSqlTableTransaction *txn, uint32_t txn_id) {
   std::default_random_engine thread_generator(txn_id);
 
+  auto insert = [&] { txn->RandomInsert(&thread_generator); };
   auto update = [&] { txn->RandomUpdate(&thread_generator); };
   auto select = [&] { txn->RandomSelect(&thread_generator); };
   auto remove = [&] { txn->RandomDelete(&thread_generator); };
 
-  RandomTestUtil::InvokeWorkloadWithDistribution({update, select, remove}, update_select_delete_ratio_,
+  RandomTestUtil::InvokeWorkloadWithDistribution({insert, update, select, remove}, insert_update_select_delete_ratio_,
                                                  &thread_generator, txn_length_);
   txn->Finish();
 }
