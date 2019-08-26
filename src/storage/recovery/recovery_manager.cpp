@@ -130,7 +130,7 @@ uint32_t RecoveryManager::ProcessDeferredTransactions(terrier::transaction::time
   }
 
   // If we actually processed some txns, remove them from the set
-  if (txns_processed) deferred_txns_.erase(deferred_txns_.begin(), upper_bound_it);
+  if (txns_processed > 0) deferred_txns_.erase(deferred_txns_.begin(), upper_bound_it);
 
   return txns_processed;
 }
