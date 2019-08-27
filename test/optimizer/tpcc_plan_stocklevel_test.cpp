@@ -7,12 +7,8 @@ struct TpccPlanStockLevelTests : public TpccPlanTest {};
 
 // NOLINTNEXTLINE
 TEST_F(TpccPlanStockLevelTests, GetDistrictOrderId) {
-  // From OLTPBenchmark (L37-40)
-  // SELECT D_NEXT_O_ID
-  //   FROM DISTRICT
-  //  WHERE D_W_ID = ?
-  //    AND D_ID = ?
-  EXPECT_TRUE(false);
+  std::string query = "SELECT D_NEXT_O_ID FROM DISTRICT WHERE D_W_ID=1 AND D_ID=2";
+  OptimizeQuery(query, "district", tbl_district_, TpccPlanTest::CheckIndexScan);
 }
 
 // NOLINTNEXTLINE

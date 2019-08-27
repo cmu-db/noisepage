@@ -7,13 +7,8 @@ struct TpccPlanDeliveryTests : public TpccPlanTest {};
 
 // NOLINTNEXTLINE
 TEST_F(TpccPlanDeliveryTests, DeliveryGetOrderId) {
-  // From OLTPBenchmark (L38-43)
-  // SELECT NO_O_ID FROM NEW-ORDER
-  //  WHERE NO_D_ID = ?
-  //    AND NO_W_ID = ?
-  //  ORDER BY NO_O_ID ASC
-  //  LIMIT 1
-  EXPECT_TRUE(false);
+  std::string query = "SELECT NO_O_ID FROM NEW_ORDER WHERE NO_D_ID = 1 AND NO_W_ID = 2 ORDER BY NO_O_ID LIMIT 1";
+  OptimizeQuery(query, "new_order", tbl_new_order_, TpccPlanTest::CheckIndexScan);
 }
 
 // NOLINTNEXTLINE
@@ -28,12 +23,8 @@ TEST_F(TpccPlanDeliveryTests, DeliveryDeleteNewOrder) {
 
 // NOLINTNEXTLINE
 TEST_F(TpccPlanDeliveryTests, DeliveryGetCustomerId) {
-  // From OLTPBenchmark (L51-55)
-  // SELECT O_C_ID FROM ORDER
-  //  WHERE O_ID = ?
-  //    AND O_D_ID = ?
-  //    AND O_W_ID = ?
-  EXPECT_TRUE(false);
+  std::string query = "SELECT O_C_ID FROM \"ORDER\" WHERE O_ID = 1 AND (O_D_ID = 2 AND O_W_ID = 3)";
+  OptimizeQuery(query, "order", tbl_order_, TpccPlanTest::CheckIndexScan);
 }
 
 // NOLINTNEXTLINE

@@ -7,33 +7,20 @@ struct TpccPlanNewOrderTests : public TpccPlanTest {};
 
 // NOLINTNEXTLINE
 TEST_F(TpccPlanNewOrderTests, GetCustomer) {
-  // From OLTPBenchmark (L38-42)
-  // SELECT C_DISCOUNT, C_LAST, C_CREDIT
-  //   FROM CUSTOMER
-  //  WHERE C_W_ID = ?
-  //    AND C_D_ID = ?
-  //    AND C_ID = ?
-  EXPECT_TRUE(false);
+  std::string query = "SELECT C_DISCOUNT, C_LAST, C_CREDIT FROM CUSTOMER WHERE C_W_ID=1 AND C_D_ID=2 AND C_ID=3";
+  OptimizeQuery(query, "customer", tbl_customer_, TpccPlanTest::CheckIndexScan);
 }
 
 // NOLINTNEXTLINE
 TEST_F(TpccPlanNewOrderTests, GetWarehouse) {
-  // From OLTPBenchmark (L45-47)
-  // SELECT W_TAX
-  //   FROM WAREHOUSE
-  //  WHERE W_ID = ?
-  EXPECT_TRUE(false);
+  std::string query = "SELECT W_TAX FROM WAREHOUSE WHERE W_ID=1";
+  OptimizeQuery(query, "customer", tbl_warehouse_, TpccPlanTest::CheckIndexScan);
 }
 
 // NOLINTNEXTLINE
 TEST_F(TpccPlanNewOrderTests, GetDistrict) {
-  // From OLTPBenchmark (L50-52)
-  // SELECT D_NEXT_O_ID, D_TAX
-  //   FROM DISTRICT
-  //  WHERE D_W_ID = ?
-  //    AND D_ID = ?
-  //  FOR UPDATE
-  EXPECT_TRUE(false);
+  std::string query = "SELECT D_NEXT_O_ID, D_TAX FROM DISTRICT WHERE D_W_ID=1 AND D_ID=2";
+  OptimizeQuery(query, "district", tbl_district_, TpccPlanTest::CheckIndexScan);
 }
 
 // NOLINTNEXTLINE
@@ -70,19 +57,16 @@ TEST_F(TpccPlanNewOrderTests, GetItem) {
   // SELECT I_PRICE, I_NAME, I_DATA
   //   FROM ITEM
   //  WHERE I_ID = ?
-  EXPECT_TRUE(false);
+  std::string query = "SELECT I_PRICE, I_NAME, I_DATA FROM ITEM WHERE I_ID=1";
+  OptimizeQuery(query, "item", tbl_item_, TpccPlanTest::CheckIndexScan);
 }
 
 // NOLINTNEXTLINE
 TEST_F(TpccPlanNewOrderTests, GetStock) {
-  // From OLTPBenchmark (L76-80)
-  // SELECT S_QUANTITY, S_DATA, S_DIST_01, S_DIST_02, S_DIST_03, S_DIST_04, S_DIST_05,
-  //        S_DIST_06, S_DIST_07, S_DIST_08, S_DIST_09, S_DIST_10
-  //   FROM STOCK
-  //  WHERE S_I_ID = ?
-  //    AND S_W_ID = ?
-  // FOR UPDATE
-  EXPECT_TRUE(false);
+  std::string query = "SELECT S_QUANTITY, S_DATA, S_DIST_01, S_DIST_02, S_DIST_03, S_DIST_04, S_DIST_05,"
+                      "S_DIST_06, S_DIST_07, S_DIST_08, S_DIST_09, S_DIST_10 "
+                      "FROM STOCK WHERE S_I_ID=1 AND S_W_ID=2";
+  OptimizeQuery(query, "stock", tbl_stock_, TpccPlanTest::CheckIndexScan);
 }
 
 // NOLINTNEXTLINE

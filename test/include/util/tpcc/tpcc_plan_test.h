@@ -8,7 +8,11 @@
 #include "catalog/catalog.h"
 #include "catalog/catalog_accessor.h"
 #include "main/db_main.h"
+#include "parser/postgresparser.h"
+#include "planner/plannodes/abstract_plan_node.h"
 #include "optimizer/cost_model/trivial_cost_model.h"
+#include "optimizer/properties.h"
+#include "optimizer/property_set.h"
 #include "optimizer/optimizer.h"
 #include "settings/settings_manager.h"
 #include "storage/garbage_collector.h"
@@ -114,6 +118,27 @@ class TpccPlanTest : public TerrierTest {
   }
 
  public:
+  static void CheckIndexScan(TpccPlanTest *test,
+                             parser::SelectStatement *sel_stmt,
+                             catalog::table_oid_t tbl_oid,
+                             std::shared_ptr<planner::AbstractPlanNode> plan) {
+    const planner::AbstractPlanNode *node = plan.get();
+    while (node != nullptr) {
+      if (node->GetPlanNodeType() == planner::PlanNodeType::INDEXSCAN) {
+        EXPECT_TRUE(node->GetChildrenSize() == 0);
+        break;
+      }
+
+      EXPECT_TRUE(node->GetChildrenSize() <= 1);
+      if (node->GetChildrenSize() == 0) {
+        node = nullptr;
+        EXPECT_TRUE(false);
+      } else {
+        node = node->GetChild(0);
+      }
+    }
+  }
+
   void SetUp() override {
     std::unordered_map<settings::Param, settings::ParamInfo> param_map;
     terrier::settings::SettingsManager::ConstructParamMap(param_map);
