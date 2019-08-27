@@ -308,7 +308,7 @@ class IndexUtil {
     bool is_empty = output_col_list.empty();
     output_metadata->SetPredicateColumnIds(std::move(output_col_list));
     output_metadata->SetPredicateExprTypes(std::move(output_expr_list));
-    output_metadata->SetPredicateValues(std::move(input_val_list));
+    output_metadata->SetPredicateValues(std::move(output_val_list));
     return !is_empty;
   }
 

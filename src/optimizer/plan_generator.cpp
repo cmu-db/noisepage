@@ -271,7 +271,7 @@ void PlanGenerator::Visit(const IndexScan *op) {
   auto expr_list = std::vector<parser::ExpressionType>(op->GetExprTypeList());
 
   // We do a copy since const_cast is not good
-  auto value_list = std::vector<type::TransientValue>(op->GetValueList().size());
+  std::vector<type::TransientValue> value_list;
   for (auto &value : op->GetValueList()) {
     auto val_copy = type::TransientValue(value);
     value_list.push_back(std::move(val_copy));

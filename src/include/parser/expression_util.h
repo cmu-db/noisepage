@@ -88,13 +88,13 @@ class ExpressionUtil {
   static ExpressionType ReverseComparisonExpressionType(ExpressionType type) {
     switch (type) {
       case ExpressionType::COMPARE_GREATER_THAN:
-        return ExpressionType::COMPARE_LESS_THAN_OR_EQUAL_TO;
-      case ExpressionType::COMPARE_GREATER_THAN_OR_EQUAL_TO:
         return ExpressionType::COMPARE_LESS_THAN;
+      case ExpressionType::COMPARE_GREATER_THAN_OR_EQUAL_TO:
+        return ExpressionType::COMPARE_LESS_THAN_OR_EQUAL_TO;
       case ExpressionType::COMPARE_LESS_THAN:
-        return ExpressionType::COMPARE_GREATER_THAN_OR_EQUAL_TO;
-      case ExpressionType::COMPARE_LESS_THAN_OR_EQUAL_TO:
         return ExpressionType::COMPARE_GREATER_THAN;
+      case ExpressionType::COMPARE_LESS_THAN_OR_EQUAL_TO:
+        return ExpressionType::COMPARE_GREATER_THAN_OR_EQUAL_TO;
       default:
         return type;
     }

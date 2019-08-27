@@ -12,6 +12,7 @@
 
 namespace terrier {
 class StorageTestUtil;
+class TpccPlanTest;
 }
 
 namespace terrier::tpcc {
@@ -313,6 +314,7 @@ class IndexSchema {
 
   friend class Catalog;
   friend class postgres::Builder;
+  friend class terrier::TpccPlanTest;
 };
 
 DEFINE_JSON_DECLARATIONS(IndexSchema::Column);

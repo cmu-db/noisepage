@@ -1257,6 +1257,9 @@ bool DatabaseCatalog::CreateIndexEntry(transaction::TransactionContext *const tx
   std::vector<IndexSchema::Column> cols =
       GetColumns<IndexSchema::Column, index_oid_t, indexkeycol_oid_t>(txn, index_oid);
   auto *new_schema = new IndexSchema(cols, schema.Unique(), schema.Primary(), schema.Exclusion(), schema.Immediate());
+  new_schema->is_valid_ = schema.is_valid_;
+  new_schema->is_ready_ = schema.is_ready_;
+  new_schema->is_live_ = schema.is_live_;
   txn->RegisterAbortAction([=]() { delete new_schema; });
 
   pr_init = classes_->InitializerForProjectedRow({REL_SCHEMA_COL_OID});
