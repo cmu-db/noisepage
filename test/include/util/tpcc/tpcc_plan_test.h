@@ -308,6 +308,51 @@ class TpccPlanTest : public TerrierTest {
     EndTransaction(true);
   }
 
+  // Optimize an Update
+  void OptimizeUpdate(std::string query, std::string tbl_alias, catalog::table_oid_t tbl_oid) {
+    parser::PostgresParser pgparser;
+    auto stmt_list = pgparser.BuildParseTree(query);
+    auto upd_stmt = reinterpret_cast<parser::UpdateStatement*>(stmt_list[0].get());
+
+    BeginTransaction();
+    std::vector<optimizer::OperatorExpression*> child;
+    if (upd_stmt->GetUpdateCondition()) {
+      auto *upd_cond = upd_stmt->GetUpdateCondition()->Copy();
+      txn_->RegisterCommitAction([=](){ delete upd_cond; });
+      txn_->RegisterAbortAction([=](){ delete upd_cond; });
+      BindColumnValues(upd_cond, tbl_oid, tbl_alias);
+
+      auto predicates = ExtractPredicates(upd_cond);
+      auto *get = new optimizer::OperatorExpression(optimizer::LogicalGet::make(db_, accessor_->GetDefaultNamespace(), tbl_oid, predicates, tbl_alias, false), {});
+      child.push_back(get);
+    }
+
+    for (auto &upd : upd_stmt->GetUpdateClauses()) {
+      BindColumnValues(upd->GetUpdateValue().get(), tbl_oid, tbl_alias);
+    }
+
+    std::vector<common::ManagedPointer<const parser::UpdateClause>> clauses;
+    for (auto &upd : upd_stmt->GetUpdateClauses()) {
+      clauses.emplace_back(upd.get());
+    }
+
+    auto plan = new optimizer::OperatorExpression(optimizer::LogicalUpdate::make(db_, accessor_->GetDefaultNamespace(), tbl_alias, tbl_oid, std::move(clauses)), std::move(child));
+
+    auto property_set = new optimizer::PropertySet();
+    auto query_info = optimizer::QueryInfo(parser::StatementType::UPDATE, {}, property_set);
+    auto optimizer = new optimizer::Optimizer(new optimizer::TrivialCostModel());
+    auto out_plan = optimizer->BuildPlanTree(plan, query_info, txn_, settings_manager_, accessor_);
+
+    EXPECT_EQ(out_plan->GetPlanNodeType(), planner::PlanNodeType::UPDATE);
+    EXPECT_EQ(out_plan->GetChildrenSize(), 1);
+    EXPECT_EQ(out_plan->GetChild(0)->GetPlanNodeType(), planner::PlanNodeType::INDEXSCAN);
+
+    delete plan;
+    delete property_set;
+    delete optimizer;
+    EndTransaction(true);
+  }
+
   // Optimize a Query
   void OptimizeQuery(std::string query, std::string tbl_alias, catalog::table_oid_t tbl_oid,
                      void (*Check)(TpccPlanTest *test,

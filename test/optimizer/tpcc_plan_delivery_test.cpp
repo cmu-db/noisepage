@@ -29,13 +29,8 @@ TEST_F(TpccPlanDeliveryTests, DeliveryGetCustomerId) {
 
 // NOLINTNEXTLINE
 TEST_F(TpccPlanDeliveryTests, DeliveryUpdateCarrierId) {
-  // From OLTPBenchmark (L57-62)
-  // UPDATE ORDER
-  //    SET O_CARRIER_ID = ?
-  //  WHERE O_ID = ?
-  //    AND O_D_ID = ?
-  //    AND O_W_ID = ?
-  EXPECT_TRUE(false);
+  std::string query = "UPDATE \"ORDER\" SET O_CARRIER_ID = 1 WHERE O_ID = 1 AND O_D_ID = 2 AND O_W_ID = 3";
+  OptimizeUpdate(query, "order", tbl_order_);
 }
 
 // NOLINTNEXTLINE
