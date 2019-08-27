@@ -8,9 +8,9 @@ namespace terrier {
 
 class LargeTransactionBenchmark : public benchmark::Fixture {
  public:
-  const std::vector<uint8_t> attr_sizes = {8, 8, 8, 8, 8, 8, 8, 8, 8, 8};
-  const uint32_t initial_table_size = 1000000;
-  const uint32_t num_txns = 100000;
+  const std::vector<uint8_t> attr_sizes_ = {8, 8, 8, 8, 8, 8, 8, 8, 8, 8};
+  const uint32_t initial_table_size_ = 1000000;
+  const uint32_t num_txns_ = 100000;
   storage::BlockStore block_store_{1000, 1000};
   storage::RecordBufferSegmentPool buffer_pool_{1000000, 1000000};
   std::default_random_engine generator_;

@@ -27,7 +27,7 @@ class Schemas {
    */
   static catalog::Schema BuildWarehouseTableSchema(uint32_t *const oid_counter) {
     std::vector<catalog::Schema::Column> warehouse_columns;
-    warehouse_columns.reserve(num_warehouse_table_cols_);
+    warehouse_columns.reserve(NUM_WAREHOUSE_TABLE_COLS);
 
     // 2*W unique IDs
     warehouse_columns.emplace_back(
@@ -75,7 +75,7 @@ class Schemas {
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::DECIMAL)));
     warehouse_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
 
-    TERRIER_ASSERT(warehouse_columns.size() == num_warehouse_table_cols_,
+    TERRIER_ASSERT(warehouse_columns.size() == NUM_WAREHOUSE_TABLE_COLS,
                    "Wrong number of columns for Warehouse table schema.");
 
     return catalog::Schema(warehouse_columns);
@@ -89,7 +89,7 @@ class Schemas {
   static catalog::IndexSchema BuildWarehousePrimaryIndexSchema(const catalog::Schema &schema,
                                                                uint32_t *const oid_counter) {
     std::vector<catalog::IndexSchema::Column> warehouse_key_schema;
-    warehouse_key_schema.reserve(num_warehouse_primary_index_cols_);
+    warehouse_key_schema.reserve(NUM_WAREHOUSE_PRIMARY_INDEX_COLS);
 
     // Primary Key: W_ID
     warehouse_key_schema.emplace_back(
@@ -98,7 +98,7 @@ class Schemas {
                                       schema.GetColumn(0).Oid()));
     warehouse_key_schema.back().SetOid(static_cast<catalog::indexkeycol_oid_t>(++(*oid_counter)));
 
-    TERRIER_ASSERT(warehouse_key_schema.size() == num_warehouse_primary_index_cols_,
+    TERRIER_ASSERT(warehouse_key_schema.size() == NUM_WAREHOUSE_PRIMARY_INDEX_COLS,
                    "Wrong number of columns for Warehouse primary index schema.");
 
     return catalog::IndexSchema(warehouse_key_schema, true, true, false, true);
@@ -110,7 +110,7 @@ class Schemas {
    */
   static catalog::Schema BuildDistrictTableSchema(uint32_t *const oid_counter) {
     std::vector<catalog::Schema::Column> district_columns;
-    district_columns.reserve(num_district_table_cols_);
+    district_columns.reserve(NUM_DISTRICT_TABLE_COLS);
 
     // 20 unique IDs
     district_columns.emplace_back(
@@ -168,7 +168,7 @@ class Schemas {
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
     district_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
 
-    TERRIER_ASSERT(district_columns.size() == num_district_table_cols_,
+    TERRIER_ASSERT(district_columns.size() == NUM_DISTRICT_TABLE_COLS,
                    "Wrong number of columns for District table schema.");
 
     return catalog::Schema(district_columns);
@@ -182,7 +182,7 @@ class Schemas {
   static catalog::IndexSchema BuildDistrictPrimaryIndexSchema(const catalog::Schema &schema,
                                                               uint32_t *const oid_counter) {
     std::vector<catalog::IndexSchema::Column> district_key_schema;
-    district_key_schema.reserve(num_district_primary_index_cols_);
+    district_key_schema.reserve(NUM_DISTRICT_PRIMARY_INDEX_COLS);
 
     // Primary Key: (D_W_ID, D_ID)
     district_key_schema.emplace_back("", schema.GetColumn(1).Type(), schema.GetColumn(1).Nullable(),
@@ -194,7 +194,7 @@ class Schemas {
                                                                    catalog::table_oid_t(0), schema.GetColumn(0).Oid()));
     district_key_schema.back().SetOid(static_cast<catalog::indexkeycol_oid_t>(++(*oid_counter)));
 
-    TERRIER_ASSERT(district_key_schema.size() == num_district_primary_index_cols_,
+    TERRIER_ASSERT(district_key_schema.size() == NUM_DISTRICT_PRIMARY_INDEX_COLS,
                    "Wrong number of columns for District primary index schema.");
 
     return catalog::IndexSchema(district_key_schema, true, true, false, true);
@@ -206,7 +206,7 @@ class Schemas {
    */
   static catalog::Schema BuildCustomerTableSchema(uint32_t *const oid_counter) {
     std::vector<catalog::Schema::Column> customer_columns;
-    customer_columns.reserve(num_customer_table_cols_);
+    customer_columns.reserve(NUM_CUSTOMER_TABLE_COLS);
 
     // 96,000 unique IDs
     customer_columns.emplace_back(
@@ -314,7 +314,7 @@ class Schemas {
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR)));
     customer_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
 
-    TERRIER_ASSERT(customer_columns.size() == num_customer_table_cols_,
+    TERRIER_ASSERT(customer_columns.size() == NUM_CUSTOMER_TABLE_COLS,
                    "Wrong number of columns for Customer table schema.");
 
     return catalog::Schema(customer_columns);
@@ -328,7 +328,7 @@ class Schemas {
   static catalog::IndexSchema BuildCustomerPrimaryIndexSchema(const catalog::Schema &schema,
                                                               uint32_t *const oid_counter) {
     std::vector<catalog::IndexSchema::Column> customer_key_schema;
-    customer_key_schema.reserve(num_customer_primary_index_cols_);
+    customer_key_schema.reserve(NUM_CUSTOMER_PRIMARY_INDEX_COLS);
 
     // Primary Key: (C_W_ID, C_D_ID, C_ID)
     customer_key_schema.emplace_back("", schema.GetColumn(2).Type(), schema.GetColumn(2).Nullable(),
@@ -344,7 +344,7 @@ class Schemas {
                                                                    catalog::table_oid_t(0), schema.GetColumn(0).Oid()));
     customer_key_schema.back().SetOid(static_cast<catalog::indexkeycol_oid_t>(++(*oid_counter)));
 
-    TERRIER_ASSERT(customer_key_schema.size() == num_customer_primary_index_cols_,
+    TERRIER_ASSERT(customer_key_schema.size() == NUM_CUSTOMER_PRIMARY_INDEX_COLS,
                    "Wrong number of columns for Customer primary index schema.");
 
     return catalog::IndexSchema(customer_key_schema, true, true, false, true);
@@ -358,7 +358,7 @@ class Schemas {
   static catalog::IndexSchema BuildCustomerSecondaryIndexSchema(const catalog::Schema &schema,
                                                                 uint32_t *const oid_counter) {
     std::vector<catalog::IndexSchema::Column> customer_secondary_key_schema;
-    customer_secondary_key_schema.reserve(num_customer_secondary_index_cols_);
+    customer_secondary_key_schema.reserve(NUM_CUSTOMER_SECONDARY_INDEX_COLS);
 
     // C_W_ID, C_D_ID, C_LAST for Order Status and Payment transactions
     customer_secondary_key_schema.emplace_back(
@@ -377,7 +377,7 @@ class Schemas {
                                       schema.GetColumn(5).Oid()));
     customer_secondary_key_schema.back().SetOid(static_cast<catalog::indexkeycol_oid_t>(++(*oid_counter)));
 
-    TERRIER_ASSERT(customer_secondary_key_schema.size() == num_customer_secondary_index_cols_,
+    TERRIER_ASSERT(customer_secondary_key_schema.size() == NUM_CUSTOMER_SECONDARY_INDEX_COLS,
                    "Wrong number of columns for Customer secondary index schema.");
 
     return catalog::IndexSchema(customer_secondary_key_schema, false, false, false, true);
@@ -389,7 +389,7 @@ class Schemas {
    */
   static catalog::Schema BuildHistoryTableSchema(uint32_t *const oid_counter) {
     std::vector<catalog::Schema::Column> history_columns;
-    history_columns.reserve(num_history_table_cols_);
+    history_columns.reserve(NUM_HISTORY_TABLE_COLS);
 
     // 96,000 unique IDs
     history_columns.emplace_back(
@@ -432,7 +432,7 @@ class Schemas {
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR)));
     history_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
 
-    TERRIER_ASSERT(history_columns.size() == num_history_table_cols_,
+    TERRIER_ASSERT(history_columns.size() == NUM_HISTORY_TABLE_COLS,
                    "Wrong number of columns for History table schema.");
 
     return catalog::Schema(history_columns);
@@ -444,7 +444,7 @@ class Schemas {
    */
   static catalog::Schema BuildNewOrderTableSchema(uint32_t *const oid_counter) {
     std::vector<catalog::Schema::Column> new_order_columns;
-    new_order_columns.reserve(num_new_order_table_cols_);
+    new_order_columns.reserve(NUM_NEW_ORDER_TABLE_COLS);
 
     // 10,000,000 unique IDs
     new_order_columns.emplace_back(
@@ -462,7 +462,7 @@ class Schemas {
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::TINYINT)));
     new_order_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
 
-    TERRIER_ASSERT(new_order_columns.size() == num_new_order_table_cols_,
+    TERRIER_ASSERT(new_order_columns.size() == NUM_NEW_ORDER_TABLE_COLS,
                    "Wrong number of columns for New Order table schema.");
 
     return catalog::Schema(new_order_columns);
@@ -476,7 +476,7 @@ class Schemas {
   static catalog::IndexSchema BuildNewOrderPrimaryIndexSchema(const catalog::Schema &schema,
                                                               uint32_t *const oid_counter) {
     std::vector<catalog::IndexSchema::Column> new_order_key_schema;
-    new_order_key_schema.reserve(num_new_order_primary_index_cols_);
+    new_order_key_schema.reserve(NUM_NEW_ORDER_PRIMARY_INDEX_COLS);
 
     // Primary Key: (NO_W_ID, NO_D_ID, NO_O_ID)
     new_order_key_schema.emplace_back(
@@ -495,7 +495,7 @@ class Schemas {
                                       schema.GetColumn(0).Oid()));
     new_order_key_schema.back().SetOid(static_cast<catalog::indexkeycol_oid_t>(++(*oid_counter)));
 
-    TERRIER_ASSERT(new_order_key_schema.size() == num_new_order_primary_index_cols_,
+    TERRIER_ASSERT(new_order_key_schema.size() == NUM_NEW_ORDER_PRIMARY_INDEX_COLS,
                    "Wrong number of columns for New Order primary index schema.");
 
     return catalog::IndexSchema(new_order_key_schema, true, true, false, true);
@@ -507,7 +507,7 @@ class Schemas {
    */
   static catalog::Schema BuildOrderTableSchema(uint32_t *const oid_counter) {
     std::vector<catalog::Schema::Column> order_columns;
-    order_columns.reserve(num_order_table_cols_);
+    order_columns.reserve(NUM_ORDER_TABLE_COLS);
 
     // 10,000,000 unique IDs
     order_columns.emplace_back(
@@ -550,7 +550,7 @@ class Schemas {
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::TINYINT)));
     order_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
 
-    TERRIER_ASSERT(order_columns.size() == num_order_table_cols_, "Wrong number of columns for Order table schema.");
+    TERRIER_ASSERT(order_columns.size() == NUM_ORDER_TABLE_COLS, "Wrong number of columns for Order table schema.");
 
     return catalog::Schema(order_columns);
   }
@@ -562,7 +562,7 @@ class Schemas {
    */
   static catalog::IndexSchema BuildOrderPrimaryIndexSchema(const catalog::Schema &schema, uint32_t *const oid_counter) {
     std::vector<catalog::IndexSchema::Column> order_key_schema;
-    order_key_schema.reserve(num_order_primary_index_cols_);
+    order_key_schema.reserve(NUM_ORDER_PRIMARY_INDEX_COLS);
 
     // Primary Key: (O_W_ID, O_D_ID, O_ID)
     order_key_schema.emplace_back("", schema.GetColumn(2).Type(), schema.GetColumn(2).Nullable(),
@@ -578,7 +578,7 @@ class Schemas {
                                                                 schema.GetColumn(0).Oid()));
     order_key_schema.back().SetOid(static_cast<catalog::indexkeycol_oid_t>(++(*oid_counter)));
 
-    TERRIER_ASSERT(order_key_schema.size() == num_order_primary_index_cols_,
+    TERRIER_ASSERT(order_key_schema.size() == NUM_ORDER_PRIMARY_INDEX_COLS,
                    "Wrong number of columns for Order primary index schema.");
 
     return catalog::IndexSchema(order_key_schema, true, true, false, true);
@@ -592,7 +592,7 @@ class Schemas {
   static catalog::IndexSchema BuildOrderSecondaryIndexSchema(const catalog::Schema &schema,
                                                              uint32_t *const oid_counter) {
     std::vector<catalog::IndexSchema::Column> order_secondary_key_schema;
-    order_secondary_key_schema.reserve(num_order_secondary_index_cols_);
+    order_secondary_key_schema.reserve(NUM_ORDER_SECONDARY_INDEX_COLS);
 
     // O_W_ID, O_D_ID, O_C_ID, O_ID for Order Status transaction
     order_secondary_key_schema.emplace_back(
@@ -616,7 +616,7 @@ class Schemas {
                                       schema.GetColumn(0).Oid()));
     order_secondary_key_schema.back().SetOid(static_cast<catalog::indexkeycol_oid_t>(++(*oid_counter)));
 
-    TERRIER_ASSERT(order_secondary_key_schema.size() == num_order_secondary_index_cols_,
+    TERRIER_ASSERT(order_secondary_key_schema.size() == NUM_ORDER_SECONDARY_INDEX_COLS,
                    "Wrong number of columns for Order secondary index schema.");
 
     return catalog::IndexSchema(order_secondary_key_schema, true, false, false, true);
@@ -628,7 +628,7 @@ class Schemas {
    */
   static catalog::Schema BuildOrderLineTableSchema(uint32_t *const oid_counter) {
     std::vector<catalog::Schema::Column> order_line_columns;
-    order_line_columns.reserve(num_order_line_table_cols_);
+    order_line_columns.reserve(NUM_ORDER_LINE_TABLE_COLS);
 
     // 10,000,000 unique IDs
     order_line_columns.emplace_back(
@@ -681,7 +681,7 @@ class Schemas {
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR)));
     order_line_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
 
-    TERRIER_ASSERT(order_line_columns.size() == num_order_line_table_cols_,
+    TERRIER_ASSERT(order_line_columns.size() == NUM_ORDER_LINE_TABLE_COLS,
                    "Wrong number of columns for Order Line table schema.");
 
     return catalog::Schema(order_line_columns);
@@ -695,7 +695,7 @@ class Schemas {
   static catalog::IndexSchema BuildOrderLinePrimaryIndexSchema(const catalog::Schema &schema,
                                                                uint32_t *const oid_counter) {
     std::vector<catalog::IndexSchema::Column> order_line_key_schema;
-    order_line_key_schema.reserve(num_order_line_primary_index_cols_);
+    order_line_key_schema.reserve(NUM_ORDER_LINE_PRIMARY_INDEX_COLS);
 
     // Primary Key: (OL_W_ID, OL_D_ID, OL_O_ID, OL_NUMBER)
     order_line_key_schema.emplace_back(
@@ -719,7 +719,7 @@ class Schemas {
                                       schema.GetColumn(3).Oid()));
     order_line_key_schema.back().SetOid(static_cast<catalog::indexkeycol_oid_t>(++(*oid_counter)));
 
-    TERRIER_ASSERT(order_line_key_schema.size() == num_order_line_primary_index_cols_,
+    TERRIER_ASSERT(order_line_key_schema.size() == NUM_ORDER_LINE_PRIMARY_INDEX_COLS,
                    "Wrong number of columns for Order Line key schema.");
 
     return catalog::IndexSchema(order_line_key_schema, true, true, false, true);
@@ -731,7 +731,7 @@ class Schemas {
    */
   static catalog::Schema BuildItemTableSchema(uint32_t *const oid_counter) {
     std::vector<catalog::Schema::Column> item_columns;
-    item_columns.reserve(num_item_table_cols_);
+    item_columns.reserve(NUM_ITEM_TABLE_COLS);
 
     // 200,000 unique IDs
     item_columns.emplace_back(
@@ -759,7 +759,7 @@ class Schemas {
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR)));
     item_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
 
-    TERRIER_ASSERT(item_columns.size() == num_item_table_cols_, "Wrong number of columns for Item table schema.");
+    TERRIER_ASSERT(item_columns.size() == NUM_ITEM_TABLE_COLS, "Wrong number of columns for Item table schema.");
 
     return catalog::Schema(item_columns);
   }
@@ -771,7 +771,7 @@ class Schemas {
    */
   static catalog::IndexSchema BuildItemPrimaryIndexSchema(const catalog::Schema &schema, uint32_t *const oid_counter) {
     std::vector<catalog::IndexSchema::Column> item_key_schema;
-    item_key_schema.reserve(num_item_primary_index_cols_);
+    item_key_schema.reserve(NUM_ITEM_PRIMARY_INDEX_COLS);
 
     // Primary Key: I_ID
     item_key_schema.emplace_back("", schema.GetColumn(0).Type(), schema.GetColumn(0).Nullable(),
@@ -779,7 +779,7 @@ class Schemas {
                                                                schema.GetColumn(0).Oid()));
     item_key_schema.back().SetOid(static_cast<catalog::indexkeycol_oid_t>(++(*oid_counter)));
 
-    TERRIER_ASSERT(item_key_schema.size() == num_item_primary_index_cols_,
+    TERRIER_ASSERT(item_key_schema.size() == NUM_ITEM_PRIMARY_INDEX_COLS,
                    "Wrong number of columns for Item primary index schema.");
 
     return catalog::IndexSchema(item_key_schema, true, true, false, true);
@@ -791,7 +791,7 @@ class Schemas {
    */
   static catalog::Schema BuildStockTableSchema(uint32_t *const oid_counter) {
     std::vector<catalog::Schema::Column> stock_columns;
-    stock_columns.reserve(num_stock_table_cols_);
+    stock_columns.reserve(NUM_STOCK_TABLE_COLS);
 
     // 200,000 unique IDs
     stock_columns.emplace_back(
@@ -879,7 +879,7 @@ class Schemas {
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR)));
     stock_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
 
-    TERRIER_ASSERT(stock_columns.size() == num_stock_table_cols_, "Wrong number of columns for Stock table schema.");
+    TERRIER_ASSERT(stock_columns.size() == NUM_STOCK_TABLE_COLS, "Wrong number of columns for Stock table schema.");
 
     return catalog::Schema(stock_columns);
   }
@@ -891,7 +891,7 @@ class Schemas {
    */
   static catalog::IndexSchema BuildStockPrimaryIndexSchema(const catalog::Schema &schema, uint32_t *const oid_counter) {
     std::vector<catalog::IndexSchema::Column> stock_key_schema;
-    stock_key_schema.reserve(num_stock_primary_index_cols_);
+    stock_key_schema.reserve(NUM_STOCK_PRIMARY_INDEX_COLS);
 
     // Primary Key: (S_W_ID, S_I_ID)
     stock_key_schema.emplace_back("", schema.GetColumn(1).Type(), schema.GetColumn(1).Nullable(),
@@ -903,7 +903,7 @@ class Schemas {
                                                                 schema.GetColumn(0).Oid()));
     stock_key_schema.back().SetOid(static_cast<catalog::indexkeycol_oid_t>(++(*oid_counter)));
 
-    TERRIER_ASSERT(stock_key_schema.size() == num_stock_primary_index_cols_,
+    TERRIER_ASSERT(stock_key_schema.size() == NUM_STOCK_PRIMARY_INDEX_COLS,
                    "Wrong number of columns for Stock primary index schema.");
 
     return catalog::IndexSchema(stock_key_schema, true, true, false, true);
@@ -911,26 +911,26 @@ class Schemas {
 
  private:
   // The values below are just to sanity check the schema functions
-  static constexpr uint8_t num_warehouse_table_cols_ = 9;
-  static constexpr uint8_t num_district_table_cols_ = 11;
-  static constexpr uint8_t num_customer_table_cols_ = 21;
-  static constexpr uint8_t num_history_table_cols_ = 8;
-  static constexpr uint8_t num_new_order_table_cols_ = 3;
-  static constexpr uint8_t num_order_table_cols_ = 8;
-  static constexpr uint8_t num_order_line_table_cols_ = 10;
-  static constexpr uint8_t num_item_table_cols_ = 5;
-  static constexpr uint8_t num_stock_table_cols_ = 17;
+  static constexpr uint8_t NUM_WAREHOUSE_TABLE_COLS = 9;
+  static constexpr uint8_t NUM_DISTRICT_TABLE_COLS = 11;
+  static constexpr uint8_t NUM_CUSTOMER_TABLE_COLS = 21;
+  static constexpr uint8_t NUM_HISTORY_TABLE_COLS = 8;
+  static constexpr uint8_t NUM_NEW_ORDER_TABLE_COLS = 3;
+  static constexpr uint8_t NUM_ORDER_TABLE_COLS = 8;
+  static constexpr uint8_t NUM_ORDER_LINE_TABLE_COLS = 10;
+  static constexpr uint8_t NUM_ITEM_TABLE_COLS = 5;
+  static constexpr uint8_t NUM_STOCK_TABLE_COLS = 17;
 
-  static constexpr uint8_t num_warehouse_primary_index_cols_ = 1;
-  static constexpr uint8_t num_district_primary_index_cols_ = 2;
-  static constexpr uint8_t num_customer_primary_index_cols_ = 3;
-  static constexpr uint8_t num_customer_secondary_index_cols_ = 3;
-  static constexpr uint8_t num_new_order_primary_index_cols_ = 3;
-  static constexpr uint8_t num_order_primary_index_cols_ = 3;
-  static constexpr uint8_t num_order_secondary_index_cols_ = 4;
-  static constexpr uint8_t num_order_line_primary_index_cols_ = 4;
-  static constexpr uint8_t num_item_primary_index_cols_ = 1;
-  static constexpr uint8_t num_stock_primary_index_cols_ = 2;
+  static constexpr uint8_t NUM_WAREHOUSE_PRIMARY_INDEX_COLS = 1;
+  static constexpr uint8_t NUM_DISTRICT_PRIMARY_INDEX_COLS = 2;
+  static constexpr uint8_t NUM_CUSTOMER_PRIMARY_INDEX_COLS = 3;
+  static constexpr uint8_t NUM_CUSTOMER_SECONDARY_INDEX_COLS = 3;
+  static constexpr uint8_t NUM_NEW_ORDER_PRIMARY_INDEX_COLS = 3;
+  static constexpr uint8_t NUM_ORDER_PRIMARY_INDEX_COLS = 3;
+  static constexpr uint8_t NUM_ORDER_SECONDARY_INDEX_COLS = 4;
+  static constexpr uint8_t NUM_ORDER_LINE_PRIMARY_INDEX_COLS = 4;
+  static constexpr uint8_t NUM_ITEM_PRIMARY_INDEX_COLS = 1;
+  static constexpr uint8_t NUM_STOCK_PRIMARY_INDEX_COLS = 2;
 };
 
 }  // namespace terrier::tpcc

@@ -20,11 +20,11 @@ class CaseExpression : public AbstractExpression {
     /**
      * The condition to be checked for this case expression.
      */
-    std::shared_ptr<AbstractExpression> condition;
+    std::shared_ptr<AbstractExpression> condition_;
     /**
      * The value that this expression should have if the corresponding condition is true.
      */
-    std::shared_ptr<AbstractExpression> then;
+    std::shared_ptr<AbstractExpression> then_;
 
     /**
      * Equality check

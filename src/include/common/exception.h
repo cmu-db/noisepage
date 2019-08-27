@@ -53,7 +53,7 @@ class Exception : public std::runtime_error {
   /**
    * @return the exception type
    */
-  const char *get_type() const {
+  const char *GetType() const {
     switch (type_) {
       case ExceptionType::NOT_IMPLEMENTED:
         return "Not Implemented";
@@ -73,12 +73,12 @@ class Exception : public std::runtime_error {
   /**
    * @return the file that threw the exception
    */
-  const char *get_file() const { return file_; }
+  const char *GetFile() const { return file_; }
 
   /**
    * @return the line number that threw the exception
    */
-  int get_line() const { return line_; }
+  int GetLine() const { return line_; }
 
  protected:
   /**

@@ -76,7 +76,7 @@ void TerrierServer::StopServer() {
   const bool result UNUSED_ATTRIBUTE =
       thread_registry_->StopTask(this, dispatcher_task_.CastManagedPointerTo<common::DedicatedThreadTask>());
   TERRIER_ASSERT(result, "Failed to stop ConnectionDispatcherTask.");
-  terrier_close(listen_fd_);
+  TerrierClose(listen_fd_);
   NETWORK_LOG_INFO("Server Closed");
 
   // Clear the running_ flag for any waiting threads and wake up them up with the condition variable

@@ -965,8 +965,8 @@ struct Loader {
   }
 
   struct OrderTupleResults {
-    uint64_t o_entry_d;
-    int8_t o_ol_cnt;
+    uint64_t o_entry_d_;
+    int8_t o_ol_cnt_;
   };
 
   template <class Random>

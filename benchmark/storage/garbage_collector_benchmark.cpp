@@ -26,11 +26,11 @@ class GarbageCollectorBenchmark : public benchmark::Fixture {
     return lag_count;
   }
 
-  const uint32_t txn_length = 5;
-  const std::vector<double> update_select_ratio = {0, 1, 0};
-  const uint32_t num_concurrent_txns = 4;
-  const uint32_t initial_table_size = 100000;
-  const uint32_t num_txns = 100000;
+  const uint32_t txn_length_ = 5;
+  const std::vector<double> update_select_ratio_ = {0, 1, 0};
+  const uint32_t num_concurrent_txns_ = 4;
+  const uint32_t initial_table_size_ = 100000;
+  const uint32_t num_txns_ = 100000;
   storage::BlockStore block_store_{1000, 1000};
   storage::RecordBufferSegmentPool buffer_pool_{1000000, 1000000};
   std::default_random_engine generator_;

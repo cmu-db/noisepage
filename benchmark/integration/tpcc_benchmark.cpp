@@ -50,10 +50,10 @@ class TPCCBenchmark : public benchmark::Fixture {
   const int8_t num_threads_ = 4;  // defines the number of terminals (workers running txns) and warehouses for the
                                   // benchmark. Sometimes called scale factor
   const uint32_t num_precomputed_txns_per_worker_ = 100000;  // Number of txns to run per terminal (worker thread)
-  TransactionWeights txn_weights;                            // default txn_weights. See definition for values
+  TransactionWeights txn_weights_;                            // default txn_weights. See definition for values
 
   common::WorkerPool thread_pool_{static_cast<uint32_t>(num_threads_), {}};
-  common::DedicatedThreadRegistry thread_registry;
+  common::DedicatedThreadRegistry thread_registry_;
 
   storage::GarbageCollectorThread *gc_thread_ = nullptr;
   const std::chrono::milliseconds gc_period_{10};

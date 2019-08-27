@@ -137,12 +137,12 @@ class IterableBufferSegment {
   /**
    * @return iterator to the first element
    */
-  Iterator begin() { return {segment_, 0}; }
+  Iterator Begin() { return {segment_, 0}; }
 
   /**
    * @return iterator to the second element
    */
-  Iterator end() { return {segment_, segment_->size_}; }
+  Iterator End() { return {segment_, segment_->size_}; }
 
  private:
   RecordBufferSegment *segment_;
@@ -285,12 +285,12 @@ class UndoBuffer {
   /**
    * @return Iterator to the first element
    */
-  Iterator begin() { return {buffers_.begin(), 0}; }
+  Iterator Begin() { return {buffers_.begin(), 0}; }
 
   /**
    * @return Iterator to the element following the last element
    */
-  Iterator end() { return {buffers_.end(), 0}; }
+  Iterator End() { return {buffers_.end(), 0}; }
 
   /**
    * @return true if UndoBuffer contains no UndoRecords, false otherwise

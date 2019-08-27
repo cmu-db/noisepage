@@ -27,8 +27,8 @@ class ParserTestBase : public TerrierTest {
    * Initialization
    */
   void SetUp() override {
-    init_main_logger();
-    init_parser_logger();
+    InitMainLogger();
+    InitParserLogger();
     parser_logger->set_level(spdlog::level::debug);
     spdlog::flush_every(std::chrono::seconds(1));
   }
@@ -39,7 +39,7 @@ class ParserTestBase : public TerrierTest {
     EXPECT_EQ(table_info->GetTableName(), table_name);
   }
 
-  PostgresParser pgparser;
+  PostgresParser pgparser_;
 };
 
 // NOLINTNEXTLINE

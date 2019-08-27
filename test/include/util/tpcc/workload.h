@@ -14,10 +14,10 @@ namespace terrier::tpcc {
 // Txn distribution. New Order is not provided because it's the implicit difference of the txns below from 100. Default
 // values come from TPC-C spec.
 struct TransactionWeights {
-  uint32_t w_payment = 43;
-  uint32_t w_delivery = 4;
-  uint32_t w_order_status = 4;
-  uint32_t w_stock_level = 4;
+  uint32_t w_payment_ = 43;
+  uint32_t w_delivery_ = 4;
+  uint32_t w_order_status_ = 4;
+  uint32_t w_stock_level_ = 4;
 };
 
 /*
@@ -106,8 +106,8 @@ class Deck {
 
  private:
   std::default_random_engine generator_;
-  std::vector<tpcc::TransactionType> cards;
-  uint32_t card_idx = 0;
+  std::vector<tpcc::TransactionType> cards_;
+  uint32_t card_idx_ = 0;
 };
 
 // 2.4.1

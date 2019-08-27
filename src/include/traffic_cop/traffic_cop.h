@@ -28,7 +28,7 @@ class TrafficCop {
   SqliteEngine *GetExecutionEngine() { return &sqlite_engine; }
 
  private:
-  SqliteEngine sqlite_engine;
+  SqliteEngine sqlite_engine_;
 };
 
 }  // namespace terrier::trafficcop

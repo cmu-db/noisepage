@@ -280,7 +280,7 @@ class Schema {
  private:
   friend class DatabaseCatalog;
   std::vector<Column> columns_;
-  std::unordered_map<col_oid_t, uint32_t> col_oid_to_offset;
+  std::unordered_map<col_oid_t, uint32_t> col_oid_to_offset_;
 };
 
 DEFINE_JSON_DECLARATIONS(Schema::Column);

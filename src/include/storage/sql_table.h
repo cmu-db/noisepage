@@ -26,9 +26,9 @@ class SqlTable {
    * this layer, consider alternatives.
    */
   struct DataTableVersion {
-    DataTable *data_table;
-    BlockLayout layout;
-    ColumnMap column_map;
+    DataTable *data_table_;
+    BlockLayout layout_;
+    ColumnMap column_map_;
   };
 
  public:
@@ -145,12 +145,12 @@ class SqlTable {
   /**
    * @return the first tuple slot contained in the underlying DataTable
    */
-  DataTable::SlotIterator begin() const { return table_.data_table->begin(); }
+  DataTable::SlotIterator Begin() const { return table_.data_table->begin(); }
 
   /**
    * @return one past the last tuple slot contained in the underlying DataTable
    */
-  DataTable::SlotIterator end() const { return table_.data_table->end(); }
+  DataTable::SlotIterator End() const { return table_.data_table->end(); }
 
   /**
    * Generates an ProjectedColumnsInitializer for the execution layer to use. This performs the translation from col_oid

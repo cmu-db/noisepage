@@ -30,12 +30,12 @@ DEFINE_PERFORMANCE_CLASS(CacheCounter, CACHE_MEMBERS)
  */
 class CacheCounterTestObject {
  private:
-  std::atomic<uint64_t> num_insert{0};
-  std::atomic<uint32_t> num_hit{0};
-  std::atomic<uint16_t> num_failure{0};
-  std::atomic<uint8_t> num_user{0};
-  CacheCounter *cc;
-  std::uniform_int_distribution<uint8_t> rng;
+  std::atomic<uint64_t> num_insert_{0};
+  std::atomic<uint32_t> num_hit_{0};
+  std::atomic<uint16_t> num_failure_{0};
+  std::atomic<uint8_t> num_user_{0};
+  CacheCounter *cc_;
+  std::uniform_int_distribution<uint8_t> rng_;
 
   /**
    * Calls the gtest EXPECT_EQ function for all the relevant variables.
@@ -53,7 +53,7 @@ class CacheCounterTestObject {
    * It will check that it remains consistent with the CacheCounter;
    * if you modify the CacheCounter, make sure you tell it.
    */
-  explicit CacheCounterTestObject(CacheCounter *cc) : cc(cc), rng(1, 255) {}
+  explicit CacheCounterTestObject(CacheCounter *cc) : cc_(cc), rng_(1, 255) {}
 
   /**
    * Zeroes the cache counter, automatically checking that all the state remains consistent.

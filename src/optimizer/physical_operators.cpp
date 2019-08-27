@@ -13,7 +13,7 @@ namespace terrier::optimizer {
 //===--------------------------------------------------------------------===//
 // TableFreeScan
 //===--------------------------------------------------------------------===//
-Operator TableFreeScan::make() {
+Operator TableFreeScan::Make() {
   auto *table_free_scan = new TableFreeScan;
   return Operator(table_free_scan);
 }
@@ -32,7 +32,7 @@ common::hash_t TableFreeScan::Hash() const {
 //===--------------------------------------------------------------------===//
 // SeqScan
 //===--------------------------------------------------------------------===//
-Operator SeqScan::make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
+Operator SeqScan::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
                        catalog::table_oid_t table_oid, std::vector<AnnotatedExpression> &&predicates,
                        std::string table_alias, bool is_for_update) {
   auto *scan = new SeqScan;
@@ -73,7 +73,7 @@ common::hash_t SeqScan::Hash() const {
 //===--------------------------------------------------------------------===//
 // IndexScan
 //===--------------------------------------------------------------------===//
-Operator IndexScan::make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
+Operator IndexScan::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
                          catalog::index_oid_t index_oid, std::vector<AnnotatedExpression> &&predicates,
                          std::string table_alias, bool is_for_update,
                          std::vector<catalog::col_oid_t> &&key_column_oid_list,
@@ -137,7 +137,7 @@ common::hash_t IndexScan::Hash() const {
 //===--------------------------------------------------------------------===//
 // External file scan
 //===--------------------------------------------------------------------===//
-Operator ExternalFileScan::make(parser::ExternalFileFormat format, std::string file_name, char delimiter, char quote,
+Operator ExternalFileScan::Make(parser::ExternalFileFormat format, std::string file_name, char delimiter, char quote,
                                 char escape) {
   auto *get = new ExternalFileScan();
   get->format_ = format;
@@ -168,7 +168,7 @@ common::hash_t ExternalFileScan::Hash() const {
 //===--------------------------------------------------------------------===//
 // Query derived scan
 //===--------------------------------------------------------------------===//
-Operator QueryDerivedScan::make(
+Operator QueryDerivedScan::Make(
     std::string table_alias,
     std::unordered_map<std::string, common::ManagedPointer<parser::AbstractExpression>> &&alias_to_expr_map) {
   auto *get = new QueryDerivedScan;
@@ -198,7 +198,7 @@ common::hash_t QueryDerivedScan::Hash() const {
 //===--------------------------------------------------------------------===//
 // OrderBy
 //===--------------------------------------------------------------------===//
-Operator OrderBy::make() {
+Operator OrderBy::Make() {
   auto *order_by = new OrderBy;
 
   return Operator(order_by);
@@ -218,7 +218,7 @@ common::hash_t OrderBy::Hash() const {
 //===--------------------------------------------------------------------===//
 // PhysicalLimit
 //===--------------------------------------------------------------------===//
-Operator Limit::make(size_t offset, size_t limit,
+Operator Limit::Make(size_t offset, size_t limit,
                      std::vector<common::ManagedPointer<parser::AbstractExpression>> &&sort_columns,
                      std::vector<planner::OrderByOrderingType> &&sort_directions) {
   auto *limit_op = new Limit;
@@ -251,7 +251,7 @@ common::hash_t Limit::Hash() const {
 //===--------------------------------------------------------------------===//
 // InnerNLJoin
 //===--------------------------------------------------------------------===//
-Operator InnerNLJoin::make(std::vector<AnnotatedExpression> &&join_predicates,
+Operator InnerNLJoin::Make(std::vector<AnnotatedExpression> &&join_predicates,
                            std::vector<common::ManagedPointer<parser::AbstractExpression>> &&left_keys,
                            std::vector<common::ManagedPointer<parser::AbstractExpression>> &&right_keys) {
   auto *join = new InnerNLJoin();
@@ -295,7 +295,7 @@ bool InnerNLJoin::operator==(const BaseOperatorNode &r) {
 //===--------------------------------------------------------------------===//
 // LeftNLJoin
 //===--------------------------------------------------------------------===//
-Operator LeftNLJoin::make(common::ManagedPointer<parser::AbstractExpression> join_predicate) {
+Operator LeftNLJoin::Make(common::ManagedPointer<parser::AbstractExpression> join_predicate) {
   auto *join = new LeftNLJoin();
   join->join_predicate_ = join_predicate;
   return Operator(join);
@@ -315,7 +315,7 @@ bool LeftNLJoin::operator==(const BaseOperatorNode &r) {
 //===--------------------------------------------------------------------===//
 // RightNLJoin
 //===--------------------------------------------------------------------===//
-Operator RightNLJoin::make(common::ManagedPointer<parser::AbstractExpression> join_predicate) {
+Operator RightNLJoin::Make(common::ManagedPointer<parser::AbstractExpression> join_predicate) {
   auto *join = new RightNLJoin();
   join->join_predicate_ = join_predicate;
   return Operator(join);
@@ -336,7 +336,7 @@ bool RightNLJoin::operator==(const BaseOperatorNode &r) {
 //===--------------------------------------------------------------------===//
 // OuterNLJoin
 //===--------------------------------------------------------------------===//
-Operator OuterNLJoin::make(common::ManagedPointer<parser::AbstractExpression> join_predicate) {
+Operator OuterNLJoin::Make(common::ManagedPointer<parser::AbstractExpression> join_predicate) {
   auto *join = new OuterNLJoin();
   join->join_predicate_ = join_predicate;
   return Operator(join);
@@ -357,7 +357,7 @@ bool OuterNLJoin::operator==(const BaseOperatorNode &r) {
 //===--------------------------------------------------------------------===//
 // InnerHashJoin
 //===--------------------------------------------------------------------===//
-Operator InnerHashJoin::make(std::vector<AnnotatedExpression> &&join_predicates,
+Operator InnerHashJoin::Make(std::vector<AnnotatedExpression> &&join_predicates,
                              std::vector<common::ManagedPointer<parser::AbstractExpression>> &&left_keys,
                              std::vector<common::ManagedPointer<parser::AbstractExpression>> &&right_keys) {
   auto *join = new InnerHashJoin();
@@ -400,7 +400,7 @@ bool InnerHashJoin::operator==(const BaseOperatorNode &r) {
 //===--------------------------------------------------------------------===//
 // LeftHashJoin
 //===--------------------------------------------------------------------===//
-Operator LeftHashJoin::make(common::ManagedPointer<parser::AbstractExpression> join_predicate) {
+Operator LeftHashJoin::Make(common::ManagedPointer<parser::AbstractExpression> join_predicate) {
   auto *join = new LeftHashJoin();
   join->join_predicate_ = join_predicate;
   return Operator(join);
@@ -421,7 +421,7 @@ bool LeftHashJoin::operator==(const BaseOperatorNode &r) {
 //===--------------------------------------------------------------------===//
 // RightHashJoin
 //===--------------------------------------------------------------------===//
-Operator RightHashJoin::make(common::ManagedPointer<parser::AbstractExpression> join_predicate) {
+Operator RightHashJoin::Make(common::ManagedPointer<parser::AbstractExpression> join_predicate) {
   auto *join = new RightHashJoin();
   join->join_predicate_ = join_predicate;
   return Operator(join);
@@ -442,7 +442,7 @@ bool RightHashJoin::operator==(const BaseOperatorNode &r) {
 //===--------------------------------------------------------------------===//
 // OuterHashJoin
 //===--------------------------------------------------------------------===//
-Operator OuterHashJoin::make(common::ManagedPointer<parser::AbstractExpression> join_predicate) {
+Operator OuterHashJoin::Make(common::ManagedPointer<parser::AbstractExpression> join_predicate) {
   auto *join = new OuterHashJoin();
   join->join_predicate_ = join_predicate;
   return Operator(join);
@@ -463,7 +463,7 @@ bool OuterHashJoin::operator==(const BaseOperatorNode &r) {
 //===--------------------------------------------------------------------===//
 // Insert
 //===--------------------------------------------------------------------===//
-Operator Insert::make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
+Operator Insert::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
                       catalog::table_oid_t table_oid, std::vector<catalog::col_oid_t> &&columns,
                       std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>> &&values) {
 #ifndef NDEBUG
@@ -512,7 +512,7 @@ bool Insert::operator==(const BaseOperatorNode &r) {
 //===--------------------------------------------------------------------===//
 // InsertSelect
 //===--------------------------------------------------------------------===//
-Operator InsertSelect::make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
+Operator InsertSelect::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
                             catalog::table_oid_t table_oid) {
   auto *insert_op = new InsertSelect;
   insert_op->database_oid_ = database_oid;
@@ -541,7 +541,7 @@ bool InsertSelect::operator==(const BaseOperatorNode &r) {
 //===--------------------------------------------------------------------===//
 // Delete
 //===--------------------------------------------------------------------===//
-Operator Delete::make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
+Operator Delete::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
                       catalog::table_oid_t table_oid,
                       common::ManagedPointer<parser::AbstractExpression> delete_condition) {
   auto *delete_op = new Delete;
@@ -573,7 +573,7 @@ bool Delete::operator==(const BaseOperatorNode &r) {
 //===--------------------------------------------------------------------===//
 // Update
 //===--------------------------------------------------------------------===//
-Operator Update::make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
+Operator Update::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
                       catalog::table_oid_t table_oid,
                       std::vector<common::ManagedPointer<parser::UpdateClause>> &&updates) {
   auto *op = new Update;
@@ -606,7 +606,7 @@ bool Update::operator==(const BaseOperatorNode &r) {
 //===--------------------------------------------------------------------===//
 // ExportExternalFile
 //===--------------------------------------------------------------------===//
-Operator ExportExternalFile::make(parser::ExternalFileFormat format, std::string file_name, char delimiter, char quote,
+Operator ExportExternalFile::Make(parser::ExternalFileFormat format, std::string file_name, char delimiter, char quote,
                                   char escape) {
   auto *export_op = new ExportExternalFile();
   export_op->format_ = format;
@@ -637,7 +637,7 @@ common::hash_t ExportExternalFile::Hash() const {
 //===--------------------------------------------------------------------===//
 // HashGroupBy
 //===--------------------------------------------------------------------===//
-Operator HashGroupBy::make(std::vector<common::ManagedPointer<parser::AbstractExpression>> &&columns,
+Operator HashGroupBy::Make(std::vector<common::ManagedPointer<parser::AbstractExpression>> &&columns,
                            std::vector<AnnotatedExpression> &&having) {
   auto *agg = new HashGroupBy;
   agg->columns_ = std::move(columns);
@@ -674,7 +674,7 @@ common::hash_t HashGroupBy::Hash() const {
 //===--------------------------------------------------------------------===//
 // SortGroupBy
 //===--------------------------------------------------------------------===//
-Operator SortGroupBy::make(std::vector<common::ManagedPointer<parser::AbstractExpression>> &&columns,
+Operator SortGroupBy::Make(std::vector<common::ManagedPointer<parser::AbstractExpression>> &&columns,
                            std::vector<AnnotatedExpression> &&having) {
   auto *agg = new SortGroupBy;
   agg->columns_ = std::move(columns);
@@ -711,7 +711,7 @@ common::hash_t SortGroupBy::Hash() const {
 //===--------------------------------------------------------------------===//
 // Aggregate
 //===--------------------------------------------------------------------===//
-Operator Aggregate::make() {
+Operator Aggregate::Make() {
   auto *agg = new Aggregate;
   return Operator(agg);
 }
@@ -730,7 +730,7 @@ common::hash_t Aggregate::Hash() const {
 //===--------------------------------------------------------------------===//
 // Hash
 //===--------------------------------------------------------------------===//
-Operator Distinct::make() {
+Operator Distinct::Make() {
   auto *hash = new Distinct;
   return Operator(hash);
 }
