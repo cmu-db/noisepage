@@ -775,7 +775,7 @@ void PlanGenerator::Visit(const Insert *op) {
 
   auto values = op->GetValues();
   for (auto &tuple_value : values) {
-    std::vector<const parser::AbstractExpression *> row(tuple_value.size());
+    std::vector<const parser::AbstractExpression *> row;
     for (auto &col_value : tuple_value) row.push_back(col_value.get());
 
     builder->AddValues(std::move(row));

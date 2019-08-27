@@ -10,6 +10,7 @@
 #include "main/db_main.h"
 #include "parser/postgresparser.h"
 #include "planner/plannodes/abstract_plan_node.h"
+#include "planner/plannodes/insert_plan_node.h"
 #include "optimizer/cost_model/trivial_cost_model.h"
 #include "optimizer/properties.h"
 #include "optimizer/property_set.h"
@@ -256,6 +257,55 @@ class TpccPlanTest : public TerrierTest {
       const_cast<parser::AbstractExpression*>(front)->DeriveExpressionName();
       const_cast<parser::AbstractExpression*>(front)->DeriveReturnValueType();
     }
+  }
+
+  // Optimizer on Insert
+  void OptimizeInsert(std::string query, catalog::table_oid_t tbl_oid) {
+    parser::PostgresParser pgparser;
+    auto stmt_list = pgparser.BuildParseTree(query);
+    auto ins_stmt = reinterpret_cast<parser::InsertStatement*>(stmt_list[0].get());
+
+    BeginTransaction();
+
+    auto &schema = accessor_->GetSchema(tbl_oid);
+    std::vector<catalog::col_oid_t> col_oids;
+    for (auto &col : ins_stmt->GetInsertColumns()) {
+      col_oids.push_back(schema.GetColumn(col).Oid());
+    }
+
+    std::vector<common::ManagedPointer<const parser::AbstractExpression>> row;
+    for (size_t idx = 0; idx < ins_stmt->GetInsertColumns().size(); idx++) {
+      row.push_back(ins_stmt->GetValue(0, idx));
+    }
+
+    auto property_set = new optimizer::PropertySet();
+    optimizer::OperatorExpression *plan = nullptr;
+    {
+      std::vector<catalog::col_oid_t> oids = col_oids;
+      std::vector<std::vector<common::ManagedPointer<const parser::AbstractExpression>>> ins = {row};
+      plan = new optimizer::OperatorExpression(optimizer::LogicalInsert::make(db_, accessor_->GetDefaultNamespace(), tbl_oid, std::move(oids), std::move(ins)), {});
+    }
+
+    auto query_info = optimizer::QueryInfo(parser::StatementType::INSERT, {}, property_set);
+    auto optimizer = new optimizer::Optimizer(new optimizer::TrivialCostModel());
+    auto out_plan = optimizer->BuildPlanTree(plan, query_info, txn_, settings_manager_, accessor_);
+
+    EXPECT_EQ(out_plan->GetPlanNodeType(), planner::PlanNodeType::INSERT);
+    auto insert = std::dynamic_pointer_cast<planner::InsertPlanNode>(out_plan);
+    EXPECT_EQ(insert->GetDatabaseOid(), db_);
+    EXPECT_EQ(insert->GetNamespaceOid(), accessor_->GetDefaultNamespace());
+    EXPECT_EQ(insert->GetTableOid(), tbl_oid);
+    EXPECT_EQ(insert->GetParameterInfo(), col_oids);
+    EXPECT_EQ(insert->GetBulkInsertCount(), 1);
+    EXPECT_EQ(insert->GetValues(0).size(), row.size());
+    for (size_t idx = 0; idx < row.size(); idx++) {
+      EXPECT_EQ(row[idx].get(), insert->GetValues(0)[idx]);
+    }
+
+    delete plan;
+    delete property_set;
+    delete optimizer;
+    EndTransaction(true);
   }
 
   // Optimize a Query

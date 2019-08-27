@@ -127,7 +127,7 @@ void ChildPropertyDeriver::Visit(UNUSED_ATTRIBUTE const RightHashJoin *op) {}
 void ChildPropertyDeriver::Visit(UNUSED_ATTRIBUTE const OuterHashJoin *op) {}
 
 void ChildPropertyDeriver::Visit(UNUSED_ATTRIBUTE const Insert *op) {
-  std::vector<PropertySet *> child_input_properties{requirements_->Copy()};
+  std::vector<PropertySet *> child_input_properties;
   output_.emplace_back(requirements_->Copy(), std::move(child_input_properties));
 }
 

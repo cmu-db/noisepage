@@ -25,11 +25,8 @@ TEST_F(TpccPlanNewOrderTests, GetDistrict) {
 
 // NOLINTNEXTLINE
 TEST_F(TpccPlanNewOrderTests, InsertNewOrder) {
-  // From OLTPBenchmark (L55-57)
-  // INSERT INTO NEW-ORDER
-  // (NO_O_ID, NO_D_ID, NO_W_ID)
-  // VALUES (?, ?, ?)
-  EXPECT_TRUE(false);
+  std::string query = "INSERT INTO NEW_ORDER (NO_O_ID, NO_D_ID, NO_W_ID) VALUES (1,2,3)";
+  OptimizeInsert(query, tbl_new_order_);
 }
 
 // NOLINTNEXTLINE
@@ -44,19 +41,13 @@ TEST_F(TpccPlanNewOrderTests, UpdateDistrict) {
 
 // NOLINTNEXTLINE
 TEST_F(TpccPlanNewOrderTests, InsertOOrder) {
-  // From OLTPBenchmark (L66-68)
-  // INSERT INTO ORDER
-  // (O_ID, O_D_ID, O_W_ID, O_C_ID, O_ENTRY_D, O_OL_CNT, O_ALL_LOCAL)
-  // VALUES (?, ?, ?, ?, ?, ?, ?)
-  EXPECT_TRUE(false);
+  std::string query = "INSERT INTO \"ORDER\" (O_ID, O_D_ID, O_W_ID, O_C_ID, O_ENTRY_D, O_OL_CNT, O_ALL_LOCAL) "
+                      "VALUES (1,2,3,4,0,6,7)";
+  OptimizeInsert(query, tbl_order_);
 }
 
 // NOLINTNEXTLINE
 TEST_F(TpccPlanNewOrderTests, GetItem) {
-  // From OLTPBenchmark (L71-73)
-  // SELECT I_PRICE, I_NAME, I_DATA
-  //   FROM ITEM
-  //  WHERE I_ID = ?
   std::string query = "SELECT I_PRICE, I_NAME, I_DATA FROM ITEM WHERE I_ID=1";
   OptimizeQuery(query, "item", tbl_item_, TpccPlanTest::CheckIndexScan);
 }
@@ -84,11 +75,10 @@ TEST_F(TpccPlanNewOrderTests, UpdateStock) {
 
 // NOLINTNEXTLINE
 TEST_F(TpccPlanNewOrderTests, InsertOrderLine) {
-  // From OLTPBenchmark (L92-94)
-  // INSERT INTO ORDER-LINE
-  // (OL_O_ID, OL_D_ID, OL_W_ID, OL_NUMBER, OL_I_ID, OL_SUPPLY_W_ID, OL_QUANTITY, OL_AMOUNT, OL_DIST_INFO)
-  // VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-  EXPECT_TRUE(false);
+  std::string query = "INSERT INTO ORDER_LINE "
+                      "(OL_O_ID, OL_D_ID, OL_W_ID, OL_NUMBER, OL_I_ID, OL_SUPPLY_W_ID, OL_QUANTITY, OL_AMOUNT, OL_DIST_INFO) "
+                      "VALUES (1,2,3,4,5,6,7,8,'dist')";
+  OptimizeInsert(query, tbl_order_line_);
 }
 
 }  // namespace terrier
