@@ -2,6 +2,7 @@
 #include <vector>
 #include "common/object_pool.h"
 #include "common/strong_typedef.h"
+#include "common/macros.h"
 #include "storage/data_table.h"
 #include "storage/record_buffer.h"
 #include "storage/storage_defs.h"
@@ -18,6 +19,7 @@ class LogSerializerTask;
 class SqlTable;
 class WriteAheadLoggingTests;
 class RecoveryManager;
+class RecoveryTests;
 }  // namespace terrier::storage
 
 namespace terrier::transaction {
@@ -192,6 +194,7 @@ class TransactionContext {
   friend class storage::SqlTable;
   friend class storage::WriteAheadLoggingTests;  // Needs access to redo buffer
   friend class storage::RecoveryManager;         // Needs access to StageRecoveryUpdate
+  friend class storage::RecoveryTests;  // Needs access to redo buffer
   const timestamp_t start_time_;
   std::atomic<timestamp_t> finish_time_;
   storage::UndoBuffer undo_buffer_;

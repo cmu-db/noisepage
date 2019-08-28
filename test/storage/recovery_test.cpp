@@ -12,6 +12,7 @@
 #include "storage/sql_table.h"
 #include "storage/write_ahead_log/log_manager.h"
 #include "transaction/transaction_manager.h"
+#include "transaction/transaction_context.h"
 #include "util/catalog_test_util.h"
 #include "util/sql_table_test_util.h"
 #include "util/storage_test_util.h"
@@ -117,6 +118,7 @@ class RecoveryTests : public TerrierTest {
     }
 
     // Clean up test object and recovered catalogs
+    recovered_catalog.TearDown();
     delete recovery_gc_thread;
     delete gc_thread;
     delete tested;
@@ -185,6 +187,9 @@ class RecoveryTests : public TerrierTest {
                      const catalog::namespace_oid_t ns_oid) {
     EXPECT_TRUE(db_catalog->DeleteNamespace(txn, ns_oid));
   }
+
+  storage::RedoBuffer &GetRedoBuffer(transaction::TransactionContext *txn) { return txn->redo_buffer_; }
+
 };
 
 // This test inserts some tuples into a single table. It then recreates the test table from
@@ -285,6 +290,7 @@ TEST_F(RecoveryTests, DropDatabaseTest) {
 
   delete gc_thread;
   log_manager.PersistAndStop();
+  recovered_catalog.TearDown();
   delete recovery_gc_thread;
 }
 
@@ -346,6 +352,7 @@ TEST_F(RecoveryTests, DropTableTest) {
 
   delete gc_thread;
   log_manager.PersistAndStop();
+  recovered_catalog.TearDown();
   delete recovery_gc_thread;
 }
 
@@ -413,6 +420,7 @@ TEST_F(RecoveryTests, DropIndexTest) {
 
   delete gc_thread;
   log_manager.PersistAndStop();
+  recovered_catalog.TearDown();
   delete recovery_gc_thread;
 }
 
@@ -471,6 +479,7 @@ TEST_F(RecoveryTests, DropNamespaceTest) {
 
   delete gc_thread;
   log_manager.PersistAndStop();
+  recovered_catalog.TearDown();
   delete recovery_gc_thread;
 }
 
@@ -530,6 +539,80 @@ TEST_F(RecoveryTests, DropDatabaseCascadeDeleteTest) {
 
   delete gc_thread;
   log_manager.PersistAndStop();
+  recovered_catalog.TearDown();
   delete recovery_gc_thread;
 }
+
+// Tests that we correctly handle changes for transactions that never flushed a commit record. This is likely to happen
+// during crash situations.
+// NOLINTNEXTLINE
+TEST_F(RecoveryTests, UnrecoverableTransactionsTest) {
+  std::string database_name = "testdb";
+
+  // Bring up original components
+  LogManager log_manager(LOG_FILE_NAME, num_log_buffers_, log_serialization_interval_, log_persist_interval_,
+                         log_persist_threshold_, &pool_, common::ManagedPointer(&thread_registry_));
+  log_manager.Start();
+  transaction::TransactionManager txn_manager{&pool_, true, &log_manager};
+  auto gc_thread = new storage::GarbageCollectorThread(&txn_manager, gc_period_);
+  catalog::Catalog catalog(&txn_manager, &block_store_);
+
+  // Create a database and commit, we should see this one after recovery
+  auto *txn = txn_manager.BeginTransaction();
+  auto db_oid = CreateDatabase(txn, &catalog, database_name);
+  txn_manager.Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+
+  // Create a ton of databases to make a transaction flush redo record buffers. In theory we could do any change, but a
+  // create database call will generate a ton of records. Importantly, we don't commit the txn.
+  std::vector<catalog::db_oid_t> unrecoverable_databases;
+  auto *unrecoverable_txn = txn_manager.BeginTransaction();
+  int db_idx = 0;
+  while (!GetRedoBuffer(txn).HasFlushed()) {
+    unrecoverable_databases.push_back(CreateDatabase(unrecoverable_txn, &catalog, std::to_string(db_idx)));
+    db_idx++;
+  }
+
+  // Simulate the system "crashing" (i.e. unrecoverable_txn has not been committed). We guarantee persist of log records
+  // because the purpose of the test is how we handle these unrecoverable records showing up during recovery
+  delete gc_thread;
+  log_manager.PersistAndStop();
+
+  // We now "boot up" up the system and start recovery
+  log_manager.Start();
+  gc_thread = new storage::GarbageCollectorThread(&txn_manager, gc_period_);
+
+  // Start a transaction manager with logging disabled, we don't want to log the log replaying
+  transaction::TransactionManager recovery_txn_manager{&pool_, true, LOGGING_DISABLED};
+  auto recovery_gc_thread = new storage::GarbageCollectorThread(&recovery_txn_manager, gc_period_);
+
+  // Create catalog for recovery
+  catalog::Catalog recovered_catalog(&recovery_txn_manager, &block_store_);
+
+  // Instantiate recovery manager, and recover the catalog.
+  DiskLogProvider log_provider(LOG_FILE_NAME);
+  RecoveryManager recovery_manager(&log_provider, common::ManagedPointer(&recovered_catalog), &recovery_txn_manager,
+                                   common::ManagedPointer(&thread_registry_), &block_store_);
+  recovery_manager.StartRecovery();
+  recovery_manager.WaitForRecoveryToFinish();
+
+  // Assert the database creation we committed does exist
+  txn = recovery_txn_manager.BeginTransaction();
+  EXPECT_EQ(db_oid, recovered_catalog.GetDatabaseOid(txn, database_name));
+  EXPECT_TRUE(recovered_catalog.GetDatabaseCatalog(txn, db_oid));
+
+  // Assert that non of the unrecoverable databases exist:
+  for (int i = 0; i < db_idx; i++) {
+    EXPECT_EQ(catalog::INVALID_DATABASE_OID, recovered_catalog.GetDatabaseOid(txn, std::to_string(i)));
+    EXPECT_FALSE(recovered_catalog.GetDatabaseCatalog(txn, unrecoverable_databases[i]));
+  }
+  recovery_txn_manager.Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+
+  // Finally commit the unrecoverable_txn so GC can clean it up
+  txn_manager.Commit(unrecoverable_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+  delete gc_thread;
+  log_manager.PersistAndStop();
+  recovered_catalog.TearDown();
+  delete recovery_gc_thread;
+}
+
 }  // namespace terrier::storage
