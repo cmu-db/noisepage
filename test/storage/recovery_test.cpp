@@ -32,7 +32,10 @@ class RecoveryTests : public TerrierTest {
   storage::RecordBufferSegmentPool pool_{2000, 100};
   storage::BlockStore block_store_{100, 100};
 
+  // Settings for gc
+  const std::chrono::milliseconds gc_period_{10};
   storage::GarbageCollector *gc_;
+
   common::DedicatedThreadRegistry thread_registry_;
 
   void SetUp() override {
@@ -56,31 +59,29 @@ class RecoveryTests : public TerrierTest {
     return catalog::IndexSchema(keycols, true, true, false, true);
   }
 
-  void GarbageCollectCatalogObject(catalog::Catalog *catalog, transaction::TransactionManager *txn_manager) {
-    // Perform GC 3 times to fully clean up catalog
-    catalog->TearDown();
-    gc_ = new storage::GarbageCollector(txn_manager, nullptr);
-    gc_->PerformGarbageCollection();
-    gc_->PerformGarbageCollection();
-    gc_->PerformGarbageCollection();
-    delete gc_;
-  }
-
   void RunTest(const LargeSqlTableTestConfiguration &config) {
     // Initialize table and run workload with logging enabled
     LogManager log_manager(LOG_FILE_NAME, num_log_buffers_, log_serialization_interval_, log_persist_interval_,
                            log_persist_threshold_, &pool_, common::ManagedPointer(&thread_registry_));
     log_manager.Start();
     auto *tested = new LargeSqlTableTestObject(config, &block_store_, &pool_, &generator_, &log_manager);
+    // Enable GC
+    auto gc_thread = new storage::GarbageCollectorThread(tested->GetTxnManager(), gc_period_);
+
+    // Run workload
     tested->SimulateOltp(100, 4);
 
     // Simulate the system "shutting down". Guarantee persist of log records
+    delete gc_thread;
     log_manager.PersistAndStop();
 
-    /* We now "boot up" up the system and start recovery */
+    // We now "boot up" up the system and start recovery
+    log_manager.Start();
+    gc_thread = new storage::GarbageCollectorThread(tested->GetTxnManager(), gc_period_);
 
-    // Start a transaction manager with logging disabled, we don't want to log the log replaying
+    // Start a transaction manager with logging disabled, we don't want to log the log replaying. Also enable GC
     transaction::TransactionManager recovery_txn_manager{&pool_, true, LOGGING_DISABLED};
+    auto recovery_gc_thread = new storage::GarbageCollectorThread(&recovery_txn_manager, gc_period_);
 
     // Create catalog for recovery
     catalog::Catalog recovered_catalog(&recovery_txn_manager, &block_store_);
@@ -91,9 +92,6 @@ class RecoveryTests : public TerrierTest {
                                      common::ManagedPointer(&thread_registry_), &block_store_);
     recovery_manager.StartRecovery();
     recovery_manager.WaitForRecoveryToFinish();
-
-    // We need to start the log manager because we will be doing queries into the LargeSqlTableTestObject's catalog
-    log_manager.Start();
 
     // Check we recovered all the original tables
     for (auto &database_oid : tested->GetDatabases()) {
@@ -119,9 +117,73 @@ class RecoveryTests : public TerrierTest {
     }
 
     // Clean up test object and recovered catalogs
+    delete recovery_gc_thread;
+    delete gc_thread;
     delete tested;
     log_manager.PersistAndStop();
-    GarbageCollectCatalogObject(&recovered_catalog, &recovery_txn_manager);
+  }
+
+  catalog::db_oid_t CreateDatabase(transaction::TransactionContext *txn, catalog::Catalog *catalog,
+                                   const std::string &database_name) {
+    auto db_oid = catalog->CreateDatabase(txn, database_name, true /* bootstrap */);
+    EXPECT_TRUE(db_oid != catalog::INVALID_DATABASE_OID);
+    return db_oid;
+  }
+
+  void DropDatabase(transaction::TransactionContext *txn, catalog::Catalog *catalog, const catalog::db_oid_t db_oid) {
+    EXPECT_TRUE(catalog->DeleteDatabase(txn, db_oid));
+    EXPECT_FALSE(catalog->GetDatabaseCatalog(txn, db_oid));
+  }
+
+  catalog::table_oid_t CreateTable(transaction::TransactionContext *txn,
+                                   common::ManagedPointer<catalog::DatabaseCatalog> db_catalog,
+                                   const catalog::namespace_oid_t ns_oid, const std::string &table_name) {
+    auto *table_schema = StorageTestUtil::RandomSchemaNoVarlen(5, &generator_);
+    auto table_oid = db_catalog->CreateTable(txn, ns_oid, table_name, *table_schema);
+    EXPECT_TRUE(table_oid != catalog::INVALID_TABLE_OID);
+    auto *table_ptr = new storage::SqlTable(&block_store_, *table_schema);
+    EXPECT_TRUE(db_catalog->SetTablePointer(txn, table_oid, table_ptr));
+    delete table_schema;
+    return table_oid;
+  }
+
+  void DropTable(transaction::TransactionContext *txn, common::ManagedPointer<catalog::DatabaseCatalog> db_catalog,
+                 const catalog::table_oid_t table_oid) {
+    EXPECT_TRUE(db_catalog->DeleteTable(txn, table_oid));
+  }
+
+  catalog::index_oid_t CreateIndex(transaction::TransactionContext *txn,
+                                   common::ManagedPointer<catalog::DatabaseCatalog> db_catalog,
+                                   const catalog::namespace_oid_t ns_oid, const catalog::table_oid_t table_oid,
+                                   const std::string &index_name) {
+    auto index_schema = DummyIndexSchema();
+    auto index_oid = db_catalog->CreateIndex(txn, ns_oid, index_name, table_oid, index_schema);
+    EXPECT_TRUE(index_oid != catalog::INVALID_INDEX_OID);
+    auto *index_ptr = storage::index::IndexBuilder()
+                          .SetConstraintType(storage::index::ConstraintType::UNIQUE)
+                          .SetKeySchema(index_schema)
+                          .SetOid(index_oid)
+                          .Build();
+    EXPECT_TRUE(db_catalog->SetIndexPointer(txn, index_oid, index_ptr));
+    return index_oid;
+  }
+
+  void DropIndex(transaction::TransactionContext *txn, common::ManagedPointer<catalog::DatabaseCatalog> db_catalog,
+                 const catalog::index_oid_t index_oid) {
+    EXPECT_TRUE(db_catalog->DeleteIndex(txn, index_oid));
+  }
+
+  catalog::namespace_oid_t CreateNamespace(transaction::TransactionContext *txn,
+                                           common::ManagedPointer<catalog::DatabaseCatalog> db_catalog,
+                                           const std::string &namespace_name) {
+    auto namespace_oid = db_catalog->CreateNamespace(txn, namespace_name);
+    EXPECT_TRUE(namespace_oid != catalog::INVALID_NAMESPACE_OID);
+    return namespace_oid;
+  }
+
+  void DropNamespace(transaction::TransactionContext *txn, common::ManagedPointer<catalog::DatabaseCatalog> db_catalog,
+                     const catalog::namespace_oid_t ns_oid) {
+    EXPECT_TRUE(db_catalog->DeleteNamespace(txn, ns_oid));
   }
 };
 
@@ -184,28 +246,26 @@ TEST_F(RecoveryTests, DropDatabaseTest) {
                          log_persist_threshold_, &pool_, common::ManagedPointer(&thread_registry_));
   log_manager.Start();
   transaction::TransactionManager txn_manager{&pool_, true, &log_manager};
+  auto gc_thread = new storage::GarbageCollectorThread(&txn_manager, gc_period_);
   catalog::Catalog catalog(&txn_manager, &block_store_);
 
-  // Create database
+  // Create and drop the database
   auto *txn = txn_manager.BeginTransaction();
-  auto db_oid = catalog.CreateDatabase(txn, database_name, true /* bootstrap */);
-  EXPECT_TRUE(db_oid != catalog::INVALID_DATABASE_OID);
+  auto db_oid = CreateDatabase(txn, &catalog, database_name);
+  DropDatabase(txn, &catalog, db_oid);
   txn_manager.Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
-
-  // Drop the database
-  txn = txn_manager.BeginTransaction();
-  EXPECT_TRUE(catalog.DeleteDatabase(txn, db_oid));
-  txn_manager.Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
-  EXPECT_EQ(catalog::INVALID_DATABASE_OID, catalog.GetDatabaseOid(txn, database_name));
-  EXPECT_FALSE(catalog.GetDatabaseCatalog(txn, db_oid));
 
   // Simulate the system "shutting down". Guarantee persist of log records
+  delete gc_thread;
   log_manager.PersistAndStop();
 
-  /* We now "boot up" up the system and start recovery */
+  // We now "boot up" up the system and start recovery
+  log_manager.Start();
+  gc_thread = new storage::GarbageCollectorThread(&txn_manager, gc_period_);
 
   // Start a transaction manager with logging disabled, we don't want to log the log replaying
   transaction::TransactionManager recovery_txn_manager{&pool_, true, LOGGING_DISABLED};
+  auto recovery_gc_thread = new storage::GarbageCollectorThread(&recovery_txn_manager, gc_period_);
 
   // Create catalog for recovery
   catalog::Catalog recovered_catalog(&recovery_txn_manager, &block_store_);
@@ -223,10 +283,9 @@ TEST_F(RecoveryTests, DropDatabaseTest) {
   EXPECT_FALSE(recovered_catalog.GetDatabaseCatalog(txn, db_oid));
   recovery_txn_manager.Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
-  log_manager.Start();
-  GarbageCollectCatalogObject(&catalog, &txn_manager);
+  delete gc_thread;
   log_manager.PersistAndStop();
-  GarbageCollectCatalogObject(&recovered_catalog, &recovery_txn_manager);
+  delete recovery_gc_thread;
 }
 
 // Tests that we correctly process records corresponding to a drop table command.
@@ -240,36 +299,29 @@ TEST_F(RecoveryTests, DropTableTest) {
                          log_persist_threshold_, &pool_, common::ManagedPointer(&thread_registry_));
   log_manager.Start();
   transaction::TransactionManager txn_manager{&pool_, true, &log_manager};
+  auto gc_thread = new storage::GarbageCollectorThread(&txn_manager, gc_period_);
+
   catalog::Catalog catalog(&txn_manager, &block_store_);
 
-  // Create database
+  // Create database, table, then drop the table
   auto *txn = txn_manager.BeginTransaction();
-  auto db_oid = catalog.CreateDatabase(txn, database_name, true /* bootstrap */);
-  EXPECT_TRUE(db_oid != catalog::INVALID_DATABASE_OID);
-  txn_manager.Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
-
-  // Create the table
-  txn = txn_manager.BeginTransaction();
+  auto db_oid = CreateDatabase(txn, &catalog, database_name);
   auto db_catalog = catalog.GetDatabaseCatalog(txn, db_oid);
-  auto *table_schema = StorageTestUtil::RandomSchemaNoVarlen(5, &generator_);
-  auto table_oid = db_catalog->CreateTable(txn, namespace_oid, table_name, *table_schema);
-  EXPECT_TRUE(table_oid != catalog::INVALID_TABLE_OID);
-  auto *table_ptr = new storage::SqlTable(&block_store_, *table_schema);
-  EXPECT_TRUE(db_catalog->SetTablePointer(txn, table_oid, table_ptr));
-  txn_manager.Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
-
-  // Drop the table
-  txn = txn_manager.BeginTransaction();
-  EXPECT_TRUE(db_catalog->DeleteTable(txn, table_oid));
+  auto table_oid = CreateTable(txn, db_catalog, namespace_oid, table_name);
+  DropTable(txn, db_catalog, table_oid);
   txn_manager.Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
   // Simulate the system "shutting down". Guarantee persist of log records
+  delete gc_thread;
   log_manager.PersistAndStop();
 
-  /* We now "boot up" up the system and start recovery */
+  // We now "boot up" up the system and start recovery
+  log_manager.Start();
+  gc_thread = new storage::GarbageCollectorThread(&txn_manager, gc_period_);
 
   // Start a transaction manager with logging disabled, we don't want to log the log replaying
   transaction::TransactionManager recovery_txn_manager{&pool_, true, LOGGING_DISABLED};
+  auto recovery_gc_thread = new storage::GarbageCollectorThread(&recovery_txn_manager, gc_period_);
 
   // Create catalog for recovery
   catalog::Catalog recovered_catalog(&recovery_txn_manager, &block_store_);
@@ -292,11 +344,9 @@ TEST_F(RecoveryTests, DropTableTest) {
   EXPECT_FALSE(db_catalog->GetTable(txn, table_oid));
   recovery_txn_manager.Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
-  log_manager.Start();
-  GarbageCollectCatalogObject(&catalog, &txn_manager);
+  delete gc_thread;
   log_manager.PersistAndStop();
-  GarbageCollectCatalogObject(&recovered_catalog, &recovery_txn_manager);
-  delete table_schema;
+  delete recovery_gc_thread;
 }
 
 // Tests that we correctly process records corresponding to a drop index command.
@@ -311,49 +361,30 @@ TEST_F(RecoveryTests, DropIndexTest) {
                          log_persist_threshold_, &pool_, common::ManagedPointer(&thread_registry_));
   log_manager.Start();
   transaction::TransactionManager txn_manager{&pool_, true, &log_manager};
+  auto gc_thread = new storage::GarbageCollectorThread(&txn_manager, gc_period_);
+
   catalog::Catalog catalog(&txn_manager, &block_store_);
 
-  // Create database
+  // Create database, table, index, then drop the index
   auto *txn = txn_manager.BeginTransaction();
-  auto db_oid = catalog.CreateDatabase(txn, database_name, true /* bootstrap */);
-  EXPECT_TRUE(db_oid != catalog::INVALID_DATABASE_OID);
-  txn_manager.Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
-
-  // Create the table
-  txn = txn_manager.BeginTransaction();
+  auto db_oid = CreateDatabase(txn, &catalog, database_name);
   auto db_catalog = catalog.GetDatabaseCatalog(txn, db_oid);
-  auto table_schema = StorageTestUtil::RandomSchemaNoVarlen(5, &generator_);
-  auto table_oid = db_catalog->CreateTable(txn, namespace_oid, table_name, *table_schema);
-  EXPECT_TRUE(table_oid != catalog::INVALID_TABLE_OID);
-  auto *table_ptr = new storage::SqlTable(&block_store_, *table_schema);
-  EXPECT_TRUE(db_catalog->SetTablePointer(txn, table_oid, table_ptr));
-  txn_manager.Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
-
-  // Create the index
-  txn = txn_manager.BeginTransaction();
-  auto index_schema = DummyIndexSchema();
-  auto index_oid = db_catalog->CreateIndex(txn, namespace_oid, index_name, table_oid, index_schema);
-  EXPECT_TRUE(index_oid != catalog::INVALID_INDEX_OID);
-  auto *index_ptr = storage::index::IndexBuilder()
-                        .SetConstraintType(storage::index::ConstraintType::UNIQUE)
-                        .SetKeySchema(index_schema)
-                        .SetOid(index_oid)
-                        .Build();
-  EXPECT_TRUE(db_catalog->SetIndexPointer(txn, index_oid, index_ptr));
-  txn_manager.Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
-
-  // Drop the index
-  txn = txn_manager.BeginTransaction();
-  EXPECT_TRUE(db_catalog->DeleteIndex(txn, index_oid));
+  auto table_oid = CreateTable(txn, db_catalog, namespace_oid, table_name);
+  auto index_oid = CreateIndex(txn, db_catalog, namespace_oid, table_oid, index_name);
+  DropIndex(txn, db_catalog, index_oid);
   txn_manager.Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
   // Simulate the system "shutting down". Guarantee persist of log records
+  delete gc_thread;
   log_manager.PersistAndStop();
 
-  /* We now "boot up" up the system and start recovery */
+  // We now "boot up" up the system and start recovery
+  log_manager.Start();
+  gc_thread = new storage::GarbageCollectorThread(&txn_manager, gc_period_);
 
   // Start a transaction manager with logging disabled, we don't want to log the log replaying
   transaction::TransactionManager recovery_txn_manager{&pool_, true, LOGGING_DISABLED};
+  auto recovery_gc_thread = new storage::GarbageCollectorThread(&recovery_txn_manager, gc_period_);
 
   // Create catalog for recovery
   catalog::Catalog recovered_catalog(&recovery_txn_manager, &block_store_);
@@ -380,11 +411,9 @@ TEST_F(RecoveryTests, DropIndexTest) {
   EXPECT_FALSE(db_catalog->GetIndex(txn, index_oid));
   recovery_txn_manager.Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
-  log_manager.Start();
-  GarbageCollectCatalogObject(&catalog, &txn_manager);
+  delete gc_thread;
   log_manager.PersistAndStop();
-  GarbageCollectCatalogObject(&recovered_catalog, &recovery_txn_manager);
-  delete table_schema;
+  delete recovery_gc_thread;
 }
 
 // Tests that we correctly process records corresponding to a drop namespace command.
@@ -397,33 +426,28 @@ TEST_F(RecoveryTests, DropNamespaceTest) {
                          log_persist_threshold_, &pool_, common::ManagedPointer(&thread_registry_));
   log_manager.Start();
   transaction::TransactionManager txn_manager{&pool_, true, &log_manager};
+  auto gc_thread = new storage::GarbageCollectorThread(&txn_manager, gc_period_);
   catalog::Catalog catalog(&txn_manager, &block_store_);
 
-  // Create database
+  // Create database, namespace, then drop namespace
   auto *txn = txn_manager.BeginTransaction();
-  auto db_oid = catalog.CreateDatabase(txn, database_name, true /* bootstrap */);
-  EXPECT_TRUE(db_oid != catalog::INVALID_DATABASE_OID);
-  txn_manager.Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
-
-  // Create the namespace
-  txn = txn_manager.BeginTransaction();
+  auto db_oid = CreateDatabase(txn, &catalog, database_name);
   auto db_catalog = catalog.GetDatabaseCatalog(txn, db_oid);
-  auto namespace_oid = db_catalog->CreateNamespace(txn, namespace_name);
-  EXPECT_TRUE(namespace_oid != catalog::INVALID_NAMESPACE_OID);
-  txn_manager.Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
-
-  // Drop the namespace
-  txn = txn_manager.BeginTransaction();
-  EXPECT_TRUE(db_catalog->DeleteNamespace(txn, namespace_oid));
+  auto ns_oid = CreateNamespace(txn, db_catalog, namespace_name);
+  DropNamespace(txn, db_catalog, ns_oid);
   txn_manager.Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
   // Simulate the system "shutting down". Guarantee persist of log records
+  delete gc_thread;
   log_manager.PersistAndStop();
 
-  /* We now "boot up" up the system and start recovery */
+  // We now "boot up" up the system and start recovery
+  log_manager.Start();
+  gc_thread = new storage::GarbageCollectorThread(&txn_manager, gc_period_);
 
   // Start a transaction manager with logging disabled, we don't want to log the log replaying
   transaction::TransactionManager recovery_txn_manager{&pool_, true, LOGGING_DISABLED};
+  auto recovery_gc_thread = new storage::GarbageCollectorThread(&recovery_txn_manager, gc_period_);
 
   // Create catalog for recovery
   catalog::Catalog recovered_catalog(&recovery_txn_manager, &block_store_);
@@ -445,10 +469,9 @@ TEST_F(RecoveryTests, DropNamespaceTest) {
   EXPECT_EQ(catalog::INVALID_NAMESPACE_OID, db_catalog->GetNamespaceOid(txn, namespace_name));
   recovery_txn_manager.Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
-  log_manager.Start();
-  GarbageCollectCatalogObject(&catalog, &txn_manager);
+  delete gc_thread;
   log_manager.PersistAndStop();
-  GarbageCollectCatalogObject(&recovered_catalog, &recovery_txn_manager);
+  delete recovery_gc_thread;
 }
 
 // Tests that we correctly process cascading deletes originating from a drop database command. This means cascading
@@ -456,7 +479,7 @@ TEST_F(RecoveryTests, DropNamespaceTest) {
 // NOLINTNEXTLINE
 TEST_F(RecoveryTests, DropDatabaseCascadeDeleteTest) {
   std::string database_name = "testdb";
-  auto namespace_oid = catalog::NAMESPACE_DEFAULT_NAMESPACE_OID;
+  std::string namespace_name = "testnamespace";
   std::string table_name = "testtable";
   std::string index_name = "testindex";
   // Bring up original components
@@ -464,51 +487,30 @@ TEST_F(RecoveryTests, DropDatabaseCascadeDeleteTest) {
                          log_persist_threshold_, &pool_, common::ManagedPointer(&thread_registry_));
   log_manager.Start();
   transaction::TransactionManager txn_manager{&pool_, true, &log_manager};
+  auto gc_thread = new storage::GarbageCollectorThread(&txn_manager, gc_period_);
   catalog::Catalog catalog(&txn_manager, &block_store_);
 
-  // Create database
+  // Create a database, namespace, table, index, and then drop the database
   auto *txn = txn_manager.BeginTransaction();
-  auto db_oid = catalog.CreateDatabase(txn, database_name, true /* bootstrap */);
-  EXPECT_TRUE(db_oid != catalog::INVALID_DATABASE_OID);
-  txn_manager.Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
-
-  // Create the table
-  txn = txn_manager.BeginTransaction();
+  auto db_oid = CreateDatabase(txn, &catalog, database_name);
   auto db_catalog = catalog.GetDatabaseCatalog(txn, db_oid);
-  auto table_schema = StorageTestUtil::RandomSchemaNoVarlen(5, &generator_);
-  auto table_oid = db_catalog->CreateTable(txn, namespace_oid, table_name, *table_schema);
-  EXPECT_TRUE(table_oid != catalog::INVALID_TABLE_OID);
-  auto *table_ptr = new storage::SqlTable(&block_store_, *table_schema);
-  EXPECT_TRUE(db_catalog->SetTablePointer(txn, table_oid, table_ptr));
+  auto ns_oid = CreateNamespace(txn, db_catalog, namespace_name);
+  auto table_oid = CreateTable(txn, db_catalog, ns_oid, table_name);
+  CreateIndex(txn, db_catalog, ns_oid, table_oid, index_name);
+  DropDatabase(txn, &catalog, db_oid);
   txn_manager.Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
-
-  // Create an index
-  txn = txn_manager.BeginTransaction();
-  auto index_schema = DummyIndexSchema();
-  auto index_oid = db_catalog->CreateIndex(txn, namespace_oid, index_name, table_oid, index_schema);
-  EXPECT_TRUE(index_oid != catalog::INVALID_INDEX_OID);
-  auto *index_ptr = storage::index::IndexBuilder()
-                        .SetConstraintType(storage::index::ConstraintType::UNIQUE)
-                        .SetKeySchema(index_schema)
-                        .SetOid(index_oid)
-                        .Build();
-  EXPECT_TRUE(db_catalog->SetIndexPointer(txn, index_oid, index_ptr));
-  txn_manager.Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
-
-  // Drop the database
-  txn = txn_manager.BeginTransaction();
-  EXPECT_TRUE(catalog.DeleteDatabase(txn, db_oid));
-  txn_manager.Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
-  EXPECT_EQ(catalog::INVALID_DATABASE_OID, catalog.GetDatabaseOid(txn, database_name));
-  EXPECT_FALSE(catalog.GetDatabaseCatalog(txn, db_oid));
 
   // Simulate the system "shutting down". Guarantee persist of log records
+  delete gc_thread;
   log_manager.PersistAndStop();
 
-  /* We now "boot up" up the system and start recovery */
+  // We now "boot up" up the system and start recovery
+  log_manager.Start();
+  gc_thread = new storage::GarbageCollectorThread(&txn_manager, gc_period_);
 
   // Start a transaction manager with logging disabled, we don't want to log the log replaying
   transaction::TransactionManager recovery_txn_manager{&pool_, true, LOGGING_DISABLED};
+  auto recovery_gc_thread = new storage::GarbageCollectorThread(&recovery_txn_manager, gc_period_);
 
   // Create catalog for recovery
   catalog::Catalog recovered_catalog(&recovery_txn_manager, &block_store_);
@@ -526,10 +528,8 @@ TEST_F(RecoveryTests, DropDatabaseCascadeDeleteTest) {
   EXPECT_FALSE(recovered_catalog.GetDatabaseCatalog(txn, db_oid));
   recovery_txn_manager.Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
-  log_manager.Start();
-  GarbageCollectCatalogObject(&catalog, &txn_manager);
+  delete gc_thread;
   log_manager.PersistAndStop();
-  GarbageCollectCatalogObject(&recovered_catalog, &recovery_txn_manager);
-  delete table_schema;
+  delete recovery_gc_thread;
 }
 }  // namespace terrier::storage

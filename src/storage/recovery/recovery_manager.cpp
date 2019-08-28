@@ -33,6 +33,7 @@ uint32_t RecoveryManager::RecoverFromLogs() {
       case (LogRecordType::ABORT): {
         TERRIER_ASSERT(pair.second.empty(), "Abort records should not have any varlen pointers");
         DeferRecordDeletes(log_record->TxnBegin(), true);
+        buffered_changes_map_.erase(log_record->TxnBegin());
         txn_manager_->DeferAction([=] { delete[] reinterpret_cast<byte *>(log_record); });
         break;
       }
@@ -66,9 +67,10 @@ uint32_t RecoveryManager::RecoverFromLogs() {
   // If we have unprocessed buffered changes, then these transactions were in-process at the time of system shutdown.
   // They are unrecoverable, so we need to clean up the memory of their records.
   if (!buffered_changes_map_.empty()) {
-    for (auto &txn : buffered_changes_map_) {
+    for (auto txn : buffered_changes_map_) {
       DeferRecordDeletes(txn.first, true);
     }
+    buffered_changes_map_.clear();
   }
 
   return txns_replayed;
@@ -96,6 +98,7 @@ void RecoveryManager::ProcessCommittedTransaction(terrier::transaction::timestam
 
   // Defer deletes of the log records
   DeferRecordDeletes(txn_id, false);
+  buffered_changes_map_.erase(txn_id);
 
   // Commit the txn
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
@@ -113,7 +116,6 @@ void RecoveryManager::DeferRecordDeletes(terrier::transaction::timestamp_t txn_i
       }
     }
   });
-  buffered_changes_map_.erase(txn_id);
 }
 
 uint32_t RecoveryManager::ProcessDeferredTransactions(terrier::transaction::timestamp_t upper_bound_ts) {
