@@ -245,7 +245,7 @@ class DataTable {
   std::list<RawBlock *>::iterator insertion_head_;
   // Check if the block that insertion_head_ points to is full, if it's full, move the header
   // This function uses header_latch_ to ensure correctness
-  void checkMoveHead(std::list<RawBlock *>::iterator block);
+  void CheckMoveHead(std::list<RawBlock *>::iterator block);
   mutable DataTableCounter data_table_counter_;
 
   // A templatized version for select, so that we can use the same code for both row and column access.

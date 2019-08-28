@@ -125,7 +125,7 @@ bool DataTable::Update(transaction::TransactionContext *const txn, const TupleSl
   return true;
 }
 
-void DataTable::checkMoveHead(std::list<RawBlock *>::iterator block) {
+void DataTable::CheckMoveHead(std::list<RawBlock *>::iterator block) {
   common::SpinLatch::ScopedSpinLatch guard(&header_latch_);
   if (block == insertion_head_) {
     // If the header block is full, move the header to point to the next block
@@ -172,7 +172,7 @@ TupleSlot DataTable::Insert(transaction::TransactionContext *const txn, const Pr
       accessor_.ClearBlockBusyStatus(*block);
       // if the full block is the insertion_header, move the insertion_header
       // Next insert txn will search from the new insertion_header
-      checkMoveHead(block);
+      CheckMoveHead(block);
       // The block is full, try next block
       ++block;
     } else {  // The block is inserting by other txn
