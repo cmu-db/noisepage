@@ -11,8 +11,8 @@
 #include "storage/recovery/recovery_manager.h"
 #include "storage/sql_table.h"
 #include "storage/write_ahead_log/log_manager.h"
-#include "transaction/transaction_manager.h"
 #include "transaction/transaction_context.h"
+#include "transaction/transaction_manager.h"
 #include "util/catalog_test_util.h"
 #include "util/sql_table_test_util.h"
 #include "util/storage_test_util.h"
@@ -140,12 +140,15 @@ class RecoveryTests : public TerrierTest {
   catalog::table_oid_t CreateTable(transaction::TransactionContext *txn,
                                    common::ManagedPointer<catalog::DatabaseCatalog> db_catalog,
                                    const catalog::namespace_oid_t ns_oid, const std::string &table_name) {
-    auto *table_schema = StorageTestUtil::RandomSchemaNoVarlen(5, &generator_);
-    auto table_oid = db_catalog->CreateTable(txn, ns_oid, table_name, *table_schema);
+    auto col = catalog::Schema::Column(
+        "attribute", type::TypeId::INTEGER, false,
+        parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
+    auto table_schema = catalog::Schema(std::vector<catalog::Schema::Column>({col}));
+    auto table_oid = db_catalog->CreateTable(txn, ns_oid, table_name, table_schema);
     EXPECT_TRUE(table_oid != catalog::INVALID_TABLE_OID);
-    auto *table_ptr = new storage::SqlTable(&block_store_, *table_schema);
+    const auto &catalog_schema = db_catalog->GetSchema(txn, table_oid);
+    auto *table_ptr = new storage::SqlTable(&block_store_, catalog_schema);
     EXPECT_TRUE(db_catalog->SetTablePointer(txn, table_oid, table_ptr));
-    delete table_schema;
     return table_oid;
   }
 
@@ -189,7 +192,6 @@ class RecoveryTests : public TerrierTest {
   }
 
   storage::RedoBuffer &GetRedoBuffer(transaction::TransactionContext *txn) { return txn->redo_buffer_; }
-
 };
 
 // This test inserts some tuples into a single table. It then recreates the test table from
@@ -288,6 +290,7 @@ TEST_F(RecoveryTests, DropDatabaseTest) {
   EXPECT_FALSE(recovered_catalog.GetDatabaseCatalog(txn, db_oid));
   recovery_txn_manager.Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
+  catalog.TearDown();
   delete gc_thread;
   log_manager.PersistAndStop();
   recovered_catalog.TearDown();
@@ -350,6 +353,7 @@ TEST_F(RecoveryTests, DropTableTest) {
   EXPECT_FALSE(db_catalog->GetTable(txn, table_oid));
   recovery_txn_manager.Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
+  catalog.TearDown();
   delete gc_thread;
   log_manager.PersistAndStop();
   recovered_catalog.TearDown();
@@ -418,6 +422,7 @@ TEST_F(RecoveryTests, DropIndexTest) {
   EXPECT_FALSE(db_catalog->GetIndex(txn, index_oid));
   recovery_txn_manager.Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
+  catalog.TearDown();
   delete gc_thread;
   log_manager.PersistAndStop();
   recovered_catalog.TearDown();
@@ -477,6 +482,7 @@ TEST_F(RecoveryTests, DropNamespaceTest) {
   EXPECT_EQ(catalog::INVALID_NAMESPACE_OID, db_catalog->GetNamespaceOid(txn, namespace_name));
   recovery_txn_manager.Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
+  catalog.TearDown();
   delete gc_thread;
   log_manager.PersistAndStop();
   recovered_catalog.TearDown();
@@ -537,6 +543,7 @@ TEST_F(RecoveryTests, DropDatabaseCascadeDeleteTest) {
   EXPECT_FALSE(recovered_catalog.GetDatabaseCatalog(txn, db_oid));
   recovery_txn_manager.Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
+  catalog.TearDown();
   delete gc_thread;
   log_manager.PersistAndStop();
   recovered_catalog.TearDown();
@@ -609,6 +616,195 @@ TEST_F(RecoveryTests, UnrecoverableTransactionsTest) {
 
   // Finally commit the unrecoverable_txn so GC can clean it up
   txn_manager.Commit(unrecoverable_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+  catalog.TearDown();
+  delete gc_thread;
+  log_manager.PersistAndStop();
+  recovered_catalog.TearDown();
+  delete recovery_gc_thread;
+}
+
+// Tests we correct order transactions and execute GC when concurrent transactions make DDL changes to the catalog
+// The transaction schedule for the following test is:
+//           Txn #0     |          Txn #1          |      Txn #2     |
+//    ----------------------------------------------------------------
+//    BEGIN             |                          |
+//    CREATE DB testdb; |                          |
+//    COMMIT            |                          |
+//                      | BEGIN                    |
+//                      |                          | BEGIN
+//                      |                          | DROP DB testdb
+//                      |                          | COMMIT
+//                      |                          |
+//                      | CREATE TABLE testdb.foo; |
+//                      | COMMIT                   |
+//    -----------------------------------------------------------------
+// Under snapshot isolation, all these transactions should succeed. At the time of recovery though, we want to ensure
+// that even though the logs of txn #2 may appear before the logs of txn #1, we dont drop the database before txn #1 is
+// able to create a table.
+// NOLINTNEXTLINE
+TEST_F(RecoveryTests, ConcurrentCatalogDDLChangesTest) {
+  std::string database_name = "testdb";
+  auto namespace_oid = catalog::NAMESPACE_DEFAULT_NAMESPACE_OID;
+  std::string table_name = "foo";
+  // Bring up original components
+  LogManager log_manager(LOG_FILE_NAME, num_log_buffers_, log_serialization_interval_, log_persist_interval_,
+                         log_persist_threshold_, &pool_, common::ManagedPointer(&thread_registry_));
+  log_manager.Start();
+  transaction::TransactionManager txn_manager{&pool_, true, &log_manager};
+  auto gc_thread = new storage::GarbageCollectorThread(&txn_manager, gc_period_);
+
+  catalog::Catalog catalog(&txn_manager, &block_store_);
+
+  // Begin T0, create database, create table foo, and commit
+  auto *txn0 = txn_manager.BeginTransaction();
+  auto db_oid = CreateDatabase(txn0, &catalog, database_name);
+  txn_manager.Commit(txn0, transaction::TransactionUtil::EmptyCallback, nullptr);
+
+  // Begin T1
+  auto txn1 = txn_manager.BeginTransaction();
+
+  // Begin T2, drop testdb, and commit
+  auto txn2 = txn_manager.BeginTransaction();
+  DropDatabase(txn2, &catalog, db_oid);
+  txn_manager.Commit(txn2, transaction::TransactionUtil::EmptyCallback, nullptr);
+
+  // With T1, create a table in testdb and commit. Even though T2 dropped testdb, this operation should still succeed
+  // because T1 got a snapshot before T2
+  auto db_catalog = catalog.GetDatabaseCatalog(txn1, db_oid);
+  CreateTable(txn1, db_catalog, namespace_oid, table_name);
+  txn_manager.Commit(txn1, transaction::TransactionUtil::EmptyCallback, nullptr);
+
+  // Simulate the system "shutting down". Guarantee persist of log records
+  delete gc_thread;
+  log_manager.PersistAndStop();
+
+  // We now "boot up" up the system and start recovery
+  log_manager.Start();
+  gc_thread = new storage::GarbageCollectorThread(&txn_manager, gc_period_);
+
+  // Start a transaction manager with logging disabled, we don't want to log the log replaying
+  transaction::TransactionManager recovery_txn_manager{&pool_, true, LOGGING_DISABLED};
+  auto recovery_gc_thread = new storage::GarbageCollectorThread(&recovery_txn_manager, gc_period_);
+
+  // Create catalog for recovery
+  catalog::Catalog recovered_catalog(&recovery_txn_manager, &block_store_);
+
+  // Instantiate recovery manager, and recover the catalog.
+  DiskLogProvider log_provider(LOG_FILE_NAME);
+  RecoveryManager recovery_manager(&log_provider, common::ManagedPointer(&recovered_catalog), &recovery_txn_manager,
+                                   common::ManagedPointer(&thread_registry_), &block_store_);
+  recovery_manager.StartRecovery();
+  recovery_manager.WaitForRecoveryToFinish();
+
+  // Assert the database we created does not exists
+  auto txn = recovery_txn_manager.BeginTransaction();
+  EXPECT_EQ(catalog::INVALID_DATABASE_OID, recovered_catalog.GetDatabaseOid(txn, database_name));
+  EXPECT_FALSE(recovered_catalog.GetDatabaseCatalog(txn, db_oid));
+  recovery_txn_manager.Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+
+  catalog.TearDown();
+  delete gc_thread;
+  log_manager.PersistAndStop();
+  recovered_catalog.TearDown();
+  delete recovery_gc_thread;
+}
+
+// Tests we correct order transactions and execute GC when concurrent transactions make inserts and DDL changes to
+// tables The transaction schedule for the following test is:
+//           Txn #0     |          Txn #1          |      Txn #2     |
+//    ----------------------------------------------------------------
+//    BEGIN             |                          |
+//    CREATE DB testdb  |                          |
+//    CREATE TABLE foo  |                          |
+//    COMMIT            |                          |
+//                      | BEGIN                    |
+//                      |                          | BEGIN
+//                      |                          | DROP table foo
+//                      |                          | COMMIT
+//                      |                          |
+//                      | insert a into foo        |
+//                      | COMMIT                   |
+//    -----------------------------------------------------------------
+// Under snapshot isolation, all these transactions should succeed. At the time of recovery though, we want to ensure
+// that even though the logs of txn #2 may appear before the logs of txn #1, we dont drop foo before txn #1 is
+// able to insert into it.
+// DISABLED DUE TO ISSUE #526
+// NOLINTNEXTLINE
+TEST_F(RecoveryTests, DISABLED_ConcurrentDDLChangesTest) {
+  std::string database_name = "testdb";
+  auto namespace_oid = catalog::NAMESPACE_DEFAULT_NAMESPACE_OID;
+  std::string table_name = "foo";
+  // Bring up original components
+  LogManager log_manager(LOG_FILE_NAME, num_log_buffers_, log_serialization_interval_, log_persist_interval_,
+                         log_persist_threshold_, &pool_, common::ManagedPointer(&thread_registry_));
+  log_manager.Start();
+  transaction::TransactionManager txn_manager{&pool_, true, &log_manager};
+  auto gc_thread = new storage::GarbageCollectorThread(&txn_manager, gc_period_);
+
+  catalog::Catalog catalog(&txn_manager, &block_store_);
+
+  // Begin T0, create database, create table foo, and commit
+  auto *txn0 = txn_manager.BeginTransaction();
+  auto db_oid = CreateDatabase(txn0, &catalog, database_name);
+  auto db_catalog = catalog.GetDatabaseCatalog(txn0, db_oid);
+  auto table_oid = CreateTable(txn0, db_catalog, namespace_oid, table_name);
+  txn_manager.Commit(txn0, transaction::TransactionUtil::EmptyCallback, nullptr);
+
+  // Begin T1
+  auto txn1 = txn_manager.BeginTransaction();
+
+  // Begin T2, drop foo, and commit
+  auto txn2 = txn_manager.BeginTransaction();
+  db_catalog = catalog.GetDatabaseCatalog(txn2, db_oid);
+  DropTable(txn2, db_catalog, table_oid);
+  txn_manager.Commit(txn2, transaction::TransactionUtil::EmptyCallback, nullptr);
+
+  // With T1, insert into foo and commit. Even though T2 dropped foo, this operation should still succeed
+  // because T1 got a snapshot before T2
+  db_catalog = catalog.GetDatabaseCatalog(txn1, db_oid);
+  auto table_ptr = db_catalog->GetTable(txn1, table_oid);
+  const auto &schema = db_catalog->GetSchema(txn1, table_oid);
+  EXPECT_EQ(1, schema.GetColumns().size());
+  EXPECT_EQ(type::TypeId::INTEGER, schema.GetColumn(0).Type());
+  auto initializer = table_ptr->InitializerForProjectedRow({schema.GetColumn(0).Oid()});
+  auto *redo_record = txn1->StageWrite(db_oid, table_oid, initializer);
+  *reinterpret_cast<int32_t *>(redo_record->Delta()->AccessForceNotNull(0)) = 0;
+  table_ptr->Insert(txn1, redo_record);
+  txn_manager.Commit(txn1, transaction::TransactionUtil::EmptyCallback, nullptr);
+
+  // Simulate the system "shutting down". Guarantee persist of log records
+  delete gc_thread;
+  log_manager.PersistAndStop();
+
+  // We now "boot up" up the system and start recovery
+  log_manager.Start();
+  gc_thread = new storage::GarbageCollectorThread(&txn_manager, gc_period_);
+
+  // Start a transaction manager with logging disabled, we don't want to log the log replaying
+  transaction::TransactionManager recovery_txn_manager{&pool_, true, LOGGING_DISABLED};
+  auto recovery_gc_thread = new storage::GarbageCollectorThread(&recovery_txn_manager, gc_period_);
+
+  // Create catalog for recovery
+  catalog::Catalog recovered_catalog(&recovery_txn_manager, &block_store_);
+
+  // Instantiate recovery manager, and recover the catalog.
+  DiskLogProvider log_provider(LOG_FILE_NAME);
+  RecoveryManager recovery_manager(&log_provider, common::ManagedPointer(&recovered_catalog), &recovery_txn_manager,
+                                   common::ManagedPointer(&thread_registry_), &block_store_);
+  recovery_manager.StartRecovery();
+  recovery_manager.WaitForRecoveryToFinish();
+
+  // Assert the database we created does not exists
+  auto txn = recovery_txn_manager.BeginTransaction();
+  EXPECT_EQ(db_oid, recovered_catalog.GetDatabaseOid(txn, database_name));
+  EXPECT_TRUE(recovered_catalog.GetDatabaseCatalog(txn, db_oid));
+
+  // Assert the table we deleted doesn't exist
+  EXPECT_EQ(catalog::INVALID_TABLE_OID, db_catalog->GetTableOid(txn, namespace_oid, table_name));
+  EXPECT_FALSE(db_catalog->GetTable(txn, table_oid));
+  recovery_txn_manager.Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+
+  catalog.TearDown();
   delete gc_thread;
   log_manager.PersistAndStop();
   recovered_catalog.TearDown();
