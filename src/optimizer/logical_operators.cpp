@@ -691,100 +691,100 @@ void OperatorNode<T>::Accept(OperatorVisitor *v) const {
 
 //===--------------------------------------------------------------------===//
 template <>
-const char *OperatorNode<LogicalGet>::name_ = "LogicalGet";
+const char *OperatorNode<LogicalGet>::name = "LogicalGet";
 template <>
-const char *OperatorNode<LogicalExternalFileGet>::name_ = "LogicalExternalFileGet";
+const char *OperatorNode<LogicalExternalFileGet>::name = "LogicalExternalFileGet";
 template <>
-const char *OperatorNode<LogicalQueryDerivedGet>::name_ = "LogicalQueryDerivedGet";
+const char *OperatorNode<LogicalQueryDerivedGet>::name = "LogicalQueryDerivedGet";
 template <>
-const char *OperatorNode<LogicalFilter>::name_ = "LogicalFilter";
+const char *OperatorNode<LogicalFilter>::name = "LogicalFilter";
 template <>
-const char *OperatorNode<LogicalProjection>::name_ = "LogicalProjection";
+const char *OperatorNode<LogicalProjection>::name = "LogicalProjection";
 template <>
-const char *OperatorNode<LogicalMarkJoin>::name_ = "LogicalMarkJoin";
+const char *OperatorNode<LogicalMarkJoin>::name = "LogicalMarkJoin";
 template <>
-const char *OperatorNode<LogicalSingleJoin>::name_ = "LogicalSingleJoin";
+const char *OperatorNode<LogicalSingleJoin>::name = "LogicalSingleJoin";
 template <>
-const char *OperatorNode<LogicalDependentJoin>::name_ = "LogicalDependentJoin";
+const char *OperatorNode<LogicalDependentJoin>::name = "LogicalDependentJoin";
 template <>
-const char *OperatorNode<LogicalInnerJoin>::name_ = "LogicalInnerJoin";
+const char *OperatorNode<LogicalInnerJoin>::name = "LogicalInnerJoin";
 template <>
-const char *OperatorNode<LogicalLeftJoin>::name_ = "LogicalLeftJoin";
+const char *OperatorNode<LogicalLeftJoin>::name = "LogicalLeftJoin";
 template <>
-const char *OperatorNode<LogicalRightJoin>::name_ = "LogicalRightJoin";
+const char *OperatorNode<LogicalRightJoin>::name = "LogicalRightJoin";
 template <>
-const char *OperatorNode<LogicalOuterJoin>::name_ = "LogicalOuterJoin";
+const char *OperatorNode<LogicalOuterJoin>::name = "LogicalOuterJoin";
 template <>
-const char *OperatorNode<LogicalSemiJoin>::name_ = "LogicalSemiJoin";
+const char *OperatorNode<LogicalSemiJoin>::name = "LogicalSemiJoin";
 template <>
-const char *OperatorNode<LogicalAggregateAndGroupBy>::name_ = "LogicalAggregateAndGroupBy";
+const char *OperatorNode<LogicalAggregateAndGroupBy>::name = "LogicalAggregateAndGroupBy";
 template <>
-const char *OperatorNode<LogicalInsert>::name_ = "LogicalInsert";
+const char *OperatorNode<LogicalInsert>::name = "LogicalInsert";
 template <>
-const char *OperatorNode<LogicalInsertSelect>::name_ = "LogicalInsertSelect";
+const char *OperatorNode<LogicalInsertSelect>::name = "LogicalInsertSelect";
 template <>
-const char *OperatorNode<LogicalUpdate>::name_ = "LogicalUpdate";
+const char *OperatorNode<LogicalUpdate>::name = "LogicalUpdate";
 template <>
-const char *OperatorNode<LogicalDelete>::name_ = "LogicalDelete";
+const char *OperatorNode<LogicalDelete>::name = "LogicalDelete";
 template <>
-const char *OperatorNode<LogicalLimit>::name_ = "LogicalLimit";
+const char *OperatorNode<LogicalLimit>::name = "LogicalLimit";
 template <>
-const char *OperatorNode<LogicalDistinct>::name_ = "LogicalDistinct";
+const char *OperatorNode<LogicalDistinct>::name = "LogicalDistinct";
 template <>
-const char *OperatorNode<LogicalExportExternalFile>::name_ = "LogicalExportExternalFile";
+const char *OperatorNode<LogicalExportExternalFile>::name = "LogicalExportExternalFile";
 
 //===--------------------------------------------------------------------===//
 template <>
-OpType OperatorNode<LogicalGet>::type_ = OpType::LOGICALGET;
+OpType OperatorNode<LogicalGet>::type = OpType::LOGICALGET;
 template <>
-OpType OperatorNode<LogicalExternalFileGet>::type_ = OpType::LOGICALEXTERNALFILEGET;
+OpType OperatorNode<LogicalExternalFileGet>::type = OpType::LOGICALEXTERNALFILEGET;
 template <>
-OpType OperatorNode<LogicalQueryDerivedGet>::type_ = OpType::LOGICALQUERYDERIVEDGET;
+OpType OperatorNode<LogicalQueryDerivedGet>::type = OpType::LOGICALQUERYDERIVEDGET;
 template <>
-OpType OperatorNode<LogicalFilter>::type_ = OpType::LOGICALFILTER;
+OpType OperatorNode<LogicalFilter>::type = OpType::LOGICALFILTER;
 template <>
-OpType OperatorNode<LogicalProjection>::type_ = OpType::LOGICALPROJECTION;
+OpType OperatorNode<LogicalProjection>::type = OpType::LOGICALPROJECTION;
 template <>
-OpType OperatorNode<LogicalMarkJoin>::type_ = OpType::LOGICALMARKJOIN;
+OpType OperatorNode<LogicalMarkJoin>::type = OpType::LOGICALMARKJOIN;
 template <>
-OpType OperatorNode<LogicalSingleJoin>::type_ = OpType::LOGICALSINGLEJOIN;
+OpType OperatorNode<LogicalSingleJoin>::type = OpType::LOGICALSINGLEJOIN;
 template <>
-OpType OperatorNode<LogicalDependentJoin>::type_ = OpType::LOGICALDEPENDENTJOIN;
+OpType OperatorNode<LogicalDependentJoin>::type = OpType::LOGICALDEPENDENTJOIN;
 template <>
-OpType OperatorNode<LogicalInnerJoin>::type_ = OpType::LOGICALINNERJOIN;
+OpType OperatorNode<LogicalInnerJoin>::type = OpType::LOGICALINNERJOIN;
 template <>
-OpType OperatorNode<LogicalLeftJoin>::type_ = OpType::LOGICALLEFTJOIN;
+OpType OperatorNode<LogicalLeftJoin>::type = OpType::LOGICALLEFTJOIN;
 template <>
-OpType OperatorNode<LogicalRightJoin>::type_ = OpType::LOGICALRIGHTJOIN;
+OpType OperatorNode<LogicalRightJoin>::type = OpType::LOGICALRIGHTJOIN;
 template <>
-OpType OperatorNode<LogicalOuterJoin>::type_ = OpType::LOGICALOUTERJOIN;
+OpType OperatorNode<LogicalOuterJoin>::type = OpType::LOGICALOUTERJOIN;
 template <>
-OpType OperatorNode<LogicalSemiJoin>::type_ = OpType::LOGICALSEMIJOIN;
+OpType OperatorNode<LogicalSemiJoin>::type = OpType::LOGICALSEMIJOIN;
 template <>
-OpType OperatorNode<LogicalAggregateAndGroupBy>::type_ = OpType::LOGICALAGGREGATEANDGROUPBY;
+OpType OperatorNode<LogicalAggregateAndGroupBy>::type = OpType::LOGICALAGGREGATEANDGROUPBY;
 template <>
-OpType OperatorNode<LogicalInsert>::type_ = OpType::LOGICALINSERT;
+OpType OperatorNode<LogicalInsert>::type = OpType::LOGICALINSERT;
 template <>
-OpType OperatorNode<LogicalInsertSelect>::type_ = OpType::LOGICALINSERTSELECT;
+OpType OperatorNode<LogicalInsertSelect>::type = OpType::LOGICALINSERTSELECT;
 template <>
-OpType OperatorNode<LogicalUpdate>::type_ = OpType::LOGICALUPDATE;
+OpType OperatorNode<LogicalUpdate>::type = OpType::LOGICALUPDATE;
 template <>
-OpType OperatorNode<LogicalDelete>::type_ = OpType::LOGICALDELETE;
+OpType OperatorNode<LogicalDelete>::type = OpType::LOGICALDELETE;
 template <>
-OpType OperatorNode<LogicalDistinct>::type_ = OpType::LOGICALDISTINCT;
+OpType OperatorNode<LogicalDistinct>::type = OpType::LOGICALDISTINCT;
 template <>
-OpType OperatorNode<LogicalLimit>::type_ = OpType::LOGICALLIMIT;
+OpType OperatorNode<LogicalLimit>::type = OpType::LOGICALLIMIT;
 template <>
-OpType OperatorNode<LogicalExportExternalFile>::type_ = OpType::LOGICALEXPORTEXTERNALFILE;
+OpType OperatorNode<LogicalExportExternalFile>::type = OpType::LOGICALEXPORTEXTERNALFILE;
 
 template <typename T>
 bool OperatorNode<T>::IsLogical() const {
-  return type_ < OpType::LOGICALPHYSICALDELIMITER;
+  return type < OpType::LOGICALPHYSICALDELIMITER;
 }
 
 template <typename T>
 bool OperatorNode<T>::IsPhysical() const {
-  return type_ > OpType::LOGICALPHYSICALDELIMITER;
+  return type > OpType::LOGICALPHYSICALDELIMITER;
 }
 
 }  // namespace terrier::optimizer

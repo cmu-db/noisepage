@@ -754,112 +754,112 @@ void OperatorNode<T>::Accept(OperatorVisitor *v) const {
 
 //===--------------------------------------------------------------------===//
 template <>
-const char *OperatorNode<TableFreeScan>::name_ = "TableFreeScan";
+const char *OperatorNode<TableFreeScan>::name = "TableFreeScan";
 template <>
-const char *OperatorNode<SeqScan>::name_ = "SeqScan";
+const char *OperatorNode<SeqScan>::name = "SeqScan";
 template <>
-const char *OperatorNode<IndexScan>::name_ = "IndexScan";
+const char *OperatorNode<IndexScan>::name = "IndexScan";
 template <>
-const char *OperatorNode<ExternalFileScan>::name_ = "ExternalFileScan";
+const char *OperatorNode<ExternalFileScan>::name = "ExternalFileScan";
 template <>
-const char *OperatorNode<QueryDerivedScan>::name_ = "QueryDerivedScan";
+const char *OperatorNode<QueryDerivedScan>::name = "QueryDerivedScan";
 template <>
-const char *OperatorNode<OrderBy>::name_ = "OrderBy";
+const char *OperatorNode<OrderBy>::name = "OrderBy";
 template <>
-const char *OperatorNode<Limit>::name_ = "Limit";
+const char *OperatorNode<Limit>::name = "Limit";
 template <>
-const char *OperatorNode<InnerNLJoin>::name_ = "InnerNLJoin";
+const char *OperatorNode<InnerNLJoin>::name = "InnerNLJoin";
 template <>
-const char *OperatorNode<LeftNLJoin>::name_ = "LeftNLJoin";
+const char *OperatorNode<LeftNLJoin>::name = "LeftNLJoin";
 template <>
-const char *OperatorNode<RightNLJoin>::name_ = "RightNLJoin";
+const char *OperatorNode<RightNLJoin>::name = "RightNLJoin";
 template <>
-const char *OperatorNode<OuterNLJoin>::name_ = "OuterNLJoin";
+const char *OperatorNode<OuterNLJoin>::name = "OuterNLJoin";
 template <>
-const char *OperatorNode<InnerHashJoin>::name_ = "InnerHashJoin";
+const char *OperatorNode<InnerHashJoin>::name = "InnerHashJoin";
 template <>
-const char *OperatorNode<LeftHashJoin>::name_ = "LeftHashJoin";
+const char *OperatorNode<LeftHashJoin>::name = "LeftHashJoin";
 template <>
-const char *OperatorNode<RightHashJoin>::name_ = "RightHashJoin";
+const char *OperatorNode<RightHashJoin>::name = "RightHashJoin";
 template <>
-const char *OperatorNode<OuterHashJoin>::name_ = "OuterHashJoin";
+const char *OperatorNode<OuterHashJoin>::name = "OuterHashJoin";
 template <>
-const char *OperatorNode<Insert>::name_ = "Insert";
+const char *OperatorNode<Insert>::name = "Insert";
 template <>
-const char *OperatorNode<InsertSelect>::name_ = "InsertSelect";
+const char *OperatorNode<InsertSelect>::name = "InsertSelect";
 template <>
-const char *OperatorNode<Delete>::name_ = "Delete";
+const char *OperatorNode<Delete>::name = "Delete";
 template <>
-const char *OperatorNode<Update>::name_ = "Update";
+const char *OperatorNode<Update>::name = "Update";
 template <>
-const char *OperatorNode<HashGroupBy>::name_ = "HashGroupBy";
+const char *OperatorNode<HashGroupBy>::name = "HashGroupBy";
 template <>
-const char *OperatorNode<SortGroupBy>::name_ = "SortGroupBy";
+const char *OperatorNode<SortGroupBy>::name = "SortGroupBy";
 template <>
-const char *OperatorNode<Distinct>::name_ = "Distinct";
+const char *OperatorNode<Distinct>::name = "Distinct";
 template <>
-const char *OperatorNode<Aggregate>::name_ = "Aggregate";
+const char *OperatorNode<Aggregate>::name = "Aggregate";
 template <>
-const char *OperatorNode<ExportExternalFile>::name_ = "ExportExternalFile";
+const char *OperatorNode<ExportExternalFile>::name = "ExportExternalFile";
 
 //===--------------------------------------------------------------------===//
 template <>
-OpType OperatorNode<TableFreeScan>::type_ = OpType::TABLEFREESCAN;
+OpType OperatorNode<TableFreeScan>::type = OpType::TABLEFREESCAN;
 template <>
-OpType OperatorNode<SeqScan>::type_ = OpType::SEQSCAN;
+OpType OperatorNode<SeqScan>::type = OpType::SEQSCAN;
 template <>
-OpType OperatorNode<IndexScan>::type_ = OpType::INDEXSCAN;
+OpType OperatorNode<IndexScan>::type = OpType::INDEXSCAN;
 template <>
-OpType OperatorNode<ExternalFileScan>::type_ = OpType::EXTERNALFILESCAN;
+OpType OperatorNode<ExternalFileScan>::type = OpType::EXTERNALFILESCAN;
 template <>
-OpType OperatorNode<QueryDerivedScan>::type_ = OpType::QUERYDERIVEDSCAN;
+OpType OperatorNode<QueryDerivedScan>::type = OpType::QUERYDERIVEDSCAN;
 template <>
-OpType OperatorNode<OrderBy>::type_ = OpType::ORDERBY;
+OpType OperatorNode<OrderBy>::type = OpType::ORDERBY;
 template <>
-OpType OperatorNode<Distinct>::type_ = OpType::DISTINCT;
+OpType OperatorNode<Distinct>::type = OpType::DISTINCT;
 template <>
-OpType OperatorNode<Limit>::type_ = OpType::LIMIT;
+OpType OperatorNode<Limit>::type = OpType::LIMIT;
 template <>
-OpType OperatorNode<InnerNLJoin>::type_ = OpType::INNERNLJOIN;
+OpType OperatorNode<InnerNLJoin>::type = OpType::INNERNLJOIN;
 template <>
-OpType OperatorNode<LeftNLJoin>::type_ = OpType::LEFTNLJOIN;
+OpType OperatorNode<LeftNLJoin>::type = OpType::LEFTNLJOIN;
 template <>
-OpType OperatorNode<RightNLJoin>::type_ = OpType::RIGHTNLJOIN;
+OpType OperatorNode<RightNLJoin>::type = OpType::RIGHTNLJOIN;
 template <>
-OpType OperatorNode<OuterNLJoin>::type_ = OpType::OUTERNLJOIN;
+OpType OperatorNode<OuterNLJoin>::type = OpType::OUTERNLJOIN;
 template <>
-OpType OperatorNode<InnerHashJoin>::type_ = OpType::INNERHASHJOIN;
+OpType OperatorNode<InnerHashJoin>::type = OpType::INNERHASHJOIN;
 template <>
-OpType OperatorNode<LeftHashJoin>::type_ = OpType::LEFTHASHJOIN;
+OpType OperatorNode<LeftHashJoin>::type = OpType::LEFTHASHJOIN;
 template <>
-OpType OperatorNode<RightHashJoin>::type_ = OpType::RIGHTHASHJOIN;
+OpType OperatorNode<RightHashJoin>::type = OpType::RIGHTHASHJOIN;
 template <>
-OpType OperatorNode<OuterHashJoin>::type_ = OpType::OUTERHASHJOIN;
+OpType OperatorNode<OuterHashJoin>::type = OpType::OUTERHASHJOIN;
 template <>
-OpType OperatorNode<Insert>::type_ = OpType::INSERT;
+OpType OperatorNode<Insert>::type = OpType::INSERT;
 template <>
-OpType OperatorNode<InsertSelect>::type_ = OpType::INSERTSELECT;
+OpType OperatorNode<InsertSelect>::type = OpType::INSERTSELECT;
 template <>
-OpType OperatorNode<Delete>::type_ = OpType::DELETE;
+OpType OperatorNode<Delete>::type = OpType::DELETE;
 template <>
-OpType OperatorNode<Update>::type_ = OpType::UPDATE;
+OpType OperatorNode<Update>::type = OpType::UPDATE;
 template <>
-OpType OperatorNode<HashGroupBy>::type_ = OpType::HASHGROUPBY;
+OpType OperatorNode<HashGroupBy>::type = OpType::HASHGROUPBY;
 template <>
-OpType OperatorNode<SortGroupBy>::type_ = OpType::SORTGROUPBY;
+OpType OperatorNode<SortGroupBy>::type = OpType::SORTGROUPBY;
 template <>
-OpType OperatorNode<Aggregate>::type_ = OpType::AGGREGATE;
+OpType OperatorNode<Aggregate>::type = OpType::AGGREGATE;
 template <>
-OpType OperatorNode<ExportExternalFile>::type_ = OpType::EXPORTEXTERNALFILE;
+OpType OperatorNode<ExportExternalFile>::type = OpType::EXPORTEXTERNALFILE;
 
 template <typename T>
 bool OperatorNode<T>::IsLogical() const {
-  return type_ < OpType::LOGICALPHYSICALDELIMITER;
+  return type < OpType::LOGICALPHYSICALDELIMITER;
 }
 
 template <typename T>
 bool OperatorNode<T>::IsPhysical() const {
-  return type_ > OpType::LOGICALPHYSICALDELIMITER;
+  return type > OpType::LOGICALPHYSICALDELIMITER;
 }
 
 }  // namespace terrier::optimizer
