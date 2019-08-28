@@ -96,10 +96,10 @@ using SubLink = struct SubLink {
   Expr xpr_;
   SubLinkType sub_link_type_; /* see above */
   int sub_link_id_;           /* ID (1..n); 0 if not MULTIEXPR */
-  Node *testexpr_;          /* outer-query test for ALL/ANY/ROWCOMPARE */
-  List *oper_name_;          /* originally specified operator name */
-  Node *subselect_;         /* subselect as Query* or raw parsetree */
-  int location_;            /* token location, or -1 if unknown */
+  Node *testexpr_;            /* outer-query test for ALL/ANY/ROWCOMPARE */
+  List *oper_name_;           /* originally specified operator name */
+  Node *subselect_;           /* subselect as Query* or raw parsetree */
+  int location_;              /* token location, or -1 if unknown */
 };
 
 using BoolExpr = struct BoolExpr {
@@ -148,14 +148,14 @@ using NullTest = struct NullTest {
 
 using JoinExpr = struct JoinExpr {
   NodeTag type_;
-  JoinType jointype_; /* type of join */
+  JoinType jointype_;  /* type of join */
   bool is_natural_;    /* Natural join? Will need to shape table */
-  Node *larg_;        /* left subtree */
-  Node *rarg_;        /* right subtree */
+  Node *larg_;         /* left subtree */
+  Node *rarg_;         /* right subtree */
   List *using_clause_; /* USING clause, if any (list of String) */
-  Node *quals_;       /* qualifiers on join, if any */
-  Alias *alias_;      /* user-written alias clause, if any */
-  int rtindex_;       /* RT index assigned for join, or 0 */
+  Node *quals_;        /* qualifiers on join, if any */
+  Alias *alias_;       /* user-written alias clause, if any */
+  int rtindex_;        /* RT index assigned for join, or 0 */
 };
 
 using CaseExpr = struct CaseExpr {
@@ -184,9 +184,9 @@ using RangeSubselect = struct RangeSubselect {
 
 using RangeVar = struct RangeVar {
   NodeTag type_;
-  char *catalogname_; /* the catalog (database) name, or NULL */
-  char *schemaname_;  /* the schema name, or NULL */
-  char *relname_;     /* the relation/sequence name */
+  char *catalogname_;  /* the catalog (database) name, or NULL */
+  char *schemaname_;   /* the schema name, or NULL */
+  char *relname_;      /* the relation/sequence name */
   InhOption inh_opt_;  // expand rel by inheritance?
   // recursively act on children?
   char relpersistence_; /* see RELPERSISTENCE_* in pg_class.h */
@@ -211,11 +211,11 @@ using OnCommitAction = enum OnCommitAction {
 using IntoClause = struct IntoClause {
   NodeTag type_;
 
-  RangeVar *rel_;           /* target relation name */
+  RangeVar *rel_;            /* target relation name */
   List *col_names_;          /* column names to assign, or NIL */
-  List *options_;           /* options from WITH clause */
+  List *options_;            /* options from WITH clause */
   OnCommitAction on_commit_; /* what do we do at COMMIT? */
-  char *table_space_name_;    /* table space to use, or NULL */
+  char *table_space_name_;   /* table space to use, or NULL */
   Node *view_query_;         /* materialized view's SELECT query */
   bool skip_data_;           /* true for WITH NO DATA */
 };
@@ -234,7 +234,7 @@ using SortBy = struct SortBy {
   Node *node_;               /* expression to sort on */
   SortByDir sortby_dir_;     /* ASC/DESC/USING/default */
   SortByNulls sortby_nulls_; /* NULLS FIRST/LAST */
-  List *use_op_;              /* name of op to use, if SORTBY_USING */
+  List *use_op_;             /* name of op to use, if SORTBY_USING */
   int location_;             /* operator location, or -1 if none/unknown */
 };
 
@@ -242,27 +242,27 @@ using InferClause = struct InferClause {
   NodeTag type_;
   List *index_elems_;  /* IndexElems to infer unique index */
   Node *where_clause_; /* qualification (partial-index predicate) */
-  char *conname_;     /* Constraint name, or NULL if unnamed */
-  int location_;      /* token location, or -1 if unknown */
+  char *conname_;      /* Constraint name, or NULL if unnamed */
+  int location_;       /* token location, or -1 if unknown */
 };
 
 using OnConflictClause = struct OnConflictClause {
   NodeTag type_;
   OnConflictAction action_; /* DO NOTHING or UPDATE? */
   InferClause *infer_;      /* Optional index inference clause */
-  List *target_list_;        /* the target list (of ResTarget) */
-  Node *where_clause_;       /* qualifications */
+  List *target_list_;       /* the target list (of ResTarget) */
+  Node *where_clause_;      /* qualifications */
   int location_;            /* token location, or -1 if unknown */
 };
 
 using InsertStmt = struct InsertStmt {
   NodeTag type_;
-  RangeVar *relation_;                 /* relation to insert into */
-  List *cols_;                         /* optional: names of the target columns */
-  Node *select_stmt_;                   /* the source SELECT/VALUES, or NULL */
+  RangeVar *relation_;                   /* relation to insert into */
+  List *cols_;                           /* optional: names of the target columns */
+  Node *select_stmt_;                    /* the source SELECT/VALUES, or NULL */
   OnConflictClause *on_conflict_clause_; /* ON CONFLICT clause */
-  List *returning_list_;                /* list of expressions to return */
-  WithClause *with_clause_;             /* WITH clause */
+  List *returning_list_;                 /* list of expressions to return */
+  WithClause *with_clause_;              /* WITH clause */
 };
 
 using SelectStmt = struct SelectStmt {
@@ -326,14 +326,14 @@ using ExplainStmt = struct ExplainStmt {
 
 using TypeName = struct TypeName {
   NodeTag type_;
-  List *names_;       /* qualified name (list of Value strings) */
+  List *names_;        /* qualified name (list of Value strings) */
   Oid type_oid_;       /* type identified by OID */
-  bool setof_;        /* is a set? */
-  bool pct_type_;     /* %TYPE specified? */
-  List *typmods_;     /* type modifier expression(s) */
-  int typemod_;       /* prespecified type modifier */
+  bool setof_;         /* is a set? */
+  bool pct_type_;      /* %TYPE specified? */
+  List *typmods_;      /* type modifier expression(s) */
+  int typemod_;        /* prespecified type modifier */
   List *array_bounds_; /* array bounds */
-  int location_;      /* token location, or -1 if unknown */
+  int location_;       /* token location, or -1 if unknown */
 };
 
 using IndexElem = struct IndexElem {
@@ -349,25 +349,25 @@ using IndexElem = struct IndexElem {
 
 using IndexStmt = struct IndexStmt {
   NodeTag type_;
-  char *idxname_;        /* name of new index, or NULL for default */
-  RangeVar *relation_;   /* relation to build index on */
-  char *access_method_;   /* name of access method (eg. btree) */
-  char *table_space_;     /* tablespace, or NULL for default */
-  List *index_params_;    /* columns to index: a list of IndexElem */
-  List *options_;        /* WITH clause options: a list of DefElem */
-  Node *where_clause_;    /* qualification (partial-index predicate) */
+  char *idxname_;          /* name of new index, or NULL for default */
+  RangeVar *relation_;     /* relation to build index on */
+  char *access_method_;    /* name of access method (eg. btree) */
+  char *table_space_;      /* tablespace, or NULL for default */
+  List *index_params_;     /* columns to index: a list of IndexElem */
+  List *options_;          /* WITH clause options: a list of DefElem */
+  Node *where_clause_;     /* qualification (partial-index predicate) */
   List *exclude_op_names_; /* exclusion operator names, or NIL if none */
-  char *idxcomment_;     /* comment to apply to index, or NULL */
-  Oid index_oid_;         /* OID of an existing index, if any */
-  Oid old_node_;          /* relfilenode of existing storage, if any */
-  bool unique_;          /* is index unique? */
-  bool primary_;         /* is index a primary key? */
-  bool isconstraint_;    /* is it for a pkey/unique constraint? */
-  bool deferrable_;      /* is the constraint DEFERRABLE? */
-  bool initdeferred_;    /* is the constraint INITIALLY DEFERRED? */
-  bool transformed_;     /* true when transformIndexStmt is finished */
-  bool concurrent_;      /* should this be a concurrent index build? */
-  bool if_not_exists_;   /* just do nothing if index already exists? */
+  char *idxcomment_;       /* comment to apply to index, or NULL */
+  Oid index_oid_;          /* OID of an existing index, if any */
+  Oid old_node_;           /* relfilenode of existing storage, if any */
+  bool unique_;            /* is index unique? */
+  bool primary_;           /* is index a primary key? */
+  bool isconstraint_;      /* is it for a pkey/unique constraint? */
+  bool deferrable_;        /* is the constraint DEFERRABLE? */
+  bool initdeferred_;      /* is the constraint INITIALLY DEFERRED? */
+  bool transformed_;       /* true when transformIndexStmt is finished */
+  bool concurrent_;        /* should this be a concurrent index build? */
+  bool if_not_exists_;     /* just do nothing if index already exists? */
 };
 
 using CreateTrigStmt = struct CreateTrigStmt {
@@ -382,7 +382,7 @@ using CreateTrigStmt = struct CreateTrigStmt {
   /* events uses the TRIGGER_TYPE bits defined in catalog/pg_trigger.h */
   int16_t events_;    /* "OR" of INSERT/UPDATE/DELETE/TRUNCATE */
   List *columns_;     /* column names, or NIL for all columns */
-  Node *when_clause_;  /* qual expression, or NULL if none */
+  Node *when_clause_; /* qual expression, or NULL if none */
   bool isconstraint_; /* This is a constraint trigger */
   /* The remaining fields are only used for constraint triggers */
   bool deferrable_;     /* [NOT] DEFERRABLE */
@@ -393,7 +393,7 @@ using CreateTrigStmt = struct CreateTrigStmt {
 using ColumnDef = struct ColumnDef {
   NodeTag type_;
   char *colname_;        /* name of column */
-  TypeName *type_name_;   /* type of column */
+  TypeName *type_name_;  /* type of column */
   int inhcount_;         /* number of times column is inherited */
   bool is_local_;        /* column has local (non-inherited) def'n */
   bool is_not_null_;     /* NOT NULL constraint specified? */
@@ -401,8 +401,8 @@ using ColumnDef = struct ColumnDef {
   char storage_;         /* attstorage setting, or 0 for default */
   Node *raw_default_;    /* default value (untransformed parse tree) */
   Node *cooked_default_; /* default value (transformed expr tree) */
-  Node *coll_clause_;     /* untransformed COLLATE spec, if any */
-  Oid coll_oid_;          /* collation OID (InvalidOid if not set) */
+  Node *coll_clause_;    /* untransformed COLLATE spec, if any */
+  Oid coll_oid_;         /* collation OID (InvalidOid if not set) */
   List *constraints_;    /* other constraints on column */
   List *fdwoptions_;     /* per-column FDW options */
   int location_;         /* parse location, or -1 if none/unknown */
@@ -410,11 +410,11 @@ using ColumnDef = struct ColumnDef {
 
 using CreateStmt = struct CreateStmt {
   NodeTag type_;
-  RangeVar *relation_;  /* relation to create */
+  RangeVar *relation_;   /* relation to create */
   List *table_elts_;     /* column definitions (list of ColumnDef) */
   List *inh_relations_;  // relations to inherit from (list of
   // inhRelation)
-  TypeName *of_typename_;    /* OF typename */
+  TypeName *of_typename_;   /* OF typename */
   List *constraints_;       /* constraints (list of Constraint nodes) */
   List *options_;           /* options from WITH clause */
   OnCommitAction oncommit_; /* what do we do at COMMIT? */
@@ -495,7 +495,7 @@ using Constraint = struct Constraint {
 
 using DeleteStmt = struct DeleteStmt {
   NodeTag type_;
-  RangeVar *relation_;     /* relation to delete from */
+  RangeVar *relation_;      /* relation to delete from */
   List *using_clause_;      /* optional using clause for more tables */
   Node *where_clause_;      /* qualifications */
   List *returning_list_;    /* list of expressions to return */
@@ -524,21 +524,21 @@ using A_Const = struct AConst {
 
 using TypeCast = struct TypeCast {
   NodeTag type_;
-  Node *arg_;          /* the expression being casted */
+  Node *arg_;           /* the expression being casted */
   TypeName *type_name_; /* the target type */
-  int location_;       /* token location, or -1 if unknown */
+  int location_;        /* token location, or -1 if unknown */
 };
 
 using WindowDef = struct WindowDef {
   NodeTag type_;
-  char *name_;            /* window's own name */
-  char *refname_;         /* referenced window name, if any */
+  char *name_;             /* window's own name */
+  char *refname_;          /* referenced window name, if any */
   List *partition_clause_; /* PARTITION BY expression list */
   List *order_clause_;     /* ORDER BY (list of SortBy) */
   int frame_options_;      /* frame_clause options, see below */
   Node *start_offset_;     /* expression for starting bound, if any */
   Node *end_offset_;       /* expression for ending bound, if any */
-  int location_;          /* parse location, or -1 if none/unknown */
+  int location_;           /* parse location, or -1 if none/unknown */
 };
 
 using FuncCall = struct FuncCall {
@@ -557,7 +557,7 @@ using FuncCall = struct FuncCall {
 
 using UpdateStmt = struct UpdateStmt {
   NodeTag type_;
-  RangeVar *relation_;     /* relation to update */
+  RangeVar *relation_;      /* relation to update */
   List *target_list_;       /* the target list (of ResTarget) */
   Node *where_clause_;      /* qualifications */
   List *from_clause_;       /* optional from clause for more tables */
@@ -638,12 +638,12 @@ using DropBehaviour = enum DropBehavior {
 
 using DropStmt = struct DropStmt {
   NodeTag type_;
-  List *objects_;         /* list of sublists of names (as Values) */
-  List *arguments_;       /* list of sublists of arguments (as Values) */
+  List *objects_;          /* list of sublists of names (as Values) */
+  List *arguments_;        /* list of sublists of arguments (as Values) */
   ObjectType remove_type_; /* object type */
-  DropBehavior behavior_; /* RESTRICT or CASCADE behavior */
-  bool missing_ok_;       /* skip error if object is missing? */
-  bool concurrent_;       /* drop index concurrently? */
+  DropBehavior behavior_;  /* RESTRICT or CASCADE behavior */
+  bool missing_ok_;        /* skip error if object is missing? */
+  bool concurrent_;        /* drop index concurrently? */
 };
 
 using DropDatabaseStmt = struct DropDatabaseStmt {
@@ -710,7 +710,7 @@ using CreateSchemaStmt = struct CreateSchemaStmt {
   NodeTag type_;
   char *schemaname_;   /* the name of the schema to create */
   Node *authrole_;     /* the owner of the created schema */
-  List *schema_elts_;   /* schema components (list of parsenodes) */
+  List *schema_elts_;  /* schema components (list of parsenodes) */
   bool if_not_exists_; /* just do nothing if schema already exists? */
 };
 
@@ -732,11 +732,11 @@ using ViewCheckOption = enum ViewCheckOption { NO_CHECK_OPTION, LOCAL_CHECK_OPTI
 
 using ViewStmt = struct ViewStmt {
   NodeTag type_;
-  RangeVar *view_;                  /* the view to be created */
-  List *aliases_;                   /* target column names */
-  Node *query_;                     /* the SELECT query */
-  bool replace_;                    /* replace an existing view? */
-  List *options_;                   /* options from WITH clause */
+  RangeVar *view_;                    /* the view to be created */
+  List *aliases_;                     /* target column names */
+  Node *query_;                       /* the SELECT query */
+  bool replace_;                      /* replace an existing view? */
+  List *options_;                     /* options from WITH clause */
   ViewCheckOption with_check_option_; /* WITH CHECK OPTION */
 };
 
@@ -789,11 +789,11 @@ using VariableShowStmt = struct VariableShowStmt {
 
 using CreateFunctionStmt = struct CreateFunctionStmt {
   NodeTag type_;
-  bool replace_;         /* T => replace if already exists */
-  List *funcname_;       /* qualified name of function to create */
-  List *parameters_;     /* a list of FunctionParameter */
+  bool replace_;          /* T => replace if already exists */
+  List *funcname_;        /* qualified name of function to create */
+  List *parameters_;      /* a list of FunctionParameter */
   TypeName *return_type_; /* the return type */
-  List *options_;        /* a list of DefElem */
+  List *options_;         /* a list of DefElem */
   List *with_clause_;     /* a list of DefElem */
 };
 
@@ -809,7 +809,7 @@ using FunctionParameterMode = enum FunctionParameterMode {
 using FunctionParameter = struct FunctionParameter {
   NodeTag type_;
   char *name_;                 /* parameter name, or NULL if not given */
-  TypeName *arg_type_;          /* TypeName for parameter type */
+  TypeName *arg_type_;         /* TypeName for parameter type */
   FunctionParameterMode mode_; /* IN/OUT/etc */
   Node *defexpr_;              /* raw default expr, or NULL if not given */
 };

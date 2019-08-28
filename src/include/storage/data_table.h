@@ -151,7 +151,7 @@ class DataTable {
   /**
    * @return the first tuple slot contained in the data table
    */
-  SlotIterator Begin() const {
+  SlotIterator begin() const {  // NOLINT for STL name compability
     common::SpinLatch::ScopedSpinLatch guard(&blocks_latch_);
     return {this, blocks_.begin(), 0};
   }
@@ -163,7 +163,7 @@ class DataTable {
    *
    * @return one past the last tuple slot contained in the data table.
    */
-  SlotIterator End() const;
+  SlotIterator end() const;  // NOLINT for STL name compability
 
   /**
    * Update the tuple according to the redo buffer given, and update the version chain to link to an

@@ -143,19 +143,19 @@ TEST_F(SettingsTests, ParamCallbackTest) {
   // Check that if we set a parameter with a callback that the change gets propagated to the object
 
   auto buffer_pool_size = static_cast<int64_t>(settings_manager_->GetInt(Param::record_buffer_segment_size));
-  EXPECT_EQ(buffer_pool_size, defaultBufferPoolSize);
+  EXPECT_EQ(buffer_pool_size, default_buffer_pool_size_);
 
   buffer_pool_size = buffer_segment_pool_->GetSizeLimit();
-  EXPECT_EQ(buffer_pool_size, defaultBufferPoolSize);
+  EXPECT_EQ(buffer_pool_size, default_buffer_pool_size_);
 
   const common::action_id_t action_id(1);
   setter_callback_fn setter_callback = SettingsTests::EmptySetterCallback;
   std::shared_ptr<common::ActionContext> action_context = std::make_shared<common::ActionContext>(action_id);
 
   // Setting new value should invoke callback.
-  const int64_t new_buffer_pool_size = defaultBufferPoolSize + 1;
-  settings_manager_->SetInt(Param::record_buffer_segment_size, static_cast<int32_t>(new_buffer_pool_size), action_context,
-                            setter_callback);
+  const int64_t new_buffer_pool_size = default_buffer_pool_size_ + 1;
+  settings_manager_->SetInt(Param::record_buffer_segment_size, static_cast<int32_t>(new_buffer_pool_size),
+                            action_context, setter_callback);
   buffer_pool_size = static_cast<int64_t>(settings_manager_->GetInt(Param::record_buffer_segment_size));
   EXPECT_EQ(buffer_pool_size, new_buffer_pool_size);
 

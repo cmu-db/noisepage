@@ -350,7 +350,7 @@ TEST_F(WriteAheadLoggingTests, AbortRecordTest) {
   bool found_abort_record = false;
   storage::BufferedLogReader in(LOG_FILE_NAME);
   while (in.HasMore()) {
-    storage::LogRecord *log_record = ReadNextRecord(&in, sql_table.table_.layout);
+    storage::LogRecord *log_record = ReadNextRecord(&in, sql_table.table_.layout_);
     if (log_record->RecordType() == LogRecordType::ABORT) {
       found_abort_record = true;
       auto *abort_record = log_record->GetUnderlyingRecordBodyAs<storage::AbortRecord>();
@@ -417,7 +417,7 @@ TEST_F(WriteAheadLoggingTests, NoAbortRecordTest) {
   bool found_abort_record = false;
   storage::BufferedLogReader in(LOG_FILE_NAME);
   while (in.HasMore()) {
-    storage::LogRecord *log_record = ReadNextRecord(&in, sql_table.table_.layout);
+    storage::LogRecord *log_record = ReadNextRecord(&in, sql_table.table_.layout_);
     if (log_record->RecordType() == LogRecordType::ABORT) {
       found_abort_record = true;
     }

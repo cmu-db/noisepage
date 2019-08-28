@@ -137,12 +137,12 @@ class IterableBufferSegment {
   /**
    * @return iterator to the first element
    */
-  Iterator Begin() { return {segment_, 0}; }
+  Iterator begin() { return {segment_, 0}; }  // NOLINT for STL name compability
 
   /**
    * @return iterator to the second element
    */
-  Iterator End() { return {segment_, segment_->size_}; }
+  Iterator end() { return {segment_, segment_->size_}; }  // NOLINT for STL name compability
 
  private:
   RecordBufferSegment *segment_;
@@ -285,12 +285,12 @@ class UndoBuffer {
   /**
    * @return Iterator to the first element
    */
-  Iterator Begin() { return {buffers_.begin(), 0}; }
+  Iterator begin() { return {buffers_.begin(), 0}; }  // NOLINT for STL name compability
 
   /**
    * @return Iterator to the element following the last element
    */
-  Iterator End() { return {buffers_.end(), 0}; }
+  Iterator end() { return {buffers_.end(), 0}; }  // NOLINT for STL name compability
 
   /**
    * @return true if UndoBuffer contains no UndoRecords, false otherwise

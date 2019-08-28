@@ -93,12 +93,12 @@ class OperatorNode : public BaseOperatorNode {
   /**
    * @return string name of the underlying operator
    */
-  std::string GetName() const override { return std::string(name); }
+  std::string GetName() const override { return std::string(name_); }
 
   /**
    * @return type of the underlying operator
    */
-  OpType GetType() const override { return type; }
+  OpType GetType() const override { return type_; }
 
   /**
    * @return whether the underlying operator is logical
@@ -114,12 +114,12 @@ class OperatorNode : public BaseOperatorNode {
   /**
    * Name of the operator
    */
-  static const char *name;
+  static const char *name_;
 
   /**
    * Type of the operator
    */
-  static OpType type;
+  static OpType type_;
 };
 
 /**

@@ -8,7 +8,7 @@
 #if __APPLE__
 extern "C" {
 #include <sys/cdefs.h>
-int close$NOCANCEL(int);
+int close$NOCANCEL(int);  // NOLINT
 };
 #endif
 

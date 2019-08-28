@@ -43,9 +43,9 @@ class Exception : public std::runtime_error {
    * Allows type and source location of the exception to be recorded in the log at the catch point.
    */
   friend std::ostream &operator<<(std::ostream &out, const Exception &ex) {
-    out << ex.get_type() << " exception:";
-    out << ex.get_file() << ":";
-    out << ex.get_line() << ":";
+    out << ex.GetType() << " exception:";
+    out << ex.GetFile() << ":";
+    out << ex.GetLine() << ":";
     out << ex.what();
     return out;
   }

@@ -61,27 +61,27 @@ struct Worker {
             db->order_line_primary_index_->GetProjectedRowInitializer().ProjectedRowSize())) {}
 
   ~Worker() {
-    delete[] item_tuple_buffer;
-    delete[] warehouse_tuple_buffer;
-    delete[] stock_tuple_buffer;
-    delete[] district_tuple_buffer;
-    delete[] customer_tuple_buffer;
-    delete[] history_tuple_buffer;
-    delete[] order_tuple_buffer;
-    delete[] new_order_tuple_buffer;
-    delete[] order_line_tuple_buffer;
+    delete[] item_tuple_buffer_;
+    delete[] warehouse_tuple_buffer_;
+    delete[] stock_tuple_buffer_;
+    delete[] district_tuple_buffer_;
+    delete[] customer_tuple_buffer_;
+    delete[] history_tuple_buffer_;
+    delete[] order_tuple_buffer_;
+    delete[] new_order_tuple_buffer_;
+    delete[] order_line_tuple_buffer_;
 
-    delete[] item_key_buffer;
-    delete[] warehouse_key_buffer;
-    delete[] stock_key_buffer;
-    delete[] district_key_buffer;
-    delete[] customer_key_buffer;
-    delete[] customer_name_key_buffer;
-    delete[] customer_name_varlen_buffer;
-    delete[] order_key_buffer;
-    delete[] order_secondary_key_buffer;
-    delete[] new_order_key_buffer;
-    delete[] order_line_key_buffer;
+    delete[] item_key_buffer_;
+    delete[] warehouse_key_buffer_;
+    delete[] stock_key_buffer_;
+    delete[] district_key_buffer_;
+    delete[] customer_key_buffer_;
+    delete[] customer_name_key_buffer_;
+    delete[] customer_name_varlen_buffer_;
+    delete[] order_key_buffer_;
+    delete[] order_secondary_key_buffer_;
+    delete[] new_order_key_buffer_;
+    delete[] order_line_key_buffer_;
   }
 
   byte *const item_tuple_buffer_;

@@ -42,7 +42,7 @@ class TrafficCopTests : public TerrierTest {
       server_ = std::make_unique<network::TerrierServer>(
           common::ManagedPointer<network::ProtocolInterpreter::Provider>(&interpreter_provider_),
           common::ManagedPointer(handle_factory_.get()),
-          common::ManagedPointer<common::DedicatedThreadRegistry>(&thread_registry));
+          common::ManagedPointer<common::DedicatedThreadRegistry>(&thread_registry_));
       server_->SetPort(port_);
       server_->RunServer();
     } catch (NetworkProcessException &exception) {

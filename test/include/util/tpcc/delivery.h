@@ -74,11 +74,11 @@ class Delivery {
         new_order_pr_initializer_(
             db->new_order_table_->InitializerForProjectedRow({db->new_order_schema_.GetColumn(0).Oid()})),
         no_o_id_key_pr_offset_(
-            static_cast<uint8_t>(db->new_order_primary_index_->GetKeyOidToOffsetMap().at(no_o_id_key_oid))),
+            static_cast<uint8_t>(db->new_order_primary_index_->GetKeyOidToOffsetMap().at(no_o_id_key_oid_))),
         no_d_id_key_pr_offset_(
-            static_cast<uint8_t>(db->new_order_primary_index_->GetKeyOidToOffsetMap().at(no_d_id_key_oid))),
+            static_cast<uint8_t>(db->new_order_primary_index_->GetKeyOidToOffsetMap().at(no_d_id_key_oid_))),
         no_w_id_key_pr_offset_(
-            static_cast<uint8_t>(db->new_order_primary_index_->GetKeyOidToOffsetMap().at(no_w_id_key_oid))),
+            static_cast<uint8_t>(db->new_order_primary_index_->GetKeyOidToOffsetMap().at(no_w_id_key_oid_))),
 
         o_id_key_oid_(db->order_primary_index_schema_.GetColumn(2).Oid()),
         o_d_id_key_oid_(db->order_primary_index_schema_.GetColumn(1).Oid()),
@@ -88,9 +88,11 @@ class Delivery {
             db->order_table_->InitializerForProjectedRow({db->order_schema_.GetColumn(3).Oid()})),
         order_update_pr_initializer_(
             db->order_table_->InitializerForProjectedRow({db->order_schema_.GetColumn(5).Oid()})),
-        o_id_key_pr_offset_(static_cast<uint8_t>(db->order_primary_index_->GetKeyOidToOffsetMap().at(o_id_key_oid))),
-        o_d_id_key_pr_offset_(static_cast<uint8_t>(db->order_primary_index_->GetKeyOidToOffsetMap().at(o_d_id_key_oid))),
-        o_w_id_key_pr_offset_(static_cast<uint8_t>(db->order_primary_index_->GetKeyOidToOffsetMap().at(o_w_id_key_oid))),
+        o_id_key_pr_offset_(static_cast<uint8_t>(db->order_primary_index_->GetKeyOidToOffsetMap().at(o_id_key_oid_))),
+        o_d_id_key_pr_offset_(
+            static_cast<uint8_t>(db->order_primary_index_->GetKeyOidToOffsetMap().at(o_d_id_key_oid_))),
+        o_w_id_key_pr_offset_(
+            static_cast<uint8_t>(db->order_primary_index_->GetKeyOidToOffsetMap().at(o_w_id_key_oid_))),
 
         ol_amount_oid_(db->order_line_schema_.GetColumn(8).Oid()),
         ol_delivery_d_oid_(db->order_line_schema_.GetColumn(6).Oid()),
@@ -104,13 +106,13 @@ class Delivery {
         order_line_update_pr_initializer_(
             db->order_line_table_->InitializerForProjectedRow({db->order_line_schema_.GetColumn(6).Oid()})),
         ol_o_id_key_pr_offset_(
-            static_cast<uint8_t>(db->order_line_primary_index_->GetKeyOidToOffsetMap().at(ol_o_id_key_oid))),
+            static_cast<uint8_t>(db->order_line_primary_index_->GetKeyOidToOffsetMap().at(ol_o_id_key_oid_))),
         ol_d_id_key_pr_offset_(
-            static_cast<uint8_t>(db->order_line_primary_index_->GetKeyOidToOffsetMap().at(ol_d_id_key_oid))),
+            static_cast<uint8_t>(db->order_line_primary_index_->GetKeyOidToOffsetMap().at(ol_d_id_key_oid_))),
         ol_w_id_key_pr_offset_(
-            static_cast<uint8_t>(db->order_line_primary_index_->GetKeyOidToOffsetMap().at(ol_w_id_key_oid))),
+            static_cast<uint8_t>(db->order_line_primary_index_->GetKeyOidToOffsetMap().at(ol_w_id_key_oid_))),
         ol_number_key_pr_offset_(
-            static_cast<uint8_t>(db->order_line_primary_index_->GetKeyOidToOffsetMap().at(ol_number_key_oid))),
+            static_cast<uint8_t>(db->order_line_primary_index_->GetKeyOidToOffsetMap().at(ol_number_key_oid_))),
 
         c_balance_oid_(db->customer_schema_.GetColumn(16).Oid()),
         c_delivery_cnt_oid_(db->customer_schema_.GetColumn(19).Oid()),
@@ -118,15 +120,17 @@ class Delivery {
         c_d_id_key_oid_(db->customer_primary_index_schema_.GetColumn(1).Oid()),
         c_w_id_key_oid_(db->customer_primary_index_schema_.GetColumn(0).Oid()),
 
-        customer_pr_initializer_(db->customer_table_->InitializerForProjectedRow({c_balance_oid, c_delivery_cnt_oid})),
-        customer_pr_map_(db->customer_table_->ProjectionMapForOids({c_balance_oid, c_delivery_cnt_oid})),
-        c_balance_pr_offset_(static_cast<uint8_t>(customer_pr_map.at(c_balance_oid))),
-        c_delivery_cnt_pr_offset_(static_cast<uint8_t>(customer_pr_map.at(c_delivery_cnt_oid))),
-        c_id_key_pr_offset_(static_cast<uint8_t>(db->customer_primary_index_->GetKeyOidToOffsetMap().at(c_id_key_oid))),
+        customer_pr_initializer_(
+            db->customer_table_->InitializerForProjectedRow({c_balance_oid_, c_delivery_cnt_oid_})),
+        customer_pr_map_(db->customer_table_->ProjectionMapForOids({c_balance_oid_, c_delivery_cnt_oid_})),
+        c_balance_pr_offset_(static_cast<uint8_t>(customer_pr_map_.at(c_balance_oid_))),
+        c_delivery_cnt_pr_offset_(static_cast<uint8_t>(customer_pr_map_.at(c_delivery_cnt_oid_))),
+        c_id_key_pr_offset_(
+            static_cast<uint8_t>(db->customer_primary_index_->GetKeyOidToOffsetMap().at(c_id_key_oid_))),
         c_d_id_key_pr_offset_(
-            static_cast<uint8_t>(db->customer_primary_index_->GetKeyOidToOffsetMap().at(c_d_id_key_oid))),
+            static_cast<uint8_t>(db->customer_primary_index_->GetKeyOidToOffsetMap().at(c_d_id_key_oid_))),
         c_w_id_key_pr_offset_(
-            static_cast<uint8_t>(db->customer_primary_index_->GetKeyOidToOffsetMap().at(c_w_id_key_oid)))
+            static_cast<uint8_t>(db->customer_primary_index_->GetKeyOidToOffsetMap().at(c_w_id_key_oid_)))
 
   {}
 

@@ -52,7 +52,7 @@ class NetworkTests : public TerrierTest {
       handle_factory_ = std::make_unique<ConnectionHandleFactory>(common::ManagedPointer(&tcop_));
       server_ = std::make_unique<TerrierServer>(
           common::ManagedPointer<ProtocolInterpreter::Provider>(&protocol_provider_),
-          common::ManagedPointer(handle_factory_.get()), common::ManagedPointer(&thread_registry));
+          common::ManagedPointer(handle_factory_.get()), common::ManagedPointer(&thread_registry_));
       server_->SetPort(port_);
       server_->RunServer();
     } catch (NetworkProcessException &exception) {

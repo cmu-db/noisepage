@@ -116,9 +116,9 @@ TEST(ObjectPoolTests, ConcurrentCorrectnessTest) {
         ptrs.erase(pos);
       }
     };
-    auto set_reuse_limit = [size_dist] { tested.SetReuseLimit(size_dist(generator)); };
+    auto set_reuse_limit = [&] { tested.SetReuseLimit(size_dist(generator)); };
 
-    auto set_size_limit = [size_dist] { tested.SetSizeLimit(size_dist(generator)); };
+    auto set_size_limit = [&] { tested.SetSizeLimit(size_dist(generator)); };
 
     RandomTestUtil::InvokeWorkloadWithDistribution({free, allocate, set_reuse_limit, set_size_limit},
                                                    {0.25, 0.25, 0.25, 0.25}, &generator, 1000);

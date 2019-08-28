@@ -29,10 +29,10 @@ struct ConnectionContext {
    */
   void Reset() {
     // Cleans up all the sqlite statements in this connection
-    for (auto pair : statements) pair.second.Finalize();
+    for (auto pair : statements_) pair.second.Finalize();
 
-    statements.clear();
-    portals.clear();
+    statements_.clear();
+    portals_.clear();
   }
 };
 
