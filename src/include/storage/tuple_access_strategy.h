@@ -259,7 +259,7 @@ class TupleAccessStrategy {
    * @return true if the set operation succeeded, false if the block is already busy
    */
   bool SetBlockBusyStatus(RawBlock *block) const {
-    uint32_t old_val = ClrBit(block->insert_head_.load());
+    uint32_t old_val = ClearBit(block->insert_head_.load());
     return block->insert_head_.compare_exchange_weak(old_val, SetBit(old_val));
   }
 
@@ -270,7 +270,7 @@ class TupleAccessStrategy {
    */
   bool ClearBlockBusyStatus(RawBlock *block) const {
     uint32_t old_val = SetBit(block->insert_head_.load());
-    return block->insert_head_.compare_exchange_strong(old_val, ClrBit(old_val));
+    return block->insert_head_.compare_exchange_strong(old_val, ClearBit(old_val));
   }
 
   /**
@@ -278,7 +278,7 @@ class TupleAccessStrategy {
    * @param val the value to be set
    * @return the changed value with first bit set to 0
    */
-  static uint32_t ClrBit(uint32_t val) { return val & ~(1 << 31); }
+  static uint32_t ClearBit(uint32_t val) { return val & ~(1 << 31); }
 
   /**
    * Set the first bit of given val to 1, helper function used by SetBlockBusyStatus
