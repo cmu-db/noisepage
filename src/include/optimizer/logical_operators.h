@@ -267,7 +267,8 @@ class LogicalQueryDerivedGet : public OperatorNode<LogicalQueryDerivedGet> {
   /**
    * @return map from table aliases to expressions
    */
-  const std::unordered_map<std::string, common::ManagedPointer<const parser::AbstractExpression>> &GetAliasToExprMap() const {
+  const std::unordered_map<std::string, common::ManagedPointer<const parser::AbstractExpression>> &GetAliasToExprMap()
+      const {
     return alias_to_expr_map_;
   }
 
@@ -342,7 +343,9 @@ class LogicalProjection : public OperatorNode<LogicalProjection> {
   /**
    * @return vector of predicates
    */
-  const std::vector<common::ManagedPointer<const parser::AbstractExpression>> &GetExpressions() const { return expressions_; }
+  const std::vector<common::ManagedPointer<const parser::AbstractExpression>> &GetExpressions() const {
+    return expressions_;
+  }
 
  private:
   /**

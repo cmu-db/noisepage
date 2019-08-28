@@ -1,18 +1,20 @@
 // TODO(wz2): Verify OutputSchema after sync-up meeting
+#include <memory>
+#include <string>
 
-#include "parser/postgresparser.h"
-#include "parser/expression/derived_value_expression.h"
-#include "parser/expression/constant_value_expression.h"
-#include "planner/plannodes/abstract_plan_node.h"
-#include "planner/plannodes/seq_scan_plan_node.h"
-#include "planner/plannodes/projection_plan_node.h"
-#include "planner/plannodes/order_by_plan_node.h"
-#include "planner/plannodes/limit_plan_node.h"
+#include "optimizer/optimizer.h"
 #include "optimizer/properties.h"
 #include "optimizer/property_set.h"
-#include "optimizer/optimizer.h"
-#include "util/tpcc/tpcc_plan_test.h"
+#include "parser/expression/constant_value_expression.h"
+#include "parser/expression/derived_value_expression.h"
+#include "parser/postgresparser.h"
+#include "planner/plannodes/abstract_plan_node.h"
+#include "planner/plannodes/limit_plan_node.h"
+#include "planner/plannodes/order_by_plan_node.h"
+#include "planner/plannodes/projection_plan_node.h"
+#include "planner/plannodes/seq_scan_plan_node.h"
 #include "util/test_harness.h"
+#include "util/tpcc/tpcc_plan_test.h"
 
 namespace terrier::optimizer {
 
@@ -20,9 +22,7 @@ class TpccPlanSeqScanTests : public TpccPlanTest {};
 
 // NOLINTNEXTLINE
 TEST_F(TpccPlanSeqScanTests, SimpleSeqScanSelect) {
-  auto check = [](TpccPlanTest *test,
-                  parser::SelectStatement *sel_stmt,
-                  catalog::table_oid_t tbl_oid,
+  auto check = [](TpccPlanTest *test, parser::SelectStatement *sel_stmt, catalog::table_oid_t tbl_oid,
                   std::shared_ptr<planner::AbstractPlanNode> plan) {
     EXPECT_EQ(plan->GetChildrenSize(), 0);
     EXPECT_EQ(plan->GetPlanNodeType(), planner::PlanNodeType::SEQSCAN);
@@ -47,11 +47,8 @@ TEST_F(TpccPlanSeqScanTests, SimpleSeqScanSelect) {
 
 // NOLINTNEXTLINE
 TEST_F(TpccPlanSeqScanTests, SimpleSeqScanSelectWithPredicate) {
-  auto check = [](TpccPlanTest *test,
-                  parser::SelectStatement *sel_stmt,
-                  catalog::table_oid_t tbl_oid,
+  auto check = [](TpccPlanTest *test, parser::SelectStatement *sel_stmt, catalog::table_oid_t tbl_oid,
                   std::shared_ptr<planner::AbstractPlanNode> plan) {
-
     auto &schema = test->accessor_->GetSchema(test->tbl_order_);
     auto offset = 0;
     for (size_t idx = 0; idx < schema.GetColumns().size(); idx++) {
@@ -64,7 +61,7 @@ TEST_F(TpccPlanSeqScanTests, SimpleSeqScanSelectWithPredicate) {
     EXPECT_EQ(plan->GetChildrenSize(), 0);
     EXPECT_EQ(plan->GetPlanNodeType(), planner::PlanNodeType::SEQSCAN);
 
-    auto seq = std::dynamic_pointer_cast<planner::SeqScanPlanNode>(plan); 
+    auto seq = std::dynamic_pointer_cast<planner::SeqScanPlanNode>(plan);
     EXPECT_EQ(seq->IsForUpdate(), false);
     EXPECT_EQ(seq->IsParallel(), test->settings_manager_->GetBool(settings::Param::parallel_execution));
     EXPECT_EQ(seq->GetDatabaseOid(), test->db_);
@@ -80,10 +77,10 @@ TEST_F(TpccPlanSeqScanTests, SimpleSeqScanSelectWithPredicate) {
     EXPECT_EQ(scan_pred->GetChildrenSize(), 2);
     EXPECT_EQ(scan_pred->GetChild(0)->GetExpressionType(), parser::ExpressionType::VALUE_TUPLE);
     EXPECT_EQ(scan_pred->GetChild(1)->GetExpressionType(), parser::ExpressionType::VALUE_CONSTANT);
-    auto *dve = reinterpret_cast<const parser::DerivedValueExpression*>(scan_pred->GetChild(0).get());
-    auto *cve = reinterpret_cast<const parser::ConstantValueExpression*>(scan_pred->GetChild(1).get());
+    auto *dve = reinterpret_cast<const parser::DerivedValueExpression *>(scan_pred->GetChild(0).get());
+    auto *cve = reinterpret_cast<const parser::ConstantValueExpression *>(scan_pred->GetChild(1).get());
     EXPECT_EQ(dve->GetTupleIdx(), 0);
-    EXPECT_EQ(dve->GetValueIdx(), offset); // ValueIdx() should be offset into underlying tuple
+    EXPECT_EQ(dve->GetValueIdx(), offset);  // ValueIdx() should be offset into underlying tuple
     EXPECT_EQ(type::TransientValuePeeker::PeekInteger(cve->GetValue()), 5);
   };
 
@@ -93,16 +90,13 @@ TEST_F(TpccPlanSeqScanTests, SimpleSeqScanSelectWithPredicate) {
 
 // NOLINTNEXTLINE
 TEST_F(TpccPlanSeqScanTests, SimpleSeqScanSelectWithPredicateOrderBy) {
-  auto check = [](TpccPlanTest *test,
-                  parser::SelectStatement *sel_stmt,
-                  catalog::table_oid_t tbl_oid,
+  auto check = [](TpccPlanTest *test, parser::SelectStatement *sel_stmt, catalog::table_oid_t tbl_oid,
                   std::shared_ptr<planner::AbstractPlanNode> plan) {
     // Find column offset that matches with o_carrier_id
     auto &schema = test->accessor_->GetSchema(test->tbl_order_);
     unsigned carrier_offset = 0;
     for (size_t idx = 0; idx < schema.GetColumns().size(); idx++) {
-      if (schema.GetColumns()[idx].Name() == "o_carrier_id")
-        carrier_offset = static_cast<unsigned>(idx);
+      if (schema.GetColumns()[idx].Name() == "o_carrier_id") carrier_offset = static_cast<unsigned>(idx);
     }
 
     EXPECT_EQ(plan->GetChildrenSize(), 1);
@@ -112,11 +106,11 @@ TEST_F(TpccPlanSeqScanTests, SimpleSeqScanSelectWithPredicateOrderBy) {
     auto planc = plan->GetChild(0);
     EXPECT_EQ(planc->GetChildrenSize(), 1);
     EXPECT_EQ(planc->GetPlanNodeType(), planner::PlanNodeType::ORDERBY);
-    auto orderby = reinterpret_cast<const planner::OrderByPlanNode*>(planc);
+    auto orderby = reinterpret_cast<const planner::OrderByPlanNode *>(planc);
     EXPECT_EQ(orderby->HasLimit(), false);
     EXPECT_EQ(orderby->GetSortKeys().size(), 1);
     EXPECT_EQ(orderby->GetSortKeys()[0].second, planner::OrderByOrderingType::DESC);
-    auto sortkey = reinterpret_cast<const parser::DerivedValueExpression*>(orderby->GetSortKeys()[0].first);
+    auto sortkey = reinterpret_cast<const parser::DerivedValueExpression *>(orderby->GetSortKeys()[0].first);
     EXPECT_TRUE(sortkey != nullptr);
     EXPECT_EQ(sortkey->GetExpressionType(), parser::ExpressionType::VALUE_TUPLE);
     EXPECT_EQ(sortkey->GetTupleIdx(), 0);
@@ -128,7 +122,7 @@ TEST_F(TpccPlanSeqScanTests, SimpleSeqScanSelectWithPredicateOrderBy) {
     EXPECT_EQ(plans->GetPlanNodeType(), planner::PlanNodeType::SEQSCAN);
 
     // Check SeqScan
-    auto seq = reinterpret_cast<const planner::SeqScanPlanNode*>(plans);
+    auto seq = reinterpret_cast<const planner::SeqScanPlanNode *>(plans);
     EXPECT_EQ(seq->IsForUpdate(), false);
     EXPECT_EQ(seq->IsParallel(), test->settings_manager_->GetBool(settings::Param::parallel_execution));
     EXPECT_EQ(seq->GetDatabaseOid(), test->db_);
@@ -145,10 +139,10 @@ TEST_F(TpccPlanSeqScanTests, SimpleSeqScanSelectWithPredicateOrderBy) {
     EXPECT_EQ(scan_pred->GetChildrenSize(), 2);
     EXPECT_EQ(scan_pred->GetChild(0)->GetExpressionType(), parser::ExpressionType::VALUE_TUPLE);
     EXPECT_EQ(scan_pred->GetChild(1)->GetExpressionType(), parser::ExpressionType::VALUE_CONSTANT);
-    auto *dve = reinterpret_cast<const parser::DerivedValueExpression*>(scan_pred->GetChild(0).get());
-    auto *cve = reinterpret_cast<const parser::ConstantValueExpression*>(scan_pred->GetChild(1).get());
+    auto *dve = reinterpret_cast<const parser::DerivedValueExpression *>(scan_pred->GetChild(0).get());
+    auto *cve = reinterpret_cast<const parser::ConstantValueExpression *>(scan_pred->GetChild(1).get());
     EXPECT_EQ(dve->GetTupleIdx(), 0);
-    EXPECT_EQ(dve->GetValueIdx(), carrier_offset); // ValueIdx() should be offset into underlying tuple (all cols)
+    EXPECT_EQ(dve->GetValueIdx(), carrier_offset);  // ValueIdx() should be offset into underlying tuple (all cols)
     EXPECT_EQ(type::TransientValuePeeker::PeekInteger(cve->GetValue()), 5);
   };
 
@@ -158,16 +152,13 @@ TEST_F(TpccPlanSeqScanTests, SimpleSeqScanSelectWithPredicateOrderBy) {
 
 // NOLINTNEXTLINE
 TEST_F(TpccPlanSeqScanTests, SimpleSeqScanSelectWithPredicateLimit) {
-  auto check = [](TpccPlanTest *test,
-                  parser::SelectStatement *sel_stmt,
-                  catalog::table_oid_t tbl_oid,
+  auto check = [](TpccPlanTest *test, parser::SelectStatement *sel_stmt, catalog::table_oid_t tbl_oid,
                   std::shared_ptr<planner::AbstractPlanNode> plan) {
     // Find column offset that matches with o_carrier_id
     auto &schema = test->accessor_->GetSchema(test->tbl_order_);
     unsigned carrier_offset = 0;
     for (size_t idx = 0; idx < schema.GetColumns().size(); idx++) {
-      if (schema.GetColumns()[idx].Name() == "o_carrier_id")
-        carrier_offset = static_cast<unsigned>(idx);
+      if (schema.GetColumns()[idx].Name() == "o_carrier_id") carrier_offset = static_cast<unsigned>(idx);
     }
 
     EXPECT_EQ(plan->GetChildrenSize(), 1);
@@ -180,7 +171,7 @@ TEST_F(TpccPlanSeqScanTests, SimpleSeqScanSelectWithPredicateLimit) {
     auto plans = plan->GetChild(0);
     EXPECT_EQ(plans->GetChildrenSize(), 0);
     EXPECT_EQ(plans->GetPlanNodeType(), planner::PlanNodeType::SEQSCAN);
-    auto seq = reinterpret_cast<const planner::SeqScanPlanNode*>(plans);
+    auto seq = reinterpret_cast<const planner::SeqScanPlanNode *>(plans);
     EXPECT_EQ(seq->IsForUpdate(), false);
     EXPECT_EQ(seq->IsParallel(), test->settings_manager_->GetBool(settings::Param::parallel_execution));
     EXPECT_EQ(seq->GetDatabaseOid(), test->db_);
@@ -196,10 +187,10 @@ TEST_F(TpccPlanSeqScanTests, SimpleSeqScanSelectWithPredicateLimit) {
     EXPECT_EQ(scan_pred->GetChildrenSize(), 2);
     EXPECT_EQ(scan_pred->GetChild(0)->GetExpressionType(), parser::ExpressionType::VALUE_TUPLE);
     EXPECT_EQ(scan_pred->GetChild(1)->GetExpressionType(), parser::ExpressionType::VALUE_CONSTANT);
-    auto *dve = reinterpret_cast<const parser::DerivedValueExpression*>(scan_pred->GetChild(0).get());
-    auto *cve = reinterpret_cast<const parser::ConstantValueExpression*>(scan_pred->GetChild(1).get());
+    auto *dve = reinterpret_cast<const parser::DerivedValueExpression *>(scan_pred->GetChild(0).get());
+    auto *cve = reinterpret_cast<const parser::ConstantValueExpression *>(scan_pred->GetChild(1).get());
     EXPECT_EQ(dve->GetTupleIdx(), 0);
-    EXPECT_EQ(dve->GetValueIdx(), carrier_offset); // ValueIdx() should be offset into underlying tuple (all cols)
+    EXPECT_EQ(dve->GetValueIdx(), carrier_offset);  // ValueIdx() should be offset into underlying tuple (all cols)
     EXPECT_EQ(type::TransientValuePeeker::PeekInteger(cve->GetValue()), 5);
   };
 
@@ -209,16 +200,13 @@ TEST_F(TpccPlanSeqScanTests, SimpleSeqScanSelectWithPredicateLimit) {
 
 // NOLINTNEXTLINE
 TEST_F(TpccPlanSeqScanTests, SimpleSeqScanSelectWithPredicateOrderByLimit) {
-  auto check = [](TpccPlanTest *test,
-                  parser::SelectStatement *sel_stmt,
-                  catalog::table_oid_t tbl_oid,
+  auto check = [](TpccPlanTest *test, parser::SelectStatement *sel_stmt, catalog::table_oid_t tbl_oid,
                   std::shared_ptr<planner::AbstractPlanNode> plan) {
     // Find column offset that matches with o_carrier_id
     auto &schema = test->accessor_->GetSchema(test->tbl_order_);
     unsigned carrier_offset = 0;
     for (size_t idx = 0; idx < schema.GetColumns().size(); idx++) {
-      if (schema.GetColumns()[idx].Name() == "o_carrier_id")
-        carrier_offset = static_cast<unsigned>(idx);
+      if (schema.GetColumns()[idx].Name() == "o_carrier_id") carrier_offset = static_cast<unsigned>(idx);
     }
 
     EXPECT_EQ(plan->GetChildrenSize(), 1);
@@ -228,7 +216,7 @@ TEST_F(TpccPlanSeqScanTests, SimpleSeqScanSelectWithPredicateOrderByLimit) {
     auto planl = plan->GetChild(0);
     EXPECT_EQ(planl->GetChildrenSize(), 1);
     EXPECT_EQ(planl->GetPlanNodeType(), planner::PlanNodeType::LIMIT);
-    auto limit_plan = reinterpret_cast<const planner::LimitPlanNode*>(planl);
+    auto limit_plan = reinterpret_cast<const planner::LimitPlanNode *>(planl);
     EXPECT_EQ(limit_plan->GetLimit(), sel_stmt->GetSelectLimit()->GetLimit());
     EXPECT_EQ(limit_plan->GetOffset(), sel_stmt->GetSelectLimit()->GetOffset());
 
@@ -236,13 +224,13 @@ TEST_F(TpccPlanSeqScanTests, SimpleSeqScanSelectWithPredicateOrderByLimit) {
     auto planc = planl->GetChild(0);
     EXPECT_EQ(planc->GetChildrenSize(), 1);
     EXPECT_EQ(planc->GetPlanNodeType(), planner::PlanNodeType::ORDERBY);
-    auto orderby = reinterpret_cast<const planner::OrderByPlanNode*>(planc);
+    auto orderby = reinterpret_cast<const planner::OrderByPlanNode *>(planc);
     EXPECT_EQ(orderby->HasLimit(), true);
     EXPECT_EQ(orderby->GetLimit(), sel_stmt->GetSelectLimit()->GetLimit());
     EXPECT_EQ(orderby->GetOffset(), sel_stmt->GetSelectLimit()->GetOffset());
     EXPECT_EQ(orderby->GetSortKeys().size(), 1);
     EXPECT_EQ(orderby->GetSortKeys()[0].second, planner::OrderByOrderingType::DESC);
-    auto sortkey = reinterpret_cast<const parser::DerivedValueExpression*>(orderby->GetSortKeys()[0].first);
+    auto sortkey = reinterpret_cast<const parser::DerivedValueExpression *>(orderby->GetSortKeys()[0].first);
     EXPECT_TRUE(sortkey != nullptr);
     EXPECT_EQ(sortkey->GetExpressionType(), parser::ExpressionType::VALUE_TUPLE);
     EXPECT_EQ(sortkey->GetTupleIdx(), 0);
@@ -252,7 +240,7 @@ TEST_F(TpccPlanSeqScanTests, SimpleSeqScanSelectWithPredicateOrderByLimit) {
     auto plans = planc->GetChild(0);
     EXPECT_EQ(plans->GetChildrenSize(), 0);
     EXPECT_EQ(plans->GetPlanNodeType(), planner::PlanNodeType::SEQSCAN);
-    auto seq = reinterpret_cast<const planner::SeqScanPlanNode*>(plans);
+    auto seq = reinterpret_cast<const planner::SeqScanPlanNode *>(plans);
     EXPECT_EQ(seq->IsForUpdate(), false);
     EXPECT_EQ(seq->IsParallel(), test->settings_manager_->GetBool(settings::Param::parallel_execution));
     EXPECT_EQ(seq->GetDatabaseOid(), test->db_);
@@ -269,10 +257,10 @@ TEST_F(TpccPlanSeqScanTests, SimpleSeqScanSelectWithPredicateOrderByLimit) {
     EXPECT_EQ(scan_pred->GetChildrenSize(), 2);
     EXPECT_EQ(scan_pred->GetChild(0)->GetExpressionType(), parser::ExpressionType::VALUE_TUPLE);
     EXPECT_EQ(scan_pred->GetChild(1)->GetExpressionType(), parser::ExpressionType::VALUE_CONSTANT);
-    auto *dve = reinterpret_cast<const parser::DerivedValueExpression*>(scan_pred->GetChild(0).get());
-    auto *cve = reinterpret_cast<const parser::ConstantValueExpression*>(scan_pred->GetChild(1).get());
+    auto *dve = reinterpret_cast<const parser::DerivedValueExpression *>(scan_pred->GetChild(0).get());
+    auto *cve = reinterpret_cast<const parser::ConstantValueExpression *>(scan_pred->GetChild(1).get());
     EXPECT_EQ(dve->GetTupleIdx(), 0);
-    EXPECT_EQ(dve->GetValueIdx(), carrier_offset); // ValueIdx() should be offset into underlying tuple (all cols)
+    EXPECT_EQ(dve->GetValueIdx(), carrier_offset);  // ValueIdx() should be offset into underlying tuple (all cols)
     EXPECT_EQ(type::TransientValuePeeker::PeekInteger(cve->GetValue()), 5);
   };
 

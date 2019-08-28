@@ -1,5 +1,7 @@
-#include "util/tpcc/tpcc_plan_test.h"
+#include <string>
+
 #include "util/test_harness.h"
+#include "util/tpcc/tpcc_plan_test.h"
 
 namespace terrier {
 
@@ -41,8 +43,9 @@ TEST_F(TpccPlanNewOrderTests, UpdateDistrict) {
 
 // NOLINTNEXTLINE
 TEST_F(TpccPlanNewOrderTests, InsertOOrder) {
-  std::string query = "INSERT INTO \"ORDER\" (O_ID, O_D_ID, O_W_ID, O_C_ID, O_ENTRY_D, O_OL_CNT, O_ALL_LOCAL) "
-                      "VALUES (1,2,3,4,0,6,7)";
+  std::string query =
+      "INSERT INTO \"ORDER\" (O_ID, O_D_ID, O_W_ID, O_C_ID, O_ENTRY_D, O_OL_CNT, O_ALL_LOCAL) "
+      "VALUES (1,2,3,4,0,6,7)";
   OptimizeInsert(query, tbl_order_);
 }
 
@@ -54,9 +57,10 @@ TEST_F(TpccPlanNewOrderTests, GetItem) {
 
 // NOLINTNEXTLINE
 TEST_F(TpccPlanNewOrderTests, GetStock) {
-  std::string query = "SELECT S_QUANTITY, S_DATA, S_DIST_01, S_DIST_02, S_DIST_03, S_DIST_04, S_DIST_05,"
-                      "S_DIST_06, S_DIST_07, S_DIST_08, S_DIST_09, S_DIST_10 "
-                      "FROM STOCK WHERE S_I_ID=1 AND S_W_ID=2";
+  std::string query =
+      "SELECT S_QUANTITY, S_DATA, S_DIST_01, S_DIST_02, S_DIST_03, S_DIST_04, S_DIST_05,"
+      "S_DIST_06, S_DIST_07, S_DIST_08, S_DIST_09, S_DIST_10 "
+      "FROM STOCK WHERE S_I_ID=1 AND S_W_ID=2";
   OptimizeQuery(query, "stock", tbl_stock_, TpccPlanTest::CheckIndexScan);
 }
 
@@ -75,9 +79,10 @@ TEST_F(TpccPlanNewOrderTests, UpdateStock) {
 
 // NOLINTNEXTLINE
 TEST_F(TpccPlanNewOrderTests, InsertOrderLine) {
-  std::string query = "INSERT INTO ORDER_LINE "
-                      "(OL_O_ID, OL_D_ID, OL_W_ID, OL_NUMBER, OL_I_ID, OL_SUPPLY_W_ID, OL_QUANTITY, OL_AMOUNT, OL_DIST_INFO) "
-                      "VALUES (1,2,3,4,5,6,7,8,'dist')";
+  std::string query =
+      "INSERT INTO ORDER_LINE "
+      "(OL_O_ID, OL_D_ID, OL_W_ID, OL_NUMBER, OL_I_ID, OL_SUPPLY_W_ID, OL_QUANTITY, OL_AMOUNT, OL_DIST_INFO) "
+      "VALUES (1,2,3,4,5,6,7,8,'dist')";
   OptimizeInsert(query, tbl_order_line_);
 }
 

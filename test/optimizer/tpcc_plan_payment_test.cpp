@@ -1,5 +1,7 @@
-#include "util/tpcc/tpcc_plan_test.h"
+#include <string>
+
 #include "util/test_harness.h"
+#include "util/tpcc/tpcc_plan_test.h"
 
 namespace terrier {
 
@@ -32,16 +34,18 @@ TEST_F(TpccPlanPaymentTests, UpdateDistrict) {
 
 // NOLINTNEXTLINE
 TEST_F(TpccPlanPaymentTests, GetDistrict) {
-  std::string query = "SELECT D_STREET_1, D_STREET_2, D_CITY, D_STATE, D_ZIP, D_NAME FROM DISTRICT WHERE D_W_ID=1 AND D_ID=2";
+  std::string query =
+      "SELECT D_STREET_1, D_STREET_2, D_CITY, D_STATE, D_ZIP, D_NAME FROM DISTRICT WHERE D_W_ID=1 AND D_ID=2";
   OptimizeQuery(query, "district", tbl_district_, TpccPlanTest::CheckIndexScan);
 }
 
 // NOLINTNEXTLINE
 TEST_F(TpccPlanPaymentTests, GetCustomer) {
-  std::string query = "SELECT C_FIRST, C_MIDDLE, C_LAST, C_STREET_1, C_STREET_2, C_CITY, "
-                      "C_STATE, C_ZIP, C_PHONE, C_CREDIT, C_CREDIT_LIM, C_DISCOUNT, C_BALANCE, "
-                      "C_YTD_PAYMENT, C_PAYMENT_CNT, C_SINCE "
-                      "FROM CUSTOMER WHERE C_W_ID=1 AND C_D_ID=2 AND C_ID=3";
+  std::string query =
+      "SELECT C_FIRST, C_MIDDLE, C_LAST, C_STREET_1, C_STREET_2, C_CITY, "
+      "C_STATE, C_ZIP, C_PHONE, C_CREDIT, C_CREDIT_LIM, C_DISCOUNT, C_BALANCE, "
+      "C_YTD_PAYMENT, C_PAYMENT_CNT, C_SINCE "
+      "FROM CUSTOMER WHERE C_W_ID=1 AND C_D_ID=2 AND C_ID=3";
   OptimizeQuery(query, "customer", tbl_customer_, TpccPlanTest::CheckIndexScan);
 }
 
@@ -80,19 +84,21 @@ TEST_F(TpccPlanPaymentTests, UpdateCustBal) {
 
 // NOLINTNEXTLINE
 TEST_F(TpccPlanPaymentTests, InsertHistory) {
-  std::string query = "INSERT INTO HISTORY "
-                      "(H_C_D_ID, H_C_W_ID, H_C_ID, H_D_ID, H_W_ID, H_DATE, H_AMOUNT, H_DATA) "
-                      "VALUES (1,2,3,4,5,0,7,'data')";
+  std::string query =
+      "INSERT INTO HISTORY "
+      "(H_C_D_ID, H_C_W_ID, H_C_ID, H_D_ID, H_W_ID, H_DATE, H_AMOUNT, H_DATA) "
+      "VALUES (1,2,3,4,5,0,7,'data')";
   OptimizeInsert(query, tbl_history_);
 }
 
 // NOLINTNEXTLINE
 TEST_F(TpccPlanPaymentTests, CustomerByName) {
-  std::string query = "SELECT C_FIRST, C_MIDDLE, C_ID, C_STREET_1, C_STREET_2, C_CITY, "
-                      "C_STATE, C_ZIP, C_PHONE, C_CREDIT, C_CREDIT_LIM, C_DISCOUNT, C_BALANCE, "
-                      "C_YTD_PAYMENT, C_PAYMENT_CNT, C_SINCE "
-                      "FROM CUSTOMER WHERE C_W_ID=1 AND C_D_ID=2 AND C_LAST='page' "
-                      "ORDER BY C_FIRST";
+  std::string query =
+      "SELECT C_FIRST, C_MIDDLE, C_ID, C_STREET_1, C_STREET_2, C_CITY, "
+      "C_STATE, C_ZIP, C_PHONE, C_CREDIT, C_CREDIT_LIM, C_DISCOUNT, C_BALANCE, "
+      "C_YTD_PAYMENT, C_PAYMENT_CNT, C_SINCE "
+      "FROM CUSTOMER WHERE C_W_ID=1 AND C_D_ID=2 AND C_LAST='page' "
+      "ORDER BY C_FIRST";
   OptimizeQuery(query, "customer", tbl_customer_, TpccPlanTest::CheckIndexScan);
 }
 

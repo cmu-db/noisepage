@@ -1,20 +1,24 @@
 #pragma once
 
+#include <memory>
+#include <queue>
 #include <set>
 #include <string>
-#include <queue>
+#include <unordered_map>
 #include <unordered_set>
+#include <utility>
+#include <vector>
 
 #include "catalog/catalog.h"
 #include "catalog/catalog_accessor.h"
 #include "main/db_main.h"
+#include "optimizer/cost_model/trivial_cost_model.h"
+#include "optimizer/optimizer.h"
+#include "optimizer/properties.h"
+#include "optimizer/property_set.h"
 #include "parser/postgresparser.h"
 #include "planner/plannodes/abstract_plan_node.h"
 #include "planner/plannodes/insert_plan_node.h"
-#include "optimizer/cost_model/trivial_cost_model.h"
-#include "optimizer/properties.h"
-#include "optimizer/property_set.h"
-#include "optimizer/optimizer.h"
 #include "settings/settings_manager.h"
 #include "storage/garbage_collector.h"
 #include "transaction/transaction_manager.h"
@@ -43,8 +47,8 @@ class TpccPlanTest : public TerrierTest {
     return tbl_oid;
   }
 
-  catalog::index_oid_t CreateIndex(catalog::CatalogAccessor *accessor, catalog::table_oid_t tbl_oid, std::string idx_name,
-                   catalog::IndexSchema schema, bool is_primary) {
+  catalog::index_oid_t CreateIndex(catalog::CatalogAccessor *accessor, catalog::table_oid_t tbl_oid,
+                                   std::string idx_name, catalog::IndexSchema schema, bool is_primary) {
     // Make sure index is queryable
     schema.SetValid(true);
 
@@ -108,9 +112,11 @@ class TpccPlanTest : public TerrierTest {
                             tpcc::Schemas::BuildOrderPrimaryIndexSchema(order_schema, &oid_counter), true);
     sk_order_ = CreateIndex(accessor, tbl_order_, "SK_ORDER",
                             tpcc::Schemas::BuildOrderSecondaryIndexSchema(order_schema, &oid_counter), true);
-    pk_order_line_ = CreateIndex(accessor, tbl_order_line_, "PK_ORDER_LINE",
-                                 tpcc::Schemas::BuildOrderLinePrimaryIndexSchema(order_line_schema, &oid_counter), true);
-    pk_item_ = CreateIndex(accessor, tbl_item_, "PK_ITEM", tpcc::Schemas::BuildItemPrimaryIndexSchema(item_schema, &oid_counter), true);
+    pk_order_line_ =
+        CreateIndex(accessor, tbl_order_line_, "PK_ORDER_LINE",
+                    tpcc::Schemas::BuildOrderLinePrimaryIndexSchema(order_line_schema, &oid_counter), true);
+    pk_item_ = CreateIndex(accessor, tbl_item_, "PK_ITEM",
+                           tpcc::Schemas::BuildItemPrimaryIndexSchema(item_schema, &oid_counter), true);
     pk_stock_ = CreateIndex(accessor, tbl_stock_, "PK_STOCK",
                             tpcc::Schemas::BuildStockPrimaryIndexSchema(stock_schema, &oid_counter), true);
 
@@ -119,18 +125,16 @@ class TpccPlanTest : public TerrierTest {
   }
 
  public:
-  static void CheckIndexScan(TpccPlanTest *test,
-                             parser::SelectStatement *sel_stmt,
-                             catalog::table_oid_t tbl_oid,
+  static void CheckIndexScan(TpccPlanTest *test, parser::SelectStatement *sel_stmt, catalog::table_oid_t tbl_oid,
                              std::shared_ptr<planner::AbstractPlanNode> plan) {
     const planner::AbstractPlanNode *node = plan.get();
     while (node != nullptr) {
       if (node->GetPlanNodeType() == planner::PlanNodeType::INDEXSCAN) {
-        EXPECT_TRUE(node->GetChildrenSize() == 0);
+        EXPECT_EQ(node->GetChildrenSize(), 0);
         break;
       }
 
-      EXPECT_TRUE(node->GetChildrenSize() <= 1);
+      EXPECT_LE(node->GetChildrenSize(), 1);
       if (node->GetChildrenSize() == 0) {
         node = nullptr;
         EXPECT_TRUE(false);
@@ -183,14 +187,16 @@ class TpccPlanTest : public TerrierTest {
 
   void EndTransaction(bool commit) {
     delete accessor_;
-    if (commit) txn_manager_->Commit(txn_, transaction::TransactionUtil::EmptyCallback, nullptr);
-    else txn_manager_->Abort(txn_);
+    if (commit)
+      txn_manager_->Commit(txn_, transaction::TransactionUtil::EmptyCallback, nullptr);
+    else
+      txn_manager_->Abort(txn_);
   }
 
   // Get predicates...
-  void GenerateTableAliasSet(const parser::AbstractExpression *expr, std::unordered_set<std::string> &table_alias_set) {
+  void GenerateTableAliasSet(const parser::AbstractExpression *expr, std::unordered_set<std::string> *table_alias_set) {
     if (expr->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE) {
-      table_alias_set.insert(reinterpret_cast<const parser::ColumnValueExpression *>(expr)->GetTableName());
+      table_alias_set->insert(reinterpret_cast<const parser::ColumnValueExpression *>(expr)->GetTableName());
     } else {
       for (size_t i = 0; i < expr->GetChildrenSize(); i++)
         GenerateTableAliasSet(expr->GetChild(i).get(), table_alias_set);
@@ -199,25 +205,25 @@ class TpccPlanTest : public TerrierTest {
 
   std::vector<optimizer::AnnotatedExpression> ExtractPredicates(const parser::AbstractExpression *expr) {
     std::vector<const parser::AbstractExpression *> preds;
-    SplitPredicates(expr, preds);
+    SplitPredicates(expr, &preds);
 
     std::vector<optimizer::AnnotatedExpression> annotated;
     for (auto &pred : preds) {
       std::unordered_set<std::string> table_alias;
-      GenerateTableAliasSet(pred, table_alias);
+      GenerateTableAliasSet(pred, &table_alias);
       annotated.emplace_back(common::ManagedPointer<const parser::AbstractExpression>(pred), std::move(table_alias));
     }
 
     return annotated;
   }
 
-  void SplitPredicates(const parser::AbstractExpression *expr, std::vector<const parser::AbstractExpression *> &preds) {
+  void SplitPredicates(const parser::AbstractExpression *expr, std::vector<const parser::AbstractExpression *> *preds) {
     if (expr->GetExpressionType() == parser::ExpressionType::CONJUNCTION_AND) {
       for (size_t idx = 0; idx < expr->GetChildrenSize(); idx++) {
         SplitPredicates(expr->GetChild(idx).get(), preds);
       }
     } else {
-      preds.push_back(expr);
+      preds->push_back(expr);
     }
   }
 
@@ -235,9 +241,9 @@ class TpccPlanTest : public TerrierTest {
       }
 
       if (front->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE) {
-        auto *cve = reinterpret_cast<const parser::ColumnValueExpression*>(front);
+        auto *cve = reinterpret_cast<const parser::ColumnValueExpression *>(front);
         EXPECT_TRUE(seen_names.find(cve->GetColumnName()) == seen_names.end());
-        auto *ccve = const_cast<parser::ColumnValueExpression*>(cve);
+        auto *ccve = const_cast<parser::ColumnValueExpression *>(cve);
 
         seen_names.insert(cve->GetColumnName());
 
@@ -254,8 +260,8 @@ class TpccPlanTest : public TerrierTest {
       }
 
       // Unfortunate binder hack!
-      const_cast<parser::AbstractExpression*>(front)->DeriveExpressionName();
-      const_cast<parser::AbstractExpression*>(front)->DeriveReturnValueType();
+      const_cast<parser::AbstractExpression *>(front)->DeriveExpressionName();
+      const_cast<parser::AbstractExpression *>(front)->DeriveReturnValueType();
     }
   }
 
@@ -263,7 +269,7 @@ class TpccPlanTest : public TerrierTest {
   void OptimizeInsert(std::string query, catalog::table_oid_t tbl_oid) {
     parser::PostgresParser pgparser;
     auto stmt_list = pgparser.BuildParseTree(query);
-    auto ins_stmt = reinterpret_cast<parser::InsertStatement*>(stmt_list[0].get());
+    auto ins_stmt = reinterpret_cast<parser::InsertStatement *>(stmt_list[0].get());
 
     BeginTransaction();
 
@@ -283,7 +289,9 @@ class TpccPlanTest : public TerrierTest {
     {
       std::vector<catalog::col_oid_t> oids = col_oids;
       std::vector<std::vector<common::ManagedPointer<const parser::AbstractExpression>>> ins = {row};
-      plan = new optimizer::OperatorExpression(optimizer::LogicalInsert::make(db_, accessor_->GetDefaultNamespace(), tbl_oid, std::move(oids), std::move(ins)), {});
+      plan = new optimizer::OperatorExpression(optimizer::LogicalInsert::make(db_, accessor_->GetDefaultNamespace(),
+                                                                              tbl_oid, std::move(oids), std::move(ins)),
+                                               {});
     }
 
     auto query_info = optimizer::QueryInfo(parser::StatementType::INSERT, {}, property_set);
@@ -312,18 +320,20 @@ class TpccPlanTest : public TerrierTest {
   void OptimizeUpdate(std::string query, std::string tbl_alias, catalog::table_oid_t tbl_oid) {
     parser::PostgresParser pgparser;
     auto stmt_list = pgparser.BuildParseTree(query);
-    auto upd_stmt = reinterpret_cast<parser::UpdateStatement*>(stmt_list[0].get());
+    auto upd_stmt = reinterpret_cast<parser::UpdateStatement *>(stmt_list[0].get());
 
     BeginTransaction();
-    std::vector<optimizer::OperatorExpression*> child;
+    std::vector<optimizer::OperatorExpression *> child;
     if (upd_stmt->GetUpdateCondition()) {
       auto *upd_cond = upd_stmt->GetUpdateCondition()->Copy();
-      txn_->RegisterCommitAction([=](){ delete upd_cond; });
-      txn_->RegisterAbortAction([=](){ delete upd_cond; });
+      txn_->RegisterCommitAction([=]() { delete upd_cond; });
+      txn_->RegisterAbortAction([=]() { delete upd_cond; });
       BindColumnValues(upd_cond, tbl_oid, tbl_alias);
 
       auto predicates = ExtractPredicates(upd_cond);
-      auto *get = new optimizer::OperatorExpression(optimizer::LogicalGet::make(db_, accessor_->GetDefaultNamespace(), tbl_oid, predicates, tbl_alias, false), {});
+      auto *get = new optimizer::OperatorExpression(
+          optimizer::LogicalGet::make(db_, accessor_->GetDefaultNamespace(), tbl_oid, predicates, tbl_alias, false),
+          {});
       child.push_back(get);
     }
 
@@ -336,7 +346,9 @@ class TpccPlanTest : public TerrierTest {
       clauses.emplace_back(upd.get());
     }
 
-    auto plan = new optimizer::OperatorExpression(optimizer::LogicalUpdate::make(db_, accessor_->GetDefaultNamespace(), tbl_alias, tbl_oid, std::move(clauses)), std::move(child));
+    auto plan = new optimizer::OperatorExpression(
+        optimizer::LogicalUpdate::make(db_, accessor_->GetDefaultNamespace(), tbl_alias, tbl_oid, std::move(clauses)),
+        std::move(child));
 
     auto property_set = new optimizer::PropertySet();
     auto query_info = optimizer::QueryInfo(parser::StatementType::UPDATE, {}, property_set);
@@ -355,13 +367,11 @@ class TpccPlanTest : public TerrierTest {
 
   // Optimize a Query
   void OptimizeQuery(std::string query, std::string tbl_alias, catalog::table_oid_t tbl_oid,
-                     void (*Check)(TpccPlanTest *test,
-                                   parser::SelectStatement *sel_stmt,
-                                   catalog::table_oid_t tbl_oid,
+                     void (*Check)(TpccPlanTest *test, parser::SelectStatement *sel_stmt, catalog::table_oid_t tbl_oid,
                                    std::shared_ptr<planner::AbstractPlanNode> plan)) {
     parser::PostgresParser pgparser;
     auto stmt_list = pgparser.BuildParseTree(query);
-    auto sel_stmt = reinterpret_cast<parser::SelectStatement*>(stmt_list[0].get());
+    auto sel_stmt = reinterpret_cast<parser::SelectStatement *>(stmt_list[0].get());
 
     BeginTransaction();
 
@@ -374,18 +384,20 @@ class TpccPlanTest : public TerrierTest {
     }
 
     // Build Get Plan
-    auto plan = new optimizer::OperatorExpression(optimizer::LogicalGet::make(db_, accessor_->GetDefaultNamespace(), tbl_oid, {}, tbl_alias, false), {});
+    auto plan = new optimizer::OperatorExpression(
+        optimizer::LogicalGet::make(db_, accessor_->GetDefaultNamespace(), tbl_oid, {}, tbl_alias, false), {});
 
     // Build Filter if exists
     if (sel_stmt->GetSelectCondition()) {
       auto predicate = sel_stmt->GetSelectCondition()->Copy();
-      txn_->RegisterCommitAction([=](){ delete predicate; });
-      txn_->RegisterAbortAction([=](){ delete predicate; });
+      txn_->RegisterCommitAction([=]() { delete predicate; });
+      txn_->RegisterAbortAction([=]() { delete predicate; });
       BindColumnValues(predicate, tbl_oid, tbl_alias);
 
       auto predicates = ExtractPredicates(predicate);
       auto children = {plan};
-      plan = new optimizer::OperatorExpression(optimizer::LogicalFilter::make(std::move(predicates)), std::move(children));
+      plan =
+          new optimizer::OperatorExpression(optimizer::LogicalFilter::make(std::move(predicates)), std::move(children));
     }
 
     std::vector<planner::OrderByOrderingType> sort_dirs;
@@ -398,8 +410,8 @@ class TpccPlanTest : public TerrierTest {
         BindColumnValues(ob_expr, tbl_oid, tbl_alias);
 
         sort_exprs.emplace_back(ob_expr);
-        sort_dirs.push_back(ob_type == parser::OrderType::kOrderAsc ?
-                            planner::OrderByOrderingType::ASC : planner::OrderByOrderingType::DESC);
+        sort_dirs.push_back(ob_type == parser::OrderType::kOrderAsc ? planner::OrderByOrderingType::ASC
+                                                                    : planner::OrderByOrderingType::DESC);
       }
 
       auto sort_prop = new optimizer::PropertySort(sort_exprs, sort_dirs);
@@ -412,7 +424,9 @@ class TpccPlanTest : public TerrierTest {
       auto lim_child = {plan};
       auto offset = sel_stmt->GetSelectLimit()->GetOffset();
       auto limit = sel_stmt->GetSelectLimit()->GetLimit();
-      plan = new optimizer::OperatorExpression(optimizer::LogicalLimit::make(offset, limit, std::move(sort_exprs), std::move(sort_dirs)), std::move(lim_child));
+      plan = new optimizer::OperatorExpression(
+          optimizer::LogicalLimit::make(offset, limit, std::move(sort_exprs), std::move(sort_dirs)),
+          std::move(lim_child));
     }
 
     auto query_info = optimizer::QueryInfo(parser::StatementType::SELECT, std::move(output), property_set);

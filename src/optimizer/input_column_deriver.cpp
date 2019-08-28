@@ -202,7 +202,7 @@ void InputColumnDeriver::AggregateHelper(const BaseOperatorNode *op) {
     parser::ExpressionUtil::GetTupleAndAggregateExprs(&aggr_exprs, &tv_exprs, expr);
 
     for (auto &aggr_expr : aggr_exprs) {
-      if (output_cols_map.count(aggr_expr) == 0u) {
+      if (output_cols_map.count(aggr_expr) == 0U) {
         // Add this AggregateExpression to output column since it is an output
         output_cols_map[aggr_expr] = output_col_idx++;
         size_t child_size = aggr_expr->GetChildrenSize();
@@ -215,7 +215,7 @@ void InputColumnDeriver::AggregateHelper(const BaseOperatorNode *op) {
 
     // TV expr not in aggregation (must be in groupby, so we do not need to add to input columns)
     for (auto &tv_expr : tv_exprs) {
-      if (output_cols_map.count(tv_expr) == 0u) {
+      if (output_cols_map.count(tv_expr) == 0U) {
         output_cols_map[tv_expr] = output_col_idx++;
       }
     }
@@ -331,7 +331,7 @@ void InputColumnDeriver::JoinHelper(const BaseOperatorNode *op) {
     // Pick the build or probe side depending on the table
     std::string tv_table_name = tv_expr->GetTableName();
     TERRIER_ASSERT(!tv_table_name.empty(), "Table Name should not be empty");
-    if (build_table_aliases.count(tv_table_name) != 0u) {
+    if (build_table_aliases.count(tv_table_name) != 0U) {
       build_table_cols_set.insert(col);
     } else {
       TERRIER_ASSERT(probe_table_aliases.count(tv_table_name), "tv_expr should be against probe table");

@@ -206,9 +206,10 @@ common::hash_t LogicalProjection::Hash() const {
 //===--------------------------------------------------------------------===//
 BaseOperatorNode *LogicalInsert::Copy() const { return new LogicalInsert(*this); }
 
-Operator LogicalInsert::make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
-                             catalog::table_oid_t table_oid, std::vector<catalog::col_oid_t> &&columns,
-                             std::vector<std::vector<common::ManagedPointer<const parser::AbstractExpression>>> &&values) {
+Operator LogicalInsert::make(
+    catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid,
+    std::vector<catalog::col_oid_t> &&columns,
+    std::vector<std::vector<common::ManagedPointer<const parser::AbstractExpression>>> &&values) {
 #ifndef NDEBUG
   // We need to check whether the number of values for each insert vector
   // matches the number of columns
@@ -691,15 +692,17 @@ Operator LogicalAggregateAndGroupBy::make() {
   return Operator(group_by);
 }
 
-Operator LogicalAggregateAndGroupBy::make(std::vector<common::ManagedPointer<const parser::AbstractExpression>> &&columns) {
+Operator LogicalAggregateAndGroupBy::make(
+    std::vector<common::ManagedPointer<const parser::AbstractExpression>> &&columns) {
   auto *group_by = new LogicalAggregateAndGroupBy;
   group_by->columns_ = std::move(columns);
   group_by->having_ = {};
   return Operator(group_by);
 }
 
-Operator LogicalAggregateAndGroupBy::make(std::vector<common::ManagedPointer<const parser::AbstractExpression>> &&columns,
-                                          std::vector<AnnotatedExpression> &&having) {
+Operator LogicalAggregateAndGroupBy::make(
+    std::vector<common::ManagedPointer<const parser::AbstractExpression>> &&columns,
+    std::vector<AnnotatedExpression> &&having) {
   auto *group_by = new LogicalAggregateAndGroupBy;
   group_by->columns_ = std::move(columns);
   group_by->having_ = std::move(having);

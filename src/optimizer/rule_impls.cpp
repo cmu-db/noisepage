@@ -122,7 +122,7 @@ void InnerJoinAssociativity::Transform(OperatorExpression *input, std::vector<Op
 
   std::vector<AnnotatedExpression> new_child_join_predicates;
   std::vector<AnnotatedExpression> new_parent_join_predicates;
-  for (auto predicate : predicates) {
+  for (const auto &predicate : predicates) {
     if (util::IsSubset(right_join_aliases_set, predicate.GetTableAliasSet())) {
       new_child_join_predicates.emplace_back(predicate);
     } else {

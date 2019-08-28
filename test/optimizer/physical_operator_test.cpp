@@ -39,16 +39,19 @@ TEST(OperatorTests, SeqScanTest) {
   //===--------------------------------------------------------------------===//
   // SeqScan
   //===--------------------------------------------------------------------===//
-  const parser::AbstractExpression *expr_b_1 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
-  const parser::AbstractExpression *expr_b_2 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
-  const parser::AbstractExpression *expr_b_3 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(false));
+  const parser::AbstractExpression *expr_b_1 =
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+  const parser::AbstractExpression *expr_b_2 =
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+  const parser::AbstractExpression *expr_b_3 =
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(false));
 
   auto x_1 = common::ManagedPointer<const parser::AbstractExpression>(expr_b_1);
   auto x_2 = common::ManagedPointer<const parser::AbstractExpression>(expr_b_2);
   auto x_3 = common::ManagedPointer<const parser::AbstractExpression>(expr_b_3);
 
-  auto annotated_expr_0 =
-      AnnotatedExpression(common::ManagedPointer<const parser::AbstractExpression>(), std::unordered_set<std::string>());
+  auto annotated_expr_0 = AnnotatedExpression(common::ManagedPointer<const parser::AbstractExpression>(),
+                                              std::unordered_set<std::string>());
   auto annotated_expr_1 = AnnotatedExpression(x_1, std::unordered_set<std::string>());
   auto annotated_expr_2 = AnnotatedExpression(x_2, std::unordered_set<std::string>());
   auto annotated_expr_3 = AnnotatedExpression(x_3, std::unordered_set<std::string>());
@@ -117,16 +120,19 @@ TEST(OperatorTests, IndexScanTest) {
   // IndexScan
   //===--------------------------------------------------------------------===//
   // predicates
-  const parser::AbstractExpression *expr_b_1 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
-  const parser::AbstractExpression *expr_b_2 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
-  const parser::AbstractExpression *expr_b_3 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(false));
+  const parser::AbstractExpression *expr_b_1 =
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+  const parser::AbstractExpression *expr_b_2 =
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+  const parser::AbstractExpression *expr_b_3 =
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(false));
 
   auto x_1 = common::ManagedPointer<const parser::AbstractExpression>(expr_b_1);
   auto x_2 = common::ManagedPointer<const parser::AbstractExpression>(expr_b_2);
   auto x_3 = common::ManagedPointer<const parser::AbstractExpression>(expr_b_3);
 
-  auto annotated_expr_0 =
-      AnnotatedExpression(common::ManagedPointer<const parser::AbstractExpression>(), std::unordered_set<std::string>());
+  auto annotated_expr_0 = AnnotatedExpression(common::ManagedPointer<const parser::AbstractExpression>(),
+                                              std::unordered_set<std::string>());
   auto annotated_expr_1 = AnnotatedExpression(x_1, std::unordered_set<std::string>());
   auto annotated_expr_2 = AnnotatedExpression(x_2, std::unordered_set<std::string>());
   auto annotated_expr_3 = AnnotatedExpression(x_3, std::unordered_set<std::string>());
@@ -286,12 +292,18 @@ TEST(OperatorTests, QueryDerivedScanTest) {
   //===--------------------------------------------------------------------===//
   // QueryDerivedScan
   //===--------------------------------------------------------------------===//
-  auto alias_to_expr_map_1 = std::unordered_map<std::string, common::ManagedPointer<const parser::AbstractExpression>>();
-  auto alias_to_expr_map_1_1 = std::unordered_map<std::string, common::ManagedPointer<const parser::AbstractExpression>>();
-  auto alias_to_expr_map_2 = std::unordered_map<std::string, common::ManagedPointer<const parser::AbstractExpression>>();
-  auto alias_to_expr_map_3 = std::unordered_map<std::string, common::ManagedPointer<const parser::AbstractExpression>>();
-  auto alias_to_expr_map_4 = std::unordered_map<std::string, common::ManagedPointer<const parser::AbstractExpression>>();
-  auto alias_to_expr_map_5 = std::unordered_map<std::string, common::ManagedPointer<const parser::AbstractExpression>>();
+  auto alias_to_expr_map_1 =
+      std::unordered_map<std::string, common::ManagedPointer<const parser::AbstractExpression>>();
+  auto alias_to_expr_map_1_1 =
+      std::unordered_map<std::string, common::ManagedPointer<const parser::AbstractExpression>>();
+  auto alias_to_expr_map_2 =
+      std::unordered_map<std::string, common::ManagedPointer<const parser::AbstractExpression>>();
+  auto alias_to_expr_map_3 =
+      std::unordered_map<std::string, common::ManagedPointer<const parser::AbstractExpression>>();
+  auto alias_to_expr_map_4 =
+      std::unordered_map<std::string, common::ManagedPointer<const parser::AbstractExpression>>();
+  auto alias_to_expr_map_5 =
+      std::unordered_map<std::string, common::ManagedPointer<const parser::AbstractExpression>>();
 
   const parser::AbstractExpression *expr_b_1 =
       new parser::ConstantValueExpression(type::TransientValueFactory::GetTinyInt(1));
@@ -390,16 +402,19 @@ TEST(OperatorTests, InnerNLJoinTest) {
   //===--------------------------------------------------------------------===//
   // InnerNLJoin
   //===--------------------------------------------------------------------===//
-  const parser::AbstractExpression *expr_b_1 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
-  const parser::AbstractExpression *expr_b_2 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
-  const parser::AbstractExpression *expr_b_3 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(false));
+  const parser::AbstractExpression *expr_b_1 =
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+  const parser::AbstractExpression *expr_b_2 =
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+  const parser::AbstractExpression *expr_b_3 =
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(false));
 
   auto x_1 = common::ManagedPointer<const parser::AbstractExpression>(expr_b_1);
   auto x_2 = common::ManagedPointer<const parser::AbstractExpression>(expr_b_2);
   auto x_3 = common::ManagedPointer<const parser::AbstractExpression>(expr_b_3);
 
-  auto annotated_expr_0 =
-      AnnotatedExpression(common::ManagedPointer<const parser::AbstractExpression>(), std::unordered_set<std::string>());
+  auto annotated_expr_0 = AnnotatedExpression(common::ManagedPointer<const parser::AbstractExpression>(),
+                                              std::unordered_set<std::string>());
   auto annotated_expr_1 = AnnotatedExpression(x_1, std::unordered_set<std::string>());
   auto annotated_expr_2 = AnnotatedExpression(x_2, std::unordered_set<std::string>());
   auto annotated_expr_3 = AnnotatedExpression(x_3, std::unordered_set<std::string>());
@@ -451,9 +466,12 @@ TEST(OperatorTests, LeftNLJoinTest) {
   //===--------------------------------------------------------------------===//
   // LeftNLJoin
   //===--------------------------------------------------------------------===//
-  const parser::AbstractExpression *expr_b_1 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
-  const parser::AbstractExpression *expr_b_2 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
-  const parser::AbstractExpression *expr_b_3 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(false));
+  const parser::AbstractExpression *expr_b_1 =
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+  const parser::AbstractExpression *expr_b_2 =
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+  const parser::AbstractExpression *expr_b_3 =
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(false));
 
   auto x_1 = common::ManagedPointer<const parser::AbstractExpression>(expr_b_1);
   auto x_2 = common::ManagedPointer<const parser::AbstractExpression>(expr_b_2);
@@ -484,9 +502,12 @@ TEST(OperatorTests, RightNLJoinTest) {
   //===--------------------------------------------------------------------===//
   // RightNLJoin
   //===--------------------------------------------------------------------===//
-  const parser::AbstractExpression *expr_b_1 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
-  const parser::AbstractExpression *expr_b_2 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
-  const parser::AbstractExpression *expr_b_3 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(false));
+  const parser::AbstractExpression *expr_b_1 =
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+  const parser::AbstractExpression *expr_b_2 =
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+  const parser::AbstractExpression *expr_b_3 =
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(false));
 
   auto x_1 = common::ManagedPointer<const parser::AbstractExpression>(expr_b_1);
   auto x_2 = common::ManagedPointer<const parser::AbstractExpression>(expr_b_2);
@@ -517,9 +538,12 @@ TEST(OperatorTests, OuterNLJoin) {
   //===--------------------------------------------------------------------===//
   // OuterNLJoin
   //===--------------------------------------------------------------------===//
-  const parser::AbstractExpression *expr_b_1 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
-  const parser::AbstractExpression *expr_b_2 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
-  const parser::AbstractExpression *expr_b_3 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(false));
+  const parser::AbstractExpression *expr_b_1 =
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+  const parser::AbstractExpression *expr_b_2 =
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+  const parser::AbstractExpression *expr_b_3 =
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(false));
 
   auto x_1 = common::ManagedPointer<const parser::AbstractExpression>(expr_b_1);
   auto x_2 = common::ManagedPointer<const parser::AbstractExpression>(expr_b_2);
@@ -550,16 +574,19 @@ TEST(OperatorTests, InnerHashJoinTest) {
   //===--------------------------------------------------------------------===//
   // InnerHashJoin
   //===--------------------------------------------------------------------===//
-  const parser::AbstractExpression *expr_b_1 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
-  const parser::AbstractExpression *expr_b_2 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
-  const parser::AbstractExpression *expr_b_3 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(false));
+  const parser::AbstractExpression *expr_b_1 =
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+  const parser::AbstractExpression *expr_b_2 =
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+  const parser::AbstractExpression *expr_b_3 =
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(false));
 
   auto x_1 = common::ManagedPointer<const parser::AbstractExpression>(expr_b_1);
   auto x_2 = common::ManagedPointer<const parser::AbstractExpression>(expr_b_2);
   auto x_3 = common::ManagedPointer<const parser::AbstractExpression>(expr_b_3);
 
-  auto annotated_expr_0 =
-      AnnotatedExpression(common::ManagedPointer<const parser::AbstractExpression>(), std::unordered_set<std::string>());
+  auto annotated_expr_0 = AnnotatedExpression(common::ManagedPointer<const parser::AbstractExpression>(),
+                                              std::unordered_set<std::string>());
   auto annotated_expr_1 = AnnotatedExpression(x_1, std::unordered_set<std::string>());
   auto annotated_expr_2 = AnnotatedExpression(x_2, std::unordered_set<std::string>());
   auto annotated_expr_3 = AnnotatedExpression(x_3, std::unordered_set<std::string>());
@@ -613,9 +640,12 @@ TEST(OperatorTests, LeftHashJoinTest) {
   //===--------------------------------------------------------------------===//
   // LeftHashJoin
   //===--------------------------------------------------------------------===//
-  const parser::AbstractExpression *expr_b_1 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
-  const parser::AbstractExpression *expr_b_2 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
-  const parser::AbstractExpression *expr_b_3 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(false));
+  const parser::AbstractExpression *expr_b_1 =
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+  const parser::AbstractExpression *expr_b_2 =
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+  const parser::AbstractExpression *expr_b_3 =
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(false));
 
   auto x_1 = common::ManagedPointer<const parser::AbstractExpression>(expr_b_1);
   auto x_2 = common::ManagedPointer<const parser::AbstractExpression>(expr_b_2);
@@ -646,9 +676,12 @@ TEST(OperatorTests, RightHashJoinTest) {
   //===--------------------------------------------------------------------===//
   // RightHashJoin
   //===--------------------------------------------------------------------===//
-  const parser::AbstractExpression *expr_b_1 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
-  const parser::AbstractExpression *expr_b_2 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
-  const parser::AbstractExpression *expr_b_3 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(false));
+  const parser::AbstractExpression *expr_b_1 =
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+  const parser::AbstractExpression *expr_b_2 =
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+  const parser::AbstractExpression *expr_b_3 =
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(false));
 
   auto x_1 = common::ManagedPointer<const parser::AbstractExpression>(expr_b_1);
   auto x_2 = common::ManagedPointer<const parser::AbstractExpression>(expr_b_2);
@@ -679,9 +712,12 @@ TEST(OperatorTests, OuterHashJoinTest) {
   //===--------------------------------------------------------------------===//
   // OuterHashJoin
   //===--------------------------------------------------------------------===//
-  const parser::AbstractExpression *expr_b_1 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
-  const parser::AbstractExpression *expr_b_2 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
-  const parser::AbstractExpression *expr_b_3 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(false));
+  const parser::AbstractExpression *expr_b_1 =
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+  const parser::AbstractExpression *expr_b_2 =
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+  const parser::AbstractExpression *expr_b_3 =
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(false));
 
   auto x_1 = common::ManagedPointer<const parser::AbstractExpression>(expr_b_1);
   auto x_2 = common::ManagedPointer<const parser::AbstractExpression>(expr_b_2);
@@ -908,10 +944,14 @@ TEST(OperatorTests, HashGroupByTest) {
   // HashGroupBy
   //===--------------------------------------------------------------------===//
   // ConstValueExpression subclass AbstractExpression
-  const parser::AbstractExpression *expr_b_1 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
-  const parser::AbstractExpression *expr_b_2 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
-  const parser::AbstractExpression *expr_b_3 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(false));
-  const parser::AbstractExpression *expr_b_7 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(false));
+  const parser::AbstractExpression *expr_b_1 =
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+  const parser::AbstractExpression *expr_b_2 =
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+  const parser::AbstractExpression *expr_b_3 =
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(false));
+  const parser::AbstractExpression *expr_b_7 =
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(false));
 
   // columns: vector of shared_ptr of AbstractExpression
   auto x_1 = common::ManagedPointer<const parser::AbstractExpression>(expr_b_1);
@@ -920,18 +960,22 @@ TEST(OperatorTests, HashGroupByTest) {
   auto x_7 = common::ManagedPointer<const parser::AbstractExpression>(expr_b_7);
 
   // ConstValueExpression subclass AbstractExpression
-  const parser::AbstractExpression *expr_b_4 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
-  const parser::AbstractExpression *expr_b_5 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
-  const parser::AbstractExpression *expr_b_8 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
-  const parser::AbstractExpression *expr_b_6 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(false));
+  const parser::AbstractExpression *expr_b_4 =
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+  const parser::AbstractExpression *expr_b_5 =
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+  const parser::AbstractExpression *expr_b_8 =
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+  const parser::AbstractExpression *expr_b_6 =
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(false));
   auto x_4 = common::ManagedPointer<const parser::AbstractExpression>(expr_b_4);
   auto x_5 = common::ManagedPointer<const parser::AbstractExpression>(expr_b_5);
   auto x_6 = common::ManagedPointer<const parser::AbstractExpression>(expr_b_6);
   auto x_8 = common::ManagedPointer<const parser::AbstractExpression>(expr_b_8);
 
   // havings: vector of AnnotatedExpression
-  auto annotated_expr_0 =
-      AnnotatedExpression(common::ManagedPointer<const parser::AbstractExpression>(), std::unordered_set<std::string>());
+  auto annotated_expr_0 = AnnotatedExpression(common::ManagedPointer<const parser::AbstractExpression>(),
+                                              std::unordered_set<std::string>());
   auto annotated_expr_1 = AnnotatedExpression(x_4, std::unordered_set<std::string>());
   auto annotated_expr_2 = AnnotatedExpression(x_5, std::unordered_set<std::string>());
   auto annotated_expr_3 = AnnotatedExpression(x_6, std::unordered_set<std::string>());
@@ -987,10 +1031,14 @@ TEST(OperatorTests, SortGroupByTest) {
   // SortGroupBy
   //===--------------------------------------------------------------------===//
   // ConstValueExpression subclass AbstractExpression
-  const parser::AbstractExpression *expr_b_1 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
-  const parser::AbstractExpression *expr_b_2 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
-  const parser::AbstractExpression *expr_b_3 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(false));
-  const parser::AbstractExpression *expr_b_7 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(false));
+  const parser::AbstractExpression *expr_b_1 =
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+  const parser::AbstractExpression *expr_b_2 =
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+  const parser::AbstractExpression *expr_b_3 =
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(false));
+  const parser::AbstractExpression *expr_b_7 =
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(false));
 
   // columns: vector of shared_ptr of AbstractExpression
   auto x_1 = common::ManagedPointer<const parser::AbstractExpression>(expr_b_1);
@@ -999,18 +1047,22 @@ TEST(OperatorTests, SortGroupByTest) {
   auto x_7 = common::ManagedPointer<const parser::AbstractExpression>(expr_b_7);
 
   // ConstValueExpression subclass AbstractExpression
-  const parser::AbstractExpression *expr_b_4 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
-  const parser::AbstractExpression *expr_b_5 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
-  const parser::AbstractExpression *expr_b_8 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
-  const parser::AbstractExpression *expr_b_6 = new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(false));
+  const parser::AbstractExpression *expr_b_4 =
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+  const parser::AbstractExpression *expr_b_5 =
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+  const parser::AbstractExpression *expr_b_8 =
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(true));
+  const parser::AbstractExpression *expr_b_6 =
+      new parser::ConstantValueExpression(type::TransientValueFactory::GetBoolean(false));
   auto x_4 = common::ManagedPointer<const parser::AbstractExpression>(expr_b_4);
   auto x_5 = common::ManagedPointer<const parser::AbstractExpression>(expr_b_5);
   auto x_6 = common::ManagedPointer<const parser::AbstractExpression>(expr_b_6);
   auto x_8 = common::ManagedPointer<const parser::AbstractExpression>(expr_b_8);
 
   // havings: vector of AnnotatedExpression
-  auto annotated_expr_0 =
-      AnnotatedExpression(common::ManagedPointer<const parser::AbstractExpression>(), std::unordered_set<std::string>());
+  auto annotated_expr_0 = AnnotatedExpression(common::ManagedPointer<const parser::AbstractExpression>(),
+                                              std::unordered_set<std::string>());
   auto annotated_expr_1 = AnnotatedExpression(x_4, std::unordered_set<std::string>());
   auto annotated_expr_2 = AnnotatedExpression(x_5, std::unordered_set<std::string>());
   auto annotated_expr_3 = AnnotatedExpression(x_6, std::unordered_set<std::string>());

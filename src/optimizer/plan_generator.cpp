@@ -172,7 +172,7 @@ std::vector<catalog::col_oid_t> PlanGenerator::GenerateColumnsForScan() {
 std::shared_ptr<planner::OutputSchema> PlanGenerator::GenerateScanOutputSchema(catalog::table_oid_t tbl_oid) {
   // DirectMap provides a map into the actual underlying tuple...
   // Underlying tuple provided by the table's schema.
-  // TODO[Execution Engine]: Verify this
+  // TODO(Execution Engine): Verify this
   const auto &schema = accessor_->GetSchema(tbl_oid);
   std::unordered_map<catalog::col_oid_t, unsigned> coloid_to_offset;
   for (size_t idx = 0; idx < schema.GetColumns().size(); idx++) {
@@ -303,7 +303,7 @@ void PlanGenerator::Visit(const ExternalFileScan *op) {
 
       unsigned idx = 0;
       for (const auto *output_col : output_cols_) {
-        dml.emplace_back(idx, std::make_pair(0u, idx));
+        dml.emplace_back(idx, std::make_pair(0U, idx));
         out_cols.emplace_back(output_col->GetExpressionName(), output_col->GetReturnValueType());
         value_types.push_back(output_col->GetReturnValueType());
         idx++;
@@ -347,7 +347,7 @@ void PlanGenerator::Visit(const QueryDerivedScan *op) {
     auto expr = alias_expr_map.at(colve->GetColumnName()).get();
     auto offset = child_expr_map.at(expr);
 
-    dml.emplace_back(idx, std::make_pair(0u, offset));
+    dml.emplace_back(idx, std::make_pair(0U, offset));
     columns.emplace_back(colve->GetColumnName(), colve->GetReturnValueType());
     idx++;
   }
@@ -388,7 +388,8 @@ void PlanGenerator::Visit(const Limit *op) {
       auto u_idx = static_cast<unsigned>(idx);
       child_dml.emplace_back(u_idx, std::make_pair(0, u_idx));
     }
-    auto output_schema = std::make_shared<planner::OutputSchema>(std::move(child_columns), std::move(child_dl), std::move(child_dml));
+    auto output_schema =
+        std::make_shared<planner::OutputSchema>(std::move(child_columns), std::move(child_dl), std::move(child_dml));
 
     auto order_build = new planner::OrderByPlanNode::Builder();
     order_build->SetOutputSchema(std::move(output_schema));
@@ -424,13 +425,14 @@ void PlanGenerator::Visit(const Limit *op) {
     auto u_idx = static_cast<unsigned>(idx);
     child_dml.emplace_back(u_idx, std::make_pair(0, u_idx));
   }
-  auto limit_out = std::make_shared<planner::OutputSchema>(std::move(child_columns), std::move(child_dl), std::move(child_dml));
+  auto limit_out =
+      std::make_shared<planner::OutputSchema>(std::move(child_columns), std::move(child_dl), std::move(child_dml));
   output_plan_ = planner::LimitPlanNode::Builder()
-                      .SetOutputSchema(std::move(limit_out))
-                      .SetLimit(op->GetLimit())
-                      .SetOffset(op->GetOffset())
-                      .AddChild(std::move(output_plan_))
-                      .Build();
+                     .SetOutputSchema(std::move(limit_out))
+                     .SetLimit(op->GetLimit())
+                     .SetOffset(op->GetOffset())
+                     .AddChild(std::move(output_plan_))
+                     .Build();
 }
 
 void PlanGenerator::Visit(UNUSED_ATTRIBUTE const OrderBy *op) {
@@ -457,7 +459,8 @@ void PlanGenerator::Visit(UNUSED_ATTRIBUTE const OrderBy *op) {
     auto u_idx = static_cast<unsigned>(idx);
     child_dml.emplace_back(u_idx, std::make_pair(0, u_idx));
   }
-  builder->SetOutputSchema(std::make_shared<planner::OutputSchema>(std::move(child_columns), std::move(child_dl), std::move(child_dml)));
+  builder->SetOutputSchema(
+      std::make_shared<planner::OutputSchema>(std::move(child_columns), std::move(child_dl), std::move(child_dml)));
 
   for (size_t i = 0; i < sort_columns_size; ++i) {
     auto sort_dir = sort_prop->GetSortAscending(static_cast<int>(i));
@@ -553,9 +556,9 @@ std::shared_ptr<planner::OutputSchema> PlanGenerator::GenerateProjectionForJoin(
   size_t output_offset = 0;
   for (auto &expr : output_cols_) {
     auto col = planner::OutputSchema::Column(expr->GetExpressionName(), expr->GetReturnValueType());
-    if (l_child_expr_map.count(expr) != 0u) {
+    if (l_child_expr_map.count(expr) != 0U) {
       dml.emplace_back(output_offset, std::make_pair(0, l_child_expr_map[expr]));
-    } else if (r_child_expr_map.count(expr) != 0u) {
+    } else if (r_child_expr_map.count(expr) != 0U) {
       dml.emplace_back(output_offset, std::make_pair(1, r_child_expr_map[expr]));
     } else {
       // Pass owneship to DerivedColumn
@@ -776,6 +779,7 @@ void PlanGenerator::Visit(const Insert *op) {
   auto values = op->GetValues();
   for (auto &tuple_value : values) {
     std::vector<const parser::AbstractExpression *> row;
+    row.reserve(tuple_value.size());
     for (auto &col_value : tuple_value) row.push_back(col_value.get());
 
     builder->AddValues(std::move(row));
@@ -823,7 +827,7 @@ void PlanGenerator::Visit(const InsertSelect *op) {
   std::vector<planner::OutputSchema::DerivedTarget> dl;
   std::vector<planner::OutputSchema::DirectMap> dml;
   for (size_t idx = 0; idx < cols.size(); idx++) {
-    unsigned u_idx = static_cast<unsigned>(idx);
+    auto u_idx = static_cast<unsigned>(idx);
     dml.emplace_back(u_idx, std::make_pair(0, u_idx));
   }
   auto output_schema = std::make_shared<planner::OutputSchema>(std::move(cols), std::move(dl), std::move(dml));
@@ -880,8 +884,7 @@ void PlanGenerator::Visit(const Update *op) {
   // Evaluate update expression and add to target list
   auto updates = op->GetUpdateClauses();
   for (auto &update : updates) {
-    auto col_name = update->GetColumnName();
-    auto col = tbl_schema.GetColumn(col_name);
+    auto col = tbl_schema.GetColumn(update->GetColumnName());
     auto col_id = col.Oid();
     if (update_col_offsets.find(col_id) != update_col_offsets.end())
       throw SYNTAX_EXCEPTION("Multiple assignments to same column");
@@ -889,7 +892,7 @@ void PlanGenerator::Visit(const Update *op) {
     update_col_offsets.insert(col_id);
     auto value = parser::ExpressionUtil::EvaluateExpression({table_expr_map}, update->GetUpdateValue().get());
 
-    auto plan_col = planner::OutputSchema::Column(col_name, col.Type());
+    auto plan_col = planner::OutputSchema::Column(update->GetColumnName(), col.Type());
 
     // col_id in peloton just incremented from 0...
     // What we are looking for is the offset in the vector of schema columns

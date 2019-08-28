@@ -89,13 +89,13 @@ class Group {
    * Gets the vector of all logical expressions
    * @returns Logical expressions belonging to this group
    */
-  const std::vector<GroupExpression *> GetLogicalExpressions() const { return logical_expressions_; }
+  const std::vector<GroupExpression *> &GetLogicalExpressions() const { return logical_expressions_; }
 
   /**
    * Gets the vector of all physical expressions
    *@returns Physical expressions belonging to this group
    */
-  const std::vector<GroupExpression *> GetPhysicalExpressions() const { return physical_expressions_; }
+  const std::vector<GroupExpression *> &GetPhysicalExpressions() const { return physical_expressions_; }
 
   /**
    * Gets the cost lower bound
@@ -144,19 +144,41 @@ class Group {
   }
 
  private:
+  /**
+   * Group ID
+   */
   GroupID id_;
 
-  // All the table alias this group represents. This will not change once create
-  // TODO(boweic) Do not use string, store table alias id
+  /**
+   * All the table alias this group represents. This will not change once create
+   * TODO(boweic) Do not use string, store table alias id
+   */
   std::unordered_set<std::string> table_aliases_;
+
+  /**
+   * Mapping from property requirements to a pair of (cost, GroupExpression)
+   */
   std::unordered_map<PropertySet *, std::tuple<double, GroupExpression *>, PropSetPtrHash, PropSetPtrEq>
       lowest_cost_expressions_;
 
-  // Whether equivalent logical expressions have been explored for this group
+  /**
+   *Whether equivalent logical expressions have been explored for this group
+   */
   bool has_explored_;
 
+  /**
+   * Vector of equivalent logical expressions
+   */
   std::vector<GroupExpression *> logical_expressions_;
+
+  /**
+   * Vector of equivalent physical expressions
+   */
   std::vector<GroupExpression *> physical_expressions_;
+
+  /**
+   * Vector of expressions with properties enforced
+   */
   std::vector<GroupExpression *> enforced_exprs_;
 
   int num_rows_ = -1;

@@ -1,5 +1,7 @@
-#include "util/tpcc/tpcc_plan_test.h"
+#include <string>
+
 #include "util/test_harness.h"
+#include "util/tpcc/tpcc_plan_test.h"
 
 namespace terrier {
 

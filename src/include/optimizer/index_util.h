@@ -198,15 +198,13 @@ class IndexUtil {
       const parser::AbstractExpression *value_expr = nullptr;
       if (expr->GetChild(0)->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE) {
         auto r_type = expr->GetChild(1)->GetExpressionType();
-        if (r_type == parser::ExpressionType::VALUE_CONSTANT ||
-            r_type == parser::ExpressionType::VALUE_PARAMETER) {
+        if (r_type == parser::ExpressionType::VALUE_CONSTANT || r_type == parser::ExpressionType::VALUE_PARAMETER) {
           tv_expr = expr->GetChild(0).get();
           value_expr = expr->GetChild(1).get();
         }
       } else if (expr->GetChild(1)->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE) {
         auto l_type = expr->GetChild(0)->GetExpressionType();
-        if (l_type == parser::ExpressionType::VALUE_CONSTANT ||
-            l_type == parser::ExpressionType::VALUE_PARAMETER) {
+        if (l_type == parser::ExpressionType::VALUE_CONSTANT || l_type == parser::ExpressionType::VALUE_PARAMETER) {
           tv_expr = expr->GetChild(1).get();
           value_expr = expr->GetChild(0).get();
 
@@ -342,7 +340,7 @@ class IndexUtil {
   static bool GetIndexColOid(catalog::table_oid_t tbl_oid, const catalog::IndexSchema &schema,
                              catalog::CatalogAccessor *accessor, std::vector<catalog::col_oid_t> *col_oids) {
     TERRIER_ASSERT(SatisfiesBaseColumnRequirement(schema), "GetIndexColOid() pre-cond not satisfied");
-    catalog::Schema tbl_schema = accessor->GetSchema(tbl_oid);
+    auto &tbl_schema = accessor->GetSchema(tbl_oid);
     if (tbl_schema.GetColumns().size() < schema.GetColumns().size()) {
       return false;
     }

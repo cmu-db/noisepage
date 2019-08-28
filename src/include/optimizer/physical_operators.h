@@ -382,7 +382,8 @@ class QueryDerivedScan : public OperatorNode<QueryDerivedScan> {
   /**
    * @return map from table aliases to expressions
    */
-  const std::unordered_map<std::string, common::ManagedPointer<const parser::AbstractExpression>> &GetAliasToExprMap() const {
+  const std::unordered_map<std::string, common::ManagedPointer<const parser::AbstractExpression>> &GetAliasToExprMap()
+      const {
     return alias_to_expr_map_;
   }
 
@@ -522,12 +523,16 @@ class InnerNLJoin : public OperatorNode<InnerNLJoin> {
   /**
    * @return Left join keys
    */
-  const std::vector<common::ManagedPointer<const parser::AbstractExpression>> &GetLeftKeys() const { return left_keys_; }
+  const std::vector<common::ManagedPointer<const parser::AbstractExpression>> &GetLeftKeys() const {
+    return left_keys_;
+  }
 
   /**
    * @return Right join keys
    */
-  const std::vector<common::ManagedPointer<const parser::AbstractExpression>> &GetRightKeys() const { return right_keys_; }
+  const std::vector<common::ManagedPointer<const parser::AbstractExpression>> &GetRightKeys() const {
+    return right_keys_;
+  }
 
   /**
    * @return Predicates for the Join
@@ -678,12 +683,16 @@ class InnerHashJoin : public OperatorNode<InnerHashJoin> {
   /**
    * @return Left join keys
    */
-  const std::vector<common::ManagedPointer<const parser::AbstractExpression>> &GetLeftKeys() const { return left_keys_; }
+  const std::vector<common::ManagedPointer<const parser::AbstractExpression>> &GetLeftKeys() const {
+    return left_keys_;
+  }
 
   /**
    * @return Right join keys
    */
-  const std::vector<common::ManagedPointer<const parser::AbstractExpression>> &GetRightKeys() const { return right_keys_; }
+  const std::vector<common::ManagedPointer<const parser::AbstractExpression>> &GetRightKeys() const {
+    return right_keys_;
+  }
 
   /**
    * @return Predicates for the Join

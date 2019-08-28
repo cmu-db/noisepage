@@ -311,6 +311,7 @@ void OptimizeInputs::execute() {
 
       // Add this group expression to group expression hash table
       std::vector<PropertySet *> input_props_copy;
+      input_props_copy.reserve(input_props.size());
       for (auto i_prop : input_props) {
         input_props_copy.push_back(i_prop->Copy());
       }

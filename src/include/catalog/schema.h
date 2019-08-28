@@ -51,7 +51,8 @@ class Schema {
           attr_size_(type::TypeUtil::GetTypeSize(type_)),
           nullable_(nullable),
           oid_(INVALID_COLUMN_OID),
-          default_value_(std::shared_ptr<parser::AbstractExpression>(const_cast<parser::AbstractExpression*>(default_value.Copy()))) {
+          default_value_(std::shared_ptr<parser::AbstractExpression>(
+              const_cast<parser::AbstractExpression *>(default_value.Copy()))) {
       TERRIER_ASSERT(attr_size_ == 1 || attr_size_ == 2 || attr_size_ == 4 || attr_size_ == 8,
                      "This constructor is meant for non-VARLEN columns.");
       TERRIER_ASSERT(type_ != type::TypeId::INVALID, "Attribute type cannot be INVALID.");
@@ -73,7 +74,8 @@ class Schema {
           max_varlen_size_(max_varlen_size),
           nullable_(nullable),
           oid_(INVALID_COLUMN_OID),
-          default_value_(std::shared_ptr<parser::AbstractExpression>(const_cast<parser::AbstractExpression*>(default_value.Copy()))) {
+          default_value_(std::shared_ptr<parser::AbstractExpression>(
+              const_cast<parser::AbstractExpression *>(default_value.Copy()))) {
       TERRIER_ASSERT(attr_size_ == VARLEN_COLUMN, "This constructor is meant for VARLEN columns.");
       TERRIER_ASSERT(type_ != type::TypeId::INVALID, "Attribute type cannot be INVALID.");
       TERRIER_ASSERT(default_value_.use_count() == 1, "This expression should only be shared using managed pointers");
@@ -90,7 +92,8 @@ class Schema {
           max_varlen_size_(old_column.max_varlen_size_),
           nullable_(old_column.nullable_),
           oid_(old_column.oid_),
-          default_value_(std::shared_ptr<parser::AbstractExpression>(const_cast<parser::AbstractExpression*>(old_column.default_value_->Copy()))) {
+          default_value_(std::shared_ptr<parser::AbstractExpression>(
+              const_cast<parser::AbstractExpression *>(old_column.default_value_->Copy()))) {
       TERRIER_ASSERT(type_ != type::TypeId::INVALID, "Attribute type cannot be INVALID.");
       TERRIER_ASSERT(default_value_.use_count() == 1, "This expression should only be shared using managed pointers");
     }
@@ -166,7 +169,8 @@ class Schema {
       max_varlen_size_ = j.at("max_varlen_size").get<uint16_t>();
       nullable_ = j.at("nullable").get<bool>();
       oid_ = j.at("oid").get<col_oid_t>();
-      default_value_ = std::shared_ptr<parser::AbstractExpression>(parser::DeserializeExpression(j.at("default_value")));
+      default_value_ =
+          std::shared_ptr<parser::AbstractExpression>(parser::DeserializeExpression(j.at("default_value")));
     }
 
    private:

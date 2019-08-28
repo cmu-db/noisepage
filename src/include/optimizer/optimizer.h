@@ -48,7 +48,7 @@ class Optimizer : public AbstractOptimizer {
   /**
    * Destructor
    */
-  ~Optimizer() {
+  ~Optimizer() override {
     delete cost_model_;
     delete metadata_;
   }
@@ -116,8 +116,14 @@ class Optimizer : public AbstractOptimizer {
   void ExecuteTaskStack(OptimizerTaskStack *task_stack, int root_group_id, OptimizeContext *root_context,
                         settings::SettingsManager *settings);
 
-  // Metadata
+  /**
+   * Metadata
+   */
   OptimizerMetadata *metadata_;
+
+  /**
+   * Cost Model
+   */
   AbstractCostModel *cost_model_;
 };
 

@@ -185,13 +185,15 @@ class Schemas {
     district_key_schema.reserve(num_district_primary_index_cols_);
 
     // Primary Key: (D_W_ID, D_ID)
-    district_key_schema.emplace_back("d_w_id", schema.GetColumn("d_w_id").Type(), schema.GetColumn("d_w_id").Nullable(),
-                                     parser::ColumnValueExpression(catalog::INVALID_DATABASE_OID,
-                                                                   catalog::table_oid_t(0), schema.GetColumn("d_w_id").Oid()));
+    district_key_schema.emplace_back(
+        "d_w_id", schema.GetColumn("d_w_id").Type(), schema.GetColumn("d_w_id").Nullable(),
+        parser::ColumnValueExpression(catalog::INVALID_DATABASE_OID, catalog::table_oid_t(0),
+                                      schema.GetColumn("d_w_id").Oid()));
     district_key_schema.back().SetOid(static_cast<catalog::indexkeycol_oid_t>(++(*oid_counter)));
-    district_key_schema.emplace_back("d_id", schema.GetColumn("d_id").Type(), schema.GetColumn("d_id").Nullable(),
-                                     parser::ColumnValueExpression(catalog::INVALID_DATABASE_OID,
-                                                                   catalog::table_oid_t(0), schema.GetColumn("d_id").Oid()));
+    district_key_schema.emplace_back(
+        "d_id", schema.GetColumn("d_id").Type(), schema.GetColumn("d_id").Nullable(),
+        parser::ColumnValueExpression(catalog::INVALID_DATABASE_OID, catalog::table_oid_t(0),
+                                      schema.GetColumn("d_id").Oid()));
     district_key_schema.back().SetOid(static_cast<catalog::indexkeycol_oid_t>(++(*oid_counter)));
 
     TERRIER_ASSERT(district_key_schema.size() == num_district_primary_index_cols_,
@@ -331,17 +333,20 @@ class Schemas {
     customer_key_schema.reserve(num_customer_primary_index_cols_);
 
     // Primary Key: (C_W_ID, C_D_ID, C_ID)
-    customer_key_schema.emplace_back("c_w_id", schema.GetColumn("c_w_id").Type(), schema.GetColumn("c_w_id").Nullable(),
-                                     parser::ColumnValueExpression(catalog::INVALID_DATABASE_OID,
-                                                                   catalog::table_oid_t(0), schema.GetColumn("c_w_id").Oid()));
+    customer_key_schema.emplace_back(
+        "c_w_id", schema.GetColumn("c_w_id").Type(), schema.GetColumn("c_w_id").Nullable(),
+        parser::ColumnValueExpression(catalog::INVALID_DATABASE_OID, catalog::table_oid_t(0),
+                                      schema.GetColumn("c_w_id").Oid()));
     customer_key_schema.back().SetOid(static_cast<catalog::indexkeycol_oid_t>(++(*oid_counter)));
-    customer_key_schema.emplace_back("c_d_id", schema.GetColumn("c_d_id").Type(), schema.GetColumn("c_d_id").Nullable(),
-                                     parser::ColumnValueExpression(catalog::INVALID_DATABASE_OID,
-                                                                   catalog::table_oid_t(0), schema.GetColumn("c_d_id").Oid()));
+    customer_key_schema.emplace_back(
+        "c_d_id", schema.GetColumn("c_d_id").Type(), schema.GetColumn("c_d_id").Nullable(),
+        parser::ColumnValueExpression(catalog::INVALID_DATABASE_OID, catalog::table_oid_t(0),
+                                      schema.GetColumn("c_d_id").Oid()));
     customer_key_schema.back().SetOid(static_cast<catalog::indexkeycol_oid_t>(++(*oid_counter)));
-    customer_key_schema.emplace_back("c_id", schema.GetColumn("c_id").Type(), schema.GetColumn("c_id").Nullable(),
-                                     parser::ColumnValueExpression(catalog::INVALID_DATABASE_OID,
-                                                                   catalog::table_oid_t(0), schema.GetColumn("c_id").Oid()));
+    customer_key_schema.emplace_back(
+        "c_id", schema.GetColumn("c_id").Type(), schema.GetColumn("c_id").Nullable(),
+        parser::ColumnValueExpression(catalog::INVALID_DATABASE_OID, catalog::table_oid_t(0),
+                                      schema.GetColumn("c_id").Oid()));
     customer_key_schema.back().SetOid(static_cast<catalog::indexkeycol_oid_t>(++(*oid_counter)));
 
     TERRIER_ASSERT(customer_key_schema.size() == num_customer_primary_index_cols_,
@@ -372,7 +377,8 @@ class Schemas {
                                       schema.GetColumn("c_d_id").Oid()));
     customer_secondary_key_schema.back().SetOid(static_cast<catalog::indexkeycol_oid_t>(++(*oid_counter)));
     customer_secondary_key_schema.emplace_back(
-        "c_last", schema.GetColumn("c_last").Type(), schema.GetColumn("c_last").MaxVarlenSize(), schema.GetColumn("c_last").Nullable(),
+        "c_last", schema.GetColumn("c_last").Type(), schema.GetColumn("c_last").MaxVarlenSize(),
+        schema.GetColumn("c_last").Nullable(),
         parser::ColumnValueExpression(catalog::INVALID_DATABASE_OID, catalog::table_oid_t(0),
                                       schema.GetColumn("c_last").Oid()));
     customer_secondary_key_schema.back().SetOid(static_cast<catalog::indexkeycol_oid_t>(++(*oid_counter)));

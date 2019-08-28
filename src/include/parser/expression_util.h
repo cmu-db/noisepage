@@ -137,7 +137,7 @@ class ExpressionUtil {
       bool did_insert = false;
       int tuple_idx = 0;
       for (auto &child_expr_map : child_expr_maps) {
-        if (child_expr->GetExpressionType() != ExpressionType::COLUMN_VALUE && child_expr_map.count(child_expr) != 0u) {
+        if (child_expr->GetExpressionType() != ExpressionType::COLUMN_VALUE && child_expr_map.count(child_expr) != 0U) {
           auto type = child_expr->GetReturnValueType();
           auto iter = child_expr_map.find(expr);
           TERRIER_ASSERT(iter != child_expr_map.end(), "Missing ColumnValueExpression...");
@@ -193,12 +193,12 @@ class ExpressionUtil {
     std::vector<const AggregateExpression *> aggr_exprs;
     GetTupleAndAggregateExprs(&aggr_exprs, &tv_exprs, expr);
     for (auto &tv_expr : tv_exprs) {
-      if (expr_map->count(tv_expr) == 0u) {
+      if (expr_map->count(tv_expr) == 0U) {
         expr_map->emplace(tv_expr, expr_map->size());
       }
     }
     for (auto &aggr_expr : aggr_exprs) {
-      if (expr_map->count(aggr_expr) == 0u) {
+      if (expr_map->count(aggr_expr) == 0U) {
         expr_map->emplace(aggr_expr, expr_map->size());
       }
     }

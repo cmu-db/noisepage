@@ -1,8 +1,8 @@
 #include <stack>
 
-#include "optimizer/optimizer_metadata.h"
 #include "optimizer/binding.h"
 #include "optimizer/optimizer_defs.h"
+#include "optimizer/optimizer_metadata.h"
 #include "optimizer/optimizer_task.h"
 #include "optimizer/optimizer_task_pool.h"
 #include "optimizer/pattern.h"
@@ -231,32 +231,6 @@ TEST_F(OptimizerMetadataTest, RecordTransformedExpressionDuplicate) {
   EXPECT_EQ(tbl_free_gexpr, dup_free_gexpr);
 
   delete tbl_free;
-}
-
-// NOLINTNEXTLINE
-TEST_F(OptimizerMetadataTest, RecordLogicalTransformed) {
-  auto metadata = OptimizerMetadata(nullptr);
-
-  auto *tbl_free = new OperatorExpression(LogicalInnerJoin::make(), {});
-  auto *tbl_free_dup = new OperatorExpression(LogicalInnerJoin::make(), {});
-
-  GroupExpression *tbl_free_gexpr;
-  EXPECT_TRUE(metadata.RecordTransformedExpression(tbl_free, &tbl_free_gexpr));
-  EXPECT_TRUE(tbl_free_gexpr != nullptr);
-
-  // Duplicate should return false
-  auto group_id = tbl_free_gexpr->GetGroupID();
-  metadata.ReplaceRewritedExpression(tbl_free_dup, group_id);
-
-  auto group = metadata.GetMemo().GetGroupByID(group_id);
-  EXPECT_EQ(group->GetLogicalExpressions().size(), 1);
-
-  auto gexpr = group->GetLogicalExpressions()[0];
-  EXPECT_TRUE(gexpr != tbl_free_gexpr);
-  EXPECT_TRUE(gexpr->Op() == tbl_free_dup->GetOp());
-
-  delete tbl_free;
-  delete tbl_free_dup;
 }
 
 // NOLINTNEXTLINE

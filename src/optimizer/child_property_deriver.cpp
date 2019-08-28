@@ -83,11 +83,9 @@ void ChildPropertyDeriver::Visit(UNUSED_ATTRIBUTE const HashGroupBy *op) {
 
 void ChildPropertyDeriver::Visit(UNUSED_ATTRIBUTE const SortGroupBy *op) {
   // Child must provide sort for Groupby columns
-  // TODO(wz2): Descending support? Catalog flag?
   std::vector<planner::OrderByOrderingType> sort_ascending(op->GetColumns().size(), planner::OrderByOrderingType::ASC);
-  std::vector<common::ManagedPointer<const parser::AbstractExpression>> sort_cols = op->GetColumns();
 
-  auto sort_prop = new PropertySort(sort_cols, std::move(sort_ascending));
+  auto sort_prop = new PropertySort(op->GetColumns(), std::move(sort_ascending));
   auto prop_set = new PropertySet(std::vector<Property *>{sort_prop});
   output_.emplace_back(prop_set, std::vector<PropertySet *>{prop_set->Copy()});
 }
@@ -181,7 +179,7 @@ void ChildPropertyDeriver::DeriveForJoin() {
 
           // If a column is not in the prob table, we cannot fulfill the sort
           // property in the requirement
-          if (probe_group->GetTableAliases().count(tv_expr->GetTableName()) == 0u) {
+          if (probe_group->GetTableAliases().count(tv_expr->GetTableName()) == 0U) {
             can_pass_down = false;
             break;
           }

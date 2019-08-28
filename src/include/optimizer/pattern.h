@@ -54,7 +54,14 @@ class Pattern {
   OpType Type() const { return _type; }
 
  private:
+  /**
+   * Target Node Type
+   */
   OpType _type;
+
+  /**
+   * Pattern Children
+   */
   std::vector<Pattern *> children;
 };
 

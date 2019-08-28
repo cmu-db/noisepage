@@ -38,7 +38,7 @@ struct QueryInfo {
    * Constructor for QueryInfo
    * @param type StatementType
    * @param exprs Output expressions of the query
-   * @param props Physical properties of the output (QueryInfo will own)
+   * @param props Physical properties of the output (QueryInfo will not own)
    */
   QueryInfo(parser::StatementType type, std::vector<common::ManagedPointer<const parser::AbstractExpression>> &&exprs,
             PropertySet *props)
@@ -52,7 +52,9 @@ struct QueryInfo {
   /**
    * @returns Output expressions of the query
    */
-  const std::vector<common::ManagedPointer<const parser::AbstractExpression>> GetOutputExprs() const { return output_exprs_; }
+  const std::vector<common::ManagedPointer<const parser::AbstractExpression>> &GetOutputExprs() const {
+    return output_exprs_;
+  }
 
   /**
    * @returns Physical properties of the output owned by QueryInfo
@@ -60,8 +62,19 @@ struct QueryInfo {
   PropertySet *GetPhysicalProperties() const { return physical_props_; }
 
  private:
+  /**
+   * Type of the SQL Statement being executed
+   */
   parser::StatementType stmt_type_;
+
+  /**
+   * Output Expressions of the query
+   */
   std::vector<common::ManagedPointer<const parser::AbstractExpression>> output_exprs_;
+
+  /**
+   * Required physical properties of the output
+   */
   PropertySet *physical_props_;
 };
 

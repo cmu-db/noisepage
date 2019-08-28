@@ -154,14 +154,35 @@ class GroupExpression {
   size_t GetChildrenGroupsSize() const { return child_groups.size(); }
 
  private:
+  /**
+   * Group's ID
+   */
   GroupID group_id;
+
+  /**
+   * Operator
+   */
   Operator op;
+
+  /**
+   * Vector of child groups
+   */
   std::vector<GroupID> child_groups;
+
+  /**
+   * Mask of explored rules
+   */
   std::bitset<static_cast<uint32_t>(RuleType::NUM_RULES)> rule_mask_;
+
+  /**
+   * Flag of whether stats are derived
+   */
   bool stats_derived_;
 
-  // Mapping from output properties to the corresponding best cost, statistics,
-  // and child properties
+  /**
+   * Mapping from output properties to the corresponding best cost, statistics,
+   * and child properties
+   */
   std::unordered_map<PropertySet *, std::tuple<double, std::vector<PropertySet *>>, PropSetPtrHash, PropSetPtrEq>
       lowest_cost_table_;
 };
