@@ -54,13 +54,13 @@ using namespace boost::di;  // NOLINT
  * @tparam T the type to test
  */
 template <class T>
-struct named : policies::detail::type_op {
+struct named : policies::detail::type_op {  // NOLINT
   /**
    * see boost::di doc https://boost-experimental.github.io/di/user_guide/index.html#policies
    * @tparam TArg
    */
   template <class TArg>
-  struct apply : aux::integral_constant<bool, !aux::is_same<no_name, typename TArg::name>::value> {};
+  struct apply : aux::integral_constant<bool, !aux::is_same<no_name, typename TArg::name>::value> {};  // NOLINT
 };
 
 /**
@@ -75,8 +75,8 @@ class StrictBindingPolicy : public di::config {
    * @param ... vararg input
    * @return strict binding policy
    */
-  static auto policies(...) noexcept {
-    using namespace policies;  // NOLINT
+  static auto policies(...) noexcept {  // NOLINT
+    using namespace policies;           // NOLINT
     return make_policies(constructible(is_bound<_>{}));
   }
 };
@@ -91,7 +91,7 @@ class TestBindingPolicy : public config {
    * @param ... vararg input
    * @return strict binding policy
    */
-  static auto policies(...) noexcept {
+  static auto policies(...) noexcept {    // NOLINT
     using namespace policies;             // NOLINT
     using namespace policies::operators;  // NOLINT
     // Unnamed unbound variables are most likely not
@@ -135,7 +135,7 @@ class TerrierWrapper {
   }
 
  private:
-  TExpected *wrapped;
+  TExpected *wrapped;  // NOLINT
 };
 
 /**
@@ -155,7 +155,7 @@ class TerrierSharedModule {
    * @tparam TGiven
    */
   template <class TExpected, class TGiven>
-  class scope {
+  class scope {  // NOLINT
    public:
     // TODO(Tianyu): Not sure if this is relevant as we prohibit injection of non-const references.
     // This is the referrable flag used for boost::di's singleton scope.
@@ -170,7 +170,7 @@ class TerrierSharedModule {
      * @return see https://boost-experimental.github.io/di/user_guide/index.html#scopes
      */
     template <class, class, class TProvider>
-    static TerrierWrapper<TExpected, TGiven> try_create(const TProvider &);
+    static TerrierWrapper<TExpected, TGiven> try_create(const TProvider &);  // NOLINT
 
     /**
      * @tparam TProvider provider type
@@ -178,7 +178,7 @@ class TerrierSharedModule {
      * @return see https://boost-experimental.github.io/di/user_guide/index.html#scopes
      */
     template <class, class, class TProvider>
-    TerrierWrapper<TExpected, TGiven> create(const TProvider &provider) {
+    TerrierWrapper<TExpected, TGiven> create(const TProvider &provider) {  // NOLINT
       if (object_ == nullptr) object_ = std::unique_ptr<TGiven>(provider.get());
       return object_.get();
     }
@@ -209,7 +209,7 @@ class TerrierSingleton {
    * @tparam TGiven
    */
   template <class TExpected, class TGiven>
-  class scope {
+  class scope {  // NOLINT
    public:
     // TODO(Tianyu): Not sure if this is relevant as we prohibit injection of non-const references.
     // This is the referrable flag used for boost::di's singleton scope.
@@ -224,7 +224,7 @@ class TerrierSingleton {
      * @return see https://boost-experimental.github.io/di/user_guide/index.html#scopes
      */
     template <class, class, class TProvider>
-    static TerrierWrapper<TExpected, TGiven> try_create(const TProvider &);
+    static TerrierWrapper<TExpected, TGiven> try_create(const TProvider &);  // NOLINT
 
     /**
      * @tparam TProvider provider type
@@ -232,7 +232,7 @@ class TerrierSingleton {
      * @return see https://boost-experimental.github.io/di/user_guide/index.html#scopes
      */
     template <class, class, class TProvider>
-    TerrierWrapper<TExpected, TGiven> create(const TProvider &provider) {
+    TerrierWrapper<TExpected, TGiven> create(const TProvider &provider) {  // NOLINT
       static auto object(provider.get(type_traits::stack{}));
       return &object;
     }
@@ -253,7 +253,7 @@ class DisabledModule {
    * @tparam TGiven
    */
   template <class TExpected, class TGiven>
-  class scope {
+  class scope {  // NOLINT
     /**
      * Custom wrapper that specifically allows implicit casting to terrier-approved types from
      * nullptr. We allow ManagedPointers, raw pointers.
@@ -288,7 +288,7 @@ class DisabledModule {
      * @return see boost::di doc
      */
     template <class, class, class TProvider>
-    static TerrierDisabledWrapper try_create(const TProvider &);
+    static TerrierDisabledWrapper try_create(const TProvider &);  // NOLINT
 
     /**
      * @tparam TProvider provider type
@@ -296,7 +296,7 @@ class DisabledModule {
      * @return see boost::di doc
      */
     template <class, class, class TProvider>
-    TerrierDisabledWrapper create(const TProvider &provider) {
+    TerrierDisabledWrapper create(const TProvider &provider) {  // NOLINT
       return {};
     }
   };

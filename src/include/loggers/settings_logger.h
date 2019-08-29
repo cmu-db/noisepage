@@ -8,7 +8,7 @@
 namespace terrier::settings {
 extern std::shared_ptr<spdlog::logger> settings_logger;
 
-void init_settings_logger();
+void InitSettingsLogger();
 }  // namespace terrier::settings
 
 #define SETTINGS_LOG_TRACE(...) ::terrier::settings::settings_logger->trace(__VA_ARGS__);

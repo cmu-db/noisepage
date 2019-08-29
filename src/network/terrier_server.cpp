@@ -59,7 +59,7 @@ void TerrierServer::RunServer() {
   listen(listen_fd_, conn_backlog);
 
   dispatcher_task_ = thread_registry_->RegisterDedicatedThread<ConnectionDispatcherTask>(
-      this /* requester */, max_connections_, listen_fd_, this, common::ManagedPointer(provider_.get()),
+      this /* requester */, max_connections_, listen_fd_, this, common::ManagedPointer(provider_.Get()),
       connection_handle_factory_, thread_registry_);
 
   NETWORK_LOG_INFO("Listening on port {0}", port_);
@@ -76,7 +76,7 @@ void TerrierServer::StopServer() {
   const bool result UNUSED_ATTRIBUTE =
       thread_registry_->StopTask(this, dispatcher_task_.CastManagedPointerTo<common::DedicatedThreadTask>());
   TERRIER_ASSERT(result, "Failed to stop ConnectionDispatcherTask.");
-  terrier_close(listen_fd_);
+  TerrierClose(listen_fd_);
   NETWORK_LOG_INFO("Server Closed");
 
   // Clear the running_ flag for any waiting threads and wake up them up with the condition variable
