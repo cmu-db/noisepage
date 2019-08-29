@@ -605,7 +605,8 @@ uint32_t RecoveryManager::ProcessSpecialCasePGClassRecord(
             // Step 4: Create and set table pointers in catalog
             storage::SqlTable *sql_table;
             if (class_oid < START_OID) {  // All catalog tables/indexes have OIDS less than START_OID
-              sql_table = GetSqlTable(txn, redo_record->GetDatabaseOid(), catalog::table_oid_t(class_oid)).get();
+              // Use of the -> operator is ok here, since we are the ones who wrapped the table with the ManagedPointer
+              sql_table = GetSqlTable(txn, redo_record->GetDatabaseOid(), catalog::table_oid_t(class_oid)).operator->();
             } else {
               sql_table = new SqlTable(block_store_, *schema);
             }

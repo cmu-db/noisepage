@@ -23,7 +23,9 @@ class RecoveryBenchmark : public benchmark::Fixture {
   storage::RecordBufferSegmentPool buffer_pool_{1000000, 1000000};
   std::default_random_engine generator_;
   const uint32_t num_concurrent_txns_ = 4;
+  const std::chrono::milliseconds gc_period_{10};
   common::DedicatedThreadRegistry thread_registry_;
+
 
   // Settings for log manager
   const uint64_t num_log_buffers_ = 100;
@@ -48,14 +50,19 @@ class RecoveryBenchmark : public benchmark::Fixture {
                                       log_persist_interval_, log_persist_threshold_, &buffer_pool_,
                                       common::ManagedPointer(&thread_registry_));
       log_manager.Start();
-      auto *tested = new LargeSqlTableTestObject(config, &block_store_, &buffer_pool_, &generator_, &log_manager);
+
+      transaction::TransactionManager txn_manager(&buffer_pool_, true, &log_manager);
+      catalog::Catalog catalog(&txn_manager, &block_store_);
+      auto gc_thread = new storage::GarbageCollectorThread(&txn_manager, gc_period_);  // Enable background GC
 
       // Run the test object and log all transactions
+      auto *tested = new LargeSqlTableTestObject(config, &txn_manager, &catalog, &block_store_, &generator_);
       tested->SimulateOltp(num_txns_, num_concurrent_txns_);
       log_manager.PersistAndStop();
 
       // Start a transaction manager with logging disabled, we don't want to log the log replaying
       transaction::TransactionManager recovery_txn_manager{&buffer_pool_, true, LOGGING_DISABLED};
+      auto recovery_gc_thread = new storage::GarbageCollectorThread(&recovery_txn_manager, gc_period_);  // Enable background GC
 
       // Create catalog for recovery
       catalog::Catalog recovered_catalog(&recovery_txn_manager, &block_store_);
@@ -76,18 +83,15 @@ class RecoveryBenchmark : public benchmark::Fixture {
 
       state->SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
 
-      // Delete test txns
+      // Clean up recovered data
+      recovered_catalog.TearDown();
+      delete recovery_gc_thread;
+
+      // Clean up test data
       log_manager.Start();
       delete tested;
+      delete gc_thread;
       log_manager.PersistAndStop();
-
-      // Call GC 3 times to fully clean up catalog
-      recovered_catalog.TearDown();
-      auto *gc = new storage::GarbageCollector(&recovery_txn_manager, nullptr);
-      gc->PerformGarbageCollection();
-      gc->PerformGarbageCollection();
-      gc->PerformGarbageCollection();
-      delete gc;
     }
     state->SetItemsProcessed(recovered_txns);
   }

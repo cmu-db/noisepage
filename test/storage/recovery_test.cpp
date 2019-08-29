@@ -71,12 +71,10 @@ class RecoveryTests : public TerrierTest {
 
     transaction::TransactionManager txn_manager(&pool_, true, &log_manager);
     catalog::Catalog catalog(&txn_manager, &block_store_);
-
-    auto *tested = new LargeSqlTableTestObject(config, &txn_manager, &catalog, &block_store_, &generator_);
-    // Enable GC
-    auto gc_thread = new storage::GarbageCollectorThread(&txn_manager, gc_period_);
+    auto gc_thread = new storage::GarbageCollectorThread(&txn_manager, gc_period_);  // Enable background GC
 
     // Run workload
+    auto *tested = new LargeSqlTableTestObject(config, &txn_manager, &catalog, &block_store_, &generator_);
     tested->SimulateOltp(100, 4);
 
     // Simulate the system "shutting down". Guarantee persist of log records
@@ -118,7 +116,7 @@ class RecoveryTests : public TerrierTest {
         EXPECT_TRUE(recovered_sql_table != nullptr);
 
         EXPECT_TRUE(StorageTestUtil::SqlTableEqualDeep(
-            original_sql_table->table_.layout, original_sql_table, recovered_sql_table,
+            original_sql_table->table_.layout_, original_sql_table, recovered_sql_table,
             tested->GetTupleSlotsForTable(database_oid, table_oid), recovery_manager.tuple_slot_map_, &txn_manager,
             &recovery_txn_manager));
         txn_manager.Commit(original_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
@@ -204,7 +202,7 @@ class RecoveryTests : public TerrierTest {
   storage::RedoBuffer &GetRedoBuffer(transaction::TransactionContext *txn) { return txn->redo_buffer_; }
 
   storage::BlockLayout &GetBlockLayout(common::ManagedPointer<storage::SqlTable> table) const {
-    return table->table_.layout;
+    return table->table_.layout_;
   }
 };
 

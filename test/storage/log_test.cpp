@@ -436,7 +436,6 @@ TEST_F(WriteAheadLoggingTests, NoAbortRecordTest) {
   storage::BufferedLogReader in(LOG_FILE_NAME);
   while (in.HasMore()) {
     storage::LogRecord *log_record = ReadNextRecord(&in);
-    storage::LogRecord *log_record = ReadNextRecord(&in, sql_table.table_.layout_);
     if (log_record->RecordType() == LogRecordType::ABORT) {
       found_abort_record = true;
     }
