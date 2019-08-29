@@ -234,7 +234,10 @@ class TransactionContext {
   storage::RedoRecord *StageRecoveryWrite(storage::LogRecord *record) {
     auto record_location = redo_buffer_.NewEntry(record->Size());
     memcpy(record_location, record, record->Size());
-    return reinterpret_cast<storage::LogRecord *>(record_location)->GetUnderlyingRecordBodyAs<storage::RedoRecord>();
+    // Overwrite the txn_begin timestamp
+    auto *new_record = reinterpret_cast<storage::LogRecord *>(record_location);
+    new_record->txn_begin_ = start_time_;
+    return new_record->GetUnderlyingRecordBodyAs<storage::RedoRecord>();
   }
 };
 }  // namespace terrier::transaction

@@ -269,17 +269,10 @@ class LargeSqlTableTestObject {
   uint64_t SimulateOltp(uint32_t num_transactions, uint32_t num_concurrent_txns);
 
   /**
-   * @return database oids
+   * @return map of databases to tables created by the test object
    */
-  const std::vector<catalog::db_oid_t> &GetDatabases() const { return database_oids_; }
-
-  /**
-   * @param oid database oid
-   * @return tables oids for a given database
-   */
-  const std::vector<catalog::table_oid_t> &GetTablesForDatabase(catalog::db_oid_t oid) {
-    TERRIER_ASSERT(table_oids_.find(oid) != table_oids_.end(), "Requested database was not created");
-    return table_oids_[oid];
+  const std::unordered_map<catalog::db_oid_t, std::vector<catalog::table_oid_t>> &GetTables() const {
+    return table_oids_;
   }
 
   const std::vector<storage::TupleSlot> &GetTupleSlotsForTable(catalog::db_oid_t db_oid,
@@ -297,6 +290,7 @@ class LargeSqlTableTestObject {
                              bool varlen_allowed, storage::BlockStore *block_store, Random *generator);
 
   friend class RandomSqlTableTransaction;
+  FRIEND_TEST(RecoveryTests, DoubleRecoveryTest);
   uint32_t txn_length_;
   std::vector<double> insert_update_select_delete_ratio_;
   std::default_random_engine *generator_;

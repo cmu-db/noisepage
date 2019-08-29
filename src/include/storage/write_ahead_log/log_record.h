@@ -68,6 +68,7 @@ class LogRecord {
   }
 
  private:
+  friend class transaction::TransactionContext;
   /* Header common to all log records */
   LogRecordType type_;
   uint32_t size_;

@@ -102,6 +102,7 @@ class RecoveryManager : public common::DedicatedThreadOwner {
   }
 
  private:
+  FRIEND_TEST(RecoveryTests, DoubleRecoveryTest);
   friend class RecoveryTests;
   friend class terrier::RecoveryBenchmark;
 
@@ -142,21 +143,20 @@ class RecoveryManager : public common::DedicatedThreadOwner {
   // them here
   std::unordered_map<catalog::table_oid_t, catalog::Schema> catalog_table_schemas_;
 
-  // Number of recovered txns. Used for benchmarking
+  // Number of recovered committed txns. Used for benchmarking
   uint32_t recovered_txns_;
 
   /**
    * Recovers the databases using the provided log provider
    * @return number of committed transactions replayed
    */
-  void Recover() { recovered_txns_ += RecoverFromLogs(); }
+  void Recover() { RecoverFromLogs(); }
 
   /**
    * Recovers the databases from the logs.
    * @note this is a separate method so in the future, we can also have a RecoverFromCheckpoint method
-   * @return number of committed txns replayed
    */
-  uint32_t RecoverFromLogs();
+  void RecoverFromLogs();
 
   /**
    * @brief Replay a committed transaction corresponding to txn_id.

@@ -18,6 +18,9 @@
 #include "util/storage_test_util.h"
 #include "util/test_harness.h"
 
+// Make sure that if you create additional files, you call unlink on them after the test finishes. Otherwise, repeated
+// executions will read old test's data, and the cause of the errors will be hard to identify. Trust me it will drive
+// you nuts...
 #define LOG_FILE_NAME "./test.log"
 
 namespace terrier::storage {
@@ -99,8 +102,9 @@ class RecoveryTests : public TerrierTest {
     recovery_manager.WaitForRecoveryToFinish();
 
     // Check we recovered all the original tables
-    for (auto &database_oid : tested->GetDatabases()) {
-      for (auto &table_oid : tested->GetTablesForDatabase(database_oid)) {
+    for (auto &database : tested->GetTables()) {
+      auto database_oid = database.first;
+      for (auto &table_oid : database.second) {
         // Get original sql table
         auto original_txn = txn_manager.BeginTransaction();
         auto original_sql_table =
@@ -121,7 +125,6 @@ class RecoveryTests : public TerrierTest {
         recovery_txn_manager.Commit(recovery_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
       }
     }
-
     // Clean up test object and recovered catalogs
     recovered_catalog.TearDown();
     delete recovery_gc_thread;
@@ -199,6 +202,10 @@ class RecoveryTests : public TerrierTest {
   }
 
   storage::RedoBuffer &GetRedoBuffer(transaction::TransactionContext *txn) { return txn->redo_buffer_; }
+
+  storage::BlockLayout &GetBlockLayout(common::ManagedPointer<storage::SqlTable> table) const {
+    return table->table_.layout;
+  }
 };
 
 // This test inserts some tuples into a single table. It then recreates the test table from
@@ -498,8 +505,9 @@ TEST_F(RecoveryTests, DropNamespaceTest) {
 
 // Tests that we correctly process cascading deletes originating from a drop database command. This means cascading
 // deletes of tables and indexes
+// DISABLED DUE TO ISSUE #526
 // NOLINTNEXTLINE
-TEST_F(RecoveryTests, DropDatabaseCascadeDeleteTest) {
+TEST_F(RecoveryTests, DISABLED_DropDatabaseCascadeDeleteTest) {
   std::string database_name = "testdb";
   std::string namespace_name = "testnamespace";
   std::string table_name = "testtable";
@@ -648,8 +656,9 @@ TEST_F(RecoveryTests, UnrecoverableTransactionsTest) {
 // Under snapshot isolation, all these transactions should succeed. At the time of recovery though, we want to ensure
 // that even though the logs of txn #2 may appear before the logs of txn #1, we dont drop the database before txn #1 is
 // able to create a table.
+// DISABLED DUE TO ISSUE #526
 // NOLINTNEXTLINE
-TEST_F(RecoveryTests, ConcurrentCatalogDDLChangesTest) {
+TEST_F(RecoveryTests, DISABLED_ConcurrentCatalogDDLChangesTest) {
   std::string database_name = "testdb";
   auto namespace_oid = catalog::NAMESPACE_DEFAULT_NAMESPACE_OID;
   std::string table_name = "foo";
@@ -816,6 +825,158 @@ TEST_F(RecoveryTests, DISABLED_ConcurrentDDLChangesTest) {
   log_manager.PersistAndStop();
   recovered_catalog.TearDown();
   delete recovery_gc_thread;
+}
+
+TEST_F(RecoveryTests, DoubleRecoveryTest) {
+  std::string secondary_log_file = "test2.log";
+  unlink(secondary_log_file.c_str());
+  // Initialize table and run workload with logging enabled
+  LogManager log_manager(LOG_FILE_NAME, num_log_buffers_, log_serialization_interval_, log_persist_interval_,
+                         log_persist_threshold_, &pool_, common::ManagedPointer(&thread_registry_));
+  log_manager.Start();
+
+  transaction::TransactionManager txn_manager(&pool_, true, &log_manager);
+  catalog::Catalog catalog(&txn_manager, &block_store_);
+
+  LargeSqlTableTestConfiguration config = LargeSqlTableTestConfiguration::Builder()
+                                              .SetNumDatabases(1)
+                                              .SetNumTables(1)
+                                              .SetMaxColumns(5)
+                                              .SetInitialTableSize(1000)
+                                              .SetTxnLength(5)
+                                              .SetInsertUpdateSelectDeleteRatio({0.2, 0.5, 0.2, 0.1})
+                                              .SetVarlenAllowed(true)
+                                              .build();
+  auto *tested = new LargeSqlTableTestObject(config, &txn_manager, &catalog, &block_store_, &generator_);
+  // Enable GC
+  auto gc_thread = new storage::GarbageCollectorThread(&txn_manager, gc_period_);
+
+  // Run workload
+  tested->SimulateOltp(100, 4);
+
+  // Simulate the system "shutting down". Guarantee persist of log records
+  delete gc_thread;
+  log_manager.PersistAndStop();
+
+  // We now "boot up" up the system and start recovery
+  log_manager.Start();
+  gc_thread = new storage::GarbageCollectorThread(&txn_manager, gc_period_);
+
+  // We create a new log manager to log the changes replayed during recovery
+  LogManager secondary_log_manager(secondary_log_file, num_log_buffers_, log_serialization_interval_,
+                                   log_persist_interval_, log_persist_threshold_, &pool_,
+                                   common::ManagedPointer(&thread_registry_));
+  secondary_log_manager.Start();
+
+  transaction::TransactionManager recovery_txn_manager{&pool_, true, &secondary_log_manager};
+  auto recovery_gc_thread = new storage::GarbageCollectorThread(&recovery_txn_manager, gc_period_);
+
+  // Create catalog for recovery
+  catalog::Catalog recovered_catalog(&recovery_txn_manager, &block_store_);
+
+  //--------------------------------
+  // Do recovery for the first time
+  //--------------------------------
+
+  // Instantiate recovery manager, and recover the tables.
+  DiskLogProvider log_provider(LOG_FILE_NAME);
+  RecoveryManager recovery_manager(&log_provider, common::ManagedPointer(&recovered_catalog), &recovery_txn_manager,
+                                   common::ManagedPointer(&thread_registry_), &block_store_);
+  recovery_manager.StartRecovery();
+  recovery_manager.WaitForRecoveryToFinish();
+
+  // Check we recovered all the original tables
+  for (auto &database : tested->GetTables()) {
+    auto database_oid = database.first;
+    for (auto &table_oid : database.second) {
+      // Get original sql table
+      auto original_txn = txn_manager.BeginTransaction();
+      auto original_sql_table =
+          catalog.GetDatabaseCatalog(original_txn, database_oid)->GetTable(original_txn, table_oid);
+
+      // Get Recovered table
+      auto *recovery_txn = recovery_txn_manager.BeginTransaction();
+      auto db_catalog = recovered_catalog.GetDatabaseCatalog(recovery_txn, database_oid);
+      EXPECT_TRUE(db_catalog != nullptr);
+      auto recovered_sql_table = db_catalog->GetTable(recovery_txn, table_oid);
+      EXPECT_TRUE(recovered_sql_table != nullptr);
+
+      EXPECT_TRUE(StorageTestUtil::SqlTableEqualDeep(
+          GetBlockLayout(original_sql_table), original_sql_table, recovered_sql_table,
+          tested->GetTupleSlotsForTable(database_oid, table_oid), recovery_manager.tuple_slot_map_, &txn_manager,
+          &recovery_txn_manager));
+      txn_manager.Commit(original_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+      recovery_txn_manager.Commit(recovery_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+    }
+  }
+  // Clean up test object and recovered catalogs
+  recovered_catalog.TearDown();
+  delete recovery_gc_thread;
+
+  log_manager.PersistAndStop();
+
+  secondary_log_manager.PersistAndStop();
+
+  //-----------------------------------------
+  // Now recover based off the last recovery
+  //-----------------------------------------
+
+  log_manager.Start();
+
+  // Create a new txn manager with logging disabled
+  transaction::TransactionManager secondary_recovery_txn_manager{&pool_, true, LOGGING_DISABLED};
+  auto secondary_recovery_gc_thread = new storage::GarbageCollectorThread(&secondary_recovery_txn_manager, gc_period_);
+
+  // Create a new catalog for this second recovery
+  catalog::Catalog secondary_recovered_catalog(&secondary_recovery_txn_manager, &block_store_);
+
+  // Instantiate a new recovery manager, and recover the tables.
+  DiskLogProvider secondary_log_provider(secondary_log_file);
+  RecoveryManager secondary_recovery_manager(
+      &secondary_log_provider, common::ManagedPointer(&secondary_recovered_catalog), &secondary_recovery_txn_manager,
+      common::ManagedPointer(&thread_registry_), &block_store_);
+  secondary_recovery_manager.StartRecovery();
+  secondary_recovery_manager.WaitForRecoveryToFinish();
+
+  // Maps from tuple slots in original tables to tuple slots in tables after second recovery
+  std::unordered_map<TupleSlot, TupleSlot> new_tuple_slot_map;
+  for (const auto &slot_pair : recovery_manager.tuple_slot_map_) {
+    new_tuple_slot_map[slot_pair.first] = secondary_recovery_manager.tuple_slot_map_[slot_pair.second];
+  }
+
+  // Check we recovered all the original tables
+  for (auto &database : tested->GetTables()) {
+    auto database_oid = database.first;
+    for (auto &table_oid : database.second) {
+      // Get original sql table
+      auto original_txn = txn_manager.BeginTransaction();
+      auto original_sql_table =
+          catalog.GetDatabaseCatalog(original_txn, database_oid)->GetTable(original_txn, table_oid);
+
+      // Get Recovered table
+      auto *recovery_txn = secondary_recovery_txn_manager.BeginTransaction();
+      auto db_catalog = secondary_recovered_catalog.GetDatabaseCatalog(recovery_txn, database_oid);
+      EXPECT_TRUE(db_catalog != nullptr);
+      auto recovered_sql_table = db_catalog->GetTable(recovery_txn, table_oid);
+      EXPECT_TRUE(recovered_sql_table != nullptr);
+
+      EXPECT_TRUE(StorageTestUtil::SqlTableEqualDeep(
+          GetBlockLayout(original_sql_table), original_sql_table, recovered_sql_table,
+          tested->GetTupleSlotsForTable(database_oid, table_oid), new_tuple_slot_map, &txn_manager,
+          &secondary_recovery_txn_manager));
+      txn_manager.Commit(original_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+      secondary_recovery_txn_manager.Commit(recovery_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+    }
+  }
+  // Clean up test object and recovered catalogs
+  secondary_recovered_catalog.TearDown();
+  delete secondary_recovery_gc_thread;
+
+  catalog.TearDown();
+  delete gc_thread;
+  delete tested;
+  log_manager.PersistAndStop();
+  unlink(secondary_log_file.c_str());
 }
 
 }  // namespace terrier::storage

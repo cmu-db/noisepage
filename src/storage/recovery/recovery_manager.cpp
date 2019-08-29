@@ -19,9 +19,8 @@
 
 namespace terrier::storage {
 
-uint32_t RecoveryManager::RecoverFromLogs() {
+void RecoveryManager::RecoverFromLogs() {
   // Replay logs until the log provider no longer gives us logs
-  uint32_t txns_replayed = 0;
   while (true) {
     auto pair = log_provider_->GetNextRecord();
     auto *log_record = pair.first;
@@ -46,7 +45,7 @@ uint32_t RecoveryManager::RecoverFromLogs() {
         deferred_txns_.insert(log_record->TxnBegin());
 
         // Process any deferred transactions that are safe to execute
-        txns_replayed += ProcessDeferredTransactions(commit_record->OldestActiveTxn());
+        recovered_txns_ += ProcessDeferredTransactions(commit_record->OldestActiveTxn());
 
         // Clean up the log record
         txn_manager_->DeferAction([=] { delete[] reinterpret_cast<byte *>(log_record); });
@@ -72,8 +71,6 @@ uint32_t RecoveryManager::RecoverFromLogs() {
     }
     buffered_changes_map_.clear();
   }
-
-  return txns_replayed;
 }
 
 void RecoveryManager::ProcessCommittedTransaction(terrier::transaction::timestamp_t txn_id) {
@@ -146,6 +143,10 @@ void RecoveryManager::ReplayRedoRecord(transaction::TransactionContext *txn, Log
     redo_record->SetTupleSlot(TupleSlot(nullptr, 0));
     // Stage the write. This way the recovery operation is logged if logging is enabled.
     auto staged_record = txn->StageRecoveryWrite(record);
+    TERRIER_ASSERT(redo_record->Delta()->Size() == staged_record->Delta()->Size(),
+                   "Redo record must be the same size after staging in recovery");
+    TERRIER_ASSERT(memcmp(redo_record->Delta(), staged_record->Delta(), redo_record->Delta()->Size()) == 0,
+                   "ProjectedRow of original and staged records must be identical");
     // Insert will always succeed
     auto new_tuple_slot = sql_table_ptr->Insert(txn, staged_record);
     UpdateIndexesOnTable(txn, staged_record->GetDatabaseOid(), staged_record->GetTableOid(), sql_table_ptr,
@@ -159,6 +160,7 @@ void RecoveryManager::ReplayRedoRecord(transaction::TransactionContext *txn, Log
     redo_record->SetTupleSlot(new_tuple_slot);
     // Stage the write. This way the recovery operation is logged if logging is enabled
     auto staged_record = txn->StageRecoveryWrite(record);
+    TERRIER_ASSERT(staged_record->GetTupleSlot() == new_tuple_slot, "Staged record must have the mapped tuple slot");
     bool result UNUSED_ATTRIBUTE = sql_table_ptr->Update(txn, staged_record);
     TERRIER_ASSERT(result, "Buffered changes should always succeed during commit");
   }
