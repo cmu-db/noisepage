@@ -61,13 +61,13 @@ TEST(HashUtilTests, HashMixedTest) {
   // There is nothing special about this test. It's just a sanity
   // check for me to make sure that things are working correctly in
   // another part of the system.
-  enum class wutang { RZA, GZA, RAEKWON, METHODMAN, GHOSTFACE, ODB, INSPECTAH };
+  enum class Wutang { RZA, GZA, RAEKWON, METHODMAN, GHOSTFACE, ODB, INSPECTAH };
 
-  common::hash_t hash0 = common::HashUtil::Hash(wutang::RAEKWON);
-  common::hash_t hash1 = common::HashUtil::Hash(wutang::RAEKWON);
+  common::hash_t hash0 = common::HashUtil::Hash(Wutang::RAEKWON);
+  common::hash_t hash1 = common::HashUtil::Hash(Wutang::RAEKWON);
   EXPECT_EQ(hash0, hash1);
 
-  wutang val0 = wutang::ODB;
+  Wutang val0 = Wutang::ODB;
   hash0 = common::HashUtil::CombineHashes(hash0, common::HashUtil::Hash(val0));
   hash1 = common::HashUtil::CombineHashes(hash1, common::HashUtil::Hash(val0));
   EXPECT_EQ(hash0, hash1);

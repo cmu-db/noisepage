@@ -26,9 +26,9 @@ class SqlTable {
    * this layer, consider alternatives.
    */
   struct DataTableVersion {
-    DataTable *data_table;
-    BlockLayout layout;
-    ColumnMap column_map;
+    DataTable *data_table_;
+    BlockLayout layout_;
+    ColumnMap column_map_;
   };
 
  public:
@@ -44,7 +44,7 @@ class SqlTable {
   /**
    * Destructs a SqlTable, frees all its members.
    */
-  ~SqlTable() { delete table_.data_table; }
+  ~SqlTable() { delete table_.data_table_; }
 
   /**
    * Materializes a single tuple from the given slot, as visible at the timestamp of the calling txn.
@@ -55,7 +55,7 @@ class SqlTable {
    * @return true if tuple is visible to this txn and ProjectedRow has been populated, false otherwise
    */
   bool Select(transaction::TransactionContext *const txn, const TupleSlot slot, ProjectedRow *const out_buffer) const {
-    return table_.data_table->Select(txn, slot, out_buffer);
+    return table_.data_table_->Select(txn, slot, out_buffer);
   }
 
   /**
@@ -73,7 +73,7 @@ class SqlTable {
                                ->LogRecord::GetUnderlyingRecordBodyAs<RedoRecord>(),
                    "This RedoRecord is not the most recent entry in the txn's RedoBuffer. Was StageWrite called "
                    "immediately before?");
-    const auto result = table_.data_table->Update(txn, redo->GetTupleSlot(), *(redo->Delta()));
+    const auto result = table_.data_table_->Update(txn, redo->GetTupleSlot(), *(redo->Delta()));
     if (!result) {
       // For MVCC correctness, this txn must now abort for the GC to clean up the version chain in the DataTable
       // correctly.
@@ -96,7 +96,7 @@ class SqlTable {
                                ->LogRecord::GetUnderlyingRecordBodyAs<RedoRecord>(),
                    "This RedoRecord is not the most recent entry in the txn's RedoBuffer. Was StageWrite called "
                    "immediately before?");
-    const auto slot = table_.data_table->Insert(txn, *(redo->Delta()));
+    const auto slot = table_.data_table_->Insert(txn, *(redo->Delta()));
     redo->SetTupleSlot(slot);
     return slot;
   }
@@ -116,7 +116,7 @@ class SqlTable {
                 ->GetTupleSlot() == slot,
         "This Delete is not the most recent entry in the txn's RedoBuffer. Was StageDelete called immediately before?");
 
-    const auto result = table_.data_table->Delete(txn, slot);
+    const auto result = table_.data_table_->Delete(txn, slot);
     if (!result) {
       // For MVCC correctness, this txn must now abort for the GC to clean up the version chain in the DataTable
       // correctly.
@@ -139,18 +139,18 @@ class SqlTable {
    */
   void Scan(transaction::TransactionContext *const txn, DataTable::SlotIterator *const start_pos,
             ProjectedColumns *const out_buffer) const {
-    return table_.data_table->Scan(txn, start_pos, out_buffer);
+    return table_.data_table_->Scan(txn, start_pos, out_buffer);
   }
 
   /**
    * @return the first tuple slot contained in the underlying DataTable
    */
-  DataTable::SlotIterator begin() const { return table_.data_table->begin(); }
+  DataTable::SlotIterator begin() const { return table_.data_table_->begin(); }  // NOLINT for STL name compability
 
   /**
    * @return one past the last tuple slot contained in the underlying DataTable
    */
-  DataTable::SlotIterator end() const { return table_.data_table->end(); }
+  DataTable::SlotIterator end() const { return table_.data_table_->end(); }  // NOLINT for STL name compability
 
   /**
    * Generates an ProjectedColumnsInitializer for the execution layer to use. This performs the translation from col_oid
@@ -167,7 +167,7 @@ class SqlTable {
     auto col_ids = ColIdsForOids(col_oids);
     TERRIER_ASSERT(col_ids.size() == col_oids.size(),
                    "Projection should be the same number of columns as requested col_oids.");
-    return ProjectedColumnsInitializer(table_.layout, col_ids, max_tuples);
+    return ProjectedColumnsInitializer(table_.layout_, col_ids, max_tuples);
   }
 
   /**
@@ -183,7 +183,7 @@ class SqlTable {
     auto col_ids = ColIdsForOids(col_oids);
     TERRIER_ASSERT(col_ids.size() == col_oids.size(),
                    "Projection should be the same number of columns as requested col_oids.");
-    return ProjectedRowInitializer::Create(table_.layout, col_ids);
+    return ProjectedRowInitializer::Create(table_.layout_, col_ids);
   }
 
   /**
