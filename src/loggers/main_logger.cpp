@@ -4,7 +4,7 @@
 std::shared_ptr<spdlog::sinks::stdout_sink_mt> default_sink;
 std::shared_ptr<spdlog::logger> main_logger;
 
-void init_main_logger() {
+void InitMainLogger() {
   // create the default, shared sink
   default_sink = std::make_shared<spdlog::sinks::stdout_sink_mt>();
 

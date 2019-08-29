@@ -6,7 +6,7 @@ namespace terrier::storage {
 
 std::shared_ptr<spdlog::logger> storage_logger;
 
-void init_storage_logger() {
+void InitStorageLogger() {
   storage_logger = std::make_shared<spdlog::logger>("storage_logger", ::default_sink);
   spdlog::register_logger(storage_logger);
 }
