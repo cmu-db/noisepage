@@ -112,9 +112,9 @@ TEST_F(OptimizerMetadataTest, RecordTransformedExpressionNoDuplicate) {
 
   // Create OperatorExpression of DISTINCT <= GET
   auto *get = new OperatorExpression(
-      LogicalGet::make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3), {}, "tbl", false),
+      LogicalGet::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3), {}, "tbl", false),
       {});
-  auto *distinct = new OperatorExpression(LogicalDistinct::make(), {get});
+  auto *distinct = new OperatorExpression(LogicalDistinct::Make(), {get});
 
   // RecordTransformedExpression
   GroupExpression *gexpr;
@@ -141,11 +141,11 @@ TEST_F(OptimizerMetadataTest, RecordTransformedExpressionDuplicateSingleLayer) {
 
   // Create OperatorExpression of JOIN <= (GET A, GET A)
   auto *leftGet = new OperatorExpression(
-      LogicalGet::make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3), {}, "tbl", false),
+      LogicalGet::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3), {}, "tbl", false),
       {});
   auto *rightGet = leftGet->Copy();
   EXPECT_EQ(*leftGet, *rightGet);
-  auto *join = new OperatorExpression(LogicalInnerJoin::make(), {leftGet, rightGet});
+  auto *join = new OperatorExpression(LogicalInnerJoin::Make(), {leftGet, rightGet});
 
   // RecordTransformedExpression
   GroupExpression *joinGexpr;
@@ -174,14 +174,14 @@ TEST_F(OptimizerMetadataTest, RecordTransformedExpressionDuplicateMultiLayer) {
 
   // Create OperatorExpression (A JOIN B) JOIN (A JOIN B)
   auto *leftGet = new OperatorExpression(
-      LogicalGet::make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3), {}, "tbl", false),
+      LogicalGet::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3), {}, "tbl", false),
       {});
   auto *rightGet = leftGet->Copy();
   EXPECT_EQ(*leftGet, *rightGet);
-  auto *leftJoin = new OperatorExpression(LogicalInnerJoin::make(), {leftGet, rightGet});
+  auto *leftJoin = new OperatorExpression(LogicalInnerJoin::Make(), {leftGet, rightGet});
   auto *rightJoin = leftJoin->Copy();
   EXPECT_EQ(*leftJoin, *rightJoin);
-  auto *join = new OperatorExpression(LogicalInnerJoin::make(), {leftJoin, rightJoin});
+  auto *join = new OperatorExpression(LogicalInnerJoin::Make(), {leftJoin, rightJoin});
 
   // RecordTransformedExpression
   GroupExpression *joinGexpr;
@@ -218,7 +218,7 @@ TEST_F(OptimizerMetadataTest, RecordTransformedExpressionDuplicateMultiLayer) {
 TEST_F(OptimizerMetadataTest, RecordTransformedExpressionDuplicate) {
   auto metadata = OptimizerMetadata(nullptr);
 
-  auto *tbl_free = new OperatorExpression(TableFreeScan::make(), {});
+  auto *tbl_free = new OperatorExpression(TableFreeScan::Make(), {});
 
   GroupExpression *tbl_free_gexpr;
   EXPECT_TRUE(metadata.RecordTransformedExpression(tbl_free, &tbl_free_gexpr));
@@ -238,11 +238,11 @@ TEST_F(OptimizerMetadataTest, SimpleBindingTest) {
   auto metadata = OptimizerMetadata(nullptr);
 
   auto *leftGet = new OperatorExpression(
-      LogicalGet::make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3), {}, "tbl", false),
+      LogicalGet::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3), {}, "tbl", false),
       {});
   auto *rightGet = leftGet->Copy();
   EXPECT_EQ(*leftGet, *rightGet);
-  auto *join = new OperatorExpression(LogicalInnerJoin::make(), {leftGet, rightGet});
+  auto *join = new OperatorExpression(LogicalInnerJoin::Make(), {leftGet, rightGet});
 
   GroupExpression *gexpr = nullptr;
   EXPECT_TRUE(metadata.RecordTransformedExpression(join, &gexpr));
@@ -270,11 +270,11 @@ TEST_F(OptimizerMetadataTest, SingleWildcardTest) {
   auto metadata = OptimizerMetadata(nullptr);
 
   auto *leftGet = new OperatorExpression(
-      LogicalGet::make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3), {}, "tbl", false),
+      LogicalGet::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3), {}, "tbl", false),
       {});
   auto *rightGet = leftGet->Copy();
   EXPECT_EQ(*leftGet, *rightGet);
-  auto *join = new OperatorExpression(LogicalInnerJoin::make(), {leftGet, rightGet});
+  auto *join = new OperatorExpression(LogicalInnerJoin::Make(), {leftGet, rightGet});
 
   GroupExpression *gexpr = nullptr;
   EXPECT_TRUE(metadata.RecordTransformedExpression(join, &gexpr));

@@ -77,8 +77,8 @@ TEST_F(TpccPlanSeqScanTests, SimpleSeqScanSelectWithPredicate) {
     EXPECT_EQ(scan_pred->GetChildrenSize(), 2);
     EXPECT_EQ(scan_pred->GetChild(0)->GetExpressionType(), parser::ExpressionType::VALUE_TUPLE);
     EXPECT_EQ(scan_pred->GetChild(1)->GetExpressionType(), parser::ExpressionType::VALUE_CONSTANT);
-    auto *dve = reinterpret_cast<const parser::DerivedValueExpression *>(scan_pred->GetChild(0).get());
-    auto *cve = reinterpret_cast<const parser::ConstantValueExpression *>(scan_pred->GetChild(1).get());
+    auto *dve = reinterpret_cast<const parser::DerivedValueExpression *>(scan_pred->GetChild(0).Get());
+    auto *cve = reinterpret_cast<const parser::ConstantValueExpression *>(scan_pred->GetChild(1).Get());
     EXPECT_EQ(dve->GetTupleIdx(), 0);
     EXPECT_EQ(dve->GetValueIdx(), offset);  // ValueIdx() should be offset into underlying tuple
     EXPECT_EQ(type::TransientValuePeeker::PeekInteger(cve->GetValue()), 5);
@@ -139,8 +139,8 @@ TEST_F(TpccPlanSeqScanTests, SimpleSeqScanSelectWithPredicateOrderBy) {
     EXPECT_EQ(scan_pred->GetChildrenSize(), 2);
     EXPECT_EQ(scan_pred->GetChild(0)->GetExpressionType(), parser::ExpressionType::VALUE_TUPLE);
     EXPECT_EQ(scan_pred->GetChild(1)->GetExpressionType(), parser::ExpressionType::VALUE_CONSTANT);
-    auto *dve = reinterpret_cast<const parser::DerivedValueExpression *>(scan_pred->GetChild(0).get());
-    auto *cve = reinterpret_cast<const parser::ConstantValueExpression *>(scan_pred->GetChild(1).get());
+    auto *dve = reinterpret_cast<const parser::DerivedValueExpression *>(scan_pred->GetChild(0).Get());
+    auto *cve = reinterpret_cast<const parser::ConstantValueExpression *>(scan_pred->GetChild(1).Get());
     EXPECT_EQ(dve->GetTupleIdx(), 0);
     EXPECT_EQ(dve->GetValueIdx(), carrier_offset);  // ValueIdx() should be offset into underlying tuple (all cols)
     EXPECT_EQ(type::TransientValuePeeker::PeekInteger(cve->GetValue()), 5);
@@ -187,8 +187,8 @@ TEST_F(TpccPlanSeqScanTests, SimpleSeqScanSelectWithPredicateLimit) {
     EXPECT_EQ(scan_pred->GetChildrenSize(), 2);
     EXPECT_EQ(scan_pred->GetChild(0)->GetExpressionType(), parser::ExpressionType::VALUE_TUPLE);
     EXPECT_EQ(scan_pred->GetChild(1)->GetExpressionType(), parser::ExpressionType::VALUE_CONSTANT);
-    auto *dve = reinterpret_cast<const parser::DerivedValueExpression *>(scan_pred->GetChild(0).get());
-    auto *cve = reinterpret_cast<const parser::ConstantValueExpression *>(scan_pred->GetChild(1).get());
+    auto *dve = reinterpret_cast<const parser::DerivedValueExpression *>(scan_pred->GetChild(0).Get());
+    auto *cve = reinterpret_cast<const parser::ConstantValueExpression *>(scan_pred->GetChild(1).Get());
     EXPECT_EQ(dve->GetTupleIdx(), 0);
     EXPECT_EQ(dve->GetValueIdx(), carrier_offset);  // ValueIdx() should be offset into underlying tuple (all cols)
     EXPECT_EQ(type::TransientValuePeeker::PeekInteger(cve->GetValue()), 5);
@@ -257,8 +257,8 @@ TEST_F(TpccPlanSeqScanTests, SimpleSeqScanSelectWithPredicateOrderByLimit) {
     EXPECT_EQ(scan_pred->GetChildrenSize(), 2);
     EXPECT_EQ(scan_pred->GetChild(0)->GetExpressionType(), parser::ExpressionType::VALUE_TUPLE);
     EXPECT_EQ(scan_pred->GetChild(1)->GetExpressionType(), parser::ExpressionType::VALUE_CONSTANT);
-    auto *dve = reinterpret_cast<const parser::DerivedValueExpression *>(scan_pred->GetChild(0).get());
-    auto *cve = reinterpret_cast<const parser::ConstantValueExpression *>(scan_pred->GetChild(1).get());
+    auto *dve = reinterpret_cast<const parser::DerivedValueExpression *>(scan_pred->GetChild(0).Get());
+    auto *cve = reinterpret_cast<const parser::ConstantValueExpression *>(scan_pred->GetChild(1).Get());
     EXPECT_EQ(dve->GetTupleIdx(), 0);
     EXPECT_EQ(dve->GetValueIdx(), carrier_offset);  // ValueIdx() should be offset into underlying tuple (all cols)
     EXPECT_EQ(type::TransientValuePeeker::PeekInteger(cve->GetValue()), 5);

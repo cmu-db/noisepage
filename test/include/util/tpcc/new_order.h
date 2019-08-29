@@ -145,24 +145,24 @@ class NewOrder {
         // District metadata
         d_tax_oid_(db->district_schema_.GetColumn(8).Oid()),
         d_next_o_id_oid_(db->district_schema_.GetColumn(10).Oid()),
-        district_select_pr_initializer_(db->district_table_->InitializerForProjectedRow({d_tax_oid, d_next_o_id_oid})),
-        district_select_pr_map_(db->district_table_->ProjectionMapForOids({d_tax_oid, d_next_o_id_oid})),
+        district_select_pr_initializer_(db->district_table_->InitializerForProjectedRow({d_tax_oid_, d_next_o_id_oid_})),
+        district_select_pr_map_(db->district_table_->ProjectionMapForOids({d_tax_oid_, d_next_o_id_oid_})),
         d_id_key_pr_offset_(static_cast<uint8_t>(db->district_primary_index_->GetKeyOidToOffsetMap().at(
             db->district_primary_index_schema_.GetColumn(1).Oid()))),
         d_w_id_key_pr_offset_(static_cast<uint8_t>(db->district_primary_index_->GetKeyOidToOffsetMap().at(
             db->district_primary_index_schema_.GetColumn(0).Oid()))),
-        d_tax_select_pr_offset_(static_cast<uint8_t>(district_select_pr_map.at(d_tax_oid))),
-        d_next_o_id_select_pr_offset_(static_cast<uint8_t>(district_select_pr_map.at(d_next_o_id_oid))),
-        district_update_pr_initializer_(db->district_table_->InitializerForProjectedRow({d_next_o_id_oid})),
+        d_tax_select_pr_offset_(static_cast<uint8_t>(district_select_pr_map_.at(d_tax_oid_))),
+        d_next_o_id_select_pr_offset_(static_cast<uint8_t>(district_select_pr_map_.at(d_next_o_id_oid_))),
+        district_update_pr_initializer_(db->district_table_->InitializerForProjectedRow({d_next_o_id_oid_})),
 
         // Customer metadata
         c_discount_oid_(db->customer_schema_.GetColumn(15).Oid()),
         c_last_oid_(db->customer_schema_.GetColumn(5).Oid()),
         c_credit_oid_(db->customer_schema_.GetColumn(13).Oid()),
         customer_select_pr_initializer_(
-            db->customer_table_->InitializerForProjectedRow({c_discount_oid, c_last_oid, c_credit_oid})),
-        customer_select_pr_map_(db->customer_table_->ProjectionMapForOids({c_discount_oid, c_last_oid, c_credit_oid})),
-        c_discount_select_pr_offset_(static_cast<uint8_t>(customer_select_pr_map.at(c_discount_oid))),
+            db->customer_table_->InitializerForProjectedRow({c_discount_oid_, c_last_oid_, c_credit_oid_})),
+        customer_select_pr_map_(db->customer_table_->ProjectionMapForOids({c_discount_oid_, c_last_oid_, c_credit_oid_})),
+        c_discount_select_pr_offset_(static_cast<uint8_t>(customer_select_pr_map_.at(c_discount_oid_))),
         c_id_key_pr_offset_(static_cast<uint8_t>(db->customer_primary_index_->GetKeyOidToOffsetMap().at(
             db->customer_primary_index_schema_.GetColumn(2).Oid()))),
         c_d_id_key_pr_offset_(static_cast<uint8_t>(db->customer_primary_index_->GetKeyOidToOffsetMap().at(
@@ -176,11 +176,11 @@ class NewOrder {
         new_order_insert_pr_map_(
             db->new_order_table_->ProjectionMapForOids(Util::AllColOidsForSchema(db->new_order_schema_))),
         no_o_id_insert_pr_offset_(
-            static_cast<uint8_t>(new_order_insert_pr_map.at(db->new_order_schema_.GetColumn(0).Oid()))),
+            static_cast<uint8_t>(new_order_insert_pr_map_.at(db->new_order_schema_.GetColumn(0).Oid()))),
         no_d_id_insert_pr_offset_(
-            static_cast<uint8_t>(new_order_insert_pr_map.at(db->new_order_schema_.GetColumn(1).Oid()))),
+            static_cast<uint8_t>(new_order_insert_pr_map_.at(db->new_order_schema_.GetColumn(1).Oid()))),
         no_w_id_insert_pr_offset_(
-            static_cast<uint8_t>(new_order_insert_pr_map.at(db->new_order_schema_.GetColumn(2).Oid()))),
+            static_cast<uint8_t>(new_order_insert_pr_map_.at(db->new_order_schema_.GetColumn(2).Oid()))),
         no_o_id_key_pr_offset_(static_cast<uint8_t>(db->new_order_primary_index_->GetKeyOidToOffsetMap().at(
             db->new_order_primary_index_schema_.GetColumn(2).Oid()))),
         no_d_id_key_pr_offset_(static_cast<uint8_t>(db->new_order_primary_index_->GetKeyOidToOffsetMap().at(
@@ -192,16 +192,16 @@ class NewOrder {
         order_insert_pr_initializer_(
             db->order_table_->InitializerForProjectedRow(Util::AllColOidsForSchema(db->order_schema_))),
         order_insert_pr_map_(db->order_table_->ProjectionMapForOids(Util::AllColOidsForSchema(db->order_schema_))),
-        o_id_insert_pr_offset_(static_cast<uint8_t>(order_insert_pr_map.at(db->order_schema_.GetColumn(0).Oid()))),
-        o_d_id_insert_pr_offset_(static_cast<uint8_t>(order_insert_pr_map.at(db->order_schema_.GetColumn(1).Oid()))),
-        o_w_id_insert_pr_offset_(static_cast<uint8_t>(order_insert_pr_map.at(db->order_schema_.GetColumn(2).Oid()))),
-        o_c_id_insert_pr_offset_(static_cast<uint8_t>(order_insert_pr_map.at(db->order_schema_.GetColumn(3).Oid()))),
-        o_entry_d_insert_pr_offset_(static_cast<uint8_t>(order_insert_pr_map.at(db->order_schema_.GetColumn(4).Oid()))),
+        o_id_insert_pr_offset_(static_cast<uint8_t>(order_insert_pr_map_.at(db->order_schema_.GetColumn(0).Oid()))),
+        o_d_id_insert_pr_offset_(static_cast<uint8_t>(order_insert_pr_map_.at(db->order_schema_.GetColumn(1).Oid()))),
+        o_w_id_insert_pr_offset_(static_cast<uint8_t>(order_insert_pr_map_.at(db->order_schema_.GetColumn(2).Oid()))),
+        o_c_id_insert_pr_offset_(static_cast<uint8_t>(order_insert_pr_map_.at(db->order_schema_.GetColumn(3).Oid()))),
+        o_entry_d_insert_pr_offset_(static_cast<uint8_t>(order_insert_pr_map_.at(db->order_schema_.GetColumn(4).Oid()))),
         o_carrier_id_insert_pr_offset_(
-            static_cast<uint8_t>(order_insert_pr_map.at(db->order_schema_.GetColumn(5).Oid()))),
-        o_ol_cnt_insert_pr_offset_(static_cast<uint8_t>(order_insert_pr_map.at(db->order_schema_.GetColumn(6).Oid()))),
+            static_cast<uint8_t>(order_insert_pr_map_.at(db->order_schema_.GetColumn(5).Oid()))),
+        o_ol_cnt_insert_pr_offset_(static_cast<uint8_t>(order_insert_pr_map_.at(db->order_schema_.GetColumn(6).Oid()))),
         o_all_local_insert_pr_offset_(
-            static_cast<uint8_t>(order_insert_pr_map.at(db->order_schema_.GetColumn(7).Oid()))),
+            static_cast<uint8_t>(order_insert_pr_map_.at(db->order_schema_.GetColumn(7).Oid()))),
         o_id_key_pr_offset_(static_cast<uint8_t>(
             db->order_primary_index_->GetKeyOidToOffsetMap().at(db->order_primary_index_schema_.GetColumn(2).Oid()))),
         o_d_id_key_pr_offset_(static_cast<uint8_t>(
@@ -217,7 +217,8 @@ class NewOrder {
         o_c_id_secondary_key_pr_offset_(static_cast<uint8_t>(db->order_secondary_index_->GetKeyOidToOffsetMap().at(
             db->order_secondary_index_schema_.GetColumn(2).Oid()))),
 
-        // Item metadata i_price_oid_(db->item_schema_.GetColumn(3).Oid()),
+        // Item metadata
+        i_price_oid_(db->item_schema_.GetColumn(3).Oid()),
         i_name_oid_(db->item_schema_.GetColumn(2).Oid()),
         i_data_oid_(db->item_schema_.GetColumn(4).Oid()),
         item_select_pr_initializer_(

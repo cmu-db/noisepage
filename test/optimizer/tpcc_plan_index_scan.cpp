@@ -60,8 +60,8 @@ TEST_F(TpccPlanIndexScanTests, SimplePredicateIndexScan) {
     EXPECT_EQ(scan_pred->GetChildrenSize(), 2);
     EXPECT_EQ(scan_pred->GetChild(0)->GetExpressionType(), parser::ExpressionType::VALUE_TUPLE);
     EXPECT_EQ(scan_pred->GetChild(1)->GetExpressionType(), parser::ExpressionType::VALUE_CONSTANT);
-    auto *dve = reinterpret_cast<const parser::DerivedValueExpression *>(scan_pred->GetChild(0).get());
-    auto *cve = reinterpret_cast<const parser::ConstantValueExpression *>(scan_pred->GetChild(1).get());
+    auto *dve = reinterpret_cast<const parser::DerivedValueExpression *>(scan_pred->GetChild(0).Get());
+    auto *cve = reinterpret_cast<const parser::ConstantValueExpression *>(scan_pred->GetChild(1).Get());
     EXPECT_EQ(dve->GetTupleIdx(), 0);
     EXPECT_EQ(dve->GetValueIdx(), no_d_id_offset);  // ValueIdx() should be offset into underlying tuple
     EXPECT_EQ(type::TransientValuePeeker::PeekInteger(cve->GetValue()), 1);
@@ -111,8 +111,8 @@ TEST_F(TpccPlanIndexScanTests, SimplePredicateFlippedIndexScan) {
     EXPECT_EQ(scan_pred->GetChildrenSize(), 2);
     EXPECT_EQ(scan_pred->GetChild(1)->GetExpressionType(), parser::ExpressionType::VALUE_TUPLE);
     EXPECT_EQ(scan_pred->GetChild(0)->GetExpressionType(), parser::ExpressionType::VALUE_CONSTANT);
-    auto *dve = reinterpret_cast<const parser::DerivedValueExpression *>(scan_pred->GetChild(1).get());
-    auto *cve = reinterpret_cast<const parser::ConstantValueExpression *>(scan_pred->GetChild(0).get());
+    auto *dve = reinterpret_cast<const parser::DerivedValueExpression *>(scan_pred->GetChild(1).Get());
+    auto *cve = reinterpret_cast<const parser::ConstantValueExpression *>(scan_pred->GetChild(0).Get());
     EXPECT_EQ(dve->GetTupleIdx(), 0);
     EXPECT_EQ(dve->GetValueIdx(), no_d_id_offset);  // ValueIdx() should be offset into underlying tuple
     EXPECT_EQ(type::TransientValuePeeker::PeekInteger(cve->GetValue()), 1);
@@ -144,7 +144,7 @@ TEST_F(TpccPlanIndexScanTests, IndexFulfillSort) {
     EXPECT_EQ(index_plan->GetIndexScanDescription().GetTupleColumnIdList().size(), 0);
     EXPECT_EQ(index_plan->GetIndexScanDescription().GetExpressionTypeList().size(), 0);
     EXPECT_EQ(index_plan->GetIndexScanDescription().GetValueList().size(), 0);
-    EXPECT_EQ(index_plan->GetScanPredicate().get(), nullptr);
+    EXPECT_EQ(index_plan->GetScanPredicate().Get(), nullptr);
   };
 
   std::string query = "SELECT NO_O_ID FROM NEW_ORDER ORDER BY NO_W_ID";
@@ -209,8 +209,8 @@ TEST_F(TpccPlanIndexScanTests, IndexFulfillSortAndPredicate) {
     EXPECT_EQ(scan_pred->GetChildrenSize(), 2);
     EXPECT_EQ(scan_pred->GetChild(0)->GetExpressionType(), parser::ExpressionType::VALUE_TUPLE);
     EXPECT_EQ(scan_pred->GetChild(1)->GetExpressionType(), parser::ExpressionType::VALUE_CONSTANT);
-    auto *dve = reinterpret_cast<const parser::DerivedValueExpression *>(scan_pred->GetChild(0).get());
-    auto *cve = reinterpret_cast<const parser::ConstantValueExpression *>(scan_pred->GetChild(1).get());
+    auto *dve = reinterpret_cast<const parser::DerivedValueExpression *>(scan_pred->GetChild(0).Get());
+    auto *cve = reinterpret_cast<const parser::ConstantValueExpression *>(scan_pred->GetChild(1).Get());
     EXPECT_EQ(dve->GetTupleIdx(), 0);
     EXPECT_EQ(dve->GetValueIdx(), no_w_id_offset);  // ValueIdx() should be offset into underlying tuple
     EXPECT_EQ(type::TransientValuePeeker::PeekInteger(cve->GetValue()), 1);
@@ -291,8 +291,8 @@ TEST_F(TpccPlanIndexScanTests, IndexFulfillSortAndPredicateWithLimitOffset) {
     EXPECT_EQ(scan_pred->GetChildrenSize(), 2);
     EXPECT_EQ(scan_pred->GetChild(0)->GetExpressionType(), parser::ExpressionType::VALUE_TUPLE);
     EXPECT_EQ(scan_pred->GetChild(1)->GetExpressionType(), parser::ExpressionType::VALUE_CONSTANT);
-    auto *dve = reinterpret_cast<const parser::DerivedValueExpression *>(scan_pred->GetChild(0).get());
-    auto *cve = reinterpret_cast<const parser::ConstantValueExpression *>(scan_pred->GetChild(1).get());
+    auto *dve = reinterpret_cast<const parser::DerivedValueExpression *>(scan_pred->GetChild(0).Get());
+    auto *cve = reinterpret_cast<const parser::ConstantValueExpression *>(scan_pred->GetChild(1).Get());
     EXPECT_EQ(dve->GetTupleIdx(), 0);
     EXPECT_EQ(dve->GetValueIdx(), no_w_id_offset);  // ValueIdx() should be offset into underlying tuple
     EXPECT_EQ(type::TransientValuePeeker::PeekInteger(cve->GetValue()), 1);

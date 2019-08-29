@@ -199,7 +199,7 @@ class TpccPlanTest : public TerrierTest {
       table_alias_set->insert(reinterpret_cast<const parser::ColumnValueExpression *>(expr)->GetTableName());
     } else {
       for (size_t i = 0; i < expr->GetChildrenSize(); i++)
-        GenerateTableAliasSet(expr->GetChild(i).get(), table_alias_set);
+        GenerateTableAliasSet(expr->GetChild(i).Get(), table_alias_set);
     }
   }
 
@@ -220,7 +220,7 @@ class TpccPlanTest : public TerrierTest {
   void SplitPredicates(const parser::AbstractExpression *expr, std::vector<const parser::AbstractExpression *> *preds) {
     if (expr->GetExpressionType() == parser::ExpressionType::CONJUNCTION_AND) {
       for (size_t idx = 0; idx < expr->GetChildrenSize(); idx++) {
-        SplitPredicates(expr->GetChild(idx).get(), preds);
+        SplitPredicates(expr->GetChild(idx).Get(), preds);
       }
     } else {
       preds->push_back(expr);
@@ -237,7 +237,7 @@ class TpccPlanTest : public TerrierTest {
       frontier.pop();
 
       for (size_t idx = 0; idx < front->GetChildrenSize(); idx++) {
-        frontier.push(front->GetChild(idx).get());
+        frontier.push(front->GetChild(idx).Get());
       }
 
       if (front->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE) {
@@ -289,7 +289,7 @@ class TpccPlanTest : public TerrierTest {
     {
       std::vector<catalog::col_oid_t> oids = col_oids;
       std::vector<std::vector<common::ManagedPointer<const parser::AbstractExpression>>> ins = {row};
-      plan = new optimizer::OperatorExpression(optimizer::LogicalInsert::make(db_, accessor_->GetDefaultNamespace(),
+      plan = new optimizer::OperatorExpression(optimizer::LogicalInsert::Make(db_, accessor_->GetDefaultNamespace(),
                                                                               tbl_oid, std::move(oids), std::move(ins)),
                                                {});
     }
@@ -307,7 +307,7 @@ class TpccPlanTest : public TerrierTest {
     EXPECT_EQ(insert->GetBulkInsertCount(), 1);
     EXPECT_EQ(insert->GetValues(0).size(), row.size());
     for (size_t idx = 0; idx < row.size(); idx++) {
-      EXPECT_EQ(row[idx].get(), insert->GetValues(0)[idx]);
+      EXPECT_EQ(row[idx].Get(), insert->GetValues(0)[idx]);
     }
 
     delete plan;
@@ -332,13 +332,13 @@ class TpccPlanTest : public TerrierTest {
 
       auto predicates = ExtractPredicates(upd_cond);
       auto *get = new optimizer::OperatorExpression(
-          optimizer::LogicalGet::make(db_, accessor_->GetDefaultNamespace(), tbl_oid, predicates, tbl_alias, false),
+          optimizer::LogicalGet::Make(db_, accessor_->GetDefaultNamespace(), tbl_oid, predicates, tbl_alias, false),
           {});
       child.push_back(get);
     }
 
     for (auto &upd : upd_stmt->GetUpdateClauses()) {
-      BindColumnValues(upd->GetUpdateValue().get(), tbl_oid, tbl_alias);
+      BindColumnValues(upd->GetUpdateValue().Get(), tbl_oid, tbl_alias);
     }
 
     std::vector<common::ManagedPointer<const parser::UpdateClause>> clauses;
@@ -347,7 +347,7 @@ class TpccPlanTest : public TerrierTest {
     }
 
     auto plan = new optimizer::OperatorExpression(
-        optimizer::LogicalUpdate::make(db_, accessor_->GetDefaultNamespace(), tbl_alias, tbl_oid, std::move(clauses)),
+        optimizer::LogicalUpdate::Make(db_, accessor_->GetDefaultNamespace(), tbl_alias, tbl_oid, std::move(clauses)),
         std::move(child));
 
     auto property_set = new optimizer::PropertySet();
@@ -379,13 +379,13 @@ class TpccPlanTest : public TerrierTest {
     auto property_set = new optimizer::PropertySet();
     std::vector<common::ManagedPointer<const parser::AbstractExpression>> output;
     for (auto idx = 0u; idx < sel_stmt->GetSelectColumnsSize(); idx++) {
-      BindColumnValues(sel_stmt->GetSelectColumn(idx).get(), tbl_oid, tbl_alias);
-      output.emplace_back(sel_stmt->GetSelectColumn(idx).get());
+      BindColumnValues(sel_stmt->GetSelectColumn(idx).Get(), tbl_oid, tbl_alias);
+      output.emplace_back(sel_stmt->GetSelectColumn(idx).Get());
     }
 
     // Build Get Plan
     auto plan = new optimizer::OperatorExpression(
-        optimizer::LogicalGet::make(db_, accessor_->GetDefaultNamespace(), tbl_oid, {}, tbl_alias, false), {});
+        optimizer::LogicalGet::Make(db_, accessor_->GetDefaultNamespace(), tbl_oid, {}, tbl_alias, false), {});
 
     // Build Filter if exists
     if (sel_stmt->GetSelectCondition()) {
@@ -397,7 +397,7 @@ class TpccPlanTest : public TerrierTest {
       auto predicates = ExtractPredicates(predicate);
       auto children = {plan};
       plan =
-          new optimizer::OperatorExpression(optimizer::LogicalFilter::make(std::move(predicates)), std::move(children));
+          new optimizer::OperatorExpression(optimizer::LogicalFilter::Make(std::move(predicates)), std::move(children));
     }
 
     std::vector<planner::OrderByOrderingType> sort_dirs;
@@ -406,7 +406,7 @@ class TpccPlanTest : public TerrierTest {
       auto order_by = sel_stmt->GetSelectOrderBy();
       for (size_t idx = 0; idx < order_by->GetOrderByExpressionsSize(); idx++) {
         auto ob_type = order_by->GetOrderByTypes()[idx];
-        auto ob_expr = order_by->GetOrderByExpression(idx).get();
+        auto ob_expr = order_by->GetOrderByExpression(idx).Get();
         BindColumnValues(ob_expr, tbl_oid, tbl_alias);
 
         sort_exprs.emplace_back(ob_expr);
@@ -425,7 +425,7 @@ class TpccPlanTest : public TerrierTest {
       auto offset = sel_stmt->GetSelectLimit()->GetOffset();
       auto limit = sel_stmt->GetSelectLimit()->GetLimit();
       plan = new optimizer::OperatorExpression(
-          optimizer::LogicalLimit::make(offset, limit, std::move(sort_exprs), std::move(sort_dirs)),
+          optimizer::LogicalLimit::Make(offset, limit, std::move(sort_exprs), std::move(sort_dirs)),
           std::move(lim_child));
     }
 

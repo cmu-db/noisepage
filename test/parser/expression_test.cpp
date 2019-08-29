@@ -271,7 +271,7 @@ TEST(ExpressionTests, ConjunctionExpressionTest) {
   c_expr_1->DeriveReturnValueType();
   EXPECT_EQ(c_expr_1->GetReturnValueType(), type::TypeId::BOOLEAN);
   EXPECT_EQ(c_expr_1->GetChildrenSize(), children1cp.size());
-  for (size_t i = 0; i < c_expr_1->GetChildrenSize(); i++) EXPECT_EQ(*(c_expr_1->GetChild(i).get()), *(children1cp[i]));
+  for (size_t i = 0; i < c_expr_1->GetChildrenSize(); i++) EXPECT_EQ(*(c_expr_1->GetChild(i).Get()), *(children1cp[i]));
 
   // Private members depth will be initialized as -1 and has_subquery as false.
   EXPECT_EQ(c_expr_1->GetDepth(), -1);
@@ -373,7 +373,7 @@ TEST(ExpressionTests, AggregateExpressionTest) {
   agg_expr_1->DeriveReturnValueType();
   EXPECT_EQ(agg_expr_1->GetReturnValueType(), type::TypeId::INTEGER);
   EXPECT_EQ(agg_expr_1->GetChildrenSize(), 1);
-  EXPECT_EQ(*(agg_expr_1->GetChild(0).get()), *(childrent_1_cp[0]));
+  EXPECT_EQ(*(agg_expr_1->GetChild(0).Get()), *(childrent_1_cp[0]));
   EXPECT_TRUE(agg_expr_1->IsDistinct());
   // Private members depth will be initialized as -1 and has_subquery as false.
   EXPECT_EQ(agg_expr_1->GetDepth(), -1);
@@ -491,8 +491,8 @@ TEST(ExpressionTests, CaseExpressionTest) {
   case_expr->DeriveReturnValueType();
   EXPECT_EQ(case_expr->GetReturnValueType(), type::TypeId::BOOLEAN);
   EXPECT_EQ(case_expr->GetChildrenSize(), 0);
-  EXPECT_EQ(*(case_expr->GetWhenClauseCondition(0).get()), *const_expr);
-  EXPECT_EQ(*(case_expr->GetWhenClauseResult(0).get()), *const_expr);
+  EXPECT_EQ(*(case_expr->GetWhenClauseCondition(0).Get()), *const_expr);
+  EXPECT_EQ(*(case_expr->GetWhenClauseResult(0).Get()), *const_expr);
   EXPECT_EQ(case_expr->GetDefaultClause(), const_expr);
   // Private members depth will be initialized as -1 and has_subquery as false.
   EXPECT_EQ(case_expr->GetDepth(), -1);
