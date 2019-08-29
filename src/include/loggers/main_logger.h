@@ -12,7 +12,7 @@
 extern std::shared_ptr<spdlog::sinks::stdout_sink_mt> default_sink;
 extern std::shared_ptr<spdlog::logger> main_logger;
 
-void init_main_logger();
+void InitMainLogger();
 
 #define LOG_TRACE(...) ::main_logger->trace(__VA_ARGS__);
 
