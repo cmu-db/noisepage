@@ -89,8 +89,10 @@ class Delivery {
         order_update_pr_initializer_(
             db->order_table_->InitializerForProjectedRow({db->order_schema_.GetColumn(5).Oid()})),
         o_id_key_pr_offset_(static_cast<uint8_t>(db->order_primary_index_->GetKeyOidToOffsetMap().at(o_id_key_oid_))),
-        o_d_id_key_pr_offset_(static_cast<uint8_t>(db->order_primary_index_->GetKeyOidToOffsetMap().at(o_d_id_key_oid_))),
-        o_w_id_key_pr_offset_(static_cast<uint8_t>(db->order_primary_index_->GetKeyOidToOffsetMap().at(o_w_id_key_oid_))),
+        o_d_id_key_pr_offset_(
+            static_cast<uint8_t>(db->order_primary_index_->GetKeyOidToOffsetMap().at(o_d_id_key_oid_))),
+        o_w_id_key_pr_offset_(
+            static_cast<uint8_t>(db->order_primary_index_->GetKeyOidToOffsetMap().at(o_w_id_key_oid_))),
 
         ol_amount_oid_(db->order_line_schema_.GetColumn(8).Oid()),
         ol_delivery_d_oid_(db->order_line_schema_.GetColumn(6).Oid()),
@@ -118,11 +120,13 @@ class Delivery {
         c_d_id_key_oid_(db->customer_primary_index_schema_.GetColumn(1).Oid()),
         c_w_id_key_oid_(db->customer_primary_index_schema_.GetColumn(0).Oid()),
 
-        customer_pr_initializer_(db->customer_table_->InitializerForProjectedRow({c_balance_oid_, c_delivery_cnt_oid_})),
+        customer_pr_initializer_(
+            db->customer_table_->InitializerForProjectedRow({c_balance_oid_, c_delivery_cnt_oid_})),
         customer_pr_map_(db->customer_table_->ProjectionMapForOids({c_balance_oid_, c_delivery_cnt_oid_})),
         c_balance_pr_offset_(static_cast<uint8_t>(customer_pr_map_.at(c_balance_oid_))),
         c_delivery_cnt_pr_offset_(static_cast<uint8_t>(customer_pr_map_.at(c_delivery_cnt_oid_))),
-        c_id_key_pr_offset_(static_cast<uint8_t>(db->customer_primary_index_->GetKeyOidToOffsetMap().at(c_id_key_oid_))),
+        c_id_key_pr_offset_(
+            static_cast<uint8_t>(db->customer_primary_index_->GetKeyOidToOffsetMap().at(c_id_key_oid_))),
         c_d_id_key_pr_offset_(
             static_cast<uint8_t>(db->customer_primary_index_->GetKeyOidToOffsetMap().at(c_d_id_key_oid_))),
         c_w_id_key_pr_offset_(

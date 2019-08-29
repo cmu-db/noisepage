@@ -145,7 +145,8 @@ class NewOrder {
         // District metadata
         d_tax_oid_(db->district_schema_.GetColumn(8).Oid()),
         d_next_o_id_oid_(db->district_schema_.GetColumn(10).Oid()),
-        district_select_pr_initializer_(db->district_table_->InitializerForProjectedRow({d_tax_oid_, d_next_o_id_oid_})),
+        district_select_pr_initializer_(
+            db->district_table_->InitializerForProjectedRow({d_tax_oid_, d_next_o_id_oid_})),
         district_select_pr_map_(db->district_table_->ProjectionMapForOids({d_tax_oid_, d_next_o_id_oid_})),
         d_id_key_pr_offset_(static_cast<uint8_t>(db->district_primary_index_->GetKeyOidToOffsetMap().at(
             db->district_primary_index_schema_.GetColumn(1).Oid()))),
@@ -161,7 +162,8 @@ class NewOrder {
         c_credit_oid_(db->customer_schema_.GetColumn(13).Oid()),
         customer_select_pr_initializer_(
             db->customer_table_->InitializerForProjectedRow({c_discount_oid_, c_last_oid_, c_credit_oid_})),
-        customer_select_pr_map_(db->customer_table_->ProjectionMapForOids({c_discount_oid_, c_last_oid_, c_credit_oid_})),
+        customer_select_pr_map_(
+            db->customer_table_->ProjectionMapForOids({c_discount_oid_, c_last_oid_, c_credit_oid_})),
         c_discount_select_pr_offset_(static_cast<uint8_t>(customer_select_pr_map_.at(c_discount_oid_))),
         c_id_key_pr_offset_(static_cast<uint8_t>(db->customer_primary_index_->GetKeyOidToOffsetMap().at(
             db->customer_primary_index_schema_.GetColumn(2).Oid()))),
@@ -196,7 +198,8 @@ class NewOrder {
         o_d_id_insert_pr_offset_(static_cast<uint8_t>(order_insert_pr_map_.at(db->order_schema_.GetColumn(1).Oid()))),
         o_w_id_insert_pr_offset_(static_cast<uint8_t>(order_insert_pr_map_.at(db->order_schema_.GetColumn(2).Oid()))),
         o_c_id_insert_pr_offset_(static_cast<uint8_t>(order_insert_pr_map_.at(db->order_schema_.GetColumn(3).Oid()))),
-        o_entry_d_insert_pr_offset_(static_cast<uint8_t>(order_insert_pr_map_.at(db->order_schema_.GetColumn(4).Oid()))),
+        o_entry_d_insert_pr_offset_(
+            static_cast<uint8_t>(order_insert_pr_map_.at(db->order_schema_.GetColumn(4).Oid()))),
         o_carrier_id_insert_pr_offset_(
             static_cast<uint8_t>(order_insert_pr_map_.at(db->order_schema_.GetColumn(5).Oid()))),
         o_ol_cnt_insert_pr_offset_(static_cast<uint8_t>(order_insert_pr_map_.at(db->order_schema_.GetColumn(6).Oid()))),
