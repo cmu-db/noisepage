@@ -27,8 +27,8 @@ void ExtractEquiJoinKeys(const std::vector<AnnotatedExpression> &join_predicates
           r_expr->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE) {
         auto l_tv_expr = l_expr.CastManagedPointerTo<const parser::ColumnValueExpression>();
         auto r_tv_expr = r_expr.CastManagedPointerTo<const parser::ColumnValueExpression>();
-        auto l_expr = const_cast<parser::ColumnValueExpression *>(l_tv_expr.get());
-        auto r_expr = const_cast<parser::ColumnValueExpression *>(r_tv_expr.get());
+        auto l_expr = const_cast<parser::ColumnValueExpression *>(l_tv_expr.Get());
+        auto r_expr = const_cast<parser::ColumnValueExpression *>(r_tv_expr.Get());
 
         // Assign keys based on left and right join tables
         // l_tv_expr/r_tv_expr should not be modified later...

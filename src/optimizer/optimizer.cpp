@@ -45,7 +45,7 @@ std::shared_ptr<planner::AbstractPlanNode> Optimizer::BuildPlanTree(OperatorExpr
   // Give raw pointers to ChooseBestPlan
   std::vector<const parser::AbstractExpression *> output_exprs;
   for (auto expr : query_info.GetOutputExprs()) {
-    output_exprs.push_back(expr.get());
+    output_exprs.push_back(expr.Get());
   }
 
   try {
@@ -158,7 +158,7 @@ void Optimizer::ExecuteTaskStack(OptimizerTaskStack *task_stack, int root_group_
     auto task = task_stack->Pop();
     {
       common::ScopedTimer<std::chrono::milliseconds> timer(&task_runtime);
-      task->execute();
+      task->Execute();
     }
     delete task;
     elapsed_time += task_runtime;

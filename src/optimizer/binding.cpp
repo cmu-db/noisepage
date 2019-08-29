@@ -45,7 +45,7 @@ bool GroupBindingIterator::HasNext() {
 OperatorExpression *GroupBindingIterator::Next() {
   if (pattern_->Type() == OpType::LEAF) {
     current_item_index_ = num_group_items_;
-    return new OperatorExpression(LeafOperator::make(group_id_), {});
+    return new OperatorExpression(LeafOperator::Make(group_id_), {});
   }
 
   return current_iterator_->Next();

@@ -344,7 +344,7 @@ void PlanGenerator::Visit(const QueryDerivedScan *op) {
     TERRIER_ASSERT(colve != nullptr, "QueryDerivedScan output should be ColumnValueExpression");
 
     // Get offset into child_expr_ma
-    auto expr = alias_expr_map.at(colve->GetColumnName()).get();
+    auto expr = alias_expr_map.at(colve->GetColumnName()).Get();
     auto offset = child_expr_map.at(expr);
 
     dml.emplace_back(idx, std::make_pair(0U, offset));
@@ -405,7 +405,7 @@ void PlanGenerator::Visit(const Limit *op) {
 
       // Evaluate the sort_column using children_expr_map (what the child provides)
       // Need to replace ColumnValueExpression with DerivedValueExpression
-      auto eval_expr = parser::ExpressionUtil::EvaluateExpression({child_cols_map}, sort_columns[idx].get());
+      auto eval_expr = parser::ExpressionUtil::EvaluateExpression({child_cols_map}, sort_columns[idx].Get());
       RegisterPointerCleanup<const parser::AbstractExpression>(eval_expr, true, true);
       order_build->AddSortKey(eval_expr, sort_flags[idx]);
     }
@@ -464,7 +464,7 @@ void PlanGenerator::Visit(UNUSED_ATTRIBUTE const OrderBy *op) {
 
   for (size_t i = 0; i < sort_columns_size; ++i) {
     auto sort_dir = sort_prop->GetSortAscending(static_cast<int>(i));
-    auto key = sort_prop->GetSortColumn(i).get();
+    auto key = sort_prop->GetSortColumn(i).Get();
 
     // Evaluate the sort_column using children_expr_map (what the child provides)
     // Need to replace ColumnValueExpression with DerivedValueExpression
@@ -590,13 +590,13 @@ void PlanGenerator::Visit(const InnerNLJoin *op) {
   std::vector<const parser::AbstractExpression *> left_keys;
   std::vector<const parser::AbstractExpression *> right_keys;
   for (auto &expr : op->GetLeftKeys()) {
-    auto left_key = parser::ExpressionUtil::EvaluateExpression({children_expr_map_[0]}, expr.get());
+    auto left_key = parser::ExpressionUtil::EvaluateExpression({children_expr_map_[0]}, expr.Get());
     RegisterPointerCleanup<const parser::AbstractExpression>(left_key, true, true);
     left_keys.push_back(left_key);
   }
 
   for (auto &expr : op->GetRightKeys()) {
-    auto right_key = parser::ExpressionUtil::EvaluateExpression({children_expr_map_[1]}, expr.get());
+    auto right_key = parser::ExpressionUtil::EvaluateExpression({children_expr_map_[1]}, expr.Get());
     RegisterPointerCleanup<const parser::AbstractExpression>(right_key, true, true);
     right_keys.push_back(right_key);
   }
@@ -638,13 +638,13 @@ void PlanGenerator::Visit(const InnerHashJoin *op) {
   std::vector<ExprMap> l_child_map{std::move(children_expr_map_[0])};
   std::vector<ExprMap> r_child_map{std::move(children_expr_map_[1])};
   for (auto &expr : op->GetLeftKeys()) {
-    auto left_key = parser::ExpressionUtil::EvaluateExpression(l_child_map, expr.get());
+    auto left_key = parser::ExpressionUtil::EvaluateExpression(l_child_map, expr.Get());
     RegisterPointerCleanup<const parser::AbstractExpression>(left_key, true, true);
     builder->AddLeftHashKey(left_key);
   }
 
   for (auto &expr : op->GetRightKeys()) {
-    auto right_key = parser::ExpressionUtil::EvaluateExpression(r_child_map, expr.get());
+    auto right_key = parser::ExpressionUtil::EvaluateExpression(r_child_map, expr.Get());
     RegisterPointerCleanup<const parser::AbstractExpression>(right_key, true, true);
     builder->AddRightHashKey(right_key);
   }
@@ -724,7 +724,7 @@ void PlanGenerator::BuildAggregatePlan(
   std::vector<unsigned> col_offsets;
   if (groupby_cols != nullptr) {
     for (auto &col : *groupby_cols) {
-      col_offsets.push_back(child_expr_map.at(col.get()));
+      col_offsets.push_back(child_expr_map.at(col.Get()));
     }
   }
 
@@ -780,7 +780,7 @@ void PlanGenerator::Visit(const Insert *op) {
   for (auto &tuple_value : values) {
     std::vector<const parser::AbstractExpression *> row;
     row.reserve(tuple_value.size());
-    for (auto &col_value : tuple_value) row.push_back(col_value.get());
+    for (auto &col_value : tuple_value) row.push_back(col_value.Get());
 
     builder->AddValues(std::move(row));
   }
@@ -890,7 +890,7 @@ void PlanGenerator::Visit(const Update *op) {
       throw SYNTAX_EXCEPTION("Multiple assignments to same column");
 
     update_col_offsets.insert(col_id);
-    auto value = parser::ExpressionUtil::EvaluateExpression({table_expr_map}, update->GetUpdateValue().get());
+    auto value = parser::ExpressionUtil::EvaluateExpression({table_expr_map}, update->GetUpdateValue().Get());
 
     auto plan_col = planner::OutputSchema::Column(update->GetColumnName(), col.Type());
 

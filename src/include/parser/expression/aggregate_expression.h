@@ -83,7 +83,7 @@ class AggregateExpression : public AbstractExpression {
       case ExpressionType::AGGREGATE_MIN:
       case ExpressionType::AGGREGATE_SUM:
         TERRIER_ASSERT(this->GetChildrenSize() >= 1, "No column name given.");
-        const_cast<parser::AbstractExpression *>(this->GetChild(0).get())->DeriveReturnValueType();
+        const_cast<parser::AbstractExpression *>(this->GetChild(0).Get())->DeriveReturnValueType();
         this->SetReturnValueType(this->GetChild(0)->GetReturnValueType());
         break;
       case ExpressionType::AGGREGATE_AVG:

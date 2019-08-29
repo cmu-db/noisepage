@@ -41,7 +41,7 @@ RuleSet &OptimizerTask::GetRuleSet() const { return context_->GetMetadata()->Get
 //===--------------------------------------------------------------------===//
 // OptimizeGroup
 //===--------------------------------------------------------------------===//
-void OptimizeGroup::execute() {
+void OptimizeGroup::Execute() {
   OPTIMIZER_LOG_TRACE("OptimizeGroup::Execute() group %d", group_->GetID());
   if (group_->GetCostLB() > context_->GetCostUpperBound() ||                    // Cost LB > Cost UB
       group_->GetBestExpression(context_->GetRequiredProperties()) != nullptr)  // Has optimized given the context
@@ -65,7 +65,7 @@ void OptimizeGroup::execute() {
 //===--------------------------------------------------------------------===//
 // OptimizeExpression
 //===--------------------------------------------------------------------===//
-void OptimizeExpression::execute() {
+void OptimizeExpression::Execute() {
   std::vector<RuleWithPromise> valid_rules;
 
   // Construct valid transformation rules from rule set
@@ -96,9 +96,9 @@ void OptimizeExpression::execute() {
 //===--------------------------------------------------------------------===//
 // ExploreGroup
 //===--------------------------------------------------------------------===//
-void ExploreGroup::execute() {
+void ExploreGroup::Execute() {
   if (group_->HasExplored()) return;
-  OPTIMIZER_LOG_TRACE("ExploreGroup::execute() ");
+  OPTIMIZER_LOG_TRACE("ExploreGroup::Execute() ");
 
   for (auto &logical_expr : group_->GetLogicalExpressions()) {
     PushTask(new ExploreExpression(logical_expr, context_));
@@ -112,8 +112,8 @@ void ExploreGroup::execute() {
 //===--------------------------------------------------------------------===//
 // ExploreExpression
 //===--------------------------------------------------------------------===//
-void ExploreExpression::execute() {
-  OPTIMIZER_LOG_TRACE("ExploreExpression::execute() ");
+void ExploreExpression::Execute() {
+  OPTIMIZER_LOG_TRACE("ExploreExpression::Execute() ");
   std::vector<RuleWithPromise> valid_rules;
 
   // Construct valid transformation rules from rule set
@@ -140,8 +140,8 @@ void ExploreExpression::execute() {
 //===--------------------------------------------------------------------===//
 // ApplyRule
 //===--------------------------------------------------------------------===//
-void ApplyRule::execute() {
-  OPTIMIZER_LOG_TRACE("ApplyRule::execute() for rule: %d", rule_->GetRuleIdx());
+void ApplyRule::Execute() {
+  OPTIMIZER_LOG_TRACE("ApplyRule::Execute() for rule: %d", rule_->GetRuleIdx());
   if (group_expr_->HasRuleExplored(rule_)) return;
 
   GroupExprBindingIterator iterator(GetMemo(), group_expr_, rule_->GetMatchPattern());
@@ -163,7 +163,7 @@ void ApplyRule::execute() {
         if (new_gexpr->Op().IsLogical()) {
           // Derive stats for the *logical expression*
           PushTask(new DeriveStats(new_gexpr, ExprSet{}, context_));
-          if (explore_only) {
+          if (explore_only_) {
             // Explore this logical expression
             PushTask(new ExploreExpression(new_gexpr, context_));
           } else {
@@ -190,7 +190,7 @@ void ApplyRule::execute() {
 //===--------------------------------------------------------------------===//
 // DeriveStats
 //===--------------------------------------------------------------------===//
-void DeriveStats::execute() {
+void DeriveStats::Execute() {
   /*
     // TODO(wz2): Re-enable DeriveStats Task once a Stats Engine has been built
 
@@ -242,9 +242,9 @@ void DeriveStats::execute() {
 //===--------------------------------------------------------------------===//
 // OptimizeInputs
 //===--------------------------------------------------------------------===//
-void OptimizeInputs::execute() {
+void OptimizeInputs::Execute() {
   // Init logic: only run once per task
-  OPTIMIZER_LOG_TRACE("OptimizeInputs::execute() ");
+  OPTIMIZER_LOG_TRACE("OptimizeInputs::Execute() ");
   if (cur_child_idx_ == -1) {
     // TODO(patrick):
     // 1. We can init input cost using non-zero value for pruning
@@ -376,7 +376,7 @@ void OptimizeInputs::execute() {
   }
 }
 
-void TopDownRewrite::execute() {
+void TopDownRewrite::Execute() {
   std::vector<RuleWithPromise> valid_rules;
 
   auto cur_group = GetMemo().GetGroupByID(group_id_);
@@ -427,7 +427,7 @@ void TopDownRewrite::execute() {
   }
 }
 
-void BottomUpRewrite::execute() {
+void BottomUpRewrite::Execute() {
   std::vector<RuleWithPromise> valid_rules;
 
   auto cur_group = GetMemo().GetGroupByID(group_id_);

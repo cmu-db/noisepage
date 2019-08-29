@@ -149,7 +149,7 @@ struct Loader {
         const auto item_slot = db->item_table_->Insert(txn, item_redo);
 
         // insert in index
-        const auto *const item_key = BuildItemKey(i_id + 1, worker->item_key_buffer, item_key_pr_initializer,
+        const auto *const item_key = BuildItemKey(i_id + 1, worker->item_key_buffer_, item_key_pr_initializer,
                                                   item_key_pr_map, db->item_primary_index_schema_);
         bool UNUSED_ATTRIBUTE index_insert_result = db->item_primary_index_->InsertUnique(txn, *item_key, item_slot);
         TERRIER_ASSERT(index_insert_result, "Item index insertion failed.");
@@ -167,7 +167,7 @@ struct Loader {
 
       // insert in index
       const auto *const warehouse_key =
-          BuildWarehouseKey(static_cast<int8_t>(w_id + 1), worker->warehouse_key_buffer, warehouse_key_pr_initializer,
+          BuildWarehouseKey(static_cast<int8_t>(w_id + 1), worker->warehouse_key_buffer_, warehouse_key_pr_initializer,
                             warehouse_key_pr_map, db->warehouse_primary_index_schema_);
       bool UNUSED_ATTRIBUTE index_insert_result =
           db->warehouse_primary_index_->InsertUnique(txn, *warehouse_key, warehouse_slot);
@@ -194,7 +194,7 @@ struct Loader {
 
           // insert in index
           const auto *const stock_key =
-              BuildStockKey(s_i_id + 1, static_cast<int8_t>(w_id + 1), worker->stock_key_buffer,
+              BuildStockKey(s_i_id + 1, static_cast<int8_t>(w_id + 1), worker->stock_key_buffer_,
                             stock_key_pr_initializer, stock_key_pr_map, db->stock_primary_index_schema_);
           index_insert_result = db->stock_primary_index_->InsertUnique(txn, *stock_key, stock_slot);
           TERRIER_ASSERT(index_insert_result, "Stock index insertion failed.");
@@ -214,7 +214,7 @@ struct Loader {
 
         // insert in index
         const auto *const district_key =
-            BuildDistrictKey(static_cast<int8_t>(d_id + 1), static_cast<int8_t>(w_id + 1), worker->district_key_buffer,
+            BuildDistrictKey(static_cast<int8_t>(d_id + 1), static_cast<int8_t>(w_id + 1), worker->district_key_buffer_,
                              district_key_pr_initializer, district_key_pr_map, db->district_primary_index_schema_);
         index_insert_result = db->district_primary_index_->InsertUnique(txn, *district_key, district_slot);
         TERRIER_ASSERT(index_insert_result, "District index insertion failed.");
@@ -245,7 +245,7 @@ struct Loader {
 
           // insert in index
           const auto *const customer_key = BuildCustomerKey(
-              c_id + 1, static_cast<int8_t>(d_id + 1), static_cast<int8_t>(w_id + 1), worker->customer_key_buffer,
+              c_id + 1, static_cast<int8_t>(d_id + 1), static_cast<int8_t>(w_id + 1), worker->customer_key_buffer_,
               customer_key_pr_initializer, customer_key_pr_map, db->customer_primary_index_schema_);
           index_insert_result = db->customer_primary_index_->InsertUnique(txn, *customer_key, customer_slot);
           TERRIER_ASSERT(index_insert_result, "Customer index insertion failed.");
@@ -259,16 +259,16 @@ struct Loader {
           if (c_last_tuple.Size() <= storage::VarlenEntry::InlineThreshold()) {
             customer_name_key =
                 BuildCustomerNameKey(c_last_tuple, static_cast<int8_t>(d_id + 1), static_cast<int8_t>(w_id + 1),
-                                     worker->customer_name_key_buffer, customer_name_key_pr_initializer,
+                                     worker->customer_name_key_buffer_, customer_name_key_pr_initializer,
                                      customer_name_key_pr_map, db->customer_secondary_index_schema_);
           } else {
-            std::memcpy(worker->customer_name_varlen_buffer, c_last_tuple.Content(), c_last_tuple.Size());
+            std::memcpy(worker->customer_name_varlen_buffer_, c_last_tuple.Content(), c_last_tuple.Size());
             const auto c_last_key =
-                storage::VarlenEntry::Create(worker->customer_name_varlen_buffer, c_last_tuple.Size(), false);
+                storage::VarlenEntry::Create(worker->customer_name_varlen_buffer_, c_last_tuple.Size(), false);
 
             customer_name_key =
                 BuildCustomerNameKey(c_last_key, static_cast<int8_t>(d_id + 1), static_cast<int8_t>(w_id + 1),
-                                     worker->customer_name_key_buffer, customer_name_key_pr_initializer,
+                                     worker->customer_name_key_buffer_, customer_name_key_pr_initializer,
                                      customer_name_key_pr_map, db->customer_secondary_index_schema_);
           }
 
@@ -295,7 +295,7 @@ struct Loader {
 
           // insert in index
           const auto *const order_key = BuildOrderKey(
-              o_id + 1, static_cast<int8_t>(d_id + 1), static_cast<int8_t>(w_id + 1), worker->order_key_buffer,
+              o_id + 1, static_cast<int8_t>(d_id + 1), static_cast<int8_t>(w_id + 1), worker->order_key_buffer_,
               order_key_pr_initializer, order_key_pr_map, db->order_primary_index_schema_);
           index_insert_result = db->order_primary_index_->InsertUnique(txn, *order_key, order_slot);
           TERRIER_ASSERT(index_insert_result, "Order index insertion failed.");
@@ -303,7 +303,7 @@ struct Loader {
           // insert in secondary index
           const auto *const order_secondary_key = BuildOrderSecondaryKey(
               o_id + 1, o_c_ids[c_id], static_cast<int8_t>(d_id + 1), static_cast<int8_t>(w_id + 1),
-              worker->order_secondary_key_buffer, order_secondary_key_pr_initializer, order_secondary_key_pr_map,
+              worker->order_secondary_key_buffer_, order_secondary_key_pr_initializer, order_secondary_key_pr_map,
               db->order_secondary_index_schema_);
           index_insert_result = db->order_secondary_index_->InsertUnique(txn, *order_secondary_key, order_slot);
           TERRIER_ASSERT(index_insert_result, "Order secondary index insertion failed.");
@@ -311,19 +311,19 @@ struct Loader {
           // For each row in the ORDER table:
           // A number of rows in the ORDER-LINE table equal to O_OL_CNT, generated according to the rules for input
           // data generation of the New-Order transaction (see Clause 2.4.1)
-          for (int8_t ol_number = 0; ol_number < order_results.o_ol_cnt; ol_number++) {
+          for (int8_t ol_number = 0; ol_number < order_results.o_ol_cnt_; ol_number++) {
             // insert in table
             auto *const order_line_redo =
                 txn->StageWrite(db->db_oid_, db->order_line_table_oid_, order_line_tuple_pr_initializer);
             BuildOrderLineTuple(o_id + 1, static_cast<int8_t>(d_id + 1), static_cast<int8_t>(w_id + 1),
-                                static_cast<int8_t>(ol_number + 1), order_results.o_entry_d, order_line_redo->Delta(),
+                                static_cast<int8_t>(ol_number + 1), order_results.o_entry_d_, order_line_redo->Delta(),
                                 order_line_tuple_pr_map, db->order_line_schema_, generator);
             const auto order_line_slot = db->order_line_table_->Insert(txn, order_line_redo);
 
             // insert in index
             const auto *const order_line_key = BuildOrderLineKey(
                 o_id + 1, static_cast<int8_t>(d_id + 1), static_cast<int8_t>(w_id + 1),
-                static_cast<int8_t>(ol_number + 1), worker->order_line_key_buffer, order_line_key_pr_initializer,
+                static_cast<int8_t>(ol_number + 1), worker->order_line_key_buffer_, order_line_key_pr_initializer,
                 order_line_key_pr_map, db->order_line_primary_index_schema_);
             index_insert_result = db->order_line_primary_index_->InsertUnique(txn, *order_line_key, order_line_slot);
             TERRIER_ASSERT(index_insert_result, "Order Line index insertion failed.");
@@ -342,7 +342,7 @@ struct Loader {
 
             // insert in index
             const auto *const new_order_key = BuildNewOrderKey(
-                o_id + 1, static_cast<int8_t>(d_id + 1), static_cast<int8_t>(w_id + 1), worker->new_order_key_buffer,
+                o_id + 1, static_cast<int8_t>(d_id + 1), static_cast<int8_t>(w_id + 1), worker->new_order_key_buffer_,
                 new_order_key_pr_initializer, new_order_key_pr_map, db->new_order_primary_index_schema_);
             index_insert_result = db->new_order_primary_index_->InsertUnique(txn, *new_order_key, new_order_slot);
             TERRIER_ASSERT(index_insert_result, "New Order index insertion failed.");
@@ -965,8 +965,8 @@ struct Loader {
   }
 
   struct OrderTupleResults {
-    uint64_t o_entry_d;
-    int8_t o_ol_cnt;
+    uint64_t o_entry_d_;
+    int8_t o_ol_cnt_;
   };
 
   template <class Random>

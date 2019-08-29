@@ -172,7 +172,7 @@ void ChildPropertyDeriver::DeriveForJoin() {
       Group *probe_group = memo_->GetGroupByID(gexpr_->GetChildGroupId(1));
       for (size_t idx = 0; idx < sort_col_size; ++idx) {
         ExprSet tuples;
-        parser::ExpressionUtil::GetTupleValueExprs(&tuples, sort_prop->GetSortColumn(idx).get());
+        parser::ExpressionUtil::GetTupleValueExprs(&tuples, sort_prop->GetSortColumn(idx).Get());
         for (auto &expr : tuples) {
           auto tv_expr = dynamic_cast<const parser::ColumnValueExpression *>(expr);
           TERRIER_ASSERT(tv_expr, "Expected ColumnValueExpression");

@@ -16,13 +16,13 @@ class Pattern {
    * Creates a new pattern
    * @param op Operator that node should match
    */
-  explicit Pattern(OpType op) : _type(op) {}
+  explicit Pattern(OpType op) : type_(op) {}
 
   /**
    * Destructor. Deletes all children
    */
   ~Pattern() {
-    for (auto child : children) {
+    for (auto child : children_) {
       delete child;
     }
   }
@@ -33,36 +33,36 @@ class Pattern {
    *
    * @param child Pointer to child
    */
-  void AddChild(Pattern *child) { children.push_back(child); }
+  void AddChild(Pattern *child) { children_.push_back(child); }
 
   /**
    * Gets a vector of the children
    * @returns managed children of the pattern node
    */
-  const std::vector<Pattern *> &Children() const { return children; }
+  const std::vector<Pattern *> &Children() const { return children_; }
 
   /**
    * Gets number of children
    * @returns number of children
    */
-  size_t GetChildPatternsSize() const { return children.size(); }
+  size_t GetChildPatternsSize() const { return children_.size(); }
 
   /**
    * Gets the operator this Pattern supposed to represent
    * @returns OpType that Pattern matches against
    */
-  OpType Type() const { return _type; }
+  OpType Type() const { return type_; }
 
  private:
   /**
    * Target Node Type
    */
-  OpType _type;
+  OpType type_;
 
   /**
    * Pattern Children
    */
-  std::vector<Pattern *> children;
+  std::vector<Pattern *> children_;
 };
 
 }  // namespace terrier::optimizer

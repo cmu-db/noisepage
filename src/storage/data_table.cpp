@@ -65,7 +65,7 @@ DataTable::SlotIterator &DataTable::SlotIterator::operator++() {
   return *this;
 }
 
-DataTable::SlotIterator DataTable::end() const {
+DataTable::SlotIterator DataTable::end() const {  // NOLINT for STL name compability
   common::SpinLatch::ScopedSpinLatch guard(&blocks_latch_);
   // TODO(Tianyu): Need to look in detail at how this interacts with compaction when that gets in.
 

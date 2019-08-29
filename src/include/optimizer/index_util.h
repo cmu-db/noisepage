@@ -100,9 +100,9 @@ class IndexUtil {
     auto sort_col_size = prop->GetSortColumnSize();
     for (size_t idx = 0; idx < sort_col_size; idx++) {
       // TODO(wz2): Consider descending when catalog/index support
-      auto isAsc = prop->GetSortAscending(static_cast<int>(idx)) == planner::OrderByOrderingType::ASC;
-      auto isBase = IsBaseColumn(prop->GetSortColumn(static_cast<int>(idx)).get());
-      if (!isAsc || !isBase) {
+      auto is_asc = prop->GetSortAscending(static_cast<int>(idx)) == planner::OrderByOrderingType::ASC;
+      auto is_base = IsBaseColumn(prop->GetSortColumn(static_cast<int>(idx)));
+      if (!is_asc || !is_base) {
         return false;
       }
     }
@@ -115,7 +115,6 @@ class IndexUtil {
    * For an index to fulfill the sort property, the columns sorted
    * on must be in the same order and in the same direction.
    *
-   * Requires CheckSortProperty(prop)
    * @param prop PropertySort to satisfy
    * @param tbl_oid OID of the table that the index is built on
    * @param idx_oid OID of index to use to satisfy
@@ -124,10 +123,6 @@ class IndexUtil {
    */
   static bool SatisfiesSortWithIndex(const PropertySort *prop, catalog::table_oid_t tbl_oid,
                                      catalog::index_oid_t idx_oid, catalog::CatalogAccessor *accessor) {
-    // For now, this logic only considers indexes where the columns
-    // all satisfy the "base column" property.
-    TERRIER_ASSERT(CheckSortProperty(prop), "pre-cond not satisfied");
-
     auto &index_schema = accessor->GetIndexSchema(idx_oid);
     if (!SatisfiesBaseColumnRequirement(index_schema)) {
       return false;
@@ -153,9 +148,7 @@ class IndexUtil {
 
     for (size_t idx = 0; idx < sort_col_size; idx++) {
       // Compare col_oid_t directly due to "Base Column" requirement
-      auto *expr = prop->GetSortColumn(idx).get();
-      auto *tv_expr = dynamic_cast<const parser::ColumnValueExpression *>(expr);
-      TERRIER_ASSERT(tv_expr, "ColumnValueExpression expected");
+      auto tv_expr = prop->GetSortColumn(idx).CastManagedPointerTo<const parser::ColumnValueExpression>();
 
       // Sort(a,b,c) cannot be fulfilled by Index(a,c,b)
       auto col_match = tv_expr->GetColumnOid() == mapped_cols[idx];
@@ -194,21 +187,19 @@ class IndexUtil {
 
       // Fetch column reference and value
       auto expr_type = expr->GetExpressionType();
-      const parser::AbstractExpression *tv_expr = nullptr;
-      const parser::AbstractExpression *value_expr = nullptr;
+      common::ManagedPointer<const parser::AbstractExpression> tv_expr;
+      common::ManagedPointer<const parser::AbstractExpression> value_expr;
       if (expr->GetChild(0)->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE) {
         auto r_type = expr->GetChild(1)->GetExpressionType();
         if (r_type == parser::ExpressionType::VALUE_CONSTANT || r_type == parser::ExpressionType::VALUE_PARAMETER) {
-          tv_expr = expr->GetChild(0).get();
-          value_expr = expr->GetChild(1).get();
+          tv_expr = expr->GetChild(0);
+          value_expr = expr->GetChild(1);
         }
       } else if (expr->GetChild(1)->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE) {
         auto l_type = expr->GetChild(0)->GetExpressionType();
         if (l_type == parser::ExpressionType::VALUE_CONSTANT || l_type == parser::ExpressionType::VALUE_PARAMETER) {
-          tv_expr = expr->GetChild(1).get();
-          value_expr = expr->GetChild(0).get();
-
-          // TODO([Execution Engine]): Does ExpressionType have to be flipped?
+          tv_expr = expr->GetChild(1);
+          value_expr = expr->GetChild(0);
           expr_type = parser::ExpressionUtil::ReverseComparisonExpressionType(expr_type);
         }
       }
@@ -216,9 +207,7 @@ class IndexUtil {
       // If found valid tv_expr and value_expr, update col_id_list, expr_type_list and val_list
       if (tv_expr != nullptr) {
         // Get the column's col_oid_t from catalog
-        auto col_expr = dynamic_cast<const parser::ColumnValueExpression *>(tv_expr);
-        TERRIER_ASSERT(col_expr, "ColumnValueExpression expected");
-
+        auto col_expr = tv_expr.CastManagedPointerTo<const parser::ColumnValueExpression>();
         auto col_oid = col_expr->GetColumnOid();
         TERRIER_ASSERT(col_oid != catalog::col_oid_t(-1), "ColumnValueExpression at scan should be bound");
         key_column_id_list.push_back(col_oid);
@@ -227,17 +216,11 @@ class IndexUtil {
         expr_type_list.push_back(expr_type);
 
         if (value_expr->GetExpressionType() == parser::ExpressionType::VALUE_CONSTANT) {
-          auto cve = dynamic_cast<const parser::ConstantValueExpression *>(value_expr);
-          TERRIER_ASSERT(cve, "ConstantValueExpression expected");
-
-          // Update value_list
+          auto cve = value_expr.CastManagedPointerTo<const parser::ConstantValueExpression>();
           type::TransientValue value = cve->GetValue();
           value_list.emplace_back(std::move(value));
         } else {
-          auto poe = dynamic_cast<const parser::ParameterValueExpression *>(value_expr);
-          TERRIER_ASSERT(poe, "ParameterValueExpression expected");
-
-          // Update value_list
+          auto poe = value_expr.CastManagedPointerTo<const parser::ParameterValueExpression>();
           value_list.push_back(type::TransientValueFactory::GetParameterOffset(poe->GetValueIdx()));
         }
       }
@@ -320,7 +303,7 @@ class IndexUtil {
    */
   static bool SatisfiesBaseColumnRequirement(const catalog::IndexSchema &schema) {
     for (auto &column : schema.GetColumns()) {
-      if (!IsBaseColumn(column.StoredExpression().get())) {
+      if (!IsBaseColumn(column.StoredExpression())) {
         return false;
       }
     }
@@ -351,11 +334,8 @@ class IndexUtil {
     }
 
     for (auto &column : schema.GetColumns()) {
-      auto *expr = column.StoredExpression().get();
-      if (expr->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE) {
-        auto *tv_expr = dynamic_cast<const parser::ColumnValueExpression *>(expr);
-        TERRIER_ASSERT(tv_expr, "ColumnValueExpression expected");
-
+      if (column.StoredExpression()->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE) {
+        auto tv_expr = column.StoredExpression().CastManagedPointerTo<const parser::ColumnValueExpression>();
         if (tv_expr->GetColumnOid() != catalog::INVALID_COLUMN_OID) {
           // IndexSchema's expression's col_oid is bound
           col_oids->push_back(tv_expr->GetColumnOid());
@@ -380,7 +360,7 @@ class IndexUtil {
    * @param expr AbstractExpression to evaluate
    * @returns TRUE if base column, false otherwise
    */
-  static bool IsBaseColumn(const parser::AbstractExpression *expr) {
+  static bool IsBaseColumn(common::ManagedPointer<const parser::AbstractExpression> expr) {
     return (expr->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE);
   }
 };

@@ -75,13 +75,13 @@ class Rule {
   /**
    * Destructor for Rule
    */
-  virtual ~Rule() { delete match_pattern; }
+  virtual ~Rule() { delete match_pattern_; }
 
   /**
    * Gets the match pattern for the rule
    * @returns match pattern
    */
-  Pattern *GetMatchPattern() const { return match_pattern; }
+  Pattern *GetMatchPattern() const { return match_pattern_; }
 
   /**
    * Returns whether this rule is a physical rule or not
@@ -156,7 +156,7 @@ class Rule {
   /**
    * Match pattern for the rule to be used
    */
-  Pattern *match_pattern;
+  Pattern *match_pattern_;
 
   /**
    * Type of the rule

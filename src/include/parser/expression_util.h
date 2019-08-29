@@ -132,7 +132,7 @@ class ExpressionUtil {
 
     std::vector<const AbstractExpression *> children;
     for (size_t i = 0; i < expr->GetChildrenSize(); i++) {
-      const AbstractExpression *child_expr = expr->GetChild(i).get();
+      const AbstractExpression *child_expr = expr->GetChild(i).Get();
 
       bool did_insert = false;
       int tuple_idx = 0;
@@ -245,7 +245,7 @@ class ExpressionUtil {
       TERRIER_ASSERT(expr->GetExpressionType() != ExpressionType::VALUE_TUPLE,
                      "DerivedValueExpression should not exist here.");
       for (size_t i = 0; i < children_size; i++) {
-        GetTupleAndAggregateExprs(aggr_exprs, tv_exprs, expr->GetChild(i).get());
+        GetTupleAndAggregateExprs(aggr_exprs, tv_exprs, expr->GetChild(i).Get());
       }
     }
   }
@@ -261,7 +261,7 @@ class ExpressionUtil {
   static void GetTupleValueExprs(optimizer::ExprMap *expr_map, const AbstractExpression *expr) {
     size_t children_size = expr->GetChildrenSize();
     for (size_t i = 0; i < children_size; i++) {
-      GetTupleValueExprs(expr_map, expr->GetChild(i).get());
+      GetTupleValueExprs(expr_map, expr->GetChild(i).Get());
     }
 
     // Here we need a deep copy to void double delete subtree
@@ -280,7 +280,7 @@ class ExpressionUtil {
   static void GetTupleValueExprs(optimizer::ExprSet *expr_set, const AbstractExpression *expr) {
     size_t children_size = expr->GetChildrenSize();
     for (size_t i = 0; i < children_size; i++) {
-      GetTupleValueExprs(expr_set, expr->GetChild(i).get());
+      GetTupleValueExprs(expr_set, expr->GetChild(i).Get());
     }
 
     if (expr->GetExpressionType() == ExpressionType::COLUMN_VALUE) {
@@ -310,7 +310,7 @@ class ExpressionUtil {
     size_t children_size = expr->GetChildrenSize();
     std::vector<const AbstractExpression *> children;
     for (size_t i = 0; i < children_size; i++) {
-      children.push_back(EvaluateExpression(expr_maps, expr->GetChild(i).get()));
+      children.push_back(EvaluateExpression(expr_maps, expr->GetChild(i).Get()));
     }
 
     if (expr->GetExpressionType() == ExpressionType::COLUMN_VALUE) {
@@ -385,13 +385,13 @@ class ExpressionUtil {
       // Evaluate against WhenClause condition + result and store new
       std::vector<CaseExpression::WhenClause *> clauses;
       for (size_t i = 0; i < case_expr->GetWhenClauseSize(); i++) {
-        auto cond = EvaluateExpression(expr_maps, case_expr->GetWhenClauseCondition(i).get());
-        auto result = EvaluateExpression(expr_maps, case_expr->GetWhenClauseResult(i).get());
+        auto cond = EvaluateExpression(expr_maps, case_expr->GetWhenClauseCondition(i).Get());
+        auto result = EvaluateExpression(expr_maps, case_expr->GetWhenClauseResult(i).Get());
         clauses.push_back(new CaseExpression::WhenClause(cond, result));
       }
 
       // Create and return new CaseExpression that is evaluated
-      auto *def_cond = EvaluateExpression(expr_maps, case_expr->GetDefaultClause().get());
+      auto *def_cond = EvaluateExpression(expr_maps, case_expr->GetDefaultClause().Get());
       auto type = case_expr->GetReturnValueType();
       return new CaseExpression(type, clauses, def_cond);
     }

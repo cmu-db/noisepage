@@ -32,9 +32,9 @@ InnerJoinCommutativity::InnerJoinCommutativity() {
 
   auto left_child = new Pattern(OpType::LEAF);
   auto right_child = new Pattern(OpType::LEAF);
-  match_pattern = new Pattern(OpType::LOGICALINNERJOIN);
-  match_pattern->AddChild(left_child);
-  match_pattern->AddChild(right_child);
+  match_pattern_ = new Pattern(OpType::LOGICALINNERJOIN);
+  match_pattern_->AddChild(left_child);
+  match_pattern_->AddChild(right_child);
 }
 
 bool InnerJoinCommutativity::Check(OperatorExpression *plan, OptimizeContext *context) const {
@@ -54,7 +54,7 @@ void InnerJoinCommutativity::Transform(OperatorExpression *input, std::vector<Op
                       children[0]->GetOp().GetName().c_str(), children[1]->GetOp().GetName().c_str());
 
   std::vector<OperatorExpression *> new_child{children[1]->Copy(), children[0]->Copy()};
-  auto result_plan = new OperatorExpression(LogicalInnerJoin::make(std::move(join_predicates)), std::move(new_child));
+  auto result_plan = new OperatorExpression(LogicalInnerJoin::Make(std::move(join_predicates)), std::move(new_child));
   transformed->push_back(result_plan);
 }
 
@@ -71,9 +71,9 @@ InnerJoinAssociativity::InnerJoinAssociativity() {
 
   auto right_child = new Pattern(OpType::LEAF);
 
-  match_pattern = new Pattern(OpType::LOGICALINNERJOIN);
-  match_pattern->AddChild(left_child);
-  match_pattern->AddChild(right_child);
+  match_pattern_ = new Pattern(OpType::LOGICALINNERJOIN);
+  match_pattern_->AddChild(left_child);
+  match_pattern_->AddChild(right_child);
 }
 
 bool InnerJoinAssociativity::Check(OperatorExpression *plan, OptimizeContext *context) const {
@@ -133,12 +133,12 @@ void InnerJoinAssociativity::Transform(OperatorExpression *input, std::vector<Op
   // Construct new child join operator
   std::vector<OperatorExpression *> child_children{middle->Copy(), right->Copy()};
   auto new_child_join =
-      new OperatorExpression(LogicalInnerJoin::make(std::move(new_child_join_predicates)), std::move(child_children));
+      new OperatorExpression(LogicalInnerJoin::Make(std::move(new_child_join_predicates)), std::move(child_children));
 
   // Construct new parent join operator
   std::vector<OperatorExpression *> parent_children{left->Copy(), new_child_join};
   auto new_parent_join =
-      new OperatorExpression(LogicalInnerJoin::make(std::move(new_parent_join_predicates)), std::move(parent_children));
+      new OperatorExpression(LogicalInnerJoin::Make(std::move(new_parent_join_predicates)), std::move(parent_children));
 
   transformed->push_back(new_parent_join);
 }
@@ -152,7 +152,7 @@ void InnerJoinAssociativity::Transform(OperatorExpression *input, std::vector<Op
 ///////////////////////////////////////////////////////////////////////////////
 GetToTableFreeScan::GetToTableFreeScan() {
   type_ = RuleType::GET_TO_DUMMY_SCAN;
-  match_pattern = new Pattern(OpType::LOGICALGET);
+  match_pattern_ = new Pattern(OpType::LOGICALGET);
 }
 
 bool GetToTableFreeScan::Check(OperatorExpression *plan, OptimizeContext *context) const {
@@ -164,7 +164,7 @@ bool GetToTableFreeScan::Check(OperatorExpression *plan, OptimizeContext *contex
 void GetToTableFreeScan::Transform(UNUSED_ATTRIBUTE OperatorExpression *input,
                                    std::vector<OperatorExpression *> *transformed,
                                    UNUSED_ATTRIBUTE OptimizeContext *context) const {
-  auto result_plan = new OperatorExpression(TableFreeScan::make(), {});
+  auto result_plan = new OperatorExpression(TableFreeScan::Make(), {});
   transformed->push_back(result_plan);
 }
 
@@ -173,7 +173,7 @@ void GetToTableFreeScan::Transform(UNUSED_ATTRIBUTE OperatorExpression *input,
 ///////////////////////////////////////////////////////////////////////////////
 GetToSeqScan::GetToSeqScan() {
   type_ = RuleType::GET_TO_SEQ_SCAN;
-  match_pattern = new Pattern(OpType::LOGICALGET);
+  match_pattern_ = new Pattern(OpType::LOGICALGET);
 }
 
 bool GetToSeqScan::Check(OperatorExpression *plan, OptimizeContext *context) const {
@@ -195,7 +195,7 @@ void GetToSeqScan::Transform(OperatorExpression *input, std::vector<OperatorExpr
   auto preds = std::vector<AnnotatedExpression>(get->GetPredicates());
   auto is_update = get->GetIsForUpdate();
   auto result_plan =
-      new OperatorExpression(SeqScan::make(db_oid, ns_oid, tbl_oid, std::move(preds), tbl_alias, is_update), {});
+      new OperatorExpression(SeqScan::Make(db_oid, ns_oid, tbl_oid, std::move(preds), tbl_alias, is_update), {});
   transformed->push_back(result_plan);
 }
 
@@ -204,7 +204,7 @@ void GetToSeqScan::Transform(OperatorExpression *input, std::vector<OperatorExpr
 ///////////////////////////////////////////////////////////////////////////////
 GetToIndexScan::GetToIndexScan() {
   type_ = RuleType::GET_TO_INDEX_SCAN;
-  match_pattern = new Pattern(OpType::LOGICALGET);
+  match_pattern_ = new Pattern(OpType::LOGICALGET);
 }
 
 bool GetToIndexScan::Check(OperatorExpression *plan, OptimizeContext *context) const {
@@ -246,7 +246,7 @@ void GetToIndexScan::Transform(OperatorExpression *input, std::vector<OperatorEx
           std::vector<AnnotatedExpression> preds = get->GetPredicates();
           std::string tbl_alias = std::string(get->GetTableAlias());
           auto result = new OperatorExpression(
-              IndexScan::make(db_oid, ns_oid, index, std::move(preds), tbl_alias, is_update, {}, {}, {}), {});
+              IndexScan::Make(db_oid, ns_oid, index, std::move(preds), tbl_alias, is_update, {}, {}, {}), {});
           transformed->push_back(result);
         }
       }
@@ -269,7 +269,7 @@ void GetToIndexScan::Transform(OperatorExpression *input, std::vector<OperatorEx
         // Consider making IndexScan take in IndexUtilMetadata
         // instead to wrap all these vectors?
         auto result = new OperatorExpression(
-            IndexScan::make(db_oid, ns_oid, index, std::move(preds), std::move(tbl_alias), is_update,
+            IndexScan::Make(db_oid, ns_oid, index, std::move(preds), std::move(tbl_alias), is_update,
                             std::move(output.GetPredicateColumnIds()), std::move(output.GetPredicateExprTypes()),
                             std::move(output.GetPredicateValues())),
             {});
@@ -284,10 +284,10 @@ void GetToIndexScan::Transform(OperatorExpression *input, std::vector<OperatorEx
 ///////////////////////////////////////////////////////////////////////////////
 LogicalQueryDerivedGetToPhysical::LogicalQueryDerivedGetToPhysical() {
   type_ = RuleType::QUERY_DERIVED_GET_TO_PHYSICAL;
-  match_pattern = new Pattern(OpType::LOGICALQUERYDERIVEDGET);
+  match_pattern_ = new Pattern(OpType::LOGICALQUERYDERIVEDGET);
 
   auto child = new Pattern(OpType::LEAF);
-  match_pattern->AddChild(child);
+  match_pattern_->AddChild(child);
 }
 
 bool LogicalQueryDerivedGetToPhysical::Check(OperatorExpression *plan, OptimizeContext *context) const {
@@ -306,7 +306,7 @@ void LogicalQueryDerivedGetToPhysical::Transform(OperatorExpression *input,
   expr_map = get->GetAliasToExprMap();
 
   auto input_child = input->GetChildren()[0];
-  auto result_plan = new OperatorExpression(QueryDerivedScan::make(tbl_alias, std::move(expr_map)), {input_child});
+  auto result_plan = new OperatorExpression(QueryDerivedScan::Make(tbl_alias, std::move(expr_map)), {input_child});
   transformed->push_back(result_plan);
 }
 
@@ -315,7 +315,7 @@ void LogicalQueryDerivedGetToPhysical::Transform(OperatorExpression *input,
 ///////////////////////////////////////////////////////////////////////////////
 LogicalExternalFileGetToPhysical::LogicalExternalFileGetToPhysical() {
   type_ = RuleType::EXTERNAL_FILE_GET_TO_PHYSICAL;
-  match_pattern = new Pattern(OpType::LOGICALEXTERNALFILEGET);
+  match_pattern_ = new Pattern(OpType::LOGICALEXTERNALFILEGET);
 }
 
 bool LogicalExternalFileGetToPhysical::Check(OperatorExpression *plan, OptimizeContext *context) const {
@@ -337,7 +337,7 @@ void LogicalExternalFileGetToPhysical::Transform(OperatorExpression *input,
   auto escape = get->GetEscape();
   const auto &null_string = get->GetNullString();
   auto result_plan =
-      new OperatorExpression(ExternalFileScan::make(format, filename, delimiter, quote, escape, null_string), {});
+      new OperatorExpression(ExternalFileScan::Make(format, filename, delimiter, quote, escape, null_string), {});
   transformed->push_back(result_plan);
 }
 
@@ -346,9 +346,9 @@ void LogicalExternalFileGetToPhysical::Transform(OperatorExpression *input,
 ///////////////////////////////////////////////////////////////////////////////
 LogicalDeleteToPhysical::LogicalDeleteToPhysical() {
   type_ = RuleType::DELETE_TO_PHYSICAL;
-  match_pattern = new Pattern(OpType::LOGICALDELETE);
+  match_pattern_ = new Pattern(OpType::LOGICALDELETE);
   auto child = new Pattern(OpType::LEAF);
-  match_pattern->AddChild(child);
+  match_pattern_->AddChild(child);
 }
 
 bool LogicalDeleteToPhysical::Check(OperatorExpression *plan, OptimizeContext *context) const {
@@ -364,7 +364,7 @@ void LogicalDeleteToPhysical::Transform(OperatorExpression *input, std::vector<O
 
   auto child = input->GetChildren()[0]->Copy();
   auto result =
-      new OperatorExpression(Delete::make(del->GetDatabaseOid(), del->GetNamespaceOid(), del->GetTableOid()), {child});
+      new OperatorExpression(Delete::Make(del->GetDatabaseOid(), del->GetNamespaceOid(), del->GetTableOid()), {child});
   transformed->push_back(result);
 }
 
@@ -373,10 +373,10 @@ void LogicalDeleteToPhysical::Transform(OperatorExpression *input, std::vector<O
 ///////////////////////////////////////////////////////////////////////////////
 LogicalUpdateToPhysical::LogicalUpdateToPhysical() {
   type_ = RuleType::UPDATE_TO_PHYSICAL;
-  match_pattern = new Pattern(OpType::LOGICALUPDATE);
+  match_pattern_ = new Pattern(OpType::LOGICALUPDATE);
 
   auto child = new Pattern(OpType::LEAF);
-  match_pattern->AddChild(child);
+  match_pattern_->AddChild(child);
 }
 
 bool LogicalUpdateToPhysical::Check(OperatorExpression *plan, OptimizeContext *context) const {
@@ -393,7 +393,7 @@ void LogicalUpdateToPhysical::Transform(OperatorExpression *input, std::vector<O
 
   std::vector<common::ManagedPointer<const parser::UpdateClause>> cls = update_op->GetUpdateClauses();
   auto result =
-      new OperatorExpression(Update::make(update_op->GetDatabaseOid(), update_op->GetNamespaceOid(),
+      new OperatorExpression(Update::Make(update_op->GetDatabaseOid(), update_op->GetNamespaceOid(),
                                           update_op->GetTableAlias(), update_op->GetTableOid(), std::move(cls)),
                              {child});
   transformed->push_back(result);
@@ -404,7 +404,7 @@ void LogicalUpdateToPhysical::Transform(OperatorExpression *input, std::vector<O
 ///////////////////////////////////////////////////////////////////////////////
 LogicalInsertToPhysical::LogicalInsertToPhysical() {
   type_ = RuleType::INSERT_TO_PHYSICAL;
-  match_pattern = new Pattern(OpType::LOGICALINSERT);
+  match_pattern_ = new Pattern(OpType::LOGICALINSERT);
 }
 
 bool LogicalInsertToPhysical::Check(OperatorExpression *plan, OptimizeContext *context) const {
@@ -420,7 +420,7 @@ void LogicalInsertToPhysical::Transform(OperatorExpression *input, std::vector<O
 
   std::vector<catalog::col_oid_t> cols = insert_op->GetColumns();
   std::vector<std::vector<common::ManagedPointer<const parser::AbstractExpression>>> vals = insert_op->GetValues();
-  auto result = new OperatorExpression(Insert::make(insert_op->GetDatabaseOid(), insert_op->GetNamespaceOid(),
+  auto result = new OperatorExpression(Insert::Make(insert_op->GetDatabaseOid(), insert_op->GetNamespaceOid(),
                                                     insert_op->GetTableOid(), std::move(cols), std::move(vals)),
                                        {});
   transformed->push_back(result);
@@ -431,10 +431,10 @@ void LogicalInsertToPhysical::Transform(OperatorExpression *input, std::vector<O
 ///////////////////////////////////////////////////////////////////////////////
 LogicalInsertSelectToPhysical::LogicalInsertSelectToPhysical() {
   type_ = RuleType::INSERT_SELECT_TO_PHYSICAL;
-  match_pattern = new Pattern(OpType::LOGICALINSERTSELECT);
+  match_pattern_ = new Pattern(OpType::LOGICALINSERTSELECT);
 
   auto child = new Pattern(OpType::LEAF);
-  match_pattern->AddChild(child);
+  match_pattern_->AddChild(child);
 }
 
 bool LogicalInsertSelectToPhysical::Check(OperatorExpression *plan, OptimizeContext *context) const {
@@ -450,7 +450,7 @@ void LogicalInsertSelectToPhysical::Transform(OperatorExpression *input, std::ve
 
   auto child = input->GetChildren()[0]->Copy();
   auto op = new OperatorExpression(
-      InsertSelect::make(insert_op->GetDatabaseOid(), insert_op->GetNamespaceOid(), insert_op->GetTableOid()), {child});
+      InsertSelect::Make(insert_op->GetDatabaseOid(), insert_op->GetNamespaceOid(), insert_op->GetTableOid()), {child});
   transformed->push_back(op);
 }
 
@@ -459,10 +459,10 @@ void LogicalInsertSelectToPhysical::Transform(OperatorExpression *input, std::ve
 ///////////////////////////////////////////////////////////////////////////////
 LogicalGroupByToHashGroupBy::LogicalGroupByToHashGroupBy() {
   type_ = RuleType::AGGREGATE_TO_HASH_AGGREGATE;
-  match_pattern = new Pattern(OpType::LOGICALAGGREGATEANDGROUPBY);
+  match_pattern_ = new Pattern(OpType::LOGICALAGGREGATEANDGROUPBY);
 
   auto child = new Pattern(OpType::LEAF);
-  match_pattern->AddChild(child);
+  match_pattern_->AddChild(child);
 }
 
 bool LogicalGroupByToHashGroupBy::Check(OperatorExpression *plan, OptimizeContext *context) const {
@@ -480,7 +480,7 @@ void LogicalGroupByToHashGroupBy::Transform(OperatorExpression *input, std::vect
   std::vector<AnnotatedExpression> having = agg_op->GetHaving();
 
   auto child = input->GetChildren()[0]->Copy();
-  auto result = new OperatorExpression(HashGroupBy::make(std::move(cols), std::move(having)), {child});
+  auto result = new OperatorExpression(HashGroupBy::Make(std::move(cols), std::move(having)), {child});
   transformed->push_back(result);
 }
 
@@ -489,10 +489,10 @@ void LogicalGroupByToHashGroupBy::Transform(OperatorExpression *input, std::vect
 ///////////////////////////////////////////////////////////////////////////////
 LogicalAggregateToPhysical::LogicalAggregateToPhysical() {
   type_ = RuleType::AGGREGATE_TO_PLAIN_AGGREGATE;
-  match_pattern = new Pattern(OpType::LOGICALAGGREGATEANDGROUPBY);
+  match_pattern_ = new Pattern(OpType::LOGICALAGGREGATEANDGROUPBY);
 
   auto child = new Pattern(OpType::LEAF);
-  match_pattern->AddChild(child);
+  match_pattern_->AddChild(child);
 }
 
 bool LogicalAggregateToPhysical::Check(OperatorExpression *plan, OptimizeContext *context) const {
@@ -506,7 +506,7 @@ void LogicalAggregateToPhysical::Transform(OperatorExpression *input, std::vecto
   TERRIER_ASSERT(input->GetChildren().size() == 1, "LogicalAggregateAndGroupBy should have 1 child");
 
   auto child = input->GetChildren()[0]->Copy();
-  auto result = new OperatorExpression(Aggregate::make(), {child});
+  auto result = new OperatorExpression(Aggregate::Make(), {child});
   transformed->push_back(result);
 }
 
@@ -520,11 +520,11 @@ InnerJoinToInnerNLJoin::InnerJoinToInnerNLJoin() {
   auto right_child = new Pattern(OpType::LEAF);
 
   // Initialize a pattern for optimizer to match
-  match_pattern = new Pattern(OpType::LOGICALINNERJOIN);
+  match_pattern_ = new Pattern(OpType::LOGICALINNERJOIN);
 
   // Add node - we match join relation R and S
-  match_pattern->AddChild(left_child);
-  match_pattern->AddChild(right_child);
+  match_pattern_->AddChild(left_child);
+  match_pattern_->AddChild(right_child);
 }
 
 bool InnerJoinToInnerNLJoin::Check(OperatorExpression *plan, OptimizeContext *context) const {
@@ -538,7 +538,7 @@ void InnerJoinToInnerNLJoin::Transform(OperatorExpression *input, std::vector<Op
   // first build an expression representing hash join
   const auto inner_join = input->GetOp().As<LogicalInnerJoin>();
 
-  auto children = input->GetChildren();
+  const auto &children = input->GetChildren();
   TERRIER_ASSERT(children.size() == 2, "Inner Join should have two child");
   auto left_group_id = children[0]->GetOp().As<LeafOperator>()->GetOriginGroup();
   auto right_group_id = children[1]->GetOp().As<LeafOperator>()->GetOriginGroup();
@@ -553,7 +553,7 @@ void InnerJoinToInnerNLJoin::Transform(OperatorExpression *input, std::vector<Op
   TERRIER_ASSERT(right_keys.size() == left_keys.size(), "# left/right keys should equal");
   std::vector<OperatorExpression *> child = {children[0]->Copy(), children[1]->Copy()};
   auto result_plan = new OperatorExpression(
-      InnerNLJoin::make(std::move(join_preds), std::move(left_keys), std::move(right_keys)), std::move(child));
+      InnerNLJoin::Make(std::move(join_preds), std::move(left_keys), std::move(right_keys)), std::move(child));
   transformed->push_back(result_plan);
 }
 
@@ -568,11 +568,11 @@ InnerJoinToInnerHashJoin::InnerJoinToInnerHashJoin() {
   auto right_child(new Pattern(OpType::LEAF));
 
   // Initialize a pattern for optimizer to match
-  match_pattern = new Pattern(OpType::LOGICALINNERJOIN);
+  match_pattern_ = new Pattern(OpType::LOGICALINNERJOIN);
 
   // Add node - we match join relation R and S as well as the predicate exp
-  match_pattern->AddChild(left_child);
-  match_pattern->AddChild(right_child);
+  match_pattern_->AddChild(left_child);
+  match_pattern_->AddChild(right_child);
 }
 
 bool InnerJoinToInnerHashJoin::Check(OperatorExpression *plan, OptimizeContext *context) const {
@@ -602,7 +602,7 @@ void InnerJoinToInnerHashJoin::Transform(OperatorExpression *input, std::vector<
   std::vector<OperatorExpression *> child = {children[0]->Copy(), children[1]->Copy()};
   if (!left_keys.empty()) {
     auto result_plan = new OperatorExpression(
-        InnerHashJoin::make(std::move(join_preds), std::move(left_keys), std::move(right_keys)), std::move(child));
+        InnerHashJoin::Make(std::move(join_preds), std::move(left_keys), std::move(right_keys)), std::move(child));
     transformed->push_back(result_plan);
   }
 }
@@ -613,8 +613,8 @@ void InnerJoinToInnerHashJoin::Transform(OperatorExpression *input, std::vector<
 ImplementDistinct::ImplementDistinct() {
   type_ = RuleType::IMPLEMENT_DISTINCT;
 
-  match_pattern = new Pattern(OpType::LOGICALDISTINCT);
-  match_pattern->AddChild(new Pattern(OpType::LEAF));
+  match_pattern_ = new Pattern(OpType::LOGICALDISTINCT);
+  match_pattern_->AddChild(new Pattern(OpType::LEAF));
 }
 
 bool ImplementDistinct::Check(OperatorExpression *plan, OptimizeContext *context) const {
@@ -629,7 +629,7 @@ void ImplementDistinct::Transform(OperatorExpression *input, std::vector<Operato
 
   TERRIER_ASSERT(input->GetChildren().size() == 1, "LogicalDistinct should have 1 child");
   auto child = input->GetChildren()[0]->Copy();
-  auto result_plan = new OperatorExpression(Distinct::make(), {child});
+  auto result_plan = new OperatorExpression(Distinct::Make(), {child});
   transformed->push_back(result_plan);
 }
 
@@ -639,8 +639,8 @@ void ImplementDistinct::Transform(OperatorExpression *input, std::vector<Operato
 ImplementLimit::ImplementLimit() {
   type_ = RuleType::IMPLEMENT_LIMIT;
 
-  match_pattern = new Pattern(OpType::LOGICALLIMIT);
-  match_pattern->AddChild(new Pattern(OpType::LEAF));
+  match_pattern_ = new Pattern(OpType::LOGICALLIMIT);
+  match_pattern_->AddChild(new Pattern(OpType::LEAF));
 }
 
 bool ImplementLimit::Check(OperatorExpression *plan, OptimizeContext *context) const {
@@ -659,7 +659,7 @@ void ImplementLimit::Transform(OperatorExpression *input, std::vector<OperatorEx
   std::vector<planner::OrderByOrderingType> types = limit_op->GetSortDirections();
   auto child = input->GetChildren()[0]->Copy();
   auto result_plan = new OperatorExpression(
-      Limit::make(limit_op->GetOffset(), limit_op->GetLimit(), std::move(sorts), std::move(types)), {child});
+      Limit::Make(limit_op->GetOffset(), limit_op->GetLimit(), std::move(sorts), std::move(types)), {child});
   transformed->push_back(result_plan);
 }
 
@@ -668,8 +668,8 @@ void ImplementLimit::Transform(OperatorExpression *input, std::vector<OperatorEx
 ///////////////////////////////////////////////////////////////////////////////
 LogicalExportToPhysicalExport::LogicalExportToPhysicalExport() {
   type_ = RuleType::EXPORT_EXTERNAL_FILE_TO_PHYSICAL;
-  match_pattern = new Pattern(OpType::LOGICALEXPORTEXTERNALFILE);
-  match_pattern->AddChild(new Pattern(OpType::LEAF));
+  match_pattern_ = new Pattern(OpType::LOGICALEXPORTEXTERNALFILE);
+  match_pattern_->AddChild(new Pattern(OpType::LEAF));
 }
 
 bool LogicalExportToPhysicalExport::Check(OperatorExpression *plan, OptimizeContext *context) const { return true; }
@@ -682,7 +682,7 @@ void LogicalExportToPhysicalExport::Transform(OperatorExpression *input, std::ve
   std::string file = std::string(export_op->GetFilename());
   auto child = input->GetChildren()[0]->Copy();
   auto result_plan = new OperatorExpression(
-      ExportExternalFile::make(export_op->GetFormat(), std::move(file), export_op->GetDelimiter(),
+      ExportExternalFile::Make(export_op->GetFormat(), std::move(file), export_op->GetDelimiter(),
                                export_op->GetQuote(), export_op->GetEscape()),
       {child});
   transformed->push_back(result_plan);
@@ -704,10 +704,10 @@ PushFilterThroughJoin::PushFilterThroughJoin() {
   child->AddChild(new Pattern(OpType::LEAF));
 
   // Initialize a pattern for optimizer to match
-  match_pattern = new Pattern(OpType::LOGICALFILTER);
+  match_pattern_ = new Pattern(OpType::LOGICALFILTER);
 
   // Add node - we match join relation R and S as well as the predicate exp
-  match_pattern->AddChild(child);
+  match_pattern_->AddChild(child);
 }
 
 bool PushFilterThroughJoin::Check(OperatorExpression *plan, OptimizeContext *context) const {
@@ -755,7 +755,7 @@ void PushFilterThroughJoin::Transform(OperatorExpression *input, std::vector<Ope
   // Construct left filter if any
   if (!left_predicates.empty()) {
     auto left_child = join_op_expr->GetChildren()[0]->Copy();
-    left_branch = new OperatorExpression(LogicalFilter::make(std::move(left_predicates)), {left_child});
+    left_branch = new OperatorExpression(LogicalFilter::Make(std::move(left_predicates)), {left_child});
   } else {
     left_branch = join_op_expr->GetChildren()[0]->Copy();
   }
@@ -763,7 +763,7 @@ void PushFilterThroughJoin::Transform(OperatorExpression *input, std::vector<Ope
   // Construct right filter if any
   if (!right_predicates.empty()) {
     auto right_child = join_op_expr->GetChildren()[1]->Copy();
-    right_branch = new OperatorExpression(LogicalFilter::make(std::move(right_predicates)), {right_child});
+    right_branch = new OperatorExpression(LogicalFilter::Make(std::move(right_predicates)), {right_child});
   } else {
     right_branch = join_op_expr->GetChildren()[1]->Copy();
   }
@@ -771,7 +771,7 @@ void PushFilterThroughJoin::Transform(OperatorExpression *input, std::vector<Ope
   // Construct join operator
   auto pre_join_predicate = join_op_expr->GetOp().As<LogicalInnerJoin>()->GetJoinPredicates();
   join_predicates.insert(join_predicates.end(), pre_join_predicate.begin(), pre_join_predicate.end());
-  auto output = new OperatorExpression(LogicalInnerJoin::make(std::move(join_predicates)), {left_branch, right_branch});
+  auto output = new OperatorExpression(LogicalInnerJoin::Make(std::move(join_predicates)), {left_branch, right_branch});
   transformed->push_back(output);
 }
 
@@ -785,10 +785,10 @@ PushFilterThroughAggregation::PushFilterThroughAggregation() {
   child->AddChild(new Pattern(OpType::LEAF));
 
   // Initialize a pattern for optimizer to match
-  match_pattern = new Pattern(OpType::LOGICALFILTER);
+  match_pattern_ = new Pattern(OpType::LOGICALFILTER);
 
   // Add node - we match (filter)->(aggregation)->(leaf)
-  match_pattern->AddChild(child);
+  match_pattern_->AddChild(child);
 }
 
 bool PushFilterThroughAggregation::Check(OperatorExpression *plan, OptimizeContext *context) const {
@@ -808,7 +808,7 @@ void PushFilterThroughAggregation::Transform(OperatorExpression *input, std::vec
 
   for (auto &predicate : predicates) {
     std::vector<const parser::AggregateExpression *> aggr_exprs;
-    parser::ExpressionUtil::GetAggregateExprs(&aggr_exprs, predicate.GetExpr().get());
+    parser::ExpressionUtil::GetAggregateExprs(&aggr_exprs, predicate.GetExpr().Get());
 
     // No aggr_expr in the predicate -- pushdown to evaluate
     if (aggr_exprs.empty()) {
@@ -829,14 +829,14 @@ void PushFilterThroughAggregation::Transform(OperatorExpression *input, std::vec
 
   // Construct filter if needed
   if (!pushdown_predicates.empty()) {
-    pushdown = new OperatorExpression(LogicalFilter::make(std::move(pushdown_predicates)), {leaf});
+    pushdown = new OperatorExpression(LogicalFilter::Make(std::move(pushdown_predicates)), {leaf});
   }
 
   std::vector<common::ManagedPointer<const parser::AbstractExpression>> cols = aggregation_op->GetColumns();
 
   auto agg_child = pushdown != nullptr ? pushdown : leaf;
   auto output = new OperatorExpression(
-      LogicalAggregateAndGroupBy::make(std::move(cols), std::move(embedded_predicates)), {agg_child});
+      LogicalAggregateAndGroupBy::Make(std::move(cols), std::move(embedded_predicates)), {agg_child});
   transformed->push_back(output);
 }
 
@@ -846,11 +846,11 @@ void PushFilterThroughAggregation::Transform(OperatorExpression *input, std::vec
 CombineConsecutiveFilter::CombineConsecutiveFilter() {
   type_ = RuleType::COMBINE_CONSECUTIVE_FILTER;
 
-  match_pattern = new Pattern(OpType::LOGICALFILTER);
+  match_pattern_ = new Pattern(OpType::LOGICALFILTER);
   auto child = new Pattern(OpType::LOGICALFILTER);
   child->AddChild(new Pattern(OpType::LEAF));
 
-  match_pattern->AddChild(child);
+  match_pattern_->AddChild(child);
 }
 
 bool CombineConsecutiveFilter::Check(OperatorExpression *plan, OptimizeContext *context) const {
@@ -867,7 +867,7 @@ void CombineConsecutiveFilter::Transform(OperatorExpression *input, std::vector<
   root_predicates.insert(root_predicates.end(), child_predicates.begin(), child_predicates.end());
 
   auto child = child_filter->GetChildren()[0]->Copy();
-  auto output = new OperatorExpression(LogicalFilter::make(std::move(root_predicates)), {child});
+  auto output = new OperatorExpression(LogicalFilter::Make(std::move(root_predicates)), {child});
   transformed->push_back(output);
 }
 
@@ -877,10 +877,10 @@ void CombineConsecutiveFilter::Transform(OperatorExpression *input, std::vector<
 EmbedFilterIntoGet::EmbedFilterIntoGet() {
   type_ = RuleType::EMBED_FILTER_INTO_GET;
 
-  match_pattern = new Pattern(OpType::LOGICALFILTER);
+  match_pattern_ = new Pattern(OpType::LOGICALFILTER);
   auto child = new Pattern(OpType::LOGICALGET);
 
-  match_pattern->AddChild(child);
+  match_pattern_->AddChild(child);
 }
 
 bool EmbedFilterIntoGet::Check(OperatorExpression *plan, OptimizeContext *context) const {
@@ -895,7 +895,7 @@ void EmbedFilterIntoGet::Transform(OperatorExpression *input, std::vector<Operat
   std::string tbl_alias = std::string(get->GetTableAlias());
   std::vector<AnnotatedExpression> predicates = input->GetOp().As<LogicalFilter>()->GetPredicates();
   auto output =
-      new OperatorExpression(LogicalGet::make(get->GetDatabaseOID(), get->GetNamespaceOID(), get->GetTableOID(),
+      new OperatorExpression(LogicalGet::Make(get->GetDatabaseOID(), get->GetNamespaceOID(), get->GetTableOID(),
                                               predicates, tbl_alias, get->GetIsForUpdate()),
                              {});
   transformed->push_back(output);
@@ -907,9 +907,9 @@ void EmbedFilterIntoGet::Transform(OperatorExpression *input, std::vector<Operat
 MarkJoinToInnerJoin::MarkJoinToInnerJoin() {
   type_ = RuleType::MARK_JOIN_GET_TO_INNER_JOIN;
 
-  match_pattern = new Pattern(OpType::LOGICALMARKJOIN);
-  match_pattern->AddChild(new Pattern(OpType::LEAF));
-  match_pattern->AddChild(new Pattern(OpType::LEAF));
+  match_pattern_ = new Pattern(OpType::LOGICALMARKJOIN);
+  match_pattern_->AddChild(new Pattern(OpType::LEAF));
+  match_pattern_->AddChild(new Pattern(OpType::LEAF));
 }
 
 int MarkJoinToInnerJoin::Promise(GroupExpression *group_expr, OptimizeContext *context) const {
@@ -934,7 +934,7 @@ void MarkJoinToInnerJoin::Transform(OperatorExpression *input, std::vector<Opera
 
   auto &join_children = input->GetChildren();
   std::vector<OperatorExpression *> child = {join_children[0]->Copy(), join_children[1]->Copy()};
-  auto output = new OperatorExpression(LogicalInnerJoin::make(), std::move(child));
+  auto output = new OperatorExpression(LogicalInnerJoin::Make(), std::move(child));
   transformed->push_back(output);
 }
 
@@ -944,9 +944,9 @@ void MarkJoinToInnerJoin::Transform(OperatorExpression *input, std::vector<Opera
 SingleJoinToInnerJoin::SingleJoinToInnerJoin() {
   type_ = RuleType::MARK_JOIN_GET_TO_INNER_JOIN;
 
-  match_pattern = new Pattern(OpType::LOGICALSINGLEJOIN);
-  match_pattern->AddChild(new Pattern(OpType::LEAF));
-  match_pattern->AddChild(new Pattern(OpType::LEAF));
+  match_pattern_ = new Pattern(OpType::LOGICALSINGLEJOIN);
+  match_pattern_->AddChild(new Pattern(OpType::LEAF));
+  match_pattern_->AddChild(new Pattern(OpType::LEAF));
 }
 
 int SingleJoinToInnerJoin::Promise(GroupExpression *group_expr, OptimizeContext *context) const {
@@ -971,7 +971,7 @@ void SingleJoinToInnerJoin::Transform(OperatorExpression *input, std::vector<Ope
 
   auto &join_children = input->GetChildren();
   std::vector<OperatorExpression *> child = {join_children[0]->Copy(), join_children[1]->Copy()};
-  auto output = new OperatorExpression(LogicalInnerJoin::make(), std::move(child));
+  auto output = new OperatorExpression(LogicalInnerJoin::Make(), std::move(child));
   transformed->push_back(output);
 }
 
@@ -981,11 +981,11 @@ void SingleJoinToInnerJoin::Transform(OperatorExpression *input, std::vector<Ope
 PullFilterThroughMarkJoin::PullFilterThroughMarkJoin() {
   type_ = RuleType::PULL_FILTER_THROUGH_MARK_JOIN;
 
-  match_pattern = new Pattern(OpType::LOGICALMARKJOIN);
-  match_pattern->AddChild(new Pattern(OpType::LEAF));
+  match_pattern_ = new Pattern(OpType::LOGICALMARKJOIN);
+  match_pattern_->AddChild(new Pattern(OpType::LEAF));
   auto filter = new Pattern(OpType::LOGICALFILTER);
   filter->AddChild(new Pattern(OpType::LEAF));
-  match_pattern->AddChild(filter);
+  match_pattern_->AddChild(filter);
 }
 
 int PullFilterThroughMarkJoin::Promise(GroupExpression *group_expr, OptimizeContext *context) const {
@@ -1028,8 +1028,8 @@ PullFilterThroughAggregation::PullFilterThroughAggregation() {
 
   auto filter = new Pattern(OpType::LOGICALFILTER);
   filter->AddChild(new Pattern(OpType::LEAF));
-  match_pattern = new Pattern(OpType::LOGICALAGGREGATEANDGROUPBY);
-  match_pattern->AddChild(filter);
+  match_pattern_ = new Pattern(OpType::LOGICALAGGREGATEANDGROUPBY);
+  match_pattern_->AddChild(filter);
 }
 
 int PullFilterThroughAggregation::Promise(GroupExpression *group_expr, OptimizeContext *context) const {
@@ -1070,9 +1070,9 @@ void PullFilterThroughAggregation::Transform(OperatorExpression *input, std::vec
       correlated_predicates.emplace_back(predicate);
       auto root_expr = predicate.GetExpr();
       if (root_expr->GetChild(0)->GetDepth() < root_expr->GetDepth()) {
-        new_groupby_cols.emplace_back(root_expr->GetChild(1).get());
+        new_groupby_cols.emplace_back(root_expr->GetChild(1).Get());
       } else {
-        new_groupby_cols.emplace_back(root_expr->GetChild(0).get());
+        new_groupby_cols.emplace_back(root_expr->GetChild(0).Get());
       }
     }
   }
@@ -1089,15 +1089,15 @@ void PullFilterThroughAggregation::Transform(OperatorExpression *input, std::vec
 
   auto aggr_child = filter_expr->GetChildren()[0]->Copy();
   if (!normal_predicates.empty()) {
-    auto new_filter = new OperatorExpression(LogicalFilter::make(std::move(normal_predicates)), {aggr_child});
+    auto new_filter = new OperatorExpression(LogicalFilter::Make(std::move(normal_predicates)), {aggr_child});
     aggr_child = new_filter;
   }
 
   std::vector<AnnotatedExpression> new_having = aggregation->GetHaving();
   auto new_aggr = new OperatorExpression(
-      LogicalAggregateAndGroupBy::make(std::move(new_groupby_cols), std::move(new_having)), {aggr_child});
+      LogicalAggregateAndGroupBy::Make(std::move(new_groupby_cols), std::move(new_having)), {aggr_child});
 
-  auto output = new OperatorExpression(LogicalFilter::make(std::move(correlated_predicates)), {new_aggr});
+  auto output = new OperatorExpression(LogicalFilter::Make(std::move(correlated_predicates)), {new_aggr});
   transformed->push_back(output);
 }
 

@@ -204,10 +204,10 @@ class Schema {
       // If not all columns assigned OIDs, then clear the map because this is
       // a definition of a new/modified table not a catalog generated schema.
       if (columns_[i].Oid() == catalog::INVALID_COLUMN_OID) {
-        col_oid_to_offset.clear();
+        col_oid_to_offset_.clear();
         return;
       }
-      col_oid_to_offset[columns_[i].Oid()] = i;
+      col_oid_to_offset_[columns_[i].Oid()] = i;
     }
   }
 
@@ -229,8 +229,8 @@ class Schema {
    * @return description of the schema for a specific column
    */
   const Column &GetColumn(const col_oid_t col_oid) const {
-    TERRIER_ASSERT(col_oid_to_offset.count(col_oid) > 0, "col_oid does not exist in this Schema");
-    const uint32_t col_offset = col_oid_to_offset.at(col_oid);
+    TERRIER_ASSERT(col_oid_to_offset_.count(col_oid) > 0, "col_oid does not exist in this Schema");
+    const uint32_t col_offset = col_oid_to_offset_.at(col_oid);
     return columns_[col_offset];
   }
 
@@ -284,7 +284,7 @@ class Schema {
  private:
   friend class DatabaseCatalog;
   std::vector<Column> columns_;
-  std::unordered_map<col_oid_t, uint32_t> col_oid_to_offset;
+  std::unordered_map<col_oid_t, uint32_t> col_oid_to_offset_;
 };
 
 DEFINE_JSON_DECLARATIONS(Schema::Column);
