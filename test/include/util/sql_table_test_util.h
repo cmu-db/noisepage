@@ -245,22 +245,18 @@ class LargeSqlTableTestObject {
   /**
    * Initializes a test object with the given configuration
    * @param test configuration object
-   * @param block_store the block store to use for the underlying data table
-   * @param buffer_pool the buffer pool to use for simulated transactions
+   * @param txn_manager txn manager to use for test object
+   * @param catalog catalog to use for test object
+   * @param block_store block store for table creation
    * @param generator the random generator to use for the test
    */
-  LargeSqlTableTestObject(const LargeSqlTableTestConfiguration &config, storage::BlockStore *block_store,
-                          storage::RecordBufferSegmentPool *buffer_pool, std::default_random_engine *generator,
-                          storage::LogManager *log_manager);
+  LargeSqlTableTestObject(const LargeSqlTableTestConfiguration &config, transaction::TransactionManager *txn_manager,
+                          catalog::Catalog *catalog, storage::BlockStore *block_store,
+                          std::default_random_engine *generator);
   /**
    * Destructs a LargeSqlTableTestObject
    */
   ~LargeSqlTableTestObject();
-
-  /**
-   * @return the transaction manager used by this test
-   */
-  transaction::TransactionManager *GetTxnManager() { return &txn_manager_; }
 
   /**
    * Simulate an oltp workload, running the specified number of total transactions while allowing the specified number
@@ -286,18 +282,6 @@ class LargeSqlTableTestObject {
     return table_oids_[oid];
   }
 
-  /**
-   * @param db_oid database oid
-   * @param table_oid table oid
-   * @return SqlTable pointer for requested table
-   */
-  common::ManagedPointer<storage::SqlTable> GetTable(transaction::TransactionContext *txn, catalog::db_oid_t db_oid,
-                                                     catalog::table_oid_t table_oid) {
-    TERRIER_ASSERT(tables_.find(db_oid) != tables_.end(), "Requested database was not created");
-    TERRIER_ASSERT(tables_[db_oid].find(table_oid) != tables_[db_oid].end(), "Requested table was not created");
-    return catalog_.GetDatabaseCatalog(txn, db_oid)->GetTable(txn, table_oid);
-  }
-
   const std::vector<storage::TupleSlot> &GetTupleSlotsForTable(catalog::db_oid_t db_oid,
                                                                catalog::table_oid_t table_oid) {
     TERRIER_ASSERT(tables_.find(db_oid) != tables_.end(), "Requested database was not created");
@@ -316,9 +300,8 @@ class LargeSqlTableTestObject {
   uint32_t txn_length_;
   std::vector<double> insert_update_select_delete_ratio_;
   std::default_random_engine *generator_;
-  transaction::TransactionManager txn_manager_;
-  storage::GarbageCollector gc_;
-  catalog::Catalog catalog_;
+  transaction::TransactionManager *txn_manager_;
+  catalog::Catalog *catalog_;
   transaction::TransactionContext *initial_txn_;
   uint64_t abort_count_ = 0;
   // So we can easily get a random database and table oid

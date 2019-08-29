@@ -65,9 +65,13 @@ class RecoveryTests : public TerrierTest {
     LogManager log_manager(LOG_FILE_NAME, num_log_buffers_, log_serialization_interval_, log_persist_interval_,
                            log_persist_threshold_, &pool_, common::ManagedPointer(&thread_registry_));
     log_manager.Start();
-    auto *tested = new LargeSqlTableTestObject(config, &block_store_, &pool_, &generator_, &log_manager);
+
+    transaction::TransactionManager txn_manager(&pool_, true, &log_manager);
+    catalog::Catalog catalog(&txn_manager, &block_store_);
+
+    auto *tested = new LargeSqlTableTestObject(config, &txn_manager, &catalog, &block_store_, &generator_);
     // Enable GC
-    auto gc_thread = new storage::GarbageCollectorThread(tested->GetTxnManager(), gc_period_);
+    auto gc_thread = new storage::GarbageCollectorThread(&txn_manager, gc_period_);
 
     // Run workload
     tested->SimulateOltp(100, 4);
@@ -78,7 +82,7 @@ class RecoveryTests : public TerrierTest {
 
     // We now "boot up" up the system and start recovery
     log_manager.Start();
-    gc_thread = new storage::GarbageCollectorThread(tested->GetTxnManager(), gc_period_);
+    gc_thread = new storage::GarbageCollectorThread(&txn_manager, gc_period_);
 
     // Start a transaction manager with logging disabled, we don't want to log the log replaying. Also enable GC
     transaction::TransactionManager recovery_txn_manager{&pool_, true, LOGGING_DISABLED};
@@ -98,8 +102,9 @@ class RecoveryTests : public TerrierTest {
     for (auto &database_oid : tested->GetDatabases()) {
       for (auto &table_oid : tested->GetTablesForDatabase(database_oid)) {
         // Get original sql table
-        auto original_txn = tested->GetTxnManager()->BeginTransaction();
-        auto original_sql_table = tested->GetTable(original_txn, database_oid, table_oid);
+        auto original_txn = txn_manager.BeginTransaction();
+        auto original_sql_table =
+            catalog.GetDatabaseCatalog(original_txn, database_oid)->GetTable(original_txn, table_oid);
 
         // Get Recovered table
         auto *recovery_txn = recovery_txn_manager.BeginTransaction();
@@ -110,9 +115,9 @@ class RecoveryTests : public TerrierTest {
 
         EXPECT_TRUE(StorageTestUtil::SqlTableEqualDeep(
             original_sql_table->table_.layout, original_sql_table, recovered_sql_table,
-            tested->GetTupleSlotsForTable(database_oid, table_oid), recovery_manager.tuple_slot_map_,
-            tested->GetTxnManager(), &recovery_txn_manager));
-        tested->GetTxnManager()->Commit(original_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+            tested->GetTupleSlotsForTable(database_oid, table_oid), recovery_manager.tuple_slot_map_, &txn_manager,
+            &recovery_txn_manager));
+        txn_manager.Commit(original_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
         recovery_txn_manager.Commit(recovery_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
       }
     }
@@ -120,6 +125,8 @@ class RecoveryTests : public TerrierTest {
     // Clean up test object and recovered catalogs
     recovered_catalog.TearDown();
     delete recovery_gc_thread;
+
+    catalog.TearDown();
     delete gc_thread;
     delete tested;
     log_manager.PersistAndStop();

@@ -7,7 +7,7 @@
 namespace terrier {
 
 RandomSqlTableTransaction::RandomSqlTableTransaction(LargeSqlTableTestObject *test_object)
-    : test_object_(test_object), txn_(test_object->txn_manager_.BeginTransaction()), aborted_(false) {}
+    : test_object_(test_object), txn_(test_object->txn_manager_->BeginTransaction()), aborted_(false) {}
 
 template <class Random>
 void RandomSqlTableTransaction::RandomInsert(Random *generator) {
@@ -16,7 +16,7 @@ void RandomSqlTableTransaction::RandomInsert(Random *generator) {
   const auto database_oid = *(RandomTestUtil::UniformRandomElement(test_object_->database_oids_, generator));
   const auto table_oid = *(RandomTestUtil::UniformRandomElement(test_object_->table_oids_[database_oid], generator));
   auto &sql_table_metadata = test_object_->tables_[database_oid][table_oid];
-  auto sql_table_ptr = test_object_->catalog_.GetDatabaseCatalog(txn_, database_oid)->GetTable(txn_, table_oid);
+  auto sql_table_ptr = test_object_->catalog_->GetDatabaseCatalog(txn_, database_oid)->GetTable(txn_, table_oid);
 
   // Generate random insert
   auto initializer = sql_table_ptr->InitializerForProjectedRow(sql_table_metadata->col_oids_);
@@ -48,7 +48,7 @@ void RandomSqlTableTransaction::RandomUpdate(Random *generator) {
   // The placement of this get catalog call is important. Its possible that because we take a spin latch above, the OS
   // will serialize the txns by getting the tuple and quickly doing the operation on the tuple immedietly after. Adding
   // an expensive call (Like GetTable) will help in having the OS interleave the threads more.
-  auto sql_table_ptr = test_object_->catalog_.GetDatabaseCatalog(txn_, database_oid)->GetTable(txn_, table_oid);
+  auto sql_table_ptr = test_object_->catalog_->GetDatabaseCatalog(txn_, database_oid)->GetTable(txn_, table_oid);
   auto initializer = sql_table_ptr->InitializerForProjectedRow(
       StorageTestUtil::RandomNonEmptySubset(sql_table_metadata->col_oids_, generator));
   auto *const record = txn_->StageWrite(database_oid, table_oid, initializer);
@@ -78,7 +78,7 @@ void RandomSqlTableTransaction::RandomDelete(Random *generator) {
   // The placement of this get catalog call is important. Its possible that because we take a spin latch above, the OS
   // will serialize the txns by getting the tuple and quickly doing the operation on the tuple immedietly after. Adding
   // an expensive call (Like GetTable) will help in having the OS interleave the threads more.
-  auto sql_table_ptr = test_object_->catalog_.GetDatabaseCatalog(txn_, database_oid)->GetTable(txn_, table_oid);
+  auto sql_table_ptr = test_object_->catalog_->GetDatabaseCatalog(txn_, database_oid)->GetTable(txn_, table_oid);
   txn_->StageDelete(database_oid, table_oid, deleted);
   auto result = sql_table_ptr->Delete(txn_, deleted);
   aborted_ = !result;
@@ -114,7 +114,7 @@ void RandomSqlTableTransaction::RandomSelect(Random *generator) {
   // The placement of this get catalog call is important. Its possible that because we take a spin latch above, the OS
   // will serialize the txns by getting the tuple and quickly doing the operation on the tuple immedietly after. Adding
   // an expensive call (Like GetTable) will help in having the OS interleave the threads more.
-  auto sql_table_ptr = test_object_->catalog_.GetDatabaseCatalog(txn_, database_oid)->GetTable(txn_, table_oid);
+  auto sql_table_ptr = test_object_->catalog_->GetDatabaseCatalog(txn_, database_oid)->GetTable(txn_, table_oid);
   auto initializer = sql_table_ptr->InitializerForProjectedRow(sql_table_metadata->col_oids_);
   storage::ProjectedRow *select = initializer.InitializeRow(sql_table_metadata->buffer_);
   sql_table_ptr->Select(txn_, selected, select);
@@ -122,9 +122,9 @@ void RandomSqlTableTransaction::RandomSelect(Random *generator) {
 
 void RandomSqlTableTransaction::Finish() {
   if (aborted_) {
-    test_object_->txn_manager_.Abort(txn_);
+    test_object_->txn_manager_->Abort(txn_);
   } else {
-    test_object_->txn_manager_.Commit(txn_, transaction::TransactionUtil::EmptyCallback, nullptr);
+    test_object_->txn_manager_->Commit(txn_, transaction::TransactionUtil::EmptyCallback, nullptr);
     for (const auto &database : inserted_tuples_) {
       for (const auto &table : database.second) {
         auto &metadata = test_object_->tables_[database.first][table.first];
@@ -138,16 +138,14 @@ void RandomSqlTableTransaction::Finish() {
 }
 
 LargeSqlTableTestObject::LargeSqlTableTestObject(const LargeSqlTableTestConfiguration &config,
-                                                 storage::BlockStore *block_store,
-                                                 storage::RecordBufferSegmentPool *buffer_pool,
-                                                 std::default_random_engine *generator,
-                                                 storage::LogManager *log_manager)
+                                                 transaction::TransactionManager *txn_manager,
+                                                 catalog::Catalog *catalog, storage::BlockStore *block_store,
+                                                 std::default_random_engine *generator)
     : txn_length_(config.txn_length_),
       insert_update_select_delete_ratio_(config.insert_update_select_delete_ratio_),
       generator_(generator),
-      txn_manager_(buffer_pool, true /* gc on */, log_manager),
-      gc_(storage::GarbageCollector(&txn_manager_, nullptr)),
-      catalog_(catalog::Catalog(&txn_manager_, block_store)) {
+      txn_manager_(txn_manager),
+      catalog_(catalog) {
   // Bootstrap the table to have the specified number of tuples
   PopulateInitialTables(config.num_databases_, config.num_tables_, config.max_columns_, config.initial_table_size_,
                         config.varlen_allowed_, block_store, generator_);
@@ -161,11 +159,6 @@ LargeSqlTableTestObject::~LargeSqlTableTestObject() {
       delete metadata;
     }
   }
-  catalog_.TearDown();
-
-  gc_.PerformGarbageCollection();
-  gc_.PerformGarbageCollection();
-  gc_.PerformGarbageCollection();
 }
 
 // Caller is responsible for freeing the returned results if bookkeeping is on.
@@ -210,17 +203,17 @@ template <class Random>
 void LargeSqlTableTestObject::PopulateInitialTables(uint16_t num_databases, uint16_t num_tables, uint16_t max_columns,
                                                     uint32_t num_tuples, bool varlen_allowed,
                                                     storage::BlockStore *block_store, Random *generator) {
-  initial_txn_ = txn_manager_.BeginTransaction();
+  initial_txn_ = txn_manager_->BeginTransaction();
   auto namespace_name = "test_namespace";
 
   for (uint16_t db_idx = 0; db_idx < num_databases; db_idx++) {
     // Create database in catalog
-    auto database_oid = catalog_.CreateDatabase(initial_txn_, "database" + std::to_string(db_idx), true);
+    auto database_oid = catalog_->CreateDatabase(initial_txn_, "database" + std::to_string(db_idx), true);
     TERRIER_ASSERT(database_oid != catalog::INVALID_DATABASE_OID, "Database creation should always succeed");
     database_oids_.emplace_back(database_oid);
 
     // Create test namespace
-    auto db_catalog_ptr = catalog_.GetDatabaseCatalog(initial_txn_, database_oid);
+    auto db_catalog_ptr = catalog_->GetDatabaseCatalog(initial_txn_, database_oid);
     auto namespace_oid = db_catalog_ptr->CreateNamespace(initial_txn_, namespace_name);
 
     for (uint16_t table_idx = 0; table_idx < num_tables; table_idx++) {
@@ -262,7 +255,7 @@ void LargeSqlTableTestObject::PopulateInitialTables(uint16_t num_databases, uint
       tables_[database_oid][table_oid] = metadata;
     }
   }
-  txn_manager_.Commit(initial_txn_, transaction::TransactionUtil::EmptyCallback, nullptr);
+  txn_manager_->Commit(initial_txn_, transaction::TransactionUtil::EmptyCallback, nullptr);
 }
 
 }  // namespace terrier
