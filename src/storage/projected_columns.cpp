@@ -40,7 +40,7 @@ ProjectedColumnsInitializer::ProjectedColumnsInitializer(const BlockLayout &layo
   size_ += static_cast<uint32_t>(sizeof(TupleSlot) * max_tuples_);
 
   int attr_size_index = 0;
-  for (auto &attr_end : attr_ends_)  attr_end = 0;
+  for (auto &attr_end : attr_ends_) attr_end = 0;
 
   for (uint32_t i = 0; i < col_ids_.size(); i++) {
     TERRIER_ASSERT(i < (1 << 15), "Out-of-bounds index");

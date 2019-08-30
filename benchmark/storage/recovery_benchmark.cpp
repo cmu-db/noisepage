@@ -26,7 +26,6 @@ class RecoveryBenchmark : public benchmark::Fixture {
   const std::chrono::milliseconds gc_period_{10};
   common::DedicatedThreadRegistry thread_registry_;
 
-
   // Settings for log manager
   const uint64_t num_log_buffers_ = 100;
   const std::chrono::milliseconds log_serialization_interval_{5};
@@ -62,7 +61,8 @@ class RecoveryBenchmark : public benchmark::Fixture {
 
       // Start a transaction manager with logging disabled, we don't want to log the log replaying
       transaction::TransactionManager recovery_txn_manager{&buffer_pool_, true, LOGGING_DISABLED};
-      auto recovery_gc_thread = new storage::GarbageCollectorThread(&recovery_txn_manager, gc_period_);  // Enable background GC
+      auto recovery_gc_thread =
+          new storage::GarbageCollectorThread(&recovery_txn_manager, gc_period_);  // Enable background GC
 
       // Create catalog for recovery
       catalog::Catalog recovered_catalog(&recovery_txn_manager, &block_store_);

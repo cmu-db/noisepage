@@ -49,7 +49,7 @@ BENCHMARK_DEFINE_F(LoggingBenchmark, TPCCish)(benchmark::State &state) {
                                            common::ManagedPointer<common::DedicatedThreadRegistry>(&thread_registry_));
     log_manager_->Start();
     LargeDataTableBenchmarkObject tested(attr_sizes_, initial_table_size_, txn_length, insert_update_select_ratio,
-                                           &block_store_, &buffer_pool_, &generator_, true, log_manager_);
+                                         &block_store_, &buffer_pool_, &generator_, true, log_manager_);
     // log all of the Inserts from table creation
     log_manager_->ForceFlush();
 
@@ -86,7 +86,7 @@ BENCHMARK_DEFINE_F(LoggingBenchmark, HighAbortRate)(benchmark::State &state) {
                                            common::ManagedPointer<common::DedicatedThreadRegistry>(&thread_registry_));
     log_manager_->Start();
     LargeDataTableBenchmarkObject tested(attr_sizes_, 1000, txn_length, insert_update_select_ratio, &block_store_,
-                                           &buffer_pool_, &generator_, true, log_manager_);
+                                         &buffer_pool_, &generator_, true, log_manager_);
     // log all of the Inserts from table creation
     log_manager_->ForceFlush();
 
@@ -122,7 +122,7 @@ BENCHMARK_DEFINE_F(LoggingBenchmark, SingleStatementInsert)(benchmark::State &st
                                            common::ManagedPointer<common::DedicatedThreadRegistry>(&thread_registry_));
     log_manager_->Start();
     LargeDataTableBenchmarkObject tested(attr_sizes_, 0, txn_length, insert_update_select_ratio, &block_store_,
-                                           &buffer_pool_, &generator_, true, log_manager_);
+                                         &buffer_pool_, &generator_, true, log_manager_);
     // log all of the Inserts from table creation
     log_manager_->ForceFlush();
 
@@ -158,7 +158,7 @@ BENCHMARK_DEFINE_F(LoggingBenchmark, SingleStatementUpdate)(benchmark::State &st
                                            common::ManagedPointer<common::DedicatedThreadRegistry>(&thread_registry_));
     log_manager_->Start();
     LargeDataTableBenchmarkObject tested(attr_sizes_, initial_table_size_, txn_length, insert_update_select_ratio,
-                                           &block_store_, &buffer_pool_, &generator_, true, log_manager_);
+                                         &block_store_, &buffer_pool_, &generator_, true, log_manager_);
     // log all of the Inserts from table creation
     log_manager_->ForceFlush();
 
@@ -194,7 +194,7 @@ BENCHMARK_DEFINE_F(LoggingBenchmark, SingleStatementSelect)(benchmark::State &st
                                            common::ManagedPointer<common::DedicatedThreadRegistry>(&thread_registry_));
     log_manager_->Start();
     LargeDataTableBenchmarkObject tested(attr_sizes_, initial_table_size_, txn_length, insert_update_select_ratio,
-                                           &block_store_, &buffer_pool_, &generator_, true, log_manager_);
+                                         &block_store_, &buffer_pool_, &generator_, true, log_manager_);
     // log all of the Inserts from table creation
     log_manager_->ForceFlush();
 
