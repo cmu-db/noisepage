@@ -150,7 +150,7 @@ uint8_t StorageUtil::AttrSizeFromBoundaries(const std::vector<uint16_t> &boundar
   }
   TERRIER_ASSERT(shift <= NUM_ATTR_BOUNDARIES, "Out-of-bounds attribute size");
   TERRIER_ASSERT(shift >= 0, "Out-of-bounds attribute size");
-  return UINT8_C(16u) >> shift;
+  return static_cast<uint8_t>(16U) >> shift;
 }
 
 std::vector<uint16_t> StorageUtil::ComputeAttributeSizeBoundaries(
