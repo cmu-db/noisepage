@@ -110,7 +110,7 @@ BENCHMARK_DEFINE_F(RecoveryBenchmark, OLTPWorkload)(benchmark::State &state) {
                                               .SetTxnLength(5)
                                               .SetInsertUpdateSelectDeleteRatio({0.1, 0.35, 0.5, 0.05})
                                               .SetVarlenAllowed(true)
-                                              .build();
+                                              .Build();
 
   RunBenchmark(&state, config);
 }
@@ -129,7 +129,7 @@ BENCHMARK_DEFINE_F(RecoveryBenchmark, HighAbortRate)(benchmark::State &state) {
                                               .SetTxnLength(40)
                                               .SetInsertUpdateSelectDeleteRatio({0.0, 0.95, 0.0, 0.05})
                                               .SetVarlenAllowed(true)
-                                              .build();
+                                              .Build();
 
   RunBenchmark(&state, config);
 }
@@ -147,7 +147,7 @@ BENCHMARK_DEFINE_F(RecoveryBenchmark, HighStress)(benchmark::State &state) {
                                               .SetTxnLength(5)
                                               .SetInsertUpdateSelectDeleteRatio({1.0, 0.0, 0.0, 0.0})
                                               .SetVarlenAllowed(false)
-                                              .build();
+                                              .Build();
 
   RunBenchmark(&state, config);
 }

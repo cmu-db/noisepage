@@ -348,6 +348,6 @@ class RecoveryManager : public common::DedicatedThreadOwner {
    */
   const catalog::Schema &GetTableSchema(transaction::TransactionContext *txn,
                                         const common::ManagedPointer<catalog::DatabaseCatalog> &db_catalog,
-                                        const catalog::table_oid_t table_oid) const;
+                                        catalog::table_oid_t table_oid) const;
 };
 }  // namespace terrier::storage

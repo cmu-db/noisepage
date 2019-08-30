@@ -66,7 +66,7 @@ void RecoveryManager::RecoverFromLogs() {
   // If we have unprocessed buffered changes, then these transactions were in-process at the time of system shutdown.
   // They are unrecoverable, so we need to clean up the memory of their records.
   if (!buffered_changes_map_.empty()) {
-    for (auto txn : buffered_changes_map_) {
+    for (const auto &txn : buffered_changes_map_) {
       DeferRecordDeletes(txn.first, true);
     }
     buffered_changes_map_.clear();
@@ -937,11 +937,7 @@ const catalog::Schema &RecoveryManager::GetTableSchema(
     transaction::TransactionContext *txn, const common::ManagedPointer<catalog::DatabaseCatalog> &db_catalog,
     const catalog::table_oid_t table_oid) const {
   auto search = catalog_table_schemas_.find(table_oid);
-  if (search != catalog_table_schemas_.end()) {
-    return search->second;
-  } else {
-    return db_catalog->GetSchema(txn, table_oid);
-  }
+  return (search != catalog_table_schemas_.end()) ? search->second : db_catalog->GetSchema(txn, table_oid);
 }
 
 }  // namespace terrier::storage

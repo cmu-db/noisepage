@@ -218,7 +218,7 @@ TEST_F(RecoveryTests, SingleTableTest) {
                                               .SetTxnLength(5)
                                               .SetInsertUpdateSelectDeleteRatio({0.2, 0.5, 0.2, 0.1})
                                               .SetVarlenAllowed(true)
-                                              .build();
+                                              .Build();
   RecoveryTests::RunTest(config);
 }
 
@@ -236,7 +236,7 @@ TEST_F(RecoveryTests, HighAbortRateTest) {
                                               .SetTxnLength(20)
                                               .SetInsertUpdateSelectDeleteRatio({0.2, 0.5, 0.3, 0.0})
                                               .SetVarlenAllowed(true)
-                                              .build();
+                                              .Build();
   RecoveryTests::RunTest(config);
 }
 
@@ -252,7 +252,7 @@ TEST_F(RecoveryTests, MultiDatabaseTest) {
                                               .SetTxnLength(5)
                                               .SetInsertUpdateSelectDeleteRatio({0.3, 0.6, 0.0, 0.1})
                                               .SetVarlenAllowed(true)
-                                              .build();
+                                              .Build();
   RecoveryTests::RunTest(config);
 }
 
@@ -844,7 +844,7 @@ TEST_F(RecoveryTests, DoubleRecoveryTest) {
                                               .SetTxnLength(5)
                                               .SetInsertUpdateSelectDeleteRatio({0.2, 0.5, 0.2, 0.1})
                                               .SetVarlenAllowed(true)
-                                              .build();
+                                              .Build();
   auto *tested = new LargeSqlTableTestObject(config, &txn_manager, &catalog, &block_store_, &generator_);
   // Enable GC
   auto gc_thread = new storage::GarbageCollectorThread(&txn_manager, gc_period_);

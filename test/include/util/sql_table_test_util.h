@@ -100,7 +100,7 @@ class LargeSqlTableTestConfiguration {
      * @return the constructed LargeSqlTableTestConfiguration using the parameters provided
      * (or default ones if not supplied).
      */
-    LargeSqlTableTestConfiguration build() {
+    LargeSqlTableTestConfiguration Build() {
       return {builder_num_databases_,      builder_num_tables_, builder_max_columns_,
               builder_initial_table_size_, builder_txn_length_, builder_insert_update_select_delete_ratio_,
               builder_varlen_allowed_};
