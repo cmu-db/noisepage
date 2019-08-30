@@ -30,7 +30,7 @@ void RandomWorkloadTransaction::RandomUpdate(Random *generator) {
   storage::ProjectedRowInitializer initializer =
       storage::ProjectedRowInitializer::Create(test_object_->layout_, update_col_ids);
 
-  auto *const record = txn_->StageWrite(CatalogTestUtil::test_db_oid, CatalogTestUtil::test_table_oid, initializer);
+  auto *const record = txn_->StageWrite(CatalogTestUtil::TEST_DB_OID, CatalogTestUtil::TEST_TABLE_OID, initializer);
   record->SetTupleSlot(updated);
 
   StorageTestUtil::PopulateRandomRow(record->Delta(), test_object_->layout_, 0.0, generator);
@@ -42,7 +42,7 @@ template <class Random>
 void RandomWorkloadTransaction::RandomInsert(Random *generator) {
   if (aborted_) return;
   auto *const redo =
-      txn_->StageWrite(CatalogTestUtil::test_db_oid, CatalogTestUtil::test_table_oid, test_object_->row_initializer_);
+      txn_->StageWrite(CatalogTestUtil::TEST_DB_OID, CatalogTestUtil::TEST_TABLE_OID, test_object_->row_initializer_);
   StorageTestUtil::PopulateRandomRow(redo->Delta(), test_object_->layout_, 0.0, generator);
   const storage::TupleSlot inserted = test_object_->table_.Insert(txn_, *(redo->Delta()));
   redo->SetTupleSlot(inserted);
@@ -142,7 +142,7 @@ void LargeTransactionBenchmarkObject::PopulateInitialTable(uint32_t num_tuples, 
 
   for (uint32_t i = 0; i < num_tuples; i++) {
     auto *const redo =
-        initial_txn_->StageWrite(CatalogTestUtil::test_db_oid, CatalogTestUtil::test_table_oid, row_initializer_);
+        initial_txn_->StageWrite(CatalogTestUtil::TEST_DB_OID, CatalogTestUtil::TEST_TABLE_OID, row_initializer_);
     StorageTestUtil::PopulateRandomRow(redo->Delta(), layout_, 0.0, generator);
     const storage::TupleSlot inserted = table_.Insert(initial_txn_, *(redo->Delta()));
     redo->SetTupleSlot(inserted);

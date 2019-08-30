@@ -25,10 +25,10 @@ class TrafficCop {
    * Returns the execution engine.
    * @return the execution engine.
    */
-  SqliteEngine *GetExecutionEngine() { return &sqlite_engine; }
+  SqliteEngine *GetExecutionEngine() { return &sqlite_engine_; }
 
  private:
-  SqliteEngine sqlite_engine;
+  SqliteEngine sqlite_engine_;
 };
 
 }  // namespace terrier::trafficcop

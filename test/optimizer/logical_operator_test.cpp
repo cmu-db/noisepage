@@ -31,7 +31,7 @@ TEST(OperatorTests, LogicalInsertTest) {
       std::vector<common::ManagedPointer<parser::AbstractExpression>>(raw_values, std::end(raw_values))};
 
   // Check that all of our GET methods work as expected
-  Operator op1 = LogicalInsert::make(
+  Operator op1 = LogicalInsert::Make(
       database_oid, namespace_oid, table_oid, std::vector<catalog::col_oid_t>(columns, std::end(columns)),
       std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>(values));
   EXPECT_EQ(op1.GetType(), OpType::LOGICALINSERT);
@@ -44,7 +44,7 @@ TEST(OperatorTests, LogicalInsertTest) {
 
   // Check that if we make a new object with the same values, then it will
   // be equal to our first object and have the same hash
-  Operator op2 = LogicalInsert::make(
+  Operator op2 = LogicalInsert::Make(
       database_oid, namespace_oid, table_oid, std::vector<catalog::col_oid_t>(columns, std::end(columns)),
       std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>(values));
   EXPECT_TRUE(op1 == op2);
@@ -55,7 +55,7 @@ TEST(OperatorTests, LogicalInsertTest) {
   std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>> other_values = {
       std::vector<common::ManagedPointer<parser::AbstractExpression>>(raw_values, std::end(raw_values)),
       std::vector<common::ManagedPointer<parser::AbstractExpression>>(raw_values, std::end(raw_values))};
-  Operator op3 = LogicalInsert::make(
+  Operator op3 = LogicalInsert::Make(
       database_oid, namespace_oid, table_oid, std::vector<catalog::col_oid_t>(columns, std::end(columns)),
       std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>(other_values));
   EXPECT_FALSE(op1 == op3);
@@ -71,7 +71,7 @@ TEST(OperatorTests, LogicalInsertTest) {
       new parser::ConstantValueExpression(type::TransientValueFactory::GetTinyInt(3))};
   std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>> bad_values = {
       std::vector<common::ManagedPointer<parser::AbstractExpression>>(bad_raw_values, std::end(bad_raw_values))};
-  EXPECT_DEATH(LogicalInsert::make(
+  EXPECT_DEATH(LogicalInsert::Make(
                    database_oid, namespace_oid, table_oid, std::vector<catalog::col_oid_t>(columns, std::end(columns)),
                    std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>(bad_values)),
                "Mismatched");
@@ -88,7 +88,7 @@ TEST(OperatorTests, LogicalInsertSelectTest) {
   catalog::table_oid_t table_oid(789);
 
   // Check that all of our GET methods work as expected
-  Operator op1 = LogicalInsertSelect::make(database_oid, namespace_oid, table_oid);
+  Operator op1 = LogicalInsertSelect::Make(database_oid, namespace_oid, table_oid);
   EXPECT_EQ(op1.GetType(), OpType::LOGICALINSERTSELECT);
   EXPECT_EQ(op1.As<LogicalInsertSelect>()->GetDatabaseOid(), database_oid);
   EXPECT_EQ(op1.As<LogicalInsertSelect>()->GetNamespaceOid(), namespace_oid);
@@ -96,14 +96,14 @@ TEST(OperatorTests, LogicalInsertSelectTest) {
 
   // Check that if we make a new object with the same values, then it will
   // be equal to our first object and have the same hash
-  Operator op2 = LogicalInsertSelect::make(database_oid, namespace_oid, table_oid);
+  Operator op2 = LogicalInsertSelect::Make(database_oid, namespace_oid, table_oid);
   EXPECT_TRUE(op1 == op2);
   EXPECT_EQ(op1.Hash(), op2.Hash());
 
   // Lastly, make a different object and make sure that it is not equal
   // and that it's hash is not the same!
   catalog::db_oid_t other_database_oid(999);
-  Operator op3 = LogicalInsertSelect::make(other_database_oid, namespace_oid, table_oid);
+  Operator op3 = LogicalInsertSelect::Make(other_database_oid, namespace_oid, table_oid);
   EXPECT_FALSE(op1 == op3);
   EXPECT_NE(op1.Hash(), op3.Hash());
 }
@@ -113,10 +113,10 @@ TEST(OperatorTests, LogicalDistinctTest) {
   // DISTINCT operator does not have any data members.
   // So we just need to make sure that all instantiations
   // of the object are equivalent.
-  Operator op1 = LogicalDistinct::make();
+  Operator op1 = LogicalDistinct::Make();
   EXPECT_EQ(op1.GetType(), OpType::LOGICALDISTINCT);
 
-  Operator op2 = LogicalDistinct::make();
+  Operator op2 = LogicalDistinct::Make();
   EXPECT_TRUE(op1 == op2);
   EXPECT_EQ(op1.Hash(), op2.Hash());
 }
@@ -130,7 +130,7 @@ TEST(OperatorTests, LogicalLimitTest) {
   planner::OrderByOrderingType sort_dir = planner::OrderByOrderingType::ASC;
 
   // Check that all of our GET methods work as expected
-  Operator op1 = LogicalLimit::make(offset, limit, {sort_expr}, {sort_dir});
+  Operator op1 = LogicalLimit::Make(offset, limit, {sort_expr}, {sort_dir});
   EXPECT_EQ(op1.GetType(), OpType::LOGICALLIMIT);
   EXPECT_EQ(op1.As<LogicalLimit>()->GetOffset(), offset);
   EXPECT_EQ(op1.As<LogicalLimit>()->GetLimit(), limit);
@@ -141,14 +141,14 @@ TEST(OperatorTests, LogicalLimitTest) {
 
   // Check that if we make a new object with the same values, then it will
   // be equal to our first object and have the same hash
-  Operator op2 = LogicalLimit::make(offset, limit, {sort_expr}, {sort_dir});
+  Operator op2 = LogicalLimit::Make(offset, limit, {sort_expr}, {sort_dir});
   EXPECT_TRUE(op1 == op2);
   EXPECT_EQ(op1.Hash(), op2.Hash());
 
   // Lastly, make a different object and make sure that it is not equal
   // and that it's hash is not the same!
   size_t other_offset = 1111;
-  Operator op3 = LogicalLimit::make(other_offset, limit, {sort_expr}, {sort_dir});
+  Operator op3 = LogicalLimit::Make(other_offset, limit, {sort_expr}, {sort_dir});
   EXPECT_FALSE(op1 == op3);
   EXPECT_NE(op1.Hash(), op3.Hash());
 
@@ -162,7 +162,7 @@ TEST(OperatorTests, LogicalDeleteTest) {
   catalog::table_oid_t table_oid(789);
 
   // Check that all of our GET methods work as expected
-  Operator op1 = LogicalDelete::make(database_oid, namespace_oid, table_oid);
+  Operator op1 = LogicalDelete::Make(database_oid, namespace_oid, table_oid);
   EXPECT_EQ(op1.GetType(), OpType::LOGICALDELETE);
   EXPECT_EQ(op1.As<LogicalDelete>()->GetDatabaseOid(), database_oid);
   EXPECT_EQ(op1.As<LogicalDelete>()->GetNamespaceOid(), namespace_oid);
@@ -170,14 +170,14 @@ TEST(OperatorTests, LogicalDeleteTest) {
 
   // Check that if we make a new object with the same values, then it will
   // be equal to our first object and have the same hash
-  Operator op2 = LogicalDelete::make(database_oid, namespace_oid, table_oid);
+  Operator op2 = LogicalDelete::Make(database_oid, namespace_oid, table_oid);
   EXPECT_TRUE(op1 == op2);
   EXPECT_EQ(op1.Hash(), op2.Hash());
 
   // Lastly, make a different object and make sure that it is not equal
   // and that it's hash is not the same!
   catalog::db_oid_t other_database_oid(999);
-  Operator op3 = LogicalDelete::make(other_database_oid, namespace_oid, table_oid);
+  Operator op3 = LogicalDelete::Make(other_database_oid, namespace_oid, table_oid);
   EXPECT_FALSE(op1 == op3);
   EXPECT_NE(op1.Hash(), op3.Hash());
 }
@@ -193,7 +193,7 @@ TEST(OperatorTests, LogicalUpdateTest) {
   catalog::table_oid_t table_oid(789);
 
   // Check that all of our GET methods work as expected
-  Operator op1 = LogicalUpdate::make(database_oid, namespace_oid, table_oid, {update_clause});
+  Operator op1 = LogicalUpdate::Make(database_oid, namespace_oid, table_oid, {update_clause});
   EXPECT_EQ(op1.GetType(), OpType::LOGICALUPDATE);
   EXPECT_EQ(op1.As<LogicalUpdate>()->GetDatabaseOid(), database_oid);
   EXPECT_EQ(op1.As<LogicalUpdate>()->GetNamespaceOid(), namespace_oid);
@@ -203,13 +203,13 @@ TEST(OperatorTests, LogicalUpdateTest) {
 
   // Check that if we make a new object with the same values, then it will
   // be equal to our first object and have the same hash
-  Operator op2 = LogicalUpdate::make(database_oid, namespace_oid, table_oid, {update_clause});
+  Operator op2 = LogicalUpdate::Make(database_oid, namespace_oid, table_oid, {update_clause});
   EXPECT_TRUE(op1 == op2);
   EXPECT_EQ(op1.Hash(), op2.Hash());
 
   // Lastly, make a different object and make sure that it is not equal
   // and that it's hash is not the same!
-  Operator op3 = LogicalUpdate::make(database_oid, namespace_oid, table_oid, {});
+  Operator op3 = LogicalUpdate::Make(database_oid, namespace_oid, table_oid, {});
   EXPECT_FALSE(op1 == op3);
   EXPECT_NE(op1.Hash(), op3.Hash());
 
@@ -226,7 +226,7 @@ TEST(OperatorTests, LogicalExportExternalFileTest) {
 
   // Check that all of our GET methods work as expected
   Operator op1 =
-      LogicalExportExternalFile::make(parser::ExternalFileFormat::BINARY, file_name, delimiter, quote, escape);
+      LogicalExportExternalFile::Make(parser::ExternalFileFormat::BINARY, file_name, delimiter, quote, escape);
   EXPECT_EQ(op1.GetType(), OpType::LOGICALEXPORTEXTERNALFILE);
   EXPECT_EQ(op1.As<LogicalExportExternalFile>()->GetFormat(), parser::ExternalFileFormat::BINARY);
   EXPECT_EQ(op1.As<LogicalExportExternalFile>()->GetFilename(), file_name);
@@ -239,13 +239,13 @@ TEST(OperatorTests, LogicalExportExternalFileTest) {
   std::string file_name_copy = file_name;  // NOLINT
   Operator op2 =
 
-      LogicalExportExternalFile::make(parser::ExternalFileFormat::BINARY, file_name_copy, delimiter, quote, escape);
+      LogicalExportExternalFile::Make(parser::ExternalFileFormat::BINARY, file_name_copy, delimiter, quote, escape);
   EXPECT_TRUE(op1 == op2);
   EXPECT_EQ(op1.Hash(), op2.Hash());
 
   // Lastly, make a different object and make sure that it is not equal
   // and that it's hash is not the same!
-  Operator op3 = LogicalExportExternalFile::make(parser::ExternalFileFormat::CSV, file_name, delimiter, quote, escape);
+  Operator op3 = LogicalExportExternalFile::Make(parser::ExternalFileFormat::CSV, file_name, delimiter, quote, escape);
   EXPECT_FALSE(op1 == op3);
   EXPECT_NE(op1.Hash(), op3.Hash());
 }
@@ -269,27 +269,27 @@ TEST(OperatorTests, LogicalGetTest) {
   auto annotated_expr_2 = AnnotatedExpression(x_2, std::unordered_set<std::string>());
   auto annotated_expr_3 = AnnotatedExpression(x_3, std::unordered_set<std::string>());
 
-  Operator logical_get_01 = LogicalGet::make(catalog::db_oid_t(2), catalog::namespace_oid_t(2), catalog::table_oid_t(3),
+  Operator logical_get_01 = LogicalGet::Make(catalog::db_oid_t(2), catalog::namespace_oid_t(2), catalog::table_oid_t(3),
                                              std::vector<AnnotatedExpression>(), "table", false);
-  Operator logical_get_02 = LogicalGet::make(catalog::db_oid_t(1), catalog::namespace_oid_t(3), catalog::table_oid_t(3),
+  Operator logical_get_02 = LogicalGet::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(3), catalog::table_oid_t(3),
                                              std::vector<AnnotatedExpression>(), "table", false);
-  Operator logical_get_03 = LogicalGet::make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(4),
+  Operator logical_get_03 = LogicalGet::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(4),
                                              std::vector<AnnotatedExpression>(), "table", false);
-  Operator logical_get_04 = LogicalGet::make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3),
+  Operator logical_get_04 = LogicalGet::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3),
                                              std::vector<AnnotatedExpression>(), "tableTable", false);
-  Operator logical_get_05 = LogicalGet::make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3),
+  Operator logical_get_05 = LogicalGet::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3),
                                              std::vector<AnnotatedExpression>(), "table", true);
-  Operator logical_get_1 = LogicalGet::make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3),
+  Operator logical_get_1 = LogicalGet::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3),
                                             std::vector<AnnotatedExpression>(), "table", false);
-  Operator logical_get_2 = LogicalGet::make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3),
+  Operator logical_get_2 = LogicalGet::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3),
                                             std::vector<AnnotatedExpression>(), "table", false);
-  Operator logical_get_3 = LogicalGet::make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3),
+  Operator logical_get_3 = LogicalGet::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3),
                                             std::vector<AnnotatedExpression>{annotated_expr_0}, "table", false);
-  Operator logical_get_4 = LogicalGet::make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3),
+  Operator logical_get_4 = LogicalGet::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3),
                                             std::vector<AnnotatedExpression>{annotated_expr_1}, "table", false);
-  Operator logical_get_5 = LogicalGet::make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3),
+  Operator logical_get_5 = LogicalGet::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3),
                                             std::vector<AnnotatedExpression>{annotated_expr_2}, "table", false);
-  Operator logical_get_6 = LogicalGet::make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3),
+  Operator logical_get_6 = LogicalGet::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3),
                                             std::vector<AnnotatedExpression>{annotated_expr_3}, "table", false);
 
   EXPECT_EQ(logical_get_1.GetType(), OpType::LOGICALGET);
@@ -333,19 +333,19 @@ TEST(OperatorTests, LogicalExternalFileGetTest) {
   // LogicalExternalFileGet
   //===--------------------------------------------------------------------===//
   Operator logical_ext_file_get_1 =
-      LogicalExternalFileGet::make(parser::ExternalFileFormat::CSV, "file.txt", ',', '"', '\\');
+      LogicalExternalFileGet::Make(parser::ExternalFileFormat::CSV, "file.txt", ',', '"', '\\');
   Operator logical_ext_file_get_2 =
-      LogicalExternalFileGet::make(parser::ExternalFileFormat::CSV, "file.txt", ',', '"', '\\');
+      LogicalExternalFileGet::Make(parser::ExternalFileFormat::CSV, "file.txt", ',', '"', '\\');
   Operator logical_ext_file_get_3 =
-      LogicalExternalFileGet::make(parser::ExternalFileFormat::CSV, "file2.txt", ',', '"', '\\');
+      LogicalExternalFileGet::Make(parser::ExternalFileFormat::CSV, "file2.txt", ',', '"', '\\');
   Operator logical_ext_file_get_4 =
-      LogicalExternalFileGet::make(parser::ExternalFileFormat::BINARY, "file.txt", ',', '"', '\\');
+      LogicalExternalFileGet::Make(parser::ExternalFileFormat::BINARY, "file.txt", ',', '"', '\\');
   Operator logical_ext_file_get_5 =
-      LogicalExternalFileGet::make(parser::ExternalFileFormat::CSV, "file.txt", ' ', '"', '\\');
+      LogicalExternalFileGet::Make(parser::ExternalFileFormat::CSV, "file.txt", ' ', '"', '\\');
   Operator logical_ext_file_get_6 =
-      LogicalExternalFileGet::make(parser::ExternalFileFormat::CSV, "file.txt", ',', '\'', '\\');
+      LogicalExternalFileGet::Make(parser::ExternalFileFormat::CSV, "file.txt", ',', '\'', '\\');
   Operator logical_ext_file_get_7 =
-      LogicalExternalFileGet::make(parser::ExternalFileFormat::CSV, "file.txt", ',', '"', '&');
+      LogicalExternalFileGet::Make(parser::ExternalFileFormat::CSV, "file.txt", ',', '"', '&');
 
   EXPECT_EQ(logical_ext_file_get_1.GetType(), OpType::LOGICALEXTERNALFILEGET);
   EXPECT_EQ(logical_ext_file_get_1.GetName(), "LogicalExternalFileGet");
@@ -395,13 +395,13 @@ TEST(OperatorTests, LogicalQueryDerivedGetTest) {
   alias_to_expr_map_5["constant expr"] = expr1;
   alias_to_expr_map_5["constant expr2"] = expr2;
 
-  Operator logical_query_derived_get_1 = LogicalQueryDerivedGet::make("alias", std::move(alias_to_expr_map_1));
-  Operator logical_query_derived_get_2 = LogicalQueryDerivedGet::make("alias", std::move(alias_to_expr_map_2));
-  Operator logical_query_derived_get_3 = LogicalQueryDerivedGet::make(
+  Operator logical_query_derived_get_1 = LogicalQueryDerivedGet::Make("alias", std::move(alias_to_expr_map_1));
+  Operator logical_query_derived_get_2 = LogicalQueryDerivedGet::Make("alias", std::move(alias_to_expr_map_2));
+  Operator logical_query_derived_get_3 = LogicalQueryDerivedGet::Make(
       "alias", std::unordered_map<std::string, common::ManagedPointer<parser::AbstractExpression>>());
-  Operator logical_query_derived_get_4 = LogicalQueryDerivedGet::make("alias", std::move(alias_to_expr_map_3));
-  Operator logical_query_derived_get_5 = LogicalQueryDerivedGet::make("alias", std::move(alias_to_expr_map_4));
-  Operator logical_query_derived_get_6 = LogicalQueryDerivedGet::make("alias", std::move(alias_to_expr_map_5));
+  Operator logical_query_derived_get_4 = LogicalQueryDerivedGet::Make("alias", std::move(alias_to_expr_map_3));
+  Operator logical_query_derived_get_5 = LogicalQueryDerivedGet::Make("alias", std::move(alias_to_expr_map_4));
+  Operator logical_query_derived_get_6 = LogicalQueryDerivedGet::Make("alias", std::move(alias_to_expr_map_5));
 
   EXPECT_EQ(logical_query_derived_get_1.GetType(), OpType::LOGICALQUERYDERIVEDGET);
   EXPECT_EQ(logical_query_derived_get_1.GetName(), "LogicalQueryDerivedGet");
@@ -441,12 +441,12 @@ TEST(OperatorTests, LogicalFilterTest) {
   auto annotated_expr_2 = AnnotatedExpression(x_2, std::unordered_set<std::string>());
   auto annotated_expr_3 = AnnotatedExpression(x_3, std::unordered_set<std::string>());
 
-  Operator logical_filter_1 = LogicalFilter::make(std::vector<AnnotatedExpression>());
-  Operator logical_filter_2 = LogicalFilter::make(std::vector<AnnotatedExpression>());
-  Operator logical_filter_3 = LogicalFilter::make(std::vector<AnnotatedExpression>{annotated_expr_0});
-  Operator logical_filter_4 = LogicalFilter::make(std::vector<AnnotatedExpression>{annotated_expr_1});
-  Operator logical_filter_5 = LogicalFilter::make(std::vector<AnnotatedExpression>{annotated_expr_2});
-  Operator logical_filter_6 = LogicalFilter::make(std::vector<AnnotatedExpression>{annotated_expr_3});
+  Operator logical_filter_1 = LogicalFilter::Make(std::vector<AnnotatedExpression>());
+  Operator logical_filter_2 = LogicalFilter::Make(std::vector<AnnotatedExpression>());
+  Operator logical_filter_3 = LogicalFilter::Make(std::vector<AnnotatedExpression>{annotated_expr_0});
+  Operator logical_filter_4 = LogicalFilter::Make(std::vector<AnnotatedExpression>{annotated_expr_1});
+  Operator logical_filter_5 = LogicalFilter::Make(std::vector<AnnotatedExpression>{annotated_expr_2});
+  Operator logical_filter_6 = LogicalFilter::Make(std::vector<AnnotatedExpression>{annotated_expr_3});
 
   EXPECT_EQ(logical_filter_1.GetType(), OpType::LOGICALFILTER);
   EXPECT_EQ(logical_filter_3.GetType(), OpType::LOGICALFILTER);
@@ -482,11 +482,11 @@ TEST(OperatorTests, LogicalProjectionTest) {
   auto x_3 = common::ManagedPointer<parser::AbstractExpression>(expr_b_3);
 
   Operator logical_projection_1 =
-      LogicalProjection::make(std::vector<common::ManagedPointer<parser::AbstractExpression>>{x_1});
+      LogicalProjection::Make(std::vector<common::ManagedPointer<parser::AbstractExpression>>{x_1});
   Operator logical_projection_2 =
-      LogicalProjection::make(std::vector<common::ManagedPointer<parser::AbstractExpression>>{x_2});
+      LogicalProjection::Make(std::vector<common::ManagedPointer<parser::AbstractExpression>>{x_2});
   Operator logical_projection_3 =
-      LogicalProjection::make(std::vector<common::ManagedPointer<parser::AbstractExpression>>{x_3});
+      LogicalProjection::Make(std::vector<common::ManagedPointer<parser::AbstractExpression>>{x_3});
 
   EXPECT_EQ(logical_projection_1.GetType(), OpType::LOGICALPROJECTION);
   EXPECT_EQ(logical_projection_3.GetType(), OpType::LOGICALPROJECTION);
@@ -524,13 +524,13 @@ TEST(OperatorTests, LogicalDependentJoinTest) {
   auto annotated_expr_2 = AnnotatedExpression(x_2, std::unordered_set<std::string>());
   auto annotated_expr_3 = AnnotatedExpression(x_3, std::unordered_set<std::string>());
 
-  Operator logical_dep_join_0 = LogicalDependentJoin::make();
-  Operator logical_dep_join_1 = LogicalDependentJoin::make(std::vector<AnnotatedExpression>());
-  Operator logical_dep_join_2 = LogicalDependentJoin::make(std::vector<AnnotatedExpression>());
-  Operator logical_dep_join_3 = LogicalDependentJoin::make(std::vector<AnnotatedExpression>{annotated_expr_0});
-  Operator logical_dep_join_4 = LogicalDependentJoin::make(std::vector<AnnotatedExpression>{annotated_expr_1});
-  Operator logical_dep_join_5 = LogicalDependentJoin::make(std::vector<AnnotatedExpression>{annotated_expr_2});
-  Operator logical_dep_join_6 = LogicalDependentJoin::make(std::vector<AnnotatedExpression>{annotated_expr_3});
+  Operator logical_dep_join_0 = LogicalDependentJoin::Make();
+  Operator logical_dep_join_1 = LogicalDependentJoin::Make(std::vector<AnnotatedExpression>());
+  Operator logical_dep_join_2 = LogicalDependentJoin::Make(std::vector<AnnotatedExpression>());
+  Operator logical_dep_join_3 = LogicalDependentJoin::Make(std::vector<AnnotatedExpression>{annotated_expr_0});
+  Operator logical_dep_join_4 = LogicalDependentJoin::Make(std::vector<AnnotatedExpression>{annotated_expr_1});
+  Operator logical_dep_join_5 = LogicalDependentJoin::Make(std::vector<AnnotatedExpression>{annotated_expr_2});
+  Operator logical_dep_join_6 = LogicalDependentJoin::Make(std::vector<AnnotatedExpression>{annotated_expr_3});
 
   EXPECT_EQ(logical_dep_join_1.GetType(), OpType::LOGICALDEPENDENTJOIN);
   EXPECT_EQ(logical_dep_join_3.GetType(), OpType::LOGICALDEPENDENTJOIN);
@@ -575,13 +575,13 @@ TEST(OperatorTests, LogicalMarkJoinTest) {
   auto annotated_expr_2 = AnnotatedExpression(x_2, std::unordered_set<std::string>());
   auto annotated_expr_3 = AnnotatedExpression(x_3, std::unordered_set<std::string>());
 
-  Operator logical_mark_join_0 = LogicalMarkJoin::make();
-  Operator logical_mark_join_1 = LogicalMarkJoin::make(std::vector<AnnotatedExpression>());
-  Operator logical_mark_join_2 = LogicalMarkJoin::make(std::vector<AnnotatedExpression>());
-  Operator logical_mark_join_3 = LogicalMarkJoin::make(std::vector<AnnotatedExpression>{annotated_expr_0});
-  Operator logical_mark_join_4 = LogicalMarkJoin::make(std::vector<AnnotatedExpression>{annotated_expr_1});
-  Operator logical_mark_join_5 = LogicalMarkJoin::make(std::vector<AnnotatedExpression>{annotated_expr_2});
-  Operator logical_mark_join_6 = LogicalMarkJoin::make(std::vector<AnnotatedExpression>{annotated_expr_3});
+  Operator logical_mark_join_0 = LogicalMarkJoin::Make();
+  Operator logical_mark_join_1 = LogicalMarkJoin::Make(std::vector<AnnotatedExpression>());
+  Operator logical_mark_join_2 = LogicalMarkJoin::Make(std::vector<AnnotatedExpression>());
+  Operator logical_mark_join_3 = LogicalMarkJoin::Make(std::vector<AnnotatedExpression>{annotated_expr_0});
+  Operator logical_mark_join_4 = LogicalMarkJoin::Make(std::vector<AnnotatedExpression>{annotated_expr_1});
+  Operator logical_mark_join_5 = LogicalMarkJoin::Make(std::vector<AnnotatedExpression>{annotated_expr_2});
+  Operator logical_mark_join_6 = LogicalMarkJoin::Make(std::vector<AnnotatedExpression>{annotated_expr_3});
 
   EXPECT_EQ(logical_mark_join_1.GetType(), OpType::LOGICALMARKJOIN);
   EXPECT_EQ(logical_mark_join_3.GetType(), OpType::LOGICALMARKJOIN);
@@ -626,13 +626,13 @@ TEST(OperatorTests, LogicalSingleJoinTest) {
   auto annotated_expr_2 = AnnotatedExpression(x_2, std::unordered_set<std::string>());
   auto annotated_expr_3 = AnnotatedExpression(x_3, std::unordered_set<std::string>());
 
-  Operator logical_single_join_0 = LogicalSingleJoin::make();
-  Operator logical_single_join_1 = LogicalSingleJoin::make(std::vector<AnnotatedExpression>());
-  Operator logical_single_join_2 = LogicalSingleJoin::make(std::vector<AnnotatedExpression>());
-  Operator logical_single_join_3 = LogicalSingleJoin::make(std::vector<AnnotatedExpression>{annotated_expr_0});
-  Operator logical_single_join_4 = LogicalSingleJoin::make(std::vector<AnnotatedExpression>{annotated_expr_1});
-  Operator logical_single_join_5 = LogicalSingleJoin::make(std::vector<AnnotatedExpression>{annotated_expr_2});
-  Operator logical_single_join_6 = LogicalSingleJoin::make(std::vector<AnnotatedExpression>{annotated_expr_3});
+  Operator logical_single_join_0 = LogicalSingleJoin::Make();
+  Operator logical_single_join_1 = LogicalSingleJoin::Make(std::vector<AnnotatedExpression>());
+  Operator logical_single_join_2 = LogicalSingleJoin::Make(std::vector<AnnotatedExpression>());
+  Operator logical_single_join_3 = LogicalSingleJoin::Make(std::vector<AnnotatedExpression>{annotated_expr_0});
+  Operator logical_single_join_4 = LogicalSingleJoin::Make(std::vector<AnnotatedExpression>{annotated_expr_1});
+  Operator logical_single_join_5 = LogicalSingleJoin::Make(std::vector<AnnotatedExpression>{annotated_expr_2});
+  Operator logical_single_join_6 = LogicalSingleJoin::Make(std::vector<AnnotatedExpression>{annotated_expr_3});
 
   EXPECT_EQ(logical_single_join_1.GetType(), OpType::LOGICALSINGLEJOIN);
   EXPECT_EQ(logical_single_join_3.GetType(), OpType::LOGICALSINGLEJOIN);
@@ -677,13 +677,13 @@ TEST(OperatorTests, LogicalInnerJoinTest) {
   auto annotated_expr_2 = AnnotatedExpression(x_2, std::unordered_set<std::string>());
   auto annotated_expr_3 = AnnotatedExpression(x_3, std::unordered_set<std::string>());
 
-  Operator logical_inner_join_0 = LogicalInnerJoin::make();
-  Operator logical_inner_join_1 = LogicalInnerJoin::make(std::vector<AnnotatedExpression>());
-  Operator logical_inner_join_2 = LogicalInnerJoin::make(std::vector<AnnotatedExpression>());
-  Operator logical_inner_join_3 = LogicalInnerJoin::make(std::vector<AnnotatedExpression>{annotated_expr_0});
-  Operator logical_inner_join_4 = LogicalInnerJoin::make(std::vector<AnnotatedExpression>{annotated_expr_1});
-  Operator logical_inner_join_5 = LogicalInnerJoin::make(std::vector<AnnotatedExpression>{annotated_expr_2});
-  Operator logical_inner_join_6 = LogicalInnerJoin::make(std::vector<AnnotatedExpression>{annotated_expr_3});
+  Operator logical_inner_join_0 = LogicalInnerJoin::Make();
+  Operator logical_inner_join_1 = LogicalInnerJoin::Make(std::vector<AnnotatedExpression>());
+  Operator logical_inner_join_2 = LogicalInnerJoin::Make(std::vector<AnnotatedExpression>());
+  Operator logical_inner_join_3 = LogicalInnerJoin::Make(std::vector<AnnotatedExpression>{annotated_expr_0});
+  Operator logical_inner_join_4 = LogicalInnerJoin::Make(std::vector<AnnotatedExpression>{annotated_expr_1});
+  Operator logical_inner_join_5 = LogicalInnerJoin::Make(std::vector<AnnotatedExpression>{annotated_expr_2});
+  Operator logical_inner_join_6 = LogicalInnerJoin::Make(std::vector<AnnotatedExpression>{annotated_expr_3});
 
   EXPECT_EQ(logical_inner_join_1.GetType(), OpType::LOGICALINNERJOIN);
   EXPECT_EQ(logical_inner_join_3.GetType(), OpType::LOGICALINNERJOIN);
@@ -722,9 +722,9 @@ TEST(OperatorTests, LogicalLeftJoinTest) {
   auto x_2 = common::ManagedPointer<parser::AbstractExpression>(expr_b_2);
   auto x_3 = common::ManagedPointer<parser::AbstractExpression>(expr_b_3);
 
-  Operator logical_left_join_1 = LogicalLeftJoin::make(x_1);
-  Operator logical_left_join_2 = LogicalLeftJoin::make(x_2);
-  Operator logical_left_join_3 = LogicalLeftJoin::make(x_3);
+  Operator logical_left_join_1 = LogicalLeftJoin::Make(x_1);
+  Operator logical_left_join_2 = LogicalLeftJoin::Make(x_2);
+  Operator logical_left_join_3 = LogicalLeftJoin::Make(x_3);
 
   EXPECT_EQ(logical_left_join_1.GetType(), OpType::LOGICALLEFTJOIN);
   EXPECT_EQ(logical_left_join_3.GetType(), OpType::LOGICALLEFTJOIN);
@@ -755,9 +755,9 @@ TEST(OperatorTests, LogicalRightJoinTest) {
   auto x_2 = common::ManagedPointer<parser::AbstractExpression>(expr_b_2);
   auto x_3 = common::ManagedPointer<parser::AbstractExpression>(expr_b_3);
 
-  Operator logical_right_join_1 = LogicalRightJoin::make(x_1);
-  Operator logical_right_join_2 = LogicalRightJoin::make(x_2);
-  Operator logical_right_join_3 = LogicalRightJoin::make(x_3);
+  Operator logical_right_join_1 = LogicalRightJoin::Make(x_1);
+  Operator logical_right_join_2 = LogicalRightJoin::Make(x_2);
+  Operator logical_right_join_3 = LogicalRightJoin::Make(x_3);
 
   EXPECT_EQ(logical_right_join_1.GetType(), OpType::LOGICALRIGHTJOIN);
   EXPECT_EQ(logical_right_join_3.GetType(), OpType::LOGICALRIGHTJOIN);
@@ -788,9 +788,9 @@ TEST(OperatorTests, LogicalOuterJoinTest) {
   auto x_2 = common::ManagedPointer<parser::AbstractExpression>(expr_b_2);
   auto x_3 = common::ManagedPointer<parser::AbstractExpression>(expr_b_3);
 
-  Operator logical_outer_join_1 = LogicalOuterJoin::make(x_1);
-  Operator logical_outer_join_2 = LogicalOuterJoin::make(x_2);
-  Operator logical_outer_join_3 = LogicalOuterJoin::make(x_3);
+  Operator logical_outer_join_1 = LogicalOuterJoin::Make(x_1);
+  Operator logical_outer_join_2 = LogicalOuterJoin::Make(x_2);
+  Operator logical_outer_join_3 = LogicalOuterJoin::Make(x_3);
 
   EXPECT_EQ(logical_outer_join_1.GetType(), OpType::LOGICALOUTERJOIN);
   EXPECT_EQ(logical_outer_join_3.GetType(), OpType::LOGICALOUTERJOIN);
@@ -821,9 +821,9 @@ TEST(OperatorTests, LogicalSemiJoinTest) {
   auto x_2 = common::ManagedPointer<parser::AbstractExpression>(expr_b_2);
   auto x_3 = common::ManagedPointer<parser::AbstractExpression>(expr_b_3);
 
-  Operator logical_semi_join_1 = LogicalSemiJoin::make(x_1);
-  Operator logical_semi_join_2 = LogicalSemiJoin::make(x_2);
-  Operator logical_semi_join_3 = LogicalSemiJoin::make(x_3);
+  Operator logical_semi_join_1 = LogicalSemiJoin::Make(x_1);
+  Operator logical_semi_join_2 = LogicalSemiJoin::Make(x_2);
+  Operator logical_semi_join_3 = LogicalSemiJoin::Make(x_3);
 
   EXPECT_EQ(logical_semi_join_1.GetType(), OpType::LOGICALSEMIJOIN);
   EXPECT_EQ(logical_semi_join_3.GetType(), OpType::LOGICALSEMIJOIN);
@@ -877,18 +877,18 @@ TEST(OperatorTests, LogicalAggregateAndGroupByTest) {
   auto annotated_expr_4 = AnnotatedExpression(x_8, std::unordered_set<std::string>());
 
   Operator logical_group_1_0 =
-      LogicalAggregateAndGroupBy::make(std::vector<common::ManagedPointer<parser::AbstractExpression>>{x_1},
+      LogicalAggregateAndGroupBy::Make(std::vector<common::ManagedPointer<parser::AbstractExpression>>{x_1},
                                        std::vector<AnnotatedExpression>{annotated_expr_0});
   Operator logical_group_1_1 =
-      LogicalAggregateAndGroupBy::make(std::vector<common::ManagedPointer<parser::AbstractExpression>>{x_1},
+      LogicalAggregateAndGroupBy::Make(std::vector<common::ManagedPointer<parser::AbstractExpression>>{x_1},
                                        std::vector<AnnotatedExpression>{annotated_expr_1});
   Operator logical_group_2_2 =
-      LogicalAggregateAndGroupBy::make(std::vector<common::ManagedPointer<parser::AbstractExpression>>{x_2},
+      LogicalAggregateAndGroupBy::Make(std::vector<common::ManagedPointer<parser::AbstractExpression>>{x_2},
                                        std::vector<AnnotatedExpression>{annotated_expr_2});
   Operator logical_group_3 =
-      LogicalAggregateAndGroupBy::make(std::vector<common::ManagedPointer<parser::AbstractExpression>>{x_3});
+      LogicalAggregateAndGroupBy::Make(std::vector<common::ManagedPointer<parser::AbstractExpression>>{x_3});
   Operator logical_group_7_4 =
-      LogicalAggregateAndGroupBy::make(std::vector<common::ManagedPointer<parser::AbstractExpression>>{x_7},
+      LogicalAggregateAndGroupBy::Make(std::vector<common::ManagedPointer<parser::AbstractExpression>>{x_7},
                                        std::vector<AnnotatedExpression>{annotated_expr_4});
 
   EXPECT_EQ(logical_group_1_1.GetType(), OpType::LOGICALAGGREGATEANDGROUPBY);

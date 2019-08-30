@@ -44,7 +44,7 @@
 // undefined state or transition on said state will throw a runtime error.
 
 #define DEF_TRANSITION_GRAPH                                                                                        \
-  ConnectionHandle::StateMachine::transition_result ConnectionHandle::StateMachine::Delta_(ConnState state,         \
+  ConnectionHandle::StateMachine::transition_result ConnectionHandle::StateMachine::Delta(ConnState state,         \
                                                                                            Transition transition) { \
     switch (state) {
 #define DEFINE_STATE(s) \
@@ -147,7 +147,7 @@ END_DEF
     void ConnectionHandle::StateMachine::Accept(Transition action, ConnectionHandle &connection) {
   Transition next = action;
   while (next != Transition::NONE) {
-    transition_result result = Delta_(current_state_, next);
+    transition_result result = Delta(current_state_, next);
     current_state_ = result.first;
     try {
       next = result.second(connection);
