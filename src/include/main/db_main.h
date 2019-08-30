@@ -107,7 +107,7 @@ class DBMain {
   network::ProtocolInterpreter::Provider *provider_;
   common::DedicatedThreadRegistry *thread_registry_;
 
-  bool running = false;
+  bool running_ = false;
 
   /**
    * Cleans up and exit.

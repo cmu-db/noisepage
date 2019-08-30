@@ -47,7 +47,7 @@ class TPCCTests : public TerrierTest {
   const int8_t num_threads_ = 4;  // defines the number of terminals (workers running txns) and warehouses for the
   // benchmark. Sometimes called scale factor
   const uint32_t num_precomputed_txns_per_worker_ = 10000;  // Number of txns to run per terminal (worker thread)
-  TransactionWeights txn_weights;                           // default txn_weights. See definition for values
+  TransactionWeights txn_weights_;                          // default txn_weights. See definition for values
 
   common::WorkerPool thread_pool_{static_cast<uint32_t>(num_threads_), {}};
   common::DedicatedThreadRegistry *thread_registry_ = nullptr;
@@ -83,7 +83,7 @@ TEST_F(TPCCTests, WithoutLogging) {
 
   // Precompute all of the input arguments for every txn to be run. We want to avoid the overhead at benchmark time
   const auto precomputed_args =
-      PrecomputeArgs(&generator_, txn_weights, num_threads_, num_precomputed_txns_per_worker_);
+      PrecomputeArgs(&generator_, txn_weights_, num_threads_, num_precomputed_txns_per_worker_);
 
   // build the TPCC database
   auto *const tpcc_db = tpcc_builder.Build();
@@ -143,7 +143,7 @@ TEST_F(TPCCTests, WithLogging) {
 
   // Precompute all of the input arguments for every txn to be run. We want to avoid the overhead at benchmark time
   const auto precomputed_args =
-      PrecomputeArgs(&generator_, txn_weights, num_threads_, num_precomputed_txns_per_worker_);
+      PrecomputeArgs(&generator_, txn_weights_, num_threads_, num_precomputed_txns_per_worker_);
 
   // build the TPCC database
   auto *const tpcc_db = tpcc_builder.Build();

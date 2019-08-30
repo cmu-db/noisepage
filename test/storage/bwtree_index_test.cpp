@@ -128,7 +128,7 @@ class BwTreeIndexTests : public TerrierTest {
  */
 // NOLINTNEXTLINE
 TEST_F(BwTreeIndexTests, UniqueInsert) {
-  const uint32_t num_inserts_ = 100000;  // number of tuples/primary keys for each worker to attempt to insert
+  const uint32_t num_inserts = 100000;  // number of tuples/primary keys for each worker to attempt to insert
   auto workload = [&](uint32_t worker_id) {
     //    auto *const insert_buffer =
     //        common::AllocationUtil::AllocateAligned(unique_index_->GetProjectedRowInitializer().ProjectedRowSize());
@@ -143,7 +143,7 @@ TEST_F(BwTreeIndexTests, UniqueInsert) {
       for (uint32_t i = 0; i < num_inserts_; i++) {
         auto *const insert_txn = txn_manager_->BeginTransaction();
         auto *const insert_redo =
-            insert_txn->StageWrite(CatalogTestUtil::test_db_oid, CatalogTestUtil::test_table_oid, tuple_initializer_);
+            insert_txn->StageWrite(CatalogTestUtil::TEST_DB_OID, CatalogTestUtil::TEST_TABLE_OID, tuple_initializer_);
         auto *const insert_tuple = insert_redo->Delta();
         *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = i;
         const auto tuple_slot = sql_table_->Insert(insert_txn, insert_redo);
@@ -160,7 +160,7 @@ TEST_F(BwTreeIndexTests, UniqueInsert) {
       for (uint32_t i = num_inserts_ - 1; i < num_inserts_; i--) {
         auto *const insert_txn = txn_manager_->BeginTransaction();
         auto *const insert_redo =
-            insert_txn->StageWrite(CatalogTestUtil::test_db_oid, CatalogTestUtil::test_table_oid, tuple_initializer_);
+            insert_txn->StageWrite(CatalogTestUtil::TEST_DB_OID, CatalogTestUtil::TEST_TABLE_OID, tuple_initializer_);
         auto *const insert_tuple = insert_redo->Delta();
         *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = i;
         const auto tuple_slot = sql_table_->Insert(insert_txn, insert_redo);
@@ -192,9 +192,9 @@ TEST_F(BwTreeIndexTests, UniqueInsert) {
 
   // scan[0,num_inserts_) should hit num_inserts_ keys (no duplicates)
   *reinterpret_cast<int32_t *>(low_key_pr->AccessForceNotNull(0)) = 0;
-  *reinterpret_cast<int32_t *>(high_key_pr->AccessForceNotNull(0)) = num_inserts_ - 1;
+  *reinterpret_cast<int32_t *>(high_key_pr->AccessForceNotNull(0)) = num_inserts - 1;
   unique_index_->ScanAscending(*scan_txn, *low_key_pr, *high_key_pr, &results);
-  EXPECT_EQ(results.size(), num_inserts_);
+  EXPECT_EQ(results.size(), num_inserts);
 
   txn_manager_->Commit(scan_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 }
@@ -206,7 +206,7 @@ TEST_F(BwTreeIndexTests, UniqueInsert) {
  */
 // NOLINTNEXTLINE
 TEST_F(BwTreeIndexTests, DefaultInsert) {
-  const uint32_t num_inserts_ = 100000;  // number of tuples/primary keys for each worker to attempt to insert
+  const uint32_t num_inserts = 100000;  // number of tuples/primary keys for each worker to attempt to insert
   auto workload = [&](uint32_t worker_id) {
     auto *const key_buffer =
         common::AllocationUtil::AllocateAligned(default_index_->GetProjectedRowInitializer().ProjectedRowSize());
@@ -217,7 +217,7 @@ TEST_F(BwTreeIndexTests, DefaultInsert) {
       for (uint32_t i = 0; i < num_inserts_; i++) {
         auto *const insert_txn = txn_manager_->BeginTransaction();
         auto *const insert_redo =
-            insert_txn->StageWrite(CatalogTestUtil::test_db_oid, CatalogTestUtil::test_table_oid, tuple_initializer_);
+            insert_txn->StageWrite(CatalogTestUtil::TEST_DB_OID, CatalogTestUtil::TEST_TABLE_OID, tuple_initializer_);
         auto *const insert_tuple = insert_redo->Delta();
         *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = i;
         const auto tuple_slot = sql_table_->Insert(insert_txn, insert_redo);
@@ -230,7 +230,7 @@ TEST_F(BwTreeIndexTests, DefaultInsert) {
       for (uint32_t i = num_inserts_ - 1; i < num_inserts_; i--) {
         auto *const insert_txn = txn_manager_->BeginTransaction();
         auto *const insert_redo =
-            insert_txn->StageWrite(CatalogTestUtil::test_db_oid, CatalogTestUtil::test_table_oid, tuple_initializer_);
+            insert_txn->StageWrite(CatalogTestUtil::TEST_DB_OID, CatalogTestUtil::TEST_TABLE_OID, tuple_initializer_);
         auto *const insert_tuple = insert_redo->Delta();
         *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = i;
         const auto tuple_slot = sql_table_->Insert(insert_txn, insert_redo);
@@ -260,9 +260,9 @@ TEST_F(BwTreeIndexTests, DefaultInsert) {
 
   // scan[0,num_inserts_) should hit num_inserts_ * num_threads_ keys
   *reinterpret_cast<int32_t *>(low_key_pr->AccessForceNotNull(0)) = 0;
-  *reinterpret_cast<int32_t *>(high_key_pr->AccessForceNotNull(0)) = num_inserts_ - 1;
+  *reinterpret_cast<int32_t *>(high_key_pr->AccessForceNotNull(0)) = num_inserts - 1;
   default_index_->ScanAscending(*scan_txn, *low_key_pr, *high_key_pr, &results);
-  EXPECT_EQ(results.size(), num_inserts_ * num_threads_);
+  EXPECT_EQ(results.size(), num_inserts * num_threads_);
 
   txn_manager_->Commit(scan_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 }
@@ -278,7 +278,7 @@ TEST_F(BwTreeIndexTests, ScanAscending) {
   auto *const insert_txn = txn_manager_->BeginTransaction();
   for (int32_t i = 0; i <= 20; i += 2) {
     auto *const insert_redo =
-        insert_txn->StageWrite(CatalogTestUtil::test_db_oid, CatalogTestUtil::test_table_oid, tuple_initializer_);
+        insert_txn->StageWrite(CatalogTestUtil::TEST_DB_OID, CatalogTestUtil::TEST_TABLE_OID, tuple_initializer_);
     auto *const insert_tuple = insert_redo->Delta();
     *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = i;
     const auto tuple_slot = sql_table_->Insert(insert_txn, insert_redo);
@@ -352,7 +352,7 @@ TEST_F(BwTreeIndexTests, ScanDescending) {
   auto *const insert_txn = txn_manager_->BeginTransaction();
   for (int32_t i = 0; i <= 20; i += 2) {
     auto *const insert_redo =
-        insert_txn->StageWrite(CatalogTestUtil::test_db_oid, CatalogTestUtil::test_table_oid, tuple_initializer_);
+        insert_txn->StageWrite(CatalogTestUtil::TEST_DB_OID, CatalogTestUtil::TEST_TABLE_OID, tuple_initializer_);
     auto *const insert_tuple = insert_redo->Delta();
     *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = i;
     const auto tuple_slot = sql_table_->Insert(insert_txn, insert_redo);
@@ -425,7 +425,7 @@ TEST_F(BwTreeIndexTests, ScanLimitAscending) {
   auto *const insert_txn = txn_manager_->BeginTransaction();
   for (int32_t i = 0; i <= 20; i += 2) {
     auto *const insert_redo =
-        insert_txn->StageWrite(CatalogTestUtil::test_db_oid, CatalogTestUtil::test_table_oid, tuple_initializer_);
+        insert_txn->StageWrite(CatalogTestUtil::TEST_DB_OID, CatalogTestUtil::TEST_TABLE_OID, tuple_initializer_);
     auto *const insert_tuple = insert_redo->Delta();
     *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = i;
     const auto tuple_slot = sql_table_->Insert(insert_txn, insert_redo);
@@ -494,7 +494,7 @@ TEST_F(BwTreeIndexTests, ScanLimitDescending) {
   auto *const insert_txn = txn_manager_->BeginTransaction();
   for (int32_t i = 0; i <= 20; i += 2) {
     auto *const insert_redo =
-        insert_txn->StageWrite(CatalogTestUtil::test_db_oid, CatalogTestUtil::test_table_oid, tuple_initializer_);
+        insert_txn->StageWrite(CatalogTestUtil::TEST_DB_OID, CatalogTestUtil::TEST_TABLE_OID, tuple_initializer_);
     auto *const insert_tuple = insert_redo->Delta();
     *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = i;
     const auto tuple_slot = sql_table_->Insert(insert_txn, insert_redo);
@@ -559,7 +559,7 @@ TEST_F(BwTreeIndexTests, UniqueKey1) {
 
   // txn 0 inserts into table
   auto *insert_redo =
-      txn0->StageWrite(CatalogTestUtil::test_db_oid, CatalogTestUtil::test_table_oid, tuple_initializer_);
+      txn0->StageWrite(CatalogTestUtil::TEST_DB_OID, CatalogTestUtil::TEST_TABLE_OID, tuple_initializer_);
   auto *insert_tuple = insert_redo->Delta();
   *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = 15721;
   const auto tuple_slot = sql_table_->Insert(txn0, insert_redo);
@@ -588,7 +588,7 @@ TEST_F(BwTreeIndexTests, UniqueKey1) {
   results.clear();
 
   // txn 1 inserts into table
-  insert_redo = txn1->StageWrite(CatalogTestUtil::test_db_oid, CatalogTestUtil::test_table_oid, tuple_initializer_);
+  insert_redo = txn1->StageWrite(CatalogTestUtil::TEST_DB_OID, CatalogTestUtil::TEST_TABLE_OID, tuple_initializer_);
   insert_tuple = insert_redo->Delta();
   *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = 15721;
   const auto new_tuple_slot = sql_table_->Insert(txn1, insert_redo);
@@ -620,7 +620,7 @@ TEST_F(BwTreeIndexTests, UniqueKey2) {
 
   // txn 0 inserts into table
   auto *insert_redo =
-      txn0->StageWrite(CatalogTestUtil::test_db_oid, CatalogTestUtil::test_table_oid, tuple_initializer_);
+      txn0->StageWrite(CatalogTestUtil::TEST_DB_OID, CatalogTestUtil::TEST_TABLE_OID, tuple_initializer_);
   auto *insert_tuple = insert_redo->Delta();
   *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = 15721;
   const auto tuple_slot = sql_table_->Insert(txn0, insert_redo);
@@ -646,7 +646,7 @@ TEST_F(BwTreeIndexTests, UniqueKey2) {
   auto *txn1 = txn_manager_->BeginTransaction();
 
   // txn 1 inserts into table
-  insert_redo = txn1->StageWrite(CatalogTestUtil::test_db_oid, CatalogTestUtil::test_table_oid, tuple_initializer_);
+  insert_redo = txn1->StageWrite(CatalogTestUtil::TEST_DB_OID, CatalogTestUtil::TEST_TABLE_OID, tuple_initializer_);
   insert_tuple = insert_redo->Delta();
   *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = 15721;
   const auto new_tuple_slot = sql_table_->Insert(txn1, insert_redo);
@@ -676,7 +676,7 @@ TEST_F(BwTreeIndexTests, UniqueKey3) {
 
   // txn 0 inserts into table
   auto *insert_redo =
-      txn0->StageWrite(CatalogTestUtil::test_db_oid, CatalogTestUtil::test_table_oid, tuple_initializer_);
+      txn0->StageWrite(CatalogTestUtil::TEST_DB_OID, CatalogTestUtil::TEST_TABLE_OID, tuple_initializer_);
   auto *insert_tuple = insert_redo->Delta();
   *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = 15721;
   const auto tuple_slot = sql_table_->Insert(txn0, insert_redo);
@@ -698,7 +698,7 @@ TEST_F(BwTreeIndexTests, UniqueKey3) {
   results.clear();
 
   // txn 0 inserts into table
-  insert_redo = txn0->StageWrite(CatalogTestUtil::test_db_oid, CatalogTestUtil::test_table_oid, tuple_initializer_);
+  insert_redo = txn0->StageWrite(CatalogTestUtil::TEST_DB_OID, CatalogTestUtil::TEST_TABLE_OID, tuple_initializer_);
   insert_tuple = insert_redo->Delta();
   *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = 15721;
   const auto new_tuple_slot = sql_table_->Insert(txn0, insert_redo);
@@ -727,7 +727,7 @@ TEST_F(BwTreeIndexTests, UniqueKey4) {
 
   // txn 0 inserts into table
   auto *insert_redo =
-      txn0->StageWrite(CatalogTestUtil::test_db_oid, CatalogTestUtil::test_table_oid, tuple_initializer_);
+      txn0->StageWrite(CatalogTestUtil::TEST_DB_OID, CatalogTestUtil::TEST_TABLE_OID, tuple_initializer_);
   auto *insert_tuple = insert_redo->Delta();
   *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = 15721;
   const auto tuple_slot = sql_table_->Insert(txn0, insert_redo);
@@ -749,7 +749,7 @@ TEST_F(BwTreeIndexTests, UniqueKey4) {
   results.clear();
 
   // txn 0 deletes from table
-  txn0->StageDelete(CatalogTestUtil::test_db_oid, CatalogTestUtil::test_table_oid, tuple_slot);
+  txn0->StageDelete(CatalogTestUtil::TEST_DB_OID, CatalogTestUtil::TEST_TABLE_OID, tuple_slot);
   EXPECT_TRUE(sql_table_->Delete(txn0, tuple_slot));
 
   // txn 0 deletes from index
@@ -760,7 +760,7 @@ TEST_F(BwTreeIndexTests, UniqueKey4) {
   auto *txn1 = txn_manager_->BeginTransaction();
 
   // txn 1 inserts into table
-  insert_redo = txn1->StageWrite(CatalogTestUtil::test_db_oid, CatalogTestUtil::test_table_oid, tuple_initializer_);
+  insert_redo = txn1->StageWrite(CatalogTestUtil::TEST_DB_OID, CatalogTestUtil::TEST_TABLE_OID, tuple_initializer_);
   insert_tuple = insert_redo->Delta();
   *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = 15721;
   const auto new_tuple_slot = sql_table_->Insert(txn1, insert_redo);
@@ -809,7 +809,7 @@ TEST_F(BwTreeIndexTests, CommitInsert1) {
 
   // txn 0 inserts into table
   auto *insert_redo =
-      txn0->StageWrite(CatalogTestUtil::test_db_oid, CatalogTestUtil::test_table_oid, tuple_initializer_);
+      txn0->StageWrite(CatalogTestUtil::TEST_DB_OID, CatalogTestUtil::TEST_TABLE_OID, tuple_initializer_);
   auto *insert_tuple = insert_redo->Delta();
   *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = 15721;
   const auto tuple_slot = sql_table_->Insert(txn0, insert_redo);
@@ -883,7 +883,7 @@ TEST_F(BwTreeIndexTests, CommitInsert2) {
 
   // txn 1 inserts into table
   auto *insert_redo =
-      txn1->StageWrite(CatalogTestUtil::test_db_oid, CatalogTestUtil::test_table_oid, tuple_initializer_);
+      txn1->StageWrite(CatalogTestUtil::TEST_DB_OID, CatalogTestUtil::TEST_TABLE_OID, tuple_initializer_);
   auto *insert_tuple = insert_redo->Delta();
   *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = 15721;
   const auto tuple_slot = sql_table_->Insert(txn1, insert_redo);
@@ -954,7 +954,7 @@ TEST_F(BwTreeIndexTests, AbortInsert1) {
 
   // txn 0 inserts into table
   auto *insert_redo =
-      txn0->StageWrite(CatalogTestUtil::test_db_oid, CatalogTestUtil::test_table_oid, tuple_initializer_);
+      txn0->StageWrite(CatalogTestUtil::TEST_DB_OID, CatalogTestUtil::TEST_TABLE_OID, tuple_initializer_);
   auto *insert_tuple = insert_redo->Delta();
   *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = 15721;
   const auto tuple_slot = sql_table_->Insert(txn0, insert_redo);
@@ -1027,7 +1027,7 @@ TEST_F(BwTreeIndexTests, AbortInsert2) {
 
   // txn 1 inserts into table
   auto *insert_redo =
-      txn1->StageWrite(CatalogTestUtil::test_db_oid, CatalogTestUtil::test_table_oid, tuple_initializer_);
+      txn1->StageWrite(CatalogTestUtil::TEST_DB_OID, CatalogTestUtil::TEST_TABLE_OID, tuple_initializer_);
   auto *insert_tuple = insert_redo->Delta();
   *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = 15721;
   const auto tuple_slot = sql_table_->Insert(txn1, insert_redo);
@@ -1097,7 +1097,7 @@ TEST_F(BwTreeIndexTests, CommitUpdate1) {
 
   // insert_txn inserts into table
   auto *insert_redo =
-      insert_txn->StageWrite(CatalogTestUtil::test_db_oid, CatalogTestUtil::test_table_oid, tuple_initializer_);
+      insert_txn->StageWrite(CatalogTestUtil::TEST_DB_OID, CatalogTestUtil::TEST_TABLE_OID, tuple_initializer_);
   auto *insert_tuple = insert_redo->Delta();
   *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = 15721;
   const auto tuple_slot = sql_table_->Insert(insert_txn, insert_redo);
@@ -1123,11 +1123,11 @@ TEST_F(BwTreeIndexTests, CommitUpdate1) {
   results.clear();
 
   // txn 0 updates in the table, which is really a delete and insert since it's an indexed attribute
-  txn0->StageDelete(CatalogTestUtil::test_db_oid, CatalogTestUtil::test_table_oid, results[0]);
+  txn0->StageDelete(CatalogTestUtil::TEST_DB_OID, CatalogTestUtil::TEST_TABLE_OID, results[0]);
   EXPECT_TRUE(sql_table_->Delete(txn0, results[0]));
   default_index_->Delete(txn0, *insert_key, results[0]);
 
-  insert_redo = txn0->StageWrite(CatalogTestUtil::test_db_oid, CatalogTestUtil::test_table_oid, tuple_initializer_);
+  insert_redo = txn0->StageWrite(CatalogTestUtil::TEST_DB_OID, CatalogTestUtil::TEST_TABLE_OID, tuple_initializer_);
   insert_tuple = insert_redo->Delta();
   *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = 15445;
   const auto new_tuple_slot = sql_table_->Insert(txn0, insert_redo);
@@ -1224,7 +1224,7 @@ TEST_F(BwTreeIndexTests, CommitUpdate2) {
 
   // insert_txn inserts into table
   auto *insert_redo =
-      insert_txn->StageWrite(CatalogTestUtil::test_db_oid, CatalogTestUtil::test_table_oid, tuple_initializer_);
+      insert_txn->StageWrite(CatalogTestUtil::TEST_DB_OID, CatalogTestUtil::TEST_TABLE_OID, tuple_initializer_);
   auto *insert_tuple = insert_redo->Delta();
   *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = 15721;
   const auto tuple_slot = sql_table_->Insert(insert_txn, insert_redo);
@@ -1250,11 +1250,11 @@ TEST_F(BwTreeIndexTests, CommitUpdate2) {
   EXPECT_EQ(tuple_slot, results[0]);
 
   // txn 1 updates in the table, which is really a delete and insert since it's an indexed attribute
-  txn1->StageDelete(CatalogTestUtil::test_db_oid, CatalogTestUtil::test_table_oid, results[0]);
+  txn1->StageDelete(CatalogTestUtil::TEST_DB_OID, CatalogTestUtil::TEST_TABLE_OID, results[0]);
   EXPECT_TRUE(sql_table_->Delete(txn1, results[0]));
   default_index_->Delete(txn1, *insert_key, results[0]);
 
-  insert_redo = txn1->StageWrite(CatalogTestUtil::test_db_oid, CatalogTestUtil::test_table_oid, tuple_initializer_);
+  insert_redo = txn1->StageWrite(CatalogTestUtil::TEST_DB_OID, CatalogTestUtil::TEST_TABLE_OID, tuple_initializer_);
   insert_tuple = insert_redo->Delta();
   *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = 15445;
   const auto new_tuple_slot = sql_table_->Insert(txn1, insert_redo);
@@ -1351,7 +1351,7 @@ TEST_F(BwTreeIndexTests, AbortUpdate1) {
 
   // insert_txn inserts into table
   auto *insert_redo =
-      insert_txn->StageWrite(CatalogTestUtil::test_db_oid, CatalogTestUtil::test_table_oid, tuple_initializer_);
+      insert_txn->StageWrite(CatalogTestUtil::TEST_DB_OID, CatalogTestUtil::TEST_TABLE_OID, tuple_initializer_);
   auto *insert_tuple = insert_redo->Delta();
   *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = 15721;
   const auto tuple_slot = sql_table_->Insert(insert_txn, insert_redo);
@@ -1377,11 +1377,11 @@ TEST_F(BwTreeIndexTests, AbortUpdate1) {
   results.clear();
 
   // txn 0 updates in the table, which is really a delete and insert since it's an indexed attribute
-  txn0->StageDelete(CatalogTestUtil::test_db_oid, CatalogTestUtil::test_table_oid, results[0]);
+  txn0->StageDelete(CatalogTestUtil::TEST_DB_OID, CatalogTestUtil::TEST_TABLE_OID, results[0]);
   EXPECT_TRUE(sql_table_->Delete(txn0, results[0]));
   default_index_->Delete(txn0, *insert_key, results[0]);
 
-  insert_redo = txn0->StageWrite(CatalogTestUtil::test_db_oid, CatalogTestUtil::test_table_oid, tuple_initializer_);
+  insert_redo = txn0->StageWrite(CatalogTestUtil::TEST_DB_OID, CatalogTestUtil::TEST_TABLE_OID, tuple_initializer_);
   insert_tuple = insert_redo->Delta();
   *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = 15445;
   const auto new_tuple_slot = sql_table_->Insert(txn0, insert_redo);
@@ -1478,7 +1478,7 @@ TEST_F(BwTreeIndexTests, AbortUpdate2) {
 
   // insert_txn inserts into table
   auto *insert_redo =
-      insert_txn->StageWrite(CatalogTestUtil::test_db_oid, CatalogTestUtil::test_table_oid, tuple_initializer_);
+      insert_txn->StageWrite(CatalogTestUtil::TEST_DB_OID, CatalogTestUtil::TEST_TABLE_OID, tuple_initializer_);
   auto *insert_tuple = insert_redo->Delta();
   *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = 15721;
   const auto tuple_slot = sql_table_->Insert(insert_txn, insert_redo);
@@ -1504,11 +1504,11 @@ TEST_F(BwTreeIndexTests, AbortUpdate2) {
   EXPECT_EQ(tuple_slot, results[0]);
 
   // txn 1 updates in the table, which is really a delete and insert since it's an indexed attribute
-  txn1->StageDelete(CatalogTestUtil::test_db_oid, CatalogTestUtil::test_table_oid, results[0]);
+  txn1->StageDelete(CatalogTestUtil::TEST_DB_OID, CatalogTestUtil::TEST_TABLE_OID, results[0]);
   EXPECT_TRUE(sql_table_->Delete(txn1, results[0]));
   default_index_->Delete(txn1, *insert_key, results[0]);
 
-  insert_redo = txn1->StageWrite(CatalogTestUtil::test_db_oid, CatalogTestUtil::test_table_oid, tuple_initializer_);
+  insert_redo = txn1->StageWrite(CatalogTestUtil::TEST_DB_OID, CatalogTestUtil::TEST_TABLE_OID, tuple_initializer_);
   insert_tuple = insert_redo->Delta();
   *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = 15445;
   const auto new_tuple_slot = sql_table_->Insert(txn1, insert_redo);
@@ -1605,7 +1605,7 @@ TEST_F(BwTreeIndexTests, CommitDelete1) {
 
   // insert_txn inserts into table
   auto *insert_redo =
-      insert_txn->StageWrite(CatalogTestUtil::test_db_oid, CatalogTestUtil::test_table_oid, tuple_initializer_);
+      insert_txn->StageWrite(CatalogTestUtil::TEST_DB_OID, CatalogTestUtil::TEST_TABLE_OID, tuple_initializer_);
   auto *insert_tuple = insert_redo->Delta();
   *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = 15721;
   const auto tuple_slot = sql_table_->Insert(insert_txn, insert_redo);
@@ -1631,7 +1631,7 @@ TEST_F(BwTreeIndexTests, CommitDelete1) {
   results.clear();
 
   // txn 0 deletes in the table and index
-  txn0->StageDelete(CatalogTestUtil::test_db_oid, CatalogTestUtil::test_table_oid, results[0]);
+  txn0->StageDelete(CatalogTestUtil::TEST_DB_OID, CatalogTestUtil::TEST_TABLE_OID, results[0]);
   EXPECT_TRUE(sql_table_->Delete(txn0, results[0]));
   default_index_->Delete(txn0, *insert_key, results[0]);
 
@@ -1697,7 +1697,7 @@ TEST_F(BwTreeIndexTests, CommitDelete2) {
 
   // insert_txn inserts into table
   auto *insert_redo =
-      insert_txn->StageWrite(CatalogTestUtil::test_db_oid, CatalogTestUtil::test_table_oid, tuple_initializer_);
+      insert_txn->StageWrite(CatalogTestUtil::TEST_DB_OID, CatalogTestUtil::TEST_TABLE_OID, tuple_initializer_);
   auto *insert_tuple = insert_redo->Delta();
   *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = 15721;
   const auto tuple_slot = sql_table_->Insert(insert_txn, insert_redo);
@@ -1723,7 +1723,7 @@ TEST_F(BwTreeIndexTests, CommitDelete2) {
   EXPECT_EQ(tuple_slot, results[0]);
 
   // txn 1 deletes in the table and index
-  txn1->StageDelete(CatalogTestUtil::test_db_oid, CatalogTestUtil::test_table_oid, results[0]);
+  txn1->StageDelete(CatalogTestUtil::TEST_DB_OID, CatalogTestUtil::TEST_TABLE_OID, results[0]);
   EXPECT_TRUE(sql_table_->Delete(txn1, results[0]));
   default_index_->Delete(txn1, *insert_key, results[0]);
 
@@ -1789,7 +1789,7 @@ TEST_F(BwTreeIndexTests, AbortDelete1) {
 
   // insert_txn inserts into table
   auto *insert_redo =
-      insert_txn->StageWrite(CatalogTestUtil::test_db_oid, CatalogTestUtil::test_table_oid, tuple_initializer_);
+      insert_txn->StageWrite(CatalogTestUtil::TEST_DB_OID, CatalogTestUtil::TEST_TABLE_OID, tuple_initializer_);
   auto *insert_tuple = insert_redo->Delta();
   *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = 15721;
   const auto tuple_slot = sql_table_->Insert(insert_txn, insert_redo);
@@ -1815,7 +1815,7 @@ TEST_F(BwTreeIndexTests, AbortDelete1) {
   results.clear();
 
   // txn 0 deletes in the table and index
-  txn0->StageDelete(CatalogTestUtil::test_db_oid, CatalogTestUtil::test_table_oid, results[0]);
+  txn0->StageDelete(CatalogTestUtil::TEST_DB_OID, CatalogTestUtil::TEST_TABLE_OID, results[0]);
   EXPECT_TRUE(sql_table_->Delete(txn0, results[0]));
   default_index_->Delete(txn0, *insert_key, results[0]);
 
@@ -1882,7 +1882,7 @@ TEST_F(BwTreeIndexTests, AbortDelete2) {
 
   // insert_txn inserts into table
   auto *insert_redo =
-      insert_txn->StageWrite(CatalogTestUtil::test_db_oid, CatalogTestUtil::test_table_oid, tuple_initializer_);
+      insert_txn->StageWrite(CatalogTestUtil::TEST_DB_OID, CatalogTestUtil::TEST_TABLE_OID, tuple_initializer_);
   auto *insert_tuple = insert_redo->Delta();
   *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = 15721;
   const auto tuple_slot = sql_table_->Insert(insert_txn, insert_redo);
@@ -1908,7 +1908,7 @@ TEST_F(BwTreeIndexTests, AbortDelete2) {
   EXPECT_EQ(tuple_slot, results[0]);
 
   // txn 1 deletes in the table and index
-  txn1->StageDelete(CatalogTestUtil::test_db_oid, CatalogTestUtil::test_table_oid, results[0]);
+  txn1->StageDelete(CatalogTestUtil::TEST_DB_OID, CatalogTestUtil::TEST_TABLE_OID, results[0]);
   EXPECT_TRUE(sql_table_->Delete(txn1, results[0]));
   default_index_->Delete(txn1, *insert_key, results[0]);
 

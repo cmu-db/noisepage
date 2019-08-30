@@ -62,7 +62,7 @@ DBMain::DBMain(std::unordered_map<settings::Param, settings::ParamInfo> &&param_
 }
 
 void DBMain::Run() {
-  running = true;
+  running_ = true;
   server_->SetPort(static_cast<int16_t>(
       type::TransientValuePeeker::PeekInteger(param_map_.find(settings::Param::port)->second.value_)));
   server_->RunServer();
@@ -77,7 +77,7 @@ void DBMain::Run() {
 }
 
 void DBMain::ForceShutdown() {
-  if (running) {
+  if (running_) {
     server_->StopServer();
   }
   CleanUp();

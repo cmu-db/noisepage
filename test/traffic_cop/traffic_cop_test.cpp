@@ -28,7 +28,7 @@ class TrafficCopTests : public TerrierTest {
   network::PostgresCommandFactory command_factory_;
   network::PostgresProtocolInterpreter::Provider interpreter_provider_{common::ManagedPointer(&command_factory_)};
   std::unique_ptr<network::ConnectionHandleFactory> handle_factory_;
-  common::DedicatedThreadRegistry thread_registry;
+  common::DedicatedThreadRegistry thread_registry_;
 
   void SetUp() override {
     TerrierTest::SetUp();
@@ -42,7 +42,7 @@ class TrafficCopTests : public TerrierTest {
       server_ = std::make_unique<network::TerrierServer>(
           common::ManagedPointer<network::ProtocolInterpreter::Provider>(&interpreter_provider_),
           common::ManagedPointer(handle_factory_.get()),
-          common::ManagedPointer<common::DedicatedThreadRegistry>(&thread_registry));
+          common::ManagedPointer<common::DedicatedThreadRegistry>(&thread_registry_));
       server_->SetPort(port_);
       server_->RunServer();
     } catch (NetworkProcessException &exception) {
@@ -59,7 +59,7 @@ class TrafficCopTests : public TerrierTest {
   }
 
   // The port used to connect a Postgres backend. Useful for debugging.
-  const int POSTGRES_PORT = 5432;
+  const int postgres_port_ = 5432;
 
   /**
    * Read packet from the server (without parsing) until receiving ReadyForQuery or the connection is closed.
@@ -146,8 +146,8 @@ TEST_F(TrafficCopTests, RoundTripTest) {
     txn1.exec("CREATE TABLE TableA (id INT PRIMARY KEY, data TEXT);");
     txn1.exec("INSERT INTO TableA VALUES (1, 'abc');");
 
-    pqxx::result R = txn1.exec("SELECT * FROM TableA");
-    for (const pqxx::row &row : R) {
+    pqxx::result r = txn1.exec("SELECT * FROM TableA");
+    for (const pqxx::row &row : r) {
       std::string row_str;
       for (const pqxx::field &col : row) {
         row_str += col.c_str();
@@ -157,7 +157,7 @@ TEST_F(TrafficCopTests, RoundTripTest) {
     }
     txn1.commit();
 
-    EXPECT_EQ(R.size(), 1);
+    EXPECT_EQ(r.size(), 1);
   } catch (const std::exception &e) {
     TEST_LOG_ERROR("Exception occurred: {0}", e.what());
     EXPECT_TRUE(false);

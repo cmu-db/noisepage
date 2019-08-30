@@ -30,9 +30,9 @@ class MVCCDataTableTestObject {
 
   template <class Random>
   storage::ProjectedRow *GenerateRandomTuple(Random *generator) {
-    auto *buffer = common::AllocationUtil::AllocateAligned(redo_initializer.ProjectedRowSize());
+    auto *buffer = common::AllocationUtil::AllocateAligned(redo_initializer_.ProjectedRowSize());
     loose_pointers_.push_back(buffer);
-    storage::ProjectedRow *redo = redo_initializer.InitializeRow(buffer);
+    storage::ProjectedRow *redo = redo_initializer_.InitializeRow(buffer);
     StorageTestUtil::PopulateRandomRow(redo, layout_, null_bias_, generator);
     return redo;
   }
@@ -51,10 +51,10 @@ class MVCCDataTableTestObject {
 
   storage::ProjectedRow *GenerateVersionFromUpdate(const storage::ProjectedRow &delta,
                                                    const storage::ProjectedRow &previous) {
-    auto *buffer = common::AllocationUtil::AllocateAligned(redo_initializer.ProjectedRowSize());
+    auto *buffer = common::AllocationUtil::AllocateAligned(redo_initializer_.ProjectedRowSize());
     loose_pointers_.push_back(buffer);
     // Copy previous version
-    std::memcpy(buffer, &previous, redo_initializer.ProjectedRowSize());
+    std::memcpy(buffer, &previous, redo_initializer_.ProjectedRowSize());
     auto *version = reinterpret_cast<storage::ProjectedRow *>(buffer);
     std::unordered_map<uint16_t, uint16_t> col_to_projection_list_index;
     storage::StorageUtil::ApplyDelta(layout_, delta, version);
@@ -63,7 +63,7 @@ class MVCCDataTableTestObject {
 
   storage::ProjectedRow *SelectIntoBuffer(transaction::TransactionContext *const txn, const storage::TupleSlot slot) {
     // generate a redo ProjectedRow for Select
-    storage::ProjectedRow *select_row = redo_initializer.InitializeRow(select_buffer_);
+    storage::ProjectedRow *select_row = redo_initializer_.InitializeRow(select_buffer_);
     select_result_ = table_.Select(txn, slot, select_row);
     return select_row;
   }
@@ -75,9 +75,9 @@ class MVCCDataTableTestObject {
   const double null_bias_ = 0;
   std::vector<byte *> loose_pointers_;
   std::vector<transaction::TransactionContext *> loose_txns_;
-  storage::ProjectedRowInitializer redo_initializer =
+  storage::ProjectedRowInitializer redo_initializer_ =
       storage::ProjectedRowInitializer::Create(layout_, StorageTestUtil::ProjectionListAllColumns(layout_));
-  byte *select_buffer_ = common::AllocationUtil::AllocateAligned(redo_initializer.ProjectedRowSize());
+  byte *select_buffer_ = common::AllocationUtil::AllocateAligned(redo_initializer_.ProjectedRowSize());
   bool select_result_;
 };
 
