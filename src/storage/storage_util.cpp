@@ -144,14 +144,13 @@ std::vector<uint16_t> StorageUtil::ComputeBaseAttributeOffsets(const std::vector
 uint8_t StorageUtil::AttrSizeFromBoundaries(const std::vector<uint16_t> &boundaries, const uint16_t col_idx) {
   TERRIER_ASSERT(boundaries.size() == NUM_ATTR_BOUNDARIES,
                  "Boudaries vector size should equal to number of boundaries");
-  uint8_t max_size = 16;
   uint8_t shift;
   for (shift = 0; shift < NUM_ATTR_BOUNDARIES; shift++) {
     if (col_idx < boundaries[shift]) break;
   }
   TERRIER_ASSERT(shift <= NUM_ATTR_BOUNDARIES, "Out-of-bounds attribute size");
   TERRIER_ASSERT(shift >= 0, "Out-of-bounds attribute size");
-  return max_size >> shift;
+  return static_cast<uint8_t>(16U >> shift);
 }
 
 std::vector<uint16_t> StorageUtil::ComputeAttributeSizeBoundaries(
