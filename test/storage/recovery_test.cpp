@@ -78,6 +78,7 @@ class RecoveryTests : public TerrierTest {
     tested->SimulateOltp(100, 4);
 
     // Simulate the system "shutting down". Guarantee persist of log records
+    log_manager.ForceFlush();
     delete gc_thread;
     log_manager.PersistAndStop();
 
@@ -222,6 +223,8 @@ TEST_F(RecoveryTests, SingleTableTest) {
   RecoveryTests::RunTest(config);
 }
 
+
+
 // This test checks that we recover correctly in a high abort rate workload. We achieve the high abort rate by having
 // large transaction lengths (number of updates). Further, to ensure that more aborted transactions flush logs before
 // aborting, we have transactions make large updates (by having high number columns). This will cause RedoBuffers to
@@ -275,6 +278,7 @@ TEST_F(RecoveryTests, DropDatabaseTest) {
   txn_manager.Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
   // Simulate the system "shutting down". Guarantee persist of log records
+    log_manager.ForceFlush();
   delete gc_thread;
   log_manager.PersistAndStop();
 
@@ -333,6 +337,7 @@ TEST_F(RecoveryTests, DropTableTest) {
   txn_manager.Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
   // Simulate the system "shutting down". Guarantee persist of log records
+    log_manager.ForceFlush();
   delete gc_thread;
   log_manager.PersistAndStop();
 
@@ -398,6 +403,7 @@ TEST_F(RecoveryTests, DropIndexTest) {
   txn_manager.Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
   // Simulate the system "shutting down". Guarantee persist of log records
+    log_manager.ForceFlush();
   delete gc_thread;
   log_manager.PersistAndStop();
 
@@ -463,6 +469,7 @@ TEST_F(RecoveryTests, DropNamespaceTest) {
   txn_manager.Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
   // Simulate the system "shutting down". Guarantee persist of log records
+    log_manager.ForceFlush();
   delete gc_thread;
   log_manager.PersistAndStop();
 
@@ -529,6 +536,7 @@ TEST_F(RecoveryTests, DISABLED_DropDatabaseCascadeDeleteTest) {
   txn_manager.Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
   // Simulate the system "shutting down". Guarantee persist of log records
+    log_manager.ForceFlush();
   delete gc_thread;
   log_manager.PersistAndStop();
 
@@ -582,18 +590,23 @@ TEST_F(RecoveryTests, UnrecoverableTransactionsTest) {
   auto db_oid = CreateDatabase(txn, &catalog, database_name);
   txn_manager.Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
+  // We insert a sleep in here so that GC has the opportunity to clean up the previous txn. Otherwise, the next txn will prevent it from doing so since it never finishes, and by deleting the gc thread during "shutdown", the previous txn will never get cleaned up.
+  std::this_thread::sleep_for(5 * gc_period_);
+
+
   // Create a ton of databases to make a transaction flush redo record buffers. In theory we could do any change, but a
   // create database call will generate a ton of records. Importantly, we don't commit the txn.
   std::vector<catalog::db_oid_t> unrecoverable_databases;
   auto *unrecoverable_txn = txn_manager.BeginTransaction();
   int db_idx = 0;
-  while (!GetRedoBuffer(txn).HasFlushed()) {
+  while (!GetRedoBuffer(unrecoverable_txn).HasFlushed()) {
     unrecoverable_databases.push_back(CreateDatabase(unrecoverable_txn, &catalog, std::to_string(db_idx)));
     db_idx++;
   }
 
   // Simulate the system "crashing" (i.e. unrecoverable_txn has not been committed). We guarantee persist of log records
   // because the purpose of the test is how we handle these unrecoverable records showing up during recovery
+    log_manager.ForceFlush();
   delete gc_thread;
   log_manager.PersistAndStop();
 
@@ -620,15 +633,15 @@ TEST_F(RecoveryTests, UnrecoverableTransactionsTest) {
   EXPECT_EQ(db_oid, recovered_catalog.GetDatabaseOid(txn, database_name));
   EXPECT_TRUE(recovered_catalog.GetDatabaseCatalog(txn, db_oid));
 
-  // Assert that non of the unrecoverable databases exist:
+  // Assert that none of the unrecoverable databases exist:
   for (int i = 0; i < db_idx; i++) {
     EXPECT_EQ(catalog::INVALID_DATABASE_OID, recovered_catalog.GetDatabaseOid(txn, std::to_string(i)));
     EXPECT_FALSE(recovered_catalog.GetDatabaseCatalog(txn, unrecoverable_databases[i]));
   }
   recovery_txn_manager.Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
-  // Finally commit the unrecoverable_txn so GC can clean it up
-  txn_manager.Commit(unrecoverable_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+  // Finally abort the unrecoverable_txn so GC can clean it up
+  txn_manager.Abort(unrecoverable_txn);
   catalog.TearDown();
   delete gc_thread;
   log_manager.PersistAndStop();
@@ -689,6 +702,7 @@ TEST_F(RecoveryTests, DISABLED_ConcurrentCatalogDDLChangesTest) {
   txn_manager.Commit(txn1, transaction::TransactionUtil::EmptyCallback, nullptr);
 
   // Simulate the system "shutting down". Guarantee persist of log records
+    log_manager.ForceFlush();
   delete gc_thread;
   log_manager.PersistAndStop();
 
@@ -787,6 +801,7 @@ TEST_F(RecoveryTests, DISABLED_ConcurrentDDLChangesTest) {
   txn_manager.Commit(txn1, transaction::TransactionUtil::EmptyCallback, nullptr);
 
   // Simulate the system "shutting down". Guarantee persist of log records
+    log_manager.ForceFlush();
   delete gc_thread;
   log_manager.PersistAndStop();
 
@@ -853,6 +868,7 @@ TEST_F(RecoveryTests, DoubleRecoveryTest) {
   tested->SimulateOltp(100, 4);
 
   // Simulate the system "shutting down". Guarantee persist of log records
+  log_manager.ForceFlush();
   delete gc_thread;
   log_manager.PersistAndStop();
 
@@ -976,5 +992,4 @@ TEST_F(RecoveryTests, DoubleRecoveryTest) {
   log_manager.PersistAndStop();
   unlink(secondary_log_file.c_str());
 }
-
 }  // namespace terrier::storage

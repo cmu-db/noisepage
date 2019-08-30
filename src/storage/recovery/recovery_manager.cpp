@@ -102,8 +102,8 @@ void RecoveryManager::ProcessCommittedTransaction(terrier::transaction::timestam
 }
 
 void RecoveryManager::DeferRecordDeletes(terrier::transaction::timestamp_t txn_id, bool delete_varlens) {
-  // Capture the changes by value as we need to immediately clear txns from the buffered_changes_map_.
-  txn_manager_->DeferAction([buffered_changes = buffered_changes_map_[txn_id], delete_varlens]() {
+  // Capture the changes by value except for changes which we can move
+  txn_manager_->DeferAction([=, buffered_changes{std::move(buffered_changes_map_[txn_id])}]() {
     for (auto &buffered_pair : buffered_changes) {
       delete[] reinterpret_cast<byte *>(buffered_pair.first);
       if (delete_varlens) {
