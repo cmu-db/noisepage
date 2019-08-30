@@ -8,7 +8,7 @@
 namespace terrier {
 extern std::shared_ptr<spdlog::logger> test_logger;
 
-void init_test_logger();
+void InitTestLogger();
 }  // namespace terrier
 
 #define TEST_LOG_TRACE(...) ::terrier::test_logger->trace(__VA_ARGS__);

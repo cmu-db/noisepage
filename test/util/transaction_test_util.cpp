@@ -43,7 +43,7 @@ void RandomWorkloadTransaction::RandomUpdate(Random *generator) {
   updates_[updated] = update;
 
   // TODO(Tianyu): Hardly efficient, but will do for testing.
-  auto *record = txn_->StageWrite(CatalogTestUtil::test_db_oid, CatalogTestUtil::test_table_oid, initializer);
+  auto *record = txn_->StageWrite(CatalogTestUtil::TEST_DB_OID, CatalogTestUtil::TEST_TABLE_OID, initializer);
   record->SetTupleSlot(updated);
   std::memcpy(reinterpret_cast<void *>(record->Delta()), update, update->Size());
   auto result = test_object_->table_.Update(txn_, updated, *update);
@@ -166,7 +166,7 @@ void LargeTransactionTestObject::PopulateInitialTable(uint32_t num_tuples, Rando
     storage::TupleSlot inserted = table_.Insert(initial_txn_, *redo);
     // TODO(Tianyu): Hardly efficient, but will do for testing.
     auto *record =
-        initial_txn_->StageWrite(CatalogTestUtil::test_db_oid, CatalogTestUtil::test_table_oid, row_initializer_);
+        initial_txn_->StageWrite(CatalogTestUtil::TEST_DB_OID, CatalogTestUtil::TEST_TABLE_OID, row_initializer_);
     record->SetTupleSlot(inserted);
     std::memcpy(reinterpret_cast<void *>(record->Delta()), redo, redo->Size());
     last_checked_version_.emplace_back(inserted, redo);

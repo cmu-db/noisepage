@@ -35,7 +35,7 @@ class NetworkTests : public TerrierTest {
  protected:
   std::unique_ptr<TerrierServer> server_;
   std::unique_ptr<ConnectionHandleFactory> handle_factory_;
-  common::DedicatedThreadRegistry thread_registry;
+  common::DedicatedThreadRegistry thread_registry_;
   uint16_t port_ = common::Settings::SERVER_PORT;
   trafficcop::TrafficCop tcop_;
   FakeCommandFactory fake_command_factory_;
@@ -52,7 +52,7 @@ class NetworkTests : public TerrierTest {
       handle_factory_ = std::make_unique<ConnectionHandleFactory>(common::ManagedPointer(&tcop_));
       server_ = std::make_unique<TerrierServer>(
           common::ManagedPointer<ProtocolInterpreter::Provider>(&protocol_provider_),
-          common::ManagedPointer(handle_factory_.get()), common::ManagedPointer(&thread_registry));
+          common::ManagedPointer(handle_factory_.get()), common::ManagedPointer(&thread_registry_));
       server_->SetPort(port_);
       server_->RunServer();
     } catch (NetworkProcessException &exception) {
@@ -118,17 +118,17 @@ class NetworkTests : public TerrierTest {
 // NOLINTNEXTLINE
 TEST_F(NetworkTests, SimpleQueryTest) {
   try {
-    pqxx::connection C(
+    pqxx::connection c(
         fmt::format("host=127.0.0.1 port={0} user=postgres sslmode=disable application_name=psql", port_));
 
-    pqxx::work txn1(C);
+    pqxx::work txn1(c);
     txn1.exec("INSERT INTO employee VALUES (1, 'Han LI');");
     txn1.exec("INSERT INTO employee VALUES (2, 'Shaokun ZOU');");
     txn1.exec("INSERT INTO employee VALUES (3, 'Yilei CHU');");
 
-    pqxx::result R = txn1.exec("SELECT name FROM employee where id=1;");
+    pqxx::result r = txn1.exec("SELECT name FROM employee where id=1;");
     txn1.commit();
-    EXPECT_EQ(R.size(), 0);
+    EXPECT_EQ(r.size(), 0);
   } catch (const std::exception &e) {
     TEST_LOG_ERROR("[SimpleQueryTest] Exception occurred: {0}", e.what());
     EXPECT_TRUE(false);
@@ -169,9 +169,9 @@ TEST_F(NetworkTests, BadQueryTest) {
 // NOLINTNEXTLINE
 TEST_F(NetworkTests, NoSSLTest) {
   try {
-    pqxx::connection C(fmt::format("host=127.0.0.1 port={0} user=postgres application_name=psql", port_));
+    pqxx::connection c(fmt::format("host=127.0.0.1 port={0} user=postgres application_name=psql", port_));
 
-    pqxx::work txn1(C);
+    pqxx::work txn1(c);
     txn1.exec("INSERT INTO employee VALUES (1, 'Han LI');");
     txn1.exec("INSERT INTO employee VALUES (2, 'Shaokun ZOU');");
     txn1.exec("INSERT INTO employee VALUES (3, 'Yilei CHU');");
@@ -194,13 +194,13 @@ TEST_F(NetworkTests, PgNetworkCommandsTest) {
 // NOLINTNEXTLINE
 TEST_F(NetworkTests, LargePacketsTest) {
   try {
-    pqxx::connection C(
+    pqxx::connection c(
         fmt::format("host=127.0.0.1 port={0} user=postgres sslmode=disable application_name=psql", port_));
 
-    pqxx::work txn1(C);
-    std::string longQueryPacketString(255555, 'a');
-    longQueryPacketString[longQueryPacketString.size() - 1] = '\0';
-    txn1.exec(longQueryPacketString);
+    pqxx::work txn1(c);
+    std::string long_query_packet_string(255555, 'a');
+    long_query_packet_string[long_query_packet_string.size() - 1] = '\0';
+    txn1.exec(long_query_packet_string);
     txn1.commit();
   } catch (const std::exception &e) {
     TEST_LOG_ERROR("[LargePacketstest] Exception occurred: {0}", e.what());

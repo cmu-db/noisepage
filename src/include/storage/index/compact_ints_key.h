@@ -43,9 +43,9 @@ class CompactIntsKey {
   /**
    * key size in bytes, exposed for hasher and comparators
    */
-  static constexpr size_t key_size_byte = KeySize * sizeof(uint64_t);
+  static constexpr size_t KEY_SIZE_BYTE = KeySize * sizeof(uint64_t);
   static_assert(KeySize > 0 && KeySize <= INTSKEY_MAX_SLOTS);  // size must be no greater than 256-bits
-  static_assert(key_size_byte % sizeof(uintptr_t) == 0);       // size must be multiple of 8 bytes
+  static_assert(KEY_SIZE_BYTE % sizeof(uintptr_t) == 0);       // size must be multiple of 8 bytes
 
   /**
    * @return underlying byte array, exposed for hasher and comparators
@@ -67,16 +67,16 @@ class CompactIntsKey {
                    "attr_sizes and attr_offsets must be equal in size.");
     TERRIER_ASSERT(!attr_sizes.empty(), "attr_sizes has too few values.");
 
-    std::memset(key_data_, 0, key_size_byte);
+    std::memset(key_data_, 0, KEY_SIZE_BYTE);
 
     for (uint8_t i = 0; i < from.NumColumns(); i++) {
-      TERRIER_ASSERT(compact_ints_offsets[i] + attr_sizes[i] <= key_size_byte, "out of bounds");
+      TERRIER_ASSERT(compact_ints_offsets[i] + attr_sizes[i] <= KEY_SIZE_BYTE, "out of bounds");
       CopyAttrFromProjection(from, static_cast<uint16_t>(from.ColumnIds()[i]), attr_sizes[i], compact_ints_offsets[i]);
     }
   }
 
  private:
-  byte key_data_[key_size_byte];
+  byte key_data_[KEY_SIZE_BYTE];
 
   void CopyAttrFromProjection(const storage::ProjectedRow &from, const uint16_t projection_list_offset,
                               const uint8_t attr_size, const uint8_t compact_ints_offset) {
@@ -238,7 +238,7 @@ class CompactIntsKey {
     // so we must use automatic type inference
     const auto big_endian = ToBigEndian(data);
 
-    TERRIER_ASSERT(offset + sizeof(IntType) <= key_size_byte, "Out of bounds access on key_data_.");
+    TERRIER_ASSERT(offset + sizeof(IntType) <= KEY_SIZE_BYTE, "Out of bounds access on key_data_.");
 
     // This will almost always be optimized into single move
     std::memcpy(key_data_ + offset, &big_endian, sizeof(IntType));
@@ -287,7 +287,7 @@ struct hash<terrier::storage::index::CompactIntsKey<KeySize>> {
    */
   size_t operator()(const terrier::storage::index::CompactIntsKey<KeySize> &key) const {
     const auto *const ptr = key.KeyData();
-    return terrier::common::HashUtil::HashBytes(ptr, terrier::storage::index::CompactIntsKey<KeySize>::key_size_byte);
+    return terrier::common::HashUtil::HashBytes(ptr, terrier::storage::index::CompactIntsKey<KeySize>::KEY_SIZE_BYTE);
   }
 };
 
@@ -305,7 +305,7 @@ struct equal_to<terrier::storage::index::CompactIntsKey<KeySize>> {
    */
   bool operator()(const terrier::storage::index::CompactIntsKey<KeySize> &lhs,
                   const terrier::storage::index::CompactIntsKey<KeySize> &rhs) const {
-    return std::memcmp(lhs.KeyData(), rhs.KeyData(), terrier::storage::index::CompactIntsKey<KeySize>::key_size_byte) ==
+    return std::memcmp(lhs.KeyData(), rhs.KeyData(), terrier::storage::index::CompactIntsKey<KeySize>::KEY_SIZE_BYTE) ==
            0;
   }
 };
@@ -324,7 +324,7 @@ struct less<terrier::storage::index::CompactIntsKey<KeySize>> {
    */
   bool operator()(const terrier::storage::index::CompactIntsKey<KeySize> &lhs,
                   const terrier::storage::index::CompactIntsKey<KeySize> &rhs) const {
-    return std::memcmp(lhs.KeyData(), rhs.KeyData(), terrier::storage::index::CompactIntsKey<KeySize>::key_size_byte) <
+    return std::memcmp(lhs.KeyData(), rhs.KeyData(), terrier::storage::index::CompactIntsKey<KeySize>::KEY_SIZE_BYTE) <
            0;
   }
 };
