@@ -571,8 +571,9 @@ TEST_F(RecoveryTests, DISABLED_DropDatabaseCascadeDeleteTest) {
 
 // Tests that we correctly handle changes for transactions that never flushed a commit record. This is likely to happen
 // during crash situations.
+// DISABLED DUE TO ISSUE #526
 // NOLINTNEXTLINE
-TEST_F(RecoveryTests, UnrecoverableTransactionsTest) {
+TEST_F(RecoveryTests, DISABLED_UnrecoverableTransactionsTest) {
   std::string database_name = "testdb";
 
   // Bring up original components
