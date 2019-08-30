@@ -52,7 +52,7 @@ bool TupleAccessStrategy::Allocate(RawBlock *const block, TupleSlot *const slot)
   // We do not support concurrent insertion to the same block anymore
   // Assumption: Different threads cannot insert into the same block at the same time
   // If the block is not full, the function should always succeed (Flip should always return true)
-  bool flip_res = bitmap->Flip(pos, false);
+  bool UNUSED_ATTRIBUTE flip_res = bitmap->Flip(pos, false);
   TERRIER_ASSERT(flip_res, "Flip should always succeed");
   *slot = TupleSlot(block, pos);
   block->insert_head_++;
