@@ -140,7 +140,7 @@ TEST_F(BwTreeIndexTests, UniqueInsert) {
     // some threads count up, others count down. This is to mix whether threads abort for write-write conflict or
     // previously committed versions
     if (worker_id % 2 == 0) {
-      for (uint32_t i = 0; i < num_inserts_; i++) {
+       for (uint32_t i = 0; i < num_inserts; i++) {
         auto *const insert_txn = txn_manager_->BeginTransaction();
         auto *const insert_redo =
             insert_txn->StageWrite(CatalogTestUtil::TEST_DB_OID, CatalogTestUtil::TEST_TABLE_OID, tuple_initializer_);
@@ -157,7 +157,7 @@ TEST_F(BwTreeIndexTests, UniqueInsert) {
       }
 
     } else {
-      for (uint32_t i = num_inserts_ - 1; i < num_inserts_; i--) {
+      for (uint32_t i = num_inserts - 1; i < num_inserts; i--) {
         auto *const insert_txn = txn_manager_->BeginTransaction();
         auto *const insert_redo =
             insert_txn->StageWrite(CatalogTestUtil::TEST_DB_OID, CatalogTestUtil::TEST_TABLE_OID, tuple_initializer_);
@@ -214,7 +214,7 @@ TEST_F(BwTreeIndexTests, DefaultInsert) {
 
     // some threads count up, others count down. Threads shouldn't abort each other
     if (worker_id % 2 == 0) {
-      for (uint32_t i = 0; i < num_inserts_; i++) {
+      for (uint32_t i = 0; i < num_inserts; i++) {
         auto *const insert_txn = txn_manager_->BeginTransaction();
         auto *const insert_redo =
             insert_txn->StageWrite(CatalogTestUtil::TEST_DB_OID, CatalogTestUtil::TEST_TABLE_OID, tuple_initializer_);
@@ -227,7 +227,7 @@ TEST_F(BwTreeIndexTests, DefaultInsert) {
         txn_manager_->Commit(insert_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
       }
     } else {
-      for (uint32_t i = num_inserts_ - 1; i < num_inserts_; i--) {
+      for (uint32_t i = num_inserts - 1; i < num_inserts; i--) {
         auto *const insert_txn = txn_manager_->BeginTransaction();
         auto *const insert_redo =
             insert_txn->StageWrite(CatalogTestUtil::TEST_DB_OID, CatalogTestUtil::TEST_TABLE_OID, tuple_initializer_);

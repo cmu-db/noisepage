@@ -168,10 +168,10 @@ TEST(StatRegistryTest, GTEST_DEBUG_ONLY(DataTableStatTest)) {
                                                            terrier::storage::col_id_t{2}};
   terrier::storage::DataTable data_table(&block_store, block_layout, terrier::storage::layout_version_t{0});
   terrier::transaction::timestamp_t timestamp(0);
-  auto *txn = new terrier::transaction::TransactionContext(timestamp, timestamp, &buffer_pool_, DISABLED);
-  auto init = terrier::storage::ProjectedRowInitializer::Create(block_layout_, col_ids);
-  auto *redo_buffer_ = terrier::common::AllocationUtil::AllocateAligned(init.ProjectedRowSize());
-  auto *redo = init.InitializeRow(redo_buffer_);
+  auto *txn = new terrier::transaction::TransactionContext(timestamp, timestamp, &buffer_pool, DISABLED);
+  auto init = terrier::storage::ProjectedRowInitializer::Create(block_layout, col_ids);
+  auto *redo_buffer = terrier::common::AllocationUtil::AllocateAligned(init.ProjectedRowSize());
+  auto *redo = init.InitializeRow(redo_buffer);
 
   data_table.Insert(txn, *redo);
 
