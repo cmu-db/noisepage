@@ -19,12 +19,7 @@ class GarbageCollectorThread {
    * @param gc_period sleep time between GC invocations
    */
   BOOST_DI_INJECT(GarbageCollectorThread, GarbageCollector *gc,
-                  (named = GC_PERIOD) std::chrono::milliseconds gc_period)
-      : gc_(gc),
-        run_gc_(true),
-        gc_paused_(false),
-        gc_period_(gc_period),
-        gc_thread_(std::thread([this] { GCThreadLoop(); })) {}
+                  (named = GC_PERIOD) std::chrono::milliseconds gc_period);
 
   ~GarbageCollectorThread() {
     run_gc_ = false;

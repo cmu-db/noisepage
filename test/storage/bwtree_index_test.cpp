@@ -140,7 +140,7 @@ TEST_F(BwTreeIndexTests, UniqueInsert) {
     // some threads count up, others count down. This is to mix whether threads abort for write-write conflict or
     // previously committed versions
     if (worker_id % 2 == 0) {
-       for (uint32_t i = 0; i < num_inserts; i++) {
+      for (uint32_t i = 0; i < num_inserts; i++) {
         auto *const insert_txn = txn_manager_->BeginTransaction();
         auto *const insert_redo =
             insert_txn->StageWrite(CatalogTestUtil::TEST_DB_OID, CatalogTestUtil::TEST_TABLE_OID, tuple_initializer_);
