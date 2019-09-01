@@ -4,11 +4,11 @@
 #include <functional>
 #include <vector>
 
-#include "farmhash/farmhash.h"
 #include "portable_endian/portable_endian.h"
 #include "storage/index/index_metadata.h"
 #include "storage/projected_row.h"
 #include "storage/storage_defs.h"
+#include "xxHash/xxh3.h"
 
 namespace terrier::storage::index {
 
@@ -292,8 +292,8 @@ struct hash<terrier::storage::index::CompactIntsKey<KeySize>> {
    * @return hash of the key's underlying data
    */
   size_t operator()(const terrier::storage::index::CompactIntsKey<KeySize> &key) const {
-    const auto *const data = reinterpret_cast<const char *const>(key.KeyData());
-    return static_cast<size_t>(util::Hash64(data, terrier::storage::index::CompactIntsKey<KeySize>::KEY_SIZE_BYTE));
+    const auto *const data = reinterpret_cast<const void *const>(key.KeyData());
+    return static_cast<size_t>(XXH3_64bits(data, terrier::storage::index::CompactIntsKey<KeySize>::KEY_SIZE_BYTE));
   }
 };
 

@@ -6,10 +6,10 @@
 #include <vector>
 
 #include "common/hash_util.h"
-#include "farmhash/farmhash.h"
 #include "storage/index/index_metadata.h"
 #include "storage/projected_row.h"
 #include "storage/storage_defs.h"
+#include "xxHash/xxh3.h"
 
 namespace terrier::storage::index {
 
@@ -240,7 +240,7 @@ struct hash<terrier::storage::index::GenericKey<KeySize>> {
         continue;
       }
 
-      running_hash = util::Hash64WithSeed(reinterpret_cast<const char *>(attr), inlined_attr_sizes[i], running_hash);
+      running_hash = XXH3_64bits_withSeed(reinterpret_cast<const void *>(attr), inlined_attr_sizes[i], running_hash);
     }
 
     return running_hash;

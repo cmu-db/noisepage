@@ -25,11 +25,9 @@ list(APPEND TERRIER_SRCS ${BWTREE_SOURCES})
 # json
 list(APPEND TERRIER_SRCS ${PROJECT_SOURCE_DIR}/third_party/nlohmann/json.hpp)
 
-# farmhash
-file(GLOB_RECURSE FARMHASH_SOURCES ${PROJECT_SOURCE_DIR}/third_party/farmhash/*.cc ${PROJECT_SOURCE_DIR}/third_party/farmhash/*.h)
-list(APPEND TERRIER_SRCS ${FARMHASH_SOURCES})
-add_executable(farmhash_selftest ${PROJECT_SOURCE_DIR}/third_party/farmhash/farmhash.cc)
-target_compile_definitions(farmhash_selftest PUBLIC -DFARMHASHSELFTEST)
+# xxHash: used for hashing of large objects (strings, etc.)
+file(GLOB_RECURSE XXHASH_SOURCES ${PROJECT_SOURCE_DIR}/third_party/xxHash/*.h)
+list(APPEND TERRIER_SRCS ${XXHASH_SOURCES})
 
 # libcuckoo
 file(GLOB_RECURSE LIBCUCKOO_SOURCES ${PROJECT_SOURCE_DIR}/third_party/libcuckoo/*.hh)

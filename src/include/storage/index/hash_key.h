@@ -4,10 +4,10 @@
 #include <functional>
 #include <vector>
 
-#include "farmhash/farmhash.h"
 #include "storage/index/index_metadata.h"
 #include "storage/projected_row.h"
 #include "storage/storage_defs.h"
+#include "xxHash/xxh3.h"
 
 namespace terrier::storage::index {
 
@@ -83,8 +83,8 @@ struct hash<terrier::storage::index::HashKey<KeySize>> {
    */
   size_t operator()(const terrier::storage::index::HashKey<KeySize> &key) const {
     // you're technically hashing more bytes than you need to, but hopefully key size isn't wildly over-provisioned
-    return static_cast<size_t>(util::Hash64(reinterpret_cast<const char *>(key.KeyData()),
-                                            terrier::storage::index::HashKey<KeySize>::key_size_byte));
+    return static_cast<size_t>(XXH3_64bits(reinterpret_cast<const void *>(key.KeyData()),
+                                           terrier::storage::index::HashKey<KeySize>::key_size_byte));
   }
 };
 

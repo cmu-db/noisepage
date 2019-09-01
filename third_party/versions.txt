@@ -30,12 +30,11 @@ GBENCHMARK_VERSION=1.4.1
 # commit hash: 8179b26388d118fa887030f2609560ec287531dd
 # commit hash date: 7 Aug 2018
 
-# farmhash
-# url: https://github.com/google/farmhash.git
-# branch: master
-# commit hash: 0d859a811870d10f53a594927d0d0b97573ad06d
-# commit hash date: 13 May 2019
-# modifications: converted some implicit casts to static_casts to clean up -wpedantic warnings in GCC. formatted
+# xxhash
+# url: https://github.com/Cyan4973/xxHash
+# release: 0.7.1
+# commit hash: dfd1bf117c816e4774adc1e1cdcb1687c0f7913c
+# commit hash date: 15 Aug 2019
 
 # libcuckoo
 # url: https://github.com/efficient/libcuckoo.git

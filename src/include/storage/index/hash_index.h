@@ -5,11 +5,11 @@
 #include <utility>
 #include <variant>  // NOLINT (Matt): lint thinks this C++17 header is a C header because it only knows C++11
 #include <vector>
-#include "farmhash/farmhash.h"
 #include "libcuckoo/cuckoohash_map.hh"
 #include "storage/index/index.h"
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_manager.h"
+#include "xxHash/xxh3.h"
 
 namespace terrier::storage::index {
 
@@ -26,7 +26,7 @@ class HashIndex final : public Index {
  private:
   struct TupleSlotHash {
     std::size_t operator()(const TupleSlot &slot) const {
-      return util::Hash64(reinterpret_cast<const char *>(&slot), sizeof(TupleSlot));
+      return XXH3_64bits(reinterpret_cast<const void *>(&slot), sizeof(TupleSlot));
     }
   };
 
@@ -217,8 +217,9 @@ class HashIndex final : public Index {
                    "Called index delete on a TupleSlot that has a conflict with this txn or is still visible.");
 
     // Register a deferred action for the GC with txn manager. See base function comment.
-    auto *const txn_manager = txn->GetTransactionManager();
-    txn->RegisterCommitAction([=]() { txn_manager->DeferAction(ERASE_KEY_ACTION); });
+    txn->RegisterCommitAction([=](transaction::DeferredActionManager *deferred_action_manager) {
+      deferred_action_manager->RegisterDeferredAction(ERASE_KEY_ACTION);
+    });
   }
 
   void ScanKey(const transaction::TransactionContext &txn, const ProjectedRow &key,

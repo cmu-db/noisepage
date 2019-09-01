@@ -3,9 +3,9 @@
 
 #include "benchmark/benchmark.h"
 #include "common/scoped_timer.h"
-#include "farmhash/farmhash.h"
 #include "libcuckoo/cuckoohash_map.hh"
 #include "util/multithread_test_util.h"
+#include "xxHash/xxh3.h"
 
 namespace terrier {
 
@@ -25,13 +25,13 @@ class CuckooMapBenchmark : public benchmark::Fixture {
 
   // Workload
   const uint32_t num_keys_ = 10000000;
-  const uint32_t num_threads_ = 6;
+  const uint32_t num_threads_ = 2;
 
   // Test infrastructure
 
   struct KeyHash {
     std::size_t operator()(const int64_t k) const {
-      return util::Hash64(reinterpret_cast<const char *>(&(k)), sizeof(k));
+      return XXH3_64bits(reinterpret_cast<const void *>(&(k)), sizeof(k));
     }
   };
 
