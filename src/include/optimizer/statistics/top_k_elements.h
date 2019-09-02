@@ -254,18 +254,18 @@ class TopKElements {
    * Generate a vector of the top-k keys sorted by their current counts
    * @return the vector of the top-k keys
    */
-  const std::vector<KeyType> GetSortedTopKeys() const {
+  std::vector<KeyType> GetSortedTopKeys() const {
     using Comparator = std::function<bool(KeyCountPair, KeyCountPair)>;
 
     // Defining a lambda function to compare two pairs.
     // It will compare two pairs using second field
-    Comparator compFunctor = [](KeyCountPair elem1, KeyCountPair elem2) { return elem1.second < elem2.second; };
+    Comparator comp_functor = [](KeyCountPair elem1, KeyCountPair elem2) { return elem1.second < elem2.second; };
 
     // Copy the pairs into a vector sorted on their value
     std::vector<KeyCountPair> sorted_vec;
     sorted_vec.reserve(entries_.size());
     std::copy(entries_.begin(), entries_.end(), std::back_inserter<std::vector<KeyCountPair>>(sorted_vec));
-    std::sort(sorted_vec.begin(), sorted_vec.end(), compFunctor);
+    std::sort(sorted_vec.begin(), sorted_vec.end(), comp_functor);
 
     // FIXME: Is there a way that we can just use the sorted_keys directly
     // without having to copy it into a vector first.
@@ -331,7 +331,7 @@ class TopKElements {
   void ComputeNewMinKey() {
     KeyType new_min_key = min_key_;
     auto new_min_count = INT64_MAX;
-    for (auto other : entries_) {
+    for (const auto &other : entries_) {
       if (other.second < new_min_count) {
         new_min_key = other.first;
         new_min_count = other.second;

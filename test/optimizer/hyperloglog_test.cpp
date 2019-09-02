@@ -51,17 +51,17 @@ TEST_F(HyperLogLogTests, SimpleTest) {
 
   // Adapted from the libcount example code:
   // https://github.com/dialtr/libcount/blob/master/examples/cc_example.cc
-  const uint64_t kIterations = 1000000;
-  const uint64_t kTrueCardinality = 100;
-  for (uint64_t i = 0; i < kIterations; ++i) {
-    auto key = static_cast<int64_t>(i % kTrueCardinality);
+  const uint64_t iterations = 1000000;
+  const uint64_t true_cardinality = 100;
+  for (uint64_t i = 0; i < iterations; ++i) {
+    auto key = static_cast<int64_t>(i % true_cardinality);
     hll.Update(key);
   }
 
-  auto actual = kTrueCardinality;
+  auto actual = true_cardinality;
   auto estimate = hll.EstimateCardinality();
   auto error = hll.RelativeError();
-  HyperLogLogTests::CheckErrorBounds(kIterations, actual, estimate, error);
+  HyperLogLogTests::CheckErrorBounds(iterations, actual, estimate, error);
 }
 
 // 100k values with 10k distinct.
