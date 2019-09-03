@@ -22,6 +22,7 @@ class LoggingBenchmark : public benchmark::Fixture {
   std::default_random_engine generator_;
   const uint32_t num_concurrent_txns_ = 4;
   storage::LogManager *log_manager_ = nullptr;
+  storage::GarbageCollector *gc_;
   storage::GarbageCollectorThread *gc_thread_ = nullptr;
   const std::chrono::milliseconds gc_period_{10};
   common::DedicatedThreadRegistry thread_registry_;
@@ -30,7 +31,7 @@ class LoggingBenchmark : public benchmark::Fixture {
   const uint64_t num_log_buffers_ = 100;
   const std::chrono::milliseconds log_serialization_interval_{5};
   const std::chrono::milliseconds log_persist_interval_{10};
-  const uint64_t log_persist_threshold_ = (1 << 20);  // 1MB
+  const uint64_t log_persist_threshold_ = (1U << 20U);  // 1MB
 };
 
 /**
@@ -53,7 +54,8 @@ BENCHMARK_DEFINE_F(LoggingBenchmark, TPCCish)(benchmark::State &state) {
     // log all of the Inserts from table creation
     log_manager_->ForceFlush();
 
-    gc_thread_ = new storage::GarbageCollectorThread(tested.GetTxnManager(), gc_period_);
+    gc_ = new storage::GarbageCollector(tested.GetTimestampManager(), DISABLED, tested.GetTxnManager(), DISABLED);
+    gc_thread_ = new storage::GarbageCollectorThread(gc_, gc_period_);
     uint64_t elapsed_ms;
     {
       common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
@@ -64,6 +66,7 @@ BENCHMARK_DEFINE_F(LoggingBenchmark, TPCCish)(benchmark::State &state) {
     log_manager_->PersistAndStop();
     delete log_manager_;
     delete gc_thread_;
+    delete gc_;
     unlink(LOG_FILE_NAME);
   }
   state.SetItemsProcessed(state.iterations() * num_txns_ - abort_count);
@@ -90,7 +93,8 @@ BENCHMARK_DEFINE_F(LoggingBenchmark, HighAbortRate)(benchmark::State &state) {
     // log all of the Inserts from table creation
     log_manager_->ForceFlush();
 
-    gc_thread_ = new storage::GarbageCollectorThread(tested.GetTxnManager(), gc_period_);
+    gc_ = new storage::GarbageCollector(tested.GetTimestampManager(), DISABLED, tested.GetTxnManager(), DISABLED);
+    gc_thread_ = new storage::GarbageCollectorThread(gc_, gc_period_);
     uint64_t elapsed_ms;
     {
       common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
@@ -101,6 +105,7 @@ BENCHMARK_DEFINE_F(LoggingBenchmark, HighAbortRate)(benchmark::State &state) {
     log_manager_->PersistAndStop();
     delete log_manager_;
     delete gc_thread_;
+    delete gc_;
     unlink(LOG_FILE_NAME);
   }
   state.SetItemsProcessed(state.iterations() * num_txns_ - abort_count);
@@ -126,7 +131,8 @@ BENCHMARK_DEFINE_F(LoggingBenchmark, SingleStatementInsert)(benchmark::State &st
     // log all of the Inserts from table creation
     log_manager_->ForceFlush();
 
-    gc_thread_ = new storage::GarbageCollectorThread(tested.GetTxnManager(), gc_period_);
+    gc_ = new storage::GarbageCollector(tested.GetTimestampManager(), DISABLED, tested.GetTxnManager(), DISABLED);
+    gc_thread_ = new storage::GarbageCollectorThread(gc_, gc_period_);
     uint64_t elapsed_ms;
     {
       common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
@@ -137,6 +143,7 @@ BENCHMARK_DEFINE_F(LoggingBenchmark, SingleStatementInsert)(benchmark::State &st
     log_manager_->PersistAndStop();
     delete log_manager_;
     delete gc_thread_;
+    delete gc_;
     unlink(LOG_FILE_NAME);
   }
   state.SetItemsProcessed(state.iterations() * num_txns_ - abort_count);
@@ -162,7 +169,8 @@ BENCHMARK_DEFINE_F(LoggingBenchmark, SingleStatementUpdate)(benchmark::State &st
     // log all of the Inserts from table creation
     log_manager_->ForceFlush();
 
-    gc_thread_ = new storage::GarbageCollectorThread(tested.GetTxnManager(), gc_period_);
+    gc_ = new storage::GarbageCollector(tested.GetTimestampManager(), DISABLED, tested.GetTxnManager(), DISABLED);
+    gc_thread_ = new storage::GarbageCollectorThread(gc_, gc_period_);
     uint64_t elapsed_ms;
     {
       common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
@@ -173,6 +181,7 @@ BENCHMARK_DEFINE_F(LoggingBenchmark, SingleStatementUpdate)(benchmark::State &st
     log_manager_->PersistAndStop();
     delete log_manager_;
     delete gc_thread_;
+    delete gc_;
     unlink(LOG_FILE_NAME);
   }
   state.SetItemsProcessed(state.iterations() * num_txns_ - abort_count);
@@ -198,7 +207,8 @@ BENCHMARK_DEFINE_F(LoggingBenchmark, SingleStatementSelect)(benchmark::State &st
     // log all of the Inserts from table creation
     log_manager_->ForceFlush();
 
-    gc_thread_ = new storage::GarbageCollectorThread(tested.GetTxnManager(), gc_period_);
+    gc_ = new storage::GarbageCollector(tested.GetTimestampManager(), DISABLED, tested.GetTxnManager(), DISABLED);
+    gc_thread_ = new storage::GarbageCollectorThread(gc_, gc_period_);
     uint64_t elapsed_ms;
     {
       common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
@@ -209,6 +219,7 @@ BENCHMARK_DEFINE_F(LoggingBenchmark, SingleStatementSelect)(benchmark::State &st
     log_manager_->PersistAndStop();
     delete log_manager_;
     delete gc_thread_;
+    delete gc_;
     unlink(LOG_FILE_NAME);
   }
   state.SetItemsProcessed(state.iterations() * num_txns_ - abort_count);

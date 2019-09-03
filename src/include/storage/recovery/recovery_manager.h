@@ -60,17 +60,20 @@ class RecoveryManager : public common::DedicatedThreadOwner {
    * @param log_provider arbitrary provider to receive logs from
    * @param catalog system catalog to interface with sql tables
    * @param txn_manager txn manager to use for re-executing recovered transactions
+   * @param deferred_action_manager manager to use for deferred deletes
    * @param thread_registry thread registry to register tasks
    * @param store block store used for SQLTable creation during recovery
    */
   explicit RecoveryManager(AbstractLogProvider *log_provider, common::ManagedPointer<catalog::Catalog> catalog,
                            transaction::TransactionManager *txn_manager,
+                           transaction::DeferredActionManager *deferred_action_manager,
                            common::ManagedPointer<terrier::common::DedicatedThreadRegistry> thread_registry,
                            BlockStore *store)
       : DedicatedThreadOwner(thread_registry),
         log_provider_(log_provider),
         catalog_(catalog),
         txn_manager_(txn_manager),
+        deferred_action_manager_(deferred_action_manager),
         block_store_(store),
         recovered_txns_(0) {
     // Initialize catalog_table_schemas_ map
@@ -114,6 +117,9 @@ class RecoveryManager : public common::DedicatedThreadOwner {
 
   // Transaction manager to create transactions for recovery
   transaction::TransactionManager *txn_manager_;
+
+  // DeferredActions manager to defer record deletes
+  transaction::DeferredActionManager *deferred_action_manager_;
 
   // TODO(Gus): The recovery manager should be passed a specific block store for table construction. Block store
   // management/assignment is probably a larger system issue that needs to be adddressed. Block store, used to create

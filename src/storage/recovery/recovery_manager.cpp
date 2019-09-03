@@ -33,7 +33,7 @@ void RecoveryManager::RecoverFromLogs() {
         TERRIER_ASSERT(pair.second.empty(), "Abort records should not have any varlen pointers");
         DeferRecordDeletes(log_record->TxnBegin(), true);
         buffered_changes_map_.erase(log_record->TxnBegin());
-        txn_manager_->DeferAction([=] { delete[] reinterpret_cast<byte *>(log_record); });
+        deferred_action_manager_->RegisterDeferredAction([=] { delete[] reinterpret_cast<byte *>(log_record); });
         break;
       }
 
@@ -48,7 +48,7 @@ void RecoveryManager::RecoverFromLogs() {
         recovered_txns_ += ProcessDeferredTransactions(commit_record->OldestActiveTxn());
 
         // Clean up the log record
-        txn_manager_->DeferAction([=] { delete[] reinterpret_cast<byte *>(log_record); });
+        deferred_action_manager_->RegisterDeferredAction([=] { delete[] reinterpret_cast<byte *>(log_record); });
         break;
       }
 
@@ -60,7 +60,7 @@ void RecoveryManager::RecoverFromLogs() {
     }
   }
   // Process all deferred txns
-  ProcessDeferredTransactions(transaction::NO_ACTIVE_TXN);
+  ProcessDeferredTransactions(transaction::INVALID_TXN_TIMESTAMP);
   TERRIER_ASSERT(deferred_txns_.empty(), "We should have no unprocessed deferred transactions at the end of recovery");
 
   // If we have unprocessed buffered changes, then these transactions were in-process at the time of system shutdown.
@@ -103,7 +103,7 @@ void RecoveryManager::ProcessCommittedTransaction(terrier::transaction::timestam
 
 void RecoveryManager::DeferRecordDeletes(terrier::transaction::timestamp_t txn_id, bool delete_varlens) {
   // Capture the changes by value except for changes which we can move
-  txn_manager_->DeferAction([=, buffered_changes{std::move(buffered_changes_map_[txn_id])}]() {
+  deferred_action_manager_->RegisterDeferredAction([=, buffered_changes{std::move(buffered_changes_map_[txn_id])}]() {
     for (auto &buffered_pair : buffered_changes) {
       delete[] reinterpret_cast<byte *>(buffered_pair.first);
       if (delete_varlens) {
@@ -117,10 +117,10 @@ void RecoveryManager::DeferRecordDeletes(terrier::transaction::timestamp_t txn_i
 
 uint32_t RecoveryManager::ProcessDeferredTransactions(terrier::transaction::timestamp_t upper_bound_ts) {
   auto txns_processed = 0;
-  // If the upper bound indicates NO_ACTIVE_TXN, then its safe to process all deferred txns. We can accomplish this by
+  // If the upper bound is INVALID_TXN_TIMESTAMP, then we should process all deferred txns. We can accomplish this by
   // setting the upper bound to INT_MAX
   upper_bound_ts =
-      (upper_bound_ts == transaction::NO_ACTIVE_TXN) ? transaction::timestamp_t(INT64_MAX) : upper_bound_ts;
+      (upper_bound_ts == transaction::INVALID_TXN_TIMESTAMP) ? transaction::timestamp_t(INT64_MAX) : upper_bound_ts;
   auto upper_bound_it = deferred_txns_.upper_bound(upper_bound_ts);
 
   for (auto it = deferred_txns_.begin(); it != upper_bound_it; it++) {
