@@ -5,7 +5,6 @@
 #include <vector>
 #include "common/macros.h"
 #include "parser/expression/abstract_expression.h"
-#include "parser/expression_defs.h"
 
 namespace terrier::parser {
 
@@ -21,18 +20,18 @@ class CaseExpression : public AbstractExpression {
     /**
      * The condition to be checked for this case expression.
      */
-    std::shared_ptr<AbstractExpression> condition;
+    std::shared_ptr<AbstractExpression> condition_;
     /**
      * The value that this expression should have if the corresponding condition is true.
      */
-    std::shared_ptr<AbstractExpression> then;
+    std::shared_ptr<AbstractExpression> then_;
 
     /**
      * Equality check
      * @param rhs the other WhenClause to compare to
      * @return if the two are equal
      */
-    bool operator==(const WhenClause &rhs) const { return *condition == *rhs.condition && *then == *rhs.then; }
+    bool operator==(const WhenClause &rhs) const { return *condition_ == *rhs.condition_ && *then_ == *rhs.then_; }
 
     /**
      * Inequality check
@@ -47,8 +46,8 @@ class CaseExpression : public AbstractExpression {
      */
     nlohmann::json ToJson() const {
       nlohmann::json j;
-      j["condition"] = condition;
-      j["then"] = then;
+      j["condition"] = condition_;
+      j["then"] = then_;
       return j;
     }
 
@@ -57,8 +56,8 @@ class CaseExpression : public AbstractExpression {
      * @param j json to deserialize
      */
     void FromJson(const nlohmann::json &j) {
-      condition = DeserializeExpression(j.at("condition"));
-      then = DeserializeExpression(j.at("then"));
+      condition_ = DeserializeExpression(j.at("condition"));
+      then_ = DeserializeExpression(j.at("then"));
     }
   };
 
@@ -82,8 +81,8 @@ class CaseExpression : public AbstractExpression {
   common::hash_t Hash() const override {
     common::hash_t hash = AbstractExpression::Hash();
     for (auto &clause : when_clauses_) {
-      hash = common::HashUtil::CombineHashes(hash, clause.condition->Hash());
-      hash = common::HashUtil::CombineHashes(hash, clause.then->Hash());
+      hash = common::HashUtil::CombineHashes(hash, clause.condition_->Hash());
+      hash = common::HashUtil::CombineHashes(hash, clause.then_->Hash());
     }
     if (default_expr_ != nullptr) {
       hash = common::HashUtil::CombineHashes(hash, default_expr_->Hash());
@@ -104,7 +103,7 @@ class CaseExpression : public AbstractExpression {
     auto other_default_exp = other.GetDefaultClause();
     if (default_exp == nullptr && other_default_exp == nullptr) return true;
     if (default_exp == nullptr || other_default_exp == nullptr) return false;
-    return (*default_exp == *other_default_exp);
+    return *default_exp == *other_default_exp;
   }
 
   std::shared_ptr<AbstractExpression> Copy() const override { return std::make_shared<CaseExpression>(*this); }
@@ -120,7 +119,7 @@ class CaseExpression : public AbstractExpression {
    */
   std::shared_ptr<AbstractExpression> GetWhenClauseCondition(size_t index) const {
     TERRIER_ASSERT(index < when_clauses_.size(), "Index must be in bounds.");
-    return when_clauses_[index].condition;
+    return when_clauses_[index].condition_;
   }
 
   /**
@@ -129,13 +128,15 @@ class CaseExpression : public AbstractExpression {
    */
   std::shared_ptr<AbstractExpression> GetWhenClauseResult(size_t index) const {
     TERRIER_ASSERT(index < when_clauses_.size(), "Index must be in bounds.");
-    return when_clauses_[index].then;
+    return when_clauses_[index].then_;
   }
 
   /**
    * @return default clause, if it exists
    */
   std::shared_ptr<AbstractExpression> GetDefaultClause() const { return default_expr_; }
+
+  void Accept(SqlNodeVisitor *v) override { v->Visit(this); }
 
   /**
    * @return expression serialized to json
@@ -161,7 +162,13 @@ class CaseExpression : public AbstractExpression {
   }
 
  private:
+  /**
+   * List of condition and result cases: WHEN ... THEN ...
+   */
   std::vector<WhenClause> when_clauses_;
+  /**
+   * default conditon and result case
+   */
   std::shared_ptr<AbstractExpression> default_expr_;
 };
 

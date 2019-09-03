@@ -1,13 +1,14 @@
 #pragma once
 
 #include <memory>
+#include "spdlog/fmt/ostr.h"
 #include "spdlog/sinks/basic_file_sink.h"
 #include "spdlog/spdlog.h"
 
 namespace terrier::network {
 extern std::shared_ptr<spdlog::logger> network_logger;
 
-void init_network_logger();
+void InitNetworkLogger();
 }  // namespace terrier::network
 
 #define NETWORK_LOG_TRACE(...) ::terrier::network::network_logger->trace(__VA_ARGS__);

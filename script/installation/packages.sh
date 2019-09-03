@@ -6,14 +6,9 @@
 ## This script will install all the packages that are needed to
 ## build and run the DBMS.
 ##
-## Note: On newer versions of Ubuntu (17.04), this script
-## will not install the correct version of g++. You will have
-## to use 'update-alternatives' to configure the default of
-## g++ manually.
-##
 ## Supported environments:
 ##  * Ubuntu 18.04
-##  * MacOS
+##  * macOS
 ## =================================================================
 
 main() {
@@ -71,16 +66,17 @@ install_mac() {
   brew update
   # Install packages.
   brew ls --versions cmake || brew install cmake
+  brew ls --versions coreutils || brew install coreutils
   brew ls --versions doxygen || brew install doxygen
   brew ls --versions git || brew install git
   brew ls --versions jemalloc || brew install jemalloc
   brew ls --versions libevent || brew install libevent
   brew ls --versions libpqxx || brew install libpqxx
-  (brew ls --versions llvm | grep 6) || brew install llvm@6
+  (brew ls --versions llvm | grep 8) || brew install llvm@8
   brew ls --versions openssl || brew install openssl
   brew ls --versions postgresql || brew install postgresql
   brew ls --versions tbb || brew install tbb
-  brew ls --version ant || brew install ant
+  brew ls --versions ant || brew install ant
 }
 
 install_linux() {
@@ -89,9 +85,9 @@ install_linux() {
   # Install packages.
   apt-get -y install \
       build-essential \
-      clang-6.0 \
-      clang-format-6.0 \
-      clang-tidy-6.0 \
+      clang-8 \
+      clang-format-8 \
+      clang-tidy-8 \
       cmake \
       doxygen \
       git \
@@ -102,7 +98,7 @@ install_linux() {
       libssl-dev \
       libtbb-dev \
       zlib1g-dev \
-      llvm-6.0 \
+      llvm-8 \
       pkg-config \
       postgresql-client \
       sqlite3 \
@@ -114,6 +110,8 @@ install_linux() {
    wget http://mirrors.kernel.org/ubuntu/pool/universe/libp/libpqxx/libpqxx-6.2_6.2.4-4_amd64.deb
    dpkg -i libpqxx-6.2_6.2.4-4_amd64.deb
    dpkg -i libpqxx-dev_6.2.4-4_amd64.deb
+   rm libpqxx-6.2_6.2.4-4_amd64.deb
+   rm libpqxx-dev_6.2.4-4_amd64.deb
 }
 
 main "$@"

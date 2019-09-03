@@ -6,3 +6,5 @@
 \bstd::cout\b
 \bcout\b
 \bprintf(
+\bstd::weak_ptr\b
+namespace .*_.* {

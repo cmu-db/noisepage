@@ -64,7 +64,7 @@ class DataTable {
      * post-fix increment.
      * @return copy of the iterator equal to this before increment
      */
-    const SlotIterator operator++(int) {
+    SlotIterator operator++(int) {
       SlotIterator copy = *this;
       operator++();
       return copy;
@@ -151,7 +151,7 @@ class DataTable {
   /**
    * @return the first tuple slot contained in the data table
    */
-  SlotIterator begin() const {
+  SlotIterator begin() const {  // NOLINT for STL name compability
     common::SpinLatch::ScopedSpinLatch guard(&blocks_latch_);
     return {this, blocks_.begin(), 0};
   }
@@ -163,7 +163,7 @@ class DataTable {
    *
    * @return one past the last tuple slot contained in the data table.
    */
-  SlotIterator end() const;
+  SlotIterator end() const;  // NOLINT for STL name compability
 
   /**
    * Update the tuple according to the redo buffer given, and update the version chain to link to an
@@ -207,7 +207,8 @@ class DataTable {
   DataTableCounter *GetDataTableCounter() { return &data_table_counter_; }
 
   /**
-   * @return read-only view of this DataTable's BlockLayout
+   * Returns a read-only view of this DataTable's BlockLayout.
+   * @return this DataTable's BlockLayout.
    */
   const BlockLayout &GetBlockLayout() const { return accessor_.GetBlockLayout(); }
 
@@ -220,6 +221,9 @@ class DataTable {
   friend class index::Index;
   template <typename KeyType>
   friend class index::BwTreeIndex;
+  // The block compactor elides transactional protection in the gather/compression phase and
+  // needs raw access to the underlying table.
+  friend class BlockCompactor;
 
   BlockStore *const block_store_;
   const layout_version_t layout_version_;
@@ -272,8 +276,6 @@ class DataTable {
 
   // Allocates a new block to be used as insertion head.
   void NewBlock(RawBlock *expected_val);
-
-  void DeallocateVarlensOnShutdown(RawBlock *block);
 
   /**
    * Determine if a Tuple is visible (present and not deleted) to the given transaction. It's effectively Select's logic

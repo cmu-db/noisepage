@@ -78,11 +78,11 @@ class CountMinSketch {
    * @param delta how much to decrement the key's count.
    */
   void Decrement(const KeyType &key, const size_t key_size, const uint32_t delta) {
-    sketch_.add(reinterpret_cast<const void *>(&key), sizeof(key), -delta);
+    sketch_.add(reinterpret_cast<const void *>(&key), sizeof(key), -1 * delta);
 
     // We have to check whether the delta is greater than the total count
     // to avoid wrap around.
-    total_count_ = (delta <= total_count_ ? total_count_ - delta : 0ul);
+    total_count_ = (delta <= total_count_ ? total_count_ - delta : 0UL);
   }
 
   /**
@@ -108,7 +108,7 @@ class CountMinSketch {
     // know whether the the original delta is accurate or not.
     // We have to check whether the delta is greater than the total count
     // to avoid wrap around.
-    total_count_ = (delta <= total_count_ ? total_count_ - delta : 0ul);
+    total_count_ = (delta <= total_count_ ? total_count_ - delta : 0UL);
   }
 
   /**
@@ -133,17 +133,17 @@ class CountMinSketch {
   /**
    * @return the number of 'slots' in each bucket level in this sketch.
    */
-  const uint64_t GetWidth() const { return sketch_.width(); }
+  uint64_t GetWidth() const { return sketch_.width(); }
 
   /**
    * @return the size of the sketch in bytes.
    */
-  const size_t GetSize() const { return sketch_.table_size(); }
+  size_t GetSize() const { return sketch_.table_size(); }
 
   /**
    * @return the approximate total count of all keys in this sketch.
    */
-  const size_t GetTotalCount() const { return total_count_; }
+  size_t GetTotalCount() const { return total_count_; }
 
  private:
   /**

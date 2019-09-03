@@ -89,12 +89,12 @@ class PostgresParser {
 
   // expressions
   static std::unique_ptr<AbstractExpression> ExprTransform(Node *node);
+  static std::unique_ptr<AbstractExpression> ExprTransform(Node *node, char *alias);
   static ExpressionType StringToExpressionType(const std::string &parser_str);
-
   static std::unique_ptr<AbstractExpression> AExprTransform(A_Expr *root);
   static std::unique_ptr<AbstractExpression> BoolExprTransform(BoolExpr *root);
   static std::unique_ptr<AbstractExpression> CaseExprTransform(CaseExpr *root);
-  static std::unique_ptr<AbstractExpression> ColumnRefTransform(ColumnRef *root);
+  static std::unique_ptr<AbstractExpression> ColumnRefTransform(ColumnRef *root, char *alias);
   static std::unique_ptr<AbstractExpression> ConstTransform(A_Const *root);
   static std::unique_ptr<AbstractExpression> FuncCallTransform(FuncCall *root);
   static std::unique_ptr<AbstractExpression> NullTestTransform(NullTest *root);
@@ -132,8 +132,8 @@ class PostgresParser {
 
   // CREATE helpers
   using ColumnDefTransResult = struct {
-    std::unique_ptr<ColumnDefinition> col;
-    std::vector<std::shared_ptr<ColumnDefinition>> fks;
+    std::unique_ptr<ColumnDefinition> col_;
+    std::vector<std::shared_ptr<ColumnDefinition>> fks_;
   };
   static ColumnDefTransResult ColumnDefTransform(ColumnDef *root);
 

@@ -107,10 +107,10 @@ TEST_F(HistogramTests, ValueTypeTest) {
   EXPECT_EQ(smallint_h.GetTotalValueCount(), 2);
 
   Histogram<float> float_h{num_bins};
-  float_h.Increment(777.77f);
-  float_h.Increment(999.99f);
-  EXPECT_EQ(float_h.GetMinValue(), 777.77f);
-  EXPECT_EQ(float_h.GetMaxValue(), 999.99f);
+  float_h.Increment(777.77F);
+  float_h.Increment(999.99F);
+  EXPECT_EQ(float_h.GetMinValue(), 777.77F);
+  EXPECT_EQ(float_h.GetMaxValue(), 999.99F);
   EXPECT_EQ(float_h.GetTotalValueCount(), 2);
 
   Histogram<double> double_h{num_bins};

@@ -35,7 +35,8 @@ class TestConfig(object):
                                "large_transaction_benchmark",
                                "logging_benchmark",
                                "tuple_access_strategy_benchmark",
-                               "tpcc_benchmark"]
+                               "tpcc_benchmark",
+                               "bwtree_benchmark"]
 
         # how many historical values are "required".
         self.min_ref_values = 10
@@ -54,7 +55,7 @@ class TestConfig(object):
         # of sources. Stop if the history requirements are met.
         self.ref_data_sources = [
             {"project" : "terrier-nightly",
-             "min_build" : 263,
+             "min_build" : 323,
             },
         ]
         return
@@ -716,7 +717,8 @@ class RunMicroBenchmarks(object):
                                "large_transaction_benchmark",
                                "logging_benchmark",
                                "tuple_access_strategy_benchmark",
-                               "tpcc_benchmark"]
+                               "tpcc_benchmark",
+                               "bwtree_benchmark"]
 
         # minimum run time for the benchmark
         self.min_time = 10

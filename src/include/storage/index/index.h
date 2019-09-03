@@ -36,7 +36,6 @@ class Index {
   friend class GenericKey<256>;
   friend class BwTreeKeyTests;
 
-  const catalog::index_oid_t oid_;
   const ConstraintType constraint_type_;
 
  protected:
@@ -58,12 +57,11 @@ class Index {
 
   /**
    * Creates a new index wrapper.
-   * @param oid identifier for the index
    * @param constraint_type type of index
    * @param metadata index description
    */
-  Index(const catalog::index_oid_t oid, const ConstraintType constraint_type, IndexMetadata metadata)
-      : oid_{oid}, constraint_type_{constraint_type}, metadata_(std::move(metadata)) {}
+  Index(const ConstraintType constraint_type, IndexMetadata metadata)
+      : constraint_type_{constraint_type}, metadata_(std::move(metadata)) {}
 
  public:
   virtual ~Index() = default;
@@ -157,11 +155,6 @@ class Index {
    * @return type of this index
    */
   ConstraintType GetConstraintType() const { return constraint_type_; }
-
-  /**
-   * @return oid of this indes
-   */
-  catalog::index_oid_t GetOid() const { return oid_; }
 
   /**
    * @return mapping from key oid to projected row offset

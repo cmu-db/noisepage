@@ -22,6 +22,7 @@ void LogSerializerTask::Process() {
   {
     common::SpinLatch::ScopedSpinLatch guard(&flush_queue_latch_);
     temp_flush_queue = std::move(flush_queue_);
+    flush_queue_ = std::queue<RecordBufferSegment *>();
   }
   while (!temp_flush_queue.empty()) {
     RecordBufferSegment *buffer = temp_flush_queue.front();

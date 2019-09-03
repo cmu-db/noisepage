@@ -124,7 +124,7 @@ class TableRef {
    * @return unique pointer to the created table ref
    */
   static std::unique_ptr<TableRef> CreateTableRefByName(std::string alias, std::shared_ptr<TableInfo> table_info) {
-    return std::make_unique<TableRef>(alias, std::move(table_info));
+    return std::make_unique<TableRef>(std::move(alias), std::move(table_info));
   }
 
   /**
@@ -133,7 +133,7 @@ class TableRef {
    * @return unique pointer to the created table ref
    */
   static std::unique_ptr<TableRef> CreateTableRefBySelect(std::string alias, std::shared_ptr<SelectStatement> select) {
-    return std::make_unique<TableRef>(alias, std::move(select));
+    return std::make_unique<TableRef>(std::move(alias), std::move(select));
   }
 
   /**

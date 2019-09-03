@@ -19,7 +19,7 @@ namespace terrier::network {
   * Hardcoded server parameter values to send to the client
   */
   const std::unordered_map<std::string, std::string>
-    parameter_status_map = {
+    PARAMETER_STATUS_MAP = {
       {"application_name", "psql"},
       {"client_encoding", "UTF8"},
       {"DateStyle", "ISO, MDY"},
@@ -253,7 +253,7 @@ class PostgresPacketWriter {
    * Writes error responses to the client
    * @param error_status The error messages to send
    */
-  void WriteErrorResponse(std::vector<std::pair<NetworkMessageType, std::string>> error_status) {
+  void WriteErrorResponse(const std::vector<std::pair<NetworkMessageType, std::string>> &error_status) {
     BeginPacket(NetworkMessageType::ERROR_RESPONSE);
 
     for (const auto &entry : error_status) AppendRawValue(entry.first).AppendString(entry.second);
@@ -287,7 +287,7 @@ class PostgresPacketWriter {
   void WriteStartupResponse() {
     BeginPacket(NetworkMessageType::AUTHENTICATION_REQUEST).AppendValue<int32_t>(0).EndPacket();
 
-    for (auto &entry : parameter_status_map)
+    for (auto &entry : PARAMETER_STATUS_MAP)
       BeginPacket(NetworkMessageType::PARAMETER_STATUS)
           .AppendString(entry.first)
           .AppendString(entry.second)
@@ -395,7 +395,8 @@ class PostgresPacketWriter {
    * @param query The query string to be parsed
    * @param params Supplied parameter object types in the query
    */
-  void WriteParseCommand(const std::string &destinationStmt, const std::string &query, std::vector<int32_t> params) {
+  void WriteParseCommand(const std::string &destinationStmt, const std::string &query,
+                         const std::vector<int32_t> &params) {
     PostgresPacketWriter &writer = BeginPacket(NetworkMessageType::PARSE_COMMAND)
                                        .AppendString(destinationStmt)
                                        .AppendString(query)
@@ -429,16 +430,16 @@ class PostgresPacketWriter {
     }
     writer.AppendValue(static_cast<int16_t>(paramVals.size()));
 
-    for (auto paramVal : paramVals) {
-      if (paramVal == nullptr) {
+    for (auto param_val : paramVals) {
+      if (param_val == nullptr) {
         // NULL value
         writer.AppendValue(static_cast<int32_t>(-1));
         continue;
       }
 
-      auto size = static_cast<int32_t>(paramVal->size());
+      auto size = static_cast<int32_t>(param_val->size());
       writer.AppendValue(size);
-      writer.AppendRaw(paramVal->data(), size);
+      writer.AppendRaw(param_val->data(), size);
     }
 
     writer.AppendValue(static_cast<int16_t>(resultFormatCodes.size()));
