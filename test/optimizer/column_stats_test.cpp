@@ -12,7 +12,7 @@ class ColumnStatsTests : public TerrierTest {
     TerrierTest::SetUp();
 
     column_stats_obj_ = ColumnStats(catalog::db_oid_t(1), catalog::table_oid_t(1), catalog::col_oid_t(1), 10, 4, 0.2,
-                                   {3, 4, 5}, {2, 2, 2}, {1.0, 5.0}, true);
+                                    {3, 4, 5}, {2, 2, 2}, {1.0, 5.0}, true);
   };
 };
 

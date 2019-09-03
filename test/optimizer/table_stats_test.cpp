@@ -19,15 +19,15 @@ class TableStatsTests : public TerrierTest {
     TerrierTest::SetUp();
 
     column_stats_obj_1_ = ColumnStats(catalog::db_oid_t(1), catalog::table_oid_t(1), catalog::col_oid_t(1), 5, 4, 0.2,
-                                     {3, 4, 5}, {2, 2, 2}, {1.0, 5.0}, true);
+                                      {3, 4, 5}, {2, 2, 2}, {1.0, 5.0}, true);
     column_stats_obj_2_ = ColumnStats(catalog::db_oid_t(1), catalog::table_oid_t(1), catalog::col_oid_t(2), 5, 4, 0.2,
-                                     {3, 4, 5}, {2, 2, 2}, {1.0, 5.0}, true);
+                                      {3, 4, 5}, {2, 2, 2}, {1.0, 5.0}, true);
     column_stats_obj_3_ = ColumnStats(catalog::db_oid_t(1), catalog::table_oid_t(1), catalog::col_oid_t(3), 5, 4, 0.2,
-                                     {3, 4, 5}, {2, 2, 2}, {1.0, 5.0}, true);
+                                      {3, 4, 5}, {2, 2, 2}, {1.0, 5.0}, true);
     column_stats_obj_4_ = ColumnStats(catalog::db_oid_t(1), catalog::table_oid_t(1), catalog::col_oid_t(4), 5, 4, 0.2,
-                                     {3, 4, 5}, {2, 2, 2}, {1.0, 5.0}, true);
+                                      {3, 4, 5}, {2, 2, 2}, {1.0, 5.0}, true);
     column_stats_obj_5_ = ColumnStats(catalog::db_oid_t(1), catalog::table_oid_t(1), catalog::col_oid_t(5), 5, 4, 0.2,
-                                     {3, 4, 5}, {2, 2, 2}, {1.0, 5.0}, true);
+                                      {3, 4, 5}, {2, 2, 2}, {1.0, 5.0}, true);
     table_stats_obj_ = TableStats(
         catalog::db_oid_t(1), catalog::table_oid_t(1), 5, true,
         {column_stats_obj_1_, column_stats_obj_2_, column_stats_obj_3_, column_stats_obj_4_, column_stats_obj_5_});
