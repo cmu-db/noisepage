@@ -50,19 +50,27 @@ class RecoveryBenchmark : public benchmark::Fixture {
                                       common::ManagedPointer(&thread_registry_));
       log_manager.Start();
 
-      transaction::TransactionManager txn_manager(&buffer_pool_, true, &log_manager);
+      transaction::TimestampManager timestamp_manager;
+      transaction::DeferredActionManager deferred_action_manager(&timestamp_manager);
+      transaction::TransactionManager txn_manager(&timestamp_manager, &deferred_action_manager, &buffer_pool_, true,
+                                                  &log_manager);
       catalog::Catalog catalog(&txn_manager, &block_store_);
-      auto gc_thread = new storage::GarbageCollectorThread(&txn_manager, gc_period_);  // Enable background GC
+      storage::GarbageCollector gc(&timestamp_manager, &deferred_action_manager, &txn_manager, DISABLED);
+      auto gc_thread = new storage::GarbageCollectorThread(&gc, gc_period_);  // Enable background GC
 
       // Run the test object and log all transactions
       auto *tested = new LargeSqlTableTestObject(config, &txn_manager, &catalog, &block_store_, &generator_);
       tested->SimulateOltp(num_txns_, num_concurrent_txns_);
       log_manager.PersistAndStop();
 
-      // Start a transaction manager with logging disabled, we don't want to log the log replaying
-      transaction::TransactionManager recovery_txn_manager{&buffer_pool_, true, LOGGING_DISABLED};
-      auto recovery_gc_thread =
-          new storage::GarbageCollectorThread(&recovery_txn_manager, gc_period_);  // Enable background GC
+      // Start a new components with logging disabled, we don't want to log the log replaying
+      transaction::TimestampManager recovery_timestamp_manager;
+      transaction::DeferredActionManager recovery_deferred_action_manager(&recovery_timestamp_manager);
+      transaction::TransactionManager recovery_txn_manager{
+          &recovery_timestamp_manager, &recovery_deferred_action_manager, &buffer_pool_, true, DISABLED};
+      storage::GarbageCollector recovery_gc(&recovery_timestamp_manager, &recovery_deferred_action_manager,
+                                            &recovery_txn_manager, DISABLED);
+      auto recovery_gc_thread = new storage::GarbageCollectorThread(&recovery_gc, gc_period_);  // Enable background GC
 
       // Create catalog for recovery
       catalog::Catalog recovered_catalog(&recovery_txn_manager, &block_store_);
@@ -70,8 +78,8 @@ class RecoveryBenchmark : public benchmark::Fixture {
       // Instantiate recovery manager, and recover the tables.
       storage::DiskLogProvider log_provider(LOG_FILE_NAME);
       storage::RecoveryManager recovery_manager(&log_provider, common::ManagedPointer(&recovered_catalog),
-                                                &recovery_txn_manager, common::ManagedPointer(&thread_registry_),
-                                                &block_store_);
+                                                &recovery_txn_manager, &recovery_deferred_action_manager,
+                                                common::ManagedPointer(&thread_registry_), &block_store_);
 
       uint64_t elapsed_ms;
       {

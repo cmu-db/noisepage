@@ -33,25 +33,68 @@ class RecoveryTests : public TerrierTest {
   const uint64_t log_persist_threshold_ = (1 << 20);  // 1MB
 
   std::default_random_engine generator_;
-  storage::RecordBufferSegmentPool pool_{2000, 100};
+  storage::RecordBufferSegmentPool buffer_pool_{2000, 100};
   storage::BlockStore block_store_{100, 100};
 
   // Settings for gc
   const std::chrono::milliseconds gc_period_{10};
+
+  // Original Components
+  common::DedicatedThreadRegistry thread_registry_;
+  LogManager *log_manager_;
+  transaction::TimestampManager *timestamp_manager_;
+  transaction::DeferredActionManager *deferred_action_manager_;
+  transaction::TransactionManager *txn_manager_;
+  catalog::Catalog *catalog_;
   storage::GarbageCollector *gc_;
 
-  common::DedicatedThreadRegistry thread_registry_;
+  // Recovery Components
+  transaction::TimestampManager *recovery_timestamp_manager_;
+  transaction::DeferredActionManager *recovery_deferred_action_manager_;
+  transaction::TransactionManager *recovery_txn_manager_;
+  catalog::Catalog *recovery_catalog_;
+  storage::GarbageCollector *recovery_gc_;
 
   void SetUp() override {
+    TerrierTest::SetUp();
     // Unlink log file incase one exists from previous test iteration
     unlink(LOG_FILE_NAME);
-    TerrierTest::SetUp();
+    log_manager_ = new LogManager(LOG_FILE_NAME, num_log_buffers_, log_serialization_interval_, log_persist_interval_,
+                                  log_persist_threshold_, &buffer_pool_, common::ManagedPointer(&thread_registry_));
+    log_manager_->Start();
+    timestamp_manager_ = new transaction::TimestampManager;
+    deferred_action_manager_ = new transaction::DeferredActionManager(timestamp_manager_);
+    txn_manager_ = new transaction::TransactionManager(timestamp_manager_, deferred_action_manager_, &buffer_pool_,
+                                                       true, log_manager_);
+    catalog_ = new catalog::Catalog(txn_manager_, &block_store_);
+    gc_ = new storage::GarbageCollector(timestamp_manager_, deferred_action_manager_, txn_manager_, DISABLED);
+
+    recovery_timestamp_manager_ = new transaction::TimestampManager;
+    recovery_deferred_action_manager_ = new transaction::DeferredActionManager(recovery_timestamp_manager_);
+    recovery_txn_manager_ = new transaction::TransactionManager(
+        recovery_timestamp_manager_, recovery_deferred_action_manager_, &buffer_pool_, true, DISABLED);
+    recovery_catalog_ = new catalog::Catalog(recovery_txn_manager_, &block_store_);
+    recovery_gc_ = new storage::GarbageCollector(recovery_timestamp_manager_, recovery_deferred_action_manager_,
+                                                 recovery_txn_manager_, DISABLED);
   }
 
   void TearDown() override {
     // Delete log file
     unlink(LOG_FILE_NAME);
     TerrierTest::TearDown();
+
+    delete recovery_gc_;
+    delete recovery_catalog_;
+    delete recovery_txn_manager_;
+    delete recovery_deferred_action_manager_;
+    delete recovery_timestamp_manager_;
+
+    delete gc_;
+    delete catalog_;
+    delete txn_manager_;
+    delete deferred_action_manager_;
+    delete timestamp_manager_;
+    delete log_manager_;
   }
 
   catalog::IndexSchema DummyIndexSchema() {
@@ -61,77 +104,6 @@ class RecoveryTests : public TerrierTest {
         parser::ColumnValueExpression(catalog::db_oid_t(0), catalog::table_oid_t(0), catalog::col_oid_t(1)));
     StorageTestUtil::ForceOid(&(keycols[0]), catalog::indexkeycol_oid_t(1));
     return catalog::IndexSchema(keycols, true, true, false, true);
-  }
-
-  void RunTest(const LargeSqlTableTestConfiguration &config) {
-    // Initialize table and run workload with logging enabled
-    LogManager log_manager(LOG_FILE_NAME, num_log_buffers_, log_serialization_interval_, log_persist_interval_,
-                           log_persist_threshold_, &pool_, common::ManagedPointer(&thread_registry_));
-    log_manager.Start();
-
-    transaction::TransactionManager txn_manager(&pool_, true, &log_manager);
-    catalog::Catalog catalog(&txn_manager, &block_store_);
-    auto gc_thread = new storage::GarbageCollectorThread(&txn_manager, gc_period_);  // Enable background GC
-
-    // Run workload
-    auto *tested = new LargeSqlTableTestObject(config, &txn_manager, &catalog, &block_store_, &generator_);
-    tested->SimulateOltp(100, 4);
-
-    // Simulate the system "shutting down". Guarantee persist of log records
-    log_manager.ForceFlush();
-    delete gc_thread;
-    log_manager.PersistAndStop();
-
-    // We now "boot up" up the system and start recovery
-    log_manager.Start();
-    gc_thread = new storage::GarbageCollectorThread(&txn_manager, gc_period_);
-
-    // Start a transaction manager with logging disabled, we don't want to log the log replaying. Also enable GC
-    transaction::TransactionManager recovery_txn_manager{&pool_, true, LOGGING_DISABLED};
-    auto recovery_gc_thread = new storage::GarbageCollectorThread(&recovery_txn_manager, gc_period_);
-
-    // Create catalog for recovery
-    catalog::Catalog recovered_catalog(&recovery_txn_manager, &block_store_);
-
-    // Instantiate recovery manager, and recover the tables.
-    DiskLogProvider log_provider(LOG_FILE_NAME);
-    RecoveryManager recovery_manager(&log_provider, common::ManagedPointer(&recovered_catalog), &recovery_txn_manager,
-                                     common::ManagedPointer(&thread_registry_), &block_store_);
-    recovery_manager.StartRecovery();
-    recovery_manager.WaitForRecoveryToFinish();
-
-    // Check we recovered all the original tables
-    for (auto &database : tested->GetTables()) {
-      auto database_oid = database.first;
-      for (auto &table_oid : database.second) {
-        // Get original sql table
-        auto original_txn = txn_manager.BeginTransaction();
-        auto original_sql_table =
-            catalog.GetDatabaseCatalog(original_txn, database_oid)->GetTable(original_txn, table_oid);
-
-        // Get Recovered table
-        auto *recovery_txn = recovery_txn_manager.BeginTransaction();
-        auto db_catalog = recovered_catalog.GetDatabaseCatalog(recovery_txn, database_oid);
-        EXPECT_TRUE(db_catalog != nullptr);
-        auto recovered_sql_table = db_catalog->GetTable(recovery_txn, table_oid);
-        EXPECT_TRUE(recovered_sql_table != nullptr);
-
-        EXPECT_TRUE(StorageTestUtil::SqlTableEqualDeep(
-            original_sql_table->table_.layout_, original_sql_table, recovered_sql_table,
-            tested->GetTupleSlotsForTable(database_oid, table_oid), recovery_manager.tuple_slot_map_, &txn_manager,
-            &recovery_txn_manager));
-        txn_manager.Commit(original_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
-        recovery_txn_manager.Commit(recovery_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
-      }
-    }
-    // Clean up test object and recovered catalogs
-    recovered_catalog.TearDown();
-    delete recovery_gc_thread;
-
-    catalog.TearDown();
-    delete gc_thread;
-    delete tested;
-    log_manager.PersistAndStop();
   }
 
   catalog::db_oid_t CreateDatabase(transaction::TransactionContext *txn, catalog::Catalog *catalog,
@@ -155,7 +127,7 @@ class RecoveryTests : public TerrierTest {
     auto table_schema = catalog::Schema(std::vector<catalog::Schema::Column>({col}));
     auto table_oid = db_catalog->CreateTable(txn, ns_oid, table_name, table_schema);
     EXPECT_TRUE(table_oid != catalog::INVALID_TABLE_OID);
-    const auto &catalog_schema = db_catalog->GetSchema(txn, table_oid);
+    const auto catalog_schema = db_catalog->GetSchema(txn, table_oid);
     auto *table_ptr = new storage::SqlTable(&block_store_, catalog_schema);
     EXPECT_TRUE(db_catalog->SetTablePointer(txn, table_oid, table_ptr));
     return table_oid;
@@ -204,6 +176,68 @@ class RecoveryTests : public TerrierTest {
 
   storage::BlockLayout &GetBlockLayout(common::ManagedPointer<storage::SqlTable> table) const {
     return table->table_.layout_;
+  }
+
+  void RunTest(const LargeSqlTableTestConfiguration &config) {
+    // Initialize logging and background GC
+    auto gc_thread = new storage::GarbageCollectorThread(gc_, gc_period_);  // Enable background GC
+
+    // Run workload
+    auto *tested = new LargeSqlTableTestObject(config, txn_manager_, catalog_, &block_store_, &generator_);
+    tested->SimulateOltp(100, 4);
+
+    // Simulate the system "shutting down". Guarantee persist of log records
+    log_manager_->ForceFlush();
+    delete gc_thread;
+    log_manager_->PersistAndStop();
+
+    // We now "boot up" up the system and start recovery
+    log_manager_->Start();
+    gc_thread = new storage::GarbageCollectorThread(gc_, gc_period_);
+
+    // Start a transaction manager with logging disabled, we don't want to log the log replaying. Also enable GC
+    auto recovery_gc_thread = new storage::GarbageCollectorThread(recovery_gc_, gc_period_);
+
+    // Instantiate recovery manager, and recover the tables.
+    DiskLogProvider log_provider(LOG_FILE_NAME);
+    RecoveryManager recovery_manager(&log_provider, common::ManagedPointer(recovery_catalog_), recovery_txn_manager_,
+                                     recovery_deferred_action_manager_, common::ManagedPointer(&thread_registry_),
+                                     &block_store_);
+    recovery_manager.StartRecovery();
+    recovery_manager.WaitForRecoveryToFinish();
+
+    // Check we recovered all the original tables
+    for (auto &database : tested->GetTables()) {
+      auto database_oid = database.first;
+      for (auto &table_oid : database.second) {
+        // Get original sql table
+        auto original_txn = txn_manager_->BeginTransaction();
+        auto original_sql_table =
+            catalog_->GetDatabaseCatalog(original_txn, database_oid)->GetTable(original_txn, table_oid);
+
+        // Get Recovered table
+        auto *recovery_txn = recovery_txn_manager_->BeginTransaction();
+        auto db_catalog = recovery_catalog_->GetDatabaseCatalog(recovery_txn, database_oid);
+        EXPECT_TRUE(db_catalog != nullptr);
+        auto recovered_sql_table = db_catalog->GetTable(recovery_txn, table_oid);
+        EXPECT_TRUE(recovered_sql_table != nullptr);
+
+        EXPECT_TRUE(StorageTestUtil::SqlTableEqualDeep(
+            original_sql_table->table_.layout_, original_sql_table, recovered_sql_table,
+            tested->GetTupleSlotsForTable(database_oid, table_oid), recovery_manager.tuple_slot_map_, txn_manager_,
+            recovery_txn_manager_));
+        txn_manager_->Commit(original_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+        recovery_txn_manager_->Commit(recovery_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+      }
+    }
+    // Clean up test object and recovered catalogs
+    recovery_catalog_->TearDown();
+    delete recovery_gc_thread;
+
+    catalog_->TearDown();
+    delete gc_thread;
+    delete tested;
+    log_manager_->PersistAndStop();
   }
 };
 
@@ -258,56 +292,47 @@ TEST_F(RecoveryTests, MultiDatabaseTest) {
 }
 
 // Tests that we correctly process records corresponding to a drop database command.
+// DISABLED DUE TO ISSUE #526
 // NOLINTNEXTLINE
-TEST_F(RecoveryTests, DropDatabaseTest) {
+TEST_F(RecoveryTests, DISABLED_DropDatabaseTest) {
   std::string database_name = "testdb";
   // Bring up original components
-  LogManager log_manager(LOG_FILE_NAME, num_log_buffers_, log_serialization_interval_, log_persist_interval_,
-                         log_persist_threshold_, &pool_, common::ManagedPointer(&thread_registry_));
-  log_manager.Start();
-  transaction::TransactionManager txn_manager{&pool_, true, &log_manager};
-  auto gc_thread = new storage::GarbageCollectorThread(&txn_manager, gc_period_);
-  catalog::Catalog catalog(&txn_manager, &block_store_);
+  auto gc_thread = new storage::GarbageCollectorThread(gc_, gc_period_);  // Enable background GC
 
   // Create and drop the database
-  auto *txn = txn_manager.BeginTransaction();
-  auto db_oid = CreateDatabase(txn, &catalog, database_name);
-  DropDatabase(txn, &catalog, db_oid);
-  txn_manager.Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+  auto *txn = txn_manager_->BeginTransaction();
+  auto db_oid = CreateDatabase(txn, catalog_, database_name);
+  DropDatabase(txn, catalog_, db_oid);
+  txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
   // Simulate the system "shutting down". Guarantee persist of log records
-  log_manager.ForceFlush();
+  log_manager_->ForceFlush();
   delete gc_thread;
-  log_manager.PersistAndStop();
+  log_manager_->PersistAndStop();
 
   // We now "boot up" up the system and start recovery
-  log_manager.Start();
-  gc_thread = new storage::GarbageCollectorThread(&txn_manager, gc_period_);
+  log_manager_->Start();
+  gc_thread = new storage::GarbageCollectorThread(gc_, gc_period_);  // Enable background GC
+  auto recovery_gc_thread = new storage::GarbageCollectorThread(recovery_gc_, gc_period_);
 
-  // Start a transaction manager with logging disabled, we don't want to log the log replaying
-  transaction::TransactionManager recovery_txn_manager{&pool_, true, LOGGING_DISABLED};
-  auto recovery_gc_thread = new storage::GarbageCollectorThread(&recovery_txn_manager, gc_period_);
-
-  // Create catalog for recovery
-  catalog::Catalog recovered_catalog(&recovery_txn_manager, &block_store_);
-
-  // Instantiate recovery manager, and recover the catalog.
+  // Instantiate recovery manager, and recover the catalog_->
   DiskLogProvider log_provider(LOG_FILE_NAME);
-  RecoveryManager recovery_manager(&log_provider, common::ManagedPointer(&recovered_catalog), &recovery_txn_manager,
-                                   common::ManagedPointer(&thread_registry_), &block_store_);
+  RecoveryManager recovery_manager(&log_provider, common::ManagedPointer(recovery_catalog_), recovery_txn_manager_,
+                                   recovery_deferred_action_manager_, common::ManagedPointer(&thread_registry_),
+                                   &block_store_);
   recovery_manager.StartRecovery();
   recovery_manager.WaitForRecoveryToFinish();
 
   // Assert the database we deleted doesn't exist
-  txn = recovery_txn_manager.BeginTransaction();
-  EXPECT_EQ(catalog::INVALID_DATABASE_OID, recovered_catalog.GetDatabaseOid(txn, database_name));
-  EXPECT_FALSE(recovered_catalog.GetDatabaseCatalog(txn, db_oid));
-  recovery_txn_manager.Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+  txn = recovery_txn_manager_->BeginTransaction();
+  EXPECT_EQ(catalog::INVALID_DATABASE_OID, recovery_catalog_->GetDatabaseOid(txn, database_name));
+  EXPECT_FALSE(recovery_catalog_->GetDatabaseCatalog(txn, db_oid));
+  recovery_txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
-  catalog.TearDown();
+  catalog_->TearDown();
   delete gc_thread;
-  log_manager.PersistAndStop();
-  recovered_catalog.TearDown();
+  log_manager_->PersistAndStop();
+  recovery_catalog_->TearDown();
   delete recovery_gc_thread;
 }
 
@@ -317,61 +342,52 @@ TEST_F(RecoveryTests, DropTableTest) {
   std::string database_name = "testdb";
   auto namespace_oid = catalog::NAMESPACE_DEFAULT_NAMESPACE_OID;
   std::string table_name = "testtable";
-  // Bring up original components
-  LogManager log_manager(LOG_FILE_NAME, num_log_buffers_, log_serialization_interval_, log_persist_interval_,
-                         log_persist_threshold_, &pool_, common::ManagedPointer(&thread_registry_));
-  log_manager.Start();
-  transaction::TransactionManager txn_manager{&pool_, true, &log_manager};
-  auto gc_thread = new storage::GarbageCollectorThread(&txn_manager, gc_period_);
 
-  catalog::Catalog catalog(&txn_manager, &block_store_);
+  auto gc_thread = new storage::GarbageCollectorThread(gc_, gc_period_);
 
   // Create database, table, then drop the table
-  auto *txn = txn_manager.BeginTransaction();
-  auto db_oid = CreateDatabase(txn, &catalog, database_name);
-  auto db_catalog = catalog.GetDatabaseCatalog(txn, db_oid);
+  auto *txn = txn_manager_->BeginTransaction();
+  auto db_oid = CreateDatabase(txn, catalog_, database_name);
+  auto db_catalog = catalog_->GetDatabaseCatalog(txn, db_oid);
   auto table_oid = CreateTable(txn, db_catalog, namespace_oid, table_name);
   DropTable(txn, db_catalog, table_oid);
-  txn_manager.Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+  txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
   // Simulate the system "shutting down". Guarantee persist of log records
-  log_manager.ForceFlush();
+  log_manager_->ForceFlush();
   delete gc_thread;
-  log_manager.PersistAndStop();
+  log_manager_->PersistAndStop();
 
   // We now "boot up" up the system and start recovery
-  log_manager.Start();
-  gc_thread = new storage::GarbageCollectorThread(&txn_manager, gc_period_);
+  log_manager_->Start();
+  gc_thread = new storage::GarbageCollectorThread(gc_, gc_period_);
 
   // Start a transaction manager with logging disabled, we don't want to log the log replaying
-  transaction::TransactionManager recovery_txn_manager{&pool_, true, LOGGING_DISABLED};
-  auto recovery_gc_thread = new storage::GarbageCollectorThread(&recovery_txn_manager, gc_period_);
+  auto recovery_gc_thread = new storage::GarbageCollectorThread(recovery_gc_, gc_period_);
 
-  // Create catalog for recovery
-  catalog::Catalog recovered_catalog(&recovery_txn_manager, &block_store_);
-
-  // Instantiate recovery manager, and recover the catalog.
+  // Instantiate recovery manager, and recover the catalog_->
   DiskLogProvider log_provider(LOG_FILE_NAME);
-  RecoveryManager recovery_manager(&log_provider, common::ManagedPointer(&recovered_catalog), &recovery_txn_manager,
-                                   common::ManagedPointer(&thread_registry_), &block_store_);
+  RecoveryManager recovery_manager(&log_provider, common::ManagedPointer(recovery_catalog_), recovery_txn_manager_,
+                                   recovery_deferred_action_manager_, common::ManagedPointer(&thread_registry_),
+                                   &block_store_);
   recovery_manager.StartRecovery();
   recovery_manager.WaitForRecoveryToFinish();
 
   // Assert the database we created exists
-  txn = recovery_txn_manager.BeginTransaction();
-  EXPECT_EQ(db_oid, recovered_catalog.GetDatabaseOid(txn, database_name));
-  db_catalog = recovered_catalog.GetDatabaseCatalog(txn, db_oid);
+  txn = recovery_txn_manager_->BeginTransaction();
+  EXPECT_EQ(db_oid, recovery_catalog_->GetDatabaseOid(txn, database_name));
+  db_catalog = recovery_catalog_->GetDatabaseCatalog(txn, db_oid);
   EXPECT_TRUE(db_catalog);
 
   // Assert the table we deleted doesn't exist
   EXPECT_EQ(catalog::INVALID_TABLE_OID, db_catalog->GetTableOid(txn, namespace_oid, table_name));
   EXPECT_FALSE(db_catalog->GetTable(txn, table_oid));
-  recovery_txn_manager.Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+  recovery_txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
-  catalog.TearDown();
+  catalog_->TearDown();
   delete gc_thread;
-  log_manager.PersistAndStop();
-  recovered_catalog.TearDown();
+  log_manager_->PersistAndStop();
+  recovery_catalog_->TearDown();
   delete recovery_gc_thread;
 }
 
@@ -382,51 +398,41 @@ TEST_F(RecoveryTests, DropIndexTest) {
   auto namespace_oid = catalog::NAMESPACE_DEFAULT_NAMESPACE_OID;
   std::string table_name = "testtable";
   std::string index_name = "testindex";
-  // Bring up original components
-  LogManager log_manager(LOG_FILE_NAME, num_log_buffers_, log_serialization_interval_, log_persist_interval_,
-                         log_persist_threshold_, &pool_, common::ManagedPointer(&thread_registry_));
-  log_manager.Start();
-  transaction::TransactionManager txn_manager{&pool_, true, &log_manager};
-  auto gc_thread = new storage::GarbageCollectorThread(&txn_manager, gc_period_);
-
-  catalog::Catalog catalog(&txn_manager, &block_store_);
+  auto gc_thread = new storage::GarbageCollectorThread(gc_, gc_period_);
 
   // Create database, table, index, then drop the index
-  auto *txn = txn_manager.BeginTransaction();
-  auto db_oid = CreateDatabase(txn, &catalog, database_name);
-  auto db_catalog = catalog.GetDatabaseCatalog(txn, db_oid);
+  auto *txn = txn_manager_->BeginTransaction();
+  auto db_oid = CreateDatabase(txn, catalog_, database_name);
+  auto db_catalog = catalog_->GetDatabaseCatalog(txn, db_oid);
   auto table_oid = CreateTable(txn, db_catalog, namespace_oid, table_name);
   auto index_oid = CreateIndex(txn, db_catalog, namespace_oid, table_oid, index_name);
   DropIndex(txn, db_catalog, index_oid);
-  txn_manager.Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+  txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
   // Simulate the system "shutting down". Guarantee persist of log records
-  log_manager.ForceFlush();
+  log_manager_->ForceFlush();
   delete gc_thread;
-  log_manager.PersistAndStop();
+  log_manager_->PersistAndStop();
 
   // We now "boot up" up the system and start recovery
-  log_manager.Start();
-  gc_thread = new storage::GarbageCollectorThread(&txn_manager, gc_period_);
+  log_manager_->Start();
+  gc_thread = new storage::GarbageCollectorThread(gc_, gc_period_);
 
   // Start a transaction manager with logging disabled, we don't want to log the log replaying
-  transaction::TransactionManager recovery_txn_manager{&pool_, true, LOGGING_DISABLED};
-  auto recovery_gc_thread = new storage::GarbageCollectorThread(&recovery_txn_manager, gc_period_);
+  auto recovery_gc_thread = new storage::GarbageCollectorThread(recovery_gc_, gc_period_);
 
-  // Create catalog for recovery
-  catalog::Catalog recovered_catalog(&recovery_txn_manager, &block_store_);
-
-  // Instantiate recovery manager, and recover the catalog.
+  // Instantiate recovery manager, and recover the catalog_->
   DiskLogProvider log_provider(LOG_FILE_NAME);
-  RecoveryManager recovery_manager(&log_provider, common::ManagedPointer(&recovered_catalog), &recovery_txn_manager,
-                                   common::ManagedPointer(&thread_registry_), &block_store_);
+  RecoveryManager recovery_manager(&log_provider, common::ManagedPointer(recovery_catalog_), recovery_txn_manager_,
+                                   recovery_deferred_action_manager_, common::ManagedPointer(&thread_registry_),
+                                   &block_store_);
   recovery_manager.StartRecovery();
   recovery_manager.WaitForRecoveryToFinish();
 
   // Assert the database we created exists
-  txn = recovery_txn_manager.BeginTransaction();
-  EXPECT_EQ(db_oid, recovered_catalog.GetDatabaseOid(txn, database_name));
-  db_catalog = recovered_catalog.GetDatabaseCatalog(txn, db_oid);
+  txn = recovery_txn_manager_->BeginTransaction();
+  EXPECT_EQ(db_oid, recovery_catalog_->GetDatabaseOid(txn, database_name));
+  db_catalog = recovery_catalog_->GetDatabaseCatalog(txn, db_oid);
   EXPECT_TRUE(db_catalog);
 
   // Assert the table we created exists
@@ -436,12 +442,12 @@ TEST_F(RecoveryTests, DropIndexTest) {
   // Assert the index we deleted doesn't exist
   EXPECT_EQ(0, db_catalog->GetIndexes(txn, table_oid).size());
   EXPECT_FALSE(db_catalog->GetIndex(txn, index_oid));
-  recovery_txn_manager.Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+  recovery_txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
-  catalog.TearDown();
+  catalog_->TearDown();
   delete gc_thread;
-  log_manager.PersistAndStop();
-  recovered_catalog.TearDown();
+  log_manager_->PersistAndStop();
+  recovery_catalog_->TearDown();
   delete recovery_gc_thread;
 }
 
@@ -451,58 +457,50 @@ TEST_F(RecoveryTests, DropNamespaceTest) {
   std::string database_name = "testdb";
   std::string namespace_name = "testnamespace";
   // Bring up original components
-  LogManager log_manager(LOG_FILE_NAME, num_log_buffers_, log_serialization_interval_, log_persist_interval_,
-                         log_persist_threshold_, &pool_, common::ManagedPointer(&thread_registry_));
-  log_manager.Start();
-  transaction::TransactionManager txn_manager{&pool_, true, &log_manager};
-  auto gc_thread = new storage::GarbageCollectorThread(&txn_manager, gc_period_);
-  catalog::Catalog catalog(&txn_manager, &block_store_);
+  auto gc_thread = new storage::GarbageCollectorThread(gc_, gc_period_);
 
   // Create database, namespace, then drop namespace
-  auto *txn = txn_manager.BeginTransaction();
-  auto db_oid = CreateDatabase(txn, &catalog, database_name);
-  auto db_catalog = catalog.GetDatabaseCatalog(txn, db_oid);
+  auto *txn = txn_manager_->BeginTransaction();
+  auto db_oid = CreateDatabase(txn, catalog_, database_name);
+  auto db_catalog = catalog_->GetDatabaseCatalog(txn, db_oid);
   auto ns_oid = CreateNamespace(txn, db_catalog, namespace_name);
   DropNamespace(txn, db_catalog, ns_oid);
-  txn_manager.Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+  txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
   // Simulate the system "shutting down". Guarantee persist of log records
-  log_manager.ForceFlush();
+  log_manager_->ForceFlush();
   delete gc_thread;
-  log_manager.PersistAndStop();
+  log_manager_->PersistAndStop();
 
   // We now "boot up" up the system and start recovery
-  log_manager.Start();
-  gc_thread = new storage::GarbageCollectorThread(&txn_manager, gc_period_);
+  log_manager_->Start();
+  gc_thread = new storage::GarbageCollectorThread(gc_, gc_period_);
 
   // Start a transaction manager with logging disabled, we don't want to log the log replaying
-  transaction::TransactionManager recovery_txn_manager{&pool_, true, LOGGING_DISABLED};
-  auto recovery_gc_thread = new storage::GarbageCollectorThread(&recovery_txn_manager, gc_period_);
+  auto recovery_gc_thread = new storage::GarbageCollectorThread(recovery_gc_, gc_period_);
 
-  // Create catalog for recovery
-  catalog::Catalog recovered_catalog(&recovery_txn_manager, &block_store_);
-
-  // Instantiate recovery manager, and recover the catalog.
+  // Instantiate recovery manager, and recover the catalog_->
   DiskLogProvider log_provider(LOG_FILE_NAME);
-  RecoveryManager recovery_manager(&log_provider, common::ManagedPointer(&recovered_catalog), &recovery_txn_manager,
-                                   common::ManagedPointer(&thread_registry_), &block_store_);
+  RecoveryManager recovery_manager(&log_provider, common::ManagedPointer(recovery_catalog_), recovery_txn_manager_,
+                                   recovery_deferred_action_manager_, common::ManagedPointer(&thread_registry_),
+                                   &block_store_);
   recovery_manager.StartRecovery();
   recovery_manager.WaitForRecoveryToFinish();
 
   // Assert the database we created exists
-  txn = recovery_txn_manager.BeginTransaction();
-  EXPECT_EQ(db_oid, recovered_catalog.GetDatabaseOid(txn, database_name));
-  db_catalog = recovered_catalog.GetDatabaseCatalog(txn, db_oid);
+  txn = recovery_txn_manager_->BeginTransaction();
+  EXPECT_EQ(db_oid, recovery_catalog_->GetDatabaseOid(txn, database_name));
+  db_catalog = recovery_catalog_->GetDatabaseCatalog(txn, db_oid);
   EXPECT_TRUE(db_catalog);
 
   // Assert the namespace we deleted doesn't exist
   EXPECT_EQ(catalog::INVALID_NAMESPACE_OID, db_catalog->GetNamespaceOid(txn, namespace_name));
-  recovery_txn_manager.Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+  recovery_txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
-  catalog.TearDown();
+  catalog_->TearDown();
   delete gc_thread;
-  log_manager.PersistAndStop();
-  recovered_catalog.TearDown();
+  log_manager_->PersistAndStop();
+  recovery_catalog_->TearDown();
   delete recovery_gc_thread;
 }
 
@@ -515,57 +513,48 @@ TEST_F(RecoveryTests, DISABLED_DropDatabaseCascadeDeleteTest) {
   std::string namespace_name = "testnamespace";
   std::string table_name = "testtable";
   std::string index_name = "testindex";
-  // Bring up original components
-  LogManager log_manager(LOG_FILE_NAME, num_log_buffers_, log_serialization_interval_, log_persist_interval_,
-                         log_persist_threshold_, &pool_, common::ManagedPointer(&thread_registry_));
-  log_manager.Start();
-  transaction::TransactionManager txn_manager{&pool_, true, &log_manager};
-  auto gc_thread = new storage::GarbageCollectorThread(&txn_manager, gc_period_);
-  catalog::Catalog catalog(&txn_manager, &block_store_);
+  auto gc_thread = new storage::GarbageCollectorThread(gc_, gc_period_);
 
   // Create a database, namespace, table, index, and then drop the database
-  auto *txn = txn_manager.BeginTransaction();
-  auto db_oid = CreateDatabase(txn, &catalog, database_name);
-  auto db_catalog = catalog.GetDatabaseCatalog(txn, db_oid);
+  auto *txn = txn_manager_->BeginTransaction();
+  auto db_oid = CreateDatabase(txn, catalog_, database_name);
+  auto db_catalog = catalog_->GetDatabaseCatalog(txn, db_oid);
   auto ns_oid = CreateNamespace(txn, db_catalog, namespace_name);
   auto table_oid = CreateTable(txn, db_catalog, ns_oid, table_name);
   CreateIndex(txn, db_catalog, ns_oid, table_oid, index_name);
-  DropDatabase(txn, &catalog, db_oid);
-  txn_manager.Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+  DropDatabase(txn, catalog_, db_oid);
+  txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
   // Simulate the system "shutting down". Guarantee persist of log records
-  log_manager.ForceFlush();
+  log_manager_->ForceFlush();
   delete gc_thread;
-  log_manager.PersistAndStop();
+  log_manager_->PersistAndStop();
 
   // We now "boot up" up the system and start recovery
-  log_manager.Start();
-  gc_thread = new storage::GarbageCollectorThread(&txn_manager, gc_period_);
+  log_manager_->Start();
+  gc_thread = new storage::GarbageCollectorThread(gc_, gc_period_);
 
   // Start a transaction manager with logging disabled, we don't want to log the log replaying
-  transaction::TransactionManager recovery_txn_manager{&pool_, true, LOGGING_DISABLED};
-  auto recovery_gc_thread = new storage::GarbageCollectorThread(&recovery_txn_manager, gc_period_);
+  auto recovery_gc_thread = new storage::GarbageCollectorThread(recovery_gc_, gc_period_);
 
-  // Create catalog for recovery
-  catalog::Catalog recovered_catalog(&recovery_txn_manager, &block_store_);
-
-  // Instantiate recovery manager, and recover the catalog.
+  // Instantiate recovery manager, and recover the catalog_->
   DiskLogProvider log_provider(LOG_FILE_NAME);
-  RecoveryManager recovery_manager(&log_provider, common::ManagedPointer(&recovered_catalog), &recovery_txn_manager,
-                                   common::ManagedPointer(&thread_registry_), &block_store_);
+  RecoveryManager recovery_manager(&log_provider, common::ManagedPointer(recovery_catalog_), recovery_txn_manager_,
+                                   recovery_deferred_action_manager_, common::ManagedPointer(&thread_registry_),
+                                   &block_store_);
   recovery_manager.StartRecovery();
   recovery_manager.WaitForRecoveryToFinish();
 
   // Assert the database does not exist
-  txn = recovery_txn_manager.BeginTransaction();
-  EXPECT_EQ(catalog::INVALID_DATABASE_OID, recovered_catalog.GetDatabaseOid(txn, database_name));
-  EXPECT_FALSE(recovered_catalog.GetDatabaseCatalog(txn, db_oid));
-  recovery_txn_manager.Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+  txn = recovery_txn_manager_->BeginTransaction();
+  EXPECT_EQ(catalog::INVALID_DATABASE_OID, recovery_catalog_->GetDatabaseOid(txn, database_name));
+  EXPECT_FALSE(recovery_catalog_->GetDatabaseCatalog(txn, db_oid));
+  recovery_txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
-  catalog.TearDown();
+  catalog_->TearDown();
   delete gc_thread;
-  log_manager.PersistAndStop();
-  recovered_catalog.TearDown();
+  log_manager_->PersistAndStop();
+  recovery_catalog_->TearDown();
   delete recovery_gc_thread;
 }
 
@@ -576,18 +565,12 @@ TEST_F(RecoveryTests, DISABLED_DropDatabaseCascadeDeleteTest) {
 TEST_F(RecoveryTests, DISABLED_UnrecoverableTransactionsTest) {
   std::string database_name = "testdb";
 
-  // Bring up original components
-  LogManager log_manager(LOG_FILE_NAME, num_log_buffers_, log_serialization_interval_, log_persist_interval_,
-                         log_persist_threshold_, &pool_, common::ManagedPointer(&thread_registry_));
-  log_manager.Start();
-  transaction::TransactionManager txn_manager{&pool_, true, &log_manager};
-  auto gc_thread = new storage::GarbageCollectorThread(&txn_manager, gc_period_);
-  catalog::Catalog catalog(&txn_manager, &block_store_);
+  auto gc_thread = new storage::GarbageCollectorThread(gc_, gc_period_);
 
   // Create a database and commit, we should see this one after recovery
-  auto *txn = txn_manager.BeginTransaction();
-  auto db_oid = CreateDatabase(txn, &catalog, database_name);
-  txn_manager.Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+  auto *txn = txn_manager_->BeginTransaction();
+  auto db_oid = CreateDatabase(txn, catalog_, database_name);
+  txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
   // We insert a sleep in here so that GC has the opportunity to clean up the previous txn. Otherwise, the next txn will
   // prevent it from doing so since it never finishes, and by deleting the gc thread during "shutdown", the previous txn
@@ -597,55 +580,52 @@ TEST_F(RecoveryTests, DISABLED_UnrecoverableTransactionsTest) {
   // Create a ton of databases to make a transaction flush redo record buffers. In theory we could do any change, but a
   // create database call will generate a ton of records. Importantly, we don't commit the txn.
   std::vector<catalog::db_oid_t> unrecoverable_databases;
-  auto *unrecoverable_txn = txn_manager.BeginTransaction();
+  auto *unrecoverable_txn = txn_manager_->BeginTransaction();
   int db_idx = 0;
   while (!GetRedoBuffer(unrecoverable_txn).HasFlushed()) {
-    unrecoverable_databases.push_back(CreateDatabase(unrecoverable_txn, &catalog, std::to_string(db_idx)));
+    unrecoverable_databases.push_back(CreateDatabase(unrecoverable_txn, catalog_, std::to_string(db_idx)));
     db_idx++;
   }
 
   // Simulate the system "crashing" (i.e. unrecoverable_txn has not been committed). We guarantee persist of log records
   // because the purpose of the test is how we handle these unrecoverable records showing up during recovery
-  log_manager.ForceFlush();
+  log_manager_->ForceFlush();
   delete gc_thread;
-  log_manager.PersistAndStop();
+  log_manager_->PersistAndStop();
 
   // We now "boot up" up the system and start recovery
-  log_manager.Start();
-  gc_thread = new storage::GarbageCollectorThread(&txn_manager, gc_period_);
+  log_manager_->Start();
+  gc_thread = new storage::GarbageCollectorThread(gc_, gc_period_);
 
-  // Start a transaction manager with logging disabled, we don't want to log the log replaying
-  transaction::TransactionManager recovery_txn_manager{&pool_, true, LOGGING_DISABLED};
-  auto recovery_gc_thread = new storage::GarbageCollectorThread(&recovery_txn_manager, gc_period_);
+  auto recovery_gc_thread = new storage::GarbageCollectorThread(recovery_gc_, gc_period_);
 
-  // Create catalog for recovery
-  catalog::Catalog recovered_catalog(&recovery_txn_manager, &block_store_);
-
-  // Instantiate recovery manager, and recover the catalog.
+  // Instantiate recovery manager, and recover the catalog_->
   DiskLogProvider log_provider(LOG_FILE_NAME);
-  RecoveryManager recovery_manager(&log_provider, common::ManagedPointer(&recovered_catalog), &recovery_txn_manager,
-                                   common::ManagedPointer(&thread_registry_), &block_store_);
+  RecoveryManager recovery_manager(&log_provider, common::ManagedPointer(recovery_catalog_), recovery_txn_manager_,
+                                   recovery_deferred_action_manager_, common::ManagedPointer(&thread_registry_),
+                                   &block_store_);
   recovery_manager.StartRecovery();
   recovery_manager.WaitForRecoveryToFinish();
 
   // Assert the database creation we committed does exist
-  txn = recovery_txn_manager.BeginTransaction();
-  EXPECT_EQ(db_oid, recovered_catalog.GetDatabaseOid(txn, database_name));
-  EXPECT_TRUE(recovered_catalog.GetDatabaseCatalog(txn, db_oid));
+  txn = recovery_txn_manager_->BeginTransaction();
+  EXPECT_EQ(db_oid, recovery_catalog_->GetDatabaseOid(txn, database_name));
+  EXPECT_TRUE(recovery_catalog_->GetDatabaseCatalog(txn, db_oid));
 
   // Assert that none of the unrecoverable databases exist:
   for (int i = 0; i < db_idx; i++) {
-    EXPECT_EQ(catalog::INVALID_DATABASE_OID, recovered_catalog.GetDatabaseOid(txn, std::to_string(i)));
-    EXPECT_FALSE(recovered_catalog.GetDatabaseCatalog(txn, unrecoverable_databases[i]));
+    EXPECT_EQ(catalog::INVALID_DATABASE_OID, recovery_catalog_->GetDatabaseOid(txn, std::to_string(i)));
+    EXPECT_FALSE(recovery_catalog_->GetDatabaseCatalog(txn, unrecoverable_databases[i]));
   }
-  recovery_txn_manager.Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+  recovery_txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
   // Finally abort the unrecoverable_txn so GC can clean it up
-  txn_manager.Abort(unrecoverable_txn);
-  catalog.TearDown();
+  txn_manager_->Abort(unrecoverable_txn);
+
+  catalog_->TearDown();
   delete gc_thread;
-  log_manager.PersistAndStop();
-  recovered_catalog.TearDown();
+  log_manager_->PersistAndStop();
+  recovery_catalog_->TearDown();
   delete recovery_gc_thread;
 }
 
@@ -673,67 +653,57 @@ TEST_F(RecoveryTests, DISABLED_ConcurrentCatalogDDLChangesTest) {
   std::string database_name = "testdb";
   auto namespace_oid = catalog::NAMESPACE_DEFAULT_NAMESPACE_OID;
   std::string table_name = "foo";
-  // Bring up original components
-  LogManager log_manager(LOG_FILE_NAME, num_log_buffers_, log_serialization_interval_, log_persist_interval_,
-                         log_persist_threshold_, &pool_, common::ManagedPointer(&thread_registry_));
-  log_manager.Start();
-  transaction::TransactionManager txn_manager{&pool_, true, &log_manager};
-  auto gc_thread = new storage::GarbageCollectorThread(&txn_manager, gc_period_);
-
-  catalog::Catalog catalog(&txn_manager, &block_store_);
+  auto gc_thread = new storage::GarbageCollectorThread(gc_, gc_period_);
 
   // Begin T0, create database, create table foo, and commit
-  auto *txn0 = txn_manager.BeginTransaction();
-  auto db_oid = CreateDatabase(txn0, &catalog, database_name);
-  txn_manager.Commit(txn0, transaction::TransactionUtil::EmptyCallback, nullptr);
+  auto *txn0 = txn_manager_->BeginTransaction();
+  auto db_oid = CreateDatabase(txn0, catalog_, database_name);
+  txn_manager_->Commit(txn0, transaction::TransactionUtil::EmptyCallback, nullptr);
 
   // Begin T1
-  auto txn1 = txn_manager.BeginTransaction();
+  auto txn1 = txn_manager_->BeginTransaction();
 
   // Begin T2, drop testdb, and commit
-  auto txn2 = txn_manager.BeginTransaction();
-  DropDatabase(txn2, &catalog, db_oid);
-  txn_manager.Commit(txn2, transaction::TransactionUtil::EmptyCallback, nullptr);
+  auto txn2 = txn_manager_->BeginTransaction();
+  DropDatabase(txn2, catalog_, db_oid);
+  txn_manager_->Commit(txn2, transaction::TransactionUtil::EmptyCallback, nullptr);
 
   // With T1, create a table in testdb and commit. Even though T2 dropped testdb, this operation should still succeed
   // because T1 got a snapshot before T2
-  auto db_catalog = catalog.GetDatabaseCatalog(txn1, db_oid);
+  auto db_catalog = catalog_->GetDatabaseCatalog(txn1, db_oid);
   CreateTable(txn1, db_catalog, namespace_oid, table_name);
-  txn_manager.Commit(txn1, transaction::TransactionUtil::EmptyCallback, nullptr);
+  txn_manager_->Commit(txn1, transaction::TransactionUtil::EmptyCallback, nullptr);
 
   // Simulate the system "shutting down". Guarantee persist of log records
-  log_manager.ForceFlush();
+  log_manager_->ForceFlush();
   delete gc_thread;
-  log_manager.PersistAndStop();
+  log_manager_->PersistAndStop();
 
   // We now "boot up" up the system and start recovery
-  log_manager.Start();
-  gc_thread = new storage::GarbageCollectorThread(&txn_manager, gc_period_);
+  log_manager_->Start();
+  gc_thread = new storage::GarbageCollectorThread(gc_, gc_period_);
 
   // Start a transaction manager with logging disabled, we don't want to log the log replaying
-  transaction::TransactionManager recovery_txn_manager{&pool_, true, LOGGING_DISABLED};
-  auto recovery_gc_thread = new storage::GarbageCollectorThread(&recovery_txn_manager, gc_period_);
+  auto recovery_gc_thread = new storage::GarbageCollectorThread(recovery_gc_, gc_period_);
 
-  // Create catalog for recovery
-  catalog::Catalog recovered_catalog(&recovery_txn_manager, &block_store_);
-
-  // Instantiate recovery manager, and recover the catalog.
+  // Instantiate recovery manager, and recover the catalog_->
   DiskLogProvider log_provider(LOG_FILE_NAME);
-  RecoveryManager recovery_manager(&log_provider, common::ManagedPointer(&recovered_catalog), &recovery_txn_manager,
-                                   common::ManagedPointer(&thread_registry_), &block_store_);
+  RecoveryManager recovery_manager(&log_provider, common::ManagedPointer(recovery_catalog_), recovery_txn_manager_,
+                                   recovery_deferred_action_manager_, common::ManagedPointer(&thread_registry_),
+                                   &block_store_);
   recovery_manager.StartRecovery();
   recovery_manager.WaitForRecoveryToFinish();
 
   // Assert the database we created does not exists
-  auto txn = recovery_txn_manager.BeginTransaction();
-  EXPECT_EQ(catalog::INVALID_DATABASE_OID, recovered_catalog.GetDatabaseOid(txn, database_name));
-  EXPECT_FALSE(recovered_catalog.GetDatabaseCatalog(txn, db_oid));
-  recovery_txn_manager.Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+  auto txn = recovery_txn_manager_->BeginTransaction();
+  EXPECT_EQ(catalog::INVALID_DATABASE_OID, recovery_catalog_->GetDatabaseOid(txn, database_name));
+  EXPECT_FALSE(recovery_catalog_->GetDatabaseCatalog(txn, db_oid));
+  recovery_txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
-  catalog.TearDown();
+  catalog_->TearDown();
   delete gc_thread;
-  log_manager.PersistAndStop();
-  recovered_catalog.TearDown();
+  log_manager_->PersistAndStop();
+  recovery_catalog_->TearDown();
   delete recovery_gc_thread;
 }
 
@@ -762,34 +732,27 @@ TEST_F(RecoveryTests, DISABLED_ConcurrentDDLChangesTest) {
   std::string database_name = "testdb";
   auto namespace_oid = catalog::NAMESPACE_DEFAULT_NAMESPACE_OID;
   std::string table_name = "foo";
-  // Bring up original components
-  LogManager log_manager(LOG_FILE_NAME, num_log_buffers_, log_serialization_interval_, log_persist_interval_,
-                         log_persist_threshold_, &pool_, common::ManagedPointer(&thread_registry_));
-  log_manager.Start();
-  transaction::TransactionManager txn_manager{&pool_, true, &log_manager};
-  auto gc_thread = new storage::GarbageCollectorThread(&txn_manager, gc_period_);
-
-  catalog::Catalog catalog(&txn_manager, &block_store_);
+  auto gc_thread = new storage::GarbageCollectorThread(gc_, gc_period_);
 
   // Begin T0, create database, create table foo, and commit
-  auto *txn0 = txn_manager.BeginTransaction();
-  auto db_oid = CreateDatabase(txn0, &catalog, database_name);
-  auto db_catalog = catalog.GetDatabaseCatalog(txn0, db_oid);
+  auto *txn0 = txn_manager_->BeginTransaction();
+  auto db_oid = CreateDatabase(txn0, catalog_, database_name);
+  auto db_catalog = catalog_->GetDatabaseCatalog(txn0, db_oid);
   auto table_oid = CreateTable(txn0, db_catalog, namespace_oid, table_name);
-  txn_manager.Commit(txn0, transaction::TransactionUtil::EmptyCallback, nullptr);
+  txn_manager_->Commit(txn0, transaction::TransactionUtil::EmptyCallback, nullptr);
 
   // Begin T1
-  auto txn1 = txn_manager.BeginTransaction();
+  auto txn1 = txn_manager_->BeginTransaction();
 
   // Begin T2, drop foo, and commit
-  auto txn2 = txn_manager.BeginTransaction();
-  db_catalog = catalog.GetDatabaseCatalog(txn2, db_oid);
+  auto txn2 = txn_manager_->BeginTransaction();
+  db_catalog = catalog_->GetDatabaseCatalog(txn2, db_oid);
   DropTable(txn2, db_catalog, table_oid);
-  txn_manager.Commit(txn2, transaction::TransactionUtil::EmptyCallback, nullptr);
+  txn_manager_->Commit(txn2, transaction::TransactionUtil::EmptyCallback, nullptr);
 
   // With T1, insert into foo and commit. Even though T2 dropped foo, this operation should still succeed
   // because T1 got a snapshot before T2
-  db_catalog = catalog.GetDatabaseCatalog(txn1, db_oid);
+  db_catalog = catalog_->GetDatabaseCatalog(txn1, db_oid);
   auto table_ptr = db_catalog->GetTable(txn1, table_oid);
   const auto &schema = db_catalog->GetSchema(txn1, table_oid);
   EXPECT_EQ(1, schema.GetColumns().size());
@@ -798,59 +761,46 @@ TEST_F(RecoveryTests, DISABLED_ConcurrentDDLChangesTest) {
   auto *redo_record = txn1->StageWrite(db_oid, table_oid, initializer);
   *reinterpret_cast<int32_t *>(redo_record->Delta()->AccessForceNotNull(0)) = 0;
   table_ptr->Insert(txn1, redo_record);
-  txn_manager.Commit(txn1, transaction::TransactionUtil::EmptyCallback, nullptr);
+  txn_manager_->Commit(txn1, transaction::TransactionUtil::EmptyCallback, nullptr);
 
   // Simulate the system "shutting down". Guarantee persist of log records
-  log_manager.ForceFlush();
+  log_manager_->ForceFlush();
   delete gc_thread;
-  log_manager.PersistAndStop();
+  log_manager_->PersistAndStop();
 
   // We now "boot up" up the system and start recovery
-  log_manager.Start();
-  gc_thread = new storage::GarbageCollectorThread(&txn_manager, gc_period_);
+  log_manager_->Start();
+  gc_thread = new storage::GarbageCollectorThread(gc_, gc_period_);
+  auto recovery_gc_thread = new storage::GarbageCollectorThread(recovery_gc_, gc_period_);
 
-  // Start a transaction manager with logging disabled, we don't want to log the log replaying
-  transaction::TransactionManager recovery_txn_manager{&pool_, true, LOGGING_DISABLED};
-  auto recovery_gc_thread = new storage::GarbageCollectorThread(&recovery_txn_manager, gc_period_);
-
-  // Create catalog for recovery
-  catalog::Catalog recovered_catalog(&recovery_txn_manager, &block_store_);
-
-  // Instantiate recovery manager, and recover the catalog.
+  // Instantiate recovery manager, and recover the catalog
   DiskLogProvider log_provider(LOG_FILE_NAME);
-  RecoveryManager recovery_manager(&log_provider, common::ManagedPointer(&recovered_catalog), &recovery_txn_manager,
-                                   common::ManagedPointer(&thread_registry_), &block_store_);
+  RecoveryManager recovery_manager(&log_provider, common::ManagedPointer(recovery_catalog_), recovery_txn_manager_,
+                                   recovery_deferred_action_manager_, common::ManagedPointer(&thread_registry_),
+                                   &block_store_);
   recovery_manager.StartRecovery();
   recovery_manager.WaitForRecoveryToFinish();
 
   // Assert the database we created does not exists
-  auto txn = recovery_txn_manager.BeginTransaction();
-  EXPECT_EQ(db_oid, recovered_catalog.GetDatabaseOid(txn, database_name));
-  EXPECT_TRUE(recovered_catalog.GetDatabaseCatalog(txn, db_oid));
+  auto txn = recovery_txn_manager_->BeginTransaction();
+  EXPECT_EQ(db_oid, recovery_catalog_->GetDatabaseOid(txn, database_name));
+  EXPECT_TRUE(recovery_catalog_->GetDatabaseCatalog(txn, db_oid));
 
   // Assert the table we deleted doesn't exist
   EXPECT_EQ(catalog::INVALID_TABLE_OID, db_catalog->GetTableOid(txn, namespace_oid, table_name));
   EXPECT_FALSE(db_catalog->GetTable(txn, table_oid));
-  recovery_txn_manager.Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+  recovery_txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
-  catalog.TearDown();
+  catalog_->TearDown();
   delete gc_thread;
-  log_manager.PersistAndStop();
-  recovered_catalog.TearDown();
+  log_manager_->PersistAndStop();
+  recovery_catalog_->TearDown();
   delete recovery_gc_thread;
 }
 
 TEST_F(RecoveryTests, DoubleRecoveryTest) {
   std::string secondary_log_file = "test2.log";
   unlink(secondary_log_file.c_str());
-  // Initialize table and run workload with logging enabled
-  LogManager log_manager(LOG_FILE_NAME, num_log_buffers_, log_serialization_interval_, log_persist_interval_,
-                         log_persist_threshold_, &pool_, common::ManagedPointer(&thread_registry_));
-  log_manager.Start();
-
-  transaction::TransactionManager txn_manager(&pool_, true, &log_manager);
-  catalog::Catalog catalog(&txn_manager, &block_store_);
-
   LargeSqlTableTestConfiguration config = LargeSqlTableTestConfiguration::Builder()
                                               .SetNumDatabases(1)
                                               .SetNumTables(1)
@@ -860,33 +810,41 @@ TEST_F(RecoveryTests, DoubleRecoveryTest) {
                                               .SetInsertUpdateSelectDeleteRatio({0.2, 0.5, 0.2, 0.1})
                                               .SetVarlenAllowed(true)
                                               .Build();
-  auto *tested = new LargeSqlTableTestObject(config, &txn_manager, &catalog, &block_store_, &generator_);
+  auto *tested = new LargeSqlTableTestObject(config, txn_manager_, catalog_, &block_store_, &generator_);
   // Enable GC
-  auto gc_thread = new storage::GarbageCollectorThread(&txn_manager, gc_period_);
+  auto gc_thread = new storage::GarbageCollectorThread(gc_, gc_period_);
 
   // Run workload
   tested->SimulateOltp(100, 4);
 
   // Simulate the system "shutting down". Guarantee persist of log records
-  log_manager.ForceFlush();
+  log_manager_->ForceFlush();
   delete gc_thread;
-  log_manager.PersistAndStop();
+  log_manager_->PersistAndStop();
 
   // We now "boot up" up the system and start recovery
-  log_manager.Start();
-  gc_thread = new storage::GarbageCollectorThread(&txn_manager, gc_period_);
+  log_manager_->Start();
+  gc_thread = new storage::GarbageCollectorThread(gc_, gc_period_);
 
   // We create a new log manager to log the changes replayed during recovery
   LogManager secondary_log_manager(secondary_log_file, num_log_buffers_, log_serialization_interval_,
-                                   log_persist_interval_, log_persist_threshold_, &pool_,
+                                   log_persist_interval_, log_persist_threshold_, &buffer_pool_,
                                    common::ManagedPointer(&thread_registry_));
   secondary_log_manager.Start();
 
-  transaction::TransactionManager recovery_txn_manager{&pool_, true, &secondary_log_manager};
-  auto recovery_gc_thread = new storage::GarbageCollectorThread(&recovery_txn_manager, gc_period_);
-
-  // Create catalog for recovery
-  catalog::Catalog recovered_catalog(&recovery_txn_manager, &block_store_);
+  // Override the recovery txn manager to now log out
+  recovery_catalog_->TearDown();
+  auto *recovery_gc_thread = new storage::GarbageCollectorThread(recovery_gc_, gc_period_);
+  delete recovery_gc_thread;
+  delete recovery_gc_;
+  delete recovery_catalog_;
+  delete recovery_txn_manager_;
+  recovery_txn_manager_ = new transaction::TransactionManager(
+      recovery_timestamp_manager_, recovery_deferred_action_manager_, &buffer_pool_, true, &secondary_log_manager);
+  recovery_catalog_ = new catalog::Catalog(recovery_txn_manager_, &block_store_);
+  recovery_gc_ = new storage::GarbageCollector(recovery_timestamp_manager_, recovery_deferred_action_manager_,
+                                               recovery_txn_manager_, DISABLED);
+  recovery_gc_thread = new storage::GarbageCollectorThread(recovery_gc_, gc_period_);
 
   //--------------------------------
   // Do recovery for the first time
@@ -894,8 +852,9 @@ TEST_F(RecoveryTests, DoubleRecoveryTest) {
 
   // Instantiate recovery manager, and recover the tables.
   DiskLogProvider log_provider(LOG_FILE_NAME);
-  RecoveryManager recovery_manager(&log_provider, common::ManagedPointer(&recovered_catalog), &recovery_txn_manager,
-                                   common::ManagedPointer(&thread_registry_), &block_store_);
+  RecoveryManager recovery_manager(&log_provider, common::ManagedPointer(recovery_catalog_), recovery_txn_manager_,
+                                   recovery_deferred_action_manager_, common::ManagedPointer(&thread_registry_),
+                                   &block_store_);
   recovery_manager.StartRecovery();
   recovery_manager.WaitForRecoveryToFinish();
 
@@ -904,51 +863,57 @@ TEST_F(RecoveryTests, DoubleRecoveryTest) {
     auto database_oid = database.first;
     for (auto &table_oid : database.second) {
       // Get original sql table
-      auto original_txn = txn_manager.BeginTransaction();
+      auto original_txn = txn_manager_->BeginTransaction();
       auto original_sql_table =
-          catalog.GetDatabaseCatalog(original_txn, database_oid)->GetTable(original_txn, table_oid);
+          catalog_->GetDatabaseCatalog(original_txn, database_oid)->GetTable(original_txn, table_oid);
 
       // Get Recovered table
-      auto *recovery_txn = recovery_txn_manager.BeginTransaction();
-      auto db_catalog = recovered_catalog.GetDatabaseCatalog(recovery_txn, database_oid);
+      auto *recovery_txn = recovery_txn_manager_->BeginTransaction();
+      auto db_catalog = recovery_catalog_->GetDatabaseCatalog(recovery_txn, database_oid);
       EXPECT_TRUE(db_catalog != nullptr);
       auto recovered_sql_table = db_catalog->GetTable(recovery_txn, table_oid);
       EXPECT_TRUE(recovered_sql_table != nullptr);
 
       EXPECT_TRUE(StorageTestUtil::SqlTableEqualDeep(
           GetBlockLayout(original_sql_table), original_sql_table, recovered_sql_table,
-          tested->GetTupleSlotsForTable(database_oid, table_oid), recovery_manager.tuple_slot_map_, &txn_manager,
-          &recovery_txn_manager));
-      txn_manager.Commit(original_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
-      recovery_txn_manager.Commit(recovery_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+          tested->GetTupleSlotsForTable(database_oid, table_oid), recovery_manager.tuple_slot_map_, txn_manager_,
+          recovery_txn_manager_));
+      txn_manager_->Commit(original_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+      recovery_txn_manager_->Commit(recovery_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
     }
   }
   // Clean up test object and recovered catalogs
-  recovered_catalog.TearDown();
+  recovery_catalog_->TearDown();
   delete recovery_gc_thread;
 
-  log_manager.PersistAndStop();
+  log_manager_->PersistAndStop();
 
   secondary_log_manager.PersistAndStop();
 
   //-----------------------------------------
   // Now recover based off the last recovery
   //-----------------------------------------
-
-  log_manager.Start();
+  log_manager_->Start();
 
   // Create a new txn manager with logging disabled
-  transaction::TransactionManager secondary_recovery_txn_manager{&pool_, true, LOGGING_DISABLED};
-  auto secondary_recovery_gc_thread = new storage::GarbageCollectorThread(&secondary_recovery_txn_manager, gc_period_);
+  transaction::TimestampManager secondary_recovery_timestamp_manager_;
+  transaction::DeferredActionManager secondary_recovery_deferred_action_manager_{recovery_timestamp_manager_};
+  transaction::TransactionManager secondary_recovery_txn_manager{&secondary_recovery_timestamp_manager_,
+                                                                 &secondary_recovery_deferred_action_manager_,
+                                                                 &buffer_pool_, true, DISABLED};
+  storage::GarbageCollector secondary_recovery_gc{&secondary_recovery_timestamp_manager_,
+                                                  &secondary_recovery_deferred_action_manager_,
+                                                  &secondary_recovery_txn_manager, DISABLED};
+  auto secondary_recovery_gc_thread = new storage::GarbageCollectorThread(&secondary_recovery_gc, gc_period_);
 
   // Create a new catalog for this second recovery
-  catalog::Catalog secondary_recovered_catalog(&secondary_recovery_txn_manager, &block_store_);
+  catalog::Catalog secondary_recovery_catalog{&secondary_recovery_txn_manager, &block_store_};
 
   // Instantiate a new recovery manager, and recover the tables.
   DiskLogProvider secondary_log_provider(secondary_log_file);
   RecoveryManager secondary_recovery_manager(
-      &secondary_log_provider, common::ManagedPointer(&secondary_recovered_catalog), &secondary_recovery_txn_manager,
-      common::ManagedPointer(&thread_registry_), &block_store_);
+      &secondary_log_provider, common::ManagedPointer(&secondary_recovery_catalog), &secondary_recovery_txn_manager,
+      &secondary_recovery_deferred_action_manager_, common::ManagedPointer(&thread_registry_), &block_store_);
   secondary_recovery_manager.StartRecovery();
   secondary_recovery_manager.WaitForRecoveryToFinish();
 
@@ -963,33 +928,33 @@ TEST_F(RecoveryTests, DoubleRecoveryTest) {
     auto database_oid = database.first;
     for (auto &table_oid : database.second) {
       // Get original sql table
-      auto original_txn = txn_manager.BeginTransaction();
+      auto original_txn = txn_manager_->BeginTransaction();
       auto original_sql_table =
-          catalog.GetDatabaseCatalog(original_txn, database_oid)->GetTable(original_txn, table_oid);
+          catalog_->GetDatabaseCatalog(original_txn, database_oid)->GetTable(original_txn, table_oid);
 
       // Get Recovered table
       auto *recovery_txn = secondary_recovery_txn_manager.BeginTransaction();
-      auto db_catalog = secondary_recovered_catalog.GetDatabaseCatalog(recovery_txn, database_oid);
+      auto db_catalog = secondary_recovery_catalog.GetDatabaseCatalog(recovery_txn, database_oid);
       EXPECT_TRUE(db_catalog != nullptr);
       auto recovered_sql_table = db_catalog->GetTable(recovery_txn, table_oid);
       EXPECT_TRUE(recovered_sql_table != nullptr);
 
       EXPECT_TRUE(StorageTestUtil::SqlTableEqualDeep(
           GetBlockLayout(original_sql_table), original_sql_table, recovered_sql_table,
-          tested->GetTupleSlotsForTable(database_oid, table_oid), new_tuple_slot_map, &txn_manager,
+          tested->GetTupleSlotsForTable(database_oid, table_oid), new_tuple_slot_map, txn_manager_,
           &secondary_recovery_txn_manager));
-      txn_manager.Commit(original_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+      txn_manager_->Commit(original_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
       secondary_recovery_txn_manager.Commit(recovery_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
     }
   }
   // Clean up test object and recovered catalogs
-  secondary_recovered_catalog.TearDown();
+  secondary_recovery_catalog.TearDown();
   delete secondary_recovery_gc_thread;
 
-  catalog.TearDown();
+  catalog_->TearDown();
   delete gc_thread;
   delete tested;
-  log_manager.PersistAndStop();
+  log_manager_->PersistAndStop();
   unlink(secondary_log_file.c_str());
 }
 }  // namespace terrier::storage
