@@ -30,9 +30,9 @@ class HashKey {
   /**
    * key size in bytes, exposed for hasher and comparators
    */
-  static constexpr size_t key_size_byte = KeySize;
+  static constexpr size_t KEY_SIZE_BYTE = KeySize;
   static_assert(KeySize > 0 && KeySize <= HASHKEY_MAX_SIZE);  // size must be no greater than 256-bits
-  static_assert(key_size_byte % sizeof(uintptr_t) == 0);      // size must be multiple of 8 bytes
+  static_assert(KEY_SIZE_BYTE % sizeof(uintptr_t) == 0);      // size must be multiple of 8 bytes
 
   /**
    * @return underlying byte array, exposed for hasher and comparators
@@ -46,7 +46,7 @@ class HashKey {
    * HashKey
    */
   void SetFromProjectedRow(const storage::ProjectedRow &from, const IndexMetadata &metadata) {
-    std::memset(key_data_, 0, key_size_byte);
+    std::memset(key_data_, 0, KEY_SIZE_BYTE);
 
     const auto key_size = metadata.KeySize();
 
@@ -64,7 +64,7 @@ class HashKey {
   }
 
  private:
-  byte key_data_[key_size_byte];
+  byte key_data_[KEY_SIZE_BYTE];
 };
 
 }  // namespace terrier::storage::index
@@ -84,7 +84,7 @@ struct hash<terrier::storage::index::HashKey<KeySize>> {
   size_t operator()(const terrier::storage::index::HashKey<KeySize> &key) const {
     // you're technically hashing more bytes than you need to, but hopefully key size isn't wildly over-provisioned
     return static_cast<size_t>(XXH3_64bits(reinterpret_cast<const void *>(key.KeyData()),
-                                           terrier::storage::index::HashKey<KeySize>::key_size_byte));
+                                           terrier::storage::index::HashKey<KeySize>::KEY_SIZE_BYTE));
   }
 };
 
@@ -102,7 +102,7 @@ struct equal_to<terrier::storage::index::HashKey<KeySize>> {
   bool operator()(const terrier::storage::index::HashKey<KeySize> &lhs,
                   const terrier::storage::index::HashKey<KeySize> &rhs) const {
     // you're technically comparing more bytes than you need to, but hopefully key size isn't wildly over-provisioned
-    return std::memcmp(lhs.KeyData(), rhs.KeyData(), terrier::storage::index::HashKey<KeySize>::key_size_byte) == 0;
+    return std::memcmp(lhs.KeyData(), rhs.KeyData(), terrier::storage::index::HashKey<KeySize>::KEY_SIZE_BYTE) == 0;
   }
 };
 }  // namespace std
