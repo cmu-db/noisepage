@@ -93,7 +93,7 @@ class alignas(common::Constants::BLOCK_SIZE) RawBlock {
    * of the block, we need to clear the status bit to get the real offset
    * @return the offset which tells us where the next insertion should take place
    */
-  uint32_t GetInsertHead() { return (~(1 << 31)) & insert_head_.load(); }
+  uint32_t GetInsertHead() { return INT32_MAX & insert_head_.load(); }
 };
 
 /**
