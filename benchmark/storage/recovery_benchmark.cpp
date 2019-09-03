@@ -8,7 +8,7 @@
 #include "storage/write_ahead_log/log_manager.h"
 #include "util/sql_table_test_util.h"
 
-#define LOG_FILE_NAME "benchmark.txt"
+#define LOG_FILE_NAME "/mnt/ramdisk/benchmark.txt"
 
 namespace terrier {
 
@@ -17,10 +17,10 @@ class RecoveryBenchmark : public benchmark::Fixture {
   void SetUp(const benchmark::State &state) final { unlink(LOG_FILE_NAME); }
   void TearDown(const benchmark::State &state) final { unlink(LOG_FILE_NAME); }
 
-  const uint32_t initial_table_size_ = 1000;
-  const uint32_t num_txns_ = 100;
+  const uint32_t initial_table_size_ = 1000000;
+  const uint32_t num_txns_ = 100000;
   storage::BlockStore block_store_{1000, 1000};
-  storage::RecordBufferSegmentPool buffer_pool_{1000, 1000};
+  storage::RecordBufferSegmentPool buffer_pool_{1000000, 1000000};
   std::default_random_engine generator_;
   const uint32_t num_concurrent_txns_ = 4;
   const std::chrono::milliseconds gc_period_{10};
