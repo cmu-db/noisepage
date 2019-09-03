@@ -281,14 +281,14 @@ class TopKElements {
   /**
    * Pretty Print!
    * @param os the output target
-   * @param topk the top-k object to print
+   * @param top_k the top-k object to print
    * @return representation of sorted keys and their counts
    */
-  friend std::ostream &operator<<(std::ostream &os, const TopKElements<KeyType> &topK) {
-    os << "Top-" << topK.GetK() << " [size=" << topK.GetSize() << "]";
+  friend std::ostream &operator<<(std::ostream &os, const TopKElements<KeyType> &top_k) {
+    os << "Top-" << top_k.GetK() << " [size=" << top_k.GetSize() << "]";
     int i = 0;
-    for (const KeyType &key : topK.GetSortedTopKeys()) {
-      auto count = topK.EstimateItemCount(key);
+    for (const KeyType &key : top_k.GetSortedTopKeys()) {
+      auto count = top_k.EstimateItemCount(key);
       os << std::endl << "  (" << i++ << ") Key[" << key << "] => " << count;
     }
     return os;
