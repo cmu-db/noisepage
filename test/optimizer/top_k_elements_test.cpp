@@ -89,7 +89,6 @@ TEST_F(TopKElementsTests, PromotionTest) {
   target_key = num_keys - 1;
   top_k.Increment(target_key, large_count * 15);
   sorted_keys = top_k.GetSortedTopKeys();
->>>>>>> origin/statistics
   found = std::find(sorted_keys.begin(), sorted_keys.end(), target_key);
   EXPECT_NE(found, sorted_keys.end());
 }

@@ -107,6 +107,6 @@ class StatsStorage {
    * An unordered map mapping StatsStorageKey objects (database_id and table_id) to
    * TableStats pointers. This represents the storage for TableStats objects.
    */
-  std::unordered_map<StatsStorageKey, std::unique_ptr<TableStats>> table_stats_storage;
+  std::unordered_map<StatsStorageKey, std::unique_ptr<TableStats>> table_stats_storage_;
 };
 }  // namespace terrier::optimizer
