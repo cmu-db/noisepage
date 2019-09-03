@@ -22,6 +22,7 @@ namespace terrier::storage::index {
 class HashIndexTests : public TerrierTest {
  private:
   const std::chrono::milliseconds gc_period_{10};
+  storage::GarbageCollector *gc_;
   storage::GarbageCollectorThread *gc_thread_;
 
   storage::BlockStore block_store_{1000, 1000};
@@ -57,9 +58,11 @@ class HashIndexTests : public TerrierTest {
   storage::ProjectedRowInitializer tuple_initializer_ =
       storage::ProjectedRowInitializer::Create(std::vector<uint8_t>{1}, {1});
 
-  // BwTreeIndex
+  // HashIndex
   Index *default_index_, *unique_index_;
-  transaction::TransactionManager txn_manager_{&buffer_pool_, true, LOGGING_DISABLED};
+  transaction::TimestampManager *timestamp_manager_;
+  transaction::DeferredActionManager *deferred_action_manager_;
+  transaction::TransactionManager *txn_manager_;
 
   byte *key_buffer_1_, *key_buffer_2_;
 
@@ -68,7 +71,13 @@ class HashIndexTests : public TerrierTest {
  protected:
   void SetUp() override {
     TerrierTest::SetUp();
-    gc_thread_ = new storage::GarbageCollectorThread(&txn_manager_, gc_period_);
+
+    timestamp_manager_ = new transaction::TimestampManager;
+    deferred_action_manager_ = new transaction::DeferredActionManager(timestamp_manager_);
+    txn_manager_ = new transaction::TransactionManager(timestamp_manager_, deferred_action_manager_, &buffer_pool_,
+                                                       true, DISABLED);
+    gc_ = new storage::GarbageCollector(timestamp_manager_, deferred_action_manager_, txn_manager_, DISABLED);
+    gc_thread_ = new storage::GarbageCollectorThread(gc_, gc_period_);
 
     unique_index_ = (IndexBuilder()
                          .SetConstraintType(ConstraintType::UNIQUE)
@@ -83,18 +92,28 @@ class HashIndexTests : public TerrierTest {
                          .SetOrdered(false)
                          .Build();
 
+    gc_thread_->GetGarbageCollector().RegisterIndexForGC(unique_index_);
+    gc_thread_->GetGarbageCollector().RegisterIndexForGC(default_index_);
+
     key_buffer_1_ =
         common::AllocationUtil::AllocateAligned(default_index_->GetProjectedRowInitializer().ProjectedRowSize());
     key_buffer_2_ =
         common::AllocationUtil::AllocateAligned(default_index_->GetProjectedRowInitializer().ProjectedRowSize());
   }
   void TearDown() override {
+    gc_thread_->GetGarbageCollector().UnregisterIndexForGC(unique_index_);
+    gc_thread_->GetGarbageCollector().UnregisterIndexForGC(default_index_);
+
     delete gc_thread_;
+    delete gc_;
     delete sql_table_;
     delete default_index_;
     delete unique_index_;
     delete[] key_buffer_1_;
     delete[] key_buffer_2_;
+    delete txn_manager_;
+    delete deferred_action_manager_;
+    delete timestamp_manager_;
     TerrierTest::TearDown();
   }
 };
@@ -116,35 +135,35 @@ TEST_F(HashIndexTests, UniqueInsert) {
     // previously committed versions
     if (worker_id % 2 == 0) {
       for (uint32_t i = 0; i < num_inserts_; i++) {
-        auto *const insert_txn = txn_manager_.BeginTransaction();
+        auto *const insert_txn = txn_manager_->BeginTransaction();
         auto *const insert_redo =
-            insert_txn->StageWrite(CatalogTestUtil::test_db_oid, CatalogTestUtil::test_table_oid, tuple_initializer_);
+            insert_txn->StageWrite(CatalogTestUtil::TEST_DB_OID, CatalogTestUtil::TEST_TABLE_OID, tuple_initializer_);
         auto *const insert_tuple = insert_redo->Delta();
         *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = i;
         const auto tuple_slot = sql_table_->Insert(insert_txn, insert_redo);
 
         *reinterpret_cast<int32_t *>(insert_key->AccessForceNotNull(0)) = i;
         if (unique_index_->InsertUnique(insert_txn, *insert_key, tuple_slot)) {
-          txn_manager_.Commit(insert_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+          txn_manager_->Commit(insert_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
         } else {
-          txn_manager_.Abort(insert_txn);
+          txn_manager_->Abort(insert_txn);
         }
       }
 
     } else {
       for (uint32_t i = num_inserts_ - 1; i < num_inserts_; i--) {
-        auto *const insert_txn = txn_manager_.BeginTransaction();
+        auto *const insert_txn = txn_manager_->BeginTransaction();
         auto *const insert_redo =
-            insert_txn->StageWrite(CatalogTestUtil::test_db_oid, CatalogTestUtil::test_table_oid, tuple_initializer_);
+            insert_txn->StageWrite(CatalogTestUtil::TEST_DB_OID, CatalogTestUtil::TEST_TABLE_OID, tuple_initializer_);
         auto *const insert_tuple = insert_redo->Delta();
         *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = i;
         const auto tuple_slot = sql_table_->Insert(insert_txn, insert_redo);
 
         *reinterpret_cast<int32_t *>(insert_key->AccessForceNotNull(0)) = i;
         if (unique_index_->InsertUnique(insert_txn, *insert_key, tuple_slot)) {
-          txn_manager_.Commit(insert_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+          txn_manager_->Commit(insert_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
         } else {
-          txn_manager_.Abort(insert_txn);
+          txn_manager_->Abort(insert_txn);
         }
       }
     }
@@ -158,7 +177,7 @@ TEST_F(HashIndexTests, UniqueInsert) {
   thread_pool_.WaitUntilAllFinished();
 
   // scan the results
-  auto *const scan_txn = txn_manager_.BeginTransaction();
+  auto *const scan_txn = txn_manager_->BeginTransaction();
 
   std::vector<storage::TupleSlot> results;
 
@@ -172,7 +191,7 @@ TEST_F(HashIndexTests, UniqueInsert) {
     results.clear();
   }
 
-  txn_manager_.Commit(scan_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+  txn_manager_->Commit(scan_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 }
 
 /**
@@ -191,29 +210,29 @@ TEST_F(HashIndexTests, DefaultInsert) {
     // some threads count up, others count down. Threads shouldn't abort each other
     if (worker_id % 2 == 0) {
       for (uint32_t i = 0; i < num_inserts_; i++) {
-        auto *const insert_txn = txn_manager_.BeginTransaction();
+        auto *const insert_txn = txn_manager_->BeginTransaction();
         auto *const insert_redo =
-            insert_txn->StageWrite(CatalogTestUtil::test_db_oid, CatalogTestUtil::test_table_oid, tuple_initializer_);
+            insert_txn->StageWrite(CatalogTestUtil::TEST_DB_OID, CatalogTestUtil::TEST_TABLE_OID, tuple_initializer_);
         auto *const insert_tuple = insert_redo->Delta();
         *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = i;
         const auto tuple_slot = sql_table_->Insert(insert_txn, insert_redo);
 
         *reinterpret_cast<int32_t *>(insert_key->AccessForceNotNull(0)) = i;
         EXPECT_TRUE(default_index_->Insert(insert_txn, *insert_key, tuple_slot));
-        txn_manager_.Commit(insert_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+        txn_manager_->Commit(insert_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
       }
     } else {
       for (uint32_t i = num_inserts_ - 1; i < num_inserts_; i--) {
-        auto *const insert_txn = txn_manager_.BeginTransaction();
+        auto *const insert_txn = txn_manager_->BeginTransaction();
         auto *const insert_redo =
-            insert_txn->StageWrite(CatalogTestUtil::test_db_oid, CatalogTestUtil::test_table_oid, tuple_initializer_);
+            insert_txn->StageWrite(CatalogTestUtil::TEST_DB_OID, CatalogTestUtil::TEST_TABLE_OID, tuple_initializer_);
         auto *const insert_tuple = insert_redo->Delta();
         *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = i;
         const auto tuple_slot = sql_table_->Insert(insert_txn, insert_redo);
 
         *reinterpret_cast<int32_t *>(insert_key->AccessForceNotNull(0)) = i;
         EXPECT_TRUE(default_index_->Insert(insert_txn, *insert_key, tuple_slot));
-        txn_manager_.Commit(insert_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+        txn_manager_->Commit(insert_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
       }
     }
 
@@ -227,7 +246,7 @@ TEST_F(HashIndexTests, DefaultInsert) {
   thread_pool_.WaitUntilAllFinished();
 
   // scan the results
-  auto *const scan_txn = txn_manager_.BeginTransaction();
+  auto *const scan_txn = txn_manager_->BeginTransaction();
 
   std::vector<storage::TupleSlot> results;
 
@@ -241,17 +260,17 @@ TEST_F(HashIndexTests, DefaultInsert) {
     results.clear();
   }
 
-  txn_manager_.Commit(scan_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+  txn_manager_->Commit(scan_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 }
 
 // Verifies that primary key insert fails on write-write conflict
 // NOLINTNEXTLINE
 TEST_F(HashIndexTests, UniqueKey1) {
-  auto *txn0 = txn_manager_.BeginTransaction();
+  auto *txn0 = txn_manager_->BeginTransaction();
 
   // txn 0 inserts into table
   auto *insert_redo =
-      txn0->StageWrite(CatalogTestUtil::test_db_oid, CatalogTestUtil::test_table_oid, tuple_initializer_);
+      txn0->StageWrite(CatalogTestUtil::TEST_DB_OID, CatalogTestUtil::TEST_TABLE_OID, tuple_initializer_);
   auto *insert_tuple = insert_redo->Delta();
   *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = 15721;
   const auto tuple_slot = sql_table_->Insert(txn0, insert_redo);
@@ -272,7 +291,7 @@ TEST_F(HashIndexTests, UniqueKey1) {
   EXPECT_EQ(tuple_slot, results[0]);
   results.clear();
 
-  auto *txn1 = txn_manager_.BeginTransaction();
+  auto *txn1 = txn_manager_->BeginTransaction();
 
   // txn 1 scans index and gets no visible result
   unique_index_->ScanKey(*txn1, *scan_key_pr, &results);
@@ -280,7 +299,7 @@ TEST_F(HashIndexTests, UniqueKey1) {
   results.clear();
 
   // txn 1 inserts into table
-  insert_redo = txn1->StageWrite(CatalogTestUtil::test_db_oid, CatalogTestUtil::test_table_oid, tuple_initializer_);
+  insert_redo = txn1->StageWrite(CatalogTestUtil::TEST_DB_OID, CatalogTestUtil::TEST_TABLE_OID, tuple_initializer_);
   insert_tuple = insert_redo->Delta();
   *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = 15721;
   const auto new_tuple_slot = sql_table_->Insert(txn1, insert_redo);
@@ -290,11 +309,11 @@ TEST_F(HashIndexTests, UniqueKey1) {
   *reinterpret_cast<int32_t *>(insert_key->AccessForceNotNull(0)) = 15721;
   EXPECT_FALSE(unique_index_->InsertUnique(txn1, *insert_key, new_tuple_slot));
 
-  txn_manager_.Abort(txn1);
+  txn_manager_->Abort(txn1);
 
-  txn_manager_.Commit(txn0, transaction::TransactionUtil::EmptyCallback, nullptr);
+  txn_manager_->Commit(txn0, transaction::TransactionUtil::EmptyCallback, nullptr);
 
-  auto *txn2 = txn_manager_.BeginTransaction();
+  auto *txn2 = txn_manager_->BeginTransaction();
 
   // txn 2 scans index and gets a visible, correct result
   unique_index_->ScanKey(*txn2, *scan_key_pr, &results);
@@ -302,17 +321,17 @@ TEST_F(HashIndexTests, UniqueKey1) {
   EXPECT_EQ(tuple_slot, results[0]);
   results.clear();
 
-  txn_manager_.Commit(txn2, transaction::TransactionUtil::EmptyCallback, nullptr);
+  txn_manager_->Commit(txn2, transaction::TransactionUtil::EmptyCallback, nullptr);
 }
 
 // Verifies that primary key insert fails on visible key conflict
 // NOLINTNEXTLINE
 TEST_F(HashIndexTests, UniqueKey2) {
-  auto *txn0 = txn_manager_.BeginTransaction();
+  auto *txn0 = txn_manager_->BeginTransaction();
 
   // txn 0 inserts into table
   auto *insert_redo =
-      txn0->StageWrite(CatalogTestUtil::test_db_oid, CatalogTestUtil::test_table_oid, tuple_initializer_);
+      txn0->StageWrite(CatalogTestUtil::TEST_DB_OID, CatalogTestUtil::TEST_TABLE_OID, tuple_initializer_);
   auto *insert_tuple = insert_redo->Delta();
   *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = 15721;
   const auto tuple_slot = sql_table_->Insert(txn0, insert_redo);
@@ -333,12 +352,12 @@ TEST_F(HashIndexTests, UniqueKey2) {
   EXPECT_EQ(tuple_slot, results[0]);
   results.clear();
 
-  txn_manager_.Commit(txn0, transaction::TransactionUtil::EmptyCallback, nullptr);
+  txn_manager_->Commit(txn0, transaction::TransactionUtil::EmptyCallback, nullptr);
 
-  auto *txn1 = txn_manager_.BeginTransaction();
+  auto *txn1 = txn_manager_->BeginTransaction();
 
   // txn 1 inserts into table
-  insert_redo = txn1->StageWrite(CatalogTestUtil::test_db_oid, CatalogTestUtil::test_table_oid, tuple_initializer_);
+  insert_redo = txn1->StageWrite(CatalogTestUtil::TEST_DB_OID, CatalogTestUtil::TEST_TABLE_OID, tuple_initializer_);
   insert_tuple = insert_redo->Delta();
   *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = 15721;
   const auto new_tuple_slot = sql_table_->Insert(txn1, insert_redo);
@@ -348,9 +367,9 @@ TEST_F(HashIndexTests, UniqueKey2) {
   *reinterpret_cast<int32_t *>(insert_key->AccessForceNotNull(0)) = 15721;
   EXPECT_FALSE(unique_index_->InsertUnique(txn1, *insert_key, new_tuple_slot));
 
-  txn_manager_.Abort(txn1);
+  txn_manager_->Abort(txn1);
 
-  auto *txn2 = txn_manager_.BeginTransaction();
+  auto *txn2 = txn_manager_->BeginTransaction();
 
   // txn 2 scans index and gets a visible, correct result
   unique_index_->ScanKey(*txn2, *scan_key_pr, &results);
@@ -358,17 +377,17 @@ TEST_F(HashIndexTests, UniqueKey2) {
   EXPECT_EQ(tuple_slot, results[0]);
   results.clear();
 
-  txn_manager_.Commit(txn2, transaction::TransactionUtil::EmptyCallback, nullptr);
+  txn_manager_->Commit(txn2, transaction::TransactionUtil::EmptyCallback, nullptr);
 }
 
 // Verifies that primary key insert fails on same txn trying to insert key twice
 // NOLINTNEXTLINE
 TEST_F(HashIndexTests, UniqueKey3) {
-  auto *txn0 = txn_manager_.BeginTransaction();
+  auto *txn0 = txn_manager_->BeginTransaction();
 
   // txn 0 inserts into table
   auto *insert_redo =
-      txn0->StageWrite(CatalogTestUtil::test_db_oid, CatalogTestUtil::test_table_oid, tuple_initializer_);
+      txn0->StageWrite(CatalogTestUtil::TEST_DB_OID, CatalogTestUtil::TEST_TABLE_OID, tuple_initializer_);
   auto *insert_tuple = insert_redo->Delta();
   *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = 15721;
   const auto tuple_slot = sql_table_->Insert(txn0, insert_redo);
@@ -390,7 +409,7 @@ TEST_F(HashIndexTests, UniqueKey3) {
   results.clear();
 
   // txn 0 inserts into table
-  insert_redo = txn0->StageWrite(CatalogTestUtil::test_db_oid, CatalogTestUtil::test_table_oid, tuple_initializer_);
+  insert_redo = txn0->StageWrite(CatalogTestUtil::TEST_DB_OID, CatalogTestUtil::TEST_TABLE_OID, tuple_initializer_);
   insert_tuple = insert_redo->Delta();
   *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = 15721;
   const auto new_tuple_slot = sql_table_->Insert(txn0, insert_redo);
@@ -400,26 +419,26 @@ TEST_F(HashIndexTests, UniqueKey3) {
   *reinterpret_cast<int32_t *>(insert_key->AccessForceNotNull(0)) = 15721;
   EXPECT_FALSE(unique_index_->InsertUnique(txn0, *insert_key, new_tuple_slot));
 
-  txn_manager_.Abort(txn0);
+  txn_manager_->Abort(txn0);
 
-  auto *txn2 = txn_manager_.BeginTransaction();
+  auto *txn2 = txn_manager_->BeginTransaction();
 
   // txn 2 scans index and gets no visible result
   unique_index_->ScanKey(*txn2, *scan_key_pr, &results);
   EXPECT_EQ(results.size(), 0);
   results.clear();
 
-  txn_manager_.Commit(txn2, transaction::TransactionUtil::EmptyCallback, nullptr);
+  txn_manager_->Commit(txn2, transaction::TransactionUtil::EmptyCallback, nullptr);
 }
 
 // Verifies that primary key insert fails even if conflicting transaction is an uncommitted delete
 // NOLINTNEXTLINE
 TEST_F(HashIndexTests, UniqueKey4) {
-  auto *txn0 = txn_manager_.BeginTransaction();
+  auto *txn0 = txn_manager_->BeginTransaction();
 
   // txn 0 inserts into table
   auto *insert_redo =
-      txn0->StageWrite(CatalogTestUtil::test_db_oid, CatalogTestUtil::test_table_oid, tuple_initializer_);
+      txn0->StageWrite(CatalogTestUtil::TEST_DB_OID, CatalogTestUtil::TEST_TABLE_OID, tuple_initializer_);
   auto *insert_tuple = insert_redo->Delta();
   *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = 15721;
   const auto tuple_slot = sql_table_->Insert(txn0, insert_redo);
@@ -441,7 +460,7 @@ TEST_F(HashIndexTests, UniqueKey4) {
   results.clear();
 
   // txn 0 deletes from table
-  txn0->StageDelete(CatalogTestUtil::test_db_oid, CatalogTestUtil::test_table_oid, tuple_slot);
+  txn0->StageDelete(CatalogTestUtil::TEST_DB_OID, CatalogTestUtil::TEST_TABLE_OID, tuple_slot);
   EXPECT_TRUE(sql_table_->Delete(txn0, tuple_slot));
 
   // txn 0 deletes from index
@@ -449,10 +468,10 @@ TEST_F(HashIndexTests, UniqueKey4) {
   *reinterpret_cast<int32_t *>(insert_key->AccessForceNotNull(0)) = 15721;
   unique_index_->Delete(txn0, *insert_key, tuple_slot);
 
-  auto *txn1 = txn_manager_.BeginTransaction();
+  auto *txn1 = txn_manager_->BeginTransaction();
 
   // txn 1 inserts into table
-  insert_redo = txn1->StageWrite(CatalogTestUtil::test_db_oid, CatalogTestUtil::test_table_oid, tuple_initializer_);
+  insert_redo = txn1->StageWrite(CatalogTestUtil::TEST_DB_OID, CatalogTestUtil::TEST_TABLE_OID, tuple_initializer_);
   insert_tuple = insert_redo->Delta();
   *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = 15721;
   const auto new_tuple_slot = sql_table_->Insert(txn1, insert_redo);
@@ -462,18 +481,18 @@ TEST_F(HashIndexTests, UniqueKey4) {
   *reinterpret_cast<int32_t *>(insert_key->AccessForceNotNull(0)) = 15721;
   EXPECT_FALSE(unique_index_->InsertUnique(txn1, *insert_key, new_tuple_slot));
 
-  txn_manager_.Commit(txn0, transaction::TransactionUtil::EmptyCallback, nullptr);
+  txn_manager_->Commit(txn0, transaction::TransactionUtil::EmptyCallback, nullptr);
 
-  txn_manager_.Abort(txn1);
+  txn_manager_->Abort(txn1);
 
-  auto *txn2 = txn_manager_.BeginTransaction();
+  auto *txn2 = txn_manager_->BeginTransaction();
 
   // txn 2 scans index and gets no visible result
   unique_index_->ScanKey(*txn2, *scan_key_pr, &results);
   EXPECT_EQ(results.size(), 0);
   results.clear();
 
-  txn_manager_.Commit(txn2, transaction::TransactionUtil::EmptyCallback, nullptr);
+  txn_manager_->Commit(txn2, transaction::TransactionUtil::EmptyCallback, nullptr);
 }
 
 //    Txn #0 | Txn #1 | Txn #2 |
@@ -497,11 +516,11 @@ TEST_F(HashIndexTests, UniqueKey4) {
 // This test confirms that we are not susceptible to the DIRTY READS and UNREPEATABLE READS anomalies
 // NOLINTNEXTLINE
 TEST_F(HashIndexTests, CommitInsert1) {
-  auto *txn0 = txn_manager_.BeginTransaction();
+  auto *txn0 = txn_manager_->BeginTransaction();
 
   // txn 0 inserts into table
   auto *insert_redo =
-      txn0->StageWrite(CatalogTestUtil::test_db_oid, CatalogTestUtil::test_table_oid, tuple_initializer_);
+      txn0->StageWrite(CatalogTestUtil::TEST_DB_OID, CatalogTestUtil::TEST_TABLE_OID, tuple_initializer_);
   auto *insert_tuple = insert_redo->Delta();
   *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = 15721;
   const auto tuple_slot = sql_table_->Insert(txn0, insert_redo);
@@ -522,23 +541,23 @@ TEST_F(HashIndexTests, CommitInsert1) {
   EXPECT_EQ(tuple_slot, results[0]);
   results.clear();
 
-  auto *txn1 = txn_manager_.BeginTransaction();
+  auto *txn1 = txn_manager_->BeginTransaction();
 
   // txn 1 scans index and gets no visible result
   default_index_->ScanKey(*txn1, *scan_key_pr, &results);
   EXPECT_EQ(results.size(), 0);
   results.clear();
 
-  txn_manager_.Commit(txn0, transaction::TransactionUtil::EmptyCallback, nullptr);
+  txn_manager_->Commit(txn0, transaction::TransactionUtil::EmptyCallback, nullptr);
 
   // txn 1 scans index and gets no visible result
   default_index_->ScanKey(*txn1, *scan_key_pr, &results);
   EXPECT_EQ(results.size(), 0);
   results.clear();
 
-  txn_manager_.Commit(txn1, transaction::TransactionUtil::EmptyCallback, nullptr);
+  txn_manager_->Commit(txn1, transaction::TransactionUtil::EmptyCallback, nullptr);
 
-  auto *txn2 = txn_manager_.BeginTransaction();
+  auto *txn2 = txn_manager_->BeginTransaction();
 
   // txn 2 scans index and gets a visible, correct result
   default_index_->ScanKey(*txn2, *scan_key_pr, &results);
@@ -546,7 +565,7 @@ TEST_F(HashIndexTests, CommitInsert1) {
   EXPECT_EQ(tuple_slot, results[0]);
   results.clear();
 
-  txn_manager_.Commit(txn2, transaction::TransactionUtil::EmptyCallback, nullptr);
+  txn_manager_->Commit(txn2, transaction::TransactionUtil::EmptyCallback, nullptr);
 }
 
 //    Txn #0 | Txn #1 | Txn #2 |
@@ -570,12 +589,12 @@ TEST_F(HashIndexTests, CommitInsert1) {
 // This test confirms that we are not susceptible to the DIRTY READS and UNREPEATABLE READS anomalies
 // NOLINTNEXTLINE
 TEST_F(HashIndexTests, CommitInsert2) {
-  auto *txn0 = txn_manager_.BeginTransaction();
-  auto *txn1 = txn_manager_.BeginTransaction();
+  auto *txn0 = txn_manager_->BeginTransaction();
+  auto *txn1 = txn_manager_->BeginTransaction();
 
   // txn 1 inserts into table
   auto *insert_redo =
-      txn1->StageWrite(CatalogTestUtil::test_db_oid, CatalogTestUtil::test_table_oid, tuple_initializer_);
+      txn1->StageWrite(CatalogTestUtil::TEST_DB_OID, CatalogTestUtil::TEST_TABLE_OID, tuple_initializer_);
   auto *insert_tuple = insert_redo->Delta();
   *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = 15721;
   const auto tuple_slot = sql_table_->Insert(txn1, insert_redo);
@@ -601,16 +620,16 @@ TEST_F(HashIndexTests, CommitInsert2) {
   EXPECT_EQ(tuple_slot, results[0]);
   results.clear();
 
-  txn_manager_.Commit(txn1, transaction::TransactionUtil::EmptyCallback, nullptr);
+  txn_manager_->Commit(txn1, transaction::TransactionUtil::EmptyCallback, nullptr);
 
   // txn 0 scans index and gets no visible result
   default_index_->ScanKey(*txn0, *scan_key_pr, &results);
   EXPECT_EQ(results.size(), 0);
   results.clear();
 
-  txn_manager_.Commit(txn0, transaction::TransactionUtil::EmptyCallback, nullptr);
+  txn_manager_->Commit(txn0, transaction::TransactionUtil::EmptyCallback, nullptr);
 
-  auto *txn2 = txn_manager_.BeginTransaction();
+  auto *txn2 = txn_manager_->BeginTransaction();
 
   // txn 2 scans index and gets a visible, correct result
   default_index_->ScanKey(*txn2, *scan_key_pr, &results);
@@ -618,7 +637,7 @@ TEST_F(HashIndexTests, CommitInsert2) {
   EXPECT_EQ(tuple_slot, results[0]);
   results.clear();
 
-  txn_manager_.Commit(txn2, transaction::TransactionUtil::EmptyCallback, nullptr);
+  txn_manager_->Commit(txn2, transaction::TransactionUtil::EmptyCallback, nullptr);
 }
 
 //    Txn #0 | Txn #1 | Txn #2 |
@@ -642,11 +661,11 @@ TEST_F(HashIndexTests, CommitInsert2) {
 // This test confirms that we are not susceptible to the DIRTY READS and UNREPEATABLE READS anomalies
 // NOLINTNEXTLINE
 TEST_F(HashIndexTests, AbortInsert1) {
-  auto *txn0 = txn_manager_.BeginTransaction();
+  auto *txn0 = txn_manager_->BeginTransaction();
 
   // txn 0 inserts into table
   auto *insert_redo =
-      txn0->StageWrite(CatalogTestUtil::test_db_oid, CatalogTestUtil::test_table_oid, tuple_initializer_);
+      txn0->StageWrite(CatalogTestUtil::TEST_DB_OID, CatalogTestUtil::TEST_TABLE_OID, tuple_initializer_);
   auto *insert_tuple = insert_redo->Delta();
   *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = 15721;
   const auto tuple_slot = sql_table_->Insert(txn0, insert_redo);
@@ -667,30 +686,30 @@ TEST_F(HashIndexTests, AbortInsert1) {
   EXPECT_EQ(tuple_slot, results[0]);
   results.clear();
 
-  auto *txn1 = txn_manager_.BeginTransaction();
+  auto *txn1 = txn_manager_->BeginTransaction();
 
   // txn 1 scans index and gets no visible result
   default_index_->ScanKey(*txn1, *scan_key_pr, &results);
   EXPECT_EQ(results.size(), 0);
   results.clear();
 
-  txn_manager_.Abort(txn0);
+  txn_manager_->Abort(txn0);
 
   // txn 1 scans index and gets no visible result
   default_index_->ScanKey(*txn1, *scan_key_pr, &results);
   EXPECT_EQ(results.size(), 0);
   results.clear();
 
-  txn_manager_.Commit(txn1, transaction::TransactionUtil::EmptyCallback, nullptr);
+  txn_manager_->Commit(txn1, transaction::TransactionUtil::EmptyCallback, nullptr);
 
-  auto *txn2 = txn_manager_.BeginTransaction();
+  auto *txn2 = txn_manager_->BeginTransaction();
 
   // txn 2 scans index and gets no visible result
   default_index_->ScanKey(*txn2, *scan_key_pr, &results);
   EXPECT_EQ(results.size(), 0);
   results.clear();
 
-  txn_manager_.Commit(txn2, transaction::TransactionUtil::EmptyCallback, nullptr);
+  txn_manager_->Commit(txn2, transaction::TransactionUtil::EmptyCallback, nullptr);
 }
 
 //    Txn #0 | Txn #1 | Txn #2 |
@@ -714,12 +733,12 @@ TEST_F(HashIndexTests, AbortInsert1) {
 // This test confirms that we are not susceptible to the DIRTY READS and UNREPEATABLE READS anomalies
 // NOLINTNEXTLINE
 TEST_F(HashIndexTests, AbortInsert2) {
-  auto *txn0 = txn_manager_.BeginTransaction();
-  auto *txn1 = txn_manager_.BeginTransaction();
+  auto *txn0 = txn_manager_->BeginTransaction();
+  auto *txn1 = txn_manager_->BeginTransaction();
 
   // txn 1 inserts into table
   auto *insert_redo =
-      txn1->StageWrite(CatalogTestUtil::test_db_oid, CatalogTestUtil::test_table_oid, tuple_initializer_);
+      txn1->StageWrite(CatalogTestUtil::TEST_DB_OID, CatalogTestUtil::TEST_TABLE_OID, tuple_initializer_);
   auto *insert_tuple = insert_redo->Delta();
   *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = 15721;
   const auto tuple_slot = sql_table_->Insert(txn1, insert_redo);
@@ -745,23 +764,23 @@ TEST_F(HashIndexTests, AbortInsert2) {
   EXPECT_EQ(tuple_slot, results[0]);
   results.clear();
 
-  txn_manager_.Abort(txn1);
+  txn_manager_->Abort(txn1);
 
   // txn 0 scans index and gets no visible result
   default_index_->ScanKey(*txn0, *scan_key_pr, &results);
   EXPECT_EQ(results.size(), 0);
   results.clear();
 
-  txn_manager_.Commit(txn0, transaction::TransactionUtil::EmptyCallback, nullptr);
+  txn_manager_->Commit(txn0, transaction::TransactionUtil::EmptyCallback, nullptr);
 
-  auto *txn2 = txn_manager_.BeginTransaction();
+  auto *txn2 = txn_manager_->BeginTransaction();
 
   // txn 2 scans index and gets no visible result
   default_index_->ScanKey(*txn2, *scan_key_pr, &results);
   EXPECT_EQ(results.size(), 0);
   results.clear();
 
-  txn_manager_.Commit(txn2, transaction::TransactionUtil::EmptyCallback, nullptr);
+  txn_manager_->Commit(txn2, transaction::TransactionUtil::EmptyCallback, nullptr);
 }
 
 //    Txn #0 | Txn #1 | Txn #2 |
@@ -785,11 +804,11 @@ TEST_F(HashIndexTests, AbortInsert2) {
 // This test confirms that we are not susceptible to the DIRTY READS and UNREPEATABLE READS anomalies
 // NOLINTNEXTLINE
 TEST_F(HashIndexTests, CommitUpdate1) {
-  auto *insert_txn = txn_manager_.BeginTransaction();
+  auto *insert_txn = txn_manager_->BeginTransaction();
 
   // insert_txn inserts into table
   auto *insert_redo =
-      insert_txn->StageWrite(CatalogTestUtil::test_db_oid, CatalogTestUtil::test_table_oid, tuple_initializer_);
+      insert_txn->StageWrite(CatalogTestUtil::TEST_DB_OID, CatalogTestUtil::TEST_TABLE_OID, tuple_initializer_);
   auto *insert_tuple = insert_redo->Delta();
   *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = 15721;
   const auto tuple_slot = sql_table_->Insert(insert_txn, insert_redo);
@@ -799,13 +818,13 @@ TEST_F(HashIndexTests, CommitUpdate1) {
   *reinterpret_cast<int32_t *>(insert_key->AccessForceNotNull(0)) = 15721;
   EXPECT_TRUE(default_index_->Insert(insert_txn, *insert_key, tuple_slot));
 
-  txn_manager_.Commit(insert_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+  txn_manager_->Commit(insert_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
   std::vector<storage::TupleSlot> results;
 
   auto *const scan_key_pr = default_index_->GetProjectedRowInitializer().InitializeRow(key_buffer_1_);
 
-  auto *txn0 = txn_manager_.BeginTransaction();
+  auto *txn0 = txn_manager_->BeginTransaction();
 
   // txn 0 scans index for 15721 and gets a visible, correct result
   *reinterpret_cast<int32_t *>(scan_key_pr->AccessForceNotNull(0)) = 15721;
@@ -815,11 +834,11 @@ TEST_F(HashIndexTests, CommitUpdate1) {
   results.clear();
 
   // txn 0 updates in the table, which is really a delete and insert since it's an indexed attribute
-  txn0->StageDelete(CatalogTestUtil::test_db_oid, CatalogTestUtil::test_table_oid, results[0]);
+  txn0->StageDelete(CatalogTestUtil::TEST_DB_OID, CatalogTestUtil::TEST_TABLE_OID, results[0]);
   EXPECT_TRUE(sql_table_->Delete(txn0, results[0]));
   default_index_->Delete(txn0, *insert_key, results[0]);
 
-  insert_redo = txn0->StageWrite(CatalogTestUtil::test_db_oid, CatalogTestUtil::test_table_oid, tuple_initializer_);
+  insert_redo = txn0->StageWrite(CatalogTestUtil::TEST_DB_OID, CatalogTestUtil::TEST_TABLE_OID, tuple_initializer_);
   insert_tuple = insert_redo->Delta();
   *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = 15445;
   const auto new_tuple_slot = sql_table_->Insert(txn0, insert_redo);
@@ -841,7 +860,7 @@ TEST_F(HashIndexTests, CommitUpdate1) {
   EXPECT_EQ(new_tuple_slot, results[0]);
   results.clear();
 
-  auto *txn1 = txn_manager_.BeginTransaction();
+  auto *txn1 = txn_manager_->BeginTransaction();
 
   // txn 1 scans index for 15721 and gets a visible, correct result
   *reinterpret_cast<int32_t *>(scan_key_pr->AccessForceNotNull(0)) = 15721;
@@ -856,7 +875,7 @@ TEST_F(HashIndexTests, CommitUpdate1) {
   EXPECT_EQ(results.size(), 0);
   results.clear();
 
-  txn_manager_.Commit(txn0, transaction::TransactionUtil::EmptyCallback, nullptr);
+  txn_manager_->Commit(txn0, transaction::TransactionUtil::EmptyCallback, nullptr);
 
   // txn 1 scans index for 15721 and gets a visible, correct result
   *reinterpret_cast<int32_t *>(scan_key_pr->AccessForceNotNull(0)) = 15721;
@@ -871,9 +890,9 @@ TEST_F(HashIndexTests, CommitUpdate1) {
   EXPECT_EQ(results.size(), 0);
   results.clear();
 
-  txn_manager_.Commit(txn1, transaction::TransactionUtil::EmptyCallback, nullptr);
+  txn_manager_->Commit(txn1, transaction::TransactionUtil::EmptyCallback, nullptr);
 
-  auto *txn2 = txn_manager_.BeginTransaction();
+  auto *txn2 = txn_manager_->BeginTransaction();
 
   // txn 2 scans index for 15721 and gets no visible result
   *reinterpret_cast<int32_t *>(scan_key_pr->AccessForceNotNull(0)) = 15721;
@@ -888,7 +907,7 @@ TEST_F(HashIndexTests, CommitUpdate1) {
   EXPECT_EQ(new_tuple_slot, results[0]);
   results.clear();
 
-  txn_manager_.Commit(txn2, transaction::TransactionUtil::EmptyCallback, nullptr);
+  txn_manager_->Commit(txn2, transaction::TransactionUtil::EmptyCallback, nullptr);
 }
 
 //    Txn #0 | Txn #1 | Txn #2 |
@@ -912,11 +931,11 @@ TEST_F(HashIndexTests, CommitUpdate1) {
 // This test confirms that we are not susceptible to the DIRTY READS and UNREPEATABLE READS anomalies
 // NOLINTNEXTLINE
 TEST_F(HashIndexTests, CommitUpdate2) {
-  auto *insert_txn = txn_manager_.BeginTransaction();
+  auto *insert_txn = txn_manager_->BeginTransaction();
 
   // insert_txn inserts into table
   auto *insert_redo =
-      insert_txn->StageWrite(CatalogTestUtil::test_db_oid, CatalogTestUtil::test_table_oid, tuple_initializer_);
+      insert_txn->StageWrite(CatalogTestUtil::TEST_DB_OID, CatalogTestUtil::TEST_TABLE_OID, tuple_initializer_);
   auto *insert_tuple = insert_redo->Delta();
   *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = 15721;
   const auto tuple_slot = sql_table_->Insert(insert_txn, insert_redo);
@@ -926,14 +945,14 @@ TEST_F(HashIndexTests, CommitUpdate2) {
   *reinterpret_cast<int32_t *>(insert_key->AccessForceNotNull(0)) = 15721;
   EXPECT_TRUE(default_index_->Insert(insert_txn, *insert_key, tuple_slot));
 
-  txn_manager_.Commit(insert_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+  txn_manager_->Commit(insert_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
   std::vector<storage::TupleSlot> results;
 
   auto *const scan_key_pr = default_index_->GetProjectedRowInitializer().InitializeRow(key_buffer_1_);
 
-  auto *txn0 = txn_manager_.BeginTransaction();
-  auto *txn1 = txn_manager_.BeginTransaction();
+  auto *txn0 = txn_manager_->BeginTransaction();
+  auto *txn1 = txn_manager_->BeginTransaction();
 
   // txn 1 scans index for 15721 and gets a visible, correct result
   *reinterpret_cast<int32_t *>(scan_key_pr->AccessForceNotNull(0)) = 15721;
@@ -942,11 +961,11 @@ TEST_F(HashIndexTests, CommitUpdate2) {
   EXPECT_EQ(tuple_slot, results[0]);
 
   // txn 1 updates in the table, which is really a delete and insert since it's an indexed attribute
-  txn1->StageDelete(CatalogTestUtil::test_db_oid, CatalogTestUtil::test_table_oid, results[0]);
+  txn1->StageDelete(CatalogTestUtil::TEST_DB_OID, CatalogTestUtil::TEST_TABLE_OID, results[0]);
   EXPECT_TRUE(sql_table_->Delete(txn1, results[0]));
   default_index_->Delete(txn1, *insert_key, results[0]);
 
-  insert_redo = txn1->StageWrite(CatalogTestUtil::test_db_oid, CatalogTestUtil::test_table_oid, tuple_initializer_);
+  insert_redo = txn1->StageWrite(CatalogTestUtil::TEST_DB_OID, CatalogTestUtil::TEST_TABLE_OID, tuple_initializer_);
   insert_tuple = insert_redo->Delta();
   *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = 15445;
   const auto new_tuple_slot = sql_table_->Insert(txn1, insert_redo);
@@ -983,7 +1002,7 @@ TEST_F(HashIndexTests, CommitUpdate2) {
   EXPECT_EQ(new_tuple_slot, results[0]);
   results.clear();
 
-  txn_manager_.Commit(txn1, transaction::TransactionUtil::EmptyCallback, nullptr);
+  txn_manager_->Commit(txn1, transaction::TransactionUtil::EmptyCallback, nullptr);
 
   // txn 0 scans index for 15721 and gets a visible, correct result
   *reinterpret_cast<int32_t *>(scan_key_pr->AccessForceNotNull(0)) = 15721;
@@ -998,9 +1017,9 @@ TEST_F(HashIndexTests, CommitUpdate2) {
   EXPECT_EQ(results.size(), 0);
   results.clear();
 
-  txn_manager_.Commit(txn0, transaction::TransactionUtil::EmptyCallback, nullptr);
+  txn_manager_->Commit(txn0, transaction::TransactionUtil::EmptyCallback, nullptr);
 
-  auto *txn2 = txn_manager_.BeginTransaction();
+  auto *txn2 = txn_manager_->BeginTransaction();
 
   // txn 2 scans index for 15721 and gets no visible result
   *reinterpret_cast<int32_t *>(scan_key_pr->AccessForceNotNull(0)) = 15721;
@@ -1015,7 +1034,7 @@ TEST_F(HashIndexTests, CommitUpdate2) {
   EXPECT_EQ(new_tuple_slot, results[0]);
   results.clear();
 
-  txn_manager_.Commit(txn2, transaction::TransactionUtil::EmptyCallback, nullptr);
+  txn_manager_->Commit(txn2, transaction::TransactionUtil::EmptyCallback, nullptr);
 }
 
 //    Txn #0 | Txn #1 | Txn #2 |
@@ -1039,11 +1058,11 @@ TEST_F(HashIndexTests, CommitUpdate2) {
 // This test confirms that we are not susceptible to the DIRTY READS and UNREPEATABLE READS anomalies
 // NOLINTNEXTLINE
 TEST_F(HashIndexTests, AbortUpdate1) {
-  auto *insert_txn = txn_manager_.BeginTransaction();
+  auto *insert_txn = txn_manager_->BeginTransaction();
 
   // insert_txn inserts into table
   auto *insert_redo =
-      insert_txn->StageWrite(CatalogTestUtil::test_db_oid, CatalogTestUtil::test_table_oid, tuple_initializer_);
+      insert_txn->StageWrite(CatalogTestUtil::TEST_DB_OID, CatalogTestUtil::TEST_TABLE_OID, tuple_initializer_);
   auto *insert_tuple = insert_redo->Delta();
   *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = 15721;
   const auto tuple_slot = sql_table_->Insert(insert_txn, insert_redo);
@@ -1053,13 +1072,13 @@ TEST_F(HashIndexTests, AbortUpdate1) {
   *reinterpret_cast<int32_t *>(insert_key->AccessForceNotNull(0)) = 15721;
   EXPECT_TRUE(default_index_->Insert(insert_txn, *insert_key, tuple_slot));
 
-  txn_manager_.Commit(insert_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+  txn_manager_->Commit(insert_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
   std::vector<storage::TupleSlot> results;
 
   auto *const scan_key_pr = default_index_->GetProjectedRowInitializer().InitializeRow(key_buffer_1_);
 
-  auto *txn0 = txn_manager_.BeginTransaction();
+  auto *txn0 = txn_manager_->BeginTransaction();
 
   // txn 0 scans index for 15721 and gets a visible, correct result
   *reinterpret_cast<int32_t *>(scan_key_pr->AccessForceNotNull(0)) = 15721;
@@ -1069,11 +1088,11 @@ TEST_F(HashIndexTests, AbortUpdate1) {
   results.clear();
 
   // txn 0 updates in the table, which is really a delete and insert since it's an indexed attribute
-  txn0->StageDelete(CatalogTestUtil::test_db_oid, CatalogTestUtil::test_table_oid, results[0]);
+  txn0->StageDelete(CatalogTestUtil::TEST_DB_OID, CatalogTestUtil::TEST_TABLE_OID, results[0]);
   EXPECT_TRUE(sql_table_->Delete(txn0, results[0]));
   default_index_->Delete(txn0, *insert_key, results[0]);
 
-  insert_redo = txn0->StageWrite(CatalogTestUtil::test_db_oid, CatalogTestUtil::test_table_oid, tuple_initializer_);
+  insert_redo = txn0->StageWrite(CatalogTestUtil::TEST_DB_OID, CatalogTestUtil::TEST_TABLE_OID, tuple_initializer_);
   insert_tuple = insert_redo->Delta();
   *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = 15445;
   const auto new_tuple_slot = sql_table_->Insert(txn0, insert_redo);
@@ -1095,7 +1114,7 @@ TEST_F(HashIndexTests, AbortUpdate1) {
   EXPECT_EQ(new_tuple_slot, results[0]);
   results.clear();
 
-  auto *txn1 = txn_manager_.BeginTransaction();
+  auto *txn1 = txn_manager_->BeginTransaction();
 
   // txn 1 scans index for 15721 and gets a visible, correct result
   *reinterpret_cast<int32_t *>(scan_key_pr->AccessForceNotNull(0)) = 15721;
@@ -1110,7 +1129,7 @@ TEST_F(HashIndexTests, AbortUpdate1) {
   EXPECT_EQ(results.size(), 0);
   results.clear();
 
-  txn_manager_.Abort(txn0);
+  txn_manager_->Abort(txn0);
 
   // txn 1 scans index for 15721 and gets a visible, correct result
   *reinterpret_cast<int32_t *>(scan_key_pr->AccessForceNotNull(0)) = 15721;
@@ -1125,9 +1144,9 @@ TEST_F(HashIndexTests, AbortUpdate1) {
   EXPECT_EQ(results.size(), 0);
   results.clear();
 
-  txn_manager_.Commit(txn1, transaction::TransactionUtil::EmptyCallback, nullptr);
+  txn_manager_->Commit(txn1, transaction::TransactionUtil::EmptyCallback, nullptr);
 
-  auto *txn2 = txn_manager_.BeginTransaction();
+  auto *txn2 = txn_manager_->BeginTransaction();
 
   // txn 2 scans index for 15721 and gets a visible, correct result
   *reinterpret_cast<int32_t *>(scan_key_pr->AccessForceNotNull(0)) = 15721;
@@ -1142,7 +1161,7 @@ TEST_F(HashIndexTests, AbortUpdate1) {
   EXPECT_EQ(results.size(), 0);
   results.clear();
 
-  txn_manager_.Commit(txn2, transaction::TransactionUtil::EmptyCallback, nullptr);
+  txn_manager_->Commit(txn2, transaction::TransactionUtil::EmptyCallback, nullptr);
 }
 
 //    Txn #0 | Txn #1 | Txn #2 |
@@ -1166,11 +1185,11 @@ TEST_F(HashIndexTests, AbortUpdate1) {
 // This test confirms that we are not susceptible to the DIRTY READS and UNREPEATABLE READS anomalies
 // NOLINTNEXTLINE
 TEST_F(HashIndexTests, AbortUpdate2) {
-  auto *insert_txn = txn_manager_.BeginTransaction();
+  auto *insert_txn = txn_manager_->BeginTransaction();
 
   // insert_txn inserts into table
   auto *insert_redo =
-      insert_txn->StageWrite(CatalogTestUtil::test_db_oid, CatalogTestUtil::test_table_oid, tuple_initializer_);
+      insert_txn->StageWrite(CatalogTestUtil::TEST_DB_OID, CatalogTestUtil::TEST_TABLE_OID, tuple_initializer_);
   auto *insert_tuple = insert_redo->Delta();
   *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = 15721;
   const auto tuple_slot = sql_table_->Insert(insert_txn, insert_redo);
@@ -1180,14 +1199,14 @@ TEST_F(HashIndexTests, AbortUpdate2) {
   *reinterpret_cast<int32_t *>(insert_key->AccessForceNotNull(0)) = 15721;
   EXPECT_TRUE(default_index_->Insert(insert_txn, *insert_key, tuple_slot));
 
-  txn_manager_.Commit(insert_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+  txn_manager_->Commit(insert_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
   std::vector<storage::TupleSlot> results;
 
   auto *const scan_key_pr = default_index_->GetProjectedRowInitializer().InitializeRow(key_buffer_1_);
 
-  auto *txn0 = txn_manager_.BeginTransaction();
-  auto *txn1 = txn_manager_.BeginTransaction();
+  auto *txn0 = txn_manager_->BeginTransaction();
+  auto *txn1 = txn_manager_->BeginTransaction();
 
   // txn 1 scans index for 15721 and gets a visible, correct result
   *reinterpret_cast<int32_t *>(scan_key_pr->AccessForceNotNull(0)) = 15721;
@@ -1196,11 +1215,11 @@ TEST_F(HashIndexTests, AbortUpdate2) {
   EXPECT_EQ(tuple_slot, results[0]);
 
   // txn 1 updates in the table, which is really a delete and insert since it's an indexed attribute
-  txn1->StageDelete(CatalogTestUtil::test_db_oid, CatalogTestUtil::test_table_oid, results[0]);
+  txn1->StageDelete(CatalogTestUtil::TEST_DB_OID, CatalogTestUtil::TEST_TABLE_OID, results[0]);
   EXPECT_TRUE(sql_table_->Delete(txn1, results[0]));
   default_index_->Delete(txn1, *insert_key, results[0]);
 
-  insert_redo = txn1->StageWrite(CatalogTestUtil::test_db_oid, CatalogTestUtil::test_table_oid, tuple_initializer_);
+  insert_redo = txn1->StageWrite(CatalogTestUtil::TEST_DB_OID, CatalogTestUtil::TEST_TABLE_OID, tuple_initializer_);
   insert_tuple = insert_redo->Delta();
   *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = 15445;
   const auto new_tuple_slot = sql_table_->Insert(txn1, insert_redo);
@@ -1237,7 +1256,7 @@ TEST_F(HashIndexTests, AbortUpdate2) {
   EXPECT_EQ(new_tuple_slot, results[0]);
   results.clear();
 
-  txn_manager_.Abort(txn1);
+  txn_manager_->Abort(txn1);
 
   // txn 0 scans index for 15721 and gets a visible, correct result
   *reinterpret_cast<int32_t *>(scan_key_pr->AccessForceNotNull(0)) = 15721;
@@ -1252,9 +1271,9 @@ TEST_F(HashIndexTests, AbortUpdate2) {
   EXPECT_EQ(results.size(), 0);
   results.clear();
 
-  txn_manager_.Commit(txn0, transaction::TransactionUtil::EmptyCallback, nullptr);
+  txn_manager_->Commit(txn0, transaction::TransactionUtil::EmptyCallback, nullptr);
 
-  auto *txn2 = txn_manager_.BeginTransaction();
+  auto *txn2 = txn_manager_->BeginTransaction();
 
   // txn 2 scans index for 15721 and gets a visible, correct result
   *reinterpret_cast<int32_t *>(scan_key_pr->AccessForceNotNull(0)) = 15721;
@@ -1269,7 +1288,7 @@ TEST_F(HashIndexTests, AbortUpdate2) {
   EXPECT_EQ(results.size(), 0);
   results.clear();
 
-  txn_manager_.Commit(txn2, transaction::TransactionUtil::EmptyCallback, nullptr);
+  txn_manager_->Commit(txn2, transaction::TransactionUtil::EmptyCallback, nullptr);
 }
 
 //    Txn #0 | Txn #1 | Txn #2 |
@@ -1293,11 +1312,11 @@ TEST_F(HashIndexTests, AbortUpdate2) {
 // This test confirms that we are not susceptible to the DIRTY READS and UNREPEATABLE READS anomalies
 // NOLINTNEXTLINE
 TEST_F(HashIndexTests, CommitDelete1) {
-  auto *insert_txn = txn_manager_.BeginTransaction();
+  auto *insert_txn = txn_manager_->BeginTransaction();
 
   // insert_txn inserts into table
   auto *insert_redo =
-      insert_txn->StageWrite(CatalogTestUtil::test_db_oid, CatalogTestUtil::test_table_oid, tuple_initializer_);
+      insert_txn->StageWrite(CatalogTestUtil::TEST_DB_OID, CatalogTestUtil::TEST_TABLE_OID, tuple_initializer_);
   auto *insert_tuple = insert_redo->Delta();
   *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = 15721;
   const auto tuple_slot = sql_table_->Insert(insert_txn, insert_redo);
@@ -1307,13 +1326,13 @@ TEST_F(HashIndexTests, CommitDelete1) {
   *reinterpret_cast<int32_t *>(insert_key->AccessForceNotNull(0)) = 15721;
   EXPECT_TRUE(default_index_->Insert(insert_txn, *insert_key, tuple_slot));
 
-  txn_manager_.Commit(insert_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+  txn_manager_->Commit(insert_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
   std::vector<storage::TupleSlot> results;
 
   auto *const scan_key_pr = default_index_->GetProjectedRowInitializer().InitializeRow(key_buffer_1_);
 
-  auto *txn0 = txn_manager_.BeginTransaction();
+  auto *txn0 = txn_manager_->BeginTransaction();
 
   // txn 0 scans index for 15721 and gets a visible, correct result
   *reinterpret_cast<int32_t *>(scan_key_pr->AccessForceNotNull(0)) = 15721;
@@ -1323,7 +1342,7 @@ TEST_F(HashIndexTests, CommitDelete1) {
   results.clear();
 
   // txn 0 deletes in the table and index
-  txn0->StageDelete(CatalogTestUtil::test_db_oid, CatalogTestUtil::test_table_oid, results[0]);
+  txn0->StageDelete(CatalogTestUtil::TEST_DB_OID, CatalogTestUtil::TEST_TABLE_OID, results[0]);
   EXPECT_TRUE(sql_table_->Delete(txn0, results[0]));
   default_index_->Delete(txn0, *insert_key, results[0]);
 
@@ -1333,7 +1352,7 @@ TEST_F(HashIndexTests, CommitDelete1) {
   EXPECT_EQ(results.size(), 0);
   results.clear();
 
-  auto *txn1 = txn_manager_.BeginTransaction();
+  auto *txn1 = txn_manager_->BeginTransaction();
 
   // txn 1 scans index for 15721 and gets a visible, correct result
   *reinterpret_cast<int32_t *>(scan_key_pr->AccessForceNotNull(0)) = 15721;
@@ -1342,7 +1361,7 @@ TEST_F(HashIndexTests, CommitDelete1) {
   EXPECT_EQ(tuple_slot, results[0]);
   results.clear();
 
-  txn_manager_.Commit(txn0, transaction::TransactionUtil::EmptyCallback, nullptr);
+  txn_manager_->Commit(txn0, transaction::TransactionUtil::EmptyCallback, nullptr);
 
   // txn 1 scans index for 15721 and gets a visible, correct result
   *reinterpret_cast<int32_t *>(scan_key_pr->AccessForceNotNull(0)) = 15721;
@@ -1351,9 +1370,9 @@ TEST_F(HashIndexTests, CommitDelete1) {
   EXPECT_EQ(tuple_slot, results[0]);
   results.clear();
 
-  txn_manager_.Commit(txn1, transaction::TransactionUtil::EmptyCallback, nullptr);
+  txn_manager_->Commit(txn1, transaction::TransactionUtil::EmptyCallback, nullptr);
 
-  auto *txn2 = txn_manager_.BeginTransaction();
+  auto *txn2 = txn_manager_->BeginTransaction();
 
   // txn 2 scans index for 15721 and gets no visible result
   *reinterpret_cast<int32_t *>(scan_key_pr->AccessForceNotNull(0)) = 15721;
@@ -1361,7 +1380,7 @@ TEST_F(HashIndexTests, CommitDelete1) {
   EXPECT_EQ(results.size(), 0);
   results.clear();
 
-  txn_manager_.Commit(txn2, transaction::TransactionUtil::EmptyCallback, nullptr);
+  txn_manager_->Commit(txn2, transaction::TransactionUtil::EmptyCallback, nullptr);
 }
 
 //    Txn #0 | Txn #1 | Txn #2 |
@@ -1385,11 +1404,11 @@ TEST_F(HashIndexTests, CommitDelete1) {
 // This test confirms that we are not susceptible to the DIRTY READS and UNREPEATABLE READS anomalies
 // NOLINTNEXTLINE
 TEST_F(HashIndexTests, CommitDelete2) {
-  auto *insert_txn = txn_manager_.BeginTransaction();
+  auto *insert_txn = txn_manager_->BeginTransaction();
 
   // insert_txn inserts into table
   auto *insert_redo =
-      insert_txn->StageWrite(CatalogTestUtil::test_db_oid, CatalogTestUtil::test_table_oid, tuple_initializer_);
+      insert_txn->StageWrite(CatalogTestUtil::TEST_DB_OID, CatalogTestUtil::TEST_TABLE_OID, tuple_initializer_);
   auto *insert_tuple = insert_redo->Delta();
   *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = 15721;
   const auto tuple_slot = sql_table_->Insert(insert_txn, insert_redo);
@@ -1399,14 +1418,14 @@ TEST_F(HashIndexTests, CommitDelete2) {
   *reinterpret_cast<int32_t *>(insert_key->AccessForceNotNull(0)) = 15721;
   EXPECT_TRUE(default_index_->Insert(insert_txn, *insert_key, tuple_slot));
 
-  txn_manager_.Commit(insert_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+  txn_manager_->Commit(insert_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
   std::vector<storage::TupleSlot> results;
 
   auto *const scan_key_pr = default_index_->GetProjectedRowInitializer().InitializeRow(key_buffer_1_);
 
-  auto *txn0 = txn_manager_.BeginTransaction();
-  auto *txn1 = txn_manager_.BeginTransaction();
+  auto *txn0 = txn_manager_->BeginTransaction();
+  auto *txn1 = txn_manager_->BeginTransaction();
 
   // txn 1 scans index for 15721 and gets a visible, correct result
   *reinterpret_cast<int32_t *>(scan_key_pr->AccessForceNotNull(0)) = 15721;
@@ -1415,7 +1434,7 @@ TEST_F(HashIndexTests, CommitDelete2) {
   EXPECT_EQ(tuple_slot, results[0]);
 
   // txn 1 deletes in the table and index
-  txn1->StageDelete(CatalogTestUtil::test_db_oid, CatalogTestUtil::test_table_oid, results[0]);
+  txn1->StageDelete(CatalogTestUtil::TEST_DB_OID, CatalogTestUtil::TEST_TABLE_OID, results[0]);
   EXPECT_TRUE(sql_table_->Delete(txn1, results[0]));
   default_index_->Delete(txn1, *insert_key, results[0]);
 
@@ -1434,7 +1453,7 @@ TEST_F(HashIndexTests, CommitDelete2) {
   EXPECT_EQ(results.size(), 0);
   results.clear();
 
-  txn_manager_.Commit(txn1, transaction::TransactionUtil::EmptyCallback, nullptr);
+  txn_manager_->Commit(txn1, transaction::TransactionUtil::EmptyCallback, nullptr);
 
   // txn 0 scans index for 15721 and gets a visible, correct result
   *reinterpret_cast<int32_t *>(scan_key_pr->AccessForceNotNull(0)) = 15721;
@@ -1443,9 +1462,9 @@ TEST_F(HashIndexTests, CommitDelete2) {
   EXPECT_EQ(tuple_slot, results[0]);
   results.clear();
 
-  txn_manager_.Commit(txn0, transaction::TransactionUtil::EmptyCallback, nullptr);
+  txn_manager_->Commit(txn0, transaction::TransactionUtil::EmptyCallback, nullptr);
 
-  auto *txn2 = txn_manager_.BeginTransaction();
+  auto *txn2 = txn_manager_->BeginTransaction();
 
   // txn 2 scans index for 15721 and gets no visible result
   *reinterpret_cast<int32_t *>(scan_key_pr->AccessForceNotNull(0)) = 15721;
@@ -1453,7 +1472,7 @@ TEST_F(HashIndexTests, CommitDelete2) {
   EXPECT_EQ(results.size(), 0);
   results.clear();
 
-  txn_manager_.Commit(txn2, transaction::TransactionUtil::EmptyCallback, nullptr);
+  txn_manager_->Commit(txn2, transaction::TransactionUtil::EmptyCallback, nullptr);
 }
 
 //    Txn #0 | Txn #1 | Txn #2 |
@@ -1477,11 +1496,11 @@ TEST_F(HashIndexTests, CommitDelete2) {
 // This test confirms that we are not susceptible to the DIRTY READS and UNREPEATABLE READS anomalies
 // NOLINTNEXTLINE
 TEST_F(HashIndexTests, AbortDelete1) {
-  auto *insert_txn = txn_manager_.BeginTransaction();
+  auto *insert_txn = txn_manager_->BeginTransaction();
 
   // insert_txn inserts into table
   auto *insert_redo =
-      insert_txn->StageWrite(CatalogTestUtil::test_db_oid, CatalogTestUtil::test_table_oid, tuple_initializer_);
+      insert_txn->StageWrite(CatalogTestUtil::TEST_DB_OID, CatalogTestUtil::TEST_TABLE_OID, tuple_initializer_);
   auto *insert_tuple = insert_redo->Delta();
   *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = 15721;
   const auto tuple_slot = sql_table_->Insert(insert_txn, insert_redo);
@@ -1491,13 +1510,13 @@ TEST_F(HashIndexTests, AbortDelete1) {
   *reinterpret_cast<int32_t *>(insert_key->AccessForceNotNull(0)) = 15721;
   EXPECT_TRUE(default_index_->Insert(insert_txn, *insert_key, tuple_slot));
 
-  txn_manager_.Commit(insert_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+  txn_manager_->Commit(insert_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
   std::vector<storage::TupleSlot> results;
 
   auto *const scan_key_pr = default_index_->GetProjectedRowInitializer().InitializeRow(key_buffer_1_);
 
-  auto *txn0 = txn_manager_.BeginTransaction();
+  auto *txn0 = txn_manager_->BeginTransaction();
 
   // txn 0 scans index for 15721 and gets a visible, correct result
   *reinterpret_cast<int32_t *>(scan_key_pr->AccessForceNotNull(0)) = 15721;
@@ -1507,7 +1526,7 @@ TEST_F(HashIndexTests, AbortDelete1) {
   results.clear();
 
   // txn 0 deletes in the table and index
-  txn0->StageDelete(CatalogTestUtil::test_db_oid, CatalogTestUtil::test_table_oid, results[0]);
+  txn0->StageDelete(CatalogTestUtil::TEST_DB_OID, CatalogTestUtil::TEST_TABLE_OID, results[0]);
   EXPECT_TRUE(sql_table_->Delete(txn0, results[0]));
   default_index_->Delete(txn0, *insert_key, results[0]);
 
@@ -1517,7 +1536,7 @@ TEST_F(HashIndexTests, AbortDelete1) {
   EXPECT_EQ(results.size(), 0);
   results.clear();
 
-  auto *txn1 = txn_manager_.BeginTransaction();
+  auto *txn1 = txn_manager_->BeginTransaction();
 
   // txn 1 scans index for 15721 and gets a visible, correct result
   *reinterpret_cast<int32_t *>(scan_key_pr->AccessForceNotNull(0)) = 15721;
@@ -1526,7 +1545,7 @@ TEST_F(HashIndexTests, AbortDelete1) {
   EXPECT_EQ(tuple_slot, results[0]);
   results.clear();
 
-  txn_manager_.Abort(txn0);
+  txn_manager_->Abort(txn0);
 
   // txn 1 scans index for 15721 and gets a visible, correct result
   *reinterpret_cast<int32_t *>(scan_key_pr->AccessForceNotNull(0)) = 15721;
@@ -1535,9 +1554,9 @@ TEST_F(HashIndexTests, AbortDelete1) {
   EXPECT_EQ(tuple_slot, results[0]);
   results.clear();
 
-  txn_manager_.Commit(txn1, transaction::TransactionUtil::EmptyCallback, nullptr);
+  txn_manager_->Commit(txn1, transaction::TransactionUtil::EmptyCallback, nullptr);
 
-  auto *txn2 = txn_manager_.BeginTransaction();
+  auto *txn2 = txn_manager_->BeginTransaction();
 
   // txn 2 scans index for 15721 and gets a visible, correct result
   *reinterpret_cast<int32_t *>(scan_key_pr->AccessForceNotNull(0)) = 15721;
@@ -1546,7 +1565,7 @@ TEST_F(HashIndexTests, AbortDelete1) {
   EXPECT_EQ(tuple_slot, results[0]);
   results.clear();
 
-  txn_manager_.Commit(txn2, transaction::TransactionUtil::EmptyCallback, nullptr);
+  txn_manager_->Commit(txn2, transaction::TransactionUtil::EmptyCallback, nullptr);
 }
 
 //    Txn #0 | Txn #1 | Txn #2 |
@@ -1570,11 +1589,11 @@ TEST_F(HashIndexTests, AbortDelete1) {
 // This test confirms that we are not susceptible to the DIRTY READS and UNREPEATABLE READS anomalies
 // NOLINTNEXTLINE
 TEST_F(HashIndexTests, AbortDelete2) {
-  auto *insert_txn = txn_manager_.BeginTransaction();
+  auto *insert_txn = txn_manager_->BeginTransaction();
 
   // insert_txn inserts into table
   auto *insert_redo =
-      insert_txn->StageWrite(CatalogTestUtil::test_db_oid, CatalogTestUtil::test_table_oid, tuple_initializer_);
+      insert_txn->StageWrite(CatalogTestUtil::TEST_DB_OID, CatalogTestUtil::TEST_TABLE_OID, tuple_initializer_);
   auto *insert_tuple = insert_redo->Delta();
   *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = 15721;
   const auto tuple_slot = sql_table_->Insert(insert_txn, insert_redo);
@@ -1584,14 +1603,14 @@ TEST_F(HashIndexTests, AbortDelete2) {
   *reinterpret_cast<int32_t *>(insert_key->AccessForceNotNull(0)) = 15721;
   EXPECT_TRUE(default_index_->Insert(insert_txn, *insert_key, tuple_slot));
 
-  txn_manager_.Commit(insert_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+  txn_manager_->Commit(insert_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
   std::vector<storage::TupleSlot> results;
 
   auto *const scan_key_pr = default_index_->GetProjectedRowInitializer().InitializeRow(key_buffer_1_);
 
-  auto *txn0 = txn_manager_.BeginTransaction();
-  auto *txn1 = txn_manager_.BeginTransaction();
+  auto *txn0 = txn_manager_->BeginTransaction();
+  auto *txn1 = txn_manager_->BeginTransaction();
 
   // txn 1 scans index for 15721 and gets a visible, correct result
   *reinterpret_cast<int32_t *>(scan_key_pr->AccessForceNotNull(0)) = 15721;
@@ -1600,7 +1619,7 @@ TEST_F(HashIndexTests, AbortDelete2) {
   EXPECT_EQ(tuple_slot, results[0]);
 
   // txn 1 deletes in the table and index
-  txn1->StageDelete(CatalogTestUtil::test_db_oid, CatalogTestUtil::test_table_oid, results[0]);
+  txn1->StageDelete(CatalogTestUtil::TEST_DB_OID, CatalogTestUtil::TEST_TABLE_OID, results[0]);
   EXPECT_TRUE(sql_table_->Delete(txn1, results[0]));
   default_index_->Delete(txn1, *insert_key, results[0]);
 
@@ -1619,7 +1638,7 @@ TEST_F(HashIndexTests, AbortDelete2) {
   EXPECT_EQ(results.size(), 0);
   results.clear();
 
-  txn_manager_.Abort(txn1);
+  txn_manager_->Abort(txn1);
 
   // txn 0 scans index for 15721 and gets a visible, correct result
   *reinterpret_cast<int32_t *>(scan_key_pr->AccessForceNotNull(0)) = 15721;
@@ -1628,9 +1647,9 @@ TEST_F(HashIndexTests, AbortDelete2) {
   EXPECT_EQ(tuple_slot, results[0]);
   results.clear();
 
-  txn_manager_.Commit(txn0, transaction::TransactionUtil::EmptyCallback, nullptr);
+  txn_manager_->Commit(txn0, transaction::TransactionUtil::EmptyCallback, nullptr);
 
-  auto *txn2 = txn_manager_.BeginTransaction();
+  auto *txn2 = txn_manager_->BeginTransaction();
 
   // txn 2 scans index for 15721 and gets a visible, correct result
   *reinterpret_cast<int32_t *>(scan_key_pr->AccessForceNotNull(0)) = 15721;
@@ -1639,7 +1658,7 @@ TEST_F(HashIndexTests, AbortDelete2) {
   EXPECT_EQ(tuple_slot, results[0]);
   results.clear();
 
-  txn_manager_.Commit(txn2, transaction::TransactionUtil::EmptyCallback, nullptr);
+  txn_manager_->Commit(txn2, transaction::TransactionUtil::EmptyCallback, nullptr);
 }
 
 }  // namespace terrier::storage::index
