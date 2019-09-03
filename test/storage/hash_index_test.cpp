@@ -120,12 +120,12 @@ class HashIndexTests : public TerrierTest {
 
 /**
  * This test creates multiple worker threads that all try to insert [0,num_inserts) as tuples in the table and into the
- * primary key index. At completion of the workload, only num_inserts_ txns should have committed with visible versions
+ * primary key index. At completion of the workload, only num_inserts txns should have committed with visible versions
  * in the index and table.
  */
 // NOLINTNEXTLINE
 TEST_F(HashIndexTests, UniqueInsert) {
-  const uint32_t num_inserts_ = 100000;  // number of tuples/primary keys for each worker to attempt to insert
+  const uint32_t num_inserts = 100000;  // number of tuples/primary keys for each worker to attempt to insert
   auto workload = [&](uint32_t worker_id) {
     auto *const key_buffer =
         common::AllocationUtil::AllocateAligned(unique_index_->GetProjectedRowInitializer().ProjectedRowSize());
@@ -134,7 +134,7 @@ TEST_F(HashIndexTests, UniqueInsert) {
     // some threads count up, others count down. This is to mix whether threads abort for write-write conflict or
     // previously committed versions
     if (worker_id % 2 == 0) {
-      for (uint32_t i = 0; i < num_inserts_; i++) {
+      for (uint32_t i = 0; i < num_inserts; i++) {
         auto *const insert_txn = txn_manager_->BeginTransaction();
         auto *const insert_redo =
             insert_txn->StageWrite(CatalogTestUtil::TEST_DB_OID, CatalogTestUtil::TEST_TABLE_OID, tuple_initializer_);
@@ -151,7 +151,7 @@ TEST_F(HashIndexTests, UniqueInsert) {
       }
 
     } else {
-      for (uint32_t i = num_inserts_ - 1; i < num_inserts_; i--) {
+      for (uint32_t i = num_inserts - 1; i < num_inserts; i--) {
         auto *const insert_txn = txn_manager_->BeginTransaction();
         auto *const insert_redo =
             insert_txn->StageWrite(CatalogTestUtil::TEST_DB_OID, CatalogTestUtil::TEST_TABLE_OID, tuple_initializer_);
@@ -183,8 +183,8 @@ TEST_F(HashIndexTests, UniqueInsert) {
 
   auto *const key_pr = default_index_->GetProjectedRowInitializer().InitializeRow(key_buffer_1_);
 
-  // scan[0,num_inserts_) should hit num_inserts_ keys (no duplicates)
-  for (uint32_t i = 0; i < num_inserts_; i++) {
+  // scan[0,num_inserts) should hit num_inserts keys (no duplicates)
+  for (uint32_t i = 0; i < num_inserts; i++) {
     *reinterpret_cast<int32_t *>(key_pr->AccessForceNotNull(0)) = i;
     unique_index_->ScanKey(*scan_txn, *key_pr, &results);
     EXPECT_EQ(results.size(), 1);
@@ -196,12 +196,12 @@ TEST_F(HashIndexTests, UniqueInsert) {
 
 /**
  * This test creates multiple worker threads that all try to insert [0,num_inserts) as tuples in the table and into the
- * primary key index. At completion of the workload, all num_inserts_ txns * num_threads_ should have committed with
+ * primary key index. At completion of the workload, all num_inserts txns * num_threads_ should have committed with
  * visible versions in the index and table.
  */
 // NOLINTNEXTLINE
 TEST_F(HashIndexTests, DefaultInsert) {
-  const uint32_t num_inserts_ = 100000;  // number of tuples/primary keys for each worker to attempt to insert
+  const uint32_t num_inserts = 100000;  // number of tuples/primary keys for each worker to attempt to insert
   auto workload = [&](uint32_t worker_id) {
     auto *const key_buffer =
         common::AllocationUtil::AllocateAligned(default_index_->GetProjectedRowInitializer().ProjectedRowSize());
@@ -209,7 +209,7 @@ TEST_F(HashIndexTests, DefaultInsert) {
 
     // some threads count up, others count down. Threads shouldn't abort each other
     if (worker_id % 2 == 0) {
-      for (uint32_t i = 0; i < num_inserts_; i++) {
+      for (uint32_t i = 0; i < num_inserts; i++) {
         auto *const insert_txn = txn_manager_->BeginTransaction();
         auto *const insert_redo =
             insert_txn->StageWrite(CatalogTestUtil::TEST_DB_OID, CatalogTestUtil::TEST_TABLE_OID, tuple_initializer_);
@@ -222,7 +222,7 @@ TEST_F(HashIndexTests, DefaultInsert) {
         txn_manager_->Commit(insert_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
       }
     } else {
-      for (uint32_t i = num_inserts_ - 1; i < num_inserts_; i--) {
+      for (uint32_t i = num_inserts - 1; i < num_inserts; i--) {
         auto *const insert_txn = txn_manager_->BeginTransaction();
         auto *const insert_redo =
             insert_txn->StageWrite(CatalogTestUtil::TEST_DB_OID, CatalogTestUtil::TEST_TABLE_OID, tuple_initializer_);
@@ -252,8 +252,8 @@ TEST_F(HashIndexTests, DefaultInsert) {
 
   auto *const key_pr = default_index_->GetProjectedRowInitializer().InitializeRow(key_buffer_1_);
 
-  // scan[0,num_inserts_) should hit num_inserts_ * num_threads_ keys
-  for (uint32_t i = 0; i < num_inserts_; i++) {
+  // scan[0,num_inserts) should hit num_inserts * num_threads_ keys
+  for (uint32_t i = 0; i < num_inserts; i++) {
     *reinterpret_cast<int32_t *>(key_pr->AccessForceNotNull(0)) = i;
     default_index_->ScanKey(*scan_txn, *key_pr, &results);
     EXPECT_EQ(results.size(), num_threads_);
