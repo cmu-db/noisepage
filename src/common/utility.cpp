@@ -8,7 +8,7 @@
 #if __APPLE__
 extern "C" {
 #include <sys/cdefs.h>
-int close$NOCANCEL(int);
+int close$NOCANCEL(int);  // NOLINT
 };
 #endif
 
@@ -25,7 +25,7 @@ namespace terrier {
  * @return int error code from close. Informational only, no action required.
  */
 
-int terrier_close(int fd) {
+int TerrierClose(int fd) {
   // On Mac OS, close$NOCANCEL guarantees that no descriptor leak & no need to retry on failure.
   // On linux, close will do the same.
   // In short, call close/close$NOCANCEL once and consider it done. AND NEVER RETRY ON FAILURE.
@@ -41,14 +41,14 @@ int terrier_close(int fd) {
 #endif
 
   if (close_ret != 0) {
-    auto error_message = terrier_error_message();
+    auto error_message = TerrierErrorMessage();
     LOG_DEBUG("Close failed on fd: %d, errno: %d [%s]", fd, errno, error_message.c_str());
   }
 
   return close_ret;
 }
 
-std::string terrier_error_message() {
+std::string TerrierErrorMessage() {
   std::vector<char> buffer(100, '\0');
   int saved_errno = errno;
   char *error_message = nullptr;

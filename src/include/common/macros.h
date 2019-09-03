@@ -161,6 +161,9 @@
 
 #define FRIEND_TEST(test_case_name, test_name) friend class test_case_name##_##test_name##_Test
 
+// We use a dependency injection style where nullptr means the feature is disabled for many components
+// This macro exists purely to improve readability of code.
+#define DISABLED nullptr
 // Use this macro to add polymorphism to a class, when the sole purpose of it is to enable mocks and fakes
 // during testing. This makes it clear to the reader that no other form of polymorphism is expected. This
 // also means it is possible to get performance back through use of compiler macro magic

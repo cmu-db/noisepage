@@ -66,7 +66,7 @@ Transition ParseCommand::Exec(common::ManagedPointer<PostgresProtocolInterpreter
   }
 
   // if a statement with that name exists, return error
-  if (!stmt_name.empty() && connection->statements.count(stmt_name) > 0) {
+  if (!stmt_name.empty() && connection->statements_.count(stmt_name) > 0) {
     LogAndWriteErrorMsg("There is already a statement with name " + stmt_name, out);
     return Transition::PROCEED;
   }
@@ -75,7 +75,7 @@ Transition ParseCommand::Exec(common::ManagedPointer<PostgresProtocolInterpreter
   sqlite3_stmt *sqlite_stmt = execution_engine->PrepareStatement(query);
 
   trafficcop::Statement stmt(sqlite_stmt, param_types);
-  connection->statements[stmt_name] = stmt;
+  connection->statements_[stmt_name] = stmt;
 
   out->WriteParseComplete();
   return Transition::PROCEED;
@@ -94,8 +94,8 @@ Transition BindCommand::Exec(common::ManagedPointer<PostgresProtocolInterpreter>
   string stmt_name = in_.ReadString();
   NETWORK_LOG_TRACE("BindCommand, portal name = {0}, stmt name = {1}", portal_name, stmt_name);
 
-  auto statement_pair = connection->statements.find(stmt_name);
-  if (statement_pair == connection->statements.end()) {
+  auto statement_pair = connection->statements_.find(stmt_name);
+  if (statement_pair == connection->statements_.end()) {
     string error_msg = fmt::format("Error: There is no statement with name {0}", stmt_name);
     LogAndWriteErrorMsg(error_msg, out);
     return Transition::PROCEED;
@@ -212,8 +212,8 @@ Transition BindCommand::Exec(common::ManagedPointer<PostgresProtocolInterpreter>
   // because we cannot copy a sqlite3 statement.
   trafficcop::Portal portal;
   portal.sqlite_stmt_ = statement->sqlite3_stmt_;
-  portal.params = params;
-  connection->portals[portal_name] = portal;
+  portal.params_ = params;
+  connection->portals_[portal_name] = portal;
 
   out->WriteBindComplete();
   return Transition::PROCEED;
@@ -231,8 +231,8 @@ Transition DescribeCommand::Exec(common::ManagedPointer<PostgresProtocolInterpre
   trafficcop::SqliteEngine *execution_engine = t_cop->GetExecutionEngine();
 
   if (type == DescribeCommandObjectType::STATEMENT) {
-    auto p_statement = connection->statements.find(name);
-    if (p_statement == connection->statements.end()) {
+    auto p_statement = connection->statements_.find(name);
+    if (p_statement == connection->statements_.end()) {
       std::string error_msg = fmt::format("There is no statement with name {0}", name);
       LogAndWriteErrorMsg(error_msg, out);
       return Transition::PROCEED;
@@ -243,8 +243,8 @@ Transition DescribeCommand::Exec(common::ManagedPointer<PostgresProtocolInterpre
     if (statement.sqlite3_stmt_ != nullptr) column_names = execution_engine->DescribeColumns(statement.sqlite3_stmt_);
 
   } else if (type == DescribeCommandObjectType::PORTAL) {
-    auto p_portal = connection->portals.find(name);
-    if (p_portal == connection->portals.end()) {
+    auto p_portal = connection->portals_.find(name);
+    if (p_portal == connection->portals_.end()) {
       std::string error_msg = fmt::format("There is no portal with name {0}", name);
       LogAndWriteErrorMsg(error_msg, out);
       return Transition::PROCEED;
@@ -273,8 +273,8 @@ Transition ExecuteCommand::Exec(common::ManagedPointer<PostgresProtocolInterpret
   string portal_name = in_.ReadString();
   NETWORK_LOG_TRACE("ExecuteCommand portal name = {0}", portal_name);
 
-  auto p_portal = connection->portals.find(portal_name);
-  if (p_portal == connection->portals.end()) {
+  auto p_portal = connection->portals_.find(portal_name);
+  if (p_portal == connection->portals_.end()) {
     string error_msg = fmt::format("Error: Portal {0} does not exist.", portal_name);
     NETWORK_LOG_ERROR(error_msg);
     out->WriteSingleErrorResponse(NetworkMessageType::HUMAN_READABLE_ERROR, error_msg);
@@ -284,7 +284,7 @@ Transition ExecuteCommand::Exec(common::ManagedPointer<PostgresProtocolInterpret
   trafficcop::Portal &portal = p_portal->second;
 
   trafficcop::SqliteEngine *execution_engine = t_cop->GetExecutionEngine();
-  execution_engine->Bind(portal.sqlite_stmt_, portal.params);
+  execution_engine->Bind(portal.sqlite_stmt_, portal.params_);
   trafficcop::ResultSet result = execution_engine->Execute(portal.sqlite_stmt_);
   for (const auto &row : result.rows_) out->WriteDataRow(row);
 
