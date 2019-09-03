@@ -632,9 +632,8 @@ bool DatabaseCatalog::DeleteTable(transaction::TransactionContext *const txn, co
 
   // Everything succeeded from an MVCC standpoint, register deferred action for the GC with txn manager. See base
   // function comment.
-  auto *const txn_manager = txn->GetTransactionManager();
-  txn->RegisterCommitAction([=]() {
-    txn_manager->DeferAction([=]() {
+  txn->RegisterCommitAction([=](transaction::DeferredActionManager *deferred_action_manager) {
+    deferred_action_manager->RegisterDeferredAction([=]() {
       // Defer an action upon commit to delete the table. Delete index will need a double deferral because there could
       // be pending deferred actions on an index
       delete schema_ptr;
@@ -704,11 +703,11 @@ table_oid_t DatabaseCatalog::GetTableOid(transaction::TransactionContext *const 
 
 bool DatabaseCatalog::SetTablePointer(transaction::TransactionContext *const txn, const table_oid_t table,
                                       const storage::SqlTable *const table_ptr) {
-  auto *txn_manager = txn->GetTransactionManager();
-
   // We need to defer the deletion because their may be subsequent undo records into this table that need to be GCed
   // before we can safely delete this.
-  txn->RegisterAbortAction([=]() { txn_manager->DeferAction([=]() { delete table_ptr; }); });
+  txn->RegisterAbortAction([=](transaction::DeferredActionManager *deferred_action_manager) {
+    deferred_action_manager->RegisterDeferredAction([=]() { delete table_ptr; });
+  });
   return SetClassPointer(txn, table, table_ptr);
 }
 
@@ -931,10 +930,9 @@ bool DatabaseCatalog::DeleteIndex(transaction::TransactionContext *txn, index_oi
 
   // Everything succeeded from an MVCC standpoint, so register a deferred action for the GC to delete the index with txn
   // manager. See base function comment.
-  auto *const txn_manager = txn->GetTransactionManager();
-  txn->RegisterCommitAction([=]() {
-    txn_manager->DeferAction([=]() {
-      txn_manager->DeferAction([=]() {
+  txn->RegisterCommitAction([=](transaction::DeferredActionManager *deferred_action_manager) {
+    deferred_action_manager->RegisterDeferredAction([=]() {
+      deferred_action_manager->RegisterDeferredAction([=]() {
         delete schema_ptr;
         delete index_ptr;
       });
@@ -983,11 +981,11 @@ bool DatabaseCatalog::SetClassPointer(transaction::TransactionContext *const txn
 
 bool DatabaseCatalog::SetIndexPointer(transaction::TransactionContext *const txn, const index_oid_t index,
                                       const storage::index::Index *const index_ptr) {
-  auto *txn_manager = txn->GetTransactionManager();
-
   // This needs to be deferred because if any items were subsequently inserted into this index, they will have deferred
   // abort actions that will be above this action on the abort stack.  The defer ensures we execute after them.
-  txn->RegisterAbortAction([=]() { txn_manager->DeferAction([=]() { delete index_ptr; }); });
+  txn->RegisterAbortAction([=](transaction::DeferredActionManager *deferred_action_manager) {
+    deferred_action_manager->RegisterDeferredAction([=]() { delete index_ptr; });
+  });
   return SetClassPointer(txn, index, index_ptr);
 }
 
@@ -1081,7 +1079,7 @@ void DatabaseCatalog::TearDown(transaction::TransactionContext *txn) {
   }
 
   auto dbc_nuke = [=, tables{std::move(tables)}, indexes{std::move(indexes)}, table_schemas{std::move(table_schemas)},
-                   index_schemas{std::move(index_schemas)}, expressions{std::move(expressions)}] {
+                   index_schemas{std::move(index_schemas)}, expressions{std::move(expressions)}]() {
     for (auto table : tables) delete table;
 
     for (auto index : indexes) delete index;
@@ -1095,7 +1093,9 @@ void DatabaseCatalog::TearDown(transaction::TransactionContext *txn) {
 
   // No new transactions can see these object but there may be deferred index
   // and other operation.  Therefore, we need to defer the deallocation on delete
-  txn->RegisterCommitAction([=] { txn->GetTransactionManager()->DeferAction(dbc_nuke); });
+  txn->RegisterCommitAction([=](transaction::DeferredActionManager *deferred_action_manager) {
+    deferred_action_manager->RegisterDeferredAction(dbc_nuke);
+  });
 
   delete[] buffer;
 }

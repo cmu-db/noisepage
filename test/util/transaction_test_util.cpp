@@ -86,7 +86,7 @@ LargeTransactionTestObject::LargeTransactionTestObject(const LargeTransactionTes
       table_(block_store, layout_, storage::layout_version_t(0)),
       txn_manager_(txn_manager),
       gc_on_(txn_manager->GCEnabled()),
-      wal_on_(log_manager != LOGGING_DISABLED) {
+      wal_on_(log_manager != DISABLED) {
   // Bootstrap the table to have the specified number of tuples
   PopulateInitialTable(config.InitialTableSize(), generator_);
 }

@@ -65,6 +65,7 @@ void RandomWorkloadTransaction::Finish() {
     commit_time_ = test_object_->txn_manager_.Commit(txn_, TestCallbacks::EmptyCallback, nullptr);
 }
 
+// TODO(Tianyu): Convert to DI
 LargeTransactionBenchmarkObject::LargeTransactionBenchmarkObject(const std::vector<uint8_t> &attr_sizes,
                                                                  uint32_t initial_table_size, uint32_t txn_length,
                                                                  std::vector<double> operation_ratio,
@@ -77,7 +78,7 @@ LargeTransactionBenchmarkObject::LargeTransactionBenchmarkObject(const std::vect
       generator_(generator),
       layout_({attr_sizes}),
       table_(block_store, layout_, storage::layout_version_t(0)),
-      txn_manager_(buffer_pool, gc_on, log_manager),
+      txn_manager_(&timestamp_manager_, DISABLED, buffer_pool, gc_on, log_manager),
       gc_on_(gc_on),
       abort_count_(0) {
   // Bootstrap the table to have the specified number of tuples

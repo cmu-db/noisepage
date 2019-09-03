@@ -152,10 +152,11 @@ TEST(PlanNodeTest, HashJoinPlanTest) {
   HashJoinPlanNode::Builder hash_join_builder;
 
   // Build left scan
+  auto predicate = new parser::StarExpression();
   auto seq_scan_1 = seq_scan_builder.SetOutputSchema(PlanNodeTest::BuildOneColumnSchema("col1", type::TypeId::INTEGER))
                         .SetTableOid(catalog::table_oid_t(1))
                         .SetDatabaseOid(catalog::db_oid_t(0))
-                        .SetScanPredicate(new parser::StarExpression())
+                        .SetScanPredicate(predicate)
                         .SetIsForUpdateFlag(false)
                         .SetIsParallelFlag(true)
                         .Build();
@@ -171,7 +172,7 @@ TEST(PlanNodeTest, HashJoinPlanTest) {
   auto seq_scan_2 = seq_scan_builder.SetOutputSchema(PlanNodeTest::BuildOneColumnSchema("col2", type::TypeId::INTEGER))
                         .SetTableOid(catalog::table_oid_t(2))
                         .SetDatabaseOid(catalog::db_oid_t(0))
-                        .SetScanPredicate(new parser::StarExpression())
+                        .SetScanPredicate(predicate)
                         .SetIsForUpdateFlag(false)
                         .SetIsParallelFlag(true)
                         .Build();
@@ -211,6 +212,8 @@ TEST(PlanNodeTest, HashJoinPlanTest) {
   EXPECT_EQ(2, hash_join_plan->GetChildrenSize());
   EXPECT_EQ(LogicalJoinType::INNER, hash_join_plan->GetLogicalJoinType());
   EXPECT_EQ(parser::ExpressionType::COMPARE_EQUAL, hash_join_plan->GetJoinPredicate()->GetExpressionType());
+
+  delete predicate;
 }
 
 // NOLINTNEXTLINE

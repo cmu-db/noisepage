@@ -694,10 +694,11 @@ TEST(PlanNodeJsonTest, HashJoinPlanNodeJoinTest) {
 TEST(PlanNodeJsonTest, HashPlanNodeJsonTest) {
   // Construct HashPlanNode
   HashPlanNode::Builder builder;
+  auto seq_plan = PlanNodeJsonTest::BuildDummySeqScanPlan();
   auto plan_node = builder.SetOutputSchema(PlanNodeJsonTest::BuildDummyOutputSchema())
                        .AddHashKey(new parser::ColumnValueExpression("col1", "table1"))
                        .AddHashKey(new parser::ColumnValueExpression("col2", "table1"))
-                       .AddChild(PlanNodeJsonTest::BuildDummySeqScanPlan())
+                       .AddChild(seq_plan)
                        .Build();
 
   // Serialize to Json
@@ -711,6 +712,9 @@ TEST(PlanNodeJsonTest, HashPlanNodeJsonTest) {
   auto hash_plan = std::dynamic_pointer_cast<HashPlanNode>(deserialized_plan);
   EXPECT_EQ(*plan_node, *hash_plan);
   EXPECT_EQ(plan_node->Hash(), hash_plan->Hash());
+
+  delete std::dynamic_pointer_cast<SeqScanPlanNode>(seq_plan)->GetScanPredicate().Get();
+  delete reinterpret_cast<const SeqScanPlanNode *>(hash_plan->GetChild(0))->GetScanPredicate().Get();
 }
 
 // NOLINTNEXTLINE
@@ -737,6 +741,9 @@ TEST(PlanNodeJsonTest, IndexScanPlanNodeJsonTest) {
   auto index_scan_plan = std::dynamic_pointer_cast<IndexScanPlanNode>(deserialized_plan);
   EXPECT_EQ(*plan_node, *index_scan_plan);
   EXPECT_EQ(plan_node->Hash(), index_scan_plan->Hash());
+
+  delete std::dynamic_pointer_cast<IndexScanPlanNode>(plan_node)->GetScanPredicate().Get();
+  delete index_scan_plan->GetScanPredicate().Get();
 }
 
 // NOLINTNEXTLINE
@@ -959,6 +966,9 @@ TEST(PlanNodeJsonTest, SeqScanPlanNodeJsonTest) {
   auto seq_scan_plan = std::dynamic_pointer_cast<SeqScanPlanNode>(deserialized_plan);
   EXPECT_EQ(*plan_node, *seq_scan_plan);
   EXPECT_EQ(plan_node->Hash(), seq_scan_plan->Hash());
+
+  delete std::dynamic_pointer_cast<SeqScanPlanNode>(plan_node)->GetScanPredicate().Get();
+  delete seq_scan_plan->GetScanPredicate().Get();
 }
 
 // NOLINTNEXTLINE

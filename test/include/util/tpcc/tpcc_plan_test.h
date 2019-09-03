@@ -150,8 +150,11 @@ class TpccPlanTest : public TerrierTest {
     db_main_ = new DBMain(std::move(param_map));
     settings_manager_ = db_main_->settings_manager_;
 
-    txn_manager_ = new transaction::TransactionManager(&buffer_pool_, true, LOGGING_DISABLED);
-    gc_ = new storage::GarbageCollector(txn_manager_, nullptr);
+    timestamp_manager_ = new transaction::TimestampManager;
+    deferred_action_manager_ = new transaction::DeferredActionManager(timestamp_manager_);
+    txn_manager_ = new transaction::TransactionManager(timestamp_manager_, deferred_action_manager_, &buffer_pool_,
+                                                       true, DISABLED);
+    gc_ = new storage::GarbageCollector(timestamp_manager_, deferred_action_manager_, txn_manager_, DISABLED);
 
     catalog_ = new catalog::Catalog(txn_manager_, &block_store_);
 
@@ -178,6 +181,8 @@ class TpccPlanTest : public TerrierTest {
     delete gc_;
     delete txn_manager_;
     delete db_main_;
+    delete deferred_action_manager_;
+    delete timestamp_manager_;
   }
 
   void BeginTransaction() {
@@ -454,6 +459,8 @@ class TpccPlanTest : public TerrierTest {
 
   // Optimizer transaction
   transaction::TransactionContext *txn_;
+  transaction::DeferredActionManager *deferred_action_manager_;
+  transaction::TimestampManager *timestamp_manager_;
   catalog::CatalogAccessor *accessor_;
 
   catalog::db_oid_t db_;
