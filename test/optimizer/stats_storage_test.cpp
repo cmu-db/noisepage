@@ -34,8 +34,6 @@ class StatsStorageTests : public TerrierTest {
         {column_stats_obj_1, column_stats_obj_2, column_stats_obj_3, column_stats_obj_4, column_stats_obj_5});
     stats_storage = StatsStorage();
   }
-
-  void TearDown() override { TerrierTest::TearDown(); }
 };
 
 // NOLINTNEXTLINE

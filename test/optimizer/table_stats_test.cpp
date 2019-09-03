@@ -32,8 +32,6 @@ class TableStatsTests : public TerrierTest {
         catalog::db_oid_t(1), catalog::table_oid_t(1), 5, true,
         {column_stats_obj_1, column_stats_obj_2, column_stats_obj_3, column_stats_obj_4, column_stats_obj_5});
   }
-
-  void TearDown() override { TerrierTest::TearDown(); }
 };
 
 // NOLINTNEXTLINE
