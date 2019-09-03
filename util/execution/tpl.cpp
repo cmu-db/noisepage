@@ -30,9 +30,11 @@
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/MemoryBuffer.h"
 #include "storage/garbage_collector.h"
-
 #include "loggers/loggers_util.h"
 #include "settings/settings_manager.h"
+#include "transaction/deferred_action_manager.h"
+#include "transaction/timestamp_manager.h"
+
 
 #define __SETTING_GFLAGS_DEFINE__      // NOLINT
 #include "settings/settings_common.h"  // NOLINT
@@ -71,8 +73,10 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
   // Initialize terrier objects
   storage::BlockStore block_store(1000, 1000);
   storage::RecordBufferSegmentPool buffer_pool(100000, 100000);
-  transaction::TransactionManager txn_manager(&buffer_pool, true, nullptr);
-  storage::GarbageCollector gc(&txn_manager, nullptr);
+  transaction::TimestampManager tm_manager{};
+  transaction::DeferredActionManager da_manager{&tm_manager};
+  transaction::TransactionManager txn_manager(&tm_manager, &da_manager, &buffer_pool, true, nullptr);
+  storage::GarbageCollector gc(&tm_manager, &da_manager, &txn_manager, nullptr);
   auto *txn = txn_manager.BeginTransaction();
 
   // Get the correct output format for this test
