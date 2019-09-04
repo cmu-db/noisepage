@@ -3,6 +3,7 @@
 #include <utility>
 #include <vector>
 #include "transaction/transaction_context.h"
+#include "transaction/transaction_manager.h"
 
 namespace terrier::storage {
 
@@ -66,24 +67,35 @@ void LogSerializerTask::HandFilledBufferToWriter() {
 void LogSerializerTask::SerializeBuffer(IterableBufferSegment<LogRecord> *buffer_to_serialize) {
   // Iterate over all redo records in the redo buffer through the provided iterator
   for (LogRecord &record : *buffer_to_serialize) {
-    if (record.RecordType() == LogRecordType::COMMIT) {
-      auto *commit_record = record.GetUnderlyingRecordBodyAs<CommitRecord>();
+    switch (record.RecordType()) {
+      case (LogRecordType::COMMIT): {
+        auto *commit_record = record.GetUnderlyingRecordBodyAs<CommitRecord>();
 
-      // If a transaction is read-only, then the only record it generates is its commit record. This commit record is
-      // necessary for the transaction's callback function to be invoked, but there is no need to serialize it, as
-      // it corresponds to a transaction with nothing to redo.
-      if (!commit_record->IsReadOnly()) SerializeRecord(record);
-      commits_in_buffer_.emplace_back(commit_record->Callback(), commit_record->CallbackArg());
-      // Not safe to mark read only transactions as the transactions are deallocated preemptively without waiting for
-      // logging (there is nothing to log after all)
-      if (!commit_record->IsReadOnly()) commit_record->Txn()->log_processed_ = true;
-    } else if (record.RecordType() == LogRecordType::ABORT) {
-      // If an abort record shows up at all, the transaction cannot be read-only
-      SerializeRecord(record);
-      record.GetUnderlyingRecordBodyAs<AbortRecord>()->Txn()->log_processed_ = true;
-    } else {
-      // Any record that is not a commit record is always serialized.`
-      SerializeRecord(record);
+        // If a transaction is read-only, then the only record it generates is its commit record. This commit record is
+        // necessary for the transaction's callback function to be invoked, but there is no need to serialize it, as
+        // it corresponds to a transaction with nothing to redo.
+        if (!commit_record->IsReadOnly()) SerializeRecord(record);
+        commits_in_buffer_.emplace_back(commit_record->CommitCallback(), commit_record->CommitCallbackArg());
+        // Not safe to mark read only transactions as the transactions are deallocated preemptively without waiting for
+        // logging (there is nothing to log after all)
+        if (!commit_record->IsReadOnly()) commit_record->Txn()->log_processed_ = true;
+        // Once serialization is done, we call the serialization callback to let GC know this txn is ready to clean up
+        commit_record->TxnManager()->NotifyTransactionSerialized(commit_record->Txn());
+        break;
+      }
+
+      case (LogRecordType::ABORT): {
+        // If an abort record shows up at all, the transaction cannot be read-only
+        SerializeRecord(record);
+        auto *abord_record = record.GetUnderlyingRecordBodyAs<AbortRecord>();
+        abord_record->Txn()->log_processed_ = true;
+        abord_record->TxnManager()->NotifyTransactionSerialized(abord_record->Txn());
+        break;
+      }
+
+      default:
+        // Any record that is not a commit record is always serialized.`
+        SerializeRecord(record);
     }
   }
 }

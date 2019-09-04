@@ -78,9 +78,9 @@ class TransactionManager {
   TransactionQueue CompletedTransactionsForGC();
 
  private:
+  friend class storage::LogSerializerTask;
   TimestampManager *timestamp_manager_;
   DeferredActionManager *deferred_action_manager_;
-  friend class RecoveryManager;
   storage::RecordBufferSegmentPool *buffer_pool_;
 
   common::Gate txn_gate_;
@@ -90,11 +90,10 @@ class TransactionManager {
   common::SpinLatch completed_txns_latch_;
   storage::LogManager *const log_manager_;
 
-  timestamp_t UpdatingCommitCriticalSection(TransactionContext *txn, transaction::callback_fn callback,
-                                            void *callback_arg);
+  timestamp_t UpdatingCommitCriticalSection(TransactionContext *txn);
 
-  void LogCommit(TransactionContext *txn, timestamp_t commit_time, transaction::callback_fn callback,
-                 void *callback_arg, timestamp_t oldest_active_txn);
+  void LogCommit(TransactionContext *txn, timestamp_t commit_time, transaction::callback_fn commit_callback,
+                 void *commit_callback_arg, timestamp_t oldest_active_txn);
 
   void LogAbort(TransactionContext *txn);
 
@@ -107,5 +106,12 @@ class TransactionManager {
   void DeallocateInsertedTupleIfVarlen(TransactionContext *txn, storage::UndoRecord *undo,
                                        const storage::TupleAccessStrategy &accessor) const;
   void GCLastUpdateOnAbort(TransactionContext *txn);
+
+  /**
+   * Notifies the txn manager that the txn has been serialized and can safely be GC'd. Should only be called by
+   * LogManager. If logging is disabled, the callback will be called by LogCommit/LogAbort
+   * @param txn transaction that has been serialized
+   */
+  void NotifyTransactionSerialized(TransactionContext *txn);
 };
 }  // namespace terrier::transaction

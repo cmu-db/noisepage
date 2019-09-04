@@ -292,9 +292,8 @@ TEST_F(RecoveryTests, MultiDatabaseTest) {
 }
 
 // Tests that we correctly process records corresponding to a drop database command.
-// DISABLED DUE TO ISSUE #526
 // NOLINTNEXTLINE
-TEST_F(RecoveryTests, DISABLED_DropDatabaseTest) {
+TEST_F(RecoveryTests, DropDatabaseTest) {
   std::string database_name = "testdb";
   // Bring up original components
   auto gc_thread = new storage::GarbageCollectorThread(gc_, gc_period_);  // Enable background GC
@@ -506,9 +505,8 @@ TEST_F(RecoveryTests, DropNamespaceTest) {
 
 // Tests that we correctly process cascading deletes originating from a drop database command. This means cascading
 // deletes of tables and indexes
-// DISABLED DUE TO ISSUE #526
 // NOLINTNEXTLINE
-TEST_F(RecoveryTests, DISABLED_DropDatabaseCascadeDeleteTest) {
+TEST_F(RecoveryTests, DropDatabaseCascadeDeleteTest) {
   std::string database_name = "testdb";
   std::string namespace_name = "testnamespace";
   std::string table_name = "testtable";
@@ -560,9 +558,8 @@ TEST_F(RecoveryTests, DISABLED_DropDatabaseCascadeDeleteTest) {
 
 // Tests that we correctly handle changes for transactions that never flushed a commit record. This is likely to happen
 // during crash situations.
-// DISABLED DUE TO ISSUE #526
 // NOLINTNEXTLINE
-TEST_F(RecoveryTests, DISABLED_UnrecoverableTransactionsTest) {
+TEST_F(RecoveryTests, UnrecoverableTransactionsTest) {
   std::string database_name = "testdb";
 
   auto gc_thread = new storage::GarbageCollectorThread(gc_, gc_period_);
@@ -647,9 +644,8 @@ TEST_F(RecoveryTests, DISABLED_UnrecoverableTransactionsTest) {
 // Under snapshot isolation, all these transactions should succeed. At the time of recovery though, we want to ensure
 // that even though the logs of txn #2 may appear before the logs of txn #1, we dont drop the database before txn #1 is
 // able to create a table.
-// DISABLED DUE TO ISSUE #526
 // NOLINTNEXTLINE
-TEST_F(RecoveryTests, DISABLED_ConcurrentCatalogDDLChangesTest) {
+TEST_F(RecoveryTests, ConcurrentCatalogDDLChangesTest) {
   std::string database_name = "testdb";
   auto namespace_oid = catalog::NAMESPACE_DEFAULT_NAMESPACE_OID;
   std::string table_name = "foo";
@@ -726,9 +722,8 @@ TEST_F(RecoveryTests, DISABLED_ConcurrentCatalogDDLChangesTest) {
 // Under snapshot isolation, all these transactions should succeed. At the time of recovery though, we want to ensure
 // that even though the logs of txn #2 may appear before the logs of txn #1, we dont drop foo before txn #1 is
 // able to insert into it.
-// DISABLED DUE TO ISSUE #526
 // NOLINTNEXTLINE
-TEST_F(RecoveryTests, DISABLED_ConcurrentDDLChangesTest) {
+TEST_F(RecoveryTests, ConcurrentDDLChangesTest) {
   std::string database_name = "testdb";
   auto namespace_oid = catalog::NAMESPACE_DEFAULT_NAMESPACE_OID;
   std::string table_name = "foo";

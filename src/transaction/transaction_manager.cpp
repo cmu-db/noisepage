@@ -13,7 +13,7 @@ TransactionContext *TransactionManager::BeginTransaction() {
 }
 
 void TransactionManager::LogCommit(TransactionContext *const txn, const timestamp_t commit_time,
-                                   const callback_fn callback, void *const callback_arg,
+                                   const callback_fn commit_callback, void *const commit_callback_arg,
                                    const timestamp_t oldest_active_txn) {
   txn->finish_time_.store(commit_time);
   if (log_manager_ != DISABLED) {
@@ -21,20 +21,20 @@ void TransactionManager::LogCommit(TransactionContext *const txn, const timestam
     // Here we will manually add a commit record and flush the buffer to ensure the logger
     // sees this record.
     byte *const commit_record = txn->redo_buffer_.NewEntry(storage::CommitRecord::Size());
-    storage::CommitRecord::Initialize(commit_record, txn->StartTime(), commit_time, callback, callback_arg,
-                                      oldest_active_txn, txn->IsReadOnly(), txn);
-    // Signal to the log manager that we are ready to be logged out
+    storage::CommitRecord::Initialize(commit_record, txn->StartTime(), commit_time, commit_callback,
+                                      commit_callback_arg, oldest_active_txn, txn->IsReadOnly(), txn, this);
   } else {
-    // Otherwise, logging is disabled. We should pretend to have flushed the record so the rest of the system proceeds
-    // correctly
+    // Otherwise, logging is disabled. We should pretend to have serialized and flushed the record so the rest of the
+    // system proceeds correctly
+    // TODO(Gus): There may no longer be a need for log_processed_ with the serialization callback
     txn->log_processed_ = true;
-    callback(callback_arg);
+    NotifyTransactionSerialized(txn);
+    commit_callback(commit_callback_arg);
   }
   txn->redo_buffer_.Finalize(true);
 }
 
-timestamp_t TransactionManager::UpdatingCommitCriticalSection(TransactionContext *const txn, const callback_fn callback,
-                                                              void *const callback_arg) {
+timestamp_t TransactionManager::UpdatingCommitCriticalSection(TransactionContext *const txn) {
   // WARNING: This operation has to happen appear atomic to new transactions:
   // transaction 1        transaction 2
   //   begin
@@ -63,15 +63,13 @@ timestamp_t TransactionManager::Commit(TransactionContext *const txn, transactio
                  "This txn was marked that it must abort. Set a breakpoint at TransactionContext::MustAbort() to see a "
                  "stack trace for when this flag is getting tripped.");
   bool is_read_only = txn->undo_buffer_.Empty();
-  const timestamp_t result = is_read_only ? timestamp_manager_->CheckOutTimestamp()
-                                          : UpdatingCommitCriticalSection(txn, callback, callback_arg);
+  const timestamp_t result =
+      is_read_only ? timestamp_manager_->CheckOutTimestamp() : UpdatingCommitCriticalSection(txn);
   while (!txn->commit_actions_.empty()) {
     TERRIER_ASSERT(deferred_action_manager_ != DISABLED, "No deferred action manager exists to process actions");
     txn->commit_actions_.front()(deferred_action_manager_);
     txn->commit_actions_.pop_front();
   }
-
-  timestamp_manager_->RemoveTransaction(txn->StartTime());
 
   // If logging is enabled, we need to persist the oldest active txn at the time we committed, as well as make the
   // logging atomic
@@ -90,37 +88,32 @@ timestamp_t TransactionManager::Commit(TransactionContext *const txn, transactio
     LogCommit(txn, result, callback, callback_arg, oldest_active_txn);
   }
 
-  {
-    common::SpinLatch::ScopedSpinLatch guard(&completed_txns_latch_);
-    // It is not necessary to have to GC process read-only transactions, but it's probably faster to call free off
-    // the critical path there anyway
-    // Also note here that GC will figure out what varlen entries to GC, as opposed to in the abort case.
-    if (gc_enabled_) completed_txns_.push_front(txn);
-
-    // TODO(Tianyu): Notice here that for a read-only transaction, it is necessary to communicate the commit with the
-    // LogManager, so speculative reads are handled properly,  but there is no need to actually write out the read-only
-    // transaction's commit record to disk.
-  }
-
   return result;
 }
 
 void TransactionManager::LogAbort(TransactionContext *const txn) {
-  if (log_manager_ != DISABLED) {
+  // We flush the buffer containing an AbortRecord only if this transaction has previously flushed a RedoBuffer. This
+  // way the Recovery manager knows to rollback changes for the aborted transaction.
+  if (log_manager_ != DISABLED && txn->redo_buffer_.HasFlushed()) {
     // If we are logging the AbortRecord, then the transaction must have previously flushed records, so it must have
     // made updates
     TERRIER_ASSERT(!txn->undo_buffer_.Empty(), "Should not log AbortRecord for read only txn");
     // Here we will manually add an abort record and flush the buffer to ensure the logger
     // sees this record.
+    // TODO(Gus): As an added optimization, we could clear the redo_buffer and ONLY write an abort record
     byte *const abort_record = txn->redo_buffer_.NewEntry(storage::AbortRecord::Size());
-    storage::AbortRecord::Initialize(abort_record, txn->StartTime(), txn);
+    storage::AbortRecord::Initialize(abort_record, txn->StartTime(), txn, this);
     // Signal to the log manager that we are ready to be logged out
+    txn->redo_buffer_.Finalize(true);
   } else {
-    // Otherwise, logging is disabled. We should pretend to have flushed the record so the rest of the system proceeds
-    // correctly
+    // Otherwise, logging is disabled or we never flushed, so we can just mark the txns log as processed. We should
+    // pretend to have flushed the record so the rest of the system proceeds correctly Discard the redo buffer that is
+    // not yet logged out
+    txn->redo_buffer_.Finalize(false);
+    // Since there is nothing to log, we can mark it as processed
     txn->log_processed_ = true;
+    NotifyTransactionSerialized(txn);
   }
-  txn->redo_buffer_.Finalize(true);
 }
 
 timestamp_t TransactionManager::Abort(TransactionContext *const txn) {
@@ -155,25 +148,7 @@ timestamp_t TransactionManager::Abort(TransactionContext *const txn) {
   // varlen entry whose memory content needs to be freed. We have to check for this case manually.
   GCLastUpdateOnAbort(txn);
 
-  // We flush the buffer containing an AbortRecord only if this transaction has previously flushed a RedoBuffer. This
-  // way the Recovery manager knows to rollback changes for the aborted transaction.
-  if (txn->redo_buffer_.HasFlushed()) {
-    LogAbort(txn);
-  } else {
-    // Discard the redo buffer that is not yet logged out
-    txn->redo_buffer_.Finalize(false);
-    // Since there is nothing to log, we can mark it as processed
-    txn->log_processed_ = true;
-  }
-
-  timestamp_manager_->RemoveTransaction(txn->StartTime());
-  {
-    common::SpinLatch::ScopedSpinLatch guard(&completed_txns_latch_);
-    // It is not necessary to have to GC process read-only transactions, but it's probably faster to call free off
-    // the critical path there anyway
-    // Also note here that GC will figure out what varlen entries to GC, as opposed to in the abort case.
-    if (gc_enabled_) completed_txns_.push_front(txn);
-  }
+  LogAbort(txn);
   return abort_time;
 }
 
@@ -283,4 +258,18 @@ void TransactionManager::DeallocateInsertedTupleIfVarlen(TransactionContext *txn
     }
   }
 }
+
+void TransactionManager::NotifyTransactionSerialized(TransactionContext *txn) {
+  // Remove this transaction from the table of running transactions
+  timestamp_manager_->RemoveTransaction(txn->StartTime());
+
+  if (gc_enabled_) {
+    common::SpinLatch::ScopedSpinLatch guard(&completed_txns_latch_);
+    // It is not necessary to have to GC process read-only transactions, but it's probably faster to call free off
+    // the critical path there anyway
+    // Also note here that GC will figure out what varlen entries to GC, as opposed to in the abort case.
+    completed_txns_.push_front(txn);
+  }
+}
+
 }  // namespace terrier::transaction
