@@ -47,6 +47,7 @@ class RecoveryTests : public TerrierTest {
   transaction::TransactionManager *txn_manager_;
   catalog::Catalog *catalog_;
   storage::GarbageCollector *gc_;
+  storage::GarbageCollectorThread *gc_thread_;
 
   // Recovery Components
   transaction::TimestampManager *recovery_timestamp_manager_;
@@ -54,6 +55,7 @@ class RecoveryTests : public TerrierTest {
   transaction::TransactionManager *recovery_txn_manager_;
   catalog::Catalog *recovery_catalog_;
   storage::GarbageCollector *recovery_gc_;
+  storage::GarbageCollectorThread *recovery_gc_thread_;
 
   void SetUp() override {
     TerrierTest::SetUp();
@@ -68,6 +70,7 @@ class RecoveryTests : public TerrierTest {
                                                        true, log_manager_);
     catalog_ = new catalog::Catalog(txn_manager_, &block_store_);
     gc_ = new storage::GarbageCollector(timestamp_manager_, deferred_action_manager_, txn_manager_, DISABLED);
+    gc_thread_ = new storage::GarbageCollectorThread(gc_, gc_period_);  // Enable background GC
 
     recovery_timestamp_manager_ = new transaction::TimestampManager;
     recovery_deferred_action_manager_ = new transaction::DeferredActionManager(recovery_timestamp_manager_);
@@ -76,6 +79,7 @@ class RecoveryTests : public TerrierTest {
     recovery_catalog_ = new catalog::Catalog(recovery_txn_manager_, &block_store_);
     recovery_gc_ = new storage::GarbageCollector(recovery_timestamp_manager_, recovery_deferred_action_manager_,
                                                  recovery_txn_manager_, DISABLED);
+    recovery_gc_thread_ = new storage::GarbageCollectorThread(recovery_gc_, gc_period_);  // Enable background GC
   }
 
   void TearDown() override {
@@ -83,12 +87,25 @@ class RecoveryTests : public TerrierTest {
     unlink(LOG_FILE_NAME);
     TerrierTest::TearDown();
 
+    // Destroy recovered catalog
+    if (recovery_catalog_ != nullptr) recovery_catalog_->TearDown();
+    delete recovery_gc_thread_;
+
+    // Destroy original catalog. We need to manually call GC followed by a ForceFlush because catalog deletion can defer
+    // events that create new transactions, which then need to be flushed before they can be GC'd.
+    catalog_->TearDown();
+    delete gc_thread_;
+    log_manager_->ForceFlush();
+    gc_->PerformGarbageCollection();
+    gc_->PerformGarbageCollection();
+    gc_->PerformGarbageCollection();
+    log_manager_->PersistAndStop();
+
     delete recovery_gc_;
     delete recovery_catalog_;
     delete recovery_txn_manager_;
     delete recovery_deferred_action_manager_;
     delete recovery_timestamp_manager_;
-
     delete gc_;
     delete catalog_;
     delete txn_manager_;
@@ -179,24 +196,18 @@ class RecoveryTests : public TerrierTest {
   }
 
   void RunTest(const LargeSqlTableTestConfiguration &config) {
-    // Initialize logging and background GC
-    auto gc_thread = new storage::GarbageCollectorThread(gc_, gc_period_);  // Enable background GC
-
     // Run workload
     auto *tested = new LargeSqlTableTestObject(config, txn_manager_, catalog_, &block_store_, &generator_);
     tested->SimulateOltp(100, 4);
 
     // Simulate the system "shutting down". Guarantee persist of log records
     log_manager_->ForceFlush();
-    delete gc_thread;
+    delete gc_thread_;
     log_manager_->PersistAndStop();
 
     // We now "boot up" up the system and start recovery
     log_manager_->Start();
-    gc_thread = new storage::GarbageCollectorThread(gc_, gc_period_);
-
-    // Start a transaction manager with logging disabled, we don't want to log the log replaying. Also enable GC
-    auto recovery_gc_thread = new storage::GarbageCollectorThread(recovery_gc_, gc_period_);
+    gc_thread_ = new storage::GarbageCollectorThread(gc_, gc_period_);
 
     // Instantiate recovery manager, and recover the tables.
     DiskLogProvider log_provider(LOG_FILE_NAME);
@@ -230,14 +241,7 @@ class RecoveryTests : public TerrierTest {
         recovery_txn_manager_->Commit(recovery_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
       }
     }
-    // Clean up test object and recovered catalogs
-    recovery_catalog_->TearDown();
-    delete recovery_gc_thread;
-
-    catalog_->TearDown();
-    delete gc_thread;
     delete tested;
-    log_manager_->PersistAndStop();
   }
 };
 
@@ -295,8 +299,6 @@ TEST_F(RecoveryTests, MultiDatabaseTest) {
 // NOLINTNEXTLINE
 TEST_F(RecoveryTests, DropDatabaseTest) {
   std::string database_name = "testdb";
-  // Bring up original components
-  auto gc_thread = new storage::GarbageCollectorThread(gc_, gc_period_);  // Enable background GC
 
   // Create and drop the database
   auto *txn = txn_manager_->BeginTransaction();
@@ -306,13 +308,12 @@ TEST_F(RecoveryTests, DropDatabaseTest) {
 
   // Simulate the system "shutting down". Guarantee persist of log records
   log_manager_->ForceFlush();
-  delete gc_thread;
+  delete gc_thread_;
   log_manager_->PersistAndStop();
 
   // We now "boot up" up the system and start recovery
   log_manager_->Start();
-  gc_thread = new storage::GarbageCollectorThread(gc_, gc_period_);  // Enable background GC
-  auto recovery_gc_thread = new storage::GarbageCollectorThread(recovery_gc_, gc_period_);
+  gc_thread_ = new storage::GarbageCollectorThread(gc_, gc_period_);  // Enable background GC
 
   // Instantiate recovery manager, and recover the catalog_->
   DiskLogProvider log_provider(LOG_FILE_NAME);
@@ -327,12 +328,6 @@ TEST_F(RecoveryTests, DropDatabaseTest) {
   EXPECT_EQ(catalog::INVALID_DATABASE_OID, recovery_catalog_->GetDatabaseOid(txn, database_name));
   EXPECT_FALSE(recovery_catalog_->GetDatabaseCatalog(txn, db_oid));
   recovery_txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
-
-  catalog_->TearDown();
-  delete gc_thread;
-  log_manager_->PersistAndStop();
-  recovery_catalog_->TearDown();
-  delete recovery_gc_thread;
 }
 
 // Tests that we correctly process records corresponding to a drop table command.
@@ -341,8 +336,6 @@ TEST_F(RecoveryTests, DropTableTest) {
   std::string database_name = "testdb";
   auto namespace_oid = catalog::NAMESPACE_DEFAULT_NAMESPACE_OID;
   std::string table_name = "testtable";
-
-  auto gc_thread = new storage::GarbageCollectorThread(gc_, gc_period_);
 
   // Create database, table, then drop the table
   auto *txn = txn_manager_->BeginTransaction();
@@ -354,15 +347,12 @@ TEST_F(RecoveryTests, DropTableTest) {
 
   // Simulate the system "shutting down". Guarantee persist of log records
   log_manager_->ForceFlush();
-  delete gc_thread;
+  delete gc_thread_;
   log_manager_->PersistAndStop();
 
   // We now "boot up" up the system and start recovery
   log_manager_->Start();
-  gc_thread = new storage::GarbageCollectorThread(gc_, gc_period_);
-
-  // Start a transaction manager with logging disabled, we don't want to log the log replaying
-  auto recovery_gc_thread = new storage::GarbageCollectorThread(recovery_gc_, gc_period_);
+  gc_thread_ = new storage::GarbageCollectorThread(gc_, gc_period_);
 
   // Instantiate recovery manager, and recover the catalog_->
   DiskLogProvider log_provider(LOG_FILE_NAME);
@@ -382,12 +372,6 @@ TEST_F(RecoveryTests, DropTableTest) {
   EXPECT_EQ(catalog::INVALID_TABLE_OID, db_catalog->GetTableOid(txn, namespace_oid, table_name));
   EXPECT_FALSE(db_catalog->GetTable(txn, table_oid));
   recovery_txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
-
-  catalog_->TearDown();
-  delete gc_thread;
-  log_manager_->PersistAndStop();
-  recovery_catalog_->TearDown();
-  delete recovery_gc_thread;
 }
 
 // Tests that we correctly process records corresponding to a drop index command.
@@ -397,7 +381,6 @@ TEST_F(RecoveryTests, DropIndexTest) {
   auto namespace_oid = catalog::NAMESPACE_DEFAULT_NAMESPACE_OID;
   std::string table_name = "testtable";
   std::string index_name = "testindex";
-  auto gc_thread = new storage::GarbageCollectorThread(gc_, gc_period_);
 
   // Create database, table, index, then drop the index
   auto *txn = txn_manager_->BeginTransaction();
@@ -410,15 +393,12 @@ TEST_F(RecoveryTests, DropIndexTest) {
 
   // Simulate the system "shutting down". Guarantee persist of log records
   log_manager_->ForceFlush();
-  delete gc_thread;
+  delete gc_thread_;
   log_manager_->PersistAndStop();
 
   // We now "boot up" up the system and start recovery
   log_manager_->Start();
-  gc_thread = new storage::GarbageCollectorThread(gc_, gc_period_);
-
-  // Start a transaction manager with logging disabled, we don't want to log the log replaying
-  auto recovery_gc_thread = new storage::GarbageCollectorThread(recovery_gc_, gc_period_);
+  gc_thread_ = new storage::GarbageCollectorThread(gc_, gc_period_);
 
   // Instantiate recovery manager, and recover the catalog_->
   DiskLogProvider log_provider(LOG_FILE_NAME);
@@ -442,12 +422,6 @@ TEST_F(RecoveryTests, DropIndexTest) {
   EXPECT_EQ(0, db_catalog->GetIndexes(txn, table_oid).size());
   EXPECT_FALSE(db_catalog->GetIndex(txn, index_oid));
   recovery_txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
-
-  catalog_->TearDown();
-  delete gc_thread;
-  log_manager_->PersistAndStop();
-  recovery_catalog_->TearDown();
-  delete recovery_gc_thread;
 }
 
 // Tests that we correctly process records corresponding to a drop namespace command.
@@ -455,8 +429,6 @@ TEST_F(RecoveryTests, DropIndexTest) {
 TEST_F(RecoveryTests, DropNamespaceTest) {
   std::string database_name = "testdb";
   std::string namespace_name = "testnamespace";
-  // Bring up original components
-  auto gc_thread = new storage::GarbageCollectorThread(gc_, gc_period_);
 
   // Create database, namespace, then drop namespace
   auto *txn = txn_manager_->BeginTransaction();
@@ -468,15 +440,12 @@ TEST_F(RecoveryTests, DropNamespaceTest) {
 
   // Simulate the system "shutting down". Guarantee persist of log records
   log_manager_->ForceFlush();
-  delete gc_thread;
+  delete gc_thread_;
   log_manager_->PersistAndStop();
 
   // We now "boot up" up the system and start recovery
   log_manager_->Start();
-  gc_thread = new storage::GarbageCollectorThread(gc_, gc_period_);
-
-  // Start a transaction manager with logging disabled, we don't want to log the log replaying
-  auto recovery_gc_thread = new storage::GarbageCollectorThread(recovery_gc_, gc_period_);
+  gc_thread_ = new storage::GarbageCollectorThread(gc_, gc_period_);
 
   // Instantiate recovery manager, and recover the catalog_->
   DiskLogProvider log_provider(LOG_FILE_NAME);
@@ -495,12 +464,6 @@ TEST_F(RecoveryTests, DropNamespaceTest) {
   // Assert the namespace we deleted doesn't exist
   EXPECT_EQ(catalog::INVALID_NAMESPACE_OID, db_catalog->GetNamespaceOid(txn, namespace_name));
   recovery_txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
-
-  catalog_->TearDown();
-  delete gc_thread;
-  log_manager_->PersistAndStop();
-  recovery_catalog_->TearDown();
-  delete recovery_gc_thread;
 }
 
 // Tests that we correctly process cascading deletes originating from a drop database command. This means cascading
@@ -511,7 +474,6 @@ TEST_F(RecoveryTests, DropDatabaseCascadeDeleteTest) {
   std::string namespace_name = "testnamespace";
   std::string table_name = "testtable";
   std::string index_name = "testindex";
-  auto gc_thread = new storage::GarbageCollectorThread(gc_, gc_period_);
 
   // Create a database, namespace, table, index, and then drop the database
   auto *txn = txn_manager_->BeginTransaction();
@@ -525,15 +487,12 @@ TEST_F(RecoveryTests, DropDatabaseCascadeDeleteTest) {
 
   // Simulate the system "shutting down". Guarantee persist of log records
   log_manager_->ForceFlush();
-  delete gc_thread;
+  delete gc_thread_;
   log_manager_->PersistAndStop();
 
   // We now "boot up" up the system and start recovery
   log_manager_->Start();
-  gc_thread = new storage::GarbageCollectorThread(gc_, gc_period_);
-
-  // Start a transaction manager with logging disabled, we don't want to log the log replaying
-  auto recovery_gc_thread = new storage::GarbageCollectorThread(recovery_gc_, gc_period_);
+  gc_thread_ = new storage::GarbageCollectorThread(gc_, gc_period_);
 
   // Instantiate recovery manager, and recover the catalog_->
   DiskLogProvider log_provider(LOG_FILE_NAME);
@@ -548,12 +507,6 @@ TEST_F(RecoveryTests, DropDatabaseCascadeDeleteTest) {
   EXPECT_EQ(catalog::INVALID_DATABASE_OID, recovery_catalog_->GetDatabaseOid(txn, database_name));
   EXPECT_FALSE(recovery_catalog_->GetDatabaseCatalog(txn, db_oid));
   recovery_txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
-
-  catalog_->TearDown();
-  delete gc_thread;
-  log_manager_->PersistAndStop();
-  recovery_catalog_->TearDown();
-  delete recovery_gc_thread;
 }
 
 // Tests that we correctly handle changes for transactions that never flushed a commit record. This is likely to happen
@@ -561,8 +514,6 @@ TEST_F(RecoveryTests, DropDatabaseCascadeDeleteTest) {
 // NOLINTNEXTLINE
 TEST_F(RecoveryTests, UnrecoverableTransactionsTest) {
   std::string database_name = "testdb";
-
-  auto gc_thread = new storage::GarbageCollectorThread(gc_, gc_period_);
 
   // Create a database and commit, we should see this one after recovery
   auto *txn = txn_manager_->BeginTransaction();
@@ -587,14 +538,12 @@ TEST_F(RecoveryTests, UnrecoverableTransactionsTest) {
   // Simulate the system "crashing" (i.e. unrecoverable_txn has not been committed). We guarantee persist of log records
   // because the purpose of the test is how we handle these unrecoverable records showing up during recovery
   log_manager_->ForceFlush();
-  delete gc_thread;
+  delete gc_thread_;
   log_manager_->PersistAndStop();
 
   // We now "boot up" up the system and start recovery
   log_manager_->Start();
-  gc_thread = new storage::GarbageCollectorThread(gc_, gc_period_);
-
-  auto recovery_gc_thread = new storage::GarbageCollectorThread(recovery_gc_, gc_period_);
+  gc_thread_ = new storage::GarbageCollectorThread(gc_, gc_period_);
 
   // Instantiate recovery manager, and recover the catalog_->
   DiskLogProvider log_provider(LOG_FILE_NAME);
@@ -618,12 +567,6 @@ TEST_F(RecoveryTests, UnrecoverableTransactionsTest) {
 
   // Finally abort the unrecoverable_txn so GC can clean it up
   txn_manager_->Abort(unrecoverable_txn);
-
-  catalog_->TearDown();
-  delete gc_thread;
-  log_manager_->PersistAndStop();
-  recovery_catalog_->TearDown();
-  delete recovery_gc_thread;
 }
 
 // Tests we correct order transactions and execute GC when concurrent transactions make DDL changes to the catalog
@@ -649,7 +592,6 @@ TEST_F(RecoveryTests, ConcurrentCatalogDDLChangesTest) {
   std::string database_name = "testdb";
   auto namespace_oid = catalog::NAMESPACE_DEFAULT_NAMESPACE_OID;
   std::string table_name = "foo";
-  auto gc_thread = new storage::GarbageCollectorThread(gc_, gc_period_);
 
   // Begin T0, create database, create table foo, and commit
   auto *txn0 = txn_manager_->BeginTransaction();
@@ -672,15 +614,12 @@ TEST_F(RecoveryTests, ConcurrentCatalogDDLChangesTest) {
 
   // Simulate the system "shutting down". Guarantee persist of log records
   log_manager_->ForceFlush();
-  delete gc_thread;
+  delete gc_thread_;
   log_manager_->PersistAndStop();
 
   // We now "boot up" up the system and start recovery
   log_manager_->Start();
-  gc_thread = new storage::GarbageCollectorThread(gc_, gc_period_);
-
-  // Start a transaction manager with logging disabled, we don't want to log the log replaying
-  auto recovery_gc_thread = new storage::GarbageCollectorThread(recovery_gc_, gc_period_);
+  gc_thread_ = new storage::GarbageCollectorThread(gc_, gc_period_);
 
   // Instantiate recovery manager, and recover the catalog_->
   DiskLogProvider log_provider(LOG_FILE_NAME);
@@ -695,12 +634,6 @@ TEST_F(RecoveryTests, ConcurrentCatalogDDLChangesTest) {
   EXPECT_EQ(catalog::INVALID_DATABASE_OID, recovery_catalog_->GetDatabaseOid(txn, database_name));
   EXPECT_FALSE(recovery_catalog_->GetDatabaseCatalog(txn, db_oid));
   recovery_txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
-
-  catalog_->TearDown();
-  delete gc_thread;
-  log_manager_->PersistAndStop();
-  recovery_catalog_->TearDown();
-  delete recovery_gc_thread;
 }
 
 // Tests we correct order transactions and execute GC when concurrent transactions make inserts and DDL changes to
@@ -727,7 +660,6 @@ TEST_F(RecoveryTests, ConcurrentDDLChangesTest) {
   std::string database_name = "testdb";
   auto namespace_oid = catalog::NAMESPACE_DEFAULT_NAMESPACE_OID;
   std::string table_name = "foo";
-  auto gc_thread = new storage::GarbageCollectorThread(gc_, gc_period_);
 
   // Begin T0, create database, create table foo, and commit
   auto *txn0 = txn_manager_->BeginTransaction();
@@ -760,13 +692,12 @@ TEST_F(RecoveryTests, ConcurrentDDLChangesTest) {
 
   // Simulate the system "shutting down". Guarantee persist of log records
   log_manager_->ForceFlush();
-  delete gc_thread;
+  delete gc_thread_;
   log_manager_->PersistAndStop();
 
   // We now "boot up" up the system and start recovery
   log_manager_->Start();
-  gc_thread = new storage::GarbageCollectorThread(gc_, gc_period_);
-  auto recovery_gc_thread = new storage::GarbageCollectorThread(recovery_gc_, gc_period_);
+  gc_thread_ = new storage::GarbageCollectorThread(gc_, gc_period_);
 
   // Instantiate recovery manager, and recover the catalog
   DiskLogProvider log_provider(LOG_FILE_NAME);
@@ -785,14 +716,11 @@ TEST_F(RecoveryTests, ConcurrentDDLChangesTest) {
   EXPECT_EQ(catalog::INVALID_TABLE_OID, db_catalog->GetTableOid(txn, namespace_oid, table_name));
   EXPECT_FALSE(db_catalog->GetTable(txn, table_oid));
   recovery_txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
-
-  catalog_->TearDown();
-  delete gc_thread;
-  log_manager_->PersistAndStop();
-  recovery_catalog_->TearDown();
-  delete recovery_gc_thread;
 }
 
+// Tests that we can recover from a previous instance of recovery. We do this by recovering a workload, and then
+// recovering from the logs generated by the original workload's recovery.
+// NOLINTNEXTLINE
 TEST_F(RecoveryTests, DoubleRecoveryTest) {
   std::string secondary_log_file = "test2.log";
   unlink(secondary_log_file.c_str());
@@ -806,20 +734,18 @@ TEST_F(RecoveryTests, DoubleRecoveryTest) {
                                               .SetVarlenAllowed(true)
                                               .Build();
   auto *tested = new LargeSqlTableTestObject(config, txn_manager_, catalog_, &block_store_, &generator_);
-  // Enable GC
-  auto gc_thread = new storage::GarbageCollectorThread(gc_, gc_period_);
 
   // Run workload
   tested->SimulateOltp(100, 4);
 
   // Simulate the system "shutting down". Guarantee persist of log records
   log_manager_->ForceFlush();
-  delete gc_thread;
+  delete gc_thread_;
   log_manager_->PersistAndStop();
 
   // We now "boot up" up the system and start recovery
   log_manager_->Start();
-  gc_thread = new storage::GarbageCollectorThread(gc_, gc_period_);
+  gc_thread_ = new storage::GarbageCollectorThread(gc_, gc_period_);
 
   // We create a new log manager to log the changes replayed during recovery
   LogManager secondary_log_manager(secondary_log_file, num_log_buffers_, log_serialization_interval_,
@@ -829,8 +755,7 @@ TEST_F(RecoveryTests, DoubleRecoveryTest) {
 
   // Override the recovery txn manager to now log out
   recovery_catalog_->TearDown();
-  auto *recovery_gc_thread = new storage::GarbageCollectorThread(recovery_gc_, gc_period_);
-  delete recovery_gc_thread;
+  delete recovery_gc_thread_;
   delete recovery_gc_;
   delete recovery_catalog_;
   delete recovery_txn_manager_;
@@ -839,7 +764,7 @@ TEST_F(RecoveryTests, DoubleRecoveryTest) {
   recovery_catalog_ = new catalog::Catalog(recovery_txn_manager_, &block_store_);
   recovery_gc_ = new storage::GarbageCollector(recovery_timestamp_manager_, recovery_deferred_action_manager_,
                                                recovery_txn_manager_, DISABLED);
-  recovery_gc_thread = new storage::GarbageCollectorThread(recovery_gc_, gc_period_);
+  recovery_gc_thread_ = new storage::GarbageCollectorThread(recovery_gc_, gc_period_);
 
   //--------------------------------
   // Do recovery for the first time
@@ -877,14 +802,16 @@ TEST_F(RecoveryTests, DoubleRecoveryTest) {
       recovery_txn_manager_->Commit(recovery_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
     }
   }
-  // Clean up test object and recovered catalogs
+
+  // Contrary to other tests, we clean up the recovery catalog and gc thread here because the secondary_log_manager is a
+  // local object. Setting the appropriate variables to nullptr will allow the TearDown code to run normally.
   recovery_catalog_->TearDown();
-  delete recovery_gc_thread;
-
-  log_manager_->PersistAndStop();
-
+  recovery_catalog_ = nullptr;
+  delete recovery_gc_thread_;
+  recovery_gc_thread_ = nullptr;
   secondary_log_manager.PersistAndStop();
 
+  log_manager_->PersistAndStop();
   //-----------------------------------------
   // Now recover based off the last recovery
   //-----------------------------------------
@@ -945,11 +872,6 @@ TEST_F(RecoveryTests, DoubleRecoveryTest) {
   // Clean up test object and recovered catalogs
   secondary_recovery_catalog.TearDown();
   delete secondary_recovery_gc_thread;
-
-  catalog_->TearDown();
-  delete gc_thread;
-  delete tested;
-  log_manager_->PersistAndStop();
   unlink(secondary_log_file.c_str());
 }
 }  // namespace terrier::storage
