@@ -44,6 +44,7 @@ class TimestampManager {
   timestamp_t BeginTransaction() {
     timestamp_t start_time;
     {
+      common::SpinLatch::ScopedSpinLatch running_guard(&curr_running_txns_latch_);
       // There is a three-way race that needs to be prevented.  Specifically, we
       // cannot allow both a transaction to commit and the GC to poll for the
       // oldest running transaction in between this transaction acquiring its

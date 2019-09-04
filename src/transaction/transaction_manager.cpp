@@ -91,13 +91,6 @@ timestamp_t TransactionManager::Commit(TransactionContext *const txn, transactio
     // Also note here that GC will figure out what varlen entries to GC, as opposed to in the abort case.
     if (gc_enabled_) completed_txns_.push_front(txn);
   }
-
-  while (!txn->commit_actions_.empty()) {
-    TERRIER_ASSERT(deferred_action_manager_ != DISABLED, "No deferred action manager exists to process actions");
-    txn->commit_actions_.front()(deferred_action_manager_);
-    txn->commit_actions_.pop_front();
-  }
-
   return result;
 }
 
