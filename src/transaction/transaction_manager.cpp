@@ -82,13 +82,20 @@ timestamp_t TransactionManager::Commit(TransactionContext *const txn, transactio
     txn->commit_actions_.pop_front();
   }
 
-  timestamp_manager_->RemoveTransaction(txn->StartTime());
   {
-    common::SpinLatch::ScopedSpinLatch guard(&completed_txns_latch_);
+    // In a critical section, remove this transaction from the table of running transactions and add to GC queue
+    common::SpinLatch::ScopedSpinLatch guard(&timestamp_manager_->curr_running_txns_latch_);
+    timestamp_manager_->RemoveTransaction(txn->StartTime());
     // It is not necessary to have to GC process read-only transactions, but it's probably faster to call free off
     // the critical path there anyway
     // Also note here that GC will figure out what varlen entries to GC, as opposed to in the abort case.
     if (gc_enabled_) completed_txns_.push_front(txn);
+  }
+
+  while (!txn->commit_actions_.empty()) {
+    TERRIER_ASSERT(deferred_action_manager_ != DISABLED, "No deferred action manager exists to process actions");
+    txn->commit_actions_.front()(deferred_action_manager_);
+    txn->commit_actions_.pop_front();
   }
 
   return result;
@@ -155,9 +162,10 @@ timestamp_t TransactionManager::Abort(TransactionContext *const txn) {
     txn->log_processed_ = true;
   }
 
-  timestamp_manager_->RemoveTransaction(txn->StartTime());
+  // In a critical section, remove this transaction from the table of running transactions
   {
-    common::SpinLatch::ScopedSpinLatch guard(&completed_txns_latch_);
+    common::SpinLatch::ScopedSpinLatch guard(&timestamp_manager_->curr_running_txns_latch_);
+    timestamp_manager_->RemoveTransaction(txn->StartTime());
     // It is not necessary to have to GC process read-only transactions, but it's probably faster to call free off
     // the critical path there anyway
     // Also note here that GC will figure out what varlen entries to GC, as opposed to in the abort case.
@@ -201,7 +209,7 @@ void TransactionManager::GCLastUpdateOnAbort(TransactionContext *const txn) {
 }
 
 TransactionQueue TransactionManager::CompletedTransactionsForGC() {
-  common::SpinLatch::ScopedSpinLatch guard(&completed_txns_latch_);
+  common::SpinLatch::ScopedSpinLatch guard(&timestamp_manager_->curr_running_txns_latch_);
   return std::move(completed_txns_);
 }
 

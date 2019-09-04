@@ -24,11 +24,12 @@ class DeferredActionManager {
    * @param a functional implementation of the action that is deferred. @see DeferredAction
    */
   timestamp_t RegisterDeferredAction(const DeferredAction &a) {
+    common::SpinLatch::ScopedSpinLatch guard(&deferred_actions_latch_);
+    // Timestamp needs to be fetched inside the critical section such that actions in the
+    // deferred action queue is in order. This simplifies the interleavings we need to deal
+    // with in the face of DDL changes.
     timestamp_t result = timestamp_manager_->CurrentTime();
-    {
-      common::SpinLatch::ScopedSpinLatch guard(&deferred_actions_latch_);
-      new_deferred_actions_.emplace(result, a);
-    }
+    new_deferred_actions_.emplace(result, a);
     return result;
   }
 
