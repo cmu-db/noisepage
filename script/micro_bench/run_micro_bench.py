@@ -772,20 +772,6 @@ class RunMicroBenchmarks(object):
         # return the process exit code
         return ret_val
 
-    def _get_single_numa_cpu_list(self):
-        cpu_a = cpu_lib.CPUAllocator()
-        # get the highest number numa node
-        numa_id = cpu_a.get_numa_ids()[-1]
-        numa_obj = cpu_a.get_numa_by_id(numa_id)
-        cpu_obj_list = numa_obj.get_cpu_list()
-
-        cpu_id_list = []
-        for cpu in cpu_obj_list:
-            if not cpu.is_free():
-                continue
-            cpu_id_list.append(cpu.get_cpu_id())
-        return cpu_id_list
-
 class Jenkins(object):
     """ Wrapper for Jenkins web api """
     def __init__(self, base_url="http://jenkins.db.cs.cmu.edu:8080"):
