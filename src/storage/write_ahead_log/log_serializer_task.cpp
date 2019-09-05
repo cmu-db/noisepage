@@ -77,10 +77,7 @@ void LogSerializerTask::SerializeBuffer(IterableBufferSegment<LogRecord> *buffer
         // it corresponds to a transaction with nothing to redo.
         if (!commit_record->IsReadOnly()) SerializeRecord(record);
         commits_in_buffer_.emplace_back(commit_record->CommitCallback(), commit_record->CommitCallbackArg());
-        // Not safe to mark read only transactions as the transactions are deallocated preemptively without waiting for
-        // logging (there is nothing to log after all)
-        if (!commit_record->IsReadOnly()) commit_record->Txn()->log_processed_ = true;
-        // Once serialization is done, we call the serialization callback to let GC know this txn is ready to clean up
+        // Once serialization is done, we notify the txn manager to let GC know this txn is ready to clean up
         commit_record->TxnManager()->NotifyTransactionSerialized(commit_record->Txn());
         break;
       }
@@ -89,7 +86,6 @@ void LogSerializerTask::SerializeBuffer(IterableBufferSegment<LogRecord> *buffer
         // If an abort record shows up at all, the transaction cannot be read-only
         SerializeRecord(record);
         auto *abord_record = record.GetUnderlyingRecordBodyAs<AbortRecord>();
-        abord_record->Txn()->log_processed_ = true;
         abord_record->TxnManager()->NotifyTransactionSerialized(abord_record->Txn());
         break;
       }

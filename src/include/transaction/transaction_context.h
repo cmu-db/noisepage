@@ -211,9 +211,6 @@ class TransactionContext {
   std::forward_list<TransactionEndAction> abort_actions_;
   std::forward_list<TransactionEndAction> commit_actions_;
 
-  // log manager will set this to be true when log records are processed (not necessarily flushed, but will not be read
-  // again in the future), so it can be garbage-collected safely.
-  bool log_processed_ = false;
   // We need to know if the transaction is aborted. Even aborted transactions need an "abort" timestamp in order to
   // eliminate the a-b-a race described in DataTable::Select.
   bool aborted_ = false;
