@@ -750,10 +750,11 @@ TEST_F(RecoveryTests, DoubleRecoveryTest) {
   // Contrary to other tests, we clean up the recovery catalog and gc thread here because the secondary_log_manager is a
   // local object. Setting the appropriate variables to nullptr will allow the TearDown code to run normally.
   recovery_catalog_->TearDown();
-  recovery_catalog_ = nullptr;
   delete recovery_gc_thread_;
-  recovery_gc_thread_ = nullptr;
   StorageTestUtil::FullyPerformGC(recovery_gc_, &secondary_log_manager);
+  delete recovery_catalog_;
+  recovery_gc_thread_ = nullptr;
+  recovery_catalog_ = nullptr;
   secondary_log_manager.PersistAndStop();
 
   log_manager_->PersistAndStop();
@@ -815,9 +816,11 @@ TEST_F(RecoveryTests, DoubleRecoveryTest) {
     }
   }
   // Clean up test object and recovered catalogs
+  delete tested;
   secondary_recovery_catalog.TearDown();
   delete secondary_recovery_gc_thread;
   StorageTestUtil::FullyPerformGC(&secondary_recovery_gc, DISABLED);
   unlink(secondary_log_file.c_str());
+
 }
 }  // namespace terrier::storage
