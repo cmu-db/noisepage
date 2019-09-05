@@ -71,22 +71,13 @@ timestamp_t TransactionManager::Commit(TransactionContext *const txn, transactio
     txn->commit_actions_.pop_front();
   }
 
-  // If logging is enabled, we need to persist the oldest active txn at the time we committed, as well as make the
-  // logging atomic
+  // If logging is enabled and our txn is not read only, we need to persist the oldest active txn at the time we
+  // committed. This will allow us to correctly order and execute transactions during recovery.
   timestamp_t oldest_active_txn = INVALID_TXN_TIMESTAMP;
-  if (log_manager_ != DISABLED) {
-    // Computing the oldest active txn and logging it must be atomic. Otherwise, a previously committed txn that has
-    // removed itself from curr_running_txns_ but has not yet logged could have its logs appear AFTER a txn who
-    // indicates there is no older transactions. This will lead to a problem during recovery/replication.
-    common::Gate::ScopedLock gate(&txn_gate_);
-
-    // Compute the oldest active txn at the time of this commit. Only needed for write txns
-    if (!is_read_only) oldest_active_txn = timestamp_manager_->OldestTransactionStartTime();
-
-    LogCommit(txn, result, callback, callback_arg, oldest_active_txn);
-  } else {
-    LogCommit(txn, result, callback, callback_arg, oldest_active_txn);
+  if (log_manager_ != DISABLED && !is_read_only) {
+    oldest_active_txn = timestamp_manager_->OldestTransactionStartTime();
   }
+  LogCommit(txn, result, callback, callback_arg, oldest_active_txn);
 
   return result;
 }
