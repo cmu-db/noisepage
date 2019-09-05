@@ -23,7 +23,7 @@ class Timer {
   /**
    * Stop the timer
    */
-  void Stop() noexcept {
+  void StOp() noexcept {
     stop_ = Clock::now();
 
     elapsed_ = std::chrono::duration_cast<std::chrono::duration<double, ResolutionRatio>>(stop_ - start_).count();
@@ -32,7 +32,7 @@ class Timer {
   /**
    * Return the total number of elapsed time units
    */
-  double elapsed() const noexcept { return elapsed_; }
+  double Elapsed() const noexcept { return elapsed_; }
 
   /**
    * Time a function @em func
@@ -45,7 +45,7 @@ class Timer {
     Timer<ResolutionRatio> timer;
     timer.Start();
     fn();
-    timer.Stop();
+    timer.StOp();
     return timer.elapsed();
   }
 
@@ -74,8 +74,8 @@ class ScopedTimer {
   }
 
   ~ScopedTimer() {
-    timer_.Stop();
-    *elapsed_ = timer_.elapsed();
+    timer_.StOp();
+    *elapsed_ = timer_.Elapsed();
   }
 
  private:

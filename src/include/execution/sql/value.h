@@ -18,13 +18,13 @@ struct Val {
   /**
    * Whether the value is null
    */
-  bool is_null;
+  bool is_null_;
 
   /**
    * Constructs a generic value
    * @param is_null whether the value is null
    */
-  explicit Val(bool is_null = false) noexcept : is_null(is_null) {}
+  explicit Val(bool is_null = false) noexcept : is_null_(is_null) {}
 };
 
 /**
@@ -34,13 +34,13 @@ struct BoolVal : public Val {
   /**
    * raw boolean value
    */
-  bool val;
+  bool val_;
 
   /**
    * Non-null constructor
    * @param val value of the boolean
    */
-  explicit BoolVal(bool val) noexcept : Val(false), val(val) {}
+  explicit BoolVal(bool val) noexcept : Val(false), val_(val) {}
 
   /**
    * Convert this SQL boolean into a primitive boolean. Thanks to SQL's
@@ -56,14 +56,14 @@ struct BoolVal : public Val {
    *
    * @return converted value
    */
-  bool ForceTruth() const noexcept { return !is_null && val; }
+  bool ForceTruth() const noexcept { return !is_null_ && val_; }
 
   /**
    * @return a NULL bool value
    */
   static BoolVal Null() {
     BoolVal val(false);
-    val.is_null = true;
+    val.is_null_ = true;
     return val;
   }
 };
@@ -75,7 +75,7 @@ struct Integer : public Val {
   /**
    * raw integer value
    */
-  int64_t val;
+  int64_t val_;
 
   /**
    * Non-Null constructor
@@ -88,14 +88,14 @@ struct Integer : public Val {
    * @param null whether the value is NULL or not
    * @param val the raw int value
    */
-  explicit Integer(bool null, int64_t val) noexcept : Val(null), val(val) {}
+  explicit Integer(bool null, int64_t val) noexcept : Val(null), val_(val) {}
 
   /**
    * Create a NULL integer
    */
   static Integer Null() {
     Integer val(0);
-    val.is_null = true;
+    val.is_null_ = true;
     return val;
   }
 };
@@ -107,40 +107,40 @@ struct Real : public Val {
   /**
    * raw double value
    */
-  double val;
+  double val_;
 
   /**
    * Non-null float constructor
    * @param val value of the real
    */
-  explicit Real(float val) noexcept : Val(false), val(val) {}
+  explicit Real(float val) noexcept : Val(false), val_(val) {}
 
   /**
    * Non-null double constructor
    * @param val value of the double
    */
-  explicit Real(double val) noexcept : Val(false), val(val) {}
+  explicit Real(double val) noexcept : Val(false), val_(val) {}
 
   /**
    * Generic constructor
    * @param null whether the value is NULL or not
    * @param val the raw float value
    */
-  explicit Real(bool null, float val) noexcept : Val(null), val(val) {}
+  explicit Real(bool null, float val) noexcept : Val(null), val_(val) {}
 
   /**
    * Generic constructor
    * @param null whether the value is NULL or not
    * @param val the raw double value
    */
-  explicit Real(bool null, double val) noexcept : Val(null), val(val) {}
+  explicit Real(bool null, double val) noexcept : Val(null), val_(val) {}
 
   /**
    * @return a NULL real value
    */
   static Real Null() {
     Real real(0.0);
-    real.is_null = true;
+    real.is_null_ = true;
     return real;
   }
 };
@@ -153,15 +153,15 @@ struct Decimal : public Val {
   /**
    * bit representaion
    */
-  uint64_t val;
+  uint64_t val_;
   /**
    * Precision of the decimal
    */
-  uint32_t precision;
+  uint32_t precision_;
   /**
    * Scale of the decimal
    */
-  uint32_t scale;
+  uint32_t scale_;
 
   /**
    * Constructor
@@ -170,14 +170,14 @@ struct Decimal : public Val {
    * @param scale scale of the decimal
    */
   Decimal(uint64_t val, uint32_t precision, uint32_t scale) noexcept
-      : Val(false), val(val), precision(precision), scale(scale) {}
+      : Val(false), val_(val), precision_(precision), scale_(scale) {}
 
   /**
    * @return a NULL decimal value
    */
   static Decimal Null() {
     Decimal val(0, 0, 0);
-    val.is_null = true;
+    val.is_null_ = true;
     return val;
   }
 };
@@ -190,7 +190,7 @@ struct StringVal : public Val {
   /**
    * Maximum string length
    */
-  static constexpr std::size_t kMaxStingLen = 1 * common::Constants::GB;
+  static constexpr std::size_t K_MAX_STING_LEN = 1 * common::Constants::GB;
 
   /**
    * Padding for inlining
@@ -200,12 +200,12 @@ struct StringVal : public Val {
   /**
    * Raw string
    */
-  const char *ptr;
+  const char *ptr_;
 
   /**
    * String length
    */
-  uint32_t len;
+  uint32_t len_;
 
   /**
    * Create a string value (i.e., a view) over the given potentially non-null
@@ -213,12 +213,12 @@ struct StringVal : public Val {
    * @param str The byte sequence.
    * @param len The length of the sequence.
    */
-  StringVal(const char *str, uint32_t len) noexcept : Val(str == nullptr), len(len) {
-    if (!is_null) {
+  StringVal(const char *str, uint32_t len) noexcept : Val(str == nullptr), len_(len) {
+    if (!is_null_) {
       if (len <= InlineThreshold()) {
         std::memcpy(prefix_, str, len);
       } else {
-        ptr = str;
+        ptr_ = str;
       }
     }
   }
@@ -237,19 +237,19 @@ struct StringVal : public Val {
    * @return True if equivalent; false otherwise.
    */
   bool operator==(const StringVal &that) const {
-    if (is_null != that.is_null) {
+    if (is_null_ != that.is_null_) {
       return false;
     }
-    if (is_null) {
+    if (is_null_) {
       return true;
     }
-    if (len != that.len) {
+    if (len_ != that.len_) {
       return false;
     }
-    if (len <= InlineThreshold()) {
-      return memcmp(prefix_, that.prefix_, len) == 0;
+    if (len_ <= InlineThreshold()) {
+      return memcmp(prefix_, that.prefix_, len_) == 0;
     }
-    return ptr == that.ptr || memcmp(ptr, that.ptr, len) == 0;
+    return ptr_ == that.ptr_ || memcmp(ptr_, that.ptr_, len_) == 0;
   }
 
   /**
@@ -268,10 +268,10 @@ struct StringVal : public Val {
    * @return the raw content
    */
   const char *Content() const {
-    if (len <= InlineThreshold()) {
+    if (len_ <= InlineThreshold()) {
       return prefix_;
     }
-    return ptr;
+    return ptr_;
   }
 
   /**
@@ -288,7 +288,7 @@ struct StringVal : public Val {
       return result->prefix_;
     }
     // Out of line
-    if (UNLIKELY(len > kMaxStingLen)) {
+    if (UNLIKELY(len > K_MAX_STING_LEN)) {
       return nullptr;
     }
     auto *ptr = memory->Allocate(len);
@@ -303,7 +303,7 @@ struct StringVal : public Val {
 
  private:
   // Used to pre allocated inlined strings
-  explicit StringVal(uint32_t len) : Val(false), len(len) {}
+  explicit StringVal(uint32_t len) : Val(false), len_(len) {}
 };
 
 /**
@@ -315,21 +315,21 @@ struct Date : public Val {
    * Can be represented by an int32 (for the storage layer), or by a year-month-day struct.
    */
   union {
-    date::year_month_day ymd;
-    uint32_t int_val;
+    date::year_month_day ymd_;
+    uint32_t int_val_;
   };
 
   /**
    * Constructor
    * @param date date value
    */
-  explicit Date(uint32_t date) noexcept : Val(false), int_val{date} {}
+  explicit Date(uint32_t date) noexcept : Val(false), int_val_{date} {}
 
   /**
    * Constructor
    * @param date date value from a TransientValue
    */
-  explicit Date(type::date_t date) noexcept : Val(false), int_val{!date} {}
+  explicit Date(type::date_t date) noexcept : Val(false), int_val_{!date} {}
 
   /**
    * Constructor
@@ -337,7 +337,7 @@ struct Date : public Val {
    * @param month month value
    * @param day day value
    */
-  Date(date::year year, date::month month, date::day day) noexcept : Val(false), ymd{year, month, day} {}
+  Date(date::year year, date::month month, date::day day) noexcept : Val(false), ymd_{year, month, day} {}
 
   /**
    * Constructor
@@ -346,14 +346,14 @@ struct Date : public Val {
    * @param day day value
    */
   Date(int16_t year, uint8_t month, uint8_t day) noexcept
-      : Val(false), ymd{date::year(year) / date::month(month) / date::day(day)} {}
+      : Val(false), ymd_{date::year(year) / date::month(month) / date::day(day)} {}
 
   /**
    * @return a NULL Date.
    */
   static Date Null() {
     Date date(0);
-    date.is_null = true;
+    date.is_null_ = true;
     return date;
   }
 };
@@ -365,20 +365,20 @@ struct Timestamp : public Val {
   /**
    * Time value
    */
-  timespec time;
+  timespec time_;
 
   /**
    * Constructor
    * @param time time value
    */
-  explicit Timestamp(timespec time) noexcept : Val(false), time(time) {}
+  explicit Timestamp(timespec time) noexcept : Val(false), time_(time) {}
 
   /**
    * @return a NULL Timestamp
    */
   static Timestamp Null() {
     Timestamp timestamp({0, 0});
-    timestamp.is_null = true;
+    timestamp.is_null_ = true;
     return timestamp;
   }
 };
@@ -421,24 +421,24 @@ struct ValUtil {
    */
   static std::string DateToString(const Date &date) {
     std::stringstream ss;
-    ss << date.ymd;
+    ss << date.ymd_;
     return ss.str();
   }
 
   /**
    * Return the year part of the date
    */
-  static int16_t ExtractYear(const Date &date) { return int16_t(static_cast<int>(date.ymd.year())); }
+  static int16_t ExtractYear(const Date &date) { return int16_t(static_cast<int>(date.ymd_.year())); }
 
   /**
    * Return the month part of the date
    */
-  static uint8_t ExtractMonth(const Date &date) { return uint8_t(static_cast<unsigned>(date.ymd.month())); }
+  static uint8_t ExtractMonth(const Date &date) { return uint8_t(static_cast<unsigned>(date.ymd_.month())); }
 
   /**
    * Return the day part of the date
    */
-  static uint8_t ExtractDay(const Date &date) { return uint8_t(static_cast<unsigned>(date.ymd.day())); }
+  static uint8_t ExtractDay(const Date &date) { return uint8_t(static_cast<unsigned>(date.ymd_.day())); }
 
   /**
    * Construct a date object from a string

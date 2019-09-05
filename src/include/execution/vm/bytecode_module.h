@@ -34,7 +34,7 @@ class BytecodeModule {
    * @return A pointer to the function's info if it exists; null otherwise
    */
   const FunctionInfo *GetFuncInfoById(const FunctionId func_id) const {
-    TERRIER_ASSERT(func_id < num_functions(), "Invalid function");
+    TERRIER_ASSERT(func_id < NumFunctions(), "Invalid function");
     return &functions_[func_id];
   }
 
@@ -45,7 +45,7 @@ class BytecodeModule {
    */
   const FunctionInfo *GetFuncInfoByName(const std::string &name) const {
     for (const auto &func : functions_) {
-      if (func.name() == name) {
+      if (func.Name() == name) {
         return &func;
       }
     }
@@ -58,7 +58,7 @@ class BytecodeModule {
    */
   BytecodeIterator BytecodeForFunction(const FunctionInfo &func) const {
     // NOLINTNEXTLINE
-    auto [start, end] = func.bytecode_range();
+    auto [start, end] = func.BytecodeRange();
     return BytecodeIterator(code_, start, end);
   }
 
@@ -71,29 +71,29 @@ class BytecodeModule {
   /**
    * Return the name of the module
    */
-  const std::string &name() const { return name_; }
+  const std::string &Name() const { return name_; }
 
   /**
    * Return a constant view of all functions
    */
-  const std::vector<FunctionInfo> &functions() const { return functions_; }
+  const std::vector<FunctionInfo> &Functions() const { return functions_; }
 
   /**
    * Return the number of bytecode instructions in this module
    */
-  std::size_t instruction_count() const { return code_.size(); }
+  std::size_t InstructionCount() const { return code_.size(); }
 
   /**
    * Return the number of functions defined in this module
    */
-  std::size_t num_functions() const { return functions_.size(); }
+  std::size_t NumFunctions() const { return functions_.size(); }
 
  private:
   friend class VM;
 
   const uint8_t *GetBytecodeForFunction(const FunctionInfo &func) const {
     // NOLINTNEXTLINE
-    auto [start, _] = func.bytecode_range();
+    auto [start, _] = func.BytecodeRange();
     (void)_;
     return &code_[start];
   }

@@ -18,7 +18,7 @@ class TypeVisitor {
    * @return return value of the visitor (usually void)
    */
   RetType Visit(const Type *type) {
-    switch (type->type_id()) {
+    switch (type->GetTypeId()) {
       default: {
         llvm_unreachable("Impossible node type");
       }

@@ -28,7 +28,7 @@ class BanditTest : public TplTest, public ::testing::WithParamInterface<TestConf
  public:
   BanditTest() : region_("test") {}
 
-  util::Region *region() { return &region_; }
+  util::Region *Region() { return &region_; }
 
   auto CreateSampleTPLFunction(int index, std::vector<int> permuataion) {
     // Assumes that size of permuataion is 5.

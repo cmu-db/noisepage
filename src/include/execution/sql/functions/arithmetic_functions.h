@@ -237,7 +237,7 @@ class ArithmeticFunctions {
 
  private:
   // Cotangent
-  static double cotan(const double arg) { return (1.0 / std::tan(arg)); }
+  static double Cotan(const double arg) { return (1.0 / std::tan(arg)); }
 };
 
 // ---------------------------------------------------------
@@ -335,7 +335,7 @@ UNARY_MATH_EXPENSIVE_HIDE_NULL(Asin, Real, Real, std::asin);
 UNARY_MATH_EXPENSIVE_HIDE_NULL(Cos, Real, Real, std::cos);
 UNARY_MATH_EXPENSIVE_HIDE_NULL(Acos, Real, Real, std::acos);
 UNARY_MATH_EXPENSIVE_HIDE_NULL(Tan, Real, Real, std::tan);
-UNARY_MATH_EXPENSIVE_HIDE_NULL(Cot, Real, Real, cotan);
+UNARY_MATH_EXPENSIVE_HIDE_NULL(Cot, Real, Real, Cotan);
 UNARY_MATH_EXPENSIVE_HIDE_NULL(Atan, Real, Real, std::atan);
 UNARY_MATH_EXPENSIVE_HIDE_NULL(Cosh, Real, Real, std::cosh);
 UNARY_MATH_EXPENSIVE_HIDE_NULL(Tanh, Real, Real, std::tanh);

@@ -103,10 +103,10 @@ class AggregationHashTableTest : public SqlBasedTest {
     for (const auto &col : schema.GetColumns()) {
       col_oids.emplace_back(col.Oid());
     }
-    auto pc_init = sql_table->InitializerForProjectedColumns(col_oids, common::Constants::kDefaultVectorSize);
+    auto pc_init = sql_table->InitializerForProjectedColumns(col_oids, common::Constants::K_DEFAULT_VECTOR_SIZE);
     buffer_ = common::AllocationUtil::AllocateAligned(pc_init.ProjectedColumnsSize());
     projected_columns_ = pc_init.Initialize(buffer_);
-    projected_columns_->SetNumTuples(common::Constants::kDefaultVectorSize);
+    projected_columns_->SetNumTuples(common::Constants::K_DEFAULT_VECTOR_SIZE);
     return projected_columns_;
   }
 
@@ -270,20 +270,20 @@ TEST_F(AggregationHashTableTest, BatchProcessTest) {
 
   auto *projected_columns = MakeProjectedColumns();
 
-  alignas(common::Constants::CACHELINE_SIZE) uint32_t keys[common::Constants::kDefaultVectorSize];
-  alignas(common::Constants::CACHELINE_SIZE) uint32_t vals[common::Constants::kDefaultVectorSize];
+  alignas(common::Constants::CACHELINE_SIZE) uint32_t keys[common::Constants::K_DEFAULT_VECTOR_SIZE];
+  alignas(common::Constants::CACHELINE_SIZE) uint32_t vals[common::Constants::K_DEFAULT_VECTOR_SIZE];
 
   for (uint32_t run = 0; run < 10; run++) {
     // Fill keys and value
     std::random_device random;
-    for (uint32_t idx = 0; idx < common::Constants::kDefaultVectorSize; idx++) {
+    for (uint32_t idx = 0; idx < common::Constants::K_DEFAULT_VECTOR_SIZE; idx++) {
       keys[idx] = idx % num_groups;
       vals[idx] = 1;
     }
 
     // Setup projection
-    std::memcpy(projected_columns->ColumnStart(0), keys, common::Constants::kDefaultVectorSize);
-    std::memcpy(projected_columns->ColumnStart(1), vals, common::Constants::kDefaultVectorSize);
+    std::memcpy(projected_columns->ColumnStart(0), keys, common::Constants::K_DEFAULT_VECTOR_SIZE);
+    std::memcpy(projected_columns->ColumnStart(1), vals, common::Constants::K_DEFAULT_VECTOR_SIZE);
 
     // Process
     ProjectedColumnsIterator pci(projected_columns);

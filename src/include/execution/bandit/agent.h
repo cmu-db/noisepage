@@ -47,17 +47,17 @@ class Agent {
   /**
    * Return estimations of the value of each flavor/action
    */
-  const std::vector<double> &value_estimates() const { return value_estimates_; }
+  const std::vector<double> &ValueEstimates() const { return value_estimates_; }
 
   /**
    * Return counts of the number of times each flavor/action was tried
    */
-  const std::vector<uint32_t> &action_attempts() const { return action_attempts_; }
+  const std::vector<uint32_t> &ActionAttempts() const { return action_attempts_; }
 
   /**
    * Return the current time step
    */
-  uint32_t time_step() const { return time_step_; }
+  uint32_t TimeStep() const { return time_step_; }
 
  private:
   // Policy to use for choosing the next action.

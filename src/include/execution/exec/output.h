@@ -17,7 +17,7 @@
 namespace terrier::execution::exec {
 
 // Callback function
-// Params: tuples, num_tuples, tuple_size;
+// Params(): tuples, num_tuples, tuple_size;
 using OutputCallback = std::function<void(byte *, uint32_t, uint32_t)>;
 
 /**
@@ -28,7 +28,7 @@ class OutputBuffer {
   /**
    * Batch size
    */
-  static constexpr uint32_t batch_size_ = 32;
+  static constexpr uint32_t BATCH_SIZE = 32;
 
   /**
    * Constructor
@@ -42,14 +42,14 @@ class OutputBuffer {
         num_tuples_(0),
         tuple_size_(tuple_size),
         tuples_(
-            reinterpret_cast<byte *>(memory_pool->AllocateAligned(batch_size_ * tuple_size, alignof(uint64_t), true))),
+            reinterpret_cast<byte *>(memory_pool->AllocateAligned(BATCH_SIZE * tuple_size, alignof(uint64_t), true))),
         callback_(std::move(callback)) {}
 
   /**
    * @return an output slot to be written to.
    */
   byte *AllocOutputSlot() {
-    if (num_tuples_ == batch_size_) {
+    if (num_tuples_ == BATCH_SIZE) {
       callback_(tuples_, num_tuples_, tuple_size_);
       num_tuples_ = 0;
     }

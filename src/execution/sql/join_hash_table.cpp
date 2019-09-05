@@ -100,8 +100,8 @@ namespace {
 // The bits we set in the entry to mark if the entry has been buffered in the
 // reorder buffer and whether the entry has been processed (i.e., if the entry
 // is in its final location in either the main or overflow arenas).
-constexpr const uint64_t kBufferedBit = 1ull << 62ull;
-constexpr const uint64_t kProcessedBit = 1ull << 63ull;
+constexpr const uint64_t K_BUFFERED_BIT = 1ull << 62ull;
+constexpr const uint64_t K_PROCESSED_BIT = 1ull << 63ull;
 
 /**
  * A reorder is a small piece of buffer space into which we temporarily buffer
@@ -110,13 +110,13 @@ constexpr const uint64_t kProcessedBit = 1ull << 63ull;
 class ReorderBuffer {
  public:
   // Use a 16 common::Constants::KB internal buffer for temporary copies
-  static constexpr const uint32_t kBufferSizeInBytes = 16 * 1024;
+  static constexpr const uint32_t K_BUFFER_SIZE_IN_BYTES = 16 * 1024;
 
   ReorderBuffer(util::ChunkedVector<MemoryPoolAllocator<byte>> *entries, uint64_t max_elems, uint64_t begin_read_idx,
                 uint64_t end_read_idx) noexcept
-      : entry_size_(entries->element_size()),
+      : entry_size_(entries->ElementSize()),
         buf_idx_(0),
-        max_elems_(std::min(max_elems, kBufferSizeInBytes / entry_size_) - 1),
+        max_elems_(std::min(max_elems, K_BUFFER_SIZE_IN_BYTES / entry_size_) - 1),
         temp_buf_(buffer_ + (max_elems_ * entry_size_)),
         read_idx_(begin_read_idx),
         end_read_idx_(end_read_idx),
@@ -143,25 +143,25 @@ class ReorderBuffer {
    * final location in the entry array?
    */
   ALWAYS_INLINE bool IsProcessed(const HashTableEntry *entry) const noexcept {
-    return (entry->cht_slot & kProcessedBit) != 0u;
+    return (entry->cht_slot & K_PROCESSED_BIT) != 0u;
   }
 
   /**
    * Mark the given entry as processed and in its final location
    */
-  ALWAYS_INLINE void SetProcessed(HashTableEntry *entry) const noexcept { entry->cht_slot |= kProcessedBit; }
+  ALWAYS_INLINE void SetProcessed(HashTableEntry *entry) const noexcept { entry->cht_slot |= K_PROCESSED_BIT; }
 
   /**
    * Has the entry @em entry been buffered in the reorder buffer?
    */
   ALWAYS_INLINE bool IsBuffered(const HashTableEntry *entry) const noexcept {
-    return (entry->cht_slot & kBufferedBit) != 0u;
+    return (entry->cht_slot & K_BUFFERED_BIT) != 0u;
   }
 
   /**
    * Mark the entry @em entry as buffered in the reorder buffer
    */
-  ALWAYS_INLINE void SetBuffered(HashTableEntry *entry) const noexcept { entry->cht_slot |= kBufferedBit; }
+  ALWAYS_INLINE void SetBuffered(HashTableEntry *entry) const noexcept { entry->cht_slot |= K_BUFFERED_BIT; }
 
   /**
    * Fill this reorder buffer with as many entries as possible. Each entry that
@@ -194,16 +194,16 @@ class ReorderBuffer {
   // Accessors
   // -------------------------------------------------------
 
-  uint64_t num_entries() const { return buf_idx_; }
+  uint64_t NumEntries() const { return buf_idx_; }
 
-  byte *temp_buffer() const { return temp_buf_; }
+  byte *TempBuffer() const { return temp_buf_; }
 
  private:
   // Size of entries
   const uint64_t entry_size_;
 
   // Buffer space for entries
-  byte buffer_[kBufferSizeInBytes];
+  byte buffer_[K_BUFFER_SIZE_IN_BYTES];
 
   // The index into the buffer where the next element is written
   uint64_t buf_idx_;
@@ -228,7 +228,7 @@ class ReorderBuffer {
 
 template <bool PrefetchCHT, bool PrefetchEntries>
 void JoinHashTable::ReorderMainEntries() noexcept {
-  const uint64_t elem_size = entries_.element_size();
+  const uint64_t elem_size = entries_.ElementSize();
   const uint64_t num_overflow_entries = concise_hash_table_.num_overflow();
   const uint64_t num_main_entries = entries_.size() - num_overflow_entries;
   uint64_t overflow_idx = num_main_entries;
@@ -261,8 +261,8 @@ void JoinHashTable::ReorderMainEntries() noexcept {
   // 4. Reset the reorder buffer and repeat.
   //
 
-  HashTableEntry *targets[common::Constants::kDefaultVectorSize];
-  ReorderBuffer reorder_buf(&entries_, common::Constants::kDefaultVectorSize, 0, overflow_idx);
+  HashTableEntry *targets[common::Constants::K_DEFAULT_VECTOR_SIZE];
+  ReorderBuffer reorder_buf(&entries_, common::Constants::K_DEFAULT_VECTOR_SIZE, 0, overflow_idx);
 
   while (reorder_buf.Fill()) {
     const uint64_t num_buf_entries = reorder_buf.num_entries();
@@ -323,7 +323,7 @@ void JoinHashTable::ReorderMainEntries() noexcept {
 
 template <bool PrefetchCHT, bool PrefetchEntries>
 void JoinHashTable::ReorderOverflowEntries() noexcept {
-  const uint64_t elem_size = entries_.element_size();
+  const uint64_t elem_size = entries_.ElementSize();
   const uint64_t num_entries = entries_.size();
   const uint64_t num_overflow_entries = concise_hash_table_.num_overflow();
   const uint64_t num_main_entries = num_entries - num_overflow_entries;
@@ -368,10 +368,10 @@ void JoinHashTable::ReorderOverflowEntries() noexcept {
   // length of the chain.
   //
 
-  HashTableEntry *parents[common::Constants::kDefaultVectorSize];
+  HashTableEntry *parents[common::Constants::K_DEFAULT_VECTOR_SIZE];
 
-  for (uint64_t start = overflow_start_idx; start < num_entries; start += common::Constants::kDefaultVectorSize) {
-    const uint64_t vec_size = std::min(uint64_t{common::Constants::kDefaultVectorSize}, num_entries - start);
+  for (uint64_t start = overflow_start_idx; start < num_entries; start += common::Constants::K_DEFAULT_VECTOR_SIZE) {
+    const uint64_t vec_size = std::min(uint64_t{common::Constants::K_DEFAULT_VECTOR_SIZE}, num_entries - start);
     const uint64_t end = start + vec_size;
 
     for (uint64_t idx = start, write_idx = 0, prefetch_idx = idx + common::Constants::kPrefetchDistance; idx < end;
@@ -418,7 +418,7 @@ void JoinHashTable::ReorderOverflowEntries() noexcept {
   // index to write the overflow entry into.
   //
 
-  ReorderBuffer reorder_buf(&entries_, common::Constants::kDefaultVectorSize, overflow_start_idx, num_entries);
+  ReorderBuffer reorder_buf(&entries_, common::Constants::K_DEFAULT_VECTOR_SIZE, overflow_start_idx, num_entries);
   while (reorder_buf.Fill()) {
     const uint64_t num_buf_entries = reorder_buf.num_entries();
 
@@ -506,12 +506,12 @@ void JoinHashTable::ReorderOverflowEntries() noexcept {
 
 void JoinHashTable::VerifyMainEntryOrder() {
 #ifndef NDEBUG
-  constexpr const uint64_t kCHTSlotMask = kBufferedBit - 1;
+  constexpr const uint64_t k_cht_slot_mask = K_BUFFERED_BIT - 1;
 
   const uint64_t overflow_idx = entries_.size() - concise_hash_table_.num_overflow();
   for (uint32_t idx = 0; idx < overflow_idx; idx++) {
     auto *entry = reinterpret_cast<HashTableEntry *>(entries_[idx]);
-    auto dest_idx = concise_hash_table_.NumFilledSlotsBefore(entry->cht_slot & kCHTSlotMask);
+    auto dest_idx = concise_hash_table_.NumFilledSlotsBefore(entry->cht_slot & k_cht_slot_mask);
     if (idx != dest_idx) {
       EXECUTION_LOG_ERROR("Entry {} has CHT slot {}. Found @ {}, but should be @ {}", static_cast<void *>(entry),
                           entry->cht_slot, idx, dest_idx);
@@ -587,7 +587,7 @@ void JoinHashTable::Build() {
     BuildGenericHashTable();
   }
 
-  timer.Stop();
+  timer.StOp();
   UNUSED_ATTRIBUTE double tps = (static_cast<double>(num_elements()) / timer.elapsed()) / 1000.0;
   EXECUTION_LOG_DEBUG("JHT: built {} tuples in {} ms ({:.2f} tps)", num_elements(), timer.elapsed(), tps);
 

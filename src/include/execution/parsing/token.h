@@ -100,22 +100,22 @@ class Token {
   /**
    * Number of tokens
    */
-  static const uint32_t kTokenCount = static_cast<uint32_t>(Type::Last) + 1;
+  static const uint32_t K_TOKEN_COUNT = static_cast<uint32_t>(Type::Last) + 1;
 
   /**
    * Get the name of a given token type
    */
-  static const char *GetName(Type type) { return kTokenNames[static_cast<uint32_t>(type)]; }
+  static const char *GetName(Type type) { return k_token_names[static_cast<uint32_t>(type)]; }
 
   /**
    * Get the stringified version of a given token type
    */
-  static const char *GetString(Type type) { return kTokenStrings[static_cast<uint32_t>(type)]; }
+  static const char *GetString(Type type) { return k_token_strings[static_cast<uint32_t>(type)]; }
 
   /**
    * Get the precedence of a given token
    */
-  static uint32_t GetPrecedence(Type type) { return kTokenPrecedence[static_cast<uint32_t>(type)]; }
+  static uint32_t GetPrecedence(Type type) { return K_TOKEN_PRECEDENCE[static_cast<uint32_t>(type)]; }
 
   /**
    * Get the lowest operator precedence we support
@@ -143,9 +143,9 @@ class Token {
   static bool IsEqualityOp(Type op) { return op == Type::BANG_EQUAL || op == Type::EQUAL_EQUAL; }
 
  private:
-  static const char *kTokenNames[];
-  static const char *kTokenStrings[];
-  static const uint32_t kTokenPrecedence[];
+  static const char *k_token_names[];
+  static const char *k_token_strings[];
+  static const uint32_t K_TOKEN_PRECEDENCE[];
 };
 
 }  // namespace terrier::execution::parsing

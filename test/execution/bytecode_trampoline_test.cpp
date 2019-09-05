@@ -238,7 +238,7 @@ TEST_F(BytecodeTrampolineTest, DISABLED_PerfGenComparisonForSortTest) {
     ips4o::sort(vec.begin(), vec.end(),
                 // NOLINTNEXTLINE
                 [compare](const auto a, const auto b) { return compare(a, b) < 0; });
-    timer.Stop();
+    timer.StOp();
     return timer.elapsed();
   };
 
@@ -254,7 +254,7 @@ TEST_F(BytecodeTrampolineTest, DISABLED_PerfGenComparisonForSortTest) {
     ips4o::sort(vec.begin(), vec.end(),
                 // NOLINTNEXTLINE
                 [&compare](const auto a, const auto b) { return compare(a, b) < 0; });
-    timer.Stop();
+    timer.StOp();
     return timer.elapsed();
   };
 
@@ -265,7 +265,7 @@ TEST_F(BytecodeTrampolineTest, DISABLED_PerfGenComparisonForSortTest) {
     ips4o::sort(vec.begin(), vec.end(),
                 // NOLINTNEXTLINE
                 [](const auto &a, const auto &b) { return a < b; });
-    timer.Stop();
+    timer.StOp();
     return timer.elapsed();
   };
 

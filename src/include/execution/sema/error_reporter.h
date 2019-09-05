@@ -85,7 +85,7 @@ class ErrorReporter {
 
     explicit MessageArgument(int32_t integer) : kind_(Kind::Int), integer_(integer) {}
 
-    explicit MessageArgument(ast::Identifier str) : MessageArgument(str.data()) {}
+    explicit MessageArgument(ast::Identifier str) : MessageArgument(str.Data()) {}
 
     explicit MessageArgument(ast::Type *type) : kind_(Kind::Type), type_(type) {}
 
@@ -96,7 +96,7 @@ class ErrorReporter {
 
     explicit MessageArgument(const SourcePosition &pos) : kind_(Kind::Position), pos_(pos) {}
 
-    Kind kind() const { return kind_; }
+    Kind GetKind() const { return kind_; }
 
    private:
     friend class ErrorReporter;
@@ -121,13 +121,13 @@ class ErrorReporter {
     template <typename... ArgTypes>
     MessageWithArgs(util::Region *region, const SourcePosition &pos, const ErrorMessage<ArgTypes...> &message,
                     typename detail::PassArgument<ArgTypes>::type... args)
-        : pos_(pos), id_(message.id), args_(region) {
+        : pos_(pos), id_(message.id_), args_(region) {
       args_.insert(args_.end(), {MessageArgument(std::move(args))...});
     }
 
-    const SourcePosition &position() const { return pos_; }
+    const SourcePosition &Position() const { return pos_; }
 
-    ErrorMessageId error_message_id() const { return id_; }
+    ErrorMessageId GetErrorMessageId() const { return id_; }
 
    private:
     friend class ErrorReporter;

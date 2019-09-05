@@ -24,26 +24,26 @@ class Identifier {
   /**
    * @return the string literal of the identifier
    */
-  const char *data() const { return data_; }
+  const char *Data() const { return data_; }
 
   /**
    * @return the length of the string
    */
-  std::size_t length() const {
+  std::size_t Length() const {
     TERRIER_ASSERT(data_ != nullptr, "Trying to get the length of an invalid identifier");
-    return std::strlen(data());
+    return std::strlen(Data());
   }
 
   /**
    * @return whether the string is empty
    */
-  bool empty() const { return length() == 0; }
+  bool Empty() const { return Length() == 0; }
 
   /**
    * @param other other identifer
    * @return whether this == other according to pointer comparison.
    */
-  bool operator==(const Identifier &other) const { return data() == other.data(); }
+  bool operator==(const Identifier &other) const { return Data() == other.Data(); }
 
   /**
    * @param other other identifer
@@ -97,7 +97,7 @@ struct DenseMapInfo<terrier::execution::ast::Identifier> {
    * @return the hash of the identifier
    */
   static unsigned getHashValue(const terrier::execution::ast::Identifier identifier) {
-    return DenseMapInfo<const void *>::getHashValue(static_cast<const void *>(identifier.data()));
+    return DenseMapInfo<const void *>::getHashValue(static_cast<const void *>(identifier.Data()));
   }
 
   /**
@@ -125,7 +125,7 @@ struct hash<terrier::execution::ast::Identifier> {
    * @return hash value
    */
   std::size_t operator()(const terrier::execution::ast::Identifier &ident) const noexcept {
-    std::string_view s(ident.data(), ident.length());
+    std::string_view s(ident.Data(), ident.Length());
     return std::hash<decltype(s)>()(s);
   }
 };

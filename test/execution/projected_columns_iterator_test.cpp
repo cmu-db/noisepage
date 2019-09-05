@@ -86,7 +86,7 @@ class ProjectedColumnsIteratorTest : public SqlBasedTest {
   };
 
  public:
-  ProjectedColumnsIteratorTest() : num_tuples_(common::Constants::kDefaultVectorSize) {}
+  ProjectedColumnsIteratorTest() : num_tuples_(common::Constants::K_DEFAULT_VECTOR_SIZE) {}
 
   void SetUp() override {
     SqlBasedTest::SetUp();
@@ -118,7 +118,7 @@ class ProjectedColumnsIteratorTest : public SqlBasedTest {
       if (nulls != nullptr) {
         // Fill up the null bitmap.
         std::memcpy(projected_columns_->ColumnNullBitmap(col_offset), nulls.get(),
-                    num_tuples / common::Constants::kBitsPerByte);
+                    num_tuples / common::Constants::K_BITS_PER_BYTE);
         // Because the storage layer treats 1 as non-null, we have to flip the
         // bits.
         for (uint32_t i = 0; i < num_tuples; i++) {
@@ -126,7 +126,7 @@ class ProjectedColumnsIteratorTest : public SqlBasedTest {
         }
       } else {
         // Set all rows to non-null.
-        std::memset(projected_columns_->ColumnNullBitmap(col_offset), 0, num_tuples / common::Constants::kBitsPerByte);
+        std::memset(projected_columns_->ColumnNullBitmap(col_offset), 0, num_tuples / common::Constants::K_BITS_PER_BYTE);
       }
       // Fill up the values.
       std::memcpy(projected_columns_->ColumnStart(col_offset), data.get(), elem_size * num_tuples);
@@ -152,17 +152,17 @@ class ProjectedColumnsIteratorTest : public SqlBasedTest {
     for (const auto &col : schema.GetColumns()) {
       col_oids.emplace_back(col.Oid());
     }
-    auto pc_init = sql_table->InitializerForProjectedColumns(col_oids, common::Constants::kDefaultVectorSize);
+    auto pc_init = sql_table->InitializerForProjectedColumns(col_oids, common::Constants::K_DEFAULT_VECTOR_SIZE);
     pm_ = sql_table->ProjectionMapForOids(col_oids);
     buffer_ = common::AllocationUtil::AllocateAligned(pc_init.ProjectedColumnsSize());
     projected_columns_ = pc_init.Initialize(buffer_);
-    projected_columns_->SetNumTuples(common::Constants::kDefaultVectorSize);
+    projected_columns_->SetNumTuples(common::Constants::K_DEFAULT_VECTOR_SIZE);
   }
 
   // Delete allocated objects and remove the created table.
   ~ProjectedColumnsIteratorTest() override { delete[] buffer_; }
 
-  // Used to test various ProjectedColumn sizes
+  // Used to test various ProjectedColumn sizes_
   void SetSize(uint32_t size) { projected_columns_->SetNumTuples(size); }
 
  protected:
@@ -207,13 +207,13 @@ TEST_F(ProjectedColumnsIteratorTest, SimpleIteratorTest) {
   {
     uint32_t tuple_count = 0;
     ProjectedColumnsIterator iter(GetProjectedColumn());
-    SetSize(common::Constants::kDefaultVectorSize);
+    SetSize(common::Constants::K_DEFAULT_VECTOR_SIZE);
 
     for (; iter.HasNext(); iter.Advance()) {
       tuple_count++;
     }
 
-    EXPECT_EQ(common::Constants::kDefaultVectorSize, tuple_count);
+    EXPECT_EQ(common::Constants::K_DEFAULT_VECTOR_SIZE, tuple_count);
     EXPECT_FALSE(iter.IsFiltered());
   }
 
@@ -223,7 +223,7 @@ TEST_F(ProjectedColumnsIteratorTest, SimpleIteratorTest) {
 
   {
     ProjectedColumnsIterator iter(GetProjectedColumn());
-    SetSize(common::Constants::kDefaultVectorSize);
+    SetSize(common::Constants::K_DEFAULT_VECTOR_SIZE);
 
     bool entered = false;
     for (int16_t last = -1; iter.HasNext(); iter.Advance()) {
@@ -248,7 +248,7 @@ TEST_F(ProjectedColumnsIteratorTest, ReadNullableColumnsTest) {
   //
 
   ProjectedColumnsIterator iter(GetProjectedColumn());
-  SetSize(common::Constants::kDefaultVectorSize);
+  SetSize(common::Constants::K_DEFAULT_VECTOR_SIZE);
 
   uint32_t num_nulls = 0;
   for (; iter.HasNext(); iter.Advance()) {
@@ -270,7 +270,7 @@ TEST_F(ProjectedColumnsIteratorTest, ManualFilterTest) {
 
   {
     ProjectedColumnsIterator iter(GetProjectedColumn());
-    SetSize(common::Constants::kDefaultVectorSize);
+    SetSize(common::Constants::K_DEFAULT_VECTOR_SIZE);
 
     for (; iter.HasNext(); iter.Advance()) {
       bool null = false;
@@ -292,7 +292,7 @@ TEST_F(ProjectedColumnsIteratorTest, ManualFilterTest) {
     const auto &col_data = column_data(ColId::col_b);
     uint32_t actual_non_null = col_data.num_tuples - col_data.num_nulls;
     EXPECT_EQ(actual_non_null, num_non_null);
-    EXPECT_EQ(actual_non_null, iter.num_selected());
+    EXPECT_EQ(actual_non_null, iter.NumSelected());
   }
 
   //
@@ -308,7 +308,7 @@ TEST_F(ProjectedColumnsIteratorTest, ManualFilterTest) {
 
   {
     ProjectedColumnsIterator iter(GetProjectedColumn());
-    SetSize(common::Constants::kDefaultVectorSize);
+    SetSize(common::Constants::K_DEFAULT_VECTOR_SIZE);
 
     for (; iter.HasNext(); iter.Advance()) {
       auto *val = iter.Get<int16_t, false>(GetColOffset(ColId::col_a), nullptr);
@@ -325,7 +325,7 @@ TEST_F(ProjectedColumnsIteratorTest, ManualFilterTest) {
 
     iter.ResetFiltered();
 
-    EXPECT_LE(iter.num_selected(), 100u);
+    EXPECT_LE(iter.NumSelected(), 100u);
 
     for (; iter.HasNextFiltered(); iter.AdvanceFiltered()) {
       // col_a must be less than 100
@@ -352,7 +352,7 @@ TEST_F(ProjectedColumnsIteratorTest, ManagedFilterTest) {
   //
 
   ProjectedColumnsIterator iter(GetProjectedColumn());
-  SetSize(common::Constants::kDefaultVectorSize);
+  SetSize(common::Constants::K_DEFAULT_VECTOR_SIZE);
 
   iter.RunFilter([&iter, this]() {
     bool null = false;
@@ -362,7 +362,7 @@ TEST_F(ProjectedColumnsIteratorTest, ManagedFilterTest) {
 
   const auto &col_data = column_data(ColId::col_b);
   uint32_t actual_non_null = col_data.num_tuples - col_data.num_nulls;
-  EXPECT_EQ(actual_non_null, iter.num_selected());
+  EXPECT_EQ(actual_non_null, iter.NumSelected());
 
   //
   // Ensure subsequent iterations only work on selected items
@@ -376,8 +376,8 @@ TEST_F(ProjectedColumnsIteratorTest, ManagedFilterTest) {
       EXPECT_FALSE(null);
     });
 
-    EXPECT_EQ(actual_non_null, iter.num_selected());
-    EXPECT_EQ(iter.num_selected(), c);
+    EXPECT_EQ(actual_non_null, iter.NumSelected());
+    EXPECT_EQ(iter.NumSelected(), c);
   }
 }
 
@@ -389,7 +389,7 @@ TEST_F(ProjectedColumnsIteratorTest, SimpleVectorizedFilterTest) {
   //
 
   ProjectedColumnsIterator iter(GetProjectedColumn());
-  SetSize(common::Constants::kDefaultVectorSize);
+  SetSize(common::Constants::K_DEFAULT_VECTOR_SIZE);
 
   // Compute expected result
   uint32_t expected = 0;
@@ -428,7 +428,7 @@ TEST_F(ProjectedColumnsIteratorTest, MultipleVectorizedFilterTest) {
   //
 
   ProjectedColumnsIterator iter(GetProjectedColumn());
-  SetSize(common::Constants::kDefaultVectorSize);
+  SetSize(common::Constants::K_DEFAULT_VECTOR_SIZE);
 
   iter.FilterColByVal<std::less>(GetColOffset(ColId::col_c), type::TypeId::INTEGER,
                                  ProjectedColumnsIterator::FilterVal{.i = 750});

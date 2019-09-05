@@ -423,13 +423,13 @@ TEST_F(VectorUtilTest, VectorVectorFilterTest) {
   std::iota(arr_1.begin(), arr_1.end(), 0);
   std::iota(arr_2.begin(), arr_2.end(), 1);
 
-  alignas(common::Constants::CACHELINE_SIZE) uint32_t out[common::Constants::kDefaultVectorSize] = {0};
+  alignas(common::Constants::CACHELINE_SIZE) uint32_t out[common::Constants::K_DEFAULT_VECTOR_SIZE] = {0};
 
 #define CHECK(op, expected_count)                                                                    \
   {                                                                                                  \
     uint32_t count = 0;                                                                              \
-    for (uint32_t offset = 0; offset < num_elems; offset += common::Constants::kDefaultVectorSize) { \
-      auto size = std::min(common::Constants::kDefaultVectorSize, num_elems - offset);               \
+    for (uint32_t offset = 0; offset < num_elems; offset += common::Constants::K_DEFAULT_VECTOR_SIZE) { \
+      auto size = std::min(common::Constants::K_DEFAULT_VECTOR_SIZE, num_elems - offset);               \
       auto found = VectorUtil::Filter##op(&arr_1[offset], &arr_2[offset], size, out, nullptr);       \
       count += found;                                                                                \
     }                                                                                                \
@@ -457,8 +457,8 @@ TEST_F(VectorUtilTest, VectorVectorFilterTest) {
       arr_2[idx] = (random() % 100);                                                                 \
     }                                                                                                \
     uint32_t vec_count = 0, scalar_count = 0;                                                        \
-    for (uint32_t offset = 0; offset < num_elems; offset += common::Constants::kDefaultVectorSize) { \
-      auto size = std::min(common::Constants::kDefaultVectorSize, num_elems - offset);               \
+    for (uint32_t offset = 0; offset < num_elems; offset += common::Constants::K_DEFAULT_VECTOR_SIZE) { \
+      auto size = std::min(common::Constants::K_DEFAULT_VECTOR_SIZE, num_elems - offset);               \
       /* Vector filter*/                                                                             \
       auto found = VectorUtil::Filter##vec_op(&arr_1[offset], &arr_2[offset], size, out, nullptr);   \
       vec_count += found;                                                                            \

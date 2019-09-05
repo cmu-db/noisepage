@@ -82,7 +82,7 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
   // Get the correct output format for this test
   exec::SampleOutput sample_output;
   sample_output.InitTestOutput();
-  auto output_schema = sample_output.GetSchema(kOutputName.data());
+  auto output_schema = sample_output.GetSchema(kOutputName.Data());
 
   // Make the catalog accessor
   catalog::Catalog catalog(&txn_manager, &block_store);
@@ -109,7 +109,7 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
   sema::ErrorReporter error_reporter(&error_region);
   ast::Context context(&region, &error_reporter);
 
-  parsing::Scanner scanner(source.data(), source.length());
+  parsing::Scanner scanner(source.Data(), source.Length());
   parsing::Parser parser(&scanner, &context);
 
   double parse_ms = 0.0, typecheck_ms = 0.0, codegen_ms = 0.0, interp_exec_ms = 0.0, adaptive_exec_ms = 0.0,

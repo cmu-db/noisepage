@@ -22,8 +22,8 @@
 namespace terrier::execution {
 
 struct {
-  CpuInfo::Feature feature;
-  llvm::SmallVector<const char *, 4> names;
+  CpuInfo::Feature feature_;
+  llvm::SmallVector<const char *, 4> names_;
 } features[] = {
     {CpuInfo::SSE_4_2, {"sse4_2"}},
     {CpuInfo::AVX, {"avx"}},
@@ -103,7 +103,7 @@ void CpuInfo::InitCpuInfo() {
 
 void CpuInfo::InitCacheInfo() {
 #ifdef __APPLE__
-  // Lookup cache sizes
+  // Lookup cache sizes_
   std::size_t len = 0;
   sysctlbyname("hw.cachesize", nullptr, &len, nullptr, 0);
   auto data = std::make_unique<uint64_t[]>(len);
@@ -115,7 +115,7 @@ void CpuInfo::InitCacheInfo() {
     cache_sizes_[idx] = data[idx];
   }
 
-  // Lookup cache line sizes
+  // Lookup cache line sizes_
   std::size_t linesize;
   std::size_t sizeof_linesize = sizeof(linesize);
   sysctlbyname("hw.cachelinesize", &linesize, &sizeof_linesize, nullptr, 0);
@@ -123,7 +123,7 @@ void CpuInfo::InitCacheInfo() {
     cache_line_size = linesize;
   }
 #else
-  // Use sysconf to determine cache sizes
+  // Use sysconf to determine cache sizes_
   cache_sizes_[L1_CACHE] = static_cast<uint32_t>(sysconf(_SC_LEVEL1_DCACHE_SIZE));
   cache_sizes_[L2_CACHE] = static_cast<uint32_t>(sysconf(_SC_LEVEL2_CACHE_SIZE));
   cache_sizes_[L3_CACHE] = static_cast<uint32_t>(sysconf(_SC_LEVEL3_CACHE_SIZE));

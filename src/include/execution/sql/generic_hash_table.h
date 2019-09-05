@@ -26,10 +26,10 @@ namespace terrier::execution::sql {
  */
 class GenericHashTable {
  private:
-  static constexpr const uint32_t kNumTagBits = 16;
-  static constexpr const uint32_t kNumPointerBits = sizeof(uint8_t *) * 8 - kNumTagBits;
-  static constexpr const uint64_t kMaskPointer = (~0ull) >> kNumTagBits;
-  static constexpr const uint64_t kMaskTag = (~0ull) << kNumPointerBits;
+  static constexpr const uint32_t K_NUM_TAG_BITS = 16;
+  static constexpr const uint32_t K_NUM_POINTER_BITS = sizeof(uint8_t *) * 8 - K_NUM_TAG_BITS;
+  static constexpr const uint64_t K_MASK_POINTER = (~0ull) >> K_NUM_TAG_BITS;
+  static constexpr const uint64_t K_MASK_TAG = (~0ull) << K_NUM_POINTER_BITS;
 
  public:
   /**
@@ -111,18 +111,18 @@ class GenericHashTable {
   /**
    * Return the total number of bytes this hash table has allocated
    */
-  uint64_t GetTotalMemoryUsage() const { return sizeof(HashTableEntry *) * capacity(); }
+  uint64_t GetTotalMemoryUsage() const { return sizeof(HashTableEntry *) * Capacity(); }
 
   /**
    * Return the number of elements stored in this hash table
    */
-  uint64_t num_elements() const { return num_elems_; }
+  uint64_t NumElements() const { return num_elems_; }
 
   /**
    * Return the maximum number of elements this hash table can store at its
    * current size
    */
-  uint64_t capacity() const { return capacity_; }
+  uint64_t Capacity() const { return capacity_; }
 
   /**
    * The configured load factor for the table's directory. Note that this isn't
@@ -130,7 +130,7 @@ class GenericHashTable {
    * this is a bucket-chained table, load factors can exceed 1.0 if chains are
    * long.
    */
-  float load_factor() const { return load_factor_; }
+  float LoadFactor() const { return load_factor_; }
 
  private:
   template <bool UseTag>
@@ -146,7 +146,7 @@ class GenericHashTable {
   // untagged HashTableEntry pointer
   static HashTableEntry *UntagPointer(const HashTableEntry *const entry) {
     auto ptr = reinterpret_cast<intptr_t>(entry);
-    return reinterpret_cast<HashTableEntry *>(ptr & kMaskPointer);
+    return reinterpret_cast<HashTableEntry *>(ptr & K_MASK_POINTER);
   }
 
   static HashTableEntry *UpdateTag(const HashTableEntry *const tagged_old_entry,
@@ -154,7 +154,7 @@ class GenericHashTable {
     auto old_tagged_ptr = reinterpret_cast<intptr_t>(tagged_old_entry);
     auto new_untagged_ptr = reinterpret_cast<intptr_t>(untagged_new_entry);
     auto new_tagged_ptr =
-        (new_untagged_ptr & kMaskPointer) | (old_tagged_ptr & kMaskTag) | TagHash(untagged_new_entry->hash);
+        (new_untagged_ptr & K_MASK_POINTER) | (old_tagged_ptr & K_MASK_TAG) | TagHash(untagged_new_entry->hash_);
     return reinterpret_cast<HashTableEntry *>(new_tagged_ptr);
   }
 
@@ -164,8 +164,8 @@ class GenericHashTable {
     // range [0, kNumTagBits), so we take the log2(kNumTagBits) most significant
     // bits to determine which bit in the tag to set.
     auto tag_bit_pos = hash >> (sizeof(hash_t) * 8 - 4);
-    TERRIER_ASSERT(tag_bit_pos < kNumTagBits, "Invalid tag!");
-    return 1ull << (tag_bit_pos + kNumPointerBits);
+    TERRIER_ASSERT(tag_bit_pos < K_NUM_TAG_BITS, "Invalid tag!");
+    return 1ull << (tag_bit_pos + K_NUM_POINTER_BITS);
   }
 
  private:
@@ -210,19 +210,19 @@ template <bool Concurrent>
 inline void GenericHashTable::Insert(HashTableEntry *new_entry, hash_t hash) {
   const auto pos = hash & mask_;
 
-  TERRIER_ASSERT(pos < capacity(), "Computed table position exceeds capacity!");
-  TERRIER_ASSERT(new_entry->hash == hash, "Hash value not set in entry!");
+  TERRIER_ASSERT(pos < Capacity(), "Computed table position exceeds capacity!");
+  TERRIER_ASSERT(new_entry->hash_ == hash, "Hash value not set in entry!");
 
   if constexpr (Concurrent) {
     std::atomic<HashTableEntry *> &loc = entries_[pos];
     HashTableEntry *old_entry = loc.load();
     do {
-      new_entry->next = old_entry;
+      new_entry->next_ = old_entry;
     } while (!loc.compare_exchange_weak(old_entry, new_entry));
   } else {  // NOLINT
     std::atomic<HashTableEntry *> &loc = entries_[pos];
     HashTableEntry *old_entry = loc.load(std::memory_order_relaxed);
-    new_entry->next = old_entry;
+    new_entry->next_ = old_entry;
     loc.store(new_entry, std::memory_order_relaxed);
   }
 
@@ -233,21 +233,21 @@ template <bool Concurrent>
 inline void GenericHashTable::InsertTagged(HashTableEntry *new_entry, hash_t hash) {
   const auto pos = hash & mask_;
 
-  TERRIER_ASSERT(pos < capacity(), "Computed table position exceeds capacity!");
-  TERRIER_ASSERT(new_entry->hash == hash, "Hash value not set in entry!");
+  TERRIER_ASSERT(pos < Capacity(), "Computed table position exceeds capacity!");
+  TERRIER_ASSERT(new_entry->hash_ == hash, "Hash value not set in entry!");
 
   if constexpr (Concurrent) {
     std::atomic<HashTableEntry *> &loc = entries_[pos];
     HashTableEntry *old_entry = loc.load();
     do {
-      new_entry->next = UntagPointer(old_entry);
+      new_entry->next_ = UntagPointer(old_entry);
       new_entry = UpdateTag(old_entry, new_entry);
     } while (!loc.compare_exchange_weak(old_entry, new_entry));
 
   } else {  // NOLINT
     std::atomic<HashTableEntry *> &loc = entries_[pos];
     HashTableEntry *old_entry = loc.load(std::memory_order_relaxed);
-    new_entry->next = UntagPointer(old_entry);
+    new_entry->next_ = UntagPointer(old_entry);
     loc.store(UpdateTag(old_entry, new_entry), std::memory_order_relaxed);
   }
 
@@ -261,7 +261,7 @@ inline void GenericHashTable::FlushEntries(const F &sink) {
   for (uint32_t idx = 0; idx < capacity_; idx++) {
     HashTableEntry *entry = entries_[idx].load(std::memory_order_relaxed);
     while (entry != nullptr) {
-      HashTableEntry *next = entry->next;
+      HashTableEntry *next = entry->next_;
       sink(entry);
       entry = next;
     }
@@ -319,7 +319,7 @@ template <bool UseTag>
 inline void GenericHashTableIterator<UseTag>::Next() noexcept {
   // If the current entry has a next link, use that
   if (curr_entry_ != nullptr) {
-    curr_entry_ = curr_entry_->next;
+    curr_entry_ = curr_entry_->next_;
     if (curr_entry_ != nullptr) {
       return;
     }
@@ -327,7 +327,7 @@ inline void GenericHashTableIterator<UseTag>::Next() noexcept {
 
   // While we haven't exhausted the directory, and haven't found a valid entry
   // continue on ...
-  while (entries_index_ < table_.capacity()) {
+  while (entries_index_ < table_.Capacity()) {
     curr_entry_ = table_.entries_[entries_index_++].load(std::memory_order_relaxed);
 
     // NOLINTNEXTLINE: bugprone-suspicious-semicolon: seems like a false positive because of constexpr
@@ -404,7 +404,7 @@ inline GenericHashTableVectorIterator<UseTag>::GenericHashTableVectorIterator(co
                                                                               MemoryPool *memory) noexcept
     : table_(table),
       memory_(memory),
-      entry_vec_(memory_->AllocateArray<const HashTableEntry *>(common::Constants::kDefaultVectorSize,
+      entry_vec_(memory_->AllocateArray<const HashTableEntry *>(common::Constants::K_DEFAULT_VECTOR_SIZE,
                                                                 common::Constants::CACHELINE_SIZE, true)),
       entries_index_(0),
       next_(nullptr),
@@ -415,7 +415,7 @@ inline GenericHashTableVectorIterator<UseTag>::GenericHashTableVectorIterator(co
 
 template <bool UseTag>
 inline GenericHashTableVectorIterator<UseTag>::~GenericHashTableVectorIterator() {
-  memory_->DeallocateArray(entry_vec_, common::Constants::kDefaultVectorSize);
+  memory_->DeallocateArray(entry_vec_, common::Constants::K_DEFAULT_VECTOR_SIZE);
 }
 
 template <bool UseTag>
@@ -433,18 +433,18 @@ inline void GenericHashTableVectorIterator<UseTag>::Refill() {
   while (true) {
     // While we're in the middle of a bucket chain and we have room to insert
     // new entries, continue along the bucket chain.
-    while (next_ != nullptr && entry_vec_end_idx_ < common::Constants::kDefaultVectorSize) {
+    while (next_ != nullptr && entry_vec_end_idx_ < common::Constants::K_DEFAULT_VECTOR_SIZE) {
       entry_vec_[entry_vec_end_idx_++] = next_;
-      next_ = next_->next;
+      next_ = next_->next_;
     }
 
     // If we've filled up the entries buffer, drop out
-    if (entry_vec_end_idx_ == common::Constants::kDefaultVectorSize) {
+    if (entry_vec_end_idx_ == common::Constants::K_DEFAULT_VECTOR_SIZE) {
       return;
     }
 
     // If we've exhausted the hash table, drop out
-    if (entries_index_ == table_.capacity()) {
+    if (entries_index_ == table_.Capacity()) {
       return;
     }
 

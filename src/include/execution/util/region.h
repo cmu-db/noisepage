@@ -43,7 +43,7 @@ class Region {
    * @param alignment The desired alignment
    * @return A pointer to the start of the allocated space
    */
-  void *Allocate(std::size_t size, std::size_t alignment = kDefaultByteAlignment);
+  void *Allocate(std::size_t size, std::size_t alignment = K_DEFAULT_BYTE_ALIGNMENT);
 
   /**
    * Allocate a (contiguous) array of elements of the given type
@@ -79,22 +79,22 @@ class Region {
   /**
    * @return The name of the region
    */
-  const std::string &name() const { return name_; }
+  const std::string &Name() const { return name_; }
 
   /**
    * @return The number of bytes this region has given out
    */
-  uint64_t allocated() const { return allocated_; }
+  uint64_t Allocated() const { return allocated_; }
 
   /**
    * @return The number of bytes wasted due to alignment requirements
    */
-  uint64_t alignment_waste() const { return alignment_waste_; }
+  uint64_t AlignmentWaste() const { return alignment_waste_; }
 
   /**
    * @return The total number of bytes acquired from the OS
    */
-  uint64_t total_memory() const { return chunk_bytes_allocated_; }
+  uint64_t TotalMemory() const { return chunk_bytes_allocated_; }
 
  private:
   // Expand the region
@@ -105,28 +105,28 @@ class Region {
   // smallest unit of allocation a region acquires from the operating system.
   // Each individual region allocation is sourced from a chunk.
   struct Chunk {
-    Chunk *next;
-    uint64_t size;
+    Chunk *next_;
+    uint64_t size_;
 
     void Init(Chunk *next, uint64_t size) {
-      this->next = next;
-      this->size = size;
+      this->next_ = next;
+      this->size_ = size;
     }
 
     uintptr_t Start() const { return reinterpret_cast<uintptr_t>(this) + sizeof(Chunk); }
 
-    uintptr_t End() const { return reinterpret_cast<uintptr_t>(this) + size; }
+    uintptr_t End() const { return reinterpret_cast<uintptr_t>(this) + size_; }
   };
 
  private:
   // The alignment of all pointers
-  static const uint32_t kDefaultByteAlignment = 8;
+  static const uint32_t K_DEFAULT_BYTE_ALIGNMENT = 8;
 
   // Min chunk allocation is 8common::Constants::KB
-  static const std::size_t kMinChunkAllocation = 8 * 1024;
+  static const std::size_t K_MIN_CHUNK_ALLOCATION = 8 * 1024;
 
   // Max chunk allocation is 1common::Constants::MB
-  static const std::size_t kMaxChunkAllocation = 1 * 1024 * 1024;
+  static const std::size_t K_MAX_CHUNK_ALLOCATION = 1 * 1024 * 1024;
 
   // The name of the region
   const std::string name_;

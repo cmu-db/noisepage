@@ -39,7 +39,7 @@ uint32_t TaaT_Lt_500(ProjectedColumnsIterator *pci) {
     auto cola = *pci->Get<int32_t, false>(Col::A, nullptr);
     return cola < 500;
   });
-  return pci->num_selected();
+  return pci->NumSelected();
 }
 
 uint32_t Hobbled_TaaT_Lt_500(ProjectedColumnsIterator *pci) {
@@ -61,7 +61,7 @@ TEST_F(FilterManagerTest, SimpleFilterManagerTest) {
   filter.Finalize();
   auto table_oid = exec_ctx_->GetAccessor()->GetTableOid(NSOid(), "test_1");
   std::array<uint32_t, 1> col_oids{1};
-  TableVectorIterator tvi(exec_ctx_.get(), !table_oid, col_oids.data(), static_cast<uint32_t>(col_oids.size()));
+  TableVectorIterator tvi(exec_ctx_.get(), !table_oid, col_oids.Data(), static_cast<uint32_t>(col_oids.size()));
   for (tvi.Init(); tvi.Advance();) {
     auto *pci = tvi.projected_columns_iterator();
 
@@ -85,7 +85,7 @@ TEST_F(FilterManagerTest, AdaptiveFilterManagerTest) {
   filter.Finalize();
   auto table_oid = exec_ctx_->GetAccessor()->GetTableOid(NSOid(), "test_1");
   std::array<uint32_t, 1> col_oids{1};
-  TableVectorIterator tvi(exec_ctx_.get(), !table_oid, col_oids.data(), static_cast<uint32_t>(col_oids.size()));
+  TableVectorIterator tvi(exec_ctx_.get(), !table_oid, col_oids.Data(), static_cast<uint32_t>(col_oids.size()));
   for (tvi.Init(); tvi.Advance();) {
     auto *pci = tvi.projected_columns_iterator();
 

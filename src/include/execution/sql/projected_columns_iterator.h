@@ -19,7 +19,7 @@ namespace terrier::execution::sql {
  * on filtered items.
  */
 class ProjectedColumnsIterator {
-  static constexpr const uint32_t kInvalidPos = std::numeric_limits<uint32_t>::max();
+  static constexpr const uint32_t K_INVALID_POS = std::numeric_limits<uint32_t>::max();
 
  public:
   /**
@@ -42,7 +42,7 @@ class ProjectedColumnsIterator {
    * Has this vector projection been filtered? Does it have a selection vector?
    * @return True if filtered; false otherwise.
    */
-  bool IsFiltered() const { return selection_vector_[0] != kInvalidPos; }
+  bool IsFiltered() const { return selection_vector_[0] != K_INVALID_POS; }
 
   /**
    * Reset this iterator to begin iteration over the given projection @em projected_column
@@ -148,19 +148,19 @@ class ProjectedColumnsIterator {
     /**
      * an int8_t filter value
      */
-    int8_t ti;
+    int8_t ti_;
     /**
      * an int16_t filter value
      */
-    int16_t si;
+    int16_t si_;
     /**
      * an int32_t filter value
      */
-    int32_t i;
+    int32_t i_;
     /**
      * an int64_t filter value
      */
-    int64_t bi;
+    int64_t bi_;
   };
 
   /**
@@ -172,13 +172,13 @@ class ProjectedColumnsIterator {
   FilterVal MakeFilterVal(int64_t val, type::TypeId type) {
     switch (type) {
       case type::TypeId::TINYINT:
-        return FilterVal{.ti = static_cast<int8_t>(val)};
+        return FilterVal{.ti_ = static_cast<int8_t>(val)};
       case type::TypeId::SMALLINT:
-        return FilterVal{.si = static_cast<int16_t>(val)};
+        return FilterVal{.si_ = static_cast<int16_t>(val)};
       case type::TypeId::INTEGER:
-        return FilterVal{.i = static_cast<int32_t>(val)};
+        return FilterVal{.i_ = static_cast<int32_t>(val)};
       case type::TypeId::BIGINT:
-        return FilterVal{.bi = static_cast<int64_t>(val)};
+        return FilterVal{.bi_ = static_cast<int64_t>(val)};
       default:
         throw std::runtime_error("Filter not supported on type");
     }
@@ -211,7 +211,7 @@ class ProjectedColumnsIterator {
   /**
    * Return the number of selected tuples after any filters have been applied
    */
-  uint32_t num_selected() const { return num_selected_; }
+  uint32_t NumSelected() const { return num_selected_; }
 
  private:
   // Filter a column by a constant value
@@ -224,7 +224,7 @@ class ProjectedColumnsIterator {
 
  private:
   // The selection vector used to filter the ProjectedColumns
-  alignas(common::Constants::CACHELINE_SIZE) uint32_t selection_vector_[common::Constants::kDefaultVectorSize];
+  alignas(common::Constants::CACHELINE_SIZE) uint32_t selection_vector_[common::Constants::K_DEFAULT_VECTOR_SIZE];
 
   // The projected column we are iterating over.
   storage::ProjectedColumns *projected_column_{nullptr};
@@ -264,7 +264,7 @@ inline const T *ProjectedColumnsIterator::Get(uint32_t col_idx, bool *null) cons
 
 template <bool Filtered>
 inline void ProjectedColumnsIterator::SetPosition(uint32_t idx) {
-  TERRIER_ASSERT(idx < num_selected(), "Out of bounds access");
+  TERRIER_ASSERT(idx < NumSelected(), "Out of bounds access");
   if constexpr (Filtered) {
     TERRIER_ASSERT(IsFiltered(), "Attempting to set position in unfiltered PCI");
     selection_vector_read_idx_ = idx;
@@ -286,11 +286,11 @@ inline void ProjectedColumnsIterator::Match(bool matched) {
 
 inline bool ProjectedColumnsIterator::HasNext() const { return curr_idx_ < projected_column_->NumTuples(); }
 
-inline bool ProjectedColumnsIterator::HasNextFiltered() const { return selection_vector_read_idx_ < num_selected(); }
+inline bool ProjectedColumnsIterator::HasNextFiltered() const { return selection_vector_read_idx_ < NumSelected(); }
 
 inline void ProjectedColumnsIterator::Reset() {
   const auto next_idx = selection_vector_[0];
-  curr_idx_ = (next_idx == kInvalidPos ? 0 : next_idx);
+  curr_idx_ = (next_idx == K_INVALID_POS ? 0 : next_idx);
   selection_vector_read_idx_ = 0;
   selection_vector_write_idx_ = 0;
 }

@@ -23,7 +23,7 @@ class SemaExprTest : public TplTest, public ast::test::TestAstBuilder {
     ast::test::TestAstBuilder::SetUp();
   };
 
-  void ResetErrorReporter() { error_reporter()->Reset(); }
+  void ResetGetErrorReporter() { GetErrorReporter()->Reset(); }
 };
 
 struct TestCase {
@@ -58,7 +58,7 @@ TEST_F(SemaExprTest, LogicalOperationTest) {
     Sema sema(ctx());
     bool has_errors = sema.Run(test.tree);
     EXPECT_EQ(test.has_errors, has_errors) << test.msg;
-    ResetErrorReporter();
+    ResetGetErrorReporter();
   }
 }
 
@@ -99,7 +99,7 @@ TEST_F(SemaExprTest, ComparisonOperationWithImplicitCastTest) {
     Sema sema(ctx());
     bool has_errors = sema.Run(test.tree);
     EXPECT_EQ(test.has_errors, has_errors) << test.msg;
-    ResetErrorReporter();
+    ResetGetErrorReporter();
   }
 }
 
@@ -149,7 +149,7 @@ TEST_F(SemaExprTest, ComparisonOperationWithPointersTest) {
     Sema sema(ctx());
     bool has_errors = sema.Run(test.tree);
     EXPECT_EQ(test.has_errors, has_errors) << test.msg;
-    ResetErrorReporter();
+    ResetGetErrorReporter();
   }
 }
 
@@ -198,7 +198,7 @@ TEST_F(SemaExprTest, ArrayIndexTest) {
     Sema sema(ctx());
     bool has_errors = sema.Run(test.tree);
     EXPECT_EQ(test.has_errors, has_errors) << test.msg;
-    ResetErrorReporter();
+    ResetGetErrorReporter();
   }
 }
 

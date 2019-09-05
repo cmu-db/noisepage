@@ -25,7 +25,7 @@ class ControlFlowBuilder {
   /**
    * @return the bytecode generator
    */
-  BytecodeGenerator *generator() { return generator_; }
+  BytecodeGenerator *Generator() { return generator_; }
 
  private:
   BytecodeGenerator *generator_;
@@ -52,7 +52,7 @@ class BreakableBlockBuilder : public ControlFlowBuilder {
   /**
    * @return the break label
    */
-  BytecodeLabel *break_label() { return &break_label_; }
+  BytecodeLabel *BreakLabel() { return &break_label_; }
 
  protected:
   /**
@@ -102,12 +102,12 @@ class LoopBuilder : public BreakableBlockBuilder {
   /**
    * @return the header label
    */
-  BytecodeLabel *header_label() { return &header_label_; }
+  BytecodeLabel *HeaderLabel() { return &header_label_; }
 
   /**
    * @return the continue label
    */
-  BytecodeLabel *continue_label() { return &continue_label_; }
+  BytecodeLabel *ContinueLabel() { return &continue_label_; }
 
  private:
   // These label allow us to jump to a specific point during iteration.
@@ -146,15 +146,15 @@ class IfThenElseBuilder : public ControlFlowBuilder {
   /**
    * @return the then label
    */
-  BytecodeLabel *then_label() { return &then_label_; }
+  BytecodeLabel *ThenLabel() { return &then_label_; }
 
   /**
    * @return the else label
    */
-  BytecodeLabel *else_label() { return &else_label_; }
+  BytecodeLabel *ElseLabel() { return &else_label_; }
 
  private:
-  BytecodeLabel *end_label() { return &end_label_; }
+  BytecodeLabel *EndLabel() { return &end_label_; }
 
  private:
   BytecodeLabel then_label_;

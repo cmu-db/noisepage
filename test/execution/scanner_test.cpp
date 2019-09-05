@@ -22,7 +22,7 @@ TEST_F(ScannerTest, EmptySourceTest) {
 // NOLINTNEXTLINE
 TEST_F(ScannerTest, SimpleSourceTest) {
   const std::string source = "var x = 10";
-  Scanner scanner(source.data(), source.length());
+  Scanner scanner(source.Data(), source.Length());
 
   // 'var'
   EXPECT_EQ(Token::Type::VAR, scanner.Next());
@@ -31,10 +31,10 @@ TEST_F(ScannerTest, SimpleSourceTest) {
   EXPECT_EQ(Token::Type::IDENTIFIER, scanner.peek());
   EXPECT_EQ(Token::Type::IDENTIFIER, scanner.Next());
   EXPECT_EQ("x", scanner.current_literal());
-  EXPECT_EQ(1u, scanner.current_position().line);
+  EXPECT_EQ(1u, scanner.current_Position().line);
 
   // The following "+ 1" is because source positions are 1-based
-  EXPECT_EQ(source.find('x') + 1, scanner.current_position().column);
+  EXPECT_EQ(source.find('x') + 1, scanner.current_Position().column);
 
   // '='
   EXPECT_EQ(Token::Type::EQUAL, scanner.peek());
@@ -70,7 +70,7 @@ void CheckEquality(uint32_t test_idx, const std::vector<Token::Type> &expected,
 void RunTests(const std::vector<Test> &tests) {
   for (unsigned test_idx = 0; test_idx < tests.size(); test_idx++) {
     const auto &test = tests[test_idx];
-    Scanner scanner(test.source.data(), test.source.length());
+    Scanner scanner(test.source.Data(), test.source.Length());
 
     std::vector<Token::Type> actual;
 
@@ -83,7 +83,7 @@ void RunTests(const std::vector<Test> &tests) {
       }
     }
 
-    // Expect final sizes should be the same
+    // Expect final sizes_ should be the same
     CheckEquality(test_idx, test.expected_tokens, actual);
   }
 }

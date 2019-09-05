@@ -65,9 +65,9 @@ void BytecodeEmitter::EmitCall(FunctionId func_id, const std::vector<LocalVar> &
 void BytecodeEmitter::EmitReturn() { EmitImpl(Bytecode::Return); }
 
 void BytecodeEmitter::Bind(BytecodeLabel *label) {
-  TERRIER_ASSERT(!label->is_bound(), "Cannot rebind labels");
+  TERRIER_ASSERT(!label->IsBound(), "Cannot rebind labels");
 
-  std::size_t curr_offset = position();
+  std::size_t curr_offset = Position();
 
   if (label->IsForwardTarget()) {
     // We need to patch all locations in the bytecode that forward jump to the
@@ -91,11 +91,11 @@ void BytecodeEmitter::Bind(BytecodeLabel *label) {
 }
 
 void BytecodeEmitter::EmitJump(BytecodeLabel *label) {
-  static const int32_t kJumpPlaceholder = std::numeric_limits<int32_t>::max() - 1;
+  static const int32_t k_jump_placeholder = std::numeric_limits<int32_t>::max() - 1;
 
-  std::size_t curr_offset = position();
+  std::size_t curr_offset = Position();
 
-  if (label->is_bound()) {
+  if (label->IsBound()) {
     // The label is already bound so this must be a backwards jump. We just need
     // to emit the delta offset directly into the bytestream.
     TERRIER_ASSERT(label->offset() <= curr_offset,
@@ -110,7 +110,7 @@ void BytecodeEmitter::EmitJump(BytecodeLabel *label) {
     // reference position in the label and use a placeholder offset in the
     // byte stream for now. We'll update the placeholder when the label is bound
     label->set_referrer(curr_offset);
-    EmitScalarValue(kJumpPlaceholder);
+    EmitScalarValue(k_jump_placeholder);
   }
 }
 

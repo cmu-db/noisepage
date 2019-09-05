@@ -33,12 +33,12 @@ class FilterManager {
     /**
      * list of flavors
      */
-    std::vector<MatchFn> flavors;
+    std::vector<MatchFn> flavors_;
 
     /**
      * Return the number of flavors
      */
-    uint32_t num_flavors() const { return static_cast<uint32_t>(flavors.size()); }
+    uint32_t NumFlavors() const { return static_cast<uint32_t>(flavors_.size()); }
   };
 
   /**

@@ -40,15 +40,15 @@ class ChunkedVector {
    * We store 256 elements in each chunk.
    * log of 256 = 8
    */
-  static constexpr const uint32_t kLogNumElementsPerChunk = 8;
+  static constexpr const uint32_t K_LOG_NUM_ELEMENTS_PER_CHUNK = 8;
   /**
    * Number of elements per chunk = 256
    */
-  static constexpr const uint32_t kNumElementsPerChunk = (1u << kLogNumElementsPerChunk);
+  static constexpr const uint32_t K_NUM_ELEMENTS_PER_CHUNK = (1u << K_LOG_NUM_ELEMENTS_PER_CHUNK);
   /**
    * Bit mask with kLogNumElementsPerChunk ones.
    */
-  static constexpr const uint32_t kChunkPositionMask = kNumElementsPerChunk - 1;
+  static constexpr const uint32_t K_CHUNK_POSITION_MASK = K_NUM_ELEMENTS_PER_CHUNK - 1;
 
   /**
    * Construct a chunked vector whose elements have size @em element_size in
@@ -388,7 +388,7 @@ class ChunkedVector {
     if (empty()) {
       return Iterator();
     }
-    return Iterator(chunks_.begin(), chunks_[0], element_size());
+    return Iterator(chunks_.begin(), chunks_[0], ElementSize());
   }
 
   /**
@@ -399,7 +399,7 @@ class ChunkedVector {
     if (empty()) {
       return Iterator();
     }
-    return Iterator(chunks_.end() - 1, position_, element_size());
+    return Iterator(chunks_.end() - 1, position_, ElementSize());
   }
 
   // -------------------------------------------------------
@@ -430,18 +430,18 @@ class ChunkedVector {
    * Access the element at index @em index, skipping all bounds checking.
    */
   byte *operator[](std::size_t idx) noexcept {
-    const std::size_t chunk_idx = idx >> kLogNumElementsPerChunk;
-    const std::size_t chunk_pos = idx & kChunkPositionMask;
-    return chunks_[chunk_idx] + (element_size() * chunk_pos);
+    const std::size_t chunk_idx = idx >> K_LOG_NUM_ELEMENTS_PER_CHUNK;
+    const std::size_t chunk_pos = idx & K_CHUNK_POSITION_MASK;
+    return chunks_[chunk_idx] + (ElementSize() * chunk_pos);
   }
 
   /**
    * Access the element at index @em index, skipping all bounds checking.
    */
   const byte *operator[](std::size_t idx) const noexcept {
-    const std::size_t chunk_idx = idx >> kLogNumElementsPerChunk;
-    const std::size_t chunk_pos = idx & kChunkPositionMask;
-    return chunks_[chunk_idx] + (element_size() * chunk_pos);
+    const std::size_t chunk_idx = idx >> K_LOG_NUM_ELEMENTS_PER_CHUNK;
+    const std::size_t chunk_pos = idx & K_CHUNK_POSITION_MASK;
+    return chunks_[chunk_idx] + (ElementSize() * chunk_pos);
   }
 
   /**
@@ -484,13 +484,13 @@ class ChunkedVector {
    * Append a new entry at the end of the vector, returning a contiguous memory
    * space where the element can be written to by the caller.
    */
-  byte *append() noexcept {
+  byte *Append() noexcept {
     if (position_ == end_) {
       if (chunks_.empty() || active_chunk_idx_ == chunks_.size() - 1) {
         AllocateChunk();
       } else {
         position_ = chunks_[++active_chunk_idx_];
-        end_ = position_ + ChunkAllocSize(element_size());
+        end_ = position_ + ChunkAllocSize(ElementSize());
       }
     }
 
@@ -504,8 +504,8 @@ class ChunkedVector {
    * Copy-construct a new element to the end of the vector.
    */
   void push_back(const byte *elem) {
-    byte *dest = append();
-    std::memcpy(dest, elem, element_size());
+    byte *dest = Append();
+    std::memcpy(dest, elem, ElementSize());
   }
 
   /**
@@ -514,11 +514,11 @@ class ChunkedVector {
   void pop_back() {
     TERRIER_ASSERT(!empty(), "Popping empty vector");
     if (position_ == chunks_[active_chunk_idx_]) {
-      end_ = chunks_[--active_chunk_idx_] + ChunkAllocSize(element_size());
+      end_ = chunks_[--active_chunk_idx_] + ChunkAllocSize(ElementSize());
       position_ = end_;
     }
 
-    position_ -= element_size();
+    position_ -= ElementSize();
     num_elements_--;
   }
 
@@ -537,20 +537,20 @@ class ChunkedVector {
   std::size_t size() const noexcept { return num_elements_; }
 
   /**
-   * Return the sizes of the elements (in bytes) in the vector
+   * Return the sizes_ of the elements (in bytes) in the vector
    */
-  std::size_t element_size() const noexcept { return element_size_; }
+  std::size_t ElementSize() const noexcept { return element_size_; }
 
   /**
    * Given the size (in bytes) of an individual element, compute the size of
    * each chunk in the chunked vector
    */
-  static constexpr std::size_t ChunkAllocSize(std::size_t element_size) { return kNumElementsPerChunk * element_size; }
+  static constexpr std::size_t ChunkAllocSize(std::size_t element_size) { return K_NUM_ELEMENTS_PER_CHUNK * element_size; }
 
  private:
   // Allocate a new chunk
   void AllocateChunk() {
-    const std::size_t alloc_size = ChunkAllocSize(element_size());
+    const std::size_t alloc_size = ChunkAllocSize(ElementSize());
     auto *new_chunk = static_cast<byte *>(allocator_.allocate(alloc_size));
     chunks_.push_back(new_chunk);
     active_chunk_idx_ = chunks_.size() - 1;
@@ -559,7 +559,7 @@ class ChunkedVector {
   }
 
   void DeallocateAll() {
-    const std::size_t chunk_size = ChunkAllocSize(element_size());
+    const std::size_t chunk_size = ChunkAllocSize(ElementSize());
     for (auto *chunk : chunks_) {
       allocator_.deallocate(chunk, chunk_size);
     }

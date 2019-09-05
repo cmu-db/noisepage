@@ -37,13 +37,13 @@ class Parser {
   ast::AstNode *Parse();
 
  private:
-  util::Region *region() { return context_->region(); }
+  util::Region *Region() { return context_->Region(); }
 
   // Move to the next token in the stream
   Token::Type Next() { return scanner_->Next(); }
 
   // Peek at the next token in the stream
-  Token::Type peek() const { return scanner_->peek(); }
+  Token::Type Peek() const { return scanner_->Peek(); }
 
   // Consume one token. In debug mode, throw an error if the next token isn't
   // what was expected. In release mode, just consume the token without checking
@@ -51,7 +51,7 @@ class Parser {
     UNUSED_ATTRIBUTE Token::Type next = Next();
 #ifndef NDEBUG
     if (next != expected) {
-      error_reporter_->Report(scanner_->current_position(), sema::ErrorMessages::kUnexpectedToken, next, expected);
+      error_reporter_->Report(scanner_->CurrentPosition(), sema::ErrorMessages::kUnexpectedToken, next, expected);
     }
 #endif
   }
@@ -60,14 +60,14 @@ class Parser {
   void Expect(Token::Type expected) {
     Token::Type next = Next();
     if (next != expected) {
-      error_reporter_->Report(scanner_->current_position(), sema::ErrorMessages::kUnexpectedToken, next, expected);
+      error_reporter_->Report(scanner_->CurrentPosition(), sema::ErrorMessages::kUnexpectedToken, next, expected);
     }
   }
 
   // If the next token matches the given expected token, consume it and return
   // true; otherwise, return false
   bool Matches(Token::Type expected) {
-    if (peek() != expected) {
+    if (Peek() != expected) {
       return false;
     }
 
@@ -77,7 +77,7 @@ class Parser {
 
   // Get the current symbol as an AST string
   ast::Identifier GetSymbol() {
-    const std::string &literal = scanner_->current_literal();
+    const std::string &literal = scanner_->CurrentLiteral();
     return context_->GetIdentifier(literal);
   }
 

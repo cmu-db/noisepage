@@ -136,8 +136,8 @@ void TestTopKRandomTupleSize(const uint32_t num_iters, const uint32_t max_elems,
     sorter.Sort();  // Sort because the reference is sorted.
     sql::SorterIterator iter(&sorter);
     for (uint32_t i = 0; i < top_k; i++) {
-      const auto ref_elem = reference.top();
-      reference.pop();
+      const auto ref_elem = reference.tOp();
+      reference.pOp();
       EXPECT_EQ(*reinterpret_cast<const IntType *>(*iter), ref_elem);
       ++iter;
     }
@@ -167,9 +167,9 @@ struct TestTuple {
 };
 
 // Generic function to perform a parallel sort. The input parameter indicates
-// the sizes of each thread-local sorter that will be created.
+// the sizes_ of each thread-local sorter that will be created.
 template <uint32_t N>
-void TestParallelSort(const std::vector<uint32_t> &sorter_sizes) {
+void TestParallelSort(const std::vector<uint32_t> &sorter_sizes_) {
   // Comparison function
   static const auto cmp_fn = [](const void *left, const void *right) {
     const auto *l = reinterpret_cast<const TestTuple<N> *>(left);
@@ -191,7 +191,7 @@ void TestParallelSort(const std::vector<uint32_t> &sorter_sizes) {
 
   // Parallel build
   tbb::task_scheduler_init sched;
-  tbb::parallel_for_each(sorter_sizes.begin(), sorter_sizes.end(), [&container](auto sorter_size) {
+  tbb::parallel_for_each(sorter_sizes_.begin(), sorter_sizes_.end(), [&container](auto sorter_size) {
     auto *sorter = container.AccessThreadStateOfCurrentThreadAs<Sorter>();
     for (uint32_t i = 0; i < sorter_size; i++) {
       auto *elem = reinterpret_cast<TestTuple<N> *>(sorter->AllocInputTuple());
@@ -204,7 +204,7 @@ void TestParallelSort(const std::vector<uint32_t> &sorter_sizes) {
   main.SortParallel(&container, 0);
 
   uint32_t expected_total_size =
-      std::accumulate(sorter_sizes.begin(), sorter_sizes.end(), 0u, [](auto p, auto s) { return p + s; });
+      std::accumulate(sorter_sizes_.begin(), sorter_sizes_.end(), 0u, [](auto p, auto s) { return p + s; });
 
   EXPECT_TRUE(main.is_sorted());
   EXPECT_EQ(expected_total_size, main.NumTuples());

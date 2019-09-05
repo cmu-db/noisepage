@@ -50,9 +50,9 @@ class JoinHashTableVectorProbe {
   // The current index in the entries output we're iterating over
   uint16_t match_idx_;
   // The vector of computed hashes
-  hash_t hashes_[common::Constants::kDefaultVectorSize];
+  hash_t hashes_[common::Constants::K_DEFAULT_VECTOR_SIZE];
   // The vector of entries
-  const HashTableEntry *entries_[common::Constants::kDefaultVectorSize];
+  const HashTableEntry *entries_[common::Constants::K_DEFAULT_VECTOR_SIZE];
 };
 
 // ---------------------------------------------------------
@@ -64,19 +64,19 @@ class JoinHashTableVectorProbe {
 inline const HashTableEntry *JoinHashTableVectorProbe::GetNextOutput(ProjectedColumnsIterator *const pci,
                                                                      const KeyEqFn key_eq_fn) {
   TERRIER_ASSERT(pci != nullptr, "No input PCI!");
-  TERRIER_ASSERT(match_idx_ < pci->num_selected(), "Continuing past iteration!");
+  TERRIER_ASSERT(match_idx_ < pci->NumSelected(), "Continuing past iteration!");
 
   while (true) {
     // Continue along current chain until we find a match
     while (const auto *entry = entries_[match_idx_]) {
-      entries_[match_idx_] = entry->next;
-      if (entry->hash == hashes_[match_idx_] && key_eq_fn(entry->payload, pci)) {
+      entries_[match_idx_] = entry->next_;
+      if (entry->hash_ == hashes_[match_idx_] && key_eq_fn(entry->payload_, pci)) {
         return entry;
       }
     }
 
     // No match found, move to the next probe tuple index
-    if (++match_idx_ >= pci->num_selected()) {
+    if (++match_idx_ >= pci->NumSelected()) {
       break;
     }
 

@@ -7,7 +7,7 @@ namespace terrier::execution::util::test {
 // NOLINTNEXTLINE
 TEST(BitfieldTest, SingleElementTest) {
   // Try to encode a single 8-bit character element in a 32-bit integer
-  using TestField = BitField32<char, 0, sizeof(char) * common::Constants::kBitsPerByte>;
+  using TestField = BitField32<char, 0, sizeof(char) * common::Constants::K_BITS_PER_BYTE>;
 
   // First, try a simple test where the character is at position 0
   {
@@ -40,8 +40,8 @@ TEST(BitfieldTest, SingleElementTest) {
 // NOLINTNEXTLINE
 TEST(BitfieldTest, MultiElementTest) {
   // Encode a 16-bit value and an 8-bit value in 32-bit storage
-  using U16_BF = BitField32<uint16_t, 0, sizeof(uint16_t) * common::Constants::kBitsPerByte>;
-  using U8_BF = BitField32<uint8_t, U16_BF::kNextBit, sizeof(uint8_t) * common::Constants::kBitsPerByte>;
+  using U16_BF = BitField32<uint16_t, 0, sizeof(uint16_t) * common::Constants::K_BITS_PER_BYTE>;
+  using U8_BF = BitField32<uint8_t, U16_BF::kNextBit, sizeof(uint8_t) * common::Constants::K_BITS_PER_BYTE>;
 
   uint32_t s;
 
@@ -71,7 +71,7 @@ TEST(BitfieldTest, MultiElementTest) {
 // NOLINTNEXTLINE
 TEST(BitfieldTest, NegativeIntegerTest) {
   // Encode a 16-bit value and an 8-bit value in 32-bit storage
-  using U16_BF = BitField32<int16_t, 0, sizeof(uint16_t) * common::Constants::kBitsPerByte>;
+  using U16_BF = BitField32<int16_t, 0, sizeof(uint16_t) * common::Constants::K_BITS_PER_BYTE>;
 
   auto s = U16_BF::Encode(-16);
   EXPECT_EQ(-16, U16_BF::Decode(s));

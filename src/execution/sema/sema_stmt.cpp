@@ -9,30 +9,30 @@
 namespace terrier::execution::sema {
 
 void Sema::VisitAssignmentStmt(ast::AssignmentStmt *node) {
-  ast::Type *src_type = Resolve(node->source());
-  ast::Type *dest_type = Resolve(node->destination());
+  ast::Type *src_type = Resolve(node->Source());
+  ast::Type *dest_type = Resolve(node->Destination());
 
   if (src_type == nullptr || dest_type == nullptr) {
     return;
   }
 
   // Check assignment
-  ast::Expr *source = node->source();
+  ast::Expr *source = node->Source();
   if (!CheckAssignmentConstraints(dest_type, &source)) {
-    error_reporter_->Report(node->position(), ErrorMessages::kInvalidAssignment, src_type, dest_type);
+    error_reporter_->Report(node->Position(), ErrorMessages::kInvalidAssignment, src_type, dest_type);
     return;
   }
 
   // Assignment looks good, but the source may have been casted
-  if (source != node->source()) {
-    node->set_source(source);
+  if (source != node->Source()) {
+    node->SetSource(source);
   }
 }
 
 void Sema::VisitBlockStmt(ast::BlockStmt *node) {
   SemaScope block_scope(this, Scope::Kind::Block);
 
-  for (auto *stmt : node->statements()) {
+  for (auto *stmt : node->Statements()) {
     Visit(stmt);
   }
 }
@@ -40,7 +40,7 @@ void Sema::VisitBlockStmt(ast::BlockStmt *node) {
 void Sema::VisitFile(ast::File *node) {
   SemaScope file_scope(this, Scope::Kind::File);
 
-  for (auto *decl : node->declarations()) {
+  for (auto *decl : node->Declarations()) {
     Visit(decl);
   }
 }
@@ -49,36 +49,36 @@ void Sema::VisitForStmt(ast::ForStmt *node) {
   // Create a new scope for variables introduced in initialization block
   SemaScope for_scope(this, Scope::Kind::Loop);
 
-  if (node->init() != nullptr) {
-    Visit(node->init());
+  if (node->Init() != nullptr) {
+    Visit(node->Init());
   }
 
-  if (node->condition() != nullptr) {
-    ast::Type *cond_type = Resolve(node->condition());
+  if (node->Condition() != nullptr) {
+    ast::Type *cond_type = Resolve(node->Condition());
     // If unable to resolve condition type, there was some error
     if (cond_type == nullptr) {
       return;
     }
     // If the resolved type isn't a boolean, it's an error
     if (!cond_type->IsBoolType()) {
-      error_reporter_->Report(node->condition()->position(), ErrorMessages::kNonBoolForCondition);
+      error_reporter_->Report(node->Condition()->Position(), ErrorMessages::kNonBoolForCondition);
     }
   }
 
-  if (node->next() != nullptr) {
-    Visit(node->next());
+  if (node->Next() != nullptr) {
+    Visit(node->Next());
   }
 
   // The body
-  Visit(node->body());
+  Visit(node->Body());
 }
 
 void Sema::VisitForInStmt(ast::ForInStmt *node) { TERRIER_ASSERT(false, "Not supported"); }
 
-void Sema::VisitExpressionStmt(ast::ExpressionStmt *node) { Visit(node->expression()); }
+void Sema::VisitExpressionStmt(ast::ExpressionStmt *node) { Visit(node->Expression()); }
 
 void Sema::VisitIfStmt(ast::IfStmt *node) {
-  if (ast::Type *cond_type = Resolve(node->condition()); cond_type == nullptr) {
+  if (ast::Type *cond_type = Resolve(node->Condition()); cond_type == nullptr) {
     // Error
     return;
   }
@@ -87,35 +87,35 @@ void Sema::VisitIfStmt(ast::IfStmt *node) {
   // implicitly cast it to a native boolean value before we feed it into the
   // if-condition.
 
-  if (node->condition()->type()->IsSpecificBuiltin(ast::BuiltinType::Boolean)) {
+  if (node->Condition()->GetType()->IsSpecificBuiltin(ast::BuiltinType::Boolean)) {
     // A primitive boolean
-    auto *bool_type = ast::BuiltinType::Get(context(), ast::BuiltinType::Bool);
+    auto *bool_type = ast::BuiltinType::Get(GetContext(), ast::BuiltinType::Bool);
 
     // Perform implicit cast from SQL boolean to primitive boolean
-    ast::Expr *cond = node->condition();
+    ast::Expr *cond = node->Condition();
     cond =
-        context()->node_factory()->NewImplicitCastExpr(cond->position(), ast::CastKind::SqlBoolToBool, bool_type, cond);
-    cond->set_type(bool_type);
-    node->set_condition(cond);
+        GetContext()->NodeFactory()->NewImplicitCastExpr(cond->Position(), ast::CastKind::SqlBoolToBool, bool_type, cond);
+    cond->SetType(bool_type);
+    node->SetCondition(cond);
   }
 
   // If the conditional isn't an explicit boolean type, error
-  if (!node->condition()->type()->IsBoolType()) {
-    error_reporter_->Report(node->condition()->position(), ErrorMessages::kNonBoolIfCondition);
+  if (!node->Condition()->GetType()->IsBoolType()) {
+    error_reporter_->Report(node->Condition()->Position(), ErrorMessages::kNonBoolIfCondition);
   }
 
-  Visit(node->then_stmt());
+  Visit(node->ThenStmt());
 
-  if (node->else_stmt() != nullptr) {
-    Visit(node->else_stmt());
+  if (node->ElseStmt() != nullptr) {
+    Visit(node->ElseStmt());
   }
 }
 
-void Sema::VisitDeclStmt(ast::DeclStmt *node) { Visit(node->declaration()); }
+void Sema::VisitDeclStmt(ast::DeclStmt *node) { Visit(node->Declaration()); }
 
 void Sema::VisitReturnStmt(ast::ReturnStmt *node) {
-  if (current_function() == nullptr) {
-    error_reporter_->Report(node->position(), ErrorMessages::kReturnOutsideFunction);
+  if (CurrentFunction() == nullptr) {
+    error_reporter_->Report(node->Position(), ErrorMessages::kReturnOutsideFunction);
     return;
   }
 
@@ -123,19 +123,19 @@ void Sema::VisitReturnStmt(ast::ReturnStmt *node) {
   // check later if we need it.
 
   ast::Type *return_type = nullptr;
-  if (node->ret() != nullptr) {
-    return_type = Resolve(node->ret());
+  if (node->Ret() != nullptr) {
+    return_type = Resolve(node->Ret());
   }
 
   // If the function has a nil-type, we just need to make sure this return
   // statement doesn't have an attached expression. If it does, that's an error
 
-  auto *func_type = current_function()->type()->As<ast::FunctionType>();
+  auto *func_type = CurrentFunction()->GetType()->As<ast::FunctionType>();
 
-  if (func_type->return_type()->IsNilType()) {
+  if (func_type->ReturnType()->IsNilType()) {
     if (return_type != nullptr) {
-      error_reporter_->Report(node->position(), ErrorMessages::kMismatchedReturnType, return_type,
-                              func_type->return_type());
+      error_reporter_->Report(node->Position(), ErrorMessages::kMismatchedReturnType, return_type,
+                              func_type->ReturnType());
     }
     return;
   }
@@ -145,20 +145,20 @@ void Sema::VisitReturnStmt(ast::ReturnStmt *node) {
   // return type of the function.
 
   if (return_type == nullptr) {
-    error_reporter_->Report(node->position(), ErrorMessages::kMissingReturn);
+    error_reporter_->Report(node->Position(), ErrorMessages::kMissingReturn);
     return;
   }
 
-  ast::Expr *ret = node->ret();
-  if (!CheckAssignmentConstraints(func_type->return_type(), &ret)) {
-    error_reporter_->Report(node->position(), ErrorMessages::kMismatchedReturnType, return_type,
-                            func_type->return_type());
+  ast::Expr *ret = node->Ret();
+  if (!CheckAssignmentConstraints(func_type->ReturnType(), &ret)) {
+    error_reporter_->Report(node->Position(), ErrorMessages::kMismatchedReturnType, return_type,
+                            func_type->ReturnType());
     return;
   }
 
   // Cast if necessary
-  if (ret != node->ret()) {
-    node->set_return(ret);
+  if (ret != node->Ret()) {
+    node->SetReturn(ret);
   }
 }
 

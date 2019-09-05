@@ -22,7 +22,7 @@ class ParserTest : public TplTest {
     ctx_ = std::make_unique<ast::Context>(&region_, reporter_.get());
   }
 
-  ast::Context *context() { return ctx_.get(); }
+  ast::Context *GetContext() { return ctx_.get(); }
   sema::ErrorReporter *reporter() { return reporter_.get(); }
 
  private:
@@ -37,7 +37,7 @@ TEST_F(ParserTest, RegularForStmtTest) {
     fun main() -> nil { for (var idx = 0; idx < 10; idx = idx + 1) { } }
   )";
   Scanner scanner(source);
-  Parser parser(&scanner, context());
+  Parser parser(&scanner, GetContext());
 
   // Attempt parse
   auto *ast = parser.Parse();
@@ -46,25 +46,25 @@ TEST_F(ParserTest, RegularForStmtTest) {
 
   // No errors, move down AST
   ASSERT_TRUE(ast->IsFile());
-  ASSERT_EQ(std::size_t{1}, ast->As<ast::File>()->declarations().size());
+  ASSERT_EQ(std::size_t{1}, ast->As<ast::File>()->Declarations().size());
 
   // Only one function decl
-  auto *decl = ast->As<ast::File>()->declarations()[0];
+  auto *decl = ast->As<ast::File>()->Declarations()[0];
   ASSERT_TRUE(decl->IsFunctionDecl());
 
   auto *func_decl = decl->As<ast::FunctionDecl>();
-  ASSERT_NE(nullptr, func_decl->function());
-  ASSERT_NE(nullptr, func_decl->function()->body());
-  ASSERT_EQ(std::size_t{1}, func_decl->function()->body()->statements().size());
+  ASSERT_NE(nullptr, func_decl->Function());
+  ASSERT_NE(nullptr, func_decl->Function()->Body());
+  ASSERT_EQ(std::size_t{1}, func_decl->Function()->Body()->Statements().size());
 
   // Only one for statement, all elements are non-null
-  auto *for_stmt = func_decl->function()->body()->statements()[0]->SafeAs<ast::ForStmt>();
+  auto *for_stmt = func_decl->Function()->Body()->Statements()[0]->SafeAs<ast::ForStmt>();
   ASSERT_NE(nullptr, for_stmt);
-  ASSERT_NE(nullptr, for_stmt->init());
-  ASSERT_TRUE(for_stmt->init()->IsDeclStmt());
-  ASSERT_TRUE(for_stmt->init()->As<ast::DeclStmt>()->declaration()->IsVariableDecl());
-  ASSERT_NE(nullptr, for_stmt->condition());
-  ASSERT_NE(nullptr, for_stmt->next());
+  ASSERT_NE(nullptr, for_stmt->Init());
+  ASSERT_TRUE(for_stmt->Init()->IsDeclStmt());
+  ASSERT_TRUE(for_stmt->Init()->As<ast::DeclStmt>()->Declaration()->IsVariableDecl());
+  ASSERT_NE(nullptr, for_stmt->Condition());
+  ASSERT_NE(nullptr, for_stmt->Next());
 }
 
 // NOLINTNEXTLINE
@@ -92,7 +92,7 @@ TEST_F(ParserTest, ExhaustiveForStmtTest) {
 
   for (const auto &test : tests) {
     Scanner scanner(test.source);
-    Parser parser(&scanner, context());
+    Parser parser(&scanner, GetContext());
 
     // Attempt parse
     auto *ast = parser.Parse();
@@ -101,23 +101,23 @@ TEST_F(ParserTest, ExhaustiveForStmtTest) {
 
     // No errors, move down AST
     ASSERT_TRUE(ast->IsFile());
-    ASSERT_EQ(std::size_t{1}, ast->As<ast::File>()->declarations().size());
+    ASSERT_EQ(std::size_t{1}, ast->As<ast::File>()->Declarations().size());
 
     // Only one function decl
-    auto *decl = ast->As<ast::File>()->declarations()[0];
+    auto *decl = ast->As<ast::File>()->Declarations()[0];
     ASSERT_TRUE(decl->IsFunctionDecl());
 
     auto *func_decl = decl->As<ast::FunctionDecl>();
-    ASSERT_NE(nullptr, func_decl->function());
-    ASSERT_NE(nullptr, func_decl->function()->body());
-    ASSERT_EQ(std::size_t{1}, func_decl->function()->body()->statements().size());
+    ASSERT_NE(nullptr, func_decl->Function());
+    ASSERT_NE(nullptr, func_decl->Function()->Body());
+    ASSERT_EQ(std::size_t{1}, func_decl->Function()->Body()->Statements().size());
 
     // Only one for statement, all elements are non-null
-    auto *for_stmt = func_decl->function()->body()->statements()[0]->SafeAs<ast::ForStmt>();
+    auto *for_stmt = func_decl->Function()->Body()->Statements()[0]->SafeAs<ast::ForStmt>();
     ASSERT_NE(nullptr, for_stmt);
-    ASSERT_EQ(test.init_null, for_stmt->init() == nullptr);
-    ASSERT_EQ(test.cond_null, for_stmt->condition() == nullptr);
-    ASSERT_EQ(test.next_null, for_stmt->next() == nullptr);
+    ASSERT_EQ(test.init_null, for_stmt->Init() == nullptr);
+    ASSERT_EQ(test.cond_null, for_stmt->Condition() == nullptr);
+    ASSERT_EQ(test.next_null, for_stmt->Next() == nullptr);
   }
 }
 
@@ -130,7 +130,7 @@ TEST_F(ParserTest, RegularForStmt_NoInitTest) {
     }
   )";
   Scanner scanner(source);
-  Parser parser(&scanner, context());
+  Parser parser(&scanner, GetContext());
 
   // Attempt parse
   auto *ast = parser.Parse();
@@ -139,30 +139,30 @@ TEST_F(ParserTest, RegularForStmt_NoInitTest) {
 
   // No errors, move down AST
   ASSERT_TRUE(ast->IsFile());
-  ASSERT_EQ(std::size_t{1}, ast->As<ast::File>()->declarations().size());
+  ASSERT_EQ(std::size_t{1}, ast->As<ast::File>()->Declarations().size());
 
   // Only one function decl
-  auto *decl = ast->As<ast::File>()->declarations()[0];
+  auto *decl = ast->As<ast::File>()->Declarations()[0];
   ASSERT_TRUE(decl->IsFunctionDecl());
 
   auto *func_decl = decl->As<ast::FunctionDecl>();
-  ASSERT_NE(nullptr, func_decl->function());
-  ASSERT_NE(nullptr, func_decl->function()->body());
-  ASSERT_EQ(std::size_t{2}, func_decl->function()->body()->statements().size());
+  ASSERT_NE(nullptr, func_decl->Function());
+  ASSERT_NE(nullptr, func_decl->Function()->Body());
+  ASSERT_EQ(std::size_t{2}, func_decl->Function()->Body()->Statements().size());
 
   // Two statements in function
 
   // First is the variable declaration
-  auto &block = func_decl->function()->body()->statements();
+  auto &block = func_decl->Function()->Body()->Statements();
   ASSERT_TRUE(block[0]->IsDeclStmt());
-  ASSERT_TRUE(block[0]->As<ast::DeclStmt>()->declaration()->IsVariableDecl());
+  ASSERT_TRUE(block[0]->As<ast::DeclStmt>()->Declaration()->IsVariableDecl());
 
   // Next is the for statement
   auto *for_stmt = block[1]->SafeAs<ast::ForStmt>();
   ASSERT_NE(nullptr, for_stmt);
-  ASSERT_EQ(nullptr, for_stmt->init());
-  ASSERT_NE(nullptr, for_stmt->condition());
-  ASSERT_NE(nullptr, for_stmt->next());
+  ASSERT_EQ(nullptr, for_stmt->Init());
+  ASSERT_NE(nullptr, for_stmt->Condition());
+  ASSERT_NE(nullptr, for_stmt->Next());
 }
 
 // NOLINTNEXTLINE
@@ -184,7 +184,7 @@ TEST_F(ParserTest, RegularForStmt_WhileTest) {
 
   for (const auto &source : for_while_sources) {
     Scanner scanner(source);
-    Parser parser(&scanner, context());
+    Parser parser(&scanner, GetContext());
 
     // Attempt parse
     auto *ast = parser.Parse();
@@ -193,30 +193,30 @@ TEST_F(ParserTest, RegularForStmt_WhileTest) {
 
     // No errors, move down AST
     ASSERT_TRUE(ast->IsFile());
-    ASSERT_EQ(std::size_t{1}, ast->As<ast::File>()->declarations().size());
+    ASSERT_EQ(std::size_t{1}, ast->As<ast::File>()->Declarations().size());
 
     // Only one function decl
-    auto *decl = ast->As<ast::File>()->declarations()[0];
+    auto *decl = ast->As<ast::File>()->Declarations()[0];
     ASSERT_TRUE(decl->IsFunctionDecl());
 
     auto *func_decl = decl->As<ast::FunctionDecl>();
-    ASSERT_NE(nullptr, func_decl->function());
-    ASSERT_NE(nullptr, func_decl->function()->body());
-    ASSERT_EQ(std::size_t{2}, func_decl->function()->body()->statements().size());
+    ASSERT_NE(nullptr, func_decl->Function());
+    ASSERT_NE(nullptr, func_decl->Function()->Body());
+    ASSERT_EQ(std::size_t{2}, func_decl->Function()->Body()->Statements().size());
 
     // Two statements in function
 
     // First is the variable declaration
-    auto &block = func_decl->function()->body()->statements();
+    auto &block = func_decl->Function()->Body()->Statements();
     ASSERT_TRUE(block[0]->IsDeclStmt());
-    ASSERT_TRUE(block[0]->As<ast::DeclStmt>()->declaration()->IsVariableDecl());
+    ASSERT_TRUE(block[0]->As<ast::DeclStmt>()->Declaration()->IsVariableDecl());
 
     // Next is the for statement
     auto *for_stmt = block[1]->SafeAs<ast::ForStmt>();
     ASSERT_NE(nullptr, for_stmt);
-    ASSERT_EQ(nullptr, for_stmt->init());
-    ASSERT_NE(nullptr, for_stmt->condition());
-    ASSERT_EQ(nullptr, for_stmt->next());
+    ASSERT_EQ(nullptr, for_stmt->Init());
+    ASSERT_NE(nullptr, for_stmt->Condition());
+    ASSERT_EQ(nullptr, for_stmt->Next());
   }
 }
 
@@ -228,7 +228,7 @@ TEST_F(ParserTest, RegularForInStmtTest) {
     }
   )";
   Scanner scanner(source);
-  Parser parser(&scanner, context());
+  Parser parser(&scanner, GetContext());
 
   // Attempt parse
   auto *ast = parser.Parse();
@@ -237,23 +237,23 @@ TEST_F(ParserTest, RegularForInStmtTest) {
 
   // No errors, move down AST
   ASSERT_TRUE(ast->IsFile());
-  ASSERT_EQ(std::size_t{1}, ast->As<ast::File>()->declarations().size());
+  ASSERT_EQ(std::size_t{1}, ast->As<ast::File>()->Declarations().size());
 
   // Only one function decl
-  auto *decl = ast->As<ast::File>()->declarations()[0];
+  auto *decl = ast->As<ast::File>()->Declarations()[0];
   ASSERT_TRUE(decl->IsFunctionDecl());
 
   auto *func_decl = decl->As<ast::FunctionDecl>();
-  ASSERT_NE(nullptr, func_decl->function());
-  ASSERT_NE(nullptr, func_decl->function()->body());
-  ASSERT_EQ(std::size_t{1}, func_decl->function()->body()->statements().size());
+  ASSERT_NE(nullptr, func_decl->Function());
+  ASSERT_NE(nullptr, func_decl->Function()->Body());
+  ASSERT_EQ(std::size_t{1}, func_decl->Function()->Body()->Statements().size());
 
   // Only statement is the for-in statement
-  auto &block = func_decl->function()->body()->statements();
+  auto &block = func_decl->Function()->Body()->Statements();
   auto *for_in_stmt = block[0]->SafeAs<ast::ForInStmt>();
   ASSERT_NE(nullptr, for_in_stmt);
-  ASSERT_NE(nullptr, for_in_stmt->target());
-  ASSERT_NE(nullptr, for_in_stmt->iter());
+  ASSERT_NE(nullptr, for_in_stmt->Target());
+  ASSERT_NE(nullptr, for_in_stmt->Iter());
 }
 */
 
@@ -275,7 +275,7 @@ TEST_F(ParserTest, ArrayTypeTest) {
 
   for (const auto &test_case : tests) {
     Scanner scanner(test_case.source);
-    Parser parser(&scanner, context());
+    Parser parser(&scanner, GetContext());
 
     // Attempt parse
     auto *ast = parser.Parse();

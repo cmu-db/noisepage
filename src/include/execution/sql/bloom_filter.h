@@ -23,14 +23,14 @@ namespace terrier::execution::sql {
  */
 class BloomFilter {
   // The set of salt values we use to produce alternative hash values
-  alignas(common::Constants::CACHELINE_SIZE) static constexpr const uint32_t kSalts[8] = {
+  alignas(common::Constants::CACHELINE_SIZE) static constexpr const uint32_t K_SALTS[8] = {
       0x47b6137bU, 0x44974d91U, 0x8824ad5bU, 0xa2b7289dU, 0x705495c7U, 0x2df1424bU, 0x9efc4947U, 0x5c6bfb31U};
 
-  static constexpr const uint32_t kBitsPerElement = 8;
+  static constexpr const uint32_t K_BITS_PER_ELEMENT = 8;
 
  public:
   /**
-   * A block in this filter (i.e., the sizes of the bloom filter partitions)
+   * A block in this filter (i.e., the sizes_ of the bloom filter partitions)
    */
   using Block = uint32_t[8];
 
@@ -92,7 +92,7 @@ class BloomFilter {
   /**
    * Return the number of bits in this filter
    */
-  uint64_t GetSizeInBits() const { return GetSizeInBytes() * common::Constants::kBitsPerByte; }
+  uint64_t GetSizeInBits() const { return GetSizeInBytes() * common::Constants::K_BITS_PER_BYTE; }
 
   /**
    * Return the number of set bits in this filter

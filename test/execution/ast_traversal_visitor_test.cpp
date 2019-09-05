@@ -15,13 +15,13 @@ class AstTraversalVisitorTest : public TplTest {
  public:
   AstTraversalVisitorTest() : region_("ast_test"), pos_() {}
 
-  util::Region *region() { return &region_; }
+  util::Region *Region() { return &region_; }
 
   const SourcePosition &empty_pos() const { return pos_; }
 
   AstNode *GenerateAst(const std::string &src) {
-    sema::ErrorReporter error(region());
-    ast::Context ctx(region(), &error);
+    sema::ErrorReporter error(Region());
+    ast::Context ctx(Region(), &error);
 
     parsing::Scanner scanner(src);
     parsing::Parser parser(&scanner, &ctx);
@@ -61,7 +61,7 @@ class ForFinder : public AstTraversalVisitor<ForFinder<FindInfinite>> {
 
   void VisitForStmt(ast::ForStmt *stmt) {
     if constexpr (FindInfinite) {
-      bool is_finite_for = (stmt->condition() == nullptr);
+      bool is_finite_for = (stmt->Condition() == nullptr);
       num_fors_ += static_cast<uint32_t>(is_finite_for);
     } else {  // NOLINT
       num_fors_++;

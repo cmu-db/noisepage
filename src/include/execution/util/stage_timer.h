@@ -28,17 +28,17 @@ class StageTimer {
     /**
      * Return the name of this stage.
      */
-    const char *name() const noexcept { return name_; }
+    const char *Name() const noexcept { return name_; }
 
     /**
      * Return the time this stage took in the configured resolution ratio.
      */
-    double time() const noexcept { return time_; }
+    double Time() const noexcept { return time_; }
 
    private:
     friend class StageTimer<ResolutionRatio>;
 
-    void set_time(const double time) { time_ = time; }
+    void SetTime(const double time) { time_ = time; }
 
    private:
     // The name
@@ -73,7 +73,7 @@ class StageTimer {
   void ExitStage() {
     TERRIER_ASSERT(!stages_.empty(), "Missing call to EnterStage()");
     TERRIER_ASSERT(stages_.back().time() == 0, "Duplicate call to ExitStage()");
-    timer_.Stop();
+    timer_.StOp();
     stages_.back().set_time(timer_.elapsed());
   }
 

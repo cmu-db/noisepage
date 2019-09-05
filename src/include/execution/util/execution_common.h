@@ -43,11 +43,11 @@ struct SourcePosition {
   /**
    * Line number
    */
-  uint64_t line;
+  uint64_t line_;
   /**
    * Column number
    */
-  uint64_t column;
+  uint64_t column_;
 };
 
 /**

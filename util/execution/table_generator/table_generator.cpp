@@ -163,8 +163,8 @@ void TableGenerator::GenerateTestTables() {
        test2_size,
        {{"col1", type::TypeId::SMALLINT, false, Dist::Serial, 0, 0},
         {"col2", type::TypeId::INTEGER, true, Dist::Uniform, 0, 9},
-        {"col3", type::TypeId::BIGINT, false, Dist::Uniform, 0, common::Constants::kDefaultVectorSize},
-        {"col4", type::TypeId::INTEGER, true, Dist::Uniform, 0, 2 * common::Constants::kDefaultVectorSize}}},
+        {"col3", type::TypeId::BIGINT, false, Dist::Uniform, 0, common::Constants::K_DEFAULT_VECTOR_SIZE},
+        {"col4", type::TypeId::INTEGER, true, Dist::Uniform, 0, 2 * common::Constants::K_DEFAULT_VECTOR_SIZE}}},
 
       // Empty table with two columns
       {"empty_table2",

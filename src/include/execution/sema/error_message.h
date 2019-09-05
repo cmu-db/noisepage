@@ -4,6 +4,7 @@
 
 #include "execution/ast/identifier.h"
 #include "execution/util/execution_common.h"
+#include "execution/parsing/token.h"
 
 namespace terrier::execution {
 
@@ -127,7 +128,7 @@ struct ErrorMessage {
   /**
    * Id of the error message
    */
-  const ErrorMessageId id;
+  const ErrorMessageId id_;
 };
 
 /**

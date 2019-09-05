@@ -34,20 +34,20 @@
 #include "execution/vm/bytecode_traits.h"
 #include "loggers/execution_logger.h"
 
-extern void *__dso_handle __attribute__((__visibility__("hidden")));
+extern void *dso_handle __attribute__((__visibility__("hidden")));
 
 namespace terrier::execution::vm {
 
 namespace {
 
 bool FunctionHasIndirectReturn(const ast::FunctionType *func_type) {
-  ast::Type *ret_type = func_type->return_type();
-  return (!ret_type->IsNilType() && ret_type->size() > sizeof(int64_t));
+  ast::Type *ret_type = func_type->ReturnType();
+  return (!ret_type->IsNilType() && ret_type->Size() > sizeof(int64_t));
 }
 
 bool FunctionHasDirectReturn(const ast::FunctionType *func_type) {
-  ast::Type *ret_type = func_type->return_type();
-  return (!ret_type->IsNilType() && ret_type->size() <= sizeof(int64_t));
+  ast::Type *ret_type = func_type->ReturnType();
+  return (!ret_type->IsNilType() && ret_type->Size() <= sizeof(int64_t));
 }
 
 }  // namespace
@@ -67,8 +67,8 @@ class LLVMEngine::TPLMemoryManager : public llvm::SectionMemoryManager {
     }
 
     if (name == "__dso_handle") {
-      EXECUTION_LOG_TRACE("'__dso_handle' resolved to {} ...", reinterpret_cast<uint64_t>(&__dso_handle));
-      return {reinterpret_cast<uint64_t>(&__dso_handle), {}};
+      EXECUTION_LOG_TRACE("'__dso_handle' resolved to {} ...", reinterpret_cast<uint64_t>(&dso_handle));
+      return {reinterpret_cast<uint64_t>(&dso_handle), {}};
     }
 
     EXECUTION_LOG_TRACE("Symbol '{}' not found in cache, checking process ...", name);
@@ -93,7 +93,7 @@ class LLVMEngine::TPLMemoryManager : public llvm::SectionMemoryManager {
 class LLVMEngine::TypeMap {
  public:
   explicit TypeMap(llvm::Module *module) : module_(module) {
-    llvm::LLVMContext &ctx = module->getContext();
+    llvm::LLVMContext &ctx = module->getGetContext();
     type_map_["nil"] = llvm::Type::getVoidTy(ctx);
     type_map_["bool"] = llvm::Type::getInt8Ty(ctx);
     type_map_["int8"] = llvm::Type::getInt8Ty(ctx);
@@ -165,7 +165,7 @@ llvm::Type *LLVMEngine::TypeMap::GetLLVMType(const ast::Type *type) {
   //
 
   llvm::Type *llvm_type = nullptr;
-  switch (type->type_id()) {
+  switch (type->GetTypeId()) {
     case ast::Type::TypeId::StringType: {
       // These should be pre-filled in type cache!
       UNREACHABLE("Missing default type not found in cache");
@@ -176,14 +176,14 @@ llvm::Type *LLVMEngine::TypeMap::GetLLVMType(const ast::Type *type) {
     }
     case ast::Type::TypeId::PointerType: {
       auto *ptr_type = type->As<ast::PointerType>();
-      llvm_type = llvm::PointerType::getUnqual(GetLLVMType(ptr_type->base()));
+      llvm_type = llvm::PointerType::getUnqual(GetLLVMType(ptr_type->Base()));
       break;
     }
     case ast::Type::TypeId::ArrayType: {
       auto *arr_type = type->As<ast::ArrayType>();
-      llvm::Type *elem_type = GetLLVMType(arr_type->element_type());
+      llvm::Type *elem_type = GetLLVMType(arr_type->ElementType());
       if (arr_type->HasKnownLength()) {
-        llvm_type = llvm::ArrayType::get(elem_type, arr_type->length());
+        llvm_type = llvm::ArrayType::get(elem_type, arr_type->Length());
       } else {
         llvm_type = llvm::PointerType::getUnqual(elem_type);
       }
@@ -215,10 +215,10 @@ llvm::Type *LLVMEngine::TypeMap::GetLLVMType(const ast::Type *type) {
 }
 
 llvm::Type *LLVMEngine::TypeMap::GetLLVMTypeForBuiltin(const ast::BuiltinType *builtin_type) {
-  TERRIER_ASSERT(!builtin_type->is_primitive(), "Primitive types should be cached!");
+  TERRIER_ASSERT(!builtin_type->IsPrimitive(), "Primitive types should be cached!");
 
   // For the builtins, we perform a lookup using the C++ name
-  const std::string name = builtin_type->cpp_name();
+  const std::string name = builtin_type->cpp_Name();
 
   // Try "struct" prefix
   if (llvm::Type *type = module_->getTypeByName("struct." + name)) {
@@ -238,7 +238,7 @@ llvm::StructType *LLVMEngine::TypeMap::GetLLVMStructType(const ast::StructType *
   // Collect the fields here
   llvm::SmallVector<llvm::Type *, 8> fields;
 
-  for (const auto &field : struct_type->fields()) {
+  for (const auto &field : struct_type->Fields()) {
     fields.push_back(GetLLVMType(field.type));
   }
 
@@ -258,19 +258,19 @@ llvm::FunctionType *LLVMEngine::TypeMap::GetLLVMFunctionType(const ast::Function
 
   llvm::Type *return_type = nullptr;
   if (FunctionHasIndirectReturn(func_type)) {
-    llvm::Type *rv_param = GetLLVMType(func_type->return_type()->PointerTo());
+    llvm::Type *rv_param = GetLLVMType(func_type->ReturnType()->PointerTo());
     param_types.push_back(rv_param);
     // Return type of the function is void
     return_type = VoidType();
   } else {
-    return_type = GetLLVMType(func_type->return_type());
+    return_type = GetLLVMType(func_type->ReturnType());
   }
 
   //
   // Now the formal parameters
   //
 
-  for (const auto &param_info : func_type->params()) {
+  for (const auto &param_info : func_type->Params()) {
     llvm::Type *param_type = GetLLVMType(param_info.type);
     param_types.push_back(param_type);
   }
@@ -307,21 +307,21 @@ LLVMEngine::FunctionLocalsMap::FunctionLocalsMap(const FunctionInfo &func_info, 
 
   const auto &func_locals = func_info.locals();
 
-  if (const ast::FunctionType *func_type = func_info.func_type(); FunctionHasDirectReturn(func_type)) {
-    llvm::Type *ret_type = type_map->GetLLVMType(func_type->return_type());
+  if (const ast::FunctionType *func_type = func_info.func_GetType(); FunctionHasDirectReturn(func_type)) {
+    llvm::Type *ret_type = type_map->GetLLVMType(func_type->ReturnType());
     llvm::Value *val = ir_builder->CreateAlloca(ret_type);
     params_[func_locals[0].offset()] = val;
     local_idx++;
   }
 
-  for (auto arg_iter = func->arg_begin(); local_idx < func_info.num_params(); ++local_idx, ++arg_iter) {
+  for (auto arg_iter = func->arg_begin(); local_idx < func_info.NumParams(); ++local_idx, ++arg_iter) {
     const LocalInfo &param = func_locals[local_idx];
     params_[param.offset()] = &*arg_iter;
   }
 
   for (; local_idx < func_info.locals().size(); local_idx++) {
     const LocalInfo &local_info = func_locals[local_idx];
-    llvm::Type *llvm_type = type_map->GetLLVMType(local_info.type());
+    llvm::Type *llvm_type = type_map->GetLLVMType(local_info.GetType());
     llvm::Value *val = ir_builder->CreateAlloca(llvm_type);
     locals_[local_info.offset()] = val;
   }
@@ -408,19 +408,19 @@ class LLVMEngine::CompiledModuleBuilder {
   // Accessors
   // -----------------------------------------------------
 
-  const CompilerOptions &options() const { return options_; }
+  const CompilerOptions &Options() const { return options_; }
 
-  const BytecodeModule &tpl_module() const { return tpl_module_; }
+  const BytecodeModule &TplModule() const { return tpl_module_; }
 
-  llvm::TargetMachine *target_machine() { return target_machine_.get(); }
+  llvm::TargetMachine *TargetMachine() { return target_machine_.get(); }
 
-  llvm::LLVMContext &context() { return *context_; }
+  llvm::LLVMContext &GetContext() { return *context_; }
 
-  llvm::Module *module() { return llvm_module_.get(); }
+  llvm::Module *Module() { return llvm_module_.get(); }
 
-  const llvm::Module &module() const { return *llvm_module_; }
+  const llvm::Module &Module() const { return *llvm_module_; }
 
-  TypeMap *type_map() { return type_map_.get(); }
+  TypeMap *TypeMap() { return type_map_.get(); }
 
  private:
   const CompilerOptions &options_;
@@ -506,8 +506,8 @@ LLVMEngine::CompiledModuleBuilder::CompiledModuleBuilder(const CompilerOptions &
     }
 
     llvm_module_ = std::move(module.get());
-    llvm_module_->setModuleIdentifier(tpl_module.name());
-    llvm_module_->setSourceFileName(tpl_module.name() + ".tpl");
+    llvm_module_->setModuleIdentifier(tpl_module.Name());
+    llvm_module_->setSourceFileName(tpl_module.Name() + ".tpl");
     llvm_module_->setDataLayout(target_machine_->createDataLayout());
     llvm_module_->setTargetTriple(target_triple);
   }
@@ -517,8 +517,8 @@ LLVMEngine::CompiledModuleBuilder::CompiledModuleBuilder(const CompilerOptions &
 
 void LLVMEngine::CompiledModuleBuilder::DeclareFunctions() {
   for (const auto &func_info : tpl_module_.functions()) {
-    auto *func_type = llvm::cast<llvm::FunctionType>(type_map()->GetLLVMType(func_info.func_type()));
-    module()->getOrInsertFunction(func_info.name(), func_type);
+    auto *func_type = llvm::cast<llvm::FunctionType>(type_map()->GetLLVMType(func_info.func_GetType()));
+    module()->getOrInsertFunction(func_info.Name(), func_type);
   }
 }
 
@@ -595,8 +595,8 @@ void LLVMEngine::CompiledModuleBuilder::BuildSimpleCFG(const FunctionInfo &func_
 }
 
 void LLVMEngine::CompiledModuleBuilder::DefineFunction(const FunctionInfo &func_info, llvm::IRBuilder<> *ir_builder) {
-  llvm::LLVMContext &ctx = ir_builder->getContext();
-  llvm::Function *func = module()->getFunction(func_info.name());
+  llvm::LLVMContext &ctx = ir_builder->getGetContext();
+  llvm::Function *func = module()->getFunction(func_info.Name());
   llvm::BasicBlock *entry = llvm::BasicBlock::Create(ctx, "EntryBB", func);
 
   //
@@ -687,7 +687,7 @@ void LLVMEngine::CompiledModuleBuilder::DefineFunction(const FunctionInfo &func_
         case OperandType::FunctionId: {
           const uint16_t target_func_id = iter.GetFunctionIdOperand(i);
           auto *target_func_info = tpl_module().GetFuncInfoById(target_func_id);
-          auto *target_func = module()->getFunction(target_func_info->name());
+          auto *target_func = module()->getFunction(target_func_info->Name());
           TERRIER_ASSERT(target_func != nullptr, "Function doesn't exist in LLVM module");
           args.push_back(target_func);
           break;
@@ -752,10 +752,10 @@ void LLVMEngine::CompiledModuleBuilder::DefineFunction(const FunctionInfo &func_
 
         const FunctionId callee_id = iter.GetFunctionIdOperand(0);
         const auto *callee_func_info = tpl_module().GetFuncInfoById(callee_id);
-        llvm::Function *callee = module()->getFunction(callee_func_info->name());
+        llvm::Function *callee = module()->getFunction(callee_func_info->Name());
         args.erase(args.begin());
 
-        if (FunctionHasDirectReturn(callee_func_info->func_type())) {
+        if (FunctionHasDirectReturn(callee_func_info->func_GetType())) {
           llvm::Value *dest = args[0];
           args.erase(args.begin());
           llvm::Value *ret = issue_call(callee, args);
@@ -808,7 +808,7 @@ void LLVMEngine::CompiledModuleBuilder::DefineFunction(const FunctionInfo &func_
       }
 
       case Bytecode::Return: {
-        if (FunctionHasDirectReturn(func_info.func_type())) {
+        if (FunctionHasDirectReturn(func_info.func_GetType())) {
           llvm::Value *ret_val = locals_map.GetArgumentById(func_info.GetReturnValueLocal());
           ir_builder->CreateRet(ir_builder->CreateLoad(ret_val));
         } else {
@@ -851,7 +851,7 @@ void LLVMEngine::CompiledModuleBuilder::DefineFunctions() {
   // their LLVM equivalents into the current module.
   //
 
-  llvm::IRBuilder<> ir_builder(context());
+  llvm::IRBuilder<> ir_builder(GetContext());
   for (const auto &func_info : tpl_module().functions()) {
     DefineFunction(func_info, &ir_builder);
   }
@@ -916,7 +916,7 @@ void LLVMEngine::CompiledModuleBuilder::Optimize() {
 
   function_pm.doInitialization();
   for (const auto &func_info : tpl_module().functions()) {
-    auto *func = module()->getFunction(func_info.name());
+    auto *func = module()->getFunction(func_info.Name());
     function_pm.run(*func);
   }
   function_pm.doFinalization();
@@ -962,7 +962,7 @@ std::unique_ptr<llvm::MemoryBuffer> LLVMEngine::CompiledModuleBuilder::EmitObjec
 }
 
 void LLVMEngine::CompiledModuleBuilder::PersistObjectToFile(const llvm::MemoryBuffer &obj_buffer) {
-  const std::string file_name = tpl_module().name() + ".to";
+  const std::string file_name = tpl_module().Name() + ".to";
 
   std::error_code error_code;
   llvm::raw_fd_ostream dest(file_name, error_code, llvm::sys::fs::F_None);
@@ -1040,7 +1040,7 @@ void LLVMEngine::CompiledModule::Load(const BytecodeModule &module) {
       EXECUTION_LOG_ERROR("LLVMEngine: Error reading current path '{}'", error.message());
       return;
     }
-    llvm::sys::path::append(path, module.name(), ".to");
+    llvm::sys::path::append(path, module.Name(), ".to");
     auto file_buffer = llvm::MemoryBuffer::getFile(path);
     if (std::error_code error = file_buffer.getError()) {
       EXECUTION_LOG_ERROR("LLVMEngine: Error reading object file '{}'", error.message());
@@ -1078,8 +1078,8 @@ void LLVMEngine::CompiledModule::Load(const BytecodeModule &module) {
   //
 
   for (const auto &func : module.functions()) {
-    auto symbol = loader.getSymbol(func.name());
-    functions_[func.name()] = reinterpret_cast<void *>(symbol.getAddress());
+    auto symbol = loader.getSymbol(func.Name());
+    functions_[func.Name()] = reinterpret_cast<void *>(symbol.getAddress());
   }
 
   // Done

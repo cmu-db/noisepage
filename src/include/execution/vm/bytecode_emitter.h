@@ -31,7 +31,7 @@ class BytecodeEmitter {
   /**
    * @return the current position of the emitter in the bytecode stream
    */
-  std::size_t position() const { return bytecode_->size(); }
+  std::size_t Position() const { return bytecode_->size(); }
 
   // -------------------------------------------------------
   // Derefs

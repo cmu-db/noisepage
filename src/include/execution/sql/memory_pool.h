@@ -111,7 +111,7 @@ class MemoryPool {
   MemoryTracker *tracker_;
 
   //
-  static std::atomic<uint64_t> kMmapThreshold;
+  static std::atomic<uint64_t> k_mmap_threshold;
 };
 
 /**

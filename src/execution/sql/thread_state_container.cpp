@@ -42,7 +42,7 @@ ThreadStateContainer::TLSHandle::~TLSHandle() {
  * The actual container for all thread-local state for participating threads
  */
 struct ThreadStateContainer::Impl {
-  tbb::enumerable_thread_specific<TLSHandle> states;
+  tbb::enumerable_thread_specific<TLSHandle> states_;
 };
 
 // ---------------------------------------------------------
@@ -64,7 +64,7 @@ ThreadStateContainer::~ThreadStateContainer() = default;
 void ThreadStateContainer::Clear() { impl_->states.clear(); }
 
 void ThreadStateContainer::Reset(const std::size_t state_size, InitFn init_fn, DestroyFn destroy_fn, void *ctx) {
-  // Ensure we clean before resetting sizes, functions, context
+  // Ensure we clean before resetting sizes_, functions, context
   Clear();
 
   // Now we can set these fields since all thread-local state has been cleaned

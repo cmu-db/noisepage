@@ -101,14 +101,14 @@ class Module {
    * @return The function address if it exists; null otherwise.
    */
   void *GetRawFunctionImpl(const FunctionId func_id) const {
-    TERRIER_ASSERT(func_id < bytecode_module_->num_functions(), "Out-of-bounds function access");
+    TERRIER_ASSERT(func_id < bytecode_module_->NumFunctions(), "Out-of-bounds function access");
     return functions_[func_id].load(std::memory_order_relaxed);
   }
 
   /**
    * Return the TPL bytecode module
    */
-  const BytecodeModule *bytecode_module() const { return bytecode_module_.get(); }
+  const BytecodeModule *GetBytecodeModule() const { return bytecode_module_.get(); }
 
  private:
   friend class VM;
@@ -136,7 +136,7 @@ class Module {
     }
 
     // Access the trampoline code
-    void *code() const { return mem_.base(); }
+    void *Code() const { return mem_.base(); }
 
    private:
     // Memory region where the trampoline's code is
@@ -150,7 +150,7 @@ class Module {
   void CreateFunctionTrampoline(const FunctionInfo &func, Trampoline *trampoline);
 
   // Access the raw bytecode trampoline function
-  void *GetBytecodeImpl(const FunctionId func_id) const { return bytecode_trampolines_[func_id].code(); }
+  void *GetBytecodeImpl(const FunctionId func_id) const { return bytecode_trampolines_[func_id].Code(); }
 
   // Access the compiled implementation of the function with the given ID
   void *GetCompiledImpl(const FunctionId func_id) const {
@@ -159,7 +159,7 @@ class Module {
     }
 
     const auto *func_info = GetFuncInfoById(func_id);
-    return jit_module_->GetFunctionPointer(func_info->name());
+    return jit_module_->GetFunctionPointer(func_info->Name());
   }
 
   // Compile this module into machine code. This is a blocking call.
@@ -217,7 +217,7 @@ inline bool Module::GetFunction(const std::string &name, const ExecutionMode exe
 
   // Verify argument counts
   constexpr const uint32_t num_params = sizeof...(ArgTypes);
-  if (num_params != func_info->func_type()->num_params()) {
+  if (num_params != func_info->FuncType()->NumParams()) {
     return false;
   }
 
@@ -235,7 +235,7 @@ inline bool Module::GetFunction(const std::string &name, const ExecutionMode exe
           detail::CopyAll(arg_buffer, args...);
 
           // Invoke and finish
-          VM::InvokeFunction(this, func_info->id(), arg_buffer);
+          VM::InvokeFunction(this, func_info->Id(), arg_buffer);
           return;
         }
         // The return value
@@ -246,7 +246,7 @@ inline bool Module::GetFunction(const std::string &name, const ExecutionMode exe
         detail::CopyAll(arg_buffer, &rv, args...);
 
         // Invoke and finish
-        VM::InvokeFunction(this, func_info->id(), arg_buffer);
+        VM::InvokeFunction(this, func_info->Id(), arg_buffer);
         return rv;
       };
       break;
@@ -254,7 +254,7 @@ inline bool Module::GetFunction(const std::string &name, const ExecutionMode exe
     case ExecutionMode::Compiled: {
       CompileToMachineCode();
       *func = [this, func_info](ArgTypes... args) -> Ret {
-        void *raw_func = functions_[func_info->id()].load(std::memory_order_relaxed);
+        void *raw_func = functions_[func_info->Id()].load(std::memory_order_relaxed);
         auto *jit_f = reinterpret_cast<Ret (*)(ArgTypes...)>(raw_func);
         return jit_f(args...);
       };

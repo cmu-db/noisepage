@@ -25,7 +25,7 @@ class Sorter {
    * @em tuple_size size in bytes, and using the comparison function @em cmp_fn.
    * @param memory The memory pool to allocate memory from
    * @param cmp_fn The sorting comparison function
-   * @param tuple_size The sizes of the input tuples in bytes
+   * @param tuple_size The sizes_ of the input tuples in bytes
    */
   Sorter(MemoryPool *memory, ComparisonFunction cmp_fn, uint32_t tuple_size);
 
@@ -99,7 +99,7 @@ class Sorter {
   /**
    * Has this sorter's contents been sorted?
    */
-  bool is_sorted() const { return sorted_; }
+  bool IsSorted() const { return sorted_; }
 
  private:
   // Build a max heap from the tuples currently stored in the sorter instance

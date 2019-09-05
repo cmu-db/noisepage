@@ -82,11 +82,11 @@ class VM::Frame {
 
 // The maximum amount of stack to use. If the function requires more than 16K
 // bytes, acquire space from the heap.
-static constexpr const uint32_t kMaxStackAllocSize = 1ull << 14ull;
+static constexpr const uint32_t K_MAX_STACK_ALLOC_SIZE = 1ull << 14ull;
 // A soft-maximum amount of stack to use. If a function's frame requires more
 // than 4K (the soft max), try the stack and fallback to heap. If the function
 // requires less, use the stack.
-static constexpr const uint32_t kSoftMaxStackAllocSize = 1ull << 12ull;
+static constexpr const uint32_t K_SOFT_MAX_STACK_ALLOC_SIZE = 1ull << 12ull;
 
 VM::VM(const Module *module) : module_(module) {}
 
@@ -100,10 +100,10 @@ void VM::InvokeFunction(const Module *module, const FunctionId func_id, const ui
   // Let's try to get some space
   bool used_heap = false;
   uint8_t *raw_frame = nullptr;
-  if (frame_size > kMaxStackAllocSize) {
+  if (frame_size > K_MAX_STACK_ALLOC_SIZE) {
     used_heap = true;
     raw_frame = static_cast<uint8_t *>(util::MallocAligned(frame_size, alignof(uint64_t)));
-  } else if (frame_size > kSoftMaxStackAllocSize) {
+  } else if (frame_size > K_SOFT_MAX_STACK_ALLOC_SIZE) {
     // TODO(pmenon): Check stack before allocation
     raw_frame = static_cast<uint8_t *>(alloca(frame_size));
   } else {
@@ -113,7 +113,7 @@ void VM::InvokeFunction(const Module *module, const FunctionId func_id, const ui
   // Copy args into frame
   std::memcpy(raw_frame + func_info->params_start_pos(), args, func_info->params_size());
 
-  EXECUTION_LOG_DEBUG("Executing function '{}'", func_info->name());
+  EXECUTION_LOG_DEBUG("Executing function '{}'", func_info->Name());
 
   // Let's go. First, create the virtual machine instance.
   VM vm(module);
@@ -173,7 +173,7 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {
 
   // TODO(pmenon): Should these READ/PEEK macros take in a vm::OperandType so
   // that we can infer primitive types using traits? This minimizes number of
-  // changes if the underlying offset/bytecode/register sizes changes?
+  // changes if the underlying offset/bytecode/register sizes_ changes?
 #define PEEK_JMP_OFFSET() Peek<int32_t>(&ip)
 #define READ_IMM1() Read<int8_t>(&ip)
 #define READ_IMM2() Read<int16_t>(&ip)
@@ -1675,10 +1675,10 @@ const uint8_t *VM::ExecuteCall(const uint8_t *ip, VM::Frame *caller) {
   // Get some space for the function's frame
   bool used_heap = false;
   uint8_t *raw_frame = nullptr;
-  if (frame_size > kMaxStackAllocSize) {
+  if (frame_size > K_MAX_STACK_ALLOC_SIZE) {
     used_heap = true;
     raw_frame = static_cast<uint8_t *>(util::MallocAligned(frame_size, alignof(uint64_t)));
-  } else if (frame_size > kSoftMaxStackAllocSize) {
+  } else if (frame_size > K_SOFT_MAX_STACK_ALLOC_SIZE) {
     // TODO(pmenon): Check stack before allocation
     raw_frame = static_cast<uint8_t *>(alloca(frame_size));
   } else {
@@ -1692,7 +1692,7 @@ const uint8_t *VM::ExecuteCall(const uint8_t *ip, VM::Frame *caller) {
     std::memcpy(raw_frame + param_info.offset(), &param, param_info.size());
   }
 
-  EXECUTION_LOG_DEBUG("Executing function '{}'", func_info->name());
+  EXECUTION_LOG_DEBUG("Executing function '{}'", func_info->Name());
 
   // Let's go
   const uint8_t *bytecode = module_->bytecode_module()->GetBytecodeForFunction(*func_info);

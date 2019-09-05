@@ -23,15 +23,15 @@ TEST_F(ContextTest, CreateNewStringsTest) {
   std::unordered_set<const char *> seen;
   for (uint32_t i = 0; i < 100; i++) {
     auto string = ctx.GetIdentifier("string-" + std::to_string(i));
-    EXPECT_EQ(0u, seen.count(string.data()));
+    EXPECT_EQ(0u, seen.count(string.Data()));
 
     // Check all strings j < i. These must return previously acquired pointers
     for (uint32_t j = 0; j < i; j++) {
       auto dup_request = ctx.GetIdentifier("string-" + std::to_string(j));
-      EXPECT_EQ(1u, seen.count(dup_request.data()));
+      EXPECT_EQ(1u, seen.count(dup_request.Data()));
     }
 
-    seen.insert(string.data());
+    seen.insert(string.Data());
   }
 }
 

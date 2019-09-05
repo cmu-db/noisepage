@@ -5,7 +5,7 @@
 namespace terrier::execution::vm {
 
 /**
- * This enumeration lists all possible sizes of operands to any bytecode
+ * This enumeration lists all possible sizes_ of operands to any bytecode
  */
 enum class OperandSize : uint8_t { None = 0, Byte = 1, Short = 2, Int = 4, Long = 8, Float = 4, Double = 8 };
 

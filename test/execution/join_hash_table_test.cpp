@@ -79,7 +79,7 @@ TEST_F(JoinHashTableTest, LazyInsertionTest) {
   // Try to build
   join_hash_table.Build();
 
-  // Post-build, the sizes should be synced up since all tuples were inserted
+  // Post-build, the sizes_ should be synced up since all tuples were inserted
   // into the GHT
   EXPECT_EQ(num_tuples, join_hash_table.num_elements());
   EXPECT_EQ(num_tuples, GenericTableFor(&join_hash_table)->num_elements());
@@ -218,7 +218,7 @@ TEST_F(JoinHashTableTest, DISABLED_PerfTest) {
 
     join_hash_table.Build();
 
-    timer.Stop();
+    timer.StOp();
 
     auto mtps = (num_tuples / timer.elapsed()) / 1000.0;
     auto size_in_kb = static_cast<double>(concise ? ConciseTableFor(&join_hash_table)->GetTotalMemoryUsage()

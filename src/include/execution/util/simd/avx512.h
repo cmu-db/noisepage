@@ -35,18 +35,18 @@ class Vec512b {
   /**
    * Store the contents of this vector into the provided unaligned pointer.
    */
-  ALWAYS_INLINE void StoreUnaligned(void *ptr) const { _mm512_storeu_si512(ptr, reg()); }
+  ALWAYS_INLINE void StoreUnaligned(void *ptr) const { _mm512_storeu_si512(ptr, Reg()); }
 
   /**
    * Store the contents of this vector into the provided aligned pointer.
    */
-  ALWAYS_INLINE void StoreAligned(void *ptr) const { _mm512_store_si512(ptr, reg()); }
+  ALWAYS_INLINE void StoreAligned(void *ptr) const { _mm512_store_si512(ptr, Reg()); }
 
  protected:
   /**
    * @return the underlying register
    */
-  const __m512i &reg() const { return reg_; }
+  const __m512i &Reg() const { return reg_; }
 
  protected:
   /**
@@ -255,23 +255,23 @@ ALWAYS_INLINE inline Vec8 &Vec8::Gather(const T *ptr, const Vec8 &pos) {
 
 ALWAYS_INLINE inline void Vec8::Store(int8_t *arr) const {
   const __mmask8 all(~(uint8_t)0);
-  _mm512_mask_cvtepi64_storeu_epi8(reinterpret_cast<void *>(arr), all, reg());
+  _mm512_mask_cvtepi64_storeu_epi8(reinterpret_cast<void *>(arr), all, Reg());
 }
 
 ALWAYS_INLINE inline void Vec8::Store(int16_t *arr) const {
   const __mmask8 all(~(uint8_t)0);
-  _mm512_mask_cvtepi64_storeu_epi16(reinterpret_cast<void *>(arr), all, reg());
+  _mm512_mask_cvtepi64_storeu_epi16(reinterpret_cast<void *>(arr), all, Reg());
 }
 
 ALWAYS_INLINE inline void Vec8::Store(int32_t *arr) const {
   const __mmask8 all(~(uint8_t)0);
-  _mm512_mask_cvtepi64_storeu_epi32(reinterpret_cast<void *>(arr), all, reg());
+  _mm512_mask_cvtepi64_storeu_epi32(reinterpret_cast<void *>(arr), all, Reg());
 }
 
 ALWAYS_INLINE inline void Vec8::Store(int64_t *arr) const { Vec512b::StoreUnaligned(reinterpret_cast<void *>(arr)); }
 
 ALWAYS_INLINE inline bool Vec8::AllBitsAtPositionsSet(const Vec8 &mask) const {
-  return _mm512_testn_epi64_mask(reg(), mask) == 0;
+  return _mm512_testn_epi64_mask(Reg(), mask) == 0;
 }
 
 /**
@@ -485,18 +485,18 @@ ALWAYS_INLINE inline Vec16 &Vec16::Gather<int32_t>(const int32_t *ptr, const Vec
 
 ALWAYS_INLINE inline void Vec16::Store(int8_t *arr) const {
   const __mmask16 all(~(uint16_t)0);
-  _mm512_mask_cvtepi32_storeu_epi8(reinterpret_cast<void *>(arr), all, reg());
+  _mm512_mask_cvtepi32_storeu_epi8(reinterpret_cast<void *>(arr), all, Reg());
 }
 
 ALWAYS_INLINE inline void Vec16::Store(int16_t *arr) const {
   const __mmask16 all(~(uint16_t)0);
-  _mm512_mask_cvtepi32_storeu_epi16(reinterpret_cast<void *>(arr), all, reg());
+  _mm512_mask_cvtepi32_storeu_epi16(reinterpret_cast<void *>(arr), all, Reg());
 }
 
 ALWAYS_INLINE inline void Vec16::Store(int32_t *arr) const { Vec512b::StoreUnaligned(reinterpret_cast<void *>(arr)); }
 
 ALWAYS_INLINE inline bool Vec16::AllBitsAtPositionsSet(const Vec16 &mask) const {
-  return _mm512_testn_epi32_mask(reg(), mask) == 0;
+  return _mm512_testn_epi32_mask(Reg(), mask) == 0;
 }
 
 // ---------------------------------------------------------

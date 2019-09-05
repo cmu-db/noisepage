@@ -9,7 +9,7 @@ namespace terrier::execution::vm {
 // ---------------------------------------------------------
 
 BreakableBlockBuilder::~BreakableBlockBuilder() {
-  TERRIER_ASSERT(!break_label()->is_bound(), "Break label cannot be bound!");
+  TERRIER_ASSERT(!break_label()->IsBound(), "Break label cannot be bound!");
   generator()->emitter()->Bind(break_label());
 }
 
@@ -24,7 +24,7 @@ void BreakableBlockBuilder::EmitJump(BytecodeLabel *label) { generator()->emitte
 LoopBuilder::~LoopBuilder() = default;
 
 void LoopBuilder::LoopHeader() {
-  TERRIER_ASSERT(!header_label()->is_bound(), "Header cannot be rebound");
+  TERRIER_ASSERT(!header_label()->IsBound(), "Header cannot be rebound");
   generator()->emitter()->Bind(header_label());
 }
 
@@ -33,7 +33,7 @@ void LoopBuilder::JumpToHeader() { generator()->emitter()->EmitJump(Bytecode::Ju
 void LoopBuilder::Continue() { EmitJump(continue_label()); }
 
 void LoopBuilder::BindContinueTarget() {
-  TERRIER_ASSERT(!continue_label()->is_bound(), "Continue label can only be bound once");
+  TERRIER_ASSERT(!continue_label()->IsBound(), "Continue label can only be bound once");
   generator()->emitter()->Bind(continue_label());
 }
 
@@ -42,11 +42,11 @@ void LoopBuilder::BindContinueTarget() {
 // ---------------------------------------------------------
 
 IfThenElseBuilder::~IfThenElseBuilder() {
-  if (!else_label()->is_bound()) {
+  if (!else_label()->IsBound()) {
     generator()->emitter()->Bind(else_label());
   }
 
-  TERRIER_ASSERT(!end_label()->is_bound(), "End label should not be bound yet");
+  TERRIER_ASSERT(!end_label()->IsBound(), "End label should not be bound yet");
   generator()->emitter()->Bind(end_label());
 }
 

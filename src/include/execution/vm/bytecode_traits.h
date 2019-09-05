@@ -13,17 +13,17 @@ struct OperandTypeTraits {
   /**
    * Whether the operand is signed or unsigned
    */
-  static constexpr bool kIsSigned = false;
+  static constexpr bool K_IS_SIGNED = false;
 
   /**
    * Size of the operand
    */
-  static constexpr OperandSize kOperandSize = OperandSize::None;
+  static constexpr OperandSize K_OPERAND_SIZE = OperandSize::None;
 
   /**
    * Also the size of the operand, but as a raw uint32_t
    */
-  static constexpr uint32_t kSize = static_cast<uint32_t>(kOperandSize);
+  static constexpr uint32_t K_SIZE = static_cast<uint32_t>(K_OPERAND_SIZE);
 };
 
 // Generate traits for each operand
@@ -46,27 +46,27 @@ struct BytecodeTraits {
   /**
    * Number of operands
    */
-  static constexpr const uint32_t kOperandCount = sizeof...(operands);
+  static constexpr const uint32_t K_OPERAND_COUNT = sizeof...(operands);
 
   /**
    * Total size of the operand size
    */
-  static constexpr const uint32_t kOperandsSize = (0u + ... + OperandTypeTraits<operands>::kSize);
+  static constexpr const uint32_t K_OPERANDS_SIZE = (0u + ... + OperandTypeTraits<operands>::kSize);
 
   /**
    * List of operand types
    */
-  static constexpr const OperandType kOperandTypes[] = {operands...};
+  static constexpr const OperandType k_operand_types[] = {operands...};
 
   /**
-   * List of operand sizes
+   * List of operand sizes_
    */
-  static constexpr const OperandSize kOperandSizes[] = {OperandTypeTraits<operands>::kOperandSize...};
+  static constexpr const OperandSize k_operand_sizes[] = {OperandTypeTraits<operands>::kOperandSize...};
 
   /**
    * Total size of bytecode + operands.
    */
-  static constexpr const uint32_t kSize = sizeof(std::underlying_type_t<Bytecode>) + kOperandsSize;
+  static constexpr const uint32_t K_SIZE = sizeof(std::underlying_type_t<Bytecode>) + K_OPERANDS_SIZE;
 };
 
 }  // namespace terrier::execution::vm

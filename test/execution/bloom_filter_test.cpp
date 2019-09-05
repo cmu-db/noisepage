@@ -33,7 +33,7 @@ void GenerateRandom32(std::vector<uint32_t> *vals, uint32_t n) {
 // Mix in elements from source into the target vector with probability p
 template <typename T>
 void Mix(std::vector<T> *target, const std::vector<T> &source, double p) {
-  TERRIER_ASSERT(target->size() > source.size(), "Bad sizes!");
+  TERRIER_ASSERT(target->size() > source.size(), "Bad sizes_!");
   std::random_device random;
   std::mt19937 g(random());
 
@@ -93,7 +93,7 @@ TEST_F(BloomFilterTest, ComprehensiveTest) {
       actual_found += static_cast<uint32_t>(exists);
     }
 
-    timer.Stop();
+    timer.StOp();
 
     double fpr = (actual_found - expected_found) / static_cast<double>(lookups.size());
     double probes_per_sec = static_cast<double>(lookups.size()) / timer.elapsed() * 1000.0 / 1000000.0;

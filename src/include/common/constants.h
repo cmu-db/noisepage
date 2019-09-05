@@ -35,17 +35,17 @@ struct Constants {
   /**
    * The number of bits per byte
    */
-  static constexpr const uint32_t kBitsPerByte = 8;
+  static constexpr const uint32_t K_BITS_PER_BYTE = 8;
 
   /**
    * The default vector size to use when performing vectorized iteration
    */
-  static constexpr const uint32_t kDefaultVectorSize = 2048;
+  static constexpr const uint32_t K_DEFAULT_VECTOR_SIZE = 2048;
 
   /**
    * The default prefetch distance to use
    */
-  static constexpr const uint32_t kPrefetchDistance = 16;
+  static constexpr const uint32_t K_PREFETCH_DISTANCE = 16;
 
   // Common memory sizes
   /**

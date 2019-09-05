@@ -44,7 +44,7 @@ uint32_t ProjectedColumnsIterator::FilterColByColImpl(const uint32_t col_idx_1, 
 
   // After the call to ResetFiltered(), num_selected_ should indicate the number
   // of valid tuples in the filter.
-  return num_selected();
+  return NumSelected();
 }
 
 // Filter an entire column's data by the provided constant value
@@ -68,7 +68,7 @@ uint32_t ProjectedColumnsIterator::FilterColByValImpl(uint32_t col_idx, T val) {
 
   // After the call to ResetFiltered(), num_selected_ should indicate the number
   // of valid tuples in the filter.
-  return num_selected();
+  return NumSelected();
 }
 
 // Filter an entire column's data by the provided constant value

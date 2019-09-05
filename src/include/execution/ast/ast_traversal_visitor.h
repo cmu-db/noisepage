@@ -76,12 +76,12 @@ class AstTraversalVisitor : public AstVisitor<Subclass> {
 
 #define PROCESS_NODE(node)                \
   do {                                    \
-    if (!this->impl()->VisitNode(node)) { \
+    if (!this->Impl()->VisitNode(node)) { \
       return;                             \
     }                                     \
   } while (false)
 
-#define RECURSE(call) this->impl()->call
+#define RECURSE(call) this->Impl()->call
 
 // TODO(Amadou): Doxygen complains that these function do not exist for some reason.
 // Figure out why
@@ -99,7 +99,7 @@ inline void AstTraversalVisitor<Subclass>::VisitFieldDecl(FieldDecl *node) {
 template <typename Subclass>
 inline void AstTraversalVisitor<Subclass>::VisitFunctionDecl(FunctionDecl *node) {
   PROCESS_NODE(node);
-  RECURSE(Visit(node->function()));
+  RECURSE(Visit(node->Function()));
 }
 
 template <typename Subclass>
@@ -110,16 +110,16 @@ inline void AstTraversalVisitor<Subclass>::VisitIdentifierExpr(IdentifierExpr *n
 template <typename Subclass>
 inline void AstTraversalVisitor<Subclass>::VisitArrayTypeRepr(ArrayTypeRepr *node) {
   PROCESS_NODE(node);
-  RECURSE(Visit(node->element_type()));
+  RECURSE(Visit(node->ElementType()));
   if (node->HasLength()) {
-    RECURSE(Visit(node->length()));
+    RECURSE(Visit(node->Length()));
   }
 }
 
 template <typename Subclass>
 inline void AstTraversalVisitor<Subclass>::VisitBlockStmt(BlockStmt *node) {
   PROCESS_NODE(node);
-  for (auto *stmt : node->statements()) {
+  for (auto *stmt : node->Statements()) {
     RECURSE(Visit(stmt));
   }
 }
@@ -127,39 +127,39 @@ inline void AstTraversalVisitor<Subclass>::VisitBlockStmt(BlockStmt *node) {
 template <typename Subclass>
 inline void AstTraversalVisitor<Subclass>::VisitStructDecl(StructDecl *node) {
   PROCESS_NODE(node);
-  RECURSE(Visit(node->type_repr()));
+  RECURSE(Visit(node->TypeRepr()));
 }
 
 template <typename Subclass>
 inline void AstTraversalVisitor<Subclass>::VisitVariableDecl(VariableDecl *node) {
   PROCESS_NODE(node);
   if (node->HasTypeDecl()) {
-    RECURSE(Visit(node->type_repr()));
+    RECURSE(Visit(node->TypeRepr()));
   }
   if (node->HasInitialValue()) {
-    RECURSE(Visit(node->initial()));
+    RECURSE(Visit(node->Initial()));
   }
 }
 
 template <typename Subclass>
 inline void AstTraversalVisitor<Subclass>::VisitUnaryOpExpr(UnaryOpExpr *node) {
   PROCESS_NODE(node);
-  RECURSE(Visit(node->expr()));
+  RECURSE(Visit(node->Expression()));
 }
 
 template <typename Subclass>
 inline void AstTraversalVisitor<Subclass>::VisitReturnStmt(ReturnStmt *node) {
   PROCESS_NODE(node);
-  if (node->ret() != nullptr) {
-    RECURSE(Visit(node->ret()));
+  if (node->Ret() != nullptr) {
+    RECURSE(Visit(node->Ret()));
   }
 }
 
 template <typename Subclass>
 inline void AstTraversalVisitor<Subclass>::VisitCallExpr(CallExpr *node) {
   PROCESS_NODE(node);
-  RECURSE(Visit(node->function()));
-  for (auto *arg : node->arguments()) {
+  RECURSE(Visit(node->Function()));
+  for (auto *arg : node->Arguments()) {
     RECURSE(Visit(arg));
   }
 }
@@ -167,20 +167,20 @@ inline void AstTraversalVisitor<Subclass>::VisitCallExpr(CallExpr *node) {
 template <typename Subclass>
 inline void AstTraversalVisitor<Subclass>::VisitImplicitCastExpr(ImplicitCastExpr *node) {
   PROCESS_NODE(node);
-  RECURSE(Visit(node->input()));
+  RECURSE(Visit(node->Input()));
 }
 
 template <typename Subclass>
 inline void AstTraversalVisitor<Subclass>::VisitAssignmentStmt(AssignmentStmt *node) {
   PROCESS_NODE(node);
-  RECURSE(Visit(node->destination()));
-  RECURSE(Visit(node->source()));
+  RECURSE(Visit(node->Destination()));
+  RECURSE(Visit(node->Source()));
 }
 
 template <typename Subclass>
 inline void AstTraversalVisitor<Subclass>::VisitFile(File *node) {
   PROCESS_NODE(node);
-  for (auto *decl : node->declarations()) {
+  for (auto *decl : node->Declarations()) {
     RECURSE(Visit(decl));
   }
 }
@@ -188,45 +188,45 @@ inline void AstTraversalVisitor<Subclass>::VisitFile(File *node) {
 template <typename Subclass>
 inline void AstTraversalVisitor<Subclass>::VisitFunctionLitExpr(FunctionLitExpr *node) {
   PROCESS_NODE(node);
-  RECURSE(Visit(node->type_repr()));
-  RECURSE(Visit(node->body()));
+  RECURSE(Visit(node->TypeRepr()));
+  RECURSE(Visit(node->Body()));
 }
 
 template <typename Subclass>
 inline void AstTraversalVisitor<Subclass>::VisitForStmt(ForStmt *node) {
   PROCESS_NODE(node);
-  if (node->init() != nullptr) {
-    RECURSE(Visit(node->init()));
+  if (node->Init() != nullptr) {
+    RECURSE(Visit(node->Init()));
   }
-  if (node->condition() != nullptr) {
-    RECURSE(Visit(node->condition()));
+  if (node->Condition() != nullptr) {
+    RECURSE(Visit(node->Condition()));
   }
-  if (node->next() != nullptr) {
-    RECURSE(Visit(node->next()));
+  if (node->Next() != nullptr) {
+    RECURSE(Visit(node->Next()));
   }
-  RECURSE(Visit(node->body()));
+  RECURSE(Visit(node->Body()));
 }
 
 template <typename Subclass>
 inline void AstTraversalVisitor<Subclass>::VisitForInStmt(ForInStmt *node) {
   PROCESS_NODE(node);
-  RECURSE(Visit(node->target()));
-  RECURSE(Visit(node->iter()));
-  RECURSE(Visit(node->body()));
+  RECURSE(Visit(node->Target()));
+  RECURSE(Visit(node->Iter()));
+  RECURSE(Visit(node->Body()));
 }
 
 template <typename Subclass>
 inline void AstTraversalVisitor<Subclass>::VisitBinaryOpExpr(BinaryOpExpr *node) {
   PROCESS_NODE(node);
-  RECURSE(Visit(node->left()));
-  RECURSE(Visit(node->right()));
+  RECURSE(Visit(node->Left()));
+  RECURSE(Visit(node->Right()));
 }
 
 template <typename Subclass>
 inline void AstTraversalVisitor<Subclass>::VisitMapTypeRepr(MapTypeRepr *node) {
   PROCESS_NODE(node);
-  RECURSE(Visit(node->key()));
-  RECURSE(Visit(node->val()));
+  RECURSE(Visit(node->Key()));
+  RECURSE(Visit(node->Val()));
 }
 
 template <typename Subclass>
@@ -237,7 +237,7 @@ inline void AstTraversalVisitor<Subclass>::VisitLitExpr(LitExpr *node) {
 template <typename Subclass>
 inline void AstTraversalVisitor<Subclass>::VisitStructTypeRepr(StructTypeRepr *node) {
   PROCESS_NODE(node);
-  for (auto *field : node->fields()) {
+  for (auto *field : node->Fields()) {
     RECURSE(Visit(field));
   }
 }
@@ -245,59 +245,59 @@ inline void AstTraversalVisitor<Subclass>::VisitStructTypeRepr(StructTypeRepr *n
 template <typename Subclass>
 inline void AstTraversalVisitor<Subclass>::VisitDeclStmt(DeclStmt *node) {
   PROCESS_NODE(node);
-  RECURSE(Visit(node->declaration()));
+  RECURSE(Visit(node->Declaration()));
 }
 
 template <typename Subclass>
 inline void AstTraversalVisitor<Subclass>::VisitMemberExpr(MemberExpr *node) {
   PROCESS_NODE(node);
-  RECURSE(Visit(node->object()));
-  RECURSE(Visit(node->member()));
+  RECURSE(Visit(node->Object()));
+  RECURSE(Visit(node->Member()));
 }
 
 template <typename Subclass>
 inline void AstTraversalVisitor<Subclass>::VisitPointerTypeRepr(PointerTypeRepr *node) {
   PROCESS_NODE(node);
-  RECURSE(Visit(node->base()));
+  RECURSE(Visit(node->Base()));
 }
 
 template <typename Subclass>
 inline void AstTraversalVisitor<Subclass>::VisitComparisonOpExpr(ComparisonOpExpr *node) {
   PROCESS_NODE(node);
-  RECURSE(Visit(node->left()));
-  RECURSE(Visit(node->right()));
+  RECURSE(Visit(node->Left()));
+  RECURSE(Visit(node->Right()));
 }
 
 template <typename Subclass>
 inline void AstTraversalVisitor<Subclass>::VisitIfStmt(IfStmt *node) {
   PROCESS_NODE(node);
-  RECURSE(Visit(node->condition()));
-  RECURSE(Visit(node->then_stmt()));
+  RECURSE(Visit(node->Condition()));
+  RECURSE(Visit(node->ThenStmt()));
   if (node->HasElseStmt()) {
-    RECURSE(Visit(node->else_stmt()));
+    RECURSE(Visit(node->ElseStmt()));
   }
 }
 
 template <typename Subclass>
 inline void AstTraversalVisitor<Subclass>::VisitExpressionStmt(ExpressionStmt *node) {
   PROCESS_NODE(node);
-  RECURSE(Visit(node->expression()));
+  RECURSE(Visit(node->Expression()));
 }
 
 template <typename Subclass>
 inline void AstTraversalVisitor<Subclass>::VisitIndexExpr(IndexExpr *node) {
   PROCESS_NODE(node);
-  RECURSE(Visit(node->object()));
-  RECURSE(Visit(node->index()));
+  RECURSE(Visit(node->Object()));
+  RECURSE(Visit(node->Index()));
 }
 
 template <typename Subclass>
 inline void AstTraversalVisitor<Subclass>::VisitFunctionTypeRepr(FunctionTypeRepr *node) {
   PROCESS_NODE(node);
-  for (auto *param : node->parameters()) {
+  for (auto *param : node->Paramaters()) {
     RECURSE(Visit(param));
   }
-  RECURSE(Visit(node->return_type()));
+  RECURSE(Visit(node->ReturnType()));
 }
 // \endcond
 

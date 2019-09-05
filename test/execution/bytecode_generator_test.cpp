@@ -12,7 +12,7 @@ class BytecodeGeneratorTest : public TplTest {
  public:
   BytecodeGeneratorTest() : region_("test") {}
 
-  util::Region *region() { return &region_; }
+  util::Region *Region() { return &region_; }
 
  private:
   util::Region region_;

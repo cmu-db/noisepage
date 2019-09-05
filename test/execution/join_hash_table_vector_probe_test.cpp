@@ -53,10 +53,10 @@ class JoinHashTableVectorProbeTest : public SqlBasedTest {
       col_oids.emplace_back(col.Oid());
     }
 
-    auto pc_init = sql_table->InitializerForProjectedColumns(col_oids, common::Constants::kDefaultVectorSize);
+    auto pc_init = sql_table->InitializerForProjectedColumns(col_oids, common::Constants::K_DEFAULT_VECTOR_SIZE);
     buffer_ = common::AllocationUtil::AllocateAligned(pc_init.ProjectedColumnsSize());
     projected_columns_ = pc_init.Initialize(buffer_);
-    projected_columns_->SetNumTuples(common::Constants::kDefaultVectorSize);
+    projected_columns_->SetNumTuples(common::Constants::K_DEFAULT_VECTOR_SIZE);
   }
 
   // Delete allocated objects and remove the created table.
@@ -167,7 +167,7 @@ TEST_F(JoinHashTableVectorProbeTest, SimpleGenericLookupTest) {
     while (const auto *entry = lookup.GetNextOutput(&pci, CmpTupleInPCI<N>)) {
       count++;
       auto ht_key = entry->PayloadAs<Tuple<N>>()->build_key;
-      // NOTE: this would break if the columns had different sizes since the
+      // NOTE: this would break if the columns had different sizes_ since the
       // storage layer might reorder them.
       auto probe_key = *pci.Get<uint32_t, false>(0, nullptr);
       EXPECT_EQ(ht_key, probe_key);
@@ -202,8 +202,8 @@ TEST_F(JoinHashTableVectorProbeTest, DISABLED_PerfLookupTest) {
 
     // Loop over all matches
     uint32_t count = 0;
-    for (uint32_t i = 0; i < num_probe; i += common::Constants::kDefaultVectorSize) {
-      uint32_t size = std::min(common::Constants::kDefaultVectorSize, num_probe - i);
+    for (uint32_t i = 0; i < num_probe; i += common::Constants::K_DEFAULT_VECTOR_SIZE) {
+      uint32_t size = std::min(common::Constants::K_DEFAULT_VECTOR_SIZE, num_probe - i);
 
       // Setup Projected Column
       projected_columns->SetNumTuples(size);
@@ -220,7 +220,7 @@ TEST_F(JoinHashTableVectorProbeTest, DISABLED_PerfLookupTest) {
       }
     }
 
-    timer.Stop();
+    timer.StOp();
     auto mtps = (num_probe / timer.elapsed()) / 1000.0;
     EXECUTION_LOG_INFO("========== {} ==========", concise ? "Concise" : "Generic");
     EXECUTION_LOG_INFO("# Probes    : {}", num_probe)
