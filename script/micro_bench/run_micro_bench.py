@@ -759,8 +759,7 @@ class RunMicroBenchmarks(object):
                          output_file)
 
         # use all the cpus from the highest numbered numa node
-        cpu_id_list = self._get_single_numa_cpu_list()
-        cmd = self._taskset_cmd_by_cpu_id_list(cmd, cpu_id_list)
+        cmd = "numactl -N 1 {}".format(cmd)
         print("cmd = {}".format(cmd))
 
         ret_val = subprocess.call([cmd],
@@ -774,21 +773,6 @@ class RunMicroBenchmarks(object):
 
         # return the process exit code
         return ret_val
-
-    def _taskset_cmd(self, cmd, num_cpus):
-        """ modify cmd to be via taskset """
-        cpu_a = cpu_lib.CPUAllocator()
-        assert num_cpus
-        # use high numbered cpus
-        cpu_list = cpu_a.get_n_cpus(num_cpus, low=False)
-
-        new_cmd = "taskset -c {} {}".format(",".join(map(str, cpu_list)), cmd)
-        return new_cmd
-
-    def _taskset_cmd_by_cpu_id_list(self, cmd, cpu_id_list):
-        new_cmd = "taskset -c {} {}".format(",".join(map(str, cpu_id_list)),
-                                            cmd)
-        return new_cmd
 
     def _get_single_numa_cpu_list(self):
         cpu_a = cpu_lib.CPUAllocator()
