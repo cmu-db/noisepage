@@ -10,7 +10,8 @@
 #include "transaction/transaction_util.h"
 
 namespace terrier::storage {
-void BlockCompactor::ProcessCompactionQueue(transaction::TransactionManager *txn_manager) {
+void BlockCompactor::ProcessCompactionQueue(transaction::DeferredActionManager *deferred_action_manager,
+                                            transaction::TransactionManager *txn_manager) {
   std::queue<RawBlock *> to_process = std::move(compaction_queue_);
   while (!to_process.empty()) {
     RawBlock *block = to_process.front();
@@ -32,7 +33,8 @@ void BlockCompactor::ProcessCompactionQueue(transaction::TransactionManager *txn
           // If no compaction was performed, we still need to shut out any potentially racey transactions that
           // are alive at the same time as us flipping the block status flag to cooling. However, we must manually
           // ask the GC to enqueue this block, because no access will be observed from the empty compaction transaction.
-          if (cg.txn_->IsReadOnly()) txn_manager->DeferAction([this, block] { PutInQueue(block); });
+          if (cg.txn_->IsReadOnly())
+            deferred_action_manager->RegisterDeferredAction([this, block]() { PutInQueue(block); });
           txn_manager->Commit(cg.txn_, transaction::TransactionUtil::EmptyCallback, nullptr);
         } else {
           txn_manager->Abort(cg.txn_);
@@ -48,7 +50,7 @@ void BlockCompactor::ProcessCompactionQueue(transaction::TransactionManager *txn
         GatherVarlens(loose_ptrs, block, block->data_table_);
         controller.GetBlockState()->store(BlockState::FROZEN);
         // When the old variable length values are no longer visible by running transactions, delete them.
-        txn_manager->DeferAction([=] {
+        deferred_action_manager->RegisterDeferredAction([=]() {
           for (auto *loose_ptr : *loose_ptrs) delete[] loose_ptr;
           delete loose_ptrs;
         });

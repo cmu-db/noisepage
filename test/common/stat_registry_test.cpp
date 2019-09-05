@@ -161,25 +161,24 @@ TEST(StatRegistryTest, GTEST_DEBUG_ONLY(FreeTest)) {
 // A basic test, registering a DataTable counter
 // NOLINTNEXTLINE
 TEST(StatRegistryTest, GTEST_DEBUG_ONLY(DataTableStatTest)) {
-  terrier::storage::RecordBufferSegmentPool buffer_pool_{100000, 10000};
-  terrier::storage::BlockStore block_store_{1000, 100};
-  terrier::storage::BlockLayout block_layout_({8, 8, 8});
+  terrier::storage::RecordBufferSegmentPool buffer_pool{100000, 10000};
+  terrier::storage::BlockStore block_store{1000, 100};
+  terrier::storage::BlockLayout block_layout({8, 8, 8});
   const std::vector<terrier::storage::col_id_t> col_ids = {terrier::storage::col_id_t{1},
                                                            terrier::storage::col_id_t{2}};
-  terrier::storage::DataTable data_table_(&block_store_, block_layout_, terrier::storage::layout_version_t{0});
+  terrier::storage::DataTable data_table(&block_store, block_layout, terrier::storage::layout_version_t{0});
   terrier::transaction::timestamp_t timestamp(0);
-  auto *txn = new terrier::transaction::TransactionContext(timestamp, timestamp, &buffer_pool_, LOGGING_DISABLED,
-                                                           ACTION_FRAMEWORK_DISABLED);
-  auto init = terrier::storage::ProjectedRowInitializer::Create(block_layout_, col_ids);
-  auto *redo_buffer_ = terrier::common::AllocationUtil::AllocateAligned(init.ProjectedRowSize());
-  auto *redo = init.InitializeRow(redo_buffer_);
+  auto *txn = new terrier::transaction::TransactionContext(timestamp, timestamp, &buffer_pool, DISABLED);
+  auto init = terrier::storage::ProjectedRowInitializer::Create(block_layout, col_ids);
+  auto *redo_buffer = terrier::common::AllocationUtil::AllocateAligned(init.ProjectedRowSize());
+  auto *redo = init.InitializeRow(redo_buffer);
 
-  data_table_.Insert(txn, *redo);
+  data_table.Insert(txn, *redo);
 
   // initialize stat registry
   auto test_stat_reg = std::make_shared<terrier::common::StatisticsRegistry>();
-  test_stat_reg->Register({"Storage"}, data_table_.GetDataTableCounter(), &data_table_);
-  delete[] redo_buffer_;
+  test_stat_reg->Register({"Storage"}, data_table.GetDataTableCounter(), &data_table);
+  delete[] redo_buffer;
   delete txn;
 
   test_stat_reg->Shutdown(false);

@@ -51,7 +51,7 @@ class ManagedPointer {
   /**
    * @return the underlying pointer
    */
-  Underlying *get() const { return underlying_; }
+  Underlying *Get() const { return underlying_; }
 
   /**
    * @return True if it is not a nullptr, false otherwise

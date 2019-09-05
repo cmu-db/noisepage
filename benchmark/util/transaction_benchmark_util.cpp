@@ -32,7 +32,7 @@ void RandomWorkloadTransaction::RandomUpdate(Random *generator) {
   storage::ProjectedRowInitializer initializer =
       storage::ProjectedRowInitializer::Create(test_object_->layout_, update_col_ids);
 
-  auto *const record = txn_->StageWrite(CatalogTestUtil::test_db_oid, CatalogTestUtil::test_table_oid, initializer);
+  auto *const record = txn_->StageWrite(CatalogTestUtil::TEST_DB_OID, CatalogTestUtil::TEST_TABLE_OID, initializer);
   record->SetTupleSlot(updated);
 
   StorageTestUtil::PopulateRandomRow(record->Delta(), test_object_->layout_, 0.0, generator);
@@ -44,7 +44,7 @@ template <class Random>
 void RandomWorkloadTransaction::RandomInsert(Random *generator) {
   if (aborted_) return;
   auto *const redo =
-      txn_->StageWrite(CatalogTestUtil::test_db_oid, CatalogTestUtil::test_table_oid, test_object_->row_initializer_);
+      txn_->StageWrite(CatalogTestUtil::TEST_DB_OID, CatalogTestUtil::TEST_TABLE_OID, test_object_->row_initializer_);
   StorageTestUtil::PopulateRandomRow(redo->Delta(), test_object_->layout_, 0.0, generator);
   const storage::TupleSlot inserted = test_object_->table_.Insert(txn_, *(redo->Delta()));
   redo->SetTupleSlot(inserted);
@@ -67,6 +67,7 @@ void RandomWorkloadTransaction::Finish() {
     commit_time_ = test_object_->txn_manager_.Commit(txn_, TestCallbacks::EmptyCallback, nullptr);
 }
 
+// TODO(Tianyu): Convert to DI
 LargeTransactionBenchmarkObject::LargeTransactionBenchmarkObject(const std::vector<uint8_t> &attr_sizes,
                                                                  uint32_t initial_table_size, uint32_t txn_length,
                                                                  std::vector<double> operation_ratio,
@@ -79,7 +80,7 @@ LargeTransactionBenchmarkObject::LargeTransactionBenchmarkObject(const std::vect
       generator_(generator),
       layout_({attr_sizes}),
       table_(block_store, layout_, storage::layout_version_t(0)),
-      txn_manager_(buffer_pool, gc_on, log_manager),
+      txn_manager_(&timestamp_manager_, DISABLED, buffer_pool, gc_on, log_manager),
       gc_on_(gc_on),
       abort_count_(0) {
   // Bootstrap the table to have the specified number of tuples
@@ -155,7 +156,7 @@ void LargeTransactionBenchmarkObject::PopulateInitialTable(uint32_t num_tuples, 
 
   for (uint32_t i = 0; i < num_tuples; i++) {
     auto *const redo =
-        initial_txn_->StageWrite(CatalogTestUtil::test_db_oid, CatalogTestUtil::test_table_oid, row_initializer_);
+        initial_txn_->StageWrite(CatalogTestUtil::TEST_DB_OID, CatalogTestUtil::TEST_TABLE_OID, row_initializer_);
     StorageTestUtil::PopulateRandomRow(redo->Delta(), layout_, 0.0, generator);
     const storage::TupleSlot inserted = table_.Insert(initial_txn_, *(redo->Delta()));
     redo->SetTupleSlot(inserted);

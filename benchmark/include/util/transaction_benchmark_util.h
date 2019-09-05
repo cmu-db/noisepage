@@ -110,12 +110,17 @@ class LargeTransactionBenchmarkObject {
                                   uint32_t txn_length, std::vector<double> operation_ratio,
                                   storage::BlockStore *block_store, storage::RecordBufferSegmentPool *buffer_pool,
                                   std::default_random_engine *generator, bool gc_on,
-                                  storage::LogManager *log_manager = LOGGING_DISABLED);
+                                  storage::LogManager *log_manager = DISABLED);
 
   /**
    * Destructs a LargeTransactionBenchmarkObject
    */
   ~LargeTransactionBenchmarkObject();
+
+  /**
+   * @return the timestamp manager used by this test
+   */
+  transaction::TimestampManager *GetTimestampManager() { return &timestamp_manager_; }
 
   /**
    * @return the transaction manager used by this test
@@ -150,6 +155,7 @@ class LargeTransactionBenchmarkObject {
   std::default_random_engine *generator_;
   storage::BlockLayout layout_;
   storage::DataTable table_;
+  transaction::TimestampManager timestamp_manager_;
   transaction::TransactionManager txn_manager_;
   transaction::TransactionContext *initial_txn_;
   bool gc_on_;

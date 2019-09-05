@@ -213,7 +213,7 @@ class ConnectionHandle {
      * behavior and the
      * next state it should go to.
      */
-    static transition_result Delta_(ConnState state, Transition transition);
+    static transition_result Delta(ConnState state, Transition transition);
     ConnState current_state_ = ConnState::READ;
   };
 

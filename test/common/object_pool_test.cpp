@@ -93,7 +93,7 @@ TEST(ObjectPoolTests, ConcurrentCorrectnessTest) {
   const uint64_t reuse_limit = 100;
   common::ObjectPool<ObjectPoolTestType> tested(size_limit, reuse_limit);
   auto workload = [&](uint32_t tid) {
-    std::uniform_int_distribution<uint64_t> size_dist_(1, reuse_limit);
+    std::uniform_int_distribution<uint64_t> size_dist(1, reuse_limit);
 
     // Randomly generate a sequence of use-free
     std::default_random_engine generator;
@@ -116,9 +116,9 @@ TEST(ObjectPoolTests, ConcurrentCorrectnessTest) {
         ptrs.erase(pos);
       }
     };
-    auto set_reuse_limit = [&] { tested.SetReuseLimit(size_dist_(generator)); };
+    auto set_reuse_limit = [&] { tested.SetReuseLimit(size_dist(generator)); };
 
-    auto set_size_limit = [&] { tested.SetSizeLimit(size_dist_(generator)); };
+    auto set_size_limit = [&] { tested.SetSizeLimit(size_dist(generator)); };
 
     RandomTestUtil::InvokeWorkloadWithDistribution({free, allocate, set_reuse_limit, set_size_limit},
                                                    {0.25, 0.25, 0.25, 0.25}, &generator, 1000);
