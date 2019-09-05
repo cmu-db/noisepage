@@ -58,7 +58,7 @@ class TPCCBenchmark : public benchmark::Fixture {
   const std::chrono::milliseconds log_persist_interval_{10};
   const uint64_t log_persist_threshold_ = (1U << 20U);  // 1MB
 
-  storage::GarbageCollector *gc_;
+  storage::GarbageCollector *gc_ = nullptr;
   storage::GarbageCollectorThread *gc_thread_ = nullptr;
   const std::chrono::milliseconds gc_period_{10};
   const std::chrono::milliseconds metrics_period_{100};
@@ -151,7 +151,7 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithLogging)(benchmark::State &sta
 
   // Precompute all of the input arguments for every txn to be run. We want to avoid the overhead at benchmark time
   const auto precomputed_args =
-      PrecomputeArgs(&generator_, txn_weights, num_threads_, num_precomputed_txns_per_worker_);
+      PrecomputeArgs(&generator_, txn_weights_, num_threads_, num_precomputed_txns_per_worker_);
 
   // NOLINTNEXTLINE
   for (auto _ : state) {
@@ -163,7 +163,10 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithLogging)(benchmark::State &sta
         new storage::LogManager(LOG_FILE_NAME, num_log_buffers_, log_serialization_interval_, log_persist_interval_,
                                 log_persist_threshold_, &buffer_pool_, common::ManagedPointer(thread_registry_));
     log_manager_->Start();
-    transaction::TransactionManager txn_manager(&buffer_pool_, true, log_manager_);
+    transaction::TimestampManager timestamp_manager;
+    transaction::DeferredActionManager deferred_action_manager(&timestamp_manager);
+    transaction::TransactionManager txn_manager(&timestamp_manager, &deferred_action_manager, &buffer_pool_, true,
+                                                log_manager_);
 
     // build the TPCC database
     auto *const tpcc_db = tpcc_builder.Build();
@@ -177,7 +180,8 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithLogging)(benchmark::State &sta
     // populate the tables and indexes
     Loader::PopulateDatabase(&txn_manager, &generator_, tpcc_db, workers);
     log_manager_->ForceFlush();
-    gc_thread_ = new storage::GarbageCollectorThread(&txn_manager, gc_period_);
+    gc_ = new storage::GarbageCollector(&timestamp_manager, &deferred_action_manager, &txn_manager, DISABLED);
+    gc_thread_ = new storage::GarbageCollectorThread(gc_, gc_period_);
     Util::RegisterIndexesForGC(&(gc_thread_->GetGarbageCollector()), tpcc_db);
     std::this_thread::sleep_for(std::chrono::seconds(2));  // Let GC clean up
 
@@ -202,6 +206,7 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithLogging)(benchmark::State &sta
     delete log_manager_;
     delete gc_thread_;
     delete thread_registry_;
+    delete gc_;
     delete tpcc_db;
   }
 
@@ -212,7 +217,7 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithLogging)(benchmark::State &sta
     uint64_t num_new_orders = 0;
     for (const auto &worker_txns : precomputed_args) {
       for (const auto &txn : worker_txns) {
-        if (txn.type == TransactionType::NewOrder) num_new_orders++;
+        if (txn.type_ == TransactionType::NewOrder) num_new_orders++;
       }
     }
     state.SetItemsProcessed(state.iterations() * num_new_orders);
@@ -302,7 +307,7 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithLoggingAndMetrics)(benchmark::
     uint64_t num_new_orders = 0;
     for (const auto &worker_txns : precomputed_args) {
       for (const auto &txn : worker_txns) {
-        if (txn.type == TransactionType::NewOrder) num_new_orders++;
+        if (txn.type_ == TransactionType::NewOrder) num_new_orders++;
       }
     }
     state.SetItemsProcessed(state.iterations() * num_new_orders);
@@ -321,7 +326,7 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithMetrics)(benchmark::State &sta
 
   // Precompute all of the input arguments for every txn to be run. We want to avoid the overhead at benchmark time
   const auto precomputed_args =
-      PrecomputeArgs(&generator_, txn_weights, num_threads_, num_precomputed_txns_per_worker_);
+      PrecomputeArgs(&generator_, txn_weights_, num_threads_, num_precomputed_txns_per_worker_);
 
   // NOLINTNEXTLINE
   for (auto _ : state) {
@@ -331,7 +336,10 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithMetrics)(benchmark::State &sta
     auto *const metrics_thread = new metrics::MetricsThread(metrics_period_);
     metrics_thread->GetMetricsManager().EnableMetric(metrics::MetricsComponent::TRANSACTION);
     // we need transactions, TPCC database, and GC
-    transaction::TransactionManager txn_manager(&buffer_pool_, true, log_manager_);
+    transaction::TimestampManager timestamp_manager;
+    transaction::DeferredActionManager deferred_action_manager(&timestamp_manager);
+    transaction::TransactionManager txn_manager(&timestamp_manager, &deferred_action_manager, &buffer_pool_, true,
+                                                log_manager_);
 
     // build the TPCC database
     auto *const tpcc_db = tpcc_builder.Build();
@@ -344,7 +352,8 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithMetrics)(benchmark::State &sta
 
     // populate the tables and indexes
     Loader::PopulateDatabase(&txn_manager, &generator_, tpcc_db, workers);
-    gc_thread_ = new storage::GarbageCollectorThread(&txn_manager, gc_period_);
+    gc_ = new storage::GarbageCollector(&timestamp_manager, &deferred_action_manager, &txn_manager, DISABLED);
+    gc_thread_ = new storage::GarbageCollectorThread(gc_, gc_period_);
     Util::RegisterIndexesForGC(&(gc_thread_->GetGarbageCollector()), tpcc_db);
     std::this_thread::sleep_for(std::chrono::seconds(2));  // Let GC clean up
 
@@ -367,6 +376,7 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithMetrics)(benchmark::State &sta
     thread_pool_.Shutdown();
     delete gc_thread_;
     delete metrics_thread;
+    delete gc_;
     delete tpcc_db;
   }
 
