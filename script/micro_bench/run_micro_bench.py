@@ -22,8 +22,6 @@ import xml.etree.ElementTree as ElementTree
 
 from types import (ListType, StringType)
 
-import cpu_lib
-
 class TestConfig(object):
     """ Configuration for run_micro_bench.
         All information is read-only.
