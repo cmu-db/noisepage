@@ -58,12 +58,12 @@ class MetricsTests : public TerrierTest {
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER))}}};
   storage::SqlTable *const sql_table_{new storage::SqlTable(&block_store_, table_schema_)};
   const storage::ProjectedRowInitializer tuple_initializer_{
-      sql_table_->InitializerForProjectedRow({catalog::col_oid_t(0)}).first};
+      sql_table_->InitializerForProjectedRow({catalog::col_oid_t(0)})};
 
   void Insert() {
     auto *const insert_txn = txn_manager_->BeginTransaction();
     auto *const insert_redo =
-        insert_txn->StageWrite(CatalogTestUtil::test_db_oid, CatalogTestUtil::test_table_oid, tuple_initializer_);
+        insert_txn->StageWrite(CatalogTestUtil::TEST_DB_OID, CatalogTestUtil::TEST_TABLE_OID, tuple_initializer_);
     auto *const insert_tuple = insert_redo->Delta();
     *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = 15721;
     sql_table_->Insert(insert_txn, insert_redo);
