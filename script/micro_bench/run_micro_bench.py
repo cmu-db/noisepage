@@ -757,7 +757,7 @@ class RunMicroBenchmarks(object):
                          output_file)
 
         # use all the cpus from the highest numbered numa node
-        cmd = "numactl -N 1 {}".format(cmd)
+        cmd = "numactl --cpunodebind=1 --preferred=1 {}".format(cmd)
         print("cmd = {}".format(cmd))
 
         ret_val = subprocess.call([cmd],
