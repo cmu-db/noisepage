@@ -26,8 +26,6 @@ void TransactionManager::LogCommit(TransactionContext *const txn, const timestam
   } else {
     // Otherwise, logging is disabled. We should pretend to have serialized and flushed the record so the rest of the
     // system proceeds correctly
-    // TODO(Gus): There may no longer be a need for log_processed_ with the serialization callback
-    txn->log_processed_ = true;
     NotifyTransactionSerialized(txn);
     commit_callback(commit_callback_arg);
   }
@@ -62,9 +60,8 @@ timestamp_t TransactionManager::Commit(TransactionContext *const txn, transactio
   TERRIER_ASSERT(!txn->must_abort_,
                  "This txn was marked that it must abort. Set a breakpoint at TransactionContext::MustAbort() to see a "
                  "stack trace for when this flag is getting tripped.");
-  bool is_read_only = txn->undo_buffer_.Empty();
   const timestamp_t result =
-      is_read_only ? timestamp_manager_->CheckOutTimestamp() : UpdatingCommitCriticalSection(txn);
+      txn->IsReadOnly() ? timestamp_manager_->CheckOutTimestamp() : UpdatingCommitCriticalSection(txn);
   while (!txn->commit_actions_.empty()) {
     TERRIER_ASSERT(deferred_action_manager_ != DISABLED, "No deferred action manager exists to process actions");
     txn->commit_actions_.front()(deferred_action_manager_);
@@ -74,7 +71,7 @@ timestamp_t TransactionManager::Commit(TransactionContext *const txn, transactio
   // If logging is enabled and our txn is not read only, we need to persist the oldest active txn at the time we
   // committed. This will allow us to correctly order and execute transactions during recovery.
   timestamp_t oldest_active_txn = INVALID_TXN_TIMESTAMP;
-  if (log_manager_ != DISABLED && !is_read_only) {
+  if (log_manager_ != DISABLED && !txn->IsReadOnly()) {
     oldest_active_txn = timestamp_manager_->OldestTransactionStartTime();
   }
   LogCommit(txn, result, callback, callback_arg, oldest_active_txn);
@@ -90,8 +87,9 @@ void TransactionManager::LogAbort(TransactionContext *const txn) {
     // made updates
     TERRIER_ASSERT(!txn->undo_buffer_.Empty(), "Should not log AbortRecord for read only txn");
     // Here we will manually add an abort record and flush the buffer to ensure the logger
-    // sees this record.
-    // TODO(Gus): As an added optimization, we could clear the redo_buffer and ONLY write an abort record
+    // sees this record. Because the txn is aborted and will not be recovered, we can discard all the records that
+    // currently exist. Only the abort record is needed.
+    txn->redo_buffer_.Reset();
     byte *const abort_record = txn->redo_buffer_.NewEntry(storage::AbortRecord::Size());
     storage::AbortRecord::Initialize(abort_record, txn->StartTime(), txn, this);
     // Signal to the log manager that we are ready to be logged out
@@ -102,7 +100,6 @@ void TransactionManager::LogAbort(TransactionContext *const txn) {
     // not yet logged out
     txn->redo_buffer_.Finalize(false);
     // Since there is nothing to log, we can mark it as processed
-    txn->log_processed_ = true;
     NotifyTransactionSerialized(txn);
   }
 }
