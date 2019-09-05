@@ -45,6 +45,11 @@ class GarbageCollector {
                    "The TransactionManager needs to be instantiated with gc_enabled true for GC to work!");
   }
 
+  ~GarbageCollector() {
+    TERRIER_ASSERT(txns_to_deallocate_.empty(), "Not all txns have been deallocated");
+    TERRIER_ASSERT(txns_to_unlink_.empty(), "Not all txns have been unlinked");
+  }
+
   /**
    * Deallocates transactions that can no longer be referenced by running transactions, and unlinks UndoRecords that
    * are no longer visible to running transactions. This needs to be invoked twice to actually free memory, since the

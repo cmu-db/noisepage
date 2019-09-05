@@ -17,6 +17,12 @@ class DeferredActionManager {
    */
   explicit DeferredActionManager(TimestampManager *timestamp_manager) : timestamp_manager_(timestamp_manager) {}
 
+  ~DeferredActionManager() {
+    common::SpinLatch::ScopedSpinLatch guard(&deferred_actions_latch_);
+    TERRIER_ASSERT(back_log_.empty(), "Backlog is not empty");
+    TERRIER_ASSERT(new_deferred_actions_.empty(), "Some deferred actions remaining at time of destruction");
+  }
+
   /**
    * Adds the action to a buffered list of deferred actions.  This action will
    * be triggered no sooner than when the epoch (timestamp of oldest running

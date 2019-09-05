@@ -18,6 +18,7 @@ void LogSerializerTask::LogSerializerTaskLoop() {
 }
 
 void LogSerializerTask::Process() {
+  common::SpinLatch::ScopedSpinLatch guard(&serialization_latch_);
   // In a short critical section, get all buffers to serialize. We move them to a temp queue to reduce contention on the
   // queue transactions interact with
   std::queue<RecordBufferSegment *> temp_flush_queue;

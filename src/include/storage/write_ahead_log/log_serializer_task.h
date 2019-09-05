@@ -63,6 +63,7 @@ class LogSerializerTask : public common::DedicatedThreadTask {
   }
 
  private:
+  friend class LogManager;
   // Flag to signal task to run or stop
   bool run_task_;
   // Interval for serialization
@@ -70,6 +71,9 @@ class LogSerializerTask : public common::DedicatedThreadTask {
 
   // Used to release processed buffers
   RecordBufferSegmentPool *buffer_pool_;
+
+  // Ensures only one thread is serializing at a time.
+  common::SpinLatch serialization_latch_;
 
   // TODO(Tianyu): Might not be necessary, since commit on txn manager is already protected with a latch
   // TODO(Tianyu): benchmark for if these should be concurrent data structures, and if we should apply the same
