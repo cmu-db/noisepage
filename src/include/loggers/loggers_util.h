@@ -33,6 +33,7 @@ class LoggersUtil {
       storage::InitStorageLogger();
       transaction::InitTransactionLogger();
       catalog::InitCatalogLogger();
+      optimizer::InitOptimizerLogger();
       settings::InitSettingsLogger();
       parser::InitParserLogger();
       network::InitNetworkLogger();
