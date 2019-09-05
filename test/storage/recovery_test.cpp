@@ -764,13 +764,13 @@ TEST_F(RecoveryTests, DoubleRecoveryTest) {
   log_manager_->Start();
 
   // Create a new txn manager with logging disabled
-  transaction::TimestampManager secondary_recovery_timestamp_manager_;
-  transaction::DeferredActionManager secondary_recovery_deferred_action_manager_{recovery_timestamp_manager_};
-  transaction::TransactionManager secondary_recovery_txn_manager{&secondary_recovery_timestamp_manager_,
-                                                                 &secondary_recovery_deferred_action_manager_,
+  transaction::TimestampManager secondary_recovery_timestamp_manager;
+  transaction::DeferredActionManager secondary_recovery_deferred_action_manager{recovery_timestamp_manager_};
+  transaction::TransactionManager secondary_recovery_txn_manager{&secondary_recovery_timestamp_manager,
+                                                                 &secondary_recovery_deferred_action_manager,
                                                                  &buffer_pool_, true, DISABLED};
-  storage::GarbageCollector secondary_recovery_gc{&secondary_recovery_timestamp_manager_,
-                                                  &secondary_recovery_deferred_action_manager_,
+  storage::GarbageCollector secondary_recovery_gc{&secondary_recovery_timestamp_manager,
+                                                  &secondary_recovery_deferred_action_manager,
                                                   &secondary_recovery_txn_manager, DISABLED};
   auto secondary_recovery_gc_thread = new storage::GarbageCollectorThread(&secondary_recovery_gc, gc_period_);
 
@@ -781,7 +781,7 @@ TEST_F(RecoveryTests, DoubleRecoveryTest) {
   DiskLogProvider secondary_log_provider(secondary_log_file);
   RecoveryManager secondary_recovery_manager(
       &secondary_log_provider, common::ManagedPointer(&secondary_recovery_catalog), &secondary_recovery_txn_manager,
-      &secondary_recovery_deferred_action_manager_, common::ManagedPointer(&thread_registry_), &block_store_);
+      &secondary_recovery_deferred_action_manager, common::ManagedPointer(&thread_registry_), &block_store_);
   secondary_recovery_manager.StartRecovery();
   secondary_recovery_manager.WaitForRecoveryToFinish();
 
