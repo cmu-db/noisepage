@@ -14,6 +14,7 @@
 #include "parser/expression/abstract_expression.h"
 #include "parser/expression/constant_value_expression.h"
 #include "storage/data_table.h"
+#include "storage/garbage_collector.h"
 #include "storage/index/compact_ints_key.h"
 #include "storage/index/index_defs.h"
 #include "storage/sql_table.h"
@@ -26,7 +27,6 @@
 #include "type/type_id.h"
 #include "util/multithread_test_util.h"
 #include "util/random_test_util.h"
-
 namespace terrier {
 class StorageTestUtil {
  public:
@@ -35,6 +35,8 @@ class StorageTestUtil {
 #define TO_INT(p) reinterpret_cast<uintptr_t>(p)
 
 #define MAX_TEST_VARLEN_SIZE (5 * storage::VarlenEntry::InlineThreshold())
+
+#define MIN_GC_INVOCATIONS (3)
   /**
    * Check if memory address represented by val in [lower, upper)
    * @tparam A type of ptr
@@ -560,6 +562,20 @@ class StorageTestUtil {
     }
 
     return catalog::IndexSchema(key_cols, false, false, false, true);
+  }
+
+  /**
+   * Invokes GC and log manager enough times to fully GC any outstanding transactions and process deferred events.
+   * Currently, this must be done 3 times. The log manager must be called because transactions can only be GC'd once
+   * their logs are persisted.
+   * @param gc gc to use for garbage collection
+   * @param log_manager log manager to use for flushing logs
+   */
+  static void FullyPerformGC(storage::GarbageCollector *const gc, storage::LogManager *const log_manager) {
+    for (int i = 0; i < MIN_GC_INVOCATIONS; i++) {
+      if (log_manager != DISABLED) log_manager->ForceFlush();
+      gc->PerformGarbageCollection();
+    }
   }
 
  private:
