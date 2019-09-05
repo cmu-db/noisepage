@@ -16,7 +16,13 @@ DataTable::DataTable(BlockStore *const store, const BlockLayout &layout, const l
                  "First column must have size 8 for the version chain.");
   TERRIER_ASSERT(layout.NumColumns() > NUM_RESERVED_COLUMNS,
                  "First column is reserved for version info, second column is reserved for logical delete.");
-  if (block_store_ != nullptr) NewBlock();
+  if (block_store_ != nullptr) {
+    RawBlock *new_block = NewBlock();
+    // take latch
+    common::SpinLatch::ScopedSpinLatch guard2(&blocks_latch_);
+    // insert block
+    blocks_.push_back(new_block);
+  }
   insertion_head_ = blocks_.begin();
 }
 
@@ -126,7 +132,7 @@ bool DataTable::Update(transaction::TransactionContext *const txn, const TupleSl
 }
 
 void DataTable::CheckMoveHead(std::list<RawBlock *>::iterator block) {
-  common::SpinLatch::ScopedSpinLatch guard(&header_latch_);
+  common::SpinLatch::ScopedSpinLatch guard_head(&header_latch_);
   if (block == insertion_head_) {
     // If the header block is full, move the header to point to the next block
     insertion_head_++;
@@ -134,7 +140,13 @@ void DataTable::CheckMoveHead(std::list<RawBlock *>::iterator block) {
 
   // If there are no more free blocks, create a new empty block and  point the insertion_head to it
   if (insertion_head_ == blocks_.end()) {
-    insertion_head_ = NewBlock();
+    RawBlock *new_block = NewBlock();
+    // take latch
+    common::SpinLatch::ScopedSpinLatch guard_block(&blocks_latch_);
+    // insert block
+    blocks_.push_back(new_block);
+    // set insertion header to --end()
+    insertion_head_ = --blocks_.end();
   }
 }
 
@@ -161,15 +173,25 @@ TupleSlot DataTable::Insert(transaction::TransactionContext *const txn, const Pr
   while (true) {
     // No free block left
     if (block == blocks_.end()) {
-      block = NewBlock();
-    } else if (accessor_.SetBlockBusyStatus(*block)) {
+      RawBlock *new_block = NewBlock();
+      TERRIER_ASSERT(accessor_.SetBlockBusyStatus(new_block), "Status of new block should not be busy");
+      // No need to flip the busy status bit
+      accessor_.Allocate(new_block, &result);
+      // take latch
+      common::SpinLatch::ScopedSpinLatch guard(&blocks_latch_);
+      // insert block
+      blocks_.push_back(new_block);
+      block = --blocks_.end();
+      break;
+    }
+
+    if (accessor_.SetBlockBusyStatus(*block)) {
       // No one is inserting into this block
       if (accessor_.Allocate(*block, &result)) {
         // The block is not full, succeed
         break;
       }
       // Fail to insert into the block, flip back the status bit
-      accessor_.ClearBlockBusyStatus(*block);
       // if the full block is the insertion_header, move the insertion_header
       // Next insert txn will search from the new insertion_header
       CheckMoveHead(block);
@@ -361,13 +383,11 @@ bool DataTable::CompareAndSwapVersionPtr(const TupleSlot slot, const TupleAccess
   return reinterpret_cast<std::atomic<UndoRecord *> *>(ptr_location)->compare_exchange_strong(expected, desired);
 }
 
-std::list<RawBlock *>::iterator DataTable::NewBlock() {
+RawBlock *DataTable::NewBlock() {
   RawBlock *new_block = block_store_->Get();
   accessor_.InitializeRawBlock(this, new_block, layout_version_);
-  common::SpinLatch::ScopedSpinLatch guard(&blocks_latch_);
-  blocks_.push_back(new_block);
   data_table_counter_.IncrementNumNewBlock(1);
-  return --blocks_.end();
+  return new_block;
 }
 
 bool DataTable::HasConflict(const transaction::TransactionContext &txn, const TupleSlot slot) const {

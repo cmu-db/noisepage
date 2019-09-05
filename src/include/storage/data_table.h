@@ -279,7 +279,7 @@ class DataTable {
                                 UndoRecord *desired);
 
   // Allocates a new block to be used as insertion head.
-  std::list<RawBlock *>::iterator NewBlock();
+  RawBlock *NewBlock();
 
   /**
    * Determine if a Tuple is visible (present and not deleted) to the given transaction. It's effectively Select's logic
