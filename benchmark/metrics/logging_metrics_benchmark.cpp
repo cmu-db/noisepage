@@ -94,7 +94,7 @@ BENCHMARK_DEFINE_F(LoggingMetricsBenchmark, HighAbortRate)(benchmark::State &sta
   // NOLINTNEXTLINE
   for (auto _ : state) {
     unlink(LOG_FILE_NAME);
-    for (const auto &file : metrics::LoggingMetricRawData::files_) unlink(std::string(file).c_str());
+    for (const auto &file : metrics::LoggingMetricRawData::FILES) unlink(std::string(file).c_str());
     auto *const metrics_thread = new metrics::MetricsThread(metrics_period_);
     metrics_thread->GetMetricsManager().EnableMetric(metrics::MetricsComponent::LOGGING);
     thread_registry_ =
@@ -141,7 +141,7 @@ BENCHMARK_DEFINE_F(LoggingMetricsBenchmark, SingleStatementInsert)(benchmark::St
   // NOLINTNEXTLINE
   for (auto _ : state) {
     unlink(LOG_FILE_NAME);
-    for (const auto &file : metrics::LoggingMetricRawData::files_) unlink(std::string(file).c_str());
+    for (const auto &file : metrics::LoggingMetricRawData::FILES) unlink(std::string(file).c_str());
     auto *const metrics_thread = new metrics::MetricsThread(metrics_period_);
     metrics_thread->GetMetricsManager().EnableMetric(metrics::MetricsComponent::LOGGING);
     thread_registry_ =
@@ -187,7 +187,7 @@ BENCHMARK_DEFINE_F(LoggingMetricsBenchmark, SingleStatementUpdate)(benchmark::St
   // NOLINTNEXTLINE
   for (auto _ : state) {
     unlink(LOG_FILE_NAME);
-    for (const auto &file : metrics::LoggingMetricRawData::files_) unlink(std::string(file).c_str());
+    for (const auto &file : metrics::LoggingMetricRawData::FILES) unlink(std::string(file).c_str());
     auto *const metrics_thread = new metrics::MetricsThread(metrics_period_);
     metrics_thread->GetMetricsManager().EnableMetric(metrics::MetricsComponent::LOGGING);
     thread_registry_ =
@@ -233,7 +233,7 @@ BENCHMARK_DEFINE_F(LoggingMetricsBenchmark, SingleStatementSelect)(benchmark::St
   // NOLINTNEXTLINE
   for (auto _ : state) {
     unlink(LOG_FILE_NAME);
-    for (const auto &file : metrics::LoggingMetricRawData::files_) unlink(std::string(file).c_str());
+    for (const auto &file : metrics::LoggingMetricRawData::FILES) unlink(std::string(file).c_str());
     auto *const metrics_thread = new metrics::MetricsThread(metrics_period_);
     metrics_thread->GetMetricsManager().EnableMetric(metrics::MetricsComponent::LOGGING);
     thread_registry_ =
