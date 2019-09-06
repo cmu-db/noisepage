@@ -57,7 +57,7 @@ class TransactionMetricRawData : public AbstractRawData {
   /**
    * Files to use for writing to CSV.
    */
-  static constexpr std::array<std::string_view, 2> files_ = {"./txn_begin.csv", "./txn_commit.csv"};
+  static constexpr std::array<std::string_view, 2> FILES = {"./txn_begin.csv", "./txn_commit.csv"};
 
  private:
   friend class TransactionMetric;
