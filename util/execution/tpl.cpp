@@ -45,23 +45,23 @@
 // CLI options
 // ---------------------------------------------------------
 
-llvm::cl::OptionCategory kTplOptionsCategory("TPL Compiler Options",
+llvm::cl::OptionCategory tpl_options_category("TPL Compiler Options",
                                              "Options for controlling the TPL compilation process.");
-llvm::cl::opt<std::string> kInputFile(llvm::cl::Positional, llvm::cl::desc("<input file>"), llvm::cl::init(""),
-                                      llvm::cl::cat(kTplOptionsCategory));
-llvm::cl::opt<bool> kPrintAst("print-ast", llvm::cl::desc("Print the programs AST"),
-                              llvm::cl::cat(kTplOptionsCategory));
-llvm::cl::opt<bool> kPrintTbc("print-tbc", llvm::cl::desc("Print the generated TPL Bytecode"),
-                              llvm::cl::cat(kTplOptionsCategory));
-llvm::cl::opt<std::string> kOutputName("output-name", llvm::cl::desc("Print the output name"),
-                                       llvm::cl::init("schema10"), llvm::cl::cat(kTplOptionsCategory));
-llvm::cl::opt<bool> kIsSQL("sql", llvm::cl::desc("Is the input a SQL query?"), llvm::cl::cat(kTplOptionsCategory));
+llvm::cl::opt<std::string> input_file(llvm::cl::Positional, llvm::cl::desc("<input file>"), llvm::cl::init(""),
+                                      llvm::cl::cat(tpl_options_category));
+llvm::cl::opt<bool> print_ast("print-ast", llvm::cl::desc("Print the programs AST"),
+                              llvm::cl::cat(tpl_options_category));
+llvm::cl::opt<bool> print_tbc("print-tbc", llvm::cl::desc("Print the generated TPL Bytecode"),
+                              llvm::cl::cat(tpl_options_category));
+llvm::cl::opt<std::string> output_name("output-name", llvm::cl::desc("Print the output name"),
+                                       llvm::cl::init("schema10"), llvm::cl::cat(tpl_options_category));
+llvm::cl::opt<bool> is_sql("sql", llvm::cl::desc("Is the input a SQL query?"), llvm::cl::cat(tpl_options_category));
 
 tbb::task_scheduler_init scheduler;
 
 namespace terrier::execution {
 
-static constexpr const char *kExitKeyword = ".exit";
+static constexpr const char *K_EXIT_KEYWORD = ".exit";
 
 /**
  * Compile the TPL source in \a source and run it in both interpreted and JIT
@@ -82,7 +82,7 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
   // Get the correct output format for this test
   exec::SampleOutput sample_output;
   sample_output.InitTestOutput();
-  auto output_schema = sample_output.GetSchema(kOutputName.Data());
+  auto output_schema = sample_output.GetSchema(output_name.data());
 
   // Make the catalog accessor
   catalog::Catalog catalog(&txn_manager, &block_store);
@@ -109,7 +109,7 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
   sema::ErrorReporter error_reporter(&error_region);
   ast::Context context(&region, &error_reporter);
 
-  parsing::Scanner scanner(source.Data(), source.Length());
+  parsing::Scanner scanner(source.data(), source.length());
   parsing::Parser parser(&scanner, &context);
 
   double parse_ms = 0.0, typecheck_ms = 0.0, codegen_ms = 0.0, interp_exec_ms = 0.0, adaptive_exec_ms = 0.0,
@@ -146,7 +146,7 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
   }
 
   // Dump AST
-  if (kPrintAst) {
+  if (print_ast) {
     EXECUTION_LOG_INFO("\n{}", ast::AstDump::Dump(root));
   }
 
@@ -161,7 +161,7 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
   }
 
   // Dump Bytecode
-  if (kPrintTbc) {
+  if (print_tbc) {
     std::stringstream ss;
     bytecode_module->PrettyPrint(&ss);
     EXECUTION_LOG_INFO("\n{}", ss.str());
@@ -176,7 +176,7 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
   {
     util::ScopedTimer<std::milli> timer(&interp_exec_ms);
 
-    if (kIsSQL) {
+    if (is_sql) {
       std::function<int64_t(exec::ExecutionContext *)> main;
       if (!module->GetFunction("main", vm::ExecutionMode::Interpret, &main)) {
         EXECUTION_LOG_ERROR(
@@ -202,7 +202,7 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
   {
     util::ScopedTimer<std::milli> timer(&adaptive_exec_ms);
 
-    if (kIsSQL) {
+    if (is_sql) {
       std::function<int64_t(exec::ExecutionContext *)> main;
       if (!module->GetFunction("main", vm::ExecutionMode::Adaptive, &main)) {
         EXECUTION_LOG_ERROR(
@@ -227,7 +227,7 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
   {
     util::ScopedTimer<std::milli> timer(&jit_exec_ms);
 
-    if (kIsSQL) {
+    if (is_sql) {
       std::function<int64_t(exec::ExecutionContext *)> main;
       if (!module->GetFunction("main", vm::ExecutionMode::Compiled, &main)) {
         EXECUTION_LOG_ERROR(
@@ -269,7 +269,7 @@ static void RunRepl() {
       printf(">>> ");
       std::getline(std::cin, line);
 
-      if (line == kExitKeyword) {
+      if (line == K_EXIT_KEYWORD) {
         return;
       }
 
@@ -335,7 +335,7 @@ void SignalHandler(int32_t sig_num) {
 
 int main(int argc, char **argv) {  // NOLINT (bugprone-exception-escape)
   // Parse options
-  llvm::cl::HideUnrelatedOptions(kTplOptionsCategory);
+  llvm::cl::HideUnrelatedOptions(tpl_options_category);
   llvm::cl::ParseCommandLineOptions(argc, argv);
 
   // Initialize a signal handler to call SignalHandler()
@@ -358,8 +358,8 @@ int main(int argc, char **argv) {  // NOLINT (bugprone-exception-escape)
   EXECUTION_LOG_INFO("Welcome to TPL (ver. {}.{})", TPL_VERSION_MAJOR, TPL_VERSION_MINOR);
 
   // Either execute a TPL program from a source file, or run REPL
-  if (!kInputFile.empty()) {
-    terrier::execution::RunFile(kInputFile);
+  if (!input_file.empty()) {
+    terrier::execution::RunFile(input_file);
   } else if (argc == 1) {
     terrier::execution::RunRepl();
   }

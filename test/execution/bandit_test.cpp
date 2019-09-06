@@ -19,9 +19,9 @@
 namespace terrier::execution::vm::test {
 
 struct TestConf {
-  std::string pred1;
-  std::string pred2;
-  std::string out_file;
+  std::string pred1_;
+  std::string pred2_;
+  std::string out_file_;
 };
 
 class BanditTest : public TplTest, public ::testing::WithParamInterface<TestConf> {
@@ -123,10 +123,10 @@ void RunExperiment(bandit::MultiArmedBandit *bandit, bandit::Agent *agent, bool 
 TEST_P(BanditTest, DISABLED_SimpleTest) {
   auto conf = GetParam();
 
-  EXECUTION_LOG_INFO("Configuration {}", conf.out_file);
+  EXECUTION_LOG_INFO("Configuration {}", conf.out_file_);
 
-  this->SetPred1(conf.pred1);
-  this->SetPred2(conf.pred2);
+  this->SetPred1(conf.pred1_);
+  this->SetPred2(conf.pred2_);
 
   // NOLINTNEXTLINE
   auto [src, action_names] = CreateSampleTPLCode();
@@ -203,7 +203,7 @@ TEST_P(BanditTest, DISABLED_SimpleTest) {
   EXECUTION_LOG_INFO("Writing to out_file");
 
   std::ofstream out_file;
-  out_file.open(conf.out_file.c_str());
+  out_file.open(conf.out_file_.c_str());
 
   out_file << "Timestep/Partition, ";
 

@@ -6,7 +6,7 @@
 namespace terrier::execution::sql {
 
 ProjectedColumnsIterator::ProjectedColumnsIterator() : selection_vector_{0} {
-  selection_vector_[0] = ProjectedColumnsIterator::kInvalidPos;
+  selection_vector_[0] = ProjectedColumnsIterator::K_INVALID_POS;
 }
 
 ProjectedColumnsIterator::ProjectedColumnsIterator(storage::ProjectedColumns *projected_column)
@@ -18,7 +18,7 @@ void ProjectedColumnsIterator::SetProjectedColumn(storage::ProjectedColumns *pro
   projected_column_ = projected_column;
   num_selected_ = projected_column_->NumTuples();
   curr_idx_ = 0;
-  selection_vector_[0] = kInvalidPos;
+  selection_vector_[0] = K_INVALID_POS;
   selection_vector_read_idx_ = 0;
   selection_vector_write_idx_ = 0;
 }
@@ -76,13 +76,13 @@ template <template <typename> typename Op>
 uint32_t ProjectedColumnsIterator::FilterColByVal(uint32_t col_idx, type::TypeId type, FilterVal val) {
   switch (type) {
     case type::TypeId::SMALLINT: {
-      return FilterColByValImpl<int16_t, Op>(col_idx, val.si);
+      return FilterColByValImpl<int16_t, Op>(col_idx, val.si_);
     }
     case type::TypeId::INTEGER: {
-      return FilterColByValImpl<int32_t, Op>(col_idx, val.i);
+      return FilterColByValImpl<int32_t, Op>(col_idx, val.i_);
     }
     case type::TypeId::BIGINT: {
-      return FilterColByValImpl<int64_t, Op>(col_idx, val.bi);
+      return FilterColByValImpl<int64_t, Op>(col_idx, val.bi_);
     }
     default: {
       throw std::runtime_error("Filter not supported on type");

@@ -56,12 +56,12 @@ ThreadStateContainer::ThreadStateContainer(MemoryPool *memory)
       destroy_fn_(nullptr),
       ctx_(nullptr),
       impl_(std::make_unique<ThreadStateContainer::Impl>()) {
-  impl_->states = tbb::enumerable_thread_specific<TLSHandle>([&]() { return TLSHandle(this); });
+  impl_->states_ = tbb::enumerable_thread_specific<TLSHandle>([&]() { return TLSHandle(this); });
 }
 
 ThreadStateContainer::~ThreadStateContainer() = default;
 
-void ThreadStateContainer::Clear() { impl_->states.clear(); }
+void ThreadStateContainer::Clear() { impl_->states_.clear(); }
 
 void ThreadStateContainer::Reset(const std::size_t state_size, InitFn init_fn, DestroyFn destroy_fn, void *ctx) {
   // Ensure we clean before resetting sizes_, functions, context
@@ -75,30 +75,30 @@ void ThreadStateContainer::Reset(const std::size_t state_size, InitFn init_fn, D
 }
 
 byte *ThreadStateContainer::AccessThreadStateOfCurrentThread() {
-  auto &tls_handle = impl_->states.local();
-  return tls_handle.state();
+  auto &tls_handle = impl_->states_.local();
+  return tls_handle.State();
 }
 
 void ThreadStateContainer::CollectThreadLocalStates(std::vector<byte *> *container) const {
   container->clear();
-  container->reserve(impl_->states.size());
-  for (auto &tls_handle : impl_->states) {
-    container->push_back(tls_handle.state());
+  container->reserve(impl_->states_.size());
+  for (auto &tls_handle : impl_->states_) {
+    container->push_back(tls_handle.State());
   }
 }
 
 void ThreadStateContainer::CollectThreadLocalStateElements(std::vector<byte *> *container,
                                                            std::size_t element_offset) const {
   container->clear();
-  container->reserve(impl_->states.size());
-  for (auto &tls_handle : impl_->states) {
-    container->push_back(tls_handle.state() + element_offset);
+  container->reserve(impl_->states_.size());
+  for (auto &tls_handle : impl_->states_) {
+    container->push_back(tls_handle.State() + element_offset);
   }
 }
 
 void ThreadStateContainer::IterateStates(void *const ctx, ThreadStateContainer::IterateFn iterate_fn) const {
-  for (auto &tls_handle : impl_->states) {
-    iterate_fn(ctx, tls_handle.state());
+  for (auto &tls_handle : impl_->states_) {
+    iterate_fn(ctx, tls_handle.State());
   }
 }
 

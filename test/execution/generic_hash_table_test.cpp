@@ -12,9 +12,9 @@ namespace terrier::execution::sql::test {
 class GenericHashTableTest : public TplTest {};
 
 struct TestEntry : public HashTableEntry {
-  uint32_t key{0}, value{0};
+  uint32_t key_{0}, value_{0};
   TestEntry() : HashTableEntry() {}
-  TestEntry(uint32_t key, uint32_t value) : HashTableEntry(), key(key), value(value) {}
+  TestEntry(uint32_t key, uint32_t value) : HashTableEntry(), key_(key), value_(value) {}
 };
 
 // NOLINTNEXTLINE
@@ -82,9 +82,9 @@ TEST_F(GenericHashTableTest, SimpleIterationTest) {
   std::vector<TestEntry> entries;
   for (uint32_t idx = 0; idx < num_inserts; idx++) {
     TestEntry entry(random(), 20);
-    entry.hash = util::Hasher::Hash(reinterpret_cast<const uint8_t *>(&entry.key), sizeof(entry.key));
+    entry.hash_ = util::Hasher::Hash(reinterpret_cast<const uint8_t *>(&entry.key_), sizeof(entry.key_));
 
-    reference[entry.key] = entry;
+    reference[entry.key_] = entry;
     entries.emplace_back(entry);
   }
 
@@ -95,7 +95,7 @@ TEST_F(GenericHashTableTest, SimpleIterationTest) {
   // Insert
   for (uint32_t idx = 0; idx < num_inserts; idx++) {
     auto entry = &entries[idx];
-    table.Insert<false>(entry, entry->hash);
+    table.Insert<false>(entry, entry->hash_);
   }
 
   auto check = [&](auto &iter) {
@@ -103,10 +103,10 @@ TEST_F(GenericHashTableTest, SimpleIterationTest) {
     for (; iter.HasNext(); iter.Next()) {
       auto *row = reinterpret_cast<const TestEntry *>(iter.GetCurrentEntry());
       ASSERT_TRUE(row != nullptr);
-      auto ref_iter = reference.find(row->key);
+      auto ref_iter = reference.find(row->key_);
       ASSERT_NE(ref_iter, reference.end());
-      EXPECT_EQ(ref_iter->second.key, row->key);
-      EXPECT_EQ(ref_iter->second.value, row->value);
+      EXPECT_EQ(ref_iter->second.key_, row->key_);
+      EXPECT_EQ(ref_iter->second.value_, row->value_);
       found_entries++;
     }
     EXPECT_EQ(num_inserts, found_entries);
@@ -140,7 +140,7 @@ TEST_F(GenericHashTableTest, LongChainIterationTest) {
   std::vector<TestEntry> entries;
   for (uint32_t idx = 0; idx < num_inserts; idx++) {
     TestEntry entry(key, value);
-    entry.hash = util::Hasher::Hash(reinterpret_cast<const uint8_t *>(&entry.key), sizeof(entry.key));
+    entry.hash_ = util::Hasher::Hash(reinterpret_cast<const uint8_t *>(&entry.key_), sizeof(entry.key_));
     entries.emplace_back(entry);
   }
 
@@ -151,7 +151,7 @@ TEST_F(GenericHashTableTest, LongChainIterationTest) {
   // Insert
   for (uint32_t idx = 0; idx < num_inserts; idx++) {
     auto entry = &entries[idx];
-    table.Insert<false>(entry, entry->hash);
+    table.Insert<false>(entry, entry->hash_);
   }
 
   auto check = [&](auto &iter) {
@@ -159,8 +159,8 @@ TEST_F(GenericHashTableTest, LongChainIterationTest) {
     for (; iter.HasNext(); iter.Next()) {
       auto *row = reinterpret_cast<const TestEntry *>(iter.GetCurrentEntry());
       ASSERT_TRUE(row != nullptr);
-      EXPECT_EQ(key, row->key);
-      EXPECT_EQ(value, row->value);
+      EXPECT_EQ(key, row->key_);
+      EXPECT_EQ(value, row->value_);
       found_entries++;
     }
     EXPECT_EQ(num_inserts, found_entries);

@@ -444,7 +444,7 @@ void Sema::CheckBuiltinAggregatorCall(ast::CallExpr *call, ast::Builtin builtin)
       bool arg1_is_agg = IsPointerToAggregatorValue(args[1]->GetType());
       if (!arg0_is_agg || !arg1_is_agg) {
         GetErrorReporter()->Report(call->Position(), ErrorMessages::kNotASQLAggregate,
-                                 (!arg0_is_agg ? args[0]->GetType() : args[1]->GetType()));
+                                   (!arg0_is_agg ? args[0]->GetType() : args[1]->GetType()));
         return;
       }
       // Merge returns nil
@@ -673,7 +673,8 @@ void Sema::CheckBuiltinJoinHashTableIterHasNext(ast::CallExpr *call) {
       !key_eq_type->ReturnType()->IsSpecificBuiltin(ast::BuiltinType::Bool) ||
       !key_eq_type->Params()[0].type_->IsPointerType() || !key_eq_type->Params()[1].type_->IsPointerType() ||
       !key_eq_type->Params()[2].type_->IsPointerType()) {
-    GetErrorReporter()->Report(call->Position(), ErrorMessages::kBadEqualityFunctionForJHTGetNext, args[1]->GetType(), 1);
+    GetErrorReporter()->Report(call->Position(), ErrorMessages::kBadEqualityFunctionForJHTGetNext, args[1]->GetType(),
+                               1);
     return;
   }
 
@@ -1118,7 +1119,8 @@ void Sema::CheckMathTrigCall(ast::CallExpr *call, ast::Builtin builtin) {
       if (!CheckArgCount(call, 2)) {
         return;
       }
-      if (!call_args[0]->GetType()->IsSpecificBuiltin(real_kind) || !call_args[1]->GetType()->IsSpecificBuiltin(real_kind)) {
+      if (!call_args[0]->GetType()->IsSpecificBuiltin(real_kind) ||
+          !call_args[1]->GetType()->IsSpecificBuiltin(real_kind)) {
         ReportIncorrectCallArg(call, 1, GetBuiltinType(real_kind));
         return;
       }
@@ -1176,7 +1178,8 @@ void Sema::CheckBuiltinPtrCastCall(ast::CallExpr *call) {
   }
 
   // Replace the unary with a PointerTypeRepr node and resolve it
-  call->SetArgument(0, GetContext()->NodeFactory()->NewPointerType(call->Arguments()[0]->Position(), unary_op->Expression()));
+  call->SetArgument(
+      0, GetContext()->NodeFactory()->NewPointerType(call->Arguments()[0]->Position(), unary_op->Expression()));
 
   for (auto *arg : call->Arguments()) {
     auto *resolved_type = Resolve(arg);
@@ -1610,8 +1613,8 @@ void Sema::CheckBuiltinIndexIteratorFree(execution::ast::CallExpr *call) {
   // First argument must be a pointer to a IndexIterator
   auto *index_type = call->Arguments()[0]->GetType()->GetPointeeType();
   if (index_type == nullptr || !index_type->IsSpecificBuiltin(ast::BuiltinType::IndexIterator)) {
-    GetErrorReporter()->Report(call->Position(), ErrorMessages::kBadArgToIndexIteratorFree, call->Arguments()[0]->GetType(),
-                             0);
+    GetErrorReporter()->Report(call->Position(), ErrorMessages::kBadArgToIndexIteratorFree,
+                               call->Arguments()[0]->GetType(), 0);
     return;
   }
   // Return nothing
@@ -1621,7 +1624,8 @@ void Sema::CheckBuiltinIndexIteratorFree(execution::ast::CallExpr *call) {
 void Sema::CheckBuiltinCall(ast::CallExpr *call) {
   ast::Builtin builtin;
   if (!GetContext()->IsBuiltinFunction(call->GetFuncName(), &builtin)) {
-    GetErrorReporter()->Report(call->Function()->Position(), ErrorMessages::kInvalidBuiltinFunction, call->GetFuncName());
+    GetErrorReporter()->Report(call->Function()->Position(), ErrorMessages::kInvalidBuiltinFunction,
+                               call->GetFuncName());
     return;
   }
 

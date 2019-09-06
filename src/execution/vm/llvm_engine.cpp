@@ -34,7 +34,7 @@
 #include "execution/vm/bytecode_traits.h"
 #include "loggers/execution_logger.h"
 
-extern void *dso_handle __attribute__((__visibility__("hidden")));
+extern void *__dso_handle __attribute__((__visibility__("hidden")));  // NOLINT
 
 namespace terrier::execution::vm {
 
@@ -59,19 +59,19 @@ bool FunctionHasDirectReturn(const ast::FunctionType *func_type) {
 class LLVMEngine::TPLMemoryManager : public llvm::SectionMemoryManager {
  public:
   llvm::JITSymbol findSymbol(const std::string &name) override {
-    EXECUTION_LOG_TRACE("Resolving symbol '{}' ...", name);
+    EXECUTION_LOG_INFO("Resolving symbol '{}' ...", name);
 
     if (const auto iter = symbols_.find(name); iter != symbols_.end()) {
-      EXECUTION_LOG_TRACE("Symbol '{}' found in cache ...", name);
+      EXECUTION_LOG_INFO("Symbol '{}' found in cache ...", name);
       return llvm::JITSymbol(iter->second);
     }
 
     if (name == "__dso_handle") {
-      EXECUTION_LOG_TRACE("'__dso_handle' resolved to {} ...", reinterpret_cast<uint64_t>(&dso_handle));
-      return {reinterpret_cast<uint64_t>(&dso_handle), {}};
+      EXECUTION_LOG_INFO("'__dso_handle' resolved to {} ...", reinterpret_cast<uint64_t>(&__dso_handle));
+      return {reinterpret_cast<uint64_t>(&__dso_handle), {}};
     }
 
-    EXECUTION_LOG_TRACE("Symbol '{}' not found in cache, checking process ...", name);
+    EXECUTION_LOG_INFO("Symbol '{}' not found in cache, checking process ...", name);
 
     llvm::JITSymbol symbol = llvm::SectionMemoryManager::findSymbol(name);
     TERRIER_ASSERT(symbol.getAddress(), "Resolved symbol has no address!");
@@ -93,7 +93,7 @@ class LLVMEngine::TPLMemoryManager : public llvm::SectionMemoryManager {
 class LLVMEngine::TypeMap {
  public:
   explicit TypeMap(llvm::Module *module) : module_(module) {
-    llvm::LLVMContext &ctx = module->getGetContext();
+    llvm::LLVMContext &ctx = module->getContext();
     type_map_["nil"] = llvm::Type::getVoidTy(ctx);
     type_map_["bool"] = llvm::Type::getInt8Ty(ctx);
     type_map_["int8"] = llvm::Type::getInt8Ty(ctx);
@@ -218,7 +218,7 @@ llvm::Type *LLVMEngine::TypeMap::GetLLVMTypeForBuiltin(const ast::BuiltinType *b
   TERRIER_ASSERT(!builtin_type->IsPrimitive(), "Primitive types should be cached!");
 
   // For the builtins, we perform a lookup using the C++ name
-  const std::string name = builtin_type->cpp_Name();
+  const std::string name = builtin_type->CppName();
 
   // Try "struct" prefix
   if (llvm::Type *type = module_->getTypeByName("struct." + name)) {
@@ -239,7 +239,7 @@ llvm::StructType *LLVMEngine::TypeMap::GetLLVMStructType(const ast::StructType *
   llvm::SmallVector<llvm::Type *, 8> fields;
 
   for (const auto &field : struct_type->Fields()) {
-    fields.push_back(GetLLVMType(field.type));
+    fields.push_back(GetLLVMType(field.type_));
   }
 
   return llvm::StructType::create(fields);
@@ -271,7 +271,7 @@ llvm::FunctionType *LLVMEngine::TypeMap::GetLLVMFunctionType(const ast::Function
   //
 
   for (const auto &param_info : func_type->Params()) {
-    llvm::Type *param_type = GetLLVMType(param_info.type);
+    llvm::Type *param_type = GetLLVMType(param_info.type_);
     param_types.push_back(param_type);
   }
 
@@ -305,25 +305,25 @@ LLVMEngine::FunctionLocalsMap::FunctionLocalsMap(const FunctionInfo &func_info, 
     : ir_builder_(ir_builder) {
   uint32_t local_idx = 0;
 
-  const auto &func_locals = func_info.locals();
+  const auto &func_locals = func_info.Locals();
 
-  if (const ast::FunctionType *func_type = func_info.func_GetType(); FunctionHasDirectReturn(func_type)) {
+  if (const ast::FunctionType *func_type = func_info.FuncType(); FunctionHasDirectReturn(func_type)) {
     llvm::Type *ret_type = type_map->GetLLVMType(func_type->ReturnType());
     llvm::Value *val = ir_builder->CreateAlloca(ret_type);
-    params_[func_locals[0].offset()] = val;
+    params_[func_locals[0].Offset()] = val;
     local_idx++;
   }
 
   for (auto arg_iter = func->arg_begin(); local_idx < func_info.NumParams(); ++local_idx, ++arg_iter) {
     const LocalInfo &param = func_locals[local_idx];
-    params_[param.offset()] = &*arg_iter;
+    params_[param.Offset()] = &*arg_iter;
   }
 
-  for (; local_idx < func_info.locals().size(); local_idx++) {
+  for (; local_idx < func_info.Locals().size(); local_idx++) {
     const LocalInfo &local_info = func_locals[local_idx];
     llvm::Type *llvm_type = type_map->GetLLVMType(local_info.GetType());
     llvm::Value *val = ir_builder->CreateAlloca(llvm_type);
-    locals_[local_info.offset()] = val;
+    locals_[local_info.Offset()] = val;
   }
 }
 
@@ -420,7 +420,7 @@ class LLVMEngine::CompiledModuleBuilder {
 
   const llvm::Module &Module() const { return *llvm_module_; }
 
-  TypeMap *TypeMap() { return type_map_.get(); }
+  TypeMap *GetTypeMap() { return type_map_.get(); }
 
  private:
   const CompilerOptions &options_;
@@ -516,15 +516,15 @@ LLVMEngine::CompiledModuleBuilder::CompiledModuleBuilder(const CompilerOptions &
 }
 
 void LLVMEngine::CompiledModuleBuilder::DeclareFunctions() {
-  for (const auto &func_info : tpl_module_.functions()) {
-    auto *func_type = llvm::cast<llvm::FunctionType>(type_map()->GetLLVMType(func_info.func_GetType()));
-    module()->getOrInsertFunction(func_info.Name(), func_type);
+  for (const auto &func_info : tpl_module_.Functions()) {
+    auto *func_type = llvm::cast<llvm::FunctionType>(GetTypeMap()->GetLLVMType(func_info.FuncType()));
+    Module()->getOrInsertFunction(func_info.Name(), func_type);
   }
 }
 
 llvm::Function *LLVMEngine::CompiledModuleBuilder::LookupBytecodeHandler(Bytecode bytecode) const {
   const char *handler_name = Bytecodes::GetBytecodeHandlerName(bytecode);
-  llvm::Function *func = module().getFunction(handler_name);
+  llvm::Function *func = Module().getFunction(handler_name);
 #ifndef NDEBUG
   if (func == nullptr) {
     auto error =
@@ -549,7 +549,7 @@ void LLVMEngine::CompiledModuleBuilder::BuildSimpleCFG(const FunctionInfo &func_
   // We use this vector as a stack for DFS traversal
   llvm::SmallVector<std::size_t, 16> bb_begin_positions = {0};
 
-  for (auto iter = tpl_module().BytecodeForFunction(func_info); !bb_begin_positions.empty();) {
+  for (auto iter = TplModule().BytecodeForFunction(func_info); !bb_begin_positions.empty();) {
     std::size_t begin_pos = bb_begin_positions.back();
     bb_begin_positions.pop_back();
 
@@ -595,8 +595,8 @@ void LLVMEngine::CompiledModuleBuilder::BuildSimpleCFG(const FunctionInfo &func_
 }
 
 void LLVMEngine::CompiledModuleBuilder::DefineFunction(const FunctionInfo &func_info, llvm::IRBuilder<> *ir_builder) {
-  llvm::LLVMContext &ctx = ir_builder->getGetContext();
-  llvm::Function *func = module()->getFunction(func_info.Name());
+  llvm::LLVMContext &ctx = ir_builder->getContext();
+  llvm::Function *func = Module()->getFunction(func_info.Name());
   llvm::BasicBlock *entry = llvm::BasicBlock::Create(ctx, "EntryBB", func);
 
   //
@@ -640,9 +640,9 @@ void LLVMEngine::CompiledModuleBuilder::DefineFunction(const FunctionInfo &func_
 
   ir_builder->SetInsertPoint(entry);
 
-  FunctionLocalsMap locals_map(func_info, func, type_map(), ir_builder);
+  FunctionLocalsMap locals_map(func_info, func, GetTypeMap(), ir_builder);
 
-  for (auto iter = tpl_module().BytecodeForFunction(func_info); !iter.Done(); iter.Advance()) {
+  for (auto iter = TplModule().BytecodeForFunction(func_info); !iter.Done(); iter.Advance()) {
     Bytecode bytecode = iter.CurrentBytecode();
 
     // Collect arguments
@@ -653,41 +653,43 @@ void LLVMEngine::CompiledModuleBuilder::DefineFunction(const FunctionInfo &func_
           break;
         }
         case OperandType::Imm1: {
-          args.push_back(llvm::ConstantInt::get(type_map()->Int8Type(), iter.GetImmediateOperand(i), true));
+          args.push_back(llvm::ConstantInt::get(GetTypeMap()->Int8Type(), iter.GetImmediateOperand(i), true));
           break;
         }
         case OperandType::Imm2: {
-          args.push_back(llvm::ConstantInt::get(type_map()->Int16Type(), iter.GetImmediateOperand(i), true));
+          args.push_back(llvm::ConstantInt::get(GetTypeMap()->Int16Type(), iter.GetImmediateOperand(i), true));
           break;
         }
         case OperandType::Imm4: {
-          args.push_back(llvm::ConstantInt::get(type_map()->Int32Type(), iter.GetImmediateOperand(i), true));
+          args.push_back(llvm::ConstantInt::get(GetTypeMap()->Int32Type(), iter.GetImmediateOperand(i), true));
           break;
         }
         case OperandType::Imm8: {
-          args.push_back(llvm::ConstantInt::get(type_map()->Int64Type(), iter.GetImmediateOperand(i), true));
+          args.push_back(llvm::ConstantInt::get(GetTypeMap()->Int64Type(), iter.GetImmediateOperand(i), true));
           break;
         }
         case OperandType::Imm4F: {
-          args.push_back(llvm::ConstantFP::get(type_map()->Float32Type(), iter.GetFloatImmediateOperand(i)));
+          args.push_back(llvm::ConstantFP::get(GetTypeMap()->Float32Type(), iter.GetFloatImmediateOperand(i)));
           break;
         }
         case OperandType::Imm8F: {
-          args.push_back(llvm::ConstantFP::get(type_map()->Float64Type(), iter.GetFloatImmediateOperand(i)));
+          args.push_back(llvm::ConstantFP::get(GetTypeMap()->Float64Type(), iter.GetFloatImmediateOperand(i)));
           break;
         }
         case OperandType::UImm2: {
-          args.push_back(llvm::ConstantInt::get(type_map()->UInt16Type(), iter.GetUnsignedImmediateOperand(i), false));
+          args.push_back(
+              llvm::ConstantInt::get(GetTypeMap()->UInt16Type(), iter.GetUnsignedImmediateOperand(i), false));
           break;
         }
         case OperandType::UImm4: {
-          args.push_back(llvm::ConstantInt::get(type_map()->UInt32Type(), iter.GetUnsignedImmediateOperand(i), false));
+          args.push_back(
+              llvm::ConstantInt::get(GetTypeMap()->UInt32Type(), iter.GetUnsignedImmediateOperand(i), false));
           break;
         }
         case OperandType::FunctionId: {
           const uint16_t target_func_id = iter.GetFunctionIdOperand(i);
-          auto *target_func_info = tpl_module().GetFuncInfoById(target_func_id);
-          auto *target_func = module()->getFunction(target_func_info->Name());
+          auto *target_func_info = TplModule().GetFuncInfoById(target_func_id);
+          auto *target_func = Module()->getFunction(target_func_info->Name());
           TERRIER_ASSERT(target_func != nullptr, "Function doesn't exist in LLVM module");
           args.push_back(target_func);
           break;
@@ -751,11 +753,11 @@ void LLVMEngine::CompiledModuleBuilder::DefineFunction(const FunctionInfo &func_
         //
 
         const FunctionId callee_id = iter.GetFunctionIdOperand(0);
-        const auto *callee_func_info = tpl_module().GetFuncInfoById(callee_id);
-        llvm::Function *callee = module()->getFunction(callee_func_info->Name());
+        const auto *callee_func_info = TplModule().GetFuncInfoById(callee_id);
+        llvm::Function *callee = Module()->getFunction(callee_func_info->Name());
         args.erase(args.begin());
 
-        if (FunctionHasDirectReturn(callee_func_info->func_GetType())) {
+        if (FunctionHasDirectReturn(callee_func_info->FuncType())) {
           llvm::Value *dest = args[0];
           args.erase(args.begin());
           llvm::Value *ret = issue_call(callee, args);
@@ -796,7 +798,7 @@ void LLVMEngine::CompiledModuleBuilder::DefineFunction(const FunctionInfo &func_
         TERRIER_ASSERT(blocks[fallthrough_bb_pos] != nullptr, "Branch fallthrough does not point to valid basic block");
         TERRIER_ASSERT(blocks[branch_target_bb_pos] != nullptr, "Branch target does not point to valid basic block");
 
-        auto *check = llvm::ConstantInt::get(type_map()->Int8Type(), 1, false);
+        auto *check = llvm::ConstantInt::get(GetTypeMap()->Int8Type(), 1, false);
         llvm::Value *cond = ir_builder->CreateICmpEQ(args[0], check);
 
         if (bytecode == Bytecode::JumpIfTrue) {
@@ -808,7 +810,7 @@ void LLVMEngine::CompiledModuleBuilder::DefineFunction(const FunctionInfo &func_
       }
 
       case Bytecode::Return: {
-        if (FunctionHasDirectReturn(func_info.func_GetType())) {
+        if (FunctionHasDirectReturn(func_info.FuncType())) {
           llvm::Value *ret_val = locals_map.GetArgumentById(func_info.GetReturnValueLocal());
           ir_builder->CreateRet(ir_builder->CreateLoad(ret_val));
         } else {
@@ -852,7 +854,7 @@ void LLVMEngine::CompiledModuleBuilder::DefineFunctions() {
   //
 
   llvm::IRBuilder<> ir_builder(GetContext());
-  for (const auto &func_info : tpl_module().functions()) {
+  for (const auto &func_info : TplModule().Functions()) {
     DefineFunction(func_info, &ir_builder);
   }
 }
@@ -860,7 +862,7 @@ void LLVMEngine::CompiledModuleBuilder::DefineFunctions() {
 void LLVMEngine::CompiledModuleBuilder::Verify() {
   std::string result;
   llvm::raw_string_ostream ostream(result);
-  if (bool has_error = llvm::verifyModule(*module(), &ostream); has_error) {
+  if (bool has_error = llvm::verifyModule(*Module(), &ostream); has_error) {
     EXECUTION_LOG_ERROR("ERROR IN MODULE:\n{}", ostream.str());
     UNREACHABLE("Could not compile module");
   }
@@ -876,7 +878,7 @@ void LLVMEngine::CompiledModuleBuilder::Simplify() {
   llvm::legacy::PassManager pass_manager;
   pass_manager.add(llvm::createAlwaysInlinerLegacyPass());
   pass_manager.add(llvm::createGlobalDCEPass());
-  pass_manager.run(*module());
+  pass_manager.run(*Module());
 }
 
 void LLVMEngine::CompiledModuleBuilder::Optimize() {
@@ -894,8 +896,8 @@ void LLVMEngine::CompiledModuleBuilder::Optimize() {
   // The function optimization passes ...
   //
 
-  llvm::legacy::FunctionPassManager function_pm(module());
-  function_pm.add(llvm::createTargetTransformInfoWrapperPass(target_machine()->getTargetIRAnalysis()));
+  llvm::legacy::FunctionPassManager function_pm(Module());
+  function_pm.add(llvm::createTargetTransformInfoWrapperPass(TargetMachine()->getTargetIRAnalysis()));
   function_pm.add(llvm::createCFGSimplificationPass());
   function_pm.add(llvm::createAggressiveDCEPass());
   function_pm.add(llvm::createCFGSimplificationPass());
@@ -905,7 +907,7 @@ void LLVMEngine::CompiledModuleBuilder::Optimize() {
   //
 
   llvm::legacy::PassManager module_pm;
-  module_pm.add(llvm::createTargetTransformInfoWrapperPass(target_machine()->getTargetIRAnalysis()));
+  module_pm.add(llvm::createTargetTransformInfoWrapperPass(TargetMachine()->getTargetIRAnalysis()));
 
   pm_builder.populateFunctionPassManager(function_pm);
   pm_builder.populateModulePassManager(module_pm);
@@ -915,8 +917,8 @@ void LLVMEngine::CompiledModuleBuilder::Optimize() {
   //
 
   function_pm.doInitialization();
-  for (const auto &func_info : tpl_module().functions()) {
-    auto *func = module()->getFunction(func_info.Name());
+  for (const auto &func_info : TplModule().Functions()) {
+    auto *func = Module()->getFunction(func_info.Name());
     function_pm.run(*func);
   }
   function_pm.doFinalization();
@@ -925,13 +927,13 @@ void LLVMEngine::CompiledModuleBuilder::Optimize() {
   // Now, run the module-level optimizations
   //
 
-  module_pm.run(*module());
+  module_pm.run(*Module());
 }
 
 std::unique_ptr<LLVMEngine::CompiledModule> LLVMEngine::CompiledModuleBuilder::Finalize() {
   std::unique_ptr<llvm::MemoryBuffer> obj = EmitObject();
 
-  if (options().ShouldPersistObjectFile()) {
+  if (Options().ShouldPersistObjectFile()) {
     PersistObjectToFile(*obj);
   }
 
@@ -945,12 +947,12 @@ std::unique_ptr<llvm::MemoryBuffer> LLVMEngine::CompiledModuleBuilder::EmitObjec
 
   // The pass manager we insert the EmitMC pass into
   llvm::legacy::PassManager pass_manager;
-  pass_manager.add(new llvm::TargetLibraryInfoWrapperPass(target_machine()->getTargetTriple()));
-  pass_manager.add(llvm::createTargetTransformInfoWrapperPass(target_machine()->getTargetIRAnalysis()));
+  pass_manager.add(new llvm::TargetLibraryInfoWrapperPass(TargetMachine()->getTargetTriple()));
+  pass_manager.add(llvm::createTargetTransformInfoWrapperPass(TargetMachine()->getTargetIRAnalysis()));
 
   llvm::MCContext *mc_ctx;
   llvm::raw_svector_ostream obj_buffer_stream(obj_buffer);
-  if (target_machine()->addPassesToEmitMC(pass_manager, mc_ctx, obj_buffer_stream)) {
+  if (TargetMachine()->addPassesToEmitMC(pass_manager, mc_ctx, obj_buffer_stream)) {
     EXECUTION_LOG_ERROR("The target LLVM machine cannot emit a file of this type");
     return nullptr;
   }
@@ -962,7 +964,7 @@ std::unique_ptr<llvm::MemoryBuffer> LLVMEngine::CompiledModuleBuilder::EmitObjec
 }
 
 void LLVMEngine::CompiledModuleBuilder::PersistObjectToFile(const llvm::MemoryBuffer &obj_buffer) {
-  const std::string file_name = tpl_module().Name() + ".to";
+  const std::string file_name = TplModule().Name() + ".to";
 
   std::error_code error_code;
   llvm::raw_fd_ostream dest(file_name, error_code, llvm::sys::fs::F_None);
@@ -989,7 +991,7 @@ std::string LLVMEngine::CompiledModuleBuilder::DumpModuleAsm() {
   llvm::raw_svector_ostream ostream(asm_str);
 
   llvm::legacy::PassManager pass_manager;
-  pass_manager.add(llvm::createTargetTransformInfoWrapperPass(target_machine()->getTargetIRAnalysis()));
+  pass_manager.add(llvm::createTargetTransformInfoWrapperPass(TargetMachine()->getTargetIRAnalysis()));
   target_machine_->Options.MCOptions.AsmVerbose = true;
   target_machine_->addPassesToEmitFile(pass_manager, ostream, nullptr, llvm::TargetMachine::CGFT_AssemblyFile);
   pass_manager.run(*llvm_module_);
@@ -1012,7 +1014,7 @@ LLVMEngine::CompiledModule::CompiledModule(std::unique_ptr<llvm::MemoryBuffer> o
 LLVMEngine::CompiledModule::~CompiledModule() = default;
 
 void *LLVMEngine::CompiledModule::GetFunctionPointer(const std::string &name) const {
-  TERRIER_ASSERT(is_loaded(), "Compiled module isn't loaded!");
+  TERRIER_ASSERT(IsLoaded(), "Compiled module isn't loaded!");
 
   if (auto iter = functions_.find(name); iter != functions_.end()) {
     return iter->second;
@@ -1023,7 +1025,7 @@ void *LLVMEngine::CompiledModule::GetFunctionPointer(const std::string &name) co
 
 void LLVMEngine::CompiledModule::Load(const BytecodeModule &module) {
   // If already loaded, do nothing
-  if (is_loaded()) {
+  if (IsLoaded()) {
     return;
   }
 
@@ -1077,7 +1079,7 @@ void LLVMEngine::CompiledModule::Load(const BytecodeModule &module) {
   // all module functions into a handy cache.
   //
 
-  for (const auto &func : module.functions()) {
+  for (const auto &func : module.Functions()) {
     auto symbol = loader.getSymbol(func.Name());
     functions_[func.Name()] = reinterpret_cast<void *>(symbol.getAddress());
   }

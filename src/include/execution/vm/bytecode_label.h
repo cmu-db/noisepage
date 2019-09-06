@@ -11,7 +11,7 @@ namespace terrier::execution::vm {
  * A label represents a location in the bytecode and is used as the target of a
  * jump instruction. When the label is bound, it becomes an immutable reference
  * to a location in the bytecode (accessible through @ref offset()). If the
- * label is a forward target, @ref referrer_offsets() will return the bytecode location
+ * label is a forward target, @ref ReferrerOffsets() will return the bytecode location
  * of the referring jump instruction.
  */
 class BytecodeLabel {
@@ -44,7 +44,7 @@ class BytecodeLabel {
   /**
    * @return whether the label is a forward target.
    */
-  bool IsForwardTarget() const { return !IsBound() && !referrer_offsets().empty(); }
+  bool IsForwardTarget() const { return !IsBound() && !ReferrerOffsets().empty(); }
 
  private:
   friend class BytecodeEmitter;

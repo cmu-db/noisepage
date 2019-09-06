@@ -52,11 +52,11 @@ void Region::FreeAll() {
   EXECUTION_LOG_TRACE(
       "Region['{}', allocated: {} bytes, alignment waste: {} bytes, total "
       "chunks: {} bytes]",
-      Name().c_str(), allocated(), alignment_waste(), total_memory());
+      Name().c_str(), Allocated(), AlignmentWaste(), TotalMemory());
 
   Chunk *head = head_;
   while (head != nullptr) {
-    Chunk *next = head->next;
+    Chunk *next = head->next_;
     std::free(static_cast<void *>(head));
     head = next;
   }
@@ -78,15 +78,15 @@ uintptr_t Region::Expand(std::size_t requested) {
   //
 
   Chunk *head = head_;
-  const std::size_t prev_size = (head == nullptr ? 0 : head->size);
+  const std::size_t prev_size = (head == nullptr ? 0 : head->size_);
   const std::size_t new_size_no_overhead = (requested + (prev_size * 2));
   std::size_t new_size = k_chunk_overhead + new_size_no_overhead;
 
-  if (new_size < kMinChunkAllocation) {
-    new_size = kMinChunkAllocation;
-  } else if (new_size > kMaxChunkAllocation) {
+  if (new_size < K_MIN_CHUNK_ALLOCATION) {
+    new_size = K_MIN_CHUNK_ALLOCATION;
+  } else if (new_size > K_MAX_CHUNK_ALLOCATION) {
     const std::size_t min_new_size = k_chunk_overhead + requested;
-    const std::size_t max_alloc = kMaxChunkAllocation;
+    const std::size_t max_alloc = K_MAX_CHUNK_ALLOCATION;
     new_size = std::max(min_new_size, max_alloc);
   }
 

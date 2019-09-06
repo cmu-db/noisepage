@@ -27,7 +27,7 @@ Sorter::Sorter(MemoryPool *memory, ComparisonFunction cmp_fn, uint32_t tuple_siz
 Sorter::~Sorter() = default;
 
 byte *Sorter::AllocInputTuple() {
-  byte *ret = tuple_storage_.append();
+  byte *ret = tuple_storage_.Append();
   tuples_.push_back(ret);
   return ret;
 }
@@ -101,7 +101,7 @@ void Sorter::HeapSiftDown() {
 
 void Sorter::Sort() {
   // Exit if the input tuples have already been sorted
-  if (is_sorted()) {
+  if (IsSorted()) {
     return;
   }
 
@@ -118,10 +118,10 @@ void Sorter::Sort() {
   const auto compare = [this](const byte *left, const byte *right) { return cmp_fn_(left, right) < 0; };
   ips4o::sort(tuples_.begin(), tuples_.end(), compare);
 
-  timer.StOp();
+  timer.Stop();
 
-  UNUSED_ATTRIBUTE double tps = (static_cast<double>(tuples_.size()) / timer.elapsed()) / 1000.0;
-  EXECUTION_LOG_DEBUG("Sorted {} tuples in {} ms ({:.2f} tps)", tuples_.size(), timer.elapsed(), tps);
+  UNUSED_ATTRIBUTE double tps = (static_cast<double>(tuples_.size()) / timer.Elapsed()) / 1000.0;
+  EXECUTION_LOG_DEBUG("Sorted {} tuples in {} ms ({:.2f} tps)", tuples_.size(), timer.Elapsed(), tps);
 
   // Mark complete
   sorted_ = true;
@@ -291,8 +291,8 @@ void Sorter::SortParallel(const ThreadStateContainer *thread_state_container, co
 
   tbb::parallel_for_each(merge_work.begin(), merge_work.end(), [&heap_cmp](const MergeWork<SeqTypeIter> &work) {
     std::priority_queue<MergeWorkType::Range, std::vector<MergeWorkType::Range>, decltype(heap_cmp)> heap(
-        heap_cmp, work.input_ranges);
-    SeqTypeIter dest = work.destination;
+        heap_cmp, work.input_ranges_);
+    SeqTypeIter dest = work.destination_;
     while (!heap.empty()) {
       auto top = heap.top();
       heap.pop();
@@ -327,7 +327,7 @@ void Sorter::SortParallel(const ThreadStateContainer *thread_state_container, co
 
   EXECUTION_LOG_DEBUG("Parallel Sort:");
   for (const auto &stage : timer.GetStages()) {
-    EXECUTION_LOG_DEBUG("  {}: {.2f} ms", stage.Name(), stage.time());
+    EXECUTION_LOG_DEBUG("  {}: {.2f} ms", stage.Name(), stage.Time());
   }
 }
 

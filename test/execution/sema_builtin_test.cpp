@@ -16,7 +16,7 @@ class SemaBuiltinTest : public TplTest, public ast::test::TestAstBuilder {
   SemaBuiltinTest() = default;
 
   bool Check(ast::AstNode *node) {
-    sema::Sema sema(ctx());
+    sema::Sema sema(Ctx());
     return sema.Run(node);
   }
 
@@ -25,7 +25,7 @@ class SemaBuiltinTest : public TplTest, public ast::test::TestAstBuilder {
     ast::test::TestAstBuilder::SetUp();
   }
 
-  void ResetGetErrorReporter() { GetErrorReporter()->Reset(); }
+  void ResetErrorReporter() { GetErrorReporter()->Reset(); }
 };
 
 // NOLINTNEXTLINE
@@ -41,7 +41,7 @@ TEST_F(SemaBuiltinTest, CheckSqlConversions) {
     auto block = Block({DeclStmt(input1), ExprStmt(result)});
     EXPECT_EQ(false, Check(block));
     EXPECT_TRUE(result->GetType()->IsSpecificBuiltin(ast::BuiltinType::Integer));
-    ResetGetErrorReporter();
+    ResetErrorReporter();
   }
 
   // multiple int input to (int -> Integer) is invalid
@@ -50,7 +50,7 @@ TEST_F(SemaBuiltinTest, CheckSqlConversions) {
     auto result = Call<ast::Builtin::IntToSql>(DeclRef(input1), DeclRef(input1));
     auto block = Block({DeclStmt(input1), ExprStmt(result)});
     EXPECT_EQ(true, Check(block));
-    ResetGetErrorReporter();
+    ResetErrorReporter();
   }
 
   // bool input to (int -> Integer) is invalid
@@ -59,7 +59,7 @@ TEST_F(SemaBuiltinTest, CheckSqlConversions) {
     auto result = Call<ast::Builtin::IntToSql>(DeclRef(input1));
     auto block = Block({DeclStmt(input1), ExprStmt(result)});
     EXPECT_EQ(true, Check(block));
-    ResetGetErrorReporter();
+    ResetErrorReporter();
   }
 
   //
@@ -73,7 +73,7 @@ TEST_F(SemaBuiltinTest, CheckSqlConversions) {
     auto block = Block({DeclStmt(input1), ExprStmt(result)});
     EXPECT_EQ(false, Check(block));
     EXPECT_TRUE(result->GetType()->IsSpecificBuiltin(ast::BuiltinType::Boolean));
-    ResetGetErrorReporter();
+    ResetErrorReporter();
   }
 
   // integer input to (bool -> Boolean) is invalid
@@ -82,7 +82,7 @@ TEST_F(SemaBuiltinTest, CheckSqlConversions) {
     auto result = Call<ast::Builtin::BoolToSql>(DeclRef(input1));
     auto block = Block({DeclStmt(input1), ExprStmt(result)});
     EXPECT_EQ(true, Check(block));
-    ResetGetErrorReporter();
+    ResetErrorReporter();
   }
 
   //
@@ -96,7 +96,7 @@ TEST_F(SemaBuiltinTest, CheckSqlConversions) {
     auto block = Block({DeclStmt(input1), ExprStmt(result)});
     EXPECT_EQ(false, Check(block));
     EXPECT_TRUE(result->GetType()->IsSpecificBuiltin(ast::BuiltinType::Real));
-    ResetGetErrorReporter();
+    ResetErrorReporter();
   }
 
   // integer input to (float -> Real) is invalid
@@ -105,7 +105,7 @@ TEST_F(SemaBuiltinTest, CheckSqlConversions) {
     auto result = Call<ast::Builtin::FloatToSql>(DeclRef(input1));
     auto block = Block({DeclStmt(input1), ExprStmt(result)});
     EXPECT_EQ(true, Check(block));
-    ResetGetErrorReporter();
+    ResetErrorReporter();
   }
 }
 
@@ -121,21 +121,21 @@ TEST_F(SemaBuiltinTest, CheckTrigBuiltins) {
       auto result = Call<BUILTIN>(DeclRef(input1));                                                 \
       auto block = Block({DeclStmt(input1), DeclStmt(input2), DeclStmt(input3), ExprStmt(result)}); \
       EXPECT_EQ(false, Check(block));                                                               \
-      ResetGetErrorReporter();                                                                         \
+      ResetErrorReporter();                                                                         \
     }                                                                                               \
     /* Check single invalid input */                                                                \
     {                                                                                               \
       auto result = Call<BUILTIN>(DeclRef(input3));                                                 \
       auto block = Block({DeclStmt(input1), DeclStmt(input2), DeclStmt(input3), ExprStmt(result)}); \
       EXPECT_EQ(true, Check(block));                                                                \
-      ResetGetErrorReporter();                                                                         \
+      ResetErrorReporter();                                                                         \
     }                                                                                               \
     /* Check wrong number of args input */                                                          \
     {                                                                                               \
       auto result = Call<BUILTIN>(DeclRef(input1), DeclRef(input2));                                \
       auto block = Block({DeclStmt(input1), DeclStmt(input2), DeclStmt(input3), ExprStmt(result)}); \
       EXPECT_EQ(true, Check(block));                                                                \
-      ResetGetErrorReporter();                                                                         \
+      ResetErrorReporter();                                                                         \
     }                                                                                               \
   }
 

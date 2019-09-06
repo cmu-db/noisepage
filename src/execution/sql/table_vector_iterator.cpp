@@ -27,7 +27,7 @@ bool TableVectorIterator::Init() {
   auto pc_init = table_->InitializerForProjectedColumns(col_oids_, common::Constants::K_DEFAULT_VECTOR_SIZE);
   buffer_ = exec_ctx_->GetMemoryPool()->AllocateAligned(pc_init.ProjectedColumnsSize(), alignof(uint64_t), false);
   projected_columns_ = pc_init.Initialize(buffer_);
-  initialized = true;
+  initialized_ = true;
 
   // Begin iterating
   iter_ = std::make_unique<storage::DataTable::SlotIterator>(table_->begin());
@@ -35,7 +35,7 @@ bool TableVectorIterator::Init() {
 }
 
 bool TableVectorIterator::Advance() {
-  if (!initialized) return false;
+  if (!initialized_) return false;
   // First check if the iterator ended.
   if (*iter_ == table_->end()) {
     return false;

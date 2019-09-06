@@ -136,8 +136,8 @@ void TestTopKRandomTupleSize(const uint32_t num_iters, const uint32_t max_elems,
     sorter.Sort();  // Sort because the reference is sorted.
     sql::SorterIterator iter(&sorter);
     for (uint32_t i = 0; i < top_k; i++) {
-      const auto ref_elem = reference.tOp();
-      reference.pOp();
+      const auto ref_elem = reference.top();
+      reference.pop();
       EXPECT_EQ(*reinterpret_cast<const IntType *>(*iter), ref_elem);
       ++iter;
     }
@@ -160,10 +160,10 @@ TEST_F(SorterTest, TopKTest) {
 
 template <uint32_t N>
 struct TestTuple {
-  uint32_t key;
-  uint32_t data[N];
+  uint32_t key_;
+  uint32_t data_[N];
 
-  int32_t Compare(const TestTuple<N> &other) const { return key - other.key; }
+  int32_t Compare(const TestTuple<N> &other) const { return key_ - other.key_; }
 };
 
 // Generic function to perform a parallel sort. The input parameter indicates
@@ -195,7 +195,7 @@ void TestParallelSort(const std::vector<uint32_t> &sorter_sizes_) {
     auto *sorter = container.AccessThreadStateOfCurrentThreadAs<Sorter>();
     for (uint32_t i = 0; i < sorter_size; i++) {
       auto *elem = reinterpret_cast<TestTuple<N> *>(sorter->AllocInputTuple());
-      elem->key = i;
+      elem->key_ = i;
     }
   });
 
@@ -206,7 +206,7 @@ void TestParallelSort(const std::vector<uint32_t> &sorter_sizes_) {
   uint32_t expected_total_size =
       std::accumulate(sorter_sizes_.begin(), sorter_sizes_.end(), 0u, [](auto p, auto s) { return p + s; });
 
-  EXPECT_TRUE(main.is_sorted());
+  EXPECT_TRUE(main.IsSorted());
   EXPECT_EQ(expected_total_size, main.NumTuples());
 
   // Ensure sortedness

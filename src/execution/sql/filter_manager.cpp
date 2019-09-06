@@ -119,7 +119,7 @@ std::pair<uint32_t, double> FilterManager::RunFilterClauseImpl(ProjectedColumnsI
   util::Timer<> timer;
   timer.Start();
   const uint32_t num_selected = func(pci);
-  timer.StOp();
+  timer.Stop();
   return std::make_pair(num_selected, timer.Elapsed());
 }
 

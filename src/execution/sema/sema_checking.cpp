@@ -7,13 +7,13 @@
 namespace terrier::execution::sema {
 
 void Sema::ReportIncorrectCallArg(ast::CallExpr *call, uint32_t index, ast::Type *expected) {
-  GetErrorReporter()->Report(call->Position(), ErrorMessages::kIncorrectCallArgType, call->GetFuncName(), expected, index,
-                           call->Arguments()[index]->GetType());
+  GetErrorReporter()->Report(call->Position(), ErrorMessages::kIncorrectCallArgType, call->GetFuncName(), expected,
+                             index, call->Arguments()[index]->GetType());
 }
 
 void Sema::ReportIncorrectCallArg(ast::CallExpr *call, uint32_t index, const char *expected) {
   GetErrorReporter()->Report(call->Position(), ErrorMessages::kIncorrectCallArgType2, call->GetFuncName(), expected,
-                           index, call->Arguments()[index]->GetType());
+                             index, call->Arguments()[index]->GetType());
 }
 
 ast::Expr *Sema::ImplCastExprToType(ast::Expr *expr, ast::Type *target_type, ast::CastKind cast_kind) {
@@ -23,7 +23,7 @@ ast::Expr *Sema::ImplCastExprToType(ast::Expr *expr, ast::Type *target_type, ast
 bool Sema::CheckArgCount(ast::CallExpr *call, uint32_t expected_arg_count) {
   if (call->NumArgs() != expected_arg_count) {
     GetErrorReporter()->Report(call->Position(), ErrorMessages::kMismatchedCallArgs, call->GetFuncName(),
-                             expected_arg_count, call->NumArgs());
+                               expected_arg_count, call->NumArgs());
     return false;
   }
 
@@ -33,7 +33,7 @@ bool Sema::CheckArgCount(ast::CallExpr *call, uint32_t expected_arg_count) {
 bool Sema::CheckArgCountAtLeast(ast::CallExpr *call, uint32_t expected_arg_count) {
   if (call->NumArgs() < expected_arg_count) {
     GetErrorReporter()->Report(call->Position(), ErrorMessages::kMismatchedCallArgs, call->GetFuncName(),
-                             expected_arg_count, call->NumArgs());
+                               expected_arg_count, call->NumArgs());
     return false;
   }
 

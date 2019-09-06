@@ -118,14 +118,14 @@ TEST_F(ChunkedVectorTest, ChunkReuseTest) {
   EXPECT_EQ(999u, vec.back());
 
   // Track memory allocation after all data inserted
-  auto allocated_1 = tmp.allocated();
+  auto allocated_1 = tmp.Allocated();
 
   for (uint32_t i = 0; i < 1000; i++) {
     vec.pop_back();
   }
 
   // Pops shouldn't allocated memory
-  auto allocated_2 = tmp.allocated();
+  auto allocated_2 = tmp.Allocated();
   EXPECT_EQ(0u, allocated_2 - allocated_1);
 
   for (uint32_t i = 0; i < 1000; i++) {
@@ -133,7 +133,7 @@ TEST_F(ChunkedVectorTest, ChunkReuseTest) {
   }
 
   // The above pushes should reuse chunks, i.e., no allocations
-  auto allocated_3 = tmp.allocated();
+  auto allocated_3 = tmp.Allocated();
   EXPECT_EQ(0u, allocated_3 - allocated_2);
 }
 

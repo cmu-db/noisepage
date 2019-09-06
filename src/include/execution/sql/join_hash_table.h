@@ -112,7 +112,7 @@ class JoinHashTable {
    */
   uint64_t GetJoinIndexMemoryUsage() const noexcept {
     return UseConciseHashTable() ? concise_hash_table_.GetTotalMemoryUsage()
-                                    : generic_hash_table_.GetTotalMemoryUsage();
+                                 : generic_hash_table_.GetTotalMemoryUsage();
   }
 
   /**

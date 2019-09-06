@@ -155,14 +155,14 @@ class MemoryPoolAllocator {
    * @param n size of the array
    * @return an array of the given size
    */
-  T *allocate(std::size_t n) { return memory_->AllocateArray<T>(n, false); }
+  T *allocate(std::size_t n) { return memory_->AllocateArray<T>(n, false); }  // NOLINT
 
   /**
    * Deallocates an array
    * @param ptr array to deallocate
    * @param n size of the array
    */
-  void deallocate(T *ptr, std::size_t n) { memory_->Deallocate(ptr, n); }
+  void deallocate(T *ptr, std::size_t n) { memory_->Deallocate(ptr, n); }  // NOLINT
 
   /**
    * Equality comparison for two memory pools

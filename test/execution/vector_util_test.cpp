@@ -45,12 +45,12 @@ class PoolArray {
 
   T &operator[](std::size_t n) { return arr_[n]; }
 
-  T *raw() { return arr_; }
-  const T *raw() const { return arr_; }
-  uint32_t size() { return size_; }
+  T *Raw() { return arr_; }
+  const T *Raw() const { return arr_; }
+  uint32_t Size() { return size_; }
 
-  T *begin() { return raw(); }
-  T *end() { return raw() + size(); }
+  T *Begin() { return Raw(); }
+  T *End() { return Raw() + Size(); }
 
  private:
   sql::MemoryPool *memory_{nullptr};
@@ -286,7 +286,7 @@ TEST_F(VectorUtilTest, MaskToPositionTest) {
 #endif
 
 template <typename T>
-void SmallScale_NeedleTest() {
+void SmallScaleNeedleTest() {
   static_assert(std::is_integral_v<T>, "This only works for integral types");
 
   constexpr const uint32_t num_elems = 4400;
@@ -328,7 +328,7 @@ void SmallScale_NeedleTest() {
 }
 
 template <typename T>
-void SmallScale_MultiFilterTest() {
+void SmallScaleMultiFilterTest() {
   static_assert(std::is_integral_v<T>, "This only works for integral types");
 
   constexpr const uint32_t num_elems = 4400;
@@ -383,26 +383,26 @@ void SmallScale_MultiFilterTest() {
 
 // NOLINTNEXTLINE
 TEST_F(VectorUtilTest, SimpleFilterTest) {
-  SmallScale_NeedleTest<int8_t>();
-  SmallScale_NeedleTest<uint8_t>();
-  SmallScale_NeedleTest<int16_t>();
-  SmallScale_NeedleTest<uint16_t>();
-  SmallScale_NeedleTest<int32_t>();
-  SmallScale_NeedleTest<uint32_t>();
-  SmallScale_NeedleTest<int64_t>();
-  SmallScale_NeedleTest<uint64_t>();
+  SmallScaleNeedleTest<int8_t>();
+  SmallScaleNeedleTest<uint8_t>();
+  SmallScaleNeedleTest<int16_t>();
+  SmallScaleNeedleTest<uint16_t>();
+  SmallScaleNeedleTest<int32_t>();
+  SmallScaleNeedleTest<uint32_t>();
+  SmallScaleNeedleTest<int64_t>();
+  SmallScaleNeedleTest<uint64_t>();
 }
 
 // NOLINTNEXTLINE
 TEST_F(VectorUtilTest, MultiFilterTest) {
-  SmallScale_MultiFilterTest<int8_t>();
-  SmallScale_MultiFilterTest<uint8_t>();
-  SmallScale_MultiFilterTest<int16_t>();
-  SmallScale_MultiFilterTest<uint16_t>();
-  SmallScale_MultiFilterTest<int32_t>();
-  SmallScale_MultiFilterTest<uint32_t>();
-  SmallScale_MultiFilterTest<int64_t>();
-  SmallScale_MultiFilterTest<uint64_t>();
+  SmallScaleMultiFilterTest<int8_t>();
+  SmallScaleMultiFilterTest<uint8_t>();
+  SmallScaleMultiFilterTest<int16_t>();
+  SmallScaleMultiFilterTest<uint16_t>();
+  SmallScaleMultiFilterTest<int32_t>();
+  SmallScaleMultiFilterTest<uint32_t>();
+  SmallScaleMultiFilterTest<int64_t>();
+  SmallScaleMultiFilterTest<uint64_t>();
 }
 
 // NOLINTNEXTLINE
@@ -425,15 +425,15 @@ TEST_F(VectorUtilTest, VectorVectorFilterTest) {
 
   alignas(common::Constants::CACHELINE_SIZE) uint32_t out[common::Constants::K_DEFAULT_VECTOR_SIZE] = {0};
 
-#define CHECK(op, expected_count)                                                                    \
-  {                                                                                                  \
-    uint32_t count = 0;                                                                              \
+#define CHECK(op, expected_count)                                                                       \
+  {                                                                                                     \
+    uint32_t count = 0;                                                                                 \
     for (uint32_t offset = 0; offset < num_elems; offset += common::Constants::K_DEFAULT_VECTOR_SIZE) { \
       auto size = std::min(common::Constants::K_DEFAULT_VECTOR_SIZE, num_elems - offset);               \
-      auto found = VectorUtil::Filter##op(&arr_1[offset], &arr_2[offset], size, out, nullptr);       \
-      count += found;                                                                                \
-    }                                                                                                \
-    EXPECT_EQ(expected_count, count);                                                                \
+      auto found = VectorUtil::Filter##op(&arr_1[offset], &arr_2[offset], size, out, nullptr);          \
+      count += found;                                                                                   \
+    }                                                                                                   \
+    EXPECT_EQ(expected_count, count);                                                                   \
   }
 
   CHECK(Eq, 0u)
@@ -449,25 +449,25 @@ TEST_F(VectorUtilTest, VectorVectorFilterTest) {
   // Test: fill a1 and a2 with random data. Verify filter with scalar versions.
   //
 
-#define CHECK(vec_op, scalar_op)                                                                     \
-  {                                                                                                  \
-    std::random_device random;                                                                       \
-    for (uint32_t idx = 0; idx < num_elems; idx++) {                                                 \
-      arr_1[idx] = (random() % 100);                                                                 \
-      arr_2[idx] = (random() % 100);                                                                 \
-    }                                                                                                \
-    uint32_t vec_count = 0, scalar_count = 0;                                                        \
+#define CHECK(vec_op, scalar_op)                                                                        \
+  {                                                                                                     \
+    std::random_device random;                                                                          \
+    for (uint32_t idx = 0; idx < num_elems; idx++) {                                                    \
+      arr_1[idx] = (random() % 100);                                                                    \
+      arr_2[idx] = (random() % 100);                                                                    \
+    }                                                                                                   \
+    uint32_t vec_count = 0, scalar_count = 0;                                                           \
     for (uint32_t offset = 0; offset < num_elems; offset += common::Constants::K_DEFAULT_VECTOR_SIZE) { \
       auto size = std::min(common::Constants::K_DEFAULT_VECTOR_SIZE, num_elems - offset);               \
-      /* Vector filter*/                                                                             \
-      auto found = VectorUtil::Filter##vec_op(&arr_1[offset], &arr_2[offset], size, out, nullptr);   \
-      vec_count += found;                                                                            \
-      /* Scalar filter */                                                                            \
-      for (uint32_t iter = offset, end = iter + size; iter != end; iter++) {                         \
-        scalar_count += arr_1[iter] scalar_op arr_2[iter];                                           \
-      }                                                                                              \
-    }                                                                                                \
-    EXPECT_EQ(scalar_count, vec_count);                                                              \
+      /* Vector filter*/                                                                                \
+      auto found = VectorUtil::Filter##vec_op(&arr_1[offset], &arr_2[offset], size, out, nullptr);      \
+      vec_count += found;                                                                               \
+      /* Scalar filter */                                                                               \
+      for (uint32_t iter = offset, end = iter + size; iter != end; iter++) {                            \
+        scalar_count += arr_1[iter] scalar_op arr_2[iter];                                              \
+      }                                                                                                 \
+    }                                                                                                   \
+    EXPECT_EQ(scalar_count, vec_count);                                                                 \
   }
 
   CHECK(Eq, ==)
@@ -486,16 +486,16 @@ TEST_F(VectorUtilTest, GatherTest) {
   auto indexes = AllocateArray<uint32_t>(1000);
   auto output = AllocateArray<uint32_t>(1000);
 
-  std::iota(array.begin(), array.end(), 0);
+  std::iota(array.Begin(), array.End(), 0);
 
   std::random_device random;
-  std::generate(indexes.begin(), indexes.end(), [&]() { return random() % array.size(); });
+  std::generate(indexes.Begin(), indexes.End(), [&]() { return random() % array.Size(); });
 
   // Perform gather
-  VectorUtil::Gather(indexes.size(), array.raw(), indexes.raw(), output.raw());
+  VectorUtil::Gather(indexes.Size(), array.Raw(), indexes.Raw(), output.Raw());
 
   // Check
-  for (uint32_t i = 0; i < indexes.size(); i++) {
+  for (uint32_t i = 0; i < indexes.Size(); i++) {
     EXPECT_EQ(array[indexes[i]], output[i]);
   }
 }

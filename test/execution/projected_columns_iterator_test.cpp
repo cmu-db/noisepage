@@ -70,19 +70,19 @@ class ProjectedColumnsIteratorTest : public SqlBasedTest {
   enum ColId : uint8_t { col_a = 0, col_b = 1, col_c = 2, col_d = 3 };
 
   struct ColData {
-    std::unique_ptr<byte[]> data;
-    std::unique_ptr<uint32_t[]> nulls;
-    uint32_t num_nulls;
-    uint32_t num_tuples;
-    uint32_t elem_size;
+    std::unique_ptr<byte[]> data_;
+    std::unique_ptr<uint32_t[]> nulls_;
+    uint32_t num_nulls_;
+    uint32_t num_tuples_;
+    uint32_t elem_size_;
 
     ColData(std::unique_ptr<byte[]> data, std::unique_ptr<uint32_t[]> nulls, uint32_t num_nulls, uint32_t num_tuples,
             uint32_t elem_size)
-        : data(std::move(data)),
-          nulls(std::move(nulls)),
-          num_nulls(num_nulls),
-          num_tuples(num_tuples),
-          elem_size(elem_size) {}
+        : data_(std::move(data)),
+          nulls_(std::move(nulls)),
+          num_nulls_(num_nulls),
+          num_tuples_(num_tuples),
+          elem_size_(elem_size) {}
   };
 
  public:
@@ -93,18 +93,18 @@ class ProjectedColumnsIteratorTest : public SqlBasedTest {
     exec_ctx_ = MakeExecCtx();
 
     // NOTE: the storage layer reoder's columns by size. So let's filter them now.
-    auto cola_data = CreateMonotonicallyIncreasing<int16_t>(num_tuples());
-    auto colb_data = CreateRandom<int32_t>(num_tuples());
-    auto colb_null = CreateRandomNullBitmap(num_tuples());
-    auto colc_data = CreateRandom<int32_t>(num_tuples(), 0, 1000);
-    auto cold_data = CreateRandom<int64_t>(num_tuples());
-    auto cold_null = CreateRandomNullBitmap(num_tuples());
+    auto cola_data = CreateMonotonicallyIncreasing<int16_t>(NumTuples());
+    auto colb_data = CreateRandom<int32_t>(NumTuples());
+    auto colb_null = CreateRandomNullBitmap(NumTuples());
+    auto colc_data = CreateRandom<int32_t>(NumTuples(), 0, 1000);
+    auto cold_data = CreateRandom<int64_t>(NumTuples());
+    auto cold_null = CreateRandomNullBitmap(NumTuples());
 
-    data_.emplace_back(std::move(cola_data), nullptr, 0, num_tuples(), sizeof(int16_t));
-    data_.emplace_back(std::move(colb_data), std::move(colb_null.first), colb_null.second, num_tuples(),
+    data_.emplace_back(std::move(cola_data), nullptr, 0, NumTuples(), sizeof(int16_t));
+    data_.emplace_back(std::move(colb_data), std::move(colb_null.first), colb_null.second, NumTuples(),
                        sizeof(int32_t));
-    data_.emplace_back(std::move(colc_data), nullptr, 0, num_tuples(), sizeof(int32_t));
-    data_.emplace_back(std::move(cold_data), std::move(cold_null.first), cold_null.second, num_tuples(),
+    data_.emplace_back(std::move(colc_data), nullptr, 0, NumTuples(), sizeof(int32_t));
+    data_.emplace_back(std::move(cold_data), std::move(cold_null.first), cold_null.second, NumTuples(),
                        sizeof(int64_t));
 
     InitializeColumns();
@@ -126,7 +126,8 @@ class ProjectedColumnsIteratorTest : public SqlBasedTest {
         }
       } else {
         // Set all rows to non-null.
-        std::memset(projected_columns_->ColumnNullBitmap(col_offset), 0, num_tuples / common::Constants::K_BITS_PER_BYTE);
+        std::memset(projected_columns_->ColumnNullBitmap(col_offset), 0,
+                    num_tuples / common::Constants::K_BITS_PER_BYTE);
       }
       // Fill up the values.
       std::memcpy(projected_columns_->ColumnStart(col_offset), data.get(), elem_size * num_tuples);
@@ -166,14 +167,14 @@ class ProjectedColumnsIteratorTest : public SqlBasedTest {
   void SetSize(uint32_t size) { projected_columns_->SetNumTuples(size); }
 
  protected:
-  uint32_t num_tuples() const { return num_tuples_; }
+  uint32_t NumTuples() const { return num_tuples_; }
 
   storage::ProjectedColumns *GetProjectedColumn() { return projected_columns_; }
 
   // Compute the offset of the column
   uint16_t GetColOffset(ColId col) { return pm_.at(catalog::col_oid_t(col + 1)); }
 
-  const ColData &column_data(uint32_t col_idx) const { return data_[col_idx]; }
+  const ColData &ColumnData(uint32_t col_idx) const { return data_[col_idx]; }
 
  private:
   uint32_t num_tuples_;
@@ -258,7 +259,7 @@ TEST_F(ProjectedColumnsIteratorTest, ReadNullableColumnsTest) {
     num_nulls += static_cast<uint32_t>(null);
   }
 
-  EXPECT_EQ(column_data(ColId::col_b).num_nulls, num_nulls);
+  EXPECT_EQ(ColumnData(ColId::col_b).num_nulls_, num_nulls);
 }
 
 // NOLINTNEXTLINE
@@ -289,8 +290,8 @@ TEST_F(ProjectedColumnsIteratorTest, ManualFilterTest) {
       num_non_null++;
     }
 
-    const auto &col_data = column_data(ColId::col_b);
-    uint32_t actual_non_null = col_data.num_tuples - col_data.num_nulls;
+    const auto &col_data = ColumnData(ColId::col_b);
+    uint32_t actual_non_null = col_data.num_tuples_ - col_data.num_nulls_;
     EXPECT_EQ(actual_non_null, num_non_null);
     EXPECT_EQ(actual_non_null, iter.NumSelected());
   }
@@ -360,8 +361,8 @@ TEST_F(ProjectedColumnsIteratorTest, ManagedFilterTest) {
     return !null;
   });
 
-  const auto &col_data = column_data(ColId::col_b);
-  uint32_t actual_non_null = col_data.num_tuples - col_data.num_nulls;
+  const auto &col_data = ColumnData(ColId::col_b);
+  uint32_t actual_non_null = col_data.num_tuples_ - col_data.num_nulls_;
   EXPECT_EQ(actual_non_null, iter.NumSelected());
 
   //
@@ -402,7 +403,7 @@ TEST_F(ProjectedColumnsIteratorTest, SimpleVectorizedFilterTest) {
 
   // Filter
   iter.FilterColByVal<std::less>(GetColOffset(ColId::col_c), type::TypeId::INTEGER,
-                                 ProjectedColumnsIterator::FilterVal{.i = 100});
+                                 ProjectedColumnsIterator::FilterVal{.i_ = 100});
 
   // Check
   uint32_t count = 0;
@@ -431,9 +432,9 @@ TEST_F(ProjectedColumnsIteratorTest, MultipleVectorizedFilterTest) {
   SetSize(common::Constants::K_DEFAULT_VECTOR_SIZE);
 
   iter.FilterColByVal<std::less>(GetColOffset(ColId::col_c), type::TypeId::INTEGER,
-                                 ProjectedColumnsIterator::FilterVal{.i = 750});
+                                 ProjectedColumnsIterator::FilterVal{.i_ = 750});
   iter.FilterColByVal<std::less>(GetColOffset(ColId::col_a), type::TypeId::SMALLINT,
-                                 ProjectedColumnsIterator::FilterVal{.si = 10});
+                                 ProjectedColumnsIterator::FilterVal{.si_ = 10});
 
   // Check
   uint32_t count = 0;

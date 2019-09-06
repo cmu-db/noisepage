@@ -384,7 +384,7 @@ class ChunkedVector {
   /**
    * Return an iterator pointing to the first element in this vector.
    */
-  Iterator begin() noexcept {
+  Iterator begin() noexcept {  // NOLINT
     if (empty()) {
       return Iterator();
     }
@@ -395,7 +395,7 @@ class ChunkedVector {
    * Return an iterator pointing to the element following the last in this
    * vector.
    */
-  Iterator end() noexcept {
+  Iterator end() noexcept {  // NOLINT
     if (empty()) {
       return Iterator();
     }
@@ -409,7 +409,7 @@ class ChunkedVector {
   /**
    * Access the element at index @em index, with a bounds check.
    */
-  byte *at(std::size_t idx) {
+  byte *at(std::size_t idx) {  // NOLINT
     if (idx > size()) {
       throw std::out_of_range("Out-of-range access");
     }
@@ -419,7 +419,7 @@ class ChunkedVector {
   /**
    * Access the element at index @em index, with a bounds check.
    */
-  const byte *at(std::size_t idx) const {
+  const byte *at(std::size_t idx) const {  // NOLINT
     if (idx > size()) {
       throw std::out_of_range("Out-of-range access");
     }
@@ -447,7 +447,7 @@ class ChunkedVector {
   /**
    * Access the first element in the vector. Undefined if the vector is empty.
    */
-  byte *front() noexcept {
+  byte *front() noexcept {  // NOLINT
     TERRIER_ASSERT(!empty(), "Accessing front() of empty vector");
     return chunks_[0];
   }
@@ -455,7 +455,7 @@ class ChunkedVector {
   /**
    * Access the first element in the vector. Undefined if the vector is empty.
    */
-  const byte *front() const noexcept {
+  const byte *front() const noexcept {  // NOLINT
     TERRIER_ASSERT(!empty(), "Accessing front() of empty vector");
     return chunks_[0];
   }
@@ -463,7 +463,7 @@ class ChunkedVector {
   /**
    * Access the last element in the vector. Undefined if the vector is empty.
    */
-  byte *back() noexcept {
+  byte *back() noexcept {  // NOLINT
     TERRIER_ASSERT(!empty(), "Accessing back() of empty vector");
     return this->operator[](size() - 1);
   }
@@ -471,7 +471,7 @@ class ChunkedVector {
   /**
    * Access the last element in the vector. Undefined if the vector is empty.
    */
-  const byte *back() const noexcept {
+  const byte *back() const noexcept {  // NOLINT
     TERRIER_ASSERT(!empty(), "Accessing back() of empty vector");
     return this->operator[](size() - 1);
   }
@@ -503,7 +503,7 @@ class ChunkedVector {
   /**
    * Copy-construct a new element to the end of the vector.
    */
-  void push_back(const byte *elem) {
+  void push_back(const byte *elem) {  // NOLINT
     byte *dest = Append();
     std::memcpy(dest, elem, ElementSize());
   }
@@ -511,7 +511,7 @@ class ChunkedVector {
   /**
    * Remove the last element from the vector.
    */
-  void pop_back() {
+  void pop_back() {  // NOLINT
     TERRIER_ASSERT(!empty(), "Popping empty vector");
     if (position_ == chunks_[active_chunk_idx_]) {
       end_ = chunks_[--active_chunk_idx_] + ChunkAllocSize(ElementSize());
@@ -529,12 +529,12 @@ class ChunkedVector {
   /**
    * Is this vector empty?
    */
-  bool empty() const noexcept { return size() == 0; }
+  bool empty() const noexcept { return size() == 0; }  // NOLINT
 
   /**
    * Return the number of elements currently in the vector
    */
-  std::size_t size() const noexcept { return num_elements_; }
+  std::size_t size() const noexcept { return num_elements_; }  // NOLINT
 
   /**
    * Return the sizes_ of the elements (in bytes) in the vector
@@ -545,7 +545,9 @@ class ChunkedVector {
    * Given the size (in bytes) of an individual element, compute the size of
    * each chunk in the chunked vector
    */
-  static constexpr std::size_t ChunkAllocSize(std::size_t element_size) { return K_NUM_ELEMENTS_PER_CHUNK * element_size; }
+  static constexpr std::size_t ChunkAllocSize(std::size_t element_size) {
+    return K_NUM_ELEMENTS_PER_CHUNK * element_size;
+  }
 
  private:
   // Allocate a new chunk
@@ -778,12 +780,12 @@ class ChunkedVectorT {
   /**
    * @return the beginning iterator
    */
-  Iterator begin() { return Iterator(vec_.begin()); }
+  Iterator begin() { return Iterator(vec_.begin()); }  // NOLINT
 
   /**
    * @return the ending iterator
    */
-  Iterator end() { return Iterator(vec_.end()); }
+  Iterator end() { return Iterator(vec_.end()); }  // NOLINT
 
   // -------------------------------------------------------
   // Element access
@@ -805,25 +807,25 @@ class ChunkedVectorT {
    * Return a read-write reference to the first element in this vector. Has
    * undefined behavior when accessing an empty vector.
    */
-  T &front() noexcept { return *reinterpret_cast<T *>(vec_.front()); }
+  T &front() noexcept { return *reinterpret_cast<T *>(vec_.front()); }  // NOLINT
 
   /**
    * Return a read-only reference to the first element in this vector. Has
    * undefined behavior when accessing an empty vector.
    */
-  const T &front() const noexcept { return *reinterpret_cast<const T *>(vec_.front()); }
+  const T &front() const noexcept { return *reinterpret_cast<const T *>(vec_.front()); }  // NOLINT
 
   /**
    * Return a read-write reference to the last element in the vector. Has
    * undefined behavior when accessing an empty vector.
    */
-  T &back() noexcept { return *reinterpret_cast<T *>(vec_.back()); }
+  T &back() noexcept { return *reinterpret_cast<T *>(vec_.back()); }  // NOLINT
 
   /**
    * Return a read-only reference to the last element in the vector. Has
    * undefined behavior when accessing an empty vector.
    */
-  const T &back() const noexcept { return *reinterpret_cast<const T *>(vec_.back()); }
+  const T &back() const noexcept { return *reinterpret_cast<const T *>(vec_.back()); }  // NOLINT
 
   // -------------------------------------------------------
   // Size/Capacity
@@ -832,12 +834,12 @@ class ChunkedVectorT {
   /**
    * Is this vector empty (i.e., has zero elements)?
    */
-  bool empty() const noexcept { return vec_.empty(); }
+  bool empty() const noexcept { return vec_.empty(); }  // NOLINT
 
   /**
    * Return the number of elements in this vector.
    */
-  std::size_t size() const noexcept { return vec_.size(); }
+  std::size_t size() const noexcept { return vec_.size(); }  // NOLINT
 
   // -------------------------------------------------------
   // Modifiers
@@ -848,31 +850,31 @@ class ChunkedVectorT {
    * end of the vector.
    */
   template <class... Args>
-  void emplace_back(Args &&... args) {
-    auto *space = reinterpret_cast<T *>(vec_.append());
+  void emplace_back(Args &&... args) {  // NOLINT
+    auto *space = reinterpret_cast<T *>(vec_.Append());
     new (space) T(std::forward<Args>(args)...);
   }
 
   /**
    * Copy construct the provided element @em to the end of the vector.
    */
-  void push_back(const T &elem) {
-    auto *space = reinterpret_cast<T *>(vec_.append());
+  void push_back(const T &elem) {  // NOLINT
+    auto *space = reinterpret_cast<T *>(vec_.Append());
     new (space) T(elem);
   }
 
   /**
    * Move-construct the provided element @em to the end of the vector.
    */
-  void push_back(T &&elem) {
-    auto *space = reinterpret_cast<T *>(vec_.append());
+  void push_back(T &&elem) {  // NOLINT
+    auto *space = reinterpret_cast<T *>(vec_.Append());
     new (space) T(std::move(elem));
   }
 
   /**
    * Remove the last element from the vector. Undefined if the vector is empty.
    */
-  void pop_back() {
+  void pop_back() {  // NOLINT
     TERRIER_ASSERT(!empty(), "Popping from an empty vector");
     T &removed = back();
     vec_.pop_back();

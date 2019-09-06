@@ -13,7 +13,7 @@ namespace terrier::execution::sql::test {
 
 class ArithmeticFunctionsTests : public TplTest {
  protected:
-  double cotan(const double arg) { return (1.0 / std::tan(arg)); }
+  double Cotan(const double arg) { return (1.0 / std::tan(arg)); }
 };
 
 // NOLINTNEXTLINE
@@ -23,20 +23,20 @@ TEST_F(ArithmeticFunctionsTests, IntegerValue) {
     Integer a(0), b = Integer::Null(), result(0);
 
     ArithmeticFunctions::Add(&result, a, b);
-    EXPECT_TRUE(result.is_null);
+    EXPECT_TRUE(result.is_null_);
 
     result = Integer(0);
     ArithmeticFunctions::Sub(&result, a, b);
-    EXPECT_TRUE(result.is_null);
+    EXPECT_TRUE(result.is_null_);
 
     result = Integer(0);
     ArithmeticFunctions::Mul(&result, a, b);
-    EXPECT_TRUE(result.is_null);
+    EXPECT_TRUE(result.is_null_);
 
     bool div_by_zero = false;
     result = Integer(0);
     ArithmeticFunctions::IntDiv(&result, a, b, &div_by_zero);
-    EXPECT_TRUE(result.is_null);
+    EXPECT_TRUE(result.is_null_);
   }
 
   // Proper
@@ -45,24 +45,24 @@ TEST_F(ArithmeticFunctionsTests, IntegerValue) {
     Integer a(aval), b(bval), result(0);
 
     ArithmeticFunctions::Add(&result, a, b);
-    EXPECT_FALSE(result.is_null);
-    EXPECT_EQ(aval + bval, result.val);
+    EXPECT_FALSE(result.is_null_);
+    EXPECT_EQ(aval + bval, result.val_);
 
     result = Integer(0);
     ArithmeticFunctions::Sub(&result, a, b);
-    EXPECT_FALSE(result.is_null);
-    EXPECT_EQ(aval - bval, result.val);
+    EXPECT_FALSE(result.is_null_);
+    EXPECT_EQ(aval - bval, result.val_);
 
     result = Integer(0);
     ArithmeticFunctions::Mul(&result, a, b);
-    EXPECT_FALSE(result.is_null);
-    EXPECT_EQ(aval * bval, result.val);
+    EXPECT_FALSE(result.is_null_);
+    EXPECT_EQ(aval * bval, result.val_);
 
     bool div_by_zero = false;
     result = Integer(0);
     ArithmeticFunctions::IntDiv(&result, a, b, &div_by_zero);
-    EXPECT_FALSE(result.is_null);
-    EXPECT_EQ(aval / bval, result.val);
+    EXPECT_FALSE(result.is_null_);
+    EXPECT_EQ(aval / bval, result.val_);
   }
 
   // Overflow
@@ -72,7 +72,7 @@ TEST_F(ArithmeticFunctionsTests, IntegerValue) {
 
     bool overflow = false;
     ArithmeticFunctions::Add(&result, a, b, &overflow);
-    EXPECT_FALSE(result.is_null);
+    EXPECT_FALSE(result.is_null_);
     EXPECT_TRUE(overflow);
   }
 
@@ -82,7 +82,7 @@ TEST_F(ArithmeticFunctionsTests, IntegerValue) {
 
     bool overflow = false;
     ArithmeticFunctions::Sub(&result, a, b, &overflow);
-    EXPECT_FALSE(result.is_null);
+    EXPECT_FALSE(result.is_null_);
     EXPECT_TRUE(overflow);
   }
 
@@ -92,7 +92,7 @@ TEST_F(ArithmeticFunctionsTests, IntegerValue) {
 
     bool overflow = false;
     ArithmeticFunctions::Mul(&result, a, b, &overflow);
-    EXPECT_FALSE(result.is_null);
+    EXPECT_FALSE(result.is_null_);
     EXPECT_TRUE(overflow);
   }
 }
@@ -104,20 +104,20 @@ TEST_F(ArithmeticFunctionsTests, RealValue) {
     Real a(0.0), b = Real::Null(), result(0.0);
 
     ArithmeticFunctions::Add(&result, a, b);
-    EXPECT_TRUE(result.is_null);
+    EXPECT_TRUE(result.is_null_);
 
     result = Real(0.0);
     ArithmeticFunctions::Sub(&result, a, b);
-    EXPECT_TRUE(result.is_null);
+    EXPECT_TRUE(result.is_null_);
 
     result = Real(0.0);
     ArithmeticFunctions::Mul(&result, a, b);
-    EXPECT_TRUE(result.is_null);
+    EXPECT_TRUE(result.is_null_);
 
     bool div_by_zero = false;
     result = Real(0.0);
     ArithmeticFunctions::Div(&result, a, b, &div_by_zero);
-    EXPECT_TRUE(result.is_null);
+    EXPECT_TRUE(result.is_null_);
   }
 
   // Proper
@@ -126,24 +126,24 @@ TEST_F(ArithmeticFunctionsTests, RealValue) {
     Real a(aval), b(bval), result(0.0);
 
     ArithmeticFunctions::Add(&result, a, b);
-    EXPECT_FALSE(result.is_null);
-    EXPECT_EQ(aval + bval, result.val);
+    EXPECT_FALSE(result.is_null_);
+    EXPECT_EQ(aval + bval, result.val_);
 
     result = Real(0.0);
     ArithmeticFunctions::Sub(&result, a, b);
-    EXPECT_FALSE(result.is_null);
-    EXPECT_EQ(aval - bval, result.val);
+    EXPECT_FALSE(result.is_null_);
+    EXPECT_EQ(aval - bval, result.val_);
 
     result = Real(0.0);
     ArithmeticFunctions::Mul(&result, a, b);
-    EXPECT_FALSE(result.is_null);
-    EXPECT_EQ(aval * bval, result.val);
+    EXPECT_FALSE(result.is_null_);
+    EXPECT_EQ(aval * bval, result.val_);
 
     bool div_by_zero = false;
     result = Real(0.0);
     ArithmeticFunctions::Div(&result, a, b, &div_by_zero);
-    EXPECT_FALSE(result.is_null);
-    EXPECT_EQ(aval / bval, result.val);
+    EXPECT_FALSE(result.is_null_);
+    EXPECT_EQ(aval / bval, result.val_);
   }
 }
 
@@ -152,15 +152,15 @@ TEST_F(ArithmeticFunctionsTests, PiAndE) {
   {
     Real pi(0.0);
     ArithmeticFunctions::Pi(&pi);
-    EXPECT_FALSE(pi.is_null);
-    EXPECT_DOUBLE_EQ(M_PI, pi.val);
+    EXPECT_FALSE(pi.is_null_);
+    EXPECT_DOUBLE_EQ(M_PI, pi.val_);
   }
 
   {
     Real e(0.0);
     ArithmeticFunctions::E(&e);
-    EXPECT_FALSE(e.is_null);
-    EXPECT_DOUBLE_EQ(M_E, e.val);
+    EXPECT_FALSE(e.is_null_);
+    EXPECT_DOUBLE_EQ(M_E, e.val_);
   }
 }
 
@@ -181,15 +181,15 @@ TEST_F(ArithmeticFunctionsTests, TrigFunctions) {
     Real arg = Real::Null();                  \
     Real ret(0.0);                            \
     ArithmeticFunctions::TPL_FUNC(&ret, arg); \
-    EXPECT_TRUE(ret.is_null);                 \
+    EXPECT_TRUE(ret.is_null_);                \
   }
 #define CHECK_HANDLES_NONNULL(TPL_FUNC, C_FUNC) \
   {                                             \
     Real arg(input);                            \
     Real ret(0.0);                              \
     ArithmeticFunctions::TPL_FUNC(&ret, arg);   \
-    EXPECT_FALSE(ret.is_null);                  \
-    EXPECT_DOUBLE_EQ(C_FUNC(input), ret.val);   \
+    EXPECT_FALSE(ret.is_null_);                 \
+    EXPECT_DOUBLE_EQ(C_FUNC(input), ret.val_);  \
   }
 
 #define CHECK_SQL_FUNC(TPL_FUNC, C_FUNC) \
@@ -199,7 +199,7 @@ TEST_F(ArithmeticFunctionsTests, TrigFunctions) {
   // Check some of the trig functions on all inputs
   for (const auto input : inputs) {
     CHECK_SQL_FUNC(Cos, std::cos);
-    CHECK_SQL_FUNC(Cot, cotan);
+    CHECK_SQL_FUNC(Cot, Cotan);
     CHECK_SQL_FUNC(Sin, std::sin);
     CHECK_SQL_FUNC(Tan, std::tan);
     CHECK_SQL_FUNC(Cosh, std::cosh);
@@ -225,15 +225,15 @@ TEST_F(ArithmeticFunctionsTests, MathFuncs) {
     Real arg = Real::Null();                  \
     Real ret(0.0);                            \
     ArithmeticFunctions::TPL_FUNC(&ret, arg); \
-    EXPECT_TRUE(ret.is_null);                 \
+    EXPECT_TRUE(ret.is_null_);                \
   }
 #define CHECK_HANDLES_NONNULL(TPL_FUNC, C_FUNC, INPUT) \
   {                                                    \
     Real arg(INPUT);                                   \
     Real ret(0.0);                                     \
     ArithmeticFunctions::TPL_FUNC(&ret, arg);          \
-    EXPECT_FALSE(ret.is_null);                         \
-    EXPECT_DOUBLE_EQ(C_FUNC(INPUT), ret.val);          \
+    EXPECT_FALSE(ret.is_null_);                        \
+    EXPECT_DOUBLE_EQ(C_FUNC(INPUT), ret.val_);         \
   }
 
 #define CHECK_SQL_FUNC(TPL_FUNC, C_FUNC, INPUT) \
@@ -285,22 +285,22 @@ TEST_F(ArithmeticFunctionsTests, MathFuncs) {
   {
     Real input = Real::Null(), result = Real::Null();
     ArithmeticFunctions::Sign(&result, input);
-    EXPECT_TRUE(result.is_null);
+    EXPECT_TRUE(result.is_null_);
 
     input = Real(13523.0);
     ArithmeticFunctions::Sign(&result, input);
-    EXPECT_FALSE(result.is_null);
-    EXPECT_DOUBLE_EQ(1.0, result.val);
+    EXPECT_FALSE(result.is_null_);
+    EXPECT_DOUBLE_EQ(1.0, result.val_);
 
     input = Real(-1231.0);
     ArithmeticFunctions::Sign(&result, input);
-    EXPECT_FALSE(result.is_null);
-    EXPECT_DOUBLE_EQ(-1.0, result.val);
+    EXPECT_FALSE(result.is_null_);
+    EXPECT_DOUBLE_EQ(-1.0, result.val_);
 
     input = Real(0.0f);
     ArithmeticFunctions::Sign(&result, input);
-    EXPECT_FALSE(result.is_null);
-    EXPECT_DOUBLE_EQ(0.0, result.val);
+    EXPECT_FALSE(result.is_null_);
+    EXPECT_DOUBLE_EQ(0.0, result.val_);
   };
 }
 

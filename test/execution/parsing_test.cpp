@@ -23,7 +23,7 @@ class ParserTest : public TplTest {
   }
 
   ast::Context *GetContext() { return ctx_.get(); }
-  sema::ErrorReporter *reporter() { return reporter_.get(); }
+  sema::ErrorReporter *Reporter() { return reporter_.get(); }
 
  private:
   util::Region region_{"test"};
@@ -42,7 +42,7 @@ TEST_F(ParserTest, RegularForStmtTest) {
   // Attempt parse
   auto *ast = parser.Parse();
   ASSERT_NE(nullptr, ast);
-  ASSERT_FALSE(reporter()->HasErrors());
+  ASSERT_FALSE(Reporter()->HasErrors());
 
   // No errors, move down AST
   ASSERT_TRUE(ast->IsFile());
@@ -70,10 +70,10 @@ TEST_F(ParserTest, RegularForStmtTest) {
 // NOLINTNEXTLINE
 TEST_F(ParserTest, ExhaustiveForStmtTest) {
   struct Test {
-    const std::string source;
-    bool init_null, cond_null, next_null;
+    const std::string source_;
+    bool init_null_, cond_null_, next_null_;
     Test(std::string source, bool initNull, bool condNull, bool nextNull)
-        : source(std::move(source)), init_null(initNull), cond_null(condNull), next_null(nextNull) {}
+        : source_(std::move(source)), init_null_(initNull), cond_null_(condNull), next_null_(nextNull) {}
   };
 
   // All possible permutations of init, condition, and next statements in loops
@@ -91,13 +91,13 @@ TEST_F(ParserTest, ExhaustiveForStmtTest) {
   // clang-format on
 
   for (const auto &test : tests) {
-    Scanner scanner(test.source);
+    Scanner scanner(test.source_);
     Parser parser(&scanner, GetContext());
 
     // Attempt parse
     auto *ast = parser.Parse();
     ASSERT_NE(nullptr, ast);
-    ASSERT_FALSE(reporter()->HasErrors());
+    ASSERT_FALSE(Reporter()->HasErrors());
 
     // No errors, move down AST
     ASSERT_TRUE(ast->IsFile());
@@ -115,9 +115,9 @@ TEST_F(ParserTest, ExhaustiveForStmtTest) {
     // Only one for statement, all elements are non-null
     auto *for_stmt = func_decl->Function()->Body()->Statements()[0]->SafeAs<ast::ForStmt>();
     ASSERT_NE(nullptr, for_stmt);
-    ASSERT_EQ(test.init_null, for_stmt->Init() == nullptr);
-    ASSERT_EQ(test.cond_null, for_stmt->Condition() == nullptr);
-    ASSERT_EQ(test.next_null, for_stmt->Next() == nullptr);
+    ASSERT_EQ(test.init_null_, for_stmt->Init() == nullptr);
+    ASSERT_EQ(test.cond_null_, for_stmt->Condition() == nullptr);
+    ASSERT_EQ(test.next_null_, for_stmt->Next() == nullptr);
   }
 }
 
@@ -135,7 +135,7 @@ TEST_F(ParserTest, RegularForStmt_NoInitTest) {
   // Attempt parse
   auto *ast = parser.Parse();
   ASSERT_NE(nullptr, ast);
-  ASSERT_FALSE(reporter()->HasErrors());
+  ASSERT_FALSE(Reporter()->HasErrors());
 
   // No errors, move down AST
   ASSERT_TRUE(ast->IsFile());
@@ -189,7 +189,7 @@ TEST_F(ParserTest, RegularForStmt_WhileTest) {
     // Attempt parse
     auto *ast = parser.Parse();
     ASSERT_NE(nullptr, ast);
-    ASSERT_FALSE(reporter()->HasErrors());
+    ASSERT_FALSE(Reporter()->HasErrors());
 
     // No errors, move down AST
     ASSERT_TRUE(ast->IsFile());
@@ -233,7 +233,7 @@ TEST_F(ParserTest, RegularForInStmtTest) {
   // Attempt parse
   auto *ast = parser.Parse();
   ASSERT_NE(nullptr, ast);
-  ASSERT_FALSE(reporter()->HasErrors());
+  ASSERT_FALSE(Reporter()->HasErrors());
 
   // No errors, move down AST
   ASSERT_TRUE(ast->IsFile());
@@ -260,8 +260,8 @@ TEST_F(ParserTest, RegularForInStmtTest) {
 // NOLINTNEXTLINE
 TEST_F(ParserTest, ArrayTypeTest) {
   struct TestCase {
-    std::string source;
-    bool valid;
+    std::string source_;
+    bool valid_;
   };
 
   TestCase tests[] = {
@@ -274,14 +274,14 @@ TEST_F(ParserTest, ArrayTypeTest) {
   };
 
   for (const auto &test_case : tests) {
-    Scanner scanner(test_case.source);
+    Scanner scanner(test_case.source_);
     Parser parser(&scanner, GetContext());
 
     // Attempt parse
     auto *ast = parser.Parse();
     ASSERT_NE(nullptr, ast);
-    EXPECT_EQ(test_case.valid, !reporter()->HasErrors());
-    reporter()->Reset();
+    EXPECT_EQ(test_case.valid_, !Reporter()->HasErrors());
+    Reporter()->Reset();
   }
 }
 

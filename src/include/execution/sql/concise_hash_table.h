@@ -186,14 +186,14 @@ inline void ConciseHashTable::Insert(HashTableEntry *entry, const hash_t hash) {
   do {
     if (!util::BitUtil::Test(group_bits, bit_idx)) {
       util::BitUtil::Set(group_bits, bit_idx);
-      entry->cht_slot_= ConciseHashTableSlot(num_bits_to_group + bit_idx);
+      entry->cht_slot_ = ConciseHashTableSlot(num_bits_to_group + bit_idx);
       return;
     }
   } while (++bit_idx <= max_bit_idx);
 
   num_overflow_++;
 
-  entry->cht_slot_= ConciseHashTableSlot(num_bits_to_group + bit_idx - 1);
+  entry->cht_slot_ = ConciseHashTableSlot(num_bits_to_group + bit_idx - 1);
 }
 
 template <bool ForRead>

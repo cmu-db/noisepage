@@ -37,7 +37,9 @@ namespace terrier::execution::ast {
 /**
  * Compute a hash_code for a field
  */
-llvm::hash_code hash_value(const Field &field) { return llvm::hash_combine(field.name_.Data(), field.type_); }
+llvm::hash_code hash_value(const Field &field) {  // NOLINT
+  return llvm::hash_combine(field.name_.Data(), field.type_);
+}
 
 struct StructTypeKeyInfo {
   struct KeyTy {
@@ -52,21 +54,27 @@ struct StructTypeKeyInfo {
     bool operator!=(const KeyTy &that) const { return !this->operator==(that); }
   };
 
+  // NOLINTNEXTLINE
   static inline StructType *getEmptyKey() { return llvm::DenseMapInfo<StructType *>::getEmptyKey(); }
 
+  // NOLINTNEXTLINE
   static inline StructType *getTombstoneKey() { return llvm::DenseMapInfo<StructType *>::getTombstoneKey(); }
 
+  // NOLINTNEXTLINE
   static std::size_t getHashValue(const KeyTy &key) {
     return llvm::hash_combine_range(key.elements_.begin(), key.elements_.end());
   }
 
+  // NOLINTNEXTLINE
   static std::size_t getHashValue(const StructType *struct_type) { return getHashValue(KeyTy(struct_type)); }
 
+  // NOLINTNEXTLINE
   static bool isEqual(const KeyTy &lhs, const StructType *rhs) {
     if (rhs == getEmptyKey() || rhs == getTombstoneKey()) return false;
     return lhs == KeyTy(rhs);
   }
 
+  // NOLINTNEXTLINE
   static bool isEqual(const StructType *lhs, const StructType *rhs) { return lhs == rhs; }
 };
 
@@ -88,21 +96,27 @@ struct FunctionTypeKeyInfo {
     bool operator!=(const KeyTy &that) const { return !this->operator==(that); }
   };
 
+  // NOLINTNEXTLINE
   static inline FunctionType *getEmptyKey() { return llvm::DenseMapInfo<FunctionType *>::getEmptyKey(); }
 
+  // NOLINTNEXTLINE
   static inline FunctionType *getTombstoneKey() { return llvm::DenseMapInfo<FunctionType *>::getTombstoneKey(); }
 
+  // NOLINTNEXTLINE
   static std::size_t getHashValue(const KeyTy &key) {
     return llvm::hash_combine(key.ret_type_, llvm::hash_combine_range(key.params_.begin(), key.params_.end()));
   }
 
+  // NOLINTNEXTLINE
   static std::size_t getHashValue(const FunctionType *func_type) { return getHashValue(KeyTy(func_type)); }
 
+  // NOLINTNEXTLINE
   static bool isEqual(const KeyTy &lhs, const FunctionType *rhs) {
     if (rhs == getEmptyKey() || rhs == getTombstoneKey()) return false;
     return lhs == KeyTy(rhs);
   }
 
+  // NOLINTNEXTLINE
   static bool isEqual(const FunctionType *lhs, const FunctionType *rhs) { return lhs == rhs; }
 };
 

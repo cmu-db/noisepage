@@ -3,8 +3,8 @@
 #include <cstdint>
 
 #include "execution/ast/identifier.h"
-#include "execution/util/execution_common.h"
 #include "execution/parsing/token.h"
+#include "execution/util/execution_common.h"
 
 namespace terrier::execution {
 

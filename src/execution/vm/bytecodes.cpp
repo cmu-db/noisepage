@@ -15,21 +15,21 @@ const char *Bytecodes::k_bytecode_names[] = {
 
 // static
 uint32_t Bytecodes::k_bytecode_operand_counts[] = {
-#define ENTRY(name, ...) BytecodeTraits<__VA_ARGS__>::kOperandCount,
+#define ENTRY(name, ...) BytecodeTraits<__VA_ARGS__>::K_OPERAND_COUNT,
     BYTECODE_LIST(ENTRY)
 #undef ENTRY
 };
 
 // static
 const OperandType *Bytecodes::k_bytecode_operand_types[] = {
-#define ENTRY(name, ...) BytecodeTraits<__VA_ARGS__>::kOperandTypes,
+#define ENTRY(name, ...) BytecodeTraits<__VA_ARGS__>::k_operand_types,
     BYTECODE_LIST(ENTRY)
 #undef ENTRY
 };
 
 // static
 const OperandSize *Bytecodes::k_bytecode_operand_sizes[] = {
-#define ENTRY(name, ...) BytecodeTraits<__VA_ARGS__>::kOperandSizes,
+#define ENTRY(name, ...) BytecodeTraits<__VA_ARGS__>::k_operand_sizes,
     BYTECODE_LIST(ENTRY)
 #undef ENTRY
 };

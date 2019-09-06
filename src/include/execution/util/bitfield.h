@@ -85,7 +85,9 @@ class BitFieldBase {
    * @param update the new value
    * @return the updated bitfield
    */
-  ALWAYS_INLINE static constexpr S Update(S curr_storage, T update) { return (curr_storage & ~K_MASK) | Encode(update); }
+  ALWAYS_INLINE static constexpr S Update(S curr_storage, T update) {
+    return (curr_storage & ~K_MASK) | Encode(update);
+  }
 
   static_assert((K_NEXT_BIT - 1) / 8 < sizeof(S));
 };

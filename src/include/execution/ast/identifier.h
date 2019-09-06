@@ -81,14 +81,14 @@ struct DenseMapInfo<terrier::execution::ast::Identifier> {
   /**
    * @return An empty key
    */
-  static inline terrier::execution::ast::Identifier getEmptyKey() {
+  static inline terrier::execution::ast::Identifier getEmptyKey() {  // NOLINT
     return terrier::execution::ast::Identifier::GetEmptyKey();
   }
 
   /**
    * @return A tombstone key
    */
-  static inline terrier::execution::ast::Identifier getTombstoneKey() {
+  static inline terrier::execution::ast::Identifier getTombstoneKey() {  // NOLINT
     return terrier::execution::ast::Identifier::GetTombstoneKey();
   }
 
@@ -96,7 +96,7 @@ struct DenseMapInfo<terrier::execution::ast::Identifier> {
    * @param identifier: Identifier to hash
    * @return the hash of the identifier
    */
-  static unsigned getHashValue(const terrier::execution::ast::Identifier identifier) {
+  static unsigned getHashValue(const terrier::execution::ast::Identifier identifier) {  // NOLINT
     return DenseMapInfo<const void *>::getHashValue(static_cast<const void *>(identifier.Data()));
   }
 
@@ -105,7 +105,8 @@ struct DenseMapInfo<terrier::execution::ast::Identifier> {
    * @param rhs right hand side
    * @return whether lhs == rhs.
    */
-  static bool isEqual(const terrier::execution::ast::Identifier lhs, const terrier::execution::ast::Identifier rhs) {
+  static bool isEqual(const terrier::execution::ast::Identifier lhs,  // NOLINT
+                      const terrier::execution::ast::Identifier rhs) {
     return lhs == rhs;
   }
 };

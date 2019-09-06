@@ -11,7 +11,7 @@ class AstTest : public TplTest {
 
   util::Region *Region() { return &region_; }
 
-  const SourcePosition &empty_pos() const { return pos_; }
+  const SourcePosition &EmptyPos() const { return pos_; }
 
  private:
   util::Region region_;
@@ -32,13 +32,13 @@ TEST_F(AstTest, HierechyTest) {
   /// Test declarations
   {
     AstNode *all_decls[] = {
-        factory.NewFieldDecl(empty_pos(), Identifier(nullptr), nullptr),
+        factory.NewFieldDecl(EmptyPos(), Identifier(nullptr), nullptr),
         factory.NewFunctionDecl(
-            empty_pos(), Identifier(nullptr),
+            EmptyPos(), Identifier(nullptr),
             factory.NewFunctionLitExpr(
-                factory.NewFunctionType(empty_pos(), util::RegionVector<FieldDecl *>(Region()), nullptr), nullptr)),
-        factory.NewStructDecl(empty_pos(), Identifier(nullptr), nullptr),
-        factory.NewVariableDecl(empty_pos(), Identifier(nullptr), nullptr, nullptr),
+                factory.NewFunctionType(EmptyPos(), util::RegionVector<FieldDecl *>(Region()), nullptr), nullptr)),
+        factory.NewStructDecl(EmptyPos(), Identifier(nullptr), nullptr),
+        factory.NewVariableDecl(EmptyPos(), Identifier(nullptr), nullptr, nullptr),
     };
 
     for (const auto *node : all_decls) {
@@ -60,17 +60,17 @@ TEST_F(AstTest, HierechyTest) {
   /// Test expressions
   {
     AstNode *all_exprs[] = {
-        factory.NewBinaryOpExpr(empty_pos(), parsing::Token::Type::PLUS, nullptr, nullptr),
-        factory.NewCallExpr(factory.NewNilLiteral(empty_pos()), util::RegionVector<Expr *>(Region())),
+        factory.NewBinaryOpExpr(EmptyPos(), parsing::Token::Type::PLUS, nullptr, nullptr),
+        factory.NewCallExpr(factory.NewNilLiteral(EmptyPos()), util::RegionVector<Expr *>(Region())),
         factory.NewFunctionLitExpr(
-            factory.NewFunctionType(empty_pos(), util::RegionVector<FieldDecl *>(Region()), nullptr), nullptr),
-        factory.NewNilLiteral(empty_pos()),
-        factory.NewUnaryOpExpr(empty_pos(), parsing::Token::Type::MINUS, nullptr),
-        factory.NewIdentifierExpr(empty_pos(), Identifier(nullptr)),
-        factory.NewArrayType(empty_pos(), nullptr, nullptr),
-        factory.NewFunctionType(empty_pos(), util::RegionVector<FieldDecl *>(Region()), nullptr),
-        factory.NewPointerType(empty_pos(), nullptr),
-        factory.NewStructType(empty_pos(), util::RegionVector<FieldDecl *>(Region())),
+            factory.NewFunctionType(EmptyPos(), util::RegionVector<FieldDecl *>(Region()), nullptr), nullptr),
+        factory.NewNilLiteral(EmptyPos()),
+        factory.NewUnaryOpExpr(EmptyPos(), parsing::Token::Type::MINUS, nullptr),
+        factory.NewIdentifierExpr(EmptyPos(), Identifier(nullptr)),
+        factory.NewArrayType(EmptyPos(), nullptr, nullptr),
+        factory.NewFunctionType(EmptyPos(), util::RegionVector<FieldDecl *>(Region()), nullptr),
+        factory.NewPointerType(EmptyPos(), nullptr),
+        factory.NewStructType(EmptyPos(), util::RegionVector<FieldDecl *>(Region())),
     };
 
     for (const auto *node : all_exprs) {
@@ -92,12 +92,12 @@ TEST_F(AstTest, HierechyTest) {
   /// Test statements
   {
     AstNode *all_stmts[] = {
-        factory.NewBlockStmt(empty_pos(), empty_pos(), util::RegionVector<Stmt *>(Region())),
-        factory.NewDeclStmt(factory.NewVariableDecl(empty_pos(), Identifier(nullptr), nullptr, nullptr)),
-        factory.NewExpressionStmt(factory.NewNilLiteral(empty_pos())),
-        factory.NewForStmt(empty_pos(), nullptr, nullptr, nullptr, nullptr),
-        factory.NewIfStmt(empty_pos(), nullptr, nullptr, nullptr),
-        factory.NewReturnStmt(empty_pos(), nullptr),
+        factory.NewBlockStmt(EmptyPos(), EmptyPos(), util::RegionVector<Stmt *>(Region())),
+        factory.NewDeclStmt(factory.NewVariableDecl(EmptyPos(), Identifier(nullptr), nullptr, nullptr)),
+        factory.NewExpressionStmt(factory.NewNilLiteral(EmptyPos())),
+        factory.NewForStmt(EmptyPos(), nullptr, nullptr, nullptr, nullptr),
+        factory.NewIfStmt(EmptyPos(), nullptr, nullptr, nullptr),
+        factory.NewReturnStmt(EmptyPos(), nullptr),
     };
 
     for (const auto *node : all_stmts) {

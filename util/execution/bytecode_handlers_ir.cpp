@@ -4,7 +4,7 @@
 
 extern "C" {
 
-void *kAllFuncs[] = {
+void *kAllFuncs[] = { // NOLINT
 #define ENTRY(Name, ...) reinterpret_cast<void *>(&Op##Name),
     BYTECODE_LIST(ENTRY)
 #undef ENTRY

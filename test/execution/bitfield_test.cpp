@@ -41,7 +41,7 @@ TEST(BitfieldTest, SingleElementTest) {
 TEST(BitfieldTest, MultiElementTest) {
   // Encode a 16-bit value and an 8-bit value in 32-bit storage
   using U16_BF = BitField32<uint16_t, 0, sizeof(uint16_t) * common::Constants::K_BITS_PER_BYTE>;
-  using U8_BF = BitField32<uint8_t, U16_BF::kNextBit, sizeof(uint8_t) * common::Constants::K_BITS_PER_BYTE>;
+  using U8_BF = BitField32<uint8_t, U16_BF::K_NEXT_BIT, sizeof(uint8_t) * common::Constants::K_BITS_PER_BYTE>;
 
   uint32_t s;
 

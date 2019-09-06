@@ -403,7 +403,7 @@ class BuiltinType : public Type {
    * @param type type to check
    * @return true iff this is the same as the given type
    */
-  static bool classof(const Type *type) { return type->GetTypeId() == TypeId::BuiltinType; }
+  static bool classof(const Type *type) { return type->GetTypeId() == TypeId::BuiltinType; }  // NOLINT
 
  private:
   friend class Context;
@@ -440,7 +440,7 @@ class StringType : public Type {
    * @param type checked type
    * @return whether type is a string type.
    */
-  static bool classof(const Type *type) { return type->GetTypeId() == TypeId::StringType; }
+  static bool classof(const Type *type) { return type->GetTypeId() == TypeId::StringType; }  // NOLINT
 
  private:
   friend class Context;
@@ -469,7 +469,7 @@ class PointerType : public Type {
    * @param type checked type
    * @return whether type is a pointer type.
    */
-  static bool classof(const Type *type) { return type->GetTypeId() == TypeId::PointerType; }
+  static bool classof(const Type *type) { return type->GetTypeId() == TypeId::PointerType; }  // NOLINT
 
  private:
   // Private constructor
@@ -516,7 +516,7 @@ class ArrayType : public Type {
   /**
    * @return whether type is an array type.
    */
-  static bool classof(const Type *type) { return type->GetTypeId() == TypeId::ArrayType; }
+  static bool classof(const Type *type) { return type->GetTypeId() == TypeId::ArrayType; }  // NOLINT
 
  private:
   // Private constructor
@@ -593,7 +593,7 @@ class FunctionType : public Type {
    * @param type type to compare with
    * @return whether type is of function type
    */
-  static bool classof(const Type *type) { return type->GetTypeId() == TypeId::FunctionType; }
+  static bool classof(const Type *type) { return type->GetTypeId() == TypeId::FunctionType; }  // NOLINT
 
  private:
   // Private constructor
@@ -631,7 +631,7 @@ class MapType : public Type {
    * @param type to compare with
    * @return whether type is of map type.
    */
-  static bool classof(const Type *type) { return type->GetTypeId() == TypeId::MapType; }
+  static bool classof(const Type *type) { return type->GetTypeId() == TypeId::MapType; }  // NOLINT
 
  private:
   // Private Constructor
@@ -704,7 +704,7 @@ class StructType : public Type {
    * @param type checked type
    * @return whether type is a struct type.
    */
-  static bool classof(const Type *type) { return type->GetTypeId() == TypeId::StructType; }
+  static bool classof(const Type *type) { return type->GetTypeId() == TypeId::StructType; }  // NOLINT
 
  private:
   // Private constructor

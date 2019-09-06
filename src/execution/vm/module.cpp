@@ -38,27 +38,27 @@ class Module::AsyncCompileTask : public tbb::task {
 // Module
 // ---------------------------------------------------------
 
-Module::Module(std::unique_ptr<GetBytecodeModule> bytecode_module) : Module(std::move(bytecode_module), nullptr) {}
+Module::Module(std::unique_ptr<BytecodeModule> bytecode_module) : Module(std::move(bytecode_module), nullptr) {}
 
-Module::Module(std::unique_ptr<GetBytecodeModule> bytecode_module, std::unique_ptr<LLVMEngine::CompiledModule> llvm_module)
+Module::Module(std::unique_ptr<BytecodeModule> bytecode_module, std::unique_ptr<LLVMEngine::CompiledModule> llvm_module)
     : bytecode_module_(std::move(bytecode_module)),
       jit_module_(std::move(llvm_module)),
-      functions_(std::make_unique<std::atomic<void *>[]>(bytecode_module_->num_functions())),
-      bytecode_trampolines_(std::make_unique<Trampoline[]>(bytecode_module_->num_functions())) {
+      functions_(std::make_unique<std::atomic<void *>[]>(bytecode_module_->NumFunctions())),
+      bytecode_trampolines_(std::make_unique<Trampoline[]>(bytecode_module_->NumFunctions())) {
   // Create the trampolines for all bytecode functions
-  for (const auto &func : bytecode_module_->functions()) {
-    CreateFunctionTrampoline(func.id());
+  for (const auto &func : bytecode_module_->Functions()) {
+    CreateFunctionTrampoline(func.Id());
   }
 
   // If a compiled module wasn't provided, all internal function stubs point to
   // the bytecode implementations.
   if (jit_module_ == nullptr) {
-    const auto num_functions = bytecode_module_->num_functions();
+    const auto num_functions = bytecode_module_->NumFunctions();
     for (uint32_t idx = 0; idx < num_functions; idx++) {
-      functions_[idx] = bytecode_trampolines_[idx].code();
+      functions_[idx] = bytecode_trampolines_[idx].Code();
     }
   } else {
-    const auto num_functions = bytecode_module_->num_functions();
+    const auto num_functions = bytecode_module_->NumFunctions();
     for (uint32_t idx = 0; idx < num_functions; idx++) {
       auto func_info = bytecode_module_->GetFuncInfoById(static_cast<uint16_t>(idx));
       functions_[idx] = jit_module_->GetFunctionPointer(func_info->Name());
@@ -111,14 +111,14 @@ class TrampolineGenerator : public Xbyak::CodeGenerator {
   uint32_t ComputeRequiredStackSpace() const {
     // FunctionInfo tells us the amount of space we need for all input and
     // output arguments, so use that.
-    auto required_stack_space = static_cast<uint32_t>(func_.params_size());
+    auto required_stack_space = static_cast<uint32_t>(func_.ParamsSize());
 
     // If the function has a return type, we need to allocate a temporary
     // return value on the stack for that as well. However, if the return type
     // is larger than 8 bytes (i.e., larger than a general-purpose register),
     // a pointer to the return value is provided to the trampoline as the first
     // argument
-    const ast::Type *return_type = func_.func_GetType()->ReturnType();
+    const ast::Type *return_type = func_.FuncType()->ReturnType();
     if (!return_type->IsNilType()) {
       required_stack_space += static_cast<uint32_t>(common::MathUtil::AlignTo(return_type->Size(), sizeof(intptr_t)));
     }
@@ -163,7 +163,7 @@ class TrampolineGenerator : public Xbyak::CodeGenerator {
   void PushCallerArgsOntoStack() {
     const Xbyak::Reg arg_regs[][6] = {{edi, esi, edx, ecx, r8d, r9d}, {rdi, rsi, rdx, rcx, r8, r9}};
 
-    const ast::FunctionType *func_type = func_.func_GetType();
+    const ast::FunctionType *func_type = func_.FuncType();
     TERRIER_ASSERT(func_type->NumParams() < sizeof(arg_regs), "Too many function arguments");
 
     uint32_t displacement = 0;
@@ -185,14 +185,14 @@ class TrampolineGenerator : public Xbyak::CodeGenerator {
     //
 
     for (uint32_t idx = 0; idx < func_type->NumParams(); idx++, local_idx++) {
-      const auto &local_info = func_.locals()[local_idx];
-      auto use_64bit_reg = static_cast<uint32_t>(local_info.size() > sizeof(uint32_t));
-      mov(ptr[rsp + displacement + local_info.offset()], arg_regs[use_64bit_reg][idx]);
+      const auto &local_info = func_.Locals()[local_idx];
+      auto use_64bit_reg = static_cast<uint32_t>(local_info.Size() > sizeof(uint32_t));
+      mov(ptr[rsp + displacement + local_info.Offset()], arg_regs[use_64bit_reg][idx]);
     }
   }
 
   void InvokeVMFunction() {
-    const ast::FunctionType *func_type = func_.func_GetType();
+    const ast::FunctionType *func_type = func_.FuncType();
     const ast::Type *ret_type = func_type->ReturnType();
     uint32_t ret_type_size = 0;
     if (!ret_type->IsNilType()) {
@@ -201,7 +201,7 @@ class TrampolineGenerator : public Xbyak::CodeGenerator {
 
     // Set up the arguments to VM::InvokeFunction(module, function ID, args)
     mov(rdi, reinterpret_cast<std::size_t>(&module_));
-    mov(rsi, func_.id());
+    mov(rsi, func_.Id());
     lea(rdx, ptr[rsp + ret_type_size]);
 
     // Call VM::InvokeFunction()
@@ -251,7 +251,7 @@ void Module::CreateFunctionTrampoline(const FunctionInfo &func, Trampoline *tram
 
 void Module::CreateFunctionTrampoline(FunctionId func_id) {
   // If a trampoline has already been setup, don't bother
-  if (bytecode_trampolines_[func_id].code() != nullptr) {
+  if (bytecode_trampolines_[func_id].Code() != nullptr) {
     EXECUTION_LOG_DEBUG("Function {} has a trampoline; will not recreate", func_id);
     return;
   }
@@ -279,10 +279,10 @@ void Module::CompileToMachineCode() {
     jit_module_ = LLVMEngine::Compile(*bytecode_module_, options);
 
     // Setup function pointers
-    for (const auto &func_info : bytecode_module_->functions()) {
+    for (const auto &func_info : bytecode_module_->Functions()) {
       auto *jit_function = jit_module_->GetFunctionPointer(func_info.Name());
       TERRIER_ASSERT(jit_function != nullptr, "Missing function in compiled module!");
-      functions_[func_info.id()].store(jit_function, std::memory_order_relaxed);
+      functions_[func_info.Id()].store(jit_function, std::memory_order_relaxed);
     }
   });
 }

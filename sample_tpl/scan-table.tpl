@@ -9,16 +9,16 @@ fun main(execCtx: *ExecutionContext) -> int64 {
   var oids: [1]uint32
   oids[0] = 1 // colA
   @tableIterInitBind(&tvi, execCtx, "test_1", oids)
-  for (@tableIterAdvance(&tvi)) {
-    var pci = @tableIterGetPCI(&tvi)
-    for (; @pciHasNext(pci); @pciAdvance(pci)) {
-      var cola = @pciGetInt(pci, 0)
-      if (cola < 500) {
-        ret = ret + 1
-      }
-    }
-    @pciReset(pci)
-  }
-  @tableIterClose(&tvi)
+  //for (@tableIterAdvance(&tvi)) {
+    //var pci = @tableIterGetPCI(&tvi)
+    //for (; @pciHasNext(pci); @pciAdvance(pci)) {
+      //var cola = @pciGetInt(pci, 0)
+      //if (cola < 500) {
+        //ret = ret + 1
+      //}
+    //}
+    //@pciReset(pci)
+  //}
+  //@tableIterClose(&tvi)
   return ret
 }

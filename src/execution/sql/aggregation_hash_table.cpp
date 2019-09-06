@@ -237,7 +237,8 @@ void AggregationHashTable::ComputeHashAndLoadInitialImpl(ProjectedColumnsIterato
   iters[0]->Reset();
 
   // Load entries
-  for (uint32_t idx = 0, prefetch_idx = common::Constants::K_PREFETCH_DISTANCE; idx < num_elems; idx++, prefetch_idx++) {
+  for (uint32_t idx = 0, prefetch_idx = common::Constants::K_PREFETCH_DISTANCE; idx < num_elems;
+       idx++, prefetch_idx++) {
     // NOLINTNEXTLINE: bugprone-suspicious-semicolon: seems like a false positive because of constexpr
     if constexpr (Prefetch) {
       if (LIKELY(prefetch_idx < num_elems)) {
@@ -264,8 +265,8 @@ void AggregationHashTable::FollowNextLoop(ProjectedColumnsIterator *iters[], uin
     for (uint32_t idx = 0; idx < num_elems; idx++) {
       iters[0]->SetPosition<PCIIsFiltered>(group_sel[idx]);
 
-      const bool keys_match =
-          entries[group_sel[idx]]->hash_ == hashes[group_sel[idx]] && key_eq_fn(entries[group_sel[idx]]->payload_, iters);
+      const bool keys_match = entries[group_sel[idx]]->hash_ == hashes[group_sel[idx]] &&
+                              key_eq_fn(entries[group_sel[idx]]->payload_, iters);
       const bool has_next = entries[group_sel[idx]]->next_ != nullptr;
 
       group_sel[write_idx] = group_sel[idx];
@@ -406,7 +407,7 @@ AggregationHashTable *AggregationHashTable::BuildTableOverPartition(void *const 
   AggregationOverflowPartitionIterator iter(partition_heads_ + partition_idx, partition_heads_ + partition_idx + 1);
   merge_partition_fn_(query_state, agg_table, &iter);
 
-  timer.StOp();
+  timer.Stop();
   EXECUTION_LOG_DEBUG(
       "Overflow Partition {}: estimated size = {}, actual size = {}, "
       "build time = {:2f} ms",
@@ -438,8 +439,9 @@ void AggregationHashTable::ExecuteParallelPartitionedScan(void *query_state, Thr
 
   // Determine the non-empty overflow partitions
   alignas(common::Constants::CACHELINE_SIZE) uint32_t nonempty_parts[K_DEFAULT_NUM_PARTITIONS];
-  uint32_t num_nonempty_parts = util::VectorUtil::FilterNe(reinterpret_cast<const intptr_t *>(partition_heads_),
-                                                           K_DEFAULT_NUM_PARTITIONS, intptr_t(0), nonempty_parts, nullptr);
+  uint32_t num_nonempty_parts =
+      util::VectorUtil::FilterNe(reinterpret_cast<const intptr_t *>(partition_heads_), K_DEFAULT_NUM_PARTITIONS,
+                                 intptr_t(0), nonempty_parts, nullptr);
 
   tbb::parallel_for_each(nonempty_parts, nonempty_parts + num_nonempty_parts, [&](const uint32_t part_idx) {
     // Build a hash table over the given partition

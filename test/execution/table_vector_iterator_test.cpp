@@ -37,7 +37,7 @@ TEST_F(TableVectorIteratorTest, EmptyIteratorTest) {
   //
   auto table_oid = exec_ctx_->GetAccessor()->GetTableOid(NSOid(), "empty_table");
   std::array<uint32_t, 1> col_oids{1};
-  TableVectorIterator iter(exec_ctx_.get(), !table_oid, col_oids.Data(), static_cast<uint32_t>(col_oids.size()));
+  TableVectorIterator iter(exec_ctx_.get(), !table_oid, col_oids.data(), static_cast<uint32_t>(col_oids.size()));
   iter.Init();
   ASSERT_FALSE(iter.Advance());
 }
@@ -50,9 +50,9 @@ TEST_F(TableVectorIteratorTest, SimpleIteratorTest) {
 
   auto table_oid = exec_ctx_->GetAccessor()->GetTableOid(NSOid(), "test_1");
   std::array<uint32_t, 1> col_oids{1};
-  TableVectorIterator iter(exec_ctx_.get(), !table_oid, col_oids.Data(), static_cast<uint32_t>(col_oids.size()));
+  TableVectorIterator iter(exec_ctx_.get(), !table_oid, col_oids.data(), static_cast<uint32_t>(col_oids.size()));
   iter.Init();
-  ProjectedColumnsIterator *pci = iter.projected_columns_iterator();
+  ProjectedColumnsIterator *pci = iter.GetProjectedColumnsIterator();
 
   uint32_t num_tuples = 0;
   int32_t prev_val{0};
@@ -79,9 +79,9 @@ TEST_F(TableVectorIteratorTest, MultipleTypesIteratorTest) {
 
   auto table_oid = exec_ctx_->GetAccessor()->GetTableOid(NSOid(), "test_2");
   std::array<uint32_t, 4> col_oids{1, 2, 3, 4};
-  TableVectorIterator iter(exec_ctx_.get(), !table_oid, col_oids.Data(), static_cast<uint32_t>(col_oids.size()));
+  TableVectorIterator iter(exec_ctx_.get(), !table_oid, col_oids.data(), static_cast<uint32_t>(col_oids.size()));
   iter.Init();
-  ProjectedColumnsIterator *pci = iter.projected_columns_iterator();
+  ProjectedColumnsIterator *pci = iter.GetProjectedColumnsIterator();
 
   uint32_t num_tuples = 0;
   int16_t prev_val{0};
@@ -108,9 +108,9 @@ TEST_F(TableVectorIteratorTest, IteratorColOidsTest) {
 
   auto table_oid = exec_ctx_->GetAccessor()->GetTableOid(NSOid(), "test_2");
   std::array<uint32_t, 1> col_oids{1};
-  TableVectorIterator iter(exec_ctx_.get(), !table_oid, col_oids.Data(), static_cast<uint32_t>(col_oids.size()));
+  TableVectorIterator iter(exec_ctx_.get(), !table_oid, col_oids.data(), static_cast<uint32_t>(col_oids.size()));
   iter.Init();
-  ProjectedColumnsIterator *pci = iter.projected_columns_iterator();
+  ProjectedColumnsIterator *pci = iter.GetProjectedColumnsIterator();
 
   uint32_t num_tuples = 0;
   int16_t prev_val{0};

@@ -93,10 +93,10 @@ TEST_F(BloomFilterTest, ComprehensiveTest) {
       actual_found += static_cast<uint32_t>(exists);
     }
 
-    timer.StOp();
+    timer.Stop();
 
     double fpr = (actual_found - expected_found) / static_cast<double>(lookups.size());
-    double probes_per_sec = static_cast<double>(lookups.size()) / timer.elapsed() * 1000.0 / 1000000.0;
+    double probes_per_sec = static_cast<double>(lookups.size()) / timer.Elapsed() * 1000.0 / 1000000.0;
     EXECUTION_LOG_INFO("p: {:.2f}, {} M probes/sec, FPR: {:2.4f}, (expected: {}, actual: {})", prob_success,
                        probes_per_sec, fpr, expected_found, actual_found);
   }

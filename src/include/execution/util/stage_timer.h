@@ -72,9 +72,9 @@ class StageTimer {
    */
   void ExitStage() {
     TERRIER_ASSERT(!stages_.empty(), "Missing call to EnterStage()");
-    TERRIER_ASSERT(stages_.back().time() == 0, "Duplicate call to ExitStage()");
-    timer_.StOp();
-    stages_.back().set_time(timer_.elapsed());
+    TERRIER_ASSERT(stages_.back().Time() == 0, "Duplicate call to ExitStage()");
+    timer_.Stop();
+    stages_.back().SetTime(timer_.Elapsed());
   }
 
   /**
