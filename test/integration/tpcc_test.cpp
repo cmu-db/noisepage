@@ -28,7 +28,7 @@ class TPCCTests : public TerrierTest {
   void SetUp() final {
     TerrierTest::SetUp();
     unlink(LOG_FILE_NAME);
-    for (const auto &file : metrics::LoggingMetricRawData::files_) unlink(std::string(file).c_str());
+    for (const auto &file : metrics::LoggingMetricRawData::FILES) unlink(std::string(file).c_str());
   }
 
   void TearDown() final {

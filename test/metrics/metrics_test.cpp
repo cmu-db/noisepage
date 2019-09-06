@@ -78,7 +78,7 @@ class MetricsTests : public TerrierTest {
  */
 // NOLINTNEXTLINE
 TEST_F(MetricsTests, LoggingCSVTest) {
-  for (const auto &file : metrics::LoggingMetricRawData::files_) unlink(std::string(file).c_str());
+  for (const auto &file : metrics::LoggingMetricRawData::FILES) unlink(std::string(file).c_str());
   const settings::setter_callback_fn setter_callback = MetricsTests::EmptySetterCallback;
   std::shared_ptr<common::ActionContext> action_context =
       std::make_shared<common::ActionContext>(common::action_id_t(1));
@@ -114,7 +114,7 @@ TEST_F(MetricsTests, LoggingCSVTest) {
  */
 // NOLINTNEXTLINE
 TEST_F(MetricsTests, TransactionCSVTest) {
-  for (const auto &file : metrics::TransactionMetricRawData::files_) unlink(std::string(file).c_str());
+  for (const auto &file : metrics::TransactionMetricRawData::FILES) unlink(std::string(file).c_str());
   const settings::setter_callback_fn setter_callback = MetricsTests::EmptySetterCallback;
   std::shared_ptr<common::ActionContext> action_context =
       std::make_shared<common::ActionContext>(common::action_id_t(1));

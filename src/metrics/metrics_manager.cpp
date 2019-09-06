@@ -69,15 +69,15 @@ void MetricsManager::ToCSV() const {
       std::vector<std::ofstream> outfiles;
       switch (static_cast<MetricsComponent>(component)) {
         case MetricsComponent::LOGGING: {
-          outfiles.reserve(LoggingMetricRawData::files_.size());
-          for (const auto &file : LoggingMetricRawData::files_) {
+          outfiles.reserve(LoggingMetricRawData::FILES.size());
+          for (const auto &file : LoggingMetricRawData::FILES) {
             outfiles.emplace_back(std::string(file), std::ios_base::out | std::ios_base::app);
           }
           break;
         }
         case MetricsComponent::TRANSACTION: {
-          outfiles.reserve(TransactionMetricRawData::files_.size());
-          for (const auto &file : TransactionMetricRawData::files_) {
+          outfiles.reserve(TransactionMetricRawData::FILES.size());
+          for (const auto &file : TransactionMetricRawData::FILES) {
             outfiles.emplace_back(std::string(file), std::ios_base::out | std::ios_base::app);
           }
           break;

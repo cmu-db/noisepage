@@ -48,7 +48,7 @@ BENCHMARK_DEFINE_F(LoggingMetricsBenchmark, TPCCish)(benchmark::State &state) {
   // NOLINTNEXTLINE
   for (auto _ : state) {
     unlink(LOG_FILE_NAME);
-    for (const auto &file : metrics::LoggingMetricRawData::files_) unlink(std::string(file).c_str());
+    for (const auto &file : metrics::LoggingMetricRawData::FILES) unlink(std::string(file).c_str());
     auto *const metrics_thread = new metrics::MetricsThread(metrics_period_);
     metrics_thread->GetMetricsManager().EnableMetric(metrics::MetricsComponent::LOGGING);
     thread_registry_ =

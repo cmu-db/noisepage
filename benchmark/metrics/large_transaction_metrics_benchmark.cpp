@@ -32,7 +32,7 @@ BENCHMARK_DEFINE_F(LargeTransactionMetricsBenchmark, TPCCish)(benchmark::State &
   const std::vector<double> insert_update_select_ratio = {0.1, 0.4, 0.5};
   // NOLINTNEXTLINE
   for (auto _ : state) {
-    for (const auto &file : metrics::TransactionMetricRawData::files_) unlink(std::string(file).c_str());
+    for (const auto &file : metrics::TransactionMetricRawData::FILES) unlink(std::string(file).c_str());
     auto *const metrics_thread = new metrics::MetricsThread(metrics_period_);
     metrics_thread->GetMetricsManager().EnableMetric(metrics::MetricsComponent::TRANSACTION);
 
@@ -59,7 +59,7 @@ BENCHMARK_DEFINE_F(LargeTransactionMetricsBenchmark, HighAbortRate)(benchmark::S
   const std::vector<double> insert_update_select_ratio = {0.0, 0.8, 0.2};
   // NOLINTNEXTLINE
   for (auto _ : state) {
-    for (const auto &file : metrics::TransactionMetricRawData::files_) unlink(std::string(file).c_str());
+    for (const auto &file : metrics::TransactionMetricRawData::FILES) unlink(std::string(file).c_str());
     auto *const metrics_thread = new metrics::MetricsThread(metrics_period_);
     metrics_thread->GetMetricsManager().EnableMetric(metrics::MetricsComponent::TRANSACTION);
 
@@ -87,7 +87,7 @@ BENCHMARK_DEFINE_F(LargeTransactionMetricsBenchmark, SingleStatementInsert)(benc
   const std::vector<double> insert_update_select_ratio = {1, 0, 0};
   // NOLINTNEXTLINE
   for (auto _ : state) {
-    for (const auto &file : metrics::TransactionMetricRawData::files_) unlink(std::string(file).c_str());
+    for (const auto &file : metrics::TransactionMetricRawData::FILES) unlink(std::string(file).c_str());
     auto *const metrics_thread = new metrics::MetricsThread(metrics_period_);
     metrics_thread->GetMetricsManager().EnableMetric(metrics::MetricsComponent::TRANSACTION);
 
@@ -115,7 +115,7 @@ BENCHMARK_DEFINE_F(LargeTransactionMetricsBenchmark, SingleStatementUpdate)(benc
   const std::vector<double> insert_update_select_ratio = {0, 1, 0};
   // NOLINTNEXTLINE
   for (auto _ : state) {
-    for (const auto &file : metrics::TransactionMetricRawData::files_) unlink(std::string(file).c_str());
+    for (const auto &file : metrics::TransactionMetricRawData::FILES) unlink(std::string(file).c_str());
     auto *const metrics_thread = new metrics::MetricsThread(metrics_period_);
     metrics_thread->GetMetricsManager().EnableMetric(metrics::MetricsComponent::TRANSACTION);
 
@@ -142,7 +142,7 @@ BENCHMARK_DEFINE_F(LargeTransactionMetricsBenchmark, SingleStatementSelect)(benc
   const std::vector<double> insert_update_select_ratio = {0, 0, 1};
   // NOLINTNEXTLINE
   for (auto _ : state) {
-    for (const auto &file : metrics::TransactionMetricRawData::files_) unlink(std::string(file).c_str());
+    for (const auto &file : metrics::TransactionMetricRawData::FILES) unlink(std::string(file).c_str());
     auto *const metrics_thread = new metrics::MetricsThread(metrics_period_);
     metrics_thread->GetMetricsManager().EnableMetric(metrics::MetricsComponent::TRANSACTION);
 
