@@ -132,6 +132,7 @@ bool DataTable::Update(transaction::TransactionContext *const txn, const TupleSl
 }
 
 void DataTable::CheckMoveHead(std::list<RawBlock *>::iterator block) {
+//  common::SpinLatch::ScopedSpinLatch guard_head(&blocks_latch_);
   common::SpinLatch::ScopedSpinLatch guard_head(&header_latch_);
   if (block == insertion_head_) {
     // If the header block is full, move the header to point to the next block
