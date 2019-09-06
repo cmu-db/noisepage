@@ -10,8 +10,9 @@ namespace terrier {
 
 class GarbageCollectorBenchmark : public benchmark::Fixture {
  public:
-  void StartGC(transaction::TransactionManager *const txn_manager) {
-    gc_ = new storage::GarbageCollector(txn_manager, nullptr);
+  void StartGC(transaction::TimestampManager *const timestamp_manager,
+               transaction::TransactionManager *const txn_manager) {
+    gc_ = new storage::GarbageCollector(timestamp_manager, DISABLED, txn_manager, DISABLED);
     run_gc_ = true;
     gc_thread_ = std::thread([this] { GCThreadLoop(); });
   }
@@ -26,11 +27,11 @@ class GarbageCollectorBenchmark : public benchmark::Fixture {
     return lag_count;
   }
 
-  const uint32_t txn_length = 5;
-  const std::vector<double> update_select_ratio = {0, 1, 0};
-  const uint32_t num_concurrent_txns = 4;
-  const uint32_t initial_table_size = 100000;
-  const uint32_t num_txns = 100000;
+  const uint32_t txn_length_ = 5;
+  const std::vector<double> update_select_ratio_ = {0, 1, 0};
+  const uint32_t num_concurrent_txns_ = 4;
+  const uint32_t initial_table_size_ = 100000;
+  const uint32_t num_txns_ = 100000;
   storage::BlockStore block_store_{1000, 1000};
   storage::RecordBufferSegmentPool buffer_pool_{1000000, 1000000};
   std::default_random_engine generator_;
@@ -56,16 +57,16 @@ BENCHMARK_DEFINE_F(GarbageCollectorBenchmark, UnlinkTime)(benchmark::State &stat
   // NOLINTNEXTLINE
   for (auto _ : state) {
     // generate our table and instantiate GC
-    LargeTransactionBenchmarkObject tested({8, 8, 8}, initial_table_size, txn_length, update_select_ratio,
+    LargeTransactionBenchmarkObject tested({8, 8, 8}, initial_table_size_, txn_length_, update_select_ratio_,
                                            &block_store_, &buffer_pool_, &generator_, true);
-    gc_ = new storage::GarbageCollector(tested.GetTxnManager(), nullptr);
+    gc_ = new storage::GarbageCollector(tested.GetTimestampManager(), DISABLED, tested.GetTxnManager(), DISABLED);
 
     // clean up insert txn
     gc_->PerformGarbageCollection();
     gc_->PerformGarbageCollection();
 
     // run all txns
-    tested.SimulateOltp(num_txns, num_concurrent_txns);
+    tested.SimulateOltp(num_txns_, num_concurrent_txns_);
 
     // time just the unlinking process, verify nothing deallocated
     uint64_t elapsed_ms;
@@ -75,7 +76,7 @@ BENCHMARK_DEFINE_F(GarbageCollectorBenchmark, UnlinkTime)(benchmark::State &stat
       result = gc_->PerformGarbageCollection();
     }
     EXPECT_EQ(result.first, 0);
-    EXPECT_EQ(result.second, num_txns);
+    EXPECT_EQ(result.second, num_txns_);
 
     // run another GC pass to perform deallocation, verify nothing unlinked
     result = gc_->PerformGarbageCollection();
@@ -85,7 +86,7 @@ BENCHMARK_DEFINE_F(GarbageCollectorBenchmark, UnlinkTime)(benchmark::State &stat
 
     state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
   }
-  state.SetItemsProcessed(state.iterations() * num_txns);
+  state.SetItemsProcessed(state.iterations() * num_txns_);
 }
 
 // Create a table with 100,000 tuples, then run 100,000 txns running update statements. Then run GC and profile how long
@@ -95,16 +96,16 @@ BENCHMARK_DEFINE_F(GarbageCollectorBenchmark, ReclaimTime)(benchmark::State &sta
   // NOLINTNEXTLINE
   for (auto _ : state) {
     // generate our table and instantiate GC
-    LargeTransactionBenchmarkObject tested({8, 8, 8}, initial_table_size, txn_length, update_select_ratio,
+    LargeTransactionBenchmarkObject tested({8, 8, 8}, initial_table_size_, txn_length_, update_select_ratio_,
                                            &block_store_, &buffer_pool_, &generator_, true);
-    gc_ = new storage::GarbageCollector(tested.GetTxnManager(), nullptr);
+    gc_ = new storage::GarbageCollector(tested.GetTimestampManager(), DISABLED, tested.GetTxnManager(), DISABLED);
 
     // clean up insert txn
     gc_->PerformGarbageCollection();
     gc_->PerformGarbageCollection();
 
     // run all txns
-    tested.SimulateOltp(num_txns, num_concurrent_txns);
+    tested.SimulateOltp(num_txns_, num_concurrent_txns_);
 
     // run first pass to unlink everything, verify nothing deallocated
     std::pair<uint32_t, uint32_t> result = gc_->PerformGarbageCollection();
@@ -116,14 +117,14 @@ BENCHMARK_DEFINE_F(GarbageCollectorBenchmark, ReclaimTime)(benchmark::State &sta
       common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
       result = gc_->PerformGarbageCollection();
     }
-    EXPECT_EQ(result.first, num_txns);
+    EXPECT_EQ(result.first, num_txns_);
     EXPECT_EQ(result.second, 0);
 
     delete gc_;
 
     state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
   }
-  state.SetItemsProcessed(state.iterations() * num_txns);
+  state.SetItemsProcessed(state.iterations() * num_txns_);
 }
 
 /**
@@ -136,18 +137,18 @@ BENCHMARK_DEFINE_F(GarbageCollectorBenchmark, HighContention)(benchmark::State &
   uint64_t lag_count = 0;
   // NOLINTNEXTLINE
   for (auto _ : state) {
-    LargeTransactionBenchmarkObject tested({8, 8, 8}, 100, txn_length, update_select_ratio, &block_store_,
+    LargeTransactionBenchmarkObject tested({8, 8, 8}, 100, txn_length_, update_select_ratio_, &block_store_,
                                            &buffer_pool_, &generator_, true);
-    StartGC(tested.GetTxnManager());
+    StartGC(tested.GetTimestampManager(), tested.GetTxnManager());
     uint64_t elapsed_ms;
     {
       common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
-      tested.SimulateOltp(num_txns, num_concurrent_txns);
+      tested.SimulateOltp(num_txns_, num_concurrent_txns_);
     }
     lag_count += EndGC();
     state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
   }
-  state.SetItemsProcessed(state.iterations() * num_txns - lag_count);
+  state.SetItemsProcessed(state.iterations() * num_txns_ - lag_count);
 }
 
 BENCHMARK_REGISTER_F(GarbageCollectorBenchmark, UnlinkTime)->Unit(benchmark::kMillisecond)->UseManualTime()->MinTime(1);

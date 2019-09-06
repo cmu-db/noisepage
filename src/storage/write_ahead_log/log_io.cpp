@@ -45,13 +45,13 @@ bool BufferedLogReader::Read(void *dest, uint32_t size) {
     return true;
   }
   // Not enough left in the buffer.
-  uint32_t bytes_read_ = 0;
-  while (bytes_read_ < size) {
+  uint32_t bytes_read = 0;
+  while (bytes_read < size) {
     if (!HasMore()) return false;
-    uint32_t read_size = std::min(size - bytes_read_, filled_size_ - read_head_);
+    uint32_t read_size = std::min(size - bytes_read, filled_size_ - read_head_);
     if (read_size == 0) RefillBuffer();  // when all contents in the buffer is fully read
-    ReadFromBuffer(reinterpret_cast<char *>(dest) + bytes_read_, read_size);
-    bytes_read_ += read_size;
+    ReadFromBuffer(reinterpret_cast<char *>(dest) + bytes_read, read_size);
+    bytes_read += read_size;
   }
   return true;
 }

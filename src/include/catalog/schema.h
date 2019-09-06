@@ -200,10 +200,10 @@ class Schema {
       // If not all columns assigned OIDs, then clear the map because this is
       // a definition of a new/modified table not a catalog generated schema.
       if (columns_[i].Oid() == catalog::INVALID_COLUMN_OID) {
-        col_oid_to_offset.clear();
+        col_oid_to_offset_.clear();
         return;
       }
-      col_oid_to_offset[columns_[i].Oid()] = i;
+      col_oid_to_offset_[columns_[i].Oid()] = i;
     }
   }
 
@@ -216,7 +216,7 @@ class Schema {
    * @param col_offset offset into the schema specifying which Column to access
    * @return description of the schema for a specific column
    */
-  Column GetColumn(const uint32_t col_offset) const {
+  const Column &GetColumn(const uint32_t col_offset) const {
     TERRIER_ASSERT(col_offset < columns_.size(), "column id is out of bounds for this Schema");
     return columns_[col_offset];
   }
@@ -224,9 +224,9 @@ class Schema {
    * @param col_oid identifier of a Column in the schema
    * @return description of the schema for a specific column
    */
-  Column GetColumn(const col_oid_t col_oid) const {
-    TERRIER_ASSERT(col_oid_to_offset.count(col_oid) > 0, "col_oid does not exist in this Schema");
-    const uint32_t col_offset = col_oid_to_offset.at(col_oid);
+  const Column &GetColumn(const col_oid_t col_oid) const {
+    TERRIER_ASSERT(col_oid_to_offset_.count(col_oid) > 0, "col_oid does not exist in this Schema");
+    const uint32_t col_offset = col_oid_to_offset_.at(col_oid);
     return columns_[col_offset];
   }
 
@@ -235,8 +235,8 @@ class Schema {
    * @return description of the schema for a specific column
    * @throw std::out_of_range if the column doesn't exist.
    */
-  Column GetColumn(const std::string &name) const {
-    for (auto &c : columns_) {
+  const Column &GetColumn(const std::string &name) const {
+    for (const auto &c : columns_) {
       if (c.Name() == name) {
         return c;
       }
@@ -280,7 +280,7 @@ class Schema {
  private:
   friend class DatabaseCatalog;
   std::vector<Column> columns_;
-  std::unordered_map<col_oid_t, uint32_t> col_oid_to_offset;
+  std::unordered_map<col_oid_t, uint32_t> col_oid_to_offset_;
 };
 
 DEFINE_JSON_DECLARATIONS(Schema::Column);

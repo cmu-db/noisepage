@@ -37,16 +37,10 @@ class TransactionContext {
    * MVCC semantics
    * @param buffer_pool the buffer pool to draw this transaction's undo buffer from
    * @param log_manager pointer to log manager in the system, or nullptr, if logging is disabled
-   * @param transaction_manager pointer to transaction manager in the system (used for action framework)
    */
   TransactionContext(const timestamp_t start, const timestamp_t finish,
-                     storage::RecordBufferSegmentPool *const buffer_pool, storage::LogManager *const log_manager,
-                     TransactionManager *transaction_manager)
-      : start_time_(start),
-        finish_time_(finish),
-        undo_buffer_(buffer_pool),
-        redo_buffer_(log_manager, buffer_pool),
-        txn_mgr_(transaction_manager) {}
+                     storage::RecordBufferSegmentPool *const buffer_pool, storage::LogManager *const log_manager)
+      : start_time_(start), finish_time_(finish), undo_buffer_(buffer_pool), redo_buffer_(log_manager, buffer_pool) {}
 
   /**
    * @warning In the src/ folder this should only be called by the Garbage Collector to adhere to MVCC semantics. Tests
@@ -157,25 +151,35 @@ class TransactionContext {
 
   /**
    * Defers an action to be called if and only if the transaction aborts.  Actions executed LIFO.
+   * @param a the action to be executed. A handle to the system's deferred action manager is supplied
+   * to enable further deferral of actions
+   */
+  void RegisterAbortAction(const TransactionEndAction &a) { abort_actions_.push_front(a); }
+
+  /**
+   * Defers an action to be called if and only if the transaction aborts.  Actions executed LIFO.
    * @param a the action to be executed
    */
-  void RegisterAbortAction(const Action &a) { abort_actions_.push_front(a); }
+  void RegisterAbortAction(const std::function<void()> &a) {
+    RegisterAbortAction([=](transaction::DeferredActionManager * /*unused*/) { a(); });
+  }
 
   /**
    * Defers an action to be called if and only if the transaction commits.  Actions executed LIFO.
    * @warning these actions are run after commit and are not atomic with the commit itself
-   * @param a the action to be executed
+   * @param a the action to be executed. A handle to the system's deferred action manager is supplied
+   * to enable further deferral of actions
    */
-  void RegisterCommitAction(const Action &a) { commit_actions_.push_front(a); }
+  void RegisterCommitAction(const TransactionEndAction &a) { commit_actions_.push_front(a); }
 
   /**
-   * Get the transaction manager responsible for this context (should be singleton).
-   * @warning This should only be used to support dynamically generating deferred actions
-   *          at abort or commit.  We need to expose the transaction manager because that
-   *          is where the deferred actions queue exists.
-   * @return the transaction manager
+   * Defers an action to be called if and only if the transaction commits.  Actions executed LIFO.
+   * @warning these actions are run after commit and are not atomic with the commit itself
+   * @param a the action to be executed.
    */
-  TransactionManager *GetTransactionManager() { return txn_mgr_; }
+  void RegisterCommitAction(const std::function<void()> &a) {
+    RegisterCommitAction([=](transaction::DeferredActionManager * /*unused*/) { a(); });
+  }
 
   /**
    * Flips the TransactionContext's internal flag that it cannot commit to true. This is checked by the
@@ -199,12 +203,8 @@ class TransactionContext {
   std::vector<const byte *> loose_ptrs_;
 
   // These actions will be triggered (not deferred) at abort/commit.
-  std::forward_list<Action> abort_actions_;
-  std::forward_list<Action> commit_actions_;
-
-  // Need this reference because the transaction manager is center point for
-  // adding epoch trigger deferrals.
-  TransactionManager *txn_mgr_;
+  std::forward_list<TransactionEndAction> abort_actions_;
+  std::forward_list<TransactionEndAction> commit_actions_;
 
   // log manager will set this to be true when log records are processed (not necessarily flushed, but will not be read
   // again in the future), so it can be garbage-collected safely.

@@ -3,7 +3,7 @@
 
 namespace terrier {
 
-int terrier_close(int fd);
+int TerrierClose(int fd);
 
-std::string terrier_error_message();
+std::string TerrierErrorMessage();
 }  // namespace terrier

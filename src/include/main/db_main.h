@@ -57,8 +57,10 @@ class DBMain {
     // TODO(Matt): might as well make these std::unique_ptr, but then will need to refactor other classes to take
     // ManagedPointers unless we want a bunch of .get()s, which sounds like a future PR
     delete gc_thread_;
+    delete garbage_collector_;
     delete settings_manager_;
     delete txn_manager_;
+    delete timestamp_manager_;
     delete buffer_segment_pool_;
     delete thread_pool_;
     delete log_manager_;
@@ -90,9 +92,11 @@ class DBMain {
   friend class settings::Callbacks;
   std::shared_ptr<common::StatisticsRegistry> main_stat_reg_;
   std::unordered_map<settings::Param, settings::ParamInfo> param_map_;
+  transaction::TimestampManager *timestamp_manager_;
   transaction::TransactionManager *txn_manager_;
   settings::SettingsManager *settings_manager_;
   storage::LogManager *log_manager_;
+  storage::GarbageCollector *garbage_collector_;
   storage::GarbageCollectorThread *gc_thread_;
   network::TerrierServer *server_;
   storage::RecordBufferSegmentPool *buffer_segment_pool_;
@@ -103,7 +107,7 @@ class DBMain {
   network::ProtocolInterpreter::Provider *provider_;
   common::DedicatedThreadRegistry *thread_registry_;
 
-  bool running = false;
+  bool running_ = false;
 
   /**
    * Cleans up and exit.

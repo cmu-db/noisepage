@@ -180,7 +180,7 @@ class ConcurrentMap {
    */
   ConstIterator Find(const K &key) const {
     auto it = map_.find(key);
-    if (it == map_.cend()) return CEnd();
+    if (it == map_.cend()) return cend();
     return ConstIterator(it);
   }
 
@@ -192,7 +192,7 @@ class ConcurrentMap {
    */
   Iterator Find(const K &key) {
     auto it = map_.find(key);
-    if (it == map_.end()) return End();
+    if (it == map_.end()) return end();
     return Iterator(it);
   }
 
@@ -206,22 +206,22 @@ class ConcurrentMap {
   /**
    * @return const iterator to the first element
    */
-  ConstIterator CBegin() const { return ConstIterator(map_.cbegin()); }
+  ConstIterator cbegin() const { return ConstIterator(map_.cbegin()); }
 
   /**
    * @return Iterator to the first element
    */
-  Iterator Begin() { return Iterator(map_.begin()); }
+  Iterator begin() { return Iterator(map_.begin()); }
 
   /**
    * @return const iterator to the element following the last element
    */
-  ConstIterator CEnd() const { return ConstIterator(map_.cend()); }
+  ConstIterator cend() const { return ConstIterator(map_.cend()); }
 
   /**
    * @return Iterator to the element following the last element
    */
-  Iterator End() { return Iterator(map_.end()); }
+  Iterator end() { return Iterator(map_.end()); }
 
  private:
   tbb::concurrent_unordered_map<TEMPLATE_ARGS> map_;

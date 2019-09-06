@@ -55,9 +55,9 @@ class BlockCompactor {
    * Processes the compaction queue and mark processed blocks as cold if successful. The compaction can fail due
    * to live versions or contention. There will be a brief window where user transactions writing to the block
    * can be aborted, but no readers would be blocked.
-   *
    */
-  void ProcessCompactionQueue(transaction::TransactionManager *txn_manager);
+  void ProcessCompactionQueue(transaction::DeferredActionManager *deferred_action_manager,
+                              transaction::TransactionManager *txn_manager);
 
   /**
    * Adds a block associated with a data table to the compaction to be processed in the future.

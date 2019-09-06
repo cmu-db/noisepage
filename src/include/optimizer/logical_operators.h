@@ -43,7 +43,7 @@ class LogicalGet : public OperatorNode<LogicalGet> {
    * @param is_for_update whether the scan is used for update
    * @return
    */
-  static Operator make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
+  static Operator Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
                        catalog::table_oid_t table_oid, std::vector<AnnotatedExpression> predicates,
                        std::string table_alias, bool is_for_update);
 
@@ -126,7 +126,7 @@ class LogicalExternalFileGet : public OperatorNode<LogicalExternalFileGet> {
    * @param escape character used for escape sequences
    * @return an LogicalExternalFileGet operator
    */
-  static Operator make(parser::ExternalFileFormat format, std::string file_name, char delimiter, char quote,
+  static Operator Make(parser::ExternalFileFormat format, std::string file_name, char delimiter, char quote,
                        char escape);
 
   bool operator==(const BaseOperatorNode &r) override;
@@ -194,7 +194,7 @@ class LogicalQueryDerivedGet : public OperatorNode<LogicalQueryDerivedGet> {
    * @param alias_to_expr_map map from table aliases to expressions of those tables
    * @return a LogicalQueryDerivedGet operator
    */
-  static Operator make(
+  static Operator Make(
       std::string table_alias,
       std::unordered_map<std::string, common::ManagedPointer<parser::AbstractExpression>> &&alias_to_expr_map);
 
@@ -235,7 +235,7 @@ class LogicalFilter : public OperatorNode<LogicalFilter> {
    * @param predicates The list of predicates used to perform the scan
    * @return a LogicalFilter operator
    */
-  static Operator make(std::vector<AnnotatedExpression> &&predicates);
+  static Operator Make(std::vector<AnnotatedExpression> &&predicates);
 
   bool operator==(const BaseOperatorNode &r) override;
 
@@ -264,7 +264,7 @@ class LogicalProjection : public OperatorNode<LogicalProjection> {
    * @param expressions list of AbstractExpressions in the projection list.
    * @return a LogicalProjection operator
    */
-  static Operator make(std::vector<common::ManagedPointer<parser::AbstractExpression>> &&expressions);
+  static Operator Make(std::vector<common::ManagedPointer<parser::AbstractExpression>> &&expressions);
 
   bool operator==(const BaseOperatorNode &r) override;
 
@@ -290,13 +290,13 @@ class LogicalDependentJoin : public OperatorNode<LogicalDependentJoin> {
   /**
    * @return a DependentJoin operator
    */
-  static Operator make();
+  static Operator Make();
 
   /**
    * @param conditions condition of the join
    * @return a DependentJoin operator
    */
-  static Operator make(std::vector<AnnotatedExpression> &&conditions);
+  static Operator Make(std::vector<AnnotatedExpression> &&conditions);
 
   bool operator==(const BaseOperatorNode &r) override;
 
@@ -322,13 +322,13 @@ class LogicalMarkJoin : public OperatorNode<LogicalMarkJoin> {
   /**
    * @return a MarkJoin operator
    */
-  static Operator make();
+  static Operator Make();
 
   /**
    * @param conditions conditions of the join
    * @return a MarkJoin operator
    */
-  static Operator make(std::vector<AnnotatedExpression> &&conditions);
+  static Operator Make(std::vector<AnnotatedExpression> &&conditions);
 
   bool operator==(const BaseOperatorNode &r) override;
 
@@ -354,13 +354,13 @@ class LogicalSingleJoin : public OperatorNode<LogicalSingleJoin> {
   /**
    * @return a SingleJoin operator
    */
-  static Operator make();
+  static Operator Make();
 
   /**
    * @param conditions conditions of the join
    * @return a SingleJoin operator
    */
-  static Operator make(std::vector<AnnotatedExpression> &&conditions);
+  static Operator Make(std::vector<AnnotatedExpression> &&conditions);
 
   bool operator==(const BaseOperatorNode &r) override;
 
@@ -386,13 +386,13 @@ class LogicalInnerJoin : public OperatorNode<LogicalInnerJoin> {
   /**
    * @return an InnerJoin operator
    */
-  static Operator make();
+  static Operator Make();
 
   /**
    * @param conditions conditions of the join
    * @return an InnerJoin operator
    */
-  static Operator make(std::vector<AnnotatedExpression> &&conditions);
+  static Operator Make(std::vector<AnnotatedExpression> &&conditions);
 
   bool operator==(const BaseOperatorNode &r) override;
 
@@ -419,7 +419,7 @@ class LogicalLeftJoin : public OperatorNode<LogicalLeftJoin> {
    * @param join_predicate condition of the join
    * @return a LeftJoin operator
    */
-  static Operator make(common::ManagedPointer<parser::AbstractExpression> join_predicate);
+  static Operator Make(common::ManagedPointer<parser::AbstractExpression> join_predicate);
 
   bool operator==(const BaseOperatorNode &r) override;
 
@@ -446,7 +446,7 @@ class LogicalRightJoin : public OperatorNode<LogicalRightJoin> {
    * @param join_predicate condition of the join
    * @return a RightJoin operator
    */
-  static Operator make(common::ManagedPointer<parser::AbstractExpression> join_predicate);
+  static Operator Make(common::ManagedPointer<parser::AbstractExpression> join_predicate);
 
   bool operator==(const BaseOperatorNode &r) override;
 
@@ -473,7 +473,7 @@ class LogicalOuterJoin : public OperatorNode<LogicalOuterJoin> {
    * @param join_predicate condition of the join
    * @return an OuterJoin operator
    */
-  static Operator make(common::ManagedPointer<parser::AbstractExpression> join_predicate);
+  static Operator Make(common::ManagedPointer<parser::AbstractExpression> join_predicate);
 
   bool operator==(const BaseOperatorNode &r) override;
 
@@ -500,7 +500,7 @@ class LogicalSemiJoin : public OperatorNode<LogicalSemiJoin> {
    * @param join_predicate condition of the join
    * @return a SemiJoin operator
    */
-  static Operator make(common::ManagedPointer<parser::AbstractExpression> join_predicate);
+  static Operator Make(common::ManagedPointer<parser::AbstractExpression> join_predicate);
 
   bool operator==(const BaseOperatorNode &r) override;
 
@@ -526,20 +526,20 @@ class LogicalAggregateAndGroupBy : public OperatorNode<LogicalAggregateAndGroupB
   /**
    * @return a GroupBy operator
    */
-  static Operator make();
+  static Operator Make();
 
   /**
    * @param columns columns to group by
    * @return a GroupBy operator
    */
-  static Operator make(std::vector<common::ManagedPointer<parser::AbstractExpression>> &&columns);
+  static Operator Make(std::vector<common::ManagedPointer<parser::AbstractExpression>> &&columns);
 
   /**
    * @param columns columns to group by
    * @param having HAVING clause
    * @return a GroupBy operator
    */
-  static Operator make(std::vector<common::ManagedPointer<parser::AbstractExpression>> &&columns,
+  static Operator Make(std::vector<common::ManagedPointer<parser::AbstractExpression>> &&columns,
                        std::vector<AnnotatedExpression> &&having);
 
   bool operator==(const BaseOperatorNode &r) override;
@@ -581,7 +581,7 @@ class LogicalInsert : public OperatorNode<LogicalInsert> {
    * @param values list of expressions that provide the values to insert into columns
    * @return
    */
-  static Operator make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
+  static Operator Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
                        catalog::table_oid_t table_oid, std::vector<catalog::col_oid_t> &&columns,
                        std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>> &&values);
 
@@ -654,7 +654,7 @@ class LogicalInsertSelect : public OperatorNode<LogicalInsertSelect> {
    * @param table_oid OID of the table
    * @return
    */
-  static Operator make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
+  static Operator Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
                        catalog::table_oid_t table_oid);
 
   bool operator==(const BaseOperatorNode &r) override;
@@ -702,7 +702,7 @@ class LogicalDistinct : public OperatorNode<LogicalDistinct> {
    * It doesn't need to store any data. It is just a placeholder
    * @return
    */
-  static Operator make();
+  static Operator Make();
 
   bool operator==(const BaseOperatorNode &r) override;
   common::hash_t Hash() const override;
@@ -721,7 +721,7 @@ class LogicalLimit : public OperatorNode<LogicalLimit> {
    * @param sort_directions inlined sort directions (can be empty)
    * @return
    */
-  static Operator make(size_t offset, size_t limit,
+  static Operator Make(size_t offset, size_t limit,
                        std::vector<common::ManagedPointer<parser::AbstractExpression>> &&sort_exprs,
                        std::vector<planner::OrderByOrderingType> &&sort_directions);
 
@@ -786,7 +786,7 @@ class LogicalDelete : public OperatorNode<LogicalDelete> {
    * @param table_oid OID of the table
    * @return
    */
-  static Operator make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
+  static Operator Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
                        catalog::table_oid_t table_oid);
 
   bool operator==(const BaseOperatorNode &r) override;
@@ -836,7 +836,7 @@ class LogicalUpdate : public OperatorNode<LogicalUpdate> {
    * @param updates the update clauses from the SET portion of the query
    * @return
    */
-  static Operator make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
+  static Operator Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
                        catalog::table_oid_t table_oid,
                        std::vector<common::ManagedPointer<parser::UpdateClause>> &&updates);
 
@@ -898,7 +898,7 @@ class LogicalExportExternalFile : public OperatorNode<LogicalExportExternalFile>
    * @param escape the character to use to escape characters in values
    * @return
    */
-  static Operator make(parser::ExternalFileFormat format, std::string file_name, char delimiter, char quote,
+  static Operator Make(parser::ExternalFileFormat format, std::string file_name, char delimiter, char quote,
                        char escape);
 
   bool operator==(const BaseOperatorNode &r) override;
