@@ -63,7 +63,6 @@ class IndexSchema {
            const parser::AbstractExpression &definition)
         : name_(std::move(name)), oid_(INVALID_INDEXKEYCOL_OID), packed_type_(0), definition_(definition.Copy()) {
       TERRIER_ASSERT(type_id == type::TypeId::VARCHAR || type_id == type::TypeId::VARBINARY, "Varlen constructor.");
-      TERRIER_ASSERT(definition_.use_count() == 1, "This expression should only be shared using managed pointers");
       SetTypeId(type_id);
       SetNullable(nullable);
       SetMaxVarlenSize(max_varlen_size);
@@ -77,8 +76,11 @@ class IndexSchema {
         : name_(old_column.name_),
           oid_(old_column.oid_),
           packed_type_(old_column.packed_type_),
-          definition_(old_column.definition_->Copy()) {
-      TERRIER_ASSERT(definition_.use_count() == 1, "This expression should only be shared using managed pointers");
+          definition_(old_column.definition_->Copy()) {}
+
+    Column &operator=(const Column &col) {
+      *this = Column(col);
+      return *this;
     }
 
     /**
@@ -95,7 +97,6 @@ class IndexSchema {
      * @return definition expression
      */
     common::ManagedPointer<const parser::AbstractExpression> StoredExpression() const {
-      TERRIER_ASSERT(definition_.use_count() == 1, "This expression should only be shared using managed pointers");
       return common::ManagedPointer(static_cast<const parser::AbstractExpression *>(definition_.get()));
     }
 
@@ -135,7 +136,7 @@ class IndexSchema {
       j["max_varlen_size"] = MaxVarlenSize();
       j["nullable"] = Nullable();
       j["oid"] = oid_;
-      j["definition"] = definition_;
+      //      j["definition"] = definition_;
       return j;
     }
 
@@ -163,7 +164,7 @@ class IndexSchema {
     uint32_t packed_type_;
 
     // TODO(John) this should become a unique_ptr as part of addressing #489
-    std::shared_ptr<parser::AbstractExpression> definition_;
+    std::unique_ptr<parser::AbstractExpression> definition_;
 
     // TODO(John): Should these "OIDS" be implicitly set by the index in the columns?
     void SetOid(indexkeycol_oid_t oid) { oid_ = oid; }
@@ -275,7 +276,8 @@ class IndexSchema {
    * @return deserialized schema object
    */
   std::shared_ptr<IndexSchema> static DeserializeSchema(const nlohmann::json &j) {
-    auto columns = j.at("columns").get<std::vector<IndexSchema::Column>>();
+    //    auto columns = j.at("columns").get<std::vector<IndexSchema::Column>>();
+    std::vector<IndexSchema::Column> columns;
     auto unique = j.at("unique").get<bool>();
     auto primary = j.at("primary").get<bool>();
     auto exclusion = j.at("exclusion").get<bool>();

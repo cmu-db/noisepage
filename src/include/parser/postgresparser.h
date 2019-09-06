@@ -36,7 +36,7 @@ class PostgresParser {
    * @param query_string query string to be parsed
    * @return unique pointer to parse tree
    */
-  std::vector<std::unique_ptr<parser::SQLStatement>> BuildParseTree(const std::string &query_string);
+  std::vector<std::unique_ptr<SQLStatement>> BuildParseTree(const std::string &query_string);
 
  private:
   static FKConstrActionType CharToActionType(const char &type) {
@@ -78,14 +78,14 @@ class PostgresParser {
    * @param root list of parsed nodes
    * @return SQLStatementList corresponding to the parsed node list
    */
-  static std::vector<std::unique_ptr<parser::SQLStatement>> ListTransform(List *root);
+  static std::vector<std::unique_ptr<SQLStatement>> ListTransform(List *root);
 
   /**
    * Transforms a single node in the parse list into a terrier SQLStatement object.
    * @param node parsed node
    * @return SQLStatement corresponding to the parsed node
    */
-  static std::unique_ptr<parser::SQLStatement> NodeTransform(Node *node);
+  static std::unique_ptr<SQLStatement> NodeTransform(Node *node);
 
   // expressions
   static std::unique_ptr<AbstractExpression> ExprTransform(Node *node);
@@ -106,7 +106,7 @@ class PostgresParser {
   // SELECT statements
   static std::unique_ptr<SelectStatement> SelectTransform(SelectStmt *root);
   // SELECT helpers
-  static std::vector<std::shared_ptr<AbstractExpression>> TargetTransform(List *root);
+  static std::vector<std::unique_ptr<AbstractExpression>> TargetTransform(List *root);
   static std::unique_ptr<TableRef> FromTransform(SelectStmt *select_root);
   static std::unique_ptr<GroupByDescription> GroupByTransform(List *group, Node *having_node);
   static std::unique_ptr<OrderByDescription> OrderByTransform(List *order);
@@ -133,7 +133,7 @@ class PostgresParser {
   // CREATE helpers
   using ColumnDefTransResult = struct {
     std::unique_ptr<ColumnDefinition> col;
-    std::vector<std::shared_ptr<ColumnDefinition>> fks;
+    std::vector<std::unique_ptr<ColumnDefinition>> fks;
   };
   static ColumnDefTransResult ColumnDefTransform(ColumnDef *root);
 
@@ -162,7 +162,7 @@ class PostgresParser {
   static std::unique_ptr<ExecuteStatement> ExecuteTransform(ExecuteStmt *root);
 
   // EXECUTE helpers
-  static std::vector<std::shared_ptr<AbstractExpression>> ParamListTransform(List *root);
+  static std::vector<std::unique_ptr<AbstractExpression>> ParamListTransform(List *root);
 
   // EXPLAIN statements
   static std::unique_ptr<ExplainStatement> ExplainTransform(ExplainStmt *root);
@@ -172,7 +172,7 @@ class PostgresParser {
 
   // INSERT helpers
   static std::unique_ptr<std::vector<std::string>> ColumnNameTransform(List *root);
-  static std::unique_ptr<std::vector<std::vector<std::shared_ptr<AbstractExpression>>>> ValueListsTransform(List *root);
+  static std::unique_ptr<std::vector<std::vector<std::unique_ptr<AbstractExpression>>>> ValueListsTransform(List *root);
 
   // PREPARE statements
   static std::unique_ptr<PrepareStatement> PrepareTransform(PrepareStmt *root);
@@ -199,7 +199,7 @@ class PostgresParser {
    * @param root list of targets
    * @return vector of update clauses
    */
-  static std::vector<std::shared_ptr<parser::UpdateClause>> UpdateTargetTransform(List *root);
+  static std::vector<std::unique_ptr<parser::UpdateClause>> UpdateTargetTransform(List *root);
 
   /**
    * Converts an UPDATE statement from postgres parser form to our internal form.

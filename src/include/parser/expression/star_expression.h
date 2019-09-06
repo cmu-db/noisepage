@@ -6,18 +6,18 @@
 
 namespace terrier::parser {
 /**
- * Represents a star, e.g. COUNT(*).
+ * StarExpression represents a star in expressions like COUNT(*).
  */
 class StarExpression : public AbstractExpression {
  public:
   /**
-   * Instantiates a new star expression, e.g. as in COUNT(*)
+   * Instantiates a new star expression, e.g. as in COUNT(*).
    */
   StarExpression() : AbstractExpression(ExpressionType::STAR, type::TypeId::INVALID, {}) {}
 
-  std::shared_ptr<AbstractExpression> Copy() const override {
+  std::unique_ptr<AbstractExpression> Copy() const override {
     // TODO(Tianyu): This really should be a singleton object
-    return std::make_shared<StarExpression>(*this);
+    return std::make_unique<StarExpression>();
   }
 
   void Accept(SqlNodeVisitor *v) override { v->Visit(this); }

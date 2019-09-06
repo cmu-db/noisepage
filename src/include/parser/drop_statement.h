@@ -8,15 +8,12 @@
 
 namespace terrier {
 namespace parser {
-
 /**
- * Represents the SQL "DROP ..."
+ * DropStatement represents the SQL "DROP ..."
  */
 class DropStatement : public TableRefStatement {
  public:
-  /**
-   * Drop statement type.
-   */
+  /** Drop statement type. */
   enum class DropType { kDatabase, kTable, kSchema, kIndex, kView, kPreparedStatement, kTrigger };
 
   /**
@@ -66,29 +63,19 @@ class DropStatement : public TableRefStatement {
 
   void Accept(SqlNodeVisitor *v) override { v->Visit(this); }
 
-  /**
-   * @return drop type
-   */
+  /** @return drop type */
   DropType GetDropType() { return type_; }
 
-  /**
-   * @return true if "IF EXISTS" was used for [DROP DATABASE, DROP SCHEMA]
-   */
+  /** @return true if "IF EXISTS" was used for [DROP DATABASE, DROP SCHEMA] */
   bool IsIfExists() { return if_exists_; }
 
-  /**
-   * @return index name for [DROP INDEX]
-   */
+  /** @return index name for [DROP INDEX] */
   std::string GetIndexName() { return index_name_; }
 
-  /**
-   * @return true if "CASCADE" was used for [DROP SCHEMA]
-   */
+  /** @return true if "CASCADE" was used for [DROP SCHEMA] */
   bool IsCascade() { return cascade_; }
 
-  /**
-   * @return trigger name for [DROP TRIGGER]
-   */
+  /** @return trigger name for [DROP TRIGGER] */
   std::string GetTriggerName() { return trigger_name_; }
 
  private:
