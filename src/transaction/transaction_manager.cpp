@@ -1,5 +1,4 @@
 #include "transaction/transaction_manager.h"
-#include <queue>
 #include <unordered_set>
 #include <utility>
 #include "common/scoped_timer.h"
@@ -11,7 +10,17 @@ TransactionContext *TransactionManager::BeginTransaction() {
   timestamp_t start_time = timestamp_manager_->BeginTransaction();
   auto *const result = new TransactionContext(start_time, start_time + INT64_MIN, buffer_pool_, log_manager_);
   // Ensure we do not return from this function if there are ongoing write commits
-  common::Gate::ScopedExit gate(&txn_gate_);
+  uint64_t elapsed_us = 0;
+  {
+    if (common::thread_context.metrics_store_ != nullptr &&
+        common::thread_context.metrics_store_->ComponentEnabled(metrics::MetricsComponent::TRANSACTION))
+      common::ScopedTimer<std::chrono::nanoseconds> timer(&elapsed_us);
+    // Ensure we do not return from this function if there are ongoing write commits
+    txn_gate_.Traverse();
+  }
+  if (elapsed_us > 0) {
+    common::thread_context.metrics_store_->RecordBeginData(elapsed_us, start_time);
+  }
   return result;
 }
 
@@ -86,13 +95,25 @@ timestamp_t TransactionManager::Commit(TransactionContext *const txn, transactio
     txn->commit_actions_.pop_front();
   }
 
-  timestamp_manager_->RemoveTransaction(txn->StartTime());
+  uint64_t elapsed_us = 0;
+  {
+    if (common::thread_context.metrics_store_ != nullptr &&
+        common::thread_context.metrics_store_->ComponentEnabled(metrics::MetricsComponent::TRANSACTION))
+      common::ScopedTimer<std::chrono::nanoseconds> timer(&elapsed_us);
+    // In a critical section, remove this transaction from the table of running transactions
+    timestamp_manager_->RemoveTransaction(txn->StartTime());
+  }
+
   {
     common::SpinLatch::ScopedSpinLatch guard(&completed_txns_latch_);
     // It is not necessary to have to GC process read-only transactions, but it's probably faster to call free off
     // the critical path there anyway
     // Also note here that GC will figure out what varlen entries to GC, as opposed to in the abort case.
     if (gc_enabled_) completed_txns_.push_front(txn);
+  }
+
+  if (elapsed_us > 0) {
+    common::thread_context.metrics_store_->RecordCommitData(elapsed_us, txn->StartTime());
   }
 
   return result;
