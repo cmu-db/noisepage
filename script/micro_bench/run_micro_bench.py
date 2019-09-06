@@ -757,7 +757,11 @@ class RunMicroBenchmarks(object):
                          output_file)
 
         # use all the cpus from the highest numbered numa node
-        cmd = "numactl --cpunodebind=1 --preferred=1 {}".format(cmd)
+
+        highest_cpu_node = int(subprocess.check_output("numactl --hardware | grep 'available: ' | cut -d' ' -f2", shell=True)) - 1
+        print("Number of NUMA nodes = {}".format(highest_cpu_node))
+
+        cmd = "numactl --cpunodebind={} --preferred={} {}".format(highest_cpu_node, highest_cpu_node, cmd)
         print("cmd = {}".format(cmd))
 
         ret_val = subprocess.call([cmd],
