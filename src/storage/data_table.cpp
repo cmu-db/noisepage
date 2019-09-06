@@ -164,11 +164,6 @@ TupleSlot DataTable::Insert(transaction::TransactionContext *const txn, const Pr
   // The first bit of block insert_head_ is used to indicate if the block is busy
   // If the first bit is 1, it indicates one txn is writing to the block.
 
-  // Creating block and getting tuple slots from that block are not not combined into
-  // one atomic function here. It's possible thread 1 creates a new block, thread 2 inserts
-  // into that block. Thread 1 needs to create a new block again. The condition happens when
-  // all blocks are full/busy and multiple threads want to insert at the same time. This should
-  // be rare and will not affect the correctness
   TupleSlot result;
   auto block = insertion_head_;
   while (true) {
@@ -193,6 +188,7 @@ TupleSlot DataTable::Insert(transaction::TransactionContext *const txn, const Pr
         break;
       }
       // Fail to insert into the block, flip back the status bit
+      accessor_.ClearBlockBusyStatus(*block);
       // if the full block is the insertion_header, move the insertion_header
       // Next insert txn will search from the new insertion_header
       CheckMoveHead(block);
