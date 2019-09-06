@@ -94,19 +94,8 @@ class Schema {
       TERRIER_ASSERT(type_ != type::TypeId::INVALID, "Attribute type cannot be INVALID.");
     }
 
-    /**
-     * Allows operator= to call Column's custom copy-constructor.
-     * @param col column to be copied
-     * @return the current column after update
-     */
     Column &operator=(const Column &col) {
-      name_ = col.name_;
-      type_ = col.type_;
-      attr_size_ = col.attr_size_;
-      max_varlen_size_ = col.max_varlen_size_;
-      nullable_ = col.nullable_;
-      oid_ = col.oid_;
-      default_value_ = col.default_value_->Copy();
+      *this = Column(col);
       return *this;
     }
 
@@ -165,7 +154,7 @@ class Schema {
       j["max_varlen_size"] = max_varlen_size_;
       j["nullable"] = nullable_;
       j["oid"] = oid_;
-      j["default_value"] = default_value_->ToJson();
+      //      j["default_value"] = default_value_;
       return j;
     }
 
@@ -193,6 +182,7 @@ class Schema {
     bool nullable_;
     col_oid_t oid_;
 
+    // TODO(John) this should become a unique_ptr as part of addressing #489
     std::unique_ptr<parser::AbstractExpression> default_value_;
 
     void SetOid(col_oid_t oid) { oid_ = oid; }

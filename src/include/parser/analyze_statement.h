@@ -40,8 +40,8 @@ class AnalyzeStatement : public SQLStatement {
   }
 
  private:
-  const std::shared_ptr<TableRef> analyze_table_;
-  const std::shared_ptr<std::vector<std::string>> analyze_columns_;
+  std::unique_ptr<TableRef> analyze_table_;
+  std::unique_ptr<std::vector<std::string>> analyze_columns_;
 };
 
 }  // namespace parser

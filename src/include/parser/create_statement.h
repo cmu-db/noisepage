@@ -83,8 +83,8 @@ struct ColumnDefinition {
    * @param varlen size of column if varlen
    */
   ColumnDefinition(std::string name, DataType type, bool is_primary, bool is_not_null, bool is_unique,
-                   common::ManagedPointer<AbstractExpression> default_expr,
-                   common::ManagedPointer<AbstractExpression> check_expr, size_t varlen)
+                   common::ManagedPointer<AbstractExpression> default_expr, common::ManagedPointer<AbstractExpression> check_expr,
+                   size_t varlen)
       : name_(std::move(name)),
         type_(type),
         is_primary_(is_primary),
@@ -311,7 +311,7 @@ class IndexAttr {
   /** @return the expression that we're indexed on */
   common::ManagedPointer<AbstractExpression> GetExpression() const {
     TERRIER_ASSERT(expr_ != nullptr, "Names don't come with expressions.");
-    return expr_;
+    return common::ManagedPointer(expr_);
   }
 
  private:
@@ -414,24 +414,10 @@ class CreateStatement : public TableRefStatement {
   CreateType GetCreateType() { return create_type_; }
 
   /** @return columns for [CREATE TABLE, CREATE DATABASE] */
-  std::vector<common::ManagedPointer<ColumnDefinition>> GetColumns() {
-    std::vector<common::ManagedPointer<ColumnDefinition>> cols;
-    cols.reserve(columns_.size());
-    for (const auto &col : columns_) {
-      cols.emplace_back(common::ManagedPointer(col));
-    }
-    return cols;
-  }
+  const std::vector<std::unique_ptr<ColumnDefinition>> &GetColumns() { return columns_; }
 
   /** @return foreign keys for [CREATE TABLE, CREATE DATABASE] */
-  std::vector<common::ManagedPointer<ColumnDefinition>> GetForeignKeys() {
-    std::vector<common::ManagedPointer<ColumnDefinition>> foreign_keys;
-    foreign_keys.reserve(foreign_keys_.size());
-    for (const auto &fk : foreign_keys_) {
-      foreign_keys.emplace_back(common::ManagedPointer(fk));
-    }
-    return foreign_keys;
-  }
+  const std::vector<std::unique_ptr<ColumnDefinition>> &GetForeignKeys() { return foreign_keys_; }
 
   /** @return index type for [CREATE INDEX] */
   IndexType GetIndexType() { return index_type_; }

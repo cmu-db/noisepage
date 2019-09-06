@@ -66,6 +66,8 @@ class OutputSchema {
      */
     Column() = default;
 
+    Column Copy() const { return Column(GetName(), GetType(), GetNullable(), GetOid()); }
+
     /**
      * Creates a copy of this column.
      */
@@ -167,13 +169,15 @@ class OutputSchema {
      * @param column an intermediate column
      * @param expr the expression used to derive the intermediate column
      */
-    DerivedColumn(Column column, common::ManagedPointer<parser::AbstractExpression> expr)
-        : column_(std::move(column)), expr_(expr) {}
+    DerivedColumn(Column column, std::unique_ptr<parser::AbstractExpression> expr)
+        : column_(std::move(column)), expr_(std::move(expr)) {}
 
     /**
      * Default constructor used for deserialization
      */
     DerivedColumn() = default;
+
+    DerivedColumn Copy() const { return DerivedColumn(GetColumn().Copy(), GetExpression()->Copy()); }
 
     /**
      * Creates a copy of this derived column.
@@ -188,7 +192,7 @@ class OutputSchema {
     /**
      * @return the expression used to derive the intermediate column
      */
-    common::ManagedPointer<parser::AbstractExpression> GetExpression() const { return common::ManagedPointer(expr_); }
+    const std::unique_ptr<parser::AbstractExpression> &GetExpression() const { return expr_; }
 
     /**
      * Hash the current DerivedColumn.
@@ -225,7 +229,7 @@ class OutputSchema {
     nlohmann::json ToJson() const {
       nlohmann::json j;
       j["column"] = column_;
-      j["expr"] = expr_->ToJson();
+      // TODO(WAN)      j["expr"] = expr_;
       return j;
     }
 
@@ -253,7 +257,7 @@ class OutputSchema {
     /**
      * The expression used to derive the intermediate column
      */
-    common::ManagedPointer<parser::AbstractExpression> expr_;
+    std::unique_ptr<parser::AbstractExpression> expr_;
   };
 
   /**
@@ -385,7 +389,7 @@ class OutputSchema {
     // TODO(WAN): there are no getters for these members? why?
     std::vector<DerivedTarget> targets;
     for (const auto &target : targets_) {
-      targets.emplace_back(target.Copy());
+      targets.emplace_back(target.first, target.second.Copy());
     }
 
     std::vector<DirectMap> direct_map_list;

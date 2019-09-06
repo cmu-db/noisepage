@@ -35,8 +35,8 @@ class ResultPlanNode : public AbstractPlanNode {
      * @param expr the expression used to derived the output tuple
      * @return builder object
      */
-    Builder &SetExpr(common::ManagedPointer<parser::AbstractExpression> expr) {
-      expr_ = expr;
+    Builder &SetExpr(std::unique_ptr<parser::AbstractExpression> expr) {
+      expr_ = std::move(expr);
       return *this;
     }
 
@@ -46,14 +46,14 @@ class ResultPlanNode : public AbstractPlanNode {
      */
     std::unique_ptr<ResultPlanNode> Build() {
       return std::unique_ptr<ResultPlanNode>(
-          new ResultPlanNode(std::move(children_), std::move(output_schema_), expr_));
+          new ResultPlanNode(std::move(children_), std::move(output_schema_), std::move(expr_)));
     }
 
    protected:
     /**
      * The expression used to derived the output tuple
      */
-    common::ManagedPointer<parser::AbstractExpression> expr_;
+    std::unique_ptr<parser::AbstractExpression> expr_;
   };
 
  private:
@@ -63,8 +63,8 @@ class ResultPlanNode : public AbstractPlanNode {
    * @param tuple the tuple in the storage layer
    */
   ResultPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children, std::unique_ptr<OutputSchema> output_schema,
-                 common::ManagedPointer<parser::AbstractExpression> expr)
-      : AbstractPlanNode(std::move(children), std::move(output_schema)), expr_(expr) {}
+                 std::unique_ptr<parser::AbstractExpression> expr)
+      : AbstractPlanNode(std::move(children), std::move(output_schema)), expr_(std::move(expr)) {}
 
  public:
   /**
@@ -96,7 +96,7 @@ class ResultPlanNode : public AbstractPlanNode {
   /**
    * Expression used to derived the output tuple
    */
-  common::ManagedPointer<parser::AbstractExpression> expr_;
+  std::unique_ptr<parser::AbstractExpression> expr_;
 };
 
 DEFINE_JSON_DECLARATIONS(ResultPlanNode);

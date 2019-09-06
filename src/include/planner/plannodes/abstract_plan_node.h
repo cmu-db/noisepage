@@ -43,7 +43,7 @@ class AbstractPlanNode {
      * @return builder object
      */
     ConcreteType &SetOutputSchema(std::unique_ptr<OutputSchema> output_schema) {
-      output_schema_ = std::move(output_schema);
+      output_schema_ = output_schema;
       return *dynamic_cast<ConcreteType *>(this);
     }
 
@@ -55,7 +55,7 @@ class AbstractPlanNode {
     /**
      * schema describing output of the node
      */
-    std::unique_ptr<OutputSchema> output_schema_{nullptr};
+    std::unique_ptr<OutputSchema> output_schema_;
   };
 
   /**
@@ -84,14 +84,7 @@ class AbstractPlanNode {
   /**
    * @return child plan nodes
    */
-  std::vector<common::ManagedPointer<AbstractPlanNode>> GetChildren() const {
-    std::vector<common::ManagedPointer<AbstractPlanNode>> children;
-    children.reserve(children_.size());
-    for (const auto &child : children_) {
-      children.emplace_back(common::ManagedPointer(child));
-    }
-    return children;
-  }
+  const std::vector<std::unique_ptr<AbstractPlanNode>> &GetChildren() const { return children_; }
 
   /**
    * @return number of children
@@ -223,7 +216,7 @@ struct JSONDeserializeNodeIntermediate {
  * @param json json to deserialize
  * @return json deserialization result
  */
-JSONDeserializeNodeIntermediate DeserializePlanNode(const nlohmann::json &json);
+std::unique_ptr<AbstractPlanNode> DeserializePlanNode(const nlohmann::json &json);
 
 }  // namespace terrier::planner
 

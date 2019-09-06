@@ -33,12 +33,7 @@ nlohmann::json AbstractExpression::ToJson() const {
   j["depth"] = depth_;
   j["has_subquery"] = has_subquery_;
   j["return_value_type"] = return_value_type_;
-  std::vector<nlohmann::json> children_json;
-  children_json.reserve(children_.size());
-  for (const auto &child : children_) {
-    children_json.emplace_back(child->ToJson());
-  }
-  j["children"] = children_json;
+  // TODO(WAN)  j["children"] = children_;
   return j;
 }
 
@@ -61,18 +56,13 @@ std::vector<std::unique_ptr<AbstractExpression>> AbstractExpression::FromJson(co
   auto children_json = j.at("children").get<std::vector<nlohmann::json>>();
   children.reserve(children_json.size());
   for (const auto &child_json : children_json) {
-    auto deserialized = DeserializeExpression(child_json);
-    children.emplace_back(std::move(deserialized.result_));
-    result_exprs.insert(result_exprs.end(), std::make_move_iterator(deserialized.non_owned_exprs_.begin()),
-                        std::make_move_iterator(deserialized.non_owned_exprs_.end()));
+    children.emplace_back(DeserializeExpression(child_json));
   }
 
   children_ = std::move(children);
-
-  return result_exprs;
 }
 
-JSONDeserializeExprIntermediate DeserializeExpression(const nlohmann::json &j) {
+std::unique_ptr<AbstractExpression> DeserializeExpression(const nlohmann::json &j) {
   std::unique_ptr<AbstractExpression> expr;
 
   auto expression_type = j.at("expression_type").get<ExpressionType>();

@@ -212,8 +212,7 @@ class TableRefStatement : public SQLStatement {
   }
 
  private:
-  friend class binder::BindNodeVisitor;
-  std::shared_ptr<TableInfo> table_info_ = nullptr;
+  const std::unique_ptr<TableInfo> table_info_ = nullptr;
 };
 
 }  // namespace parser

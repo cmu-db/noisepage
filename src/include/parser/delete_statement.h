@@ -48,8 +48,8 @@ class DeleteStatement : public SQLStatement {
   void Accept(SqlNodeVisitor *v) override { v->Visit(this); }
 
  private:
-  std::shared_ptr<TableRef> table_ref_;
-  std::shared_ptr<AbstractExpression> expr_;
+  std::unique_ptr<TableRef> table_ref_;
+  common::ManagedPointer<AbstractExpression> expr_;
 };
 
 }  // namespace terrier::parser

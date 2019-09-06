@@ -70,11 +70,11 @@ class InsertStatement : public SQLStatement {
 
  private:
   const InsertType type_;
-  const std::shared_ptr<std::vector<std::string>> columns_;
-  const std::shared_ptr<TableRef> table_ref_;
-  const std::shared_ptr<SelectStatement> select_;
+  const std::unique_ptr<std::vector<std::string>> columns_;
+  const std::unique_ptr<TableRef> table_ref_;
+  const std::unique_ptr<SelectStatement> select_;
   // TODO(WAN): unsure about this one.
-  const std::shared_ptr<std::vector<std::vector<std::shared_ptr<AbstractExpression>>>> insert_values_;
+  const std::unique_ptr<std::vector<std::vector<common::ManagedPointer<AbstractExpression>>>> insert_values_;
 };
 
 }  // namespace parser

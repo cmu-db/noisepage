@@ -33,9 +33,9 @@ class HashPlanNode : public AbstractPlanNode {
      * @param key Hash key to be added
      * @return builder object
      */
-    Builder &AddHashKey(common::ManagedPointer<parser::AbstractExpression> key) {
+    Builder &AddHashKey(std::unique_ptr<parser::AbstractExpression> key) {
       TERRIER_ASSERT(key != nullptr, "Can't add nullptr key to HashPlanNode");
-      hash_keys_.emplace_back(key);
+      hash_keys_.emplace_back(std::move(key));
       return *this;
     }
 
@@ -52,7 +52,7 @@ class HashPlanNode : public AbstractPlanNode {
     /**
      * keys to be hashed on
      */
-    std::vector<common::ManagedPointer<parser::AbstractExpression>> hash_keys_;
+    std::vector<std::unique_ptr<parser::AbstractExpression>> hash_keys_;
   };
 
  private:
@@ -62,7 +62,7 @@ class HashPlanNode : public AbstractPlanNode {
    * @param hash_keys keys to be hashed on
    */
   HashPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children, std::unique_ptr<OutputSchema> output_schema,
-               std::vector<common::ManagedPointer<parser::AbstractExpression>> hash_keys)
+               std::vector<std::unique_ptr<parser::AbstractExpression>> hash_keys)
       : AbstractPlanNode(std::move(children), std::move(output_schema)), hash_keys_(std::move(hash_keys)) {}
 
  public:
@@ -81,7 +81,7 @@ class HashPlanNode : public AbstractPlanNode {
   /**
    * @return keys to be hashed on
    */
-  std::vector<common::ManagedPointer<parser::AbstractExpression>> GetHashKeys() const { return hash_keys_; }
+  const std::vector<std::unique_ptr<parser::AbstractExpression>> &GetHashKeys() const { return hash_keys_; }
 
   /**
    * @return the hashed value of this plan node
@@ -94,7 +94,7 @@ class HashPlanNode : public AbstractPlanNode {
   std::vector<std::unique_ptr<parser::AbstractExpression>> FromJson(const nlohmann::json &j) override;
 
  private:
-  std::vector<common::ManagedPointer<parser::AbstractExpression>> hash_keys_;
+  std::vector<std::unique_ptr<parser::AbstractExpression>> hash_keys_;
 };
 
 DEFINE_JSON_DECLARATIONS(HashPlanNode);

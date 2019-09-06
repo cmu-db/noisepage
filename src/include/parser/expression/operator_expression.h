@@ -26,7 +26,9 @@ class OperatorExpression : public AbstractExpression {
 
   void DeriveReturnValueType() override {
     // if we are a decimal or int we should take the highest type id of both children
-    // This relies on a particular order in expression_defs.h
+    // This relies on a particular order in types.h
+    // TODO(WAN): check with Ling, what is types.h? This is probably a Peloton comment,
+    //  what assumptions are we inheriting?
     if (this->GetExpressionType() == ExpressionType::OPERATOR_NOT ||
         this->GetExpressionType() == ExpressionType::OPERATOR_IS_NULL ||
         this->GetExpressionType() == ExpressionType::OPERATOR_IS_NOT_NULL ||
@@ -48,9 +50,7 @@ class OperatorExpression : public AbstractExpression {
     for (const auto &child : GetChildren()) {
       children.emplace_back(child->Copy());
     }
-    auto expr = std::make_unique<OperatorExpression>(GetExpressionType(), GetReturnValueType(), std::move(children));
-    expr->SetMutableStateForCopy(*this);
-    return expr;
+    return std::make_unique<OperatorExpression>(GetExpressionType(), GetReturnValueType(), std::move(children));
   }
 
   void Accept(SqlNodeVisitor *v) override { v->Visit(this); }

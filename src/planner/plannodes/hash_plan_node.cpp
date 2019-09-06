@@ -33,11 +33,7 @@ bool HashPlanNode::operator==(const AbstractPlanNode &rhs) const {
 
 nlohmann::json HashPlanNode::ToJson() const {
   nlohmann::json j = AbstractPlanNode::ToJson();
-  std::vector<nlohmann::json> hash_keys;
-  for (const auto &key : hash_keys_) {
-    hash_keys.emplace_back(key->ToJson());
-  }
-  j["hash_keys"] = hash_keys;
+  //  j["hash_keys"] = hash_keys_;
   return j;
 }
 

@@ -40,12 +40,9 @@ namespace terrier::planner {
 nlohmann::json AbstractPlanNode::ToJson() const {
   nlohmann::json j;
   j["plan_node_type"] = GetPlanNodeType();
-  std::vector<nlohmann::json> children;
-  for (const auto &child : children_) {
-    children.emplace_back(child->ToJson());
-  }
-  j["children"] = children;
-  j["output_schema"] = output_schema_ == nullptr ? nlohmann::json(nullptr) : output_schema_->ToJson();
+  //  j["children"] = children_;
+  //  j["output_schema"] = output_schema_;
+
   return j;
 }
 
@@ -55,8 +52,7 @@ std::vector<std::unique_ptr<parser::AbstractExpression>> AbstractPlanNode::FromJ
   // Deserialize output schema
   if (!j.at("output_schema").is_null()) {
     output_schema_ = std::make_unique<OutputSchema>();
-    auto e1 = output_schema_->FromJson(j.at("output_schema"));
-    exprs.insert(exprs.end(), std::make_move_iterator(e1.begin()), std::make_move_iterator(e1.end()));
+    output_schema_->FromJson(j.at("output_schema"));
   }
 
   // Deserialize children
@@ -71,7 +67,7 @@ std::vector<std::unique_ptr<parser::AbstractExpression>> AbstractPlanNode::FromJ
   return exprs;
 }
 
-JSONDeserializeNodeIntermediate DeserializePlanNode(const nlohmann::json &json) {
+std::unique_ptr<AbstractPlanNode> DeserializePlanNode(const nlohmann::json &json) {
   std::unique_ptr<AbstractPlanNode> plan_node;
 
   auto plan_type = json.at("plan_node_type").get<PlanNodeType>();

@@ -86,7 +86,7 @@ nlohmann::json CreateTablePlanNode::ToJson() const {
   j["database_oid"] = database_oid_;
   j["namespace_oid"] = namespace_oid_;
   j["table_name"] = table_name_;
-  j["table_schema"] = table_schema_->ToJson();
+  //  j["table_schema"] = table_schema_;
 
   j["has_primary_key"] = has_primary_key_;
   if (has_primary_key_) {

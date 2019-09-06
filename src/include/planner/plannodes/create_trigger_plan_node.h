@@ -95,8 +95,8 @@ class CreateTriggerPlanNode : public AbstractPlanNode {
      * @param trigger_when trigger when clause
      * @return builder object
      */
-    Builder &SetTriggerWhen(common::ManagedPointer<parser::AbstractExpression> trigger_when) {
-      trigger_when_ = trigger_when;
+    Builder &SetTriggerWhen(std::unique_ptr<parser::AbstractExpression> trigger_when) {
+      trigger_when_ = std::move(trigger_when);
       return *this;
     }
 
@@ -184,7 +184,7 @@ class CreateTriggerPlanNode : public AbstractPlanNode {
     /**
      * Trigger when clause
      */
-    common::ManagedPointer<parser::AbstractExpression> trigger_when_;
+    std::unique_ptr<parser::AbstractExpression> trigger_when_;
 
     /**
      * Type of trigger
@@ -211,7 +211,7 @@ class CreateTriggerPlanNode : public AbstractPlanNode {
                         catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid,
                         std::string trigger_name, std::vector<std::string> &&trigger_funcnames,
                         std::vector<std::string> &&trigger_args, std::vector<catalog::col_oid_t> &&trigger_columns,
-                        common::ManagedPointer<parser::AbstractExpression> trigger_when, int16_t trigger_type)
+                        std::unique_ptr<parser::AbstractExpression> &&trigger_when, int16_t trigger_type)
       : AbstractPlanNode(std::move(children), std::move(output_schema)),
         database_oid_(database_oid),
         namespace_oid_(namespace_oid),
@@ -332,7 +332,7 @@ class CreateTriggerPlanNode : public AbstractPlanNode {
   /**
    * Trigger when clause
    */
-  common::ManagedPointer<parser::AbstractExpression> trigger_when_;
+  std::unique_ptr<parser::AbstractExpression> trigger_when_;
 
   /**
    * Type of trigger

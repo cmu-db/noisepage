@@ -10,7 +10,7 @@ namespace terrier::parser {
 /**
  * DerivedValueExpression represents a tuple of values that are derived from nested expressions
  *
- * Per Ling, this is only generated in the optimizer.
+ * TODO(WAN): Ling/William, could we have an example? thanks!
  */
 class DerivedValueExpression : public AbstractExpression {
  public:
@@ -28,9 +28,7 @@ class DerivedValueExpression : public AbstractExpression {
   DerivedValueExpression() = default;
 
   std::unique_ptr<AbstractExpression> Copy() const override {
-    auto expr = std::make_unique<DerivedValueExpression>(GetReturnValueType(), GetTupleIdx(), GetValueIdx());
-    expr->SetMutableStateForCopy(*this);
-    return expr;
+    return std::make_unique<DerivedValueExpression>(GetReturnValueType(), GetTupleIdx(), GetValueIdx());
   }
 
   /** @return index of the tuple */
@@ -64,10 +62,8 @@ class DerivedValueExpression : public AbstractExpression {
   }
 
   /** @param j json to deserialize */
-  std::vector<std::unique_ptr<AbstractExpression>> FromJson(const nlohmann::json &j) override {
-    std::vector<std::unique_ptr<AbstractExpression>> exprs;
-    auto e1 = AbstractExpression::FromJson(j);
-    exprs.insert(exprs.end(), std::make_move_iterator(e1.begin()), std::make_move_iterator(e1.end()));
+  void FromJson(const nlohmann::json &j) override {
+    AbstractExpression::FromJson(j);
     tuple_idx_ = j.at("tuple_idx").get<int>();
     value_idx_ = j.at("value_idx").get<int>();
     return exprs;

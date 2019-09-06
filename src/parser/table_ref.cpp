@@ -14,9 +14,10 @@ namespace terrier::parser {
 nlohmann::json JoinDefinition::ToJson() const {
   nlohmann::json j;
   j["type"] = type_;
-  j["left"] = left_->ToJson();
-  j["right"] = right_->ToJson();
-  j["condition"] = condition_->ToJson();
+  // TODO(WAN)
+  //  j["left"] = left_;
+  //  j["right"] = right_;
+  //  j["condition"] = condition_;
   return j;
 }
 
@@ -31,15 +32,13 @@ std::vector<std::unique_ptr<AbstractExpression>> JoinDefinition::FromJson(const 
   // Deserialize left
   if (!j.at("left").is_null()) {
     left_ = std::make_unique<TableRef>();
-    auto e1 = left_->FromJson(j.at("left"));
-    exprs.insert(exprs.end(), std::make_move_iterator(e1.begin()), std::make_move_iterator(e1.end()));
+    left_->FromJson(j.at("left"));
   }
 
   // Deserialize right
   if (!j.at("right").is_null()) {
     right_ = std::make_unique<TableRef>();
-    auto e1 = right_->FromJson(j.at("right"));
-    exprs.insert(exprs.end(), std::make_move_iterator(e1.begin()), std::make_move_iterator(e1.end()));
+    right_->FromJson(j.at("right"));
   }
 
   // Deserialize condition
@@ -62,15 +61,10 @@ nlohmann::json TableRef::ToJson() const {
   nlohmann::json j;
   j["type"] = type_;
   j["alias"] = alias_;
-  j["table_info"] = table_info_ == nullptr ? nlohmann::json(nullptr) : table_info_->ToJson();
-  j["select"] = select_ == nullptr ? nlohmann::json(nullptr) : select_->ToJson();
-  std::vector<nlohmann::json> list;
-  list.reserve(list_.size());
-  for (const auto &item : list_) {
-    list.emplace_back(item->ToJson());
-  }
-  j["list"] = list;
-  j["join"] = join_ == nullptr ? nlohmann::json(nullptr) : join_->ToJson();
+  //  j["table_info"] = table_info_;
+  //  j["select"] = select_;
+  //  j["list"] = list_;
+  //  j["join"] = join_;
   return j;
 }
 
@@ -85,31 +79,27 @@ std::vector<std::unique_ptr<AbstractExpression>> TableRef::FromJson(const nlohma
   // Deserialize table info
   if (!j.at("table_info").is_null()) {
     table_info_ = std::make_unique<TableInfo>();
-    auto e1 = table_info_->FromJson(j.at("table_info"));
-    exprs.insert(exprs.end(), std::make_move_iterator(e1.begin()), std::make_move_iterator(e1.end()));
+    table_info_->FromJson(j.at("table_info"));
   }
 
   // Deserialize select
   if (!j.at("select").is_null()) {
     select_ = std::make_unique<parser::SelectStatement>();
-    auto e1 = select_->FromJson(j.at("select"));
-    exprs.insert(exprs.end(), std::make_move_iterator(e1.begin()), std::make_move_iterator(e1.end()));
+    select_->FromJson(j.at("select"));
   }
 
   // Deserialize list
   auto list_jsons = j.at("list").get<std::vector<nlohmann::json>>();
   for (const auto &list_json : list_jsons) {
     auto ref = std::make_unique<TableRef>();
-    auto e1 = ref->FromJson(list_json);
-    exprs.insert(exprs.end(), std::make_move_iterator(e1.begin()), std::make_move_iterator(e1.end()));
+    ref->FromJson(list_json);
     list_.emplace_back(std::move(ref));
   }
 
   // Deserialize join
   if (!j.at("join").is_null()) {
     join_ = std::make_unique<JoinDefinition>();
-    auto e1 = join_->FromJson(j.at("join"));
-    exprs.insert(exprs.end(), std::make_move_iterator(e1.begin()), std::make_move_iterator(e1.end()));
+    join_->FromJson(j.at("join"));
   }
 
   return exprs;

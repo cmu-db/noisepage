@@ -151,14 +151,7 @@ class AbstractExpression {
   size_t GetChildrenSize() const { return children_.size(); }
 
   /** @return children of this abstract expression */
-  std::vector<common::ManagedPointer<AbstractExpression>> GetChildren() const {
-    std::vector<common::ManagedPointer<AbstractExpression>> children;
-    children.reserve(children_.size());
-    for (const auto &child : children_) {
-      children.emplace_back(common::ManagedPointer(child));
-    }
-    return children;
-  }
+  const std::vector<std::unique_ptr<AbstractExpression>> &GetChildren() const { return children_; }
 
   /**
    * @param index index of child
@@ -169,9 +162,7 @@ class AbstractExpression {
     return common::ManagedPointer(children_[index]);
   }
 
-  /**
-   * @return Name of the expression.
-   */
+  /** @return Name of the expression. */
   const std::string &GetExpressionName() const { return expression_name_; }
 
   /**
@@ -231,13 +222,9 @@ class AbstractExpression {
   virtual std::vector<std::unique_ptr<AbstractExpression>> FromJson(const nlohmann::json &j);
 
  private:
-  friend class binder::BindNodeVisitor;
-
-  /**
-   * Type of the current expression
-   */
+  /** Type of the current expression */
   ExpressionType expression_type_;
-  /** MUTABLE Name of the current expression */
+  /** Name of the current expression */
   std::string expression_name_;
   /** Alias of the current expression */
   std::string alias_;
@@ -247,8 +234,7 @@ class AbstractExpression {
   /**
    * MUTABLE Sub-query depth level for the current expression.
    *
-   * Per LING, depth is used to detect correlated subquery.
-   * Note that depth might still be -1 after calling DeriveDepth().
+   * TODO(WAN): ask LING to document her assumptions, I see that depth can still be -1 after calling DeriveDepth().
    *
    * DeriveDepth() MUST be called on this expression tree whenever the structure of the tree is modified.
    * -1 indicates that the depth has not been set, but we have no safeguard for maintaining accurate depths between
@@ -257,8 +243,9 @@ class AbstractExpression {
   int depth_ = -1;
   /**
    * MUTABLE Flag indicating if there's a sub-query in the current expression or in any of its children.
-   * Per LING, this is required to detect the query predicate IsSupportedConjunctivePredicate.
-   */
+   *
+   * TODO(WAN): check with LING on why we need this and whether we can roll DeriveSubqueryFlag into DeriveDepth.
+   * */
   bool has_subquery_ = false;
 
   /** List of children expressions. */
@@ -268,27 +255,12 @@ class AbstractExpression {
 DEFINE_JSON_DECLARATIONS(AbstractExpression)
 
 /**
- * To deserialize JSON expressions, we need to maintain a separate vector of all the unique pointers to expressions
- * that were created but not owned by deserialized objects.
- */
-struct JSONDeserializeExprIntermediate {
-  /**
-   * The primary abstract expression result.
-   */
-  std::unique_ptr<AbstractExpression> result_;
-  /**
-   * Non-owned expressions that were created during deserialization that are contained inside the abstract expression.
-   */
-  std::vector<std::unique_ptr<AbstractExpression>> non_owned_exprs_;
-};
-
-/**
  * DeserializeExpression is the primary function used to deserialize arbitrary expressions.
  * It will switch on the type in the JSON object to construct the appropriate expression.
  * @param json json to deserialize
  * @return intermediate result for deserialized JSON
  */
-JSONDeserializeExprIntermediate DeserializeExpression(const nlohmann::json &j);
+std::unique_ptr<AbstractExpression> DeserializeExpression(const nlohmann::json &j);
 
 }  // namespace terrier::parser
 

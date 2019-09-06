@@ -14,11 +14,7 @@ class DefaultValueExpression : public AbstractExpression {
   /** Instantiates a new default value expression. */
   DefaultValueExpression() : AbstractExpression(ExpressionType::VALUE_DEFAULT, type::TypeId::INVALID, {}) {}
 
-  std::unique_ptr<AbstractExpression> Copy() const override {
-    auto expr = std::make_unique<DefaultValueExpression>();
-    expr->SetMutableStateForCopy(*this);
-    return expr;
-  }
+  std::unique_ptr<AbstractExpression> Copy() const override { return std::make_unique<DefaultValueExpression>(); }
 
   void Accept(SqlNodeVisitor *v) override { v->Visit(this); }
 };

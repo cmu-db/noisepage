@@ -121,14 +121,7 @@ class CreateFunctionStatement : public SQLStatement {
   /**
    * @return function parameters
    */
-  std::vector<common::ManagedPointer<FuncParameter>> GetFuncParameters() {
-    std::vector<common::ManagedPointer<FuncParameter>> params;
-    params.reserve(func_parameters_.size());
-    for (const auto &param : func_parameters_) {
-      params.emplace_back(common::ManagedPointer(param));
-    }
-    return params;
-  }
+  const std::vector<std::unique_ptr<FuncParameter>> &GetFuncParameters() { return func_parameters_; }
 
   /**
    * @return programming language type

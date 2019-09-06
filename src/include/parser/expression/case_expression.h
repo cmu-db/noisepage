@@ -15,9 +15,9 @@ class CaseExpression : public AbstractExpression {
   /** WHEN ... THEN ... clauses. */
   struct WhenClause {
     /** The condition to be checked for this case expression. */
-    std::unique_ptr<AbstractExpression> condition_;
+    std::unique_ptr<AbstractExpression> condition;
     /** The value that this expression should have if the corresponding condition is true. */
-    std::unique_ptr<AbstractExpression> then_;
+    std::unique_ptr<AbstractExpression> then;
 
     /**
      * Equality check
@@ -39,8 +39,8 @@ class CaseExpression : public AbstractExpression {
      */
     nlohmann::json ToJson() const {
       nlohmann::json j;
-      j["condition"] = condition_->ToJson();
-      j["then"] = then_->ToJson();
+      // TODO(WAN) json      j["condition"] = condition;
+      // TODO(WAN) json      j["then"] = then;
       return j;
     }
 
@@ -48,17 +48,9 @@ class CaseExpression : public AbstractExpression {
      * Derived expressions should call this base method
      * @param j json to deserialize
      */
-    std::vector<std::unique_ptr<AbstractExpression>> FromJson(const nlohmann::json &j) {
-      std::vector<std::unique_ptr<AbstractExpression>> exprs;
-      auto deserialized_cond = DeserializeExpression(j.at("condition"));
-      condition_ = std::move(deserialized_cond.result_);
-      exprs.insert(exprs.end(), std::make_move_iterator(deserialized_cond.non_owned_exprs_.begin()),
-                   std::make_move_iterator(deserialized_cond.non_owned_exprs_.end()));
-      auto deserialized_then = DeserializeExpression(j.at("then"));
-      then_ = std::move(deserialized_then.result_);
-      exprs.insert(exprs.end(), std::make_move_iterator(deserialized_then.non_owned_exprs_.begin()),
-                   std::make_move_iterator(deserialized_then.non_owned_exprs_.end()));
-      return exprs;
+    void FromJson(const nlohmann::json &j) {
+      // TODO(WAN) json      condition = DeserializeExpression(j.at("condition"));
+      // TODO(WAN) json      then = DeserializeExpression(j.at("then"));
     }
   };
 
@@ -108,11 +100,9 @@ class CaseExpression : public AbstractExpression {
   std::unique_ptr<AbstractExpression> Copy() const override {
     std::vector<WhenClause> clauses;
     for (const auto &clause : when_clauses_) {
-      clauses.emplace_back(WhenClause{clause.condition_->Copy(), clause.then_->Copy()});
+      clauses.emplace_back(WhenClause{clause.condition->Copy(), clause.then->Copy()});
     }
-    auto expr = std::make_unique<CaseExpression>(GetReturnValueType(), std::move(clauses), default_expr_->Copy());
-    expr->SetMutableStateForCopy(*this);
-    return expr;
+    return std::make_unique<CaseExpression>(GetReturnValueType(), std::move(clauses), default_expr_->Copy());
   }
 
   /**
@@ -126,7 +116,7 @@ class CaseExpression : public AbstractExpression {
    */
   common::ManagedPointer<AbstractExpression> GetWhenClauseCondition(size_t index) const {
     TERRIER_ASSERT(index < when_clauses_.size(), "Index must be in bounds.");
-    return common::ManagedPointer(when_clauses_[index].condition_);
+    return common::ManagedPointer(when_clauses_[index].condition);
   }
 
   /**
@@ -135,7 +125,7 @@ class CaseExpression : public AbstractExpression {
    */
   common::ManagedPointer<AbstractExpression> GetWhenClauseResult(size_t index) const {
     TERRIER_ASSERT(index < when_clauses_.size(), "Index must be in bounds.");
-    return common::ManagedPointer(when_clauses_[index].then_);
+    return common::ManagedPointer(when_clauses_[index].then);
   }
 
   /** @return default clause, if it exists */
@@ -151,15 +141,13 @@ class CaseExpression : public AbstractExpression {
       when_clauses_json.push_back(when_clause.ToJson());
     }
     j["when_clauses"] = when_clauses_json;
-    j["default_expr"] = default_expr_->ToJson();
+    // TODO(WAN) json    j["default_expr"] = default_expr_;
     return j;
   }
 
   /** @param j json to deserialize */
-  std::vector<std::unique_ptr<AbstractExpression>> FromJson(const nlohmann::json &j) override {
-    std::vector<std::unique_ptr<AbstractExpression>> exprs;
-    auto e1 = AbstractExpression::FromJson(j);
-    exprs.insert(exprs.end(), std::make_move_iterator(e1.begin()), std::make_move_iterator(e1.end()));
+  void FromJson(const nlohmann::json &j) override {
+    AbstractExpression::FromJson(j);
     when_clauses_ = j.at("when_clauses").get<std::vector<WhenClause>>();
     auto e2 = DeserializeExpression(j.at("default_expr"));
     default_expr_ = std::move(e2.result_);

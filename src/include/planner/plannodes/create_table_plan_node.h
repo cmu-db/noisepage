@@ -550,7 +550,7 @@ class CreateTablePlanNode : public AbstractPlanNode {
      * @return builder object
      */
     Builder &ProcessForeignKeyConstraint(const std::string &table_name,
-                                         const common::ManagedPointer<parser::ColumnDefinition> col) {
+                                         const std::unique_ptr<parser::ColumnDefinition> &col) {
       ForeignKeyInfo fkey_info;
 
       fkey_info.foreign_key_sources_ = std::vector<std::string>();
@@ -582,7 +582,7 @@ class CreateTablePlanNode : public AbstractPlanNode {
      * @param col multi-column constraint definition
      * @return builder object
      */
-    Builder &ProcessUniqueConstraint(const common::ManagedPointer<parser::ColumnDefinition> col) {
+    Builder &ProcessUniqueConstraint(const std::unique_ptr<parser::ColumnDefinition> &col) {
       UniqueInfo unique_info;
 
       unique_info.unique_cols_ = {col->GetColumnName()};
@@ -597,7 +597,7 @@ class CreateTablePlanNode : public AbstractPlanNode {
      * @param col multi-column constraint definition
      * @return builder object
      */
-    Builder &ProcessCheckConstraint(const common::ManagedPointer<parser::ColumnDefinition> col) {
+    Builder &ProcessCheckConstraint(const std::unique_ptr<parser::ColumnDefinition> &col) {
       auto check_cols = std::vector<std::string>();
 
       // TODO(Gus,Wen) more expression types need to be supported

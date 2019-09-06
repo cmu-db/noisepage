@@ -42,9 +42,7 @@ class ConstantValueExpression : public AbstractExpression {
   }
 
   std::unique_ptr<AbstractExpression> Copy() const override {
-    auto expr = std::make_unique<ConstantValueExpression>(GetValue());
-    expr->SetMutableStateForCopy(*this);
-    return expr;
+    return std::make_unique<ConstantValueExpression>(GetValue());
   }
 
   /** @return the constant value stored in this expression */
