@@ -16,9 +16,9 @@ class LoggingMetricsBenchmark : public benchmark::Fixture {
  public:
   void TearDown(const benchmark::State &state) final { unlink(LOG_FILE_NAME); }
 
-  const std::vector<uint8_t> attr_sizes = {8, 8, 8, 8, 8, 8, 8, 8, 8, 8};
-  const uint32_t initial_table_size = 1000000;
-  const uint32_t num_txns = 100000;
+  const std::vector<uint8_t> attr_sizes_ = {8, 8, 8, 8, 8, 8, 8, 8, 8, 8};
+  const uint32_t initial_table_size_ = 1000000;
+  const uint32_t num_txns_ = 100000;
   storage::BlockStore block_store_{1000, 1000};
   storage::RecordBufferSegmentPool buffer_pool_{1000000, 1000000};
   std::default_random_engine generator_;
@@ -58,14 +58,14 @@ BENCHMARK_DEFINE_F(LoggingMetricsBenchmark, TPCCish)(benchmark::State &state) {
                                            log_persist_interval_, log_persist_threshold_, &buffer_pool_,
                                            common::ManagedPointer<common::DedicatedThreadRegistry>(thread_registry_));
     log_manager_->Start();
-    LargeTransactionBenchmarkObject tested(attr_sizes, initial_table_size, txn_length, insert_update_select_ratio,
+    LargeTransactionBenchmarkObject tested(attr_sizes_, initial_table_size_, txn_length, insert_update_select_ratio,
                                            &block_store_, &buffer_pool_, &generator_, true, log_manager_);
     // log all of the Inserts from table creation
     log_manager_->ForceFlush();
 
     gc_ = new storage::GarbageCollector(tested.GetTimestampManager(), DISABLED, tested.GetTxnManager(), DISABLED);
     gc_thread_ = new storage::GarbageCollectorThread(gc_, gc_period_);
-    const auto result = tested.SimulateOltp(num_txns, num_concurrent_txns_);
+    const auto result = tested.SimulateOltp(num_txns_, num_concurrent_txns_);
     abort_count += result.first;
     uint64_t elapsed_ms;
     {
@@ -80,7 +80,7 @@ BENCHMARK_DEFINE_F(LoggingMetricsBenchmark, TPCCish)(benchmark::State &state) {
     delete metrics_thread;
     unlink(LOG_FILE_NAME);
   }
-  state.SetItemsProcessed(state.iterations() * num_txns - abort_count);
+  state.SetItemsProcessed(state.iterations() * num_txns_ - abort_count);
 }
 
 /**
@@ -105,14 +105,14 @@ BENCHMARK_DEFINE_F(LoggingMetricsBenchmark, HighAbortRate)(benchmark::State &sta
                                            log_persist_interval_, log_persist_threshold_, &buffer_pool_,
                                            common::ManagedPointer<common::DedicatedThreadRegistry>(thread_registry_));
     log_manager_->Start();
-    LargeTransactionBenchmarkObject tested(attr_sizes, 1000, txn_length, insert_update_select_ratio, &block_store_,
+    LargeTransactionBenchmarkObject tested(attr_sizes_, 1000, txn_length, insert_update_select_ratio, &block_store_,
                                            &buffer_pool_, &generator_, true, log_manager_);
     // log all of the Inserts from table creation
     log_manager_->ForceFlush();
 
     gc_ = new storage::GarbageCollector(tested.GetTimestampManager(), DISABLED, tested.GetTxnManager(), DISABLED);
     gc_thread_ = new storage::GarbageCollectorThread(gc_, gc_period_);
-    const auto result = tested.SimulateOltp(num_txns, num_concurrent_txns_);
+    const auto result = tested.SimulateOltp(num_txns_, num_concurrent_txns_);
     abort_count += result.first;
     uint64_t elapsed_ms;
     {
@@ -127,7 +127,7 @@ BENCHMARK_DEFINE_F(LoggingMetricsBenchmark, HighAbortRate)(benchmark::State &sta
     delete metrics_thread;
     unlink(LOG_FILE_NAME);
   }
-  state.SetItemsProcessed(state.iterations() * num_txns - abort_count);
+  state.SetItemsProcessed(state.iterations() * num_txns_ - abort_count);
 }
 
 /**
@@ -151,14 +151,14 @@ BENCHMARK_DEFINE_F(LoggingMetricsBenchmark, SingleStatementInsert)(benchmark::St
                                            log_persist_interval_, log_persist_threshold_, &buffer_pool_,
                                            common::ManagedPointer<common::DedicatedThreadRegistry>(thread_registry_));
     log_manager_->Start();
-    LargeTransactionBenchmarkObject tested(attr_sizes, 0, txn_length, insert_update_select_ratio, &block_store_,
+    LargeTransactionBenchmarkObject tested(attr_sizes_, 0, txn_length, insert_update_select_ratio, &block_store_,
                                            &buffer_pool_, &generator_, true, log_manager_);
     // log all of the Inserts from table creation
     log_manager_->ForceFlush();
 
     gc_ = new storage::GarbageCollector(tested.GetTimestampManager(), DISABLED, tested.GetTxnManager(), DISABLED);
     gc_thread_ = new storage::GarbageCollectorThread(gc_, gc_period_);
-    const auto result = tested.SimulateOltp(num_txns, num_concurrent_txns_);
+    const auto result = tested.SimulateOltp(num_txns_, num_concurrent_txns_);
     abort_count += result.first;
     uint64_t elapsed_ms;
     {
@@ -173,7 +173,7 @@ BENCHMARK_DEFINE_F(LoggingMetricsBenchmark, SingleStatementInsert)(benchmark::St
     delete metrics_thread;
     unlink(LOG_FILE_NAME);
   }
-  state.SetItemsProcessed(state.iterations() * num_txns - abort_count);
+  state.SetItemsProcessed(state.iterations() * num_txns_ - abort_count);
 }
 
 /**
@@ -197,14 +197,14 @@ BENCHMARK_DEFINE_F(LoggingMetricsBenchmark, SingleStatementUpdate)(benchmark::St
                                            log_persist_interval_, log_persist_threshold_, &buffer_pool_,
                                            common::ManagedPointer<common::DedicatedThreadRegistry>(thread_registry_));
     log_manager_->Start();
-    LargeTransactionBenchmarkObject tested(attr_sizes, initial_table_size, txn_length, insert_update_select_ratio,
+    LargeTransactionBenchmarkObject tested(attr_sizes_, initial_table_size_, txn_length, insert_update_select_ratio,
                                            &block_store_, &buffer_pool_, &generator_, true, log_manager_);
     // log all of the Inserts from table creation
     log_manager_->ForceFlush();
 
     gc_ = new storage::GarbageCollector(tested.GetTimestampManager(), DISABLED, tested.GetTxnManager(), DISABLED);
     gc_thread_ = new storage::GarbageCollectorThread(gc_, gc_period_);
-    const auto result = tested.SimulateOltp(num_txns, num_concurrent_txns_);
+    const auto result = tested.SimulateOltp(num_txns_, num_concurrent_txns_);
     abort_count += result.first;
     uint64_t elapsed_ms;
     {
@@ -219,7 +219,7 @@ BENCHMARK_DEFINE_F(LoggingMetricsBenchmark, SingleStatementUpdate)(benchmark::St
     delete metrics_thread;
     unlink(LOG_FILE_NAME);
   }
-  state.SetItemsProcessed(state.iterations() * num_txns - abort_count);
+  state.SetItemsProcessed(state.iterations() * num_txns_ - abort_count);
 }
 
 /**
@@ -243,14 +243,14 @@ BENCHMARK_DEFINE_F(LoggingMetricsBenchmark, SingleStatementSelect)(benchmark::St
                                            log_persist_interval_, log_persist_threshold_, &buffer_pool_,
                                            common::ManagedPointer<common::DedicatedThreadRegistry>(thread_registry_));
     log_manager_->Start();
-    LargeTransactionBenchmarkObject tested(attr_sizes, initial_table_size, txn_length, insert_update_select_ratio,
+    LargeTransactionBenchmarkObject tested(attr_sizes_, initial_table_size_, txn_length, insert_update_select_ratio,
                                            &block_store_, &buffer_pool_, &generator_, true, log_manager_);
     // log all of the Inserts from table creation
     log_manager_->ForceFlush();
 
     gc_ = new storage::GarbageCollector(tested.GetTimestampManager(), DISABLED, tested.GetTxnManager(), DISABLED);
     gc_thread_ = new storage::GarbageCollectorThread(gc_, gc_period_);
-    const auto result = tested.SimulateOltp(num_txns, num_concurrent_txns_);
+    const auto result = tested.SimulateOltp(num_txns_, num_concurrent_txns_);
     abort_count += result.first;
     uint64_t elapsed_ms;
     {
@@ -265,7 +265,7 @@ BENCHMARK_DEFINE_F(LoggingMetricsBenchmark, SingleStatementSelect)(benchmark::St
     delete metrics_thread;
     unlink(LOG_FILE_NAME);
   }
-  state.SetItemsProcessed(state.iterations() * num_txns - abort_count);
+  state.SetItemsProcessed(state.iterations() * num_txns_ - abort_count);
 }
 
 BENCHMARK_REGISTER_F(LoggingMetricsBenchmark, TPCCish)->Unit(benchmark::kMillisecond)->UseManualTime()->MinTime(3);
