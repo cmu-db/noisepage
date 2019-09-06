@@ -76,7 +76,6 @@ class Schema {
           default_value_(default_value.Copy()) {
       TERRIER_ASSERT(attr_size_ == VARLEN_COLUMN, "This constructor is meant for VARLEN columns.");
       TERRIER_ASSERT(type_ != type::TypeId::INVALID, "Attribute type cannot be INVALID.");
-      TERRIER_ASSERT(default_value_.use_count() == 1, "This expression should only be shared using managed pointers");
     }
 
     /**
@@ -92,7 +91,11 @@ class Schema {
           oid_(old_column.oid_),
           default_value_(old_column.default_value_->Copy()) {
       TERRIER_ASSERT(type_ != type::TypeId::INVALID, "Attribute type cannot be INVALID.");
-      TERRIER_ASSERT(default_value_.use_count() == 1, "This expression should only be shared using managed pointers");
+    }
+
+    Column &operator=(const Column &col) {
+      *this = Column(col);
+      return *this;
     }
 
     /**
@@ -131,7 +134,6 @@ class Schema {
      * @return default value expression
      */
     common::ManagedPointer<const parser::AbstractExpression> StoredExpression() const {
-      TERRIER_ASSERT(default_value_.use_count() == 1, "This expression should only be shared using managed pointers");
       return common::ManagedPointer(static_cast<const parser::AbstractExpression *>(default_value_.get()));
     }
 
@@ -151,7 +153,7 @@ class Schema {
       j["max_varlen_size"] = max_varlen_size_;
       j["nullable"] = nullable_;
       j["oid"] = oid_;
-      j["default_value"] = default_value_;
+      //      j["default_value"] = default_value_;
       return j;
     }
 
@@ -178,7 +180,7 @@ class Schema {
     col_oid_t oid_;
 
     // TODO(John) this should become a unique_ptr as part of addressing #489
-    std::shared_ptr<parser::AbstractExpression> default_value_;
+    std::unique_ptr<parser::AbstractExpression> default_value_;
 
     void SetOid(col_oid_t oid) { oid_ = oid; }
 
@@ -272,9 +274,9 @@ class Schema {
    * @param j json containing serialized schema
    * @return deserialized schema object
    */
-  std::shared_ptr<Schema> static DeserializeSchema(const nlohmann::json &j) {
+  std::unique_ptr<Schema> static DeserializeSchema(const nlohmann::json &j) {
     auto columns = j.at("columns").get<std::vector<Schema::Column>>();
-    return std::make_shared<Schema>(columns);
+    return std::make_unique<Schema>(columns);
   }
 
  private:

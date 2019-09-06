@@ -7,14 +7,16 @@
 #include "parser/expression/abstract_expression.h"
 
 namespace terrier::parser {
-
 /**
- * Represents a tuple of values that are derived from nested expressions
+ * DerivedValueExpression represents a tuple of values that are derived from nested expressions
+ *
+ * TODO(WAN): Ling/William, could we have an example? thanks!
  */
 class DerivedValueExpression : public AbstractExpression {
  public:
   /**
    * This constructor is called by the optimizer
+   * TODO(WAN): does it make sense to make this a private constructor, and friend the optimizer? Ask William, Ling.
    * @param type type of the return value of the expression
    * @param tuple_idx index of the tuple
    * @param value_idx offset of the value in the tuple
@@ -22,21 +24,17 @@ class DerivedValueExpression : public AbstractExpression {
   DerivedValueExpression(type::TypeId type, int tuple_idx, int value_idx)
       : AbstractExpression(ExpressionType::VALUE_TUPLE, type, {}), tuple_idx_(tuple_idx), value_idx_(value_idx) {}
 
-  /**
-   * Default constructor for deserialization
-   */
+  /** Default constructor for deserialization. */
   DerivedValueExpression() = default;
 
-  std::shared_ptr<AbstractExpression> Copy() const override { return std::make_shared<DerivedValueExpression>(*this); }
+  std::unique_ptr<AbstractExpression> Copy() const override {
+    return std::make_unique<DerivedValueExpression>(GetReturnValueType(), GetTupleIdx(), GetValueIdx());
+  }
 
-  /**
-   * @return index of the tuple
-   */
+  /** @return index of the tuple */
   int GetTupleIdx() const { return tuple_idx_; }
 
-  /**
-   * @return offset of the value in the tuple
-   */
+  /** @return offset of the value in the tuple */
   int GetValueIdx() const { return value_idx_; }
 
   common::hash_t Hash() const override {
@@ -55,9 +53,7 @@ class DerivedValueExpression : public AbstractExpression {
 
   void Accept(SqlNodeVisitor *v) override { v->Visit(this); }
 
-  /**
-   * @return expression serialized to json
-   */
+  /** @return expression serialized to json */
   nlohmann::json ToJson() const override {
     nlohmann::json j = AbstractExpression::ToJson();
     j["tuple_idx"] = tuple_idx_;
@@ -65,9 +61,7 @@ class DerivedValueExpression : public AbstractExpression {
     return j;
   }
 
-  /**
-   * @param j json to deserialize
-   */
+  /** @param j json to deserialize */
   void FromJson(const nlohmann::json &j) override {
     AbstractExpression::FromJson(j);
     tuple_idx_ = j.at("tuple_idx").get<int>();
@@ -75,14 +69,9 @@ class DerivedValueExpression : public AbstractExpression {
   }
 
  private:
-  /**
-   * Index of the tuple
-   */
+  /** Index of the tuple. */
   int tuple_idx_;
-
-  /**
-   * Offset of the value in the tuple
-   */
+  /** Offset of the value in the tuple. */
   int value_idx_;
 };
 

@@ -66,6 +66,8 @@ class OutputSchema {
      */
     Column() = default;
 
+    Column Copy() const { return Column(GetName(), GetType(), GetNullable(), GetOid()); }
+
     /**
      * @return column name
      */
@@ -162,13 +164,15 @@ class OutputSchema {
      * @param column an intermediate column
      * @param expr the expression used to derive the intermediate column
      */
-    DerivedColumn(Column column, std::shared_ptr<parser::AbstractExpression> expr)
+    DerivedColumn(Column column, std::unique_ptr<parser::AbstractExpression> expr)
         : column_(std::move(column)), expr_(std::move(expr)) {}
 
     /**
      * Default constructor used for deserialization
      */
     DerivedColumn() = default;
+
+    DerivedColumn Copy() const { return DerivedColumn(GetColumn().Copy(), GetExpression()->Copy()); }
 
     /**
      * @return the intermediate column definition
@@ -178,7 +182,7 @@ class OutputSchema {
     /**
      * @return the expression used to derive the intermediate column
      */
-    const std::shared_ptr<parser::AbstractExpression> &GetExpression() const { return expr_; }
+    const std::unique_ptr<parser::AbstractExpression> &GetExpression() const { return expr_; }
 
     /**
      * Hash the current DerivedColumn.
@@ -215,7 +219,7 @@ class OutputSchema {
     nlohmann::json ToJson() const {
       nlohmann::json j;
       j["column"] = column_;
-      j["expr"] = expr_;
+      // TODO(WAN)      j["expr"] = expr_;
       return j;
     }
 
@@ -237,7 +241,7 @@ class OutputSchema {
     /**
      * The expression used to derive the intermediate column
      */
-    std::shared_ptr<parser::AbstractExpression> expr_;
+    std::unique_ptr<parser::AbstractExpression> expr_;
   };
 
   /**
@@ -262,6 +266,7 @@ class OutputSchema {
    */
   explicit OutputSchema(std::vector<Column> columns, std::vector<DerivedTarget> targets = std::vector<DerivedTarget>(),
                         std::vector<DirectMap> direct_map_list = std::vector<DirectMap>())
+      // TODO(WAN): didn't we ban default arguments?
       : columns_(std::move(columns)), targets_(std::move(targets)), direct_map_list_(std::move(direct_map_list)) {
     TERRIER_ASSERT(!columns_.empty() && columns_.size() <= common::Constants::MAX_COL,
                    "Number of columns must be between 1 and MAX_COL.");
@@ -293,9 +298,26 @@ class OutputSchema {
 
   /**
    * Make a copy of this OutputSchema
-   * @return shared pointer to the copy
+   * @return unique pointer to the copy
    */
-  std::shared_ptr<OutputSchema> Copy() const { return std::make_shared<OutputSchema>(*this); }
+  std::unique_ptr<OutputSchema> Copy() const {
+    std::vector<Column> columns;
+    for (const auto &col : GetColumns()) {
+      columns.emplace_back(col.Copy());
+    }
+
+    // TODO(WAN): there are no getters for these members? why?
+    std::vector<DerivedTarget> targets;
+    for (const auto &target : targets_) {
+      targets.emplace_back(target.first, target.second.Copy());
+    }
+
+    std::vector<DirectMap> direct_map_list;
+    for (const auto &map : direct_map_list_) {
+      direct_map_list.emplace_back(map.first, map.second);
+    }
+    return std::make_unique<OutputSchema>(std::move(columns), std::move(targets), std::move(direct_map_list));
+  }
 
   /**
    * Hash the current OutputSchema.

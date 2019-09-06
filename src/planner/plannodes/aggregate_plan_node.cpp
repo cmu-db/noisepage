@@ -50,9 +50,9 @@ bool AggregatePlanNode::operator==(const AbstractPlanNode &rhs) const {
 
 nlohmann::json AggregatePlanNode::ToJson() const {
   nlohmann::json j = AbstractPlanNode::ToJson();
-  j["having_clause_predicate"] = having_clause_predicate_;
-  j["aggregate_terms"] = aggregate_terms_;
-  j["aggregate_strategy"] = aggregate_strategy_;
+  //  j["having_clause_predicate"] = having_clause_predicate_;
+  //  j["aggregate_terms"] = aggregate_terms_;
+  //  j["aggregate_strategy"] = aggregate_strategy_;
   return j;
 }
 
@@ -61,14 +61,14 @@ void AggregatePlanNode::FromJson(const nlohmann::json &j) {
   if (!j.at("having_clause_predicate").is_null()) {
     having_clause_predicate_ = parser::DeserializeExpression(j.at("having_clause_predicate"));
   }
-
-  // Deserialize aggregate terms
-  auto aggregate_term_jsons = j.at("aggregate_terms").get<std::vector<nlohmann::json>>();
-  for (const auto &json : aggregate_term_jsons) {
-    aggregate_terms_.push_back(
-        std::dynamic_pointer_cast<parser::AggregateExpression>(parser::DeserializeExpression(json)));
-  }
-
+  /* TODO(WAN) json
+    // Deserialize aggregate terms
+    auto aggregate_term_jsons = j.at("aggregate_terms").get<std::vector<nlohmann::json>>();
+    for (const auto &json : aggregate_term_jsons) {
+      aggregate_terms_.push_back(
+          std::dynamic_pointer_cast<parser::AggregateExpression>(parser::DeserializeExpression(json)));
+    }
+  */
   aggregate_strategy_ = j.at("aggregate_strategy").get<AggregateStrategyType>();
 }
 

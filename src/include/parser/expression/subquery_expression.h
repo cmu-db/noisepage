@@ -8,9 +8,8 @@
 #include "type/type_id.h"
 
 namespace terrier::parser {
-
 /**
- * Represents a sub-select query.
+ * SubqueryExpression represents an expression which contains a select statement ("sub-select").
  */
 class SubqueryExpression : public AbstractExpression {
  public:
@@ -18,28 +17,37 @@ class SubqueryExpression : public AbstractExpression {
    * Instantiates a new SubqueryExpression with the given sub-select from the parser.
    * @param subselect the sub-select
    */
-  explicit SubqueryExpression(std::shared_ptr<parser::SelectStatement> subselect)
+  explicit SubqueryExpression(std::unique_ptr<parser::SelectStatement> subselect)
       : AbstractExpression(ExpressionType::ROW_SUBQUERY, type::TypeId::INVALID, {}), subselect_(std::move(subselect)) {}
 
-  /**
-   * Default constructor for deserialization
-   */
+  /** Default constructor for JSON deserialization. */
   SubqueryExpression() = default;
 
-  std::shared_ptr<AbstractExpression> Copy() const override {
-    // TODO(WAN): Previous codebase described as a hack, will we need a deep copy?
-    // Tianyu: No need for deep copy if your objects are always immutable! (why even copy at all, but that's beyond me)
-    return std::make_shared<SubqueryExpression>(*this);
+  std::unique_ptr<AbstractExpression> Copy() const override {
+    /*
+    std::vector<std::unique_ptr<AbstractExpression>> select_columns;
+    for (const auto &col : subselect_->GetSelectColumns()) {
+      select_columns.emplace_back(col->Copy());
+    }
+    // TODO(WAN) sigh..
+    auto parser_select = std::make_unique<SelectStatement>(
+        std::move(select_columns), subselect_->IsSelectDistinct(),
+        subselect_->GetSelectTable(), subselect_->GetSelectCondition()->Copy(),
+        subselect_->GetSelectGroupBy(), subselect_->GetSelectOrderBy(),
+        subselect_->GetSelectLimit()
+        );
+    return std::make_unique<SubqueryExpression>(std::move(parser_select));
+     */
+    return std::make_unique<SubqueryExpression>(nullptr);
   }
 
-  /**
-   * @return shared pointer to stored sub-select
-   */
-  std::shared_ptr<parser::SelectStatement> GetSubselect() { return subselect_; }
+  /** @return managed pointer to the sub-select */
+  common::ManagedPointer<parser::SelectStatement> GetSubselect() { return common::ManagedPointer(subselect_); }
 
   void Accept(SqlNodeVisitor *v) override { v->Visit(this); }
 
   /**
+   * TODO(WAN): document the depths, ask Ling
    * @return Derived depth of the expression
    */
   int DeriveDepth() override {
@@ -76,29 +84,23 @@ class SubqueryExpression : public AbstractExpression {
     return *subselect_ == *(other.subselect_);
   }
 
-  /**
-   * @return expression serialized to json
-   */
+  /** @return expression serialized to json */
   nlohmann::json ToJson() const override {
     nlohmann::json j = AbstractExpression::ToJson();
-    j["subselect"] = subselect_;
+    // TODO(WAN) json    j["subselect"] = subselect_;
     return j;
   }
 
-  /**
-   * @param j json to deserialize
-   */
+  /** @param j json to deserialize */
   void FromJson(const nlohmann::json &j) override {
     AbstractExpression::FromJson(j);
-    subselect_ = std::make_shared<parser::SelectStatement>();
-    subselect_->FromJson(j.at("subselect"));
+    subselect_ = std::make_unique<parser::SelectStatement>();
+    // TODO(WAN) json    subselect_->FromJson(j.at("subselect"));
   }
 
  private:
-  /**
-   * Sub-Select statement
-   */
-  std::shared_ptr<parser::SelectStatement> subselect_;
+  /** Sub-select statement. */
+  std::unique_ptr<SelectStatement> subselect_;
 };
 
 DEFINE_JSON_DECLARATIONS(SubqueryExpression);

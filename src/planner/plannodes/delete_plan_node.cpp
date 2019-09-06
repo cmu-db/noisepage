@@ -49,7 +49,7 @@ nlohmann::json DeletePlanNode::ToJson() const {
   j["database_oid"] = database_oid_;
   j["namespace_oid"] = namespace_oid_;
   j["table_oid"] = table_oid_;
-  j["delete_condition"] = delete_condition_;
+  //  j["delete_condition"] = delete_condition_;
   return j;
 }
 

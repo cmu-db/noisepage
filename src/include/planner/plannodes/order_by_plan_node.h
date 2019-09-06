@@ -61,8 +61,8 @@ class OrderByPlanNode : public AbstractPlanNode {
      * Build the order by plan node
      * @return plan node
      */
-    std::shared_ptr<OrderByPlanNode> Build() {
-      return std::shared_ptr<OrderByPlanNode>(new OrderByPlanNode(std::move(children_), std::move(output_schema_),
+    std::unique_ptr<OrderByPlanNode> Build() {
+      return std::unique_ptr<OrderByPlanNode>(new OrderByPlanNode(std::move(children_), std::move(output_schema_),
                                                                   std::move(sort_keys_), has_limit_, limit_, offset_));
     }
 
@@ -95,8 +95,8 @@ class OrderByPlanNode : public AbstractPlanNode {
    * @param limit number of tuples to limit output to
    * @param offset offset in sort from where to limit from
    */
-  OrderByPlanNode(std::vector<std::shared_ptr<AbstractPlanNode>> &&children,
-                  std::shared_ptr<OutputSchema> output_schema, std::vector<SortKey> sort_keys, bool has_limit,
+  OrderByPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
+                  std::unique_ptr<OutputSchema> output_schema, std::vector<SortKey> sort_keys, bool has_limit,
                   size_t limit, size_t offset)
       : AbstractPlanNode(std::move(children), std::move(output_schema)),
         sort_keys_(std::move(sort_keys)),

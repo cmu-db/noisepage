@@ -118,8 +118,8 @@ class CreateIndexPlanNode : public AbstractPlanNode {
      * Build the create index plan node
      * @return plan node
      */
-    std::shared_ptr<CreateIndexPlanNode> Build() {
-      return std::shared_ptr<CreateIndexPlanNode>(new CreateIndexPlanNode(
+    std::unique_ptr<CreateIndexPlanNode> Build() {
+      return std::unique_ptr<CreateIndexPlanNode>(new CreateIndexPlanNode(
           std::move(children_), std::move(output_schema_), database_oid_, namespace_oid_, table_oid_, index_type_,
           unique_index_, std::move(index_name_), std::move(index_attrs_), std::move(key_attrs_)));
     }
@@ -180,8 +180,8 @@ class CreateIndexPlanNode : public AbstractPlanNode {
    * @param index_attrs index attributes
    * @param key_attrs key attributes
    */
-  CreateIndexPlanNode(std::vector<std::shared_ptr<AbstractPlanNode>> &&children,
-                      std::shared_ptr<OutputSchema> output_schema, catalog::db_oid_t database_oid,
+  CreateIndexPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
+                      std::unique_ptr<OutputSchema> output_schema, catalog::db_oid_t database_oid,
                       catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid,
                       parser::IndexType index_type, bool unique_index, std::string index_name,
                       std::vector<std::string> &&index_attrs, std::vector<std::string> &&key_attrs)

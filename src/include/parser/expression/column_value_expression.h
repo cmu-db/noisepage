@@ -8,9 +8,10 @@
 #include "parser/expression/abstract_expression.h"
 
 namespace terrier::parser {
-
 /**
- * Represents a column tuple value.
+ * ColumnValueExpression represents a reference to a column.
+ *
+ * TODO(WAN): check with Ling
  */
 class ColumnValueExpression : public AbstractExpression {
  public:
@@ -61,42 +62,32 @@ class ColumnValueExpression : public AbstractExpression {
         database_oid_(database_oid),
         table_oid_(table_oid),
         column_oid_(column_oid) {}
-  /**
-   * Default constructor for deserialization
-   */
+
+  /** Default constructor for deserialization. */
   ColumnValueExpression() = default;
 
-  /**
-   * @return namespace name
-   */
+  /** @return namespace name */
   std::string GetNamespaceName() const { return namespace_name_; }
 
-  /**
-   * @return table name
-   */
+  /** @return table name */
   std::string GetTableName() const { return table_name_; }
 
-  /**
-   * @return column name
-   */
+  /** @return column name */
   std::string GetColumnName() const { return column_name_; }
 
-  /**
-   * @return database oid
-   */
+  /** @return database oid */
   catalog::db_oid_t GetDatabaseOid() const { return database_oid_; }
 
-  /**
-   * @return table oid
-   */
+  /** @return table oid */
   catalog::table_oid_t GetTableOid() const { return table_oid_; }
 
-  /**
-   * @return column oid
-   */
+  /** @return column oid */
   catalog::col_oid_t GetColumnOid() const { return column_oid_; }
 
-  std::shared_ptr<AbstractExpression> Copy() const override { return std::make_shared<ColumnValueExpression>(*this); }
+  // TODO(WAN) we should really have a constructor that's just "everything"
+  std::unique_ptr<AbstractExpression> Copy() const override {
+    return std::make_unique<ColumnValueExpression>(GetDatabaseOid(), GetTableOid(), GetColumnOid());
+  }
 
   common::hash_t Hash() const override {
     common::hash_t hash = AbstractExpression::Hash();
@@ -157,50 +148,26 @@ class ColumnValueExpression : public AbstractExpression {
   }
 
  private:
-  /**
-   * @param database_oid Database OID to be assigned to this expression
-   */
+  /** @param database_oid Database OID to be assigned to this expression */
   void SetDatabaseOID(catalog::db_oid_t database_oid) { database_oid_ = database_oid; }
-
-  /**
-   * @param table_oid Table OID to be assigned to this expression
-   */
+  /** @param table_oid Table OID to be assigned to this expression */
   void SetTableOID(catalog::table_oid_t table_oid) { table_oid_ = table_oid; }
-
-  /**
-   * @param column_oid Column OID to be assigned to this expression
-   */
+  /** @param column_oid Column OID to be assigned to this expression */
   void SetColumnOID(catalog::col_oid_t column_oid) { column_oid_ = column_oid; }
 
-  /**
-   * Name of the namespace
-   */
+  /** Namespace name. */
   std::string namespace_name_;
-
-  /**
-   * Name of the table
-   */
+  /** Table name. */
   std::string table_name_;
-
-  /**
-   * Name of the column
-   */
+  /** Column name. */
   std::string column_name_;
 
   // TODO(Ling): change to INVALID_*_OID after catalog completion
-  /**
-   * OID of the database
-   */
+  /** Database OID. */
   catalog::db_oid_t database_oid_ = catalog::db_oid_t(0);
-
-  /**
-   * OID of the table
-   */
+  /** Table OID. */
   catalog::table_oid_t table_oid_ = catalog::table_oid_t(0);
-
-  /**
-   * OID of the column
-   */
+  /** Column OID. */
   catalog::col_oid_t column_oid_ = catalog::col_oid_t(0);
 };
 
