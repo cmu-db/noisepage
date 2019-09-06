@@ -63,11 +63,7 @@ std::vector<std::unique_ptr<parser::AbstractExpression>> AggregatePlanNode::From
   auto e1 = AbstractPlanNode::FromJson(j);
   exprs.insert(exprs.end(), std::make_move_iterator(e1.begin()), std::make_move_iterator(e1.end()));
   if (!j.at("having_clause_predicate").is_null()) {
-    auto deserialized = parser::DeserializeExpression(j.at("having_clause_predicate"));
-    having_clause_predicate_ = common::ManagedPointer(deserialized.result_);
-    exprs.emplace_back(std::move(deserialized.result_));
-    exprs.insert(exprs.end(), std::make_move_iterator(deserialized.non_owned_exprs_.begin()),
-                 std::make_move_iterator(deserialized.non_owned_exprs_.end()));
+    having_clause_predicate_ = parser::DeserializeExpression(j.at("having_clause_predicate"));
   }
   /* TODO(WAN) json
     // Deserialize aggregate terms

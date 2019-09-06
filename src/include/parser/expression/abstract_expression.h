@@ -241,13 +241,6 @@ class AbstractExpression {
   virtual std::vector<std::unique_ptr<AbstractExpression>> FromJson(const nlohmann::json &j);
 
  private:
-
-  // We make abstract expression friend with both binder and query to operator transformer
-  // as they each traverse the ast independently and add in necessary information to the ast
-  // TODO(Ling): we could look into whether the two traversals can be commbined to one in the future
-  friend class binder::BindNodeVisitor;
-  friend class optimizer::QueryToOperatorTransformer;
-
   /** Type of the current expression */
   ExpressionType expression_type_;
   /** Name of the current expression */

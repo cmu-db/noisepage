@@ -450,17 +450,6 @@ class SelectStatement : public SQLStatement {
   std::unique_ptr<OrderByDescription> order_by_;
   std::unique_ptr<LimitDescription> limit_;
   std::unique_ptr<SelectStatement> union_select_;
-  int depth_ = -1;
-
-  /**
-   * @param select List of select columns
-   */
-  void SetSelectColumns(std::vector<common::ManagedPointer<AbstractExpression>> select) { select_ = std::move(select); }
-
-  /**
-   * @param depth Depth of the select statement
-   */
-  void SetDepth(int depth) { depth_ = depth; }
 };
 
 DEFINE_JSON_DECLARATIONS(SelectStatement);

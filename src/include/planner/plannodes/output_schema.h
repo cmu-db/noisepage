@@ -69,11 +69,6 @@ class OutputSchema {
     Column Copy() const { return Column(GetName(), GetType(), GetNullable(), GetOid()); }
 
     /**
-     * Creates a copy of this column.
-     */
-    Column Copy() const { return Column(GetName(), GetType(), GetNullable(), GetOid()); }
-
-    /**
      * @return column name
      */
     const std::string &GetName() const { return name_; }
@@ -178,11 +173,6 @@ class OutputSchema {
     DerivedColumn() = default;
 
     DerivedColumn Copy() const { return DerivedColumn(GetColumn().Copy(), GetExpression()->Copy()); }
-
-    /**
-     * Creates a copy of this derived column.
-     */
-    DerivedColumn Copy() const { return DerivedColumn(GetColumn().Copy(), GetExpression()); }
 
     /**
      * @return the intermediate column definition

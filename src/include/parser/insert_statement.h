@@ -73,6 +73,7 @@ class InsertStatement : public SQLStatement {
   const std::unique_ptr<std::vector<std::string>> columns_;
   const std::unique_ptr<TableRef> table_ref_;
   const std::unique_ptr<SelectStatement> select_;
+  // TODO(WAN): unsure about this one.
   const std::unique_ptr<std::vector<std::vector<common::ManagedPointer<AbstractExpression>>>> insert_values_;
 };
 

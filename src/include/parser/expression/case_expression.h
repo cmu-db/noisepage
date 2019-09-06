@@ -15,9 +15,9 @@ class CaseExpression : public AbstractExpression {
   /** WHEN ... THEN ... clauses. */
   struct WhenClause {
     /** The condition to be checked for this case expression. */
-    std::unique_ptr<AbstractExpression> condition;
+    std::unique_ptr<AbstractExpression> condition_;
     /** The value that this expression should have if the corresponding condition is true. */
-    std::unique_ptr<AbstractExpression> then;
+    std::unique_ptr<AbstractExpression> then_;
 
     /**
      * Equality check
@@ -116,7 +116,7 @@ class CaseExpression : public AbstractExpression {
    */
   common::ManagedPointer<AbstractExpression> GetWhenClauseCondition(size_t index) const {
     TERRIER_ASSERT(index < when_clauses_.size(), "Index must be in bounds.");
-    return common::ManagedPointer(when_clauses_[index].condition);
+    return common::ManagedPointer(when_clauses_[index].condition_);
   }
 
   /**
@@ -125,7 +125,7 @@ class CaseExpression : public AbstractExpression {
    */
   common::ManagedPointer<AbstractExpression> GetWhenClauseResult(size_t index) const {
     TERRIER_ASSERT(index < when_clauses_.size(), "Index must be in bounds.");
-    return common::ManagedPointer(when_clauses_[index].then);
+    return common::ManagedPointer(when_clauses_[index].then_);
   }
 
   /** @return default clause, if it exists */

@@ -43,7 +43,7 @@ class AbstractPlanNode {
      * @return builder object
      */
     ConcreteType &SetOutputSchema(std::unique_ptr<OutputSchema> output_schema) {
-      output_schema_ = std::move(output_schema);
+      output_schema_ = output_schema;
       return *dynamic_cast<ConcreteType *>(this);
     }
 
