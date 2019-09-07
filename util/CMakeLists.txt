@@ -50,6 +50,7 @@ message(STATUS "CLANG_IR_CXX_INCLUDES: ${CLANG_IR_CXX_INCLUDES}")
 # target that can be built.
 # e.g. COMPILE_TO_IR(test.cpp) generates the "test_bc" make target.
 # Modified from Apache Impala.
+message("FLAGS: ${CLANG_IR_CXX_FLAGS}")
 function(tpl_compile_to_ir SRC_FILE)
     set(FULL_NAME "${PROJECT_SOURCE_DIR}/util/${SRC_FILE}")
     get_filename_component(BASE_NAME ${FULL_NAME} NAME_WE)
@@ -66,6 +67,7 @@ endfunction(tpl_compile_to_ir)
 # Build the "gen_opt_bc" executable. This is dependent on all cross-compiled bitcode
 # set up through tpl_compile_to_ir()
 add_executable(gen_opt_bc "execution/gen_opt_bc.cpp")
+set_target_properties(gen_opt_bc PROPERTIES ENABLE_EXPORTS 1)
 target_link_libraries(gen_opt_bc ${TERRIER_LINK_LIBS})
 
 # Cross-compile the bytecode handlers
@@ -78,6 +80,7 @@ tpl_compile_to_ir(execution/bytecode_handlers_ir.cpp)
 ##################################################
 set(tpl_main "execution/tpl.cpp")
 add_executable(tpl ${tpl_main})
+set_target_properties(tpl PROPERTIES ENABLE_EXPORTS 1)
 add_dependencies(tpl gen_opt_bc)
 target_link_libraries(tpl util_static)
 

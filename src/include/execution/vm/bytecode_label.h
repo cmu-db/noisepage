@@ -10,7 +10,7 @@ namespace terrier::execution::vm {
 /**
  * A label represents a location in the bytecode and is used as the target of a
  * jump instruction. When the label is bound, it becomes an immutable reference
- * to a location in the bytecode (accessible through @ref offset()). If the
+ * to a location in the bytecode (accessible through @ref Offset()). If the
  * label is a forward target, @ref ReferrerOffsets() will return the bytecode location
  * of the referring jump instruction.
  */

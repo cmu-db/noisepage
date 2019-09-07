@@ -47,7 +47,7 @@ def check(tpl_bin, tpl_folder, tpl_tests_file, build_dir):
             if not res:
                 report = 'ERR'
                 failed.add(tpl_file)
-            elif not all(output == expected_output for output in res):
+            elif  len(res) != 3 or not all(output == expected_output for output in res):
                 report = 'FAIL [expect: {}, actual: {}]'.format(expected_output,
                                                                 res)
                 failed.add(tpl_file)
