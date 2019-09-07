@@ -8,6 +8,7 @@
 #include "optimizer/group_expression.h"
 #include "optimizer/memo.h"
 #include "optimizer/rule.h"
+#include "optimizer/statistics/stats_storage.h"
 
 namespace terrier {
 
@@ -51,23 +52,31 @@ class OptimizerMetadata {
 
   /**
    * Gets the Memo
+   * @returns Memo
    */
   Memo &GetMemo() { return memo_; }
 
   /**
    * Gets the RuleSet
+   * @returns RuleSet
    */
   RuleSet &GetRuleSet() { return rule_set_; }
 
   /**
    * Gets the CatalogAccessor
+   * @returns CatalogAccessor
    */
   catalog::CatalogAccessor *GetCatalogAccessor() { return accessor_; }
 
   /**
+   * Gets the StatsStorage
+   * @returns StatsStorage
+   */
+  StatsStorage *GetStatsStorage() { return stats_storage_; }
+
+  /**
    * Adds a OptimizeContext to the tracking list
    * @param ctx OptimizeContext to add to tracking
-   * TODO(wz2): narrow object lifecycle to parent task
    */
   void AddOptimizeContext(OptimizeContext *ctx) { track_list_.push_back(ctx); }
 
@@ -91,13 +100,21 @@ class OptimizerMetadata {
 
   /**
    * Sets the transaction
+   * @param txn TransactionContext
    */
   void SetTxn(transaction::TransactionContext *txn) { txn_ = txn; }
 
   /**
    * Sets the CatalogAccessor
+   * @param accessor CatalogAccessor
    */
   void SetCatalogAccessor(catalog::CatalogAccessor *accessor) { accessor_ = accessor; }
+
+  /**
+   * Sets the StatsStorage
+   * @param storage StatsStorage
+   */
+  void SetStatsStorage(StatsStorage *storage) { stats_storage_ = storage; }
 
   /**
    * Set the task pool tracked by the OptimizerMetadata.
@@ -217,6 +234,11 @@ class OptimizerMetadata {
    * CatalogAccessor
    */
   catalog::CatalogAccessor *accessor_;
+
+  /**
+   * StatsStorage
+   */
+  StatsStorage *stats_storage_;
 
   /**
    * TransactionContxt used for execution

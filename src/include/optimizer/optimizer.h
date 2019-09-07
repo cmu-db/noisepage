@@ -60,12 +60,14 @@ class Optimizer : public AbstractOptimizer {
    * @param txn TransactionContext
    * @param settings SettingsManager to read settings from
    * @param accessor CatalogAccessor for catalog
+   * @param storage StatsStorage
    * @returns execution plan
    */
   std::shared_ptr<planner::AbstractPlanNode> BuildPlanTree(OperatorExpression *op_tree, QueryInfo query_info,
                                                            transaction::TransactionContext *txn,
                                                            settings::SettingsManager *settings,
-                                                           catalog::CatalogAccessor *accessor) override;
+                                                           catalog::CatalogAccessor *accessor,
+                                                           StatsStorage *storage) override;
 
   /**
    * Invoke a single optimization pass through the entire query.

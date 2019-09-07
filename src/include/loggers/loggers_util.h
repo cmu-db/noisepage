@@ -37,7 +37,6 @@ class LoggersUtil {
       settings::InitSettingsLogger();
       parser::InitParserLogger();
       network::InitNetworkLogger();
-      optimizer::InitOptimizerLogger();
 
       if (testing) {
         InitTestLogger();

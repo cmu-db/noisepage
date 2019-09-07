@@ -13,6 +13,7 @@
 
 #include "optimizer/operator_expression.h"
 #include "optimizer/property_set.h"
+#include "optimizer/statistics/stats_storage.h"
 
 namespace terrier::planner {
 class AbstractPlanNode;
@@ -100,12 +101,14 @@ class AbstractOptimizer {
    * @param txn TransactionContext
    * @param settings SettingsManager to read settings from
    * @param accessor CatalogAccessor for catalog
+   * @param storage StatsStorage
    * @returns execution plan
    */
   virtual std::shared_ptr<planner::AbstractPlanNode> BuildPlanTree(OperatorExpression *op_tree, QueryInfo query_info,
                                                                    transaction::TransactionContext *txn,
                                                                    settings::SettingsManager *settings,
-                                                                   catalog::CatalogAccessor *accessor) = 0;
+                                                                   catalog::CatalogAccessor *accessor,
+                                                                   StatsStorage *storage) = 0;
 
   /**
    * Reset the optimizer's internal state

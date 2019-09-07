@@ -12,6 +12,7 @@
 #include "optimizer/optimizer_defs.h"
 #include "optimizer/property.h"
 #include "optimizer/property_set.h"
+#include "optimizer/statistics/column_stats.h"
 
 namespace terrier::optimizer {
 
@@ -116,10 +117,38 @@ class Group {
   bool HasExplored() { return has_explored_; }
 
   /**
+   * Sets Number of rows
+   * @param num_rows Number of rows
+   */
+  void SetNumRows(int num_rows) { num_rows_ = num_rows; }
+
+  /**
    * Gets the estimated cardinality in # rows
    * @returns # rows estimated
    */
   int GetNumRows() { return num_rows_; }
+
+  /**
+   * Get stats for a column
+   * @param column_name Column to get stats for
+   */
+  common::ManagedPointer<ColumnStats> GetStats(std::string column_name) {
+    TERRIER_ASSERT(stats_.count(column_name) != 0U, "Column Stats missing");
+    return common::ManagedPointer<ColumnStats>(stats_[column_name].get());
+  }
+
+  /**
+   * Checks if there are stats for a column
+   * @param column_name Column to check
+   */
+  bool HasColumnStats(std::string column_name) { return stats_.count(column_name) != 0U; }
+
+  /**
+   * Add stats for a column
+   * @param column_name Column to add stats
+   * @param stats Stats to add
+   */
+  void AddStats(std::string column_name, std::unique_ptr<ColumnStats> stats) { stats_[column_name] = std::move(stats); }
 
   /**
    * Gets this Group's GroupID
@@ -162,7 +191,7 @@ class Group {
       lowest_cost_expressions_;
 
   /**
-   *Whether equivalent logical expressions have been explored for this group
+   * Whether equivalent logical expressions have been explored for this group
    */
   bool has_explored_;
 
@@ -181,7 +210,22 @@ class Group {
    */
   std::vector<GroupExpression *> enforced_exprs_;
 
+  /**
+   * Stats (added lazily)
+   * TODO(boweic):
+   * 1. Use table alias ID  + column offset to identify column
+   * 2. Support stats for arbitrary expressions
+   */
+  std::unordered_map<std::string, std::unique_ptr<ColumnStats>> stats_;
+
+  /**
+   * Number of rows
+   */
   int num_rows_ = -1;
+
+  /**
+   * Cost Lower Bound
+   */
   double cost_lower_bound_ = -1;
 };
 

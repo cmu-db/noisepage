@@ -50,7 +50,7 @@ void InnerJoinCommutativity::Transform(OperatorExpression *input, std::vector<Op
 
   std::vector<OperatorExpression *> children = input->GetChildren();
   TERRIER_ASSERT(children.size() == 2, "There should be two children");
-  OPTIMIZER_LOG_TRACE("Reorder left child with op %s and right child with op %s for inner join",
+  OPTIMIZER_LOG_TRACE("Reorder left child with op {0} and right child with op {1] for inner join",
                       children[0]->GetOp().GetName().c_str(), children[1]->GetOp().GetName().c_str());
 
   std::vector<OperatorExpression *> new_child{children[1]->Copy(), children[0]->Copy()};

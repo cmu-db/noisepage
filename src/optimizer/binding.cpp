@@ -66,7 +66,7 @@ GroupExprBindingIterator::GroupExprBindingIterator(const Memo &memo, GroupExpres
     return;
   }
 
-  OPTIMIZER_LOG_TRACE("Attempting to bind on group %d with expression of type %s, children size %lu",
+  OPTIMIZER_LOG_TRACE("Attempting to bind on group {0} with expression of type {1}, children size {2}",
                       gexpr->GetGroupID(), gexpr->Op().GetName().c_str(), child_groups.size());
 
   // Find all bindings for children

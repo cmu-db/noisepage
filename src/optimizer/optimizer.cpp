@@ -28,9 +28,11 @@ void Optimizer::Reset() {
 std::shared_ptr<planner::AbstractPlanNode> Optimizer::BuildPlanTree(OperatorExpression *op_tree, QueryInfo query_info,
                                                                     transaction::TransactionContext *txn,
                                                                     settings::SettingsManager *settings,
-                                                                    catalog::CatalogAccessor *accessor) {
+                                                                    catalog::CatalogAccessor *accessor,
+                                                                    StatsStorage *storage) {
   metadata_->SetTxn(txn);
   metadata_->SetCatalogAccessor(accessor);
+  metadata_->SetStatsStorage(storage);
 
   // Generate initial operator tree from query tree
   GroupExpression *gexpr = nullptr;
@@ -51,7 +53,7 @@ std::shared_ptr<planner::AbstractPlanNode> Optimizer::BuildPlanTree(OperatorExpr
   try {
     OptimizeLoop(root_id, phys_properties, settings);
   } catch (OptimizerException &e) {
-    OPTIMIZER_LOG_WARN("Optimize Loop ended prematurely: %s", e.what());
+    OPTIMIZER_LOG_WARN("Optimize Loop ended prematurely: {0}", e.what());
   }
 
   try {
@@ -72,7 +74,8 @@ std::shared_ptr<planner::AbstractPlanNode> Optimizer::ChooseBestPlan(
   Group *group = metadata_->GetMemo().GetGroupByID(id);
   auto gexpr = group->GetBestExpression(required_props);
 
-  OPTIMIZER_LOG_TRACE("Choosing best plan for group %d with op %s", gexpr->GetGroupID(), gexpr->Op().GetName().c_str());
+  OPTIMIZER_LOG_TRACE("Choosing best plan for group {0} with op {1}", gexpr->GetGroupID(),
+                      gexpr->Op().GetName().c_str());
 
   std::vector<GroupID> child_groups = gexpr->GetChildGroupIDs();
 
@@ -112,7 +115,7 @@ std::shared_ptr<planner::AbstractPlanNode> Optimizer::ChooseBestPlan(
   PlanGenerator generator;
   auto plan = generator.ConvertOpExpression(op, required_props, required_cols, output_cols, std::move(children_plans),
                                             std::move(children_expr_map), settings, accessor, txn);
-  OPTIMIZER_LOG_TRACE("Finish Choosing best plan for group %d", id);
+  OPTIMIZER_LOG_TRACE("Finish Choosing best plan for group {0}", id);
 
   delete op;
   return plan;

@@ -110,6 +110,17 @@ class ColumnValueExpression : public AbstractExpression {
   catalog::col_oid_t GetColumnOid() const { return column_oid_; }
 
   /**
+   * Get Column Full Name [tbl].[col]
+   */
+  std::string GetFullName() const {
+    if (!table_name_.empty()) {
+      return table_name_ + "." + column_name_;
+    }
+
+    return column_name_;
+  }
+
+  /**
    * Copies this ColumnValueExpression
    * @returns copy of this
    */

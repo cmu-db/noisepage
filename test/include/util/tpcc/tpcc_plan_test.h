@@ -16,6 +16,7 @@
 #include "optimizer/optimizer.h"
 #include "optimizer/properties.h"
 #include "optimizer/property_set.h"
+#include "optimizer/statistics/stats_storage.h"
 #include "parser/postgresparser.h"
 #include "planner/plannodes/abstract_plan_node.h"
 #include "planner/plannodes/insert_plan_node.h"
@@ -149,6 +150,7 @@ class TpccPlanTest : public TerrierTest {
     terrier::settings::SettingsManager::ConstructParamMap(param_map);
     db_main_ = new DBMain(std::move(param_map));
     settings_manager_ = db_main_->settings_manager_;
+    stats_storage_ = new optimizer::StatsStorage();
 
     timestamp_manager_ = new transaction::TimestampManager;
     deferred_action_manager_ = new transaction::DeferredActionManager(timestamp_manager_);
@@ -183,6 +185,7 @@ class TpccPlanTest : public TerrierTest {
     delete db_main_;
     delete deferred_action_manager_;
     delete timestamp_manager_;
+    delete stats_storage_;
   }
 
   void BeginTransaction() {
@@ -301,7 +304,7 @@ class TpccPlanTest : public TerrierTest {
 
     auto query_info = optimizer::QueryInfo(parser::StatementType::INSERT, {}, property_set);
     auto optimizer = new optimizer::Optimizer(new optimizer::TrivialCostModel());
-    auto out_plan = optimizer->BuildPlanTree(plan, query_info, txn_, settings_manager_, accessor_);
+    auto out_plan = optimizer->BuildPlanTree(plan, query_info, txn_, settings_manager_, accessor_, stats_storage_);
 
     EXPECT_EQ(out_plan->GetPlanNodeType(), planner::PlanNodeType::INSERT);
     auto insert = std::dynamic_pointer_cast<planner::InsertPlanNode>(out_plan);
@@ -358,7 +361,7 @@ class TpccPlanTest : public TerrierTest {
     auto property_set = new optimizer::PropertySet();
     auto query_info = optimizer::QueryInfo(parser::StatementType::UPDATE, {}, property_set);
     auto optimizer = new optimizer::Optimizer(new optimizer::TrivialCostModel());
-    auto out_plan = optimizer->BuildPlanTree(plan, query_info, txn_, settings_manager_, accessor_);
+    auto out_plan = optimizer->BuildPlanTree(plan, query_info, txn_, settings_manager_, accessor_, stats_storage_);
 
     EXPECT_EQ(out_plan->GetPlanNodeType(), planner::PlanNodeType::UPDATE);
     EXPECT_EQ(out_plan->GetChildrenSize(), 1);
@@ -436,7 +439,7 @@ class TpccPlanTest : public TerrierTest {
 
     auto query_info = optimizer::QueryInfo(parser::StatementType::SELECT, std::move(output), property_set);
     auto optimizer = new optimizer::Optimizer(new optimizer::TrivialCostModel());
-    auto out_plan = optimizer->BuildPlanTree(plan, query_info, txn_, settings_manager_, accessor_);
+    auto out_plan = optimizer->BuildPlanTree(plan, query_info, txn_, settings_manager_, accessor_, stats_storage_);
 
     // Check Plan for correctness
     Check(this, sel_stmt, tbl_oid, out_plan);
@@ -456,6 +459,7 @@ class TpccPlanTest : public TerrierTest {
 
   DBMain *db_main_;
   settings::SettingsManager *settings_manager_;
+  optimizer::StatsStorage *stats_storage_;
 
   // Optimizer transaction
   transaction::TransactionContext *txn_;

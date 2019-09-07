@@ -5,7 +5,7 @@
 namespace terrier::optimizer {
 
 void PropertySet::AddProperty(Property *property) {
-  OPTIMIZER_LOG_TRACE("Add property with type %d", static_cast<int>(property->Type()));
+  OPTIMIZER_LOG_TRACE("Add property with type {0}", static_cast<int>(property->Type()));
   auto iter = properties_.begin();
   for (; iter != properties_.end(); iter++) {
     // Iterate until point where preserve descending order
@@ -24,7 +24,7 @@ const Property *PropertySet::GetPropertyOfType(PropertyType type) const {
     }
   }
 
-  OPTIMIZER_LOG_TRACE("Didn't find property with type %d", static_cast<int>(type));
+  OPTIMIZER_LOG_TRACE("Didn't find property with type {0}", static_cast<int>(type));
   return nullptr;
 }
 
