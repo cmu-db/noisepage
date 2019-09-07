@@ -13,11 +13,11 @@ struct Bitwidth {
    */
   static constexpr const uint32_t
 #if defined(__AVX512F__)
-      value = 512;
+      VALUE = 512;
 #elif defined(__AVX2__)
       VALUE = 256;
 #else
-      value = 256;
+      VALUE = 256;
 #endif
 };
 
