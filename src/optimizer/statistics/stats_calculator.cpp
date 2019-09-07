@@ -1,12 +1,17 @@
-#include "optimizer/statistics/stats_calculator.h"
-
+#include <algorithm>
 #include <cmath>
+#include <memory>
+#include <string>
+#include <unordered_map>
+#include <utility>
+#include <vector>
 
 #include "catalog/catalog_accessor.h"
 #include "optimizer/memo.h"
 #include "optimizer/optimizer_metadata.h"
 #include "optimizer/statistics/column_stats.h"
 #include "optimizer/statistics/selectivity.h"
+#include "optimizer/statistics/stats_calculator.h"
 #include "optimizer/statistics/stats_storage.h"
 #include "optimizer/statistics/table_stats.h"
 #include "optimizer/statistics/value_condition.h"

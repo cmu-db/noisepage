@@ -1,5 +1,10 @@
 #pragma once
 
+#include <memory>
+#include <string>
+#include <unordered_map>
+#include <vector>
+
 #include "optimizer/group_expression.h"
 #include "optimizer/memo.h"
 #include "optimizer/operator_visitor.h"

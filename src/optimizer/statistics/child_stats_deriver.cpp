@@ -1,3 +1,10 @@
+#include <algorithm>
+#include <memory>
+#include <string>
+#include <unordered_map>
+#include <utility>
+#include <vector>
+
 #include "optimizer/statistics/child_stats_deriver.h"
 
 #include "optimizer/memo.h"

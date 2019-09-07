@@ -1,5 +1,7 @@
 #pragma once
 
+#include <vector>
+
 #include "optimizer/group_expression.h"
 #include "optimizer/operator_visitor.h"
 
