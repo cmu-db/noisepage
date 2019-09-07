@@ -30,21 +30,21 @@ DEFINE_PERFORMANCE_CLASS(CacheCounter, CACHE_MEMBERS)
  */
 class CacheCounterTestObject {
  private:
-  std::atomic<uint64_t> num_insert{0};
-  std::atomic<uint32_t> num_hit{0};
-  std::atomic<uint16_t> num_failure{0};
-  std::atomic<uint8_t> num_user{0};
-  CacheCounter *cc;
-  std::uniform_int_distribution<uint8_t> rng;
+  std::atomic<uint64_t> num_insert_{0};
+  std::atomic<uint32_t> num_hit_{0};
+  std::atomic<uint16_t> num_failure_{0};
+  std::atomic<uint8_t> num_user_{0};
+  CacheCounter *cc_;
+  std::uniform_int_distribution<uint8_t> rng_;
 
   /**
    * Calls the gtest EXPECT_EQ function for all the relevant variables.
    */
   void Equal() const {
-    EXPECT_EQ(cc->GetNumInsert(), num_insert);
-    EXPECT_EQ(cc->GetNumHit(), num_hit);
-    EXPECT_EQ(cc->GetNumFailure(), num_failure);
-    EXPECT_EQ(cc->GetNumUser(), num_user);
+    EXPECT_EQ(cc_->GetNumInsert(), num_insert_);
+    EXPECT_EQ(cc_->GetNumHit(), num_hit_);
+    EXPECT_EQ(cc_->GetNumFailure(), num_failure_);
+    EXPECT_EQ(cc_->GetNumUser(), num_user_);
   }
 
  public:
@@ -53,17 +53,17 @@ class CacheCounterTestObject {
    * It will check that it remains consistent with the CacheCounter;
    * if you modify the CacheCounter, make sure you tell it.
    */
-  explicit CacheCounterTestObject(CacheCounter *cc) : cc(cc), rng(1, 255) {}
+  explicit CacheCounterTestObject(CacheCounter *cc) : cc_(cc), rng_(1, 255) {}
 
   /**
    * Zeroes the cache counter, automatically checking that all the state remains consistent.
    */
   void Zero() {
-    num_insert.store(0);
-    num_hit.store(0);
-    num_failure.store(0);
-    num_user.store(0);
-    cc->ZeroCounters();
+    num_insert_.store(0);
+    num_hit_.store(0);
+    num_failure_.store(0);
+    num_user_.store(0);
+    cc_->ZeroCounters();
     Equal();
   }
 
@@ -73,67 +73,67 @@ class CacheCounterTestObject {
    * @param num_operations number of operations to run
    */
   void RandomOperation(std::default_random_engine generator, uint32_t num_operations) {
-    uint8_t num = rng(generator);
+    uint8_t num = rng_(generator);
 
     std::vector<std::function<void()>> workloads = {
         [&] {
-          cc->IncrementNumInsert(num);
-          num_insert += num;
+          cc_->IncrementNumInsert(num);
+          num_insert_ += num;
           Equal();
         },
         [&] {
-          cc->IncrementNumHit(num);
-          num_hit += num;
+          cc_->IncrementNumHit(num);
+          num_hit_ += num;
           Equal();
         },
         [&] {
-          cc->IncrementNumFailure(num);
-          num_failure += num;
+          cc_->IncrementNumFailure(num);
+          num_failure_ += num;
           Equal();
         },
         [&] {
-          cc->IncrementNumUser(num);
-          num_user += num;
+          cc_->IncrementNumUser(num);
+          num_user_ += num;
           Equal();
         },
         [&] {
-          cc->DecrementNumInsert(num);
-          num_insert -= num;
+          cc_->DecrementNumInsert(num);
+          num_insert_ -= num;
           Equal();
         },
         [&] {
-          cc->DecrementNumHit(num);
-          num_hit -= num;
+          cc_->DecrementNumHit(num);
+          num_hit_ -= num;
           Equal();
         },
         [&] {
-          cc->DecrementNumFailure(num);
-          num_failure -= num;
+          cc_->DecrementNumFailure(num);
+          num_failure_ -= num;
           Equal();
         },
         [&] {
-          cc->DecrementNumUser(num);
-          num_user -= num;
+          cc_->DecrementNumUser(num);
+          num_user_ -= num;
           Equal();
         },
         [&] {
-          cc->SetNumInsert(num);
-          num_insert = num;
+          cc_->SetNumInsert(num);
+          num_insert_ = num;
           Equal();
         },
         [&] {
-          cc->SetNumHit(num);
-          num_hit = num;
+          cc_->SetNumHit(num);
+          num_hit_ = num;
           Equal();
         },
         [&] {
-          cc->SetNumFailure(num);
-          num_failure = num;
+          cc_->SetNumFailure(num);
+          num_failure_ = num;
           Equal();
         },
         [&] {
-          cc->SetNumUser(num);
-          num_user = num;
+          cc_->SetNumUser(num);
+          num_user_ = num;
           Equal();
         },
     };

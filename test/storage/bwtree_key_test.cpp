@@ -219,16 +219,19 @@ class BwTreeKeyTests : public TerrierTest {
                          parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
     catalog::Schema schema{columns};
     storage::SqlTable sql_table(&block_store, schema);
-    const auto &tuple_initializer = sql_table.InitializerForProjectedRow({catalog::col_oid_t(0)}).first;
+    const auto &tuple_initializer = sql_table.InitializerForProjectedRow({catalog::col_oid_t(0)});
 
-    transaction::TransactionManager txn_manager(&buffer_pool, true, LOGGING_DISABLED);
-    storage::GarbageCollector gc_manager(&txn_manager, nullptr);
+    transaction::TimestampManager timestamp_manager;
+    transaction::DeferredActionManager deferred_action_manager(&timestamp_manager);
+    transaction::TransactionManager txn_manager(&timestamp_manager, &deferred_action_manager, &buffer_pool, true,
+                                                DISABLED);
+    storage::GarbageCollector gc_manager(&timestamp_manager, &deferred_action_manager, &txn_manager, DISABLED);
 
     auto *const txn = txn_manager.BeginTransaction();
 
     // dummy tuple to insert for each key. We just need the visible TupleSlot
     auto *const insert_redo =
-        txn->StageWrite(CatalogTestUtil::test_db_oid, CatalogTestUtil::test_table_oid, tuple_initializer);
+        txn->StageWrite(CatalogTestUtil::TEST_DB_OID, CatalogTestUtil::TEST_TABLE_OID, tuple_initializer);
     auto *const insert_tuple = insert_redo->Delta();
     *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = 15721;
 
@@ -254,7 +257,7 @@ class BwTreeKeyTests : public TerrierTest {
     EXPECT_EQ(results.size(), 1);
     EXPECT_EQ(results[0], tuple_slot);
 
-    txn->StageDelete(CatalogTestUtil::test_db_oid, CatalogTestUtil::test_table_oid, tuple_slot);
+    txn->StageDelete(CatalogTestUtil::TEST_DB_OID, CatalogTestUtil::TEST_TABLE_OID, tuple_slot);
     sql_table.Delete(txn, tuple_slot);
     index->Delete(txn, *key, tuple_slot);
 
@@ -386,11 +389,11 @@ class BwTreeKeyTests : public TerrierTest {
 template <uint8_t KeySize>
 bool CompactIntsFromProjectedRowEq(const IndexMetadata &metadata, const storage::ProjectedRow &pr_A,
                                    const storage::ProjectedRow &pr_B) {
-  auto key_A = CompactIntsKey<KeySize>();
-  auto key_B = CompactIntsKey<KeySize>();
-  key_A.SetFromProjectedRow(pr_A, metadata);
-  key_B.SetFromProjectedRow(pr_B, metadata);
-  return std::equal_to<CompactIntsKey<KeySize>>()(key_A, key_B);
+  auto key_a = CompactIntsKey<KeySize>();
+  auto key_b = CompactIntsKey<KeySize>();
+  key_a.SetFromProjectedRow(pr_A, metadata);
+  key_b.SetFromProjectedRow(pr_B, metadata);
+  return std::equal_to<CompactIntsKey<KeySize>>()(key_a, key_b);
 }
 
 /**
@@ -399,11 +402,11 @@ bool CompactIntsFromProjectedRowEq(const IndexMetadata &metadata, const storage:
 template <uint8_t KeySize>
 bool CompactIntsFromProjectedRowCmp(const IndexMetadata &metadata, const storage::ProjectedRow &pr_A,
                                     const storage::ProjectedRow &pr_B) {
-  auto key_A = CompactIntsKey<KeySize>();
-  auto key_B = CompactIntsKey<KeySize>();
-  key_A.SetFromProjectedRow(pr_A, metadata);
-  key_B.SetFromProjectedRow(pr_B, metadata);
-  return std::less<CompactIntsKey<KeySize>>()(key_A, key_B);
+  auto key_a = CompactIntsKey<KeySize>();
+  auto key_b = CompactIntsKey<KeySize>();
+  key_a.SetFromProjectedRow(pr_A, metadata);
+  key_b.SetFromProjectedRow(pr_B, metadata);
+  return std::less<CompactIntsKey<KeySize>>()(key_a, key_b);
 }
 
 // Test that we generate the right metadata for CompactIntsKey compatible schemas
@@ -730,33 +733,33 @@ TEST_F(BwTreeKeyTests, RandomCompactIntsKeyTest) {
     TERRIER_ASSERT(1 <= key_type && key_type <= 4, "CompactIntsKey only has 4 possible KeySizes.");
 
     // create our projected row buffers
-    auto *pr_buffer_A = common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize());
-    auto *pr_buffer_B = common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize());
-    auto *pr_A = initializer.InitializeRow(pr_buffer_A);
-    auto *pr_B = initializer.InitializeRow(pr_buffer_B);
+    auto *pr_buffer_a = common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize());
+    auto *pr_buffer_b = common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize());
+    auto *pr_a = initializer.InitializeRow(pr_buffer_a);
+    auto *pr_b = initializer.InitializeRow(pr_buffer_b);
     //
     for (uint8_t j = 0; j < 10; j++) {
       // fill our buffers with random data
-      const auto data_A = FillProjectedRowWithRandomCompactInts(metadata, pr_A, &generator_);
-      const auto data_B = FillProjectedRowWithRandomCompactInts(metadata, pr_B, &generator_);
+      const auto data_a = FillProjectedRowWithRandomCompactInts(metadata, pr_a, &generator_);
+      const auto data_b = FillProjectedRowWithRandomCompactInts(metadata, pr_b, &generator_);
 
       // perform the relevant checks
       switch (key_type) {
         case 1:
-          EXPECT_EQ(CompactIntsFromProjectedRowEq<1>(metadata, *pr_A, *pr_B), data_A == data_B);
-          EXPECT_EQ(CompactIntsFromProjectedRowCmp<1>(metadata, *pr_A, *pr_B), data_A < data_B);
+          EXPECT_EQ(CompactIntsFromProjectedRowEq<1>(metadata, *pr_a, *pr_b), data_a == data_b);
+          EXPECT_EQ(CompactIntsFromProjectedRowCmp<1>(metadata, *pr_a, *pr_b), data_a < data_b);
           break;
         case 2:
-          EXPECT_EQ(CompactIntsFromProjectedRowEq<2>(metadata, *pr_A, *pr_B), data_A == data_B);
-          EXPECT_EQ(CompactIntsFromProjectedRowCmp<2>(metadata, *pr_A, *pr_B), data_A < data_B);
+          EXPECT_EQ(CompactIntsFromProjectedRowEq<2>(metadata, *pr_a, *pr_b), data_a == data_b);
+          EXPECT_EQ(CompactIntsFromProjectedRowCmp<2>(metadata, *pr_a, *pr_b), data_a < data_b);
           break;
         case 3:
-          EXPECT_EQ(CompactIntsFromProjectedRowEq<3>(metadata, *pr_A, *pr_B), data_A == data_B);
-          EXPECT_EQ(CompactIntsFromProjectedRowCmp<3>(metadata, *pr_A, *pr_B), data_A < data_B);
+          EXPECT_EQ(CompactIntsFromProjectedRowEq<3>(metadata, *pr_a, *pr_b), data_a == data_b);
+          EXPECT_EQ(CompactIntsFromProjectedRowCmp<3>(metadata, *pr_a, *pr_b), data_a < data_b);
           break;
         case 4:
-          EXPECT_EQ(CompactIntsFromProjectedRowEq<4>(metadata, *pr_A, *pr_B), data_A == data_B);
-          EXPECT_EQ(CompactIntsFromProjectedRowCmp<4>(metadata, *pr_A, *pr_B), data_A < data_B);
+          EXPECT_EQ(CompactIntsFromProjectedRowEq<4>(metadata, *pr_a, *pr_b), data_a == data_b);
+          EXPECT_EQ(CompactIntsFromProjectedRowCmp<4>(metadata, *pr_a, *pr_b), data_a < data_b);
           break;
         default:
           throw std::runtime_error("Invalid compact ints key type.");
@@ -765,55 +768,55 @@ TEST_F(BwTreeKeyTests, RandomCompactIntsKeyTest) {
 
     for (uint8_t j = 0; j < 10; j++) {
       // fill buffer pr_A with random data data_A
-      const auto data_A = FillProjectedRow(metadata, pr_A, &generator_);
+      const auto data_a = FillProjectedRow(metadata, pr_a, &generator_);
       float probabilities[] = {0.0, 0.5, 1.0};
 
       for (float prob : probabilities) {
         // have B copy A
-        std::memcpy(pr_B, pr_A, initializer.ProjectedRowSize());
-        auto *data_B = new byte[key_size];
-        std::memcpy(data_B, data_A, key_size);
+        std::memcpy(pr_b, pr_a, initializer.ProjectedRowSize());
+        auto *data_b = new byte[key_size];
+        std::memcpy(data_b, data_a, key_size);
 
         // modify a column of B with some probability, this also updates the reference data_B
-        bool modified = ModifyRandomColumn(metadata, pr_B, data_B, prob, &generator_);
+        bool modified = ModifyRandomColumn(metadata, pr_b, data_b, prob, &generator_);
 
         // perform the relevant checks
         switch (key_type) {
           case 1:
-            EXPECT_EQ(CompactIntsFromProjectedRowEq<1>(metadata, *pr_A, *pr_B),
-                      std::memcmp(data_A, data_B, key_size) == 0 && !modified);
-            EXPECT_EQ(CompactIntsFromProjectedRowCmp<1>(metadata, *pr_A, *pr_B),
-                      std::memcmp(data_A, data_B, key_size) < 0);
+            EXPECT_EQ(CompactIntsFromProjectedRowEq<1>(metadata, *pr_a, *pr_b),
+                      std::memcmp(data_a, data_b, key_size) == 0 && !modified);
+            EXPECT_EQ(CompactIntsFromProjectedRowCmp<1>(metadata, *pr_a, *pr_b),
+                      std::memcmp(data_a, data_b, key_size) < 0);
             break;
           case 2:
-            EXPECT_EQ(CompactIntsFromProjectedRowEq<2>(metadata, *pr_A, *pr_B),
-                      std::memcmp(data_A, data_B, key_size) == 0 && !modified);
-            EXPECT_EQ(CompactIntsFromProjectedRowCmp<2>(metadata, *pr_A, *pr_B),
-                      std::memcmp(data_A, data_B, key_size) < 0);
+            EXPECT_EQ(CompactIntsFromProjectedRowEq<2>(metadata, *pr_a, *pr_b),
+                      std::memcmp(data_a, data_b, key_size) == 0 && !modified);
+            EXPECT_EQ(CompactIntsFromProjectedRowCmp<2>(metadata, *pr_a, *pr_b),
+                      std::memcmp(data_a, data_b, key_size) < 0);
             break;
           case 3:
-            EXPECT_EQ(CompactIntsFromProjectedRowEq<3>(metadata, *pr_A, *pr_B),
-                      std::memcmp(data_A, data_B, key_size) == 0 && !modified);
-            EXPECT_EQ(CompactIntsFromProjectedRowCmp<3>(metadata, *pr_A, *pr_B),
-                      std::memcmp(data_A, data_B, key_size) < 0);
+            EXPECT_EQ(CompactIntsFromProjectedRowEq<3>(metadata, *pr_a, *pr_b),
+                      std::memcmp(data_a, data_b, key_size) == 0 && !modified);
+            EXPECT_EQ(CompactIntsFromProjectedRowCmp<3>(metadata, *pr_a, *pr_b),
+                      std::memcmp(data_a, data_b, key_size) < 0);
             break;
           case 4:
-            EXPECT_EQ(CompactIntsFromProjectedRowEq<4>(metadata, *pr_A, *pr_B),
-                      std::memcmp(data_A, data_B, key_size) == 0 && !modified);
-            EXPECT_EQ(CompactIntsFromProjectedRowCmp<4>(metadata, *pr_A, *pr_B),
-                      std::memcmp(data_A, data_B, key_size) < 0);
+            EXPECT_EQ(CompactIntsFromProjectedRowEq<4>(metadata, *pr_a, *pr_b),
+                      std::memcmp(data_a, data_b, key_size) == 0 && !modified);
+            EXPECT_EQ(CompactIntsFromProjectedRowCmp<4>(metadata, *pr_a, *pr_b),
+                      std::memcmp(data_a, data_b, key_size) < 0);
             break;
           default:
             throw std::runtime_error("Invalid compact ints key type.");
         }
-        delete[] data_B;
+        delete[] data_b;
       }
 
-      delete[] data_A;
+      delete[] data_a;
     }
 
-    delete[] pr_buffer_A;
-    delete[] pr_buffer_B;
+    delete[] pr_buffer_a;
+    delete[] pr_buffer_b;
   }
 }
 

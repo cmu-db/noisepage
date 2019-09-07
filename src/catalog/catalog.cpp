@@ -31,7 +31,7 @@ void Catalog::TearDown() {
   const std::vector<col_oid_t> cols{DAT_CATALOG_COL_OID};
 
   // Only one column, so we only need the initializer and not the ProjectionMap
-  const auto pci = databases_->InitializerForProjectedColumns(cols, 100).first;
+  const auto pci = databases_->InitializerForProjectedColumns(cols, 100);
 
   // This could potentially be optimized by calculating this size and hard-coding a byte array on the stack
   byte *buffer = common::AllocationUtil::AllocateAligned(pci.ProjectedColumnsSize());
@@ -53,18 +53,19 @@ void Catalog::TearDown() {
   }
 
   // Pass vars by value except for db_cats which we move
-  txn->RegisterCommitAction([=, db_cats{std::move(db_cats)}]() {
-    for (auto db : db_cats) {
-      auto del_action = DeallocateDatabaseCatalog(db);
-      txn_manager_->DeferAction(del_action);
-    }
-    // Pass vars to the deferral by value
-    txn_manager_->DeferAction([=]() {
-      delete databases_oid_index_;   // Delete the OID index
-      delete databases_name_index_;  // Delete the name index
-      delete databases_;             // Delete the table
-    });
-  });
+  txn->RegisterCommitAction(
+      [=, db_cats{std::move(db_cats)}](transaction::DeferredActionManager *deferred_action_manager) {
+        for (auto db : db_cats) {
+          auto del_action = DeallocateDatabaseCatalog(db);
+          deferred_action_manager->RegisterDeferredAction(del_action);
+        }
+        // Pass vars to the deferral by value
+        deferred_action_manager->RegisterDeferredAction([=]() {
+          delete databases_oid_index_;   // Delete the OID index
+          delete databases_name_index_;  // Delete the name index
+          delete databases_;             // Delete the table
+        });
+      });
 
   // Deallocate the buffer (not needed if hard-coded to be on stack).
   delete[] buffer;
@@ -80,7 +81,7 @@ db_oid_t Catalog::CreateDatabase(transaction::TransactionContext *const txn, con
   const db_oid_t db_oid = next_oid_++;
   DatabaseCatalog *dbc = postgres::Builder::CreateDatabaseCatalog(catalog_block_store_, db_oid);
   if (bootstrap) dbc->Bootstrap(txn);
-  txn->RegisterAbortAction([=]() {
+  txn->RegisterAbortAction([=](transaction::DeferredActionManager *deferred_action_manager) {
     dbc->TearDown(txn);
     delete dbc;
   });
@@ -100,7 +101,10 @@ bool Catalog::DeleteDatabase(transaction::TransactionContext *const txn, const d
 
   // Defer the de-allocation on commit because we need to scan the tables to find
   // live references at deletion that need to be deleted.
-  txn->RegisterCommitAction([=, del_action{std::move(del_action)}]() { txn_manager_->DeferAction(del_action); });
+  txn->RegisterCommitAction(
+      [=, del_action{std::move(del_action)}](transaction::DeferredActionManager *deferred_action_manager) {
+        deferred_action_manager->RegisterDeferredAction(del_action);
+      });
   return true;
 }
 
@@ -137,7 +141,7 @@ db_oid_t Catalog::GetDatabaseOid(transaction::TransactionContext *const txn, con
   }
   TERRIER_ASSERT(index_results.size() == 1, "Database name not unique in index");
 
-  const auto table_pri = databases_->InitializerForProjectedRow({DATOID_COL_OID}).first;
+  const auto table_pri = databases_->InitializerForProjectedRow({DATOID_COL_OID});
   pr = table_pri.InitializeRow(buffer);
   const auto result UNUSED_ATTRIBUTE = databases_->Select(txn, index_results[0], pr);
   TERRIER_ASSERT(result, "Index already verified visibility. This shouldn't fail.");
@@ -165,7 +169,7 @@ common::ManagedPointer<DatabaseCatalog> Catalog::GetDatabaseCatalog(transaction:
   TERRIER_ASSERT(index_results.size() == 1, "Database name not unique in index");
 
   const std::vector<col_oid_t> table_oids{DAT_CATALOG_COL_OID};
-  const auto table_pri = databases_->InitializerForProjectedRow(table_oids).first;
+  const auto table_pri = databases_->InitializerForProjectedRow(table_oids);
   pr = table_pri.InitializeRow(buffer);
   const auto UNUSED_ATTRIBUTE result = databases_->Select(txn, index_results[0], pr);
   TERRIER_ASSERT(result, "Index scan did a visibility check, so Select shouldn't fail at this point.");
@@ -190,8 +194,9 @@ bool Catalog::CreateDatabaseEntry(transaction::TransactionContext *const txn, co
   table_oids.emplace_back(DATOID_COL_OID);
   table_oids.emplace_back(DATNAME_COL_OID);
   table_oids.emplace_back(DAT_CATALOG_COL_OID);
-  // NOLINTNEXTLINE Matt: this is C++17 which lint hates
-  auto [pri, pm] = databases_->InitializerForProjectedRow(table_oids);
+
+  auto pri = databases_->InitializerForProjectedRow(table_oids);
+  auto pm = databases_->ProjectionMapForOids(table_oids);
   auto *const redo = txn->StageWrite(INVALID_DATABASE_OID, DATABASE_TABLE_OID, pri);
 
   // Populate the projected row
@@ -237,8 +242,9 @@ DatabaseCatalog *Catalog::DeleteDatabaseEntry(transaction::TransactionContext *t
   std::vector<storage::TupleSlot> index_results;
 
   const std::vector<col_oid_t> table_oids{DATNAME_COL_OID, DAT_CATALOG_COL_OID};
-  // NOLINTNEXTLINE
-  auto [table_pri, table_pri_map] = databases_->InitializerForProjectedRow(table_oids);
+
+  auto table_pri = databases_->InitializerForProjectedRow(table_oids);
+  auto table_pri_map = databases_->ProjectionMapForOids(table_oids);
   const auto name_pri = databases_name_index_->GetProjectedRowInitializer();
   const auto oid_pri = databases_oid_index_->GetProjectedRowInitializer();
 
@@ -285,7 +291,7 @@ DatabaseCatalog *Catalog::DeleteDatabaseEntry(transaction::TransactionContext *t
   return dbc;
 }
 
-transaction::Action Catalog::DeallocateDatabaseCatalog(DatabaseCatalog *const dbc) {
+std::function<void()> Catalog::DeallocateDatabaseCatalog(DatabaseCatalog *const dbc) {
   return [=]() {
     auto txn = txn_manager_->BeginTransaction();
     dbc->TearDown(txn);

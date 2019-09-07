@@ -132,8 +132,8 @@ class PostgresParser {
 
   // CREATE helpers
   using ColumnDefTransResult = struct {
-    std::unique_ptr<ColumnDefinition> col;
-    std::vector<std::shared_ptr<ColumnDefinition>> fks;
+    std::unique_ptr<ColumnDefinition> col_;
+    std::vector<std::shared_ptr<ColumnDefinition>> fks_;
   };
   static ColumnDefTransResult ColumnDefTransform(ColumnDef *root);
 

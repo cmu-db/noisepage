@@ -4,6 +4,8 @@
 #include "storage/record_buffer.h"
 #include "storage/storage_defs.h"
 #include "storage/write_ahead_log/log_manager.h"
+#include "transaction/deferred_action_manager.h"
+#include "transaction/timestamp_manager.h"
 #include "transaction/transaction_manager.h"
 
 namespace terrier::di {
@@ -20,6 +22,8 @@ auto storage_injector UNUSED_ATTRIBUTE = [] {
       di::bind<storage::RecordBufferSegmentPool>().in(di::terrier_shared_module),
       di::bind<storage::LogManager>.in(di::terrier_shared_module),
       di::bind<transaction::TransactionManager>().in(di::terrier_shared_module),
+      di::bind<transaction::TimestampManager>().in(di::terrier_shared_module),
+      di::bind<transaction::DeferredActionManager>().in(di::terrier_shared_module),
       di::bind<storage::GarbageCollector>().in(di::terrier_shared_module));
 };
 }  // namespace terrier::di
