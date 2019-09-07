@@ -2,10 +2,16 @@
 
 #include <cstddef>
 #include <cstdint>
+#include "llvm/Support/ErrorHandling.h"
 
-/**
- * Type shorthands
- */
+
+//===--------------------------------------------------------------------===//
+// branch predictor hints
+//===--------------------------------------------------------------------===//
+
+#define LIKELY(x) LLVM_LIKELY(x)
+#define UNLIKELY(x) LLVM_UNLIKELY(x)
+
 
 /**
  * Macros to apply functions on all types
@@ -33,6 +39,12 @@
 #define ALL_TYPES(F, ...)   \
   INT_TYPES(F, __VA_ARGS__) \
   FOR_EACH_FLOAT_TYPE(F, __VA_ARGS__)
+
+//===----------------------------------------------------------------------===//
+// Indicate that a statement should not be reached
+//===----------------------------------------------------------------------===//
+#define UNREACHABLE(msg) llvm_unreachable(msg)
+
 
 namespace terrier::execution {
 /**
