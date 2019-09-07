@@ -111,7 +111,7 @@ void CpuInfo::InitCacheInfo() {
   TERRIER_ASSERT(len / sizeof(uint64_t) >= 3, "Expected three levels of cache!");
 
   // Copy data
-  for (uint32_t idx = 0; idx < kNumCacheLevels; idx++) {
+  for (uint32_t idx = 0; idx < K_NUM_CACHE_LEVELS; idx++) {
     cache_sizes_[idx] = data[idx];
   }
 
