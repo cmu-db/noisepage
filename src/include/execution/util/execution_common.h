@@ -4,14 +4,12 @@
 #include <cstdint>
 #include "llvm/Support/ErrorHandling.h"
 
-
 //===--------------------------------------------------------------------===//
 // branch predictor hints
 //===--------------------------------------------------------------------===//
 
 #define LIKELY(x) LLVM_LIKELY(x)
 #define UNLIKELY(x) LLVM_UNLIKELY(x)
-
 
 /**
  * Macros to apply functions on all types
@@ -44,7 +42,6 @@
 // Indicate that a statement should not be reached
 //===----------------------------------------------------------------------===//
 #define UNREACHABLE(msg) llvm_unreachable(msg)
-
 
 namespace terrier::execution {
 /**
