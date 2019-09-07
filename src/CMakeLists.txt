@@ -9,21 +9,45 @@ list(REMOVE_ITEM TERRIER_SRCS ${PROJECT_SOURCE_DIR}/src/main/terrier.cpp)
 # Third party sources
 ###############################################
 
-# spdlog: used for debug logging
+# spdlog
 file(GLOB_RECURSE SPDLOG_SOURCES
         ${PROJECT_SOURCE_DIR}/third_party/spdlog/*.h
-        )
+)
 list(APPEND TERRIER_SRCS ${SPDLOG_SOURCES})
 
-# libpg_query: used for the parser
+# libpg_query
 add_subdirectory(${PROJECT_SOURCE_DIR}/third_party/libpg_query/ libpg_query.a)
 
-# bwtree: used for an index
-file(GLOB_RECURSE BWTREE_SOURCES ${PROJECT_SOURCE_DIR}/third_party/bwtree/*.cpp ${PROJECT_SOURCE_DIR}/third_party/bwtree/*.h)
+# bwtree
+file(GLOB_RECURSE BWTREE_SOURCES
+        ${PROJECT_SOURCE_DIR}/third_party/bwtree/*.cpp
+        ${PROJECT_SOURCE_DIR}/third_party/bwtree/*.h
+)
 list(APPEND TERRIER_SRCS ${BWTREE_SOURCES})
 
-# json: used for object serialization
+# json
 list(APPEND TERRIER_SRCS ${PROJECT_SOURCE_DIR}/third_party/nlohmann/json.hpp)
+
+# murmur3
+file(GLOB_RECURSE MURMUR3_SOURCES
+        ${PROJECT_SOURCE_DIR}/third_party/murmur3/*.cpp 
+        ${PROJECT_SOURCE_DIR}/third_party/murmur3/*.h 
+)
+list(APPEND TERRIER_SRCS ${MURMUR3_SOURCES})
+
+# madoka
+file(GLOB_RECURSE MADOKA_SOURCES
+        ${PROJECT_SOURCE_DIR}/third_party/madoka/*.cc
+        ${PROJECT_SOURCE_DIR}/third_party/madoka/*.h 
+)
+list(APPEND TERRIER_SRCS ${MADOKA_SOURCES})
+
+# libcount
+file(GLOB_RECURSE LIBCOUNT_SOURCES
+        ${PROJECT_SOURCE_DIR}/third_party/libcount/*.cc
+        ${PROJECT_SOURCE_DIR}/third_party/libcount/*.h 
+)
+list(APPEND TERRIER_SRCS ${LIBCOUNT_SOURCES})
 
 # ips4o: used for parallel sorting in execution
 file(GLOB_RECURSE IPS4O_SOURCES ${PROJECT_SOURCE_DIR}/third_party/ips4o/*.hpp)
@@ -37,17 +61,6 @@ list(APPEND TERRIER_SRCS ${XBYAK_SOURCES})
 file(GLOB_RECURSE XXHASH_SOURCES ${PROJECT_SOURCE_DIR}/third_party/xxHash/*.h)
 list(APPEND TERRIER_SRCS ${XXHASH_SOURCES})
 
-# libcount
-file(GLOB_RECURSE LIBCOUNT_SOURCES ${PROJECT_SOURCE_DIR}/third_party/libcount/*.cc ${PROJECT_SOURCE_DIR}/third_party/libcount/*.h)
-list(APPEND TERRIER_SRCS ${LIBCOUNT_SOURCES})
-
-# Sqlite 3:
-find_package(Sqlite3 REQUIRED)
-include_directories(SYSTEM ${SQLITE3_INCLUDE_DIRS})
-list(APPEND TERRIER_LINK_LIBS ${SQLITE3_LIBRARIES})
-
-# gflags
-list(APPEND TERRIER_STATIC_LINK_LIBS gflags)
 
 ###############################################
 # Terrier library
@@ -61,10 +74,10 @@ ADD_TERRIER_LIB(terrier
         STATIC_LINK_LIBS ${TERRIER_STATIC_LINK_LIBS}
         STATIC_PRIVATE_LINK_LIBS ${TERRIER_STATIC_PRIVATE_LINK_LIBS}
         DEPENDENCIES ${TERRIER_DEPENDENCIES}
-        )
+)
 
 ###############################################
 # Terrier executable
 ###############################################
 add_executable(terrier main/terrier.cpp)
-target_link_libraries(terrier terrier_static ${TERRIER_LINK_LIBS})
+target_link_libraries(terrier terrier_shared)
