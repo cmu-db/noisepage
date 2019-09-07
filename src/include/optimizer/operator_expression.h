@@ -41,6 +41,8 @@ class OperatorExpression {
     for (auto child : children_) delete child;
   }
 
+  void PushChild(OperatorExpression* child_op) { children_.push_back(child_op); }
+
  private:
   /**
    * Underlying operator
