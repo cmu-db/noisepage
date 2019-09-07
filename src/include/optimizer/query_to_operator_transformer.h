@@ -8,15 +8,11 @@ namespace terrier {
 
 namespace parser {
 class SQLStatement;
-
-namespace expression {
 class AbstractExpression;
-}
-
 }  // namespace parser
 
-namespace concurrency {
-class TransactionContext;
+namespace catalog{
+class CatalogAccessor;
 }
 
 namespace optimizer {
@@ -28,17 +24,16 @@ class OperatorExpression;
  */
 class QueryToOperatorTransformer : public SqlNodeVisitor {
  public:
-  QueryToOperatorTransformer(concurrency::TransactionContext *txn);
+  explicit QueryToOperatorTransformer(std::unique_ptr<catalog::CatalogAccessor> catalog_accessor);
 
-  std::shared_ptr<OperatorExpression> ConvertToOpExpression(
-      parser::SQLStatement *op);
+  std::shared_ptr<OperatorExpression> ConvertToOpExpression(parser::SQLStatement *op);
 
   void Visit(parser::SelectStatement *op) override;
 
   void Visit(parser::TableRef *) override;
   void Visit(parser::JoinDefinition *) override;
   void Visit(parser::GroupByDescription *) override;
-  void Visit(parser::OrderDescription *) override;
+  void Visit(parser::OrderByDescription *) override;
   void Visit(parser::LimitDescription *) override;
 
   void Visit(parser::CreateStatement *op) override;
@@ -52,12 +47,10 @@ class QueryToOperatorTransformer : public SqlNodeVisitor {
   void Visit(parser::UpdateStatement *op) override;
   void Visit(parser::CopyStatement *op) override;
   void Visit(parser::AnalyzeStatement *op) override;
-  void Visit(expression::ComparisonExpression *expr) override;
-  void Visit(expression::OperatorExpression *expr) override;
+  void Visit(parser::ComparisonExpression *expr) override;
+  void Visit(parser::OperatorExpression *expr) override;
 
  private:
-  inline oid_t GetAndIncreaseGetId() { return get_id++; }
-
   /**
    * @brief Walk through an expression, split it into a set of predicates that could be joined by conjunction.
    * We need the set to perform predicate push-down. For example, for the following query
@@ -67,7 +60,7 @@ class QueryToOperatorTransformer : public SqlNodeVisitor {
    *
    * @param expr The original predicate
    */
-  std::vector<AnnotatedExpression> CollectPredicates(parser::expression::AbstractExpression *expr, std::vector<AnnotatedExpression> predicates = {});
+  std::vector<AnnotatedExpression> CollectPredicates(parser::AbstractExpression *expr, std::vector<AnnotatedExpression> predicates = {});
 
   /**
    * @brief Transform a sub-query in an expression to use
@@ -83,7 +76,7 @@ class QueryToOperatorTransformer : public SqlNodeVisitor {
   // TODO(Ling): the documentation has second parameter select_list, whereas the function definition has the second
   //  parameter oid_t child oid. What exactly is the second parameter supposed to be? If it is supposed to be an oid,
   //  what kind of oid should it be?
-  bool GenerateSubqueryTree(parser::expression::AbstractExpression *expr, oid_t child_id, bool single_join = false);
+  bool GenerateSubqueryTree(parser::AbstractExpression *expr, int child_id, bool single_join = false);
 
   /**
    * @brief Decide if a conjunctive predicate is supported. We need to extract
@@ -94,7 +87,7 @@ class QueryToOperatorTransformer : public SqlNodeVisitor {
    *
    * @return True if supported, false otherwise
    */
-  bool IsSupportedConjunctivePredicate(parser::expression::AbstractExpression *expr);
+  static bool IsSupportedConjunctivePredicate(parser::AbstractExpression *expr);
 
   /**
    * @brief Check if a sub-select statement is supported.
@@ -103,16 +96,35 @@ class QueryToOperatorTransformer : public SqlNodeVisitor {
    *
    * @return True if supported, false otherwise
    */
-  bool IsSupportedSubSelect(const parser::SelectStatement *op);
-  static bool RequireAggregation(const parser::SelectStatement *op);
+  static bool IsSupportedSubSelect(parser::SelectStatement *op);
+  static bool RequireAggregation(parser::SelectStatement *op);
+
+  /**
+   * @brief Extract single table precates and multi-table predicates from the expr
+   *
+   * @param expr The original predicate
+   * @param annotated_predicates The extracted conjunction predicates
+   */
+  static std::vector<AnnotatedExpression> ExtractPredicates(parser::AbstractExpression *expr,
+      std::vector<AnnotatedExpression> annotated_predicates = {});
+
+  /**
+   * Generate a set of table alias included in an expression
+   */
+  static void GenerateTableAliasSet(const parser::AbstractExpression *expr, std::unordered_set<std::string> &table_alias_set);
+
+  /**
+ * @breif Split conjunction expression tree into a vector of expressions with AND
+ */
+  static void SplitPredicates(parser::AbstractExpression *expr, std::vector<parser::AbstractExpression *> &predicates);
+
+  static std::unordered_map<std::string, std::shared_ptr<parser::AbstractExpression>> ConstructSelectElementMap(std::vector<std::unique_ptr<parser::AbstractExpression>> &select_list);
+
+    // TODO(Ling): preciously shared_ptr
   std::shared_ptr<OperatorExpression> output_expr_;
 
-  concurrency::TransactionContext *txn_;
-  /**
-   * @brief identifier for get operators
-   */
-  oid_t get_id;
-  bool enable_predicate_push_down_;
+  std::unique_ptr<catalog::CatalogAccessor> accessor_;
+
 
   /**
    * @brief The Depth of the current operator, we need this to tell if there's
