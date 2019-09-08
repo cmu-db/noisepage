@@ -19,6 +19,7 @@ namespace terrier {
 #define NETWORK_PROCESS_EXCEPTION(msg) NetworkProcessException(msg, __FILE__, __LINE__)
 #define SETTINGS_EXCEPTION(msg) SettingsException(msg, __FILE__, __LINE__)
 #define BINDER_EXCEPTION(msg) BinderException(msg, __FILE__, __LINE__)
+#define OPTIMIZER_EXCEPTION(msg) BinderException(msg, __FILE__, __LINE__)
 
 /**
  * Exception types
@@ -30,6 +31,7 @@ enum class ExceptionType : uint8_t {
   CATALOG,
   CONVERSION,
   NETWORK,
+  OPTIMIZER,
   PARSER,
   SETTINGS
 };
@@ -77,6 +79,8 @@ class Exception : public std::runtime_error {
         return "Settings";
       case ExceptionType::BINDER:
         return "Binder";
+      case ExceptionType::OPTIMIZER:
+        return "Optimizer";
       default:
         return "Unknown exception type";
     }
@@ -126,5 +130,6 @@ DEFINE_EXCEPTION(NetworkProcessException, ExceptionType::NETWORK);
 DEFINE_EXCEPTION(SettingsException, ExceptionType::SETTINGS);
 DEFINE_EXCEPTION(ConversionException, ExceptionType::CONVERSION);
 DEFINE_EXCEPTION(BinderException, ExceptionType::BINDER);
+DEFINE_EXCEPTION(OptimizerException, ExceptionType::OPTIMIZER);
 
 }  // namespace terrier
