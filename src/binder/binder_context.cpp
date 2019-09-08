@@ -37,7 +37,7 @@ void BinderContext::AddRegularTable(const std::unique_ptr<catalog::CatalogAccess
 }
 
 void BinderContext::AddNestedTable(const std::string &table_alias,
-                                   const std::vector<std::shared_ptr<parser::AbstractExpression>> &select_list) {
+                                   const std::vector<common::ManagedPointer<parser::AbstractExpression>> &select_list) {
   if (regular_table_alias_map_.find(table_alias) != regular_table_alias_map_.end() ||
       nested_table_alias_map_.find(table_alias) != nested_table_alias_map_.end()) {
     throw BINDER_EXCEPTION(("Duplicate alias " + table_alias).c_str());
@@ -49,7 +49,7 @@ void BinderContext::AddNestedTable(const std::string &table_alias,
     if (!expr->GetAlias().empty()) {
       alias = expr->GetAlias();
     } else if (expr->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE) {
-      auto tv_expr = reinterpret_cast<parser::ColumnValueExpression *>(expr.get());
+      auto tv_expr = reinterpret_cast<parser::ColumnValueExpression *>(expr.Get());
       alias = tv_expr->GetColumnName();
     } else {
       continue;
@@ -63,7 +63,7 @@ void BinderContext::AddNestedTable(const std::string &table_alias,
 
 bool BinderContext::ColumnInSchema(const catalog::Schema &schema, const std::string &col_name) {
   try {
-    auto column_object = schema.GetColumn(col_name);
+    const auto column_object = schema.GetColumn(col_name);
   } catch (const std::out_of_range &oor) {
     return false;
   }
@@ -162,14 +162,13 @@ bool BinderContext::CheckNestedTableColumn(const std::string &alias, const std::
   return false;
 }
 
-void BinderContext::GenerateAllColumnExpressions(std::vector<std::shared_ptr<parser::AbstractExpression>> *exprs) {
+void BinderContext::GenerateAllColumnExpressions(std::vector<common::ManagedPointer<parser::AbstractExpression>> *exprs) {
   for (auto &entry : regular_table_alias_map_) {
     auto &schema = std::get<2>(entry.second);
     auto col_cnt = schema.GetColumns().size();
     for (uint32_t i = 0; i < col_cnt; i++) {
-      auto col_obj = schema.GetColumn(i);
-      auto tv_expr =
-          std::make_shared<parser::ColumnValueExpression>(std::string(entry.first), std::string(col_obj.Name()));
+      const auto &col_obj = schema.GetColumn(i);
+      auto tv_expr = new parser::ColumnValueExpression(std::string(entry.first), std::string(col_obj.Name()));
       tv_expr->SetReturnValueType(col_obj.Type());
       tv_expr->DeriveExpressionName();
       tv_expr->SetDatabaseOID(std::get<0>(entry.second));
@@ -177,7 +176,8 @@ void BinderContext::GenerateAllColumnExpressions(std::vector<std::shared_ptr<par
       tv_expr->SetColumnOID(col_obj.Oid());
       tv_expr->SetDepth(depth_);
 
-      exprs->emplace_back(tv_expr);
+      auto new_tv_expr = common::ManagedPointer(reinterpret_cast<parser::AbstractExpression *>(tv_expr));
+      exprs->push_back(new_tv_expr);
     }
   }
 
@@ -185,14 +185,14 @@ void BinderContext::GenerateAllColumnExpressions(std::vector<std::shared_ptr<par
     auto &table_alias = entry.first;
     auto &cols = entry.second;
     for (auto &col_entry : cols) {
-      auto tv_expr =
-          std::make_shared<parser::ColumnValueExpression>(std::string(table_alias), std::string(col_entry.first));
+      auto tv_expr = new parser::ColumnValueExpression(std::string(table_alias), std::string(col_entry.first));
       tv_expr->SetReturnValueType(col_entry.second);
       tv_expr->DeriveExpressionName();
       tv_expr->SetDepth(depth_);
 
+      auto new_tv_expr = common::ManagedPointer(reinterpret_cast<parser::AbstractExpression *>(tv_expr));
       // All derived columns do not have bound oids, thus keep them as INVALID_OIDs
-      exprs->emplace_back(tv_expr);
+      exprs->push_back(new_tv_expr);
     }
   }
 }
