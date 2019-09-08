@@ -16,7 +16,7 @@ class CatalogAccessor;
 }
 
 namespace optimizer {
-
+class AnnotatedExpression;
 class OperatorExpression;
 
 /**
@@ -126,12 +126,13 @@ class QueryToOperatorTransformer : public SqlNodeVisitor {
   std::unique_ptr<catalog::CatalogAccessor> accessor_;
 
 
-  /**
-   * @brief The Depth of the current operator, we need this to tell if there's
-   *  dependent join in the query. Dependent join transformation logic is not
-   *  implemented yet
-   */
-  int depth_;
+//  /**
+//   * @brief The Depth of the current operator, we need this to tell if there's
+//   *  dependent join in the query. Dependent join transformation logic is not
+//   *  implemented yet
+//   */
+//  int depth_;
+
   /**
    * @brief A set of predicates the current operator generated, we use them to
    *  generate filter operator
