@@ -80,5 +80,5 @@ ADD_TERRIER_LIB(terrier
 # Terrier executable
 ###############################################
 add_executable(terrier main/terrier.cpp)
-set_target_properties(terrier PROPERTIES ENABLE_EXPORTS 1)
+#set_target_properties(terrier PROPERTIES ENABLE_EXPORTS 1)
 target_link_libraries(terrier terrier_shared)
