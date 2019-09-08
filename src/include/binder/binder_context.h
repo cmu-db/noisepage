@@ -68,7 +68,7 @@ class BinderContext {
    * @param select_list List of select columns
    */
   void AddNestedTable(const std::string &table_alias,
-                      const std::vector<std::shared_ptr<parser::AbstractExpression>> &select_list);
+                      const std::vector<common::ManagedPointer<parser::AbstractExpression>> &select_list);
 
   /**
    * Check if the current context has any table
@@ -159,7 +159,7 @@ class BinderContext {
    * @param exprs Pointer to the list of column value expression.
    * The generated column value expressions will be placed in this list.
    */
-  void GenerateAllColumnExpressions(std::vector<std::shared_ptr<parser::AbstractExpression>> *exprs);
+  void GenerateAllColumnExpressions(std::vector<common::ManagedPointer<parser::AbstractExpression>> *exprs);
 
  private:
   /**
