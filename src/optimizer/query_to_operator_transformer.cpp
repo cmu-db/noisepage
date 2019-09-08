@@ -39,7 +39,7 @@ void QueryToOperatorTransformer::Visit(parser::SelectStatement *op) {
     op->GetSelectTable()->Accept(this);
   } else {
     // SELECT without FROM
-    output_expr_ = new OperatorExpression(LogicalGet::Make());
+    output_expr_ = new OperatorExpression(LogicalGet::Make(), {});
   }
 
   if (op->GetSelectCondition() != nullptr) {
@@ -54,7 +54,7 @@ void QueryToOperatorTransformer::Visit(parser::SelectStatement *op) {
     output_expr_ = filter_expr;
   }
 
-  if (RequireAggregation(op)) {
+  if (RequireAggregation(common::ManagedPointer(op))) {
     // Plain aggregation
     OperatorExpression* agg_expr;
     if (op->GetSelectGroupBy() == nullptr) {
@@ -184,7 +184,8 @@ void QueryToOperatorTransformer::Visit(parser::TableRef *node) {
   else {
     if (node->GetList().size() == 1) node = node->GetList().at(0).get();
 
-    output_expr_ = new OperatorExpression(LogicalGet::Make(accessor_->GetDatabaseOid(node->GetDatabaseName()), accessor_->GetDefaultNamespace(), accessor_->GetTableOid(node->GetTableName()), {}, node->GetAlias(), is_for_update), {});
+    // TODO(Ling): how should we determine the value of `is_for_update` field of logicalGet constructor?
+    output_expr_ = new OperatorExpression(LogicalGet::Make(accessor_->GetDatabaseOid(node->GetDatabaseName()), accessor_->GetDefaultNamespace(), accessor_->GetTableOid(node->GetTableName()), {}, node->GetAlias(), false), {});
   }
 }
 
@@ -307,7 +308,7 @@ void QueryToOperatorTransformer::Visit(parser::UpdateStatement *op) {
   OperatorExpression* table_scan;
 
   auto update_expr = new OperatorExpression(
-      LogicalUpdate::Make(target_db_id, target_ns_id, target_table_id, std::move(op->GetUpdateClauses())), {});
+      LogicalUpdate::Make(target_db_id, target_ns_id, target_table_id, common::ManagedPointer<std::vector<std::unique_ptr<parser::UpdateClause>>>(&op->GetUpdateClauses())), {});
 
   if (op->GetUpdateCondition() != nullptr) {
     std::vector<AnnotatedExpression> predicates = ExtractPredicates(op->GetUpdateCondition());
@@ -399,6 +400,8 @@ bool QueryToOperatorTransformer::RequireAggregation(common::ManagedPointer<parse
 
   for (auto &expr : op->GetSelectColumns()) {
     std::vector<parser::AggregateExpression *> aggr_exprs;
+    // we need to use get method of managed pointer because the function we are calling will recursivly get aggreate
+    // expressions from the current expression and its children; children are of unique pointers
     parser::ExpressionUtil::GetAggregateExprs(aggr_exprs, expr.Get());
     if (!aggr_exprs.empty()) has_aggregation = true;
     else has_other_exprs = true;
@@ -456,7 +459,7 @@ bool QueryToOperatorTransformer::IsSupportedConjunctivePredicate(common::Managed
       expr_type == parser::ExpressionType::COMPARE_LESS_THAN ||
       expr_type == parser::ExpressionType::COMPARE_LESS_THAN_OR_EQUAL_TO) {
     // Supported if one child is subquery and the other is not
-    if ((!expr->GetChild(0)->HasSubquery() &&
+    if ((!expr->GetChild(0)->HasSubquery() &&expr
         expr->GetChild(1)->GetExpressionType() == parser::ExpressionType::ROW_SUBQUERY) ||
         (!expr->GetChild(1)->HasSubquery() &&
         expr->GetChild(0)->GetExpressionType() == parser::ExpressionType::ROW_SUBQUERY)) {
@@ -500,7 +503,7 @@ bool QueryToOperatorTransformer::GenerateSubqueryTree(parser::AbstractExpression
   // Get potential subquery
   auto subquery_expr = expr->GetChild(child_id);
   if (subquery_expr->GetExpressionType() != parser::ExpressionType::ROW_SUBQUERY) return false;
-  auto sub_select = dynamic_cast<parser::SubqueryExpression *>(subquery_expr.Get())->GetSubselect();
+  auto sub_select = subquery_expr.CastManagedPointerTo<parser::SubqueryExpression>()->GetSubselect();
   if (!IsSupportedSubSelect(sub_select))
     throw NOT_IMPLEMENTED_EXCEPTION("Sub-select not supported");
   // We only support subselect with single row
@@ -583,7 +586,7 @@ std::unordered_map<std::string, common::ManagedPointer<parser::AbstractExpressio
     if (!expr->GetAlias().empty()) {
       alias = expr->GetAlias();
     } else if (expr->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE) {
-      auto tv_expr = reinterpret_cast<parser::ColumnValueExpression *>(expr.Get());
+      auto tv_expr = expr.CastManagedPointerTo<parser::ColumnValueExpression>();
       alias = tv_expr->GetColumnName();
     } else
       continue;

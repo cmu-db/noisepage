@@ -414,7 +414,7 @@ class SelectStatement : public SQLStatement {
   /**
    * @param select List of select columns
    */
-  void SetSelectColumns(std::vector<std::shared_ptr<AbstractExpression>> select) { select_ = std::move(select); }
+  void SetSelectColumns(std::vector<common::ManagedPointer<AbstractExpression>> select) { select_ = std::move(select); }
 
   /**
    * @param depth Depth of the select statement

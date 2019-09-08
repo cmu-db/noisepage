@@ -208,7 +208,7 @@ class TableRef {
    * @param default_database_name Default database name
    */
   void TryBindDatabaseName(const std::string &default_database_name) {
-    if (!table_info_) table_info_ = std::make_shared<TableInfo>();
+    if (!table_info_) table_info_ = std::make_unique<TableInfo>();
     table_info_->TryBindDatabaseName(default_database_name);
   }
 };

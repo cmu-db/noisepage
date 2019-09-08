@@ -603,7 +603,7 @@ class CreateTablePlanNode : public AbstractPlanNode {
         check_cols.push_back(col->GetColumnName());
 
         parser::ConstantValueExpression *const_expr_elem =
-            dynamic_cast<parser::ConstantValueExpression *>(col->GetCheckExpression()->GetChild(1).get());
+            dynamic_cast<parser::ConstantValueExpression *>(col->GetCheckExpression()->GetChild(1).Get());
         type::TransientValue tmp_value = const_expr_elem->GetValue();
 
         CheckInfo check_info(check_cols, "con_check", col->GetCheckExpression()->GetExpressionType(),
