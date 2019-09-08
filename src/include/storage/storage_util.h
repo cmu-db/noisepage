@@ -133,6 +133,7 @@ class StorageUtil {
 
   /**
    * Computes the index attribute boundaries for a list of col ids. Col ids must be in ascending sorted order
+   * See comment on AttrSizeFromBoundaries for explanation of size boundaries
    * @param layout block layout to get attribute size for col id
    * @param col_ids col ids to generate boundaries for
    * @return attribute bounderies. The boundries are for the indexes of each col_id, not the col_ids themselves. For
@@ -143,7 +144,11 @@ class StorageUtil {
                                                               const std::vector<col_id_t> &col_ids);
 
   /**
-   * Get attribute size for a col index
+   * @brief Get attribute size for a col index
+   * The boundaries denote the col idx boundaries, such that for a column index k, if boundaries[i] <= k <
+   * boundaries[i+1], then, the size of the column is 16 >> i.
+   * Example: If of the boundaries are [1, 4, 5, 7], and the column index is 3, then the size of the column is 16 >> 1
+   * which is 8
    * @param boundaries vector attribute size boundries
    * @param col_idx index of column
    * @return attribute size of col at index col_idx

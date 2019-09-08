@@ -332,7 +332,7 @@ void RecoveryManager::UpdateIndexesOnTable(transaction::TransactionContext *txn,
   auto *index_buffer = common::AllocationUtil::AllocateAligned(index_byte_size);
 
   // TODO(Gus): We are going to assume no indexes on expressions below. Having indexes on expressions would require to
-  // evaluate expressions and that's a fucking nightmare
+  // evaluate expressions and that's a nightmare
   for (uint8_t i = 0; i < indexes.size(); i++) {
     auto index = indexes[i];
     const auto *schema = index_schemas[i];
