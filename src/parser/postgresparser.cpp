@@ -455,7 +455,7 @@ std::unique_ptr<AbstractExpression> PostgresParser::AExprTransform(ParseResult *
 std::unique_ptr<AbstractExpression> PostgresParser::BoolExprTransform(ParseResult *parse_result, BoolExpr *root) {
   std::unique_ptr<AbstractExpression> result;
   std::vector<std::unique_ptr<AbstractExpression>> children;
-  for (auto cell = root->args->head; cell != nullptr; cell = cell->next) {
+  for (auto cell = root->args_->head; cell != nullptr; cell = cell->next) {
     auto node = reinterpret_cast<Node *>(cell->data.ptr_value);
     children.emplace_back(ExprTransform(parse_result, node, nullptr));
   }
@@ -570,7 +570,7 @@ std::unique_ptr<AbstractExpression> PostgresParser::FuncCallTransform(ParseResul
   std::unique_ptr<AbstractExpression> result;
   if (!IsAggregateFunction(func_name)) {
     // normal functions (built-in functions or UDFs)
-    func_name = (reinterpret_cast<value *>(root->funcname->tail->data.ptr_value))->val.str;
+    func_name = (reinterpret_cast<value *>(root->funcname_->tail->data.ptr_value))->val_.str_;
     std::vector<std::unique_ptr<AbstractExpression>> children;
 
     if (root->args_ != nullptr) {
@@ -584,7 +584,7 @@ std::unique_ptr<AbstractExpression> PostgresParser::FuncCallTransform(ParseResul
     // aggregate function
     auto agg_fun_type = StringToExpressionType("AGGREGATE_" + func_name);
     std::vector<std::unique_ptr<AbstractExpression>> children;
-    if (root->agg_star) {
+    if (root->agg_star_) {
       auto child = std::make_unique<StarExpression>();
       children.emplace_back(std::move(child));
       result = std::make_unique<AggregateExpression>(agg_fun_type, std::move(children), root->agg_distinct_);
@@ -687,7 +687,7 @@ std::unique_ptr<AbstractExpression> PostgresParser::TypeCastTransform(ParseResul
   auto type_name = reinterpret_cast<value *>(root->type_name_->names_->tail->data.ptr_value)->val_.str_;
   auto type = ColumnDefinition::StrToValueType(type_name);
   std::vector<std::unique_ptr<AbstractExpression>> children;
-  children.emplace_back(ExprTransform(root->arg));
+  children.emplace_back(ExprTransform(root->arg_));
   auto result = std::make_unique<TypeCastExpression>(type, std::move(children));
   return result;
 }
@@ -1114,10 +1114,10 @@ std::unique_ptr<SQLStatement> PostgresParser::CreateTransform(CreateStmt *root) 
     auto node = reinterpret_cast<Node *>(cell->data.ptr_value);
     switch (node->type) {
       case T_ColumnDef: {
-        auto res = ColumnDefTransform(parse_result, reinterpret_cast<ColumnDef *>(node));
-        columns.emplace_back(std::move(res.col_));
-        foreign_keys.insert(foreign_keys.end(), std::make_move_iterator(res.fks_.begin()),
-                            std::make_move_iterator(res.fks_.end()));
+        auto res = ColumnDefTransform(reinterpret_cast<ColumnDef *>(node));
+        columns.emplace_back(std::move(res.col));
+        foreign_keys.insert(foreign_keys.end(), std::make_move_iterator(res.fks.begin()),
+                            std::make_move_iterator(res.fks.end()));
         break;
       }
       case T_Constraint: {
@@ -1185,7 +1185,7 @@ std::unique_ptr<SQLStatement> PostgresParser::CreateTransform(CreateStmt *root) 
 
 // Postgres.CreateDatabaseStmt -> terrier.CreateStatement
 std::unique_ptr<parser::SQLStatement> PostgresParser::CreateDatabaseTransform(CreateDatabaseStmt *root) {
-  auto table_info = std::make_unique<TableInfo>("", "", root->dbname);
+  auto table_info = std::make_unique<TableInfo>("", "", root->dbname_);
   std::vector<std::unique_ptr<ColumnDefinition>> columns;
   std::vector<std::unique_ptr<ColumnDefinition>> foreign_keys;
   auto result = std::make_unique<CreateStatement>(std::move(table_info), CreateStatement::kDatabase, std::move(columns),
@@ -1198,7 +1198,7 @@ std::unique_ptr<parser::SQLStatement> PostgresParser::CreateDatabaseTransform(Cr
 
 // Postgres.CreateFunctionStmt -> terrier.CreateFunctionStatement
 std::unique_ptr<SQLStatement> PostgresParser::CreateFunctionTransform(CreateFunctionStmt *root) {
-  bool replace = root->replace;
+  bool replace = root->replace_;
   std::vector<std::unique_ptr<FuncParameter>> func_parameters;
 
   for (auto cell = root->parameters_->head; cell != nullptr; cell = cell->next) {
@@ -1882,7 +1882,7 @@ std::vector<std::unique_ptr<parser::UpdateClause>> PostgresParser::UpdateTargetT
     auto column = target->name;
     // TODO(LING): Wrapped managedPointer around, ExprTransform returns unique_ptr
     //             Only doing this as we are not using smart ptr in UpdateClause
-    auto value = common::ManagedPointer<AbstractExpression>(ExprTransform(target->val).release());
+    auto value = common::ManagedPointer<AbstractExpression>(ExprTransform(target->val_).release());
     result.push_back(std::make_unique<UpdateClause>(column, value));
   }
   return result;
