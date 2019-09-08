@@ -207,12 +207,13 @@ class TableRefStatement : public SQLStatement {
    * @param default_database_name Default database name
    */
   void TryBindDatabaseName(const std::string &default_database_name) {
-    if (!table_info_) table_info_ = std::make_shared<TableInfo>();
+    if (!table_info_) table_info_ = std::make_unique<TableInfo>();
     table_info_->TryBindDatabaseName(default_database_name);
   }
 
  private:
-  const std::unique_ptr<TableInfo> table_info_ = nullptr;
+  friend class binder::BindNodeVisitor;
+  std::unique_ptr<TableInfo> table_info_ = nullptr;
 };
 
 }  // namespace parser

@@ -207,6 +207,17 @@ class TableRef {
 
   std::vector<std::unique_ptr<TableRef>> list_;
   std::unique_ptr<JoinDefinition> join_;
+
+  /**
+   * Check if the current table ref has the correct database name.
+   * If the current table ref does not have a database name, set the database name to the default database name
+   * If the current table ref has a database name, this function verifies if it matches the defualt database name
+   * @param default_database_name Default database name
+   */
+  void TryBindDatabaseName(const std::string &default_database_name) {
+    if (!table_info_) table_info_ = std::make_unique<TableInfo>();
+    table_info_->TryBindDatabaseName(default_database_name);
+  }
 };
 
 DEFINE_JSON_DECLARATIONS(TableRef);
