@@ -2,25 +2,27 @@
 
 #include "catalog/catalog_accessor.h"
 #include "common/macros.h"
+#include "common/managed_pointer.h"
+#include "optimizer/logical_operators.h"
+#include "optimizer/operator_expression.h"
+#include "optimizer/query_node_visitor.h"
+#include "optimizer/query_to_operator_transformer.h"
 #include "parser/expression/column_value_expression.h"
 #include "parser/expression/comparison_expression.h"
 #include "parser/expression/expression_utils.h"
 #include "parser/expression/operator_expression.h"
 #include "parser/expression/subquery_expression.h"
-#include "optimizer/logical_operators.h"
-#include "optimizer/operator_expression.h"
-#include "optimizer/query_node_visitor.h"
-#include "optimizer/query_to_operator_transformer.h"
 #include "parser/statements.h"
+#include "planner/plannodes/plan_node_defs.h"
 
 namespace terrier::optimizer {
 
 QueryToOperatorTransformer::QueryToOperatorTransformer(std::unique_ptr<catalog::CatalogAccessor> catalog_accessor)
-    : accessor_(std::move(catalog_accessor)), get_id(0) {
+    : accessor_(std::move(catalog_accessor)) {
   output_expr_ = nullptr;
 }
     
-std::shared_ptr<OperatorExpression>QueryToOperatorTransformer::ConvertToOpExpression(parser::SQLStatement *op) {
+OperatorExpression* QueryToOperatorTransformer::ConvertToOpExpression(parser::SQLStatement *op) {
   output_expr_ = nullptr;
   op->Accept(this);
   return output_expr_;
@@ -37,72 +39,66 @@ void QueryToOperatorTransformer::Visit(parser::SelectStatement *op) {
     op->GetSelectTable()->Accept(this);
   } else {
     // SELECT without FROM
-    output_expr_ = std::make_shared<OperatorExpression>(LogicalGet::Make());
+    output_expr_ = new OperatorExpression(LogicalGet::Make());
   }
 
   if (op->GetSelectCondition() != nullptr) {
-    predicates_ = CollectPredicates(op->GetSelectCondition().get(), predicates_);
+    predicates_ = CollectPredicates(op->GetSelectCondition(), predicates_);
   }
 
   if (!predicates_.empty()) {
-    auto filter_expr = std::make_shared<OperatorExpression>(LogicalFilter::Make(predicates_));
-    filter_expr->PushChild(output_expr_);
+    auto filter_expr = new OperatorExpression(LogicalFilter::Make(std::move(predicates_)), {output_expr_});
+    // TODO(Ling): Do something after the predicates are moved to make the vector valid?
+    predicates_.clear();
+
     output_expr_ = filter_expr;
   }
 
   if (RequireAggregation(op)) {
     // Plain aggregation
-    std::shared_ptr<OperatorExpression> agg_expr;
+    OperatorExpression* agg_expr;
     if (op->GetSelectGroupBy() == nullptr) {
-      // TODO(boweic): aggregation without groupby could still have having
-      // clause
-      agg_expr = std::make_shared<OperatorExpression>(
-          LogicalAggregateAndGroupBy::Make());
-      agg_expr->PushChild(output_expr_);
+      // TODO(boweic): aggregation without groupby could still have having clause
+      agg_expr = new OperatorExpression(LogicalAggregateAndGroupBy::Make(), {output_expr_});
       output_expr_ = agg_expr;
     } else {
       size_t num_group_by_cols = op->GetSelectGroupBy()->GetColumns().size();
-      auto group_by_cols =
-          std::vector<std::shared_ptr<parser::AbstractExpression>>(
-              num_group_by_cols);
+      auto group_by_cols = std::vector<common::ManagedPointer<parser::AbstractExpression>>(num_group_by_cols);
       for (size_t i = 0; i < num_group_by_cols; i++) {
-        group_by_cols[i] = std::shared_ptr<parser::AbstractExpression>(
-            op->GetSelectGroupBy()->GetColumns()[i]->Copy());
+        group_by_cols[i] = common::ManagedPointer<parser::AbstractExpression>(op->GetSelectGroupBy()->GetColumns()[i]->Copy());
       }
-      agg_expr = std::make_shared<OperatorExpression>(LogicalAggregateAndGroupBy::Make(group_by_cols));
-      agg_expr->PushChild(output_expr_);
+      agg_expr = new OperatorExpression(LogicalAggregateAndGroupBy::Make(std::move(group_by_cols)), {output_expr_});
       output_expr_ = agg_expr;
+      
       std::vector<AnnotatedExpression> having;
       if (op->GetSelectGroupBy()->GetHaving() != nullptr) {
-        having = CollectPredicates(op->GetSelectGroupBy()->GetHaving().get());
+        having = CollectPredicates(op->GetSelectGroupBy()->GetHaving());
       }
       if (!having.empty()) {
-        auto filter_expr =
-            std::make_shared<OperatorExpression>(LogicalFilter::Make(having));
-        filter_expr->PushChild(output_expr_);
+        auto filter_expr = new OperatorExpression(LogicalFilter::Make(std::move(having)), {output_expr_});
         output_expr_ = filter_expr;
       }
     }
   }
 
   if (op->IsSelectDistinct()) {
-    auto distinct_expr =
-        std::make_shared<OperatorExpression>(LogicalDistinct::Make());
-    distinct_expr->PushChild(output_expr_);
+    auto distinct_expr = new OperatorExpression(LogicalDistinct::Make(), {output_expr_});
     output_expr_ = distinct_expr;
   }
 
   if (op->GetSelectLimit() != nullptr) {
-    std::vector<parser::AbstractExpression *> sort_exprs;
-    std::vector<bool> sort_ascending;
+    std::vector<common::ManagedPointer<parser::AbstractExpression>> sort_exprs;
+    std::vector<planner::OrderByOrderingType> sort_direction;
 
     if (op->GetSelectOrderBy() != nullptr) {
       const auto &order_info = op->GetSelectOrderBy();
-      for (auto &expr : order_info->GetOrderByExpressions()) { sort_exprs.push_back(expr.get()); }
-      for (auto &type : order_info->GetOrderByTypes()) { sort_ascending.push_back(type == parser::kOrderAsc); }
+      for (auto &expr : order_info->GetOrderByExpressions()) { sort_exprs.push_back(expr); }
+      for (auto &type : order_info->GetOrderByTypes()) {
+        if (type == parser::kOrderAsc) sort_direction.push_back(planner::OrderByOrderingType::ASC);
+        else sort_direction.push_back(planner::OrderByOrderingType::DESC);
+      }
     }
-    auto limit_expr = std::make_shared<OperatorExpression>(LogicalLimit::Make(op->GetSelectLimit()->GetOffset(), op->GetSelectLimit()->GetLimit(), std::move(sort_exprs), std::move(sort_ascending)));
-    limit_expr->PushChild(output_expr_);
+    auto limit_expr = new OperatorExpression(LogicalLimit::Make(op->GetSelectLimit()->GetOffset(), op->GetSelectLimit()->GetLimit(), std::move(sort_exprs), std::move(sort_direction)), {output_expr_});
     output_expr_ = limit_expr;
   }
 
@@ -119,40 +115,32 @@ void QueryToOperatorTransformer::Visit(parser::JoinDefinition *node) {
   auto right_expr = output_expr_;
 
   // Construct join operator
-  std::shared_ptr<OperatorExpression> join_expr;
+  OperatorExpression* join_expr;
   switch (node->GetJoinType()) {
     case parser::JoinType::INNER: {
-      predicates_ = CollectPredicates(node->GetJoinCondition().get(), predicates_);
-      join_expr =
-          std::make_shared<OperatorExpression>(LogicalInnerJoin::Make());
+      predicates_ = CollectPredicates(node->GetJoinCondition(), predicates_);
+      join_expr = new OperatorExpression(LogicalInnerJoin::Make(), {left_expr, right_expr});
       break;
     }
     case parser::JoinType::OUTER: {
-      join_expr = std::make_shared<OperatorExpression>(
-          LogicalOuterJoin::Make(node->GetJoinCondition()->Copy()));
+      join_expr = new OperatorExpression(LogicalOuterJoin::Make(common::ManagedPointer(node->GetJoinCondition())), {left_expr, right_expr});
       break;
     }
     case parser::JoinType::LEFT: {
-      join_expr = std::make_shared<OperatorExpression>(
-          LogicalLeftJoin::Make(node->GetJoinCondition()->Copy()));
+      join_expr = new OperatorExpression(LogicalLeftJoin::Make(common::ManagedPointer(node->GetJoinCondition())), {left_expr, right_expr});
       break;
     }
     case parser::JoinType::RIGHT: {
-      join_expr = std::make_shared<OperatorExpression>(
-          LogicalRightJoin::Make(node->GetJoinCondition()->Copy()));
+      join_expr = new OperatorExpression(LogicalRightJoin::Make(common::ManagedPointer(node->GetJoinCondition())), {left_expr, right_expr});
       break;
     }
     case parser::JoinType::SEMI: {
-      join_expr = std::make_shared<OperatorExpression>(
-          LogicalSemiJoin::Make(node->GetJoinCondition()->Copy()));
+      join_expr = new OperatorExpression(LogicalSemiJoin::Make(common::ManagedPointer(node->GetJoinCondition())), {left_expr, right_expr});
       break;
     }
     default:
-      throw Exception("Join type invalid");
+      throw OPTIMIZER_EXCEPTION("Join type invalid");
   }
-
-  join_expr->PushChild(left_expr);
-  join_expr->PushChild(right_expr);
 
   output_expr_ = join_expr;
 }
@@ -162,9 +150,8 @@ void QueryToOperatorTransformer::Visit(parser::TableRef *node) {
     // Store previous context
 
     // Construct query derived table predicates
-    // i.e. the mapping from column name to the underlying expression in the
-    // sub-query. This is needed to generate input/output information for
-    // subqueries
+    // i.e. the mapping from column name to the underlying expression in the sub-query.
+    // This is needed to generate input/output information for subqueries
     auto table_alias = node->GetAlias();
     std::transform(table_alias.begin(), table_alias.end(), table_alias.begin(), ::tolower);
 
@@ -172,14 +159,8 @@ void QueryToOperatorTransformer::Visit(parser::TableRef *node) {
 
     node->GetSelect()->Accept(this);
 
-    // TODO(Ling): why do we transform tolower twice here?
-    //   would the accept function make it upper??
-    //auto alias = StringUtil::Lower(node->GetAlias());
-
     auto child_expr = output_expr_;
-    output_expr_ = std::make_shared<OperatorExpression>(LogicalQueryDerivedGet::Make(table_alias, alias_to_expr_map));
-    output_expr_->PushChild(child_expr);
-
+    output_expr_ = new OperatorExpression(LogicalQueryDerivedGet::Make(table_alias, std::move(alias_to_expr_map)), {child_expr});
   }
     // Explicit Join
   else if (node->GetJoin() != nullptr) {
@@ -193,10 +174,7 @@ void QueryToOperatorTransformer::Visit(parser::TableRef *node) {
     // Build a left deep join tree
     for (auto &list_elem : node->GetList()) {
       list_elem->Accept(this);
-      auto join_expr =
-          std::make_shared<OperatorExpression>(LogicalInnerJoin::Make());
-      join_expr->PushChild(prev_expr);
-      join_expr->PushChild(output_expr_);
+      auto join_expr = new OperatorExpression(LogicalInnerJoin::Make(), {prev_expr, output_expr_});
       TERRIER_ASSERT(join_expr->GetChildren().size() == 2, "The join expr should have exactly 2 elements");
       prev_expr = join_expr;
     }
@@ -206,7 +184,7 @@ void QueryToOperatorTransformer::Visit(parser::TableRef *node) {
   else {
     if (node->GetList().size() == 1) node = node->GetList().at(0).get();
 
-    output_expr_ = std::make_shared<OperatorExpression>(LogicalGet::Make(accessor_->GetDatabaseOid(node->GetDatabaseName()), accessor_->GetDefaultNamespace(), accessor_->GetTableOid(node->GetTableName()), {}, node->GetAlias(), is_for_update));
+    output_expr_ = new OperatorExpression(LogicalGet::Make(accessor_->GetDatabaseOid(node->GetDatabaseName()), accessor_->GetDefaultNamespace(), accessor_->GetTableOid(node->GetTableName()), {}, node->GetAlias(), is_for_update), {});
   }
 }
 
@@ -223,7 +201,7 @@ void QueryToOperatorTransformer::Visit(parser::InsertStatement *op) {
   auto target_ns_id = accessor_->GetDefaultNamespace();
 
   if (op->GetInsertType() == parser::InsertType::SELECT) {
-    auto insert_expr = std::make_shared<OperatorExpression>(LogicalInsertSelect::Make(target_db_id, target_ns_id, target_table_id));
+    auto insert_expr = new OperatorExpression(LogicalInsertSelect::Make(target_db_id, target_ns_id, target_table_id), {});
     op->GetSelect()->Accept(this);
     insert_expr->PushChild(output_expr_);
     output_expr_ = insert_expr;
@@ -270,7 +248,7 @@ void QueryToOperatorTransformer::Visit(parser::InsertStatement *op) {
 
     for (const auto &col : *(op->GetInsertColumns())) {
       try {
-        auto column_object = schema.GetColumn(col);
+        const auto &column_object = schema.GetColumn(col);
         specified.insert(column_object.Oid());
       } catch (const std::out_of_range &oor) {
         throw CATALOG_EXCEPTION(("ERROR:  column \"" + col + "\" of relation \"" + target_table->GetTableName() + "\" does not exist").c_str());
@@ -288,8 +266,7 @@ void QueryToOperatorTransformer::Visit(parser::InsertStatement *op) {
     col_ids.insert(col_ids.end(), specified.begin(), specified.end());
   }
 
-  auto insert_expr = std::make_shared<OperatorExpression>(
-      LogicalInsert::Make(target_db_id, target_ns_id, target_table_id, std::move(col_ids), op->GetValues()));
+  auto insert_expr = new OperatorExpression(LogicalInsert::Make(target_db_id, target_ns_id, target_table_id, std::move(col_ids), op->GetValues()), {});
   output_expr_ = insert_expr;
 }
 
@@ -300,16 +277,15 @@ void QueryToOperatorTransformer::Visit(parser::DeleteStatement *op) {
   auto target_ns_id = accessor_->GetDefaultNamespace();
   auto target_table_alias = target_table->GetAlias();
 
-  auto delete_expr = std::make_shared<OperatorExpression>(LogicalDelete::Make(target_db_id, target_ns_id, target_table_id));
+  auto delete_expr = new OperatorExpression(LogicalDelete::Make(target_db_id, target_ns_id, target_table_id), {});
 
-  std::shared_ptr<OperatorExpression> table_scan;
+  OperatorExpression* table_scan;
   if (op->GetDeleteCondition() != nullptr) {
-    std::vector<AnnotatedExpression> predicates = ExtractPredicates(op->GetDeleteCondition().get());
-    table_scan = std::make_shared<OperatorExpression>(LogicalGet::Make(
-        target_db_id, target_ns_id, target_table_id, predicates, target_table_alias, true));
+    std::vector<AnnotatedExpression> predicates = ExtractPredicates(op->GetDeleteCondition());
+    table_scan = new OperatorExpression(LogicalGet::Make(
+        target_db_id, target_ns_id, target_table_id, predicates, target_table_alias, true), {});
   } else
-    table_scan = std::make_shared<OperatorExpression>(LogicalGet::Make(
-        target_db_id, target_ns_id, target_table_id, {}, target_table_alias, true));
+    table_scan = new OperatorExpression(LogicalGet::Make(target_db_id, target_ns_id, target_table_id, {}, target_table_alias, true), {});
 
   delete_expr->PushChild(table_scan);
 
@@ -328,18 +304,17 @@ void QueryToOperatorTransformer::Visit(parser::UpdateStatement *op) {
   auto target_ns_id = accessor_->GetDefaultNamespace();
   auto target_table_alias = target_table->GetAlias();
 
-  std::shared_ptr<OperatorExpression> table_scan;
+  OperatorExpression* table_scan;
 
-  auto update_expr = std::make_shared<OperatorExpression>(
-      LogicalUpdate::Make(target_db_id, target_ns_id, target_table_id, &op->GetUpdateClauses()));
+  auto update_expr = new OperatorExpression(
+      LogicalUpdate::Make(target_db_id, target_ns_id, target_table_id, std::move(op->GetUpdateClauses())), {});
 
   if (op->GetUpdateCondition() != nullptr) {
-    std::vector<AnnotatedExpression> predicates = ExtractPredicates(op->GetUpdateCondition().get());
-    table_scan = std::make_shared<OperatorExpression>(LogicalGet::Make(
-        target_db_id, target_ns_id, target_table_id, predicates, target_table_alias, true));
+    std::vector<AnnotatedExpression> predicates = ExtractPredicates(op->GetUpdateCondition());
+    table_scan = new OperatorExpression(LogicalGet::Make(
+        target_db_id, target_ns_id, target_table_id, predicates, target_table_alias, true), {});
   } else
-    table_scan = std::make_shared<OperatorExpression>(LogicalGet::Make(
-        target_db_id, target_ns_id, target_table_id, {}, target_table_alias, true));
+    table_scan = new OperatorExpression(LogicalGet::Make(target_db_id, target_ns_id, target_table_id, {}, target_table_alias, true), {});
 
   update_expr->PushChild(table_scan);
 
@@ -353,15 +328,14 @@ void QueryToOperatorTransformer::Visit(parser::CopyStatement *op) {
     // as the root.
 
     // TODO(Ling): filename? copy statement only has file path
-    auto get_op = std::make_shared<OperatorExpression>(LogicalExternalFileGet::Make(
-            op->GetExternalFileFormat(), op->GetFilePath(), op->GetDelimiter(), op->GetQuoteChar(), op->GetEscapeChar()));
+    auto get_op = new OperatorExpression(LogicalExternalFileGet::Make(
+            op->GetExternalFileFormat(), op->GetFilePath(), op->GetDelimiter(), op->GetQuoteChar(), op->GetEscapeChar()), {});
 
     auto target_table = op->GetCopyTable();
 
-    auto insert_op = std::make_shared<OperatorExpression>(LogicalInsertSelect::Make(
-        accessor_->GetDatabaseOid(target_table->GetDatabaseName()), accessor_->GetDefaultNamespace(), accessor_->GetTableOid(target_table->GetTableName());));
+    auto insert_op = new OperatorExpression(LogicalInsertSelect::Make(
+        accessor_->GetDatabaseOid(target_table->GetDatabaseName()), accessor_->GetDefaultNamespace(), accessor_->GetTableOid(target_table->GetTableName())), {get_op});
 
-    insert_op->PushChild(get_op);
     output_expr_ = insert_op;
     
   } else {
@@ -370,10 +344,9 @@ void QueryToOperatorTransformer::Visit(parser::CopyStatement *op) {
     } else {
       op->GetCopyTable()->Accept(this);
     }
-    auto export_op = std::make_shared<OperatorExpression>(LogicalExportExternalFile::Make(
-        op->GetExternalFileFormat(), op->GetFilePath(), op->GetDelimiter(), op->GetQuoteChar(), op->GetEscapeChar()));
+    auto export_op = new OperatorExpression(LogicalExportExternalFile::Make(
+        op->GetExternalFileFormat(), op->GetFilePath(), op->GetDelimiter(), op->GetQuoteChar(), op->GetEscapeChar()), {output_expr_});
     
-    export_op->PushChild(output_expr_);
     output_expr_ = export_op;
   }
 }
@@ -416,7 +389,7 @@ void QueryToOperatorTransformer::Visit(parser::OperatorExpression *expr) {
   expr->AcceptChildren(this);
 }
 
-bool QueryToOperatorTransformer::RequireAggregation(parser::SelectStatement *op) {
+bool QueryToOperatorTransformer::RequireAggregation(common::ManagedPointer<parser::SelectStatement> op) {
   if (op->GetSelectGroupBy() != nullptr) {
     return true;
   }
@@ -426,23 +399,23 @@ bool QueryToOperatorTransformer::RequireAggregation(parser::SelectStatement *op)
 
   for (auto &expr : op->GetSelectColumns()) {
     std::vector<parser::AggregateExpression *> aggr_exprs;
-    parser::ExpressionUtil::GetAggregateExprs(aggr_exprs, expr.get());
+    parser::ExpressionUtil::GetAggregateExprs(aggr_exprs, expr.Get());
     if (!aggr_exprs.empty()) has_aggregation = true;
     else has_other_exprs = true;
   }
   // TODO: Should be handled in the binder
   // Syntax error when there are mixture of aggregation and other exprs when group by is absent
   if (has_aggregation && has_other_exprs) {
-    throw SyntaxException("Non aggregation expression must appear in the GROUP BY clause or be used in an aggregate function");
+    throw OPTIMIZER_EXCEPTION("Non aggregation expression must appear in the GROUP BY clause or be used in an aggregate function");
   }
   return has_aggregation;
 }
 
-std::vector<AnnotatedExpression> QueryToOperatorTransformer::CollectPredicates(parser::AbstractExpression *expr,
+std::vector<AnnotatedExpression> QueryToOperatorTransformer::CollectPredicates(common::ManagedPointer<parser::AbstractExpression> expr,
     std::vector<AnnotatedExpression> predicates) {
   // First check if all conjunctive predicates are supported before transforming
   // predicate with sub-select into regular predicates
-  std::vector<parser::AbstractExpression *> predicate_ptrs;
+  std::vector<common::ManagedPointer<parser::AbstractExpression>> predicate_ptrs;
   SplitPredicates(expr, predicate_ptrs);
   for (const auto &pred : predicate_ptrs) {
     if (!IsSupportedConjunctivePredicate(pred)) {
@@ -456,7 +429,7 @@ std::vector<AnnotatedExpression> QueryToOperatorTransformer::CollectPredicates(p
   return ExtractPredicates(expr, predicates);
 }
 
-bool QueryToOperatorTransformer::IsSupportedConjunctivePredicate(parser::AbstractExpression *expr) {
+bool QueryToOperatorTransformer::IsSupportedConjunctivePredicate(common::ManagedPointer<parser::AbstractExpression> expr) {
   // Currently support : 1. expr without subquery
   // 2. subquery without disjunction. Since the expr is already one of the
   // conjunctive exprs, we'll only need to check if the root level is an
@@ -493,7 +466,7 @@ bool QueryToOperatorTransformer::IsSupportedConjunctivePredicate(parser::Abstrac
   return false;
 }
 
-bool QueryToOperatorTransformer::IsSupportedSubSelect(parser::SelectStatement *op) {
+bool QueryToOperatorTransformer::IsSupportedSubSelect(common::ManagedPointer<parser::SelectStatement> op) {
   // Supported if 1. No aggregation. 2. With aggregation and WHERE clause only
   // have correlated columns in conjunctive predicates in the form of
   // "outer_relation.a = ..."
@@ -501,8 +474,8 @@ bool QueryToOperatorTransformer::IsSupportedSubSelect(parser::SelectStatement *o
   //  the support for mark join & some special operators, see Hyper's unnesting arbitary query slides
   if (!RequireAggregation(op)) return true;
 
-  std::vector<parser::AbstractExpression *> predicates;
-  SplitPredicates(op->GetSelectCondition().get(), predicates);
+  std::vector<common::ManagedPointer<parser::AbstractExpression>> predicates;
+  SplitPredicates(op->GetSelectCondition(), predicates);
   for (const auto &pred : predicates) {
     // Depth is used to detect correlated subquery, it is set in the binder,
     // if a TVE has depth less than the depth of the current operator, then it is correlated predicate
@@ -527,7 +500,7 @@ bool QueryToOperatorTransformer::GenerateSubqueryTree(parser::AbstractExpression
   // Get potential subquery
   auto subquery_expr = expr->GetChild(child_id);
   if (subquery_expr->GetExpressionType() != parser::ExpressionType::ROW_SUBQUERY) return false;
-  auto sub_select = dynamic_cast<parser::SubqueryExpression *>(subquery_expr.get())->GetSubselect().get();
+  auto sub_select = dynamic_cast<parser::SubqueryExpression *>(subquery_expr.Get())->GetSubselect();
   if (!IsSupportedSubSelect(sub_select))
     throw NOT_IMPLEMENTED_EXCEPTION("Sub-select not supported");
   // We only support subselect with single row
@@ -537,15 +510,12 @@ bool QueryToOperatorTransformer::GenerateSubqueryTree(parser::AbstractExpression
 
   std::vector<parser::AbstractExpression *> select_list;
   // Construct join
-  std::shared_ptr<OperatorExpression> op_expr;
+  OperatorExpression* op_expr;
   if (single_join) {
-    op_expr = std::make_shared<OperatorExpression>(LogicalSingleJoin::Make());
+    op_expr = new OperatorExpression(LogicalSingleJoin::Make(), {output_expr_});
   } else {
-    op_expr = std::make_shared<OperatorExpression>(LogicalMarkJoin::Make());
+    op_expr = new OperatorExpression(LogicalMarkJoin::Make(), {output_expr_});
   }
-
-  // Push previous output
-  op_expr->PushChild(output_expr_);
 
   sub_select->Accept(this);
 
@@ -569,19 +539,18 @@ bool QueryToOperatorTransformer::GenerateSubqueryTree(parser::AbstractExpression
   return true;
 }
 
-std::vector<AnnotatedExpression> QueryToOperatorTransformer::ExtractPredicates(parser::AbstractExpression *expr,
+std::vector<AnnotatedExpression> QueryToOperatorTransformer::ExtractPredicates(common::ManagedPointer<parser::AbstractExpression> expr,
     std::vector<AnnotatedExpression> annotated_predicates) {
   // Split a complex predicate into a set of predicates connected by AND.
-  std::vector<parser::AbstractExpression *> predicates;
+  std::vector<common::ManagedPointer<parser::AbstractExpression>> predicates;
   SplitPredicates(expr, predicates);
 
   for (auto predicate : predicates) {
     std::unordered_set<std::string> table_alias_set;
-    GenerateTableAliasSet(predicate, table_alias_set);
+    GenerateTableAliasSet(predicate.Get(), table_alias_set);
 
     // Deep copy expression to avoid memory leak
-    annotated_predicates.emplace_back(AnnotatedExpression(std::shared_ptr<parser::AbstractExpression>(predicate->Copy()),
-        table_alias_set));
+    annotated_predicates.emplace_back(AnnotatedExpression(common::ManagedPointer<parser::AbstractExpression>(predicate->Copy()), std::move(table_alias_set)));
   }
   return annotated_predicates;
 }
@@ -595,11 +564,11 @@ void QueryToOperatorTransformer::GenerateTableAliasSet(const parser::AbstractExp
   }
 }
 
-void QueryToOperatorTransformer::SplitPredicates(parser::AbstractExpression *expr, std::vector<parser::AbstractExpression *> &predicates) {
+void QueryToOperatorTransformer::SplitPredicates(common::ManagedPointer<parser::AbstractExpression> expr, std::vector<common::ManagedPointer<parser::AbstractExpression>> &predicates) {
   if (expr->GetExpressionType() == parser::ExpressionType::CONJUNCTION_AND) {
     // Traverse down the expression tree along conjunction
     for (const auto & child : expr->GetChildren()) {
-      SplitPredicates(child.get(), predicates);
+      SplitPredicates(common::ManagedPointer(child), predicates);
     }
   } else {
     // Find an expression that is the child of conjunction expression
@@ -607,19 +576,19 @@ void QueryToOperatorTransformer::SplitPredicates(parser::AbstractExpression *exp
   }
 }
 
-std::unordered_map<std::string, std::shared_ptr<parser::AbstractExpression>> QueryToOperatorTransformer::ConstructSelectElementMap(std::vector<std::unique_ptr<parser::AbstractExpression>> &select_list) {
-  std::unordered_map<std::string, std::shared_ptr<parser::AbstractExpression>> res;
+std::unordered_map<std::string, common::ManagedPointer<parser::AbstractExpression>> QueryToOperatorTransformer::ConstructSelectElementMap(const std::vector<common::ManagedPointer<parser::AbstractExpression>> &select_list) {
+  std::unordered_map<std::string, common::ManagedPointer<parser::AbstractExpression>> res;
   for (auto &expr : select_list) {
     std::string alias;
     if (!expr->GetAlias().empty()) {
       alias = expr->GetAlias();
     } else if (expr->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE) {
-      auto tv_expr = reinterpret_cast<parser::ColumnValueExpression *>(expr.get());
+      auto tv_expr = reinterpret_cast<parser::ColumnValueExpression *>(expr.Get());
       alias = tv_expr->GetColumnName();
     } else
       continue;
     std::transform(alias.begin(), alias.end(), alias.begin(), ::tolower);
-    res[alias] = std::shared_ptr<parser::AbstractExpression>(expr->Copy());
+    res[alias] = common::ManagedPointer<parser::AbstractExpression>(expr->Copy());
   }
   return res;
 }

@@ -31,8 +31,7 @@ class ExpressionUtil {
   }
 
   /**
-   * Walks an expression trees and find all AggregationExprs and TupleValueExprs
-   * subtrees.
+   * Walks an expression trees and find all AggregationExprs and ColumnValueExprs subtrees.
    */
   static void GetAggregateExprs(std::vector<AggregateExpression *> &aggr_exprs, std::vector<ColumnValueExpression *> &tv_exprs, AbstractExpression *expr) {
     if (IsAggregateExpression(expr->GetExpressionType())) {
