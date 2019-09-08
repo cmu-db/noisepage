@@ -8,6 +8,7 @@
 #include "catalog/catalog_accessor.h"
 #include "catalog/catalog_defs.h"
 #include "common/exception.h"
+#include "common/managed_pointer.h"
 #include "parser/expression/abstract_expression.h"
 #include "parser/expression/aggregate_expression.h"
 #include "parser/expression/case_expression.h"
@@ -43,7 +44,7 @@ void BindNodeVisitor::Visit(parser::SelectStatement *node) {
 
   if (node->GetSelectGroupBy() != nullptr) node->GetSelectGroupBy()->Accept(this);
 
-  std::vector<std::shared_ptr<parser::AbstractExpression>> new_select_list;
+  std::vector<common::ManagedPointer<parser::AbstractExpression>> new_select_list;
   for (auto &select_element : node->GetSelectColumns()) {
     if (select_element->GetExpressionType() == parser::ExpressionType::STAR) {
       context_->GenerateAllColumnExpressions(&new_select_list);
@@ -61,7 +62,7 @@ void BindNodeVisitor::Visit(parser::SelectStatement *node) {
     select_element->DeriveReturnValueType();
     select_element->DeriveExpressionName();
 
-    new_select_list.push_back(std::move(select_element));
+    new_select_list.push_back(select_element);
   }
   node->SetSelectColumns(new_select_list);
   node->SetDepth(context_->GetDepth());
@@ -151,7 +152,7 @@ void BindNodeVisitor::Visit(parser::CopyStatement *node) {
     node->GetCopyTable()->Accept(this);
 
     // If the table is given, we're either writing or reading all columns
-    std::vector<std::shared_ptr<parser::AbstractExpression>> new_select_list;
+    std::vector<common::ManagedPointer<parser::AbstractExpression>> new_select_list;
     context_->GenerateAllColumnExpressions(&new_select_list);
     auto columns = node->GetSelectStatement()->GetSelectColumns();
     columns.insert(std::end(columns), std::begin(new_select_list), std::end(new_select_list));
