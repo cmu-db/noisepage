@@ -7,4 +7,5 @@
 \bcout\b
 \bprintf(
 \bstd::weak_ptr\b
+\bstd::shared_ptr\b
 namespace .*_.* {

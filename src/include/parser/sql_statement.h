@@ -164,7 +164,7 @@ class TableRefStatement : public SQLStatement {
    * @param type type of SQLStatement being referred to
    * @param table_info table being referred to
    */
-  TableRefStatement(const StatementType type, std::shared_ptr<TableInfo> table_info)
+  TableRefStatement(const StatementType type, std::unique_ptr<TableInfo> table_info)
       : SQLStatement(type), table_info_(std::move(table_info)) {}
 
   ~TableRefStatement() override = default;
@@ -198,7 +198,7 @@ class TableRefStatement : public SQLStatement {
 
  private:
   friend class binder::BindNodeVisitor;
-  std::shared_ptr<TableInfo> table_info_ = nullptr;
+  const std::unique_ptr<TableInfo> table_info_ = nullptr;
 };
 
 }  // namespace parser

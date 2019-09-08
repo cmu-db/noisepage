@@ -57,11 +57,11 @@ bool AbstractScanPlanNode::operator==(const AbstractPlanNode &rhs) const {
 
 nlohmann::json AbstractScanPlanNode::ToJson() const {
   nlohmann::json j = AbstractPlanNode::ToJson();
-  j["scan_predicate"] = scan_predicate_;
-  j["is_for_update"] = is_for_update_;
-  j["is_parallel"] = is_parallel_;
-  j["database_oid"] = database_oid_;
-  j["namespace_oid"] = namespace_oid_;
+  //  j["scan_predicate"] = scan_predicate_;
+  //  j["is_for_update"] = is_for_update_;
+  //  j["is_parallel"] = is_parallel_;
+  //  j["database_oid"] = database_oid_;
+  //  j["namespace_oid"] = namespace_oid_;
   return j;
 }
 

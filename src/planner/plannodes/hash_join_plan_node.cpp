@@ -48,8 +48,8 @@ bool HashJoinPlanNode::operator==(const AbstractPlanNode &rhs) const {
 
 nlohmann::json HashJoinPlanNode::ToJson() const {
   nlohmann::json j = AbstractJoinPlanNode::ToJson();
-  j["left_hash_keys"] = left_hash_keys_;
-  j["right_hash_keys"] = right_hash_keys_;
+  //  j["left_hash_keys"] = left_hash_keys_;
+  //  j["right_hash_keys"] = right_hash_keys_;
   j["build_bloom_filter"] = build_bloomfilter_;
   return j;
 }
