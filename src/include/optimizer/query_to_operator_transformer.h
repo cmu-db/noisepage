@@ -26,7 +26,7 @@ class QueryToOperatorTransformer : public SqlNodeVisitor {
  public:
   explicit QueryToOperatorTransformer(std::unique_ptr<catalog::CatalogAccessor> catalog_accessor);
 
-  std::shared_ptr<OperatorExpression> ConvertToOpExpression(parser::SQLStatement *op);
+  OperatorExpression* ConvertToOpExpression(parser::SQLStatement *op);
 
   void Visit(parser::SelectStatement *op) override;
 
@@ -60,7 +60,7 @@ class QueryToOperatorTransformer : public SqlNodeVisitor {
    *
    * @param expr The original predicate
    */
-  std::vector<AnnotatedExpression> CollectPredicates(parser::AbstractExpression *expr, std::vector<AnnotatedExpression> predicates = {});
+  std::vector<AnnotatedExpression> CollectPredicates(common::ManagedPointer<parser::AbstractExpression> expr, std::vector<AnnotatedExpression> predicates = {});
 
   /**
    * @brief Transform a sub-query in an expression to use
@@ -87,7 +87,7 @@ class QueryToOperatorTransformer : public SqlNodeVisitor {
    *
    * @return True if supported, false otherwise
    */
-  static bool IsSupportedConjunctivePredicate(parser::AbstractExpression *expr);
+  static bool IsSupportedConjunctivePredicate(common::ManagedPointer<parser::AbstractExpression> expr);
 
   /**
    * @brief Check if a sub-select statement is supported.
@@ -96,8 +96,8 @@ class QueryToOperatorTransformer : public SqlNodeVisitor {
    *
    * @return True if supported, false otherwise
    */
-  static bool IsSupportedSubSelect(parser::SelectStatement *op);
-  static bool RequireAggregation(parser::SelectStatement *op);
+  static bool IsSupportedSubSelect(common::ManagedPointer<parser::SelectStatement> op);
+  static bool RequireAggregation(common::ManagedPointer<parser::SelectStatement> op);
 
   /**
    * @brief Extract single table precates and multi-table predicates from the expr
@@ -105,7 +105,7 @@ class QueryToOperatorTransformer : public SqlNodeVisitor {
    * @param expr The original predicate
    * @param annotated_predicates The extracted conjunction predicates
    */
-  static std::vector<AnnotatedExpression> ExtractPredicates(parser::AbstractExpression *expr,
+  static std::vector<AnnotatedExpression> ExtractPredicates(common::ManagedPointer<parser::AbstractExpression> expr,
       std::vector<AnnotatedExpression> annotated_predicates = {});
 
   /**
@@ -116,12 +116,11 @@ class QueryToOperatorTransformer : public SqlNodeVisitor {
   /**
  * @breif Split conjunction expression tree into a vector of expressions with AND
  */
-  static void SplitPredicates(parser::AbstractExpression *expr, std::vector<parser::AbstractExpression *> &predicates);
+  static void SplitPredicates(common::ManagedPointer<parser::AbstractExpression> expr, std::vector<common::ManagedPointer<parser::AbstractExpression>> &predicates);
 
-  static std::unordered_map<std::string, std::shared_ptr<parser::AbstractExpression>> ConstructSelectElementMap(std::vector<std::unique_ptr<parser::AbstractExpression>> &select_list);
+  static std::unordered_map<std::string, common::ManagedPointer<parser::AbstractExpression>> ConstructSelectElementMap(const std::vector<common::ManagedPointer<parser::AbstractExpression>> &select_list);
 
-    // TODO(Ling): preciously shared_ptr
-  std::shared_ptr<OperatorExpression> output_expr_;
+  OperatorExpression* output_expr_;
 
   std::unique_ptr<catalog::CatalogAccessor> accessor_;
 
