@@ -13,6 +13,7 @@
 
 #include "optimizer/operator_expression.h"
 #include "optimizer/property_set.h"
+#include "optimizer/statistics/stats_storage.h"
 
 namespace terrier::planner {
 class AbstractPlanNode;
@@ -38,16 +39,11 @@ struct QueryInfo {
    * Constructor for QueryInfo
    * @param type StatementType
    * @param exprs Output expressions of the query
-   * @param props Physical properties of the output (QueryInfo will own)
+   * @param props Physical properties of the output (QueryInfo will not own)
    */
-  QueryInfo(parser::StatementType type, std::vector<common::ManagedPointer<parser::AbstractExpression>> &&exprs,
+  QueryInfo(parser::StatementType type, std::vector<common::ManagedPointer<const parser::AbstractExpression>> &&exprs,
             PropertySet *props)
       : stmt_type_(type), output_exprs_(exprs), physical_props_(props) {}
-
-  /**
-   * Destructor
-   */
-  ~QueryInfo() { delete physical_props_; }
 
   /**
    * @returns StatementType
@@ -57,7 +53,9 @@ struct QueryInfo {
   /**
    * @returns Output expressions of the query
    */
-  const std::vector<common::ManagedPointer<parser::AbstractExpression>> GetOutputExprs() const { return output_exprs_; }
+  const std::vector<common::ManagedPointer<const parser::AbstractExpression>> &GetOutputExprs() const {
+    return output_exprs_;
+  }
 
   /**
    * @returns Physical properties of the output owned by QueryInfo
@@ -65,8 +63,19 @@ struct QueryInfo {
   PropertySet *GetPhysicalProperties() const { return physical_props_; }
 
  private:
+  /**
+   * Type of the SQL Statement being executed
+   */
   parser::StatementType stmt_type_;
-  std::vector<common::ManagedPointer<parser::AbstractExpression>> output_exprs_;
+
+  /**
+   * Output Expressions of the query
+   */
+  std::vector<common::ManagedPointer<const parser::AbstractExpression>> output_exprs_;
+
+  /**
+   * Required physical properties of the output
+   */
   PropertySet *physical_props_;
 };
 
@@ -92,12 +101,14 @@ class AbstractOptimizer {
    * @param txn TransactionContext
    * @param settings SettingsManager to read settings from
    * @param accessor CatalogAccessor for catalog
+   * @param storage StatsStorage
    * @returns execution plan
    */
   virtual std::shared_ptr<planner::AbstractPlanNode> BuildPlanTree(OperatorExpression *op_tree, QueryInfo query_info,
                                                                    transaction::TransactionContext *txn,
                                                                    settings::SettingsManager *settings,
-                                                                   catalog::CatalogAccessor *accessor) = 0;
+                                                                   catalog::CatalogAccessor *accessor,
+                                                                   StatsStorage *storage) = 0;
 
   /**
    * Reset the optimizer's internal state

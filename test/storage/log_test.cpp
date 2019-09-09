@@ -50,7 +50,7 @@ class WriteAheadLoggingTests : public TerrierTest {
         di::bind<std::chrono::milliseconds>()
             .named(storage::LogManager::PERSIST_INTERVAL)
             .to(std::chrono::milliseconds(20)),
-        di::bind<uint64_t>().named(storage::LogManager::PERSIST_THRESHOLD).to(static_cast<uint64_t>((1u << 20u))));
+        di::bind<uint64_t>().named(storage::LogManager::PERSIST_THRESHOLD).to(static_cast<uint64_t>((1U << 20U))));
   }
 
   void SetUp() override {
@@ -304,13 +304,13 @@ TEST_F(WriteAheadLoggingTests, AbortRecordTest) {
   StorageTestUtil::ForceOid(&(col), catalog::col_oid_t(0));
   auto table_schema = catalog::Schema(std::vector<catalog::Schema::Column>({col}));
   storage::SqlTable sql_table(injector.create<storage::BlockStore *>(), table_schema);
-  auto tuple_initializer = sql_table.InitializerForProjectedRow({catalog::col_oid_t(0)}).first;
+  auto tuple_initializer = sql_table.InitializerForProjectedRow({catalog::col_oid_t(0)});
 
   auto *txn_manager = injector.create<transaction::TransactionManager *>();
   // Initialize first transaction, this txn will write a single tuple
   auto *first_txn = txn_manager->BeginTransaction();
   auto *insert_redo =
-      first_txn->StageWrite(CatalogTestUtil::test_db_oid, CatalogTestUtil::test_table_oid, tuple_initializer);
+      first_txn->StageWrite(CatalogTestUtil::TEST_DB_OID, CatalogTestUtil::TEST_TABLE_OID, tuple_initializer);
   auto *insert_tuple = insert_redo->Delta();
   *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = 1;
   auto first_tuple_slot = sql_table.Insert(first_txn, insert_redo);
@@ -321,7 +321,7 @@ TEST_F(WriteAheadLoggingTests, AbortRecordTest) {
   int32_t insert_value = 2;
   while (!GetRedoBuffer(second_txn).HasFlushed()) {
     insert_redo =
-        second_txn->StageWrite(CatalogTestUtil::test_db_oid, CatalogTestUtil::test_table_oid, tuple_initializer);
+        second_txn->StageWrite(CatalogTestUtil::TEST_DB_OID, CatalogTestUtil::TEST_TABLE_OID, tuple_initializer);
     insert_tuple = insert_redo->Delta();
     *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = insert_value++;
     sql_table.Insert(second_txn, insert_redo);
@@ -332,7 +332,7 @@ TEST_F(WriteAheadLoggingTests, AbortRecordTest) {
   // Now the second txn will try to update the tuple the first txn wrote, and thus will abort. We expect this txn to
   // write an abort record
   auto update_redo =
-      second_txn->StageWrite(CatalogTestUtil::test_db_oid, CatalogTestUtil::test_table_oid, tuple_initializer);
+      second_txn->StageWrite(CatalogTestUtil::TEST_DB_OID, CatalogTestUtil::TEST_TABLE_OID, tuple_initializer);
   auto update_tuple = update_redo->Delta();
   *reinterpret_cast<int32_t *>(update_tuple->AccessForceNotNull(0)) = 0;
   update_redo->SetTupleSlot(first_tuple_slot);
@@ -350,7 +350,7 @@ TEST_F(WriteAheadLoggingTests, AbortRecordTest) {
   bool found_abort_record = false;
   storage::BufferedLogReader in(LOG_FILE_NAME);
   while (in.HasMore()) {
-    storage::LogRecord *log_record = ReadNextRecord(&in, sql_table.table_.layout);
+    storage::LogRecord *log_record = ReadNextRecord(&in, sql_table.table_.layout_);
     if (log_record->RecordType() == LogRecordType::ABORT) {
       found_abort_record = true;
       auto *abort_record = log_record->GetUnderlyingRecordBodyAs<storage::AbortRecord>();
@@ -382,13 +382,13 @@ TEST_F(WriteAheadLoggingTests, NoAbortRecordTest) {
   StorageTestUtil::ForceOid(&(col), catalog::col_oid_t(0));
   auto table_schema = catalog::Schema(std::vector<catalog::Schema::Column>({col}));
   storage::SqlTable sql_table(injector.create<storage::BlockStore *>(), table_schema);
-  auto tuple_initializer = sql_table.InitializerForProjectedRow({catalog::col_oid_t(0)}).first;
+  auto tuple_initializer = sql_table.InitializerForProjectedRow({catalog::col_oid_t(0)});
 
   // Initialize first transaction, this txn will write a single tuple
   auto *txn_manager = injector.create<transaction::TransactionManager *>();
   auto *first_txn = txn_manager->BeginTransaction();
   auto *insert_redo =
-      first_txn->StageWrite(CatalogTestUtil::test_db_oid, CatalogTestUtil::test_table_oid, tuple_initializer);
+      first_txn->StageWrite(CatalogTestUtil::TEST_DB_OID, CatalogTestUtil::TEST_TABLE_OID, tuple_initializer);
   auto *insert_tuple = insert_redo->Delta();
   *reinterpret_cast<int32_t *>(insert_tuple->AccessForceNotNull(0)) = 1;
   auto first_tuple_slot = sql_table.Insert(first_txn, insert_redo);
@@ -398,7 +398,7 @@ TEST_F(WriteAheadLoggingTests, NoAbortRecordTest) {
   // expect this txn to not write an abort record
   auto second_txn = txn_manager->BeginTransaction();
   auto update_redo =
-      second_txn->StageWrite(CatalogTestUtil::test_db_oid, CatalogTestUtil::test_table_oid, tuple_initializer);
+      second_txn->StageWrite(CatalogTestUtil::TEST_DB_OID, CatalogTestUtil::TEST_TABLE_OID, tuple_initializer);
   auto update_tuple = update_redo->Delta();
   *reinterpret_cast<int32_t *>(update_tuple->AccessForceNotNull(0)) = 0;
   update_redo->SetTupleSlot(first_tuple_slot);
@@ -417,7 +417,7 @@ TEST_F(WriteAheadLoggingTests, NoAbortRecordTest) {
   bool found_abort_record = false;
   storage::BufferedLogReader in(LOG_FILE_NAME);
   while (in.HasMore()) {
-    storage::LogRecord *log_record = ReadNextRecord(&in, sql_table.table_.layout);
+    storage::LogRecord *log_record = ReadNextRecord(&in, sql_table.table_.layout_);
     if (log_record->RecordType() == LogRecordType::ABORT) {
       found_abort_record = true;
     }

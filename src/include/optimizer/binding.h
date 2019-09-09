@@ -70,7 +70,7 @@ class GroupBindingIterator : public BindingIterator {
         target_group_(memo_.GetGroupByID(id)),
         num_group_items_(target_group_->GetLogicalExpressions().size()),
         current_item_index_(0) {
-    OPTIMIZER_LOG_TRACE("Attempting to bind on group %d", id);
+    OPTIMIZER_LOG_TRACE("Attempting to bind on group {0}", id);
   }
 
   /**

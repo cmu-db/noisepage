@@ -127,12 +127,6 @@ class Builder {
 
   /**
    * @param db oid in which the indexed table exists
-   * @return schema object for the class (index and table) index on pg_attribute
-   */
-  static IndexSchema GetColumnClassIndexSchema(db_oid_t db);
-
-  /**
-   * @param db oid in which the indexed table exists
    * @return schema object for the oid index on pg_type
    */
   static IndexSchema GetTypeOidIndexSchema(db_oid_t db);

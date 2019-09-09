@@ -105,12 +105,12 @@ class OperatorNode : public BaseOperatorNode {
   /**
    * @return string name of the underlying operator
    */
-  std::string GetName() const override { return std::string(name_); }
+  std::string GetName() const override { return std::string(name); }
 
   /**
    * @return type of the underlying operator
    */
-  OpType GetType() const override { return type_; }
+  OpType GetType() const override { return type; }
 
   /**
    * @return whether the underlying operator is logical
@@ -126,12 +126,12 @@ class OperatorNode : public BaseOperatorNode {
   /**
    * Name of the operator
    */
-  static const char *name_;
+  static const char *name;
 
   /**
    * Type of the operator
    */
-  static OpType type_;
+  static OpType type;
 };
 
 /**
@@ -189,14 +189,14 @@ class Operator {
    * @param rhs other
    * @return true if the two operators are logically equal, false otherwise
    */
-  bool operator==(const Operator &rhs);
+  bool operator==(const Operator &rhs) const;
 
   /**
    * Logical inequality check
    * @param rhs other
    * @return true if the two operators are logically not equal, false otherwise
    */
-  bool operator!=(const Operator &rhs) { return !operator==(rhs); }
+  bool operator!=(const Operator &rhs) const { return !operator==(rhs); }
 
   /**
    * @return true if the operator is defined, false otherwise

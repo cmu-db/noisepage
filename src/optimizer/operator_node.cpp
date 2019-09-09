@@ -45,7 +45,7 @@ common::hash_t Operator::Hash() const {
   return 0;
 }
 
-bool Operator::operator==(const Operator &rhs) {
+bool Operator::operator==(const Operator &rhs) const {
   if (IsDefined() && rhs.IsDefined()) {
     return *node_ == *rhs.node_;
   }

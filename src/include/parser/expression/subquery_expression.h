@@ -63,7 +63,7 @@ class SubqueryExpression : public AbstractExpression {
     int current_depth = this->GetDepth();
     for (size_t i = 0; i < subselect_->GetSelectColumnsSize(); i++) {
       auto select_elem = subselect_->GetSelectColumn(i);
-      int select_depth = const_cast<parser::AbstractExpression *>(select_elem.get())->DeriveDepth();
+      int select_depth = const_cast<parser::AbstractExpression *>(select_elem.Get())->DeriveDepth();
       if (select_depth >= 0 && (current_depth == -1 || select_depth < current_depth)) {
         this->SetDepth(select_depth);
         current_depth = select_depth;
@@ -71,7 +71,7 @@ class SubqueryExpression : public AbstractExpression {
     }
     auto where = subselect_->GetSelectCondition();
     if (where != nullptr) {
-      auto where_depth = const_cast<parser::AbstractExpression *>(where.get())->DeriveDepth();
+      auto where_depth = const_cast<parser::AbstractExpression *>(where.Get())->DeriveDepth();
       if (where_depth >= 0 && where_depth < current_depth) this->SetDepth(where_depth);
     }
     return this->GetDepth();

@@ -8,6 +8,8 @@
 #include "optimizer/optimizer_metadata.h"
 #include "optimizer/optimizer_task.h"
 #include "optimizer/property_enforcer.h"
+#include "optimizer/statistics/child_stats_deriver.h"
+#include "optimizer/statistics/stats_calculator.h"
 
 namespace terrier::optimizer {
 
@@ -41,8 +43,8 @@ RuleSet &OptimizerTask::GetRuleSet() const { return context_->GetMetadata()->Get
 //===--------------------------------------------------------------------===//
 // OptimizeGroup
 //===--------------------------------------------------------------------===//
-void OptimizeGroup::execute() {
-  OPTIMIZER_LOG_TRACE("OptimizeGroup::Execute() group %d", group_->GetID());
+void OptimizeGroup::Execute() {
+  OPTIMIZER_LOG_TRACE("OptimizeGroup::Execute() group {0}", group_->GetID());
   if (group_->GetCostLB() > context_->GetCostUpperBound() ||                    // Cost LB > Cost UB
       group_->GetBestExpression(context_->GetRequiredProperties()) != nullptr)  // Has optimized given the context
     return;
@@ -65,7 +67,7 @@ void OptimizeGroup::execute() {
 //===--------------------------------------------------------------------===//
 // OptimizeExpression
 //===--------------------------------------------------------------------===//
-void OptimizeExpression::execute() {
+void OptimizeExpression::Execute() {
   std::vector<RuleWithPromise> valid_rules;
 
   // Construct valid transformation rules from rule set
@@ -74,7 +76,7 @@ void OptimizeExpression::execute() {
   ConstructValidRules(group_expr_, context_, GetRuleSet().GetImplementationRules(), &valid_rules);
 
   std::sort(valid_rules.begin(), valid_rules.end());
-  OPTIMIZER_LOG_DEBUG("OptimizeExpression::execute() op %d, valid rules : %lu",
+  OPTIMIZER_LOG_DEBUG("OptimizeExpression::execute() op {0}, valid rules : {1}",
                       static_cast<int>(group_expr_->Op().GetType()), valid_rules.size());
   // Apply rule
   for (auto &r : valid_rules) {
@@ -96,9 +98,9 @@ void OptimizeExpression::execute() {
 //===--------------------------------------------------------------------===//
 // ExploreGroup
 //===--------------------------------------------------------------------===//
-void ExploreGroup::execute() {
+void ExploreGroup::Execute() {
   if (group_->HasExplored()) return;
-  OPTIMIZER_LOG_TRACE("ExploreGroup::execute() ");
+  OPTIMIZER_LOG_TRACE("ExploreGroup::Execute() ");
 
   for (auto &logical_expr : group_->GetLogicalExpressions()) {
     PushTask(new ExploreExpression(logical_expr, context_));
@@ -112,8 +114,8 @@ void ExploreGroup::execute() {
 //===--------------------------------------------------------------------===//
 // ExploreExpression
 //===--------------------------------------------------------------------===//
-void ExploreExpression::execute() {
-  OPTIMIZER_LOG_TRACE("ExploreExpression::execute() ");
+void ExploreExpression::Execute() {
+  OPTIMIZER_LOG_TRACE("ExploreExpression::Execute() ");
   std::vector<RuleWithPromise> valid_rules;
 
   // Construct valid transformation rules from rule set
@@ -140,8 +142,8 @@ void ExploreExpression::execute() {
 //===--------------------------------------------------------------------===//
 // ApplyRule
 //===--------------------------------------------------------------------===//
-void ApplyRule::execute() {
-  OPTIMIZER_LOG_TRACE("ApplyRule::execute() for rule: %d", rule_->GetRuleIdx());
+void ApplyRule::Execute() {
+  OPTIMIZER_LOG_TRACE("ApplyRule::Execute() for rule: {0}", rule_->GetRuleIdx());
   if (group_expr_->HasRuleExplored(rule_)) return;
 
   GroupExprBindingIterator iterator(GetMemo(), group_expr_, rule_->GetMatchPattern());
@@ -163,7 +165,7 @@ void ApplyRule::execute() {
         if (new_gexpr->Op().IsLogical()) {
           // Derive stats for the *logical expression*
           PushTask(new DeriveStats(new_gexpr, ExprSet{}, context_));
-          if (explore_only) {
+          if (explore_only_) {
             // Explore this logical expression
             PushTask(new ExploreExpression(new_gexpr, context_));
           } else {
@@ -190,61 +192,52 @@ void ApplyRule::execute() {
 //===--------------------------------------------------------------------===//
 // DeriveStats
 //===--------------------------------------------------------------------===//
-void DeriveStats::execute() {
-  /*
-    // TODO(wz2): Re-enable DeriveStats Task once a Stats Engine has been built
+void DeriveStats::Execute() {
+  // First do a top-down pass to get stats for required columns, then do a
+  // bottom-up pass to calculate the stats
+  ChildStatsDeriver deriver;
+  auto children_required_stats = deriver.DeriveInputStats(gexpr_, required_cols_, &context_->GetMetadata()->GetMemo());
+  bool derive_children = false;
 
-    // First do a top-down pass to get stats for required columns, then do a
-    // bottom-up pass to calculate the stats
-    ChildStatsDeriver deriver;
-    auto children_required_stats = deriver.DeriveInputStats(
-        gexpr_, required_cols_, &context_->metadata->memo);
-    bool derive_children = false;
-    // If we haven't got enough stats to compute the current stats, derive them
-    // from the child first
-    PELOTON_ASSERT(children_required_stats.size() == gexpr_->GetChildrenGroupsSize());
-    for (size_t idx = 0; idx < children_required_stats.size(); ++idx) {
-      auto &child_required_stats = children_required_stats[idx];
-      auto child_group_id = gexpr_->GetChildGroupId(idx);
-      // TODO(boweic): currently we pick the first child expression in the child
-      // group to derive stats, in the future we may want to pick the one with
-      // the highest confidence
-      auto child_group_gexpr = GetMemo()
-                                   .GetGroupByID(child_group_id)
-                                   ->GetLogicalExpressions()[0]
-                                   .get();
-      if (!child_required_stats.empty() ||
-          !child_group_gexpr->HasDerivedStats()) {
-        // The child group has not derived stats could happen when we do top-down
-        // stats derivation for the first time or a new child group is just
-        // generated by join order enumeration
-        if (!derive_children) {
-          derive_children = true;
-          // Derive stats for root later
-          PushTask(new DeriveStats(this));
-        }
-        PushTask(
-            new DeriveStats(child_group_gexpr, child_required_stats, context_));
+  // If we haven't got enough stats to compute the current stats, derive them
+  // from the child first
+  TERRIER_ASSERT(children_required_stats.size() == gexpr_->GetChildrenGroupsSize(), "Stats size mismatch");
+  for (size_t idx = 0; idx < children_required_stats.size(); ++idx) {
+    auto &child_required_stats = children_required_stats[idx];
+    auto child_group_id = gexpr_->GetChildGroupId(static_cast<int>(idx));
+    // TODO(boweic): currently we pick the first child expression in the child
+    // group to derive stats, in the future we may want to pick the one with
+    // the highest confidence
+    auto child_group_gexpr = GetMemo().GetGroupByID(child_group_id)->GetLogicalExpressions()[0];
+    if (!child_required_stats.empty() || !child_group_gexpr->HasDerivedStats()) {
+      // The child group has not derived stats could happen when we do top-down
+      // stats derivation for the first time or a new child group is just
+      // generated by join order enumeration
+      if (!derive_children) {
+        derive_children = true;
+        // Derive stats for root later
+        PushTask(new DeriveStats(this));
       }
+      PushTask(new DeriveStats(child_group_gexpr, child_required_stats, context_));
     }
-    if (derive_children) {
-      // We'll derive for the current group after deriving stats of children
-      return;
-    }
+  }
 
-    StatsCalculator calculator;
-    calculator.CalculateStats(gexpr_, required_cols_, &context_->metadata->memo,
-                              context_->metadata->txn);
-  */
+  if (derive_children) {
+    // We'll derive for the current group after deriving stats of children
+    return;
+  }
+
+  StatsCalculator calculator;
+  calculator.CalculateStats(gexpr_, required_cols_, context_->GetMetadata());
   gexpr_->SetDerivedStats();
 }
 
 //===--------------------------------------------------------------------===//
 // OptimizeInputs
 //===--------------------------------------------------------------------===//
-void OptimizeInputs::execute() {
+void OptimizeInputs::Execute() {
   // Init logic: only run once per task
-  OPTIMIZER_LOG_TRACE("OptimizeInputs::execute() ");
+  OPTIMIZER_LOG_TRACE("OptimizeInputs::Execute() ");
   if (cur_child_idx_ == -1) {
     // TODO(patrick):
     // 1. We can init input cost using non-zero value for pruning
@@ -310,7 +303,8 @@ void OptimizeInputs::execute() {
       // best expr from the child group
 
       // Add this group expression to group expression hash table
-      std::vector<PropertySet *> input_props_copy{input_props.size()};
+      std::vector<PropertySet *> input_props_copy;
+      input_props_copy.reserve(input_props.size());
       for (auto i_prop : input_props) {
         input_props_copy.push_back(i_prop->Copy());
       }
@@ -375,7 +369,7 @@ void OptimizeInputs::execute() {
   }
 }
 
-void TopDownRewrite::execute() {
+void TopDownRewrite::Execute() {
   std::vector<RuleWithPromise> valid_rules;
 
   auto cur_group = GetMemo().GetGroupByID(group_id_);
@@ -426,7 +420,7 @@ void TopDownRewrite::execute() {
   }
 }
 
-void BottomUpRewrite::execute() {
+void BottomUpRewrite::Execute() {
   std::vector<RuleWithPromise> valid_rules;
 
   auto cur_group = GetMemo().GetGroupByID(group_id_);

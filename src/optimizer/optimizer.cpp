@@ -21,20 +21,22 @@ namespace terrier::optimizer {
 
 void Optimizer::Reset() {
   // cleanup any existing resources;
-  metadata_.SetTaskPool(nullptr);
-  metadata_ = OptimizerMetadata(metadata_.ReleaseCostModel());
+  delete metadata_;
+  metadata_ = new OptimizerMetadata(cost_model_);
 }
 
 std::shared_ptr<planner::AbstractPlanNode> Optimizer::BuildPlanTree(OperatorExpression *op_tree, QueryInfo query_info,
                                                                     transaction::TransactionContext *txn,
                                                                     settings::SettingsManager *settings,
-                                                                    catalog::CatalogAccessor *accessor) {
-  metadata_.SetTxn(txn);
-  metadata_.SetCatalogAccessor(accessor);
+                                                                    catalog::CatalogAccessor *accessor,
+                                                                    StatsStorage *storage) {
+  metadata_->SetTxn(txn);
+  metadata_->SetCatalogAccessor(accessor);
+  metadata_->SetStatsStorage(storage);
 
   // Generate initial operator tree from query tree
   GroupExpression *gexpr = nullptr;
-  bool insert = metadata_.RecordTransformedExpression(op_tree, &gexpr);
+  bool insert = metadata_->RecordTransformedExpression(op_tree, &gexpr);
   TERRIER_ASSERT(insert && gexpr, "Logical expression tree should insert");
 
   GroupID root_id = gexpr->GetGroupID();
@@ -45,13 +47,13 @@ std::shared_ptr<planner::AbstractPlanNode> Optimizer::BuildPlanTree(OperatorExpr
   // Give raw pointers to ChooseBestPlan
   std::vector<const parser::AbstractExpression *> output_exprs;
   for (auto expr : query_info.GetOutputExprs()) {
-    output_exprs.push_back(expr.get());
+    output_exprs.push_back(expr.Get());
   }
 
   try {
     OptimizeLoop(root_id, phys_properties, settings);
   } catch (OptimizerException &e) {
-    OPTIMIZER_LOG_WARN("Optimize Loop ended prematurely: %s", e.what());
+    OPTIMIZER_LOG_WARN("Optimize Loop ended prematurely: {0}", e.what());
   }
 
   try {
@@ -69,10 +71,11 @@ std::shared_ptr<planner::AbstractPlanNode> Optimizer::BuildPlanTree(OperatorExpr
 std::shared_ptr<planner::AbstractPlanNode> Optimizer::ChooseBestPlan(
     GroupID id, PropertySet *required_props, const std::vector<const parser::AbstractExpression *> &required_cols,
     settings::SettingsManager *settings, catalog::CatalogAccessor *accessor, transaction::TransactionContext *txn) {
-  Group *group = metadata_.GetMemo().GetGroupByID(id);
+  Group *group = metadata_->GetMemo().GetGroupByID(id);
   auto gexpr = group->GetBestExpression(required_props);
 
-  OPTIMIZER_LOG_TRACE("Choosing best plan for group %d with op %s", gexpr->GetGroupID(), gexpr->Op().GetName().c_str());
+  OPTIMIZER_LOG_TRACE("Choosing best plan for group {0} with op {1}", gexpr->GetGroupID(),
+                      gexpr->Op().GetName().c_str());
 
   std::vector<GroupID> child_groups = gexpr->GetChildGroupIDs();
 
@@ -82,7 +85,7 @@ std::shared_ptr<planner::AbstractPlanNode> Optimizer::ChooseBestPlan(
 
   // Firstly derive input/output columns
   InputColumnDeriver deriver;
-  auto output_input_cols_pair = deriver.DeriveInputColumns(gexpr, required_props, required_cols, &metadata_.GetMemo());
+  auto output_input_cols_pair = deriver.DeriveInputColumns(gexpr, required_props, required_cols, &metadata_->GetMemo());
 
   auto &output_cols = output_input_cols_pair.first;
   auto &input_cols = output_input_cols_pair.second;
@@ -112,15 +115,17 @@ std::shared_ptr<planner::AbstractPlanNode> Optimizer::ChooseBestPlan(
   PlanGenerator generator;
   auto plan = generator.ConvertOpExpression(op, required_props, required_cols, output_cols, std::move(children_plans),
                                             std::move(children_expr_map), settings, accessor, txn);
-  OPTIMIZER_LOG_TRACE("Finish Choosing best plan for group %d", id);
+  OPTIMIZER_LOG_TRACE("Finish Choosing best plan for group {0}", id);
+
+  delete op;
   return plan;
 }
 
 void Optimizer::OptimizeLoop(int root_group_id, PropertySet *required_props, settings::SettingsManager *settings) {
-  auto root_context = new OptimizeContext(&metadata_, required_props->Copy());
+  auto root_context = new OptimizeContext(metadata_, required_props->Copy());
   auto task_stack = new OptimizerTaskStack();
-  metadata_.SetTaskPool(task_stack);
-  metadata_.AddOptimizeContext(root_context);
+  metadata_->SetTaskPool(task_stack);
+  metadata_->AddOptimizeContext(root_context);
 
   // Perform rewrite first
   task_stack->Push(new TopDownRewrite(root_group_id, root_context, RewriteRuleSetName::PREDICATE_PUSH_DOWN));
@@ -128,7 +133,7 @@ void Optimizer::OptimizeLoop(int root_group_id, PropertySet *required_props, set
   ExecuteTaskStack(task_stack, root_group_id, root_context, settings);
 
   // Perform optimization after the rewrite
-  Memo &memo = metadata_.GetMemo();
+  Memo &memo = metadata_->GetMemo();
   task_stack->Push(new OptimizeGroup(memo.GetGroupByID(root_group_id), root_context));
 
   // Derive stats for the only one logical expression before optimizing
@@ -138,7 +143,7 @@ void Optimizer::OptimizeLoop(int root_group_id, PropertySet *required_props, set
 
 void Optimizer::ExecuteTaskStack(OptimizerTaskStack *task_stack, int root_group_id, OptimizeContext *root_context,
                                  settings::SettingsManager *settings) {
-  auto root_group = metadata_.GetMemo().GetGroupByID(root_group_id);
+  auto root_group = metadata_->GetMemo().GetGroupByID(root_group_id);
   const auto timeout_limit = static_cast<uint64_t>(settings->GetInt(settings::Param::task_execution_timeout));
   const auto &required_props = root_context->GetRequiredProperties();
 
@@ -156,7 +161,7 @@ void Optimizer::ExecuteTaskStack(OptimizerTaskStack *task_stack, int root_group_
     auto task = task_stack->Pop();
     {
       common::ScopedTimer<std::chrono::milliseconds> timer(&task_runtime);
-      task->execute();
+      task->Execute();
     }
     delete task;
     elapsed_time += task_runtime;

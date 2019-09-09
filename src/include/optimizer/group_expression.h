@@ -29,7 +29,7 @@ class GroupExpression {
    * @param child_groups Vector of children groups
    */
   GroupExpression(Operator op, std::vector<GroupID> &&child_groups)
-      : group_id(UNDEFINED_GROUP), op(std::move(op)), child_groups(child_groups), stats_derived_(false) {}
+      : group_id_(UNDEFINED_GROUP), op_(std::move(op)), child_groups_(child_groups), stats_derived_(false) {}
 
   /**
    * Destructor. Deletes everything in the lowest_cost_table_
@@ -50,19 +50,19 @@ class GroupExpression {
    * Gets the GroupExpression's GroupID
    * @returns GroupID of the group this expression belongs to
    */
-  GroupID GetGroupID() const { return group_id; }
+  GroupID GetGroupID() const { return group_id_; }
 
   /**
    * Sets this GroupExpression's GroupID
    * @param id GroupID of the expression
    */
-  void SetGroupID(GroupID id) { group_id = id; }
+  void SetGroupID(GroupID id) { group_id_ = id; }
 
   /**
    * Gets the vector of child GroupIDs
    * @return child GroupIDs
    */
-  const std::vector<GroupID> &GetChildGroupIDs() const { return child_groups; }
+  const std::vector<GroupID> &GetChildGroupIDs() const { return child_groups_; }
 
   /**
    * Gets a specific child GroupID
@@ -70,16 +70,16 @@ class GroupExpression {
    * @returns Child's GroupID
    */
   GroupID GetChildGroupId(int child_idx) const {
-    TERRIER_ASSERT(child_idx < 0 || static_cast<size_t>(child_idx) >= child_groups.size(),
+    TERRIER_ASSERT(child_idx >= 0 && static_cast<size_t>(child_idx) < child_groups_.size(),
                    "child_idx is out of bounds");
-    return child_groups[child_idx];
+    return child_groups_[child_idx];
   }
 
   /**
    * Gets the operator wrapped by this GroupExpression
    * @returns Operator
    */
-  const Operator &Op() const { return op; }
+  const Operator &Op() const { return op_; }
 
   /**
    * Retrieves the lowest cost satisfying a given set of properties
@@ -122,7 +122,7 @@ class GroupExpression {
    * @param r Other GroupExpression
    * @returns TRUE if equal to other GroupExpression
    */
-  bool operator==(const GroupExpression &r) { return (op == r.Op()) && (child_groups == r.child_groups); }
+  bool operator==(const GroupExpression &r) { return (op_ == r.Op()) && (child_groups_ == r.child_groups_); }
 
   /**
    * Marks a rule as having being explored in this GroupExpression
@@ -151,17 +151,38 @@ class GroupExpression {
    * Gets number of children groups
    * @returns Number of child groups
    */
-  size_t GetChildrenGroupsSize() const { return child_groups.size(); }
+  size_t GetChildrenGroupsSize() const { return child_groups_.size(); }
 
  private:
-  GroupID group_id;
-  Operator op;
-  std::vector<GroupID> child_groups;
+  /**
+   * Group's ID
+   */
+  GroupID group_id_;
+
+  /**
+   * Operator
+   */
+  Operator op_;
+
+  /**
+   * Vector of child groups
+   */
+  std::vector<GroupID> child_groups_;
+
+  /**
+   * Mask of explored rules
+   */
   std::bitset<static_cast<uint32_t>(RuleType::NUM_RULES)> rule_mask_;
+
+  /**
+   * Flag of whether stats are derived
+   */
   bool stats_derived_;
 
-  // Mapping from output properties to the corresponding best cost, statistics,
-  // and child properties
+  /**
+   * Mapping from output properties to the corresponding best cost, statistics,
+   * and child properties
+   */
   std::unordered_map<PropertySet *, std::tuple<double, std::vector<PropertySet *>>, PropSetPtrHash, PropSetPtrEq>
       lowest_cost_table_;
 };

@@ -61,7 +61,7 @@ void InputColumnDeriver::Visit(const QueryDerivedScan *op) {
     output_cols[entry.second] = tv_expr;
 
     // Get the actual expression
-    const parser::AbstractExpression *input_col = alias_expr_map[tv_expr->GetColumnName()].get();
+    const parser::AbstractExpression *input_col = alias_expr_map[tv_expr->GetColumnName()].Get();
 
     // QueryDerivedScan only modify the column name to be a tv_expr, does not change the mapping
     input_cols[entry.second] = input_col;
@@ -85,7 +85,7 @@ void InputColumnDeriver::Visit(const Limit *op) {
 
   auto sort_expressions = op->GetSortExpressions();
   for (const auto &sort_column : sort_expressions) {
-    input_cols_set.insert(sort_column.get());
+    input_cols_set.insert(sort_column.Get());
   }
 
   std::vector<const parser::AbstractExpression *> cols;
@@ -114,7 +114,7 @@ void InputColumnDeriver::Visit(UNUSED_ATTRIBUTE const OrderBy *op) {
   auto sort_prop = prop->As<PropertySort>();
   size_t sort_col_size = sort_prop->GetSortColumnSize();
   for (size_t idx = 0; idx < sort_col_size; ++idx) {
-    input_cols_set.insert(sort_prop->GetSortColumn(idx).get());
+    input_cols_set.insert(sort_prop->GetSortColumn(idx).Get());
   }
 
   std::vector<const parser::AbstractExpression *> cols;
@@ -202,26 +202,26 @@ void InputColumnDeriver::AggregateHelper(const BaseOperatorNode *op) {
     parser::ExpressionUtil::GetTupleAndAggregateExprs(&aggr_exprs, &tv_exprs, expr);
 
     for (auto &aggr_expr : aggr_exprs) {
-      if (output_cols_map.count(aggr_expr) == 0u) {
+      if (output_cols_map.count(aggr_expr) == 0U) {
         // Add this AggregateExpression to output column since it is an output
         output_cols_map[aggr_expr] = output_col_idx++;
         size_t child_size = aggr_expr->GetChildrenSize();
         for (size_t idx = 0; idx < child_size; ++idx) {
           // Add all ColumnValueExpression used by the Aggregate to input columns
-          parser::ExpressionUtil::GetTupleValueExprs(&input_cols_set, aggr_expr->GetChild(idx).get());
+          parser::ExpressionUtil::GetTupleValueExprs(&input_cols_set, aggr_expr->GetChild(idx).Get());
         }
       }
     }
 
     // TV expr not in aggregation (must be in groupby, so we do not need to add to input columns)
     for (auto &tv_expr : tv_exprs) {
-      if (output_cols_map.count(tv_expr) == 0u) {
+      if (output_cols_map.count(tv_expr) == 0U) {
         output_cols_map[tv_expr] = output_col_idx++;
       }
     }
   }
 
-  std::vector<common::ManagedPointer<parser::AbstractExpression>> groupby_cols;
+  std::vector<common::ManagedPointer<const parser::AbstractExpression>> groupby_cols;
   std::vector<AnnotatedExpression> having_exprs;
   if (op->GetType() == OpType::HASHGROUPBY) {
     auto groupby = reinterpret_cast<const HashGroupBy *>(op);
@@ -235,15 +235,15 @@ void InputColumnDeriver::AggregateHelper(const BaseOperatorNode *op) {
 
   // Add all group by columns to the list of input columns
   for (auto &groupby_col : groupby_cols) {
-    input_cols_set.insert(groupby_col.get());
+    input_cols_set.insert(groupby_col.Get());
   }
 
   // Check having predicate, since the predicate may use columns other than output columns
   for (auto &having_expr : having_exprs) {
     // We perform aggregate here so the output contains aggregate exprs while
     // input should contain all tuple value exprs used to perform aggregation.
-    parser::ExpressionUtil::GetTupleValueExprs(&input_cols_set, having_expr.GetExpr().get());
-    parser::ExpressionUtil::GetTupleAndAggregateExprs(&output_cols_map, having_expr.GetExpr().get());
+    parser::ExpressionUtil::GetTupleValueExprs(&input_cols_set, having_expr.GetExpr().Get());
+    parser::ExpressionUtil::GetTupleAndAggregateExprs(&output_cols_map, having_expr.GetExpr().Get());
   }
 
   // Create the input_cols vector
@@ -265,8 +265,8 @@ void InputColumnDeriver::AggregateHelper(const BaseOperatorNode *op) {
 
 void InputColumnDeriver::JoinHelper(const BaseOperatorNode *op) {
   std::vector<AnnotatedExpression> join_conds;
-  std::vector<common::ManagedPointer<parser::AbstractExpression>> left_keys;
-  std::vector<common::ManagedPointer<parser::AbstractExpression>> right_keys;
+  std::vector<common::ManagedPointer<const parser::AbstractExpression>> left_keys;
+  std::vector<common::ManagedPointer<const parser::AbstractExpression>> right_keys;
   if (op->GetType() == OpType::INNERHASHJOIN) {
     auto join_op = reinterpret_cast<const InnerHashJoin *>(op);
     join_conds = join_op->GetJoinPredicates();
@@ -282,15 +282,15 @@ void InputColumnDeriver::JoinHelper(const BaseOperatorNode *op) {
   ExprSet input_cols_set;
   for (auto &left_key : left_keys) {
     // Get all Tuple/Aggregate expressions from left keys
-    parser::ExpressionUtil::GetTupleAndAggregateExprs(&input_cols_set, left_key.get());
+    parser::ExpressionUtil::GetTupleAndAggregateExprs(&input_cols_set, left_key.Get());
   }
   for (auto &right_key : right_keys) {
     // Get all Tuple/Aggregate expressions from right keys
-    parser::ExpressionUtil::GetTupleAndAggregateExprs(&input_cols_set, right_key.get());
+    parser::ExpressionUtil::GetTupleAndAggregateExprs(&input_cols_set, right_key.Get());
   }
   for (auto &join_cond : join_conds) {
     // Get all Tuple/Aggregate expressions from join conditions
-    parser::ExpressionUtil::GetTupleAndAggregateExprs(&input_cols_set, join_cond.GetExpr().get());
+    parser::ExpressionUtil::GetTupleAndAggregateExprs(&input_cols_set, join_cond.GetExpr().Get());
   }
 
   ExprMap output_cols_map;
@@ -331,7 +331,7 @@ void InputColumnDeriver::JoinHelper(const BaseOperatorNode *op) {
     // Pick the build or probe side depending on the table
     std::string tv_table_name = tv_expr->GetTableName();
     TERRIER_ASSERT(!tv_table_name.empty(), "Table Name should not be empty");
-    if (build_table_aliases.count(tv_table_name) != 0u) {
+    if (build_table_aliases.count(tv_table_name) != 0U) {
       build_table_cols_set.insert(col);
     } else {
       TERRIER_ASSERT(probe_table_aliases.count(tv_table_name), "tv_expr should be against probe table");

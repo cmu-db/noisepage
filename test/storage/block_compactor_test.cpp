@@ -6,6 +6,7 @@
 #include "storage/garbage_collector.h"
 #include "storage/storage_defs.h"
 #include "storage/tuple_access_strategy.h"
+#include "transaction/deferred_action_manager.h"
 #include "util/storage_test_util.h"
 #include "util/test_harness.h"
 
@@ -83,8 +84,11 @@ TEST_F(BlockCompactorTest, CompactionTest) {
     accessor.InitializeRawBlock(&table, block, storage::layout_version_t(0));
 
     // Enable GC to cleanup transactions started by the block compactor
-    transaction::TransactionManager txn_manager(&buffer_pool_, true, LOGGING_DISABLED);
-    storage::GarbageCollector gc(&txn_manager, nullptr);
+    transaction::TimestampManager timestamp_manager;
+    transaction::DeferredActionManager deferred_action_manager{&timestamp_manager};
+    transaction::TransactionManager txn_manager(&timestamp_manager, &deferred_action_manager, &buffer_pool_, true,
+                                                DISABLED);
+    storage::GarbageCollector gc(&timestamp_manager, &deferred_action_manager, &txn_manager, DISABLED);
 
     auto tuples = StorageTestUtil::PopulateBlockRandomly(&table, block, percent_empty_, &generator_);
     auto num_tuples = tuples.size();
@@ -101,7 +105,8 @@ TEST_F(BlockCompactorTest, CompactionTest) {
 
     storage::BlockCompactor compactor;
     compactor.PutInQueue(block);
-    compactor.ProcessCompactionQueue(&txn_manager);  // should always succeed with no other threads
+    compactor.ProcessCompactionQueue(&deferred_action_manager,
+                                     &txn_manager);  // should always succeed with no other threads
 
     // Read out the rows one-by-one. Check that the tuples are laid out contiguously, and that the
     // logical contents of the table did not change
@@ -127,7 +132,7 @@ TEST_F(BlockCompactorTest, CompactionTest) {
         }
       }
     }
-    txn_manager.Commit(txn, [](void *) -> void {}, nullptr);  // Commit: will be cleaned up by GC
+    txn_manager.Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);  // Commit: will be cleaned up by GC
     delete[] buffer;
 
     for (auto &entry : tuple_set) {
@@ -159,8 +164,11 @@ TEST_F(BlockCompactorTest, GatherTest) {
     accessor.InitializeRawBlock(&table, block, storage::layout_version_t(0));
 
     // Enable GC to cleanup transactions started by the block compactor
-    transaction::TransactionManager txn_manager(&buffer_pool_, true, LOGGING_DISABLED);
-    storage::GarbageCollector gc(&txn_manager, nullptr);
+    transaction::TimestampManager timestamp_manager;
+    transaction::DeferredActionManager deferred_action_manager{&timestamp_manager};
+    transaction::TransactionManager txn_manager(&timestamp_manager, &deferred_action_manager, &buffer_pool_, true,
+                                                DISABLED);
+    storage::GarbageCollector gc(&timestamp_manager, &deferred_action_manager, &txn_manager, DISABLED);
 
     auto tuples = StorageTestUtil::PopulateBlockRandomly(&table, block, percent_empty_, &generator_);
     auto num_tuples = tuples.size();
@@ -178,12 +186,12 @@ TEST_F(BlockCompactorTest, GatherTest) {
 
     storage::BlockCompactor compactor;
     compactor.PutInQueue(block);
-    compactor.ProcessCompactionQueue(&txn_manager);  // compaction pass
+    compactor.ProcessCompactionQueue(&deferred_action_manager, &txn_manager);  // compaction pass
 
     // Need to prune the version chain in order to make sure that the second pass succeeds
     gc.PerformGarbageCollection();
     compactor.PutInQueue(block);
-    compactor.ProcessCompactionQueue(&txn_manager);  // gathering pass
+    compactor.ProcessCompactionQueue(&deferred_action_manager, &txn_manager);  // gathering pass
 
     // Read out the rows one-by-one. Check that the varlens are laid out contiguously, and that the
     // logical contents of the table did not change
@@ -225,7 +233,7 @@ TEST_F(BlockCompactorTest, GatherTest) {
       }
     }
 
-    txn_manager.Commit(txn, [](void *) -> void {}, nullptr);  // Commit: will be cleaned up by GC
+    txn_manager.Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);  // Commit: will be cleaned up by GC
     delete[] buffer;
 
     for (auto &entry : tuple_set) {
@@ -259,8 +267,11 @@ TEST_F(BlockCompactorTest, DictionaryCompressionTest) {
     accessor.InitializeRawBlock(&table, block, storage::layout_version_t(0));
 
     // Enable GC to cleanup transactions started by the block compactor
-    transaction::TransactionManager txn_manager(&buffer_pool_, true, LOGGING_DISABLED);
-    storage::GarbageCollector gc(&txn_manager, nullptr);
+    transaction::TimestampManager timestamp_manager;
+    transaction::DeferredActionManager deferred_action_manager{&timestamp_manager};
+    transaction::TransactionManager txn_manager(&timestamp_manager, &deferred_action_manager, &buffer_pool_, true,
+                                                DISABLED);
+    storage::GarbageCollector gc(&timestamp_manager, &deferred_action_manager, &txn_manager, DISABLED);
 
     auto tuples = StorageTestUtil::PopulateBlockRandomly(&table, block, percent_empty_, &generator_);
     auto num_tuples = tuples.size();
@@ -278,12 +289,12 @@ TEST_F(BlockCompactorTest, DictionaryCompressionTest) {
 
     storage::BlockCompactor compactor;
     compactor.PutInQueue(block);
-    compactor.ProcessCompactionQueue(&txn_manager);  // compaction pass
+    compactor.ProcessCompactionQueue(&deferred_action_manager, &txn_manager);  // compaction pass
 
     // Need to prune the version chain in order to make sure that the second pass succeeds
     gc.PerformGarbageCollection();
     compactor.PutInQueue(block);
-    compactor.ProcessCompactionQueue(&txn_manager);  // gathering pass
+    compactor.ProcessCompactionQueue(&deferred_action_manager, &txn_manager);  // gathering pass
 
     // Read out the rows one-by-one. Check that the varlens are laid out contiguously, and that the
     // logical contents of the table did not change
@@ -341,7 +352,7 @@ TEST_F(BlockCompactorTest, DictionaryCompressionTest) {
       }
     }
 
-    txn_manager.Commit(txn, [](void *) -> void {}, nullptr);  // Commit: will be cleaned up by GC
+    txn_manager.Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);  // Commit: will be cleaned up by GC
     delete[] buffer;
 
     for (auto &entry : tuple_set) {

@@ -7,6 +7,7 @@
 #include "common/scoped_timer.h"
 #include "storage/block_compactor.h"
 #include "storage/garbage_collector.h"
+#include "transaction/deferred_action_manager.h"
 #include "util/storage_test_util.h"
 
 namespace terrier {
@@ -19,8 +20,11 @@ class BlockCompactorBenchmark : public benchmark::Fixture {
   storage::TupleAccessStrategy accessor_{layout_};
 
   storage::DataTable table_{&block_store_, layout_, storage::layout_version_t(0)};
-  transaction::TransactionManager txn_manager_{&buffer_pool_, true, LOGGING_DISABLED};
-  storage::GarbageCollector gc_{&txn_manager_, nullptr};
+  transaction::TimestampManager timestamp_manager_;
+  transaction::DeferredActionManager deferred_action_manager_{&timestamp_manager_};
+  transaction::TransactionManager txn_manager_{&timestamp_manager_, &deferred_action_manager_, &buffer_pool_, true,
+                                               DISABLED};
+  storage::GarbageCollector gc_{&timestamp_manager_, &deferred_action_manager_, &txn_manager_, nullptr};
   storage::BlockCompactor compactor_;
 
   uint32_t num_blocks_ = 500;
@@ -49,7 +53,7 @@ class BlockCompactorBenchmark : public benchmark::Fixture {
       uint64_t compaction_ms;
       {
         common::ScopedTimer<std::chrono::milliseconds> timer(&compaction_ms);
-        compactor_.ProcessCompactionQueue(&txn_manager_);
+        compactor_.ProcessCompactionQueue(&deferred_action_manager_, &txn_manager_);
       }
       gc_.PerformGarbageCollection();
       gc_.PerformGarbageCollection();
@@ -57,12 +61,12 @@ class BlockCompactorBenchmark : public benchmark::Fixture {
       uint64_t gather_ms;
       {
         common::ScopedTimer<std::chrono::milliseconds> timer(&gather_ms);
-        compactor_.ProcessCompactionQueue(&txn_manager_);
+        compactor_.ProcessCompactionQueue(&deferred_action_manager_, &txn_manager_);
       }
       for (storage::RawBlock *block : blocks) block_store_.Release(block);
       state.SetIterationTime(static_cast<double>(gather_ms + compaction_ms) / 1000.0);
     }
-    state.SetItemsProcessed(static_cast<int64_t>(num_blocks_ * state.iterations()));
+    state.SetItemsProcessed(static_cast<int64_t>(num_blocks_ * state.iterations()));  // NOLINT
   }
 
   // NOLINTNEXTLINE
@@ -88,14 +92,14 @@ class BlockCompactorBenchmark : public benchmark::Fixture {
       uint64_t elapsed_ms;
       {
         common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
-        compactor_.ProcessCompactionQueue(&txn_manager_);
+        compactor_.ProcessCompactionQueue(&deferred_action_manager_, &txn_manager_);
       }
       gc_.PerformGarbageCollection();
       gc_.PerformGarbageCollection();
       for (storage::RawBlock *block : blocks) block_store_.Release(block);
       state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
     }
-    state.SetItemsProcessed(static_cast<int64_t>(num_blocks_ * state.iterations()));
+    state.SetItemsProcessed(static_cast<int64_t>(num_blocks_ * state.iterations()));  // NOLINT
   }
 
   // NOLINTNEXTLINE
@@ -117,19 +121,19 @@ class BlockCompactorBenchmark : public benchmark::Fixture {
         blocks.push_back(block);
       }
       for (storage::RawBlock *block : blocks) compactor_.PutInQueue(block);
-      compactor_.ProcessCompactionQueue(&txn_manager_);
+      compactor_.ProcessCompactionQueue(&deferred_action_manager_, &txn_manager_);
       gc_.PerformGarbageCollection();
       gc_.PerformGarbageCollection();
       for (storage::RawBlock *block : blocks) compactor_.PutInQueue(block);
       uint64_t time;
       {
         common::ScopedTimer<std::chrono::milliseconds> timer(&time);
-        compactor_.ProcessCompactionQueue(&txn_manager_);
+        compactor_.ProcessCompactionQueue(&deferred_action_manager_, &txn_manager_);
       }
       for (storage::RawBlock *block : blocks) block_store_.Release(block);
       state.SetIterationTime(static_cast<double>(time) / 1000.0);
     }
-    state.SetItemsProcessed(static_cast<int64_t>(num_blocks_ * state.iterations()));
+    state.SetItemsProcessed(static_cast<int64_t>(num_blocks_ * state.iterations()));  // NOLINT
   }
 };
 

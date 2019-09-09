@@ -1,5 +1,6 @@
 #pragma once
 
+#include <memory>
 #include <string>
 #include <tuple>
 #include <unordered_map>
@@ -12,6 +13,7 @@
 #include "optimizer/optimizer_defs.h"
 #include "optimizer/property.h"
 #include "optimizer/property_set.h"
+#include "optimizer/statistics/column_stats.h"
 
 namespace terrier::optimizer {
 
@@ -89,13 +91,13 @@ class Group {
    * Gets the vector of all logical expressions
    * @returns Logical expressions belonging to this group
    */
-  const std::vector<GroupExpression *> GetLogicalExpressions() const { return logical_expressions_; }
+  const std::vector<GroupExpression *> &GetLogicalExpressions() const { return logical_expressions_; }
 
   /**
    * Gets the vector of all physical expressions
    *@returns Physical expressions belonging to this group
    */
-  const std::vector<GroupExpression *> GetPhysicalExpressions() const { return physical_expressions_; }
+  const std::vector<GroupExpression *> &GetPhysicalExpressions() const { return physical_expressions_; }
 
   /**
    * Gets the cost lower bound
@@ -116,10 +118,38 @@ class Group {
   bool HasExplored() { return has_explored_; }
 
   /**
+   * Sets Number of rows
+   * @param num_rows Number of rows
+   */
+  void SetNumRows(int num_rows) { num_rows_ = num_rows; }
+
+  /**
    * Gets the estimated cardinality in # rows
    * @returns # rows estimated
    */
   int GetNumRows() { return num_rows_; }
+
+  /**
+   * Get stats for a column
+   * @param column_name Column to get stats for
+   */
+  common::ManagedPointer<ColumnStats> GetStats(std::string column_name) {
+    TERRIER_ASSERT(stats_.count(column_name) != 0U, "Column Stats missing");
+    return common::ManagedPointer<ColumnStats>(stats_[column_name].get());
+  }
+
+  /**
+   * Checks if there are stats for a column
+   * @param column_name Column to check
+   */
+  bool HasColumnStats(std::string column_name) { return stats_.count(column_name) != 0U; }
+
+  /**
+   * Add stats for a column
+   * @param column_name Column to add stats
+   * @param stats Stats to add
+   */
+  void AddStats(std::string column_name, std::unique_ptr<ColumnStats> stats) { stats_[column_name] = std::move(stats); }
 
   /**
    * Gets this Group's GroupID
@@ -144,22 +174,59 @@ class Group {
   }
 
  private:
+  /**
+   * Group ID
+   */
   GroupID id_;
 
-  // All the table alias this group represents. This will not change once create
-  // TODO(boweic) Do not use string, store table alias id
+  /**
+   * All the table alias this group represents. This will not change once create
+   * TODO(boweic) Do not use string, store table alias id
+   */
   std::unordered_set<std::string> table_aliases_;
+
+  /**
+   * Mapping from property requirements to a pair of (cost, GroupExpression)
+   */
   std::unordered_map<PropertySet *, std::tuple<double, GroupExpression *>, PropSetPtrHash, PropSetPtrEq>
       lowest_cost_expressions_;
 
-  // Whether equivalent logical expressions have been explored for this group
+  /**
+   * Whether equivalent logical expressions have been explored for this group
+   */
   bool has_explored_;
 
+  /**
+   * Vector of equivalent logical expressions
+   */
   std::vector<GroupExpression *> logical_expressions_;
+
+  /**
+   * Vector of equivalent physical expressions
+   */
   std::vector<GroupExpression *> physical_expressions_;
+
+  /**
+   * Vector of expressions with properties enforced
+   */
   std::vector<GroupExpression *> enforced_exprs_;
 
+  /**
+   * Stats (added lazily)
+   * TODO(boweic):
+   * 1. Use table alias ID  + column offset to identify column
+   * 2. Support stats for arbitrary expressions
+   */
+  std::unordered_map<std::string, std::unique_ptr<ColumnStats>> stats_;
+
+  /**
+   * Number of rows
+   */
   int num_rows_ = -1;
+
+  /**
+   * Cost Lower Bound
+   */
   double cost_lower_bound_ = -1;
 };
 

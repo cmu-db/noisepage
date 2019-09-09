@@ -7,6 +7,10 @@
 #include "catalog/catalog_defs.h"
 #include "parser/expression/abstract_expression.h"
 
+namespace terrier {
+class TpccPlanTest;
+}  // namespace terrier
+
 namespace terrier::optimizer {
 class PlanGenerator;
 }  // namespace terrier::optimizer
@@ -20,6 +24,7 @@ class ColumnValueExpression : public AbstractExpression {
   // PlanGenerator creates ColumnValueexpressions and will
   // need to set the bound oids
   friend class terrier::optimizer::PlanGenerator;
+  friend class terrier::TpccPlanTest;
 
  public:
   /**
@@ -103,6 +108,17 @@ class ColumnValueExpression : public AbstractExpression {
    * @return column oid
    */
   catalog::col_oid_t GetColumnOid() const { return column_oid_; }
+
+  /**
+   * Get Column Full Name [tbl].[col]
+   */
+  std::string GetFullName() const {
+    if (!table_name_.empty()) {
+      return table_name_ + "." + column_name_;
+    }
+
+    return column_name_;
+  }
 
   /**
    * Copies this ColumnValueExpression

@@ -29,7 +29,14 @@ class PropertyEnforcer : public PropertyVisitor {
   void Visit(const PropertySort *prop) override;
 
  private:
+  /**
+   * Input GroupExpression to enforce
+   */
   GroupExpression *input_gexpr_;
+
+  /**
+   * Output GroupExpression after enforcing
+   */
   GroupExpression *output_gexpr_;
 };
 

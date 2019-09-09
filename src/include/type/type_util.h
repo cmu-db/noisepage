@@ -32,6 +32,7 @@ class TypeUtil {
         return 2;
       case TypeId::INTEGER:
       case TypeId::DATE:
+      case TypeId::PARAMETER_OFFSET:
         return 4;
       case TypeId::BIGINT:
       case TypeId::DECIMAL:
@@ -75,6 +76,8 @@ class TypeUtil {
         return "VARCHAR";
       case type::TypeId::VARBINARY:
         return "VARBINARY";
+      case type::TypeId::PARAMETER_OFFSET:
+        return "PARAMETER_OFFSET";
       default: {
         throw CONVERSION_EXCEPTION(
             ("No string conversion for TypeId value " + std::to_string(static_cast<int>(type_id))).c_str());

@@ -6,7 +6,7 @@ namespace terrier {
 
 std::shared_ptr<spdlog::logger> test_logger;
 
-void init_test_logger() {
+void InitTestLogger() {
   test_logger = std::make_shared<spdlog::logger>("test_logger", ::default_sink);
   spdlog::register_logger(test_logger);
 }

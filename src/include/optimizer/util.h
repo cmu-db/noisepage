@@ -41,8 +41,8 @@ bool IsSubset(const std::unordered_set<T> &super_set, const std::unordered_set<T
  * @param right_alias Alias set for right table
  */
 void ExtractEquiJoinKeys(const std::vector<AnnotatedExpression> &join_predicates,
-                         std::vector<common::ManagedPointer<parser::AbstractExpression>> *left_keys,
-                         std::vector<common::ManagedPointer<parser::AbstractExpression>> *right_keys,
+                         std::vector<common::ManagedPointer<const parser::AbstractExpression>> *left_keys,
+                         std::vector<common::ManagedPointer<const parser::AbstractExpression>> *right_keys,
                          const std::unordered_set<std::string> &left_alias,
                          const std::unordered_set<std::string> &right_alias);
 

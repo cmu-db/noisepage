@@ -51,7 +51,8 @@ class Schema {
           attr_size_(type::TypeUtil::GetTypeSize(type_)),
           nullable_(nullable),
           oid_(INVALID_COLUMN_OID),
-          default_value_(common::ManagedPointer<const parser::AbstractExpression>(&default_value)) {
+          default_value_(std::shared_ptr<parser::AbstractExpression>(
+              const_cast<parser::AbstractExpression *>(default_value.Copy()))) {
       TERRIER_ASSERT(attr_size_ == 1 || attr_size_ == 2 || attr_size_ == 4 || attr_size_ == 8,
                      "This constructor is meant for non-VARLEN columns.");
       TERRIER_ASSERT(type_ != type::TypeId::INVALID, "Attribute type cannot be INVALID.");
@@ -73,9 +74,28 @@ class Schema {
           max_varlen_size_(max_varlen_size),
           nullable_(nullable),
           oid_(INVALID_COLUMN_OID),
-          default_value_(common::ManagedPointer<const parser::AbstractExpression>(&default_value)) {
+          default_value_(std::shared_ptr<parser::AbstractExpression>(
+              const_cast<parser::AbstractExpression *>(default_value.Copy()))) {
       TERRIER_ASSERT(attr_size_ == VARLEN_COLUMN, "This constructor is meant for VARLEN columns.");
       TERRIER_ASSERT(type_ != type::TypeId::INVALID, "Attribute type cannot be INVALID.");
+      TERRIER_ASSERT(default_value_.use_count() == 1, "This expression should only be shared using managed pointers");
+    }
+
+    /**
+     * Overrides default copy constructor to ensure we do a deep copy on the abstract expressions
+     * @param old_column to be copied
+     */
+    Column(const Column &old_column)
+        : name_(old_column.name_),
+          type_(old_column.type_),
+          attr_size_(old_column.attr_size_),
+          max_varlen_size_(old_column.max_varlen_size_),
+          nullable_(old_column.nullable_),
+          oid_(old_column.oid_),
+          default_value_(std::shared_ptr<parser::AbstractExpression>(
+              const_cast<parser::AbstractExpression *>(old_column.default_value_->Copy()))) {
+      TERRIER_ASSERT(type_ != type::TypeId::INVALID, "Attribute type cannot be INVALID.");
+      TERRIER_ASSERT(default_value_.use_count() == 1, "This expression should only be shared using managed pointers");
     }
 
     /**
@@ -113,7 +133,10 @@ class Schema {
     /**
      * @return default value expression
      */
-    common::ManagedPointer<const parser::AbstractExpression> StoredExpression() const { return default_value_; }
+    common::ManagedPointer<const parser::AbstractExpression> StoredExpression() const {
+      TERRIER_ASSERT(default_value_.use_count() == 1, "This expression should only be shared using managed pointers");
+      return common::ManagedPointer(static_cast<const parser::AbstractExpression *>(default_value_.get()));
+    }
 
     /**
      * Default constructor for deserialization
@@ -131,6 +154,7 @@ class Schema {
       j["max_varlen_size"] = max_varlen_size_;
       j["nullable"] = nullable_;
       j["oid"] = oid_;
+      j["default_value"] = default_value_;
       return j;
     }
 
@@ -145,6 +169,8 @@ class Schema {
       max_varlen_size_ = j.at("max_varlen_size").get<uint16_t>();
       nullable_ = j.at("nullable").get<bool>();
       oid_ = j.at("oid").get<col_oid_t>();
+      default_value_ =
+          std::shared_ptr<parser::AbstractExpression>(parser::DeserializeExpression(j.at("default_value")));
     }
 
    private:
@@ -154,7 +180,9 @@ class Schema {
     uint16_t max_varlen_size_;
     bool nullable_;
     col_oid_t oid_;
-    common::ManagedPointer<const parser::AbstractExpression> default_value_;
+
+    // TODO(John) this should become a unique_ptr as part of addressing #489
+    std::shared_ptr<parser::AbstractExpression> default_value_;
 
     void SetOid(col_oid_t oid) { oid_ = oid; }
 
@@ -176,10 +204,10 @@ class Schema {
       // If not all columns assigned OIDs, then clear the map because this is
       // a definition of a new/modified table not a catalog generated schema.
       if (columns_[i].Oid() == catalog::INVALID_COLUMN_OID) {
-        col_oid_to_offset.clear();
+        col_oid_to_offset_.clear();
         return;
       }
-      col_oid_to_offset[columns_[i].Oid()] = i;
+      col_oid_to_offset_[columns_[i].Oid()] = i;
     }
   }
 
@@ -192,7 +220,7 @@ class Schema {
    * @param col_offset offset into the schema specifying which Column to access
    * @return description of the schema for a specific column
    */
-  Column GetColumn(const uint32_t col_offset) const {
+  const Column &GetColumn(const uint32_t col_offset) const {
     TERRIER_ASSERT(col_offset < columns_.size(), "column id is out of bounds for this Schema");
     return columns_[col_offset];
   }
@@ -200,9 +228,9 @@ class Schema {
    * @param col_oid identifier of a Column in the schema
    * @return description of the schema for a specific column
    */
-  Column GetColumn(const col_oid_t col_oid) const {
-    TERRIER_ASSERT(col_oid_to_offset.count(col_oid) > 0, "col_oid does not exist in this Schema");
-    const uint32_t col_offset = col_oid_to_offset.at(col_oid);
+  const Column &GetColumn(const col_oid_t col_oid) const {
+    TERRIER_ASSERT(col_oid_to_offset_.count(col_oid) > 0, "col_oid does not exist in this Schema");
+    const uint32_t col_offset = col_oid_to_offset_.at(col_oid);
     return columns_[col_offset];
   }
 
@@ -211,8 +239,8 @@ class Schema {
    * @return description of the schema for a specific column
    * @throw std::out_of_range if the column doesn't exist.
    */
-  Column GetColumn(const std::string &name) const {
-    for (auto &c : columns_) {
+  const Column &GetColumn(const std::string &name) const {
+    for (const auto &c : columns_) {
       if (c.Name() == name) {
         return c;
       }
@@ -256,7 +284,7 @@ class Schema {
  private:
   friend class DatabaseCatalog;
   std::vector<Column> columns_;
-  std::unordered_map<col_oid_t, uint32_t> col_oid_to_offset;
+  std::unordered_map<col_oid_t, uint32_t> col_oid_to_offset_;
 };
 
 DEFINE_JSON_DECLARATIONS(Schema::Column);

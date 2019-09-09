@@ -5,7 +5,7 @@ namespace terrier::optimizer {
 
 int Rule::Promise(GroupExpression *group_expr, OptimizeContext *context) const {
   (void)context;
-  auto root_type = match_pattern->Type();
+  auto root_type = match_pattern_->Type();
   // This rule is not applicable
   if (root_type != OpType::LEAF && root_type != group_expr->Op().GetType()) {
     return 0;

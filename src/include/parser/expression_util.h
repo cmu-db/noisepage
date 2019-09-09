@@ -88,40 +88,19 @@ class ExpressionUtil {
   static ExpressionType ReverseComparisonExpressionType(ExpressionType type) {
     switch (type) {
       case ExpressionType::COMPARE_GREATER_THAN:
-        return ExpressionType::COMPARE_LESS_THAN_OR_EQUAL_TO;
-      case ExpressionType::COMPARE_GREATER_THAN_OR_EQUAL_TO:
         return ExpressionType::COMPARE_LESS_THAN;
+      case ExpressionType::COMPARE_GREATER_THAN_OR_EQUAL_TO:
+        return ExpressionType::COMPARE_LESS_THAN_OR_EQUAL_TO;
       case ExpressionType::COMPARE_LESS_THAN:
-        return ExpressionType::COMPARE_GREATER_THAN_OR_EQUAL_TO;
-      case ExpressionType::COMPARE_LESS_THAN_OR_EQUAL_TO:
         return ExpressionType::COMPARE_GREATER_THAN;
+      case ExpressionType::COMPARE_LESS_THAN_OR_EQUAL_TO:
+        return ExpressionType::COMPARE_GREATER_THAN_OR_EQUAL_TO;
       default:
         return type;
     }
   }
 
  public:
-  /**
-   * Generate a set of table alias included in an expression
-   */
-  static void GenerateTableAliasSet(const AbstractExpression *expr, std::unordered_set<std::string> *table_alias_set) {
-    if (expr->GetExpressionType() == ExpressionType::COLUMN_VALUE) {
-      auto tv_expr = dynamic_cast<const ColumnValueExpression *>(expr);
-      TERRIER_ASSERT(tv_expr, "tv_expr should be ColumnValueExpression");
-
-      std::string tbl = tv_expr->GetTableName();
-      TERRIER_ASSERT(!tbl.empty(), "Table alias should not be empty");
-      table_alias_set->insert(tbl);
-    } else {
-      TERRIER_ASSERT(expr->GetExpressionType() != ExpressionType::VALUE_TUPLE,
-                     "DerivedValueExpression should not exist.");
-
-      for (size_t i = 0; i < expr->GetChildrenSize(); i++) {
-        GenerateTableAliasSet(expr->GetChild(i).get(), table_alias_set);
-      }
-    }
-  }
-
   /**
    * @brief TODO(boweic): this function may not be efficient, in the future we
    * may want to add expressions to groups so that we do not need to walk
@@ -153,12 +132,12 @@ class ExpressionUtil {
 
     std::vector<const AbstractExpression *> children;
     for (size_t i = 0; i < expr->GetChildrenSize(); i++) {
-      const AbstractExpression *child_expr = expr->GetChild(i).get();
+      const AbstractExpression *child_expr = expr->GetChild(i).Get();
 
       bool did_insert = false;
       int tuple_idx = 0;
       for (auto &child_expr_map : child_expr_maps) {
-        if (child_expr->GetExpressionType() != ExpressionType::COLUMN_VALUE && child_expr_map.count(child_expr) != 0u) {
+        if (child_expr->GetExpressionType() != ExpressionType::COLUMN_VALUE && child_expr_map.count(child_expr) != 0U) {
           auto type = child_expr->GetReturnValueType();
           auto iter = child_expr_map.find(expr);
           TERRIER_ASSERT(iter != child_expr_map.end(), "Missing ColumnValueExpression...");
@@ -214,12 +193,12 @@ class ExpressionUtil {
     std::vector<const AggregateExpression *> aggr_exprs;
     GetTupleAndAggregateExprs(&aggr_exprs, &tv_exprs, expr);
     for (auto &tv_expr : tv_exprs) {
-      if (expr_map->count(tv_expr) == 0u) {
+      if (expr_map->count(tv_expr) == 0U) {
         expr_map->emplace(tv_expr, expr_map->size());
       }
     }
     for (auto &aggr_expr : aggr_exprs) {
-      if (expr_map->count(aggr_expr) == 0u) {
+      if (expr_map->count(aggr_expr) == 0U) {
         expr_map->emplace(aggr_expr, expr_map->size());
       }
     }
@@ -266,7 +245,7 @@ class ExpressionUtil {
       TERRIER_ASSERT(expr->GetExpressionType() != ExpressionType::VALUE_TUPLE,
                      "DerivedValueExpression should not exist here.");
       for (size_t i = 0; i < children_size; i++) {
-        GetTupleAndAggregateExprs(aggr_exprs, tv_exprs, expr->GetChild(i).get());
+        GetTupleAndAggregateExprs(aggr_exprs, tv_exprs, expr->GetChild(i).Get());
       }
     }
   }
@@ -282,11 +261,11 @@ class ExpressionUtil {
   static void GetTupleValueExprs(optimizer::ExprMap *expr_map, const AbstractExpression *expr) {
     size_t children_size = expr->GetChildrenSize();
     for (size_t i = 0; i < children_size; i++) {
-      GetTupleValueExprs(expr_map, expr->GetChild(i).get());
+      GetTupleValueExprs(expr_map, expr->GetChild(i).Get());
     }
 
     // Here we need a deep copy to void double delete subtree
-    if (expr->GetExpressionType() == ExpressionType::VALUE_TUPLE) {
+    if (expr->GetExpressionType() == ExpressionType::COLUMN_VALUE) {
       expr_map->emplace(expr, expr_map->size());
     }
   }
@@ -301,10 +280,10 @@ class ExpressionUtil {
   static void GetTupleValueExprs(optimizer::ExprSet *expr_set, const AbstractExpression *expr) {
     size_t children_size = expr->GetChildrenSize();
     for (size_t i = 0; i < children_size; i++) {
-      GetTupleValueExprs(expr_set, expr->GetChild(i).get());
+      GetTupleValueExprs(expr_set, expr->GetChild(i).Get());
     }
 
-    if (expr->GetExpressionType() == ExpressionType::VALUE_TUPLE) {
+    if (expr->GetExpressionType() == ExpressionType::COLUMN_VALUE) {
       expr_set->insert(expr);
     }
   }
@@ -329,9 +308,9 @@ class ExpressionUtil {
 
     // Evaluate all children and store new children pointers
     size_t children_size = expr->GetChildrenSize();
-    std::vector<const AbstractExpression *> children(children_size);
+    std::vector<const AbstractExpression *> children;
     for (size_t i = 0; i < children_size; i++) {
-      children.push_back(EvaluateExpression(expr_maps, expr->GetChild(i).get()));
+      children.push_back(EvaluateExpression(expr_maps, expr->GetChild(i).Get()));
     }
 
     if (expr->GetExpressionType() == ExpressionType::COLUMN_VALUE) {
@@ -358,21 +337,23 @@ class ExpressionUtil {
       OPTIMIZER_LOG_WARN("EvaluateExpression resulted in an unbound ColumnValueExpression");
       // TERRIER_ASSERT(0, "EvaluateExpression resulted in an unbound ColumnValueExpression");
     } else if (IsAggregateExpression(expr->GetExpressionType())) {
+      /*
+      TODO(wz2, [ExecutionEngine]): If value_idx is somehow needed during aggregation, reviist this
+      Peloton never seems to read from AggregateExpression's value_idx
+
       auto c_aggr_expr = dynamic_cast<const AggregateExpression *>(expr);
       TERRIER_ASSERT(c_aggr_expr, "expr should be AggregateExpression");
 
-      // SetValueIdx(), explicitly cast away const-ness
-      // auto aggr_expr = const_cast<AggregateExpression*>(c_aggr_expr);
+      auto aggr_expr = const_cast<AggregateExpression*>(c_aggr_expr);
 
       for (auto &expr_map : expr_maps) {
         auto iter = expr_map.find(expr);
         if (iter != expr_map.end()) {
-          // TODO(wz2): Discuss this at optimizer meeting (06/18)
-          TERRIER_ASSERT(0, "Missing ValueIdx on AggregateExpression...");
-
-          // aggr_expr->SetValueIdx(iter->second);
+          aggr_expr->SetValueIdx(iter->second);
         }
       }
+
+      */
     } else if (expr->GetExpressionType() == ExpressionType::FUNCTION) {
       /*
       TODO(wz2): Uncomment and fix this when Functions exist
@@ -404,13 +385,13 @@ class ExpressionUtil {
       // Evaluate against WhenClause condition + result and store new
       std::vector<CaseExpression::WhenClause *> clauses;
       for (size_t i = 0; i < case_expr->GetWhenClauseSize(); i++) {
-        auto cond = EvaluateExpression(expr_maps, case_expr->GetWhenClauseCondition(i).get());
-        auto result = EvaluateExpression(expr_maps, case_expr->GetWhenClauseResult(i).get());
+        auto cond = EvaluateExpression(expr_maps, case_expr->GetWhenClauseCondition(i).Get());
+        auto result = EvaluateExpression(expr_maps, case_expr->GetWhenClauseResult(i).Get());
         clauses.push_back(new CaseExpression::WhenClause(cond, result));
       }
 
       // Create and return new CaseExpression that is evaluated
-      auto *def_cond = EvaluateExpression(expr_maps, case_expr->GetDefaultClause().get());
+      auto *def_cond = EvaluateExpression(expr_maps, case_expr->GetDefaultClause().Get());
       auto type = case_expr->GetReturnValueType();
       return new CaseExpression(type, clauses, def_cond);
     }

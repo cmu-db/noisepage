@@ -53,8 +53,19 @@ class OptimizeContext {
   void SetCostUpperBound(double cost) { cost_upper_bound_ = cost; }
 
  private:
+  /**
+   * OptimizerMetadata
+   */
   OptimizerMetadata *metadata_;
+
+  /**
+   * Required properties
+   */
   PropertySet *required_prop_;
+
+  /**
+   * Cost Upper Bound (for pruning)
+   */
   double cost_upper_bound_;
 };
 

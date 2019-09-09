@@ -193,6 +193,10 @@ class ChildPropertyDeriver : public OperatorVisitor {
    * Derives properties for a JOIN
    */
   void DeriveForJoin();
+
+  /**
+   * Any property requirements
+   */
   PropertySet *requirements_;
 
   /**
@@ -205,6 +209,10 @@ class ChildPropertyDeriver : public OperatorVisitor {
    * We need the memo and gexpr because some property may depend on child's schema
    */
   Memo *memo_;
+
+  /**
+   * Group Expression to derive
+   */
   GroupExpression *gexpr_;
 
   /**

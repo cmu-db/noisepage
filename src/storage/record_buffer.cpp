@@ -19,7 +19,7 @@ byte *RedoBuffer::NewEntry(const uint32_t size) {
     buffer_seg_ = buffer_pool_->Get();
   } else if (!buffer_seg_->HasBytesLeft(size)) {
     // old log buffer is full
-    if (log_manager_ != LOGGING_DISABLED) {
+    if (log_manager_ != DISABLED) {
       log_manager_->AddBufferToFlushQueue(buffer_seg_);
       has_flushed_ = true;
     } else {
@@ -35,7 +35,7 @@ byte *RedoBuffer::NewEntry(const uint32_t size) {
 
 void RedoBuffer::Finalize(bool flush_buffer) {
   if (buffer_seg_ == nullptr) return;
-  if (log_manager_ != LOGGING_DISABLED && flush_buffer) {
+  if (log_manager_ != DISABLED && flush_buffer) {
     log_manager_->AddBufferToFlushQueue(buffer_seg_);
     has_flushed_ = true;
   } else {

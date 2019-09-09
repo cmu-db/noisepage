@@ -27,55 +27,55 @@ class Schemas {
    */
   static catalog::Schema BuildWarehouseTableSchema(uint32_t *const oid_counter) {
     std::vector<catalog::Schema::Column> warehouse_columns;
-    warehouse_columns.reserve(num_warehouse_table_cols_);
+    warehouse_columns.reserve(NUM_WAREHOUSE_TABLE_COLS);
 
     // 2*W unique IDs
     warehouse_columns.emplace_back(
-        "W_ID", type::TypeId::TINYINT, false,
+        "w_id", type::TypeId::TINYINT, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::TINYINT)));
     warehouse_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // variable text, size 10
     warehouse_columns.emplace_back(
-        "W_NAME", type::TypeId::VARCHAR, 10, false,
+        "w_name", type::TypeId::VARCHAR, 10, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR)));
     warehouse_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // variable text, size 20
     warehouse_columns.emplace_back(
-        "W_STREET_1", type::TypeId::VARCHAR, 20, false,
+        "w_street_1", type::TypeId::VARCHAR, 20, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR)));
     warehouse_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // variable text, size 20
     warehouse_columns.emplace_back(
-        "W_STREET_2", type::TypeId::VARCHAR, 20, false,
+        "w_street_2", type::TypeId::VARCHAR, 20, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR)));
     warehouse_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // variable text, size 20
     warehouse_columns.emplace_back(
-        "W_CITY", type::TypeId::VARCHAR, 20, false,
+        "w_city", type::TypeId::VARCHAR, 20, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR)));
     warehouse_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // fixed text, size 2
     warehouse_columns.emplace_back(
-        "W_STATE", type::TypeId::VARCHAR, 2, false,
+        "w_state", type::TypeId::VARCHAR, 2, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR)));
     warehouse_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // fixed text, size 9
     warehouse_columns.emplace_back(
-        "W_ZIP", type::TypeId::VARCHAR, 9, false,
+        "w_zip", type::TypeId::VARCHAR, 9, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR)));
     warehouse_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // signed numeric(4,4)
     warehouse_columns.emplace_back(
-        "W_TAX", type::TypeId::DECIMAL, false,
+        "w_tax", type::TypeId::DECIMAL, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::DECIMAL)));
     warehouse_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // signed numeric(12,2)
     warehouse_columns.emplace_back(
-        "W_YTD", type::TypeId::DECIMAL, false,
+        "w_ytd", type::TypeId::DECIMAL, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::DECIMAL)));
     warehouse_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
 
-    TERRIER_ASSERT(warehouse_columns.size() == num_warehouse_table_cols_,
+    TERRIER_ASSERT(warehouse_columns.size() == NUM_WAREHOUSE_TABLE_COLS,
                    "Wrong number of columns for Warehouse table schema.");
 
     return catalog::Schema(warehouse_columns);
@@ -89,16 +89,16 @@ class Schemas {
   static catalog::IndexSchema BuildWarehousePrimaryIndexSchema(const catalog::Schema &schema,
                                                                uint32_t *const oid_counter) {
     std::vector<catalog::IndexSchema::Column> warehouse_key_schema;
-    warehouse_key_schema.reserve(num_warehouse_primary_index_cols_);
+    warehouse_key_schema.reserve(NUM_WAREHOUSE_PRIMARY_INDEX_COLS);
 
     // Primary Key: W_ID
     warehouse_key_schema.emplace_back(
-        "", schema.GetColumn(0).Type(), schema.GetColumn(0).Nullable(),
+        "w_id", schema.GetColumn("w_id").Type(), schema.GetColumn("w_id").Nullable(),
         parser::ColumnValueExpression(catalog::INVALID_DATABASE_OID, catalog::table_oid_t(0),
-                                      schema.GetColumn(0).Oid()));
+                                      schema.GetColumn("w_id").Oid()));
     warehouse_key_schema.back().SetOid(static_cast<catalog::indexkeycol_oid_t>(++(*oid_counter)));
 
-    TERRIER_ASSERT(warehouse_key_schema.size() == num_warehouse_primary_index_cols_,
+    TERRIER_ASSERT(warehouse_key_schema.size() == NUM_WAREHOUSE_PRIMARY_INDEX_COLS,
                    "Wrong number of columns for Warehouse primary index schema.");
 
     return catalog::IndexSchema(warehouse_key_schema, true, true, false, true);
@@ -110,65 +110,65 @@ class Schemas {
    */
   static catalog::Schema BuildDistrictTableSchema(uint32_t *const oid_counter) {
     std::vector<catalog::Schema::Column> district_columns;
-    district_columns.reserve(num_district_table_cols_);
+    district_columns.reserve(NUM_DISTRICT_TABLE_COLS);
 
     // 20 unique IDs
     district_columns.emplace_back(
-        "D_ID", type::TypeId::TINYINT, false,
+        "d_id", type::TypeId::TINYINT, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::TINYINT)));
     district_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // 2*W unique IDs
     district_columns.emplace_back(
-        "D_W_ID", type::TypeId::TINYINT, false,
+        "d_w_id", type::TypeId::TINYINT, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::TINYINT)));
     district_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // variable text, size 10
     district_columns.emplace_back(
-        "D_NAME", type::TypeId::VARCHAR, 10, false,
+        "d_name", type::TypeId::VARCHAR, 10, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR)));
     district_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // variable text, size 20
     district_columns.emplace_back(
-        "D_STREET_1", type::TypeId::VARCHAR, 20, false,
+        "d_street_1", type::TypeId::VARCHAR, 20, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR)));
     district_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // variable text, size 20
     district_columns.emplace_back(
-        "D_STREET_2", type::TypeId::VARCHAR, 20, false,
+        "d_street_2", type::TypeId::VARCHAR, 20, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR)));
     district_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // variable text, size 20
     district_columns.emplace_back(
-        "D_CITY", type::TypeId::VARCHAR, 20, false,
+        "d_city", type::TypeId::VARCHAR, 20, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR)));
     district_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // fixed text, size 2
     district_columns.emplace_back(
-        "D_STATE", type::TypeId::VARCHAR, 2, false,
+        "d_state", type::TypeId::VARCHAR, 2, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR)));
     district_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // fixed text, size 9
     district_columns.emplace_back(
-        "D_ZIP", type::TypeId::VARCHAR, 9, false,
+        "d_zip", type::TypeId::VARCHAR, 9, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR)));
     district_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // signed numeric(4,4)
     district_columns.emplace_back(
-        "D_TAX", type::TypeId::DECIMAL, false,
+        "d_tax", type::TypeId::DECIMAL, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::DECIMAL)));
     district_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // signed numeric(12,2)
     district_columns.emplace_back(
-        "D_YTD", type::TypeId::DECIMAL, false,
+        "d_ytd", type::TypeId::DECIMAL, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::DECIMAL)));
     district_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // 10,000,000 unique IDs
     district_columns.emplace_back(
-        "D_NEXT_O_ID", type::TypeId::INTEGER, false,
+        "d_next_o_id", type::TypeId::INTEGER, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
     district_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
 
-    TERRIER_ASSERT(district_columns.size() == num_district_table_cols_,
+    TERRIER_ASSERT(district_columns.size() == NUM_DISTRICT_TABLE_COLS,
                    "Wrong number of columns for District table schema.");
 
     return catalog::Schema(district_columns);
@@ -182,19 +182,21 @@ class Schemas {
   static catalog::IndexSchema BuildDistrictPrimaryIndexSchema(const catalog::Schema &schema,
                                                               uint32_t *const oid_counter) {
     std::vector<catalog::IndexSchema::Column> district_key_schema;
-    district_key_schema.reserve(num_district_primary_index_cols_);
+    district_key_schema.reserve(NUM_DISTRICT_PRIMARY_INDEX_COLS);
 
     // Primary Key: (D_W_ID, D_ID)
-    district_key_schema.emplace_back("", schema.GetColumn(1).Type(), schema.GetColumn(1).Nullable(),
-                                     parser::ColumnValueExpression(catalog::INVALID_DATABASE_OID,
-                                                                   catalog::table_oid_t(0), schema.GetColumn(1).Oid()));
+    district_key_schema.emplace_back(
+        "d_w_id", schema.GetColumn("d_w_id").Type(), schema.GetColumn("d_w_id").Nullable(),
+        parser::ColumnValueExpression(catalog::INVALID_DATABASE_OID, catalog::table_oid_t(0),
+                                      schema.GetColumn("d_w_id").Oid()));
     district_key_schema.back().SetOid(static_cast<catalog::indexkeycol_oid_t>(++(*oid_counter)));
-    district_key_schema.emplace_back("", schema.GetColumn(0).Type(), schema.GetColumn(0).Nullable(),
-                                     parser::ColumnValueExpression(catalog::INVALID_DATABASE_OID,
-                                                                   catalog::table_oid_t(0), schema.GetColumn(0).Oid()));
+    district_key_schema.emplace_back(
+        "d_id", schema.GetColumn("d_id").Type(), schema.GetColumn("d_id").Nullable(),
+        parser::ColumnValueExpression(catalog::INVALID_DATABASE_OID, catalog::table_oid_t(0),
+                                      schema.GetColumn("d_id").Oid()));
     district_key_schema.back().SetOid(static_cast<catalog::indexkeycol_oid_t>(++(*oid_counter)));
 
-    TERRIER_ASSERT(district_key_schema.size() == num_district_primary_index_cols_,
+    TERRIER_ASSERT(district_key_schema.size() == NUM_DISTRICT_PRIMARY_INDEX_COLS,
                    "Wrong number of columns for District primary index schema.");
 
     return catalog::IndexSchema(district_key_schema, true, true, false, true);
@@ -206,115 +208,115 @@ class Schemas {
    */
   static catalog::Schema BuildCustomerTableSchema(uint32_t *const oid_counter) {
     std::vector<catalog::Schema::Column> customer_columns;
-    customer_columns.reserve(num_customer_table_cols_);
+    customer_columns.reserve(NUM_CUSTOMER_TABLE_COLS);
 
     // 96,000 unique IDs
     customer_columns.emplace_back(
-        "C_ID", type::TypeId::INTEGER, false,
+        "c_id", type::TypeId::INTEGER, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
     customer_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // 20 unique IDs
     customer_columns.emplace_back(
-        "C_D_ID", type::TypeId::TINYINT, false,
+        "c_d_id", type::TypeId::TINYINT, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::TINYINT)));
     customer_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // 2*W unique IDs
     customer_columns.emplace_back(
-        "C_W_ID", type::TypeId::TINYINT, false,
+        "c_w_id", type::TypeId::TINYINT, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::TINYINT)));
     customer_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // variable text, size 16
     customer_columns.emplace_back(
-        "C_FIRST", type::TypeId::VARCHAR, 16, false,
+        "c_first", type::TypeId::VARCHAR, 16, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR)));
     customer_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // fixed text, size 2
     customer_columns.emplace_back(
-        "C_MIDDLE", type::TypeId::VARCHAR, 2, false,
+        "c_middle", type::TypeId::VARCHAR, 2, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR)));
     customer_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // variable text, size 16
     customer_columns.emplace_back(
-        "C_LAST", type::TypeId::VARCHAR, 16, false,
+        "c_last", type::TypeId::VARCHAR, 16, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR)));
     customer_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // variable text, size 20
     customer_columns.emplace_back(
-        "C_STREET_1", type::TypeId::VARCHAR, 20, false,
+        "c_street_1", type::TypeId::VARCHAR, 20, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR)));
     customer_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // variable text, size 20
     customer_columns.emplace_back(
-        "C_STREET_2", type::TypeId::VARCHAR, 20, false,
+        "c_street_2", type::TypeId::VARCHAR, 20, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR)));
     customer_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // variable text, size 20
     customer_columns.emplace_back(
-        "C_CITY", type::TypeId::VARCHAR, 20, false,
+        "c_city", type::TypeId::VARCHAR, 20, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR)));
     customer_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // fixed text, size 2
     customer_columns.emplace_back(
-        "C_STATE", type::TypeId::VARCHAR, 2, false,
+        "c_state", type::TypeId::VARCHAR, 2, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR)));
     customer_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // fixed text, size 9
     customer_columns.emplace_back(
-        "C_ZIP", type::TypeId::VARCHAR, 9, false,
+        "c_zip", type::TypeId::VARCHAR, 9, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR)));
     customer_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // fixed text, size 16
     customer_columns.emplace_back(
-        "C_PHONE", type::TypeId::VARCHAR, 16, false,
+        "c_phone", type::TypeId::VARCHAR, 16, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR)));
     customer_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // date and time
     customer_columns.emplace_back(
-        "C_SINCE", type::TypeId::TIMESTAMP, false,
+        "c_since", type::TypeId::TIMESTAMP, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::TIMESTAMP)));
     customer_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // fixed text, size 2
     customer_columns.emplace_back(
-        "C_CREDIT", type::TypeId::VARCHAR, 2, false,
+        "c_credit", type::TypeId::VARCHAR, 2, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR)));
     customer_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // signed numeric(12,2)
     customer_columns.emplace_back(
-        "C_CREDIT_LIM", type::TypeId::DECIMAL, false,
+        "c_credit_lim", type::TypeId::DECIMAL, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::DECIMAL)));
     customer_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // signed numeric(4,4)
     customer_columns.emplace_back(
-        "C_DISCOUNT", type::TypeId::DECIMAL, false,
+        "c_discount", type::TypeId::DECIMAL, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::DECIMAL)));
     customer_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // signed numeric(12,2)
     customer_columns.emplace_back(
-        "C_BALANCE", type::TypeId::DECIMAL, false,
+        "c_balance", type::TypeId::DECIMAL, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::DECIMAL)));
     customer_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // signed numeric(12,2)
     customer_columns.emplace_back(
-        "C_YTD_PAYMENT", type::TypeId::DECIMAL, false,
+        "c_ytd_payment", type::TypeId::DECIMAL, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::DECIMAL)));
     customer_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // numeric(4)
     customer_columns.emplace_back(
-        "C_PAYMENT_CNT", type::TypeId::SMALLINT, false,
+        "c_payment_cnt", type::TypeId::SMALLINT, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::SMALLINT)));
     customer_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // numeric(4)
     customer_columns.emplace_back(
-        "C_DELIVERY_CNT", type::TypeId::SMALLINT, false,
+        "c_delivery_cnt", type::TypeId::SMALLINT, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::SMALLINT)));
     customer_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // variable text, size 500
     customer_columns.emplace_back(
-        "C_DATA", type::TypeId::VARCHAR, 500, false,
+        "c_data", type::TypeId::VARCHAR, 500, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR)));
     customer_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
 
-    TERRIER_ASSERT(customer_columns.size() == num_customer_table_cols_,
+    TERRIER_ASSERT(customer_columns.size() == NUM_CUSTOMER_TABLE_COLS,
                    "Wrong number of columns for Customer table schema.");
 
     return catalog::Schema(customer_columns);
@@ -328,23 +330,26 @@ class Schemas {
   static catalog::IndexSchema BuildCustomerPrimaryIndexSchema(const catalog::Schema &schema,
                                                               uint32_t *const oid_counter) {
     std::vector<catalog::IndexSchema::Column> customer_key_schema;
-    customer_key_schema.reserve(num_customer_primary_index_cols_);
+    customer_key_schema.reserve(NUM_CUSTOMER_PRIMARY_INDEX_COLS);
 
     // Primary Key: (C_W_ID, C_D_ID, C_ID)
-    customer_key_schema.emplace_back("", schema.GetColumn(2).Type(), schema.GetColumn(2).Nullable(),
-                                     parser::ColumnValueExpression(catalog::INVALID_DATABASE_OID,
-                                                                   catalog::table_oid_t(0), schema.GetColumn(2).Oid()));
+    customer_key_schema.emplace_back(
+        "c_w_id", schema.GetColumn("c_w_id").Type(), schema.GetColumn("c_w_id").Nullable(),
+        parser::ColumnValueExpression(catalog::INVALID_DATABASE_OID, catalog::table_oid_t(0),
+                                      schema.GetColumn("c_w_id").Oid()));
     customer_key_schema.back().SetOid(static_cast<catalog::indexkeycol_oid_t>(++(*oid_counter)));
-    customer_key_schema.emplace_back("", schema.GetColumn(1).Type(), schema.GetColumn(1).Nullable(),
-                                     parser::ColumnValueExpression(catalog::INVALID_DATABASE_OID,
-                                                                   catalog::table_oid_t(0), schema.GetColumn(1).Oid()));
+    customer_key_schema.emplace_back(
+        "c_d_id", schema.GetColumn("c_d_id").Type(), schema.GetColumn("c_d_id").Nullable(),
+        parser::ColumnValueExpression(catalog::INVALID_DATABASE_OID, catalog::table_oid_t(0),
+                                      schema.GetColumn("c_d_id").Oid()));
     customer_key_schema.back().SetOid(static_cast<catalog::indexkeycol_oid_t>(++(*oid_counter)));
-    customer_key_schema.emplace_back("", schema.GetColumn(0).Type(), schema.GetColumn(0).Nullable(),
-                                     parser::ColumnValueExpression(catalog::INVALID_DATABASE_OID,
-                                                                   catalog::table_oid_t(0), schema.GetColumn(0).Oid()));
+    customer_key_schema.emplace_back(
+        "c_id", schema.GetColumn("c_id").Type(), schema.GetColumn("c_id").Nullable(),
+        parser::ColumnValueExpression(catalog::INVALID_DATABASE_OID, catalog::table_oid_t(0),
+                                      schema.GetColumn("c_id").Oid()));
     customer_key_schema.back().SetOid(static_cast<catalog::indexkeycol_oid_t>(++(*oid_counter)));
 
-    TERRIER_ASSERT(customer_key_schema.size() == num_customer_primary_index_cols_,
+    TERRIER_ASSERT(customer_key_schema.size() == NUM_CUSTOMER_PRIMARY_INDEX_COLS,
                    "Wrong number of columns for Customer primary index schema.");
 
     return catalog::IndexSchema(customer_key_schema, true, true, false, true);
@@ -358,26 +363,27 @@ class Schemas {
   static catalog::IndexSchema BuildCustomerSecondaryIndexSchema(const catalog::Schema &schema,
                                                                 uint32_t *const oid_counter) {
     std::vector<catalog::IndexSchema::Column> customer_secondary_key_schema;
-    customer_secondary_key_schema.reserve(num_customer_secondary_index_cols_);
+    customer_secondary_key_schema.reserve(NUM_CUSTOMER_SECONDARY_INDEX_COLS);
 
     // C_W_ID, C_D_ID, C_LAST for Order Status and Payment transactions
     customer_secondary_key_schema.emplace_back(
-        "", schema.GetColumn(2).Type(), schema.GetColumn(2).Nullable(),
+        "c_w_id", schema.GetColumn("c_w_id").Type(), schema.GetColumn("c_w_id").Nullable(),
         parser::ColumnValueExpression(catalog::INVALID_DATABASE_OID, catalog::table_oid_t(0),
-                                      schema.GetColumn(2).Oid()));
+                                      schema.GetColumn("c_w_id").Oid()));
     customer_secondary_key_schema.back().SetOid(static_cast<catalog::indexkeycol_oid_t>(++(*oid_counter)));
     customer_secondary_key_schema.emplace_back(
-        "", schema.GetColumn(1).Type(), schema.GetColumn(1).Nullable(),
+        "c_d_id", schema.GetColumn("c_d_id").Type(), schema.GetColumn("c_d_id").Nullable(),
         parser::ColumnValueExpression(catalog::INVALID_DATABASE_OID, catalog::table_oid_t(0),
-                                      schema.GetColumn(1).Oid()));
+                                      schema.GetColumn("c_d_id").Oid()));
     customer_secondary_key_schema.back().SetOid(static_cast<catalog::indexkeycol_oid_t>(++(*oid_counter)));
     customer_secondary_key_schema.emplace_back(
-        "", schema.GetColumn(5).Type(), schema.GetColumn(5).MaxVarlenSize(), schema.GetColumn(5).Nullable(),
+        "c_last", schema.GetColumn("c_last").Type(), schema.GetColumn("c_last").MaxVarlenSize(),
+        schema.GetColumn("c_last").Nullable(),
         parser::ColumnValueExpression(catalog::INVALID_DATABASE_OID, catalog::table_oid_t(0),
-                                      schema.GetColumn(5).Oid()));
+                                      schema.GetColumn("c_last").Oid()));
     customer_secondary_key_schema.back().SetOid(static_cast<catalog::indexkeycol_oid_t>(++(*oid_counter)));
 
-    TERRIER_ASSERT(customer_secondary_key_schema.size() == num_customer_secondary_index_cols_,
+    TERRIER_ASSERT(customer_secondary_key_schema.size() == NUM_CUSTOMER_SECONDARY_INDEX_COLS,
                    "Wrong number of columns for Customer secondary index schema.");
 
     return catalog::IndexSchema(customer_secondary_key_schema, false, false, false, true);
@@ -389,50 +395,50 @@ class Schemas {
    */
   static catalog::Schema BuildHistoryTableSchema(uint32_t *const oid_counter) {
     std::vector<catalog::Schema::Column> history_columns;
-    history_columns.reserve(num_history_table_cols_);
+    history_columns.reserve(NUM_HISTORY_TABLE_COLS);
 
     // 96,000 unique IDs
     history_columns.emplace_back(
-        "H_C_ID", type::TypeId::INTEGER, false,
+        "h_c_id", type::TypeId::INTEGER, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
     history_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // 20 unique IDs
     history_columns.emplace_back(
-        "H_C_D_ID", type::TypeId::TINYINT, false,
+        "h_c_d_id", type::TypeId::TINYINT, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::TINYINT)));
     history_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // 2*W unique IDs
     history_columns.emplace_back(
-        "H_C_W_ID", type::TypeId::TINYINT, false,
+        "h_c_w_id", type::TypeId::TINYINT, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::TINYINT)));
     history_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // 20 unique IDs
     history_columns.emplace_back(
-        "H_D_ID", type::TypeId::TINYINT, false,
+        "h_d_id", type::TypeId::TINYINT, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::TINYINT)));
     history_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // 2*W unique IDs
     history_columns.emplace_back(
-        "H_W_ID", type::TypeId::TINYINT, false,
+        "h_w_id", type::TypeId::TINYINT, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::TINYINT)));
     history_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // date and time
     history_columns.emplace_back(
-        "H_DATE", type::TypeId::TIMESTAMP, false,
+        "h_date", type::TypeId::TIMESTAMP, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::TIMESTAMP)));
     history_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // signed numeric(6,2)
     history_columns.emplace_back(
-        "H_AMOUNT", type::TypeId::DECIMAL, false,
+        "h_amount", type::TypeId::DECIMAL, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::DECIMAL)));
     history_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // variable text, size 24
     history_columns.emplace_back(
-        "H_DATA", type::TypeId::VARCHAR, 24, false,
+        "h_data", type::TypeId::VARCHAR, 24, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR)));
     history_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
 
-    TERRIER_ASSERT(history_columns.size() == num_history_table_cols_,
+    TERRIER_ASSERT(history_columns.size() == NUM_HISTORY_TABLE_COLS,
                    "Wrong number of columns for History table schema.");
 
     return catalog::Schema(history_columns);
@@ -444,25 +450,25 @@ class Schemas {
    */
   static catalog::Schema BuildNewOrderTableSchema(uint32_t *const oid_counter) {
     std::vector<catalog::Schema::Column> new_order_columns;
-    new_order_columns.reserve(num_new_order_table_cols_);
+    new_order_columns.reserve(NUM_NEW_ORDER_TABLE_COLS);
 
     // 10,000,000 unique IDs
     new_order_columns.emplace_back(
-        "NO_O_ID", type::TypeId::INTEGER, false,
+        "no_o_id", type::TypeId::INTEGER, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
     new_order_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // 20 unique IDs
     new_order_columns.emplace_back(
-        "NO_D_ID", type::TypeId::TINYINT, false,
+        "no_d_id", type::TypeId::TINYINT, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::TINYINT)));
     new_order_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // 2*W unique IDs
     new_order_columns.emplace_back(
-        "NO_W_ID", type::TypeId::TINYINT, false,
+        "no_w_id", type::TypeId::TINYINT, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::TINYINT)));
     new_order_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
 
-    TERRIER_ASSERT(new_order_columns.size() == num_new_order_table_cols_,
+    TERRIER_ASSERT(new_order_columns.size() == NUM_NEW_ORDER_TABLE_COLS,
                    "Wrong number of columns for New Order table schema.");
 
     return catalog::Schema(new_order_columns);
@@ -476,26 +482,26 @@ class Schemas {
   static catalog::IndexSchema BuildNewOrderPrimaryIndexSchema(const catalog::Schema &schema,
                                                               uint32_t *const oid_counter) {
     std::vector<catalog::IndexSchema::Column> new_order_key_schema;
-    new_order_key_schema.reserve(num_new_order_primary_index_cols_);
+    new_order_key_schema.reserve(NUM_NEW_ORDER_PRIMARY_INDEX_COLS);
 
     // Primary Key: (NO_W_ID, NO_D_ID, NO_O_ID)
     new_order_key_schema.emplace_back(
-        "", schema.GetColumn(2).Type(), schema.GetColumn(2).Nullable(),
+        "no_w_id", schema.GetColumn("no_w_id").Type(), schema.GetColumn("no_w_id").Nullable(),
         parser::ColumnValueExpression(catalog::INVALID_DATABASE_OID, catalog::table_oid_t(0),
-                                      schema.GetColumn(2).Oid()));
+                                      schema.GetColumn("no_w_id").Oid()));
     new_order_key_schema.back().SetOid(static_cast<catalog::indexkeycol_oid_t>(++(*oid_counter)));
     new_order_key_schema.emplace_back(
-        "", schema.GetColumn(1).Type(), schema.GetColumn(1).Nullable(),
+        "no_d_id", schema.GetColumn("no_d_id").Type(), schema.GetColumn("no_d_id").Nullable(),
         parser::ColumnValueExpression(catalog::INVALID_DATABASE_OID, catalog::table_oid_t(0),
-                                      schema.GetColumn(1).Oid()));
+                                      schema.GetColumn("no_d_id").Oid()));
     new_order_key_schema.back().SetOid(static_cast<catalog::indexkeycol_oid_t>(++(*oid_counter)));
     new_order_key_schema.emplace_back(
-        "", schema.GetColumn(0).Type(), schema.GetColumn(0).Nullable(),
+        "no_o_id", schema.GetColumn("no_o_id").Type(), schema.GetColumn("no_o_id").Nullable(),
         parser::ColumnValueExpression(catalog::INVALID_DATABASE_OID, catalog::table_oid_t(0),
-                                      schema.GetColumn(0).Oid()));
+                                      schema.GetColumn("no_o_id").Oid()));
     new_order_key_schema.back().SetOid(static_cast<catalog::indexkeycol_oid_t>(++(*oid_counter)));
 
-    TERRIER_ASSERT(new_order_key_schema.size() == num_new_order_primary_index_cols_,
+    TERRIER_ASSERT(new_order_key_schema.size() == NUM_NEW_ORDER_PRIMARY_INDEX_COLS,
                    "Wrong number of columns for New Order primary index schema.");
 
     return catalog::IndexSchema(new_order_key_schema, true, true, false, true);
@@ -507,50 +513,50 @@ class Schemas {
    */
   static catalog::Schema BuildOrderTableSchema(uint32_t *const oid_counter) {
     std::vector<catalog::Schema::Column> order_columns;
-    order_columns.reserve(num_order_table_cols_);
+    order_columns.reserve(NUM_ORDER_TABLE_COLS);
 
     // 10,000,000 unique IDs
     order_columns.emplace_back(
-        "O_ID", type::TypeId::INTEGER, false,
+        "o_id", type::TypeId::INTEGER, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
     order_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // 20 unique IDs
     order_columns.emplace_back(
-        "O_D_ID", type::TypeId::TINYINT, false,
+        "o_d_id", type::TypeId::TINYINT, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::TINYINT)));
     order_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // 2*W unique IDs
     order_columns.emplace_back(
-        "O_W_ID", type::TypeId::TINYINT, false,
+        "o_w_id", type::TypeId::TINYINT, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::TINYINT)));
     order_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // 96,000 unique IDs
     order_columns.emplace_back(
-        "O_C_ID", type::TypeId::INTEGER, false,
+        "o_c_id", type::TypeId::INTEGER, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
     order_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // date and time
     order_columns.emplace_back(
-        "O_ENTRY_D", type::TypeId::TIMESTAMP, false,
+        "o_entry_d", type::TypeId::TIMESTAMP, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::TIMESTAMP)));
     order_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // 10 unique IDs, or null
     order_columns.emplace_back(
-        "O_CARRIER_ID", type::TypeId::TINYINT, true,
+        "o_carrier_id", type::TypeId::TINYINT, true,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::TINYINT)));
     order_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // numeric(2)
     order_columns.emplace_back(
-        "O_OL_CNT", type::TypeId::TINYINT, false,
+        "o_ol_cnt", type::TypeId::TINYINT, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::TINYINT)));
     order_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // numeric(1)
     order_columns.emplace_back(
-        "O_ALL_LOCAL", type::TypeId::TINYINT, false,
+        "o_all_local", type::TypeId::TINYINT, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::TINYINT)));
     order_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
 
-    TERRIER_ASSERT(order_columns.size() == num_order_table_cols_, "Wrong number of columns for Order table schema.");
+    TERRIER_ASSERT(order_columns.size() == NUM_ORDER_TABLE_COLS, "Wrong number of columns for Order table schema.");
 
     return catalog::Schema(order_columns);
   }
@@ -562,23 +568,23 @@ class Schemas {
    */
   static catalog::IndexSchema BuildOrderPrimaryIndexSchema(const catalog::Schema &schema, uint32_t *const oid_counter) {
     std::vector<catalog::IndexSchema::Column> order_key_schema;
-    order_key_schema.reserve(num_order_primary_index_cols_);
+    order_key_schema.reserve(NUM_ORDER_PRIMARY_INDEX_COLS);
 
     // Primary Key: (O_W_ID, O_D_ID, O_ID)
-    order_key_schema.emplace_back("", schema.GetColumn(2).Type(), schema.GetColumn(2).Nullable(),
+    order_key_schema.emplace_back("o_w_id", schema.GetColumn("o_w_id").Type(), schema.GetColumn("o_w_id").Nullable(),
                                   parser::ColumnValueExpression(catalog::INVALID_DATABASE_OID, catalog::table_oid_t(0),
-                                                                schema.GetColumn(2).Oid()));
+                                                                schema.GetColumn("o_w_id").Oid()));
     order_key_schema.back().SetOid(static_cast<catalog::indexkeycol_oid_t>(++(*oid_counter)));
-    order_key_schema.emplace_back("", schema.GetColumn(1).Type(), schema.GetColumn(1).Nullable(),
+    order_key_schema.emplace_back("o_d_id", schema.GetColumn("o_d_id").Type(), schema.GetColumn("o_d_id").Nullable(),
                                   parser::ColumnValueExpression(catalog::INVALID_DATABASE_OID, catalog::table_oid_t(0),
-                                                                schema.GetColumn(1).Oid()));
+                                                                schema.GetColumn("o_d_id").Oid()));
     order_key_schema.back().SetOid(static_cast<catalog::indexkeycol_oid_t>(++(*oid_counter)));
-    order_key_schema.emplace_back("", schema.GetColumn(0).Type(), schema.GetColumn(0).Nullable(),
+    order_key_schema.emplace_back("o_id", schema.GetColumn("o_id").Type(), schema.GetColumn("o_id").Nullable(),
                                   parser::ColumnValueExpression(catalog::INVALID_DATABASE_OID, catalog::table_oid_t(0),
-                                                                schema.GetColumn(0).Oid()));
+                                                                schema.GetColumn("o_id").Oid()));
     order_key_schema.back().SetOid(static_cast<catalog::indexkeycol_oid_t>(++(*oid_counter)));
 
-    TERRIER_ASSERT(order_key_schema.size() == num_order_primary_index_cols_,
+    TERRIER_ASSERT(order_key_schema.size() == NUM_ORDER_PRIMARY_INDEX_COLS,
                    "Wrong number of columns for Order primary index schema.");
 
     return catalog::IndexSchema(order_key_schema, true, true, false, true);
@@ -592,31 +598,31 @@ class Schemas {
   static catalog::IndexSchema BuildOrderSecondaryIndexSchema(const catalog::Schema &schema,
                                                              uint32_t *const oid_counter) {
     std::vector<catalog::IndexSchema::Column> order_secondary_key_schema;
-    order_secondary_key_schema.reserve(num_order_secondary_index_cols_);
+    order_secondary_key_schema.reserve(NUM_ORDER_SECONDARY_INDEX_COLS);
 
     // O_W_ID, O_D_ID, O_C_ID, O_ID for Order Status transaction
     order_secondary_key_schema.emplace_back(
-        "", schema.GetColumn(2).Type(), schema.GetColumn(2).Nullable(),
+        "o_w_id", schema.GetColumn("o_w_id").Type(), schema.GetColumn("o_w_id").Nullable(),
         parser::ColumnValueExpression(catalog::INVALID_DATABASE_OID, catalog::table_oid_t(0),
-                                      schema.GetColumn(2).Oid()));
+                                      schema.GetColumn("o_w_id").Oid()));
     order_secondary_key_schema.back().SetOid(static_cast<catalog::indexkeycol_oid_t>(++(*oid_counter)));
     order_secondary_key_schema.emplace_back(
-        "", schema.GetColumn(1).Type(), schema.GetColumn(1).Nullable(),
+        "o_d_id", schema.GetColumn("o_d_id").Type(), schema.GetColumn("o_d_id").Nullable(),
         parser::ColumnValueExpression(catalog::INVALID_DATABASE_OID, catalog::table_oid_t(0),
-                                      schema.GetColumn(1).Oid()));
+                                      schema.GetColumn("o_d_id").Oid()));
     order_secondary_key_schema.back().SetOid(static_cast<catalog::indexkeycol_oid_t>(++(*oid_counter)));
     order_secondary_key_schema.emplace_back(
-        "", schema.GetColumn(3).Type(), schema.GetColumn(3).Nullable(),
+        "o_c_id", schema.GetColumn("o_c_id").Type(), schema.GetColumn("o_c_id").Nullable(),
         parser::ColumnValueExpression(catalog::INVALID_DATABASE_OID, catalog::table_oid_t(0),
-                                      schema.GetColumn(3).Oid()));
+                                      schema.GetColumn("o_c_id").Oid()));
     order_secondary_key_schema.back().SetOid(static_cast<catalog::indexkeycol_oid_t>(++(*oid_counter)));
     order_secondary_key_schema.emplace_back(
-        "", schema.GetColumn(0).Type(), schema.GetColumn(0).Nullable(),
+        "o_id", schema.GetColumn("o_id").Type(), schema.GetColumn("o_id").Nullable(),
         parser::ColumnValueExpression(catalog::INVALID_DATABASE_OID, catalog::table_oid_t(0),
-                                      schema.GetColumn(0).Oid()));
+                                      schema.GetColumn("o_id").Oid()));
     order_secondary_key_schema.back().SetOid(static_cast<catalog::indexkeycol_oid_t>(++(*oid_counter)));
 
-    TERRIER_ASSERT(order_secondary_key_schema.size() == num_order_secondary_index_cols_,
+    TERRIER_ASSERT(order_secondary_key_schema.size() == NUM_ORDER_SECONDARY_INDEX_COLS,
                    "Wrong number of columns for Order secondary index schema.");
 
     return catalog::IndexSchema(order_secondary_key_schema, true, false, false, true);
@@ -628,60 +634,60 @@ class Schemas {
    */
   static catalog::Schema BuildOrderLineTableSchema(uint32_t *const oid_counter) {
     std::vector<catalog::Schema::Column> order_line_columns;
-    order_line_columns.reserve(num_order_line_table_cols_);
+    order_line_columns.reserve(NUM_ORDER_LINE_TABLE_COLS);
 
     // 10,000,000 unique IDs
     order_line_columns.emplace_back(
-        "OL_O_ID", type::TypeId::INTEGER, false,
+        "ol_o_id", type::TypeId::INTEGER, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
     order_line_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // 20 unique IDs
     order_line_columns.emplace_back(
-        "OL_D_ID", type::TypeId::TINYINT, false,
+        "ol_d_id", type::TypeId::TINYINT, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::TINYINT)));
     order_line_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // 2*W unique IDs
     order_line_columns.emplace_back(
-        "OL_W_ID", type::TypeId::TINYINT, false,
+        "ol_w_id", type::TypeId::TINYINT, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::TINYINT)));
     order_line_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // 15 unique IDs
     order_line_columns.emplace_back(
-        "OL_NUMBER", type::TypeId::TINYINT, false,
+        "ol_number", type::TypeId::TINYINT, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::TINYINT)));
     order_line_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // 200,000 unique IDs
     order_line_columns.emplace_back(
-        "OL_I_ID", type::TypeId::INTEGER, false,
+        "ol_i_id", type::TypeId::INTEGER, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
     order_line_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // 2*W unique IDs
     order_line_columns.emplace_back(
-        "OL_SUPPLY_W_ID", type::TypeId::TINYINT, false,
+        "ol_supply_w_id", type::TypeId::TINYINT, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::TINYINT)));
     order_line_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // date and time, or null
     order_line_columns.emplace_back(
-        "OL_DELIVERY_D", type::TypeId::TIMESTAMP, true,
+        "ol_delivery_d", type::TypeId::TIMESTAMP, true,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::TIMESTAMP)));
     order_line_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // numeric(2)
     order_line_columns.emplace_back(
-        "OL_QUANTITY", type::TypeId::TINYINT, false,
+        "ol_quantity", type::TypeId::TINYINT, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::TINYINT)));
     order_line_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // signed numeric(6,2)
     order_line_columns.emplace_back(
-        "OL_AMOUNT", type::TypeId::DECIMAL, false,
+        "ol_amount", type::TypeId::DECIMAL, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::DECIMAL)));
     order_line_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // fixed text, size 24
     order_line_columns.emplace_back(
-        "OL_DIST_INFO", type::TypeId::VARCHAR, 24, false,
+        "ol_dist_info", type::TypeId::VARCHAR, 24, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR)));
     order_line_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
 
-    TERRIER_ASSERT(order_line_columns.size() == num_order_line_table_cols_,
+    TERRIER_ASSERT(order_line_columns.size() == NUM_ORDER_LINE_TABLE_COLS,
                    "Wrong number of columns for Order Line table schema.");
 
     return catalog::Schema(order_line_columns);
@@ -695,31 +701,31 @@ class Schemas {
   static catalog::IndexSchema BuildOrderLinePrimaryIndexSchema(const catalog::Schema &schema,
                                                                uint32_t *const oid_counter) {
     std::vector<catalog::IndexSchema::Column> order_line_key_schema;
-    order_line_key_schema.reserve(num_order_line_primary_index_cols_);
+    order_line_key_schema.reserve(NUM_ORDER_LINE_PRIMARY_INDEX_COLS);
 
     // Primary Key: (OL_W_ID, OL_D_ID, OL_O_ID, OL_NUMBER)
     order_line_key_schema.emplace_back(
-        "", schema.GetColumn(2).Type(), schema.GetColumn(2).Nullable(),
+        "ol_w_id", schema.GetColumn("ol_w_id").Type(), schema.GetColumn("ol_w_id").Nullable(),
         parser::ColumnValueExpression(catalog::INVALID_DATABASE_OID, catalog::table_oid_t(0),
-                                      schema.GetColumn(2).Oid()));
+                                      schema.GetColumn("ol_w_id").Oid()));
     order_line_key_schema.back().SetOid(static_cast<catalog::indexkeycol_oid_t>(++(*oid_counter)));
     order_line_key_schema.emplace_back(
-        "", schema.GetColumn(1).Type(), schema.GetColumn(1).Nullable(),
+        "ol_d_id", schema.GetColumn("ol_d_id").Type(), schema.GetColumn("ol_d_id").Nullable(),
         parser::ColumnValueExpression(catalog::INVALID_DATABASE_OID, catalog::table_oid_t(0),
-                                      schema.GetColumn(1).Oid()));
+                                      schema.GetColumn("ol_d_id").Oid()));
     order_line_key_schema.back().SetOid(static_cast<catalog::indexkeycol_oid_t>(++(*oid_counter)));
     order_line_key_schema.emplace_back(
-        "", schema.GetColumn(0).Type(), schema.GetColumn(0).Nullable(),
+        "ol_o_id", schema.GetColumn("ol_o_id").Type(), schema.GetColumn("ol_o_id").Nullable(),
         parser::ColumnValueExpression(catalog::INVALID_DATABASE_OID, catalog::table_oid_t(0),
-                                      schema.GetColumn(0).Oid()));
+                                      schema.GetColumn("ol_o_id").Oid()));
     order_line_key_schema.back().SetOid(static_cast<catalog::indexkeycol_oid_t>(++(*oid_counter)));
     order_line_key_schema.emplace_back(
-        "", schema.GetColumn(3).Type(), schema.GetColumn(3).Nullable(),
+        "ol_number", schema.GetColumn("ol_number").Type(), schema.GetColumn("ol_number").Nullable(),
         parser::ColumnValueExpression(catalog::INVALID_DATABASE_OID, catalog::table_oid_t(0),
-                                      schema.GetColumn(3).Oid()));
+                                      schema.GetColumn("ol_number").Oid()));
     order_line_key_schema.back().SetOid(static_cast<catalog::indexkeycol_oid_t>(++(*oid_counter)));
 
-    TERRIER_ASSERT(order_line_key_schema.size() == num_order_line_primary_index_cols_,
+    TERRIER_ASSERT(order_line_key_schema.size() == NUM_ORDER_LINE_PRIMARY_INDEX_COLS,
                    "Wrong number of columns for Order Line key schema.");
 
     return catalog::IndexSchema(order_line_key_schema, true, true, false, true);
@@ -731,35 +737,35 @@ class Schemas {
    */
   static catalog::Schema BuildItemTableSchema(uint32_t *const oid_counter) {
     std::vector<catalog::Schema::Column> item_columns;
-    item_columns.reserve(num_item_table_cols_);
+    item_columns.reserve(NUM_ITEM_TABLE_COLS);
 
     // 200,000 unique IDs
     item_columns.emplace_back(
-        "I_ID", type::TypeId::INTEGER, false,
+        "i_id", type::TypeId::INTEGER, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
     item_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // 200,000 unique IDs
     item_columns.emplace_back(
-        "I_IM_ID", type::TypeId::INTEGER, false,
+        "i_im_id", type::TypeId::INTEGER, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
     item_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // variable text, size 24
     item_columns.emplace_back(
-        "I_NAME", type::TypeId::VARCHAR, 24, false,
+        "i_name", type::TypeId::VARCHAR, 24, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR)));
     item_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // numeric(5,2)
     item_columns.emplace_back(
-        "I_PRICE", type::TypeId::DECIMAL, false,
+        "i_price", type::TypeId::DECIMAL, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::DECIMAL)));
     item_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // variable text, size 50
     item_columns.emplace_back(
-        "I_DATA", type::TypeId::VARCHAR, 50, false,
+        "i_data", type::TypeId::VARCHAR, 50, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR)));
     item_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
 
-    TERRIER_ASSERT(item_columns.size() == num_item_table_cols_, "Wrong number of columns for Item table schema.");
+    TERRIER_ASSERT(item_columns.size() == NUM_ITEM_TABLE_COLS, "Wrong number of columns for Item table schema.");
 
     return catalog::Schema(item_columns);
   }
@@ -771,15 +777,15 @@ class Schemas {
    */
   static catalog::IndexSchema BuildItemPrimaryIndexSchema(const catalog::Schema &schema, uint32_t *const oid_counter) {
     std::vector<catalog::IndexSchema::Column> item_key_schema;
-    item_key_schema.reserve(num_item_primary_index_cols_);
+    item_key_schema.reserve(NUM_ITEM_PRIMARY_INDEX_COLS);
 
     // Primary Key: I_ID
-    item_key_schema.emplace_back("", schema.GetColumn(0).Type(), schema.GetColumn(0).Nullable(),
+    item_key_schema.emplace_back("i_id", schema.GetColumn("i_id").Type(), schema.GetColumn("i_id").Nullable(),
                                  parser::ColumnValueExpression(catalog::INVALID_DATABASE_OID, catalog::table_oid_t(0),
-                                                               schema.GetColumn(0).Oid()));
+                                                               schema.GetColumn("i_id").Oid()));
     item_key_schema.back().SetOid(static_cast<catalog::indexkeycol_oid_t>(++(*oid_counter)));
 
-    TERRIER_ASSERT(item_key_schema.size() == num_item_primary_index_cols_,
+    TERRIER_ASSERT(item_key_schema.size() == NUM_ITEM_PRIMARY_INDEX_COLS,
                    "Wrong number of columns for Item primary index schema.");
 
     return catalog::IndexSchema(item_key_schema, true, true, false, true);
@@ -791,95 +797,95 @@ class Schemas {
    */
   static catalog::Schema BuildStockTableSchema(uint32_t *const oid_counter) {
     std::vector<catalog::Schema::Column> stock_columns;
-    stock_columns.reserve(num_stock_table_cols_);
+    stock_columns.reserve(NUM_STOCK_TABLE_COLS);
 
     // 200,000 unique IDs
     stock_columns.emplace_back(
-        "S_I_ID", type::TypeId::INTEGER, false,
+        "s_i_id", type::TypeId::INTEGER, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
     stock_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // 2*W unique IDs
     stock_columns.emplace_back(
-        "S_W_ID", type::TypeId::TINYINT, false,
+        "s_w_id", type::TypeId::TINYINT, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::TINYINT)));
     stock_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // signed numeric(4)
     stock_columns.emplace_back(
-        "S_QUANTITY", type::TypeId::SMALLINT, false,
+        "s_quantity", type::TypeId::SMALLINT, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::SMALLINT)));
     stock_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // fixed text, size 24
     stock_columns.emplace_back(
-        "S_DIST_01", type::TypeId::VARCHAR, 24, false,
+        "s_dist_01", type::TypeId::VARCHAR, 24, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR)));
     stock_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // fixed text, size 24
     stock_columns.emplace_back(
-        "S_DIST_02", type::TypeId::VARCHAR, 24, false,
+        "s_dist_02", type::TypeId::VARCHAR, 24, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR)));
     stock_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // fixed text, size 24
     stock_columns.emplace_back(
-        "S_DIST_03", type::TypeId::VARCHAR, 24, false,
+        "s_dist_03", type::TypeId::VARCHAR, 24, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR)));
     stock_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // fixed text, size 24
     stock_columns.emplace_back(
-        "S_DIST_04", type::TypeId::VARCHAR, 24, false,
+        "s_dist_04", type::TypeId::VARCHAR, 24, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR)));
     stock_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // fixed text, size 24
     stock_columns.emplace_back(
-        "S_DIST_05", type::TypeId::VARCHAR, 24, false,
+        "s_dist_05", type::TypeId::VARCHAR, 24, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR)));
     stock_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // fixed text, size 24
     stock_columns.emplace_back(
-        "S_DIST_06", type::TypeId::VARCHAR, 24, false,
+        "s_dist_06", type::TypeId::VARCHAR, 24, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR)));
     stock_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // fixed text, size 24
     stock_columns.emplace_back(
-        "S_DIST_07", type::TypeId::VARCHAR, 24, false,
+        "s_dist_07", type::TypeId::VARCHAR, 24, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR)));
     stock_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // fixed text, size 24
     stock_columns.emplace_back(
-        "S_DIST_08", type::TypeId::VARCHAR, 24, false,
+        "s_dist_08", type::TypeId::VARCHAR, 24, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR)));
     stock_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // fixed text, size 24
     stock_columns.emplace_back(
-        "S_DIST_09", type::TypeId::VARCHAR, 24, false,
+        "s_dist_09", type::TypeId::VARCHAR, 24, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR)));
     stock_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // fixed text, size 24
     stock_columns.emplace_back(
-        "S_DIST_10", type::TypeId::VARCHAR, 24, false,
+        "s_dist_10", type::TypeId::VARCHAR, 24, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR)));
     stock_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // numeric(8)
     stock_columns.emplace_back(
-        "S_YTD", type::TypeId::INTEGER, false,
+        "s_ytd", type::TypeId::INTEGER, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
     stock_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // numeric(4)
     stock_columns.emplace_back(
-        "S_ORDER_CNT", type::TypeId::SMALLINT, false,
+        "s_order_cnt", type::TypeId::SMALLINT, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::SMALLINT)));
     stock_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // numeric(4)
     stock_columns.emplace_back(
-        "S_REMOTE_CNT", type::TypeId::SMALLINT, false,
+        "s_remote_cnt", type::TypeId::SMALLINT, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::SMALLINT)));
     stock_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
     // variable text, size 50
     stock_columns.emplace_back(
-        "S_DATA", type::TypeId::VARCHAR, 50, false,
+        "s_data", type::TypeId::VARCHAR, 50, false,
         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR)));
     stock_columns.back().SetOid(static_cast<catalog::col_oid_t>(++(*oid_counter)));
 
-    TERRIER_ASSERT(stock_columns.size() == num_stock_table_cols_, "Wrong number of columns for Stock table schema.");
+    TERRIER_ASSERT(stock_columns.size() == NUM_STOCK_TABLE_COLS, "Wrong number of columns for Stock table schema.");
 
     return catalog::Schema(stock_columns);
   }
@@ -891,19 +897,19 @@ class Schemas {
    */
   static catalog::IndexSchema BuildStockPrimaryIndexSchema(const catalog::Schema &schema, uint32_t *const oid_counter) {
     std::vector<catalog::IndexSchema::Column> stock_key_schema;
-    stock_key_schema.reserve(num_stock_primary_index_cols_);
+    stock_key_schema.reserve(NUM_STOCK_PRIMARY_INDEX_COLS);
 
     // Primary Key: (S_W_ID, S_I_ID)
-    stock_key_schema.emplace_back("", schema.GetColumn(1).Type(), schema.GetColumn(1).Nullable(),
+    stock_key_schema.emplace_back("s_w_id", schema.GetColumn("s_w_id").Type(), schema.GetColumn("s_w_id").Nullable(),
                                   parser::ColumnValueExpression(catalog::INVALID_DATABASE_OID, catalog::table_oid_t(0),
-                                                                schema.GetColumn(1).Oid()));
+                                                                schema.GetColumn("s_w_id").Oid()));
     stock_key_schema.back().SetOid(static_cast<catalog::indexkeycol_oid_t>(++(*oid_counter)));
-    stock_key_schema.emplace_back("", schema.GetColumn(0).Type(), schema.GetColumn(0).Nullable(),
+    stock_key_schema.emplace_back("s_i_id", schema.GetColumn("s_i_id").Type(), schema.GetColumn("s_i_id").Nullable(),
                                   parser::ColumnValueExpression(catalog::INVALID_DATABASE_OID, catalog::table_oid_t(0),
-                                                                schema.GetColumn(0).Oid()));
+                                                                schema.GetColumn("s_i_id").Oid()));
     stock_key_schema.back().SetOid(static_cast<catalog::indexkeycol_oid_t>(++(*oid_counter)));
 
-    TERRIER_ASSERT(stock_key_schema.size() == num_stock_primary_index_cols_,
+    TERRIER_ASSERT(stock_key_schema.size() == NUM_STOCK_PRIMARY_INDEX_COLS,
                    "Wrong number of columns for Stock primary index schema.");
 
     return catalog::IndexSchema(stock_key_schema, true, true, false, true);
@@ -911,26 +917,26 @@ class Schemas {
 
  private:
   // The values below are just to sanity check the schema functions
-  static constexpr uint8_t num_warehouse_table_cols_ = 9;
-  static constexpr uint8_t num_district_table_cols_ = 11;
-  static constexpr uint8_t num_customer_table_cols_ = 21;
-  static constexpr uint8_t num_history_table_cols_ = 8;
-  static constexpr uint8_t num_new_order_table_cols_ = 3;
-  static constexpr uint8_t num_order_table_cols_ = 8;
-  static constexpr uint8_t num_order_line_table_cols_ = 10;
-  static constexpr uint8_t num_item_table_cols_ = 5;
-  static constexpr uint8_t num_stock_table_cols_ = 17;
+  static constexpr uint8_t NUM_WAREHOUSE_TABLE_COLS = 9;
+  static constexpr uint8_t NUM_DISTRICT_TABLE_COLS = 11;
+  static constexpr uint8_t NUM_CUSTOMER_TABLE_COLS = 21;
+  static constexpr uint8_t NUM_HISTORY_TABLE_COLS = 8;
+  static constexpr uint8_t NUM_NEW_ORDER_TABLE_COLS = 3;
+  static constexpr uint8_t NUM_ORDER_TABLE_COLS = 8;
+  static constexpr uint8_t NUM_ORDER_LINE_TABLE_COLS = 10;
+  static constexpr uint8_t NUM_ITEM_TABLE_COLS = 5;
+  static constexpr uint8_t NUM_STOCK_TABLE_COLS = 17;
 
-  static constexpr uint8_t num_warehouse_primary_index_cols_ = 1;
-  static constexpr uint8_t num_district_primary_index_cols_ = 2;
-  static constexpr uint8_t num_customer_primary_index_cols_ = 3;
-  static constexpr uint8_t num_customer_secondary_index_cols_ = 3;
-  static constexpr uint8_t num_new_order_primary_index_cols_ = 3;
-  static constexpr uint8_t num_order_primary_index_cols_ = 3;
-  static constexpr uint8_t num_order_secondary_index_cols_ = 4;
-  static constexpr uint8_t num_order_line_primary_index_cols_ = 4;
-  static constexpr uint8_t num_item_primary_index_cols_ = 1;
-  static constexpr uint8_t num_stock_primary_index_cols_ = 2;
+  static constexpr uint8_t NUM_WAREHOUSE_PRIMARY_INDEX_COLS = 1;
+  static constexpr uint8_t NUM_DISTRICT_PRIMARY_INDEX_COLS = 2;
+  static constexpr uint8_t NUM_CUSTOMER_PRIMARY_INDEX_COLS = 3;
+  static constexpr uint8_t NUM_CUSTOMER_SECONDARY_INDEX_COLS = 3;
+  static constexpr uint8_t NUM_NEW_ORDER_PRIMARY_INDEX_COLS = 3;
+  static constexpr uint8_t NUM_ORDER_PRIMARY_INDEX_COLS = 3;
+  static constexpr uint8_t NUM_ORDER_SECONDARY_INDEX_COLS = 4;
+  static constexpr uint8_t NUM_ORDER_LINE_PRIMARY_INDEX_COLS = 4;
+  static constexpr uint8_t NUM_ITEM_PRIMARY_INDEX_COLS = 1;
+  static constexpr uint8_t NUM_STOCK_PRIMARY_INDEX_COLS = 2;
 };
 
 }  // namespace terrier::tpcc

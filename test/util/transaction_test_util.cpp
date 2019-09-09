@@ -43,7 +43,7 @@ void RandomWorkloadTransaction::RandomUpdate(Random *generator) {
   updates_[updated] = update;
 
   // TODO(Tianyu): Hardly efficient, but will do for testing.
-  auto *record = txn_->StageWrite(CatalogTestUtil::test_db_oid, CatalogTestUtil::test_table_oid, initializer);
+  auto *record = txn_->StageWrite(CatalogTestUtil::TEST_DB_OID, CatalogTestUtil::TEST_TABLE_OID, initializer);
   record->SetTupleSlot(updated);
   std::memcpy(reinterpret_cast<void *>(record->Delta()), update, update->Size());
   auto result = test_object_->table_.Update(txn_, updated, *update);
@@ -86,7 +86,7 @@ LargeTransactionTestObject::LargeTransactionTestObject(const LargeTransactionTes
       table_(block_store, layout_, storage::layout_version_t(0)),
       txn_manager_(txn_manager),
       gc_on_(txn_manager->GCEnabled()),
-      wal_on_(log_manager != LOGGING_DISABLED) {
+      wal_on_(log_manager != DISABLED) {
   // Bootstrap the table to have the specified number of tuples
   PopulateInitialTable(config.InitialTableSize(), generator_);
 }
@@ -104,7 +104,7 @@ SimulationResult LargeTransactionTestObject::SimulateOltp(uint32_t num_transacti
   txns.resize(num_transactions);
   // Either for correctness checking, or to cleanup memory afterwards, we need to retain these
   // test objects
-  workload = [&](uint32_t) {
+  workload = [&](uint32_t /*unused*/) {
     for (uint32_t txn_id = txns_run++; txn_id < num_transactions; txn_id = txns_run++) {
       txns[txn_id] = new RandomWorkloadTransaction(this);
       SimulateOneTransaction(txns[txn_id], txn_id);
@@ -166,7 +166,7 @@ void LargeTransactionTestObject::PopulateInitialTable(uint32_t num_tuples, Rando
     storage::TupleSlot inserted = table_.Insert(initial_txn_, *redo);
     // TODO(Tianyu): Hardly efficient, but will do for testing.
     auto *record =
-        initial_txn_->StageWrite(CatalogTestUtil::test_db_oid, CatalogTestUtil::test_table_oid, row_initializer_);
+        initial_txn_->StageWrite(CatalogTestUtil::TEST_DB_OID, CatalogTestUtil::TEST_TABLE_OID, row_initializer_);
     record->SetTupleSlot(inserted);
     std::memcpy(reinterpret_cast<void *>(record->Delta()), redo, redo->Size());
     last_checked_version_.emplace_back(inserted, redo);

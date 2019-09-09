@@ -40,7 +40,18 @@ class Optimizer : public AbstractOptimizer {
    * Constructor for Optimizer with a cost_model
    * @param model Cost Model to use for the optimizer
    */
-  explicit Optimizer(AbstractCostModel *model) : metadata_(model) {}
+  explicit Optimizer(AbstractCostModel *model) {
+    metadata_ = new OptimizerMetadata(model);
+    cost_model_ = model;
+  }
+
+  /**
+   * Destructor
+   */
+  ~Optimizer() override {
+    delete cost_model_;
+    delete metadata_;
+  }
 
   /**
    * Build the plan tree for query execution
@@ -49,12 +60,14 @@ class Optimizer : public AbstractOptimizer {
    * @param txn TransactionContext
    * @param settings SettingsManager to read settings from
    * @param accessor CatalogAccessor for catalog
+   * @param storage StatsStorage
    * @returns execution plan
    */
   std::shared_ptr<planner::AbstractPlanNode> BuildPlanTree(OperatorExpression *op_tree, QueryInfo query_info,
                                                            transaction::TransactionContext *txn,
                                                            settings::SettingsManager *settings,
-                                                           catalog::CatalogAccessor *accessor) override;
+                                                           catalog::CatalogAccessor *accessor,
+                                                           StatsStorage *storage) override;
 
   /**
    * Invoke a single optimization pass through the entire query.
@@ -74,7 +87,7 @@ class Optimizer : public AbstractOptimizer {
    * Gets the OptimizerMetadata used and set by the optimizer
    * @returns metadata_
    */
-  OptimizerMetadata &GetMetadata() { return metadata_; }
+  OptimizerMetadata *GetMetadata() { return metadata_; }
 
  private:
   /**
@@ -105,8 +118,15 @@ class Optimizer : public AbstractOptimizer {
   void ExecuteTaskStack(OptimizerTaskStack *task_stack, int root_group_id, OptimizeContext *root_context,
                         settings::SettingsManager *settings);
 
-  // Metadata
-  OptimizerMetadata metadata_;
+  /**
+   * Metadata
+   */
+  OptimizerMetadata *metadata_;
+
+  /**
+   * Cost Model
+   */
+  AbstractCostModel *cost_model_;
 };
 
 }  // namespace optimizer

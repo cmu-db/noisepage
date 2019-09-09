@@ -115,8 +115,15 @@ class Memo {
    */
   GroupID AddNewGroup(GroupExpression *gexpr);
 
-  // The group owns the group expressions, not the memo
+  /**
+   * Vector of tracked GroupExpressions
+   * Group owns GroupExpressions, not the memo
+   */
   std::unordered_set<GroupExpression *, GExprPtrHash, GExprPtrEq> group_expressions_;
+
+  /**
+   * Vector of groups tracked
+   */
   std::vector<Group *> groups_;
 };
 

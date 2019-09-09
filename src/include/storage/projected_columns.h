@@ -206,7 +206,7 @@ class PACKED ProjectedColumns {
    * @param col_id the column ID within the projection we want the size for
    * @return the size (in bytes) of the attributes in this column
    */
-  const uint32_t AttrSizeForColumn(uint16_t col_id);
+  uint32_t AttrSizeForColumn(uint16_t col_id);
 
  private:
   friend class ProjectedColumnsInitializer;

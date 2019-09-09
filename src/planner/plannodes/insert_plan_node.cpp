@@ -24,12 +24,8 @@ common::hash_t InsertPlanNode::Hash() const {
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_oid_));
 
   // Hash parameter_info
-  // Important: The ordering of the keys matter when we want to compute the hash!
-  // HACK HACK HACK
-  std::map<uint32_t, catalog::col_oid_t> ordered(parameter_info_.begin(), parameter_info_.end());
-  for (const auto pair : ordered) {
-    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(pair.first));
-    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(pair.second));
+  for (const auto &col_oid : parameter_info_) {
+    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(col_oid));
   }
 
   // Values
@@ -70,12 +66,10 @@ bool InsertPlanNode::operator==(const AbstractPlanNode &rhs) const {
 
   // Parameter info
   if (parameter_info_.size() != other.parameter_info_.size()) return false;
-  for (const auto this_pair : parameter_info_) {
-    auto other_pair = other.parameter_info_.find(this_pair.first);
-    if (other_pair == other.parameter_info_.end()) return false;
-    if (this_pair.second != other_pair->second) return false;
-  }
 
+  for (int i = 0; i < static_cast<int>(parameter_info_.size()); i++) {
+    if (parameter_info_[i] != other.parameter_info_[i]) return false;
+  }
   return true;
 }
 
@@ -105,7 +99,7 @@ void InsertPlanNode::FromJson(const nlohmann::json &j) {
     values_.push_back(std::move(tuple));
   }
 
-  parameter_info_ = j.at("parameter_info").get<std::unordered_map<uint32_t, catalog::col_oid_t>>();
+  parameter_info_ = j.at("parameter_info").get<std::vector<catalog::col_oid_t>>();
 }
 
 }  // namespace terrier::planner

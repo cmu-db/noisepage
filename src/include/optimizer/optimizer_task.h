@@ -72,7 +72,7 @@ class OptimizerTask {
   /**
    * Function to execute the task
    */
-  virtual void execute() = 0;
+  virtual void Execute() = 0;
 
   /**
    * @returns Memo used
@@ -126,7 +126,7 @@ class OptimizeGroup : public OptimizerTask {
   /**
    * Function to execute the task
    */
-  void execute() override;
+  void Execute() override;
 
  private:
   /**
@@ -154,7 +154,7 @@ class OptimizeExpression : public OptimizerTask {
   /**
    * Function to execute the task
    */
-  void execute() override;
+  void Execute() override;
 
  private:
   /**
@@ -180,7 +180,7 @@ class ExploreGroup : public OptimizerTask {
   /**
    * Function to execute the task
    */
-  void execute() override;
+  void Execute() override;
 
  private:
   /**
@@ -207,7 +207,7 @@ class ExploreExpression : public OptimizerTask {
   /**
    * Function to execute the task
    */
-  void execute() override;
+  void Execute() override;
 
  private:
   /**
@@ -235,12 +235,12 @@ class ApplyRule : public OptimizerTask {
       : OptimizerTask(context, OptimizerTaskType::APPLY_RULE),
         group_expr_(group_expr),
         rule_(rule),
-        explore_only(explore) {}
+        explore_only_(explore) {}
 
   /**
    * Function to execute the task
    */
-  void execute() override;
+  void Execute() override;
 
  private:
   /**
@@ -256,7 +256,7 @@ class ApplyRule : public OptimizerTask {
   /**
    * Whether explore-only or explore and optimize
    */
-  bool explore_only;
+  bool explore_only_;
 };
 
 /**
@@ -290,7 +290,7 @@ class OptimizeInputs : public OptimizerTask {
   /**
    * Function to execute the task
    */
-  void execute() override;
+  void Execute() override;
 
   /**
    * Destructor
@@ -365,7 +365,7 @@ class DeriveStats : public OptimizerTask {
   /**
    * Function to execute the task
    */
-  void execute() override;
+  void Execute() override;
 
  private:
   /**
@@ -400,7 +400,7 @@ class TopDownRewrite : public OptimizerTask {
   /**
    * Function to execute the task
    */
-  void execute() override;
+  void Execute() override;
 
  private:
   /**
@@ -438,7 +438,7 @@ class BottomUpRewrite : public OptimizerTask {
   /**
    * Function to execute the task
    */
-  void execute() override;
+  void Execute() override;
 
  private:
   /**

@@ -77,6 +77,9 @@ class OptimizerTaskStack : public OptimizerTaskPool {
   bool Empty() override { return task_stack_.empty(); }
 
  private:
+  /**
+   * Stack for tracking tasks
+   */
   std::stack<OptimizerTask *> task_stack_;
 };
 

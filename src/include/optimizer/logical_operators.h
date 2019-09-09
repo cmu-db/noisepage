@@ -26,13 +26,13 @@ namespace terrier::optimizer {
 /**
  * Operator that represents another group
  */
-class LeafOperator : OperatorNode<LeafOperator> {
+class LeafOperator : public OperatorNode<LeafOperator> {
  public:
   /**
    * Make a LeafOperator
    * @param group Group to wrap
    */
-  static Operator make(GroupID group);
+  static Operator Make(GroupID group);
 
   /**
    * Copy
@@ -71,7 +71,7 @@ class LogicalGet : public OperatorNode<LogicalGet> {
    * @param is_for_update whether the scan is used for update
    * @return
    */
-  static Operator make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
+  static Operator Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
                        catalog::table_oid_t table_oid, std::vector<AnnotatedExpression> predicates,
                        std::string table_alias, bool is_for_update);
 
@@ -161,7 +161,7 @@ class LogicalExternalFileGet : public OperatorNode<LogicalExternalFileGet> {
    * @param null_string null string identifier
    * @return an LogicalExternalFileGet operator
    */
-  static Operator make(parser::ExternalFileFormat format, std::string file_name, char delimiter, char quote,
+  static Operator Make(parser::ExternalFileFormat format, std::string file_name, char delimiter, char quote,
                        char escape, std::string null_string);
 
   /**
@@ -245,9 +245,9 @@ class LogicalQueryDerivedGet : public OperatorNode<LogicalQueryDerivedGet> {
    * @param alias_to_expr_map map from table aliases to expressions of those tables
    * @return a LogicalQueryDerivedGet operator
    */
-  static Operator make(
+  static Operator Make(
       std::string table_alias,
-      std::unordered_map<std::string, common::ManagedPointer<parser::AbstractExpression>> &&alias_to_expr_map);
+      std::unordered_map<std::string, common::ManagedPointer<const parser::AbstractExpression>> &&alias_to_expr_map);
 
   /**
    * Copy
@@ -267,7 +267,8 @@ class LogicalQueryDerivedGet : public OperatorNode<LogicalQueryDerivedGet> {
   /**
    * @return map from table aliases to expressions
    */
-  const std::unordered_map<std::string, common::ManagedPointer<parser::AbstractExpression>> &GetAliasToExprMap() const {
+  const std::unordered_map<std::string, common::ManagedPointer<const parser::AbstractExpression>> &GetAliasToExprMap()
+      const {
     return alias_to_expr_map_;
   }
 
@@ -280,7 +281,7 @@ class LogicalQueryDerivedGet : public OperatorNode<LogicalQueryDerivedGet> {
   /**
    * Map from table aliases to expressions
    */
-  std::unordered_map<std::string, common::ManagedPointer<parser::AbstractExpression>> alias_to_expr_map_;
+  std::unordered_map<std::string, common::ManagedPointer<const parser::AbstractExpression>> alias_to_expr_map_;
 };
 
 /**
@@ -292,7 +293,7 @@ class LogicalFilter : public OperatorNode<LogicalFilter> {
    * @param predicates The list of predicates used to perform the scan
    * @return a LogicalFilter operator
    */
-  static Operator make(std::vector<AnnotatedExpression> &&predicates);
+  static Operator Make(std::vector<AnnotatedExpression> &&predicates);
 
   /**
    * Copy
@@ -327,7 +328,7 @@ class LogicalProjection : public OperatorNode<LogicalProjection> {
    * @param expressions list of AbstractExpressions in the projection list.
    * @return a LogicalProjection operator
    */
-  static Operator make(std::vector<common::ManagedPointer<parser::AbstractExpression>> &&expressions);
+  static Operator Make(std::vector<common::ManagedPointer<const parser::AbstractExpression>> &&expressions);
 
   /**
    * Copy
@@ -342,13 +343,15 @@ class LogicalProjection : public OperatorNode<LogicalProjection> {
   /**
    * @return vector of predicates
    */
-  const std::vector<common::ManagedPointer<parser::AbstractExpression>> &GetExpressions() const { return expressions_; }
+  const std::vector<common::ManagedPointer<const parser::AbstractExpression>> &GetExpressions() const {
+    return expressions_;
+  }
 
  private:
   /**
    * Each entry in the projection list is an AbstractExpression
    */
-  std::vector<common::ManagedPointer<parser::AbstractExpression>> expressions_;
+  std::vector<common::ManagedPointer<const parser::AbstractExpression>> expressions_;
 };
 
 /**
@@ -359,13 +362,13 @@ class LogicalDependentJoin : public OperatorNode<LogicalDependentJoin> {
   /**
    * @return a DependentJoin operator
    */
-  static Operator make();
+  static Operator Make();
 
   /**
    * @param conditions condition of the join
    * @return a DependentJoin operator
    */
-  static Operator make(std::vector<AnnotatedExpression> &&conditions);
+  static Operator Make(std::vector<AnnotatedExpression> &&conditions);
 
   /**
    * Copy
@@ -397,13 +400,13 @@ class LogicalMarkJoin : public OperatorNode<LogicalMarkJoin> {
   /**
    * @return a MarkJoin operator
    */
-  static Operator make();
+  static Operator Make();
 
   /**
    * @param conditions conditions of the join
    * @return a MarkJoin operator
    */
-  static Operator make(std::vector<AnnotatedExpression> &&conditions);
+  static Operator Make(std::vector<AnnotatedExpression> &&conditions);
 
   /**
    * Copy
@@ -435,13 +438,13 @@ class LogicalSingleJoin : public OperatorNode<LogicalSingleJoin> {
   /**
    * @return a SingleJoin operator
    */
-  static Operator make();
+  static Operator Make();
 
   /**
    * @param conditions conditions of the join
    * @return a SingleJoin operator
    */
-  static Operator make(std::vector<AnnotatedExpression> &&conditions);
+  static Operator Make(std::vector<AnnotatedExpression> &&conditions);
 
   /**
    * Copy
@@ -473,13 +476,13 @@ class LogicalInnerJoin : public OperatorNode<LogicalInnerJoin> {
   /**
    * @return an InnerJoin operator
    */
-  static Operator make();
+  static Operator Make();
 
   /**
    * @param conditions conditions of the join
    * @return an InnerJoin operator
    */
-  static Operator make(std::vector<AnnotatedExpression> &&conditions);
+  static Operator Make(std::vector<AnnotatedExpression> &&conditions);
 
   /**
    * Copy
@@ -512,7 +515,7 @@ class LogicalLeftJoin : public OperatorNode<LogicalLeftJoin> {
    * @param join_predicate condition of the join
    * @return a LeftJoin operator
    */
-  static Operator make(common::ManagedPointer<parser::AbstractExpression> join_predicate);
+  static Operator Make(common::ManagedPointer<const parser::AbstractExpression> join_predicate);
 
   /**
    * Copy
@@ -527,13 +530,13 @@ class LogicalLeftJoin : public OperatorNode<LogicalLeftJoin> {
   /**
    * @return pointer to the join predicate expression
    */
-  const common::ManagedPointer<parser::AbstractExpression> &GetJoinPredicate() const { return join_predicate_; }
+  const common::ManagedPointer<const parser::AbstractExpression> &GetJoinPredicate() const { return join_predicate_; }
 
  private:
   /**
    * Join predicate
    */
-  common::ManagedPointer<parser::AbstractExpression> join_predicate_;
+  common::ManagedPointer<const parser::AbstractExpression> join_predicate_;
 };
 
 /**
@@ -545,7 +548,7 @@ class LogicalRightJoin : public OperatorNode<LogicalRightJoin> {
    * @param join_predicate condition of the join
    * @return a RightJoin operator
    */
-  static Operator make(common::ManagedPointer<parser::AbstractExpression> join_predicate);
+  static Operator Make(common::ManagedPointer<const parser::AbstractExpression> join_predicate);
 
   /**
    * Copy
@@ -560,13 +563,13 @@ class LogicalRightJoin : public OperatorNode<LogicalRightJoin> {
   /**
    * @return pointer to the join predicate expression
    */
-  const common::ManagedPointer<parser::AbstractExpression> &GetJoinPredicate() const { return join_predicate_; }
+  const common::ManagedPointer<const parser::AbstractExpression> &GetJoinPredicate() const { return join_predicate_; }
 
  private:
   /**
    * Join predicate
    */
-  common::ManagedPointer<parser::AbstractExpression> join_predicate_;
+  common::ManagedPointer<const parser::AbstractExpression> join_predicate_;
 };
 
 /**
@@ -578,7 +581,7 @@ class LogicalOuterJoin : public OperatorNode<LogicalOuterJoin> {
    * @param join_predicate condition of the join
    * @return an OuterJoin operator
    */
-  static Operator make(common::ManagedPointer<parser::AbstractExpression> join_predicate);
+  static Operator Make(common::ManagedPointer<const parser::AbstractExpression> join_predicate);
 
   /**
    * Copy
@@ -593,13 +596,13 @@ class LogicalOuterJoin : public OperatorNode<LogicalOuterJoin> {
   /**
    * @return pointer to the join predicate expression
    */
-  const common::ManagedPointer<parser::AbstractExpression> &GetJoinPredicate() const { return join_predicate_; }
+  const common::ManagedPointer<const parser::AbstractExpression> &GetJoinPredicate() const { return join_predicate_; }
 
  private:
   /**
    * Join predicate
    */
-  common::ManagedPointer<parser::AbstractExpression> join_predicate_;
+  common::ManagedPointer<const parser::AbstractExpression> join_predicate_;
 };
 
 /**
@@ -611,7 +614,7 @@ class LogicalSemiJoin : public OperatorNode<LogicalSemiJoin> {
    * @param join_predicate condition of the join
    * @return a SemiJoin operator
    */
-  static Operator make(common::ManagedPointer<parser::AbstractExpression> join_predicate);
+  static Operator Make(common::ManagedPointer<const parser::AbstractExpression> join_predicate);
 
   /**
    * Copy
@@ -626,13 +629,13 @@ class LogicalSemiJoin : public OperatorNode<LogicalSemiJoin> {
   /**
    * @return pointer to the join predicate expression
    */
-  const common::ManagedPointer<parser::AbstractExpression> &GetJoinPredicate() const { return join_predicate_; }
+  const common::ManagedPointer<const parser::AbstractExpression> &GetJoinPredicate() const { return join_predicate_; }
 
  private:
   /**
    * Join predicate
    */
-  common::ManagedPointer<parser::AbstractExpression> join_predicate_;
+  common::ManagedPointer<const parser::AbstractExpression> join_predicate_;
 };
 
 /**
@@ -643,20 +646,20 @@ class LogicalAggregateAndGroupBy : public OperatorNode<LogicalAggregateAndGroupB
   /**
    * @return a GroupBy operator
    */
-  static Operator make();
+  static Operator Make();
 
   /**
    * @param columns columns to group by
    * @return a GroupBy operator
    */
-  static Operator make(std::vector<common::ManagedPointer<parser::AbstractExpression>> &&columns);
+  static Operator Make(std::vector<common::ManagedPointer<const parser::AbstractExpression>> &&columns);
 
   /**
    * @param columns columns to group by
    * @param having HAVING clause
    * @return a GroupBy operator
    */
-  static Operator make(std::vector<common::ManagedPointer<parser::AbstractExpression>> &&columns,
+  static Operator Make(std::vector<common::ManagedPointer<const parser::AbstractExpression>> &&columns,
                        std::vector<AnnotatedExpression> &&having);
 
   /**
@@ -672,7 +675,7 @@ class LogicalAggregateAndGroupBy : public OperatorNode<LogicalAggregateAndGroupB
   /**
    * @return vector of columns
    */
-  const std::vector<common::ManagedPointer<parser::AbstractExpression>> &GetColumns() const { return columns_; }
+  const std::vector<common::ManagedPointer<const parser::AbstractExpression>> &GetColumns() const { return columns_; }
 
   /**
    * @return vector of having expressions
@@ -683,7 +686,7 @@ class LogicalAggregateAndGroupBy : public OperatorNode<LogicalAggregateAndGroupB
   /**
    * Columns to group by
    */
-  std::vector<common::ManagedPointer<parser::AbstractExpression>> columns_;
+  std::vector<common::ManagedPointer<const parser::AbstractExpression>> columns_;
 
   /**
    * Expression of HAVING clause
@@ -704,9 +707,9 @@ class LogicalInsert : public OperatorNode<LogicalInsert> {
    * @param values list of expressions that provide the values to insert into columns
    * @return
    */
-  static Operator make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
+  static Operator Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
                        catalog::table_oid_t table_oid, std::vector<catalog::col_oid_t> &&columns,
-                       std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>> &&values);
+                       std::vector<std::vector<common::ManagedPointer<const parser::AbstractExpression>>> &&values);
 
   /**
    * Copy
@@ -740,7 +743,7 @@ class LogicalInsert : public OperatorNode<LogicalInsert> {
   /**
    * @return The expression objects to insert
    */
-  const std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>> &GetValues() const {
+  const std::vector<std::vector<common::ManagedPointer<const parser::AbstractExpression>>> &GetValues() const {
     return values_;
   }
 
@@ -769,7 +772,7 @@ class LogicalInsert : public OperatorNode<LogicalInsert> {
    * The expression objects to insert.
    * The offset of an entry in this list corresponds to the offset in the columns_ list.
    */
-  std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>> values_;
+  std::vector<std::vector<common::ManagedPointer<const parser::AbstractExpression>>> values_;
 };
 
 /**
@@ -783,7 +786,7 @@ class LogicalInsertSelect : public OperatorNode<LogicalInsertSelect> {
    * @param table_oid OID of the table
    * @return
    */
-  static Operator make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
+  static Operator Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
                        catalog::table_oid_t table_oid);
 
   /**
@@ -837,7 +840,7 @@ class LogicalDistinct : public OperatorNode<LogicalDistinct> {
    * It doesn't need to store any data. It is just a placeholder
    * @return
    */
-  static Operator make();
+  static Operator Make();
 
   /**
    * Copy
@@ -862,8 +865,8 @@ class LogicalLimit : public OperatorNode<LogicalLimit> {
    * @param sort_directions inlined sort directions (can be empty)
    * @return
    */
-  static Operator make(size_t offset, size_t limit,
-                       std::vector<common::ManagedPointer<parser::AbstractExpression>> &&sort_exprs,
+  static Operator Make(size_t offset, size_t limit,
+                       std::vector<common::ManagedPointer<const parser::AbstractExpression>> &&sort_exprs,
                        std::vector<planner::OrderByOrderingType> &&sort_directions);
 
   /**
@@ -888,7 +891,7 @@ class LogicalLimit : public OperatorNode<LogicalLimit> {
   /**
    * @return inlined ORDER BY expressions (can be empty)
    */
-  const std::vector<common::ManagedPointer<parser::AbstractExpression>> &GetSortExpressions() const {
+  const std::vector<common::ManagedPointer<const parser::AbstractExpression>> &GetSortExpressions() const {
     return sort_exprs_;
   }
 
@@ -914,7 +917,7 @@ class LogicalLimit : public OperatorNode<LogicalLimit> {
    * internal order, then the limit operator will generate sort plan with
    * limit as a optimization.
    */
-  std::vector<common::ManagedPointer<parser::AbstractExpression>> sort_exprs_;
+  std::vector<common::ManagedPointer<const parser::AbstractExpression>> sort_exprs_;
 
   /**
    * The sort direction of sort expressions
@@ -933,7 +936,7 @@ class LogicalDelete : public OperatorNode<LogicalDelete> {
    * @param table_oid OID of the table
    * @return
    */
-  static Operator make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
+  static Operator Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
                        catalog::table_oid_t table_oid);
 
   /**
@@ -990,9 +993,9 @@ class LogicalUpdate : public OperatorNode<LogicalUpdate> {
    * @param updates the update clauses from the SET portion of the query
    * @return
    */
-  static Operator make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid, std::string table_alias,
+  static Operator Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid, std::string table_alias,
                        catalog::table_oid_t table_oid,
-                       std::vector<common::ManagedPointer<parser::UpdateClause>> &&updates);
+                       std::vector<common::ManagedPointer<const parser::UpdateClause>> &&updates);
 
   /**
    * Copy
@@ -1026,7 +1029,7 @@ class LogicalUpdate : public OperatorNode<LogicalUpdate> {
   /**
    * @return the update clauses from the SET portion of the query
    */
-  const std::vector<common::ManagedPointer<parser::UpdateClause>> &GetUpdateClauses() const { return updates_; }
+  const std::vector<common::ManagedPointer<const parser::UpdateClause>> &GetUpdateClauses() const { return updates_; }
 
  private:
   /**
@@ -1052,7 +1055,7 @@ class LogicalUpdate : public OperatorNode<LogicalUpdate> {
   /**
    * The update clauses from the SET portion of the query
    */
-  std::vector<common::ManagedPointer<parser::UpdateClause>> updates_;
+  std::vector<common::ManagedPointer<const parser::UpdateClause>> updates_;
 };
 
 /**
@@ -1068,7 +1071,7 @@ class LogicalExportExternalFile : public OperatorNode<LogicalExportExternalFile>
    * @param escape the character to use to escape characters in values
    * @return
    */
-  static Operator make(parser::ExternalFileFormat format, std::string file_name, char delimiter, char quote,
+  static Operator Make(parser::ExternalFileFormat format, std::string file_name, char delimiter, char quote,
                        char escape);
 
   /**

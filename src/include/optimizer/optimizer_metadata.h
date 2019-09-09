@@ -8,6 +8,7 @@
 #include "optimizer/group_expression.h"
 #include "optimizer/memo.h"
 #include "optimizer/rule.h"
+#include "optimizer/statistics/stats_storage.h"
 
 namespace terrier {
 
@@ -42,7 +43,6 @@ class OptimizerMetadata {
    * Destroys cost_model and task_pool
    */
   ~OptimizerMetadata() {
-    delete cost_model_;
     delete task_pool_;
 
     for (auto *ctx : track_list_) {
@@ -52,23 +52,31 @@ class OptimizerMetadata {
 
   /**
    * Gets the Memo
+   * @returns Memo
    */
   Memo &GetMemo() { return memo_; }
 
   /**
    * Gets the RuleSet
+   * @returns RuleSet
    */
   RuleSet &GetRuleSet() { return rule_set_; }
 
   /**
    * Gets the CatalogAccessor
+   * @returns CatalogAccessor
    */
   catalog::CatalogAccessor *GetCatalogAccessor() { return accessor_; }
 
   /**
+   * Gets the StatsStorage
+   * @returns StatsStorage
+   */
+  StatsStorage *GetStatsStorage() { return stats_storage_; }
+
+  /**
    * Adds a OptimizeContext to the tracking list
    * @param ctx OptimizeContext to add to tracking
-   * TODO(wz2): narrow object lifecycle to parent task
    */
   void AddOptimizeContext(OptimizeContext *ctx) { track_list_.push_back(ctx); }
 
@@ -85,18 +93,6 @@ class OptimizerMetadata {
   AbstractCostModel *GetCostModel() { return cost_model_; }
 
   /**
-   * Relinquishes control of CostModel
-   * @returns Cost model owned by OptimizerMetadata
-   */
-  AbstractCostModel *ReleaseCostModel() {
-    AbstractCostModel *model = cost_model_;
-    TERRIER_ASSERT(model, "OptimizerMetadata must have a valid CostModel");
-
-    cost_model_ = nullptr;
-    return model;
-  }
-
-  /**
    * Gets the transaction
    * @returns transaction
    */
@@ -104,13 +100,21 @@ class OptimizerMetadata {
 
   /**
    * Sets the transaction
+   * @param txn TransactionContext
    */
   void SetTxn(transaction::TransactionContext *txn) { txn_ = txn; }
 
   /**
    * Sets the CatalogAccessor
+   * @param accessor CatalogAccessor
    */
   void SetCatalogAccessor(catalog::CatalogAccessor *accessor) { accessor_ = accessor; }
+
+  /**
+   * Sets the StatsStorage
+   * @param storage StatsStorage
+   */
+  void SetStatsStorage(StatsStorage *storage) { stats_storage_ = storage; }
 
   /**
    * Set the task pool tracked by the OptimizerMetadata.
@@ -230,6 +234,11 @@ class OptimizerMetadata {
    * CatalogAccessor
    */
   catalog::CatalogAccessor *accessor_;
+
+  /**
+   * StatsStorage
+   */
+  StatsStorage *stats_storage_;
 
   /**
    * TransactionContxt used for execution

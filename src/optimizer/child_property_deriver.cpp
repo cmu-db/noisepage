@@ -83,14 +83,9 @@ void ChildPropertyDeriver::Visit(UNUSED_ATTRIBUTE const HashGroupBy *op) {
 
 void ChildPropertyDeriver::Visit(UNUSED_ATTRIBUTE const SortGroupBy *op) {
   // Child must provide sort for Groupby columns
-  // TODO(wz2): Descending support? Catalog flag?
   std::vector<planner::OrderByOrderingType> sort_ascending(op->GetColumns().size(), planner::OrderByOrderingType::ASC);
-  std::vector<common::ManagedPointer<parser::AbstractExpression>> sort_cols;
-  for (auto &col : op->GetColumns()) {
-    sort_cols.push_back(col);
-  }
 
-  auto sort_prop = new PropertySort(sort_cols, std::move(sort_ascending));
+  auto sort_prop = new PropertySort(op->GetColumns(), std::move(sort_ascending));
   auto prop_set = new PropertySet(std::vector<Property *>{sort_prop});
   output_.emplace_back(prop_set, std::vector<PropertySet *>{prop_set->Copy()});
 }
@@ -104,7 +99,7 @@ void ChildPropertyDeriver::Visit(const Limit *op) {
   std::vector<PropertySet *> child_input_properties{new PropertySet()};
   auto provided_prop = new PropertySet();
   if (!op->GetSortExpressions().empty()) {
-    const std::vector<common::ManagedPointer<parser::AbstractExpression>> &exprs = op->GetSortExpressions();
+    const std::vector<common::ManagedPointer<const parser::AbstractExpression>> &exprs = op->GetSortExpressions();
     const std::vector<planner::OrderByOrderingType> &sorts{op->GetSortAscending()};
     provided_prop->AddProperty(new PropertySort(exprs, sorts));
   }
@@ -130,7 +125,7 @@ void ChildPropertyDeriver::Visit(UNUSED_ATTRIBUTE const RightHashJoin *op) {}
 void ChildPropertyDeriver::Visit(UNUSED_ATTRIBUTE const OuterHashJoin *op) {}
 
 void ChildPropertyDeriver::Visit(UNUSED_ATTRIBUTE const Insert *op) {
-  std::vector<PropertySet *> child_input_properties{requirements_->Copy()};
+  std::vector<PropertySet *> child_input_properties;
   output_.emplace_back(requirements_->Copy(), std::move(child_input_properties));
 }
 
@@ -177,14 +172,14 @@ void ChildPropertyDeriver::DeriveForJoin() {
       Group *probe_group = memo_->GetGroupByID(gexpr_->GetChildGroupId(1));
       for (size_t idx = 0; idx < sort_col_size; ++idx) {
         ExprSet tuples;
-        parser::ExpressionUtil::GetTupleValueExprs(&tuples, sort_prop->GetSortColumn(idx).get());
+        parser::ExpressionUtil::GetTupleValueExprs(&tuples, sort_prop->GetSortColumn(idx).Get());
         for (auto &expr : tuples) {
           auto tv_expr = dynamic_cast<const parser::ColumnValueExpression *>(expr);
           TERRIER_ASSERT(tv_expr, "Expected ColumnValueExpression");
 
           // If a column is not in the prob table, we cannot fulfill the sort
           // property in the requirement
-          if (probe_group->GetTableAliases().count(tv_expr->GetTableName()) == 0u) {
+          if (probe_group->GetTableAliases().count(tv_expr->GetTableName()) == 0U) {
             can_pass_down = false;
             break;
           }
