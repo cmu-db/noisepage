@@ -113,6 +113,7 @@ TEST_F(TPCCTests, WithoutLogging) {
   thread_pool_.Shutdown();
   delete gc_thread_;
   delete gc_;
+  delete thread_registry_;
   delete tpcc_db;
 
   CleanUpVarlensInPrecomputedArgs(&precomputed_args);
@@ -172,6 +173,7 @@ TEST_F(TPCCTests, WithLogging) {
   log_manager_->PersistAndStop();
   delete log_manager_;
   delete gc_thread_;
+  delete gc_;
   delete thread_registry_;
   delete tpcc_db;
 
