@@ -117,7 +117,7 @@ pipeline {
                         sh 'mkdir build'
                         sh 'cd build && cmake -DCMAKE_BUILD_TYPE=Release -DTERRIER_USE_ASAN=OFF -DTERRIER_USE_JEMALLOC=ON .. && make -j4'
                         sh 'cd build && timeout 1h make runbenchmark'
-                        sh 'cd script/micro_bench && ./run_micro_bench.py'
+                        sh 'cd script/micro_bench && timeout 1h ./run_micro_bench.py'
                         archiveArtifacts 'script/micro_bench/*.json'
                         junit 'script/micro_bench/*.xml'
                     }

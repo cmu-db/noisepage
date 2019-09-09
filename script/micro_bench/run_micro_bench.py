@@ -22,8 +22,6 @@ import xml.etree.ElementTree as ElementTree
 
 from types import (ListType, StringType)
 
-import cpu_lib
-
 class TestConfig(object):
     """ Configuration for run_micro_bench.
         All information is read-only.
@@ -759,8 +757,11 @@ class RunMicroBenchmarks(object):
                          output_file)
 
         # use all the cpus from the highest numbered numa node
-        cpu_id_list = self._get_single_numa_cpu_list()
-        cmd = self._taskset_cmd_by_cpu_id_list(cmd, cpu_id_list)
+
+        highest_cpu_node = int(subprocess.check_output("numactl --hardware | grep 'available: ' | cut -d' ' -f2", shell=True)) - 1
+        print("Number of NUMA nodes = {}".format(highest_cpu_node))
+
+        cmd = "numactl --cpunodebind={} --preferred={} {}".format(highest_cpu_node, highest_cpu_node, cmd)
         print("cmd = {}".format(cmd))
 
         ret_val = subprocess.call([cmd],
@@ -774,35 +775,6 @@ class RunMicroBenchmarks(object):
 
         # return the process exit code
         return ret_val
-
-    def _taskset_cmd(self, cmd, num_cpus):
-        """ modify cmd to be via taskset """
-        cpu_a = cpu_lib.CPUAllocator()
-        assert num_cpus
-        # use high numbered cpus
-        cpu_list = cpu_a.get_n_cpus(num_cpus, low=False)
-
-        new_cmd = "taskset -c {} {}".format(",".join(map(str, cpu_list)), cmd)
-        return new_cmd
-
-    def _taskset_cmd_by_cpu_id_list(self, cmd, cpu_id_list):
-        new_cmd = "taskset -c {} {}".format(",".join(map(str, cpu_id_list)),
-                                            cmd)
-        return new_cmd
-
-    def _get_single_numa_cpu_list(self):
-        cpu_a = cpu_lib.CPUAllocator()
-        # get the highest number numa node
-        numa_id = cpu_a.get_numa_ids()[-1]
-        numa_obj = cpu_a.get_numa_by_id(numa_id)
-        cpu_obj_list = numa_obj.get_cpu_list()
-
-        cpu_id_list = []
-        for cpu in cpu_obj_list:
-            if not cpu.is_free():
-                continue
-            cpu_id_list.append(cpu.get_cpu_id())
-        return cpu_id_list
 
 class Jenkins(object):
     """ Wrapper for Jenkins web api """
