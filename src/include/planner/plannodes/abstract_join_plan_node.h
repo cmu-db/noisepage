@@ -25,7 +25,7 @@ class AbstractJoinPlanNode : public AbstractPlanNode {
      * @return builder object
      */
     ConcreteType &SetJoinPredicate(const std::shared_ptr<parser::AbstractExpression> &predicate) {
-      join_predicate_ = std::move(predicate);
+      join_predicate_ = predicate;
       return *dynamic_cast<ConcreteType *>(this);
     }
 
