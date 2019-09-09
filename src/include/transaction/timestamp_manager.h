@@ -5,6 +5,11 @@
 #include "common/strong_typedef.h"
 #include "transaction/transaction_defs.h"
 
+namespace terrier::storage {
+// Forward declaration
+class LogSerializerTask;
+}  // namespace terrier::storage
+
 namespace terrier::transaction {
 class TransactionManager;
 /**
@@ -37,6 +42,7 @@ class TimestampManager {
 
  private:
   friend class TransactionManager;
+  friend class storage::LogSerializerTask;
   timestamp_t BeginTransaction() {
     timestamp_t start_time;
     {

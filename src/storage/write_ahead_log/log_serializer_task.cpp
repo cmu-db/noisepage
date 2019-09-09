@@ -78,7 +78,7 @@ void LogSerializerTask::SerializeBuffer(IterableBufferSegment<LogRecord> *buffer
         if (!commit_record->IsReadOnly()) SerializeRecord(record);
         commits_in_buffer_.emplace_back(commit_record->CommitCallback(), commit_record->CommitCallbackArg());
         // Once serialization is done, we notify the txn manager to let GC know this txn is ready to clean up
-        commit_record->TxnManager()->NotifyTransactionSerialized(commit_record->Txn());
+        commit_record->TimestampManager()->RemoveTransaction(record.TxnBegin());
         break;
       }
 
@@ -86,7 +86,7 @@ void LogSerializerTask::SerializeBuffer(IterableBufferSegment<LogRecord> *buffer
         // If an abort record shows up at all, the transaction cannot be read-only
         SerializeRecord(record);
         auto *abord_record = record.GetUnderlyingRecordBodyAs<AbortRecord>();
-        abord_record->TxnManager()->NotifyTransactionSerialized(abord_record->Txn());
+        abord_record->TimestampManager()->RemoveTransaction(record.TxnBegin());
         break;
       }
 

@@ -22,11 +22,12 @@ void TransactionManager::LogCommit(TransactionContext *const txn, const timestam
     // sees this record.
     byte *const commit_record = txn->redo_buffer_.NewEntry(storage::CommitRecord::Size());
     storage::CommitRecord::Initialize(commit_record, txn->StartTime(), commit_time, commit_callback,
-                                      commit_callback_arg, oldest_active_txn, txn->IsReadOnly(), txn, this);
+                                      commit_callback_arg, oldest_active_txn, txn->IsReadOnly(), txn,
+                                      timestamp_manager_);
   } else {
     // Otherwise, logging is disabled. We should pretend to have serialized and flushed the record so the rest of the
     // system proceeds correctly
-    NotifyTransactionSerialized(txn);
+    timestamp_manager_->RemoveTransaction(txn->StartTime());
     commit_callback(commit_callback_arg);
   }
   txn->redo_buffer_.Finalize(true);
@@ -76,6 +77,15 @@ timestamp_t TransactionManager::Commit(TransactionContext *const txn, transactio
   }
   LogCommit(txn, result, callback, callback_arg, oldest_active_txn);
 
+  // We hand off txn to GC, however, it won't be GC'd until the LogManager marks it as serialized
+  if (gc_enabled_) {
+    common::SpinLatch::ScopedSpinLatch guard(&completed_txns_latch_);
+    // It is not necessary to have to GC process read-only transactions, but it's probably faster to call free off
+    // the critical path there anyway
+    // Also note here that GC will figure out what varlen entries to GC, as opposed to in the abort case.
+    completed_txns_.push_front(txn);
+  }
+
   return result;
 }
 
@@ -91,7 +101,7 @@ void TransactionManager::LogAbort(TransactionContext *const txn) {
     // currently exist. Only the abort record is needed.
     txn->redo_buffer_.Reset();
     byte *const abort_record = txn->redo_buffer_.NewEntry(storage::AbortRecord::Size());
-    storage::AbortRecord::Initialize(abort_record, txn->StartTime(), txn, this);
+    storage::AbortRecord::Initialize(abort_record, txn->StartTime(), txn, timestamp_manager_);
     // Signal to the log manager that we are ready to be logged out
     txn->redo_buffer_.Finalize(true);
   } else {
@@ -100,7 +110,7 @@ void TransactionManager::LogAbort(TransactionContext *const txn) {
     // not yet logged out
     txn->redo_buffer_.Finalize(false);
     // Since there is nothing to log, we can mark it as processed
-    NotifyTransactionSerialized(txn);
+    timestamp_manager_->RemoveTransaction(txn->StartTime());
   }
 }
 
@@ -137,6 +147,16 @@ timestamp_t TransactionManager::Abort(TransactionContext *const txn) {
   GCLastUpdateOnAbort(txn);
 
   LogAbort(txn);
+
+  // We hand off txn to GC, however, it won't be GC'd until the LogManager marks it as serialized
+  if (gc_enabled_) {
+    common::SpinLatch::ScopedSpinLatch guard(&completed_txns_latch_);
+    // It is not necessary to have to GC process read-only transactions, but it's probably faster to call free off
+    // the critical path there anyway
+    // Also note here that GC will figure out what varlen entries to GC, as opposed to in the abort case.
+    completed_txns_.push_front(txn);
+  }
+
   return abort_time;
 }
 
@@ -246,18 +266,4 @@ void TransactionManager::DeallocateInsertedTupleIfVarlen(TransactionContext *txn
     }
   }
 }
-
-void TransactionManager::NotifyTransactionSerialized(TransactionContext *txn) {
-  // Remove this transaction from the table of running transactions
-  timestamp_manager_->RemoveTransaction(txn->StartTime());
-
-  if (gc_enabled_) {
-    common::SpinLatch::ScopedSpinLatch guard(&completed_txns_latch_);
-    // It is not necessary to have to GC process read-only transactions, but it's probably faster to call free off
-    // the critical path there anyway
-    // Also note here that GC will figure out what varlen entries to GC, as opposed to in the abort case.
-    completed_txns_.push_front(txn);
-  }
-}
-
 }  // namespace terrier::transaction

@@ -78,7 +78,6 @@ class TransactionManager {
   TransactionQueue CompletedTransactionsForGC();
 
  private:
-  friend class storage::LogSerializerTask;
   TimestampManager *timestamp_manager_;
   DeferredActionManager *deferred_action_manager_;
   storage::RecordBufferSegmentPool *buffer_pool_;
@@ -106,12 +105,5 @@ class TransactionManager {
   void DeallocateInsertedTupleIfVarlen(TransactionContext *txn, storage::UndoRecord *undo,
                                        const storage::TupleAccessStrategy &accessor) const;
   void GCLastUpdateOnAbort(TransactionContext *txn);
-
-  /**
-   * Notifies the txn manager that the txn has been serialized and can safely be GC'd. Should only be called by
-   * LogManager. If logging is disabled, the callback will be called by LogCommit/LogAbort
-   * @param txn transaction that has been serialized
-   */
-  void NotifyTransactionSerialized(TransactionContext *txn);
 };
 }  // namespace terrier::transaction
