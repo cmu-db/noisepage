@@ -634,10 +634,12 @@ bool DatabaseCatalog::DeleteTable(transaction::TransactionContext *const txn, co
   // function comment.
   txn->RegisterCommitAction([=](transaction::DeferredActionManager *deferred_action_manager) {
     deferred_action_manager->RegisterDeferredAction([=]() {
-      // Defer an action upon commit to delete the table. Delete index will need a double deferral because there could
-      // be pending deferred actions on an index
-      delete schema_ptr;
-      delete table_ptr;
+      deferred_action_manager->RegisterDeferredAction([=]() {
+        // Defer an action upon commit to delete the table. Delete table will need a double deferral because there could
+        // be transactions not yet unlinked by the GC that depend on the table
+        delete schema_ptr;
+        delete table_ptr;
+      });
     });
   });
 
