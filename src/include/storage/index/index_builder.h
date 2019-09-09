@@ -21,8 +21,6 @@ namespace terrier::storage::index {
  */
 class IndexBuilder {
  private:
-  catalog::index_oid_t index_oid_{0};
-  ConstraintType constraint_type_ = ConstraintType::INVALID;
   catalog::IndexSchema key_schema_;
   bool ordered_ = true;
 
@@ -34,10 +32,6 @@ class IndexBuilder {
    */
   Index *Build() const {
     TERRIER_ASSERT(!key_schema_.GetColumns().empty(), "Cannot build an index without a KeySchema.");
-    TERRIER_ASSERT(constraint_type_ != ConstraintType::INVALID, "Cannot build an index without a ConstraintType.");
-    TERRIER_ASSERT((constraint_type_ == ConstraintType::DEFAULT && !key_schema_.Unique()) ||
-                       (constraint_type_ == ConstraintType::UNIQUE && key_schema_.Unique()),
-                   "ContraintType should match the IndexSchema's is_unique flag.");
 
     IndexMetadata metadata(key_schema_);
 
@@ -55,29 +49,11 @@ class IndexBuilder {
     }
 
     if (ordered_) {
-      if (use_compact_ints) return BuildBwTreeIntsKey(index_oid_, constraint_type_, key_size, std::move(metadata));
-      return BuildBwTreeGenericKey(index_oid_, constraint_type_, std::move(metadata));
+      if (use_compact_ints) return BuildBwTreeIntsKey(key_size, std::move(metadata));
+      return BuildBwTreeGenericKey(std::move(metadata));
     }
-    if (use_compact_ints) return BuildHashIntsKey(index_oid_, constraint_type_, std::move(metadata));
-    return BuildHashGenericKey(index_oid_, constraint_type_, std::move(metadata));
-  }
-
-  /**
-   * @param index_oid the index oid
-   * @return the builder object
-   */
-  IndexBuilder &SetOid(const catalog::index_oid_t index_oid) {
-    index_oid_ = index_oid;
-    return *this;
-  }
-
-  /**
-   * @param constraint_type the type of index
-   * @return the builder object
-   */
-  IndexBuilder &SetConstraintType(const ConstraintType constraint_type) {
-    constraint_type_ = constraint_type;
-    return *this;
+    if (use_compact_ints) return BuildHashIntsKey(std::move(metadata));
+    return BuildHashGenericKey(std::move(metadata));
   }
 
   /**
@@ -115,25 +91,23 @@ class IndexBuilder {
     return false;
   }
 
-  Index *BuildBwTreeIntsKey(catalog::index_oid_t index_oid, ConstraintType constraint_type, uint32_t key_size,
-                            IndexMetadata metadata) const {
+  Index *BuildBwTreeIntsKey(uint32_t key_size, IndexMetadata metadata) const {
     TERRIER_ASSERT(key_size <= sizeof(uint64_t) * INTSKEY_MAX_SLOTS, "Not enough slots for given key size.");
     Index *index = nullptr;
     if (key_size <= sizeof(uint64_t)) {
-      index = new BwTreeIndex<CompactIntsKey<1>>(index_oid, constraint_type, std::move(metadata));
+      index = new BwTreeIndex<CompactIntsKey<1>>(std::move(metadata));
     } else if (key_size <= sizeof(uint64_t) * 2) {
-      index = new BwTreeIndex<CompactIntsKey<2>>(index_oid, constraint_type, std::move(metadata));
+      index = new BwTreeIndex<CompactIntsKey<2>>(std::move(metadata));
     } else if (key_size <= sizeof(uint64_t) * 3) {
-      index = new BwTreeIndex<CompactIntsKey<3>>(index_oid, constraint_type, std::move(metadata));
+      index = new BwTreeIndex<CompactIntsKey<3>>(std::move(metadata));
     } else if (key_size <= sizeof(uint64_t) * 4) {
-      index = new BwTreeIndex<CompactIntsKey<4>>(index_oid, constraint_type, std::move(metadata));
+      index = new BwTreeIndex<CompactIntsKey<4>>(std::move(metadata));
     }
     TERRIER_ASSERT(index != nullptr, "Failed to create an IntsKey index.");
     return index;
   }
 
-  Index *BuildBwTreeGenericKey(catalog::index_oid_t index_oid, ConstraintType constraint_type,
-                               IndexMetadata metadata) const {
+  Index *BuildBwTreeGenericKey(IndexMetadata metadata) const {
     const auto pr_size = metadata.GetInlinedPRInitializer().ProjectedRowSize();
     Index *index = nullptr;
 
@@ -142,48 +116,46 @@ class IndexBuilder {
         sizeof(uintptr_t);  // account for potential padding of the PR and the size of the pointer for metadata
 
     if (key_size <= 64) {
-      index = new BwTreeIndex<GenericKey<64>>(index_oid, constraint_type, std::move(metadata));
+      index = new BwTreeIndex<GenericKey<64>>(std::move(metadata));
     } else if (key_size <= 128) {
-      index = new BwTreeIndex<GenericKey<128>>(index_oid, constraint_type, std::move(metadata));
+      index = new BwTreeIndex<GenericKey<128>>(std::move(metadata));
     } else if (key_size <= 256) {
-      index = new BwTreeIndex<GenericKey<256>>(index_oid, constraint_type, std::move(metadata));
+      index = new BwTreeIndex<GenericKey<256>>(std::move(metadata));
     }
     TERRIER_ASSERT(index != nullptr, "Failed to create an GenericKey index.");
     return index;
   }
 
-  Index *BuildHashIntsKey(catalog::index_oid_t index_oid, ConstraintType constraint_type,
-                          IndexMetadata metadata) const {
+  Index *BuildHashIntsKey(IndexMetadata metadata) const {
     const auto key_size = metadata.KeySize();
     TERRIER_ASSERT(metadata.KeySize() <= HASHKEY_MAX_SIZE, "Not enough space for given key size.");
     Index *index = nullptr;
     if (key_size <= 8) {
-      index = new HashIndex<HashKey<8>>(index_oid, constraint_type, std::move(metadata));
+      index = new HashIndex<HashKey<8>>(std::move(metadata));
     } else if (key_size <= 16) {
-      index = new HashIndex<HashKey<16>>(index_oid, constraint_type, std::move(metadata));
+      index = new HashIndex<HashKey<16>>(std::move(metadata));
     } else if (key_size <= 32) {
-      index = new HashIndex<HashKey<32>>(index_oid, constraint_type, std::move(metadata));
+      index = new HashIndex<HashKey<32>>(std::move(metadata));
     } else if (key_size <= 64) {
-      index = new HashIndex<HashKey<64>>(index_oid, constraint_type, std::move(metadata));
+      index = new HashIndex<HashKey<64>>(std::move(metadata));
     } else if (key_size <= 128) {
-      index = new HashIndex<HashKey<128>>(index_oid, constraint_type, std::move(metadata));
+      index = new HashIndex<HashKey<128>>(std::move(metadata));
     } else if (key_size <= 256) {
-      index = new HashIndex<HashKey<256>>(index_oid, constraint_type, std::move(metadata));
+      index = new HashIndex<HashKey<256>>(std::move(metadata));
     } else if (key_size <= 512) {
-      index = new HashIndex<HashKey<512>>(index_oid, constraint_type, std::move(metadata));
+      index = new HashIndex<HashKey<512>>(std::move(metadata));
     } else if (key_size <= 1024) {
-      index = new HashIndex<HashKey<1024>>(index_oid, constraint_type, std::move(metadata));
+      index = new HashIndex<HashKey<1024>>(std::move(metadata));
     } else if (key_size <= 2048) {
-      index = new HashIndex<HashKey<2048>>(index_oid, constraint_type, std::move(metadata));
+      index = new HashIndex<HashKey<2048>>(std::move(metadata));
     } else if (key_size <= 4096) {
-      index = new HashIndex<HashKey<4096>>(index_oid, constraint_type, std::move(metadata));
+      index = new HashIndex<HashKey<4096>>(std::move(metadata));
     }
     TERRIER_ASSERT(index != nullptr, "Failed to create an IntsKey index.");
     return index;
   }
 
-  Index *BuildHashGenericKey(catalog::index_oid_t index_oid, ConstraintType constraint_type,
-                             IndexMetadata metadata) const {
+  Index *BuildHashGenericKey(IndexMetadata metadata) const {
     const auto pr_size = metadata.GetInlinedPRInitializer().ProjectedRowSize();
     Index *index = nullptr;
 
@@ -192,11 +164,11 @@ class IndexBuilder {
         sizeof(uintptr_t);  // account for potential padding of the PR and the size of the pointer for metadata
 
     if (key_size <= 64) {
-      index = new HashIndex<GenericKey<64>>(index_oid, constraint_type, std::move(metadata));
+      index = new HashIndex<GenericKey<64>>(std::move(metadata));
     } else if (key_size <= 128) {
-      index = new HashIndex<GenericKey<128>>(index_oid, constraint_type, std::move(metadata));
+      index = new HashIndex<GenericKey<128>>(std::move(metadata));
     } else if (key_size <= 256) {
-      index = new HashIndex<GenericKey<256>>(index_oid, constraint_type, std::move(metadata));
+      index = new HashIndex<GenericKey<256>>(std::move(metadata));
     }
     TERRIER_ASSERT(index != nullptr, "Failed to create an IntsKey index.");
     return index;

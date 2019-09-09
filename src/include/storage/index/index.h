@@ -6,8 +6,6 @@
 #include "catalog/catalog_defs.h"
 #include "common/performance_counter.h"
 #include "storage/data_table.h"
-#include "storage/index/compact_ints_key.h"
-#include "storage/index/generic_key.h"
 #include "storage/index/index_defs.h"
 #include "storage/index/index_metadata.h"
 #include "storage/storage_defs.h"
@@ -27,8 +25,6 @@ namespace terrier::storage::index {
 class Index {
  private:
   friend class IndexKeyTests;
-
-  const ConstraintType constraint_type_;
 
  protected:
   /**
@@ -52,8 +48,7 @@ class Index {
    * @param constraint_type type of index
    * @param metadata index description
    */
-  Index(const ConstraintType constraint_type, IndexMetadata metadata)
-      : constraint_type_{constraint_type}, metadata_(std::move(metadata)) {}
+  explicit Index(IndexMetadata metadata) : metadata_(std::move(metadata)) {}
 
  public:
   virtual ~Index() = default;
@@ -108,7 +103,9 @@ class Index {
    * @param[out] value_list the values associated with the keys
    */
   virtual void ScanAscending(const transaction::TransactionContext &txn, const ProjectedRow &low_key,
-                             const ProjectedRow &high_key, std::vector<TupleSlot> *value_list) {}
+                             const ProjectedRow &high_key, std::vector<TupleSlot> *value_list) {
+    TERRIER_ASSERT(false, "You called a method on an index type that hasn't implemented it.");
+  }
 
   /**
    * Finds all the values between the given keys in our index, sorted in descending order.
@@ -118,7 +115,9 @@ class Index {
    * @param[out] value_list the values associated with the keys
    */
   virtual void ScanDescending(const transaction::TransactionContext &txn, const ProjectedRow &low_key,
-                              const ProjectedRow &high_key, std::vector<TupleSlot> *value_list) {}
+                              const ProjectedRow &high_key, std::vector<TupleSlot> *value_list) {
+    TERRIER_ASSERT(false, "You called a method on an index type that hasn't implemented it.");
+  }
 
   /**
    * Finds the first limit # of values between the given keys in our index, sorted in ascending order.
@@ -129,7 +128,9 @@ class Index {
    * @param limit upper bound of number of values to return
    */
   virtual void ScanLimitAscending(const transaction::TransactionContext &txn, const ProjectedRow &low_key,
-                                  const ProjectedRow &high_key, std::vector<TupleSlot> *value_list, uint32_t limit) {}
+                                  const ProjectedRow &high_key, std::vector<TupleSlot> *value_list, uint32_t limit) {
+    TERRIER_ASSERT(false, "You called a method on an index type that hasn't implemented it.");
+  }
 
   /**
    * Finds the first limit # of values between the given keys in our index, sorted in descending order.
@@ -140,12 +141,9 @@ class Index {
    * @param limit upper bound of number of values to return
    */
   virtual void ScanLimitDescending(const transaction::TransactionContext &txn, const ProjectedRow &low_key,
-                                   const ProjectedRow &high_key, std::vector<TupleSlot> *value_list, uint32_t limit) {}
-
-  /**
-   * @return type of this index
-   */
-  ConstraintType GetConstraintType() const { return constraint_type_; }
+                                   const ProjectedRow &high_key, std::vector<TupleSlot> *value_list, uint32_t limit) {
+    TERRIER_ASSERT(false, "You called a method on an index type that hasn't implemented it.");
+  }
 
   /**
    * @return mapping from key oid to projected row offset

@@ -451,7 +451,7 @@ class StorageTestUtil {
       ForceOid(&(key_cols.back()), key_oid);
     }
 
-    return catalog::IndexSchema(key_cols, false, false, false, true);
+    return catalog::IndexSchema(key_cols, storage::index::IndexType::BWTREE, false, false, false, true);
   }
 
   /**
@@ -495,7 +495,7 @@ class StorageTestUtil {
       bytes_used = static_cast<uint16_t>(bytes_used + type::TypeUtil::GetTypeSize(type));
     }
 
-    return catalog::IndexSchema(key_cols, false, false, false, true);
+    return catalog::IndexSchema(key_cols, storage::index::IndexType::BWTREE, false, false, false, true);
   }
 
  private:

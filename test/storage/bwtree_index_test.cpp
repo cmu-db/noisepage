@@ -1,4 +1,3 @@
-#include <algorithm>
 #include <cstring>
 #include <functional>
 #include <limits>
@@ -15,12 +14,10 @@
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_manager.h"
 #include "type/type_id.h"
-#include "type/type_util.h"
 #include "util/catalog_test_util.h"
 #include "util/random_test_util.h"
 #include "util/storage_test_util.h"
 #include "util/test_harness.h"
-#include "util/transaction_test_util.h"
 
 namespace terrier::storage::index {
 
@@ -47,12 +44,12 @@ class BwTreeIndexTests : public TerrierTest {
     tuple_initializer_ = sql_table_->InitializerForProjectedRow({catalog::col_oid_t(1)});
 
     std::vector<catalog::IndexSchema::Column> keycols;
-    keycols.emplace_back(
-        "", type::TypeId::INTEGER, false,
-        parser::ColumnValueExpression(catalog::db_oid_t(0), catalog::table_oid_t(0), catalog::col_oid_t(1)));
+    keycols.emplace_back("", type::TypeId::INTEGER, false,
+                         parser::ColumnValueExpression(CatalogTestUtil::TEST_DB_OID, CatalogTestUtil::TEST_TABLE_OID,
+                                                       catalog::col_oid_t(1)));
     StorageTestUtil::ForceOid(&(keycols[0]), catalog::indexkeycol_oid_t(1));
-    unique_schema_ = catalog::IndexSchema(keycols, true, true, false, true);
-    default_schema_ = catalog::IndexSchema(keycols, false, false, false, true);
+    unique_schema_ = catalog::IndexSchema(keycols, storage::index::IndexType::BWTREE, true, true, false, true);
+    default_schema_ = catalog::IndexSchema(keycols, storage::index::IndexType::BWTREE, false, false, false, true);
   }
 
   std::default_random_engine generator_;
@@ -84,16 +81,8 @@ class BwTreeIndexTests : public TerrierTest {
     gc_ = new storage::GarbageCollector(timestamp_manager_, deferred_action_manager_, txn_manager_, DISABLED);
     gc_thread_ = new storage::GarbageCollectorThread(gc_, gc_period_);
 
-    unique_index_ = (IndexBuilder()
-                         .SetConstraintType(ConstraintType::UNIQUE)
-                         .SetKeySchema(unique_schema_)
-                         .SetOid(catalog::index_oid_t(2)))
-                        .Build();
-    default_index_ = (IndexBuilder()
-                          .SetConstraintType(ConstraintType::DEFAULT)
-                          .SetKeySchema(default_schema_)
-                          .SetOid(catalog::index_oid_t(2)))
-                         .Build();
+    unique_index_ = (IndexBuilder().SetKeySchema(unique_schema_)).Build();
+    default_index_ = (IndexBuilder().SetKeySchema(default_schema_)).Build();
 
     gc_thread_->GetGarbageCollector().RegisterIndexForGC(unique_index_);
     gc_thread_->GetGarbageCollector().RegisterIndexForGC(default_index_);

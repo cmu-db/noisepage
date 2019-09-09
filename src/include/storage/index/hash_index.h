@@ -1,12 +1,15 @@
 #pragma once
 
 #include <functional>
+#include <memory>
 #include <unordered_set>
 #include <utility>
 #include <variant>  // NOLINT (Matt): lint thinks this C++17 header is a C header because it only knows C++11
 #include <vector>
 #include "libcuckoo/cuckoohash_map.hh"
 #include "storage/index/index.h"
+#include "storage/index/index_defs.h"
+#include "transaction/deferred_action_manager.h"
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_manager.h"
 #include "xxHash/xxh3.h"
@@ -33,11 +36,10 @@ class HashIndex final : public Index {
   using ValueMap = std::unordered_set<TupleSlot, TupleSlotHash>;
   using ValueType = std::variant<TupleSlot, ValueMap>;
 
-  HashIndex(const catalog::index_oid_t oid, const ConstraintType constraint_type, IndexMetadata metadata)
-      : Index(constraint_type, std::move(metadata)),
-        hash_map_{new cuckoohash_map<KeyType, ValueType>(INITIAL_CUCKOOHASH_MAP_SIZE)} {}
+  explicit HashIndex(IndexMetadata metadata)
+      : Index(std::move(metadata)), hash_map_{new cuckoohash_map<KeyType, ValueType>(INITIAL_CUCKOOHASH_MAP_SIZE)} {}
 
-  cuckoohash_map<KeyType, ValueType> *const hash_map_;
+  const std::unique_ptr<cuckoohash_map<KeyType, ValueType>> hash_map_;
 
   /**
    * The lambda below is used for aborted inserts as well as committed deletes to perform the erase logic. Macros are
@@ -74,12 +76,10 @@ class HashIndex final : public Index {
   }
 
  public:
-  ~HashIndex() final { delete hash_map_; }
-
   void PerformGarbageCollection() final{};
 
   bool Insert(transaction::TransactionContext *const txn, const ProjectedRow &tuple, const TupleSlot location) final {
-    TERRIER_ASSERT(GetConstraintType() == ConstraintType::DEFAULT,
+    TERRIER_ASSERT(!(metadata_.GetSchema().Unique()),
                    "This Insert is designed for secondary indexes with no uniqueness constraints.");
     KeyType index_key;
     index_key.SetFromProjectedRow(tuple, metadata_);
@@ -127,8 +127,7 @@ class HashIndex final : public Index {
 
   bool InsertUnique(transaction::TransactionContext *const txn, const ProjectedRow &tuple,
                     const TupleSlot location) final {
-    TERRIER_ASSERT(GetConstraintType() == ConstraintType::UNIQUE,
-                   "This Insert is designed for indexes with uniqueness constraints.");
+    TERRIER_ASSERT(metadata_.GetSchema().Unique(), "This Insert is designed for indexes with uniqueness constraints.");
     KeyType index_key;
     index_key.SetFromProjectedRow(tuple, metadata_);
     bool predicate_satisfied = false;
@@ -256,8 +255,7 @@ class HashIndex final : public Index {
 
     const bool UNUSED_ATTRIBUTE find_result = hash_map_->find_fn(index_key, key_found_fn);
 
-    TERRIER_ASSERT(GetConstraintType() == ConstraintType::DEFAULT ||
-                       (GetConstraintType() == ConstraintType::UNIQUE && value_list->size() <= 1),
+    TERRIER_ASSERT(!(metadata_.GetSchema().Unique()) || (metadata_.GetSchema().Unique() && value_list->size() <= 1),
                    "Invalid number of results for unique index.");
   }
 

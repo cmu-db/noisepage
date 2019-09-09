@@ -88,21 +88,16 @@ Database *Builder::Build() {
   auto stock_primary_index_schema = Schemas::BuildStockPrimaryIndexSchema(stock_schema, &oid_counter_);
 
   // instantiate all of the indexes
-  auto *const warehouse_index =
-      BuildIndex(warehouse_primary_index_schema, storage::index::ConstraintType::UNIQUE, false);
-  auto *const district_index = BuildIndex(district_primary_index_schema, storage::index::ConstraintType::UNIQUE, false);
-  auto *const customer_index = BuildIndex(customer_primary_index_schema, storage::index::ConstraintType::UNIQUE, false);
-  auto *const customer_secondary_index =
-      BuildIndex(customer_secondary_index_schema, storage::index::ConstraintType::DEFAULT, false);
-  auto *const new_order_index =
-      BuildIndex(new_order_primary_index_schema, storage::index::ConstraintType::UNIQUE, true);
-  auto *const order_index = BuildIndex(order_primary_index_schema, storage::index::ConstraintType::UNIQUE, false);
-  auto *const order_secondary_index =
-      BuildIndex(order_secondary_index_schema, storage::index::ConstraintType::UNIQUE, true);
-  auto *const order_line_index =
-      BuildIndex(order_line_primary_index_schema, storage::index::ConstraintType::UNIQUE, true);
-  auto *const item_index = BuildIndex(item_primary_index_schema, storage::index::ConstraintType::UNIQUE, false);
-  auto *const stock_index = BuildIndex(stock_primary_index_schema, storage::index::ConstraintType::UNIQUE, false);
+  auto *const warehouse_index = BuildIndex(warehouse_primary_index_schema);
+  auto *const district_index = BuildIndex(district_primary_index_schema);
+  auto *const customer_index = BuildIndex(customer_primary_index_schema);
+  auto *const customer_secondary_index = BuildIndex(customer_secondary_index_schema);
+  auto *const new_order_index = BuildIndex(new_order_primary_index_schema);
+  auto *const order_index = BuildIndex(order_primary_index_schema);
+  auto *const order_secondary_index = BuildIndex(order_secondary_index_schema);
+  auto *const order_line_index = BuildIndex(order_line_primary_index_schema);
+  auto *const item_index = BuildIndex(item_primary_index_schema);
+  auto *const stock_index = BuildIndex(stock_primary_index_schema);
 
   const catalog::db_oid_t db_oid(++oid_counter_);
 

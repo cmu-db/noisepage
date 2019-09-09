@@ -1209,10 +1209,11 @@ bool DatabaseCatalog::CreateIndexEntry(transaction::TransactionContext *const tx
       schema.is_exclusion_;
   *(reinterpret_cast<bool *>(indexes_insert_pr->AccessForceNotNull(pr_map[INDIMMEDIATE_COL_OID]))) =
       schema.is_immediate_;
-  *(reinterpret_cast<bool *>(indexes_insert_pr->AccessForceNotNull(pr_map[INDISVALID_COL_OID]))) = schema.is_valid_;
-  *(reinterpret_cast<bool *>(indexes_insert_pr->AccessForceNotNull(pr_map[INDISREADY_COL_OID]))) = schema.is_ready_;
-  *(reinterpret_cast<bool *>(indexes_insert_pr->AccessForceNotNull(pr_map[INDISLIVE_COL_OID]))) = schema.is_live_;
-  *(reinterpret_cast<IndexSchema::IndexType *>(indexes_insert_pr->AccessForceNotNull(pr_map[IND_TYPE_COL_OID]))) =
+  // TODO(Matt): these should actually be set later based on runtime information about the index. @yeshengm
+  *(reinterpret_cast<bool *>(indexes_insert_pr->AccessForceNotNull(pr_map[INDISVALID_COL_OID]))) = true;
+  *(reinterpret_cast<bool *>(indexes_insert_pr->AccessForceNotNull(pr_map[INDISREADY_COL_OID]))) = true;
+  *(reinterpret_cast<bool *>(indexes_insert_pr->AccessForceNotNull(pr_map[INDISLIVE_COL_OID]))) = true;
+  *(reinterpret_cast<storage::index::IndexType *>(indexes_insert_pr->AccessForceNotNull(pr_map[IND_TYPE_COL_OID]))) =
       schema.type_;
 
   // Insert into pg_index table
@@ -1258,7 +1259,8 @@ bool DatabaseCatalog::CreateIndexEntry(transaction::TransactionContext *const tx
 
   std::vector<IndexSchema::Column> cols =
       GetColumns<IndexSchema::Column, index_oid_t, indexkeycol_oid_t>(txn, index_oid);
-  auto *new_schema = new IndexSchema(cols, schema.Unique(), schema.Primary(), schema.Exclusion(), schema.Immediate());
+  auto *new_schema =
+      new IndexSchema(cols, schema.Type(), schema.Unique(), schema.Primary(), schema.Exclusion(), schema.Immediate());
   txn->RegisterAbortAction([=]() { delete new_schema; });
 
   pr_init = classes_->InitializerForProjectedRow({REL_SCHEMA_COL_OID});

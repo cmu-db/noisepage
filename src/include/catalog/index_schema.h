@@ -8,6 +8,7 @@
 #include "common/json.h"
 #include "common/macros.h"
 #include "parser/expression/abstract_expression.h"
+#include "storage/index/index_defs.h"
 #include "type/type_id.h"
 
 namespace terrier {
@@ -31,12 +32,6 @@ class Builder;
  */
 class IndexSchema {
  public:
-  /**
-   * This enum indicates the backing implementation that should be used for the index.  It is a character enum in order
-   * to better match PostgreSQL's look and feel when persisted through the catalog.
-   */
-  enum class IndexType : char { BWTREE = 'B', HASHMAP = 'H' };
-
   /**
    * A column of the index key has an identifier, type, and describes whether it can be null.
    */
@@ -205,17 +200,14 @@ class IndexSchema {
    * @param is_exclusion indicating whether this index is for exclusion constraints
    * @param is_immediate indicating that the uniqueness check fails at insertion time
    */
-  IndexSchema(std::vector<Column> columns, const bool is_unique, const bool is_primary, const bool is_exclusion,
-              const bool is_immediate)
+  IndexSchema(std::vector<Column> columns, const storage::index::IndexType type, const bool is_unique,
+              const bool is_primary, const bool is_exclusion, const bool is_immediate)
       : columns_(std::move(columns)),
-        type_(IndexType::BWTREE),
+        type_(type),
         is_unique_(is_unique),
         is_primary_(is_primary),
         is_exclusion_(is_exclusion),
-        is_immediate_(is_immediate),
-        is_valid_(false),
-        is_ready_(false),
-        is_live_(true) {
+        is_immediate_(is_immediate) {
     TERRIER_ASSERT((is_primary && is_unique) || (!is_primary), "is_primary requires is_unique to be true as well.");
   }
 
@@ -233,34 +225,34 @@ class IndexSchema {
   const Column &GetColumn(int index) const { return columns_.at(index); }
 
   /**
-   * @return true if this schema is for a unique index
+   * @return true if is a unique index
    */
   bool Unique() const { return is_unique_; }
 
   /**
-   * @return true if this schema is for a unique index
+   * @return true if index represents the primary key of the table (Unique should always be true when this is true)
    */
   bool Primary() const { return is_primary_; }
 
   /**
-   * @return true if this schema is for a unique index
+   * @return true if index supports an exclusion constraint
    */
   bool Exclusion() const { return is_exclusion_; }
 
   /**
-   * @return true if this schema is for a unique index
+   * @return true if uniqueness check is enforced immediately on insertion
    */
   bool Immediate() const { return is_immediate_; }
 
   /**
    * @return the backend that should be used to implement this index
    */
-  IndexType Type() const { return type_; }
+  storage::index::IndexType Type() const { return type_; }
 
   /**
    * @param index_type that should be used to back this index
    */
-  void SetType(IndexType index_type) { type_ = index_type; }
+  void SetType(storage::index::IndexType index_type) { type_ = index_type; }
 
   /**
    * @return serialized schema
@@ -274,9 +266,6 @@ class IndexSchema {
     j["primary"] = is_primary_;
     j["exclusion"] = is_exclusion_;
     j["immediate"] = is_immediate_;
-    j["valid"] = is_valid_;
-    j["ready"] = is_ready_;
-    j["live"] = is_live_;
     return j;
   }
 
@@ -298,13 +287,9 @@ class IndexSchema {
     auto primary = j.at("primary").get<bool>();
     auto exclusion = j.at("exclusion").get<bool>();
     auto immediate = j.at("immediate").get<bool>();
+    auto type = static_cast<storage::index::IndexType>(j.at("type").get<char>());
 
-    auto schema = std::make_shared<IndexSchema>(columns, unique, primary, exclusion, immediate);
-
-    schema->SetValid(j.at("valid").get<bool>());
-    schema->SetReady(j.at("ready").get<bool>());
-    schema->SetLive(j.at("live").get<bool>());
-    schema->SetType(static_cast<IndexType>(j.at("type").get<char>()));
+    auto schema = std::make_shared<IndexSchema>(columns, type, unique, primary, exclusion, immediate);
 
     return schema;
   }
@@ -312,18 +297,11 @@ class IndexSchema {
  private:
   friend class DatabaseCatalog;
   std::vector<Column> columns_;
-  IndexType type_;
+  storage::index::IndexType type_;
   bool is_unique_;
   bool is_primary_;
   bool is_exclusion_;
   bool is_immediate_;
-  bool is_valid_;
-  bool is_ready_;
-  bool is_live_;
-
-  void SetValid(const bool is_valid) { is_valid_ = is_valid; }
-  void SetReady(const bool is_ready) { is_ready_ = is_ready; }
-  void SetLive(const bool is_live) { is_live_ = is_live; }
 
   friend class Catalog;
   friend class postgres::Builder;

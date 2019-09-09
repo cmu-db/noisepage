@@ -186,8 +186,9 @@ class Builder {
    * @return pointer to the new index
    */
   static storage::index::Index *BuildUniqueIndex(const IndexSchema &key_schema, index_oid_t oid) {
+    TERRIER_ASSERT(key_schema.Unique(), "KeySchema must represent a unique index.");
     storage::index::IndexBuilder index_builder;
-    index_builder.SetOid(oid).SetKeySchema(key_schema).SetConstraintType(storage::index::ConstraintType::UNIQUE);
+    index_builder.SetKeySchema(key_schema);
     return index_builder.Build();
   }
 
@@ -198,8 +199,9 @@ class Builder {
    * @return pointer to the new index
    */
   static storage::index::Index *BuildLookupIndex(const IndexSchema &key_schema, index_oid_t oid) {
+    TERRIER_ASSERT(!(key_schema.Unique()), "KeySchema must represent a non-unique index.");
     storage::index::IndexBuilder index_builder;
-    index_builder.SetOid(oid).SetKeySchema(key_schema).SetConstraintType(storage::index::ConstraintType::DEFAULT);
+    index_builder.SetKeySchema(key_schema);
     return index_builder.Build();
   }
 };
