@@ -7,9 +7,9 @@
 #include <vector>
 #include "catalog/catalog.h"
 #include "execution/exec/execution_context.h"
+#include "parser/expression/constant_value_expression.h"
 #include "transaction/transaction_context.h"
 #include "type/transient_value_factory.h"
-#include "parser/expression/constant_value_expression.h"
 
 namespace terrier::execution::sql {
 
@@ -17,11 +17,11 @@ namespace terrier::execution::sql {
 /**
  * Size of the first table
  */
-constexpr uint32_t test1_size = 10000;
+constexpr uint32_t TEST1_SIZE = 10000;
 /**
  * Size of the second table
  */
-constexpr uint32_t test2_size = 1000;
+constexpr uint32_t TEST2_SIZE = 1000;
 
 /**
  * Helper class to generate test tables and their indexes.

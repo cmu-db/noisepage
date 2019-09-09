@@ -29,12 +29,11 @@
 #include "execution/vm/vm.h"
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/MemoryBuffer.h"
-#include "storage/garbage_collector.h"
 #include "loggers/loggers_util.h"
 #include "settings/settings_manager.h"
+#include "storage/garbage_collector.h"
 #include "transaction/deferred_action_manager.h"
 #include "transaction/timestamp_manager.h"
-
 
 #define __SETTING_GFLAGS_DEFINE__      // NOLINT
 #include "settings/settings_common.h"  // NOLINT
@@ -46,7 +45,7 @@
 // ---------------------------------------------------------
 
 llvm::cl::OptionCategory tpl_options_category("TPL Compiler Options",
-                                             "Options for controlling the TPL compilation process.");
+                                              "Options for controlling the TPL compilation process.");
 llvm::cl::opt<std::string> input_file(llvm::cl::Positional, llvm::cl::desc("<input file>"), llvm::cl::init(""),
                                       llvm::cl::cat(tpl_options_category));
 llvm::cl::opt<bool> print_ast("print-ast", llvm::cl::desc("Print the programs AST"),
@@ -266,7 +265,6 @@ static void RunRepl() {
 
     std::string line;
     do {
-      printf(">>> ");
       std::getline(std::cin, line);
 
       if (line == K_EXIT_KEYWORD) {
@@ -339,7 +337,7 @@ int main(int argc, char **argv) {  // NOLINT (bugprone-exception-escape)
   llvm::cl::ParseCommandLineOptions(argc, argv);
 
   // Initialize a signal handler to call SignalHandler()
-  struct sigaction sa;
+  struct sigaction sa;  // NOLINT
   sa.sa_handler = &SignalHandler;
   sa.sa_flags = SA_RESTART;
 

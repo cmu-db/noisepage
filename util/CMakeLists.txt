@@ -80,7 +80,7 @@ tpl_compile_to_ir(execution/bytecode_handlers_ir.cpp)
 ##################################################
 set(tpl_main "execution/tpl.cpp")
 add_executable(tpl ${tpl_main})
-#set_target_properties(tpl PROPERTIES ENABLE_EXPORTS 1)
+set_target_properties(tpl PROPERTIES ENABLE_EXPORTS 1)
 add_dependencies(tpl gen_opt_bc)
 target_link_libraries(tpl util_static)
 

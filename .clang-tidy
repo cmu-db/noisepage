@@ -53,7 +53,7 @@ CheckOptions:
   - { key: readability-identifier-naming.UnionCase,           value: CamelCase  }
   - { key: readability-identifier-naming.VariableCase,        value: lower_case }
 WarningsAsErrors: '*'
-HeaderFilterRegex: '(benchmark|src|test)/include'
+HeaderFilterRegex: '(benchmark|src|test|util)/include'
 AnalyzeTemporaryDtors: true
 
 #### Disabled checks and why: #####

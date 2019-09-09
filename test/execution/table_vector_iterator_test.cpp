@@ -67,7 +67,7 @@ TEST_F(TableVectorIteratorTest, SimpleIteratorTest) {
     }
     pci->Reset();
   }
-  EXPECT_EQ(sql::test1_size, num_tuples);
+  EXPECT_EQ(sql::TEST1_SIZE, num_tuples);
 }
 
 // NOLINTNEXTLINE
@@ -97,7 +97,7 @@ TEST_F(TableVectorIteratorTest, MultipleTypesIteratorTest) {
     }
     pci->Reset();
   }
-  EXPECT_EQ(sql::test2_size, num_tuples);
+  EXPECT_EQ(sql::TEST2_SIZE, num_tuples);
 }
 
 // NOLINTNEXTLINE
@@ -126,7 +126,7 @@ TEST_F(TableVectorIteratorTest, IteratorColOidsTest) {
     }
     pci->Reset();
   }
-  EXPECT_EQ(sql::test2_size, num_tuples);
+  EXPECT_EQ(sql::TEST2_SIZE, num_tuples);
 }
 
 }  // namespace terrier::execution::sql::test
