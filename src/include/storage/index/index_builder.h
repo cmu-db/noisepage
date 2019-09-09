@@ -22,7 +22,6 @@ namespace terrier::storage::index {
 class IndexBuilder {
  private:
   catalog::IndexSchema key_schema_;
-  bool ordered_ = true;
 
  public:
   IndexBuilder() = default;
@@ -48,7 +47,7 @@ class IndexBuilder {
       use_compact_ints = use_compact_ints && key_size <= sizeof(uint64_t) * INTSKEY_MAX_SLOTS;  // key size fits?
     }
 
-    if (ordered_) {
+    if (key_schema_.Type() == IndexType::BWTREE) {
       if (use_compact_ints) return BuildBwTreeIntsKey(key_size, std::move(metadata));
       return BuildBwTreeGenericKey(std::move(metadata));
     }
@@ -62,15 +61,6 @@ class IndexBuilder {
    */
   IndexBuilder &SetKeySchema(const catalog::IndexSchema &key_schema) {
     key_schema_ = key_schema;
-    return *this;
-  }
-
-  /**
-   * @param ordered true if the index should support ordered scans, false otherwise (point queries only)
-   * @return the builder object
-   */
-  IndexBuilder &SetOrdered(const bool ordered) {
-    ordered_ = ordered;
     return *this;
   }
 

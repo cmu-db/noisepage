@@ -76,7 +76,7 @@ class HashIndex final : public Index {
   }
 
  public:
-  void PerformGarbageCollection() final{};
+  IndexType Type() const final { return IndexType::HASHMAP; }
 
   bool Insert(transaction::TransactionContext *const txn, const ProjectedRow &tuple, const TupleSlot location) final {
     TERRIER_ASSERT(!(metadata_.GetSchema().Unique()),

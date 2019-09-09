@@ -28,6 +28,8 @@ class BwTreeIndex final : public Index {
   const std::unique_ptr<third_party::bwtree::BwTree<KeyType, TupleSlot>> bwtree_;
 
  public:
+  IndexType Type() const final { return IndexType::BWTREE; }
+
   void PerformGarbageCollection() final { bwtree_->PerformGarbageCollection(); };
 
   bool Insert(transaction::TransactionContext *const txn, const ProjectedRow &tuple, const TupleSlot location) final {

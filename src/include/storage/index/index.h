@@ -53,9 +53,15 @@ class Index {
   virtual ~Index() = default;
 
   /**
+   * @return type of the index. Note that this is the physical type, not extracted from the underlying schema or other
+   * catalog metadata. This is mostly used for debugging purposes.
+   */
+  virtual IndexType Type() const = 0;
+
+  /**
    * Invoke garbage collection on the index. For some underlying index types this may be a no-op.
    */
-  virtual void PerformGarbageCollection() = 0;
+  virtual void PerformGarbageCollection() {};
 
   /**
    * Inserts a new key-value pair into the index, used for non-unique key indexes.
