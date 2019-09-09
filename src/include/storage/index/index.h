@@ -45,7 +45,6 @@ class Index {
 
   /**
    * Creates a new index wrapper.
-   * @param constraint_type type of index
    * @param metadata index description
    */
   explicit Index(IndexMetadata metadata) : metadata_(std::move(metadata)) {}

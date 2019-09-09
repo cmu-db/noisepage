@@ -195,6 +195,7 @@ class IndexSchema {
   /**
    * Instantiates a new catalog description of an index
    * @param columns describing the individual parts of the key
+   * @param type backing data structure of the index
    * @param is_unique indicating whether the same key can be (logically) visible repeats are allowed in the index
    * @param is_primary indicating whether this will be the index for a primary key
    * @param is_exclusion indicating whether this index is for exclusion constraints
