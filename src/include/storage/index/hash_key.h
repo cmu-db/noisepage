@@ -56,7 +56,17 @@ class HashKey {
                    }),
                    "There should not be any NULL attributes in this key.");
 
-    // This assumes no padding between attributes
+    // NOLINTNEXTLINE (Matt): tidy thinks this has side-effects. I disagree.
+    TERRIER_ASSERT(std::invoke([&]() -> bool {
+                     for (const auto &i : metadata.GetSchema().GetColumns()) {
+                       if (i.Nullable()) return false;
+                     }
+                     return true;
+                   }),
+                   "There should not be any NULL attributes in this schema.");
+
+    // This assumes no padding between attributes, no good way to assert that right now. We'll rely on the IndexBuilder
+    // to properly vet the IndexSchema.
     std::memcpy(key_data_, from.AccessWithNullCheck(0), key_size);
   }
 

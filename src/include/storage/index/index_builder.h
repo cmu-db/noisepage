@@ -82,7 +82,8 @@ class IndexBuilder {
   }
 
   Index *BuildBwTreeIntsKey(uint32_t key_size, IndexMetadata metadata) const {
-    TERRIER_ASSERT(key_size <= sizeof(uint64_t) * COMPACTINTSKEY_MAX_SIZE, "Not enough slots for given key size.");
+    metadata.SetKeyKind(IndexKeyKind::COMPACTINTSKEY);
+    TERRIER_ASSERT(key_size <= COMPACTINTSKEY_MAX_SIZE, "Not enough slots for given key size.");
     Index *index = nullptr;
     if (key_size <= sizeof(uint64_t)) {
       index = new BwTreeIndex<CompactIntsKey<8>>(std::move(metadata));
@@ -98,6 +99,7 @@ class IndexBuilder {
   }
 
   Index *BuildBwTreeGenericKey(IndexMetadata metadata) const {
+    metadata.SetKeyKind(IndexKeyKind::GENERICKEY);
     const auto pr_size = metadata.GetInlinedPRInitializer().ProjectedRowSize();
     Index *index = nullptr;
 
@@ -117,6 +119,7 @@ class IndexBuilder {
   }
 
   Index *BuildHashIntsKey(IndexMetadata metadata) const {
+    metadata.SetKeyKind(IndexKeyKind::HASHKEY);
     const auto key_size = metadata.KeySize();
     TERRIER_ASSERT(metadata.KeySize() <= HASHKEY_MAX_SIZE, "Not enough space for given key size.");
     Index *index = nullptr;
@@ -138,6 +141,7 @@ class IndexBuilder {
   }
 
   Index *BuildHashGenericKey(IndexMetadata metadata) const {
+    metadata.SetKeyKind(IndexKeyKind::GENERICKEY);
     const auto pr_size = metadata.GetInlinedPRInitializer().ProjectedRowSize();
     Index *index = nullptr;
 

@@ -32,7 +32,8 @@ class IndexMetadata {
         key_oid_to_offset_(std::move(other.key_oid_to_offset_)),
         initializer_(std::move(other.initializer_)),
         inlined_initializer_(std::move(other.inlined_initializer_)),
-        key_size_(std::accumulate(attr_sizes_.cbegin(), attr_sizes_.cend(), static_cast<uint16_t>(0))) {}
+        key_size_(other.key_size_),
+        key_kind_(other.key_kind_) {}
 
   /**
    * Precomputes metadata for the given key schema.
@@ -49,7 +50,7 @@ class IndexMetadata {
             ProjectedRowInitializer::Create(GetRealAttrSizes(attr_sizes_), ComputePROffsets(inlined_attr_sizes_))),
         inlined_initializer_(
             ProjectedRowInitializer::Create(inlined_attr_sizes_, ComputePROffsets(inlined_attr_sizes_))),
-        key_size_(std::accumulate(attr_sizes_.cbegin(), attr_sizes_.cend(), static_cast<uint16_t>(0))) {}
+        key_size_(ComputeKeySize(key_schema_)) {}
 
   /**
    * @return index key schema
@@ -98,6 +99,18 @@ class IndexMetadata {
    */
   uint16_t KeySize() const { return key_size_; }
 
+  /**
+   * @return IndexKeyKind selected by the IndexBuilder at index construction
+   */
+  IndexKeyKind KeyKind() const { return key_kind_; }
+
+  /**
+   * This should only be used by the IndexBuilder class, and this metadata is only used for testing purposes. We don't
+   * expect to need to make this durable since the IndexBuilder should select the same key type every time.
+   * @param key_kind IndexKeyKind for the index that was built
+   */
+  void SetKeyKind(const IndexKeyKind key_kind) { key_kind_ = key_kind; }
+
  private:
   DISALLOW_COPY(IndexMetadata);
   FRIEND_TEST(IndexKeyTests, IndexMetadataCompactIntsKeyTest);
@@ -113,6 +126,7 @@ class IndexMetadata {
   ProjectedRowInitializer initializer_;                                         // user-facing initializer
   ProjectedRowInitializer inlined_initializer_;                                 // for GenericKey, internal only
   uint16_t key_size_;
+  IndexKeyKind key_kind_;  // only used for testing purposes.
 
   /**
    * Computes the attribute sizes as given by the key schema.
@@ -127,6 +141,18 @@ class IndexMetadata {
       attr_sizes.emplace_back(type::TypeUtil::GetTypeSize(key.Type()));
     }
     return attr_sizes;
+  }
+
+  /**
+   * Computes attribute size sum, not inlined
+   */
+  static uint16_t ComputeKeySize(const catalog::IndexSchema &key_schema) {
+    uint16_t key_size = 0;
+    auto key_cols = key_schema.GetColumns();
+    for (const auto &key : key_cols) {
+      key_size += type::TypeUtil::GetTypeSize(key.Type()) & INT8_MAX;
+    }
+    return key_size;
   }
 
   /**
@@ -223,7 +249,7 @@ class IndexMetadata {
   static std::unordered_map<catalog::indexkeycol_oid_t, uint16_t> ComputeKeyOidToOffset(
       const catalog::IndexSchema &key_schema, const std::vector<uint16_t> &pr_offsets) {
     std::unordered_map<catalog::indexkeycol_oid_t, uint16_t> key_oid_to_offset;
-    auto key_cols = key_schema.GetColumns();
+    const auto &key_cols = key_schema.GetColumns();
     key_oid_to_offset.reserve(key_cols.size());
     for (uint16_t i = 0; i < key_cols.size(); i++) {
       key_oid_to_offset[key_cols[i].Oid()] = pr_offsets[i];

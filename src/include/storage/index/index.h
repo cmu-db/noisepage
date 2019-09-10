@@ -161,6 +161,8 @@ class Index {
    * @return projected row initializer for the given key schema
    */
   const ProjectedRowInitializer &GetProjectedRowInitializer() const { return metadata_.GetProjectedRowInitializer(); }
+
+  IndexKeyKind KeyKind() const { return metadata_.KeyKind(); }
 };
 
 }  // namespace terrier::storage::index

@@ -112,6 +112,26 @@ Database *Builder::Build() {
   TERRIER_ASSERT(item_index->Type() == storage::index::IndexType::HASHMAP, "Constructed the wrong index type.");
   TERRIER_ASSERT(stock_index->Type() == storage::index::IndexType::HASHMAP, "Constructed the wrong index type.");
 
+  TERRIER_ASSERT(warehouse_index->KeyKind() == storage::index::IndexKeyKind::HASHKEY,
+                 "Constructed the wrong index key type.");
+  TERRIER_ASSERT(district_index->KeyKind() == storage::index::IndexKeyKind::HASHKEY,
+                 "Constructed the wrong index key type.");
+  TERRIER_ASSERT(customer_index->KeyKind() == storage::index::IndexKeyKind::HASHKEY,
+                 "Constructed the wrong index key type.");
+  TERRIER_ASSERT(customer_secondary_index->KeyKind() == storage::index::IndexKeyKind::GENERICKEY,
+                 "Constructed the wrong index key type.");
+  TERRIER_ASSERT(new_order_index->KeyKind() == storage::index::IndexKeyKind::COMPACTINTSKEY,
+                 "Constructed the wrong index key type.");
+  TERRIER_ASSERT(order_index->KeyKind() == storage::index::IndexKeyKind::HASHKEY, "Constructed the wrong index type.");
+  TERRIER_ASSERT(order_secondary_index->KeyKind() == storage::index::IndexKeyKind::COMPACTINTSKEY,
+                 "Constructed the wrong index key type.");
+  TERRIER_ASSERT(order_line_index->KeyKind() == storage::index::IndexKeyKind::COMPACTINTSKEY,
+                 "Constructed the wrong index key type.");
+  TERRIER_ASSERT(item_index->KeyKind() == storage::index::IndexKeyKind::HASHKEY,
+                 "Constructed the wrong index key type.");
+  TERRIER_ASSERT(stock_index->KeyKind() == storage::index::IndexKeyKind::HASHKEY,
+                 "Constructed the wrong index key type.");
+
   const catalog::db_oid_t db_oid(++oid_counter_);
 
   const catalog::table_oid_t item_table_oid(++oid_counter_);

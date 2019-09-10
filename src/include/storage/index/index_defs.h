@@ -6,4 +6,10 @@ namespace terrier::storage::index {
  * to better match PostgreSQL's look and feel when persisted through the catalog.
  */
 enum class IndexType : char { BWTREE = 'B', HASHMAP = 'H' };
+
+enum class IndexKeyKind : uint8_t {
+  COMPACTINTSKEY,
+  GENERICKEY,
+  HASHKEY
+};
 }  // namespace terrier::storage::index

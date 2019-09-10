@@ -13,7 +13,7 @@
 namespace terrier::storage::index {
 
 // This is the maximum number of bytes to pack into a single CompactIntsKey template. This constraint is not
-// arbitrary and cannot be increased beyond 256 bits until AVX-512 is more widely available.
+// arbitrary and cannot be increased beyond 32 bytes (256 bits) until AVX-512 is more widely available.
 constexpr uint8_t COMPACTINTSKEY_MAX_SIZE = 32;
 
 /**
@@ -62,6 +62,24 @@ class CompactIntsKey {
     TERRIER_ASSERT(attr_sizes.size() == compact_ints_offsets.size(),
                    "attr_sizes and attr_offsets must be equal in size.");
     TERRIER_ASSERT(!attr_sizes.empty(), "attr_sizes has too few values.");
+
+    // NOLINTNEXTLINE (Matt): tidy thinks this has side-effects. I disagree.
+    TERRIER_ASSERT(std::invoke([&]() -> bool {
+                     for (uint16_t i = 0; i < from.NumColumns(); i++) {
+                       if (from.IsNull(i)) return false;
+                     }
+                     return true;
+                   }),
+                   "There should not be any NULL attributes in this key.");
+
+    // NOLINTNEXTLINE (Matt): tidy thinks this has side-effects. I disagree.
+    TERRIER_ASSERT(std::invoke([&]() -> bool {
+                     for (const auto &i : metadata.GetSchema().GetColumns()) {
+                       if (i.Nullable()) return false;
+                     }
+                     return true;
+                   }),
+                   "There should not be any NULL attributes in this schema.");
 
     std::memset(key_data_, 0, KeySize);
 

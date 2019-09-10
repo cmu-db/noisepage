@@ -146,7 +146,7 @@ class IndexKeyTests : public TerrierTest {
   byte *FillProjectedRow(const IndexMetadata &metadata, storage::ProjectedRow *pr, Random *generator) {
     const auto &key_schema = metadata.GetSchema();
     const auto &oid_offset_map = metadata.GetKeyOidToOffsetMap();
-    const auto key_size = std::accumulate(metadata.GetAttributeSizes().begin(), metadata.GetAttributeSizes().end(), 0);
+    const auto key_size = metadata.KeySize();
 
     auto *reference = new byte[key_size];
     uint32_t offset = 0;
@@ -892,7 +892,7 @@ TEST_F(IndexKeyTests, CompactIntsKeyBasicTest) {
 template <typename KeyType, typename CType>
 void NumericComparisons(const type::TypeId type_id, const bool nullable) {
   std::vector<catalog::IndexSchema::Column> key_cols;
-  key_cols.emplace_back("", type_id, true,
+  key_cols.emplace_back("", type_id, nullable,
                         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type_id)));
   StorageTestUtil::ForceOid(&(key_cols.back()), catalog::indexkeycol_oid_t(0));
 
@@ -984,7 +984,7 @@ TEST_F(IndexKeyTests, GenericKeyNumericComparisons) {
 template <typename KeyType, typename CType>
 void UnorderedNumericComparisons(const type::TypeId type_id, const bool nullable) {
   std::vector<catalog::IndexSchema::Column> key_cols;
-  key_cols.emplace_back("", type_id, true,
+  key_cols.emplace_back("", type_id, nullable,
                         parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type_id)));
   StorageTestUtil::ForceOid(&(key_cols.back()), catalog::indexkeycol_oid_t(0));
 
