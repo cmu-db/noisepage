@@ -16,10 +16,15 @@
 
 namespace terrier::storage::index {
 
-#define INITIAL_CUCKOOHASH_MAP_SIZE 256
+// TODO(Matt): unclear at the moment if we would want this to be tunable via the SettingsManager. Alternatively, it
+// might be something that is a per-index hint based on the table size (cardinality?), rather than a global setting
+constexpr uint16_t INITIAL_CUCKOOHASH_MAP_SIZE = 256;
 
 /**
- * Wrapper around libcuckoo's hash map.
+ * Wrapper around libcuckoo's hash map. The MVCC is logic is similar to our reference index (BwTreeIndex). Much of the
+ * logic here is related to the cuckoohash_map not being a multimap. We get around this by making the value type a
+ * std::variant that can either be a TupleSlot if there's only a single value for a given key, or a std::unordered_set
+ * of TupleSlots if a single key needs to map to multiple TupleSlots.
  * @tparam KeyType the type of keys stored in the map
  */
 template <typename KeyType>
