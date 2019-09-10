@@ -61,7 +61,7 @@ class Index {
   /**
    * Invoke garbage collection on the index. For some underlying index types this may be a no-op.
    */
-  virtual void PerformGarbageCollection(){};
+  virtual void PerformGarbageCollection() {}
 
   /**
    * Inserts a new key-value pair into the index, used for non-unique key indexes.
