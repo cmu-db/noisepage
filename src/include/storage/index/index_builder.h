@@ -33,25 +33,23 @@ class IndexBuilder {
     TERRIER_ASSERT(!key_schema_.GetColumns().empty(), "Cannot build an index without a KeySchema.");
 
     IndexMetadata metadata(key_schema_);
+    const auto &key_cols = key_schema_.GetColumns();
 
-    // figure out if we can use CompactIntsKey
-    bool use_compact_ints = true;
-    uint32_t key_size = 0;
-
-    auto key_cols = key_schema_.GetColumns();
-
-    for (uint16_t i = 0; use_compact_ints && i < key_cols.size(); i++) {
+    // Check if it's a simple key: that is all attributes are integral and not NULL-able. Simple keys are compatible
+    // with CompactIntsKey and HashKey. Otherwise we fall back to GenericKey.
+    bool simple_key = true;
+    for (uint16_t i = 0; simple_key && i < key_cols.size(); i++) {
       const auto &attr = key_cols[i];
-      use_compact_ints = use_compact_ints && !attr.Nullable() && CompactIntsOk(attr.Type());  // key type ok?
-      key_size += type::TypeUtil::GetTypeSize(attr.Type());
-      use_compact_ints = use_compact_ints && key_size <= sizeof(uint64_t) * COMPACTINTSKEY_MAX_SIZE;  // key size fits?
+      simple_key = simple_key && !attr.Nullable();
+      simple_key = simple_key && (std::count(NUMERIC_KEY_TYPES.cbegin(), NUMERIC_KEY_TYPES.cend(), attr.Type()) > 0);
     }
 
     if (key_schema_.Type() == IndexType::BWTREE) {
-      if (use_compact_ints) return BuildBwTreeIntsKey(key_size, std::move(metadata));
+      if (simple_key && metadata.KeySize() <= COMPACTINTSKEY_MAX_SIZE) return BuildBwTreeIntsKey(std::move(metadata));
       return BuildBwTreeGenericKey(std::move(metadata));
     }
-    if (use_compact_ints) return BuildHashIntsKey(std::move(metadata));
+    // IndexType must be HASHMAP, since that's the only other option at the moment
+    if (simple_key && metadata.KeySize() <= HASHKEY_MAX_SIZE) return BuildHashIntsKey(std::move(metadata));
     return BuildHashGenericKey(std::move(metadata));
   }
 
@@ -65,33 +63,18 @@ class IndexBuilder {
   }
 
  private:
-  /**
-   * @return true if attr_type can be represented with CompactIntsKey
-   */
-  static bool CompactIntsOk(type::TypeId attr_type) {
-    switch (attr_type) {
-      case type::TypeId::TINYINT:
-      case type::TypeId::SMALLINT:
-      case type::TypeId::INTEGER:
-      case type::TypeId::BIGINT:
-        return true;
-      default:
-        break;
-    }
-    return false;
-  }
-
-  Index *BuildBwTreeIntsKey(uint32_t key_size, IndexMetadata metadata) const {
+  Index *BuildBwTreeIntsKey(IndexMetadata metadata) const {
     metadata.SetKeyKind(IndexKeyKind::COMPACTINTSKEY);
-    TERRIER_ASSERT(key_size <= COMPACTINTSKEY_MAX_SIZE, "Not enough slots for given key size.");
+    const auto key_size = metadata.KeySize();
+    TERRIER_ASSERT(key_size <= COMPACTINTSKEY_MAX_SIZE, "Key size exceeds maximum for this key type.");
     Index *index = nullptr;
-    if (key_size <= sizeof(uint64_t)) {
+    if (key_size <= 8) {
       index = new BwTreeIndex<CompactIntsKey<8>>(std::move(metadata));
-    } else if (key_size <= sizeof(uint64_t) * 2) {
+    } else if (key_size <= 16) {
       index = new BwTreeIndex<CompactIntsKey<16>>(std::move(metadata));
-    } else if (key_size <= sizeof(uint64_t) * 3) {
+    } else if (key_size <= 24) {
       index = new BwTreeIndex<CompactIntsKey<24>>(std::move(metadata));
-    } else if (key_size <= sizeof(uint64_t) * 4) {
+    } else if (key_size <= 32) {
       index = new BwTreeIndex<CompactIntsKey<32>>(std::move(metadata));
     }
     TERRIER_ASSERT(index != nullptr, "Failed to create an IntsKey index.");
@@ -106,6 +89,7 @@ class IndexBuilder {
     const auto key_size =
         (pr_size + 8) +
         sizeof(uintptr_t);  // account for potential padding of the PR and the size of the pointer for metadata
+    TERRIER_ASSERT(key_size <= GENERICKEY_MAX_SIZE, "Key size exceeds maximum for this key type.");
 
     if (key_size <= 64) {
       index = new BwTreeIndex<GenericKey<64>>(std::move(metadata));
@@ -121,7 +105,7 @@ class IndexBuilder {
   Index *BuildHashIntsKey(IndexMetadata metadata) const {
     metadata.SetKeyKind(IndexKeyKind::HASHKEY);
     const auto key_size = metadata.KeySize();
-    TERRIER_ASSERT(metadata.KeySize() <= HASHKEY_MAX_SIZE, "Not enough space for given key size.");
+    TERRIER_ASSERT(metadata.KeySize() <= HASHKEY_MAX_SIZE, "Key size exceeds maximum for this key type.");
     Index *index = nullptr;
     if (key_size <= 8) {
       index = new HashIndex<HashKey<8>>(std::move(metadata));

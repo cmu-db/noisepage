@@ -125,8 +125,8 @@ class IndexMetadata {
   std::unordered_map<catalog::indexkeycol_oid_t, uint16_t> key_oid_to_offset_;  // for execution layer
   ProjectedRowInitializer initializer_;                                         // user-facing initializer
   ProjectedRowInitializer inlined_initializer_;                                 // for GenericKey, internal only
-  uint16_t key_size_;
-  IndexKeyKind key_kind_;  // only used for testing purposes.
+  uint16_t key_size_;                                                           // for IndexBuilder
+  IndexKeyKind key_kind_;                                                       // for testing
 
   /**
    * Computes the attribute sizes as given by the key schema.

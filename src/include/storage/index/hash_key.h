@@ -15,11 +15,9 @@ namespace terrier::storage::index {
 constexpr uint16_t HASHKEY_MAX_SIZE = 256;
 
 /**
- * HashKey - it's a thing
- *
- * This class is used for storing multiple integral fields into a compact
- * array representation
- *
+ * HashKey - Composite key type for simple (currently defined as integral and not NULL-able) index key attributes. It
+ * basically just relies on memcpy from the incoming ProjectedRow. This is safe because there won't be any padding
+ * between integral attributes.
  *
  * @tparam KeySize number of bytes for the key's internal buffer
  */

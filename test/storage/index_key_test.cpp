@@ -715,7 +715,7 @@ TEST_F(IndexKeyTests, RandomCompactIntsKeyTest) {
 
   for (uint32_t i = 0; i < num_iterations; i++) {
     // generate random key schema
-    auto key_schema = StorageTestUtil::RandomNonGenericKeySchema(&generator_, COMPACTINTSKEY_MAX_SIZE);
+    auto key_schema = StorageTestUtil::RandomSimpleKeySchema(&generator_, COMPACTINTSKEY_MAX_SIZE);
     IndexMetadata metadata(key_schema);
     const auto &initializer = metadata.GetProjectedRowInitializer();
 
@@ -1225,7 +1225,7 @@ TEST_F(IndexKeyTests, CompactIntsKeyBuilderTest) {
   const uint32_t num_iters = 100;
 
   for (uint32_t i = 0; i < num_iters; i++) {
-    const auto key_schema = StorageTestUtil::RandomNonGenericKeySchema(&generator_, COMPACTINTSKEY_MAX_SIZE);
+    const auto key_schema = StorageTestUtil::RandomSimpleKeySchema(&generator_, COMPACTINTSKEY_MAX_SIZE);
 
     IndexBuilder builder;
     builder.SetKeySchema(key_schema);
@@ -1264,7 +1264,7 @@ TEST_F(IndexKeyTests, HashKeyBuilderTest) {
   const uint32_t num_iters = 100;
 
   for (uint32_t i = 0; i < num_iters; i++) {
-    auto key_schema = StorageTestUtil::RandomNonGenericKeySchema(&generator_, HASHKEY_MAX_SIZE);
+    auto key_schema = StorageTestUtil::RandomSimpleKeySchema(&generator_, HASHKEY_MAX_SIZE);
 
     key_schema.SetType(storage::index::IndexType::HASHMAP);
 

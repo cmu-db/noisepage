@@ -162,6 +162,9 @@ class Index {
    */
   const ProjectedRowInitializer &GetProjectedRowInitializer() const { return metadata_.GetProjectedRowInitializer(); }
 
+  /**
+   * @return IndexKeyKind selected by the IndexBuilder at index construction
+   */
   IndexKeyKind KeyKind() const { return metadata_.KeyKind(); }
 };
 
