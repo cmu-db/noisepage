@@ -5,6 +5,7 @@
 #include "loggers/index_logger.h"
 #include "loggers/main_logger.h"
 #include "loggers/network_logger.h"
+#include "loggers/optimizer_logger.h"
 #include "loggers/parser_logger.h"
 #include "loggers/settings_logger.h"
 #include "loggers/storage_logger.h"
@@ -32,6 +33,7 @@ class LoggersUtil {
       storage::InitStorageLogger();
       transaction::InitTransactionLogger();
       catalog::InitCatalogLogger();
+      optimizer::InitOptimizerLogger();
       settings::InitSettingsLogger();
       parser::InitParserLogger();
       network::InitNetworkLogger();
