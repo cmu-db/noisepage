@@ -18,6 +18,10 @@ def run(tpl_bin, tpl_file, is_sql):
     args.append(tpl_file)
     proc = subprocess.run(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     result = []
+    print("tpl_file stdout:")
+    print(proc.stdout.decode('utf-8'))
+    print("tpl_file stderr:")
+    print(proc.stderr.decode('utf-8'))
     for line in reversed(proc.stdout.decode('utf-8').split('\n')):
         if "ERROR" in line or "error" in line:
             return []
