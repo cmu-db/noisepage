@@ -1187,8 +1187,6 @@ TEST_F(IndexKeyTests, GenericKeyNonInlineVarlenComparisons) {
   char johnny_johnny[14] = "johnny_johnny";
   char johnathan_johnathan[20] = "johnathan_johnathan";
 
-  GenericKey<64> key1, key2;
-
   // lhs: "johnathan_johnathan", rhs: "johnathan_johnathan" (same prefixes, same strings (both non-inline))
   TestGenericKeyStrings<64>(metadata, pr, johnathan_johnathan, johnathan_johnathan);
 
