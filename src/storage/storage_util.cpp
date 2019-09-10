@@ -156,14 +156,12 @@ uint8_t StorageUtil::AttrSizeFromBoundaries(const std::vector<uint16_t> &boundar
   return static_cast<uint8_t>(16U >> shift);
 }
 
-std::vector<uint16_t> StorageUtil::ComputeAttributeSizeBoundaries(
-    const terrier::storage::BlockLayout &layout, const std::vector<terrier::storage::col_id_t> &col_ids) {
-  TERRIER_ASSERT(std::is_sorted(col_ids.begin(), col_ids.end()), "Col Ids must be in sorted order");
-  std::vector<uint16_t> attr_ends(NUM_ATTR_BOUNDARIES, 0);
+void StorageUtil::ComputeAttributeSizeBoundaries(const terrier::storage::BlockLayout &layout, const col_id_t *col_ids,
+                                                 const uint16_t num_cols, uint16_t *attr_boundaries) {
   int attr_size_index = 0;
 
   // Col ids ASC sorted order is also attribute size DESC sorted order
-  for (uint32_t i = 0; i < col_ids.size(); i++) {
+  for (uint16_t i = 0; i < num_cols; i++) {
     TERRIER_ASSERT(i < (1 << 15), "Out-of-bounds index");
 
     int attr_size = layout.AttrSize(col_ids[i]);
@@ -171,17 +169,17 @@ std::vector<uint16_t> StorageUtil::ComputeAttributeSizeBoundaries(
     TERRIER_ASSERT(attr_size <= 16 && attr_size > 0, "Unexpected attribute size");
     // When we see a size that is less than our current boundary size, denote the end of the boundary
     while (attr_size < (16 >> attr_size_index)) {
-      if (attr_size_index < (NUM_ATTR_BOUNDARIES - 1)) attr_ends[attr_size_index + 1] = attr_ends[attr_size_index];
+      if (attr_size_index < (NUM_ATTR_BOUNDARIES - 1))
+        attr_boundaries[attr_size_index + 1] = attr_boundaries[attr_size_index];
       attr_size_index++;
     }
     TERRIER_ASSERT(attr_size == (16 >> attr_size_index), "Non-power of two attribute size");
     // At this point, this column's size is the same as the current boundary size, so we increment the number of cols
     // for this boundary
-    if (attr_size_index < NUM_ATTR_BOUNDARIES) attr_ends[attr_size_index]++;
-    TERRIER_ASSERT(attr_size_index == NUM_ATTR_BOUNDARIES || attr_ends[attr_size_index] == i + 1,
+    if (attr_size_index < NUM_ATTR_BOUNDARIES) attr_boundaries[attr_size_index]++;
+    TERRIER_ASSERT(attr_size_index == NUM_ATTR_BOUNDARIES || attr_boundaries[attr_size_index] == i + 1,
                    "Inconsistent state on attribute bounds");
   }
-  return attr_ends;
 }
 
 std::vector<storage::col_id_t> StorageUtil::ProjectionListAllColumns(const storage::BlockLayout &layout) {

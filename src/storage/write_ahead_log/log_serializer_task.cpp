@@ -133,20 +133,13 @@ void LogSerializerTask::SerializeRecord(const terrier::storage::LogRecord &recor
       WriteValue(delta->NumColumns());
       WriteValue(delta->ColumnIds(), static_cast<uint32_t>(sizeof(col_id_t)) * delta->NumColumns());
 
-      std::vector<col_id_t> col_ids;
-      col_ids.reserve(delta->NumColumns());
-      for (int i = 0; i < delta->NumColumns(); i++) {
-        col_ids.push_back(delta->ColumnIds()[i]);
-      }
       // Write out the attr sizes boundaries, this way we can deserialize the records without the need of the block
       // layout
       const auto &block_layout = record_body->GetTupleSlot().GetBlock()->data_table_->GetBlockLayout();
-      auto boundaries = StorageUtil::ComputeAttributeSizeBoundaries(block_layout, col_ids);
-      TERRIER_ASSERT(boundaries.size() == NUM_ATTR_BOUNDARIES,
-                     "Boudaries vector size should equal to number of boundaries");
-      for (uint16_t i = 0; i < NUM_ATTR_BOUNDARIES; i++) {
-        WriteValue(boundaries[i]);
-      }
+      uint16_t boundaries[NUM_ATTR_BOUNDARIES];
+      memset(boundaries, 0, sizeof(uint16_t) * NUM_ATTR_BOUNDARIES);
+      StorageUtil::ComputeAttributeSizeBoundaries(block_layout, delta->ColumnIds(), delta->NumColumns(), boundaries);
+      WriteValue(boundaries, sizeof(uint16_t) * NUM_ATTR_BOUNDARIES);
 
       // Write out the null bitmap.
       WriteValue(&(delta->Bitmap()), common::RawBitmap::SizeInBytes(delta->NumColumns()));
