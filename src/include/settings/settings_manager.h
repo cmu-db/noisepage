@@ -68,7 +68,7 @@ class SettingsManager {
    * @param action_context action context for setting an integer param
    * @param setter_callback callback from caller
    */
-  void SetInt(Param param, int32_t value, std::shared_ptr<common::ActionContext> action_context,
+  void SetInt(Param param, int32_t value, const std::shared_ptr<common::ActionContext> &action_context,
               setter_callback_fn setter_callback);
 
   /**
@@ -78,7 +78,7 @@ class SettingsManager {
    * @param action_context action context for setting a double param
    * @param setter_callback callback from caller
    */
-  void SetDouble(Param param, double value, std::shared_ptr<common::ActionContext> action_context,
+  void SetDouble(Param param, double value, const std::shared_ptr<common::ActionContext> &action_context,
                  setter_callback_fn setter_callback);
 
   /**
@@ -88,7 +88,7 @@ class SettingsManager {
    * @param action_context action context for setting a boolean param
    * @param setter_callback callback from caller
    */
-  void SetBool(Param param, bool value, std::shared_ptr<common::ActionContext> action_context,
+  void SetBool(Param param, bool value, const std::shared_ptr<common::ActionContext> &action_context,
                setter_callback_fn setter_callback);
 
   /**
@@ -98,8 +98,8 @@ class SettingsManager {
    * @param action_context action context for setting a string param
    * @param setter_callback callback from caller
    */
-  void SetString(Param param, const std::string_view &value, std::shared_ptr<common::ActionContext> action_context,
-                 setter_callback_fn setter_callback);
+  void SetString(Param param, const std::string_view &value,
+                 const std::shared_ptr<common::ActionContext> &action_context, setter_callback_fn setter_callback);
 
   /**
    * Validate values from DBMain map
@@ -124,7 +124,7 @@ class SettingsManager {
   bool ValidateValue(const type::TransientValue &value, const type::TransientValue &min_value,
                      const type::TransientValue &max_value);
   common::ActionState InvokeCallback(Param param, void *old_value, void *new_value,
-                                     std::shared_ptr<common::ActionContext> action_context);
+                                     const std::shared_ptr<common::ActionContext> &action_context);
 };
 
 }  // namespace terrier::settings

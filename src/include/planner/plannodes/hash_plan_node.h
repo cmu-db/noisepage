@@ -33,7 +33,7 @@ class HashPlanNode : public AbstractPlanNode {
      * @param key Hash key to be added
      * @return builder object
      */
-    Builder &AddHashKey(std::shared_ptr<parser::AbstractExpression> key) {
+    Builder &AddHashKey(const std::shared_ptr<parser::AbstractExpression> &key) {
       TERRIER_ASSERT(key != nullptr, "Can't add nullptr key to HashPlanNode");
       hash_keys_.emplace_back(key);
       return *this;
