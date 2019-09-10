@@ -34,7 +34,6 @@ Checks:     '
             -google-readability-braces-around-statements,
             -modernize-use-nodiscard,
             -modernize-avoid-c-arrays,
-            -performance-unnecessary-value-param,
             -readability-braces-around-statements,
             -readability-isolate-declaration,
             -readability-magic-numbers,
@@ -75,8 +74,6 @@ AnalyzeTemporaryDtors: true
 # New C++17 that seems related to the GCC warned about unused result attribute. Would really clutter codebase.
 # -modernize-avoid-c-arrays,
 # Not feasible in the storage layer
-# -performance-unnecessary-value-param,
-# Suggest re-enabling once shared_ptrs are done being ripped out. This actually found some good issues.
 # -readability-braces-around-statements,
 # @tli2 really likes his single statements without braces
 # -readability-isolate-declaration,

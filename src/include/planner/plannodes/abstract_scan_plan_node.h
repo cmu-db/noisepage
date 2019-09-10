@@ -25,8 +25,8 @@ class AbstractScanPlanNode : public AbstractPlanNode {
      * @param predicate predicate to use for scan
      * @return builder object
      */
-    ConcreteType &SetScanPredicate(std::shared_ptr<parser::AbstractExpression> predicate) {
-      scan_predicate_ = std::move(predicate);
+    ConcreteType &SetScanPredicate(const std::shared_ptr<parser::AbstractExpression> &predicate) {
+      scan_predicate_ = predicate;
       return *dynamic_cast<ConcreteType *>(this);
     }
 
