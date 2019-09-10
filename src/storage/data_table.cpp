@@ -16,10 +16,9 @@ DataTable::DataTable(BlockStore *const store, const BlockLayout &layout, const l
                  "First column must have size 8 for the version chain.");
   TERRIER_ASSERT(layout.NumColumns() > NUM_RESERVED_COLUMNS,
                  "First column is reserved for version info, second column is reserved for logical delete.");
+  TERRIER_ASSERT(block_store_ != nullptr, "Block store for data table cannot be null");
   if (block_store_ != nullptr) {
     RawBlock *new_block = NewBlock();
-    // take latch
-    common::SpinLatch::ScopedSpinLatch guard2(&blocks_latch_);
     // insert block
     blocks_.push_back(new_block);
   }
@@ -132,7 +131,7 @@ bool DataTable::Update(transaction::TransactionContext *const txn, const TupleSl
 }
 
 void DataTable::CheckMoveHead(std::list<RawBlock *>::iterator block) {
-//  common::SpinLatch::ScopedSpinLatch guard_head(&blocks_latch_);
+  // Assume block is full
   common::SpinLatch::ScopedSpinLatch guard_head(&header_latch_);
   if (block == insertion_head_) {
     // If the header block is full, move the header to point to the next block
@@ -192,12 +191,9 @@ TupleSlot DataTable::Insert(transaction::TransactionContext *const txn, const Pr
       // if the full block is the insertion_header, move the insertion_header
       // Next insert txn will search from the new insertion_header
       CheckMoveHead(block);
-      // The block is full, try next block
-      ++block;
-    } else {  // The block is inserting by other txn
-      // Try next block
-      ++block;
     }
+    // The block is full or the block is being inserted by other txn, try next block
+    ++block;
   }
 
   // Do not need to wait unit finish inserting,

@@ -243,7 +243,7 @@ class DataTable {
   // latch used to protect insertion_head_
   mutable common::SpinLatch header_latch_;
   std::list<RawBlock *>::iterator insertion_head_;
-  // Check if the block that insertion_head_ points to is full, if it's full, move the header
+  // Check if we need to advance the insertion_head_
   // This function uses header_latch_ to ensure correctness
   void CheckMoveHead(std::list<RawBlock *>::iterator block);
   mutable DataTableCounter data_table_counter_;
