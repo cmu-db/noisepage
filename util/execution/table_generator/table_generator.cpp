@@ -140,7 +140,7 @@ void TableGenerator::FillTable(catalog::table_oid_t table_oid, common::ManagedPo
       delete[] col_data.second;
     }
   }
-  //EXECUTION_LOG_INFO("Wrote {} tuples into table {}.", vals_written, table_meta.name_);
+  // EXECUTION_LOG_INFO("Wrote {} tuples into table {}.", vals_written, table_meta.name_);
 }
 
 void TableGenerator::GenerateTestTables() {
@@ -245,7 +245,7 @@ void TableGenerator::FillIndex(common::ManagedPointer<storage::index::Index> ind
   // Cleanup
   delete[] table_buffer;
   delete[] index_buffer;
-  //EXECUTION_LOG_INFO("Wrote {} tuples into index {}.", num_inserted, index_meta.index_name_);
+  // EXECUTION_LOG_INFO("Wrote {} tuples into index {}.", num_inserted, index_meta.index_name_);
 }
 
 void TableGenerator::InitTestIndexes() {
