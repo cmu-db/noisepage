@@ -144,7 +144,7 @@ class StorageUtil {
    * @param attr_boundaries pointer to array to store attribute boundaries
    */
   static void ComputeAttributeSizeBoundaries(const storage::BlockLayout &layout, const col_id_t *col_ids,
-                                             const uint16_t num_cols, uint16_t *attr_boundaries);
+                                             uint16_t num_cols, uint16_t *attr_boundaries);
 
   /**
    * @brief Get attribute size for a col index
