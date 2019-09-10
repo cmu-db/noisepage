@@ -6,19 +6,18 @@
 namespace terrier::network {
 
 /**
- * PostgresCommandFactory constructs PostgresNetworkCommands that parses input packets to API calls
- * into traffic cop
+ * ITPCommandFactory constructs ITP commands from parsed input packets.
  */
-class PostgresCommandFactory : public AbstractCommandFactory {
+class ITPCommandFactory : public AbstractCommandFactory {
  public:
   /**
-   * Convert a Postgres packet to command.
+   * Convert an ITP packet to command.
    * @param packet the Postgres input packet
    * @return a shared_ptr to the converted command
    */
   std::shared_ptr<AbstractNetworkCommand> PacketToCommand(InputPacket *packet) override;
 
-  ~PostgresCommandFactory() = default;
+  ~ITPCommandFactory() = default;
 };
 
 }  // namespace terrier::network

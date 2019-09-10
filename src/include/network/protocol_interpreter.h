@@ -5,6 +5,7 @@
 #include "network/connection_context.h"
 #include "network/network_io_utils.h"
 #include "network/network_types.h"
+#include "network/abstract_command_factory.h"
 //
 namespace terrier::network {
 

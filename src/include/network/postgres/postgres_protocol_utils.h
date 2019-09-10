@@ -35,61 +35,6 @@ namespace terrier::network {
 // clang-format on
 
 /**
- * Encapsulates an input packet
- */
-struct PostgresInputPacket {
-  /**
-   * Type of message this packet encodes
-   */
-  NetworkMessageType msg_type_ = NetworkMessageType::NULL_COMMAND;
-
-  /**
-   * Length of this packet's contents
-   */
-  size_t len_ = 0;
-
-  /**
-   * ReadBuffer containing this packet's contents
-   */
-  std::shared_ptr<ReadBuffer> buf_;
-
-  /**
-   * Whether or not this packet's header has been parsed yet
-   */
-  bool header_parsed_ = false;
-
-  /**
-   * Whether or not this packet's buffer was extended
-   */
-  bool extended_ = false;
-
-  /**
-   * Constructs an empty PostgresInputPacket
-   */
-  PostgresInputPacket() = default;
-
-  /**
-   * Constructs an empty PostgresInputPacket
-   */
-  PostgresInputPacket(const PostgresInputPacket &) = default;
-
-  /**
-   * Constructs an empty PostgresInputPacket
-   */
-  PostgresInputPacket(PostgresInputPacket &&) = default;
-
-  /**
-   * Clears the packet's contents
-   */
-  void Clear() {
-    msg_type_ = NetworkMessageType::NULL_COMMAND;
-    len_ = 0;
-    buf_ = nullptr;
-    header_parsed_ = false;
-  }
-};
-
-/**
  * Postgres Value Types
  * This defines all the types that we will support
  * We do not allow for user-defined types, nor do we try to do anything dynamic.

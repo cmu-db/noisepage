@@ -22,6 +22,7 @@
 #include "parser/pg_trigger.h"
 #include "traffic_cop/result_set.h"
 #include "type/type_id.h"
+#include "network/network_io_utils.h"
 
 namespace terrier::trafficcop {
 class TrafficCop;
@@ -71,6 +72,10 @@ enum class NetworkMessageType : unsigned char {
   // Messages that don't have headers (like Startup message)
   NO_HEADER = 255,
 
+  ////////////////////////////
+  // Postgres message types //
+  ////////////////////////////
+
   // Responses
   PARSE_COMPLETE = '1',
   BIND_COMPLETE = '2',
@@ -100,6 +105,71 @@ enum class NetworkMessageType : unsigned char {
   // SSL willingness
   SSL_YES = 'S',
   SSL_NO = 'N',
+
+  ////////////////////////
+  // ITP message types  //
+  ////////////////////////
+
+
+};
+
+//===--------------------------------------------------------------------===//
+// Network packet defs
+//===--------------------------------------------------------------------===//
+
+/**
+ * Encapsulates an input packet
+ */
+struct InputPacket {
+  /**
+   * Type of message this packet encodes
+   */
+  NetworkMessageType msg_type_ = NetworkMessageType::NULL_COMMAND;
+
+  /**
+   * Length of this packet's contents
+   */
+  size_t len_ = 0;
+
+  /**
+   * ReadBuffer containing this packet's contents
+   */
+  std::shared_ptr<ReadBuffer> buf_;
+
+  /**
+   * Whether or not this packet's header has been parsed yet
+   */
+  bool header_parsed_ = false;
+
+  /**
+   * Whether or not this packet's buffer was extended
+   */
+  bool extended_ = false;
+
+  /**
+   * Constructs an empty InputPacket
+   */
+  InputPacket() = default;
+
+  /**
+   * Constructs an empty InputPacket
+   */
+  InputPacket(const InputPacket &) = default;
+
+  /**
+   * Constructs an empty InputPacket
+   */
+  InputPacket(InputPacket &&) = default;
+
+  /**
+   * Clears the packet's contents
+   */
+  virtual void Clear() {
+    msg_type_ = NetworkMessageType::NULL_COMMAND;
+    len_ = 0;
+    buf_ = nullptr;
+    header_parsed_ = false;
+  }
 };
 
 //===--------------------------------------------------------------------===//
