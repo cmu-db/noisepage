@@ -9,7 +9,9 @@ namespace terrier::storage {
 
 void LogSerializerTask::LogSerializerTaskLoop() {
   do {
-    std::this_thread::sleep_for(serialization_interval_);
+    // Serializing is now on the "critical path" because txns wait to commit until their logs are serialized. Thus, a
+    // sleep is not fast enough.
+    _mm_pause();
     Process();
   } while (run_task_);
   // To be extra sure we processed everything
@@ -18,23 +20,31 @@ void LogSerializerTask::LogSerializerTaskLoop() {
 }
 
 void LogSerializerTask::Process() {
-  common::SpinLatch::ScopedSpinLatch guard(&serialization_latch_);
-  // In a short critical section, get all buffers to serialize. We move them to a temp queue to reduce contention on the
-  // queue transactions interact with
-  std::queue<RecordBufferSegment *> temp_flush_queue;
-  {
-    common::SpinLatch::ScopedSpinLatch guard(&flush_queue_latch_);
-    temp_flush_queue = std::move(flush_queue_);
-    flush_queue_ = std::queue<RecordBufferSegment *>();
-  }
-  while (!temp_flush_queue.empty()) {
-    RecordBufferSegment *buffer = temp_flush_queue.front();
-    temp_flush_queue.pop();
+  common::SpinLatch::ScopedSpinLatch serilizaton_guard(&serialization_latch_);
+  // We continually grab all the buffers until we find there are no new buffers. This way we serialize buffers that came
+  // in during the previous serialization
+  while (true) {
+    std::queue<RecordBufferSegment *> temp_flush_queue;
+    // In a short critical section, get all buffers to serialize. We move them to a temp queue to reduce contention on
+    // the queue transactions interact with
+    {
+      common::SpinLatch::ScopedSpinLatch queue_guard(&flush_queue_latch_);
+      temp_flush_queue = std::move(flush_queue_);
+      flush_queue_ = std::queue<RecordBufferSegment *>();
+    }
 
-    // Serialize the Redo buffer and release it to the buffer pool
-    IterableBufferSegment<LogRecord> task_buffer(buffer);
-    SerializeBuffer(&task_buffer);
-    buffer_pool_->Release(buffer);
+    // If there are no new buffers, we can break, and let the task loop handle the pausing logic
+    if (temp_flush_queue.empty()) break;
+
+    while (!temp_flush_queue.empty()) {
+      RecordBufferSegment *buffer = temp_flush_queue.front();
+      temp_flush_queue.pop();
+
+      // Serialize the Redo buffer and release it to the buffer pool
+      IterableBufferSegment<LogRecord> task_buffer(buffer);
+      SerializeBuffer(&task_buffer);
+      buffer_pool_->Release(buffer);
+    }
   }
 
   // Mark the last buffer that was written to as full

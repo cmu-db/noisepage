@@ -84,7 +84,7 @@ class LogManager : public common::DedicatedThreadOwner {
   void Start();
 
   /**
-   * Flush the logs to make sure all serialized records before this invocation are persistent. Callbacks from committed
+   * Serialize and flush the logs to make sure all serialized records are persistent. Callbacks from committed
    * transactions are invoked by log consumers when the commit records are persisted on disk.
    * @warning This method should only be called from a dedicated flushing thread or during testing
    * @warning Beware the performance consequences of calling flush too frequently

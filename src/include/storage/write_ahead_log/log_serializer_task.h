@@ -11,7 +11,8 @@
 namespace terrier::storage {
 
 /**
- * Task that processes buffers handed over by transactions and serializes them into consumer buffers
+ * Task that processes buffers handed over by transactions and serializes them into consumer buffers.
+ * Transactions will wait to be GC'd until their logs are
  */
 class LogSerializerTask : public common::DedicatedThreadTask {
  public:
@@ -67,6 +68,7 @@ class LogSerializerTask : public common::DedicatedThreadTask {
   // Flag to signal task to run or stop
   bool run_task_;
   // Interval for serialization
+  // TODO(Gus): remove if _mm_pause stays
   const std::chrono::milliseconds serialization_interval_;
 
   // Used to release processed buffers
