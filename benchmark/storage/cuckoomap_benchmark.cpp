@@ -25,7 +25,7 @@ class CuckooMapBenchmark : public benchmark::Fixture {
 
   // Workload
   const uint32_t num_keys_ = 10000000;
-  const uint32_t num_threads_ = 2;
+  const uint32_t num_threads_ = 4;
 
   // Test infrastructure
 
