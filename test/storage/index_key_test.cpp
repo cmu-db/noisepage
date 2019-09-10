@@ -748,20 +748,20 @@ TEST_F(IndexKeyTests, RandomCompactIntsKeyTest) {
       // perform the relevant checks
       switch (key_type) {
         case 1:
-          EXPECT_EQ(CompactIntsFromProjectedRowEq<1>(metadata, *pr_a, *pr_b), data_a == data_b);
-          EXPECT_EQ(CompactIntsFromProjectedRowCmp<1>(metadata, *pr_a, *pr_b), data_a < data_b);
+          EXPECT_EQ(CompactIntsFromProjectedRowEq<8>(metadata, *pr_a, *pr_b), data_a == data_b);
+          EXPECT_EQ(CompactIntsFromProjectedRowCmp<8>(metadata, *pr_a, *pr_b), data_a < data_b);
           break;
         case 2:
-          EXPECT_EQ(CompactIntsFromProjectedRowEq<2>(metadata, *pr_a, *pr_b), data_a == data_b);
-          EXPECT_EQ(CompactIntsFromProjectedRowCmp<2>(metadata, *pr_a, *pr_b), data_a < data_b);
+          EXPECT_EQ(CompactIntsFromProjectedRowEq<16>(metadata, *pr_a, *pr_b), data_a == data_b);
+          EXPECT_EQ(CompactIntsFromProjectedRowCmp<16>(metadata, *pr_a, *pr_b), data_a < data_b);
           break;
         case 3:
-          EXPECT_EQ(CompactIntsFromProjectedRowEq<3>(metadata, *pr_a, *pr_b), data_a == data_b);
-          EXPECT_EQ(CompactIntsFromProjectedRowCmp<3>(metadata, *pr_a, *pr_b), data_a < data_b);
+          EXPECT_EQ(CompactIntsFromProjectedRowEq<24>(metadata, *pr_a, *pr_b), data_a == data_b);
+          EXPECT_EQ(CompactIntsFromProjectedRowCmp<24>(metadata, *pr_a, *pr_b), data_a < data_b);
           break;
         case 4:
-          EXPECT_EQ(CompactIntsFromProjectedRowEq<4>(metadata, *pr_a, *pr_b), data_a == data_b);
-          EXPECT_EQ(CompactIntsFromProjectedRowCmp<4>(metadata, *pr_a, *pr_b), data_a < data_b);
+          EXPECT_EQ(CompactIntsFromProjectedRowEq<32>(metadata, *pr_a, *pr_b), data_a == data_b);
+          EXPECT_EQ(CompactIntsFromProjectedRowCmp<32>(metadata, *pr_a, *pr_b), data_a < data_b);
           break;
         default:
           throw std::runtime_error("Invalid compact ints key type.");
@@ -785,27 +785,27 @@ TEST_F(IndexKeyTests, RandomCompactIntsKeyTest) {
         // perform the relevant checks
         switch (key_type) {
           case 1:
-            EXPECT_EQ(CompactIntsFromProjectedRowEq<1>(metadata, *pr_a, *pr_b),
+            EXPECT_EQ(CompactIntsFromProjectedRowEq<8>(metadata, *pr_a, *pr_b),
                       std::memcmp(data_a, data_b, key_size) == 0 && !modified);
-            EXPECT_EQ(CompactIntsFromProjectedRowCmp<1>(metadata, *pr_a, *pr_b),
+            EXPECT_EQ(CompactIntsFromProjectedRowCmp<8>(metadata, *pr_a, *pr_b),
                       std::memcmp(data_a, data_b, key_size) < 0);
             break;
           case 2:
-            EXPECT_EQ(CompactIntsFromProjectedRowEq<2>(metadata, *pr_a, *pr_b),
+            EXPECT_EQ(CompactIntsFromProjectedRowEq<16>(metadata, *pr_a, *pr_b),
                       std::memcmp(data_a, data_b, key_size) == 0 && !modified);
-            EXPECT_EQ(CompactIntsFromProjectedRowCmp<2>(metadata, *pr_a, *pr_b),
+            EXPECT_EQ(CompactIntsFromProjectedRowCmp<16>(metadata, *pr_a, *pr_b),
                       std::memcmp(data_a, data_b, key_size) < 0);
             break;
           case 3:
-            EXPECT_EQ(CompactIntsFromProjectedRowEq<3>(metadata, *pr_a, *pr_b),
+            EXPECT_EQ(CompactIntsFromProjectedRowEq<24>(metadata, *pr_a, *pr_b),
                       std::memcmp(data_a, data_b, key_size) == 0 && !modified);
-            EXPECT_EQ(CompactIntsFromProjectedRowCmp<3>(metadata, *pr_a, *pr_b),
+            EXPECT_EQ(CompactIntsFromProjectedRowCmp<24>(metadata, *pr_a, *pr_b),
                       std::memcmp(data_a, data_b, key_size) < 0);
             break;
           case 4:
-            EXPECT_EQ(CompactIntsFromProjectedRowEq<4>(metadata, *pr_a, *pr_b),
+            EXPECT_EQ(CompactIntsFromProjectedRowEq<32>(metadata, *pr_a, *pr_b),
                       std::memcmp(data_a, data_b, key_size) == 0 && !modified);
-            EXPECT_EQ(CompactIntsFromProjectedRowCmp<4>(metadata, *pr_a, *pr_b),
+            EXPECT_EQ(CompactIntsFromProjectedRowCmp<32>(metadata, *pr_a, *pr_b),
                       std::memcmp(data_a, data_b, key_size) < 0);
             break;
           default:
@@ -827,7 +827,7 @@ void CompactIntsKeyBasicTest(type::TypeId type_id, Random *const generator) {
   catalog::IndexSchema key_schema;
 
   std::vector<catalog::IndexSchema::Column> key_cols;
-  const uint8_t num_cols = (sizeof(uint64_t) * KeySize) / sizeof(CType);
+  const uint8_t num_cols = KeySize / sizeof(CType);
 
   for (uint8_t i = 0; i < num_cols; i++) {
     key_cols.emplace_back("", type_id, false,
@@ -868,25 +868,25 @@ void CompactIntsKeyBasicTest(type::TypeId type_id, Random *const generator) {
 // Verify basic key construction and value setting and comparator, equality, and hash operations for various key sizes.
 // NOLINTNEXTLINE
 TEST_F(IndexKeyTests, CompactIntsKeyBasicTest) {
-  CompactIntsKeyBasicTest<1, int8_t>(type::TypeId::TINYINT, &generator_);
-  CompactIntsKeyBasicTest<1, int16_t>(type::TypeId::SMALLINT, &generator_);
-  CompactIntsKeyBasicTest<1, int32_t>(type::TypeId::INTEGER, &generator_);
-  CompactIntsKeyBasicTest<1, int64_t>(type::TypeId::BIGINT, &generator_);
+  CompactIntsKeyBasicTest<8, int8_t>(type::TypeId::TINYINT, &generator_);
+  CompactIntsKeyBasicTest<8, int16_t>(type::TypeId::SMALLINT, &generator_);
+  CompactIntsKeyBasicTest<8, int32_t>(type::TypeId::INTEGER, &generator_);
+  CompactIntsKeyBasicTest<8, int64_t>(type::TypeId::BIGINT, &generator_);
 
-  CompactIntsKeyBasicTest<2, int8_t>(type::TypeId::TINYINT, &generator_);
-  CompactIntsKeyBasicTest<2, int16_t>(type::TypeId::SMALLINT, &generator_);
-  CompactIntsKeyBasicTest<2, int32_t>(type::TypeId::INTEGER, &generator_);
-  CompactIntsKeyBasicTest<2, int64_t>(type::TypeId::BIGINT, &generator_);
+  CompactIntsKeyBasicTest<16, int8_t>(type::TypeId::TINYINT, &generator_);
+  CompactIntsKeyBasicTest<16, int16_t>(type::TypeId::SMALLINT, &generator_);
+  CompactIntsKeyBasicTest<16, int32_t>(type::TypeId::INTEGER, &generator_);
+  CompactIntsKeyBasicTest<16, int64_t>(type::TypeId::BIGINT, &generator_);
 
-  CompactIntsKeyBasicTest<3, int8_t>(type::TypeId::TINYINT, &generator_);
-  CompactIntsKeyBasicTest<3, int16_t>(type::TypeId::SMALLINT, &generator_);
-  CompactIntsKeyBasicTest<3, int32_t>(type::TypeId::INTEGER, &generator_);
-  CompactIntsKeyBasicTest<3, int64_t>(type::TypeId::BIGINT, &generator_);
+  CompactIntsKeyBasicTest<24, int8_t>(type::TypeId::TINYINT, &generator_);
+  CompactIntsKeyBasicTest<24, int16_t>(type::TypeId::SMALLINT, &generator_);
+  CompactIntsKeyBasicTest<24, int32_t>(type::TypeId::INTEGER, &generator_);
+  CompactIntsKeyBasicTest<24, int64_t>(type::TypeId::BIGINT, &generator_);
 
-  CompactIntsKeyBasicTest<4, int8_t>(type::TypeId::TINYINT, &generator_);
-  CompactIntsKeyBasicTest<4, int16_t>(type::TypeId::SMALLINT, &generator_);
-  CompactIntsKeyBasicTest<4, int32_t>(type::TypeId::INTEGER, &generator_);
-  CompactIntsKeyBasicTest<4, int64_t>(type::TypeId::BIGINT, &generator_);
+  CompactIntsKeyBasicTest<32, int8_t>(type::TypeId::TINYINT, &generator_);
+  CompactIntsKeyBasicTest<32, int16_t>(type::TypeId::SMALLINT, &generator_);
+  CompactIntsKeyBasicTest<32, int32_t>(type::TypeId::INTEGER, &generator_);
+  CompactIntsKeyBasicTest<32, int64_t>(type::TypeId::BIGINT, &generator_);
 }
 
 template <typename KeyType, typename CType>
@@ -964,10 +964,10 @@ void NumericComparisons(const type::TypeId type_id, const bool nullable) {
 
 // NOLINTNEXTLINE
 TEST_F(IndexKeyTests, CompactIntsKeyNumericComparisons) {
-  NumericComparisons<CompactIntsKey<1>, int8_t>(type::TypeId::TINYINT, false);
-  NumericComparisons<CompactIntsKey<1>, int16_t>(type::TypeId::SMALLINT, false);
-  NumericComparisons<CompactIntsKey<1>, int32_t>(type::TypeId::INTEGER, false);
-  NumericComparisons<CompactIntsKey<1>, int64_t>(type::TypeId::BIGINT, false);
+  NumericComparisons<CompactIntsKey<8>, int8_t>(type::TypeId::TINYINT, false);
+  NumericComparisons<CompactIntsKey<8>, int16_t>(type::TypeId::SMALLINT, false);
+  NumericComparisons<CompactIntsKey<8>, int32_t>(type::TypeId::INTEGER, false);
+  NumericComparisons<CompactIntsKey<8>, int64_t>(type::TypeId::BIGINT, false);
 }
 
 // NOLINTNEXTLINE

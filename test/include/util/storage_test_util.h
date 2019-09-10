@@ -459,7 +459,7 @@ class StorageTestUtil {
    */
   template <typename Random>
   static catalog::IndexSchema RandomCompactIntsKeySchema(Random *generator) {
-    const uint16_t max_bytes = sizeof(uint64_t) * INTSKEY_MAX_SLOTS;
+    const uint16_t max_bytes = storage::index::COMPACTINTSKEY_MAX_SIZE;
     const auto key_size = std::uniform_int_distribution(static_cast<uint16_t>(1), max_bytes)(*generator);
 
     const std::vector<type::TypeId> types{type::TypeId::TINYINT, type::TypeId::SMALLINT, type::TypeId::INTEGER,

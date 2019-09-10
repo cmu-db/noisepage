@@ -11,8 +11,8 @@
 namespace terrier::storage::index {
 
 // This is the maximum number of bytes to pack into a single HashKey template. This constraint is arbitrary and can
-// be increased if 4096-bytes is too small for future workloads.
-#define HASHKEY_MAX_SIZE 4096
+// be increased if 256 bytes is too small for future workloads.
+constexpr uint16_t HASHKEY_MAX_SIZE = 256;
 
 /**
  * HashKey - it's a thing
@@ -29,9 +29,7 @@ class HashKey {
   /**
    * key size in bytes, exposed for hasher and comparators
    */
-  static constexpr size_t KEY_SIZE_BYTE = KeySize;
-  static_assert(KeySize > 0 && KeySize <= HASHKEY_MAX_SIZE);  // size must be no greater than 256-bits
-  static_assert(KEY_SIZE_BYTE % sizeof(uintptr_t) == 0);      // size must be multiple of 8 bytes
+  static_assert(KeySize > 0 && KeySize <= HASHKEY_MAX_SIZE);
 
   /**
    * @return underlying byte array, exposed for hasher and comparators
@@ -45,7 +43,7 @@ class HashKey {
    * HashKey
    */
   void SetFromProjectedRow(const storage::ProjectedRow &from, const IndexMetadata &metadata) {
-    std::memset(key_data_, 0, KEY_SIZE_BYTE);
+    std::memset(key_data_, 0, KeySize);
 
     const auto key_size = metadata.KeySize();
 
@@ -63,7 +61,7 @@ class HashKey {
   }
 
  private:
-  byte key_data_[KEY_SIZE_BYTE];
+  byte key_data_[KeySize];
 };
 
 }  // namespace terrier::storage::index
@@ -71,7 +69,7 @@ class HashKey {
 namespace std {
 
 /**
- * Implements std::hash for HashKey. Allows the class to be used with STL containers and the BwTree index.
+ * Implements std::hash for HashKey. Allows the class to be used with containers that expect STL interface.
  * @tparam KeySize number of bytes for the key's internal buffer
  */
 template <uint16_t KeySize>
@@ -82,13 +80,12 @@ struct hash<terrier::storage::index::HashKey<KeySize>> {
    */
   size_t operator()(const terrier::storage::index::HashKey<KeySize> &key) const {
     // you're technically hashing more bytes than you need to, but hopefully key size isn't wildly over-provisioned
-    return static_cast<size_t>(XXH3_64bits(reinterpret_cast<const void *>(key.KeyData()),
-                                           terrier::storage::index::HashKey<KeySize>::KEY_SIZE_BYTE));
+    return static_cast<size_t>(XXH3_64bits(reinterpret_cast<const void *>(key.KeyData()), KeySize));
   }
 };
 
 /**
- * Implements std::equal_to for HashKey. Allows the class to be used with STL containers and the BwTree index.
+ * Implements std::equal_to for HashKey. Allows the class to be used with containers that expect STL interface.
  * @tparam KeySize number of bytes for the key's internal buffer
  */
 template <uint16_t KeySize>
@@ -101,7 +98,7 @@ struct equal_to<terrier::storage::index::HashKey<KeySize>> {
   bool operator()(const terrier::storage::index::HashKey<KeySize> &lhs,
                   const terrier::storage::index::HashKey<KeySize> &rhs) const {
     // you're technically comparing more bytes than you need to, but hopefully key size isn't wildly over-provisioned
-    return std::memcmp(lhs.KeyData(), rhs.KeyData(), terrier::storage::index::HashKey<KeySize>::KEY_SIZE_BYTE) == 0;
+    return std::memcmp(lhs.KeyData(), rhs.KeyData(), KeySize) == 0;
   }
 };
 }  // namespace std

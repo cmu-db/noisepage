@@ -44,7 +44,7 @@ class IndexBuilder {
       const auto &attr = key_cols[i];
       use_compact_ints = use_compact_ints && !attr.Nullable() && CompactIntsOk(attr.Type());  // key type ok?
       key_size += type::TypeUtil::GetTypeSize(attr.Type());
-      use_compact_ints = use_compact_ints && key_size <= sizeof(uint64_t) * INTSKEY_MAX_SLOTS;  // key size fits?
+      use_compact_ints = use_compact_ints && key_size <= sizeof(uint64_t) * COMPACTINTSKEY_MAX_SIZE;  // key size fits?
     }
 
     if (key_schema_.Type() == IndexType::BWTREE) {
@@ -82,16 +82,16 @@ class IndexBuilder {
   }
 
   Index *BuildBwTreeIntsKey(uint32_t key_size, IndexMetadata metadata) const {
-    TERRIER_ASSERT(key_size <= sizeof(uint64_t) * INTSKEY_MAX_SLOTS, "Not enough slots for given key size.");
+    TERRIER_ASSERT(key_size <= sizeof(uint64_t) * COMPACTINTSKEY_MAX_SIZE, "Not enough slots for given key size.");
     Index *index = nullptr;
     if (key_size <= sizeof(uint64_t)) {
-      index = new BwTreeIndex<CompactIntsKey<1>>(std::move(metadata));
+      index = new BwTreeIndex<CompactIntsKey<8>>(std::move(metadata));
     } else if (key_size <= sizeof(uint64_t) * 2) {
-      index = new BwTreeIndex<CompactIntsKey<2>>(std::move(metadata));
+      index = new BwTreeIndex<CompactIntsKey<16>>(std::move(metadata));
     } else if (key_size <= sizeof(uint64_t) * 3) {
-      index = new BwTreeIndex<CompactIntsKey<3>>(std::move(metadata));
+      index = new BwTreeIndex<CompactIntsKey<24>>(std::move(metadata));
     } else if (key_size <= sizeof(uint64_t) * 4) {
-      index = new BwTreeIndex<CompactIntsKey<4>>(std::move(metadata));
+      index = new BwTreeIndex<CompactIntsKey<32>>(std::move(metadata));
     }
     TERRIER_ASSERT(index != nullptr, "Failed to create an IntsKey index.");
     return index;
@@ -132,14 +132,6 @@ class IndexBuilder {
       index = new HashIndex<HashKey<128>>(std::move(metadata));
     } else if (key_size <= 256) {
       index = new HashIndex<HashKey<256>>(std::move(metadata));
-    } else if (key_size <= 512) {
-      index = new HashIndex<HashKey<512>>(std::move(metadata));
-    } else if (key_size <= 1024) {
-      index = new HashIndex<HashKey<1024>>(std::move(metadata));
-    } else if (key_size <= 2048) {
-      index = new HashIndex<HashKey<2048>>(std::move(metadata));
-    } else if (key_size <= 4096) {
-      index = new HashIndex<HashKey<4096>>(std::move(metadata));
     }
     TERRIER_ASSERT(index != nullptr, "Failed to create an IntsKey index.");
     return index;
