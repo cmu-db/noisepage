@@ -16,7 +16,6 @@ DataTable::DataTable(BlockStore *const store, const BlockLayout &layout, const l
                  "First column must have size 8 for the version chain.");
   TERRIER_ASSERT(layout.NumColumns() > NUM_RESERVED_COLUMNS,
                  "First column is reserved for version info, second column is reserved for logical delete.");
-  TERRIER_ASSERT(block_store_ != nullptr, "Block store for data table cannot be null");
   if (block_store_ != nullptr) {
     RawBlock *new_block = NewBlock();
     // insert block
