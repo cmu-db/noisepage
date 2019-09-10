@@ -156,7 +156,7 @@ class IndexKeyTests : public TerrierTest {
       auto pr_offset = static_cast<uint16_t>(oid_offset_map.at(key_oid));
       auto attr = pr->AccessForceNotNull(pr_offset);
       WriteRandomAttribute(key, attr, reference + offset, generator);
-      offset += type::TypeUtil::GetTypeSize(key_type);
+      offset += type::TypeUtil::GetTypeSize(key_type) & INT8_MAX;
     }
     return reference;
   }
