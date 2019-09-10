@@ -458,8 +458,7 @@ class StorageTestUtil {
    * Generates a random CompactIntsKey-compatible schema.
    */
   template <typename Random>
-  static catalog::IndexSchema RandomCompactIntsKeySchema(Random *generator) {
-    const uint16_t max_bytes = storage::index::COMPACTINTSKEY_MAX_SIZE;
+  static catalog::IndexSchema RandomNonGenericKeySchema(Random *generator, const uint16_t max_bytes) {
     const auto key_size = std::uniform_int_distribution(static_cast<uint16_t>(1), max_bytes)(*generator);
 
     const std::vector<type::TypeId> types{type::TypeId::TINYINT, type::TypeId::SMALLINT, type::TypeId::INTEGER,
