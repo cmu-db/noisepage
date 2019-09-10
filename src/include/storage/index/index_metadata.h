@@ -150,7 +150,7 @@ class IndexMetadata {
     uint16_t key_size = 0;
     auto key_cols = key_schema.GetColumns();
     for (const auto &key : key_cols) {
-      key_size += type::TypeUtil::GetTypeSize(key.Type()) & INT8_MAX;
+      key_size += static_cast<uint8_t>(type::TypeUtil::GetTypeSize(key.Type()) & INT8_MAX);
     }
     return key_size;
   }
