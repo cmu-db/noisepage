@@ -174,10 +174,10 @@ struct ForeignKeyInfo {
     // Sink Table Name
     if (sink_table_name_ != rhs.sink_table_name_) return false;
 
-    // Update Action
+    // Update TransactionAction
     if (upd_action_ != rhs.upd_action_) return false;
 
-    // Delete Action
+    // Delete TransactionAction
     if (del_action_ != rhs.del_action_) return false;
 
     // Foreign Key Sources
