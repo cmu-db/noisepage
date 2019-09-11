@@ -18,12 +18,12 @@ namespace terrier::parser::expression {
 class ExpressionUtil {
  public:
   // Static utility class
-  ExpressionUtil() = default;
+  ExpressionUtil() = delete;
 
   /**
    * Populate the given set with all of the column oids referenced
    * in this expression tree.
-   * @param col_oids set of column oids in the expression
+   * @param col_oids place to store column oids in the expression
    * @param expr to extract column oids from
    */
   static void GetColumnOids(std::set<catalog::col_oid_t> *col_oids, common::ManagedPointer<AbstractExpression> expr) {
