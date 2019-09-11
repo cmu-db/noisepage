@@ -43,7 +43,7 @@ TEST(ExpressionUtilTest, GetColumnOidsTest) {
   auto op_expr_2 =
       std::make_shared<OperatorExpression>(ExpressionType::OPERATOR_PLUS, type::TypeId::INVALID, std::move(children2));
 
-  auto children3 = std::vector<std::shared_ptr<AbstractExpression>>{op_expr, op_expr_2};
+  auto children3 = std::vector<std::shared_ptr<AbstractExpression>>{op_expr_1, op_expr_2};
   auto op_expr_3 =
       std::make_shared<OperatorExpression>(ExpressionType::OPERATOR_PLUS, type::TypeId::INVALID, std::move(children3));
   oids.clear();
