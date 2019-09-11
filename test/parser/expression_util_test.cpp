@@ -16,7 +16,7 @@ TEST(ExpressionUtilTest, GetColumnOidsTest) {
   ExpressionUtil::GetColumnOids(&oids, common::ManagedPointer<AbstractExpression>(tve.get()));
   EXPECT_THAT(oids, ElementsAre(catalog::col_oid_t(3)));
 
-  // Test a more complex expression, the expression has 2 children
+  // Test an expression with 2 children
   auto child1 = std::make_shared<ColumnValueExpression>(catalog::db_oid_t(1), catalog::table_oid_t(2), catalog::col_oid_t(4));
   auto child2 = std::make_shared<ColumnValueExpression>(catalog::db_oid_t(1), catalog::table_oid_t(2), catalog::col_oid_t(5));
   auto children1 = std::vector<std::shared_ptr<AbstractExpression>>{child1, child2};
@@ -25,7 +25,7 @@ TEST(ExpressionUtilTest, GetColumnOidsTest) {
   ExpressionUtil::GetColumnOids(&oids, common::ManagedPointer<AbstractExpression>(op_expr_1.get()));
   EXPECT_THAT(oids, ElementsAre(catalog::col_oid_t(4), catalog::col_oid_t(5)));
 
-  // Test a expression with depth 2 (4 children)
+  // Test an expression with depth 2 (4 children)
   auto child3 = std::make_shared<ColumnValueExpression>(catalog::db_oid_t(1), catalog::table_oid_t(2), catalog::col_oid_t(6));
   auto child4 = std::make_shared<ColumnValueExpression>(catalog::db_oid_t(1), catalog::table_oid_t(2), catalog::col_oid_t(7));
   auto children2 = std::vector<std::shared_ptr<AbstractExpression>>{child3, child4};

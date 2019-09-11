@@ -2,25 +2,23 @@
 
 #include <algorithm>
 #include <cstdlib>
-#include <string>
 #include <set>
+#include <string>
 
 #include "catalog/catalog_defs.h"
 #include "common/managed_pointer.h"
 #include "parser/expression/abstract_expression.h"
 #include "parser/expression/column_value_expression.h"
 
-namespace terrier::parser {
+namespace terrier::parser::expression {
 
 /**
  * An utility class for Expression objects
  */
 class ExpressionUtil {
-
  public:
   // Static utility class
-  ExpressionUtil() = delete;
-
+  ExpressionUtil() = default;
 
   /**
    * Populate the given set with all of the column oids referenced
@@ -28,10 +26,10 @@ class ExpressionUtil {
    * @param col_oids
    * @param expr
    */
-  static void GetColumnOids(std::set<catalog::col_oid_t> &col_oids, common::ManagedPointer<AbstractExpression> expr) {
+  static void GetColumnOids(std::set<catalog::col_oid_t> *col_oids, common::ManagedPointer<AbstractExpression> expr) {
     // Recurse into our children
-    for (const auto &child: expr->GetChildren()) {
-      ExpressionUtil::GetColumnOids(col_oids, child);
+    for (const auto &child : expr->GetChildren()) {
+      ExpressionUtil::GetColumnOids(col_oids, common::ManagedPointer<AbstractExpression>(child.get()));
     }
 
     // If our mofo is a ColumnValueExpression, then pull out our
@@ -39,10 +37,9 @@ class ExpressionUtil {
     auto etype = expr->GetExpressionType();
     if (etype == ExpressionType::COLUMN_VALUE) {
       auto t_expr = expr.CastManagedPointerTo<ColumnValueExpression>();
-      col_oids.insert(t_expr->GetColumnOid());
+      col_oids->insert(t_expr->GetColumnOid());
     }
   }
-
 };
 
 }  // namespace terrier::parser
