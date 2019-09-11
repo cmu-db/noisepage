@@ -90,6 +90,9 @@ class LogSerializerTask : public common::DedicatedThreadTask {
   // Commit callbacks for commit records currently in filled_buffer
   std::vector<std::pair<transaction::callback_fn, void *>> commits_in_buffer_;
 
+  // Used by the serializer thread to store buffers it has grabbed from the log manager
+  std::queue<RecordBufferSegment *> temp_flush_queue_;
+
   // The queue containing empty buffers. Task will dequeue a buffer from this queue when it needs a new buffer
   common::ConcurrentBlockingQueue<BufferedLogWriter *> *empty_buffer_queue_;
   // The queue containing filled buffers. Task should push filled serialized buffers into this queue

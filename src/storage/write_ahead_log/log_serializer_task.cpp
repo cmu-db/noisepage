@@ -24,21 +24,21 @@ void LogSerializerTask::Process() {
   // We continually grab all the buffers until we find there are no new buffers. This way we serialize buffers that came
   // in during the previous serialization
   while (true) {
-    std::queue<RecordBufferSegment *> temp_flush_queue;
     // In a short critical section, get all buffers to serialize. We move them to a temp queue to reduce contention on
     // the queue transactions interact with
     {
       common::SpinLatch::ScopedSpinLatch queue_guard(&flush_queue_latch_);
-      temp_flush_queue = std::move(flush_queue_);
+
+      // If there are no new buffers, we can break, and let the task loop handle the pausing logic
+      if (flush_queue_.empty()) break;
+
+      temp_flush_queue_ = std::move(flush_queue_);
       flush_queue_ = std::queue<RecordBufferSegment *>();
     }
 
-    // If there are no new buffers, we can break, and let the task loop handle the pausing logic
-    if (temp_flush_queue.empty()) break;
-
-    while (!temp_flush_queue.empty()) {
-      RecordBufferSegment *buffer = temp_flush_queue.front();
-      temp_flush_queue.pop();
+    while (!temp_flush_queue_.empty()) {
+      RecordBufferSegment *buffer = temp_flush_queue_.front();
+      temp_flush_queue_.pop();
 
       // Serialize the Redo buffer and release it to the buffer pool
       IterableBufferSegment<LogRecord> task_buffer(buffer);
