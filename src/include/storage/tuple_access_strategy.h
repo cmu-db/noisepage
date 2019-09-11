@@ -261,8 +261,9 @@ class TupleAccessStrategy {
    * @return true if the set operation succeeded, false if the block is already idle
    */
   bool ClearBlockBusyStatus(RawBlock *block) const {
-    uint32_t old_val = SetBit(block->insert_head_.load());
-    return block->insert_head_.compare_exchange_strong(old_val, ClearBit(old_val));
+    uint32_t val = block->insert_head_.load();
+    TERRIER_ASSERT(val == SetBit(val), "The busy bit should be set ");
+    return block->insert_head_.compare_exchange_strong(val, ClearBit(val));
   }
 
   /**
