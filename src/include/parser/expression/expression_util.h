@@ -23,8 +23,8 @@ class ExpressionUtil {
   /**
    * Populate the given set with all of the column oids referenced
    * in this expression tree.
-   * @param col_oids
-   * @param expr
+   * @param col_oids set of column oids in the expression
+   * @param expr to extract column oids from
    */
   static void GetColumnOids(std::set<catalog::col_oid_t> *col_oids, common::ManagedPointer<AbstractExpression> expr) {
     // Recurse into our children
@@ -42,4 +42,4 @@ class ExpressionUtil {
   }
 };
 
-}  // namespace terrier::parser
+}  // namespace terrier::parser::expression
