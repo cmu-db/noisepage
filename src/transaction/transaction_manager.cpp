@@ -73,7 +73,7 @@ timestamp_t TransactionManager::Commit(TransactionContext *const txn, transactio
   // committed. This will allow us to correctly order and execute transactions during recovery.
   timestamp_t oldest_active_txn = INVALID_TXN_TIMESTAMP;
   if (log_manager_ != DISABLED && !txn->IsReadOnly()) {
-    oldest_active_txn = timestamp_manager_->OldestTransactionStartTime();
+    oldest_active_txn = timestamp_manager_->CachedOldestTransactionStartTime();
   }
   LogCommit(txn, result, callback, callback_arg, oldest_active_txn);
 

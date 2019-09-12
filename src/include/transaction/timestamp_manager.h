@@ -4,7 +4,6 @@
 #include "common/spin_latch.h"
 #include "common/strong_typedef.h"
 #include "transaction/transaction_defs.h"
-#include "loggers/transaction_logger.h"
 
 namespace terrier::storage {
 // Forward declaration
@@ -36,6 +35,14 @@ class TimestampManager {
    */
   timestamp_t OldestTransactionStartTime();
 
+  /**
+   * Get the cached timestamp of the oldest active txn. The cached timestamp is only refreshed upon every invocation of
+   * OldestTransactionStartTime, so it may be stale. On the other hand, this function does not require taking a latch or
+   * iterating through the running txns set, making it much cheaper than OldestTransactionStartTime
+   * @return timestamp that is older than any transactions alive
+   */
+  timestamp_t CachedOldestTransactionStartTime();
+
  private:
   friend class TransactionManager;
   friend class storage::LogSerializerTask;
@@ -65,8 +72,11 @@ class TimestampManager {
   // TODO(Tianyu): We don't handle timestamp wrap-arounds. I doubt this would be an issue any time soon.
   std::atomic<timestamp_t> time_{INITIAL_TXN_TIMESTAMP};
   // We cache the oldest txn start time
-  timestamp_t oldest_txn_start_time_{INVALID_TXN_TIMESTAMP};
+  std::atomic<timestamp_t> cached_oldest_txn_start_time_{INITIAL_TXN_TIMESTAMP};
   // TODO(Matt): consider a different data structure if this becomes a measured bottleneck
+  // TODO(Gus): This data structure initially only held items in the order of # of workers. With the logging change, it
+  // can hold many more, since txns are only removed when serialized. We should consider if there is a possible better
+  // data structure
   std::unordered_set<timestamp_t> curr_running_txns_;
   mutable common::SpinLatch curr_running_txns_latch_;
 };
