@@ -22,7 +22,7 @@ void LogSerializerTask::LogSerializerTaskLoop() {
 }
 
 bool LogSerializerTask::Process() {
-  common::SpinLatch::ScopedSpinLatch serilizaton_guard(&serialization_latch_);
+  common::SpinLatch::ScopedSpinLatch serialization_guard(&serialization_latch_);
   // We continually grab all the buffers until we find there are no new buffers. This way we serialize buffers that came
   // in during the previous serialization
   bool buffers_processed = false;
