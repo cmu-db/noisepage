@@ -8,21 +8,24 @@
 namespace terrier::storage {
 
 void LogSerializerTask::LogSerializerTaskLoop() {
+  auto curr_sleep = serialization_interval_;
   do {
     // Serializing is now on the "critical path" because txns wait to commit until their logs are serialized. Thus, a
-    // sleep is not fast enough.
-    _mm_pause();
-    Process();
+    // sleep is not fast enough. We perform exponential back-off, doubling the sleep duration if we don't process any
+    // buffers in our call to Process
+    std::this_thread::sleep_for(curr_sleep);
+    curr_sleep = Process() ? serialization_interval_ : curr_sleep * 2;
   } while (run_task_);
   // To be extra sure we processed everything
   Process();
   TERRIER_ASSERT(flush_queue_.empty(), "Termination of LogSerializerTask should hand off all buffers to consumers");
 }
 
-void LogSerializerTask::Process() {
+bool LogSerializerTask::Process() {
   common::SpinLatch::ScopedSpinLatch serilizaton_guard(&serialization_latch_);
   // We continually grab all the buffers until we find there are no new buffers. This way we serialize buffers that came
   // in during the previous serialization
+  bool buffers_processed = false;
   while (true) {
     // In a short critical section, get all buffers to serialize. We move them to a temp queue to reduce contention on
     // the queue transactions interact with
@@ -45,10 +48,14 @@ void LogSerializerTask::Process() {
       SerializeBuffer(&task_buffer);
       buffer_pool_->Release(buffer);
     }
+
+    buffers_processed = true;
   }
 
   // Mark the last buffer that was written to as full
   if (filled_buffer_ != nullptr) HandFilledBufferToWriter();
+
+  return buffers_processed;
 }
 
 /**

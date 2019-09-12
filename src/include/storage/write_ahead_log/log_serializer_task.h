@@ -23,7 +23,7 @@ class LogSerializerTask : public common::DedicatedThreadTask {
    * @param filled_buffer_queue pointer to queue to push filled buffers to
    * @param disk_log_writer_thread_cv pointer to condition variable to notify consumer when a new buffer has handed over
    */
-  explicit LogSerializerTask(const std::chrono::milliseconds serialization_interval,
+  explicit LogSerializerTask(const std::chrono::microseconds serialization_interval,
                              RecordBufferSegmentPool *buffer_pool,
                              common::ConcurrentBlockingQueue<BufferedLogWriter *> *empty_buffer_queue,
                              common::ConcurrentQueue<storage::SerializedLogs> *filled_buffer_queue,
@@ -68,8 +68,7 @@ class LogSerializerTask : public common::DedicatedThreadTask {
   // Flag to signal task to run or stop
   bool run_task_;
   // Interval for serialization
-  // TODO(Gus): remove if _mm_pause stays
-  const std::chrono::milliseconds serialization_interval_;
+  const std::chrono::microseconds serialization_interval_;
 
   // Used to release processed buffers
   RecordBufferSegmentPool *buffer_pool_;
@@ -111,8 +110,9 @@ class LogSerializerTask : public common::DedicatedThreadTask {
    * Process all the accumulated log records and serialize them to log consumer tasks. It's important that we serialize
    * the logs in order to ensure that a single transaction's logs are ordered. Only a single thread can serialize the
    * logs (without more sophisticated ordering checks).
+   * @return true if we processed new buffers, false otherwise
    */
-  void Process();
+  bool Process();
 
   /**
    * Serialize out the task buffer to the current serialization buffer

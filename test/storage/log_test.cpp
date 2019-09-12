@@ -43,9 +43,9 @@ class WriteAheadLoggingTests : public TerrierTest {
             .to(std::chrono::milliseconds(10)),
         di::bind<std::string>().named(storage::LogManager::LOG_FILE_PATH).to(std::string(LOG_FILE_NAME)),
         di::bind<uint64_t>().named(storage::LogManager::NUM_BUFFERS).to(static_cast<uint64_t>(100)),
-        di::bind<std::chrono::milliseconds>()
+        di::bind<std::chrono::microseconds>()
             .named(storage::LogManager::SERIALIZATION_INTERVAL)
-            .to(std::chrono::milliseconds(10)),
+            .to(std::chrono::microseconds(10)),
         di::bind<std::chrono::milliseconds>()
             .named(storage::LogManager::PERSIST_INTERVAL)
             .to(std::chrono::milliseconds(20)),
