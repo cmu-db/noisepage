@@ -4,6 +4,7 @@
 #include "common/spin_latch.h"
 #include "common/strong_typedef.h"
 #include "transaction/transaction_defs.h"
+#include "loggers/transaction_logger.h"
 
 namespace terrier::storage {
 // Forward declaration
@@ -33,23 +34,7 @@ class TimestampManager {
    * it is guaranteed that the return timestamp is older than any transactions live.
    * @return timestamp that is older than any transactions alive
    */
-  timestamp_t OldestTransactionStartTime() {
-    common::SpinLatch::ScopedSpinLatch guard(&curr_running_txns_latch_);
-
-    // If we have the oldest start time cached, we return it
-    if (oldest_txn_start_time_ != INVALID_TXN_TIMESTAMP) return oldest_txn_start_time_;
-
-    const auto &oldest_txn = std::min_element(curr_running_txns_.cbegin(), curr_running_txns_.cend());
-    timestamp_t result;
-    if (oldest_txn != curr_running_txns_.end()) {
-      result = *oldest_txn;
-      // Only cache if there actually is an active txn
-      oldest_txn_start_time_ = result;
-    } else {
-      result = time_.load();
-    }
-    return result;
-  }
+  timestamp_t OldestTransactionStartTime();
 
  private:
   friend class TransactionManager;
@@ -74,14 +59,7 @@ class TimestampManager {
     return start_time;
   }
 
-  void RemoveTransaction(timestamp_t timestamp) {
-    common::SpinLatch::ScopedSpinLatch guard(&curr_running_txns_latch_);
-    const size_t ret UNUSED_ATTRIBUTE = curr_running_txns_.erase(timestamp);
-    TERRIER_ASSERT(ret == 1, "erased timestamp did not exist");
-
-    // If we are removing the cached oldest active txn, we invalidate the cached timestamp
-    if (timestamp == oldest_txn_start_time_) oldest_txn_start_time_ = INVALID_TXN_TIMESTAMP;
-  }
+  void RemoveTransaction(timestamp_t timestamp);
 
   // TODO(Tianyu): Timestamp generation needs to be more efficient (batches)
   // TODO(Tianyu): We don't handle timestamp wrap-arounds. I doubt this would be an issue any time soon.
