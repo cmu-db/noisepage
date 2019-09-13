@@ -1,6 +1,7 @@
 #pragma once
 
 #include <queue>
+#include <unordered_map>
 #include <utility>
 #include <vector>
 #include "common/container/concurrent_blocking_queue.h"
@@ -91,6 +92,11 @@ class LogSerializerTask : public common::DedicatedThreadTask {
 
   // Used by the serializer thread to store buffers it has grabbed from the log manager
   std::queue<RecordBufferSegment *> temp_flush_queue_;
+
+  // We aggregate all transactions we serialize so we can bulk remove the from the timestamp manager
+  // TODO(Gus): If we guarantee there is only one TSManager in the system, this can just be a vector. We could also pass
+  // TS into the serializer instead of having a pointer for it in every commit/abort record
+  std::unordered_map<transaction::TimestampManager *, std::vector<transaction::timestamp_t>> serialized_txns_;
 
   // The queue containing empty buffers. Task will dequeue a buffer from this queue when it needs a new buffer
   common::ConcurrentBlockingQueue<BufferedLogWriter *> *empty_buffer_queue_;

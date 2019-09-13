@@ -26,6 +26,7 @@ bool LogSerializerTask::Process() {
   // We continually grab all the buffers until we find there are no new buffers. This way we serialize buffers that came
   // in during the previous serialization
   bool buffers_processed = false;
+  TERRIER_ASSERT(serialized_txns_.empty(), "Aggregated txn timestamps should have been handed off to TimestampManager");
   while (true) {
     // In a short critical section, get all buffers to serialize. We move them to a temp queue to reduce contention on
     // the queue transactions interact with
@@ -54,6 +55,12 @@ bool LogSerializerTask::Process() {
 
   // Mark the last buffer that was written to as full
   if (filled_buffer_ != nullptr) HandFilledBufferToWriter();
+
+  // Bulk remove all the transactions we serialized
+  for (const auto &txns : serialized_txns_) {
+    txns.first->RemoveTransactions(txns.second);
+  }
+  serialized_txns_.clear();
 
   return buffers_processed;
 }
@@ -95,7 +102,7 @@ void LogSerializerTask::SerializeBuffer(IterableBufferSegment<LogRecord> *buffer
         if (!commit_record->IsReadOnly()) SerializeRecord(record);
         commits_in_buffer_.emplace_back(commit_record->CommitCallback(), commit_record->CommitCallbackArg());
         // Once serialization is done, we notify the txn manager to let GC know this txn is ready to clean up
-        commit_record->TimestampManager()->RemoveTransaction(record.TxnBegin());
+        serialized_txns_[commit_record->TimestampManager()].push_back(record.TxnBegin());
         break;
       }
 
@@ -103,7 +110,7 @@ void LogSerializerTask::SerializeBuffer(IterableBufferSegment<LogRecord> *buffer
         // If an abort record shows up at all, the transaction cannot be read-only
         SerializeRecord(record);
         auto *abord_record = record.GetUnderlyingRecordBodyAs<AbortRecord>();
-        abord_record->TimestampManager()->RemoveTransaction(record.TxnBegin());
+        serialized_txns_[abord_record->TimestampManager()].push_back(record.TxnBegin());
         break;
       }
 
