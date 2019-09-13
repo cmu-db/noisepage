@@ -73,6 +73,9 @@ timestamp_t TransactionManager::Commit(TransactionContext *const txn, transactio
   // committed. This will allow us to correctly order and execute transactions during recovery.
   timestamp_t oldest_active_txn = INVALID_TXN_TIMESTAMP;
   if (log_manager_ != DISABLED && !txn->IsReadOnly()) {
+    // TODO(Gus): Getting the cached timestamp may cause replication delays, as the cached timestamp is a stale value,
+    // so transactions may wait for longer than they need to. We should analyze the impact of this when replication is
+    // added.
     oldest_active_txn = timestamp_manager_->CachedOldestTransactionStartTime();
   }
   LogCommit(txn, result, callback, callback_arg, oldest_active_txn);
