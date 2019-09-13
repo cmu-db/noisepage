@@ -50,11 +50,16 @@ class DeferredActionManager {
    * @return numbers of deferred actions processed
    */
   uint32_t Process() {
-    uint32_t processed = 0;
     // Check out a timestamp from the transaction manager to determine the progress of
     // running transactions in the system.
     timestamp_t oldest_txn = timestamp_manager_->OldestTransactionStartTime();
-    processed += ClearBacklog(oldest_txn);
+    uint32_t backlog_size = back_log_.size();
+    uint32_t processed = ClearBacklog(oldest_txn);
+    // There is no point in draining new actions if we haven't cleared the backlog.
+    // This leaves some mechanisms for the rest of the system to detect congestion
+    // at the deferred action manager and potentially backoff
+    if (backlog_size != processed) return processed;
+    // Otherwise, ingest all the new actions
     processed += ProcessNewActions(oldest_txn);
     return processed;
   }
