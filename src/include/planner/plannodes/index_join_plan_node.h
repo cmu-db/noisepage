@@ -51,7 +51,7 @@ class IndexJoinPlanNode : public AbstractJoinPlanNode {
      * TODO(Amadou): Ideally, these expressions should come from the catalog.
      * But the optimizer may change the expression, so perhaps this is the right place
      */
-    Builder &AddIndexColum(IndexExpression expr) {
+    Builder &AddIndexColum(const IndexExpression &expr) {
       index_cols_.emplace_back(expr);
       return *this;
     }

@@ -1081,6 +1081,10 @@ void LLVMEngine::CompiledModule::Load(const BytecodeModule &module) {
 
   for (const auto &func : module.Functions()) {
     auto symbol = loader.getSymbol(func.Name());
+    if (symbol.getAddress() == 0) {
+      // Needed for mac
+      symbol = loader.getSymbol('_' + func.Name());
+    }
     functions_[func.Name()] = reinterpret_cast<void *>(symbol.getAddress());
   }
 
