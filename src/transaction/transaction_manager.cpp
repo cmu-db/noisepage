@@ -82,13 +82,12 @@ timestamp_t TransactionManager::Commit(TransactionContext *const txn, transactio
 
   // We hand off txn to GC, however, it won't be GC'd until the LogManager marks it as serialized
   if (gc_enabled_) {
-    common::SpinLatch::ScopedSpinLatch guard(&completed_txns_latch_);
+    common::SpinLatch::ScopedSpinLatch guard(&timestamp_manager_->curr_running_txns_latch_);
     // It is not necessary to have to GC process read-only transactions, but it's probably faster to call free off
     // the critical path there anyway
     // Also note here that GC will figure out what varlen entries to GC, as opposed to in the abort case.
     completed_txns_.push_front(txn);
   }
-
   return result;
 }
 
@@ -153,7 +152,7 @@ timestamp_t TransactionManager::Abort(TransactionContext *const txn) {
 
   // We hand off txn to GC, however, it won't be GC'd until the LogManager marks it as serialized
   if (gc_enabled_) {
-    common::SpinLatch::ScopedSpinLatch guard(&completed_txns_latch_);
+    common::SpinLatch::ScopedSpinLatch guard(&timestamp_manager_->curr_running_txns_latch_);
     // It is not necessary to have to GC process read-only transactions, but it's probably faster to call free off
     // the critical path there anyway
     // Also note here that GC will figure out what varlen entries to GC, as opposed to in the abort case.
@@ -198,7 +197,7 @@ void TransactionManager::GCLastUpdateOnAbort(TransactionContext *const txn) {
 }
 
 TransactionQueue TransactionManager::CompletedTransactionsForGC() {
-  common::SpinLatch::ScopedSpinLatch guard(&completed_txns_latch_);
+  common::SpinLatch::ScopedSpinLatch guard(&timestamp_manager_->curr_running_txns_latch_);
   return std::move(completed_txns_);
 }
 
