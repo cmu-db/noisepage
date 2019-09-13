@@ -86,7 +86,6 @@ class TransactionManager {
 
   bool gc_enabled_ = false;
   TransactionQueue completed_txns_;
-  common::SpinLatch completed_txns_latch_;
   storage::LogManager *const log_manager_;
 
   timestamp_t ReadOnlyCommitCriticalSection(TransactionContext *txn, transaction::callback_fn callback,
