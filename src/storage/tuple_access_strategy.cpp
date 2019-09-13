@@ -43,21 +43,19 @@ void TupleAccessStrategy::InitializeRawBlock(storage::DataTable *const data_tabl
 
 bool TupleAccessStrategy::Allocate(RawBlock *const block, TupleSlot *const slot) const {
   common::RawConcurrentBitmap *bitmap = reinterpret_cast<Block *>(block)->SlotAllocationBitmap(layout_);
-  const uint32_t start = block->insert_head_;
+  const uint32_t start = block->GetInsertHead();
 
   // We are not allowed to insert into this block any more
   if (start == layout_.NumSlots()) return false;
 
   uint32_t pos = start;
-
-  while (bitmap->FirstUnsetPos(layout_.NumSlots(), pos, &pos)) {
-    if (bitmap->Flip(pos, false)) {
-      *slot = TupleSlot(block, pos);
-      block->insert_head_++;
-      return true;
-    }
-  }
-
-  return false;
+  // We do not support concurrent insertion to the same block anymore
+  // Assumption: Different threads cannot insert into the same block at the same time
+  // If the block is not full, the function should always succeed (Flip should always return true)
+  bool UNUSED_ATTRIBUTE flip_res = bitmap->Flip(pos, false);
+  TERRIER_ASSERT(flip_res, "Flip should always succeed");
+  *slot = TupleSlot(block, pos);
+  block->insert_head_++;
+  return true;
 }
 }  // namespace terrier::storage
