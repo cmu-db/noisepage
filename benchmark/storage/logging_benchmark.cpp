@@ -232,12 +232,12 @@ BENCHMARK_REGISTER_F(LoggingBenchmark, HighAbortRate)->Unit(benchmark::kMillisec
 BENCHMARK_REGISTER_F(LoggingBenchmark, SingleStatementInsert)
     ->Unit(benchmark::kMillisecond)
     ->UseManualTime()
-    ->MinTime(2);
+    ->MinTime(3);
 
 BENCHMARK_REGISTER_F(LoggingBenchmark, SingleStatementUpdate)
     ->Unit(benchmark::kMillisecond)
     ->UseManualTime()
-    ->MinTime(1);
+    ->MinTime(3);
 
 BENCHMARK_REGISTER_F(LoggingBenchmark, SingleStatementSelect)
     ->Unit(benchmark::kMillisecond)
