@@ -10,7 +10,7 @@ namespace terrier::execution::sql {
 /**
  * Utility class to handle various arithmetic SQL functions.
  */
-class ArithmeticFunctions {
+class EXPORT ArithmeticFunctions {
  public:
   // Delete to force only static functions
   ArithmeticFunctions() = delete;

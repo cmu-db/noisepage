@@ -74,7 +74,7 @@ class LLVMEngine::TPLMemoryManager : public llvm::SectionMemoryManager {
     EXECUTION_LOG_INFO("Symbol '{}' not found in cache, checking process ...", name);
 
     llvm::JITSymbol symbol = llvm::SectionMemoryManager::findSymbol(name);
-    TERRIER_ASSERT(symbol.getAddress(), "Resolved symbol has no address!");
+    TERRIER_ASSERT(symbol.getAddress().get() != 0, "Resolved symbol has no address!");
     symbols_[name] = {symbol.getAddress().get(), symbol.getFlags()};
     return symbol;
   }

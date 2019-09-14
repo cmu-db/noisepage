@@ -14,7 +14,7 @@ class ThreadStateContainer;
  * An iterator over a table's data in vector-wise fashion.
  * TODO(Amadou): Add a Reset() method to avoid reconstructing the object in NL joins.
  */
-class TableVectorIterator {
+class EXPORT TableVectorIterator {
  public:
   /**
    * Minimum block range

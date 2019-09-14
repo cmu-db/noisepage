@@ -11,7 +11,7 @@ class JoinHashTable;
 /**
  * Helper class to perform vectorized lookups into a JoinHashTable
  */
-class JoinHashTableVectorProbe {
+class EXPORT JoinHashTableVectorProbe {
  public:
   /**
    * Function to hash the tuple the iterator is currently pointing at.

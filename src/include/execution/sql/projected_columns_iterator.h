@@ -18,7 +18,7 @@ namespace terrier::execution::sql {
  * over a projection multiples times and ensure processing always only
  * on filtered items.
  */
-class ProjectedColumnsIterator {
+class EXPORT ProjectedColumnsIterator {
   static constexpr const uint32_t K_INVALID_POS = std::numeric_limits<uint32_t>::max();
 
  public:

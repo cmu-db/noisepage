@@ -23,7 +23,7 @@ include(CheckCXXCompilerFlag)
 
 # compiler flags that are common across debug/release builds
 set(CXX_COMMON_FLAGS "-Wall -Werror -Wno-c++98-compat -Wno-c++98-compat-pedantic")
-set(CXX_ONLY_FLAGS "-std=c++17 -fPIC -mcx16 -march=native")
+set(CXX_ONLY_FLAGS "-std=c++17 -fPIC -mcx16 -march=native -fvisibility=hidden")
 
 # if no build build type is specified, default to debug builds
 if (NOT CMAKE_BUILD_TYPE)

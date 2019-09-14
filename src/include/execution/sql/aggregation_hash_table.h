@@ -21,7 +21,7 @@ class AggregationOverflowPartitionIterator;
 /**
  * The hash table used when performing aggregations
  */
-class AggregationHashTable {
+class EXPORT AggregationHashTable {
  public:
   /**
    * Default load factor

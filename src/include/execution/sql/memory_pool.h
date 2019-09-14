@@ -15,7 +15,7 @@ class MemoryTracker;
 /**
  * A memory pool
  */
-class MemoryPool {
+class EXPORT MemoryPool {
  public:
   /**
    * Create a pool that reports to the given memory tracker @em tracker.

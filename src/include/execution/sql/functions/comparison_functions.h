@@ -9,7 +9,7 @@ namespace terrier::execution::sql {
 /**
  * Comparison functions for SQL values.
  */
-class ComparisonFunctions {
+class EXPORT ComparisonFunctions {
  public:
   // Delete to force only static functions
   ComparisonFunctions() = delete;

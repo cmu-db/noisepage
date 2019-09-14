@@ -7,7 +7,7 @@ namespace terrier::execution::sql {
 /**
  * Utility class to check NULL-ness of SQL values.
  */
-class IsNullPredicate {
+class EXPORT IsNullPredicate {
  public:
   /**
    * Delete to force only static functions

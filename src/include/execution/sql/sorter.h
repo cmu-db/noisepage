@@ -13,7 +13,7 @@ class ThreadStateContainer;
 /**
  * Sorters
  */
-class Sorter {
+class EXPORT Sorter {
  public:
   /**
    * The interface of the comparison function used to sort tuples
@@ -131,7 +131,7 @@ class Sorter {
 /**
  * An iterator over the elements in a sorter instance
  */
-class SorterIterator {
+class EXPORT SorterIterator {
   /**
    * Type of the iterator
    */

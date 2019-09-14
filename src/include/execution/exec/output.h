@@ -23,7 +23,7 @@ using OutputCallback = std::function<void(byte *, uint32_t, uint32_t)>;
 /**
  * A class that buffers the output and makes a callback for every batch.
  */
-class OutputBuffer {
+class EXPORT OutputBuffer {
  public:
   /**
    * Batch size

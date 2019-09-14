@@ -29,7 +29,7 @@ class JoinHashTableIterator;
  * @em AllocInputTuple() and frozen after calling @em Build(). Thus, they're
  * write-once read-many (WORM) structures.
  */
-class JoinHashTable {
+class EXPORT JoinHashTable {
  public:
   /**
    * Default HLL precision
@@ -217,7 +217,7 @@ class JoinHashTable {
  * The iterator used for generic lookups. This class is used mostly for
  * tuple-at-a-time lookups from the hash table.
  */
-class JoinHashTableIterator {
+class EXPORT JoinHashTableIterator {
  public:
   /**
    * Construct an iterator beginning at the entry @em initial of the chain

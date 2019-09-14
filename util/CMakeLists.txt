@@ -61,7 +61,6 @@ function(tpl_compile_to_ir SRC_FILE)
             DEPENDS ${SRC_FILE})
     add_custom_target(${BASE_NAME}_bc ALL DEPENDS ${OUTPUT_FILE} ${TERRIER_SRCS} ${UTIL_SRCS})
     add_dependencies(${BASE_NAME}_bc util_static)
-    add_dependencies(gen_opt_bc ${BASE_NAME}_bc)
 endfunction(tpl_compile_to_ir)
 
 # Build the "gen_opt_bc" executable. This is dependent on all cross-compiled bitcode
@@ -82,6 +81,7 @@ set(tpl_main "execution/tpl.cpp")
 add_executable(tpl ${tpl_main})
 set_target_properties(tpl PROPERTIES ENABLE_EXPORTS 1)
 add_dependencies(tpl gen_opt_bc)
+add_dependencies(tpl bytecode_handlers_ir_bc)
 target_link_libraries(tpl util_static)
 
 ##################################################
@@ -93,6 +93,14 @@ target_link_libraries(tpl util_static)
 
 add_custom_command(
         TARGET tpl
+        POST_BUILD
+        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+        COMMENT "Generating Optimized Bitcode ..."
+        COMMAND gen_opt_bc bytecode_handlers_ir.bc bytecode_handlers_opt.bc
+        COMMAND mv bytecode_handlers_opt.bc bytecode_handlers_ir.bc)
+
+add_custom_command(
+        TARGET bytecode_handlers_ir_bc
         POST_BUILD
         WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
         COMMENT "Generating Optimized Bitcode ..."

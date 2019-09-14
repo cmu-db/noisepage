@@ -16,7 +16,7 @@ class ProjectedColumnsIterator;
  * An adaptive filter manager that tries to discover the optimal filter
  * configuration.
  */
-class FilterManager {
+class EXPORT FilterManager {
  public:
   /**
    * A generic filtering function over an input projection. Returns the
