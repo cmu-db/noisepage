@@ -77,7 +77,7 @@ class NetworkIoWrapper {
    * @return The next transition for this client's state machine
    */
   Transition Close() {
-    terrier_close(sock_fd_);
+    TerrierClose(sock_fd_);
     return Transition::PROCEED;
   }
 

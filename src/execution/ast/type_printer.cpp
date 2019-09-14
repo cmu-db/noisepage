@@ -26,64 +26,64 @@ class TypePrinter : public TypeVisitor<TypePrinter> {
   void Print(const Type *type) { Visit(type); }
 
  private:
-  llvm::raw_ostream &os() { return out_; }
+  llvm::raw_ostream &Os() { return out_; }
 
  private:
   llvm::raw_ostream &out_;
 };
 
-void execution::ast::TypePrinter::VisitBuiltinType(const BuiltinType *type) { os() << type->tpl_name(); }
+void execution::ast::TypePrinter::VisitBuiltinType(const BuiltinType *type) { Os() << type->TplName(); }
 
 void TypePrinter::VisitFunctionType(const FunctionType *type) {
-  os() << "(";
+  Os() << "(";
   bool first = true;
-  for (const auto &param : type->params()) {
+  for (const auto &param : type->Params()) {
     if (!first) {
-      os() << ",";
+      Os() << ",";
     }
     first = false;
-    Visit(param.type);
+    Visit(param.type_);
   }
-  os() << ")->";
-  Visit(type->return_type());
+  Os() << ")->";
+  Visit(type->ReturnType());
 }
 
-void TypePrinter::VisitStringType(const StringType *type) { os() << "string"; }
+void TypePrinter::VisitStringType(const StringType *type) { Os() << "string"; }
 
 void TypePrinter::VisitPointerType(const PointerType *type) {
-  os() << "*";
-  Visit(type->base());
+  Os() << "*";
+  Visit(type->Base());
 }
 
 void TypePrinter::VisitStructType(const StructType *type) {
-  os() << "struct{";
+  Os() << "struct{";
   bool first = true;
-  for (const auto &field : type->fields()) {
+  for (const auto &field : type->Fields()) {
     if (!first) {
-      os() << ",";
+      Os() << ",";
     }
     first = false;
-    Visit(field.type);
+    Visit(field.type_);
   }
-  os() << "}";
+  Os() << "}";
 }
 
 void TypePrinter::VisitArrayType(const ArrayType *type) {
-  os() << "[";
+  Os() << "[";
   if (type->HasUnknownLength()) {
-    os() << "*";
+    Os() << "*";
   } else {
-    os() << type->length();
+    Os() << type->Length();
   }
-  os() << "]";
-  Visit(type->element_type());
+  Os() << "]";
+  Visit(type->ElementType());
 }
 
 void execution::ast::TypePrinter::VisitMapType(const MapType *type) {
-  os() << "map[";
-  Visit(type->key_type());
-  os() << "]";
-  Visit(type->value_type());
+  Os() << "map[";
+  Visit(type->KeyType());
+  Os() << "]";
+  Visit(type->ValueType());
 }
 
 }  // namespace

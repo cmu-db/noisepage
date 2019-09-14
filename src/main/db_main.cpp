@@ -38,8 +38,10 @@ DBMain::DBMain(std::unordered_map<settings::Param, settings::ParamInfo> &&param_
       common::ManagedPointer(thread_registry_));
   log_manager_->Start();
 
-  txn_manager_ = new transaction::TransactionManager(buffer_segment_pool_, true, log_manager_);
-  gc_thread_ = new storage::GarbageCollectorThread(txn_manager_,
+  timestamp_manager_ = new transaction::TimestampManager;
+  txn_manager_ = new transaction::TransactionManager(timestamp_manager_, DISABLED, buffer_segment_pool_, true, nullptr);
+  garbage_collector_ = new storage::GarbageCollector(timestamp_manager_, DISABLED, txn_manager_, DISABLED);
+  gc_thread_ = new storage::GarbageCollectorThread(garbage_collector_,
                                                    std::chrono::milliseconds{type::TransientValuePeeker::PeekInteger(
                                                        param_map_.find(settings::Param::gc_interval)->second.value_)});
 
@@ -60,7 +62,7 @@ DBMain::DBMain(std::unordered_map<settings::Param, settings::ParamInfo> &&param_
 }
 
 void DBMain::Run() {
-  running = true;
+  running_ = true;
   server_->SetPort(static_cast<int16_t>(
       type::TransientValuePeeker::PeekInteger(param_map_.find(settings::Param::port)->second.value_)));
   server_->RunServer();
@@ -75,7 +77,7 @@ void DBMain::Run() {
 }
 
 void DBMain::ForceShutdown() {
-  if (running) {
+  if (running_) {
     server_->StopServer();
   }
   CleanUp();

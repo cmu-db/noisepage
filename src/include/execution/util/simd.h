@@ -13,11 +13,11 @@ struct Bitwidth {
    */
   static constexpr const uint32_t
 #if defined(__AVX512F__)
-      value = 512;
+      VALUE = 512;
 #elif defined(__AVX2__)
-      value = 256;
+      VALUE = 256;
 #else
-      value = 256;
+      VALUE = 256;
 #endif
 };
 
@@ -30,7 +30,7 @@ struct Lane {
   /**
    * Number of elements in the SIMD lane.
    */
-  static constexpr const uint32_t count = Bitwidth::value / (sizeof(T) * 8);
+  static constexpr const uint32_t COUNT = Bitwidth::VALUE / (sizeof(T) * 8);
 };
 
 }  // namespace terrier::execution::util::simd

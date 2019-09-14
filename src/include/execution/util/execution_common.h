@@ -2,10 +2,15 @@
 
 #include <cstddef>
 #include <cstdint>
+#include "llvm/Support/ErrorHandling.h"
+#define EXPORT __attribute__((visibility("default")))
 
-/**
- * Type shorthands
- */
+//===--------------------------------------------------------------------===//
+// branch predictor hints
+//===--------------------------------------------------------------------===//
+
+#define LIKELY(x) LLVM_LIKELY(x)
+#define UNLIKELY(x) LLVM_UNLIKELY(x)
 
 /**
  * Macros to apply functions on all types
@@ -34,6 +39,11 @@
   INT_TYPES(F, __VA_ARGS__) \
   FOR_EACH_FLOAT_TYPE(F, __VA_ARGS__)
 
+//===----------------------------------------------------------------------===//
+// Indicate that a statement should not be reached
+//===----------------------------------------------------------------------===//
+#define UNREACHABLE(msg) llvm_unreachable(msg)
+
 namespace terrier::execution {
 /**
  * A compact structure used during parsing to capture and describe the position in the source as 1-based line and column
@@ -43,11 +53,11 @@ struct SourcePosition {
   /**
    * Line number
    */
-  uint64_t line;
+  uint64_t line_;
   /**
    * Column number
    */
-  uint64_t column;
+  uint64_t column_;
 };
 
 /**

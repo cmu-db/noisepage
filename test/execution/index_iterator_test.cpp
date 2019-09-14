@@ -39,7 +39,7 @@ TEST_F(IndexIteratorTest, SimpleIndexIteratorTest) {
                            static_cast<uint32_t>(col_oids.size())};
   table_iter.Init();
   index_iter.Init();
-  ProjectedColumnsIterator *pci = table_iter.projected_columns_iterator();
+  ProjectedColumnsIterator *pci = table_iter.GetProjectedColumnsIterator();
 
   // Iterate through the table.
   while (table_iter.Advance()) {

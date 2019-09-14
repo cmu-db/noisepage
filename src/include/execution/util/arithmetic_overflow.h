@@ -14,11 +14,11 @@ class ArithmeticOverflow {
   /**
    * Minimum int128_t value
    */
-  static constexpr int128_t kMinInt128 = std::numeric_limits<int128_t>::min();
+  static constexpr int128_t K_MIN_INT128 = std::numeric_limits<int128_t>::min();
   /**
    * Maximum int128_t value
    */
-  static constexpr int128_t kMaxInt128 = std::numeric_limits<int128_t>::max();
+  static constexpr int128_t K_MAX_INT128 = std::numeric_limits<int128_t>::max();
 
   // Deleted to force only static functions
   ArithmeticOverflow() = delete;
@@ -77,7 +77,7 @@ class ArithmeticOverflow {
    */
   static bool Add(const int128_t a, const int128_t b, int128_t *res) {
     *res = a + b;
-    return (b > 0 && a > kMaxInt128 - b) || (b < 0 && a < kMinInt128 - b);
+    return (b > 0 && a > K_MAX_INT128 - b) || (b < 0 && a < K_MIN_INT128 - b);
   }
 
   /**
@@ -116,7 +116,7 @@ class ArithmeticOverflow {
    */
   static bool Add(const uint128_t a, const uint128_t b, uint128_t *res) {
     *res = a + b;
-    return (a > kMaxInt128 - b);
+    return (a > K_MAX_INT128 - b);
   }
 
   // -------------------------------------------------------
@@ -172,7 +172,7 @@ class ArithmeticOverflow {
    */
   static bool Sub(const int128_t a, const int128_t b, int128_t *res) {
     *res = a - b;
-    return (b > 0 && a < kMinInt128 + b) || (b < 0 && a > kMaxInt128 + b);
+    return (b > 0 && a < K_MIN_INT128 + b) || (b < 0 && a > K_MAX_INT128 + b);
   }
 
   /**
@@ -211,7 +211,7 @@ class ArithmeticOverflow {
    */
   static bool Sub(const uint128_t a, const uint128_t b, uint128_t *res) {
     *res = a + b;
-    return (a < kMinInt128 + b);
+    return (a < K_MIN_INT128 + b);
   }
 
   // -------------------------------------------------------

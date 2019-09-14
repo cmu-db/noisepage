@@ -183,7 +183,7 @@ class LLVMEngine {
     /**
      * Has this module been loaded into memory and linked?
      */
-    bool is_loaded() const { return loaded_; }
+    bool IsLoaded() const { return loaded_; }
 
    private:
     bool loaded_;

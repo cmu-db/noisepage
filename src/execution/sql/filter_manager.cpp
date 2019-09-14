@@ -20,7 +20,7 @@ namespace {
 std::unique_ptr<bandit::Policy> CreatePolicy(bandit::Policy::Kind policy_kind) {
   switch (policy_kind) {
     case bandit::Policy::Kind::EpsilonGreedy: {
-      return std::make_unique<bandit::EpsilonGreedyPolicy>(bandit::EpsilonGreedyPolicy::kDefaultEpsilon);
+      return std::make_unique<bandit::EpsilonGreedyPolicy>(bandit::EpsilonGreedyPolicy::K_DEFAULT_EPSILON);
     }
     case bandit::Policy::Kind::Greedy: {
       return std::make_unique<bandit::GreedyPolicy>();
@@ -29,7 +29,7 @@ std::unique_ptr<bandit::Policy> CreatePolicy(bandit::Policy::Kind policy_kind) {
       return std::make_unique<bandit::RandomPolicy>();
     }
     case bandit::Policy::Kind::UCB: {
-      return std::make_unique<bandit::UCBPolicy>(bandit::UCBPolicy::kDefaultUCBHyperParam);
+      return std::make_unique<bandit::UCBPolicy>(bandit::UCBPolicy::K_DEFAULT_UCB_HYPER_PARAM);
     }
     case bandit::Policy::Kind::FixedAction: {
       return std::make_unique<bandit::FixedActionPolicy>(0);
@@ -54,7 +54,7 @@ void FilterManager::StartNewClause() {
 void FilterManager::InsertClauseFlavor(const FilterManager::MatchFn flavor) {
   TERRIER_ASSERT(!finalized_, "Cannot modify filter manager after finalization");
   TERRIER_ASSERT(!clauses_.empty(), "Inserting flavor without clause");
-  clauses_.back().flavors.push_back(flavor);
+  clauses_.back().flavors_.push_back(flavor);
 }
 
 void FilterManager::Finalize() {
@@ -69,7 +69,7 @@ void FilterManager::Finalize() {
 
   // Setup the agents, once per clause
   for (uint32_t idx = 0; idx < clauses_.size(); idx++) {
-    agents_.emplace_back(policy_.get(), ClauseAt(idx)->num_flavors());
+    agents_.emplace_back(policy_.get(), ClauseAt(idx)->NumFlavors());
   }
 
   finalized_ = true;
@@ -99,7 +99,7 @@ void FilterManager::RunFilterClause(ProjectedColumnsIterator *const pci, const u
   // Select the apparent optimal flavor of the clause to execute
   bandit::Agent *agent = GetAgentFor(clause_index);
   const uint32_t opt_flavor_idx = agent->NextAction();
-  const auto opt_match_func = ClauseAt(clause_index)->flavors[opt_flavor_idx];
+  const auto opt_match_func = ClauseAt(clause_index)->flavors_[opt_flavor_idx];
 
   // Run the filter
   // NOLINTNEXTLINE
@@ -120,7 +120,7 @@ std::pair<uint32_t, double> FilterManager::RunFilterClauseImpl(ProjectedColumnsI
   timer.Start();
   const uint32_t num_selected = func(pci);
   timer.Stop();
-  return std::make_pair(num_selected, timer.elapsed());
+  return std::make_pair(num_selected, timer.Elapsed());
 }
 
 uint32_t FilterManager::GetOptimalFlavorForClause(const uint32_t clause_index) const {

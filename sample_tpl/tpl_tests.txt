@@ -5,21 +5,20 @@
 ################################################################################
 # TPL tests
 ################################################################################
-
 array.tpl,false,44
 array-iterate.tpl,false,110
 call.tpl,false,70
 compare.tpl,false,1
 deref.tpl,false,404
-fib.tpl,false,832040
+fib.tpl,false,6765
 if.tpl,false,2
 if-2.tpl,false,1
 if-3.tpl,false,100
 if-4.tpl,false,2
 loop.tpl,false,45
-loop2.tpl,false,2195224853
+loop2.tpl,false,1666683333
 loop3.tpl,false,0
-loop4.tpl,false,3407912752
+loop4.tpl,false,166167000
 nil.tpl,false,0
 param.tpl,false,10
 pointer.tpl,false,10
@@ -35,8 +34,12 @@ struct-pointer.tpl,false,440
 test.tpl,false,356405
 while.tpl,false,10
 return-exp.tpl,false,2
-# scope.tpl,false,3 <Add after merging Wan's scoping PR>
-# scope-2.tpl,false,42 <Add after merging Wan's scoping PR>
+types/int_aggregators.tpl,false,0
+types/real_aggregators.tpl,false,0
+types/dates.tpl,false,0
+types/strings.tpl,false,0
+#scope.tpl,false,3 <Add after merging Wan's scoping PR>
+#scope-2.tpl,false,42 <Add after merging Wan's scoping PR>
 
 ################################################################################
 # TPL SQL tests
@@ -45,7 +48,7 @@ return-exp.tpl,false,2
 agg.tpl,true,10
 agg-vec.tpl,true,10
 agg-vec-filter.tpl,true,10
-#join.tpl,true,100786 <Non deterministic>
+join.tpl,true,0
 #parallel-join.tpl,true,0 <Parallel scan not yet supported>
 #parallel-scan.tpl,true,0 <Parallel scan not yet supported>
 scan-table.tpl,true,500
@@ -55,7 +58,7 @@ scan-table-3.tpl,true,9950
 scan-vpi-iter.tpl,true,500
 sort.tpl,true,2000
 vec-filter.tpl,true,3000
-output1.tpl,true,500
+#output1.tpl,true,500 <Relies on output buffer>
 scan-index.tpl,true,1
 scan-index-2.tpl,true,1
-#join-index.tpl,true,894 <Non deterministic>
+join-index.tpl,true,0

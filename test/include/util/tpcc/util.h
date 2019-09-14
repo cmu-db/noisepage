@@ -77,24 +77,24 @@ struct Util {
                        || (A == 8191 && x == 1 && y == 100000),  // OL_I_ID
                    "Invalid inputs to NURand().");
 
-    static const auto C_c_last = RandomWithin<uint32_t>(0, 255, 0, generator);
-    static const auto C_c_id = RandomWithin<uint32_t>(0, 1023, 0, generator);
-    static const auto C_ol_i_id = RandomWithin<uint32_t>(0, 8191, 0, generator);
+    static const auto c_c_last = RandomWithin<uint32_t>(0, 255, 0, generator);
+    static const auto c_c_id = RandomWithin<uint32_t>(0, 1023, 0, generator);
+    static const auto c_ol_i_id = RandomWithin<uint32_t>(0, 8191, 0, generator);
 
-    uint32_t C;
+    uint32_t c;
 
     if (A == 255) {
-      C = C_c_last;
+      c = c_c_last;
     } else if (A == 1023) {
-      C = C_c_id;
+      c = c_c_id;
     } else {
-      C = C_ol_i_id;
+      c = c_ol_i_id;
     }
 
-    const auto rand0A = RandomWithin<uint32_t>(0, A, 0, generator);
+    const auto rand0_a = RandomWithin<uint32_t>(0, A, 0, generator);
     const auto randxy = RandomWithin<uint32_t>(x, y, 0, generator);
 
-    return (((rand0A | randxy) + C) % (y - x + 1)) + x;
+    return (((rand0_a | randxy) + c) % (y - x + 1)) + x;
   }
 
   // 4.3.2.2

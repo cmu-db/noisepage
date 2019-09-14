@@ -70,7 +70,7 @@ class Scope {
   /**
    * @return the parent scope
    */
-  Scope *outer() const { return outer_; }
+  Scope *Outer() const { return outer_; }
 
  private:
   Scope *outer_;

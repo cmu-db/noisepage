@@ -46,18 +46,18 @@ class BitFieldBase {
   /**
    * A bitfield with just the one bit set.
    */
-  static constexpr const S kOne = static_cast<S>(1U);
+  static constexpr const S K_ONE = static_cast<S>(1U);
 
   /**
    * The next available bit position in a bitfield, i.e. if you were creating another field,
    * this is the minimum amount of shift required so that the new field won't overlap with us.
    */
-  static constexpr const S kNextBit = shift + size;
+  static constexpr const S K_NEXT_BIT = shift + size;
 
   /**
    * A mask which is set for only the bits used by this field.
    */
-  static constexpr const S kMask = ((kOne << size) - 1) << shift;
+  static constexpr const S K_MASK = ((K_ONE << size) - 1) << shift;
 
   /**
    * Represent the given value as a bitfield.
@@ -74,9 +74,9 @@ class BitFieldBase {
   ALWAYS_INLINE static constexpr T Decode(S storage) {
     // NOLINTNEXTLINE: bugprone-suspicious-semicolon: seems like a false positive because of constexpr
     if constexpr (std::is_same_v<T, bool>) {
-      return static_cast<T>(storage & kMask);
+      return static_cast<T>(storage & K_MASK);
     }
-    return static_cast<T>((storage & kMask) >> shift);
+    return static_cast<T>((storage & K_MASK) >> shift);
   }
 
   /**
@@ -85,9 +85,11 @@ class BitFieldBase {
    * @param update the new value
    * @return the updated bitfield
    */
-  ALWAYS_INLINE static constexpr S Update(S curr_storage, T update) { return (curr_storage & ~kMask) | Encode(update); }
+  ALWAYS_INLINE static constexpr S Update(S curr_storage, T update) {
+    return (curr_storage & ~K_MASK) | Encode(update);
+  }
 
-  static_assert((kNextBit - 1) / 8 < sizeof(S));
+  static_assert((K_NEXT_BIT - 1) / 8 < sizeof(S));
 };
 
 }  // namespace internal

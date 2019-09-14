@@ -34,7 +34,7 @@ TEST_F(BytecodesTest, OperandCountTest) {
 
 // NOLINTNEXTLINE
 TEST_F(BytecodesTest, OperandSizeTest) {
-  // Non-exhaustive test of operand sizes for various op codes
+  // Non-exhaustive test of operand sizes_ for various op codes
 
   // Imm loads
   EXPECT_EQ(OperandSize::Int, Bytecodes::GetNthOperandSize(Bytecode::AssignImm1, 0));
@@ -59,7 +59,7 @@ TEST_F(BytecodesTest, OperandSizeTest) {
 
 // NOLINTNEXTLINE
 TEST_F(BytecodesTest, OperandOffsetTest) {
-  // Non-exhaustive test of operand sizes for various op codes
+  // Non-exhaustive test of operand sizes_ for various op codes
 
   // Imm loads
   EXPECT_EQ(4u, Bytecodes::GetNthOperandOffset(Bytecode::AssignImm1, 0));

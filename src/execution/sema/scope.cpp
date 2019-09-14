@@ -14,7 +14,7 @@ bool Scope::Declare(ast::Identifier decl_name, ast::Type *type) {
 }
 
 ast::Type *Scope::Lookup(ast::Identifier name) const {
-  for (const Scope *scope = this; scope != nullptr; scope = scope->outer()) {
+  for (const Scope *scope = this; scope != nullptr; scope = scope->Outer()) {
     if (ast::Type *decl_type = scope->LookupLocal(name)) {
       return decl_type;
     }

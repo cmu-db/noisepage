@@ -27,7 +27,7 @@ class GenericKey {
   /**
    * key size in bytes, exposed for hasher and comparators
    */
-  static constexpr size_t key_size_byte = KeySize;
+  static constexpr size_t KEY_SIZE_BYTE = KeySize;
   static_assert(KeySize > 0 && KeySize <= GENERICKEY_MAX_SIZE);  // size must be no greater than 256-bits
 
   /**
@@ -39,7 +39,7 @@ class GenericKey {
     TERRIER_ASSERT(from.NumColumns() == metadata.GetSchema().GetColumns().size(),
                    "ProjectedRow should have the same number of columns at the original key schema.");
     metadata_ = &metadata;
-    std::memset(key_data_, 0, key_size_byte);
+    std::memset(key_data_, 0, KEY_SIZE_BYTE);
 
     if (metadata.MustInlineVarlen()) {
       const auto &key_schema = metadata.GetSchema();
@@ -68,7 +68,7 @@ class GenericKey {
             const auto varlen_size = varlen.Size();
             *reinterpret_cast<uint32_t *const>(to_attr) = varlen_size;
             TERRIER_ASSERT(reinterpret_cast<uintptr_t>(to_attr) + sizeof(uint32_t) + varlen_size <=
-                               reinterpret_cast<uintptr_t>(this) + key_size_byte,
+                               reinterpret_cast<uintptr_t>(this) + KEY_SIZE_BYTE,
                            "ProjectedRow will access out of bounds.");
             std::memcpy(to_attr + sizeof(uint32_t), varlen.Content(), varlen_size);
           }
@@ -76,7 +76,7 @@ class GenericKey {
       }
     } else {
       TERRIER_ASSERT(reinterpret_cast<uintptr_t>(GetProjectedRow()) + from.Size() <=
-                         reinterpret_cast<uintptr_t>(this) + key_size_byte,
+                         reinterpret_cast<uintptr_t>(this) + KEY_SIZE_BYTE,
                      "ProjectedRow will access out of bounds.");
       std::memcpy(GetProjectedRow(), &from, from.Size());
     }
@@ -89,7 +89,7 @@ class GenericKey {
     const auto *pr = reinterpret_cast<const ProjectedRow *>(StorageUtil::AlignedPtr(sizeof(uint64_t), key_data_));
     TERRIER_ASSERT(reinterpret_cast<uintptr_t>(pr) % sizeof(uint64_t) == 0,
                    "ProjectedRow must be aligned to 8 bytes for atomicity guarantees.");
-    TERRIER_ASSERT(reinterpret_cast<uintptr_t>(pr) + pr->Size() <= reinterpret_cast<uintptr_t>(this) + key_size_byte,
+    TERRIER_ASSERT(reinterpret_cast<uintptr_t>(pr) + pr->Size() <= reinterpret_cast<uintptr_t>(this) + KEY_SIZE_BYTE,
                    "ProjectedRow will access out of bounds.");
     return pr;
   }
@@ -197,12 +197,12 @@ class GenericKey {
     auto *pr = reinterpret_cast<ProjectedRow *>(StorageUtil::AlignedPtr(sizeof(uint64_t), key_data_));
     TERRIER_ASSERT(reinterpret_cast<uintptr_t>(pr) % sizeof(uint64_t) == 0,
                    "ProjectedRow must be aligned to 8 bytes for atomicity guarantees.");
-    TERRIER_ASSERT(reinterpret_cast<uintptr_t>(pr) + pr->Size() < reinterpret_cast<uintptr_t>(this) + key_size_byte,
+    TERRIER_ASSERT(reinterpret_cast<uintptr_t>(pr) + pr->Size() < reinterpret_cast<uintptr_t>(this) + KEY_SIZE_BYTE,
                    "ProjectedRow will access out of bounds.");
     return pr;
   }
 
-  byte key_data_[key_size_byte];
+  byte key_data_[KEY_SIZE_BYTE];
   const IndexMetadata *metadata_ = nullptr;
 };
 

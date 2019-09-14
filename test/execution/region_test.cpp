@@ -21,7 +21,7 @@ TEST_F(RegionTest, Simple) {
               reinterpret_cast<uintptr_t>(ptr));
 
     allocated += alloc_size;
-    EXPECT_EQ(allocated, r.allocated());
+    EXPECT_EQ(allocated, r.Allocated());
   }
 }
 

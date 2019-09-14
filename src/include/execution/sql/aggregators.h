@@ -31,7 +31,7 @@ class CountAggregate {
   /**
    * Advance the count based on the NULL-ness of the input value.
    */
-  void Advance(const Val &val) { count_ += static_cast<uint64_t>(!val.is_null); }
+  void Advance(const Val &val) { count_ += static_cast<uint64_t>(!val.is_null_); }
 
   /**
    * Merge this count with the @em that count.
@@ -121,11 +121,11 @@ class IntegerSumAggregate {
    * Advance the aggregate by input value @em val.
    */
   void Advance(const Integer &val) {
-    if (val.is_null) {
+    if (val.is_null_) {
       return;
     }
     null_ = false;
-    sum_ += val.val;
+    sum_ += val.val_;
   }
 
   /**
@@ -152,7 +152,7 @@ class IntegerSumAggregate {
    */
   Integer GetResultSum() const {
     Integer sum(sum_);
-    sum.is_null = null_;
+    sum.is_null_ = null_;
     return sum;
   }
 
@@ -180,11 +180,11 @@ class RealSumAggregate {
    * Advance the aggregate by the input value @em val.
    */
   void Advance(const Real &val) {
-    if (val.is_null) {
+    if (val.is_null_) {
       return;
     }
     null_ = false;
-    sum_ += val.val;
+    sum_ += val.val_;
   }
 
   /**
@@ -211,7 +211,7 @@ class RealSumAggregate {
    */
   Real GetResultSum() const {
     Real sum(sum_);
-    sum.is_null = null_;
+    sum.is_null_ = null_;
     return sum;
   }
 
@@ -243,11 +243,11 @@ class IntegerMaxAggregate {
    * Advance the aggregate by the input value @em val.
    */
   void Advance(const Integer &val) {
-    if (val.is_null) {
+    if (val.is_null_) {
       return;
     }
     null_ = false;
-    max_ = std::max(val.val, max_);
+    max_ = std::max(val.val_, max_);
   }
 
   /**
@@ -274,7 +274,7 @@ class IntegerMaxAggregate {
    */
   Integer GetResultMax() const {
     Integer max(max_);
-    max.is_null = null_;
+    max.is_null_ = null_;
     return max;
   }
 
@@ -302,11 +302,11 @@ class RealMaxAggregate {
    * Advance the aggregate by the input value @em val.
    */
   void Advance(const Real &val) {
-    if (val.is_null) {
+    if (val.is_null_) {
       return;
     }
     null_ = false;
-    max_ = std::max(val.val, max_);
+    max_ = std::max(val.val_, max_);
   }
 
   /**
@@ -333,7 +333,7 @@ class RealMaxAggregate {
    */
   Real GetResultMax() const {
     Real max(max_);
-    max.is_null = null_;
+    max.is_null_ = null_;
     return max;
   }
 
@@ -365,11 +365,11 @@ class IntegerMinAggregate {
    * Advance the aggregate by the input value @em val.
    */
   void Advance(const Integer &val) {
-    if (val.is_null) {
+    if (val.is_null_) {
       return;
     }
     null_ = false;
-    min_ = std::min(val.val, min_);
+    min_ = std::min(val.val_, min_);
   }
 
   /**
@@ -396,7 +396,7 @@ class IntegerMinAggregate {
    */
   Integer GetResultMin() const {
     Integer min(min_);
-    min.is_null = null_;
+    min.is_null_ = null_;
     return min;
   }
 
@@ -424,11 +424,11 @@ class RealMinAggregate {
    * Advance the aggregate by the input value @em val.
    */
   void Advance(const Real &val) {
-    if (val.is_null) {
+    if (val.is_null_) {
       return;
     }
     null_ = false;
-    min_ = std::min(val.val, min_);
+    min_ = std::min(val.val_, min_);
   }
 
   /**
@@ -455,7 +455,7 @@ class RealMinAggregate {
    */
   Real GetResultMin() const {
     Real min(min_);
-    min.is_null = null_;
+    min.is_null_ = null_;
     return min;
   }
 
@@ -488,10 +488,10 @@ class AvgAggregate {
    */
   template <typename T>
   void Advance(const T &val) {
-    if (val.is_null) {
+    if (val.is_null_) {
       return;
     }
-    sum_ += static_cast<double>(val.val);
+    sum_ += static_cast<double>(val.val_);
     count_++;
   }
 

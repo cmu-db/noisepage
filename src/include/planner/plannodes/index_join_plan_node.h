@@ -52,7 +52,7 @@ class IndexJoinPlanNode : public AbstractJoinPlanNode {
     /**
      * Sets the index cols.
      */
-    Builder &AddIndexColum(catalog::indexkeycol_oid_t col_oid, IndexExpression expr) {
+    Builder &AddIndexColum(catalog::indexkeycol_oid_t col_oid, const IndexExpression &expr) {
       index_cols_.emplace(col_oid, expr);
       return *this;
     }

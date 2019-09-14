@@ -4,7 +4,7 @@
 
 namespace terrier::execution::exec {
 
-OutputBuffer::~OutputBuffer() { memory_pool_->Deallocate(tuples_, batch_size_ * tuple_size_); }
+OutputBuffer::~OutputBuffer() { memory_pool_->Deallocate(tuples_, BATCH_SIZE * tuple_size_); }
 
 void OutputBuffer::Finalize() {
   if (num_tuples_ > 0) {
@@ -27,18 +27,18 @@ void OutputPrinter::operator()(byte *tuples, uint32_t num_tuples, uint32_t tuple
         case type::TypeId::BIGINT:
         case type::TypeId::INTEGER: {
           auto *val = reinterpret_cast<sql::Integer *>(tuples + row * tuple_size + curr_offset);
-          if (val->is_null)
+          if (val->is_null_)
             ss << "NULL";
           else
-            ss << val->val;
+            ss << val->val_;
           break;
         }
         case type::TypeId::BOOLEAN: {
           auto *val = reinterpret_cast<sql::BoolVal *>(tuples + row * tuple_size + curr_offset);
-          if (val->is_null) {
+          if (val->is_null_) {
             ss << "NULL";
           } else {
-            if (val->val) {
+            if (val->val_) {
               ss << "true";
             } else {
               ss << "false";
@@ -48,15 +48,15 @@ void OutputPrinter::operator()(byte *tuples, uint32_t num_tuples, uint32_t tuple
         }
         case type::TypeId::DECIMAL: {
           auto *val = reinterpret_cast<sql::Real *>(tuples + row * tuple_size + curr_offset);
-          if (val->is_null)
+          if (val->is_null_)
             ss << "NULL";
           else
-            ss << val->val;
+            ss << val->val_;
           break;
         }
         case type::TypeId::DATE: {
           auto *val = reinterpret_cast<sql::Date *>(tuples + row * tuple_size + curr_offset);
-          if (val->is_null) {
+          if (val->is_null_) {
             ss << "NULL";
           } else {
             ss << sql::ValUtil::DateToString(*val);
@@ -65,10 +65,10 @@ void OutputPrinter::operator()(byte *tuples, uint32_t num_tuples, uint32_t tuple
         }
         case type::TypeId::VARCHAR: {
           auto *val = reinterpret_cast<sql::StringVal *>(tuples + row * tuple_size + curr_offset);
-          if (val->is_null) {
+          if (val->is_null_) {
             ss << "NULL";
           } else {
-            ss.write(val->Content(), val->len);
+            ss.write(val->Content(), val->len_);
             ss.put('\0');
           }
           break;

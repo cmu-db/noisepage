@@ -45,7 +45,7 @@ class Policy {
   /**
    * @return the kind of policy
    */
-  auto kind() { return kind_; }
+  auto GetKind() { return kind_; }
 
  protected:
   /**
@@ -69,7 +69,7 @@ class EpsilonGreedyPolicy : public Policy {
   /**
    * Default epsilon value
    */
-  static constexpr const double kDefaultEpsilon = 0.1;
+  static constexpr const double K_DEFAULT_EPSILON = 0.1;
 
   /**
    * Constructor
@@ -86,7 +86,7 @@ class EpsilonGreedyPolicy : public Policy {
    * Set the epsilon value
    * @param epsilon new epsilon value
    */
-  void set_epsilon(const double epsilon) { epsilon_ = epsilon; }
+  void SetEpsilon(const double epsilon) { epsilon_ = epsilon; }
 
  private:
   double epsilon_;
@@ -129,7 +129,7 @@ class UCBPolicy : public Policy {
   /**
    * Default ucb hyperparameter.
    */
-  static constexpr const double kDefaultUCBHyperParam = 1.0;
+  static constexpr const double K_DEFAULT_UCB_HYPER_PARAM = 1.0;
 
   /**
    * Constructor

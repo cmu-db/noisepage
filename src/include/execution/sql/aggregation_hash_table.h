@@ -21,27 +21,27 @@ class AggregationOverflowPartitionIterator;
 /**
  * The hash table used when performing aggregations
  */
-class AggregationHashTable {
+class EXPORT AggregationHashTable {
  public:
   /**
    * Default load factor
    */
-  static constexpr const float kDefaultLoadFactor = 0.7f;
+  static constexpr const float K_DEFAULT_LOAD_FACTOR = 0.7f;
 
   /**
    * Default initial size
    */
-  static constexpr const uint32_t kDefaultInitialTableSize = 256;
+  static constexpr const uint32_t K_DEFAULT_INITIAL_TABLE_SIZE = 256;
 
   /**
    * Default number of partitions
    */
-  static constexpr const uint32_t kDefaultNumPartitions = 512;
+  static constexpr const uint32_t K_DEFAULT_NUM_PARTITIONS = 512;
 
   /**
    * Default libcount precision
    */
-  static constexpr uint32_t kDefaultHLLPrecision = 10;
+  static constexpr uint32_t K_DEFAULT_HLL_PRECISION = 10;
 
   // -------------------------------------------------------
   // Callback functions to customize aggregations
@@ -99,12 +99,12 @@ class AggregationHashTable {
     /**
      * Number of hash table growth
      */
-    uint64_t num_growths = 0;
+    uint64_t num_growths_ = 0;
 
     /**
      * Number of flushes
      */
-    uint64_t num_flushes = 0;
+    uint64_t num_flushes_ = 0;
   };
 
   // -------------------------------------------------------
@@ -220,18 +220,18 @@ class AggregationHashTable {
   /**
    * How many aggregates are in this table?
    */
-  uint64_t NumElements() const { return hash_table_.num_elements(); }
+  uint64_t NumElements() const { return hash_table_.NumElements(); }
 
   /**
    * Read-only access to hash table stats
    */
-  const Stats *stats() const { return &stats_; }
+  const Stats *GetStats() const { return &stats_; }
 
  private:
   friend class AggregationHashTableIterator;
 
   // Does the hash table need to grow?
-  bool NeedsToGrow() const { return hash_table_.num_elements() >= max_fill_; }
+  bool NeedsToGrow() const { return hash_table_.NumElements() >= max_fill_; }
 
   // Grow the hash table
   void Grow();
@@ -353,10 +353,10 @@ inline HashTableEntry *AggregationHashTable::LookupEntryInternal(hash_t hash, Ag
                                                                  const void *probe_tuple) const {
   HashTableEntry *entry = hash_table_.FindChainHead(hash);
   while (entry != nullptr) {
-    if (entry->hash == hash && key_eq_fn(entry->payload, probe_tuple)) {
+    if (entry->hash_ == hash && key_eq_fn(entry->payload_, probe_tuple)) {
       return entry;
     }
-    entry = entry->next;
+    entry = entry->next_;
   }
   return nullptr;
 }
@@ -364,7 +364,7 @@ inline HashTableEntry *AggregationHashTable::LookupEntryInternal(hash_t hash, Ag
 inline byte *AggregationHashTable::Lookup(hash_t hash, AggregationHashTable::KeyEqFn key_eq_fn,
                                           const void *probe_tuple) {
   auto *entry = LookupEntryInternal(hash, key_eq_fn, probe_tuple);
-  return (entry == nullptr ? nullptr : entry->payload);
+  return (entry == nullptr ? nullptr : entry->payload_);
 }
 
 // ---------------------------------------------------------
@@ -399,7 +399,7 @@ class AggregationHashTableIterator {
    */
   const byte *GetCurrentAggregateRow() const {
     auto *ht_entry = iter_.GetCurrentEntry();
-    return ht_entry->payload;
+    return ht_entry->payload_;
   }
 
  private:
@@ -438,7 +438,7 @@ class AggregationOverflowPartitionIterator {
   void Next() {
     // Try to move along current partition
     if (curr_ != nullptr) {
-      curr_ = curr_->next;
+      curr_ = curr_->next_;
       if (curr_ != nullptr) {
         return;
       }
@@ -455,14 +455,14 @@ class AggregationOverflowPartitionIterator {
    * to. It is assumed the caller has checked there is data in the iterator.
    * @return The hash value of the current overflow entry.
    */
-  hash_t GetHash() const { return curr_->hash; }
+  hash_t GetHash() const { return curr_->hash_; }
 
   /**
    * Get the payload of the overflow entry the iterator is currently pointing
    * to. It is assumed the caller has checked there is data in the iterator.
    * @return The opaque payload associated with the current overflow entry.
    */
-  const byte *GetPayload() const { return curr_->payload; }
+  const byte *GetPayload() const { return curr_->payload_; }
 
   /**
    * Get the payload of the overflow entry the iterator is currently pointing

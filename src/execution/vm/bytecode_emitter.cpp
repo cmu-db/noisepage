@@ -65,14 +65,14 @@ void BytecodeEmitter::EmitCall(FunctionId func_id, const std::vector<LocalVar> &
 void BytecodeEmitter::EmitReturn() { EmitImpl(Bytecode::Return); }
 
 void BytecodeEmitter::Bind(BytecodeLabel *label) {
-  TERRIER_ASSERT(!label->is_bound(), "Cannot rebind labels");
+  TERRIER_ASSERT(!label->IsBound(), "Cannot rebind labels");
 
-  std::size_t curr_offset = position();
+  std::size_t curr_offset = Position();
 
   if (label->IsForwardTarget()) {
     // We need to patch all locations in the bytecode that forward jump to the
     // given bytecode label. Each referrer is stored in the bytecode label ...
-    auto &jump_locations = label->referrer_offsets();
+    auto &jump_locations = label->ReferrerOffsets();
 
     for (const auto &jump_location : jump_locations) {
       TERRIER_ASSERT((curr_offset - jump_location) < std::numeric_limits<int32_t>::max(),
@@ -91,16 +91,16 @@ void BytecodeEmitter::Bind(BytecodeLabel *label) {
 }
 
 void BytecodeEmitter::EmitJump(BytecodeLabel *label) {
-  static const int32_t kJumpPlaceholder = std::numeric_limits<int32_t>::max() - 1;
+  static const int32_t k_jump_placeholder = std::numeric_limits<int32_t>::max() - 1;
 
-  std::size_t curr_offset = position();
+  std::size_t curr_offset = Position();
 
-  if (label->is_bound()) {
+  if (label->IsBound()) {
     // The label is already bound so this must be a backwards jump. We just need
     // to emit the delta offset directly into the bytestream.
-    TERRIER_ASSERT(label->offset() <= curr_offset,
+    TERRIER_ASSERT(label->Offset() <= curr_offset,
                    "Label for backwards jump cannot be beyond current bytecode position");
-    std::size_t delta = curr_offset - label->offset();
+    std::size_t delta = curr_offset - label->Offset();
     TERRIER_ASSERT(delta < std::numeric_limits<int32_t>::max(), "Jump delta exceeds 32-bit value for jump offsets!");
 
     // Immediately emit the delta
@@ -109,8 +109,8 @@ void BytecodeEmitter::EmitJump(BytecodeLabel *label) {
     // The label is not bound yet so this must be a forward jump. We set the
     // reference position in the label and use a placeholder offset in the
     // byte stream for now. We'll update the placeholder when the label is bound
-    label->set_referrer(curr_offset);
-    EmitScalarValue(kJumpPlaceholder);
+    label->SetReferrer(curr_offset);
+    EmitScalarValue(k_jump_placeholder);
   }
 }
 

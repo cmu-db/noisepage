@@ -87,12 +87,12 @@ class Hasher {
    */
   static hash_t CombineHashes(const hash_t first_hash, const hash_t second_hash) {
     // Based on Hash128to64() from cityhash.
-    static constexpr auto kMul = uint64_t(0x9ddfea08eb382d69);
-    hash_t a = (first_hash ^ second_hash) * kMul;
+    static constexpr auto k_mul = uint64_t(0x9ddfea08eb382d69);
+    hash_t a = (first_hash ^ second_hash) * k_mul;
     a ^= (a >> 47u);
-    hash_t b = (second_hash ^ a) * kMul;
+    hash_t b = (second_hash ^ a) * k_mul;
     b ^= (b >> 47u);
-    b *= kMul;
+    b *= k_mul;
     return b;
   }
 
@@ -157,22 +157,22 @@ class Hasher {
   // https://github.com/aappleby/smhasher/blob/master/src/MurmurHash2.cpp
   // 'kMurmur2Prime' and 'kMurmur2R' are mixing constants generated offline.
   // They're not really 'magic', they just happen to work well.
-  static constexpr uint64_t kMurmur2Prime = 0xc6a4a7935bd1e995;
-  static constexpr int32_t kMurmur2R = 47;
+  static constexpr uint64_t K_MURMUR2_PRIME = 0xc6a4a7935bd1e995;
+  static constexpr int32_t K_MURMUR2_R = 47;
 
   template <typename T>
   static auto HashMurmur2(const T val, hash_t seed) -> std::enable_if_t<std::is_arithmetic_v<T>, hash_t> {
     // MurmurHash64A
     auto k = static_cast<uint64_t>(val);
-    hash_t h = seed ^ 0x8445d61a4e774912 ^ (8 * kMurmur2Prime);
-    k *= kMurmur2Prime;
-    k ^= k >> kMurmur2R;
-    k *= kMurmur2Prime;
+    hash_t h = seed ^ 0x8445d61a4e774912 ^ (8 * K_MURMUR2_PRIME);
+    k *= K_MURMUR2_PRIME;
+    k ^= k >> K_MURMUR2_R;
+    k *= K_MURMUR2_PRIME;
     h ^= k;
-    h *= kMurmur2Prime;
-    h ^= h >> kMurmur2R;
-    h *= kMurmur2Prime;
-    h ^= h >> kMurmur2R;
+    h *= K_MURMUR2_PRIME;
+    h ^= h >> K_MURMUR2_R;
+    h *= K_MURMUR2_PRIME;
+    h ^= h >> K_MURMUR2_R;
     return h;
   }
 
@@ -183,7 +183,7 @@ class Hasher {
 
   static hash_t HashMurmur2(const uint8_t *buf, uint32_t len, hash_t seed) {
     // MurmurHash64A
-    hash_t h = seed ^ (len * kMurmur2Prime);
+    hash_t h = seed ^ (len * K_MURMUR2_PRIME);
 
     const auto *data = reinterpret_cast<const uint64_t *>(buf);
     const auto *end = data + (len / 8);
@@ -191,12 +191,12 @@ class Hasher {
     while (data != end) {
       uint64_t k = *data++;
 
-      k *= kMurmur2Prime;
-      k ^= k >> kMurmur2R;
-      k *= kMurmur2Prime;
+      k *= K_MURMUR2_PRIME;
+      k ^= k >> K_MURMUR2_R;
+      k *= K_MURMUR2_PRIME;
 
       h ^= k;
-      h *= kMurmur2Prime;
+      h *= K_MURMUR2_PRIME;
     }
 
     const auto *data2 = reinterpret_cast<const uint8_t *>(data);
@@ -222,12 +222,12 @@ class Hasher {
         TERRIER_FALLTHROUGH;
       case 1:
         h ^= uint64_t(data2[0]);
-        h *= kMurmur2Prime;
+        h *= K_MURMUR2_PRIME;
     }
 
-    h ^= h >> kMurmur2R;
-    h *= kMurmur2Prime;
-    h ^= h >> kMurmur2R;
+    h ^= h >> K_MURMUR2_R;
+    h *= K_MURMUR2_PRIME;
+    h ^= h >> K_MURMUR2_R;
 
     return h;
   }
@@ -250,8 +250,8 @@ class Hasher {
   // -------------------------------------------------------
 
   // default values recommended by http://isthe.com/chongo/tech/comp/fnv/
-  static constexpr uint64_t kFNV64Prime = 1099511628211UL;
-  static constexpr uint64_t kFNV64Seed = 14695981039346656037UL;
+  static constexpr uint64_t K_FN_V64_PRIME = 1099511628211UL;
+  static constexpr uint64_t K_FN_V64_SEED = 14695981039346656037UL;
 
   template <typename T>
   static auto HashFnv1(const T val) -> std::enable_if_t<std::is_arithmetic_v<T>, hash_t> {
@@ -260,13 +260,13 @@ class Hasher {
 
   static hash_t HashFnv1(const uint8_t *buf, uint32_t len, hash_t seed) {
     while (static_cast<bool>(len--)) {
-      seed = (*buf ^ seed) * kFNV64Prime;
+      seed = (*buf ^ seed) * K_FN_V64_PRIME;
       ++buf;
     }
     return seed;
   }
 
-  static hash_t HashFnv1(const uint8_t *buf, uint32_t len) { return HashFnv1(buf, len, kFNV64Seed); }
+  static hash_t HashFnv1(const uint8_t *buf, uint32_t len) { return HashFnv1(buf, len, K_FN_V64_SEED); }
 };
 
 }  // namespace terrier::execution::util

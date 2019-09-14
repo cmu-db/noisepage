@@ -12,7 +12,7 @@ void Workload(const int8_t worker_id, Database *const tpcc_db, transaction::Tran
   auto stock_level = StockLevel(tpcc_db);
 
   for (const auto &txn_args : precomputed_args[worker_id]) {
-    switch (txn_args.type) {
+    switch (txn_args.type_) {
       case TransactionType::NewOrder: {
         new_order.Execute(txn_manager, tpcc_db, &((*workers)[worker_id]), txn_args);
         break;
@@ -42,9 +42,9 @@ void Workload(const int8_t worker_id, Database *const tpcc_db, transaction::Tran
 void CleanUpVarlensInPrecomputedArgs(const std::vector<std::vector<TransactionArgs>> *const precomputed_args) {
   for (const auto &worker_id : *precomputed_args) {
     for (const auto &args : worker_id) {
-      if ((args.type == TransactionType::Payment || args.type == TransactionType::OrderStatus) && args.use_c_last &&
-          !args.c_last.IsInlined()) {
-        delete[] args.c_last.Content();
+      if ((args.type_ == TransactionType::Payment || args.type_ == TransactionType::OrderStatus) && args.use_c_last_ &&
+          !args.c_last_.IsInlined()) {
+        delete[] args.c_last_.Content();
       }
     }
   }

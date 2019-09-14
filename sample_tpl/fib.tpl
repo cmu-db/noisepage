@@ -9,5 +9,5 @@ fun fib(n: int64) -> int64 {
 }
 
 fun main() -> int64 {
-  return fib(30)
+  return fib(20)
 }

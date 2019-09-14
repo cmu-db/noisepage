@@ -33,44 +33,44 @@ bool Type::IsArithmetic() const {
 // Builtin Type
 // ---------------------------------------------------------
 
-const char *BuiltinType::kTplNames[] = {
+const char *BuiltinType::tpl_names[] = {
 #define PRIM(BKind, CppType, Name, ...) Name,
 #define OTHERS(BKind, ...) #BKind,
     BUILTIN_TYPE_LIST(PRIM, OTHERS, OTHERS)
 #undef F
 };
 
-const char *BuiltinType::kCppNames[] = {
+const char *BuiltinType::cpp_names[] = {
 #define F(BKind, CppType, ...) #CppType,
     BUILTIN_TYPE_LIST(F, F, F)
 #undef F
 };
 
-const uint64_t BuiltinType::kSizes[] = {
+const uint64_t BuiltinType::SIZES[] = {
 #define F(BKind, CppType, ...) sizeof(CppType),
     BUILTIN_TYPE_LIST(F, F, F)
 #undef F
 };
 
-const uint64_t BuiltinType::kAlignments[] = {
+const uint64_t BuiltinType::ALIGNMENTS[] = {
 #define F(Kind, CppType, ...) std::alignment_of_v<CppType>,
     BUILTIN_TYPE_LIST(F, F, F)
 #undef F
 };
 
-const bool BuiltinType::kPrimitiveFlags[] = {
+const bool BuiltinType::PRIMITIVE_FLAGS[] = {
 #define F(Kind, CppType, ...) std::is_fundamental_v<CppType>,
     BUILTIN_TYPE_LIST(F, F, F)
 #undef F
 };
 
-const bool BuiltinType::kFloatingPointFlags[] = {
+const bool BuiltinType::FLOATING_POINT_FLAGS[] = {
 #define F(Kind, CppType, ...) std::is_floating_point_v<CppType>,
     BUILTIN_TYPE_LIST(F, F, F)
 #undef F
 };
 
-const bool BuiltinType::kSignedFlags[] = {
+const bool BuiltinType::SIGNED_FLAGS[] = {
 #define F(Kind, CppType, ...) std::is_signed_v<CppType>,
     BUILTIN_TYPE_LIST(F, F, F)
 #undef F
@@ -81,7 +81,7 @@ const bool BuiltinType::kSignedFlags[] = {
 // ---------------------------------------------------------
 
 FunctionType::FunctionType(util::RegionVector<Field> &&params, Type *ret)
-    : Type(ret->context(), sizeof(void *), alignof(void *), TypeId::FunctionType),
+    : Type(ret->GetContext(), sizeof(void *), alignof(void *), TypeId::FunctionType),
       params_(std::move(params)),
       ret_(ret) {}
 
@@ -90,7 +90,7 @@ FunctionType::FunctionType(util::RegionVector<Field> &&params, Type *ret)
 // ---------------------------------------------------------
 
 MapType::MapType(Type *key_type, Type *val_type)
-    : Type(key_type->context(), sizeof(std::unordered_map<int32_t, int32_t>),
+    : Type(key_type->GetContext(), sizeof(std::unordered_map<int32_t, int32_t>),
            alignof(std::unordered_map<int32_t, int32_t>), TypeId::MapType),
       key_type_(key_type),
       val_type_(val_type) {}

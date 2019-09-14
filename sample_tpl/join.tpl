@@ -3,13 +3,14 @@
 // SELECT t1.col_a, t1.col_b, t1'.col_a, t1'.col_b, FROM test_1 AS t1, test_1 AS t1'
 // WHERE t1.col_b = t1'.col_b AND t1.col_a < 1000 AND t1'.col_a < 1000
 //
-// Should output 100786: this is random number that's expected to be 100000, because each of the 10 possible
-// values in col_b is expected to be present 100 times (1000 / 10  = 100).
+// Outputs 0 if the resulting rows match.
+// TODO(Amadou): Should output number of matches once this test becomes deterministic
 
 
 struct State {
   table: JoinHashTable
   num_matches: int64
+  correct : bool
 }
 
 struct BuildRow {
@@ -20,6 +21,7 @@ struct BuildRow {
 fun setUpState(execCtx: *ExecutionContext, state: *State) -> nil {
   @joinHTInit(&state.table, @execCtxGetMem(execCtx), @sizeOf(BuildRow))
   state.num_matches = 0
+  state.correct = true
 }
 
 fun tearDownState(state: *State) -> nil {
@@ -72,6 +74,9 @@ fun pipeline_2(execCtx: *ExecutionContext, state: *State) -> nil {
         for (@joinHTIterInit(&hti, &state.table, hash_val); @joinHTIterHasNext(&hti, checkKey, execCtx, vec); ) {
           build_row = @ptrCast(*BuildRow, @joinHTIterGetRow(&hti))
           state.num_matches = state.num_matches + 1
+          if (build_row.key != @pciGetInt(vec, 1)) {
+            state.correct = false
+          }
         }
         @joinHTIterClose(&hti)
       }
@@ -99,5 +104,9 @@ fun main(execCtx: *ExecutionContext) -> int64 {
   // Cleanup
   tearDownState(&state)
 
-  return state.num_matches
+  // TODO(Amadou): Make this test deterministic and return the number of matches
+  if (state.correct) {
+    return 0
+  }
+  return 1 // state.num_matches
 }

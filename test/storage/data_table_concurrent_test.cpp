@@ -13,10 +13,7 @@ class FakeTransaction {
   FakeTransaction(const storage::BlockLayout &layout, storage::DataTable *table, const double null_bias,
                   const transaction::timestamp_t start_time, const transaction::timestamp_t txn_id,
                   storage::RecordBufferSegmentPool *buffer_pool)
-      : layout_(layout),
-        table_(table),
-        null_bias_(null_bias),
-        txn_(start_time, txn_id, buffer_pool, LOGGING_DISABLED, ACTION_FRAMEWORK_DISABLED) {}
+      : layout_(layout), table_(table), null_bias_(null_bias), txn_(start_time, txn_id, buffer_pool, DISABLED) {}
 
   ~FakeTransaction() {
     for (auto ptr : loose_pointers_) delete[] ptr;

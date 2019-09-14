@@ -12,7 +12,7 @@ class BytecodeGeneratorTest : public TplTest {
  public:
   BytecodeGeneratorTest() : region_("test") {}
 
-  util::Region *region() { return &region_; }
+  util::Region *Region() { return &region_; }
 
  private:
   util::Region region_;
@@ -216,17 +216,17 @@ TEST_F(BytecodeGeneratorTest, ParameterPassingTest) {
   ASSERT_TRUE(module != nullptr);
 
   struct S {
-    int a;
-    int b;
+    int a_;
+    int b_;
   };
 
   std::function<bool(S *)> f;
   EXPECT_TRUE(module->GetFunction("test", ExecutionMode::Interpret, &f)) << "Function 'test' not found in module";
 
-  S s{.a = 0, .b = 0};
+  S s{.a_ = 0, .b_ = 0};
   EXPECT_TRUE(f(&s));
-  EXPECT_EQ(10, s.a);
-  EXPECT_EQ(20, s.b);
+  EXPECT_EQ(10, s.a_);
+  EXPECT_EQ(20, s.b_);
 }
 
 // NOLINTNEXTLINE
@@ -307,17 +307,17 @@ TEST_F(BytecodeGeneratorTest, FunctionTest) {
   ASSERT_TRUE(module != nullptr);
 
   struct S {
-    int a;
-    int b;
+    int a_;
+    int b_;
   };
 
   std::function<bool(S *)> f;
   EXPECT_TRUE(module->GetFunction("test", ExecutionMode::Interpret, &f)) << "Function 'test' not found in module";
 
-  S s{.a = 0, .b = 0};
+  S s{.a_ = 0, .b_ = 0};
   EXPECT_TRUE(f(&s));
-  EXPECT_EQ(10, s.a);
-  EXPECT_EQ(20, s.b);
+  EXPECT_EQ(10, s.a_);
+  EXPECT_EQ(20, s.b_);
 }
 
 }  // namespace terrier::execution::vm::test

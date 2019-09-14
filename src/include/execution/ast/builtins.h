@@ -192,22 +192,22 @@ class Builtins {
   /**
    * The total number of builtin functions
    */
-  static const uint32_t kBuiltinsCount = static_cast<uint32_t>(Builtin ::Last) + 1;
+  static const uint32_t BUILTINS_COUNT = static_cast<uint32_t>(Builtin ::Last) + 1;
 
   /**
    * @return the total number of bytecodes
    */
-  static constexpr uint32_t NumBuiltins() { return kBuiltinsCount; }
+  static constexpr uint32_t NumBuiltins() { return BUILTINS_COUNT; }
 
   /**
    * Return the name of the builtin
    * @param builtin builtin to retrieve
    * @return name of the builtin function
    */
-  static const char *GetFunctionName(Builtin builtin) { return kBuiltinFunctionNames[static_cast<uint8_t>(builtin)]; }
+  static const char *GetFunctionName(Builtin builtin) { return builtin_functions_name[static_cast<uint8_t>(builtin)]; }
 
  private:
-  static const char *kBuiltinFunctionNames[];
+  static const char *builtin_functions_name[];
 };
 
 }  // namespace terrier::execution::ast

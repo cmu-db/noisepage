@@ -34,21 +34,21 @@ class FilterManagerTest : public SqlBasedTest {
 
 enum Col : uint8_t { A = 0, B = 1, C = 2, D = 3 };
 
-uint32_t TaaT_Lt_500(ProjectedColumnsIterator *pci) {
+uint32_t TaaTLt500(ProjectedColumnsIterator *pci) {
   pci->RunFilter([pci]() -> bool {
     auto cola = *pci->Get<int32_t, false>(Col::A, nullptr);
     return cola < 500;
   });
-  return pci->num_selected();
+  return pci->NumSelected();
 }
 
-uint32_t Hobbled_TaaT_Lt_500(ProjectedColumnsIterator *pci) {
+uint32_t HobbledTaaTLt500(ProjectedColumnsIterator *pci) {
   std::this_thread::sleep_for(std::chrono::milliseconds(50));
-  return TaaT_Lt_500(pci);
+  return TaaTLt500(pci);
 }
 
-uint32_t Vectorized_Lt_500(ProjectedColumnsIterator *pci) {
-  ProjectedColumnsIterator::FilterVal param{.i = 500};
+uint32_t VectorizedLt500(ProjectedColumnsIterator *pci) {
+  ProjectedColumnsIterator::FilterVal param{.i_ = 500};
   return pci->FilterColByVal<std::less>(Col::A, type::TypeId ::INTEGER, param);
 }
 
@@ -56,14 +56,14 @@ uint32_t Vectorized_Lt_500(ProjectedColumnsIterator *pci) {
 TEST_F(FilterManagerTest, SimpleFilterManagerTest) {
   FilterManager filter(bandit::Policy::Kind::FixedAction);
   filter.StartNewClause();
-  filter.InsertClauseFlavor(TaaT_Lt_500);
-  filter.InsertClauseFlavor(Vectorized_Lt_500);
+  filter.InsertClauseFlavor(TaaTLt500);
+  filter.InsertClauseFlavor(VectorizedLt500);
   filter.Finalize();
   auto table_oid = exec_ctx_->GetAccessor()->GetTableOid(NSOid(), "test_1");
   std::array<uint32_t, 1> col_oids{1};
   TableVectorIterator tvi(exec_ctx_.get(), !table_oid, col_oids.data(), static_cast<uint32_t>(col_oids.size()));
   for (tvi.Init(); tvi.Advance();) {
-    auto *pci = tvi.projected_columns_iterator();
+    auto *pci = tvi.GetProjectedColumnsIterator();
 
     // Run the filters
     filter.RunFilters(pci);
@@ -80,14 +80,14 @@ TEST_F(FilterManagerTest, SimpleFilterManagerTest) {
 TEST_F(FilterManagerTest, AdaptiveFilterManagerTest) {
   FilterManager filter(bandit::Policy::Kind::EpsilonGreedy);
   filter.StartNewClause();
-  filter.InsertClauseFlavor(Hobbled_TaaT_Lt_500);
-  filter.InsertClauseFlavor(Vectorized_Lt_500);
+  filter.InsertClauseFlavor(HobbledTaaTLt500);
+  filter.InsertClauseFlavor(VectorizedLt500);
   filter.Finalize();
   auto table_oid = exec_ctx_->GetAccessor()->GetTableOid(NSOid(), "test_1");
   std::array<uint32_t, 1> col_oids{1};
   TableVectorIterator tvi(exec_ctx_.get(), !table_oid, col_oids.data(), static_cast<uint32_t>(col_oids.size()));
   for (tvi.Init(); tvi.Advance();) {
-    auto *pci = tvi.projected_columns_iterator();
+    auto *pci = tvi.GetProjectedColumnsIterator();
 
     // Run the filters
     filter.RunFilters(pci);

@@ -10,6 +10,8 @@
 #include "execution/exec/execution_context.h"
 #include "execution/table_generator/table_generator.h"
 #include "storage/garbage_collector.h"
+#include "transaction/deferred_action_manager.h"
+#include "transaction/timestamp_manager.h"
 
 namespace terrier::execution {
 
@@ -25,8 +27,12 @@ class SqlBasedTest : public TplTest {
     // Initialize terrier objects
     block_store_ = std::make_unique<storage::BlockStore>(1000, 1000);
     buffer_pool_ = std::make_unique<storage::RecordBufferSegmentPool>(100000, 100000);
-    txn_manager_ = std::make_unique<transaction::TransactionManager>(buffer_pool_.get(), true, nullptr);
-    gc_ = std::make_unique<storage::GarbageCollector>(txn_manager_.get(), nullptr);
+    tm_manager_ = std::make_unique<transaction::TimestampManager>();
+    da_manager_ = std::make_unique<transaction::DeferredActionManager>(tm_manager_.get());
+    txn_manager_ = std::make_unique<transaction::TransactionManager>(tm_manager_.get(), da_manager_.get(),
+                                                                     buffer_pool_.get(), true, nullptr);
+    gc_ =
+        std::make_unique<storage::GarbageCollector>(tm_manager_.get(), da_manager_.get(), txn_manager_.get(), nullptr);
     test_txn_ = txn_manager_->BeginTransaction();
 
     // Create catalog and test namespace
@@ -70,6 +76,8 @@ class SqlBasedTest : public TplTest {
  private:
   std::unique_ptr<storage::BlockStore> block_store_;
   std::unique_ptr<storage::RecordBufferSegmentPool> buffer_pool_;
+  std::unique_ptr<transaction::TimestampManager> tm_manager_;
+  std::unique_ptr<transaction::DeferredActionManager> da_manager_;
   std::unique_ptr<transaction::TransactionManager> txn_manager_;
   std::unique_ptr<catalog::Catalog> catalog_;
   std::unique_ptr<storage::GarbageCollector> gc_;

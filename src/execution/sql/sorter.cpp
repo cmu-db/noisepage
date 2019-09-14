@@ -27,7 +27,7 @@ Sorter::Sorter(MemoryPool *memory, ComparisonFunction cmp_fn, uint32_t tuple_siz
 Sorter::~Sorter() = default;
 
 byte *Sorter::AllocInputTuple() {
-  byte *ret = tuple_storage_.append();
+  byte *ret = tuple_storage_.Append();
   tuples_.push_back(ret);
   return ret;
 }
@@ -101,7 +101,7 @@ void Sorter::HeapSiftDown() {
 
 void Sorter::Sort() {
   // Exit if the input tuples have already been sorted
-  if (is_sorted()) {
+  if (IsSorted()) {
     return;
   }
 
@@ -120,8 +120,8 @@ void Sorter::Sort() {
 
   timer.Stop();
 
-  UNUSED_ATTRIBUTE double tps = (static_cast<double>(tuples_.size()) / timer.elapsed()) / 1000.0;
-  EXECUTION_LOG_DEBUG("Sorted {} tuples in {} ms ({:.2f} tps)", tuples_.size(), timer.elapsed(), tps);
+  UNUSED_ATTRIBUTE double tps = (static_cast<double>(tuples_.size()) / timer.Elapsed()) / 1000.0;
+  EXECUTION_LOG_DEBUG("Sorted {} tuples in {} ms ({:.2f} tps)", tuples_.size(), timer.Elapsed(), tps);
 
   // Mark complete
   sorted_ = true;
@@ -134,10 +134,10 @@ template <typename IterType>
 struct MergeWork {
   using Range = std::pair<IterType, IterType>;
 
-  std::vector<Range> input_ranges;
-  IterType destination;
+  std::vector<Range> input_ranges_;
+  IterType destination_;
 
-  MergeWork(std::vector<Range> &&inputs, IterType dest) : input_ranges(std::move(inputs)), destination(dest) {}
+  MergeWork(std::vector<Range> &&inputs, IterType dest) : input_ranges_(std::move(inputs)), destination_(dest) {}
 };
 
 }  // namespace
@@ -228,7 +228,7 @@ void Sorter::SortParallel(const ThreadStateContainer *thread_state_container, co
     // This tracks the current position in the global output (i.e., this
     // sorter's tuples vector) where the next merge package will begin writing
     // results into. It begins at the front; as we generate merge packages, we
-    // calculate the next position by computing the sizes of the merge packages.
+    // calculate the next position by computing the sizes_ of the merge packages.
     // We've already perfectly sized the output so this memory is allocated and
     // ready to be written to.
     auto write_pos = tuples_.begin();
@@ -291,8 +291,8 @@ void Sorter::SortParallel(const ThreadStateContainer *thread_state_container, co
 
   tbb::parallel_for_each(merge_work.begin(), merge_work.end(), [&heap_cmp](const MergeWork<SeqTypeIter> &work) {
     std::priority_queue<MergeWorkType::Range, std::vector<MergeWorkType::Range>, decltype(heap_cmp)> heap(
-        heap_cmp, work.input_ranges);
-    SeqTypeIter dest = work.destination;
+        heap_cmp, work.input_ranges_);
+    SeqTypeIter dest = work.destination_;
     while (!heap.empty()) {
       auto top = heap.top();
       heap.pop();
@@ -327,7 +327,7 @@ void Sorter::SortParallel(const ThreadStateContainer *thread_state_container, co
 
   EXECUTION_LOG_DEBUG("Parallel Sort:");
   for (const auto &stage : timer.GetStages()) {
-    EXECUTION_LOG_DEBUG("  {}: {.2f} ms", stage.name(), stage.time());
+    EXECUTION_LOG_DEBUG("  {}: {.2f} ms", stage.Name(), stage.Time());
   }
 }
 

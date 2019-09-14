@@ -9,8 +9,8 @@ JoinHashTableVectorProbe::JoinHashTableVectorProbe(const JoinHashTable &table)
     : table_(table), match_idx_(0), hashes_{0}, entries_{nullptr} {}
 
 void JoinHashTableVectorProbe::Prepare(ProjectedColumnsIterator *pci, const HashFn hash_fn) {
-  TERRIER_ASSERT(pci->num_selected() <= common::Constants::kDefaultVectorSize,
-                 "ProjectedColumns size must be less than common::Constants::kDefaultVectorSize");
+  TERRIER_ASSERT(pci->NumSelected() <= common::Constants::K_DEFAULT_VECTOR_SIZE,
+                 "ProjectedColumns size must be less than common::Constants::K_DEFAULT_VECTOR_SIZE");
   // Set up
   match_idx_ = 0;
 
@@ -30,7 +30,7 @@ void JoinHashTableVectorProbe::Prepare(ProjectedColumnsIterator *pci, const Hash
   pci->Reset();
 
   // Perform the initial lookup
-  table_.LookupBatch(pci->num_selected(), hashes_, entries_);
+  table_.LookupBatch(pci->NumSelected(), hashes_, entries_);
 }
 
 }  // namespace terrier::execution::sql

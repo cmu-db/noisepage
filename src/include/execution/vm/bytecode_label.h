@@ -10,52 +10,52 @@ namespace terrier::execution::vm {
 /**
  * A label represents a location in the bytecode and is used as the target of a
  * jump instruction. When the label is bound, it becomes an immutable reference
- * to a location in the bytecode (accessible through @ref offset()). If the
- * label is a forward target, @ref referrer_offsets() will return the bytecode location
+ * to a location in the bytecode (accessible through @ref Offset()). If the
+ * label is a forward target, @ref ReferrerOffsets() will return the bytecode location
  * of the referring jump instruction.
  */
 class BytecodeLabel {
   /**
    * Invalid offset. Used for unbound labels.
    */
-  static constexpr const std::size_t kInvalidOffset = std::numeric_limits<std::size_t>::max();
+  static constexpr const std::size_t K_INVALID_OFFSET = std::numeric_limits<std::size_t>::max();
 
  public:
   /**
    * Constructor. Does not yet bind the label
    */
-  BytecodeLabel() : offset_(kInvalidOffset) {}
+  BytecodeLabel() : offset_(K_INVALID_OFFSET) {}
 
   /**
    * @return whether the label is bound ot not.
    */
-  bool is_bound() const { return bound_; }
+  bool IsBound() const { return bound_; }
 
   /**
    * @return the bytecode offset of the label.
    */
-  std::size_t offset() const { return offset_; }
+  std::size_t Offset() const { return offset_; }
 
   /**
    * @return the list of referrer offsets.
    */
-  const std::vector<size_t> &referrer_offsets() const { return referrer_offsets_; }
+  const std::vector<size_t> &ReferrerOffsets() const { return referrer_offsets_; }
 
   /**
    * @return whether the label is a forward target.
    */
-  bool IsForwardTarget() const { return !is_bound() && !referrer_offsets().empty(); }
+  bool IsForwardTarget() const { return !IsBound() && !ReferrerOffsets().empty(); }
 
  private:
   friend class BytecodeEmitter;
 
-  void set_referrer(std::size_t offset) {
-    TERRIER_ASSERT(!is_bound(), "Cannot set offset reference for already bound label");
+  void SetReferrer(std::size_t offset) {
+    TERRIER_ASSERT(!IsBound(), "Cannot set offset reference for already bound label");
     referrer_offsets_.push_back(offset);
   }
 
   void BindTo(std::size_t offset) {
-    TERRIER_ASSERT(!is_bound() && offset != kInvalidOffset, "Cannot rebind an already bound label!");
+    TERRIER_ASSERT(!IsBound() && offset != K_INVALID_OFFSET, "Cannot rebind an already bound label!");
     bound_ = true;
     offset_ = offset;
   }

@@ -52,7 +52,7 @@ TEST_F(TableVectorIteratorTest, SimpleIteratorTest) {
   std::array<uint32_t, 1> col_oids{1};
   TableVectorIterator iter(exec_ctx_.get(), !table_oid, col_oids.data(), static_cast<uint32_t>(col_oids.size()));
   iter.Init();
-  ProjectedColumnsIterator *pci = iter.projected_columns_iterator();
+  ProjectedColumnsIterator *pci = iter.GetProjectedColumnsIterator();
 
   uint32_t num_tuples = 0;
   int32_t prev_val{0};
@@ -67,7 +67,7 @@ TEST_F(TableVectorIteratorTest, SimpleIteratorTest) {
     }
     pci->Reset();
   }
-  EXPECT_EQ(sql::test1_size, num_tuples);
+  EXPECT_EQ(sql::TEST1_SIZE, num_tuples);
 }
 
 // NOLINTNEXTLINE
@@ -81,7 +81,7 @@ TEST_F(TableVectorIteratorTest, MultipleTypesIteratorTest) {
   std::array<uint32_t, 4> col_oids{1, 2, 3, 4};
   TableVectorIterator iter(exec_ctx_.get(), !table_oid, col_oids.data(), static_cast<uint32_t>(col_oids.size()));
   iter.Init();
-  ProjectedColumnsIterator *pci = iter.projected_columns_iterator();
+  ProjectedColumnsIterator *pci = iter.GetProjectedColumnsIterator();
 
   uint32_t num_tuples = 0;
   int16_t prev_val{0};
@@ -97,7 +97,7 @@ TEST_F(TableVectorIteratorTest, MultipleTypesIteratorTest) {
     }
     pci->Reset();
   }
-  EXPECT_EQ(sql::test2_size, num_tuples);
+  EXPECT_EQ(sql::TEST2_SIZE, num_tuples);
 }
 
 // NOLINTNEXTLINE
@@ -110,7 +110,7 @@ TEST_F(TableVectorIteratorTest, IteratorColOidsTest) {
   std::array<uint32_t, 1> col_oids{1};
   TableVectorIterator iter(exec_ctx_.get(), !table_oid, col_oids.data(), static_cast<uint32_t>(col_oids.size()));
   iter.Init();
-  ProjectedColumnsIterator *pci = iter.projected_columns_iterator();
+  ProjectedColumnsIterator *pci = iter.GetProjectedColumnsIterator();
 
   uint32_t num_tuples = 0;
   int16_t prev_val{0};
@@ -126,7 +126,7 @@ TEST_F(TableVectorIteratorTest, IteratorColOidsTest) {
     }
     pci->Reset();
   }
-  EXPECT_EQ(sql::test2_size, num_tuples);
+  EXPECT_EQ(sql::TEST2_SIZE, num_tuples);
 }
 
 }  // namespace terrier::execution::sql::test

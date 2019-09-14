@@ -15,7 +15,7 @@ namespace terrier::execution::sql::test {
  * This is the tuple we insert into the hash table
  */
 struct Tuple {
-  uint64_t a, b, c, d;
+  uint64_t a_, b_, c_, d_;
 };
 
 /**
@@ -24,14 +24,14 @@ struct Tuple {
 static bool TupleKeyEq(UNUSED_ATTRIBUTE void *_, void *probe_tuple, void *table_tuple) {
   auto *lhs = reinterpret_cast<const Tuple *>(probe_tuple);
   auto *rhs = reinterpret_cast<const Tuple *>(table_tuple);
-  return lhs->a == rhs->a;
+  return lhs->a_ == rhs->a_;
 }
 
 class JoinHashTableTest : public TplTest {
  public:
   JoinHashTableTest() : memory_(nullptr) {}
 
-  MemoryPool *memory() { return &memory_; }
+  MemoryPool *Memory() { return &memory_; }
 
   GenericHashTable *GenericTableFor(JoinHashTable *join_hash_table) { return &join_hash_table->generic_hash_table_; }
 
@@ -55,34 +55,34 @@ TEST_F(JoinHashTableTest, LazyInsertionTest) {
     std::uniform_int_distribution<uint64_t> distribution;
 
     for (uint32_t i = 0; i < num_tuples; i++) {
-      tuples[i].a = distribution(generator);
-      tuples[i].b = distribution(generator);
-      tuples[i].c = distribution(generator);
-      tuples[i].d = distribution(generator);
+      tuples[i].a_ = distribution(generator);
+      tuples[i].b_ = distribution(generator);
+      tuples[i].c_ = distribution(generator);
+      tuples[i].d_ = distribution(generator);
     }
   }
 
-  JoinHashTable join_hash_table(memory(), sizeof(Tuple));
+  JoinHashTable join_hash_table(Memory(), sizeof(Tuple));
 
   // The table
   for (const auto &tuple : tuples) {
-    auto hash_val = util::Hasher::Hash(reinterpret_cast<const uint8_t *>(&tuple.a), sizeof(tuple.a));
+    auto hash_val = util::Hasher::Hash(reinterpret_cast<const uint8_t *>(&tuple.a_), sizeof(tuple.a_));
     auto *space = join_hash_table.AllocInputTuple(hash_val);
     *reinterpret_cast<Tuple *>(space) = tuple;
   }
 
   // Before build, the generic hash table shouldn't be populated, but the join
   // table's storage should have buffered all input tuples
-  EXPECT_EQ(num_tuples, join_hash_table.num_elements());
-  EXPECT_EQ(0u, GenericTableFor(&join_hash_table)->num_elements());
+  EXPECT_EQ(num_tuples, join_hash_table.NumElements());
+  EXPECT_EQ(0u, GenericTableFor(&join_hash_table)->NumElements());
 
   // Try to build
   join_hash_table.Build();
 
-  // Post-build, the sizes should be synced up since all tuples were inserted
+  // Post-build, the sizes_ should be synced up since all tuples were inserted
   // into the GHT
-  EXPECT_EQ(num_tuples, join_hash_table.num_elements());
-  EXPECT_EQ(num_tuples, GenericTableFor(&join_hash_table)->num_elements());
+  EXPECT_EQ(num_tuples, join_hash_table.NumElements());
+  EXPECT_EQ(num_tuples, GenericTableFor(&join_hash_table)->NumElements());
 }
 
 void PopulateJoinHashTable(JoinHashTable *jht, uint32_t num_tuples, uint32_t dup_scale_factor) {
@@ -91,7 +91,7 @@ void PopulateJoinHashTable(JoinHashTable *jht, uint32_t num_tuples, uint32_t dup
       auto hash_val = util::Hasher::Hash(reinterpret_cast<const uint8_t *>(&i), sizeof(i));
       auto *space = jht->AllocInputTuple(hash_val);
       auto *tuple = reinterpret_cast<Tuple *>(space);
-      tuple->a = i;
+      tuple->a_ = i;
     }
   }
 }
@@ -130,8 +130,8 @@ void BuildAndProbeTest(uint32_t num_tuples, uint32_t dup_scale_factor) {
          iter.HasNext(TupleKeyEq, nullptr, reinterpret_cast<void *>(&probe_tuple));) {
       entry = iter.NextMatch();
       ASSERT_TRUE(entry != nullptr);
-      auto *matched = reinterpret_cast<const Tuple *>(entry->payload);
-      EXPECT_EQ(i, matched->a);
+      auto *matched = reinterpret_cast<const Tuple *>(entry->payload_);
+      EXPECT_EQ(i, matched->a_);
       count++;
     }
     EXPECT_EQ(dup_scale_factor, count) << "Expected to find " << dup_scale_factor << " matches, but key [" << i
@@ -194,7 +194,7 @@ TEST_F(JoinHashTableTest, DISABLED_PerfTest) {
   const uint32_t num_tuples = 10000000;
 
   auto bench = [this](bool concise, uint32_t num_tuples) {
-    JoinHashTable join_hash_table(memory(), sizeof(Tuple), concise);
+    JoinHashTable join_hash_table(Memory(), sizeof(Tuple), concise);
 
     //
     // Build random input
@@ -207,10 +207,10 @@ TEST_F(JoinHashTableTest, DISABLED_PerfTest) {
       auto *space = join_hash_table.AllocInputTuple(hash_val);
       auto *tuple = reinterpret_cast<Tuple *>(space);
 
-      tuple->a = hash_val;
-      tuple->b = i + 1;
-      tuple->c = i + 2;
-      tuple->d = i + 3;
+      tuple->a_ = hash_val;
+      tuple->b_ = i + 1;
+      tuple->c_ = i + 2;
+      tuple->d_ = i + 3;
     }
 
     util::Timer<std::milli> timer;
@@ -220,14 +220,14 @@ TEST_F(JoinHashTableTest, DISABLED_PerfTest) {
 
     timer.Stop();
 
-    auto mtps = (num_tuples / timer.elapsed()) / 1000.0;
+    auto mtps = (num_tuples / timer.Elapsed()) / 1000.0;
     auto size_in_kb = static_cast<double>(concise ? ConciseTableFor(&join_hash_table)->GetTotalMemoryUsage()
                                                   : GenericTableFor(&join_hash_table)->GetTotalMemoryUsage()) /
                       1024.0;
     EXECUTION_LOG_INFO("========== {} ==========", concise ? "Concise" : "Generic");
     EXECUTION_LOG_INFO("# Tuples    : {}", num_tuples)
     EXECUTION_LOG_INFO("Table size  : {} common::Constants::KB", size_in_kb);
-    EXECUTION_LOG_INFO("Insert+Build: {} ms ({:.2f} Mtps)", timer.elapsed(), mtps);
+    EXECUTION_LOG_INFO("Insert+Build: {} ms ({:.2f} Mtps)", timer.Elapsed(), mtps);
   };
 
   bench(false, num_tuples);

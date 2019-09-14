@@ -24,8 +24,8 @@ void BloomFilter::Init(MemoryPool *memory, uint32_t num_elems) {
   memory_ = memory;
   lazily_added_hashes_ = MemPoolVector<hash_t>(memory_);
 
-  uint64_t num_bits = common::MathUtil::PowerOf2Ceil(kBitsPerElement * num_elems);
-  uint64_t num_blocks = common::MathUtil::DivRoundUp(num_bits, sizeof(Block) * common::Constants::kBitsPerByte);
+  uint64_t num_bits = common::MathUtil::PowerOf2Ceil(K_BITS_PER_ELEMENT * num_elems);
+  uint64_t num_blocks = common::MathUtil::DivRoundUp(num_bits, sizeof(Block) * common::Constants::K_BITS_PER_BYTE);
   uint64_t num_bytes = num_blocks * sizeof(Block);
   blocks_ = reinterpret_cast<Block *>(memory->AllocateAligned(num_bytes, common::Constants::CACHELINE_SIZE, true));
 
@@ -54,10 +54,10 @@ void BloomFilter::Add(hash_t hash) {
 
   auto block = util::simd::Vec8().Load(blocks_[block_idx]);
   auto alt_hash = util::simd::Vec8(static_cast<uint32_t>(hash >> 32));
-  auto salts = util::simd::Vec8().Load(kSalts);
+  auto salts = util::simd::Vec8().Load(K_SALTS);
 
   alt_hash *= salts;
-  if constexpr (util::simd::Bitwidth::value != 256) {
+  if constexpr (util::simd::Bitwidth::VALUE != 256) {
     // Make sure we're dealing with 32-bit values
     alt_hash &= util::simd::Vec8(std::numeric_limits<uint32_t>::max() - 1);
   }
@@ -76,10 +76,10 @@ bool BloomFilter::Contains(hash_t hash) const {
 
   auto block = util::simd::Vec8().Load(blocks_[block_idx]);
   auto alt_hash = util::simd::Vec8(static_cast<uint32_t>(hash >> 32));
-  auto salts = util::simd::Vec8().Load(kSalts);
+  auto salts = util::simd::Vec8().Load(K_SALTS);
 
   alt_hash *= salts;
-  if constexpr (util::simd::Bitwidth::value != 256) {
+  if constexpr (util::simd::Bitwidth::VALUE != 256) {
     // Make sure we're dealing with 32-bit values
     alt_hash &= util::simd::Vec8(std::numeric_limits<uint32_t>::max() - 1);
   }
@@ -98,7 +98,7 @@ void BloomFilter::Add(hash_t hash) {
   Block &block = blocks_[block_idx];
   uint32_t alt_hash = static_cast<uint32_t>(hash >> 32);
   for (uint32_t i = 0; i < 8; i++) {
-    uint32_t bit_idx = (alt_hash * kSalts[i]) >> 27;
+    uint32_t bit_idx = (alt_hash * K_SALTS[i]) >> 27;
     util::BitUtil::Set(&block[i], bit_idx);
   }
 }
@@ -110,7 +110,7 @@ bool BloomFilter::Contains(hash_t hash) const {
 
   Block &block = blocks_[block_idx];
   for (uint32_t i = 0; i < 8; i++) {
-    uint32_t bit_idx = (alt_hash * kSalts[i]) >> 27;
+    uint32_t bit_idx = (alt_hash * K_SALTS[i]) >> 27;
     if (!util::BitUtil::Test(&block[i], bit_idx)) {
       return false;
     }

@@ -39,7 +39,7 @@ class CpuInfo {
   /**
    * Number of cache levels
    */
-  static constexpr const uint32_t kNumCacheLevels = CacheLevel::L3_CACHE + 1;
+  static constexpr const uint32_t K_NUM_CACHE_LEVELS = CacheLevel::L3_CACHE + 1;
 
   // -------------------------------------------------------
   // Main API
@@ -94,8 +94,8 @@ class CpuInfo {
   uint32_t num_cores_;
   std::string model_name_;
   double cpu_mhz_;
-  uint32_t cache_sizes_[kNumCacheLevels];
-  uint32_t cache_line_sizes_[kNumCacheLevels];
+  uint32_t cache_sizes_[K_NUM_CACHE_LEVELS];
+  uint32_t cache_line_sizes_[K_NUM_CACHE_LEVELS];
   util::InlinedBitVector<64> hardware_flags_;
 };
 

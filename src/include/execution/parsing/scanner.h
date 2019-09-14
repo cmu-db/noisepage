@@ -13,7 +13,7 @@ namespace terrier::execution::parsing {
  * Text Scanner
  */
 class Scanner {
-  static constexpr int32_t kEndOfInput = -1;
+  static constexpr int32_t K_END_OF_INPUT = -1;
 
  public:
   /**
@@ -43,22 +43,22 @@ class Scanner {
   /**
    * @return the next token type.
    */
-  Token::Type peek() const { return next_.type; }
+  Token::Type Peek() const { return next_.type_; }
 
   /**
    * @return the current token type
    */
-  Token::Type current_token() const { return curr_.type; }
+  Token::Type CurrentToken() const { return curr_.type_; }
 
   /**
    * @return the current string literal
    */
-  const std::string &current_literal() const { return curr_.literal; }
+  const std::string &CurrentLiteral() const { return curr_.literal_; }
 
   /**
    * @return the current source position
    */
-  const SourcePosition &current_position() const { return curr_.pos; }
+  const SourcePosition &CurrentPosition() const { return curr_.pos_; }
 
  private:
   // Scan the next token
@@ -68,13 +68,13 @@ class Scanner {
   void Advance() {
     bool at_end = (offset_ == source_len_);
     if (UNLIKELY(at_end)) {
-      c0_ = kEndOfInput;
+      c0_ = K_END_OF_INPUT;
       return;
     }
 
     // Not at end, bump
     c0_ = source_[offset_++];
-    c0_pos_.column++;
+    c0_pos_.column_++;
   }
 
   // Does the current character match the expected? If so, advance the scanner
@@ -115,10 +115,10 @@ class Scanner {
    * one.
    */
   struct TokenDesc {
-    Token::Type type;
-    SourcePosition pos;
-    uint64_t offset;
-    std::string literal;
+    Token::Type type_;
+    SourcePosition pos_;
+    uint64_t offset_;
+    std::string literal_;
   };
 
   //////////////////////////////////////////////////////////////////////////////

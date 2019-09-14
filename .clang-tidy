@@ -34,15 +34,25 @@ Checks:     '
             -google-readability-braces-around-statements,
             -modernize-use-nodiscard,
             -modernize-avoid-c-arrays,
-            -performance-unnecessary-value-param,
             -readability-braces-around-statements,
             -readability-isolate-declaration,
             -readability-magic-numbers,
             -readability-uppercase-literal-suffix,
             -portability-simd-intrinsics,
             '
+CheckOptions:
+  - { key: readability-identifier-naming.ClassCase,           value: CamelCase  }
+  - { key: readability-identifier-naming.EnumCase,            value: CamelCase  }
+  - { key: readability-identifier-naming.FunctionCase,        value: CamelCase  }
+  - { key: readability-identifier-naming.GlobalConstantCase,  value: UPPER_CASE }
+  - { key: readability-identifier-naming.MemberCase,          value: lower_case }
+  - { key: readability-identifier-naming.MemberSuffix,        value: _          }
+  - { key: readability-identifier-naming.NamespaceCase,       value: lower_case }
+  - { key: readability-identifier-naming.StructCase,          value: CamelCase  }
+  - { key: readability-identifier-naming.UnionCase,           value: CamelCase  }
+  - { key: readability-identifier-naming.VariableCase,        value: lower_case }
 WarningsAsErrors: '*'
-HeaderFilterRegex: '(benchmark|src|test)/include'
+HeaderFilterRegex: '(benchmark|src|test|util)/include'
 AnalyzeTemporaryDtors: true
 
 #### Disabled checks and why: #####
@@ -64,8 +74,6 @@ AnalyzeTemporaryDtors: true
 # New C++17 that seems related to the GCC warned about unused result attribute. Would really clutter codebase.
 # -modernize-avoid-c-arrays,
 # Not feasible in the storage layer
-# -performance-unnecessary-value-param,
-# Suggest re-enabling once shared_ptrs are done being ripped out. This actually found some good issues.
 # -readability-braces-around-statements,
 # @tli2 really likes his single statements without braces
 # -readability-isolate-declaration,

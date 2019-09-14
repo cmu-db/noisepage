@@ -7,7 +7,7 @@
 namespace terrier::execution {
 extern std::shared_ptr<spdlog::logger> execution_logger;
 
-void init_execution_logger();
+void InitExecutionLogger();
 }  // namespace terrier::execution
 
 #define EXECUTION_LOG_TRACE(...) ::terrier::execution::execution_logger->trace(__VA_ARGS__);

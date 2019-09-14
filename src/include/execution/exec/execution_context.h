@@ -14,7 +14,7 @@ namespace terrier::execution::exec {
  * Execution Context: Stores information handed in by upper layers.
  * TODO(Amadou): This class will change once we know exactly what we get from upper layers.
  */
-class ExecutionContext {
+class EXPORT ExecutionContext {
  public:
   /**
    * An allocator for short-ish strings. Needed because the requirements of

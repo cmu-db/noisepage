@@ -45,31 +45,11 @@ foreach (dir ${CLANG_INCLUDES})
 endforeach ()
 message(STATUS "CLANG_IR_CXX_INCLUDES: ${CLANG_IR_CXX_INCLUDES}")
 
-# Function to generate rule to cross compile a source file to an IR module.
-# When called called with a 'src.cpp' source file it will generate a 'src_bc'
-# target that can be built.
-# e.g. COMPILE_TO_IR(test.cpp) generates the "test_bc" make target.
-# Modified from Apache Impala.
-function(tpl_compile_to_ir SRC_FILE)
-    set(FULL_NAME "${PROJECT_SOURCE_DIR}/util/${SRC_FILE}")
-    get_filename_component(BASE_NAME ${FULL_NAME} NAME_WE)
-    set(OUTPUT_FILE "${CMAKE_BINARY_DIR}/${BASE_NAME}.bc")
-    add_custom_command(
-            OUTPUT ${OUTPUT_FILE}
-            COMMAND ${CLANG} ${CLANG_IR_CXX_FLAGS} ${CLANG_IR_CXX_INCLUDES} ${FULL_NAME} -o ${OUTPUT_FILE}
-            DEPENDS ${SRC_FILE})
-    add_custom_target(${BASE_NAME}_bc ALL DEPENDS ${OUTPUT_FILE} ${TERRIER_SRCS} ${UTIL_SRCS})
-    add_dependencies(${BASE_NAME}_bc util_static)
-    add_dependencies(gen_opt_bc ${BASE_NAME}_bc)
-endfunction(tpl_compile_to_ir)
 
-# Build the "gen_opt_bc" executable. This is dependent on all cross-compiled bitcode
-# set up through tpl_compile_to_ir()
+# Build the "gen_opt_bc" executable. This will be used to clean up the ir file.
 add_executable(gen_opt_bc "execution/gen_opt_bc.cpp")
+set_target_properties(gen_opt_bc PROPERTIES ENABLE_EXPORTS 1)
 target_link_libraries(gen_opt_bc ${TERRIER_LINK_LIBS})
-
-# Cross-compile the bytecode handlers
-tpl_compile_to_ir(execution/bytecode_handlers_ir.cpp)
 
 ##################################################
 #
@@ -78,6 +58,7 @@ tpl_compile_to_ir(execution/bytecode_handlers_ir.cpp)
 ##################################################
 set(tpl_main "execution/tpl.cpp")
 add_executable(tpl ${tpl_main})
+set_target_properties(tpl PROPERTIES ENABLE_EXPORTS 1)
 add_dependencies(tpl gen_opt_bc)
 target_link_libraries(tpl util_static)
 
@@ -93,6 +74,8 @@ add_custom_command(
         POST_BUILD
         WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
         COMMENT "Generating Optimized Bitcode ..."
+        COMMAND ${CLANG} ${CLANG_IR_CXX_FLAGS} ${CLANG_IR_CXX_INCLUDES}
+            ${PROJECT_SOURCE_DIR}/util/execution/bytecode_handlers_ir.cpp -o bytecode_handlers_ir.bc
         COMMAND gen_opt_bc bytecode_handlers_ir.bc bytecode_handlers_opt.bc
         COMMAND mv bytecode_handlers_opt.bc bytecode_handlers_ir.bc)
 

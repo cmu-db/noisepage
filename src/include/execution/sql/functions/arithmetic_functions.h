@@ -10,7 +10,7 @@ namespace terrier::execution::sql {
 /**
  * Utility class to handle various arithmetic SQL functions.
  */
-class ArithmeticFunctions {
+class EXPORT ArithmeticFunctions {
  public:
   // Delete to force only static functions
   ArithmeticFunctions() = delete;
@@ -237,7 +237,7 @@ class ArithmeticFunctions {
 
  private:
   // Cotangent
-  static double cotan(const double arg) { return (1.0 / std::tan(arg)); }
+  static double Cotan(const double arg) { return (1.0 / std::tan(arg)); }
 };
 
 // ---------------------------------------------------------
@@ -249,55 +249,55 @@ class ArithmeticFunctions {
 
 #define UNARY_MATH_EXPENSIVE_HIDE_NULL(NAME, RET_TYPE, INPUT_TYPE, FN)           \
   inline void ArithmeticFunctions::NAME(RET_TYPE *result, const INPUT_TYPE &v) { \
-    if (v.is_null) {                                                             \
+    if (v.is_null_) {                                                            \
       *result = RET_TYPE::Null();                                                \
       return;                                                                    \
     }                                                                            \
-    *result = RET_TYPE(FN(v.val));                                               \
+    *result = RET_TYPE(FN(v.val_));                                              \
   }
 
 #define BINARY_MATH_EXPENSIVE_HIDE_NULL(NAME, RET_TYPE, INPUT_TYPE1, INPUT_TYPE2, FN)                   \
   inline void ArithmeticFunctions::NAME(RET_TYPE *result, const INPUT_TYPE1 &a, const INPUT_TYPE2 &b) { \
-    if (a.is_null || b.is_null) {                                                                       \
+    if (a.is_null_ || b.is_null_) {                                                                     \
       *result = RET_TYPE::Null();                                                                       \
       return;                                                                                           \
     }                                                                                                   \
-    *result = RET_TYPE(FN(a.val, b.val));                                                               \
+    *result = RET_TYPE(FN(a.val_, b.val_));                                                             \
   }
 
 #define BINARY_MATH_FAST_HIDE_NULL(NAME, RET_TYPE, INPUT_TYPE1, INPUT_TYPE2, OP)                        \
   inline void ArithmeticFunctions::NAME(RET_TYPE *result, const INPUT_TYPE1 &a, const INPUT_TYPE2 &b) { \
-    result->is_null = (a.is_null || b.is_null);                                                         \
-    result->val = a.val OP b.val;                                                                       \
+    result->is_null_ = (a.is_null_ || b.is_null_);                                                      \
+    result->val_ = a.val_ OP b.val_;                                                                    \
   }
 
 #define BINARY_MATH_FAST_HIDE_NULL_OVERFLOW(NAME, RET_TYPE, INPUT_TYPE1, INPUT_TYPE2, FN)             \
   inline void ArithmeticFunctions::NAME(RET_TYPE *result, const INPUT_TYPE1 &a, const INPUT_TYPE2 &b, \
                                         bool *overflow) {                                             \
-    result->is_null = (a.is_null || b.is_null);                                                       \
-    *overflow = FN(a.val, b.val, &result->val);                                                       \
+    result->is_null_ = (a.is_null_ || b.is_null_);                                                    \
+    *overflow = FN(a.val_, b.val_, &result->val_);                                                    \
   }
 
 #define BINARY_OP_CHECK_ZERO(NAME, RET_TYPE, INPUT_TYPE1, INPUT_TYPE2, OP)                            \
   inline void ArithmeticFunctions::NAME(RET_TYPE *result, const INPUT_TYPE1 &a, const INPUT_TYPE2 &b, \
                                         bool *div_by_zero) {                                          \
-    if (a.is_null || b.is_null || b.val == 0) {                                                       \
+    if (a.is_null_ || b.is_null_ || b.val_ == 0) {                                                    \
       *div_by_zero = true;                                                                            \
       *result = RET_TYPE::Null();                                                                     \
       return;                                                                                         \
     }                                                                                                 \
-    *result = RET_TYPE(a.val OP b.val);                                                               \
+    *result = RET_TYPE(a.val_ OP b.val_);                                                             \
   }
 
 #define BINARY_FN_CHECK_ZERO(NAME, RET_TYPE, INPUT_TYPE1, INPUT_TYPE2, FN)                            \
   inline void ArithmeticFunctions::NAME(RET_TYPE *result, const INPUT_TYPE1 &a, const INPUT_TYPE2 &b, \
                                         bool *div_by_zero) {                                          \
-    if (a.is_null || b.is_null || b.val == 0) {                                                       \
+    if (a.is_null_ || b.is_null_ || b.val_ == 0) {                                                    \
       *div_by_zero = true;                                                                            \
       *result = RET_TYPE::Null();                                                                     \
       return;                                                                                         \
     }                                                                                                 \
-    *result = RET_TYPE(FN(a.val, b.val));                                                             \
+    *result = RET_TYPE(FN(a.val_, b.val_));                                                           \
   }
 
 BINARY_MATH_FAST_HIDE_NULL(Add, Integer, Integer, Integer, +);
@@ -316,12 +316,12 @@ BINARY_OP_CHECK_ZERO(Div, Real, Real, Real, /);
 BINARY_OP_CHECK_ZERO(IntMod, Integer, Integer, Integer, %);
 
 inline void ArithmeticFunctions::Mod(Real *result, const Real &a, const Real &b, bool *div_by_zero) {
-  *div_by_zero = (b.val == 0);
-  if (a.is_null || b.is_null || b.val == 0) {
+  *div_by_zero = (b.val_ == 0);
+  if (a.is_null_ || b.is_null_ || b.val_ == 0) {
     *result = Real::Null();
     return;
   }
-  *result = Real(std::fmod(a.val, b.val));
+  *result = Real(std::fmod(a.val_, b.val_));
 }
 
 inline void ArithmeticFunctions::Pi(Real *result) { *result = Real(M_PI); }
@@ -335,7 +335,7 @@ UNARY_MATH_EXPENSIVE_HIDE_NULL(Asin, Real, Real, std::asin);
 UNARY_MATH_EXPENSIVE_HIDE_NULL(Cos, Real, Real, std::cos);
 UNARY_MATH_EXPENSIVE_HIDE_NULL(Acos, Real, Real, std::acos);
 UNARY_MATH_EXPENSIVE_HIDE_NULL(Tan, Real, Real, std::tan);
-UNARY_MATH_EXPENSIVE_HIDE_NULL(Cot, Real, Real, cotan);
+UNARY_MATH_EXPENSIVE_HIDE_NULL(Cot, Real, Real, Cotan);
 UNARY_MATH_EXPENSIVE_HIDE_NULL(Atan, Real, Real, std::atan);
 UNARY_MATH_EXPENSIVE_HIDE_NULL(Cosh, Real, Real, std::cosh);
 UNARY_MATH_EXPENSIVE_HIDE_NULL(Tanh, Real, Real, std::tanh);
@@ -361,51 +361,51 @@ BINARY_MATH_EXPENSIVE_HIDE_NULL(Pow, Real, Real, Real, std::pow);
 #undef UNARY_MATH_EXPENSIVE_HIDE_NULL
 
 inline void ArithmeticFunctions::Sign(Real *result, const Real &v) {
-  if (v.is_null) {
+  if (v.is_null_) {
     *result = Real::Null();
     return;
   }
-  *result = Real((v.val > 0) ? 1.0f : ((v.val < 0) ? -1.0f : 0.0f));
+  *result = Real((v.val_ > 0) ? 1.0f : ((v.val_ < 0) ? -1.0f : 0.0f));
 }
 
 inline void ArithmeticFunctions::Radians(Real *result, const Real &v) {
-  if (v.is_null) {
+  if (v.is_null_) {
     *result = Real::Null();
     return;
   }
-  *result = Real(v.val * M_PI / 180.0);
+  *result = Real(v.val_ * M_PI / 180.0);
 }
 
 inline void ArithmeticFunctions::Degrees(Real *result, const Real &v) {
-  if (v.is_null) {
+  if (v.is_null_) {
     *result = Real::Null();
     return;
   }
-  *result = Real(v.val * 180.0 / M_PI);
+  *result = Real(v.val_ * 180.0 / M_PI);
 }
 
 inline void ArithmeticFunctions::Round(Real *result, const Real &v) {
-  if (v.is_null) {
+  if (v.is_null_) {
     *result = Real::Null();
     return;
   }
-  *result = Real(v.val + ((v.val < 0) ? -0.5 : 0.5));
+  *result = Real(v.val_ + ((v.val_ < 0) ? -0.5 : 0.5));
 }
 
 inline void ArithmeticFunctions::RoundUpTo(Real *result, const Real &v, const Integer &scale) {
-  if (v.is_null || scale.is_null) {
+  if (v.is_null_ || scale.is_null_) {
     *result = Real::Null();
     return;
   }
-  *result = Real(std::floor(v.val * std::pow(10.0, scale.val) + 0.5) / std::pow(10.0, scale.val));
+  *result = Real(std::floor(v.val_ * std::pow(10.0, scale.val_) + 0.5) / std::pow(10.0, scale.val_));
 }
 
 inline void ArithmeticFunctions::Log(Real *result, const Real &base, const Real &val) {
-  if (base.is_null || val.is_null) {
+  if (base.is_null_ || val.is_null_) {
     *result = Real::Null();
     return;
   }
-  *result = Real(std::log(val.val) / std::log(base.val));
+  *result = Real(std::log(val.val_) / std::log(base.val_));
 }
 
 }  // namespace terrier::execution::sql

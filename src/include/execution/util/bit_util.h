@@ -18,11 +18,11 @@ class BitUtil {
   /**
    * The number of bits in one word
    */
-  static constexpr const uint32_t kBitWordSize = sizeof(uint32_t) * common::Constants::kBitsPerByte;
+  static constexpr const uint32_t K_BIT_WORD_SIZE = sizeof(uint32_t) * common::Constants::K_BITS_PER_BYTE;
 
   // Make sure the number of bits in a word is a power of two to make all these
   // bit operations cheap
-  static_assert(common::MathUtil::IsPowerOf2(kBitWordSize));
+  static_assert(common::MathUtil::IsPowerOf2(K_BIT_WORD_SIZE));
 
   /**
    * Count the number of zeroes from the most significant bit to the first 1 in
@@ -43,7 +43,7 @@ class BitUtil {
    * @return The number of words needed to store a bit vector of the given size
    */
   ALWAYS_INLINE static uint64_t Num32BitWordsFor(uint64_t num_bits) {
-    return common::MathUtil::DivRoundUp(num_bits, kBitWordSize);
+    return common::MathUtil::DivRoundUp(num_bits, K_BIT_WORD_SIZE);
   }
 
   /**
@@ -53,8 +53,8 @@ class BitUtil {
    * @return True if set; false otherwise
    */
   ALWAYS_INLINE static bool Test(const uint32_t bits[], const uint32_t idx) {
-    const uint32_t mask = 1u << (idx % kBitWordSize);
-    return (bits[idx / kBitWordSize] & mask) != 0;
+    const uint32_t mask = 1u << (idx % K_BIT_WORD_SIZE);
+    return (bits[idx / K_BIT_WORD_SIZE] & mask) != 0;
   }
 
   /**
@@ -63,7 +63,7 @@ class BitUtil {
    * @param idx The index of the bit to set to 1
    */
   ALWAYS_INLINE static void Set(uint32_t bits[], const uint32_t idx) {
-    bits[idx / kBitWordSize] |= 1u << (idx % kBitWordSize);
+    bits[idx / K_BIT_WORD_SIZE] |= 1u << (idx % K_BIT_WORD_SIZE);
   }
 
   /**
@@ -86,7 +86,7 @@ class BitUtil {
    * @param idx index of the bit to be set to 0
    */
   ALWAYS_INLINE static void Unset(uint32_t bits[], const uint32_t idx) {
-    bits[idx / kBitWordSize] &= ~(1u << (idx % kBitWordSize));
+    bits[idx / K_BIT_WORD_SIZE] &= ~(1u << (idx % K_BIT_WORD_SIZE));
   }
 
   /**
@@ -95,7 +95,7 @@ class BitUtil {
    * @param idx index of the bit to flip
    */
   ALWAYS_INLINE static void Flip(uint32_t bits[], const uint32_t idx) {
-    bits[idx / kBitWordSize] ^= 1u << (idx % kBitWordSize);
+    bits[idx / K_BIT_WORD_SIZE] ^= 1u << (idx % K_BIT_WORD_SIZE);
   }
 
   /**
@@ -119,7 +119,7 @@ class BitUtil {
 
 /**
  * Common class to bit vectors that are inlined or stored externally to the class. Uses CRTP to properly access bits
- * and bit-vector size. Subclasses must implement bits() and num_bits() and provide raw access to the bit vector data
+ * and bit-vector size. Subclasses must implement Bits() and NumBits() and provide raw access to the bit vector data
  * and the number of bits in the bit vector, respectively.
  */
 template <typename Subclass>
@@ -129,46 +129,46 @@ class BitVectorBase {
    * @return true if the bit at the given index is 1, false otherwise
    */
   bool Test(uint32_t idx) const {
-    TERRIER_ASSERT(idx < impl()->num_bits(), "Index out of range");
-    return BitUtil::Test(impl()->bits(), idx);
+    TERRIER_ASSERT(idx < Impl()->NumBits(), "Index out of range");
+    return BitUtil::Test(Impl()->Bits(), idx);
   }
 
   /**
    * Set the bit at index idx in the bitvector to 1
    */
   void Set(uint32_t idx) {
-    TERRIER_ASSERT(idx < impl()->num_bits(), "Index out of range");
-    return BitUtil::Set(impl()->bits(), idx);
+    TERRIER_ASSERT(idx < Impl()->NumBits(), "Index out of range");
+    return BitUtil::Set(Impl()->Bits(), idx);
   }
 
   /**
    * Set the bit at the given index to the given value
    */
   void SetTo(const uint32_t idx, const bool val) {
-    TERRIER_ASSERT(idx < impl()->num_bits(), "Index out of range");
-    return BitUtil::SetTo(impl()->bits(), idx, val);
+    TERRIER_ASSERT(idx < Impl()->NumBits(), "Index out of range");
+    return BitUtil::SetTo(Impl()->Bits(), idx, val);
   }
 
   /**
    * Set the bit at index idx in the bitvector to 0
    */
   void Unset(uint32_t idx) {
-    TERRIER_ASSERT(idx < impl()->num_bits(), "Index out of range");
-    return BitUtil::Unset(impl()->bits(), idx);
+    TERRIER_ASSERT(idx < Impl()->NumBits(), "Index out of range");
+    return BitUtil::Unset(Impl()->Bits(), idx);
   }
 
   /**
    * Flip the bit at index idx in the bitvector
    */
   void Flip(uint32_t idx) {
-    TERRIER_ASSERT(idx < impl()->num_bits(), "Index out of range");
-    return BitUtil::Flip(impl()->bits(), idx);
+    TERRIER_ASSERT(idx < Impl()->NumBits(), "Index out of range");
+    return BitUtil::Flip(Impl()->Bits(), idx);
   }
 
   /**
    * Sets all the bits in the bitvector to 0
    */
-  void ClearAll() { return BitUtil::Clear(impl()->bits(), impl()->num_bits()); }
+  void ClearAll() { return BitUtil::Clear(Impl()->Bits(), Impl()->NumBits()); }
 
   /**
    * @return true if the bit at the given index is 1, false otherwise
@@ -176,8 +176,8 @@ class BitVectorBase {
   bool operator[](uint32_t idx) const { return Test(idx); }
 
  private:
-  Subclass *impl() { return static_cast<Subclass *>(this); }
-  const Subclass *impl() const { return static_cast<const Subclass *>(this); }
+  Subclass *Impl() { return static_cast<Subclass *>(this); }
+  const Subclass *Impl() const { return static_cast<const Subclass *>(this); }
 };
 
 /**
@@ -225,12 +225,12 @@ class BitVector : public BitVectorBase<BitVector> {
   /**
    * @return number of bits in the bitvector
    */
-  uint32_t num_bits() const { return num_bits_; }
+  uint32_t NumBits() const { return num_bits_; }
 
   /**
    * @return pointer to bits in the bitvector
    */
-  uint32_t *bits() const { return bits_; }
+  uint32_t *Bits() const { return bits_; }
 
  private:
   std::unique_ptr<uint32_t[]> owned_bits_{nullptr};
@@ -241,9 +241,9 @@ class BitVector : public BitVectorBase<BitVector> {
 };
 
 /** A bit vector that stores the bitset data inline in the class. */
-template <uint32_t NumBits>
-class InlinedBitVector : public BitVectorBase<InlinedBitVector<NumBits>> {
-  static_assert(NumBits % BitUtil::kBitWordSize == 0,
+template <uint32_t Size>
+class InlinedBitVector : public BitVectorBase<InlinedBitVector<Size>> {
+  static_assert(Size % BitUtil::K_BIT_WORD_SIZE == 0,
                 "Inlined bit vectors only support vectors that are a multiple "
                 "of the word size (i.e., 32 bits, 64 bits, 128 bits, etc.");
 
@@ -256,20 +256,20 @@ class InlinedBitVector : public BitVectorBase<InlinedBitVector<NumBits>> {
   /**
    * @return number of bits in the bitvector
    */
-  uint32_t num_bits() const { return NumBits; }
+  uint32_t NumBits() const { return Size; }
 
   /**
    * @return pointer to bits in the bitvector
    */
-  uint32_t *bits() { return bits_; }
+  uint32_t *Bits() { return bits_; }
 
   /**
    * @return const pointer to bits in the bitvector
    */
-  const uint32_t *bits() const { return bits_; }
+  const uint32_t *Bits() const { return bits_; }
 
  private:
-  uint32_t bits_[NumBits / BitUtil::kBitWordSize];
+  uint32_t bits_[Size / BitUtil::K_BIT_WORD_SIZE];
 };
 
 }  // namespace terrier::execution::util

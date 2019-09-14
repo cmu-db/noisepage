@@ -25,7 +25,7 @@ namespace terrier::execution::ast {
 template <typename Subclass, typename RetType = void>
 class AstVisitor {
  public:
-#define DISPATCH(Type) return this->impl()->Visit##Type(static_cast<Type *>(node));
+#define DISPATCH(Type) return this->Impl()->Visit##Type(static_cast<Type *>(node));
 
   /**
    * Visits an arbitrary node
@@ -33,7 +33,7 @@ class AstVisitor {
    * @return return value of the node
    */
   RetType Visit(AstNode *node) {
-    switch (node->kind()) {
+    switch (node->GetKind()) {
       default: {
         llvm_unreachable("Impossible node type");
       }
@@ -88,7 +88,7 @@ class AstVisitor {
   /**
    * @return the actual implementation of this class
    */
-  Subclass *impl() { return static_cast<Subclass *>(this); }
+  Subclass *Impl() { return static_cast<Subclass *>(this); }
 };
 
 }  // namespace terrier::execution::ast

@@ -160,16 +160,16 @@ TEST_F(SorterTest, TopKTest) {
 
 template <uint32_t N>
 struct TestTuple {
-  uint32_t key;
-  uint32_t data[N];
+  uint32_t key_;
+  uint32_t data_[N];
 
-  int32_t Compare(const TestTuple<N> &other) const { return key - other.key; }
+  int32_t Compare(const TestTuple<N> &other) const { return key_ - other.key_; }
 };
 
 // Generic function to perform a parallel sort. The input parameter indicates
-// the sizes of each thread-local sorter that will be created.
+// the sizes_ of each thread-local sorter that will be created.
 template <uint32_t N>
-void TestParallelSort(const std::vector<uint32_t> &sorter_sizes) {
+void TestParallelSort(const std::vector<uint32_t> &sorter_sizes_) {
   // Comparison function
   static const auto cmp_fn = [](const void *left, const void *right) {
     const auto *l = reinterpret_cast<const TestTuple<N> *>(left);
@@ -191,11 +191,11 @@ void TestParallelSort(const std::vector<uint32_t> &sorter_sizes) {
 
   // Parallel build
   tbb::task_scheduler_init sched;
-  tbb::parallel_for_each(sorter_sizes.begin(), sorter_sizes.end(), [&container](auto sorter_size) {
+  tbb::parallel_for_each(sorter_sizes_.begin(), sorter_sizes_.end(), [&container](auto sorter_size) {
     auto *sorter = container.AccessThreadStateOfCurrentThreadAs<Sorter>();
     for (uint32_t i = 0; i < sorter_size; i++) {
       auto *elem = reinterpret_cast<TestTuple<N> *>(sorter->AllocInputTuple());
-      elem->key = i;
+      elem->key_ = i;
     }
   });
 
@@ -204,9 +204,9 @@ void TestParallelSort(const std::vector<uint32_t> &sorter_sizes) {
   main.SortParallel(&container, 0);
 
   uint32_t expected_total_size =
-      std::accumulate(sorter_sizes.begin(), sorter_sizes.end(), 0u, [](auto p, auto s) { return p + s; });
+      std::accumulate(sorter_sizes_.begin(), sorter_sizes_.end(), 0u, [](auto p, auto s) { return p + s; });
 
-  EXPECT_TRUE(main.is_sorted());
+  EXPECT_TRUE(main.IsSorted());
   EXPECT_EQ(expected_total_size, main.NumTuples());
 
   // Ensure sortedness

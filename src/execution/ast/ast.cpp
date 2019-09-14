@@ -9,7 +9,7 @@ namespace terrier::execution::ast {
 // ---------------------------------------------------------
 
 FunctionDecl::FunctionDecl(const SourcePosition &pos, Identifier name, FunctionLitExpr *func)
-    : Decl(Kind::FunctionDecl, pos, name, func->type_repr()), func_(func) {}
+    : Decl(Kind::FunctionDecl, pos, name, func->TypeRepr()), func_(func) {}
 
 // ---------------------------------------------------------
 // Structure Declaration
@@ -22,7 +22,7 @@ StructDecl::StructDecl(const SourcePosition &pos, Identifier name, StructTypeRep
 // Expression Statement
 // ---------------------------------------------------------
 
-ExpressionStmt::ExpressionStmt(Expr *expr) : Stmt(Kind::ExpressionStmt, expr->position()), expr_(expr) {}
+ExpressionStmt::ExpressionStmt(Expr *expr) : Stmt(Kind::ExpressionStmt, expr->Position()), expr_(expr) {}
 
 // ---------------------------------------------------------
 // Expression
@@ -30,21 +30,21 @@ ExpressionStmt::ExpressionStmt(Expr *expr) : Stmt(Kind::ExpressionStmt, expr->po
 
 bool Expr::IsNilLiteral() const {
   if (auto *lit_expr = SafeAs<ast::LitExpr>()) {
-    return lit_expr->literal_kind() == ast::LitExpr::LitKind::Nil;
+    return lit_expr->LiteralKind() == ast::LitExpr::LitKind::Nil;
   }
   return false;
 }
 
 bool Expr::IsStringLiteral() const {
   if (auto *lit_expr = SafeAs<ast::LitExpr>()) {
-    return lit_expr->literal_kind() == ast::LitExpr::LitKind::String;
+    return lit_expr->LiteralKind() == ast::LitExpr::LitKind::String;
   }
   return false;
 }
 
 bool Expr::IsIntegerLiteral() const {
   if (auto *lit_expr = SafeAs<ast::LitExpr>()) {
-    return lit_expr->literal_kind() == ast::LitExpr::LitKind::Int;
+    return lit_expr->LiteralKind() == ast::LitExpr::LitKind::Int;
   }
   return false;
 }
@@ -75,28 +75,28 @@ bool ComparisonOpExpr::IsLiteralCompareNil(Expr **result) const {
 // ---------------------------------------------------------
 
 FunctionLitExpr::FunctionLitExpr(FunctionTypeRepr *type_repr, BlockStmt *body)
-    : Expr(Kind::FunctionLitExpr, type_repr->position()), type_repr_(type_repr), body_(body) {}
+    : Expr(Kind::FunctionLitExpr, type_repr->Position()), type_repr_(type_repr), body_(body) {}
 
 // ---------------------------------------------------------
 // Call Expression
 // ---------------------------------------------------------
 
-Identifier CallExpr::GetFuncName() const { return func_->As<IdentifierExpr>()->name(); }
+Identifier CallExpr::GetFuncName() const { return func_->As<IdentifierExpr>()->Name(); }
 
 // ---------------------------------------------------------
 // Index Expressions
 // ---------------------------------------------------------
 
 bool IndexExpr::IsArrayAccess() const {
-  TERRIER_ASSERT(object() != nullptr, "Object cannot be NULL");
-  TERRIER_ASSERT(object() != nullptr, "Cannot determine object type before type checking!");
-  return object()->type()->IsArrayType();
+  TERRIER_ASSERT(Object() != nullptr, "Object cannot be NULL");
+  TERRIER_ASSERT(Object() != nullptr, "Cannot determine object type before type checking!");
+  return Object()->GetType()->IsArrayType();
 }
 
 bool IndexExpr::IsMapAccess() const {
-  TERRIER_ASSERT(object() != nullptr, "Object cannot be NULL");
-  TERRIER_ASSERT(object() != nullptr, "Cannot determine object type before type checking!");
-  return object()->type()->IsMapType();
+  TERRIER_ASSERT(Object() != nullptr, "Object cannot be NULL");
+  TERRIER_ASSERT(Object() != nullptr, "Cannot determine object type before type checking!");
+  return Object()->GetType()->IsMapType();
 }
 
 // ---------------------------------------------------------
@@ -104,8 +104,8 @@ bool IndexExpr::IsMapAccess() const {
 // ---------------------------------------------------------
 
 bool MemberExpr::IsSugaredArrow() const {
-  TERRIER_ASSERT(object()->type() != nullptr, "Cannot determine sugared-arrow before type checking!");
-  return object()->type()->IsPointerType();
+  TERRIER_ASSERT(Object()->GetType() != nullptr, "Cannot determine sugared-arrow before type checking!");
+  return Object()->GetType()->IsPointerType();
 }
 
 // ---------------------------------------------------------
@@ -113,13 +113,13 @@ bool MemberExpr::IsSugaredArrow() const {
 // ---------------------------------------------------------
 
 bool Stmt::IsTerminating(Stmt *stmt) {
-  switch (stmt->kind()) {
+  switch (stmt->GetKind()) {
     case AstNode::Kind::BlockStmt: {
-      return IsTerminating(stmt->As<BlockStmt>()->statements().back());
+      return IsTerminating(stmt->As<BlockStmt>()->Statements().back());
     }
     case AstNode::Kind::IfStmt: {
       auto *if_stmt = stmt->As<IfStmt>();
-      return (if_stmt->HasElseStmt() && (IsTerminating(if_stmt->then_stmt()) && IsTerminating(if_stmt->else_stmt())));
+      return (if_stmt->HasElseStmt() && (IsTerminating(if_stmt->ThenStmt()) && IsTerminating(if_stmt->ElseStmt())));
     }
     case AstNode::Kind::ReturnStmt: {
       return true;

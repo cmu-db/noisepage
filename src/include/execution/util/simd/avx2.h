@@ -35,23 +35,23 @@ class Vec256b {
   /**
    * Store the contents of this vector into the provided unaligned pointer.
    */
-  void Store(void *ptr) const { _mm256_storeu_si256(reinterpret_cast<__m256i *>(ptr), reg()); }
+  void Store(void *ptr) const { _mm256_storeu_si256(reinterpret_cast<__m256i *>(ptr), Reg()); }
 
   /**
    * Store the contents of this vector into the provided aligned pointer.
    */
-  void StoreAligned(void *ptr) const { _mm256_store_si256(reinterpret_cast<__m256i *>(ptr), reg()); }
+  void StoreAligned(void *ptr) const { _mm256_store_si256(reinterpret_cast<__m256i *>(ptr), Reg()); }
 
   /**
    * @return true if all the corresponding masked bits in this vector are set
    */
-  bool AllBitsAtPositionsSet(const Vec256b &mask) const { return _mm256_testc_si256(reg(), mask) == 1; }
+  bool AllBitsAtPositionsSet(const Vec256b &mask) const { return _mm256_testc_si256(Reg(), mask) == 1; }
 
  protected:
   /**
    * @return the underlying register
    */
-  const __m256i &reg() const { return reg_; }
+  const __m256i &Reg() const { return reg_; }
 
  protected:
   /**
@@ -237,7 +237,7 @@ ALWAYS_INLINE inline Vec4 &Vec4::Gather<int64_t>(const int64_t *ptr, const Vec4 
  * Truncate the four 64-bit values in this vector and store them into the first four elements of the provided array.
  */
 ALWAYS_INLINE inline void Vec4::Store(int32_t *arr) const {
-  auto truncated = _mm256_cvtepi64_epi32(reg());
+  auto truncated = _mm256_cvtepi64_epi32(Reg());
   _mm_store_si128(reinterpret_cast<__m128i *>(arr), truncated);
 }
 
@@ -492,9 +492,9 @@ class Vec8Mask : public Vec8 {
 // ---------------------------------------------------------
 
 ALWAYS_INLINE inline uint32_t Vec8Mask::ToPositions(uint32_t *positions, uint32_t offset) const {
-  int32_t mask = _mm256_movemask_ps(_mm256_castsi256_ps(reg()));
+  int32_t mask = _mm256_movemask_ps(_mm256_castsi256_ps(Reg()));
   TERRIER_ASSERT(mask < 256, "8-bit mask must be less than 256");
-  __m128i match_pos_scaled = _mm_loadl_epi64(reinterpret_cast<const __m128i *>(&k8BitMatchLUT[mask]));
+  __m128i match_pos_scaled = _mm_loadl_epi64(reinterpret_cast<const __m128i *>(&K8_BIT_MATCH_LUT[mask]));
   __m256i match_pos = _mm256_cvtepi8_epi32(match_pos_scaled);
   __m256i pos_vec = _mm256_add_epi32(_mm256_set1_epi32(offset), match_pos);
   _mm256_storeu_si256(reinterpret_cast<__m256i *>(positions), pos_vec);
@@ -502,12 +502,12 @@ ALWAYS_INLINE inline uint32_t Vec8Mask::ToPositions(uint32_t *positions, uint32_
 }
 
 ALWAYS_INLINE inline uint32_t Vec8Mask::ToPositions(uint32_t *positions, const execution::util::simd::Vec8 &pos) const {
-  int32_t mask = _mm256_movemask_ps(_mm256_castsi256_ps(reg()));
+  int32_t mask = _mm256_movemask_ps(_mm256_castsi256_ps(Reg()));
   TERRIER_ASSERT(mask < 256, "8-bit mask must be less than 256");
-  __m128i perm_comp = _mm_loadl_epi64(reinterpret_cast<const __m128i *>(&k8BitMatchLUT[mask]));
+  __m128i perm_comp = _mm_loadl_epi64(reinterpret_cast<const __m128i *>(&K8_BIT_MATCH_LUT[mask]));
   __m256i perm = _mm256_cvtepi8_epi32(perm_comp);
   __m256i perm_pos = _mm256_permutevar8x32_epi32(pos, perm);
-  __m256i perm_mask = _mm256_permutevar8x32_epi32(reg(), perm);
+  __m256i perm_mask = _mm256_permutevar8x32_epi32(Reg(), perm);
   _mm256_maskstore_epi32(reinterpret_cast<int32_t *>(positions), perm_mask, perm_pos);
   return __builtin_popcount(mask);
 }
@@ -541,10 +541,10 @@ class Vec4Mask : public Vec4 {
    * @return number of set bits in the mask
    */
   ALWAYS_INLINE inline uint32_t ToPositions(uint32_t *positions, uint32_t offset) const {
-    int32_t mask = _mm256_movemask_pd(_mm256_castsi256_pd(reg()));
+    int32_t mask = _mm256_movemask_pd(_mm256_castsi256_pd(Reg()));
     TERRIER_ASSERT(mask < 16, "4-bit mask must be less than 16");
     __m128i match_pos_scaled =
-        _mm_loadl_epi64(reinterpret_cast<__m128i *>(const_cast<uint64_t *>(&k4BitMatchLUT[mask])));
+        _mm_loadl_epi64(reinterpret_cast<__m128i *>(const_cast<uint64_t *>(&K4_BIT_MATCH_LUT[mask])));
     __m128i match_pos = _mm_cvtepi16_epi32(match_pos_scaled);
     __m128i pos_vec = _mm_add_epi32(_mm_set1_epi32(offset), match_pos);
     _mm_storeu_si128(reinterpret_cast<__m128i *>(positions), pos_vec);
@@ -558,7 +558,7 @@ class Vec4Mask : public Vec4 {
    * @return number of set bits in the mask
    */
   ALWAYS_INLINE inline uint32_t ToPositions(uint32_t *positions, const Vec4 &pos) const {
-    int32_t mask = _mm256_movemask_pd(_mm256_castsi256_pd(reg()));
+    int32_t mask = _mm256_movemask_pd(_mm256_castsi256_pd(Reg()));
     TERRIER_ASSERT(mask < 16, "4-bit mask must be less than 16");
 
     // TODO(pmenon): Fix this slowness!

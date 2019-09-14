@@ -42,12 +42,12 @@ class TPCCTests : public TerrierTest {
   storage::BlockStore block_store_{blockstore_size_limit_, blockstore_reuse_limit_};
   storage::RecordBufferSegmentPool buffer_pool_{buffersegment_size_limit_, buffersegment_reuse_limit_};
   std::default_random_engine generator_;
-  storage::LogManager *log_manager_ = LOGGING_DISABLED;  // logging enabled will override this value
+  storage::LogManager *log_manager_ = DISABLED;  // logging enabled will override this value
 
   const int8_t num_threads_ = 4;  // defines the number of terminals (workers running txns) and warehouses for the
   // benchmark. Sometimes called scale factor
   const uint32_t num_precomputed_txns_per_worker_ = 10000;  // Number of txns to run per terminal (worker thread)
-  TransactionWeights txn_weights;                           // default txn_weights. See definition for values
+  TransactionWeights txn_weights_;                          // default txn_weights. See definition for values
 
   common::WorkerPool thread_pool_{static_cast<uint32_t>(num_threads_), {}};
   common::DedicatedThreadRegistry *thread_registry_ = nullptr;
@@ -56,8 +56,9 @@ class TPCCTests : public TerrierTest {
   const uint64_t num_log_buffers_ = 100;
   const std::chrono::milliseconds log_serialization_interval_{10};
   const std::chrono::milliseconds log_persist_interval_{20};
-  const uint64_t log_persist_threshold_ = (1 << 20);  // 1MB
+  const uint64_t log_persist_threshold_ = (1U << 20U);  // 1MB
 
+  storage::GarbageCollector *gc_;
   storage::GarbageCollectorThread *gc_thread_ = nullptr;
   const std::chrono::milliseconds gc_period_{10};
 };
@@ -74,12 +75,15 @@ TEST_F(TPCCTests, WithoutLogging) {
   thread_pool_.Startup();
 
   // we need transactions, TPCC database, and GC
-  transaction::TransactionManager txn_manager(&buffer_pool_, true, log_manager_);
+  transaction::TimestampManager timestamp_manager;
+  transaction::DeferredActionManager deferred_action_manager(&timestamp_manager);
+  transaction::TransactionManager txn_manager(&timestamp_manager, &deferred_action_manager, &buffer_pool_, true,
+                                              log_manager_);
   auto tpcc_builder = Builder(&block_store_);
 
   // Precompute all of the input arguments for every txn to be run. We want to avoid the overhead at benchmark time
   const auto precomputed_args =
-      PrecomputeArgs(&generator_, txn_weights, num_threads_, num_precomputed_txns_per_worker_);
+      PrecomputeArgs(&generator_, txn_weights_, num_threads_, num_precomputed_txns_per_worker_);
 
   // build the TPCC database
   auto *const tpcc_db = tpcc_builder.Build();
@@ -92,7 +96,9 @@ TEST_F(TPCCTests, WithoutLogging) {
 
   // populate the tables and indexes
   Loader::PopulateDatabase(&txn_manager, &generator_, tpcc_db, workers);
-  gc_thread_ = new storage::GarbageCollectorThread(&txn_manager, gc_period_);
+
+  gc_ = new storage::GarbageCollector(&timestamp_manager, &deferred_action_manager, &txn_manager, DISABLED);
+  gc_thread_ = new storage::GarbageCollectorThread(gc_, gc_period_);
   Util::RegisterIndexesForGC(&(gc_thread_->GetGarbageCollector()), tpcc_db);
   std::this_thread::sleep_for(std::chrono::seconds(2));  // Let GC clean up
 
@@ -106,6 +112,7 @@ TEST_F(TPCCTests, WithoutLogging) {
 
   // cleanup
   delete gc_thread_;
+  delete gc_;
   delete tpcc_db;
 
   CleanUpVarlensInPrecomputedArgs(&precomputed_args);
@@ -128,12 +135,15 @@ TEST_F(TPCCTests, WithLogging) {
       new storage::LogManager(LOG_FILE_NAME, num_log_buffers_, log_serialization_interval_, log_persist_interval_,
                               log_persist_threshold_, &buffer_pool_, common::ManagedPointer(thread_registry_));
   log_manager_->Start();
-  transaction::TransactionManager txn_manager(&buffer_pool_, true, log_manager_);
+  transaction::TimestampManager timestamp_manager;
+  transaction::DeferredActionManager deferred_action_manager(&timestamp_manager);
+  transaction::TransactionManager txn_manager(&timestamp_manager, &deferred_action_manager, &buffer_pool_, true,
+                                              log_manager_);
   auto tpcc_builder = Builder(&block_store_);
 
   // Precompute all of the input arguments for every txn to be run. We want to avoid the overhead at benchmark time
   const auto precomputed_args =
-      PrecomputeArgs(&generator_, txn_weights, num_threads_, num_precomputed_txns_per_worker_);
+      PrecomputeArgs(&generator_, txn_weights_, num_threads_, num_precomputed_txns_per_worker_);
 
   // build the TPCC database
   auto *const tpcc_db = tpcc_builder.Build();
@@ -149,7 +159,8 @@ TEST_F(TPCCTests, WithLogging) {
   log_manager_->ForceFlush();
 
   // Let GC clean up
-  gc_thread_ = new storage::GarbageCollectorThread(&txn_manager, gc_period_);
+  gc_ = new storage::GarbageCollector(&timestamp_manager, &deferred_action_manager, &txn_manager, DISABLED);
+  gc_thread_ = new storage::GarbageCollectorThread(gc_, gc_period_);
   Util::RegisterIndexesForGC(&(gc_thread_->GetGarbageCollector()), tpcc_db);
   std::this_thread::sleep_for(std::chrono::seconds(2));
 
@@ -165,6 +176,7 @@ TEST_F(TPCCTests, WithLogging) {
   log_manager_->PersistAndStop();
   delete log_manager_;
   delete gc_thread_;
+  delete gc_;
   delete thread_registry_;
   delete tpcc_db;
 

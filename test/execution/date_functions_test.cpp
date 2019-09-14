@@ -10,15 +10,15 @@ class DateFunctionsTests : public TplTest {};
 
 #define CHECK_COMPARSION_NULL(comp, res, lhs, rhs) \
   ComparisonFunctions::comp##Date(&res, lhs, rhs); \
-  ASSERT_TRUE(res.is_null)
+  ASSERT_TRUE(res.is_null_)
 
 #define CHECK_COMPARSION_TRUE(comp, res, lhs, rhs) \
   ComparisonFunctions::comp##Date(&res, lhs, rhs); \
-  ASSERT_TRUE(!res.is_null && res.val)
+  ASSERT_TRUE(!res.is_null_ && res.val_)
 
 #define CHECK_COMPARSION_FALSE(comp, res, lhs, rhs) \
   ComparisonFunctions::comp##Date(&res, lhs, rhs);  \
-  ASSERT_TRUE(!res.is_null && !res.val)
+  ASSERT_TRUE(!res.is_null_ && !res.val_)
 
 // NOLINTNEXTLINE
 TEST_F(DateFunctionsTests, DateNilTest) {

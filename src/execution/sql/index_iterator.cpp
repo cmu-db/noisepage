@@ -24,6 +24,22 @@ void IndexIterator::Init() {
   index_pr_ = index_pri.InitializeRow(index_buffer_);
 }
 
+void IndexIterator::ScanKey() {
+  // Scan the index
+  tuples_.clear();
+  curr_index_ = 0;
+  index_->ScanKey(*exec_ctx_->GetTxn(), *index_pr_, &tuples_);
+}
+
+bool IndexIterator::Advance() {
+  if (curr_index_ < tuples_.size()) {
+    table_->Select(exec_ctx_->GetTxn(), tuples_[curr_index_], table_pr_);
+    ++curr_index_;
+    return true;
+  }
+  return false;
+}
+
 IndexIterator::~IndexIterator() {
   // Free allocated buffers
   exec_ctx_->GetMemoryPool()->Deallocate(table_buffer_, table_pr_->Size());

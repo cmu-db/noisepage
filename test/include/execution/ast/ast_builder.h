@@ -31,27 +31,27 @@ class TestAstBuilder {
   /**
    * @return the ast context
    */
-  Context *ctx() { return ctx_.get(); }
+  Context *Ctx() { return ctx_.get(); }
 
   /**
    * @return the region
    */
-  util::Region *region() { return region_.get(); }
+  util::Region *Region() { return region_.get(); }
 
   /**
    * @return the error reporter
    */
-  sema::ErrorReporter *error_reporter() { return error_reporter_.get(); }
+  sema::ErrorReporter *GetErrorReporter() { return error_reporter_.get(); }
 
   /**
    * Make an Identifier
    */
-  Identifier Ident(const std::string &s) { return ctx()->GetIdentifier(s); }
+  Identifier Ident(const std::string &s) { return Ctx()->GetIdentifier(s); }
 
   /**
    * Make an Identifier expression
    */
-  Expr *IdentExpr(Identifier ident) { return node_factory()->NewIdentifierExpr(empty_, ident); }
+  Expr *IdentExpr(Identifier ident) { return NodeFactory()->NewIdentifierExpr(empty_, ident); }
 
   /**
    * Make an Identifier expression
@@ -61,24 +61,24 @@ class TestAstBuilder {
   /**
    * Make a bool literal
    */
-  Expr *BoolLit(bool b) { return node_factory()->NewBoolLiteral(empty_, b); }
+  Expr *BoolLit(bool b) { return NodeFactory()->NewBoolLiteral(empty_, b); }
 
   /**
    * Make an int litera;
    */
-  Expr *IntLit(int32_t i) { return node_factory()->NewIntLiteral(empty_, i); }
+  Expr *IntLit(int32_t i) { return NodeFactory()->NewIntLiteral(empty_, i); }
 
   /**
    * Make a float literal
    */
-  Expr *FloatLit(float i) { return node_factory()->NewFloatLiteral(empty_, i); }
+  Expr *FloatLit(float i) { return NodeFactory()->NewFloatLiteral(empty_, i); }
 
   /**
    * Make a binary op expression
    */
   template <parsing::Token::Type OP>
   Expr *BinOp(Expr *left, Expr *right) {
-    return node_factory()->NewBinaryOpExpr(empty_, OP, left, right);
+    return NodeFactory()->NewBinaryOpExpr(empty_, OP, left, right);
   }
 
   /**
@@ -87,7 +87,7 @@ class TestAstBuilder {
   template <parsing::Token::Type OP>
   Expr *Cmp(Expr *left, Expr *right) {
     TERRIER_ASSERT(parsing::Token::IsCompareOp(OP), "Not a comparison");
-    return node_factory()->NewComparisonOpExpr(empty_, OP, left, right);
+    return NodeFactory()->NewComparisonOpExpr(empty_, OP, left, right);
   }
 
   /**
@@ -108,7 +108,7 @@ class TestAstBuilder {
   /**
    * Make a member expression
    */
-  Expr *Field(Expr *obj, Expr *field) { return node_factory()->NewMemberExpr(empty_, obj, field); }
+  Expr *Field(Expr *obj, Expr *field) { return NodeFactory()->NewMemberExpr(empty_, obj, field); }
 
   /**
    * Make an variable declaration with inferred type
@@ -119,43 +119,43 @@ class TestAstBuilder {
    * Make an variable declaration with explicit type
    */
   VariableDecl *DeclVar(Identifier name, Expr *type_repr, Expr *init) {
-    return node_factory()->NewVariableDecl(empty_, name, type_repr, init);
+    return NodeFactory()->NewVariableDecl(empty_, name, type_repr, init);
   }
 
   /**
    * Get the identifier of a declared object
    */
-  Expr *DeclRef(Decl *decl) { return IdentExpr(decl->name()); }
+  Expr *DeclRef(Decl *decl) { return IdentExpr(decl->Name()); }
 
   /**
    * Convert declaration to statement
    */
-  Stmt *DeclStmt(Decl *decl) { return node_factory()->NewDeclStmt(decl); }
+  Stmt *DeclStmt(Decl *decl) { return NodeFactory()->NewDeclStmt(decl); }
 
   /**
    * Construct a block statement
    */
   Stmt *Block(std::initializer_list<Stmt *> stmts) {
-    util::RegionVector<Stmt *> region_stmts(stmts.begin(), stmts.end(), region());
-    return node_factory()->NewBlockStmt(empty_, empty_, std::move(region_stmts));
+    util::RegionVector<Stmt *> region_stmts(stmts.begin(), stmts.end(), Region());
+    return NodeFactory()->NewBlockStmt(empty_, empty_, std::move(region_stmts));
   }
 
   /**
    * Convert expression to statement
    */
-  Stmt *ExprStmt(Expr *expr) { return node_factory()->NewExpressionStmt(expr); }
+  Stmt *ExprStmt(Expr *expr) { return NodeFactory()->NewExpressionStmt(expr); }
 
   /**
    * Get pointer to the base type
    */
-  Expr *PtrType(Expr *base) { return node_factory()->NewPointerType(empty_, base); }
+  Expr *PtrType(Expr *base) { return NodeFactory()->NewPointerType(empty_, base); }
 
   /**
    * Get builtin type expression
    */
   template <BuiltinType::Kind BUILTIN>
   Expr *BuiltinTypeRepr() {
-    return IdentExpr(BuiltinType::Get(ctx(), BUILTIN)->tpl_name());
+    return IdentExpr(BuiltinType::Get(Ctx(), BUILTIN)->TplName());
   }
 
   /**
@@ -191,12 +191,12 @@ class TestAstBuilder {
   /**
    * Get an array type
    */
-  Expr *ArrayTypeRepr(Expr *type) { return node_factory()->NewArrayType(empty_, nullptr, type); }
+  Expr *ArrayTypeRepr(Expr *type) { return NodeFactory()->NewArrayType(empty_, nullptr, type); }
 
   /**
    * Make an array indexing expression
    */
-  Expr *ArrayIndex(Expr *arr, Expr *idx) { return node_factory()->NewIndexExpr(empty_, arr, idx); }
+  Expr *ArrayIndex(Expr *arr, Expr *idx) { return NodeFactory()->NewIndexExpr(empty_, arr, idx); }
 
   /**
    * Call a builtin function with the given arguments
@@ -204,12 +204,12 @@ class TestAstBuilder {
   template <Builtin BUILTIN, typename... Args>
   CallExpr *Call(Args... args) {
     auto fn = IdentExpr(Builtins::GetFunctionName(BUILTIN));
-    auto call_args = util::RegionVector<Expr *>({std::forward<Args>(args)...}, region());
-    return node_factory()->NewBuiltinCallExpr(fn, std::move(call_args));
+    auto call_args = util::RegionVector<Expr *>({std::forward<Args>(args)...}, Region());
+    return NodeFactory()->NewBuiltinCallExpr(fn, std::move(call_args));
   }
 
  private:
-  AstNodeFactory *node_factory() { return ctx()->node_factory(); }
+  AstNodeFactory *NodeFactory() { return Ctx()->NodeFactory(); }
 
  private:
   std::unique_ptr<util::Region> region_{nullptr};

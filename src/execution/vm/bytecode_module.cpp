@@ -17,24 +17,24 @@ BytecodeModule::BytecodeModule(std::string name, std::vector<uint8_t> &&code, st
 namespace {
 
 void PrettyPrintFuncInfo(std::ostream *os, const FunctionInfo &func) {
-  *os << "Function " << func.id() << " <" << func.name() << ">:" << std::endl;
-  *os << "  Frame size " << func.frame_size() << " bytes (" << func.num_params() << " parameter"
-      << (func.num_params() > 1 ? "s, " : ", ") << func.locals().size() << " locals)" << std::endl;
+  *os << "Function " << func.Id() << " <" << func.Name() << ">:" << std::endl;
+  *os << "  Frame size " << func.FrameSize() << " bytes (" << func.NumParams() << " parameter"
+      << (func.NumParams() > 1 ? "s, " : ", ") << func.Locals().size() << " locals)" << std::endl;
 
   uint64_t max_local_len = 0;
-  for (const auto &local : func.locals()) {
-    max_local_len = std::max(max_local_len, static_cast<uint64_t>(local.name().length()));
+  for (const auto &local : func.Locals()) {
+    max_local_len = std::max(max_local_len, static_cast<uint64_t>(local.Name().length()));
   }
-  for (const auto &local : func.locals()) {
-    if (local.is_parameter()) {
+  for (const auto &local : func.Locals()) {
+    if (local.IsParameter()) {
       *os << "    param  ";
     } else {
       *os << "    local  ";
     }
-    *os << std::setw(static_cast<int>(max_local_len)) << std::right << local.name() << ":  offset=" << std::setw(7)
-        << std::left << local.offset() << " size=" << std::setw(7) << std::left << local.size()
-        << " align=" << std::setw(7) << std::left << local.type()->alignment() << " type=" << std::setw(7) << std::left
-        << ast::Type::ToString(local.type()) << std::endl;
+    *os << std::setw(static_cast<int>(max_local_len)) << std::right << local.Name() << ":  offset=" << std::setw(7)
+        << std::left << local.Offset() << " size=" << std::setw(7) << std::left << local.Size()
+        << " align=" << std::setw(7) << std::left << local.GetType()->Alignment() << " type=" << std::setw(7)
+        << std::left << ast::Type::ToString(local.GetType()) << std::endl;
   }
 }
 

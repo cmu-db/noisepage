@@ -20,7 +20,7 @@
 namespace terrier::execution::sql {
 
 AggregationHashTable::AggregationHashTable(MemoryPool *memory, std::size_t payload_size)
-    : AggregationHashTable(memory, payload_size, kDefaultInitialTableSize) {}
+    : AggregationHashTable(memory, payload_size, K_DEFAULT_INITIAL_TABLE_SIZE) {}
 
 AggregationHashTable::AggregationHashTable(MemoryPool *memory, const std::size_t payload_size,
                                            const uint32_t initial_size)
@@ -28,68 +28,68 @@ AggregationHashTable::AggregationHashTable(MemoryPool *memory, const std::size_t
       payload_size_(payload_size),
       entries_(sizeof(HashTableEntry) + payload_size_, MemoryPoolAllocator<byte>(memory_)),
       owned_entries_(memory_),
-      hash_table_(kDefaultLoadFactor),
+      hash_table_(K_DEFAULT_LOAD_FACTOR),
       merge_partition_fn_(nullptr),
       partition_heads_(nullptr),
       partition_tails_(nullptr),
       partition_estimates_(nullptr),
       partition_tables_(nullptr),
-      partition_shift_bits_(util::BitUtil::CountLeadingZeros(uint64_t(kDefaultNumPartitions) - 1)) {
+      partition_shift_bits_(util::BitUtil::CountLeadingZeros(uint64_t(K_DEFAULT_NUM_PARTITIONS) - 1)) {
   hash_table_.SetSize(initial_size);
   max_fill_ =
-      static_cast<uint64_t>(std::llround(static_cast<float>(hash_table_.capacity()) * hash_table_.load_factor()));
+      static_cast<uint64_t>(std::llround(static_cast<float>(hash_table_.Capacity()) * hash_table_.LoadFactor()));
 
   // Compute flush threshold. In partitioned mode, we want the thread-local
   // pre-aggregation hash table to be sized to fit in cache. Target L2.
   const uint64_t l2_size = CpuInfo::Instance()->GetCacheSize(CpuInfo::L2_CACHE);
   flush_threshold_ = static_cast<uint64_t>(
-      std::llround(static_cast<float>(l2_size) / static_cast<float>(entries_.element_size()) * kDefaultLoadFactor));
+      std::llround(static_cast<float>(l2_size) / static_cast<float>(entries_.ElementSize()) * K_DEFAULT_LOAD_FACTOR));
   flush_threshold_ = std::max(static_cast<uint64_t>(256), common::MathUtil::PowerOf2Floor(flush_threshold_));
 }
 
 AggregationHashTable::~AggregationHashTable() {
   if (partition_heads_ != nullptr) {
-    memory_->DeallocateArray(partition_heads_, kDefaultNumPartitions);
+    memory_->DeallocateArray(partition_heads_, K_DEFAULT_NUM_PARTITIONS);
   }
   if (partition_tails_ != nullptr) {
-    memory_->DeallocateArray(partition_tails_, kDefaultNumPartitions);
+    memory_->DeallocateArray(partition_tails_, K_DEFAULT_NUM_PARTITIONS);
   }
   if (partition_estimates_ != nullptr) {
     // The estimates array uses HLL instances acquired from libcount. Libcount
     // new's HLL objects, hence, we need to manually call delete on all of them.
     // We could use unique_ptr, but then the definition and usage gets ugly, and
     // we would still need to iterate over the array to reset each unique_ptr.
-    for (uint32_t i = 0; i < kDefaultNumPartitions; i++) {
+    for (uint32_t i = 0; i < K_DEFAULT_NUM_PARTITIONS; i++) {
       delete partition_estimates_[i];
     }
-    memory_->DeallocateArray(partition_estimates_, kDefaultNumPartitions);
+    memory_->DeallocateArray(partition_estimates_, K_DEFAULT_NUM_PARTITIONS);
   }
   if (partition_tables_ != nullptr) {
-    for (uint32_t i = 0; i < kDefaultNumPartitions; i++) {
+    for (uint32_t i = 0; i < K_DEFAULT_NUM_PARTITIONS; i++) {
       if (partition_tables_[i] != nullptr) {
         partition_tables_[i]->~AggregationHashTable();
         memory_->Deallocate(partition_tables_[i], sizeof(AggregationHashTable));
       }
     }
-    memory_->DeallocateArray(partition_tables_, kDefaultNumPartitions);
+    memory_->DeallocateArray(partition_tables_, K_DEFAULT_NUM_PARTITIONS);
   }
 }
 
 void AggregationHashTable::Grow() {
   // Resize table
-  const uint64_t new_size = hash_table_.capacity() * 2;
+  const uint64_t new_size = hash_table_.Capacity() * 2;
   hash_table_.SetSize(new_size);
   max_fill_ =
-      static_cast<uint64_t>(std::llround(static_cast<float>(hash_table_.capacity()) * hash_table_.load_factor()));
+      static_cast<uint64_t>(std::llround(static_cast<float>(hash_table_.Capacity()) * hash_table_.LoadFactor()));
 
   // Insert elements again
   for (byte *untyped_entry : entries_) {
     auto *entry = reinterpret_cast<HashTableEntry *>(untyped_entry);
-    hash_table_.Insert<false>(entry, entry->hash);
+    hash_table_.Insert<false>(entry, entry->hash_);
   }
 
   // Update stats
-  stats_.num_growths++;
+  stats_.num_growths_++;
 }
 
 byte *AggregationHashTable::Insert(const hash_t hash) {
@@ -99,20 +99,20 @@ byte *AggregationHashTable::Insert(const hash_t hash) {
   }
 
   // Allocate an entry
-  auto *entry = reinterpret_cast<HashTableEntry *>(entries_.append());
-  entry->hash = hash;
-  entry->next = nullptr;
+  auto *entry = reinterpret_cast<HashTableEntry *>(entries_.Append());
+  entry->hash_ = hash;
+  entry->next_ = nullptr;
 
   // Insert into table
-  hash_table_.Insert<false>(entry, entry->hash);
+  hash_table_.Insert<false>(entry, entry->hash_);
 
   // Give the payload so the client can write into it
-  return entry->payload;
+  return entry->payload_;
 }
 
 byte *AggregationHashTable::InsertPartitioned(const hash_t hash) {
   byte *ret = Insert(hash);
-  if (hash_table_.num_elements() >= flush_threshold_) {
+  if (hash_table_.NumElements() >= flush_threshold_) {
     FlushToOverflowPartitions();
   }
   return ret;
@@ -125,17 +125,17 @@ void AggregationHashTable::FlushToOverflowPartitions() {
 
   // Dump hash table into overflow partition
   hash_table_.FlushEntries([this](HashTableEntry *entry) {
-    const uint64_t part_idx = (entry->hash >> partition_shift_bits_);
-    entry->next = partition_heads_[part_idx];
+    const uint64_t part_idx = (entry->hash_ >> partition_shift_bits_);
+    entry->next_ = partition_heads_[part_idx];
     partition_heads_[part_idx] = entry;
     if (UNLIKELY(partition_tails_[part_idx] == nullptr)) {
       partition_tails_[part_idx] = entry;
     }
-    partition_estimates_[part_idx]->Update(entry->hash);
+    partition_estimates_[part_idx]->Update(entry->hash_);
   });
 
   // Update stats
-  stats_.num_flushes++;
+  stats_.num_flushes_++;
 }
 
 void AggregationHashTable::AllocateOverflowPartitions() {
@@ -143,13 +143,13 @@ void AggregationHashTable::AllocateOverflowPartitions() {
                  "Head and tail of overflow partitions list are not equally allocated");
 
   if (partition_heads_ == nullptr) {
-    partition_heads_ = memory_->AllocateArray<HashTableEntry *>(kDefaultNumPartitions, true);
-    partition_tails_ = memory_->AllocateArray<HashTableEntry *>(kDefaultNumPartitions, true);
-    partition_estimates_ = memory_->AllocateArray<libcount::HLL *>(kDefaultNumPartitions, false);
-    for (uint32_t i = 0; i < kDefaultNumPartitions; i++) {
-      partition_estimates_[i] = libcount::HLL::Create(kDefaultHLLPrecision);
+    partition_heads_ = memory_->AllocateArray<HashTableEntry *>(K_DEFAULT_NUM_PARTITIONS, true);
+    partition_tails_ = memory_->AllocateArray<HashTableEntry *>(K_DEFAULT_NUM_PARTITIONS, true);
+    partition_estimates_ = memory_->AllocateArray<libcount::HLL *>(K_DEFAULT_NUM_PARTITIONS, false);
+    for (uint32_t i = 0; i < K_DEFAULT_NUM_PARTITIONS; i++) {
+      partition_estimates_[i] = libcount::HLL::Create(K_DEFAULT_HLL_PRECISION);
     }
-    partition_tables_ = memory_->AllocateArray<AggregationHashTable *>(kDefaultNumPartitions, true);
+    partition_tables_ = memory_->AllocateArray<AggregationHashTable *>(K_DEFAULT_NUM_PARTITIONS, true);
   }
 }
 
@@ -157,11 +157,11 @@ void AggregationHashTable::ProcessBatch(ProjectedColumnsIterator *iters[], Aggre
                                         KeyEqFn key_eq_fn, AggregationHashTable::InitAggFn init_agg_fn,
                                         AggregationHashTable::AdvanceAggFn advance_agg_fn) {
   TERRIER_ASSERT(iters != nullptr, "Null input iterators!");
-  const uint32_t num_elems = iters[0]->num_selected();
+  const uint32_t num_elems = iters[0]->NumSelected();
 
   // Temporary vector for the hash values and hash table entry pointers
-  alignas(common::Constants::CACHELINE_SIZE) hash_t hashes[common::Constants::kDefaultVectorSize];
-  alignas(common::Constants::CACHELINE_SIZE) HashTableEntry *entries[common::Constants::kDefaultVectorSize];
+  alignas(common::Constants::CACHELINE_SIZE) hash_t hashes[common::Constants::K_DEFAULT_VECTOR_SIZE];
+  alignas(common::Constants::CACHELINE_SIZE) HashTableEntry *entries[common::Constants::K_DEFAULT_VECTOR_SIZE];
 
   if (iters[0]->IsFiltered()) {
     ProcessBatchImpl<true>(iters, num_elems, hashes, entries, hash_fn, key_eq_fn, init_agg_fn, advance_agg_fn);
@@ -196,8 +196,8 @@ void AggregationHashTable::LookupBatch(ProjectedColumnsIterator *iters[], uint32
   ComputeHashAndLoadInitial<PCIIsFiltered>(iters, num_elems, hashes, entries, hash_fn);
 
   // Determine the indexes of entries that are non-null
-  alignas(common::Constants::CACHELINE_SIZE) uint32_t group_sel[common::Constants::kDefaultVectorSize];
-  uint32_t num_groups = util::VectorUtil::FilterNe(reinterpret_cast<intptr_t *>(entries), iters[0]->num_selected(),
+  alignas(common::Constants::CACHELINE_SIZE) uint32_t group_sel[common::Constants::K_DEFAULT_VECTOR_SIZE];
+  uint32_t num_groups = util::VectorUtil::FilterNe(reinterpret_cast<intptr_t *>(entries), iters[0]->NumSelected(),
                                                    intptr_t(0), group_sel, nullptr);
 
   // Candidate groups in 'entries' may have hash collisions. Follow the chain
@@ -237,7 +237,8 @@ void AggregationHashTable::ComputeHashAndLoadInitialImpl(ProjectedColumnsIterato
   iters[0]->Reset();
 
   // Load entries
-  for (uint32_t idx = 0, prefetch_idx = common::Constants::kPrefetchDistance; idx < num_elems; idx++, prefetch_idx++) {
+  for (uint32_t idx = 0, prefetch_idx = common::Constants::K_PREFETCH_DISTANCE; idx < num_elems;
+       idx++, prefetch_idx++) {
     // NOLINTNEXTLINE: bugprone-suspicious-semicolon: seems like a false positive because of constexpr
     if constexpr (Prefetch) {
       if (LIKELY(prefetch_idx < num_elems)) {
@@ -264,9 +265,9 @@ void AggregationHashTable::FollowNextLoop(ProjectedColumnsIterator *iters[], uin
     for (uint32_t idx = 0; idx < num_elems; idx++) {
       iters[0]->SetPosition<PCIIsFiltered>(group_sel[idx]);
 
-      const bool keys_match =
-          entries[group_sel[idx]]->hash == hashes[group_sel[idx]] && key_eq_fn(entries[group_sel[idx]]->payload, iters);
-      const bool has_next = entries[group_sel[idx]]->next != nullptr;
+      const bool keys_match = entries[group_sel[idx]]->hash_ == hashes[group_sel[idx]] &&
+                              key_eq_fn(entries[group_sel[idx]]->payload_, iters);
+      const bool has_next = entries[group_sel[idx]]->next_ != nullptr;
 
       group_sel[write_idx] = group_sel[idx];
       write_idx += static_cast<uint32_t>(!keys_match && has_next);
@@ -278,7 +279,7 @@ void AggregationHashTable::FollowNextLoop(ProjectedColumnsIterator *iters[], uin
     // Follow chain
     for (uint32_t idx = 0; idx < write_idx; idx++) {
       HashTableEntry *&entry = entries[group_sel[idx]];
-      entry = entry->next;
+      entry = entry->next_;
     }
 
     // Next
@@ -292,7 +293,7 @@ void AggregationHashTable::CreateMissingGroups(ProjectedColumnsIterator *iters[]
                                                AggregationHashTable::KeyEqFn key_eq_fn,
                                                AggregationHashTable::InitAggFn init_agg_fn) {
   // Vector storing all the missing group IDs
-  alignas(common::Constants::CACHELINE_SIZE) uint32_t group_sel[common::Constants::kDefaultVectorSize];
+  alignas(common::Constants::CACHELINE_SIZE) uint32_t group_sel[common::Constants::K_DEFAULT_VECTOR_SIZE];
 
   // Determine which elements are missing a group
   uint32_t num_groups =
@@ -319,7 +320,7 @@ template <bool PCIIsFiltered>
 void AggregationHashTable::AdvanceGroups(ProjectedColumnsIterator *iters[], uint32_t num_elems,
                                          HashTableEntry *entries[], AggregationHashTable::AdvanceAggFn advance_agg_fn) {
   // Vector storing all valid group indexes
-  alignas(common::Constants::CACHELINE_SIZE) uint32_t group_sel[common::Constants::kDefaultVectorSize];
+  alignas(common::Constants::CACHELINE_SIZE) uint32_t group_sel[common::Constants::K_DEFAULT_VECTOR_SIZE];
 
   // All non-null entries are groups that should be updated. Find them now.
   uint32_t num_groups =
@@ -329,7 +330,7 @@ void AggregationHashTable::AdvanceGroups(ProjectedColumnsIterator *iters[], uint
   for (uint32_t idx = 0; idx < num_groups; idx++) {
     HashTableEntry *entry = entries[group_sel[idx]];
     iters[0]->SetPosition<PCIIsFiltered>(group_sel[idx]);
-    advance_agg_fn(entry->payload, iters);
+    advance_agg_fn(entry->payload_, iters);
   }
 }
 
@@ -368,10 +369,10 @@ void AggregationHashTable::TransferMemoryAndPartitions(
                    "entries themselves. Nested/recursive aggregations not supported.");
 
     // Now, move over their overflow partitions list
-    for (uint32_t part_idx = 0; part_idx < kDefaultNumPartitions; part_idx++) {
+    for (uint32_t part_idx = 0; part_idx < K_DEFAULT_NUM_PARTITIONS; part_idx++) {
       if (table->partition_heads_[part_idx] != nullptr) {
         // Link in the partition list
-        table->partition_tails_[part_idx]->next = partition_heads_[part_idx];
+        table->partition_tails_[part_idx]->next_ = partition_heads_[part_idx];
         partition_heads_[part_idx] = table->partition_heads_[part_idx];
         if (partition_tails_[part_idx] == nullptr) {
           partition_tails_[part_idx] = table->partition_tails_[part_idx];
@@ -385,7 +386,7 @@ void AggregationHashTable::TransferMemoryAndPartitions(
 
 AggregationHashTable *AggregationHashTable::BuildTableOverPartition(void *const query_state,
                                                                     const uint32_t partition_idx) {
-  TERRIER_ASSERT(partition_idx < kDefaultNumPartitions, "Out-of-bounds partition access");
+  TERRIER_ASSERT(partition_idx < K_DEFAULT_NUM_PARTITIONS, "Out-of-bounds partition access");
   TERRIER_ASSERT(partition_heads_[partition_idx] != nullptr,
                  "Should not build aggregation table over empty partition!");
 
@@ -410,7 +411,7 @@ AggregationHashTable *AggregationHashTable::BuildTableOverPartition(void *const 
   EXECUTION_LOG_DEBUG(
       "Overflow Partition {}: estimated size = {}, actual size = {}, "
       "build time = {:2f} ms",
-      partition_idx, estimated_size, agg_table->NumElements(), timer.elapsed());
+      partition_idx, estimated_size, agg_table->NumElements(), timer.Elapsed());
 
   // Set it
   partition_tables_[partition_idx] = agg_table;
@@ -437,9 +438,10 @@ void AggregationHashTable::ExecuteParallelPartitionedScan(void *query_state, Thr
                  "issuing the partitioned scan?");
 
   // Determine the non-empty overflow partitions
-  alignas(common::Constants::CACHELINE_SIZE) uint32_t nonempty_parts[kDefaultNumPartitions];
-  uint32_t num_nonempty_parts = util::VectorUtil::FilterNe(reinterpret_cast<const intptr_t *>(partition_heads_),
-                                                           kDefaultNumPartitions, intptr_t(0), nonempty_parts, nullptr);
+  alignas(common::Constants::CACHELINE_SIZE) uint32_t nonempty_parts[K_DEFAULT_NUM_PARTITIONS];
+  uint32_t num_nonempty_parts =
+      util::VectorUtil::FilterNe(reinterpret_cast<const intptr_t *>(partition_heads_), K_DEFAULT_NUM_PARTITIONS,
+                                 intptr_t(0), nonempty_parts, nullptr);
 
   tbb::parallel_for_each(nonempty_parts, nonempty_parts + num_nonempty_parts, [&](const uint32_t part_idx) {
     // Build a hash table over the given partition

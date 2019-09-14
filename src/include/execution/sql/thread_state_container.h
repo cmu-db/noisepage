@@ -20,7 +20,7 @@ namespace terrier::execution::sql {
  * constructed lazily upon first access and destroyed on a subsequent call to
  * @em Reset() or when the container itself is destroyed.
  */
-class ThreadStateContainer {
+class EXPORT ThreadStateContainer {
  public:
   /**
    * Function used to initialize a thread's local state upon first use
@@ -165,7 +165,7 @@ class ThreadStateContainer {
     ~TLSHandle();
 
     // Thread-local state
-    byte *state() { return state_; }
+    byte *State() { return state_; }
 
    private:
     // Handle to container

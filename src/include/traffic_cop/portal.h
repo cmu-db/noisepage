@@ -20,7 +20,7 @@ struct Portal {
    * The sequence of parameter values
    */
   // Since TransientValue forbids copying, using a pointer is more convenient
-  std::shared_ptr<std::vector<type::TransientValue>> params;
+  std::shared_ptr<std::vector<type::TransientValue>> params_;
 };
 
 }  // namespace terrier::trafficcop

@@ -142,7 +142,7 @@ class BytecodeGenerator : public ast::AstVisitor<BytecodeGenerator> {
   /**
    * @return the bytecode emitter
    */
-  BytecodeEmitter *emitter() { return &emitter_; }
+  BytecodeEmitter *Emitter() { return &emitter_; }
 
  private:
   // Lookup a function's ID by its name
@@ -152,11 +152,11 @@ class BytecodeGenerator : public ast::AstVisitor<BytecodeGenerator> {
   // Accessors
   // -------------------------------------------------------
 
-  ExpressionResultScope *execution_result() { return execution_result_; }
+  ExpressionResultScope *ExecutionResult() { return execution_result_; }
 
-  void set_execution_result(ExpressionResultScope *execution_result) { execution_result_ = execution_result; }
+  void SetExecutionResult(ExpressionResultScope *execution_result) { execution_result_ = execution_result; }
 
-  FunctionInfo *current_function() { return &functions_.back(); }
+  FunctionInfo *CurrentFunction() { return &functions_.back(); }
 
  private:
   // The bytecode generated during compilation

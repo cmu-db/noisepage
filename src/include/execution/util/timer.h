@@ -32,7 +32,7 @@ class Timer {
   /**
    * Return the total number of elapsed time units
    */
-  double elapsed() const noexcept { return elapsed_; }
+  double Elapsed() const noexcept { return elapsed_; }
 
   /**
    * Time a function @em func
@@ -45,7 +45,7 @@ class Timer {
     Timer<ResolutionRatio> timer;
     timer.Start();
     fn();
-    timer.Stop();
+    timer.StOp();
     return timer.elapsed();
   }
 
@@ -75,7 +75,7 @@ class ScopedTimer {
 
   ~ScopedTimer() {
     timer_.Stop();
-    *elapsed_ = timer_.elapsed();
+    *elapsed_ = timer_.Elapsed();
   }
 
  private:

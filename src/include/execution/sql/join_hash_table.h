@@ -29,12 +29,12 @@ class JoinHashTableIterator;
  * @em AllocInputTuple() and frozen after calling @em Build(). Thus, they're
  * write-once read-many (WORM) structures.
  */
-class JoinHashTable {
+class EXPORT JoinHashTable {
  public:
   /**
    * Default HLL precision
    */
-  static constexpr uint32_t kDefaultHLLPrecision = 10;
+  static constexpr uint32_t K_DEFAULT_HLL_PRECISION = 10;
 
   /**
    * Construct a join hash table. All memory allocations are sourced from the
@@ -104,15 +104,15 @@ class JoinHashTable {
   /**
    * Return the amount of memory the buffered tuples occupy
    */
-  uint64_t GetBufferedTupleMemoryUsage() const noexcept { return entries_.size() * entries_.element_size(); }
+  uint64_t GetBufferedTupleMemoryUsage() const noexcept { return entries_.size() * entries_.ElementSize(); }
 
   /**
    * Get the amount of memory used by the join index only (i.e., excluding space
    * used to store materialized build-side tuples)
    */
   uint64_t GetJoinIndexMemoryUsage() const noexcept {
-    return use_concise_hash_table() ? concise_hash_table_.GetTotalMemoryUsage()
-                                    : generic_hash_table_.GetTotalMemoryUsage();
+    return UseConciseHashTable() ? concise_hash_table_.GetTotalMemoryUsage()
+                                 : generic_hash_table_.GetTotalMemoryUsage();
   }
 
   /**
@@ -123,17 +123,17 @@ class JoinHashTable {
   /**
    * Return the total number of inserted elements, including duplicates
    */
-  uint64_t num_elements() const noexcept { return entries_.size(); }
+  uint64_t NumElements() const noexcept { return entries_.size(); }
 
   /**
    * Has the hash table been built?
    */
-  bool is_built() const noexcept { return built_; }
+  bool IsBuilt() const noexcept { return built_; }
 
   /**
    * Is this join using a concise hash table?
    */
-  bool use_concise_hash_table() const noexcept { return use_concise_ht_; }
+  bool UseConciseHashTable() const noexcept { return use_concise_ht_; }
 
  private:
   friend class execution::sql::test::JoinHashTableTest;
@@ -217,7 +217,7 @@ class JoinHashTable {
  * The iterator used for generic lookups. This class is used mostly for
  * tuple-at-a-time lookups from the hash table.
  */
-class JoinHashTableIterator {
+class EXPORT JoinHashTableIterator {
  public:
   /**
    * Construct an iterator beginning at the entry @em initial of the chain
@@ -264,8 +264,8 @@ class JoinHashTableIterator {
 template <>
 inline JoinHashTableIterator JoinHashTable::Lookup<false>(const hash_t hash) const {
   HashTableEntry *entry = generic_hash_table_.FindChainHead(hash);
-  while (entry != nullptr && entry->hash != hash) {
-    entry = entry->next;
+  while (entry != nullptr && entry->hash_ != hash) {
+    entry = entry->next_;
   }
   return JoinHashTableIterator(entry, hash);
 }
@@ -290,17 +290,17 @@ inline JoinHashTableIterator::JoinHashTableIterator(const HashTableEntry *initia
 
 inline const HashTableEntry *JoinHashTableIterator::NextMatch() {
   auto result = next_;
-  next_ = next_->next;
+  next_ = next_->next_;
   return result;
 }
 
 inline bool JoinHashTableIterator::HasNext(JoinHashTableIterator::KeyEq key_eq, void *opaque_ctx, void *probe_tuple) {
   while (next_ != nullptr) {
-    if (next_->hash == hash_ &&
-        key_eq(opaque_ctx, probe_tuple, reinterpret_cast<void *>(const_cast<byte *>(next_->payload)))) {
+    if (next_->hash_ == hash_ &&
+        key_eq(opaque_ctx, probe_tuple, reinterpret_cast<void *>(const_cast<byte *>(next_->payload_)))) {
       return true;
     }
-    next_ = next_->next;
+    next_ = next_->next_;
   }
   return false;
 }

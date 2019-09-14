@@ -9,14 +9,14 @@ GenericHashTable::GenericHashTable(float load_factor) noexcept : load_factor_(lo
 
 GenericHashTable::~GenericHashTable() {
   if (entries_ != nullptr) {
-    util::FreeHugeArray(entries_, capacity());
+    util::FreeHugeArray(entries_, Capacity());
   }
 }
 
 void GenericHashTable::SetSize(uint64_t new_size) {
   TERRIER_ASSERT(new_size > 0, "New size cannot be zero!");
   if (entries_ != nullptr) {
-    util::FreeHugeArray(entries_, capacity());
+    util::FreeHugeArray(entries_, Capacity());
   }
 
   auto next_size = static_cast<double>(common::MathUtil::PowerOf2Ceil(new_size));

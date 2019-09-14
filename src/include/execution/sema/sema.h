@@ -60,18 +60,18 @@ class Sema : public ast::AstVisitor<Sema> {
   /**
    * @return the ast context
    */
-  ast::Context *context() const { return ctx_; }
+  ast::Context *GetContext() const { return ctx_; }
 
   /**
    * @return the error reporter
    */
-  ErrorReporter *error_reporter() const { return error_reporter_; }
+  ErrorReporter *GetErrorReporter() const { return error_reporter_; }
 
  private:
   // Resolve the type of the input expression
   ast::Type *Resolve(ast::Expr *expr) {
     Visit(expr);
-    return expr->type();
+    return expr->GetType();
   }
 
   // Convert the given schema into a row type
@@ -81,9 +81,9 @@ class Sema : public ast::AstVisitor<Sema> {
   ast::Type *GetBuiltinType(uint16_t builtin_kind);
 
   struct CheckResult {
-    ast::Type *result_type;
-    ast::Expr *left;
-    ast::Expr *right;
+    ast::Type *result_type_;
+    ast::Expr *left_;
+    ast::Expr *right_;
   };
 
   void ReportIncorrectCallArg(ast::CallExpr *call, uint32_t index, ast::Type *expected);
@@ -159,28 +159,28 @@ class Sema : public ast::AstVisitor<Sema> {
   // Scoping
   // -------------------------------------------------------
 
-  Scope *current_scope() { return scope_; }
+  Scope *CurrentScope() { return scope_; }
 
   // Enter a new scope
   void EnterScope(Scope::Kind scope_kind) {
     if (num_cached_scopes_ > 0) {
       Scope *scope = scope_cache_[--num_cached_scopes_].release();
       TERRIER_ASSERT(scope != nullptr, "Cached scope was null");
-      scope->Init(current_scope(), scope_kind);
+      scope->Init(CurrentScope(), scope_kind);
       scope_ = scope;
     } else {
-      scope_ = new Scope(current_scope(), scope_kind);
+      scope_ = new Scope(CurrentScope(), scope_kind);
     }
   }
 
   // Exit the current scope
   void ExitScope() {
-    TERRIER_ASSERT(current_scope() != nullptr, "Mismatched scope exit");
+    TERRIER_ASSERT(CurrentScope() != nullptr, "Mismatched scope exit");
 
-    Scope *scope = current_scope();
-    scope_ = scope->outer();
+    Scope *scope = CurrentScope();
+    scope_ = scope->Outer();
 
-    if (num_cached_scopes_ < kScopeCacheSize) {
+    if (num_cached_scopes_ < K_SCOPE_CACHE_SIZE) {
       scope_cache_[num_cached_scopes_++].reset(scope);
     } else {
       delete scope;
@@ -203,7 +203,7 @@ class Sema : public ast::AstVisitor<Sema> {
       }
     }
 
-    Sema *check() { return check_; }
+    Sema *Check() { return check_; }
 
    private:
     Sema *check_;
@@ -216,7 +216,7 @@ class Sema : public ast::AstVisitor<Sema> {
   class FunctionSemaScope {
    public:
     FunctionSemaScope(Sema *check, ast::FunctionLitExpr *func)
-        : prev_func_(check->current_function()), block_scope_(check, Scope::Kind::Function) {
+        : prev_func_(check->CurrentFunction()), block_scope_(check, Scope::Kind::Function) {
       check->curr_func_ = func;
     }
 
@@ -224,7 +224,7 @@ class Sema : public ast::AstVisitor<Sema> {
 
     void Exit() {
       block_scope_.Exit();
-      block_scope_.check()->curr_func_ = prev_func_;
+      block_scope_.Check()->curr_func_ = prev_func_;
     }
 
    private:
@@ -232,7 +232,7 @@ class Sema : public ast::AstVisitor<Sema> {
     SemaScope block_scope_;
   };
 
-  ast::FunctionLitExpr *current_function() const { return curr_func_; }
+  ast::FunctionLitExpr *CurrentFunction() const { return curr_func_; }
 
  private:
   // The context
@@ -245,9 +245,9 @@ class Sema : public ast::AstVisitor<Sema> {
   Scope *scope_;
 
   // A cache of scopes to reduce allocations
-  static constexpr const uint32_t kScopeCacheSize = 4;
+  static constexpr const uint32_t K_SCOPE_CACHE_SIZE = 4;
   uint64_t num_cached_scopes_;
-  std::unique_ptr<Scope> scope_cache_[kScopeCacheSize] = {nullptr};
+  std::unique_ptr<Scope> scope_cache_[K_SCOPE_CACHE_SIZE] = {nullptr};
 
   ast::FunctionLitExpr *curr_func_;
 };

@@ -24,7 +24,7 @@ namespace terrier::execution::vm::test {
 class BytecodeTrampolineTest : public TplTest {
  protected:
   void *GetTrampoline(const vm::Module &module, const std::string &func_name) {
-    return module.GetBytecodeImpl(module.GetFuncInfoByName(func_name)->id());
+    return module.GetBytecodeImpl(module.GetFuncInfoByName(func_name)->Id());
   }
 };
 
@@ -189,8 +189,8 @@ TEST_F(BytecodeTrampolineTest, CodeGenComparisonFunctionSorterTest) {
 
   {
     struct S {
-      int32_t a, b, c, d;
-      S(int32_t a, int32_t b, int32_t c, int32_t d) : a(a), b(b), c(c), d(d) {}
+      int32_t a_, b_, c_, d_;
+      S(int32_t a, int32_t b, int32_t c, int32_t d) : a_(a), b_(b), c_(c), d_(d) {}
     };
 
     const uint32_t nelems = 100;
@@ -220,7 +220,7 @@ TEST_F(BytecodeTrampolineTest, CodeGenComparisonFunctionSorterTest) {
     ips4o::sort(elems.begin(), elems.end(), [compare](const auto &a, const auto &b) { return compare(&a, &b); });
 
     // Verify
-    EXPECT_TRUE(std::is_sorted(elems.begin(), elems.end(), [](const auto &a, const auto &b) { return a.c < b.c; }));
+    EXPECT_TRUE(std::is_sorted(elems.begin(), elems.end(), [](const auto &a, const auto &b) { return a.c_ < b.c_; }));
   }
 }
 
@@ -239,7 +239,7 @@ TEST_F(BytecodeTrampolineTest, DISABLED_PerfGenComparisonForSortTest) {
                 // NOLINTNEXTLINE
                 [compare](const auto a, const auto b) { return compare(a, b) < 0; });
     timer.Stop();
-    return timer.elapsed();
+    return timer.Elapsed();
   };
 
   UNUSED_ATTRIBUTE auto bench_func = [](auto &vec) {
@@ -255,7 +255,7 @@ TEST_F(BytecodeTrampolineTest, DISABLED_PerfGenComparisonForSortTest) {
                 // NOLINTNEXTLINE
                 [&compare](const auto a, const auto b) { return compare(a, b) < 0; });
     timer.Stop();
-    return timer.elapsed();
+    return timer.Elapsed();
   };
 
   UNUSED_ATTRIBUTE auto bench_std = [](auto &vec) {
@@ -266,7 +266,7 @@ TEST_F(BytecodeTrampolineTest, DISABLED_PerfGenComparisonForSortTest) {
                 // NOLINTNEXTLINE
                 [](const auto &a, const auto &b) { return a < b; });
     timer.Stop();
-    return timer.elapsed();
+    return timer.Elapsed();
   };
 
   const uint32_t nelems = 10000000;

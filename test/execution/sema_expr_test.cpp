@@ -23,13 +23,13 @@ class SemaExprTest : public TplTest, public ast::test::TestAstBuilder {
     ast::test::TestAstBuilder::SetUp();
   };
 
-  void ResetErrorReporter() { error_reporter()->Reset(); }
+  void ResetErrorReporter() { GetErrorReporter()->Reset(); }
 };
 
 struct TestCase {
-  bool has_errors;
-  std::string msg;
-  ast::AstNode *tree;
+  bool has_errors_;
+  std::string msg_;
+  ast::AstNode *tree_;
 };
 
 // NOLINTNEXTLINE
@@ -55,9 +55,9 @@ TEST_F(SemaExprTest, LogicalOperationTest) {
   };
 
   for (const auto &test : tests) {
-    Sema sema(ctx());
-    bool has_errors = sema.Run(test.tree);
-    EXPECT_EQ(test.has_errors, has_errors) << test.msg;
+    Sema sema(Ctx());
+    bool has_errors = sema.Run(test.tree_);
+    EXPECT_EQ(test.has_errors_, has_errors) << test.msg_;
     ResetErrorReporter();
   }
 }
@@ -96,9 +96,9 @@ TEST_F(SemaExprTest, ComparisonOperationWithImplicitCastTest) {
   // clang-format on
 
   for (const auto &test : tests) {
-    Sema sema(ctx());
-    bool has_errors = sema.Run(test.tree);
-    EXPECT_EQ(test.has_errors, has_errors) << test.msg;
+    Sema sema(Ctx());
+    bool has_errors = sema.Run(test.tree_);
+    EXPECT_EQ(test.has_errors_, has_errors) << test.msg_;
     ResetErrorReporter();
   }
 }
@@ -146,9 +146,9 @@ TEST_F(SemaExprTest, ComparisonOperationWithPointersTest) {
   // clang-format on
 
   for (const auto &test : tests) {
-    Sema sema(ctx());
-    bool has_errors = sema.Run(test.tree);
-    EXPECT_EQ(test.has_errors, has_errors) << test.msg;
+    Sema sema(Ctx());
+    bool has_errors = sema.Run(test.tree_);
+    EXPECT_EQ(test.has_errors_, has_errors) << test.msg_;
     ResetErrorReporter();
   }
 }
@@ -195,9 +195,9 @@ TEST_F(SemaExprTest, ArrayIndexTest) {
   // clang-format on
 
   for (const auto &test : tests) {
-    Sema sema(ctx());
-    bool has_errors = sema.Run(test.tree);
-    EXPECT_EQ(test.has_errors, has_errors) << test.msg;
+    Sema sema(Ctx());
+    bool has_errors = sema.Run(test.tree_);
+    EXPECT_EQ(test.has_errors_, has_errors) << test.msg_;
     ResetErrorReporter();
   }
 }

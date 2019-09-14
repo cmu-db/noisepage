@@ -82,11 +82,11 @@ class VM::Frame {
 
 // The maximum amount of stack to use. If the function requires more than 16K
 // bytes, acquire space from the heap.
-static constexpr const uint32_t kMaxStackAllocSize = 1ull << 14ull;
+static constexpr const uint32_t K_MAX_STACK_ALLOC_SIZE = 1ull << 14ull;
 // A soft-maximum amount of stack to use. If a function's frame requires more
 // than 4K (the soft max), try the stack and fallback to heap. If the function
 // requires less, use the stack.
-static constexpr const uint32_t kSoftMaxStackAllocSize = 1ull << 12ull;
+static constexpr const uint32_t K_SOFT_MAX_STACK_ALLOC_SIZE = 1ull << 12ull;
 
 VM::VM(const Module *module) : module_(module) {}
 
@@ -95,15 +95,14 @@ void VM::InvokeFunction(const Module *module, const FunctionId func_id, const ui
   // The function's info
   const FunctionInfo *func_info = module->GetFuncInfoById(func_id);
   TERRIER_ASSERT(func_info != nullptr, "Function doesn't exist in module!");
-  const std::size_t frame_size = func_info->frame_size();
-
+  const std::size_t frame_size = func_info->FrameSize();
   // Let's try to get some space
   bool used_heap = false;
   uint8_t *raw_frame = nullptr;
-  if (frame_size > kMaxStackAllocSize) {
+  if (frame_size > K_MAX_STACK_ALLOC_SIZE) {
     used_heap = true;
     raw_frame = static_cast<uint8_t *>(util::MallocAligned(frame_size, alignof(uint64_t)));
-  } else if (frame_size > kSoftMaxStackAllocSize) {
+  } else if (frame_size > K_SOFT_MAX_STACK_ALLOC_SIZE) {
     // TODO(pmenon): Check stack before allocation
     raw_frame = static_cast<uint8_t *>(alloca(frame_size));
   } else {
@@ -111,15 +110,15 @@ void VM::InvokeFunction(const Module *module, const FunctionId func_id, const ui
   }
 
   // Copy args into frame
-  std::memcpy(raw_frame + func_info->params_start_pos(), args, func_info->params_size());
+  std::memcpy(raw_frame + func_info->ParamsStartPos(), args, func_info->ParamsSize());
 
-  EXECUTION_LOG_DEBUG("Executing function '{}'", func_info->name());
+  EXECUTION_LOG_DEBUG("Executing function '{}'", func_info->Name());
 
   // Let's go. First, create the virtual machine instance.
   VM vm(module);
 
   // Now get the bytecode for the function and fire it off
-  const uint8_t *bytecode = module->bytecode_module()->GetBytecodeForFunction(*func_info);
+  const uint8_t *bytecode = module->GetBytecodeModule()->GetBytecodeForFunction(*func_info);
   TERRIER_ASSERT(bytecode != nullptr, "Bytecode cannot be null");
   Frame frame(raw_frame, frame_size);
   vm.Interpret(bytecode, &frame);
@@ -173,7 +172,7 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {
 
   // TODO(pmenon): Should these READ/PEEK macros take in a vm::OperandType so
   // that we can infer primitive types using traits? This minimizes number of
-  // changes if the underlying offset/bytecode/register sizes changes?
+  // changes if the underlying offset/bytecode/register sizes_ changes?
 #define PEEK_JMP_OFFSET() Peek<int32_t>(&ip)
 #define READ_IMM1() Read<int8_t>(&ip)
 #define READ_IMM2() Read<int16_t>(&ip)
@@ -1676,15 +1675,15 @@ const uint8_t *VM::ExecuteCall(const uint8_t *ip, VM::Frame *caller) {
   // Lookup the function
   const FunctionInfo *func_info = module_->GetFuncInfoById(func_id);
   TERRIER_ASSERT(func_info != nullptr, "Function doesn't exist in module!");
-  const std::size_t frame_size = func_info->frame_size();
+  const std::size_t frame_size = func_info->FrameSize();
 
   // Get some space for the function's frame
   bool used_heap = false;
   uint8_t *raw_frame = nullptr;
-  if (frame_size > kMaxStackAllocSize) {
+  if (frame_size > K_MAX_STACK_ALLOC_SIZE) {
     used_heap = true;
     raw_frame = static_cast<uint8_t *>(util::MallocAligned(frame_size, alignof(uint64_t)));
-  } else if (frame_size > kSoftMaxStackAllocSize) {
+  } else if (frame_size > K_SOFT_MAX_STACK_ALLOC_SIZE) {
     // TODO(pmenon): Check stack before allocation
     raw_frame = static_cast<uint8_t *>(alloca(frame_size));
   } else {
@@ -1693,17 +1692,17 @@ const uint8_t *VM::ExecuteCall(const uint8_t *ip, VM::Frame *caller) {
 
   // Set up the arguments to the function
   for (uint32_t i = 0; i < num_params; i++) {
-    const LocalInfo &param_info = func_info->locals()[i];
+    const LocalInfo &param_info = func_info->Locals()[i];
     const void *param = caller->LocalAt<void *>(READ_LOCAL_ID());
-    std::memcpy(raw_frame + param_info.offset(), &param, param_info.size());
+    std::memcpy(raw_frame + param_info.Offset(), &param, param_info.Size());
   }
 
-  EXECUTION_LOG_DEBUG("Executing function '{}'", func_info->name());
+  EXECUTION_LOG_DEBUG("Executing function '{}'", func_info->Name());
 
   // Let's go
-  const uint8_t *bytecode = module_->bytecode_module()->GetBytecodeForFunction(*func_info);
+  const uint8_t *bytecode = module_->GetBytecodeModule()->GetBytecodeForFunction(*func_info);
   TERRIER_ASSERT(bytecode != nullptr, "Bytecode cannot be null");
-  VM::Frame callee(raw_frame, func_info->frame_size());
+  VM::Frame callee(raw_frame, func_info->FrameSize());
   Interpret(bytecode, &callee);
 
   if (used_heap) {

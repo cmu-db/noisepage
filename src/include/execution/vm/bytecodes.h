@@ -422,12 +422,12 @@ class Bytecodes {
   /**
    * The total number of bytecode instructions
    */
-  static constexpr const uint32_t kBytecodeCount = static_cast<uint32_t>(Bytecode::Last) + 1;
+  static constexpr const uint32_t K_BYTECODE_COUNT = static_cast<uint32_t>(Bytecode::Last) + 1;
 
   /**
    * @return total number of bytecode instructions
    */
-  static constexpr uint32_t NumBytecodes() { return kBytecodeCount; }
+  static constexpr uint32_t NumBytecodes() { return K_BYTECODE_COUNT; }
 
   /**
    * @return the maximum length of any bytecode instruction in bytes
@@ -438,28 +438,28 @@ class Bytecodes {
    * @param bytecode bytecode to convert
    * @return the string representation of the given bytecode
    */
-  static const char *ToString(Bytecode bytecode) { return kBytecodeNames[static_cast<uint32_t>(bytecode)]; }
+  static const char *ToString(Bytecode bytecode) { return k_bytecode_names[static_cast<uint32_t>(bytecode)]; }
 
   /**
    * @param bytecode bytecode for the number of operands is needed
    * @return the number of operands a bytecode accepts
    */
-  static uint32_t NumOperands(Bytecode bytecode) { return kBytecodeOperandCounts[static_cast<uint32_t>(bytecode)]; }
+  static uint32_t NumOperands(Bytecode bytecode) { return k_bytecode_operand_counts[static_cast<uint32_t>(bytecode)]; }
 
   /**
    * @param bytecode for which the operand types are needed
    * @return an array of the operand types to the given bytecode
    */
   static const OperandType *GetOperandTypes(Bytecode bytecode) {
-    return kBytecodeOperandTypes[static_cast<uint32_t>(bytecode)];
+    return k_bytecode_operand_types[static_cast<uint32_t>(bytecode)];
   }
 
   /**
-   * @param bytecode bytecode for which the operand sizes are needed.
-   * @return an array of the sizes of all operands to the given bytecode
+   * @param bytecode bytecode for which the operand sizes_ are needed.
+   * @return an array of the sizes_ of all operands to the given bytecode
    */
   static const OperandSize *GetOperandSizes(Bytecode bytecode) {
-    return kBytecodeOperandSizes[static_cast<uint32_t>(bytecode)];
+    return k_bytecode_operand_sizes[static_cast<uint32_t>(bytecode)];
   }
 
   /**
@@ -497,7 +497,7 @@ class Bytecodes {
    * @param bytecode bytecode for which the name is needed
    * @return the name of the bytecode handler function for this bytecode
    */
-  static const char *GetBytecodeHandlerName(Bytecode bytecode) { return kBytecodeHandlerName[ToByte(bytecode)]; }
+  static const char *GetBytecodeHandlerName(Bytecode bytecode) { return k_bytecode_handler_name[ToByte(bytecode)]; }
 
   /**
    * Converts the given bytecode to a single-byte representation
@@ -547,11 +547,11 @@ class Bytecodes {
   }
 
  private:
-  static const char *kBytecodeNames[];
-  static uint32_t kBytecodeOperandCounts[];
-  static const OperandType *kBytecodeOperandTypes[];
-  static const OperandSize *kBytecodeOperandSizes[];
-  static const char *kBytecodeHandlerName[];
+  static const char *k_bytecode_names[];
+  static uint32_t k_bytecode_operand_counts[];
+  static const OperandType *k_bytecode_operand_types[];
+  static const OperandSize *k_bytecode_operand_sizes[];
+  static const char *k_bytecode_handler_name[];
 };
 
 }  // namespace terrier::execution::vm

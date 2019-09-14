@@ -17,7 +17,7 @@
 #
 # Modified from the Apache Arrow project for the Terrier project.
 
-cmake_minimum_required(VERSION 3.2)
+cmake_minimum_required(VERSION 3.8)
 
 # Extract Terrier version number
 file(READ "${CMAKE_CURRENT_SOURCE_DIR}/build-support/version.xml" POM_XML)
@@ -215,6 +215,8 @@ if (UNIX)
             "${CMAKE_CURRENT_SOURCE_DIR}/test/*.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/benchmark/*.h"
             "${CMAKE_CURRENT_SOURCE_DIR}/benchmark/*.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/util/*.h"
+            "${CMAKE_CURRENT_SOURCE_DIR}/util/*.cpp"
             )
 
     find_program(CPPLINT_BIN NAMES cpplint cpplint.py HINTS ${BUILD_SUPPORT_DIR})
@@ -281,6 +283,7 @@ string(CONCAT FORMAT_DIRS
         "${CMAKE_CURRENT_SOURCE_DIR}/benchmark,"
         "${CMAKE_CURRENT_SOURCE_DIR}/src,"
         "${CMAKE_CURRENT_SOURCE_DIR}/test,"
+        "${CMAKE_CURRENT_SOURCE_DIR}/util"
         )
 
 # runs clang format and updates files in place.

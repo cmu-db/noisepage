@@ -19,17 +19,17 @@ class ConciseHashTable {
   /**
    * The maximum probe length before falling back into the overflow table
    */
-  static constexpr const uint32_t kProbeThreshold = 1;
+  static constexpr const uint32_t K_PROBE_THRESHOLD = 1;
 
   /**
    * The default load factor
    */
-  static constexpr const uint32_t kLoadFactor = 8;
+  static constexpr const uint32_t K_LOAD_FACTOR = 8;
 
   /**
    * A minimum of 4K slots
    */
-  static constexpr const uint64_t kMinNumSlots = 1u << 12;
+  static constexpr const uint64_t K_MIN_NUM_SLOTS = 1u << 12;
 
   // The number of CHT slots that belong to one group. This value should either
   // be 32 or 64 for (1) making computation simpler by bit-shifting and (2) to
@@ -37,15 +37,15 @@ class ConciseHashTable {
   /**
    * Log of the number of slots
    */
-  static constexpr const uint32_t kLogSlotsPerGroup = 6;
+  static constexpr const uint32_t K_LOG_SLOTS_PER_GROUP = 6;
   /**
    * Number of slots
    */
-  static constexpr const uint32_t kSlotsPerGroup = 1u << kLogSlotsPerGroup;
+  static constexpr const uint32_t K_SLOTS_PER_GROUP = 1u << K_LOG_SLOTS_PER_GROUP;
   /**
    * Bit mask for the slots (kLogSlotsPerGroup ones)
    */
-  static constexpr const uint32_t kGroupBitMask = kSlotsPerGroup - 1;
+  static constexpr const uint32_t K_GROUP_BIT_MASK = K_SLOTS_PER_GROUP - 1;
 
   /**
    * Create a new uninitialized concise hash table. Callers **must** call
@@ -53,7 +53,7 @@ class ConciseHashTable {
    * @param probe_threshold The maximum probe threshold before falling back to
    *                        a secondary overflow entry table.
    */
-  explicit ConciseHashTable(uint32_t probe_threshold = kProbeThreshold);
+  explicit ConciseHashTable(uint32_t probe_threshold = K_PROBE_THRESHOLD);
 
   /**
    * Destructor
@@ -121,17 +121,17 @@ class ConciseHashTable {
   /**
    * Return the capacity (the maximum number of elements) this table supports
    */
-  uint64_t capacity() const { return slot_mask_ + 1; }
+  uint64_t Capacity() const { return slot_mask_ + 1; }
 
   /**
    * Return the number of overflows entries in this table
    */
-  uint64_t num_overflow() const { return num_overflow_; }
+  uint64_t NumOverflow() const { return num_overflow_; }
 
   /**
    * Has the table been built?
    */
-  bool is_built() const { return built_; }
+  bool IsBuilt() const { return built_; }
 
  private:
   /**
@@ -143,11 +143,11 @@ class ConciseHashTable {
    */
   struct SlotGroup {
     // The bitmap indicating whether the slots are occupied or free
-    uint64_t bits;
+    uint64_t bits_;
     // The prefix population count
-    uint32_t count;
+    uint32_t count_;
 
-    static_assert(sizeof(bits) * common::Constants::kBitsPerByte == kSlotsPerGroup,
+    static_assert(sizeof(bits_) * common::Constants::K_BITS_PER_BYTE == K_SLOTS_PER_GROUP,
                   "Number of slots in group and configured constant are out of sync");
   } PACKED;
 
@@ -177,53 +177,53 @@ class ConciseHashTable {
 
 inline void ConciseHashTable::Insert(HashTableEntry *entry, const hash_t hash) {
   const uint64_t slot_idx = hash & slot_mask_;
-  const uint64_t group_idx = slot_idx >> kLogSlotsPerGroup;
-  const uint64_t num_bits_to_group = group_idx << kLogSlotsPerGroup;
-  auto *group_bits = reinterpret_cast<uint32_t *>(&slot_groups_[group_idx].bits);
+  const uint64_t group_idx = slot_idx >> K_LOG_SLOTS_PER_GROUP;
+  const uint64_t num_bits_to_group = group_idx << K_LOG_SLOTS_PER_GROUP;
+  auto *group_bits = reinterpret_cast<uint32_t *>(&slot_groups_[group_idx].bits_);
 
-  auto bit_idx = static_cast<uint32_t>(slot_idx & kGroupBitMask);
+  auto bit_idx = static_cast<uint32_t>(slot_idx & K_GROUP_BIT_MASK);
   uint32_t max_bit_idx = std::min(63u, bit_idx + probe_limit_);
   do {
     if (!util::BitUtil::Test(group_bits, bit_idx)) {
       util::BitUtil::Set(group_bits, bit_idx);
-      entry->cht_slot = ConciseHashTableSlot(num_bits_to_group + bit_idx);
+      entry->cht_slot_ = ConciseHashTableSlot(num_bits_to_group + bit_idx);
       return;
     }
   } while (++bit_idx <= max_bit_idx);
 
   num_overflow_++;
 
-  entry->cht_slot = ConciseHashTableSlot(num_bits_to_group + bit_idx - 1);
+  entry->cht_slot_ = ConciseHashTableSlot(num_bits_to_group + bit_idx - 1);
 }
 
 template <bool ForRead>
 inline void ConciseHashTable::PrefetchSlotGroup(hash_t hash) const {
   const uint64_t slot_idx = hash & slot_mask_;
-  const uint64_t group_idx = slot_idx >> kLogSlotsPerGroup;
+  const uint64_t group_idx = slot_idx >> K_LOG_SLOTS_PER_GROUP;
   util::Prefetch<ForRead, Locality::Low>(slot_groups_ + group_idx);
 }
 
 inline uint64_t ConciseHashTable::NumFilledSlotsBefore(const ConciseHashTableSlot slot) const {
-  TERRIER_ASSERT(is_built(), "Table must be built");
+  TERRIER_ASSERT(IsBuilt(), "Table must be built");
 
-  const uint64_t group_idx = slot >> kLogSlotsPerGroup;
-  const uint64_t bit_idx = slot & kGroupBitMask;
+  const uint64_t group_idx = slot >> K_LOG_SLOTS_PER_GROUP;
+  const uint64_t bit_idx = slot & K_GROUP_BIT_MASK;
 
   const SlotGroup *slot_group = slot_groups_ + group_idx;
-  const uint64_t bits_after_slot = slot_group->bits & (uint64_t(-1) << bit_idx);
-  return slot_group->count - util::BitUtil::CountBits(bits_after_slot);
+  const uint64_t bits_after_slot = slot_group->bits_ & (uint64_t(-1) << bit_idx);
+  return slot_group->count_ - util::BitUtil::CountBits(bits_after_slot);
 }
 
 inline std::pair<bool, uint64_t> ConciseHashTable::Lookup(const hash_t hash) const {
   const uint64_t slot_idx = hash & slot_mask_;
-  const uint64_t group_idx = slot_idx >> kLogSlotsPerGroup;
-  const uint64_t bit_idx = slot_idx & kGroupBitMask;
+  const uint64_t group_idx = slot_idx >> K_LOG_SLOTS_PER_GROUP;
+  const uint64_t bit_idx = slot_idx & K_GROUP_BIT_MASK;
 
   const SlotGroup *slot_group = slot_groups_ + group_idx;
-  const uint64_t bits_after_slot = slot_group->bits & (uint64_t(-1) << bit_idx);
+  const uint64_t bits_after_slot = slot_group->bits_ & (uint64_t(-1) << bit_idx);
 
-  const auto exists = static_cast<bool>(slot_group->bits & (1ull << bit_idx));
-  const uint64_t pos = slot_group->count - util::BitUtil::CountBits(bits_after_slot);
+  const auto exists = static_cast<bool>(slot_group->bits_ & (1ull << bit_idx));
+  const uint64_t pos = slot_group->count_ - util::BitUtil::CountBits(bits_after_slot);
 
   return std::pair(exists, pos);
 }

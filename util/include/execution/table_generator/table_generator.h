@@ -7,6 +7,7 @@
 #include <vector>
 #include "catalog/catalog.h"
 #include "execution/exec/execution_context.h"
+#include "parser/expression/constant_value_expression.h"
 #include "transaction/transaction_context.h"
 #include "type/transient_value_factory.h"
 #include "parser/expression/constant_value_expression.h"
@@ -18,11 +19,11 @@ namespace terrier::execution::sql {
 /**
  * Size of the first table
  */
-constexpr uint32_t test1_size = 10000;
+constexpr uint32_t TEST1_SIZE = 10000;
 /**
  * Size of the second table
  */
-constexpr uint32_t test2_size = 1000;
+constexpr uint32_t TEST2_SIZE = 1000;
 
 /**
  * Helper class to generate test tables and their indexes.
@@ -74,7 +75,7 @@ class TableGenerator {
     /**
      * Name of the column
      */
-    const char *name;
+    const char *name_;
     /**
      * Type of the column
      */
@@ -82,29 +83,29 @@ class TableGenerator {
     /**
      * Whether the column is nullable
      */
-    bool nullable;
+    bool nullable_;
     /**
      * Distribution of values
      */
-    Dist dist;
+    Dist dist_;
     /**
      * Min value of the column
      */
-    uint64_t min;
+    uint64_t min_;
     /**
      * Max value of the column
      */
-    uint64_t max;
+    uint64_t max_;
     /**
      * Counter to generate serial data
      */
-    uint64_t serial_counter{0};
+    uint64_t serial_counter_{0};
 
     /**
      * Constructor
      */
     ColumnInsertMeta(const char *name, const type::TypeId type, bool nullable, Dist dist, uint64_t min, uint64_t max)
-        : name(name), type_(type), nullable(nullable), dist(dist), min(min), max(max) {}
+        : name_(name), type_(type), nullable_(nullable), dist_(dist), min_(min), max_(max) {}
   };
 
   /**
@@ -115,21 +116,21 @@ class TableGenerator {
     /**
      * Name of the table
      */
-    const char *name;
+    const char *name_;
     /**
      * Number of rows
      */
-    uint32_t num_rows;
+    uint32_t num_rows_;
     /**
      * Columns
      */
-    std::vector<ColumnInsertMeta> col_meta;
+    std::vector<ColumnInsertMeta> col_meta_;
 
     /**
      * Constructor
      */
     TableInsertMeta(const char *name, uint32_t num_rows, std::vector<ColumnInsertMeta> col_meta)
-        : name(name), num_rows(num_rows), col_meta(std::move(col_meta)) {}
+        : name_(name), num_rows_(num_rows), col_meta_(std::move(col_meta)) {}
   };
 
   /**
@@ -139,25 +140,25 @@ class TableGenerator {
     /**
      * Name of the column
      */
-    const char *name;
+    const char *name_;
     /**
      * Type of the column
      */
-    const type::TypeId type;
+    const type::TypeId type_;
     /**
      * Whether the columns is nullable
      */
-    bool nullable;
+    bool nullable_;
     /**
      * Column name in the original table
      */
-    const char *table_col_name;
+    const char *table_col_name_;
 
     /**
      * Constructor
      */
     IndexColumn(const char *name, const type::TypeId type, bool nullable, const char *table_col_name)
-        : name(name), type(type), nullable(nullable), table_col_name(table_col_name) {}
+        : name_(name), type_(type), nullable_(nullable), table_col_name_(table_col_name) {}
   };
 
   /**
@@ -167,21 +168,21 @@ class TableGenerator {
     /**
      * Name of the index
      */
-    const char *index_name;
+    const char *index_name_;
     /**
      * Name of the corresponding table
      */
-    const char *table_name;
+    const char *table_name_;
     /**
      * Columns
      */
-    std::vector<IndexColumn> cols;
+    std::vector<IndexColumn> cols_;
 
     /**
      * Constructors
      */
     IndexInsertMeta(const char *index_name, const char *table_name, std::vector<IndexColumn> cols)
-        : index_name(index_name), table_name(table_name), cols(std::move(cols)) {}
+        : index_name_(index_name), table_name_(table_name), cols_(std::move(cols)) {}
   };
 
   void InitTestIndexes();

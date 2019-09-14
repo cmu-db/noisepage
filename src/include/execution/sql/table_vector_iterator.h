@@ -14,12 +14,12 @@ class ThreadStateContainer;
  * An iterator over a table's data in vector-wise fashion.
  * TODO(Amadou): Add a Reset() method to avoid reconstructing the object in NL joins.
  */
-class TableVectorIterator {
+class EXPORT TableVectorIterator {
  public:
   /**
    * Minimum block range
    */
-  static constexpr const uint32_t kMinBlockRangeSize = 2;
+  static constexpr const uint32_t K_MIN_BLOCK_RANGE_SIZE = 2;
 
   /**
    * Create a new vectorized iterator over the given table
@@ -61,7 +61,7 @@ class TableVectorIterator {
   /**
    * @return the iterator over the current active projection
    */
-  ProjectedColumnsIterator *projected_columns_iterator() { return &pci_; }
+  ProjectedColumnsIterator *GetProjectedColumnsIterator() { return &pci_; }
 
   /**
    * Scan function callback used to scan a partition of the table.
@@ -86,7 +86,7 @@ class TableVectorIterator {
    * @param min_grain_size The minimum number of blocks to give a scan task
    */
   static bool ParallelScan(uint32_t db_oid, uint32_t table_oid, void *query_state, ThreadStateContainer *thread_states,
-                           ScanFn scan_fn, uint32_t min_grain_size = kMinBlockRangeSize);
+                           ScanFn scan_fn, uint32_t min_grain_size = K_MIN_BLOCK_RANGE_SIZE);
 
  private:
   exec::ExecutionContext *exec_ctx_;
@@ -102,7 +102,7 @@ class TableVectorIterator {
   // Iterator of the slots in the PC
   std::unique_ptr<storage::DataTable::SlotIterator> iter_ = nullptr;
 
-  bool initialized = false;
+  bool initialized_ = false;
 };
 
 }  // namespace terrier::execution::sql

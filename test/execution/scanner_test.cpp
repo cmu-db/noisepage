@@ -28,31 +28,31 @@ TEST_F(ScannerTest, SimpleSourceTest) {
   EXPECT_EQ(Token::Type::VAR, scanner.Next());
 
   // 'x'
-  EXPECT_EQ(Token::Type::IDENTIFIER, scanner.peek());
+  EXPECT_EQ(Token::Type::IDENTIFIER, scanner.Peek());
   EXPECT_EQ(Token::Type::IDENTIFIER, scanner.Next());
-  EXPECT_EQ("x", scanner.current_literal());
-  EXPECT_EQ(1u, scanner.current_position().line);
+  EXPECT_EQ("x", scanner.CurrentLiteral());
+  EXPECT_EQ(1u, scanner.CurrentPosition().line_);
 
   // The following "+ 1" is because source positions are 1-based
-  EXPECT_EQ(source.find('x') + 1, scanner.current_position().column);
+  EXPECT_EQ(source.find('x') + 1, scanner.CurrentPosition().column_);
 
   // '='
-  EXPECT_EQ(Token::Type::EQUAL, scanner.peek());
+  EXPECT_EQ(Token::Type::EQUAL, scanner.Peek());
   EXPECT_EQ(Token::Type::EQUAL, scanner.Next());
 
   // '10'
-  EXPECT_EQ(Token::Type::INTEGER, scanner.peek());
+  EXPECT_EQ(Token::Type::INTEGER, scanner.Peek());
   EXPECT_EQ(Token::Type::INTEGER, scanner.Next());
 
   // Done
-  EXPECT_EQ(Token::Type::EOS, scanner.peek());
+  EXPECT_EQ(Token::Type::EOS, scanner.Peek());
   EXPECT_EQ(Token::Type::EOS, scanner.Next());
 }
 
 struct Test {
-  const std::string source;
-  std::vector<Token::Type> expected_tokens;
-  std::function<void(Scanner *scanner, uint32_t token_idx)> check;
+  const std::string source_;
+  std::vector<Token::Type> expected_tokens_;
+  std::function<void(Scanner *scanner, uint32_t token_idx)> check_;
 };
 
 void CheckEquality(uint32_t test_idx, const std::vector<Token::Type> &expected,
@@ -70,7 +70,7 @@ void CheckEquality(uint32_t test_idx, const std::vector<Token::Type> &expected,
 void RunTests(const std::vector<Test> &tests) {
   for (unsigned test_idx = 0; test_idx < tests.size(); test_idx++) {
     const auto &test = tests[test_idx];
-    Scanner scanner(test.source.data(), test.source.length());
+    Scanner scanner(test.source_.data(), test.source_.length());
 
     std::vector<Token::Type> actual;
 
@@ -78,13 +78,13 @@ void RunTests(const std::vector<Test> &tests) {
     for (auto token = scanner.Next(); token != Token::Type::EOS; token = scanner.Next(), token_idx++) {
       actual.push_back(token);
 
-      if (test.check != nullptr) {
-        test.check(&scanner, token_idx);
+      if (test.check_ != nullptr) {
+        test.check_(&scanner, token_idx);
       }
     }
 
-    // Expect final sizes should be the same
-    CheckEquality(test_idx, test.expected_tokens, actual);
+    // Expect final sizes_ should be the same
+    CheckEquality(test_idx, test.expected_tokens_, actual);
   }
 }
 
@@ -96,9 +96,9 @@ TEST_F(ScannerTest, VariableSyntaxTest) {
        {Token::Type::VAR, Token::Type::IDENTIFIER, Token::Type::EQUAL, Token::Type::INTEGER},
        [](Scanner *scanner, uint32_t token_idx) {
          if (token_idx == 1) {
-           EXPECT_EQ("x", scanner->current_literal());
+           EXPECT_EQ("x", scanner->CurrentLiteral());
          } else if (token_idx == 3) {
-           EXPECT_EQ("10", scanner->current_literal());
+           EXPECT_EQ("10", scanner->CurrentLiteral());
          }
        }},
 
@@ -108,7 +108,7 @@ TEST_F(ScannerTest, VariableSyntaxTest) {
         Token::Type::INTEGER},
        [](Scanner *scanner, uint32_t token_idx) {
          if (token_idx == 3) {
-           EXPECT_EQ("int32_t", scanner->current_literal());
+           EXPECT_EQ("int32_t", scanner->CurrentLiteral());
          }
        }},
       // Variable with float number
@@ -144,8 +144,8 @@ TEST_F(ScannerTest, ForSyntaxTest) {
        [](Scanner *scanner, uint32_t token_idx) {
          // Check that the fourth token is the number "10"
          if (token_idx == 4) {
-           EXPECT_EQ(Token::Type::INTEGER, scanner->current_token());
-           EXPECT_EQ("10", scanner->current_literal());
+           EXPECT_EQ(Token::Type::INTEGER, scanner->CurrentToken());
+           EXPECT_EQ("10", scanner->CurrentLiteral());
          }
        }},
 
@@ -157,8 +157,8 @@ TEST_F(ScannerTest, ForSyntaxTest) {
        [](Scanner *scanner, uint32_t token_idx) {
          // Check that the fourth token is the number "10"
          if (token_idx == 9) {
-           EXPECT_EQ(Token::Type::STRING, scanner->current_token());
-           EXPECT_EQ("hi", scanner->current_literal());
+           EXPECT_EQ(Token::Type::STRING, scanner->CurrentToken());
+           EXPECT_EQ("hi", scanner->CurrentLiteral());
          }
        }},
 
@@ -183,7 +183,7 @@ TEST_F(ScannerTest, FunctionSyntaxTest) {
         Token::Type::LEFT_BRACE, Token::Type::RIGHT_BRACE},
        [](Scanner *scanner, uint32_t token_idx) {
          if (token_idx == 1) {
-           EXPECT_EQ("test", scanner->current_literal());
+           EXPECT_EQ("test", scanner->CurrentLiteral());
          }
        }},
 
@@ -193,7 +193,7 @@ TEST_F(ScannerTest, FunctionSyntaxTest) {
         Token::Type::IDENTIFIER, Token::Type::RIGHT_PAREN, Token::Type::LEFT_BRACE, Token::Type::RIGHT_BRACE},
        [](Scanner *scanner, uint32_t token_idx) {
          if (token_idx == 3) {
-           EXPECT_EQ("a", scanner->current_literal());
+           EXPECT_EQ("a", scanner->CurrentLiteral());
          }
        }}};
 

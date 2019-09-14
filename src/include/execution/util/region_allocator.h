@@ -47,7 +47,9 @@ class StlRegionAllocator {
    * @param n size of the array
    * @return pointer to the array
    */
-  T *allocate(std::size_t n) { return region_->AllocateArray<T>(n); }
+  T *allocate(std::size_t n) {  // NOLINT
+    return region_->AllocateArray<T>(n);
+  }
 
   // No-op
   /**
@@ -55,7 +57,7 @@ class StlRegionAllocator {
    * @param ptr pointer to deallocate
    * @param n size of allocated array
    */
-  void deallocate(T *ptr, std::size_t n) {}
+  void deallocate(T *ptr, std::size_t n) {}  // NOLINT
 
   /**
    * Equality comparator

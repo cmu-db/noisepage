@@ -16,7 +16,7 @@ class SemaBuiltinTest : public TplTest, public ast::test::TestAstBuilder {
   SemaBuiltinTest() = default;
 
   bool Check(ast::AstNode *node) {
-    sema::Sema sema(ctx());
+    sema::Sema sema(Ctx());
     return sema.Run(node);
   }
 
@@ -25,7 +25,7 @@ class SemaBuiltinTest : public TplTest, public ast::test::TestAstBuilder {
     ast::test::TestAstBuilder::SetUp();
   }
 
-  void ResetErrorReporter() { error_reporter()->Reset(); }
+  void ResetErrorReporter() { GetErrorReporter()->Reset(); }
 };
 
 // NOLINTNEXTLINE
@@ -40,7 +40,7 @@ TEST_F(SemaBuiltinTest, CheckSqlConversions) {
     auto result = Call<ast::Builtin::IntToSql>(DeclRef(input1));
     auto block = Block({DeclStmt(input1), ExprStmt(result)});
     EXPECT_EQ(false, Check(block));
-    EXPECT_TRUE(result->type()->IsSpecificBuiltin(ast::BuiltinType::Integer));
+    EXPECT_TRUE(result->GetType()->IsSpecificBuiltin(ast::BuiltinType::Integer));
     ResetErrorReporter();
   }
 
@@ -72,7 +72,7 @@ TEST_F(SemaBuiltinTest, CheckSqlConversions) {
     auto result = Call<ast::Builtin::BoolToSql>(DeclRef(input1));
     auto block = Block({DeclStmt(input1), ExprStmt(result)});
     EXPECT_EQ(false, Check(block));
-    EXPECT_TRUE(result->type()->IsSpecificBuiltin(ast::BuiltinType::Boolean));
+    EXPECT_TRUE(result->GetType()->IsSpecificBuiltin(ast::BuiltinType::Boolean));
     ResetErrorReporter();
   }
 
@@ -95,7 +95,7 @@ TEST_F(SemaBuiltinTest, CheckSqlConversions) {
     auto result = Call<ast::Builtin::FloatToSql>(DeclRef(input1));
     auto block = Block({DeclStmt(input1), ExprStmt(result)});
     EXPECT_EQ(false, Check(block));
-    EXPECT_TRUE(result->type()->IsSpecificBuiltin(ast::BuiltinType::Real));
+    EXPECT_TRUE(result->GetType()->IsSpecificBuiltin(ast::BuiltinType::Real));
     ResetErrorReporter();
   }
 

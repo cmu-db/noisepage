@@ -13,7 +13,7 @@ namespace terrier::execution::sql {
 /**
  * Utility class to handle SQL string manipulations.
  */
-class StringFunctions {
+class EXPORT StringFunctions {
  public:
   /**
    * Delete to force only static functions

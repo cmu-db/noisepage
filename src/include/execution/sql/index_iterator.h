@@ -11,7 +11,7 @@ namespace terrier::execution::sql {
 /**
  * Allows iteration for indices from TPL.
  */
-class IndexIterator {
+class EXPORT IndexIterator {
  public:
   /**
    * Constructor
@@ -37,25 +37,13 @@ class IndexIterator {
   /**
    * Wrapper around the index's ScanKey
    */
-  void ScanKey() {
-    // Scan the index
-    tuples_.clear();
-    curr_index_ = 0;
-    index_->ScanKey(*exec_ctx_->GetTxn(), *index_pr_, &tuples_);
-  }
+  void ScanKey();
 
   /**
    * Advances the iterator. Return true if successful
    * @return whether the iterator was advanced or not.
    */
-  bool Advance() {
-    if (curr_index_ < tuples_.size()) {
-      table_->Select(exec_ctx_->GetTxn(), tuples_[curr_index_], table_pr_);
-      ++curr_index_;
-      return true;
-    }
-    return false;
-  }
+  bool Advance();
 
   /**
    * Get a pointer to the value in the column at index @em col_idx
