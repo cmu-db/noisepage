@@ -241,6 +241,7 @@ class EXPORT ComparisonFunctions {
       *result = BoolVal::Null();                                                                 \
       return;                                                                                    \
     }                                                                                            \
+    result->is_null_ = false;                                                                    \
     result->val_ = v1.ymd_ OP v2.ymd_;                                                           \
   }
 
