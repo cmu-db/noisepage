@@ -25,19 +25,19 @@ void IndexIterator::Init() {
 }
 
 void IndexIterator::ScanKey() {
-    // Scan the index
-    tuples_.clear();
-    curr_index_ = 0;
-    index_->ScanKey(*exec_ctx_->GetTxn(), *index_pr_, &tuples_);
+  // Scan the index
+  tuples_.clear();
+  curr_index_ = 0;
+  index_->ScanKey(*exec_ctx_->GetTxn(), *index_pr_, &tuples_);
 }
 
 bool IndexIterator::Advance() {
-    if (curr_index_ < tuples_.size()) {
-      table_->Select(exec_ctx_->GetTxn(), tuples_[curr_index_], table_pr_);
-      ++curr_index_;
-      return true;
-    }
-    return false;
+  if (curr_index_ < tuples_.size()) {
+    table_->Select(exec_ctx_->GetTxn(), tuples_[curr_index_], table_pr_);
+    ++curr_index_;
+    return true;
+  }
+  return false;
 }
 
 IndexIterator::~IndexIterator() {

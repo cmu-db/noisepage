@@ -206,8 +206,8 @@ void OpThreadStateContainerFree(terrier::execution::sql::ThreadStateContainer *t
 // ---------------------------------------------------------
 
 VM_OP void OpTableVectorIteratorInit(terrier::execution::sql::TableVectorIterator *iter,
-                               terrier::execution::exec::ExecutionContext *exec_ctx, uint32_t table_oid,
-                               uint32_t *col_oids, uint32_t num_oids);
+                                     terrier::execution::exec::ExecutionContext *exec_ctx, uint32_t table_oid,
+                                     uint32_t *col_oids, uint32_t num_oids);
 
 VM_OP void OpTableVectorIteratorPerformInit(terrier::execution::sql::TableVectorIterator *iter);
 
@@ -453,22 +453,22 @@ VM_OP_HOT void OpPCIGetVarlenNull(terrier::execution::sql::StringVal *out,
 }
 
 VM_OP void OpPCIFilterEqual(uint64_t *size, terrier::execution::sql::ProjectedColumnsIterator *iter, uint32_t col_idx,
-                      int8_t type, int64_t val);
-
-VM_OP void OpPCIFilterGreaterThan(uint64_t *size, terrier::execution::sql::ProjectedColumnsIterator *iter, uint32_t col_idx,
                             int8_t type, int64_t val);
 
+VM_OP void OpPCIFilterGreaterThan(uint64_t *size, terrier::execution::sql::ProjectedColumnsIterator *iter,
+                                  uint32_t col_idx, int8_t type, int64_t val);
+
 VM_OP void OpPCIFilterGreaterThanEqual(uint64_t *size, terrier::execution::sql::ProjectedColumnsIterator *iter,
-                                 uint32_t col_idx, int8_t type, int64_t val);
+                                       uint32_t col_idx, int8_t type, int64_t val);
 
-VM_OP void OpPCIFilterLessThan(uint64_t *size, terrier::execution::sql::ProjectedColumnsIterator *iter, uint32_t col_idx,
-                         int8_t type, int64_t val);
+VM_OP void OpPCIFilterLessThan(uint64_t *size, terrier::execution::sql::ProjectedColumnsIterator *iter,
+                               uint32_t col_idx, int8_t type, int64_t val);
 
-VM_OP void OpPCIFilterLessThanEqual(uint64_t *size, terrier::execution::sql::ProjectedColumnsIterator *iter, uint32_t col_idx,
-                              int8_t type, int64_t val);
+VM_OP void OpPCIFilterLessThanEqual(uint64_t *size, terrier::execution::sql::ProjectedColumnsIterator *iter,
+                                    uint32_t col_idx, int8_t type, int64_t val);
 
-VM_OP void OpPCIFilterNotEqual(uint64_t *size, terrier::execution::sql::ProjectedColumnsIterator *iter, uint32_t col_idx,
-                         int8_t type, int64_t val);
+VM_OP void OpPCIFilterNotEqual(uint64_t *size, terrier::execution::sql::ProjectedColumnsIterator *iter,
+                               uint32_t col_idx, int8_t type, int64_t val);
 
 // ---------------------------------------------------------
 // Hashing
@@ -503,12 +503,12 @@ VM_OP void OpFilterManagerInit(terrier::execution::sql::FilterManager *filter_ma
 VM_OP void OpFilterManagerStartNewClause(terrier::execution::sql::FilterManager *filter_manager);
 
 VM_OP void OpFilterManagerInsertFlavor(terrier::execution::sql::FilterManager *filter_manager,
-                                 terrier::execution::sql::FilterManager::MatchFn flavor);
+                                       terrier::execution::sql::FilterManager::MatchFn flavor);
 
 VM_OP void OpFilterManagerFinalize(terrier::execution::sql::FilterManager *filter_manager);
 
 VM_OP void OpFilterManagerRunFilters(terrier::execution::sql::FilterManager *filter_manager,
-                               terrier::execution::sql::ProjectedColumnsIterator *pci);
+                                     terrier::execution::sql::ProjectedColumnsIterator *pci);
 
 VM_OP void OpFilterManagerFree(terrier::execution::sql::FilterManager *filter_manager);
 
@@ -667,7 +667,7 @@ VM_OP_HOT void OpRemReal(terrier::execution::sql::Real *const result, const terr
 // ---------------------------------------------------------
 
 VM_OP void OpAggregationHashTableInit(terrier::execution::sql::AggregationHashTable *agg_hash_table,
-                                terrier::execution::sql::MemoryPool *memory, uint32_t payload_size);
+                                      terrier::execution::sql::MemoryPool *memory, uint32_t payload_size);
 
 VM_OP_HOT void OpAggregationHashTableInsert(terrier::byte **result,
                                             terrier::execution::sql::AggregationHashTable *agg_hash_table,
@@ -710,7 +710,7 @@ VM_OP_HOT void OpAggregationHashTableParallelPartitionedScan(
 VM_OP void OpAggregationHashTableFree(terrier::execution::sql::AggregationHashTable *agg_hash_table);
 
 VM_OP void OpAggregationHashTableIteratorInit(terrier::execution::sql::AggregationHashTableIterator *iter,
-                                        terrier::execution::sql::AggregationHashTable *agg_hash_table);
+                                              terrier::execution::sql::AggregationHashTable *agg_hash_table);
 
 VM_OP_HOT void OpAggregationHashTableIteratorHasNext(bool *has_more,
                                                      terrier::execution::sql::AggregationHashTableIterator *iter) {
@@ -1009,7 +1009,7 @@ VM_OP_HOT void OpAvgAggregateFree(terrier::execution::sql::AvgAggregate *agg) { 
 // ---------------------------------------------------------
 
 VM_OP void OpJoinHashTableInit(terrier::execution::sql::JoinHashTable *join_hash_table,
-                         terrier::execution::sql::MemoryPool *memory, uint32_t tuple_size);
+                               terrier::execution::sql::MemoryPool *memory, uint32_t tuple_size);
 
 VM_OP_HOT void OpJoinHashTableAllocTuple(terrier::byte **result,
                                          terrier::execution::sql::JoinHashTable *join_hash_table,
@@ -1020,8 +1020,8 @@ VM_OP_HOT void OpJoinHashTableAllocTuple(terrier::byte **result,
 VM_OP void OpJoinHashTableBuild(terrier::execution::sql::JoinHashTable *join_hash_table);
 
 VM_OP void OpJoinHashTableBuildParallel(terrier::execution::sql::JoinHashTable *join_hash_table,
-                                  terrier::execution::sql::ThreadStateContainer *thread_state_container,
-                                  uint32_t jht_offset);
+                                        terrier::execution::sql::ThreadStateContainer *thread_state_container,
+                                        uint32_t jht_offset);
 
 VM_OP_HOT void OpJoinHashTableIterInit(terrier::execution::sql::JoinHashTableIterator *result,
                                        terrier::execution::sql::JoinHashTable *join_hash_table, terrier::hash_t hash) {
@@ -1050,7 +1050,7 @@ VM_OP void OpJoinHashTableFree(terrier::execution::sql::JoinHashTable *join_hash
 // ---------------------------------------------------------
 
 VM_OP void OpSorterInit(terrier::execution::sql::Sorter *sorter, terrier::execution::sql::MemoryPool *memory,
-                  terrier::execution::sql::Sorter::ComparisonFunction cmp_fn, uint32_t tuple_size);
+                        terrier::execution::sql::Sorter::ComparisonFunction cmp_fn, uint32_t tuple_size);
 
 VM_OP_HOT void OpSorterAllocTuple(terrier::byte **result, terrier::execution::sql::Sorter *sorter) {
   *result = sorter->AllocInputTuple();
@@ -1067,12 +1067,12 @@ VM_OP_HOT void OpSorterAllocTupleTopKFinish(terrier::execution::sql::Sorter *sor
 VM_OP void OpSorterSort(terrier::execution::sql::Sorter *sorter);
 
 VM_OP void OpSorterSortParallel(terrier::execution::sql::Sorter *sorter,
-                          terrier::execution::sql::ThreadStateContainer *thread_state_container,
-                          uint32_t sorter_offset);
+                                terrier::execution::sql::ThreadStateContainer *thread_state_container,
+                                uint32_t sorter_offset);
 
 VM_OP void OpSorterSortTopKParallel(terrier::execution::sql::Sorter *sorter,
-                              terrier::execution::sql::ThreadStateContainer *thread_state_container,
-                              uint32_t sorter_offset, uint64_t top_k);
+                                    terrier::execution::sql::ThreadStateContainer *thread_state_container,
+                                    uint32_t sorter_offset, uint64_t top_k);
 
 VM_OP void OpSorterFree(terrier::execution::sql::Sorter *sorter);
 
@@ -1313,8 +1313,8 @@ VM_OP_WARM void OpUpper(terrier::execution::exec::ExecutionContext *ctx, terrier
 // Index Iterator
 // ---------------------------------------------------------------
 VM_OP void OpIndexIteratorInit(terrier::execution::sql::IndexIterator *iter,
-                         terrier::execution::exec::ExecutionContext *exec_ctx, uint32_t table_oid, uint32_t index_oid,
-                         uint32_t *col_oids, uint32_t num_oids);
+                               terrier::execution::exec::ExecutionContext *exec_ctx, uint32_t table_oid,
+                               uint32_t index_oid, uint32_t *col_oids, uint32_t num_oids);
 VM_OP void OpIndexIteratorFree(terrier::execution::sql::IndexIterator *iter);
 
 VM_OP void OpIndexIteratorPerformInit(terrier::execution::sql::IndexIterator *iter);
