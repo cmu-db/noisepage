@@ -11,6 +11,26 @@
 #include "storage/index/index_builder.h"
 
 namespace terrier::execution::sql {
+
+void TableGenerator::GenerateTableFromFile(const std::string &schema_file, const std::string &data_file) {
+  table_reader_.ReadTable(schema_file, data_file);
+}
+
+
+void TableGenerator::GenerateTPCHTables(const std::string &dir_name) {
+  // TPCH table names;
+  static const std::vector<std::string> tpch_tables{
+      "part", "supplier", "partsupp", "customer", "orders", "lineitem", "nation", "region",
+  };
+  for (const auto &table_name : tpch_tables) {
+    auto num_rows =
+        table_reader_.ReadTable(dir_name + table_name + ".schema", dir_name + table_name + ".data");
+    std::cout << "Wrote " << num_rows << " rows for table " << table_name << std::endl;
+  }
+}
+
+
+
 template <typename T>
 T *TableGenerator::CreateNumberColumnData(Dist dist, uint32_t num_vals, uint64_t serial_counter, uint64_t min, uint64_t max) {
   auto *val = static_cast<T *>(malloc(sizeof(T) * num_vals));

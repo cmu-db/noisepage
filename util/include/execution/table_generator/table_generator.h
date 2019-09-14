@@ -10,6 +10,7 @@
 #include "transaction/transaction_context.h"
 #include "type/transient_value_factory.h"
 #include "parser/expression/constant_value_expression.h"
+#include "execution/table_generator/table_reader.h"
 
 namespace terrier::execution::sql {
 
@@ -35,17 +36,30 @@ class TableGenerator {
    * @param ns_oid oid of the namespace
    */
   explicit TableGenerator(exec::ExecutionContext *exec_ctx, storage::BlockStore *store, catalog::namespace_oid_t ns_oid)
-      : exec_ctx_{exec_ctx}, store_{store}, ns_oid_{ns_oid} {}
+      : exec_ctx_{exec_ctx}, store_{store}, ns_oid_{ns_oid}, table_reader_{exec_ctx, store, ns_oid} {}
 
   /**
    * Generate test tables.
    */
   void GenerateTestTables();
 
+  /**
+* Generate a table given its schema and data
+* @param schema_file schema file name
+* @param data_file data file name
+*/
+  void GenerateTableFromFile(const std::string &schema_file, const std::string &data_file);
+
+  /**
+   * Generate tpch tables.
+   */
+  void GenerateTPCHTables(const std::string &dir_name);
+
  private:
   exec::ExecutionContext *exec_ctx_;
   storage::BlockStore *store_;
   catalog::namespace_oid_t ns_oid_;
+  TableReader table_reader_;
 
   /**
    * Enumeration to characterize the distribution of values in a given column
