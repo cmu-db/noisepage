@@ -152,9 +152,7 @@ Sema::CheckResult Sema::CheckComparisonOperands(parsing::Token::Type op, const S
   }
 
   auto built_ret_type = [this](ast::Type *input_type) {
-    if (input_type->IsSpecificBuiltin(ast::BuiltinType::Integer) ||
-        input_type->IsSpecificBuiltin(ast::BuiltinType::Real) ||
-        input_type->IsSpecificBuiltin(ast::BuiltinType::Decimal)) {
+    if (input_type->IsSqlValueType()) {
       return ast::BuiltinType::Get(GetContext(), ast::BuiltinType::Boolean);
     }
     return ast::BuiltinType::Get(GetContext(), ast::BuiltinType::Bool);
@@ -163,16 +161,6 @@ Sema::CheckResult Sema::CheckComparisonOperands(parsing::Token::Type op, const S
   // If the input types are the same, we don't need to do any work
   if (left->GetType() == right->GetType()) {
     return {built_ret_type(left->GetType()), left, right};
-  }
-
-  // Check date and string
-  if (left->GetType()->IsSpecificBuiltin(ast::BuiltinType::Date) &&
-      right->GetType()->IsSpecificBuiltin(ast::BuiltinType::Date)) {
-    return {ast::BuiltinType::Get(GetContext(), ast::BuiltinType::Boolean), left, right};
-  }
-  if (left->GetType()->IsSpecificBuiltin(ast::BuiltinType::StringVal) &&
-      right->GetType()->IsSpecificBuiltin(ast::BuiltinType::StringVal)) {
-    return {ast::BuiltinType::Get(GetContext(), ast::BuiltinType::Boolean), left, right};
   }
 
   // If neither input expression is arithmetic, it's an ill-formed operation
