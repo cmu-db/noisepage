@@ -23,7 +23,7 @@ class IndexJoinPlanNode : public AbstractJoinPlanNode {
    */
   class Builder : public AbstractJoinPlanNode::Builder<Builder> {
    public:
-    Builder() = default;
+    Builder () = default;
 
     /**
      * Don't allow builder to be copied or moved

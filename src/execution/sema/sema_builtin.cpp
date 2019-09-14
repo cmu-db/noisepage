@@ -900,7 +900,7 @@ void Sema::CheckBuiltinTableIterCall(ast::CallExpr *call, ast::Builtin builtin) 
     }
     case ast::Builtin::TableIterReset: {
       // Return nothing
-      call->set_type(GetBuiltinType(ast::BuiltinType::Nil));
+      call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
       break;
     }
     case ast::Builtin::TableIterGetPCI: {

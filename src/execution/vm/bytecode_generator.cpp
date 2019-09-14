@@ -538,7 +538,7 @@ void BytecodeGenerator::VisitBuiltinTableIterCall(ast::CallExpr *call, ast::Buil
       break;
     }
     case ast::Builtin::TableIterReset: {
-      emitter()->Emit(Bytecode::TableVectorIteratorReset, iter);
+      Emitter()->Emit(Bytecode::TableVectorIteratorReset, iter);
       break;
     }
     case ast::Builtin::TableIterGetPCI: {

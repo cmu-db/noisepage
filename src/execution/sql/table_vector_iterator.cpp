@@ -47,7 +47,7 @@ bool TableVectorIterator::Advance() {
 }
 
 void TableVectorIterator::Reset() {
-  if (!initialized) return;
+  if (!initialized_) return;
   iter_ = std::make_unique<storage::DataTable::SlotIterator>(table_->begin());
 }
 
