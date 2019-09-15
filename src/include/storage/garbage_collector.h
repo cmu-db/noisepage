@@ -78,18 +78,18 @@ class GarbageCollector {
    * Process the deallocate queue
    * @return number of txns (not UndoRecords) processed for debugging/testing
    */
-  uint32_t ProcessDeallocateQueue();
+  uint32_t ProcessDeallocateQueue(transaction::timestamp_t oldest_txn);
 
   /**
    * Process the unlink queue
    * @return number of txns (not UndoRecords) processed for debugging/testing
    */
-  uint32_t ProcessUnlinkQueue();
+  uint32_t ProcessUnlinkQueue(transaction::timestamp_t oldest_txn);
 
   /**
    * Process deferred actions
    */
-  void ProcessDeferredActions();
+  void ProcessDeferredActions(transaction::timestamp_t oldest_txn);
 
   void ReclaimSlotIfDeleted(UndoRecord *undo_record) const;
 

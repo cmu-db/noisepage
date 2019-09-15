@@ -765,7 +765,7 @@ TEST_F(RecoveryTests, DoubleRecoveryTest) {
 
   // Create a new txn manager with logging disabled
   transaction::TimestampManager secondary_recovery_timestamp_manager;
-  transaction::DeferredActionManager secondary_recovery_deferred_action_manager{recovery_timestamp_manager_};
+  transaction::DeferredActionManager secondary_recovery_deferred_action_manager{&secondary_recovery_timestamp_manager};
   transaction::TransactionManager secondary_recovery_txn_manager{&secondary_recovery_timestamp_manager,
                                                                  &secondary_recovery_deferred_action_manager,
                                                                  &buffer_pool_, true, DISABLED};
