@@ -238,10 +238,14 @@ class DataTable {
   // We also might need our own implementation because we need to handle GC of an unlinked block, as a sequential scan
   // might be on it
   std::list<RawBlock *> blocks_;
+  // latch used to protect block list
   mutable common::SpinLatch blocks_latch_;
-  // to avoid having to grab a latch every time we insert. Failures are very, very infrequent since these
-  // only happen when blocks are full, thus we can afford to be optimistic
-  std::atomic<RawBlock *> insertion_head_ = nullptr;
+  // latch used to protect insertion_head_
+  mutable common::SpinLatch header_latch_;
+  std::list<RawBlock *>::iterator insertion_head_;
+  // Check if we need to advance the insertion_head_
+  // This function uses header_latch_ to ensure correctness
+  void CheckMoveHead(std::list<RawBlock *>::iterator block);
   mutable DataTableCounter data_table_counter_;
 
   // A templatized version for select, so that we can use the same code for both row and column access.
@@ -275,7 +279,7 @@ class DataTable {
                                 UndoRecord *desired);
 
   // Allocates a new block to be used as insertion head.
-  void NewBlock(RawBlock *expected_val);
+  RawBlock *NewBlock();
 
   /**
    * Determine if a Tuple is visible (present and not deleted) to the given transaction. It's effectively Select's logic
