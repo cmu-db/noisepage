@@ -79,6 +79,11 @@ class InsertPlanNode : public AbstractPlanNode {
       return *this;
     }
 
+
+    /**
+     * @param index_oid oid of insertion index that is to be added to this plan node
+     * @return builder object
+     */
     Builder &AddIndexOid(catalog::index_oid_t index_oid) {
       index_oids_.emplace_back(index_oid);
       return *this;
