@@ -19,7 +19,7 @@
 
 namespace terrier::catalog::postgres {
 
-#define MAX_NAME_LENGTH 63  // This mimics PostgreSQL behavior
+constexpr uint8_t MAX_NAME_LENGTH = 63;  // This mimics PostgreSQL behavior
 
 /**
  * Helper function to handle generating the implicit "NULL" default values
