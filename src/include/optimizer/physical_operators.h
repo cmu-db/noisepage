@@ -143,6 +143,7 @@ class IndexScan : public OperatorNode<IndexScan> {
   /**
    * @param database_oid OID of the database
    * @param namespace_oid OID of the namespace
+   * @param table_oid OID of the table
    * @param index_oid OID of the index
    * @param predicates query predicates
    * @param table_alias alias of the table
@@ -153,8 +154,8 @@ class IndexScan : public OperatorNode<IndexScan> {
    * @return an IndexScan operator
    */
   static Operator Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
-                       catalog::index_oid_t index_oid, std::vector<AnnotatedExpression> &&predicates,
-                       std::string table_alias, bool is_for_update,
+                       catalog::table_oid_t table_oid, catalog::index_oid_t index_oid,
+                       std::vector<AnnotatedExpression> &&predicates, std::string table_alias, bool is_for_update,
                        std::vector<catalog::col_oid_t> &&key_column_oid_list,
                        std::vector<parser::ExpressionType> &&expr_type_list,
                        std::vector<type::TransientValue> &&value_list);
@@ -181,6 +182,11 @@ class IndexScan : public OperatorNode<IndexScan> {
 
   /**
    * @return the OID of the table
+   */
+  const catalog::table_oid_t &GetTableOID() const { return table_oid_; }
+
+  /**
+   * @return the OID of the index
    */
   const catalog::index_oid_t &GetIndexOID() const { return index_oid_; }
 
@@ -224,6 +230,11 @@ class IndexScan : public OperatorNode<IndexScan> {
    * OID of the namespace
    */
   catalog::namespace_oid_t namespace_oid_;
+
+  /**
+   * OID of the table
+   */
+  catalog::table_oid_t table_oid_;
 
   /**
    * OID of the index

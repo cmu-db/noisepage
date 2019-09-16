@@ -98,8 +98,8 @@ BaseOperatorNode *IndexScan::Copy() const {
 }
 
 Operator IndexScan::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
-                         catalog::index_oid_t index_oid, std::vector<AnnotatedExpression> &&predicates,
-                         std::string table_alias, bool is_for_update,
+                         catalog::table_oid_t table_oid, catalog::index_oid_t index_oid,
+                         std::vector<AnnotatedExpression> &&predicates, std::string table_alias, bool is_for_update,
                          std::vector<catalog::col_oid_t> &&key_column_oid_list,
                          std::vector<parser::ExpressionType> &&expr_type_list,
                          std::vector<type::TransientValue> &&value_list) {
@@ -107,6 +107,7 @@ Operator IndexScan::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_
   scan->database_oid_ = database_oid;
   scan->namespace_oid_ = namespace_oid;
   scan->index_oid_ = index_oid;
+  scan->table_oid_ = table_oid;
   scan->table_alias_ = std::move(table_alias);
   scan->is_for_update_ = is_for_update;
   scan->predicates_ = std::move(predicates);

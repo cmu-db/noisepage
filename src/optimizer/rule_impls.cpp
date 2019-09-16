@@ -231,6 +231,7 @@ void GetToIndexScan::Transform(OperatorExpression *input, std::vector<OperatorEx
 
   auto db_oid = get->GetDatabaseOID();
   auto ns_oid = get->GetNamespaceOID();
+  auto t_oid = get->GetTableOID();
   bool is_update = get->GetIsForUpdate();
   auto *accessor = context->GetMetadata()->GetCatalogAccessor();
 
@@ -246,7 +247,7 @@ void GetToIndexScan::Transform(OperatorExpression *input, std::vector<OperatorEx
           std::vector<AnnotatedExpression> preds = get->GetPredicates();
           std::string tbl_alias = std::string(get->GetTableAlias());
           auto result = new OperatorExpression(
-              IndexScan::Make(db_oid, ns_oid, index, std::move(preds), tbl_alias, is_update, {}, {}, {}), {});
+              IndexScan::Make(db_oid, ns_oid, t_oid, index, std::move(preds), tbl_alias, is_update, {}, {}, {}), {});
           transformed->push_back(result);
         }
       }
@@ -269,7 +270,7 @@ void GetToIndexScan::Transform(OperatorExpression *input, std::vector<OperatorEx
         // Consider making IndexScan take in IndexUtilMetadata
         // instead to wrap all these vectors?
         auto result = new OperatorExpression(
-            IndexScan::Make(db_oid, ns_oid, index, std::move(preds), std::move(tbl_alias), is_update,
+            IndexScan::Make(db_oid, ns_oid, t_oid, index, std::move(preds), std::move(tbl_alias), is_update,
                             std::move(output.GetPredicateColumnIds()), std::move(output.GetPredicateExprTypes()),
                             std::move(output.GetPredicateValues())),
             {});
