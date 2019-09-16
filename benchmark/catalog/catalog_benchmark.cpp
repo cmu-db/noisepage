@@ -151,7 +151,7 @@ BENCHMARK_DEFINE_F(CatalogBenchmark, GetIndex)(benchmark::State &state) {
   // NOLINTNEXTLINE
   for (auto _ : state) {
     const auto test_index UNUSED_ATTRIBUTE = accessor->GetIndex(idx_oid);
-    TERRIER_ASSERT(common::ManagedPointer(index) == test_index, "getting index should not fail");
+    TERRIER_ASSERT(common::ManagedPointer<storage::index::Index>(index) == test_index, "getting index should not fail");
   }
 
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
