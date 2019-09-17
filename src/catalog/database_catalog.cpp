@@ -207,6 +207,9 @@ void DatabaseCatalog::Bootstrap(transaction::TransactionContext *const txn) {
 }
 
 void DatabaseCatalog::BootstrapPRIs() {
+  // TODO(Matt): another potential optimization in the future would be to cache the offsets, rather than the maps
+  // themselves (see TPC-C microbenchmark transactions for example). That seems premature right now though.
+
   // pg_namespace
   const std::vector<col_oid_t> pg_namespace_all_oids{postgres::PG_NAMESPACE_ALL_COL_OIDS.cbegin(),
                                                      postgres::PG_NAMESPACE_ALL_COL_OIDS.cend()};
