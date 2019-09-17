@@ -24,74 +24,7 @@
 namespace terrier::catalog {
 
 void DatabaseCatalog::Bootstrap(transaction::TransactionContext *const txn) {
-  // pg_namespace
-  const std::vector<col_oid_t> create_namespace_oids{postgres::PG_NAMESPACE_ALL_COL_OIDS.cbegin(),
-                                                     postgres::PG_NAMESPACE_ALL_COL_OIDS.cend()};
-  create_namespace_pri_ = namespaces_->InitializerForProjectedRow(create_namespace_oids);
-  create_namespace_prm_ = namespaces_->ProjectionMapForOids(create_namespace_oids);
-
-  const std::vector<col_oid_t> delete_namespace_oids{postgres::NSPNAME_COL_OID};
-  delete_namespace_pri_ = namespaces_->InitializerForProjectedRow(delete_namespace_oids);
-
-  const std::vector<col_oid_t> get_namespace_oids{postgres::NSPOID_COL_OID};
-  get_namespace_pri_ = namespaces_->InitializerForProjectedRow(get_namespace_oids);
-
-  // pg_attribute
-  const std::vector<col_oid_t> create_columns_oids{postgres::PG_ATTRIBUTE_ALL_COL_OIDS.cbegin(),
-                                                   postgres::PG_ATTRIBUTE_ALL_COL_OIDS.end()};
-  create_columns_pri_ = columns_->InitializerForProjectedRow(create_columns_oids);
-  create_columns_prm_ = columns_->ProjectionMapForOids(create_columns_oids);
-
-  const std::vector<col_oid_t> get_columns_oids{postgres::ATTNUM_COL_OID,     postgres::ATTNAME_COL_OID,
-                                                postgres::ATTTYPID_COL_OID,   postgres::ATTLEN_COL_OID,
-                                                postgres::ATTNOTNULL_COL_OID, postgres::ADSRC_COL_OID};
-  get_columns_pri_ = columns_->InitializerForProjectedRow(get_columns_oids);
-  get_columns_prm_ = columns_->ProjectionMapForOids(get_columns_oids);
-
-  const std::vector<col_oid_t> delete_columns_oids{postgres::ATTNUM_COL_OID, postgres::ATTNAME_COL_OID};
-  delete_columns_pri_ = columns_->InitializerForProjectedRow(delete_columns_oids);
-  delete_columns_prm_ = columns_->ProjectionMapForOids(delete_columns_oids);
-
-  // pg_class
-  const std::vector<col_oid_t> pg_class_all_oids{postgres::PG_CLASS_ALL_COL_OIDS.cbegin(),
-                                                 postgres::PG_CLASS_ALL_COL_OIDS.cend()};
-  pg_class_all_cols_pri_ = classes_->InitializerForProjectedRow(pg_class_all_oids);
-  pg_class_all_cols_prm_ = classes_->ProjectionMapForOids(pg_class_all_oids);
-
-  const std::vector<col_oid_t> get_class_oid_kind_oids{postgres::RELOID_COL_OID, postgres::RELKIND_COL_OID};
-  get_class_oid_kind_pri_ = classes_->InitializerForProjectedRow(get_class_oid_kind_oids);
-
-  const std::vector<col_oid_t> set_class_pointer_oids{postgres::REL_PTR_COL_OID};
-  set_class_pointer_pri_ = classes_->InitializerForProjectedRow(set_class_pointer_oids);
-
-  const std::vector<col_oid_t> set_class_schema_oids{postgres::REL_SCHEMA_COL_OID};
-  set_class_schema_pri_ = classes_->InitializerForProjectedRow(set_class_schema_oids);
-
-  const std::vector<col_oid_t> get_class_pointer_kind_oids{postgres::REL_PTR_COL_OID, postgres::RELKIND_COL_OID};
-  get_class_pointer_kind_pri_ = classes_->InitializerForProjectedRow(get_class_pointer_kind_oids);
-
-  const std::vector<col_oid_t> get_class_schema_pointer_kind_oids{postgres::REL_SCHEMA_COL_OID,
-                                                                  postgres::RELKIND_COL_OID};
-  get_class_schema_pointer_kind_pri_ = classes_->InitializerForProjectedRow(get_class_schema_pointer_kind_oids);
-
-  // pg_index
-  const std::vector<col_oid_t> get_indexes_oids{postgres::INDOID_COL_OID};
-  get_indexes_pri_ = indexes_->InitializerForProjectedRow(get_class_oid_kind_oids);
-
-  const std::vector<col_oid_t> delete_index_oids{postgres::INDOID_COL_OID, postgres::INDRELID_COL_OID};
-  delete_index_pri_ = indexes_->InitializerForProjectedRow(delete_index_oids);
-  delete_index_prm_ = indexes_->ProjectionMapForOids(delete_index_oids);
-
-  const std::vector<col_oid_t> pg_index_all_oids{postgres::PG_INDEX_ALL_COL_OIDS.cbegin(),
-                                                 postgres::PG_INDEX_ALL_COL_OIDS.cend()};
-  pg_index_all_cols_pri_ = indexes_->InitializerForProjectedRow(pg_index_all_oids);
-  pg_index_all_cols_prm_ = indexes_->ProjectionMapForOids(pg_index_all_oids);
-
-  // pg_type
-  const std::vector<col_oid_t> pg_type_all_oids{postgres::PG_TYPE_ALL_COL_OIDS.cbegin(),
-                                                postgres::PG_TYPE_ALL_COL_OIDS.cend()};
-  pg_type_all_cols_pri_ = types_->InitializerForProjectedRow(pg_type_all_oids);
-  pg_type_all_cols_prm_ = types_->ProjectionMapForOids(pg_type_all_oids);
+  BootstrapPRIs();
 
   // Declare variable for return values (UNUSED when compiled for release)
   bool UNUSED_ATTRIBUTE retval;
@@ -273,6 +206,77 @@ void DatabaseCatalog::Bootstrap(transaction::TransactionContext *const txn) {
   TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
 }
 
+void DatabaseCatalog::BootstrapPRIs() {
+  // pg_namespace
+  const std::vector<col_oid_t> pg_namespace_all_oids{postgres::PG_NAMESPACE_ALL_COL_OIDS.cbegin(),
+                                                     postgres::PG_NAMESPACE_ALL_COL_OIDS.cend()};
+  pg_namespace_all_cols_pri_ = namespaces_->InitializerForProjectedRow(pg_namespace_all_oids);
+  pg_namespace_all_cols_prm_ = namespaces_->ProjectionMapForOids(pg_namespace_all_oids);
+
+  const std::vector<col_oid_t> delete_namespace_oids{postgres::NSPNAME_COL_OID};
+  delete_namespace_pri_ = namespaces_->InitializerForProjectedRow(delete_namespace_oids);
+
+  const std::vector<col_oid_t> get_namespace_oids{postgres::NSPOID_COL_OID};
+  get_namespace_pri_ = namespaces_->InitializerForProjectedRow(get_namespace_oids);
+
+  // pg_attribute
+  const std::vector<col_oid_t> pg_attribute_all_oids{postgres::PG_ATTRIBUTE_ALL_COL_OIDS.cbegin(),
+                                                     postgres::PG_ATTRIBUTE_ALL_COL_OIDS.end()};
+  pg_attribute_all_cols_pri_ = columns_->InitializerForProjectedRow(pg_attribute_all_oids);
+  pg_attribute_all_cols_prm_ = columns_->ProjectionMapForOids(pg_attribute_all_oids);
+
+  const std::vector<col_oid_t> get_columns_oids{postgres::ATTNUM_COL_OID,     postgres::ATTNAME_COL_OID,
+                                                postgres::ATTTYPID_COL_OID,   postgres::ATTLEN_COL_OID,
+                                                postgres::ATTNOTNULL_COL_OID, postgres::ADSRC_COL_OID};
+  get_columns_pri_ = columns_->InitializerForProjectedRow(get_columns_oids);
+  get_columns_prm_ = columns_->ProjectionMapForOids(get_columns_oids);
+
+  const std::vector<col_oid_t> delete_columns_oids{postgres::ATTNUM_COL_OID, postgres::ATTNAME_COL_OID};
+  delete_columns_pri_ = columns_->InitializerForProjectedRow(delete_columns_oids);
+  delete_columns_prm_ = columns_->ProjectionMapForOids(delete_columns_oids);
+
+  // pg_class
+  const std::vector<col_oid_t> pg_class_all_oids{postgres::PG_CLASS_ALL_COL_OIDS.cbegin(),
+                                                 postgres::PG_CLASS_ALL_COL_OIDS.cend()};
+  pg_class_all_cols_pri_ = classes_->InitializerForProjectedRow(pg_class_all_oids);
+  pg_class_all_cols_prm_ = classes_->ProjectionMapForOids(pg_class_all_oids);
+
+  const std::vector<col_oid_t> get_class_oid_kind_oids{postgres::RELOID_COL_OID, postgres::RELKIND_COL_OID};
+  get_class_oid_kind_pri_ = classes_->InitializerForProjectedRow(get_class_oid_kind_oids);
+
+  const std::vector<col_oid_t> set_class_pointer_oids{postgres::REL_PTR_COL_OID};
+  set_class_pointer_pri_ = classes_->InitializerForProjectedRow(set_class_pointer_oids);
+
+  const std::vector<col_oid_t> set_class_schema_oids{postgres::REL_SCHEMA_COL_OID};
+  set_class_schema_pri_ = classes_->InitializerForProjectedRow(set_class_schema_oids);
+
+  const std::vector<col_oid_t> get_class_pointer_kind_oids{postgres::REL_PTR_COL_OID, postgres::RELKIND_COL_OID};
+  get_class_pointer_kind_pri_ = classes_->InitializerForProjectedRow(get_class_pointer_kind_oids);
+
+  const std::vector<col_oid_t> get_class_schema_pointer_kind_oids{postgres::REL_SCHEMA_COL_OID,
+                                                                  postgres::RELKIND_COL_OID};
+  get_class_schema_pointer_kind_pri_ = classes_->InitializerForProjectedRow(get_class_schema_pointer_kind_oids);
+
+  // pg_index
+  const std::vector<col_oid_t> pg_index_all_oids{postgres::PG_INDEX_ALL_COL_OIDS.cbegin(),
+                                                 postgres::PG_INDEX_ALL_COL_OIDS.cend()};
+  pg_index_all_cols_pri_ = indexes_->InitializerForProjectedRow(pg_index_all_oids);
+  pg_index_all_cols_prm_ = indexes_->ProjectionMapForOids(pg_index_all_oids);
+
+  const std::vector<col_oid_t> get_indexes_oids{postgres::INDOID_COL_OID};
+  get_indexes_pri_ = indexes_->InitializerForProjectedRow(get_class_oid_kind_oids);
+
+  const std::vector<col_oid_t> delete_index_oids{postgres::INDOID_COL_OID, postgres::INDRELID_COL_OID};
+  delete_index_pri_ = indexes_->InitializerForProjectedRow(delete_index_oids);
+  delete_index_prm_ = indexes_->ProjectionMapForOids(delete_index_oids);
+
+  // pg_type
+  const std::vector<col_oid_t> pg_type_all_oids{postgres::PG_TYPE_ALL_COL_OIDS.cbegin(),
+                                                postgres::PG_TYPE_ALL_COL_OIDS.cend()};
+  pg_type_all_cols_pri_ = types_->InitializerForProjectedRow(pg_type_all_oids);
+  pg_type_all_cols_prm_ = types_->ProjectionMapForOids(pg_type_all_oids);
+}
+
 namespace_oid_t DatabaseCatalog::CreateNamespace(transaction::TransactionContext *const txn, const std::string &name) {
   const namespace_oid_t ns_oid{next_oid_++};
   if (!CreateNamespace(txn, name, ns_oid)) {
@@ -286,12 +290,12 @@ bool DatabaseCatalog::CreateNamespace(transaction::TransactionContext *const txn
   // Step 1: Insert into table
   const auto name_varlen = storage::StorageUtil::CreateVarlen(name);
   // Get & Fill Redo Record
-  auto *const redo = txn->StageWrite(db_oid_, postgres::NAMESPACE_TABLE_OID, create_namespace_pri_);
+  auto *const redo = txn->StageWrite(db_oid_, postgres::NAMESPACE_TABLE_OID, pg_namespace_all_cols_pri_);
   // Write the attributes in the Redo Record
   *(reinterpret_cast<namespace_oid_t *>(
-      redo->Delta()->AccessForceNotNull(create_namespace_prm_[postgres::NSPOID_COL_OID]))) = ns_oid;
+      redo->Delta()->AccessForceNotNull(pg_namespace_all_cols_prm_[postgres::NSPOID_COL_OID]))) = ns_oid;
   *(reinterpret_cast<storage::VarlenEntry *>(
-      redo->Delta()->AccessForceNotNull(create_namespace_prm_[postgres::NSPNAME_COL_OID]))) = name_varlen;
+      redo->Delta()->AccessForceNotNull(pg_namespace_all_cols_prm_[postgres::NSPNAME_COL_OID]))) = name_varlen;
   // Finally, insert into the table to get the tuple slot
   const auto tuple_slot = namespaces_->Insert(txn, redo);
 
@@ -415,22 +419,22 @@ template <typename Column, typename ClassOid, typename ColOid>
 bool DatabaseCatalog::CreateColumn(transaction::TransactionContext *const txn, const ClassOid class_oid,
                                    const ColOid col_oid, const Column &col) {
   // Step 1: Insert into the table
-  auto *const redo = txn->StageWrite(db_oid_, postgres::COLUMN_TABLE_OID, create_columns_pri_);
+  auto *const redo = txn->StageWrite(db_oid_, postgres::COLUMN_TABLE_OID, pg_attribute_all_cols_pri_);
   // Write the attributes in the Redo Record
-  auto oid_entry =
-      reinterpret_cast<ColOid *>(redo->Delta()->AccessForceNotNull(create_columns_prm_[postgres::ATTNUM_COL_OID]));
-  auto relid_entry =
-      reinterpret_cast<ClassOid *>(redo->Delta()->AccessForceNotNull(create_columns_prm_[postgres::ATTRELID_COL_OID]));
+  auto oid_entry = reinterpret_cast<ColOid *>(
+      redo->Delta()->AccessForceNotNull(pg_attribute_all_cols_prm_[postgres::ATTNUM_COL_OID]));
+  auto relid_entry = reinterpret_cast<ClassOid *>(
+      redo->Delta()->AccessForceNotNull(pg_attribute_all_cols_prm_[postgres::ATTRELID_COL_OID]));
   auto name_entry = reinterpret_cast<storage::VarlenEntry *>(
-      redo->Delta()->AccessForceNotNull(create_columns_prm_[postgres::ATTNAME_COL_OID]));
+      redo->Delta()->AccessForceNotNull(pg_attribute_all_cols_prm_[postgres::ATTNAME_COL_OID]));
   auto type_entry = reinterpret_cast<type::TypeId *>(
-      redo->Delta()->AccessForceNotNull(create_columns_prm_[postgres::ATTTYPID_COL_OID]));
-  auto len_entry =
-      reinterpret_cast<uint16_t *>(redo->Delta()->AccessForceNotNull(create_columns_prm_[postgres::ATTLEN_COL_OID]));
-  auto notnull_entry =
-      reinterpret_cast<bool *>(redo->Delta()->AccessForceNotNull(create_columns_prm_[postgres::ATTNOTNULL_COL_OID]));
+      redo->Delta()->AccessForceNotNull(pg_attribute_all_cols_prm_[postgres::ATTTYPID_COL_OID]));
+  auto len_entry = reinterpret_cast<uint16_t *>(
+      redo->Delta()->AccessForceNotNull(pg_attribute_all_cols_prm_[postgres::ATTLEN_COL_OID]));
+  auto notnull_entry = reinterpret_cast<bool *>(
+      redo->Delta()->AccessForceNotNull(pg_attribute_all_cols_prm_[postgres::ATTNOTNULL_COL_OID]));
   auto dsrc_entry = reinterpret_cast<storage::VarlenEntry *>(
-      redo->Delta()->AccessForceNotNull(create_columns_prm_[postgres::ADSRC_COL_OID]));
+      redo->Delta()->AccessForceNotNull(pg_attribute_all_cols_prm_[postgres::ADSRC_COL_OID]));
   *oid_entry = col_oid;
   *relid_entry = class_oid;
   const auto name_varlen = storage::StorageUtil::CreateVarlen(col.Name());

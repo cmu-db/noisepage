@@ -270,8 +270,8 @@ class DatabaseCatalog {
   storage::SqlTable *namespaces_;
   storage::index::Index *namespaces_oid_index_;
   storage::index::Index *namespaces_name_index_;
-  storage::ProjectedRowInitializer create_namespace_pri_;
-  storage::ProjectionMap create_namespace_prm_;
+  storage::ProjectedRowInitializer pg_namespace_all_cols_pri_;
+  storage::ProjectionMap pg_namespace_all_cols_prm_;
   storage::ProjectedRowInitializer delete_namespace_pri_;
   storage::ProjectedRowInitializer get_namespace_pri_;
 
@@ -299,8 +299,8 @@ class DatabaseCatalog {
   storage::SqlTable *columns_;
   storage::index::Index *columns_oid_index_;   // indexed on class OID and column OID
   storage::index::Index *columns_name_index_;  // indexed on class OID and column name
-  storage::ProjectedRowInitializer create_columns_pri_;
-  storage::ProjectionMap create_columns_prm_;
+  storage::ProjectedRowInitializer pg_attribute_all_cols_pri_;
+  storage::ProjectionMap pg_attribute_all_cols_prm_;
   storage::ProjectedRowInitializer get_columns_pri_;
   storage::ProjectionMap get_columns_prm_;
   storage::ProjectedRowInitializer delete_columns_pri_;
@@ -352,6 +352,12 @@ class DatabaseCatalog {
    * @param txn transaction to insert into catalog with
    */
   void BootstrapTypes(transaction::TransactionContext *txn);
+
+  /**
+   * Creates all of the ProjectedRowInitializers and ProjectionMaps for the catalog. These can be stashed because the
+   * catalog shouldn't undergo schema changes at runtime
+   */
+  void BootstrapPRIs();
 
   /**
    * Helper function to insert a type into PG_Type and the type indexes
