@@ -79,7 +79,12 @@ class OrderByDescription {
   nlohmann::json ToJson() const {
     nlohmann::json j;
     j["types"] = types_;
-    // TODO(WAN)    j["exprs"] = exprs_;
+    std::vector<nlohmann::json> exprs_json;
+    exprs_json.reserve(exprs_.size());
+    for (const auto &expr : exprs_) {
+      exprs_json.emplace_back(expr->ToJson());
+    }
+    j["exprs"] = exprs_json;
     return j;
   }
 
@@ -92,9 +97,11 @@ class OrderByDescription {
 
     // Deserialize exprs
     auto expressions = j.at("exprs").get<std::vector<nlohmann::json>>();
-    //    for (const auto &expr : expressions) {
-    //      exprs_.push_back(DeserializeExpression(expr));
-    //    }
+    for (const auto &expr : expressions) {
+      auto deserialized_expr = DeserializeExpression(expr);
+      // TODO(WAN): MEMORY!
+      exprs_.push_back(common::ManagedPointer(deserialized_expr));
+    }
   }
 
  private:
@@ -248,9 +255,13 @@ class GroupByDescription {
    */
   nlohmann::json ToJson() const {
     nlohmann::json j;
-    // TODO(WAN)
-    //    j["columns"] = columns_;
-    //    j["having"] = having_;
+    std::vector<nlohmann::json> columns_json;
+    columns_json.reserve(columns_.size());
+    for (const auto &col : columns_) {
+      columns_json.emplace_back(col->ToJson());
+    }
+    j["columns"] = columns_json;
+    j["having"] = having_->ToJson();
     return j;
   }
 
@@ -260,9 +271,11 @@ class GroupByDescription {
   void FromJson(const nlohmann::json &j) {
     // Deserialize columns
     auto column_expressions = j.at("columns").get<std::vector<nlohmann::json>>();
-    //    for (const auto &expr : column_expressions) {
-    //      columns_.push_back(DeserializeExpression(expr));
-    //    }
+    for (const auto &expr : column_expressions) {
+      auto deserialized_expr = DeserializeExpression(expr);
+      // TODO(WAN): MEMORY!
+      columns_.push_back(common::ManagedPointer(deserialized_expr));
+    }
 
     // Deserialize having
     if (!j.at("having").is_null()) {
