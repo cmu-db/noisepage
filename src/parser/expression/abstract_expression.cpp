@@ -1,5 +1,6 @@
 #include <memory>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "parser/expression/abstract_expression.h"
@@ -51,6 +52,7 @@ void AbstractExpression::FromJson(const nlohmann::json &j) {
   // Deserialize children
   std::vector<std::unique_ptr<AbstractExpression>> children;
   auto children_json = j.at("children").get<std::vector<nlohmann::json>>();
+  children.reserve(children_json.size());
   for (const auto &child_json : children_json) {
     children.emplace_back(DeserializeExpression(child_json));
   }

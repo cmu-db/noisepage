@@ -392,7 +392,7 @@ class CreateStatement : public TableRefStatement {
         trigger_funcnames_(std::move(trigger_funcnames)),
         trigger_args_(std::move(trigger_args)),
         trigger_columns_(std::move(trigger_columns)),
-        trigger_when_(std::move(trigger_when)),
+        trigger_when_(trigger_when),
         trigger_type_(trigger_type) {}
 
   /**
