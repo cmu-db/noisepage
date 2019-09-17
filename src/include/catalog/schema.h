@@ -93,11 +93,6 @@ class Schema {
       TERRIER_ASSERT(type_ != type::TypeId::INVALID, "Attribute type cannot be INVALID.");
     }
 
-    Column &operator=(const Column &col) {
-      *this = Column(col);
-      return *this;
-    }
-
     /**
      * Allows operator= to call Column's custom copy-constructor.
      * @param col column to be copied
