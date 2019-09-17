@@ -67,6 +67,13 @@ void DatabaseCatalog::Bootstrap(transaction::TransactionContext *const txn) {
   const std::vector<col_oid_t> set_class_schema_oids{postgres::REL_SCHEMA_COL_OID};
   set_class_schema_pri_ = classes_->InitializerForProjectedRow(set_class_schema_oids);
 
+  const std::vector<col_oid_t> get_class_pointer_kind_oids{postgres::REL_PTR_COL_OID, postgres::RELKIND_COL_OID};
+  get_class_pointer_kind_pri_ = classes_->InitializerForProjectedRow(get_class_pointer_kind_oids);
+
+  const std::vector<col_oid_t> get_class_schema_pointer_kind_oids{postgres::REL_SCHEMA_COL_OID,
+                                                                  postgres::RELKIND_COL_OID};
+  get_class_schema_pointer_kind_pri_ = classes_->InitializerForProjectedRow(get_class_schema_pointer_kind_oids);
+
   // pg_index
   const std::vector<col_oid_t> get_indexes_oids{postgres::INDOID_COL_OID};
   get_indexes_pri_ = indexes_->InitializerForProjectedRow(get_class_oid_kind_oids);
@@ -1436,42 +1443,37 @@ void DatabaseCatalog::BootstrapTypes(transaction::TransactionContext *const txn)
 
 bool DatabaseCatalog::CreateTableEntry(transaction::TransactionContext *const txn, const table_oid_t table_oid,
                                        const namespace_oid_t ns_oid, const std::string &name, const Schema &schema) {
-  const std::vector<col_oid_t> pg_class_oids{postgres::PG_CLASS_ALL_COL_OIDS.cbegin(),
-                                             postgres::PG_CLASS_ALL_COL_OIDS.cend()};
-  auto pr_init = classes_->InitializerForProjectedRow(pg_class_oids);
-  auto pr_map = classes_->ProjectionMapForOids(pg_class_oids);
-
-  auto *const insert_redo = txn->StageWrite(db_oid_, postgres::CLASS_TABLE_OID, pr_init);
+  auto *const insert_redo = txn->StageWrite(db_oid_, postgres::CLASS_TABLE_OID, pg_class_all_cols_pri_);
   auto *const insert_pr = insert_redo->Delta();
 
   // Write the ns_oid into the PR
-  const auto ns_offset = pr_map[postgres::RELNAMESPACE_COL_OID];
+  const auto ns_offset = pg_class_all_cols_prm_[postgres::RELNAMESPACE_COL_OID];
   auto *const ns_ptr = insert_pr->AccessForceNotNull(ns_offset);
   *(reinterpret_cast<namespace_oid_t *>(ns_ptr)) = ns_oid;
 
   // Write the table_oid into the PR
-  const auto table_oid_offset = pr_map[postgres::RELOID_COL_OID];
+  const auto table_oid_offset = pg_class_all_cols_prm_[postgres::RELOID_COL_OID];
   auto *const table_oid_ptr = insert_pr->AccessForceNotNull(table_oid_offset);
   *(reinterpret_cast<table_oid_t *>(table_oid_ptr)) = table_oid;
 
   auto next_col_oid = col_oid_t(static_cast<uint32_t>(schema.GetColumns().size() + 1));
 
   // Write the next_col_oid into the PR
-  const auto next_col_oid_offset = pr_map[postgres::REL_NEXTCOLOID_COL_OID];
+  const auto next_col_oid_offset = pg_class_all_cols_prm_[postgres::REL_NEXTCOLOID_COL_OID];
   auto *const next_col_oid_ptr = insert_pr->AccessForceNotNull(next_col_oid_offset);
   *(reinterpret_cast<col_oid_t *>(next_col_oid_ptr)) = next_col_oid;
 
   // Write the schema_ptr as nullptr into the PR (need to update once we've recreated the columns)
-  const auto schema_ptr_offset = pr_map[postgres::REL_SCHEMA_COL_OID];
+  const auto schema_ptr_offset = pg_class_all_cols_prm_[postgres::REL_SCHEMA_COL_OID];
   auto *const schema_ptr_ptr = insert_pr->AccessForceNotNull(schema_ptr_offset);
   *(reinterpret_cast<Schema **>(schema_ptr_ptr)) = nullptr;
 
   // Set table_ptr to NULL because it gets set by execution layer after instantiation
-  const auto table_ptr_offset = pr_map[postgres::REL_PTR_COL_OID];
+  const auto table_ptr_offset = pg_class_all_cols_prm_[postgres::REL_PTR_COL_OID];
   insert_pr->SetNull(table_ptr_offset);
 
   // Write the kind into the PR
-  const auto kind_offset = pr_map[postgres::RELKIND_COL_OID];
+  const auto kind_offset = pg_class_all_cols_prm_[postgres::RELKIND_COL_OID];
   auto *const kind_ptr = insert_pr->AccessForceNotNull(kind_offset);
   *(reinterpret_cast<char *>(kind_ptr)) = static_cast<char>(postgres::ClassKind::REGULAR_TABLE);
 
@@ -1479,7 +1481,7 @@ bool DatabaseCatalog::CreateTableEntry(transaction::TransactionContext *const tx
   const auto name_varlen = storage::StorageUtil::CreateVarlen(name);
 
   // Write the name into the PR
-  const auto name_offset = pr_map[postgres::RELNAME_COL_OID];
+  const auto name_offset = pg_class_all_cols_prm_[postgres::RELNAME_COL_OID];
   auto *const name_ptr = insert_pr->AccessForceNotNull(name_offset);
   *(reinterpret_cast<storage::VarlenEntry *>(name_ptr)) = name_varlen;
 
@@ -1532,8 +1534,7 @@ bool DatabaseCatalog::CreateTableEntry(transaction::TransactionContext *const tx
   auto *new_schema = new Schema(cols);
   txn->RegisterAbortAction([=]() { delete new_schema; });
 
-  pr_init = classes_->InitializerForProjectedRow({postgres::REL_SCHEMA_COL_OID});
-  auto *const update_redo = txn->StageWrite(db_oid_, postgres::CLASS_TABLE_OID, pr_init);
+  auto *const update_redo = txn->StageWrite(db_oid_, postgres::CLASS_TABLE_OID, set_class_schema_pri_);
   auto *const update_pr = update_redo->Delta();
 
   update_redo->SetTupleSlot(tuple_slot);
@@ -1552,10 +1553,9 @@ std::pair<void *, postgres::ClassKind> DatabaseCatalog::GetClassPtrKind(transact
   auto oid_pri = classes_oid_index_->GetProjectedRowInitializer();
 
   // Since these two attributes are fixed size and one is larger than the other we know PTR will be 0 and KIND will be 1
-  auto pr_init = classes_->InitializerForProjectedRow({postgres::REL_PTR_COL_OID, postgres::RELKIND_COL_OID});
-  TERRIER_ASSERT(pr_init.ProjectedRowSize() >= oid_pri.ProjectedRowSize(),
+  TERRIER_ASSERT(get_class_pointer_kind_pri_.ProjectedRowSize() >= oid_pri.ProjectedRowSize(),
                  "Buffer must be allocated to fit largest PR");
-  auto *const buffer = common::AllocationUtil::AllocateAligned(pr_init.ProjectedRowSize());
+  auto *const buffer = common::AllocationUtil::AllocateAligned(get_class_pointer_kind_pri_.ProjectedRowSize());
 
   // Find the entry using the index
   auto *key_pr = oid_pri.InitializeRow(buffer);
@@ -1570,7 +1570,7 @@ std::pair<void *, postgres::ClassKind> DatabaseCatalog::GetClassPtrKind(transact
   }
   TERRIER_ASSERT(index_results.size() == 1, "You got more than one result from a unique index. How did you do that?");
 
-  auto *select_pr = pr_init.InitializeRow(buffer);
+  auto *select_pr = get_class_pointer_kind_pri_.InitializeRow(buffer);
   const auto result UNUSED_ATTRIBUTE = classes_->Select(txn, index_results[0], select_pr);
   TERRIER_ASSERT(result, "Index already verified visibility. This shouldn't fail.");
 
@@ -1596,10 +1596,9 @@ std::pair<void *, postgres::ClassKind> DatabaseCatalog::GetClassSchemaPtrKind(tr
   auto oid_pri = classes_oid_index_->GetProjectedRowInitializer();
 
   // Since these two attributes are fixed size and one is larger than the other we know PTR will be 0 and KIND will be 1
-  auto pr_init = classes_->InitializerForProjectedRow({postgres::REL_SCHEMA_COL_OID, postgres::RELKIND_COL_OID});
-  TERRIER_ASSERT(pr_init.ProjectedRowSize() >= oid_pri.ProjectedRowSize(),
+  TERRIER_ASSERT(get_class_schema_pointer_kind_pri_.ProjectedRowSize() >= oid_pri.ProjectedRowSize(),
                  "Buffer must be allocated to fit largest PR");
-  auto *const buffer = common::AllocationUtil::AllocateAligned(pr_init.ProjectedRowSize());
+  auto *const buffer = common::AllocationUtil::AllocateAligned(get_class_schema_pointer_kind_pri_.ProjectedRowSize());
 
   // Find the entry using the index
   auto *key_pr = oid_pri.InitializeRow(buffer);
@@ -1614,7 +1613,7 @@ std::pair<void *, postgres::ClassKind> DatabaseCatalog::GetClassSchemaPtrKind(tr
   }
   TERRIER_ASSERT(index_results.size() == 1, "You got more than one result from a unique index. How did you do that?");
 
-  auto *select_pr = pr_init.InitializeRow(buffer);
+  auto *select_pr = get_class_schema_pointer_kind_pri_.InitializeRow(buffer);
   const auto result UNUSED_ATTRIBUTE = classes_->Select(txn, index_results[0], select_pr);
   TERRIER_ASSERT(result, "Index already verified visibility. This shouldn't fail.");
 

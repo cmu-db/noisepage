@@ -284,6 +284,8 @@ class DatabaseCatalog {
   storage::ProjectedRowInitializer get_class_oid_kind_pri_;
   storage::ProjectedRowInitializer set_class_pointer_pri_;
   storage::ProjectedRowInitializer set_class_schema_pri_;
+  storage::ProjectedRowInitializer get_class_pointer_kind_pri_;
+  storage::ProjectedRowInitializer get_class_schema_pointer_kind_pri_;
 
   storage::SqlTable *indexes_;
   storage::index::Index *indexes_oid_index_;
