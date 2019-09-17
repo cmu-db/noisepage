@@ -304,8 +304,7 @@ IndexSchema Builder::GetNamespaceOidIndexSchema(db_oid_t db) {
   columns.back().SetOid(indexkeycol_oid_t(1));
 
   // Primary
-  // TODO(Matt): should it be a HASHMAP?
-  IndexSchema schema(columns, storage::index::IndexType::BWTREE, true, true, false, true);
+  IndexSchema schema(columns, storage::index::IndexType::HASHMAP, true, true, false, true);
 
   return schema;
 }
@@ -318,8 +317,7 @@ IndexSchema Builder::GetNamespaceNameIndexSchema(db_oid_t db) {
   columns.back().SetOid(indexkeycol_oid_t(1));
 
   // Unique, not primary
-  // TODO(Matt): should it be a HASHMAP?
-  IndexSchema schema(columns, storage::index::IndexType::BWTREE, true, false, false, true);
+  IndexSchema schema(columns, storage::index::IndexType::HASHMAP, true, false, false, true);
 
   return schema;
 }
@@ -332,8 +330,7 @@ IndexSchema Builder::GetClassOidIndexSchema(db_oid_t db) {
   columns.back().SetOid(indexkeycol_oid_t(1));
 
   // Primary
-  // TODO(Matt): should it be a HASHMAP?
-  IndexSchema schema(columns, storage::index::IndexType::BWTREE, true, true, false, true);
+  IndexSchema schema(columns, storage::index::IndexType::HASHMAP, true, true, false, true);
 
   return schema;
 }
@@ -350,8 +347,7 @@ IndexSchema Builder::GetClassNameIndexSchema(db_oid_t db) {
   columns.back().SetOid(indexkeycol_oid_t(2));
 
   // Unique, not primary
-  // TODO(Matt): should it be a HASHMAP?
-  IndexSchema schema(columns, storage::index::IndexType::BWTREE, true, false, false, true);
+  IndexSchema schema(columns, storage::index::IndexType::HASHMAP, true, false, false, true);
 
   return schema;
 }
@@ -364,8 +360,7 @@ IndexSchema Builder::GetClassNamespaceIndexSchema(db_oid_t db) {
   columns.back().SetOid(indexkeycol_oid_t(1));
 
   // Unique, not primary
-  // TODO(Matt): should it be a HASHMAP?
-  IndexSchema schema(columns, storage::index::IndexType::BWTREE, false, false, false, true);
+  IndexSchema schema(columns, storage::index::IndexType::HASHMAP, false, false, false, true);
 
   return schema;
 }
@@ -378,8 +373,7 @@ IndexSchema Builder::GetIndexOidIndexSchema(db_oid_t db) {
   columns.back().SetOid(indexkeycol_oid_t(1));
 
   // Primary
-  // TODO(Matt): should it be a HASHMAP?
-  IndexSchema schema(columns, storage::index::IndexType::BWTREE, true, true, false, true);
+  IndexSchema schema(columns, storage::index::IndexType::HASHMAP, true, true, false, true);
 
   return schema;
 }
@@ -392,8 +386,7 @@ IndexSchema Builder::GetIndexTableIndexSchema(db_oid_t db) {
   columns.back().SetOid(indexkeycol_oid_t(1));
 
   // Not unique
-  // TODO(Matt): should it be a HASHMAP?
-  IndexSchema schema(columns, storage::index::IndexType::BWTREE, false, false, false, true);
+  IndexSchema schema(columns, storage::index::IndexType::HASHMAP, false, false, false, true);
 
   return schema;
 }
@@ -409,8 +402,7 @@ IndexSchema Builder::GetColumnOidIndexSchema(db_oid_t db) {
                        parser::ColumnValueExpression(db, COLUMN_TABLE_OID, ATTNUM_COL_OID));
   columns.back().SetOid(indexkeycol_oid_t(2));
 
-  // Primary
-  // TODO(Matt): should it be a HASHMAP?
+  // Primary, must be a BWTREE due to ScanAscending usage
   IndexSchema schema(columns, storage::index::IndexType::BWTREE, true, true, false, true);
 
   return schema;
@@ -428,8 +420,7 @@ IndexSchema Builder::GetColumnNameIndexSchema(db_oid_t db) {
   columns.back().SetOid(indexkeycol_oid_t(2));
 
   // Unique, not primary
-  // TODO(Matt): should it be a HASHMAP?
-  IndexSchema schema(columns, storage::index::IndexType::BWTREE, true, false, false, true);
+  IndexSchema schema(columns, storage::index::IndexType::HASHMAP, true, false, false, true);
 
   return schema;
 }
@@ -442,8 +433,7 @@ IndexSchema Builder::GetTypeOidIndexSchema(db_oid_t db) {
   columns.back().SetOid(indexkeycol_oid_t(1));
 
   // Primary
-  // TODO(Matt): should it be a HASHMAP?
-  IndexSchema schema(columns, storage::index::IndexType::BWTREE, true, true, false, true);
+  IndexSchema schema(columns, storage::index::IndexType::HASHMAP, true, true, false, true);
 
   return schema;
 }
@@ -460,8 +450,7 @@ IndexSchema Builder::GetTypeNameIndexSchema(db_oid_t db) {
   columns.back().SetOid(indexkeycol_oid_t(2));
 
   // Unique, not primary
-  // TODO(Matt): should it be a HASHMAP?
-  IndexSchema schema(columns, storage::index::IndexType::BWTREE, true, false, false, true);
+  IndexSchema schema(columns, storage::index::IndexType::HASHMAP, true, false, false, true);
 
   return schema;
 }
@@ -474,8 +463,7 @@ IndexSchema Builder::GetTypeNamespaceIndexSchema(db_oid_t db) {
   columns.back().SetOid(indexkeycol_oid_t(1));
 
   // Unique, not primary
-  // TODO(Matt): should it be a HASHMAP?
-  IndexSchema schema(columns, storage::index::IndexType::BWTREE, false, false, false, true);
+  IndexSchema schema(columns, storage::index::IndexType::HASHMAP, false, false, false, true);
 
   return schema;
 }
@@ -488,8 +476,7 @@ IndexSchema Builder::GetConstraintOidIndexSchema(db_oid_t db) {
   columns.back().SetOid(indexkeycol_oid_t(1));
 
   // Primary
-  // TODO(Matt): should it be a HASHMAP?
-  IndexSchema schema(columns, storage::index::IndexType::BWTREE, true, true, false, true);
+  IndexSchema schema(columns, storage::index::IndexType::HASHMAP, true, true, false, true);
 
   return schema;
 }
@@ -506,8 +493,7 @@ IndexSchema Builder::GetConstraintNameIndexSchema(db_oid_t db) {
   columns.back().SetOid(indexkeycol_oid_t(2));
 
   // Unique, not primary
-  // TODO(Matt): should it be a HASHMAP?
-  IndexSchema schema(columns, storage::index::IndexType::BWTREE, true, false, false, true);
+  IndexSchema schema(columns, storage::index::IndexType::HASHMAP, true, false, false, true);
 
   return schema;
 }
@@ -520,8 +506,7 @@ IndexSchema Builder::GetConstraintNamespaceIndexSchema(db_oid_t db) {
   columns.back().SetOid(indexkeycol_oid_t(1));
 
   // Unique, not primary
-  // TODO(Matt): should it be a HASHMAP?
-  IndexSchema schema(columns, storage::index::IndexType::BWTREE, false, false, false, true);
+  IndexSchema schema(columns, storage::index::IndexType::HASHMAP, false, false, false, true);
 
   return schema;
 }
@@ -534,8 +519,7 @@ IndexSchema Builder::GetConstraintTableIndexSchema(db_oid_t db) {
   columns.back().SetOid(indexkeycol_oid_t(1));
 
   // Not unique
-  // TODO(Matt): should it be a HASHMAP?
-  IndexSchema schema(columns, storage::index::IndexType::BWTREE, false, false, false, true);
+  IndexSchema schema(columns, storage::index::IndexType::HASHMAP, false, false, false, true);
 
   return schema;
 }
@@ -548,8 +532,7 @@ IndexSchema Builder::GetConstraintIndexIndexSchema(db_oid_t db) {
   columns.back().SetOid(indexkeycol_oid_t(1));
 
   // Not unique
-  // TODO(Matt): should it be a HASHMAP?
-  IndexSchema schema(columns, storage::index::IndexType::BWTREE, false, false, false, true);
+  IndexSchema schema(columns, storage::index::IndexType::HASHMAP, false, false, false, true);
 
   return schema;
 }
@@ -562,8 +545,7 @@ IndexSchema Builder::GetConstraintForeignTableIndexSchema(db_oid_t db) {
   columns.back().SetOid(indexkeycol_oid_t(1));
 
   // Not unique
-  // TODO(Matt): should it be a HASHMAP?
-  IndexSchema schema(columns, storage::index::IndexType::BWTREE, false, false, false, true);
+  IndexSchema schema(columns, storage::index::IndexType::HASHMAP, false, false, false, true);
 
   return schema;
 }
