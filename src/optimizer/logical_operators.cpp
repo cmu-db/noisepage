@@ -367,7 +367,8 @@ common::hash_t LogicalUpdate::Hash() const {
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_oid_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(namespace_oid_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_oid_));
-  hash = common::HashUtil::CombineHashInRange(hash, updates_->begin(), updates_->end());
+  if (updates_ && updates_.Get() != nullptr)
+    hash = common::HashUtil::CombineHashInRange(hash, updates_.Get()->begin(), updates_.Get()->end());
   return hash;
 }
 
