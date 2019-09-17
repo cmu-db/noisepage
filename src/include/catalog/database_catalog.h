@@ -270,11 +270,17 @@ class DatabaseCatalog {
   storage::SqlTable *namespaces_;
   storage::index::Index *namespaces_oid_index_;
   storage::index::Index *namespaces_name_index_;
+  storage::ProjectedRowInitializer create_namespace_pri_;
+  storage::ProjectionMap create_namespace_prm_;
+  storage::ProjectedRowInitializer delete_namespace_pri_;
+  storage::ProjectedRowInitializer get_namespace_pri_;
 
   storage::SqlTable *classes_;
   storage::index::Index *classes_oid_index_;
   storage::index::Index *classes_name_index_;  // indexed on namespace OID and name
   storage::index::Index *classes_namespace_index_;
+  storage::ProjectedRowInitializer delete_table_pri_;
+  storage::ProjectionMap delete_table_prm_;
 
   storage::SqlTable *indexes_;
   storage::index::Index *indexes_oid_index_;
@@ -283,6 +289,12 @@ class DatabaseCatalog {
   storage::SqlTable *columns_;
   storage::index::Index *columns_oid_index_;   // indexed on class OID and column OID
   storage::index::Index *columns_name_index_;  // indexed on class OID and column name
+  storage::ProjectedRowInitializer create_columns_pri_;
+  storage::ProjectionMap create_columns_prm_;
+  storage::ProjectedRowInitializer get_columns_pri_;
+  storage::ProjectionMap get_columns_prm_;
+  storage::ProjectedRowInitializer delete_columns_pri_;
+  storage::ProjectionMap delete_columns_prm_;
 
   storage::SqlTable *types_;
   storage::index::Index *types_oid_index_;

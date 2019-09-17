@@ -210,6 +210,8 @@ class ProjectedRowInitializer {
   template <typename AttrType>
   static ProjectedRowInitializer Create(std::vector<AttrType> real_attr_sizes, const std::vector<uint16_t> &pr_offsets);
 
+  ProjectedRowInitializer() = default;
+
  private:
   /**
    * Constructs a ProjectedRowInitializer. Calculates the size of this ProjectedRow, including all members, values,
