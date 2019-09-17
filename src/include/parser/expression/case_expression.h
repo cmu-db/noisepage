@@ -39,8 +39,8 @@ class CaseExpression : public AbstractExpression {
      */
     nlohmann::json ToJson() const {
       nlohmann::json j;
-      // TODO(WAN) json      j["condition"] = condition;
-      // TODO(WAN) json      j["then"] = then;
+      j["condition"] = condition_->ToJson();
+      j["then"] = then_->ToJson();
       return j;
     }
 
@@ -100,7 +100,7 @@ class CaseExpression : public AbstractExpression {
   std::unique_ptr<AbstractExpression> Copy() const override {
     std::vector<WhenClause> clauses;
     for (const auto &clause : when_clauses_) {
-      clauses.emplace_back(WhenClause{clause.condition->Copy(), clause.then->Copy()});
+      clauses.emplace_back(WhenClause{clause.condition_->Copy(), clause.then_->Copy()});
     }
     return std::make_unique<CaseExpression>(GetReturnValueType(), std::move(clauses), default_expr_->Copy());
   }
@@ -141,7 +141,7 @@ class CaseExpression : public AbstractExpression {
       when_clauses_json.push_back(when_clause.ToJson());
     }
     j["when_clauses"] = when_clauses_json;
-    // TODO(WAN) json    j["default_expr"] = default_expr_;
+    j["default_expr"] = default_expr_->ToJson();
     return j;
   }
 
