@@ -56,10 +56,7 @@ class UpdateStatement : public SQLStatement {
    */
   UpdateStatement(std::unique_ptr<TableRef> table, std::vector<std::unique_ptr<UpdateClause>> updates,
                   common::ManagedPointer<AbstractExpression> where)
-      : SQLStatement(StatementType::UPDATE),
-        table_(std::move(table)),
-        updates_(std::move(updates)),
-        where_(where) {}
+      : SQLStatement(StatementType::UPDATE), table_(std::move(table)), updates_(std::move(updates)), where_(where) {}
 
   UpdateStatement() : SQLStatement(StatementType::UPDATE), table_(nullptr), where_(nullptr) {}
 
