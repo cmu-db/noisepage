@@ -19,16 +19,16 @@ namespace terrier::catalog {
 Catalog::Catalog(transaction::TransactionManager *const txn_manager, storage::BlockStore *const block_store)
     : txn_manager_(txn_manager), catalog_block_store_(block_store), next_oid_(1) {
   databases_ = new storage::SqlTable(block_store, postgres::Builder::GetDatabaseTableSchema());
-  databases_oid_index_ =
-      postgres::Builder::BuildUniqueIndex(postgres::Builder::GetDatabaseOidIndexSchema(), DATABASE_OID_INDEX_OID);
-  databases_name_index_ =
-      postgres::Builder::BuildUniqueIndex(postgres::Builder::GetDatabaseNameIndexSchema(), DATABASE_NAME_INDEX_OID);
+  databases_oid_index_ = postgres::Builder::BuildUniqueIndex(postgres::Builder::GetDatabaseOidIndexSchema(),
+                                                             postgres::DATABASE_OID_INDEX_OID);
+  databases_name_index_ = postgres::Builder::BuildUniqueIndex(postgres::Builder::GetDatabaseNameIndexSchema(),
+                                                              postgres::DATABASE_NAME_INDEX_OID);
 }
 
 void Catalog::TearDown() {
   auto *txn = txn_manager_->BeginTransaction();
   // Get a projected column on DatabaseCatalog pointers for scanning the table
-  const std::vector<col_oid_t> cols{DAT_CATALOG_COL_OID};
+  const std::vector<col_oid_t> cols{postgres::DAT_CATALOG_COL_OID};
 
   // Only one column, so we only need the initializer and not the ProjectionMap
   const auto pci = databases_->InitializerForProjectedColumns(cols, 100);
@@ -146,7 +146,7 @@ db_oid_t Catalog::GetDatabaseOid(transaction::TransactionContext *const txn, con
   }
   TERRIER_ASSERT(index_results.size() == 1, "Database name not unique in index");
 
-  const auto table_pri = databases_->InitializerForProjectedRow({DATOID_COL_OID});
+  const auto table_pri = databases_->InitializerForProjectedRow({postgres::DATOID_COL_OID});
   pr = table_pri.InitializeRow(buffer);
   const auto result UNUSED_ATTRIBUTE = databases_->Select(txn, index_results[0], pr);
   TERRIER_ASSERT(result, "Index already verified visibility. This shouldn't fail.");
@@ -173,7 +173,7 @@ common::ManagedPointer<DatabaseCatalog> Catalog::GetDatabaseCatalog(transaction:
   }
   TERRIER_ASSERT(index_results.size() == 1, "Database name not unique in index");
 
-  const std::vector<col_oid_t> table_oids{DAT_CATALOG_COL_OID};
+  const std::vector<col_oid_t> table_oids{postgres::DAT_CATALOG_COL_OID};
   const auto table_pri = databases_->InitializerForProjectedRow(table_oids);
   pr = table_pri.InitializeRow(buffer);
   const auto UNUSED_ATTRIBUTE result = databases_->Select(txn, index_results[0], pr);
@@ -196,18 +196,19 @@ bool Catalog::CreateDatabaseEntry(transaction::TransactionContext *const txn, co
 
   // Create the redo record for inserting into the table
   std::vector<col_oid_t> table_oids;
-  table_oids.emplace_back(DATOID_COL_OID);
-  table_oids.emplace_back(DATNAME_COL_OID);
-  table_oids.emplace_back(DAT_CATALOG_COL_OID);
+  table_oids.emplace_back(postgres::DATOID_COL_OID);
+  table_oids.emplace_back(postgres::DATNAME_COL_OID);
+  table_oids.emplace_back(postgres::DAT_CATALOG_COL_OID);
 
   auto pri = databases_->InitializerForProjectedRow(table_oids);
   auto pm = databases_->ProjectionMapForOids(table_oids);
-  auto *const redo = txn->StageWrite(INVALID_DATABASE_OID, DATABASE_TABLE_OID, pri);
+  auto *const redo = txn->StageWrite(INVALID_DATABASE_OID, postgres::DATABASE_TABLE_OID, pri);
 
   // Populate the projected row
-  *(reinterpret_cast<db_oid_t *>(redo->Delta()->AccessForceNotNull(pm[DATOID_COL_OID]))) = db;
-  *(reinterpret_cast<storage::VarlenEntry *>(redo->Delta()->AccessForceNotNull(pm[DATNAME_COL_OID]))) = name_varlen;
-  *(reinterpret_cast<DatabaseCatalog **>(redo->Delta()->AccessForceNotNull(pm[DAT_CATALOG_COL_OID]))) = dbc;
+  *(reinterpret_cast<db_oid_t *>(redo->Delta()->AccessForceNotNull(pm[postgres::DATOID_COL_OID]))) = db;
+  *(reinterpret_cast<storage::VarlenEntry *>(redo->Delta()->AccessForceNotNull(pm[postgres::DATNAME_COL_OID]))) =
+      name_varlen;
+  *(reinterpret_cast<DatabaseCatalog **>(redo->Delta()->AccessForceNotNull(pm[postgres::DAT_CATALOG_COL_OID]))) = dbc;
 
   // Insert into the table to get the tuple slot
   const auto tupleslot = databases_->Insert(txn, redo);
@@ -246,7 +247,7 @@ bool Catalog::CreateDatabaseEntry(transaction::TransactionContext *const txn, co
 DatabaseCatalog *Catalog::DeleteDatabaseEntry(transaction::TransactionContext *txn, db_oid_t db) {
   std::vector<storage::TupleSlot> index_results;
 
-  const std::vector<col_oid_t> table_oids{DATNAME_COL_OID, DAT_CATALOG_COL_OID};
+  const std::vector<col_oid_t> table_oids{postgres::DATNAME_COL_OID, postgres::DAT_CATALOG_COL_OID};
 
   auto table_pri = databases_->InitializerForProjectedRow(table_oids);
   auto table_pri_map = databases_->ProjectionMapForOids(table_oids);
@@ -271,7 +272,7 @@ DatabaseCatalog *Catalog::DeleteDatabaseEntry(transaction::TransactionContext *t
 
   TERRIER_ASSERT(result, "Index scan did a visibility check, so Select shouldn't fail at this point.");
 
-  txn->StageDelete(INVALID_DATABASE_OID, DATABASE_TABLE_OID, index_results[0]);
+  txn->StageDelete(INVALID_DATABASE_OID, postgres::DATABASE_TABLE_OID, index_results[0]);
   if (!databases_->Delete(txn, index_results[0])) {
     // Someone else has a write-lock
     delete[] buffer;
@@ -281,8 +282,10 @@ DatabaseCatalog *Catalog::DeleteDatabaseEntry(transaction::TransactionContext *t
   // It is safe to use AccessForceNotNull here because we have checked the
   // tuple's visibility and because the pointer cannot be null in a running
   // database
-  auto *dbc = *reinterpret_cast<DatabaseCatalog **>(pr->AccessForceNotNull(table_pri_map[DAT_CATALOG_COL_OID]));
-  auto name = *reinterpret_cast<storage::VarlenEntry *>(pr->AccessForceNotNull(table_pri_map[DATNAME_COL_OID]));
+  auto *dbc =
+      *reinterpret_cast<DatabaseCatalog **>(pr->AccessForceNotNull(table_pri_map[postgres::DAT_CATALOG_COL_OID]));
+  auto name =
+      *reinterpret_cast<storage::VarlenEntry *>(pr->AccessForceNotNull(table_pri_map[postgres::DATNAME_COL_OID]));
 
   pr = oid_pri.InitializeRow(buffer);
   *(reinterpret_cast<db_oid_t *>(pr->AccessForceNotNull(0))) = db;
