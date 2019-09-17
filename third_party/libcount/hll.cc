@@ -45,7 +45,7 @@ inline uint8_t ZeroCountOf(uint64_t hash, int precision) {
   const uint64_t mask = ~(((ONE << precision) - ONE) << (64 - precision));
 
   // Count zeroes, less the index bits we're masking off.
-  return static_cast<uint8_t >(CountLeadingZeroes(hash & mask) - static_cast<uint8_t>(precision));
+  return static_cast<uint8_t>(CountLeadingZeroes(hash & mask) - static_cast<uint8_t>(precision));
 }
 
 }  // namespace
@@ -83,7 +83,7 @@ void HLL::Update(uint64_t hash) {
   assert(index < register_count_);
 
   // Count the zeroes for the hash, and add one, per the algorithm spec.
-  const uint8_t count = static_cast<uint8_t >(ZeroCountOf(hash, precision_) + 1);
+  const uint8_t count = static_cast<uint8_t>(ZeroCountOf(hash, precision_) + 1);
   assert(count <= 64);
 
   // Update the appropriate register if the new count is greater than current.
@@ -166,9 +166,9 @@ uint64_t HLL::Estimate() const {
 
   // Under an empirically-determined threshold we return H, otherwise E'.
   if (H < EmpiricalThreshold(precision_)) {
-    return static_cast<uint64_t >(H);
+    return static_cast<uint64_t>(H);
   } else {
-    return static_cast<uint64_t >(EP);
+    return static_cast<uint64_t>(EP);
   }
 }
 
