@@ -38,6 +38,25 @@ class UpdateClause {
    */
   common::ManagedPointer<AbstractExpression> GetUpdateValue() { return value_; }
 
+  /**
+   * Logical equality check
+   * @param r Right hand side; the other update clause
+   * @return true if the two update clause are logically equal
+   */
+  bool operator==(const UpdateClause &r) {
+    if (column_ != r.column_) return false;
+    return *value_ == *r.value_;
+  }
+
+  /**
+   * Logical inequality check
+   * @param r Right hand side; the other update clause
+   * @return true if the two update clause are not logically equal
+   */
+  bool operator!=(const UpdateClause &r) {
+    return !(*this == r);
+  }
+
  private:
   const std::string column_;
   const common::ManagedPointer<AbstractExpression> value_;

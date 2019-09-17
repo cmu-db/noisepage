@@ -840,7 +840,7 @@ class LogicalUpdate : public OperatorNode<LogicalUpdate> {
    */
   static Operator Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
                        catalog::table_oid_t table_oid,
-                       common::ManagedPointer<std::vector<std::unique_ptr<parser::UpdateClause>>> updates);
+                       std::vector<std::unique_ptr<parser::UpdateClause>> &&updates);
 
   bool operator==(const BaseOperatorNode &r) override;
   common::hash_t Hash() const override;
@@ -863,7 +863,7 @@ class LogicalUpdate : public OperatorNode<LogicalUpdate> {
   /**
    * @return the update clauses from the SET portion of the query
    */
-  const common::ManagedPointer<std::vector<std::unique_ptr<parser::UpdateClause>>> &GetUpdateClauses() const { return updates_; }
+  const std::vector<std::unique_ptr<parser::UpdateClause>> &GetUpdateClauses() const { return updates_; }
 
  private:
   /**
@@ -884,7 +884,7 @@ class LogicalUpdate : public OperatorNode<LogicalUpdate> {
   /**
    * The update clauses from the SET portion of the query
    */
-  common::ManagedPointer<std::vector<std::unique_ptr<parser::UpdateClause>>> updates_;
+  std::vector<std::unique_ptr<parser::UpdateClause>> updates_;
 };
 
 /**

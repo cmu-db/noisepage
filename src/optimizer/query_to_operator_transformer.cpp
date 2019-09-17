@@ -308,7 +308,7 @@ void QueryToOperatorTransformer::Visit(parser::UpdateStatement *op) {
   OperatorExpression* table_scan;
 
   auto update_expr = new OperatorExpression(
-      LogicalUpdate::Make(target_db_id, target_ns_id, target_table_id, common::ManagedPointer<std::vector<std::unique_ptr<parser::UpdateClause>>>(&op->GetUpdateClauses())), {});
+      LogicalUpdate::Make(target_db_id, target_ns_id, target_table_id, std::move(op->GetUpdateClauses())), {});
 
   if (op->GetUpdateCondition() != nullptr) {
     std::vector<AnnotatedExpression> predicates = ExtractPredicates(op->GetUpdateCondition());
