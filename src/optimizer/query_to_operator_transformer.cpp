@@ -459,7 +459,7 @@ bool QueryToOperatorTransformer::IsSupportedConjunctivePredicate(common::Managed
       expr_type == parser::ExpressionType::COMPARE_LESS_THAN ||
       expr_type == parser::ExpressionType::COMPARE_LESS_THAN_OR_EQUAL_TO) {
     // Supported if one child is subquery and the other is not
-    if ((!expr->GetChild(0)->HasSubquery() &&expr
+    if ((!expr->GetChild(0)->HasSubquery() &&
         expr->GetChild(1)->GetExpressionType() == parser::ExpressionType::ROW_SUBQUERY) ||
         (!expr->GetChild(1)->HasSubquery() &&
         expr->GetChild(0)->GetExpressionType() == parser::ExpressionType::ROW_SUBQUERY)) {
