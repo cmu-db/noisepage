@@ -152,7 +152,7 @@ BENCHMARK_DEFINE_F(CatalogBenchmark, GetDatabaseCatalog)(benchmark::State &state
 
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(CatalogBenchmark, GetIndex)(benchmark::State &state) {
-  const auto oids = AddUserTableAndIndex();
+  const auto oids UNUSED_ATTRIBUTE = AddUserTableAndIndex();
 
   auto *txn = txn_manager_->BeginTransaction();
   auto accessor = catalog_->GetAccessor(txn, db_);
@@ -170,7 +170,7 @@ BENCHMARK_DEFINE_F(CatalogBenchmark, GetIndex)(benchmark::State &state) {
 
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(CatalogBenchmark, GetIndexOid)(benchmark::State &state) {
-  const auto oids = AddUserTableAndIndex();
+  const auto oids UNUSED_ATTRIBUTE = AddUserTableAndIndex();
 
   auto *txn = txn_manager_->BeginTransaction();
   auto accessor = catalog_->GetAccessor(txn, db_);
@@ -188,7 +188,7 @@ BENCHMARK_DEFINE_F(CatalogBenchmark, GetIndexOid)(benchmark::State &state) {
 
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(CatalogBenchmark, GetIndexOids)(benchmark::State &state) {
-  const auto oids = AddUserTableAndIndex();
+  const auto oids UNUSED_ATTRIBUTE = AddUserTableAndIndex();
 
   auto *txn = txn_manager_->BeginTransaction();
   auto accessor = catalog_->GetAccessor(txn, db_);
@@ -206,7 +206,7 @@ BENCHMARK_DEFINE_F(CatalogBenchmark, GetIndexOids)(benchmark::State &state) {
 
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(CatalogBenchmark, GetIndexSchema)(benchmark::State &state) {
-  const auto oids = AddUserTableAndIndex();
+  const auto oids UNUSED_ATTRIBUTE = AddUserTableAndIndex();
 
   auto *txn = txn_manager_->BeginTransaction();
   auto accessor = catalog_->GetAccessor(txn, db_);
@@ -246,7 +246,7 @@ BENCHMARK_DEFINE_F(CatalogBenchmark, GetNamespaceOid)(benchmark::State &state) {
 
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(CatalogBenchmark, GetSchema)(benchmark::State &state) {
-  const auto oids = AddUserTableAndIndex();
+  const auto oids UNUSED_ATTRIBUTE = AddUserTableAndIndex();
 
   auto *txn = txn_manager_->BeginTransaction();
   auto accessor = catalog_->GetAccessor(txn, db_);
@@ -263,7 +263,7 @@ BENCHMARK_DEFINE_F(CatalogBenchmark, GetSchema)(benchmark::State &state) {
 
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(CatalogBenchmark, GetTable)(benchmark::State &state) {
-  const auto oids = AddUserTableAndIndex();
+  const auto oids UNUSED_ATTRIBUTE = AddUserTableAndIndex();
 
   auto *txn = txn_manager_->BeginTransaction();
   auto accessor = catalog_->GetAccessor(txn, db_);
@@ -281,7 +281,7 @@ BENCHMARK_DEFINE_F(CatalogBenchmark, GetTable)(benchmark::State &state) {
 
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(CatalogBenchmark, GetTableOid)(benchmark::State &state) {
-  const auto oids = AddUserTableAndIndex();
+  const auto oids UNUSED_ATTRIBUTE = AddUserTableAndIndex();
 
   auto *txn = txn_manager_->BeginTransaction();
   auto accessor = catalog_->GetAccessor(txn, db_);
