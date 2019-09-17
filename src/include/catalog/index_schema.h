@@ -226,6 +226,22 @@ class IndexSchema {
   const Column &GetColumn(int index) const { return columns_.at(index); }
 
   /**
+   * @param name name of the Column to access
+   * @return description of the schema for a specific column
+   * @throw std::out_of_range if the column doesn't exist.
+   */
+  const Column &GetColumn(const std::string &name) const {
+    for (auto &c : columns_) {
+      if (c.Name() == name) {
+        return c;
+      }
+    }
+    // TODO(John): Should this be a TERRIER_ASSERT to have the same semantics
+    // as the other accessor methods above?
+    throw std::out_of_range("Column name doesn't exist");
+  }
+
+  /**
    * @return true if is a unique index
    */
   bool Unique() const { return is_unique_; }
