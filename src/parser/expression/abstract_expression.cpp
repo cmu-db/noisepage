@@ -1,5 +1,6 @@
 #include <memory>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "parser/expression/abstract_expression.h"
@@ -32,7 +33,12 @@ nlohmann::json AbstractExpression::ToJson() const {
   j["depth"] = depth_;
   j["has_subquery"] = has_subquery_;
   j["return_value_type"] = return_value_type_;
-  // TODO(WAN)  j["children"] = children_;
+  std::vector<nlohmann::json> children_json;
+  children_json.reserve(children_.size());
+  for (const auto &child : children_) {
+    children_json.emplace_back(child->ToJson());
+  }
+  j["children"] = children_json;
   return j;
 }
 
@@ -51,6 +57,7 @@ void AbstractExpression::FromJson(const nlohmann::json &j) {
   // Deserialize children
   std::vector<std::unique_ptr<AbstractExpression>> children;
   auto children_json = j.at("children").get<std::vector<nlohmann::json>>();
+  children.reserve(children_json.size());
   for (const auto &child_json : children_json) {
     children.emplace_back(DeserializeExpression(child_json));
   }

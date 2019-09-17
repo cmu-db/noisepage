@@ -15,9 +15,9 @@ class CaseExpression : public AbstractExpression {
   /** WHEN ... THEN ... clauses. */
   struct WhenClause {
     /** The condition to be checked for this case expression. */
-    std::unique_ptr<AbstractExpression> condition;
+    std::unique_ptr<AbstractExpression> condition_;
     /** The value that this expression should have if the corresponding condition is true. */
-    std::unique_ptr<AbstractExpression> then;
+    std::unique_ptr<AbstractExpression> then_;
 
     /**
      * Equality check
@@ -39,8 +39,8 @@ class CaseExpression : public AbstractExpression {
      */
     nlohmann::json ToJson() const {
       nlohmann::json j;
-      // TODO(WAN) json      j["condition"] = condition;
-      // TODO(WAN) json      j["then"] = then;
+      j["condition"] = condition_->ToJson();
+      j["then"] = then_->ToJson();
       return j;
     }
 
@@ -100,7 +100,7 @@ class CaseExpression : public AbstractExpression {
   std::unique_ptr<AbstractExpression> Copy() const override {
     std::vector<WhenClause> clauses;
     for (const auto &clause : when_clauses_) {
-      clauses.emplace_back(WhenClause{clause.condition->Copy(), clause.then->Copy()});
+      clauses.emplace_back(WhenClause{clause.condition_->Copy(), clause.then_->Copy()});
     }
     return std::make_unique<CaseExpression>(GetReturnValueType(), std::move(clauses), default_expr_->Copy());
   }
@@ -116,7 +116,7 @@ class CaseExpression : public AbstractExpression {
    */
   common::ManagedPointer<AbstractExpression> GetWhenClauseCondition(size_t index) const {
     TERRIER_ASSERT(index < when_clauses_.size(), "Index must be in bounds.");
-    return common::ManagedPointer(when_clauses_[index].condition);
+    return common::ManagedPointer(when_clauses_[index].condition_);
   }
 
   /**
@@ -125,7 +125,7 @@ class CaseExpression : public AbstractExpression {
    */
   common::ManagedPointer<AbstractExpression> GetWhenClauseResult(size_t index) const {
     TERRIER_ASSERT(index < when_clauses_.size(), "Index must be in bounds.");
-    return common::ManagedPointer(when_clauses_[index].then);
+    return common::ManagedPointer(when_clauses_[index].then_);
   }
 
   /** @return default clause, if it exists */
@@ -141,7 +141,7 @@ class CaseExpression : public AbstractExpression {
       when_clauses_json.push_back(when_clause.ToJson());
     }
     j["when_clauses"] = when_clauses_json;
-    // TODO(WAN) json    j["default_expr"] = default_expr_;
+    j["default_expr"] = default_expr_->ToJson();
     return j;
   }
 

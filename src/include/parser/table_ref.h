@@ -29,7 +29,7 @@ class JoinDefinition {
    */
   JoinDefinition(JoinType type, std::unique_ptr<TableRef> left, std::unique_ptr<TableRef> right,
                  common::ManagedPointer<AbstractExpression> condition)
-      : type_(type), left_(std::move(left)), right_(std::move(right)), condition_(std::move(condition)) {}
+      : type_(type), left_(std::move(left)), right_(std::move(right)), condition_(condition) {}
 
   /**
    * Default constructor used for deserialization

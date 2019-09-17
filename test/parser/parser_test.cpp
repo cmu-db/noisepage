@@ -27,8 +27,8 @@ class ParserTestBase : public TerrierTest {
    * Initialization
    */
   void SetUp() override {
-    InitMainLogger();
-    InitParserLogger();
+    init_main_logger();
+    init_parser_logger();
     parser_logger->set_level(spdlog::level::debug);
     spdlog::flush_every(std::chrono::seconds(1));
   }
@@ -39,7 +39,7 @@ class ParserTestBase : public TerrierTest {
     EXPECT_EQ(table_info->GetTableName(), table_name);
   }
 
-  PostgresParser pgparser_;
+  PostgresParser pgparser;
 };
 
 // NOLINTNEXTLINE
@@ -237,7 +237,7 @@ TEST_F(ParserTestBase, CreateTableTest) {
   auto result = pgparser.BuildParseTree(query);
 
   query = "CREATE TABLE Foo (id BAZ, PRIMARY KEY (id));";
-  EXPECT_THROW(pgparser_.BuildParseTree(query), ParserException);
+  EXPECT_THROW(pgparser.BuildParseTree(query), ParserException);
 }
 
 // NOLINTNEXTLINE
@@ -325,8 +325,8 @@ TEST_F(ParserTestBase, ExplainTest) {
 
 // NOLINTNEXTLINE
 TEST_F(ParserTestBase, GarbageTest) {
-  EXPECT_THROW(pgparser_.BuildParseTree("blarglesnarf"), ParserException);
-  EXPECT_THROW(pgparser_.BuildParseTree("SELECT;"), ParserException);
+  EXPECT_THROW(pgparser.BuildParseTree("blarglesnarf"), ParserException);
+  EXPECT_THROW(pgparser.BuildParseTree("SELECT;"), ParserException);
 }
 
 // NOLINTNEXTLINE
@@ -941,7 +941,7 @@ TEST_F(ParserTestBase, OldJoinTest) {
   {
     // test case from SQLite
     query = "SELECT * FROM tab0 AS cor0 CROSS JOIN tab0 AS cor1 WHERE NULL IS NOT NULL;";
-    EXPECT_THROW(pgparser_.BuildParseTree(query), ParserException);
+    EXPECT_THROW(pgparser.BuildParseTree(query), ParserException);
   }
 }
 
@@ -1021,12 +1021,12 @@ TEST_F(ParserTestBase, OldColumnUpdateTest) {
     EXPECT_EQ(updates.size(), 2);
     EXPECT_EQ(updates[0]->GetColumnName(), "c_balance");
     EXPECT_EQ(updates[0]->GetUpdateValue()->GetExpressionType(), ExpressionType::COLUMN_VALUE);
-    auto column_value_0 = reinterpret_cast<ColumnValueExpression *>(updates[0]->GetUpdateValue().Get());
+    auto column_value_0 = reinterpret_cast<ColumnValueExpression *>(updates[0]->GetUpdateValue().get());
     EXPECT_EQ(column_value_0->GetColumnName(), "c_balance");
 
     EXPECT_EQ(updates[1]->GetColumnName(), "c_delivery_cnt");
     EXPECT_EQ(updates[1]->GetUpdateValue()->GetExpressionType(), ExpressionType::COLUMN_VALUE);
-    auto column_value_1 = reinterpret_cast<ColumnValueExpression *>(updates[1]->GetUpdateValue().Get());
+    auto column_value_1 = reinterpret_cast<ColumnValueExpression *>(updates[1]->GetUpdateValue().get());
     EXPECT_EQ(column_value_1->GetColumnName(), "c_delivery_cnt");
 
     EXPECT_NE(where_clause, nullptr);
@@ -1054,14 +1054,14 @@ TEST_F(ParserTestBase, OldExpressionUpdateTest) {
   // Test First Set Condition
   auto &upd0 = update_stmt->GetUpdateClauses().at(0);
   EXPECT_EQ(upd0->GetColumnName(), "s_quantity");
-  auto constant = reinterpret_cast<ConstantValueExpression *>(upd0->GetUpdateValue().Get());
+  auto constant = reinterpret_cast<ConstantValueExpression *>(upd0->GetUpdateValue().get());
   EXPECT_EQ(constant->GetValue().Type(), type::TypeId::DECIMAL);
   ASSERT_DOUBLE_EQ(type::TransientValuePeeker::PeekDecimal(constant->GetValue()), 48.0);
 
   // Test Second Set Condition
   auto &upd1 = update_stmt->GetUpdateClauses().at(1);
   EXPECT_EQ(upd1->GetColumnName(), "s_ytd");
-  auto op_expr = reinterpret_cast<OperatorExpression *>(upd1->GetUpdateValue().Get());
+  auto op_expr = reinterpret_cast<OperatorExpression *>(upd1->GetUpdateValue().get());
   EXPECT_EQ(op_expr->GetExpressionType(), ExpressionType::OPERATOR_PLUS);
   auto child1 = reinterpret_cast<ColumnValueExpression *>(op_expr->GetChild(0).get());
   EXPECT_EQ(child1->GetColumnName(), "s_ytd");
@@ -1144,7 +1144,7 @@ TEST_F(ParserTestBase, OldStringUpdateTest) {
   EXPECT_EQ(update_clause->GetColumnName(), "ol_delivery_d");
   auto value = update_clause->GetUpdateValue();
   EXPECT_EQ(value->GetExpressionType(), ExpressionType::VALUE_CONSTANT);
-  auto value_expr = reinterpret_cast<ConstantValueExpression *>(value.Get());
+  auto value_expr = reinterpret_cast<ConstantValueExpression *>(value.get());
   type::TransientValue tmp_value = value_expr->GetValue();
   auto string_view = type::TransientValuePeeker::PeekVarChar(tmp_value);
   EXPECT_EQ("2016-11-15 15:07:37", string_view);
@@ -1298,7 +1298,7 @@ TEST_F(ParserTestBase, OldCreateIndexTest) {
   EXPECT_EQ(create_stmt->GetTableName(), "t");
 
   query = "CREATE INDEX ii ON t USING GIN (col);";
-  EXPECT_THROW(pgparser_.BuildParseTree(query), NotImplementedException);
+  EXPECT_THROW(pgparser.BuildParseTree(query), NotImplementedException);
 }
 
 // NOLINTNEXTLINE

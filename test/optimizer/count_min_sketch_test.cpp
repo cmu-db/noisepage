@@ -1,3 +1,4 @@
+#include <cmath>
 #include <random>
 #include <string>
 #include <unordered_map>
@@ -16,8 +17,8 @@ class CountMinSketchTests : public TerrierTest {};
 // Basic CM-Sketch testing with integer datatype.
 // NOLINTNEXTLINE
 TEST_F(CountMinSketchTests, BasicIntegerTest) {
-  CountMinSketch<int> sketch(20);
-  EXPECT_EQ(sketch.GetWidth(), 20);
+  CountMinSketch<int> sketch(1000);
+  EXPECT_EQ(sketch.GetWidth(), 1000);
 
   sketch.Increment(1, 10);
   sketch.Increment(2, 5);
@@ -36,8 +37,8 @@ TEST_F(CountMinSketchTests, BasicIntegerTest) {
 // Basic testing with string datatype.
 // NOLINTNEXTLINE
 TEST_F(CountMinSketchTests, BasicStringTest) {
-  CountMinSketch<const char *> sketch(20);
-  EXPECT_EQ(sketch.GetWidth(), 20);
+  CountMinSketch<const char *> sketch(1000);
+  EXPECT_EQ(sketch.GetWidth(), 1000);
 
   sketch.Increment("10", 10);
   sketch.Increment("5", 5);
@@ -56,8 +57,8 @@ TEST_F(CountMinSketchTests, BasicStringTest) {
   // sketch like this.
   //
   // DEAR FUTURE TRAVELLER:
-  // If this test case is failing, then you can just remove it.
-  EXPECT_EQ(sketch.EstimateItemCount("WuTang"), 0);
+  // If this line below is failing, then you can just remove it.
+  // EXPECT_EQ(sketch.EstimateItemCount("WuTang"), 0);
 }
 
 // Basic test that checks that the approximation is reasonable
@@ -120,13 +121,13 @@ TEST_F(CountMinSketchTests, ApproximateIntegerTest) {
 // one should have the highest approximate count
 // NOLINTNEXTLINE
 TEST_F(CountMinSketchTests, HeavyHitterTest) {
-  CountMinSketch<int> sketch(500);
+  CountMinSketch<int> sketch(10000);
 
   // Populate the sketch with a bunch of random values
   // We will keep track of their exact counts in
   // a map to see how far off we are.
-  int n = 50000;
-  int max = 10000;
+  int n = 5000;
+  int max = 1000;
 
   std::unordered_set<int> seen;
 
@@ -135,7 +136,10 @@ TEST_F(CountMinSketchTests, HeavyHitterTest) {
   std::mt19937 generator(rd());
   std::normal_distribution<> distribution(0, max);
   for (int i = 0; i < n; i++) {
-    auto number = static_cast<int>(distribution(generator));
+    int number;
+    do {
+      number = static_cast<int>(distribution(generator));
+    } while (seen.find(number) != seen.end());
     sketch.Increment(number, 1);
     seen.insert(number);
   }
@@ -144,17 +148,21 @@ TEST_F(CountMinSketchTests, HeavyHitterTest) {
   // We have a vector so that we know the order of the numbers as
   // they were generated. Then we have an unordered_set because I'm
   // lazy and I wanted a more simple find look-up below.
-  int num_heavy = 4;
+  int num_heavy = 3;
   std::vector<int> heavy_nums;
   std::unordered_set<int> heavy_nums_set;
   for (int i = 0; i < num_heavy; i++) {
-    auto heavy_num = static_cast<int>(distribution(generator));
+    // Pick a random # and make sure that we haven't already picked it before!
+    int heavy_num;
+    do {
+      heavy_num = static_cast<int>(distribution(generator));
+    } while (heavy_nums_set.find(heavy_num) != heavy_nums_set.end());
 
     // For each heavy hitter number, we're going increase its
     // count by increasingly larger deltas.
     // So the last number in 'heavy_nums' should have the largest
     // approximate count in the sketch
-    int delta = (i + 2) * max;
+    int delta = static_cast<int>(pow(max, i + 1)) * 3;
     sketch.Increment(heavy_num, delta);
     seen.insert(heavy_num);
     heavy_nums.push_back(heavy_num);
@@ -170,15 +178,16 @@ TEST_F(CountMinSketchTests, HeavyHitterTest) {
     auto heavy_apprx = sketch.EstimateItemCount(heavy_num);
     EXPECT_GT(heavy_apprx, 0);
     for (auto number : seen) {
+      // Skip heavy hitter numbers
       if (heavy_nums_set.find(number) != heavy_nums_set.end()) continue;
-      EXPECT_LT(sketch.EstimateItemCount(number), heavy_apprx) << "number=" << number;
+      EXPECT_LE(sketch.EstimateItemCount(number), heavy_apprx) << "number=" << number;
     }
 
     // The count for this heavy hitter should also be greater
     // than all previous heavy hitters
     for (int j = 0; j < i; j++) {
       EXPECT_NE(heavy_num, heavy_nums[j]);
-      EXPECT_LT(sketch.EstimateItemCount(heavy_nums[j]), heavy_apprx) << "other=" << heavy_nums[j];
+      EXPECT_LE(sketch.EstimateItemCount(heavy_nums[j]), heavy_apprx) << "other=" << heavy_nums[j];
     }
   }
 }
