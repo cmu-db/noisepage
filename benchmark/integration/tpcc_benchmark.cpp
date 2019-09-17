@@ -86,8 +86,8 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithoutLogging)(benchmark::State &
     transaction::TransactionManager txn_manager(&timestamp_manager, &deferred_action_manager, &buffer_pool_, true,
                                                 log_manager_);
 
-    // build the TPCC database
-    auto *const tpcc_db = tpcc_builder.Build();
+    // build the TPCC database using HashMaps where possible
+    auto *const tpcc_db = tpcc_builder.Build(storage::index::IndexType::HASHMAP);
 
     // prepare the workers
     workers.clear();
@@ -170,8 +170,8 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithLogging)(benchmark::State &sta
     transaction::TransactionManager txn_manager(&timestamp_manager, &deferred_action_manager, &buffer_pool_, true,
                                                 log_manager_);
 
-    // build the TPCC database
-    auto *const tpcc_db = tpcc_builder.Build();
+    // build the TPCC database using HashMaps where possible
+    auto *const tpcc_db = tpcc_builder.Build(storage::index::IndexType::HASHMAP);
 
     // prepare the workers
     workers.clear();

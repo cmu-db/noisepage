@@ -21,7 +21,7 @@ class Builder {
       : store_(store),
         oid_counter_(1)  // 0 is a reserved oid in the catalog, so we'll start at 1 for our counter
   {}
-  Database *Build();
+  Database *Build(storage::index::IndexType index_type);
 
  private:
   storage::index::Index *BuildIndex(const catalog::IndexSchema &key_schema) {
