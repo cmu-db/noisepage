@@ -13,6 +13,7 @@
 #include "traffic_cop/statement.h"
 #include "traffic_cop/traffic_cop.h"
 #include "transaction/transaction_manager.h"
+#include "transaction/deferred_action_manager.h"
 #include "util/test_harness.h"
 #include "util/transaction_benchmark_util.h"
 
@@ -38,14 +39,22 @@ class BinderCorrectnessTest : public TerrierTest {
   catalog::table_oid_t table_a_oid_;
   catalog::table_oid_t table_b_oid_;
   parser::PostgresParser parser_;
+  transaction::TimestampManager *timestamp_manager_;
+  transaction::DeferredActionManager *deferred_action_manager_;
   transaction::TransactionManager *txn_manager_;
   transaction::TransactionContext *txn_;
   std::unique_ptr<catalog::CatalogAccessor> accessor_;
   binder::BindNodeVisitor *binder_;
 
   void SetUpTables() {
-    txn_manager_ = new transaction::TransactionManager(&buffer_pool_, true, LOGGING_DISABLED);
-    gc_ = new storage::GarbageCollector(txn_manager_, nullptr);
+
+    // Initialize the transaction manager and GC
+    timestamp_manager_ = new transaction::TimestampManager;
+    deferred_action_manager_ = new transaction::DeferredActionManager(timestamp_manager_);
+    txn_manager_ = new transaction::TransactionManager(timestamp_manager_, deferred_action_manager_, &buffer_pool_,
+                                                       true, DISABLED);
+    gc_ = new storage::GarbageCollector(timestamp_manager_, deferred_action_manager_, txn_manager_, nullptr);
+
     // new catalog requires txn_manage and block_store as parameters
     catalog_ = new catalog::Catalog(txn_manager_, &block_store_);
 
@@ -105,6 +114,8 @@ class BinderCorrectnessTest : public TerrierTest {
     delete catalog_;
     delete gc_;
     delete txn_manager_;
+    delete deferred_action_manager_;
+    delete timestamp_manager_;
   }
 
   void SetUp() override {
@@ -134,20 +145,20 @@ TEST_F(BinderCorrectnessTest, SelectStatementComplexTest) {
       "GROUP BY A.a1, B.b2 HAVING a1 > 50 ORDER BY a1";
 
   auto parse_tree = parser_.BuildParseTree(selectSQL);
-  auto selectStmt = dynamic_cast<parser::SelectStatement *>(parse_tree[0].get());
+  auto selectStmt = dynamic_cast<parser::SelectStatement *>(parse_tree.GetStatements()[0].get());
   binder_->BindNameToNode(selectStmt);
   EXPECT_EQ(0, selectStmt->GetDepth());
 
   // Check select_list
   LOG_INFO("Checking select list");
-  auto col_expr = dynamic_cast<const parser::ColumnValueExpression *>(selectStmt->GetSelectColumns()[0].get());
+  auto col_expr = dynamic_cast<const parser::ColumnValueExpression *>(selectStmt->GetSelectColumns()[0].Get());
   EXPECT_EQ(col_expr->GetDatabaseOid(), db_oid_);              // A.a1
   EXPECT_EQ(col_expr->GetTableOid(), table_a_oid_);            // A.a1
   EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(1));  // A.a1; columns are indexed from 1
   EXPECT_EQ(type::TypeId::INTEGER, col_expr->GetReturnValueType());
   EXPECT_EQ(0, col_expr->GetDepth());
 
-  col_expr = dynamic_cast<const parser::ColumnValueExpression *>(selectStmt->GetSelectColumns()[1].get());
+  col_expr = dynamic_cast<const parser::ColumnValueExpression *>(selectStmt->GetSelectColumns()[1].Get());
   EXPECT_EQ(col_expr->GetDatabaseOid(), db_oid_);              // B.b2
   EXPECT_EQ(col_expr->GetTableOid(), table_b_oid_);            // B.b2
   EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(2));  // B.b2; columns are indexed from 1
@@ -157,7 +168,7 @@ TEST_F(BinderCorrectnessTest, SelectStatementComplexTest) {
   // Check join condition
   LOG_INFO("Checking join condition");
   col_expr = dynamic_cast<const parser::ColumnValueExpression *>(
-      selectStmt->GetSelectTable()->GetJoin()->GetJoinCondition()->GetChild(0).get());
+      selectStmt->GetSelectTable()->GetJoin()->GetJoinCondition()->GetChild(0).Get());
   EXPECT_EQ(col_expr->GetDatabaseOid(), db_oid_);              // A.a1
   EXPECT_EQ(col_expr->GetTableOid(), table_a_oid_);            // A.a1
   EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(1));  // A.a1; columns are indexed from 1
@@ -165,7 +176,7 @@ TEST_F(BinderCorrectnessTest, SelectStatementComplexTest) {
   EXPECT_EQ(0, col_expr->GetDepth());
 
   col_expr = dynamic_cast<const parser::ColumnValueExpression *>(
-      selectStmt->GetSelectTable()->GetJoin()->GetJoinCondition()->GetChild(1).get());
+      selectStmt->GetSelectTable()->GetJoin()->GetJoinCondition()->GetChild(1).Get());
 
   EXPECT_EQ(col_expr->GetDatabaseOid(), db_oid_);              // B.b1
   EXPECT_EQ(col_expr->GetTableOid(), table_b_oid_);            // B.b1
@@ -175,7 +186,7 @@ TEST_F(BinderCorrectnessTest, SelectStatementComplexTest) {
 
   // Check Where clause
   LOG_INFO("Checking where clause");
-  col_expr = dynamic_cast<const parser::ColumnValueExpression *>(selectStmt->GetSelectCondition()->GetChild(0).get());
+  col_expr = dynamic_cast<const parser::ColumnValueExpression *>(selectStmt->GetSelectCondition()->GetChild(0).Get());
   EXPECT_EQ(col_expr->GetDatabaseOid(), db_oid_);              // A.a1
   EXPECT_EQ(col_expr->GetTableOid(), table_a_oid_);            // A.a1
   EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(1));  // A.a1; columns are indexed from 1
@@ -184,14 +195,14 @@ TEST_F(BinderCorrectnessTest, SelectStatementComplexTest) {
 
   // Check Group By and Having
   LOG_INFO("Checking group by");
-  col_expr = dynamic_cast<const parser::ColumnValueExpression *>(selectStmt->GetSelectGroupBy()->GetColumns()[0].get());
+  col_expr = dynamic_cast<const parser::ColumnValueExpression *>(selectStmt->GetSelectGroupBy()->GetColumns()[0].Get());
   EXPECT_EQ(col_expr->GetDatabaseOid(), db_oid_);              // A.a1
   EXPECT_EQ(col_expr->GetTableOid(), table_a_oid_);            // A.a1
   EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(1));  // A.a1; columns are indexed from 1
   EXPECT_EQ(type::TypeId::INTEGER, col_expr->GetReturnValueType());
   EXPECT_EQ(0, col_expr->GetDepth());
 
-  col_expr = dynamic_cast<const parser::ColumnValueExpression *>(selectStmt->GetSelectGroupBy()->GetColumns()[1].get());
+  col_expr = dynamic_cast<const parser::ColumnValueExpression *>(selectStmt->GetSelectGroupBy()->GetColumns()[1].Get());
   EXPECT_EQ(col_expr->GetDatabaseOid(), db_oid_);              // B.b2
   EXPECT_EQ(col_expr->GetTableOid(), table_b_oid_);            // B.b2
   EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(2));  // B.b2; columns are indexed from 1
@@ -199,7 +210,7 @@ TEST_F(BinderCorrectnessTest, SelectStatementComplexTest) {
   EXPECT_EQ(0, col_expr->GetDepth());
 
   col_expr = dynamic_cast<const parser::ColumnValueExpression *>(
-      selectStmt->GetSelectGroupBy()->GetHaving()->GetChild(0).get());
+      selectStmt->GetSelectGroupBy()->GetHaving()->GetChild(0).Get());
   EXPECT_EQ(col_expr->GetDatabaseOid(), db_oid_);              // A.a1
   EXPECT_EQ(col_expr->GetTableOid(), table_a_oid_);            // A.a1
   EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(1));  // A.a1; columns are indexed from 1
@@ -209,7 +220,7 @@ TEST_F(BinderCorrectnessTest, SelectStatementComplexTest) {
   // Check Order By
   LOG_INFO("Checking order by");
   col_expr = dynamic_cast<const parser::ColumnValueExpression *>(
-      selectStmt->GetSelectOrderBy()->GetOrderByExpressions()[0].get());
+      selectStmt->GetSelectOrderBy()->GetOrderByExpressions()[0].Get());
   EXPECT_EQ(col_expr->GetDatabaseOid(), db_oid_);              // A.a1
   EXPECT_EQ(col_expr->GetTableOid(), table_a_oid_);            // A.a1
   EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(1));  // A.a1; columns are indexed from 1
@@ -224,7 +235,7 @@ TEST_F(BinderCorrectnessTest, SelectStatementStarTest) {
 
   std::string selectSQL = "SELECT * FROM A LEFT OUTER JOIN B ON A.A1 < B.B1";
   auto parse_tree = parser_.BuildParseTree(selectSQL);
-  auto selectStmt = dynamic_cast<parser::SelectStatement *>(parse_tree[0].get());
+  auto selectStmt = dynamic_cast<parser::SelectStatement *>(parse_tree.GetStatements()[0].get());
   binder_->BindNameToNode(selectStmt);
   EXPECT_EQ(0, selectStmt->GetDepth());
 
@@ -241,7 +252,7 @@ TEST_F(BinderCorrectnessTest, SelectStatementStarTest) {
   bool b1_exists = false;
   bool b2_exists = false;
   for (auto &col_abs_expr : columns) {
-    auto col_expr = dynamic_cast<const parser::ColumnValueExpression *>(col_abs_expr.get());
+    auto col_expr = dynamic_cast<const parser::ColumnValueExpression *>(col_abs_expr.Get());
     EXPECT_EQ(0, col_expr->GetDepth());
     EXPECT_EQ(col_expr->GetDatabaseOid(), db_oid_);
 
@@ -287,7 +298,7 @@ TEST_F(BinderCorrectnessTest, SelectStatementStarNestedSelectTest) {
   std::string selectSQL =
       "SELECT * FROM A LEFT OUTER JOIN (SELECT * FROM B INNER JOIN A ON B1 = A1) AS C ON C.B2 = a.A1";
   auto parse_tree = parser_.BuildParseTree(selectSQL);
-  auto selectStmt = dynamic_cast<parser::SelectStatement *>(parse_tree[0].get());
+  auto selectStmt = dynamic_cast<parser::SelectStatement *>(parse_tree.GetStatements()[0].get());
   binder_->BindNameToNode(selectStmt);
   EXPECT_EQ(0, selectStmt->GetDepth());
 
@@ -306,7 +317,7 @@ TEST_F(BinderCorrectnessTest, SelectStatementStarNestedSelectTest) {
   bool c_b2_exists = false;
 
   for (auto &col_abs_expr : columns) {
-    auto col_expr = dynamic_cast<const parser::ColumnValueExpression *>(col_abs_expr.get());
+    auto col_expr = dynamic_cast<const parser::ColumnValueExpression *>(col_abs_expr.Get());
     EXPECT_EQ(col_expr->GetDepth(), 0);  // not from derived subquery
 
     if (col_expr->GetDatabaseOid() == db_oid_ && col_expr->GetTableOid() == table_a_oid_) {
@@ -359,7 +370,7 @@ TEST_F(BinderCorrectnessTest, SelectStatementStarNestedSelectTest) {
   // Check join condition
   LOG_INFO("Checking join condition");
   auto col_expr = dynamic_cast<const parser::ColumnValueExpression *>(
-      selectStmt->GetSelectTable()->GetJoin()->GetJoinCondition()->GetChild(0).get());
+      selectStmt->GetSelectTable()->GetJoin()->GetJoinCondition()->GetChild(0).Get());
   EXPECT_EQ(col_expr->GetColumnName(), "b2");  // C.B2
   EXPECT_EQ(col_expr->GetTableName(), "c");
   EXPECT_EQ(col_expr->GetDatabaseOid(), catalog::INVALID_DATABASE_OID);
@@ -369,7 +380,7 @@ TEST_F(BinderCorrectnessTest, SelectStatementStarNestedSelectTest) {
   EXPECT_EQ(col_expr->GetDepth(), 0);  // not from derived subquery
 
   col_expr = dynamic_cast<const parser::ColumnValueExpression *>(
-      selectStmt->GetSelectTable()->GetJoin()->GetJoinCondition()->GetChild(1).get());
+      selectStmt->GetSelectTable()->GetJoin()->GetJoinCondition()->GetChild(1).Get());
   EXPECT_EQ(col_expr->GetColumnName(), "a1");                  // A.a1
   EXPECT_EQ(col_expr->GetTableName(), "a");                    // A.a1
   EXPECT_EQ(col_expr->GetDatabaseOid(), db_oid_);              // A.a1
@@ -381,7 +392,7 @@ TEST_F(BinderCorrectnessTest, SelectStatementStarNestedSelectTest) {
   // check right table
   LOG_INFO("Checking nested table of the join");
   auto right_tb = dynamic_cast<parser::SelectStatement *>(
-      selectStmt->GetSelectTable()->GetJoin()->GetRightTable()->GetSelect().get());
+      selectStmt->GetSelectTable()->GetJoin()->GetRightTable()->GetSelect().Get());
   EXPECT_EQ(right_tb->GetDepth(), 1);  // 1 level subselect
   LOG_INFO("Checking nested column select list");
 
@@ -394,7 +405,7 @@ TEST_F(BinderCorrectnessTest, SelectStatementStarNestedSelectTest) {
   bool b1_exists = false;
   bool b2_exists = false;
   for (auto &col_abs_expr : columns) {
-    col_expr = dynamic_cast<const parser::ColumnValueExpression *>(col_abs_expr.get());
+    col_expr = dynamic_cast<const parser::ColumnValueExpression *>(col_abs_expr.Get());
     EXPECT_EQ(1, col_expr->GetDepth());
     EXPECT_EQ(col_expr->GetDatabaseOid(), db_oid_);
 
@@ -436,14 +447,14 @@ TEST_F(BinderCorrectnessTest, SelectStatementStarNestedSelectTest) {
   //  but the left and right column value expressions have correct depth;
   //  Left for the optimizer to decide if depth of the `ON A1 = B1` is necessary to be set to 1
 
-  col_expr = dynamic_cast<const parser::ColumnValueExpression *>(join->GetChild(0).get());
+  col_expr = dynamic_cast<const parser::ColumnValueExpression *>(join->GetChild(0).Get());
   EXPECT_EQ(col_expr->GetDatabaseOid(), db_oid_);              // B.b1
   EXPECT_EQ(col_expr->GetTableOid(), table_b_oid_);            // B.b1
   EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(1));  // B.b1; columns are indexed from 1
   EXPECT_EQ(type::TypeId::INTEGER, col_expr->GetReturnValueType());
   EXPECT_EQ(1, col_expr->GetDepth());
 
-  col_expr = dynamic_cast<const parser::ColumnValueExpression *>(join->GetChild(1).get());
+  col_expr = dynamic_cast<const parser::ColumnValueExpression *>(join->GetChild(1).Get());
   EXPECT_EQ(col_expr->GetDatabaseOid(), db_oid_);              // A.a1
   EXPECT_EQ(col_expr->GetTableOid(), table_a_oid_);            // A.a1
   EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(1));  // A.a1; columns are indexed from 1
@@ -458,13 +469,13 @@ TEST_F(BinderCorrectnessTest, SelectStatementNestedColumnTest) {
 
   std::string selectSQL = "SELECT A1, (SELECT B2 FROM B where B2 IS NULL LIMIT 1) FROM A";
   auto parse_tree = parser_.BuildParseTree(selectSQL);
-  auto selectStmt = dynamic_cast<parser::SelectStatement *>(parse_tree[0].get());
+  auto selectStmt = dynamic_cast<parser::SelectStatement *>(parse_tree.GetStatements()[0].get());
   binder_->BindNameToNode(selectStmt);
   EXPECT_EQ(0, selectStmt->GetDepth());
 
   // Check select_list
   LOG_INFO("Checking select list");
-  auto col_expr = dynamic_cast<const parser::ColumnValueExpression *>(selectStmt->GetSelectColumns()[0].get());
+  auto col_expr = dynamic_cast<const parser::ColumnValueExpression *>(selectStmt->GetSelectColumns()[0].Get());
   EXPECT_EQ(col_expr->GetDatabaseOid(), db_oid_);              // A.a1
   EXPECT_EQ(col_expr->GetTableOid(), table_a_oid_);            // A.a1
   EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(1));  // A.a1; columns are indexed from 1
@@ -472,14 +483,14 @@ TEST_F(BinderCorrectnessTest, SelectStatementNestedColumnTest) {
   EXPECT_EQ(0, col_expr->GetDepth());
 
   LOG_INFO("Checking nested select in select list");
-  auto subquery = dynamic_cast<parser::SubqueryExpression *>(selectStmt->GetSelectColumns()[1].get());
+  auto subquery = dynamic_cast<parser::SubqueryExpression *>(selectStmt->GetSelectColumns()[1].Get());
   EXPECT_EQ(subquery->GetDepth(), 1);
 
-  auto subselect = dynamic_cast<parser::SelectStatement *>(subquery->GetSubselect().get());
+  auto subselect = dynamic_cast<parser::SelectStatement *>(subquery->GetSubselect().Get());
   EXPECT_EQ(subselect->GetDepth(), 1);
 
   LOG_INFO("Checking select list in nested select in select list");
-  col_expr = dynamic_cast<const parser::ColumnValueExpression *>(subselect->GetSelectColumns()[0].get());
+  col_expr = dynamic_cast<const parser::ColumnValueExpression *>(subselect->GetSelectColumns()[0].Get());
   EXPECT_EQ(col_expr->GetDatabaseOid(), db_oid_);              // B.b2
   EXPECT_EQ(col_expr->GetTableOid(), table_b_oid_);            // B.b2
   EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(2));  // B.b2; columns are indexed from 1
@@ -487,10 +498,10 @@ TEST_F(BinderCorrectnessTest, SelectStatementNestedColumnTest) {
   EXPECT_EQ(1, col_expr->GetDepth());
 
   LOG_INFO("Checking where clause in nested select in select list");
-  auto where = dynamic_cast<const parser::OperatorExpression *>(subselect->GetSelectCondition().get());
+  auto where = dynamic_cast<const parser::OperatorExpression *>(subselect->GetSelectCondition().Get());
   EXPECT_EQ(where->GetDepth(), 1);
 
-  col_expr = dynamic_cast<const parser::ColumnValueExpression *>(where->GetChild(0).get());
+  col_expr = dynamic_cast<const parser::ColumnValueExpression *>(where->GetChild(0).Get());
   EXPECT_EQ(col_expr->GetDatabaseOid(), db_oid_);              // B.b2
   EXPECT_EQ(col_expr->GetTableOid(), table_b_oid_);            // B.b2
   EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(2));  // B.b2; columns are indexed from 1
@@ -505,7 +516,7 @@ TEST_F(BinderCorrectnessTest, SelectStatementDupAliasTest) {
 
   std::string selectSQL = "SELECT * FROM A, B as A";
   auto parse_tree = parser_.BuildParseTree(selectSQL);
-  auto selectStmt = dynamic_cast<parser::SelectStatement *>(parse_tree[0].get());
+  auto selectStmt = dynamic_cast<parser::SelectStatement *>(parse_tree.GetStatements()[0].get());
   EXPECT_THROW(binder_->BindNameToNode(selectStmt), BinderException);
 }
 
@@ -514,16 +525,16 @@ TEST_F(BinderCorrectnessTest, SelectStatementDiffTableSameSchemaTest) {
   // Test select from different table instances from the same physical schema
   std::string selectSQL = "SELECT * FROM A, A as AA where A.a1 = AA.a2";
   auto parse_tree = parser_.BuildParseTree(selectSQL);
-  auto selectStmt = dynamic_cast<parser::SelectStatement *>(parse_tree[0].get());
+  auto selectStmt = dynamic_cast<parser::SelectStatement *>(parse_tree.GetStatements()[0].get());
   binder_->BindNameToNode(selectStmt);
   LOG_INFO("Checking where clause");
   auto col_expr =
-      dynamic_cast<const parser::ColumnValueExpression *>(selectStmt->GetSelectCondition()->GetChild(0).get());
+      dynamic_cast<const parser::ColumnValueExpression *>(selectStmt->GetSelectCondition()->GetChild(0).Get());
   EXPECT_EQ(col_expr->GetDatabaseOid(), db_oid_);              // A.a1
   EXPECT_EQ(col_expr->GetTableOid(), table_a_oid_);            // A.a1
   EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(1));  // A.a1; columns are indexed from 1
 
-  col_expr = dynamic_cast<const parser::ColumnValueExpression *>(selectStmt->GetSelectCondition()->GetChild(1).get());
+  col_expr = dynamic_cast<const parser::ColumnValueExpression *>(selectStmt->GetSelectCondition()->GetChild(1).Get());
   EXPECT_EQ(col_expr->GetDatabaseOid(), db_oid_);              // AA.a2
   EXPECT_EQ(col_expr->GetTableOid(), table_a_oid_);            // AA.a2
   EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(2));  // AA.a2; columns are indexed from 1
@@ -536,14 +547,14 @@ TEST_F(BinderCorrectnessTest, SelectStatementSelectListAliasTest) {
 
   std::string selectSQL = "SELECT AA.a1, b2 FROM A as AA, B WHERE AA.a1 = B.b1";
   auto parse_tree = parser_.BuildParseTree(selectSQL);
-  auto selectStmt = dynamic_cast<parser::SelectStatement *>(parse_tree[0].get());
+  auto selectStmt = dynamic_cast<parser::SelectStatement *>(parse_tree.GetStatements()[0].get());
   binder_->BindNameToNode(selectStmt);
-  auto col_expr = dynamic_cast<parser::ColumnValueExpression *>(selectStmt->GetSelectColumns()[0].get());
+  auto col_expr = dynamic_cast<parser::ColumnValueExpression *>(selectStmt->GetSelectColumns()[0].Get());
   EXPECT_EQ(col_expr->GetDatabaseOid(), db_oid_);              // AA.a1
   EXPECT_EQ(col_expr->GetTableOid(), table_a_oid_);            // AA.a1
   EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(1));  // AA.a1; columns are indexed from 1
 
-  col_expr = dynamic_cast<parser::ColumnValueExpression *>(selectStmt->GetSelectColumns()[1].get());
+  col_expr = dynamic_cast<parser::ColumnValueExpression *>(selectStmt->GetSelectColumns()[1].Get());
   EXPECT_EQ(col_expr->GetDatabaseOid(), db_oid_);              // b2
   EXPECT_EQ(col_expr->GetTableOid(), table_b_oid_);            // b2
   EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(2));  // b2; columns are indexed from 1
@@ -557,19 +568,19 @@ TEST_F(BinderCorrectnessTest, SelectStatementSelectListAliasTest) {
 TEST_F(BinderCorrectnessTest, DeleteStatementWhereTest) {
   std::string deleteSQL = "DELETE FROM b WHERE 1 = b1 AND b2 = 'str'";
   auto parse_tree = parser_.BuildParseTree(deleteSQL);
-  auto deleteStmt = dynamic_cast<parser::DeleteStatement *>(parse_tree[0].get());
+  auto deleteStmt = dynamic_cast<parser::DeleteStatement *>(parse_tree.GetStatements()[0].get());
   binder_->BindNameToNode(deleteStmt);
 
   LOG_INFO("Checking first condition in where clause");
   auto col_expr = dynamic_cast<const parser::ColumnValueExpression *>(
-      deleteStmt->GetDeleteCondition()->GetChild(0)->GetChild(1).get());
+      deleteStmt->GetDeleteCondition()->GetChild(0)->GetChild(1).Get());
   EXPECT_EQ(col_expr->GetDatabaseOid(), db_oid_);              // b1
   EXPECT_EQ(col_expr->GetTableOid(), table_b_oid_);            // b1
   EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(1));  // b1; columns are indexed from 1
 
   LOG_INFO("Checking second condition in where clause");
   col_expr = dynamic_cast<const parser::ColumnValueExpression *>(
-      deleteStmt->GetDeleteCondition()->GetChild(1)->GetChild(0).get());
+      deleteStmt->GetDeleteCondition()->GetChild(1)->GetChild(0).Get());
   EXPECT_EQ(col_expr->GetDatabaseOid(), db_oid_);              // b2
   EXPECT_EQ(col_expr->GetTableOid(), table_b_oid_);            // b2
   EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(2));  // b2; columns are indexed from 1
@@ -582,15 +593,15 @@ TEST_F(BinderCorrectnessTest, AggregateSimpleTest) {
 
   std::string selectSQL = "SELECT MAX(b1) FROM B;";
   auto parse_tree = parser_.BuildParseTree(selectSQL);
-  auto selectStmt = dynamic_cast<parser::SelectStatement *>(parse_tree[0].get());
+  auto selectStmt = dynamic_cast<parser::SelectStatement *>(parse_tree.GetStatements()[0].get());
   binder_->BindNameToNode(selectStmt);
   EXPECT_EQ(0, selectStmt->GetDepth());
 
-  auto agg_expr = dynamic_cast<parser::AggregateExpression *>(selectStmt->GetSelectColumns()[0].get());
+  auto agg_expr = dynamic_cast<parser::AggregateExpression *>(selectStmt->GetSelectColumns()[0].Get());
   EXPECT_EQ(type::TypeId::INTEGER, agg_expr->GetReturnValueType());
   EXPECT_EQ(0, agg_expr->GetDepth());
 
-  auto col_expr = dynamic_cast<const parser::ColumnValueExpression *>(agg_expr->GetChild(0).get());
+  auto col_expr = dynamic_cast<const parser::ColumnValueExpression *>(agg_expr->GetChild(0).Get());
   EXPECT_EQ(col_expr->GetDatabaseOid(), db_oid_);              // B.b1
   EXPECT_EQ(col_expr->GetTableOid(), table_b_oid_);            // B.b1
   EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(1));  // B.b1; columns are indexed from 1
@@ -605,18 +616,18 @@ TEST_F(BinderCorrectnessTest, AggregateComplexTest) {
 
   std::string selectSQL = "SELECT A.a1 FROM A WHERE A.a1 IN (SELECT MAX(b1) FROM B);";
   auto parse_tree = parser_.BuildParseTree(selectSQL);
-  auto selectStmt = dynamic_cast<parser::SelectStatement *>(parse_tree[0].get());
+  auto selectStmt = dynamic_cast<parser::SelectStatement *>(parse_tree.GetStatements()[0].get());
   binder_->BindNameToNode(selectStmt);
   EXPECT_EQ(0, selectStmt->GetDepth());
 
-  auto subquery = dynamic_cast<parser::SubqueryExpression *>(selectStmt->GetSelectCondition()->GetChild(1).get());
-  auto subselect = dynamic_cast<parser::SelectStatement *>(subquery->GetSubselect().get());
+  auto subquery = dynamic_cast<parser::SubqueryExpression *>(selectStmt->GetSelectCondition()->GetChild(1).Get());
+  auto subselect = dynamic_cast<parser::SelectStatement *>(subquery->GetSubselect().Get());
 
-  auto agg_expr = dynamic_cast<parser::AggregateExpression *>(subselect->GetSelectColumns()[0].get());
+  auto agg_expr = dynamic_cast<parser::AggregateExpression *>(subselect->GetSelectColumns()[0].Get());
   EXPECT_EQ(type::TypeId::INTEGER, agg_expr->GetReturnValueType());
   EXPECT_EQ(1, agg_expr->GetDepth());
 
-  auto col_expr = dynamic_cast<const parser::ColumnValueExpression *>(agg_expr->GetChild(0).get());
+  auto col_expr = dynamic_cast<const parser::ColumnValueExpression *>(agg_expr->GetChild(0).Get());
   EXPECT_EQ(col_expr->GetDatabaseOid(), db_oid_);              // B.b1
   EXPECT_EQ(col_expr->GetTableOid(), table_b_oid_);            // B.b1
   EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(1));  // B.b1; columns are indexed from 1
@@ -631,29 +642,29 @@ TEST_F(BinderCorrectnessTest, OperatorComplexTest) {
 
   std::string selectSQL = "SELECT A.a1 FROM A WHERE 2 * A.a1 IN (SELECT b1+1 FROM B);";
   auto parse_tree = parser_.BuildParseTree(selectSQL);
-  auto selectStmt = dynamic_cast<parser::SelectStatement *>(parse_tree[0].get());
+  auto selectStmt = dynamic_cast<parser::SelectStatement *>(parse_tree.GetStatements()[0].get());
   binder_->BindNameToNode(selectStmt);
   EXPECT_EQ(0, selectStmt->GetDepth());
 
-  auto op_expr = dynamic_cast<parser::OperatorExpression *>(selectStmt->GetSelectCondition()->GetChild(0).get());
+  auto op_expr = dynamic_cast<parser::OperatorExpression *>(selectStmt->GetSelectCondition()->GetChild(0).Get());
   EXPECT_EQ(type::TypeId::INTEGER, op_expr->GetReturnValueType());
   EXPECT_EQ(0, op_expr->GetDepth());
 
-  auto col_expr = dynamic_cast<const parser::ColumnValueExpression *>(op_expr->GetChild(1).get());
+  auto col_expr = dynamic_cast<const parser::ColumnValueExpression *>(op_expr->GetChild(1).Get());
   EXPECT_EQ(col_expr->GetDatabaseOid(), db_oid_);              // a.a1
   EXPECT_EQ(col_expr->GetTableOid(), table_a_oid_);            // a.a1
   EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(1));  // a.a1; columns are indexed from 1
   EXPECT_EQ(0, col_expr->GetDepth());
   EXPECT_EQ(type::TypeId::INTEGER, col_expr->GetReturnValueType());
 
-  auto subquery = dynamic_cast<parser::SubqueryExpression *>(selectStmt->GetSelectCondition()->GetChild(1).get());
-  auto subselect = dynamic_cast<parser::SelectStatement *>(subquery->GetSubselect().get());
+  auto subquery = dynamic_cast<parser::SubqueryExpression *>(selectStmt->GetSelectCondition()->GetChild(1).Get());
+  auto subselect = dynamic_cast<parser::SelectStatement *>(subquery->GetSubselect().Get());
 
-  op_expr = dynamic_cast<parser::OperatorExpression *>(subselect->GetSelectColumns()[0].get());
+  op_expr = dynamic_cast<parser::OperatorExpression *>(subselect->GetSelectColumns()[0].Get());
   EXPECT_EQ(type::TypeId::INTEGER, op_expr->GetReturnValueType());
   EXPECT_EQ(1, op_expr->GetDepth());
 
-  col_expr = dynamic_cast<const parser::ColumnValueExpression *>(op_expr->GetChild(0).get());
+  col_expr = dynamic_cast<const parser::ColumnValueExpression *>(op_expr->GetChild(0).Get());
   EXPECT_EQ(col_expr->GetDatabaseOid(), db_oid_);              // B.b1
   EXPECT_EQ(col_expr->GetTableOid(), table_b_oid_);            // B.b1
   EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(1));  // B.b1; columns are indexed from 1
@@ -670,7 +681,7 @@ TEST_F(BinderCorrectnessTest, BindDepthTest) {
       "SELECT A.a1 FROM A WHERE A.a1 IN (SELECT b1 FROM B WHERE b1 = 2 AND "
       "b2 > (SELECT a1 FROM A WHERE a2 > 0)) AND EXISTS (SELECT b1 FROM B WHERE B.b1 = A.a1)";
   auto parse_tree = parser_.BuildParseTree(selectSQL);
-  auto selectStmt = dynamic_cast<parser::SelectStatement *>(parse_tree[0].get());
+  auto selectStmt = dynamic_cast<parser::SelectStatement *>(parse_tree.GetStatements()[0].get());
   binder_->BindNameToNode(selectStmt);
 
   // Check select depthGetSelectCondition
@@ -678,7 +689,7 @@ TEST_F(BinderCorrectnessTest, BindDepthTest) {
 
   // Check select_list
   LOG_INFO("Checking select list");
-  auto tv_expr = selectStmt->GetSelectColumns()[0].get();
+  auto tv_expr = selectStmt->GetSelectColumns()[0].Get();
   EXPECT_EQ(0, tv_expr->GetDepth());  // A.a1
 
   // Check Where clause
@@ -698,14 +709,14 @@ TEST_F(BinderCorrectnessTest, BindDepthTest) {
   EXPECT_TRUE(in_sub_expr->HasSubquery());
 
   // SELECT b1 FROM B WHERE b1 = 2 AND b2 > (SELECT a1 FROM A WHERE a2 > 0)
-  auto in_sub_expr_select = dynamic_cast<parser::SubqueryExpression *>(in_sub_expr.get())->GetSubselect();
+  auto in_sub_expr_select = dynamic_cast<parser::SubqueryExpression *>(in_sub_expr.Get())->GetSubselect();
   EXPECT_EQ(1, in_sub_expr_select->GetDepth());
 
-  auto in_sub_expr_select_ele = in_sub_expr_select->GetSelectColumns()[0].get();  // b1
+  auto in_sub_expr_select_ele = in_sub_expr_select->GetSelectColumns()[0].Get();  // b1
   EXPECT_EQ(1, in_sub_expr_select_ele->GetDepth());
 
   // WHERE b1 = 2 AND b2 > (SELECT a1 FROM A WHERE a2 > 0)
-  auto in_sub_expr_select_where = in_sub_expr_select->GetSelectCondition().get();
+  auto in_sub_expr_select_where = in_sub_expr_select->GetSelectCondition().Get();
   EXPECT_EQ(1, in_sub_expr_select_where->GetDepth());
 
   // b1 = 2
@@ -726,17 +737,17 @@ TEST_F(BinderCorrectnessTest, BindDepthTest) {
 
   // SELECT a1 FROM A WHERE a2 > 0
   auto in_sub_expr_select_where_right_sub_select =
-      dynamic_cast<parser::SubqueryExpression *>(in_sub_expr_select_where_right_sub.get())->GetSubselect();
+      dynamic_cast<parser::SubqueryExpression *>(in_sub_expr_select_where_right_sub.Get())->GetSubselect();
   EXPECT_EQ(2, in_sub_expr_select_where_right_sub_select->GetDepth());
 
   // WHERE a2 > 0
   auto in_sub_expr_select_where_right_sub_select_where =
-      in_sub_expr_select_where_right_sub_select->GetSelectCondition().get();
+      in_sub_expr_select_where_right_sub_select->GetSelectCondition().Get();
   EXPECT_EQ(2, in_sub_expr_select_where_right_sub_select_where->GetDepth());
 
   // a1
   auto in_sub_expr_select_where_right_sub_select_ele =
-      in_sub_expr_select_where_right_sub_select->GetSelectColumns()[0].get();
+      in_sub_expr_select_where_right_sub_select->GetSelectColumns()[0].Get();
   EXPECT_EQ(2, in_sub_expr_select_where_right_sub_select_ele->GetDepth());
 
   // EXISTS (SELECT b1 FROM B WHERE B.b1 = A.a1)
@@ -749,24 +760,24 @@ TEST_F(BinderCorrectnessTest, BindDepthTest) {
   EXPECT_TRUE(in_sub_expr->HasSubquery());
 
   // a select statement: SELECT b1 FROM B WHERE B.b1 = A.a1
-  auto exists_sub_expr_select = dynamic_cast<parser::SubqueryExpression *>(exists_sub_expr.get())->GetSubselect();
+  auto exists_sub_expr_select = dynamic_cast<parser::SubqueryExpression *>(exists_sub_expr.Get())->GetSubselect();
   EXPECT_EQ(1, exists_sub_expr_select->GetDepth());
 
   // WHERE B.b1 = A.a1
-  auto exists_sub_expr_select_where = exists_sub_expr_select->GetSelectCondition().get();
+  auto exists_sub_expr_select_where = exists_sub_expr_select->GetSelectCondition().Get();
   EXPECT_EQ(0, exists_sub_expr_select_where->GetDepth());  // comparison expression take the highest level of depth; 0
 
   // b1 refer to column on the same level as the subselect
   auto exists_sub_expr_select_where_left =
-      dynamic_cast<const parser::ColumnValueExpression *>(exists_sub_expr_select_where->GetChild(0).get());
+      dynamic_cast<const parser::ColumnValueExpression *>(exists_sub_expr_select_where->GetChild(0).Get());
   EXPECT_EQ(1, exists_sub_expr_select_where_left->GetDepth());
 
   // a1 refer to column on subselect's upper level
   auto exists_sub_expr_select_where_right =
-      dynamic_cast<const parser::ColumnValueExpression *>(exists_sub_expr_select_where->GetChild(1).get());
+      dynamic_cast<const parser::ColumnValueExpression *>(exists_sub_expr_select_where->GetChild(1).Get());
   EXPECT_EQ(0, exists_sub_expr_select_where_right->GetDepth());
 
-  auto exists_sub_expr_select_ele = exists_sub_expr_select->GetSelectColumns()[0].get();  // b1
+  auto exists_sub_expr_select_ele = exists_sub_expr_select->GetSelectColumns()[0].Get();  // b1
   EXPECT_EQ(1, exists_sub_expr_select_ele->GetDepth());
 }
 
