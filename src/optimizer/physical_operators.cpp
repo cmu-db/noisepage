@@ -82,6 +82,7 @@ BaseOperatorNode *IndexScan::Copy() const {
   auto *scan = new IndexScan;
   scan->database_oid_ = database_oid_;
   scan->namespace_oid_ = namespace_oid_;
+  scan->table_oid_ = table_oid_;
   scan->index_oid_ = index_oid_;
   scan->table_alias_ = table_alias_;
   scan->is_for_update_ = is_for_update_;
@@ -98,14 +99,15 @@ BaseOperatorNode *IndexScan::Copy() const {
 }
 
 Operator IndexScan::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
-                         catalog::index_oid_t index_oid, std::vector<AnnotatedExpression> &&predicates,
-                         std::string table_alias, bool is_for_update,
+                         catalog::table_oid_t table_oid, catalog::index_oid_t index_oid,
+                         std::vector<AnnotatedExpression> &&predicates, std::string table_alias, bool is_for_update,
                          std::vector<catalog::col_oid_t> &&key_column_oid_list,
                          std::vector<parser::ExpressionType> &&expr_type_list,
                          std::vector<type::TransientValue> &&value_list) {
   auto *scan = new IndexScan;
   scan->database_oid_ = database_oid;
   scan->namespace_oid_ = namespace_oid;
+  scan->table_oid_ = table_oid;
   scan->index_oid_ = index_oid;
   scan->table_alias_ = std::move(table_alias);
   scan->is_for_update_ = is_for_update;
@@ -120,9 +122,10 @@ Operator IndexScan::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_
 bool IndexScan::operator==(const BaseOperatorNode &r) {
   if (r.GetType() != OpType::INDEXSCAN) return false;
   const IndexScan &node = *dynamic_cast<const IndexScan *>(&r);
-  if (database_oid_ != node.database_oid_ || namespace_oid_ != node.namespace_oid_ || index_oid_ != node.index_oid_ ||
-      table_alias_ != node.table_alias_ || key_column_oid_list_ != node.key_column_oid_list_ ||
-      expr_type_list_ != node.expr_type_list_ || predicates_.size() != node.predicates_.size() ||
+  if (database_oid_ != node.database_oid_ || namespace_oid_ != node.namespace_oid_ || table_oid_ != node.table_oid_ ||
+      index_oid_ != node.index_oid_ || table_alias_ != node.table_alias_ ||
+      key_column_oid_list_ != node.key_column_oid_list_ || expr_type_list_ != node.expr_type_list_ ||
+      predicates_.size() != node.predicates_.size() ||
       key_column_oid_list_.size() != node.key_column_oid_list_.size() || is_for_update_ != node.is_for_update_ ||
       expr_type_list_.size() != node.expr_type_list_.size() || value_list_.size() != node.value_list_.size())
     return false;
@@ -140,6 +143,7 @@ common::hash_t IndexScan::Hash() const {
   common::hash_t hash = BaseOperatorNode::Hash();
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_oid_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(namespace_oid_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_oid_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(index_oid_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_alias_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(is_for_update_));
