@@ -81,11 +81,13 @@ class InsertPlanNode : public AbstractPlanNode {
 
 
     /**
-     * @param index_oid oid of insertion index that is to be added to this plan node
+     * @param index_oids vector of index oids to insert into
      * @return builder object
      */
-    Builder &AddIndexOid(catalog::index_oid_t index_oid) {
-      index_oids_.emplace_back(index_oid);
+    Builder &AddIndexOids(std::vector<catalog::index_oid_t> &&index_oids) {
+      for (auto elem : index_oids) {
+        index_oids_.push_back(elem);
+      }
       return *this;
     }
 
