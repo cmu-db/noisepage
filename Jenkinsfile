@@ -14,6 +14,7 @@ pipeline {
                         LLVM_DIR="/usr/local/Cellar/llvm/8.0.1"
                     }
                     steps {
+                        sh 'echo $NODE_NAME'
                         sh 'echo y | ./script/installation/packages.sh'
                         sh 'mkdir build'
                         sh 'cd build && cmake -DCMAKE_BUILD_TYPE=Debug -DTERRIER_USE_ASAN=ON .. && make -j4'
@@ -32,9 +33,10 @@ pipeline {
                         }
                     }
                     steps {
+                        sh 'echo $NODE_NAME'
                         sh 'echo y | sudo ./script/installation/packages.sh'
                         sh 'mkdir build'
-                        sh 'cd build && cmake -DCMAKE_BUILD_TYPE=Debug -DTERRIER_USE_ASAN=ON .. && make -j4'
+                        sh 'cd build && cmake -DCMAKE_BUILD_TYPE=Debug -DTERRIER_USE_ASAN=ON .. && make -j24'
                         sh 'cd build && make check-clang-tidy'
                         sh 'cd build && timeout 1h make unittest'
                         sh 'cd build && timeout 1h make check-tpl'
@@ -54,9 +56,10 @@ pipeline {
                         CXX="/usr/bin/clang++-8"
                     }
                     steps {
+                        sh 'echo $NODE_NAME'
                         sh 'echo y | sudo ./script/installation/packages.sh'
                         sh 'mkdir build'
-                        sh 'cd build && cmake -DCMAKE_BUILD_TYPE=Debug -DTERRIER_USE_ASAN=ON .. && make -j4'
+                        sh 'cd build && cmake -DCMAKE_BUILD_TYPE=Debug -DTERRIER_USE_ASAN=ON .. && make -j24'
                         sh 'cd build && make check-clang-tidy'
                         sh 'cd build && timeout 1h make unittest'
                         sh 'cd build && timeout 1h make check-tpl'
@@ -71,6 +74,7 @@ pipeline {
                         LLVM_DIR="/usr/local/Cellar/llvm/8.0.1"
                     }
                     steps {
+                        sh 'echo $NODE_NAME'
                         sh 'echo y | ./script/installation/packages.sh'
                         sh 'mkdir build'
                         sh 'cd build && cmake -DCMAKE_BUILD_TYPE=Release -DTERRIER_USE_ASAN=OFF .. && make -j4'
@@ -87,9 +91,10 @@ pipeline {
                         }
                     }
                     steps {
+                        sh 'echo $NODE_NAME'
                         sh 'echo y | sudo ./script/installation/packages.sh'
                         sh 'mkdir build'
-                        sh 'cd build && cmake -DCMAKE_BUILD_TYPE=Release -DTERRIER_USE_ASAN=OFF .. && make -j4'
+                        sh 'cd build && cmake -DCMAKE_BUILD_TYPE=Release -DTERRIER_USE_ASAN=OFF .. && make -j24'
                         sh 'cd build && timeout 1h make unittest'
                         sh 'cd build && timeout 1h make check-tpl'
                         sh 'cd build && python ../script/testing/junit/run_junit.py --build_type=release'
@@ -107,9 +112,10 @@ pipeline {
                         CXX="/usr/bin/clang++-8"
                     }
                     steps {
+                        sh 'echo $NODE_NAME'
                         sh 'echo y | sudo ./script/installation/packages.sh'
                         sh 'mkdir build'
-                        sh 'cd build && cmake -DCMAKE_BUILD_TYPE=Release -DTERRIER_USE_ASAN=OFF .. && make -j4'
+                        sh 'cd build && cmake -DCMAKE_BUILD_TYPE=Release -DTERRIER_USE_ASAN=OFF .. && make -j24'
                         sh 'cd build && timeout 1h make unittest'
                         sh 'cd build && timeout 1h make check-tpl'
                         sh 'cd build && python ../script/testing/junit/run_junit.py --build_type=release'
@@ -119,9 +125,10 @@ pipeline {
                 stage('ubuntu-18.04/gcc-7.3.0 (Release/benchmark)') {
                     agent { label 'benchmark' }
                     steps {
+                        sh 'echo $NODE_NAME'
                         sh 'echo y | sudo ./script/installation/packages.sh'
                         sh 'mkdir build'
-                        sh 'cd build && cmake -DCMAKE_BUILD_TYPE=Release -DTERRIER_USE_ASAN=OFF -DTERRIER_USE_JEMALLOC=ON .. && make -j4'
+                        sh 'cd build && cmake -DCMAKE_BUILD_TYPE=Release -DTERRIER_USE_ASAN=OFF -DTERRIER_USE_JEMALLOC=ON .. && make -j24'
                         sh 'cd build && timeout 1h make runbenchmark'
                         sh 'cd script/micro_bench && timeout 1h ./run_micro_bench.py'
                         archiveArtifacts 'script/micro_bench/*.json'
