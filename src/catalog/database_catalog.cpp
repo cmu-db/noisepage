@@ -483,7 +483,7 @@ std::vector<Column> DatabaseCatalog::GetColumns(transaction::TransactionContext 
   // Finish
   delete[] buffer;
   delete[] key_buffer;
-  return std::move(cols);
+  return cols;
 }
 
 // TODO(Matt): we need a DeleteColumn()

@@ -5,18 +5,12 @@
 #include <utility>
 #include <vector>
 #include "catalog/catalog_defs.h"
-#include "common/exception.h"
 #include "common/json.h"
 #include "common/macros.h"
 #include "common/sql_node_visitor.h"
 #include "parser/parser_defs.h"
 
 namespace terrier {
-
-namespace binder {
-class BindNodeVisitor;
-}  // namespace binder
-
 namespace parser {
 
 /**
@@ -71,32 +65,9 @@ struct TableInfo {
   }
 
  private:
-  friend class TableRefStatement;
-  friend class TableRef;
   std::string table_name_;
   std::string schema_name_;
   std::string database_name_;
-
-  /**
-   * Check if the current table info object has the correct database name.
-   * If the current table info does not have a database name, set the database name to the default database name
-   * If the current table info has a database name, this function verifies if it matches the defualt database name
-   * @param default_database_name Default database name
-   */
-  void TryBindDatabaseName(const std::string &default_database_name) {
-    if (database_name_.empty()) {
-      database_name_ = std::string(default_database_name);
-    } else if (database_name_ != default_database_name) {
-      // TODO(ling): Binder Exception or Parser Exception?
-      //    This Exception throw in the binding stage
-      throw BINDER_EXCEPTION(("Database " + database_name_ + " in the statement is not the current database.").c_str());
-    }
-    // TODO(Ling): see if we actual need to set the schema name to any default values
-    //  This piece of code comes from pelotn
-    //    // if schema name is not specified, then it's default value is "public"
-    //    if (table_info_->schema_name.empty())
-    //      table_info_->schema_name = DEFAULT_SCHEMA_NAME;
-  }
 };
 
 DEFINE_JSON_DECLARATIONS(TableInfo);
@@ -184,21 +155,8 @@ class TableRefStatement : public SQLStatement {
    */
   virtual std::string GetDatabaseName() const { return table_info_->GetDatabaseName(); }
 
- protected:
-  /**
-   * Check if the current statement has the correct database name.
-   * If the current statement does not have a database name, set the database name to the default database name
-   * If the current statement has a database name, this function verifies if it matches the defualt database name
-   * @param default_database_name Default database name
-   */
-  void TryBindDatabaseName(const std::string &default_database_name) {
-    if (!table_info_) table_info_ = std::make_unique<TableInfo>();
-    table_info_->TryBindDatabaseName(default_database_name);
-  }
-
  private:
-  friend class binder::BindNodeVisitor;
-  std::unique_ptr<TableInfo> table_info_ = nullptr;
+  const std::unique_ptr<TableInfo> table_info_ = nullptr;
 };
 
 }  // namespace parser
