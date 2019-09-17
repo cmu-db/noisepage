@@ -211,13 +211,6 @@ class CatalogAccessor {
   index_oid_t GetIndexOid(namespace_oid_t ns, std::string name) const;
 
   /**
-   * Given a table, find all indexes for data in that table
-   * @param table OID being queried
-   * @return vector of index OIDs that reference the queried table
-   */
-  std::vector<index_oid_t> GetIndexOids(table_oid_t table) const;
-
-  /**
    * Given the index name and its specification, add it to the catalog
    * @param ns is the namespace in which the index will exist
    * @param table on which this index exists

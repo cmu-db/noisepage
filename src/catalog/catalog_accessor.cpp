@@ -102,10 +102,6 @@ index_oid_t CatalogAccessor::GetIndexOid(namespace_oid_t ns, std::string name) c
   return dbc_->GetIndexOid(txn_, ns, name);
 }
 
-std::vector<index_oid_t> CatalogAccessor::GetIndexOids(table_oid_t table) const {
-  return dbc_->GetIndexes(txn_, table);
-}
-
 index_oid_t CatalogAccessor::CreateIndex(namespace_oid_t ns, table_oid_t table, std::string name,
                                          const IndexSchema &schema) const {
   NormalizeObjectName(&name);
