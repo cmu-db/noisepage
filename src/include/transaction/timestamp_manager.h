@@ -36,10 +36,15 @@ class TimestampManager {
   }
 
  private:
+  // TransactionManager needs to be able to use the curr_running_txns_latch to guard more than just the
+  // duration of the following method calls --- things such as adding to the GC queue needs to be atomic
+  // along with removing a transaction from the table of active transactions. We need this for correctness
+  // in the deferred action framework when dropping tables.
   friend class TransactionManager;
   timestamp_t BeginTransaction() {
     timestamp_t start_time;
     {
+      common::SpinLatch::ScopedSpinLatch running_guard(&curr_running_txns_latch_);
       // There is a three-way race that needs to be prevented.  Specifically, we
       // cannot allow both a transaction to commit and the GC to poll for the
       // oldest running transaction in between this transaction acquiring its
@@ -48,7 +53,6 @@ class TimestampManager {
       // prevents the GC from polling and stops the race.  This allows us to
       // replace acquiring a shared instance of the commit latch with a
       // read-only spin-latch and move the allocation out of a critical section.
-      common::SpinLatch::ScopedSpinLatch running_guard(&curr_running_txns_latch_);
       start_time = time_++;
 
       const auto ret UNUSED_ATTRIBUTE = curr_running_txns_.emplace(start_time);
@@ -58,7 +62,6 @@ class TimestampManager {
   }
 
   void RemoveTransaction(timestamp_t timestamp) {
-    common::SpinLatch::ScopedSpinLatch guard(&curr_running_txns_latch_);
     const size_t ret UNUSED_ATTRIBUTE = curr_running_txns_.erase(timestamp);
     TERRIER_ASSERT(ret == 1, "erased timestamp did not exist");
   }
