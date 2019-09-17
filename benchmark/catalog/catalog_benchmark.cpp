@@ -1,12 +1,12 @@
 #include <memory>
+#include <utility>
 #include <vector>
 
 #include "benchmark/benchmark.h"
-#include "common/scoped_timer.h"
-
 #include "catalog/catalog.h"
 #include "catalog/catalog_accessor.h"
 #include "catalog/catalog_defs.h"
+#include "common/scoped_timer.h"
 #include "parser/expression/column_value_expression.h"
 #include "parser/expression/constant_value_expression.h"
 #include "storage/garbage_collector.h"
@@ -64,6 +64,48 @@ class CatalogBenchmark : public benchmark::Fixture {
 
   storage::GarbageCollector *gc_;
   catalog::db_oid_t db_;
+
+  std::pair<catalog::table_oid_t, catalog::index_oid_t> AddUserTableAndIndex() {
+    auto txn = txn_manager_->BeginTransaction();
+    auto accessor = catalog_->GetAccessor(txn, db_);
+
+    // Create the column definition (no OIDs)
+    std::vector<catalog::Schema::Column> cols;
+    cols.emplace_back("id", type::TypeId::INTEGER, false,
+                      parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
+    cols.emplace_back("user_col_1", type::TypeId::INTEGER, false,
+                      parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
+    auto tmp_schema = catalog::Schema(cols);
+
+    const auto table_oid = accessor->CreateTable(accessor->GetDefaultNamespace(), "test_table", tmp_schema);
+    TERRIER_ASSERT(table_oid != catalog::INVALID_TABLE_OID, "table creation should not fail");
+    auto schema = accessor->GetSchema(table_oid);
+    auto table = new storage::SqlTable(&block_store_, schema);
+
+    auto result UNUSED_ATTRIBUTE = accessor->SetTablePointer(table_oid, table);
+    TERRIER_ASSERT(result, "setting table pointer should not fail");
+
+    // Create the index
+    std::vector<catalog::IndexSchema::Column> key_cols{
+        catalog::IndexSchema::Column{"id", type::TypeId::INTEGER, false,
+                                     parser::ColumnValueExpression(db_, table_oid, schema.GetColumn("id").Oid())}};
+    auto index_schema = catalog::IndexSchema(key_cols, true, true, false, true);
+    const auto idx_oid =
+        accessor->CreateIndex(accessor->GetDefaultNamespace(), table_oid, "test_table_idx", index_schema);
+    TERRIER_ASSERT(idx_oid != catalog::INVALID_INDEX_OID, "index creation should not fail");
+    auto true_schema = accessor->GetIndexSchema(idx_oid);
+
+    storage::index::IndexBuilder index_builder;
+    index_builder.SetOid(idx_oid).SetKeySchema(true_schema).SetConstraintType(storage::index::ConstraintType::UNIQUE);
+    auto index = index_builder.Build();
+
+    result = accessor->SetIndexPointer(idx_oid, index);
+    TERRIER_ASSERT(result, "setting index pointer should not fail");
+
+    txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+
+    return {table_oid, idx_oid};
+  }
 };
 
 // NOLINTNEXTLINE
@@ -110,48 +152,15 @@ BENCHMARK_DEFINE_F(CatalogBenchmark, GetDatabaseCatalog)(benchmark::State &state
 
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(CatalogBenchmark, GetIndex)(benchmark::State &state) {
-  auto txn = txn_manager_->BeginTransaction();
+  const auto oids = AddUserTableAndIndex();
+
+  auto *txn = txn_manager_->BeginTransaction();
   auto accessor = catalog_->GetAccessor(txn, db_);
-
-  // Create the column definition (no OIDs)
-  std::vector<catalog::Schema::Column> cols;
-  cols.emplace_back("id", type::TypeId::INTEGER, false,
-                    parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
-  cols.emplace_back("user_col_1", type::TypeId::INTEGER, false,
-                    parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
-  auto tmp_schema = catalog::Schema(cols);
-
-  auto table_oid = accessor->CreateTable(accessor->GetDefaultNamespace(), "test_table", tmp_schema);
-  TERRIER_ASSERT(table_oid != catalog::INVALID_TABLE_OID, "table creation should not fail");
-  auto schema = accessor->GetSchema(table_oid);
-  auto table = new storage::SqlTable(&block_store_, schema);
-
-  auto result UNUSED_ATTRIBUTE = accessor->SetTablePointer(table_oid, table);
-  TERRIER_ASSERT(result, "setting table pointer should not fail");
-
-  // Create the index
-  std::vector<catalog::IndexSchema::Column> key_cols{catalog::IndexSchema::Column{
-      "id", type::TypeId::INTEGER, false, parser::ColumnValueExpression(db_, table_oid, schema.GetColumn("id").Oid())}};
-  auto index_schema = catalog::IndexSchema(key_cols, true, true, false, true);
-  auto idx_oid = accessor->CreateIndex(accessor->GetDefaultNamespace(), table_oid, "test_table_idx", index_schema);
-  TERRIER_ASSERT(idx_oid != catalog::INVALID_INDEX_OID, "index creation should not fail");
-  auto true_schema = accessor->GetIndexSchema(idx_oid);
-
-  storage::index::IndexBuilder index_builder;
-  index_builder.SetOid(idx_oid).SetKeySchema(true_schema).SetConstraintType(storage::index::ConstraintType::UNIQUE);
-  auto index = index_builder.Build();
-
-  result = accessor->SetIndexPointer(idx_oid, index);
-  TERRIER_ASSERT(result, "setting index pointer should not fail");
-
-  txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
-
-  txn = txn_manager_->BeginTransaction();
 
   // NOLINTNEXTLINE
   for (auto _ : state) {
-    const auto test_index UNUSED_ATTRIBUTE = accessor->GetIndex(idx_oid);
-    TERRIER_ASSERT(common::ManagedPointer<storage::index::Index>(index) == test_index, "getting index should not fail");
+    const auto test_index UNUSED_ATTRIBUTE = accessor->GetIndex(oids.second);
+    TERRIER_ASSERT(test_index != nullptr, "getting index should not fail");
   }
 
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
@@ -161,48 +170,15 @@ BENCHMARK_DEFINE_F(CatalogBenchmark, GetIndex)(benchmark::State &state) {
 
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(CatalogBenchmark, GetIndexOid)(benchmark::State &state) {
-  auto txn = txn_manager_->BeginTransaction();
+  const auto oids = AddUserTableAndIndex();
+
+  auto *txn = txn_manager_->BeginTransaction();
   auto accessor = catalog_->GetAccessor(txn, db_);
-
-  // Create the column definition (no OIDs)
-  std::vector<catalog::Schema::Column> cols;
-  cols.emplace_back("id", type::TypeId::INTEGER, false,
-                    parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
-  cols.emplace_back("user_col_1", type::TypeId::INTEGER, false,
-                    parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
-  auto tmp_schema = catalog::Schema(cols);
-
-  auto table_oid = accessor->CreateTable(accessor->GetDefaultNamespace(), "test_table", tmp_schema);
-  TERRIER_ASSERT(table_oid != catalog::INVALID_TABLE_OID, "table creation should not fail");
-  auto schema = accessor->GetSchema(table_oid);
-  auto table = new storage::SqlTable(&block_store_, schema);
-
-  auto result UNUSED_ATTRIBUTE = accessor->SetTablePointer(table_oid, table);
-  TERRIER_ASSERT(result, "setting table pointer should not fail");
-
-  // Create the index
-  std::vector<catalog::IndexSchema::Column> key_cols{catalog::IndexSchema::Column{
-      "id", type::TypeId::INTEGER, false, parser::ColumnValueExpression(db_, table_oid, schema.GetColumn("id").Oid())}};
-  auto index_schema = catalog::IndexSchema(key_cols, true, true, false, true);
-  auto idx_oid = accessor->CreateIndex(accessor->GetDefaultNamespace(), table_oid, "test_table_idx", index_schema);
-  TERRIER_ASSERT(idx_oid != catalog::INVALID_INDEX_OID, "index creation should not fail");
-  auto true_schema = accessor->GetIndexSchema(idx_oid);
-
-  storage::index::IndexBuilder index_builder;
-  index_builder.SetOid(idx_oid).SetKeySchema(true_schema).SetConstraintType(storage::index::ConstraintType::UNIQUE);
-  auto index = index_builder.Build();
-
-  result = accessor->SetIndexPointer(idx_oid, index);
-  TERRIER_ASSERT(result, "setting index pointer should not fail");
-
-  txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
-
-  txn = txn_manager_->BeginTransaction();
 
   // NOLINTNEXTLINE
   for (auto _ : state) {
     const auto test_index UNUSED_ATTRIBUTE = accessor->GetIndexOid("test_table_idx");
-    TERRIER_ASSERT(idx_oid == test_index, "getting index oid should not fail");
+    TERRIER_ASSERT(oids.second == test_index, "getting index oid should not fail");
   }
 
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
@@ -212,47 +188,14 @@ BENCHMARK_DEFINE_F(CatalogBenchmark, GetIndexOid)(benchmark::State &state) {
 
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(CatalogBenchmark, GetIndexOids)(benchmark::State &state) {
-  auto txn = txn_manager_->BeginTransaction();
+  const auto oids = AddUserTableAndIndex();
+
+  auto *txn = txn_manager_->BeginTransaction();
   auto accessor = catalog_->GetAccessor(txn, db_);
-
-  // Create the column definition (no OIDs)
-  std::vector<catalog::Schema::Column> cols;
-  cols.emplace_back("id", type::TypeId::INTEGER, false,
-                    parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
-  cols.emplace_back("user_col_1", type::TypeId::INTEGER, false,
-                    parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
-  auto tmp_schema = catalog::Schema(cols);
-
-  auto table_oid = accessor->CreateTable(accessor->GetDefaultNamespace(), "test_table", tmp_schema);
-  TERRIER_ASSERT(table_oid != catalog::INVALID_TABLE_OID, "table creation should not fail");
-  auto schema = accessor->GetSchema(table_oid);
-  auto table = new storage::SqlTable(&block_store_, schema);
-
-  auto result UNUSED_ATTRIBUTE = accessor->SetTablePointer(table_oid, table);
-  TERRIER_ASSERT(result, "setting table pointer should not fail");
-
-  // Create the index
-  std::vector<catalog::IndexSchema::Column> key_cols{catalog::IndexSchema::Column{
-      "id", type::TypeId::INTEGER, false, parser::ColumnValueExpression(db_, table_oid, schema.GetColumn("id").Oid())}};
-  auto index_schema = catalog::IndexSchema(key_cols, true, true, false, true);
-  auto idx_oid = accessor->CreateIndex(accessor->GetDefaultNamespace(), table_oid, "test_table_idx", index_schema);
-  TERRIER_ASSERT(idx_oid != catalog::INVALID_INDEX_OID, "index creation should not fail");
-  auto true_schema = accessor->GetIndexSchema(idx_oid);
-
-  storage::index::IndexBuilder index_builder;
-  index_builder.SetOid(idx_oid).SetKeySchema(true_schema).SetConstraintType(storage::index::ConstraintType::UNIQUE);
-  auto index = index_builder.Build();
-
-  result = accessor->SetIndexPointer(idx_oid, index);
-  TERRIER_ASSERT(result, "setting index pointer should not fail");
-
-  txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
-
-  txn = txn_manager_->BeginTransaction();
 
   // NOLINTNEXTLINE
   for (auto _ : state) {
-    const auto test_indexes UNUSED_ATTRIBUTE = accessor->GetIndexOids(table_oid);
+    const auto test_indexes UNUSED_ATTRIBUTE = accessor->GetIndexOids(oids.first);
     TERRIER_ASSERT(!test_indexes.empty(), "getting index oids should not fail");
   }
 
@@ -263,47 +206,14 @@ BENCHMARK_DEFINE_F(CatalogBenchmark, GetIndexOids)(benchmark::State &state) {
 
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(CatalogBenchmark, GetIndexSchema)(benchmark::State &state) {
-  auto txn = txn_manager_->BeginTransaction();
+  const auto oids = AddUserTableAndIndex();
+
+  auto *txn = txn_manager_->BeginTransaction();
   auto accessor = catalog_->GetAccessor(txn, db_);
-
-  // Create the column definition (no OIDs)
-  std::vector<catalog::Schema::Column> cols;
-  cols.emplace_back("id", type::TypeId::INTEGER, false,
-                    parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
-  cols.emplace_back("user_col_1", type::TypeId::INTEGER, false,
-                    parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
-  auto tmp_schema = catalog::Schema(cols);
-
-  auto table_oid = accessor->CreateTable(accessor->GetDefaultNamespace(), "test_table", tmp_schema);
-  TERRIER_ASSERT(table_oid != catalog::INVALID_TABLE_OID, "table creation should not fail");
-  auto schema = accessor->GetSchema(table_oid);
-  auto table = new storage::SqlTable(&block_store_, schema);
-
-  auto result UNUSED_ATTRIBUTE = accessor->SetTablePointer(table_oid, table);
-  TERRIER_ASSERT(result, "setting table pointer should not fail");
-
-  // Create the index
-  std::vector<catalog::IndexSchema::Column> key_cols{catalog::IndexSchema::Column{
-      "id", type::TypeId::INTEGER, false, parser::ColumnValueExpression(db_, table_oid, schema.GetColumn("id").Oid())}};
-  auto index_schema = catalog::IndexSchema(key_cols, true, true, false, true);
-  auto idx_oid = accessor->CreateIndex(accessor->GetDefaultNamespace(), table_oid, "test_table_idx", index_schema);
-  TERRIER_ASSERT(idx_oid != catalog::INVALID_INDEX_OID, "index creation should not fail");
-  auto true_schema = accessor->GetIndexSchema(idx_oid);
-
-  storage::index::IndexBuilder index_builder;
-  index_builder.SetOid(idx_oid).SetKeySchema(true_schema).SetConstraintType(storage::index::ConstraintType::UNIQUE);
-  auto index = index_builder.Build();
-
-  result = accessor->SetIndexPointer(idx_oid, index);
-  TERRIER_ASSERT(result, "setting index pointer should not fail");
-
-  txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
-
-  txn = txn_manager_->BeginTransaction();
 
   // NOLINTNEXTLINE
   for (auto _ : state) {
-    const auto test_idx_schema UNUSED_ATTRIBUTE = accessor->GetIndexSchema(idx_oid);
+    const auto test_idx_schema UNUSED_ATTRIBUTE = accessor->GetIndexSchema(oids.second);
   }
 
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
@@ -336,32 +246,14 @@ BENCHMARK_DEFINE_F(CatalogBenchmark, GetNamespaceOid)(benchmark::State &state) {
 
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(CatalogBenchmark, GetSchema)(benchmark::State &state) {
-  auto txn = txn_manager_->BeginTransaction();
+  const auto oids = AddUserTableAndIndex();
+
+  auto *txn = txn_manager_->BeginTransaction();
   auto accessor = catalog_->GetAccessor(txn, db_);
-
-  // Create the column definition (no OIDs)
-  std::vector<catalog::Schema::Column> cols;
-  cols.emplace_back("id", type::TypeId::INTEGER, false,
-                    parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
-  cols.emplace_back("user_col_1", type::TypeId::INTEGER, false,
-                    parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
-  auto tmp_schema = catalog::Schema(cols);
-
-  auto table_oid = accessor->CreateTable(accessor->GetDefaultNamespace(), "test_table", tmp_schema);
-  TERRIER_ASSERT(table_oid != catalog::INVALID_TABLE_OID, "table creation should not fail");
-  auto schema = accessor->GetSchema(table_oid);
-  auto table = new storage::SqlTable(&block_store_, schema);
-
-  auto result UNUSED_ATTRIBUTE = accessor->SetTablePointer(table_oid, table);
-  TERRIER_ASSERT(result, "setting table pointer should not fail");
-
-  txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
-
-  txn = txn_manager_->BeginTransaction();
 
   // NOLINTNEXTLINE
   for (auto _ : state) {
-    const auto test_schema UNUSED_ATTRIBUTE = accessor->GetSchema(table_oid);
+    const auto test_schema UNUSED_ATTRIBUTE = accessor->GetSchema(oids.first);
   }
 
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
@@ -371,33 +263,15 @@ BENCHMARK_DEFINE_F(CatalogBenchmark, GetSchema)(benchmark::State &state) {
 
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(CatalogBenchmark, GetTable)(benchmark::State &state) {
-  auto txn = txn_manager_->BeginTransaction();
+  const auto oids = AddUserTableAndIndex();
+
+  auto *txn = txn_manager_->BeginTransaction();
   auto accessor = catalog_->GetAccessor(txn, db_);
-
-  // Create the column definition (no OIDs)
-  std::vector<catalog::Schema::Column> cols;
-  cols.emplace_back("id", type::TypeId::INTEGER, false,
-                    parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
-  cols.emplace_back("user_col_1", type::TypeId::INTEGER, false,
-                    parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
-  auto tmp_schema = catalog::Schema(cols);
-
-  auto table_oid = accessor->CreateTable(accessor->GetDefaultNamespace(), "test_table", tmp_schema);
-  TERRIER_ASSERT(table_oid != catalog::INVALID_TABLE_OID, "table creation should not fail");
-  auto schema = accessor->GetSchema(table_oid);
-  auto table = new storage::SqlTable(&block_store_, schema);
-
-  auto result UNUSED_ATTRIBUTE = accessor->SetTablePointer(table_oid, table);
-  TERRIER_ASSERT(result, "setting table pointer should not fail");
-
-  txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
-
-  txn = txn_manager_->BeginTransaction();
 
   // NOLINTNEXTLINE
   for (auto _ : state) {
-    const auto test_table UNUSED_ATTRIBUTE = accessor->GetTable(table_oid);
-    TERRIER_ASSERT(common::ManagedPointer<storage::SqlTable>(table) == test_table, "table lookup should not fail");
+    const auto test_table UNUSED_ATTRIBUTE = accessor->GetTable(oids.first);
+    TERRIER_ASSERT(test_table != nullptr, "table lookup should not fail");
   }
 
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
@@ -407,33 +281,15 @@ BENCHMARK_DEFINE_F(CatalogBenchmark, GetTable)(benchmark::State &state) {
 
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(CatalogBenchmark, GetTableOid)(benchmark::State &state) {
-  auto txn = txn_manager_->BeginTransaction();
+  const auto oids = AddUserTableAndIndex();
+
+  auto *txn = txn_manager_->BeginTransaction();
   auto accessor = catalog_->GetAccessor(txn, db_);
-
-  // Create the column definition (no OIDs)
-  std::vector<catalog::Schema::Column> cols;
-  cols.emplace_back("id", type::TypeId::INTEGER, false,
-                    parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
-  cols.emplace_back("user_col_1", type::TypeId::INTEGER, false,
-                    parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
-  auto tmp_schema = catalog::Schema(cols);
-
-  auto table_oid = accessor->CreateTable(accessor->GetDefaultNamespace(), "test_table", tmp_schema);
-  TERRIER_ASSERT(table_oid != catalog::INVALID_TABLE_OID, "table creation should not fail");
-  auto schema = accessor->GetSchema(table_oid);
-  auto table = new storage::SqlTable(&block_store_, schema);
-
-  auto result UNUSED_ATTRIBUTE = accessor->SetTablePointer(table_oid, table);
-  TERRIER_ASSERT(result, "setting table pointer should not fail");
-
-  txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
-
-  txn = txn_manager_->BeginTransaction();
 
   // NOLINTNEXTLINE
   for (auto _ : state) {
     const auto test_table_oid UNUSED_ATTRIBUTE = accessor->GetTableOid("test_table");
-    TERRIER_ASSERT(test_table_oid == table_oid, "table oid lookup should not fail");
+    TERRIER_ASSERT(test_table_oid == oids.first, "table oid lookup should not fail");
   }
 
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
