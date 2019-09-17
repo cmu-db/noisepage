@@ -55,7 +55,7 @@ class AbstractPlanNode {
     /**
      * schema describing output of the node
      */
-    std::shared_ptr<OutputSchema> output_schema_;
+    std::shared_ptr<OutputSchema> output_schema_{nullptr};
   };
 
   /**
