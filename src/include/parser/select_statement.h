@@ -230,7 +230,7 @@ class GroupByDescription {
    */
   GroupByDescription(std::vector<common::ManagedPointer<AbstractExpression>> columns,
                      common::ManagedPointer<AbstractExpression> having)
-      : columns_(std::move(columns)), having_(std::move(having)) {}
+      : columns_(std::move(columns)), having_(having) {}
 
   /**
    * Default constructor for deserialization
