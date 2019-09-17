@@ -115,9 +115,9 @@ class OrderByDescription {
 
     // Deserialize exprs
     auto expressions = j.at("exprs").get<std::vector<nlohmann::json>>();
-//    for (const auto &expr : expressions) {
-//      exprs_.push_back(DeserializeExpression(expr));
-//    }
+    //    for (const auto &expr : expressions) {
+    //      exprs_.push_back(DeserializeExpression(expr));
+    //    }
   }
 
  private:
@@ -304,9 +304,9 @@ class GroupByDescription {
     std::vector<std::unique_ptr<AbstractExpression>> exprs;
     // Deserialize columns
     auto column_expressions = j.at("columns").get<std::vector<nlohmann::json>>();
-//    for (const auto &expr : column_expressions) {
-//      columns_.push_back(DeserializeExpression(expr));
-//    }
+    //    for (const auto &expr : column_expressions) {
+    //      columns_.push_back(DeserializeExpression(expr));
+    //    }
 
     // Deserialize having
     if (!j.at("having").is_null()) {

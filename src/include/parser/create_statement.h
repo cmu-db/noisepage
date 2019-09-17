@@ -83,8 +83,8 @@ struct ColumnDefinition {
    * @param varlen size of column if varlen
    */
   ColumnDefinition(std::string name, DataType type, bool is_primary, bool is_not_null, bool is_unique,
-                   common::ManagedPointer<AbstractExpression> default_expr, common::ManagedPointer<AbstractExpression> check_expr,
-                   size_t varlen)
+                   common::ManagedPointer<AbstractExpression> default_expr,
+                   common::ManagedPointer<AbstractExpression> check_expr, size_t varlen)
       : name_(std::move(name)),
         type_(type),
         is_primary_(is_primary),
