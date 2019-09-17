@@ -24,7 +24,7 @@ class CaseExpression : public AbstractExpression {
      * @param rhs the other WhenClause to compare to
      * @return if the two are equal
      */
-    bool operator==(const WhenClause &rhs) const { return *condition == *rhs.condition && *then == *rhs.then; }
+    bool operator==(const WhenClause &rhs) const { return *condition_ == *rhs.condition_ && *then_ == *rhs.then_; }
 
     /**
      * Inequality check
@@ -49,8 +49,8 @@ class CaseExpression : public AbstractExpression {
      * @param j json to deserialize
      */
     void FromJson(const nlohmann::json &j) {
-      // TODO(WAN) json      condition = DeserializeExpression(j.at("condition"));
-      // TODO(WAN) json      then = DeserializeExpression(j.at("then"));
+      condition_ = DeserializeExpression(j.at("condition"));
+      then_ = DeserializeExpression(j.at("then"));
     }
   };
 
@@ -72,8 +72,8 @@ class CaseExpression : public AbstractExpression {
   common::hash_t Hash() const override {
     common::hash_t hash = AbstractExpression::Hash();
     for (auto &clause : when_clauses_) {
-      hash = common::HashUtil::CombineHashes(hash, clause.condition->Hash());
-      hash = common::HashUtil::CombineHashes(hash, clause.then->Hash());
+      hash = common::HashUtil::CombineHashes(hash, clause.condition_->Hash());
+      hash = common::HashUtil::CombineHashes(hash, clause.then_->Hash());
     }
     if (default_expr_ != nullptr) {
       hash = common::HashUtil::CombineHashes(hash, default_expr_->Hash());

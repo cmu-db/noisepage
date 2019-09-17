@@ -9,11 +9,6 @@
 #include "parser/table_ref.h"
 
 namespace terrier {
-
-namespace binder {
-class BindNodeVisitor;
-}  // namespace binder
-
 namespace parser {
 
 enum OrderType { kOrderAsc, kOrderDesc };

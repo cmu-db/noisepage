@@ -27,13 +27,13 @@ TEST(OperatorTests, LogicalInsertTest) {
   parser::AbstractExpression *raw_values[] = {
       new parser::ConstantValueExpression(type::TransientValueFactory::GetTinyInt(1)),
       new parser::ConstantValueExpression(type::TransientValueFactory::GetTinyInt(9))};
-  std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>> *values = new std::vector({
-    std::vector<common::ManagedPointer<parser::AbstractExpression>>(raw_values, std::end(raw_values))});
+  std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>> values = {
+      std::vector<common::ManagedPointer<parser::AbstractExpression>>(raw_values, std::end(raw_values))};
 
   // Check that all of our GET methods work as expected
   Operator op1 = LogicalInsert::Make(
       database_oid, namespace_oid, table_oid, std::vector<catalog::col_oid_t>(columns, std::end(columns)),
-      common::ManagedPointer<std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>>(values));
+      std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>(values));
   EXPECT_EQ(op1.GetType(), OpType::LOGICALINSERT);
   EXPECT_EQ(op1.As<LogicalInsert>()->GetDatabaseOid(), database_oid);
   EXPECT_EQ(op1.As<LogicalInsert>()->GetNamespaceOid(), namespace_oid);
@@ -46,18 +46,18 @@ TEST(OperatorTests, LogicalInsertTest) {
   // be equal to our first object and have the same hash
   Operator op2 = LogicalInsert::Make(
       database_oid, namespace_oid, table_oid, std::vector<catalog::col_oid_t>(columns, std::end(columns)),
-      common::ManagedPointer<std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>>(values));
+      std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>(values));
   EXPECT_TRUE(op1 == op2);
   EXPECT_EQ(op1.Hash(), op2.Hash());
 
   // For this last check, we are going to give it more rows to insert
   // This will make sure that our hash is going deep into the vectors
-  std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>> *other_values = new std::vector{
+  std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>> other_values = {
       std::vector<common::ManagedPointer<parser::AbstractExpression>>(raw_values, std::end(raw_values)),
       std::vector<common::ManagedPointer<parser::AbstractExpression>>(raw_values, std::end(raw_values))};
   Operator op3 = LogicalInsert::Make(
       database_oid, namespace_oid, table_oid, std::vector<catalog::col_oid_t>(columns, std::end(columns)),
-      common::ManagedPointer<std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>>(other_values));
+      std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>(other_values));
   EXPECT_FALSE(op1 == op3);
   EXPECT_NE(op1.Hash(), op3.Hash());
 
@@ -69,19 +69,16 @@ TEST(OperatorTests, LogicalInsertTest) {
       new parser::ConstantValueExpression(type::TransientValueFactory::GetTinyInt(1)),
       new parser::ConstantValueExpression(type::TransientValueFactory::GetTinyInt(2)),
       new parser::ConstantValueExpression(type::TransientValueFactory::GetTinyInt(3))};
-  std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>> *bad_values = new std::vector({
-      std::vector<common::ManagedPointer<parser::AbstractExpression>>(bad_raw_values, std::end(bad_raw_values))});
+  std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>> bad_values = {
+      std::vector<common::ManagedPointer<parser::AbstractExpression>>(bad_raw_values, std::end(bad_raw_values))};
   EXPECT_DEATH(LogicalInsert::Make(
                    database_oid, namespace_oid, table_oid, std::vector<catalog::col_oid_t>(columns, std::end(columns)),
-                   common::ManagedPointer<std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>>(bad_values)),
+                   std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>(bad_values)),
                "Mismatched");
   for (auto entry : bad_raw_values) delete entry;
-  delete bad_values;
 #endif
 
   for (auto entry : raw_values) delete entry;
-  delete values;
-  delete other_values;
 }
 
 // NOLINTNEXTLINE
@@ -189,26 +186,24 @@ TEST(OperatorTests, LogicalDeleteTest) {
 TEST(OperatorTests, LogicalUpdateTest) {
   std::string column = "abc";
   parser::AbstractExpression *value = new parser::ConstantValueExpression(type::TransientValueFactory::GetTinyInt(1));
-  auto update_clause = parser::UpdateClause(column, common::ManagedPointer<parser::AbstractExpression>(value));
-  std::vector<std::unique_ptr<parser::UpdateClause>> update_clause_v;
-  update_clause_v.emplace_back(std::make_unique<parser::UpdateClause>(update_clause));
+  auto raw_update_clause = new parser::UpdateClause(column, common::ManagedPointer<parser::AbstractExpression>(value));
+  auto update_clause = common::ManagedPointer(raw_update_clause);
   catalog::db_oid_t database_oid(123);
   catalog::namespace_oid_t namespace_oid(456);
   catalog::table_oid_t table_oid(789);
 
   // Check that all of our GET methods work as expected
-  Operator op1 = LogicalUpdate::Make(database_oid, namespace_oid, table_oid, common::ManagedPointer(&update_clause_v));
+  Operator op1 = LogicalUpdate::Make(database_oid, namespace_oid, table_oid, {update_clause});
   EXPECT_EQ(op1.GetType(), OpType::LOGICALUPDATE);
   EXPECT_EQ(op1.As<LogicalUpdate>()->GetDatabaseOid(), database_oid);
   EXPECT_EQ(op1.As<LogicalUpdate>()->GetNamespaceOid(), namespace_oid);
   EXPECT_EQ(op1.As<LogicalUpdate>()->GetTableOid(), table_oid);
-  EXPECT_EQ(op1.As<LogicalUpdate>()->GetUpdateClauses()->size(), 1);
-  auto here = op1.As<LogicalUpdate>()->GetUpdateClauses().Get()->at(0).get();
-  EXPECT_EQ(update_clause_v[0].get(), here);
+  EXPECT_EQ(op1.As<LogicalUpdate>()->GetUpdateClauses().size(), 1);
+  EXPECT_EQ(op1.As<LogicalUpdate>()->GetUpdateClauses()[0], update_clause);
 
   // Check that if we make a new object with the same values, then it will
   // be equal to our first object and have the same hash
-  Operator op2 = LogicalUpdate::Make(database_oid, namespace_oid, table_oid, common::ManagedPointer(&update_clause_v));
+  Operator op2 = LogicalUpdate::Make(database_oid, namespace_oid, table_oid, {update_clause});
   EXPECT_TRUE(op1 == op2);
   EXPECT_EQ(op1.Hash(), op2.Hash());
 
@@ -219,6 +214,7 @@ TEST(OperatorTests, LogicalUpdateTest) {
   EXPECT_NE(op1.Hash(), op3.Hash());
 
   delete value;
+  delete raw_update_clause;
 }
 
 // NOLINTNEXTLINE

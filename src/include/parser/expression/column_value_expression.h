@@ -175,5 +175,4 @@ class ColumnValueExpression : public AbstractExpression {
 
 DEFINE_JSON_DECLARATIONS(ColumnValueExpression);
 
-}  // namespace parser
-}  // namespace terrier
+}  // namespace terrier::parser

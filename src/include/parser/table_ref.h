@@ -11,10 +11,9 @@
 #include "parser/select_statement.h"
 
 namespace terrier {
-namespace binder {
-class BindNodeVisitor;
-}
 namespace parser {
+
+class SelectStatement;
 
 /**
  * Represents a join table.
@@ -197,8 +196,6 @@ class TableRef {
   void FromJson(const nlohmann::json &j);
 
  private:
-  friend class binder::BindNodeVisitor;
-
   TableReferenceType type_;
   std::string alias_;
 
