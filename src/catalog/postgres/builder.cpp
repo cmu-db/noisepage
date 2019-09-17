@@ -53,8 +53,7 @@ IndexSchema Builder::GetDatabaseOidIndexSchema() {
   columns.back().SetOid(indexkeycol_oid_t(1));
 
   // Primary
-  // TODO(Matt): should it be a HASHMAP?
-  IndexSchema schema(columns, storage::index::IndexType::BWTREE, true, true, false, true);
+  IndexSchema schema(columns, storage::index::IndexType::HASHMAP, true, true, false, true);
 
   return schema;
 }
@@ -67,8 +66,7 @@ IndexSchema Builder::GetDatabaseNameIndexSchema() {
   columns.back().SetOid(indexkeycol_oid_t(1));
 
   // Unique, not primary
-  // TODO(Matt): should it be a HASHMAP?
-  IndexSchema schema(columns, storage::index::IndexType::BWTREE, true, false, false, true);
+  IndexSchema schema(columns, storage::index::IndexType::HASHMAP, true, false, false, true);
 
   return schema;
 }
