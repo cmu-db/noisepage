@@ -404,15 +404,15 @@ std::unique_ptr<AbstractExpression> PostgresParser::AExprTransform(ParseResult *
 
   if (root->kind_ == AEXPR_DISTINCT) {
     target_type = ExpressionType::COMPARE_IS_DISTINCT_FROM;
-    children.emplace_back(ExprTransform(parse_result, root->lexpr_, nullptr));
-    children.emplace_back(ExprTransform(parse_result, root->rexpr_, nullptr));
-  } else if (root->kind_ == AEXPR_OP && root->type_ == T_TypeCast) {
+    children.emplace_back(ExprTransform(parse_result, root->lexpr, nullptr));
+    children.emplace_back(ExprTransform(parse_result, root->rexpr, nullptr));
+  } else if (root->kind == AEXPR_OP && root->type == T_TypeCast) {
     target_type = ExpressionType::OPERATOR_CAST;
   } else {
     auto name = (reinterpret_cast<value *>(root->name_->head->data.ptr_value))->val_.str_;
     target_type = StringToExpressionType(name);
-    children.emplace_back(ExprTransform(parse_result, root->lexpr_, nullptr));
-    children.emplace_back(ExprTransform(parse_result, root->rexpr_, nullptr));
+    children.emplace_back(ExprTransform(parse_result, root->lexpr, nullptr));
+    children.emplace_back(ExprTransform(parse_result, root->rexpr, nullptr));
   }
 
   switch (target_type) {
@@ -487,13 +487,13 @@ std::unique_ptr<AbstractExpression> PostgresParser::CaseExprTransform(ParseResul
     return nullptr;
   }
 
-  auto arg_expr = ExprTransform(parse_result, reinterpret_cast<Node *>(root->arg_), nullptr);
+  auto arg_expr = ExprTransform(parse_result, reinterpret_cast<Node *>(root->arg), nullptr);
 
   std::vector<CaseExpression::WhenClause> clauses;
   for (auto cell = root->args_->head; cell != nullptr; cell = cell->next) {
     auto w = reinterpret_cast<CaseWhen *>(cell->data.ptr_value);
-    auto when_expr = ExprTransform(parse_result, reinterpret_cast<Node *>(w->expr_), nullptr);
-    auto result_expr = ExprTransform(parse_result, reinterpret_cast<Node *>(w->result_), nullptr);
+    auto when_expr = ExprTransform(parse_result, reinterpret_cast<Node *>(w->expr), nullptr);
+    auto result_expr = ExprTransform(parse_result, reinterpret_cast<Node *>(w->result), nullptr);
 
     if (arg_expr == nullptr) {
       auto when_clause = CaseExpression::WhenClause{std::move(when_expr), std::move(result_expr)};
@@ -508,16 +508,15 @@ std::unique_ptr<AbstractExpression> PostgresParser::CaseExprTransform(ParseResul
     }
   }
 
-  auto default_expr = ExprTransform(parse_result, reinterpret_cast<Node *>(root->defresult_), nullptr);
-  auto ret_val_type = clauses[0].then_->GetReturnValueType();
+  auto default_expr = ExprTransform(parse_result, reinterpret_cast<Node *>(root->defresult), nullptr);
+  auto ret_val_type = clauses[0].then->GetReturnValueType();
 
   auto result = std::make_unique<CaseExpression>(ret_val_type, std::move(clauses), std::move(default_expr));
   return result;
 }
 
 // Postgres.ColumnRef -> terrier.ColumnValueExpression | terrier.StarExpression
-std::unique_ptr<AbstractExpression> PostgresParser::ColumnRefTransform(ParseResult *parse_result, ColumnRef *root,
-                                                                       char *alias) {
+std::unique_ptr<AbstractExpression> PostgresParser::ColumnRefTransform(ParseResult *parse_result, ColumnRef *root, char *alias) {
   std::unique_ptr<AbstractExpression> result;
   List *fields = root->fields_;
   auto node = reinterpret_cast<Node *>(fields->head->data.ptr_value);
@@ -559,13 +558,13 @@ std::unique_ptr<AbstractExpression> PostgresParser::ConstTransform(ParseResult *
   if (root == nullptr) {
     return nullptr;
   }
-  return ValueTransform(parse_result, root->val_);
+  return ValueTransform(parse_result, root->val);
 }
 
 // Postgres.FuncCall -> terrier.AbstractExpression
 std::unique_ptr<AbstractExpression> PostgresParser::FuncCallTransform(ParseResult *parse_result, FuncCall *root) {
   // TODO(WAN): Check if we need to change the case of this.
-  std::string func_name = reinterpret_cast<value *>(root->funcname_->head->data.ptr_value)->val_.str_;
+  std::string func_name = reinterpret_cast<value *>(root->funcname->head->data.ptr_value)->val.str;
 
   std::unique_ptr<AbstractExpression> result;
   if (!IsAggregateFunction(func_name)) {
@@ -587,9 +586,9 @@ std::unique_ptr<AbstractExpression> PostgresParser::FuncCallTransform(ParseResul
     if (root->agg_star_) {
       auto child = std::make_unique<StarExpression>();
       children.emplace_back(std::move(child));
-      result = std::make_unique<AggregateExpression>(agg_fun_type, std::move(children), root->agg_distinct_);
-    } else if (root->args_->length < 2) {
-      auto expr_node = reinterpret_cast<Node *>(root->args_->head->data.ptr_value);
+      result = std::make_unique<AggregateExpression>(agg_fun_type, std::move(children), root->agg_distinct);
+    } else if (root->args->length < 2) {
+      auto expr_node = reinterpret_cast<Node *>(root->args->head->data.ptr_value);
       auto child = ExprTransform(parse_result, expr_node, nullptr);
       children.emplace_back(std::move(child));
       result = std::make_unique<AggregateExpression>(agg_fun_type, std::move(children), root->agg_distinct_);
@@ -611,22 +610,22 @@ std::unique_ptr<AbstractExpression> PostgresParser::NullTestTransform(ParseResul
 
   switch (root->arg_->type_) {
     case T_ColumnRef: {
-      auto arg_expr = ColumnRefTransform(parse_result, reinterpret_cast<ColumnRef *>(root->arg_), nullptr);
+      auto arg_expr = ColumnRefTransform(parse_result, reinterpret_cast<ColumnRef *>(root->arg), nullptr);
       children.emplace_back(std::move(arg_expr));
       break;
     }
     case T_A_Const: {
-      auto arg_expr = ConstTransform(parse_result, reinterpret_cast<A_Const *>(root->arg_));
+      auto arg_expr = ConstTransform(parse_result, reinterpret_cast<A_Const *>(root->arg));
       children.emplace_back(std::move(arg_expr));
       break;
     }
     case T_A_Expr: {
-      auto arg_expr = AExprTransform(parse_result, reinterpret_cast<A_Expr *>(root->arg_));
+      auto arg_expr = AExprTransform(parse_result, reinterpret_cast<A_Expr *>(root->arg));
       children.emplace_back(std::move(arg_expr));
       break;
     }
     case T_ParamRef: {
-      auto arg_expr = ParamRefTransform(parse_result, reinterpret_cast<ParamRef *>(root->arg_));
+      auto arg_expr = ParamRefTransform(parse_result, reinterpret_cast<ParamRef *>(root->arg));
       children.emplace_back(std::move(arg_expr));
       break;
     }
@@ -642,7 +641,7 @@ std::unique_ptr<AbstractExpression> PostgresParser::NullTestTransform(ParseResul
 
 // Postgres.ParamRef -> terrier.ParameterValueExpression
 std::unique_ptr<AbstractExpression> PostgresParser::ParamRefTransform(ParseResult *parse_result, ParamRef *root) {
-  auto result = std::make_unique<ParameterValueExpression>(root->number_ - 1);
+  auto result = std::make_unique<ParameterValueExpression>(root->number - 1);
   return result;
 }
 
@@ -652,15 +651,14 @@ std::unique_ptr<AbstractExpression> PostgresParser::SubqueryExprTransform(ParseR
     return nullptr;
   }
 
-  auto select_stmt = SelectTransform(parse_result, reinterpret_cast<SelectStmt *>(node->subselect_));
+  auto select_stmt = SelectTransform(parse_result, reinterpret_cast<SelectStmt *>(node->subselect));
   auto subquery_expr = std::make_unique<SubqueryExpression>(std::move(select_stmt));
   std::vector<std::unique_ptr<AbstractExpression>> children;
-
   std::unique_ptr<AbstractExpression> result;
 
   switch (node->sub_link_type_) {
     case ANY_SUBLINK: {
-      auto col_expr = ExprTransform(parse_result, node->testexpr_, nullptr);
+      auto col_expr = ExprTransform(parse_result, node->testexpr, nullptr);
       children.emplace_back(std::move(col_expr));
       children.emplace_back(std::move(subquery_expr));
       result = std::make_unique<ComparisonExpression>(ExpressionType::COMPARE_IN, std::move(children));
@@ -684,10 +682,10 @@ std::unique_ptr<AbstractExpression> PostgresParser::SubqueryExprTransform(ParseR
 
 // Postgres.TypeCast -> terrier.TypeCastExpression
 std::unique_ptr<AbstractExpression> PostgresParser::TypeCastTransform(ParseResult *parse_result, TypeCast *root) {
-  auto type_name = reinterpret_cast<value *>(root->type_name_->names_->tail->data.ptr_value)->val_.str_;
+  auto type_name = reinterpret_cast<value *>(root->typeName->names->tail->data.ptr_value)->val.str;
   auto type = ColumnDefinition::StrToValueType(type_name);
   std::vector<std::unique_ptr<AbstractExpression>> children;
-  children.emplace_back(ExprTransform(root->arg_));
+  children.emplace_back(ExprTransform(parse_result, root->arg, nullptr));
   auto result = std::make_unique<TypeCastExpression>(type, std::move(children));
   return result;
 }
@@ -727,12 +725,12 @@ std::unique_ptr<SelectStatement> PostgresParser::SelectTransform(ParseResult *pa
 
   switch (root->op_) {
     case SETOP_NONE: {
-      auto target = TargetTransform(parse_result, root->target_list_);
+      auto target = TargetTransform(parse_result, root->targetList);
       auto from = FromTransform(parse_result, root);
-      auto select_distinct = root->distinct_clause_ != nullptr;
-      auto groupby = GroupByTransform(parse_result, root->group_clause_, root->having_clause_);
-      auto orderby = OrderByTransform(parse_result, root->sort_clause_);
-      auto where = WhereTransform(parse_result, root->where_clause_);
+      auto select_distinct = root->distinctClause != nullptr;
+      auto groupby = GroupByTransform(parse_result, root->groupClause, root->havingClause);
+      auto orderby = OrderByTransform(parse_result, root->sortClause);
+      auto where = WhereTransform(parse_result, root->whereClause);
 
       int64_t limit = LimitDescription::NO_LIMIT;
       int64_t offset = LimitDescription::NO_OFFSET;
@@ -749,12 +747,12 @@ std::unique_ptr<SelectStatement> PostgresParser::SelectTransform(ParseResult *pa
       break;
     }
     case SETOP_UNION: {
-      result = SelectTransform(parse_result, root->larg_);
-      result->SetUnionSelect(SelectTransform(parse_result, root->rarg_));
+      result = SelectTransform(parse_result, root->larg);
+      result->SetUnionSelect(SelectTransform(parse_result, root->rarg));
       break;
     }
     default: {
-      PARSER_LOG_AND_THROW("SelectTransform", "Select operation", root->type_);
+      PARSER_LOG_AND_THROW("SelectTransform", "Select operation", root->type);
     }
   }
 
@@ -762,16 +760,16 @@ std::unique_ptr<SelectStatement> PostgresParser::SelectTransform(ParseResult *pa
 }
 
 // Postgres.SelectStmt.targetList -> terrier.SelectStatement.select_
-std::vector<std::unique_ptr<AbstractExpression>> PostgresParser::TargetTransform(List *root) {
+std::vector<common::ManagedPointer<AbstractExpression>> PostgresParser::TargetTransform(ParseResult *parse_result, List *root) {
   // Postgres parses 'SELECT;' to nullptr
   if (root == nullptr) {
     throw PARSER_EXCEPTION("TargetTransform: root==null.");
   }
 
-  std::vector<std::unique_ptr<AbstractExpression>> result;
+  std::vector<common::ManagedPointer<AbstractExpression>> result;
   for (auto cell = root->head; cell != nullptr; cell = cell->next) {
     auto target = reinterpret_cast<ResTarget *>(cell->data.ptr_value);
-    auto expr = ExprTransform(parse_result, target->val_, target->name_);
+    auto expr = ExprTransform(parse_result, target->val, target->name);
     auto expr_managed = common::ManagedPointer(expr);
     parse_result->AddExpression(std::move(expr));
     result.emplace_back(expr_managed);
@@ -836,13 +834,12 @@ std::unique_ptr<TableRef> PostgresParser::FromTransform(ParseResult *parse_resul
 }
 
 // Postgres.SelectStmt.groupClause -> terrier.GroupByDescription
-std::unique_ptr<GroupByDescription> PostgresParser::GroupByTransform(ParseResult *parse_result, List *group,
-                                                                     Node *having_node) {
+std::unique_ptr<GroupByDescription> PostgresParser::GroupByTransform(ParseResult *parse_result, List *group, Node *having_node) {
   if (group == nullptr) {
     return nullptr;
   }
 
-  std::vector<std::unique_ptr<AbstractExpression>> columns;
+  std::vector<common::ManagedPointer<AbstractExpression>> columns;
   for (auto cell = group->head; cell != nullptr; cell = cell->next) {
     auto temp = reinterpret_cast<Node *>(cell->data.ptr_value);
     auto expr = ExprTransform(parse_result, temp, nullptr);
@@ -870,7 +867,7 @@ std::unique_ptr<OrderByDescription> PostgresParser::OrderByTransform(ParseResult
   }
 
   std::vector<OrderType> types;
-  std::vector<std::unique_ptr<AbstractExpression>> exprs;
+  std::vector<common::ManagedPointer<AbstractExpression>> exprs;
 
   for (auto cell = order->head; cell != nullptr; cell = cell->next) {
     auto temp = reinterpret_cast<Node *>(cell->data.ptr_value);
@@ -891,7 +888,7 @@ std::unique_ptr<OrderByDescription> PostgresParser::OrderByTransform(ParseResult
           default: { PARSER_LOG_AND_THROW("OrderByTransform", "Sortby type", sort->sortby_dir); }
         }
 
-        auto target = sort->node_;
+        auto target = sort->node;
         auto expr = ExprTransform(parse_result, target, nullptr);
         auto expr_ptr = common::ManagedPointer(expr);
         parse_result->AddExpression(std::move(expr));
@@ -952,15 +949,15 @@ std::unique_ptr<JoinDefinition> PostgresParser::JoinTransform(ParseResult *parse
   std::unique_ptr<TableRef> left;
   switch (root->larg_->type) {
     case T_RangeVar: {
-      left = RangeVarTransform(parse_result, reinterpret_cast<RangeVar *>(root->larg_));
+      left = RangeVarTransform(parse_result, reinterpret_cast<RangeVar *>(root->larg));
       break;
     }
     case T_RangeSubselect: {
-      left = RangeSubselectTransform(parse_result, reinterpret_cast<RangeSubselect *>(root->larg_));
+      left = RangeSubselectTransform(parse_result, reinterpret_cast<RangeSubselect *>(root->larg));
       break;
     }
     case T_JoinExpr: {
-      auto join = JoinTransform(parse_result, reinterpret_cast<JoinExpr *>(root->larg_));
+      auto join = JoinTransform(parse_result, reinterpret_cast<JoinExpr *>(root->larg));
       left = TableRef::CreateTableRefByJoin(std::move(join));
       break;
     }
@@ -970,15 +967,15 @@ std::unique_ptr<JoinDefinition> PostgresParser::JoinTransform(ParseResult *parse
   std::unique_ptr<TableRef> right;
   switch (root->rarg_->type) {
     case T_RangeVar: {
-      right = RangeVarTransform(parse_result, reinterpret_cast<RangeVar *>(root->rarg_));
+      right = RangeVarTransform(parse_result, reinterpret_cast<RangeVar *>(root->rarg));
       break;
     }
     case T_RangeSubselect: {
-      right = RangeSubselectTransform(parse_result, reinterpret_cast<RangeSubselect *>(root->rarg_));
+      right = RangeSubselectTransform(parse_result, reinterpret_cast<RangeSubselect *>(root->rarg));
       break;
     }
     case T_JoinExpr: {
-      auto join = JoinTransform(parse_result, reinterpret_cast<JoinExpr *>(root->rarg_));
+      auto join = JoinTransform(parse_result, reinterpret_cast<JoinExpr *>(root->rarg));
       right = TableRef::CreateTableRefByJoin(std::move(join));
       break;
     }
@@ -988,18 +985,18 @@ std::unique_ptr<JoinDefinition> PostgresParser::JoinTransform(ParseResult *parse
   // TODO(WAN): We currently segfault on the following test case:
   // SELECT * FROM tab0 AS cor0 CROSS JOIN tab0 AS cor1 WHERE NULL IS NOT NULL;
   // We need to figure out how CROSS JOIN gets parsed.
-  if (root->quals_ == nullptr) {
+  if (root->quals == nullptr) {
     PARSER_LOG_AND_THROW("JoinTransform", "root->quals", nullptr);
   }
 
   std::unique_ptr<AbstractExpression> expr;
-  switch (root->quals_->type) {
+  switch (root->quals->type) {
     case T_A_Expr: {
-      expr = AExprTransform(parse_result, reinterpret_cast<A_Expr *>(root->quals_));
+      expr = AExprTransform(parse_result, reinterpret_cast<A_Expr *>(root->quals));
       break;
     }
     case T_BoolExpr: {
-      expr = BoolExprTransform(parse_result, reinterpret_cast<BoolExpr *>(root->quals_));
+      expr = BoolExprTransform(parse_result, reinterpret_cast<BoolExpr *>(root->quals));
       break;
     }
     default: { PARSER_LOG_AND_THROW("JoinTransform", "Join condition type", root->quals->type); }
@@ -1021,9 +1018,9 @@ std::string PostgresParser::AliasTransform(Alias *root) {
 
 // Postgres.RangeVar -> terrier.TableRef
 std::unique_ptr<TableRef> PostgresParser::RangeVarTransform(ParseResult *parse_result, RangeVar *root) {
-  auto table_name = root->relname_ == nullptr ? "" : root->relname_;
-  auto schema_name = root->schemaname_ == nullptr ? "" : root->schemaname_;
-  auto database_name = root->catalogname_ == nullptr ? "" : root->catalogname_;
+  auto table_name = root->relname == nullptr ? "" : root->relname;
+  auto schema_name = root->schemaname == nullptr ? "" : root->schemaname;
+  auto database_name = root->catalogname == nullptr ? "" : root->catalogname;
 
   auto table_info = std::make_unique<TableInfo>(table_name, schema_name, database_name);
   auto alias = AliasTransform(root->alias_);
@@ -1033,7 +1030,7 @@ std::unique_ptr<TableRef> PostgresParser::RangeVarTransform(ParseResult *parse_r
 
 // Postgres.RangeSubselect -> terrier.TableRef
 std::unique_ptr<TableRef> PostgresParser::RangeSubselectTransform(ParseResult *parse_result, RangeSubselect *root) {
-  auto select = SelectTransform(parse_result, reinterpret_cast<SelectStmt *>(root->subquery_));
+  auto select = SelectTransform(parse_result, reinterpret_cast<SelectStmt *>(root->subquery));
   if (select == nullptr) {
     return nullptr;
   }
@@ -1044,17 +1041,17 @@ std::unique_ptr<TableRef> PostgresParser::RangeSubselectTransform(ParseResult *p
 
 // Postgres.CopyStmt -> terrier.CopyStatement
 std::unique_ptr<CopyStatement> PostgresParser::CopyTransform(ParseResult *parse_result, CopyStmt *root) {
-  static constexpr char k_delimiter_tok[] = "delimiter";
-  static constexpr char k_format_tok[] = "format";
-  static constexpr char k_quote_tok[] = "quote";
-  static constexpr char k_escape_tok[] = "escape";
+  static constexpr char kDelimiterTok[] = "delimiter";
+  static constexpr char kFormatTok[] = "format";
+  static constexpr char kQuoteTok[] = "quote";
+  static constexpr char kEscapeTok[] = "escape";
 
   std::unique_ptr<TableRef> table;
   std::unique_ptr<SelectStatement> select_stmt;
-  if (root->relation_ != nullptr) {
-    table = RangeVarTransform(parse_result, root->relation_);
+  if (root->relation != nullptr) {
+    table = RangeVarTransform(parse_result, root->relation);
   } else {
-    select_stmt = SelectTransform(parse_result, reinterpret_cast<SelectStmt *>(root->query_));
+    select_stmt = SelectTransform(parse_result, reinterpret_cast<SelectStmt *>(root->query));
   }
 
   auto file_path = root->filename_ != nullptr ? root->filename_ : "";
@@ -1098,7 +1095,7 @@ std::unique_ptr<CopyStatement> PostgresParser::CopyTransform(ParseResult *parse_
 }
 
 // Postgres.CreateStmt -> terrier.CreateStatement
-std::unique_ptr<SQLStatement> PostgresParser::CreateTransform(CreateStmt *root) {
+std::unique_ptr<SQLStatement> PostgresParser::CreateTransform(ParseResult *parse_result, CreateStmt *root) {
   RangeVar *relation = root->relation;
   auto table_name = relation->relname != nullptr ? relation->relname : "";
   auto schema_name = relation->schemaname != nullptr ? relation->schemaname : "";
@@ -1114,7 +1111,7 @@ std::unique_ptr<SQLStatement> PostgresParser::CreateTransform(CreateStmt *root) 
     auto node = reinterpret_cast<Node *>(cell->data.ptr_value);
     switch (node->type) {
       case T_ColumnDef: {
-        auto res = ColumnDefTransform(reinterpret_cast<ColumnDef *>(node));
+        auto res = ColumnDefTransform(parse_result, reinterpret_cast<ColumnDef *>(node));
         columns.emplace_back(std::move(res.col));
         foreign_keys.insert(foreign_keys.end(), std::make_move_iterator(res.fks.begin()),
                             std::make_move_iterator(res.fks.end()));
@@ -1184,8 +1181,8 @@ std::unique_ptr<SQLStatement> PostgresParser::CreateTransform(CreateStmt *root) 
 }
 
 // Postgres.CreateDatabaseStmt -> terrier.CreateStatement
-std::unique_ptr<parser::SQLStatement> PostgresParser::CreateDatabaseTransform(CreateDatabaseStmt *root) {
-  auto table_info = std::make_unique<TableInfo>("", "", root->dbname_);
+std::unique_ptr<parser::SQLStatement> PostgresParser::CreateDatabaseTransform(ParseResult *parse_result, CreateDatabaseStmt *root) {
+  auto table_info = std::make_unique<TableInfo>("", "", root->dbname);
   std::vector<std::unique_ptr<ColumnDefinition>> columns;
   std::vector<std::unique_ptr<ColumnDefinition>> foreign_keys;
   auto result = std::make_unique<CreateStatement>(std::move(table_info), CreateStatement::kDatabase, std::move(columns),
@@ -1197,16 +1194,15 @@ std::unique_ptr<parser::SQLStatement> PostgresParser::CreateDatabaseTransform(Cr
 }
 
 // Postgres.CreateFunctionStmt -> terrier.CreateFunctionStatement
-std::unique_ptr<SQLStatement> PostgresParser::CreateFunctionTransform(CreateFunctionStmt *root) {
-  bool replace = root->replace_;
+std::unique_ptr<SQLStatement> PostgresParser::CreateFunctionTransform(ParseResult *parse_result, CreateFunctionStmt *root) {
+  bool replace = root->replace;
   std::vector<std::unique_ptr<FuncParameter>> func_parameters;
 
   for (auto cell = root->parameters_->head; cell != nullptr; cell = cell->next) {
     auto node = reinterpret_cast<Node *>(cell->data.ptr_value);
     switch (node->type) {
       case T_FunctionParameter: {
-        func_parameters.emplace_back(
-            FunctionParameterTransform(parse_result, reinterpret_cast<FunctionParameter *>(node)));
+        func_parameters.emplace_back(FunctionParameterTransform(parse_result, reinterpret_cast<FunctionParameter *>(node)));
         break;
       }
       default: {
@@ -1216,7 +1212,7 @@ std::unique_ptr<SQLStatement> PostgresParser::CreateFunctionTransform(CreateFunc
     }
   }
 
-  auto return_type = ReturnTypeTransform(parse_result, reinterpret_cast<TypeName *>(root->return_type_));
+  auto return_type = ReturnTypeTransform(parse_result, reinterpret_cast<TypeName *>(root->returnType));
 
   // TODO(WAN): assumption from old code, can only pass one function name for now
   std::string func_name = (reinterpret_cast<value *>(root->funcname_->tail->data.ptr_value)->val_.str_);
@@ -1261,8 +1257,8 @@ std::unique_ptr<SQLStatement> PostgresParser::CreateFunctionTransform(CreateFunc
 
 // Postgres.IndexStmt -> terrier.CreateStatement
 std::unique_ptr<SQLStatement> PostgresParser::CreateIndexTransform(ParseResult *parse_result, IndexStmt *root) {
-  auto unique = root->unique_;
-  auto index_name = root->idxname_;
+  auto unique = root->unique;
+  auto index_name = root->idxname;
 
   std::vector<IndexAttr> index_attrs;
   for (auto cell = root->index_params_->head; cell != nullptr; cell = cell->next) {
@@ -1270,7 +1266,7 @@ std::unique_ptr<SQLStatement> PostgresParser::CreateIndexTransform(ParseResult *
     if (index_elem->expr_ == nullptr) {
       index_attrs.emplace_back(index_elem->name_);
     } else {
-      auto expr = ExprTransform(parse_result, index_elem->expr_, nullptr);
+      auto expr = ExprTransform(parse_result, index_elem->expr, nullptr);
       auto expr_ptr = common::ManagedPointer(expr);
       parse_result->AddExpression(std::move(expr));
       index_attrs.emplace_back(expr_ptr);
@@ -1339,9 +1335,9 @@ std::unique_ptr<SQLStatement> PostgresParser::CreateSchemaTransform(ParseResult 
 
 // Postgres.CreateTrigStmt -> terrier.CreateStatement
 std::unique_ptr<SQLStatement> PostgresParser::CreateTriggerTransform(ParseResult *parse_result, CreateTrigStmt *root) {
-  auto table_name = root->relation_->relname_ == nullptr ? "" : root->relation_->relname_;
-  auto schema_name = root->relation_->schemaname_ == nullptr ? "" : root->relation_->schemaname_;
-  auto database_name = root->relation_->catalogname_ == nullptr ? "" : root->relation_->catalogname_;
+  auto table_name = root->relation->relname == nullptr ? "" : root->relation->relname;
+  auto schema_name = root->relation->schemaname == nullptr ? "" : root->relation->schemaname;
+  auto database_name = root->relation->catalogname == nullptr ? "" : root->relation->catalogname;
   auto table_info = std::make_unique<TableInfo>(table_name, schema_name, database_name);
 
   auto trigger_name = root->trigname_;
@@ -1370,7 +1366,7 @@ std::unique_ptr<SQLStatement> PostgresParser::CreateTriggerTransform(ParseResult
     }
   }
 
-  auto trigger_when = WhenTransform(parse_result, root->when_clause_);
+  auto trigger_when = WhenTransform(parse_result, root->whenClause);
   auto trigger_when_ptr = common::ManagedPointer(trigger_when);
   parse_result->AddExpression(std::move(trigger_when));
 
@@ -1384,19 +1380,19 @@ std::unique_ptr<SQLStatement> PostgresParser::CreateTriggerTransform(ParseResult
   trigger_type |= root->events_;
 
   auto result = std::make_unique<CreateStatement>(std::move(table_info), trigger_name, std::move(trigger_funcnames),
-                                                  std::move(trigger_args), std::move(trigger_columns), trigger_when_ptr,
-                                                  trigger_type);
+                                                  std::move(trigger_args), std::move(trigger_columns),
+                                                  trigger_when_ptr, trigger_type);
   return result;
 }
 
 // Postgres.ViewStmt -> terrier.CreateStatement
 std::unique_ptr<SQLStatement> PostgresParser::CreateViewTransform(ParseResult *parse_result, ViewStmt *root) {
-  auto view_name = root->view_->relname_;
+  auto view_name = root->view->relname;
 
   std::unique_ptr<SelectStatement> view_query;
   switch (root->query_->type) {
     case T_SelectStmt: {
-      view_query = SelectTransform(parse_result, reinterpret_cast<SelectStmt *>(root->query_));
+      view_query = SelectTransform(parse_result, reinterpret_cast<SelectStmt *>(root->query));
       break;
     }
     default: {
@@ -1411,7 +1407,7 @@ std::unique_ptr<SQLStatement> PostgresParser::CreateViewTransform(ParseResult *p
 
 // Postgres.ColumnDef -> terrier.ColumnDefinition
 PostgresParser::ColumnDefTransResult PostgresParser::ColumnDefTransform(ParseResult *parse_result, ColumnDef *root) {
-  auto type_name = root->type_name_;
+  auto type_name = root->typeName;
 
   // handle varlen
   size_t varlen = 0;
@@ -1486,13 +1482,13 @@ PostgresParser::ColumnDefTransResult PostgresParser::ColumnDefTransform(ParseRes
           break;
         }
         case CONSTR_DEFAULT: {
-          auto expr = ExprTransform(parse_result, constraint->raw_expr_, nullptr);
+          auto expr = ExprTransform(parse_result, constraint->raw_expr, nullptr);
           default_expr = common::ManagedPointer(expr);
           parse_result->AddExpression(std::move(expr));
           break;
         }
         case CONSTR_CHECK: {
-          auto expr = ExprTransform(parse_result, constraint->raw_expr_, nullptr);
+          auto expr = ExprTransform(parse_result, constraint->raw_expr, nullptr);
           check_expr = common::ManagedPointer(expr);
           parse_result->AddExpression(std::move(expr));
           break;
@@ -1502,16 +1498,15 @@ PostgresParser::ColumnDefTransResult PostgresParser::ColumnDefTransform(ParseRes
     }
   }
 
-  auto name = root->colname_;
-  auto result = std::make_unique<ColumnDefinition>(name, datatype, is_primary, is_not_null, is_unique, default_expr,
-                                                   check_expr, varlen);
+  auto name = root->colname;
+  auto result = std::make_unique<ColumnDefinition>(name, datatype, is_primary, is_not_null, is_unique,
+                                                   default_expr, check_expr, varlen);
 
   return {std::move(result), std::move(foreign_keys)};
 }
 
 // Postgres.FunctionParameter -> terrier.FuncParameter
-std::unique_ptr<FuncParameter> PostgresParser::FunctionParameterTransform(ParseResult *parse_result,
-                                                                          FunctionParameter *root) {
+std::unique_ptr<FuncParameter> PostgresParser::FunctionParameterTransform(ParseResult *parse_result, FunctionParameter *root) {
   // TODO(WAN): significant code duplication, refactor out char* -> DataType
   char *name = (reinterpret_cast<value *>(root->arg_type_->names_->tail->data.ptr_value)->val_.str_);
   parser::FuncParameter::DataType data_type;
@@ -1547,7 +1542,7 @@ std::unique_ptr<FuncParameter> PostgresParser::FunctionParameterTransform(ParseR
 
 // Postgres.TypeName -> terrier.ReturnType
 std::unique_ptr<ReturnType> PostgresParser::ReturnTypeTransform(ParseResult *parse_result, TypeName *root) {
-  char *name = (reinterpret_cast<value *>(root->names_->tail->data.ptr_value)->val_.str_);
+  char *name = (reinterpret_cast<value *>(root->names->tail->data.ptr_value)->val.str);
   ReturnType::DataType data_type;
 
   if ((strcmp(name, "int") == 0) || (strcmp(name, "int4") == 0)) {
@@ -1601,15 +1596,15 @@ std::unique_ptr<AbstractExpression> PostgresParser::WhenTransform(ParseResult *p
 // Postgres.DeleteStmt -> terrier.DeleteStatement
 std::unique_ptr<DeleteStatement> PostgresParser::DeleteTransform(ParseResult *parse_result, DeleteStmt *root) {
   std::unique_ptr<DeleteStatement> result;
-  auto table = RangeVarTransform(parse_result, root->relation_);
-  auto where = WhereTransform(parse_result, root->where_clause_);
+  auto table = RangeVarTransform(parse_result, root->relation);
+  auto where = WhereTransform(parse_result, root->whereClause);
   result = std::make_unique<DeleteStatement>(std::move(table), where);
   return result;
 }
 
 // Postgres.DropStmt -> terrier.DropStatement
 std::unique_ptr<DropStatement> PostgresParser::DropTransform(ParseResult *parse_result, DropStmt *root) {
-  switch (root->remove_type_) {
+  switch (root->removeType) {
     case ObjectType::OBJECT_INDEX: {
       return DropIndexTransform(parse_result, root);
     }
@@ -1622,15 +1617,17 @@ std::unique_ptr<DropStatement> PostgresParser::DropTransform(ParseResult *parse_
     case ObjectType::OBJECT_TRIGGER: {
       return DropTriggerTransform(parse_result, root);
     }
+    default: {
+      PARSER_LOG_AND_THROW("DropTransform", "Drop ObjectType", root->removeType);
+    }
     default: { PARSER_LOG_AND_THROW("DropTransform", "Drop ObjectType", root->removeType); }
   }
 }
 
 // Postgres.DropDatabaseStmt -> terrier.DropStmt
-std::unique_ptr<DropStatement> PostgresParser::DropDatabaseTransform(ParseResult *parse_result,
-                                                                     DropDatabaseStmt *root) {
-  auto table_info = std::make_unique<TableInfo>("", "", root->dbname_);
-  auto if_exists = root->missing_ok_;
+std::unique_ptr<DropStatement> PostgresParser::DropDatabaseTransform(ParseResult *parse_result, DropDatabaseStmt *root) {
+  auto table_info = std::make_unique<TableInfo>("", "", root->dbname);
+  auto if_exists = root->missing_ok;
 
   auto result = std::make_unique<DropStatement>(std::move(table_info), DropStatement::DropType::kDatabase, if_exists);
   return result;
@@ -1645,8 +1642,8 @@ std::unique_ptr<DropStatement> PostgresParser::DropIndexTransform(ParseResult *p
   auto list = reinterpret_cast<List *>(root->objects_->head->data.ptr_value);
   if (list->length == 2) {
     // List length is 2 when the schema length is specified, e.g. DROP INDEX/TABLE A.B.
-    schema_name = reinterpret_cast<value *>(list->head->data.ptr_value)->val_.str_;
-    index_name = reinterpret_cast<value *>(list->head->next->data.ptr_value)->val_.str_;
+    schema_name = reinterpret_cast<value *>(list->head->data.ptr_value)->val.str;
+    index_name = reinterpret_cast<value *>(list->head->next->data.ptr_value)->val.str;
   } else {
     index_name = reinterpret_cast<value *>(list->head->data.ptr_value)->val_.str_;
   }
@@ -1657,8 +1654,8 @@ std::unique_ptr<DropStatement> PostgresParser::DropIndexTransform(ParseResult *p
 }
 
 std::unique_ptr<DropStatement> PostgresParser::DropSchemaTransform(ParseResult *parse_result, DropStmt *root) {
-  auto if_exists = root->missing_ok_;
-  auto cascade = root->behavior_ == DropBehavior::DROP_CASCADE;
+  auto if_exists = root->missing_ok;
+  auto cascade = root->behavior == DropBehavior::DROP_CASCADE;
 
   std::string schema_name;
   for (auto cell = root->objects_->head; cell != nullptr; cell = cell->next) {
@@ -1673,15 +1670,15 @@ std::unique_ptr<DropStatement> PostgresParser::DropSchemaTransform(ParseResult *
 }
 
 std::unique_ptr<DropStatement> PostgresParser::DropTableTransform(ParseResult *parse_result, DropStmt *root) {
-  auto if_exists = root->missing_ok_;
+  auto if_exists = root->missing_ok;
 
   std::string table_name;
   std::string schema_name;
   auto list = reinterpret_cast<List *>(root->objects_->head->data.ptr_value);
   if (list->length == 2) {
     // List length is 2 when the schema length is specified, e.g. DROP INDEX/TABLE A.B.
-    schema_name = reinterpret_cast<value *>(list->head->data.ptr_value)->val_.str_;
-    table_name = reinterpret_cast<value *>(list->head->next->data.ptr_value)->val_.str_;
+    schema_name = reinterpret_cast<value *>(list->head->data.ptr_value)->val.str;
+    table_name = reinterpret_cast<value *>(list->head->next->data.ptr_value)->val.str;
   } else {
     table_name = reinterpret_cast<value *>(list->head->data.ptr_value)->val_.str_;
   }
@@ -1691,11 +1688,10 @@ std::unique_ptr<DropStatement> PostgresParser::DropTableTransform(ParseResult *p
   return result;
 }
 
-std::unique_ptr<DeleteStatement> PostgresParser::TruncateTransform(ParseResult *parse_result,
-                                                                   TruncateStmt *truncate_stmt) {
+std::unique_ptr<DeleteStatement> PostgresParser::TruncateTransform(ParseResult *parse_result, TruncateStmt *truncate_stmt) {
   std::unique_ptr<DeleteStatement> result;
 
-  auto cell = truncate_stmt->relations_->head;
+  auto cell = truncate_stmt->relations->head;
   auto table_ref = RangeVarTransform(parse_result, reinterpret_cast<RangeVar *>(cell->data.ptr_value));
   result = std::make_unique<DeleteStatement>(std::move(table_ref));
   // TODO(WAN): This is almost certainly broken. Let's see who hits it first and figure out what's missing.
@@ -1703,9 +1699,9 @@ std::unique_ptr<DeleteStatement> PostgresParser::TruncateTransform(ParseResult *
 }
 
 std::unique_ptr<DropStatement> PostgresParser::DropTriggerTransform(ParseResult *parse_result, DropStmt *root) {
-  auto list = reinterpret_cast<List *>(root->objects_->head->data.ptr_value);
+  auto list = reinterpret_cast<List *>(root->objects->head->data.ptr_value);
 
-  std::string trigger_name = reinterpret_cast<value *>(list->tail->data.ptr_value)->val_.str_;
+  std::string trigger_name = reinterpret_cast<value *>(list->tail->data.ptr_value)->val.str;
   std::string table_name;
   std::string schema_name;
 
@@ -1723,14 +1719,14 @@ std::unique_ptr<DropStatement> PostgresParser::DropTriggerTransform(ParseResult 
 }
 
 std::unique_ptr<ExecuteStatement> PostgresParser::ExecuteTransform(ParseResult *parse_result, ExecuteStmt *root) {
-  auto name = root->name_;
-  auto params = ParamListTransform(parse_result, root->params_);
+  auto name = root->name;
+  auto params = ParamListTransform(parse_result, root->params);
   auto result = std::make_unique<ExecuteStatement>(name, std::move(params));
   return result;
 }
 
-std::vector<std::unique_ptr<AbstractExpression>> PostgresParser::ParamListTransform(List *root) {
-  std::vector<std::unique_ptr<AbstractExpression>> result;
+std::vector<common::ManagedPointer<AbstractExpression>> PostgresParser::ParamListTransform(ParseResult *parse_result, List *root) {
+  std::vector<common::ManagedPointer<AbstractExpression>> result;
 
   if (root == nullptr) {
     return result;
@@ -1769,20 +1765,20 @@ std::vector<std::unique_ptr<AbstractExpression>> PostgresParser::ParamListTransf
 
 std::unique_ptr<ExplainStatement> PostgresParser::ExplainTransform(ParseResult *parse_result, ExplainStmt *root) {
   std::unique_ptr<ExplainStatement> result;
-  auto query = NodeTransform(parse_result, root->query_);
+  auto query = NodeTransform(parse_result, root->query);
   result = std::make_unique<ExplainStatement>(std::move(query));
   return result;
 }
 
 // Postgres.InsertStmt -> terrier.InsertStatement
 std::unique_ptr<InsertStatement> PostgresParser::InsertTransform(ParseResult *parse_result, InsertStmt *root) {
-  TERRIER_ASSERT(root->select_stmt_ != nullptr, "Selects from table or directly selects some values.");
+  TERRIER_ASSERT(root->selectStmt != nullptr, "Selects from table or directly selects some values.");
 
   std::unique_ptr<InsertStatement> result;
 
-  auto column_names = ColumnNameTransform(root->cols_);
-  auto table_ref = RangeVarTransform(parse_result, root->relation_);
-  auto select_stmt = reinterpret_cast<SelectStmt *>(root->select_stmt_);
+  auto column_names = ColumnNameTransform(root->cols);
+  auto table_ref = RangeVarTransform(parse_result, root->relation);
+  auto select_stmt = reinterpret_cast<SelectStmt *>(root->selectStmt);
 
   if (select_stmt->from_clause_ != nullptr) {
     // select from a table to insert
@@ -1790,8 +1786,8 @@ std::unique_ptr<InsertStatement> PostgresParser::InsertTransform(ParseResult *pa
     result = std::make_unique<InsertStatement>(std::move(column_names), std::move(table_ref), std::move(select_trans));
   } else {
     // directly insert some values
-    TERRIER_ASSERT(select_stmt->values_lists_ != nullptr, "Must have values to insert.");
-    auto insert_values = ValueListsTransform(parse_result, select_stmt->values_lists_);
+    TERRIER_ASSERT(select_stmt->valuesLists != nullptr, "Must have values to insert.");
+    auto insert_values = ValueListsTransform(parse_result, select_stmt->valuesLists);
     result = std::make_unique<InsertStatement>(std::move(column_names), std::move(table_ref), std::move(insert_values));
   }
 
@@ -1808,25 +1804,26 @@ std::unique_ptr<std::vector<std::string>> PostgresParser::ColumnNameTransform(Li
 
   for (auto cell = root->head; cell != nullptr; cell = cell->next) {
     auto target = reinterpret_cast<ResTarget *>(cell->data.ptr_value);
-    result->emplace_back(target->name_);
+    result->emplace_back(target->name);
   }
 
   return result;
 }
 
 // Transforms value lists into terrier equivalent. Nested vectors, because an InsertStmt may insert multiple tuples.
-std::unique_ptr<std::vector<std::vector<std::unique_ptr<AbstractExpression>>>> PostgresParser::ValueListsTransform(
+std::unique_ptr<std::vector<std::vector<common::ManagedPointer<AbstractExpression>>>> PostgresParser::ValueListsTransform(
+    ParseResult *parse_result,
     List *root) {
-  auto result = std::make_unique<std::vector<std::vector<std::unique_ptr<AbstractExpression>>>>();
+  auto result = std::make_unique<std::vector<std::vector<common::ManagedPointer<AbstractExpression>>>>();
 
   for (auto value_list = root->head; value_list != nullptr; value_list = value_list->next) {
-    std::vector<std::unique_ptr<AbstractExpression>> cur_result;
+    std::vector<common::ManagedPointer<AbstractExpression>> cur_result;
 
     auto target = reinterpret_cast<List *>(value_list->data.ptr_value);
     for (auto cell = target->head; cell != nullptr; cell = cell->next) {
       auto expr_pg = reinterpret_cast<Expr *>(cell->data.ptr_value);
       std::unique_ptr<AbstractExpression> expr;
-      switch (expr_pg->type_) {
+      switch (expr_pg->type) {
         case T_ParamRef: {
           expr = ParamRefTransform(parse_result, reinterpret_cast<ParamRef *>(expr_pg));
           break;
@@ -1843,7 +1840,9 @@ std::unique_ptr<std::vector<std::vector<std::unique_ptr<AbstractExpression>>>> P
           expr = std::make_unique<DefaultValueExpression>();
           break;
         }
-        default: { PARSER_LOG_AND_THROW("ValueListsTransform", "Value type", expr->type); }
+        default: {
+          PARSER_LOG_AND_THROW("ValueListsTransform", "Value type", expr_pg->type);
+        }
       }
       cur_result.emplace_back(common::ManagedPointer(expr));
       parse_result->AddExpression(std::move(expr));
@@ -1875,26 +1874,27 @@ std::unique_ptr<TransactionStatement> PostgresParser::TransactionTransform(Trans
   return result;
 }
 
-std::vector<std::unique_ptr<parser::UpdateClause>> PostgresParser::UpdateTargetTransform(List *root) {
-  std::vector<std::unique_ptr<parser::UpdateClause>> result;
+// Postgres.List -> terrier.UpdateClause
+std::vector<std::unique_ptr<UpdateClause>> PostgresParser::UpdateTargetTransform(ParseResult *parse_result, List *root) {
+  std::vector<std::unique_ptr<UpdateClause>> result;
   for (auto cell = root->head; cell != nullptr; cell = cell->next) {
     auto target = reinterpret_cast<ResTarget *>(cell->data.ptr_value);
     auto column = target->name;
-    // TODO(LING): Wrapped managedPointer around, ExprTransform returns unique_ptr
-    //             Only doing this as we are not using smart ptr in UpdateClause
-    auto value = common::ManagedPointer<AbstractExpression>(ExprTransform(target->val_).release());
-    result.push_back(std::make_unique<UpdateClause>(column, value));
+    auto expr = ExprTransform(parse_result, target->val, nullptr);
+    auto expr_ptr = common::ManagedPointer(expr);
+    parse_result->AddExpression(std::move(expr));
+    result.emplace_back(std::make_unique<UpdateClause>(column, expr_ptr));
   }
   return result;
 }
 
 // Postgres.PrepareStmt -> terrier.PrepareStatement
 std::unique_ptr<PrepareStatement> PostgresParser::PrepareTransform(ParseResult *parse_result, PrepareStmt *root) {
-  auto name = root->name_;
-  auto query = NodeTransform(parse_result, root->query_);
+  auto name = root->name;
+  auto query = NodeTransform(parse_result, root->query);
 
-  // TODO(WAN): why isn't this populated?
-  std::vector<std::unique_ptr<ParameterValueExpression>> placeholders;
+  // TODO(WAN): This should probably be populated?
+  std::vector<common::ManagedPointer<ParameterValueExpression>> placeholders;
 
   auto result = std::make_unique<PrepareStatement>(name, std::move(query), std::move(placeholders));
   return result;
@@ -1905,8 +1905,8 @@ std::unique_ptr<AnalyzeStatement> PostgresParser::VacuumTransform(ParseResult *p
   std::unique_ptr<AnalyzeStatement> result;
   switch (root->options_) {
     case VACOPT_ANALYZE: {
-      auto analyze_table = root->relation_ != nullptr ? RangeVarTransform(parse_result, root->relation_) : nullptr;
-      auto analyze_columns = ColumnNameTransform(root->va_cols_);
+      auto analyze_table = root->relation != nullptr ? RangeVarTransform(parse_result, root->relation) : nullptr;
+      auto analyze_columns = ColumnNameTransform(root->va_cols);
       result = std::make_unique<AnalyzeStatement>(std::move(analyze_table), std::move(analyze_columns));
       break;
     }
@@ -1920,9 +1920,9 @@ std::unique_ptr<AnalyzeStatement> PostgresParser::VacuumTransform(ParseResult *p
 std::unique_ptr<UpdateStatement> PostgresParser::UpdateTransform(ParseResult *parse_result, UpdateStmt *update_stmt) {
   std::unique_ptr<UpdateStatement> result;
 
-  auto table = RangeVarTransform(parse_result, update_stmt->relation_);
-  auto clauses = UpdateTargetTransform(parse_result, update_stmt->target_list_);
-  auto where = WhereTransform(parse_result, update_stmt->where_clause_);
+  auto table = RangeVarTransform(parse_result, update_stmt->relation);
+  auto clauses = UpdateTargetTransform(parse_result, update_stmt->targetList);
+  auto where = WhereTransform(parse_result, update_stmt->whereClause);
 
   result = std::make_unique<UpdateStatement>(std::move(table), std::move(clauses), where);
   return result;
@@ -1930,8 +1930,7 @@ std::unique_ptr<UpdateStatement> PostgresParser::UpdateTransform(ParseResult *pa
 
 // TODO(WAN): Document why exactly this is required as a JDBC hack.
 // Postgres.VariableSetStmt -> terrier.VariableSetStatement
-std::unique_ptr<VariableSetStatement> PostgresParser::VariableSetTransform(ParseResult *parse_result,
-                                                                           UNUSED_ATTRIBUTE VariableSetStmt *root) {
+std::unique_ptr<VariableSetStatement> PostgresParser::VariableSetTransform(ParseResult *parse_result, UNUSED_ATTRIBUTE VariableSetStmt *root) {
   auto result = std::make_unique<VariableSetStatement>();
   return result;
 }
