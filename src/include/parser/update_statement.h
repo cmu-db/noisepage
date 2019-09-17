@@ -56,7 +56,10 @@ class UpdateStatement : public SQLStatement {
    */
   UpdateStatement(std::unique_ptr<TableRef> table, std::vector<std::unique_ptr<UpdateClause>> updates,
                   common::ManagedPointer<AbstractExpression> where)
-      : SQLStatement(StatementType::UPDATE), table_(std::move(table)), updates_(std::move(updates)), where_(where) {}
+      : SQLStatement(StatementType::UPDATE),
+        table_(std::move(table)),
+        updates_(std::move(updates)),
+        where_(where) {}
 
   UpdateStatement() : SQLStatement(StatementType::UPDATE), table_(nullptr), where_(nullptr) {}
 
@@ -68,14 +71,14 @@ class UpdateStatement : public SQLStatement {
   common::ManagedPointer<TableRef> GetUpdateTable() { return common::ManagedPointer(table_); }
 
   /** @return update clauses */
-  const std::vector<std::unique_ptr<UpdateClause>> &GetUpdateClauses() { return updates_; }
+  std::vector<std::unique_ptr<UpdateClause>> &GetUpdateClauses() { return updates_; }
 
   /** @return update condition */
   common::ManagedPointer<AbstractExpression> GetUpdateCondition() { return common::ManagedPointer(where_); }
 
  private:
   const std::unique_ptr<TableRef> table_;
-  const std::vector<std::unique_ptr<UpdateClause>> updates_;
+  std::vector<std::unique_ptr<UpdateClause>> updates_;
   const common::ManagedPointer<AbstractExpression> where_;
 };
 

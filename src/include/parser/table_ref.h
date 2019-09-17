@@ -11,9 +11,10 @@
 #include "parser/select_statement.h"
 
 namespace terrier {
+namespace binder {
+class BindNodeVisitor;
+}
 namespace parser {
-
-class SelectStatement;
 
 /**
  * Represents a join table.
@@ -28,7 +29,7 @@ class JoinDefinition {
    */
   JoinDefinition(JoinType type, std::unique_ptr<TableRef> left, std::unique_ptr<TableRef> right,
                  common::ManagedPointer<AbstractExpression> condition)
-      : type_(type), left_(std::move(left)), right_(std::move(right)), condition_(condition) {}
+      : type_(type), left_(std::move(left)), right_(std::move(right)), condition_(std::move(condition)) {}
 
   /**
    * Default constructor used for deserialization
@@ -169,7 +170,10 @@ class TableRef {
   TableReferenceType GetTableReferenceType() { return type_; }
 
   /** @return alias */
-  std::string GetAlias() { return alias_; }
+  const std::string GetAlias() {
+    if (alias_.empty()) alias_ = table_info_->GetTableName();
+    return alias_;
+  }
 
   /** @return table name */
   std::string GetTableName() { return table_info_->GetTableName(); }
@@ -196,6 +200,8 @@ class TableRef {
   void FromJson(const nlohmann::json &j);
 
  private:
+  friend class binder::BindNodeVisitor;
+
   TableReferenceType type_;
   std::string alias_;
 
@@ -204,6 +210,17 @@ class TableRef {
 
   std::vector<std::unique_ptr<TableRef>> list_;
   std::unique_ptr<JoinDefinition> join_;
+
+  /**
+   * Check if the current table ref has the correct database name.
+   * If the current table ref does not have a database name, set the database name to the default database name
+   * If the current table ref has a database name, this function verifies if it matches the defualt database name
+   * @param default_database_name Default database name
+   */
+  void TryBindDatabaseName(const std::string &default_database_name) {
+    if (!table_info_) table_info_ = std::make_unique<TableInfo>();
+    table_info_->TryBindDatabaseName(default_database_name);
+  }
 };
 
 DEFINE_JSON_DECLARATIONS(TableRef);

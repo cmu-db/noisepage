@@ -8,19 +8,14 @@ namespace terrier::parser {
 
 nlohmann::json SelectStatement::ToJson() const {
   nlohmann::json j = SQLStatement::ToJson();
-  std::vector<nlohmann::json> select_json;
-  select_json.reserve(select_.size());
-  for (const auto &expr : select_) {
-    select_json.emplace_back(expr->ToJson());
-  }
-  j["select"] = select_json;
-  j["select_distinct"] = select_distinct_;
-  j["from"] = from_->ToJson();
-  j["where"] = where_->ToJson();
-  j["group_by"] = group_by_->ToJson();
-  j["order_by"] = order_by_->ToJson();
-  j["limit"] = limit_->ToJson();
-  j["union_select"] = union_select_->ToJson();
+  //  j["select"] = select_;
+  //  j["select_distinct"] = select_distinct_;
+  // TODO(WAN)  j["from"] = from_;
+  //  j["where"] = where_;
+  //  j["group_by"] = group_by_;
+  //  j["order_by"] = order_by_;
+  //  j["limit"] = limit_;
+  //  j["union_select"] = union_select_;
   return j;
 }
 

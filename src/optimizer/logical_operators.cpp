@@ -5,6 +5,7 @@
 #include <unordered_set>
 #include <utility>
 #include <vector>
+#include "catalog/catalog_defs.h"
 #include "optimizer/operator_visitor.h"
 #include "parser/expression/abstract_expression.h"
 
@@ -22,6 +23,15 @@ Operator LogicalGet::Make(catalog::db_oid_t database_oid, catalog::namespace_oid
   get->predicates_ = std::move(predicates);
   get->table_alias_ = std::move(table_alias);
   get->is_for_update_ = is_for_update;
+  return Operator(get);
+}
+
+Operator LogicalGet::Make() {
+  auto *get = new LogicalGet;
+  get->database_oid_ = catalog::INVALID_DATABASE_OID;
+  get->namespace_oid_ = catalog::INVALID_NAMESPACE_OID;
+  get->table_oid_ = catalog::INVALID_TABLE_OID;
+  get->is_for_update_ = false;
   return Operator(get);
 }
 
@@ -176,11 +186,11 @@ common::hash_t LogicalProjection::Hash() const {
 
 Operator LogicalInsert::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
                              catalog::table_oid_t table_oid, std::vector<catalog::col_oid_t> &&columns,
-                             std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>> &&values) {
+                             common::ManagedPointer<std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>> values) {
 #ifndef NDEBUG
   // We need to check whether the number of values for each insert vector
   // matches the number of columns
-  for (const auto &insert_vals : values) {
+  for (const auto &insert_vals : *values) {
     TERRIER_ASSERT(columns.size() == insert_vals.size(), "Mismatched number of columns and values");
   }
 #endif
@@ -190,7 +200,7 @@ Operator LogicalInsert::Make(catalog::db_oid_t database_oid, catalog::namespace_
   op->namespace_oid_ = namespace_oid;
   op->table_oid_ = table_oid;
   op->columns_ = std::move(columns);
-  op->values_ = std::move(values);
+  op->values_ = values;
   return Operator(op);
 }
 
@@ -202,7 +212,7 @@ common::hash_t LogicalInsert::Hash() const {
   hash = common::HashUtil::CombineHashInRange(hash, columns_.begin(), columns_.end());
 
   // Perform a deep hash of the values
-  for (const auto &insert_vals : values_) {
+  for (const auto &insert_vals : *values_) {
     hash = common::HashUtil::CombineHashInRange(hash, insert_vals.begin(), insert_vals.end());
   }
 
@@ -343,7 +353,7 @@ bool LogicalDelete::operator==(const BaseOperatorNode &r) {
 
 Operator LogicalUpdate::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
                              catalog::table_oid_t table_oid,
-                             std::vector<common::ManagedPointer<parser::UpdateClause>> &&updates) {
+                             common::ManagedPointer<std::vector<std::unique_ptr<parser::UpdateClause>>> updates) {
   auto *op = new LogicalUpdate;
   op->database_oid_ = database_oid;
   op->namespace_oid_ = namespace_oid;
@@ -357,7 +367,8 @@ common::hash_t LogicalUpdate::Hash() const {
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_oid_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(namespace_oid_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_oid_));
-  hash = common::HashUtil::CombineHashInRange(hash, updates_.begin(), updates_.end());
+  if (updates_ && updates_.Get() != nullptr)
+    hash = common::HashUtil::CombineHashInRange(hash, updates_.Get()->begin(), updates_.Get()->end());
   return hash;
 }
 

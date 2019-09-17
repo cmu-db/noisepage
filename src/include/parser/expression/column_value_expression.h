@@ -7,7 +7,14 @@
 #include "catalog/catalog_defs.h"
 #include "parser/expression/abstract_expression.h"
 
-namespace terrier::parser {
+namespace terrier {
+
+namespace binder {
+class BinderContext;
+}
+
+namespace parser {
+
 /**
  * ColumnValueExpression represents a reference to a column.
  *
@@ -84,6 +91,7 @@ class ColumnValueExpression : public AbstractExpression {
   /** @return column oid */
   catalog::col_oid_t GetColumnOid() const { return column_oid_; }
 
+  // TODO(WAN) we should really have a constructor that's just "everything"
   std::unique_ptr<AbstractExpression> Copy() const override {
     return std::make_unique<ColumnValueExpression>(GetDatabaseOid(), GetTableOid(), GetColumnOid());
   }
@@ -150,12 +158,28 @@ class ColumnValueExpression : public AbstractExpression {
   }
 
  private:
+  friend class binder::BinderContext;
   /** @param database_oid Database OID to be assigned to this expression */
   void SetDatabaseOID(catalog::db_oid_t database_oid) { database_oid_ = database_oid; }
   /** @param table_oid Table OID to be assigned to this expression */
   void SetTableOID(catalog::table_oid_t table_oid) { table_oid_ = table_oid; }
   /** @param column_oid Column OID to be assigned to this expression */
   void SetColumnOID(catalog::col_oid_t column_oid) { column_oid_ = column_oid; }
+  //
+  //  /**
+  //   * @param database_oid Database OID to be assigned to this expression
+  //   */
+  //  void SetDatabaseOID(catalog::db_oid_t database_oid) { database_oid_ = database_oid; }
+
+  /**
+   * @param table_oid Table OID to be assigned to this expression
+   */
+  void SetTableName(const std::string &table_name) { table_name_ = std::string(table_name); }
+
+  /**
+   * @param column_oid Column OID to be assigned to this expression
+   */
+  void SetColumnName(const std::string &col_name) { column_name_ = std::string(col_name); }
 
   /** Namespace name. */
   std::string namespace_name_;
@@ -165,14 +189,23 @@ class ColumnValueExpression : public AbstractExpression {
   std::string column_name_;
 
   // TODO(Ling): change to INVALID_*_OID after catalog completion
-  /** Database OID. */
-  catalog::db_oid_t database_oid_ = catalog::db_oid_t(0);
-  /** Table OID. */
-  catalog::table_oid_t table_oid_ = catalog::table_oid_t(0);
-  /** Column OID. */
-  catalog::col_oid_t column_oid_ = catalog::col_oid_t(0);
+  /**
+   * OID of the database
+   */
+  catalog::db_oid_t database_oid_ = catalog::INVALID_DATABASE_OID;
+
+  /**
+   * OID of the table
+   */
+  catalog::table_oid_t table_oid_ = catalog::INVALID_TABLE_OID;
+
+  /**
+   * OID of the column
+   */
+  catalog::col_oid_t column_oid_ = catalog::INVALID_COLUMN_OID;
 };
 
 DEFINE_JSON_DECLARATIONS(ColumnValueExpression);
 
-}  // namespace terrier::parser
+}  // namespace parser
+}  // namespace terrier

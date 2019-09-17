@@ -219,7 +219,7 @@ class OutputSchema {
     nlohmann::json ToJson() const {
       nlohmann::json j;
       j["column"] = column_;
-      j["expr"] = expr_->ToJson();
+      // TODO(WAN)      j["expr"] = expr_;
       return j;
     }
 
