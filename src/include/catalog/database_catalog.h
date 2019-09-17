@@ -279,12 +279,20 @@ class DatabaseCatalog {
   storage::index::Index *classes_oid_index_;
   storage::index::Index *classes_name_index_;  // indexed on namespace OID and name
   storage::index::Index *classes_namespace_index_;
-  storage::ProjectedRowInitializer delete_table_or_index_pri_;
-  storage::ProjectionMap delete_table_or_index_prm_;
+  storage::ProjectedRowInitializer pg_class_all_cols_pri_;
+  storage::ProjectionMap pg_class_all_cols_prm_;
+  storage::ProjectedRowInitializer get_class_oid_kind_pri_;
+  storage::ProjectedRowInitializer set_class_pointer_pri_;
+  storage::ProjectedRowInitializer set_class_schema_pri_;
 
   storage::SqlTable *indexes_;
   storage::index::Index *indexes_oid_index_;
   storage::index::Index *indexes_table_index_;
+  storage::ProjectedRowInitializer get_indexes_pri_;
+  storage::ProjectedRowInitializer delete_index_pri_;
+  storage::ProjectionMap delete_index_prm_;
+  storage::ProjectedRowInitializer pg_index_all_cols_pri_;
+  storage::ProjectionMap pg_index_all_cols_prm_;
 
   storage::SqlTable *columns_;
   storage::index::Index *columns_oid_index_;   // indexed on class OID and column OID
@@ -300,6 +308,8 @@ class DatabaseCatalog {
   storage::index::Index *types_oid_index_;
   storage::index::Index *types_name_index_;  // indexed on namespace OID and name
   storage::index::Index *types_namespace_index_;
+  storage::ProjectedRowInitializer pg_type_all_cols_pri_;
+  storage::ProjectionMap pg_type_all_cols_prm_;
 
   storage::SqlTable *constraints_;
   storage::index::Index *constraints_oid_index_;
