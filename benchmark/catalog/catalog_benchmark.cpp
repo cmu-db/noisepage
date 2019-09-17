@@ -223,7 +223,6 @@ BENCHMARK_DEFINE_F(CatalogBenchmark, GetIndexSchema)(benchmark::State &state) {
 
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(CatalogBenchmark, GetNamespaceOid)(benchmark::State &state) {
-  // Create a database and check that it's immediately visible
   auto txn = txn_manager_->BeginTransaction();
   auto accessor = catalog_->GetAccessor(txn, db_);
   const auto ns_oid UNUSED_ATTRIBUTE = accessor->CreateNamespace("test_namespace");
