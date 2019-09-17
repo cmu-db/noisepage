@@ -33,7 +33,12 @@ nlohmann::json AbstractExpression::ToJson() const {
   j["depth"] = depth_;
   j["has_subquery"] = has_subquery_;
   j["return_value_type"] = return_value_type_;
-  // TODO(WAN)  j["children"] = children_;
+  std::vector<nlohmann::json> children_json;
+  children_json.reserve(children_.size());
+  for (const auto &child : children_) {
+    children_json.emplace_back(child->ToJson());
+  }
+  j["children"] = children_json;
   return j;
 }
 
