@@ -357,7 +357,7 @@ IndexSchema Builder::GetClassNamespaceIndexSchema(db_oid_t db) {
                        parser::ColumnValueExpression(db, CLASS_TABLE_OID, RELNAMESPACE_COL_OID));
   columns.back().SetOid(indexkeycol_oid_t(1));
 
-  // Unique, not primary
+  // Not unique
   IndexSchema schema(columns, storage::index::IndexType::HASHMAP, false, false, false, true);
 
   return schema;
@@ -460,7 +460,7 @@ IndexSchema Builder::GetTypeNamespaceIndexSchema(db_oid_t db) {
                        parser::ColumnValueExpression(db, TYPE_TABLE_OID, TYPNAMESPACE_COL_OID));
   columns.back().SetOid(indexkeycol_oid_t(1));
 
-  // Unique, not primary
+  // Not unique
   IndexSchema schema(columns, storage::index::IndexType::HASHMAP, false, false, false, true);
 
   return schema;
@@ -503,7 +503,7 @@ IndexSchema Builder::GetConstraintNamespaceIndexSchema(db_oid_t db) {
                        parser::ColumnValueExpression(db, CONSTRAINT_TABLE_OID, CONNAMESPACE_COL_OID));
   columns.back().SetOid(indexkeycol_oid_t(1));
 
-  // Unique, not primary
+  // Not unique
   IndexSchema schema(columns, storage::index::IndexType::HASHMAP, false, false, false, true);
 
   return schema;
