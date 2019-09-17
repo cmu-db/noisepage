@@ -82,5 +82,4 @@ ProjectionMap SqlTable::ProjectionMapForOids(const std::vector<catalog::col_oid_
 
   return projection_map;
 }
-
 }  // namespace terrier::storage
