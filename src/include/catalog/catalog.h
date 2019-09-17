@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 
+#include "catalog/catalog_accessor.h"
 #include "catalog/catalog_defs.h"
 #include "catalog/database_catalog.h"
 #include "transaction/transaction_context.h"

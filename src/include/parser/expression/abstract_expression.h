@@ -7,12 +7,23 @@
 #include <vector>
 #include "common/hash_util.h"
 #include "common/json.h"
+#include "common/managed_pointer.h"
 #include "common/sql_node_visitor.h"
 #include "parser/expression_defs.h"
 #include "type/transient_value.h"
 #include "type/type_id.h"
 
-namespace terrier::parser {
+namespace terrier {
+
+namespace binder {
+class BindNodeVisitor;
+}  // namespace binder
+
+namespace optimizer {
+class QueryToOperatorTransformer;
+}  // namespace optimizer
+
+namespace parser {
 /**
  * AbstractExpression is the base class of any expression which is output from the parser.
  *
@@ -61,6 +72,11 @@ class AbstractExpression {
   void SetExpressionName(std::string expression_name) { expression_name_ = std::move(expression_name); }
 
   /**
+   * @param expression_type Set the expression type of the current expression
+   */
+  void SetExpressionType(ExpressionType expression_type) { expression_type_ = expression_type; }
+
+  /**
    * @param return_value_type Set the return value type of the current expression
    */
   void SetReturnValueType(type::TypeId return_value_type) { return_value_type_ = return_value_type; }
@@ -69,6 +85,18 @@ class AbstractExpression {
    * @param depth Set the depth of the current expression
    */
   void SetDepth(int depth) { depth_ = depth; }
+
+  /**
+   * @param alias Alias of the expression
+   */
+  void SetAlias(const std::string &alias) { alias_ = alias; }
+
+  void SetChild(int index, std::unique_ptr<AbstractExpression> expr) {
+    if (index >= (int)children_.size()) {
+      children_.resize(index + 1);
+    }
+    children_[index].reset(expr.get());
+  }
 
  public:
   virtual ~AbstractExpression() = default;
@@ -213,6 +241,13 @@ class AbstractExpression {
   virtual void FromJson(const nlohmann::json &j);
 
  private:
+
+  // We make abstract expression friend with both binder and query to operator transformer
+  // as they each traverse the ast independently and add in necessary information to the ast
+  // TODO(Ling): we could look into whether the two traversals can be commbined to one in the future
+  friend class binder::BindNodeVisitor;
+  friend class optimizer::QueryToOperatorTransformer;
+
   /** Type of the current expression */
   ExpressionType expression_type_;
   /** Name of the current expression */
@@ -253,7 +288,8 @@ DEFINE_JSON_DECLARATIONS(AbstractExpression)
  */
 std::unique_ptr<AbstractExpression> DeserializeExpression(const nlohmann::json &j);
 
-}  // namespace terrier::parser
+}  // namespace parser
+}  // namespace terrier
 
 namespace std {
 /**

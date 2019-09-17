@@ -87,7 +87,7 @@ class SubqueryExpression : public AbstractExpression {
   /** @return expression serialized to json */
   nlohmann::json ToJson() const override {
     nlohmann::json j = AbstractExpression::ToJson();
-    j["subselect"] = subselect_->ToJson();
+    // TODO(WAN) json    j["subselect"] = subselect_;
     return j;
   }
 
@@ -95,7 +95,7 @@ class SubqueryExpression : public AbstractExpression {
   void FromJson(const nlohmann::json &j) override {
     AbstractExpression::FromJson(j);
     subselect_ = std::make_unique<parser::SelectStatement>();
-    subselect_->FromJson(j.at("subselect"));
+    // TODO(WAN) json    subselect_->FromJson(j.at("subselect"));
   }
 
  private:

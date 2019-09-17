@@ -9,6 +9,11 @@
 #include "parser/table_ref.h"
 
 namespace terrier {
+
+namespace binder {
+class BindNodeVisitor;
+}  // namespace binder
+
 namespace parser {
 
 enum OrderType { kOrderAsc, kOrderDesc };
@@ -79,12 +84,7 @@ class OrderByDescription {
   nlohmann::json ToJson() const {
     nlohmann::json j;
     j["types"] = types_;
-    std::vector<nlohmann::json> exprs_json;
-    exprs_json.reserve(exprs_.size());
-    for (const auto &expr : exprs_) {
-      exprs_json.emplace_back(expr->ToJson());
-    }
-    j["exprs"] = exprs_json;
+    // TODO(WAN)    j["exprs"] = exprs_;
     return j;
   }
 
@@ -97,11 +97,9 @@ class OrderByDescription {
 
     // Deserialize exprs
     auto expressions = j.at("exprs").get<std::vector<nlohmann::json>>();
-    for (const auto &expr : expressions) {
-      auto deserialized_expr = DeserializeExpression(expr);
-      // TODO(WAN): MEMORY!
-      exprs_.push_back(common::ManagedPointer(deserialized_expr));
-    }
+//    for (const auto &expr : expressions) {
+//      exprs_.push_back(DeserializeExpression(expr));
+//    }
   }
 
  private:
@@ -207,7 +205,7 @@ class GroupByDescription {
    */
   GroupByDescription(std::vector<common::ManagedPointer<AbstractExpression>> columns,
                      common::ManagedPointer<AbstractExpression> having)
-      : columns_(std::move(columns)), having_(having) {}
+      : columns_(std::move(columns)), having_(std::move(having)) {}
 
   /**
    * Default constructor for deserialization
@@ -255,13 +253,9 @@ class GroupByDescription {
    */
   nlohmann::json ToJson() const {
     nlohmann::json j;
-    std::vector<nlohmann::json> columns_json;
-    columns_json.reserve(columns_.size());
-    for (const auto &col : columns_) {
-      columns_json.emplace_back(col->ToJson());
-    }
-    j["columns"] = columns_json;
-    j["having"] = having_->ToJson();
+    // TODO(WAN)
+    //    j["columns"] = columns_;
+    //    j["having"] = having_;
     return j;
   }
 
@@ -271,11 +265,9 @@ class GroupByDescription {
   void FromJson(const nlohmann::json &j) {
     // Deserialize columns
     auto column_expressions = j.at("columns").get<std::vector<nlohmann::json>>();
-    for (const auto &expr : column_expressions) {
-      auto deserialized_expr = DeserializeExpression(expr);
-      // TODO(WAN): MEMORY!
-      columns_.push_back(common::ManagedPointer(deserialized_expr));
-    }
+//    for (const auto &expr : column_expressions) {
+//      columns_.push_back(DeserializeExpression(expr));
+//    }
 
     // Deserialize having
     if (!j.at("having").is_null()) {
@@ -350,6 +342,11 @@ class SelectStatement : public SQLStatement {
   common::ManagedPointer<LimitDescription> GetSelectLimit() { return common::ManagedPointer(limit_); }
 
   /**
+   * @return depth of the select statement
+   */
+  const int GetDepth() { return depth_; }
+
+  /**
    * Adds a select statement child as a union target.
    * @param select_stmt select statement to union with
    */
@@ -403,6 +400,7 @@ class SelectStatement : public SQLStatement {
   void FromJson(const nlohmann::json &j) override;
 
  private:
+  friend class binder::BindNodeVisitor;
   std::vector<common::ManagedPointer<AbstractExpression>> select_;
   bool select_distinct_;
   std::unique_ptr<TableRef> from_;
@@ -411,6 +409,17 @@ class SelectStatement : public SQLStatement {
   std::unique_ptr<OrderByDescription> order_by_;
   std::unique_ptr<LimitDescription> limit_;
   std::unique_ptr<SelectStatement> union_select_;
+  int depth_ = -1;
+
+  /**
+   * @param select List of select columns
+   */
+  void SetSelectColumns(std::vector<common::ManagedPointer<AbstractExpression>> select) { select_ = std::move(select); }
+
+  /**
+   * @param depth Depth of the select statement
+   */
+  void SetDepth(int depth) { depth_ = depth; }
 };
 
 DEFINE_JSON_DECLARATIONS(SelectStatement);
