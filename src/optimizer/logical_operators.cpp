@@ -353,12 +353,12 @@ bool LogicalDelete::operator==(const BaseOperatorNode &r) {
 
 Operator LogicalUpdate::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
                              catalog::table_oid_t table_oid,
-                             common::ManagedPointer<std::vector<std::unique_ptr<parser::UpdateClause>>> updates) {
+                             std::vector<std::unique_ptr<parser::UpdateClause>> &&updates) {
   auto *op = new LogicalUpdate;
   op->database_oid_ = database_oid;
   op->namespace_oid_ = namespace_oid;
   op->table_oid_ = table_oid;
-  op->updates_ = updates;
+  op->updates_ = std::move(updates);
   return Operator(op);
 }
 
@@ -367,8 +367,11 @@ common::hash_t LogicalUpdate::Hash() const {
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_oid_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(namespace_oid_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_oid_));
-  if (updates_ && updates_.Get() != nullptr)
-    hash = common::HashUtil::CombineHashInRange(hash, updates_.Get()->begin(), updates_.Get()->end());
+  for (const auto & clause : updates_) {
+    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(clause->GetUpdateValue()));
+    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(clause->GetColumnName()));
+  }
+  //hash = common::HashUtil::CombineHashInRange(hash, updates_.begin(), updates_.end());
   return hash;
 }
 
@@ -378,7 +381,11 @@ bool LogicalUpdate::operator==(const BaseOperatorNode &r) {
   if (database_oid_ != node.database_oid_) return false;
   if (namespace_oid_ != node.namespace_oid_) return false;
   if (table_oid_ != node.table_oid_) return false;
-  if (updates_ != node.updates_) return false;
+  //if (updates_ != node.updates_) return false;
+  if (updates_.size() != node.updates_.size()) return false;
+  for (size_t i = 0; i < updates_.size(); i++) {
+    if (*(updates_[i]) != *(node.updates_[i])) return false;
+  }
   return (true);
 }
 
