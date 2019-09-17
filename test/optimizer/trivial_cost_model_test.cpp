@@ -1,8 +1,8 @@
-#include <string>
 #include <unordered_map>
 #include <unordered_set>
-#include <utility>
+#include <string>
 #include <vector>
+#include <utility>
 
 #include "optimizer/cost_model/trivial_cost_model.h"
 #include "optimizer/group_expression.h"
@@ -18,7 +18,7 @@
 namespace terrier::optimizer {
 // NOLINTNEXTLINE
 TEST(TrivialCostModelTests, SeqScanTest) {
-  Operator seq_scan = SeqScan::Make(catalog::db_oid_t(2), catalog::namespace_oid_t(2), catalog::table_oid_t(3),
+  Operator seq_scan = SeqScan::make(catalog::db_oid_t(2), catalog::namespace_oid_t(2), catalog::table_oid_t(3),
                                     std::vector<AnnotatedExpression>(), "table", false);
   GroupExpression g = GroupExpression(seq_scan);
   GroupExpression *gexpr = &g;
@@ -36,7 +36,7 @@ TEST(TrivialCostModelTests, SeqScanTest) {
 // NOLINTNEXTLINE
 TEST(TrivialCostModelTests, IndexScanTest) {
   Operator index_scan =
-      IndexScan::Make(catalog::db_oid_t(2), catalog::namespace_oid_t(2), catalog::index_oid_t(3),
+      IndexScan::make(catalog::db_oid_t(2), catalog::namespace_oid_t(2), catalog::index_oid_t(3),
                       std::vector<AnnotatedExpression>(), "table", false, std::vector<catalog::col_oid_t>(),
                       std::vector<parser::ExpressionType>(), std::vector<type::TransientValue>());
   GroupExpression g = GroupExpression(index_scan);
@@ -56,7 +56,7 @@ TEST(TrivialCostModelTests, IndexScanTest) {
 TEST(TrivialCostModelTests, QueryDerivedScanTest) {
   auto alias_to_expr_map = std::unordered_map<std::string, common::ManagedPointer<parser::AbstractExpression>>();
 
-  Operator query_derived_scan = QueryDerivedScan::Make("alias", std::move(alias_to_expr_map));
+  Operator query_derived_scan = QueryDerivedScan::make("alias", std::move(alias_to_expr_map));
   GroupExpression g = GroupExpression(query_derived_scan);
   GroupExpression *gexpr = &g;
   Memo *memo = nullptr;
@@ -72,7 +72,7 @@ TEST(TrivialCostModelTests, QueryDerivedScanTest) {
 
 // NOLINTNEXTLINE
 TEST(TrivialCostModelTests, OrderByTest) {
-  Operator order_by = OrderBy::Make();
+  Operator order_by = OrderBy::make();
   GroupExpression g = GroupExpression(order_by);
   GroupExpression *gexpr = &g;
   Memo *memo = nullptr;
@@ -94,7 +94,7 @@ TEST(TrivialCostModelTests, LimitTest) {
   auto sort_expr = common::ManagedPointer<parser::AbstractExpression>(sort_expr_ori);
   planner::OrderByOrderingType sort_dir = planner::OrderByOrderingType::ASC;
 
-  Operator lim = Limit::Make(offset, limit, {sort_expr}, {sort_dir});
+  Operator lim = Limit::make(offset, limit, {sort_expr}, {sort_dir});
   GroupExpression g = GroupExpression(lim);
   GroupExpression *gexpr = &g;
   Memo *memo = nullptr;
@@ -116,7 +116,7 @@ TEST(TrivialCostModelTests, InnerNLJoinTest) {
 
   auto x = common::ManagedPointer<parser::AbstractExpression>(expr_b);
 
-  Operator inner_nl_join = InnerNLJoin::Make(std::vector<AnnotatedExpression>(), {x}, {x});
+  Operator inner_nl_join = InnerNLJoin::make(std::vector<AnnotatedExpression>(), {x}, {x});
 
   GroupExpression g = GroupExpression(inner_nl_join);
   GroupExpression *gexpr = &g;
@@ -139,7 +139,7 @@ TEST(TrivialCostModelTests, LeftNLJoinTest) {
 
   auto x = common::ManagedPointer<parser::AbstractExpression>(expr_b);
 
-  Operator left_nl_join = LeftNLJoin::Make(x);
+  Operator left_nl_join = LeftNLJoin::make(x);
 
   GroupExpression g = GroupExpression(left_nl_join);
   GroupExpression *gexpr = &g;
@@ -162,7 +162,7 @@ TEST(TrivialCostModelTests, RightNLJoinTest) {
 
   auto x = common::ManagedPointer<parser::AbstractExpression>(expr_b);
 
-  Operator right_nl_join = RightNLJoin::Make(x);
+  Operator right_nl_join = RightNLJoin::make(x);
 
   GroupExpression g = GroupExpression(right_nl_join);
   GroupExpression *gexpr = &g;
@@ -185,7 +185,7 @@ TEST(TrivialCostModelTests, OuterNLJoinTest) {
 
   auto x = common::ManagedPointer<parser::AbstractExpression>(expr_b);
 
-  Operator outer_nl_join = OuterNLJoin::Make(x);
+  Operator outer_nl_join = OuterNLJoin::make(x);
 
   GroupExpression g = GroupExpression(outer_nl_join);
   GroupExpression *gexpr = &g;
@@ -208,7 +208,7 @@ TEST(TrivialCostModelTests, InnerHashJoinTest) {
 
   auto x = common::ManagedPointer<parser::AbstractExpression>(expr_b);
 
-  Operator inner_hash_join = InnerHashJoin::Make(std::vector<AnnotatedExpression>(), {x}, {x});
+  Operator inner_hash_join = InnerHashJoin::make(std::vector<AnnotatedExpression>(), {x}, {x});
 
   GroupExpression g = GroupExpression(inner_hash_join);
   GroupExpression *gexpr = &g;
@@ -231,7 +231,7 @@ TEST(TrivialCostModelTests, LeftHashJoinTest) {
 
   auto x = common::ManagedPointer<parser::AbstractExpression>(expr_b);
 
-  Operator left_hash_join = LeftHashJoin::Make(x);
+  Operator left_hash_join = LeftHashJoin::make(x);
 
   GroupExpression g = GroupExpression(left_hash_join);
   GroupExpression *gexpr = &g;
@@ -254,7 +254,7 @@ TEST(TrivialCostModelTests, RightHashJoinTest) {
 
   auto x = common::ManagedPointer<parser::AbstractExpression>(expr_b);
 
-  Operator right_hash_join = RightHashJoin::Make(x);
+  Operator right_hash_join = RightHashJoin::make(x);
 
   GroupExpression g = GroupExpression(right_hash_join);
   GroupExpression *gexpr = &g;
@@ -277,7 +277,7 @@ TEST(TrivialCostModelTests, OuterHashJoinTest) {
 
   auto x = common::ManagedPointer<parser::AbstractExpression>(expr_b);
 
-  Operator outer_hash_join = OuterHashJoin::Make(x);
+  Operator outer_hash_join = OuterHashJoin::make(x);
 
   GroupExpression g = GroupExpression(outer_hash_join);
   GroupExpression *gexpr = &g;
@@ -307,7 +307,7 @@ TEST(TrivialCostModelTests, InsertTest) {
       std::vector<common::ManagedPointer<parser::AbstractExpression>>(raw_values, std::end(raw_values))};
 
   Operator insert =
-      Insert::Make(database_oid, namespace_oid, table_oid, std::vector<catalog::col_oid_t>(columns, std::end(columns)),
+      Insert::make(database_oid, namespace_oid, table_oid, std::vector<catalog::col_oid_t>(columns, std::end(columns)),
                    std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>(values));
 
   GroupExpression g = GroupExpression(insert);
@@ -329,7 +329,7 @@ TEST(TrivialCostModelTests, InsertSelectTest) {
   catalog::namespace_oid_t namespace_oid(456);
   catalog::table_oid_t table_oid(789);
 
-  Operator insert_select = InsertSelect::Make(database_oid, namespace_oid, table_oid);
+  Operator insert_select = InsertSelect::make(database_oid, namespace_oid, table_oid);
 
   GroupExpression g = GroupExpression(insert_select);
   GroupExpression *gexpr = &g;
@@ -354,7 +354,7 @@ TEST(TrivialCostModelTests, DeleteTest) {
   catalog::namespace_oid_t namespace_oid(456);
   catalog::table_oid_t table_oid(789);
 
-  Operator del = Delete::Make(database_oid, namespace_oid, table_oid, x);
+  Operator del = Delete::make(database_oid, namespace_oid, table_oid, x);
 
   GroupExpression g = GroupExpression(del);
   GroupExpression *gexpr = &g;
@@ -383,7 +383,7 @@ TEST(TrivialCostModelTests, UpdateTest) {
   catalog::namespace_oid_t namespace_oid(456);
   catalog::table_oid_t table_oid(789);
 
-  Operator update = Update::Make(database_oid, namespace_oid, table_oid, {update_clause});
+  Operator update = Update::make(database_oid, namespace_oid, table_oid, {update_clause});
 
   GroupExpression g = GroupExpression(update);
   GroupExpression *gexpr = &g;
@@ -410,7 +410,7 @@ TEST(TrivialCostModelTests, HashGroupByTest) {
   auto annotated_expr =
       AnnotatedExpression(common::ManagedPointer<parser::AbstractExpression>(), std::unordered_set<std::string>());
 
-  Operator group_by = HashGroupBy::Make(std::vector<common::ManagedPointer<parser::AbstractExpression>>{x},
+  Operator group_by = HashGroupBy::make(std::vector<common::ManagedPointer<parser::AbstractExpression>>{x},
                                         std::vector<AnnotatedExpression>{annotated_expr});
 
   GroupExpression g = GroupExpression(group_by);
@@ -437,7 +437,7 @@ TEST(TrivialCostModelTests, SortGroupByTest) {
   auto annotated_expr =
       AnnotatedExpression(common::ManagedPointer<parser::AbstractExpression>(), std::unordered_set<std::string>());
 
-  Operator sort_group_by = SortGroupBy::Make(std::vector<common::ManagedPointer<parser::AbstractExpression>>{x},
+  Operator sort_group_by = SortGroupBy::make(std::vector<common::ManagedPointer<parser::AbstractExpression>>{x},
                                              std::vector<AnnotatedExpression>{annotated_expr});
 
   GroupExpression g = GroupExpression(sort_group_by);
@@ -457,7 +457,7 @@ TEST(TrivialCostModelTests, SortGroupByTest) {
 
 // NOLINTNEXTLINE
 TEST(TrivialCostModelTests, DistinctTest) {
-  Operator distinct = Distinct::Make();
+  Operator distinct = Distinct::make();
 
   GroupExpression g = GroupExpression(distinct);
   GroupExpression *gexpr = &g;
@@ -474,7 +474,7 @@ TEST(TrivialCostModelTests, DistinctTest) {
 
 // NOLINTNEXTLINE
 TEST(TrivialCostModelTests, AggregateTest) {
-  Operator aggregate = Aggregate::Make();
+  Operator aggregate = Aggregate::make();
 
   GroupExpression g = GroupExpression(aggregate);
   GroupExpression *gexpr = &g;

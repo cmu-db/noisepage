@@ -616,7 +616,6 @@ TEST(PlanNodeJsonTest, DropTriggerPlanNodeTest) {
   auto drop_trigger_plan = std::dynamic_pointer_cast<DropTriggerPlanNode>(deserialized_plan);
   EXPECT_EQ(*plan_node, *drop_trigger_plan);
   EXPECT_EQ(plan_node->Hash(), drop_trigger_plan->Hash());
-  EXPECT_EQ(plan_node->Hash(), drop_trigger_plan->Hash());
 }
 
 // NOLINTNEXTLINE
@@ -728,7 +727,6 @@ TEST(PlanNodeJsonTest, IndexScanPlanNodeJsonTest) {
                        .SetIsForUpdateFlag(false)
                        .SetDatabaseOid(catalog::db_oid_t(0))
                        .SetIndexOid(catalog::index_oid_t(0))
-                       .SetTableOid(catalog::table_oid_t(0))
                        .SetNamespaceOid(catalog::namespace_oid_t(0))
                        .Build();
 
