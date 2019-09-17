@@ -2,6 +2,7 @@
 
 #include <iostream>
 #include "loggers/catalog_logger.h"
+#include "loggers/execution_logger.h"
 #include "loggers/index_logger.h"
 #include "loggers/main_logger.h"
 #include "loggers/network_logger.h"
@@ -37,6 +38,7 @@ class LoggersUtil {
       settings::InitSettingsLogger();
       parser::InitParserLogger();
       network::InitNetworkLogger();
+      execution::InitExecutionLogger();
 
       if (testing) {
         InitTestLogger();
