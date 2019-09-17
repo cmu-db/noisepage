@@ -164,15 +164,6 @@ class IndexScanPlanNode : public AbstractScanPlanNode {
     }
 
     /**
-     * @param oid OID for table to use for scan
-     * @return builder object
-     */
-    Builder &SetTableOid(catalog::table_oid_t oid) {
-      table_oid_ = oid;
-      return *this;
-    }
-
-    /**
      * @param column_oids OIDs of columns to scan
      * @return builder object
      */
@@ -195,10 +186,9 @@ class IndexScanPlanNode : public AbstractScanPlanNode {
      * @return plan node
      */
     std::shared_ptr<IndexScanPlanNode> Build() {
-      return std::shared_ptr<IndexScanPlanNode>(
-          new IndexScanPlanNode(std::move(children_), std::move(output_schema_), scan_predicate_,
-                                std::move(column_oids_), std::move(index_scan_desc_), is_for_update_, is_parallel_,
-                                database_oid_, namespace_oid_, index_oid_, table_oid_));
+      return std::shared_ptr<IndexScanPlanNode>(new IndexScanPlanNode(
+          std::move(children_), std::move(output_schema_), scan_predicate_, std::move(column_oids_),
+          std::move(index_scan_desc_), is_for_update_, is_parallel_, database_oid_, namespace_oid_, index_oid_));
     }
 
    protected:
@@ -206,11 +196,6 @@ class IndexScanPlanNode : public AbstractScanPlanNode {
      * index OID to be used for scan
      */
     catalog::index_oid_t index_oid_;
-
-    /**
-     * table OID to be used for scan
-     */
-    catalog::table_oid_t table_oid_;
 
     /**
      * OIDS of columns to scan
@@ -228,7 +213,7 @@ class IndexScanPlanNode : public AbstractScanPlanNode {
    * @param children child plan nodes
    * @param output_schema Schema representing the structure of the output of this plan node
    * @param predicate predicate used for performing scan
-   * @param column_ids OIDs of columns to scan
+   * @parma column_ids OIDs of columns to scan
    * @param scan_desc IndexScanDesc for the index scan
    * @param is_for_update scan is used for an update
    * @param is_parallel parallel scan flag
@@ -239,11 +224,10 @@ class IndexScanPlanNode : public AbstractScanPlanNode {
                     std::shared_ptr<OutputSchema> output_schema, const parser::AbstractExpression *predicate,
                     std::vector<catalog::col_oid_t> &&column_ids, IndexScanDesc &&scan_desc, bool is_for_update,
                     bool is_parallel, catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
-                    catalog::index_oid_t index_oid, catalog::table_oid_t table_oid)
+                    catalog::index_oid_t index_oid)
       : AbstractScanPlanNode(std::move(children), std::move(output_schema), predicate, is_for_update, is_parallel,
                              database_oid, namespace_oid),
         index_oid_(index_oid),
-        table_oid_(table_oid),
         column_ids_(column_ids),
         index_scan_desc_(std::move(scan_desc)) {}
 
@@ -259,11 +243,6 @@ class IndexScanPlanNode : public AbstractScanPlanNode {
    * @return index OID to be used for scan
    */
   catalog::index_oid_t GetIndexOid() const { return index_oid_; }
-
-  /**
-   * @return table OID to be used for scan
-   */
-  catalog::table_oid_t GetTableOid() const { return table_oid_; }
 
   /**
    * @return OIDs of columns to scan
@@ -294,11 +273,6 @@ class IndexScanPlanNode : public AbstractScanPlanNode {
    * Index oid associated with index scan
    */
   catalog::index_oid_t index_oid_;
-
-  /**
-   * Table oid associated with index scan
-   */
-  catalog::table_oid_t table_oid_;
 
   /**
    * OIDs of columns to scan
