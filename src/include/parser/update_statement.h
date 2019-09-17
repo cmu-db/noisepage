@@ -59,7 +59,7 @@ class UpdateStatement : public SQLStatement {
       : SQLStatement(StatementType::UPDATE),
         table_(std::move(table)),
         updates_(std::move(updates)),
-        where_(std::move(where)) {}
+        where_(where) {}
 
   UpdateStatement() : SQLStatement(StatementType::UPDATE), table_(nullptr), where_(nullptr) {}
 

@@ -90,8 +90,8 @@ struct ColumnDefinition {
         is_primary_(is_primary),
         is_not_null_(is_not_null),
         is_unique_(is_unique),
-        default_expr_(std::move(default_expr)),
-        check_expr_(std::move(check_expr)),
+        default_expr_(default_expr),
+        check_expr_(check_expr),
         varlen_(varlen) {}
 
   virtual ~ColumnDefinition() = default;
