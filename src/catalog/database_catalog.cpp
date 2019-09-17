@@ -53,11 +53,11 @@ void DatabaseCatalog::Bootstrap(transaction::TransactionContext *const txn) {
   delete_columns_pri_ = columns_->InitializerForProjectedRow(delete_columns_oids);
   delete_columns_prm_ = columns_->ProjectionMapForOids(delete_columns_oids);
 
-  const std::vector<col_oid_t> delete_table_oids{postgres::PG_CLASS_ALL_COL_OIDS.cbegin(),
-                                                 postgres::PG_CLASS_ALL_COL_OIDS.cend()};
+  const std::vector<col_oid_t> delete_table_or_index_oids{postgres::PG_CLASS_ALL_COL_OIDS.cbegin(),
+                                                          postgres::PG_CLASS_ALL_COL_OIDS.cend()};
 
-  delete_table_pri_ = classes_->InitializerForProjectedRow(delete_table_oids);
-  delete_table_prm_ = classes_->ProjectionMapForOids(delete_table_oids);
+  delete_table_or_index_pri_ = classes_->InitializerForProjectedRow(delete_table_or_index_oids);
+  delete_table_or_index_prm_ = classes_->ProjectionMapForOids(delete_table_or_index_oids);
 
   // Declare variable for return values (UNUSED when compiled for release)
   bool UNUSED_ATTRIBUTE retval;
@@ -595,9 +595,9 @@ bool DatabaseCatalog::DeleteTable(transaction::TransactionContext *const txn, co
 
   const auto oid_pri = classes_oid_index_->GetProjectedRowInitializer();
 
-  TERRIER_ASSERT(delete_table_pri_.ProjectedRowSize() >= oid_pri.ProjectedRowSize(),
+  TERRIER_ASSERT(delete_table_or_index_pri_.ProjectedRowSize() >= oid_pri.ProjectedRowSize(),
                  "Buffer must be allocated for largest ProjectedRow size");
-  auto *const buffer = common::AllocationUtil::AllocateAligned(delete_table_pri_.ProjectedRowSize());
+  auto *const buffer = common::AllocationUtil::AllocateAligned(delete_table_or_index_pri_.ProjectedRowSize());
   auto *const key_pr = oid_pri.InitializeRow(buffer);
 
   // Find the entry using the index
@@ -614,7 +614,7 @@ bool DatabaseCatalog::DeleteTable(transaction::TransactionContext *const txn, co
   TERRIER_ASSERT(index_results.size() == 1, "You got more than one result from a unique index. How did you do that?");
 
   // Select the tuple out of the table before deletion. We need the attributes to do index deletions later
-  auto *const table_pr = delete_table_pri_.InitializeRow(buffer);
+  auto *const table_pr = delete_table_or_index_pri_.InitializeRow(buffer);
   result = classes_->Select(txn, index_results[0], table_pr);
   TERRIER_ASSERT(result, "Select must succeed if the index scan gave a visible result.");
 
@@ -628,20 +628,20 @@ bool DatabaseCatalog::DeleteTable(transaction::TransactionContext *const txn, co
   }
 
   // Get the attributes we need for indexes
-  const table_oid_t table_oid =
-      *(reinterpret_cast<const table_oid_t *const>(table_pr->AccessForceNotNull(delete_table_prm_[postgres::RELOID_COL_OID])));
+  const table_oid_t table_oid = *(reinterpret_cast<const table_oid_t *const>(
+      table_pr->AccessForceNotNull(delete_table_or_index_prm_[postgres::RELOID_COL_OID])));
   TERRIER_ASSERT(table == table_oid,
                  "table oid from pg_classes did not match what was found by the index scan from the argument.");
   const namespace_oid_t ns_oid = *(reinterpret_cast<const namespace_oid_t *const>(
-      table_pr->AccessForceNotNull(delete_table_prm_[postgres::RELNAMESPACE_COL_OID])));
+      table_pr->AccessForceNotNull(delete_table_or_index_prm_[postgres::RELNAMESPACE_COL_OID])));
   const storage::VarlenEntry name_varlen = *(reinterpret_cast<const storage::VarlenEntry *const>(
-      table_pr->AccessForceNotNull(delete_table_prm_[postgres::RELNAME_COL_OID])));
+      table_pr->AccessForceNotNull(delete_table_or_index_prm_[postgres::RELNAME_COL_OID])));
 
   // Get the attributes we need for delete
-  auto *const schema_ptr = *(
-      reinterpret_cast<const Schema *const *const>(table_pr->AccessForceNotNull(delete_table_prm_[postgres::REL_SCHEMA_COL_OID])));
+  auto *const schema_ptr = *(reinterpret_cast<const Schema *const *const>(
+      table_pr->AccessForceNotNull(delete_table_or_index_prm_[postgres::REL_SCHEMA_COL_OID])));
   auto *const table_ptr = *(reinterpret_cast<storage::SqlTable *const *const>(
-      table_pr->AccessForceNotNull(delete_table_prm_[postgres::REL_PTR_COL_OID])));
+      table_pr->AccessForceNotNull(delete_table_or_index_prm_[postgres::REL_PTR_COL_OID])));
 
   const auto oid_index_init = classes_oid_index_->GetProjectedRowInitializer();
   const auto name_index_init = classes_name_index_->GetProjectedRowInitializer();
@@ -836,16 +836,10 @@ bool DatabaseCatalog::DeleteIndex(transaction::TransactionContext *txn, index_oi
   // Initialize PRs for pg_class
   const auto class_oid_pri = classes_oid_index_->GetProjectedRowInitializer();
 
-  const std::vector<col_oid_t> pg_class_oids{postgres::PG_CLASS_ALL_COL_OIDS.cbegin(),
-                                             postgres::PG_CLASS_ALL_COL_OIDS.cend()};
-
-  auto class_pr_init = classes_->InitializerForProjectedRow(pg_class_oids);
-  auto class_pr_map = classes_->ProjectionMapForOids(pg_class_oids);
-
   // Allocate buffer for largest PR
-  TERRIER_ASSERT(class_pr_init.ProjectedRowSize() >= class_oid_pri.ProjectedRowSize(),
+  TERRIER_ASSERT(delete_table_or_index_pri_.ProjectedRowSize() >= class_oid_pri.ProjectedRowSize(),
                  "Buffer must be allocated for largest ProjectedRow size");
-  auto *const buffer = common::AllocationUtil::AllocateAligned(class_pr_init.ProjectedRowSize());
+  auto *const buffer = common::AllocationUtil::AllocateAligned(delete_table_or_index_pri_.ProjectedRowSize());
   auto *key_pr = class_oid_pri.InitializeRow(buffer);
 
   // Find the entry using the index
@@ -862,7 +856,7 @@ bool DatabaseCatalog::DeleteIndex(transaction::TransactionContext *txn, index_oi
   TERRIER_ASSERT(index_results.size() == 1, "You got more than one result from a unique index. How did you do that?");
 
   // Select the tuple out of the table before deletion. We need the attributes to do index deletions later
-  auto *table_pr = class_pr_init.InitializeRow(buffer);
+  auto *table_pr = delete_table_or_index_pri_.InitializeRow(buffer);
   result = classes_->Select(txn, index_results[0], table_pr);
   TERRIER_ASSERT(result, "Select must succeed if the index scan gave a visible result.");
 
@@ -876,17 +870,17 @@ bool DatabaseCatalog::DeleteIndex(transaction::TransactionContext *txn, index_oi
   }
 
   // Get the attributes we need for pg_class indexes
-  table_oid_t table_oid = *(
-      reinterpret_cast<const table_oid_t *const>(table_pr->AccessForceNotNull(class_pr_map[postgres::RELOID_COL_OID])));
+  table_oid_t table_oid = *(reinterpret_cast<const table_oid_t *const>(
+      table_pr->AccessForceNotNull(delete_table_or_index_prm_[postgres::RELOID_COL_OID])));
   const namespace_oid_t ns_oid = *(reinterpret_cast<const namespace_oid_t *const>(
-      table_pr->AccessForceNotNull(class_pr_map[postgres::RELNAMESPACE_COL_OID])));
+      table_pr->AccessForceNotNull(delete_table_or_index_prm_[postgres::RELNAMESPACE_COL_OID])));
   const storage::VarlenEntry name_varlen = *(reinterpret_cast<const storage::VarlenEntry *const>(
-      table_pr->AccessForceNotNull(class_pr_map[postgres::RELNAME_COL_OID])));
+      table_pr->AccessForceNotNull(delete_table_or_index_prm_[postgres::RELNAME_COL_OID])));
 
   auto *const schema_ptr = *(reinterpret_cast<const IndexSchema *const *const>(
-      table_pr->AccessForceNotNull(class_pr_map[postgres::REL_SCHEMA_COL_OID])));
+      table_pr->AccessForceNotNull(delete_table_or_index_prm_[postgres::REL_SCHEMA_COL_OID])));
   auto *const index_ptr = *(reinterpret_cast<storage::index::Index *const *const>(
-      table_pr->AccessForceNotNull(class_pr_map[postgres::REL_PTR_COL_OID])));
+      table_pr->AccessForceNotNull(delete_table_or_index_prm_[postgres::REL_PTR_COL_OID])));
 
   const auto class_oid_index_init = classes_oid_index_->GetProjectedRowInitializer();
   const auto class_name_index_init = classes_name_index_->GetProjectedRowInitializer();
@@ -915,9 +909,9 @@ bool DatabaseCatalog::DeleteIndex(transaction::TransactionContext *txn, index_oi
 
   auto index_pr_init = indexes_->InitializerForProjectedRow({postgres::INDOID_COL_OID, postgres::INDRELID_COL_OID});
   auto index_pr_map = indexes_->ProjectionMapForOids({postgres::INDOID_COL_OID, postgres::INDRELID_COL_OID});
-  TERRIER_ASSERT((class_pr_init.ProjectedRowSize() >= index_pr_init.ProjectedRowSize()) &&
-                     (class_pr_init.ProjectedRowSize() >= index_oid_pr.ProjectedRowSize()) &&
-                     (class_pr_init.ProjectedRowSize() >= index_table_pr.ProjectedRowSize()),
+  TERRIER_ASSERT((delete_table_or_index_pri_.ProjectedRowSize() >= index_pr_init.ProjectedRowSize()) &&
+                     (delete_table_or_index_pri_.ProjectedRowSize() >= index_oid_pr.ProjectedRowSize()) &&
+                     (delete_table_or_index_pri_.ProjectedRowSize() >= index_table_pr.ProjectedRowSize()),
                  "Buffer must be allocated for largest ProjectedRow size");
 
   // Find the entry in pg_index using the oid index

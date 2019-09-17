@@ -279,8 +279,8 @@ class DatabaseCatalog {
   storage::index::Index *classes_oid_index_;
   storage::index::Index *classes_name_index_;  // indexed on namespace OID and name
   storage::index::Index *classes_namespace_index_;
-  storage::ProjectedRowInitializer delete_table_pri_;
-  storage::ProjectionMap delete_table_prm_;
+  storage::ProjectedRowInitializer delete_table_or_index_pri_;
+  storage::ProjectionMap delete_table_or_index_prm_;
 
   storage::SqlTable *indexes_;
   storage::index::Index *indexes_oid_index_;
