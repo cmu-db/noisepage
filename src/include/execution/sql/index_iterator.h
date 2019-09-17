@@ -83,6 +83,10 @@ class EXPORT IndexIterator {
     }
   }
 
+  storage::ProjectedRow *PR() { return index_pr_; }
+
+  storage::ProjectedRow *TablePR();
+
  private:
   exec::ExecutionContext *exec_ctx_;
   std::vector<catalog::col_oid_t> col_oids_;

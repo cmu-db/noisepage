@@ -25,14 +25,14 @@ fun setupState(state : *State, execCtx : *ExecutionContext) -> nil {
 }
 
 fun pipeline0(state : *State, execCtx : *ExecutionContext) -> nil {
-  // Initialize table
+  // Initialize table iterator
   var col_oids1: [2]uint32
   col_oids1[0] = 1 // colA
   col_oids1[1] = 2 // colB
   var tvi : TableVectorIterator
   @tableIterInitBind(&tvi, execCtx, "test_1", col_oids1)
 
-  // Initialize index
+  // Initialize index iterator
   var col_oids2: [4]uint32
   col_oids2[0] = 1 // col1 (raw offset = 3)
   col_oids2[1] = 2 // col2 (raw offset = 1)
@@ -41,21 +41,28 @@ fun pipeline0(state : *State, execCtx : *ExecutionContext) -> nil {
   var index : IndexIterator
   @indexIteratorInitBind(&index, execCtx, "test_2", "index_2_multi", col_oids2)
 
-  // Iterate
+  // Iterate through table
   for (@tableIterAdvance(&tvi)) {
     var pci = @tableIterGetPCI(&tvi)
     for (; @pciHasNext(pci); @pciAdvance(pci)) {
+      // Fill up the index PR using the current tuple
       // Note that the storage layer reorders columns in test_2
-      @indexIteratorSetKeySmallInt(&index, 1, @pciGetInt(pci, 0))
-      @indexIteratorSetKeyIntNull(&index, 0, @pciGetInt(pci, 1))
+      var index_pr = @indexIteratorGetPR(&index)
+      @prSetSmallInt(&index_pr, 1, @pciGetInt(pci, 0))
+      @prSetIntNull(&index_pr, 0, @pciGetInt(pci, 1))
+
+      // Iterate through matching tuples
       for (@indexIteratorScanKey(&index); @indexIteratorAdvance(&index);) {
+
+        // Materialize and output
+        var table_pr = @indexIteratorGetTablePR(&index)
         var out = @ptrCast(*Output, @outputAlloc(execCtx))
         out.test1_colA = @pciGetInt(pci, 0)
         out.test1_colB = @pciGetInt(pci, 1)
-        out.test2_col1 = @indexIteratorGetSmallInt(&index, 3)
-        out.test2_col2 = @indexIteratorGetIntNull(&index, 1)
-        out.test2_col3 = @indexIteratorGetBigInt(&index, 0)
-        out.test2_col4 = @indexIteratorGetIntNull(&index, 2)
+        out.test2_col1 = @prGetSmallInt(&table_pr, 3)
+        out.test2_col2 = @prGetIntNull(&table_pr, 1)
+        out.test2_col3 = @prGetBigInt(&table_pr, 0)
+        out.test2_col4 = @prGetIntNull(&table_pr, 2)
         if (out.test1_colA != out.test2_col1 or out.test1_colB != out.test2_col2) {
           state.correct = false
         }
@@ -63,6 +70,7 @@ fun pipeline0(state : *State, execCtx : *ExecutionContext) -> nil {
       }
     }
   }
+
   // Finalize output
   @outputFinalize(execCtx)
   @tableIterClose(&tvi)

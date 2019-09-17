@@ -12,21 +12,26 @@ struct output_struct {
 
 fun main(execCtx: *ExecutionContext) -> int64 {
   var res = 0
-  // output variable
-  var out : *output_struct
-  // Index iterator
+  // Initialize index iterator
   var index : IndexIterator
   var col_oids: [2]uint32
   col_oids[0] = 1 // col1
   col_oids[1] = 2 // col2
   @indexIteratorInitBind(&index, execCtx, "test_2", "index_2", col_oids)
-  @indexIteratorSetKeySmallInt(&index, 0, @intToSql(50)) // Set index_col1
-  // Attribute to indicate which iterator to use
+
+  // Fill up index PR
+  var index_pr = @indexIteratorGetPR(&index)
+  @prSetSmallInt(&index_pr, 0, @intToSql(50)) // Set index_col1
+
+  // Iterate
   for (@indexIteratorScanKey(&index); @indexIteratorAdvance(&index);) {
-    out = @ptrCast(*output_struct, @outputAlloc(execCtx))
-    // Note the reordering of the columns
-    out.col1 = @indexIteratorGetSmallInt(&index, 1)
-    out.col2 = @indexIteratorGetIntNull(&index, 0)
+    // Materialize
+    var table_pr = @indexIteratorGetTablePR(&index)
+
+    // Output (note the reordering of the columns)
+    var out = @ptrCast(*output_struct, @outputAlloc(execCtx))
+    out.col1 = @prGetSmallInt(&table_pr, 1)
+    out.col2 = @prGetIntNull(&table_pr, 0)
     res = res + 1
   }
   // Finalize output
