@@ -94,11 +94,6 @@ class Schema {
       TERRIER_ASSERT(type_ != type::TypeId::INVALID, "Attribute type cannot be INVALID.");
     }
 
-    Column &operator=(const Column &col) {
-      *this = Column(col);
-      return *this;
-    }
-
     /**
      * @return column name
      */

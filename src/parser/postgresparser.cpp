@@ -1127,9 +1127,9 @@ std::unique_ptr<SQLStatement> PostgresParser::CreateTransform(ParseResult *parse
     switch (node->type) {
       case T_ColumnDef: {
         auto res = ColumnDefTransform(parse_result, reinterpret_cast<ColumnDef *>(node));
-        columns.emplace_back(std::move(res.col));
-        foreign_keys.insert(foreign_keys.end(), std::make_move_iterator(res.fks.begin()),
-                            std::make_move_iterator(res.fks.end()));
+        columns.emplace_back(std::move(res.col_));
+        foreign_keys.insert(foreign_keys.end(), std::make_move_iterator(res.fks_.begin()),
+                            std::make_move_iterator(res.fks_.end()));
         break;
       }
       case T_Constraint: {
