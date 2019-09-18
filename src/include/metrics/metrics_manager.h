@@ -23,9 +23,7 @@ namespace terrier::metrics {
 class MetricsManager {
  public:
   /**
-   * Aggregate metrics from all threads which have collected stats,
-   * combine with what was previously persisted in internal SQL tables
-   * and insert new total into SQLtable.
+   * Aggregate metrics from all threads which have collected stats, combine with what was previously collected
    *
    * @warning this method should be called before manipulating the worker pool, especially if
    * some of the worker threads are reassigned to tasks other than execution.

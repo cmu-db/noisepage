@@ -1,8 +1,5 @@
 #pragma once
 
-#include <array>
-#include <bitset>
-
 namespace terrier::metrics {
 #define METRICS_DISABLED nullptr
 

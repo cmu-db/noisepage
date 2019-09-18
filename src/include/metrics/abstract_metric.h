@@ -1,15 +1,11 @@
 #pragma once
 
+#include <common/spin_latch.h>
 #include <atomic>
-#include <fstream>
 #include <memory>
-#include <string>
-#include <utility>
 
-#include "catalog/catalog_defs.h"
-#include "common/gate.h"
+#include "common/spin_latch.h"
 #include "metrics/abstract_raw_data.h"
-#include "metrics/metrics_defs.h"
 
 namespace terrier::metrics {
 /**
@@ -45,7 +41,7 @@ class RawDataWrapper {
   /**
    * Unblock aggregator
    */
-  ~RawDataWrapper() { gate_->Unlock(); }
+  ~RawDataWrapper() { latch_->Unlock(); }
 
   /**
    * Don't allow RawDataWrapper to be copied, only allow change of ownership (move)
@@ -61,11 +57,11 @@ class RawDataWrapper {
   /**
    * Constructs a new Wrapper instance
    * @param ptr the pointer it wraps around
-   * @param safe the boolean variable it uses to signal its lifetime
+   * @param latch the boolean variable it uses to signal its lifetime
    */
-  RawDataWrapper(DataType *ptr, common::Gate *gate) : ptr_(ptr), gate_(gate) {}
-  DataType *ptr_;
-  common::Gate *gate_;
+  RawDataWrapper(DataType *const ptr, common::SpinLatch *const latch) : ptr_(ptr), latch_(latch) {}
+  DataType *const ptr_;
+  common::SpinLatch *const latch_;
 };
 
 /**
@@ -120,7 +116,7 @@ class AbstractMetric {
     // We will need to wait for last writer to finish before it's safe
     // to start reading the content. It is okay to block since this
     // method should only be called from the aggregator thread.
-    gate_.Traverse();
+    common::SpinLatch::ScopedSpinLatch guard(&latch_);
     return std::unique_ptr<AbstractRawData>(old_data);
   }
 
@@ -132,12 +128,12 @@ class AbstractMetric {
    * @return a RawDataWrapper object to access raw_data_
    */
   RawDataWrapper<DataType> GetRawData() {
-    // safe_ should first be flipped to false before loading the raw_data_ so
+    // latch_ should first be flipped to false before loading the raw_data_ so
     // that the aggregator would always be blocked when it tries to swap out if
     // there is a reader. At most one instance of this should be live at any
     // given time.
-    gate_.Lock();
-    return {raw_data_.load(), &gate_};
+    latch_.Lock();
+    return {raw_data_.load(), &latch_};
   }
 
  private:
@@ -148,6 +144,6 @@ class AbstractMetric {
   /**
    * Indicate whether it is safe to read the raw data, similar to a latch
    */
-  common::Gate gate_;
+  common::SpinLatch latch_;
 };
 }  // namespace terrier::metrics

@@ -15,19 +15,12 @@ namespace terrier::common {
  * thread's MetricsStore.
  */
 struct ThreadContext {
-  /**
-   * @param metrics_store This thread's MetricsStore. Fine to pass in nullptr since registering it with the
-   * MetricsManager is what sets the metrics_store_ field.
-   */
-  explicit ThreadContext(common::ManagedPointer<metrics::MetricsStore> metrics_store) noexcept
-      : metrics_store_(metrics_store) {}
-
   ~ThreadContext();
 
   /**
    * nullptr if not registered with MetricsManager
    */
-  common::ManagedPointer<metrics::MetricsStore> metrics_store_;
+  common::ManagedPointer<metrics::MetricsStore> metrics_store_ = nullptr;
 };
 
 extern thread_local common::ThreadContext thread_context;
