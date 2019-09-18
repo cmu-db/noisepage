@@ -1,7 +1,6 @@
 #pragma once
 
 namespace terrier::metrics {
-#define METRICS_DISABLED nullptr
 
 /**
  * Metric types

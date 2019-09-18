@@ -101,7 +101,7 @@ std::pair<uint64_t, uint64_t> LargeTransactionBenchmarkObject::SimulateOltp(
   if (gc_on_) {
     // Then there is no need to keep track of RandomWorkloadTransaction objects
     workload = [&](uint32_t /*unused*/) {
-      if (metrics_thread != METRICS_DISABLED) metrics_thread->GetMetricsManager().RegisterThread();
+      if (metrics_thread != DISABLED) metrics_thread->GetMetricsManager().RegisterThread();
       for (uint32_t txn_id = txns_run++; txn_id < num_transactions; txn_id = txns_run++) {
         RandomWorkloadTransaction txn(this);
         SimulateOneTransaction(&txn, txn_id);
@@ -112,7 +112,7 @@ std::pair<uint64_t, uint64_t> LargeTransactionBenchmarkObject::SimulateOltp(
     // Either for correctness checking, or to cleanup memory afterwards, we need to retain these
     // test objects
     workload = [&](uint32_t /*unused*/) {
-      if (metrics_thread != METRICS_DISABLED) metrics_thread->GetMetricsManager().RegisterThread();
+      if (metrics_thread != DISABLED) metrics_thread->GetMetricsManager().RegisterThread();
       for (uint32_t txn_id = txns_run++; txn_id < num_transactions; txn_id = txns_run++) {
         txns[txn_id] = new RandomWorkloadTransaction(this);
         SimulateOneTransaction(txns[txn_id], txn_id);

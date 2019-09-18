@@ -12,12 +12,7 @@
 #include "transaction/transaction_manager.h"
 #include "util/tpcc/builder.h"
 #include "util/tpcc/database.h"
-#include "util/tpcc/delivery.h"
 #include "util/tpcc/loader.h"
-#include "util/tpcc/new_order.h"
-#include "util/tpcc/order_status.h"
-#include "util/tpcc/payment.h"
-#include "util/tpcc/stock_level.h"
 #include "util/tpcc/worker.h"
 #include "util/tpcc/workload.h"
 
@@ -157,7 +152,7 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithLogging)(benchmark::State &sta
   for (auto _ : state) {
     thread_pool_.Startup();
     unlink(LOG_FILE_NAME);
-    thread_registry_ = new common::DedicatedThreadRegistry(METRICS_DISABLED);
+    thread_registry_ = new common::DedicatedThreadRegistry(DISABLED);
     // we need transactions, TPCC database, and GC
     log_manager_ =
         new storage::LogManager(LOG_FILE_NAME, num_log_buffers_, log_serialization_interval_, log_persist_interval_,
