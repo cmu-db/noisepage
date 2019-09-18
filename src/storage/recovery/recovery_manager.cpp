@@ -449,6 +449,8 @@ uint32_t RecoveryManager::ProcessSpecialCasePGDatabaseRecord(
     auto result UNUSED_ATTRIBUTE = catalog_->CreateDatabase(txn, name_string, false, db_oid);
     TERRIER_ASSERT(result, "Database recreation should succeed");
     catalog_->UpdateNextOid(db_oid);
+    // Manually bootstrap the PRIs
+    catalog_->GetDatabaseCatalog(txn, db_oid)->BootstrapPRIs();
 
     // Step 3: Update metadata. We need to use the indexes on pg_database to find what tuple slot we just inserted into.
     // We get the new tuple slot using the oid index.

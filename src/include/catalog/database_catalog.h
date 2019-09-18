@@ -271,24 +271,48 @@ class DatabaseCatalog {
   storage::SqlTable *namespaces_;
   storage::index::Index *namespaces_oid_index_;
   storage::index::Index *namespaces_name_index_;
+  storage::ProjectedRowInitializer pg_namespace_all_cols_pri_;
+  storage::ProjectionMap pg_namespace_all_cols_prm_;
+  storage::ProjectedRowInitializer delete_namespace_pri_;
+  storage::ProjectedRowInitializer get_namespace_pri_;
 
   storage::SqlTable *classes_;
   storage::index::Index *classes_oid_index_;
   storage::index::Index *classes_name_index_;  // indexed on namespace OID and name
   storage::index::Index *classes_namespace_index_;
+  storage::ProjectedRowInitializer pg_class_all_cols_pri_;
+  storage::ProjectionMap pg_class_all_cols_prm_;
+  storage::ProjectedRowInitializer get_class_oid_kind_pri_;
+  storage::ProjectedRowInitializer set_class_pointer_pri_;
+  storage::ProjectedRowInitializer set_class_schema_pri_;
+  storage::ProjectedRowInitializer get_class_pointer_kind_pri_;
+  storage::ProjectedRowInitializer get_class_schema_pointer_kind_pri_;
 
   storage::SqlTable *indexes_;
   storage::index::Index *indexes_oid_index_;
   storage::index::Index *indexes_table_index_;
+  storage::ProjectedRowInitializer get_indexes_pri_;
+  storage::ProjectedRowInitializer delete_index_pri_;
+  storage::ProjectionMap delete_index_prm_;
+  storage::ProjectedRowInitializer pg_index_all_cols_pri_;
+  storage::ProjectionMap pg_index_all_cols_prm_;
 
   storage::SqlTable *columns_;
   storage::index::Index *columns_oid_index_;   // indexed on class OID and column OID
   storage::index::Index *columns_name_index_;  // indexed on class OID and column name
+  storage::ProjectedRowInitializer pg_attribute_all_cols_pri_;
+  storage::ProjectionMap pg_attribute_all_cols_prm_;
+  storage::ProjectedRowInitializer get_columns_pri_;
+  storage::ProjectionMap get_columns_prm_;
+  storage::ProjectedRowInitializer delete_columns_pri_;
+  storage::ProjectionMap delete_columns_prm_;
 
   storage::SqlTable *types_;
   storage::index::Index *types_oid_index_;
   storage::index::Index *types_name_index_;  // indexed on namespace OID and name
   storage::index::Index *types_namespace_index_;
+  storage::ProjectedRowInitializer pg_type_all_cols_pri_;
+  storage::ProjectionMap pg_type_all_cols_prm_;
 
   storage::SqlTable *constraints_;
   storage::index::Index *constraints_oid_index_;
@@ -342,6 +366,12 @@ class DatabaseCatalog {
    * @param txn transaction to insert into catalog with
    */
   void BootstrapTypes(transaction::TransactionContext *txn);
+
+  /**
+   * Creates all of the ProjectedRowInitializers and ProjectionMaps for the catalog. These can be stashed because the
+   * catalog shouldn't undergo schema changes at runtime
+   */
+  void BootstrapPRIs();
 
   /**
    * Helper function to insert a type into PG_Type and the type indexes
