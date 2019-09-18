@@ -70,7 +70,7 @@ pipeline {
                         sh 'cd build && lcov --remove coverage.info \'*/test/*\' --output-file coverage.info'
                         sh 'cd build && lcov --remove coverage.info \'*/src/main/*\' --output-file coverage.info'
                         sh 'cd build && lcov --list coverage.info'
-                        sh 'cd build && bash <(curl -s https://codecov.io/bash) -X gcov'
+                        sh 'cd build && /bin/bash <(curl -s https://codecov.io/bash)'
                     }
                 }
 
