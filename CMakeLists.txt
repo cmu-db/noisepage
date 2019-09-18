@@ -167,7 +167,6 @@ include(ThirdpartyToolchain)
 
 # Add common flags
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CXX_COMMON_FLAGS}")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${TERRIER_CXXFLAGS}")
 
 # For any C code, use the same flags.
 set(CMAKE_C_FLAGS "${CMAKE_CXX_FLAGS}")
@@ -195,6 +194,9 @@ if (TERRIER_GENERATE_COVERAGE)
 endif ()
 
 # CMAKE_CXX_FLAGS now fully assembled
+#message(STATUS "CXX_ONLY_FLAGS: ${CXX_ONLY_FLAGS}")
+#message(STATUS "CXX_COMMON_FLAGS: ${CXX_COMMON_FLAGS}")
+#message(STATUS "CXX_OPTIMIZATION_FLAGS: ${CXX_OPTIMIZATION_FLAGS}")
 message(STATUS "CMAKE_CXX_FLAGS: ${CMAKE_CXX_FLAGS}")
 
 ###########################################################
@@ -213,6 +215,8 @@ if (UNIX)
             "${CMAKE_CURRENT_SOURCE_DIR}/test/*.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/benchmark/*.h"
             "${CMAKE_CURRENT_SOURCE_DIR}/benchmark/*.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/util/*.h"
+            "${CMAKE_CURRENT_SOURCE_DIR}/util/*.cpp"
             )
 
     find_program(CPPLINT_BIN NAMES cpplint cpplint.py HINTS ${BUILD_SUPPORT_DIR})
@@ -230,15 +234,40 @@ if (UNIX)
 
     set(CENSOR_FILES ${LINT_FILES})
 
-    # If whitelisting becomes necessary, do it here. Make it harder so that people try not to do it.
-    #  list(REMOVE_ITEM CENSOR_FILES
-    #
-    #      )
+    # If whitelisting ALL words becomes necessary, do it here. Make it harder so that people try not to do it.
+    # file(GLOB_RECURSE UNCENSORED_FILES
+    #        "${CMAKE_CURRENT_SOURCE_DIR}/src/..."
+    #        )
+    # list(REMOVE_ITEM CENSOR_FILES ${UNCENSORED_FILES})
 
     add_custom_target(check-censored
             grep --invert-match -n -e '^ *//' -e '^ *[*]' ${CENSOR_FILES} # check all uncommented lines w/ line num
             | grep -i -f ${BUILD_SUPPORT_DIR}/bad_words.txt               # for bad words, not case sensitive
             | grep --invert-match -e 'NOLINT'                             # the count of them that aren't NOLINT
+            # whitelist-start
+
+            # Description: allow usage of 'inline' in execution engine
+            # Reason: pmenon 2019/08/13
+            # All the bytecode handler functions have to be inline to ensure one definition.
+            # gen_opt_bc also cleans up the modules to add the odr to all functions.
+            # On top of that, many are marked ALWAYS_INLINE to force physical inlining into the VM.
+            # These are hand-selected by me based on profiling.
+            | grep --invert-match -e 'src/include/execution/.*:.*inline\\b.*'
+            | grep --invert-match -e 'src/execution/ast/context.cpp.*:.*inline\\b.*'
+            | grep --invert-match -e 'src/execution/vm/vm.cpp.*:.*inline\\b.*'
+
+            # Description: Regions, memory pool chunks, and vm stacks are managed using malloc and free
+            | grep --invert-match -e 'src/execution/sql/memory_pool.cpp:.*malloc\(.*'
+            | grep --invert-match -e 'src/execution/sql/memory_pool.cpp:.*calloc\(.*'
+            | grep --invert-match -e 'src/execution/sql/memory_pool.cpp:.*free\(.*'
+            | grep --invert-match -e 'src/execution/util/region.cpp:.*malloc\(.*'
+            | grep --invert-match -e 'src/execution/util/region.cpp:.*free\(.*'
+            | grep --invert-match -e 'src/execution/vm/vm.cpp:.*free\(.*'
+
+            # Description: This one is a false positive on the macro Op##AGG_TYPE##Free
+            | grep --invert-match -e 'src/execution/vm/vm.cpp:.*Free\(.*'
+
+            # whitelist-end
             || exit 0                                                     # if nothing found, return 0
             && exit 1                                                     # else return 1, note || && left-associative
             )
@@ -254,6 +283,7 @@ string(CONCAT FORMAT_DIRS
         "${CMAKE_CURRENT_SOURCE_DIR}/benchmark,"
         "${CMAKE_CURRENT_SOURCE_DIR}/src,"
         "${CMAKE_CURRENT_SOURCE_DIR}/test,"
+        "${CMAKE_CURRENT_SOURCE_DIR}/util"
         )
 
 # runs clang format and updates files in place.
@@ -334,6 +364,7 @@ else ()
     include_directories(${PROJECT_SOURCE_DIR}/third_party)
 endif ()
 include_directories(${PROJECT_SOURCE_DIR}/test/include)
+include_directories(${PROJECT_SOURCE_DIR}/util/include)
 include_directories(${PROJECT_SOURCE_DIR}/benchmark/include)
 include_directories(${PROJECT_BINARY_DIR})
 
@@ -372,3 +403,4 @@ set(TERRIER_BENCHMARK_LINK_LIBS
 add_subdirectory(src)
 add_subdirectory(test)
 add_subdirectory(benchmark)
+add_subdirectory(util)
