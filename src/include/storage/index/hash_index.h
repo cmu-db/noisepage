@@ -48,8 +48,7 @@ class HashIndex final : public Index {
 
   /**
    * The lambda below is used for aborted inserts as well as committed deletes to perform the erase logic. Macros are
-   * ugly but you can't define a macro that captures location outside of the scope of that variable, and cuckoohash_map
-   * doesn't allow
+   * ugly but you can't define a macro that captures location outside of the scope of that variable
    */
 #define ERASE_KEY_ACTION                                                                                               \
   [=]() {                                                                                                              \
