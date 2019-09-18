@@ -191,20 +191,20 @@ class RecoveryTests : public TerrierTest {
 
   storage::RedoBuffer &GetRedoBuffer(transaction::TransactionContext *txn) { return txn->redo_buffer_; }
 
-  storage::BlockLayout &GetBlockLayout(common::ManagedPointer<storage::SqlTable> table) const {
+  storage::BlockLayout &GetBlock L  ayout(common::ManagedPointer<storage::SqlTable> table) const {
     return table->table_.layout_;
   }
 
   // Simulates the system shutting down and restarting
   void ShutdownAndRestartSystem() {
     // Simulate the system "shutting down". Guarantee persist of log records
-    gc_thread_->PauseGC();
+    delete gc_thread_;
     StorageTestUtil::FullyPerformGC(gc_, log_manager_);
     log_manager_->PersistAndStop();
 
     // We now "boot up" up the system
     log_manager_->Start();
-    gc_thread_->ResumeGC();
+    gc_thread_ = new storage::GarbageCollectorThread(gc_, gc_period_);
   }
 
   void RunTest(const LargeSqlTableTestConfiguration &config) {
@@ -332,7 +332,7 @@ TEST_F(RecoveryTests, DropDatabaseTest) {
 // NOLINTNEXTLINE
 TEST_F(RecoveryTests, DropTableTest) {
   std::string database_name = "testdb";
-  auto namespace_oid = catalog::NAMESPACE_DEFAULT_NAMESPACE_OID;
+  auto namespace_oid = catalog::postgres::NAMESPACE_DEFAULT_NAMESPACE_OID;
   std::string table_name = "testtable";
 
   // Create database, table, then drop the table
@@ -369,7 +369,7 @@ TEST_F(RecoveryTests, DropTableTest) {
 // NOLINTNEXTLINE
 TEST_F(RecoveryTests, DropIndexTest) {
   std::string database_name = "testdb";
-  auto namespace_oid = catalog::NAMESPACE_DEFAULT_NAMESPACE_OID;
+  auto namespace_oid = catalog::postgres::NAMESPACE_DEFAULT_NAMESPACE_OID;
   std::string table_name = "testtable";
   std::string index_name = "testindex";
 
@@ -554,7 +554,7 @@ TEST_F(RecoveryTests, UnrecoverableTransactionsTest) {
 // NOLINTNEXTLINE
 TEST_F(RecoveryTests, ConcurrentCatalogDDLChangesTest) {
   std::string database_name = "testdb";
-  auto namespace_oid = catalog::NAMESPACE_DEFAULT_NAMESPACE_OID;
+  auto namespace_oid = catalog::postgres::NAMESPACE_DEFAULT_NAMESPACE_OID;
   std::string table_name = "foo";
 
   // Begin T0, create database, create table foo, and commit
@@ -615,7 +615,7 @@ TEST_F(RecoveryTests, ConcurrentCatalogDDLChangesTest) {
 // NOLINTNEXTLINE
 TEST_F(RecoveryTests, ConcurrentDDLChangesTest) {
   std::string database_name = "testdb";
-  auto namespace_oid = catalog::NAMESPACE_DEFAULT_NAMESPACE_OID;
+  auto namespace_oid = catalog::postgres::NAMESPACE_DEFAULT_NAMESPACE_OID;
   std::string table_name = "foo";
 
   // Begin T0, create database, create table foo, and commit
