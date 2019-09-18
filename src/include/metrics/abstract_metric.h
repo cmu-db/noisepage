@@ -1,6 +1,5 @@
 #pragma once
 
-#include <common/spin_latch.h>
 #include <atomic>
 #include <memory>
 
