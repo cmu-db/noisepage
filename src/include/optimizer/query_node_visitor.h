@@ -17,7 +17,7 @@ class CopyStatement;
 class AnalyzeStatement;
 class VariableSetStatement;
 class JoinDefinition;
-struct TableRef;
+class TableRef;
 
 class GroupByDescription;
 class OrderDescription;
