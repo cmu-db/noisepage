@@ -187,7 +187,7 @@ BENCHMARK_DEFINE_F(CatalogBenchmark, GetIndexOid)(benchmark::State &state) {
 }
 
 // NOLINTNEXTLINE
-BENCHMARK_DEFINE_F(CatalogBenchmark, GetIndexOids)(benchmark::State &state) {
+BENCHMARK_DEFINE_F(CatalogBenchmark, GetIndexes)(benchmark::State &state) {
   const auto oids UNUSED_ATTRIBUTE = AddUserTableAndIndex();
 
   auto *txn = txn_manager_->BeginTransaction();
@@ -195,7 +195,7 @@ BENCHMARK_DEFINE_F(CatalogBenchmark, GetIndexOids)(benchmark::State &state) {
 
   // NOLINTNEXTLINE
   for (auto _ : state) {
-    const auto test_indexes UNUSED_ATTRIBUTE = accessor->GetIndexOids(oids.first);
+    const auto test_indexes UNUSED_ATTRIBUTE = accessor->GetIndexes(oids.first);
     TERRIER_ASSERT(!test_indexes.empty(), "getting index oids should not fail");
   }
 
@@ -304,7 +304,7 @@ BENCHMARK_REGISTER_F(CatalogBenchmark, GetDatabaseCatalog)->Unit(benchmark::kNan
 // CatalogAccessor benchmarks
 BENCHMARK_REGISTER_F(CatalogBenchmark, GetIndex)->Unit(benchmark::kNanosecond);
 BENCHMARK_REGISTER_F(CatalogBenchmark, GetIndexOid)->Unit(benchmark::kNanosecond);
-BENCHMARK_REGISTER_F(CatalogBenchmark, GetIndexOids)->Unit(benchmark::kNanosecond);
+BENCHMARK_REGISTER_F(CatalogBenchmark, GetIndexes)->Unit(benchmark::kNanosecond);
 BENCHMARK_REGISTER_F(CatalogBenchmark, GetIndexSchema)->Unit(benchmark::kNanosecond);
 BENCHMARK_REGISTER_F(CatalogBenchmark, GetNamespaceOid)->Unit(benchmark::kNanosecond);
 BENCHMARK_REGISTER_F(CatalogBenchmark, GetSchema)->Unit(benchmark::kNanosecond);
