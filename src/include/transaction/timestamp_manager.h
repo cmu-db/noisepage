@@ -42,7 +42,9 @@ class TimestampManager {
   /**
    * Get the cached timestamp of the oldest active txn. The cached timestamp is only refreshed upon every invocation of
    * OldestTransactionStartTime, so it may be stale. On the other hand, this function does not require taking a latch or
-   * iterating through the running txns set, making it much cheaper than OldestTransactionStartTime.
+   * iterating through the running txns set, making it much cheaper than OldestTransactionStartTime. This has the same
+   * correctness guarantee as OldestTransactionStartTime, but may cause performance degradations for processes that rely
+   * on very fresh oldest txn timestamps
    * @return timestamp that is older than any transactions alive
    */
   timestamp_t CachedOldestTransactionStartTime();
