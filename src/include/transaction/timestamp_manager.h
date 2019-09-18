@@ -32,6 +32,9 @@ class TimestampManager {
    * Get the oldest transaction alive (by start timestamp given out by this timestamp manager at this time)
    * Because of concurrent operations, it is not guaranteed that upon return the txn is still alive. However,
    * it is guaranteed that the return timestamp is older than any transactions live.
+   * @warning If logging is enabled, txns are not removed from the txn set until they are serialized. Thus, the active
+   * txn set can grow greatly in size, making this call expensive. Consider using CachedOldestTransactionStartTime for
+   * better peformance at the cost of a more stale timestamp.
    * @return timestamp that is older than any transactions alive
    */
   timestamp_t OldestTransactionStartTime();
@@ -39,7 +42,7 @@ class TimestampManager {
   /**
    * Get the cached timestamp of the oldest active txn. The cached timestamp is only refreshed upon every invocation of
    * OldestTransactionStartTime, so it may be stale. On the other hand, this function does not require taking a latch or
-   * iterating through the running txns set, making it much cheaper than OldestTransactionStartTime
+   * iterating through the running txns set, making it much cheaper than OldestTransactionStartTime.
    * @return timestamp that is older than any transactions alive
    */
   timestamp_t CachedOldestTransactionStartTime();
@@ -71,9 +74,17 @@ class TimestampManager {
     return start_time;
   }
 
+  /**
+   * Remove a timestamp from active txn set
+   * @param timestamp timestamp to remove
+   */
   void RemoveTransaction(timestamp_t timestamp);
 
-  // Bulk timestamp removal
+  /**
+   * Bulk remove a set of timestamps from the active txn set. Only grabs the curr_running_txns_latch_ once for all the
+   * timestamps.
+   * @param timestamps vector of timestamps to remove
+   */
   void RemoveTransactions(const std::vector<timestamp_t> &timestamps);
 
   // TODO(Tianyu): Timestamp generation needs to be more efficient (batches)

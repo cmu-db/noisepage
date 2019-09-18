@@ -1,4 +1,5 @@
 #include "storage/write_ahead_log/log_serializer_task.h"
+#include <algorithm>
 #include <queue>
 #include <utility>
 #include <vector>
@@ -9,12 +10,17 @@ namespace terrier::storage {
 
 void LogSerializerTask::LogSerializerTaskLoop() {
   auto curr_sleep = serialization_interval_;
+  const auto max_sleep =
+      serialization_interval_ * (1u << 10u);  // We cap the back-off in case of long gaps with no transactions
   do {
-    // Serializing is now on the "critical path" because txns wait to commit until their logs are serialized. Thus, a
-    // sleep is not fast enough. We perform exponential back-off, doubling the sleep duration if we don't process any
-    // buffers in our call to Process
+    // Serializing is now on the "critical txn path" because txns wait to commit until their logs are serialized. Thus,
+    // a sleep is not fast enough. We perform exponential back-off, doubling the sleep duration if we don't process any
+    // buffers in our call to Process. Calls to Process will process as long as new buffers are available.
     std::this_thread::sleep_for(curr_sleep);
-    curr_sleep = Process() ? serialization_interval_ : curr_sleep * 2;
+    // If Process did not find any new buffers, we perform exponential back-off to reduce our rate of polling for new
+    // buffers. We cap the maximum back-off, since in the case of large gaps of no txns, we don't want to unboundedly
+    // sleep
+    curr_sleep = std::min(Process() ? serialization_interval_ : curr_sleep * 2, max_sleep);
   } while (run_task_);
   // To be extra sure we processed everything
   Process();
@@ -23,23 +29,26 @@ void LogSerializerTask::LogSerializerTaskLoop() {
 
 bool LogSerializerTask::Process() {
   common::SpinLatch::ScopedSpinLatch serialization_guard(&serialization_latch_);
-  // We continually grab all the buffers until we find there are no new buffers. This way we serialize buffers that came
-  // in during the previous serialization
   bool buffers_processed = false;
   TERRIER_ASSERT(serialized_txns_.empty(), "Aggregated txn timestamps should have been handed off to TimestampManager");
+  // We continually grab all the buffers until we find there are no new buffers. This way we serialize buffers that came
+  // in during the previous serialization loop
+
+  // Continually loop, break out if there's no new buffers
   while (true) {
     // In a short critical section, get all buffers to serialize. We move them to a temp queue to reduce contention on
     // the queue transactions interact with
     {
       common::SpinLatch::ScopedSpinLatch queue_guard(&flush_queue_latch_);
 
-      // If there are no new buffers, we can break, and let the task loop handle the pausing logic
+      // There are no new buffers, so we can break
       if (flush_queue_.empty()) break;
 
       temp_flush_queue_ = std::move(flush_queue_);
       flush_queue_ = std::queue<RecordBufferSegment *>();
     }
 
+    // Loop over all the new buffers we found
     while (!temp_flush_queue_.empty()) {
       RecordBufferSegment *buffer = temp_flush_queue_.front();
       temp_flush_queue_.pop();
@@ -56,7 +65,8 @@ bool LogSerializerTask::Process() {
   // Mark the last buffer that was written to as full
   if (filled_buffer_ != nullptr) HandFilledBufferToWriter();
 
-  // Bulk remove all the transactions we serialized
+  // Bulk remove all the transactions we serialized. This prevents having to take the TimestampManager's latch once for
+  // each timestamp we remove.
   for (const auto &txns : serialized_txns_) {
     txns.first->RemoveTransactions(txns.second);
   }

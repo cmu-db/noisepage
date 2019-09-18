@@ -191,7 +191,7 @@ class RecoveryTests : public TerrierTest {
 
   storage::RedoBuffer &GetRedoBuffer(transaction::TransactionContext *txn) { return txn->redo_buffer_; }
 
-  storage::BlockLayout &GetBlock L  ayout(common::ManagedPointer<storage::SqlTable> table) const {
+  storage::BlockLayout &GetBlockLayout(common::ManagedPointer<storage::SqlTable> table) const {
     return table->table_.layout_;
   }
 
