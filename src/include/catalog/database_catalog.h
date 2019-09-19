@@ -234,7 +234,7 @@ class DatabaseCatalog {
    * @param table table to get index objects for
    * @return vector of pairs of index pointers and their corresponding schemas
    */
-  std::vector<std::pair<common::ManagedPointer<storage::index::Index>, common::ManagedPointer<IndexSchema>>>
+  std::vector<std::pair<common::ManagedPointer<storage::index::Index>, common::ManagedPointer<const IndexSchema>>>
   GetIndexObjects(transaction::TransactionContext *txn, table_oid_t table);
 
  private:

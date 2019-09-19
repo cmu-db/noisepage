@@ -1088,7 +1088,7 @@ const IndexSchema &DatabaseCatalog::GetIndexSchema(transaction::TransactionConte
   return *reinterpret_cast<IndexSchema *>(ptr_pair.first);
 }
 
-std::vector<std::pair<common::ManagedPointer<storage::index::Index>, common::ManagedPointer<IndexSchema>>>
+std::vector<std::pair<common::ManagedPointer<storage::index::Index>, common::ManagedPointer<const IndexSchema>>>
 DatabaseCatalog::GetIndexObjects(terrier::transaction::TransactionContext *txn, terrier::catalog::table_oid_t table) {
   // Step 1: Get all index oids on table
   // Initialize PR for index scan
@@ -1148,7 +1148,7 @@ DatabaseCatalog::GetIndexObjects(terrier::transaction::TransactionContext *txn, 
                  "We should have found an entry in pg_class for every index oid");
 
   // Step 3: Select all the objects from the tuple slots retrieved by step 2
-  std::vector<std::pair<common::ManagedPointer<storage::index::Index>, common::ManagedPointer<IndexSchema>>>
+  std::vector<std::pair<common::ManagedPointer<storage::index::Index>, common::ManagedPointer<const IndexSchema>>>
       index_objects;
   auto *class_select_pr = get_class_object_and_schema_pri_.InitializeRow(buffer);
   for (const auto &slot : class_tuple_slots) {
@@ -1160,7 +1160,7 @@ DatabaseCatalog::GetIndexObjects(terrier::transaction::TransactionContext *txn, 
     TERRIER_ASSERT(index != nullptr,
                    "Catalog conventions say you should not find a nullptr for an object ptr in pg_class. Did you call "
                    "SetIndexPointer?");
-    auto *schema = *(reinterpret_cast<catalog::IndexSchema *const *const>(
+    auto *schema = *(reinterpret_cast<const catalog::IndexSchema *const *const>(
         class_select_pr->AccessForceNotNull(get_class_object_and_schema_prm_[catalog::postgres::REL_PTR_COL_OID])));
     TERRIER_ASSERT(schema != nullptr,
                    "Catalog conventions say you should not find a nullptr for an schema ptr in pg_class");

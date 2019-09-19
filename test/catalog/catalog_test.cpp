@@ -461,7 +461,8 @@ TEST_F(CatalogTests, GetIndexObjectsTest) {
 
   // Create the a couple of index
   std::vector<catalog::index_oid_t> index_oids;
-  std::vector<std::pair<common::ManagedPointer<storage::index::Index>, common::ManagedPointer<catalog::IndexSchema>>>
+  std::vector<
+      std::pair<common::ManagedPointer<storage::index::Index>, common::ManagedPointer<const catalog::IndexSchema>>>
       true_index_objects;
   for (auto i = 0; i < num_indexes; i++) {
     std::vector<catalog::IndexSchema::Column> key_cols{
@@ -472,7 +473,7 @@ TEST_F(CatalogTests, GetIndexObjectsTest) {
                                          "test_table_idx" + std::to_string(i), index_schema);
     EXPECT_NE(idx_oid, catalog::INVALID_INDEX_OID);
     index_oids.push_back(idx_oid);
-    auto true_schema = accessor->GetIndexSchema(idx_oid);
+    const auto &true_schema = accessor->GetIndexSchema(idx_oid);
 
     storage::index::IndexBuilder index_builder;
     index_builder.SetOid(idx_oid).SetKeySchema(true_schema).SetConstraintType(storage::index::ConstraintType::UNIQUE);
