@@ -49,6 +49,19 @@ file(GLOB_RECURSE LIBCOUNT_SOURCES
 )
 list(APPEND TERRIER_SRCS ${LIBCOUNT_SOURCES})
 
+# ips4o: used for parallel sorting in execution
+file(GLOB_RECURSE IPS4O_SOURCES ${PROJECT_SOURCE_DIR}/third_party/ips4o/*.hpp)
+list(APPEND TERRIER_SRCS ${IPS4O_SOURCES})
+
+# xbyak: used for interpretation in execution
+file(GLOB_RECURSE XBYAK_SOURCES ${PROJECT_SOURCE_DIR}/third_party/xbyak/*.h)
+list(APPEND TERRIER_SRCS ${XBYAK_SOURCES})
+
+# xxHash: used for hashing of large objects (strings, etc.)
+file(GLOB_RECURSE XXHASH_SOURCES ${PROJECT_SOURCE_DIR}/third_party/xxHash/*.h)
+list(APPEND TERRIER_SRCS ${XXHASH_SOURCES})
+
+
 ###############################################
 # Terrier library
 ###############################################
@@ -67,4 +80,5 @@ ADD_TERRIER_LIB(terrier
 # Terrier executable
 ###############################################
 add_executable(terrier main/terrier.cpp)
-target_link_libraries(terrier terrier_shared)
+set_target_properties(terrier PROPERTIES ENABLE_EXPORTS 1)
+target_link_libraries(terrier terrier_static ${TERRIER_LINK_LIBS})

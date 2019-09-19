@@ -10,7 +10,7 @@
 namespace terrier::parser {
 
 /**
- * Represents a logical function expression.
+ * Represents a logical function expression
  */
 class FunctionExpression : public AbstractExpression {
  public:

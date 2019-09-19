@@ -76,14 +76,6 @@ class TupleAccessStrategy {
       return reinterpret_cast<MiniBlock *>(head);
     }
 
-    // return reference to num_slots. Use as a member.
-    uint32_t &NumSlots() { return *reinterpret_cast<uint32_t *>(block_.content_); }
-
-    // return reference to num_attrs. Use as a member.
-    uint16_t &NumAttrs(const BlockLayout &layout) {
-      return *reinterpret_cast<uint16_t *>(AttrOffsets(layout) + layout.NumColumns());
-    }
-
     RawBlock block_;
   };
 
@@ -252,6 +244,41 @@ class TupleAccessStrategy {
    * @return the block layout.
    */
   const BlockLayout &GetBlockLayout() const { return layout_; }
+
+  /**
+   * Compare and swap block status to busy. Expect that block to be idle, if yes, set the block status to be busy
+   * @param block the block to compare and set
+   * @return true if the set operation succeeded, false if the block is already busy
+   */
+  bool SetBlockBusyStatus(RawBlock *block) const {
+    uint32_t old_val = ClearBit(block->insert_head_.load());
+    return block->insert_head_.compare_exchange_strong(old_val, SetBit(old_val));
+  }
+
+  /**
+   * Compare and swap block status to idle. Expect that block to be busy, if yes, set the block status to be idle
+   * @param block the block to compare and set
+   * @return true if the set operation succeeded, false if the block is already idle
+   */
+  bool ClearBlockBusyStatus(RawBlock *block) const {
+    uint32_t val = block->insert_head_.load();
+    TERRIER_ASSERT(val == SetBit(val), "The busy bit should be set ");
+    return block->insert_head_.compare_exchange_strong(val, ClearBit(val));
+  }
+
+  /**
+   * Set the first bit of given val to 0, helper function used by ClearBlockBusyStatus
+   * @param val the value to be set
+   * @return the changed value with first bit set to 0
+   */
+  static uint32_t ClearBit(uint32_t val) { return val & INT32_MAX; }
+
+  /**
+   * Set the first bit of given val to 1, helper function used by SetBlockBusyStatus
+   * @param val val the value to be set
+   * @return the changed value with first bit set to 1
+   */
+  static uint32_t SetBit(uint32_t val) { return val | INT32_MIN; }
 
  private:
   const BlockLayout layout_;

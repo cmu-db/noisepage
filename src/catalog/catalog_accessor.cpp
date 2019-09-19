@@ -25,9 +25,9 @@ void CatalogAccessor::SetSearchPath(std::vector<namespace_oid_t> namespaces) {
 
   // Check if 'pg_catalog is explicitly set'
   for (auto &ns : search_path_)
-    if (ns == NAMESPACE_CATALOG_NAMESPACE_OID) return;
+    if (ns == postgres::NAMESPACE_CATALOG_NAMESPACE_OID) return;
 
-  search_path_.emplace(search_path_.begin(), NAMESPACE_CATALOG_NAMESPACE_OID);
+  search_path_.emplace(search_path_.begin(), postgres::NAMESPACE_CATALOG_NAMESPACE_OID);
 }
 
 namespace_oid_t CatalogAccessor::GetNamespaceOid(std::string name) const {

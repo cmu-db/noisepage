@@ -158,7 +158,7 @@ GetToTableFreeScan::GetToTableFreeScan() {
 bool GetToTableFreeScan::Check(OperatorExpression *plan, OptimizeContext *context) const {
   (void)context;
   const auto get = plan->GetOp().As<LogicalGet>();
-  return get->GetTableOID() == catalog::table_oid_t(NULL_OID);
+  return get->GetTableOID() == catalog::INVALID_TABLE_OID;
 }
 
 void GetToTableFreeScan::Transform(UNUSED_ATTRIBUTE OperatorExpression *input,

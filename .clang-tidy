@@ -34,10 +34,11 @@ Checks:     '
             -google-readability-braces-around-statements,
             -modernize-use-nodiscard,
             -modernize-avoid-c-arrays,
-            -performance-unnecessary-value-param,
             -readability-braces-around-statements,
             -readability-isolate-declaration,
             -readability-magic-numbers,
+            -readability-uppercase-literal-suffix,
+            -portability-simd-intrinsics,
             '
 CheckOptions:
   - { key: readability-identifier-naming.ClassCase,           value: CamelCase  }
@@ -51,7 +52,7 @@ CheckOptions:
   - { key: readability-identifier-naming.UnionCase,           value: CamelCase  }
   - { key: readability-identifier-naming.VariableCase,        value: lower_case }
 WarningsAsErrors: '*'
-HeaderFilterRegex: '(benchmark|src|test)/include'
+HeaderFilterRegex: '(benchmark|src|test|util)/include'
 AnalyzeTemporaryDtors: true
 
 #### Disabled checks and why: #####
@@ -73,11 +74,13 @@ AnalyzeTemporaryDtors: true
 # New C++17 that seems related to the GCC warned about unused result attribute. Would really clutter codebase.
 # -modernize-avoid-c-arrays,
 # Not feasible in the storage layer
-# -performance-unnecessary-value-param,
-# Suggest re-enabling once shared_ptrs are done being ripped out. This actually found some good issues.
 # -readability-braces-around-statements,
 # @tli2 really likes his single statements without braces
 # -readability-isolate-declaration,
 # Prevents "uint8_t x, y;" which I don't have a strong opinion about, but decided not to refactor now.
 # -readability-magic-numbers,
 # Blows up in tests. Found some reasonable issues in the src/ folder if we want to tackle them piecemeal.
+# -readability-uppercase-literal-suffix,
+# Easy to fix but touches the code all over and don't want to conflict with the TPL branch while we're trying to merge
+# -portability-simd-intrinsics,
+# Unavoidable. We explicitly want SIMD intrinsics.
