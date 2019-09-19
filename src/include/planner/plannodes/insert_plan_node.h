@@ -84,9 +84,7 @@ class InsertPlanNode : public AbstractPlanNode {
      * @return builder object
      */
     Builder &AddIndexOids(std::vector<catalog::index_oid_t> &&index_oids) {
-      for (auto elem : index_oids) {
-        index_oids_.push_back(elem);
-      }
+      index_oids_ = index_oids;
       return *this;
     }
 

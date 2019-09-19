@@ -720,6 +720,7 @@ class Insert : public OperatorNode<Insert> {
    * @param table_oid OID of the table
    * @param columns OIDs of columns to insert into
    * @param values expressions of values to insert
+   * @param index_oids the OIDs of the indexes to insert into
    * @return an Insert operator
    */
   static Operator Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
@@ -803,6 +804,7 @@ class InsertSelect : public OperatorNode<InsertSelect> {
    * @param database_oid OID of the database
    * @param namespace_oid OID of the namespace
    * @param table_oid OID of the table
+   * @param index_oids the OIDs of the indexes to insert into
    * @return an InsertSelect operator
    */
   static Operator Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,

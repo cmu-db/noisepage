@@ -520,7 +520,7 @@ Operator InsertSelect::Make(catalog::db_oid_t database_oid, catalog::namespace_o
   insert_op->database_oid_ = database_oid;
   insert_op->namespace_oid_ = namespace_oid;
   insert_op->table_oid_ = table_oid;
-  insert_op->index_oids_ = std::move(index_oids);
+  insert_op->index_oids_ = index_oids;
   return Operator(insert_op);
 }
 
