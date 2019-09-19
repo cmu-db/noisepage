@@ -1126,8 +1126,7 @@ DatabaseCatalog::GetIndexObjects(terrier::transaction::TransactionContext *txn, 
   // We do the index scans and table selects in separate loops to avoid having to initialize the pr each time
   index_scan_results.clear();
   std::vector<std::pair<common::ManagedPointer<storage::index::Index>, const IndexSchema &>> index_objects;
-  auto class_oid_pri = classes_oid_index_->GetProjectedRowInitializer();
-  auto *class_key_pr = class_oid_pri.InitializeRow(buffer);
+  auto *class_key_pr = classes_oid_index_->GetProjectedRowInitializer().InitializeRow(buffer);
   std::vector<storage::TupleSlot> class_tuple_slots;
   class_tuple_slots.reserve(index_oids.size());
   for (const auto &index_oid : index_oids) {
