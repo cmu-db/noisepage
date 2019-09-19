@@ -470,7 +470,7 @@ TEST_F(CatalogTests, GetIndexObjectsTest) {
                                          "test_table_idx" + std::to_string(i), index_schema);
     EXPECT_NE(idx_oid, catalog::INVALID_INDEX_OID);
     index_oids.push_back(idx_oid);
-    auto true_schema = accessor->GetIndexSchema(idx_oid);
+    const auto &true_schema = accessor->GetIndexSchema(idx_oid);
 
     storage::index::IndexBuilder index_builder;
     index_builder.SetOid(idx_oid).SetKeySchema(true_schema).SetConstraintType(storage::index::ConstraintType::UNIQUE);
