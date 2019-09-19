@@ -201,8 +201,8 @@ class CatalogAccessor {
    * @param table table to get index objects for
    * @return vector of pairs of index pointers and their corresponding schemas
    */
-  std::vector<std::pair<common::ManagedPointer<storage::index::Index>, common::ManagedPointer<const IndexSchema>>>
-  GetIndexObjects(table_oid_t table);
+  std::vector<std::pair<common::ManagedPointer<storage::index::Index>, const IndexSchema &>> GetIndexObjects(
+      table_oid_t table);
 
   /**
    * Given an index name, resolve it to the corresponding OID

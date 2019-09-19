@@ -1148,8 +1148,7 @@ DatabaseCatalog::GetIndexObjects(terrier::transaction::TransactionContext *txn, 
                  "We should have found an entry in pg_class for every index oid");
 
   // Step 3: Select all the objects from the tuple slots retrieved by step 2
-  std::vector<std::pair<common::ManagedPointer<storage::index::Index>, common::ManagedPointer<const IndexSchema>>>
-      index_objects;
+  std::vector<std::pair<common::ManagedPointer<storage::index::Index>, const IndexSchema &>> index_objects;
   auto *class_select_pr = get_class_object_and_schema_pri_.InitializeRow(buffer);
   for (const auto &slot : class_tuple_slots) {
     bool result UNUSED_ATTRIBUTE = classes_->Select(txn, slot, class_select_pr);
@@ -1165,7 +1164,7 @@ DatabaseCatalog::GetIndexObjects(terrier::transaction::TransactionContext *txn, 
     TERRIER_ASSERT(schema != nullptr,
                    "Catalog conventions say you should not find a nullptr for an schema ptr in pg_class");
 
-    index_objects.emplace_back(common::ManagedPointer(index), common::ManagedPointer(schema));
+    index_objects.emplace_back(common::ManagedPointer(index), *schema);
   }
   delete[] buffer;
   return index_objects;
