@@ -1088,7 +1088,7 @@ const IndexSchema &DatabaseCatalog::GetIndexSchema(transaction::TransactionConte
   return *reinterpret_cast<IndexSchema *>(ptr_pair.first);
 }
 
-std::vector<std::pair<common::ManagedPointer<storage::index::Index>, const IndexSchema &>>
+std::vector<std::pair<common::ManagedPointer<storage::index::Index>, common::ManagedPointer<IndexSchema>>>
 DatabaseCatalog::GetIndexObjects(terrier::transaction::TransactionContext *txn, terrier::catalog::table_oid_t table) {
   // Step 1: Get all index oids on table
   // Initialize PR for index scan
@@ -1125,7 +1125,6 @@ DatabaseCatalog::GetIndexObjects(terrier::transaction::TransactionContext *txn, 
   // Step 2: Scan the pg_class oid index for all entries in pg_class
   // We do the index scans and table selects in separate loops to avoid having to initialize the pr each time
   index_scan_results.clear();
-  std::vector<std::pair<common::ManagedPointer<storage::index::Index>, const IndexSchema &>> index_objects;
   auto *class_key_pr = classes_oid_index_->GetProjectedRowInitializer().InitializeRow(buffer);
   std::vector<storage::TupleSlot> class_tuple_slots;
   class_tuple_slots.reserve(index_oids.size());
@@ -1149,6 +1148,7 @@ DatabaseCatalog::GetIndexObjects(terrier::transaction::TransactionContext *txn, 
                  "We should have found an entry in pg_class for every index oid");
 
   // Step 3: Select all the objects from the tuple slots retrieved by step 2
+  std::vector<std::pair<common::ManagedPointer<storage::index::Index>, common::ManagedPointer<IndexSchema>>> index_objects;
   auto *class_select_pr = get_class_object_and_schema_pri_.InitializeRow(buffer);
   for (const auto &slot : class_tuple_slots) {
     bool result UNUSED_ATTRIBUTE = classes_->Select(txn, slot, class_select_pr);
@@ -1164,7 +1164,7 @@ DatabaseCatalog::GetIndexObjects(terrier::transaction::TransactionContext *txn, 
     TERRIER_ASSERT(schema != nullptr,
                    "Catalog conventions say you should not find a nullptr for an schema ptr in pg_class");
 
-    index_objects.emplace_back(common::ManagedPointer(index), *schema);
+    index_objects.emplace_back(common::ManagedPointer(index), common::ManagedPointer(schema));
   }
   delete[] buffer;
   return index_objects;

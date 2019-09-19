@@ -461,7 +461,7 @@ TEST_F(CatalogTests, GetIndexObjectsTest) {
 
   // Create the a couple of index
   std::vector<catalog::index_oid_t> index_oids;
-  std::vector<std::pair<common::ManagedPointer<storage::index::Index>, const catalog::IndexSchema &>>
+  std::vector<std::pair<common::ManagedPointer<storage::index::Index>, common::ManagedPointer<catalog::IndexSchema>>>
       true_index_objects;
   for (auto i = 0; i < num_indexes; i++) {
     std::vector<catalog::IndexSchema::Column> key_cols{
@@ -480,7 +480,7 @@ TEST_F(CatalogTests, GetIndexObjectsTest) {
 
     EXPECT_TRUE(accessor->SetIndexPointer(idx_oid, index));
     EXPECT_EQ(common::ManagedPointer(index), accessor->GetIndex(idx_oid));
-    true_index_objects.emplace_back(common::ManagedPointer(index), true_schema);
+    true_index_objects.emplace_back(common::ManagedPointer(index), common::ManagedPointer(&true_schema));
   }
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
@@ -496,7 +496,10 @@ TEST_F(CatalogTests, GetIndexObjectsTest) {
   // Fetch all objects with a single call, check that sets are equal
   auto index_objects = accessor->GetIndexObjects(table_oid);
   EXPECT_EQ(true_index_objects.size(), index_objects.size());
-  for (const auto &object_pair : index_objects) EXPECT_TRUE(object_pair.first);
+  for (const auto &object_pair : index_objects) {
+    EXPECT_TRUE(object_pair.first);
+    EXPECT_TRUE(object_pair.second);
+  }
 
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 }
