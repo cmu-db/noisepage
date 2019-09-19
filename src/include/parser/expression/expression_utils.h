@@ -33,15 +33,15 @@ class ExpressionUtil {
   /**
    * Walks an expression trees and find all AggregationExprs and ColumnValueExprs subtrees.
    */
-  static void GetAggregateExprs(std::vector<AggregateExpression *> &aggr_exprs, std::vector<ColumnValueExpression *> &tv_exprs, AbstractExpression *expr) {
+  static void GetAggregateExprs(std::vector<AggregateExpression *> &aggr_exprs,
+                                std::vector<ColumnValueExpression *> &tv_exprs, AbstractExpression *expr) {
     if (IsAggregateExpression(expr->GetExpressionType())) {
       auto aggr_expr = reinterpret_cast<AggregateExpression *>(expr);
       aggr_exprs.push_back(aggr_expr);
     } else if (expr->GetExpressionType() == ExpressionType::COLUMN_VALUE) {
       tv_exprs.push_back(reinterpret_cast<ColumnValueExpression *>(expr));
     } else {
-      for (const auto &child : expr->GetChildren())
-        GetAggregateExprs(aggr_exprs, tv_exprs, child.get());
+      for (const auto &child : expr->GetChildren()) GetAggregateExprs(aggr_exprs, tv_exprs, child.get());
     }
   }
 };

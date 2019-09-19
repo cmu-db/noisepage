@@ -4,6 +4,7 @@
 #include <vector>
 #include "binder/bind_node_visitor.h"
 #include "catalog/catalog.h"
+#include "optimizer/query_to_operator_transformer.h"
 #include "parser/expression/aggregate_expression.h"
 #include "parser/expression/column_value_expression.h"
 #include "parser/expression/operator_expression.h"
@@ -25,8 +26,7 @@ using std::vector;
 
 namespace terrier {
 
-// TODO(Ling): write meaningful setup
-class BinderCorrectnessTest : public TerrierTest {
+class QueryToOperatorTransformerTest : public TerrierTest {
  private:
   storage::RecordBufferSegmentPool buffer_pool_{1000000, 1000000};
   storage::BlockStore block_store_{1000, 1000};
@@ -45,6 +45,7 @@ class BinderCorrectnessTest : public TerrierTest {
   transaction::TransactionContext *txn_;
   std::unique_ptr<catalog::CatalogAccessor> accessor_;
   binder::BindNodeVisitor *binder_;
+  optimizer::QueryToOperatorTransformer *query_to_operator_transformer_;
 
   void SetUpTables() {
     // Initialize the transaction manager and GC
@@ -69,8 +70,6 @@ class BinderCorrectnessTest : public TerrierTest {
     auto int_default = parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER));
     auto varchar_default = parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR));
 
-    // TODO(Ling): use mixed case in table name and schema name
-    //  for testcases to see if the binder does not differentiate between upper and lower cases
     // create table A
     txn_ = txn_manager_->BeginTransaction();
     accessor_ = catalog_->GetAccessor(txn_, db_oid_);
@@ -124,6 +123,7 @@ class BinderCorrectnessTest : public TerrierTest {
     txn_ = txn_manager_->BeginTransaction();
     accessor_ = catalog_->GetAccessor(txn_, db_oid_);
     binder_ = new binder::BindNodeVisitor(std::move(accessor_), default_database_name_);
+    query_to_operator_transformer_ = new optimizer::QueryToOperatorTransformer(std::move(accessor_));
   }
 
   void TearDown() override {
@@ -136,7 +136,7 @@ class BinderCorrectnessTest : public TerrierTest {
 };
 
 // NOLINTNEXTLINE
-TEST_F(BinderCorrectnessTest, SelectStatementComplexTest) {
+TEST_F(QueryToOperatorTransformerTest, SelectStatementComplexTest) {
   // Test regular table name
   LOG_INFO("Parsing sql query");
   std::string selectSQL =
@@ -228,7 +228,7 @@ TEST_F(BinderCorrectnessTest, SelectStatementComplexTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(BinderCorrectnessTest, SelectStatementStarTest) {
+TEST_F(QueryToOperatorTransformerTest, SelectStatementStarTest) {
   // Check if star expression is correctly processed
   LOG_INFO("Checking STAR expression in select and subselect");
 
@@ -290,7 +290,7 @@ TEST_F(BinderCorrectnessTest, SelectStatementStarTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(BinderCorrectnessTest, SelectStatementStarNestedSelectTest) {
+TEST_F(QueryToOperatorTransformerTest, SelectStatementStarNestedSelectTest) {
   // Check if star expression is correctly processed
   LOG_INFO("Checking STAR expression in nested select from.");
 
@@ -462,7 +462,7 @@ TEST_F(BinderCorrectnessTest, SelectStatementStarNestedSelectTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(BinderCorrectnessTest, SelectStatementNestedColumnTest) {
+TEST_F(QueryToOperatorTransformerTest, SelectStatementNestedColumnTest) {
   // Check if nested select columns are correctly processed
   LOG_INFO("Checking nested select columns.");
 
@@ -509,7 +509,7 @@ TEST_F(BinderCorrectnessTest, SelectStatementNestedColumnTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(BinderCorrectnessTest, SelectStatementDupAliasTest) {
+TEST_F(QueryToOperatorTransformerTest, SelectStatementDupAliasTest) {
   // Check alias ambiguous
   LOG_INFO("Checking duplicate alias and table name.");
 
@@ -520,7 +520,7 @@ TEST_F(BinderCorrectnessTest, SelectStatementDupAliasTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(BinderCorrectnessTest, SelectStatementDiffTableSameSchemaTest) {
+TEST_F(QueryToOperatorTransformerTest, SelectStatementDiffTableSameSchemaTest) {
   // Test select from different table instances from the same physical schema
   std::string selectSQL = "SELECT * FROM A, A as AA where A.a1 = AA.a2";
   auto parse_tree = parser_.BuildParseTree(selectSQL);
@@ -540,7 +540,7 @@ TEST_F(BinderCorrectnessTest, SelectStatementDiffTableSameSchemaTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(BinderCorrectnessTest, SelectStatementSelectListAliasTest) {
+TEST_F(QueryToOperatorTransformerTest, SelectStatementSelectListAliasTest) {
   // Test alias and select_list
   LOG_INFO("Checking select_list and table alias binding");
 
@@ -564,7 +564,7 @@ TEST_F(BinderCorrectnessTest, SelectStatementSelectListAliasTest) {
 // test after UpdateStatement is changed
 
 // NOLINTNEXTLINE
-TEST_F(BinderCorrectnessTest, DeleteStatementWhereTest) {
+TEST_F(QueryToOperatorTransformerTest, DeleteStatementWhereTest) {
   std::string deleteSQL = "DELETE FROM b WHERE 1 = b1 AND b2 = 'str'";
   auto parse_tree = parser_.BuildParseTree(deleteSQL);
   auto deleteStmt = dynamic_cast<parser::DeleteStatement *>(parse_tree.GetStatements()[0].get());
@@ -586,7 +586,7 @@ TEST_F(BinderCorrectnessTest, DeleteStatementWhereTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(BinderCorrectnessTest, AggregateSimpleTest) {
+TEST_F(QueryToOperatorTransformerTest, AggregateSimpleTest) {
   // Check if nested select columns are correctly processed
   LOG_INFO("Checking simple aggregate select.");
 
@@ -609,7 +609,7 @@ TEST_F(BinderCorrectnessTest, AggregateSimpleTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(BinderCorrectnessTest, AggregateComplexTest) {
+TEST_F(QueryToOperatorTransformerTest, AggregateComplexTest) {
   // Check if nested select columns are correctly processed
   LOG_INFO("Checking aggregate in subselect.");
 
@@ -635,7 +635,7 @@ TEST_F(BinderCorrectnessTest, AggregateComplexTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(BinderCorrectnessTest, OperatorComplexTest) {
+TEST_F(QueryToOperatorTransformerTest, OperatorComplexTest) {
   // Check if nested select columns are correctly processed
   LOG_INFO("Checking if operator expressions are correctly parsed.");
 
@@ -672,7 +672,7 @@ TEST_F(BinderCorrectnessTest, OperatorComplexTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(BinderCorrectnessTest, BindDepthTest) {
+TEST_F(QueryToOperatorTransformerTest, BindDepthTest) {
   // Test regular table name
   LOG_INFO("Parsing sql query");
 
@@ -779,21 +779,4 @@ TEST_F(BinderCorrectnessTest, BindDepthTest) {
   auto exists_sub_expr_select_ele = exists_sub_expr_select->GetSelectColumns()[0].Get();  // b1
   EXPECT_EQ(1, exists_sub_expr_select_ele->GetDepth());
 }
-
-// NOLINTNEXTLINE
-// TEST_F(BinderCorrectnessTest, FunctionExpressionTest) {
-//  std::string function_sql = "SELECT substr('test123', a, 3)";
-//  auto parse_tree = parser_.BuildParseTree(function_sql);
-//  auto stmt = parse_tree[0].get();
-//  // TODO(ling): figure out specific exception that would be thrown
-//  EXPECT_THROW(binder_->BindNameToNode(stmt), terrier::Exception);
-//
-//  function_sql = "SELECT substr('test123', 2, 3)";
-//  auto parse_tree2 = parser_.BuildParseTree(function_sql);
-//  stmt = parse_tree2[0].get();
-//  binder_->BindNameToNode(stmt);
-//  auto funct_expr = dynamic_cast<parser::FunctionExpression *>(dynamic_cast<parser::SelectStatement
-//  *>(stmt)->select_list[0].get()); EXPECT_TRUE(funct_expr->Evaluate(nullptr, nullptr,
-//  nullptr).CompareEquals(type::ValueFactory::GetVarcharValue("est")) == CmpBool::CmpTrue);
-//}
 }  // namespace terrier

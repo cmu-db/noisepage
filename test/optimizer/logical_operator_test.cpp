@@ -27,8 +27,8 @@ TEST(OperatorTests, LogicalInsertTest) {
   parser::AbstractExpression *raw_values[] = {
       new parser::ConstantValueExpression(type::TransientValueFactory::GetTinyInt(1)),
       new parser::ConstantValueExpression(type::TransientValueFactory::GetTinyInt(9))};
-  std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>> *values = new std::vector({
-    std::vector<common::ManagedPointer<parser::AbstractExpression>>(raw_values, std::end(raw_values))});
+  std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>> *values = new std::vector(
+      {std::vector<common::ManagedPointer<parser::AbstractExpression>>(raw_values, std::end(raw_values))});
 
   // Check that all of our GET methods work as expected
   Operator op1 = LogicalInsert::Make(
@@ -57,7 +57,8 @@ TEST(OperatorTests, LogicalInsertTest) {
       std::vector<common::ManagedPointer<parser::AbstractExpression>>(raw_values, std::end(raw_values))};
   Operator op3 = LogicalInsert::Make(
       database_oid, namespace_oid, table_oid, std::vector<catalog::col_oid_t>(columns, std::end(columns)),
-      common::ManagedPointer<std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>>(other_values));
+      common::ManagedPointer<std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>>(
+          other_values));
   EXPECT_FALSE(op1 == op3);
   EXPECT_NE(op1.Hash(), op3.Hash());
 
@@ -69,11 +70,12 @@ TEST(OperatorTests, LogicalInsertTest) {
       new parser::ConstantValueExpression(type::TransientValueFactory::GetTinyInt(1)),
       new parser::ConstantValueExpression(type::TransientValueFactory::GetTinyInt(2)),
       new parser::ConstantValueExpression(type::TransientValueFactory::GetTinyInt(3))};
-  std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>> *bad_values = new std::vector({
-      std::vector<common::ManagedPointer<parser::AbstractExpression>>(bad_raw_values, std::end(bad_raw_values))});
+  std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>> *bad_values = new std::vector(
+      {std::vector<common::ManagedPointer<parser::AbstractExpression>>(bad_raw_values, std::end(bad_raw_values))});
   EXPECT_DEATH(LogicalInsert::Make(
                    database_oid, namespace_oid, table_oid, std::vector<catalog::col_oid_t>(columns, std::end(columns)),
-                   common::ManagedPointer<std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>>(bad_values)),
+                   common::ManagedPointer<std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>>(
+                       bad_values)),
                "Mismatched");
   for (auto entry : bad_raw_values) delete entry;
   delete bad_values;

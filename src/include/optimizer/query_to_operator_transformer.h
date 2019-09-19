@@ -11,7 +11,7 @@ class SQLStatement;
 class AbstractExpression;
 }  // namespace parser
 
-namespace catalog{
+namespace catalog {
 class CatalogAccessor;
 }
 
@@ -26,7 +26,7 @@ class QueryToOperatorTransformer : public SqlNodeVisitor {
  public:
   explicit QueryToOperatorTransformer(std::unique_ptr<catalog::CatalogAccessor> catalog_accessor);
 
-  OperatorExpression* ConvertToOpExpression(parser::SQLStatement *op);
+  OperatorExpression *ConvertToOpExpression(parser::SQLStatement *op);
 
   void Visit(parser::SelectStatement *op) override;
 
@@ -60,7 +60,8 @@ class QueryToOperatorTransformer : public SqlNodeVisitor {
    *
    * @param expr The original predicate
    */
-  std::vector<AnnotatedExpression> CollectPredicates(common::ManagedPointer<parser::AbstractExpression> expr, std::vector<AnnotatedExpression> predicates = {});
+  std::vector<AnnotatedExpression> CollectPredicates(common::ManagedPointer<parser::AbstractExpression> expr,
+                                                     std::vector<AnnotatedExpression> predicates = {});
 
   /**
    * @brief Transform a sub-query in an expression to use
@@ -106,31 +107,33 @@ class QueryToOperatorTransformer : public SqlNodeVisitor {
    * @param annotated_predicates The extracted conjunction predicates
    */
   static std::vector<AnnotatedExpression> ExtractPredicates(common::ManagedPointer<parser::AbstractExpression> expr,
-      std::vector<AnnotatedExpression> annotated_predicates = {});
+                                                            std::vector<AnnotatedExpression> annotated_predicates = {});
 
   /**
    * Generate a set of table alias included in an expression
    */
-  static void GenerateTableAliasSet(const parser::AbstractExpression *expr, std::unordered_set<std::string> &table_alias_set);
+  static void GenerateTableAliasSet(const parser::AbstractExpression *expr,
+                                    std::unordered_set<std::string> &table_alias_set);
 
   /**
- * @breif Split conjunction expression tree into a vector of expressions with AND
- */
-  static void SplitPredicates(common::ManagedPointer<parser::AbstractExpression> expr, std::vector<common::ManagedPointer<parser::AbstractExpression>> &predicates);
+   * @breif Split conjunction expression tree into a vector of expressions with AND
+   */
+  static void SplitPredicates(common::ManagedPointer<parser::AbstractExpression> expr,
+                              std::vector<common::ManagedPointer<parser::AbstractExpression>> &predicates);
 
-  static std::unordered_map<std::string, common::ManagedPointer<parser::AbstractExpression>> ConstructSelectElementMap(const std::vector<common::ManagedPointer<parser::AbstractExpression>> &select_list);
+  static std::unordered_map<std::string, common::ManagedPointer<parser::AbstractExpression>> ConstructSelectElementMap(
+      const std::vector<common::ManagedPointer<parser::AbstractExpression>> &select_list);
 
-  OperatorExpression* output_expr_;
+  OperatorExpression *output_expr_;
 
   std::unique_ptr<catalog::CatalogAccessor> accessor_;
 
-
-//  /**
-//   * @brief The Depth of the current operator, we need this to tell if there's
-//   *  dependent join in the query. Dependent join transformation logic is not
-//   *  implemented yet
-//   */
-//  int depth_;
+  //  /**
+  //   * @brief The Depth of the current operator, we need this to tell if there's
+  //   *  dependent join in the query. Dependent join transformation logic is not
+  //   *  implemented yet
+  //   */
+  //  int depth_;
 
   /**
    * @brief A set of predicates the current operator generated, we use them to

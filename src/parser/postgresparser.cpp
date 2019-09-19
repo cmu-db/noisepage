@@ -809,7 +809,9 @@ std::unique_ptr<TableRef> PostgresParser::FromTransform(ParseResult *parse_resul
           refs.emplace_back(RangeSubselectTransform(parse_result, reinterpret_cast<RangeSubselect *>(node)));
           break;
         }
-        default: { PARSER_LOG_AND_THROW("FromTransform", "FromType", node->type); }
+        default: {
+          PARSER_LOG_AND_THROW("FromTransform", "FromType", node->type);
+        }
       }
     }
     auto result = TableRef::CreateTableRefByList(std::move(refs));
@@ -834,7 +836,9 @@ std::unique_ptr<TableRef> PostgresParser::FromTransform(ParseResult *parse_resul
       result = RangeSubselectTransform(parse_result, reinterpret_cast<RangeSubselect *>(node));
       break;
     }
-    default: { PARSER_LOG_AND_THROW("FromTransform", "FromType", node->type); }
+    default: {
+      PARSER_LOG_AND_THROW("FromTransform", "FromType", node->type);
+    }
   }
 
   return result;
@@ -905,7 +909,9 @@ std::unique_ptr<OrderByDescription> PostgresParser::OrderByTransform(ParseResult
         exprs.emplace_back(expr_ptr);
         break;
       }
-      default: { PARSER_LOG_AND_THROW("OrderByTransform", "OrderBy type", temp->type); }
+      default: {
+        PARSER_LOG_AND_THROW("OrderByTransform", "OrderBy type", temp->type);
+      }
     }
   }
 
@@ -1444,11 +1450,15 @@ PostgresParser::ColumnDefTransResult PostgresParser::ColumnDefTransform(ParseRes
             varlen = static_cast<size_t>(reinterpret_cast<A_Const *>(node)->val_.val_.ival_);
             break;
           }
-          default: { PARSER_LOG_AND_THROW("ColumnDefTransform", "typmods", node_type); }
+          default: {
+            PARSER_LOG_AND_THROW("ColumnDefTransform", "typmods", node_type);
+          }
         }
         break;
       }
-      default: { PARSER_LOG_AND_THROW("ColumnDefTransform", "typmods", node->type); }
+      default: {
+        PARSER_LOG_AND_THROW("ColumnDefTransform", "typmods", node->type);
+      }
     }
   }
 
@@ -1614,7 +1624,9 @@ std::unique_ptr<AbstractExpression> PostgresParser::WhenTransform(ParseResult *p
       result = BoolExprTransform(parse_result, reinterpret_cast<BoolExpr *>(root));
       break;
     }
-    default: { PARSER_LOG_AND_THROW("WhenTransform", "WHEN type", root->type); }
+    default: {
+      PARSER_LOG_AND_THROW("WhenTransform", "WHEN type", root->type);
+    }
   }
   return result;
 }
@@ -1784,7 +1796,9 @@ std::vector<common::ManagedPointer<AbstractExpression>> PostgresParser::ParamLis
         parse_result->AddExpression(std::move(expr));
         break;
       }
-      default: { PARSER_LOG_AND_THROW("ParamListTransform", "ExpressionType", param->type); }
+      default: {
+        PARSER_LOG_AND_THROW("ParamListTransform", "ExpressionType", param->type);
+      }
     }
   }
 
