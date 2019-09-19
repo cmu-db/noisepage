@@ -1160,7 +1160,7 @@ DatabaseCatalog::GetIndexObjects(terrier::transaction::TransactionContext *txn, 
                    "Catalog conventions say you should not find a nullptr for an object ptr in pg_class. Did you call "
                    "SetIndexPointer?");
     auto *schema = *(reinterpret_cast<catalog::IndexSchema *const *const>(
-        class_select_pr->AccessForceNotNull(get_class_object_and_schema_prm_[catalog::postgres::REL_PTR_COL_OID])));
+        class_select_pr->AccessForceNotNull(get_class_object_and_schema_prm_[catalog::postgres::REL_SCHEMA_COL_OID])));
     TERRIER_ASSERT(schema != nullptr,
                    "Catalog conventions say you should not find a nullptr for an schema ptr in pg_class");
 
