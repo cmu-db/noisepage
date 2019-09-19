@@ -1148,7 +1148,8 @@ DatabaseCatalog::GetIndexObjects(terrier::transaction::TransactionContext *txn, 
                  "We should have found an entry in pg_class for every index oid");
 
   // Step 3: Select all the objects from the tuple slots retrieved by step 2
-  std::vector<std::pair<common::ManagedPointer<storage::index::Index>, common::ManagedPointer<IndexSchema>>> index_objects;
+  std::vector<std::pair<common::ManagedPointer<storage::index::Index>, common::ManagedPointer<IndexSchema>>>
+      index_objects;
   auto *class_select_pr = get_class_object_and_schema_pri_.InitializeRow(buffer);
   for (const auto &slot : class_tuple_slots) {
     bool result UNUSED_ATTRIBUTE = classes_->Select(txn, slot, class_select_pr);
