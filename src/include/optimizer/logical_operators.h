@@ -583,9 +583,10 @@ class LogicalInsert : public OperatorNode<LogicalInsert> {
    * @param values list of expressions that provide the values to insert into columns
    * @return
    */
-  static Operator Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
-                       catalog::table_oid_t table_oid, std::vector<catalog::col_oid_t> &&columns,
-                       common::ManagedPointer<std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>> values);
+  static Operator Make(
+      catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid,
+      std::vector<catalog::col_oid_t> &&columns,
+      common::ManagedPointer<std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>> values);
 
   bool operator==(const BaseOperatorNode &r) override;
   common::hash_t Hash() const override;
@@ -613,7 +614,8 @@ class LogicalInsert : public OperatorNode<LogicalInsert> {
   /**
    * @return The expression objects to insert
    */
-  const common::ManagedPointer<std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>> &GetValues() const {
+  const common::ManagedPointer<std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>>
+      &GetValues() const {
     return values_;
   }
 
@@ -839,8 +841,7 @@ class LogicalUpdate : public OperatorNode<LogicalUpdate> {
    * @return
    */
   static Operator Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
-                       catalog::table_oid_t table_oid,
-                       std::vector<std::unique_ptr<parser::UpdateClause>> &&updates);
+                       catalog::table_oid_t table_oid, std::vector<std::unique_ptr<parser::UpdateClause>> &&updates);
 
   bool operator==(const BaseOperatorNode &r) override;
   common::hash_t Hash() const override;

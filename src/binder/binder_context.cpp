@@ -162,7 +162,8 @@ bool BinderContext::CheckNestedTableColumn(const std::string &alias, const std::
   return false;
 }
 
-void BinderContext::GenerateAllColumnExpressions(std::vector<common::ManagedPointer<parser::AbstractExpression>> *exprs) {
+void BinderContext::GenerateAllColumnExpressions(
+    std::vector<common::ManagedPointer<parser::AbstractExpression>> *exprs) {
   for (auto &entry : regular_table_alias_map_) {
     auto &schema = std::get<2>(entry.second);
     auto col_cnt = schema.GetColumns().size();

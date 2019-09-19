@@ -53,9 +53,7 @@ class UpdateClause {
    * @param r Right hand side; the other update clause
    * @return true if the two update clause are not logically equal
    */
-  bool operator!=(const UpdateClause &r) {
-    return !(*this == r);
-  }
+  bool operator!=(const UpdateClause &r) { return !(*this == r); }
 
  private:
   const std::string column_;

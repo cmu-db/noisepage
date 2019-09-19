@@ -184,9 +184,10 @@ common::hash_t LogicalProjection::Hash() const {
 // LogicalInsert
 //===--------------------------------------------------------------------===//
 
-Operator LogicalInsert::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
-                             catalog::table_oid_t table_oid, std::vector<catalog::col_oid_t> &&columns,
-                             common::ManagedPointer<std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>> values) {
+Operator LogicalInsert::Make(
+    catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid,
+    std::vector<catalog::col_oid_t> &&columns,
+    common::ManagedPointer<std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>> values) {
 #ifndef NDEBUG
   // We need to check whether the number of values for each insert vector
   // matches the number of columns
@@ -367,11 +368,11 @@ common::hash_t LogicalUpdate::Hash() const {
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_oid_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(namespace_oid_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_oid_));
-  for (const auto & clause : updates_) {
+  for (const auto &clause : updates_) {
     hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(clause->GetUpdateValue()));
     hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(clause->GetColumnName()));
   }
-  //hash = common::HashUtil::CombineHashInRange(hash, updates_.begin(), updates_.end());
+  // hash = common::HashUtil::CombineHashInRange(hash, updates_.begin(), updates_.end());
   return hash;
 }
 
@@ -381,7 +382,7 @@ bool LogicalUpdate::operator==(const BaseOperatorNode &r) {
   if (database_oid_ != node.database_oid_) return false;
   if (namespace_oid_ != node.namespace_oid_) return false;
   if (table_oid_ != node.table_oid_) return false;
-  //if (updates_ != node.updates_) return false;
+  // if (updates_ != node.updates_) return false;
   if (updates_.size() != node.updates_.size()) return false;
   for (size_t i = 0; i < updates_.size(); i++) {
     if (*(updates_[i]) != *(node.updates_[i])) return false;
