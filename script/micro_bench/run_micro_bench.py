@@ -28,7 +28,8 @@ class TestConfig(object):
     """
     def __init__(self):
         # benchmark executables to run
-        self.benchmark_list = ["data_table_benchmark",
+        self.benchmark_list = ["catalog_benchmark",
+                               "data_table_benchmark",
                                "garbage_collector_benchmark",
                                "large_transaction_benchmark",
                                "logging_benchmark",
@@ -53,7 +54,7 @@ class TestConfig(object):
         # of sources. Stop if the history requirements are met.
         self.ref_data_sources = [
             {"project" : "terrier-nightly",
-             "min_build" : 323,
+             "min_build" : 363,
             },
         ]
         return
@@ -710,7 +711,8 @@ class RunMicroBenchmarks(object):
     """
     def __init__(self, verbose=False, debug=False):
         # list of benchmarks to run
-        self.benchmark_list = ["data_table_benchmark",
+        self.benchmark_list = ["catalog_benchmark",
+                               "data_table_benchmark",
                                "garbage_collector_benchmark",
                                "large_transaction_benchmark",
                                "logging_benchmark",
