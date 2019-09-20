@@ -114,6 +114,12 @@ class Catalog {
   storage::SqlTable *databases_;
   storage::index::Index *databases_name_index_;
   storage::index::Index *databases_oid_index_;
+  storage::ProjectedRowInitializer get_database_oid_pri_;
+  storage::ProjectedRowInitializer get_database_catalog_pri_;
+  storage::ProjectedRowInitializer pg_database_all_cols_pri_;
+  storage::ProjectionMap pg_database_all_cols_prm_;
+  storage::ProjectedRowInitializer delete_database_entry_pri_;
+  storage::ProjectionMap delete_database_entry_prm_;
 
   /**
    * Creates a new database entry.
