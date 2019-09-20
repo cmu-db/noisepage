@@ -277,7 +277,7 @@ void RecoveryManager::UpdateIndexesOnTable(transaction::TransactionContext *txn,
     }
 
     default:  // Non-catalog table
-      index_objects = db_catalog_ptr->GetIndexObjects(txn, table_oid);
+      index_objects = db_catalog_ptr->GetIndexes(txn, table_oid);
   }
 
   // If there's no indexes on the table, we can return

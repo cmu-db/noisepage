@@ -436,7 +436,7 @@ TEST_F(CatalogTests, GetIndexesTest) {
   EXPECT_NE(accessor, nullptr);
 
   // Check that GetIndexes returns the indexes
-  auto idx_oids = accessor->GetIndexes(table_oid);
+  auto idx_oids = accessor->GetIndexOids(table_oid);
   EXPECT_EQ(idx_oids.size(), 1);
   EXPECT_EQ(idx_oids[0], idx_oid);
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
@@ -487,11 +487,11 @@ TEST_F(CatalogTests, GetIndexObjectsTest) {
   EXPECT_NE(accessor, nullptr);
 
   // Check that GetIndexes returns the indexes correct number of indexes
-  auto idx_oids = accessor->GetIndexes(table_oid);
+  auto idx_oids = accessor->GetIndexOids(table_oid);
   EXPECT_EQ(num_indexes, idx_oids.size());
 
   // Fetch all objects with a single call, check that sets are equal
-  auto index_objects = accessor->GetIndexObjects(table_oid);
+  auto index_objects = accessor->GetIndexes(table_oid);
   EXPECT_EQ(num_indexes, index_objects.size());
   for (const auto &object_pair : index_objects) {
     EXPECT_TRUE(object_pair.first);

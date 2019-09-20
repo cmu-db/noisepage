@@ -236,7 +236,7 @@ BENCHMARK_DEFINE_F(CatalogBenchmark, GetIndexes)(benchmark::State &state) {
 
   // NOLINTNEXTLINE
   for (auto _ : state) {
-    const auto test_indexes UNUSED_ATTRIBUTE = accessor->GetIndexes(oids.first);
+    const auto test_indexes UNUSED_ATTRIBUTE = accessor->GetIndexOids(oids.first);
     TERRIER_ASSERT(!test_indexes.empty(), "getting index oids should not fail");
   }
 
@@ -347,8 +347,8 @@ BENCHMARK_DEFINE_F(CatalogBenchmark, GetIndexObjects)(benchmark::State &state) {
 
   // NOLINTNEXTLINE
   for (auto _ : state) {
-    const auto test_indexes UNUSED_ATTRIBUTE = accessor->GetIndexObjects(oids.first);
-    TERRIER_ASSERT(!test_indexes.empty(), "getting index oids should not fail");
+    const auto test_indexes UNUSED_ATTRIBUTE = accessor->GetIndexes(oids.first);
+    TERRIER_ASSERT(!test_indexes.empty(), "getting index objects should not fail");
   }
 
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);

@@ -403,7 +403,7 @@ TEST_F(RecoveryTests, DropIndexTest) {
   EXPECT_TRUE(db_catalog->GetTable(txn, table_oid));
 
   // Assert the index we deleted doesn't exist
-  EXPECT_EQ(0, db_catalog->GetIndexes(txn, table_oid).size());
+  EXPECT_EQ(0, db_catalog->GetIndexOids(txn, table_oid).size());
   EXPECT_FALSE(db_catalog->GetIndex(txn, index_oid));
   recovery_txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 }

@@ -835,8 +835,7 @@ std::vector<constraint_oid_t> DatabaseCatalog::GetConstraints(transaction::Trans
   return {};
 }
 
-std::vector<index_oid_t> DatabaseCatalog::GetIndexes(transaction::TransactionContext *const txn,
-                                                     const table_oid_t table) {
+std::vector<index_oid_t> DatabaseCatalog::GetIndexOids(transaction::TransactionContext *txn, table_oid_t table) {
   // Initialize PR for index scan
   auto oid_pri = indexes_table_index_->GetProjectedRowInitializer();
 
@@ -1109,8 +1108,8 @@ const IndexSchema &DatabaseCatalog::GetIndexSchema(transaction::TransactionConte
   return *reinterpret_cast<IndexSchema *>(ptr_pair.first);
 }
 
-std::vector<std::pair<common::ManagedPointer<storage::index::Index>, const IndexSchema &>>
-DatabaseCatalog::GetIndexObjects(transaction::TransactionContext *txn, table_oid_t table) {
+std::vector<std::pair<common::ManagedPointer<storage::index::Index>, const IndexSchema &>> DatabaseCatalog::GetIndexes(
+    transaction::TransactionContext *txn, table_oid_t table) {
   // Step 1: Get all index oids on table
   // Initialize PR for index scan
   auto indexes_oid_pri = indexes_table_index_->GetProjectedRowInitializer();

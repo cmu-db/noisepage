@@ -166,7 +166,7 @@ class DatabaseCatalog {
    * @param table being queried
    * @return vector of OIDs for all of the indexes on this table
    */
-  std::vector<index_oid_t> GetIndexes(transaction::TransactionContext *txn, table_oid_t table);
+  std::vector<index_oid_t> GetIndexOids(transaction::TransactionContext *txn, table_oid_t table);
 
   /**
    * Create the catalog entries for a new index.
@@ -235,7 +235,7 @@ class DatabaseCatalog {
    * @param table table to get index objects for
    * @return vector of pairs of index pointers and their corresponding schemas
    */
-  std::vector<std::pair<common::ManagedPointer<storage::index::Index>, const IndexSchema &>> GetIndexObjects(
+  std::vector<std::pair<common::ManagedPointer<storage::index::Index>, const IndexSchema &>> GetIndexes(
       transaction::TransactionContext *txn, table_oid_t table);
 
  private:
