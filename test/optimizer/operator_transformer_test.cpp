@@ -184,6 +184,28 @@ TEST_F(OperatorTransformerTest, SelectStatementSimpleTest) {
 }
 
 // NOLINTNEXTLINE
+TEST_F(OperatorTransformerTest, SelectStatementAggregateTest) {
+  // Test regular table name
+  LOG_INFO("Parsing sql query");
+  std::string selectSQL = "SELECT MAX(b1) FROM B";
+
+  std::string ref =
+      "{\"Op\":\"LogicalLimit\",\"Children\":"
+      "[{\"Op\":\"LogicalAggregateAndGroupBy\",\"Children\":"
+      "[{\"Op\":\"LogicalGet\",}]}]}";
+
+  auto parse_tree = parser_.BuildParseTree(selectSQL);
+  auto selectStmt = dynamic_cast<parser::SelectStatement *>(parse_tree.GetStatements()[0].get());
+  binder_->BindNameToNode(selectStmt);
+  auto accessor_ = binder_->GetCatalogAccessor();
+  operator_transformer_ = new optimizer::QueryToOperatorTransformer(std::move(accessor_));
+  auto operator_tree = operator_transformer_->ConvertToOpExpression(selectStmt);
+  auto info = GetInfo(operator_tree);
+
+  EXPECT_EQ(ref, info);
+}
+
+// NOLINTNEXTLINE
 TEST_F(OperatorTransformerTest, SelectStatementComplexTest) {
   // Test regular table name
   LOG_INFO("Parsing sql query");
