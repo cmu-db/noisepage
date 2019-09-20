@@ -205,121 +205,93 @@ void RecoveryManager::UpdateIndexesOnTable(transaction::TransactionContext *txn,
                                            const TupleSlot &tuple_slot, ProjectedRow *table_pr, const bool insert) {
   auto db_catalog_ptr = GetDatabaseCatalog(txn, db_oid);
 
-  // Stores ptr to index
-  std::vector<common::ManagedPointer<storage::index::Index>> indexes;
-
-  // Stores index schemas, used to get indexcol_ids
-  std::vector<const catalog::IndexSchema *> index_schemas;
+  // Stores index objects and schemas
+  std::vector<std::pair<common::ManagedPointer<index::Index>, const catalog::IndexSchema &>> index_objects;
 
   // We don't bootstrap the database catalog during recovery, so this means that indexes on catalog tables may not yet
   // be entries in pg_index. Thus, we hardcode these to update
   switch (!table_oid) {
     case (!catalog::postgres::DATABASE_TABLE_OID): {
-      indexes.emplace_back(catalog_->databases_name_index_);
-      index_schemas.push_back(&catalog_->databases_name_index_->metadata_.GetSchema());
-
-      indexes.emplace_back(catalog_->databases_oid_index_);
-      index_schemas.push_back(&catalog_->databases_oid_index_->metadata_.GetSchema());
+      index_objects.emplace_back(catalog_->databases_name_index_,
+                                 catalog_->databases_name_index_->metadata_.GetSchema());
+      index_objects.emplace_back(catalog_->databases_oid_index_, catalog_->databases_oid_index_->metadata_.GetSchema());
       break;
     }
 
     case (!catalog::postgres::NAMESPACE_TABLE_OID): {
-      indexes.emplace_back(db_catalog_ptr->namespaces_oid_index_);
-      index_schemas.push_back(&db_catalog_ptr->namespaces_oid_index_->metadata_.GetSchema());
-
-      indexes.emplace_back(db_catalog_ptr->namespaces_name_index_);
-      index_schemas.push_back(&db_catalog_ptr->namespaces_name_index_->metadata_.GetSchema());
+      index_objects.emplace_back(db_catalog_ptr->namespaces_oid_index_,
+                                 db_catalog_ptr->namespaces_oid_index_->metadata_.GetSchema());
+      index_objects.emplace_back(db_catalog_ptr->namespaces_name_index_,
+                                 db_catalog_ptr->namespaces_name_index_->metadata_.GetSchema());
       break;
     }
 
     case (!catalog::postgres::CLASS_TABLE_OID): {
-      indexes.emplace_back(db_catalog_ptr->classes_oid_index_);
-      index_schemas.push_back(&db_catalog_ptr->classes_oid_index_->metadata_.GetSchema());
-
-      indexes.emplace_back(db_catalog_ptr->classes_name_index_);
-      index_schemas.push_back(&db_catalog_ptr->classes_name_index_->metadata_.GetSchema());
-
-      indexes.emplace_back(db_catalog_ptr->classes_namespace_index_);
-      index_schemas.push_back(&db_catalog_ptr->classes_namespace_index_->metadata_.GetSchema());
+      index_objects.emplace_back(db_catalog_ptr->classes_oid_index_,
+                                 db_catalog_ptr->classes_oid_index_->metadata_.GetSchema());
+      index_objects.emplace_back(db_catalog_ptr->classes_name_index_,
+                                 db_catalog_ptr->classes_name_index_->metadata_.GetSchema());
+      index_objects.emplace_back(db_catalog_ptr->classes_namespace_index_,
+                                 db_catalog_ptr->classes_namespace_index_->metadata_.GetSchema());
       break;
     }
 
     case (!catalog::postgres::COLUMN_TABLE_OID): {
-      indexes.emplace_back(db_catalog_ptr->columns_oid_index_);
-      index_schemas.push_back(&db_catalog_ptr->columns_oid_index_->metadata_.GetSchema());
-
-      indexes.emplace_back(db_catalog_ptr->columns_name_index_);
-      index_schemas.push_back(&db_catalog_ptr->columns_name_index_->metadata_.GetSchema());
+      index_objects.emplace_back(db_catalog_ptr->columns_oid_index_,
+                                 db_catalog_ptr->columns_oid_index_->metadata_.GetSchema());
+      index_objects.emplace_back(db_catalog_ptr->columns_name_index_,
+                                 db_catalog_ptr->columns_name_index_->metadata_.GetSchema());
       break;
     }
 
     case (!catalog::postgres::CONSTRAINT_TABLE_OID): {
-      indexes.emplace_back(db_catalog_ptr->constraints_oid_index_);
-      index_schemas.push_back(&db_catalog_ptr->constraints_oid_index_->metadata_.GetSchema());
-
-      indexes.emplace_back(db_catalog_ptr->constraints_name_index_);
-      index_schemas.push_back(&db_catalog_ptr->constraints_name_index_->metadata_.GetSchema());
-
-      indexes.emplace_back(db_catalog_ptr->constraints_namespace_index_);
-      index_schemas.push_back(&db_catalog_ptr->constraints_namespace_index_->metadata_.GetSchema());
-
-      indexes.emplace_back(db_catalog_ptr->constraints_table_index_);
-      index_schemas.push_back(&db_catalog_ptr->constraints_table_index_->metadata_.GetSchema());
-
-      indexes.emplace_back(db_catalog_ptr->constraints_index_index_);
-      index_schemas.push_back(&db_catalog_ptr->constraints_index_index_->metadata_.GetSchema());
-
-      indexes.emplace_back(db_catalog_ptr->constraints_foreigntable_index_);
-      index_schemas.push_back(&db_catalog_ptr->constraints_foreigntable_index_->metadata_.GetSchema());
+      index_objects.emplace_back(db_catalog_ptr->constraints_oid_index_,
+                                 db_catalog_ptr->constraints_oid_index_->metadata_.GetSchema());
+      index_objects.emplace_back(db_catalog_ptr->constraints_name_index_,
+                                 db_catalog_ptr->constraints_name_index_->metadata_.GetSchema());
+      index_objects.emplace_back(db_catalog_ptr->constraints_namespace_index_,
+                                 db_catalog_ptr->constraints_namespace_index_->metadata_.GetSchema());
+      index_objects.emplace_back(db_catalog_ptr->constraints_index_index_,
+                                 db_catalog_ptr->constraints_index_index_->metadata_.GetSchema());
+      index_objects.emplace_back(db_catalog_ptr->constraints_foreigntable_index_,
+                                 db_catalog_ptr->constraints_foreigntable_index_->metadata_.GetSchema());
       break;
     }
 
     case (!catalog::postgres::INDEX_TABLE_OID): {
-      indexes.emplace_back(db_catalog_ptr->indexes_oid_index_);
-      index_schemas.push_back(&db_catalog_ptr->indexes_oid_index_->metadata_.GetSchema());
-
-      indexes.emplace_back(db_catalog_ptr->indexes_table_index_);
-      index_schemas.push_back(&db_catalog_ptr->indexes_table_index_->metadata_.GetSchema());
+      index_objects.emplace_back(db_catalog_ptr->indexes_oid_index_,
+                                 db_catalog_ptr->indexes_oid_index_->metadata_.GetSchema());
+      index_objects.emplace_back(db_catalog_ptr->indexes_table_index_,
+                                 db_catalog_ptr->indexes_table_index_->metadata_.GetSchema());
       break;
     }
 
     case (!catalog::postgres::TYPE_TABLE_OID): {
-      indexes.emplace_back(db_catalog_ptr->types_oid_index_);
-      index_schemas.push_back(&db_catalog_ptr->types_oid_index_->metadata_.GetSchema());
-
-      indexes.emplace_back(db_catalog_ptr->types_name_index_);
-      index_schemas.push_back(&db_catalog_ptr->types_name_index_->metadata_.GetSchema());
-
-      indexes.emplace_back(db_catalog_ptr->types_namespace_index_);
-      index_schemas.push_back(&db_catalog_ptr->types_namespace_index_->metadata_.GetSchema());
+      index_objects.emplace_back(db_catalog_ptr->types_oid_index_,
+                                 db_catalog_ptr->types_oid_index_->metadata_.GetSchema());
+      index_objects.emplace_back(db_catalog_ptr->types_name_index_,
+                                 db_catalog_ptr->types_name_index_->metadata_.GetSchema());
+      index_objects.emplace_back(db_catalog_ptr->types_namespace_index_,
+                                 db_catalog_ptr->types_namespace_index_->metadata_.GetSchema());
       break;
     }
 
     default:  // Non-catalog table
-      auto index_oids = db_catalog_ptr->GetIndexes(txn, table_oid);
-      indexes.reserve(index_oids.size());
-      index_schemas.reserve(index_oids.size());
-
-      for (auto &oid : index_oids) {
-        // TODO(Gus, John, Issue #513): These individual calls are inefficient, we should be able to get these objects
-        // with a single call to the catalog
-        indexes.push_back(db_catalog_ptr->GetIndex(txn, oid));
-        index_schemas.push_back(&db_catalog_ptr->GetIndexSchema(txn, oid));
-      }
+      index_objects = db_catalog_ptr->GetIndexObjects(txn, table_oid);
   }
 
   // If there's no indexes on the table, we can return
-  if (indexes.empty()) return;
-
-  // Buffer for projected row sizes
-  uint32_t index_byte_size = 0;
+  if (index_objects.empty()) return;
 
   // Compute largest PR size we need for index PRs.
-  for (const auto &index_ptr : indexes) {
-    index_byte_size = std::max(index_byte_size, index_ptr->GetProjectedRowInitializer().ProjectedRowSize());
+  uint32_t max_index_key_pr_size = 0;
+  for (const auto &index_obj : index_objects) {
+    max_index_key_pr_size =
+        std::max(max_index_key_pr_size, index_obj.first->GetProjectedRowInitializer().ProjectedRowSize());
   }
+  auto *index_buffer = common::AllocationUtil::AllocateAligned(max_index_key_pr_size);
 
-  // The table PR, as well as the PR map, should contain all columns
+  // Build a PR map for all columns in the table, as the table pr should have values for every column
   const auto &table_schema = GetTableSchema(txn, db_catalog_ptr, table_oid);
   std::vector<catalog::col_oid_t> all_table_oids;
   for (const auto &col : table_schema.GetColumns()) {
@@ -328,24 +300,21 @@ void RecoveryManager::UpdateIndexesOnTable(transaction::TransactionContext *txn,
   auto pr_map = table_ptr->ProjectionMapForOids(all_table_oids);
   TERRIER_ASSERT(pr_map.size() == table_pr->NumColumns(), "Projected row should contain all attributes");
 
-  // Allocate index buffer
-  auto *index_buffer = common::AllocationUtil::AllocateAligned(index_byte_size);
-
   // TODO(Gus): We are going to assume no indexes on expressions below. Having indexes on expressions would require to
   // evaluate expressions and that's a nightmare
-  for (uint8_t i = 0; i < indexes.size(); i++) {
-    auto index = indexes[i];
-    const auto *schema = index_schemas[i];
-    const auto &indexed_attributes = schema->GetIndexedColOids();
+  for (const auto &index_obj : index_objects) {
+    auto index = index_obj.first;
+    const auto &schema = index_obj.second;
+    const auto &indexed_attributes = schema.GetIndexedColOids();
 
     // Build the index PR
     auto *index_pr = index->GetProjectedRowInitializer().InitializeRow(index_buffer);
 
     // Copy in each value from the table PR into the index PR
-    auto num_index_cols = schema->GetColumns().size();
+    auto num_index_cols = schema.GetColumns().size();
     TERRIER_ASSERT(num_index_cols == indexed_attributes.size(), "Only support index keys that are a single column oid");
     for (uint32_t col_idx = 0; col_idx < num_index_cols; col_idx++) {
-      const auto &col = schema->GetColumn(col_idx);
+      const auto &col = schema.GetColumn(col_idx);
       auto index_col_oid = col.Oid();
       const catalog::col_oid_t &table_col_oid = indexed_attributes[col_idx];
       if (table_pr->IsNull(pr_map[table_col_oid])) {
