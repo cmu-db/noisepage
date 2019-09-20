@@ -74,7 +74,7 @@ class MetricsTests : public TerrierTest {
 };
 
 /**
- *  Testing transaction metric stats collection and persistence, single thread
+ *  Testing logging metric stats collection and persistence, single thread
  */
 // NOLINTNEXTLINE
 TEST_F(MetricsTests, LoggingCSVTest) {
