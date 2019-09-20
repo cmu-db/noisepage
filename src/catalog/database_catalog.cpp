@@ -1089,7 +1089,7 @@ const IndexSchema &DatabaseCatalog::GetIndexSchema(transaction::TransactionConte
 }
 
 std::vector<std::pair<common::ManagedPointer<storage::index::Index>, const IndexSchema &>>
-DatabaseCatalog::GetIndexObjects(terrier::transaction::TransactionContext *txn, terrier::catalog::table_oid_t table) {
+DatabaseCatalog::GetIndexObjects(transaction::TransactionContext *txn, table_oid_t table) {
   // Step 1: Get all index oids on table
   // Initialize PR for index scan
   auto indexes_oid_pri = indexes_table_index_->GetProjectedRowInitializer();
@@ -1115,6 +1115,7 @@ DatabaseCatalog::GetIndexObjects(terrier::transaction::TransactionContext *txn, 
   }
 
   std::vector<index_oid_t> index_oids;
+  index_oids.reserve(index_scan_results.size());
   auto *index_select_pr = get_indexes_pri_.InitializeRow(buffer);
   for (auto &slot : index_scan_results) {
     const auto result UNUSED_ATTRIBUTE = indexes_->Select(txn, slot, index_select_pr);
@@ -1149,6 +1150,7 @@ DatabaseCatalog::GetIndexObjects(terrier::transaction::TransactionContext *txn, 
 
   // Step 3: Select all the objects from the tuple slots retrieved by step 2
   std::vector<std::pair<common::ManagedPointer<storage::index::Index>, const IndexSchema &>> index_objects;
+  index_objects.reserve(class_tuple_slots.size());
   auto *class_select_pr = get_class_object_and_schema_pri_.InitializeRow(buffer);
   for (const auto &slot : class_tuple_slots) {
     bool result UNUSED_ATTRIBUTE = classes_->Select(txn, slot, class_select_pr);
