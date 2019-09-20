@@ -2,6 +2,7 @@
 #include <algorithm>
 #include <random>
 #include <string>
+#include <utility>
 #include <vector>
 #include "catalog/catalog_accessor.h"
 #include "catalog/catalog_defs.h"
@@ -398,7 +399,7 @@ TEST_F(CatalogTests, NameNormalizationTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(CatalogTests, GetIndexes) {
+TEST_F(CatalogTests, GetIndexesTest) {
   auto txn = txn_manager_->BeginTransaction();
   auto accessor = catalog_->GetAccessor(txn, db_);
 
@@ -438,6 +439,66 @@ TEST_F(CatalogTests, GetIndexes) {
   auto idx_oids = accessor->GetIndexes(table_oid);
   EXPECT_EQ(idx_oids.size(), 1);
   EXPECT_EQ(idx_oids[0], idx_oid);
+  txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+}
+
+// NOLINTNEXTLINE
+TEST_F(CatalogTests, GetIndexObjectsTest) {
+  constexpr auto num_indexes = 3;
+  auto txn = txn_manager_->BeginTransaction();
+  auto accessor = catalog_->GetAccessor(txn, db_);
+
+  // Create the column definition (no OIDs)
+  std::vector<catalog::Schema::Column> cols;
+  cols.emplace_back("id", type::TypeId::INTEGER, false,
+                    parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
+  auto tmp_schema = catalog::Schema(cols);
+
+  auto table_oid = accessor->CreateTable(accessor->GetDefaultNamespace(), "test_table", tmp_schema);
+  auto schema = accessor->GetSchema(table_oid);
+  auto table = new storage::SqlTable(&block_store_, schema);
+  EXPECT_TRUE(accessor->SetTablePointer(table_oid, table));
+
+  // Create the a couple of index
+  std::vector<catalog::index_oid_t> index_oids;
+  for (auto i = 0; i < num_indexes; i++) {
+    std::vector<catalog::IndexSchema::Column> key_cols{
+        catalog::IndexSchema::Column{"id", type::TypeId::INTEGER, false,
+                                     parser::ColumnValueExpression(db_, table_oid, schema.GetColumn("id").Oid())}};
+    auto index_schema = catalog::IndexSchema(key_cols, true, true, false, true);
+    auto idx_oid = accessor->CreateIndex(accessor->GetDefaultNamespace(), table_oid,
+                                         "test_table_idx" + std::to_string(i), index_schema);
+    EXPECT_NE(idx_oid, catalog::INVALID_INDEX_OID);
+    index_oids.push_back(idx_oid);
+    const auto &true_schema = accessor->GetIndexSchema(idx_oid);
+
+    storage::index::IndexBuilder index_builder;
+    index_builder.SetOid(idx_oid).SetKeySchema(true_schema).SetConstraintType(storage::index::ConstraintType::UNIQUE);
+    auto index = index_builder.Build();
+
+    EXPECT_TRUE(accessor->SetIndexPointer(idx_oid, index));
+    EXPECT_EQ(common::ManagedPointer(index), accessor->GetIndex(idx_oid));
+  }
+  txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+
+  // Get an accessor into the database
+  txn = txn_manager_->BeginTransaction();
+  accessor = catalog_->GetAccessor(txn, db_);
+  EXPECT_NE(accessor, nullptr);
+
+  // Check that GetIndexes returns the indexes correct number of indexes
+  auto idx_oids = accessor->GetIndexes(table_oid);
+  EXPECT_EQ(num_indexes, idx_oids.size());
+
+  // Fetch all objects with a single call, check that sets are equal
+  auto index_objects = accessor->GetIndexObjects(table_oid);
+  EXPECT_EQ(num_indexes, index_objects.size());
+  for (const auto &object_pair : index_objects) {
+    EXPECT_TRUE(object_pair.first);
+    EXPECT_EQ(1, object_pair.second.GetColumns().size());
+    EXPECT_EQ("id", object_pair.second.GetColumn(0).Name());
+  }
+
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 }
 
