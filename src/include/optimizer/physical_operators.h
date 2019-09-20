@@ -720,11 +720,13 @@ class Insert : public OperatorNode<Insert> {
    * @param table_oid OID of the table
    * @param columns OIDs of columns to insert into
    * @param values expressions of values to insert
+   * @param index_oids the OIDs of the indexes to insert into
    * @return an Insert operator
    */
   static Operator Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
                        catalog::table_oid_t table_oid, std::vector<catalog::col_oid_t> &&columns,
-                       std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>> &&values);
+                       std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>> &&values,
+                       std::vector<catalog::index_oid_t> &&index_oids);
 
   bool operator==(const BaseOperatorNode &r) override;
   common::hash_t Hash() const override;
@@ -756,6 +758,11 @@ class Insert : public OperatorNode<Insert> {
     return values_;
   }
 
+  /**
+   * @return Index oids to insert into
+   */
+  const std::vector<catalog::index_oid_t> &GetIndexes() const { return index_oids_; }
+
  private:
   /**
    * OID of the database
@@ -781,6 +788,11 @@ class Insert : public OperatorNode<Insert> {
    * Expressions of values to insert
    */
   std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>> values_;
+
+  /**
+   * Indexes to insert into
+   */
+  std::vector<catalog::index_oid_t> index_oids_;
 };
 
 /**
@@ -792,10 +804,11 @@ class InsertSelect : public OperatorNode<InsertSelect> {
    * @param database_oid OID of the database
    * @param namespace_oid OID of the namespace
    * @param table_oid OID of the table
+   * @param index_oids the OIDs of the indexes to insert into
    * @return an InsertSelect operator
    */
   static Operator Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
-                       catalog::table_oid_t table_oid);
+                       catalog::table_oid_t table_oid, std::vector<catalog::index_oid_t> &&index_oids);
 
   bool operator==(const BaseOperatorNode &r) override;
   common::hash_t Hash() const override;
@@ -815,6 +828,11 @@ class InsertSelect : public OperatorNode<InsertSelect> {
    */
   const catalog::table_oid_t &GetTableOid() const { return table_oid_; }
 
+  /**
+   * @return Index oids to insert into
+   */
+  const std::vector<catalog::index_oid_t> &GetIndexes() const { return index_oids_; }
+
  private:
   /**
    * OID of the database
@@ -830,6 +848,11 @@ class InsertSelect : public OperatorNode<InsertSelect> {
    * OID of the table
    */
   catalog::table_oid_t table_oid_;
+
+  /**
+   * Indexes to insert into
+   */
+  std::vector<catalog::index_oid_t> index_oids_;
 };
 
 /**

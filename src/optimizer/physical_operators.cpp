@@ -465,7 +465,8 @@ bool OuterHashJoin::operator==(const BaseOperatorNode &r) {
 //===--------------------------------------------------------------------===//
 Operator Insert::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
                       catalog::table_oid_t table_oid, std::vector<catalog::col_oid_t> &&columns,
-                      std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>> &&values) {
+                      std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>> &&values,
+                      std::vector<catalog::index_oid_t> &&index_oids) {
 #ifndef NDEBUG
   // We need to check whether the number of values for each insert vector
   // matches the number of columns
@@ -480,6 +481,7 @@ Operator Insert::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t n
   op->table_oid_ = table_oid;
   op->columns_ = std::move(columns);
   op->values_ = std::move(values);
+  op->index_oids_ = std::move(index_oids);
   return Operator(op);
 }
 
@@ -513,11 +515,12 @@ bool Insert::operator==(const BaseOperatorNode &r) {
 // InsertSelect
 //===--------------------------------------------------------------------===//
 Operator InsertSelect::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
-                            catalog::table_oid_t table_oid) {
+                            catalog::table_oid_t table_oid, std::vector<catalog::index_oid_t> &&index_oids) {
   auto *insert_op = new InsertSelect;
   insert_op->database_oid_ = database_oid;
   insert_op->namespace_oid_ = namespace_oid;
   insert_op->table_oid_ = table_oid;
+  insert_op->index_oids_ = index_oids;
   return Operator(insert_op);
 }
 
