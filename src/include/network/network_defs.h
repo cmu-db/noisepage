@@ -22,7 +22,6 @@
 #include "parser/pg_trigger.h"
 #include "traffic_cop/result_set.h"
 #include "type/type_id.h"
-#include "network/network_io_utils.h"
 
 namespace terrier::trafficcop {
 class TrafficCop;
@@ -30,6 +29,7 @@ class TrafficCop;
 
 namespace terrier::network {
 class PostgresPacketWriter;
+class ReadBuffer;
 
 // For threads
 #define CONNECTION_THREAD_COUNT 4
