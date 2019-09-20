@@ -10,6 +10,7 @@ namespace terrier::storage {
 
 void LogSerializerTask::LogSerializerTaskLoop() {
   auto curr_sleep = serialization_interval_;
+  // TODO(Gus): Make max back-off a settings manager setting
   const auto max_sleep =
       serialization_interval_ * (1u << 10u);  // We cap the back-off in case of long gaps with no transactions
   do {
