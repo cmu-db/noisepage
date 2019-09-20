@@ -1,5 +1,6 @@
 #pragma once
 
+#include <algorithm>
 #include <functional>
 #include <memory>
 #include <unordered_set>
@@ -174,10 +175,7 @@ class HashIndex final : public Index {
       } else {
         auto &value_map = std::get<ValueMap>(value);
 
-        // Check all of the existing TupleSlots at this key for conflicts
-        for (const auto i : value_map) {
-          predicate_satisfied = predicate_satisfied || predicate(i);
-        }
+        predicate_satisfied = std::any_of(value_map.cbegin(), value_map.cend(), predicate);
 
         if (!predicate_satisfied) {
           // insert the location to the cuckoohash_map
