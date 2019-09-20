@@ -228,6 +228,16 @@ class DatabaseCatalog {
    */
   common::ManagedPointer<storage::index::Index> GetIndex(transaction::TransactionContext *txn, index_oid_t index);
 
+  /**
+   * Returns index pointers and schemas for every index on a table. Provides much better performance than individual
+   * calls to GetIndex and GetIndexSchema
+   * @param txn transaction to use
+   * @param table table to get index objects for
+   * @return vector of pairs of index pointers and their corresponding schemas
+   */
+  std::vector<std::pair<common::ManagedPointer<storage::index::Index>, const IndexSchema &>> GetIndexObjects(
+      transaction::TransactionContext *txn, table_oid_t table);
+
  private:
   /**
    * Create a namespace with a given ns oid
@@ -287,6 +297,8 @@ class DatabaseCatalog {
   storage::ProjectedRowInitializer set_class_schema_pri_;
   storage::ProjectedRowInitializer get_class_pointer_kind_pri_;
   storage::ProjectedRowInitializer get_class_schema_pointer_kind_pri_;
+  storage::ProjectedRowInitializer get_class_object_and_schema_pri_;
+  storage::ProjectionMap get_class_object_and_schema_prm_;
 
   storage::SqlTable *indexes_;
   storage::index::Index *indexes_oid_index_;

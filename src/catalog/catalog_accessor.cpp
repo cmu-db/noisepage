@@ -88,6 +88,11 @@ std::vector<constraint_oid_t> CatalogAccessor::GetConstraints(table_oid_t table)
 
 std::vector<index_oid_t> CatalogAccessor::GetIndexes(table_oid_t table) const { return dbc_->GetIndexes(txn_, table); }
 
+std::vector<std::pair<common::ManagedPointer<storage::index::Index>, const IndexSchema &>>
+CatalogAccessor::GetIndexObjects(table_oid_t table) {
+  return dbc_->GetIndexObjects(txn_, table);
+}
+
 index_oid_t CatalogAccessor::GetIndexOid(std::string name) const {
   NormalizeObjectName(&name);
   for (auto &path : search_path_) {
