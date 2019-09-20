@@ -47,6 +47,12 @@ class BindNodeVisitor : public SqlNodeVisitor {
   void BindNameToNode(parser::SQLStatement *tree);
   void Visit(parser::SelectStatement *node) override;
 
+  /**
+   * This method is used by the QueryToOperatorTransformer to take ownership of the catalog accessor.
+   * @return catalog accessor
+   */
+  std::unique_ptr<catalog::CatalogAccessor> GetCatalogAccessor() { return std::move(catalog_accessor_); }
+
   // Some sub query nodes inside SelectStatement
   void Visit(parser::JoinDefinition *node) override;
   void Visit(parser::TableRef *node) override;
