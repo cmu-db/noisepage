@@ -4,6 +4,7 @@
 #include <vector>
 #include "binder/bind_node_visitor.h"
 #include "catalog/catalog.h"
+#include "optimizer/operator_expression.h"
 #include "optimizer/query_to_operator_transformer.h"
 #include "parser/expression/aggregate_expression.h"
 #include "parser/expression/column_value_expression.h"
@@ -26,7 +27,7 @@ using std::vector;
 
 namespace terrier {
 
-class QueryToOperatorTransformerTest : public TerrierTest {
+class OperatorTransformerTest : public TerrierTest {
  private:
   storage::RecordBufferSegmentPool buffer_pool_{1000000, 1000000};
   storage::BlockStore block_store_{1000, 1000};
@@ -45,7 +46,8 @@ class QueryToOperatorTransformerTest : public TerrierTest {
   transaction::TransactionContext *txn_;
   std::unique_ptr<catalog::CatalogAccessor> accessor_;
   binder::BindNodeVisitor *binder_;
-  optimizer::QueryToOperatorTransformer *query_to_operator_transformer_;
+  optimizer::QueryToOperatorTransformer *operator_transformer_;
+  std::vector<optimizer::OpType> op_types_;
 
   void SetUpTables() {
     // Initialize the transaction manager and GC
@@ -123,7 +125,6 @@ class QueryToOperatorTransformerTest : public TerrierTest {
     txn_ = txn_manager_->BeginTransaction();
     accessor_ = catalog_->GetAccessor(txn_, db_oid_);
     binder_ = new binder::BindNodeVisitor(std::move(accessor_), default_database_name_);
-    query_to_operator_transformer_ = new optimizer::QueryToOperatorTransformer(std::move(accessor_));
   }
 
   void TearDown() override {
@@ -133,164 +134,87 @@ class QueryToOperatorTransformerTest : public TerrierTest {
     TearDownTables();
     TerrierTest::TearDown();
   }
+
+  const std::string GetInfo(optimizer::OperatorExpression *op) const {
+    std::string info = "{";
+    {
+      info += "\"Op\":";
+      info += "\"" + op->GetOp().GetName() + "\",";
+      auto children = op->GetChildren();
+      if (!children.empty()) {
+        info += "\"Children\":[";
+        {
+          bool is_first = true;
+          for (const auto &child : children) {
+            if (is_first == true) {
+              is_first = false;
+            } else {
+              info += ",";
+            }
+            info += GetInfo(child);
+          }
+        }
+        info += "]";
+      }
+    }
+    info += '}';
+    return info;
+  }
 };
 
 // NOLINTNEXTLINE
-TEST_F(QueryToOperatorTransformerTest, SelectStatementComplexTest) {
+TEST_F(OperatorTransformerTest, SelectStatementComplexTest) {
   // Test regular table name
   LOG_INFO("Parsing sql query");
   std::string selectSQL =
       "SELECT A.A1, B.B2 FROM A INNER JOIN b ON a.a1 = b.b1 WHERE a1 < 100 "
       "GROUP BY A.a1, B.b2 HAVING a1 > 50 ORDER BY a1";
 
+  std::string ref =
+      "{\"Op\":\"LogicalLimit\",\"Children\":"
+      "[{\"Op\":\"LogicalFilter\",\"Children\":"
+      "[{\"Op\":\"LogicalAggregateAndGroupBy\",\"Children\":"
+      "[{\"Op\":\"LogicalFilter\",\"Children\":"
+      "[{\"Op\":\"LogicalInnerJoin\",\"Children\":"
+      "[{\"Op\":\"LogicalGet\",},{\"Op\":\"LogicalGet\","
+      "}]}]}]}]}]}";
+
   auto parse_tree = parser_.BuildParseTree(selectSQL);
   auto selectStmt = dynamic_cast<parser::SelectStatement *>(parse_tree.GetStatements()[0].get());
   binder_->BindNameToNode(selectStmt);
-  EXPECT_EQ(0, selectStmt->GetDepth());
+  auto accessor_ = binder_->GetCatalogAccessor();
+  operator_transformer_ = new optimizer::QueryToOperatorTransformer(std::move(accessor_));
+  auto operator_tree = operator_transformer_->ConvertToOpExpression(selectStmt);
+  auto info = GetInfo(operator_tree);
 
-  // Check select_list
-  LOG_INFO("Checking select list");
-  auto col_expr = dynamic_cast<const parser::ColumnValueExpression *>(selectStmt->GetSelectColumns()[0].Get());
-  EXPECT_EQ(col_expr->GetDatabaseOid(), db_oid_);              // A.a1
-  EXPECT_EQ(col_expr->GetTableOid(), table_a_oid_);            // A.a1
-  EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(1));  // A.a1; columns are indexed from 1
-  EXPECT_EQ(type::TypeId::INTEGER, col_expr->GetReturnValueType());
-  EXPECT_EQ(0, col_expr->GetDepth());
-
-  col_expr = dynamic_cast<const parser::ColumnValueExpression *>(selectStmt->GetSelectColumns()[1].Get());
-  EXPECT_EQ(col_expr->GetDatabaseOid(), db_oid_);              // B.b2
-  EXPECT_EQ(col_expr->GetTableOid(), table_b_oid_);            // B.b2
-  EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(2));  // B.b2; columns are indexed from 1
-  EXPECT_EQ(type::TypeId::VARCHAR, col_expr->GetReturnValueType());
-  EXPECT_EQ(0, col_expr->GetDepth());
-
-  // Check join condition
-  LOG_INFO("Checking join condition");
-  col_expr = dynamic_cast<const parser::ColumnValueExpression *>(
-      selectStmt->GetSelectTable()->GetJoin()->GetJoinCondition()->GetChild(0).Get());
-  EXPECT_EQ(col_expr->GetDatabaseOid(), db_oid_);              // A.a1
-  EXPECT_EQ(col_expr->GetTableOid(), table_a_oid_);            // A.a1
-  EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(1));  // A.a1; columns are indexed from 1
-  EXPECT_EQ(type::TypeId::INTEGER, col_expr->GetReturnValueType());
-  EXPECT_EQ(0, col_expr->GetDepth());
-
-  col_expr = dynamic_cast<const parser::ColumnValueExpression *>(
-      selectStmt->GetSelectTable()->GetJoin()->GetJoinCondition()->GetChild(1).Get());
-
-  EXPECT_EQ(col_expr->GetDatabaseOid(), db_oid_);              // B.b1
-  EXPECT_EQ(col_expr->GetTableOid(), table_b_oid_);            // B.b1
-  EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(1));  // B.b1; columns are indexed from 1
-  EXPECT_EQ(type::TypeId::INTEGER, col_expr->GetReturnValueType());
-  EXPECT_EQ(0, col_expr->GetDepth());
-
-  // Check Where clause
-  LOG_INFO("Checking where clause");
-  col_expr = dynamic_cast<const parser::ColumnValueExpression *>(selectStmt->GetSelectCondition()->GetChild(0).Get());
-  EXPECT_EQ(col_expr->GetDatabaseOid(), db_oid_);              // A.a1
-  EXPECT_EQ(col_expr->GetTableOid(), table_a_oid_);            // A.a1
-  EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(1));  // A.a1; columns are indexed from 1
-  EXPECT_EQ(type::TypeId::INTEGER, col_expr->GetReturnValueType());
-  EXPECT_EQ(0, col_expr->GetDepth());
-
-  // Check Group By and Having
-  LOG_INFO("Checking group by");
-  col_expr = dynamic_cast<const parser::ColumnValueExpression *>(selectStmt->GetSelectGroupBy()->GetColumns()[0].Get());
-  EXPECT_EQ(col_expr->GetDatabaseOid(), db_oid_);              // A.a1
-  EXPECT_EQ(col_expr->GetTableOid(), table_a_oid_);            // A.a1
-  EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(1));  // A.a1; columns are indexed from 1
-  EXPECT_EQ(type::TypeId::INTEGER, col_expr->GetReturnValueType());
-  EXPECT_EQ(0, col_expr->GetDepth());
-
-  col_expr = dynamic_cast<const parser::ColumnValueExpression *>(selectStmt->GetSelectGroupBy()->GetColumns()[1].Get());
-  EXPECT_EQ(col_expr->GetDatabaseOid(), db_oid_);              // B.b2
-  EXPECT_EQ(col_expr->GetTableOid(), table_b_oid_);            // B.b2
-  EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(2));  // B.b2; columns are indexed from 1
-  EXPECT_EQ(type::TypeId::VARCHAR, col_expr->GetReturnValueType());
-  EXPECT_EQ(0, col_expr->GetDepth());
-
-  col_expr = dynamic_cast<const parser::ColumnValueExpression *>(
-      selectStmt->GetSelectGroupBy()->GetHaving()->GetChild(0).Get());
-  EXPECT_EQ(col_expr->GetDatabaseOid(), db_oid_);              // A.a1
-  EXPECT_EQ(col_expr->GetTableOid(), table_a_oid_);            // A.a1
-  EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(1));  // A.a1; columns are indexed from 1
-  EXPECT_EQ(type::TypeId::INTEGER, col_expr->GetReturnValueType());
-  EXPECT_EQ(0, col_expr->GetDepth());
-
-  // Check Order By
-  LOG_INFO("Checking order by");
-  col_expr = dynamic_cast<const parser::ColumnValueExpression *>(
-      selectStmt->GetSelectOrderBy()->GetOrderByExpressions()[0].Get());
-  EXPECT_EQ(col_expr->GetDatabaseOid(), db_oid_);              // A.a1
-  EXPECT_EQ(col_expr->GetTableOid(), table_a_oid_);            // A.a1
-  EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(1));  // A.a1; columns are indexed from 1
-  EXPECT_EQ(type::TypeId::INTEGER, col_expr->GetReturnValueType());
-  EXPECT_EQ(0, col_expr->GetDepth());
+  EXPECT_EQ(ref, info);
 }
 
 // NOLINTNEXTLINE
-TEST_F(QueryToOperatorTransformerTest, SelectStatementStarTest) {
+TEST_F(OperatorTransformerTest, SelectStatementStarTest) {
   // Check if star expression is correctly processed
   LOG_INFO("Checking STAR expression in select and subselect");
 
   std::string selectSQL = "SELECT * FROM A LEFT OUTER JOIN B ON A.A1 < B.B1";
+
+  std::string ref =
+      "{\"Op\":\"LogicalLimit\",\"Children\":"
+      "[{\"Op\":\"LogicalLeftJoin\",\"Children\":"
+      "[{\"Op\":\"LogicalGet\",},{\"Op\":\"LogicalGet\",}]}]}"
+
   auto parse_tree = parser_.BuildParseTree(selectSQL);
   auto selectStmt = dynamic_cast<parser::SelectStatement *>(parse_tree.GetStatements()[0].get());
   binder_->BindNameToNode(selectStmt);
-  EXPECT_EQ(0, selectStmt->GetDepth());
+  auto accessor_ = binder_->GetCatalogAccessor();
+  operator_transformer_ = new optimizer::QueryToOperatorTransformer(std::move(accessor_));
+  auto operator_tree = operator_transformer_->ConvertToOpExpression(selectStmt);
+  auto info = GetInfo(operator_tree);
 
-  // Check select_list
-  LOG_INFO("Checking select list expansion");
-
-  auto columns = selectStmt->GetSelectColumns();
-  EXPECT_EQ(columns.size(), 4);
-
-  // check if all required columns exist regardless of order, are they come from traversing unordered maps
-
-  bool a1_exists = false;
-  bool a2_exists = false;
-  bool b1_exists = false;
-  bool b2_exists = false;
-  for (auto &col_abs_expr : columns) {
-    auto col_expr = dynamic_cast<const parser::ColumnValueExpression *>(col_abs_expr.Get());
-    EXPECT_EQ(0, col_expr->GetDepth());
-    EXPECT_EQ(col_expr->GetDatabaseOid(), db_oid_);
-
-    if (col_expr->GetTableOid() == table_a_oid_) {
-      EXPECT_EQ(col_expr->GetTableName(), "a");
-      if (col_expr->GetColumnName() == "a1") {
-        a1_exists = true;
-        EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(1));
-        EXPECT_EQ(type::TypeId::INTEGER, col_expr->GetReturnValueType());
-      }
-      if (col_expr->GetColumnName() == "a2") {
-        a2_exists = true;
-        EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(2));
-        EXPECT_EQ(type::TypeId::VARCHAR, col_expr->GetReturnValueType());
-      }
-    }
-    if (col_expr->GetTableOid() == table_b_oid_) {
-      EXPECT_EQ(col_expr->GetTableName(), "b");
-      if (col_expr->GetColumnName() == "b1") {
-        b1_exists = true;
-        EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(1));
-        EXPECT_EQ(type::TypeId::INTEGER, col_expr->GetReturnValueType());
-      }
-      if (col_expr->GetColumnName() == "b2") {
-        b2_exists = true;
-        EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(2));
-        EXPECT_EQ(type::TypeId::VARCHAR, col_expr->GetReturnValueType());
-      }
-    }
-  }
-
-  EXPECT_TRUE(a1_exists);
-  EXPECT_TRUE(a2_exists);
-  EXPECT_TRUE(b1_exists);
-  EXPECT_TRUE(b2_exists);
+  EXPECT_EQ(ref, info);
 }
 
 // NOLINTNEXTLINE
-TEST_F(QueryToOperatorTransformerTest, SelectStatementStarNestedSelectTest) {
+TEST_F(OperatorTransformerTest, SelectStatementStarNestedSelectTest) {
   // Check if star expression is correctly processed
   LOG_INFO("Checking STAR expression in nested select from.");
 
@@ -462,7 +386,7 @@ TEST_F(QueryToOperatorTransformerTest, SelectStatementStarNestedSelectTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(QueryToOperatorTransformerTest, SelectStatementNestedColumnTest) {
+TEST_F(OperatorTransformerTest, SelectStatementNestedColumnTest) {
   // Check if nested select columns are correctly processed
   LOG_INFO("Checking nested select columns.");
 
@@ -509,7 +433,7 @@ TEST_F(QueryToOperatorTransformerTest, SelectStatementNestedColumnTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(QueryToOperatorTransformerTest, SelectStatementDupAliasTest) {
+TEST_F(OperatorTransformerTest, SelectStatementDupAliasTest) {
   // Check alias ambiguous
   LOG_INFO("Checking duplicate alias and table name.");
 
@@ -520,7 +444,7 @@ TEST_F(QueryToOperatorTransformerTest, SelectStatementDupAliasTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(QueryToOperatorTransformerTest, SelectStatementDiffTableSameSchemaTest) {
+TEST_F(OperatorTransformerTest, SelectStatementDiffTableSameSchemaTest) {
   // Test select from different table instances from the same physical schema
   std::string selectSQL = "SELECT * FROM A, A as AA where A.a1 = AA.a2";
   auto parse_tree = parser_.BuildParseTree(selectSQL);
@@ -540,7 +464,7 @@ TEST_F(QueryToOperatorTransformerTest, SelectStatementDiffTableSameSchemaTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(QueryToOperatorTransformerTest, SelectStatementSelectListAliasTest) {
+TEST_F(OperatorTransformerTest, SelectStatementSelectListAliasTest) {
   // Test alias and select_list
   LOG_INFO("Checking select_list and table alias binding");
 
@@ -564,7 +488,7 @@ TEST_F(QueryToOperatorTransformerTest, SelectStatementSelectListAliasTest) {
 // test after UpdateStatement is changed
 
 // NOLINTNEXTLINE
-TEST_F(QueryToOperatorTransformerTest, DeleteStatementWhereTest) {
+TEST_F(OperatorTransformerTest, DeleteStatementWhereTest) {
   std::string deleteSQL = "DELETE FROM b WHERE 1 = b1 AND b2 = 'str'";
   auto parse_tree = parser_.BuildParseTree(deleteSQL);
   auto deleteStmt = dynamic_cast<parser::DeleteStatement *>(parse_tree.GetStatements()[0].get());
@@ -586,7 +510,7 @@ TEST_F(QueryToOperatorTransformerTest, DeleteStatementWhereTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(QueryToOperatorTransformerTest, AggregateSimpleTest) {
+TEST_F(OperatorTransformerTest, AggregateSimpleTest) {
   // Check if nested select columns are correctly processed
   LOG_INFO("Checking simple aggregate select.");
 
@@ -609,7 +533,7 @@ TEST_F(QueryToOperatorTransformerTest, AggregateSimpleTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(QueryToOperatorTransformerTest, AggregateComplexTest) {
+TEST_F(OperatorTransformerTest, AggregateComplexTest) {
   // Check if nested select columns are correctly processed
   LOG_INFO("Checking aggregate in subselect.");
 
@@ -635,7 +559,7 @@ TEST_F(QueryToOperatorTransformerTest, AggregateComplexTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(QueryToOperatorTransformerTest, OperatorComplexTest) {
+TEST_F(OperatorTransformerTest, OperatorComplexTest) {
   // Check if nested select columns are correctly processed
   LOG_INFO("Checking if operator expressions are correctly parsed.");
 
@@ -672,7 +596,7 @@ TEST_F(QueryToOperatorTransformerTest, OperatorComplexTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(QueryToOperatorTransformerTest, BindDepthTest) {
+TEST_F(OperatorTransformerTest, BindDepthTest) {
   // Test regular table name
   LOG_INFO("Parsing sql query");
 
