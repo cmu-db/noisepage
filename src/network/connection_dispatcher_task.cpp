@@ -19,8 +19,8 @@ ConnectionDispatcherTask::ConnectionDispatcherTask(
       thread_registry_(thread_registry),
       interpreter_provider_(interpreter_provider),
       next_handler_(0) {
-  RegisterEvent(listen_fd, EV_READ | EV_PERSIST,
-                METHOD_AS_CALLBACK(ConnectionDispatcherTask, DispatchConnection), this);
+  RegisterEvent(listen_fd, EV_READ | EV_PERSIST, METHOD_AS_CALLBACK(ConnectionDispatcherTask, DispatchConnection),
+                this);
   RegisterSignalEvent(SIGHUP, METHOD_AS_CALLBACK(NotifiableTask, ExitLoop), this);
 }
 

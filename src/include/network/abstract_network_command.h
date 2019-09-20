@@ -6,12 +6,13 @@
 #include "network/network_defs.h"
 #include "network/network_types.h"
 #include "network/postgres/postgres_protocol_utils.h"
+#include "network/protocol_interpreter.h"
 
 #define DEFINE_COMMAND(name, flush)                                                                           \
   class name : public AbstractNetworkCommand {                                                                \
    public:                                                                                                    \
-    explicit name(InputPacket *in) : AbstractNetworkCommand(in, flush) {}                             \
-    Transition Exec(common::ManagedPointer<ProtocolInterpreter> interpreter,                          \
+    explicit name(InputPacket *in) : AbstractNetworkCommand(in, flush) {}                                     \
+    Transition Exec(common::ManagedPointer<ProtocolInterpreter> interpreter,                                  \
                     common::ManagedPointer<PostgresPacketWriter> out,                                         \
                     common::ManagedPointer<trafficcop::TrafficCop> t_cop,                                     \
                     common::ManagedPointer<ConnectionContext> connection, NetworkCallback callback) override; \

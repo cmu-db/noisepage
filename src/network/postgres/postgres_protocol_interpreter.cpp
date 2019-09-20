@@ -4,6 +4,7 @@
 #include <utility>
 
 #include "network/network_defs.h"
+#include "network/postgres/postgres_network_commands.h"
 #include "network/postgres/postgres_protocol_interpreter.h"
 #include "network/terrier_server.h"
 
@@ -27,11 +28,11 @@ Transition PostgresProtocolInterpreter::Process(std::shared_ptr<ReadBuffer> in, 
     curr_input_packet_.Clear();
     return ProcessStartup(in, out);
   }
-  std::shared_ptr<PostgresNetworkCommand> command = command_factory_->PostgresPacketToCommand(&curr_input_packet_);
+  std::shared_ptr<AbstractNetworkCommand> command = command_factory_->PacketToCommand(&curr_input_packet_);
   PostgresPacketWriter writer(out);
   if (command->FlushOnComplete()) out->ForceFlush();
-  Transition ret = command->Exec(common::ManagedPointer(this), common::ManagedPointer(&writer), t_cop,
-                                 common::ManagedPointer(context), callback);
+  Transition ret = command->Exec(common::ManagedPointer<ProtocolInterpreter>(this), common::ManagedPointer(&writer),
+                                 t_cop, context, callback);
   curr_input_packet_.Clear();
   return ret;
 }

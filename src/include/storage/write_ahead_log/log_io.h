@@ -79,7 +79,8 @@ struct PosixIoWrappers {
 // TODO(Tianyu):  we need control over when and what to flush as the log manager. Thus, we need to write our
 // own wrapper around lower level I/O functions. I could be wrong, and in that case we should
 // revert to using STL.
-// TODO(Gus): This class is very similar to the Buffer class in the networking layer (network_io_utils.h). Perhaps the Buffer class could be in common
+// TODO(Gus): This class is very similar to the Buffer class in the networking layer (network_io_utils.h). Perhaps the
+// Buffer class could be in common
 /**
  *  A BufferedLogWriter is a light wrapper over a char buffer that handles buffering multiple writes into the same
  * buffer. The contents can be written to a destination through the FlushBuffer method.

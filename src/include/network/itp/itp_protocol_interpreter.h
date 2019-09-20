@@ -7,15 +7,15 @@
 #include "loggers/network_logger.h"
 #include "network/connection_context.h"
 #include "network/connection_handle.h"
-#include "network/protocol_interpreter.h"
 #include "network/itp/itp_command_factory.h"
+#include "network/protocol_interpreter.h"
 
 namespace terrier::network {
 
 ///**
 // * Interprets the Internal Terrier Protocol (ITP).
 // */
-//class ITPProtocolInterpreter : public ProtocolInterpreter {
+// class ITPProtocolInterpreter : public ProtocolInterpreter {
 // public:
 //  /**
 //   * The provider encapsulates the creation logic of a protocol interpreter into an object

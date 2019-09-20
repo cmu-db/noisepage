@@ -18,13 +18,12 @@ void LogManager::Start() {
 
   // Register DiskLogConsumerTask
   disk_log_writer_task_ = thread_registry_->RegisterDedicatedThread<DiskLogConsumerTask>(
-      this /* requester */, persist_interval_, persist_threshold_, &buffers_, &empty_buffer_queue_,
-      &disk_consumer_queue_);
+      this /* requester */, "", persist_interval_, persist_threshold_, &empty_buffer_queue_, &disk_consumer_queue_);
 
   // Register LogSerializerTask
   log_serializer_task_ = thread_registry_->RegisterDedicatedThread<LogSerializerTask>(
       this /* requester */, serialization_interval_, buffer_pool_, &empty_buffer_queue_, &disk_consumer_queue_,
-      (network_consumer_task_ == REPLICATION_DISABLED) ? REPLICATION_DISABLED : &network_consumer_queue_,
+      (network_consumer_task_ == DISABLED) ? DISABLED : &network_consumer_queue_,
       &disk_log_writer_task_->disk_log_writer_thread_cv_);
 }
 

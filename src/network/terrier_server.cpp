@@ -59,8 +59,8 @@ void TerrierServer::RunServer() {
   listen(listen_fd_, conn_backlog);
 
   dispatcher_task_ = thread_registry_->RegisterDedicatedThread<ConnectionDispatcherTask>(
-      this /* requester */, max_connections_, listen_fd_, this, common::ManagedPointer(provider_.Get()),
-      connection_handle_factory_, thread_registry_);
+      this /* requester */, this->hot_standby_, max_connections_, listen_fd_, this,
+      common::ManagedPointer(provider_.Get()), connection_handle_factory_, thread_registry_);
 
   NETWORK_LOG_INFO("Listening on port {0}", port_);
 

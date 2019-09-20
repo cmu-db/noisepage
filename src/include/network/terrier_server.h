@@ -83,7 +83,7 @@ class TerrierServer : public common::DedicatedThreadOwner {
   // For logging purposes
   // static void LogCallback(int severity, const char *msg);
 
-  const bool hot_standby_;          // this server is currently in hot standby
+  const bool hot_standby_ = false;  // this server is currently in hot standby
   uint16_t port_;                   // port number
   int listen_fd_ = -1;              // server socket fd that TerrierServer is listening on
   const uint32_t max_connections_;  // maximum number of connections

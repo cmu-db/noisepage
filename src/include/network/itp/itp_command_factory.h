@@ -1,7 +1,7 @@
 #pragma once
 #include <memory>
-#include "network/postgres/postgres_network_commands.h"
 #include "network/abstract_command_factory.h"
+#include "network/postgres/postgres_network_commands.h"
 
 namespace terrier::network {
 
