@@ -604,6 +604,10 @@ void QueryToOperatorTransformer::GenerateTableAliasSet(const parser::AbstractExp
 void QueryToOperatorTransformer::SplitPredicates(
     common::ManagedPointer<parser::AbstractExpression> expr,
     std::vector<common::ManagedPointer<parser::AbstractExpression>> &predicates) {
+  if (expr == nullptr) {
+    return;
+  }
+
   if (expr->GetExpressionType() == parser::ExpressionType::CONJUNCTION_AND) {
     // Traverse down the expression tree along conjunction
     for (const auto &child : expr->GetChildren()) {
