@@ -61,6 +61,7 @@ class TransactionMetricRawData : public AbstractRawData {
 
  private:
   friend class TransactionMetric;
+  FRIEND_TEST(MetricsTests, TransactionCSVTest);
 
   void RecordBeginData(const uint64_t elapsed_us, const transaction::timestamp_t txn_start) {
     begin_data_.emplace_back(elapsed_us, txn_start);

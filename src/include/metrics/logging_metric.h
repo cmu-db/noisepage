@@ -64,6 +64,7 @@ class LoggingMetricRawData : public AbstractRawData {
 
  private:
   friend class LoggingMetric;
+  FRIEND_TEST(MetricsTests, LoggingCSVTest);
 
   void RecordSerializerData(const uint64_t elapsed_us, const uint64_t num_bytes, const uint64_t num_records) {
     serializer_data_.emplace_front(elapsed_us, num_bytes, num_records);
