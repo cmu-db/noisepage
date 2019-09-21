@@ -35,7 +35,9 @@ constexpr col_oid_t CONFRELID_COL_OID = col_oid_t(10);     // INTEGER (fkey: pg_
 constexpr col_oid_t CONBIN_COL_OID = col_oid_t(11);        // BIGINT (assumes 64-bit pointers)
 constexpr col_oid_t CONSRC_COL_OID = col_oid_t(12);        // VARCHAR
 
-constexpr std::array<col_oid_t, 12> PG_CONSTRAINT_ALL_COL_OIDS = {
+constexpr uint8_t NUM_PG_CONSTRAINT_COLS = 12;
+
+constexpr std::array<col_oid_t, NUM_PG_CONSTRAINT_COLS> PG_CONSTRAINT_ALL_COL_OIDS = {
     CONOID_COL_OID,        CONNAME_COL_OID,     CONNAMESPACE_COL_OID, CONTYPE_COL_OID,
     CONDEFERRABLE_COL_OID, CONDEFERRED_COL_OID, CONVALIDATED_COL_OID, CONRELID_COL_OID,
     CONINDID_COL_OID,      CONFRELID_COL_OID,   CONBIN_COL_OID,       CONSRC_COL_OID};

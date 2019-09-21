@@ -81,6 +81,8 @@ class CompactIntsKey {
                    }),
                    "There should not be any NULL attributes in this schema.");
 
+    // we hash and compare KeySize bytes in all of our operations. Since there might be over-provisioned bytes, we want
+    // to make sure the entire key is memset to 0
     std::memset(key_data_, 0, KeySize);
 
     for (uint8_t i = 0; i < from.NumColumns(); i++) {

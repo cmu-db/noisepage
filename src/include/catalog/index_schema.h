@@ -10,8 +10,8 @@
 #include "common/json.h"
 #include "common/macros.h"
 #include "parser/expression/abstract_expression.h"
-#include "storage/index/index_defs.h"
 #include "parser/expression/column_value_expression.h"
+#include "storage/index/index_defs.h"
 #include "type/type_id.h"
 
 namespace terrier {

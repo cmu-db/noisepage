@@ -44,13 +44,16 @@ class IndexBuilder {
       simple_key = simple_key && (std::count(NUMERIC_KEY_TYPES.cbegin(), NUMERIC_KEY_TYPES.cend(), attr.Type()) > 0);
     }
 
-    if (key_schema_.Type() == IndexType::BWTREE) {
-      if (simple_key && metadata.KeySize() <= COMPACTINTSKEY_MAX_SIZE) return BuildBwTreeIntsKey(std::move(metadata));
-      return BuildBwTreeGenericKey(std::move(metadata));
+    switch (key_schema_.Type()) {
+      case IndexType::BWTREE: {
+        if (simple_key && metadata.KeySize() <= COMPACTINTSKEY_MAX_SIZE) return BuildBwTreeIntsKey(std::move(metadata));
+        return BuildBwTreeGenericKey(std::move(metadata));
+      }
+      case IndexType::HASHMAP: {
+        if (simple_key && metadata.KeySize() <= HASHKEY_MAX_SIZE) return BuildHashIntsKey(std::move(metadata));
+        return BuildHashGenericKey(std::move(metadata));
+      }
     }
-    // IndexType must be HASHMAP, since that's the only other option at the moment
-    if (simple_key && metadata.KeySize() <= HASHKEY_MAX_SIZE) return BuildHashIntsKey(std::move(metadata));
-    return BuildHashGenericKey(std::move(metadata));
   }
 
   /**

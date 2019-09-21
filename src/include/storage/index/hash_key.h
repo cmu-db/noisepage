@@ -1,5 +1,6 @@
 #pragma once
 
+#include <algorithm>
 #include <cstring>
 #include <functional>
 #include <vector>
@@ -41,11 +42,13 @@ class HashKey {
    * HashKey
    */
   void SetFromProjectedRow(const storage::ProjectedRow &from, const IndexMetadata &metadata) {
+    // we hash and compare KeySize bytes in all of our operations. Since there might be over-provisioned bytes, we want
+    // to make sure the entire key is memset to 0
     std::memset(key_data_, 0, KeySize);
 
     const auto key_size = metadata.KeySize();
 
-    // NOLINTNEXTLINE (Matt): tidy thinks this has side-effects. I disagree.
+    // NOLINTNEXTLINE (Matt): tidy thinks this has side-effects. @jrolli verified this uses const methods
     TERRIER_ASSERT(std::invoke([&]() -> bool {
                      for (uint16_t i = 0; i < from.NumColumns(); i++) {
                        if (from.IsNull(i)) return false;
@@ -54,7 +57,7 @@ class HashKey {
                    }),
                    "There should not be any NULL attributes in this key.");
 
-    // NOLINTNEXTLINE (Matt): tidy thinks this has side-effects. I disagree.
+    // NOLINTNEXTLINE (Matt): tidy thinks this has side-effects. @jrolli verified this uses const methods
     TERRIER_ASSERT(std::invoke([&]() -> bool {
                      for (const auto &i : metadata.GetSchema().GetColumns()) {
                        if (i.Nullable()) return false;
@@ -63,8 +66,23 @@ class HashKey {
                    }),
                    "There should not be any NULL attributes in this schema.");
 
-    // This assumes no padding between attributes, no good way to assert that right now. We'll rely on the IndexBuilder
-    // to properly vet the IndexSchema.
+    TERRIER_ASSERT(
+        std::invoke([&]() -> bool {
+          // we want the smallest attr size to add to the address of the last attribute since attributes are
+          // ordered by size in a ProjectedRow
+          const uint8_t smallest_attr_size =
+              *(std::min_element(metadata.GetAttributeSizes().cbegin(), metadata.GetAttributeSizes().cend()));
+          const auto start_address = reinterpret_cast<uintptr_t>(from.AccessWithNullCheck(0));
+          // the last attribute's location plus its size should give us the end of the PR
+          const auto end_address =
+              reinterpret_cast<uintptr_t>(from.AccessWithNullCheck(from.NumColumns() - 1)) + smallest_attr_size;
+          // we want to assert that the end address is equal to the start_address plus the sum of the attr
+          // sizes. This should suffice to guarantee no padding assuming we can trust other areas of the code that
+          // generate these metadata
+          return end_address == start_address + key_size;
+        }),
+        "There should not be any padding in this ProjectedRow.");
+
     std::memcpy(key_data_, from.AccessWithNullCheck(0), key_size);
   }
 
