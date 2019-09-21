@@ -27,7 +27,7 @@ class IndexBuilder {
   IndexBuilder() = default;
 
   /**
-   * @return a new best-possible index for the current parameters
+   * @return a new best-possible index for the current parameters, nullptr if it failed to construct a valid index
    */
   Index *Build() const {
     TERRIER_ASSERT(!key_schema_.GetColumns().empty(), "Cannot build an index without a KeySchema.");
@@ -53,6 +53,8 @@ class IndexBuilder {
         if (simple_key && metadata.KeySize() <= HASHKEY_MAX_SIZE) return BuildHashIntsKey(std::move(metadata));
         return BuildHashGenericKey(std::move(metadata));
       }
+      default:
+        return nullptr;
     }
   }
 
