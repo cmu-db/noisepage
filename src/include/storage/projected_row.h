@@ -218,6 +218,21 @@ class ProjectedRowInitializer {
  private:
   friend class catalog::Catalog;          // access to the PRI default constructor
   friend class catalog::DatabaseCatalog;  // access to the PRI default constructor
+  friend class WriteAheadLoggingTests;
+  friend class AbstractLogProvider;
+
+  /**
+   * Constructs a ProjectedRowInitializer. Calculates the size of this ProjectedRow, including all members, values,
+   * bitmap, and potential padding, and the offsets to jump to for each value. This information is cached for repeated
+   * initialization.
+   *
+   * @tparam AttrType datatype of attribute sizes
+   * @param real_attr_sizes unsorted REAL attribute sizes, e.g. they shouldn't use MSB to indicate varlen.
+   * @param col_ids column ids
+   */
+  template <typename AttrType>
+  static ProjectedRowInitializer Create(std::vector<AttrType> real_attr_sizes, const std::vector<col_id_t> &col_ids);
+
   /**
    * Constructs a ProjectedRowInitializer. Calculates the size of this ProjectedRow, including all members, values,
    * bitmap, and potential padding, and the offsets to jump to for each value. This information is cached for repeated

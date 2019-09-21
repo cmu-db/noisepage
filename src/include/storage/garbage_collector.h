@@ -45,6 +45,11 @@ class GarbageCollector {
                    "The TransactionManager needs to be instantiated with gc_enabled true for GC to work!");
   }
 
+  ~GarbageCollector() {
+    TERRIER_ASSERT(txns_to_deallocate_.empty(), "Not all txns have been deallocated");
+    TERRIER_ASSERT(txns_to_unlink_.empty(), "Not all txns have been unlinked");
+  }
+
   /**
    * Deallocates transactions that can no longer be referenced by running transactions, and unlinks UndoRecords that
    * are no longer visible to running transactions. This needs to be invoked twice to actually free memory, since the
@@ -73,18 +78,18 @@ class GarbageCollector {
    * Process the deallocate queue
    * @return number of txns (not UndoRecords) processed for debugging/testing
    */
-  uint32_t ProcessDeallocateQueue();
+  uint32_t ProcessDeallocateQueue(transaction::timestamp_t oldest_txn);
 
   /**
    * Process the unlink queue
    * @return number of txns (not UndoRecords) processed for debugging/testing
    */
-  uint32_t ProcessUnlinkQueue();
+  uint32_t ProcessUnlinkQueue(transaction::timestamp_t oldest_txn);
 
   /**
    * Process deferred actions
    */
-  void ProcessDeferredActions();
+  void ProcessDeferredActions(transaction::timestamp_t oldest_txn);
 
   void ReclaimSlotIfDeleted(UndoRecord *undo_record) const;
 

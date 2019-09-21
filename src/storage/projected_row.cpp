@@ -93,4 +93,15 @@ template ProjectedRowInitializer ProjectedRowInitializer::Create(std::vector<uin
 template ProjectedRowInitializer ProjectedRowInitializer::Create(std::vector<uint16_t> real_attr_sizes,
                                                                  const std::vector<uint16_t> &pr_offsets);
 
+template <typename AttrType>
+ProjectedRowInitializer ProjectedRowInitializer::Create(std::vector<AttrType> real_attr_sizes,
+                                                        const std::vector<col_id_t> &col_ids) {
+  return ProjectedRowInitializer(real_attr_sizes, col_ids);
+}
+
+template ProjectedRowInitializer ProjectedRowInitializer::Create(std::vector<uint8_t> real_attr_sizes,
+                                                                 const std::vector<col_id_t> &col_ids);
+template ProjectedRowInitializer ProjectedRowInitializer::Create(std::vector<uint16_t> real_attr_sizes,
+                                                                 const std::vector<col_id_t> &col_ids);
+
 }  // namespace terrier::storage

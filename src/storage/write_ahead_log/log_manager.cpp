@@ -28,8 +28,10 @@ void LogManager::Start() {
 }
 
 void LogManager::ForceFlush() {
-  std::unique_lock<std::mutex> lock(disk_log_writer_task_->persist_lock_);
+  // Force the serializer task to serialize buffers
+  log_serializer_task_->Process();
   // Signal the disk log consumer task thread to persist the buffers to disk
+  std::unique_lock<std::mutex> lock(disk_log_writer_task_->persist_lock_);
   disk_log_writer_task_->do_persist_ = true;
   disk_log_writer_task_->disk_log_writer_thread_cv_.notify_one();
 

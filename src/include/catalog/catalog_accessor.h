@@ -193,7 +193,7 @@ class CatalogAccessor {
    * @param table being queried
    * @return vector of OIDs for all of the indexes on this table
    */
-  std::vector<index_oid_t> GetIndexes(table_oid_t table) const;
+  std::vector<index_oid_t> GetIndexOids(table_oid_t table) const;
 
   /**
    * Returns index pointers and schemas for every index on a table. Provides much better performance than individual
@@ -201,7 +201,7 @@ class CatalogAccessor {
    * @param table table to get index objects for
    * @return vector of pairs of index pointers and their corresponding schemas
    */
-  std::vector<std::pair<common::ManagedPointer<storage::index::Index>, const IndexSchema &>> GetIndexObjects(
+  std::vector<std::pair<common::ManagedPointer<storage::index::Index>, const IndexSchema &>> GetIndexes(
       table_oid_t table);
 
   /**
@@ -218,13 +218,6 @@ class CatalogAccessor {
    * @return OID of the index, INVALID_INDEX_OID if the index was not found
    */
   index_oid_t GetIndexOid(namespace_oid_t ns, std::string name) const;
-
-  /**
-   * Given a table, find all indexes for data in that table
-   * @param table OID being queried
-   * @return vector of index OIDs that reference the queried table
-   */
-  std::vector<index_oid_t> GetIndexOids(table_oid_t table) const;
 
   /**
    * Given the index name and its specification, add it to the catalog

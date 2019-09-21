@@ -14,6 +14,8 @@
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_manager.h"
 #include "type/type_id.h"
+#include "type/type_util.h"
+#include "util/data_table_test_util.h"
 #include "util/catalog_test_util.h"
 #include "util/random_test_util.h"
 #include "util/storage_test_util.h"

@@ -25,6 +25,7 @@ namespace terrier::storage::index {
 class Index {
  private:
   friend class IndexKeyTests;
+  friend class storage::RecoveryManager;
 
  protected:
   /**
