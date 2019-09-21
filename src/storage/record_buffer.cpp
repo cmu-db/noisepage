@@ -34,7 +34,7 @@ byte *RedoBuffer::NewEntry(const uint32_t size) {
 }
 
 void RedoBuffer::Finalize(bool flush_buffer) {
-  if (buffer_seg_ == nullptr) return;
+  if (buffer_seg_ == nullptr) return;  // If we never initialized a buffer (logging was disabled), we don't do anything
   if (log_manager_ != DISABLED && flush_buffer) {
     log_manager_->AddBufferToFlushQueue(buffer_seg_);
     has_flushed_ = true;

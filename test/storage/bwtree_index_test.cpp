@@ -17,10 +17,10 @@
 #include "transaction/transaction_manager.h"
 #include "type/type_id.h"
 #include "type/type_util.h"
+#include "util/data_table_test_util.h"
 #include "util/random_test_util.h"
 #include "util/storage_test_util.h"
 #include "util/test_harness.h"
-#include "util/transaction_test_util.h"
 
 namespace terrier::storage::index {
 
@@ -61,7 +61,7 @@ class BwTreeIndexTests : public TerrierTest {
   // SqlTable
   storage::SqlTable *sql_table_;
   storage::ProjectedRowInitializer tuple_initializer_ =
-      storage::ProjectedRowInitializer::Create(std::vector<uint8_t>{1}, {1});
+      storage::ProjectedRowInitializer::Create(std::vector<uint8_t>{1}, std::vector<uint16_t>{1});
 
   // BwTreeIndex
   Index *default_index_, *unique_index_;

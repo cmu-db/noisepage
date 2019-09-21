@@ -1,17 +1,24 @@
 #pragma once
 
+#include <deque>
 #include <memory>
 #include <string>
+#include <unordered_map>
 #include <utility>
 #include <vector>
 #include "catalog/catalog_defs.h"
 #include "common/json.h"
 #include "common/macros.h"
 #include "parser/expression/abstract_expression.h"
+#include "parser/expression/column_value_expression.h"
 #include "type/type_id.h"
 
 namespace terrier {
 class StorageTestUtil;
+}
+
+namespace terrier::storage {
+class RecoveryManager;
 }
 
 namespace terrier::tpcc {
@@ -210,6 +217,7 @@ class IndexSchema {
         is_ready_(false),
         is_live_(true) {
     TERRIER_ASSERT((is_primary && is_unique) || (!is_primary), "is_primary requires is_unique to be true as well.");
+    ExtractIndexedColOids();
   }
 
   IndexSchema() = default;
@@ -223,7 +231,7 @@ class IndexSchema {
    * @param index in the column vector for the requested column
    * @return requested key column
    */
-  const Column &GetColumn(int index) const { return columns_.at(index); }
+  const Column &GetColumn(uint32_t index) const { return columns_.at(index); }
 
   /**
    * @param name name of the Column to access
@@ -306,9 +314,53 @@ class IndexSchema {
     return schema;
   }
 
+  /**
+   * @return map of index key oid to col_oid contained in that index key
+   */
+  const std::vector<col_oid_t> &GetIndexedColOids() const {
+    TERRIER_ASSERT(!indexed_oids_.empty(),
+                   "The indexed oids map should not be empty. Was ExtractIndexedColOids called before?");
+    return indexed_oids_;
+  }
+
+  /**
+   * @warning Calling this function will traverse the entire expression tree for each column, which may be expensive for
+   * large expressions. Thus, it should only be called once during object construction.
+   * @return col oids in index keys, ordered by index key
+   */
+  void ExtractIndexedColOids() {
+    // We will traverse every expr tree
+    std::deque<common::ManagedPointer<const parser::AbstractExpression>> expr_queue;
+
+    // Traverse expression tree for each index key
+    for (auto &col : GetColumns()) {
+      TERRIER_ASSERT(col.StoredExpression() != nullptr, "Index column expr should not be missing");
+      // Add root of expression of tree for the column
+      expr_queue.push_back(col.StoredExpression());
+
+      // Iterate over the tree
+      while (!expr_queue.empty()) {
+        auto expr = expr_queue.front();
+        expr_queue.pop_front();
+
+        // If this expr is a column value, add it to the queue
+        if (expr->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE) {
+          indexed_oids_.push_back(expr.CastManagedPointerTo<const parser::ColumnValueExpression>()->GetColumnOid());
+        }
+
+        // Add children to queue
+        for (const auto &child : expr->GetChildren()) {
+          TERRIER_ASSERT(child != nullptr, "We should not be adding missing expressions to the queue");
+          expr_queue.emplace_back(child.get());
+        }
+      }
+    }
+  }
+
  private:
   friend class DatabaseCatalog;
   std::vector<Column> columns_;
+  std::vector<col_oid_t> indexed_oids_;
   bool is_unique_;
   bool is_primary_;
   bool is_exclusion_;

@@ -86,19 +86,24 @@ void Catalog::TearDown() {
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 }
 
-db_oid_t Catalog::CreateDatabase(transaction::TransactionContext *const txn, const std::string &name,
-                                 const bool bootstrap) {
+bool Catalog::CreateDatabase(transaction::TransactionContext *const txn, const std::string &name, const bool bootstrap,
+                             const catalog::db_oid_t db_oid) {
   // Instantiate the DatabaseCatalog
-  const db_oid_t db_oid = next_oid_++;
   DatabaseCatalog *dbc = postgres::Builder::CreateDatabaseCatalog(catalog_block_store_, db_oid);
-  if (bootstrap) dbc->Bootstrap(txn);
   txn->RegisterAbortAction([=](transaction::DeferredActionManager *deferred_action_manager) {
     dbc->TearDown(txn);
     delete dbc;
   });
-  const auto success = Catalog::CreateDatabaseEntry(txn, db_oid, name, dbc);
-  if (!success) return INVALID_DATABASE_OID;
+  bool success = Catalog::CreateDatabaseEntry(txn, db_oid, name, dbc);
+  if (bootstrap) dbc->Bootstrap(txn);  // If creation succeed, bootstrap the created database
+  return success;
+}
 
+db_oid_t Catalog::CreateDatabase(transaction::TransactionContext *const txn, const std::string &name,
+                                 const bool bootstrap) {
+  const db_oid_t db_oid = next_oid_++;
+  const auto success = Catalog::CreateDatabase(txn, name, bootstrap, db_oid);
+  if (!success) return INVALID_DATABASE_OID;
   return db_oid;
 }
 
