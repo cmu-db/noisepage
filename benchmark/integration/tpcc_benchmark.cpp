@@ -41,7 +41,7 @@ class TPCCBenchmark : public benchmark::Fixture {
 
   // Settings for log manager
   const uint64_t num_log_buffers_ = 100;
-  const std::chrono::milliseconds log_serialization_interval_{5};
+  const std::chrono::microseconds log_serialization_interval_{5};
   const std::chrono::milliseconds log_persist_interval_{10};
   const uint64_t log_persist_threshold_ = (1U << 20U);  // 1MB
 

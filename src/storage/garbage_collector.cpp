@@ -14,9 +14,11 @@ namespace terrier::storage {
 
 std::pair<uint32_t, uint32_t> GarbageCollector::PerformGarbageCollection() {
   if (observer_ != nullptr) observer_->ObserveGCInvocation();
-  uint32_t txns_deallocated = ProcessDeallocateQueue();
+  timestamp_manager_->CheckOutTimestamp();
+  const transaction::timestamp_t oldest_txn = timestamp_manager_->OldestTransactionStartTime();
+  uint32_t txns_deallocated = ProcessDeallocateQueue(oldest_txn);
   STORAGE_LOG_TRACE("GarbageCollector::PerformGarbageCollection(): txns_deallocated: {}", txns_deallocated);
-  uint32_t txns_unlinked = ProcessUnlinkQueue();
+  uint32_t txns_unlinked = ProcessUnlinkQueue(oldest_txn);
   STORAGE_LOG_TRACE("GarbageCollector::PerformGarbageCollection(): txns_unlinked: {}", txns_unlinked);
   if (txns_unlinked > 0) {
     // Only update this field if we actually unlinked anything, otherwise we're being too conservative about when it's
@@ -25,40 +27,28 @@ std::pair<uint32_t, uint32_t> GarbageCollector::PerformGarbageCollection() {
   }
   STORAGE_LOG_TRACE("GarbageCollector::PerformGarbageCollection(): last_unlinked_: {}",
                     static_cast<uint64_t>(last_unlinked_));
-  ProcessDeferredActions();
+  ProcessDeferredActions(oldest_txn);
   ProcessIndexes();
   return std::make_pair(txns_deallocated, txns_unlinked);
 }
 
-uint32_t GarbageCollector::ProcessDeallocateQueue() {
-  const transaction::timestamp_t oldest_txn = timestamp_manager_->OldestTransactionStartTime();
+uint32_t GarbageCollector::ProcessDeallocateQueue(transaction::timestamp_t oldest_txn) {
   uint32_t txns_processed = 0;
-  transaction::TransactionContext *txn = nullptr;
 
   if (transaction::TransactionUtil::NewerThan(oldest_txn, last_unlinked_)) {
-    transaction::TransactionQueue requeue;
-    // All of the transactions in my deallocation queue were unlinked before the oldest running txn in the system.
-    // We are now safe to deallocate these txns because no running transaction should hold a reference to them anymore
-    while (!txns_to_deallocate_.empty()) {
-      txn = txns_to_deallocate_.front();
-      txns_to_deallocate_.pop_front();
-      if (txn->log_processed_) {
-        // If the log manager is already done with this transaction, it is safe to deallocate
-        delete txn;
-        txns_processed++;
-      } else {
-        // Otherwise, the log manager may need to read the varlen pointer, so we cannot deallocate yet
-        requeue.push_front(txn);
-      }
+    // All of the transactions in my deallocation queue were unlinked before the oldest running txn in the system, and
+    // have been serialized by the log manager. We are now safe to deallocate these txns because no running
+    // transaction should hold a reference to them anymore
+    for (auto &txn : txns_to_deallocate_) {
+      delete txn;
+      txns_processed++;
     }
-    txns_to_deallocate_ = std::move(requeue);
+    txns_to_deallocate_.clear();
   }
-
   return txns_processed;
 }
 
-uint32_t GarbageCollector::ProcessUnlinkQueue() {
-  const transaction::timestamp_t oldest_txn = timestamp_manager_->OldestTransactionStartTime();
+uint32_t GarbageCollector::ProcessUnlinkQueue(transaction::timestamp_t oldest_txn) {
   transaction::TransactionContext *txn = nullptr;
 
   // Get the completed transactions from the TransactionManager
@@ -116,10 +106,10 @@ uint32_t GarbageCollector::ProcessUnlinkQueue() {
   return txns_processed;
 }
 
-void GarbageCollector::ProcessDeferredActions() {
+void GarbageCollector::ProcessDeferredActions(transaction::timestamp_t oldest_txn) {
   if (deferred_action_manager_ != DISABLED) {
     // TODO(Tianyu): Eventually we will remove the GC and implement version chain pruning with deferred actions
-    deferred_action_manager_->Process();
+    deferred_action_manager_->Process(oldest_txn);
   }
 }
 

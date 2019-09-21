@@ -59,6 +59,7 @@ class GenericKey {
           pr->SetNull(offset);
         } else {
           const auto inlined_attr_size = inlined_attr_sizes[i];
+          // TODO(Gus): Magic number
           if (inlined_attr_size <= 16) {
             std::memcpy(pr->AccessForceNotNull(offset), from_attr, inlined_attr_sizes[i]);
           } else {
