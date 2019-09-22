@@ -1,3 +1,6 @@
+
+#include <execution/vm/bytecode_handlers.h>
+
 #include "execution/vm/bytecode_handlers.h"
 #include "execution/sql/projected_columns_iterator.h"
 
@@ -177,9 +180,38 @@ void OpSorterIteratorInit(terrier::execution::sql::SorterIterator *iter, terrier
 }
 
 void OpSorterIteratorFree(terrier::execution::sql::SorterIterator *iter) { iter->~SorterIterator(); }
+
+// -------------------------------------------------------------
+// Inserter
+// -------------------------------------------------------------
+void OpInserterInit(terrier::execution::sql::Inserter *inserter,
+                    terrier::execution::exec::ExecutionContext *exec_ctx, uint32_t table_oid) {
+  new (inserter) terrier::execution::sql::Inserter(exec_ctx, terrier::catalog::table_oid_t(table_oid));
+}
+
+void OpInserterGetTablePR(terrier::execution::sql::ProjectedRowWrapper *pr_result,
+                          terrier::execution::sql::Inserter *inserter) {
+  *pr_result = terrier::execution::sql::ProjectedRowWrapper(inserter->GetTablePR());
+}
+
+void OpInserterTableInsert(terrier::storage::TupleSlot *tuple_slot,
+                           terrier::execution::sql::Inserter *inserter) {
+  *tuple_slot = inserter->TableInsert();
+}
+
+void OpInserterGetIndexPR(terrier::execution::sql::ProjectedRowWrapper *pr_result,
+                          terrier::execution::sql::Inserter *inserter, uint32_t index_oid) {
+  *pr_result = terrier::execution::sql::ProjectedRowWrapper(
+      inserter->GetIndexPR(terrier::catalog::index_oid_t(index_oid)));
+}
+
+void OpInserterIndexInsert(terrier::execution::sql::Inserter *inserter) {
+  inserter->IndexInsert();
+}
+
 // -------------------------------------------------------------
 // Output
-// ------------------------------------------------------------
+// -------------------------------------------------------------
 void OpOutputAlloc(terrier::execution::exec::ExecutionContext *exec_ctx, terrier::byte **result) {
   *result = exec_ctx->GetOutputBuffer()->AllocOutputSlot();
 }
@@ -195,8 +227,15 @@ void OpIndexIteratorInit(terrier::execution::sql::IndexIterator *iter,
   new (iter) terrier::execution::sql::IndexIterator(exec_ctx, table_oid, index_oid, col_oids, num_oids);
 }
 
+void OpInserterGetTablePR(terrier::execution::sql::ProjectedRowWrapper *pr_result,
+                          terrier::execution::sql::Inserter *inserter) {
+  *pr_result = inserter->GetTablePR();
+}
+
 void OpIndexIteratorPerformInit(terrier::execution::sql::IndexIterator *iter) { iter->Init(); }
 
 void OpIndexIteratorFree(terrier::execution::sql::IndexIterator *iter) { iter->~IndexIterator(); }
 
-}  //
+}
+
+//

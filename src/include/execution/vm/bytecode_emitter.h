@@ -470,6 +470,10 @@ class BytecodeEmitter {
 
   void EmitPRGet(Bytecode bytecode, LocalVar out, LocalVar pr, uint16_t col_idx);
 
+  void EmitInserterInit(Bytecode bytecode, LocalVar inserter, LocalVar exec_ctx, uint32_t table_oid);
+
+  void EmitInserterGetIndexPR(Bytecode bytecode, LocalVar pr, LocalVar inserter, uint32_t index_oid);
+
   /**
    * Copy a scalar immediate value into the bytecode stream
    * @tparam T type of the value

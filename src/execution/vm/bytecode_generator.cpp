@@ -1678,6 +1678,54 @@ void BytecodeGenerator::VisitBuiltinPRCall(ast::CallExpr *call, ast::Builtin bui
   }
 }
 
+void BytecodeGenerator::VisitBuiltinInserterCall(ast::CallExpr *call, ast::Builtin builtin) {
+  ast::Context *ctx = call->GetType()->GetContext();
+  LocalVar inserter = VisitExpressionForRValue(call->Arguments()[0]);
+
+  switch (builtin) {
+    case ast::Builtin::InserterInit: {
+      LocalVar exec_ctx = VisitExpressionForRValue(call->Arguments()[1]);
+      auto table_oid = static_cast<uint32_t>(call->Arguments()[2]->As<ast::LitExpr>()->Int64Val());
+      Emitter()->EmitInserterInit(Bytecode::InserterInit, inserter, exec_ctx, table_oid);
+      break;
+    }
+    case ast::Builtin::InserterInitBind: {
+      LocalVar exec_ctx = VisitExpressionForRValue(call->Arguments()[1]);
+      ast::Identifier table_name = call->Arguments()[2]->As<ast::LitExpr>()->RawStringVal();
+      auto ns_oid = exec_ctx_->GetAccessor()->GetDefaultNamespace();
+      auto table_oid = exec_ctx_->GetAccessor()->GetTableOid(ns_oid, table_name.Data());
+      Emitter()->EmitInserterInit(Bytecode::InserterInit, inserter, exec_ctx, !table_oid);
+      break;
+    }
+    case ast::Builtin::InserterGetTablePR: {
+      ast::Type *pr_type = ast::BuiltinType::Get(ctx, ast::BuiltinType::ProjectedRow);
+      LocalVar pr = ExecutionResult()->GetOrCreateDestination(pr_type);
+      Emitter()->Emit(Bytecode::InserterGetTablePR, pr, inserter);
+      break;
+    }
+    case ast::Builtin::InserterTableInsert: {
+      ast::Type *tuple_slot_type;
+      LocalVar ts = ExecutionResult()->GetOrCreateDestination(tuple_slot_type);
+      Emitter()->Emit(Bytecode::InserterTableInsert, ts, inserter);
+      break;
+    }
+    case ast::Builtin::InserterGetIndexPR: {
+      ast::Type *pr_type = ast::BuiltinType::Get(ctx, ast::BuiltinType::ProjectedRow);
+      LocalVar pr = ExecutionResult()->GetOrCreateDestination(pr_type);
+      auto index_oid = static_cast<uint32_t>(call->Arguments()[1]->As<ast::LitExpr>()->Int64Val());
+      Emitter()->EmitInserterGetIndexPR(Bytecode::InserterGetIndexPR, pr, inserter, index_oid);
+      break;
+    }
+    case ast::Builtin::InserterIndexInsert: {
+      Emitter()->Emit(Bytecode::InserterIndexInsert, inserter);
+      break;
+    }
+    default: {
+      UNREACHABLE("Impossible bytecode");
+    }
+  };
+}
+
 void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
   ast::Builtin builtin;
 
@@ -1896,8 +1944,14 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
       VisitBuiltinPRCall(call, builtin);
       break;
     }
-    default: {
-      UNREACHABLE("Builtin not supported!");
+
+    case ast::Builtin::InserterInit:
+    case ast::Builtin::InserterGetTablePR:
+    case ast::Builtin::InserterTableInsert:
+    case ast::Builtin::InserterGetIndexPR:
+    case ast::Builtin::InserterIndexInsert: {
+      VisitBuiltinInserterCall(call, builtin);
+      break;
     }
   }
 }

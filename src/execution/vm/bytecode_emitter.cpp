@@ -349,4 +349,12 @@ void BytecodeEmitter::EmitPRSet(Bytecode bytecode, LocalVar pr, uint16_t col_idx
   EmitAll(bytecode, pr, col_idx, val);
 }
 
+void BytecodeEmitter::EmitInserterInit(Bytecode bytecode, LocalVar inserter, LocalVar exec_ctx, uint32_t table_oid) {
+  EmitAll(bytecode, inserter, exec_ctx, table_oid);
+}
+
+void BytecodeEmitter::EmitInserterGetIndexPR(Bytecode bytecode, LocalVar pr, LocalVar inserter, uint32_t index_oid) {
+  EmitAll(bytecode, pr, inserter, index_oid);
+}
+
 }  // namespace terrier::execution::vm
