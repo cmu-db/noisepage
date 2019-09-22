@@ -1,10 +1,12 @@
 #pragma once
 
 #include <functional>
+#include <memory>
 #include <utility>
 #include <vector>
 #include "bwtree/bwtree.h"
 #include "storage/index/index.h"
+#include "storage/index/index_defs.h"
 #include "transaction/deferred_action_manager.h"
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_manager.h"
@@ -20,19 +22,18 @@ class BwTreeIndex final : public Index {
   friend class IndexBuilder;
 
  private:
-  BwTreeIndex(const catalog::index_oid_t oid, const ConstraintType constraint_type, IndexMetadata metadata)
-      : Index(constraint_type, std::move(metadata)),
-        bwtree_{new third_party::bwtree::BwTree<KeyType, TupleSlot>{false}} {}
+  explicit BwTreeIndex(IndexMetadata metadata)
+      : Index(std::move(metadata)), bwtree_{new third_party::bwtree::BwTree<KeyType, TupleSlot>{false}} {}
 
-  third_party::bwtree::BwTree<KeyType, TupleSlot> *const bwtree_;
+  const std::unique_ptr<third_party::bwtree::BwTree<KeyType, TupleSlot>> bwtree_;
 
  public:
-  ~BwTreeIndex() final { delete bwtree_; }
+  IndexType Type() const final { return IndexType::BWTREE; }
 
   void PerformGarbageCollection() final { bwtree_->PerformGarbageCollection(); };
 
   bool Insert(transaction::TransactionContext *const txn, const ProjectedRow &tuple, const TupleSlot location) final {
-    TERRIER_ASSERT(GetConstraintType() == ConstraintType::DEFAULT,
+    TERRIER_ASSERT(!(metadata_.GetSchema().Unique()),
                    "This Insert is designed for secondary indexes with no uniqueness constraints.");
     KeyType index_key;
     index_key.SetFromProjectedRow(tuple, metadata_);
@@ -51,16 +52,17 @@ class BwTreeIndex final : public Index {
 
   bool InsertUnique(transaction::TransactionContext *const txn, const ProjectedRow &tuple,
                     const TupleSlot location) final {
-    TERRIER_ASSERT(GetConstraintType() == ConstraintType::UNIQUE,
-                   "This Insert is designed for indexes with uniqueness constraints.");
+    TERRIER_ASSERT(metadata_.GetSchema().Unique(), "This Insert is designed for indexes with uniqueness constraints.");
     KeyType index_key;
     index_key.SetFromProjectedRow(tuple, metadata_);
     bool predicate_satisfied = false;
 
     // The predicate checks if any matching keys have write-write conflicts or are still visible to the calling txn.
-    auto predicate = [&](const TupleSlot slot) -> bool {
+    auto predicate = [txn](const TupleSlot slot) -> bool {
       const auto *const data_table = slot.GetBlock()->data_table_;
-      return data_table->HasConflict(*txn, slot) || data_table->IsVisible(*txn, slot);
+      const auto has_conflict = data_table->HasConflict(*txn, slot);
+      const auto is_visible = data_table->IsVisible(*txn, slot);
+      return has_conflict || is_visible;
     };
 
     const bool result = bwtree_->ConditionalInsert(index_key, location, predicate, &predicate_satisfied);
@@ -121,8 +123,7 @@ class BwTreeIndex final : public Index {
       if (IsVisible(txn, result)) value_list->emplace_back(result);
     }
 
-    TERRIER_ASSERT(GetConstraintType() == ConstraintType::DEFAULT ||
-                       (GetConstraintType() == ConstraintType::UNIQUE && value_list->size() <= 1),
+    TERRIER_ASSERT(!(metadata_.GetSchema().Unique()) || (metadata_.GetSchema().Unique() && value_list->size() <= 1),
                    "Invalid number of results for unique index.");
   }
 

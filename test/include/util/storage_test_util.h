@@ -517,19 +517,15 @@ class StorageTestUtil {
       ForceOid(&(key_cols.back()), key_oid);
     }
 
-    return catalog::IndexSchema(key_cols, false, false, false, true);
+    return catalog::IndexSchema(key_cols, storage::index::IndexType::BWTREE, false, false, false, true);
   }
 
   /**
-   * Generates a random CompactIntsKey-compatible schema.
+   * Generates a random simple key (integral and not NULL-able) schema
    */
   template <typename Random>
-  static catalog::IndexSchema RandomCompactIntsKeySchema(Random *generator) {
-    const uint16_t max_bytes = sizeof(uint64_t) * INTSKEY_MAX_SLOTS;
+  static catalog::IndexSchema RandomSimpleKeySchema(Random *generator, const uint16_t max_bytes) {
     const auto key_size = std::uniform_int_distribution(static_cast<uint16_t>(1), max_bytes)(*generator);
-
-    const std::vector<type::TypeId> types{type::TypeId::TINYINT, type::TypeId::SMALLINT, type::TypeId::INTEGER,
-                                          type::TypeId::BIGINT};  // has to be sorted in ascending type size order
 
     const uint16_t max_cols = max_bytes;  // could have up to max_bytes TINYINTs
     std::vector<catalog::indexkeycol_oid_t> key_oids;
@@ -546,14 +542,14 @@ class StorageTestUtil {
     uint8_t col = 0;
 
     for (uint16_t bytes_used = 0; bytes_used != key_size;) {
-      auto max_offset = static_cast<uint8_t>(types.size() - 1);
-      for (const auto &type : types) {
+      auto max_offset = static_cast<uint8_t>(storage::index::NUMERIC_KEY_TYPES.size() - 1);
+      for (const auto &type : storage::index::NUMERIC_KEY_TYPES) {
         if (key_size - bytes_used < type::TypeUtil::GetTypeSize(type)) {
           max_offset--;
         }
       }
       const uint8_t type_offset = std::uniform_int_distribution(static_cast<uint8_t>(0), max_offset)(*generator);
-      const auto type = types[type_offset];
+      const auto type = storage::index::NUMERIC_KEY_TYPES[type_offset];
 
       key_cols.emplace_back("", type, false,
                             parser::ConstantValueExpression(std::move(type::TransientValueFactory::GetNull(type))));
@@ -561,7 +557,7 @@ class StorageTestUtil {
       bytes_used = static_cast<uint16_t>(bytes_used + type::TypeUtil::GetTypeSize(type));
     }
 
-    return catalog::IndexSchema(key_cols, false, false, false, true);
+    return catalog::IndexSchema(key_cols, storage::index::IndexType::BWTREE, false, false, false, true);
   }
 
   /**

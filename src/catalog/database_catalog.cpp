@@ -1301,7 +1301,7 @@ bool DatabaseCatalog::CreateIndexEntry(transaction::TransactionContext *const tx
   // Write the kind into the PR
   const auto kind_offset = pg_class_all_cols_prm_[postgres::RELKIND_COL_OID];
   auto *const kind_ptr = class_insert_pr->AccessForceNotNull(kind_offset);
-  *(reinterpret_cast<char *>(kind_ptr)) = static_cast<char>(postgres::ClassKind::INDEX);
+  *(reinterpret_cast<postgres::ClassKind *>(kind_ptr)) = postgres::ClassKind::INDEX;
 
   // Write the index_schema_ptr into the PR
   const auto index_schema_ptr_offset = pg_class_all_cols_prm_[postgres::REL_SCHEMA_COL_OID];
@@ -1380,12 +1380,15 @@ bool DatabaseCatalog::CreateIndexEntry(transaction::TransactionContext *const tx
       pg_index_all_cols_prm_[postgres::INDISEXCLUSION_COL_OID]))) = schema.is_exclusion_;
   *(reinterpret_cast<bool *>(indexes_insert_pr->AccessForceNotNull(
       pg_index_all_cols_prm_[postgres::INDIMMEDIATE_COL_OID]))) = schema.is_immediate_;
+  // TODO(Matt): these should actually be set later based on runtime information about the index. @yeshengm
   *(reinterpret_cast<bool *>(
-      indexes_insert_pr->AccessForceNotNull(pg_index_all_cols_prm_[postgres::INDISVALID_COL_OID]))) = schema.is_valid_;
+      indexes_insert_pr->AccessForceNotNull(pg_index_all_cols_prm_[postgres::INDISVALID_COL_OID]))) = true;
   *(reinterpret_cast<bool *>(
-      indexes_insert_pr->AccessForceNotNull(pg_index_all_cols_prm_[postgres::INDISREADY_COL_OID]))) = schema.is_ready_;
+      indexes_insert_pr->AccessForceNotNull(pg_index_all_cols_prm_[postgres::INDISREADY_COL_OID]))) = true;
   *(reinterpret_cast<bool *>(
-      indexes_insert_pr->AccessForceNotNull(pg_index_all_cols_prm_[postgres::INDISLIVE_COL_OID]))) = schema.is_live_;
+      indexes_insert_pr->AccessForceNotNull(pg_index_all_cols_prm_[postgres::INDISLIVE_COL_OID]))) = true;
+  *(reinterpret_cast<storage::index::IndexType *>(
+      indexes_insert_pr->AccessForceNotNull(pg_index_all_cols_prm_[postgres::IND_TYPE_COL_OID]))) = schema.type_;
 
   // Insert into pg_index table
   const auto indexes_tuple_slot = indexes_->Insert(txn, indexes_insert_redo);
@@ -1430,7 +1433,8 @@ bool DatabaseCatalog::CreateIndexEntry(transaction::TransactionContext *const tx
 
   std::vector<IndexSchema::Column> cols =
       GetColumns<IndexSchema::Column, index_oid_t, indexkeycol_oid_t>(txn, index_oid);
-  auto *new_schema = new IndexSchema(cols, schema.Unique(), schema.Primary(), schema.Exclusion(), schema.Immediate());
+  auto *new_schema =
+      new IndexSchema(cols, schema.Type(), schema.Unique(), schema.Primary(), schema.Exclusion(), schema.Immediate());
   txn->RegisterAbortAction([=]() { delete new_schema; });
 
   auto *const update_redo = txn->StageWrite(db_oid_, postgres::CLASS_TABLE_OID, set_class_schema_pri_);

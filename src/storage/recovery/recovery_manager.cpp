@@ -327,7 +327,7 @@ void RecoveryManager::UpdateIndexesOnTable(transaction::TransactionContext *txn,
     }
 
     if (insert) {
-      bool result UNUSED_ATTRIBUTE = (index->GetConstraintType() == index::ConstraintType::UNIQUE)
+      bool result UNUSED_ATTRIBUTE = (index->metadata_.GetSchema().Unique())
                                          ? index->InsertUnique(txn, *index_pr, tuple_slot)
                                          : index->Insert(txn, *index_pr, tuple_slot);
       TERRIER_ASSERT(result, "Insert into index should always succeed for a committed transaction");
@@ -613,7 +613,8 @@ uint32_t RecoveryManager::ProcessSpecialCasePGClassRecord(
             // NOLINTNEXTLINE
             col_oids.clear();
             col_oids = {catalog::postgres::INDISUNIQUE_COL_OID, catalog::postgres::INDISPRIMARY_COL_OID,
-                        catalog::postgres::INDISEXCLUSION_COL_OID, catalog::postgres::INDIMMEDIATE_COL_OID};
+                        catalog::postgres::INDISEXCLUSION_COL_OID, catalog::postgres::INDIMMEDIATE_COL_OID,
+                        catalog::postgres::IND_TYPE_COL_OID};
             auto pg_index_pr_init = db_catalog->indexes_->InitializerForProjectedRow(col_oids);
             auto pg_index_pr_map = db_catalog->indexes_->ProjectionMapForOids(col_oids);
             delete[] buffer;  // Delete old buffer, it won't be large enough for this PR
@@ -629,10 +630,12 @@ uint32_t RecoveryManager::ProcessSpecialCasePGClassRecord(
                 pr->AccessWithNullCheck(pg_index_pr_map[catalog::postgres::INDISEXCLUSION_COL_OID])));
             bool is_immediate = *(reinterpret_cast<bool *>(
                 pr->AccessWithNullCheck(pg_index_pr_map[catalog::postgres::INDIMMEDIATE_COL_OID])));
+            storage::index::IndexType index_type = *(reinterpret_cast<storage::index::IndexType *>(
+                pr->AccessWithNullCheck(pg_index_pr_map[catalog::postgres::IND_TYPE_COL_OID])));
 
             // Step 4: Create and set IndexSchema in catalog
             auto *index_schema =
-                new catalog::IndexSchema(index_cols, is_unique, is_primary, is_exclusion, is_immediate);
+                new catalog::IndexSchema(index_cols, index_type, is_unique, is_primary, is_exclusion, is_immediate);
             result = db_catalog->SetIndexSchemaPointer(txn, catalog::index_oid_t(class_oid), index_schema);
             TERRIER_ASSERT(result, "Setting index schema pointer should succeed, entry should be in pg_class already");
 
@@ -641,11 +644,7 @@ uint32_t RecoveryManager::ProcessSpecialCasePGClassRecord(
             if (class_oid < catalog::START_OID) {  // All catalog tables/indexes have OIDS less than START_OID
               index = GetCatalogIndex(catalog::index_oid_t(class_oid), db_catalog);
             } else {
-              index = index::IndexBuilder()
-                          .SetOid(catalog::index_oid_t(class_oid))
-                          .SetConstraintType(is_unique ? index::ConstraintType::UNIQUE : index::ConstraintType::DEFAULT)
-                          .SetKeySchema(*index_schema)
-                          .Build();
+              index = index::IndexBuilder().SetKeySchema(*index_schema).Build();
             }
             result = db_catalog->SetIndexPointer(txn, catalog::index_oid_t(class_oid), index);
             TERRIER_ASSERT(result, "Setting index pointer should succeed, entry should be in pg_class already");
