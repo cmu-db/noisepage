@@ -11,7 +11,6 @@ terrier::execution::sql::Inserter::Inserter(terrier::execution::exec::ExecutionC
   for(auto col : columns) {
     col_oids_.push_back(col.Oid());
   }
-  std::cout << "go on\n";
 }
 
 terrier::storage::ProjectedRow *terrier::execution::sql::Inserter::GetTablePR() {

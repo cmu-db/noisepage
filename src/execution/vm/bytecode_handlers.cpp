@@ -1,6 +1,3 @@
-
-#include <execution/vm/bytecode_handlers.h>
-
 #include "execution/vm/bytecode_handlers.h"
 #include "execution/sql/projected_columns_iterator.h"
 
@@ -22,7 +19,7 @@ void OpThreadStateContainerFree(terrier::execution::sql::ThreadStateContainer *c
   thread_state_container->~ThreadStateContainer();
 }
 
-// ----------------------------------------------tu-----------
+// ---------------------------------------------------------
 // Table Vector Iterator
 // ---------------------------------------------------------
 
@@ -211,7 +208,7 @@ void OpInserterIndexInsert(terrier::execution::sql::Inserter *inserter, uint32_t
 
 // -------------------------------------------------------------
 // Output
-// -------------------------------------------------------------
+// ------------------------------------------------------------
 void OpOutputAlloc(terrier::execution::exec::ExecutionContext *exec_ctx, terrier::byte **result) {
   *result = exec_ctx->GetOutputBuffer()->AllocOutputSlot();
 }

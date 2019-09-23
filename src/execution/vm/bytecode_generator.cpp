@@ -1732,7 +1732,6 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
 
   ast::Context *ctx = call->GetType()->GetContext();
   ctx->IsBuiltinFunction(call->GetFuncName(), &builtin);
-  std::cout << "Visiting\n";
 
   switch (builtin) {
     case ast::Builtin::BoolToSql:

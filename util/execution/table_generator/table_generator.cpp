@@ -285,8 +285,6 @@ void TableGenerator::InitTestIndexes() {
         exec_ctx_->GetAccessor()->CreateIndex(ns_oid_, table_oid, index_meta.index_name_, tmp_index_schema);
     auto &index_schema = exec_ctx_->GetAccessor()->GetIndexSchema(index_oid);
     index_builder.SetOid(index_oid);
-
-    printf("%d %d %s\n", !index_oid, !table_oid, index_meta.table_name_);
     index_builder.SetConstraintType(storage::index::ConstraintType::DEFAULT);
     index_builder.SetKeySchema(index_schema);
     auto *tmp_index = index_builder.Build();
