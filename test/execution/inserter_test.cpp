@@ -53,7 +53,7 @@ TEST_F(InserterTest, SimpleInserterTest) {
   *reinterpret_cast<int32_t *>(index_pr->AccessForceNotNull(0)) = 15;
   std::vector<storage::TupleSlot> results1;
   index->ScanKey(*exec_ctx_->GetTxn(), *index_pr, &results1);
-  EXPECT_TRUE(inserter.IndexInsert());
+  EXPECT_TRUE(inserter.IndexInsert(index_oid));
   std::vector<storage::TupleSlot> results2;
   index->ScanKey(*exec_ctx_->GetTxn(), *index_pr, &results2);
   EXPECT_EQ(results1.size() + 1, results2.size());

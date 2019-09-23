@@ -357,4 +357,8 @@ void BytecodeEmitter::EmitInserterGetIndexPR(Bytecode bytecode, LocalVar pr, Loc
   EmitAll(bytecode, pr, inserter, index_oid);
 }
 
+void BytecodeEmitter::EmitInserterIndexInsert(Bytecode bytecode, LocalVar inserter, uint32_t index_oid) {
+  EmitAll(bytecode, inserter, index_oid);
+}
+
 }  // namespace terrier::execution::vm

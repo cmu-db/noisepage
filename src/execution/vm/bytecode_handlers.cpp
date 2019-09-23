@@ -22,7 +22,7 @@ void OpThreadStateContainerFree(terrier::execution::sql::ThreadStateContainer *c
   thread_state_container->~ThreadStateContainer();
 }
 
-// ---------------------------------------------------------
+// ----------------------------------------------tu-----------
 // Table Vector Iterator
 // ---------------------------------------------------------
 
@@ -205,8 +205,8 @@ void OpInserterGetIndexPR(terrier::execution::sql::ProjectedRowWrapper *pr_resul
       inserter->GetIndexPR(terrier::catalog::index_oid_t(index_oid)));
 }
 
-void OpInserterIndexInsert(terrier::execution::sql::Inserter *inserter) {
-  inserter->IndexInsert();
+void OpInserterIndexInsert(terrier::execution::sql::Inserter *inserter, uint32_t index_oid) {
+  inserter->IndexInsert(terrier::catalog::index_oid_t(index_oid));
 }
 
 // -------------------------------------------------------------
@@ -227,15 +227,8 @@ void OpIndexIteratorInit(terrier::execution::sql::IndexIterator *iter,
   new (iter) terrier::execution::sql::IndexIterator(exec_ctx, table_oid, index_oid, col_oids, num_oids);
 }
 
-void OpInserterGetTablePR(terrier::execution::sql::ProjectedRowWrapper *pr_result,
-                          terrier::execution::sql::Inserter *inserter) {
-  *pr_result = inserter->GetTablePR();
-}
-
 void OpIndexIteratorPerformInit(terrier::execution::sql::IndexIterator *iter) { iter->Init(); }
 
 void OpIndexIteratorFree(terrier::execution::sql::IndexIterator *iter) { iter->~IndexIterator(); }
 
-}
-
-//
+}  //

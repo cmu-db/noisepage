@@ -18,14 +18,13 @@ class EXPORT Inserter {
 
   storage::TupleSlot TableInsert();
 
-  bool IndexInsert();
+  bool IndexInsert(catalog::index_oid_t index_oid);
 
  private:
   catalog::table_oid_t table_oid_;
   exec::ExecutionContext *exec_ctx_;
   std::vector<terrier::catalog::col_oid_t> col_oids_;
   common::ManagedPointer<terrier::storage::SqlTable> table_;
-  common::ManagedPointer<storage::index::Index> index_;
 
   storage::TupleSlot table_tuple_slot_;
   storage::RedoRecord *table_redo_{nullptr};

@@ -186,7 +186,7 @@ namespace terrier::execution::ast {
                                                                 \
   /* Inserter Calls */                                          \
   F(InserterInit, inserterInit)                                 \
-  F(InserterInitBind, inserterBind)                             \
+  F(InserterInitBind, inserterInitBind)                         \
   F(InserterGetTablePR, inserterGetTablePR)                     \
   F(InserterTableInsert, inserterTableInsert)                   \
   F(InserterGetIndexPR, inserterGetIndexPR)                     \

@@ -1693,6 +1693,8 @@ void Sema::CheckBuiltinInserterCall(ast::CallExpr *call, ast::Builtin builtin) {
         ReportIncorrectCallArg(call, 2, GetBuiltinType(int32_kind));
         return;
       }
+
+      call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
       break;
     }
     case ast::Builtin::InserterInitBind: {
@@ -1710,14 +1712,33 @@ void Sema::CheckBuiltinInserterCall(ast::CallExpr *call, ast::Builtin builtin) {
         ReportIncorrectCallArg(call, 2, ast::StringType::Get(GetContext()));
         return;
       }
+
+      call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
       break;
     }
-    case ast::Builtin::InserterGetTablePR:
-    case ast::Builtin::InserterTableInsert:
-    case ast::Builtin::InserterIndexInsert: {
+    case ast::Builtin::InserterGetTablePR: {
       if (!CheckArgCount(call, 1)) {
         return;
       }
+      call->SetType(GetBuiltinType(ast::BuiltinType::ProjectedRow));
+      break;
+    }
+    case ast::Builtin::InserterTableInsert: {
+      if (!CheckArgCount(call, 1)) {
+        return;
+      }
+      call->SetType(GetBuiltinType(ast::BuiltinType::TupleSlot));
+      break;
+    }
+    case ast::Builtin::InserterIndexInsert: {
+      if (!CheckArgCount(call, 2)) {
+        return;
+      }
+      if (!call_args[1]->IsIntegerLiteral()) {
+        ReportIncorrectCallArg(call, 1, GetBuiltinType(int32_kind));
+        return;
+      }
+      call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
       break;
     }
     case ast::Builtin::InserterGetIndexPR: {
@@ -1729,6 +1750,8 @@ void Sema::CheckBuiltinInserterCall(ast::CallExpr *call, ast::Builtin builtin) {
         ReportIncorrectCallArg(call, 1, GetBuiltinType(int32_kind));
         return;
       }
+
+      call->SetType(GetBuiltinType(ast::BuiltinType::ProjectedRow));
       break;
     }
     default:

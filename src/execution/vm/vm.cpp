@@ -1516,7 +1516,8 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {
 
   OP(InserterIndexInsert) : {
     auto *inserter = frame->LocalAt<sql::Inserter *>(READ_LOCAL_ID());
-    OpInserterIndexInsert(inserter);
+    auto index_oid = READ_UIMM4();
+    OpInserterIndexInsert(inserter, index_oid);
     DISPATCH_NEXT();
   }
 

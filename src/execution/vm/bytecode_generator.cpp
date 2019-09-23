@@ -1704,7 +1704,7 @@ void BytecodeGenerator::VisitBuiltinInserterCall(ast::CallExpr *call, ast::Built
       break;
     }
     case ast::Builtin::InserterTableInsert: {
-      ast::Type *tuple_slot_type;
+      ast::Type *tuple_slot_type = ast::BuiltinType::Get(ctx, ast::BuiltinType::TupleSlot);
       LocalVar ts = ExecutionResult()->GetOrCreateDestination(tuple_slot_type);
       Emitter()->Emit(Bytecode::InserterTableInsert, ts, inserter);
       break;
@@ -1717,7 +1717,8 @@ void BytecodeGenerator::VisitBuiltinInserterCall(ast::CallExpr *call, ast::Built
       break;
     }
     case ast::Builtin::InserterIndexInsert: {
-      Emitter()->Emit(Bytecode::InserterIndexInsert, inserter);
+      auto index_oid = static_cast<uint32_t>(call->Arguments()[1]->As<ast::LitExpr>()->Int64Val());
+      Emitter()->EmitInserterIndexInsert(Bytecode::InserterIndexInsert, inserter, index_oid);
       break;
     }
     default: {
@@ -1731,6 +1732,7 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
 
   ast::Context *ctx = call->GetType()->GetContext();
   ctx->IsBuiltinFunction(call->GetFuncName(), &builtin);
+  std::cout << "Visiting\n";
 
   switch (builtin) {
     case ast::Builtin::BoolToSql:
@@ -1946,6 +1948,7 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
     }
 
     case ast::Builtin::InserterInit:
+    case ast::Builtin::InserterInitBind:
     case ast::Builtin::InserterGetTablePR:
     case ast::Builtin::InserterTableInsert:
     case ast::Builtin::InserterGetIndexPR:

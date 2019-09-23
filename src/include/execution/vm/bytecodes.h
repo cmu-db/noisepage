@@ -368,9 +368,9 @@ namespace terrier::execution::vm {
   /* Inserter */                                                                                                      \
   F(InserterInit, OperandType::Local, OperandType::Local, OperandType::UImm4)                                         \
   F(InserterGetTablePR, OperandType::Local, OperandType::Local)                                                       \
-  F(InserterTableInsert, OperandType::Local)                                                                          \
+  F(InserterTableInsert, OperandType::Local, OperandType::Local)                                                      \
   F(InserterGetIndexPR, OperandType::Local, OperandType::Local, OperandType::UImm4)                                   \
-  F(InserterIndexInsert, OperandType::Local)                                                                          \
+  F(InserterIndexInsert, OperandType::Local, OperandType::UImm4)                                                      \
                                                                                                                       \
   /* Trig functions */                                                                                                \
   F(Pi, OperandType::Local)                                                                                           \
