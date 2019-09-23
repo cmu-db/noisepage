@@ -1669,7 +1669,7 @@ void Sema::CheckBuiltinInserterCall(ast::CallExpr *call, ast::Builtin builtin) {
   const auto inserter_kind = ast::BuiltinType::Inserter;
   const auto int32_kind = ast::BuiltinType::Int32;
 
-  if(!CheckArgCountAtLeast(call, 1)){
+  if (!CheckArgCountAtLeast(call, 1)) {
     return;
   }
   if (!IsPointerToSpecificBuiltin(call_args[0]->GetType(), inserter_kind)) {
@@ -1677,7 +1677,7 @@ void Sema::CheckBuiltinInserterCall(ast::CallExpr *call, ast::Builtin builtin) {
     return;
   }
 
-  switch(builtin) {
+  switch (builtin) {
     case ast::Builtin::InserterInit: {
       if (!CheckArgCount(call, 3)) {
         return;
@@ -1688,7 +1688,7 @@ void Sema::CheckBuiltinInserterCall(ast::CallExpr *call, ast::Builtin builtin) {
         return;
       }
 
-      //table_oid
+      // table_oid
       if (!call_args[2]->IsIntegerLiteral()) {
         ReportIncorrectCallArg(call, 2, GetBuiltinType(int32_kind));
         return;
@@ -1707,7 +1707,7 @@ void Sema::CheckBuiltinInserterCall(ast::CallExpr *call, ast::Builtin builtin) {
         return;
       }
 
-      //table_name
+      // table_name
       if (!call_args[2]->IsStringLiteral()) {
         ReportIncorrectCallArg(call, 2, ast::StringType::Get(GetContext()));
         return;

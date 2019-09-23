@@ -4,11 +4,11 @@
 
 #include "execution/sql/inserter.h"
 terrier::execution::sql::Inserter::Inserter(terrier::execution::exec::ExecutionContext *exec_ctx,
-                                            terrier::catalog::table_oid_t table_oid) : table_oid_{table_oid},
-                                            exec_ctx_{exec_ctx} {
+                                            terrier::catalog::table_oid_t table_oid)
+    : table_oid_{table_oid}, exec_ctx_{exec_ctx} {
   table_ = exec_ctx->GetAccessor()->GetTable(table_oid);
   auto columns = exec_ctx_->GetAccessor()->GetSchema(table_oid_).GetColumns();
-  for(auto col : columns) {
+  for (auto col : columns) {
     col_oids_.push_back(col.Oid());
   }
 }

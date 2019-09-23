@@ -59,5 +59,4 @@ TEST_F(InserterTest, SimpleInserterTest) {
   EXPECT_EQ(results1.size() + 1, results2.size());
 }
 
-
-} // namespace terrier::execution::sql::test
+}  // namespace terrier::execution::sql::test

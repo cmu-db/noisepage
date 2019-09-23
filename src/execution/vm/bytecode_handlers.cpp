@@ -181,8 +181,8 @@ void OpSorterIteratorFree(terrier::execution::sql::SorterIterator *iter) { iter-
 // -------------------------------------------------------------
 // Inserter
 // -------------------------------------------------------------
-void OpInserterInit(terrier::execution::sql::Inserter *inserter,
-                    terrier::execution::exec::ExecutionContext *exec_ctx, uint32_t table_oid) {
+void OpInserterInit(terrier::execution::sql::Inserter *inserter, terrier::execution::exec::ExecutionContext *exec_ctx,
+                    uint32_t table_oid) {
   new (inserter) terrier::execution::sql::Inserter(exec_ctx, terrier::catalog::table_oid_t(table_oid));
 }
 
@@ -191,15 +191,14 @@ void OpInserterGetTablePR(terrier::execution::sql::ProjectedRowWrapper *pr_resul
   *pr_result = terrier::execution::sql::ProjectedRowWrapper(inserter->GetTablePR());
 }
 
-void OpInserterTableInsert(terrier::storage::TupleSlot *tuple_slot,
-                           terrier::execution::sql::Inserter *inserter) {
+void OpInserterTableInsert(terrier::storage::TupleSlot *tuple_slot, terrier::execution::sql::Inserter *inserter) {
   *tuple_slot = inserter->TableInsert();
 }
 
 void OpInserterGetIndexPR(terrier::execution::sql::ProjectedRowWrapper *pr_result,
                           terrier::execution::sql::Inserter *inserter, uint32_t index_oid) {
-  *pr_result = terrier::execution::sql::ProjectedRowWrapper(
-      inserter->GetIndexPR(terrier::catalog::index_oid_t(index_oid)));
+  *pr_result =
+      terrier::execution::sql::ProjectedRowWrapper(inserter->GetIndexPR(terrier::catalog::index_oid_t(index_oid)));
 }
 
 void OpInserterIndexInsert(terrier::execution::sql::Inserter *inserter, uint32_t index_oid) {

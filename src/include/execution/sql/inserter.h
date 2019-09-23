@@ -6,7 +6,7 @@
 #include "execution/exec/execution_context.h"
 #include "storage/storage_defs.h"
 
-namespace terrier::execution::sql{
+namespace terrier::execution::sql {
 
 class EXPORT Inserter {
  public:
@@ -31,7 +31,6 @@ class EXPORT Inserter {
   storage::RedoRecord *index_redo_{nullptr};
   storage::ProjectedRow *table_pr_{nullptr};
   storage::ProjectedRow *index_pr_{nullptr};
-
 };
 
-} // namespace terrier::execution::sql
+}  // namespace terrier::execution::sql

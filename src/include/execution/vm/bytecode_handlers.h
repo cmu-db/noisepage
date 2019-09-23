@@ -1472,16 +1472,15 @@ VM_OP_HOT void OpPRGetVarlenNull(terrier::execution::sql::StringVal *out,
 // ---------------------------------------------------------------
 
 VM_OP void OpInserterInit(terrier::execution::sql::Inserter *inserter,
-                              terrier::execution::exec::ExecutionContext *exec_ctx, uint32_t table_oid);
+                          terrier::execution::exec::ExecutionContext *exec_ctx, uint32_t table_oid);
 
 VM_OP void OpInserterGetTablePR(terrier::execution::sql::ProjectedRowWrapper *pr_result,
-                                    terrier::execution::sql::Inserter *inserter);
+                                terrier::execution::sql::Inserter *inserter);
 
-VM_OP void OpInserterTableInsert(terrier::storage::TupleSlot *tuple_slot,
-                                     terrier::execution::sql::Inserter *inserter);
+VM_OP void OpInserterTableInsert(terrier::storage::TupleSlot *tuple_slot, terrier::execution::sql::Inserter *inserter);
 
 VM_OP void OpInserterGetIndexPR(terrier::execution::sql::ProjectedRowWrapper *pr_result,
-                                    terrier::execution::sql::Inserter *inserter, uint32_t index_oid);
+                                terrier::execution::sql::Inserter *inserter, uint32_t index_oid);
 
 VM_OP void OpInserterIndexInsert(terrier::execution::sql::Inserter *inserter, uint32_t index_oid);
 

@@ -192,8 +192,6 @@ namespace terrier::execution::ast {
   F(InserterGetIndexPR, inserterGetIndexPR)                     \
   F(InserterIndexInsert, inserterIndexInsert)
 
-
-
 /**
  * Enum of builtins
  */
