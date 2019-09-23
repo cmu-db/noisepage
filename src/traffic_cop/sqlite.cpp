@@ -35,9 +35,9 @@ sqlite3_stmt *SqliteEngine::PrepareStatement(std::string query) {
     if (c == '$') c = '?';
 
   sqlite3_stmt *stmt;
+  LOG_INFO("Query = {0}", query);
   int error_code = sqlite3_prepare_v2(sqlite_db_, query.c_str(), -1, &stmt, nullptr);
   if (error_code == SQLITE_OK) return stmt;
-
   LOG_ERROR("Sqlite Prepare Error: Error Code = {0}, msg = {1}", error_code, sqlite3_errmsg(sqlite_db_));
   return nullptr;
 }
@@ -63,6 +63,8 @@ void SqliteEngine::Bind(sqlite3_stmt *stmt, const std::shared_ptr<std::vector<ty
     } else if (type == TypeId::TIMESTAMP) {
       auto value = static_cast<int64_t>(!TransientValuePeeker::PeekTimestamp(params[i]));
       res = sqlite3_bind_int64(stmt, i + 1, value);
+    } else if (type == TypeId::BIGINT) {
+      res = sqlite3_bind_int64(stmt, i + 1, TransientValuePeeker::PeekBigInt(params[i]));
     } else {
       LOG_ERROR("Unsupported type: {0}", static_cast<int>(type));
       res = 0;

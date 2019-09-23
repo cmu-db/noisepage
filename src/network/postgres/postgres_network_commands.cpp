@@ -196,6 +196,17 @@ Transition BindCommand::Exec(common::ManagedPointer<PostgresProtocolInterpreter>
         timestamp = type::timestamp_t(in_.ReadValue<uint64_t>());
       }
       params->push_back(TransientValueFactory::GetTimestamp(timestamp));
+    } else if (type == TypeId::BIGINT) {
+      int64_t value;
+      if (is_binary[i] == 0) {
+        char buf[len + 1];
+        memset(buf, 0, len + 1);
+        in_.Read(len, buf);
+        value = std::stoll(buf);
+      } else {
+        value = in_.ReadValue<int64_t>();
+      }
+      params->push_back(TransientValueFactory::GetBigInt(value));
     } else {
       string error_msg =
           fmt::format("Param type {0} is not implemented yet", static_cast<int>(statement->param_types_[i]));
