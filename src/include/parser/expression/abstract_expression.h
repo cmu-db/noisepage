@@ -91,11 +91,11 @@ class AbstractExpression {
    */
   void SetAlias(const std::string &alias) { alias_ = alias; }
 
-  void SetChild(int index, std::unique_ptr<AbstractExpression> expr) {
+  void SetChild(int index, common::ManagedPointer<AbstractExpression> expr) {
     if (index >= (int)children_.size()) {
       children_.resize(index + 1);
     }
-    children_[index].reset(expr.get());
+    children_[index].reset(expr.Get());
   }
 
  public:
