@@ -164,7 +164,7 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithLogging)(benchmark::State &sta
                                                 log_manager_);
 
     // build the TPCC database
-    auto *const tpcc_db = tpcc_builder.Build();
+    auto *const tpcc_db = tpcc_builder.Build(storage::index::IndexType::HASHMAP);
 
     // prepare the workers
     workers.clear();
@@ -337,7 +337,7 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithMetrics)(benchmark::State &sta
                                                 log_manager_);
 
     // build the TPCC database
-    auto *const tpcc_db = tpcc_builder.Build();
+    auto *const tpcc_db = tpcc_builder.Build(storage::index::IndexType::HASHMAP);
 
     // prepare the workers
     workers.clear();

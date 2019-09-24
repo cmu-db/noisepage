@@ -71,6 +71,7 @@ timestamp_t TransactionManager::UpdatingCommitCriticalSection(TransactionContext
 timestamp_t TransactionManager::Commit(TransactionContext *const txn, transaction::callback_fn callback,
                                        void *callback_arg) {
   uint64_t elapsed_us = 0;
+  timestamp_t result;
   {
     if (common::thread_context.metrics_store_ != nullptr &&
         common::thread_context.metrics_store_->ComponentEnabled(metrics::MetricsComponent::TRANSACTION))
@@ -79,8 +80,7 @@ timestamp_t TransactionManager::Commit(TransactionContext *const txn, transactio
         !txn->must_abort_,
         "This txn was marked that it must abort. Set a breakpoint at TransactionContext::MustAbort() to see a "
         "stack trace for when this flag is getting tripped.");
-    const timestamp_t result =
-        txn->IsReadOnly() ? timestamp_manager_->CheckOutTimestamp() : UpdatingCommitCriticalSection(txn);
+    result = txn->IsReadOnly() ? timestamp_manager_->CheckOutTimestamp() : UpdatingCommitCriticalSection(txn);
     while (!txn->commit_actions_.empty()) {
       TERRIER_ASSERT(deferred_action_manager_ != DISABLED, "No deferred action manager exists to process actions");
       txn->commit_actions_.front()(deferred_action_manager_);

@@ -3,7 +3,7 @@
 #include "benchmark/benchmark.h"
 #include "metrics/metrics_thread.h"
 #include "storage/garbage_collector_thread.h"
-#include "util/transaction_benchmark_util.h"
+#include "util/data_table_benchmark_util.h"
 
 namespace terrier {
 
@@ -36,7 +36,7 @@ BENCHMARK_DEFINE_F(LargeTransactionMetricsBenchmark, TPCCish)(benchmark::State &
     auto *const metrics_thread = new metrics::MetricsThread(metrics_period_);
     metrics_thread->GetMetricsManager().EnableMetric(metrics::MetricsComponent::TRANSACTION);
 
-    LargeTransactionBenchmarkObject tested(attr_sizes_, initial_table_size_, txn_length, insert_update_select_ratio,
+    LargeDataTableBenchmarkObject tested(attr_sizes_, initial_table_size_, txn_length, insert_update_select_ratio,
                                            &block_store_, &buffer_pool_, &generator_, true);
     gc_ = new storage::GarbageCollector(tested.GetTimestampManager(), DISABLED, tested.GetTxnManager(), DISABLED);
     gc_thread_ = new storage::GarbageCollectorThread(gc_, gc_period_);
@@ -64,7 +64,7 @@ BENCHMARK_DEFINE_F(LargeTransactionMetricsBenchmark, HighAbortRate)(benchmark::S
     metrics_thread->GetMetricsManager().EnableMetric(metrics::MetricsComponent::TRANSACTION);
 
     // use a smaller table to make aborts more likely
-    LargeTransactionBenchmarkObject tested(attr_sizes_, 1000, txn_length, insert_update_select_ratio, &block_store_,
+    LargeDataTableBenchmarkObject tested(attr_sizes_, 1000, txn_length, insert_update_select_ratio, &block_store_,
                                            &buffer_pool_, &generator_, true);
     gc_ = new storage::GarbageCollector(tested.GetTimestampManager(), DISABLED, tested.GetTxnManager(), DISABLED);
     gc_thread_ = new storage::GarbageCollectorThread(gc_, gc_period_);
@@ -92,7 +92,7 @@ BENCHMARK_DEFINE_F(LargeTransactionMetricsBenchmark, SingleStatementInsert)(benc
     metrics_thread->GetMetricsManager().EnableMetric(metrics::MetricsComponent::TRANSACTION);
 
     // don't need any initial tuples
-    LargeTransactionBenchmarkObject tested(attr_sizes_, 0, txn_length, insert_update_select_ratio, &block_store_,
+    LargeDataTableBenchmarkObject tested(attr_sizes_, 0, txn_length, insert_update_select_ratio, &block_store_,
                                            &buffer_pool_, &generator_, true);
     gc_ = new storage::GarbageCollector(tested.GetTimestampManager(), DISABLED, tested.GetTxnManager(), DISABLED);
     gc_thread_ = new storage::GarbageCollectorThread(gc_, gc_period_);
@@ -119,7 +119,7 @@ BENCHMARK_DEFINE_F(LargeTransactionMetricsBenchmark, SingleStatementUpdate)(benc
     auto *const metrics_thread = new metrics::MetricsThread(metrics_period_);
     metrics_thread->GetMetricsManager().EnableMetric(metrics::MetricsComponent::TRANSACTION);
 
-    LargeTransactionBenchmarkObject tested(attr_sizes_, initial_table_size_, txn_length, insert_update_select_ratio,
+    LargeDataTableBenchmarkObject tested(attr_sizes_, initial_table_size_, txn_length, insert_update_select_ratio,
                                            &block_store_, &buffer_pool_, &generator_, true);
     gc_ = new storage::GarbageCollector(tested.GetTimestampManager(), DISABLED, tested.GetTxnManager(), DISABLED);
     gc_thread_ = new storage::GarbageCollectorThread(gc_, gc_period_);
@@ -146,7 +146,7 @@ BENCHMARK_DEFINE_F(LargeTransactionMetricsBenchmark, SingleStatementSelect)(benc
     auto *const metrics_thread = new metrics::MetricsThread(metrics_period_);
     metrics_thread->GetMetricsManager().EnableMetric(metrics::MetricsComponent::TRANSACTION);
 
-    LargeTransactionBenchmarkObject tested(attr_sizes_, initial_table_size_, txn_length, insert_update_select_ratio,
+    LargeDataTableBenchmarkObject tested(attr_sizes_, initial_table_size_, txn_length, insert_update_select_ratio,
                                            &block_store_, &buffer_pool_, &generator_, true);
     gc_ = new storage::GarbageCollector(tested.GetTimestampManager(), DISABLED, tested.GetTxnManager(), DISABLED);
     gc_thread_ = new storage::GarbageCollectorThread(gc_, gc_period_);

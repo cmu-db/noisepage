@@ -6,7 +6,7 @@
 #include "storage/garbage_collector_thread.h"
 #include "storage/storage_defs.h"
 #include "storage/write_ahead_log/log_manager.h"
-#include "util/transaction_benchmark_util.h"
+#include "util/data_table_benchmark_util.h"
 
 #define LOG_FILE_NAME "/mnt/ramdisk/benchmark.txt"
 
@@ -58,7 +58,7 @@ BENCHMARK_DEFINE_F(LoggingMetricsBenchmark, TPCCish)(benchmark::State &state) {
                                            log_persist_interval_, log_persist_threshold_, &buffer_pool_,
                                            common::ManagedPointer<common::DedicatedThreadRegistry>(thread_registry_));
     log_manager_->Start();
-    LargeTransactionBenchmarkObject tested(attr_sizes_, initial_table_size_, txn_length, insert_update_select_ratio,
+    LargeDataTableBenchmarkObject tested(attr_sizes_, initial_table_size_, txn_length, insert_update_select_ratio,
                                            &block_store_, &buffer_pool_, &generator_, true, log_manager_);
     // log all of the Inserts from table creation
     log_manager_->ForceFlush();
@@ -105,7 +105,7 @@ BENCHMARK_DEFINE_F(LoggingMetricsBenchmark, HighAbortRate)(benchmark::State &sta
                                            log_persist_interval_, log_persist_threshold_, &buffer_pool_,
                                            common::ManagedPointer<common::DedicatedThreadRegistry>(thread_registry_));
     log_manager_->Start();
-    LargeTransactionBenchmarkObject tested(attr_sizes_, 1000, txn_length, insert_update_select_ratio, &block_store_,
+    LargeDataTableBenchmarkObject tested(attr_sizes_, 1000, txn_length, insert_update_select_ratio, &block_store_,
                                            &buffer_pool_, &generator_, true, log_manager_);
     // log all of the Inserts from table creation
     log_manager_->ForceFlush();
@@ -151,7 +151,7 @@ BENCHMARK_DEFINE_F(LoggingMetricsBenchmark, SingleStatementInsert)(benchmark::St
                                            log_persist_interval_, log_persist_threshold_, &buffer_pool_,
                                            common::ManagedPointer<common::DedicatedThreadRegistry>(thread_registry_));
     log_manager_->Start();
-    LargeTransactionBenchmarkObject tested(attr_sizes_, 0, txn_length, insert_update_select_ratio, &block_store_,
+    LargeDataTableBenchmarkObject tested(attr_sizes_, 0, txn_length, insert_update_select_ratio, &block_store_,
                                            &buffer_pool_, &generator_, true, log_manager_);
     // log all of the Inserts from table creation
     log_manager_->ForceFlush();
@@ -197,7 +197,7 @@ BENCHMARK_DEFINE_F(LoggingMetricsBenchmark, SingleStatementUpdate)(benchmark::St
                                            log_persist_interval_, log_persist_threshold_, &buffer_pool_,
                                            common::ManagedPointer<common::DedicatedThreadRegistry>(thread_registry_));
     log_manager_->Start();
-    LargeTransactionBenchmarkObject tested(attr_sizes_, initial_table_size_, txn_length, insert_update_select_ratio,
+    LargeDataTableBenchmarkObject tested(attr_sizes_, initial_table_size_, txn_length, insert_update_select_ratio,
                                            &block_store_, &buffer_pool_, &generator_, true, log_manager_);
     // log all of the Inserts from table creation
     log_manager_->ForceFlush();
@@ -243,7 +243,7 @@ BENCHMARK_DEFINE_F(LoggingMetricsBenchmark, SingleStatementSelect)(benchmark::St
                                            log_persist_interval_, log_persist_threshold_, &buffer_pool_,
                                            common::ManagedPointer<common::DedicatedThreadRegistry>(thread_registry_));
     log_manager_->Start();
-    LargeTransactionBenchmarkObject tested(attr_sizes_, initial_table_size_, txn_length, insert_update_select_ratio,
+    LargeDataTableBenchmarkObject tested(attr_sizes_, initial_table_size_, txn_length, insert_update_select_ratio,
                                            &block_store_, &buffer_pool_, &generator_, true, log_manager_);
     // log all of the Inserts from table creation
     log_manager_->ForceFlush();

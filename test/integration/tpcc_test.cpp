@@ -66,7 +66,7 @@ class TPCCTests : public TerrierTest {
   const std::chrono::milliseconds gc_period_{10};
   const std::chrono::milliseconds metrics_period_{100};
 
-  void RunTPCC(const bool logging_enabled, const bool metrics_enabled) {
+  void RunTPCC(const bool logging_enabled, const bool metrics_enabled, const storage::index::IndexType type) {
     // one TPCC worker = one TPCC terminal = one thread
     std::vector<Worker> workers;
     workers.reserve(num_threads_);
@@ -101,7 +101,7 @@ class TPCCTests : public TerrierTest {
         PrecomputeArgs(&generator_, txn_weights_, num_threads_, num_precomputed_txns_per_worker_);
 
     // build the TPCC database
-    auto *const tpcc_db = tpcc_builder.Build();
+    auto *const tpcc_db = tpcc_builder.Build(type);
 
     // prepare the workers
     workers.clear();
@@ -145,12 +145,15 @@ class TPCCTests : public TerrierTest {
 };
 
 // NOLINTNEXTLINE
-TEST_F(TPCCTests, WithoutLogging) { RunTPCC(false, false); }
+TEST_F(TPCCTests, WithoutLoggingBwTreeIndexes) { RunTPCC(false, false, storage::index::IndexType::BWTREE); }
 
 // NOLINTNEXTLINE
-TEST_F(TPCCTests, WithLogging) { RunTPCC(true, false); }
+TEST_F(TPCCTests, WithoutLoggingHashIndexes) { RunTPCC(false, false, storage::index::IndexType::HASHMAP); }
 
 // NOLINTNEXTLINE
-TEST_F(TPCCTests, WithLoggingAndMetrics) { RunTPCC(true, true); }
+TEST_F(TPCCTests, WithLogging) { RunTPCC(true, false, storage::index::IndexType::HASHMAP); }
+
+// NOLINTNEXTLINE
+TEST_F(TPCCTests, WithLoggingAndMetrics) { RunTPCC(true, true, storage::index::IndexType::HASHMAP); }
 
 }  // namespace terrier::tpcc

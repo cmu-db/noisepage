@@ -33,10 +33,10 @@ void LogSerializerTask::LogSerializerTaskLoop() {
 
 bool LogSerializerTask::Process() {
   uint64_t elapsed_us = 0, num_bytes = 0, num_records = 0;
+  bool buffers_processed = false;
   {
     common::ScopedTimer<std::chrono::microseconds> scoped_timer(&elapsed_us);
     common::SpinLatch::ScopedSpinLatch serialization_guard(&serialization_latch_);
-    bool buffers_processed = false;
     TERRIER_ASSERT(serialized_txns_.empty(),
                    "Aggregated txn timestamps should have been handed off to TimestampManager");
     // We continually grab all the buffers until we find there are no new buffers. This way we serialize buffers that
