@@ -30,6 +30,13 @@ struct TableInfo {
   TableInfo() = default;
 
   /**
+   * @return a copy of the table location information
+   */
+  std::unique_ptr<TableInfo> Copy() {
+    return std::make_unique<TableInfo>(GetTableName(), GetSchemaName(), GetDatabaseName());
+  }
+
+  /**
    * @return table name
    */
   std::string GetTableName() { return table_name_; }

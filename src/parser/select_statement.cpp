@@ -13,12 +13,12 @@ nlohmann::json SelectStatement::ToJson() const {
   }
   j["select"] = select_json;
   j["select_distinct"] = select_distinct_;
-  j["from"] = from_->ToJson();
-  j["where"] = where_->ToJson();
-  j["group_by"] = group_by_->ToJson();
-  j["order_by"] = order_by_->ToJson();
-  j["limit"] = limit_->ToJson();
-  j["union_select"] = union_select_->ToJson();
+  j["from"] = from_ == nullptr ? nlohmann::json(nullptr) : from_->ToJson();
+  j["where"] = where_ == nullptr ? nlohmann::json(nullptr) : where_->ToJson();
+  j["group_by"] = group_by_ == nullptr ? nlohmann::json(nullptr) : group_by_->ToJson();
+  j["order_by"] = order_by_ == nullptr ? nlohmann::json(nullptr) : order_by_->ToJson();
+  j["limit"] = limit_ == nullptr ? nlohmann::json(nullptr) : limit_->ToJson();
+  j["union_select"] = union_select_ == nullptr ? nlohmann::json(nullptr) : union_select_->ToJson();
   return j;
 }
 
@@ -67,6 +67,15 @@ void SelectStatement::FromJson(const nlohmann::json &j) {
     union_select_ = std::make_unique<parser::SelectStatement>();
     union_select_->FromJson(j.at("union_select"));
   }
+}
+
+std::unique_ptr<SelectStatement> SelectStatement::Copy() {
+  auto select = std::make_unique<SelectStatement>(select_, select_distinct_, from_->Copy(), where_,
+                                                  group_by_ == nullptr ? nullptr : group_by_->Copy(),
+                                                  order_by_ == nullptr ? nullptr : order_by_->Copy(),
+                                                  limit_ == nullptr ? nullptr : limit_->Copy());
+  select->SetUnionSelect(union_select_->Copy());
+  return select;
 }
 
 }  // namespace terrier::parser

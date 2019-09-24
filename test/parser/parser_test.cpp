@@ -27,8 +27,8 @@ class ParserTestBase : public TerrierTest {
    * Initialization
    */
   void SetUp() override {
-    init_main_logger();
-    init_parser_logger();
+    InitMainLogger();
+    InitParserLogger();
     parser_logger->set_level(spdlog::level::debug);
     spdlog::flush_every(std::chrono::seconds(1));
   }
@@ -39,7 +39,7 @@ class ParserTestBase : public TerrierTest {
     EXPECT_EQ(table_info->GetTableName(), table_name);
   }
 
-  PostgresParser pgparser;
+  PostgresParser pgparser_;
 };
 
 // NOLINTNEXTLINE
@@ -53,16 +53,16 @@ TEST_F(ParserTestBase, AnalyzeTest) {
    * ANALYZE table_name (column_name, ...) : (segfaults)
    */
 
-  auto result = pgparser.BuildParseTree("ANALYZE table_name;");
-  auto analyze_stmt = reinterpret_cast<AnalyzeStatement *>(result.GetStatements()[0].get());
+  auto result = pgparser_.BuildParseTree("ANALYZE table_name;");
+  auto analyze_stmt = reinterpret_cast<AnalyzeStatement *>(result.GetStatements()[0].Get());
   EXPECT_EQ(analyze_stmt->GetType(), StatementType::ANALYZE);
   EXPECT_EQ(analyze_stmt->GetAnalyzeTable()->GetTableName(), "table_name");
 }
 
 // NOLINTNEXTLINE
 TEST_F(ParserTestBase, CastTest) {
-  auto result = pgparser.BuildParseTree("SELECT CAST('100' AS INTEGER);");
-  auto cast_stmt = reinterpret_cast<SelectStatement *>(result.GetStatements()[0].get());
+  auto result = pgparser_.BuildParseTree("SELECT CAST('100' AS INTEGER);");
+  auto cast_stmt = reinterpret_cast<SelectStatement *>(result.GetStatements()[0].Get());
   EXPECT_EQ(cast_stmt->GetType(), StatementType::SELECT);
   EXPECT_EQ(cast_stmt->GetSelectColumns().at(0)->GetExpressionType(), ExpressionType::OPERATOR_CAST);
   EXPECT_EQ(cast_stmt->GetSelectColumns().at(0)->GetReturnValueType(), type::TypeId::INTEGER);
@@ -70,8 +70,8 @@ TEST_F(ParserTestBase, CastTest) {
 
 // NOLINTNEXTLINE
 TEST_F(ParserTestBase, CopyTest) {
-  auto result = pgparser.BuildParseTree("COPY foo FROM STDIN WITH BINARY;");
-  auto copy_stmt = reinterpret_cast<CopyStatement *>(result.GetStatements()[0].get());
+  auto result = pgparser_.BuildParseTree("COPY foo FROM STDIN WITH BINARY;");
+  auto copy_stmt = reinterpret_cast<CopyStatement *>(result.GetStatements()[0].Get());
   EXPECT_EQ(copy_stmt->GetType(), StatementType::COPY);
   EXPECT_EQ(copy_stmt->GetExternalFileFormat(), ExternalFileFormat::BINARY);
 }
@@ -86,8 +86,8 @@ TEST_F(ParserTestBase, CreateFunctionTest) {
         " RETURNS DOUBLE AS $$ "
         " BEGIN RETURN i + 1; END; $$ "
         "LANGUAGE plpgsql;";
-    auto result = pgparser.BuildParseTree(query);
-    auto stmt = reinterpret_cast<CreateFunctionStatement *>(result.GetStatements()[0].get());
+    auto result = pgparser_.BuildParseTree(query);
+    auto stmt = reinterpret_cast<CreateFunctionStatement *>(result.GetStatements()[0].Get());
     const auto &func_params = stmt->GetFuncParameters();
     EXPECT_EQ(stmt->GetFuncName(), "increment");
     EXPECT_EQ(stmt->GetFuncReturnType()->GetDataType(), BaseFunctionParameter::DataType::DOUBLE);
@@ -103,8 +103,8 @@ TEST_F(ParserTestBase, CreateFunctionTest) {
         " RETURNS DOUBLE AS $$ "
         " BEGIN RETURN i + j; END; $$ "
         "LANGUAGE plpgsql;";
-    auto result = pgparser.BuildParseTree(query);
-    auto stmt = reinterpret_cast<CreateFunctionStatement *>(result.GetStatements()[0].get());
+    auto result = pgparser_.BuildParseTree(query);
+    auto stmt = reinterpret_cast<CreateFunctionStatement *>(result.GetStatements()[0].Get());
     const auto &func_params = stmt->GetFuncParameters();
     EXPECT_EQ(stmt->GetFuncName(), "increment1");
     EXPECT_EQ(stmt->GetFuncReturnType()->GetDataType(), BaseFunctionParameter::DataType::DOUBLE);
@@ -122,8 +122,8 @@ TEST_F(ParserTestBase, CreateFunctionTest) {
         " RETURNS INT AS $$ "
         "BEGIN RETURN i + 1; END; $$ "
         "LANGUAGE plpgsql;";
-    auto result = pgparser.BuildParseTree(query);
-    auto stmt = reinterpret_cast<CreateFunctionStatement *>(result.GetStatements()[0].get());
+    auto result = pgparser_.BuildParseTree(query);
+    auto stmt = reinterpret_cast<CreateFunctionStatement *>(result.GetStatements()[0].Get());
     const auto &func_params = stmt->GetFuncParameters();
     EXPECT_EQ(stmt->GetFuncName(), "increment2");
     EXPECT_EQ(stmt->GetFuncReturnType()->GetDataType(), BaseFunctionParameter::DataType::INT);
@@ -141,8 +141,8 @@ TEST_F(ParserTestBase, CreateFunctionTest) {
         " RETURNS VARCHAR AS $$ "
         "BEGIN RETURN 'foo'; END; $$ "
         "LANGUAGE plpgsql;";
-    auto result = pgparser.BuildParseTree(query);
-    auto stmt = reinterpret_cast<CreateFunctionStatement *>(result.GetStatements()[0].get());
+    auto result = pgparser_.BuildParseTree(query);
+    auto stmt = reinterpret_cast<CreateFunctionStatement *>(result.GetStatements()[0].Get());
     const auto &func_params = stmt->GetFuncParameters();
     EXPECT_EQ(stmt->GetFuncName(), "return_varchar");
     EXPECT_EQ(stmt->GetFuncReturnType()->GetDataType(), BaseFunctionParameter::DataType::VARCHAR);
@@ -158,8 +158,8 @@ TEST_F(ParserTestBase, CreateFunctionTest) {
         " RETURNS TEXT AS $$ "
         "BEGIN RETURN 'foo'; END; $$ "
         "LANGUAGE plpgsql;";
-    auto result = pgparser.BuildParseTree(query);
-    auto stmt = reinterpret_cast<CreateFunctionStatement *>(result.GetStatements()[0].get());
+    auto result = pgparser_.BuildParseTree(query);
+    auto stmt = reinterpret_cast<CreateFunctionStatement *>(result.GetStatements()[0].Get());
     const auto &func_params = stmt->GetFuncParameters();
     EXPECT_EQ(stmt->GetFuncName(), "return_text");
     EXPECT_EQ(stmt->GetFuncReturnType()->GetDataType(), BaseFunctionParameter::DataType::TEXT);
@@ -175,8 +175,8 @@ TEST_F(ParserTestBase, CreateFunctionTest) {
         " RETURNS BOOL AS $$ "
         "BEGIN RETURN false; END; $$ "
         "LANGUAGE plpgsql;";
-    auto result = pgparser.BuildParseTree(query);
-    auto stmt = reinterpret_cast<CreateFunctionStatement *>(result.GetStatements()[0].get());
+    auto result = pgparser_.BuildParseTree(query);
+    auto stmt = reinterpret_cast<CreateFunctionStatement *>(result.GetStatements()[0].Get());
     const auto &func_params = stmt->GetFuncParameters();
     EXPECT_EQ(stmt->GetFuncName(), "return_bool");
     EXPECT_EQ(stmt->GetFuncReturnType()->GetDataType(), BaseFunctionParameter::DataType::BOOL);
@@ -188,8 +188,8 @@ TEST_F(ParserTestBase, CreateFunctionTest) {
 // NOLINTNEXTLINE
 TEST_F(ParserTestBase, CreateIndexTest) {
   std::string query = "CREATE INDEX IDX_ORDER ON oorder ((O_W_ID - 2), (O + W + O));";
-  auto result = pgparser.BuildParseTree(query);
-  auto create_stmt = reinterpret_cast<CreateStatement *>(result.GetStatements()[0].get());
+  auto result = pgparser_.BuildParseTree(query);
+  auto create_stmt = reinterpret_cast<CreateStatement *>(result.GetStatements()[0].Get());
 
   EXPECT_EQ(create_stmt->GetCreateType(), CreateStatement::kIndex);
   EXPECT_EQ(create_stmt->GetIndexName(), "idx_order");
@@ -197,17 +197,17 @@ TEST_F(ParserTestBase, CreateIndexTest) {
   EXPECT_EQ(create_stmt->GetIndexAttributes().size(), 2);
   auto ia1 = create_stmt->GetIndexAttributes()[0].GetExpression();
   EXPECT_EQ(ia1->GetExpressionType(), ExpressionType::OPERATOR_MINUS);
-  auto ia1l = reinterpret_cast<ColumnValueExpression *>(ia1->GetChild(0).get());
+  auto ia1l = reinterpret_cast<ColumnValueExpression *>(ia1->GetChild(0).Get());
   EXPECT_EQ(ia1l->GetColumnName(), "o_w_id");
-  auto ia1r = reinterpret_cast<ConstantValueExpression *>(ia1->GetChild(1).get());
+  auto ia1r = reinterpret_cast<ConstantValueExpression *>(ia1->GetChild(1).Get());
   EXPECT_EQ(type::TransientValuePeeker::PeekInteger(ia1r->GetValue()), 2);
   auto ia2 = create_stmt->GetIndexAttributes()[1].GetExpression();
   EXPECT_EQ(ia2->GetExpressionType(), ExpressionType::OPERATOR_PLUS);
-  auto ia2l = reinterpret_cast<ColumnValueExpression *>(ia2->GetChild(0).get());
+  auto ia2l = reinterpret_cast<ColumnValueExpression *>(ia2->GetChild(0).Get());
   EXPECT_EQ(ia2l->GetExpressionType(), ExpressionType::OPERATOR_PLUS);
-  auto ia2ll = reinterpret_cast<ColumnValueExpression *>(ia2l->GetChild(0).get());
-  auto ia2lr = reinterpret_cast<ColumnValueExpression *>(ia2l->GetChild(1).get());
-  auto ia2r = reinterpret_cast<ColumnValueExpression *>(ia2->GetChild(1).get());
+  auto ia2ll = reinterpret_cast<ColumnValueExpression *>(ia2l->GetChild(0).Get());
+  auto ia2lr = reinterpret_cast<ColumnValueExpression *>(ia2l->GetChild(1).Get());
+  auto ia2r = reinterpret_cast<ColumnValueExpression *>(ia2->GetChild(1).Get());
   EXPECT_EQ(ia2ll->GetColumnName(), "o");
   EXPECT_EQ(ia2lr->GetColumnName(), "w");
   EXPECT_EQ(ia2r->GetColumnName(), "o");
@@ -234,20 +234,20 @@ TEST_F(ParserTestBase, CreateTableTest) {
       "PRIMARY KEY (id),"
       "FOREIGN KEY (c_id) REFERENCES country (cid));";
 
-  auto result = pgparser.BuildParseTree(query);
+  auto result = pgparser_.BuildParseTree(query);
 
   query = "CREATE TABLE Foo (id BAZ, PRIMARY KEY (id));";
-  EXPECT_THROW(pgparser.BuildParseTree(query), ParserException);
+  EXPECT_THROW(pgparser_.BuildParseTree(query), ParserException);
 }
 
 // NOLINTNEXTLINE
 TEST_F(ParserTestBase, CreateViewTest) {
-  auto result = pgparser.BuildParseTree("CREATE VIEW foo AS SELECT * FROM bar WHERE baz = 1;");
-  auto create_stmt = reinterpret_cast<CreateStatement *>(result.GetStatements()[0].get());
+  auto result = pgparser_.BuildParseTree("CREATE VIEW foo AS SELECT * FROM bar WHERE baz = 1;");
+  auto create_stmt = reinterpret_cast<CreateStatement *>(result.GetStatements()[0].Get());
 
   EXPECT_EQ(create_stmt->GetViewName(), "foo");
   EXPECT_NE(create_stmt->GetViewQuery(), nullptr);
-  auto view_query = create_stmt->GetViewQuery().get();
+  auto view_query = create_stmt->GetViewQuery().Get();
   EXPECT_EQ(view_query->GetSelectTable()->GetTableName(), "bar");
   EXPECT_EQ(view_query->GetSelectColumns().size(), 1);
   EXPECT_NE(view_query->GetSelectCondition(), nullptr);
@@ -255,40 +255,40 @@ TEST_F(ParserTestBase, CreateViewTest) {
   EXPECT_EQ(view_query->GetSelectCondition()->GetChildrenSize(), 2);
   auto left_child = view_query->GetSelectCondition()->GetChild(0);
   EXPECT_EQ(left_child->GetExpressionType(), ExpressionType::COLUMN_VALUE);
-  EXPECT_EQ(reinterpret_cast<ColumnValueExpression *>(left_child.get())->GetColumnName(), "baz");
+  EXPECT_EQ(reinterpret_cast<ColumnValueExpression *>(left_child.Get())->GetColumnName(), "baz");
   auto right_child = view_query->GetSelectCondition()->GetChild(1);
   EXPECT_EQ(right_child->GetExpressionType(), ExpressionType::VALUE_CONSTANT);
   EXPECT_EQ(type::TransientValuePeeker::PeekInteger(
-                reinterpret_cast<ConstantValueExpression *>(right_child.get())->GetValue()),
+                reinterpret_cast<ConstantValueExpression *>(right_child.Get())->GetValue()),
             1);
 }
 
 // NOLINTNEXTLINE
 TEST_F(ParserTestBase, DropDBTest) {
-  auto result = pgparser.BuildParseTree("DROP DATABASE test_db;");
+  auto result = pgparser_.BuildParseTree("DROP DATABASE test_db;");
   EXPECT_EQ(result.GetStatements().size(), 1);
 
-  auto drop_stmt = reinterpret_cast<DropStatement *>(result.GetStatements()[0].get());
+  auto drop_stmt = reinterpret_cast<DropStatement *>(result.GetStatements()[0].Get());
   EXPECT_EQ(drop_stmt->GetDropType(), DropStatement::DropType::kDatabase);
   EXPECT_EQ(drop_stmt->GetDatabaseName(), "test_db");
 }
 
 // NOLINTNEXTLINE
 TEST_F(ParserTestBase, DropIndexTest) {
-  auto result = pgparser.BuildParseTree("DROP INDEX foo;");
+  auto result = pgparser_.BuildParseTree("DROP INDEX foo;");
   EXPECT_EQ(result.GetStatements().size(), 1);
 
-  auto drop_stmt = reinterpret_cast<DropStatement *>(result.GetStatements()[0].get());
+  auto drop_stmt = reinterpret_cast<DropStatement *>(result.GetStatements()[0].Get());
   EXPECT_EQ(drop_stmt->GetDropType(), DropStatement::DropType::kIndex);
   EXPECT_EQ(drop_stmt->GetIndexName(), "foo");
 }
 
 // NOLINTNEXTLINE
 TEST_F(ParserTestBase, DropSchemaTest) {
-  auto result = pgparser.BuildParseTree("DROP SCHEMA IF EXISTS foo CASCADE;");
+  auto result = pgparser_.BuildParseTree("DROP SCHEMA IF EXISTS foo CASCADE;");
   EXPECT_EQ(result.GetStatements().size(), 1);
 
-  auto drop_stmt = reinterpret_cast<DropStatement *>(result.GetStatements()[0].get());
+  auto drop_stmt = reinterpret_cast<DropStatement *>(result.GetStatements()[0].Get());
   EXPECT_EQ(drop_stmt->GetDropType(), DropStatement::DropType::kSchema);
   EXPECT_EQ(drop_stmt->GetSchemaName(), "foo");
   EXPECT_TRUE(drop_stmt->IsCascade());
@@ -297,47 +297,47 @@ TEST_F(ParserTestBase, DropSchemaTest) {
 
 // NOLINTNEXTLINE
 TEST_F(ParserTestBase, DropTableTest) {
-  auto result = pgparser.BuildParseTree("DROP TABLE test_db;");
+  auto result = pgparser_.BuildParseTree("DROP TABLE test_db;");
   EXPECT_EQ(result.GetStatements().size(), 1);
 
-  auto drop_stmt = reinterpret_cast<DropStatement *>(result.GetStatements()[0].get());
+  auto drop_stmt = reinterpret_cast<DropStatement *>(result.GetStatements()[0].Get());
   EXPECT_EQ(drop_stmt->GetDropType(), DropStatement::DropType::kTable);
   EXPECT_EQ(drop_stmt->GetTableName(), "test_db");
 }
 
 // NOLINTNEXTLINE
 TEST_F(ParserTestBase, ExecuteTest) {
-  auto result = pgparser.BuildParseTree("EXECUTE prepared_statement_name;");
+  auto result = pgparser_.BuildParseTree("EXECUTE prepared_statement_name;");
   EXPECT_EQ(result.GetStatements()[0]->GetType(), StatementType::EXECUTE);
 
-  result = pgparser.BuildParseTree("EXECUTE prepared_statement_name(1, 2.0)");
+  result = pgparser_.BuildParseTree("EXECUTE prepared_statement_name(1, 2.0)");
   EXPECT_EQ(result.GetStatements()[0]->GetType(), StatementType::EXECUTE);
 
-  result = pgparser.BuildParseTree("EXECUTE prepared_statement_name(1, 'arg_2', 3.0)");
+  result = pgparser_.BuildParseTree("EXECUTE prepared_statement_name(1, 'arg_2', 3.0)");
   EXPECT_EQ(result.GetStatements()[0]->GetType(), StatementType::EXECUTE);
 }
 
 // NOLINTNEXTLINE
 TEST_F(ParserTestBase, ExplainTest) {
-  auto result = pgparser.BuildParseTree("EXPLAIN SELECT * FROM foo;");
+  auto result = pgparser_.BuildParseTree("EXPLAIN SELECT * FROM foo;");
   EXPECT_EQ(result.GetStatements()[0]->GetType(), StatementType::EXPLAIN);
 }
 
 // NOLINTNEXTLINE
 TEST_F(ParserTestBase, GarbageTest) {
-  EXPECT_THROW(pgparser.BuildParseTree("blarglesnarf"), ParserException);
-  EXPECT_THROW(pgparser.BuildParseTree("SELECT;"), ParserException);
+  EXPECT_THROW(pgparser_.BuildParseTree("blarglesnarf"), ParserException);
+  EXPECT_THROW(pgparser_.BuildParseTree("SELECT;"), ParserException);
 }
 
 // NOLINTNEXTLINE
 TEST_F(ParserTestBase, InsertTest) {
-  auto result = pgparser.BuildParseTree("INSERT INTO foo VALUES (1, 2, 3), (4, 5, 6);");
-  auto insert_stmt = reinterpret_cast<InsertStatement *>(result.GetStatements().at(0).get());
+  auto result = pgparser_.BuildParseTree("INSERT INTO foo VALUES (1, 2, 3), (4, 5, 6);");
+  auto insert_stmt = reinterpret_cast<InsertStatement *>(result.GetStatements().at(0).Get());
   EXPECT_EQ(insert_stmt->GetInsertionTable()->GetTableName(), "foo");
   EXPECT_EQ(insert_stmt->GetInsertColumns()->size(), 0);
 
-  result = pgparser.BuildParseTree("INSERT INTO foo (id,bar,entry) VALUES (DEFAULT, 2, 3);");
-  insert_stmt = reinterpret_cast<InsertStatement *>(result.GetStatements().at(0).get());
+  result = pgparser_.BuildParseTree("INSERT INTO foo (id,bar,entry) VALUES (DEFAULT, 2, 3);");
+  insert_stmt = reinterpret_cast<InsertStatement *>(result.GetStatements().at(0).Get());
   EXPECT_EQ(insert_stmt->GetInsertionTable()->GetTableName(), "foo");
   EXPECT_EQ(insert_stmt->GetInsertColumns()->size(), 3);
   EXPECT_EQ((*insert_stmt->GetValues())[0][0]->GetExpressionType(), ExpressionType::VALUE_DEFAULT);
@@ -346,11 +346,11 @@ TEST_F(ParserTestBase, InsertTest) {
 // NOLINTNEXTLINE
 TEST_F(ParserTestBase, PrepareTest) {
   {
-    auto result = pgparser.BuildParseTree("PREPARE insert_plan AS INSERT INTO table_name VALUES($1);");
+    auto result = pgparser_.BuildParseTree("PREPARE insert_plan AS INSERT INTO table_name VALUES($1);");
     EXPECT_EQ(result.GetStatements().size(), 1);
     EXPECT_EQ(result.GetStatements()[0]->GetType(), StatementType::PREPARE);
-    const auto &stmt = result.GetStatements()[0];
-    auto prepare_stmt = reinterpret_cast<PrepareStatement *>(stmt.get());
+    auto stmt = result.GetStatements()[0];
+    auto prepare_stmt = reinterpret_cast<PrepareStatement *>(stmt.Get());
     EXPECT_EQ(prepare_stmt->GetName(), "insert_plan");
     // TODO(pakhtar)
     // - check table name == table_name
@@ -358,12 +358,12 @@ TEST_F(ParserTestBase, PrepareTest) {
   }
 
   {
-    auto result = pgparser.BuildParseTree("PREPARE insert_plan (INT) AS INSERT INTO table_name VALUES($1);");
+    auto result = pgparser_.BuildParseTree("PREPARE insert_plan (INT) AS INSERT INTO table_name VALUES($1);");
 
     EXPECT_EQ(result.GetStatements().size(), 1);
     EXPECT_EQ(result.GetStatements()[0]->GetType(), StatementType::PREPARE);
-    const auto &stmt = result.GetStatements()[0];
-    auto prepare_stmt = reinterpret_cast<PrepareStatement *>(stmt.get());
+    auto stmt = result.GetStatements()[0];
+    auto prepare_stmt = reinterpret_cast<PrepareStatement *>(stmt.Get());
     EXPECT_EQ(prepare_stmt->GetName(), "insert_plan");
     // TODO(pakhtar)
     // - check table name == table_name
@@ -373,11 +373,11 @@ TEST_F(ParserTestBase, PrepareTest) {
 
   {
     auto result =
-        pgparser.BuildParseTree("PREPARE select_stmt_plan (INT) AS SELECT column_name FROM table_name WHERE id=$1;");
+        pgparser_.BuildParseTree("PREPARE select_stmt_plan (INT) AS SELECT column_name FROM table_name WHERE id=$1;");
     EXPECT_EQ(result.GetStatements().size(), 1);
     EXPECT_EQ(result.GetStatements()[0]->GetType(), StatementType::PREPARE);
-    const auto &stmt = result.GetStatements()[0];
-    auto prepare_stmt = reinterpret_cast<PrepareStatement *>(stmt.get());
+    auto stmt = result.GetStatements()[0];
+    auto prepare_stmt = reinterpret_cast<PrepareStatement *>(stmt.Get());
     EXPECT_EQ(prepare_stmt->GetName(), "select_stmt_plan");
     // TODO(pakhtar)
     // - assert "column_name"
@@ -388,64 +388,64 @@ TEST_F(ParserTestBase, PrepareTest) {
 
 // NOLINTNEXTLINE
 TEST_F(ParserTestBase, SelectTest) {
-  auto result = pgparser.BuildParseTree("SELECT * FROM foo;");
+  auto result = pgparser_.BuildParseTree("SELECT * FROM foo;");
 
   EXPECT_EQ(result.GetStatements().size(), 1);
   EXPECT_EQ(result.GetStatements()[0]->GetType(), StatementType::SELECT);
 
-  const auto &stmt = result.GetStatements()[0];
-  auto select_stmt = reinterpret_cast<SelectStatement *>(stmt.get());
+  auto stmt = result.GetStatements()[0];
+  auto select_stmt = reinterpret_cast<SelectStatement *>(stmt.Get());
   EXPECT_EQ(select_stmt->GetSelectTable()->GetTableName(), "foo");
   // CheckTable(select_stmt->from_->table_info_, std::string("foo"));
   EXPECT_EQ(select_stmt->GetSelectColumns()[0]->GetExpressionType(), ExpressionType::STAR);
 
-  result = pgparser.BuildParseTree("SELECT id FROM foo LIMIT 1 OFFSET 1;");
+  result = pgparser_.BuildParseTree("SELECT id FROM foo LIMIT 1 OFFSET 1;");
   EXPECT_EQ(result.GetStatements()[0]->GetType(), StatementType::SELECT);
-  select_stmt = reinterpret_cast<SelectStatement *>(result.GetStatements()[0].get());
+  select_stmt = reinterpret_cast<SelectStatement *>(result.GetStatements()[0].Get());
   EXPECT_EQ(select_stmt->GetSelectLimit()->GetLimit(), 1);
   EXPECT_EQ(select_stmt->GetSelectLimit()->GetOffset(), 1);
 }
 
 // NOLINTNEXTLINE
 TEST_F(ParserTestBase, SelectUnionTest) {
-  auto result = pgparser.BuildParseTree("SELECT * FROM foo UNION SELECT * FROM bar;");
+  auto result = pgparser_.BuildParseTree("SELECT * FROM foo UNION SELECT * FROM bar;");
   EXPECT_EQ(result.GetStatements().size(), 1);
   EXPECT_EQ(result.GetStatements()[0]->GetType(), StatementType::SELECT);
 }
 
 // NOLINTNEXTLINE
 TEST_F(ParserTestBase, SetTest) {
-  auto result = pgparser.BuildParseTree("SET var_name TO 1;");
+  auto result = pgparser_.BuildParseTree("SET var_name TO 1;");
   EXPECT_EQ(result.GetStatements().size(), 1);
   EXPECT_EQ(result.GetStatements()[0]->GetType(), StatementType::VARIABLE_SET);
 }
 
 // NOLINTNEXTLINE
 TEST_F(ParserTestBase, SubqueryTest) {
-  auto result = pgparser.BuildParseTree("SELECT * FROM foo WHERE id IN (SELECT id FROM foo WHERE x > 400)");
+  auto result = pgparser_.BuildParseTree("SELECT * FROM foo WHERE id IN (SELECT id FROM foo WHERE x > 400)");
   EXPECT_EQ(result.GetStatements().size(), 1);
   EXPECT_EQ(result.GetStatements()[0]->GetType(), StatementType::SELECT);
 }
 
 // NOLINTNEXTLINE
 TEST_F(ParserTestBase, TruncateTest) {
-  auto result = pgparser.BuildParseTree("TRUNCATE TABLE test_db;");
+  auto result = pgparser_.BuildParseTree("TRUNCATE TABLE test_db;");
   EXPECT_EQ(result.GetStatements().size(), 1);
   EXPECT_EQ(result.GetStatements()[0]->GetType(), StatementType::DELETE);
 
-  auto delete_stmt = reinterpret_cast<DeleteStatement *>(result.GetStatements()[0].get());
+  auto delete_stmt = reinterpret_cast<DeleteStatement *>(result.GetStatements()[0].Get());
   EXPECT_EQ(delete_stmt->GetDeletionTable()->GetTableName(), "test_db");
   EXPECT_EQ(delete_stmt->GetDeleteCondition(), nullptr);
 }
 
 // NOLINTNEXTLINE
 TEST_F(ParserTestBase, UpdateTest) {
-  auto result = pgparser.BuildParseTree("UPDATE students SET grade = 1.0;");
+  auto result = pgparser_.BuildParseTree("UPDATE students SET grade = 1.0;");
 
   EXPECT_EQ(result.GetStatements().size(), 1);
   EXPECT_EQ(result.GetStatements()[0]->GetType(), StatementType::UPDATE);
 
-  auto update_stmt = reinterpret_cast<UpdateStatement *>(result.GetStatements()[0].get());
+  auto update_stmt = reinterpret_cast<UpdateStatement *>(result.GetStatements()[0].Get());
   EXPECT_EQ(update_stmt->GetUpdateTable()->GetTableName(), "students");
   // check expression here
   EXPECT_EQ(update_stmt->GetUpdateCondition(), nullptr);
@@ -455,83 +455,83 @@ TEST_F(ParserTestBase, UpdateTest) {
 TEST_F(ParserTestBase, OperatorTest) {
   {
     std::string query = "SELECT 10+10 AS Addition;";
-    auto result = pgparser.BuildParseTree(query);
-    const auto &sql_stmt = result.GetStatements()[0];
-    auto select_stmt = reinterpret_cast<SelectStatement *>(sql_stmt.get());
-    auto expr = select_stmt->GetSelectColumns().at(0).get();
+    auto result = pgparser_.BuildParseTree(query);
+    auto sql_stmt = result.GetStatements()[0];
+    auto select_stmt = reinterpret_cast<SelectStatement *>(sql_stmt.Get());
+    auto expr = select_stmt->GetSelectColumns().at(0).Get();
     EXPECT_EQ(expr->GetExpressionType(), ExpressionType::OPERATOR_PLUS);
   }
 
   {
     std::string query = "SELECT 15-721 AS Subtraction;";
-    auto result = pgparser.BuildParseTree(query);
-    const auto &sql_stmt = result.GetStatements()[0];
-    auto select_stmt = reinterpret_cast<SelectStatement *>(sql_stmt.get());
-    auto expr = select_stmt->GetSelectColumns().at(0).get();
+    auto result = pgparser_.BuildParseTree(query);
+    auto sql_stmt = result.GetStatements()[0];
+    auto select_stmt = reinterpret_cast<SelectStatement *>(sql_stmt.Get());
+    auto expr = select_stmt->GetSelectColumns().at(0).Get();
     EXPECT_EQ(expr->GetExpressionType(), ExpressionType::OPERATOR_MINUS);
   }
 
   {
     std::string query = "SELECT 5*7 AS Multiplication;";
-    auto result = pgparser.BuildParseTree(query);
-    const auto &sql_stmt = result.GetStatements()[0];
-    auto select_stmt = reinterpret_cast<SelectStatement *>(sql_stmt.get());
-    auto expr = select_stmt->GetSelectColumns().at(0).get();
+    auto result = pgparser_.BuildParseTree(query);
+    auto sql_stmt = result.GetStatements()[0];
+    auto select_stmt = reinterpret_cast<SelectStatement *>(sql_stmt.Get());
+    auto expr = select_stmt->GetSelectColumns().at(0).Get();
     EXPECT_EQ(expr->GetExpressionType(), ExpressionType::OPERATOR_MULTIPLY);
   }
 
   {
     std::string query = "SELECT 1/2 AS Division;";
-    auto result = pgparser.BuildParseTree(query);
-    const auto &sql_stmt = result.GetStatements()[0];
-    auto select_stmt = reinterpret_cast<SelectStatement *>(sql_stmt.get());
-    auto expr = select_stmt->GetSelectColumns().at(0).get();
+    auto result = pgparser_.BuildParseTree(query);
+    auto sql_stmt = result.GetStatements()[0];
+    auto select_stmt = reinterpret_cast<SelectStatement *>(sql_stmt.Get());
+    auto expr = select_stmt->GetSelectColumns().at(0).Get();
     EXPECT_EQ(expr->GetExpressionType(), ExpressionType::OPERATOR_DIVIDE);
   }
 
   {
     std::string query = "SELECT 15||213 AS Concatenation;";
-    auto result = pgparser.BuildParseTree(query);
-    const auto &sql_stmt = result.GetStatements()[0];
-    auto select_stmt = reinterpret_cast<SelectStatement *>(sql_stmt.get());
-    auto expr = select_stmt->GetSelectColumns().at(0).get();
+    auto result = pgparser_.BuildParseTree(query);
+    auto sql_stmt = result.GetStatements()[0];
+    auto select_stmt = reinterpret_cast<SelectStatement *>(sql_stmt.Get());
+    auto expr = select_stmt->GetSelectColumns().at(0).Get();
     EXPECT_EQ(expr->GetExpressionType(), ExpressionType::OPERATOR_CONCAT);
   }
 
   {
     std::string query = "SELECT 4%2 AS Mod;";
-    auto result = pgparser.BuildParseTree(query);
-    const auto &sql_stmt = result.GetStatements()[0];
-    auto select_stmt = reinterpret_cast<SelectStatement *>(sql_stmt.get());
-    auto expr = select_stmt->GetSelectColumns().at(0).get();
+    auto result = pgparser_.BuildParseTree(query);
+    auto sql_stmt = result.GetStatements()[0];
+    auto select_stmt = reinterpret_cast<SelectStatement *>(sql_stmt.Get());
+    auto expr = select_stmt->GetSelectColumns().at(0).Get();
     EXPECT_EQ(expr->GetExpressionType(), ExpressionType::OPERATOR_MOD);
   }
 
   {
     std::string query = "SELECT CAST('100' AS INTEGER) AS Casting;";
-    auto result = pgparser.BuildParseTree(query);
-    const auto &sql_stmt = result.GetStatements()[0];
-    auto select_stmt = reinterpret_cast<SelectStatement *>(sql_stmt.get());
-    auto expr = select_stmt->GetSelectColumns().at(0).get();
+    auto result = pgparser_.BuildParseTree(query);
+    auto sql_stmt = result.GetStatements()[0];
+    auto select_stmt = reinterpret_cast<SelectStatement *>(sql_stmt.Get());
+    auto expr = select_stmt->GetSelectColumns().at(0).Get();
     EXPECT_EQ(expr->GetExpressionType(), ExpressionType::OPERATOR_CAST);
     EXPECT_EQ(expr->GetReturnValueType(), type::TypeId::INTEGER);
   }
 
   {
     std::string query = "SELECT * FROM foo WHERE NOT id = 1;";
-    auto result = pgparser.BuildParseTree(query);
-    const auto &sql_stmt = result.GetStatements()[0];
-    auto select_stmt = reinterpret_cast<SelectStatement *>(sql_stmt.get());
-    auto expr = select_stmt->GetSelectCondition().get();
+    auto result = pgparser_.BuildParseTree(query);
+    auto sql_stmt = result.GetStatements()[0];
+    auto select_stmt = reinterpret_cast<SelectStatement *>(sql_stmt.Get());
+    auto expr = select_stmt->GetSelectCondition().Get();
     EXPECT_EQ(expr->GetExpressionType(), ExpressionType::OPERATOR_NOT);
   }
 
   {
     std::string query = "SELECT * FROM foo WHERE id IS NULL;";
-    auto result = pgparser.BuildParseTree(query);
-    const auto &sql_stmt = result.GetStatements()[0];
-    auto select_stmt = reinterpret_cast<SelectStatement *>(sql_stmt.get());
-    auto expr = select_stmt->GetSelectCondition().get();
+    auto result = pgparser_.BuildParseTree(query);
+    auto sql_stmt = result.GetStatements()[0];
+    auto select_stmt = reinterpret_cast<SelectStatement *>(sql_stmt.Get());
+    auto expr = select_stmt->GetSelectCondition().Get();
     EXPECT_EQ(expr->GetExpressionType(), ExpressionType::OPERATOR_IS_NULL);
     EXPECT_EQ(expr->GetReturnValueType(), type::TypeId::BOOLEAN);
   }
@@ -539,24 +539,24 @@ TEST_F(ParserTestBase, OperatorTest) {
   {
     // Coverage for NullNodeTransform
     std::string query = "SELECT * FROM foo WHERE 0 IS NULL;";
-    auto result = pgparser.BuildParseTree(query);
-    const auto &sql_stmt = result.GetStatements()[0];
-    auto select_stmt = reinterpret_cast<SelectStatement *>(sql_stmt.get());
+    auto result = pgparser_.BuildParseTree(query);
+    auto sql_stmt = result.GetStatements()[0];
+    auto select_stmt = reinterpret_cast<SelectStatement *>(sql_stmt.Get());
     auto expr = select_stmt->GetSelectCondition();
     EXPECT_EQ(expr->GetExpressionType(), ExpressionType::OPERATOR_IS_NULL);
     EXPECT_EQ(expr->GetReturnValueType(), type::TypeId::BOOLEAN);
     EXPECT_EQ(expr->GetChild(0)->GetExpressionType(), ExpressionType::VALUE_CONSTANT);
 
     query = "SELECT * FROM foo WHERE 0*1 IS NULL;";
-    result = pgparser.BuildParseTree(query);
-    select_stmt = reinterpret_cast<SelectStatement *>((result.GetStatements().at(0).get()));
+    result = pgparser_.BuildParseTree(query);
+    select_stmt = reinterpret_cast<SelectStatement *>((result.GetStatements().at(0).Get()));
     expr = select_stmt->GetSelectCondition();
     EXPECT_EQ(expr->GetExpressionType(), ExpressionType::OPERATOR_IS_NULL);
     EXPECT_EQ(expr->GetReturnValueType(), type::TypeId::BOOLEAN);
 
     query = "SELECT * FROM foo WHERE ? IS NULL;";
-    result = pgparser.BuildParseTree(query);
-    select_stmt = reinterpret_cast<SelectStatement *>((result.GetStatements().at(0).get()));
+    result = pgparser_.BuildParseTree(query);
+    select_stmt = reinterpret_cast<SelectStatement *>((result.GetStatements().at(0).Get()));
     expr = select_stmt->GetSelectCondition();
     EXPECT_EQ(expr->GetExpressionType(), ExpressionType::OPERATOR_IS_NULL);
     EXPECT_EQ(expr->GetReturnValueType(), type::TypeId::BOOLEAN);
@@ -565,10 +565,10 @@ TEST_F(ParserTestBase, OperatorTest) {
 
   {
     std::string query = "SELECT * FROM foo WHERE EXISTS (SELECT * from bar);";
-    auto result = pgparser.BuildParseTree(query);
-    const auto &sql_stmt = result.GetStatements()[0];
-    auto select_stmt = reinterpret_cast<SelectStatement *>(sql_stmt.get());
-    auto expr = select_stmt->GetSelectCondition().get();
+    auto result = pgparser_.BuildParseTree(query);
+    auto sql_stmt = result.GetStatements()[0];
+    auto select_stmt = reinterpret_cast<SelectStatement *>(sql_stmt.Get());
+    auto expr = select_stmt->GetSelectCondition().Get();
     EXPECT_EQ(expr->GetExpressionType(), ExpressionType::OPERATOR_EXISTS);
     EXPECT_EQ(expr->GetReturnValueType(), type::TypeId::BOOLEAN);
   }
@@ -578,60 +578,60 @@ TEST_F(ParserTestBase, OperatorTest) {
 TEST_F(ParserTestBase, CompareTest) {
   {
     std::string query = "SELECT * FROM foo WHERE id < 10;";
-    auto result = pgparser.BuildParseTree(query);
-    const auto &sql_stmt = result.GetStatements()[0];
-    auto select_stmt = reinterpret_cast<SelectStatement *>(sql_stmt.get());
-    auto expr = select_stmt->GetSelectCondition().get();
+    auto result = pgparser_.BuildParseTree(query);
+    auto sql_stmt = result.GetStatements()[0];
+    auto select_stmt = reinterpret_cast<SelectStatement *>(sql_stmt.Get());
+    auto expr = select_stmt->GetSelectCondition().Get();
     EXPECT_EQ(expr->GetExpressionType(), ExpressionType::COMPARE_LESS_THAN);
     EXPECT_EQ(expr->GetReturnValueType(), type::TypeId::BOOLEAN);
   }
 
   {
     std::string query = "SELECT * FROM foo WHERE id <= 10;";
-    auto result = pgparser.BuildParseTree(query);
-    const auto &sql_stmt = result.GetStatements()[0];
-    auto select_stmt = reinterpret_cast<SelectStatement *>(sql_stmt.get());
-    auto expr = select_stmt->GetSelectCondition().get();
+    auto result = pgparser_.BuildParseTree(query);
+    auto sql_stmt = result.GetStatements()[0];
+    auto select_stmt = reinterpret_cast<SelectStatement *>(sql_stmt.Get());
+    auto expr = select_stmt->GetSelectCondition().Get();
     EXPECT_EQ(expr->GetExpressionType(), ExpressionType::COMPARE_LESS_THAN_OR_EQUAL_TO);
     EXPECT_EQ(expr->GetReturnValueType(), type::TypeId::BOOLEAN);
   }
 
   {
     std::string query = "SELECT * FROM foo WHERE id >= 10;";
-    auto result = pgparser.BuildParseTree(query);
-    const auto &sql_stmt = result.GetStatements()[0];
-    auto select_stmt = reinterpret_cast<SelectStatement *>(sql_stmt.get());
-    auto expr = select_stmt->GetSelectCondition().get();
+    auto result = pgparser_.BuildParseTree(query);
+    auto sql_stmt = result.GetStatements()[0];
+    auto select_stmt = reinterpret_cast<SelectStatement *>(sql_stmt.Get());
+    auto expr = select_stmt->GetSelectCondition().Get();
     EXPECT_EQ(expr->GetExpressionType(), ExpressionType::COMPARE_GREATER_THAN_OR_EQUAL_TO);
     EXPECT_EQ(expr->GetReturnValueType(), type::TypeId::BOOLEAN);
   }
 
   {
     std::string query = "SELECT * FROM foo WHERE str ~~ '%test%';";
-    auto result = pgparser.BuildParseTree(query);
-    const auto &sql_stmt = result.GetStatements()[0];
-    auto select_stmt = reinterpret_cast<SelectStatement *>(sql_stmt.get());
-    auto expr = select_stmt->GetSelectCondition().get();
+    auto result = pgparser_.BuildParseTree(query);
+    auto sql_stmt = result.GetStatements()[0];
+    auto select_stmt = reinterpret_cast<SelectStatement *>(sql_stmt.Get());
+    auto expr = select_stmt->GetSelectCondition().Get();
     EXPECT_EQ(expr->GetExpressionType(), ExpressionType::COMPARE_LIKE);
     EXPECT_EQ(expr->GetReturnValueType(), type::TypeId::BOOLEAN);
   }
 
   {
     std::string query = "SELECT * FROM foo WHERE str !~~ '%test%';";
-    auto result = pgparser.BuildParseTree(query);
-    const auto &sql_stmt = result.GetStatements()[0];
-    auto select_stmt = reinterpret_cast<SelectStatement *>(sql_stmt.get());
-    auto expr = select_stmt->GetSelectCondition().get();
+    auto result = pgparser_.BuildParseTree(query);
+    auto sql_stmt = result.GetStatements()[0];
+    auto select_stmt = reinterpret_cast<SelectStatement *>(sql_stmt.Get());
+    auto expr = select_stmt->GetSelectCondition().Get();
     EXPECT_EQ(expr->GetExpressionType(), ExpressionType::COMPARE_NOT_LIKE);
     EXPECT_EQ(expr->GetReturnValueType(), type::TypeId::BOOLEAN);
   }
 
   {
     std::string query = "SELECT * FROM foo WHERE str IS DISTINCT FROM 'test';";
-    auto result = pgparser.BuildParseTree(query);
-    const auto &sql_stmt = result.GetStatements()[0];
-    auto select_stmt = reinterpret_cast<SelectStatement *>(sql_stmt.get());
-    auto expr = select_stmt->GetSelectCondition().get();
+    auto result = pgparser_.BuildParseTree(query);
+    auto sql_stmt = result.GetStatements()[0];
+    auto select_stmt = reinterpret_cast<SelectStatement *>(sql_stmt.Get());
+    auto expr = select_stmt->GetSelectCondition().Get();
     EXPECT_EQ(expr->GetExpressionType(), ExpressionType::COMPARE_IS_DISTINCT_FROM);
     EXPECT_EQ(expr->GetReturnValueType(), type::TypeId::BOOLEAN);
   }
@@ -647,12 +647,12 @@ TEST_F(ParserTestBase, CompareTest) {
 TEST_F(ParserTestBase, OldBasicTest) {
   std::string query = "SELECT * FROM foo;";
 
-  auto result = pgparser.BuildParseTree(query);
+  auto result = pgparser_.BuildParseTree(query);
   EXPECT_EQ(1, result.GetStatements().size());
   EXPECT_EQ(StatementType::SELECT, result.GetStatements()[0]->GetType());
 
   // cast result to derived class pointers
-  auto statement = reinterpret_cast<SelectStatement *>(result.GetStatements()[0].get());
+  auto statement = reinterpret_cast<SelectStatement *>(result.GetStatements()[0].Get());
   EXPECT_EQ("foo", statement->GetSelectTable()->GetTableName());
   EXPECT_EQ(ExpressionType::STAR, statement->GetSelectColumns()[0]->GetExpressionType());
 }
@@ -663,61 +663,61 @@ TEST_F(ParserTestBase, OldAggTest) {
 
   {
     query = "SELECT COUNT(*) FROM foo;";
-    auto result = pgparser.BuildParseTree(query);
+    auto result = pgparser_.BuildParseTree(query);
     EXPECT_EQ(1, result.GetStatements().size());
     EXPECT_EQ(StatementType::SELECT, result.GetStatements()[0]->GetType());
 
-    auto statement = reinterpret_cast<SelectStatement *>(result.GetStatements()[0].get());
+    auto statement = reinterpret_cast<SelectStatement *>(result.GetStatements()[0].Get());
     EXPECT_EQ("foo", statement->GetSelectTable()->GetTableName());
     EXPECT_EQ(ExpressionType::AGGREGATE_COUNT, statement->GetSelectColumns()[0]->GetExpressionType());
   }
 
   {
     query = "SELECT COUNT(DISTINCT id) FROM foo;";
-    auto result = pgparser.BuildParseTree(query);
+    auto result = pgparser_.BuildParseTree(query);
 
     EXPECT_EQ(1, result.GetStatements().size());
     EXPECT_EQ(StatementType::SELECT, result.GetStatements()[0]->GetType());
 
-    auto statement = reinterpret_cast<SelectStatement *>(result.GetStatements()[0].get());
+    auto statement = reinterpret_cast<SelectStatement *>(result.GetStatements()[0].Get());
     EXPECT_EQ("foo", statement->GetSelectTable()->GetTableName());
     EXPECT_EQ(ExpressionType::AGGREGATE_COUNT, statement->GetSelectColumns()[0]->GetExpressionType());
 
-    auto agg_expression = reinterpret_cast<AggregateExpression *>(statement->GetSelectColumns()[0].get());
+    auto agg_expression = reinterpret_cast<AggregateExpression *>(statement->GetSelectColumns()[0].Get());
     EXPECT_TRUE(agg_expression->IsDistinct());
-    auto child_expr = reinterpret_cast<ColumnValueExpression *>(statement->GetSelectColumns()[0]->GetChild(0).get());
+    auto child_expr = reinterpret_cast<ColumnValueExpression *>(statement->GetSelectColumns()[0]->GetChild(0).Get());
     EXPECT_EQ("id", child_expr->GetColumnName());
   }
 
   {
     query = "SELECT MAX(*) FROM foo;";
-    auto result = pgparser.BuildParseTree(query);
+    auto result = pgparser_.BuildParseTree(query);
     EXPECT_EQ(1, result.GetStatements().size());
     EXPECT_EQ(StatementType::SELECT, result.GetStatements()[0]->GetType());
 
-    auto statement = reinterpret_cast<SelectStatement *>(result.GetStatements()[0].get());
+    auto statement = reinterpret_cast<SelectStatement *>(result.GetStatements()[0].Get());
     EXPECT_EQ("foo", statement->GetSelectTable()->GetTableName());
     EXPECT_EQ(ExpressionType::AGGREGATE_MAX, statement->GetSelectColumns()[0]->GetExpressionType());
   }
 
   {
     query = "SELECT MIN(*) FROM foo;";
-    auto result = pgparser.BuildParseTree(query);
+    auto result = pgparser_.BuildParseTree(query);
     EXPECT_EQ(1, result.GetStatements().size());
     EXPECT_EQ(StatementType::SELECT, result.GetStatements()[0]->GetType());
 
-    auto statement = reinterpret_cast<SelectStatement *>(result.GetStatements()[0].get());
+    auto statement = reinterpret_cast<SelectStatement *>(result.GetStatements()[0].Get());
     EXPECT_EQ("foo", statement->GetSelectTable()->GetTableName());
     EXPECT_EQ(ExpressionType::AGGREGATE_MIN, statement->GetSelectColumns()[0]->GetExpressionType());
   }
 
   {
     query = "SELECT AVG(*) FROM foo;";
-    auto result = pgparser.BuildParseTree(query);
+    auto result = pgparser_.BuildParseTree(query);
     EXPECT_EQ(1, result.GetStatements().size());
     EXPECT_EQ(StatementType::SELECT, result.GetStatements()[0]->GetType());
 
-    auto statement = reinterpret_cast<SelectStatement *>(result.GetStatements()[0].get());
+    auto statement = reinterpret_cast<SelectStatement *>(result.GetStatements()[0].Get());
     EXPECT_EQ("foo", statement->GetSelectTable()->GetTableName());
     EXPECT_EQ(ExpressionType::AGGREGATE_AVG, statement->GetSelectColumns()[0]->GetExpressionType());
   }
@@ -727,22 +727,22 @@ TEST_F(ParserTestBase, OldAggTest) {
 TEST_F(ParserTestBase, OldGroupByTest) {
   // Select with group by clause
   std::string query = "SELECT * FROM foo GROUP BY id, name HAVING id > 10;";
-  auto result = pgparser.BuildParseTree(query);
+  auto result = pgparser_.BuildParseTree(query);
 
-  auto statement = reinterpret_cast<SelectStatement *>(result.GetStatements()[0].get());
+  auto statement = reinterpret_cast<SelectStatement *>(result.GetStatements()[0].Get());
   auto columns = statement->GetSelectGroupBy()->GetColumns();
 
   EXPECT_EQ(2, columns.size());
   // Assume the parsed column order is the same as in the query
-  EXPECT_EQ("id", reinterpret_cast<ColumnValueExpression *>(columns[0].get())->GetColumnName());
-  EXPECT_EQ("name", reinterpret_cast<ColumnValueExpression *>(columns[1].get())->GetColumnName());
+  EXPECT_EQ("id", reinterpret_cast<ColumnValueExpression *>(columns[0].Get())->GetColumnName());
+  EXPECT_EQ("name", reinterpret_cast<ColumnValueExpression *>(columns[1].Get())->GetColumnName());
 
   auto having = statement->GetSelectGroupBy()->GetHaving();
   EXPECT_EQ(ExpressionType::COMPARE_GREATER_THAN, having->GetExpressionType());
   EXPECT_EQ(2, having->GetChildrenSize());
 
-  auto name_exp = reinterpret_cast<ColumnValueExpression *>(having->GetChild(0).get());
-  auto value_exp = reinterpret_cast<ConstantValueExpression *>(having->GetChild(1).get());
+  auto name_exp = reinterpret_cast<ColumnValueExpression *>(having->GetChild(0).Get());
+  auto value_exp = reinterpret_cast<ConstantValueExpression *>(having->GetChild(1).Get());
 
   EXPECT_EQ("id", name_exp->GetColumnName());
   EXPECT_EQ(type::TypeId::INTEGER, value_exp->GetValue().Type());
@@ -753,10 +753,10 @@ TEST_F(ParserTestBase, OldGroupByTest) {
 TEST_F(ParserTestBase, OldOrderByTest) {
   {
     std::string query = "SELECT * FROM foo ORDER BY id;";
-    auto result = pgparser.BuildParseTree(query);
-    auto &sql_stmt = result.GetStatements()[0];
+    auto result = pgparser_.BuildParseTree(query);
+    auto sql_stmt = result.GetStatements()[0];
     EXPECT_EQ(sql_stmt->GetType(), StatementType::SELECT);
-    auto select_stmt = reinterpret_cast<SelectStatement *>(sql_stmt.get());
+    auto select_stmt = reinterpret_cast<SelectStatement *>(sql_stmt.Get());
 
     auto order_by = select_stmt->GetSelectOrderBy();
     EXPECT_NE(order_by, nullptr);
@@ -764,51 +764,51 @@ TEST_F(ParserTestBase, OldOrderByTest) {
     EXPECT_EQ(order_by->GetOrderByTypes().size(), 1);
     EXPECT_EQ(order_by->GetOrderByExpressions().size(), 1);
     EXPECT_EQ(order_by->GetOrderByTypes().at(0), OrderType::kOrderAsc);
-    auto expr = order_by->GetOrderByExpressions().at(0).get();
+    auto expr = order_by->GetOrderByExpressions().at(0).Get();
     EXPECT_EQ(expr->GetExpressionType(), ExpressionType::COLUMN_VALUE);
     EXPECT_EQ((reinterpret_cast<ColumnValueExpression *>(expr))->GetColumnName(), "id");
   }
 
   {
     std::string query = "SELECT * FROM foo ORDER BY id ASC;";
-    auto result = pgparser.BuildParseTree(query);
-    auto &sql_stmt = result.GetStatements()[0];
+    auto result = pgparser_.BuildParseTree(query);
+    auto sql_stmt = result.GetStatements()[0];
     EXPECT_EQ(sql_stmt->GetType(), StatementType::SELECT);
-    auto select_stmt = reinterpret_cast<SelectStatement *>(sql_stmt.get());
+    auto select_stmt = reinterpret_cast<SelectStatement *>(sql_stmt.Get());
     auto order_by = select_stmt->GetSelectOrderBy();
     EXPECT_NE(order_by, nullptr);
 
     EXPECT_EQ(order_by->GetOrderByTypes().size(), 1);
     EXPECT_EQ(order_by->GetOrderByExpressions().size(), 1);
     EXPECT_EQ(order_by->GetOrderByTypes().at(0), OrderType::kOrderAsc);
-    auto expr = order_by->GetOrderByExpressions().at(0).get();
+    auto expr = order_by->GetOrderByExpressions().at(0).Get();
     EXPECT_EQ(expr->GetExpressionType(), ExpressionType::COLUMN_VALUE);
     EXPECT_EQ((reinterpret_cast<ColumnValueExpression *>(expr))->GetColumnName(), "id");
   }
 
   {
     std::string query = "SELECT * FROM foo ORDER BY id DESC;";
-    auto result = pgparser.BuildParseTree(query);
-    auto &sql_stmt = result.GetStatements()[0];
+    auto result = pgparser_.BuildParseTree(query);
+    auto sql_stmt = result.GetStatements()[0];
     EXPECT_EQ(sql_stmt->GetType(), StatementType::SELECT);
-    auto select_stmt = reinterpret_cast<SelectStatement *>(sql_stmt.get());
+    auto select_stmt = reinterpret_cast<SelectStatement *>(sql_stmt.Get());
     auto order_by = select_stmt->GetSelectOrderBy();
     EXPECT_NE(order_by, nullptr);
 
     EXPECT_EQ(order_by->GetOrderByTypes().size(), 1);
     EXPECT_EQ(order_by->GetOrderByExpressions().size(), 1);
     EXPECT_EQ(order_by->GetOrderByTypes().at(0), OrderType::kOrderDesc);
-    auto expr = order_by->GetOrderByExpressions().at(0).get();
+    auto expr = order_by->GetOrderByExpressions().at(0).Get();
     EXPECT_EQ(expr->GetExpressionType(), ExpressionType::COLUMN_VALUE);
     EXPECT_EQ((reinterpret_cast<ColumnValueExpression *>(expr))->GetColumnName(), "id");
   }
 
   {
     std::string query = "SELECT * FROM foo ORDER BY id, name;";
-    auto result = pgparser.BuildParseTree(query);
-    auto &sql_stmt = result.GetStatements()[0];
+    auto result = pgparser_.BuildParseTree(query);
+    auto sql_stmt = result.GetStatements()[0];
     EXPECT_EQ(sql_stmt->GetType(), StatementType::SELECT);
-    auto select_stmt = reinterpret_cast<SelectStatement *>(sql_stmt.get());
+    auto select_stmt = reinterpret_cast<SelectStatement *>(sql_stmt.Get());
     auto order_by = select_stmt->GetSelectOrderBy();
     EXPECT_NE(order_by, nullptr);
 
@@ -816,20 +816,20 @@ TEST_F(ParserTestBase, OldOrderByTest) {
     EXPECT_EQ(order_by->GetOrderByExpressions().size(), 2);
     EXPECT_EQ(order_by->GetOrderByTypes().at(0), OrderType::kOrderAsc);
     EXPECT_EQ(order_by->GetOrderByTypes().at(1), OrderType::kOrderAsc);
-    auto expr = order_by->GetOrderByExpressions().at(0).get();
+    auto expr = order_by->GetOrderByExpressions().at(0).Get();
     EXPECT_EQ(expr->GetExpressionType(), ExpressionType::COLUMN_VALUE);
     EXPECT_EQ((reinterpret_cast<ColumnValueExpression *>(expr))->GetColumnName(), "id");
-    expr = order_by->GetOrderByExpressions().at(1).get();
+    expr = order_by->GetOrderByExpressions().at(1).Get();
     EXPECT_EQ(expr->GetExpressionType(), ExpressionType::COLUMN_VALUE);
     EXPECT_EQ((reinterpret_cast<ColumnValueExpression *>(expr))->GetColumnName(), "name");
   }
 
   {
     std::string query = "SELECT * FROM foo ORDER BY id, name DESC;";
-    auto result = pgparser.BuildParseTree(query);
-    auto &sql_stmt = result.GetStatements()[0];
+    auto result = pgparser_.BuildParseTree(query);
+    auto sql_stmt = result.GetStatements()[0];
     EXPECT_EQ(sql_stmt->GetType(), StatementType::SELECT);
-    auto select_stmt = reinterpret_cast<SelectStatement *>(sql_stmt.get());
+    auto select_stmt = reinterpret_cast<SelectStatement *>(sql_stmt.Get());
     auto order_by = select_stmt->GetSelectOrderBy();
     EXPECT_NE(order_by, nullptr);
 
@@ -837,10 +837,10 @@ TEST_F(ParserTestBase, OldOrderByTest) {
     EXPECT_EQ(order_by->GetOrderByExpressions().size(), 2);
     EXPECT_EQ(order_by->GetOrderByTypes().at(0), OrderType::kOrderAsc);
     EXPECT_EQ(order_by->GetOrderByTypes().at(1), OrderType::kOrderDesc);
-    auto expr = order_by->GetOrderByExpressions().at(0).get();
+    auto expr = order_by->GetOrderByExpressions().at(0).Get();
     EXPECT_EQ(expr->GetExpressionType(), ExpressionType::COLUMN_VALUE);
     EXPECT_EQ((reinterpret_cast<ColumnValueExpression *>(expr))->GetColumnName(), "id");
-    expr = order_by->GetOrderByExpressions().at(1).get();
+    expr = order_by->GetOrderByExpressions().at(1).Get();
     EXPECT_EQ(expr->GetExpressionType(), ExpressionType::COLUMN_VALUE);
     EXPECT_EQ((reinterpret_cast<ColumnValueExpression *>(expr))->GetColumnName(), "name");
   }
@@ -851,8 +851,8 @@ TEST_F(ParserTestBase, OldConstTest) {
   // Select constants
   std::string query = "SELECT 'str', 1, 3.14 FROM foo;";
 
-  auto result = pgparser.BuildParseTree(query);
-  auto statement = reinterpret_cast<SelectStatement *>(result.GetStatements()[0].get());
+  auto result = pgparser_.BuildParseTree(query);
+  auto statement = reinterpret_cast<SelectStatement *>(result.GetStatements()[0].Get());
   auto select_columns = statement->GetSelectColumns();
   EXPECT_EQ(3, select_columns.size());
 
@@ -863,7 +863,7 @@ TEST_F(ParserTestBase, OldConstTest) {
     auto correct_type = types[i];
 
     EXPECT_EQ(ExpressionType::VALUE_CONSTANT, column->GetExpressionType());
-    auto const_expression = reinterpret_cast<ConstantValueExpression *>(column.get());
+    auto const_expression = reinterpret_cast<ConstantValueExpression *>(column.Get());
     EXPECT_EQ(correct_type, const_expression->GetValue().Type());
   }
 }
@@ -874,66 +874,66 @@ TEST_F(ParserTestBase, OldJoinTest) {
 
   {
     query = "SELECT * FROM foo JOIN bar ON foo.id=bar.id JOIN baz ON foo.id2=baz.id2;";
-    auto result = pgparser.BuildParseTree(query);
-    auto select_stmt = reinterpret_cast<SelectStatement *>(result.GetStatements()[0].get());
-    auto join_table = select_stmt->GetSelectTable().get();
+    auto result = pgparser_.BuildParseTree(query);
+    auto select_stmt = reinterpret_cast<SelectStatement *>(result.GetStatements()[0].Get());
+    auto join_table = select_stmt->GetSelectTable().Get();
     EXPECT_EQ(join_table->GetTableReferenceType(), TableReferenceType::JOIN);
     EXPECT_EQ(join_table->GetJoin()->GetJoinType(), JoinType::INNER);
 
-    auto join_cond = join_table->GetJoin()->GetJoinCondition().get();
+    auto join_cond = join_table->GetJoin()->GetJoinCondition().Get();
     EXPECT_EQ(join_cond->GetExpressionType(), ExpressionType::COMPARE_EQUAL);
     EXPECT_EQ(join_cond->GetChild(0)->GetExpressionType(), ExpressionType::COLUMN_VALUE);
-    auto jcl = reinterpret_cast<ColumnValueExpression *>(join_cond->GetChild(0).get());
+    auto jcl = reinterpret_cast<ColumnValueExpression *>(join_cond->GetChild(0).Get());
     EXPECT_EQ(jcl->GetTableName(), "foo");
     EXPECT_EQ(jcl->GetColumnName(), "id2");
-    auto jcr = reinterpret_cast<ColumnValueExpression *>(join_cond->GetChild(1).get());
+    auto jcr = reinterpret_cast<ColumnValueExpression *>(join_cond->GetChild(1).Get());
     EXPECT_EQ(jcr->GetTableName(), "baz");
     EXPECT_EQ(jcr->GetColumnName(), "id2");
 
-    auto l_join = join_table->GetJoin()->GetLeftTable().get();
+    auto l_join = join_table->GetJoin()->GetLeftTable().Get();
     EXPECT_EQ(l_join->GetTableReferenceType(), TableReferenceType::JOIN);
-    auto ll_join = l_join->GetJoin()->GetLeftTable().get();
+    auto ll_join = l_join->GetJoin()->GetLeftTable().Get();
     EXPECT_EQ(ll_join->GetTableName(), "foo");
-    auto lr_join = l_join->GetJoin()->GetRightTable().get();
+    auto lr_join = l_join->GetJoin()->GetRightTable().Get();
     EXPECT_EQ(lr_join->GetTableName(), "bar");
 
-    auto r_table = join_table->GetJoin()->GetRightTable().get();
+    auto r_table = join_table->GetJoin()->GetRightTable().Get();
     EXPECT_EQ(r_table->GetTableReferenceType(), TableReferenceType::NAME);
     EXPECT_EQ(r_table->GetTableName(), "baz");
   }
 
   {
     query = "SELECT * FROM foo INNER JOIN bar ON foo.id=bar.id AND foo.val > bar.val;";
-    auto result = pgparser.BuildParseTree(query);
-    auto select_stmt = reinterpret_cast<SelectStatement *>(result.GetStatements()[0].get());
-    auto join_table = select_stmt->GetSelectTable().get();
+    auto result = pgparser_.BuildParseTree(query);
+    auto select_stmt = reinterpret_cast<SelectStatement *>(result.GetStatements()[0].Get());
+    auto join_table = select_stmt->GetSelectTable().Get();
     EXPECT_EQ(join_table->GetTableReferenceType(), TableReferenceType::JOIN);
     EXPECT_EQ(join_table->GetJoin()->GetJoinType(), JoinType::INNER);
   }
 
   {
     query = "SELECT * FROM foo LEFT JOIN bar ON foo.id=bar.id AND foo.val > bar.val;";
-    auto result = pgparser.BuildParseTree(query);
-    auto select_stmt = reinterpret_cast<SelectStatement *>(result.GetStatements()[0].get());
-    auto join_table = select_stmt->GetSelectTable().get();
+    auto result = pgparser_.BuildParseTree(query);
+    auto select_stmt = reinterpret_cast<SelectStatement *>(result.GetStatements()[0].Get());
+    auto join_table = select_stmt->GetSelectTable().Get();
     EXPECT_EQ(join_table->GetTableReferenceType(), TableReferenceType::JOIN);
     EXPECT_EQ(join_table->GetJoin()->GetJoinType(), JoinType::LEFT);
   }
 
   {
     query = "SELECT * FROM foo RIGHT JOIN bar ON foo.id=bar.id AND foo.val > bar.val;";
-    auto result = pgparser.BuildParseTree(query);
-    auto select_stmt = reinterpret_cast<SelectStatement *>(result.GetStatements()[0].get());
-    auto join_table = select_stmt->GetSelectTable().get();
+    auto result = pgparser_.BuildParseTree(query);
+    auto select_stmt = reinterpret_cast<SelectStatement *>(result.GetStatements()[0].Get());
+    auto join_table = select_stmt->GetSelectTable().Get();
     EXPECT_EQ(join_table->GetTableReferenceType(), TableReferenceType::JOIN);
     EXPECT_EQ(join_table->GetJoin()->GetJoinType(), JoinType::RIGHT);
   }
 
   {
     query = "SELECT * FROM foo FULL OUTER JOIN bar ON foo.id=bar.id AND foo.val > bar.val;";
-    auto result = pgparser.BuildParseTree(query);
-    auto select_stmt = reinterpret_cast<SelectStatement *>(result.GetStatements()[0].get());
-    auto join_table = select_stmt->GetSelectTable().get();
+    auto result = pgparser_.BuildParseTree(query);
+    auto select_stmt = reinterpret_cast<SelectStatement *>(result.GetStatements()[0].Get());
+    auto join_table = select_stmt->GetSelectTable().Get();
     EXPECT_EQ(join_table->GetTableReferenceType(), TableReferenceType::JOIN);
     EXPECT_EQ(join_table->GetJoin()->GetJoinType(), JoinType::OUTER);
   }
@@ -941,7 +941,7 @@ TEST_F(ParserTestBase, OldJoinTest) {
   {
     // test case from SQLite
     query = "SELECT * FROM tab0 AS cor0 CROSS JOIN tab0 AS cor1 WHERE NULL IS NOT NULL;";
-    EXPECT_THROW(pgparser.BuildParseTree(query), ParserException);
+    EXPECT_THROW(pgparser_.BuildParseTree(query), ParserException);
   }
 }
 
@@ -949,10 +949,10 @@ TEST_F(ParserTestBase, OldJoinTest) {
 TEST_F(ParserTestBase, OldNestedQueryTest) {
   // Select with nested query
   std::string query = "SELECT * FROM (SELECT * FROM foo) as t;";
-  auto result = pgparser.BuildParseTree(query);
+  auto result = pgparser_.BuildParseTree(query);
 
   EXPECT_EQ(1, result.GetStatements().size());
-  auto statement = reinterpret_cast<SelectStatement *>(result.GetStatements()[0].get());
+  auto statement = reinterpret_cast<SelectStatement *>(result.GetStatements()[0].Get());
 
   EXPECT_EQ("t", statement->GetSelectTable()->GetAlias());
   auto nested_statement = statement->GetSelectTable()->GetSelect();
@@ -964,11 +964,11 @@ TEST_F(ParserTestBase, OldNestedQueryTest) {
 TEST_F(ParserTestBase, OldMultiTableTest) {
   // Select from multiple tables
   std::string query = "SELECT foo.name as name_new FROM (SELECT * FROM bar) as b, foo, bar WHERE foo.id = b.id;";
-  auto result = pgparser.BuildParseTree(query);
+  auto result = pgparser_.BuildParseTree(query);
   EXPECT_EQ(1, result.GetStatements().size());
-  auto statement = reinterpret_cast<SelectStatement *>(result.GetStatements()[0].get());
+  auto statement = reinterpret_cast<SelectStatement *>(result.GetStatements()[0].Get());
 
-  auto select_expression = reinterpret_cast<ColumnValueExpression *>(statement->GetSelectColumns()[0].get());
+  auto select_expression = reinterpret_cast<ColumnValueExpression *>(statement->GetSelectColumns()[0].Get());
   EXPECT_EQ("foo", select_expression->GetTableName());
   EXPECT_EQ("name", select_expression->GetColumnName());
   EXPECT_EQ("name_new", select_expression->GetAlias());
@@ -988,8 +988,8 @@ TEST_F(ParserTestBase, OldMultiTableTest) {
   EXPECT_EQ(ExpressionType::COMPARE_EQUAL, where_expression->GetExpressionType());
   EXPECT_EQ(2, where_expression->GetChildrenSize());
 
-  auto child_0 = reinterpret_cast<ColumnValueExpression *>(where_expression->GetChild(0).get());
-  auto child_1 = reinterpret_cast<ColumnValueExpression *>(where_expression->GetChild(1).get());
+  auto child_0 = reinterpret_cast<ColumnValueExpression *>(where_expression->GetChild(0).Get());
+  auto child_1 = reinterpret_cast<ColumnValueExpression *>(where_expression->GetChild(1).Get());
   EXPECT_EQ("foo", child_0->GetTableName());
   EXPECT_EQ("id", child_0->GetColumnName());
   EXPECT_EQ("b", child_1->GetTableName());
@@ -1004,16 +1004,16 @@ TEST_F(ParserTestBase, OldColumnUpdateTest) {
   queries.emplace_back("UPDATE CUSTOMER SET C_BALANCE = C_BALANCE, C_DELIVERY_CNT = C_DELIVERY_CNT WHERE C_W_ID = 2");
 
   for (const auto &query : queries) {
-    auto result = pgparser.BuildParseTree(query);
+    auto result = pgparser_.BuildParseTree(query);
 
     EXPECT_EQ(result.GetStatements().size(), 1);
-    auto &sql_stmt = result.GetStatements()[0];
+    auto sql_stmt = result.GetStatements()[0];
 
     EXPECT_EQ(sql_stmt->GetType(), StatementType::UPDATE);
-    auto update_stmt = reinterpret_cast<UpdateStatement *>(sql_stmt.get());
-    auto table = update_stmt->GetUpdateTable().get();
+    auto update_stmt = reinterpret_cast<UpdateStatement *>(sql_stmt.Get());
+    auto table = update_stmt->GetUpdateTable().Get();
     const auto &updates = update_stmt->GetUpdateClauses();
-    auto where_clause = update_stmt->GetUpdateCondition().get();
+    auto where_clause = update_stmt->GetUpdateCondition().Get();
 
     EXPECT_NE(table, nullptr);
     EXPECT_EQ(table->GetTableName(), "customer");
@@ -1021,12 +1021,12 @@ TEST_F(ParserTestBase, OldColumnUpdateTest) {
     EXPECT_EQ(updates.size(), 2);
     EXPECT_EQ(updates[0]->GetColumnName(), "c_balance");
     EXPECT_EQ(updates[0]->GetUpdateValue()->GetExpressionType(), ExpressionType::COLUMN_VALUE);
-    auto column_value_0 = reinterpret_cast<ColumnValueExpression *>(updates[0]->GetUpdateValue().get());
+    auto column_value_0 = reinterpret_cast<ColumnValueExpression *>(updates[0]->GetUpdateValue().Get());
     EXPECT_EQ(column_value_0->GetColumnName(), "c_balance");
 
     EXPECT_EQ(updates[1]->GetColumnName(), "c_delivery_cnt");
     EXPECT_EQ(updates[1]->GetUpdateValue()->GetExpressionType(), ExpressionType::COLUMN_VALUE);
-    auto column_value_1 = reinterpret_cast<ColumnValueExpression *>(updates[1]->GetUpdateValue().get());
+    auto column_value_1 = reinterpret_cast<ColumnValueExpression *>(updates[1]->GetUpdateValue().Get());
     EXPECT_EQ(column_value_1->GetColumnName(), "c_delivery_cnt");
 
     EXPECT_NE(where_clause, nullptr);
@@ -1034,11 +1034,11 @@ TEST_F(ParserTestBase, OldColumnUpdateTest) {
     auto left_child = where_clause->GetChild(0);
     auto right_child = where_clause->GetChild(1);
     EXPECT_EQ(left_child->GetExpressionType(), ExpressionType::COLUMN_VALUE);
-    auto left_tuple = reinterpret_cast<ColumnValueExpression *>(left_child.get());
+    auto left_tuple = reinterpret_cast<ColumnValueExpression *>(left_child.Get());
     EXPECT_EQ(left_tuple->GetColumnName(), "c_w_id");
 
     EXPECT_EQ(right_child->GetExpressionType(), ExpressionType::VALUE_CONSTANT);
-    auto right_const = reinterpret_cast<ConstantValueExpression *>(right_child.get());
+    auto right_const = reinterpret_cast<ConstantValueExpression *>(right_child.Get());
     EXPECT_EQ(right_const->GetValue().Type(), type::TypeId::INTEGER);
     EXPECT_EQ(type::TransientValuePeeker::PeekInteger(right_const->GetValue()), 2);
   }
@@ -1047,45 +1047,45 @@ TEST_F(ParserTestBase, OldColumnUpdateTest) {
 // NOLINTNEXTLINE
 TEST_F(ParserTestBase, OldExpressionUpdateTest) {
   std::string query = "UPDATE STOCK SET S_QUANTITY = 48.0 , S_YTD = S_YTD + 1 WHERE S_I_ID = 68999 AND S_W_ID = 4";
-  auto result = pgparser.BuildParseTree(query);
-  auto update_stmt = reinterpret_cast<UpdateStatement *>(result.GetStatements()[0].get());
+  auto result = pgparser_.BuildParseTree(query);
+  auto update_stmt = reinterpret_cast<UpdateStatement *>(result.GetStatements()[0].Get());
   EXPECT_EQ(update_stmt->GetUpdateTable()->GetTableName(), "stock");
 
   // Test First Set Condition
   auto &upd0 = update_stmt->GetUpdateClauses().at(0);
   EXPECT_EQ(upd0->GetColumnName(), "s_quantity");
-  auto constant = reinterpret_cast<ConstantValueExpression *>(upd0->GetUpdateValue().get());
+  auto constant = reinterpret_cast<ConstantValueExpression *>(upd0->GetUpdateValue().Get());
   EXPECT_EQ(constant->GetValue().Type(), type::TypeId::DECIMAL);
   ASSERT_DOUBLE_EQ(type::TransientValuePeeker::PeekDecimal(constant->GetValue()), 48.0);
 
   // Test Second Set Condition
   auto &upd1 = update_stmt->GetUpdateClauses().at(1);
   EXPECT_EQ(upd1->GetColumnName(), "s_ytd");
-  auto op_expr = reinterpret_cast<OperatorExpression *>(upd1->GetUpdateValue().get());
+  auto op_expr = reinterpret_cast<OperatorExpression *>(upd1->GetUpdateValue().Get());
   EXPECT_EQ(op_expr->GetExpressionType(), ExpressionType::OPERATOR_PLUS);
-  auto child1 = reinterpret_cast<ColumnValueExpression *>(op_expr->GetChild(0).get());
+  auto child1 = reinterpret_cast<ColumnValueExpression *>(op_expr->GetChild(0).Get());
   EXPECT_EQ(child1->GetColumnName(), "s_ytd");
-  auto child2 = reinterpret_cast<ConstantValueExpression *>(op_expr->GetChild(1).get());
+  auto child2 = reinterpret_cast<ConstantValueExpression *>(op_expr->GetChild(1).Get());
   EXPECT_EQ(child2->GetValue().Type(), type::TypeId::INTEGER);
   EXPECT_EQ(type::TransientValuePeeker::PeekInteger(child2->GetValue()), 1);
 
   // Test Where clause
-  auto where = reinterpret_cast<OperatorExpression *>(update_stmt->GetUpdateCondition().get());
+  auto where = reinterpret_cast<OperatorExpression *>(update_stmt->GetUpdateCondition().Get());
   EXPECT_EQ(where->GetExpressionType(), ExpressionType::CONJUNCTION_AND);
 
-  auto cond1 = reinterpret_cast<OperatorExpression *>(where->GetChild(0).get());
+  auto cond1 = reinterpret_cast<OperatorExpression *>(where->GetChild(0).Get());
   EXPECT_EQ(cond1->GetExpressionType(), ExpressionType::COMPARE_EQUAL);
-  auto column = reinterpret_cast<ColumnValueExpression *>(cond1->GetChild(0).get());
+  auto column = reinterpret_cast<ColumnValueExpression *>(cond1->GetChild(0).Get());
   EXPECT_EQ(column->GetColumnName(), "s_i_id");
-  constant = reinterpret_cast<ConstantValueExpression *>(cond1->GetChild(1).get());
+  constant = reinterpret_cast<ConstantValueExpression *>(cond1->GetChild(1).Get());
   EXPECT_EQ(constant->GetValue().Type(), type::TypeId::INTEGER);
   EXPECT_EQ(type::TransientValuePeeker::PeekInteger(constant->GetValue()), 68999);
 
-  auto cond2 = reinterpret_cast<OperatorExpression *>(where->GetChild(1).get());
+  auto cond2 = reinterpret_cast<OperatorExpression *>(where->GetChild(1).Get());
   EXPECT_EQ(cond2->GetExpressionType(), ExpressionType::COMPARE_EQUAL);
-  column = reinterpret_cast<ColumnValueExpression *>(cond2->GetChild(0).get());
+  column = reinterpret_cast<ColumnValueExpression *>(cond2->GetChild(0).Get());
   EXPECT_EQ(column->GetColumnName(), "s_w_id");
-  constant = reinterpret_cast<ConstantValueExpression *>(cond2->GetChild(1).get());
+  constant = reinterpret_cast<ConstantValueExpression *>(cond2->GetChild(1).Get());
   EXPECT_EQ(constant->GetValue().Type(), type::TypeId::INTEGER);
   EXPECT_EQ(type::TransientValuePeeker::PeekInteger(constant->GetValue()), 4);
 }
@@ -1096,19 +1096,19 @@ TEST_F(ParserTestBase, OldStringUpdateTest) {
   std::string query =
       "UPDATE ORDER_LINE SET OL_DELIVERY_D = '2016-11-15 15:07:37' WHERE OL_O_ID = 2101 AND OL_D_ID = 2";
 
-  auto result = pgparser.BuildParseTree(query);
-  auto &sql_stmt = result.GetStatements()[0];
+  auto result = pgparser_.BuildParseTree(query);
+  auto sql_stmt = result.GetStatements()[0];
 
   // Check root type
   EXPECT_EQ(sql_stmt->GetType(), StatementType::UPDATE);
-  auto update = reinterpret_cast<UpdateStatement *>(sql_stmt.get());
+  auto update = reinterpret_cast<UpdateStatement *>(sql_stmt.Get());
 
   // Check table name
   auto table_ref = update->GetUpdateTable();
   EXPECT_EQ(table_ref->GetTableName(), "order_line");
 
   // Check where expression
-  auto where = update->GetUpdateCondition().get();
+  auto where = update->GetUpdateCondition().Get();
   EXPECT_EQ(where->GetExpressionType(), ExpressionType::CONJUNCTION_AND);
   EXPECT_EQ(where->GetChildrenSize(), 2);
 
@@ -1123,20 +1123,20 @@ TEST_F(ParserTestBase, OldStringUpdateTest) {
   auto child10 = child1->GetChild(0);
   EXPECT_EQ(child00->GetExpressionType(), ExpressionType::COLUMN_VALUE);
   EXPECT_EQ(child10->GetExpressionType(), ExpressionType::COLUMN_VALUE);
-  EXPECT_EQ(reinterpret_cast<ColumnValueExpression *>(child00.get())->GetColumnName(), "ol_o_id");
-  EXPECT_EQ(reinterpret_cast<ColumnValueExpression *>(child10.get())->GetColumnName(), "ol_d_id");
+  EXPECT_EQ(reinterpret_cast<ColumnValueExpression *>(child00.Get())->GetColumnName(), "ol_o_id");
+  EXPECT_EQ(reinterpret_cast<ColumnValueExpression *>(child10.Get())->GetColumnName(), "ol_d_id");
 
   auto child01 = child0->GetChild(1);
   auto child11 = child1->GetChild(1);
   EXPECT_EQ(child01->GetExpressionType(), ExpressionType::VALUE_CONSTANT);
   EXPECT_EQ(child11->GetExpressionType(), ExpressionType::VALUE_CONSTANT);
-  EXPECT_EQ(reinterpret_cast<ConstantValueExpression *>(child01.get())->GetValue().Type(), type::TypeId::INTEGER);
+  EXPECT_EQ(reinterpret_cast<ConstantValueExpression *>(child01.Get())->GetValue().Type(), type::TypeId::INTEGER);
   EXPECT_EQ(
-      type::TransientValuePeeker::PeekInteger(reinterpret_cast<ConstantValueExpression *>(child01.get())->GetValue()),
+      type::TransientValuePeeker::PeekInteger(reinterpret_cast<ConstantValueExpression *>(child01.Get())->GetValue()),
       2101);
-  EXPECT_EQ(reinterpret_cast<ConstantValueExpression *>(child11.get())->GetValue().Type(), type::TypeId::INTEGER);
+  EXPECT_EQ(reinterpret_cast<ConstantValueExpression *>(child11.Get())->GetValue().Type(), type::TypeId::INTEGER);
   EXPECT_EQ(
-      type::TransientValuePeeker::PeekInteger(reinterpret_cast<ConstantValueExpression *>(child11.get())->GetValue()),
+      type::TransientValuePeeker::PeekInteger(reinterpret_cast<ConstantValueExpression *>(child11.Get())->GetValue()),
       2);
 
   // Check update clause
@@ -1144,7 +1144,7 @@ TEST_F(ParserTestBase, OldStringUpdateTest) {
   EXPECT_EQ(update_clause->GetColumnName(), "ol_delivery_d");
   auto value = update_clause->GetUpdateValue();
   EXPECT_EQ(value->GetExpressionType(), ExpressionType::VALUE_CONSTANT);
-  auto value_expr = reinterpret_cast<ConstantValueExpression *>(value.get());
+  auto value_expr = reinterpret_cast<ConstantValueExpression *>(value.Get());
   type::TransientValue tmp_value = value_expr->GetValue();
   auto string_view = type::TransientValuePeeker::PeekVarChar(tmp_value);
   EXPECT_EQ("2016-11-15 15:07:37", string_view);
@@ -1155,11 +1155,11 @@ TEST_F(ParserTestBase, OldStringUpdateTest) {
 TEST_F(ParserTestBase, OldDeleteTest) {
   // Simple delete
   std::string query = "DELETE FROM foo;";
-  auto result = pgparser.BuildParseTree(query);
+  auto result = pgparser_.BuildParseTree(query);
 
   EXPECT_EQ(result.GetStatements().size(), 1);
   EXPECT_EQ(result.GetStatements()[0]->GetType(), StatementType::DELETE);
-  auto delstmt = reinterpret_cast<DeleteStatement *>(result.GetStatements()[0].get());
+  auto delstmt = reinterpret_cast<DeleteStatement *>(result.GetStatements()[0].Get());
   EXPECT_EQ(delstmt->GetDeletionTable()->GetTableName(), "foo");
   EXPECT_EQ(delstmt->GetDeleteCondition(), nullptr);
 }
@@ -1168,11 +1168,11 @@ TEST_F(ParserTestBase, OldDeleteTest) {
 TEST_F(ParserTestBase, OldDeleteTestWithPredicate) {
   // Delete with a predicate
   std::string query = "DELETE FROM foo WHERE id=3;";
-  auto result = pgparser.BuildParseTree(query);
+  auto result = pgparser_.BuildParseTree(query);
 
   EXPECT_EQ(result.GetStatements().size(), 1);
   EXPECT_EQ(result.GetStatements()[0]->GetType(), StatementType::DELETE);
-  auto delstmt = reinterpret_cast<DeleteStatement *>(result.GetStatements()[0].get());
+  auto delstmt = reinterpret_cast<DeleteStatement *>(result.GetStatements()[0].Get());
   EXPECT_EQ(delstmt->GetDeletionTable()->GetTableName(), "foo");
   EXPECT_NE(delstmt->GetDeleteCondition(), nullptr);
 }
@@ -1181,21 +1181,21 @@ TEST_F(ParserTestBase, OldDeleteTestWithPredicate) {
 TEST_F(ParserTestBase, OldInsertTest) {
   // Insert multiple tuples into the table
   std::string query = "INSERT INTO foo VALUES (NULL, 2, 3), (4, 5, 6);";
-  auto result = pgparser.BuildParseTree(query);
+  auto result = pgparser_.BuildParseTree(query);
 
   EXPECT_EQ(1, result.GetStatements().size());
   EXPECT_TRUE(result.GetStatements()[0]->GetType() == StatementType::INSERT);
-  auto insert_stmt = reinterpret_cast<InsertStatement *>(result.GetStatements()[0].get());
+  auto insert_stmt = reinterpret_cast<InsertStatement *>(result.GetStatements()[0].Get());
   EXPECT_EQ("foo", insert_stmt->GetInsertionTable()->GetTableName());
   // 2 tuples
   EXPECT_EQ(2, insert_stmt->GetValues()->size());
 
   // First item of first tuple is NULL
-  auto constant = reinterpret_cast<ConstantValueExpression *>(insert_stmt->GetValues()->at(0).at(0).get());
+  auto constant = reinterpret_cast<ConstantValueExpression *>(insert_stmt->GetValues()->at(0).at(0).Get());
   EXPECT_TRUE(constant->GetValue().Null());
 
   // Second item of second tuple == 5
-  constant = reinterpret_cast<ConstantValueExpression *>(insert_stmt->GetValues()->at(1).at(1).get());
+  constant = reinterpret_cast<ConstantValueExpression *>(insert_stmt->GetValues()->at(1).at(1).Get());
   EXPECT_EQ(constant->GetValue().Type(), type::TypeId::INTEGER);
   EXPECT_EQ(type::TransientValuePeeker::PeekInteger(constant->GetValue()), 5);
 }
@@ -1211,8 +1211,8 @@ TEST_F(ParserTestBase, OldCreateTest) {
       "PRIMARY KEY (id),"
       "FOREIGN KEY (c_id) REFERENCES country (cid));";
 
-  auto result = pgparser.BuildParseTree(query);
-  auto create_stmt = reinterpret_cast<CreateStatement *>(result.GetStatements()[0].get());
+  auto result = pgparser_.BuildParseTree(query);
+  auto create_stmt = reinterpret_cast<CreateStatement *>(result.GetStatements()[0].Get());
 
   // Check column definition
   EXPECT_EQ(create_stmt->GetColumns().size(), 4);
@@ -1243,31 +1243,31 @@ TEST_F(ParserTestBase, OldCreateTest) {
 // NOLINTNEXTLINE
 TEST_F(ParserTestBase, OldTransactionTest) {
   std::string query = "BEGIN TRANSACTION;";
-  auto result = pgparser.BuildParseTree(query);
-  auto transac_stmt = reinterpret_cast<TransactionStatement *>(result.GetStatements()[0].get());
+  auto result = pgparser_.BuildParseTree(query);
+  auto transac_stmt = reinterpret_cast<TransactionStatement *>(result.GetStatements()[0].Get());
   EXPECT_EQ(transac_stmt->GetTransactionType(), TransactionStatement::kBegin);
 
   query = "BEGIN;";
-  result = pgparser.BuildParseTree(query);
-  transac_stmt = reinterpret_cast<TransactionStatement *>(result.GetStatements()[0].get());
+  result = pgparser_.BuildParseTree(query);
+  transac_stmt = reinterpret_cast<TransactionStatement *>(result.GetStatements()[0].Get());
   EXPECT_EQ(transac_stmt->GetTransactionType(), TransactionStatement::kBegin);
 
   query = "COMMIT TRANSACTION;";
-  result = pgparser.BuildParseTree(query);
-  transac_stmt = reinterpret_cast<TransactionStatement *>(result.GetStatements()[0].get());
+  result = pgparser_.BuildParseTree(query);
+  transac_stmt = reinterpret_cast<TransactionStatement *>(result.GetStatements()[0].Get());
   EXPECT_EQ(transac_stmt->GetTransactionType(), TransactionStatement::kCommit);
 
   query = "ROLLBACK;";
-  result = pgparser.BuildParseTree(query);
-  transac_stmt = reinterpret_cast<TransactionStatement *>(result.GetStatements()[0].get());
+  result = pgparser_.BuildParseTree(query);
+  transac_stmt = reinterpret_cast<TransactionStatement *>(result.GetStatements()[0].Get());
   EXPECT_EQ(transac_stmt->GetTransactionType(), TransactionStatement::kRollback);
 }
 
 // NOLINTNEXTLINE
 TEST_F(ParserTestBase, OldCreateIndexTest) {
   std::string query = "CREATE UNIQUE INDEX IDX_ORDER ON oorder (O_W_ID, O_D_ID);";
-  auto result = pgparser.BuildParseTree(query);
-  auto create_stmt = reinterpret_cast<CreateStatement *>(result.GetStatements()[0].get());
+  auto result = pgparser_.BuildParseTree(query);
+  auto create_stmt = reinterpret_cast<CreateStatement *>(result.GetStatements()[0].Get());
 
   // Check attributes
   EXPECT_EQ(create_stmt->GetCreateType(), CreateStatement::kIndex);
@@ -1278,8 +1278,8 @@ TEST_F(ParserTestBase, OldCreateIndexTest) {
   EXPECT_EQ(create_stmt->GetIndexAttributes()[1].GetName(), "o_d_id");
 
   query = "CREATE INDEX ii ON t USING SKIPLIST (col);";
-  result = pgparser.BuildParseTree(query);
-  create_stmt = reinterpret_cast<CreateStatement *>(result.GetStatements()[0].get());
+  result = pgparser_.BuildParseTree(query);
+  create_stmt = reinterpret_cast<CreateStatement *>(result.GetStatements()[0].Get());
 
   // Check attributes
   EXPECT_EQ(create_stmt->GetCreateType(), CreateStatement::kIndex);
@@ -1288,8 +1288,8 @@ TEST_F(ParserTestBase, OldCreateIndexTest) {
   EXPECT_EQ(create_stmt->GetTableName(), "t");
 
   query = "CREATE INDEX ii ON t (col);";
-  result = pgparser.BuildParseTree(query);
-  create_stmt = reinterpret_cast<CreateStatement *>(result.GetStatements()[0].get());
+  result = pgparser_.BuildParseTree(query);
+  create_stmt = reinterpret_cast<CreateStatement *>(result.GetStatements()[0].Get());
 
   // Check attributes
   EXPECT_EQ(create_stmt->GetCreateType(), CreateStatement::kIndex);
@@ -1298,18 +1298,18 @@ TEST_F(ParserTestBase, OldCreateIndexTest) {
   EXPECT_EQ(create_stmt->GetTableName(), "t");
 
   query = "CREATE INDEX ii ON t USING GIN (col);";
-  EXPECT_THROW(pgparser.BuildParseTree(query), NotImplementedException);
+  EXPECT_THROW(pgparser_.BuildParseTree(query), NotImplementedException);
 }
 
 // NOLINTNEXTLINE
 TEST_F(ParserTestBase, OldInsertIntoSelectTest) {
   // insert into a table with select sub-query
   std::string query = "INSERT INTO foo select * from bar where id = 5;";
-  auto result = pgparser.BuildParseTree(query);
+  auto result = pgparser_.BuildParseTree(query);
 
   EXPECT_EQ(result.GetStatements().size(), 1);
   EXPECT_TRUE(result.GetStatements()[0]->GetType() == StatementType::INSERT);
-  auto insert_stmt = reinterpret_cast<InsertStatement *>(result.GetStatements()[0].get());
+  auto insert_stmt = reinterpret_cast<InsertStatement *>(result.GetStatements()[0].Get());
   EXPECT_EQ(insert_stmt->GetInsertionTable()->GetTableName(), "foo");
   EXPECT_EQ(insert_stmt->GetValues(), nullptr);
   EXPECT_EQ(insert_stmt->GetSelect()->GetType(), StatementType::SELECT);
@@ -1319,9 +1319,9 @@ TEST_F(ParserTestBase, OldInsertIntoSelectTest) {
 // NOLINTNEXTLINE
 TEST_F(ParserTestBase, OldCreateDbTest) {
   std::string query = "CREATE DATABASE tt";
-  auto result = pgparser.BuildParseTree(query);
+  auto result = pgparser_.BuildParseTree(query);
 
-  auto create_stmt = reinterpret_cast<CreateStatement *>(result.GetStatements()[0].get());
+  auto create_stmt = reinterpret_cast<CreateStatement *>(result.GetStatements()[0].Get());
   EXPECT_EQ(create_stmt->GetCreateType(), CreateStatement::CreateType::kDatabase);
   EXPECT_EQ(create_stmt->GetDatabaseName(), "tt");
 }
@@ -1329,27 +1329,27 @@ TEST_F(ParserTestBase, OldCreateDbTest) {
 // NOLINTNEXTLINE
 TEST_F(ParserTestBase, OldCreateSchemaTest) {
   std::string query = "CREATE SCHEMA tt";
-  auto result = pgparser.BuildParseTree(query);
-  auto create_stmt = reinterpret_cast<CreateStatement *>(result.GetStatements()[0].get());
+  auto result = pgparser_.BuildParseTree(query);
+  auto create_stmt = reinterpret_cast<CreateStatement *>(result.GetStatements()[0].Get());
   EXPECT_EQ("tt", create_stmt->GetSchemaName());
 
   // Test default schema name
   query = "CREATE SCHEMA AUTHORIZATION joe";
-  result = pgparser.BuildParseTree(query);
-  create_stmt = reinterpret_cast<CreateStatement *>(result.GetStatements()[0].get());
+  result = pgparser_.BuildParseTree(query);
+  create_stmt = reinterpret_cast<CreateStatement *>(result.GetStatements()[0].Get());
   EXPECT_EQ("joe", create_stmt->GetSchemaName());
 }
 
 // NOLINTNEXTLINE
 TEST_F(ParserTestBase, OldCreateViewTest) {
   std::string query = "CREATE VIEW comedies AS SELECT * FROM films WHERE kind = 'Comedy';";
-  auto result = pgparser.BuildParseTree(query);
-  auto create_stmt = reinterpret_cast<CreateStatement *>(result.GetStatements()[0].get());
+  auto result = pgparser_.BuildParseTree(query);
+  auto create_stmt = reinterpret_cast<CreateStatement *>(result.GetStatements()[0].Get());
 
   // Check attributes
   EXPECT_EQ(create_stmt->GetViewName(), "comedies");
   EXPECT_NE(create_stmt->GetViewQuery(), nullptr);
-  auto view_query = create_stmt->GetViewQuery().get();
+  auto view_query = create_stmt->GetViewQuery().Get();
   EXPECT_EQ(view_query->GetSelectTable()->GetTableName(), "films");
   EXPECT_EQ(view_query->GetSelectColumns().size(), 1);
   EXPECT_NE(view_query->GetSelectCondition(), nullptr);
@@ -1358,11 +1358,11 @@ TEST_F(ParserTestBase, OldCreateViewTest) {
 
   auto left_child = view_query->GetSelectCondition()->GetChild(0);
   EXPECT_EQ(left_child->GetExpressionType(), ExpressionType::COLUMN_VALUE);
-  EXPECT_EQ(reinterpret_cast<ColumnValueExpression *>(left_child.get())->GetColumnName(), "kind");
+  EXPECT_EQ(reinterpret_cast<ColumnValueExpression *>(left_child.Get())->GetColumnName(), "kind");
 
   auto right_child = view_query->GetSelectCondition()->GetChild(1);
   EXPECT_EQ(right_child->GetExpressionType(), ExpressionType::VALUE_CONSTANT);
-  auto right_value = reinterpret_cast<ConstantValueExpression *>(right_child.get())->GetValue();
+  auto right_value = reinterpret_cast<ConstantValueExpression *>(right_child.Get())->GetValue();
   auto string_view = type::TransientValuePeeker::PeekVarChar(right_value);
   EXPECT_EQ("Comedy", string_view);
 }
@@ -1370,15 +1370,15 @@ TEST_F(ParserTestBase, OldCreateViewTest) {
 // NOLINTNEXTLINE
 TEST_F(ParserTestBase, OldDistinctFromTest) {
   std::string query = "SELECT id, value FROM foo WHERE id IS DISTINCT FROM value;";
-  auto result = pgparser.BuildParseTree(query);
-  auto statement = reinterpret_cast<SelectStatement *>(result.GetStatements()[0].get());
+  auto result = pgparser_.BuildParseTree(query);
+  auto statement = reinterpret_cast<SelectStatement *>(result.GetStatements()[0].Get());
   auto where_expr = statement->GetSelectCondition();
   EXPECT_EQ(ExpressionType::COMPARE_IS_DISTINCT_FROM, where_expr->GetExpressionType());
   EXPECT_EQ(type::TypeId::BOOLEAN, where_expr->GetReturnValueType());
 
-  auto child0 = reinterpret_cast<ColumnValueExpression *>(where_expr->GetChild(0).get());
+  auto child0 = reinterpret_cast<ColumnValueExpression *>(where_expr->GetChild(0).Get());
   EXPECT_EQ("id", child0->GetColumnName());
-  auto child1 = reinterpret_cast<ColumnValueExpression *>(where_expr->GetChild(1).get());
+  auto child1 = reinterpret_cast<ColumnValueExpression *>(where_expr->GetChild(1).Get());
   EXPECT_EQ("value", child1->GetColumnName());
 }
 
@@ -1394,8 +1394,8 @@ TEST_F(ParserTestBase, OldConstraintTest) {
       "DEFAULT"
       ");";
 
-  auto result = pgparser.BuildParseTree(query);
-  auto create_stmt = reinterpret_cast<CreateStatement *>(result.GetStatements()[0].get());
+  auto result = pgparser_.BuildParseTree(query);
+  auto create_stmt = reinterpret_cast<CreateStatement *>(result.GetStatements()[0].Get());
 
   // Check column definition
   EXPECT_EQ(create_stmt->GetColumns().size(), 4);
@@ -1405,17 +1405,17 @@ TEST_F(ParserTestBase, OldConstraintTest) {
   EXPECT_EQ(column->GetColumnName(), "a");
   EXPECT_EQ(column->GetColumnType(), ColumnDefinition::DataType::INT);
   EXPECT_NE(column->GetDefaultExpression(), nullptr);
-  auto default_expr = reinterpret_cast<OperatorExpression *>(column->GetDefaultExpression().get());
+  auto default_expr = reinterpret_cast<OperatorExpression *>(column->GetDefaultExpression().Get());
   EXPECT_NE(default_expr, nullptr);
   EXPECT_EQ(default_expr->GetExpressionType(), ExpressionType::OPERATOR_PLUS);
   EXPECT_EQ(default_expr->GetChildrenSize(), 2);
 
-  auto child0 = reinterpret_cast<ConstantValueExpression *>(default_expr->GetChild(0).get());
+  auto child0 = reinterpret_cast<ConstantValueExpression *>(default_expr->GetChild(0).Get());
   EXPECT_NE(child0, nullptr);
   EXPECT_EQ(child0->GetValue().Type(), type::TypeId::INTEGER);
   EXPECT_EQ(type::TransientValuePeeker::PeekInteger(child0->GetValue()), 1);
 
-  auto child1 = reinterpret_cast<ConstantValueExpression *>(default_expr->GetChild(1).get());
+  auto child1 = reinterpret_cast<ConstantValueExpression *>(default_expr->GetChild(1).Get());
   EXPECT_NE(child1, nullptr);
   EXPECT_EQ(child1->GetValue().Type(), type::TypeId::INTEGER);
   EXPECT_EQ(type::TransientValuePeeker::PeekInteger(child1->GetValue()), 2);
@@ -1438,19 +1438,19 @@ TEST_F(ParserTestBase, OldConstraintTest) {
   EXPECT_EQ(column->GetCheckExpression()->GetExpressionType(), ExpressionType::COMPARE_GREATER_THAN);
   EXPECT_EQ(column->GetCheckExpression()->GetChildrenSize(), 2);
 
-  auto check_child1 = reinterpret_cast<OperatorExpression *>(column->GetCheckExpression()->GetChild(0).get());
+  auto check_child1 = reinterpret_cast<OperatorExpression *>(column->GetCheckExpression()->GetChild(0).Get());
   EXPECT_NE(check_child1, nullptr);
   EXPECT_EQ(check_child1->GetExpressionType(), ExpressionType::OPERATOR_PLUS);
   EXPECT_EQ(check_child1->GetChildrenSize(), 2);
-  auto plus_child1 = reinterpret_cast<ColumnValueExpression *>(check_child1->GetChild(0).get());
+  auto plus_child1 = reinterpret_cast<ColumnValueExpression *>(check_child1->GetChild(0).Get());
   EXPECT_NE(plus_child1, nullptr);
   EXPECT_EQ(plus_child1->GetColumnName(), "d");
-  auto plus_child2 = reinterpret_cast<ConstantValueExpression *>(check_child1->GetChild(1).get());
+  auto plus_child2 = reinterpret_cast<ConstantValueExpression *>(check_child1->GetChild(1).Get());
   EXPECT_NE(plus_child2, nullptr);
   EXPECT_EQ(plus_child2->GetValue().Type(), type::TypeId::INTEGER);
   EXPECT_EQ(type::TransientValuePeeker::PeekInteger(plus_child2->GetValue()), 1);
 
-  auto check_child2 = reinterpret_cast<ConstantValueExpression *>(column->GetCheckExpression()->GetChild(1).get());
+  auto check_child2 = reinterpret_cast<ConstantValueExpression *>(column->GetCheckExpression()->GetChild(1).Get());
   EXPECT_NE(check_child2, nullptr);
   EXPECT_EQ(check_child2->GetValue().Type(), type::TypeId::INTEGER);
   EXPECT_EQ(type::TransientValuePeeker::PeekInteger(check_child2->GetValue()), 0);
@@ -1494,8 +1494,8 @@ TEST_F(ParserTestBase, OldDataTypeTest) {
       "b varchar(1024),"
       "c varbinary(32)"
       ");";
-  auto result = pgparser.BuildParseTree(query);
-  auto create_stmt = reinterpret_cast<CreateStatement *>(result.GetStatements()[0].get());
+  auto result = pgparser_.BuildParseTree(query);
+  auto create_stmt = reinterpret_cast<CreateStatement *>(result.GetStatements()[0].Get());
 
   EXPECT_EQ(create_stmt->GetColumns().size(), 3);
 
@@ -1527,10 +1527,10 @@ TEST_F(ParserTestBase, OldCreateTriggerTest) {
       "FOR EACH ROW "
       "WHEN (OLD.balance <> NEW.balance) "
       "EXECUTE PROCEDURE check_account_update(update_date);";
-  auto result = pgparser.BuildParseTree(query);
+  auto result = pgparser_.BuildParseTree(query);
 
   EXPECT_EQ(result.GetStatements()[0]->GetType(), StatementType::CREATE);
-  auto create_trigger_stmt = reinterpret_cast<CreateStatement *>(result.GetStatements()[0].get());
+  auto create_trigger_stmt = reinterpret_cast<CreateStatement *>(result.GetStatements()[0].Get());
 
   EXPECT_EQ(create_trigger_stmt->GetCreateType(), CreateStatement::CreateType::kTrigger);
   EXPECT_EQ(create_trigger_stmt->GetTriggerName(), "check_update");
@@ -1553,8 +1553,8 @@ TEST_F(ParserTestBase, OldCreateTriggerTest) {
   EXPECT_EQ(when->GetExpressionType(), ExpressionType::COMPARE_NOT_EQUAL);
   EXPECT_EQ(when->GetChildrenSize(), 2);
 
-  auto left = when->GetChild(0).get();
-  auto right = when->GetChild(1).get();
+  auto left = when->GetChild(0).Get();
+  auto right = when->GetChild(1).Get();
   EXPECT_EQ(left->GetExpressionType(), ExpressionType::COLUMN_VALUE);
   EXPECT_EQ(reinterpret_cast<ColumnValueExpression *>(left)->GetTableName(), "old");
   EXPECT_EQ(reinterpret_cast<ColumnValueExpression *>(left)->GetColumnName(), "balance");
@@ -1577,9 +1577,9 @@ TEST_F(ParserTestBase, OldCreateTriggerTest) {
 // NOLINTNEXTLINE
 TEST_F(ParserTestBase, OldDropTriggerTest) {
   std::string query = "DROP TRIGGER if_dist_exists ON terrier.films;";
-  auto result = pgparser.BuildParseTree(query);
+  auto result = pgparser_.BuildParseTree(query);
   EXPECT_EQ(result.GetStatements()[0]->GetType(), StatementType::DROP);
-  auto drop_trigger_stmt = reinterpret_cast<DropStatement *>(result.GetStatements()[0].get());
+  auto drop_trigger_stmt = reinterpret_cast<DropStatement *>(result.GetStatements()[0].Get());
 
   EXPECT_EQ(drop_trigger_stmt->GetDropType(), DropStatement::DropType::kTrigger);
   EXPECT_EQ(drop_trigger_stmt->GetTriggerName(), "if_dist_exists");
@@ -1589,44 +1589,44 @@ TEST_F(ParserTestBase, OldDropTriggerTest) {
 // NOLINTNEXTLINE
 TEST_F(ParserTestBase, OldFuncCallTest) {
   std::string query = "SELECT add(1,a), chr(99) FROM TEST WHERE FUN(b) > 2";
-  auto result = pgparser.BuildParseTree(query);
-  auto select_stmt = reinterpret_cast<SelectStatement *>(result.GetStatements()[0].get());
+  auto result = pgparser_.BuildParseTree(query);
+  auto select_stmt = reinterpret_cast<SelectStatement *>(result.GetStatements()[0].Get());
 
   // Check ADD(1,a)
-  auto fun_expr = reinterpret_cast<FunctionExpression *>(select_stmt->GetSelectColumns()[0].get());
+  auto fun_expr = reinterpret_cast<FunctionExpression *>(select_stmt->GetSelectColumns()[0].Get());
   EXPECT_NE(fun_expr, nullptr);
   EXPECT_EQ(fun_expr->GetFuncName(), "add");
   EXPECT_EQ(fun_expr->GetChildrenSize(), 2);
 
-  auto const_expr = reinterpret_cast<ConstantValueExpression *>(fun_expr->GetChild(0).get());
+  auto const_expr = reinterpret_cast<ConstantValueExpression *>(fun_expr->GetChild(0).Get());
   EXPECT_NE(const_expr, nullptr);
   EXPECT_EQ(const_expr->GetValue().Type(), type::TypeId::INTEGER);
   EXPECT_EQ(type::TransientValuePeeker::PeekInteger(const_expr->GetValue()), 1);
 
-  auto tv_expr = reinterpret_cast<ColumnValueExpression *>(fun_expr->GetChild(1).get());
+  auto tv_expr = reinterpret_cast<ColumnValueExpression *>(fun_expr->GetChild(1).Get());
   EXPECT_NE(tv_expr, nullptr);
   EXPECT_EQ(tv_expr->GetColumnName(), "a");
 
   // Check chr(99)
-  fun_expr = reinterpret_cast<FunctionExpression *>(select_stmt->GetSelectColumns()[1].get());
+  fun_expr = reinterpret_cast<FunctionExpression *>(select_stmt->GetSelectColumns()[1].Get());
   EXPECT_NE(fun_expr, nullptr);
   EXPECT_EQ(fun_expr->GetFuncName(), "chr");
   EXPECT_EQ(fun_expr->GetChildrenSize(), 1);
 
   // Check FUN(b) > 2
-  auto op_expr = reinterpret_cast<OperatorExpression *>(select_stmt->GetSelectCondition().get());
+  auto op_expr = reinterpret_cast<OperatorExpression *>(select_stmt->GetSelectCondition().Get());
   EXPECT_NE(op_expr, nullptr);
   EXPECT_EQ(op_expr->GetExpressionType(), ExpressionType::COMPARE_GREATER_THAN);
 
-  fun_expr = reinterpret_cast<FunctionExpression *>(op_expr->GetChild(0).get());
+  fun_expr = reinterpret_cast<FunctionExpression *>(op_expr->GetChild(0).Get());
   EXPECT_NE(fun_expr, nullptr);
   EXPECT_EQ(fun_expr->GetFuncName(), "fun");
   EXPECT_EQ(fun_expr->GetChildrenSize(), 1);
-  tv_expr = reinterpret_cast<ColumnValueExpression *>(fun_expr->GetChild(0).get());
+  tv_expr = reinterpret_cast<ColumnValueExpression *>(fun_expr->GetChild(0).Get());
   EXPECT_NE(tv_expr, nullptr);
   EXPECT_EQ(tv_expr->GetColumnName(), "b");
 
-  const_expr = reinterpret_cast<ConstantValueExpression *>(op_expr->GetChild(1).get());
+  const_expr = reinterpret_cast<ConstantValueExpression *>(op_expr->GetChild(1).Get());
   EXPECT_NE(const_expr, nullptr);
   EXPECT_EQ(const_expr->GetValue().Type(), type::TypeId::INTEGER);
   EXPECT_EQ(type::TransientValuePeeker::PeekInteger(const_expr->GetValue()), 2);
@@ -1635,20 +1635,20 @@ TEST_F(ParserTestBase, OldFuncCallTest) {
 // NOLINTNEXTLINE
 TEST_F(ParserTestBase, OldUDFFuncCallTest) {
   std::string query = "SELECT increment(1,b) FROM TEST;";
-  auto result = pgparser.BuildParseTree(query);
-  auto select_stmt = reinterpret_cast<SelectStatement *>(result.GetStatements()[0].get());
+  auto result = pgparser_.BuildParseTree(query);
+  auto select_stmt = reinterpret_cast<SelectStatement *>(result.GetStatements()[0].Get());
 
-  auto fun_expr = reinterpret_cast<FunctionExpression *>(select_stmt->GetSelectColumns()[0].get());
+  auto fun_expr = reinterpret_cast<FunctionExpression *>(select_stmt->GetSelectColumns()[0].Get());
   EXPECT_NE(fun_expr, nullptr);
   EXPECT_EQ(fun_expr->GetFuncName(), "increment");
   EXPECT_EQ(fun_expr->GetChildrenSize(), 2);
 
-  auto const_expr = reinterpret_cast<ConstantValueExpression *>(fun_expr->GetChild(0).get());
+  auto const_expr = reinterpret_cast<ConstantValueExpression *>(fun_expr->GetChild(0).Get());
   EXPECT_NE(const_expr, nullptr);
   EXPECT_EQ(const_expr->GetValue().Type(), type::TypeId::INTEGER);
   EXPECT_EQ(type::TransientValuePeeker::PeekInteger(const_expr->GetValue()), 1);
 
-  auto tv_expr = reinterpret_cast<ColumnValueExpression *>(fun_expr->GetChild(1).get());
+  auto tv_expr = reinterpret_cast<ColumnValueExpression *>(fun_expr->GetChild(1).Get());
   EXPECT_NE(tv_expr, nullptr);
   EXPECT_EQ(tv_expr->GetColumnName(), "b");
 }
@@ -1656,15 +1656,15 @@ TEST_F(ParserTestBase, OldUDFFuncCallTest) {
 // NOLINTNEXTLINE
 TEST_F(ParserTestBase, OldCaseTest) {
   std::string query = "SELECT id, case when id=100 then 1 else 0 end from tbl;";
-  auto result = pgparser.BuildParseTree(query);
-  auto select_stmt = reinterpret_cast<SelectStatement *>(result.GetStatements()[0].get());
+  auto result = pgparser_.BuildParseTree(query);
+  auto select_stmt = reinterpret_cast<SelectStatement *>(result.GetStatements()[0].Get());
   auto select_args = select_stmt->GetSelectColumns();
   EXPECT_EQ(select_args.at(0)->GetExpressionType(), ExpressionType::COLUMN_VALUE);
   EXPECT_EQ(select_args.at(1)->GetExpressionType(), ExpressionType::OPERATOR_CASE_EXPR);
 
   query = "SELECT id, case id when 100 then 1 when 200 then 2 end from tbl;";
-  result = pgparser.BuildParseTree(query);
-  select_stmt = reinterpret_cast<SelectStatement *>(result.GetStatements()[0].get());
+  result = pgparser_.BuildParseTree(query);
+  select_stmt = reinterpret_cast<SelectStatement *>(result.GetStatements()[0].Get());
   select_args = select_stmt->GetSelectColumns();
   EXPECT_EQ(select_args.at(0)->GetExpressionType(), ExpressionType::COLUMN_VALUE);
   EXPECT_EQ(select_args.at(1)->GetExpressionType(), ExpressionType::OPERATOR_CASE_EXPR);
@@ -1677,13 +1677,13 @@ TEST_F(ParserTestBase, OldDateTypeTest) {
 
   {
     query = "INSERT INTO test_table VALUES (1, 2, '2017-01-01'::DATE);";
-    auto result = pgparser.BuildParseTree(query);
-    auto statement = reinterpret_cast<InsertStatement *>(result.GetStatements()[0].get());
+    auto result = pgparser_.BuildParseTree(query);
+    auto statement = reinterpret_cast<InsertStatement *>(result.GetStatements()[0].Get());
     auto values = *(statement->GetValues());
-    auto cast_expr = reinterpret_cast<TypeCastExpression *>(values[0][2].get());
+    auto cast_expr = reinterpret_cast<TypeCastExpression *>(values[0][2].Get());
     EXPECT_EQ(type::TypeId::DATE, cast_expr->GetReturnValueType());
 
-    auto const_expr = reinterpret_cast<ConstantValueExpression *>(cast_expr->GetChild(0).get());
+    auto const_expr = reinterpret_cast<ConstantValueExpression *>(cast_expr->GetChild(0).Get());
     type::TransientValue tmp_value = const_expr->GetValue();
     auto string_view = type::TransientValuePeeker::PeekVarChar(tmp_value);
     EXPECT_EQ("2017-01-01", string_view);
@@ -1691,8 +1691,8 @@ TEST_F(ParserTestBase, OldDateTypeTest) {
 
   {
     query = "CREATE TABLE students (name TEXT, graduation DATE)";
-    auto result = pgparser.BuildParseTree(query);
-    auto statement = reinterpret_cast<CreateStatement *>(result.GetStatements()[0].get());
+    auto result = pgparser_.BuildParseTree(query);
+    auto statement = reinterpret_cast<CreateStatement *>(result.GetStatements()[0].Get());
     const auto &values = statement->GetColumns();
     auto &date_column = values[1];
     EXPECT_EQ(ColumnDefinition::DataType::DATE, date_column->GetColumnType());
@@ -1715,10 +1715,10 @@ TEST_F(ParserTestBase, OldTypeCastTest) {
     std::string query = queries[i];
     type::TypeId correct_type = types[i];
 
-    auto result = pgparser.BuildParseTree(query);
-    auto statement = reinterpret_cast<InsertStatement *>(result.GetStatements()[0].get());
+    auto result = pgparser_.BuildParseTree(query);
+    auto statement = reinterpret_cast<InsertStatement *>(result.GetStatements()[0].Get());
     auto values = *(statement->GetValues());
-    auto cast_expr = reinterpret_cast<ConstantValueExpression *>(values[0][2].get());
+    auto cast_expr = reinterpret_cast<ConstantValueExpression *>(values[0][2].Get());
     EXPECT_EQ(correct_type, cast_expr->GetReturnValueType());
   }
 }
@@ -1728,13 +1728,13 @@ TEST_F(ParserTestBase, OldTypeCastInExpressionTest) {
   std::string query;
   {
     query = "SELECT * FROM a WHERE d <= date '2018-04-04';";
-    auto result = pgparser.BuildParseTree(query);
-    auto statement = reinterpret_cast<SelectStatement *>(result.GetStatements()[0].get());
+    auto result = pgparser_.BuildParseTree(query);
+    auto statement = reinterpret_cast<SelectStatement *>(result.GetStatements()[0].Get());
     auto where_expr = statement->GetSelectCondition();
-    auto cast_expr = reinterpret_cast<TypeCastExpression *>(where_expr->GetChild(1).get());
+    auto cast_expr = reinterpret_cast<TypeCastExpression *>(where_expr->GetChild(1).Get());
     EXPECT_EQ(type::TypeId::DATE, cast_expr->GetReturnValueType());
 
-    auto const_expr = reinterpret_cast<ConstantValueExpression *>(cast_expr->GetChild(0).get());
+    auto const_expr = reinterpret_cast<ConstantValueExpression *>(cast_expr->GetChild(0).Get());
     type::TransientValue tmp_value = const_expr->GetValue();
     auto string_view = type::TransientValuePeeker::PeekVarChar(tmp_value);
     EXPECT_EQ("2018-04-04", string_view);
@@ -1742,20 +1742,20 @@ TEST_F(ParserTestBase, OldTypeCastInExpressionTest) {
 
   {
     query = "SELECT '12345'::INTEGER - 12";
-    auto result = pgparser.BuildParseTree(query);
-    auto statement = reinterpret_cast<SelectStatement *>(result.GetStatements()[0].get());
+    auto result = pgparser_.BuildParseTree(query);
+    auto statement = reinterpret_cast<SelectStatement *>(result.GetStatements()[0].Get());
     auto column = statement->GetSelectColumns()[0];
     EXPECT_EQ(ExpressionType::OPERATOR_MINUS, column->GetExpressionType());
 
-    auto left_child = reinterpret_cast<TypeCastExpression *>(column->GetChild(0).get());
+    auto left_child = reinterpret_cast<TypeCastExpression *>(column->GetChild(0).Get());
     EXPECT_EQ(type::TypeId::INTEGER, left_child->GetReturnValueType());
 
-    auto value_expr = reinterpret_cast<ConstantValueExpression *>(left_child->GetChild(0).get());
+    auto value_expr = reinterpret_cast<ConstantValueExpression *>(left_child->GetChild(0).Get());
     type::TransientValue tmp_value = value_expr->GetValue();
     auto string_view = type::TransientValuePeeker::PeekVarChar(tmp_value);
     EXPECT_EQ("12345", string_view);
 
-    auto right_child = reinterpret_cast<ConstantValueExpression *>(column->GetChild(1).get());
+    auto right_child = reinterpret_cast<ConstantValueExpression *>(column->GetChild(1).Get());
     EXPECT_EQ(12, type::TransientValuePeeker::PeekInteger(right_child->GetValue()));
   }
 }

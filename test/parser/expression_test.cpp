@@ -30,6 +30,15 @@
 
 namespace terrier::parser::expression {
 
+bool CompareExpressionsEqual(const std::vector<common::ManagedPointer<AbstractExpression>> &expr_children,
+    const std::vector<std::unique_ptr<AbstractExpression>> &copy_children) {
+  if (expr_children.size() != copy_children.size()) { return false; }
+  for (size_t i = 0; i < expr_children.size(); i++) {
+    if (*expr_children[i] != *copy_children[i]) { return false; }
+  }
+  return true;
+}
+
 // NOLINTNEXTLINE
 TEST(ExpressionTests, ConstantValueExpressionTest) {
   // constant Booleans
@@ -70,7 +79,7 @@ TEST(ExpressionTests, ConstantValueExpressionTest) {
   expr_ti_1->DeriveReturnValueType();
   EXPECT_EQ(expr_ti_1->GetReturnValueType(), type::TransientValueFactory::GetTinyInt(1).Type());
   EXPECT_EQ(expr_ti_1->GetChildrenSize(), 0);
-  EXPECT_EQ(expr_ti_1->GetChildren(), std::vector<std::unique_ptr<AbstractExpression>>());
+  EXPECT_EQ(expr_ti_1->GetChildren(), std::vector<common::ManagedPointer<AbstractExpression>>());
   // Private members depth will be initialized as -1 and has_subquery as false.
   EXPECT_EQ(expr_ti_1->GetDepth(), -1);
   // Private members expression name will be initialized as empty string
@@ -265,7 +274,7 @@ TEST(ExpressionTests, ConjunctionExpressionTest) {
   c_expr_1->DeriveReturnValueType();
   EXPECT_EQ(c_expr_1->GetReturnValueType(), type::TypeId::BOOLEAN);
   EXPECT_EQ(c_expr_1->GetChildrenSize(), children1cp.size());
-  EXPECT_EQ(c_expr_1->GetChildren(), children1cp);
+  EXPECT_TRUE(CompareExpressionsEqual(c_expr_1->GetChildren(), children1cp));
   // Private members depth will be initialized as -1 and has_subquery as false.
   EXPECT_EQ(c_expr_1->GetDepth(), -1);
   // depth is still -1 after deriveDepth, as the depth is set in binder
@@ -359,7 +368,7 @@ TEST(ExpressionTests, AggregateExpressionTest) {
   agg_expr_1->DeriveReturnValueType();
   EXPECT_EQ(agg_expr_1->GetReturnValueType(), type::TypeId::INTEGER);
   EXPECT_EQ(agg_expr_1->GetChildrenSize(), 1);
-  EXPECT_EQ(agg_expr_1->GetChildren(), childrent_1_cp);
+  EXPECT_TRUE(CompareExpressionsEqual(agg_expr_1->GetChildren(), childrent_1_cp));
   EXPECT_TRUE(agg_expr_1->IsDistinct());
   // Private members depth will be initialized as -1 and has_subquery as false.
   EXPECT_EQ(agg_expr_1->GetDepth(), -1);
@@ -466,6 +475,10 @@ TEST(ExpressionTests, CaseExpressionTest) {
   auto case_expr_4 =
       new CaseExpression(type::TypeId::INTEGER, std::move(when_clauses_4), std::make_unique<StarExpression>());
 
+  // TODO(WAN): StarExpression should probably be a singleton some day.
+  // Reusable star expression.
+  auto star_expr = std::make_unique<StarExpression>();
+
   EXPECT_TRUE(*case_expr == *case_expr_2);
   EXPECT_FALSE(*case_expr == *case_expr_3);
   EXPECT_FALSE(*case_expr == *case_expr_4);
@@ -480,12 +493,9 @@ TEST(ExpressionTests, CaseExpressionTest) {
   case_expr->DeriveReturnValueType();
   EXPECT_EQ(case_expr->GetReturnValueType(), type::TypeId::BOOLEAN);
   EXPECT_EQ(case_expr->GetChildrenSize(), 0);
-  EXPECT_EQ(case_expr->GetWhenClauseCondition(0),
-            common::ManagedPointer<AbstractExpression>(std::make_unique<StarExpression>()));
-  EXPECT_EQ(case_expr->GetWhenClauseResult(0),
-            common::ManagedPointer<AbstractExpression>(std::make_unique<StarExpression>()));
-  EXPECT_EQ(case_expr->GetDefaultClause(),
-            common::ManagedPointer<AbstractExpression>(std::make_unique<StarExpression>()));
+  EXPECT_EQ(*case_expr->GetWhenClauseCondition(0), *star_expr);
+  EXPECT_EQ(*case_expr->GetWhenClauseResult(0), *star_expr);
+  EXPECT_EQ(*case_expr->GetDefaultClause(), *star_expr);
   // Private members depth will be initialized as -1 and has_subquery as false.
   EXPECT_EQ(case_expr->GetDepth(), -1);
   EXPECT_FALSE(case_expr->HasSubquery());
@@ -1004,39 +1014,39 @@ TEST(ExpressionTests, SubqueryExpressionTest) {
   auto stmts0 = pgparser.BuildParseTree(
       "SELECT * FROM foo INNER JOIN bar ON foo.a = bar.a WHERE foo.a > 0 GROUP BY foo.b ORDER BY bar.b ASC LIMIT 5;");
   EXPECT_EQ(stmts0.GetStatements().size(), 1);
-  EXPECT_EQ(stmts0.GetStatements()[0]->GetType(), StatementType::SELECT);
+  EXPECT_EQ(stmts0.GetStatement(0)->GetType(), StatementType::SELECT);
 
-  auto select0 = std::unique_ptr<SelectStatement>(reinterpret_cast<SelectStatement *>(stmts0.GetStatements()[0].get()));
+  auto select0 = std::unique_ptr<SelectStatement>(reinterpret_cast<SelectStatement *>(stmts0.TakeStatementsOwnership()[0].release()));
   auto subselect_expr0 = new SubqueryExpression(std::move(select0));
 
   auto stmts1 = pgparser.BuildParseTree(
       "SELECT * FROM foo INNER JOIN bar ON foo.a = bar.a WHERE foo.a > 0 GROUP BY foo.b ORDER BY bar.b ASC LIMIT 5;");
-  auto select1 = std::unique_ptr<SelectStatement>(reinterpret_cast<SelectStatement *>(stmts1.GetStatements()[0].get()));
+  auto select1 = std::unique_ptr<SelectStatement>(reinterpret_cast<SelectStatement *>(stmts1.TakeStatementsOwnership()[0].release()));
   auto subselect_expr1 = new SubqueryExpression(std::move(select1));
 
   // different in select columns
   auto stmts2 = pgparser.BuildParseTree(
       "SELECT a, b FROM foo INNER JOIN bar ON foo.a = bar.a WHERE foo.a > 0 GROUP BY foo.b ORDER BY bar.b ASC LIMIT "
       "5;");
-  auto select2 = std::unique_ptr<SelectStatement>(reinterpret_cast<SelectStatement *>(stmts2.GetStatements()[0].get()));
+  auto select2 = std::unique_ptr<SelectStatement>(reinterpret_cast<SelectStatement *>(stmts2.TakeStatementsOwnership()[0].release()));
   auto subselect_expr2 = new SubqueryExpression(std::move(select2));
 
   // different in distinct flag
   auto stmts3 = pgparser.BuildParseTree(
       "SELECT DISTINCT a, b FROM foo INNER JOIN bar ON foo.a = bar.a WHERE foo.a > 0 GROUP BY foo.b ORDER BY bar.b ASC "
       "LIMIT 5;");
-  auto select3 = std::unique_ptr<SelectStatement>(reinterpret_cast<SelectStatement *>(stmts3.GetStatements()[0].get()));
+  auto select3 = std::unique_ptr<SelectStatement>(reinterpret_cast<SelectStatement *>(stmts3.TakeStatementsOwnership()[0].release()));
   auto subselect_expr3 = new SubqueryExpression(std::move(select3));
 
   // different in where
   auto stmts4 = pgparser.BuildParseTree(
       "SELECT * FROM foo INNER JOIN bar ON foo.b = bar.a WHERE foo.b > 0 GROUP BY foo.b ORDER BY bar.b ASC LIMIT 5;");
-  auto select4 = std::unique_ptr<SelectStatement>(reinterpret_cast<SelectStatement *>(stmts4.GetStatements()[0].get()));
+  auto select4 = std::unique_ptr<SelectStatement>(reinterpret_cast<SelectStatement *>(stmts4.TakeStatementsOwnership()[0].release()));
   auto subselect_expr4 = new SubqueryExpression(std::move(select4));
 
   // different in where
   auto stmts5 = pgparser.BuildParseTree("SELECT * FROM foo INNER JOIN bar ON foo.b = bar.a;");
-  auto select5 = std::unique_ptr<SelectStatement>(reinterpret_cast<SelectStatement *>(stmts5.GetStatements()[0].get()));
+  auto select5 = std::unique_ptr<SelectStatement>(reinterpret_cast<SelectStatement *>(stmts5.TakeStatementsOwnership()[0].release()));
   auto subselect_expr5 = new SubqueryExpression(std::move(select5));
 
   // depth is still -1 after deriveDepth, as the depth is set in binder
@@ -1070,7 +1080,7 @@ TEST(ExpressionTests, SimpleSubqueryExpressionJsonTest) {
   EXPECT_EQ(result.GetStatements().size(), 1);
   EXPECT_EQ(result.GetStatements()[0]->GetType(), StatementType::SELECT);
 
-  auto select = std::unique_ptr<SelectStatement>(reinterpret_cast<SelectStatement *>(result.GetStatements()[0].get()));
+  auto select = std::unique_ptr<SelectStatement>(reinterpret_cast<SelectStatement *>(result.TakeStatementsOwnership()[0].release()));
   auto original_expr = std::make_unique<SubqueryExpression>(std::move(select));
   EXPECT_EQ(*original_expr, *(original_expr->Copy()));
 
@@ -1102,7 +1112,7 @@ TEST(ExpressionTests, ComplexSubqueryExpressionJsonTest) {
   EXPECT_EQ(result.GetStatements().size(), 1);
   EXPECT_EQ(result.GetStatements()[0]->GetType(), StatementType::SELECT);
 
-  auto select = std::unique_ptr<SelectStatement>(reinterpret_cast<SelectStatement *>(result.GetStatements()[0].get()));
+  auto select = std::unique_ptr<SelectStatement>(reinterpret_cast<SelectStatement *>(result.TakeStatementsOwnership()[0].release()));
   auto original_expr = std::make_unique<SubqueryExpression>(std::move(select));
 
   // Serialize expression

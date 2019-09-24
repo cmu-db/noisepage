@@ -34,7 +34,9 @@ class FunctionExpression : public AbstractExpression {
     for (const auto &child : GetChildren()) {
       children.emplace_back(child->Copy());
     }
-    return std::make_unique<FunctionExpression>(std::move(func_name), GetReturnValueType(), std::move(children));
+    auto expr = std::make_unique<FunctionExpression>(std::move(func_name), GetReturnValueType(), std::move(children));
+    expr->SetMutableStateForCopy(*this);
+    return expr;
   }
 
   common::hash_t Hash() const override {

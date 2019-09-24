@@ -19,9 +19,40 @@ class ParseResult {
     expressions_.emplace_back(std::move(expression));
   }
 
-  const std::vector<std::unique_ptr<SQLStatement>> &GetStatements() { return statements_; }
+  // TODO(WAN): copying each time might be expensive, perhaps we can cache this
+  std::vector<common::ManagedPointer<SQLStatement>> GetStatements() {
+    std::vector<common::ManagedPointer<SQLStatement>> statements;
+    statements.reserve(statements_.size());
+    for (const auto &statement : statements_) {
+      statements.emplace_back(common::ManagedPointer(statement));
+    }
+    return statements;
+  }
 
-  const std::vector<std::unique_ptr<AbstractExpression>> &GetExpressions() { return expressions_; }
+  common::ManagedPointer<SQLStatement> GetStatement(size_t idx) {
+    return common::ManagedPointer(statements_[idx]);
+  }
+
+  std::vector<common::ManagedPointer<AbstractExpression>> GetExpressions() {
+    std::vector<common::ManagedPointer<AbstractExpression>> expressions;
+    expressions.reserve(expressions_.size());
+    for (const auto &statement : expressions_) {
+      expressions.emplace_back(common::ManagedPointer(statement));
+    }
+    return expressions;
+  }
+
+  common::ManagedPointer<AbstractExpression> GetExpression(size_t idx) {
+    return common::ManagedPointer(expressions_[idx]);
+  }
+
+  std::vector<std::unique_ptr<SQLStatement>> &&TakeStatementsOwnership() {
+    return std::move(statements_);
+  }
+
+  std::vector<std::unique_ptr<AbstractExpression>> &&TakeExpressionsOwnership() {
+    return std::move(expressions_);
+  }
 
  private:
   std::vector<std::unique_ptr<SQLStatement>> statements_;
@@ -92,13 +123,14 @@ class PostgresParser {
 
   /**
    * Transforms the entire parsed nodes list into a corresponding SQLStatementList.
+   * @param[in,out] parse_result the current parse result, which will be updated
    * @param root list of parsed nodes
-   * @return SQLStatementList corresponding to the parsed node list
    */
   static void ListTransform(ParseResult *parse_result, List *root);
 
   /**
    * Transforms a single node in the parse list into a terrier SQLStatement object.
+   * @param[in,out] parse_result the current parse result, which will be updated
    * @param node parsed node
    * @return SQLStatement corresponding to the parsed node
    */
@@ -150,7 +182,7 @@ class PostgresParser {
   // CREATE helpers
   using ColumnDefTransResult = struct {
     std::unique_ptr<ColumnDefinition> col_;
-    std::vector<std::unique_ptr<ColumnDefinition>> fks_;
+    std::vector<std::unique_ptr<ColumnDefinition>> fks_;  // foreign keys
   };
   static ColumnDefTransResult ColumnDefTransform(ParseResult *parse_result, ColumnDef *root);
 

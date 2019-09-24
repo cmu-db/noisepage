@@ -102,7 +102,9 @@ class CaseExpression : public AbstractExpression {
     for (const auto &clause : when_clauses_) {
       clauses.emplace_back(WhenClause{clause.condition_->Copy(), clause.then_->Copy()});
     }
-    return std::make_unique<CaseExpression>(GetReturnValueType(), std::move(clauses), default_expr_->Copy());
+    auto expr = std::make_unique<CaseExpression>(GetReturnValueType(), std::move(clauses), default_expr_->Copy());
+    expr->SetMutableStateForCopy(*this);
+    return expr;
   }
 
   /**

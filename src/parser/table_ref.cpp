@@ -4,6 +4,8 @@
 #include <utility>
 #include <vector>
 
+#include "parser/select_statement.h"
+
 namespace terrier::parser {
 
 /**
@@ -12,10 +14,9 @@ namespace terrier::parser {
 nlohmann::json JoinDefinition::ToJson() const {
   nlohmann::json j;
   j["type"] = type_;
-  // TODO(WAN)
-  //  j["left"] = left_;
-  //  j["right"] = right_;
-  //  j["condition"] = condition_;
+  j["left"] = left_->ToJson();
+  j["right"] = right_->ToJson();
+  j["condition"] = condition_->ToJson();
   return j;
 }
 
@@ -44,14 +45,24 @@ void JoinDefinition::FromJson(const nlohmann::json &j) {
   }
 }
 
+std::unique_ptr<JoinDefinition> JoinDefinition::Copy() {
+  return std::make_unique<JoinDefinition>(type_, left_->Copy(), right_->Copy(), condition_);
+}
+
+
 nlohmann::json TableRef::ToJson() const {
   nlohmann::json j;
   j["type"] = type_;
   j["alias"] = alias_;
-  //  j["table_info"] = table_info_;
-  //  j["select"] = select_;
-  //  j["list"] = list_;
-  //  j["join"] = join_;
+  j["table_info"] = table_info_ == nullptr ? nlohmann::json(nullptr) : table_info_->ToJson();
+  j["select"] = select_ == nullptr ? nlohmann::json(nullptr) : select_->ToJson();
+  std::vector<nlohmann::json> list;
+  list.reserve(list_.size());
+  for (const auto &item : list_) {
+    list.emplace_back(item->ToJson());
+  }
+  j["list"] = list;
+  j["join"] = join_ == nullptr ? nlohmann::json(nullptr) : join_->ToJson();
   return j;
 }
 
@@ -89,4 +100,19 @@ void TableRef::FromJson(const nlohmann::json &j) {
   }
 }
 
+std::unique_ptr<TableRef> TableRef::Copy() {
+  auto table_ref = std::make_unique<TableRef>();
+
+  table_ref->type_ = type_;
+  table_ref->alias_ = alias_;
+  table_ref->table_info_ = table_info_ == nullptr ? nullptr : table_info_->Copy();
+  table_ref->select_ = select_ == nullptr ? nullptr : select_->Copy();
+  table_ref->join_ = join_ == nullptr ? nullptr : join_->Copy();
+
+  table_ref->list_.reserve(list_.size());
+  for (const auto &item : list_) {
+    table_ref->list_.emplace_back(item->Copy());
+  }
+  return table_ref;
+}
 }  // namespace terrier::parser

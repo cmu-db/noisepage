@@ -22,7 +22,9 @@ class ParameterValueExpression : public AbstractExpression {
   ParameterValueExpression() = default;
 
   std::unique_ptr<AbstractExpression> Copy() const override {
-    return std::make_unique<ParameterValueExpression>(GetValueIdx());
+    auto expr = std::make_unique<ParameterValueExpression>(GetValueIdx());
+    expr->SetMutableStateForCopy(*this);
+    return expr;
   }
 
   /** @return offset in the expression */

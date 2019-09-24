@@ -50,7 +50,9 @@ class OperatorExpression : public AbstractExpression {
     for (const auto &child : GetChildren()) {
       children.emplace_back(child->Copy());
     }
-    return std::make_unique<OperatorExpression>(GetExpressionType(), GetReturnValueType(), std::move(children));
+    auto expr = std::make_unique<OperatorExpression>(GetExpressionType(), GetReturnValueType(), std::move(children));
+    expr->SetMutableStateForCopy(*this);
+    return expr;
   }
 
   void Accept(SqlNodeVisitor *v) override { v->Visit(this); }

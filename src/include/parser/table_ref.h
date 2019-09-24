@@ -13,8 +13,6 @@
 namespace terrier {
 namespace parser {
 
-class SelectStatement;
-
 /**
  * Represents a join table.
  */
@@ -34,6 +32,11 @@ class JoinDefinition {
    * Default constructor used for deserialization
    */
   JoinDefinition() = default;
+
+  /**
+   * @return a copy of the join definition
+   */
+  std::unique_ptr<JoinDefinition> Copy();
 
   // TODO(WAN): not a SQLStatement?
   /**
@@ -59,7 +62,7 @@ class JoinDefinition {
   /**
    * @return join condition
    */
-  common::ManagedPointer<AbstractExpression> GetJoinCondition() { return common::ManagedPointer(condition_); }
+  common::ManagedPointer<AbstractExpression> GetJoinCondition() { return condition_; }
 
   /**
    * @return JoinDefinition serialized to json
@@ -91,6 +94,11 @@ class TableRef {
    * Default constructor used for deserialization
    */
   TableRef() = default;
+
+  /**
+   * @return a copy of the table reference
+   */
+  std::unique_ptr<TableRef> Copy();
 
   /**
    * @param alias alias for table ref

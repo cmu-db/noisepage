@@ -604,7 +604,7 @@ class CreateTablePlanNode : public AbstractPlanNode {
       if (col->GetCheckExpression()->GetReturnValueType() == type::TypeId::BOOLEAN) {
         check_cols.push_back(col->GetColumnName());
 
-        auto const_expr_elem =
+        common::ManagedPointer<parser::ConstantValueExpression> const_expr_elem =
             (col->GetCheckExpression()->GetChild(1)).CastManagedPointerTo<parser::ConstantValueExpression>();
         type::TransientValue tmp_value = const_expr_elem->GetValue();
 

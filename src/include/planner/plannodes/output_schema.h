@@ -182,7 +182,7 @@ class OutputSchema {
     /**
      * @return the expression used to derive the intermediate column
      */
-    const std::unique_ptr<parser::AbstractExpression> &GetExpression() const { return expr_; }
+    common::ManagedPointer<parser::AbstractExpression> GetExpression() const { return common::ManagedPointer(expr_); }
 
     /**
      * Hash the current DerivedColumn.

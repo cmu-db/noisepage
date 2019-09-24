@@ -133,7 +133,7 @@ TEST(PlanNodeTest, DropDatabasePlanIfExistsTest) {
   parser::PostgresParser pgparser;
   auto result = pgparser.BuildParseTree("DROP DATABASE IF EXISTS test");
   EXPECT_EQ(1, result.GetStatements().size());
-  auto *drop_stmt = static_cast<parser::DropStatement *>(result.GetStatements()[0].get());
+  auto *drop_stmt = static_cast<parser::DropStatement *>(result.GetStatements()[0].Get());
 
   DropDatabasePlanNode::Builder builder;
   auto plan = builder.SetDatabaseOid(catalog::db_oid_t(0)).SetFromDropStatement(drop_stmt).Build();

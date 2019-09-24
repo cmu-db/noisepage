@@ -28,7 +28,9 @@ class ComparisonExpression : public AbstractExpression {
     for (const auto &child : GetChildren()) {
       children.emplace_back(child->Copy());
     }
-    return std::make_unique<ComparisonExpression>(GetExpressionType(), std::move(children));
+    auto expr = std::make_unique<ComparisonExpression>(GetExpressionType(), std::move(children));
+    expr->SetMutableStateForCopy(*this);
+    return expr;
   }
 
   void Accept(SqlNodeVisitor *v) override { v->Visit(this); }
