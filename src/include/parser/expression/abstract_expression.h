@@ -91,12 +91,13 @@ class AbstractExpression {
    * re-derive the expression.
    * @param copy_expr the expression whose mutable state should be copied
    */
-  void SetMutableStateForCopy(const AbstractExpression &copy_expr) {
-    SetExpressionName(copy_expr.GetExpressionName());
-    SetReturnValueType(copy_expr.GetReturnValueType());
-    SetDepth(copy_expr.GetDepth());
-    has_subquery_ = copy_expr.HasSubquery();
-    alias_ = copy_expr.alias_;
+  void SetAlias(const std::string &alias) { alias_ = alias; }
+
+  void SetChild(int index, common::ManagedPointer<AbstractExpression> expr) {
+    if (index >= (int)children_.size()) {
+      children_.resize(index + 1);
+    }
+    children_[index] = expr->Copy();
   }
 
  public:
