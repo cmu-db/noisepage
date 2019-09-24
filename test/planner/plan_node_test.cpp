@@ -102,7 +102,7 @@ TEST(PlanNodeTest, CreateDatabasePlanTest) {
   parser::PostgresParser pgparser;
   auto result = pgparser.BuildParseTree("CREATE DATABASE test");
   EXPECT_EQ(1, result.GetStatements().size());
-  auto *create_stmt = static_cast<parser::CreateStatement *>(result.GetStatements()[0].get());
+  auto *create_stmt = static_cast<parser::CreateStatement *>(result.TakeStatementsOwnership()[0].release());
 
   CreateDatabasePlanNode::Builder builder;
   auto plan = builder.SetFromCreateStatement(create_stmt).Build();
@@ -117,7 +117,7 @@ TEST(PlanNodeTest, DropDatabasePlanTest) {
   parser::PostgresParser pgparser;
   auto result = pgparser.BuildParseTree("DROP DATABASE test");
   EXPECT_EQ(1, result.GetStatements().size());
-  auto *drop_stmt = static_cast<parser::DropStatement *>(result.GetStatements()[0].get());
+  auto *drop_stmt = static_cast<parser::DropStatement *>(result.TakeStatementsOwnership()[0].release());
 
   DropDatabasePlanNode::Builder builder;
   auto plan = builder.SetDatabaseOid(catalog::db_oid_t(0)).SetFromDropStatement(drop_stmt).Build();
@@ -133,7 +133,7 @@ TEST(PlanNodeTest, DropDatabasePlanIfExistsTest) {
   parser::PostgresParser pgparser;
   auto result = pgparser.BuildParseTree("DROP DATABASE IF EXISTS test");
   EXPECT_EQ(1, result.GetStatements().size());
-  auto *drop_stmt = static_cast<parser::DropStatement *>(result.GetStatements()[0].Get());
+  auto *drop_stmt = static_cast<parser::DropStatement *>(result.TakeStatementsOwnership()[0].release());
 
   DropDatabasePlanNode::Builder builder;
   auto plan = builder.SetDatabaseOid(catalog::db_oid_t(0)).SetFromDropStatement(drop_stmt).Build();
