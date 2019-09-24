@@ -37,7 +37,7 @@ class TestConfig(object):
                                "tuple_access_strategy_benchmark",
                                "tpcc_benchmark",
                                "bwtree_benchmark",
-                               "cuckoomap_benchmark",]
+                               "cuckoomap_benchmark"]
 
         # how many historical values are "required".
         self.min_ref_values = 10
