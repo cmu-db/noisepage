@@ -26,8 +26,8 @@ namespace terrier::network {
  * So, in network tests, we use a fake command factory to return empty results for every query.
  */
 class FakeCommandFactory : public PostgresCommandFactory {
-  std::shared_ptr<PostgresNetworkCommand> PostgresPacketToCommand(InputPacket *packet) override {
-    return std::static_pointer_cast<PostgresNetworkCommand, EmptyCommand>(std::make_shared<EmptyCommand>(packet));
+  std::shared_ptr<AbstractNetworkCommand> PacketToCommand(InputPacket *packet) override {
+    return std::static_pointer_cast<AbstractNetworkCommand, EmptyCommand>(std::make_shared<EmptyCommand>(packet));
   }
 };
 
