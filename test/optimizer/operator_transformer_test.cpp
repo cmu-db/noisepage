@@ -172,8 +172,7 @@ TEST_F(OperatorTransformerTest, SelectStatementSimpleTest) {
   std::string selectSQL = "SELECT A.A1 FROM A";
 
   std::string ref =
-      "{\"Op\":\"LogicalLimit\",\"Children\":"
-      "[{\"Op\":\"LogicalGet\",}]}";
+      "{\"Op\":\"LogicalGet\",}";
 
   auto parse_tree = parser_.BuildParseTree(selectSQL);
   auto selectStmt = dynamic_cast<parser::SelectStatement *>(parse_tree.GetStatements()[0].get());
@@ -187,15 +186,76 @@ TEST_F(OperatorTransformerTest, SelectStatementSimpleTest) {
 }
 
 // NOLINTNEXTLINE
+TEST_F(OperatorTransformerTest, InsertStatementSimpleTest) {
+  // Test regular table name
+  LOG_INFO("Parsing sql query");
+  std::string insertSQL = "INSERT INTO A (A1, A2) VALUES (5, \'MY DATA\')";
+
+  std::string ref =
+      "{\"Op\":\"LogicalInsert\",}";
+
+  auto parse_tree = parser_.BuildParseTree(insertSQL);
+  auto insertStmt = dynamic_cast<parser::InsertStatement *>(parse_tree.GetStatements()[0].get());
+  binder_->BindNameToNode(insertStmt);
+  auto accessor_ = binder_->GetCatalogAccessor();
+  operator_transformer_ = new optimizer::QueryToOperatorTransformer(std::move(accessor_));
+  auto operator_tree = operator_transformer_->ConvertToOpExpression(insertStmt);
+  auto info = GetInfo(operator_tree);
+
+  EXPECT_EQ(ref, info);
+}
+
+// NOLINTNEXTLINE
+TEST_F(OperatorTransformerTest, UpdateStatementSimpleTest) {
+  // Test regular table name
+  LOG_INFO("Parsing sql query");
+  std::string updateSQL = "UPDATE A SET A1 = 999 WHERE A1 >= 1";
+
+  std::string ref =
+      "{\"Op\":\"LogicalUpdate\",\"Children\":"
+      "[{\"Op\":\"LogicalGet\",}]}";
+
+  auto parse_tree = parser_.BuildParseTree(updateSQL);
+  auto updateStmt = dynamic_cast<parser::UpdateStatement *>(parse_tree.GetStatements()[0].get());
+  binder_->BindNameToNode(updateStmt);
+  auto accessor_ = binder_->GetCatalogAccessor();
+  operator_transformer_ = new optimizer::QueryToOperatorTransformer(std::move(accessor_));
+  auto operator_tree = operator_transformer_->ConvertToOpExpression(updateStmt);
+  auto info = GetInfo(operator_tree);
+
+  EXPECT_EQ(ref, info);
+}
+
+// NOLINTNEXTLINE
 TEST_F(OperatorTransformerTest, SelectStatementAggregateTest) {
   // Test regular table name
   LOG_INFO("Parsing sql query");
   std::string selectSQL = "SELECT MAX(b1) FROM B";
 
   std::string ref =
+      "{\"Op\":\"LogicalAggregateAndGroupBy\",\"Children\":"
+      "[{\"Op\":\"LogicalGet\",}]}";
+
+  auto parse_tree = parser_.BuildParseTree(selectSQL);
+  auto selectStmt = dynamic_cast<parser::SelectStatement *>(parse_tree.GetStatements()[0].get());
+  binder_->BindNameToNode(selectStmt);
+  auto accessor_ = binder_->GetCatalogAccessor();
+  operator_transformer_ = new optimizer::QueryToOperatorTransformer(std::move(accessor_));
+  auto operator_tree = operator_transformer_->ConvertToOpExpression(selectStmt);
+  auto info = GetInfo(operator_tree);
+
+  EXPECT_EQ(ref, info);
+}
+
+// NOLINTNEXTLINE
+TEST_F(OperatorTransformerTest, SelectStatementOrderByTest) {
+  // Test regular table name
+  LOG_INFO("Parsing sql query");
+  std::string selectSQL = "SELECT b1 FROM B ORDER BY b1 LIMIT 2 OFFSET 1";
+
+  std::string ref =
       "{\"Op\":\"LogicalLimit\",\"Children\":"
-      "[{\"Op\":\"LogicalAggregateAndGroupBy\",\"Children\":"
-      "[{\"Op\":\"LogicalGet\",}]}]}";
+      "[{\"Op\":\"LogicalGet\",}]}";
 
   auto parse_tree = parser_.BuildParseTree(selectSQL);
   auto selectStmt = dynamic_cast<parser::SelectStatement *>(parse_tree.GetStatements()[0].get());
@@ -217,13 +277,11 @@ TEST_F(OperatorTransformerTest, SelectStatementComplexTest) {
       "GROUP BY A.a1, B.b2 HAVING a1 > 50 ORDER BY a1";
 
   std::string ref =
-      "{\"Op\":\"LogicalLimit\",\"Children\":"
-      "[{\"Op\":\"LogicalFilter\",\"Children\":"
+      "{\"Op\":\"LogicalFilter\",\"Children\":"
       "[{\"Op\":\"LogicalAggregateAndGroupBy\",\"Children\":"
       "[{\"Op\":\"LogicalFilter\",\"Children\":"
       "[{\"Op\":\"LogicalInnerJoin\",\"Children\":"
-      "[{\"Op\":\"LogicalGet\",},{\"Op\":\"LogicalGet\",}]}]}]}]}]}";
-  ;
+      "[{\"Op\":\"LogicalGet\",},{\"Op\":\"LogicalGet\",}]}]}]}]}";
 
   auto parse_tree = parser_.BuildParseTree(selectSQL);
   auto selectStmt = dynamic_cast<parser::SelectStatement *>(parse_tree.GetStatements()[0].get());
@@ -244,9 +302,8 @@ TEST_F(OperatorTransformerTest, SelectStatementStarTest) {
   std::string selectSQL = "SELECT * FROM A LEFT OUTER JOIN B ON A.A1 < B.B1";
 
   std::string ref =
-      "{\"Op\":\"LogicalLimit\",\"Children\":"
-      "[{\"Op\":\"LogicalLeftJoin\",\"Children\":"
-      "[{\"Op\":\"LogicalGet\",},{\"Op\":\"LogicalGet\",}]}]}";
+      "{\"Op\":\"LogicalLeftJoin\",\"Children\":"
+      "[{\"Op\":\"LogicalGet\",},{\"Op\":\"LogicalGet\",}]}";
 
   auto parse_tree = parser_.BuildParseTree(selectSQL);
   auto selectStmt = dynamic_cast<parser::SelectStatement *>(parse_tree.GetStatements()[0].get());
@@ -268,12 +325,11 @@ TEST_F(OperatorTransformerTest, SelectStatementStarNestedSelectTest) {
       "SELECT * FROM A LEFT OUTER JOIN (SELECT * FROM B INNER JOIN A ON B1 = A1) AS C ON C.B2 = a.A1";
 
   std::string ref =
-      "{\"Op\":\"LogicalLimit\",\"Children\":"
-      "[{\"Op\":\"LogicalLeftJoin\",\"Children\":"
+      "{\"Op\":\"LogicalLeftJoin\",\"Children\":"
       "[{\"Op\":\"LogicalGet\",},{\"Op\":\"LogicalQueryDerivedGet\",\"Children\":"
-      "[{\"Op\":\"LogicalLimit\",\"Children\":[{\"Op\":\"LogicalFilter\",\"Children\":"
+      "[{\"Op\":\"LogicalFilter\",\"Children\":"
       "[{\"Op\":\"LogicalInnerJoin\",\"Children\":"
-      "[{\"Op\":\"LogicalGet\",},{\"Op\":\"LogicalGet\",}]}]}]}]}]}]}";
+      "[{\"Op\":\"LogicalGet\",},{\"Op\":\"LogicalGet\",}]}]}]}]}";
 
   auto parse_tree = parser_.BuildParseTree(selectSQL);
   auto selectStmt = dynamic_cast<parser::SelectStatement *>(parse_tree.GetStatements()[0].get());
@@ -294,8 +350,7 @@ TEST_F(OperatorTransformerTest, SelectStatementNestedColumnTest) {
   std::string selectSQL = "SELECT A1, (SELECT B2 FROM B where B2 IS NULL LIMIT 1) FROM A";
 
   std::string ref =
-      "{\"Op\":\"LogicalLimit\",\"Children\":"
-      "[{\"Op\":\"LogicalGet\",}]}";
+      "{\"Op\":\"LogicalGet\",}";
 
   auto parse_tree = parser_.BuildParseTree(selectSQL);
   auto selectStmt = dynamic_cast<parser::SelectStatement *>(parse_tree.GetStatements()[0].get());
@@ -314,11 +369,10 @@ TEST_F(OperatorTransformerTest, SelectStatementDiffTableSameSchemaTest) {
   std::string selectSQL = "SELECT * FROM A, A as AA where A.a1 = AA.a2";
 
   std::string ref =
-      "{\"Op\":\"LogicalLimit\",\"Children\":"
-      "[{\"Op\":\"LogicalFilter\",\"Children\":"
+      "{\"Op\":\"LogicalFilter\",\"Children\":"
       "[{\"Op\":\"LogicalInnerJoin\",\"Children\":"
       "[{\"Op\":\"LogicalInnerJoin\",\"Children\":"
-      "[{\"Op\":\"LogicalGet\",},{\"Op\":\"LogicalGet\",}]},{\"Op\":\"LogicalGet\",}]}]}]}";
+      "[{\"Op\":\"LogicalGet\",},{\"Op\":\"LogicalGet\",}]},{\"Op\":\"LogicalGet\",}]}]}";
 
   auto parse_tree = parser_.BuildParseTree(selectSQL);
   auto selectStmt = dynamic_cast<parser::SelectStatement *>(parse_tree.GetStatements()[0].get());
@@ -339,11 +393,10 @@ TEST_F(OperatorTransformerTest, SelectStatementSelectListAliasTest) {
   std::string selectSQL = "SELECT AA.a1, b2 FROM A as AA, B WHERE AA.a1 = B.b1";
 
   std::string ref =
-      "{\"Op\":\"LogicalLimit\",\"Children\":"
-      "[{\"Op\":\"LogicalFilter\",\"Children\":"
+      "{\"Op\":\"LogicalFilter\",\"Children\":"
       "[{\"Op\":\"LogicalInnerJoin\",\"Children\":"
       "[{\"Op\":\"LogicalInnerJoin\",\"Children\":"
-      "[{\"Op\":\"LogicalGet\",},{\"Op\":\"LogicalGet\",}]},{\"Op\":\"LogicalGet\",}]}]}]}";
+      "[{\"Op\":\"LogicalGet\",},{\"Op\":\"LogicalGet\",}]},{\"Op\":\"LogicalGet\",}]}]}";
 
   auto parse_tree = parser_.BuildParseTree(selectSQL);
   auto selectStmt = dynamic_cast<parser::SelectStatement *>(parse_tree.GetStatements()[0].get());
@@ -386,9 +439,8 @@ TEST_F(OperatorTransformerTest, AggregateSimpleTest) {
   std::string selectSQL = "SELECT MAX(b1) FROM B;";
 
   std::string ref =
-      "{\"Op\":\"LogicalLimit\",\"Children\":"
-      "[{\"Op\":\"LogicalAggregateAndGroupBy\",\"Children\":"
-      "[{\"Op\":\"LogicalGet\",}]}]}";
+      "{\"Op\":\"LogicalAggregateAndGroupBy\",\"Children\":"
+      "[{\"Op\":\"LogicalGet\",}]}";
 
   auto parse_tree = parser_.BuildParseTree(selectSQL);
   auto selectStmt = dynamic_cast<parser::SelectStatement *>(parse_tree.GetStatements()[0].get());
@@ -409,9 +461,10 @@ TEST_F(OperatorTransformerTest, AggregateComplexTest) {
   std::string selectSQL = "SELECT A.a1 FROM A WHERE A.a1 IN (SELECT MAX(b1) FROM B);";
 
   std::string ref =
-      "{\"Op\":\"LogicalLimit\",\"Children\":"
-      "[{\"Op\":\"LogicalLeftJoin\",\"Children\":"
-      "[{\"Op\":\"LogicalGet\",},{\"Op\":\"LogicalGet\",}]}]}";
+      "{\"Op\":\"LogicalFilter\",\"Children\":"
+      "[{\"Op\":\"LogicalMarkJoin\",\"Children\":"
+      "[{\"Op\":\"LogicalGet\",},{\"Op\":\"LogicalAggregateAndGroupBy\",\"Children\":"
+      "[{\"Op\":\"LogicalGet\",}]}]}]}";
 
   auto parse_tree = parser_.BuildParseTree(selectSQL);
   auto selectStmt = dynamic_cast<parser::SelectStatement *>(parse_tree.GetStatements()[0].get());
@@ -471,4 +524,5 @@ TEST_F(OperatorTransformerTest, SubqueryComplexTest) {
 
   EXPECT_EQ(ref, info);
 }
+
 }  // namespace terrier
