@@ -87,7 +87,7 @@ void QueryToOperatorTransformer::Visit(parser::SelectStatement *op) {
     output_expr_ = distinct_expr;
   }
 
-  if (op->GetSelectLimit() != nullptr) {
+  if (op->GetSelectLimit() != nullptr && op->GetSelectLimit()->GetLimit() != -1) {
     std::vector<common::ManagedPointer<parser::AbstractExpression>> sort_exprs;
     std::vector<planner::OrderByOrderingType> sort_direction;
 
@@ -392,6 +392,7 @@ void QueryToOperatorTransformer::Visit(parser::ComparisonExpression *expr) {
     if (GenerateSubqueryTree(expr, 1)) {
       // TODO(boweic): Should use IN to preserve the semantic, for now we do not
       //  have semi-join so use = to transform into inner join
+      // TODO(Ling): now we have semi-join operators. Are we supporting it?
       expr->SetExpressionType(parser::ExpressionType::COMPARE_EQUAL);
     }
 
@@ -539,6 +540,7 @@ bool QueryToOperatorTransformer::GenerateSubqueryTree(parser::AbstractExpression
   // Get potential subquery
   auto subquery_expr = expr->GetChild(child_id);
   if (subquery_expr->GetExpressionType() != parser::ExpressionType::ROW_SUBQUERY) return false;
+
   auto sub_select = subquery_expr.CastManagedPointerTo<parser::SubqueryExpression>()->GetSubselect();
   if (!IsSupportedSubSelect(sub_select)) throw NOT_IMPLEMENTED_EXCEPTION("Sub-select not supported");
   // We only support subselect with single row
@@ -571,7 +573,9 @@ bool QueryToOperatorTransformer::GenerateSubqueryTree(parser::AbstractExpression
   //   which is a child of the parent expr, to a columnValueExpression?
   //   should we do that in binder?
   //   or we would make this class a friend of the expression
-  expr->SetChild(child_id, sub_select->GetSelectColumns().at(0)->Copy());
+
+  // TODO(Ling): we are setting the underlying pointer managedPtr to unique pointer...
+  expr->SetChild(child_id, sub_select->GetSelectColumns().at(0));
   return true;
 }
 
