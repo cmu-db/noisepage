@@ -190,7 +190,9 @@ namespace terrier::execution::ast {
   F(InserterGetTablePR, inserterGetTablePR)                     \
   F(InserterTableInsert, inserterTableInsert)                   \
   F(InserterGetIndexPR, inserterGetIndexPR)                     \
-  F(InserterIndexInsert, inserterIndexInsert)
+  F(InserterGetIndexPRBind, inserterGetIndexPRBind)             \
+  F(InserterIndexInsert, inserterIndexInsert)                   \
+  F(InserterIndexInsertBind, inserterIndexInsertBind)
 
 /**
  * Enum of builtins

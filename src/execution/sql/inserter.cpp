@@ -11,6 +11,15 @@ terrier::execution::sql::Inserter::Inserter(terrier::execution::exec::ExecutionC
   for (auto col : columns) {
     col_oids_.push_back(col.Oid());
   }
+
+  //getting index pr size
+  uint32_t index_pr_size = 0;
+  auto index_oids = exec_ctx->GetAccessor()->GetIndexes(table_oid_);
+  for(auto index_oid : index_oids) {
+    index_pr_size = MAX(index_pr_size, exec_ctx->GetAccessor()->GetIndex(index_oid)
+    ->GetProjectedRowInitializer().ProjectedRowSize());
+  }
+  index_pr_buffer_ = exec_ctx->GetMemoryPool()->AllocateAligned(index_pr_size, sizeof(uint64_t), true);
 }
 
 terrier::storage::ProjectedRow *terrier::execution::sql::Inserter::GetTablePR() {
@@ -19,26 +28,22 @@ terrier::storage::ProjectedRow *terrier::execution::sql::Inserter::GetTablePR() 
   auto txn = exec_ctx_->GetTxn();
   table_redo_ = txn->StageWrite(exec_ctx_->DBOid(), table_oid_, pri);
   table_pr_ = table_redo_->Delta();
-
   return table_pr_;
 }
 
 terrier::storage::ProjectedRow *terrier::execution::sql::Inserter::GetIndexPR(terrier::catalog::index_oid_t index_oid) {
+  //cache?
   auto index = exec_ctx_->GetAccessor()->GetIndex(index_oid);
-  terrier::storage::ProjectedRowInitializer pri = index->GetProjectedRowInitializer();
-  auto txn = exec_ctx_->GetTxn();
-  index_redo_ = txn->StageWrite(exec_ctx_->DBOid(), table_oid_, pri);
-  index_pr_ = index_redo_->Delta();
+  auto index_pri = index->GetProjectedRowInitializer();
+  index_pr_ = index->GetProjectedRowInitializer().InitializeRow(index_pr_buffer_);
   return index_pr_;
 }
+
 terrier::storage::TupleSlot terrier::execution::sql::Inserter::TableInsert() {
   table_tuple_slot_ = table_->Insert(exec_ctx_->GetTxn(), table_redo_);
-  size_t count2 = 0;
-  for (auto iter = table_->begin(); iter != table_->end(); iter++) {
-    count2++;
-  }
   return table_tuple_slot_;
 }
+
 bool terrier::execution::sql::Inserter::IndexInsert(terrier::catalog::index_oid_t index_oid) {
   auto index = exec_ctx_->GetAccessor()->GetIndex(index_oid);
   return index->Insert(exec_ctx_->GetTxn(), *index_pr_, table_tuple_slot_);

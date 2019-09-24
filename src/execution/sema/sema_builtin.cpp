@@ -1741,6 +1741,17 @@ void Sema::CheckBuiltinInserterCall(ast::CallExpr *call, ast::Builtin builtin) {
       call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
       break;
     }
+    case ast::Builtin::InserterIndexInsertBind: {
+      if (!CheckArgCount(call, 2)) {
+        return;
+      }
+      if (!call_args[1]->IsStringLiteral()) {
+        ReportIncorrectCallArg(call, 1, ast::StringType::Get(GetContext()));
+        return;
+      }
+      call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
+      break;
+    }
     case ast::Builtin::InserterGetIndexPR: {
       if (!CheckArgCount(call, 2)) {
         return;
@@ -1748,6 +1759,19 @@ void Sema::CheckBuiltinInserterCall(ast::CallExpr *call, ast::Builtin builtin) {
 
       if (!call_args[1]->IsIntegerLiteral()) {
         ReportIncorrectCallArg(call, 1, GetBuiltinType(int32_kind));
+        return;
+      }
+
+      call->SetType(GetBuiltinType(ast::BuiltinType::ProjectedRow));
+      break;
+    }
+    case ast::Builtin::InserterGetIndexPRBind: {
+      if (!CheckArgCount(call, 2)) {
+        return;
+      }
+
+      if (!call_args[1]->IsStringLiteral()) {
+        ReportIncorrectCallArg(call, 1, ast::StringType::Get(GetContext()));
         return;
       }
 
@@ -2040,6 +2064,8 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
     case ast::Builtin::InserterGetTablePR:
     case ast::Builtin::InserterTableInsert:
     case ast::Builtin::InserterGetIndexPR:
+    case ast::Builtin::InserterGetIndexPRBind:
+    case ast::Builtin::InserterIndexInsertBind:
     case ast::Builtin::InserterIndexInsert: {
       CheckBuiltinInserterCall(call, builtin);
       break;

@@ -54,7 +54,7 @@ fun main(execCtx: *ExecutionContext) -> int64 {
   count1 = 0
 
   var inserter : Inserter
-  @inserterInit(&inserter, execCtx, 1002)
+  @inserterInitBind(&inserter, execCtx, "test_1")
   var table_pr : *ProjectedRow = @inserterGetTablePR(&inserter)
   @prSetInt(table_pr, 0, @intToSql(15))
   @prSetInt(table_pr, 1, @intToSql(14))
@@ -71,11 +71,11 @@ fun main(execCtx: *ExecutionContext) -> int64 {
   @tableIterClose(&tvi)
 
   var ts : TupleSlot = @inserterTableInsert(&inserter)
-  var index_pr : *ProjectedRow = @inserterGetIndexPR(&inserter, 1006)
+  var index_pr : *ProjectedRow = @inserterGetIndexPRBind(&inserter, "index_1")
   @prSetInt(index_pr, 0, @prGetInt(table_pr, 0))
 
   var index_count_before = index_count(execCtx, 15)
-  @inserterIndexInsert(&inserter, 1006)
+  @inserterIndexInsertBind(&inserter, "index_1")
 
   @tableIterInitBind(&tvi, execCtx, "test_1", oids)
   var count2 : int64

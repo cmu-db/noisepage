@@ -28,8 +28,10 @@ class EXPORT Inserter {
 
   storage::TupleSlot table_tuple_slot_;
   storage::RedoRecord *table_redo_{nullptr};
-  storage::RedoRecord *index_redo_{nullptr};
+
   storage::ProjectedRow *table_pr_{nullptr};
+
+  void *index_pr_buffer_;
   storage::ProjectedRow *index_pr_{nullptr};
 };
 
