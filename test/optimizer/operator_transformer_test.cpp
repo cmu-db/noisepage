@@ -485,8 +485,8 @@ TEST_F(OperatorTransformerTest, OperatorComplexTest) {
   std::string selectSQL = "SELECT A.a1 FROM A WHERE 2 * A.a1 IN (SELECT b1+1 FROM B);";
 
   std::string ref =
-      "{\"Op\":\"LogicalLimit\",\"Children\":"
-      "[{\"Op\":\"LogicalLeftJoin\",\"Children\":"
+      "{\"Op\":\"LogicalFilter\",\"Children\":"
+      "[{\"Op\":\"LogicalMarkJoin\",\"Children\":"
       "[{\"Op\":\"LogicalGet\",},{\"Op\":\"LogicalGet\",}]}]}";
 
   auto parse_tree = parser_.BuildParseTree(selectSQL);
@@ -510,9 +510,14 @@ TEST_F(OperatorTransformerTest, SubqueryComplexTest) {
       "b2 > (SELECT a1 FROM A WHERE a2 > 0)) AND EXISTS (SELECT b1 FROM B WHERE B.b1 = A.a1)";
 
   std::string ref =
-      "{\"Op\":\"LogicalLimit\",\"Children\":"
-      "[{\"Op\":\"LogicalLeftJoin\",\"Children\":"
-      "[{\"Op\":\"LogicalGet\",},{\"Op\":\"LogicalGet\",}]}]}";
+      "{\"Op\":\"LogicalFilter\",\"Children\":"
+      "[{\"Op\":\"LogicalMarkJoin\",\"Children\":"
+      "[{\"Op\":\"LogicalMarkJoin\",\"Children\":"
+      "[{\"Op\":\"LogicalGet\",},{\"Op\":\"LogicalFilter\",\"Children\":"
+      "[{\"Op\":\"LogicalSingleJoin\",\"Children\":"
+      "[{\"Op\":\"LogicalGet\",},{\"Op\":\"LogicalFilter\",\"Children\":"
+      "[{\"Op\":\"LogicalGet\",}]}]}]}]},{\"Op\":\"LogicalFilter\",\"Children\":"
+      "[{\"Op\":\"LogicalGet\",}]}]}]}";
 
   auto parse_tree = parser_.BuildParseTree(selectSQL);
   auto selectStmt = dynamic_cast<parser::SelectStatement *>(parse_tree.GetStatements()[0].get());
