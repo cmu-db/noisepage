@@ -33,10 +33,11 @@ class TestConfig(object):
                                "garbage_collector_benchmark",
                                "large_transaction_benchmark",
                                "logging_benchmark",
+                               "recovery_benchmark",
                                "tuple_access_strategy_benchmark",
                                "tpcc_benchmark",
                                "bwtree_benchmark",
-                               "cuckoomap_benchmark"]
+                               "cuckoomap_benchmark",]
 
         # how many historical values are "required".
         self.min_ref_values = 10
@@ -717,6 +718,7 @@ class RunMicroBenchmarks(object):
                                "garbage_collector_benchmark",
                                "large_transaction_benchmark",
                                "logging_benchmark",
+                               "recovery_benchmark",
                                "tuple_access_strategy_benchmark",
                                "tpcc_benchmark",
                                "bwtree_benchmark",
