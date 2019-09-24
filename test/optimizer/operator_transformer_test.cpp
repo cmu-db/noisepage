@@ -199,8 +199,8 @@ TEST_F(OperatorTransformerTest, InsertStatementSimpleTest) {
   binder_->BindNameToNode(insertStmt);
   auto accessor_ = binder_->GetCatalogAccessor();
   operator_transformer_ = new optimizer::QueryToOperatorTransformer(std::move(accessor_));
-  auto operator_tree = operator_transformer_->ConvertToOpExpression(insertStmt);
-  auto info = GetInfo(operator_tree);
+  operator_tree_ = operator_transformer_->ConvertToOpExpression(insertStmt);
+  auto info = GetInfo(operator_tree_);
 
   EXPECT_EQ(ref, info);
 }
@@ -220,8 +220,8 @@ TEST_F(OperatorTransformerTest, UpdateStatementSimpleTest) {
   binder_->BindNameToNode(updateStmt);
   auto accessor_ = binder_->GetCatalogAccessor();
   operator_transformer_ = new optimizer::QueryToOperatorTransformer(std::move(accessor_));
-  auto operator_tree = operator_transformer_->ConvertToOpExpression(updateStmt);
-  auto info = GetInfo(operator_tree);
+  operator_tree_ = operator_transformer_->ConvertToOpExpression(updateStmt);
+  auto info = GetInfo(operator_tree_);
 
   EXPECT_EQ(ref, info);
 }
@@ -241,8 +241,8 @@ TEST_F(OperatorTransformerTest, SelectStatementAggregateTest) {
   binder_->BindNameToNode(selectStmt);
   auto accessor_ = binder_->GetCatalogAccessor();
   operator_transformer_ = new optimizer::QueryToOperatorTransformer(std::move(accessor_));
-  auto operator_tree = operator_transformer_->ConvertToOpExpression(selectStmt);
-  auto info = GetInfo(operator_tree);
+  operator_tree_ = operator_transformer_->ConvertToOpExpression(selectStmt);
+  auto info = GetInfo(operator_tree_);
 
   EXPECT_EQ(ref, info);
 }
