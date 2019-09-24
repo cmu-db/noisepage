@@ -95,7 +95,7 @@ class AbstractExpression {
     if (index >= (int)children_.size()) {
       children_.resize(index + 1);
     }
-    children_[index].reset(expr.Get());
+    children_[index] = expr->Copy();
   }
 
  public:
