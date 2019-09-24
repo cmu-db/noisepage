@@ -32,7 +32,9 @@ class AggregateExpression : public AbstractExpression {
     for (const auto &child : GetChildren()) {
       children.emplace_back(child->Copy());
     }
-    return std::make_unique<AggregateExpression>(GetExpressionType(), std::move(children), IsDistinct());
+    auto expr = std::make_unique<AggregateExpression>(GetExpressionType(), std::move(children), IsDistinct());
+    expr->SetMutableStateForCopy(*this);
+    return expr;
   }
 
   common::hash_t Hash() const override {

@@ -311,7 +311,7 @@ class IndexAttr {
   /** @return the expression that we're indexed on */
   common::ManagedPointer<AbstractExpression> GetExpression() const {
     TERRIER_ASSERT(expr_ != nullptr, "Names don't come with expressions.");
-    return common::ManagedPointer(expr_);
+    return expr_;
   }
 
  private:

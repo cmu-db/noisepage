@@ -17,7 +17,9 @@ class StarExpression : public AbstractExpression {
 
   std::unique_ptr<AbstractExpression> Copy() const override {
     // TODO(Tianyu): This really should be a singleton object
-    return std::make_unique<StarExpression>();
+    auto expr = std::make_unique<StarExpression>();
+    expr->SetMutableStateForCopy(*this);
+    return expr;
   }
 
   void Accept(SqlNodeVisitor *v) override { v->Visit(this); }

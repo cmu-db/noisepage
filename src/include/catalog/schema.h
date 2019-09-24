@@ -177,7 +177,6 @@ class Schema {
     bool nullable_;
     col_oid_t oid_;
 
-    // TODO(John) this should become a unique_ptr as part of addressing #489
     std::unique_ptr<parser::AbstractExpression> default_value_;
 
     void SetOid(col_oid_t oid) { oid_ = oid; }

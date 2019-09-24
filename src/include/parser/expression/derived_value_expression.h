@@ -28,7 +28,9 @@ class DerivedValueExpression : public AbstractExpression {
   DerivedValueExpression() = default;
 
   std::unique_ptr<AbstractExpression> Copy() const override {
-    return std::make_unique<DerivedValueExpression>(GetReturnValueType(), GetTupleIdx(), GetValueIdx());
+    auto expr = std::make_unique<DerivedValueExpression>(GetReturnValueType(), GetTupleIdx(), GetValueIdx());
+    expr->SetMutableStateForCopy(*this);
+    return expr;
   }
 
   /** @return index of the tuple */

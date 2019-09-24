@@ -81,7 +81,14 @@ class HashPlanNode : public AbstractPlanNode {
   /**
    * @return keys to be hashed on
    */
-  const std::vector<std::unique_ptr<parser::AbstractExpression>> &GetHashKeys() const { return hash_keys_; }
+  std::vector<common::ManagedPointer<parser::AbstractExpression>> GetHashKeys() const {
+    std::vector<common::ManagedPointer<parser::AbstractExpression>> hash_keys;
+    hash_keys.reserve(hash_keys_.size());
+    for (const auto &key : hash_keys_) {
+      hash_keys.emplace_back(common::ManagedPointer(key));
+    }
+    return hash_keys;
+  }
 
   /**
    * @return the hashed value of this plan node

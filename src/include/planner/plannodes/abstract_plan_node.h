@@ -84,7 +84,14 @@ class AbstractPlanNode {
   /**
    * @return child plan nodes
    */
-  const std::vector<std::unique_ptr<AbstractPlanNode>> &GetChildren() const { return children_; }
+  std::vector<common::ManagedPointer<AbstractPlanNode>> GetChildren() const {
+    std::vector<common::ManagedPointer<AbstractPlanNode>> children;
+    children.reserve(children_.size());
+    for (const auto &child : children_) {
+      children.emplace_back(common::ManagedPointer(child));
+    }
+    return children;
+  }
 
   /**
    * @return number of children

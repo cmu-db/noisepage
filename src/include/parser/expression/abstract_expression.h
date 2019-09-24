@@ -87,15 +87,16 @@ class AbstractExpression {
   void SetDepth(int depth) { depth_ = depth; }
 
   /**
-   * @param alias Alias of the expression
+   * Copies the mutable state of copy_expr. This should only be used for copying where we don't need to
+   * re-derive the expression.
+   * @param copy_expr the expression whose mutable state should be copied
    */
-  void SetAlias(const std::string &alias) { alias_ = alias; }
-
-  void SetChild(int index, common::ManagedPointer<AbstractExpression> expr) {
-    if (index >= (int)children_.size()) {
-      children_.resize(index + 1);
-    }
-    children_[index].reset(expr.Get());
+  void SetMutableStateForCopy(const AbstractExpression &copy_expr) {
+    SetExpressionName(copy_expr.GetExpressionName());
+    SetReturnValueType(copy_expr.GetReturnValueType());
+    SetDepth(copy_expr.GetDepth());
+    has_subquery_ = copy_expr.HasSubquery();
+    alias_ = copy_expr.alias_;
   }
 
  public:
@@ -170,7 +171,14 @@ class AbstractExpression {
   size_t GetChildrenSize() const { return children_.size(); }
 
   /** @return children of this abstract expression */
-  const std::vector<std::unique_ptr<AbstractExpression>> &GetChildren() const { return children_; }
+  std::vector<common::ManagedPointer<AbstractExpression>> GetChildren() const {
+    std::vector<common::ManagedPointer<AbstractExpression>> children;
+    children.reserve(children_.size());
+    for (const auto &child : children_) {
+      children.emplace_back(common::ManagedPointer(child));
+    }
+    return children;
+  }
 
   /**
    * @param index index of child
@@ -249,7 +257,7 @@ class AbstractExpression {
 
   /** Type of the current expression */
   ExpressionType expression_type_;
-  /** Name of the current expression */
+  /** MUTABLE Name of the current expression */
   std::string expression_name_;
   /** Alias of the current expression */
   std::string alias_;

@@ -93,7 +93,15 @@ class ColumnValueExpression : public AbstractExpression {
 
   // TODO(WAN) we should really have a constructor that's just "everything"
   std::unique_ptr<AbstractExpression> Copy() const override {
-    return std::make_unique<ColumnValueExpression>(GetDatabaseOid(), GetTableOid(), GetColumnOid());
+    auto expr = std::make_unique<ColumnValueExpression>(GetDatabaseOid(), GetTableOid(), GetColumnOid());
+    expr->SetMutableStateForCopy(*this);
+    expr->namespace_name_ = this->namespace_name_;
+    expr->table_name_ = this->table_name_;
+    expr->column_name_ = this->column_name_;
+    expr->SetDatabaseOID(this->database_oid_);
+    expr->SetTableOID(this->table_oid_);
+    expr->SetColumnOID(this->column_oid_);
+    return expr;
   }
 
   common::hash_t Hash() const override {

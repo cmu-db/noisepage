@@ -21,9 +21,40 @@ class ParseResult {
     expressions_.emplace_back(std::move(expression));
   }
 
-  const std::vector<std::unique_ptr<SQLStatement>> &GetStatements() { return statements_; }
+  // TODO(WAN): copying each time might be expensive, perhaps we can cache this
+  std::vector<common::ManagedPointer<SQLStatement>> GetStatements() {
+    std::vector<common::ManagedPointer<SQLStatement>> statements;
+    statements.reserve(statements_.size());
+    for (const auto &statement : statements_) {
+      statements.emplace_back(common::ManagedPointer(statement));
+    }
+    return statements;
+  }
 
-  const std::vector<std::unique_ptr<AbstractExpression>> &GetExpressions() { return expressions_; }
+  common::ManagedPointer<SQLStatement> GetStatement(size_t idx) {
+    return common::ManagedPointer(statements_[idx]);
+  }
+
+  std::vector<common::ManagedPointer<AbstractExpression>> GetExpressions() {
+    std::vector<common::ManagedPointer<AbstractExpression>> expressions;
+    expressions.reserve(expressions_.size());
+    for (const auto &statement : expressions_) {
+      expressions.emplace_back(common::ManagedPointer(statement));
+    }
+    return expressions;
+  }
+
+  common::ManagedPointer<AbstractExpression> GetExpression(size_t idx) {
+    return common::ManagedPointer(expressions_[idx]);
+  }
+
+  std::vector<std::unique_ptr<SQLStatement>> &&TakeStatementsOwnership() {
+    return std::move(statements_);
+  }
+
+  std::vector<std::unique_ptr<AbstractExpression>> &&TakeExpressionsOwnership() {
+    return std::move(expressions_);
+  }
 
  private:
   std::vector<std::unique_ptr<SQLStatement>> statements_;
@@ -150,8 +181,8 @@ class PostgresParser {
 
   // CREATE helpers
   using ColumnDefTransResult = struct {
-    std::unique_ptr<ColumnDefinition> col;
-    std::vector<std::unique_ptr<ColumnDefinition>> fks;
+    std::unique_ptr<ColumnDefinition> col_;
+    std::vector<std::unique_ptr<ColumnDefinition>> fks_;  // foreign keys
   };
   static ColumnDefTransResult ColumnDefTransform(ParseResult *parse_result, ColumnDef *root);
 
