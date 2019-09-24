@@ -26,8 +26,11 @@ constexpr col_oid_t INDIMMEDIATE_COL_OID = col_oid_t(6);    // BOOLEAN
 constexpr col_oid_t INDISVALID_COL_OID = col_oid_t(7);      // BOOLEAN
 constexpr col_oid_t INDISREADY_COL_OID = col_oid_t(8);      // BOOLEAN
 constexpr col_oid_t INDISLIVE_COL_OID = col_oid_t(9);       // BOOLEAN
+constexpr col_oid_t IND_TYPE_COL_OID = col_oid_t(10);       // CHAR (see IndexSchema)
 
-constexpr std::array<col_oid_t, 9> PG_INDEX_ALL_COL_OIDS = {
+constexpr uint8_t NUM_PG_INDEX_COLS = 10;
+
+constexpr std::array<col_oid_t, NUM_PG_INDEX_COLS> PG_INDEX_ALL_COL_OIDS = {
     INDOID_COL_OID,       INDRELID_COL_OID,   INDISUNIQUE_COL_OID, INDISPRIMARY_COL_OID, INDISEXCLUSION_COL_OID,
-    INDIMMEDIATE_COL_OID, INDISVALID_COL_OID, INDISREADY_COL_OID,  INDISLIVE_COL_OID};
+    INDIMMEDIATE_COL_OID, INDISVALID_COL_OID, INDISREADY_COL_OID,  INDISLIVE_COL_OID,    IND_TYPE_COL_OID};
 }  // namespace terrier::catalog::postgres

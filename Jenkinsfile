@@ -11,7 +11,7 @@ pipeline {
                     agent { label 'macos' }
                     environment {
                         ASAN_OPTIONS="detect_container_overflow=0"
-                        LLVM_DIR="/usr/local/Cellar/llvm/8.0.1"
+                        LLVM_DIR="/usr/local/Cellar/llvm@8/8.0.1"
                     }
                     steps {
                         sh 'echo $NODE_NAME'
@@ -71,7 +71,7 @@ pipeline {
                     agent { label 'macos' }
                     environment {
                         ASAN_OPTIONS="detect_container_overflow=0"
-                        LLVM_DIR="/usr/local/Cellar/llvm/8.0.1"
+                        LLVM_DIR="/usr/local/Cellar/llvm@8/8.0.1"
                     }
                     steps {
                         sh 'echo $NODE_NAME'

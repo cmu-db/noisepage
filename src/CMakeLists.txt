@@ -30,22 +30,22 @@ list(APPEND TERRIER_SRCS ${PROJECT_SOURCE_DIR}/third_party/nlohmann/json.hpp)
 
 # murmur3
 file(GLOB_RECURSE MURMUR3_SOURCES
-        ${PROJECT_SOURCE_DIR}/third_party/murmur3/*.cpp 
-        ${PROJECT_SOURCE_DIR}/third_party/murmur3/*.h 
+        ${PROJECT_SOURCE_DIR}/third_party/murmur3/*.cpp
+        ${PROJECT_SOURCE_DIR}/third_party/murmur3/*.h
 )
 list(APPEND TERRIER_SRCS ${MURMUR3_SOURCES})
 
 # madoka
 file(GLOB_RECURSE MADOKA_SOURCES
         ${PROJECT_SOURCE_DIR}/third_party/madoka/*.cc
-        ${PROJECT_SOURCE_DIR}/third_party/madoka/*.h 
+        ${PROJECT_SOURCE_DIR}/third_party/madoka/*.h
 )
 list(APPEND TERRIER_SRCS ${MADOKA_SOURCES})
 
 # libcount
 file(GLOB_RECURSE LIBCOUNT_SOURCES
         ${PROJECT_SOURCE_DIR}/third_party/libcount/*.cc
-        ${PROJECT_SOURCE_DIR}/third_party/libcount/*.h 
+        ${PROJECT_SOURCE_DIR}/third_party/libcount/*.h
 )
 list(APPEND TERRIER_SRCS ${LIBCOUNT_SOURCES})
 
@@ -61,6 +61,9 @@ list(APPEND TERRIER_SRCS ${XBYAK_SOURCES})
 file(GLOB_RECURSE XXHASH_SOURCES ${PROJECT_SOURCE_DIR}/third_party/xxHash/*.h)
 list(APPEND TERRIER_SRCS ${XXHASH_SOURCES})
 
+# libcuckoo
+file(GLOB_RECURSE LIBCUCKOO_SOURCES ${PROJECT_SOURCE_DIR}/third_party/libcuckoo/*.hh)
+list(APPEND TERRIER_SRCS ${LIBCUCKOO_SOURCES})
 
 ###############################################
 # Terrier library

@@ -1,4 +1,4 @@
-#include "util/transaction_benchmark_util.h"
+#include "util/data_table_benchmark_util.h"
 #include <algorithm>
 #include <cstring>
 #include <utility>
@@ -10,7 +10,7 @@
 #include "util/catalog_test_util.h"
 
 namespace terrier {
-RandomWorkloadTransaction::RandomWorkloadTransaction(LargeTransactionBenchmarkObject *test_object)
+RandomDataTableTransaction::RandomDataTableTransaction(LargeDataTableBenchmarkObject *test_object)
     : test_object_(test_object),
       txn_(test_object->txn_manager_.BeginTransaction()),
       aborted_(false),
@@ -18,13 +18,13 @@ RandomWorkloadTransaction::RandomWorkloadTransaction(LargeTransactionBenchmarkOb
       commit_time_(UINT64_MAX),
       buffer_(common::AllocationUtil::AllocateAligned(test_object->row_initializer_.ProjectedRowSize())) {}
 
-RandomWorkloadTransaction::~RandomWorkloadTransaction() {
+RandomDataTableTransaction::~RandomDataTableTransaction() {
   if (!test_object_->gc_on_) delete txn_;
   delete[] buffer_;
 }
 
 template <class Random>
-void RandomWorkloadTransaction::RandomUpdate(Random *generator) {
+void RandomDataTableTransaction::RandomUpdate(Random *generator) {
   if (aborted_) return;
   const storage::TupleSlot updated = *(RandomTestUtil::UniformRandomElement(test_object_->inserted_tuples_, generator));
   std::vector<storage::col_id_t> update_col_ids =
@@ -41,7 +41,7 @@ void RandomWorkloadTransaction::RandomUpdate(Random *generator) {
 }
 
 template <class Random>
-void RandomWorkloadTransaction::RandomInsert(Random *generator) {
+void RandomDataTableTransaction::RandomInsert(Random *generator) {
   if (aborted_) return;
   auto *const redo =
       txn_->StageWrite(CatalogTestUtil::TEST_DB_OID, CatalogTestUtil::TEST_TABLE_OID, test_object_->row_initializer_);
@@ -51,7 +51,7 @@ void RandomWorkloadTransaction::RandomInsert(Random *generator) {
 }
 
 template <class Random>
-void RandomWorkloadTransaction::RandomSelect(Random *generator) {
+void RandomDataTableTransaction::RandomSelect(Random *generator) {
   if (aborted_) return;
   const storage::TupleSlot selected =
       *(RandomTestUtil::UniformRandomElement(test_object_->inserted_tuples_, generator));
@@ -60,7 +60,7 @@ void RandomWorkloadTransaction::RandomSelect(Random *generator) {
   test_object_->table_.Select(txn_, selected, select);
 }
 
-void RandomWorkloadTransaction::Finish() {
+void RandomDataTableTransaction::Finish() {
   if (aborted_)
     test_object_->txn_manager_.Abort(txn_);
   else
@@ -68,13 +68,13 @@ void RandomWorkloadTransaction::Finish() {
 }
 
 // TODO(Tianyu): Convert to DI
-LargeTransactionBenchmarkObject::LargeTransactionBenchmarkObject(const std::vector<uint8_t> &attr_sizes,
-                                                                 uint32_t initial_table_size, uint32_t txn_length,
-                                                                 std::vector<double> operation_ratio,
-                                                                 storage::BlockStore *block_store,
-                                                                 storage::RecordBufferSegmentPool *buffer_pool,
-                                                                 std::default_random_engine *generator, bool gc_on,
-                                                                 storage::LogManager *log_manager)
+LargeDataTableBenchmarkObject::LargeDataTableBenchmarkObject(const std::vector<uint8_t> &attr_sizes,
+                                                             uint32_t initial_table_size, uint32_t txn_length,
+                                                             std::vector<double> operation_ratio,
+                                                             storage::BlockStore *block_store,
+                                                             storage::RecordBufferSegmentPool *buffer_pool,
+                                                             std::default_random_engine *generator, bool gc_on,
+                                                             storage::LogManager *log_manager)
     : txn_length_(txn_length),
       operation_ratio_(std::move(operation_ratio)),
       generator_(generator),
@@ -87,15 +87,15 @@ LargeTransactionBenchmarkObject::LargeTransactionBenchmarkObject(const std::vect
   PopulateInitialTable(initial_table_size, generator_);
 }
 
-LargeTransactionBenchmarkObject::~LargeTransactionBenchmarkObject() {
+LargeDataTableBenchmarkObject::~LargeDataTableBenchmarkObject() {
   if (!gc_on_) delete initial_txn_;
 }
 
 // Caller is responsible for freeing the returned results if bookkeeping is on.
-std::pair<uint64_t, uint64_t> LargeTransactionBenchmarkObject::SimulateOltp(
+std::pair<uint64_t, uint64_t> LargeDataTableBenchmarkObject::SimulateOltp(
     uint32_t num_transactions, uint32_t num_concurrent_txns, metrics::MetricsThread *const metrics_thread) {
   common::WorkerPool thread_pool(num_concurrent_txns, {});
-  std::vector<RandomWorkloadTransaction *> txns;
+  std::vector<RandomDataTableTransaction *> txns;
   std::function<void(uint32_t)> workload;
   std::atomic<uint32_t> txns_run = 0;
   if (gc_on_) {
@@ -103,7 +103,7 @@ std::pair<uint64_t, uint64_t> LargeTransactionBenchmarkObject::SimulateOltp(
     workload = [&](uint32_t /*unused*/) {
       if (metrics_thread != DISABLED) metrics_thread->GetMetricsManager().RegisterThread();
       for (uint32_t txn_id = txns_run++; txn_id < num_transactions; txn_id = txns_run++) {
-        RandomWorkloadTransaction txn(this);
+        RandomDataTableTransaction txn(this);
         SimulateOneTransaction(&txn, txn_id);
       }
     };
@@ -114,7 +114,7 @@ std::pair<uint64_t, uint64_t> LargeTransactionBenchmarkObject::SimulateOltp(
     workload = [&](uint32_t /*unused*/) {
       if (metrics_thread != DISABLED) metrics_thread->GetMetricsManager().RegisterThread();
       for (uint32_t txn_id = txns_run++; txn_id < num_transactions; txn_id = txns_run++) {
-        txns[txn_id] = new RandomWorkloadTransaction(this);
+        txns[txn_id] = new RandomDataTableTransaction(this);
         SimulateOneTransaction(txns[txn_id], txn_id);
       }
     };
@@ -131,7 +131,7 @@ std::pair<uint64_t, uint64_t> LargeTransactionBenchmarkObject::SimulateOltp(
   }
 
   // We only need to deallocate, and return, if gc is on, this loop is a no-op
-  for (RandomWorkloadTransaction *txn : txns) {
+  for (RandomDataTableTransaction *txn : txns) {
     if (txn->aborted_) abort_count_++;
     delete txn;
   }
@@ -139,7 +139,7 @@ std::pair<uint64_t, uint64_t> LargeTransactionBenchmarkObject::SimulateOltp(
   return {abort_count_, elapsed_ms};
 }
 
-void LargeTransactionBenchmarkObject::SimulateOneTransaction(terrier::RandomWorkloadTransaction *txn, uint32_t txn_id) {
+void LargeDataTableBenchmarkObject::SimulateOneTransaction(terrier::RandomDataTableTransaction *txn, uint32_t txn_id) {
   std::default_random_engine thread_generator(txn_id);
 
   auto insert = [&] { txn->RandomInsert(&thread_generator); };
@@ -151,7 +151,7 @@ void LargeTransactionBenchmarkObject::SimulateOneTransaction(terrier::RandomWork
 }
 
 template <class Random>
-void LargeTransactionBenchmarkObject::PopulateInitialTable(uint32_t num_tuples, Random *generator) {
+void LargeDataTableBenchmarkObject::PopulateInitialTable(uint32_t num_tuples, Random *generator) {
   initial_txn_ = txn_manager_.BeginTransaction();
 
   for (uint32_t i = 0; i < num_tuples; i++) {

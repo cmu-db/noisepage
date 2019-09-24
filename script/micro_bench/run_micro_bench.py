@@ -37,7 +37,8 @@ class TestConfig(object):
                                "logging_metrics_benchmark",
                                "tuple_access_strategy_benchmark",
                                "tpcc_benchmark",
-                               "bwtree_benchmark"]
+                               "bwtree_benchmark",
+                               "cuckoomap_benchmark"]
 
         # how many historical values are "required".
         self.min_ref_values = 10
@@ -722,7 +723,8 @@ class RunMicroBenchmarks(object):
                                "logging_metrics_benchmark",
                                "tuple_access_strategy_benchmark",
                                "tpcc_benchmark",
-                               "bwtree_benchmark"]
+                               "bwtree_benchmark",
+                               "cuckoomap_benchmark"]
 
         # minimum run time for the benchmark
         self.min_time = 10
