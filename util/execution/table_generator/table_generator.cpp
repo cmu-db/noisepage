@@ -279,13 +279,11 @@ void TableGenerator::InitTestIndexes() {
     for (const auto &col_meta : index_meta.cols_) {
       index_cols.emplace_back(col_meta.name_, col_meta.type_, col_meta.nullable_, DummyCVE());
     }
-    catalog::IndexSchema tmp_index_schema{index_cols, false, false, false, false};
+    catalog::IndexSchema tmp_index_schema{index_cols, storage::index::IndexType::BWTREE, false, false, false, false};
     // Create Index
     auto index_oid =
         exec_ctx_->GetAccessor()->CreateIndex(ns_oid_, table_oid, index_meta.index_name_, tmp_index_schema);
     auto &index_schema = exec_ctx_->GetAccessor()->GetIndexSchema(index_oid);
-    index_builder.SetOid(index_oid);
-    index_builder.SetConstraintType(storage::index::ConstraintType::DEFAULT);
     index_builder.SetKeySchema(index_schema);
     auto *tmp_index = index_builder.Build();
     exec_ctx_->GetAccessor()->SetIndexPointer(index_oid, tmp_index);

@@ -120,7 +120,7 @@ class RecoveryTests : public TerrierTest {
         "", type::TypeId::INTEGER, false,
         parser::ColumnValueExpression(catalog::db_oid_t(0), catalog::table_oid_t(0), catalog::col_oid_t(1)));
     StorageTestUtil::ForceOid(&(keycols[0]), catalog::indexkeycol_oid_t(1));
-    return catalog::IndexSchema(keycols, true, true, false, true);
+    return catalog::IndexSchema(keycols, storage::index::IndexType::BWTREE, true, true, false, true);
   }
 
   catalog::db_oid_t CreateDatabase(transaction::TransactionContext *txn, catalog::Catalog *catalog,
@@ -162,11 +162,7 @@ class RecoveryTests : public TerrierTest {
     auto index_schema = DummyIndexSchema();
     auto index_oid = db_catalog->CreateIndex(txn, ns_oid, index_name, table_oid, index_schema);
     EXPECT_TRUE(index_oid != catalog::INVALID_INDEX_OID);
-    auto *index_ptr = storage::index::IndexBuilder()
-                          .SetConstraintType(storage::index::ConstraintType::UNIQUE)
-                          .SetKeySchema(index_schema)
-                          .SetOid(index_oid)
-                          .Build();
+    auto *index_ptr = storage::index::IndexBuilder().SetKeySchema(index_schema).Build();
     EXPECT_TRUE(db_catalog->SetIndexPointer(txn, index_oid, index_ptr));
     return index_oid;
   }

@@ -246,14 +246,14 @@ TEST_F(CatalogTests, UserIndexTest) {
   // Create the index
   std::vector<catalog::IndexSchema::Column> key_cols{catalog::IndexSchema::Column{
       "id", type::TypeId::INTEGER, false, parser::ColumnValueExpression(db_, table_oid, schema.GetColumn("id").Oid())}};
-  auto index_schema = catalog::IndexSchema(key_cols, true, true, false, true);
+  auto index_schema = catalog::IndexSchema(key_cols, storage::index::IndexType::BWTREE, true, true, false, true);
   auto idx_oid = accessor->CreateIndex(accessor->GetDefaultNamespace(), table_oid,
                                        "test_table_index_mabobberwithareallylongnamethatstillneedsmore", index_schema);
   EXPECT_NE(idx_oid, catalog::INVALID_INDEX_OID);
   auto true_schema = accessor->GetIndexSchema(idx_oid);
 
   storage::index::IndexBuilder index_builder;
-  index_builder.SetOid(idx_oid).SetKeySchema(true_schema).SetConstraintType(storage::index::ConstraintType::UNIQUE);
+  index_builder.SetKeySchema(true_schema);
   auto index = index_builder.Build();
 
   EXPECT_TRUE(accessor->SetIndexPointer(idx_oid, index));
@@ -396,13 +396,13 @@ TEST_F(CatalogTests, GetIndexesTest) {
   // Create the index
   std::vector<catalog::IndexSchema::Column> key_cols{catalog::IndexSchema::Column{
       "id", type::TypeId::INTEGER, false, parser::ColumnValueExpression(db_, table_oid, schema.GetColumn("id").Oid())}};
-  auto index_schema = catalog::IndexSchema(key_cols, true, true, false, true);
+  auto index_schema = catalog::IndexSchema(key_cols, storage::index::IndexType::BWTREE, true, true, false, true);
   auto idx_oid = accessor->CreateIndex(accessor->GetDefaultNamespace(), table_oid, "test_table_idx", index_schema);
   EXPECT_NE(idx_oid, catalog::INVALID_INDEX_OID);
   auto true_schema = accessor->GetIndexSchema(idx_oid);
 
   storage::index::IndexBuilder index_builder;
-  index_builder.SetOid(idx_oid).SetKeySchema(true_schema).SetConstraintType(storage::index::ConstraintType::UNIQUE);
+  index_builder.SetKeySchema(true_schema);
   auto index = index_builder.Build();
 
   EXPECT_TRUE(accessor->SetIndexPointer(idx_oid, index));
@@ -444,7 +444,7 @@ TEST_F(CatalogTests, GetIndexObjectsTest) {
     std::vector<catalog::IndexSchema::Column> key_cols{
         catalog::IndexSchema::Column{"id", type::TypeId::INTEGER, false,
                                      parser::ColumnValueExpression(db_, table_oid, schema.GetColumn("id").Oid())}};
-    auto index_schema = catalog::IndexSchema(key_cols, true, true, false, true);
+    auto index_schema = catalog::IndexSchema(key_cols, storage::index::IndexType::BWTREE, true, true, false, true);
     auto idx_oid = accessor->CreateIndex(accessor->GetDefaultNamespace(), table_oid,
                                          "test_table_idx" + std::to_string(i), index_schema);
     EXPECT_NE(idx_oid, catalog::INVALID_INDEX_OID);
@@ -452,7 +452,7 @@ TEST_F(CatalogTests, GetIndexObjectsTest) {
     const auto &true_schema = accessor->GetIndexSchema(idx_oid);
 
     storage::index::IndexBuilder index_builder;
-    index_builder.SetOid(idx_oid).SetKeySchema(true_schema).SetConstraintType(storage::index::ConstraintType::UNIQUE);
+    index_builder.SetKeySchema(true_schema);
     auto index = index_builder.Build();
 
     EXPECT_TRUE(accessor->SetIndexPointer(idx_oid, index));

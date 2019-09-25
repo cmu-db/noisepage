@@ -25,8 +25,10 @@ constexpr col_oid_t TYPLEN_COL_OID = col_oid_t(4);        // SMALLINT
 constexpr col_oid_t TYPBYVAL_COL_OID = col_oid_t(5);      // BOOLEAN
 constexpr col_oid_t TYPTYPE_COL_OID = col_oid_t(6);       // CHAR
 
-constexpr std::array<col_oid_t, 6> PG_TYPE_ALL_COL_OIDS = {TYPOID_COL_OID, TYPNAME_COL_OID,  TYPNAMESPACE_COL_OID,
-                                                           TYPLEN_COL_OID, TYPBYVAL_COL_OID, TYPTYPE_COL_OID};
+constexpr uint8_t NUM_PG_TYPE_COLS = 6;
+
+constexpr std::array<col_oid_t, NUM_PG_TYPE_COLS> PG_TYPE_ALL_COL_OIDS = {
+    TYPOID_COL_OID, TYPNAME_COL_OID, TYPNAMESPACE_COL_OID, TYPLEN_COL_OID, TYPBYVAL_COL_OID, TYPTYPE_COL_OID};
 
 enum class Type : char {
   BASE = 'b',

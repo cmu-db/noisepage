@@ -135,13 +135,13 @@ class CatalogBenchmark : public benchmark::Fixture {
                                 const catalog::Schema::Column &col) {
     std::vector<catalog::IndexSchema::Column> key_cols{catalog::IndexSchema::Column{
         col.Name(), type::TypeId::INTEGER, false, parser::ColumnValueExpression(db_, table_oid, col.Oid())}};
-    auto index_schema = catalog::IndexSchema(key_cols, true, true, false, true);
+    auto index_schema = catalog::IndexSchema(key_cols, storage::index::IndexType::BWTREE, true, true, false, true);
     const auto idx_oid = accessor->CreateIndex(accessor->GetDefaultNamespace(), table_oid, index_name, index_schema);
     TERRIER_ASSERT(idx_oid != catalog::INVALID_INDEX_OID, "index creation should not fail");
     auto true_schema = accessor->GetIndexSchema(idx_oid);
 
     storage::index::IndexBuilder index_builder;
-    index_builder.SetOid(idx_oid).SetKeySchema(true_schema).SetConstraintType(storage::index::ConstraintType::UNIQUE);
+    index_builder.SetKeySchema(true_schema);
     auto index = index_builder.Build();
     bool result UNUSED_ATTRIBUTE = accessor->SetIndexPointer(idx_oid, index);
     TERRIER_ASSERT(result, "setting index pointer should not fail");

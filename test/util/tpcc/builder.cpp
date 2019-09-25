@@ -2,7 +2,7 @@
 
 namespace terrier::tpcc {
 
-Database *Builder::Build() {
+Database *Builder::Build(const storage::index::IndexType index_type) {
   // generate all of the table schemas
   auto item_schema = Schemas::BuildItemTableSchema(&oid_counter_);
   auto warehouse_schema = Schemas::BuildWarehouseTableSchema(&oid_counter_);
@@ -76,28 +76,108 @@ Database *Builder::Build() {
                  "Invalid schema configurations for I_ID.");
 
   // generate all of the index schemas
-  auto warehouse_primary_index_schema = Schemas::BuildWarehousePrimaryIndexSchema(warehouse_schema, &oid_counter_);
-  auto district_primary_index_schema = Schemas::BuildDistrictPrimaryIndexSchema(district_schema, &oid_counter_);
-  auto customer_primary_index_schema = Schemas::BuildCustomerPrimaryIndexSchema(customer_schema, &oid_counter_);
-  auto customer_secondary_index_schema = Schemas::BuildCustomerSecondaryIndexSchema(customer_schema, &oid_counter_);
-  auto new_order_primary_index_schema = Schemas::BuildNewOrderPrimaryIndexSchema(new_order_schema, &oid_counter_);
-  auto order_primary_index_schema = Schemas::BuildOrderPrimaryIndexSchema(order_schema, &oid_counter_);
-  auto order_secondary_index_schema = Schemas::BuildOrderSecondaryIndexSchema(order_schema, &oid_counter_);
-  auto order_line_primary_index_schema = Schemas::BuildOrderLinePrimaryIndexSchema(order_line_schema, &oid_counter_);
-  auto item_primary_index_schema = Schemas::BuildItemPrimaryIndexSchema(item_schema, &oid_counter_);
-  auto stock_primary_index_schema = Schemas::BuildStockPrimaryIndexSchema(stock_schema, &oid_counter_);
+  auto warehouse_primary_index_schema =
+      Schemas::BuildWarehousePrimaryIndexSchema(warehouse_schema, index_type, &oid_counter_);
+  auto district_primary_index_schema =
+      Schemas::BuildDistrictPrimaryIndexSchema(district_schema, index_type, &oid_counter_);
+  auto customer_primary_index_schema =
+      Schemas::BuildCustomerPrimaryIndexSchema(customer_schema, index_type, &oid_counter_);
+  auto customer_secondary_index_schema =
+      Schemas::BuildCustomerSecondaryIndexSchema(customer_schema, index_type, &oid_counter_);
+  auto new_order_primary_index_schema =
+      Schemas::BuildNewOrderPrimaryIndexSchema(new_order_schema, storage::index::IndexType::BWTREE, &oid_counter_);
+  auto order_primary_index_schema = Schemas::BuildOrderPrimaryIndexSchema(order_schema, index_type, &oid_counter_);
+  auto order_secondary_index_schema =
+      Schemas::BuildOrderSecondaryIndexSchema(order_schema, storage::index::IndexType::BWTREE, &oid_counter_);
+  auto order_line_primary_index_schema =
+      Schemas::BuildOrderLinePrimaryIndexSchema(order_line_schema, storage::index::IndexType::BWTREE, &oid_counter_);
+  auto item_primary_index_schema = Schemas::BuildItemPrimaryIndexSchema(item_schema, index_type, &oid_counter_);
+  auto stock_primary_index_schema = Schemas::BuildStockPrimaryIndexSchema(stock_schema, index_type, &oid_counter_);
 
   // instantiate all of the indexes
-  auto *const warehouse_index = BuildPrimaryIndex(warehouse_primary_index_schema);
-  auto *const district_index = BuildPrimaryIndex(district_primary_index_schema);
-  auto *const customer_index = BuildPrimaryIndex(customer_primary_index_schema);
-  auto *const customer_secondary_index = BuildSecondaryIndex(customer_secondary_index_schema);
-  auto *const new_order_index = BuildPrimaryIndex(new_order_primary_index_schema);
-  auto *const order_index = BuildPrimaryIndex(order_primary_index_schema);
-  auto *const order_secondary_index = BuildPrimaryIndex(order_secondary_index_schema);
-  auto *const order_line_index = BuildPrimaryIndex(order_line_primary_index_schema);
-  auto *const item_index = BuildPrimaryIndex(item_primary_index_schema);
-  auto *const stock_index = BuildPrimaryIndex(stock_primary_index_schema);
+  auto *const warehouse_index = BuildIndex(warehouse_primary_index_schema);
+  auto *const district_index = BuildIndex(district_primary_index_schema);
+  auto *const customer_index = BuildIndex(customer_primary_index_schema);
+  auto *const customer_secondary_index = BuildIndex(customer_secondary_index_schema);
+  auto *const new_order_index = BuildIndex(new_order_primary_index_schema);
+  auto *const order_index = BuildIndex(order_primary_index_schema);
+  auto *const order_secondary_index = BuildIndex(order_secondary_index_schema);
+  auto *const order_line_index = BuildIndex(order_line_primary_index_schema);
+  auto *const item_index = BuildIndex(item_primary_index_schema);
+  auto *const stock_index = BuildIndex(stock_primary_index_schema);
+
+  // Verify that we got the indexes and key types that we expect out of the builder
+  if (index_type == storage::index::IndexType::HASHMAP) {
+    TERRIER_ASSERT(warehouse_index->Type() == storage::index::IndexType::HASHMAP, "Constructed the wrong index type.");
+    TERRIER_ASSERT(district_index->Type() == storage::index::IndexType::HASHMAP, "Constructed the wrong index type.");
+    TERRIER_ASSERT(customer_index->Type() == storage::index::IndexType::HASHMAP, "Constructed the wrong index type.");
+    TERRIER_ASSERT(customer_secondary_index->Type() == storage::index::IndexType::HASHMAP,
+                   "Constructed the wrong index type.");
+    TERRIER_ASSERT(new_order_index->Type() == storage::index::IndexType::BWTREE, "Constructed the wrong index type.");
+    TERRIER_ASSERT(order_index->Type() == storage::index::IndexType::HASHMAP, "Constructed the wrong index type.");
+    TERRIER_ASSERT(order_secondary_index->Type() == storage::index::IndexType::BWTREE,
+                   "Constructed the wrong index type.");
+    TERRIER_ASSERT(order_line_index->Type() == storage::index::IndexType::BWTREE, "Constructed the wrong index type.");
+    TERRIER_ASSERT(item_index->Type() == storage::index::IndexType::HASHMAP, "Constructed the wrong index type.");
+    TERRIER_ASSERT(stock_index->Type() == storage::index::IndexType::HASHMAP, "Constructed the wrong index type.");
+
+    TERRIER_ASSERT(warehouse_index->KeyKind() == storage::index::IndexKeyKind::HASHKEY,
+                   "Constructed the wrong index key type.");
+    TERRIER_ASSERT(district_index->KeyKind() == storage::index::IndexKeyKind::HASHKEY,
+                   "Constructed the wrong index key type.");
+    TERRIER_ASSERT(customer_index->KeyKind() == storage::index::IndexKeyKind::HASHKEY,
+                   "Constructed the wrong index key type.");
+    TERRIER_ASSERT(customer_secondary_index->KeyKind() == storage::index::IndexKeyKind::GENERICKEY,
+                   "Constructed the wrong index key type.");
+    TERRIER_ASSERT(new_order_index->KeyKind() == storage::index::IndexKeyKind::COMPACTINTSKEY,
+                   "Constructed the wrong index key type.");
+    TERRIER_ASSERT(order_index->KeyKind() == storage::index::IndexKeyKind::HASHKEY,
+                   "Constructed the wrong index type.");
+    TERRIER_ASSERT(order_secondary_index->KeyKind() == storage::index::IndexKeyKind::COMPACTINTSKEY,
+                   "Constructed the wrong index key type.");
+    TERRIER_ASSERT(order_line_index->KeyKind() == storage::index::IndexKeyKind::COMPACTINTSKEY,
+                   "Constructed the wrong index key type.");
+    TERRIER_ASSERT(item_index->KeyKind() == storage::index::IndexKeyKind::HASHKEY,
+                   "Constructed the wrong index key type.");
+    TERRIER_ASSERT(stock_index->KeyKind() == storage::index::IndexKeyKind::HASHKEY,
+                   "Constructed the wrong index key type.");
+  } else {
+    TERRIER_ASSERT(index_type == storage::index::IndexType::BWTREE,
+                   "This branch expects the BwTree. Did you add another IndexType to the system?");
+    TERRIER_ASSERT(warehouse_index->Type() == storage::index::IndexType::BWTREE, "Constructed the wrong index type.");
+    TERRIER_ASSERT(district_index->Type() == storage::index::IndexType::BWTREE, "Constructed the wrong index type.");
+    TERRIER_ASSERT(customer_index->Type() == storage::index::IndexType::BWTREE, "Constructed the wrong index type.");
+    TERRIER_ASSERT(customer_secondary_index->Type() == storage::index::IndexType::BWTREE,
+                   "Constructed the wrong index type.");
+    TERRIER_ASSERT(new_order_index->Type() == storage::index::IndexType::BWTREE, "Constructed the wrong index type.");
+    TERRIER_ASSERT(order_index->Type() == storage::index::IndexType::BWTREE, "Constructed the wrong index type.");
+    TERRIER_ASSERT(order_secondary_index->Type() == storage::index::IndexType::BWTREE,
+                   "Constructed the wrong index type.");
+    TERRIER_ASSERT(order_line_index->Type() == storage::index::IndexType::BWTREE, "Constructed the wrong index type.");
+    TERRIER_ASSERT(item_index->Type() == storage::index::IndexType::BWTREE, "Constructed the wrong index type.");
+    TERRIER_ASSERT(stock_index->Type() == storage::index::IndexType::BWTREE, "Constructed the wrong index type.");
+
+    TERRIER_ASSERT(warehouse_index->KeyKind() == storage::index::IndexKeyKind::COMPACTINTSKEY,
+                   "Constructed the wrong index key type.");
+    TERRIER_ASSERT(district_index->KeyKind() == storage::index::IndexKeyKind::COMPACTINTSKEY,
+                   "Constructed the wrong index key type.");
+    TERRIER_ASSERT(customer_index->KeyKind() == storage::index::IndexKeyKind::COMPACTINTSKEY,
+                   "Constructed the wrong index key type.");
+    TERRIER_ASSERT(customer_secondary_index->KeyKind() == storage::index::IndexKeyKind::GENERICKEY,
+                   "Constructed the wrong index key type.");
+    TERRIER_ASSERT(new_order_index->KeyKind() == storage::index::IndexKeyKind::COMPACTINTSKEY,
+                   "Constructed the wrong index key type.");
+    TERRIER_ASSERT(order_index->KeyKind() == storage::index::IndexKeyKind::COMPACTINTSKEY,
+                   "Constructed the wrong index type.");
+    TERRIER_ASSERT(order_secondary_index->KeyKind() == storage::index::IndexKeyKind::COMPACTINTSKEY,
+                   "Constructed the wrong index key type.");
+    TERRIER_ASSERT(order_line_index->KeyKind() == storage::index::IndexKeyKind::COMPACTINTSKEY,
+                   "Constructed the wrong index key type.");
+    TERRIER_ASSERT(item_index->KeyKind() == storage::index::IndexKeyKind::COMPACTINTSKEY,
+                   "Constructed the wrong index key type.");
+    TERRIER_ASSERT(stock_index->KeyKind() == storage::index::IndexKeyKind::COMPACTINTSKEY,
+                   "Constructed the wrong index key type.");
+  }
 
   const catalog::db_oid_t db_oid(++oid_counter_);
 
