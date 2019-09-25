@@ -70,7 +70,7 @@ pipeline {
                         sh 'cd build && lcov --list coverage.info'
                         sh 'cd build && curl -s https://codecov.io/bash > ./codecov.sh'
                         sh 'cd build && chmod a+x ./codecov.sh'
-                        sh 'cd build && /bin/bash ./codecov.sh -X gcov -U \"--proxy http://proxy.pdl.cmu.edu:3128/\"'
+                        sh 'cd build && /bin/bash ./codecov.sh -X gcov'
                     }
                 }
 
