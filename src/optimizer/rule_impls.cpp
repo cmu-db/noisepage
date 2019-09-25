@@ -221,7 +221,7 @@ bool GetToIndexScan::Check(OperatorExpression *plan, OptimizeContext *context) c
   }
 
   auto *accessor = context->GetMetadata()->GetCatalogAccessor();
-  return !accessor->GetIndexes(get->GetTableOID()).empty();
+  return !accessor->GetIndexOids(get->GetTableOID()).empty();
 }
 
 void GetToIndexScan::Transform(OperatorExpression *input, std::vector<OperatorExpression *> *transformed,
@@ -240,7 +240,7 @@ void GetToIndexScan::Transform(OperatorExpression *input, std::vector<OperatorEx
     // Check if can satisfy sort property with an index
     auto sort_prop = sort->As<PropertySort>();
     if (IndexUtil::CheckSortProperty(sort_prop)) {
-      auto indexes = accessor->GetIndexes(get->GetTableOID());
+      auto indexes = accessor->GetIndexOids(get->GetTableOID());
       for (auto index : indexes) {
         if (IndexUtil::SatisfiesSortWithIndex(sort_prop, get->GetTableOID(), index, accessor)) {
           std::vector<AnnotatedExpression> preds = get->GetPredicates();
@@ -259,7 +259,7 @@ void GetToIndexScan::Transform(OperatorExpression *input, std::vector<OperatorEx
     IndexUtil::PopulateMetadata(get->GetPredicates(), &metadata);
 
     // Find match index for the predicates
-    auto indexes = accessor->GetIndexes(get->GetTableOID());
+    auto indexes = accessor->GetIndexOids(get->GetTableOID());
     for (auto &index : indexes) {
       IndexUtilMetadata output;
       if (IndexUtil::SatisfiesPredicateWithIndex(get->GetTableOID(), index, &metadata, &output, accessor)) {
@@ -418,11 +418,17 @@ void LogicalInsertToPhysical::Transform(OperatorExpression *input, std::vector<O
   const auto insert_op = input->GetOp().As<LogicalInsert>();
   TERRIER_ASSERT(input->GetChildren().empty(), "LogicalInsert should have 0 children");
 
+  // For now any insert will update all indexes
+  auto *accessor = context->GetMetadata()->GetCatalogAccessor();
+  auto tbl_oid = insert_op->GetTableOid();
+  auto indexes = accessor->GetIndexOids(tbl_oid);
+
   std::vector<catalog::col_oid_t> cols = insert_op->GetColumns();
   std::vector<std::vector<common::ManagedPointer<const parser::AbstractExpression>>> vals = insert_op->GetValues();
-  auto result = new OperatorExpression(Insert::Make(insert_op->GetDatabaseOid(), insert_op->GetNamespaceOid(),
-                                                    insert_op->GetTableOid(), std::move(cols), std::move(vals)),
-                                       {});
+  auto result = new OperatorExpression(
+      Insert::Make(insert_op->GetDatabaseOid(), insert_op->GetNamespaceOid(), insert_op->GetTableOid(), std::move(cols),
+                   std::move(vals), std::move(indexes)),
+      {});
   transformed->push_back(result);
 }
 
@@ -448,9 +454,15 @@ void LogicalInsertSelectToPhysical::Transform(OperatorExpression *input, std::ve
   const auto insert_op = input->GetOp().As<LogicalInsertSelect>();
   TERRIER_ASSERT(input->GetChildren().size() == 1, "LogicalInsertSelect should have 1 child");
 
+  // For now, insert any tuple will modify indexes
+  auto *accessor = context->GetMetadata()->GetCatalogAccessor();
+  auto tbl_oid = insert_op->GetTableOid();
+  auto indexes = accessor->GetIndexOids(tbl_oid);
+
   auto child = input->GetChildren()[0]->Copy();
-  auto op = new OperatorExpression(
-      InsertSelect::Make(insert_op->GetDatabaseOid(), insert_op->GetNamespaceOid(), insert_op->GetTableOid()), {child});
+  auto op = new OperatorExpression(InsertSelect::Make(insert_op->GetDatabaseOid(), insert_op->GetNamespaceOid(),
+                                                      insert_op->GetTableOid(), std::move(indexes)),
+                                   {child});
   transformed->push_back(op);
 }
 

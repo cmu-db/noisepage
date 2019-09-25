@@ -1,4 +1,5 @@
 #include <memory>
+#include <string>
 #include <utility>
 #include <vector>
 
@@ -84,27 +85,67 @@ class CatalogBenchmark : public benchmark::Fixture {
 
     auto result UNUSED_ATTRIBUTE = accessor->SetTablePointer(table_oid, table);
     TERRIER_ASSERT(result, "setting table pointer should not fail");
+    auto idx_oid = AddIndex(accessor, table_oid, "test_table_idx", schema.GetColumn("id"));
+    txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
-    // Create the index
-    std::vector<catalog::IndexSchema::Column> key_cols{
-        catalog::IndexSchema::Column{"id", type::TypeId::INTEGER, false,
-                                     parser::ColumnValueExpression(db_, table_oid, schema.GetColumn("id").Oid())}};
+    return {table_oid, idx_oid};
+  }
+
+  std::pair<catalog::table_oid_t, std::vector<catalog::index_oid_t>> AddUserTableAndIndexes(
+      const uint16_t num_indexes) {
+    auto txn = txn_manager_->BeginTransaction();
+    auto accessor = catalog_->GetAccessor(txn, db_);
+
+    // Create the column definition (no OIDs)
+    std::vector<catalog::Schema::Column> cols;
+    cols.emplace_back("id", type::TypeId::INTEGER, false,
+                      parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
+    cols.emplace_back("user_col_1", type::TypeId::INTEGER, false,
+                      parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
+    auto tmp_schema = catalog::Schema(cols);
+
+    const auto table_oid = accessor->CreateTable(accessor->GetDefaultNamespace(), "test_table", tmp_schema);
+    TERRIER_ASSERT(table_oid != catalog::INVALID_TABLE_OID, "table creation should not fail");
+    auto schema = accessor->GetSchema(table_oid);
+    auto table = new storage::SqlTable(&block_store_, schema);
+
+    auto result UNUSED_ATTRIBUTE = accessor->SetTablePointer(table_oid, table);
+    TERRIER_ASSERT(result, "setting table pointer should not fail");
+    std::vector<catalog::index_oid_t> idx_oids;
+    idx_oids.reserve(num_indexes);
+    const auto &col = schema.GetColumn("id");
+    for (uint16_t i = 0; i < num_indexes; i++) {
+      idx_oids.push_back(AddIndex(accessor, table_oid, "test_table_idx_" + std::to_string(i), col));
+    }
+    txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+
+    return {table_oid, idx_oids};
+  }
+
+  /**
+   * Constructs an index on a specific column
+   * @param accessor accessor to construct index in
+   * @param table_oid table to consturct index on
+   * @param name name of index
+   * @param col col to create index on. Index col will also share the same name as this col
+   * @return oid of index created
+   */
+  catalog::index_oid_t AddIndex(const std::unique_ptr<catalog::CatalogAccessor> &accessor,
+                                catalog::table_oid_t table_oid, const std::string &index_name,
+                                const catalog::Schema::Column &col) {
+    std::vector<catalog::IndexSchema::Column> key_cols{catalog::IndexSchema::Column{
+        col.Name(), type::TypeId::INTEGER, false, parser::ColumnValueExpression(db_, table_oid, col.Oid())}};
     auto index_schema = catalog::IndexSchema(key_cols, true, true, false, true);
-    const auto idx_oid =
-        accessor->CreateIndex(accessor->GetDefaultNamespace(), table_oid, "test_table_idx", index_schema);
+    const auto idx_oid = accessor->CreateIndex(accessor->GetDefaultNamespace(), table_oid, index_name, index_schema);
     TERRIER_ASSERT(idx_oid != catalog::INVALID_INDEX_OID, "index creation should not fail");
     auto true_schema = accessor->GetIndexSchema(idx_oid);
 
     storage::index::IndexBuilder index_builder;
     index_builder.SetOid(idx_oid).SetKeySchema(true_schema).SetConstraintType(storage::index::ConstraintType::UNIQUE);
     auto index = index_builder.Build();
-
-    result = accessor->SetIndexPointer(idx_oid, index);
+    bool result UNUSED_ATTRIBUTE = accessor->SetIndexPointer(idx_oid, index);
     TERRIER_ASSERT(result, "setting index pointer should not fail");
-
-    txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
-
-    return {table_oid, idx_oid};
+    return idx_oid;
   }
 };
 
@@ -187,7 +228,7 @@ BENCHMARK_DEFINE_F(CatalogBenchmark, GetIndexOid)(benchmark::State &state) {
 }
 
 // NOLINTNEXTLINE
-BENCHMARK_DEFINE_F(CatalogBenchmark, GetIndexOids)(benchmark::State &state) {
+BENCHMARK_DEFINE_F(CatalogBenchmark, GetIndexes)(benchmark::State &state) {
   const auto oids UNUSED_ATTRIBUTE = AddUserTableAndIndex();
 
   auto *txn = txn_manager_->BeginTransaction();
@@ -296,6 +337,25 @@ BENCHMARK_DEFINE_F(CatalogBenchmark, GetTableOid)(benchmark::State &state) {
   state.SetItemsProcessed(state.iterations());
 }
 
+// NOLINTNEXTLINE
+BENCHMARK_DEFINE_F(CatalogBenchmark, GetIndexObjects)(benchmark::State &state) {
+  const auto num_indexes = 5;
+  const auto oids UNUSED_ATTRIBUTE = AddUserTableAndIndexes(num_indexes);
+
+  auto *txn = txn_manager_->BeginTransaction();
+  auto accessor = catalog_->GetAccessor(txn, db_);
+
+  // NOLINTNEXTLINE
+  for (auto _ : state) {
+    const auto test_indexes UNUSED_ATTRIBUTE = accessor->GetIndexes(oids.first);
+    TERRIER_ASSERT(!test_indexes.empty(), "getting index objects should not fail");
+  }
+
+  txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+
+  state.SetItemsProcessed(num_indexes * state.iterations());
+}
+
 // Catalog benchmarks
 BENCHMARK_REGISTER_F(CatalogBenchmark, GetAccessor)->Unit(benchmark::kNanosecond);
 BENCHMARK_REGISTER_F(CatalogBenchmark, GetDatabaseOid)->Unit(benchmark::kNanosecond);
@@ -304,10 +364,11 @@ BENCHMARK_REGISTER_F(CatalogBenchmark, GetDatabaseCatalog)->Unit(benchmark::kNan
 // CatalogAccessor benchmarks
 BENCHMARK_REGISTER_F(CatalogBenchmark, GetIndex)->Unit(benchmark::kNanosecond);
 BENCHMARK_REGISTER_F(CatalogBenchmark, GetIndexOid)->Unit(benchmark::kNanosecond);
-BENCHMARK_REGISTER_F(CatalogBenchmark, GetIndexOids)->Unit(benchmark::kNanosecond);
+BENCHMARK_REGISTER_F(CatalogBenchmark, GetIndexes)->Unit(benchmark::kNanosecond);
 BENCHMARK_REGISTER_F(CatalogBenchmark, GetIndexSchema)->Unit(benchmark::kNanosecond);
 BENCHMARK_REGISTER_F(CatalogBenchmark, GetNamespaceOid)->Unit(benchmark::kNanosecond);
 BENCHMARK_REGISTER_F(CatalogBenchmark, GetSchema)->Unit(benchmark::kNanosecond);
 BENCHMARK_REGISTER_F(CatalogBenchmark, GetTable)->Unit(benchmark::kNanosecond);
 BENCHMARK_REGISTER_F(CatalogBenchmark, GetTableOid)->Unit(benchmark::kNanosecond);
+BENCHMARK_REGISTER_F(CatalogBenchmark, GetIndexObjects)->Unit(benchmark::kNanosecond);
 }  // namespace terrier

@@ -260,6 +260,11 @@ void DatabaseCatalog::BootstrapPRIs() {
                                                                   postgres::RELKIND_COL_OID};
   get_class_schema_pointer_kind_pri_ = classes_->InitializerForProjectedRow(get_class_schema_pointer_kind_oids);
 
+  const std::vector<col_oid_t> get_class_object_and_schema_oids{postgres::REL_PTR_COL_OID,
+                                                                postgres::REL_SCHEMA_COL_OID};
+  get_class_object_and_schema_pri_ = classes_->InitializerForProjectedRow(get_class_object_and_schema_oids);
+  get_class_object_and_schema_prm_ = classes_->ProjectionMapForOids(get_class_object_and_schema_oids);
+
   // pg_index
   const std::vector<col_oid_t> pg_index_all_oids{postgres::PG_INDEX_ALL_COL_OIDS.cbegin(),
                                                  postgres::PG_INDEX_ALL_COL_OIDS.cend()};
@@ -503,6 +508,8 @@ std::vector<Column> DatabaseCatalog::GetColumns(transaction::TransactionContext 
   byte *const buffer = common::AllocationUtil::AllocateAligned(get_columns_pri_.ProjectedRowSize());
   byte *const key_buffer = common::AllocationUtil::AllocateAligned(oid_pri.ProjectedRowSize());
   // Scan the class index
+  TERRIER_ASSERT(get_columns_pri_.ProjectedRowSize() >= oid_pri.ProjectedRowSize(),
+                 "Buffer must be large enough to fit largest PR");
   auto *pr = oid_pri.InitializeRow(buffer);
   auto *pr_high = oid_pri.InitializeRow(key_buffer);
 
@@ -708,10 +715,12 @@ bool DatabaseCatalog::DeleteTable(transaction::TransactionContext *const txn, co
   // function comment.
   txn->RegisterCommitAction([=](transaction::DeferredActionManager *deferred_action_manager) {
     deferred_action_manager->RegisterDeferredAction([=]() {
-      // Defer an action upon commit to delete the table. Delete index will need a double deferral because there could
-      // be pending deferred actions on an index
-      delete schema_ptr;
-      delete table_ptr;
+      deferred_action_manager->RegisterDeferredAction([=]() {
+        // Defer an action upon commit to delete the table. Delete table will need a double deferral because there could
+        // be transactions not yet unlinked by the GC that depend on the table
+        delete schema_ptr;
+        delete table_ptr;
+      });
     });
   });
 
@@ -781,7 +790,7 @@ bool DatabaseCatalog::SetTablePointer(transaction::TransactionContext *const txn
   txn->RegisterAbortAction([=](transaction::DeferredActionManager *deferred_action_manager) {
     deferred_action_manager->RegisterDeferredAction([=]() { delete table_ptr; });
   });
-  return SetClassPointer(txn, table, table_ptr);
+  return SetClassPointer(txn, table, table_ptr, postgres::REL_PTR_COL_OID);
 }
 
 /**
@@ -826,8 +835,7 @@ std::vector<constraint_oid_t> DatabaseCatalog::GetConstraints(transaction::Trans
   return {};
 }
 
-std::vector<index_oid_t> DatabaseCatalog::GetIndexes(transaction::TransactionContext *const txn,
-                                                     const table_oid_t table) {
+std::vector<index_oid_t> DatabaseCatalog::GetIndexOids(transaction::TransactionContext *txn, table_oid_t table) {
   // Initialize PR for index scan
   auto oid_pri = indexes_table_index_->GetProjectedRowInitializer();
 
@@ -1010,16 +1018,31 @@ bool DatabaseCatalog::DeleteIndex(transaction::TransactionContext *txn, index_oi
   return true;
 }
 
-template <typename ClassOid, typename Class>
+bool DatabaseCatalog::SetTableSchemaPointer(transaction::TransactionContext *const txn, const table_oid_t oid,
+                                            const Schema *const schema) {
+  return SetClassPointer(txn, oid, schema, postgres::REL_SCHEMA_COL_OID);
+}
+
+bool DatabaseCatalog::SetIndexSchemaPointer(transaction::TransactionContext *const txn, const index_oid_t oid,
+                                            const IndexSchema *const schema) {
+  return SetClassPointer(txn, oid, schema, postgres::REL_SCHEMA_COL_OID);
+}
+
+template <typename ClassOid, typename Ptr>
 bool DatabaseCatalog::SetClassPointer(transaction::TransactionContext *const txn, const ClassOid oid,
-                                      const Class *const pointer) {
+                                      const Ptr *const pointer, const col_oid_t class_col) {
+  TERRIER_ASSERT((std::is_same<ClassOid, table_oid_t>::value &&
+                  (std::is_same<Ptr, storage::SqlTable>::value || std::is_same<Ptr, catalog::Schema>::value)) ||
+                     (std::is_same<ClassOid, index_oid_t>::value && (std::is_same<Ptr, storage::index::Index>::value ||
+                                                                     std::is_same<Ptr, catalog::IndexSchema>::value)),
+                 "OID type must correspond to the same object type (Table or index)");
   TERRIER_ASSERT(pointer != nullptr, "Why are you inserting nullptr here? That seems wrong.");
   const auto oid_pri = classes_oid_index_->GetProjectedRowInitializer();
 
   // Do not need to store the projection map because it is only a single column
-  TERRIER_ASSERT(set_class_pointer_pri_.ProjectedRowSize() >= oid_pri.ProjectedRowSize(),
-                 "Buffer must allocated to fit largest PR");
-  auto *const buffer = common::AllocationUtil::AllocateAligned(set_class_pointer_pri_.ProjectedRowSize());
+  auto pr_init = classes_->InitializerForProjectedRow({class_col});
+  TERRIER_ASSERT(pr_init.ProjectedRowSize() >= oid_pri.ProjectedRowSize(), "Buffer must allocated to fit largest PR");
+  auto *const buffer = common::AllocationUtil::AllocateAligned(pr_init.ProjectedRowSize());
   auto *const key_pr = oid_pri.InitializeRow(buffer);
 
   // Find the entry using the index
@@ -1035,11 +1058,13 @@ bool DatabaseCatalog::SetClassPointer(transaction::TransactionContext *const txn
   }
   TERRIER_ASSERT(index_results.size() == 1, "You got more than one result from a unique index. How did you do that?");
 
-  auto *update_redo = txn->StageWrite(db_oid_, postgres::CLASS_TABLE_OID, set_class_pointer_pri_);
+  auto &initializer =
+      (class_col == catalog::postgres::REL_PTR_COL_OID) ? set_class_pointer_pri_ : set_class_schema_pri_;
+  auto *update_redo = txn->StageWrite(db_oid_, postgres::CLASS_TABLE_OID, initializer);
   update_redo->SetTupleSlot(index_results[0]);
   auto *update_pr = update_redo->Delta();
-  auto *const table_ptr_ptr = update_pr->AccessForceNotNull(0);
-  *(reinterpret_cast<const Class **>(table_ptr_ptr)) = pointer;
+  auto *const class_ptr_ptr = update_pr->AccessForceNotNull(0);
+  *(reinterpret_cast<const Ptr **>(class_ptr_ptr)) = pointer;
 
   // Finish
   delete[] buffer;
@@ -1053,7 +1078,7 @@ bool DatabaseCatalog::SetIndexPointer(transaction::TransactionContext *const txn
   txn->RegisterAbortAction([=](transaction::DeferredActionManager *deferred_action_manager) {
     deferred_action_manager->RegisterDeferredAction([=]() { delete index_ptr; });
   });
-  return SetClassPointer(txn, index, index_ptr);
+  return SetClassPointer(txn, index, index_ptr, postgres::REL_PTR_COL_OID);
 }
 
 common::ManagedPointer<storage::index::Index> DatabaseCatalog::GetIndex(transaction::TransactionContext *txn,
@@ -1083,6 +1108,90 @@ const IndexSchema &DatabaseCatalog::GetIndexSchema(transaction::TransactionConte
   return *reinterpret_cast<IndexSchema *>(ptr_pair.first);
 }
 
+std::vector<std::pair<common::ManagedPointer<storage::index::Index>, const IndexSchema &>> DatabaseCatalog::GetIndexes(
+    transaction::TransactionContext *txn, table_oid_t table) {
+  // Step 1: Get all index oids on table
+  // Initialize PR for index scan
+  auto indexes_oid_pri = indexes_table_index_->GetProjectedRowInitializer();
+
+  // Do not need projection map when there is only one column
+  TERRIER_ASSERT(get_class_object_and_schema_pri_.ProjectedRowSize() >= indexes_oid_pri.ProjectedRowSize() &&
+                     get_class_object_and_schema_pri_.ProjectedRowSize() >= get_indexes_pri_.ProjectedRowSize() &&
+                     get_class_object_and_schema_pri_.ProjectedRowSize() >=
+                         classes_oid_index_->GetProjectedRowInitializer().ProjectedRowSize(),
+                 "Buffer must be allocated to fit largest PR");
+  auto *const buffer = common::AllocationUtil::AllocateAligned(get_class_object_and_schema_pri_.ProjectedRowSize());
+
+  // Find all entries for the given table using the index
+  auto *indexes_key_pr = indexes_oid_pri.InitializeRow(buffer);
+  *(reinterpret_cast<table_oid_t *>(indexes_key_pr->AccessForceNotNull(0))) = table;
+  std::vector<storage::TupleSlot> index_scan_results;
+  indexes_table_index_->ScanKey(*txn, *indexes_key_pr, &index_scan_results);
+
+  // If we found no indexes, return an empty list
+  if (index_scan_results.empty()) {
+    delete[] buffer;
+    return {};
+  }
+
+  std::vector<index_oid_t> index_oids;
+  index_oids.reserve(index_scan_results.size());
+  auto *index_select_pr = get_indexes_pri_.InitializeRow(buffer);
+  for (auto &slot : index_scan_results) {
+    const auto result UNUSED_ATTRIBUTE = indexes_->Select(txn, slot, index_select_pr);
+    TERRIER_ASSERT(result, "Index already verified visibility. This shouldn't fail.");
+    index_oids.emplace_back(*(reinterpret_cast<index_oid_t *>(index_select_pr->AccessForceNotNull(0))));
+  }
+
+  // Step 2: Scan the pg_class oid index for all entries in pg_class
+  // We do the index scans and table selects in separate loops to avoid having to initialize the pr each time
+  index_scan_results.clear();
+  auto *class_key_pr = classes_oid_index_->GetProjectedRowInitializer().InitializeRow(buffer);
+  std::vector<storage::TupleSlot> class_tuple_slots;
+  class_tuple_slots.reserve(index_oids.size());
+  for (const auto &index_oid : index_oids) {
+    // Find the entry using the index
+    *(reinterpret_cast<uint32_t *>(class_key_pr->AccessForceNotNull(0))) = static_cast<uint32_t>(index_oid);
+    classes_oid_index_->ScanKey(*txn, *class_key_pr, &index_scan_results);
+    if (index_scan_results.empty()) {
+      // TODO(Matt): we should verify what postgres does in this case
+      // Index scan didn't find anything. This seems weird since we were able to enter this function with an oid.
+      // That implies that it was visible to us. Maybe the object was dropped or renamed twice by the same txn?
+      delete[] buffer;
+      return {};
+    }
+    TERRIER_ASSERT(index_scan_results.size() == 1,
+                   "You got more than one result from a unique index. How did you do that?");
+    class_tuple_slots.push_back(index_scan_results[0]);
+    index_scan_results.clear();
+  }
+  TERRIER_ASSERT(class_tuple_slots.size() == index_oids.size(),
+                 "We should have found an entry in pg_class for every index oid");
+
+  // Step 3: Select all the objects from the tuple slots retrieved by step 2
+  std::vector<std::pair<common::ManagedPointer<storage::index::Index>, const IndexSchema &>> index_objects;
+  index_objects.reserve(class_tuple_slots.size());
+  auto *class_select_pr = get_class_object_and_schema_pri_.InitializeRow(buffer);
+  for (const auto &slot : class_tuple_slots) {
+    bool result UNUSED_ATTRIBUTE = classes_->Select(txn, slot, class_select_pr);
+    TERRIER_ASSERT(result, "Index already verified visibility. This shouldn't fail.");
+
+    auto *index = *(reinterpret_cast<storage::index::Index *const *const>(
+        class_select_pr->AccessForceNotNull(get_class_object_and_schema_prm_[catalog::postgres::REL_PTR_COL_OID])));
+    TERRIER_ASSERT(index != nullptr,
+                   "Catalog conventions say you should not find a nullptr for an object ptr in pg_class. Did you call "
+                   "SetIndexPointer?");
+    auto *schema = *(reinterpret_cast<catalog::IndexSchema *const *const>(
+        class_select_pr->AccessForceNotNull(get_class_object_and_schema_prm_[catalog::postgres::REL_SCHEMA_COL_OID])));
+    TERRIER_ASSERT(schema != nullptr,
+                   "Catalog conventions say you should not find a nullptr for an schema ptr in pg_class");
+
+    index_objects.emplace_back(common::ManagedPointer(index), *schema);
+  }
+  delete[] buffer;
+  return index_objects;
+}
+
 void DatabaseCatalog::TearDown(transaction::TransactionContext *txn) {
   std::vector<parser::AbstractExpression *> expressions;
   std::vector<Schema *> table_schemas;
@@ -1110,6 +1219,8 @@ void DatabaseCatalog::TearDown(transaction::TransactionContext *txn) {
   while (table_iter != classes_->end()) {
     classes_->Scan(txn, &table_iter, pc);
     for (uint i = 0; i < pc->NumTuples(); i++) {
+      TERRIER_ASSERT(objects[i] != nullptr, "Pointer to objects in pg_class should not be nullptr");
+      TERRIER_ASSERT(schemas[i] != nullptr, "Pointer to schemas in pg_class should not be nullptr");
       switch (classes[i]) {
         case postgres::ClassKind::REGULAR_TABLE:
           table_schemas.emplace_back(reinterpret_cast<Schema *>(schemas[i]));
@@ -1627,11 +1738,10 @@ std::pair<void *, postgres::ClassKind> DatabaseCatalog::GetClassSchemaPtrKind(tr
   const auto result UNUSED_ATTRIBUTE = classes_->Select(txn, index_results[0], select_pr);
   TERRIER_ASSERT(result, "Index already verified visibility. This shouldn't fail.");
 
-  auto *const ptr_ptr = (reinterpret_cast<void *const *const>(select_pr->AccessForceNotNull(0)));
+  auto *const ptr = *(reinterpret_cast<void *const *const>(select_pr->AccessForceNotNull(0)));
   auto kind = *(reinterpret_cast<const postgres::ClassKind *const>(select_pr->AccessForceNotNull(1)));
 
-  TERRIER_ASSERT(ptr_ptr != nullptr, "Schema pointer shouldn't ever be NULL under current catalog semantics.");
-  void *ptr = *ptr_ptr;
+  TERRIER_ASSERT(ptr != nullptr, "Schema pointer shouldn't ever be NULL under current catalog semantics.");
 
   delete[] buffer;
   return {ptr, kind};

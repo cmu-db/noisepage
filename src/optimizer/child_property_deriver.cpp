@@ -31,9 +31,9 @@ void ChildPropertyDeriver::Visit(UNUSED_ATTRIBUTE const SeqScan *op) {
 }
 
 void ChildPropertyDeriver::Visit(const IndexScan *op) {
-  // Use GetIndexes() to get all indexes on table_alias
+  // Use GetIndexOids() to get all indexes on table_alias
   auto tbl_id = accessor_->GetTableOid(op->GetNamespaceOID(), op->GetTableAlias());
-  std::vector<catalog::index_oid_t> tbl_indexes = accessor_->GetIndexes(tbl_id);
+  std::vector<catalog::index_oid_t> tbl_indexes = accessor_->GetIndexOids(tbl_id);
 
   for (auto prop : requirements_->Properties()) {
     if (prop->Type() == PropertyType::SORT) {

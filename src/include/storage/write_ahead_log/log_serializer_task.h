@@ -1,6 +1,7 @@
 #pragma once
 
 #include <queue>
+#include <unordered_map>
 #include <utility>
 #include <vector>
 #include "common/container/concurrent_blocking_queue.h"
@@ -11,7 +12,8 @@
 namespace terrier::storage {
 
 /**
- * Task that processes buffers handed over by transactions and serializes them into consumer buffers
+ * Task that processes buffers handed over by transactions and serializes them into consumer buffers.
+ * Transactions will wait to be GC'd until their logs are
  */
 class LogSerializerTask : public common::DedicatedThreadTask {
  public:
@@ -22,7 +24,7 @@ class LogSerializerTask : public common::DedicatedThreadTask {
    * @param filled_buffer_queue pointer to queue to push filled buffers to
    * @param disk_log_writer_thread_cv pointer to condition variable to notify consumer when a new buffer has handed over
    */
-  explicit LogSerializerTask(const std::chrono::milliseconds serialization_interval,
+  explicit LogSerializerTask(const std::chrono::microseconds serialization_interval,
                              RecordBufferSegmentPool *buffer_pool,
                              common::ConcurrentBlockingQueue<BufferedLogWriter *> *empty_buffer_queue,
                              common::ConcurrentQueue<storage::SerializedLogs> *filled_buffer_queue,
@@ -63,13 +65,17 @@ class LogSerializerTask : public common::DedicatedThreadTask {
   }
 
  private:
+  friend class LogManager;
   // Flag to signal task to run or stop
   bool run_task_;
   // Interval for serialization
-  const std::chrono::milliseconds serialization_interval_;
+  const std::chrono::microseconds serialization_interval_;
 
   // Used to release processed buffers
   RecordBufferSegmentPool *buffer_pool_;
+
+  // Ensures only one thread is serializing at a time.
+  common::SpinLatch serialization_latch_;
 
   // TODO(Tianyu): Might not be necessary, since commit on txn manager is already protected with a latch
   // TODO(Tianyu): benchmark for if these should be concurrent data structures, and if we should apply the same
@@ -83,6 +89,14 @@ class LogSerializerTask : public common::DedicatedThreadTask {
   BufferedLogWriter *filled_buffer_;
   // Commit callbacks for commit records currently in filled_buffer
   std::vector<std::pair<transaction::callback_fn, void *>> commits_in_buffer_;
+
+  // Used by the serializer thread to store buffers it has grabbed from the log manager
+  std::queue<RecordBufferSegment *> temp_flush_queue_;
+
+  // We aggregate all transactions we serialize so we can bulk remove the from the timestamp manager
+  // TODO(Gus): If we guarantee there is only one TSManager in the system, this can just be a vector. We could also pass
+  // TS into the serializer instead of having a pointer for it in every commit/abort record
+  std::unordered_map<transaction::TimestampManager *, std::vector<transaction::timestamp_t>> serialized_txns_;
 
   // The queue containing empty buffers. Task will dequeue a buffer from this queue when it needs a new buffer
   common::ConcurrentBlockingQueue<BufferedLogWriter *> *empty_buffer_queue_;
@@ -102,8 +116,9 @@ class LogSerializerTask : public common::DedicatedThreadTask {
    * Process all the accumulated log records and serialize them to log consumer tasks. It's important that we serialize
    * the logs in order to ensure that a single transaction's logs are ordered. Only a single thread can serialize the
    * logs (without more sophisticated ordering checks).
+   * @return true if we processed new buffers, false otherwise
    */
-  void Process();
+  bool Process();
 
   /**
    * Serialize out the task buffer to the current serialization buffer
