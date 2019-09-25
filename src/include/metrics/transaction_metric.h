@@ -59,6 +59,11 @@ class TransactionMetricRawData : public AbstractRawData {
    */
   static constexpr std::array<std::string_view, 2> FILES = {"./txn_begin.csv", "./txn_commit.csv"};
 
+  /**
+   * Columns to use for writing to CSV.
+   */
+  static constexpr std::array<std::string_view, 2> COLUMNS = {"now,elapsed_us,txn_start", "now,elapsed_us,txn_start"};
+
  private:
   friend class TransactionMetric;
   FRIEND_TEST(MetricsTests, TransactionCSVTest);

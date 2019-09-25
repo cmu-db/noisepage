@@ -1,12 +1,32 @@
 #include "metrics/metrics_manager.h"
+#include <sys/stat.h>
 #include <fstream>
-#include <iostream>
 #include <memory>
 #include <string>
 #include <utility>
 #include <vector>
 
 namespace terrier::metrics {
+
+bool FileExists(const std::string &path) {
+  struct stat buffer;
+  return (stat(path.c_str(), &buffer) == 0);
+}
+
+template <typename abstract_raw_data>
+void OpenFiles(std::vector<std::ofstream> *outfiles) {
+  const auto num_files = abstract_raw_data::FILES.size();
+  outfiles->reserve(num_files);
+  for (auto file = 0; file < num_files; file++) {
+    const auto file_name = std::string(abstract_raw_data::FILES[file]);
+    const auto file_existed = FileExists(file_name);
+    outfiles->emplace_back(file_name, std::ios_base::out | std::ios_base::app);
+    if (!file_existed) {
+      // write the column titles on the first line since we're creating a new csv file
+      outfiles->back() << abstract_raw_data::COLUMNS[file] << std::endl;
+    }
+  }
+}
 
 void MetricsManager::Aggregate() {
   common::SpinLatch::ScopedSpinLatch guard(&latch_);
@@ -69,17 +89,11 @@ void MetricsManager::ToCSV() const {
       std::vector<std::ofstream> outfiles;
       switch (static_cast<MetricsComponent>(component)) {
         case MetricsComponent::LOGGING: {
-          outfiles.reserve(LoggingMetricRawData::FILES.size());
-          for (const auto &file : LoggingMetricRawData::FILES) {
-            outfiles.emplace_back(std::string(file), std::ios_base::out | std::ios_base::app);
-          }
+          OpenFiles<LoggingMetricRawData>(&outfiles);
           break;
         }
         case MetricsComponent::TRANSACTION: {
-          outfiles.reserve(TransactionMetricRawData::FILES.size());
-          for (const auto &file : TransactionMetricRawData::FILES) {
-            outfiles.emplace_back(std::string(file), std::ios_base::out | std::ios_base::app);
-          }
+          OpenFiles<TransactionMetricRawData>(&outfiles);
           break;
         }
       }

@@ -7,11 +7,13 @@
 
 namespace terrier::transaction {
 TransactionContext *TransactionManager::BeginTransaction() {
-  timestamp_t start_time = timestamp_manager_->BeginTransaction();
-  auto *const result = new TransactionContext(start_time, start_time + INT64_MIN, buffer_pool_, log_manager_);
-  // Ensure we do not return from this function if there are ongoing write commits
   uint64_t elapsed_us = 0;
+  timestamp_t start_time;
+  TransactionContext *result;
   {
+    start_time = timestamp_manager_->BeginTransaction();
+    result = new TransactionContext(start_time, start_time + INT64_MIN, buffer_pool_, log_manager_);
+    // Ensure we do not return from this function if there are ongoing write commits
     if (common::thread_context.metrics_store_ != nullptr &&
         common::thread_context.metrics_store_->ComponentEnabled(metrics::MetricsComponent::TRANSACTION))
       common::ScopedTimer<std::chrono::nanoseconds> timer(&elapsed_us);

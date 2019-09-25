@@ -61,6 +61,11 @@ class LoggingMetricRawData : public AbstractRawData {
    */
   static constexpr std::array<std::string_view, 2> FILES = {"./log_serializer_task.csv",
                                                             "./disk_log_consumer_task.csv"};
+  /**
+   * Columns to use for writing to CSV.
+   */
+  static constexpr std::array<std::string_view, 2> COLUMNS = {"now,elapsed_us,num_bytes,num_records",
+                                                              "now,write_us,persist_us,num_bytes,num_buffers"};
 
  private:
   friend class LoggingMetric;

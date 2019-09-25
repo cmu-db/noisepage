@@ -92,10 +92,10 @@ TEST_F(MetricsTests, LoggingCSVTest) {
   const auto aggregated_data = reinterpret_cast<LoggingMetricRawData *>(
       metrics_manager_->AggregatedMetrics().at(static_cast<uint8_t>(MetricsComponent::LOGGING)).get());
   EXPECT_NE(aggregated_data, nullptr);
-  EXPECT_EQ(aggregated_data->serializer_data_.size(), 1);
-  EXPECT_EQ(aggregated_data->serializer_data_.begin()->num_records_, 2);
-  EXPECT_EQ(aggregated_data->consumer_data_.size(), 1);
-  EXPECT_EQ(aggregated_data->consumer_data_.begin()->num_buffers_, 1);
+  EXPECT_EQ(aggregated_data->serializer_data_.size(), 1);                 // 1 data point recorded
+  EXPECT_EQ(aggregated_data->serializer_data_.begin()->num_records_, 2);  // 2 records: insert, commit
+  EXPECT_EQ(aggregated_data->consumer_data_.size(), 1);                   // 1 data point recorded
+  EXPECT_EQ(aggregated_data->consumer_data_.begin()->num_buffers_, 1);    // 1 buffer flushed
   metrics_manager_->ToCSV();
   EXPECT_EQ(aggregated_data->serializer_data_.size(), 0);
   EXPECT_EQ(aggregated_data->consumer_data_.size(), 0);
@@ -106,10 +106,10 @@ TEST_F(MetricsTests, LoggingCSVTest) {
   std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 
   metrics_manager_->Aggregate();
-  EXPECT_EQ(aggregated_data->serializer_data_.size(), 1);
-  EXPECT_EQ(aggregated_data->serializer_data_.begin()->num_records_, 4);
-  EXPECT_EQ(aggregated_data->consumer_data_.size(), 1);
-  EXPECT_EQ(aggregated_data->consumer_data_.begin()->num_buffers_, 2);
+  EXPECT_EQ(aggregated_data->serializer_data_.size(), 1);                 // 1 data point recorded
+  EXPECT_EQ(aggregated_data->serializer_data_.begin()->num_records_, 4);  // 4 records: 2 insert, 2 commit
+  EXPECT_EQ(aggregated_data->consumer_data_.size(), 1);                   // 1 data point recorded
+  EXPECT_EQ(aggregated_data->consumer_data_.begin()->num_buffers_, 2);    // 2 buffers flushed
   metrics_manager_->ToCSV();
   EXPECT_EQ(aggregated_data->serializer_data_.size(), 0);
   EXPECT_EQ(aggregated_data->consumer_data_.size(), 0);
@@ -121,10 +121,10 @@ TEST_F(MetricsTests, LoggingCSVTest) {
   std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 
   metrics_manager_->Aggregate();
-  EXPECT_EQ(aggregated_data->serializer_data_.size(), 1);
-  EXPECT_EQ(aggregated_data->serializer_data_.begin()->num_records_, 6);
-  EXPECT_EQ(aggregated_data->consumer_data_.size(), 1);
-  EXPECT_EQ(aggregated_data->consumer_data_.begin()->num_buffers_, 3);
+  EXPECT_EQ(aggregated_data->serializer_data_.size(), 1);                 // 1 data point recorded
+  EXPECT_EQ(aggregated_data->serializer_data_.begin()->num_records_, 6);  // 6 records: 3 insert, 3 commit
+  EXPECT_EQ(aggregated_data->consumer_data_.size(), 1);                   // 1 data point recorded
+  EXPECT_EQ(aggregated_data->consumer_data_.begin()->num_buffers_, 3);    // 3 buffers flushed
   metrics_manager_->ToCSV();
   EXPECT_EQ(aggregated_data->serializer_data_.size(), 0);
   EXPECT_EQ(aggregated_data->consumer_data_.size(), 0);
@@ -151,8 +151,8 @@ TEST_F(MetricsTests, TransactionCSVTest) {
   const auto aggregated_data = reinterpret_cast<TransactionMetricRawData *>(
       metrics_manager_->AggregatedMetrics().at(static_cast<uint8_t>(MetricsComponent::TRANSACTION)).get());
   EXPECT_NE(aggregated_data, nullptr);
-  EXPECT_EQ(aggregated_data->begin_data_.size(), 1);
-  EXPECT_EQ(aggregated_data->commit_data_.size(), 1);
+  EXPECT_EQ(aggregated_data->begin_data_.size(), 1);   // 1 txn recorded
+  EXPECT_EQ(aggregated_data->commit_data_.size(), 1);  // 1 txn recorded
   metrics_manager_->ToCSV();
   EXPECT_EQ(aggregated_data->begin_data_.size(), 0);
   EXPECT_EQ(aggregated_data->commit_data_.size(), 0);
@@ -163,8 +163,8 @@ TEST_F(MetricsTests, TransactionCSVTest) {
   std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 
   metrics_manager_->Aggregate();
-  EXPECT_EQ(aggregated_data->begin_data_.size(), 2);
-  EXPECT_EQ(aggregated_data->commit_data_.size(), 2);
+  EXPECT_EQ(aggregated_data->begin_data_.size(), 2);   // 2 txns recorded
+  EXPECT_EQ(aggregated_data->commit_data_.size(), 2);  // 2 txns recorded
   metrics_manager_->ToCSV();
   EXPECT_EQ(aggregated_data->begin_data_.size(), 0);
   EXPECT_EQ(aggregated_data->commit_data_.size(), 0);
@@ -176,8 +176,8 @@ TEST_F(MetricsTests, TransactionCSVTest) {
   std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 
   metrics_manager_->Aggregate();
-  EXPECT_EQ(aggregated_data->begin_data_.size(), 3);
-  EXPECT_EQ(aggregated_data->commit_data_.size(), 3);
+  EXPECT_EQ(aggregated_data->begin_data_.size(), 3);   // 3 txns recorded
+  EXPECT_EQ(aggregated_data->commit_data_.size(), 3);  // 3 txns recorded
   metrics_manager_->ToCSV();
   EXPECT_EQ(aggregated_data->begin_data_.size(), 0);
   EXPECT_EQ(aggregated_data->commit_data_.size(), 0);
