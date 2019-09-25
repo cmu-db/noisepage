@@ -51,6 +51,9 @@ pipeline {
                             args '--cap-add sys_ptrace'
                         }
                     }
+                    environment {
+                        CODECOV_TOKEN=credentials('codecov-token')
+                    }
                     steps {
                         sh 'echo $NODE_NAME'
                         sh 'echo y | sudo ./script/installation/packages.sh'
