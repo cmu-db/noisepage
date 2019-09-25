@@ -216,6 +216,7 @@ BENCHMARK_DEFINE_F(RecoveryBenchmark, IndexRecovery)(benchmark::State &state) {
     };
     common::WorkerPool thread_pool(num_concurrent_txns_, {});
     MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, num_concurrent_txns_, workload);
+    log_manager.ForceFlush();
 
     // Start a new components with logging disabled, we don't want to log the log replaying
     transaction::TimestampManager recovery_timestamp_manager;
