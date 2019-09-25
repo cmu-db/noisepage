@@ -7,15 +7,6 @@
 
 namespace terrier::storage {
 
-void ThisFunctionIsntUsed() {
-  std::vector<uint32_t> stuff;
-  stuff.reserve(1000);
-  for (uint32_t i = 0; i < 1000; i++) {
-    stuff[i] = i * 2;
-  }
-  stuff.clear();
-}
-
 SqlTable::SqlTable(BlockStore *const store, const catalog::Schema &schema) : block_store_(store) {
   // Begin with the NUM_RESERVED_COLUMNS in the attr_sizes
   std::vector<uint8_t> attr_sizes;
