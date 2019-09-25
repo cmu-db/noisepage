@@ -17,7 +17,7 @@ template <typename abstract_raw_data>
 void OpenFiles(std::vector<std::ofstream> *outfiles) {
   const auto num_files = abstract_raw_data::FILES.size();
   outfiles->reserve(num_files);
-  for (auto file = 0; file < num_files; file++) {
+  for (size_t file = 0; file < num_files; file++) {
     const auto file_name = std::string(abstract_raw_data::FILES[file]);
     const auto file_existed = FileExists(file_name);
     outfiles->emplace_back(file_name, std::ios_base::out | std::ios_base::app);
