@@ -22,22 +22,36 @@ import xml.etree.ElementTree as ElementTree
 
 from types import (ListType, StringType)
 
-class TestConfig(object):
+## =========================================================
+
+# LIST OF BENCHMARKS
+# Add the name of your benchmark in the list below and 
+# it will automatically get executed when this script runs.
+BENCHMARKS_TO_RUN = [
+    "catalog_benchmark",
+    "data_table_benchmark",
+    "garbage_collector_benchmark",
+    "large_transaction_benchmark",
+    "logging_benchmark",
+    "recovery_benchmark",
+    "tuple_access_strategy_benchmark",
+    "tpcc_benchmark",
+    "bwtree_benchmark",
+    "cuckoomap_benchmark"
+]
+
+# Where to find the benchmarks to execute
+BENCHMARK_PATH = "../../build/release/"
+
+## =========================================================
+
+class Config(object):
     """ Configuration for run_micro_bench.
         All information is read-only.
     """
     def __init__(self):
         # benchmark executables to run
-        self.benchmark_list = ["catalog_benchmark",
-                               "data_table_benchmark",
-                               "garbage_collector_benchmark",
-                               "large_transaction_benchmark",
-                               "logging_benchmark",
-                               "recovery_benchmark",
-                               "tuple_access_strategy_benchmark",
-                               "tpcc_benchmark",
-                               "bwtree_benchmark",
-                               "cuckoomap_benchmark"]
+        self.benchmarks = BENCHMARKS_TO_RUN
 
         # how many historical values are "required".
         self.min_ref_values = 10
@@ -60,24 +74,10 @@ class TestConfig(object):
             },
         ]
         return
+## CLASS
 
-    def get_benchmark_list(self):
-        """ Return list of benchmarks to be run """
-        return self.benchmark_list
+## =========================================================
 
-    def get_min_ref_values(self):
-        """ Return how many historical values we require for our
-            historical average calculations.
-        """
-        return self.min_ref_values
-
-    def get_ref_branch(self):
-        """ return: branch name containing benchmark reference data """
-        return self.branch
-
-    def get_ref_project(self):
-        """ return: project name containing benchmark reference data """
-        return self.project
 
 class TextTable(object):
     """ Print out data as text, in a formatted table """
@@ -711,22 +711,8 @@ class RunMicroBenchmarks(object):
     """ Run micro benchmarks. Output is to json files for post processing.
         Returns True if all benchmarks run, False otherwise
     """
-    def __init__(self, verbose=False, debug=False):
-        # list of benchmarks to run
-        self.benchmark_list = ["catalog_benchmark",
-                               "data_table_benchmark",
-                               "garbage_collector_benchmark",
-                               "large_transaction_benchmark",
-                               "logging_benchmark",
-                               "recovery_benchmark",
-                               "tuple_access_strategy_benchmark",
-                               "tpcc_benchmark",
-                               "bwtree_benchmark",
-                               "cuckoomap_benchmark"]
-
-        # minimum run time for the benchmark
-        self.min_time = 10
-
+    def __init__(self, config, verbose=False, debug=False):
+        self.config = config
         self.verbose = verbose
         self.debug = debug
         return
@@ -738,28 +724,28 @@ class RunMicroBenchmarks(object):
         ret_val = 0
 
         # iterate over all benchmarks and run them
-        for benchmark_name in self.benchmark_list:
-            bench_ret_val = self.run_single_benchmark(benchmark_name)
+        for bench_name in config.benchmarks:
+            bench_ret_val = self.run_single_benchmark(bench_name)
             if bench_ret_val:
                 if self.verbose:
-                    print("{} terminated with {}".format(benchmark_name,
+                    print("{} terminated with {}".format(bench_name,
                                                          bench_ret_val))
                 ret_val = bench_ret_val
 
         # return fail, if any of the benchmarks failed to run or complete
         return ret_val
 
-    def run_single_benchmark(self, benchmark_name):
+    def run_single_benchmark(self, bench_name):
         """ Run benchmark, generate JSON results
         """
-        benchmark_path = os.path.join("../../build/release", benchmark_name)
-        output_file = "{}.json".format(benchmark_name)
+        benchmark_path = os.path.join(BENCHMARK_PATH, bench_name)
+        output_file = "{}.json".format(bench_name)
 
         cmd = "{} --benchmark_min_time={} " + \
               " --benchmark_format=json" + \
               " --benchmark_out={}"
         cmd = cmd.format(benchmark_path,
-                         self.min_time,
+                         config.min_time,
                          output_file)
 
         # use all the cpus from the highest numbered numa node
@@ -776,7 +762,7 @@ class RunMicroBenchmarks(object):
                                   stderr=sys.stderr)
 
         # convert json results file to xml
-        xml_output_file = "{}.xml".format(benchmark_name)
+        xml_output_file = "{}.xml".format(bench_name)
         GBenchToJUnit(output_file, xml_output_file)
 
         # return the process exit code
@@ -1030,15 +1016,20 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    test_config = TestConfig()
-    run_bench = RunMicroBenchmarks()
+    config = Config()
+    
+    if not os.path.exists(BENCHMARK_PATH):
+        print("The benchmark executable path directory '%s' does not exist" % BENCHMARK_PATH)
+        sys.exit(1)
+    
+    run_bench = RunMicroBenchmarks(config)
     ret = run_bench.run_all_benchmarks()
-
+    
     # need <n> benchmark results to compare against
-    ap = ArtifactProcessor(test_config.get_min_ref_values())
+    ap = ArtifactProcessor(config.min_ref_values)
     h = Jenkins()
 
-    data_src_list = test_config.ref_data_sources
+    data_src_list = config.ref_data_sources
     more = True
     for repo_dict in data_src_list:
         project = repo_dict.get("project")
@@ -1081,12 +1072,11 @@ if __name__ == "__main__":
         print "ips = ",  v.get_mean_items_per_second()
     """
 
-    rvp = ReferenceValueProvider(test_config, ap)
+    rvp = ReferenceValueProvider(config, ap)
     tt = TextTable()
 
     # parse all the result files and compare current results vs. reference
-    benchmark_list = test_config.get_benchmark_list()
-    for bench in benchmark_list:
+    for bench in config.benchmarks:
         filename = "{}.json".format(bench)
         # parse the json result file
         with open(filename) as fh:
