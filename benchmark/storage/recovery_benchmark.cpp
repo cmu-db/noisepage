@@ -160,8 +160,9 @@ BENCHMARK_DEFINE_F(RecoveryBenchmark, IndexRecovery)(benchmark::State &state) {
     // Blow away log file after every benchmark iteration
     unlink(LOG_FILE_NAME);
     // Initialize table and run workload with logging enabled
+    thread_registry_ = new common::DedicatedThreadRegistry(DISABLED);
     storage::LogManager log_manager(LOG_FILE_NAME, num_log_buffers_, log_serialization_interval_, log_persist_interval_,
-                                    log_persist_threshold_, &buffer_pool_, common::ManagedPointer(&thread_registry_));
+                                    log_persist_threshold_, &buffer_pool_, common::ManagedPointer(thread_registry_));
     log_manager.Start();
 
     transaction::TimestampManager timestamp_manager;
@@ -236,7 +237,7 @@ BENCHMARK_DEFINE_F(RecoveryBenchmark, IndexRecovery)(benchmark::State &state) {
     storage::DiskLogProvider log_provider(LOG_FILE_NAME);
     storage::RecoveryManager recovery_manager(&log_provider, common::ManagedPointer(&recovered_catalog),
                                               &recovery_txn_manager, &recovery_deferred_action_manager,
-                                              common::ManagedPointer(&thread_registry_), &block_store_);
+                                              common::ManagedPointer(thread_registry_), &block_store_);
 
     uint64_t elapsed_ms;
     {
@@ -257,6 +258,7 @@ BENCHMARK_DEFINE_F(RecoveryBenchmark, IndexRecovery)(benchmark::State &state) {
     delete gc_thread;
     StorageTestUtil::FullyPerformGC(&gc, &log_manager);
     log_manager.PersistAndStop();
+    delete thread_registry_;
   }
   state.SetItemsProcessed(num_txns_ * state.iterations());
 }
