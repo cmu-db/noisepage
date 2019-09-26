@@ -1,10 +1,16 @@
 #pragma once
 
 #if __APPLE__
+/**
+ * Apple doesn't allow per-thread information from the get_rusage() syscall, so instead we resort to Mach calls.
+ */
 #include <mach/mach_init.h>
 #include <mach/mach_port.h>
 #include <mach/thread_act.h>
 #else
+/**
+ * Modern Linux systems should allow us to use the get_rusage() syscall for per-thread information.
+ */
 #include <sys/resource.h>
 #include <sys/time.h>
 #endif
