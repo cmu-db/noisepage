@@ -222,7 +222,7 @@ Transition BindCommand::Exec(common::ManagedPointer<PostgresProtocolInterpreter>
   // With SQLite backend, we only produce a list of param values as the portal,
   // because we cannot copy a sqlite3 statement.
   trafficcop::Portal portal;
-  portal.sqlite_stmt_ = statement->sqlite3_stmt_;
+  portal.statement_ = statement;
   portal.params_ = params;
   connection->portals_[portal_name] = portal;
 
@@ -260,8 +260,8 @@ Transition DescribeCommand::Exec(common::ManagedPointer<PostgresProtocolInterpre
       LogAndWriteErrorMsg(error_msg, out);
       return Transition::PROCEED;
     }
-    if (p_portal->second.sqlite_stmt_ != nullptr)
-      column_names = execution_engine->DescribeColumns(p_portal->second.sqlite_stmt_);
+    if (p_portal->second.statement_->sqlite3_stmt_ != nullptr)
+      column_names = execution_engine->DescribeColumns(p_portal->second.statement_->sqlite3_stmt_);
 
   } else {
     std::string error_msg = fmt::format("Wrong type: {0}, should be either 'S' or 'P'.", static_cast<char>(type));
@@ -282,6 +282,7 @@ Transition ExecuteCommand::Exec(common::ManagedPointer<PostgresProtocolInterpret
                                 common::ManagedPointer<ConnectionContext> connection, NetworkCallback callback) {
   using std::string;
   string portal_name = in_.ReadString();
+  connection->in_transaction_ = false;
   NETWORK_LOG_TRACE("ExecuteCommand portal name = {0}", portal_name);
 
   auto p_portal = connection->portals_.find(portal_name);
@@ -295,11 +296,25 @@ Transition ExecuteCommand::Exec(common::ManagedPointer<PostgresProtocolInterpret
   trafficcop::Portal &portal = p_portal->second;
 
   trafficcop::SqliteEngine *execution_engine = t_cop->GetExecutionEngine();
-  execution_engine->Bind(portal.sqlite_stmt_, portal.params_);
-  trafficcop::ResultSet result = execution_engine->Execute(portal.sqlite_stmt_);
-  for (const auto &row : result.rows_) out->WriteDataRow(row);
+  execution_engine->Bind(portal.statement_->sqlite3_stmt_, portal.params_);
+  trafficcop::ResultSet result = execution_engine->Execute(portal.statement_->sqlite3_stmt_);
+  for (const auto &row : result.rows_) {
+    out->WriteDataRow(row);
+  }
 
-  out->WriteCommandComplete("");
+  string & query_string = portal.statement_->query_string_;
+  if (query_string.find("INSERT") != string::npos) {
+    // TODO(YUZE): OID
+    out->WriteCommandComplete(string("INSERT 0 {0}",result.rows_.size()));
+  } else if (query_string.find("DELETE") != string::npos) {
+    out->WriteCommandComplete(string("DELETE {0}",result.rows_.size()));
+  } else if (query_string.find("UPDATE") != string::npos) {
+    out->WriteCommandComplete(string("UPDATE {0}",result.rows_.size()));
+  } else if (query_string.find("SELECT") != string::npos) {
+    out->WriteCommandComplete(string("SELECT {0}",result.rows_.size()));
+  } else if (query_string.find("BEGIN") != string::npos) {
+    out->WriteCommandComplete("BEGIN");
+  }
   return Transition::PROCEED;
 }
 
@@ -308,7 +323,11 @@ Transition SyncCommand::Exec(common::ManagedPointer<PostgresProtocolInterpreter>
                              common::ManagedPointer<trafficcop::TrafficCop> t_cop,
                              common::ManagedPointer<ConnectionContext> connection, NetworkCallback callback) {
   NETWORK_LOG_TRACE("Sync query");
-  out->WriteReadyForQuery(NetworkTransactionStateType::IDLE);
+  if (connection->in_transaction_) {
+    out->WriteReadyForQuery(NetworkTransactionStateType::BLOCK);
+  } else {
+    out->WriteReadyForQuery(NetworkTransactionStateType::IDLE);
+  }
   return Transition::PROCEED;
 }
 

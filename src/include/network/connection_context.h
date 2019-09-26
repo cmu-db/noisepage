@@ -33,7 +33,10 @@ struct ConnectionContext {
 
     statements_.clear();
     portals_.clear();
+
   }
+  bool in_transaction_ = false;
+
 };
 
 }  // namespace terrier::network
