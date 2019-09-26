@@ -35,6 +35,7 @@ sqlite3_stmt *SqliteEngine::PrepareStatement(std::string query) {
     if (c == '$') c = '?';
 
   sqlite3_stmt *stmt;
+  LOG_INFO("Query = {0}", query);
   int error_code = sqlite3_prepare_v2(sqlite_db_, query.c_str(), -1, &stmt, nullptr);
   if (error_code == SQLITE_OK) return stmt;
   LOG_ERROR("Sqlite Prepare Error: Error Code = {0}, msg = {1}", error_code, sqlite3_errmsg(sqlite_db_));
