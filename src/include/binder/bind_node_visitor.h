@@ -2,6 +2,7 @@
 
 #include <memory>
 #include <string>
+#include <utility>
 #include "binder/binder_context.h"
 #include "catalog/catalog_defs.h"
 #include "common/sql_node_visitor.h"

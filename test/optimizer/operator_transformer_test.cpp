@@ -171,8 +171,7 @@ TEST_F(OperatorTransformerTest, SelectStatementSimpleTest) {
   LOG_INFO("Parsing sql query");
   std::string selectSQL = "SELECT A.A1 FROM A";
 
-  std::string ref =
-      "{\"Op\":\"LogicalGet\",}";
+  std::string ref = "{\"Op\":\"LogicalGet\",}";
 
   auto parse_tree = parser_.BuildParseTree(selectSQL);
   auto selectStmt = dynamic_cast<parser::SelectStatement *>(parse_tree.GetStatements()[0].get());
@@ -191,8 +190,7 @@ TEST_F(OperatorTransformerTest, InsertStatementSimpleTest) {
   LOG_INFO("Parsing sql query");
   std::string insertSQL = "INSERT INTO A (A1, A2) VALUES (5, \'MY DATA\')";
 
-  std::string ref =
-      "{\"Op\":\"LogicalInsert\",}";
+  std::string ref = "{\"Op\":\"LogicalInsert\",}";
 
   auto parse_tree = parser_.BuildParseTree(insertSQL);
   auto insertStmt = dynamic_cast<parser::InsertStatement *>(parse_tree.GetStatements()[0].get());
@@ -349,8 +347,7 @@ TEST_F(OperatorTransformerTest, SelectStatementNestedColumnTest) {
 
   std::string selectSQL = "SELECT A1, (SELECT B2 FROM B where B2 IS NULL LIMIT 1) FROM A";
 
-  std::string ref =
-      "{\"Op\":\"LogicalGet\",}";
+  std::string ref = "{\"Op\":\"LogicalGet\",}";
 
   auto parse_tree = parser_.BuildParseTree(selectSQL);
   auto selectStmt = dynamic_cast<parser::SelectStatement *>(parse_tree.GetStatements()[0].get());
