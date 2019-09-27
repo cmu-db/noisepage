@@ -3,10 +3,10 @@
 // Now we can substitue this with a util class for itp
 #include "network/postgres/postgres_protocol_utils.h"
 
-#define DEFINE_POSTGRES_COMMAND(name, flush)                                                                           \
-  class name : public PostgresNetworkCommand {                                                                \
+#define DEFINE_ITP_COMMAND(name, flush)                                                                           \
+  class name : public ITPNetworkCommand {                                                                \
    public:                                                                                                    \
-    explicit name(InputPacket *in) : PostgresNetworkCommand(in, flush) {}                                     \
+    explicit name(InputPacket *in) : ITPNetworkCommand(in, flush) {}                                     \
     Transition Exec(common::ManagedPointer<ProtocolInterpreter> interpreter,                                  \
                     common::ManagedPointer<PostgresPacketWriter> out,                                         \
                     common::ManagedPointer<trafficcop::TrafficCop> t_cop,                                     \
