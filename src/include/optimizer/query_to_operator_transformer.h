@@ -1,7 +1,10 @@
 #pragma once
 
 #include <memory>
+#include <string>
+#include <unordered_map>
 #include <unordered_set>
+#include <vector>
 #include "common/sql_node_visitor.h"
 
 namespace terrier {
@@ -113,13 +116,13 @@ class QueryToOperatorTransformer : public SqlNodeVisitor {
    * Generate a set of table alias included in an expression
    */
   static void GenerateTableAliasSet(const parser::AbstractExpression *expr,
-                                    std::unordered_set<std::string> &table_alias_set);
+                                    std::unordered_set<std::string> *table_alias_set);
 
   /**
    * @breif Split conjunction expression tree into a vector of expressions with AND
    */
   static void SplitPredicates(common::ManagedPointer<parser::AbstractExpression> expr,
-                              std::vector<common::ManagedPointer<parser::AbstractExpression>> &predicates);
+                              std::vector<common::ManagedPointer<parser::AbstractExpression>> *predicates);
 
   static std::unordered_map<std::string, common::ManagedPointer<parser::AbstractExpression>> ConstructSelectElementMap(
       const std::vector<common::ManagedPointer<parser::AbstractExpression>> &select_list);

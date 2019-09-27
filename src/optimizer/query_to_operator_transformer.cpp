@@ -1,4 +1,11 @@
+#include <algorithm>
 #include <cmath>
+#include <memory>
+#include <string>
+#include <unordered_map>
+#include <unordered_set>
+#include <utility>
+#include <vector>
 
 #include "catalog/catalog_accessor.h"
 #include "common/macros.h"
@@ -174,13 +181,11 @@ void QueryToOperatorTransformer::Visit(parser::TableRef *node) {
     auto child_expr = output_expr_;
     output_expr_ =
         new OperatorExpression(LogicalQueryDerivedGet::Make(table_alias, std::move(alias_to_expr_map)), {child_expr});
-  }
-  // Explicit Join
-  else if (node->GetJoin() != nullptr) {
+  } else if (node->GetJoin() != nullptr) {
+    // Explicit Join
     node->GetJoin()->Accept(this);
-  }
-  // Multiple tables (Implicit Join)
-  else if (node->GetList().size() > 1) {
+  } else if (node->GetList().size() > 1) {
+    // Multiple tables (Implicit Join)
     // Create a join operator between the first two tables
     node->GetList().at(0)->Accept(this);
     auto prev_expr = output_expr_;
@@ -192,9 +197,8 @@ void QueryToOperatorTransformer::Visit(parser::TableRef *node) {
       prev_expr = join_expr;
     }
     output_expr_ = prev_expr;
-  }
-  // Single table
-  else {
+  } else {
+    // Single table
     if (node->GetList().size() == 1) node = node->GetList().at(0).get();
 
     // TODO(Ling): how should we determine the value of `is_for_update` field of logicalGet constructor?
@@ -280,7 +284,7 @@ void QueryToOperatorTransformer::Visit(parser::InsertStatement *op) {
       // this loop checks not null constraint for unspecified columns
       if (specified.find(column.Oid()) == specified.end() && !column.Nullable() &&
           column.StoredExpression() == nullptr) {
-        // TODO: Add check for default value's existence for the current column
+        // TODO(peloton): Add check for default value's existence for the current column
         throw CATALOG_EXCEPTION(
             ("ERROR: null value in column \"" + column.Name() + "\" violates not-null constraint").c_str());
       }
@@ -308,10 +312,10 @@ void QueryToOperatorTransformer::Visit(parser::DeleteStatement *op) {
     std::vector<AnnotatedExpression> predicates = ExtractPredicates(op->GetDeleteCondition());
     table_scan = new OperatorExpression(
         LogicalGet::Make(target_db_id, target_ns_id, target_table_id, predicates, target_table_alias, true), {});
-  } else
+  } else {
     table_scan = new OperatorExpression(
         LogicalGet::Make(target_db_id, target_ns_id, target_table_id, {}, target_table_alias, true), {});
-
+  }
   delete_expr->PushChild(table_scan);
 
   output_expr_ = delete_expr;
@@ -338,10 +342,10 @@ void QueryToOperatorTransformer::Visit(parser::UpdateStatement *op) {
     std::vector<AnnotatedExpression> predicates = ExtractPredicates(op->GetUpdateCondition());
     table_scan = new OperatorExpression(
         LogicalGet::Make(target_db_id, target_ns_id, target_table_id, predicates, target_table_alias, true), {});
-  } else
+  } else {
     table_scan = new OperatorExpression(
         LogicalGet::Make(target_db_id, target_ns_id, target_table_id, {}, target_table_alias, true), {});
-
+  }
   update_expr->PushChild(table_scan);
 
   output_expr_ = update_expr;
@@ -435,13 +439,13 @@ bool QueryToOperatorTransformer::RequireAggregation(common::ManagedPointer<parse
     std::vector<parser::AggregateExpression *> aggr_exprs;
     // we need to use get method of managed pointer because the function we are calling will recursivly get aggreate
     // expressions from the current expression and its children; children are of unique pointers
-    parser::ExpressionUtil::GetAggregateExprs(aggr_exprs, expr.Get());
+    parser::ExpressionUtil::GetAggregateExprs(&aggr_exprs, expr.Get());
     if (!aggr_exprs.empty())
       has_aggregation = true;
     else
       has_other_exprs = true;
   }
-  // TODO: Should be handled in the binder
+  // TODO(peloton): Should be handled in the binder
   // Syntax error when there are mixture of aggregation and other exprs when group by is absent
   if (has_aggregation && has_other_exprs) {
     throw OPTIMIZER_EXCEPTION(
@@ -455,7 +459,7 @@ std::vector<AnnotatedExpression> QueryToOperatorTransformer::CollectPredicates(
   // First check if all conjunctive predicates are supported before transforming
   // predicate with sub-select into regular predicates
   std::vector<common::ManagedPointer<parser::AbstractExpression>> predicate_ptrs;
-  SplitPredicates(expr, predicate_ptrs);
+  SplitPredicates(expr, &predicate_ptrs);
   for (const auto &pred : predicate_ptrs) {
     if (!IsSupportedConjunctivePredicate(pred)) {
       throw NOT_IMPLEMENTED_EXCEPTION("Predicate type not supported yet");
@@ -514,7 +518,7 @@ bool QueryToOperatorTransformer::IsSupportedSubSelect(common::ManagedPointer<par
   if (!RequireAggregation(op)) return true;
 
   std::vector<common::ManagedPointer<parser::AbstractExpression>> predicates;
-  SplitPredicates(op->GetSelectCondition(), predicates);
+  SplitPredicates(op->GetSelectCondition(), &predicates);
   for (const auto &pred : predicates) {
     // Depth is used to detect correlated subquery, it is set in the binder,
     // if a TVE has depth less than the depth of the current operator, then it is correlated predicate
@@ -583,11 +587,11 @@ std::vector<AnnotatedExpression> QueryToOperatorTransformer::ExtractPredicates(
     common::ManagedPointer<parser::AbstractExpression> expr, std::vector<AnnotatedExpression> annotated_predicates) {
   // Split a complex predicate into a set of predicates connected by AND.
   std::vector<common::ManagedPointer<parser::AbstractExpression>> predicates;
-  SplitPredicates(expr, predicates);
+  SplitPredicates(expr, &predicates);
 
   for (auto predicate : predicates) {
     std::unordered_set<std::string> table_alias_set;
-    GenerateTableAliasSet(predicate.Get(), table_alias_set);
+    GenerateTableAliasSet(predicate.Get(), &table_alias_set);
 
     // Deep copy expression to avoid memory leak
     annotated_predicates.emplace_back(AnnotatedExpression(
@@ -597,9 +601,9 @@ std::vector<AnnotatedExpression> QueryToOperatorTransformer::ExtractPredicates(
 }
 
 void QueryToOperatorTransformer::GenerateTableAliasSet(const parser::AbstractExpression *expr,
-                                                       std::unordered_set<std::string> &table_alias_set) {
+                                                       std::unordered_set<std::string> *table_alias_set) {
   if (expr->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE) {
-    table_alias_set.insert(reinterpret_cast<const parser::ColumnValueExpression *>(expr)->GetTableName());
+    table_alias_set->insert(reinterpret_cast<const parser::ColumnValueExpression *>(expr)->GetTableName());
   } else {
     for (const auto &child : expr->GetChildren()) GenerateTableAliasSet(child.get(), table_alias_set);
   }
@@ -607,7 +611,7 @@ void QueryToOperatorTransformer::GenerateTableAliasSet(const parser::AbstractExp
 
 void QueryToOperatorTransformer::SplitPredicates(
     common::ManagedPointer<parser::AbstractExpression> expr,
-    std::vector<common::ManagedPointer<parser::AbstractExpression>> &predicates) {
+    std::vector<common::ManagedPointer<parser::AbstractExpression>> *predicates) {
   if (expr == nullptr) {
     return;
   }
@@ -619,7 +623,7 @@ void QueryToOperatorTransformer::SplitPredicates(
     }
   } else {
     // Find an expression that is the child of conjunction expression
-    predicates.push_back(expr);
+    predicates->push_back(expr);
   }
 }
 
@@ -634,8 +638,9 @@ QueryToOperatorTransformer::ConstructSelectElementMap(
     } else if (expr->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE) {
       auto tv_expr = expr.CastManagedPointerTo<parser::ColumnValueExpression>();
       alias = tv_expr->GetColumnName();
-    } else
+    } else {
       continue;
+    }
     std::transform(alias.begin(), alias.end(), alias.begin(), ::tolower);
     res[alias] = common::ManagedPointer<parser::AbstractExpression>(expr->Copy());
   }
