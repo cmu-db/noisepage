@@ -28,7 +28,7 @@ Transition PostgresProtocolInterpreter::Process(std::shared_ptr<ReadBuffer> in, 
     curr_input_packet_.Clear();
     return ProcessStartup(in, out);
   }
-  std::shared_ptr<AbstractNetworkCommand> command = command_factory_->PacketToCommand(&curr_input_packet_);
+  std::shared_ptr<PostgresNetworkCommand> command = command_factory_->PacketToCommand(&curr_input_packet_);
   PostgresPacketWriter writer(out);
   if (command->FlushOnComplete()) out->ForceFlush();
   Transition ret = command->Exec(common::ManagedPointer<ProtocolInterpreter>(this), common::ManagedPointer(&writer),

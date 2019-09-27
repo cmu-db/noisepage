@@ -1,5 +1,6 @@
 #pragma once
 #include "network/abstract_network_command.h"
+// Now we can substitue this with a util class for itp
 #include "network/postgres/postgres_protocol_utils.h"
 
 #define DEFINE_POSTGRES_COMMAND(name, flush)                                                                           \
@@ -14,7 +15,7 @@
 
 namespace terrier::network {
 
-class PostgresNetworkCommand : public AbstractNetworkCommand {
+class ITPNetworkCommand : AbstractNetworkCommand {
  public:
   /**
    * Executes the command
@@ -30,19 +31,10 @@ class PostgresNetworkCommand : public AbstractNetworkCommand {
                           common::ManagedPointer<trafficcop::TrafficCop> t_cop,
                           common::ManagedPointer<ConnectionContext> connection, NetworkCallback callback) = 0;
  protected:
-  PostgresNetworkCommand(InputPacket *in, bool flush) : AbstractNetworkCommand(in, flush) {}
+  ITPNetworkCommand(InputPacket *in, bool flush) : AbstractNetworkCommand(in, flush) {}
 };
 
-// Set all to force flush for now
-DEFINE_POSTGRES_COMMAND(SimpleQueryCommand, true);
-DEFINE_POSTGRES_COMMAND(ParseCommand, true);
-DEFINE_POSTGRES_COMMAND(BindCommand, true);
-DEFINE_POSTGRES_COMMAND(DescribeCommand, true);
-DEFINE_POSTGRES_COMMAND(ExecuteCommand, true);
-DEFINE_POSTGRES_COMMAND(SyncCommand, true);
-DEFINE_POSTGRES_COMMAND(CloseCommand, true);
-DEFINE_POSTGRES_COMMAND(TerminateCommand, true);
-
-DEFINE_POSTGRES_COMMAND(EmptyCommand, true);
+// No commands for now
 
 }  // namespace terrier::network
+
