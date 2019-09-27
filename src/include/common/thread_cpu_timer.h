@@ -81,9 +81,7 @@ class ThreadCPUTimer {
     return static_cast<int64_t>(t.seconds) * 1e6 + t.microseconds;
   }
 #else
-  int64_t TimeValueToMicroseconds(const timeval t) const {
-  return static_cast<int64_t>(t.tv_sec) * 1e6 + t.tv_usec);
-  }
+  int64_t TimeValueToMicroseconds(const timeval t) const { return static_cast<int64_t>(t.tv_sec) * 1e6 + t.tv_usec; }
 #endif
 
   /**
