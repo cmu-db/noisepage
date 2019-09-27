@@ -8,7 +8,7 @@ namespace terrier {
  * This is a bit difficult to test due to some non-determinism from thread scheduling, CPU frequency scaling, etc.
  * The idea is to have a simple task and run it for some number of iterations while timing it. Then, scale the number of
  * iterations by 10 and then 100. At the end, we expect the CPU time spent on this to scale roughly linearly with the
- * iterations. We use EXPECT_NEAR with a margin as our fudge factor for the non-determinism.
+ * iterations, but this is difficult to guarantee so we just use EXPECT_LT.
  */
 // NOLINTNEXTLINE
 TEST(ThreadCPUTimerTests, BasicTest) {
@@ -43,13 +43,8 @@ TEST(ThreadCPUTimerTests, BasicTest) {
   timer.Stop();
   const auto elapsed_time_3 = timer.ElapsedTime();
 
-  const auto abs_error = static_cast<double>(elapsed_time_3.user_time_us_) *
-                         0.2;  // hopefully this is enough to avoid false failures in CI
-
-  EXPECT_NEAR(static_cast<double>(elapsed_time_1.user_time_us_) * 100.0,
-              static_cast<double>(elapsed_time_2.user_time_us_) * 10.0, abs_error);
-  EXPECT_NEAR(static_cast<double>(elapsed_time_2.user_time_us_) * 10.0,
-              static_cast<double>(elapsed_time_3.user_time_us_), abs_error);
+  EXPECT_LT(elapsed_time_1.user_time_us_, elapsed_time_2.user_time_us_);
+  EXPECT_LT(elapsed_time_2.user_time_us_, elapsed_time_3.user_time_us_);
 }
 
 }  // namespace terrier
