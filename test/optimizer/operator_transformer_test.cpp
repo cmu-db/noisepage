@@ -204,6 +204,28 @@ TEST_F(OperatorTransformerTest, InsertStatementSimpleTest) {
 }
 
 // NOLINTNEXTLINE
+TEST_F(OperatorTransformerTest, InsertStatementSelectTest) {
+  // Test regular table name
+  LOG_INFO("Parsing sql query");
+  std::string insertSQL = "INSERT INTO A (A1) SELECT B1 FROM B WHERE B1 > 0";
+
+  std::string ref =
+      "{\"Op\":\"LogicalInsertSelect\",\"Children\":"
+      "[{\"Op\":\"LogicalFilter\",\"Children\":"
+      "[{\"Op\":\"LogicalGet\",}]}]}";
+
+  auto parse_tree = parser_.BuildParseTree(insertSQL);
+  auto insertStmt = dynamic_cast<parser::InsertStatement *>(parse_tree.GetStatements()[0].get());
+  binder_->BindNameToNode(insertStmt);
+  auto accessor_ = binder_->GetCatalogAccessor();
+  operator_transformer_ = new optimizer::QueryToOperatorTransformer(std::move(accessor_));
+  operator_tree_ = operator_transformer_->ConvertToOpExpression(insertStmt);
+  auto info = GetInfo(operator_tree_);
+
+  EXPECT_EQ(ref, info);
+}
+
+// NOLINTNEXTLINE
 TEST_F(OperatorTransformerTest, UpdateStatementSimpleTest) {
   // Test regular table name
   LOG_INFO("Parsing sql query");
@@ -233,6 +255,28 @@ TEST_F(OperatorTransformerTest, SelectStatementAggregateTest) {
   std::string ref =
       "{\"Op\":\"LogicalAggregateAndGroupBy\",\"Children\":"
       "[{\"Op\":\"LogicalGet\",}]}";
+
+  auto parse_tree = parser_.BuildParseTree(selectSQL);
+  auto selectStmt = dynamic_cast<parser::SelectStatement *>(parse_tree.GetStatements()[0].get());
+  binder_->BindNameToNode(selectStmt);
+  auto accessor_ = binder_->GetCatalogAccessor();
+  operator_transformer_ = new optimizer::QueryToOperatorTransformer(std::move(accessor_));
+  operator_tree_ = operator_transformer_->ConvertToOpExpression(selectStmt);
+  auto info = GetInfo(operator_tree_);
+
+  EXPECT_EQ(ref, info);
+}
+
+// NOLINTNEXTLINE
+TEST_F(OperatorTransformerTest, SelectStatementDistinctTest) {
+  // Test regular table name
+  LOG_INFO("Parsing sql query");
+  std::string selectSQL = "SELECT DISTINCT B1 FROM B WHERE B1 > 5";
+
+  std::string ref =
+      "{\"Op\":\"LogicalDistinct\",\"Children\":"
+      "[{\"Op\":\"LogicalFilter\",\"Children\":"
+      "[{\"Op\":\"LogicalGet\",}]}]}";
 
   auto parse_tree = parser_.BuildParseTree(selectSQL);
   auto selectStmt = dynamic_cast<parser::SelectStatement *>(parse_tree.GetStatements()[0].get());
@@ -302,6 +346,50 @@ TEST_F(OperatorTransformerTest, SelectStatementStarTest) {
   std::string ref =
       "{\"Op\":\"LogicalLeftJoin\",\"Children\":"
       "[{\"Op\":\"LogicalGet\",},{\"Op\":\"LogicalGet\",}]}";
+
+  auto parse_tree = parser_.BuildParseTree(selectSQL);
+  auto selectStmt = dynamic_cast<parser::SelectStatement *>(parse_tree.GetStatements()[0].get());
+  binder_->BindNameToNode(selectStmt);
+  auto accessor_ = binder_->GetCatalogAccessor();
+  operator_transformer_ = new optimizer::QueryToOperatorTransformer(std::move(accessor_));
+  operator_tree_ = operator_transformer_->ConvertToOpExpression(selectStmt);
+  auto info = GetInfo(operator_tree_);
+
+  EXPECT_EQ(ref, info);
+}
+
+// NOLINTNEXTLINE
+TEST_F(OperatorTransformerTest, SelectStatementRightJoinTest) {
+  // Test regular table name
+  LOG_INFO("Parsing sql query");
+  std::string selectSQL = "SELECT * FROM A RIGHT JOIN B ON A1 = B1";
+
+  std::string ref =
+      "{\"Op\":\"LogicalRightJoin\",\"Children\":"
+      "[{\"Op\":\"LogicalGet\",},{\"Op\":\"LogicalGet\",}]}";
+
+  auto parse_tree = parser_.BuildParseTree(selectSQL);
+  auto selectStmt = dynamic_cast<parser::SelectStatement *>(parse_tree.GetStatements()[0].get());
+  binder_->BindNameToNode(selectStmt);
+  auto accessor_ = binder_->GetCatalogAccessor();
+  operator_transformer_ = new optimizer::QueryToOperatorTransformer(std::move(accessor_));
+  operator_tree_ = operator_transformer_->ConvertToOpExpression(selectStmt);
+  auto info = GetInfo(operator_tree_);
+
+  EXPECT_EQ(ref, info);
+}
+
+// NOLINTNEXTLINE
+TEST_F(OperatorTransformerTest, SelectStatementMarkJoinTest) {
+  // Test regular table name
+  LOG_INFO("Parsing sql query");
+  std::string selectSQL = "SELECT * FROM A WHERE A1 = 0 AND A1 IN (SELECT B1 FROM B WHERE B1 IN (SELECT A1 FROM A))";
+
+  std::string ref = "{\"Op\":\"LogicalFilter\",\"Children\":"
+                    "[{\"Op\":\"LogicalMarkJoin\",\"Children\":"
+                    "[{\"Op\":\"LogicalGet\",},{\"Op\":\"LogicalFilter\",\"Children\":"
+                    "[{\"Op\":\"LogicalMarkJoin\",\"Children\":"
+                    "[{\"Op\":\"LogicalGet\",},{\"Op\":\"LogicalGet\",}]}]}]}]}";
 
   auto parse_tree = parser_.BuildParseTree(selectSQL);
   auto selectStmt = dynamic_cast<parser::SelectStatement *>(parse_tree.GetStatements()[0].get());
