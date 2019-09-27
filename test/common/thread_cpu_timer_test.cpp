@@ -20,6 +20,7 @@ TEST(ThreadCPUTimerTests, BasicTest) {
   j = 0;
   for (uint64_t i = 0; i < num_iters; i++) {
     j = i * 2;
+    EXPECT_EQ(j, i * 2);
   }
   timer.Stop();
   const auto elapsed_time_1 = timer.ElapsedTime();
@@ -28,6 +29,7 @@ TEST(ThreadCPUTimerTests, BasicTest) {
   j = 0;
   for (uint64_t i = 0; i < num_iters * 10; i++) {
     j = i * 2;
+    EXPECT_EQ(j, i * 2);
   }
   timer.Stop();
   const auto elapsed_time_2 = timer.ElapsedTime();
@@ -36,6 +38,7 @@ TEST(ThreadCPUTimerTests, BasicTest) {
   j = 0;
   for (uint64_t i = 0; i < num_iters * 100; i++) {
     j = i * 2;
+    EXPECT_EQ(j, i * 2);
   }
   timer.Stop();
   const auto elapsed_time_3 = timer.ElapsedTime();
