@@ -24,6 +24,9 @@ from types import (ListType, StringType)
 
 ## =========================================================
 
+# Jenkins URL
+JENKINS_URL = "http://jenkins.db.cs.cmu.edu:8080"
+
 # LIST OF BENCHMARKS
 # Add the name of your benchmark in the list below and 
 # it will automatically get executed when this script runs.
@@ -770,7 +773,7 @@ class RunMicroBenchmarks(object):
 
 class Jenkins(object):
     """ Wrapper for Jenkins web api """
-    def __init__(self, base_url="http://jenkins.db.cs.cmu.edu:8080"):
+    def __init__(self, base_url):
         self.base_url = base_url
         return
 
@@ -1027,7 +1030,7 @@ if __name__ == "__main__":
     
     # need <n> benchmark results to compare against
     ap = ArtifactProcessor(config.min_ref_values)
-    h = Jenkins()
+    h = Jenkins(JENKINS_URL)
 
     data_src_list = config.ref_data_sources
     more = True
