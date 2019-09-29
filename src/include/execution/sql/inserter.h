@@ -35,6 +35,7 @@ class EXPORT Inserter {
 
   storage::ProjectedRow *table_pr_{nullptr};
 
+  uint32_t index_pr_size_;
   void *index_pr_buffer_;
   storage::ProjectedRow *index_pr_{nullptr};
 
