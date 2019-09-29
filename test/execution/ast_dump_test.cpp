@@ -1,13 +1,13 @@
-#include <string>
-#include <typeinfo>
 #include <set>
+#include <string>
+#include <vector>
 
 #include "execution/tpl_test.h"
 
 #include "execution/ast/ast.h"
+#include "execution/ast/ast_dump.h"
 #include "execution/ast/ast_node_factory.h"
 #include "execution/ast/ast_traversal_visitor.h"
-#include "execution/ast/ast_dump.h"
 #include "execution/parsing/parser.h"
 #include "execution/parsing/scanner.h"
 #include "execution/sema/sema.h"
@@ -19,11 +19,11 @@ namespace terrier::execution::ast::test {
  * Magic macro so that we can easily add Visit methods to our extractor class
  * and ensure that we compile correctly.
  */
-#define EXTRACT_KINDNAME_METHOD(ASTNODE) \
-  void Visit##ASTNODE(ast::ASTNODE *node) { \
-    kindnames_.insert(node->KindName()); \
+#define EXTRACT_KINDNAME_METHOD(ASTNODE)              \
+  void Visit##ASTNODE(ast::ASTNODE *node) {           \
+    kindnames_.insert(node->KindName());              \
     AstTraversalVisitor<SelfT>::Visit##ASTNODE(node); \
-  } \
+  }
 
 /**
  * This is a helper class that extracts all of the names of the nodes
@@ -124,7 +124,7 @@ class AstDumpTest : public TplTest {
    * check whether the given list of constant strings appear as well.
    * @param constants
    */
-  void CheckDump(const std::string src, std::vector<std::string> &constants) {
+  void CheckDump(const std::string &src, const std::vector<std::string> &constants) {
     // Create the AST
     EXECUTION_LOG_DEBUG("Generating AST:\n{}", src);
     auto *root = GenerateAst(src);
@@ -140,7 +140,7 @@ class AstDumpTest : public TplTest {
     EXECUTION_LOG_DEBUG("Dump:\n{}", dump);
 
     // Check that the expected tokens and constants are in the dump
-    for (std::string token : tokens) {
+    for (const auto &token : tokens) {
       EXPECT_NE(dump.find(token), std::string::npos) << "Missing token '" << token << "'";
     }
     for (const auto &constant : constants) {
@@ -183,12 +183,7 @@ TEST_F(AstDumpTest, ForLoopTest) {
       return 999999
     })";
 
-  std::vector<std::string> constants = {
-    "xxxxxx",
-    "777777",
-    "888888",
-    "999999"
-  };
+  std::vector<std::string> constants = {"xxxxxx", "777777", "888888", "999999"};
 
   CheckDump(src, constants);
 }
