@@ -21,9 +21,7 @@ class EXPORT Inserter {
   bool IndexInsert(catalog::index_oid_t index_oid);
 
  private:
-
-  terrier::common::ManagedPointer<terrier::storage::index::Index>
-      GetIndex(terrier::catalog::index_oid_t index_oid);
+  terrier::common::ManagedPointer<terrier::storage::index::Index> GetIndex(terrier::catalog::index_oid_t index_oid);
 
   catalog::table_oid_t table_oid_;
   exec::ExecutionContext *exec_ctx_;
@@ -39,8 +37,7 @@ class EXPORT Inserter {
   void *index_pr_buffer_;
   storage::ProjectedRow *index_pr_{nullptr};
 
-  std::map<terrier::catalog::index_oid_t,
-  common::ManagedPointer<storage::index::Index>> index_cache_;
+  std::map<terrier::catalog::index_oid_t, common::ManagedPointer<storage::index::Index>> index_cache_;
 };
 
 }  // namespace terrier::execution::sql

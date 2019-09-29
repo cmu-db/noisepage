@@ -12,12 +12,11 @@ terrier::execution::sql::Inserter::Inserter(terrier::execution::exec::ExecutionC
     col_oids_.push_back(col.Oid());
   }
 
-  //getting index pr size
+  // getting index pr size
   uint32_t index_pr_size = 0;
   auto index_oids = exec_ctx->GetAccessor()->GetIndexes(table_oid_);
-  for(auto index_oid : index_oids) {
-    index_pr_size = MAX(index_pr_size, GetIndex(index_oid)->GetProjectedRowInitializer()
-    .ProjectedRowSize());
+  for (auto index_oid : index_oids) {
+    index_pr_size = MAX(index_pr_size, GetIndex(index_oid)->GetProjectedRowInitializer().ProjectedRowSize());
   }
 
   index_pr_size_ = index_pr_size;
@@ -34,7 +33,7 @@ terrier::storage::ProjectedRow *terrier::execution::sql::Inserter::GetTablePR() 
 }
 
 terrier::storage::ProjectedRow *terrier::execution::sql::Inserter::GetIndexPR(terrier::catalog::index_oid_t index_oid) {
-  //cache?
+  // cache?
   auto index = GetIndex(index_oid);
   auto index_pri = index->GetProjectedRowInitializer();
   index_pr_ = index->GetProjectedRowInitializer().InitializeRow(index_pr_buffer_);
@@ -51,11 +50,11 @@ bool terrier::execution::sql::Inserter::IndexInsert(terrier::catalog::index_oid_
   return index->Insert(exec_ctx_->GetTxn(), *index_pr_, table_tuple_slot_);
 }
 
-terrier::common::ManagedPointer<terrier::storage::index::Index>
-  terrier::execution::sql::Inserter::GetIndex(terrier::catalog::index_oid_t index_oid) {
+terrier::common::ManagedPointer<terrier::storage::index::Index> terrier::execution::sql::Inserter::GetIndex(
+    terrier::catalog::index_oid_t index_oid) {
   auto iter = index_cache_.find(index_oid);
   terrier::common::ManagedPointer<terrier::storage::index::Index> index = nullptr;
-  if(iter == index_cache_.end()) {
+  if (iter == index_cache_.end()) {
     index = exec_ctx_->GetAccessor()->GetIndex(index_oid);
     index_cache_[index_oid] = index;
   } else {

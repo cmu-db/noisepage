@@ -124,7 +124,7 @@ TEST_F(InserterTest, MultiIndexTest) {
     *reinterpret_cast<int32_t *>(pr->AccessForceNotNull(1)) = 721;
     index_iter.ScanKey();
     size_t count = 0;
-    while(index_iter.Advance()){
+    while (index_iter.Advance()) {
       count++;
     }
 
