@@ -23,6 +23,9 @@ struct ThreadContext {
   common::ManagedPointer<metrics::MetricsStore> metrics_store_ = nullptr;
 };
 
+/**
+ * Define a thread_local ThreadContext for each thread
+ */
 extern thread_local common::ThreadContext thread_context;
 
 }  // namespace terrier::common
