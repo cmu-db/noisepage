@@ -1,6 +1,5 @@
 
 #include <execution/sql/inserter.h>
-#include <stdio.h>
 
 #include "execution/sql/inserter.h"
 terrier::execution::sql::Inserter::Inserter(terrier::execution::exec::ExecutionContext *exec_ctx,
@@ -8,7 +7,7 @@ terrier::execution::sql::Inserter::Inserter(terrier::execution::exec::ExecutionC
     : table_oid_{table_oid}, exec_ctx_{exec_ctx} {
   table_ = exec_ctx->GetAccessor()->GetTable(table_oid);
   auto columns = exec_ctx_->GetAccessor()->GetSchema(table_oid_).GetColumns();
-  for (auto col : columns) {
+  for (const auto &col : columns) {
     col_oids_.push_back(col.Oid());
   }
 
