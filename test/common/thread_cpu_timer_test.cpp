@@ -13,13 +13,14 @@ namespace terrier {
 // NOLINTNEXTLINE
 TEST(ThreadCPUTimerTests, BasicTest) {
   common::ThreadCPUTimer timer;
-  volatile uint64_t j;
-  const uint64_t num_iters = 1000000;
+  volatile uint64_t j = 0;
+  const uint64_t num_iters = 1e8;
+
+  auto workload = [&](uint64_t i) { j = i * 2; };
 
   timer.Start();
-  j = 0;
   for (uint64_t i = 0; i < num_iters; i++) {
-    j = i * 2;
+    workload(i);
     EXPECT_EQ(j, i * 2);
   }
   timer.Stop();
