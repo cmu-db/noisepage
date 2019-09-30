@@ -14,7 +14,7 @@ namespace terrier {
 TEST(ThreadCPUTimerTests, BasicTest) {
   common::ThreadCPUTimer timer;
   volatile uint64_t j;
-  const uint64_t num_iters = 100000;
+  const uint64_t num_iters = 1000000;
 
   timer.Start();
   j = 0;
@@ -23,28 +23,8 @@ TEST(ThreadCPUTimerTests, BasicTest) {
     EXPECT_EQ(j, i * 2);
   }
   timer.Stop();
-  const auto elapsed_time_1 = timer.ElapsedTime();
 
-  timer.Start();
-  j = 0;
-  for (uint64_t i = 0; i < num_iters * 10; i++) {
-    j = i * 2;
-    EXPECT_EQ(j, i * 2);
-  }
-  timer.Stop();
-  const auto elapsed_time_2 = timer.ElapsedTime();
-
-  timer.Start();
-  j = 0;
-  for (uint64_t i = 0; i < num_iters * 100; i++) {
-    j = i * 2;
-    EXPECT_EQ(j, i * 2);
-  }
-  timer.Stop();
-  const auto elapsed_time_3 = timer.ElapsedTime();
-
-  EXPECT_LT(elapsed_time_1.user_time_us_, elapsed_time_2.user_time_us_);
-  EXPECT_LT(elapsed_time_2.user_time_us_, elapsed_time_3.user_time_us_);
+  EXPECT_GT(timer.ElapsedTime().user_time_us_, 0);
 }
 
 }  // namespace terrier
