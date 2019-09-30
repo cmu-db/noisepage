@@ -1975,6 +1975,9 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
       VisitBuiltinInserterCall(call, builtin);
       break;
     }
+    default: {
+      UNREACHABLE("Builtin not supported!");
+    }
   }
 }
 
