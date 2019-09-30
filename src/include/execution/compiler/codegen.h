@@ -597,6 +597,32 @@ class CodeGen {
    */
   ast::Expr *IndexIteratorFree(ast::Identifier iter);
 
+  /**
+   * Call InserterInit(&inserter(&inserter, table_oid)
+   */
+   ast::Expr *InserterInit(ast::Identifier inserter, uint32_t table_oid);
+
+   /**
+    * Call InserterGetTablePR(&inserter)
+    */
+    ast::Expr *InserterGetTablePR(ast::Identifier inserter);
+
+    /**
+     * Call InserterTableInsert(&inserter)
+     */
+     ast::Expr *InserterTableInsert(ast::Identifier inserter);
+
+     /**
+      * Call InserterGetIndexPR(&inserter, index_oid)
+      */
+     ast::Expr *InserterGetIndexPR(ast::Identifier inserter, uint32_t index_oid);
+
+    /**
+     * Call InserterIndexInsert(&inserter)
+     */
+    ast::Expr *InserterIndexInsert(ast::Identifier inserter, uint32_t index_oid);
+
+
  private:
   /**
    * Many functions take a pointer to an identifier as their argument.

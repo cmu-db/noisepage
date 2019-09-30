@@ -79,6 +79,9 @@ class InsertTranslator : public OperatorTranslator {
   static constexpr const char *inserter_name_ = "inserter";
 
   ast::Identifier inserter_struct_;
+
+  static constexpr const char *table_pr_name_ "projected_row";
+  ast::Identifier table_pr_;
 //  const planner::InsertPlanNode *insert_op_;
 //  const catalog::Schema &schema_;
 //  std::vector<catalog::col_oid_t> input_oids_;
