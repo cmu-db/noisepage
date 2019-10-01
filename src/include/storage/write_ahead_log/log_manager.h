@@ -28,7 +28,7 @@ namespace terrier::storage {
  *      1. The LogManager receives buffers containing records from transactions via the AddBufferToFlushQueue, and
  * adds them to the serializer task's flush queue (flush_queue_)
  *      2. The LogSerializerTask will periodically process and serialize buffers in its flush queue
- * and hand them over to the consumer queue (disk_consumer_queue_). The reason this is done in the background and not as
+ * and hand them over to the consumer queue (filled_buffer_queue_). The reason this is done in the background and not as
  * soon as logs are received is to reduce the amount of time a transaction spends interacting with the log manager
  *      3. When a buffer of logs is handed over to a consumer, the consumer will wake up and process the logs. In the
  * case of the DiskLogConsumerTask, this means writing it to the log file.
@@ -62,7 +62,7 @@ class LogManager : public common::DedicatedThreadOwner {
    */
   BOOST_DI_INJECT(LogManager, (named = LOG_FILE_PATH) std::string log_file_path,
                   (named = NUM_BUFFERS) uint64_t num_buffers,
-                  (named = SERIALIZATION_INTERVAL) std::chrono::milliseconds serialization_interval,
+                  (named = SERIALIZATION_INTERVAL) std::chrono::microseconds serialization_interval,
                   (named = PERSIST_INTERVAL) std::chrono::milliseconds persist_interval,
                   (named = PERSIST_THRESHOLD) uint64_t persist_threshold, RecordBufferSegmentPool *buffer_pool,
                   common::ManagedPointer<terrier::common::DedicatedThreadRegistry> thread_registry)
@@ -73,8 +73,7 @@ class LogManager : public common::DedicatedThreadOwner {
         buffer_pool_(buffer_pool),
         serialization_interval_(serialization_interval),
         persist_interval_(persist_interval),
-        persist_threshold_(persist_threshold),
-        network_consumer_task_(nullptr) {}
+        persist_threshold_(persist_threshold) {}
 
   /**
    * Starts log manager. Does the following in order:
@@ -85,7 +84,7 @@ class LogManager : public common::DedicatedThreadOwner {
   void Start();
 
   /**
-   * Flush the logs to make sure all serialized records before this invocation are persistent. Callbacks from committed
+   * Serialize and flush the logs to make sure all serialized records are persistent. Callbacks from committed
    * transactions are invoked by log consumers when the commit records are persisted on disk.
    * @warning This method should only be called from a dedicated flushing thread or during testing
    * @warning Beware the performance consequences of calling flush too frequently
@@ -127,7 +126,7 @@ class LogManager : public common::DedicatedThreadOwner {
     if (new_num_buffers >= num_buffers_) {
       // Add in new buffers
       for (size_t i = 0; i < new_num_buffers - num_buffers_; i++) {
-        buffers_.emplace_back(BufferedLogWriter());
+        buffers_.emplace_back(BufferedLogWriter(log_file_path_.c_str()));
         empty_buffer_queue_.Enqueue(&buffers_[num_buffers_ + i]);
       }
       num_buffers_ = new_num_buffers;
@@ -156,14 +155,12 @@ class LogManager : public common::DedicatedThreadOwner {
   // serializer thread should block when requesting a new buffer until it receives an empty buffer
   common::ConcurrentBlockingQueue<BufferedLogWriter *> empty_buffer_queue_;
   // The queue containing filled buffers pending flush to the disk
-  common::ConcurrentQueue<SerializedLogs> disk_consumer_queue_;
-  // The queue containing filled buffers pending to be sent over network
-  common::ConcurrentQueue<SerializedLogs> network_consumer_queue_;
+  common::ConcurrentQueue<SerializedLogs> filled_buffer_queue_;
 
   // Log serializer task that processes buffers handed over by transactions and serializes them into consumer buffers
   common::ManagedPointer<LogSerializerTask> log_serializer_task_ = common::ManagedPointer<LogSerializerTask>(nullptr);
   // Interval used by log serialization task
-  const std::chrono::milliseconds serialization_interval_;
+  const std::chrono::microseconds serialization_interval_;
 
   // The log consumer task which flushes filled buffers to the disk
   common::ManagedPointer<DiskLogConsumerTask> disk_log_writer_task_ =
@@ -172,9 +169,6 @@ class LogManager : public common::DedicatedThreadOwner {
   const std::chrono::milliseconds persist_interval_;
   // Threshold used by disk consumer task
   uint64_t persist_threshold_;
-
-  // TODO(Gus): Replace when networking is added
-  void *network_consumer_task_;
 
   /**
    * If the central registry wants to removes our thread used for the disk log consumer task, we only allow removal if

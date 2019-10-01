@@ -17,12 +17,12 @@ void DiskLogConsumerTask::Terminate() {
 }
 
 void DiskLogConsumerTask::WriteBuffersToLogFile() {
-  // Write all the filled buffers to the log file
+  // Persist all the filled buffers to the disk
   SerializedLogs logs;
   while (!filled_buffer_queue_->Empty()) {
     // Dequeue filled buffers and flush them to disk, as well as storing commit callbacks
     filled_buffer_queue_->Dequeue(&logs);
-    current_data_written_ += logs.first->FlushBuffer(out_);
+    current_data_written_ += logs.first->FlushBuffer();
     commit_callbacks_.insert(commit_callbacks_.end(), logs.second.begin(), logs.second.end());
     // Enqueue the flushed buffer to the empty buffer queue
     empty_buffer_queue_->Enqueue(logs.first);
@@ -30,9 +30,10 @@ void DiskLogConsumerTask::WriteBuffersToLogFile() {
 }
 
 void DiskLogConsumerTask::PersistLogFile() {
-  // Persist log file on disk
-  PosixIoWrappers::Persist(out_);
-
+  TERRIER_ASSERT(!buffers_->empty(), "Buffers vector should not be empty until Shutdown");
+  // Force the buffers to be written to disk. Because all buffers log to the same file, it suffices to call persist on
+  // any buffer.
+  buffers_->front().Persist();
   // Execute the callbacks for the transactions that have been persisted
   for (auto &callback : commit_callbacks_) callback.first(callback.second);
   commit_callbacks_.clear();
@@ -84,8 +85,5 @@ void DiskLogConsumerTask::DiskLogConsumerTaskLoop() {
   // Be extra sure we processed everything
   WriteBuffersToLogFile();
   PersistLogFile();
-
-  // Close log file
-  PosixIoWrappers::Close(out_);
 }
 }  // namespace terrier::storage

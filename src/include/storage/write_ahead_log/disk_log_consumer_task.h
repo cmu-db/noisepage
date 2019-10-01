@@ -17,21 +17,21 @@ class DiskLogConsumerTask : public common::DedicatedThreadTask {
  public:
   /**
    * Constructs a new DiskLogConsumerTask
-   * @param log_file_path path to file to write logs to
    * @param persist_interval Interval time for when to persist log file
    * @param persist_threshold threshold of data written since the last persist to trigger another persist
+   * @param buffers pointer to list of all buffers used by log manager, used to persist log file
    * @param empty_buffer_queue pointer to queue to push empty buffers to
    * @param filled_buffer_queue pointer to queue to pop filled buffers from
    */
-  explicit DiskLogConsumerTask(const char *log_file_path, const std::chrono::milliseconds persist_interval,
-                               uint64_t persist_threshold,
+  explicit DiskLogConsumerTask(const std::chrono::milliseconds persist_interval, uint64_t persist_threshold,
+                               std::vector<BufferedLogWriter> *buffers,
                                common::ConcurrentBlockingQueue<BufferedLogWriter *> *empty_buffer_queue,
                                common::ConcurrentQueue<storage::SerializedLogs> *filled_buffer_queue)
       : run_task_(false),
-        out_(PosixIoWrappers::Open(log_file_path, O_WRONLY | O_APPEND | O_CREAT, S_IRUSR | S_IWUSR)),
         persist_interval_(persist_interval),
         persist_threshold_(persist_threshold),
         current_data_written_(0),
+        buffers_(buffers),
         empty_buffer_queue_(empty_buffer_queue),
         filled_buffer_queue_(filled_buffer_queue) {}
 
@@ -49,8 +49,6 @@ class DiskLogConsumerTask : public common::DedicatedThreadTask {
   friend class LogManager;
   // Flag to signal task to run or stop
   bool run_task_;
-  // File descriptor for log file
-  int out_;
   // Stores callbacks for commit records written to disk but not yet persisted
   std::vector<storage::CommitCallback> commit_callbacks_;
 
@@ -61,6 +59,8 @@ class DiskLogConsumerTask : public common::DedicatedThreadTask {
   // Amount of data written since last persist
   uint64_t current_data_written_;
 
+  // This stores a reference to all the buffers the log manager has created. Used for persisting
+  std::vector<BufferedLogWriter> *buffers_;
   // The queue containing empty buffers. Task will enqueue a buffer into this queue when it has flushed its logs
   common::ConcurrentBlockingQueue<BufferedLogWriter *> *empty_buffer_queue_;
   // The queue containing filled buffers. Task should dequeue filled buffers from this queue to flush

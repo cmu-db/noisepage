@@ -48,13 +48,6 @@ struct PosixIoWrappers {
   static void Close(int fd);
 
   /**
-   * Call fsync to persist file on disk
-   */
-  static void Persist(int fd) {
-    if (fsync(fd) == -1) throw std::runtime_error("fsync failed with errno " + std::to_string(errno));
-  }
-
-  /**
    * Wrapper around the posix read call, where a single function call will always read the specified amount of bytes
    * unless eof is read. (unlike posix read, which can read arbitrarily many bytes less than the given amount)
    * @param fd posix fildes arg
@@ -79,19 +72,25 @@ struct PosixIoWrappers {
 // TODO(Tianyu):  we need control over when and what to flush as the log manager. Thus, we need to write our
 // own wrapper around lower level I/O functions. I could be wrong, and in that case we should
 // revert to using STL.
-// TODO(Gus): This class is very similar to the Buffer class in the networking layer (network_io_utils.h). Perhaps the
-// Buffer class could be in common
 /**
- *  A BufferedLogWriter is a light wrapper over a char buffer that handles buffering multiple writes into the same
- * buffer. The contents can be written to a destination through the FlushBuffer method.
+ * Handles buffered writes to the write ahead log, and provides control over flushing.
  */
 class BufferedLogWriter {
   // TODO(Tianyu): Checksum
  public:
   /**
-   * Instantiates a new BufferedLogWriter.
+   * Instantiates a new BufferedLogWriter to write to the specified log file.
+   *
+   * @param log_file_path path to the the log file to write to. New entries are appended to the end of the file if the
+   * file already exists; otherwise, a file is created.
    */
-  BufferedLogWriter() = default;
+  explicit BufferedLogWriter(const char *log_file_path)
+      : out_(PosixIoWrappers::Open(log_file_path, O_WRONLY | O_APPEND | O_CREAT, S_IRUSR | S_IWUSR)) {}
+
+  /**
+   * Must call before object is destructed
+   */
+  void Close() { PosixIoWrappers::Close(out_); }
 
   /**
    * Write to the log file the given amount of bytes from the given location in memory, but buffer the write so the
@@ -115,13 +114,19 @@ class BufferedLogWriter {
   }
 
   /**
-   * Flush buffered writes
-   * @param fd file descriptor of file to flush to
+   * Call fsync to make sure that all writes are consistent.
+   */
+  void Persist() {
+    if (fsync(out_) == -1) throw std::runtime_error("fsync failed with errno " + std::to_string(errno));
+  }
+
+  /**
+   * Flush any buffered writes.
    * @return amount of data flushed
    */
-  uint64_t FlushBuffer(int fd) {
+  uint64_t FlushBuffer() {
     auto size = buffer_size_;
-    PosixIoWrappers::WriteFully(fd, buffer_, buffer_size_);
+    WriteUnsynced(buffer_, buffer_size_);
     buffer_size_ = 0;
     return size;
   }
@@ -131,21 +136,15 @@ class BufferedLogWriter {
    */
   bool IsBufferFull() { return buffer_size_ == common::Constants::LOG_BUFFER_SIZE; }
 
-  /**
-   * Copies the contents of another buffer into this buffer
-   * @param other buffer to copy from
-   */
-  void CopyFromBuffer(BufferedLogWriter *other) {
-    TERRIER_ASSERT(CanBuffer(other->buffer_size_), "Not enough space to copy into");
-    BufferWrite(other->buffer_, other->buffer_size_);
-  }
-
  private:
+  int out_;  // fd of the output files
   char buffer_[common::Constants::LOG_BUFFER_SIZE];
 
   uint32_t buffer_size_ = 0;
 
   bool CanBuffer(uint32_t size) { return common::Constants::LOG_BUFFER_SIZE - buffer_size_ >= size; }
+
+  void WriteUnsynced(const void *data, uint32_t size) { PosixIoWrappers::WriteFully(out_, data, size); }
 };
 
 /**
@@ -159,6 +158,14 @@ class BufferedLogReader {
    * @param log_file_path path to the the log file to read from.
    */
   explicit BufferedLogReader(const char *log_file_path) : in_(PosixIoWrappers::Open(log_file_path, O_RDONLY)) {}
+
+  /**
+   * Closes log file if it has not been closed already. While Read will close the file if it reaches the end, this will
+   * handle cases where we destroy the reader before reading the whole file.
+   */
+  ~BufferedLogReader() {
+    if (in_ != -1) PosixIoWrappers::Close(in_);
+  }
 
   /**
    * @return if there are contents left in the write ahead log
