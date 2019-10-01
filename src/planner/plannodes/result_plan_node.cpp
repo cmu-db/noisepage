@@ -29,7 +29,7 @@ bool ResultPlanNode::operator==(const AbstractPlanNode &rhs) const {
 
 nlohmann::json ResultPlanNode::ToJson() const {
   nlohmann::json j = AbstractPlanNode::ToJson();
-  //  j["expr"] = expr_;
+  j["expr"] = expr_ == nullptr ? nlohmann::json(nullptr) : expr_->ToJson();
   return j;
 }
 

@@ -157,15 +157,16 @@ TEST(PlanNodeTest, HashJoinPlanTest) {
 
   auto scan_pred_1 = std::make_unique<parser::StarExpression>();
   // Build left scan
-  auto seq_scan_1 = seq_scan_builder
-                        .SetOutputSchema(PlanNodeTest::BuildOneColumnSchema("col1", type::TypeId::INTEGER, false,
-                                                                            catalog::col_oid_t(1)))
-                        .SetTableOid(catalog::table_oid_t(1))
-                        .SetDatabaseOid(catalog::db_oid_t(0))
-                        .SetScanPredicate(std::make_unique<parser::StarExpression>())
-                        .SetIsForUpdateFlag(false)
-                        .SetIsParallelFlag(true)
-                        .Build();
+  auto seq_scan_1 =
+      seq_scan_builder
+          .SetOutputSchema(
+              PlanNodeTest::BuildOneColumnSchema("col1", type::TypeId::INTEGER, false, catalog::col_oid_t(1)))
+          .SetTableOid(catalog::table_oid_t(1))
+          .SetDatabaseOid(catalog::db_oid_t(0))
+          .SetScanPredicate(common::ManagedPointer(scan_pred_1).CastManagedPointerTo<parser::AbstractExpression>())
+          .SetIsForUpdateFlag(false)
+          .SetIsParallelFlag(true)
+          .Build();
 
   EXPECT_EQ(PlanNodeType::SEQSCAN, seq_scan_1->GetPlanNodeType());
   EXPECT_EQ(0, seq_scan_1->GetChildrenSize());
@@ -181,12 +182,12 @@ TEST(PlanNodeTest, HashJoinPlanTest) {
           .SetOutputSchema(
               PlanNodeTest::BuildOneColumnSchema("col2", type::TypeId::INTEGER, false, catalog::col_oid_t(2)))
 
-                        .SetTableOid(catalog::table_oid_t(2))
-                        .SetDatabaseOid(catalog::db_oid_t(0))
-                        .SetScanPredicate(std::make_unique<parser::StarExpression>())
-                        .SetIsForUpdateFlag(false)
-                        .SetIsParallelFlag(true)
-                        .Build();
+          .SetTableOid(catalog::table_oid_t(2))
+          .SetDatabaseOid(catalog::db_oid_t(0))
+          .SetScanPredicate(common::ManagedPointer(scan_pred_2).CastManagedPointerTo<parser::AbstractExpression>())
+          .SetIsForUpdateFlag(false)
+          .SetIsParallelFlag(true)
+          .Build();
 
   EXPECT_EQ(PlanNodeType::SEQSCAN, seq_scan_2->GetPlanNodeType());
   EXPECT_EQ(0, seq_scan_2->GetChildrenSize());
@@ -200,7 +201,7 @@ TEST(PlanNodeTest, HashJoinPlanTest) {
   auto hash_plan = hash_builder
                        .SetOutputSchema(PlanNodeTest::BuildOneColumnSchema("col2", type::TypeId::INTEGER, false,
                                                                            catalog::col_oid_t(2)))
-                       .AddHashKey(std::make_unique<parser::ColumnValueExpression>("table2", "col2"))
+                       .AddHashKey(common::ManagedPointer(hash_key).CastManagedPointerTo<parser::AbstractExpression>())
                        .AddChild(std::move(seq_scan_2))
                        .Build();
 
@@ -215,13 +216,14 @@ TEST(PlanNodeTest, HashJoinPlanTest) {
   auto cmp_expression =
       std::make_unique<parser::ComparisonExpression>(parser::ExpressionType::COMPARE_EQUAL, std::move(expr_children));
 
-  auto hash_join_plan = hash_join_builder.SetJoinType(LogicalJoinType::INNER)
-                            .SetOutputSchema(PlanNodeTest::BuildOneColumnSchema("col1", type::TypeId::INTEGER, false,
-                                                                                catalog::col_oid_t(1)))
-                            .SetJoinPredicate(std::move(cmp_expression))
-                            .AddChild(std::move(seq_scan_1))
-                            .AddChild(std::move(hash_plan))
-                            .Build();
+  auto hash_join_plan =
+      hash_join_builder.SetJoinType(LogicalJoinType::INNER)
+          .SetOutputSchema(
+              PlanNodeTest::BuildOneColumnSchema("col1", type::TypeId::INTEGER, false, catalog::col_oid_t(1)))
+          .SetJoinPredicate(common::ManagedPointer(cmp_expression).CastManagedPointerTo<parser::AbstractExpression>())
+          .AddChild(std::move(seq_scan_1))
+          .AddChild(std::move(hash_plan))
+          .Build();
 
   EXPECT_EQ(PlanNodeType::HASHJOIN, hash_join_plan->GetPlanNodeType());
   EXPECT_EQ(2, hash_join_plan->GetChildrenSize());

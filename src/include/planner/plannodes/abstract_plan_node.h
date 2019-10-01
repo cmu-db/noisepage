@@ -223,7 +223,7 @@ struct JSONDeserializeNodeIntermediate {
  * @param json json to deserialize
  * @return json deserialization result
  */
-std::unique_ptr<AbstractPlanNode> DeserializePlanNode(const nlohmann::json &json);
+JSONDeserializeNodeIntermediate DeserializePlanNode(const nlohmann::json &json);
 
 }  // namespace terrier::planner
 

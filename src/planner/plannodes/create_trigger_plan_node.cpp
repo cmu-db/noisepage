@@ -116,7 +116,7 @@ nlohmann::json CreateTriggerPlanNode::ToJson() const {
   j["trigger_funcnames"] = trigger_funcnames_;
   j["trigger_args"] = trigger_args_;
   j["trigger_columns"] = trigger_columns_;
-  //   j["trigger_when"] = trigger_when_;
+  j["trigger_when"] = trigger_when_->ToJson();
   j["trigger_type"] = trigger_type_;
   return j;
 }

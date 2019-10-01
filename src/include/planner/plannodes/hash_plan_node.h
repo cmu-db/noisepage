@@ -33,9 +33,9 @@ class HashPlanNode : public AbstractPlanNode {
      * @param key Hash key to be added
      * @return builder object
      */
-    Builder &AddHashKey(const std::shared_ptr<parser::AbstractExpression> &key) {
+    Builder &AddHashKey(common::ManagedPointer<parser::AbstractExpression> key) {
       TERRIER_ASSERT(key != nullptr, "Can't add nullptr key to HashPlanNode");
-      hash_keys_.emplace_back(std::move(key));
+      hash_keys_.emplace_back(key);
       return *this;
     }
 
@@ -52,7 +52,7 @@ class HashPlanNode : public AbstractPlanNode {
     /**
      * keys to be hashed on
      */
-    std::vector<std::unique_ptr<parser::AbstractExpression>> hash_keys_;
+    std::vector<common::ManagedPointer<parser::AbstractExpression>> hash_keys_;
   };
 
  private:
@@ -62,7 +62,7 @@ class HashPlanNode : public AbstractPlanNode {
    * @param hash_keys keys to be hashed on
    */
   HashPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children, std::unique_ptr<OutputSchema> output_schema,
-               std::vector<std::unique_ptr<parser::AbstractExpression>> hash_keys)
+               std::vector<common::ManagedPointer<parser::AbstractExpression>> hash_keys)
       : AbstractPlanNode(std::move(children), std::move(output_schema)), hash_keys_(std::move(hash_keys)) {}
 
  public:
@@ -81,14 +81,7 @@ class HashPlanNode : public AbstractPlanNode {
   /**
    * @return keys to be hashed on
    */
-  std::vector<common::ManagedPointer<parser::AbstractExpression>> GetHashKeys() const {
-    std::vector<common::ManagedPointer<parser::AbstractExpression>> hash_keys;
-    hash_keys.reserve(hash_keys_.size());
-    for (const auto &key : hash_keys_) {
-      hash_keys.emplace_back(common::ManagedPointer(key));
-    }
-    return hash_keys;
-  }
+  std::vector<common::ManagedPointer<parser::AbstractExpression>> GetHashKeys() const { return hash_keys_; }
 
   /**
    * @return the hashed value of this plan node
@@ -101,7 +94,7 @@ class HashPlanNode : public AbstractPlanNode {
   std::vector<std::unique_ptr<parser::AbstractExpression>> FromJson(const nlohmann::json &j) override;
 
  private:
-  std::vector<std::unique_ptr<parser::AbstractExpression>> hash_keys_;
+  std::vector<common::ManagedPointer<parser::AbstractExpression>> hash_keys_;
 };
 
 DEFINE_JSON_DECLARATIONS(HashPlanNode);

@@ -31,13 +31,15 @@ std::vector<std::unique_ptr<AbstractExpression>> JoinDefinition::FromJson(const 
   // Deserialize left
   if (!j.at("left").is_null()) {
     left_ = std::make_unique<TableRef>();
-    left_->FromJson(j.at("left"));
+    auto e1 = left_->FromJson(j.at("left"));
+    exprs.insert(exprs.end(), std::make_move_iterator(e1.begin()), std::make_move_iterator(e1.end()));
   }
 
   // Deserialize right
   if (!j.at("right").is_null()) {
     right_ = std::make_unique<TableRef>();
-    right_->FromJson(j.at("right"));
+    auto e1 = right_->FromJson(j.at("right"));
+    exprs.insert(exprs.end(), std::make_move_iterator(e1.begin()), std::make_move_iterator(e1.end()));
   }
 
   // Deserialize condition
@@ -55,11 +57,6 @@ std::vector<std::unique_ptr<AbstractExpression>> JoinDefinition::FromJson(const 
 std::unique_ptr<JoinDefinition> JoinDefinition::Copy() {
   return std::make_unique<JoinDefinition>(type_, left_->Copy(), right_->Copy(), condition_);
 }
-
-std::unique_ptr<JoinDefinition> JoinDefinition::Copy() {
-  return std::make_unique<JoinDefinition>(type_, left_->Copy(), right_->Copy(), condition_);
-}
-
 
 nlohmann::json TableRef::ToJson() const {
   nlohmann::json j;
@@ -88,27 +85,31 @@ std::vector<std::unique_ptr<AbstractExpression>> TableRef::FromJson(const nlohma
   // Deserialize table info
   if (!j.at("table_info").is_null()) {
     table_info_ = std::make_unique<TableInfo>();
-    table_info_->FromJson(j.at("table_info"));
+    auto e1 = table_info_->FromJson(j.at("table_info"));
+    exprs.insert(exprs.end(), std::make_move_iterator(e1.begin()), std::make_move_iterator(e1.end()));
   }
 
   // Deserialize select
   if (!j.at("select").is_null()) {
     select_ = std::make_unique<parser::SelectStatement>();
-    select_->FromJson(j.at("select"));
+    auto e1 = select_->FromJson(j.at("select"));
+    exprs.insert(exprs.end(), std::make_move_iterator(e1.begin()), std::make_move_iterator(e1.end()));
   }
 
   // Deserialize list
   auto list_jsons = j.at("list").get<std::vector<nlohmann::json>>();
   for (const auto &list_json : list_jsons) {
     auto ref = std::make_unique<TableRef>();
-    ref->FromJson(list_json);
+    auto e1 = ref->FromJson(list_json);
+    exprs.insert(exprs.end(), std::make_move_iterator(e1.begin()), std::make_move_iterator(e1.end()));
     list_.emplace_back(std::move(ref));
   }
 
   // Deserialize join
   if (!j.at("join").is_null()) {
     join_ = std::make_unique<JoinDefinition>();
-    join_->FromJson(j.at("join"));
+    auto e1 = join_->FromJson(j.at("join"));
+    exprs.insert(exprs.end(), std::make_move_iterator(e1.begin()), std::make_move_iterator(e1.end()));
   }
 
   return exprs;

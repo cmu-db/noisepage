@@ -54,13 +54,18 @@ std::vector<std::unique_ptr<AbstractExpression>> AbstractExpression::FromJson(co
   std::vector<std::unique_ptr<AbstractExpression>> children;
   auto children_json = j.at("children").get<std::vector<nlohmann::json>>();
   for (const auto &child_json : children_json) {
-    children.emplace_back(DeserializeExpression(child_json));
+    auto deserialized = DeserializeExpression(child_json);
+    children.emplace_back(std::move(deserialized.result_));
+    result_exprs.insert(result_exprs.end(), std::make_move_iterator(deserialized.non_owned_exprs_.begin()),
+                        std::make_move_iterator(deserialized.non_owned_exprs_.end()));
   }
 
   children_ = std::move(children);
+
+  return result_exprs;
 }
 
-std::unique_ptr<AbstractExpression> DeserializeExpression(const nlohmann::json &j) {
+JSONDeserializeExprIntermediate DeserializeExpression(const nlohmann::json &j) {
   std::unique_ptr<AbstractExpression> expr;
 
   auto expression_type = j.at("expression_type").get<ExpressionType>();

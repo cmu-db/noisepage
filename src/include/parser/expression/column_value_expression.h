@@ -17,8 +17,6 @@ namespace parser {
 
 /**
  * ColumnValueExpression represents a reference to a column.
- *
- * TODO(WAN): check with Ling
  */
 class ColumnValueExpression : public AbstractExpression {
  public:

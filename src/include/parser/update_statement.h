@@ -88,10 +88,17 @@ class UpdateStatement : public SQLStatement {
   common::ManagedPointer<TableRef> GetUpdateTable() { return common::ManagedPointer(table_); }
 
   /** @return update clauses */
-  std::vector<std::unique_ptr<UpdateClause>> &GetUpdateClauses() { return updates_; }
+  std::vector<common::ManagedPointer<UpdateClause>> GetUpdateClauses() {
+    std::vector<common::ManagedPointer<UpdateClause>> updates;
+    updates.reserve(updates_.size());
+    for (const auto &update : updates_) {
+      updates.emplace_back(common::ManagedPointer(update));
+    }
+    return updates;
+  }
 
   /** @return update condition */
-  common::ManagedPointer<AbstractExpression> GetUpdateCondition() { return common::ManagedPointer(where_); }
+  common::ManagedPointer<AbstractExpression> GetUpdateCondition() { return where_; }
 
  private:
   const std::unique_ptr<TableRef> table_;

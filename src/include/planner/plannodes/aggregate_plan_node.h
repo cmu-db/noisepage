@@ -16,7 +16,7 @@
 
 namespace terrier::planner {
 
-using AggregateTerm = std::unique_ptr<parser::AggregateExpression>;
+using AggregateTerm = common::ManagedPointer<parser::AggregateExpression>;
 
 /**
  * Plan node for aggregates
@@ -48,8 +48,8 @@ class AggregatePlanNode : public AbstractPlanNode {
      * @param predicate having clause predicate to use for aggregate term
      * @return builder object
      */
-    Builder &SetHavingClausePredicate(std::unique_ptr<parser::AbstractExpression> predicate) {
-      having_clause_predicate_ = std::move(predicate);
+    Builder &SetHavingClausePredicate(common::ManagedPointer<parser::AbstractExpression> predicate) {
+      having_clause_predicate_ = predicate;
       return *this;
     }
 
@@ -68,7 +68,7 @@ class AggregatePlanNode : public AbstractPlanNode {
      */
     std::unique_ptr<AggregatePlanNode> Build() {
       return std::unique_ptr<AggregatePlanNode>(
-          new AggregatePlanNode(std::move(children_), std::move(output_schema_), std::move(having_clause_predicate_),
+          new AggregatePlanNode(std::move(children_), std::move(output_schema_), having_clause_predicate_,
                                 std::move(aggregate_terms_), aggregate_strategy_));
     }
 
@@ -76,7 +76,7 @@ class AggregatePlanNode : public AbstractPlanNode {
     /**
      * Predicate for having clause if it exists
      */
-    std::unique_ptr<parser::AbstractExpression> having_clause_predicate_;
+    common::ManagedPointer<parser::AbstractExpression> having_clause_predicate_;
     /**
      * List of aggregate terms for aggregation
      */
@@ -97,7 +97,7 @@ class AggregatePlanNode : public AbstractPlanNode {
    */
   AggregatePlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
                     std::unique_ptr<OutputSchema> output_schema,
-                    std::unique_ptr<parser::AbstractExpression> having_clause_predicate,
+                    common::ManagedPointer<parser::AbstractExpression> having_clause_predicate,
                     std::vector<AggregateTerm> aggregate_terms, AggregateStrategyType aggregate_strategy)
       : AbstractPlanNode(std::move(children), std::move(output_schema)),
         having_clause_predicate_(having_clause_predicate),
@@ -120,7 +120,7 @@ class AggregatePlanNode : public AbstractPlanNode {
    * @return pointer to predicate for having clause
    */
   common::ManagedPointer<parser::AbstractExpression> GetHavingClausePredicate() const {
-    return common::ManagedPointer(having_clause_predicate_);
+    return having_clause_predicate_;
   }
 
   /**
@@ -149,7 +149,7 @@ class AggregatePlanNode : public AbstractPlanNode {
   std::vector<std::unique_ptr<parser::AbstractExpression>> FromJson(const nlohmann::json &j) override;
 
  private:
-  std::unique_ptr<parser::AbstractExpression> having_clause_predicate_;
+  common::ManagedPointer<parser::AbstractExpression> having_clause_predicate_;
   std::vector<AggregateTerm> aggregate_terms_;
   AggregateStrategyType aggregate_strategy_;
 };

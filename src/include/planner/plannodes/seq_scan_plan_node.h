@@ -43,9 +43,9 @@ class SeqScanPlanNode : public AbstractScanPlanNode {
      * @return plan node
      */
     std::unique_ptr<SeqScanPlanNode> Build() {
-      return std::unique_ptr<SeqScanPlanNode>(
-          new SeqScanPlanNode(std::move(children_), std::move(output_schema_), std::move(scan_predicate_),
-                              is_for_update_, is_parallel_, database_oid_, namespace_oid_, table_oid_));
+      return std::unique_ptr<SeqScanPlanNode>(new SeqScanPlanNode(std::move(children_), std::move(output_schema_),
+                                                                  scan_predicate_, is_for_update_, is_parallel_,
+                                                                  database_oid_, namespace_oid_, table_oid_));
     }
 
    protected:
@@ -66,11 +66,12 @@ class SeqScanPlanNode : public AbstractScanPlanNode {
    * @param table_oid OID for table to scan
    */
   SeqScanPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
-                  std::unique_ptr<OutputSchema> output_schema, std::unique_ptr<parser::AbstractExpression> predicate,
-                  bool is_for_update, bool is_parallel, catalog::db_oid_t database_oid,
-                  catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid)
-      : AbstractScanPlanNode(std::move(children), std::move(output_schema), std::move(predicate), is_for_update,
-                             is_parallel, database_oid, namespace_oid),
+                  std::unique_ptr<OutputSchema> output_schema,
+                  common::ManagedPointer<parser::AbstractExpression> predicate, bool is_for_update, bool is_parallel,
+                  catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
+                  catalog::table_oid_t table_oid)
+      : AbstractScanPlanNode(std::move(children), std::move(output_schema), predicate, is_for_update, is_parallel,
+                             database_oid, namespace_oid),
         table_oid_(table_oid) {}
 
  public:

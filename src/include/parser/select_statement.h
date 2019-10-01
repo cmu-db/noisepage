@@ -57,7 +57,6 @@ class OrderByDescription {
     return std::make_unique<OrderByDescription>(std::move(types), std::move(exprs));
   }
 
-
   // TODO(WAN): no SQLStatement? maybe a Description base class?
   /**
    * @param v visitor
@@ -118,8 +117,10 @@ class OrderByDescription {
     auto expressions = j.at("exprs").get<std::vector<nlohmann::json>>();
     for (const auto &expr : expressions) {
       auto deserialized_expr = DeserializeExpression(expr);
-      exprs_.emplace_back(common::ManagedPointer(deserialized_expr));
-      result.emplace_back(std::move(deserialized_expr));
+      exprs_.emplace_back(common::ManagedPointer(deserialized_expr.result_));
+      result.emplace_back(std::move(deserialized_expr.result_));
+      result.insert(result.end(), std::make_move_iterator(deserialized_expr.non_owned_exprs_.begin()),
+                    std::make_move_iterator(deserialized_expr.non_owned_exprs_.end()));
     }
     return result;
   }
@@ -161,9 +162,7 @@ class LimitDescription {
   /**
    * @return a copy of the limit description
    */
-  std::unique_ptr<LimitDescription> Copy() {
-    return std::make_unique<LimitDescription>(limit_, offset_);
-  }
+  std::unique_ptr<LimitDescription> Copy() { return std::make_unique<LimitDescription>(limit_, offset_); }
 
   // TODO(WAN): not SQL statement?
   /**
@@ -316,8 +315,10 @@ class GroupByDescription {
     auto column_expressions = j.at("columns").get<std::vector<nlohmann::json>>();
     for (const auto &expr : column_expressions) {
       auto deserialized_expr = DeserializeExpression(expr);
-      // TODO(WAN): MEMORY!
-      columns_.emplace_back(common::ManagedPointer(deserialized_expr));
+      columns_.emplace_back(common::ManagedPointer(deserialized_expr.result_));
+      exprs.emplace_back(std::move(deserialized_expr.result_));
+      exprs.insert(exprs.end(), std::make_move_iterator(deserialized_expr.non_owned_exprs_.begin()),
+                   std::make_move_iterator(deserialized_expr.non_owned_exprs_.end()));
     }
 
     // Deserialize having
@@ -456,7 +457,7 @@ class SelectStatement : public SQLStatement {
   nlohmann::json ToJson() const override;
 
   /** @param j json to deserialize */
-  void FromJson(const nlohmann::json &j) override;
+  std::vector<std::unique_ptr<AbstractExpression>> FromJson(const nlohmann::json &j) override;
 
  private:
   friend class binder::BindNodeVisitor;

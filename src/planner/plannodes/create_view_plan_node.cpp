@@ -47,7 +47,7 @@ nlohmann::json CreateViewPlanNode::ToJson() const {
   j["database_oid"] = database_oid_;
   j["namespace_oid"] = namespace_oid_;
   j["view_name"] = view_name_;
-  //  j["view_query"] = view_query_;
+  j["view_query"] = view_query_->ToJson();
   return j;
 }
 
@@ -60,7 +60,8 @@ std::vector<std::unique_ptr<parser::AbstractExpression>> CreateViewPlanNode::Fro
   view_name_ = j.at("view_name").get<std::string>();
   if (!j.at("view_query").is_null()) {
     view_query_ = std::make_unique<parser::SelectStatement>();
-    view_query_->FromJson(j.at("view_query"));
+    auto e2 = view_query_->FromJson(j.at("view_query"));
+    exprs.insert(exprs.end(), std::make_move_iterator(e2.begin()), std::make_move_iterator(e2.end()));
   }
   return exprs;
 }

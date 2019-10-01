@@ -25,8 +25,8 @@ class AbstractScanPlanNode : public AbstractPlanNode {
      * @param predicate predicate to use for scan
      * @return builder object
      */
-    ConcreteType &SetScanPredicate(std::unique_ptr<parser::AbstractExpression> predicate) {
-      scan_predicate_ = std::move(predicate);
+    ConcreteType &SetScanPredicate(common::ManagedPointer<parser::AbstractExpression> predicate) {
+      scan_predicate_ = predicate;
       return *dynamic_cast<ConcreteType *>(this);
     }
 
@@ -70,7 +70,7 @@ class AbstractScanPlanNode : public AbstractPlanNode {
     /**
      * Scan predicate
      */
-    std::unique_ptr<parser::AbstractExpression> scan_predicate_;
+    common::ManagedPointer<parser::AbstractExpression> scan_predicate_;
     /**
      * Is scan for update
      */
@@ -103,8 +103,8 @@ class AbstractScanPlanNode : public AbstractPlanNode {
    */
   AbstractScanPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
                        std::unique_ptr<OutputSchema> output_schema,
-                       std::unique_ptr<parser::AbstractExpression> predicate, bool is_for_update, bool is_parallel,
-                       catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid)
+                       common::ManagedPointer<parser::AbstractExpression> predicate, bool is_for_update,
+                       bool is_parallel, catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid)
       : AbstractPlanNode(std::move(children), std::move(output_schema)),
         scan_predicate_(predicate),
         is_for_update_(is_for_update),
@@ -160,7 +160,7 @@ class AbstractScanPlanNode : public AbstractPlanNode {
   /**
    * Selection predicate.
    */
-  std::unique_ptr<parser::AbstractExpression> scan_predicate_;
+  common::ManagedPointer<parser::AbstractExpression> scan_predicate_;
 
   /**
    * Are the tuples produced by this plan intended for update?

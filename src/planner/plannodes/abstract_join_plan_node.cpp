@@ -43,7 +43,7 @@ common::hash_t AbstractJoinPlanNode::Hash() const {
 nlohmann::json AbstractJoinPlanNode::ToJson() const {
   nlohmann::json j = AbstractPlanNode::ToJson();
   j["join_type"] = join_type_;
-  // TODO(WAN)  j["join_predicate"] = join_predicate_;
+  j["join_predicate"] = join_predicate_->ToJson();
   return j;
 }
 
