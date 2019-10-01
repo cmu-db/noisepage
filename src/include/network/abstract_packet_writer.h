@@ -121,7 +121,7 @@ class AbstractPacketWriter {
         return AppendRawValue(_CAST(T, htobe64(_CAST(uint64_t, val))));
         // Will never be here due to compiler optimization
       default:
-        throw NETWORK_PROCESS_EXCEPTION("");
+        throw NETWORK_PROCESS_EXCEPTION("invalid size for integer");
     }
   }
 
