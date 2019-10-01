@@ -367,7 +367,7 @@ class IndexSchema {
         // Add children to queue
         for (const auto &child : expr->GetChildren()) {
           TERRIER_ASSERT(child != nullptr, "We should not be adding missing expressions to the queue");
-          expr_queue.emplace_back(child.get());
+          expr_queue.emplace_back(child.CastManagedPointerTo<const parser::AbstractExpression>());
         }
       }
     }
