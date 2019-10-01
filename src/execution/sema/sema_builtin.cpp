@@ -1663,6 +1663,126 @@ void Sema::CheckBuiltinPRCall(ast::CallExpr *call, ast::Builtin builtin) {
   }
 }
 
+void Sema::CheckBuiltinInserterCall(ast::CallExpr *call, ast::Builtin builtin) {
+  const auto &call_args = call->Arguments();
+
+  const auto inserter_kind = ast::BuiltinType::Inserter;
+  const auto int32_kind = ast::BuiltinType::Int32;
+
+  if (!CheckArgCountAtLeast(call, 1)) {
+    return;
+  }
+  if (!IsPointerToSpecificBuiltin(call_args[0]->GetType(), inserter_kind)) {
+    ReportIncorrectCallArg(call, 0, GetBuiltinType(inserter_kind)->PointerTo());
+    return;
+  }
+
+  switch (builtin) {
+    case ast::Builtin::InserterInit: {
+      if (!CheckArgCount(call, 3)) {
+        return;
+      }
+      auto exec_ctx_kind = ast::BuiltinType::ExecutionContext;
+      if (!IsPointerToSpecificBuiltin(call_args[1]->GetType(), exec_ctx_kind)) {
+        ReportIncorrectCallArg(call, 1, GetBuiltinType(exec_ctx_kind)->PointerTo());
+        return;
+      }
+
+      // table_oid
+      if (!call_args[2]->IsIntegerLiteral()) {
+        ReportIncorrectCallArg(call, 2, GetBuiltinType(int32_kind));
+        return;
+      }
+
+      call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
+      break;
+    }
+    case ast::Builtin::InserterInitBind: {
+      if (!CheckArgCount(call, 3)) {
+        return;
+      }
+      auto exec_ctx_kind = ast::BuiltinType::ExecutionContext;
+      if (!IsPointerToSpecificBuiltin(call_args[1]->GetType(), exec_ctx_kind)) {
+        ReportIncorrectCallArg(call, 1, GetBuiltinType(exec_ctx_kind)->PointerTo());
+        return;
+      }
+
+      // table_name
+      if (!call_args[2]->IsStringLiteral()) {
+        ReportIncorrectCallArg(call, 2, ast::StringType::Get(GetContext()));
+        return;
+      }
+
+      call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
+      break;
+    }
+    case ast::Builtin::InserterGetTablePR: {
+      if (!CheckArgCount(call, 1)) {
+        return;
+      }
+      call->SetType(GetBuiltinType(ast::BuiltinType::ProjectedRow));
+      break;
+    }
+    case ast::Builtin::InserterTableInsert: {
+      if (!CheckArgCount(call, 1)) {
+        return;
+      }
+      call->SetType(GetBuiltinType(ast::BuiltinType::TupleSlot));
+      break;
+    }
+    case ast::Builtin::InserterIndexInsert: {
+      if (!CheckArgCount(call, 2)) {
+        return;
+      }
+      if (!call_args[1]->IsIntegerLiteral()) {
+        ReportIncorrectCallArg(call, 1, GetBuiltinType(int32_kind));
+        return;
+      }
+      call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
+      break;
+    }
+    case ast::Builtin::InserterIndexInsertBind: {
+      if (!CheckArgCount(call, 2)) {
+        return;
+      }
+      if (!call_args[1]->IsStringLiteral()) {
+        ReportIncorrectCallArg(call, 1, ast::StringType::Get(GetContext()));
+        return;
+      }
+      call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
+      break;
+    }
+    case ast::Builtin::InserterGetIndexPR: {
+      if (!CheckArgCount(call, 2)) {
+        return;
+      }
+
+      if (!call_args[1]->IsIntegerLiteral()) {
+        ReportIncorrectCallArg(call, 1, GetBuiltinType(int32_kind));
+        return;
+      }
+
+      call->SetType(GetBuiltinType(ast::BuiltinType::ProjectedRow));
+      break;
+    }
+    case ast::Builtin::InserterGetIndexPRBind: {
+      if (!CheckArgCount(call, 2)) {
+        return;
+      }
+
+      if (!call_args[1]->IsStringLiteral()) {
+        ReportIncorrectCallArg(call, 1, ast::StringType::Get(GetContext()));
+        return;
+      }
+
+      call->SetType(GetBuiltinType(ast::BuiltinType::ProjectedRow));
+      break;
+    }
+    default:
+      UNREACHABLE("Undefined inserter call!");
+  }
+}
+
 void Sema::CheckBuiltinCall(ast::CallExpr *call) {
   ast::Builtin builtin;
   if (!GetContext()->IsBuiltinFunction(call->GetFuncName(), &builtin)) {
@@ -1937,6 +2057,17 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
     case ast::Builtin::PRGetDateNull:
     case ast::Builtin::PRGetVarlenNull: {
       CheckBuiltinPRCall(call, builtin);
+      break;
+    }
+    case ast::Builtin::InserterInit:
+    case ast::Builtin::InserterInitBind:
+    case ast::Builtin::InserterGetTablePR:
+    case ast::Builtin::InserterTableInsert:
+    case ast::Builtin::InserterGetIndexPR:
+    case ast::Builtin::InserterGetIndexPRBind:
+    case ast::Builtin::InserterIndexInsertBind:
+    case ast::Builtin::InserterIndexInsert: {
+      CheckBuiltinInserterCall(call, builtin);
       break;
     }
     default: {

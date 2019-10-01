@@ -16,6 +16,7 @@
 #include "execution/sql/functions/is_null_predicate.h"
 #include "execution/sql/functions/string_functions.h"
 #include "execution/sql/index_iterator.h"
+#include "execution/sql/inserter.h"
 #include "execution/sql/join_hash_table.h"
 #include "execution/sql/projected_row_wrapper.h"
 #include "execution/sql/sorter.h"
@@ -1466,6 +1467,22 @@ VM_OP_HOT void OpPRGetVarlenNull(terrier::execution::sql::StringVal *out,
     *out = terrier::execution::sql::StringVal(reinterpret_cast<const char *>(varlen->Content()), varlen->Size());
   }
 }
+
+// Inserter Calls
+// ---------------------------------------------------------------
+
+VM_OP void OpInserterInit(terrier::execution::sql::Inserter *inserter,
+                          terrier::execution::exec::ExecutionContext *exec_ctx, uint32_t table_oid);
+
+VM_OP void OpInserterGetTablePR(terrier::execution::sql::ProjectedRowWrapper *pr_result,
+                                terrier::execution::sql::Inserter *inserter);
+
+VM_OP void OpInserterTableInsert(terrier::storage::TupleSlot *tuple_slot, terrier::execution::sql::Inserter *inserter);
+
+VM_OP void OpInserterGetIndexPR(terrier::execution::sql::ProjectedRowWrapper *pr_result,
+                                terrier::execution::sql::Inserter *inserter, uint32_t index_oid);
+
+VM_OP void OpInserterIndexInsert(terrier::execution::sql::Inserter *inserter, uint32_t index_oid);
 
 // Output Calls
 // ---------------------------------------------------------------
