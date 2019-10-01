@@ -98,7 +98,7 @@ TEST_F(TPCCTests, WithCatalog) {
   }
 
   // populate the tables and indexes, as well as force log manager to log all changes
-  Loader::PopulateDatabase(&txn_manager, &generator_, tpcc_db, workers);
+  Loader::PopulateDatabase(&txn_manager, tpcc_db, &workers, &thread_pool_);
 
   // Let GC clean up
   gc_ = new storage::GarbageCollector(&timestamp_manager, &deferred_action_manager, &txn_manager, DISABLED);
@@ -156,7 +156,7 @@ TEST_F(TPCCTests, WithoutLoggingBwTreeIndexes) {
   }
 
   // populate the tables and indexes
-  Loader::PopulateDatabase(&txn_manager, &generator_, tpcc_db, workers);
+  Loader::PopulateDatabase(&txn_manager, tpcc_db, &workers, &thread_pool_);
 
   gc_ = new storage::GarbageCollector(&timestamp_manager, &deferred_action_manager, &txn_manager, DISABLED);
   gc_thread_ = new storage::GarbageCollectorThread(gc_, gc_period_);
@@ -211,7 +211,7 @@ TEST_F(TPCCTests, WithoutLoggingHashIndexes) {
   }
 
   // populate the tables and indexes
-  Loader::PopulateDatabase(&txn_manager, &generator_, tpcc_db, workers);
+  Loader::PopulateDatabase(&txn_manager, tpcc_db, &workers, &thread_pool_);
 
   gc_ = new storage::GarbageCollector(&timestamp_manager, &deferred_action_manager, &txn_manager, DISABLED);
   gc_thread_ = new storage::GarbageCollectorThread(gc_, gc_period_);
@@ -271,7 +271,7 @@ TEST_F(TPCCTests, WithLogging) {
   }
 
   // populate the tables and indexes, as well as force log manager to log all changes
-  Loader::PopulateDatabase(&txn_manager, &generator_, tpcc_db, workers);
+  Loader::PopulateDatabase(&txn_manager, tpcc_db, &workers, &thread_pool_);
   log_manager_->ForceFlush();
 
   // Let GC clean up
