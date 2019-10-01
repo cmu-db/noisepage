@@ -92,7 +92,7 @@ class IndexJoinPlanNode : public AbstractJoinPlanNode {
                     std::unique_ptr<OutputSchema> output_schema, LogicalJoinType join_type,
                     common::ManagedPointer<parser::AbstractExpression> predicate, catalog::index_oid_t index_oid,
                     catalog::table_oid_t table_oid, std::vector<IndexExpression> &&index_cols)
-      : AbstractJoinPlanNode(std::move(children), std::move(output_schema), join_type, std::move(predicate)),
+      : AbstractJoinPlanNode(std::move(children), std::move(output_schema), join_type, predicate),
         index_oid_(index_oid),
         table_oid_(table_oid),
         index_cols_(std::move(index_cols)) {}
