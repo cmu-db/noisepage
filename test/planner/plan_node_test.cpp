@@ -110,6 +110,7 @@ TEST(PlanNodeTest, CreateDatabasePlanTest) {
   EXPECT_TRUE(plan != nullptr);
   EXPECT_STREQ("test", plan->GetDatabaseName().c_str());
   EXPECT_EQ(PlanNodeType::CREATE_DATABASE, plan->GetPlanNodeType());
+  delete create_stmt;
 }
 
 // NOLINTNEXTLINE
@@ -126,6 +127,7 @@ TEST(PlanNodeTest, DropDatabasePlanTest) {
   EXPECT_EQ(catalog::db_oid_t(0), plan->GetDatabaseOid());
   EXPECT_FALSE(plan->IsIfExists());
   EXPECT_EQ(PlanNodeType::DROP_DATABASE, plan->GetPlanNodeType());
+  delete drop_stmt;
 }
 
 // NOLINTNEXTLINE
@@ -142,6 +144,7 @@ TEST(PlanNodeTest, DropDatabasePlanIfExistsTest) {
   EXPECT_EQ(catalog::db_oid_t(0), plan->GetDatabaseOid());
   EXPECT_TRUE(plan->IsIfExists());
   EXPECT_EQ(PlanNodeType::DROP_DATABASE, plan->GetPlanNodeType());
+  delete drop_stmt;
 }
 
 // Test creation of simple two table join.
