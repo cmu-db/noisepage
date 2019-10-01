@@ -12,7 +12,7 @@ namespace terrier::network {
 class ITPPacketWriter : AbstractPacketWriter {
  public:
   /**
-   * Instantiates a new PostgresPacketWriter backed by the given WriteQueue
+   * Instantiates a new ITPPacketWriter backed by the given WriteQueue
    */
   explicit ITPPacketWriter(const std::shared_ptr<WriteQueue> &write_queue) : AbstractPacketWriter(write_queue) {}
 };

@@ -11,7 +11,7 @@
 namespace terrier::network {
 
 /**
- * Interface for the execution of the standard PostgresNetworkCommands for the postgres protocol
+ * Interface for the execution of the standard AbstractNetworkCommands for the postgres protocol
  */
 class AbstractNetworkCommand {
  public:

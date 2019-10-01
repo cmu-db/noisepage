@@ -12,13 +12,13 @@
 namespace terrier::network {
 
 /**
- * Wrapper around an I/O layer WriteQueue to provide Postgres-sprcific
+ * Wrapper around an I/O layer WriteQueue to provide network protocol
  * helper methods.
  */
 class AbstractPacketWriter {
  public:
   /**
-   * Instantiates a new PostgresPacketWriter backed by the given WriteQueue
+   * Instantiates a new AbstractPacketWriter backed by the given WriteQueue
    */
   explicit AbstractPacketWriter(const std::shared_ptr<WriteQueue> &write_queue) : queue_(*write_queue) {}
 
