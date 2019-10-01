@@ -34,10 +34,8 @@ class SubqueryExpression : public AbstractExpression {
     auto limit = subselect_->GetSelectLimit() == nullptr ? nullptr : subselect_->GetSelectLimit()->Copy();
 
     auto parser_select = std::make_unique<SelectStatement>(
-        std::move(select_columns), subselect_->IsSelectDistinct(),
-        subselect_->GetSelectTable()->Copy(), subselect_->GetSelectCondition(),
-        std::move(group_by), std::move(order_by), std::move(limit)
-        );
+        std::move(select_columns), subselect_->IsSelectDistinct(), subselect_->GetSelectTable()->Copy(),
+        subselect_->GetSelectCondition(), std::move(group_by), std::move(order_by), std::move(limit));
     auto expr = std::make_unique<SubqueryExpression>(std::move(parser_select));
     expr->SetMutableStateForCopy(*this);
     return expr;
@@ -94,10 +92,14 @@ class SubqueryExpression : public AbstractExpression {
   }
 
   /** @param j json to deserialize */
-  void FromJson(const nlohmann::json &j) override {
-    AbstractExpression::FromJson(j);
+  std::vector<std::unique_ptr<AbstractExpression>> FromJson(const nlohmann::json &j) override {
+    std::vector<std::unique_ptr<AbstractExpression>> exprs;
+    auto e1 = AbstractExpression::FromJson(j);
+    exprs.insert(exprs.end(), std::make_move_iterator(e1.begin()), std::make_move_iterator(e1.end()));
     subselect_ = std::make_unique<parser::SelectStatement>();
-    subselect_->FromJson(j.at("subselect"));
+    auto e2 = subselect_->FromJson(j.at("subselect"));
+    exprs.insert(exprs.end(), std::make_move_iterator(e2.begin()), std::make_move_iterator(e2.end()));
+    return exprs;
   }
 
  private:

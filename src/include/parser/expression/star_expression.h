@@ -17,6 +17,7 @@ class StarExpression : public AbstractExpression {
 
   std::unique_ptr<AbstractExpression> Copy() const override {
     // TODO(Tianyu): This really should be a singleton object
+    // ^WAN: jokes on you there's mutable state now and it can't be hahahaha
     auto expr = std::make_unique<StarExpression>();
     expr->SetMutableStateForCopy(*this);
     return expr;

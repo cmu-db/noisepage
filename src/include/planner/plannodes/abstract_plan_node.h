@@ -138,7 +138,7 @@ class AbstractPlanNode {
    * Populates the plan node with the information in the given JSON.
    * @param j json to deserialize
    */
-  virtual void FromJson(const nlohmann::json &j);
+  virtual std::vector<std::unique_ptr<parser::AbstractExpression>> FromJson(const nlohmann::json &j);
 
   //===--------------------------------------------------------------------===//
   // Utilities
@@ -203,12 +203,27 @@ class AbstractPlanNode {
 DEFINE_JSON_DECLARATIONS(AbstractPlanNode);
 
 /**
+ * To deserialize JSON expressions, we need to maintain a separate vector of all the unique pointers to expressions
+ * that were created but not owned by deserialized objects.
+ */
+struct JSONDeserializeNodeIntermediate {
+  /**
+   * The primary result of the deserialization.
+   */
+  std::unique_ptr<AbstractPlanNode> result_;
+  /**
+   * Any non-owned expressions generated during deserialization that are contained within the plan node.
+   */
+  std::vector<std::unique_ptr<parser::AbstractExpression>> non_owned_exprs_;
+};
+
+/**
  * Main deserialization method. This is the only method that should be used to deserialize. You should never be calling
  * FromJson to deserialize a plan node
  * @param json json to deserialize
- * @return deserialized plan node
+ * @return json deserialization result
  */
-std::unique_ptr<AbstractPlanNode> DeserializePlanNode(const nlohmann::json &json);
+JSONDeserializeNodeIntermediate DeserializePlanNode(const nlohmann::json &json);
 
 }  // namespace terrier::planner
 

@@ -1,6 +1,9 @@
 #include "planner/plannodes/abstract_plan_node.h"
+
 #include <memory>
+#include <utility>
 #include <vector>
+
 #include "planner/plannodes/aggregate_plan_node.h"
 #include "planner/plannodes/analyze_plan_node.h"
 #include "planner/plannodes/create_database_plan_node.h"
@@ -37,28 +40,38 @@ namespace terrier::planner {
 nlohmann::json AbstractPlanNode::ToJson() const {
   nlohmann::json j;
   j["plan_node_type"] = GetPlanNodeType();
-  //  j["children"] = children_;
-  //  j["output_schema"] = output_schema_;
-
+  std::vector<nlohmann::json> children;
+  for (const auto &child : children_) {
+    children.emplace_back(child->ToJson());
+  }
+  j["children"] = children;
+  j["output_schema"] = output_schema_ == nullptr ? nlohmann::json(nullptr) : output_schema_->ToJson();
   return j;
 }
 
-void AbstractPlanNode::FromJson(const nlohmann::json &j) {
+std::vector<std::unique_ptr<parser::AbstractExpression>> AbstractPlanNode::FromJson(const nlohmann::json &j) {
+  std::vector<std::unique_ptr<parser::AbstractExpression>> exprs;
   TERRIER_ASSERT(GetPlanNodeType() == j.at("plan_node_type").get<PlanNodeType>(), "Mismatching plan node types");
   // Deserialize output schema
   if (!j.at("output_schema").is_null()) {
     output_schema_ = std::make_unique<OutputSchema>();
-    output_schema_->FromJson(j.at("output_schema"));
+    auto e1 = output_schema_->FromJson(j.at("output_schema"));
+    exprs.insert(exprs.end(), std::make_move_iterator(e1.begin()), std::make_move_iterator(e1.end()));
   }
 
   // Deserialize children
   auto children_json = j.at("children").get<std::vector<nlohmann::json>>();
   for (const auto &child_json : children_json) {
-    children_.push_back(DeserializePlanNode(child_json));
+    auto deserialized = DeserializePlanNode(child_json);
+    children_.emplace_back(std::move(deserialized.result_));
+    exprs.insert(exprs.end(), std::make_move_iterator(deserialized.non_owned_exprs_.begin()),
+                 std::make_move_iterator(deserialized.non_owned_exprs_.end()));
   }
+
+  return exprs;
 }
 
-std::unique_ptr<AbstractPlanNode> DeserializePlanNode(const nlohmann::json &json) {
+JSONDeserializeNodeIntermediate DeserializePlanNode(const nlohmann::json &json) {
   std::unique_ptr<AbstractPlanNode> plan_node;
 
   auto plan_type = json.at("plan_node_type").get<PlanNodeType>();
@@ -216,8 +229,8 @@ std::unique_ptr<AbstractPlanNode> DeserializePlanNode(const nlohmann::json &json
       throw std::runtime_error("Unknown plan node type during deserialization");
   }
 
-  plan_node->FromJson(json);
-  return plan_node;
+  auto non_owned_exprs = plan_node->FromJson(json);
+  return JSONDeserializeNodeIntermediate{std::move(plan_node), std::move(non_owned_exprs)};
 }
 
 }  // namespace terrier::planner

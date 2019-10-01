@@ -35,8 +35,8 @@ class ResultPlanNode : public AbstractPlanNode {
      * @param expr the expression used to derived the output tuple
      * @return builder object
      */
-    Builder &SetExpr(std::unique_ptr<parser::AbstractExpression> expr) {
-      expr_ = std::move(expr);
+    Builder &SetExpr(common::ManagedPointer<parser::AbstractExpression> expr) {
+      expr_ = expr;
       return *this;
     }
 
@@ -46,14 +46,14 @@ class ResultPlanNode : public AbstractPlanNode {
      */
     std::unique_ptr<ResultPlanNode> Build() {
       return std::unique_ptr<ResultPlanNode>(
-          new ResultPlanNode(std::move(children_), std::move(output_schema_), std::move(expr_)));
+          new ResultPlanNode(std::move(children_), std::move(output_schema_), expr_));
     }
 
    protected:
     /**
      * The expression used to derived the output tuple
      */
-    std::unique_ptr<parser::AbstractExpression> expr_;
+    common::ManagedPointer<parser::AbstractExpression> expr_;
   };
 
  private:
@@ -63,8 +63,8 @@ class ResultPlanNode : public AbstractPlanNode {
    * @param tuple the tuple in the storage layer
    */
   ResultPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children, std::unique_ptr<OutputSchema> output_schema,
-                 std::unique_ptr<parser::AbstractExpression> expr)
-      : AbstractPlanNode(std::move(children), std::move(output_schema)), expr_(std::move(expr)) {}
+                 common::ManagedPointer<parser::AbstractExpression> expr)
+      : AbstractPlanNode(std::move(children), std::move(output_schema)), expr_(expr) {}
 
  public:
   /**
@@ -90,13 +90,13 @@ class ResultPlanNode : public AbstractPlanNode {
   bool operator==(const AbstractPlanNode &rhs) const override;
 
   nlohmann::json ToJson() const override;
-  void FromJson(const nlohmann::json &j) override;
+  std::vector<std::unique_ptr<parser::AbstractExpression>> FromJson(const nlohmann::json &j) override;
 
  private:
   /**
    * Expression used to derived the output tuple
    */
-  std::unique_ptr<parser::AbstractExpression> expr_;
+  common::ManagedPointer<parser::AbstractExpression> expr_;
 };
 
 DEFINE_JSON_DECLARATIONS(ResultPlanNode);

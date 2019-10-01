@@ -72,7 +72,7 @@ class JoinDefinition {
   /**
    * @param j json to deserialize
    */
-  void FromJson(const nlohmann::json &j);
+  std::vector<std::unique_ptr<AbstractExpression>> FromJson(const nlohmann::json &j);
 
  private:
   JoinType type_;
@@ -182,7 +182,14 @@ class TableRef {
   common::ManagedPointer<SelectStatement> GetSelect() { return common::ManagedPointer(select_); }
 
   /** @return list of table references */
-  const std::vector<std::unique_ptr<TableRef>> &GetList() { return list_; }
+  std::vector<common::ManagedPointer<TableRef>> GetList() {
+    std::vector<common::ManagedPointer<TableRef>> list;
+    list.reserve(list_.size());
+    for (const auto &item : list_) {
+      list.emplace_back(common::ManagedPointer(item));
+    }
+    return list;
+  }
 
   /** @return join */
   common::ManagedPointer<JoinDefinition> GetJoin() { return common::ManagedPointer(join_); }
@@ -191,7 +198,7 @@ class TableRef {
   nlohmann::json ToJson() const;
 
   /** @param j json to deserialize */
-  void FromJson(const nlohmann::json &j);
+  std::vector<std::unique_ptr<AbstractExpression>> FromJson(const nlohmann::json &j);
 
  private:
   TableReferenceType type_;

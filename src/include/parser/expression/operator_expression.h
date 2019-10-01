@@ -26,9 +26,7 @@ class OperatorExpression : public AbstractExpression {
 
   void DeriveReturnValueType() override {
     // if we are a decimal or int we should take the highest type id of both children
-    // This relies on a particular order in types.h
-    // TODO(WAN): check with Ling, what is types.h? This is probably a Peloton comment,
-    //  what assumptions are we inheriting?
+    // This relies on a particular order in expression_defs.h
     if (this->GetExpressionType() == ExpressionType::OPERATOR_NOT ||
         this->GetExpressionType() == ExpressionType::OPERATOR_IS_NULL ||
         this->GetExpressionType() == ExpressionType::OPERATOR_IS_NOT_NULL ||

@@ -46,7 +46,9 @@ nlohmann::json AbstractExpression::ToJson() const {
  * Derived expressions should call this base method
  * @param j json to deserialize
  */
-void AbstractExpression::FromJson(const nlohmann::json &j) {
+std::vector<std::unique_ptr<AbstractExpression>> AbstractExpression::FromJson(const nlohmann::json &j) {
+  std::vector<std::unique_ptr<AbstractExpression>> result_exprs;
+
   expression_type_ = j.at("expression_type").get<ExpressionType>();
   expression_name_ = j.at("expression_name").get<std::string>();
   alias_ = j.at("alias").get<std::string>();
@@ -59,13 +61,18 @@ void AbstractExpression::FromJson(const nlohmann::json &j) {
   auto children_json = j.at("children").get<std::vector<nlohmann::json>>();
   children.reserve(children_json.size());
   for (const auto &child_json : children_json) {
-    children.emplace_back(DeserializeExpression(child_json));
+    auto deserialized = DeserializeExpression(child_json);
+    children.emplace_back(std::move(deserialized.result_));
+    result_exprs.insert(result_exprs.end(), std::make_move_iterator(deserialized.non_owned_exprs_.begin()),
+                        std::make_move_iterator(deserialized.non_owned_exprs_.end()));
   }
 
   children_ = std::move(children);
+
+  return result_exprs;
 }
 
-std::unique_ptr<AbstractExpression> DeserializeExpression(const nlohmann::json &j) {
+JSONDeserializeExprIntermediate DeserializeExpression(const nlohmann::json &j) {
   std::unique_ptr<AbstractExpression> expr;
 
   auto expression_type = j.at("expression_type").get<ExpressionType>();
@@ -166,8 +173,8 @@ std::unique_ptr<AbstractExpression> DeserializeExpression(const nlohmann::json &
     default:
       throw std::runtime_error("Unknown expression type during deserialization");
   }
-  expr->FromJson(j);
-  return expr;
+  auto non_owned_exprs = expr->FromJson(j);
+  return JSONDeserializeExprIntermediate{std::move(expr), std::move(non_owned_exprs)};
 }
 
 bool AbstractExpression::DeriveSubqueryFlag() {

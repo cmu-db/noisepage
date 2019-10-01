@@ -30,8 +30,8 @@ class NestedLoopJoinPlanNode : public AbstractJoinPlanNode {
      * @return plan node
      */
     std::unique_ptr<NestedLoopJoinPlanNode> Build() {
-      return std::unique_ptr<NestedLoopJoinPlanNode>(new NestedLoopJoinPlanNode(
-          std::move(children_), std::move(output_schema_), join_type_, std::move(join_predicate_)));
+      return std::unique_ptr<NestedLoopJoinPlanNode>(
+          new NestedLoopJoinPlanNode(std::move(children_), std::move(output_schema_), join_type_, join_predicate_));
     }
   };
 
@@ -44,8 +44,8 @@ class NestedLoopJoinPlanNode : public AbstractJoinPlanNode {
    */
   NestedLoopJoinPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
                          std::unique_ptr<OutputSchema> output_schema, LogicalJoinType join_type,
-                         std::unique_ptr<parser::AbstractExpression> predicate)
-      : AbstractJoinPlanNode(std::move(children), std::move(output_schema), join_type, std::move(predicate)) {}
+                         common::ManagedPointer<parser::AbstractExpression> predicate)
+      : AbstractJoinPlanNode(std::move(children), std::move(output_schema), join_type, predicate) {}
 
  public:
   /**
@@ -68,7 +68,7 @@ class NestedLoopJoinPlanNode : public AbstractJoinPlanNode {
   bool operator==(const AbstractPlanNode &rhs) const override;
 
   nlohmann::json ToJson() const override;
-  void FromJson(const nlohmann::json &j) override;
+  std::vector<std::unique_ptr<parser::AbstractExpression>> FromJson(const nlohmann::json &j) override;
 };
 
 DEFINE_JSON_DECLARATIONS(NestedLoopJoinPlanNode);

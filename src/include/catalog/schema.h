@@ -172,14 +172,16 @@ class Schema {
      * Deserializes a column
      * @param j serialized column
      */
-    void FromJson(const nlohmann::json &j) {
+    std::vector<std::unique_ptr<parser::AbstractExpression>> FromJson(const nlohmann::json &j) {
       name_ = j.at("name").get<std::string>();
       type_ = j.at("type").get<type::TypeId>();
       attr_size_ = j.at("attr_size").get<uint8_t>();
       max_varlen_size_ = j.at("max_varlen_size").get<uint16_t>();
       nullable_ = j.at("nullable").get<bool>();
       oid_ = j.at("oid").get<col_oid_t>();
-      default_value_ = parser::DeserializeExpression(j.at("default_value"));
+      auto deserialized = parser::DeserializeExpression(j.at("default_value"));
+      default_value_ = std::move(deserialized.result_);
+      return std::move(deserialized.non_owned_exprs_);
     }
 
    private:

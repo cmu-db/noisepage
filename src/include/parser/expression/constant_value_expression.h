@@ -68,9 +68,12 @@ class ConstantValueExpression : public AbstractExpression {
    * @note TransientValue::FromJson() is private, ConstantValueExpression is a friend
    * @see TransientValue for why TransientValue::FromJson is private
    */
-  void FromJson(const nlohmann::json &j) override {
-    AbstractExpression::FromJson(j);
+  std::vector<std::unique_ptr<AbstractExpression>> FromJson(const nlohmann::json &j) override {
+    std::vector<std::unique_ptr<AbstractExpression>> exprs;
+    auto e1 = AbstractExpression::FromJson(j);
+    exprs.insert(exprs.end(), std::make_move_iterator(e1.begin()), std::make_move_iterator(e1.end()));
     value_ = j.at("value").get<type::TransientValue>();
+    return exprs;
   }
 
  private:

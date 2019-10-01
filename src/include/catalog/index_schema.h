@@ -152,13 +152,15 @@ class IndexSchema {
      * Deserializes a column
      * @param j serialized column
      */
-    void FromJson(const nlohmann::json &j) {
+    std::vector<std::unique_ptr<parser::AbstractExpression>> FromJson(const nlohmann::json &j) {
       name_ = j.at("name").get<std::string>();
       SetTypeId(j.at("type").get<type::TypeId>());
       SetMaxVarlenSize(j.at("max_varlen_size").get<uint16_t>());
       SetNullable(j.at("nullable").get<bool>());
       SetOid(j.at("oid").get<indexkeycol_oid_t>());
-      definition_ = parser::DeserializeExpression(j.at("definition"));
+      auto deserialized = parser::DeserializeExpression(j.at("definition"));
+      definition_ = std::move(deserialized.result_);
+      return std::move(deserialized.non_owned_exprs_);
     }
 
    private:

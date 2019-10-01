@@ -56,8 +56,8 @@ class DeletePlanNode : public AbstractPlanNode {
      * @param delete_condition expression of delete condition
      * @return builder object
      */
-    Builder &SetDeleteCondition(std::unique_ptr<parser::AbstractExpression> delete_condition) {
-      delete_condition_ = std::move(delete_condition);
+    Builder &SetDeleteCondition(common::ManagedPointer<parser::AbstractExpression> delete_condition) {
+      delete_condition_ = delete_condition;
       return *this;
     }
 
@@ -77,7 +77,7 @@ class DeletePlanNode : public AbstractPlanNode {
     std::unique_ptr<DeletePlanNode> Build() {
       return std::unique_ptr<DeletePlanNode>(new DeletePlanNode(std::move(children_), std::move(output_schema_),
                                                                 database_oid_, namespace_oid_, table_oid_,
-                                                                std::move(delete_condition_)));
+                                                                delete_condition_));
     }
 
    protected:
@@ -99,7 +99,7 @@ class DeletePlanNode : public AbstractPlanNode {
     /**
      * expression of delete condition
      */
-    std::unique_ptr<parser::AbstractExpression> delete_condition_;
+    common::ManagedPointer<parser::AbstractExpression> delete_condition_;
   };
 
  private:
@@ -113,12 +113,12 @@ class DeletePlanNode : public AbstractPlanNode {
    */
   DeletePlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children, std::unique_ptr<OutputSchema> output_schema,
                  catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid,
-                 std::unique_ptr<parser::AbstractExpression> delete_condition)
+                 common::ManagedPointer<parser::AbstractExpression> delete_condition)
       : AbstractPlanNode(std::move(children), std::move(output_schema)),
         database_oid_(database_oid),
         namespace_oid_(namespace_oid),
         table_oid_(table_oid),
-        delete_condition_(std::move(delete_condition)) {}
+        delete_condition_(delete_condition) {}
 
  public:
   /**
@@ -157,7 +157,7 @@ class DeletePlanNode : public AbstractPlanNode {
   bool operator==(const AbstractPlanNode &rhs) const override;
 
   nlohmann::json ToJson() const override;
-  void FromJson(const nlohmann::json &j) override;
+  std::vector<std::unique_ptr<parser::AbstractExpression>> FromJson(const nlohmann::json &j) override;
 
  private:
   /**
@@ -178,7 +178,7 @@ class DeletePlanNode : public AbstractPlanNode {
   /**
    * Expression of delete condition
    */
-  std::unique_ptr<parser::AbstractExpression> delete_condition_;
+  common::ManagedPointer<parser::AbstractExpression> delete_condition_;
 };
 
 DEFINE_JSON_DECLARATIONS(DeletePlanNode);

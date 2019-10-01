@@ -13,6 +13,8 @@
 namespace terrier {
 namespace parser {
 
+class AbstractExpression;
+
 /**
  * Table location information (Database, Schema, Table).
  */
@@ -65,10 +67,12 @@ struct TableInfo {
   /**
    * @param j json to deserialize
    */
-  void FromJson(const nlohmann::json &j) {
+  std::vector<std::unique_ptr<AbstractExpression>> FromJson(const nlohmann::json &j) {
+    std::vector<std::unique_ptr<AbstractExpression>> exprs;
     table_name_ = j.at("table_name").get<std::string>();
     schema_name_ = j.at("schema_name").get<std::string>();
     database_name_ = j.at("database_name").get<std::string>();
+    return exprs;
   }
 
  private:
@@ -125,7 +129,11 @@ class SQLStatement {
   /**
    * @param j json to deserialize
    */
-  virtual void FromJson(const nlohmann::json &j) { stmt_type_ = j.at("stmt_type").get<StatementType>(); }
+  virtual std::vector<std::unique_ptr<parser::AbstractExpression>> FromJson(const nlohmann::json &j) {
+    std::vector<std::unique_ptr<parser::AbstractExpression>> exprs;
+    stmt_type_ = j.at("stmt_type").get<StatementType>();
+    return exprs;
+  }
 
  private:
   StatementType stmt_type_;
