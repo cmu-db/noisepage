@@ -88,15 +88,16 @@ class Schemas {
    */
   static catalog::IndexSchema BuildWarehousePrimaryIndexSchema(const catalog::Schema &schema,
                                                                const storage::index::IndexType index_type,
-                                                               uint32_t *const oid_counter) {
+                                                               uint32_t *const oid_counter,
+                                                               const catalog::db_oid_t db_oid,
+                                                               const catalog::table_oid_t table_oid) {
     std::vector<catalog::IndexSchema::Column> warehouse_key_schema;
     warehouse_key_schema.reserve(NUM_WAREHOUSE_PRIMARY_INDEX_COLS);
 
     // Primary Key: W_ID
-    warehouse_key_schema.emplace_back(
-        "", schema.GetColumn(0).Type(), schema.GetColumn(0).Nullable(),
-        parser::ColumnValueExpression(catalog::INVALID_DATABASE_OID, catalog::table_oid_t(0),
-                                      schema.GetColumn(0).Oid()));
+    warehouse_key_schema.emplace_back(schema.GetColumn(0).Name(), schema.GetColumn(0).Type(),
+                                      schema.GetColumn(0).Nullable(),
+                                      parser::ColumnValueExpression(db_oid, table_oid, schema.GetColumn(0).Oid()));
     warehouse_key_schema.back().SetOid(static_cast<catalog::indexkeycol_oid_t>(++(*oid_counter)));
 
     TERRIER_ASSERT(warehouse_key_schema.size() == NUM_WAREHOUSE_PRIMARY_INDEX_COLS,
@@ -182,18 +183,20 @@ class Schemas {
    */
   static catalog::IndexSchema BuildDistrictPrimaryIndexSchema(const catalog::Schema &schema,
                                                               const storage::index::IndexType index_type,
-                                                              uint32_t *const oid_counter) {
+                                                              uint32_t *const oid_counter,
+                                                              const catalog::db_oid_t db_oid,
+                                                              const catalog::table_oid_t table_oid) {
     std::vector<catalog::IndexSchema::Column> district_key_schema;
     district_key_schema.reserve(NUM_DISTRICT_PRIMARY_INDEX_COLS);
 
     // Primary Key: (D_W_ID, D_ID)
-    district_key_schema.emplace_back("", schema.GetColumn(1).Type(), schema.GetColumn(1).Nullable(),
-                                     parser::ColumnValueExpression(catalog::INVALID_DATABASE_OID,
-                                                                   catalog::table_oid_t(0), schema.GetColumn(1).Oid()));
+    district_key_schema.emplace_back(schema.GetColumn(1).Name(), schema.GetColumn(1).Type(),
+                                     schema.GetColumn(1).Nullable(),
+                                     parser::ColumnValueExpression(db_oid, table_oid, schema.GetColumn(1).Oid()));
     district_key_schema.back().SetOid(static_cast<catalog::indexkeycol_oid_t>(++(*oid_counter)));
-    district_key_schema.emplace_back("", schema.GetColumn(0).Type(), schema.GetColumn(0).Nullable(),
-                                     parser::ColumnValueExpression(catalog::INVALID_DATABASE_OID,
-                                                                   catalog::table_oid_t(0), schema.GetColumn(0).Oid()));
+    district_key_schema.emplace_back(schema.GetColumn(0).Name(), schema.GetColumn(0).Type(),
+                                     schema.GetColumn(0).Nullable(),
+                                     parser::ColumnValueExpression(db_oid, table_oid, schema.GetColumn(0).Oid()));
     district_key_schema.back().SetOid(static_cast<catalog::indexkeycol_oid_t>(++(*oid_counter)));
 
     TERRIER_ASSERT(district_key_schema.size() == NUM_DISTRICT_PRIMARY_INDEX_COLS,
@@ -329,22 +332,24 @@ class Schemas {
    */
   static catalog::IndexSchema BuildCustomerPrimaryIndexSchema(const catalog::Schema &schema,
                                                               const storage::index::IndexType index_type,
-                                                              uint32_t *const oid_counter) {
+                                                              uint32_t *const oid_counter,
+                                                              const catalog::db_oid_t db_oid,
+                                                              const catalog::table_oid_t table_oid) {
     std::vector<catalog::IndexSchema::Column> customer_key_schema;
     customer_key_schema.reserve(NUM_CUSTOMER_PRIMARY_INDEX_COLS);
 
     // Primary Key: (C_W_ID, C_D_ID, C_ID)
-    customer_key_schema.emplace_back("", schema.GetColumn(2).Type(), schema.GetColumn(2).Nullable(),
-                                     parser::ColumnValueExpression(catalog::INVALID_DATABASE_OID,
-                                                                   catalog::table_oid_t(0), schema.GetColumn(2).Oid()));
+    customer_key_schema.emplace_back(schema.GetColumn(2).Name(), schema.GetColumn(2).Type(),
+                                     schema.GetColumn(2).Nullable(),
+                                     parser::ColumnValueExpression(db_oid, table_oid, schema.GetColumn(2).Oid()));
     customer_key_schema.back().SetOid(static_cast<catalog::indexkeycol_oid_t>(++(*oid_counter)));
-    customer_key_schema.emplace_back("", schema.GetColumn(1).Type(), schema.GetColumn(1).Nullable(),
-                                     parser::ColumnValueExpression(catalog::INVALID_DATABASE_OID,
-                                                                   catalog::table_oid_t(0), schema.GetColumn(1).Oid()));
+    customer_key_schema.emplace_back(schema.GetColumn(1).Name(), schema.GetColumn(1).Type(),
+                                     schema.GetColumn(1).Nullable(),
+                                     parser::ColumnValueExpression(db_oid, table_oid, schema.GetColumn(1).Oid()));
     customer_key_schema.back().SetOid(static_cast<catalog::indexkeycol_oid_t>(++(*oid_counter)));
-    customer_key_schema.emplace_back("", schema.GetColumn(0).Type(), schema.GetColumn(0).Nullable(),
-                                     parser::ColumnValueExpression(catalog::INVALID_DATABASE_OID,
-                                                                   catalog::table_oid_t(0), schema.GetColumn(0).Oid()));
+    customer_key_schema.emplace_back(schema.GetColumn(0).Name(), schema.GetColumn(0).Type(),
+                                     schema.GetColumn(0).Nullable(),
+                                     parser::ColumnValueExpression(db_oid, table_oid, schema.GetColumn(0).Oid()));
     customer_key_schema.back().SetOid(static_cast<catalog::indexkeycol_oid_t>(++(*oid_counter)));
 
     TERRIER_ASSERT(customer_key_schema.size() == NUM_CUSTOMER_PRIMARY_INDEX_COLS,
@@ -360,25 +365,24 @@ class Schemas {
    */
   static catalog::IndexSchema BuildCustomerSecondaryIndexSchema(const catalog::Schema &schema,
                                                                 const storage::index::IndexType index_type,
-                                                                uint32_t *const oid_counter) {
+                                                                uint32_t *const oid_counter,
+                                                                const catalog::db_oid_t db_oid,
+                                                                const catalog::table_oid_t table_oid) {
     std::vector<catalog::IndexSchema::Column> customer_secondary_key_schema;
     customer_secondary_key_schema.reserve(NUM_CUSTOMER_SECONDARY_INDEX_COLS);
 
     // C_W_ID, C_D_ID, C_LAST for Order Status and Payment transactions
     customer_secondary_key_schema.emplace_back(
-        "", schema.GetColumn(2).Type(), schema.GetColumn(2).Nullable(),
-        parser::ColumnValueExpression(catalog::INVALID_DATABASE_OID, catalog::table_oid_t(0),
-                                      schema.GetColumn(2).Oid()));
+        schema.GetColumn(2).Name(), schema.GetColumn(2).Type(), schema.GetColumn(2).Nullable(),
+        parser::ColumnValueExpression(db_oid, table_oid, schema.GetColumn(2).Oid()));
     customer_secondary_key_schema.back().SetOid(static_cast<catalog::indexkeycol_oid_t>(++(*oid_counter)));
     customer_secondary_key_schema.emplace_back(
-        "", schema.GetColumn(1).Type(), schema.GetColumn(1).Nullable(),
-        parser::ColumnValueExpression(catalog::INVALID_DATABASE_OID, catalog::table_oid_t(0),
-                                      schema.GetColumn(1).Oid()));
+        schema.GetColumn(1).Name(), schema.GetColumn(1).Type(), schema.GetColumn(1).Nullable(),
+        parser::ColumnValueExpression(db_oid, table_oid, schema.GetColumn(1).Oid()));
     customer_secondary_key_schema.back().SetOid(static_cast<catalog::indexkeycol_oid_t>(++(*oid_counter)));
     customer_secondary_key_schema.emplace_back(
-        "", schema.GetColumn(5).Type(), schema.GetColumn(5).MaxVarlenSize(), schema.GetColumn(5).Nullable(),
-        parser::ColumnValueExpression(catalog::INVALID_DATABASE_OID, catalog::table_oid_t(0),
-                                      schema.GetColumn(5).Oid()));
+        schema.GetColumn(5).Name(), schema.GetColumn(5).Type(), schema.GetColumn(5).MaxVarlenSize(),
+        schema.GetColumn(5).Nullable(), parser::ColumnValueExpression(db_oid, table_oid, schema.GetColumn(5).Oid()));
     customer_secondary_key_schema.back().SetOid(static_cast<catalog::indexkeycol_oid_t>(++(*oid_counter)));
 
     TERRIER_ASSERT(customer_secondary_key_schema.size() == NUM_CUSTOMER_SECONDARY_INDEX_COLS,
@@ -479,25 +483,24 @@ class Schemas {
    */
   static catalog::IndexSchema BuildNewOrderPrimaryIndexSchema(const catalog::Schema &schema,
                                                               const storage::index::IndexType index_type,
-                                                              uint32_t *const oid_counter) {
+                                                              uint32_t *const oid_counter,
+                                                              const catalog::db_oid_t db_oid,
+                                                              const catalog::table_oid_t table_oid) {
     std::vector<catalog::IndexSchema::Column> new_order_key_schema;
     new_order_key_schema.reserve(NUM_NEW_ORDER_PRIMARY_INDEX_COLS);
 
     // Primary Key: (NO_W_ID, NO_D_ID, NO_O_ID)
-    new_order_key_schema.emplace_back(
-        "", schema.GetColumn(2).Type(), schema.GetColumn(2).Nullable(),
-        parser::ColumnValueExpression(catalog::INVALID_DATABASE_OID, catalog::table_oid_t(0),
-                                      schema.GetColumn(2).Oid()));
+    new_order_key_schema.emplace_back(schema.GetColumn(2).Name(), schema.GetColumn(2).Type(),
+                                      schema.GetColumn(2).Nullable(),
+                                      parser::ColumnValueExpression(db_oid, table_oid, schema.GetColumn(2).Oid()));
     new_order_key_schema.back().SetOid(static_cast<catalog::indexkeycol_oid_t>(++(*oid_counter)));
-    new_order_key_schema.emplace_back(
-        "", schema.GetColumn(1).Type(), schema.GetColumn(1).Nullable(),
-        parser::ColumnValueExpression(catalog::INVALID_DATABASE_OID, catalog::table_oid_t(0),
-                                      schema.GetColumn(1).Oid()));
+    new_order_key_schema.emplace_back(schema.GetColumn(1).Name(), schema.GetColumn(1).Type(),
+                                      schema.GetColumn(1).Nullable(),
+                                      parser::ColumnValueExpression(db_oid, table_oid, schema.GetColumn(1).Oid()));
     new_order_key_schema.back().SetOid(static_cast<catalog::indexkeycol_oid_t>(++(*oid_counter)));
-    new_order_key_schema.emplace_back(
-        "", schema.GetColumn(0).Type(), schema.GetColumn(0).Nullable(),
-        parser::ColumnValueExpression(catalog::INVALID_DATABASE_OID, catalog::table_oid_t(0),
-                                      schema.GetColumn(0).Oid()));
+    new_order_key_schema.emplace_back(schema.GetColumn(0).Name(), schema.GetColumn(0).Type(),
+                                      schema.GetColumn(0).Nullable(),
+                                      parser::ColumnValueExpression(db_oid, table_oid, schema.GetColumn(0).Oid()));
     new_order_key_schema.back().SetOid(static_cast<catalog::indexkeycol_oid_t>(++(*oid_counter)));
 
     TERRIER_ASSERT(new_order_key_schema.size() == NUM_NEW_ORDER_PRIMARY_INDEX_COLS,
@@ -567,22 +570,23 @@ class Schemas {
    */
   static catalog::IndexSchema BuildOrderPrimaryIndexSchema(const catalog::Schema &schema,
                                                            const storage::index::IndexType index_type,
-                                                           uint32_t *const oid_counter) {
+                                                           uint32_t *const oid_counter, const catalog::db_oid_t db_oid,
+                                                           const catalog::table_oid_t table_oid) {
     std::vector<catalog::IndexSchema::Column> order_key_schema;
     order_key_schema.reserve(NUM_ORDER_PRIMARY_INDEX_COLS);
 
     // Primary Key: (O_W_ID, O_D_ID, O_ID)
-    order_key_schema.emplace_back("", schema.GetColumn(2).Type(), schema.GetColumn(2).Nullable(),
-                                  parser::ColumnValueExpression(catalog::INVALID_DATABASE_OID, catalog::table_oid_t(0),
-                                                                schema.GetColumn(2).Oid()));
+    order_key_schema.emplace_back(schema.GetColumn(2).Name(), schema.GetColumn(2).Type(),
+                                  schema.GetColumn(2).Nullable(),
+                                  parser::ColumnValueExpression(db_oid, table_oid, schema.GetColumn(2).Oid()));
     order_key_schema.back().SetOid(static_cast<catalog::indexkeycol_oid_t>(++(*oid_counter)));
-    order_key_schema.emplace_back("", schema.GetColumn(1).Type(), schema.GetColumn(1).Nullable(),
-                                  parser::ColumnValueExpression(catalog::INVALID_DATABASE_OID, catalog::table_oid_t(0),
-                                                                schema.GetColumn(1).Oid()));
+    order_key_schema.emplace_back(schema.GetColumn(1).Name(), schema.GetColumn(1).Type(),
+                                  schema.GetColumn(1).Nullable(),
+                                  parser::ColumnValueExpression(db_oid, table_oid, schema.GetColumn(1).Oid()));
     order_key_schema.back().SetOid(static_cast<catalog::indexkeycol_oid_t>(++(*oid_counter)));
-    order_key_schema.emplace_back("", schema.GetColumn(0).Type(), schema.GetColumn(0).Nullable(),
-                                  parser::ColumnValueExpression(catalog::INVALID_DATABASE_OID, catalog::table_oid_t(0),
-                                                                schema.GetColumn(0).Oid()));
+    order_key_schema.emplace_back(schema.GetColumn(0).Name(), schema.GetColumn(0).Type(),
+                                  schema.GetColumn(0).Nullable(),
+                                  parser::ColumnValueExpression(db_oid, table_oid, schema.GetColumn(0).Oid()));
     order_key_schema.back().SetOid(static_cast<catalog::indexkeycol_oid_t>(++(*oid_counter)));
 
     TERRIER_ASSERT(order_key_schema.size() == NUM_ORDER_PRIMARY_INDEX_COLS,
@@ -598,30 +602,28 @@ class Schemas {
    */
   static catalog::IndexSchema BuildOrderSecondaryIndexSchema(const catalog::Schema &schema,
                                                              const storage::index::IndexType index_type,
-                                                             uint32_t *const oid_counter) {
+                                                             uint32_t *const oid_counter,
+                                                             const catalog::db_oid_t db_oid,
+                                                             const catalog::table_oid_t table_oid) {
     std::vector<catalog::IndexSchema::Column> order_secondary_key_schema;
     order_secondary_key_schema.reserve(NUM_ORDER_SECONDARY_INDEX_COLS);
 
     // O_W_ID, O_D_ID, O_C_ID, O_ID for Order Status transaction
     order_secondary_key_schema.emplace_back(
-        "", schema.GetColumn(2).Type(), schema.GetColumn(2).Nullable(),
-        parser::ColumnValueExpression(catalog::INVALID_DATABASE_OID, catalog::table_oid_t(0),
-                                      schema.GetColumn(2).Oid()));
+        schema.GetColumn(2).Name(), schema.GetColumn(2).Type(), schema.GetColumn(2).Nullable(),
+        parser::ColumnValueExpression(db_oid, table_oid, schema.GetColumn(2).Oid()));
     order_secondary_key_schema.back().SetOid(static_cast<catalog::indexkeycol_oid_t>(++(*oid_counter)));
     order_secondary_key_schema.emplace_back(
-        "", schema.GetColumn(1).Type(), schema.GetColumn(1).Nullable(),
-        parser::ColumnValueExpression(catalog::INVALID_DATABASE_OID, catalog::table_oid_t(0),
-                                      schema.GetColumn(1).Oid()));
+        schema.GetColumn(1).Name(), schema.GetColumn(1).Type(), schema.GetColumn(1).Nullable(),
+        parser::ColumnValueExpression(db_oid, table_oid, schema.GetColumn(1).Oid()));
     order_secondary_key_schema.back().SetOid(static_cast<catalog::indexkeycol_oid_t>(++(*oid_counter)));
     order_secondary_key_schema.emplace_back(
-        "", schema.GetColumn(3).Type(), schema.GetColumn(3).Nullable(),
-        parser::ColumnValueExpression(catalog::INVALID_DATABASE_OID, catalog::table_oid_t(0),
-                                      schema.GetColumn(3).Oid()));
+        schema.GetColumn(3).Name(), schema.GetColumn(3).Type(), schema.GetColumn(3).Nullable(),
+        parser::ColumnValueExpression(db_oid, table_oid, schema.GetColumn(3).Oid()));
     order_secondary_key_schema.back().SetOid(static_cast<catalog::indexkeycol_oid_t>(++(*oid_counter)));
     order_secondary_key_schema.emplace_back(
-        "", schema.GetColumn(0).Type(), schema.GetColumn(0).Nullable(),
-        parser::ColumnValueExpression(catalog::INVALID_DATABASE_OID, catalog::table_oid_t(0),
-                                      schema.GetColumn(0).Oid()));
+        schema.GetColumn(0).Name(), schema.GetColumn(0).Type(), schema.GetColumn(0).Nullable(),
+        parser::ColumnValueExpression(db_oid, table_oid, schema.GetColumn(0).Oid()));
     order_secondary_key_schema.back().SetOid(static_cast<catalog::indexkeycol_oid_t>(++(*oid_counter)));
 
     TERRIER_ASSERT(order_secondary_key_schema.size() == NUM_ORDER_SECONDARY_INDEX_COLS,
@@ -702,30 +704,28 @@ class Schemas {
    */
   static catalog::IndexSchema BuildOrderLinePrimaryIndexSchema(const catalog::Schema &schema,
                                                                const storage::index::IndexType index_type,
-                                                               uint32_t *const oid_counter) {
+                                                               uint32_t *const oid_counter,
+                                                               const catalog::db_oid_t db_oid,
+                                                               const catalog::table_oid_t table_oid) {
     std::vector<catalog::IndexSchema::Column> order_line_key_schema;
     order_line_key_schema.reserve(NUM_ORDER_LINE_PRIMARY_INDEX_COLS);
 
     // Primary Key: (OL_W_ID, OL_D_ID, OL_O_ID, OL_NUMBER)
-    order_line_key_schema.emplace_back(
-        "", schema.GetColumn(2).Type(), schema.GetColumn(2).Nullable(),
-        parser::ColumnValueExpression(catalog::INVALID_DATABASE_OID, catalog::table_oid_t(0),
-                                      schema.GetColumn(2).Oid()));
+    order_line_key_schema.emplace_back(schema.GetColumn(2).Name(), schema.GetColumn(2).Type(),
+                                       schema.GetColumn(2).Nullable(),
+                                       parser::ColumnValueExpression(db_oid, table_oid, schema.GetColumn(2).Oid()));
     order_line_key_schema.back().SetOid(static_cast<catalog::indexkeycol_oid_t>(++(*oid_counter)));
-    order_line_key_schema.emplace_back(
-        "", schema.GetColumn(1).Type(), schema.GetColumn(1).Nullable(),
-        parser::ColumnValueExpression(catalog::INVALID_DATABASE_OID, catalog::table_oid_t(0),
-                                      schema.GetColumn(1).Oid()));
+    order_line_key_schema.emplace_back(schema.GetColumn(1).Name(), schema.GetColumn(1).Type(),
+                                       schema.GetColumn(1).Nullable(),
+                                       parser::ColumnValueExpression(db_oid, table_oid, schema.GetColumn(1).Oid()));
     order_line_key_schema.back().SetOid(static_cast<catalog::indexkeycol_oid_t>(++(*oid_counter)));
-    order_line_key_schema.emplace_back(
-        "", schema.GetColumn(0).Type(), schema.GetColumn(0).Nullable(),
-        parser::ColumnValueExpression(catalog::INVALID_DATABASE_OID, catalog::table_oid_t(0),
-                                      schema.GetColumn(0).Oid()));
+    order_line_key_schema.emplace_back(schema.GetColumn(0).Name(), schema.GetColumn(0).Type(),
+                                       schema.GetColumn(0).Nullable(),
+                                       parser::ColumnValueExpression(db_oid, table_oid, schema.GetColumn(0).Oid()));
     order_line_key_schema.back().SetOid(static_cast<catalog::indexkeycol_oid_t>(++(*oid_counter)));
-    order_line_key_schema.emplace_back(
-        "", schema.GetColumn(3).Type(), schema.GetColumn(3).Nullable(),
-        parser::ColumnValueExpression(catalog::INVALID_DATABASE_OID, catalog::table_oid_t(0),
-                                      schema.GetColumn(3).Oid()));
+    order_line_key_schema.emplace_back(schema.GetColumn(3).Name(), schema.GetColumn(3).Type(),
+                                       schema.GetColumn(3).Nullable(),
+                                       parser::ColumnValueExpression(db_oid, table_oid, schema.GetColumn(3).Oid()));
     order_line_key_schema.back().SetOid(static_cast<catalog::indexkeycol_oid_t>(++(*oid_counter)));
 
     TERRIER_ASSERT(order_line_key_schema.size() == NUM_ORDER_LINE_PRIMARY_INDEX_COLS,
@@ -780,14 +780,14 @@ class Schemas {
    */
   static catalog::IndexSchema BuildItemPrimaryIndexSchema(const catalog::Schema &schema,
                                                           const storage::index::IndexType index_type,
-                                                          uint32_t *const oid_counter) {
+                                                          uint32_t *const oid_counter, const catalog::db_oid_t db_oid,
+                                                          const catalog::table_oid_t table_oid) {
     std::vector<catalog::IndexSchema::Column> item_key_schema;
     item_key_schema.reserve(NUM_ITEM_PRIMARY_INDEX_COLS);
 
     // Primary Key: I_ID
-    item_key_schema.emplace_back("", schema.GetColumn(0).Type(), schema.GetColumn(0).Nullable(),
-                                 parser::ColumnValueExpression(catalog::INVALID_DATABASE_OID, catalog::table_oid_t(0),
-                                                               schema.GetColumn(0).Oid()));
+    item_key_schema.emplace_back(schema.GetColumn(0).Name(), schema.GetColumn(0).Type(), schema.GetColumn(0).Nullable(),
+                                 parser::ColumnValueExpression(db_oid, table_oid, schema.GetColumn(0).Oid()));
     item_key_schema.back().SetOid(static_cast<catalog::indexkeycol_oid_t>(++(*oid_counter)));
 
     TERRIER_ASSERT(item_key_schema.size() == NUM_ITEM_PRIMARY_INDEX_COLS,
@@ -902,18 +902,19 @@ class Schemas {
    */
   static catalog::IndexSchema BuildStockPrimaryIndexSchema(const catalog::Schema &schema,
                                                            const storage::index::IndexType index_type,
-                                                           uint32_t *const oid_counter) {
+                                                           uint32_t *const oid_counter, const catalog::db_oid_t db_oid,
+                                                           const catalog::table_oid_t table_oid) {
     std::vector<catalog::IndexSchema::Column> stock_key_schema;
     stock_key_schema.reserve(NUM_STOCK_PRIMARY_INDEX_COLS);
 
     // Primary Key: (S_W_ID, S_I_ID)
-    stock_key_schema.emplace_back("", schema.GetColumn(1).Type(), schema.GetColumn(1).Nullable(),
-                                  parser::ColumnValueExpression(catalog::INVALID_DATABASE_OID, catalog::table_oid_t(0),
-                                                                schema.GetColumn(1).Oid()));
+    stock_key_schema.emplace_back(schema.GetColumn(1).Name(), schema.GetColumn(1).Type(),
+                                  schema.GetColumn(1).Nullable(),
+                                  parser::ColumnValueExpression(db_oid, table_oid, schema.GetColumn(1).Oid()));
     stock_key_schema.back().SetOid(static_cast<catalog::indexkeycol_oid_t>(++(*oid_counter)));
-    stock_key_schema.emplace_back("", schema.GetColumn(0).Type(), schema.GetColumn(0).Nullable(),
-                                  parser::ColumnValueExpression(catalog::INVALID_DATABASE_OID, catalog::table_oid_t(0),
-                                                                schema.GetColumn(0).Oid()));
+    stock_key_schema.emplace_back(schema.GetColumn(0).Name(), schema.GetColumn(0).Type(),
+                                  schema.GetColumn(0).Nullable(),
+                                  parser::ColumnValueExpression(db_oid, table_oid, schema.GetColumn(0).Oid()));
     stock_key_schema.back().SetOid(static_cast<catalog::indexkeycol_oid_t>(++(*oid_counter)));
 
     TERRIER_ASSERT(stock_key_schema.size() == NUM_STOCK_PRIMARY_INDEX_COLS,
