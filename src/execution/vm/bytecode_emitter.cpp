@@ -341,4 +341,12 @@ void BytecodeEmitter::EmitInitString(Bytecode bytecode, LocalVar out, uint64_t l
   EmitAll(bytecode, out, length, data);
 }
 
+void BytecodeEmitter::EmitPRGet(Bytecode bytecode, LocalVar out, LocalVar pr, uint16_t col_idx) {
+  EmitAll(bytecode, out, pr, col_idx);
+}
+
+void BytecodeEmitter::EmitPRSet(Bytecode bytecode, LocalVar pr, uint16_t col_idx, LocalVar val) {
+  EmitAll(bytecode, pr, col_idx, val);
+}
+
 }  // namespace terrier::execution::vm

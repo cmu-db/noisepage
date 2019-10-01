@@ -1407,56 +1407,80 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {
     DISPATCH_NEXT();
   }
 
-  // -------------------------------------------------------
-  // IndexIterator element access
-  // -------------------------------------------------------
-
-#define GEN_INDEX_ITERATOR_ACCESS(type_str, type)                       \
-  OP(IndexIteratorGet##type_str) : {                                    \
-    auto *result = frame->LocalAt<type *>(READ_LOCAL_ID());             \
-    auto *iter = frame->LocalAt<sql::IndexIterator *>(READ_LOCAL_ID()); \
-    auto col_idx = READ_UIMM2();                                        \
-    OpIndexIteratorGet##type_str(result, iter, col_idx);                \
-    DISPATCH_NEXT();                                                    \
-  }                                                                     \
-  OP(IndexIteratorGet##type_str##Null) : {                              \
-    auto *result = frame->LocalAt<type *>(READ_LOCAL_ID());             \
-    auto *iter = frame->LocalAt<sql::IndexIterator *>(READ_LOCAL_ID()); \
-    auto col_idx = READ_UIMM2();                                        \
-    OpIndexIteratorGet##type_str##Null(result, iter, col_idx);          \
-    DISPATCH_NEXT();                                                    \
+  OP(IndexIteratorGetPR) : {
+    auto *pr = frame->LocalAt<sql::ProjectedRowWrapper *>(READ_LOCAL_ID());
+    auto *iter = frame->LocalAt<sql::IndexIterator *>(READ_LOCAL_ID());
+    OpIndexIteratorGetPR(pr, iter);
+    DISPATCH_NEXT();
   }
-  GEN_INDEX_ITERATOR_ACCESS(TinyInt, sql::Integer)
-  GEN_INDEX_ITERATOR_ACCESS(SmallInt, sql::Integer)
-  GEN_INDEX_ITERATOR_ACCESS(Integer, sql::Integer)
-  GEN_INDEX_ITERATOR_ACCESS(BigInt, sql::Integer)
-  GEN_INDEX_ITERATOR_ACCESS(Real, sql::Real)
-  GEN_INDEX_ITERATOR_ACCESS(Double, sql::Real)
-  GEN_INDEX_ITERATOR_ACCESS(Decimal, sql::Decimal)
-#undef GEN_INDEX_ITERATOR_ACCESS
 
-#define GEN_INDEX_ITERATOR_SET(type_str, type)                          \
-  OP(IndexIteratorSetKey##type_str) : {                                 \
-    auto *iter = frame->LocalAt<sql::IndexIterator *>(READ_LOCAL_ID()); \
-    auto col_idx = READ_UIMM2();                                        \
-    auto val = frame->LocalAt<type *>(READ_LOCAL_ID());                 \
-    OpIndexIteratorSetKey##type_str(iter, col_idx, val);                \
-    DISPATCH_NEXT();                                                    \
-  }                                                                     \
-  OP(IndexIteratorSetKey##type_str##Null) : {                           \
-    auto *iter = frame->LocalAt<sql::IndexIterator *>(READ_LOCAL_ID()); \
-    auto col_idx = READ_UIMM2();                                        \
-    auto val = frame->LocalAt<type *>(READ_LOCAL_ID());                 \
-    OpIndexIteratorSetKey##type_str##Null(iter, col_idx, val);          \
-    DISPATCH_NEXT();                                                    \
+  OP(IndexIteratorGetTablePR) : {
+    auto *pr = frame->LocalAt<sql::ProjectedRowWrapper *>(READ_LOCAL_ID());
+    auto *iter = frame->LocalAt<sql::IndexIterator *>(READ_LOCAL_ID());
+    OpIndexIteratorGetTablePR(pr, iter);
+    DISPATCH_NEXT();
   }
-  GEN_INDEX_ITERATOR_SET(TinyInt, sql::Integer)
-  GEN_INDEX_ITERATOR_SET(SmallInt, sql::Integer)
-  GEN_INDEX_ITERATOR_SET(Int, sql::Integer)
-  GEN_INDEX_ITERATOR_SET(BigInt, sql::Integer)
-  GEN_INDEX_ITERATOR_SET(Real, sql::Real)
-  GEN_INDEX_ITERATOR_SET(Double, sql::Real)
-#undef GEN_INDEX_ITERATOR_SET
+
+  OP(IndexIteratorGetSlot) : {
+    auto *slot = frame->LocalAt<storage::TupleSlot *>(READ_LOCAL_ID());
+    auto *iter = frame->LocalAt<sql::IndexIterator *>(READ_LOCAL_ID());
+    OpIndexIteratorGetSlot(slot, iter);
+    DISPATCH_NEXT();
+  }
+
+  /////////////////////////////////
+  //// PR Calls
+  /////////////////////////////////
+
+#define GEN_PR_ACCESS(type_str, type)                                       \
+  OP(PRGet##type_str) : {                                                   \
+    auto *result = frame->LocalAt<type *>(READ_LOCAL_ID());                 \
+    auto *pr = frame->LocalAt<sql::ProjectedRowWrapper *>(READ_LOCAL_ID()); \
+    auto col_idx = READ_UIMM2();                                            \
+    OpPRGet##type_str(result, pr, col_idx);                                 \
+    DISPATCH_NEXT();                                                        \
+  }                                                                         \
+  OP(PRGet##type_str##Null) : {                                             \
+    auto *result = frame->LocalAt<type *>(READ_LOCAL_ID());                 \
+    auto *pr = frame->LocalAt<sql::ProjectedRowWrapper *>(READ_LOCAL_ID()); \
+    auto col_idx = READ_UIMM2();                                            \
+    OpPRGet##type_str##Null(result, pr, col_idx);                           \
+    DISPATCH_NEXT();                                                        \
+  }
+  GEN_PR_ACCESS(TinyInt, sql::Integer)
+  GEN_PR_ACCESS(SmallInt, sql::Integer)
+  GEN_PR_ACCESS(Int, sql::Integer)
+  GEN_PR_ACCESS(BigInt, sql::Integer)
+  GEN_PR_ACCESS(Real, sql::Real)
+  GEN_PR_ACCESS(Double, sql::Real)
+  GEN_PR_ACCESS(Date, sql::Date)
+  GEN_PR_ACCESS(Varlen, sql::StringVal)
+#undef GEN_PR_ACCESS
+
+#define GEN_PR_SET(type_str, type)                                          \
+  OP(PRSet##type_str) : {                                                   \
+    auto *pr = frame->LocalAt<sql::ProjectedRowWrapper *>(READ_LOCAL_ID()); \
+    auto col_idx = READ_UIMM2();                                            \
+    auto val = frame->LocalAt<type *>(READ_LOCAL_ID());                     \
+    OpPRSet##type_str(pr, col_idx, val);                                    \
+    DISPATCH_NEXT();                                                        \
+  }                                                                         \
+  OP(PRSet##type_str##Null) : {                                             \
+    auto *pr = frame->LocalAt<sql::ProjectedRowWrapper *>(READ_LOCAL_ID()); \
+    auto col_idx = READ_UIMM2();                                            \
+    auto val = frame->LocalAt<type *>(READ_LOCAL_ID());                     \
+    OpPRSet##type_str##Null(pr, col_idx, val);                              \
+    DISPATCH_NEXT();                                                        \
+  }
+  GEN_PR_SET(TinyInt, sql::Integer)
+  GEN_PR_SET(SmallInt, sql::Integer)
+  GEN_PR_SET(Int, sql::Integer)
+  GEN_PR_SET(BigInt, sql::Integer)
+  GEN_PR_SET(Real, sql::Real)
+  GEN_PR_SET(Double, sql::Real)
+  GEN_PR_SET(Date, sql::Date)
+  GEN_PR_SET(Varlen, sql::StringVal)
+#undef GEN_PR_SET
 
   // -------------------------------------------------------
   // Real-value functions

@@ -33,11 +33,15 @@ void IndexIterator::ScanKey() {
 
 bool IndexIterator::Advance() {
   if (curr_index_ < tuples_.size()) {
-    table_->Select(exec_ctx_->GetTxn(), tuples_[curr_index_], table_pr_);
     ++curr_index_;
     return true;
   }
   return false;
+}
+
+storage::ProjectedRow *IndexIterator::TablePR() {
+  table_->Select(exec_ctx_->GetTxn(), tuples_[curr_index_ - 1], table_pr_);
+  return table_pr_;
 }
 
 IndexIterator::~IndexIterator() {

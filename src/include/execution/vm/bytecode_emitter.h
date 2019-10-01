@@ -464,6 +464,13 @@ class BytecodeEmitter {
   void EmitInitString(Bytecode bytecode, LocalVar out, uint64_t length, uintptr_t data);
 
   /**
+   * Emit bytecode to set value within a PR
+   */
+  void EmitPRSet(Bytecode bytecode, LocalVar pr, uint16_t col_idx, LocalVar val);
+
+  void EmitPRGet(Bytecode bytecode, LocalVar out, LocalVar pr, uint16_t col_idx);
+
+  /**
    * Copy a scalar immediate value into the bytecode stream
    * @tparam T type of the value
    * @param val value to copy

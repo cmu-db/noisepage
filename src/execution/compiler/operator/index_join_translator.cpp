@@ -59,7 +59,6 @@ ast::Expr *IndexJoinTranslator::GetChildOutput(uint32_t child_idx, uint32_t attr
 }
 
 ast::Expr *IndexJoinTranslator::GetTableColumn(const catalog::col_oid_t &col_oid) {
-  // Call @pciGetType(pci, index)
   auto type = table_schema_.GetColumn(col_oid).Type();
   auto nullable = table_schema_.GetColumn(col_oid).Nullable();
   uint16_t attr_idx = table_pm_[col_oid];

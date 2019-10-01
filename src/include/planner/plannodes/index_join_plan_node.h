@@ -76,9 +76,7 @@ class IndexJoinPlanNode : public AbstractJoinPlanNode {
      */
     catalog::table_oid_t table_oid_;
 
-    /**line:0:0>
-|     | |- IndexExpr (0x629000001180) <line:0:0>  'uint32'
-|     | | |- IdentifierExpr (0x629000001150) <line:0:0>  '[2
+    /**
      * Index Cols
      */
     std::unordered_map<catalog::indexkeycol_oid_t, IndexExpression> index_cols_{};

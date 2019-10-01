@@ -17,6 +17,7 @@
 #include "execution/sql/functions/string_functions.h"
 #include "execution/sql/index_iterator.h"
 #include "execution/sql/join_hash_table.h"
+#include "execution/sql/projected_row_wrapper.h"
 #include "execution/sql/sorter.h"
 #include "execution/sql/table_vector_iterator.h"
 #include "execution/sql/thread_state_container.h"
@@ -1327,210 +1328,145 @@ VM_OP_HOT void OpIndexIteratorAdvance(bool *has_more, terrier::execution::sql::I
   *has_more = iter->Advance();
 }
 
-VM_OP_HOT void OpIndexIteratorGetTinyInt(terrier::execution::sql::Integer *out,
-                                         terrier::execution::sql::IndexIterator *iter, uint16_t col_idx) {
+VM_OP_HOT void OpIndexIteratorGetPR(terrier::execution::sql::ProjectedRowWrapper *pr,
+                                    terrier::execution::sql::IndexIterator *iter) {
+  *pr = terrier::execution::sql::ProjectedRowWrapper(iter->PR());
+}
+
+VM_OP_HOT void OpIndexIteratorGetTablePR(terrier::execution::sql::ProjectedRowWrapper *pr,
+                                         terrier::execution::sql::IndexIterator *iter) {
+  *pr = terrier::execution::sql::ProjectedRowWrapper(iter->TablePR());
+}
+
+VM_OP_HOT void OpIndexIteratorGetSlot(terrier::storage::TupleSlot *slot, terrier::execution::sql::IndexIterator *iter) {
+  *slot = iter->CurrentSlot();
+}
+
+#define GEN_PR_SCALAR_SET_CALLS(Name, SqlType, CppType)                                                  \
+  VM_OP_HOT void OpPRSet##Name(terrier::execution::sql::ProjectedRowWrapper *pr, uint16_t col_idx,       \
+                               terrier::execution::sql::SqlType *val) {                                  \
+    pr->Set<CppType, false>(col_idx, static_cast<CppType>(val->val_), val->is_null_);                    \
+  }                                                                                                      \
+                                                                                                         \
+  VM_OP_HOT void OpPRSet##Name##Null(terrier::execution::sql::ProjectedRowWrapper *pr, uint16_t col_idx, \
+                                     terrier::execution::sql::SqlType *val) {                            \
+    pr->Set<CppType, true>(col_idx, static_cast<CppType>(val->val_), val->is_null_);                     \
+  }
+
+#define GEN_PR_SCALAR_GET_CALLS(Name, SqlType, CppType)                                                    \
+  VM_OP_HOT void OpPRGet##Name(terrier::execution::sql::SqlType *out,                                      \
+                               terrier::execution::sql::ProjectedRowWrapper *pr, uint16_t col_idx) {       \
+    /* Read */                                                                                             \
+    auto *ptr = pr->Get<CppType, false>(col_idx, nullptr);                                                 \
+    TERRIER_ASSERT(ptr != nullptr, "Null pointer when trying to read integer");                            \
+    /* Set */                                                                                              \
+    out->is_null_ = false;                                                                                 \
+    out->val_ = *ptr;                                                                                      \
+  }                                                                                                        \
+                                                                                                           \
+  VM_OP_HOT void OpPRGet##Name##Null(terrier::execution::sql::SqlType *out,                                \
+                                     terrier::execution::sql::ProjectedRowWrapper *pr, uint16_t col_idx) { \
+    /* Read */                                                                                             \
+    bool null = false;                                                                                     \
+    auto *ptr = pr->Get<CppType, true>(col_idx, &null);                                                    \
+    /* Set */                                                                                              \
+    out->is_null_ = null;                                                                                  \
+    out->val_ = null ? 0 : *ptr;                                                                           \
+  }
+
+GEN_PR_SCALAR_SET_CALLS(TinyInt, Integer, int8_t);
+GEN_PR_SCALAR_SET_CALLS(SmallInt, Integer, int16_t);
+GEN_PR_SCALAR_SET_CALLS(Int, Integer, int32_t);
+GEN_PR_SCALAR_SET_CALLS(BigInt, Integer, int64_t);
+GEN_PR_SCALAR_SET_CALLS(Real, Real, float);
+GEN_PR_SCALAR_SET_CALLS(Double, Real, double);
+GEN_PR_SCALAR_GET_CALLS(TinyInt, Integer, int8_t);
+GEN_PR_SCALAR_GET_CALLS(SmallInt, Integer, int16_t);
+GEN_PR_SCALAR_GET_CALLS(Int, Integer, int32_t);
+GEN_PR_SCALAR_GET_CALLS(BigInt, Integer, int64_t);
+GEN_PR_SCALAR_GET_CALLS(Real, Real, float);
+GEN_PR_SCALAR_GET_CALLS(Double, Real, double);
+
+VM_OP_HOT void OpPRSetVarlen(terrier::execution::sql::ProjectedRowWrapper *pr, uint16_t col_idx,
+                             terrier::execution::sql::StringVal *val) {
+  if (val->len_ <= terrier::storage::VarlenEntry::InlineThreshold()) {
+    terrier::storage::VarlenEntry varlen(terrier::storage::VarlenEntry::CreateInline(
+        reinterpret_cast<const terrier::byte *>(val->Content()), val->len_));
+    pr->Set<terrier::storage::VarlenEntry, false>(col_idx, varlen, val->is_null_);
+  } else {
+    terrier::storage::VarlenEntry varlen(terrier::storage::VarlenEntry::Create(
+        reinterpret_cast<const terrier::byte *>(val->Content()), val->len_, false));
+    pr->Set<terrier::storage::VarlenEntry, false>(col_idx, varlen, val->is_null_);
+  }
+}
+
+VM_OP_HOT void OpPRSetVarlenNull(terrier::execution::sql::ProjectedRowWrapper *pr, uint16_t col_idx,
+                                 terrier::execution::sql::StringVal *val) {
+  if (val->len_ <= terrier::storage::VarlenEntry::InlineThreshold()) {
+    terrier::storage::VarlenEntry varlen(terrier::storage::VarlenEntry::CreateInline(
+        reinterpret_cast<const terrier::byte *>(val->Content()), val->len_));
+    pr->Set<terrier::storage::VarlenEntry, true>(col_idx, varlen, val->is_null_);
+  } else {
+    terrier::storage::VarlenEntry varlen(terrier::storage::VarlenEntry::Create(
+        reinterpret_cast<const terrier::byte *>(val->Content()), val->len_, false));
+    pr->Set<terrier::storage::VarlenEntry, true>(col_idx, varlen, val->is_null_);
+  }
+}
+
+VM_OP_HOT void OpPRSetDate(terrier::execution::sql::ProjectedRowWrapper *pr, uint16_t col_idx,
+                           terrier::execution::sql::Date *val) {
+  pr->Set<uint32_t, false>(col_idx, val->int_val_, val->is_null_);
+}
+
+VM_OP_HOT void OpPRSetDateNull(terrier::execution::sql::ProjectedRowWrapper *pr, uint16_t col_idx,
+                               terrier::execution::sql::Date *val) {
+  pr->Set<uint32_t, true>(col_idx, val->int_val_, val->is_null_);
+}
+
+VM_OP_HOT void OpPRGetDate(terrier::execution::sql::Date *out, terrier::execution::sql::ProjectedRowWrapper *pr,
+                           uint16_t col_idx) {
   // Read
-  auto *ptr = iter->Get<int16_t, false>(col_idx, nullptr);
-  TERRIER_ASSERT(ptr != nullptr, "Null pointer when trying to read integer");
-
+  auto *ptr = pr->Get<uint32_t, false>(col_idx, nullptr);
+  TERRIER_ASSERT(ptr != nullptr, "Null pointer when trying to read date");
   // Set
   out->is_null_ = false;
-  out->val_ = *ptr;
+  out->int_val_ = *ptr;
 }
 
-VM_OP_HOT void OpIndexIteratorGetSmallInt(terrier::execution::sql::Integer *out,
-                                          terrier::execution::sql::IndexIterator *iter, uint16_t col_idx) {
-  // Read
-  auto *ptr = iter->Get<int16_t, false>(col_idx, nullptr);
-  TERRIER_ASSERT(ptr != nullptr, "Null pointer when trying to read integer");
-
-  // Set
-  out->is_null_ = false;
-  out->val_ = *ptr;
-}
-
-VM_OP_HOT void OpIndexIteratorGetInteger(terrier::execution::sql::Integer *out,
-                                         terrier::execution::sql::IndexIterator *iter, uint16_t col_idx) {
-  // Read
-  auto *ptr = iter->Get<int32_t, false>(col_idx, nullptr);
-  TERRIER_ASSERT(ptr != nullptr, "Null pointer when trying to read integer");
-
-  // Set
-  out->is_null_ = false;
-  out->val_ = *ptr;
-}
-
-VM_OP_HOT void OpIndexIteratorGetBigInt(terrier::execution::sql::Integer *out,
-                                        terrier::execution::sql::IndexIterator *iter, uint16_t col_idx) {
-  // Read
-  auto *ptr = iter->Get<int64_t, false>(col_idx, nullptr);
-  TERRIER_ASSERT(ptr != nullptr, "Null pointer when trying to read integer");
-
-  // Set
-  out->is_null_ = false;
-  out->val_ = *ptr;
-}
-
-VM_OP_HOT void OpIndexIteratorGetReal(terrier::execution::sql::Real *out, terrier::execution::sql::IndexIterator *iter,
-                                      uint16_t col_idx) {
-  // Read
-  auto *ptr = iter->Get<float, false>(col_idx, nullptr);
-  TERRIER_ASSERT(ptr != nullptr, "Null pointer when trying to read integer");
-
-  // Set
-  out->is_null_ = false;
-  out->val_ = *ptr;
-}
-
-VM_OP_HOT void OpIndexIteratorGetDouble(terrier::execution::sql::Real *out,
-                                        terrier::execution::sql::IndexIterator *iter, uint16_t col_idx) {
-  // Read
-  auto *ptr = iter->Get<double, false>(col_idx, nullptr);
-  TERRIER_ASSERT(ptr != nullptr, "Null pointer when trying to read integer");
-
-  // Set
-  out->is_null_ = false;
-  out->val_ = *ptr;
-}
-
-VM_OP_HOT void OpIndexIteratorGetDecimal(terrier::execution::sql::Decimal *out,
-                                         UNUSED_ATTRIBUTE terrier::execution::sql::IndexIterator *iter,
-                                         UNUSED_ATTRIBUTE uint16_t col_idx) {
-  // Set
-  out->is_null_ = false;
-  out->val_ = 0;
-}
-
-VM_OP_HOT void OpIndexIteratorGetTinyIntNull(terrier::execution::sql::Integer *out,
-                                             terrier::execution::sql::IndexIterator *iter, uint16_t col_idx) {
+VM_OP_HOT void OpPRGetDateNull(terrier::execution::sql::Date *out, terrier::execution::sql::ProjectedRowWrapper *pr,
+                               uint16_t col_idx) {
   // Read
   bool null = false;
-  auto *ptr = iter->Get<int8_t, true>(col_idx, &null);
+  auto *ptr = pr->Get<uint32_t, true>(col_idx, &null);
+  TERRIER_ASSERT(ptr != nullptr, "Null pointer when trying to read date");
 
   // Set
   out->is_null_ = null;
-  out->val_ = null ? 0 : *ptr;
+  out->int_val_ = *ptr;
 }
 
-VM_OP_HOT void OpIndexIteratorGetSmallIntNull(terrier::execution::sql::Integer *out,
-                                              terrier::execution::sql::IndexIterator *iter, uint16_t col_idx) {
+VM_OP_HOT void OpPRGetVarlen(terrier::execution::sql::StringVal *out, terrier::execution::sql::ProjectedRowWrapper *pr,
+                             uint16_t col_idx) {
   // Read
-  bool null = false;
-  auto *ptr = iter->Get<int16_t, true>(col_idx, &null);
+  auto *varlen = pr->Get<terrier::storage::VarlenEntry, false>(col_idx, nullptr);
+  TERRIER_ASSERT(varlen != nullptr, "Null pointer when trying to read varlen");
 
   // Set
-  out->is_null_ = null;
-  out->val_ = null ? 0 : *ptr;
+  *out = terrier::execution::sql::StringVal(reinterpret_cast<const char *>(varlen->Content()), varlen->Size());
 }
 
-VM_OP_HOT void OpIndexIteratorGetIntegerNull(terrier::execution::sql::Integer *out,
-                                             terrier::execution::sql::IndexIterator *iter, uint16_t col_idx) {
+VM_OP_HOT void OpPRGetVarlenNull(terrier::execution::sql::StringVal *out,
+                                 terrier::execution::sql::ProjectedRowWrapper *pr, uint16_t col_idx) {
   // Read
   bool null = false;
-  auto *ptr = iter->Get<int32_t, true>(col_idx, &null);
+  auto *varlen = pr->Get<terrier::storage::VarlenEntry, true>(col_idx, &null);
 
   // Set
-  out->is_null_ = null;
-  out->val_ = null ? 0 : *ptr;
-}
-
-VM_OP_HOT void OpIndexIteratorGetBigIntNull(terrier::execution::sql::Integer *out,
-                                            terrier::execution::sql::IndexIterator *iter, uint16_t col_idx) {
-  // Read
-  bool null = false;
-  auto *ptr = iter->Get<int64_t, true>(col_idx, &null);
-
-  // Set
-  out->is_null_ = null;
-  out->val_ = null ? 0 : *ptr;
-}
-
-VM_OP_HOT void OpIndexIteratorGetRealNull(terrier::execution::sql::Real *out,
-                                          terrier::execution::sql::IndexIterator *iter, uint16_t col_idx) {
-  // Read
-  bool null = false;
-  auto *ptr = iter->Get<float, true>(col_idx, &null);
-
-  // Set
-  out->is_null_ = null;
-  out->val_ = null ? 0 : *ptr;
-}
-
-VM_OP_HOT void OpIndexIteratorGetDoubleNull(terrier::execution::sql::Real *out,
-                                            terrier::execution::sql::IndexIterator *iter, uint16_t col_idx) {
-  // Read
-  bool null = false;
-  auto *ptr = iter->Get<double, true>(col_idx, &null);
-
-  // Set
-  out->is_null_ = null;
-  out->val_ = null ? 0 : *ptr;
-}
-
-VM_OP_HOT void OpIndexIteratorGetDecimalNull(terrier::execution::sql::Decimal *out,
-                                             terrier::execution::sql::IndexIterator *iter, uint16_t col_idx) {
-  out->val_ = 0;
-  out->is_null_ = false;
-}
-
-VM_OP_HOT void OpIndexIteratorSetKeyTinyInt(terrier::execution::sql::IndexIterator *iter, uint16_t col_idx,
-                                            terrier::execution::sql::Integer *val) {
-  iter->SetKey<int8_t, false>(col_idx, static_cast<int8_t>(val->val_), val->is_null_);
-}
-
-VM_OP_HOT void OpIndexIteratorSetKeySmallInt(terrier::execution::sql::IndexIterator *iter, uint16_t col_idx,
-                                             terrier::execution::sql::Integer *val) {
-  iter->SetKey<int16_t, false>(col_idx, static_cast<int16_t>(val->val_), val->is_null_);
-}
-
-VM_OP_HOT void OpIndexIteratorSetKeyInt(terrier::execution::sql::IndexIterator *iter, uint16_t col_idx,
-                                        terrier::execution::sql::Integer *val) {
-  iter->SetKey<int32_t, false>(col_idx, static_cast<int32_t>(val->val_), val->is_null_);
-}
-
-VM_OP_HOT void OpIndexIteratorSetKeyBigInt(terrier::execution::sql::IndexIterator *iter, uint16_t col_idx,
-                                           terrier::execution::sql::Integer *val) {
-  iter->SetKey<int64_t, false>(col_idx, static_cast<int64_t>(val->val_), val->is_null_);
-}
-
-VM_OP_HOT void OpIndexIteratorSetKeyReal(terrier::execution::sql::IndexIterator *iter, uint16_t col_idx,
-                                         terrier::execution::sql::Real *val) {
-  iter->SetKey<float, false>(col_idx, static_cast<float>(val->val_), val->is_null_);
-}
-
-VM_OP_HOT void OpIndexIteratorSetKeyDouble(terrier::execution::sql::IndexIterator *iter, uint16_t col_idx,
-                                           terrier::execution::sql::Real *val) {
-  iter->SetKey<double, false>(col_idx, static_cast<double>(val->val_), val->is_null_);
-}
-
-VM_OP_HOT void OpIndexIteratorSetKeyTinyIntNull(terrier::execution::sql::IndexIterator *iter, uint16_t col_idx,
-                                                terrier::execution::sql::Integer *val) {
-  iter->SetKey<int8_t, true>(col_idx, static_cast<int8_t>(val->val_), val->is_null_);
-}
-
-VM_OP_HOT void OpIndexIteratorSetKeySmallIntNull(terrier::execution::sql::IndexIterator *iter, uint16_t col_idx,
-                                                 terrier::execution::sql::Integer *val) {
-  iter->SetKey<int16_t, true>(col_idx, static_cast<int16_t>(val->val_), val->is_null_);
-}
-
-VM_OP_HOT void OpIndexIteratorSetKeyIntNull(terrier::execution::sql::IndexIterator *iter, uint16_t col_idx,
-                                            terrier::execution::sql::Integer *val) {
-  iter->SetKey<int32_t, true>(col_idx, static_cast<int32_t>(val->val_), val->is_null_);
-}
-
-VM_OP_HOT void OpIndexIteratorSetKeyBigIntNull(terrier::execution::sql::IndexIterator *iter, uint16_t col_idx,
-                                               terrier::execution::sql::Integer *val) {
-  iter->SetKey<int64_t, true>(col_idx, static_cast<int64_t>(val->val_), val->is_null_);
-}
-
-VM_OP_HOT void OpIndexIteratorSetKeyRealNull(terrier::execution::sql::IndexIterator *iter, uint16_t col_idx,
-                                             terrier::execution::sql::Real *val) {
-  iter->SetKey<float, true>(col_idx, static_cast<float>(val->val_), val->is_null_);
-}
-
-VM_OP_HOT void OpIndexIteratorSetKeyDoubleNull(terrier::execution::sql::IndexIterator *iter, uint16_t col_idx,
-                                               terrier::execution::sql::Real *val) {
-  iter->SetKey<double, true>(col_idx, static_cast<double>(val->val_), val->is_null_);
+  if (null) {
+    out->is_null_ = null;
+  } else {
+    *out = terrier::execution::sql::StringVal(reinterpret_cast<const char *>(varlen->Content()), varlen->Size());
+  }
 }
 
 // Output Calls
