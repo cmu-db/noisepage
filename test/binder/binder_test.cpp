@@ -251,7 +251,8 @@ TEST_F(BinderCorrectnessTest, SelectStatementStarTest) {
   bool b1_exists = false;
   bool b2_exists = false;
   for (auto &col_abs_expr : columns) {
-    auto col_expr = dynamic_cast<const parser::ColumnValueExpression *>(col_abs_expr.Get());
+    //auto col_expr = dynamic_cast<const parser::ColumnValueExpression *>(col_abs_expr.Get());
+    auto col_expr = col_abs_expr.CastManagedPointerTo<parser::ColumnValueExpression>();
     EXPECT_EQ(0, col_expr->GetDepth());
     EXPECT_EQ(col_expr->GetDatabaseOid(), db_oid_);
 
