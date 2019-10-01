@@ -182,7 +182,28 @@ namespace terrier::execution::ast {
   F(PRGetRealNull, prGetRealNull)                               \
   F(PRGetDoubleNull, prGetDoubleNull)                           \
   F(PRGetDateNull, prGetDateNull)                               \
-  F(PRGetVarlenNull, prGetVarlenNull)
+  F(PRGetVarlenNull, prGetVarlenNull)                           \
+                                                                \
+  /* Deleter Calls */                                           \
+  F(DeleterInit, deleterInit)                                   \
+  F(DeleterInitBind, deleterInitBind)                           \
+  F(DeleterTableDelete, deleterTableDelete)                     \
+  F(DeleterGetIndexPR, deleterGetIndexPR)                       \
+  F(DeleterGetIndexPRBind, deleterGetIndexPRBind)               \
+  F(DeleterIndexDelete, deleterIndexDelete)                     \
+  F(DeleterIndexDeleteBind, deleterIndexDeleteBind)             \
+                                                                \
+  /* Updater Calls */                                           \
+  F(UpdaterInit, updaterInit)                                   \
+  F(UpdaterInitBind, updaterInitBind)                           \
+  F(UpdaterGetTablePR, updaterGetTablePR)                       \
+  F(UpdaterTableUpdate, updaterTableUpdate)                     \
+  F(UpdaterGetIndexPR, updaterGetIndexPR)                       \
+  F(UpdaterGetIndexPRBind, updaterGetIndexPRBind)               \
+  F(UpdaterIndexInsert, updaterIndexInsert)                     \
+  F(UpdaterIndexInsertBind, updaterIndexInsertBind)             \
+  F(UpdaterIndexDelete, updaterIndexDelete)                     \
+  F(UpdaterIndexDeleteBind, updaterIndexDeleteBind)
 
 /**
  * Enum of builtins

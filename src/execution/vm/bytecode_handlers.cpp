@@ -177,6 +177,63 @@ void OpSorterIteratorInit(terrier::execution::sql::SorterIterator *iter, terrier
 }
 
 void OpSorterIteratorFree(terrier::execution::sql::SorterIterator *iter) { iter->~SorterIterator(); }
+
+// Deleter Calls
+// ---------------------------------------------------------------
+
+VM_OP void OpDeleterInit(terrier::execution::sql::Deleter *deleter,
+                         terrier::execution::exec::ExecutionContext *exec_ctx, uint32_t table_oid) {
+  new (deleter) terrier::execution::sql::Deleter(exec_ctx, terrier::catalog::table_oid_t(table_oid));
+}
+
+VM_OP void OpDeleterTableDelete(terrier::execution::sql::Deleter *deleter, terrier::storage::TupleSlot *tuple_slot) {
+  deleter->TableDelete(*tuple_slot);
+}
+
+VM_OP void OpDeleterGetIndexPR(terrier::execution::sql::ProjectedRowWrapper *pr_result,
+                               terrier::execution::sql::Deleter *deleter, uint32_t index_oid) {
+  *pr_result =
+      terrier::execution::sql::ProjectedRowWrapper(deleter->GetIndexPR(terrier::catalog::index_oid_t(index_oid)));
+}
+
+VM_OP void OpDeleterIndexDelete(terrier::execution::sql::Deleter *deleter, uint32_t index_oid,
+                                terrier::storage::TupleSlot *tuple_slot) {
+  deleter->IndexDelete(terrier::catalog::index_oid_t(index_oid), *tuple_slot);
+}
+
+// Updater Calls
+// ---------------------------------------------------------------
+
+VM_OP void OpUpdaterInit(terrier::execution::sql::Updater *updater,
+                         terrier::execution::exec::ExecutionContext *exec_ctx, uint32_t table_oid, uint32_t *col_oids,
+                         uint32_t num_oids) {
+  new (updater)
+      terrier::execution::sql::Updater(exec_ctx, terrier::catalog::table_oid_t(table_oid), col_oids, num_oids);
+}
+
+VM_OP void OpUpdaterGetTablePR(terrier::execution::sql::ProjectedRowWrapper *pr_result,
+                               terrier::execution::sql::Updater *updater) {
+  *pr_result = terrier::execution::sql::ProjectedRowWrapper(updater->GetTablePR());
+}
+
+VM_OP void OpUpdaterTableUpdate(terrier::execution::sql::Updater *updater, terrier::storage::TupleSlot *tuple_slot) {
+  updater->TableUpdate(*tuple_slot);
+}
+
+VM_OP void OpUpdaterGetIndexPR(terrier::execution::sql::ProjectedRowWrapper *pr_result,
+                               terrier::execution::sql::Updater *updater, uint32_t index_oid) {
+  *pr_result =
+      terrier::execution::sql::ProjectedRowWrapper(updater->GetIndexPR(terrier::catalog::index_oid_t(index_oid)));
+}
+
+VM_OP void OpUpdaterIndexInsert(terrier::execution::sql::Updater *updater, uint32_t index_oid) {
+  updater->IndexInsert(terrier::catalog::index_oid_t(index_oid));
+}
+
+VM_OP void OpUpdaterIndexDelete(terrier::execution::sql::Updater *updater, uint32_t index_oid) {
+  updater->IndexDelete(terrier::catalog::index_oid_t(index_oid));
+}
+
 // -------------------------------------------------------------
 // Output
 // ------------------------------------------------------------

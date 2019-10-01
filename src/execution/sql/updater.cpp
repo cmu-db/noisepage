@@ -6,9 +6,9 @@
 
 namespace terrier::execution::sql {
 
-Updater::Updater(exec::ExecutionContext *exec_ctx, catalog::table_oid_t table_oid,
-                 std::vector<catalog::col_oid_t> col_oids)
-    : table_oid_(table_oid), col_oids_(col_oids), exec_ctx_(exec_ctx) {
+Updater::Updater(exec::ExecutionContext *exec_ctx, catalog::table_oid_t table_oid, uint32_t *col_oids,
+                 uint32_t num_oids)
+    : table_oid_(table_oid), col_oids_(col_oids, col_oids + num_oids), exec_ctx_(exec_ctx) {
   table_ = exec_ctx->GetAccessor()->GetTable(table_oid);
 
   uint32_t index_pr_size = 0;

@@ -10,6 +10,7 @@
 #include "execution/exec/execution_context.h"
 #include "execution/sql/aggregation_hash_table.h"
 #include "execution/sql/aggregators.h"
+#include "execution/sql/deleter.h"
 #include "execution/sql/filter_manager.h"
 #include "execution/sql/functions/arithmetic_functions.h"
 #include "execution/sql/functions/comparison_functions.h"
@@ -21,6 +22,7 @@
 #include "execution/sql/sorter.h"
 #include "execution/sql/table_vector_iterator.h"
 #include "execution/sql/thread_state_container.h"
+#include "execution/sql/updater.h"
 #include "execution/util/hash.h"
 
 // All VM terrier::bytecode op handlers must use this macro
@@ -1466,6 +1468,39 @@ VM_OP_HOT void OpPRGetVarlenNull(terrier::execution::sql::StringVal *out,
     *out = terrier::execution::sql::StringVal(reinterpret_cast<const char *>(varlen->Content()), varlen->Size());
   }
 }
+
+// Deleter Calls
+// ---------------------------------------------------------------
+
+VM_OP void OpDeleterInit(terrier::execution::sql::Deleter *deleter,
+                         terrier::execution::exec::ExecutionContext *exec_ctx, uint32_t table_oid);
+
+VM_OP void OpDeleterTableDelete(terrier::execution::sql::Deleter *deleter, terrier::storage::TupleSlot *tuple_slot);
+
+VM_OP void OpDeleterGetIndexPR(terrier::execution::sql::ProjectedRowWrapper *pr_result,
+                               terrier::execution::sql::Deleter *deleter, uint32_t index_oid);
+
+VM_OP void OpDeleterIndexDelete(terrier::execution::sql::Deleter *deleter, uint32_t index_oid,
+                                terrier::storage::TupleSlot *tuple_slot);
+
+// Updater Calls
+// ---------------------------------------------------------------
+
+VM_OP void OpUpdaterInit(terrier::execution::sql::Updater *updater,
+                         terrier::execution::exec::ExecutionContext *exec_ctx, uint32_t table_oid, uint32_t *col_oids,
+                         uint32_t num_oids);
+
+VM_OP void OpUpdaterGetTablePR(terrier::execution::sql::ProjectedRowWrapper *pr_result,
+                               terrier::execution::sql::Updater *updater);
+
+VM_OP void OpUpdaterTableUpdate(terrier::execution::sql::Updater *updater, terrier::storage::TupleSlot *tuple_slot);
+
+VM_OP void OpUpdaterGetIndexPR(terrier::execution::sql::ProjectedRowWrapper *pr_result,
+                               terrier::execution::sql::Updater *updater, uint32_t index_oid);
+
+VM_OP void OpUpdaterIndexInsert(terrier::execution::sql::Updater *updater, uint32_t index_oid);
+
+VM_OP void OpUpdaterIndexDelete(terrier::execution::sql::Updater *updater, uint32_t index_oid);
 
 // Output Calls
 // ---------------------------------------------------------------

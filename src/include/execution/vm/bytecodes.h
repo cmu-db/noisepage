@@ -365,6 +365,20 @@ namespace terrier::execution::vm {
   F(PRSetDateNull, OperandType::Local, OperandType::UImm2, OperandType::Local)                                        \
   F(PRSetVarlenNull, OperandType::Local, OperandType::UImm2, OperandType::Local)                                      \
                                                                                                                       \
+  /* Deleter */                                                                                                       \
+  F(DeleterInit, OperandType::Local, OperandType::Local, OperandType::UImm4)                                          \
+  F(DeleterTableDelete, OperandType::Local, OperandType::Local)                                                       \
+  F(DeleterGetIndexPR, OperandType::Local, OperandType::Local, OperandType::UImm4)                                    \
+  F(DeleterIndexDelete, OperandType::Local, OperandType::UImm4, OperandType::Local)                                   \
+                                                                                                                      \
+  /* Updater */                                                                                                       \
+  F(UpdaterInit, OperandType::Local, OperandType::Local, OperandType::UImm4, OperandType::Local, OperandType::UImm4)  \
+  F(UpdaterGetTablePR, OperandType::Local, OperandType::Local)                                                        \
+  F(UpdaterTableUpdate, OperandType::Local, OperandType::Local)                                                       \
+  F(UpdaterGetIndexPR, OperandType::Local, OperandType::Local, OperandType::UImm4)                                    \
+  F(UpdaterIndexInsert, OperandType::Local, OperandType::UImm4)                                                       \
+  F(UpdaterIndexDelete, OperandType::Local, OperandType::UImm4)                                                       \
+                                                                                                                      \
   /* Trig functions */                                                                                                \
   F(Pi, OperandType::Local)                                                                                           \
   F(E, OperandType::Local)                                                                                            \
