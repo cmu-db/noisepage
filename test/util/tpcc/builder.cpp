@@ -73,7 +73,7 @@ Database *Builder::Build(const storage::index::IndexType index_type) {
   txn = txn_manager_->BeginTransaction();
   accessor = catalog_->GetAccessor(txn, db_oid);
 
-  auto result = accessor->SetTablePointer(item_table_oid, new storage::SqlTable(store_, item_schema));
+  auto result UNUSED_ATTRIBUTE = accessor->SetTablePointer(item_table_oid, new storage::SqlTable(store_, item_schema));
   TERRIER_ASSERT(result, "Failed to set table pointer.");
   result = accessor->SetTablePointer(warehouse_table_oid, new storage::SqlTable(store_, warehouse_schema));
   TERRIER_ASSERT(result, "Failed to set table pointer.");
