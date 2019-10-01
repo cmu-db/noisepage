@@ -4,6 +4,9 @@
 
 namespace terrier::network {
 
+/**
+ * Interprets the network protocol for ITP clients
+ */
 class ITPProtocolInterpreter : public ProtocolInterpreter {
 };
 

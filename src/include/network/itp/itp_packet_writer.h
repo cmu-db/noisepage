@@ -6,7 +6,7 @@
 
 namespace terrier::network {
 /**
- * Wrapper around an I/O layer WriteQueue to provide Postgres-sprcific
+ * Wrapper around an I/O layer WriteQueue to provide ITP-sprcific
  * helper methods.
  */
 class ITPPacketWriter : AbstractPacketWriter {

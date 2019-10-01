@@ -14,6 +14,9 @@
 
 namespace terrier::network {
 
+/**
+ * Interface for the execution of the standard ITPNetworkCommands for the ITP protocol
+ */
 class ITPNetworkCommand : AbstractNetworkCommand {
  protected:
   ITPNetworkCommand(InputPacket *in, bool flush) : AbstractNetworkCommand(in, flush) {}
