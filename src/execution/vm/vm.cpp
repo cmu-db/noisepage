@@ -1415,6 +1415,13 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {
     DISPATCH_NEXT();
   }
 
+  OP(IndexIteratorGetSlot) : {
+    auto *slot = frame->LocalAt<storage::TupleSlot *>(READ_LOCAL_ID());
+    auto *iter = frame->LocalAt<sql::IndexIterator *>(READ_LOCAL_ID());
+    OpIndexIteratorGetSlot(slot, iter);
+    DISPATCH_NEXT();
+  }
+
   /////////////////////////////////
   //// PR Calls
   /////////////////////////////////

@@ -90,6 +90,7 @@ class Context;
                                                                                                 \
   /* SQL Table operations */                                                                    \
   NON_PRIM(ProjectedRow, terrier::execution::sql::ProjectedRowWrapper)                          \
+  NON_PRIM(TupleSlot, terrier::storage::TupleSlot)                                              \
   NON_PRIM(Inserter, terrier::execution::sql::Inserter)                                         \
   NON_PRIM(Deleter, terrier::execution::sql::Deleter)                                           \
   NON_PRIM(Updater, terrier::execution::sql::Updater)                                           \

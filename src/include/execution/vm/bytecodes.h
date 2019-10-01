@@ -329,6 +329,7 @@ namespace terrier::execution::vm {
   F(IndexIteratorAdvance, OperandType::Local, OperandType::Local)                                                     \
   F(IndexIteratorGetPR, OperandType::Local, OperandType::Local)                                                       \
   F(IndexIteratorGetTablePR, OperandType::Local, OperandType::Local)                                                  \
+  F(IndexIteratorGetSlot, OperandType::Local, OperandType::Local)                                                     \
                                                                                                                       \
   /* ProjectedRow */                                                                                                  \
   F(PRGetTinyInt, OperandType::Local, OperandType::Local, OperandType::UImm2)                                         \

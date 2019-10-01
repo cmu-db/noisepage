@@ -146,6 +146,7 @@ namespace terrier::execution::ast {
   F(IndexIteratorScanKey, indexIteratorScanKey)                 \
   F(IndexIteratorAdvance, indexIteratorAdvance)                 \
   F(IndexIteratorGetPR, indexIteratorGetPR)                     \
+  F(IndexIteratorGetSlot, indexIteratorGetSlot)                 \
   F(IndexIteratorGetTablePR, indexIteratorGetTablePR)           \
   F(IndexIteratorFree, indexIteratorFree)                       \
                                                                 \

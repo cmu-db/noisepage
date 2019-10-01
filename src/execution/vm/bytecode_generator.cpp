@@ -1461,6 +1461,12 @@ void BytecodeGenerator::VisitBuiltinIndexIteratorCall(ast::CallExpr *call, ast::
       Emitter()->Emit(Bytecode::IndexIteratorGetTablePR, pr, iterator);
       break;
     }
+    case ast::Builtin::IndexIteratorGetSlot: {
+      ast::Type *slot_type = ast::BuiltinType::Get(ctx, ast::BuiltinType::TupleSlot);
+      LocalVar pr = ExecutionResult()->GetOrCreateDestination(slot_type);
+      Emitter()->Emit(Bytecode::IndexIteratorGetSlot, pr, iterator);
+      break;
+    }
     default: {
       UNREACHABLE("Impossible bytecode");
     }
@@ -1852,6 +1858,7 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
     case ast::Builtin::IndexIteratorFree:
     case ast::Builtin::IndexIteratorGetPR:
     case ast::Builtin::IndexIteratorGetTablePR:
+    case ast::Builtin::IndexIteratorGetSlot:
       VisitBuiltinIndexIteratorCall(call, builtin);
       break;
     case ast::Builtin::PRSetTinyInt:

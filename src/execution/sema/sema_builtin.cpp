@@ -1552,6 +1552,8 @@ void Sema::CheckBuiltinIndexIteratorPRCall(ast::CallExpr *call, ast::Builtin bui
     case ast::Builtin::IndexIteratorGetTablePR:
       call->SetType(GetBuiltinType(ast::BuiltinType::ProjectedRow));
       break;
+    case ast::Builtin::IndexIteratorGetSlot:
+      call->SetType(GetBuiltinType(ast::BuiltinType::TupleSlot));
     default:
       UNREACHABLE("Impossible Index PR call!");
   }
@@ -1882,6 +1884,7 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
       break;
     }
     case ast::Builtin::IndexIteratorGetPR:
+    case ast::Builtin::IndexIteratorGetSlot:
     case ast::Builtin::IndexIteratorGetTablePR: {
       CheckBuiltinIndexIteratorPRCall(call, builtin);
       break;

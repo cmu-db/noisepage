@@ -1336,6 +1336,10 @@ VM_OP_HOT void OpIndexIteratorGetTablePR(terrier::execution::sql::ProjectedRowWr
   *pr = terrier::execution::sql::ProjectedRowWrapper(iter->TablePR());
 }
 
+VM_OP_HOT void OpIndexIteratorGetSlot(terrier::storage::TupleSlot *slot, terrier::execution::sql::IndexIterator *iter) {
+  *slot = iter->CurrentSlot();
+}
+
 #define GEN_PR_SCALAR_SET_CALLS(Name, SqlType, CppType)                                                  \
   VM_OP_HOT void OpPRSet##Name(terrier::execution::sql::ProjectedRowWrapper *pr, uint16_t col_idx,       \
                                terrier::execution::sql::SqlType *val) {                                  \
