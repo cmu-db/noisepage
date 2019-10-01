@@ -88,14 +88,10 @@ class TransactionManager {
   TransactionQueue completed_txns_;
   storage::LogManager *const log_manager_;
 
-  timestamp_t ReadOnlyCommitCriticalSection(TransactionContext *txn, transaction::callback_fn callback,
-                                            void *callback_arg);
+  timestamp_t UpdatingCommitCriticalSection(TransactionContext *txn);
 
-  timestamp_t UpdatingCommitCriticalSection(TransactionContext *txn, transaction::callback_fn callback,
-                                            void *callback_arg);
-
-  void LogCommit(TransactionContext *txn, timestamp_t commit_time, transaction::callback_fn callback,
-                 void *callback_arg);
+  void LogCommit(TransactionContext *txn, timestamp_t commit_time, transaction::callback_fn commit_callback,
+                 void *commit_callback_arg, timestamp_t oldest_active_txn);
 
   void LogAbort(TransactionContext *txn);
 

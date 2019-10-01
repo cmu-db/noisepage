@@ -72,7 +72,7 @@ install_mac() {
   brew ls --versions jemalloc || brew install jemalloc
   brew ls --versions libevent || brew install libevent
   brew ls --versions libpqxx || brew install libpqxx
-  (brew ls --versions llvm | grep 8) || brew install llvm@8
+  (brew ls --versions llvm@8 | grep 8) || brew install llvm@8
   brew ls --versions openssl || brew install openssl
   brew ls --versions postgresql || brew install postgresql
   brew ls --versions tbb || brew install tbb

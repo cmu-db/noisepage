@@ -1,5 +1,6 @@
 #pragma once
 #include <vector>
+#include "common/macros.h"
 #include "common/object_pool.h"
 #include "common/strong_typedef.h"
 #include "storage/data_table.h"
@@ -17,6 +18,8 @@ class BlockCompactor;
 class LogSerializerTask;
 class SqlTable;
 class WriteAheadLoggingTests;
+class RecoveryManager;
+class RecoveryTests;
 }  // namespace terrier::storage
 
 namespace terrier::transaction {
@@ -194,6 +197,8 @@ class TransactionContext {
   friend class storage::LogSerializerTask;
   friend class storage::SqlTable;
   friend class storage::WriteAheadLoggingTests;  // Needs access to redo buffer
+  friend class storage::RecoveryManager;         // Needs access to StageRecoveryUpdate
+  friend class storage::RecoveryTests;           // Needs access to redo buffer
   const timestamp_t start_time_;
   std::atomic<timestamp_t> finish_time_;
   storage::UndoBuffer undo_buffer_;
@@ -206,9 +211,6 @@ class TransactionContext {
   std::forward_list<TransactionEndAction> abort_actions_;
   std::forward_list<TransactionEndAction> commit_actions_;
 
-  // log manager will set this to be true when log records are processed (not necessarily flushed, but will not be read
-  // again in the future), so it can be garbage-collected safely.
-  bool log_processed_ = false;
   // We need to know if the transaction is aborted. Even aborted transactions need an "abort" timestamp in order to
   // eliminate the a-b-a race described in DataTable::Select.
   bool aborted_ = false;
@@ -217,5 +219,22 @@ class TransactionContext {
   // cannot be allowed to commit. Currently, it is flipped by indexes (on unique-key conflicts) or SqlTable (write-write
   // conflicts) and checked in Commit().
   bool must_abort_ = false;
+
+  /**
+   * @warning This method is ONLY for recovery
+   * Copy the log record into the transaction's redo buffer.
+   * @param record log record to copy
+   * @return pointer to RedoRecord's location in transaction buffer
+   * @warning If you call StageRecoveryWrite, the operation WILL be logged to disk. If you StageRecoveryWrite anything
+   * that you didn't succeed in writing into the table or decide you don't want to use, the transaction MUST abort.
+   */
+  storage::RedoRecord *StageRecoveryWrite(storage::LogRecord *record) {
+    auto record_location = redo_buffer_.NewEntry(record->Size());
+    memcpy(record_location, record, record->Size());
+    // Overwrite the txn_begin timestamp
+    auto *new_record = reinterpret_cast<storage::LogRecord *>(record_location);
+    new_record->txn_begin_ = start_time_;
+    return new_record->GetUnderlyingRecordBodyAs<storage::RedoRecord>();
+  }
 };
 }  // namespace terrier::transaction

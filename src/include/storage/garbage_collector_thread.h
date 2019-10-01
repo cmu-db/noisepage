@@ -24,8 +24,9 @@ class GarbageCollectorThread {
   ~GarbageCollectorThread() {
     run_gc_ = false;
     gc_thread_.join();
-    // Make sure all garbage is collected. This take 2 runs for unlink and deallocate
+    // Make sure all garbage is collected. This takes 3 runs for unlink and deallocate, as well as catalog deallocations
     // TODO(Matt): these semantics may change as the GC becomes a more general deferred event framework
+    gc_->PerformGarbageCollection();
     gc_->PerformGarbageCollection();
     gc_->PerformGarbageCollection();
   }

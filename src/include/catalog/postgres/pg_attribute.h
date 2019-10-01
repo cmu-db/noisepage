@@ -33,8 +33,10 @@ constexpr col_oid_t ATTNOTNULL_COL_OID = col_oid_t(6);  // BOOLEAN
 // locking during DDL operations which is not an issue in this system
 constexpr col_oid_t ADSRC_COL_OID = col_oid_t(7);  // VARCHAR
 
-constexpr std::array<col_oid_t, 7> PG_ATTRIBUTE_ALL_COL_OIDS = {ATTNUM_COL_OID,   ATTRELID_COL_OID, ATTNAME_COL_OID,
-                                                                ATTTYPID_COL_OID, ATTLEN_COL_OID,   ATTNOTNULL_COL_OID,
-                                                                ADSRC_COL_OID};
+constexpr uint8_t NUM_PG_ATTRIBUTE_COLS = 7;
+
+constexpr std::array<col_oid_t, NUM_PG_ATTRIBUTE_COLS> PG_ATTRIBUTE_ALL_COL_OIDS = {
+    ATTNUM_COL_OID, ATTRELID_COL_OID,   ATTNAME_COL_OID, ATTTYPID_COL_OID,
+    ATTLEN_COL_OID, ATTNOTNULL_COL_OID, ADSRC_COL_OID};
 
 }  // namespace terrier::catalog::postgres

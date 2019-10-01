@@ -59,7 +59,7 @@ std::vector<std::unique_ptr<parser::AbstractExpression>> OrderByPlanNode::FromJs
   std::vector<std::unique_ptr<parser::AbstractExpression>> exprs;
   auto e1 = AbstractPlanNode::FromJson(j);
   exprs.insert(exprs.end(), std::make_move_iterator(e1.begin()), std::make_move_iterator(e1.end()));
-  sort_keys_ = j.at("sort_keys").get<std::vector<std::pair<catalog::col_oid_t, OrderByOrderingType>>>();
+  sort_keys_ = j.at("sort_keys").get<std::vector<SortKey>>();
   has_limit_ = j.at("has_limit").get<bool>();
   limit_ = j.at("limit").get<size_t>();
   offset_ = j.at("offset").get<size_t>();

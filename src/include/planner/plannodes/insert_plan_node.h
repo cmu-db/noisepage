@@ -80,6 +80,15 @@ class InsertPlanNode : public AbstractPlanNode {
     }
 
     /**
+     * @param index_oids vector of index oids to insert into
+     * @return builder object
+     */
+    Builder &SetIndexOids(std::vector<catalog::index_oid_t> &&index_oids) {
+      index_oids_ = index_oids;
+      return *this;
+    }
+
+    /**
      * Build the delete plan node
      * @return plan node
      */
@@ -119,6 +128,11 @@ class InsertPlanNode : public AbstractPlanNode {
      * @warning This relies on the assumption that values are ordered the same for every tuple in the bulk insert
      */
     std::vector<catalog::col_oid_t> parameter_info_;
+
+    /**
+     * vector of indexes used by this node
+     */
+    std::vector<catalog::index_oid_t> index_oids_;
   };
 
  private:
@@ -192,6 +206,11 @@ class InsertPlanNode : public AbstractPlanNode {
   size_t GetBulkInsertCount() const { return values_.size(); }
 
   /**
+   * @return the index_oids used
+   */
+  const std::vector<catalog::index_oid_t> &GetIndexOids() const { return index_oids_; }
+
+  /**
    * @return the hashed value of this plan node
    */
   common::hash_t Hash() const override;
@@ -230,6 +249,11 @@ class InsertPlanNode : public AbstractPlanNode {
    * @warning This relies on the assumption that values are ordered the same for every tuple in the bulk insert
    */
   std::vector<catalog::col_oid_t> parameter_info_;
+
+  /**
+   * vector of indexes used by this node
+   */
+  std::vector<catalog::index_oid_t> index_oids_;
 };
 
 DEFINE_JSON_DECLARATIONS(InsertPlanNode);

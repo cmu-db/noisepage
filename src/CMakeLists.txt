@@ -30,24 +30,40 @@ list(APPEND TERRIER_SRCS ${PROJECT_SOURCE_DIR}/third_party/nlohmann/json.hpp)
 
 # murmur3
 file(GLOB_RECURSE MURMUR3_SOURCES
-        ${PROJECT_SOURCE_DIR}/third_party/murmur3/*.cpp 
-        ${PROJECT_SOURCE_DIR}/third_party/murmur3/*.h 
+        ${PROJECT_SOURCE_DIR}/third_party/murmur3/*.cpp
+        ${PROJECT_SOURCE_DIR}/third_party/murmur3/*.h
 )
 list(APPEND TERRIER_SRCS ${MURMUR3_SOURCES})
 
 # madoka
 file(GLOB_RECURSE MADOKA_SOURCES
         ${PROJECT_SOURCE_DIR}/third_party/madoka/*.cc
-        ${PROJECT_SOURCE_DIR}/third_party/madoka/*.h 
+        ${PROJECT_SOURCE_DIR}/third_party/madoka/*.h
 )
 list(APPEND TERRIER_SRCS ${MADOKA_SOURCES})
 
 # libcount
 file(GLOB_RECURSE LIBCOUNT_SOURCES
         ${PROJECT_SOURCE_DIR}/third_party/libcount/*.cc
-        ${PROJECT_SOURCE_DIR}/third_party/libcount/*.h 
+        ${PROJECT_SOURCE_DIR}/third_party/libcount/*.h
 )
 list(APPEND TERRIER_SRCS ${LIBCOUNT_SOURCES})
+
+# ips4o: used for parallel sorting in execution
+file(GLOB_RECURSE IPS4O_SOURCES ${PROJECT_SOURCE_DIR}/third_party/ips4o/*.hpp)
+list(APPEND TERRIER_SRCS ${IPS4O_SOURCES})
+
+# xbyak: used for interpretation in execution
+file(GLOB_RECURSE XBYAK_SOURCES ${PROJECT_SOURCE_DIR}/third_party/xbyak/*.h)
+list(APPEND TERRIER_SRCS ${XBYAK_SOURCES})
+
+# xxHash: used for hashing of large objects (strings, etc.)
+file(GLOB_RECURSE XXHASH_SOURCES ${PROJECT_SOURCE_DIR}/third_party/xxHash/*.h)
+list(APPEND TERRIER_SRCS ${XXHASH_SOURCES})
+
+# libcuckoo
+file(GLOB_RECURSE LIBCUCKOO_SOURCES ${PROJECT_SOURCE_DIR}/third_party/libcuckoo/*.hh)
+list(APPEND TERRIER_SRCS ${LIBCUCKOO_SOURCES})
 
 ###############################################
 # Terrier library
@@ -67,4 +83,5 @@ ADD_TERRIER_LIB(terrier
 # Terrier executable
 ###############################################
 add_executable(terrier main/terrier.cpp)
-target_link_libraries(terrier terrier_shared)
+set_target_properties(terrier PROPERTIES ENABLE_EXPORTS 1)
+target_link_libraries(terrier terrier_static ${TERRIER_LINK_LIBS})

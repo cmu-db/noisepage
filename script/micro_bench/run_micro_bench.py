@@ -28,13 +28,16 @@ class TestConfig(object):
     """
     def __init__(self):
         # benchmark executables to run
-        self.benchmark_list = ["data_table_benchmark",
+        self.benchmark_list = ["catalog_benchmark",
+                               "data_table_benchmark",
                                "garbage_collector_benchmark",
                                "large_transaction_benchmark",
                                "logging_benchmark",
+                               "recovery_benchmark",
                                "tuple_access_strategy_benchmark",
                                "tpcc_benchmark",
-                               "bwtree_benchmark"]
+                               "bwtree_benchmark",
+                               "cuckoomap_benchmark"]
 
         # how many historical values are "required".
         self.min_ref_values = 10
@@ -710,13 +713,16 @@ class RunMicroBenchmarks(object):
     """
     def __init__(self, verbose=False, debug=False):
         # list of benchmarks to run
-        self.benchmark_list = ["data_table_benchmark",
+        self.benchmark_list = ["catalog_benchmark",
+                               "data_table_benchmark",
                                "garbage_collector_benchmark",
                                "large_transaction_benchmark",
                                "logging_benchmark",
+                               "recovery_benchmark",
                                "tuple_access_strategy_benchmark",
                                "tpcc_benchmark",
-                               "bwtree_benchmark"]
+                               "bwtree_benchmark",
+                               "cuckoomap_benchmark"]
 
         # minimum run time for the benchmark
         self.min_time = 10

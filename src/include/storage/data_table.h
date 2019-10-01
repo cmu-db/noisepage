@@ -19,6 +19,8 @@ namespace index {
 class Index;
 template <typename KeyType>
 class BwTreeIndex;
+template <typename KeyType>
+class HashIndex;
 }  // namespace index
 
 // clang-format off
@@ -207,8 +209,7 @@ class DataTable {
   DataTableCounter *GetDataTableCounter() { return &data_table_counter_; }
 
   /**
-   * Returns a read-only view of this DataTable's BlockLayout.
-   * @return this DataTable's BlockLayout.
+   * @return read-only view of this DataTable's BlockLayout
    */
   const BlockLayout &GetBlockLayout() const { return accessor_.GetBlockLayout(); }
 
@@ -221,6 +222,8 @@ class DataTable {
   friend class index::Index;
   template <typename KeyType>
   friend class index::BwTreeIndex;
+  template <typename KeyType>
+  friend class index::HashIndex;
   // The block compactor elides transactional protection in the gather/compression phase and
   // needs raw access to the underlying table.
   friend class BlockCompactor;
