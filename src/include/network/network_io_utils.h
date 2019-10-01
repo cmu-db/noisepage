@@ -100,7 +100,7 @@ class Buffer {
 
  private:
   friend class WriteQueue;
-  friend class PostgresPacketWriter;
+  friend class AbstractPacketWriter;
 };
 
 // Helper method for reading nul-terminated string for the read buffer
@@ -448,7 +448,7 @@ class WriteQueue {
   }
 
  private:
-  friend class PostgresPacketWriter;
+  friend class AbstractPacketWriter;
   std::vector<std::shared_ptr<WriteBuffer>> buffers_;
   size_t offset_ = 0;
   bool flush_ = false;

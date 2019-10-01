@@ -2,7 +2,6 @@
 #include <memory>
 #include <string>
 #include <vector>
-#include "network/postgres/postgres_protocol_utils.h"
 #include "traffic_cop/portal.h"
 #include "traffic_cop/sqlite.h"
 #include "traffic_cop/statement.h"

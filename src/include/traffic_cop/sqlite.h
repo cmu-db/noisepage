@@ -4,7 +4,6 @@
 #include <memory>
 #include <string>
 #include <vector>
-#include "network/postgres/postgres_protocol_utils.h"
 #include "traffic_cop/result_set.h"
 #include "type/transient_value.h"
 

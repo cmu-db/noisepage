@@ -9,6 +9,7 @@
 #include "network/connection_handle.h"
 #include "network/postgres/postgres_command_factory.h"
 #include "network/postgres/postgres_network_commands.h"
+#include "network/postgres/postgres_packet_writer.h"
 #include "network/protocol_interpreter.h"
 
 namespace terrier::network {

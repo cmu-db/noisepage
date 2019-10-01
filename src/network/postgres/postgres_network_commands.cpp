@@ -12,13 +12,13 @@
 
 namespace terrier::network {
 
-void LogAndWriteErrorMsg(const std::string &msg, common::ManagedPointer<PostgresPacketWriter> out) {
+void LogAndWriteErrorMsg(const std::string &msg, common::ManagedPointer<AbstractPacketWriter> out) {
   NETWORK_LOG_ERROR(msg);
   out->WriteSingleErrorResponse(NetworkMessageType::HUMAN_READABLE_ERROR, msg);
 }
 
 Transition SimpleQueryCommand::Exec(common::ManagedPointer<ProtocolInterpreter> interpreter,
-                                    common::ManagedPointer<PostgresPacketWriter> out,
+                                    common::ManagedPointer<AbstractPacketWriter> out,
                                     common::ManagedPointer<trafficcop::TrafficCop> t_cop,
                                     common::ManagedPointer<ConnectionContext> connection, NetworkCallback callback) {
   std::string query = in_.ReadString();
@@ -45,7 +45,7 @@ Transition SimpleQueryCommand::Exec(common::ManagedPointer<ProtocolInterpreter> 
 }
 
 Transition ParseCommand::Exec(common::ManagedPointer<ProtocolInterpreter> interpreter,
-                              common::ManagedPointer<PostgresPacketWriter> out,
+                              common::ManagedPointer<AbstractPacketWriter> out,
                               common::ManagedPointer<trafficcop::TrafficCop> t_cop,
                               common::ManagedPointer<ConnectionContext> connection, NetworkCallback callback) {
   std::string stmt_name = in_.ReadString();
@@ -82,7 +82,7 @@ Transition ParseCommand::Exec(common::ManagedPointer<ProtocolInterpreter> interp
 }
 
 Transition BindCommand::Exec(common::ManagedPointer<ProtocolInterpreter> interpreter,
-                             common::ManagedPointer<PostgresPacketWriter> out,
+                             common::ManagedPointer<AbstractPacketWriter> out,
                              common::ManagedPointer<trafficcop::TrafficCop> t_cop,
                              common::ManagedPointer<ConnectionContext> connection, NetworkCallback callback) {
   using std::pair;
@@ -220,7 +220,7 @@ Transition BindCommand::Exec(common::ManagedPointer<ProtocolInterpreter> interpr
 }
 
 Transition DescribeCommand::Exec(common::ManagedPointer<ProtocolInterpreter> interpreter,
-                                 common::ManagedPointer<PostgresPacketWriter> out,
+                                 common::ManagedPointer<AbstractPacketWriter> out,
                                  common::ManagedPointer<trafficcop::TrafficCop> t_cop,
                                  common::ManagedPointer<ConnectionContext> connection, NetworkCallback callback) {
   auto type = in_.ReadValue<DescribeCommandObjectType>();
@@ -266,7 +266,7 @@ Transition DescribeCommand::Exec(common::ManagedPointer<ProtocolInterpreter> int
 }
 
 Transition ExecuteCommand::Exec(common::ManagedPointer<ProtocolInterpreter> interpreter,
-                                common::ManagedPointer<PostgresPacketWriter> out,
+                                common::ManagedPointer<AbstractPacketWriter> out,
                                 common::ManagedPointer<trafficcop::TrafficCop> t_cop,
                                 common::ManagedPointer<ConnectionContext> connection, NetworkCallback callback) {
   using std::string;
@@ -293,7 +293,7 @@ Transition ExecuteCommand::Exec(common::ManagedPointer<ProtocolInterpreter> inte
 }
 
 Transition SyncCommand::Exec(common::ManagedPointer<ProtocolInterpreter> interpreter,
-                             common::ManagedPointer<PostgresPacketWriter> out,
+                             common::ManagedPointer<AbstractPacketWriter> out,
                              common::ManagedPointer<trafficcop::TrafficCop> t_cop,
                              common::ManagedPointer<ConnectionContext> connection, NetworkCallback callback) {
   NETWORK_LOG_TRACE("Sync query");
@@ -302,7 +302,7 @@ Transition SyncCommand::Exec(common::ManagedPointer<ProtocolInterpreter> interpr
 }
 
 Transition CloseCommand::Exec(common::ManagedPointer<ProtocolInterpreter> interpreter,
-                              common::ManagedPointer<PostgresPacketWriter> out,
+                              common::ManagedPointer<AbstractPacketWriter> out,
                               common::ManagedPointer<trafficcop::TrafficCop> t_cop,
                               common::ManagedPointer<ConnectionContext> connection, NetworkCallback callback) {
   NETWORK_LOG_TRACE("Close Command");
@@ -311,7 +311,7 @@ Transition CloseCommand::Exec(common::ManagedPointer<ProtocolInterpreter> interp
 }
 
 Transition TerminateCommand::Exec(common::ManagedPointer<ProtocolInterpreter> interpreter,
-                                  common::ManagedPointer<PostgresPacketWriter> out,
+                                  common::ManagedPointer<AbstractPacketWriter> out,
                                   common::ManagedPointer<trafficcop::TrafficCop> t_cop,
                                   common::ManagedPointer<ConnectionContext> connection, NetworkCallback callback) {
   NETWORK_LOG_TRACE("Terminated");
@@ -319,7 +319,7 @@ Transition TerminateCommand::Exec(common::ManagedPointer<ProtocolInterpreter> in
 }
 
 Transition EmptyCommand::Exec(common::ManagedPointer<ProtocolInterpreter> interpreter,
-                              common::ManagedPointer<PostgresPacketWriter> out,
+                              common::ManagedPointer<AbstractPacketWriter> out,
                               common::ManagedPointer<trafficcop::TrafficCop> t_cop,
                               common::ManagedPointer<ConnectionContext> connection, NetworkCallback callback) {
   NETWORK_LOG_TRACE("Empty Command");

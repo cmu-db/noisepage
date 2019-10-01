@@ -3,8 +3,6 @@
 #include "network/abstract_command_factory.h"
 #include "network/postgres/postgres_network_commands.h"
 
-#define MAKE_POSTGRES_COMMAND(type) std::static_pointer_cast<PostgresNetworkCommand, type>(std::make_shared<type>(packet))
-
 namespace terrier::network {
 
 /**
@@ -18,7 +16,7 @@ class PostgresCommandFactory : public AbstractCommandFactory {
    * @param packet the Postgres input packet
    * @return a shared_ptr to the converted command
    */
-  std::shared_ptr<PostgresNetworkCommand> PacketToCommand(InputPacket *packet);
+  std::shared_ptr<AbstractNetworkCommand> PacketToCommand(InputPacket *packet) override;
 
   ~PostgresCommandFactory() = default;
 };
