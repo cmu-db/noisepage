@@ -9,18 +9,33 @@ From the directory in which this script resides
 ./run_micro_bench.py
 """
 
+import os
+import sys
 import argparse
 import datetime
 import json
-import os
 import pprint
 import subprocess
-import sys
 import urllib
+import logging
+from pprint import pprint
 
 import xml.etree.ElementTree as ElementTree
 
 from types import (ListType, StringType)
+
+## =========================================================
+## LOGGING
+## =========================================================
+
+LOG = logging.getLogger(__name__)
+LOG_handler = logging.StreamHandler()
+LOG_formatter = logging.Formatter(fmt='%(asctime)s [%(funcName)s:%(lineno)03d] %(levelname)-5s: %(message)s',
+                                  datefmt='%m-%d-%Y %H:%M:%S')
+LOG_handler.setFormatter(LOG_formatter)
+LOG.addHandler(LOG_handler)
+LOG.setLevel(logging.INFO)
+
 
 ## =========================================================
 
@@ -273,8 +288,8 @@ class Build(object):
         build_url = self.get_build_url()
 
         # get the list of artifacts
-        python_url = "{}/api/python".format(build_url)
-        data = eval(urllib.urlopen(python_url).read())
+        python_url = "{}/api/json".format(build_url)
+        data = json.loads(urllib.urlopen(python_url).read())
         artifacts_lod = data['artifacts']
         # returns a list of artifact dictionaries. These look like:
         #
@@ -714,10 +729,8 @@ class RunMicroBenchmarks(object):
     """ Run micro benchmarks. Output is to json files for post processing.
         Returns True if all benchmarks run, False otherwise
     """
-    def __init__(self, config, verbose=False, debug=False):
+    def __init__(self, config):
         self.config = config
-        self.verbose = verbose
-        self.debug = debug
         return
 
     def run_all_benchmarks(self):
@@ -728,10 +741,10 @@ class RunMicroBenchmarks(object):
 
         # iterate over all benchmarks and run them
         for bench_name in config.benchmarks:
+            LOG.debug("Running '%s'" % bench_name)
             bench_ret_val = self.run_single_benchmark(bench_name)
             if bench_ret_val:
-                if self.verbose:
-                    print("{} terminated with {}".format(bench_name,
+                LOG.debug("{} terminated with {}".format(bench_name,
                                                          bench_ret_val))
                 ret_val = bench_ret_val
 
@@ -753,11 +766,14 @@ class RunMicroBenchmarks(object):
 
         # use all the cpus from the highest numbered numa node
 
-        highest_cpu_node = int(subprocess.check_output("numactl --hardware | grep 'available: ' | cut -d' ' -f2", shell=True)) - 1
-        print("Number of NUMA nodes = {}".format(highest_cpu_node))
+        output = subprocess.check_output("numactl --hardware | grep 'available: ' | cut -d' ' -f2", shell=True)
+        if not output:
+            raise Exception("Missing numactl binary. Please install package")
+        highest_cpu_node = int(output) - 1
+        LOG.info("Number of NUMA Nodes = {}".format(highest_cpu_node))
 
         cmd = "numactl --cpunodebind={} --preferred={} {}".format(highest_cpu_node, highest_cpu_node, cmd)
-        print("cmd = {}".format(cmd))
+        LOG.info("Executing command: {}".format(cmd))
 
         ret_val = subprocess.call([cmd],
                                   shell=True,
@@ -793,11 +809,14 @@ class Jenkins(object):
         """
 
         url = "{}/job/{}".format(self.base_url, project)
-        if branch:
-            url = "{}/job/{}".format(url, branch)
-        python_url = "{}/api/python".format(url)
+        if branch: url = "{}/job/{}".format(url, branch)
+        json_url = "{}/api/json".format(url)
+        LOG.debug("Retrieving Jenkins JSON data from %s" % json_url)
         try:
-            data = eval(urllib.urlopen(python_url).read())
+            # We are running eval here because Jenkins is returning back Python code
+            #data = eval(urllib.urlopen(python_url).read())
+            data = json.loads(urllib.urlopen(json_url).read())
+            pprint(data)
         except:
             return []
 
@@ -827,12 +846,7 @@ class Jenkins(object):
                         if build.get_number() >= min_build]
 
         return ret_list
-
-    def debug_print(self, data):
-        """ Print data in human friendly form """
-        pp = pprint.PrettyPrinter()
-        pp.pprint(data)
-        return
+## CLASS
 
 class ReferenceValue(object):
     """ Container to hold reference benchmark result + result of comparison
@@ -1001,32 +1015,46 @@ class ReferenceValueProvider(object):
         # no checking
         return ReferenceValue.config(key, self.config)
 
+## =========================================================
+## MAIN
+## =========================================================
+
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
 
-    parser.add_argument("-v",
+    parser.add_argument("--run",
                         action="store_true",
-                        dest="verbose",
+                        dest="run",
                         default=False,
-                        help="verbose")
+                        help="Run Benchmarks")
 
-    parser.add_argument("-d",
+    parser.add_argument("--debug",
                         action="store_true",
                         dest="debug",
                         default=False,
                         help="enable debug output")
 
     args = parser.parse_args()
+    
+    # -------------------------------------------------------
+    
+
+    if args.debug: LOG.setLevel(logging.DEBUG)
+
+    # -------------------------------------------------------
 
     config = Config()
     
     if not os.path.exists(BENCHMARK_PATH):
-        print("The benchmark executable path directory '%s' does not exist" % BENCHMARK_PATH)
+        LOG.error("The benchmark executable path directory '%s' does not exist" % BENCHMARK_PATH)
         sys.exit(1)
     
-    run_bench = RunMicroBenchmarks(config)
-    ret = run_bench.run_all_benchmarks()
+    # Run benchmarks
+    ret = 0
+    if args.run:
+        run_bench = RunMicroBenchmarks(config)
+        ret = run_bench.run_all_benchmarks()
     
     # need <n> benchmark results to compare against
     ap = ArtifactProcessor(config.min_ref_values)
@@ -1043,16 +1071,14 @@ if __name__ == "__main__":
         builds = h.get_builds(project, branch, **kwargs)
 
         for build in builds:
-            if args.verbose:
-                print("({}, {}), build {}, status {}".format(project,
+            LOG.debug("({}, {}), build {}, status {}".format(project,
                                                              branch,
                                                              build.get_number(),
                                                              build.get_result()))
             artifacts = build.get_artifacts()
             for artifact in artifacts:
                 artifact_filename = artifact.get_filename()
-                if args.verbose:
-                    print("artifact: {}".format(artifact_filename))
+                LOG.debug("artifact: {}".format(artifact_filename))
 
                 ap.add_artifact_file(artifact.get_data())
 
@@ -1120,5 +1146,5 @@ if __name__ == "__main__":
     print("")
     print(tt)
 
-    print("Exit code = {}".format(ret))
+    LOG.debug("Exit code = {}".format(ret))
     sys.exit(ret)
