@@ -646,6 +646,7 @@ class GBenchToJUnit(object):
         self.output_file = output_file
 
         testsuite_dict = self.read_gb_results(self.input_file)
+        LOG.debug("Converting Google Benchmark file '%s' to JUNIT file '%s'", input_file, output_file)
         self.write_output(testsuite_dict)
         return
 
@@ -671,6 +672,7 @@ class GBenchToJUnit(object):
         test_suite = {"testcases" : testcases}
 
         # read the results file
+        LOG.debug("Reading results file '%s'", input_file)
         with open(input_file) as rf:
             gb_data = json.load(rf)
 
@@ -741,7 +743,7 @@ class RunMicroBenchmarks(object):
 
         # iterate over all benchmarks and run them
         for bench_name in config.benchmarks:
-            LOG.debug("Running '%s'" % bench_name)
+            LOG.info("Running '%s'" % bench_name)
             bench_ret_val = self.run_single_benchmark(bench_name)
             if bench_ret_val:
                 LOG.debug("{} terminated with {}".format(bench_name,
@@ -760,9 +762,7 @@ class RunMicroBenchmarks(object):
         cmd = "{} --benchmark_min_time={} " + \
               " --benchmark_format=json" + \
               " --benchmark_out={}"
-        cmd = cmd.format(benchmark_path,
-                         config.min_time,
-                         output_file)
+        cmd = cmd.format(benchmark_path, config.min_time, output_file)
 
         # use all the cpus from the highest numbered numa node
 
@@ -770,19 +770,23 @@ class RunMicroBenchmarks(object):
         if not output:
             raise Exception("Missing numactl binary. Please install package")
         highest_cpu_node = int(output) - 1
-        LOG.info("Number of NUMA Nodes = {}".format(highest_cpu_node))
+        LOG.debug("Number of NUMA Nodes = {}".format(highest_cpu_node))
 
         cmd = "numactl --cpunodebind={} --preferred={} {}".format(highest_cpu_node, highest_cpu_node, cmd)
-        LOG.info("Executing command: {}".format(cmd))
+        LOG.debug("Executing command: {}".format(cmd))
 
-        ret_val = subprocess.call([cmd],
-                                  shell=True,
-                                  stdout=sys.stdout,
-                                  stderr=sys.stderr)
+        proc = subprocess.Popen([cmd], shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        out, err = proc.communicate()
+        ret_val = proc.returncode
+        #LOG.debug("OUTPUT: %s" % out)
 
         # convert json results file to xml
-        xml_output_file = "{}.xml".format(bench_name)
-        GBenchToJUnit(output_file, xml_output_file)
+        if ret_val == 0:
+            xml_output_file = "{}.xml".format(bench_name)
+            GBenchToJUnit(output_file, xml_output_file)
+        else:
+            LOG.error("Unexpected failure of '%s' [ret_val=%d]", bench_name, ret_val)
+            LOG.error(err)
 
         # return the process exit code
         return ret_val
@@ -830,8 +834,8 @@ class Jenkins(object):
         # retrieve data for each build and turn into a Build object
         ret_list = []
         for item in data['builds']:
-            build_url = "{}/api/python".format(item['url'])
-            data = eval(urllib.urlopen(build_url).read())
+            build_url = "{}/api/json".format(item['url'])
+            data = json.loads(urllib.urlopen(build_url).read())
             ret_list.append(Build(data))
 
         if status_filter:
@@ -1107,6 +1111,7 @@ if __name__ == "__main__":
     for bench in config.benchmarks:
         filename = "{}.json".format(bench)
         # parse the json result file
+        LOG.debug("Loading benchmark result file '%s'", filename)
         with open(filename) as fh:
             data = json.load(fh)
         bench_results = GBFileResult(data)
