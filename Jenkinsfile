@@ -4,7 +4,25 @@ pipeline {
         buildDiscarder(logRotator(daysToKeepStr: '30'))
     }
     stages {
-        stage('Build') {
+
+        stage('Check') {
+            agent {
+                docker {
+                    image 'ubuntu:bionic'
+                }
+            }
+            steps {
+                sh 'echo $NODE_NAME'
+                sh 'echo y | sudo ./script/installation/packages.sh'
+                sh 'mkdir build'
+                sh 'cd build && cmake -DCMAKE_BUILD_TYPE=Release -DTERRIER_USE_ASAN=OFF .. && make -j$(nproc)'
+                sh 'cd build && timeout 1h make check-format'
+                sh 'cd build && timeout 1h make check-lint'
+                sh 'cd build && timeout 1h make check-censored'
+            }
+        }
+
+        stage('Test') {
             parallel {
 
                 stage('macos-10.14/AppleClang-1001.0.46.4 (Debug/ASAN/unittest)') {
@@ -154,19 +172,19 @@ pipeline {
                         sh 'cd build && python ../script/testing/junit/run_junit.py --build_type=release'
                     }
                 }
+            }
 
-                stage('ubuntu-18.04/gcc-7.3.0 (Release/benchmark)') {
-                    agent { label 'benchmark' }
-                    steps {
-                        sh 'echo $NODE_NAME'
-                        sh 'echo y | sudo ./script/installation/packages.sh'
-                        sh 'mkdir build'
-                        sh 'cd build && cmake -DCMAKE_BUILD_TYPE=Release -DTERRIER_USE_ASAN=OFF -DTERRIER_USE_JEMALLOC=ON .. && make -j$(nproc)'
-                        sh 'cd build && timeout 1h make runbenchmark'
-                        sh 'cd script/micro_bench && timeout 1h ./run_micro_bench.py'
-                        archiveArtifacts 'script/micro_bench/*.json'
-                        junit 'script/micro_bench/*.xml'
-                    }
+            stage('Benchmark') {
+                agent { label 'benchmark' }
+                steps {
+                    sh 'echo $NODE_NAME'
+                    sh 'echo y | sudo ./script/installation/packages.sh'
+                    sh 'mkdir build'
+                    sh 'cd build && cmake -DCMAKE_BUILD_TYPE=Release -DTERRIER_USE_ASAN=OFF -DTERRIER_USE_JEMALLOC=ON .. && make -j$(nproc)'
+                    sh 'cd build && timeout 1h make runbenchmark'
+                    sh 'cd script/micro_bench && timeout 1h ./run_micro_bench.py'
+                    archiveArtifacts 'script/micro_bench/*.json'
+                    junit 'script/micro_bench/*.xml'
                 }
             }
         }
