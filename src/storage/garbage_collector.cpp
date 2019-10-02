@@ -32,6 +32,30 @@ std::pair<uint32_t, uint32_t> GarbageCollector::PerformGarbageCollection() {
   return std::make_pair(txns_deallocated, txns_unlinked);
 }
 
+void GarbageCollector::CleanupTransaction(transaction::TransactionContext *txn) {
+  if (txn->IsReadOnly()) {
+      // This is a read-only transaction so this is safe to immediately delete
+      delete txn;
+  } else {
+      // Safe to garbage collect.
+    for (auto &undo_record : txn->undo_buffer_) {
+      // It is possible for the table field to be null, for aborted transaction's last conflicting record
+      DataTable *&table = undo_record.Table();
+      // Regardless of the version chain we will need to reclaim deleted slots and any dangling pointers to varlens,
+      // unless the transaction is aborted, and the record holds a version that is still visible.
+      if (!txn->Aborted()) {
+        ReclaimSlotIfDeleted(&undo_record);
+        ReclaimBufferIfVarlen(txn, &undo_record);
+      }
+      if (observer_ != nullptr) observer_->ObserveWrite(undo_record.Slot().GetBlock());
+    }
+
+    deferred_action_manager_->RegisterDeferredAction([=]() {
+       delete txn;
+    });
+  } 
+}
+
 uint32_t GarbageCollector::ProcessDeallocateQueue(transaction::timestamp_t oldest_txn) {
   uint32_t txns_processed = 0;
 

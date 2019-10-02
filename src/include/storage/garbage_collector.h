@@ -73,7 +73,15 @@ class GarbageCollector {
    */
   void UnregisterIndexForGC(common::ManagedPointer<index::Index> index);
 
+  /**
+  * Unlink the transaction, if unlink successful defers an event to deallocate
+  * the tarnsaction
+  * @param the transaction context associated with transaction to unlink
+  */
+  void CleanupTransaction(transaction::TransactionContext *);
+
  private:
+
   /**
    * Process the deallocate queue
    * @return number of txns (not UndoRecords) processed for debugging/testing
