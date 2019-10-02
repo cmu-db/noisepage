@@ -816,7 +816,6 @@ class Jenkins(object):
             # We are running eval here because Jenkins is returning back Python code
             #data = eval(urllib.urlopen(python_url).read())
             data = json.loads(urllib.urlopen(json_url).read())
-            pprint(data)
         except:
             return []
 
