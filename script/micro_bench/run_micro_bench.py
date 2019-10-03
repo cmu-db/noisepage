@@ -124,7 +124,7 @@ class TextTable(object):
         col_dict = {}
         col_dict['name'] = column
         if col_format:
-            col_dict['format'] = col_format
+            col_dict['format'] = " " + col_format + " "
         if heading:
             col_dict['heading'] = heading
         if right_justify:
@@ -151,7 +151,7 @@ class TextTable(object):
             return u""
         if col.has_key('format'):
             return col['format'] % row[field]
-        return u"{}".format(row[field])
+        return u" {} ".format(row[field])
 
     def _width_dict(self, *width_args):
         """ Return width of field (dictionary) """
@@ -860,6 +860,7 @@ class ReferenceValue(object):
         self.num_results = None
         self.time = None
         self.time_type = None
+        self.iterations = 0
 
         # actual value from benchmark
         self.ips = None
@@ -925,12 +926,18 @@ class ReferenceValue(object):
         """ Return a ReferenceValue constructed from historical
             benchmark data
         """
+        
+        #for x in gbrp.gbresults:
+            #pprint(x.__dict__)
+        #sys.exit(1)
+        
         key = (gbrp.get_suite_name(), gbrp.get_test_name())
         assert key == in_key
         ret_obj = cls()
         ret_obj.key = key
         ret_obj.num_results = gbrp.get_num_items()
         ret_obj.time = gbrp.get_mean_time()
+        ret_obj.iterations = 888
         ret_obj.ref_ips = gbrp.get_mean_items_per_second()
         ret_obj.tolerance = config.ref_tolerance
         ret_obj.reference_type = "history"
@@ -948,6 +955,7 @@ class ReferenceValue(object):
         ret_obj.key = key
         ret_obj.num_results = gbrp.get_num_items()
         ret_obj.time = gbrp.get_mean_time()
+        ret_obj.iterations = 777
         ret_obj.ref_ips = gbrp.get_mean_items_per_second()
         ret_obj.tolerance = config.lax_tolerance
         ret_obj.reference_type = "lax"
@@ -975,6 +983,7 @@ class ReferenceValue(object):
         ret_dict["test"] = test_name
         ret_dict["num_results"] = self.num_results
         ret_dict["value"] = self.ips
+        ret_dict["iterations"] = self.iterations
         ret_dict["tolerance"] = self.tolerance
         if not self.ref_ips:
             self.ref_ips = 0.0
@@ -1074,10 +1083,9 @@ if __name__ == "__main__":
         builds = h.get_builds(project, branch, **kwargs)
 
         for build in builds:
-            LOG.debug("({}, {}), build {}, status {}".format(project,
-                                                             branch,
-                                                             build.get_number(),
-                                                             build.get_result()))
+            LOG.debug("(%s, %s), build=#%d, status=%s", \
+                      project, branch, build.get_number(), build.get_result())
+            
             artifacts = build.get_artifacts()
             for artifact in artifacts:
                 artifact_filename = artifact.get_filename()
@@ -1120,12 +1128,14 @@ if __name__ == "__main__":
         for key in bench_results.get_keys():
             # get the GBBenchResult object
             result = bench_results.get_result(key)
+            LOG.debug("%s Result:\n%s", bench, result)
 
             # get reference value to compare against
             reference = rvp.get_reference(key)
 
             # if reference.reference_type == "history":
             reference.set_ips(result.get_items_per_second())
+            reference.iterations = result.iterations
 
             reference.set_pass_fail()
             tt.add_row(reference.to_dict())
@@ -1136,8 +1146,9 @@ if __name__ == "__main__":
 
     # benchmark key, value, reference, tolerance, reference type, pass
     # add difference
-    tt.add_column("pass", "RES.")
+    tt.add_column("pass", "    ")
     tt.add_column("value", col_format="%01.4g")
+    tt.add_column("iterations", col_format="%d")
     tt.add_column("reference", col_format="%01.4g")
     tt.add_column("tolerance", "% tol.")
     tt.add_column("p_diff", col_format="%+3d")
