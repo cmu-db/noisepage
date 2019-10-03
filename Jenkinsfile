@@ -173,19 +173,19 @@ pipeline {
                     }
                 }
             }
+        }
 
-            stage('Benchmark') {
-                agent { label 'benchmark' }
-                steps {
-                    sh 'echo $NODE_NAME'
-                    sh 'echo y | sudo ./script/installation/packages.sh'
-                    sh 'mkdir build'
-                    sh 'cd build && cmake -DCMAKE_BUILD_TYPE=Release -DTERRIER_USE_ASAN=OFF -DTERRIER_USE_JEMALLOC=ON .. && make -j$(nproc)'
-                    sh 'cd build && timeout 1h make runbenchmark'
-                    sh 'cd script/micro_bench && timeout 1h ./run_micro_bench.py'
-                    archiveArtifacts 'script/micro_bench/*.json'
-                    junit 'script/micro_bench/*.xml'
-                }
+        stage('Benchmark') {
+            agent { label 'benchmark' }
+            steps {
+                sh 'echo $NODE_NAME'
+                sh 'echo y | sudo ./script/installation/packages.sh'
+                sh 'mkdir build'
+                sh 'cd build && cmake -DCMAKE_BUILD_TYPE=Release -DTERRIER_USE_ASAN=OFF -DTERRIER_USE_JEMALLOC=ON .. && make -j$(nproc)'
+                sh 'cd build && timeout 1h make runbenchmark'
+                sh 'cd script/micro_bench && timeout 1h ./run_micro_bench.py'
+                archiveArtifacts 'script/micro_bench/*.json'
+                junit 'script/micro_bench/*.xml'
             }
         }
     }
