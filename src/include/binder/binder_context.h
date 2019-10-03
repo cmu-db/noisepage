@@ -159,7 +159,8 @@ class BinderContext {
    * @param exprs Pointer to the list of column value expression.
    * The generated column value expressions will be placed in this list.
    */
-  void GenerateAllColumnExpressions(std::vector<common::ManagedPointer<parser::AbstractExpression>> *exprs);
+  void GenerateAllColumnExpressions(parser::ParseResult *parse_result,
+                                    std::vector<common::ManagedPointer<parser::AbstractExpression>> *exprs);
 
  private:
   /**

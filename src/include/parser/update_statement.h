@@ -82,7 +82,7 @@ class UpdateStatement : public SQLStatement {
 
   ~UpdateStatement() override = default;
 
-  void Accept(SqlNodeVisitor *v) override { v->Visit(this); }
+  void Accept(SqlNodeVisitor *v, ParseResult *parse_result) override { v->Visit(this, parse_result); }
 
   /** @return update table target */
   common::ManagedPointer<TableRef> GetUpdateTable() { return common::ManagedPointer(table_); }

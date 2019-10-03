@@ -45,7 +45,7 @@ class JoinDefinition {
   /**
    * @param v visitor
    */
-  void Accept(SqlNodeVisitor *v) { v->Visit(this); }
+  void Accept(SqlNodeVisitor *v, ParseResult *parse_result) { v->Visit(this, parse_result); }
 
   /**
    * @return type of join
@@ -164,7 +164,7 @@ class TableRef {
   }
 
   /** @param v visitor */
-  void Accept(SqlNodeVisitor *v) { v->Visit(this); }
+  void Accept(SqlNodeVisitor *v, ParseResult *parse_result) { v->Visit(this, parse_result); }
 
   /** @return table reference type*/
   TableReferenceType GetTableReferenceType() { return type_; }

@@ -15,19 +15,47 @@
 #include "parser/expression/type_cast_expression.h"
 
 namespace terrier {
-void SqlNodeVisitor::Visit(parser::AggregateExpression *expr) { expr->AcceptChildren(this); }
-void SqlNodeVisitor::Visit(parser::CaseExpression *expr) { expr->AcceptChildren(this); }
-void SqlNodeVisitor::Visit(parser::ColumnValueExpression *expr) { expr->AcceptChildren(this); }
-void SqlNodeVisitor::Visit(parser::ComparisonExpression *expr) { expr->AcceptChildren(this); }
-void SqlNodeVisitor::Visit(parser::ConjunctionExpression *expr) { expr->AcceptChildren(this); }
-void SqlNodeVisitor::Visit(parser::ConstantValueExpression *expr) { expr->AcceptChildren(this); }
-void SqlNodeVisitor::Visit(parser::DefaultValueExpression *expr) { expr->AcceptChildren(this); }
-void SqlNodeVisitor::Visit(parser::DerivedValueExpression *expr) { expr->AcceptChildren(this); }
-void SqlNodeVisitor::Visit(parser::FunctionExpression *expr) { expr->AcceptChildren(this); }
-void SqlNodeVisitor::Visit(parser::OperatorExpression *expr) { expr->AcceptChildren(this); }
-void SqlNodeVisitor::Visit(parser::ParameterValueExpression *expr) { expr->AcceptChildren(this); }
-void SqlNodeVisitor::Visit(parser::StarExpression *expr) { expr->AcceptChildren(this); }
-void SqlNodeVisitor::Visit(parser::SubqueryExpression *expr) { expr->AcceptChildren(this); }
-void SqlNodeVisitor::Visit(parser::TypeCastExpression *expr) { expr->AcceptChildren(this); }
+void SqlNodeVisitor::Visit(parser::AggregateExpression *expr, parser::ParseResult *parse_result) {
+  expr->AcceptChildren(this, parse_result);
+}
+void SqlNodeVisitor::Visit(parser::CaseExpression *expr, parser::ParseResult *parse_result) {
+  expr->AcceptChildren(this, parse_result);
+}
+void SqlNodeVisitor::Visit(parser::ColumnValueExpression *expr, parser::ParseResult *parse_result) {
+  expr->AcceptChildren(this, parse_result);
+}
+void SqlNodeVisitor::Visit(parser::ComparisonExpression *expr, parser::ParseResult *parse_result) {
+  expr->AcceptChildren(this, parse_result);
+}
+void SqlNodeVisitor::Visit(parser::ConjunctionExpression *expr, parser::ParseResult *parse_result) {
+  expr->AcceptChildren(this, parse_result);
+}
+void SqlNodeVisitor::Visit(parser::ConstantValueExpression *expr, parser::ParseResult *parse_result) {
+  expr->AcceptChildren(this, parse_result);
+}
+void SqlNodeVisitor::Visit(parser::DefaultValueExpression *expr, parser::ParseResult *parse_result) {
+  expr->AcceptChildren(this, parse_result);
+}
+void SqlNodeVisitor::Visit(parser::DerivedValueExpression *expr, parser::ParseResult *parse_result) {
+  expr->AcceptChildren(this, parse_result);
+}
+void SqlNodeVisitor::Visit(parser::FunctionExpression *expr, parser::ParseResult *parse_result) {
+  expr->AcceptChildren(this, parse_result);
+}
+void SqlNodeVisitor::Visit(parser::OperatorExpression *expr, parser::ParseResult *parse_result) {
+  expr->AcceptChildren(this, parse_result);
+}
+void SqlNodeVisitor::Visit(parser::ParameterValueExpression *expr, parser::ParseResult *parse_result) {
+  expr->AcceptChildren(this, parse_result);
+}
+void SqlNodeVisitor::Visit(parser::StarExpression *expr, parser::ParseResult *parse_result) {
+  expr->AcceptChildren(this, parse_result);
+}
+void SqlNodeVisitor::Visit(parser::SubqueryExpression *expr, parser::ParseResult *parse_result) {
+  expr->AcceptChildren(this, parse_result);
+}
+void SqlNodeVisitor::Visit(parser::TypeCastExpression *expr, parser::ParseResult *parse_result) {
+  expr->AcceptChildren(this, parse_result);
+}
 
 }  // namespace terrier

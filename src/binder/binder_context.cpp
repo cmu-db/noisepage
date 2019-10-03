@@ -4,11 +4,13 @@
 #include <string>
 #include <tuple>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 #include "common/exception.h"
 
 #include "catalog/catalog_accessor.h"
 #include "parser/expression/column_value_expression.h"
+#include "parser/postgresparser.h"
 #include "parser/table_ref.h"
 
 namespace terrier::binder {
@@ -163,7 +165,7 @@ bool BinderContext::CheckNestedTableColumn(const std::string &alias, const std::
 }
 
 void BinderContext::GenerateAllColumnExpressions(
-    std::vector<common::ManagedPointer<parser::AbstractExpression>> *exprs) {
+    parser::ParseResult *parse_result, std::vector<common::ManagedPointer<parser::AbstractExpression>> *exprs) {
   for (auto &entry : regular_table_alias_map_) {
     auto &schema = std::get<2>(entry.second);
     auto col_cnt = schema.GetColumns().size();
@@ -177,7 +179,10 @@ void BinderContext::GenerateAllColumnExpressions(
       tv_expr->SetColumnOID(col_obj.Oid());
       tv_expr->SetDepth(depth_);
 
-      auto new_tv_expr = common::ManagedPointer(reinterpret_cast<parser::AbstractExpression *>(tv_expr));
+      auto unique_tv_expr =
+          std::unique_ptr<parser::AbstractExpression>(reinterpret_cast<parser::AbstractExpression *>(tv_expr));
+      parse_result->AddExpression(std::move(unique_tv_expr));
+      auto new_tv_expr = common::ManagedPointer(parse_result->GetExpressions().back());
       exprs->push_back(new_tv_expr);
     }
   }
@@ -191,7 +196,10 @@ void BinderContext::GenerateAllColumnExpressions(
       tv_expr->DeriveExpressionName();
       tv_expr->SetDepth(depth_);
 
-      auto new_tv_expr = common::ManagedPointer(reinterpret_cast<parser::AbstractExpression *>(tv_expr));
+      auto unique_tv_expr =
+          std::unique_ptr<parser::AbstractExpression>(reinterpret_cast<parser::AbstractExpression *>(tv_expr));
+      parse_result->AddExpression(std::move(unique_tv_expr));
+      auto new_tv_expr = common::ManagedPointer(parse_result->GetExpressions().back());
       // All derived columns do not have bound oids, thus keep them as INVALID_OIDs
       exprs->push_back(new_tv_expr);
     }
