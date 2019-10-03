@@ -36,6 +36,11 @@ class JoinDefinition {
    */
   JoinDefinition() = default;
 
+  /**
+   * @return a copy of the join definition
+   */
+  std::unique_ptr<JoinDefinition> Copy();
+
   // TODO(WAN): not a SQLStatement?
   /**
    * @param v visitor
@@ -60,7 +65,7 @@ class JoinDefinition {
   /**
    * @return join condition
    */
-  common::ManagedPointer<AbstractExpression> GetJoinCondition() { return common::ManagedPointer(condition_); }
+  common::ManagedPointer<AbstractExpression> GetJoinCondition() { return condition_; }
 
   /**
    * @return JoinDefinition serialized to json
@@ -70,7 +75,7 @@ class JoinDefinition {
   /**
    * @param j json to deserialize
    */
-  void FromJson(const nlohmann::json &j);
+  std::vector<std::unique_ptr<AbstractExpression>> FromJson(const nlohmann::json &j);
 
  private:
   JoinType type_;
@@ -92,6 +97,11 @@ class TableRef {
    * Default constructor used for deserialization
    */
   TableRef() = default;
+
+  /**
+   * @return a copy of the table reference
+   */
+  std::unique_ptr<TableRef> Copy();
 
   /**
    * @param alias alias for table ref
@@ -178,7 +188,14 @@ class TableRef {
   common::ManagedPointer<SelectStatement> GetSelect() { return common::ManagedPointer(select_); }
 
   /** @return list of table references */
-  const std::vector<std::unique_ptr<TableRef>> &GetList() { return list_; }
+  std::vector<common::ManagedPointer<TableRef>> GetList() {
+    std::vector<common::ManagedPointer<TableRef>> list;
+    list.reserve(list_.size());
+    for (const auto &item : list_) {
+      list.emplace_back(common::ManagedPointer(item));
+    }
+    return list;
+  }
 
   /** @return join */
   common::ManagedPointer<JoinDefinition> GetJoin() { return common::ManagedPointer(join_); }
@@ -187,7 +204,7 @@ class TableRef {
   nlohmann::json ToJson() const;
 
   /** @param j json to deserialize */
-  void FromJson(const nlohmann::json &j);
+  std::vector<std::unique_ptr<AbstractExpression>> FromJson(const nlohmann::json &j);
 
  private:
   friend class binder::BindNodeVisitor;

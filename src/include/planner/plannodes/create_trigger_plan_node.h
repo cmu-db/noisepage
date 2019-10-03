@@ -95,8 +95,8 @@ class CreateTriggerPlanNode : public AbstractPlanNode {
      * @param trigger_when trigger when clause
      * @return builder object
      */
-    Builder &SetTriggerWhen(std::unique_ptr<parser::AbstractExpression> trigger_when) {
-      trigger_when_ = std::move(trigger_when);
+    Builder &SetTriggerWhen(common::ManagedPointer<parser::AbstractExpression> trigger_when) {
+      trigger_when_ = trigger_when;
       return *this;
     }
 
@@ -142,7 +142,7 @@ class CreateTriggerPlanNode : public AbstractPlanNode {
       return std::unique_ptr<CreateTriggerPlanNode>(new CreateTriggerPlanNode(
           std::move(children_), std::move(output_schema_), database_oid_, namespace_oid_, table_oid_,
           std::move(trigger_name_), std::move(trigger_funcnames_), std::move(trigger_args_),
-          std::move(trigger_columns_), std::move(trigger_when_), trigger_type_));
+          std::move(trigger_columns_), trigger_when_, trigger_type_));
     }
 
    protected:
@@ -182,9 +182,9 @@ class CreateTriggerPlanNode : public AbstractPlanNode {
     std::vector<catalog::col_oid_t> trigger_columns_;
 
     /**
-     * Trigger when claus
+     * Trigger when clause
      */
-    std::unique_ptr<parser::AbstractExpression> trigger_when_;
+    common::ManagedPointer<parser::AbstractExpression> trigger_when_;
 
     /**
      * Type of trigger
@@ -211,7 +211,7 @@ class CreateTriggerPlanNode : public AbstractPlanNode {
                         catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid,
                         std::string trigger_name, std::vector<std::string> &&trigger_funcnames,
                         std::vector<std::string> &&trigger_args, std::vector<catalog::col_oid_t> &&trigger_columns,
-                        std::unique_ptr<parser::AbstractExpression> &&trigger_when, int16_t trigger_type)
+                        common::ManagedPointer<parser::AbstractExpression> trigger_when, int16_t trigger_type)
       : AbstractPlanNode(std::move(children), std::move(output_schema)),
         database_oid_(database_oid),
         namespace_oid_(namespace_oid),
@@ -220,7 +220,7 @@ class CreateTriggerPlanNode : public AbstractPlanNode {
         trigger_funcnames_(std::move(trigger_funcnames)),
         trigger_args_(std::move(trigger_args)),
         trigger_columns_(std::move(trigger_columns)),
-        trigger_when_(std::move(trigger_when)),
+        trigger_when_(trigger_when),
         trigger_type_(trigger_type) {}
 
  public:
@@ -291,7 +291,7 @@ class CreateTriggerPlanNode : public AbstractPlanNode {
   bool operator==(const AbstractPlanNode &rhs) const override;
 
   nlohmann::json ToJson() const override;
-  void FromJson(const nlohmann::json &j) override;
+  std::vector<std::unique_ptr<parser::AbstractExpression>> FromJson(const nlohmann::json &j) override;
 
  private:
   /**
@@ -330,9 +330,9 @@ class CreateTriggerPlanNode : public AbstractPlanNode {
   std::vector<catalog::col_oid_t> trigger_columns_;
 
   /**
-   * Trigger when claus
+   * Trigger when clause
    */
-  std::unique_ptr<parser::AbstractExpression> trigger_when_;
+  common::ManagedPointer<parser::AbstractExpression> trigger_when_;
 
   /**
    * Type of trigger

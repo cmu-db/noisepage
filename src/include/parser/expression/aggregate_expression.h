@@ -32,7 +32,9 @@ class AggregateExpression : public AbstractExpression {
     for (const auto &child : GetChildren()) {
       children.emplace_back(child->Copy());
     }
-    return std::make_unique<AggregateExpression>(GetExpressionType(), std::move(children), IsDistinct());
+    auto expr = std::make_unique<AggregateExpression>(GetExpressionType(), std::move(children), IsDistinct());
+    expr->SetMutableStateForCopy(*this);
+    return expr;
   }
 
   common::hash_t Hash() const override {
@@ -85,9 +87,12 @@ class AggregateExpression : public AbstractExpression {
   /**
    * @param j json to deserialize
    */
-  void FromJson(const nlohmann::json &j) override {
-    AbstractExpression::FromJson(j);
+  std::vector<std::unique_ptr<AbstractExpression>> FromJson(const nlohmann::json &j) override {
+    std::vector<std::unique_ptr<AbstractExpression>> exprs;
+    auto e1 = AbstractExpression::FromJson(j);
+    exprs.insert(exprs.end(), std::make_move_iterator(e1.begin()), std::make_move_iterator(e1.end()));
     distinct_ = j.at("distinct").get<bool>();
+    return exprs;
   }
 
  private:

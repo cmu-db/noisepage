@@ -11,17 +11,72 @@
 namespace terrier {
 namespace parser {
 
+/**
+ * ParseResult is the parser's output to the binder. It allows you to obtain non-owning managed pointers to the
+ * statements and expressions that were generated during the parse. If you need to take ownership, you can do that
+ * too, but then the parse result's copy is invalidated.
+ */
 class ParseResult {
  public:
+  /**
+   * Adds a statement to this parse result.
+   */
   void AddStatement(std::unique_ptr<SQLStatement> statement) { statements_.emplace_back(std::move(statement)); }
 
+  /**
+   * Adds an expression to this parse result.
+   */
   void AddExpression(std::unique_ptr<AbstractExpression> expression) {
     expressions_.emplace_back(std::move(expression));
   }
 
-  const std::vector<std::unique_ptr<SQLStatement>> &GetStatements() { return statements_; }
+  /**
+   * @return non-owning list of all the statements contained in this parse result
+   */
+  std::vector<common::ManagedPointer<SQLStatement>> GetStatements() {
+    std::vector<common::ManagedPointer<SQLStatement>> statements;
+    statements.reserve(statements_.size());
+    for (const auto &statement : statements_) {
+      statements.emplace_back(common::ManagedPointer(statement));
+    }
+    return statements;
+  }
 
-  const std::vector<std::unique_ptr<AbstractExpression>> &GetExpressions() { return expressions_; }
+  /**
+   * @return the statement at a particular index
+   */
+  common::ManagedPointer<SQLStatement> GetStatement(size_t idx) { return common::ManagedPointer(statements_[idx]); }
+
+  /**
+   * @return non-owning list of all the expressions contained in this parse result
+   */
+  std::vector<common::ManagedPointer<AbstractExpression>> GetExpressions() {
+    std::vector<common::ManagedPointer<AbstractExpression>> expressions;
+    expressions.reserve(expressions_.size());
+    for (const auto &statement : expressions_) {
+      expressions.emplace_back(common::ManagedPointer(statement));
+    }
+    return expressions;
+  }
+
+  /**
+   * @return the expression at a particular index
+   */
+  common::ManagedPointer<AbstractExpression> GetExpression(size_t idx) {
+    return common::ManagedPointer(expressions_[idx]);
+  }
+
+  /**
+   * Returns ownership of the statements in this parse result.
+   * @return moved statements
+   */
+  std::vector<std::unique_ptr<SQLStatement>> &&TakeStatementsOwnership() { return std::move(statements_); }
+
+  /**
+   * Returns ownership of the expressions in this parse result.
+   * @return moved expressions
+   */
+  std::vector<std::unique_ptr<AbstractExpression>> &&TakeExpressionsOwnership() { return std::move(expressions_); }
 
  private:
   std::vector<std::unique_ptr<SQLStatement>> statements_;
@@ -61,7 +116,7 @@ class PostgresParser {
       case 'a':
         return FKConstrActionType::NOACTION;
       case 'r':
-        return FKConstrActionType::RESTRICT;
+        return FKConstrActionType::RESTRICT_;
       case 'c':
         return FKConstrActionType::CASCADE;
       case 'n':
@@ -92,13 +147,14 @@ class PostgresParser {
 
   /**
    * Transforms the entire parsed nodes list into a corresponding SQLStatementList.
+   * @param[in,out] parse_result the current parse result, which will be updated
    * @param root list of parsed nodes
-   * @return SQLStatementList corresponding to the parsed node list
    */
   static void ListTransform(ParseResult *parse_result, List *root);
 
   /**
    * Transforms a single node in the parse list into a terrier SQLStatement object.
+   * @param[in,out] parse_result the current parse result, which will be updated
    * @param node parsed node
    * @return SQLStatement corresponding to the parsed node
    */
@@ -150,7 +206,7 @@ class PostgresParser {
   // CREATE helpers
   using ColumnDefTransResult = struct {
     std::unique_ptr<ColumnDefinition> col_;
-    std::vector<std::unique_ptr<ColumnDefinition>> fks_;
+    std::vector<std::unique_ptr<ColumnDefinition>> fks_;  // foreign keys
   };
   static ColumnDefTransResult ColumnDefTransform(ParseResult *parse_result, ColumnDef *root);
 

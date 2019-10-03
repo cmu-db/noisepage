@@ -21,4 +21,9 @@ constexpr col_oid_t DATOID_COL_OID = col_oid_t(1);       // INTEGER (pkey)
 constexpr col_oid_t DATNAME_COL_OID = col_oid_t(2);      // VARCHAR
 constexpr col_oid_t DAT_CATALOG_COL_OID = col_oid_t(3);  // BIGINT (assumes 64-bit pointers)
 
+constexpr uint8_t NUM_PG_DATABASE_COLS = 3;
+
+constexpr std::array<col_oid_t, NUM_PG_DATABASE_COLS> PG_DATABASE_ALL_COL_OIDS = {DATOID_COL_OID, DATNAME_COL_OID,
+                                                                                  DAT_CATALOG_COL_OID};
+
 }  // namespace terrier::catalog::postgres

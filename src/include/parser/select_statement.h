@@ -40,6 +40,23 @@ class OrderByDescription {
 
   virtual ~OrderByDescription() = default;
 
+  /**
+   * @return a copy of the order by description
+   */
+  std::unique_ptr<OrderByDescription> Copy() {
+    std::vector<OrderType> types;
+    types.reserve(types_.size());
+    for (const auto &type : types_) {
+      types.emplace_back(type);
+    }
+    std::vector<common::ManagedPointer<AbstractExpression>> exprs;
+    exprs.reserve(exprs_.size());
+    for (const auto &expr : exprs_) {
+      exprs.emplace_back(expr);
+    }
+    return std::make_unique<OrderByDescription>(std::move(types), std::move(exprs));
+  }
+
   // TODO(WAN): no SQLStatement? maybe a Description base class?
   /**
    * @param v visitor
@@ -96,7 +113,8 @@ class OrderByDescription {
   /**
    * @param j json to deserialize
    */
-  void FromJson(const nlohmann::json &j) {
+  std::vector<std::unique_ptr<AbstractExpression>> FromJson(const nlohmann::json &j) {
+    std::vector<std::unique_ptr<AbstractExpression>> result;
     // Deserialize types
     types_ = j.at("types").get<std::vector<OrderType>>();
 
@@ -104,9 +122,12 @@ class OrderByDescription {
     auto expressions = j.at("exprs").get<std::vector<nlohmann::json>>();
     for (const auto &expr : expressions) {
       auto deserialized_expr = DeserializeExpression(expr);
-      // TODO(WAN): MEMORY!
-      exprs_.push_back(common::ManagedPointer(deserialized_expr));
+      exprs_.emplace_back(common::ManagedPointer(deserialized_expr.result_));
+      result.emplace_back(std::move(deserialized_expr.result_));
+      result.insert(result.end(), std::make_move_iterator(deserialized_expr.non_owned_exprs_.begin()),
+                    std::make_move_iterator(deserialized_expr.non_owned_exprs_.end()));
     }
+    return result;
   }
 
  private:
@@ -142,6 +163,11 @@ class LimitDescription {
   LimitDescription() = default;
 
   ~LimitDescription() = default;
+
+  /**
+   * @return a copy of the limit description
+   */
+  std::unique_ptr<LimitDescription> Copy() { return std::make_unique<LimitDescription>(limit_, offset_); }
 
   // TODO(WAN): not SQL statement?
   /**
@@ -189,9 +215,11 @@ class LimitDescription {
   /**
    * @param j json to deserialize
    */
-  void FromJson(const nlohmann::json &j) {
+  std::vector<std::unique_ptr<AbstractExpression>> FromJson(const nlohmann::json &j) {
+    std::vector<std::unique_ptr<AbstractExpression>> exprs;
     limit_ = j.at("limit").get<int64_t>();
     offset_ = j.at("offset").get<int64_t>();
+    return exprs;
   }
 
  private:
@@ -218,6 +246,19 @@ class GroupByDescription {
    * Default constructor for deserialization
    */
   GroupByDescription() = default;
+
+  /**
+   * @return a copy of the group by description
+   */
+  std::unique_ptr<GroupByDescription> Copy() {
+    std::vector<common::ManagedPointer<AbstractExpression>> columns;
+    columns.reserve(columns.size());
+    for (const auto &col : columns_) {
+      columns.emplace_back(col);
+    }
+    auto having = having_;
+    return std::make_unique<GroupByDescription>(std::move(columns), having);
+  }
 
   // TODO(WAN): not a SQLStatement?
   /**
@@ -266,26 +307,34 @@ class GroupByDescription {
       columns_json.emplace_back(col->ToJson());
     }
     j["columns"] = columns_json;
-    j["having"] = having_->ToJson();
+    j["having"] = having_ == nullptr ? nlohmann::json(nullptr) : having_->ToJson();
     return j;
   }
 
   /**
    * @param j json to deserialize
    */
-  void FromJson(const nlohmann::json &j) {
+  std::vector<std::unique_ptr<AbstractExpression>> FromJson(const nlohmann::json &j) {
+    std::vector<std::unique_ptr<AbstractExpression>> exprs;
     // Deserialize columns
     auto column_expressions = j.at("columns").get<std::vector<nlohmann::json>>();
     for (const auto &expr : column_expressions) {
       auto deserialized_expr = DeserializeExpression(expr);
-      // TODO(WAN): MEMORY!
-      columns_.push_back(common::ManagedPointer(deserialized_expr));
+      columns_.emplace_back(common::ManagedPointer(deserialized_expr.result_));
+      exprs.emplace_back(std::move(deserialized_expr.result_));
+      exprs.insert(exprs.end(), std::make_move_iterator(deserialized_expr.non_owned_exprs_.begin()),
+                   std::make_move_iterator(deserialized_expr.non_owned_exprs_.end()));
     }
 
     // Deserialize having
     if (!j.at("having").is_null()) {
-      having_ = DeserializeExpression(j.at("having"));
+      auto deserialized_expr = DeserializeExpression(j.at("having"));
+      having_ = common::ManagedPointer(deserialized_expr.result_);
+      exprs.emplace_back(std::move(deserialized_expr.result_));
+      exprs.insert(exprs.end(), std::make_move_iterator(deserialized_expr.non_owned_exprs_.begin()),
+                   std::make_move_iterator(deserialized_expr.non_owned_exprs_.end()));
     }
+    return exprs;
   }
 
  private:
@@ -312,7 +361,7 @@ class SelectStatement : public SQLStatement {
    * @param order_by order by condition
    * @param limit limit condition
    */
-  SelectStatement(std::vector<common::ManagedPointer<AbstractExpression>> select, const bool &select_distinct,
+  SelectStatement(std::vector<common::ManagedPointer<AbstractExpression>> select, bool select_distinct,
                   std::unique_ptr<TableRef> from, common::ManagedPointer<AbstractExpression> where,
                   std::unique_ptr<GroupByDescription> group_by, std::unique_ptr<OrderByDescription> order_by,
                   std::unique_ptr<LimitDescription> limit)
@@ -333,6 +382,9 @@ class SelectStatement : public SQLStatement {
 
   void Accept(SqlNodeVisitor *v, ParseResult *parse_result) override { v->Visit(this, parse_result); }
 
+  /** @return a copy of the select statement */
+  std::unique_ptr<SelectStatement> Copy();
+
   /** @return select columns */
   const std::vector<common::ManagedPointer<AbstractExpression>> &GetSelectColumns() { return select_; }
 
@@ -343,7 +395,7 @@ class SelectStatement : public SQLStatement {
   common::ManagedPointer<TableRef> GetSelectTable() { return common::ManagedPointer(from_); }
 
   /** @return select condition */
-  common::ManagedPointer<AbstractExpression> GetSelectCondition() { return common::ManagedPointer(where_); }
+  common::ManagedPointer<AbstractExpression> GetSelectCondition() { return where_; }
 
   /** @return select group by */
   common::ManagedPointer<GroupByDescription> GetSelectGroupBy() { return common::ManagedPointer(group_by_); }
@@ -410,7 +462,7 @@ class SelectStatement : public SQLStatement {
   nlohmann::json ToJson() const override;
 
   /** @param j json to deserialize */
-  void FromJson(const nlohmann::json &j) override;
+  std::vector<std::unique_ptr<AbstractExpression>> FromJson(const nlohmann::json &j) override;
 
  private:
   friend class binder::BindNodeVisitor;

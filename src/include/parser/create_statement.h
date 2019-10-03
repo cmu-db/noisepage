@@ -311,7 +311,7 @@ class IndexAttr {
   /** @return the expression that we're indexed on */
   common::ManagedPointer<AbstractExpression> GetExpression() const {
     TERRIER_ASSERT(expr_ != nullptr, "Names don't come with expressions.");
-    return common::ManagedPointer(expr_);
+    return expr_;
   }
 
  private:
@@ -414,10 +414,24 @@ class CreateStatement : public TableRefStatement {
   CreateType GetCreateType() { return create_type_; }
 
   /** @return columns for [CREATE TABLE, CREATE DATABASE] */
-  const std::vector<std::unique_ptr<ColumnDefinition>> &GetColumns() { return columns_; }
+  std::vector<common::ManagedPointer<ColumnDefinition>> GetColumns() {
+    std::vector<common::ManagedPointer<ColumnDefinition>> cols;
+    cols.reserve(columns_.size());
+    for (const auto &col : columns_) {
+      cols.emplace_back(common::ManagedPointer(col));
+    }
+    return cols;
+  }
 
   /** @return foreign keys for [CREATE TABLE, CREATE DATABASE] */
-  const std::vector<std::unique_ptr<ColumnDefinition>> &GetForeignKeys() { return foreign_keys_; }
+  std::vector<common::ManagedPointer<ColumnDefinition>> GetForeignKeys() {
+    std::vector<common::ManagedPointer<ColumnDefinition>> foreign_keys;
+    foreign_keys.reserve(foreign_keys_.size());
+    for (const auto &fk : foreign_keys_) {
+      foreign_keys.emplace_back(common::ManagedPointer(fk));
+    }
+    return foreign_keys;
+  }
 
   /** @return index type for [CREATE INDEX] */
   IndexType GetIndexType() { return index_type_; }

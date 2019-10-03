@@ -17,8 +17,6 @@ namespace parser {
 
 /**
  * ColumnValueExpression represents a reference to a column.
- *
- * TODO(WAN): check with Ling
  */
 class ColumnValueExpression : public AbstractExpression {
  public:
@@ -92,7 +90,15 @@ class ColumnValueExpression : public AbstractExpression {
   catalog::col_oid_t GetColumnOid() const { return column_oid_; }
 
   std::unique_ptr<AbstractExpression> Copy() const override {
-    return std::make_unique<ColumnValueExpression>(GetDatabaseOid(), GetTableOid(), GetColumnOid());
+    auto expr = std::make_unique<ColumnValueExpression>(GetDatabaseOid(), GetTableOid(), GetColumnOid());
+    expr->SetMutableStateForCopy(*this);
+    expr->namespace_name_ = this->namespace_name_;
+    expr->table_name_ = this->table_name_;
+    expr->column_name_ = this->column_name_;
+    expr->SetDatabaseOID(this->database_oid_);
+    expr->SetTableOID(this->table_oid_);
+    expr->SetColumnOID(this->column_oid_);
+    return expr;
   }
 
   common::hash_t Hash() const override {
@@ -143,14 +149,17 @@ class ColumnValueExpression : public AbstractExpression {
   /**
    * @param j json to deserialize
    */
-  void FromJson(const nlohmann::json &j) override {
-    AbstractExpression::FromJson(j);
+  std::vector<std::unique_ptr<AbstractExpression>> FromJson(const nlohmann::json &j) override {
+    std::vector<std::unique_ptr<AbstractExpression>> exprs;
+    auto e1 = AbstractExpression::FromJson(j);
+    exprs.insert(exprs.end(), std::make_move_iterator(e1.begin()), std::make_move_iterator(e1.end()));
     namespace_name_ = j.at("namespace_name").get<std::string>();
     table_name_ = j.at("table_name").get<std::string>();
     column_name_ = j.at("column_name").get<std::string>();
     database_oid_ = j.at("database_oid").get<catalog::db_oid_t>();
     table_oid_ = j.at("table_oid").get<catalog::table_oid_t>();
     column_oid_ = j.at("column_oid").get<catalog::col_oid_t>();
+    return exprs;
   }
 
  private:

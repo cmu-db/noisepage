@@ -50,9 +50,9 @@ class IndexScanPlanNode : public AbstractScanPlanNode {
      * @return plan node
      */
     std::unique_ptr<IndexScanPlanNode> Build() {
-      return std::unique_ptr<IndexScanPlanNode>(
-          new IndexScanPlanNode(std::move(children_), std::move(output_schema_), std::move(scan_predicate_),
-                                is_for_update_, is_parallel_, database_oid_, namespace_oid_, index_oid_));
+      return std::unique_ptr<IndexScanPlanNode>(new IndexScanPlanNode(std::move(children_), std::move(output_schema_),
+                                                                      scan_predicate_, is_for_update_, is_parallel_,
+                                                                      database_oid_, namespace_oid_, index_oid_));
     }
 
    protected:
@@ -73,11 +73,12 @@ class IndexScanPlanNode : public AbstractScanPlanNode {
    * @param index_oid OID of index to be used in index scan
    */
   IndexScanPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
-                    std::unique_ptr<OutputSchema> output_schema, std::unique_ptr<parser::AbstractExpression> predicate,
-                    bool is_for_update, bool is_parallel, catalog::db_oid_t database_oid,
-                    catalog::namespace_oid_t namespace_oid, catalog::index_oid_t index_oid)
-      : AbstractScanPlanNode(std::move(children), std::move(output_schema), std::move(predicate), is_for_update,
-                             is_parallel, database_oid, namespace_oid),
+                    std::unique_ptr<OutputSchema> output_schema,
+                    common::ManagedPointer<parser::AbstractExpression> predicate, bool is_for_update, bool is_parallel,
+                    catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
+                    catalog::index_oid_t index_oid)
+      : AbstractScanPlanNode(std::move(children), std::move(output_schema), predicate, is_for_update, is_parallel,
+                             database_oid, namespace_oid),
         index_oid_(index_oid) {}
 
  public:
@@ -105,7 +106,7 @@ class IndexScanPlanNode : public AbstractScanPlanNode {
   bool operator==(const AbstractPlanNode &rhs) const override;
 
   nlohmann::json ToJson() const override;
-  void FromJson(const nlohmann::json &j) override;
+  std::vector<std::unique_ptr<parser::AbstractExpression>> FromJson(const nlohmann::json &j) override;
 
  private:
   /**

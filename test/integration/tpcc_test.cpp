@@ -54,7 +54,7 @@ class TPCCTests : public TerrierTest {
 
   // Settings for log manager
   const uint64_t num_log_buffers_ = 100;
-  const std::chrono::milliseconds log_serialization_interval_{10};
+  const std::chrono::microseconds log_serialization_interval_{10};
   const std::chrono::milliseconds log_persist_interval_{20};
   const uint64_t log_persist_threshold_ = (1U << 20U);  // 1MB
 
@@ -64,7 +64,7 @@ class TPCCTests : public TerrierTest {
 };
 
 // NOLINTNEXTLINE
-TEST_F(TPCCTests, WithoutLogging) {
+TEST_F(TPCCTests, WithoutLoggingBwTreeIndexes) {
   // one TPCC worker = one TPCC terminal = one thread
   std::vector<Worker> workers;
   workers.reserve(num_threads_);
@@ -85,8 +85,63 @@ TEST_F(TPCCTests, WithoutLogging) {
   const auto precomputed_args =
       PrecomputeArgs(&generator_, txn_weights_, num_threads_, num_precomputed_txns_per_worker_);
 
-  // build the TPCC database
-  auto *const tpcc_db = tpcc_builder.Build();
+  // build the TPCC database using only BwTrees
+  auto *const tpcc_db = tpcc_builder.Build(storage::index::IndexType::BWTREE);
+
+  // prepare the workers
+  workers.clear();
+  for (int8_t i = 0; i < num_threads_; i++) {
+    workers.emplace_back(tpcc_db);
+  }
+
+  // populate the tables and indexes
+  Loader::PopulateDatabase(&txn_manager, &generator_, tpcc_db, workers);
+
+  gc_ = new storage::GarbageCollector(&timestamp_manager, &deferred_action_manager, &txn_manager, DISABLED);
+  gc_thread_ = new storage::GarbageCollectorThread(gc_, gc_period_);
+  Util::RegisterIndexesForGC(&(gc_thread_->GetGarbageCollector()), tpcc_db);
+  std::this_thread::sleep_for(std::chrono::seconds(2));  // Let GC clean up
+
+  // run the TPCC workload to completion
+  for (int8_t i = 0; i < num_threads_; i++) {
+    thread_pool_.SubmitTask([i, tpcc_db, &txn_manager, &precomputed_args, &workers] {
+      Workload(i, tpcc_db, &txn_manager, precomputed_args, &workers);
+    });
+  }
+  thread_pool_.WaitUntilAllFinished();
+
+  // cleanup
+  delete gc_thread_;
+  delete gc_;
+  delete tpcc_db;
+
+  CleanUpVarlensInPrecomputedArgs(&precomputed_args);
+}
+
+// NOLINTNEXTLINE
+TEST_F(TPCCTests, WithoutLoggingHashIndexes) {
+  // one TPCC worker = one TPCC terminal = one thread
+  std::vector<Worker> workers;
+  workers.reserve(num_threads_);
+
+  // Reset the worker pool
+  thread_pool_.Shutdown();
+  thread_pool_.SetNumWorkers(num_threads_);
+  thread_pool_.Startup();
+
+  // we need transactions, TPCC database, and GC
+  transaction::TimestampManager timestamp_manager;
+  transaction::DeferredActionManager deferred_action_manager(&timestamp_manager);
+  transaction::TransactionManager txn_manager(&timestamp_manager, &deferred_action_manager, &buffer_pool_, true,
+                                              log_manager_);
+  auto tpcc_builder = Builder(&block_store_);
+
+  // Precompute all of the input arguments for every txn to be run. We want to avoid the overhead at benchmark time
+  const auto precomputed_args =
+      PrecomputeArgs(&generator_, txn_weights_, num_threads_, num_precomputed_txns_per_worker_);
+
+  // build the TPCC database using HashMaps where possible
+  auto *const tpcc_db = tpcc_builder.Build(storage::index::IndexType::HASHMAP);
 
   // prepare the workers
   workers.clear();
@@ -145,8 +200,8 @@ TEST_F(TPCCTests, WithLogging) {
   const auto precomputed_args =
       PrecomputeArgs(&generator_, txn_weights_, num_threads_, num_precomputed_txns_per_worker_);
 
-  // build the TPCC database
-  auto *const tpcc_db = tpcc_builder.Build();
+  // build the TPCC database using HashMaps where possible
+  auto *const tpcc_db = tpcc_builder.Build(storage::index::IndexType::HASHMAP);
 
   // prepare the workers
   workers.clear();

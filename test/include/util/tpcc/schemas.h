@@ -87,6 +87,7 @@ class Schemas {
    * @return Warehouse primary index schema
    */
   static catalog::IndexSchema BuildWarehousePrimaryIndexSchema(const catalog::Schema &schema,
+                                                               const storage::index::IndexType index_type,
                                                                uint32_t *const oid_counter) {
     std::vector<catalog::IndexSchema::Column> warehouse_key_schema;
     warehouse_key_schema.reserve(NUM_WAREHOUSE_PRIMARY_INDEX_COLS);
@@ -101,7 +102,7 @@ class Schemas {
     TERRIER_ASSERT(warehouse_key_schema.size() == NUM_WAREHOUSE_PRIMARY_INDEX_COLS,
                    "Wrong number of columns for Warehouse primary index schema.");
 
-    return catalog::IndexSchema(warehouse_key_schema, true, true, false, true);
+    return catalog::IndexSchema(warehouse_key_schema, index_type, true, true, false, true);
   }
 
   /**
@@ -180,6 +181,7 @@ class Schemas {
    * @return District primary index schema
    */
   static catalog::IndexSchema BuildDistrictPrimaryIndexSchema(const catalog::Schema &schema,
+                                                              const storage::index::IndexType index_type,
                                                               uint32_t *const oid_counter) {
     std::vector<catalog::IndexSchema::Column> district_key_schema;
     district_key_schema.reserve(NUM_DISTRICT_PRIMARY_INDEX_COLS);
@@ -197,7 +199,7 @@ class Schemas {
     TERRIER_ASSERT(district_key_schema.size() == NUM_DISTRICT_PRIMARY_INDEX_COLS,
                    "Wrong number of columns for District primary index schema.");
 
-    return catalog::IndexSchema(district_key_schema, true, true, false, true);
+    return catalog::IndexSchema(district_key_schema, index_type, true, true, false, true);
   }
 
   /**
@@ -326,6 +328,7 @@ class Schemas {
    * @return Customer primary index schema
    */
   static catalog::IndexSchema BuildCustomerPrimaryIndexSchema(const catalog::Schema &schema,
+                                                              const storage::index::IndexType index_type,
                                                               uint32_t *const oid_counter) {
     std::vector<catalog::IndexSchema::Column> customer_key_schema;
     customer_key_schema.reserve(NUM_CUSTOMER_PRIMARY_INDEX_COLS);
@@ -347,7 +350,7 @@ class Schemas {
     TERRIER_ASSERT(customer_key_schema.size() == NUM_CUSTOMER_PRIMARY_INDEX_COLS,
                    "Wrong number of columns for Customer primary index schema.");
 
-    return catalog::IndexSchema(customer_key_schema, true, true, false, true);
+    return catalog::IndexSchema(customer_key_schema, index_type, true, true, false, true);
   }
 
   /**
@@ -356,6 +359,7 @@ class Schemas {
    * @return Customer secondary index schema
    */
   static catalog::IndexSchema BuildCustomerSecondaryIndexSchema(const catalog::Schema &schema,
+                                                                const storage::index::IndexType index_type,
                                                                 uint32_t *const oid_counter) {
     std::vector<catalog::IndexSchema::Column> customer_secondary_key_schema;
     customer_secondary_key_schema.reserve(NUM_CUSTOMER_SECONDARY_INDEX_COLS);
@@ -380,7 +384,7 @@ class Schemas {
     TERRIER_ASSERT(customer_secondary_key_schema.size() == NUM_CUSTOMER_SECONDARY_INDEX_COLS,
                    "Wrong number of columns for Customer secondary index schema.");
 
-    return catalog::IndexSchema(customer_secondary_key_schema, false, false, false, true);
+    return catalog::IndexSchema(customer_secondary_key_schema, index_type, false, false, false, true);
   }
 
   /**
@@ -474,6 +478,7 @@ class Schemas {
    * @return New Order primary index schema
    */
   static catalog::IndexSchema BuildNewOrderPrimaryIndexSchema(const catalog::Schema &schema,
+                                                              const storage::index::IndexType index_type,
                                                               uint32_t *const oid_counter) {
     std::vector<catalog::IndexSchema::Column> new_order_key_schema;
     new_order_key_schema.reserve(NUM_NEW_ORDER_PRIMARY_INDEX_COLS);
@@ -498,7 +503,7 @@ class Schemas {
     TERRIER_ASSERT(new_order_key_schema.size() == NUM_NEW_ORDER_PRIMARY_INDEX_COLS,
                    "Wrong number of columns for New Order primary index schema.");
 
-    return catalog::IndexSchema(new_order_key_schema, true, true, false, true);
+    return catalog::IndexSchema(new_order_key_schema, index_type, true, true, false, true);
   }
 
   /**
@@ -560,7 +565,9 @@ class Schemas {
    * @param oid_counter global OID counter to be incremented
    * @return Order primary index schema
    */
-  static catalog::IndexSchema BuildOrderPrimaryIndexSchema(const catalog::Schema &schema, uint32_t *const oid_counter) {
+  static catalog::IndexSchema BuildOrderPrimaryIndexSchema(const catalog::Schema &schema,
+                                                           const storage::index::IndexType index_type,
+                                                           uint32_t *const oid_counter) {
     std::vector<catalog::IndexSchema::Column> order_key_schema;
     order_key_schema.reserve(NUM_ORDER_PRIMARY_INDEX_COLS);
 
@@ -581,7 +588,7 @@ class Schemas {
     TERRIER_ASSERT(order_key_schema.size() == NUM_ORDER_PRIMARY_INDEX_COLS,
                    "Wrong number of columns for Order primary index schema.");
 
-    return catalog::IndexSchema(order_key_schema, true, true, false, true);
+    return catalog::IndexSchema(order_key_schema, index_type, true, true, false, true);
   }
 
   /**
@@ -590,6 +597,7 @@ class Schemas {
    * @return Order secondary index schema
    */
   static catalog::IndexSchema BuildOrderSecondaryIndexSchema(const catalog::Schema &schema,
+                                                             const storage::index::IndexType index_type,
                                                              uint32_t *const oid_counter) {
     std::vector<catalog::IndexSchema::Column> order_secondary_key_schema;
     order_secondary_key_schema.reserve(NUM_ORDER_SECONDARY_INDEX_COLS);
@@ -619,7 +627,7 @@ class Schemas {
     TERRIER_ASSERT(order_secondary_key_schema.size() == NUM_ORDER_SECONDARY_INDEX_COLS,
                    "Wrong number of columns for Order secondary index schema.");
 
-    return catalog::IndexSchema(order_secondary_key_schema, true, false, false, true);
+    return catalog::IndexSchema(order_secondary_key_schema, index_type, true, false, false, true);
   }
 
   /**
@@ -693,6 +701,7 @@ class Schemas {
    * @return Order Line primary index schema
    */
   static catalog::IndexSchema BuildOrderLinePrimaryIndexSchema(const catalog::Schema &schema,
+                                                               const storage::index::IndexType index_type,
                                                                uint32_t *const oid_counter) {
     std::vector<catalog::IndexSchema::Column> order_line_key_schema;
     order_line_key_schema.reserve(NUM_ORDER_LINE_PRIMARY_INDEX_COLS);
@@ -722,7 +731,7 @@ class Schemas {
     TERRIER_ASSERT(order_line_key_schema.size() == NUM_ORDER_LINE_PRIMARY_INDEX_COLS,
                    "Wrong number of columns for Order Line key schema.");
 
-    return catalog::IndexSchema(order_line_key_schema, true, true, false, true);
+    return catalog::IndexSchema(order_line_key_schema, index_type, true, true, false, true);
   }
 
   /**
@@ -769,7 +778,9 @@ class Schemas {
    * @param oid_counter global OID counter to be incremented
    * @return Item primary index schema
    */
-  static catalog::IndexSchema BuildItemPrimaryIndexSchema(const catalog::Schema &schema, uint32_t *const oid_counter) {
+  static catalog::IndexSchema BuildItemPrimaryIndexSchema(const catalog::Schema &schema,
+                                                          const storage::index::IndexType index_type,
+                                                          uint32_t *const oid_counter) {
     std::vector<catalog::IndexSchema::Column> item_key_schema;
     item_key_schema.reserve(NUM_ITEM_PRIMARY_INDEX_COLS);
 
@@ -782,7 +793,7 @@ class Schemas {
     TERRIER_ASSERT(item_key_schema.size() == NUM_ITEM_PRIMARY_INDEX_COLS,
                    "Wrong number of columns for Item primary index schema.");
 
-    return catalog::IndexSchema(item_key_schema, true, true, false, true);
+    return catalog::IndexSchema(item_key_schema, index_type, true, true, false, true);
   }
 
   /**
@@ -889,7 +900,9 @@ class Schemas {
    * @param oid_counter global OID counter to be incremented
    * @return Stock primary index schema
    */
-  static catalog::IndexSchema BuildStockPrimaryIndexSchema(const catalog::Schema &schema, uint32_t *const oid_counter) {
+  static catalog::IndexSchema BuildStockPrimaryIndexSchema(const catalog::Schema &schema,
+                                                           const storage::index::IndexType index_type,
+                                                           uint32_t *const oid_counter) {
     std::vector<catalog::IndexSchema::Column> stock_key_schema;
     stock_key_schema.reserve(NUM_STOCK_PRIMARY_INDEX_COLS);
 
@@ -906,7 +919,7 @@ class Schemas {
     TERRIER_ASSERT(stock_key_schema.size() == NUM_STOCK_PRIMARY_INDEX_COLS,
                    "Wrong number of columns for Stock primary index schema.");
 
-    return catalog::IndexSchema(stock_key_schema, true, true, false, true);
+    return catalog::IndexSchema(stock_key_schema, index_type, true, true, false, true);
   }
 
  private:

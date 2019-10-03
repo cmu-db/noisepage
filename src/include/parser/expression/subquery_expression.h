@@ -24,21 +24,21 @@ class SubqueryExpression : public AbstractExpression {
   SubqueryExpression() = default;
 
   std::unique_ptr<AbstractExpression> Copy() const override {
-    /*
-    std::vector<std::unique_ptr<AbstractExpression>> select_columns;
+    std::vector<common::ManagedPointer<AbstractExpression>> select_columns;
     for (const auto &col : subselect_->GetSelectColumns()) {
-      select_columns.emplace_back(col->Copy());
+      select_columns.emplace_back(common::ManagedPointer(col));
     }
-    // TODO(WAN) sigh..
+
+    auto group_by = subselect_->GetSelectGroupBy() == nullptr ? nullptr : subselect_->GetSelectGroupBy()->Copy();
+    auto order_by = subselect_->GetSelectOrderBy() == nullptr ? nullptr : subselect_->GetSelectOrderBy()->Copy();
+    auto limit = subselect_->GetSelectLimit() == nullptr ? nullptr : subselect_->GetSelectLimit()->Copy();
+
     auto parser_select = std::make_unique<SelectStatement>(
-        std::move(select_columns), subselect_->IsSelectDistinct(),
-        subselect_->GetSelectTable(), subselect_->GetSelectCondition()->Copy(),
-        subselect_->GetSelectGroupBy(), subselect_->GetSelectOrderBy(),
-        subselect_->GetSelectLimit()
-        );
-    return std::make_unique<SubqueryExpression>(std::move(parser_select));
-     */
-    return std::make_unique<SubqueryExpression>(nullptr);
+        std::move(select_columns), subselect_->IsSelectDistinct(), subselect_->GetSelectTable()->Copy(),
+        subselect_->GetSelectCondition(), std::move(group_by), std::move(order_by), std::move(limit));
+    auto expr = std::make_unique<SubqueryExpression>(std::move(parser_select));
+    expr->SetMutableStateForCopy(*this);
+    return expr;
   }
 
   /** @return managed pointer to the sub-select */
@@ -92,10 +92,14 @@ class SubqueryExpression : public AbstractExpression {
   }
 
   /** @param j json to deserialize */
-  void FromJson(const nlohmann::json &j) override {
-    AbstractExpression::FromJson(j);
+  std::vector<std::unique_ptr<AbstractExpression>> FromJson(const nlohmann::json &j) override {
+    std::vector<std::unique_ptr<AbstractExpression>> exprs;
+    auto e1 = AbstractExpression::FromJson(j);
+    exprs.insert(exprs.end(), std::make_move_iterator(e1.begin()), std::make_move_iterator(e1.end()));
     subselect_ = std::make_unique<parser::SelectStatement>();
-    subselect_->FromJson(j.at("subselect"));
+    auto e2 = subselect_->FromJson(j.at("subselect"));
+    exprs.insert(exprs.end(), std::make_move_iterator(e2.begin()), std::make_move_iterator(e2.end()));
+    return exprs;
   }
 
  private:

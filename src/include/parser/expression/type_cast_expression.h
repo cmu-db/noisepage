@@ -25,7 +25,9 @@ class TypeCastExpression : public AbstractExpression {
     for (const auto &child : GetChildren()) {
       children.emplace_back(child->Copy());
     }
-    return std::make_unique<TypeCastExpression>(GetReturnValueType(), std::move(children));
+    auto expr = std::make_unique<TypeCastExpression>(GetReturnValueType(), std::move(children));
+    expr->SetMutableStateForCopy(*this);
+    return expr;
   }
 
   void Accept(SqlNodeVisitor *v, ParseResult *parse_result) override { v->Visit(this, parse_result); }

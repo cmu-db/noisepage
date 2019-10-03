@@ -22,7 +22,9 @@ class ParameterValueExpression : public AbstractExpression {
   ParameterValueExpression() = default;
 
   std::unique_ptr<AbstractExpression> Copy() const override {
-    return std::make_unique<ParameterValueExpression>(GetValueIdx());
+    auto expr = std::make_unique<ParameterValueExpression>(GetValueIdx());
+    expr->SetMutableStateForCopy(*this);
+    return expr;
   }
 
   /** @return offset in the expression */
@@ -50,9 +52,12 @@ class ParameterValueExpression : public AbstractExpression {
   }
 
   /** @param j json to deserialize */
-  void FromJson(const nlohmann::json &j) override {
-    AbstractExpression::FromJson(j);
+  std::vector<std::unique_ptr<AbstractExpression>> FromJson(const nlohmann::json &j) override {
+    std::vector<std::unique_ptr<AbstractExpression>> exprs;
+    auto e1 = AbstractExpression::FromJson(j);
+    exprs.insert(exprs.end(), std::make_move_iterator(e1.begin()), std::make_move_iterator(e1.end()));
     value_idx_ = j.at("value_idx").get<uint32_t>();
+    return exprs;
   }
 
  private:

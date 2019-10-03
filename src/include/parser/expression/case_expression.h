@@ -48,9 +48,17 @@ class CaseExpression : public AbstractExpression {
      * Derived expressions should call this base method
      * @param j json to deserialize
      */
-    void FromJson(const nlohmann::json &j) {
-      // TODO(WAN) json      condition = DeserializeExpression(j.at("condition"));
-      // TODO(WAN) json      then = DeserializeExpression(j.at("then"));
+    std::vector<std::unique_ptr<AbstractExpression>> FromJson(const nlohmann::json &j) {
+      std::vector<std::unique_ptr<AbstractExpression>> exprs;
+      auto deserialized_cond = DeserializeExpression(j.at("condition"));
+      condition_ = std::move(deserialized_cond.result_);
+      exprs.insert(exprs.end(), std::make_move_iterator(deserialized_cond.non_owned_exprs_.begin()),
+                   std::make_move_iterator(deserialized_cond.non_owned_exprs_.end()));
+      auto deserialized_then = DeserializeExpression(j.at("then"));
+      then_ = std::move(deserialized_then.result_);
+      exprs.insert(exprs.end(), std::make_move_iterator(deserialized_then.non_owned_exprs_.begin()),
+                   std::make_move_iterator(deserialized_then.non_owned_exprs_.end()));
+      return exprs;
     }
   };
 
@@ -102,7 +110,9 @@ class CaseExpression : public AbstractExpression {
     for (const auto &clause : when_clauses_) {
       clauses.emplace_back(WhenClause{clause.condition_->Copy(), clause.then_->Copy()});
     }
-    return std::make_unique<CaseExpression>(GetReturnValueType(), std::move(clauses), default_expr_->Copy());
+    auto expr = std::make_unique<CaseExpression>(GetReturnValueType(), std::move(clauses), default_expr_->Copy());
+    expr->SetMutableStateForCopy(*this);
+    return expr;
   }
 
   /**
@@ -146,10 +156,16 @@ class CaseExpression : public AbstractExpression {
   }
 
   /** @param j json to deserialize */
-  void FromJson(const nlohmann::json &j) override {
-    AbstractExpression::FromJson(j);
+  std::vector<std::unique_ptr<AbstractExpression>> FromJson(const nlohmann::json &j) override {
+    std::vector<std::unique_ptr<AbstractExpression>> exprs;
+    auto e1 = AbstractExpression::FromJson(j);
+    exprs.insert(exprs.end(), std::make_move_iterator(e1.begin()), std::make_move_iterator(e1.end()));
     when_clauses_ = j.at("when_clauses").get<std::vector<WhenClause>>();
-    default_expr_ = DeserializeExpression(j.at("default_expr"));
+    auto e2 = DeserializeExpression(j.at("default_expr"));
+    default_expr_ = std::move(e2.result_);
+    exprs.insert(exprs.end(), std::make_move_iterator(e2.non_owned_exprs_.begin()),
+                 std::make_move_iterator(e2.non_owned_exprs_.end()));
+    return exprs;
   }
 
  private:

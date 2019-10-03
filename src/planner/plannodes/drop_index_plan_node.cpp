@@ -1,6 +1,9 @@
 #include "planner/plannodes/drop_index_plan_node.h"
+
+#include <memory>
 #include <string>
 #include <utility>
+#include <vector>
 
 namespace terrier::planner {
 
@@ -51,12 +54,15 @@ nlohmann::json DropIndexPlanNode::ToJson() const {
   return j;
 }
 
-void DropIndexPlanNode::FromJson(const nlohmann::json &j) {
-  AbstractPlanNode::FromJson(j);
+std::vector<std::unique_ptr<parser::AbstractExpression>> DropIndexPlanNode::FromJson(const nlohmann::json &j) {
+  std::vector<std::unique_ptr<parser::AbstractExpression>> exprs;
+  auto e1 = AbstractPlanNode::FromJson(j);
+  exprs.insert(exprs.end(), std::make_move_iterator(e1.begin()), std::make_move_iterator(e1.end()));
   database_oid_ = j.at("database_oid").get<catalog::db_oid_t>();
   namespace_oid_ = j.at("namespace_oid").get<catalog::namespace_oid_t>();
   index_oid_ = j.at("index_oid").get<catalog::index_oid_t>();
   if_exists_ = j.at("if_exists").get<bool>();
+  return exprs;
 }
 
 }  // namespace terrier::planner

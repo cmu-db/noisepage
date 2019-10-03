@@ -550,7 +550,7 @@ class CreateTablePlanNode : public AbstractPlanNode {
      * @return builder object
      */
     Builder &ProcessForeignKeyConstraint(const std::string &table_name,
-                                         const std::unique_ptr<parser::ColumnDefinition> &col) {
+                                         const common::ManagedPointer<parser::ColumnDefinition> col) {
       ForeignKeyInfo fkey_info;
 
       fkey_info.foreign_key_sources_ = std::vector<std::string>();
@@ -582,7 +582,7 @@ class CreateTablePlanNode : public AbstractPlanNode {
      * @param col multi-column constraint definition
      * @return builder object
      */
-    Builder &ProcessUniqueConstraint(const std::unique_ptr<parser::ColumnDefinition> &col) {
+    Builder &ProcessUniqueConstraint(const common::ManagedPointer<parser::ColumnDefinition> col) {
       UniqueInfo unique_info;
 
       unique_info.unique_cols_ = {col->GetColumnName()};
@@ -597,14 +597,14 @@ class CreateTablePlanNode : public AbstractPlanNode {
      * @param col multi-column constraint definition
      * @return builder object
      */
-    Builder &ProcessCheckConstraint(const std::unique_ptr<parser::ColumnDefinition> &col) {
+    Builder &ProcessCheckConstraint(const common::ManagedPointer<parser::ColumnDefinition> col) {
       auto check_cols = std::vector<std::string>();
 
       // TODO(Gus,Wen) more expression types need to be supported
       if (col->GetCheckExpression()->GetReturnValueType() == type::TypeId::BOOLEAN) {
         check_cols.push_back(col->GetColumnName());
 
-        auto const_expr_elem =
+        common::ManagedPointer<parser::ConstantValueExpression> const_expr_elem =
             (col->GetCheckExpression()->GetChild(1)).CastManagedPointerTo<parser::ConstantValueExpression>();
         type::TransientValue tmp_value = const_expr_elem->GetValue();
 
@@ -771,7 +771,7 @@ class CreateTablePlanNode : public AbstractPlanNode {
   bool operator==(const AbstractPlanNode &rhs) const override;
 
   nlohmann::json ToJson() const override;
-  void FromJson(const nlohmann::json &j) override;
+  std::vector<std::unique_ptr<parser::AbstractExpression>> FromJson(const nlohmann::json &j) override;
 
  private:
   /**

@@ -88,15 +88,16 @@ class AbstractExpression {
   void SetDepth(int depth) { depth_ = depth; }
 
   /**
-   * @param alias Alias of the expression
+   * Copies the mutable state of copy_expr. This should only be used for copying where we don't need to
+   * re-derive the expression.
+   * @param copy_expr the expression whose mutable state should be copied
    */
-  void SetAlias(const std::string &alias) { alias_ = alias; }
-
-  void SetChild(int index, common::ManagedPointer<AbstractExpression> expr) {
-    if (index >= static_cast<int>(children_.size())) {
-      children_.resize(index + 1);
-    }
-    children_[index] = expr->Copy();
+  void SetMutableStateForCopy(const AbstractExpression &copy_expr) {
+    SetExpressionName(copy_expr.GetExpressionName());
+    SetReturnValueType(copy_expr.GetReturnValueType());
+    SetDepth(copy_expr.GetDepth());
+    has_subquery_ = copy_expr.HasSubquery();
+    alias_ = copy_expr.alias_;
   }
 
  public:
@@ -171,7 +172,14 @@ class AbstractExpression {
   size_t GetChildrenSize() const { return children_.size(); }
 
   /** @return children of this abstract expression */
-  const std::vector<std::unique_ptr<AbstractExpression>> &GetChildren() const { return children_; }
+  std::vector<common::ManagedPointer<AbstractExpression>> GetChildren() const {
+    std::vector<common::ManagedPointer<AbstractExpression>> children;
+    children.reserve(children_.size());
+    for (const auto &child : children_) {
+      children.emplace_back(common::ManagedPointer(child));
+    }
+    return children;
+  }
 
   /**
    * @param index index of child
@@ -239,7 +247,7 @@ class AbstractExpression {
    * Derived expressions should call this base method
    * @param j json to deserialize
    */
-  virtual void FromJson(const nlohmann::json &j);
+  virtual std::vector<std::unique_ptr<AbstractExpression>> FromJson(const nlohmann::json &j);
 
  private:
   // We make abstract expression friend with both binder and query to operator transformer
@@ -250,7 +258,7 @@ class AbstractExpression {
 
   /** Type of the current expression */
   ExpressionType expression_type_;
-  /** Name of the current expression */
+  /** MUTABLE Name of the current expression */
   std::string expression_name_;
   /** Alias of the current expression */
   std::string alias_;
@@ -260,7 +268,8 @@ class AbstractExpression {
   /**
    * MUTABLE Sub-query depth level for the current expression.
    *
-   * TODO(WAN): ask LING to document her assumptions, I see that depth can still be -1 after calling DeriveDepth().
+   * Per LING, depth is used to detect correlated subquery.
+   * Note that depth might still be -1 after calling DeriveDepth().
    *
    * DeriveDepth() MUST be called on this expression tree whenever the structure of the tree is modified.
    * -1 indicates that the depth has not been set, but we have no safeguard for maintaining accurate depths between
@@ -269,9 +278,8 @@ class AbstractExpression {
   int depth_ = -1;
   /**
    * MUTABLE Flag indicating if there's a sub-query in the current expression or in any of its children.
-   *
-   * TODO(WAN): check with LING on why we need this and whether we can roll DeriveSubqueryFlag into DeriveDepth.
-   * */
+   * Per LING, this is required to detect the query predicate IsSupportedConjunctivePredicate.
+   */
   bool has_subquery_ = false;
 
   /** List of children expressions. */
@@ -281,12 +289,27 @@ class AbstractExpression {
 DEFINE_JSON_DECLARATIONS(AbstractExpression)
 
 /**
+ * To deserialize JSON expressions, we need to maintain a separate vector of all the unique pointers to expressions
+ * that were created but not owned by deserialized objects.
+ */
+struct JSONDeserializeExprIntermediate {
+  /**
+   * The primary abstract expression result.
+   */
+  std::unique_ptr<AbstractExpression> result_;
+  /**
+   * Non-owned expressions that were created during deserialization that are contained inside the abstract expression.
+   */
+  std::vector<std::unique_ptr<AbstractExpression>> non_owned_exprs_;
+};
+
+/**
  * DeserializeExpression is the primary function used to deserialize arbitrary expressions.
  * It will switch on the type in the JSON object to construct the appropriate expression.
  * @param json json to deserialize
- * @return pointer to deserialized expression
+ * @return intermediate result for deserialized JSON
  */
-std::unique_ptr<AbstractExpression> DeserializeExpression(const nlohmann::json &j);
+JSONDeserializeExprIntermediate DeserializeExpression(const nlohmann::json &j);
 
 }  // namespace parser
 }  // namespace terrier

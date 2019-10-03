@@ -86,7 +86,12 @@ class StrongTypeAlias {
   /**
    * @return the underlying value.
    */
-  const IntType &operator!() const { return val_; }
+  constexpr IntType &operator!() { return val_; }
+
+  /**
+   * @return the underlying value.
+   */
+  constexpr const IntType &operator!() const { return val_; }
 
   /**
    * @return the underlying value
@@ -226,7 +231,10 @@ class StrongTypeAlias {
 /* Define all typedefs here */
 namespace terrier {
 using byte = std::byte;
-}
+using int128_t = __int128;
+using uint128_t = unsigned __int128;
+using hash_t = uint64_t;
+}  // namespace terrier
 
 namespace std {
 // TODO(Tianyu): Expand this specialization if needed.

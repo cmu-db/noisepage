@@ -65,7 +65,7 @@ class ProjectionPlanNode : public AbstractPlanNode {
   bool operator==(const AbstractPlanNode &rhs) const override;
 
   nlohmann::json ToJson() const override;
-  void FromJson(const nlohmann::json &j) override;
+  std::vector<std::unique_ptr<parser::AbstractExpression>> FromJson(const nlohmann::json &j) override;
 };
 
 DEFINE_JSON_DECLARATIONS(ProjectionPlanNode);

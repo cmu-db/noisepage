@@ -20,5 +20,7 @@ constexpr namespace_oid_t NAMESPACE_DEFAULT_NAMESPACE_OID = namespace_oid_t(15);
 constexpr col_oid_t NSPOID_COL_OID = col_oid_t(1);   // INTEGER (pkey)
 constexpr col_oid_t NSPNAME_COL_OID = col_oid_t(2);  // VARCHAR
 
-constexpr std::array<col_oid_t, 2> PG_NAMESPACE_ALL_COL_OIDS{NSPOID_COL_OID, NSPNAME_COL_OID};
+constexpr uint8_t NUM_PG_NAMESPACE_COLS = 2;
+
+constexpr std::array<col_oid_t, NUM_PG_NAMESPACE_COLS> PG_NAMESPACE_ALL_COL_OIDS{NSPOID_COL_OID, NSPNAME_COL_OID};
 }  // namespace terrier::catalog::postgres

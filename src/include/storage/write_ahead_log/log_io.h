@@ -160,6 +160,14 @@ class BufferedLogReader {
   explicit BufferedLogReader(const char *log_file_path) : in_(PosixIoWrappers::Open(log_file_path, O_RDONLY)) {}
 
   /**
+   * Closes log file if it has not been closed already. While Read will close the file if it reaches the end, this will
+   * handle cases where we destroy the reader before reading the whole file.
+   */
+  ~BufferedLogReader() {
+    if (in_ != -1) PosixIoWrappers::Close(in_);
+  }
+
+  /**
    * @return if there are contents left in the write ahead log
    */
   bool HasMore() { return filled_size_ > read_head_ || in_ != -1; }
