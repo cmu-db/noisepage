@@ -18,7 +18,7 @@ class ExplainStatement : public SQLStatement {
 
   ~ExplainStatement() override = default;
 
-  void Accept(SqlNodeVisitor *v) override { v->Visit(this); }
+  void Accept(SqlNodeVisitor *v, ParseResult *parse_result) override { v->Visit(this, parse_result); }
 
   /** @return the SQL statement to be explained */
   common::ManagedPointer<SQLStatement> GetSQLStatement() { return common::ManagedPointer(real_sql_stmt_); }

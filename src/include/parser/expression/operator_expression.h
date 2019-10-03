@@ -53,7 +53,7 @@ class OperatorExpression : public AbstractExpression {
     return std::make_unique<OperatorExpression>(GetExpressionType(), GetReturnValueType(), std::move(children));
   }
 
-  void Accept(SqlNodeVisitor *v) override { v->Visit(this); }
+  void Accept(SqlNodeVisitor *v, ParseResult *parse_result) override { v->Visit(this, parse_result); }
 };
 
 DEFINE_JSON_DECLARATIONS(OperatorExpression);

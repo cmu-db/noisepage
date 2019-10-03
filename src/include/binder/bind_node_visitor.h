@@ -6,6 +6,7 @@
 #include "binder/binder_context.h"
 #include "catalog/catalog_defs.h"
 #include "common/sql_node_visitor.h"
+#include "parser/postgresparser.h"
 #include "parser/statements.h"
 
 namespace terrier {
@@ -45,8 +46,8 @@ class BindNodeVisitor : public SqlNodeVisitor {
    * For example, bind the corresponding database oid to an expression, which has a database name
    * @param tree Parsed in AST tree of the SQL statement
    */
-  void BindNameToNode(parser::SQLStatement *tree);
-  void Visit(parser::SelectStatement *node) override;
+  void BindNameToNode(parser::SQLStatement *tree, parser::ParseResult *parse_result);
+  void Visit(parser::SelectStatement *node, parser::ParseResult *parse_result) override;
 
   /**
    * This method is used by the QueryToOperatorTransformer to take ownership of the catalog accessor.
@@ -55,35 +56,35 @@ class BindNodeVisitor : public SqlNodeVisitor {
   std::unique_ptr<catalog::CatalogAccessor> GetCatalogAccessor() { return std::move(catalog_accessor_); }
 
   // Some sub query nodes inside SelectStatement
-  void Visit(parser::JoinDefinition *node) override;
-  void Visit(parser::TableRef *node) override;
-  void Visit(parser::GroupByDescription *node) override;
-  void Visit(parser::OrderByDescription *node) override;
-  void Visit(parser::LimitDescription *node) override;
+  void Visit(parser::JoinDefinition *node, parser::ParseResult *parse_result) override;
+  void Visit(parser::TableRef *node, parser::ParseResult *parse_result) override;
+  void Visit(parser::GroupByDescription *node, parser::ParseResult *parse_result) override;
+  void Visit(parser::OrderByDescription *node, parser::ParseResult *parse_result) override;
+  void Visit(parser::LimitDescription *node, parser::ParseResult *parse_result) override;
 
-  void Visit(parser::CreateStatement *node) override;
-  void Visit(parser::CreateFunctionStatement *node) override;
-  void Visit(parser::InsertStatement *node) override;
-  void Visit(parser::DeleteStatement *node) override;
-  void Visit(parser::DropStatement *node) override;
-  void Visit(parser::PrepareStatement *node) override;
-  void Visit(parser::ExecuteStatement *node) override;
-  void Visit(parser::TransactionStatement *node) override;
-  void Visit(parser::UpdateStatement *node) override;
-  void Visit(parser::CopyStatement *node) override;
-  void Visit(parser::AnalyzeStatement *node) override;
+  void Visit(parser::CreateStatement *node, parser::ParseResult *parse_result) override;
+  void Visit(parser::CreateFunctionStatement *node, parser::ParseResult *parse_result) override;
+  void Visit(parser::InsertStatement *node, parser::ParseResult *parse_result) override;
+  void Visit(parser::DeleteStatement *node, parser::ParseResult *parse_result) override;
+  void Visit(parser::DropStatement *node, parser::ParseResult *parse_result) override;
+  void Visit(parser::PrepareStatement *node, parser::ParseResult *parse_result) override;
+  void Visit(parser::ExecuteStatement *node, parser::ParseResult *parse_result) override;
+  void Visit(parser::TransactionStatement *node, parser::ParseResult *parse_result) override;
+  void Visit(parser::UpdateStatement *node, parser::ParseResult *parse_result) override;
+  void Visit(parser::CopyStatement *node, parser::ParseResult *parse_result) override;
+  void Visit(parser::AnalyzeStatement *node, parser::ParseResult *parse_result) override;
 
-  void Visit(parser::CaseExpression *expr) override;
-  void Visit(parser::SubqueryExpression *expr) override;
+  void Visit(parser::CaseExpression *expr, parser::ParseResult *parse_result) override;
+  void Visit(parser::SubqueryExpression *expr, parser::ParseResult *parse_result) override;
 
-  void Visit(parser::ConstantValueExpression *expr) override;
-  void Visit(parser::ColumnValueExpression *expr) override;
-  void Visit(parser::StarExpression *expr) override;
-  //  void Visit(parser::FunctionExpression *expr) override;
+  void Visit(parser::ConstantValueExpression *expr, parser::ParseResult *parse_result) override;
+  void Visit(parser::ColumnValueExpression *expr, parser::ParseResult *parse_result) override;
+  void Visit(parser::StarExpression *expr, parser::ParseResult *parse_result) override;
+  //  void Visit(parser::FunctionExpression *expr, parser::ParseResult *parse_result) override;
 
   // Deduce value type for these expressions
-  void Visit(parser::OperatorExpression *expr) override;
-  void Visit(parser::AggregateExpression *expr) override;
+  void Visit(parser::OperatorExpression *expr, parser::ParseResult *parse_result) override;
+  void Visit(parser::AggregateExpression *expr, parser::ParseResult *parse_result) override;
 
  private:
   BinderContext *context_ = nullptr;

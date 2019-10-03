@@ -44,7 +44,7 @@ class OrderByDescription {
   /**
    * @param v visitor
    */
-  void Accept(SqlNodeVisitor *v) { v->Visit(this); }
+  void Accept(SqlNodeVisitor *v, ParseResult *parse_result) { v->Visit(this, parse_result); }
 
   /**
    * @return order by types
@@ -147,7 +147,7 @@ class LimitDescription {
   /**
    * @param v visitor
    */
-  void Accept(SqlNodeVisitor *v) { v->Visit(this); }
+  void Accept(SqlNodeVisitor *v, ParseResult *parse_result) { v->Visit(this, parse_result); }
 
   /**
    * @return limit
@@ -224,7 +224,7 @@ class GroupByDescription {
    * Visitor pattern for GroupByDescription.
    * @param v visitor
    */
-  void Accept(SqlNodeVisitor *v) { v->Visit(this); }
+  void Accept(SqlNodeVisitor *v, ParseResult *parse_result) { v->Visit(this, parse_result); }
 
   /** @return group by columns */
   const std::vector<common::ManagedPointer<AbstractExpression>> &GetColumns() { return columns_; }
@@ -331,7 +331,7 @@ class SelectStatement : public SQLStatement {
   /** Default constructor for deserialization. */
   SelectStatement() = default;
 
-  void Accept(SqlNodeVisitor *v) override { v->Visit(this); }
+  void Accept(SqlNodeVisitor *v, ParseResult *parse_result) override { v->Visit(this, parse_result); }
 
   /** @return select columns */
   const std::vector<common::ManagedPointer<AbstractExpression>> &GetSelectColumns() { return select_; }

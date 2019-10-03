@@ -18,6 +18,7 @@ class BindNodeVisitor;
 }  // namespace binder
 
 namespace parser {
+class ParseResult;
 
 /**
  * Table location information (Database, Schema, Table).
@@ -133,7 +134,7 @@ class SQLStatement {
    * TODO(WAN): this probably can be better described by WEN
    * @param v visitor
    */
-  virtual void Accept(SqlNodeVisitor *v) = 0;
+  virtual void Accept(SqlNodeVisitor *v, ParseResult *parse_result) = 0;
 
   /**
    * @return statement serialized to json

@@ -10,6 +10,7 @@
 namespace terrier {
 
 namespace parser {
+class ParseResult;
 class SQLStatement;
 class AbstractExpression;
 }  // namespace parser
@@ -29,29 +30,29 @@ class QueryToOperatorTransformer : public SqlNodeVisitor {
  public:
   explicit QueryToOperatorTransformer(std::unique_ptr<catalog::CatalogAccessor> catalog_accessor);
 
-  OperatorExpression *ConvertToOpExpression(parser::SQLStatement *op);
+  OperatorExpression *ConvertToOpExpression(parser::SQLStatement *op, parser::ParseResult *parse_result);
 
-  void Visit(parser::SelectStatement *op) override;
+  void Visit(parser::SelectStatement *op, parser::ParseResult *parse_result) override;
 
-  void Visit(parser::TableRef *) override;
-  void Visit(parser::JoinDefinition *) override;
-  void Visit(parser::GroupByDescription *) override;
-  void Visit(parser::OrderByDescription *) override;
-  void Visit(parser::LimitDescription *) override;
+  void Visit(parser::TableRef *, parser::ParseResult *) override;
+  void Visit(parser::JoinDefinition *, parser::ParseResult *) override;
+  void Visit(parser::GroupByDescription *, parser::ParseResult *) override;
+  void Visit(parser::OrderByDescription *, parser::ParseResult *) override;
+  void Visit(parser::LimitDescription *, parser::ParseResult *) override;
 
-  void Visit(parser::CreateStatement *op) override;
-  void Visit(parser::CreateFunctionStatement *op) override;
-  void Visit(parser::InsertStatement *op) override;
-  void Visit(parser::DeleteStatement *op) override;
-  void Visit(parser::DropStatement *op) override;
-  void Visit(parser::PrepareStatement *op) override;
-  void Visit(parser::ExecuteStatement *op) override;
-  void Visit(parser::TransactionStatement *op) override;
-  void Visit(parser::UpdateStatement *op) override;
-  void Visit(parser::CopyStatement *op) override;
-  void Visit(parser::AnalyzeStatement *op) override;
-  void Visit(parser::ComparisonExpression *expr) override;
-  void Visit(parser::OperatorExpression *expr) override;
+  void Visit(parser::CreateStatement *op, parser::ParseResult *parse_result) override;
+  void Visit(parser::CreateFunctionStatement *op, parser::ParseResult *parse_result) override;
+  void Visit(parser::InsertStatement *op, parser::ParseResult *parse_result) override;
+  void Visit(parser::DeleteStatement *op, parser::ParseResult *parse_result) override;
+  void Visit(parser::DropStatement *op, parser::ParseResult *parse_result) override;
+  void Visit(parser::PrepareStatement *op, parser::ParseResult *parse_result) override;
+  void Visit(parser::ExecuteStatement *op, parser::ParseResult *parse_result) override;
+  void Visit(parser::TransactionStatement *op, parser::ParseResult *parse_result) override;
+  void Visit(parser::UpdateStatement *op, parser::ParseResult *parse_result) override;
+  void Visit(parser::CopyStatement *op, parser::ParseResult *parse_result) override;
+  void Visit(parser::AnalyzeStatement *op, parser::ParseResult *parse_result) override;
+  void Visit(parser::ComparisonExpression *expr, parser::ParseResult *) override;
+  void Visit(parser::OperatorExpression *expr, parser::ParseResult *) override;
 
  private:
   /**
@@ -64,6 +65,7 @@ class QueryToOperatorTransformer : public SqlNodeVisitor {
    * @param expr The original predicate
    */
   std::vector<AnnotatedExpression> CollectPredicates(common::ManagedPointer<parser::AbstractExpression> expr,
+                                                     parser::ParseResult *parse_result,
                                                      std::vector<AnnotatedExpression> predicates = {});
 
   /**
@@ -80,7 +82,8 @@ class QueryToOperatorTransformer : public SqlNodeVisitor {
   // TODO(Ling): the documentation has second parameter select_list, whereas the function definition has the second
   //  parameter oid_t child oid. What exactly is the second parameter supposed to be? If it is supposed to be an oid,
   //  what kind of oid should it be?
-  bool GenerateSubqueryTree(parser::AbstractExpression *expr, int child_id, bool single_join = false);
+  bool GenerateSubqueryTree(parser::AbstractExpression *expr, int child_id, parser::ParseResult *parse_result,
+                            bool single_join = false);
 
   /**
    * @brief Decide if a conjunctive predicate is supported. We need to extract

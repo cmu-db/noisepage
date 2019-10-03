@@ -26,32 +26,34 @@ BindNodeVisitor::BindNodeVisitor(std::unique_ptr<catalog::CatalogAccessor> catal
                                  std::string default_database_name)
     : catalog_accessor_(std::move(catalog_accessor)), default_database_name_(std::move(default_database_name)) {}
 
-void BindNodeVisitor::BindNameToNode(parser::SQLStatement *tree) { tree->Accept(this); }
+void BindNodeVisitor::BindNameToNode(parser::SQLStatement *tree, parser::ParseResult *parse_result) {
+  tree->Accept(this, parse_result);
+}
 
-void BindNodeVisitor::Visit(parser::SelectStatement *node) {
+void BindNodeVisitor::Visit(parser::SelectStatement *node, parser::ParseResult *parse_result) {
   context_ = new BinderContext(context_);
 
-  if (node->GetSelectTable() != nullptr) node->GetSelectTable()->Accept(this);
+  if (node->GetSelectTable() != nullptr) node->GetSelectTable()->Accept(this, parse_result);
 
   if (node->GetSelectCondition() != nullptr) {
-    node->GetSelectCondition()->Accept(this);
+    node->GetSelectCondition()->Accept(this, parse_result);
     node->GetSelectCondition()->DeriveDepth();
     node->GetSelectCondition()->DeriveSubqueryFlag();
   }
-  if (node->GetSelectOrderBy() != nullptr) node->GetSelectOrderBy()->Accept(this);
+  if (node->GetSelectOrderBy() != nullptr) node->GetSelectOrderBy()->Accept(this, parse_result);
 
-  if (node->GetSelectLimit() != nullptr) node->GetSelectLimit()->Accept(this);
+  if (node->GetSelectLimit() != nullptr) node->GetSelectLimit()->Accept(this, parse_result);
 
-  if (node->GetSelectGroupBy() != nullptr) node->GetSelectGroupBy()->Accept(this);
+  if (node->GetSelectGroupBy() != nullptr) node->GetSelectGroupBy()->Accept(this, parse_result);
 
   std::vector<common::ManagedPointer<parser::AbstractExpression>> new_select_list;
   for (auto &select_element : node->GetSelectColumns()) {
     if (select_element->GetExpressionType() == parser::ExpressionType::STAR) {
-      context_->GenerateAllColumnExpressions(&new_select_list);
+      context_->GenerateAllColumnExpressions(parse_result, &new_select_list);
       continue;
     }
 
-    select_element->Accept(this);
+    select_element->Accept(this, parse_result);
 
     // Derive depth for all exprs in the select clause
     select_element->DeriveDepth();
@@ -73,55 +75,55 @@ void BindNodeVisitor::Visit(parser::SelectStatement *node) {
 }
 
 // Some sub query nodes inside SelectStatement
-void BindNodeVisitor::Visit(parser::JoinDefinition *node) {
+void BindNodeVisitor::Visit(parser::JoinDefinition *node, parser::ParseResult *parse_result) {
   // The columns in join condition can only bind to the join tables
-  node->GetLeftTable()->Accept(this);
-  node->GetRightTable()->Accept(this);
-  node->GetJoinCondition()->Accept(this);
+  node->GetLeftTable()->Accept(this, parse_result);
+  node->GetRightTable()->Accept(this, parse_result);
+  node->GetJoinCondition()->Accept(this, parse_result);
 }
 
-void BindNodeVisitor::Visit(parser::TableRef *node) {
+void BindNodeVisitor::Visit(parser::TableRef *node, parser::ParseResult *parse_result) {
   node->TryBindDatabaseName(default_database_name_);
   if (node->GetSelect() != nullptr) {
     if (node->GetAlias().empty()) throw BINDER_EXCEPTION("Alias not found for query derived table");
 
     // Save the previous context
     auto pre_context = context_;
-    node->GetSelect()->Accept(this);
+    node->GetSelect()->Accept(this, parse_result);
     // Restore the previous level context
     context_ = pre_context;
     // Add the table to the current context at the end
     context_->AddNestedTable(node->GetAlias(), node->GetSelect()->GetSelectColumns());
   } else if (node->GetJoin() != nullptr) {
     // Join
-    node->GetJoin()->Accept(this);
+    node->GetJoin()->Accept(this, parse_result);
   } else if (!node->GetList().empty()) {
     // Multiple table
-    for (auto &table : node->GetList()) table->Accept(this);
+    for (auto &table : node->GetList()) table->Accept(this, parse_result);
   } else {
     // Single table
     context_->AddRegularTable(catalog_accessor_, node);
   }
 }
 
-void BindNodeVisitor::Visit(parser::GroupByDescription *node) {
-  for (auto &col : node->GetColumns()) col->Accept(this);
-  if (node->GetHaving() != nullptr) node->GetHaving()->Accept(this);
+void BindNodeVisitor::Visit(parser::GroupByDescription *node, parser::ParseResult *parse_result) {
+  for (auto &col : node->GetColumns()) col->Accept(this, parse_result);
+  if (node->GetHaving() != nullptr) node->GetHaving()->Accept(this, parse_result);
 }
 
-void BindNodeVisitor::Visit(parser::OrderByDescription *node) {
+void BindNodeVisitor::Visit(parser::OrderByDescription *node, parser::ParseResult *parse_result) {
   for (auto &expr : node->GetOrderByExpressions())
-    if (expr != nullptr) expr->Accept(this);
+    if (expr != nullptr) expr->Accept(this, parse_result);
 }
 
-void BindNodeVisitor::Visit(parser::UpdateStatement *node) {
+void BindNodeVisitor::Visit(parser::UpdateStatement *node, parser::ParseResult *parse_result) {
   context_ = new BinderContext(nullptr);
 
-  node->GetUpdateTable()->Accept(this);
-  if (node->GetUpdateCondition() != nullptr) node->GetUpdateCondition()->Accept(this);
+  node->GetUpdateTable()->Accept(this, parse_result);
+  if (node->GetUpdateCondition() != nullptr) node->GetUpdateCondition()->Accept(this, parse_result);
   for (auto &update : node->GetUpdateClauses()) {
     // TODO(Ling): we need Accept() method for updateClause?
-    update->GetUpdateValue()->Accept(this);
+    update->GetUpdateValue()->Accept(this, parse_result);
   }
 
   // TODO(peloton): Update columns are not bound because they are char*
@@ -130,64 +132,68 @@ void BindNodeVisitor::Visit(parser::UpdateStatement *node) {
   context_ = nullptr;
 }
 
-void BindNodeVisitor::Visit(parser::DeleteStatement *node) {
+void BindNodeVisitor::Visit(parser::DeleteStatement *node, parser::ParseResult *parse_result) {
   context_ = new BinderContext(nullptr);
   node->GetDeletionTable()->TryBindDatabaseName(default_database_name_);
   auto table = node->GetDeletionTable();
   context_->AddRegularTable(catalog_accessor_, table->GetDatabaseName(), table->GetTableName(), table->GetTableName());
 
   if (node->GetDeleteCondition() != nullptr) {
-    node->GetDeleteCondition()->Accept(this);
+    node->GetDeleteCondition()->Accept(this, parse_result);
   }
 
   delete context_;
   context_ = nullptr;
 }
 
-void BindNodeVisitor::Visit(parser::LimitDescription *node) {}
+void BindNodeVisitor::Visit(parser::LimitDescription *node, parser::ParseResult *parse_result) {}
 
-void BindNodeVisitor::Visit(parser::CopyStatement *node) {
+void BindNodeVisitor::Visit(parser::CopyStatement *node, parser::ParseResult *parse_result) {
   context_ = new BinderContext(nullptr);
   if (node->GetCopyTable() != nullptr) {
-    node->GetCopyTable()->Accept(this);
+    node->GetCopyTable()->Accept(this, parse_result);
 
     // If the table is given, we're either writing or reading all columns
     std::vector<common::ManagedPointer<parser::AbstractExpression>> new_select_list;
-    context_->GenerateAllColumnExpressions(&new_select_list);
+    context_->GenerateAllColumnExpressions(parse_result, &new_select_list);
     auto columns = node->GetSelectStatement()->GetSelectColumns();
     columns.insert(std::end(columns), std::begin(new_select_list), std::end(new_select_list));
   } else {
-    node->GetSelectStatement()->Accept(this);
+    node->GetSelectStatement()->Accept(this, parse_result);
   }
 }
 
-void BindNodeVisitor::Visit(parser::CreateFunctionStatement *node) {}
+void BindNodeVisitor::Visit(parser::CreateFunctionStatement *node, parser::ParseResult *parse_result) {}
 
-void BindNodeVisitor::Visit(parser::CreateStatement *node) { node->TryBindDatabaseName(default_database_name_); }
+void BindNodeVisitor::Visit(parser::CreateStatement *node, parser::ParseResult *parse_result) {
+  node->TryBindDatabaseName(default_database_name_);
+}
 
-void BindNodeVisitor::Visit(parser::InsertStatement *node) {
+void BindNodeVisitor::Visit(parser::InsertStatement *node, parser::ParseResult *parse_result) {
   context_ = new BinderContext(nullptr);
   node->GetInsertionTable()->TryBindDatabaseName(default_database_name_);
 
   auto table = node->GetInsertionTable();
   context_->AddRegularTable(catalog_accessor_, table->GetDatabaseName(), table->GetTableName(), table->GetTableName());
-  if (node->GetSelect() != nullptr) node->GetSelect()->Accept(this);
+  if (node->GetSelect() != nullptr) node->GetSelect()->Accept(this, parse_result);
 
   delete context_;
   context_ = nullptr;
 }
 
-void BindNodeVisitor::Visit(parser::DropStatement *node) { node->TryBindDatabaseName(default_database_name_); }
-void BindNodeVisitor::Visit(parser::PrepareStatement *node) {}
-void BindNodeVisitor::Visit(parser::ExecuteStatement *node) {}
-void BindNodeVisitor::Visit(parser::TransactionStatement *node) {}
-void BindNodeVisitor::Visit(parser::AnalyzeStatement *node) {
+void BindNodeVisitor::Visit(parser::DropStatement *node, parser::ParseResult *parse_result) {
+  node->TryBindDatabaseName(default_database_name_);
+}
+void BindNodeVisitor::Visit(parser::PrepareStatement *node, parser::ParseResult *parse_result) {}
+void BindNodeVisitor::Visit(parser::ExecuteStatement *node, parser::ParseResult *parse_result) {}
+void BindNodeVisitor::Visit(parser::TransactionStatement *node, parser::ParseResult *parse_result) {}
+void BindNodeVisitor::Visit(parser::AnalyzeStatement *node, parser::ParseResult *parse_result) {
   node->GetAnalyzeTable()->TryBindDatabaseName(default_database_name_);
 }
 
-void BindNodeVisitor::Visit(parser::ConstantValueExpression *expr) {}
+void BindNodeVisitor::Visit(parser::ConstantValueExpression *expr, parser::ParseResult *parse_result) {}
 
-void BindNodeVisitor::Visit(parser::ColumnValueExpression *expr) {
+void BindNodeVisitor::Visit(parser::ColumnValueExpression *expr, parser::ParseResult *parse_result) {
   // TODO(Ling): consider remove precondition check if the *_oid_ will never be initialized till binder
   //   That is, the object would not be initialized using ColumnValueeExpression(database_oid, table_oid, column_oid)
   //   at this point
@@ -219,31 +225,33 @@ void BindNodeVisitor::Visit(parser::ColumnValueExpression *expr) {
   }
 }
 
-void BindNodeVisitor::Visit(parser::CaseExpression *expr) {
+void BindNodeVisitor::Visit(parser::CaseExpression *expr, parser::ParseResult *parse_result) {
   for (size_t i = 0; i < expr->GetWhenClauseSize(); ++i) {
-    expr->GetWhenClauseCondition(i)->Accept(this);
+    expr->GetWhenClauseCondition(i)->Accept(this, parse_result);
   }
 }
 
-void BindNodeVisitor::Visit(parser::SubqueryExpression *expr) { expr->GetSubselect()->Accept(this); }
+void BindNodeVisitor::Visit(parser::SubqueryExpression *expr, parser::ParseResult *parse_result) {
+  expr->GetSubselect()->Accept(this, parse_result);
+}
 
-void BindNodeVisitor::Visit(parser::StarExpression *expr) {
+void BindNodeVisitor::Visit(parser::StarExpression *expr, parser::ParseResult *parse_result) {
   if (context_ == nullptr || !context_->HasTables()) {
     throw BINDER_EXCEPTION("Invalid [Expression :: STAR].");
   }
 }
 
 // Derive value type for these expressions
-void BindNodeVisitor::Visit(parser::OperatorExpression *expr) {
-  SqlNodeVisitor::Visit(expr);
+void BindNodeVisitor::Visit(parser::OperatorExpression *expr, parser::ParseResult *parse_result) {
+  SqlNodeVisitor::Visit(expr, parse_result);
   expr->DeriveReturnValueType();
 }
-void BindNodeVisitor::Visit(parser::AggregateExpression *expr) {
-  SqlNodeVisitor::Visit(expr);
+void BindNodeVisitor::Visit(parser::AggregateExpression *expr, parser::ParseResult *parse_result) {
+  SqlNodeVisitor::Visit(expr, parse_result);
   expr->DeriveReturnValueType();
 }
 
-// void BindNodeVisitor::Visit(parser::FunctionExpression *expr) {
+// void BindNodeVisitor::Visit(parser::FunctionExpression *expr, parser::ParseResult *parse_result) {
 //  // Visit the subtree first
 //  SqlNodeVisitor::Visit(expr);
 //

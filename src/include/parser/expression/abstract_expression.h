@@ -24,6 +24,7 @@ class QueryToOperatorTransformer;
 }  // namespace optimizer
 
 namespace parser {
+class ParseResult;
 /**
  * AbstractExpression is the base class of any expression which is output from the parser.
  *
@@ -200,11 +201,11 @@ class AbstractExpression {
   // TODO(WAN): it looks like we are returning to Peloton style Accept calls AcceptChildren calls Accept, must we?
 
   /** @param v Visitor pattern for the expression */
-  virtual void Accept(SqlNodeVisitor *v) = 0;
+  virtual void Accept(SqlNodeVisitor *v, ParseResult *parse_result) = 0;
 
   /** @param v Visitor pattern for the expression */
-  virtual void AcceptChildren(SqlNodeVisitor *v) {
-    for (auto &child : children_) child->Accept(v);
+  virtual void AcceptChildren(SqlNodeVisitor *v, ParseResult *parse_result) {
+    for (auto &child : children_) child->Accept(v, parse_result);
   }
 
   /** @return the sub-query depth level (SEE COMMENT in depth_) */
