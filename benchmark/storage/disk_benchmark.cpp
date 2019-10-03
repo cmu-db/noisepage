@@ -2,10 +2,12 @@
 #include <unistd.h>
 #include <algorithm>
 #include <random>
+#include <iostream>
 
 #include "benchmark/benchmark.h"
 #include "common/scoped_timer.h"
 #include "common/thread_cpu_timer.h"
+#include "common/perf_monitor.h"
 
 namespace terrier {
 
@@ -52,8 +54,10 @@ BENCHMARK_DEFINE_F(DiskBenchmark, SequentialRead)(benchmark::State &state) {
 
   // NOLINTNEXTLINE
   for (auto _ : state) {
+    common::PerfMonitor monitor;
     common::ThreadUsage usage;
     usage.Start();
+    monitor.StartEvents();
     char buffer[OPERATION_SIZE];
     file_ = open(path_, O_RDONLY);
     TERRIER_ASSERT(file_ >= 0, "File open failed.");
@@ -72,6 +76,12 @@ BENCHMARK_DEFINE_F(DiskBenchmark, SequentialRead)(benchmark::State &state) {
     auto ret UNUSED_ATTRIBUTE = close(file_);
     TERRIER_ASSERT(ret == 0, "File close failed.");
     usage.Stop();
+    monitor.StopEvents();
+    std::cout << monitor.CacheReferences() << std::endl;
+    std::cout << monitor.CacheMisses() << std::endl;
+    std::cout << monitor.BranchInstructions() << std::endl;
+    std::cout << monitor.BranchMisses() << std::endl;
+    std::cout << monitor.CPUCycles() << std::endl;
     blocks_read += usage.ElapsedDiskBlocks().read_blocks_;
     blocks_written += usage.ElapsedDiskBlocks().write_blocks_;
     state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
@@ -97,8 +107,10 @@ BENCHMARK_DEFINE_F(DiskBenchmark, RandomRead)(benchmark::State &state) {
 
   // NOLINTNEXTLINE
   for (auto _ : state) {
+    common::PerfMonitor monitor;
     common::ThreadUsage usage;
     usage.Start();
+    monitor.StartEvents();
     char buffer[OPERATION_SIZE];
     file_ = open(path_, O_RDONLY);
     TERRIER_ASSERT(file_ >= 0, "File open failed.");
@@ -123,6 +135,12 @@ BENCHMARK_DEFINE_F(DiskBenchmark, RandomRead)(benchmark::State &state) {
     auto ret UNUSED_ATTRIBUTE = close(file_);
     TERRIER_ASSERT(ret == 0, "File close failed.");
     usage.Stop();
+    monitor.StopEvents();
+    std::cout << monitor.CacheReferences() << std::endl;
+    std::cout << monitor.CacheMisses() << std::endl;
+    std::cout << monitor.BranchInstructions() << std::endl;
+    std::cout << monitor.BranchMisses() << std::endl;
+    std::cout << monitor.CPUCycles() << std::endl;
     blocks_read += usage.ElapsedDiskBlocks().read_blocks_;
     blocks_written += usage.ElapsedDiskBlocks().write_blocks_;
     state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
@@ -139,8 +157,10 @@ BENCHMARK_DEFINE_F(DiskBenchmark, SequentialWrite)(benchmark::State &state) {
 
   // NOLINTNEXTLINE
   for (auto _ : state) {
+    common::PerfMonitor monitor;
     common::ThreadUsage usage;
     usage.Start();
+    monitor.StartEvents();
     char buffer[OPERATION_SIZE];
     file_ = open(path_, O_WRONLY);
     TERRIER_ASSERT(file_ >= 0, "File open failed.");
@@ -160,6 +180,12 @@ BENCHMARK_DEFINE_F(DiskBenchmark, SequentialWrite)(benchmark::State &state) {
     auto ret UNUSED_ATTRIBUTE = close(file_);
     TERRIER_ASSERT(ret == 0, "File close failed.");
     usage.Stop();
+    monitor.StopEvents();
+    std::cout << monitor.CacheReferences() << std::endl;
+    std::cout << monitor.CacheMisses() << std::endl;
+    std::cout << monitor.BranchInstructions() << std::endl;
+    std::cout << monitor.BranchMisses() << std::endl;
+    std::cout << monitor.CPUCycles() << std::endl;
     blocks_read += usage.ElapsedDiskBlocks().read_blocks_;
     blocks_written += usage.ElapsedDiskBlocks().write_blocks_;
     state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
@@ -185,8 +211,10 @@ BENCHMARK_DEFINE_F(DiskBenchmark, RandomWrite)(benchmark::State &state) {
 
   // NOLINTNEXTLINE
   for (auto _ : state) {
+    common::PerfMonitor monitor;
     common::ThreadUsage usage;
     usage.Start();
+    monitor.StartEvents();
     char buffer[OPERATION_SIZE];
     file_ = open(path_, O_WRONLY);
     TERRIER_ASSERT(file_ >= 0, "File open failed.");
@@ -212,6 +240,12 @@ BENCHMARK_DEFINE_F(DiskBenchmark, RandomWrite)(benchmark::State &state) {
     auto ret UNUSED_ATTRIBUTE = close(file_);
     TERRIER_ASSERT(ret == 0, "File close failed.");
     usage.Stop();
+    monitor.StopEvents();
+    std::cout << monitor.CacheReferences() << std::endl;
+    std::cout << monitor.CacheMisses() << std::endl;
+    std::cout << monitor.BranchInstructions() << std::endl;
+    std::cout << monitor.BranchMisses() << std::endl;
+    std::cout << monitor.CPUCycles() << std::endl;
     blocks_read += usage.ElapsedDiskBlocks().read_blocks_;
     blocks_written += usage.ElapsedDiskBlocks().write_blocks_;
     state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
