@@ -3,31 +3,6 @@ language: cpp
 matrix:
   fast_finish: true
   include:
-    - os: osx
-      osx_image: xcode10.2
-      compiler: clang
-      env:
-        - NAME="macos-10.14/AppleClang-1001.0.46.4 (Debug/packages.sh)" CMAKE_BUILD_TYPE=debug
-      install:
-        - echo 'y' | ./script/installation/packages.sh
-        - export LLVM_DIR=/usr/local/Cellar/llvm@8/8.0.1
-    - os: linux
-      dist: trusty
-      env:
-        - NAME="ubuntu-18.04/gcc-7.3.0 (Debug/packages.sh)" CMAKE_BUILD_TYPE=debug DOCKER=true
-      install:
-        - docker pull ubuntu:18.04
-        - docker run -itd --name build ubuntu:18.04
-        - docker cp . build:/repo
-        - docker exec build /bin/sh -c "echo 'y' | /repo/script/installation/packages.sh"
-    - os: linux
-      dist: trusty
-      env:
-        - NAME="ubuntu-18.04/gcc-7.3.0 (Debug/Dockerfile)" CMAKE_BUILD_TYPE=debug DOCKER=true
-      install:
-        - docker build -t cmu-db/terrier .
-        - docker run -itd --name build cmu-db/terrier
-        - docker cp . build:/repo
     - os: linux
       dist: trusty
       env:
