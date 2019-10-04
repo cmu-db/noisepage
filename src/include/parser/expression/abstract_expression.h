@@ -257,6 +257,13 @@ class AbstractExpression {
   friend class binder::BindNodeVisitor;
   friend class optimizer::QueryToOperatorTransformer;
 
+  void SetChild(int index, common::ManagedPointer<AbstractExpression> expr) {
+    if (index >= (int)children_.size()) {
+      children_.resize(index + 1);
+    }
+    children_[index].reset(expr.Get());
+  }
+
   /** Type of the current expression */
   ExpressionType expression_type_;
   /** MUTABLE Name of the current expression */

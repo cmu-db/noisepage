@@ -17,9 +17,8 @@
 #include "transaction/deferred_action_manager.h"
 #include "transaction/transaction_manager.h"
 #include "util/test_harness.h"
-#include "util/transaction_benchmark_util.h"
+#include "util/data_table_benchmark_util.h"
 
-using std::make_shared;
 using std::make_tuple;
 
 using std::unique_ptr;
@@ -174,11 +173,11 @@ TEST_F(OperatorTransformerTest, SelectStatementSimpleTest) {
   std::string ref = "{\"Op\":\"LogicalGet\",}";
 
   auto parse_tree = parser_.BuildParseTree(selectSQL);
-  auto selectStmt = dynamic_cast<parser::SelectStatement *>(parse_tree.GetStatements()[0].get());
-  binder_->BindNameToNode(selectStmt, &parse_tree);
+  auto statement = parse_tree.GetStatements()[0];
+  binder_->BindNameToNode(statement, &parse_tree);
   auto accessor_ = binder_->GetCatalogAccessor();
   operator_transformer_ = new optimizer::QueryToOperatorTransformer(std::move(accessor_));
-  operator_tree_ = operator_transformer_->ConvertToOpExpression(selectStmt, &parse_tree);
+  operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, &parse_tree);
   auto info = GetInfo(operator_tree_);
 
   EXPECT_EQ(ref, info);
@@ -193,11 +192,11 @@ TEST_F(OperatorTransformerTest, InsertStatementSimpleTest) {
   std::string ref = "{\"Op\":\"LogicalInsert\",}";
 
   auto parse_tree = parser_.BuildParseTree(insertSQL);
-  auto insertStmt = dynamic_cast<parser::InsertStatement *>(parse_tree.GetStatements()[0].get());
-  binder_->BindNameToNode(insertStmt, &parse_tree);
+  auto statement = parse_tree.GetStatements()[0];
+  binder_->BindNameToNode(statement, &parse_tree);
   auto accessor_ = binder_->GetCatalogAccessor();
   operator_transformer_ = new optimizer::QueryToOperatorTransformer(std::move(accessor_));
-  operator_tree_ = operator_transformer_->ConvertToOpExpression(insertStmt, &parse_tree);
+  operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, &parse_tree);
   auto info = GetInfo(operator_tree_);
 
   EXPECT_EQ(ref, info);
@@ -215,11 +214,11 @@ TEST_F(OperatorTransformerTest, InsertStatementSelectTest) {
       "[{\"Op\":\"LogicalGet\",}]}]}";
 
   auto parse_tree = parser_.BuildParseTree(insertSQL);
-  auto insertStmt = dynamic_cast<parser::InsertStatement *>(parse_tree.GetStatements()[0].get());
-  binder_->BindNameToNode(insertStmt, &parse_tree);
+  auto statement = parse_tree.GetStatements()[0];
+  binder_->BindNameToNode(statement, &parse_tree);
   auto accessor_ = binder_->GetCatalogAccessor();
   operator_transformer_ = new optimizer::QueryToOperatorTransformer(std::move(accessor_));
-  operator_tree_ = operator_transformer_->ConvertToOpExpression(insertStmt, &parse_tree);
+  operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, &parse_tree);
   auto info = GetInfo(operator_tree_);
 
   EXPECT_EQ(ref, info);
@@ -236,11 +235,11 @@ TEST_F(OperatorTransformerTest, UpdateStatementSimpleTest) {
       "[{\"Op\":\"LogicalGet\",}]}";
 
   auto parse_tree = parser_.BuildParseTree(updateSQL);
-  auto updateStmt = dynamic_cast<parser::UpdateStatement *>(parse_tree.GetStatements()[0].get());
-  binder_->BindNameToNode(updateStmt, &parse_tree);
+  auto statement = parse_tree.GetStatements()[0];
+  binder_->BindNameToNode(statement, &parse_tree);
   auto accessor_ = binder_->GetCatalogAccessor();
   operator_transformer_ = new optimizer::QueryToOperatorTransformer(std::move(accessor_));
-  operator_tree_ = operator_transformer_->ConvertToOpExpression(updateStmt, &parse_tree);
+  operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, &parse_tree);
   auto info = GetInfo(operator_tree_);
 
   EXPECT_EQ(ref, info);
@@ -257,11 +256,11 @@ TEST_F(OperatorTransformerTest, SelectStatementAggregateTest) {
       "[{\"Op\":\"LogicalGet\",}]}";
 
   auto parse_tree = parser_.BuildParseTree(selectSQL);
-  auto selectStmt = dynamic_cast<parser::SelectStatement *>(parse_tree.GetStatements()[0].get());
-  binder_->BindNameToNode(selectStmt, &parse_tree);
+  auto statement = parse_tree.GetStatements()[0];
+  binder_->BindNameToNode(statement, &parse_tree);
   auto accessor_ = binder_->GetCatalogAccessor();
   operator_transformer_ = new optimizer::QueryToOperatorTransformer(std::move(accessor_));
-  operator_tree_ = operator_transformer_->ConvertToOpExpression(selectStmt, &parse_tree);
+  operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, &parse_tree);
   auto info = GetInfo(operator_tree_);
 
   EXPECT_EQ(ref, info);
@@ -279,11 +278,11 @@ TEST_F(OperatorTransformerTest, SelectStatementDistinctTest) {
       "[{\"Op\":\"LogicalGet\",}]}]}";
 
   auto parse_tree = parser_.BuildParseTree(selectSQL);
-  auto selectStmt = dynamic_cast<parser::SelectStatement *>(parse_tree.GetStatements()[0].get());
-  binder_->BindNameToNode(selectStmt, &parse_tree);
+  auto statement = parse_tree.GetStatements()[0];
+  binder_->BindNameToNode(statement, &parse_tree);
   auto accessor_ = binder_->GetCatalogAccessor();
   operator_transformer_ = new optimizer::QueryToOperatorTransformer(std::move(accessor_));
-  operator_tree_ = operator_transformer_->ConvertToOpExpression(selectStmt, &parse_tree);
+  operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, &parse_tree);
   auto info = GetInfo(operator_tree_);
 
   EXPECT_EQ(ref, info);
@@ -300,11 +299,11 @@ TEST_F(OperatorTransformerTest, SelectStatementOrderByTest) {
       "[{\"Op\":\"LogicalGet\",}]}";
 
   auto parse_tree = parser_.BuildParseTree(selectSQL);
-  auto selectStmt = dynamic_cast<parser::SelectStatement *>(parse_tree.GetStatements()[0].get());
-  binder_->BindNameToNode(selectStmt, &parse_tree);
+  auto statement = parse_tree.GetStatements()[0];
+  binder_->BindNameToNode(statement, &parse_tree);
   auto accessor_ = binder_->GetCatalogAccessor();
   operator_transformer_ = new optimizer::QueryToOperatorTransformer(std::move(accessor_));
-  operator_tree_ = operator_transformer_->ConvertToOpExpression(selectStmt, &parse_tree);
+  operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, &parse_tree);
   auto info = GetInfo(operator_tree_);
 
   EXPECT_EQ(ref, info);
@@ -326,11 +325,11 @@ TEST_F(OperatorTransformerTest, SelectStatementComplexTest) {
       "[{\"Op\":\"LogicalGet\",},{\"Op\":\"LogicalGet\",}]}]}]}]}";
 
   auto parse_tree = parser_.BuildParseTree(selectSQL);
-  auto selectStmt = dynamic_cast<parser::SelectStatement *>(parse_tree.GetStatements()[0].get());
-  binder_->BindNameToNode(selectStmt, &parse_tree);
+  auto statement = parse_tree.GetStatements()[0];
+  binder_->BindNameToNode(statement, &parse_tree);
   auto accessor_ = binder_->GetCatalogAccessor();
   operator_transformer_ = new optimizer::QueryToOperatorTransformer(std::move(accessor_));
-  operator_tree_ = operator_transformer_->ConvertToOpExpression(selectStmt, &parse_tree);
+  operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, &parse_tree);
   auto info = GetInfo(operator_tree_);
 
   EXPECT_EQ(ref, info);
@@ -348,11 +347,11 @@ TEST_F(OperatorTransformerTest, SelectStatementStarTest) {
       "[{\"Op\":\"LogicalGet\",},{\"Op\":\"LogicalGet\",}]}";
 
   auto parse_tree = parser_.BuildParseTree(selectSQL);
-  auto selectStmt = dynamic_cast<parser::SelectStatement *>(parse_tree.GetStatements()[0].get());
-  binder_->BindNameToNode(selectStmt, &parse_tree);
+  auto statement = parse_tree.GetStatements()[0];
+  binder_->BindNameToNode(statement, &parse_tree);
   auto accessor_ = binder_->GetCatalogAccessor();
   operator_transformer_ = new optimizer::QueryToOperatorTransformer(std::move(accessor_));
-  operator_tree_ = operator_transformer_->ConvertToOpExpression(selectStmt, &parse_tree);
+  operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, &parse_tree);
   auto info = GetInfo(operator_tree_);
 
   EXPECT_EQ(ref, info);
@@ -369,11 +368,11 @@ TEST_F(OperatorTransformerTest, SelectStatementRightJoinTest) {
       "[{\"Op\":\"LogicalGet\",},{\"Op\":\"LogicalGet\",}]}";
 
   auto parse_tree = parser_.BuildParseTree(selectSQL);
-  auto selectStmt = dynamic_cast<parser::SelectStatement *>(parse_tree.GetStatements()[0].get());
-  binder_->BindNameToNode(selectStmt, &parse_tree);
+  auto statement = parse_tree.GetStatements()[0];
+  binder_->BindNameToNode(statement, &parse_tree);
   auto accessor_ = binder_->GetCatalogAccessor();
   operator_transformer_ = new optimizer::QueryToOperatorTransformer(std::move(accessor_));
-  operator_tree_ = operator_transformer_->ConvertToOpExpression(selectStmt, &parse_tree);
+  operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, &parse_tree);
   auto info = GetInfo(operator_tree_);
 
   EXPECT_EQ(ref, info);
@@ -393,11 +392,11 @@ TEST_F(OperatorTransformerTest, SelectStatementMarkJoinTest) {
       "[{\"Op\":\"LogicalGet\",},{\"Op\":\"LogicalGet\",}]}]}]}]}";
 
   auto parse_tree = parser_.BuildParseTree(selectSQL);
-  auto selectStmt = dynamic_cast<parser::SelectStatement *>(parse_tree.GetStatements()[0].get());
-  binder_->BindNameToNode(selectStmt, &parse_tree);
+  auto statement = parse_tree.GetStatements()[0];
+  binder_->BindNameToNode(statement, &parse_tree);
   auto accessor_ = binder_->GetCatalogAccessor();
   operator_transformer_ = new optimizer::QueryToOperatorTransformer(std::move(accessor_));
-  operator_tree_ = operator_transformer_->ConvertToOpExpression(selectStmt, &parse_tree);
+  operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, &parse_tree);
   auto info = GetInfo(operator_tree_);
 
   EXPECT_EQ(ref, info);
@@ -419,11 +418,11 @@ TEST_F(OperatorTransformerTest, SelectStatementStarNestedSelectTest) {
       "[{\"Op\":\"LogicalGet\",},{\"Op\":\"LogicalGet\",}]}]}]}]}";
 
   auto parse_tree = parser_.BuildParseTree(selectSQL);
-  auto selectStmt = dynamic_cast<parser::SelectStatement *>(parse_tree.GetStatements()[0].get());
-  binder_->BindNameToNode(selectStmt, &parse_tree);
+  auto statement = parse_tree.GetStatements()[0];
+  binder_->BindNameToNode(statement, &parse_tree);
   auto accessor_ = binder_->GetCatalogAccessor();
   operator_transformer_ = new optimizer::QueryToOperatorTransformer(std::move(accessor_));
-  operator_tree_ = operator_transformer_->ConvertToOpExpression(selectStmt, &parse_tree);
+  operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, &parse_tree);
   auto info = GetInfo(operator_tree_);
 
   EXPECT_EQ(ref, info);
@@ -439,11 +438,11 @@ TEST_F(OperatorTransformerTest, SelectStatementNestedColumnTest) {
   std::string ref = "{\"Op\":\"LogicalGet\",}";
 
   auto parse_tree = parser_.BuildParseTree(selectSQL);
-  auto selectStmt = dynamic_cast<parser::SelectStatement *>(parse_tree.GetStatements()[0].get());
-  binder_->BindNameToNode(selectStmt, &parse_tree);
+  auto statement = parse_tree.GetStatements()[0];
+  binder_->BindNameToNode(statement, &parse_tree);
   auto accessor_ = binder_->GetCatalogAccessor();
   operator_transformer_ = new optimizer::QueryToOperatorTransformer(std::move(accessor_));
-  operator_tree_ = operator_transformer_->ConvertToOpExpression(selectStmt, &parse_tree);
+  operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, &parse_tree);
   auto info = GetInfo(operator_tree_);
 
   EXPECT_EQ(ref, info);
@@ -461,11 +460,11 @@ TEST_F(OperatorTransformerTest, SelectStatementDiffTableSameSchemaTest) {
       "[{\"Op\":\"LogicalGet\",},{\"Op\":\"LogicalGet\",}]},{\"Op\":\"LogicalGet\",}]}]}";
 
   auto parse_tree = parser_.BuildParseTree(selectSQL);
-  auto selectStmt = dynamic_cast<parser::SelectStatement *>(parse_tree.GetStatements()[0].get());
-  binder_->BindNameToNode(selectStmt, &parse_tree);
+  auto statement = parse_tree.GetStatements()[0];
+  binder_->BindNameToNode(statement, &parse_tree);
   auto accessor_ = binder_->GetCatalogAccessor();
   operator_transformer_ = new optimizer::QueryToOperatorTransformer(std::move(accessor_));
-  operator_tree_ = operator_transformer_->ConvertToOpExpression(selectStmt, &parse_tree);
+  operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, &parse_tree);
   auto info = GetInfo(operator_tree_);
 
   EXPECT_EQ(ref, info);
@@ -485,11 +484,11 @@ TEST_F(OperatorTransformerTest, SelectStatementSelectListAliasTest) {
       "[{\"Op\":\"LogicalGet\",},{\"Op\":\"LogicalGet\",}]},{\"Op\":\"LogicalGet\",}]}]}";
 
   auto parse_tree = parser_.BuildParseTree(selectSQL);
-  auto selectStmt = dynamic_cast<parser::SelectStatement *>(parse_tree.GetStatements()[0].get());
-  binder_->BindNameToNode(selectStmt, &parse_tree);
+  auto statement = parse_tree.GetStatements()[0];
+  binder_->BindNameToNode(statement, &parse_tree);
   auto accessor_ = binder_->GetCatalogAccessor();
   operator_transformer_ = new optimizer::QueryToOperatorTransformer(std::move(accessor_));
-  operator_tree_ = operator_transformer_->ConvertToOpExpression(selectStmt, &parse_tree);
+  operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, &parse_tree);
   auto info = GetInfo(operator_tree_);
 
   EXPECT_EQ(ref, info);
@@ -507,11 +506,11 @@ TEST_F(OperatorTransformerTest, DeleteStatementWhereTest) {
       "{\"Op\":\"LogicalDelete\",\"Children\":"
       "[{\"Op\":\"LogicalGet\",}]}";
   auto parse_tree = parser_.BuildParseTree(deleteSQL);
-  auto deleteStmt = dynamic_cast<parser::DeleteStatement *>(parse_tree.GetStatements()[0].get());
-  binder_->BindNameToNode(deleteStmt, &parse_tree);
+  auto statement = parse_tree.GetStatements()[0];
+  binder_->BindNameToNode(statement, &parse_tree);
   auto accessor_ = binder_->GetCatalogAccessor();
   operator_transformer_ = new optimizer::QueryToOperatorTransformer(std::move(accessor_));
-  operator_tree_ = operator_transformer_->ConvertToOpExpression(deleteStmt, &parse_tree);
+  operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, &parse_tree);
   auto info = GetInfo(operator_tree_);
 
   EXPECT_EQ(ref, info);
@@ -529,11 +528,11 @@ TEST_F(OperatorTransformerTest, AggregateSimpleTest) {
       "[{\"Op\":\"LogicalGet\",}]}";
 
   auto parse_tree = parser_.BuildParseTree(selectSQL);
-  auto selectStmt = dynamic_cast<parser::SelectStatement *>(parse_tree.GetStatements()[0].get());
-  binder_->BindNameToNode(selectStmt, &parse_tree);
+  auto statement = parse_tree.GetStatements()[0];
+  binder_->BindNameToNode(statement, &parse_tree);
   auto accessor_ = binder_->GetCatalogAccessor();
   operator_transformer_ = new optimizer::QueryToOperatorTransformer(std::move(accessor_));
-  operator_tree_ = operator_transformer_->ConvertToOpExpression(selectStmt, &parse_tree);
+  operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, &parse_tree);
   auto info = GetInfo(operator_tree_);
 
   EXPECT_EQ(ref, info);
@@ -553,11 +552,11 @@ TEST_F(OperatorTransformerTest, AggregateComplexTest) {
       "[{\"Op\":\"LogicalGet\",}]}]}]}";
 
   auto parse_tree = parser_.BuildParseTree(selectSQL);
-  auto selectStmt = dynamic_cast<parser::SelectStatement *>(parse_tree.GetStatements()[0].get());
-  binder_->BindNameToNode(selectStmt, &parse_tree);
+  auto statement = parse_tree.GetStatements()[0];
+  binder_->BindNameToNode(statement, &parse_tree);
   auto accessor_ = binder_->GetCatalogAccessor();
   operator_transformer_ = new optimizer::QueryToOperatorTransformer(std::move(accessor_));
-  operator_tree_ = operator_transformer_->ConvertToOpExpression(selectStmt, &parse_tree);
+  operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, &parse_tree);
   auto info = GetInfo(operator_tree_);
 
   EXPECT_EQ(ref, info);
@@ -576,11 +575,11 @@ TEST_F(OperatorTransformerTest, OperatorComplexTest) {
       "[{\"Op\":\"LogicalGet\",},{\"Op\":\"LogicalGet\",}]}]}";
 
   auto parse_tree = parser_.BuildParseTree(selectSQL);
-  auto selectStmt = dynamic_cast<parser::SelectStatement *>(parse_tree.GetStatements()[0].get());
-  binder_->BindNameToNode(selectStmt, &parse_tree);
+  auto statement = parse_tree.GetStatements()[0];
+  binder_->BindNameToNode(statement, &parse_tree);
   auto accessor_ = binder_->GetCatalogAccessor();
   operator_transformer_ = new optimizer::QueryToOperatorTransformer(std::move(accessor_));
-  operator_tree_ = operator_transformer_->ConvertToOpExpression(selectStmt, &parse_tree);
+  operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, &parse_tree);
   auto info = GetInfo(operator_tree_);
 
   EXPECT_EQ(ref, info);
@@ -606,11 +605,11 @@ TEST_F(OperatorTransformerTest, SubqueryComplexTest) {
       "[{\"Op\":\"LogicalGet\",}]}]}]}";
 
   auto parse_tree = parser_.BuildParseTree(selectSQL);
-  auto selectStmt = dynamic_cast<parser::SelectStatement *>(parse_tree.GetStatements()[0].get());
-  binder_->BindNameToNode(selectStmt, &parse_tree);
+  auto statement = parse_tree.GetStatements()[0];
+  binder_->BindNameToNode(statement, &parse_tree);
   auto accessor_ = binder_->GetCatalogAccessor();
   operator_transformer_ = new optimizer::QueryToOperatorTransformer(std::move(accessor_));
-  operator_tree_ = operator_transformer_->ConvertToOpExpression(selectStmt, &parse_tree);
+  operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, &parse_tree);
   auto info = GetInfo(operator_tree_);
 
   EXPECT_EQ(ref, info);
