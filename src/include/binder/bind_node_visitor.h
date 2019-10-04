@@ -46,7 +46,7 @@ class BindNodeVisitor : public SqlNodeVisitor {
    * For example, bind the corresponding database oid to an expression, which has a database name
    * @param tree Parsed in AST tree of the SQL statement
    */
-  void BindNameToNode(parser::SQLStatement *tree, parser::ParseResult *parse_result);
+  void BindNameToNode(common::ManagedPointer<parser::SQLStatement> tree, parser::ParseResult *parse_result);
   void Visit(parser::SelectStatement *node, parser::ParseResult *parse_result) override;
 
   /**

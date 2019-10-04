@@ -29,7 +29,7 @@ QueryToOperatorTransformer::QueryToOperatorTransformer(std::unique_ptr<catalog::
   output_expr_ = nullptr;
 }
 
-OperatorExpression *QueryToOperatorTransformer::ConvertToOpExpression(parser::SQLStatement *op,
+OperatorExpression *QueryToOperatorTransformer::ConvertToOpExpression(common::ManagedPointer<parser::SQLStatement> op,
                                                                       parser::ParseResult *parse_result) {
   output_expr_ = nullptr;
   op->Accept(this, parse_result);
@@ -200,7 +200,7 @@ void QueryToOperatorTransformer::Visit(parser::TableRef *node, parser::ParseResu
     output_expr_ = prev_expr;
   } else {
     // Single table
-    if (node->GetList().size() == 1) node = node->GetList().at(0).get();
+    if (node->GetList().size() == 1) node = node->GetList().at(0).Get();
 
     // TODO(Ling): how should we determine the value of `is_for_update` field of logicalGet constructor?
     output_expr_ = new OperatorExpression(
@@ -341,7 +341,7 @@ void QueryToOperatorTransformer::Visit(parser::UpdateStatement *op, parser::Pars
   OperatorExpression *table_scan;
 
   auto update_expr = new OperatorExpression(
-      LogicalUpdate::Make(target_db_id, target_ns_id, target_table_id, std::move(op->GetUpdateClauses())), {});
+      LogicalUpdate::Make(target_db_id, target_ns_id, target_table_id, op->GetUpdateClauses()), {});
 
   if (op->GetUpdateCondition() != nullptr) {
     std::vector<AnnotatedExpression> predicates = ExtractPredicates(op->GetUpdateCondition());

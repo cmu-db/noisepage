@@ -25,7 +25,6 @@ void BinderContext::AddRegularTable(const std::unique_ptr<catalog::CatalogAccess
                                     const std::string &table_alias) {
   auto db_id = accessor->GetDatabaseOid(db_name);
   auto table_id = accessor->GetTableOid(table_name);
-
   auto schema = accessor->GetSchema(table_id);
 
   if (nested_table_alias_map_.find(table_alias) != nested_table_alias_map_.end()) {
