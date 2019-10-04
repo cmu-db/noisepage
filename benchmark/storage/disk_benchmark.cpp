@@ -1,13 +1,13 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <algorithm>
-#include <random>
 #include <iostream>
+#include <random>
 
 #include "benchmark/benchmark.h"
+#include "common/perf_monitor.h"
 #include "common/scoped_timer.h"
 #include "common/thread_cpu_timer.h"
-#include "common/perf_monitor.h"
 
 namespace terrier {
 
@@ -57,7 +57,7 @@ BENCHMARK_DEFINE_F(DiskBenchmark, SequentialRead)(benchmark::State &state) {
     common::PerfMonitor monitor;
     common::ThreadUsage usage;
     usage.Start();
-    monitor.StartEvents();
+    monitor.Start();
     char buffer[OPERATION_SIZE];
     file_ = open(path_, O_RDONLY);
     TERRIER_ASSERT(file_ >= 0, "File open failed.");
@@ -76,12 +76,21 @@ BENCHMARK_DEFINE_F(DiskBenchmark, SequentialRead)(benchmark::State &state) {
     auto ret UNUSED_ATTRIBUTE = close(file_);
     TERRIER_ASSERT(ret == 0, "File close failed.");
     usage.Stop();
-    monitor.StopEvents();
-    std::cout << monitor.CacheReferences() << std::endl;
-    std::cout << monitor.CacheMisses() << std::endl;
-    std::cout << monitor.BranchInstructions() << std::endl;
-    std::cout << monitor.BranchMisses() << std::endl;
-    std::cout << monitor.CPUCycles() << std::endl;
+    monitor.Stop();
+
+    const auto counters = monitor.ReadCounters();
+    std::cout << "CPU cycles: " << counters.cpu_cycles_ << std::endl;
+    std::cout << "Instructions: " << counters.instructions_ << std::endl;
+    std::cout << "Cache references: " << counters.cache_references_ << std::endl;
+    std::cout << "Cache misses: " << counters.cache_misses_ << std::endl;
+    std::cout << "Branch instructions" << counters.branch_instructions_ << std::endl;
+    std::cout << "Branch misses: " << counters.branch_misses_ << std::endl;
+    std::cout << "Bus cycles:: " << counters.bus_cycles_ << std::endl;
+    std::cout << "Reference CPU cycles: " << counters.ref_cpu_cycles_ << std::endl << std::endl;
+
+    std::cout << "User time: " << usage.ElapsedCPUTime().user_time_us_ << std::endl;
+    std::cout << "Kernel time: " << usage.ElapsedCPUTime().system_time_us_ << std::endl << std::endl;
+
     blocks_read += usage.ElapsedDiskBlocks().read_blocks_;
     blocks_written += usage.ElapsedDiskBlocks().write_blocks_;
     state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
@@ -110,7 +119,7 @@ BENCHMARK_DEFINE_F(DiskBenchmark, RandomRead)(benchmark::State &state) {
     common::PerfMonitor monitor;
     common::ThreadUsage usage;
     usage.Start();
-    monitor.StartEvents();
+    monitor.Start();
     char buffer[OPERATION_SIZE];
     file_ = open(path_, O_RDONLY);
     TERRIER_ASSERT(file_ >= 0, "File open failed.");
@@ -135,12 +144,20 @@ BENCHMARK_DEFINE_F(DiskBenchmark, RandomRead)(benchmark::State &state) {
     auto ret UNUSED_ATTRIBUTE = close(file_);
     TERRIER_ASSERT(ret == 0, "File close failed.");
     usage.Stop();
-    monitor.StopEvents();
-    std::cout << monitor.CacheReferences() << std::endl;
-    std::cout << monitor.CacheMisses() << std::endl;
-    std::cout << monitor.BranchInstructions() << std::endl;
-    std::cout << monitor.BranchMisses() << std::endl;
-    std::cout << monitor.CPUCycles() << std::endl;
+    monitor.Stop();
+    const auto counters = monitor.ReadCounters();
+    std::cout << "CPU cycles: " << counters.cpu_cycles_ << std::endl;
+    std::cout << "Instructions: " << counters.instructions_ << std::endl;
+    std::cout << "Cache references: " << counters.cache_references_ << std::endl;
+    std::cout << "Cache misses: " << counters.cache_misses_ << std::endl;
+    std::cout << "Branch instructions" << counters.branch_instructions_ << std::endl;
+    std::cout << "Branch misses: " << counters.branch_misses_ << std::endl;
+    std::cout << "Bus cycles:: " << counters.bus_cycles_ << std::endl;
+    std::cout << "Reference CPU cycles: " << counters.ref_cpu_cycles_ << std::endl << std::endl;
+
+    std::cout << "User time: " << usage.ElapsedCPUTime().user_time_us_ << std::endl;
+    std::cout << "Kernel time: " << usage.ElapsedCPUTime().system_time_us_ << std::endl << std::endl;
+
     blocks_read += usage.ElapsedDiskBlocks().read_blocks_;
     blocks_written += usage.ElapsedDiskBlocks().write_blocks_;
     state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
@@ -160,7 +177,7 @@ BENCHMARK_DEFINE_F(DiskBenchmark, SequentialWrite)(benchmark::State &state) {
     common::PerfMonitor monitor;
     common::ThreadUsage usage;
     usage.Start();
-    monitor.StartEvents();
+    monitor.Start();
     char buffer[OPERATION_SIZE];
     file_ = open(path_, O_WRONLY);
     TERRIER_ASSERT(file_ >= 0, "File open failed.");
@@ -180,12 +197,21 @@ BENCHMARK_DEFINE_F(DiskBenchmark, SequentialWrite)(benchmark::State &state) {
     auto ret UNUSED_ATTRIBUTE = close(file_);
     TERRIER_ASSERT(ret == 0, "File close failed.");
     usage.Stop();
-    monitor.StopEvents();
-    std::cout << monitor.CacheReferences() << std::endl;
-    std::cout << monitor.CacheMisses() << std::endl;
-    std::cout << monitor.BranchInstructions() << std::endl;
-    std::cout << monitor.BranchMisses() << std::endl;
-    std::cout << monitor.CPUCycles() << std::endl;
+    monitor.Stop();
+
+    const auto counters = monitor.ReadCounters();
+    std::cout << "CPU cycles: " << counters.cpu_cycles_ << std::endl;
+    std::cout << "Instructions: " << counters.instructions_ << std::endl;
+    std::cout << "Cache references: " << counters.cache_references_ << std::endl;
+    std::cout << "Cache misses: " << counters.cache_misses_ << std::endl;
+    std::cout << "Branch instructions" << counters.branch_instructions_ << std::endl;
+    std::cout << "Branch misses: " << counters.branch_misses_ << std::endl;
+    std::cout << "Bus cycles:: " << counters.bus_cycles_ << std::endl;
+    std::cout << "Reference CPU cycles: " << counters.ref_cpu_cycles_ << std::endl << std::endl;
+
+    std::cout << "User time: " << usage.ElapsedCPUTime().user_time_us_ << std::endl;
+    std::cout << "Kernel time: " << usage.ElapsedCPUTime().system_time_us_ << std::endl << std::endl;
+
     blocks_read += usage.ElapsedDiskBlocks().read_blocks_;
     blocks_written += usage.ElapsedDiskBlocks().write_blocks_;
     state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
@@ -214,7 +240,7 @@ BENCHMARK_DEFINE_F(DiskBenchmark, RandomWrite)(benchmark::State &state) {
     common::PerfMonitor monitor;
     common::ThreadUsage usage;
     usage.Start();
-    monitor.StartEvents();
+    monitor.Start();
     char buffer[OPERATION_SIZE];
     file_ = open(path_, O_WRONLY);
     TERRIER_ASSERT(file_ >= 0, "File open failed.");
@@ -240,12 +266,21 @@ BENCHMARK_DEFINE_F(DiskBenchmark, RandomWrite)(benchmark::State &state) {
     auto ret UNUSED_ATTRIBUTE = close(file_);
     TERRIER_ASSERT(ret == 0, "File close failed.");
     usage.Stop();
-    monitor.StopEvents();
-    std::cout << monitor.CacheReferences() << std::endl;
-    std::cout << monitor.CacheMisses() << std::endl;
-    std::cout << monitor.BranchInstructions() << std::endl;
-    std::cout << monitor.BranchMisses() << std::endl;
-    std::cout << monitor.CPUCycles() << std::endl;
+    monitor.Stop();
+
+    const auto counters = monitor.ReadCounters();
+    std::cout << "CPU cycles: " << counters.cpu_cycles_ << std::endl;
+    std::cout << "Instructions: " << counters.instructions_ << std::endl;
+    std::cout << "Cache references: " << counters.cache_references_ << std::endl;
+    std::cout << "Cache misses: " << counters.cache_misses_ << std::endl;
+    std::cout << "Branch instructions" << counters.branch_instructions_ << std::endl;
+    std::cout << "Branch misses: " << counters.branch_misses_ << std::endl;
+    std::cout << "Bus cycles:: " << counters.bus_cycles_ << std::endl;
+    std::cout << "Reference CPU cycles: " << counters.ref_cpu_cycles_ << std::endl << std::endl;
+
+    std::cout << "User time: " << usage.ElapsedCPUTime().user_time_us_ << std::endl;
+    std::cout << "Kernel time: " << usage.ElapsedCPUTime().system_time_us_ << std::endl << std::endl;
+
     blocks_read += usage.ElapsedDiskBlocks().read_blocks_;
     blocks_written += usage.ElapsedDiskBlocks().write_blocks_;
     state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);

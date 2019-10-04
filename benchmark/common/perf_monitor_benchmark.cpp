@@ -17,8 +17,8 @@ BENCHMARK_DEFINE_F(PerfMonitorBenchmarks, PerfMonitor)(benchmark::State &state) 
   common::PerfMonitor monitor;
   // NOLINTNEXTLINE
   for (auto _ : state) {
-    monitor.StartEvents();
-    monitor.StopEvents();
+    monitor.Start();
+    monitor.Stop();
   }
   state.SetItemsProcessed(state.iterations());
 }
@@ -28,12 +28,25 @@ BENCHMARK_DEFINE_F(PerfMonitorBenchmarks, PerfMonitorWithConstruction)(benchmark
   // NOLINTNEXTLINE
   for (auto _ : state) {
     common::PerfMonitor monitor;
-    monitor.StartEvents();
-    monitor.StopEvents();
+    monitor.Start();
+    monitor.Stop();
   }
+  state.SetItemsProcessed(state.iterations());
+}
+
+// NOLINTNEXTLINE
+BENCHMARK_DEFINE_F(PerfMonitorBenchmarks, Read)(benchmark::State &state) {
+  common::PerfMonitor monitor;
+  monitor.Start();
+  // NOLINTNEXTLINE
+  for (auto _ : state) {
+    monitor.ReadCounters();
+  }
+  monitor.Stop();
   state.SetItemsProcessed(state.iterations());
 }
 
 BENCHMARK_REGISTER_F(PerfMonitorBenchmarks, PerfMonitor);
 BENCHMARK_REGISTER_F(PerfMonitorBenchmarks, PerfMonitorWithConstruction);
+BENCHMARK_REGISTER_F(PerfMonitorBenchmarks, Read);
 }  // namespace terrier
