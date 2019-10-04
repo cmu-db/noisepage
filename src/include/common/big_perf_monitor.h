@@ -19,22 +19,14 @@ class BigPerfMonitor {
     pe.type = PERF_TYPE_HARDWARE;
     pe.size = sizeof(perf_event_attr);
     pe.disabled = 1;
-//    pe.exclude_kernel = 1;
-//    pe.exclude_hv = 1;
+    pe.exclude_kernel = 1;
+    pe.exclude_hv = 1;
     pe.read_format = PERF_FORMAT_GROUP;
 
     for (uint8_t i = 0; i < NUM_HW_EVENTS; i++) {
       pe.config = HW_EVENTS[i];
       event_files_[i] = syscall(__NR_perf_event_open, &pe, 0, -1, event_files_[0], 0);
       TERRIER_ASSERT(event_files_[i] > 0, "Failed to open perf_event.");
-    }
-
-    pe.type = PERF_TYPE_HW_CACHE;
-    for (uint8_t i = 0; i < NUM_CACHE_EVENTS; i++) {
-      pe.config = CACHE_EVENTS[i];
-      event_files_[i + NUM_HW_EVENTS] = syscall(__NR_perf_event_open, &pe, 0, -1, event_files_[0], 0);
-      if (event_files_[i + NUM_HW_EVENTS] == -1) std::cout << static_cast<uint32_t>(i) <<  std::endl;
-//      TERRIER_ASSERT(event_files_[i + NUM_HW_EVENTS] > 0, "Failed to open perf_event.");
     }
   }
 
@@ -62,67 +54,29 @@ class BigPerfMonitor {
     std::memset(&rf_, 0, sizeof(ReadFormat));
     const auto bytes_read UNUSED_ATTRIBUTE = read(event_files_[0], &rf_, sizeof(ReadFormat));
     TERRIER_ASSERT(bytes_read == sizeof(ReadFormat), "Failed to read the entire struct.");
-    TERRIER_ASSERT(rf_.num_events_ == NUM_HW_EVENTS + NUM_CACHE_EVENTS, "Failed to read the correct number of events.");
+    TERRIER_ASSERT(rf_.num_events_ == NUM_HW_EVENTS, "Failed to read the correct number of events.");
     running_ = false;
   }
 
  private:
-  static constexpr uint8_t NUM_HW_EVENTS = 5;
-  static constexpr uint8_t NUM_CACHE_EVENTS = 42;
-  std::array<int32_t, NUM_HW_EVENTS + NUM_CACHE_EVENTS> event_files_{-1};
+  static constexpr uint8_t NUM_HW_EVENTS = 10;
+  std::array<int32_t, NUM_HW_EVENTS> event_files_{-1};
   bool running_ = false;
 
   struct ReadFormat {
     uint64_t num_events_;
-    uint64_t event_values_[NUM_HW_EVENTS + NUM_CACHE_EVENTS];
+    uint64_t event_values_[NUM_HW_EVENTS];
   } rf_;
 
-  static constexpr std::array<uint64_t, NUM_HW_EVENTS> HW_EVENTS{
-      PERF_COUNT_HW_CACHE_REFERENCES, PERF_COUNT_HW_CACHE_MISSES, PERF_COUNT_HW_BRANCH_INSTRUCTIONS,
-      PERF_COUNT_HW_BRANCH_MISSES, PERF_COUNT_HW_REF_CPU_CYCLES};
-
-  static constexpr std::array<uint64_t, NUM_CACHE_EVENTS> CACHE_EVENTS{
-      (PERF_COUNT_HW_CACHE_L1D) | (PERF_COUNT_HW_CACHE_OP_READ << 8) | (PERF_COUNT_HW_CACHE_RESULT_ACCESS << 16),
-      (PERF_COUNT_HW_CACHE_L1D) | (PERF_COUNT_HW_CACHE_OP_READ << 8) | (PERF_COUNT_HW_CACHE_RESULT_MISS << 16),
-      (PERF_COUNT_HW_CACHE_L1D) | (PERF_COUNT_HW_CACHE_OP_WRITE << 8) | (PERF_COUNT_HW_CACHE_RESULT_ACCESS << 16),
-      (PERF_COUNT_HW_CACHE_L1D) | (PERF_COUNT_HW_CACHE_OP_WRITE << 8) | (PERF_COUNT_HW_CACHE_RESULT_MISS << 16),
-      (PERF_COUNT_HW_CACHE_L1D) | (PERF_COUNT_HW_CACHE_OP_PREFETCH << 8) | (PERF_COUNT_HW_CACHE_RESULT_ACCESS << 16),
-      (PERF_COUNT_HW_CACHE_L1D) | (PERF_COUNT_HW_CACHE_OP_PREFETCH << 8) | (PERF_COUNT_HW_CACHE_RESULT_MISS << 16),
-      (PERF_COUNT_HW_CACHE_L1I) | (PERF_COUNT_HW_CACHE_OP_READ << 8) | (PERF_COUNT_HW_CACHE_RESULT_ACCESS << 16),
-      (PERF_COUNT_HW_CACHE_L1I) | (PERF_COUNT_HW_CACHE_OP_READ << 8) | (PERF_COUNT_HW_CACHE_RESULT_MISS << 16),
-      (PERF_COUNT_HW_CACHE_L1I) | (PERF_COUNT_HW_CACHE_OP_WRITE << 8) | (PERF_COUNT_HW_CACHE_RESULT_ACCESS << 16),
-      (PERF_COUNT_HW_CACHE_L1I) | (PERF_COUNT_HW_CACHE_OP_WRITE << 8) | (PERF_COUNT_HW_CACHE_RESULT_MISS << 16),
-      (PERF_COUNT_HW_CACHE_L1I) | (PERF_COUNT_HW_CACHE_OP_PREFETCH << 8) | (PERF_COUNT_HW_CACHE_RESULT_ACCESS << 16),
-      (PERF_COUNT_HW_CACHE_L1I) | (PERF_COUNT_HW_CACHE_OP_PREFETCH << 8) | (PERF_COUNT_HW_CACHE_RESULT_MISS << 16),
-      (PERF_COUNT_HW_CACHE_LL) | (PERF_COUNT_HW_CACHE_OP_READ << 8) | (PERF_COUNT_HW_CACHE_RESULT_ACCESS << 16),
-      (PERF_COUNT_HW_CACHE_LL) | (PERF_COUNT_HW_CACHE_OP_READ << 8) | (PERF_COUNT_HW_CACHE_RESULT_MISS << 16),
-      (PERF_COUNT_HW_CACHE_LL) | (PERF_COUNT_HW_CACHE_OP_WRITE << 8) | (PERF_COUNT_HW_CACHE_RESULT_ACCESS << 16),
-      (PERF_COUNT_HW_CACHE_LL) | (PERF_COUNT_HW_CACHE_OP_WRITE << 8) | (PERF_COUNT_HW_CACHE_RESULT_MISS << 16),
-      (PERF_COUNT_HW_CACHE_LL) | (PERF_COUNT_HW_CACHE_OP_PREFETCH << 8) | (PERF_COUNT_HW_CACHE_RESULT_ACCESS << 16),
-      (PERF_COUNT_HW_CACHE_LL) | (PERF_COUNT_HW_CACHE_OP_PREFETCH << 8) | (PERF_COUNT_HW_CACHE_RESULT_MISS << 16),
-      (PERF_COUNT_HW_CACHE_DTLB) | (PERF_COUNT_HW_CACHE_OP_READ << 8) | (PERF_COUNT_HW_CACHE_RESULT_ACCESS << 16),
-      (PERF_COUNT_HW_CACHE_DTLB) | (PERF_COUNT_HW_CACHE_OP_READ << 8) | (PERF_COUNT_HW_CACHE_RESULT_MISS << 16),
-      (PERF_COUNT_HW_CACHE_DTLB) | (PERF_COUNT_HW_CACHE_OP_WRITE << 8) | (PERF_COUNT_HW_CACHE_RESULT_ACCESS << 16),
-      (PERF_COUNT_HW_CACHE_DTLB) | (PERF_COUNT_HW_CACHE_OP_WRITE << 8) | (PERF_COUNT_HW_CACHE_RESULT_MISS << 16),
-      (PERF_COUNT_HW_CACHE_DTLB) | (PERF_COUNT_HW_CACHE_OP_PREFETCH << 8) | (PERF_COUNT_HW_CACHE_RESULT_ACCESS << 16),
-      (PERF_COUNT_HW_CACHE_DTLB) | (PERF_COUNT_HW_CACHE_OP_PREFETCH << 8) | (PERF_COUNT_HW_CACHE_RESULT_MISS << 16),
-      (PERF_COUNT_HW_CACHE_ITLB) | (PERF_COUNT_HW_CACHE_OP_READ << 8) | (PERF_COUNT_HW_CACHE_RESULT_ACCESS << 16),
-      (PERF_COUNT_HW_CACHE_ITLB) | (PERF_COUNT_HW_CACHE_OP_READ << 8) | (PERF_COUNT_HW_CACHE_RESULT_MISS << 16),
-      (PERF_COUNT_HW_CACHE_ITLB) | (PERF_COUNT_HW_CACHE_OP_WRITE << 8) | (PERF_COUNT_HW_CACHE_RESULT_ACCESS << 16),
-      (PERF_COUNT_HW_CACHE_ITLB) | (PERF_COUNT_HW_CACHE_OP_WRITE << 8) | (PERF_COUNT_HW_CACHE_RESULT_MISS << 16),
-      (PERF_COUNT_HW_CACHE_ITLB) | (PERF_COUNT_HW_CACHE_OP_PREFETCH << 8) | (PERF_COUNT_HW_CACHE_RESULT_ACCESS << 16),
-      (PERF_COUNT_HW_CACHE_ITLB) | (PERF_COUNT_HW_CACHE_OP_PREFETCH << 8) | (PERF_COUNT_HW_CACHE_RESULT_MISS << 16),
-      (PERF_COUNT_HW_CACHE_BPU) | (PERF_COUNT_HW_CACHE_OP_READ << 8) | (PERF_COUNT_HW_CACHE_RESULT_ACCESS << 16),
-      (PERF_COUNT_HW_CACHE_BPU) | (PERF_COUNT_HW_CACHE_OP_READ << 8) | (PERF_COUNT_HW_CACHE_RESULT_MISS << 16),
-      (PERF_COUNT_HW_CACHE_BPU) | (PERF_COUNT_HW_CACHE_OP_WRITE << 8) | (PERF_COUNT_HW_CACHE_RESULT_ACCESS << 16),
-      (PERF_COUNT_HW_CACHE_BPU) | (PERF_COUNT_HW_CACHE_OP_WRITE << 8) | (PERF_COUNT_HW_CACHE_RESULT_MISS << 16),
-      (PERF_COUNT_HW_CACHE_BPU) | (PERF_COUNT_HW_CACHE_OP_PREFETCH << 8) | (PERF_COUNT_HW_CACHE_RESULT_ACCESS << 16),
-      (PERF_COUNT_HW_CACHE_BPU) | (PERF_COUNT_HW_CACHE_OP_PREFETCH << 8) | (PERF_COUNT_HW_CACHE_RESULT_MISS << 16),
-      (PERF_COUNT_HW_CACHE_NODE) | (PERF_COUNT_HW_CACHE_OP_READ << 8) | (PERF_COUNT_HW_CACHE_RESULT_ACCESS << 16),
-      (PERF_COUNT_HW_CACHE_NODE) | (PERF_COUNT_HW_CACHE_OP_READ << 8) | (PERF_COUNT_HW_CACHE_RESULT_MISS << 16),
-      (PERF_COUNT_HW_CACHE_NODE) | (PERF_COUNT_HW_CACHE_OP_WRITE << 8) | (PERF_COUNT_HW_CACHE_RESULT_ACCESS << 16),
-      (PERF_COUNT_HW_CACHE_NODE) | (PERF_COUNT_HW_CACHE_OP_WRITE << 8) | (PERF_COUNT_HW_CACHE_RESULT_MISS << 16),
-      (PERF_COUNT_HW_CACHE_NODE) | (PERF_COUNT_HW_CACHE_OP_PREFETCH << 8) | (PERF_COUNT_HW_CACHE_RESULT_ACCESS << 16),
-      (PERF_COUNT_HW_CACHE_NODE) | (PERF_COUNT_HW_CACHE_OP_PREFETCH << 8) | (PERF_COUNT_HW_CACHE_RESULT_MISS << 16)};
+  static constexpr std::array<uint64_t, NUM_HW_EVENTS> HW_EVENTS{PERF_COUNT_HW_CPU_CYCLES,
+                                                                 PERF_COUNT_HW_INSTRUCTIONS,
+                                                                 PERF_COUNT_HW_CACHE_REFERENCES,
+                                                                 PERF_COUNT_HW_CACHE_MISSES,
+                                                                 PERF_COUNT_HW_BRANCH_INSTRUCTIONS,
+                                                                 PERF_COUNT_HW_BRANCH_MISSES,
+                                                                 PERF_COUNT_HW_BUS_CYCLES,
+                                                                 PERF_COUNT_HW_STALLED_CYCLES_FRONTEND,
+                                                                 PERF_COUNT_HW_STALLED_CYCLES_BACKEND,
+                                                                 PERF_COUNT_HW_REF_CPU_CYCLES};
 };
 }  // namespace terrier::common
