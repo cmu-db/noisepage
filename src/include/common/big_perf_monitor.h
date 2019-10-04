@@ -11,6 +11,7 @@ namespace terrier::common {
 
 class PerfMonitor {
  public:
+
   PerfMonitor() {
     perf_event_attr pe;
 
@@ -53,26 +54,27 @@ class PerfMonitor {
     std::memset(&rf_, 0, sizeof(ReadFormat));
     const auto bytes_read UNUSED_ATTRIBUTE = read(event_files_[0], &rf_, sizeof(ReadFormat));
     TERRIER_ASSERT(bytes_read == sizeof(ReadFormat), "Failed to read the entire struct.");
-    TERRIER_ASSERT(rf_.num_events_ == NUM_HW_EVENTS, "Failed to read the correct number of events.");
     running_ = false;
   }
 
-  uint64_t CacheReferences() const { return rf_.event_values_[0]; }
+  uint64_t CacheReferences() const { return rf_.event_values_[0].value_; }
 
-  uint64_t CacheMisses() const { return rf_.event_values_[1]; }
+  uint64_t CacheMisses() const { return rf_.event_values_[1].value_; }
 
-  uint64_t BranchInstructions() const { return rf_.event_values_[2]; }
+  uint64_t BranchInstructions() const { return rf_.event_values_[2].value_; }
 
-  uint64_t BranchMisses() const { return rf_.event_values_[3]; }
+  uint64_t BranchMisses() const { return rf_.event_values_[3].value_; }
 
-  uint64_t CPUCycles() const { return rf_.event_values_[4]; }
+  uint64_t CPUCycles() const { return rf_.event_values_[4].value_; }
 
  private:
   static constexpr uint8_t NUM_HW_EVENTS = 5;
 
   struct ReadFormat {
-    uint64_t num_events_ UNUSED_ATTRIBUTE;
-    uint64_t event_values_[NUM_HW_EVENTS];
+    uint64_t num_events_; /* The number of events */
+    struct {
+      uint64_t value_; /* The value of the event */
+    } event_values_[NUM_HW_EVENTS];
   } rf_;
 
   std::array<int32_t, NUM_HW_EVENTS> event_files_{-1};
