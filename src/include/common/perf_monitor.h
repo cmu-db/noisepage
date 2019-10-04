@@ -11,7 +11,8 @@ namespace terrier::common {
 
 class PerfMonitor {
  public:
-  void StartEvents() {
+
+  PerfMonitor() {
     perf_event_attr pe;
 
     std::memset(&pe, 0, sizeof(perf_event_attr));
@@ -19,7 +20,7 @@ class PerfMonitor {
     pe.size = sizeof(perf_event_attr);
     pe.disabled = 1;
     pe.exclude_kernel = 1;
-//    pe.exclude_hv = 1;
+    pe.exclude_hv = 1;
     pe.read_format = PERF_FORMAT_GROUP;
 
     for (uint8_t i = 0; i < NUM_HW_EVENTS; i++) {
@@ -27,12 +28,22 @@ class PerfMonitor {
       event_files_[i] = syscall(__NR_perf_event_open, &pe, 0, -1, event_files_[0], 0);
       TERRIER_ASSERT(event_files_[i] != -1, "Failed to open perf_event.");
     }
+  }
 
+  ~PerfMonitor() {
+    for (const auto i : event_files_) {
+      const auto result UNUSED_ATTRIBUTE = close(i);
+      TERRIER_ASSERT(result == 0, "File close failed.");
+    }
+  }
+
+  DISALLOW_COPY_AND_MOVE(PerfMonitor)
+
+  void StartEvents() {
     auto result UNUSED_ATTRIBUTE = ioctl(event_files_[0], PERF_EVENT_IOC_RESET, PERF_IOC_FLAG_GROUP);
     TERRIER_ASSERT(result >= 0, "Failed to reset events.");
     result = ioctl(event_files_[0], PERF_EVENT_IOC_ENABLE, PERF_IOC_FLAG_GROUP);
     TERRIER_ASSERT(result >= 0, "Failed to enable events.");
-
     running_ = true;
   }
 
@@ -44,10 +55,6 @@ class PerfMonitor {
     const auto bytes_read UNUSED_ATTRIBUTE = read(event_files_[0], &rf_, sizeof(ReadFormat));
     TERRIER_ASSERT(bytes_read == sizeof(ReadFormat), "Failed to read the entire struct.");
     running_ = false;
-    for (const auto i : event_files_) {
-      result = close(i);
-      TERRIER_ASSERT(result == 0, "File close failed.");
-    }
   }
 
   uint64_t CacheReferences() const { return rf_.event_values_[0].value_; }
