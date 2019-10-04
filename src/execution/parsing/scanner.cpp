@@ -239,9 +239,7 @@ void Scanner::SkipWhiteSpace() {
         Advance();
         break;
       }
-      default: {
-        return;
-      }
+      default: { return; }
     }
   }
 }

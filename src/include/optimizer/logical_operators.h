@@ -841,7 +841,8 @@ class LogicalUpdate : public OperatorNode<LogicalUpdate> {
    * @return
    */
   static Operator Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
-                       catalog::table_oid_t table_oid, std::vector<common::ManagedPointer<parser::UpdateClause>> &&updates);
+                       catalog::table_oid_t table_oid,
+                       std::vector<common::ManagedPointer<parser::UpdateClause>> &&updates);
 
   bool operator==(const BaseOperatorNode &r) override;
   common::hash_t Hash() const override;

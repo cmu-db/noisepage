@@ -19,9 +19,7 @@ class TypeVisitor {
    */
   RetType Visit(const Type *type) {
     switch (type->GetTypeId()) {
-      default: {
-        llvm_unreachable("Impossible node type");
-      }
+      default: { llvm_unreachable("Impossible node type"); }
 #define T(TypeClass)            \
   case Type::TypeId::TypeClass: \
     DISPATCH(TypeClass)

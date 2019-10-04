@@ -191,10 +191,12 @@ TEST(OperatorTests, LogicalDeleteTest) {
 TEST(OperatorTests, LogicalUpdateTest) {
   std::string column = "abc";
   parser::AbstractExpression *value = new parser::ConstantValueExpression(type::TransientValueFactory::GetTinyInt(1));
-  auto update_clause = parser::UpdateClause(column, common::ManagedPointer<parser::AbstractExpression>(value));
-  auto update_clause2 = parser::UpdateClause(column, common::ManagedPointer<parser::AbstractExpression>(value));
-  std::vector<std::unique_ptr<parser::UpdateClause>> update_clause_v;
-  update_clause_v.emplace_back(std::make_unique<parser::UpdateClause>(update_clause));
+  auto update_clause =
+      std::make_unique<parser::UpdateClause>(column, common::ManagedPointer<parser::AbstractExpression>(value));
+  auto update_clause2 =
+      std::make_unique<parser::UpdateClause>(column, common::ManagedPointer<parser::AbstractExpression>(value));
+  std::vector<common::ManagedPointer<parser::UpdateClause>> update_clause_v;
+  update_clause_v.emplace_back(common::ManagedPointer<parser::UpdateClause>(update_clause));
   catalog::db_oid_t database_oid(123);
   catalog::namespace_oid_t namespace_oid(456);
   catalog::table_oid_t table_oid(789);
@@ -206,13 +208,13 @@ TEST(OperatorTests, LogicalUpdateTest) {
   EXPECT_EQ(op1.As<LogicalUpdate>()->GetNamespaceOid(), namespace_oid);
   EXPECT_EQ(op1.As<LogicalUpdate>()->GetTableOid(), table_oid);
   EXPECT_EQ(op1.As<LogicalUpdate>()->GetUpdateClauses().size(), 1);
-  EXPECT_EQ(update_clause2.GetColumnName(), op1.As<LogicalUpdate>()->GetUpdateClauses()[0]->GetColumnName());
-  EXPECT_EQ(update_clause2.GetUpdateValue(), op1.As<LogicalUpdate>()->GetUpdateClauses()[0]->GetUpdateValue());
+  EXPECT_EQ(update_clause2->GetColumnName(), op1.As<LogicalUpdate>()->GetUpdateClauses()[0]->GetColumnName());
+  EXPECT_EQ(update_clause2->GetUpdateValue(), op1.As<LogicalUpdate>()->GetUpdateClauses()[0]->GetUpdateValue());
 
   // Check that if we make a new object with the same values, then it will
   // be equal to our first object and have the same hash
-  std::vector<std::unique_ptr<parser::UpdateClause>> update_clause_v2;
-  update_clause_v2.emplace_back(std::make_unique<parser::UpdateClause>(update_clause2));
+  std::vector<common::ManagedPointer<parser::UpdateClause>> update_clause_v2;
+  update_clause_v2.emplace_back(common::ManagedPointer<parser::UpdateClause>(update_clause2));
   Operator op2 = LogicalUpdate::Make(database_oid, namespace_oid, table_oid, std::move(update_clause_v2));
   EXPECT_TRUE(op1 == op2);
   EXPECT_EQ(op1.Hash(), op2.Hash());

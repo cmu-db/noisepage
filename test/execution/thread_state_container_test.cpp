@@ -45,15 +45,14 @@ TEST_F(ThreadStateContainerTest, ComplexObjectContainerTest) {
   MemoryPool memory(nullptr);
   ThreadStateContainer container(&memory);
 
-  container.Reset(
-      sizeof(Object),
-      [](UNUSED_ATTRIBUTE auto *_, auto *s) {
-        // Set some stuff to indicate object is initialized
-        auto obj = new (s) Object();
-        obj->x_ = 10;
-        obj->initialized_ = true;
-      },
-      nullptr, nullptr);
+  container.Reset(sizeof(Object),
+                  [](UNUSED_ATTRIBUTE auto *_, auto *s) {
+                    // Set some stuff to indicate object is initialized
+                    auto obj = new (s) Object();
+                    obj->x_ = 10;
+                    obj->initialized_ = true;
+                  },
+                  nullptr, nullptr);
   ForceCreationOfThreadStates(&container);
 
   // Check
@@ -80,14 +79,14 @@ TEST_F(ThreadStateContainerTest, ContainerResetTest) {
   const uint32_t init_num = 44;
   std::atomic<uint32_t> count(init_num);
 
-#define RESET(N)                                                                                                \
-  {                                                                                                             \
-    /* Reset the container, add/sub upon creation/destruction by amount */                                      \
-    container.Reset(                                                                                            \
-        sizeof(uint32_t),                                                                                       \
-        [](auto *ctx, UNUSED_ATTRIBUTE auto *s) { (*reinterpret_cast<decltype(count) *>(ctx)) += N; },          \
-        [](auto *ctx, UNUSED_ATTRIBUTE auto *s) { (*reinterpret_cast<decltype(count) *>(ctx)) -= N; }, &count); \
-    ForceCreationOfThreadStates(&container);                                                                    \
+#define RESET(N)                                                                                                   \
+  {                                                                                                                \
+    /* Reset the container, add/sub upon creation/destruction by amount */                                         \
+    container.Reset(sizeof(uint32_t),                                                                              \
+                    [](auto *ctx, UNUSED_ATTRIBUTE auto *s) { (*reinterpret_cast<decltype(count) *>(ctx)) += N; }, \
+                    [](auto *ctx, UNUSED_ATTRIBUTE auto *s) { (*reinterpret_cast<decltype(count) *>(ctx)) -= N; }, \
+                    &count);                                                                                       \
+    ForceCreationOfThreadStates(&container);                                                                       \
   }
 
   RESET(1)
@@ -110,9 +109,8 @@ TEST_F(ThreadStateContainerTest, SimpleContainerTest) {
 
   MemoryPool memory(nullptr);
   ThreadStateContainer container(&memory);
-  container.Reset(
-      sizeof(uint32_t), [](UNUSED_ATTRIBUTE auto *ctx, auto *s) { *reinterpret_cast<uint32_t *>(s) = 0; }, nullptr,
-      nullptr);
+  container.Reset(sizeof(uint32_t), [](UNUSED_ATTRIBUTE auto *ctx, auto *s) { *reinterpret_cast<uint32_t *>(s) = 0; },
+                  nullptr, nullptr);
 
   std::vector<uint32_t> input(10000);
   std::iota(input.begin(), input.end(), 0);

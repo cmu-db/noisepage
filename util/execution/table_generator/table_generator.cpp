@@ -65,9 +65,7 @@ std::pair<byte *, uint32_t *> TableGenerator::GenerateColumnData(const ColumnIns
           CreateNumberColumnData<int64_t>(col_meta.dist_, num_rows, col_meta.min_, col_meta.max_));
       break;
     }
-    default: {
-      throw std::runtime_error("Implement me!");
-    }
+    default: { throw std::runtime_error("Implement me!"); }
   }
 
   // Create bitmap
