@@ -133,8 +133,9 @@ class PostgresPacketWriter : public AbstractPacketWriter {
                         std::initializer_list<int16_t> paramFormatCodes,
                         std::initializer_list<std::vector<char> *> paramVals,
                         std::initializer_list<int16_t> resultFormatCodes) {
-    AbstractPacketWriter &writer =
-        BeginPacket(NetworkMessageType::PG_BIND_COMMAND).AppendString(destinationPortal).AppendString(sourcePreparedStmt);
+    AbstractPacketWriter &writer = BeginPacket(NetworkMessageType::PG_BIND_COMMAND)
+                                       .AppendString(destinationPortal)
+                                       .AppendString(sourcePreparedStmt);
     writer.AppendValue(static_cast<int16_t>(paramFormatCodes.size()));
 
     for (auto code : paramFormatCodes) {
