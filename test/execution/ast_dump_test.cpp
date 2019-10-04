@@ -261,6 +261,9 @@ TEST_F(AstDumpTest, TypeTest) {
       fun main() -> int {
         var res : int = 0
 
+        var boolVar1 : bool = true
+        var boolVar2 = @boolToSql(true)
+
         var intVar1 = @intToSql(5)
         var intVar2 : int = 5.5 // FloatToInt
 
