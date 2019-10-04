@@ -71,7 +71,7 @@ class PerfMonitor {
   static constexpr uint8_t NUM_HW_EVENTS = 5;
 
   struct ReadFormat {
-    uint64_t num_events_ UNUSED_ATTRIBUTE;
+    uint64_t num_events_;
     uint64_t event_values_[NUM_HW_EVENTS];
   } rf_;
 
