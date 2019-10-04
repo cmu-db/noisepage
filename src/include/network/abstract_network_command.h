@@ -1,5 +1,7 @@
 #pragma once
+
 #include <utility>
+
 #include "common/macros.h"
 #include "common/managed_pointer.h"
 #include "network/abstract_packet_writer.h"

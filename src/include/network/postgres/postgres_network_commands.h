@@ -31,6 +31,7 @@ class PostgresNetworkCommand : public AbstractNetworkCommand {
                           common::ManagedPointer<PostgresPacketWriter> out,
                           common::ManagedPointer<trafficcop::TrafficCop> t_cop,
                           common::ManagedPointer<ConnectionContext> connection, NetworkCallback callback) = 0;
+
  protected:
   PostgresNetworkCommand(InputPacket *in, bool flush) : AbstractNetworkCommand(in, flush) {}
 };
