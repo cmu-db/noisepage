@@ -1,6 +1,5 @@
 #include "benchmark/benchmark.h"
 #include "common/perf_monitor.h"
-#include "common/big_perf_monitor.h"
 
 namespace terrier {
 
@@ -35,30 +34,6 @@ BENCHMARK_DEFINE_F(PerfMonitorBenchmarks, PerfMonitorWithConstruction)(benchmark
   state.SetItemsProcessed(state.iterations());
 }
 
-// NOLINTNEXTLINE
-BENCHMARK_DEFINE_F(PerfMonitorBenchmarks, BigPerfMonitor)(benchmark::State &state) {
-  common::BigPerfMonitor monitor;
-  // NOLINTNEXTLINE
-  for (auto _ : state) {
-    monitor.StartEvents();
-    monitor.StopEvents();
-  }
-  state.SetItemsProcessed(state.iterations());
-}
-
-// NOLINTNEXTLINE
-BENCHMARK_DEFINE_F(PerfMonitorBenchmarks, BigPerfMonitorWithConstruction)(benchmark::State &state) {
-  // NOLINTNEXTLINE
-  for (auto _ : state) {
-    common::BigPerfMonitor monitor;
-    monitor.StartEvents();
-    monitor.StopEvents();
-  }
-  state.SetItemsProcessed(state.iterations());
-}
-
 BENCHMARK_REGISTER_F(PerfMonitorBenchmarks, PerfMonitor);
 BENCHMARK_REGISTER_F(PerfMonitorBenchmarks, PerfMonitorWithConstruction);
-BENCHMARK_REGISTER_F(PerfMonitorBenchmarks, BigPerfMonitor);
-BENCHMARK_REGISTER_F(PerfMonitorBenchmarks, BigPerfMonitorWithConstruction);
 }  // namespace terrier

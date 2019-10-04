@@ -58,7 +58,7 @@ class PerfMonitor {
   }
 
  private:
-  static constexpr uint8_t NUM_HW_EVENTS = 5;
+  static constexpr uint8_t NUM_HW_EVENTS = 8;
   std::array<int32_t, NUM_HW_EVENTS> event_files_{-1};
   bool running_ = false;
 
@@ -68,7 +68,8 @@ class PerfMonitor {
   } rf_;
 
   static constexpr std::array<uint64_t, NUM_HW_EVENTS> HW_EVENTS{
-      PERF_COUNT_HW_CACHE_REFERENCES, PERF_COUNT_HW_CACHE_MISSES, PERF_COUNT_HW_BRANCH_INSTRUCTIONS,
-      PERF_COUNT_HW_BRANCH_MISSES, PERF_COUNT_HW_REF_CPU_CYCLES};
+      PERF_COUNT_HW_CPU_CYCLES,   PERF_COUNT_HW_INSTRUCTIONS,        PERF_COUNT_HW_CACHE_REFERENCES,
+      PERF_COUNT_HW_CACHE_MISSES, PERF_COUNT_HW_BRANCH_INSTRUCTIONS, PERF_COUNT_HW_BRANCH_MISSES,
+      PERF_COUNT_HW_BUS_CYCLES,   PERF_COUNT_HW_REF_CPU_CYCLES};
 };
 }  // namespace terrier::common
