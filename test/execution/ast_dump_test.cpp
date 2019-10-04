@@ -44,9 +44,9 @@ class ExtractKindNames : public AstTraversalVisitor<ExtractKindNames<FindInfinit
   // EXTRACT_KINDNAME_METHOD(FunctionTypeRepr);
   // EXTRACT_KINDNAME_METHOD(IdentifierExpr);
   // EXTRACT_KINDNAME_METHOD(DeclStmt);
+  // EXTRACT_KINDNAME_METHOD(ArrayTypeRepr);
 
   EXTRACT_KINDNAME_METHOD(FunctionDecl);
-  EXTRACT_KINDNAME_METHOD(ArrayTypeRepr);
   EXTRACT_KINDNAME_METHOD(BlockStmt);
   EXTRACT_KINDNAME_METHOD(StructDecl);
   EXTRACT_KINDNAME_METHOD(VariableDecl);
@@ -100,6 +100,7 @@ class AstDumpTest : public TplTest {
     parsing::Parser parser(&scanner, &ctx);
 
     if (error.HasErrors()) {
+      EXECUTION_LOG_ERROR(error.SerializeErrors());
       return nullptr;
     }
 
@@ -109,6 +110,7 @@ class AstDumpTest : public TplTest {
     auto check = sema.Run(root);
 
     if (error.HasErrors()) {
+      EXECUTION_LOG_ERROR(error.SerializeErrors());
       return nullptr;
     }
 
@@ -128,6 +130,7 @@ class AstDumpTest : public TplTest {
     // Create the AST
     EXECUTION_LOG_DEBUG("Generating AST:\n{}", src);
     auto *root = GenerateAst(src);
+    ASSERT_NE(root, nullptr);
 
     // Get the expected token strings
     ExtractKindNames extractor(root);
@@ -247,6 +250,34 @@ TEST_F(AstDumpTest, CallTest) {
       "yyyy",
       "date1",
       "date2",
+  };
+
+  CheckDump(src, constants);
+}
+
+// NOLINTNEXTLINE
+TEST_F(AstDumpTest, TypeTest) {
+  const auto src = R"(
+      fun main() -> int {
+        var res : int = 0
+
+        var intVar1 = @intToSql(5)
+        var intVar2 : int = 5.5 // FloatToInt
+
+        var floatVar1 = @floatToSql(5.5)
+        var floatVar2 : float = intVar2 // IntToFloat
+
+        var stringVar = @stringToSql("5555")
+
+        var intArray: [2]uint32
+        intArray[0] = 1
+        intArray[1] = 2
+
+        return res
+      })";
+
+  std::vector<std::string> constants = {
+      "res",
   };
 
   CheckDump(src, constants);
