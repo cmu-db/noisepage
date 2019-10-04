@@ -43,6 +43,7 @@ class ExtractKindNames : public AstTraversalVisitor<ExtractKindNames<FindInfinit
   // EXTRACT_KINDNAME_METHOD(FieldDecl);
   // EXTRACT_KINDNAME_METHOD(FunctionTypeRepr);
   // EXTRACT_KINDNAME_METHOD(IdentifierExpr);
+  // EXTRACT_KINDNAME_METHOD(DeclStmt);
 
   EXTRACT_KINDNAME_METHOD(FunctionDecl);
   EXTRACT_KINDNAME_METHOD(ArrayTypeRepr);
@@ -61,7 +62,6 @@ class ExtractKindNames : public AstTraversalVisitor<ExtractKindNames<FindInfinit
   EXTRACT_KINDNAME_METHOD(BinaryOpExpr);
   EXTRACT_KINDNAME_METHOD(LitExpr);
   EXTRACT_KINDNAME_METHOD(StructTypeRepr);
-  EXTRACT_KINDNAME_METHOD(DeclStmt);
   EXTRACT_KINDNAME_METHOD(PointerTypeRepr);
   EXTRACT_KINDNAME_METHOD(ComparisonOpExpr);
   EXTRACT_KINDNAME_METHOD(IfStmt);
@@ -141,6 +141,7 @@ class AstDumpTest : public TplTest {
 
     // Check that the expected tokens and constants are in the dump
     for (const auto &token : tokens) {
+      EXECUTION_LOG_DEBUG("Looking for token '{}'", token);
       EXPECT_NE(dump.find(token), std::string::npos) << "Missing token '" << token << "'";
     }
     for (const auto &constant : constants) {
@@ -198,6 +199,54 @@ TEST_F(AstDumpTest, FunctionTest) {
   std::vector<std::string> constants = {
       "XXXXXX",
       "yyyyyy",
+  };
+
+  CheckDump(src, constants);
+}
+
+// NOLINTNEXTLINE
+TEST_F(AstDumpTest, VariableTest) {
+  const auto src = R"(
+    fun main() -> int64 {
+      var a: int8 = 99
+      var b: int16 = 999
+      var c: int32 = 9999
+      var d: int64 = 99999
+      return a + b + c + d
+    })";
+
+  std::vector<std::string> constants = {
+      "99",
+      "999",
+      "9999",
+      "99999",
+  };
+
+  CheckDump(src, constants);
+}
+
+// NOLINTNEXTLINE
+TEST_F(AstDumpTest, CallTest) {
+  const auto src = R"(
+    fun AAAA(yyyy: int) -> int {
+      var date1 = @dateToSql(2019, 10, 04)
+      var date2 = @dateToSql(2019, 10, 4)
+      if (date1 != date2) {
+        return yyyy
+      }
+      return 1
+    }
+    fun main() -> int {
+      var xxxx = 10
+      return AAAA(xxxx)
+    })";
+
+  std::vector<std::string> constants = {
+      "AAAA",
+      "xxxx",
+      "yyyy",
+      "date1",
+      "date2",
   };
 
   CheckDump(src, constants);
