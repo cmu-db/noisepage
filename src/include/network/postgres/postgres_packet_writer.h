@@ -23,25 +23,25 @@ class PostgresPacketWriter : public AbstractPacketWriter {
    * @param query string to execute
    */
   void WriteSimpleQuery(const std::string &query) {
-    BeginPacket(NetworkMessageType::SIMPLE_QUERY_COMMAND).AppendString(query).EndPacket();
+    BeginPacket(NetworkMessageType::PG_SIMPLE_QUERY_COMMAND).AppendString(query).EndPacket();
   }
 
   /**
    * Writes an empty query response
    */
-  void WriteEmptyQueryResponse() { BeginPacket(NetworkMessageType::EMPTY_QUERY_RESPONSE).EndPacket(); }
+  void WriteEmptyQueryResponse() { BeginPacket(NetworkMessageType::PG_EMPTY_QUERY_RESPONSE).EndPacket(); }
 
   /**
    * Writes a no-data response
    */
-  void WriteNoData() { BeginPacket(NetworkMessageType::NO_DATA_RESPONSE).EndPacket(); }
+  void WriteNoData() { BeginPacket(NetworkMessageType::PG_NO_DATA_RESPONSE).EndPacket(); }
 
   /**
    * Writes parameter description (used in Describe command)
    * @param param_types The types of the parameters in the statement
    */
   void WriteParameterDescription(const std::vector<PostgresValueType> &param_types) {
-    BeginPacket(NetworkMessageType::PARAMETER_DESCRIPTION);
+    BeginPacket(NetworkMessageType::PG_PARAMETER_DESCRIPTION);
     AppendValue<int16_t>(static_cast<int16_t>(param_types.size()));
 
     for (auto &type : param_types) AppendValue<int32_t>(static_cast<int32_t>(type));
@@ -55,7 +55,7 @@ class PostgresPacketWriter : public AbstractPacketWriter {
    */
   void WriteRowDescription(const std::vector<std::string> &columns) {
     // TODO(Weichen): fill correct OIDs here. This depends on the catalog.
-    BeginPacket(NetworkMessageType::ROW_DESCRIPTION).AppendValue<int16_t>(static_cast<int16_t>(columns.size()));
+    BeginPacket(NetworkMessageType::PG_ROW_DESCRIPTION).AppendValue<int16_t>(static_cast<int16_t>(columns.size()));
     for (auto &col_name : columns) {
       AppendString(col_name)
           .AppendValue<int32_t>(0)                                     // table oid, 0 for now
@@ -77,7 +77,7 @@ class PostgresPacketWriter : public AbstractPacketWriter {
     using type::TransientValuePeeker;
     using type::TypeId;
 
-    BeginPacket(NetworkMessageType::DATA_ROW).AppendValue<int16_t>(static_cast<int16_t>(values.size()));
+    BeginPacket(NetworkMessageType::PG_DATA_ROW).AppendValue<int16_t>(static_cast<int16_t>(values.size()));
     for (auto &value : values) {
       // use text to represent values for now
       std::string ret;
@@ -98,7 +98,7 @@ class PostgresPacketWriter : public AbstractPacketWriter {
    * @param tag records the which kind of query it is. (INSERT? DELETE? SELECT?) and the number of rows.
    */
   void WriteCommandComplete(const std::string &tag) {
-    BeginPacket(NetworkMessageType::COMMAND_COMPLETE).AppendString(tag).EndPacket();
+    BeginPacket(NetworkMessageType::PG_COMMAND_COMPLETE).AppendString(tag).EndPacket();
   }
 
   /**
@@ -109,7 +109,7 @@ class PostgresPacketWriter : public AbstractPacketWriter {
    */
   void WriteParseCommand(const std::string &destinationStmt, const std::string &query,
                          const std::vector<int32_t> &params) {
-    AbstractPacketWriter &writer = BeginPacket(NetworkMessageType::PARSE_COMMAND)
+    AbstractPacketWriter &writer = BeginPacket(NetworkMessageType::PG_PARSE_COMMAND)
                                        .AppendString(destinationStmt)
                                        .AppendString(query)
                                        .AppendValue(static_cast<int16_t>(params.size()));
@@ -134,7 +134,7 @@ class PostgresPacketWriter : public AbstractPacketWriter {
                         std::initializer_list<std::vector<char> *> paramVals,
                         std::initializer_list<int16_t> resultFormatCodes) {
     AbstractPacketWriter &writer =
-        BeginPacket(NetworkMessageType::BIND_COMMAND).AppendString(destinationPortal).AppendString(sourcePreparedStmt);
+        BeginPacket(NetworkMessageType::PG_BIND_COMMAND).AppendString(destinationPortal).AppendString(sourcePreparedStmt);
     writer.AppendValue(static_cast<int16_t>(paramFormatCodes.size()));
 
     for (auto code : paramFormatCodes) {
@@ -167,13 +167,13 @@ class PostgresPacketWriter : public AbstractPacketWriter {
    * @param rowLimit Maximum number of rows to return to the client
    */
   void WriteExecuteCommand(const std::string &portal, int32_t rowLimit) {
-    BeginPacket(NetworkMessageType::EXECUTE_COMMAND).AppendString(portal).AppendValue(rowLimit).EndPacket();
+    BeginPacket(NetworkMessageType::PG_EXECUTE_COMMAND).AppendString(portal).AppendValue(rowLimit).EndPacket();
   }
 
   /**
    * Writes a Sync message packet
    */
-  void WriteSyncCommand() { BeginPacket(NetworkMessageType::SYNC_COMMAND).EndPacket(); }
+  void WriteSyncCommand() { BeginPacket(NetworkMessageType::PG_SYNC_COMMAND).EndPacket(); }
 
   /**
    * Writes a Describe message packet
@@ -181,7 +181,7 @@ class PostgresPacketWriter : public AbstractPacketWriter {
    * @param objectName The name of the object to describe8
    */
   void WriteDescribeCommand(DescribeCommandObjectType type, const std::string &objectName) {
-    BeginPacket(NetworkMessageType::DESCRIBE_COMMAND).AppendRawValue(type).AppendString(objectName).EndPacket();
+    BeginPacket(NetworkMessageType::PG_DESCRIBE_COMMAND).AppendRawValue(type).AppendString(objectName).EndPacket();
   }
 
   /**
@@ -190,18 +190,18 @@ class PostgresPacketWriter : public AbstractPacketWriter {
    * @param objectName The name of the object to close
    */
   void WriteCloseCommand(DescribeCommandObjectType type, const std::string &objectName) {
-    BeginPacket(NetworkMessageType::CLOSE_COMMAND).AppendRawValue(type).AppendString(objectName).EndPacket();
+    BeginPacket(NetworkMessageType::PG_CLOSE_COMMAND).AppendRawValue(type).AppendString(objectName).EndPacket();
   }
 
   /**
    * Tells the client that the parse command is complete.
    */
-  void WriteParseComplete() { BeginPacket(NetworkMessageType::PARSE_COMPLETE).EndPacket(); }
+  void WriteParseComplete() { BeginPacket(NetworkMessageType::PG_PARSE_COMPLETE).EndPacket(); }
 
   /**
    * Tells the client that the bind command is complete.
    */
-  void WriteBindComplete() { BeginPacket(NetworkMessageType::BIND_COMPLETE).EndPacket(); }
+  void WriteBindComplete() { BeginPacket(NetworkMessageType:PG_PG_BIND_COMPLETE).EndPacket(); }
 };
 
 }  // namespace terrier::network

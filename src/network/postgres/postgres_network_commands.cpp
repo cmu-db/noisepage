@@ -14,7 +14,7 @@ namespace terrier::network {
 
 void LogAndWriteErrorMsg(const std::string &msg, common::ManagedPointer<PostgresPacketWriter> out) {
   NETWORK_LOG_ERROR(msg);
-  out->WriteSingleErrorResponse(NetworkMessageType::HUMAN_READABLE_ERROR, msg);
+  out->WriteSingleErrorResponse(NetworkMessageType::PG_HUMAN_READABLE_ERROR, msg);
 }
 
 Transition SimpleQueryCommand::Exec(common::ManagedPointer<ProtocolInterpreter> interpreter,
@@ -277,7 +277,7 @@ Transition ExecuteCommand::Exec(common::ManagedPointer<ProtocolInterpreter> inte
   if (p_portal == connection->portals_.end()) {
     string error_msg = fmt::format("Error: Portal {0} does not exist.", portal_name);
     NETWORK_LOG_ERROR(error_msg);
-    out->WriteSingleErrorResponse(NetworkMessageType::HUMAN_READABLE_ERROR, error_msg);
+    out->WriteSingleErrorResponse(NetworkMessageType::PG_HUMAN_READABLE_ERROR, error_msg);
     return Transition::PROCEED;
   }
 

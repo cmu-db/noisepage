@@ -30,15 +30,15 @@ class AbstractPacketWriter {
 
   /**
    * Write out a packet with a single type. Some messages will be
-   * special cases since no size field is provided. (SSL_YES, SSL_NO)
+   * special cases since no size field is provided. (PG_SSL_YES, PG_SSL_NO)
    * @param type Type of message to write out
    */
   void WriteSingleTypePacket(NetworkMessageType type) {
     // Make sure no active packet being constructed
     TERRIER_ASSERT(curr_packet_len_ == nullptr, "packet length is null");
     switch (type) {
-      case NetworkMessageType::SSL_YES:
-      case NetworkMessageType::SSL_NO:
+      case NetworkMessageType::PG_SSL_YES:
+      case NetworkMessageType::PG_SSL_NO:
         queue_.BufferWriteRawValue(type);
         break;
       default:
@@ -140,7 +140,7 @@ class AbstractPacketWriter {
    * @param error_status The error messages to send
    */
   void WriteErrorResponse(const std::vector<std::pair<NetworkMessageType, std::string>> &error_status) {
-    BeginPacket(NetworkMessageType::ERROR_RESPONSE);
+    BeginPacket(NetworkMessageType::PG_ERROR_RESPONSE);
 
     for (const auto &entry : error_status) AppendRawValue(entry.first).AppendString(entry.second);
 
@@ -164,17 +164,17 @@ class AbstractPacketWriter {
    * @param txn_status
    */
   void WriteReadyForQuery(NetworkTransactionStateType txn_status) {
-    BeginPacket(NetworkMessageType::READY_FOR_QUERY).AppendRawValue(txn_status).EndPacket();
+    BeginPacket(NetworkMessageType::PG_READY_FOR_QUERY).AppendRawValue(txn_status).EndPacket();
   }
 
   /**
    * Writes response to startup message
    */
   void WriteStartupResponse() {
-    BeginPacket(NetworkMessageType::AUTHENTICATION_REQUEST).AppendValue<int32_t>(0).EndPacket();
+    BeginPacket(NetworkMessageType::PG_AUTHENTICATION_REQUEST).AppendValue<int32_t>(0).EndPacket();
 
-    for (auto &entry : PARAMETER_STATUS_MAP)
-      BeginPacket(NetworkMessageType::PARAMETER_STATUS)
+    for (auto &entry : PG_PARAMETER_STATUS_MAP)
+      BeginPacket(NetworkMessageType::PG_PARAMETER_STATUS)
           .AppendString(entry.first)
           .AppendString(entry.second)
           .EndPacket();

@@ -46,14 +46,14 @@ Transition PostgresProtocolInterpreter::ProcessStartup(const std::shared_ptr<Rea
 
   if (proto_version == SSL_MESSAGE_VERNO) {
     // TODO(Tianyu): Should this be moved from PelotonServer into settings?
-    writer.WriteSingleTypePacket(NetworkMessageType::SSL_NO);
+    writer.WriteSingleTypePacket(NetworkMessageType::PG_SSL_NO);
     return Transition::PROCEED;
   }
 
   // Process startup packet
   if (PROTO_MAJOR_VERSION(proto_version) != 3) {
     NETWORK_LOG_TRACE("Protocol error: only protocol version 3 is supported");
-    writer.WriteErrorResponse({{NetworkMessageType::HUMAN_READABLE_ERROR, "Protocol Version Not Supported"}});
+    writer.WriteErrorResponse({{NetworkMessageType::PG_HUMAN_READABLE_ERROR, "Protocol Version Not Supported"}});
     return Transition::TERMINATE;
   }
 
@@ -127,7 +127,7 @@ bool PostgresProtocolInterpreter::TryReadPacketHeader(const std::shared_ptr<Read
 
 void PostgresProtocolInterpreter::CompleteCommand(PostgresPacketWriter *const out, const QueryType &query_type,
                                                   int rows) {
-  out->BeginPacket(NetworkMessageType::COMMAND_COMPLETE).EndPacket();
+  out->BeginPacket(NetworkMessageType::PG_COMMAND_COMPLETE).EndPacket();
 }
 
 void PostgresProtocolInterpreter::ExecQueryMessageGetResult(PostgresPacketWriter *const out, ResultType status) {
