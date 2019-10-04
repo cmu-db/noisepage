@@ -25,7 +25,7 @@ class PerfMonitor {
     for (uint8_t i = 0; i < NUM_HW_EVENTS; i++) {
       pe.config = HW_EVENTS[i];
       event_files_[i] = syscall(__NR_perf_event_open, &pe, 0, -1, event_files_[0], 0);
-      TERRIER_ASSERT(event_files_[i] != -1, "Failed to open perf_event.");
+      TERRIER_ASSERT(event_files_[i] > 0, "Failed to open perf_event.");
     }
   }
 
@@ -57,26 +57,16 @@ class PerfMonitor {
     running_ = false;
   }
 
-  uint64_t CacheReferences() const { return rf_.event_values_[0]; }
-
-  uint64_t CacheMisses() const { return rf_.event_values_[1]; }
-
-  uint64_t BranchInstructions() const { return rf_.event_values_[2]; }
-
-  uint64_t BranchMisses() const { return rf_.event_values_[3]; }
-
-  uint64_t CPUCycles() const { return rf_.event_values_[4]; }
-
  private:
   static constexpr uint8_t NUM_HW_EVENTS = 5;
+  std::array<int32_t, NUM_HW_EVENTS> event_files_{-1};
+  bool running_ = false;
 
   struct ReadFormat {
     uint64_t num_events_;
     uint64_t event_values_[NUM_HW_EVENTS];
   } rf_;
 
-  std::array<int32_t, NUM_HW_EVENTS> event_files_{-1};
-  bool running_ = false;
   static constexpr std::array<uint64_t, NUM_HW_EVENTS> HW_EVENTS{
       PERF_COUNT_HW_CACHE_REFERENCES, PERF_COUNT_HW_CACHE_MISSES, PERF_COUNT_HW_BRANCH_INSTRUCTIONS,
       PERF_COUNT_HW_BRANCH_MISSES, PERF_COUNT_HW_REF_CPU_CYCLES};
