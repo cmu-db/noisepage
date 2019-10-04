@@ -51,16 +51,16 @@ class PerfMonitor {
   DISALLOW_COPY_AND_MOVE(PerfMonitor)
 
   void Start() {
-    auto result UNUSED_ATTRIBUTE = ioctl(event_files_[0], PERF_EVENT_IOC_RESET);
+    auto result UNUSED_ATTRIBUTE = ioctl(event_files_[0], PERF_EVENT_IOC_RESET, PERF_IOC_FLAG_GROUP);
     TERRIER_ASSERT(result >= 0, "Failed to reset events.");
-    result = ioctl(event_files_[0], PERF_EVENT_IOC_ENABLE);
+    result = ioctl(event_files_[0], PERF_EVENT_IOC_ENABLE, PERF_IOC_FLAG_GROUP);
     TERRIER_ASSERT(result >= 0, "Failed to enable events.");
     running_ = true;
   }
 
   void Stop() {
     TERRIER_ASSERT(running_, "StopEvents() called without StartEvents() first.");
-    auto result UNUSED_ATTRIBUTE = ioctl(event_files_[0], PERF_EVENT_IOC_DISABLE);
+    auto result UNUSED_ATTRIBUTE = ioctl(event_files_[0], PERF_EVENT_IOC_DISABLE, PERF_IOC_FLAG_GROUP);
     TERRIER_ASSERT(result >= 0, "Failed to disable events.");
     running_ = false;
   }
