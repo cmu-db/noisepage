@@ -18,7 +18,7 @@ class PostgresCommandFactory : public AbstractCommandFactory {
    */
   std::shared_ptr<AbstractNetworkCommand> PacketToCommand(InputPacket *packet) override;
 
-  ~PostgresCommandFactory() = default;
+  ~PostgresCommandFactory() = default override;
 };
 
 }  // namespace terrier::network
