@@ -612,7 +612,7 @@ void QueryToOperatorTransformer::GenerateTableAliasSet(const parser::AbstractExp
   if (expr->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE) {
     table_alias_set->insert(reinterpret_cast<const parser::ColumnValueExpression *>(expr)->GetTableName());
   } else {
-    for (const auto &child : expr->GetChildren()) GenerateTableAliasSet(child.get(), table_alias_set);
+    for (const auto &child : expr->GetChildren()) GenerateTableAliasSet(child.Get(), table_alias_set);
   }
 }
 

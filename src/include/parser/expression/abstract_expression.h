@@ -261,7 +261,8 @@ class AbstractExpression {
     if (index >= (int)children_.size()) {
       children_.resize(index + 1);
     }
-    children_[index].reset(expr.Get());
+    auto new_child = expr->Copy();
+    children_[index] = std::move(new_child);
   }
 
   /** Type of the current expression */

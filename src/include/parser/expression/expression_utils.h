@@ -41,7 +41,7 @@ class ExpressionUtil {
     } else if (expr->GetExpressionType() == ExpressionType::COLUMN_VALUE) {
       tv_exprs->push_back(reinterpret_cast<ColumnValueExpression *>(expr));
     } else {
-      for (const auto &child : expr->GetChildren()) GetAggregateExprs(aggr_exprs, tv_exprs, child.get());
+      for (const auto &child : expr->GetChildren()) GetAggregateExprs(aggr_exprs, tv_exprs, child.Get());
     }
   }
 };
