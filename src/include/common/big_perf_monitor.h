@@ -19,8 +19,8 @@ class BigPerfMonitor {
     pe.type = PERF_TYPE_HARDWARE;
     pe.size = sizeof(perf_event_attr);
     pe.disabled = 1;
-    pe.exclude_kernel = 1;
-    pe.exclude_hv = 1;
+//    pe.exclude_kernel = 1;
+//    pe.exclude_hv = 1;
     pe.read_format = PERF_FORMAT_GROUP;
 
     for (uint8_t i = 0; i < NUM_HW_EVENTS; i++) {
