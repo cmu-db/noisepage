@@ -17,8 +17,8 @@ class PerfMonitor {
     uint64_t instructions_;
     uint64_t cache_references_;
     uint64_t cache_misses_;
-    uint64_t branch_instructions_;
-    uint64_t branch_misses_;
+//    uint64_t branch_instructions_;
+//    uint64_t branch_misses_;
     uint64_t bus_cycles_;
     uint64_t ref_cpu_cycles_;
   };
@@ -74,7 +74,7 @@ class PerfMonitor {
   }
 
  private:
-  static constexpr uint8_t NUM_HW_EVENTS = 8;
+  static constexpr uint8_t NUM_HW_EVENTS = 6;
   std::array<int32_t, NUM_HW_EVENTS> event_files_{
       -1};  // set the first file descriptor to -1. Since event_files[0] is always passed into group_fd on
             // perf_event_open, this has the effect of making the first event the group leader
@@ -82,7 +82,7 @@ class PerfMonitor {
 
   static constexpr std::array<uint64_t, NUM_HW_EVENTS> HW_EVENTS{
       PERF_COUNT_HW_CPU_CYCLES,   PERF_COUNT_HW_INSTRUCTIONS,        PERF_COUNT_HW_CACHE_REFERENCES,
-      PERF_COUNT_HW_CACHE_MISSES, PERF_COUNT_HW_BRANCH_INSTRUCTIONS, PERF_COUNT_HW_BRANCH_MISSES,
+      PERF_COUNT_HW_CACHE_MISSES,
       PERF_COUNT_HW_BUS_CYCLES,   PERF_COUNT_HW_REF_CPU_CYCLES};
 };
 }  // namespace terrier::common
