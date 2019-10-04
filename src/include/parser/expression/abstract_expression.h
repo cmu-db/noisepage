@@ -257,7 +257,7 @@ class AbstractExpression {
   friend class optimizer::QueryToOperatorTransformer;
 
   void SetChild(int index, common::ManagedPointer<AbstractExpression> expr) {
-    if (index >= (int)children_.size()) {
+    if (index >= static_cast<int>(children_.size())) {
       children_.resize(index + 1);
     }
     auto new_child = expr->Copy();

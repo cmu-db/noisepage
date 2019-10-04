@@ -26,7 +26,8 @@ BindNodeVisitor::BindNodeVisitor(std::unique_ptr<catalog::CatalogAccessor> catal
                                  std::string default_database_name)
     : catalog_accessor_(std::move(catalog_accessor)), default_database_name_(std::move(default_database_name)) {}
 
-void BindNodeVisitor::BindNameToNode(common::ManagedPointer<parser::SQLStatement> tree, parser::ParseResult *parse_result) {
+void BindNodeVisitor::BindNameToNode(common::ManagedPointer<parser::SQLStatement> tree,
+                                     parser::ParseResult *parse_result) {
   tree->Accept(this, parse_result);
 }
 

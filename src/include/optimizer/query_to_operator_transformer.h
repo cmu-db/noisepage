@@ -30,7 +30,8 @@ class QueryToOperatorTransformer : public SqlNodeVisitor {
  public:
   explicit QueryToOperatorTransformer(std::unique_ptr<catalog::CatalogAccessor> catalog_accessor);
 
-  OperatorExpression *ConvertToOpExpression(common::ManagedPointer<parser::SQLStatement> op, parser::ParseResult *parse_result);
+  OperatorExpression *ConvertToOpExpression(common::ManagedPointer<parser::SQLStatement> op,
+                                            parser::ParseResult *parse_result);
 
   void Visit(parser::SelectStatement *op, parser::ParseResult *parse_result) override;
 

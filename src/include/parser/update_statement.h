@@ -94,7 +94,6 @@ class UpdateStatement : public SQLStatement {
     return updates;
   }
 
-
   /** @return update condition */
   common::ManagedPointer<AbstractExpression> GetUpdateCondition() { return where_; }
 
