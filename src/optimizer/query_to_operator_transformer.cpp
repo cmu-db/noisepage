@@ -442,10 +442,10 @@ bool QueryToOperatorTransformer::RequireAggregation(common::ManagedPointer<parse
   bool has_other_exprs = false;
 
   for (auto &expr : op->GetSelectColumns()) {
-    std::vector<parser::AggregateExpression *> aggr_exprs;
+    std::vector<common::ManagedPointer<parser::AggregateExpression>> aggr_exprs;
     // we need to use get method of managed pointer because the function we are calling will recursivly get aggreate
     // expressions from the current expression and its children; children are of unique pointers
-    parser::ExpressionUtil::GetAggregateExprs(&aggr_exprs, expr.Get());
+    parser::ExpressionUtil::GetAggregateExprs(&aggr_exprs, expr);
     if (!aggr_exprs.empty())
       has_aggregation = true;
     else
@@ -598,7 +598,7 @@ std::vector<AnnotatedExpression> QueryToOperatorTransformer::ExtractPredicates(
 
   for (auto predicate : predicates) {
     std::unordered_set<std::string> table_alias_set;
-    GenerateTableAliasSet(predicate.Get(), &table_alias_set);
+    GenerateTableAliasSet(predicate, &table_alias_set);
 
     // Deep copy expression to avoid memory leak
     annotated_predicates.emplace_back(AnnotatedExpression(
@@ -607,12 +607,12 @@ std::vector<AnnotatedExpression> QueryToOperatorTransformer::ExtractPredicates(
   return annotated_predicates;
 }
 
-void QueryToOperatorTransformer::GenerateTableAliasSet(const parser::AbstractExpression *expr,
+void QueryToOperatorTransformer::GenerateTableAliasSet(const common::ManagedPointer<parser::AbstractExpression> expr,
                                                        std::unordered_set<std::string> *table_alias_set) {
   if (expr->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE) {
-    table_alias_set->insert(reinterpret_cast<const parser::ColumnValueExpression *>(expr)->GetTableName());
+    table_alias_set->insert(expr.CastManagedPointerTo<const parser::ColumnValueExpression>()->GetTableName());
   } else {
-    for (const auto &child : expr->GetChildren()) GenerateTableAliasSet(child.Get(), table_alias_set);
+    for (const auto &child : expr->GetChildren()) GenerateTableAliasSet(child, table_alias_set);
   }
 }
 

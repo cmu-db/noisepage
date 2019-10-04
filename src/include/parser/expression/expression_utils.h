@@ -25,23 +25,23 @@ class ExpressionUtil {
   /**
    * Walks an expression trees and find all AggregationExprs subtrees.
    */
-  static void GetAggregateExprs(std::vector<AggregateExpression *> *aggr_exprs, AbstractExpression *expr) {
-    std::vector<ColumnValueExpression *> dummy_col_exprs;
+  static void GetAggregateExprs(std::vector<common::ManagedPointer<AggregateExpression>> *aggr_exprs, common::ManagedPointer<AbstractExpression> expr) {
+    std::vector<common::ManagedPointer<ColumnValueExpression>> dummy_col_exprs;
     GetAggregateExprs(aggr_exprs, &dummy_col_exprs, expr);
   }
 
   /**
    * Walks an expression trees and find all AggregationExprs and ColumnValueExprs subtrees.
    */
-  static void GetAggregateExprs(std::vector<AggregateExpression *> *aggr_exprs,
-                                std::vector<ColumnValueExpression *> *tv_exprs, AbstractExpression *expr) {
+  static void GetAggregateExprs(std::vector<common::ManagedPointer<AggregateExpression>> *aggr_exprs,
+                                std::vector<common::ManagedPointer<ColumnValueExpression>> *tv_exprs, common::ManagedPointer<AbstractExpression> expr) {
     if (IsAggregateExpression(expr->GetExpressionType())) {
-      auto aggr_expr = reinterpret_cast<AggregateExpression *>(expr);
+      auto aggr_expr = expr.CastManagedPointerTo<AggregateExpression>();
       aggr_exprs->push_back(aggr_expr);
     } else if (expr->GetExpressionType() == ExpressionType::COLUMN_VALUE) {
-      tv_exprs->push_back(reinterpret_cast<ColumnValueExpression *>(expr));
+      tv_exprs->push_back(expr.CastManagedPointerTo<ColumnValueExpression>());
     } else {
-      for (const auto &child : expr->GetChildren()) GetAggregateExprs(aggr_exprs, tv_exprs, child.Get());
+      for (const auto &child : expr->GetChildren()) GetAggregateExprs(aggr_exprs, tv_exprs, child);
     }
   }
 };
