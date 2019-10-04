@@ -201,7 +201,7 @@ class PostgresPacketWriter : public AbstractPacketWriter {
   /**
    * Tells the client that the bind command is complete.
    */
-  void WriteBindComplete() { BeginPacket(NetworkMessageType:PG_PG_BIND_COMPLETE).EndPacket(); }
+  void WriteBindComplete() { BeginPacket(NetworkMessageType::PG_BIND_COMPLETE).EndPacket(); }
 };
 
 }  // namespace terrier::network

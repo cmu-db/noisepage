@@ -202,7 +202,7 @@ TEST_F(TrafficCopTests, ManualExtendedQueryTest) {
       // Use text format, don't care about result column formats
       writer.WriteBindCommand(portal_name, stmt_name, {}, {&param1, &param2, &param3, &param4}, {});
       io_socket->FlushAllWrites();
-      ReadUntilMessageOrClose(io_socket, network::NetworkMessageType::PG_PG_BIND_COMPLETE);
+      ReadUntilMessageOrClose(io_socket, network::NetworkMessageType::PG_BIND_COMPLETE);
 
       writer.WriteDescribeCommand(network::DescribeCommandObjectType::STATEMENT, stmt_name);
       io_socket->FlushAllWrites();

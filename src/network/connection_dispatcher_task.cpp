@@ -24,6 +24,7 @@ ConnectionDispatcherTask::ConnectionDispatcherTask(
   RegisterSignalEvent(SIGHUP, METHOD_AS_CALLBACK(NotifiableTask, ExitLoop), this);
 }
 
+// TODO: DispatchConnection will also need to take an argument telling it which interpreter to use for the connection.
 void ConnectionDispatcherTask::DispatchConnection(int fd, int16_t) {  // NOLINT
   struct sockaddr_storage addr;
   socklen_t addrlen = sizeof(addr);
