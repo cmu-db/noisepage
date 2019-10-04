@@ -33,7 +33,7 @@ class BigPerfMonitor {
     for (uint8_t i = 0; i < NUM_CACHE_EVENTS; i++) {
       pe.config = CACHE_EVENTS[i];
       event_files_[i + NUM_HW_EVENTS] = syscall(__NR_perf_event_open, &pe, 0, -1, event_files_[0], 0);
-      if (event_files_[i + NUM_HW_EVENTS] == -1) std::cout << strerror(errno) << std::endl;
+      if (event_files_[i + NUM_HW_EVENTS] == -1) std::cout << i << " " << strerror(errno) << std::endl;
       TERRIER_ASSERT(event_files_[i + NUM_HW_EVENTS] > 0, "Failed to open perf_event.");
     }
   }
