@@ -14,23 +14,29 @@
 #include "parser/expression/abstract_expression.h"
 #include "parser/expression/constant_value_expression.h"
 #include "storage/data_table.h"
+#include "storage/garbage_collector.h"
 #include "storage/index/compact_ints_key.h"
 #include "storage/index/index_defs.h"
+#include "storage/sql_table.h"
 #include "storage/storage_defs.h"
 #include "storage/storage_util.h"
 #include "storage/tuple_access_strategy.h"
 #include "storage/undo_record.h"
+#include "transaction/transaction_manager.h"
 #include "type/transient_value_factory.h"
 #include "type/type_id.h"
 #include "util/multithread_test_util.h"
 #include "util/random_test_util.h"
-
 namespace terrier {
 class StorageTestUtil {
  public:
   StorageTestUtil() = delete;
 
 #define TO_INT(p) reinterpret_cast<uintptr_t>(p)
+
+#define MAX_TEST_VARLEN_SIZE (5 * storage::VarlenEntry::InlineThreshold())
+
+#define MIN_GC_INVOCATIONS (3)
   /**
    * Check if memory address represented by val in [lower, upper)
    * @tparam A type of ptr
@@ -87,6 +93,17 @@ class StorageTestUtil {
     return RandomLayout(max_cols, generator, true);
   }
 
+  // Returns a random schema that is guaranteed to be valid.
+  template <typename Random>
+  static catalog::Schema *RandomSchemaNoVarlen(const uint16_t max_cols, Random *const generator) {
+    return RandomSchema(max_cols, generator, false);
+  }
+
+  template <typename Random>
+  static catalog::Schema *RandomSchemaWithVarlens(const uint16_t max_cols, Random *const generator) {
+    return RandomSchema(max_cols, generator, true);
+  }
+
   // Fill the given location with the specified amount of random bytes, using the
   // given generator as a source of randomness.
   template <typename Random>
@@ -101,7 +118,7 @@ class StorageTestUtil {
     std::bernoulli_distribution coin(1 - null_bias);
     // TODO(Tianyu): I don't think this matters as a tunable thing?
     // Make sure we have a mix of inlined and non-inlined values
-    std::uniform_int_distribution<uint32_t> varlen_size(1, 5 * storage::VarlenEntry::InlineThreshold());
+    std::uniform_int_distribution<uint32_t> varlen_size(1, MAX_TEST_VARLEN_SIZE);
     // For every column in the project list, populate its attribute with random bytes or set to null based on coin flip
     for (uint16_t projection_list_idx = 0; projection_list_idx < row->NumColumns(); projection_list_idx++) {
       storage::col_id_t col = row->ColumnIds()[projection_list_idx];
@@ -143,23 +160,26 @@ class StorageTestUtil {
   template <typename Random>
   static std::vector<storage::col_id_t> ProjectionListRandomColumns(const storage::BlockLayout &layout,
                                                                     Random *const generator) {
-    // randomly select a number of columns for this delta to contain. Must be at least 1, but shouldn't be num_cols
-    // since we exclude the version vector column
-    uint16_t num_cols = std::uniform_int_distribution<uint16_t>(
-        1, static_cast<uint16_t>(layout.NumColumns() - NUM_RESERVED_COLUMNS))(*generator);
-
     std::vector<storage::col_id_t> col_ids;
     // Add all of the column ids from the layout to the projection list
     // 0 is version vector so we skip it
     for (uint16_t col = NUM_RESERVED_COLUMNS; col < layout.NumColumns(); col++) col_ids.emplace_back(col);
 
-    // permute the column ids for our random delta
-    std::shuffle(col_ids.begin(), col_ids.end(), *generator);
+    return RandomNonEmptySubset(col_ids, generator);
+  }
 
-    // truncate the projection list
-    col_ids.resize(num_cols);
+  template <typename Random, typename T>
+  static std::vector<T> RandomNonEmptySubset(std::vector<T> elems, Random *const generator) {
+    // randomly select a number of elems for this delta to contain. Must be at least 1
+    auto num_elems = std::uniform_int_distribution<size_t>(1, elems.size())(*generator);
 
-    return col_ids;
+    // Permute the elems
+    std::shuffle(elems.begin(), elems.end(), *generator);
+
+    // truncate the list
+    elems.resize(num_elems);
+
+    return elems;
   }
 
   // Populate a block with random tuple according to the given parameters. Returns a mapping of the tuples in each slot.
@@ -194,7 +214,7 @@ class StorageTestUtil {
       for (uint16_t j = 0; j < redo->NumColumns(); j++)
         storage::StorageUtil::CopyAttrFromProjection(accessor, slot, *redo, j);
     }
-    TERRIER_ASSERT(block->insert_head_ == layout.NumSlots(), "The block should be considered full at this point");
+    TERRIER_ASSERT(block->GetInsertHead() == layout.NumSlots(), "The block should be considered full at this point");
     return result;
   }
 
@@ -232,7 +252,7 @@ class StorageTestUtil {
       for (uint16_t j = 0; j < redo->NumColumns(); j++)
         storage::StorageUtil::CopyAttrFromProjection(accessor, slot, *redo, j);
     }
-    TERRIER_ASSERT(block->insert_head_ == layout.NumSlots(), "The block should be considered full at this point");
+    TERRIER_ASSERT(block->GetInsertHead() == layout.NumSlots(), "The block should be considered full at this point");
     delete[] redo_buffer;
     return result;
   }
@@ -335,6 +355,52 @@ class StorageTestUtil {
         *copied_entry = storage::VarlenEntry::Create(copied_content, original_entry->Size(), true);
       }
     }
+    return result;
+  }
+
+  /**
+   * Tests if two sql tables with the same schema have identical visible tuples
+   * @param layout layout of the two sql tables
+   * @param table_one sql table to compare to table_two
+   * @param table_two sql table to compare to table_one
+   * @param table_one_tuples vector of all tuple slots in table one
+   * @param tuple_slot_map mapping of tuple slots in table one to corresponding tuple slots in table two
+   * @param txn_manager_one manager to begin txn to scan table_one
+   * @param txn_manager_two manager to begin txn to scan table_two (can be the same as txn_manager_one)
+   * @return true if tables are equal
+   */
+  static bool SqlTableEqualDeep(const storage::BlockLayout &layout, common::ManagedPointer<storage::SqlTable> table_one,
+                                common::ManagedPointer<storage::SqlTable> table_two,
+                                const std::vector<storage::TupleSlot> &table_one_tuples,
+                                const std::unordered_map<storage::TupleSlot, storage::TupleSlot> &tuple_slot_map,
+                                transaction::TransactionManager *txn_manager_one,
+                                transaction::TransactionManager *txn_manager_two) {
+    auto *txn_one = txn_manager_one->BeginTransaction();
+    auto *txn_two = txn_manager_two->BeginTransaction();
+
+    auto initializer =
+        storage::ProjectedRowInitializer::Create(layout, StorageTestUtil::ProjectionListAllColumns(layout));
+    auto *buffer_one = common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize());
+    auto *buffer_two = common::AllocationUtil::AllocateAligned(initializer.ProjectedRowSize());
+    storage::ProjectedRow *row_one = initializer.InitializeRow(buffer_one);
+    storage::ProjectedRow *row_two = initializer.InitializeRow(buffer_two);
+
+    // Select each tuple for both tables and perform equality
+    bool result = true;
+    for (auto &tuple : table_one_tuples) {
+      TERRIER_ASSERT(tuple_slot_map.find(tuple) != tuple_slot_map.end(), "No mapping for this tuple slot");
+      table_one->Select(txn_one, tuple, row_one);
+      table_two->Select(txn_two, tuple_slot_map.at(tuple), row_two);
+      if (!ProjectionListEqualDeep(layout, row_one, row_two)) {
+        result = false;
+        break;
+      }
+    }
+
+    txn_manager_one->Commit(txn_one, transaction::TransactionUtil::EmptyCallback, nullptr);
+    txn_manager_two->Commit(txn_two, transaction::TransactionUtil::EmptyCallback, nullptr);
+    delete[] buffer_one;
+    delete[] buffer_two;
     return result;
   }
 
@@ -451,19 +517,15 @@ class StorageTestUtil {
       ForceOid(&(key_cols.back()), key_oid);
     }
 
-    return catalog::IndexSchema(key_cols, false, false, false, true);
+    return catalog::IndexSchema(key_cols, storage::index::IndexType::BWTREE, false, false, false, true);
   }
 
   /**
-   * Generates a random CompactIntsKey-compatible schema.
+   * Generates a random simple key (integral and not NULL-able) schema
    */
   template <typename Random>
-  static catalog::IndexSchema RandomCompactIntsKeySchema(Random *generator) {
-    const uint16_t max_bytes = sizeof(uint64_t) * INTSKEY_MAX_SLOTS;
+  static catalog::IndexSchema RandomSimpleKeySchema(Random *generator, const uint16_t max_bytes) {
     const auto key_size = std::uniform_int_distribution(static_cast<uint16_t>(1), max_bytes)(*generator);
-
-    const std::vector<type::TypeId> types{type::TypeId::TINYINT, type::TypeId::SMALLINT, type::TypeId::INTEGER,
-                                          type::TypeId::BIGINT};  // has to be sorted in ascending type size order
 
     const uint16_t max_cols = max_bytes;  // could have up to max_bytes TINYINTs
     std::vector<catalog::indexkeycol_oid_t> key_oids;
@@ -480,14 +542,14 @@ class StorageTestUtil {
     uint8_t col = 0;
 
     for (uint16_t bytes_used = 0; bytes_used != key_size;) {
-      auto max_offset = static_cast<uint8_t>(types.size() - 1);
-      for (const auto &type : types) {
+      auto max_offset = static_cast<uint8_t>(storage::index::NUMERIC_KEY_TYPES.size() - 1);
+      for (const auto &type : storage::index::NUMERIC_KEY_TYPES) {
         if (key_size - bytes_used < type::TypeUtil::GetTypeSize(type)) {
           max_offset--;
         }
       }
       const uint8_t type_offset = std::uniform_int_distribution(static_cast<uint8_t>(0), max_offset)(*generator);
-      const auto type = types[type_offset];
+      const auto type = storage::index::NUMERIC_KEY_TYPES[type_offset];
 
       key_cols.emplace_back("", type, false,
                             parser::ConstantValueExpression(std::move(type::TransientValueFactory::GetNull(type))));
@@ -495,7 +557,21 @@ class StorageTestUtil {
       bytes_used = static_cast<uint16_t>(bytes_used + type::TypeUtil::GetTypeSize(type));
     }
 
-    return catalog::IndexSchema(key_cols, false, false, false, true);
+    return catalog::IndexSchema(key_cols, storage::index::IndexType::BWTREE, false, false, false, true);
+  }
+
+  /**
+   * Invokes GC and log manager enough times to fully GC any outstanding transactions and process deferred events.
+   * Currently, this must be done 3 times. The log manager must be called because transactions can only be GC'd once
+   * their logs are persisted.
+   * @param gc gc to use for garbage collection
+   * @param log_manager log manager to use for flushing logs
+   */
+  static void FullyPerformGC(storage::GarbageCollector *const gc, storage::LogManager *const log_manager) {
+    for (int i = 0; i < MIN_GC_INVOCATIONS; i++) {
+      if (log_manager != DISABLED) log_manager->ForceFlush();
+      gc->PerformGarbageCollection();
+    }
   }
 
  private:
@@ -514,6 +590,36 @@ class StorageTestUtil {
     for (uint16_t i = NUM_RESERVED_COLUMNS; i < num_attrs; i++)
       attr_sizes[i] = *RandomTestUtil::UniformRandomElement(&possible_attr_sizes, generator);
     return storage::BlockLayout(attr_sizes);
+  }
+
+  template <typename Random>
+  static catalog::Schema *RandomSchema(const uint16_t max_cols, Random *const generator, bool allow_varlen) {
+    const uint16_t num_attrs = std::uniform_int_distribution<uint16_t>(1, max_cols)(*generator);
+    std::vector<type::TypeId> possible_attr_types{type::TypeId::BOOLEAN, type::TypeId::SMALLINT, type::TypeId::INTEGER,
+                                                  type::TypeId::DECIMAL};
+    if (allow_varlen) possible_attr_types.push_back(type::TypeId::VARCHAR);
+
+    std::vector<catalog::Schema::Column> columns;
+    columns.reserve(num_attrs);
+
+    for (uint16_t i = 0; i < num_attrs; i++) {
+      auto random_type = *RandomTestUtil::UniformRandomElement(&possible_attr_types, generator);
+
+      catalog::Schema::Column col;
+      if (random_type == type::TypeId::VARCHAR) {
+        col = catalog::Schema::Column(
+            "col" + std::to_string(i), random_type, MAX_TEST_VARLEN_SIZE, false,
+            parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
+      } else {
+        col = catalog::Schema::Column(
+            "col" + std::to_string(i), random_type, false,
+            parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
+      }
+      col.SetOid(catalog::col_oid_t(i));
+      columns.push_back(col);
+    }
+
+    return new catalog::Schema(columns);
   }
 };
 }  // namespace terrier

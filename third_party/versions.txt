@@ -47,3 +47,16 @@ GBENCHMARK_VERSION=1.4.1
 # branch: master
 # commit hash: 61a0530f28277f2e850bfc39600ce61d02b518de
 # commit hash date: 9 Jan 2018
+
+# xxhash
+# url: https://github.com/Cyan4973/xxHash
+# release: 0.7.1
+# commit hash: dfd1bf117c816e4774adc1e1cdcb1687c0f7913c
+# commit hash date: 15 Aug 2019
+
+# libcuckoo
+# url: https://github.com/efficient/libcuckoo.git
+# branch: master
+# commit hash: f3138045810b2c2e9b59dbede296b4a5194af4f9
+# commit hash date: 24 Dec 2018
+# modifications: replaced their own-rolled spinlock with TBB's to get exponential backoff with pause. formatted

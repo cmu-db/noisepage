@@ -357,6 +357,13 @@ class RedoBuffer {
    */
   bool HasFlushed() const { return has_flushed_; }
 
+  /**
+   * Reset the RedoBuffer to empty
+   */
+  void Reset() {
+    if (buffer_seg_ != nullptr) buffer_seg_->Reset();
+  }
+
  private:
   // Flag to denote if this RedoBuffer has flushed records to the log manager already.
   // We use this to determine if we should write an abort record, since we only need to write an abort record if this

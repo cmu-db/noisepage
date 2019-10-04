@@ -760,6 +760,7 @@ TEST(PlanNodeJsonTest, InsertPlanNodeJsonTest) {
                        .AddValues(get_values(1, 2))
                        .AddParameterInfo(catalog::col_oid_t(0))
                        .AddParameterInfo(catalog::col_oid_t(1))
+                       .SetIndexOids({catalog::index_oid_t{0}, catalog::index_oid_t{1}})
                        .Build();
 
   // Serialize to Json

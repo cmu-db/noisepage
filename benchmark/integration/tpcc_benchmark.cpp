@@ -41,7 +41,7 @@ class TPCCBenchmark : public benchmark::Fixture {
 
   // Settings for log manager
   const uint64_t num_log_buffers_ = 100;
-  const std::chrono::milliseconds log_serialization_interval_{5};
+  const std::chrono::microseconds log_serialization_interval_{5};
   const std::chrono::milliseconds log_persist_interval_{10};
   const uint64_t log_persist_threshold_ = (1U << 20U);  // 1MB
 
@@ -86,8 +86,8 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithoutLogging)(benchmark::State &
     transaction::TransactionManager txn_manager(&timestamp_manager, &deferred_action_manager, &buffer_pool_, true,
                                                 log_manager_);
 
-    // build the TPCC database
-    auto *const tpcc_db = tpcc_builder.Build();
+    // build the TPCC database using HashMaps where possible
+    auto *const tpcc_db = tpcc_builder.Build(storage::index::IndexType::HASHMAP);
 
     // prepare the workers
     workers.clear();
@@ -108,7 +108,7 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithoutLogging)(benchmark::State &
     {
       common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
       for (int8_t i = 0; i < num_threads_; i++) {
-        thread_pool_.SubmitTask([i, tpcc_db, &txn_manager, precomputed_args, &workers] {
+        thread_pool_.SubmitTask([i, tpcc_db, &txn_manager, &precomputed_args, &workers] {
           Workload(i, tpcc_db, &txn_manager, precomputed_args, &workers);
         });
       }
@@ -170,8 +170,8 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithLogging)(benchmark::State &sta
     transaction::TransactionManager txn_manager(&timestamp_manager, &deferred_action_manager, &buffer_pool_, true,
                                                 log_manager_);
 
-    // build the TPCC database
-    auto *const tpcc_db = tpcc_builder.Build();
+    // build the TPCC database using HashMaps where possible
+    auto *const tpcc_db = tpcc_builder.Build(storage::index::IndexType::HASHMAP);
 
     // prepare the workers
     workers.clear();
@@ -192,7 +192,7 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithLogging)(benchmark::State &sta
     {
       common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
       for (int8_t i = 0; i < num_threads_; i++) {
-        thread_pool_.SubmitTask([i, tpcc_db, &txn_manager, precomputed_args, &workers] {
+        thread_pool_.SubmitTask([i, tpcc_db, &txn_manager, &precomputed_args, &workers] {
           Workload(i, tpcc_db, &txn_manager, precomputed_args, &workers);
         });
       }

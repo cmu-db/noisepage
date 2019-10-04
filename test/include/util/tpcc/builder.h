@@ -5,6 +5,7 @@
 #include "catalog/schema.h"
 #include "common/macros.h"
 #include "storage/index/index_builder.h"
+#include "storage/index/index_defs.h"
 #include "storage/sql_table.h"
 #include "util/tpcc/database.h"
 #include "util/tpcc/schemas.h"
@@ -20,21 +21,12 @@ class Builder {
       : store_(store),
         oid_counter_(1)  // 0 is a reserved oid in the catalog, so we'll start at 1 for our counter
   {}
-  Database *Build();
+  Database *Build(storage::index::IndexType index_type);
 
  private:
-  storage::index::Index *BuildPrimaryIndex(const catalog::IndexSchema &key_schema) {
+  storage::index::Index *BuildIndex(const catalog::IndexSchema &key_schema) {
     storage::index::IndexBuilder index_builder;
-    index_builder.SetOid(static_cast<catalog::index_oid_t>(static_cast<uint32_t>(++oid_counter_)))
-        .SetKeySchema(key_schema)
-        .SetConstraintType(storage::index::ConstraintType::UNIQUE);
-    return index_builder.Build();
-  }
-  storage::index::Index *BuildSecondaryIndex(const catalog::IndexSchema &key_schema) {
-    storage::index::IndexBuilder index_builder;
-    index_builder.SetOid(static_cast<catalog::index_oid_t>(static_cast<uint32_t>(++oid_counter_)))
-        .SetKeySchema(key_schema)
-        .SetConstraintType(storage::index::ConstraintType::DEFAULT);
+    index_builder.SetKeySchema(key_schema);
     return index_builder.Build();
   }
 

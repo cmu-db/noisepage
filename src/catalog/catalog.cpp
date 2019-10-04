@@ -19,16 +19,27 @@ namespace terrier::catalog {
 Catalog::Catalog(transaction::TransactionManager *const txn_manager, storage::BlockStore *const block_store)
     : txn_manager_(txn_manager), catalog_block_store_(block_store), next_oid_(1) {
   databases_ = new storage::SqlTable(block_store, postgres::Builder::GetDatabaseTableSchema());
-  databases_oid_index_ =
-      postgres::Builder::BuildUniqueIndex(postgres::Builder::GetDatabaseOidIndexSchema(), DATABASE_OID_INDEX_OID);
-  databases_name_index_ =
-      postgres::Builder::BuildUniqueIndex(postgres::Builder::GetDatabaseNameIndexSchema(), DATABASE_NAME_INDEX_OID);
+  databases_oid_index_ = postgres::Builder::BuildUniqueIndex(postgres::Builder::GetDatabaseOidIndexSchema(),
+                                                             postgres::DATABASE_OID_INDEX_OID);
+  databases_name_index_ = postgres::Builder::BuildUniqueIndex(postgres::Builder::GetDatabaseNameIndexSchema(),
+                                                              postgres::DATABASE_NAME_INDEX_OID);
+  get_database_oid_pri_ = databases_->InitializerForProjectedRow({postgres::DATOID_COL_OID});
+  get_database_catalog_pri_ = databases_->InitializerForProjectedRow({postgres::DAT_CATALOG_COL_OID});
+
+  const std::vector<col_oid_t> pg_database_all_oids{postgres::PG_DATABASE_ALL_COL_OIDS.cbegin(),
+                                                    postgres::PG_DATABASE_ALL_COL_OIDS.cend()};
+  pg_database_all_cols_pri_ = databases_->InitializerForProjectedRow(pg_database_all_oids);
+  pg_database_all_cols_prm_ = databases_->ProjectionMapForOids(pg_database_all_oids);
+
+  const std::vector<col_oid_t> delete_database_entry_oids{postgres::DATNAME_COL_OID, postgres::DAT_CATALOG_COL_OID};
+  delete_database_entry_pri_ = databases_->InitializerForProjectedRow(delete_database_entry_oids);
+  delete_database_entry_prm_ = databases_->ProjectionMapForOids(delete_database_entry_oids);
 }
 
 void Catalog::TearDown() {
   auto *txn = txn_manager_->BeginTransaction();
   // Get a projected column on DatabaseCatalog pointers for scanning the table
-  const std::vector<col_oid_t> cols{DAT_CATALOG_COL_OID};
+  const std::vector<col_oid_t> cols{postgres::DAT_CATALOG_COL_OID};
 
   // Only one column, so we only need the initializer and not the ProjectionMap
   const auto pci = databases_->InitializerForProjectedColumns(cols, 100);
@@ -75,19 +86,24 @@ void Catalog::TearDown() {
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 }
 
-db_oid_t Catalog::CreateDatabase(transaction::TransactionContext *const txn, const std::string &name,
-                                 const bool bootstrap) {
+bool Catalog::CreateDatabase(transaction::TransactionContext *const txn, const std::string &name, const bool bootstrap,
+                             const catalog::db_oid_t db_oid) {
   // Instantiate the DatabaseCatalog
-  const db_oid_t db_oid = next_oid_++;
   DatabaseCatalog *dbc = postgres::Builder::CreateDatabaseCatalog(catalog_block_store_, db_oid);
-  if (bootstrap) dbc->Bootstrap(txn);
   txn->RegisterAbortAction([=](transaction::DeferredActionManager *deferred_action_manager) {
     dbc->TearDown(txn);
     delete dbc;
   });
-  const auto success = Catalog::CreateDatabaseEntry(txn, db_oid, name, dbc);
-  if (!success) return INVALID_DATABASE_OID;
+  bool success = Catalog::CreateDatabaseEntry(txn, db_oid, name, dbc);
+  if (bootstrap) dbc->Bootstrap(txn);  // If creation succeed, bootstrap the created database
+  return success;
+}
 
+db_oid_t Catalog::CreateDatabase(transaction::TransactionContext *const txn, const std::string &name,
+                                 const bool bootstrap) {
+  const db_oid_t db_oid = next_oid_++;
+  const auto success = Catalog::CreateDatabase(txn, name, bootstrap, db_oid);
+  if (!success) return INVALID_DATABASE_OID;
   return db_oid;
 }
 
@@ -141,8 +157,7 @@ db_oid_t Catalog::GetDatabaseOid(transaction::TransactionContext *const txn, con
   }
   TERRIER_ASSERT(index_results.size() == 1, "Database name not unique in index");
 
-  const auto table_pri = databases_->InitializerForProjectedRow({DATOID_COL_OID});
-  pr = table_pri.InitializeRow(buffer);
+  pr = get_database_oid_pri_.InitializeRow(buffer);
   const auto result UNUSED_ATTRIBUTE = databases_->Select(txn, index_results[0], pr);
   TERRIER_ASSERT(result, "Index already verified visibility. This shouldn't fail.");
   const auto db_oid = *(reinterpret_cast<const db_oid_t *const>(pr->AccessForceNotNull(0)));
@@ -168,9 +183,7 @@ common::ManagedPointer<DatabaseCatalog> Catalog::GetDatabaseCatalog(transaction:
   }
   TERRIER_ASSERT(index_results.size() == 1, "Database name not unique in index");
 
-  const std::vector<col_oid_t> table_oids{DAT_CATALOG_COL_OID};
-  const auto table_pri = databases_->InitializerForProjectedRow(table_oids);
-  pr = table_pri.InitializeRow(buffer);
+  pr = get_database_catalog_pri_.InitializeRow(buffer);
   const auto UNUSED_ATTRIBUTE result = databases_->Select(txn, index_results[0], pr);
   TERRIER_ASSERT(result, "Index scan did a visibility check, so Select shouldn't fail at this point.");
 
@@ -190,19 +203,16 @@ bool Catalog::CreateDatabaseEntry(transaction::TransactionContext *const txn, co
   const auto name_varlen = storage::StorageUtil::CreateVarlen(name);
 
   // Create the redo record for inserting into the table
-  std::vector<col_oid_t> table_oids;
-  table_oids.emplace_back(DATOID_COL_OID);
-  table_oids.emplace_back(DATNAME_COL_OID);
-  table_oids.emplace_back(DAT_CATALOG_COL_OID);
 
-  auto pri = databases_->InitializerForProjectedRow(table_oids);
-  auto pm = databases_->ProjectionMapForOids(table_oids);
-  auto *const redo = txn->StageWrite(INVALID_DATABASE_OID, DATABASE_TABLE_OID, pri);
+  auto *const redo = txn->StageWrite(INVALID_DATABASE_OID, postgres::DATABASE_TABLE_OID, pg_database_all_cols_pri_);
 
   // Populate the projected row
-  *(reinterpret_cast<db_oid_t *>(redo->Delta()->AccessForceNotNull(pm[DATOID_COL_OID]))) = db;
-  *(reinterpret_cast<storage::VarlenEntry *>(redo->Delta()->AccessForceNotNull(pm[DATNAME_COL_OID]))) = name_varlen;
-  *(reinterpret_cast<DatabaseCatalog **>(redo->Delta()->AccessForceNotNull(pm[DAT_CATALOG_COL_OID]))) = dbc;
+  *(reinterpret_cast<db_oid_t *>(
+      redo->Delta()->AccessForceNotNull(pg_database_all_cols_prm_[postgres::DATOID_COL_OID]))) = db;
+  *(reinterpret_cast<storage::VarlenEntry *>(
+      redo->Delta()->AccessForceNotNull(pg_database_all_cols_prm_[postgres::DATNAME_COL_OID]))) = name_varlen;
+  *(reinterpret_cast<DatabaseCatalog **>(
+      redo->Delta()->AccessForceNotNull(pg_database_all_cols_prm_[postgres::DAT_CATALOG_COL_OID]))) = dbc;
 
   // Insert into the table to get the tuple slot
   const auto tupleslot = databases_->Insert(txn, redo);
@@ -241,16 +251,12 @@ bool Catalog::CreateDatabaseEntry(transaction::TransactionContext *const txn, co
 DatabaseCatalog *Catalog::DeleteDatabaseEntry(transaction::TransactionContext *txn, db_oid_t db) {
   std::vector<storage::TupleSlot> index_results;
 
-  const std::vector<col_oid_t> table_oids{DATNAME_COL_OID, DAT_CATALOG_COL_OID};
-
-  auto table_pri = databases_->InitializerForProjectedRow(table_oids);
-  auto table_pri_map = databases_->ProjectionMapForOids(table_oids);
   const auto name_pri = databases_name_index_->GetProjectedRowInitializer();
   const auto oid_pri = databases_oid_index_->GetProjectedRowInitializer();
 
   // Name is a larger projected row (16-byte key vs 4-byte key), sow we can reuse
   // the buffer for both index operations if we allocate to the larger one.
-  byte *const buffer = common::AllocationUtil::AllocateAligned(table_pri.ProjectedRowSize());
+  byte *const buffer = common::AllocationUtil::AllocateAligned(delete_database_entry_pri_.ProjectedRowSize());
   auto *pr = oid_pri.InitializeRow(buffer);
   *(reinterpret_cast<db_oid_t *>(pr->AccessForceNotNull(0))) = db;
 
@@ -261,12 +267,12 @@ DatabaseCatalog *Catalog::DeleteDatabaseEntry(transaction::TransactionContext *t
   }
   TERRIER_ASSERT(index_results.size() == 1, "Database OID not unique in index");
 
-  pr = table_pri.InitializeRow(buffer);
+  pr = delete_database_entry_pri_.InitializeRow(buffer);
   const auto UNUSED_ATTRIBUTE result = databases_->Select(txn, index_results[0], pr);
 
   TERRIER_ASSERT(result, "Index scan did a visibility check, so Select shouldn't fail at this point.");
 
-  txn->StageDelete(INVALID_DATABASE_OID, DATABASE_TABLE_OID, index_results[0]);
+  txn->StageDelete(INVALID_DATABASE_OID, postgres::DATABASE_TABLE_OID, index_results[0]);
   if (!databases_->Delete(txn, index_results[0])) {
     // Someone else has a write-lock
     delete[] buffer;
@@ -276,8 +282,10 @@ DatabaseCatalog *Catalog::DeleteDatabaseEntry(transaction::TransactionContext *t
   // It is safe to use AccessForceNotNull here because we have checked the
   // tuple's visibility and because the pointer cannot be null in a running
   // database
-  auto *dbc = *reinterpret_cast<DatabaseCatalog **>(pr->AccessForceNotNull(table_pri_map[DAT_CATALOG_COL_OID]));
-  auto name = *reinterpret_cast<storage::VarlenEntry *>(pr->AccessForceNotNull(table_pri_map[DATNAME_COL_OID]));
+  auto *dbc = *reinterpret_cast<DatabaseCatalog **>(
+      pr->AccessForceNotNull(delete_database_entry_prm_[postgres::DAT_CATALOG_COL_OID]));
+  auto name = *reinterpret_cast<storage::VarlenEntry *>(
+      pr->AccessForceNotNull(delete_database_entry_prm_[postgres::DATNAME_COL_OID]));
 
   pr = oid_pri.InitializeRow(buffer);
   *(reinterpret_cast<db_oid_t *>(pr->AccessForceNotNull(0))) = db;

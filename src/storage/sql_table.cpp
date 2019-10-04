@@ -83,4 +83,9 @@ ProjectionMap SqlTable::ProjectionMapForOids(const std::vector<catalog::col_oid_
   return projection_map;
 }
 
+catalog::col_oid_t SqlTable::OidForColId(const col_id_t col_id) const {
+  const auto oid_to_id = std::find_if(table_.column_map_.cbegin(), table_.column_map_.cend(),
+                                      [&](const auto &oid_to_id) -> bool { return oid_to_id.second == col_id; });
+  return oid_to_id->first;
+}
 }  // namespace terrier::storage

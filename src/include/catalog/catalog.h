@@ -1,5 +1,6 @@
 #pragma once
 
+#include <algorithm>
 #include <memory>
 #include <string>
 #include <vector>
@@ -107,6 +108,7 @@ class Catalog {
   std::unique_ptr<CatalogAccessor> GetAccessor(transaction::TransactionContext *txn, db_oid_t database);
 
  private:
+  friend class storage::RecoveryManager;
   transaction::TransactionManager *txn_manager_;
   storage::BlockStore *catalog_block_store_;
   std::atomic<db_oid_t> next_oid_;
@@ -114,6 +116,35 @@ class Catalog {
   storage::SqlTable *databases_;
   storage::index::Index *databases_name_index_;
   storage::index::Index *databases_oid_index_;
+  storage::ProjectedRowInitializer get_database_oid_pri_;
+  storage::ProjectedRowInitializer get_database_catalog_pri_;
+  storage::ProjectedRowInitializer pg_database_all_cols_pri_;
+  storage::ProjectionMap pg_database_all_cols_prm_;
+  storage::ProjectedRowInitializer delete_database_entry_pri_;
+  storage::ProjectionMap delete_database_entry_prm_;
+
+  /**
+   * Atomically updates the next oid counter to the max of the current count and the provided next oid
+   * @param oid next oid to move oid counter to
+   */
+  void UpdateNextOid(db_oid_t oid) {
+    db_oid_t expected, desired;
+    do {
+      expected = next_oid_.load();
+      desired = std::max(expected, oid);
+    } while (!next_oid_.compare_exchange_weak(expected, desired));
+  }
+
+  /**
+   * Helper for CreateDatabase. This method can be used by recovery manager to create a database with a specific oid
+   * @param txn that creates the database
+   * @param name of the new database
+   * @param bootstrap indicates whether or not to perform bootstrap routine
+   * @param db_oid oid for new database
+   * @return true if creation succeeded, false otherwise
+   */
+  bool CreateDatabase(transaction::TransactionContext *txn, const std::string &name, bool bootstrap,
+                      catalog::db_oid_t db_oid);
 
   /**
    * Creates a new database entry.

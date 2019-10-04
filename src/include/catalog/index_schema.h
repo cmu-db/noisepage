@@ -1,17 +1,25 @@
 #pragma once
 
+#include <deque>
 #include <memory>
 #include <string>
+#include <unordered_map>
 #include <utility>
 #include <vector>
 #include "catalog/catalog_defs.h"
 #include "common/json.h"
 #include "common/macros.h"
 #include "parser/expression/abstract_expression.h"
+#include "parser/expression/column_value_expression.h"
+#include "storage/index/index_defs.h"
 #include "type/type_id.h"
 
 namespace terrier {
 class StorageTestUtil;
+}
+
+namespace terrier::storage {
+class RecoveryManager;
 }
 
 namespace terrier::tpcc {
@@ -194,22 +202,22 @@ class IndexSchema {
   /**
    * Instantiates a new catalog description of an index
    * @param columns describing the individual parts of the key
+   * @param type backing data structure of the index
    * @param is_unique indicating whether the same key can be (logically) visible repeats are allowed in the index
    * @param is_primary indicating whether this will be the index for a primary key
    * @param is_exclusion indicating whether this index is for exclusion constraints
    * @param is_immediate indicating that the uniqueness check fails at insertion time
    */
-  IndexSchema(std::vector<Column> columns, const bool is_unique, const bool is_primary, const bool is_exclusion,
-              const bool is_immediate)
+  IndexSchema(std::vector<Column> columns, const storage::index::IndexType type, const bool is_unique,
+              const bool is_primary, const bool is_exclusion, const bool is_immediate)
       : columns_(std::move(columns)),
+        type_(type),
         is_unique_(is_unique),
         is_primary_(is_primary),
         is_exclusion_(is_exclusion),
-        is_immediate_(is_immediate),
-        is_valid_(false),
-        is_ready_(false),
-        is_live_(true) {
+        is_immediate_(is_immediate) {
     TERRIER_ASSERT((is_primary && is_unique) || (!is_primary), "is_primary requires is_unique to be true as well.");
+    ExtractIndexedColOids();
   }
 
   IndexSchema() = default;
@@ -223,27 +231,53 @@ class IndexSchema {
    * @param index in the column vector for the requested column
    * @return requested key column
    */
-  const Column &GetColumn(int index) const { return columns_.at(index); }
+  const Column &GetColumn(uint32_t index) const { return columns_.at(index); }
 
   /**
-   * @return true if this schema is for a unique index
+   * @param name name of the Column to access
+   * @return description of the schema for a specific column
+   * @throw std::out_of_range if the column doesn't exist.
+   */
+  const Column &GetColumn(const std::string &name) const {
+    for (auto &c : columns_) {
+      if (c.Name() == name) {
+        return c;
+      }
+    }
+    // TODO(John): Should this be a TERRIER_ASSERT to have the same semantics
+    // as the other accessor methods above?
+    throw std::out_of_range("Column name doesn't exist");
+  }
+
+  /**
+   * @return true if is a unique index
    */
   bool Unique() const { return is_unique_; }
 
   /**
-   * @return true if this schema is for a unique index
+   * @return true if index represents the primary key of the table (Unique should always be true when this is true)
    */
   bool Primary() const { return is_primary_; }
 
   /**
-   * @return true if this schema is for a unique index
+   * @return true if index supports an exclusion constraint
    */
   bool Exclusion() const { return is_exclusion_; }
 
   /**
-   * @return true if this schema is for a unique index
+   * @return true if uniqueness check is enforced immediately on insertion
    */
   bool Immediate() const { return is_immediate_; }
+
+  /**
+   * @return the backend that should be used to implement this index
+   */
+  storage::index::IndexType Type() const { return type_; }
+
+  /**
+   * @param index_type that should be used to back this index
+   */
+  void SetType(storage::index::IndexType index_type) { type_ = index_type; }
 
   /**
    * @return serialized schema
@@ -252,13 +286,11 @@ class IndexSchema {
     // Only need to serialize columns_ because col_oid_to_offset is derived from columns_
     nlohmann::json j;
     j["columns"] = columns_;
+    j["type"] = static_cast<char>(type_);
     j["unique"] = is_unique_;
     j["primary"] = is_primary_;
     j["exclusion"] = is_exclusion_;
     j["immediate"] = is_immediate_;
-    j["valid"] = is_valid_;
-    j["ready"] = is_ready_;
-    j["live"] = is_live_;
     return j;
   }
 
@@ -280,30 +312,65 @@ class IndexSchema {
     auto primary = j.at("primary").get<bool>();
     auto exclusion = j.at("exclusion").get<bool>();
     auto immediate = j.at("immediate").get<bool>();
+    auto type = static_cast<storage::index::IndexType>(j.at("type").get<char>());
 
-    auto schema = std::make_shared<IndexSchema>(columns, unique, primary, exclusion, immediate);
-
-    schema->SetValid(j.at("valid").get<bool>());
-    schema->SetReady(j.at("ready").get<bool>());
-    schema->SetLive(j.at("live").get<bool>());
+    auto schema = std::make_shared<IndexSchema>(columns, type, unique, primary, exclusion, immediate);
 
     return schema;
+  }
+
+  /**
+   * @return map of index key oid to col_oid contained in that index key
+   */
+  const std::vector<col_oid_t> &GetIndexedColOids() const {
+    TERRIER_ASSERT(!indexed_oids_.empty(),
+                   "The indexed oids map should not be empty. Was ExtractIndexedColOids called before?");
+    return indexed_oids_;
+  }
+
+  /**
+   * @warning Calling this function will traverse the entire expression tree for each column, which may be expensive for
+   * large expressions. Thus, it should only be called once during object construction.
+   * @return col oids in index keys, ordered by index key
+   */
+  void ExtractIndexedColOids() {
+    // We will traverse every expr tree
+    std::deque<common::ManagedPointer<const parser::AbstractExpression>> expr_queue;
+
+    // Traverse expression tree for each index key
+    for (auto &col : GetColumns()) {
+      TERRIER_ASSERT(col.StoredExpression() != nullptr, "Index column expr should not be missing");
+      // Add root of expression of tree for the column
+      expr_queue.push_back(col.StoredExpression());
+
+      // Iterate over the tree
+      while (!expr_queue.empty()) {
+        auto expr = expr_queue.front();
+        expr_queue.pop_front();
+
+        // If this expr is a column value, add it to the queue
+        if (expr->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE) {
+          indexed_oids_.push_back(expr.CastManagedPointerTo<const parser::ColumnValueExpression>()->GetColumnOid());
+        }
+
+        // Add children to queue
+        for (const auto &child : expr->GetChildren()) {
+          TERRIER_ASSERT(child != nullptr, "We should not be adding missing expressions to the queue");
+          expr_queue.emplace_back(child.get());
+        }
+      }
+    }
   }
 
  private:
   friend class DatabaseCatalog;
   std::vector<Column> columns_;
+  storage::index::IndexType type_;
+  std::vector<col_oid_t> indexed_oids_;
   bool is_unique_;
   bool is_primary_;
   bool is_exclusion_;
   bool is_immediate_;
-  bool is_valid_;
-  bool is_ready_;
-  bool is_live_;
-
-  void SetValid(const bool is_valid) { is_valid_ = is_valid; }
-  void SetReady(const bool is_ready) { is_ready_ = is_ready; }
-  void SetLive(const bool is_live) { is_live_ = is_live; }
 
   friend class Catalog;
   friend class postgres::Builder;

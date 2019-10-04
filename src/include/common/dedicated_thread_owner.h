@@ -101,7 +101,7 @@ class DedicatedThreadOwner {
    * properly clean up the task beforehand.
    * @return true if owner allows registry to remove thread, false otherwise
    */
-  virtual bool OnThreadRemoval(common::ManagedPointer<DedicatedThreadTask> task) { return false; }
+  virtual bool OnThreadRemoval(common::ManagedPointer<DedicatedThreadTask> task) { return true; }
 
   // Latch to protect thread count
   common::SpinLatch thread_count_latch_;
