@@ -95,7 +95,7 @@ class CompilerTest : public SqlBasedTest {
     terrier::LoggersUtil::ShutDown();
   }
 };
-/*
+
 // NOLINTNEXTLINE
 TEST_F(CompilerTest, SimpleSeqScanTest) {
   // SELECT col1, col2, col1 * col2, col1 >= 100*col2 FROM test_1 WHERE col1 < 500 AND col2 >= 3;
@@ -147,7 +147,7 @@ TEST_F(CompilerTest, SimpleSeqScanTest) {
   CompileAndRun(seq_scan.get(), exec_ctx.get());
   multi_checker.CheckCorrectness();
 }
-*/
+
 
 // NOLINTNEXTLINE
 TEST_F(CompilerTest, SimpleIndexScanTest) {
@@ -186,7 +186,7 @@ TEST_F(CompilerTest, SimpleIndexScanTest) {
   multi_checker.CheckCorrectness();
 }
 
-/*
+
 // NOLINTNEXTLINE
 TEST_F(CompilerTest, SimpleAggregateTest) {
   // SELECT col2, SUM(col1) FROM test_1 WHERE col1 < 1000 GROUP BY col2;
@@ -875,7 +875,7 @@ TEST_F(CompilerTest, SimpleIndexNestedLoopJoinMultiColumnTest) {
   CompileAndRun(index_join.get(), exec_ctx.get());
   checker.CheckCorrectness();
 }
-*/
+
 
 /*
 // NOLINTNEXTLINE
