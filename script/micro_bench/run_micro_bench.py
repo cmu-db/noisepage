@@ -43,7 +43,7 @@ LOG.setLevel(logging.INFO)
 JENKINS_URL = "http://jenkins.db.cs.cmu.edu:8080"
 
 # LIST OF BENCHMARKS
-# Add the name of your benchmark in the list below and 
+# Add the name of your benchmark in the list below and
 # it will automatically get executed when this script runs.
 BENCHMARKS_TO_RUN = [
     "catalog_benchmark",
@@ -52,6 +52,8 @@ BENCHMARKS_TO_RUN = [
     "large_transaction_benchmark",
     "logging_benchmark",
     "recovery_benchmark",
+    "large_transaction_metrics_benchmark",
+    "logging_metrics_benchmark",
     "tuple_access_strategy_benchmark",
     "tpcc_benchmark",
     "bwtree_benchmark",
@@ -926,11 +928,11 @@ class ReferenceValue(object):
         """ Return a ReferenceValue constructed from historical
             benchmark data
         """
-        
+
         #for x in gbrp.gbresults:
             #pprint(x.__dict__)
         #sys.exit(1)
-        
+
         key = (gbrp.get_suite_name(), gbrp.get_test_name())
         assert key == in_key
         ret_obj = cls()
@@ -1048,26 +1050,26 @@ if __name__ == "__main__":
                         help="enable debug output")
 
     args = parser.parse_args()
-    
+
     # -------------------------------------------------------
-    
+
 
     if args.debug: LOG.setLevel(logging.DEBUG)
 
     # -------------------------------------------------------
 
     config = Config()
-    
+
     if not os.path.exists(BENCHMARK_PATH):
         LOG.error("The benchmark executable path directory '%s' does not exist" % BENCHMARK_PATH)
         sys.exit(1)
-    
+
     # Run benchmarks
     ret = 0
     if args.run:
         run_bench = RunMicroBenchmarks(config)
         ret = run_bench.run_all_benchmarks()
-    
+
     # need <n> benchmark results to compare against
     ap = ArtifactProcessor(config.min_ref_values)
     h = Jenkins(JENKINS_URL)
@@ -1085,7 +1087,7 @@ if __name__ == "__main__":
         for build in builds:
             LOG.debug("(%s, %s), build=#%d, status=%s", \
                       project, branch, build.get_number(), build.get_result())
-            
+
             artifacts = build.get_artifacts()
             for artifact in artifacts:
                 artifact_filename = artifact.get_filename()
