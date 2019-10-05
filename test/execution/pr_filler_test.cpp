@@ -21,6 +21,11 @@
 #include "execution/vm/llvm_engine.h"
 #include "execution/vm/module.h"
 
+#include "execution/compiler/expression_util.h"
+#include "execution/compiler/output_checker.h"
+#include "execution/compiler/output_schema_util.h"
+
+
 namespace terrier::execution::compiler::test {
 
 class PRFillerTest : public SqlBasedTest {
@@ -33,7 +38,8 @@ class PRFillerTest : public SqlBasedTest {
     table_generator.GenerateTestTables();
   }
 
-  static std::unique_ptr<vm::Module> CompileAndDump(CodeGen *codegen, ast::File* root, exec::ExecutionContext *exec_ctx) {
+
+  static std::unique_ptr<vm::Module> MakeModule(CodeGen *codegen, ast::File* root, exec::ExecutionContext *exec_ctx) {
     // Create the query object, whose region must outlive all the processing.
     // Compile and check for errors
     EXECUTION_LOG_INFO("Generated File");
@@ -96,13 +102,13 @@ TEST_F(PRFillerTest, SimpleIndexFillerTest) {
 
   // Compile the function
   auto [root, fn_name]= filler.GenFiller(index_pm, index_schema);
-  auto module = CompileAndDump(&codegen, root, exec_ctx.get());
+  auto module = MakeModule(&codegen, root, exec_ctx.get());
 
   // Now get the compiled function
   std::function<void(sql::ProjectedRowWrapper*, sql::ProjectedRowWrapper*)> filler_fn;
-  ASSERT_TRUE(module->GetFunction(fn_name, vm::ExecutionMode::Interpret, &filler_fn));
+  ASSERT_TRUE(module->GetFunction(fn_name, vm::ExecutionMode::Compiled, &filler_fn));
 
-  // Try it out on a few PRS.
+  // Try it out.
   auto table_init = table->InitializerForProjectedRow(col_oids);
   auto table_buffer = common::AllocationUtil::AllocateAligned(table_init.ProjectedRowSize());
   auto table_pr = sql::ProjectedRowWrapper(table_init.InitializeRow(table_buffer));
@@ -124,6 +130,7 @@ TEST_F(PRFillerTest, SimpleIndexFillerTest) {
   delete [] table_buffer;
   delete [] index_buffer;
 }
+
 }
 
 int main(int argc, char **argv) {
