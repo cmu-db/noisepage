@@ -4,9 +4,10 @@
 #include "planner/plannodes/hash_join_plan_node.h"
 
 namespace terrier::execution::compiler {
-HashJoinLeftTranslator::HashJoinLeftTranslator(const terrier::planner::AbstractPlanNode *op,
+HashJoinLeftTranslator::HashJoinLeftTranslator(const terrier::planner::HashJoinPlanNode *op,
                                                execution::compiler::CodeGen *codegen)
-    : OperatorTranslator(op, codegen),
+    : OperatorTranslator(codegen),
+      op_(op),
       hash_val_{codegen->NewIdentifier(hash_val_name_)},
       build_struct_{codegen->NewIdentifier(build_struct_name_)},
       build_row_{codegen->NewIdentifier(build_row_name_)},
@@ -67,9 +68,8 @@ void HashJoinLeftTranslator::GenBuildCall(FunctionBuilder *builder) {
 // Declare var hash_val = @hash(join_keys)
 void HashJoinLeftTranslator::GenHashCall(FunctionBuilder *builder) {
   // First create @hash(join_key1, join_key2, ...)
-  auto join_op = dynamic_cast<const terrier::planner::HashJoinPlanNode *>(op_);
   util::RegionVector<ast::Expr *> hash_args{codegen_->Region()};
-  for (const auto &key : join_op->GetLeftHashKeys()) {
+  for (const auto &key : op_->GetLeftHashKeys()) {
     std::unique_ptr<ExpressionTranslator> key_translator =
         TranslatorFactory::CreateExpressionTranslator(key.get(), codegen_);
     hash_args.emplace_back(key_translator->DeriveExpr(this));
@@ -113,10 +113,11 @@ ast::Expr *HashJoinLeftTranslator::GetChildOutput(uint32_t child_idx, uint32_t a
   return child_translator_->GetOutput(attr_idx);
 }
 
-HashJoinRightTranslator::HashJoinRightTranslator(const terrier::planner::AbstractPlanNode *op,
+HashJoinRightTranslator::HashJoinRightTranslator(const terrier::planner::HashJoinPlanNode *op,
                                                  execution::compiler::CodeGen *codegen,
                                                  execution::compiler::OperatorTranslator *left)
-    : OperatorTranslator{op, codegen},
+    : OperatorTranslator{codegen},
+      op_(op),
       left_(dynamic_cast<HashJoinLeftTranslator *>(left)),
       hash_val_{codegen->NewIdentifier(hash_val_name_)},
       probe_struct_{codegen->NewIdentifier(probe_struct_name_)},
@@ -226,12 +227,10 @@ void HashJoinRightTranslator::InitializeHelperFunctions(util::RegionVector<ast::
 }
 
 void HashJoinRightTranslator::GenKeyCheck(FunctionBuilder *builder) {
-  auto join_op = dynamic_cast<const terrier::planner::HashJoinPlanNode *>(op_);
-
-  if (join_op->GetJoinPredicate() != nullptr) {
+  if (op_->GetJoinPredicate() != nullptr) {
     // Case 1: There is a join predicate
     // Generated code: if (predicate) return true; else return false
-    auto pred_translator = TranslatorFactory::CreateExpressionTranslator(join_op->GetJoinPredicate().get(), codegen_);
+    auto pred_translator = TranslatorFactory::CreateExpressionTranslator(op_->GetJoinPredicate().get(), codegen_);
     builder->StartIfStmt(pred_translator->DeriveExpr(this));
     builder->Append(codegen_->ReturnStmt(codegen_->BoolLiteral(true)));
     builder->FinishBlockStmt();
@@ -246,9 +245,8 @@ void HashJoinRightTranslator::GenKeyCheck(FunctionBuilder *builder) {
 // Set var hash_val = @hash(right_join_keys)
 void HashJoinRightTranslator::GenHashValue(FunctionBuilder *builder) {
   // First create @hash(join_key1, join_key2, ...)
-  auto join_op = dynamic_cast<const terrier::planner::HashJoinPlanNode *>(op_);
   util::RegionVector<ast::Expr *> hash_args{codegen_->Region()};
-  for (const auto &key : join_op->GetRightHashKeys()) {
+  for (const auto &key : op_->GetRightHashKeys()) {
     std::unique_ptr<ExpressionTranslator> key_translator =
         TranslatorFactory::CreateExpressionTranslator(key.get(), codegen_);
     hash_args.emplace_back(key_translator->DeriveExpr(this));

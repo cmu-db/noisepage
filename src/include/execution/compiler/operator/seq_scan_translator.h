@@ -15,7 +15,7 @@ class SeqScanTranslator : public OperatorTranslator {
    * @param op plan node
    * @param pipeline current pipeline
    */
-  SeqScanTranslator(const terrier::planner::AbstractPlanNode *op, CodeGen *codegen);
+  SeqScanTranslator(const terrier::planner::SeqScanPlanNode *op, CodeGen *codegen);
 
   void Produce(FunctionBuilder *builder) override;
 
@@ -89,8 +89,12 @@ class SeqScanTranslator : public OperatorTranslator {
   // Generated vectorized filters
   void GenVectorizedPredicate(FunctionBuilder *builder, const terrier::parser::AbstractExpression *predicate);
 
+  const planner::AbstractPlanNode* Op() override {
+    return op_;
+  }
+
  private:
-  const planner::SeqScanPlanNode *seqscan_op_;
+  const planner::SeqScanPlanNode *op_;
   const catalog::Schema &schema_;
   std::vector<catalog::col_oid_t> input_oids_;
   storage::ProjectionMap pm_;

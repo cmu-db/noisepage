@@ -1,6 +1,7 @@
 #pragma once
 #include "execution/compiler/operator/operator_translator.h"
 #include "planner/plannodes/index_scan_plan_node.h"
+#include "catalog/index_schema.h"
 
 namespace terrier::execution::compiler {
 
@@ -9,7 +10,7 @@ namespace terrier::execution::compiler {
  */
 class IndexScanTranslator : public OperatorTranslator {
  public:
-  IndexScanTranslator(const terrier::planner::AbstractPlanNode *op, CodeGen *codegen);
+  IndexScanTranslator(const terrier::planner::IndexScanPlanNode *op, CodeGen *codegen);
 
   // Does nothing
   void InitializeStateFields(util::RegionVector<ast::FieldDecl *> *state_fields) override {}
@@ -37,6 +38,10 @@ class IndexScanTranslator : public OperatorTranslator {
 
   ast::Expr *GetTableColumn(const catalog::col_oid_t &col_oid) override;
 
+  const planner::AbstractPlanNode* Op() override {
+    return op_;
+  }
+
  private:
   // Declare the index iterator
   void DeclareIterator(FunctionBuilder *builder);
@@ -56,7 +61,7 @@ class IndexScanTranslator : public OperatorTranslator {
   void DeclareTablePR(FunctionBuilder *builder);
 
  private:
-  const planner::IndexScanPlanNode *index_scan_;
+  const planner::IndexScanPlanNode *op_;
   std::vector<catalog::col_oid_t> input_oids_;
   const catalog::Schema &table_schema_;
   storage::ProjectionMap table_pm_;

@@ -48,6 +48,10 @@ class OutputTranslator : public OperatorTranslator {
     return nullptr;
   }
 
+  const planner::AbstractPlanNode* Op() override {
+    UNREACHABLE("Should not be called on this translator");
+  }
+
  private:
   // Return the output field at the given index
   ast::Expr *GetField(uint32_t attr_idx);
@@ -57,9 +61,6 @@ class OutputTranslator : public OperatorTranslator {
 
   // Fills the output slot
   void FillOutput(FunctionBuilder *builder);
-
-  // Advance the output buffer
-  void AdvanceOutput(FunctionBuilder *builder);
 
   // Register @outputFinalize(execCtx) at the end of the pipeline
   void FinalizeOutput(FunctionBuilder *builder);

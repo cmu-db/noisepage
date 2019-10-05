@@ -6,14 +6,14 @@
 
 namespace terrier::execution::compiler {
 
-IndexJoinTranslator::IndexJoinTranslator(const planner::AbstractPlanNode *op, CodeGen *codegen)
-    : OperatorTranslator(op, codegen),
-      index_join_(static_cast<const terrier::planner::IndexJoinPlanNode *>(op)),
-      input_oids_(index_join_->CollectInputOids()),
-      table_schema_(codegen_->Accessor()->GetSchema(index_join_->GetTableOid())),
-      table_pm_(codegen_->Accessor()->GetTable(index_join_->GetTableOid())->ProjectionMapForOids(input_oids_)),
-      index_schema_(codegen_->Accessor()->GetIndexSchema(index_join_->GetIndexOid())),
-      index_pm_(codegen_->Accessor()->GetIndex(index_join_->GetIndexOid())->GetKeyOidToOffsetMap()),
+IndexJoinTranslator::IndexJoinTranslator(const planner::IndexJoinPlanNode *op, CodeGen *codegen)
+    : OperatorTranslator(codegen),
+      op_(op),
+      input_oids_(op_->CollectInputOids()),
+      table_schema_(codegen_->Accessor()->GetSchema(op_->GetTableOid())),
+      table_pm_(codegen_->Accessor()->GetTable(op_->GetTableOid())->ProjectionMapForOids(input_oids_)),
+      index_schema_(codegen_->Accessor()->GetIndexSchema(op_->GetIndexOid())),
+      index_pm_(codegen_->Accessor()->GetIndex(op_->GetIndexOid())->GetKeyOidToOffsetMap()),
       index_iter_(codegen_->NewIdentifier(iter_name_)),
       col_oids_(codegen->NewIdentifier(col_oids_name_)),
       index_pr_(codegen->NewIdentifier(index_pr_name_)),
@@ -43,7 +43,7 @@ void IndexJoinTranslator::Consume(FunctionBuilder *builder) {
   GenForLoop(builder);
   // Get Table PR
   DeclareTablePR(builder);
-  bool has_predicate = index_join_->GetJoinPredicate() != nullptr;
+  bool has_predicate = op_->GetJoinPredicate() != nullptr;
   if (has_predicate) GenPredicate(builder);
   // Let parent consume the matching tuples
   parent_translator_->Consume(builder);
@@ -93,9 +93,8 @@ void IndexJoinTranslator::DeclareIterator(FunctionBuilder *builder) {
   ast::Expr *iter_type = codegen_->BuiltinType(ast::BuiltinType::IndexIterator);
   builder->Append(codegen_->DeclareVariable(index_iter_, iter_type, nullptr));
   // Initialize: @indexIteratorInit(&index_iter, table_oid, index_oid, execCtx)
-  auto join_op = dynamic_cast<const planner::IndexJoinPlanNode *>(op_);
   ast::Expr *init_call =
-      codegen_->IndexIteratorInit(index_iter_, !join_op->GetTableOid(), !join_op->GetIndexOid(), col_oids_);
+      codegen_->IndexIteratorInit(index_iter_, !op_->GetTableOid(), !op_->GetIndexOid(), col_oids_);
   builder->Append(codegen_->MakeStmt(init_call));
 }
 
@@ -113,8 +112,7 @@ void IndexJoinTranslator::DeclareTablePR(terrier::execution::compiler::FunctionB
 
 void IndexJoinTranslator::FillKey(FunctionBuilder *builder) {
   // Set key.attr_i = expr_i for each key attribute
-  auto join_op = dynamic_cast<const planner::IndexJoinPlanNode *>(op_);
-  for (const auto &key : join_op->GetIndexColumns()) {
+  for (const auto &key : op_->GetIndexColumns()) {
     auto translator = TranslatorFactory::CreateExpressionTranslator(key.second.get(), codegen_);
     uint16_t attr_offset = index_pm_.at(key.first);
     type::TypeId attr_type = index_schema_.GetColumn(key.first).Type();
@@ -136,7 +134,7 @@ void IndexJoinTranslator::GenForLoop(FunctionBuilder *builder) {
 }
 
 void IndexJoinTranslator::GenPredicate(FunctionBuilder *builder) {
-  auto translator = TranslatorFactory::CreateExpressionTranslator(index_join_->GetJoinPredicate().get(), codegen_);
+  auto translator = TranslatorFactory::CreateExpressionTranslator(op_->GetJoinPredicate().get(), codegen_);
   ast::Expr *cond = translator->DeriveExpr(this);
   builder->StartIfStmt(cond);
 }

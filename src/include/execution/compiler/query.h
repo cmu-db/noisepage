@@ -48,31 +48,6 @@ class Query {
   const terrier::planner::AbstractPlanNode &GetPlan() { return node_; }
 
   /**
-   * @return the region used for allocation
-   */
-  util::Region *GetRegion() { return &region_; }
-
-  /**
-   * @return the ast context
-   */
-  ast::Context *GetAstContext() { return &ast_ctx_; }
-
-  /**
-   * @return the ast factory
-   */
-  ast::AstNodeFactory *GetFactory() { return &factory_; }
-
-  /**
-   * @return the error reporter
-   */
-  sema::ErrorReporter *GetReporter() { return &error_reporter_; }
-
-  /**
-   * @return the execution context
-   */
-  exec::ExecutionContext *GetExecCtx() { return exec_ctx_; }
-
-  /**
    * Sets the final compiled file
    * @param file the compiled file
    */

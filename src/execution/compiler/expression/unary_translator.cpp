@@ -7,8 +7,8 @@ UnaryTranslator::UnaryTranslator(const terrier::parser::AbstractExpression *expr
     : ExpressionTranslator(expression, codegen),
       child_(TranslatorFactory::CreateExpressionTranslator(expression->GetChild(0).get(), codegen)) {}
 
-ast::Expr *UnaryTranslator::DeriveExpr(OperatorTranslator *translator) {
-  auto *child_expr = child_->DeriveExpr(translator);
+ast::Expr *UnaryTranslator::DeriveExpr(ExpressionEvaluator *evaluator) {
+  auto *child_expr = child_->DeriveExpr(evaluator);
   parsing::Token::Type type;
   switch (expression_->GetExpressionType()) {
     case terrier::parser::ExpressionType::OPERATOR_UNARY_MINUS:

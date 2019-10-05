@@ -6,11 +6,13 @@
 #include "execution/ast/context.h"
 #include "execution/ast/type.h"
 #include "execution/compiler/compiler_defs.h"
-#include "execution/compiler/query.h"
 #include "execution/util/region.h"
 #include "parser/expression_defs.h"
 #include "type/transient_value.h"
 #include "type/type_id.h"
+#include "type/transient_value_peeker.h"
+#include "execution/sema/error_reporter.h"
+#include "catalog/catalog_accessor.h"
 
 namespace terrier::execution::compiler {
 
@@ -29,27 +31,34 @@ class CodeGen {
    * Constructor
    * @param ctx code context to use
    */
-  explicit CodeGen(Query *query);
+  explicit CodeGen(catalog::CatalogAccessor *accessor);
 
   /**
    * @return region used for allocation
    */
-  util::Region *Region() { return query_->GetRegion(); }
+  util::Region *Region() { return &region_; }
 
   /**
    * @return the ast node factory
    */
-  ast::AstNodeFactory *Factory() { return query_->GetFactory(); }
+  ast::AstNodeFactory *Factory() { return &factory_; }
 
   /**
    * @return the ast context
    */
-  ast::Context *Context() { return query_->GetAstContext(); }
+  ast::Context *Context() { return &ast_ctx_; }
 
   /**
    * @return the catalog accessor
    */
-  catalog::CatalogAccessor *Accessor() { return query_->GetExecCtx()->GetAccessor(); }
+  catalog::CatalogAccessor *Accessor() { return accessor_; }
+
+  /**
+   * @return the error reporter
+   */
+  sema::ErrorReporter * Reporter() {
+    return &error_reporter_;
+  }
 
   /**
    * @return the state's identifier
@@ -599,11 +608,13 @@ class CodeGen {
   /**
    * Call PrGet(&iter, attr_idx)
    */
+  ast::Expr *PRGet(ast::Expr* iter_ptr, terrier::type::TypeId type, bool nullable, uint32_t attr_idx);
   ast::Expr *PRGet(ast::Identifier iter, terrier::type::TypeId type, bool nullable, uint32_t attr_idx);
 
   /**
    * Call PrSet(&iter, attr_idx, val)
    */
+  ast::Expr *PRSet(ast::Expr* iter_ptr, terrier::type::TypeId type, bool nullable, uint32_t attr_idx, ast::Expr *val);
   ast::Expr *PRSet(ast::Identifier iter, terrier::type::TypeId type, bool nullable, uint32_t attr_idx, ast::Expr *val);
 
  private:
@@ -631,7 +642,13 @@ class CodeGen {
   ast::Expr *InitCall(ast::Builtin builtin, ast::Identifier object, ast::Identifier struct_type);
 
   uint64_t id_count_{0};
-  Query *query_;
+
+  // Helper objects
+  util::Region region_;
+  sema::ErrorReporter error_reporter_;
+  ast::Context ast_ctx_;
+  ast::AstNodeFactory factory_;
+  catalog::CatalogAccessor * accessor_;
 
   // Identifiers that are always needed
   ast::Identifier state_struct_;

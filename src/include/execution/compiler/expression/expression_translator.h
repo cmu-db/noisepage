@@ -3,8 +3,8 @@
 #include <unordered_map>
 #include <utility>
 #include "execution/ast/ast.h"
-#include "execution/compiler/operator/operator_translator.h"
 #include "parser/expression/abstract_expression.h"
+#include "execution/compiler/codegen.h"
 
 namespace terrier::execution::compiler {
 
@@ -34,6 +34,32 @@ namespace terrier::execution::compiler {
   ((type) >= terrier::parser::ExpressionType::OPERATOR_IS_NULL && \
    (type) <= terrier::parser::ExpressionType::OPERATOR_IS_NOT_NULL)
 
+
+/**
+ * These methods have been seperated from the OperatorTranslator to allow
+ * arbitrary components of the system to evaluate expressions.
+ */
+class ExpressionEvaluator {
+ public:
+  /**
+ * @param child_idx index of the child (0 or 1)
+ * @param attr_idx index of the child's output
+ * @param type type of the attribute
+ * @return the child's output at the given index
+ */
+  virtual ast::Expr *GetChildOutput(uint32_t child_idx, uint32_t attr_idx, terrier::type::TypeId type) = 0;
+
+  /**
+   * Return a table column value.
+   * @param col_oid oid of the column
+   * @return an expression representing the value
+   */
+  virtual ast::Expr *GetTableColumn(const catalog::col_oid_t &col_oid) {
+    UNREACHABLE("This operator does not interact with tables");
+  }
+
+};
+
 /**
  * Expression Translator
  */
@@ -57,7 +83,7 @@ class ExpressionTranslator {
    * @param op_state the operator state used to translate the expression
    * @return resulting TPL expression
    */
-  virtual ast::Expr *DeriveExpr(OperatorTranslator *translator) = 0;
+  virtual ast::Expr *DeriveExpr(ExpressionEvaluator *evaluator) = 0;
 
   /**
    * Convert the generic expression to the given type.

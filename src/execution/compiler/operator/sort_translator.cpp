@@ -4,8 +4,9 @@
 #include "planner/plannodes/order_by_plan_node.h"
 
 namespace terrier::execution::compiler {
-SortBottomTranslator::SortBottomTranslator(const terrier::planner::AbstractPlanNode *op, CodeGen *codegen)
-    : OperatorTranslator(op, codegen),
+SortBottomTranslator::SortBottomTranslator(const terrier::planner::OrderByPlanNode *op, CodeGen *codegen)
+    : OperatorTranslator(codegen),
+      op_(op),
       sorter_(codegen_->NewIdentifier(sorter_name_)),
       sorter_row_(codegen_->NewIdentifier(sorter_row_name_)),
       sorter_struct_(codegen_->NewIdentifier(sorter_struct_name_)),
@@ -111,11 +112,10 @@ void SortBottomTranslator::GenComparisons(FunctionBuilder *builder) {
   // if (lhs.col_i > rhs.col_i) {return 1}
   // ...
   // return 0
-  auto order_by_op = dynamic_cast<const terrier::planner::OrderByPlanNode *>(op_);
   // This will be 1 or -1 depending on the order type.
   int32_t ret_value;
   uint32_t attr_idx = 0;
-  for (const auto &order : order_by_op->GetSortKeys()) {
+  for (const auto &order : op_->GetSortKeys()) {
     if (order.second == terrier::planner::OrderByOrderingType::ASC) {
       ret_value = -1;
     } else {
@@ -145,9 +145,10 @@ void SortBottomTranslator::GenComparisons(FunctionBuilder *builder) {
   builder->Append(codegen_->ReturnStmt(codegen_->IntLiteral(0)));
 }
 
-SortTopTranslator::SortTopTranslator(const terrier::planner::AbstractPlanNode *op, CodeGen *codegen,
+SortTopTranslator::SortTopTranslator(const terrier::planner::OrderByPlanNode *op, CodeGen *codegen,
                                      OperatorTranslator *bottom)
-    : OperatorTranslator(op, codegen),
+    : OperatorTranslator(codegen),
+      op_(op),
       bottom_(dynamic_cast<SortBottomTranslator *>(bottom)),
       sort_iter_(codegen_->NewIdentifier(iter_name_)) {}
 

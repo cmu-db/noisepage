@@ -7,9 +7,9 @@ namespace terrier::execution::compiler {
 DerivedValueTranslator::DerivedValueTranslator(const terrier::parser::AbstractExpression *expression, CodeGen *codegen)
     : ExpressionTranslator(expression, codegen) {}
 
-ast::Expr *DerivedValueTranslator::DeriveExpr(OperatorTranslator *translator) {
+ast::Expr *DerivedValueTranslator::DeriveExpr(ExpressionEvaluator *evaluator) {
   auto derived_val = GetExpressionAs<terrier::parser::DerivedValueExpression>();
-  return translator->GetChildOutput(derived_val->GetTupleIdx(), derived_val->GetValueIdx(),
+  return evaluator->GetChildOutput(derived_val->GetTupleIdx(), derived_val->GetValueIdx(),
                                     derived_val->GetReturnValueType());
 }
 };  // namespace terrier::execution::compiler

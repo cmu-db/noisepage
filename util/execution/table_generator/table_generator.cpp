@@ -9,6 +9,7 @@
 #include "loggers/execution_logger.h"
 #include "storage/index/bwtree_index.h"
 #include "storage/index/index_builder.h"
+#include "parser/expression/column_value_expression.h"
 
 namespace terrier::execution::sql {
 
@@ -293,7 +294,9 @@ void TableGenerator::InitTestIndexes() {
     // Create Index Schema
     std::vector<catalog::IndexSchema::Column> index_cols;
     for (const auto &col_meta : index_meta.cols_) {
-      index_cols.emplace_back(col_meta.name_, col_meta.type_, col_meta.nullable_, DummyCVE());
+      const auto &table_col = table_schema.GetColumn(col_meta.table_col_name_);
+      parser::ColumnValueExpression col_expr(exec_ctx_->DBOid(), table_oid, table_col.Oid(), table_col.Type());
+      index_cols.emplace_back(col_meta.name_, col_meta.type_, col_meta.nullable_, col_expr);
     }
     catalog::IndexSchema tmp_index_schema{index_cols, false, false, false, false};
     // Create Index

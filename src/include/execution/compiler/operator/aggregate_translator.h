@@ -19,7 +19,7 @@ class AggregateBottomTranslator : public OperatorTranslator {
    * @param op plan node to translate
    * @param codegen code generator
    */
-  AggregateBottomTranslator(const terrier::planner::AbstractPlanNode *op, CodeGen *codegen);
+  AggregateBottomTranslator(const terrier::planner::AggregatePlanNode *op, CodeGen *codegen);
 
   // Declare the hash table
   void InitializeStateFields(util::RegionVector<ast::FieldDecl *> *state_fields) override;
@@ -55,6 +55,10 @@ class AggregateBottomTranslator : public OperatorTranslator {
   // Return the payload and its type
   std::pair<ast::Identifier *, ast::Identifier *> GetMaterializedTuple() override {
     return {&agg_payload_, &payload_struct_};
+  }
+
+  const planner::AbstractPlanNode* Op() override {
+    return op_;
   }
 
  private:
@@ -124,6 +128,7 @@ class AggregateBottomTranslator : public OperatorTranslator {
  private:
   // The number of group by terms.
   uint32_t num_group_by_terms{0};
+  const planner::AggregatePlanNode* op_;
 
   // Structs, Functions, and local variables needed.
   // TODO(Amadou): This list is blowing up. Figure out a different to manage local variable names.
@@ -156,8 +161,9 @@ class AggregateTopTranslator : public OperatorTranslator {
    * @param op plan node
    * @param pipeline current pipeline
    */
-  AggregateTopTranslator(const terrier::planner::AbstractPlanNode *op, CodeGen *codegen, OperatorTranslator *bottom)
-      : OperatorTranslator(op, codegen),
+  AggregateTopTranslator(const terrier::planner::AggregatePlanNode *op, CodeGen *codegen, OperatorTranslator *bottom)
+      : OperatorTranslator(codegen),
+        op_(op),
         bottom_(dynamic_cast<AggregateBottomTranslator *>(bottom)),
         agg_iterator_(agg_iterator_name) {}
 
@@ -202,6 +208,10 @@ class AggregateTopTranslator : public OperatorTranslator {
     return bottom_->GetMaterializedTuple();
   }
 
+  const planner::AbstractPlanNode* Op() override {
+    return op_;
+  }
+
  private:
   // Declare var agg_iterator: *AggregationHashTableIterator
   void DeclareIterator(FunctionBuilder *builder);
@@ -219,6 +229,7 @@ class AggregateTopTranslator : public OperatorTranslator {
   // Return true if if there is a having clause
   bool GenHaving(FunctionBuilder *builder);
 
+  const planner::AggregatePlanNode* op_;
   // Used to access member of the resulting aggregate
   AggregateBottomTranslator *bottom_;
 

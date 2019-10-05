@@ -6,8 +6,12 @@
 
 namespace terrier::execution::compiler {
 
-CodeGen::CodeGen(Query *query)
-    : query_(query),
+CodeGen::CodeGen(catalog::CatalogAccessor * accessor)
+    : region_("QueryRegion"),
+      error_reporter_(&region_),
+      ast_ctx_(&region_, &error_reporter_),
+      factory_(&region_),
+      accessor_(accessor),
       state_struct_{Context()->GetIdentifier("State")},
       state_var_{Context()->GetIdentifier("state")},
       exec_ctx_var_(Context()->GetIdentifier("execCtx")),
@@ -511,6 +515,42 @@ ast::Expr *CodeGen::PRGet(ast::Identifier iter, type::TypeId type, bool nullable
   return Factory()->NewBuiltinCallExpr(fun, std::move(args));
 }
 
+ast::Expr *CodeGen::PRGet(ast::Expr* iter_ptr, type::TypeId type, bool nullable, uint32_t attr_idx) {
+  // @indexIteratorGetTypeNull(&iter, attr_idx)
+  ast::Builtin builtin;
+  switch (type) {
+    case type::TypeId::INTEGER:
+      builtin = nullable ? ast::Builtin::PRGetIntNull : ast::Builtin::PRGetInt;
+      break;
+    case type::TypeId::SMALLINT:
+      builtin = nullable ? ast::Builtin::PRGetSmallIntNull : ast::Builtin::PRGetSmallInt;
+      break;
+    case type::TypeId::TINYINT:
+      builtin = nullable ? ast::Builtin::PRGetTinyIntNull : ast::Builtin::PRGetTinyInt;
+      break;
+    case type::TypeId::BIGINT:
+      builtin = nullable ? ast::Builtin::PRGetBigIntNull : ast::Builtin::PRGetBigInt;
+      break;
+    case type::TypeId::DECIMAL:
+      builtin = nullable ? ast::Builtin::PRGetDoubleNull : ast::Builtin::PRGetDouble;
+      break;
+    case type::TypeId::DATE:
+      builtin = nullable ? ast::Builtin::PRGetDateNull : ast::Builtin::PRGetDate;
+      break;
+    case type::TypeId::VARCHAR:
+      builtin = nullable ? ast::Builtin::PRGetVarlenNull : ast::Builtin::PRGetVarlen;
+      break;
+    default:
+      // TODO: Support other types.
+      UNREACHABLE("Unsupported index get type!");
+  }
+  ast::Expr *fun = BuiltinFunction(builtin);
+  ast::Expr *idx_expr = Factory()->NewIntLiteral(DUMMY_POS, attr_idx);
+  util::RegionVector<ast::Expr *> args{{iter_ptr, idx_expr}, Region()};
+  return Factory()->NewBuiltinCallExpr(fun, std::move(args));
+}
+
+
 ast::Expr *CodeGen::PRSet(ast::Identifier iter, type::TypeId type, bool nullable, uint32_t attr_idx, ast::Expr *val) {
   ast::Builtin builtin;
   switch (type) {
@@ -541,6 +581,40 @@ ast::Expr *CodeGen::PRSet(ast::Identifier iter, type::TypeId type, bool nullable
   }
   ast::Expr *fun = BuiltinFunction(builtin);
   ast::Expr *iter_ptr = PointerTo(iter);
+  ast::Expr *idx_expr = Factory()->NewIntLiteral(DUMMY_POS, attr_idx);
+  util::RegionVector<ast::Expr *> args{{iter_ptr, idx_expr, val}, Region()};
+  return Factory()->NewBuiltinCallExpr(fun, std::move(args));
+}
+
+ast::Expr *CodeGen::PRSet(ast::Expr* iter_ptr, type::TypeId type, bool nullable, uint32_t attr_idx, ast::Expr *val) {
+  ast::Builtin builtin;
+  switch (type) {
+    case type::TypeId::INTEGER:
+      builtin = nullable ? ast::Builtin::PRSetIntNull : ast::Builtin::PRSetInt;
+      break;
+    case type::TypeId::SMALLINT:
+      builtin = nullable ? ast::Builtin::PRSetSmallIntNull : ast::Builtin::PRSetSmallInt;
+      break;
+    case type::TypeId::TINYINT:
+      builtin = nullable ? ast::Builtin::PRSetTinyIntNull : ast::Builtin::PRSetTinyInt;
+      break;
+    case type::TypeId::BIGINT:
+      builtin = nullable ? ast::Builtin::PRSetBigIntNull : ast::Builtin::PRSetBigInt;
+      break;
+    case type::TypeId::DECIMAL:
+      builtin = nullable ? ast::Builtin::PRSetDoubleNull : ast::Builtin::PRSetDouble;
+      break;
+    case type::TypeId::DATE:
+      builtin = nullable ? ast::Builtin::PRSetDateNull : ast::Builtin::PRSetDate;
+      break;
+    case type::TypeId::VARCHAR:
+      builtin = nullable ? ast::Builtin::PRSetVarlenNull : ast::Builtin::PRSetVarlen;
+      break;
+    default:
+      // TODO: Support other types.
+      UNREACHABLE("Unsupported index set type!");
+  }
+  ast::Expr *fun = BuiltinFunction(builtin);
   ast::Expr *idx_expr = Factory()->NewIntLiteral(DUMMY_POS, attr_idx);
   util::RegionVector<ast::Expr *> args{{iter_ptr, idx_expr, val}, Region()};
   return Factory()->NewBuiltinCallExpr(fun, std::move(args));

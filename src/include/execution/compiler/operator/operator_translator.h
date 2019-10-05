@@ -2,6 +2,7 @@
 
 #include "execution/compiler/codegen.h"
 #include "planner/plannodes/abstract_plan_node.h"
+#include "execution/compiler/expression/expression_translator.h"
 
 namespace terrier::execution::compiler {
 
@@ -11,14 +12,13 @@ namespace terrier::execution::compiler {
  * Other operations need just a few of them. So we could add a default implementation.
  * For now, I am leaving it like this so that the compiler will force me to think about all methods.
  */
-class OperatorTranslator {
+class OperatorTranslator : public ExpressionEvaluator {
  public:
   /**
    * Constructor
-   * @param op operator to translate
-   * @param pipeline current pipeline
+   * @param codegen The code generator to use
    */
-  OperatorTranslator(const terrier::planner::AbstractPlanNode *op, CodeGen *codegen) : op_(op), codegen_(codegen) {}
+  explicit OperatorTranslator(CodeGen *codegen) : codegen_(codegen) {}
 
   /**
    * Destructor
@@ -68,16 +68,6 @@ class OperatorTranslator {
   virtual void Consume(FunctionBuilder *builder) = 0;
 
   /**
-   * Casts an operator to a given type
-   * @tparam T type to cast to
-   * @return the casted operator
-   */
-  template <typename T>
-  const T &GetOperatorAs() const {
-    return static_cast<const T &>(op_);
-  }
-
-  /**
    * Setup state needed before generating code
    * @param child_translator the child translator
    * @param parent_translator the parent translator
@@ -121,7 +111,7 @@ class OperatorTranslator {
    * @param col_oid oid of the column
    * @return an expression representing the value
    */
-  virtual ast::Expr *GetTableColumn(const catalog::col_oid_t &col_oid) {
+  ast::Expr *GetTableColumn(const catalog::col_oid_t &col_oid) override {
     UNREACHABLE("This operator does not interact with tables");
   }
 
@@ -140,14 +130,6 @@ class OperatorTranslator {
   virtual ast::Expr *GetOutput(uint32_t attr_idx) = 0;
 
   /**
-   * @param child_idx index of the child (0 or 1)
-   * @param attr_idx index of the child's output
-   * @param type type of the attribute
-   * @return the child's output at the given index
-   */
-  virtual ast::Expr *GetChildOutput(uint32_t child_idx, uint32_t attr_idx, terrier::type::TypeId type) = 0;
-
-  /**
    * Used by operators when they need to generate a struct containing a child's output.
    * Also used by the output layer to materialize the output
    * @param fields where to append the fields
@@ -155,7 +137,7 @@ class OperatorTranslator {
    */
   void GetChildOutputFields(util::RegionVector<ast::FieldDecl *> *fields, const std::string &prefix) {
     uint32_t attr_idx = 0;
-    for (const auto &col : child_translator_->op_->GetOutputSchema()->GetColumns()) {
+    for (const auto &col : child_translator_->Op()->GetOutputSchema()->GetColumns()) {
       ast::Identifier field_name = codegen_->Context()->GetIdentifier(prefix + std::to_string(attr_idx));
       ast::Expr *type = codegen_->TplType(col.GetExpr()->GetReturnValueType());
       fields->emplace_back(codegen_->MakeField(field_name, type));
@@ -163,12 +145,9 @@ class OperatorTranslator {
     }
   }
 
- protected:
-  /**
-   * The plan node
-   */
-  const terrier::planner::AbstractPlanNode *op_;
+  virtual const planner::AbstractPlanNode* Op() = 0;
 
+ protected:
   /**
    * The code generator to use
    */

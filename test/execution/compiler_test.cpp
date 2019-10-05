@@ -9,7 +9,6 @@
 #include "execution/ast/ast_dump.h"
 
 #include "execution/compiler/compiler.h"
-#include "execution/compiler/query.h"
 #include "execution/exec/execution_context.h"
 #include "execution/exec/output.h"
 #include "execution/sema/sema.h"
@@ -52,16 +51,14 @@ class CompilerTest : public SqlBasedTest {
 
   static void CompileAndRun(terrier::planner::AbstractPlanNode *node, exec::ExecutionContext *exec_ctx) {
     // Create the query object, whose region must outlive all the processing.
-    execution::compiler::Query query(*node, exec_ctx);
-
     // Compile and check for errors
-    Compiler compiler(&query);
-    compiler.Compile();
-    if (query.GetReporter()->HasErrors()) {
-      EXECUTION_LOG_ERROR("Type-checking error! \n {}", query.GetReporter()->SerializeErrors());
+    CodeGen codegen(exec_ctx->GetAccessor());
+    Compiler compiler(&codegen, node);
+    auto root = compiler.Compile();
+    if (codegen.Reporter()->HasErrors()) {
+      EXECUTION_LOG_ERROR("Type-checking error! \n {}", codegen.Reporter()->SerializeErrors());
     }
 
-    auto root = query.GetCompiledFile();
     EXECUTION_LOG_INFO("Converted: \n {}", execution::ast::AstDump::Dump(root));
 
     // Convert to bytecode
