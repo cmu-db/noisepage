@@ -192,8 +192,8 @@ namespace terrier::execution::ast {
   F(InserterGetIndexPR, inserterGetIndexPR)                     \
   F(InserterGetIndexPRBind, inserterGetIndexPRBind)             \
   F(InserterIndexInsert, inserterIndexInsert)                   \
-  F(InserterIndexInsertBind, inserterIndexInsertBind)
-  
+  F(InserterIndexInsertBind, inserterIndexInsertBind)           \
+                                                                \
   /* Deleter Calls */                                           \
   F(DeleterInit, deleterInit)                                   \
   F(DeleterInitBind, deleterInitBind)                           \

@@ -1,4 +1,4 @@
-#pragma once
+
 #include "execution/exec/execution_context.h"
 #include "execution/util/execution_common.h"
 

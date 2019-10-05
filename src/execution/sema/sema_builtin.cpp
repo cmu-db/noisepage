@@ -1978,7 +1978,6 @@ void Sema::CheckBuiltinUpdaterCall(ast::CallExpr *call, ast::Builtin builtin) {
   }
 }
 
-
 void Sema::CheckBuiltinInserterCall(ast::CallExpr *call, ast::Builtin builtin) {
   const auto &call_args = call->Arguments();
 

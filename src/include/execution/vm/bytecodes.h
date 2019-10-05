@@ -371,7 +371,7 @@ namespace terrier::execution::vm {
   F(InserterTableInsert, OperandType::Local, OperandType::Local)                                                      \
   F(InserterGetIndexPR, OperandType::Local, OperandType::Local, OperandType::UImm4)                                   \
   F(InserterIndexInsert, OperandType::Local, OperandType::UImm4)                                                      \
-  
+                                                                                                                      \
   /* Deleter */                                                                                                       \
   F(DeleterInit, OperandType::Local, OperandType::Local, OperandType::UImm4)                                          \
   F(DeleterTableDelete, OperandType::Local, OperandType::Local)                                                       \

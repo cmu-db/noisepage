@@ -203,6 +203,7 @@ void OpInserterGetIndexPR(terrier::execution::sql::ProjectedRowWrapper *pr_resul
 
 void OpInserterIndexInsert(terrier::execution::sql::Inserter *inserter, uint32_t index_oid) {
   inserter->IndexInsert(terrier::catalog::index_oid_t(index_oid));
+}
 
 // -------------------------------------------------------------
 // Deleter Calls

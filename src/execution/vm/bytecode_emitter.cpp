@@ -359,6 +359,7 @@ void BytecodeEmitter::EmitInserterGetIndexPR(Bytecode bytecode, LocalVar pr, Loc
 
 void BytecodeEmitter::EmitInserterIndexInsert(Bytecode bytecode, LocalVar inserter, uint32_t index_oid) {
   EmitAll(bytecode, inserter, index_oid);
+}
 
 void BytecodeEmitter::EmitDeleterInit(Bytecode bytecode, LocalVar deleter, LocalVar exec_ctx, uint32_t table_oid) {
   EmitAll(bytecode, deleter, exec_ctx, table_oid);

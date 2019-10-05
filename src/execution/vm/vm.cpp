@@ -1520,7 +1520,7 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {
     OpInserterIndexInsert(inserter, index_oid);
     DISPATCH_NEXT();
   }
-  
+
   /////////////////////////////////
   //// Deleter Calls
   /////////////////////////////////
