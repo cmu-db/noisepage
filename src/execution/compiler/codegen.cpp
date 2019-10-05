@@ -455,8 +455,18 @@ ast::Expr *CodeGen::IndexIteratorScanKey(ast::Identifier iter) {
 }
 
 ast::Expr *CodeGen::IndexIteratorAdvance(ast::Identifier iter) {
-  // @indexIteratorHasNext(&iter)
+  // @indexIteratorAdvance(&iter)
   return OneArgCall(ast::Builtin::IndexIteratorAdvance, iter, true);
+}
+
+ast::Expr *CodeGen::IndexIteratorGetIndexPR(ast::Identifier iter) {
+  // @indexIteratorGetPR(&iter)
+  return OneArgCall(ast::Builtin::IndexIteratorGetPR, iter, true);
+}
+
+ast::Expr *CodeGen::IndexIteratorGetTablePR(ast::Identifier iter) {
+  // @indexIteratorGetTablePR(&iter)
+  return OneArgCall(ast::Builtin::IndexIteratorGetTablePR, iter, true);
 }
 
 ast::Expr *CodeGen::IndexIteratorFree(ast::Identifier iter) {
@@ -465,24 +475,30 @@ ast::Expr *CodeGen::IndexIteratorFree(ast::Identifier iter) {
 }
 
 // TODO(Amadou): Generator GetNull calls if the columns is nullable
-ast::Expr *CodeGen::IndexIteratorGet(ast::Identifier iter, type::TypeId type, bool nullable, uint32_t attr_idx) {
+ast::Expr *CodeGen::PRGet(ast::Identifier iter, type::TypeId type, bool nullable, uint32_t attr_idx) {
   // @indexIteratorGetTypeNull(&iter, attr_idx)
   ast::Builtin builtin;
   switch (type) {
     case type::TypeId::INTEGER:
-      builtin = nullable ? ast::Builtin::IndexIteratorGetIntNull : ast::Builtin::IndexIteratorGetInt;
+      builtin = nullable ? ast::Builtin::PRGetIntNull : ast::Builtin::PRGetInt;
       break;
     case type::TypeId::SMALLINT:
-      builtin = nullable ? ast::Builtin::IndexIteratorGetSmallIntNull : ast::Builtin::IndexIteratorGetSmallInt;
+      builtin = nullable ? ast::Builtin::PRGetSmallIntNull : ast::Builtin::PRGetSmallInt;
       break;
     case type::TypeId::TINYINT:
-      builtin = nullable ? ast::Builtin::IndexIteratorGetTinyIntNull : ast::Builtin::IndexIteratorGetTinyInt;
+      builtin = nullable ? ast::Builtin::PRGetTinyIntNull : ast::Builtin::PRGetTinyInt;
       break;
     case type::TypeId::BIGINT:
-      builtin = nullable ? ast::Builtin::IndexIteratorGetBigIntNull : ast::Builtin::IndexIteratorGetBigInt;
+      builtin = nullable ? ast::Builtin::PRGetBigIntNull : ast::Builtin::PRGetBigInt;
       break;
     case type::TypeId::DECIMAL:
-      builtin = nullable ? ast::Builtin::IndexIteratorGetDoubleNull : ast::Builtin::IndexIteratorGetDouble;
+      builtin = nullable ? ast::Builtin::PRGetDoubleNull : ast::Builtin::PRGetDouble;
+      break;
+    case type::TypeId::DATE:
+      builtin = nullable ? ast::Builtin::PRGetDateNull : ast::Builtin::PRGetDate;
+      break;
+    case type::TypeId::VARCHAR:
+      builtin = nullable ? ast::Builtin::PRGetVarlenNull : ast::Builtin::PRGetVarlen;
       break;
     default:
       // TODO: Support other types.
@@ -495,24 +511,29 @@ ast::Expr *CodeGen::IndexIteratorGet(ast::Identifier iter, type::TypeId type, bo
   return Factory()->NewBuiltinCallExpr(fun, std::move(args));
 }
 
-ast::Expr *CodeGen::IndexIteratorSetKey(ast::Identifier iter, type::TypeId type, bool nullable, uint32_t attr_idx,
-                                        ast::Expr *val) {
+ast::Expr *CodeGen::PRSet(ast::Identifier iter, type::TypeId type, bool nullable, uint32_t attr_idx, ast::Expr *val) {
   ast::Builtin builtin;
   switch (type) {
     case type::TypeId::INTEGER:
-      builtin = nullable ? ast::Builtin::IndexIteratorSetKeyIntNull : ast::Builtin::IndexIteratorSetKeyInt;
+      builtin = nullable ? ast::Builtin::PRSetIntNull : ast::Builtin::PRSetInt;
       break;
     case type::TypeId::SMALLINT:
-      builtin = nullable ? ast::Builtin::IndexIteratorSetKeySmallIntNull : ast::Builtin::IndexIteratorSetKeySmallInt;
+      builtin = nullable ? ast::Builtin::PRSetSmallIntNull : ast::Builtin::PRSetSmallInt;
       break;
     case type::TypeId::TINYINT:
-      builtin = nullable ? ast::Builtin::IndexIteratorSetKeyTinyIntNull : ast::Builtin::IndexIteratorSetKeyTinyInt;
+      builtin = nullable ? ast::Builtin::PRSetTinyIntNull : ast::Builtin::PRSetTinyInt;
       break;
     case type::TypeId::BIGINT:
-      builtin = nullable ? ast::Builtin::IndexIteratorSetKeyBigIntNull : ast::Builtin::IndexIteratorSetKeyBigInt;
+      builtin = nullable ? ast::Builtin::PRSetBigIntNull : ast::Builtin::PRSetBigInt;
       break;
     case type::TypeId::DECIMAL:
-      builtin = nullable ? ast::Builtin::IndexIteratorSetKeyDoubleNull : ast::Builtin::IndexIteratorSetKeyDouble;
+      builtin = nullable ? ast::Builtin::PRSetDoubleNull : ast::Builtin::PRSetDouble;
+      break;
+    case type::TypeId::DATE:
+      builtin = nullable ? ast::Builtin::PRSetDateNull : ast::Builtin::PRSetDate;
+      break;
+    case type::TypeId::VARCHAR:
+      builtin = nullable ? ast::Builtin::PRSetVarlenNull : ast::Builtin::PRSetVarlen;
       break;
     default:
       // TODO: Support other types.

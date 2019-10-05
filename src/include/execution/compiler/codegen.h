@@ -577,25 +577,34 @@ class CodeGen {
   ast::Expr *IndexIteratorScanKey(ast::Identifier iter);
 
   /**
+   * Call IndexIteratorGetIndexPR(&iter)
+   */
+  ast::Expr *IndexIteratorGetIndexPR(ast::Identifier iter);
+
+  /**
+   * Call IndexIteratorGetTablePR(&iter)
+   */
+  ast::Expr *IndexIteratorGetTablePR(ast::Identifier iter);
+
+  /**
    * Call IndexIteratorAdvance(&iter)
    */
   ast::Expr *IndexIteratorAdvance(ast::Identifier iter);
 
   /**
-   * Call IndexIteratorGetTypeNullable(&iter, attr_idx)
-   */
-  ast::Expr *IndexIteratorGet(ast::Identifier iter, terrier::type::TypeId type, bool nullable, uint32_t attr_idx);
-
-  /**
-   * Call IndexIteratorSetKeyTypeNullable(&iter, attr_idx, val)
-   */
-  ast::Expr *IndexIteratorSetKey(ast::Identifier iter, terrier::type::TypeId type, bool nullable, uint32_t attr_idx,
-                                 ast::Expr *val);
-
-  /**
    * Call IndexIteratorFree(&iter)
    */
   ast::Expr *IndexIteratorFree(ast::Identifier iter);
+
+  /**
+   * Call PrGet(&iter, attr_idx)
+   */
+  ast::Expr *PRGet(ast::Identifier iter, terrier::type::TypeId type, bool nullable, uint32_t attr_idx);
+
+  /**
+   * Call PrSet(&iter, attr_idx, val)
+   */
+  ast::Expr *PRSet(ast::Identifier iter, terrier::type::TypeId type, bool nullable, uint32_t attr_idx, ast::Expr *val);
 
  private:
   /**

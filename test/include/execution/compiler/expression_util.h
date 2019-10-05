@@ -39,8 +39,8 @@ class ExpressionUtil {
    */
   static Expression Constant(int16_t year, uint8_t month, uint8_t day) {
     sql::Date date(year, month, day);
-    type::date_t int_val(date.int_val);
-    return std::make_shared<parser::ConstantValueExpression>(type::TransientValueFactory::GetDate(int_val));
+    type::date_t int_val_(date.int_val_);
+    return std::make_shared<parser::ConstantValueExpression>(type::TransientValueFactory::GetDate(int_val_));
   }
 
   /**
@@ -48,8 +48,8 @@ class ExpressionUtil {
    */
   static Expression Constant(date::year_month_day ymd) {
     sql::Date date(ymd.year(), ymd.month(), ymd.day());
-    type::date_t int_val(date.int_val);
-    return std::make_shared<parser::ConstantValueExpression>(type::TransientValueFactory::GetDate(int_val));
+    type::date_t int_val_(date.int_val_);
+    return std::make_shared<parser::ConstantValueExpression>(type::TransientValueFactory::GetDate(int_val_));
   }
 
   /**

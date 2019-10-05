@@ -7,11 +7,10 @@
 #include <vector>
 #include "catalog/catalog.h"
 #include "execution/exec/execution_context.h"
+#include "execution/table_generator/table_reader.h"
 #include "parser/expression/constant_value_expression.h"
 #include "transaction/transaction_context.h"
 #include "type/transient_value_factory.h"
-#include "parser/expression/constant_value_expression.h"
-#include "execution/table_generator/table_reader.h"
 
 namespace terrier::execution::sql {
 
@@ -45,10 +44,10 @@ class TableGenerator {
   void GenerateTestTables();
 
   /**
-* Generate a table given its schema and data
-* @param schema_file schema file name
-* @param data_file data file name
-*/
+   * Generate a table given its schema and data
+   * @param schema_file schema file name
+   * @param data_file data file name
+   */
   void GenerateTableFromFile(const std::string &schema_file, const std::string &data_file);
 
   /**

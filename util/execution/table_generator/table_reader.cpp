@@ -3,8 +3,8 @@
 #include <vector>
 
 #include "csv/csv.h"  // NOLINT
-#include "execution/table_generator/table_reader.h"
 #include "execution/sql/value.h"
+#include "execution/table_generator/table_reader.h"
 
 namespace terrier::execution::sql {
 
@@ -37,7 +37,7 @@ uint32_t TableReader::ReadTable(const std::string &schema_file, const std::strin
 
   // Iterate through CSV file
   std::vector<std::string> col_names;
-  for (const auto & col: table_info->cols) {
+  for (const auto &col : table_info->cols) {
     col_names.emplace_back(col.Name());
   }
   csv::CSVReader reader(data_file);
@@ -56,13 +56,13 @@ uint32_t TableReader::ReadTable(const std::string &schema_file, const std::strin
     val_written++;
 
     // Write index data
-    for (auto & index_info : table_info->indexes) {
+    for (auto &index_info : table_info->indexes) {
       WriteIndexEntry(index_info.get(), redo->Delta(), table_offsets, slot);
     }
   }
 
   // Deallocate
-  for (auto & index_info : table_info->indexes) {
+  for (auto &index_info : table_info->indexes) {
     delete[] reinterpret_cast<byte *>(index_info->index_pr);
   }
 
@@ -97,7 +97,7 @@ void TableReader::CreateIndexes(TableInfo *info, catalog::table_oid_t table_oid)
 
     // Precompute offsets
     for (uint32_t i = 0; i < schema.GetColumns().size(); i++) {
-      const auto & index_col_name = index_info->cols[i].Name();
+      const auto &index_col_name = index_info->cols[i].Name();
       auto &index_col = schema.GetColumn(index_col_name);
       index_info->offsets.emplace_back(index->GetKeyOidToOffsetMap().at(index_col.Oid()));
     }
@@ -109,7 +109,8 @@ void TableReader::CreateIndexes(TableInfo *info, catalog::table_oid_t table_oid)
   }
 }
 
-void TableReader::WriteIndexEntry(IndexInfo * index_info, storage::ProjectedRow * table_pr, const std::vector<uint16_t> & table_offsets, const storage::TupleSlot & slot) {
+void TableReader::WriteIndexEntry(IndexInfo *index_info, storage::ProjectedRow *table_pr,
+                                  const std::vector<uint16_t> &table_offsets, const storage::TupleSlot &slot) {
   for (uint32_t index_col_idx = 0; index_col_idx < index_info->offsets.size(); index_col_idx++) {
     // Get the offset of this column in the table
     uint16_t table_col_idx = index_info->index_map[index_col_idx];
@@ -121,14 +122,14 @@ void TableReader::WriteIndexEntry(IndexInfo * index_info, storage::ProjectedRow 
       index_info->index_pr->SetNull(index_offset);
     } else {
       byte *index_data = index_info->index_pr->AccessForceNotNull(index_offset);
-      uint8_t type_size = type::TypeUtil::GetTypeSize(index_info->cols[index_col_idx].Type()) & static_cast<uint8_t>(0x7f);
+      uint8_t type_size =
+          type::TypeUtil::GetTypeSize(index_info->cols[index_col_idx].Type()) & static_cast<uint8_t>(0x7f);
       std::memcpy(index_data, table_pr->AccessForceNotNull(table_offset), type_size);
     }
   }
   // Insert into index
   index_info->index_ptr->Insert(exec_ctx_->GetTxn(), *index_info->index_pr, slot);
 }
-
 
 void TableReader::WriteTableCol(storage::ProjectedRow *insert_pr, uint16_t col_offset, type::TypeId type,
                                 csv::CSVField *field) {

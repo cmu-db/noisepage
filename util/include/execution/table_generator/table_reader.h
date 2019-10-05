@@ -49,7 +49,8 @@ class TableReader {
   void WriteTableCol(storage::ProjectedRow *insert_pr, uint16_t col_offset, type::TypeId type, csv::CSVField *field);
 
   // Write an index entry
-  void WriteIndexEntry(IndexInfo * index_info, storage::ProjectedRow * table_pr, const std::vector<uint16_t> & table_offsets, const storage::TupleSlot & slot);
+  void WriteIndexEntry(IndexInfo *index_info, storage::ProjectedRow *table_pr,
+                       const std::vector<uint16_t> &table_offsets, const storage::TupleSlot &slot);
 
  private:
   // Postgres NULL string

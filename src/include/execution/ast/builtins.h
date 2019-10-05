@@ -37,6 +37,7 @@ namespace terrier::execution::ast {
   F(TableIterAdvance, tableIterAdvance)                         \
   F(TableIterGetPCI, tableIterGetPCI)                           \
   F(TableIterClose, tableIterClose)                             \
+  F(TableIterReset, tableIterReset)                             \
   F(TableIterParallel, iterateTableParallel)                    \
                                                                 \
   /* PCI */                                                     \

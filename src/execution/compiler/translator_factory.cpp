@@ -13,6 +13,7 @@
 #include "execution/compiler/operator/aggregate_translator.h"
 #include "execution/compiler/operator/hash_join_translator.h"
 #include "execution/compiler/operator/index_join_translator.h"
+#include "execution/compiler/operator/index_scan_translator.h"
 #include "execution/compiler/operator/insert_translator.h"
 #include "execution/compiler/operator/nested_loop_translator.h"
 #include "execution/compiler/operator/seq_scan_translator.h"
@@ -34,6 +35,9 @@ std::unique_ptr<OperatorTranslator> TranslatorFactory::CreateRegularTranslator(
     }
     case terrier::planner::PlanNodeType::INDEXNLJOIN: {
       return std::make_unique<IndexJoinTranslator>(op, codegen);
+    }
+    case terrier::planner::PlanNodeType::INDEXSCAN: {
+      return std::make_unique<IndexScanTranslator>(op, codegen);
     }
     default:
       UNREACHABLE("Unsupported plan nodes");
