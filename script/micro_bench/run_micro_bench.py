@@ -54,7 +54,6 @@ BENCHMARKS_TO_RUN = [
     "logging_benchmark",
     "recovery_benchmark",
     "large_transaction_metrics_benchmark",
-    "index_wrapper_benchmark",
     "logging_metrics_benchmark",
     "tuple_access_strategy_benchmark",
     "tpcc_benchmark",
