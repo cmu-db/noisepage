@@ -193,6 +193,27 @@ namespace terrier::execution::ast {
   F(InserterGetIndexPRBind, inserterGetIndexPRBind)             \
   F(InserterIndexInsert, inserterIndexInsert)                   \
   F(InserterIndexInsertBind, inserterIndexInsertBind)
+  
+  /* Deleter Calls */                                           \
+  F(DeleterInit, deleterInit)                                   \
+  F(DeleterInitBind, deleterInitBind)                           \
+  F(DeleterTableDelete, deleterTableDelete)                     \
+  F(DeleterGetIndexPR, deleterGetIndexPR)                       \
+  F(DeleterGetIndexPRBind, deleterGetIndexPRBind)               \
+  F(DeleterIndexDelete, deleterIndexDelete)                     \
+  F(DeleterIndexDeleteBind, deleterIndexDeleteBind)             \
+                                                                \
+  /* Updater Calls */                                           \
+  F(UpdaterInit, updaterInit)                                   \
+  F(UpdaterInitBind, updaterInitBind)                           \
+  F(UpdaterGetTablePR, updaterGetTablePR)                       \
+  F(UpdaterTableUpdate, updaterTableUpdate)                     \
+  F(UpdaterGetIndexPR, updaterGetIndexPR)                       \
+  F(UpdaterGetIndexPRBind, updaterGetIndexPRBind)               \
+  F(UpdaterIndexInsert, updaterIndexInsert)                     \
+  F(UpdaterIndexInsertBind, updaterIndexInsertBind)             \
+  F(UpdaterIndexDelete, updaterIndexDelete)                     \
+  F(UpdaterIndexDeleteBind, updaterIndexDeleteBind)
 
 /**
  * Enum of builtins
