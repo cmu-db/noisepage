@@ -26,7 +26,8 @@ DBMain::DBMain(std::unordered_map<settings::Param, settings::ParamInfo> &&param_
       type::TransientValuePeeker::PeekInteger(
           param_map_.find(settings::Param::record_buffer_segment_reuse)->second.value_));
   settings_manager_ = new settings::SettingsManager(this);
-  thread_registry_ = new common::DedicatedThreadRegistry;
+  metrics_manager_ = new metrics::MetricsManager;
+  thread_registry_ = new common::DedicatedThreadRegistry(common::ManagedPointer(metrics_manager_));
 
   // Create LogManager
   log_manager_ = new storage::LogManager(
@@ -39,7 +40,8 @@ DBMain::DBMain(std::unordered_map<settings::Param, settings::ParamInfo> &&param_
   log_manager_->Start();
 
   timestamp_manager_ = new transaction::TimestampManager;
-  txn_manager_ = new transaction::TransactionManager(timestamp_manager_, DISABLED, buffer_segment_pool_, true, nullptr);
+  txn_manager_ =
+      new transaction::TransactionManager(timestamp_manager_, DISABLED, buffer_segment_pool_, true, log_manager_);
   garbage_collector_ = new storage::GarbageCollector(timestamp_manager_, DISABLED, txn_manager_, DISABLED);
   gc_thread_ = new storage::GarbageCollectorThread(garbage_collector_,
                                                    std::chrono::milliseconds{type::TransientValuePeeker::PeekInteger(
