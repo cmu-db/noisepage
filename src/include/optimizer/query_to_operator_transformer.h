@@ -119,7 +119,7 @@ class QueryToOperatorTransformer : public SqlNodeVisitor {
   /**
    * Generate a set of table alias included in an expression
    */
-  static void GenerateTableAliasSet(const common::ManagedPointer<parser::AbstractExpression> expr,
+  static void GenerateTableAliasSet(common::ManagedPointer<parser::AbstractExpression> expr,
                                     std::unordered_set<std::string> *table_alias_set);
 
   /**
