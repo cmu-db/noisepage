@@ -718,6 +718,165 @@ common::hash_t LogicalAggregateAndGroupBy::Hash() const {
 }
 
 //===--------------------------------------------------------------------===//
+// LogicalCreateDatabase
+//===--------------------------------------------------------------------===//
+
+Operator LogicalCreateDatabase::Make() {
+  auto *op = new LogicalCreateDatabase;
+  return Operator(op);
+}
+
+common::hash_t LogicalCreateDatabase::Hash() const {
+  common::hash_t hash = BaseOperatorNode::Hash();
+ return hash;
+}
+
+bool LogicalCreateDatabase::operator==(const BaseOperatorNode &r) {
+  if (r.GetType() != OpType::LOGICALCREATEDATABASE) return false;
+  const LogicalCreateDatabase &node = *dynamic_cast<const LogicalCreateDatabase *>(&r);
+  return (true);
+}
+
+//===--------------------------------------------------------------------===//
+// LogicalCreateFunction
+//===--------------------------------------------------------------------===//
+
+Operator LogicalCreateFunction::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid) {
+  auto *op = new LogicalCreateFunction;
+  op->database_oid_ = database_oid;
+  op->namespace_oid_ = namespace_oid;
+  return Operator(op);
+}
+
+common::hash_t LogicalCreateFunction::Hash() const {
+  common::hash_t hash = BaseOperatorNode::Hash();
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_oid_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(namespace_oid_));
+  return hash;
+}
+
+bool LogicalCreateFunction::operator==(const BaseOperatorNode &r) {
+  if (r.GetType() != OpType::LOGICALDELETE) return false;
+  const LogicalCreateFunction &node = *dynamic_cast<const LogicalCreateFunction *>(&r);
+  if (database_oid_ != node.database_oid_) return false;
+  if (namespace_oid_ != node.namespace_oid_) return false;
+  return (true);
+}
+
+//===--------------------------------------------------------------------===//
+// LogicalCreateIndex
+//===--------------------------------------------------------------------===//
+
+Operator LogicalCreateIndex::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
+                             catalog::table_oid_t table_oid) {
+  auto *op = new LogicalCreateIndex;
+  op->database_oid_ = database_oid;
+  op->namespace_oid_ = namespace_oid;
+  op->table_oid_ = table_oid;
+  return Operator(op);
+}
+
+common::hash_t LogicalCreateIndex::Hash() const {
+  common::hash_t hash = BaseOperatorNode::Hash();
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_oid_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(namespace_oid_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_oid_));
+  return hash;
+}
+
+bool LogicalCreateIndex::operator==(const BaseOperatorNode &r) {
+  if (r.GetType() != OpType::LOGICALDELETE) return false;
+  const LogicalCreateIndex &node = *dynamic_cast<const LogicalCreateIndex *>(&r);
+  if (database_oid_ != node.database_oid_) return false;
+  if (namespace_oid_ != node.namespace_oid_) return false;
+  if (table_oid_ != node.table_oid_) return false;
+  return (true);
+}
+
+//===--------------------------------------------------------------------===//
+// LogicalCreateTable
+//===--------------------------------------------------------------------===//
+
+Operator LogicalCreateTable::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid) {
+  auto *op = new LogicalCreateTable;
+  op->database_oid_ = database_oid;
+  op->namespace_oid_ = namespace_oid;
+  return Operator(op);
+}
+
+common::hash_t LogicalCreateTable::Hash() const {
+  common::hash_t hash = BaseOperatorNode::Hash();
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_oid_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(namespace_oid_));
+  return hash;
+}
+
+bool LogicalCreateTable::operator==(const BaseOperatorNode &r) {
+  if (r.GetType() != OpType::LOGICALDELETE) return false;
+  const LogicalCreateTable &node = *dynamic_cast<const LogicalCreateTable *>(&r);
+  if (database_oid_ != node.database_oid_) return false;
+  if (namespace_oid_ != node.namespace_oid_) return false;
+  return (true);
+}
+
+//===--------------------------------------------------------------------===//
+// LogicalCreateTrigger
+//===--------------------------------------------------------------------===//
+
+Operator LogicalCreateTrigger::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
+                             catalog::table_oid_t table_oid) {
+  auto *op = new LogicalCreateTrigger;
+  op->database_oid_ = database_oid;
+  op->namespace_oid_ = namespace_oid;
+  op->table_oid_ = table_oid;
+  return Operator(op);
+}
+
+common::hash_t LogicalCreateTrigger::Hash() const {
+  common::hash_t hash = BaseOperatorNode::Hash();
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_oid_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(namespace_oid_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_oid_));
+  return hash;
+}
+
+bool LogicalCreateTrigger::operator==(const BaseOperatorNode &r) {
+  if (r.GetType() != OpType::LOGICALDELETE) return false;
+  const LogicalCreateTrigger &node = *dynamic_cast<const LogicalCreateTrigger *>(&r);
+  if (database_oid_ != node.database_oid_) return false;
+  if (namespace_oid_ != node.namespace_oid_) return false;
+  if (table_oid_ != node.table_oid_) return false;
+  return (true);
+}
+
+//===--------------------------------------------------------------------===//
+// LogicalCreateView
+//===--------------------------------------------------------------------===//
+
+Operator LogicalCreateView::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid)
+  auto *op = new LogicalCreateView;
+  op->database_oid_ = database_oid;
+  op->namespace_oid_ = namespace_oid;
+  return Operator(op);
+}
+
+common::hash_t LogicalCreateView::Hash() const {
+  common::hash_t hash = BaseOperatorNode::Hash();
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_oid_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(namespace_oid_));
+  return hash;
+}
+
+bool LogicalCreateView::operator==(const BaseOperatorNode &r) {
+  if (r.GetType() != OpType::LOGICALDELETE) return false;
+  const LogicalCreateView &node = *dynamic_cast<const LogicalCreateView *>(&r);
+  if (database_oid_ != node.database_oid_) return false;
+  if (namespace_oid_ != node.namespace_oid_) return false;
+  return (true);
+}
+
+
+//===--------------------------------------------------------------------===//
 template <typename T>
 void OperatorNode<T>::Accept(common::ManagedPointer<OperatorVisitor> v) const {
   v->Visit(reinterpret_cast<const T *>(this));
