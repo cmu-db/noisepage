@@ -228,11 +228,11 @@ class BindNodeVisitor : public SqlNodeVisitor {
   void Visit(parser::AggregateExpression *expr, parser::ParseResult *parse_result) override;
 
  private:
-  /** Current context of the query or subquery **/
+  /** Current context of the query or subquery */
   BinderContext *context_ = nullptr;
-  /** Catalog accessor **/
+  /** Catalog accessor */
   std::unique_ptr<catalog::CatalogAccessor> catalog_accessor_;
-  /** Default database name of the query. Default to current database reside in **/
+  /** Default database name of the query. Default to current database reside in */
   std::string default_database_name_;
 };
 
