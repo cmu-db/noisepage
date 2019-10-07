@@ -6,18 +6,17 @@
 #include "di/injectors.h"
 #include "gtest/gtest.h"
 #include "main/db_main.h"
-#include "settings/settings_callbacks.h"
-#include "settings/settings_manager.h"
 #include "storage/data_table.h"
 #include "storage/garbage_collector_thread.h"
+#include "storage/projected_row.h"
 #include "storage/sql_table.h"
 #include "storage/write_ahead_log/log_manager.h"
 #include "transaction/transaction_manager.h"
 #include "type/transient_value_factory.h"
 #include "util/catalog_test_util.h"
+#include "util/data_table_test_util.h"
 #include "util/storage_test_util.h"
 #include "util/test_harness.h"
-#include "util/transaction_test_util.h"
 
 #define __SETTING_GFLAGS_DEFINE__      // NOLINT
 #include "settings/settings_common.h"  // NOLINT
@@ -29,10 +28,10 @@
 namespace terrier::storage {
 class WriteAheadLoggingTests : public TerrierTest {
  protected:
-  auto Injector(const LargeTransactionTestConfiguration &config) {
+  auto Injector(const LargeDataTableTestConfiguration &config) {
     return di::make_injector<di::TestBindingPolicy>(
         di::storage_injector(), di::bind<AccessObserver>().in(di::disabled),
-        di::bind<LargeTransactionTestConfiguration>().to(config),
+        di::bind<LargeDataTableTestConfiguration>().to(config),
         di::bind<std::default_random_engine>().in(di::terrier_singleton),  // need to be universal across injectors
         di::bind<uint64_t>().named(storage::BlockStore::SIZE_LIMIT).to(static_cast<uint64_t>(1000)),
         di::bind<uint64_t>().named(storage::BlockStore::REUSE_LIMIT).to(static_cast<uint64_t>(1000)),
@@ -44,9 +43,9 @@ class WriteAheadLoggingTests : public TerrierTest {
             .to(std::chrono::milliseconds(10)),
         di::bind<std::string>().named(storage::LogManager::LOG_FILE_PATH).to(std::string(LOG_FILE_NAME)),
         di::bind<uint64_t>().named(storage::LogManager::NUM_BUFFERS).to(static_cast<uint64_t>(100)),
-        di::bind<std::chrono::milliseconds>()
+        di::bind<std::chrono::microseconds>()
             .named(storage::LogManager::SERIALIZATION_INTERVAL)
-            .to(std::chrono::milliseconds(10)),
+            .to(std::chrono::microseconds(10)),
         di::bind<std::chrono::milliseconds>()
             .named(storage::LogManager::PERSIST_INTERVAL)
             .to(std::chrono::milliseconds(20)),
@@ -65,22 +64,28 @@ class WriteAheadLoggingTests : public TerrierTest {
     TerrierTest::TearDown();
   }
 
-  static storage::LogRecord *ReadNextRecord(storage::BufferedLogReader *in, const storage::BlockLayout &block_layout) {
+  /**
+   * @warning If the serialization format of logs ever changes, this function will need to be updated.
+   */
+  storage::LogRecord *ReadNextRecord(storage::BufferedLogReader *in) {
     auto size = in->ReadValue<uint32_t>();
     byte *buf = common::AllocationUtil::AllocateAligned(size);
     auto record_type = in->ReadValue<storage::LogRecordType>();
     auto txn_begin = in->ReadValue<transaction::timestamp_t>();
     if (record_type == storage::LogRecordType::COMMIT) {
       auto txn_commit = in->ReadValue<transaction::timestamp_t>();
+      auto oldest_active_txn = in->ReadValue<transaction::timestamp_t>();
+
       // Okay to fill in null since nobody will invoke the callback.
       // is_read_only argument is set to false, because we do not write out a commit record for a transaction if it is
       // not read-only.
-      return storage::CommitRecord::Initialize(buf, txn_begin, txn_commit, nullptr, nullptr, false, nullptr);
+      return storage::CommitRecord::Initialize(buf, txn_begin, txn_commit, nullptr, nullptr, oldest_active_txn, false,
+                                               nullptr, nullptr);
     }
 
-    if (record_type == storage::LogRecordType::ABORT) return storage::AbortRecord::Initialize(buf, txn_begin, nullptr);
+    if (record_type == storage::LogRecordType::ABORT)
+      return storage::AbortRecord::Initialize(buf, txn_begin, nullptr, nullptr);
 
-    // TODO(Tianyu): Without a lookup mechanism this oid is not exactly meaningful. Implement lookup when possible
     auto database_oid = in->ReadValue<catalog::db_oid_t>();
     auto table_oid = in->ReadValue<catalog::table_oid_t>();
     auto tuple_slot = in->ReadValue<storage::TupleSlot>();
@@ -101,8 +106,22 @@ class WriteAheadLoggingTests : public TerrierTest {
       col_ids[i] = col_id;
     }
 
+    // Read in attribute size boundaries
+    std::vector<uint16_t> attr_size_boundaries;
+    attr_size_boundaries.reserve(NUM_ATTR_BOUNDARIES);
+    for (uint16_t i = 0; i < NUM_ATTR_BOUNDARIES; i++) {
+      attr_size_boundaries.push_back(in->ReadValue<uint16_t>());
+    }
+
+    // Compute attr sizes
+    std::vector<uint8_t> attr_sizes;
+    attr_sizes.reserve(num_cols);
+    for (uint16_t attr_idx = 0; attr_idx < num_cols; attr_idx++) {
+      attr_sizes.push_back(storage::StorageUtil::AttrSizeFromBoundaries(attr_size_boundaries, attr_idx));
+    }
+
     // Initialize the redo record.
-    auto initializer = storage::ProjectedRowInitializer::Create(block_layout, col_ids);
+    auto initializer = storage::ProjectedRowInitializer::Create(attr_sizes, col_ids);
     auto *result = storage::RedoRecord::Initialize(buf, txn_begin, database_oid, table_oid, initializer);
     auto *record_body = result->GetUnderlyingRecordBodyAs<RedoRecord>();
     record_body->SetTupleSlot(tuple_slot);
@@ -124,7 +143,7 @@ class WriteAheadLoggingTests : public TerrierTest {
 
       // The column is not null, so set the bitmap accordingly and get access to the column value.
       auto *column_value_address = delta->AccessForceNotNull(i);
-      if (block_layout.IsVarlen(col_ids[i])) {
+      if (attr_sizes[i] == (VARLEN_COLUMN & INT8_MAX)) {
         // Read how many bytes this varlen actually is.
         const auto varlen_attribute_size = in->ReadValue<uint32_t>();
         // Allocate a varlen buffer of this many bytes.
@@ -135,6 +154,7 @@ class WriteAheadLoggingTests : public TerrierTest {
         storage::VarlenEntry varlen_entry;
         if (varlen_attribute_size <= storage::VarlenEntry::InlineThreshold()) {
           varlen_entry = storage::VarlenEntry::CreateInline(varlen_attribute_content, varlen_attribute_size);
+          delete[] varlen_attribute_content;
         } else {
           varlen_entry = storage::VarlenEntry::Create(varlen_attribute_content, varlen_attribute_size, true);
         }
@@ -144,7 +164,7 @@ class WriteAheadLoggingTests : public TerrierTest {
         *dest = varlen_entry;
       } else {
         // For inlined attributes, just directly read into the ProjectedRow.
-        in->Read(column_value_address, block_layout.AttrSize(col_ids[i]));
+        in->Read(column_value_address, attr_sizes[i]);
       }
     }
 
@@ -157,11 +177,11 @@ class WriteAheadLoggingTests : public TerrierTest {
   storage::RedoBuffer &GetRedoBuffer(transaction::TransactionContext *txn) { return txn->redo_buffer_; }
 };
 
-// This test uses the LargeTransactionTestObject to simulate some number of transactions with logging turned on, and
+// This test uses the LargeDataTableTestObject to simulate some number of transactions with logging turned on, and
 // then reads the logged out content to make sure they are correct
 // NOLINTNEXTLINE
 TEST_F(WriteAheadLoggingTests, LargeLogTest) {
-  auto config = LargeTransactionTestConfiguration::Builder()
+  auto config = LargeDataTableTestConfiguration::Builder()
                     .SetNumTxns(100)
                     .SetNumConcurrentTxns(4)
                     .SetUpdateSelectRatio({0.5, 0.5})
@@ -173,19 +193,18 @@ TEST_F(WriteAheadLoggingTests, LargeLogTest) {
   auto injector = Injector(config);
   auto log_manager = injector.create<storage::LogManager *>();
   log_manager->Start();
-  auto tested = injector.create<std::unique_ptr<LargeTransactionTestObject>>();
+  auto tested = injector.create<std::unique_ptr<LargeDataTableTestObject>>();
   // Each transaction does 5 operations. The update-select ratio of operations is 50%-50%.
   auto result = tested->SimulateOltp(100, 4);
   log_manager->PersistAndStop();
 
-  std::unordered_map<transaction::timestamp_t, RandomWorkloadTransaction *> txns_map;
+  std::unordered_map<transaction::timestamp_t, RandomDataTableTransaction *> txns_map;
   for (auto *txn : result.first) txns_map[txn->BeginTimestamp()] = txn;
   // At this point all the log records should have been written out, we can start reading stuff back in.
   storage::BufferedLogReader in(LOG_FILE_NAME);
-  const auto &block_layout = tested->Layout();
   while (in.HasMore()) {
-    storage::LogRecord *log_record = ReadNextRecord(&in, block_layout);
-    if (log_record->TxnBegin() == transaction::timestamp_t(0)) {
+    storage::LogRecord *log_record = ReadNextRecord(&in);
+    if (log_record->TxnBegin() == transaction::INITIAL_TXN_TIMESTAMP) {
       // TODO(Tianyu): This is hacky, but it will be a pain to extract the initial transaction. The LargeTransactionTest
       //  harness probably needs some refactor (later after wal is in).
       // This the initial setup transaction.
@@ -244,7 +263,7 @@ TEST_F(WriteAheadLoggingTests, LargeLogTest) {
 // NOLINTNEXTLINE
 TEST_F(WriteAheadLoggingTests, ReadOnlyTransactionsGenerateNoLogTest) {
   // Each transaction is read-only (update-select ratio of 0-100). Also, no need for bookkeeping.
-  auto config = LargeTransactionTestConfiguration::Builder()
+  auto config = LargeDataTableTestConfiguration::Builder()
                     .SetNumTxns(100)
                     .SetNumConcurrentTxns(4)
                     .SetUpdateSelectRatio({0.0, 1.0})
@@ -256,7 +275,7 @@ TEST_F(WriteAheadLoggingTests, ReadOnlyTransactionsGenerateNoLogTest) {
   auto injector = Injector(config);
   auto log_manager = injector.create<storage::LogManager *>();
   log_manager->Start();
-  auto tested = injector.create<std::unique_ptr<LargeTransactionTestObject>>();
+  auto tested = injector.create<std::unique_ptr<LargeDataTableTestObject>>();
   auto result = tested->SimulateOltp(1000, 4);
   log_manager->PersistAndStop();
 
@@ -265,8 +284,8 @@ TEST_F(WriteAheadLoggingTests, ReadOnlyTransactionsGenerateNoLogTest) {
   int log_records_count = 0;
   storage::BufferedLogReader in(LOG_FILE_NAME);
   while (in.HasMore()) {
-    storage::LogRecord *log_record = ReadNextRecord(&in, tested->Layout());
-    if (log_record->TxnBegin() == transaction::timestamp_t(0)) {
+    storage::LogRecord *log_record = ReadNextRecord(&in);
+    if (log_record->TxnBegin() == transaction::INITIAL_TXN_TIMESTAMP) {
       // (TODO) Currently following pattern from LargeLogTest of skipping the initial transaction. When the transaction
       // testing framework changes, fix this.
       delete[] reinterpret_cast<byte *>(log_record);
@@ -292,8 +311,8 @@ TEST_F(WriteAheadLoggingTests, ReadOnlyTransactionsGenerateNoLogTest) {
 // correctly flushed out an abort record
 // NOLINTNEXTLINE
 TEST_F(WriteAheadLoggingTests, AbortRecordTest) {
-  auto injector = Injector(LargeTransactionTestConfiguration::Empty());  // config can be empty because we do not inject
-                                                                         // LargeTransactionTestObject here
+  auto injector = Injector(LargeDataTableTestConfiguration::Empty());  // config can be empty because we do not inject
+                                                                       // LargeDataTableTestObject here
   auto *log_manager = injector.create<storage::LogManager *>();
   log_manager->Start();
 
@@ -350,7 +369,7 @@ TEST_F(WriteAheadLoggingTests, AbortRecordTest) {
   bool found_abort_record = false;
   storage::BufferedLogReader in(LOG_FILE_NAME);
   while (in.HasMore()) {
-    storage::LogRecord *log_record = ReadNextRecord(&in, sql_table.table_.layout_);
+    storage::LogRecord *log_record = ReadNextRecord(&in);
     if (log_record->RecordType() == LogRecordType::ABORT) {
       found_abort_record = true;
       auto *abort_record = log_record->GetUnderlyingRecordBodyAs<storage::AbortRecord>();
@@ -370,8 +389,8 @@ TEST_F(WriteAheadLoggingTests, AbortRecordTest) {
 // This test verifies that we don't write an abort record for an aborted transaction that never flushed its redo buffer
 // NOLINTNEXTLINE
 TEST_F(WriteAheadLoggingTests, NoAbortRecordTest) {
-  auto injector = Injector(LargeTransactionTestConfiguration::Empty());  // config can be empty because we do not inject
-                                                                         // LargeTransactionTestObject here
+  auto injector = Injector(LargeDataTableTestConfiguration::Empty());  // config can be empty because we do not inject
+                                                                       // LargeDataTableTestObject here
   auto *log_manager = injector.create<storage::LogManager *>();
   log_manager->Start();
 
@@ -417,7 +436,7 @@ TEST_F(WriteAheadLoggingTests, NoAbortRecordTest) {
   bool found_abort_record = false;
   storage::BufferedLogReader in(LOG_FILE_NAME);
   while (in.HasMore()) {
-    storage::LogRecord *log_record = ReadNextRecord(&in, sql_table.table_.layout_);
+    storage::LogRecord *log_record = ReadNextRecord(&in);
     if (log_record->RecordType() == LogRecordType::ABORT) {
       found_abort_record = true;
     }

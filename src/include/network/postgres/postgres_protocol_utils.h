@@ -126,7 +126,7 @@ enum class PostgresValueType {
 type::TypeId PostgresValueTypeToInternalValueType(PostgresValueType type);
 
 /**
- * Wrapper around an I/O layer WriteQueue to provide Postgres-sprcific
+ * Wrapper around an I/O layer WriteQueue to provide Postgres-specific
  * helper methods.
  */
 class PostgresPacketWriter {
