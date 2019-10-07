@@ -62,7 +62,7 @@ class TPCCTests : public TerrierTest {
   const std::chrono::milliseconds log_persist_interval_{20};
   const uint64_t log_persist_threshold_ = (1U << 20U);  // 1MB
 
-  storage::GarbageCollector *gc_;
+  storage::GarbageCollector *gc_= nullptr;
   storage::GarbageCollectorThread *gc_thread_ = nullptr;
   const std::chrono::milliseconds gc_period_{10};
   const std::chrono::milliseconds metrics_period_{100};
@@ -96,7 +96,7 @@ class TPCCTests : public TerrierTest {
     transaction::TransactionManager txn_manager(&timestamp_manager, &deferred_action_manager, &buffer_pool_, true,
                                                 log_manager_);
     catalog::Catalog catalog(&txn_manager, &block_store_);
-  Builder tpcc_builder(&block_store_, &catalog, &txn_manager);
+    Builder tpcc_builder(&block_store_, &catalog, &txn_manager);
 
     // Precompute all of the input arguments for every txn to be run. We want to avoid the overhead at benchmark time
     const auto precomputed_args =
@@ -111,8 +111,8 @@ class TPCCTests : public TerrierTest {
       workers.emplace_back(tpcc_db);
     }
 
-  // populate the tables and indexes, as well as force log manager to log all changes
-  Loader::PopulateDatabase(&txn_manager, tpcc_db, &workers, &thread_pool_);
+    // populate the tables and indexes, as well as force log manager to log all changes
+    Loader::PopulateDatabase(&txn_manager, tpcc_db, &workers, &thread_pool_);
     if (logging_enabled) log_manager_->ForceFlush();
 
     gc_ = new storage::GarbageCollector(&timestamp_manager, &deferred_action_manager, &txn_manager, DISABLED);
@@ -129,10 +129,10 @@ class TPCCTests : public TerrierTest {
     thread_pool_.WaitUntilAllFinished();
 
     // cleanup
-  Util::UnregisterIndexesForGC(&(gc_thread_->GetGarbageCollector()), tpcc_db);
-  delete gc_thread_;
-  catalog.TearDown();
-  StorageTestUtil::FullyPerformGC(gc_, log_manager_);
+    Util::UnregisterIndexesForGC(&(gc_thread_->GetGarbageCollector()), tpcc_db);
+    delete gc_thread_;
+    catalog.TearDown();
+    StorageTestUtil::FullyPerformGC(gc_, log_manager_);
     thread_pool_.Shutdown();
     if (logging_enabled) {
       log_manager_->PersistAndStop();
