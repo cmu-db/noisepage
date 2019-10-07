@@ -958,5 +958,230 @@ class LogicalExportExternalFile : public OperatorNode<LogicalExportExternalFile>
   char escape_;
 };
 
+/**
+ * Logical operator for CreateDatabase
+ */
+class LogicalCreateDatabase : public OperatorNode<LogicalCreateDatabase> {
+ public:
+  /**
+   * @return
+   */
+  static Operator Make();
+
+  bool operator==(const BaseOperatorNode &r) override;
+  common::hash_t Hash() const override;
+};
+
+/**
+ * Logical operator for CreateFunction
+ */
+class LogicalCreateFunction : public OperatorNode<LogicalCreateFunction> {
+ public:
+  /**
+   * @param database_oid OID of the database
+   * @param namespace_oid OID of the namespace
+   * @return
+   */
+  static Operator Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid);
+
+  bool operator==(const BaseOperatorNode &r) override;
+  common::hash_t Hash() const override;
+
+  /**
+   * @return OID of the database
+   */
+  const catalog::db_oid_t &GetDatabaseOid() const { return database_oid_; }
+
+  /**
+   * @return OID of the namespace
+   */
+  const catalog::namespace_oid_t &GetNamespaceOid() const { return namespace_oid_; }
+
+ private:
+  /**
+   * OID of the database
+   */
+  catalog::db_oid_t database_oid_;
+
+  /**
+   * OID of the namespace
+   */
+  catalog::namespace_oid_t namespace_oid_;
+
+};
+
+/**
+ * Logical operator for CreateIndex
+ */
+class LogicalCreateIndex : public OperatorNode<LogicalCreateIndex> {
+ public:
+  /**
+   * @param database_oid OID of the database
+   * @param namespace_oid OID of the namespace
+   * @param table_oid OID of the table
+   * @return
+   */
+  static Operator Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
+                       catalog::table_oid_t table_oid);
+
+  bool operator==(const BaseOperatorNode &r) override;
+  common::hash_t Hash() const override;
+
+  /**
+   * @return OID of the database
+   */
+  const catalog::db_oid_t &GetDatabaseOid() const { return database_oid_; }
+
+  /**
+   * @return OID of the namespace
+   */
+  const catalog::namespace_oid_t &GetNamespaceOid() const { return namespace_oid_; }
+
+  /**
+   * @return OID of the table
+   */
+  const catalog::table_oid_t &GetTableOid() const { return table_oid_; }
+
+ private:
+  /**
+   * OID of the database
+   */
+  catalog::db_oid_t database_oid_;
+
+  /**
+   * OID of the namespace
+   */
+  catalog::namespace_oid_t namespace_oid_;
+
+  /**
+   * OID of the table
+   */
+  catalog::table_oid_t table_oid_;
+};
+
+/**
+ * Logical operator for CreateTable
+ */
+class LogicalCreateTable : public OperatorNode<LogicalCreateTable> {
+ public:
+  /**
+   * @param database_oid OID of the database
+   * @param namespace_oid OID of the namespace
+   * @return
+   */
+  static Operator Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid);
+
+  bool operator==(const BaseOperatorNode &r) override;
+  common::hash_t Hash() const override;
+
+  /**
+   * @return OID of the database
+   */
+  const catalog::db_oid_t &GetDatabaseOid() const { return database_oid_; }
+
+  /**
+   * @return OID of the namespace
+   */
+  const catalog::namespace_oid_t &GetNamespaceOid() const { return namespace_oid_; }
+
+ private:
+  /**
+   * OID of the database
+   */
+  catalog::db_oid_t database_oid_;
+
+  /**
+   * OID of the namespace
+   */
+  catalog::namespace_oid_t namespace_oid_;
+};
+
+/**
+ * Logical operator for CreateTrigger
+ */
+class LogicalCreateTrigger : public OperatorNode<LogicalCreateTrigger> {
+ public:
+  /**
+   * @param database_oid OID of the database
+   * @param namespace_oid OID of the namespace
+   * @param table_oid OID of the table
+   * @return
+   */
+  static Operator Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
+                       catalog::table_oid_t table_oid);
+
+  bool operator==(const BaseOperatorNode &r) override;
+  common::hash_t Hash() const override;
+
+  /**
+   * @return OID of the database
+   */
+  const catalog::db_oid_t &GetDatabaseOid() const { return database_oid_; }
+
+  /**
+   * @return OID of the namespace
+   */
+  const catalog::namespace_oid_t &GetNamespaceOid() const { return namespace_oid_; }
+
+  /**
+   * @return OID of the table
+   */
+  const catalog::table_oid_t &GetTableOid() const { return table_oid_; }
+
+ private:
+  /**
+   * OID of the database
+   */
+  catalog::db_oid_t database_oid_;
+
+  /**
+   * OID of the namespace
+   */
+  catalog::namespace_oid_t namespace_oid_;
+
+  /**
+   * OID of the table
+   */
+  catalog::table_oid_t table_oid_;
+};
+
+/**
+ * Logical operator for CreateView
+ */
+class LogicalCreateView : public OperatorNode<LogicalCreateView> {
+ public:
+  /**
+   * @param database_oid OID of the database
+   * @param namespace_oid OID of the namespace
+   * @return
+   */
+  static Operator Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid);
+
+  bool operator==(const BaseOperatorNode &r) override;
+  common::hash_t Hash() const override;
+
+  /**
+   * @return OID of the database
+   */
+  const catalog::db_oid_t &GetDatabaseOid() const { return database_oid_; }
+
+  /**
+   * @return OID of the namespace
+   */
+  const catalog::namespace_oid_t &GetNamespaceOid() const { return namespace_oid_; }
+
+ private:
+  /**
+   * OID of the database
+   */
+  catalog::db_oid_t database_oid_;
+
+  /**
+   * OID of the namespace
+   */
+  catalog::namespace_oid_t namespace_oid_;
+};
+
+
 }  // namespace optimizer
 }  // namespace terrier
