@@ -32,7 +32,7 @@ namespace optimizer {
 
 class QueryNodeVisitor {
  public:
-  virtual ~QueryNodeVisitor() {}
+  virtual ~QueryNodeVisitor() = default;
 
   virtual void Visit(const parser::SelectStatement *) = 0;
 

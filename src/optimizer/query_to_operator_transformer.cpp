@@ -215,8 +215,7 @@ void QueryToOperatorTransformer::Visit(parser::OrderByDescription *, parser::Par
 void QueryToOperatorTransformer::Visit(parser::LimitDescription *, parser::ParseResult *) {}
 void QueryToOperatorTransformer::Visit(parser::CreateFunctionStatement *, parser::ParseResult *) {}
 
-void QueryToOperatorTransformer::Visit(UNUSED_ATTRIBUTE parser::CreateStatement *op,
-                                       parser::ParseResult *parse_result) {}
+void QueryToOperatorTransformer::Visit(parser::CreateStatement *, parser::ParseResult *) {}
 void QueryToOperatorTransformer::Visit(parser::InsertStatement *op, parser::ParseResult *parse_result) {
   auto target_table = op->GetInsertionTable();
   auto target_table_id = accessor_->GetTableOid(target_table->GetTableName());
