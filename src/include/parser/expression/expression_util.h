@@ -73,7 +73,6 @@ class ExpressionUtil {
       for (const auto &child : expr->GetChildren()) GetAggregateExprs(aggr_exprs, child);
     }
   }
-
 };
 
 }  // namespace terrier::parser::expression
