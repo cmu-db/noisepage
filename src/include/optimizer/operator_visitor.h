@@ -281,6 +281,42 @@ class OperatorVisitor {
    * @param logical_export_external_file operator
    */
   virtual void Visit(const LogicalExportExternalFile *logical_export_external_file) {}
+
+  /**
+   * Visit a LogicalCreateDatabase operator
+   * @param logical_create_database operator
+   */
+  virtual void Visit(const LogicalCreateDatabase *logical_create_database) {}
+
+  /**
+   * Visit a LogicalCreateFunction operator
+   * @param logical_create_function operator
+   */
+  virtual void Visit(const LogicalCreateDatabase *logical_create_database) {}
+
+  /**
+   * Visit a LogicalCreateIndex operator
+   * @param logical_create_index operator
+   */
+  virtual void Visit(const LogicalCreateIndex *logical_create_index) {}
+
+  /**
+   * Visit a LogicalCreateTable operator
+   * @param logical_create_table operator
+   */
+  virtual void Visit(const LogicalCreateTable *logical_create_table) {}
+
+  /**
+   * Visit a LogicalCreateTrigger operator
+   * @param logical_create_trigger operator
+   */
+  virtual void Visit(const LogicalCreateTrigger *logical_create_trigger) {}
+
+  /**
+   * Visit a LogicalCreateView operator
+   * @param logical_create_view operator
+   */
+  virtual void Visit(const LogicalCreateView *logical_create_view) {}
 };
 
 }  // namespace terrier::optimizer
