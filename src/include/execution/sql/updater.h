@@ -18,7 +18,7 @@ class EXPORT Updater {
 
   storage::ProjectedRow *GetIndexPR(catalog::index_oid_t index_oid);
 
-  bool TableUpdate(storage::TupleSlot table_tuple_slot);
+  storage::TupleSlot TableUpdate(storage::TupleSlot table_tuple_slot);
 
   void IndexDelete(catalog::index_oid_t index_oid);
 
@@ -38,5 +38,7 @@ class EXPORT Updater {
   storage::ProjectedRow *index_pr_{nullptr};
 
   std::map<terrier::catalog::index_oid_t, common::ManagedPointer<storage::index::Index>> index_cache_;
+
+  bool is_index_key_update_ = false;
 };
 }  // namespace terrier::execution::sql
