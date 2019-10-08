@@ -7,7 +7,8 @@ namespace terrier::tpcc {
 
 /**
  * Worker contains buffers for each worker thread (running txns) to use for PRs for tables and indexes to avoid
- * constantly allocating and freeing them within the transactions themselves
+ * constantly allocating and freeing them within the transactions themselves. It also contains a random number generator
+ * for the parallel loader, since I don't believe that STL class is safe for concurrent access.
  */
 struct Worker {
   explicit Worker(tpcc::Database *const db)
@@ -58,7 +59,8 @@ struct Worker {
         new_order_key_buffer_(common::AllocationUtil::AllocateAligned(
             db->new_order_primary_index_->GetProjectedRowInitializer().ProjectedRowSize())),
         order_line_key_buffer_(common::AllocationUtil::AllocateAligned(
-            db->order_line_primary_index_->GetProjectedRowInitializer().ProjectedRowSize())) {}
+            db->order_line_primary_index_->GetProjectedRowInitializer().ProjectedRowSize())),
+        generator_(new std::default_random_engine) {}
 
   ~Worker() {
     delete[] item_tuple_buffer_;
@@ -82,6 +84,8 @@ struct Worker {
     delete[] order_secondary_key_buffer_;
     delete[] new_order_key_buffer_;
     delete[] order_line_key_buffer_;
+
+    delete generator_;
   }
 
   byte *const item_tuple_buffer_;
@@ -105,5 +109,7 @@ struct Worker {
   byte *const order_secondary_key_buffer_;
   byte *const new_order_key_buffer_;
   byte *const order_line_key_buffer_;
+
+  std::default_random_engine *const generator_;
 };
 }  // namespace terrier::tpcc

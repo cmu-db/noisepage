@@ -86,7 +86,7 @@ TEST_F(MetricsTests, LoggingCSVTest) {
 
   Insert();
 
-  std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+  std::this_thread::sleep_for(std::chrono::seconds(5));
 
   metrics_manager_->Aggregate();
   const auto aggregated_data = reinterpret_cast<LoggingMetricRawData *>(
@@ -103,7 +103,7 @@ TEST_F(MetricsTests, LoggingCSVTest) {
   Insert();
   Insert();
 
-  std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+  std::this_thread::sleep_for(std::chrono::seconds(5));
 
   metrics_manager_->Aggregate();
   EXPECT_EQ(aggregated_data->serializer_data_.size(), 1);                 // 1 data point recorded
@@ -118,7 +118,7 @@ TEST_F(MetricsTests, LoggingCSVTest) {
   Insert();
   Insert();
 
-  std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+  std::this_thread::sleep_for(std::chrono::seconds(5));
 
   metrics_manager_->Aggregate();
   EXPECT_EQ(aggregated_data->serializer_data_.size(), 1);                 // 1 data point recorded
@@ -145,7 +145,7 @@ TEST_F(MetricsTests, TransactionCSVTest) {
 
   Insert();
 
-  std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+  std::this_thread::sleep_for(std::chrono::seconds(5));
 
   metrics_manager_->Aggregate();
   const auto aggregated_data = reinterpret_cast<TransactionMetricRawData *>(
@@ -160,7 +160,7 @@ TEST_F(MetricsTests, TransactionCSVTest) {
   Insert();
   Insert();
 
-  std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+  std::this_thread::sleep_for(std::chrono::seconds(5));
 
   metrics_manager_->Aggregate();
   EXPECT_EQ(aggregated_data->begin_data_.size(), 2);   // 2 txns recorded
@@ -173,7 +173,7 @@ TEST_F(MetricsTests, TransactionCSVTest) {
   Insert();
   Insert();
 
-  std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+  std::this_thread::sleep_for(std::chrono::seconds(5));
 
   metrics_manager_->Aggregate();
   EXPECT_EQ(aggregated_data->begin_data_.size(), 3);   // 3 txns recorded
