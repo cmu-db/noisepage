@@ -56,17 +56,17 @@ class LogicalGet : public OperatorNode<LogicalGet> {
   /**
    * @return the OID of the database
    */
-  const catalog::db_oid_t &GetDatabaseOID() const { return database_oid_; }
+  const catalog::db_oid_t &GetDatabaseOid() const { return database_oid_; }
 
   /**
    * @return the OID of the namespace
    */
-  const catalog::namespace_oid_t &GetNamespaceOID() const { return namespace_oid_; }
+  const catalog::namespace_oid_t &GetNamespaceOid() const { return namespace_oid_; }
 
   /**
    * @return the OID of the table
    */
-  const catalog::table_oid_t &GetTableOID() const { return table_oid_; }
+  const catalog::table_oid_t &GetTableOid() const { return table_oid_; }
 
   /**
    * @return the vector of predicates for get
