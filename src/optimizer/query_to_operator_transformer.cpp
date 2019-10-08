@@ -455,7 +455,7 @@ bool QueryToOperatorTransformer::RequireAggregation(common::ManagedPointer<parse
     else
       has_other_exprs = true;
   }
-  // TODO (peloton): Should be handled in the binder
+  // TODO(peloton): Should be handled in the binder
   // Syntax error when there are mixture of aggregation and other exprs when group by is absent
   if (has_aggregation && has_other_exprs) {
     throw OPTIMIZER_EXCEPTION(
