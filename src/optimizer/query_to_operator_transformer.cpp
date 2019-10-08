@@ -96,7 +96,7 @@ void QueryToOperatorTransformer::Visit(parser::SelectStatement *op, parser::Pars
 
   if (op->GetSelectLimit() != nullptr && op->GetSelectLimit()->GetLimit() != -1) {
     std::vector<common::ManagedPointer<parser::AbstractExpression>> sort_exprs;
-    std::vector<planner::OrderByOrderingType> sort_direction;
+    std::vector<optimizer::OrderByOrderingType> sort_direction;
 
     if (op->GetSelectOrderBy() != nullptr) {
       const auto &order_info = op->GetSelectOrderBy();
@@ -105,9 +105,9 @@ void QueryToOperatorTransformer::Visit(parser::SelectStatement *op, parser::Pars
       }
       for (auto &type : order_info->GetOrderByTypes()) {
         if (type == parser::kOrderAsc)
-          sort_direction.push_back(planner::OrderByOrderingType::ASC);
+          sort_direction.push_back(optimizer::OrderByOrderingType::ASC);
         else
-          sort_direction.push_back(planner::OrderByOrderingType::DESC);
+          sort_direction.push_back(optimizer::OrderByOrderingType::DESC);
       }
     }
     auto limit_expr =

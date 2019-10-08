@@ -257,8 +257,10 @@ TEST_F(OperatorTransformerTest, InsertStatementSelectTest) {
 
   // Test LogicalGet
   auto logical_get = operator_tree_->GetChildren()[0]->GetChildren()[0]->GetOp().As<optimizer::LogicalGet>();
+  EXPECT_EQ(db_oid_, logical_get->GetDatabaseOid());
+  EXPECT_EQ(default_namespace_oid, logical_get->GetNamespaceOid());
   EXPECT_EQ(table_b_oid_, logical_get->GetTableOid());
-  EXPECT_EQ("b", logical_get->GetTableAlias());
+  EXPECT_FALSE(logical_get->GetIsForUpdate());
 }
 
 // NOLINTNEXTLINE
@@ -301,7 +303,7 @@ TEST_F(OperatorTransformerTest, UpdateStatementSimpleTest) {
 // NOLINTNEXTLINE
 TEST_F(OperatorTransformerTest, SelectStatementAggregateTest) {
   LOG_INFO("Parsing sql query");
-  std::string select_sql = "SELECT MAX(b1) FROM B";
+  std::string selectSQL = "SELECT MAX(b1) FROM B GROUP BY b2";
 
   std::string ref =
       "{\"Op\":\"LogicalAggregateAndGroupBy\",\"Children\":"
@@ -310,18 +312,32 @@ TEST_F(OperatorTransformerTest, SelectStatementAggregateTest) {
   auto parse_tree = parser_.BuildParseTree(select_sql);
   auto statement = parse_tree.GetStatements()[0];
   binder_->BindNameToNode(statement, &parse_tree);
-  accessor_ = binder_->GetCatalogAccessor();
+  auto accessor_ = binder_->GetCatalogAccessor();
+  auto default_namespace_oid = accessor_->GetDefaultNamespace();
   operator_transformer_ = new optimizer::QueryToOperatorTransformer(std::move(accessor_));
   operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, &parse_tree);
   auto info = GetInfo(operator_tree_);
 
   EXPECT_EQ(ref, info);
+
+  // Test LogicalAggregateAndGroupBy
+  auto logical_aggregate_and_group_by = operator_tree_->GetOp().As<optimizer::LogicalAggregateAndGroupBy>();
+  auto column_expr =
+      logical_aggregate_and_group_by->GetColumns()[0].CastManagedPointerTo<parser::ColumnValueExpression>();
+  EXPECT_EQ("b2", column_expr->GetColumnName());
+
+  // Test LogicalGet
+  auto logical_get = operator_tree_->GetChildren()[0]->GetOp().As<optimizer::LogicalGet>();
+  EXPECT_EQ(db_oid_, logical_get->GetDatabaseOid());
+  EXPECT_EQ(default_namespace_oid, logical_get->GetNamespaceOid());
+  EXPECT_EQ(table_b_oid_, logical_get->GetTableOid());
+  EXPECT_FALSE(logical_get->GetIsForUpdate());
 }
 
 // NOLINTNEXTLINE
 TEST_F(OperatorTransformerTest, SelectStatementDistinctTest) {
   LOG_INFO("Parsing sql query");
-  std::string select_sql = "SELECT DISTINCT B1 FROM B WHERE B1 > 5";
+  std::string selectSQL = "SELECT DISTINCT B1 FROM B WHERE B1 <= 5";
 
   std::string ref =
       "{\"Op\":\"LogicalDistinct\",\"Children\":"
@@ -331,18 +347,31 @@ TEST_F(OperatorTransformerTest, SelectStatementDistinctTest) {
   auto parse_tree = parser_.BuildParseTree(select_sql);
   auto statement = parse_tree.GetStatements()[0];
   binder_->BindNameToNode(statement, &parse_tree);
-  accessor_ = binder_->GetCatalogAccessor();
+  auto accessor_ = binder_->GetCatalogAccessor();
+  auto default_namespace_oid = accessor_->GetDefaultNamespace();
   operator_transformer_ = new optimizer::QueryToOperatorTransformer(std::move(accessor_));
   operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, &parse_tree);
   auto info = GetInfo(operator_tree_);
 
   EXPECT_EQ(ref, info);
+
+  // Test LogicalFilter
+  auto logical_filter = operator_tree_->GetChildren()[0]->GetOp().As<optimizer::LogicalFilter>();
+  EXPECT_EQ(parser::ExpressionType::COMPARE_LESS_THAN_OR_EQUAL_TO,
+            logical_filter->GetPredicates()[0].GetExpr()->GetExpressionType());
+
+  // Test LogicalGet
+  auto logical_get = operator_tree_->GetChildren()[0]->GetChildren()[0]->GetOp().As<optimizer::LogicalGet>();
+  EXPECT_EQ(db_oid_, logical_get->GetDatabaseOid());
+  EXPECT_EQ(default_namespace_oid, logical_get->GetNamespaceOid());
+  EXPECT_EQ(table_b_oid_, logical_get->GetTableOid());
+  EXPECT_FALSE(logical_get->GetIsForUpdate());
 }
 
 // NOLINTNEXTLINE
 TEST_F(OperatorTransformerTest, SelectStatementOrderByTest) {
   LOG_INFO("Parsing sql query");
-  std::string select_sql = "SELECT b1 FROM B ORDER BY b1 LIMIT 2 OFFSET 1";
+  std::string selectSQL = "SELECT b1 FROM B ORDER BY b2 ASC LIMIT 2 OFFSET 1";
 
   std::string ref =
       "{\"Op\":\"LogicalLimit\",\"Children\":"
@@ -351,16 +380,33 @@ TEST_F(OperatorTransformerTest, SelectStatementOrderByTest) {
   auto parse_tree = parser_.BuildParseTree(select_sql);
   auto statement = parse_tree.GetStatements()[0];
   binder_->BindNameToNode(statement, &parse_tree);
-  accessor_ = binder_->GetCatalogAccessor();
+  auto accessor_ = binder_->GetCatalogAccessor();
+  auto default_namespace_oid = accessor_->GetDefaultNamespace();
   operator_transformer_ = new optimizer::QueryToOperatorTransformer(std::move(accessor_));
   operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, &parse_tree);
   auto info = GetInfo(operator_tree_);
 
   EXPECT_EQ(ref, info);
+
+  // Test LogicalLimit
+  auto logical_limit = operator_tree_->GetOp().As<optimizer::LogicalLimit>();
+  EXPECT_EQ(2, logical_limit->GetLimit());
+  EXPECT_EQ(1, logical_limit->GetOffset());
+  EXPECT_EQ(optimizer::OrderByOrderingType::ASC, logical_limit->GetSortDirections()[0]);
+  EXPECT_EQ(
+      "b2",
+      logical_limit->GetSortExpressions()[0].CastManagedPointerTo<parser::ColumnValueExpression>()->GetColumnName());
+
+  // Test LogicalGet
+  auto logical_get = operator_tree_->GetChildren()[0]->GetOp().As<optimizer::LogicalGet>();
+  EXPECT_EQ(db_oid_, logical_get->GetDatabaseOid());
+  EXPECT_EQ(default_namespace_oid, logical_get->GetNamespaceOid());
+  EXPECT_EQ(table_b_oid_, logical_get->GetTableOid());
+  EXPECT_FALSE(logical_get->GetIsForUpdate());
 }
 
 // NOLINTNEXTLINE
-TEST_F(OperatorTransformerTest, SelectStatementStarTest) {
+TEST_F(OperatorTransformerTest, SelectStatementLeftJoinTest) {
   // Check if star expression is correctly processed
   LOG_INFO("Checking STAR expression in select and subselect");
 
@@ -373,18 +419,37 @@ TEST_F(OperatorTransformerTest, SelectStatementStarTest) {
   auto parse_tree = parser_.BuildParseTree(select_sql);
   auto statement = parse_tree.GetStatements()[0];
   binder_->BindNameToNode(statement, &parse_tree);
-  accessor_ = binder_->GetCatalogAccessor();
+  auto accessor_ = binder_->GetCatalogAccessor();
+  auto default_namespace_oid = accessor_->GetDefaultNamespace();
   operator_transformer_ = new optimizer::QueryToOperatorTransformer(std::move(accessor_));
   operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, &parse_tree);
   auto info = GetInfo(operator_tree_);
 
   EXPECT_EQ(ref, info);
+
+  // Test LogicalLeftJoin
+  auto logical_left_join = operator_tree_->GetOp().As<optimizer::LogicalLeftJoin>();
+  EXPECT_EQ(parser::ExpressionType::COMPARE_LESS_THAN,
+            logical_left_join->GetJoinPredicate().Get()->GetExpressionType());
+
+  // Test LogicalGet
+  auto logical_get_left = operator_tree_->GetChildren()[0]->GetOp().As<optimizer::LogicalGet>();
+  EXPECT_EQ(db_oid_, logical_get_left->GetDatabaseOid());
+  EXPECT_EQ(default_namespace_oid, logical_get_left->GetNamespaceOid());
+  EXPECT_EQ(table_a_oid_, logical_get_left->GetTableOid());
+  EXPECT_FALSE(logical_get_left->GetIsForUpdate());
+
+  auto logical_get_right = operator_tree_->GetChildren()[1]->GetOp().As<optimizer::LogicalGet>();
+  EXPECT_EQ(db_oid_, logical_get_right->GetDatabaseOid());
+  EXPECT_EQ(default_namespace_oid, logical_get_right->GetNamespaceOid());
+  EXPECT_EQ(table_b_oid_, logical_get_right->GetTableOid());
+  EXPECT_FALSE(logical_get_right->GetIsForUpdate());
 }
 
 // NOLINTNEXTLINE
 TEST_F(OperatorTransformerTest, SelectStatementRightJoinTest) {
   LOG_INFO("Parsing sql query");
-  std::string select_sql = "SELECT * FROM A RIGHT JOIN B ON A1 = B1";
+  std::string selectSQL = "SELECT * FROM A RIGHT JOIN B ON A.A1 > B.B1";
 
   std::string ref =
       "{\"Op\":\"LogicalRightJoin\",\"Children\":"
@@ -393,12 +458,108 @@ TEST_F(OperatorTransformerTest, SelectStatementRightJoinTest) {
   auto parse_tree = parser_.BuildParseTree(select_sql);
   auto statement = parse_tree.GetStatements()[0];
   binder_->BindNameToNode(statement, &parse_tree);
-  accessor_ = binder_->GetCatalogAccessor();
+  auto accessor_ = binder_->GetCatalogAccessor();
+  auto default_namespace_oid = accessor_->GetDefaultNamespace();
   operator_transformer_ = new optimizer::QueryToOperatorTransformer(std::move(accessor_));
   operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, &parse_tree);
   auto info = GetInfo(operator_tree_);
 
   EXPECT_EQ(ref, info);
+
+  // Test LogicalRightJoin
+  auto logical_right_join = operator_tree_->GetOp().As<optimizer::LogicalRightJoin>();
+  EXPECT_EQ(parser::ExpressionType::COMPARE_GREATER_THAN,
+            logical_right_join->GetJoinPredicate().Get()->GetExpressionType());
+
+  // Test LogicalGet
+  auto logical_get_left = operator_tree_->GetChildren()[0]->GetOp().As<optimizer::LogicalGet>();
+  EXPECT_EQ(db_oid_, logical_get_left->GetDatabaseOid());
+  EXPECT_EQ(default_namespace_oid, logical_get_left->GetNamespaceOid());
+  EXPECT_EQ(table_a_oid_, logical_get_left->GetTableOid());
+  EXPECT_FALSE(logical_get_left->GetIsForUpdate());
+
+  auto logical_get_right = operator_tree_->GetChildren()[1]->GetOp().As<optimizer::LogicalGet>();
+  EXPECT_EQ(db_oid_, logical_get_right->GetDatabaseOid());
+  EXPECT_EQ(default_namespace_oid, logical_get_right->GetNamespaceOid());
+  EXPECT_EQ(table_b_oid_, logical_get_right->GetTableOid());
+  EXPECT_FALSE(logical_get_right->GetIsForUpdate());
+}
+
+// NOLINTNEXTLINE
+TEST_F(OperatorTransformerTest, SelectStatementInnerJoinTest) {
+  LOG_INFO("Parsing sql query");
+  std::string selectSQL = "SELECT * FROM A Inner JOIN B ON A.A1 = B.B1";
+
+  std::string ref =
+      "{\"Op\":\"LogicalFilter\",\"Children\":"
+      "[{\"Op\":\"LogicalInnerJoin\",\"Children\":"
+      "[{\"Op\":\"LogicalGet\",},{\"Op\":\"LogicalGet\",}]}]}";
+
+  auto parse_tree = parser_.BuildParseTree(selectSQL);
+  auto statement = parse_tree.GetStatements()[0];
+  binder_->BindNameToNode(statement, &parse_tree);
+  auto accessor_ = binder_->GetCatalogAccessor();
+  auto default_namespace_oid = accessor_->GetDefaultNamespace();
+  operator_transformer_ = new optimizer::QueryToOperatorTransformer(std::move(accessor_));
+  operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, &parse_tree);
+  auto info = GetInfo(operator_tree_);
+
+  EXPECT_EQ(ref, info);
+
+  // Test LogicalFilter
+  auto logical_filter = operator_tree_->GetOp().As<optimizer::LogicalFilter>();
+  EXPECT_EQ(parser::ExpressionType::COMPARE_EQUAL, logical_filter->GetPredicates()[0].GetExpr()->GetExpressionType());
+
+  // Test LogicalGet
+  auto logical_get_left = operator_tree_->GetChildren()[0]->GetChildren()[0]->GetOp().As<optimizer::LogicalGet>();
+  EXPECT_EQ(db_oid_, logical_get_left->GetDatabaseOid());
+  EXPECT_EQ(default_namespace_oid, logical_get_left->GetNamespaceOid());
+  EXPECT_EQ(table_a_oid_, logical_get_left->GetTableOid());
+  EXPECT_FALSE(logical_get_left->GetIsForUpdate());
+
+  auto logical_get_right = operator_tree_->GetChildren()[0]->GetChildren()[1]->GetOp().As<optimizer::LogicalGet>();
+  EXPECT_EQ(db_oid_, logical_get_right->GetDatabaseOid());
+  EXPECT_EQ(default_namespace_oid, logical_get_right->GetNamespaceOid());
+  EXPECT_EQ(table_b_oid_, logical_get_right->GetTableOid());
+  EXPECT_FALSE(logical_get_right->GetIsForUpdate());
+}
+
+// NOLINTNEXTLINE
+TEST_F(OperatorTransformerTest, SelectStatementOuterJoinTest) {
+  LOG_INFO("Parsing sql query");
+  std::string selectSQL = "SELECT * FROM A FULL OUTER JOIN B ON A.A1 = B.B1";
+
+  std::string ref =
+      "{\"Op\":\"LogicalOuterJoin\",\"Children\":"
+      "[{\"Op\":\"LogicalGet\",},{\"Op\":\"LogicalGet\",}]}";
+
+  auto parse_tree = parser_.BuildParseTree(selectSQL);
+  auto statement = parse_tree.GetStatements()[0];
+  binder_->BindNameToNode(statement, &parse_tree);
+  auto accessor_ = binder_->GetCatalogAccessor();
+  auto default_namespace_oid = accessor_->GetDefaultNamespace();
+  operator_transformer_ = new optimizer::QueryToOperatorTransformer(std::move(accessor_));
+  operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, &parse_tree);
+  auto info = GetInfo(operator_tree_);
+
+  EXPECT_EQ(ref, info);
+
+  // Test LogicalOuterJoin
+  auto logical_outer_join = operator_tree_->GetOp().As<optimizer::LogicalOuterJoin>();
+  EXPECT_EQ(parser::ExpressionType::COMPARE_EQUAL, logical_outer_join->GetJoinPredicate().Get()->GetExpressionType());
+
+  // Test LogicalGet
+  auto logical_get_left = operator_tree_->GetChildren()[0]->GetOp().As<optimizer::LogicalGet>();
+  EXPECT_EQ(db_oid_, logical_get_left->GetDatabaseOid());
+  EXPECT_EQ(default_namespace_oid, logical_get_left->GetNamespaceOid());
+  EXPECT_EQ(table_a_oid_, logical_get_left->GetTableOid());
+  EXPECT_FALSE(logical_get_left->GetIsForUpdate());
+
+  auto logical_get_right = operator_tree_->GetChildren()[1]->GetOp().As<optimizer::LogicalGet>();
+  EXPECT_EQ(db_oid_, logical_get_right->GetDatabaseOid());
+  EXPECT_EQ(default_namespace_oid, logical_get_right->GetNamespaceOid());
+  EXPECT_EQ(table_b_oid_, logical_get_right->GetTableOid());
+  EXPECT_FALSE(logical_get_right->GetIsForUpdate());
 }
 
 // NOLINTNEXTLINE
@@ -542,42 +703,39 @@ TEST_F(OperatorTransformerTest, SelectStatementSelectListAliasTest) {
 
 // NOLINTNEXTLINE
 TEST_F(OperatorTransformerTest, DeleteStatementWhereTest) {
-  std::string delete_sql = "DELETE FROM b WHERE 1 = b1 AND b2 = 'str'";
+  std::string deleteSQL = "DELETE FROM b WHERE b1 = 1 AND b2 > 'str'";
 
   std::string ref =
       "{\"Op\":\"LogicalDelete\",\"Children\":"
       "[{\"Op\":\"LogicalGet\",}]}";
-  auto parse_tree = parser_.BuildParseTree(delete_sql);
+
+  auto parse_tree = parser_.BuildParseTree(deleteSQL);
   auto statement = parse_tree.GetStatements()[0];
   binder_->BindNameToNode(statement, &parse_tree);
-  accessor_ = binder_->GetCatalogAccessor();
+  auto accessor_ = binder_->GetCatalogAccessor();
+  auto default_namespace_oid = accessor_->GetDefaultNamespace();
   operator_transformer_ = new optimizer::QueryToOperatorTransformer(std::move(accessor_));
   operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, &parse_tree);
   auto info = GetInfo(operator_tree_);
 
   EXPECT_EQ(ref, info);
-}
 
-// NOLINTNEXTLINE
-TEST_F(OperatorTransformerTest, AggregateSimpleTest) {
-  // Check if nested select columns are correctly processed
-  LOG_INFO("Checking simple aggregate select.");
+  // Test LogicalDelete
+  auto logical_delete = operator_tree_->GetOp().As<optimizer::LogicalDelete>();
+  EXPECT_EQ(db_oid_, logical_delete->GetDatabaseOid());
+  EXPECT_EQ(default_namespace_oid, logical_delete->GetNamespaceOid());
+  EXPECT_EQ(table_b_oid_, logical_delete->GetTableOid());
 
-  std::string select_sql = "SELECT MAX(b1) FROM B;";
-
-  std::string ref =
-      "{\"Op\":\"LogicalAggregateAndGroupBy\",\"Children\":"
-      "[{\"Op\":\"LogicalGet\",}]}";
-
-  auto parse_tree = parser_.BuildParseTree(select_sql);
-  auto statement = parse_tree.GetStatements()[0];
-  binder_->BindNameToNode(statement, &parse_tree);
-  accessor_ = binder_->GetCatalogAccessor();
-  operator_transformer_ = new optimizer::QueryToOperatorTransformer(std::move(accessor_));
-  operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, &parse_tree);
-  auto info = GetInfo(operator_tree_);
-
-  EXPECT_EQ(ref, info);
+  // Test LogicalGet
+  auto logical_get = operator_tree_->GetChildren()[0]->GetOp().As<optimizer::LogicalGet>();
+  EXPECT_EQ(db_oid_, logical_get->GetDatabaseOid());
+  EXPECT_EQ(default_namespace_oid, logical_get->GetNamespaceOid());
+  EXPECT_EQ(table_b_oid_, logical_get->GetTableOid());
+  EXPECT_TRUE(logical_get->GetIsForUpdate());
+  EXPECT_EQ(parser::ExpressionType::COMPARE_GREATER_THAN,
+            logical_get->GetPredicates()[0].GetExpr()->GetExpressionType());
+  EXPECT_EQ(parser::ExpressionType::COMPARE_GREATER_THAN,
+            logical_get->GetPredicates()[1].GetExpr()->GetExpressionType());
 }
 
 // NOLINTNEXTLINE
@@ -619,12 +777,30 @@ TEST_F(OperatorTransformerTest, OperatorComplexTest) {
   auto parse_tree = parser_.BuildParseTree(select_sql);
   auto statement = parse_tree.GetStatements()[0];
   binder_->BindNameToNode(statement, &parse_tree);
-  accessor_ = binder_->GetCatalogAccessor();
+  auto accessor_ = binder_->GetCatalogAccessor();
+  auto default_namespace_oid = accessor_->GetDefaultNamespace();
   operator_transformer_ = new optimizer::QueryToOperatorTransformer(std::move(accessor_));
   operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, &parse_tree);
   auto info = GetInfo(operator_tree_);
 
   EXPECT_EQ(ref, info);
+
+  // Test LogicalFilter
+  auto logical_filter = operator_tree_->GetOp().As<optimizer::LogicalFilter>();
+  EXPECT_EQ(parser::ExpressionType::COMPARE_EQUAL, logical_filter->GetPredicates()[0].GetExpr()->GetExpressionType());
+
+  // Test LogicalGet
+  auto logical_get_left = operator_tree_->GetChildren()[0]->GetChildren()[0]->GetOp().As<optimizer::LogicalGet>();
+  EXPECT_EQ(db_oid_, logical_get_left->GetDatabaseOid());
+  EXPECT_EQ(default_namespace_oid, logical_get_left->GetNamespaceOid());
+  EXPECT_EQ(table_a_oid_, logical_get_left->GetTableOid());
+  EXPECT_FALSE(logical_get_left->GetIsForUpdate());
+
+  auto logical_get_right = operator_tree_->GetChildren()[0]->GetChildren()[1]->GetOp().As<optimizer::LogicalGet>();
+  EXPECT_EQ(db_oid_, logical_get_right->GetDatabaseOid());
+  EXPECT_EQ(default_namespace_oid, logical_get_right->GetNamespaceOid());
+  EXPECT_EQ(table_b_oid_, logical_get_right->GetTableOid());
+  EXPECT_FALSE(logical_get_right->GetIsForUpdate());
 }
 
 // NOLINTNEXTLINE
