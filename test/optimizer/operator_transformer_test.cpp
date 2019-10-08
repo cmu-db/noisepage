@@ -148,7 +148,7 @@ class OperatorTransformerTest : public TerrierTest {
         {
           bool is_first = true;
           for (const auto &child : children) {
-            if (is_first == true) {
+            if (is_first) {
               is_first = false;
             } else {
               info += ",";
@@ -168,14 +168,14 @@ class OperatorTransformerTest : public TerrierTest {
 TEST_F(OperatorTransformerTest, SelectStatementSimpleTest) {
   // Test regular table name
   LOG_INFO("Parsing sql query");
-  std::string selectSQL = "SELECT A.A1 FROM A";
+  std::string select_sql = "SELECT A.A1 FROM A";
 
-  std::string ref = "{\"Op\":\"LogicalGet\",}";
+  std::string ref = R"({"Op":"LogicalGet",})";
 
-  auto parse_tree = parser_.BuildParseTree(selectSQL);
+  auto parse_tree = parser_.BuildParseTree(select_sql);
   auto statement = parse_tree.GetStatements()[0];
   binder_->BindNameToNode(statement, &parse_tree);
-  auto accessor_ = binder_->GetCatalogAccessor();
+  accessor_ = binder_->GetCatalogAccessor();
   operator_transformer_ = new optimizer::QueryToOperatorTransformer(std::move(accessor_));
   operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, &parse_tree);
   auto info = GetInfo(operator_tree_);
@@ -187,14 +187,14 @@ TEST_F(OperatorTransformerTest, SelectStatementSimpleTest) {
 TEST_F(OperatorTransformerTest, InsertStatementSimpleTest) {
   // Test regular table name
   LOG_INFO("Parsing sql query");
-  std::string insertSQL = "INSERT INTO A (A1, A2) VALUES (5, \'MY DATA\')";
+  std::string insert_sql = "INSERT INTO A (A1, A2) VALUES (5, \'MY DATA\')";
 
-  std::string ref = "{\"Op\":\"LogicalInsert\",}";
+  std::string ref = R"({"Op":"LogicalInsert",})";
 
-  auto parse_tree = parser_.BuildParseTree(insertSQL);
+  auto parse_tree = parser_.BuildParseTree(insert_sql);
   auto statement = parse_tree.GetStatements()[0];
   binder_->BindNameToNode(statement, &parse_tree);
-  auto accessor_ = binder_->GetCatalogAccessor();
+  accessor_ = binder_->GetCatalogAccessor();
   operator_transformer_ = new optimizer::QueryToOperatorTransformer(std::move(accessor_));
   operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, &parse_tree);
   auto info = GetInfo(operator_tree_);
@@ -206,17 +206,17 @@ TEST_F(OperatorTransformerTest, InsertStatementSimpleTest) {
 TEST_F(OperatorTransformerTest, InsertStatementSelectTest) {
   // Test regular table name
   LOG_INFO("Parsing sql query");
-  std::string insertSQL = "INSERT INTO A (A1) SELECT B1 FROM B WHERE B1 > 0";
+  std::string insert_sql = "INSERT INTO A (A1) SELECT B1 FROM B WHERE B1 > 0";
 
   std::string ref =
       "{\"Op\":\"LogicalInsertSelect\",\"Children\":"
       "[{\"Op\":\"LogicalFilter\",\"Children\":"
       "[{\"Op\":\"LogicalGet\",}]}]}";
 
-  auto parse_tree = parser_.BuildParseTree(insertSQL);
+  auto parse_tree = parser_.BuildParseTree(insert_sql);
   auto statement = parse_tree.GetStatements()[0];
   binder_->BindNameToNode(statement, &parse_tree);
-  auto accessor_ = binder_->GetCatalogAccessor();
+  accessor_ = binder_->GetCatalogAccessor();
   operator_transformer_ = new optimizer::QueryToOperatorTransformer(std::move(accessor_));
   operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, &parse_tree);
   auto info = GetInfo(operator_tree_);
@@ -228,16 +228,16 @@ TEST_F(OperatorTransformerTest, InsertStatementSelectTest) {
 TEST_F(OperatorTransformerTest, UpdateStatementSimpleTest) {
   // Test regular table name
   LOG_INFO("Parsing sql query");
-  std::string updateSQL = "UPDATE A SET A1 = 999 WHERE A1 >= 1";
+  std::string update_sql = "UPDATE A SET A1 = 999 WHERE A1 >= 1";
 
   std::string ref =
       "{\"Op\":\"LogicalUpdate\",\"Children\":"
       "[{\"Op\":\"LogicalGet\",}]}";
 
-  auto parse_tree = parser_.BuildParseTree(updateSQL);
+  auto parse_tree = parser_.BuildParseTree(update_sql);
   auto statement = parse_tree.GetStatements()[0];
   binder_->BindNameToNode(statement, &parse_tree);
-  auto accessor_ = binder_->GetCatalogAccessor();
+  accessor_ = binder_->GetCatalogAccessor();
   operator_transformer_ = new optimizer::QueryToOperatorTransformer(std::move(accessor_));
   operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, &parse_tree);
   auto info = GetInfo(operator_tree_);
@@ -249,16 +249,16 @@ TEST_F(OperatorTransformerTest, UpdateStatementSimpleTest) {
 TEST_F(OperatorTransformerTest, SelectStatementAggregateTest) {
   // Test regular table name
   LOG_INFO("Parsing sql query");
-  std::string selectSQL = "SELECT MAX(b1) FROM B";
+  std::string select_sql = "SELECT MAX(b1) FROM B";
 
   std::string ref =
       "{\"Op\":\"LogicalAggregateAndGroupBy\",\"Children\":"
       "[{\"Op\":\"LogicalGet\",}]}";
 
-  auto parse_tree = parser_.BuildParseTree(selectSQL);
+  auto parse_tree = parser_.BuildParseTree(select_sql);
   auto statement = parse_tree.GetStatements()[0];
   binder_->BindNameToNode(statement, &parse_tree);
-  auto accessor_ = binder_->GetCatalogAccessor();
+  accessor_ = binder_->GetCatalogAccessor();
   operator_transformer_ = new optimizer::QueryToOperatorTransformer(std::move(accessor_));
   operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, &parse_tree);
   auto info = GetInfo(operator_tree_);
@@ -270,17 +270,17 @@ TEST_F(OperatorTransformerTest, SelectStatementAggregateTest) {
 TEST_F(OperatorTransformerTest, SelectStatementDistinctTest) {
   // Test regular table name
   LOG_INFO("Parsing sql query");
-  std::string selectSQL = "SELECT DISTINCT B1 FROM B WHERE B1 > 5";
+  std::string select_sql = "SELECT DISTINCT B1 FROM B WHERE B1 > 5";
 
   std::string ref =
       "{\"Op\":\"LogicalDistinct\",\"Children\":"
       "[{\"Op\":\"LogicalFilter\",\"Children\":"
       "[{\"Op\":\"LogicalGet\",}]}]}";
 
-  auto parse_tree = parser_.BuildParseTree(selectSQL);
+  auto parse_tree = parser_.BuildParseTree(select_sql);
   auto statement = parse_tree.GetStatements()[0];
   binder_->BindNameToNode(statement, &parse_tree);
-  auto accessor_ = binder_->GetCatalogAccessor();
+  accessor_ = binder_->GetCatalogAccessor();
   operator_transformer_ = new optimizer::QueryToOperatorTransformer(std::move(accessor_));
   operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, &parse_tree);
   auto info = GetInfo(operator_tree_);
@@ -292,16 +292,16 @@ TEST_F(OperatorTransformerTest, SelectStatementDistinctTest) {
 TEST_F(OperatorTransformerTest, SelectStatementOrderByTest) {
   // Test regular table name
   LOG_INFO("Parsing sql query");
-  std::string selectSQL = "SELECT b1 FROM B ORDER BY b1 LIMIT 2 OFFSET 1";
+  std::string select_sql = "SELECT b1 FROM B ORDER BY b1 LIMIT 2 OFFSET 1";
 
   std::string ref =
       "{\"Op\":\"LogicalLimit\",\"Children\":"
       "[{\"Op\":\"LogicalGet\",}]}";
 
-  auto parse_tree = parser_.BuildParseTree(selectSQL);
+  auto parse_tree = parser_.BuildParseTree(select_sql);
   auto statement = parse_tree.GetStatements()[0];
   binder_->BindNameToNode(statement, &parse_tree);
-  auto accessor_ = binder_->GetCatalogAccessor();
+  accessor_ = binder_->GetCatalogAccessor();
   operator_transformer_ = new optimizer::QueryToOperatorTransformer(std::move(accessor_));
   operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, &parse_tree);
   auto info = GetInfo(operator_tree_);
@@ -313,7 +313,7 @@ TEST_F(OperatorTransformerTest, SelectStatementOrderByTest) {
 TEST_F(OperatorTransformerTest, SelectStatementComplexTest) {
   // Test regular table name
   LOG_INFO("Parsing sql query");
-  std::string selectSQL =
+  std::string select_sql =
       "SELECT A.A1, B.B2 FROM A INNER JOIN b ON a.a1 = b.b1 WHERE a1 < 100 "
       "GROUP BY A.a1, B.b2 HAVING a1 > 50 ORDER BY a1";
 
@@ -324,10 +324,10 @@ TEST_F(OperatorTransformerTest, SelectStatementComplexTest) {
       "[{\"Op\":\"LogicalInnerJoin\",\"Children\":"
       "[{\"Op\":\"LogicalGet\",},{\"Op\":\"LogicalGet\",}]}]}]}]}";
 
-  auto parse_tree = parser_.BuildParseTree(selectSQL);
+  auto parse_tree = parser_.BuildParseTree(select_sql);
   auto statement = parse_tree.GetStatements()[0];
   binder_->BindNameToNode(statement, &parse_tree);
-  auto accessor_ = binder_->GetCatalogAccessor();
+  accessor_ = binder_->GetCatalogAccessor();
   operator_transformer_ = new optimizer::QueryToOperatorTransformer(std::move(accessor_));
   operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, &parse_tree);
   auto info = GetInfo(operator_tree_);
@@ -340,16 +340,16 @@ TEST_F(OperatorTransformerTest, SelectStatementStarTest) {
   // Check if star expression is correctly processed
   LOG_INFO("Checking STAR expression in select and subselect");
 
-  std::string selectSQL = "SELECT * FROM A LEFT OUTER JOIN B ON A.A1 < B.B1";
+  std::string select_sql = "SELECT * FROM A LEFT OUTER JOIN B ON A.A1 < B.B1";
 
   std::string ref =
       "{\"Op\":\"LogicalLeftJoin\",\"Children\":"
       "[{\"Op\":\"LogicalGet\",},{\"Op\":\"LogicalGet\",}]}";
 
-  auto parse_tree = parser_.BuildParseTree(selectSQL);
+  auto parse_tree = parser_.BuildParseTree(select_sql);
   auto statement = parse_tree.GetStatements()[0];
   binder_->BindNameToNode(statement, &parse_tree);
-  auto accessor_ = binder_->GetCatalogAccessor();
+  accessor_ = binder_->GetCatalogAccessor();
   operator_transformer_ = new optimizer::QueryToOperatorTransformer(std::move(accessor_));
   operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, &parse_tree);
   auto info = GetInfo(operator_tree_);
@@ -361,16 +361,16 @@ TEST_F(OperatorTransformerTest, SelectStatementStarTest) {
 TEST_F(OperatorTransformerTest, SelectStatementRightJoinTest) {
   // Test regular table name
   LOG_INFO("Parsing sql query");
-  std::string selectSQL = "SELECT * FROM A RIGHT JOIN B ON A1 = B1";
+  std::string select_sql = "SELECT * FROM A RIGHT JOIN B ON A1 = B1";
 
   std::string ref =
       "{\"Op\":\"LogicalRightJoin\",\"Children\":"
       "[{\"Op\":\"LogicalGet\",},{\"Op\":\"LogicalGet\",}]}";
 
-  auto parse_tree = parser_.BuildParseTree(selectSQL);
+  auto parse_tree = parser_.BuildParseTree(select_sql);
   auto statement = parse_tree.GetStatements()[0];
   binder_->BindNameToNode(statement, &parse_tree);
-  auto accessor_ = binder_->GetCatalogAccessor();
+  accessor_ = binder_->GetCatalogAccessor();
   operator_transformer_ = new optimizer::QueryToOperatorTransformer(std::move(accessor_));
   operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, &parse_tree);
   auto info = GetInfo(operator_tree_);
@@ -382,7 +382,7 @@ TEST_F(OperatorTransformerTest, SelectStatementRightJoinTest) {
 TEST_F(OperatorTransformerTest, SelectStatementMarkJoinTest) {
   // Test regular table name
   LOG_INFO("Parsing sql query");
-  std::string selectSQL = "SELECT * FROM A WHERE A1 = 0 AND A1 IN (SELECT B1 FROM B WHERE B1 IN (SELECT A1 FROM A))";
+  std::string select_sql = "SELECT * FROM A WHERE A1 = 0 AND A1 IN (SELECT B1 FROM B WHERE B1 IN (SELECT A1 FROM A))";
 
   std::string ref =
       "{\"Op\":\"LogicalFilter\",\"Children\":"
@@ -391,10 +391,10 @@ TEST_F(OperatorTransformerTest, SelectStatementMarkJoinTest) {
       "[{\"Op\":\"LogicalMarkJoin\",\"Children\":"
       "[{\"Op\":\"LogicalGet\",},{\"Op\":\"LogicalGet\",}]}]}]}]}";
 
-  auto parse_tree = parser_.BuildParseTree(selectSQL);
+  auto parse_tree = parser_.BuildParseTree(select_sql);
   auto statement = parse_tree.GetStatements()[0];
   binder_->BindNameToNode(statement, &parse_tree);
-  auto accessor_ = binder_->GetCatalogAccessor();
+  accessor_ = binder_->GetCatalogAccessor();
   operator_transformer_ = new optimizer::QueryToOperatorTransformer(std::move(accessor_));
   operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, &parse_tree);
   auto info = GetInfo(operator_tree_);
@@ -407,7 +407,7 @@ TEST_F(OperatorTransformerTest, SelectStatementStarNestedSelectTest) {
   // Check if star expression is correctly processed
   LOG_INFO("Checking STAR expression in nested select from.");
 
-  std::string selectSQL =
+  std::string select_sql =
       "SELECT * FROM A LEFT OUTER JOIN (SELECT * FROM B INNER JOIN A ON B1 = A1) AS C ON C.B2 = a.A1";
 
   std::string ref =
@@ -417,10 +417,10 @@ TEST_F(OperatorTransformerTest, SelectStatementStarNestedSelectTest) {
       "[{\"Op\":\"LogicalInnerJoin\",\"Children\":"
       "[{\"Op\":\"LogicalGet\",},{\"Op\":\"LogicalGet\",}]}]}]}]}";
 
-  auto parse_tree = parser_.BuildParseTree(selectSQL);
+  auto parse_tree = parser_.BuildParseTree(select_sql);
   auto statement = parse_tree.GetStatements()[0];
   binder_->BindNameToNode(statement, &parse_tree);
-  auto accessor_ = binder_->GetCatalogAccessor();
+  accessor_ = binder_->GetCatalogAccessor();
   operator_transformer_ = new optimizer::QueryToOperatorTransformer(std::move(accessor_));
   operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, &parse_tree);
   auto info = GetInfo(operator_tree_);
@@ -433,14 +433,14 @@ TEST_F(OperatorTransformerTest, SelectStatementNestedColumnTest) {
   // Check if nested select columns are correctly processed
   LOG_INFO("Checking nested select columns.");
 
-  std::string selectSQL = "SELECT A1, (SELECT B2 FROM B where B2 IS NULL LIMIT 1) FROM A";
+  std::string select_sql = "SELECT A1, (SELECT B2 FROM B where B2 IS NULL LIMIT 1) FROM A";
 
-  std::string ref = "{\"Op\":\"LogicalGet\",}";
+  std::string ref = R"({"Op":"LogicalGet",})";
 
-  auto parse_tree = parser_.BuildParseTree(selectSQL);
+  auto parse_tree = parser_.BuildParseTree(select_sql);
   auto statement = parse_tree.GetStatements()[0];
   binder_->BindNameToNode(statement, &parse_tree);
-  auto accessor_ = binder_->GetCatalogAccessor();
+  accessor_ = binder_->GetCatalogAccessor();
   operator_transformer_ = new optimizer::QueryToOperatorTransformer(std::move(accessor_));
   operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, &parse_tree);
   auto info = GetInfo(operator_tree_);
@@ -451,7 +451,7 @@ TEST_F(OperatorTransformerTest, SelectStatementNestedColumnTest) {
 // NOLINTNEXTLINE
 TEST_F(OperatorTransformerTest, SelectStatementDiffTableSameSchemaTest) {
   // Test select from different table instances from the same physical schema
-  std::string selectSQL = "SELECT * FROM A, A as AA where A.a1 = AA.a2";
+  std::string select_sql = "SELECT * FROM A, A as AA where A.a1 = AA.a2";
 
   std::string ref =
       "{\"Op\":\"LogicalFilter\",\"Children\":"
@@ -459,10 +459,10 @@ TEST_F(OperatorTransformerTest, SelectStatementDiffTableSameSchemaTest) {
       "[{\"Op\":\"LogicalInnerJoin\",\"Children\":"
       "[{\"Op\":\"LogicalGet\",},{\"Op\":\"LogicalGet\",}]},{\"Op\":\"LogicalGet\",}]}]}";
 
-  auto parse_tree = parser_.BuildParseTree(selectSQL);
+  auto parse_tree = parser_.BuildParseTree(select_sql);
   auto statement = parse_tree.GetStatements()[0];
   binder_->BindNameToNode(statement, &parse_tree);
-  auto accessor_ = binder_->GetCatalogAccessor();
+  accessor_ = binder_->GetCatalogAccessor();
   operator_transformer_ = new optimizer::QueryToOperatorTransformer(std::move(accessor_));
   operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, &parse_tree);
   auto info = GetInfo(operator_tree_);
@@ -475,7 +475,7 @@ TEST_F(OperatorTransformerTest, SelectStatementSelectListAliasTest) {
   // Test alias and select_list
   LOG_INFO("Checking select_list and table alias binding");
 
-  std::string selectSQL = "SELECT AA.a1, b2 FROM A as AA, B WHERE AA.a1 = B.b1";
+  std::string select_sql = "SELECT AA.a1, b2 FROM A as AA, B WHERE AA.a1 = B.b1";
 
   std::string ref =
       "{\"Op\":\"LogicalFilter\",\"Children\":"
@@ -483,10 +483,10 @@ TEST_F(OperatorTransformerTest, SelectStatementSelectListAliasTest) {
       "[{\"Op\":\"LogicalInnerJoin\",\"Children\":"
       "[{\"Op\":\"LogicalGet\",},{\"Op\":\"LogicalGet\",}]},{\"Op\":\"LogicalGet\",}]}]}";
 
-  auto parse_tree = parser_.BuildParseTree(selectSQL);
+  auto parse_tree = parser_.BuildParseTree(select_sql);
   auto statement = parse_tree.GetStatements()[0];
   binder_->BindNameToNode(statement, &parse_tree);
-  auto accessor_ = binder_->GetCatalogAccessor();
+  accessor_ = binder_->GetCatalogAccessor();
   operator_transformer_ = new optimizer::QueryToOperatorTransformer(std::move(accessor_));
   operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, &parse_tree);
   auto info = GetInfo(operator_tree_);
@@ -500,15 +500,15 @@ TEST_F(OperatorTransformerTest, SelectStatementSelectListAliasTest) {
 
 // NOLINTNEXTLINE
 TEST_F(OperatorTransformerTest, DeleteStatementWhereTest) {
-  std::string deleteSQL = "DELETE FROM b WHERE 1 = b1 AND b2 = 'str'";
+  std::string delete_sql = "DELETE FROM b WHERE 1 = b1 AND b2 = 'str'";
 
   std::string ref =
       "{\"Op\":\"LogicalDelete\",\"Children\":"
       "[{\"Op\":\"LogicalGet\",}]}";
-  auto parse_tree = parser_.BuildParseTree(deleteSQL);
+  auto parse_tree = parser_.BuildParseTree(delete_sql);
   auto statement = parse_tree.GetStatements()[0];
   binder_->BindNameToNode(statement, &parse_tree);
-  auto accessor_ = binder_->GetCatalogAccessor();
+  accessor_ = binder_->GetCatalogAccessor();
   operator_transformer_ = new optimizer::QueryToOperatorTransformer(std::move(accessor_));
   operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, &parse_tree);
   auto info = GetInfo(operator_tree_);
@@ -521,16 +521,16 @@ TEST_F(OperatorTransformerTest, AggregateSimpleTest) {
   // Check if nested select columns are correctly processed
   LOG_INFO("Checking simple aggregate select.");
 
-  std::string selectSQL = "SELECT MAX(b1) FROM B;";
+  std::string select_sql = "SELECT MAX(b1) FROM B;";
 
   std::string ref =
       "{\"Op\":\"LogicalAggregateAndGroupBy\",\"Children\":"
       "[{\"Op\":\"LogicalGet\",}]}";
 
-  auto parse_tree = parser_.BuildParseTree(selectSQL);
+  auto parse_tree = parser_.BuildParseTree(select_sql);
   auto statement = parse_tree.GetStatements()[0];
   binder_->BindNameToNode(statement, &parse_tree);
-  auto accessor_ = binder_->GetCatalogAccessor();
+  accessor_ = binder_->GetCatalogAccessor();
   operator_transformer_ = new optimizer::QueryToOperatorTransformer(std::move(accessor_));
   operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, &parse_tree);
   auto info = GetInfo(operator_tree_);
@@ -543,7 +543,7 @@ TEST_F(OperatorTransformerTest, AggregateComplexTest) {
   // Check if nested select columns are correctly processed
   LOG_INFO("Checking aggregate in subselect.");
 
-  std::string selectSQL = "SELECT A.a1 FROM A WHERE A.a1 IN (SELECT MAX(b1) FROM B);";
+  std::string select_sql = "SELECT A.a1 FROM A WHERE A.a1 IN (SELECT MAX(b1) FROM B);";
 
   std::string ref =
       "{\"Op\":\"LogicalFilter\",\"Children\":"
@@ -551,10 +551,10 @@ TEST_F(OperatorTransformerTest, AggregateComplexTest) {
       "[{\"Op\":\"LogicalGet\",},{\"Op\":\"LogicalAggregateAndGroupBy\",\"Children\":"
       "[{\"Op\":\"LogicalGet\",}]}]}]}";
 
-  auto parse_tree = parser_.BuildParseTree(selectSQL);
+  auto parse_tree = parser_.BuildParseTree(select_sql);
   auto statement = parse_tree.GetStatements()[0];
   binder_->BindNameToNode(statement, &parse_tree);
-  auto accessor_ = binder_->GetCatalogAccessor();
+  accessor_ = binder_->GetCatalogAccessor();
   operator_transformer_ = new optimizer::QueryToOperatorTransformer(std::move(accessor_));
   operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, &parse_tree);
   auto info = GetInfo(operator_tree_);
@@ -567,17 +567,17 @@ TEST_F(OperatorTransformerTest, OperatorComplexTest) {
   // Check if nested select columns are correctly processed
   LOG_INFO("Checking if operator expressions are correctly parsed.");
 
-  std::string selectSQL = "SELECT A.a1 FROM A WHERE 2 * A.a1 IN (SELECT b1+1 FROM B);";
+  std::string select_sql = "SELECT A.a1 FROM A WHERE 2 * A.a1 IN (SELECT b1+1 FROM B);";
 
   std::string ref =
       "{\"Op\":\"LogicalFilter\",\"Children\":"
       "[{\"Op\":\"LogicalMarkJoin\",\"Children\":"
       "[{\"Op\":\"LogicalGet\",},{\"Op\":\"LogicalGet\",}]}]}";
 
-  auto parse_tree = parser_.BuildParseTree(selectSQL);
+  auto parse_tree = parser_.BuildParseTree(select_sql);
   auto statement = parse_tree.GetStatements()[0];
   binder_->BindNameToNode(statement, &parse_tree);
-  auto accessor_ = binder_->GetCatalogAccessor();
+  accessor_ = binder_->GetCatalogAccessor();
   operator_transformer_ = new optimizer::QueryToOperatorTransformer(std::move(accessor_));
   operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, &parse_tree);
   auto info = GetInfo(operator_tree_);
@@ -590,7 +590,7 @@ TEST_F(OperatorTransformerTest, SubqueryComplexTest) {
   // Test regular table name
   LOG_INFO("Parsing sql query");
 
-  std::string selectSQL =
+  std::string select_sql =
       "SELECT A.a1 FROM A WHERE A.a1 IN (SELECT b1 FROM B WHERE b1 = 2 AND "
       "b2 > (SELECT a1 FROM A WHERE a2 > 0)) AND EXISTS (SELECT b1 FROM B WHERE B.b1 = A.a1)";
 
@@ -604,10 +604,10 @@ TEST_F(OperatorTransformerTest, SubqueryComplexTest) {
       "[{\"Op\":\"LogicalGet\",}]}]}]}]},{\"Op\":\"LogicalFilter\",\"Children\":"
       "[{\"Op\":\"LogicalGet\",}]}]}]}";
 
-  auto parse_tree = parser_.BuildParseTree(selectSQL);
+  auto parse_tree = parser_.BuildParseTree(select_sql);
   auto statement = parse_tree.GetStatements()[0];
   binder_->BindNameToNode(statement, &parse_tree);
-  auto accessor_ = binder_->GetCatalogAccessor();
+  accessor_ = binder_->GetCatalogAccessor();
   operator_transformer_ = new optimizer::QueryToOperatorTransformer(std::move(accessor_));
   operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, &parse_tree);
   auto info = GetInfo(operator_tree_);

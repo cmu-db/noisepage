@@ -70,9 +70,9 @@ void BindNodeVisitor::Visit(parser::SelectStatement *node, parser::ParseResult *
   node->SetSelectColumns(new_select_list);
   node->SetDepth(context_->GetDepth());
 
-  auto curr_context_ = context_;
+  auto curr_context = context_;
   context_ = context_->GetUpperContext();
-  delete curr_context_;
+  delete curr_context;
 }
 
 // Some sub query nodes inside SelectStatement
