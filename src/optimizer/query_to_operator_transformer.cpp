@@ -209,12 +209,14 @@ void QueryToOperatorTransformer::Visit(parser::TableRef *node, parser::ParseResu
   }
 }
 
-void QueryToOperatorTransformer::Visit(parser::GroupByDescription *, parser::ParseResult *) {}
-void QueryToOperatorTransformer::Visit(parser::OrderByDescription *, parser::ParseResult *) {}
-void QueryToOperatorTransformer::Visit(parser::LimitDescription *, parser::ParseResult *) {}
-void QueryToOperatorTransformer::Visit(parser::CreateFunctionStatement *, parser::ParseResult *) {}
+void QueryToOperatorTransformer::Visit(parser::GroupByDescription *node, parser::ParseResult *parse_result) {}
+void QueryToOperatorTransformer::Visit(parser::OrderByDescription *node, parser::ParseResult *parse_result) {}
+void QueryToOperatorTransformer::Visit(parser::LimitDescription *node, parser::ParseResult *parse_result) {}
+void QueryToOperatorTransformer::Visit(UNUSED_ATTRIBUTE parser::CreateFunctionStatement *op,
+                                       parser::ParseResult *parse_result) {}
 
-void QueryToOperatorTransformer::Visit(parser::CreateStatement *, parser::ParseResult *) {}
+void QueryToOperatorTransformer::Visit(UNUSED_ATTRIBUTE parser::CreateStatement *op,
+                                       UNUSED_ATTRIBUTE parser::ParseResult *parse_result) {}
 void QueryToOperatorTransformer::Visit(parser::InsertStatement *op, parser::ParseResult *parse_result) {
   auto target_table = op->GetInsertionTable();
   auto target_table_id = accessor_->GetTableOid(target_table->GetTableName());
@@ -241,7 +243,8 @@ void QueryToOperatorTransformer::Visit(parser::InsertStatement *op, parser::Pars
     for (const auto &values : *(op->GetValues())) {
       if (values.size() > column_objects.size()) {
         throw CATALOG_EXCEPTION("ERROR:  INSERT has more expressions than target columns");
-      } else if (values.size() < column_objects.size()) {
+      }
+      if (values.size() < column_objects.size()) {
         for (auto i = values.size(); i != column_objects.size(); ++i) {
           // check whether null values or default values can be used in the rest of the columns
           if (!column_objects[i].Nullable() && column_objects[i].StoredExpression() == nullptr) {
@@ -260,7 +263,8 @@ void QueryToOperatorTransformer::Visit(parser::InsertStatement *op, parser::Pars
     for (const auto &tuple : *(op->GetValues())) {  // check size of each tuple
       if (tuple.size() > num_columns) {
         throw CATALOG_EXCEPTION("ERROR:  INSERT has more expressions than target columns");
-      } else if (tuple.size() < num_columns) {
+      }
+      if (tuple.size() < num_columns) {
         throw CATALOG_EXCEPTION("ERROR:  INSERT has more target columns than expressions");
       }
     }
@@ -324,11 +328,11 @@ void QueryToOperatorTransformer::Visit(parser::DeleteStatement *op, parser::Pars
 
 void QueryToOperatorTransformer::Visit(UNUSED_ATTRIBUTE parser::DropStatement *op, parser::ParseResult *parse_result) {}
 void QueryToOperatorTransformer::Visit(UNUSED_ATTRIBUTE parser::PrepareStatement *op,
-                                       parser::ParseResult *parse_result) {}
+                                       UNUSED_ATTRIBUTE parser::ParseResult *parse_result) {}
 void QueryToOperatorTransformer::Visit(UNUSED_ATTRIBUTE parser::ExecuteStatement *op,
-                                       parser::ParseResult *parse_result) {}
+                                       UNUSED_ATTRIBUTE parser::ParseResult *parse_result) {}
 void QueryToOperatorTransformer::Visit(UNUSED_ATTRIBUTE parser::TransactionStatement *op,
-                                       parser::ParseResult *parse_result) {}
+                                       UNUSED_ATTRIBUTE parser::ParseResult *parse_result) {}
 
 void QueryToOperatorTransformer::Visit(parser::UpdateStatement *op, parser::ParseResult *parse_result) {
   auto target_table = op->GetUpdateTable();
@@ -599,7 +603,7 @@ void QueryToOperatorTransformer::ExtractPredicates(common::ManagedPointer<parser
 
   for (auto predicate : predicates) {
     std::unordered_set<std::string> table_alias_set;
-    QueryToOperatorTransformer::GenerateTableAliasSet(predicate, table_alias_set);
+    QueryToOperatorTransformer::GenerateTableAliasSet(predicate, &table_alias_set);
 
     // Deep copy expression to avoid memory leak
     annotated_predicates->emplace_back(AnnotatedExpression(
@@ -608,9 +612,9 @@ void QueryToOperatorTransformer::ExtractPredicates(common::ManagedPointer<parser
 }
 
 void QueryToOperatorTransformer::GenerateTableAliasSet(const common::ManagedPointer<parser::AbstractExpression> expr,
-                                                       std::unordered_set<std::string> &table_alias_set) {
+                                                       std::unordered_set<std::string> *table_alias_set) {
   if (expr->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE) {
-    table_alias_set.insert(expr.CastManagedPointerTo<const parser::ColumnValueExpression>()->GetTableName());
+    table_alias_set->insert(expr.CastManagedPointerTo<const parser::ColumnValueExpression>()->GetTableName());
   } else {
     for (const auto &child : expr->GetChildren())
       QueryToOperatorTransformer::GenerateTableAliasSet(child, table_alias_set);
