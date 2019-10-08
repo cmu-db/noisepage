@@ -29,7 +29,6 @@ class DeleterTest : public SqlBasedTest {
 
 // NOLINTNEXTLINE
 TEST_F(DeleterTest, SimpleDeleterTest) {
-  //
   auto table_oid = exec_ctx_->GetAccessor()->GetTableOid(NSOid(), "test_1");
   Inserter inserter(exec_ctx_.get(), table_oid);
   Deleter deleter(exec_ctx_.get(), table_oid);
@@ -83,7 +82,6 @@ TEST_F(DeleterTest, SimpleDeleterTest) {
 
 // NOLINTNEXTLINE
 TEST_F(DeleterTest, MultiIndexTest) {
-  //
   auto table_oid = exec_ctx_->GetAccessor()->GetTableOid(NSOid(), "test_2");
   Inserter inserter(exec_ctx_.get(), table_oid);
   Deleter deleter(exec_ctx_.get(), table_oid);
