@@ -409,7 +409,7 @@ class SelectStatement : public SQLStatement {
   /**
    * @return depth of the select statement
    */
-  const int GetDepth() { return depth_; }
+  int GetDepth() { return depth_; }
 
   /**
    * Adds a select statement child as a union target.

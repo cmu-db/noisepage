@@ -209,12 +209,14 @@ void QueryToOperatorTransformer::Visit(parser::TableRef *node, parser::ParseResu
   }
 }
 
-void QueryToOperatorTransformer::Visit(parser::GroupByDescription *, parser::ParseResult *) {}
-void QueryToOperatorTransformer::Visit(parser::OrderByDescription *, parser::ParseResult *) {}
-void QueryToOperatorTransformer::Visit(parser::LimitDescription *, parser::ParseResult *) {}
-void QueryToOperatorTransformer::Visit(parser::CreateFunctionStatement *, parser::ParseResult *) {}
+void QueryToOperatorTransformer::Visit(parser::GroupByDescription *node, parser::ParseResult *parse_result) {}
+void QueryToOperatorTransformer::Visit(parser::OrderByDescription *node, parser::ParseResult *parse_result) {}
+void QueryToOperatorTransformer::Visit(parser::LimitDescription *node, parser::ParseResult *parse_result) {}
+void QueryToOperatorTransformer::Visit(UNUSED_ATTRIBUTE parser::CreateFunctionStatement *op,
+                                       parser::ParseResult *parse_result) {}
 
-void QueryToOperatorTransformer::Visit(parser::CreateStatement *, parser::ParseResult *) {}
+void QueryToOperatorTransformer::Visit(UNUSED_ATTRIBUTE parser::CreateStatement *op,
+                                       UNUSED_ATTRIBUTE parser::ParseResult *parse_result) {}
 void QueryToOperatorTransformer::Visit(parser::InsertStatement *op, parser::ParseResult *parse_result) {
   auto target_table = op->GetInsertionTable();
   auto target_table_id = accessor_->GetTableOid(target_table->GetTableName());
@@ -241,7 +243,8 @@ void QueryToOperatorTransformer::Visit(parser::InsertStatement *op, parser::Pars
     for (const auto &values : *(op->GetValues())) {
       if (values.size() > column_objects.size()) {
         throw CATALOG_EXCEPTION("ERROR:  INSERT has more expressions than target columns");
-      } else if (values.size() < column_objects.size()) {
+      }
+      if (values.size() < column_objects.size()) {
         for (auto i = values.size(); i != column_objects.size(); ++i) {
           // check whether null values or default values can be used in the rest of the columns
           if (!column_objects[i].Nullable() && column_objects[i].StoredExpression() == nullptr) {
@@ -260,7 +263,8 @@ void QueryToOperatorTransformer::Visit(parser::InsertStatement *op, parser::Pars
     for (const auto &tuple : *(op->GetValues())) {  // check size of each tuple
       if (tuple.size() > num_columns) {
         throw CATALOG_EXCEPTION("ERROR:  INSERT has more expressions than target columns");
-      } else if (tuple.size() < num_columns) {
+      }
+      if (tuple.size() < num_columns) {
         throw CATALOG_EXCEPTION("ERROR:  INSERT has more target columns than expressions");
       }
     }
@@ -324,11 +328,11 @@ void QueryToOperatorTransformer::Visit(parser::DeleteStatement *op, parser::Pars
 
 void QueryToOperatorTransformer::Visit(UNUSED_ATTRIBUTE parser::DropStatement *op, parser::ParseResult *parse_result) {}
 void QueryToOperatorTransformer::Visit(UNUSED_ATTRIBUTE parser::PrepareStatement *op,
-                                       parser::ParseResult *parse_result) {}
+                                       UNUSED_ATTRIBUTE parser::ParseResult *parse_result) {}
 void QueryToOperatorTransformer::Visit(UNUSED_ATTRIBUTE parser::ExecuteStatement *op,
-                                       parser::ParseResult *parse_result) {}
+                                       UNUSED_ATTRIBUTE parser::ParseResult *parse_result) {}
 void QueryToOperatorTransformer::Visit(UNUSED_ATTRIBUTE parser::TransactionStatement *op,
-                                       parser::ParseResult *parse_result) {}
+                                       UNUSED_ATTRIBUTE parser::ParseResult *parse_result) {}
 
 void QueryToOperatorTransformer::Visit(parser::UpdateStatement *op, parser::ParseResult *parse_result) {
   auto target_table = op->GetUpdateTable();
@@ -445,7 +449,7 @@ bool QueryToOperatorTransformer::RequireAggregation(common::ManagedPointer<parse
     std::vector<common::ManagedPointer<parser::AggregateExpression>> aggr_exprs;
     // we need to use get method of managed pointer because the function we are calling will recursivly get aggreate
     // expressions from the current expression and its children; children are of unique pointers
-    parser::expression::ExpressionUtil::GetAggregateExprs(aggr_exprs, expr);
+    parser::expression::ExpressionUtil::GetAggregateExprs(&aggr_exprs, expr);
     if (!aggr_exprs.empty())
       has_aggregation = true;
     else

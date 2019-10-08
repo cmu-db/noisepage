@@ -46,11 +46,11 @@ class QueryToOperatorTransformer : public SqlNodeVisitor {
   void Visit(parser::SelectStatement *op, parser::ParseResult *parse_result) override;
   void Visit(parser::TableRef *node, parser::ParseResult *parse_result) override;
   void Visit(parser::JoinDefinition *node, parser::ParseResult *parse_result) override;
-  void Visit(parser::GroupByDescription *, parser::ParseResult *) override;
-  void Visit(parser::OrderByDescription *, parser::ParseResult *) override;
-  void Visit(parser::LimitDescription *, parser::ParseResult *) override;
-  void Visit(parser::CreateStatement *, parser::ParseResult *) override;
-  void Visit(parser::CreateFunctionStatement *, parser::ParseResult *) override;
+  void Visit(parser::GroupByDescription *node, parser::ParseResult *parse_result) override;
+  void Visit(parser::OrderByDescription *node, parser::ParseResult *parse_result) override;
+  void Visit(parser::LimitDescription *node, parser::ParseResult *parse_result) override;
+  void Visit(parser::CreateStatement *op, parser::ParseResult *parse_result) override;
+  void Visit(parser::CreateFunctionStatement *op, parser::ParseResult *parse_result) override;
   void Visit(parser::InsertStatement *op, parser::ParseResult *parse_result) override;
   void Visit(parser::DeleteStatement *op, parser::ParseResult *parse_result) override;
   void Visit(parser::DropStatement *op, parser::ParseResult *parse_result) override;

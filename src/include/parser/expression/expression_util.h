@@ -64,11 +64,11 @@ class ExpressionUtil {
    * @param aggr_exprs List of generated aggregate expressions
    * @param expr The abstract expression tree to be traversed
    */
-  static void GetAggregateExprs(std::vector<common::ManagedPointer<AggregateExpression>> &aggr_exprs,
+  static void GetAggregateExprs(std::vector<common::ManagedPointer<AggregateExpression>> *aggr_exprs,
                                 common::ManagedPointer<AbstractExpression> expr) {
     if (ExpressionUtil::IsAggregateExpression(expr->GetExpressionType())) {
       auto aggr_expr = expr.CastManagedPointerTo<AggregateExpression>();
-      aggr_exprs.push_back(aggr_expr);
+      aggr_exprs->push_back(aggr_expr);
     } else {
       for (const auto &child : expr->GetChildren()) GetAggregateExprs(aggr_exprs, child);
     }
