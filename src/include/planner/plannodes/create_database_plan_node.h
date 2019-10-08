@@ -54,8 +54,8 @@ class CreateDatabasePlanNode : public AbstractPlanNode {
      * Build the create database plan node
      * @return plan node
      */
-    std::shared_ptr<CreateDatabasePlanNode> Build() {
-      return std::shared_ptr<CreateDatabasePlanNode>(
+    std::unique_ptr<CreateDatabasePlanNode> Build() {
+      return std::unique_ptr<CreateDatabasePlanNode>(
           new CreateDatabasePlanNode(std::move(children_), std::move(output_schema_), std::move(database_name_)));
     }
 
@@ -72,8 +72,8 @@ class CreateDatabasePlanNode : public AbstractPlanNode {
    * @param output_schema Schema representing the structure of the output of this plan node
    * @param database_name the name of the database
    */
-  CreateDatabasePlanNode(std::vector<std::shared_ptr<AbstractPlanNode>> &&children,
-                         std::shared_ptr<OutputSchema> output_schema, std::string database_name)
+  CreateDatabasePlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
+                         std::unique_ptr<OutputSchema> output_schema, std::string database_name)
       : AbstractPlanNode(std::move(children), std::move(output_schema)), database_name_(std::move(database_name)) {}
 
  public:
@@ -102,7 +102,7 @@ class CreateDatabasePlanNode : public AbstractPlanNode {
   bool operator==(const AbstractPlanNode &rhs) const override;
 
   nlohmann::json ToJson() const override;
-  void FromJson(const nlohmann::json &j) override;
+  std::vector<std::unique_ptr<parser::AbstractExpression>> FromJson(const nlohmann::json &j) override;
 
  private:
   /**

@@ -192,14 +192,14 @@ void GarbageCollector::ReclaimBufferIfVarlen(transaction::TransactionContext *co
   }
 }
 
-void GarbageCollector::RegisterIndexForGC(index::Index *const index) {
+void GarbageCollector::RegisterIndexForGC(const common::ManagedPointer<index::Index> index) {
   TERRIER_ASSERT(index != nullptr, "Index cannot be nullptr.");
   common::SharedLatch::ScopedExclusiveLatch guard(&indexes_latch_);
   TERRIER_ASSERT(indexes_.count(index) == 0, "Trying to register an index that has already been registered.");
   indexes_.insert(index);
 }
 
-void GarbageCollector::UnregisterIndexForGC(index::Index *const index) {
+void GarbageCollector::UnregisterIndexForGC(const common::ManagedPointer<index::Index> index) {
   TERRIER_ASSERT(index != nullptr, "Index cannot be nullptr.");
   common::SharedLatch::ScopedExclusiveLatch guard(&indexes_latch_);
   TERRIER_ASSERT(indexes_.count(index) == 1, "Trying to unregister an index that has not been registered.");

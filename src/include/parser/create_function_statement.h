@@ -12,16 +12,11 @@
 // TODO(WAN): this file is messy
 namespace terrier {
 namespace parser {
-
-/**
- * Function parameter.
- */
+/** Base function parameter. */
 struct BaseFunctionParameter {
   // TODO(WAN): there used to be a FuncParamMode that was never used?
 
-  /**
-   * Parameter data types.
-   */
+  /** Parameter data types. */
   enum class DataType {
     INT,
     INTEGER,
@@ -38,16 +33,12 @@ struct BaseFunctionParameter {
     BOOLEAN
   };
 
-  /**
-   * @param datatype data type of the parameter
-   */
+  /** @param datatype data type of the parameter */
   explicit BaseFunctionParameter(DataType datatype) : datatype_(datatype) {}
 
   virtual ~BaseFunctionParameter() = default;
 
-  /**
-   * @return data type of the parameter
-   */
+  /** @return data type of the parameter */
   DataType GetDataType() { return datatype_; }
 
  private:
@@ -58,16 +49,12 @@ struct BaseFunctionParameter {
  * Function return type.
  */
 struct ReturnType : BaseFunctionParameter {
-  /**
-   * @param datatype data type of the parameter
-   */
+  /** @param datatype data type of the parameter */
   explicit ReturnType(DataType datatype) : BaseFunctionParameter(datatype) {}
   ~ReturnType() override = default;
 };
 
-/**
- * Function parameter.
- */
+/** Function parameter. */
 struct FuncParameter : BaseFunctionParameter {
   /**
    * @param datatype data type of the parameter
@@ -76,9 +63,7 @@ struct FuncParameter : BaseFunctionParameter {
   FuncParameter(DataType datatype, std::string name) : BaseFunctionParameter(datatype), name_(std::move(name)) {}
   ~FuncParameter() override = default;
 
-  /**
-   * @return function parameter name
-   */
+  /** @return function parameter name */
   std::string GetParamName() { return name_; }
 
  private:
@@ -86,7 +71,7 @@ struct FuncParameter : BaseFunctionParameter {
 };
 
 /**
- * Represents the sql "CREATE FUNCTION ...".
+ * CreateFunctionStatement represents the sql "CREATE FUNCTION ...".
  */
 class CreateFunctionStatement : public SQLStatement {
  public:
@@ -100,8 +85,8 @@ class CreateFunctionStatement : public SQLStatement {
    * @param as_type executable or query string
    */
   CreateFunctionStatement(bool replace, std::string func_name, std::vector<std::string> func_body,
-                          std::shared_ptr<ReturnType> return_type,
-                          std::vector<std::shared_ptr<FuncParameter>> func_parameters, PLType pl_type, AsType as_type)
+                          std::unique_ptr<ReturnType> return_type,
+                          std::vector<std::unique_ptr<FuncParameter>> func_parameters, PLType pl_type, AsType as_type)
       : SQLStatement(StatementType::CREATE_FUNC),
         replace_(replace),
         func_name_(std::move(func_name)),
@@ -126,7 +111,7 @@ class CreateFunctionStatement : public SQLStatement {
   /**
    * @return return type
    */
-  std::shared_ptr<ReturnType> GetFuncReturnType() { return return_type_; }
+  common::ManagedPointer<ReturnType> GetFuncReturnType() { return common::ManagedPointer(return_type_); }
 
   /**
    * @return function body
@@ -136,7 +121,14 @@ class CreateFunctionStatement : public SQLStatement {
   /**
    * @return function parameters
    */
-  std::vector<std::shared_ptr<FuncParameter>> GetFuncParameters() { return func_parameters_; }
+  std::vector<common::ManagedPointer<FuncParameter>> GetFuncParameters() {
+    std::vector<common::ManagedPointer<FuncParameter>> params;
+    params.reserve(func_parameters_.size());
+    for (const auto &param : func_parameters_) {
+      params.emplace_back(common::ManagedPointer(param));
+    }
+    return params;
+  }
 
   /**
    * @return programming language type
@@ -151,9 +143,9 @@ class CreateFunctionStatement : public SQLStatement {
  private:
   const bool replace_ = false;
   const std::string func_name_;
-  const std::shared_ptr<ReturnType> return_type_;
+  const std::unique_ptr<ReturnType> return_type_;
   const std::vector<std::string> func_body_;
-  const std::vector<std::shared_ptr<FuncParameter>> func_parameters_;
+  const std::vector<std::unique_ptr<FuncParameter>> func_parameters_;
   const PLType pl_type_;
   const AsType as_type_;
 };
