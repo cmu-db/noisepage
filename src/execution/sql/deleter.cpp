@@ -37,6 +37,8 @@ storage::ProjectedRow *Deleter::GetIndexPR(catalog::index_oid_t index_oid) {
 }
 
 bool Deleter::TableDelete(storage::TupleSlot table_tuple_slot) {
+  auto txn = exec_ctx_->GetTxn();
+  txn->StageDelete(exec_ctx_->DBOid(), table_oid_, table_tuple_slot);
   return table_->Delete(exec_ctx_->GetTxn(), table_tuple_slot);
 }
 
