@@ -1,6 +1,9 @@
 #include "planner/plannodes/drop_trigger_plan_node.h"
+
+#include <memory>
 #include <string>
 #include <utility>
+#include <vector>
 
 namespace terrier::planner {
 common::hash_t DropTriggerPlanNode::Hash() const {
@@ -52,12 +55,15 @@ nlohmann::json DropTriggerPlanNode::ToJson() const {
   return j;
 }
 
-void DropTriggerPlanNode::FromJson(const nlohmann::json &j) {
-  AbstractPlanNode::FromJson(j);
+std::vector<std::unique_ptr<parser::AbstractExpression>> DropTriggerPlanNode::FromJson(const nlohmann::json &j) {
+  std::vector<std::unique_ptr<parser::AbstractExpression>> exprs;
+  auto e1 = AbstractPlanNode::FromJson(j);
+  exprs.insert(exprs.end(), std::make_move_iterator(e1.begin()), std::make_move_iterator(e1.end()));
   database_oid_ = j.at("database_oid").get<catalog::db_oid_t>();
   namespace_oid_ = j.at("namespace_oid").get<catalog::namespace_oid_t>();
   trigger_oid_ = j.at("trigger_oid").get<catalog::trigger_oid_t>();
   if_exists_ = j.at("if_exists").get<bool>();
+  return exprs;
 }
 
 }  // namespace terrier::planner

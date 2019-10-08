@@ -1,4 +1,8 @@
 #include "planner/plannodes/limit_plan_node.h"
+
+#include <memory>
+#include <vector>
+
 #include "common/hash_util.h"
 #include "planner/plannodes/hash_plan_node.h"
 
@@ -37,10 +41,13 @@ nlohmann::json LimitPlanNode::ToJson() const {
   return j;
 }
 
-void LimitPlanNode::FromJson(const nlohmann::json &j) {
-  AbstractPlanNode::FromJson(j);
+std::vector<std::unique_ptr<parser::AbstractExpression>> LimitPlanNode::FromJson(const nlohmann::json &j) {
+  std::vector<std::unique_ptr<parser::AbstractExpression>> exprs;
+  auto e1 = AbstractPlanNode::FromJson(j);
+  exprs.insert(exprs.end(), std::make_move_iterator(e1.begin()), std::make_move_iterator(e1.end()));
   limit_ = j.at("limit").get<size_t>();
   offset_ = j.at("offset").get<size_t>();
+  return exprs;
 }
 
 }  // namespace terrier::planner

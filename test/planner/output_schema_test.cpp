@@ -22,8 +22,8 @@ class OutputSchemaTests : public TerrierTest {
    * Constructs a dummy AbstractExpression predicate
    * @return dummy predicate
    */
-  static std::shared_ptr<parser::AbstractExpression> BuildDummyPredicate() {
-    return std::make_shared<parser::ConstantValueExpression>(type::TransientValueFactory::GetBoolean(true));
+  static std::unique_ptr<parser::AbstractExpression> BuildDummyPredicate() {
+    return std::make_unique<parser::ConstantValueExpression>(type::TransientValueFactory::GetBoolean(true));
   }
 };
 
@@ -34,11 +34,11 @@ TEST(OutputSchemaTests, OutputSchemaTest) {
 
   OutputSchema::Column col0("dummy_col", type::TypeId::INTEGER, true, catalog::col_oid_t(0));
   std::vector<OutputSchema::Column> cols0 = {col0};
-  auto schema0 = std::make_shared<OutputSchema>(cols0);
+  auto schema0 = std::make_unique<OutputSchema>(cols0);
 
   OutputSchema::Column col1("dummy_col", type::TypeId::INTEGER, true, catalog::col_oid_t(0));
   std::vector<OutputSchema::Column> cols1 = {col1};
-  auto schema1 = std::make_shared<OutputSchema>(cols1);
+  auto schema1 = std::make_unique<OutputSchema>(cols1);
 
   EXPECT_EQ(*schema0, *schema1);
   EXPECT_EQ(schema0->Hash(), schema1->Hash());
@@ -47,7 +47,7 @@ TEST(OutputSchemaTests, OutputSchemaTest) {
   // equivalent and the hash is different
   OutputSchema::Column col2("XXX", type::TypeId::BOOLEAN, true, catalog::col_oid_t(1));
   std::vector<OutputSchema::Column> cols2 = {col2};
-  auto schema2 = std::make_shared<OutputSchema>(cols2);
+  auto schema2 = std::make_unique<OutputSchema>(cols2);
 
   EXPECT_NE(*schema0, *schema2);
   EXPECT_NE(schema0->Hash(), schema2->Hash());
@@ -55,7 +55,7 @@ TEST(OutputSchemaTests, OutputSchemaTest) {
   // Just check to make sure that we correctly capture that having more columns
   // means that the schema is different too
   std::vector<OutputSchema::Column> cols3 = {col0, col1};
-  auto schema3 = std::make_shared<OutputSchema>(cols3);
+  auto schema3 = std::make_unique<OutputSchema>(cols3);
   EXPECT_NE(*schema0, *schema3);
   EXPECT_NE(schema0->Hash(), schema3->Hash());
 }
@@ -108,10 +108,12 @@ TEST(OutputSchemaTests, DerivedColumnTest) {
   catalog::col_oid_t col_oid(0);
 
   OutputSchema::Column col0(name, type_id, nullable, col_oid);
-  OutputSchema::DerivedColumn derived0(col0, OutputSchemaTests::BuildDummyPredicate());
+  auto expr1 = OutputSchemaTests::BuildDummyPredicate();
+  OutputSchema::DerivedColumn derived0(col0, common::ManagedPointer(expr1));
 
   OutputSchema::Column col1(name, type_id, nullable, col_oid);
-  OutputSchema::DerivedColumn derived1(col1, OutputSchemaTests::BuildDummyPredicate());
+  auto expr2 = OutputSchemaTests::BuildDummyPredicate();
+  OutputSchema::DerivedColumn derived1(col1, common::ManagedPointer(expr2));
 
   EXPECT_EQ(derived0, derived1);
   EXPECT_EQ(derived0.GetColumn(), derived1.GetColumn());
