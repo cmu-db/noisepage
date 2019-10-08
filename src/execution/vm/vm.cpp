@@ -1482,6 +1482,51 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {
   GEN_PR_SET(Varlen, sql::StringVal)
 #undef GEN_PR_SET
 
+  /////////////////////////////////
+  //// Inserter Calls
+  /////////////////////////////////
+
+  OP(InserterInit) : {
+    auto *inserter = frame->LocalAt<sql::Inserter *>(READ_LOCAL_ID());
+    auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
+    auto table_oid = READ_UIMM4();
+
+    OpInserterInit(inserter, exec_ctx, table_oid);
+    DISPATCH_NEXT();
+  }
+
+  OP(InserterGetTablePR) : {
+    auto *pr_result = frame->LocalAt<sql::ProjectedRowWrapper *>(READ_LOCAL_ID());
+    auto *inserter = frame->LocalAt<sql::Inserter *>(READ_LOCAL_ID());
+
+    OpInserterGetTablePR(pr_result, inserter);
+    DISPATCH_NEXT();
+  }
+
+  OP(InserterTableInsert) : {
+    auto *tuple_slot = frame->LocalAt<storage::TupleSlot *>(READ_LOCAL_ID());
+    auto *inserter = frame->LocalAt<sql::Inserter *>(READ_LOCAL_ID());
+
+    OpInserterTableInsert(tuple_slot, inserter);
+    DISPATCH_NEXT();
+  }
+
+  OP(InserterGetIndexPR) : {
+    auto *pr_result = frame->LocalAt<sql::ProjectedRowWrapper *>(READ_LOCAL_ID());
+    auto *inserter = frame->LocalAt<sql::Inserter *>(READ_LOCAL_ID());
+    auto index_oid = READ_UIMM4();
+
+    OpInserterGetIndexPR(pr_result, inserter, index_oid);
+    DISPATCH_NEXT();
+  }
+
+  OP(InserterIndexInsert) : {
+    auto *inserter = frame->LocalAt<sql::Inserter *>(READ_LOCAL_ID());
+    auto index_oid = READ_UIMM4();
+    OpInserterIndexInsert(inserter, index_oid);
+    DISPATCH_NEXT();
+  }
+
   // -------------------------------------------------------
   // Real-value functions
   // -------------------------------------------------------

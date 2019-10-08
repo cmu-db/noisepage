@@ -48,6 +48,8 @@ types/strings.tpl,false,0
 agg.tpl,true,10
 agg-vec.tpl,true,10
 agg-vec-filter.tpl,true,10
+inserter.tpl,true,2
+inserter-2.tpl,true,3
 join.tpl,true,0
 #parallel-join.tpl,true,0 <Parallel scan not yet supported>
 #parallel-scan.tpl,true,0 <Parallel scan not yet supported>

@@ -183,7 +183,17 @@ namespace terrier::execution::ast {
   F(PRGetRealNull, prGetRealNull)                               \
   F(PRGetDoubleNull, prGetDoubleNull)                           \
   F(PRGetDateNull, prGetDateNull)                               \
-  F(PRGetVarlenNull, prGetVarlenNull)
+  F(PRGetVarlenNull, prGetVarlenNull)                           \
+                                                                \
+  /* Inserter Calls */                                          \
+  F(InserterInit, inserterInit)                                 \
+  F(InserterInitBind, inserterInitBind)                         \
+  F(InserterGetTablePR, inserterGetTablePR)                     \
+  F(InserterTableInsert, inserterTableInsert)                   \
+  F(InserterGetIndexPR, inserterGetIndexPR)                     \
+  F(InserterGetIndexPRBind, inserterGetIndexPRBind)             \
+  F(InserterIndexInsert, inserterIndexInsert)                   \
+  F(InserterIndexInsertBind, inserterIndexInsertBind)
 
 /**
  * Enum of builtins
