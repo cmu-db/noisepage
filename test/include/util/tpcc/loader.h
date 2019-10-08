@@ -158,19 +158,9 @@ struct Loader {
 
     // Populate the other tables in parallel
     for (int8_t w_id = 0; w_id < num_warehouses; w_id++) {
-      thread_pool->SubmitTask([w_id, txn_manager, db, &workers, &warehouse_tuple_pr_initializer,
-                               &warehouse_tuple_pr_map, &warehouse_key_pr_initializer, &warehouse_key_pr_map,
-                               &stock_tuple_pr_initializer, &stock_tuple_pr_map, &stock_key_pr_initializer,
-                               &stock_key_pr_map, &district_tuple_pr_initializer, &district_tuple_pr_map,
-                               &district_key_pr_initializer, &district_key_pr_map, &customer_tuple_pr_initializer,
-                               &customer_tuple_pr_map, &customer_key_pr_initializer, &customer_key_pr_map,
-                               &customer_name_key_pr_initializer, &customer_name_key_pr_map,
-                               &history_tuple_pr_initializer, &history_tuple_pr_map, &order_tuple_pr_initializer,
-                               &order_tuple_pr_map, &order_key_pr_initializer, &order_key_pr_map,
-                               &order_secondary_key_pr_initializer, &order_secondary_key_pr_map,
-                               &order_line_tuple_pr_initializer, &order_line_tuple_pr_map,
-                               &order_line_key_pr_initializer, &order_line_key_pr_map, &new_order_tuple_pr_initializer,
-                               &new_order_tuple_pr_map, &new_order_key_pr_initializer, &new_order_key_pr_map] {
+      // copy the pr_map and pr_initializers by reference since they're on the stack in this scope, but the remaining
+      // are pointers or integers so we'll copy by value
+      thread_pool->SubmitTask([&, w_id, txn_manager, db] {
         Worker *const worker = &((*workers)[w_id]);
 
         auto *const txn = txn_manager->BeginTransaction();
