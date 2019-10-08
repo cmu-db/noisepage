@@ -8,7 +8,7 @@
 namespace terrier::parser {
 
 /**
- * Represents a logical conjunction expression.
+ * ConjunctionExpression represents logical conjunctions like ANDs and ORs.
  */
 class ConjunctionExpression : public AbstractExpression {
  public:
@@ -17,15 +17,21 @@ class ConjunctionExpression : public AbstractExpression {
    * @param cmp_type type of conjunction
    * @param children vector containing exactly two children, left then right
    */
-  ConjunctionExpression(const ExpressionType cmp_type, std::vector<std::shared_ptr<AbstractExpression>> &&children)
+  ConjunctionExpression(const ExpressionType cmp_type, std::vector<std::unique_ptr<AbstractExpression>> &&children)
       : AbstractExpression(cmp_type, type::TypeId::BOOLEAN, std::move(children)) {}
 
-  /**
-   * Default constructor for deserialization
-   */
+  /** Default constructor for deserialization. */
   ConjunctionExpression() = default;
 
-  std::shared_ptr<AbstractExpression> Copy() const override { return std::make_shared<ConjunctionExpression>(*this); }
+  std::unique_ptr<AbstractExpression> Copy() const override {
+    std::vector<std::unique_ptr<AbstractExpression>> children;
+    for (const auto &child : GetChildren()) {
+      children.emplace_back(child->Copy());
+    }
+    auto expr = std::make_unique<ConjunctionExpression>(GetExpressionType(), std::move(children));
+    expr->SetMutableStateForCopy(*this);
+    return expr;
+  }
 
   void Accept(SqlNodeVisitor *v) override { v->Visit(this); }
 };

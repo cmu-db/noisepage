@@ -8,9 +8,8 @@
 #include "parser/expression/abstract_expression.h"
 
 namespace terrier::parser {
-
 /**
- * Represents a column tuple value.
+ * ColumnValueExpression represents a reference to a column.
  */
 class ColumnValueExpression : public AbstractExpression {
  public:
@@ -61,42 +60,39 @@ class ColumnValueExpression : public AbstractExpression {
         database_oid_(database_oid),
         table_oid_(table_oid),
         column_oid_(column_oid) {}
-  /**
-   * Default constructor for deserialization
-   */
+
+  /** Default constructor for deserialization. */
   ColumnValueExpression() = default;
 
-  /**
-   * @return namespace name
-   */
+  /** @return namespace name */
   std::string GetNamespaceName() const { return namespace_name_; }
 
-  /**
-   * @return table name
-   */
+  /** @return table name */
   std::string GetTableName() const { return table_name_; }
 
-  /**
-   * @return column name
-   */
+  /** @return column name */
   std::string GetColumnName() const { return column_name_; }
 
-  /**
-   * @return database oid
-   */
+  /** @return database oid */
   catalog::db_oid_t GetDatabaseOid() const { return database_oid_; }
 
-  /**
-   * @return table oid
-   */
+  /** @return table oid */
   catalog::table_oid_t GetTableOid() const { return table_oid_; }
 
-  /**
-   * @return column oid
-   */
+  /** @return column oid */
   catalog::col_oid_t GetColumnOid() const { return column_oid_; }
 
-  std::shared_ptr<AbstractExpression> Copy() const override { return std::make_shared<ColumnValueExpression>(*this); }
+  std::unique_ptr<AbstractExpression> Copy() const override {
+    auto expr = std::make_unique<ColumnValueExpression>(GetDatabaseOid(), GetTableOid(), GetColumnOid());
+    expr->SetMutableStateForCopy(*this);
+    expr->namespace_name_ = this->namespace_name_;
+    expr->table_name_ = this->table_name_;
+    expr->column_name_ = this->column_name_;
+    expr->SetDatabaseOID(this->database_oid_);
+    expr->SetTableOID(this->table_oid_);
+    expr->SetColumnOID(this->column_oid_);
+    return expr;
+  }
 
   common::hash_t Hash() const override {
     common::hash_t hash = AbstractExpression::Hash();
@@ -146,61 +142,40 @@ class ColumnValueExpression : public AbstractExpression {
   /**
    * @param j json to deserialize
    */
-  void FromJson(const nlohmann::json &j) override {
-    AbstractExpression::FromJson(j);
+  std::vector<std::unique_ptr<AbstractExpression>> FromJson(const nlohmann::json &j) override {
+    std::vector<std::unique_ptr<AbstractExpression>> exprs;
+    auto e1 = AbstractExpression::FromJson(j);
+    exprs.insert(exprs.end(), std::make_move_iterator(e1.begin()), std::make_move_iterator(e1.end()));
     namespace_name_ = j.at("namespace_name").get<std::string>();
     table_name_ = j.at("table_name").get<std::string>();
     column_name_ = j.at("column_name").get<std::string>();
     database_oid_ = j.at("database_oid").get<catalog::db_oid_t>();
     table_oid_ = j.at("table_oid").get<catalog::table_oid_t>();
     column_oid_ = j.at("column_oid").get<catalog::col_oid_t>();
+    return exprs;
   }
 
  private:
-  /**
-   * @param database_oid Database OID to be assigned to this expression
-   */
+  /** @param database_oid Database OID to be assigned to this expression */
   void SetDatabaseOID(catalog::db_oid_t database_oid) { database_oid_ = database_oid; }
-
-  /**
-   * @param table_oid Table OID to be assigned to this expression
-   */
+  /** @param table_oid Table OID to be assigned to this expression */
   void SetTableOID(catalog::table_oid_t table_oid) { table_oid_ = table_oid; }
-
-  /**
-   * @param column_oid Column OID to be assigned to this expression
-   */
+  /** @param column_oid Column OID to be assigned to this expression */
   void SetColumnOID(catalog::col_oid_t column_oid) { column_oid_ = column_oid; }
 
-  /**
-   * Name of the namespace
-   */
+  /** Namespace name. */
   std::string namespace_name_;
-
-  /**
-   * Name of the table
-   */
+  /** Table name. */
   std::string table_name_;
-
-  /**
-   * Name of the column
-   */
+  /** Column name. */
   std::string column_name_;
 
   // TODO(Ling): change to INVALID_*_OID after catalog completion
-  /**
-   * OID of the database
-   */
+  /** Database OID. */
   catalog::db_oid_t database_oid_ = catalog::db_oid_t(0);
-
-  /**
-   * OID of the table
-   */
+  /** Table OID. */
   catalog::table_oid_t table_oid_ = catalog::table_oid_t(0);
-
-  /**
-   * OID of the column
-   */
+  /** Column OID. */
   catalog::col_oid_t column_oid_ = catalog::col_oid_t(0);
 };
 
