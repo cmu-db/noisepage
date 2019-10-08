@@ -360,12 +360,11 @@ TEST_F(OperatorTransformerTest, SelectStatementOrderByTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(OperatorTransformerTest, SelectStatementComplexTest) {
-  // Test regular table name
-  LOG_INFO("Parsing sql query");
-  std::string select_sql =
-      "SELECT A.A1, B.B2 FROM A INNER JOIN b ON a.a1 = b.b1 WHERE a1 < 100 "
-      "GROUP BY A.a1, B.b2 HAVING a1 > 50 ORDER BY a1";
+TEST_F(OperatorTransformerTest, SelectStatementStarTest) {
+  // Check if star expression is correctly processed
+  LOG_INFO("Checking STAR expression in select and subselect");
+
+  std::string select_sql = "SELECT * FROM A LEFT OUTER JOIN B ON A.A1 < B.B1";
 
   std::string ref =
       "{\"Op\":\"LogicalLeftJoin\",\"Children\":"
@@ -383,11 +382,9 @@ TEST_F(OperatorTransformerTest, SelectStatementComplexTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(OperatorTransformerTest, SelectStatementStarTest) {
-  // Check if star expression is correctly processed
-  LOG_INFO("Checking STAR expression in select and subselect");
-
-  std::string select_sql = "SELECT * FROM A LEFT OUTER JOIN B ON A.A1 < B.B1";
+TEST_F(OperatorTransformerTest, SelectStatementRightJoinTest) {
+  LOG_INFO("Parsing sql query");
+  std::string select_sql = "SELECT * FROM A RIGHT JOIN B ON A1 = B1";
 
   std::string ref =
       "{\"Op\":\"LogicalRightJoin\",\"Children\":"
@@ -407,7 +404,9 @@ TEST_F(OperatorTransformerTest, SelectStatementStarTest) {
 // NOLINTNEXTLINE
 TEST_F(OperatorTransformerTest, SelectStatementComplexTest) {
   LOG_INFO("Parsing sql query");
-  std::string select_sql = "SELECT * FROM A RIGHT JOIN B ON A1 = B1";
+  std::string select_sql =
+      "SELECT A.A1, B.B2 FROM A INNER JOIN b ON a.a1 = b.b1 WHERE a1 < 100 "
+      "GROUP BY A.a1, B.b2 HAVING a1 > 50 ORDER BY a1";
 
   std::string ref =
       "{\"Op\":\"LogicalFilter\",\"Children\":"
