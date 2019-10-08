@@ -53,7 +53,12 @@ Transition ParseCommand::Exec(common::ManagedPointer<PostgresProtocolInterpreter
 
   std::string query = in_.ReadString();
   NETWORK_LOG_TRACE("ParseCommand: {0}", query);
-
+  if (query.find("BEGIN") != std::string::npos) {
+    connection->in_transaction_ = true;
+  } else if (query.find("COMMIT") != std::string::npos ||
+             query.find("ROLLBACK") != std::string::npos) {
+    connection->in_transaction_ = false;
+  }
   // TODO(Weichen): This implementation does not strictly follow Postgres protocol.
   // This param num here is just the number of params that the client wants to pre-specify types for.
   // Should not use this as the number of parameters.
@@ -74,7 +79,7 @@ Transition ParseCommand::Exec(common::ManagedPointer<PostgresProtocolInterpreter
   trafficcop::SqliteEngine *execution_engine = t_cop->GetExecutionEngine();
   sqlite3_stmt *sqlite_stmt = execution_engine->PrepareStatement(query);
 
-  trafficcop::Statement stmt(sqlite_stmt, param_types);
+  trafficcop::Statement stmt(sqlite_stmt, param_types, query);
   connection->statements_[stmt_name] = stmt;
 
   out->WriteParseComplete();
@@ -152,61 +157,82 @@ Transition BindCommand::Exec(common::ManagedPointer<PostgresProtocolInterpreter>
   auto params = std::make_shared<std::vector<TransientValue>>();
 
   for (size_t i = 0; i < num_params; i++) {
-    auto len = static_cast<size_t>(in_.ReadValue<int32_t>());
+    auto len = static_cast<int32_t>(in_.ReadValue<int32_t>());
     auto type = PostgresValueTypeToInternalValueType(statement->param_types_[i]);
 
     if (type == TypeId::INTEGER) {
-      int32_t value;
-      if (is_binary[i] == 0) {
-        char buf[len + 1];
-        memset(buf, 0, len + 1);
-        in_.Read(len, buf);
-        value = std::stoi(buf);
+      if (len != -1) {
+        int32_t value;
+        if (is_binary[i] == 0) {
+          char buf[len + 1];
+          memset(buf, 0, len + 1);
+          in_.Read(len, buf);
+          value = std::stoi(buf);
+        } else {
+          value = in_.ReadValue<int32_t>();
+        }
+        params->push_back(TransientValueFactory::GetInteger(value));
       } else {
-        value = in_.ReadValue<int32_t>();
+        params->push_back(TransientValueFactory::GetNull(TypeId::INTEGER));
       }
-      params->push_back(TransientValueFactory::GetInteger(value));
 
     } else if (type == TypeId::DECIMAL) {
-      double value;
-      if (is_binary[i] == 0) {
-        char buf[len + 1];
-        memset(buf, 0, len + 1);
-        in_.Read(len, buf);
-        value = std::stod(buf);
+      if (len != -1) {
+        double value;
+        if (is_binary[i] == 0) {
+          char buf[len + 1];
+          memset(buf, 0, len + 1);
+          in_.Read(len, buf);
+          value = std::stod(buf);
+        } else {
+          value = in_.ReadValue<double>();
+        }
+        params->push_back(TransientValueFactory::GetDecimal(value));
       } else {
-        value = in_.ReadValue<double>();
+        params->push_back(TransientValueFactory::GetNull(TypeId::DECIMAL));
       }
-      params->push_back(TransientValueFactory::GetDecimal(value));
 
     } else if (type == TypeId::VARCHAR) {
-      char buf[len + 1];
-      memset(buf, 0, len + 1);
-      in_.Read(len, buf);
-      params->push_back(TransientValueFactory::GetVarChar(buf));
+      if (len != -1) {
+        char buf[len + 1];
+        memset(buf, 0, len + 1);
+        in_.Read(len, buf);
+        params->push_back(TransientValueFactory::GetVarChar(buf));
+      } else {
+        params->push_back(TransientValueFactory::GetNull(TypeId::VARCHAR));
+      }
 
     } else if (type == TypeId::TIMESTAMP) {
-      type::timestamp_t timestamp;
-      if (is_binary[i] == 0) {
-        char buf[len + 1];
-        memset(buf, 0, len + 1);
-        in_.Read(len, buf);
-        timestamp = type::timestamp_t(std::stoull(buf));
+      if (len != -1) {
+        type::timestamp_t timestamp;
+        if (is_binary[i] == 0) {
+          char buf[len + 1];
+          memset(buf, 0, len + 1);
+          in_.Read(len, buf);
+          timestamp = type::timestamp_t(std::stoull(buf));
+        } else {
+          timestamp = type::timestamp_t(in_.ReadValue<uint64_t>());
+        }
+        params->push_back(TransientValueFactory::GetTimestamp(timestamp));
       } else {
-        timestamp = type::timestamp_t(in_.ReadValue<uint64_t>());
+        params->push_back(TransientValueFactory::GetNull(TypeId::TIMESTAMP));
       }
-      params->push_back(TransientValueFactory::GetTimestamp(timestamp));
+
     } else if (type == TypeId::BIGINT) {
-      int64_t value;
-      if (is_binary[i] == 0) {
-        char buf[len + 1];
-        memset(buf, 0, len + 1);
-        in_.Read(len, buf);
-        value = std::stoll(buf);
+      if (len != -1) {
+        int64_t value;
+        if (is_binary[i] == 0) {
+          char buf[len + 1];
+          memset(buf, 0, len + 1);
+          in_.Read(len, buf);
+          value = std::stoll(buf);
+        } else {
+          value = in_.ReadValue<int64_t>();
+        }
+        params->push_back(TransientValueFactory::GetBigInt(value));
       } else {
-        value = in_.ReadValue<int64_t>();
+        params->push_back(TransientValueFactory::GetNull(TypeId::BIGINT));
       }
-      params->push_back(TransientValueFactory::GetBigInt(value));
     } else {
       string error_msg =
           fmt::format("Param type {0} is not implemented yet", static_cast<int>(statement->param_types_[i]));
@@ -282,7 +308,6 @@ Transition ExecuteCommand::Exec(common::ManagedPointer<PostgresProtocolInterpret
                                 common::ManagedPointer<ConnectionContext> connection, NetworkCallback callback) {
   using std::string;
   string portal_name = in_.ReadString();
-  connection->in_transaction_ = false;
   NETWORK_LOG_TRACE("ExecuteCommand portal name = {0}", portal_name);
 
   auto p_portal = connection->portals_.find(portal_name);
