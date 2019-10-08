@@ -1758,7 +1758,13 @@ Column DatabaseCatalog::MakeColumn(storage::ProjectedRow *const pr, const storag
   auto col_null = !(*reinterpret_cast<bool *>(pr->AccessForceNotNull(pr_map.at(postgres::ATTNOTNULL_COL_OID))));
   auto *col_expr = reinterpret_cast<storage::VarlenEntry *>(pr->AccessForceNotNull(pr_map.at(postgres::ADSRC_COL_OID)));
 
-  auto expr = parser::DeserializeExpression(nlohmann::json::parse(col_expr->StringView()));
+  // TODO(WAN): Why are we deserializing expressions to make a catalog column? This is potentially busted.
+  // Our JSON library is also not the most performant.
+  // I believe it is OK that the unique ptr goes out of scope because right now both Column constructors copy the expr.
+  auto deserialized = parser::DeserializeExpression(nlohmann::json::parse(col_expr->StringView()));
+
+  auto expr = std::move(deserialized.result_);
+  TERRIER_ASSERT(deserialized.non_owned_exprs_.empty(), "Congrats, you get to refactor the catalog API.");
 
   std::string name(reinterpret_cast<const char *>(col_name->Content()), col_name->Size());
   Column col = (col_type == type::TypeId::VARCHAR || col_type == type::TypeId::VARBINARY)

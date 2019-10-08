@@ -1,6 +1,9 @@
 #include "planner/plannodes/create_function_plan_node.h"
+
+#include <memory>
 #include <string>
 #include <vector>
+
 #include "storage/data_table.h"
 
 namespace terrier::planner {
@@ -94,8 +97,10 @@ nlohmann::json CreateFunctionPlanNode::ToJson() const {
   return j;
 }
 
-void CreateFunctionPlanNode::FromJson(const nlohmann::json &j) {
-  AbstractPlanNode::FromJson(j);
+std::vector<std::unique_ptr<parser::AbstractExpression>> CreateFunctionPlanNode::FromJson(const nlohmann::json &j) {
+  std::vector<std::unique_ptr<parser::AbstractExpression>> exprs;
+  auto e1 = AbstractPlanNode::FromJson(j);
+  exprs.insert(exprs.end(), std::make_move_iterator(e1.begin()), std::make_move_iterator(e1.end()));
   database_oid_ = j.at("database_oid").get<catalog::db_oid_t>();
   namespace_oid_ = j.at("namespace_oid").get<catalog::namespace_oid_t>();
   language_ = j.at("language").get<parser::PLType>();
@@ -106,6 +111,7 @@ void CreateFunctionPlanNode::FromJson(const nlohmann::json &j) {
   function_name_ = j.at("function_name").get<std::string>();
   return_type_ = j.at("return_type").get<parser::BaseFunctionParameter::DataType>();
   param_count_ = j.at("param_count").get<int>();
+  return exprs;
 }
 
 }  // namespace terrier::planner

@@ -73,8 +73,8 @@ class CSVScanPlanNode : public AbstractScanPlanNode {
      * Build the csv scan plan node
      * @return plan node
      */
-    std::shared_ptr<CSVScanPlanNode> Build() {
-      return std::shared_ptr<CSVScanPlanNode>(new CSVScanPlanNode(
+    std::unique_ptr<CSVScanPlanNode> Build() {
+      return std::unique_ptr<CSVScanPlanNode>(new CSVScanPlanNode(
           std::move(children_), std::move(output_schema_), nullptr /* predicate */, is_for_update_, is_parallel_,
           database_oid_, namespace_oid_, file_name_, delimiter_, quote_, escape_, null_string_));
     }
@@ -117,13 +117,13 @@ class CSVScanPlanNode : public AbstractScanPlanNode {
    * @param escape The character that should appear before any data characters that match the quote character.
    * @param null_string the null string for the file
    */
-  CSVScanPlanNode(std::vector<std::shared_ptr<AbstractPlanNode>> &&children,
-                  std::shared_ptr<OutputSchema> output_schema, std::shared_ptr<parser::AbstractExpression> predicate,
-                  bool is_for_update, bool is_parallel, catalog::db_oid_t database_oid,
-                  catalog::namespace_oid_t namespace_oid, std::string file_name, char delimiter, char quote,
-                  char escape, std::string null_string)
-      : AbstractScanPlanNode(std::move(children), std::move(output_schema), std::move(predicate), is_for_update,
-                             is_parallel, database_oid, namespace_oid),
+  CSVScanPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
+                  std::unique_ptr<OutputSchema> output_schema,
+                  common::ManagedPointer<parser::AbstractExpression> predicate, bool is_for_update, bool is_parallel,
+                  catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid, std::string file_name,
+                  char delimiter, char quote, char escape, std::string null_string)
+      : AbstractScanPlanNode(std::move(children), std::move(output_schema), predicate, is_for_update, is_parallel,
+                             database_oid, namespace_oid),
         file_name_(std::move(file_name)),
         delimiter_(delimiter),
         quote_(quote),
@@ -176,7 +176,7 @@ class CSVScanPlanNode : public AbstractScanPlanNode {
   bool operator==(const AbstractPlanNode &rhs) const override;
 
   nlohmann::json ToJson() const override;
-  void FromJson(const nlohmann::json &j) override;
+  std::vector<std::unique_ptr<parser::AbstractExpression>> FromJson(const nlohmann::json &j) override;
 
  private:
   std::string file_name_;

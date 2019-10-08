@@ -92,10 +92,10 @@ class InsertPlanNode : public AbstractPlanNode {
      * Build the delete plan node
      * @return plan node
      */
-    std::shared_ptr<InsertPlanNode> Build() {
+    std::unique_ptr<InsertPlanNode> Build() {
       TERRIER_ASSERT(!values_.empty(), "Can't have an empty insert plan");
       TERRIER_ASSERT(values_[0].size() == parameter_info_.size(), "Must have parameter info for each value");
-      return std::shared_ptr<InsertPlanNode>(new InsertPlanNode(std::move(children_), std::move(output_schema_),
+      return std::unique_ptr<InsertPlanNode>(new InsertPlanNode(std::move(children_), std::move(output_schema_),
                                                                 database_oid_, namespace_oid_, table_oid_,
                                                                 std::move(values_), std::move(parameter_info_)));
     }
@@ -145,7 +145,7 @@ class InsertPlanNode : public AbstractPlanNode {
    * @param values values to insert
    * @param parameter_info parameters information
    */
-  InsertPlanNode(std::vector<std::shared_ptr<AbstractPlanNode>> &&children, std::shared_ptr<OutputSchema> output_schema,
+  InsertPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children, std::unique_ptr<OutputSchema> output_schema,
                  catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid,
                  std::vector<std::vector<type::TransientValue>> &&values,
                  std::vector<catalog::col_oid_t> &&parameter_info)
@@ -218,7 +218,7 @@ class InsertPlanNode : public AbstractPlanNode {
   bool operator==(const AbstractPlanNode &rhs) const override;
 
   nlohmann::json ToJson() const override;
-  void FromJson(const nlohmann::json &j) override;
+  std::vector<std::unique_ptr<parser::AbstractExpression>> FromJson(const nlohmann::json &j) override;
 
  private:
   /**
