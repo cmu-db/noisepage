@@ -1,6 +1,8 @@
 #include "planner/plannodes/set_op_plan_node.h"
+
 #include <memory>
 #include <utility>
+#include <vector>
 
 namespace terrier::planner {
 
@@ -28,8 +30,11 @@ nlohmann::json SetOpPlanNode::ToJson() const {
   return j;
 }
 
-void SetOpPlanNode::FromJson(const nlohmann::json &j) {
-  AbstractPlanNode::FromJson(j);
+std::vector<std::unique_ptr<parser::AbstractExpression>> SetOpPlanNode::FromJson(const nlohmann::json &j) {
+  std::vector<std::unique_ptr<parser::AbstractExpression>> exprs;
+  auto e1 = AbstractPlanNode::FromJson(j);
+  exprs.insert(exprs.end(), std::make_move_iterator(e1.begin()), std::make_move_iterator(e1.end()));
   set_op_ = j.at("set_op").get<SetOpType>();
+  return exprs;
 }
 }  // namespace terrier::planner

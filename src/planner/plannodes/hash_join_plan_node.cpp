@@ -1,5 +1,7 @@
 #include "planner/plannodes/hash_join_plan_node.h"
+
 #include <memory>
+#include <utility>
 #include <vector>
 
 namespace terrier::planner {
@@ -48,20 +50,36 @@ bool HashJoinPlanNode::operator==(const AbstractPlanNode &rhs) const {
 
 nlohmann::json HashJoinPlanNode::ToJson() const {
   nlohmann::json j = AbstractJoinPlanNode::ToJson();
-  j["left_hash_keys"] = left_hash_keys_;
-  j["right_hash_keys"] = right_hash_keys_;
+  std::vector<nlohmann::json> left_hash_keys;
+  left_hash_keys.reserve(left_hash_keys_.size());
+  for (const auto &key : left_hash_keys_) {
+    left_hash_keys.emplace_back(key->ToJson());
+  }
+  j["left_hash_keys"] = left_hash_keys;
+  std::vector<nlohmann::json> right_hash_keys;
+  right_hash_keys.reserve(right_hash_keys_.size());
+  for (const auto &key : right_hash_keys_) {
+    right_hash_keys.emplace_back(key->ToJson());
+  }
+  j["right_hash_keys"] = right_hash_keys;
   j["build_bloom_filter"] = build_bloomfilter_;
   return j;
 }
 
-void HashJoinPlanNode::FromJson(const nlohmann::json &j) {
-  AbstractJoinPlanNode::FromJson(j);
+std::vector<std::unique_ptr<parser::AbstractExpression>> HashJoinPlanNode::FromJson(const nlohmann::json &j) {
+  std::vector<std::unique_ptr<parser::AbstractExpression>> exprs;
+  auto e1 = AbstractJoinPlanNode::FromJson(j);
+  exprs.insert(exprs.end(), std::make_move_iterator(e1.begin()), std::make_move_iterator(e1.end()));
 
   // Deserialize left keys
   auto left_keys = j.at("left_hash_keys").get<std::vector<nlohmann::json>>();
   for (const auto &key_json : left_keys) {
     if (!key_json.is_null()) {
-      left_hash_keys_.push_back(parser::DeserializeExpression(key_json));
+      auto deserialized = parser::DeserializeExpression(key_json);
+      left_hash_keys_.emplace_back(common::ManagedPointer(deserialized.result_));
+      exprs.emplace_back(std::move(deserialized.result_));
+      exprs.insert(exprs.end(), std::make_move_iterator(deserialized.non_owned_exprs_.begin()),
+                   std::make_move_iterator(deserialized.non_owned_exprs_.end()));
     }
   }
 
@@ -69,11 +87,16 @@ void HashJoinPlanNode::FromJson(const nlohmann::json &j) {
   auto right_keys = j.at("right_hash_keys").get<std::vector<nlohmann::json>>();
   for (const auto &key_json : right_keys) {
     if (!key_json.is_null()) {
-      right_hash_keys_.push_back(parser::DeserializeExpression(key_json));
+      auto deserialized = parser::DeserializeExpression(key_json);
+      right_hash_keys_.emplace_back(common::ManagedPointer(deserialized.result_));
+      exprs.emplace_back(std::move(deserialized.result_));
+      exprs.insert(exprs.end(), std::make_move_iterator(deserialized.non_owned_exprs_.begin()),
+                   std::make_move_iterator(deserialized.non_owned_exprs_.end()));
     }
   }
 
   build_bloomfilter_ = j.at("build_bloom_filter").get<bool>();
+  return exprs;
 }
 
 }  // namespace terrier::planner
