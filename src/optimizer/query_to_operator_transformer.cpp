@@ -606,8 +606,7 @@ void QueryToOperatorTransformer::ExtractPredicates(common::ManagedPointer<parser
     QueryToOperatorTransformer::GenerateTableAliasSet(predicate, &table_alias_set);
 
     // Deep copy expression to avoid memory leak
-    annotated_predicates->emplace_back(AnnotatedExpression(
-        common::ManagedPointer<parser::AbstractExpression>(predicate->Copy()), std::move(table_alias_set)));
+    annotated_predicates->push_back(AnnotatedExpression(predicate, std::move(table_alias_set)));
   }
 }
 
