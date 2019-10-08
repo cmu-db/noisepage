@@ -82,7 +82,7 @@ class GarbageCollector {
    * Process the unlink queue
    * @return number of txns (not UndoRecords) processed for debugging/testing
    */
-  uint32_t ProcessUnlinkQueue(transaction::timestamp_t oldest_txn, transaction::TransactionQueue txns_to_unlink_);
+  uint32_t ProcessUnlinkQueue(transaction::timestamp_t oldest_txn, transaction::TransactionQueue txns_to_unlink);
 
   /**
    * Process deferred actions

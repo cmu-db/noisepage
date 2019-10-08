@@ -11,11 +11,11 @@
 
 namespace terrier::storage {
 
-std::pair<uint32_t, uint32_t> GarbageCollector::PerformGarbageCollection(transaction::TransactionQueue txns_to_unlink_) {
+std::pair<uint32_t, uint32_t> GarbageCollector::PerformGarbageCollection(transaction::TransactionQueue txns_to_unlink) {
   if (observer_ != nullptr) observer_->ObserveGCInvocation();
   timestamp_manager_->CheckOutTimestamp();
   const transaction::timestamp_t oldest_txn = timestamp_manager_->OldestTransactionStartTime();
-  uint32_t txns_unlinked = ProcessUnlinkQueue(oldest_txn, txns_to_unlink_);
+  uint32_t txns_unlinked = ProcessUnlinkQueue(oldest_txn, txns_to_unlink);
   STORAGE_LOG_TRACE("GarbageCollector::PerformGarbageCollection(): txns_unlinked: {}", txns_unlinked);
 
   ProcessDeferredActions(oldest_txn); //TODO (Yashwanth) move this to some other function, this isn't going to be called on a thread
@@ -28,6 +28,15 @@ void GarbageCollector::CleanupTransaction(transaction::TransactionContext *txn) 
       // This is a read-only transaction so this is safe to immediately delete
       delete txn;
   } else {
+    // TODO (yash) If we don't have async threads handling the perform gc below we need to change process here
+    // 1. Acquire txn_to_unlink_latch_ 
+    // 2. push_front
+    // 3. num_txns_to_unlink++
+    // 4. Check if num_txns_to_unlink > MAX_OUTSTANDING_UNLINK_TRANSACTIONS
+    //    4a. If true: transaction::TransactionQueue txns_unlink(std::move(txns_to_unlink_));
+    //    4b. Set perform gc bool to true
+    // 5. Release latch
+    // 6. PerformGarbageCollection(txns_to_unlink_); //don't want to block txns from comitting while this is running
     common::SpinLatch::ScopedSpinLatch guard(&txn_to_unlink_latch_);
     txns_to_unlink_.push_front(txn);
     num_txns_to_unlink_++;
@@ -36,7 +45,7 @@ void GarbageCollector::CleanupTransaction(transaction::TransactionContext *txn) 
     if(num_txns_to_unlink_ > MAX_OUTSTANDING_UNLINK_TRANSACTIONS){
       transaction::TransactionQueue txns_unlink(std::move(txns_to_unlink_));
       deferred_action_manager_->RegisterDeferredAction([=]() { //TODO (Yashwanth) don't need to this to be a deferred event, just need some kind of async task registration mechanism
-        PerformGarbageCollection(txns_to_unlink_);
+        PerformGarbageCollection(txns_unlink);
       });
       num_txns_to_unlink_ = 0;
     }
@@ -44,7 +53,7 @@ void GarbageCollector::CleanupTransaction(transaction::TransactionContext *txn) 
 }
 
 uint32_t GarbageCollector::ProcessUnlinkQueue(
-  transaction::timestamp_t oldest_txn, transaction::TransactionQueue txns_to_unlink_) {
+  transaction::timestamp_t oldest_txn, transaction::TransactionQueue txns_to_unlink) {
   transaction::TransactionContext *txn = nullptr;
 
   uint32_t txns_processed = 0;
@@ -57,9 +66,9 @@ uint32_t GarbageCollector::ProcessUnlinkQueue(
   transaction::TransactionQueue txns_to_deallocate;
 
   // Process every transaction in the unlink queue
-  while (!txns_to_unlink_.empty()) {
-    txn = txns_to_unlink_.front();
-    txns_to_unlink_.pop_front();
+  while (!txns_to_unlink.empty()) {
+    txn = txns_to_unlink.front();
+    txns_to_unlink.pop_front();
 
     if (txn->IsReadOnly()) {
       // This is a read-only transaction so this is safe to immediately delete
@@ -183,6 +192,7 @@ void GarbageCollector::ReclaimBufferIfVarlen(transaction::TransactionContext *co
   }
 }
 
+// TODO (yash) move this to some other thread
 void GarbageCollector::RegisterIndexForGC(const common::ManagedPointer<index::Index> index) {
   TERRIER_ASSERT(index != nullptr, "Index cannot be nullptr.");
   common::SharedLatch::ScopedExclusiveLatch guard(&indexes_latch_);
@@ -190,6 +200,7 @@ void GarbageCollector::RegisterIndexForGC(const common::ManagedPointer<index::In
   indexes_.insert(index);
 }
 
+// TODO (yash) move this to some other thread
 void GarbageCollector::UnregisterIndexForGC(const common::ManagedPointer<index::Index> index) {
   TERRIER_ASSERT(index != nullptr, "Index cannot be nullptr.");
   common::SharedLatch::ScopedExclusiveLatch guard(&indexes_latch_);
