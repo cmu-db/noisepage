@@ -73,7 +73,7 @@ void QueryToOperatorTransformer::Visit(parser::SelectStatement *op, parser::Pars
       auto group_by_cols = std::vector<common::ManagedPointer<parser::AbstractExpression>>(num_group_by_cols);
       for (size_t i = 0; i < num_group_by_cols; i++) {
         group_by_cols[i] =
-            common::ManagedPointer<parser::AbstractExpression>(op->GetSelectGroupBy()->GetColumns()[i]->Copy());
+            common::ManagedPointer<parser::AbstractExpression>(op->GetSelectGroupBy()->GetColumns()[i]);
       }
       agg_expr = new OperatorExpression(LogicalAggregateAndGroupBy::Make(std::move(group_by_cols)), {output_expr_});
       output_expr_ = agg_expr;
@@ -653,7 +653,7 @@ QueryToOperatorTransformer::ConstructSelectElementMap(
       continue;
     }
     std::transform(alias.begin(), alias.end(), alias.begin(), ::tolower);
-    res[alias] = common::ManagedPointer<parser::AbstractExpression>(expr->Copy());
+    res[alias] = common::ManagedPointer<parser::AbstractExpression>(expr);
   }
   return res;
 }
