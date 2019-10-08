@@ -8,7 +8,8 @@
 #include "storage/index/index.h"
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_defs.h"
-#include "transaction/transaction_manager.h"
+
+#define MAX_OUTSTANDING_UNLINK_TRANSACTIONS 20
 
 namespace terrier::storage {
 
@@ -35,18 +36,13 @@ class GarbageCollector {
   //  eliminate this perceived redundancy of taking in a transaction manager.
   GarbageCollector(transaction::TimestampManager *timestamp_manager,
                    transaction::DeferredActionManager *deferred_action_manager,
-                   transaction::TransactionManager *txn_manager, AccessObserver *observer)
+                   AccessObserver *observer)
       : timestamp_manager_(timestamp_manager),
         deferred_action_manager_(deferred_action_manager),
-        txn_manager_(txn_manager),
         observer_(observer),
-        last_unlinked_{0} {
-    TERRIER_ASSERT(txn_manager_->GCEnabled(),
-                   "The TransactionManager needs to be instantiated with gc_enabled true for GC to work!");
-  }
+        last_unlinked_{0} { }
 
   ~GarbageCollector() {
-    TERRIER_ASSERT(txns_to_deallocate_.empty(), "Not all txns have been deallocated");
     TERRIER_ASSERT(txns_to_unlink_.empty(), "Not all txns have been unlinked");
   }
 
@@ -59,7 +55,7 @@ class GarbageCollector {
    * @return A pair of numbers: the first is the number of transactions deallocated (deleted) on this iteration, while
    * the second is the number of transactions unlinked on this iteration.
    */
-  std::pair<uint32_t, uint32_t> PerformGarbageCollection();
+  std::pair<uint32_t, uint32_t> PerformGarbageCollection(transaction::TransactionQueue txns_to_unlink_);
 
   /**
    * Register an index to be periodically garbage collected
@@ -83,16 +79,10 @@ class GarbageCollector {
  private:
 
   /**
-   * Process the deallocate queue
-   * @return number of txns (not UndoRecords) processed for debugging/testing
-   */
-  uint32_t ProcessDeallocateQueue(transaction::timestamp_t oldest_txn);
-
-  /**
    * Process the unlink queue
    * @return number of txns (not UndoRecords) processed for debugging/testing
    */
-  uint32_t ProcessUnlinkQueue(transaction::timestamp_t oldest_txn);
+  uint32_t ProcessUnlinkQueue(transaction::timestamp_t oldest_txn, transaction::TransactionQueue txns_to_unlink_);
 
   /**
    * Process deferred actions
@@ -109,17 +99,18 @@ class GarbageCollector {
 
   transaction::TimestampManager *timestamp_manager_;
   transaction::DeferredActionManager *deferred_action_manager_;
-  transaction::TransactionManager *const txn_manager_;
   AccessObserver *observer_;
   // timestamp of the last time GC unlinked anything. We need this to know when unlinked versions are safe to deallocate
   transaction::timestamp_t last_unlinked_;
-  // queue of txns that have been unlinked, and should possible be deleted on next GC run
-  transaction::TransactionQueue txns_to_deallocate_;
+
   // queue of txns that need to be unlinked
   transaction::TransactionQueue txns_to_unlink_;
+  common::SpinLatch txn_to_unlink_latch_;
+  int num_txns_to_unlink_;
 
   std::unordered_set<common::ManagedPointer<index::Index>> indexes_;
   common::SharedLatch indexes_latch_;
+
 };
 
 }  // namespace terrier::storage

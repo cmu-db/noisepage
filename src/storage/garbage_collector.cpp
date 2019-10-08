@@ -7,29 +7,20 @@
 #include "transaction/deferred_action_manager.h"
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_defs.h"
-#include "transaction/transaction_manager.h"
 #include "transaction/transaction_util.h"
 
 namespace terrier::storage {
 
-std::pair<uint32_t, uint32_t> GarbageCollector::PerformGarbageCollection() {
+std::pair<uint32_t, uint32_t> GarbageCollector::PerformGarbageCollection(transaction::TransactionQueue txns_to_unlink_) {
   if (observer_ != nullptr) observer_->ObserveGCInvocation();
   timestamp_manager_->CheckOutTimestamp();
   const transaction::timestamp_t oldest_txn = timestamp_manager_->OldestTransactionStartTime();
-  uint32_t txns_deallocated = ProcessDeallocateQueue(oldest_txn);
-  STORAGE_LOG_TRACE("GarbageCollector::PerformGarbageCollection(): txns_deallocated: {}", txns_deallocated);
-  uint32_t txns_unlinked = ProcessUnlinkQueue(oldest_txn);
+  uint32_t txns_unlinked = ProcessUnlinkQueue(oldest_txn, txns_to_unlink_);
   STORAGE_LOG_TRACE("GarbageCollector::PerformGarbageCollection(): txns_unlinked: {}", txns_unlinked);
-  if (txns_unlinked > 0) {
-    // Only update this field if we actually unlinked anything, otherwise we're being too conservative about when it's
-    // safe to deallocate the transactions in our queue.
-    last_unlinked_ = timestamp_manager_->CheckOutTimestamp();
-  }
-  STORAGE_LOG_TRACE("GarbageCollector::PerformGarbageCollection(): last_unlinked_: {}",
-                    static_cast<uint64_t>(last_unlinked_));
-  ProcessDeferredActions(oldest_txn);
-  ProcessIndexes();
-  return std::make_pair(txns_deallocated, txns_unlinked);
+
+  ProcessDeferredActions(oldest_txn); //TODO (Yashwanth) move this to some other function, this isn't going to be called on a thread
+  ProcessIndexes(); // TODO (Yashwanth) move this to some other function, this isn't going to be called on a thread
+  return std::make_pair(0, txns_unlinked);
 }
 
 void GarbageCollector::CleanupTransaction(transaction::TransactionContext *txn) {
@@ -37,50 +28,24 @@ void GarbageCollector::CleanupTransaction(transaction::TransactionContext *txn) 
       // This is a read-only transaction so this is safe to immediately delete
       delete txn;
   } else {
-      // Safe to garbage collect.
-    for (auto &undo_record : txn->undo_buffer_) {
-      // It is possible for the table field to be null, for aborted transaction's last conflicting record
-      DataTable *&table = undo_record.Table();
-      // Regardless of the version chain we will need to reclaim deleted slots and any dangling pointers to varlens,
-      // unless the transaction is aborted, and the record holds a version that is still visible.
-      if (!txn->Aborted()) {
-        ReclaimSlotIfDeleted(&undo_record);
-        ReclaimBufferIfVarlen(txn, &undo_record);
-      }
-      if (observer_ != nullptr) observer_->ObserveWrite(undo_record.Slot().GetBlock());
-    }
+    common::SpinLatch::ScopedSpinLatch guard(&txn_to_unlink_latch_);
+    txns_to_unlink_.push_front(txn);
+    num_txns_to_unlink_++;
 
-    deferred_action_manager_->RegisterDeferredAction([=]() {
-       delete txn;
-    });
+    // If more more than max number of transactions to link then clear list and unlink
+    if(num_txns_to_unlink_ > MAX_OUTSTANDING_UNLINK_TRANSACTIONS){
+      transaction::TransactionQueue txns_unlink(std::move(txns_to_unlink_));
+      deferred_action_manager_->RegisterDeferredAction([=]() { //TODO (Yashwanth) don't need to this to be a deferred event, just need some kind of async task registration mechanism
+        PerformGarbageCollection(txns_to_unlink_);
+      });
+      num_txns_to_unlink_ = 0;
+    }
   } 
 }
 
-uint32_t GarbageCollector::ProcessDeallocateQueue(transaction::timestamp_t oldest_txn) {
-  uint32_t txns_processed = 0;
-
-  if (transaction::TransactionUtil::NewerThan(oldest_txn, last_unlinked_)) {
-    // All of the transactions in my deallocation queue were unlinked before the oldest running txn in the system, and
-    // have been serialized by the log manager. We are now safe to deallocate these txns because no running
-    // transaction should hold a reference to them anymore
-    for (auto &txn : txns_to_deallocate_) {
-      delete txn;
-      txns_processed++;
-    }
-    txns_to_deallocate_.clear();
-  }
-  return txns_processed;
-}
-
-uint32_t GarbageCollector::ProcessUnlinkQueue(transaction::timestamp_t oldest_txn) {
+uint32_t GarbageCollector::ProcessUnlinkQueue(
+  transaction::timestamp_t oldest_txn, transaction::TransactionQueue txns_to_unlink_) {
   transaction::TransactionContext *txn = nullptr;
-
-  // Get the completed transactions from the TransactionManager
-  transaction::TransactionQueue completed_txns = txn_manager_->CompletedTransactionsForGC();
-  if (!completed_txns.empty()) {
-    // Append to our local unlink queue
-    txns_to_unlink_.splice_after(txns_to_unlink_.cbefore_begin(), std::move(completed_txns));
-  }
 
   uint32_t txns_processed = 0;
   // Certain transactions might not be yet safe to gc. Need to requeue them
@@ -89,6 +54,7 @@ uint32_t GarbageCollector::ProcessUnlinkQueue(transaction::timestamp_t oldest_tx
   // timestamp once, and the version chain is sorted by timestamp. Here we keep a set of slots to truncate to avoid
   // wasteful traversals of the version chain.
   std::unordered_set<TupleSlot> visited_slots;
+  transaction::TransactionQueue txns_to_deallocate;
 
   // Process every transaction in the unlink queue
   while (!txns_to_unlink_.empty()) {
@@ -99,7 +65,7 @@ uint32_t GarbageCollector::ProcessUnlinkQueue(transaction::timestamp_t oldest_tx
       // This is a read-only transaction so this is safe to immediately delete
       delete txn;
       txns_processed++;
-    } else if (transaction::TransactionUtil::NewerThan(oldest_txn, txn->FinishTime())) {
+    } else {
       // Safe to garbage collect.
       for (auto &undo_record : txn->undo_buffer_) {
         // It is possible for the table field to be null, for aborted transaction's last conflicting record
@@ -116,16 +82,17 @@ uint32_t GarbageCollector::ProcessUnlinkQueue(transaction::timestamp_t oldest_tx
         }
         if (observer_ != nullptr) observer_->ObserveWrite(undo_record.Slot().GetBlock());
       }
-      txns_to_deallocate_.push_front(txn);
+      txns_to_deallocate.push_front(txn);
       txns_processed++;
-    } else {
-      // This is a committed txn that is still visible, requeue for next GC run
-      requeue.push_front(txn);
-    }
+    } 
   }
 
-  // Requeue any txns that we were still visible to running transactions
-  txns_to_unlink_ = transaction::TransactionQueue(std::move(requeue));
+
+  deferred_action_manager_->RegisterDeferredAction([=]() {
+    for(transaction::TransactionContext *ctx : txns_to_deallocate) {
+      delete ctx;
+    }
+  });
 
   return txns_processed;
 }
