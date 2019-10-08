@@ -304,9 +304,9 @@ TEST(OperatorTests, LogicalGetTest) {
                                             std::vector<AnnotatedExpression>{annotated_expr_3}, "table", false);
 
   EXPECT_EQ(logical_get_1.GetType(), OpType::LOGICALGET);
-  EXPECT_EQ(logical_get_1.As<LogicalGet>()->GetDatabaseOID(), catalog::db_oid_t(1));
-  EXPECT_EQ(logical_get_1.As<LogicalGet>()->GetNamespaceOID(), catalog::namespace_oid_t(2));
-  EXPECT_EQ(logical_get_1.As<LogicalGet>()->GetTableOID(), catalog::table_oid_t(3));
+  EXPECT_EQ(logical_get_1.As<LogicalGet>()->GetDatabaseOid(), catalog::db_oid_t(1));
+  EXPECT_EQ(logical_get_1.As<LogicalGet>()->GetNamespaceOid(), catalog::namespace_oid_t(2));
+  EXPECT_EQ(logical_get_1.As<LogicalGet>()->GetTableOid(), catalog::table_oid_t(3));
   EXPECT_EQ(logical_get_1.As<LogicalGet>()->GetPredicates(), std::vector<AnnotatedExpression>());
   EXPECT_EQ(logical_get_3.As<LogicalGet>()->GetPredicates(), std::vector<AnnotatedExpression>{annotated_expr_0});
   EXPECT_EQ(logical_get_4.As<LogicalGet>()->GetPredicates(), std::vector<AnnotatedExpression>{annotated_expr_1});
