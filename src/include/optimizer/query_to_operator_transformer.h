@@ -76,7 +76,7 @@ class QueryToOperatorTransformer : public SqlNodeVisitor {
    * @param predicates The extracted list of predicates
    */
   void CollectPredicates(common::ManagedPointer<parser::AbstractExpression> expr, parser::ParseResult *parse_result,
-                         std::vector<AnnotatedExpression> &predicates);
+                         std::vector<AnnotatedExpression> *predicates);
 
   /**
    * Transform a sub-query in an expression to use
@@ -117,7 +117,7 @@ class QueryToOperatorTransformer : public SqlNodeVisitor {
    * @param annotated_predicates The extracted conjunction predicates
    */
   static void ExtractPredicates(common::ManagedPointer<parser::AbstractExpression> expr,
-                                std::vector<AnnotatedExpression> &annotated_predicates);
+                                std::vector<AnnotatedExpression> *annotated_predicates);
 
   /**
    * Generate a set of table alias included in an expression
@@ -125,7 +125,7 @@ class QueryToOperatorTransformer : public SqlNodeVisitor {
    * @param table_alias_set The generated set of table alias
    */
   static void GenerateTableAliasSet(common::ManagedPointer<parser::AbstractExpression> expr,
-                                    std::unordered_set<std::string> &table_alias_set);
+                                    std::unordered_set<std::string> *table_alias_set);
 
   /**
    * Split conjunction expression tree into a vector of expressions with AND
@@ -133,7 +133,7 @@ class QueryToOperatorTransformer : public SqlNodeVisitor {
    * @param predicates The splited list of predicates
    */
   static void SplitPredicates(common::ManagedPointer<parser::AbstractExpression> expr,
-                              std::vector<common::ManagedPointer<parser::AbstractExpression>> &predicates);
+                              std::vector<common::ManagedPointer<parser::AbstractExpression>> *predicates);
 
   /**
    * Generate a map of column alias to expression using select columns in the select statement
