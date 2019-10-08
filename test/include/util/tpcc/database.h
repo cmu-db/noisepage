@@ -3,9 +3,8 @@
 #include <utility>
 #include "catalog/catalog_defs.h"
 #include "catalog/index_schema.h"
-#include "common/macros.h"
+#include "common/managed_pointer.h"
 #include "storage/index/index.h"
-#include "storage/index/index_defs.h"
 
 namespace terrier::storage {
 class SqlTable;
@@ -23,29 +22,6 @@ namespace terrier::tpcc {
  */
 class Database {
  public:
-  ~Database() {
-    delete item_table_;
-    delete warehouse_table_;
-    delete stock_table_;
-    delete district_table_;
-    delete customer_table_;
-    delete history_table_;
-    delete new_order_table_;
-    delete order_table_;
-    delete order_line_table_;
-
-    delete item_primary_index_;
-    delete warehouse_primary_index_;
-    delete stock_primary_index_;
-    delete district_primary_index_;
-    delete customer_primary_index_;
-    delete customer_secondary_index_;
-    delete new_order_primary_index_;
-    delete order_primary_index_;
-    delete order_secondary_index_;
-    delete order_line_primary_index_;
-  }
-
   const catalog::Schema item_schema_;
   const catalog::Schema warehouse_schema_;
   const catalog::Schema stock_schema_;
@@ -56,15 +32,15 @@ class Database {
   const catalog::Schema order_schema_;
   const catalog::Schema order_line_schema_;
 
-  storage::SqlTable *const item_table_;
-  storage::SqlTable *const warehouse_table_;
-  storage::SqlTable *const stock_table_;
-  storage::SqlTable *const district_table_;
-  storage::SqlTable *const customer_table_;
-  storage::SqlTable *const history_table_;
-  storage::SqlTable *const new_order_table_;
-  storage::SqlTable *const order_table_;
-  storage::SqlTable *const order_line_table_;
+  const common::ManagedPointer<storage::SqlTable> item_table_;
+  const common::ManagedPointer<storage::SqlTable> warehouse_table_;
+  const common::ManagedPointer<storage::SqlTable> stock_table_;
+  const common::ManagedPointer<storage::SqlTable> district_table_;
+  const common::ManagedPointer<storage::SqlTable> customer_table_;
+  const common::ManagedPointer<storage::SqlTable> history_table_;
+  const common::ManagedPointer<storage::SqlTable> new_order_table_;
+  const common::ManagedPointer<storage::SqlTable> order_table_;
+  const common::ManagedPointer<storage::SqlTable> order_line_table_;
 
   const catalog::IndexSchema item_primary_index_schema_;
   const catalog::IndexSchema warehouse_primary_index_schema_;
@@ -77,16 +53,16 @@ class Database {
   const catalog::IndexSchema order_secondary_index_schema_;
   const catalog::IndexSchema order_line_primary_index_schema_;
 
-  storage::index::Index *const item_primary_index_;
-  storage::index::Index *const warehouse_primary_index_;
-  storage::index::Index *const stock_primary_index_;
-  storage::index::Index *const district_primary_index_;
-  storage::index::Index *const customer_primary_index_;
-  storage::index::Index *const customer_secondary_index_;
-  storage::index::Index *const new_order_primary_index_;
-  storage::index::Index *const order_primary_index_;
-  storage::index::Index *const order_secondary_index_;
-  storage::index::Index *const order_line_primary_index_;
+  const common::ManagedPointer<storage::index::Index> item_primary_index_;
+  const common::ManagedPointer<storage::index::Index> warehouse_primary_index_;
+  const common::ManagedPointer<storage::index::Index> stock_primary_index_;
+  const common::ManagedPointer<storage::index::Index> district_primary_index_;
+  const common::ManagedPointer<storage::index::Index> customer_primary_index_;
+  const common::ManagedPointer<storage::index::Index> customer_secondary_index_;
+  const common::ManagedPointer<storage::index::Index> new_order_primary_index_;
+  const common::ManagedPointer<storage::index::Index> order_primary_index_;
+  const common::ManagedPointer<storage::index::Index> order_secondary_index_;
+  const common::ManagedPointer<storage::index::Index> order_line_primary_index_;
 
   const catalog::db_oid_t db_oid_;
 
@@ -103,33 +79,41 @@ class Database {
  private:
   friend class Builder;
 
-  Database(catalog::Schema item_schema, catalog::Schema warehouse_schema, catalog::Schema stock_schema,
-           catalog::Schema district_schema, catalog::Schema customer_schema, catalog::Schema history_schema,
-           catalog::Schema new_order_schema, catalog::Schema order_schema, catalog::Schema order_line_schema,
+  Database(
+      catalog::Schema item_schema, catalog::Schema warehouse_schema, catalog::Schema stock_schema,
+      catalog::Schema district_schema, catalog::Schema customer_schema, catalog::Schema history_schema,
+      catalog::Schema new_order_schema, catalog::Schema order_schema, catalog::Schema order_line_schema,
 
-           storage::SqlTable *const item, storage::SqlTable *const warehouse, storage::SqlTable *const stock,
-           storage::SqlTable *const district, storage::SqlTable *const customer, storage::SqlTable *const history,
-           storage::SqlTable *const new_order, storage::SqlTable *const order, storage::SqlTable *const order_line,
+      const common::ManagedPointer<storage::SqlTable> item, const common::ManagedPointer<storage::SqlTable> warehouse,
+      const common::ManagedPointer<storage::SqlTable> stock, const common::ManagedPointer<storage::SqlTable> district,
+      const common::ManagedPointer<storage::SqlTable> customer, const common::ManagedPointer<storage::SqlTable> history,
+      const common::ManagedPointer<storage::SqlTable> new_order, const common::ManagedPointer<storage::SqlTable> order,
+      const common::ManagedPointer<storage::SqlTable> order_line,
 
-           catalog::IndexSchema item_primary_index_schema, catalog::IndexSchema warehouse_primary_index_schema,
-           catalog::IndexSchema stock_primary_index_schema, catalog::IndexSchema district_primary_index_schema,
-           catalog::IndexSchema customer_primary_index_schema, catalog::IndexSchema customer_secondary_index_schema,
-           catalog::IndexSchema new_order_primary_index_schema, catalog::IndexSchema order_primary_index_schema,
-           catalog::IndexSchema order_secondary_index_schema, catalog::IndexSchema order_line_primary_index_schema,
+      catalog::IndexSchema item_primary_index_schema, catalog::IndexSchema warehouse_primary_index_schema,
+      catalog::IndexSchema stock_primary_index_schema, catalog::IndexSchema district_primary_index_schema,
+      catalog::IndexSchema customer_primary_index_schema, catalog::IndexSchema customer_secondary_index_schema,
+      catalog::IndexSchema new_order_primary_index_schema, catalog::IndexSchema order_primary_index_schema,
+      catalog::IndexSchema order_secondary_index_schema, catalog::IndexSchema order_line_primary_index_schema,
 
-           storage::index::Index *const item_index, storage::index::Index *const warehouse_index,
-           storage::index::Index *const stock_index, storage::index::Index *const district_index,
-           storage::index::Index *const customer_index, storage::index::Index *const customer_name_index,
-           storage::index::Index *const new_order_index, storage::index::Index *const order_index,
-           storage::index::Index *const order_secondary_index, storage::index::Index *const order_line_index,
+      const common::ManagedPointer<storage::index::Index> item_index,
+      const common::ManagedPointer<storage::index::Index> warehouse_index,
+      const common::ManagedPointer<storage::index::Index> stock_index,
+      const common::ManagedPointer<storage::index::Index> district_index,
+      const common::ManagedPointer<storage::index::Index> customer_index,
+      const common::ManagedPointer<storage::index::Index> customer_name_index,
+      const common::ManagedPointer<storage::index::Index> new_order_index,
+      const common::ManagedPointer<storage::index::Index> order_index,
+      const common::ManagedPointer<storage::index::Index> order_secondary_index,
+      const common::ManagedPointer<storage::index::Index> order_line_index,
 
-           const catalog::db_oid_t db_oid,
+      const catalog::db_oid_t db_oid,
 
-           const catalog::table_oid_t item_table_oid, const catalog::table_oid_t warehouse_table_oid,
-           const catalog::table_oid_t stock_table_oid, const catalog::table_oid_t district_table_oid,
-           const catalog::table_oid_t customer_table_oid, const catalog::table_oid_t history_table_oid,
-           const catalog::table_oid_t new_order_table_oid, const catalog::table_oid_t order_table_oid,
-           const catalog::table_oid_t order_line_table_oid)
+      const catalog::table_oid_t item_table_oid, const catalog::table_oid_t warehouse_table_oid,
+      const catalog::table_oid_t stock_table_oid, const catalog::table_oid_t district_table_oid,
+      const catalog::table_oid_t customer_table_oid, const catalog::table_oid_t history_table_oid,
+      const catalog::table_oid_t new_order_table_oid, const catalog::table_oid_t order_table_oid,
+      const catalog::table_oid_t order_line_table_oid)
 
       : item_schema_(std::move(item_schema)),
         warehouse_schema_(std::move(warehouse_schema)),
