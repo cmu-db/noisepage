@@ -54,12 +54,9 @@ class UpdateStatement : public SQLStatement {
    * @param updates update clauses
    * @param where update conditions
    */
-  UpdateStatement(std::shared_ptr<TableRef> table, std::vector<std::shared_ptr<UpdateClause>> updates,
-                  std::shared_ptr<AbstractExpression> where)
-      : SQLStatement(StatementType::UPDATE),
-        table_(std::move(table)),
-        updates_(std::move(updates)),
-        where_(std::move(where)) {}
+  UpdateStatement(std::unique_ptr<TableRef> table, std::vector<std::unique_ptr<UpdateClause>> updates,
+                  common::ManagedPointer<AbstractExpression> where)
+      : SQLStatement(StatementType::UPDATE), table_(std::move(table)), updates_(std::move(updates)), where_(where) {}
 
   UpdateStatement() : SQLStatement(StatementType::UPDATE), table_(nullptr), where_(nullptr) {}
 
@@ -67,25 +64,26 @@ class UpdateStatement : public SQLStatement {
 
   void Accept(SqlNodeVisitor *v) override { v->Visit(this); }
 
-  /**
-   * @return update table target
-   */
-  std::shared_ptr<TableRef> GetUpdateTable() { return table_; }
+  /** @return update table target */
+  common::ManagedPointer<TableRef> GetUpdateTable() { return common::ManagedPointer(table_); }
 
-  /**
-   * @return update clauses
-   */
-  std::vector<std::shared_ptr<UpdateClause>> GetUpdateClauses() { return updates_; }
+  /** @return update clauses */
+  std::vector<common::ManagedPointer<UpdateClause>> GetUpdateClauses() {
+    std::vector<common::ManagedPointer<UpdateClause>> updates;
+    updates.reserve(updates_.size());
+    for (const auto &update : updates_) {
+      updates.emplace_back(common::ManagedPointer(update));
+    }
+    return updates;
+  }
 
-  /**
-   * @return update condition
-   */
-  std::shared_ptr<AbstractExpression> GetUpdateCondition() { return where_; }
+  /** @return update condition */
+  common::ManagedPointer<AbstractExpression> GetUpdateCondition() { return where_; }
 
  private:
-  const std::shared_ptr<TableRef> table_;
-  const std::vector<std::shared_ptr<UpdateClause>> updates_;
-  const std::shared_ptr<AbstractExpression> where_ = nullptr;
+  const std::unique_ptr<TableRef> table_;
+  const std::vector<std::unique_ptr<UpdateClause>> updates_;
+  const common::ManagedPointer<AbstractExpression> where_;
 };
 
 }  // namespace parser

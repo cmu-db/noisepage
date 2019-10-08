@@ -1,5 +1,9 @@
 #include "planner/plannodes/abstract_scan_plan_node.h"
-#include <catalog/catalog_defs.h>
+
+#include <memory>
+#include <utility>
+#include <vector>
+#include "catalog/catalog_defs.h"
 
 namespace terrier::planner {
 
@@ -57,7 +61,7 @@ bool AbstractScanPlanNode::operator==(const AbstractPlanNode &rhs) const {
 
 nlohmann::json AbstractScanPlanNode::ToJson() const {
   nlohmann::json j = AbstractPlanNode::ToJson();
-  j["scan_predicate"] = scan_predicate_;
+  j["scan_predicate"] = scan_predicate_ == nullptr ? nlohmann::json(nullptr) : scan_predicate_->ToJson();
   j["is_for_update"] = is_for_update_;
   j["is_parallel"] = is_parallel_;
   j["database_oid"] = database_oid_;
@@ -65,15 +69,22 @@ nlohmann::json AbstractScanPlanNode::ToJson() const {
   return j;
 }
 
-void AbstractScanPlanNode::FromJson(const nlohmann::json &j) {
-  AbstractPlanNode::FromJson(j);
+std::vector<std::unique_ptr<parser::AbstractExpression>> AbstractScanPlanNode::FromJson(const nlohmann::json &j) {
+  std::vector<std::unique_ptr<parser::AbstractExpression>> exprs;
+  auto e1 = AbstractPlanNode::FromJson(j);
+  exprs.insert(exprs.end(), std::make_move_iterator(e1.begin()), std::make_move_iterator(e1.end()));
   if (!j.at("scan_predicate").is_null()) {
-    scan_predicate_ = parser::DeserializeExpression(j.at("scan_predicate"));
+    auto deserialized = parser::DeserializeExpression(j.at("scan_predicate"));
+    scan_predicate_ = common::ManagedPointer(deserialized.result_);
+    exprs.emplace_back(std::move(deserialized.result_));
+    exprs.insert(exprs.end(), std::make_move_iterator(deserialized.non_owned_exprs_.begin()),
+                 std::make_move_iterator(deserialized.non_owned_exprs_.end()));
   }
   is_for_update_ = j.at("is_for_update").get<bool>();
   is_parallel_ = j.at("is_parallel").get<bool>();
   database_oid_ = j.at("database_oid").get<catalog::db_oid_t>();
   namespace_oid_ = j.at("namespace_oid").get<catalog::namespace_oid_t>();
+  return exprs;
 }
 
 }  // namespace terrier::planner

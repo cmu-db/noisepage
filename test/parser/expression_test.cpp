@@ -30,6 +30,19 @@
 
 namespace terrier::parser::expression {
 
+bool CompareExpressionsEqual(const std::vector<common::ManagedPointer<AbstractExpression>> &expr_children,
+                             const std::vector<std::unique_ptr<AbstractExpression>> &copy_children) {
+  if (expr_children.size() != copy_children.size()) {
+    return false;
+  }
+  for (size_t i = 0; i < expr_children.size(); i++) {
+    if (*expr_children[i] != *copy_children[i]) {
+      return false;
+    }
+  }
+  return true;
+}
+
 // NOLINTNEXTLINE
 TEST(ExpressionTests, ConstantValueExpressionTest) {
   // constant Booleans
@@ -70,7 +83,7 @@ TEST(ExpressionTests, ConstantValueExpressionTest) {
   expr_ti_1->DeriveReturnValueType();
   EXPECT_EQ(expr_ti_1->GetReturnValueType(), type::TransientValueFactory::GetTinyInt(1).Type());
   EXPECT_EQ(expr_ti_1->GetChildrenSize(), 0);
-  EXPECT_EQ(expr_ti_1->GetChildren(), std::vector<std::shared_ptr<AbstractExpression>>());
+  EXPECT_EQ(expr_ti_1->GetChildren(), std::vector<common::ManagedPointer<AbstractExpression>>());
   // Private members depth will be initialized as -1 and has_subquery as false.
   EXPECT_EQ(expr_ti_1->GetDepth(), -1);
   // Private members expression name will be initialized as empty string
@@ -179,7 +192,7 @@ TEST(ExpressionTests, ConstantValueExpressionTest) {
 // NOLINTNEXTLINE
 TEST(ExpressionTests, ConstantValueExpressionJsonTest) {
   // Create expression
-  auto original_expr = std::make_shared<ConstantValueExpression>(
+  auto original_expr = std::make_unique<ConstantValueExpression>(
       type::TransientValueFactory::GetVarChar("ConstantValueExpressionJsonTest"));
 
   EXPECT_EQ(*original_expr, *(original_expr->Copy()));
@@ -189,15 +202,16 @@ TEST(ExpressionTests, ConstantValueExpressionJsonTest) {
   EXPECT_FALSE(json.is_null());
 
   const auto from_json_expr = new ConstantValueExpression();
-  from_json_expr->FromJson(json);
+  auto from_json_res = from_json_expr->FromJson(json);
   EXPECT_TRUE(*original_expr == *from_json_expr);
 
   delete from_json_expr;
 
   // Deserialize expression
-  auto deserialized_expression = DeserializeExpression(json);
-  EXPECT_EQ(*original_expr, *deserialized_expression);
-  EXPECT_EQ(static_cast<ConstantValueExpression *>(deserialized_expression.get())->GetValue(),
+  auto deserialized = DeserializeExpression(json);
+  auto deserialized_expr = common::ManagedPointer(deserialized.result_);
+  EXPECT_EQ(*original_expr, *deserialized_expr);
+  EXPECT_EQ(deserialized_expr.CastManagedPointerTo<ConstantValueExpression>()->GetValue(),
             type::TransientValueFactory::GetVarChar("ConstantValueExpressionJsonTest"));
 }
 
@@ -205,7 +219,7 @@ TEST(ExpressionTests, ConstantValueExpressionJsonTest) {
 TEST(ExpressionTests, NullConstantValueExpressionJsonTest) {
   // Create expression
   auto original_expr =
-      std::make_shared<ConstantValueExpression>(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR));
+      std::make_unique<ConstantValueExpression>(type::TransientValueFactory::GetNull(type::TypeId::VARCHAR));
 
   EXPECT_EQ(*original_expr, *(original_expr->Copy()));
 
@@ -214,38 +228,41 @@ TEST(ExpressionTests, NullConstantValueExpressionJsonTest) {
   EXPECT_FALSE(json.is_null());
 
   const auto from_json_expr = new ConstantValueExpression();
-  from_json_expr->FromJson(json);
+  auto from_json_res = from_json_expr->FromJson(json);
   EXPECT_TRUE(*original_expr == *from_json_expr);
 
   delete from_json_expr;
 
   // Deserialize expression
-  auto deserialized_expression = DeserializeExpression(json);
-  EXPECT_EQ(*original_expr, *deserialized_expression);
-  EXPECT_TRUE(static_cast<ConstantValueExpression *>(deserialized_expression.get())->GetValue().Null());
+  auto deserialized = DeserializeExpression(json);
+  auto deserialized_expr = common::ManagedPointer(deserialized.result_);
+  EXPECT_EQ(*original_expr, *deserialized_expr);
+  EXPECT_TRUE(deserialized_expr.CastManagedPointerTo<ConstantValueExpression>()->GetValue().Null());
 }
 
 // NOLINTNEXTLINE
 TEST(ExpressionTests, ConjunctionExpressionTest) {
-  std::vector<std::shared_ptr<AbstractExpression>> children1;
-  children1.emplace_back(std::make_shared<ConstantValueExpression>(type::TransientValueFactory::GetBoolean(true)));
-  children1.emplace_back(std::make_shared<ConstantValueExpression>(type::TransientValueFactory::GetBoolean(false)));
-  auto children1cp = children1;
+  std::vector<std::unique_ptr<AbstractExpression>> children1;
+  children1.emplace_back(std::make_unique<ConstantValueExpression>(type::TransientValueFactory::GetBoolean(true)));
+  children1.emplace_back(std::make_unique<ConstantValueExpression>(type::TransientValueFactory::GetBoolean(false)));
+  std::vector<std::unique_ptr<AbstractExpression>> children1cp;
+  children1cp.emplace_back(std::make_unique<ConstantValueExpression>(type::TransientValueFactory::GetBoolean(true)));
+  children1cp.emplace_back(std::make_unique<ConstantValueExpression>(type::TransientValueFactory::GetBoolean(false)));
   auto c_expr_1 = new ConjunctionExpression(ExpressionType::CONJUNCTION_AND, std::move(children1));
 
-  std::vector<std::shared_ptr<AbstractExpression>> children2;
-  children2.emplace_back(std::make_shared<ConstantValueExpression>(type::TransientValueFactory::GetBoolean(true)));
-  children2.emplace_back(std::make_shared<ConstantValueExpression>(type::TransientValueFactory::GetBoolean(false)));
+  std::vector<std::unique_ptr<AbstractExpression>> children2;
+  children2.emplace_back(std::make_unique<ConstantValueExpression>(type::TransientValueFactory::GetBoolean(true)));
+  children2.emplace_back(std::make_unique<ConstantValueExpression>(type::TransientValueFactory::GetBoolean(false)));
   auto c_expr_2 = new ConjunctionExpression(ExpressionType::CONJUNCTION_AND, std::move(children2));
 
-  std::vector<std::shared_ptr<AbstractExpression>> children3;
-  children3.emplace_back(std::make_shared<ConstantValueExpression>(type::TransientValueFactory::GetBoolean(true)));
-  children3.emplace_back(std::make_shared<ConstantValueExpression>(type::TransientValueFactory::GetBoolean(true)));
+  std::vector<std::unique_ptr<AbstractExpression>> children3;
+  children3.emplace_back(std::make_unique<ConstantValueExpression>(type::TransientValueFactory::GetBoolean(true)));
+  children3.emplace_back(std::make_unique<ConstantValueExpression>(type::TransientValueFactory::GetBoolean(true)));
   auto c_expr_3 = new ConjunctionExpression(ExpressionType::CONJUNCTION_AND, std::move(children3));
 
-  std::vector<std::shared_ptr<AbstractExpression>> children4;
-  children4.emplace_back(std::make_shared<ConstantValueExpression>(type::TransientValueFactory::GetBoolean(true)));
-  children4.emplace_back(std::make_shared<ConstantValueExpression>(type::TransientValueFactory::GetBoolean(false)));
+  std::vector<std::unique_ptr<AbstractExpression>> children4;
+  children4.emplace_back(std::make_unique<ConstantValueExpression>(type::TransientValueFactory::GetBoolean(true)));
+  children4.emplace_back(std::make_unique<ConstantValueExpression>(type::TransientValueFactory::GetBoolean(false)));
   auto c_expr_4 = new ConjunctionExpression(ExpressionType::CONJUNCTION_OR, std::move(children4));
 
   EXPECT_TRUE(*c_expr_1 == *c_expr_2);
@@ -263,7 +280,7 @@ TEST(ExpressionTests, ConjunctionExpressionTest) {
   c_expr_1->DeriveReturnValueType();
   EXPECT_EQ(c_expr_1->GetReturnValueType(), type::TypeId::BOOLEAN);
   EXPECT_EQ(c_expr_1->GetChildrenSize(), children1cp.size());
-  EXPECT_EQ(c_expr_1->GetChildren(), children1cp);
+  EXPECT_TRUE(CompareExpressionsEqual(c_expr_1->GetChildren(), children1cp));
   // Private members depth will be initialized as -1 and has_subquery as false.
   EXPECT_EQ(c_expr_1->GetDepth(), -1);
   // depth is still -1 after deriveDepth, as the depth is set in binder
@@ -281,9 +298,9 @@ TEST(ExpressionTests, ConjunctionExpressionTest) {
 // NOLINTNEXTLINE
 TEST(ExpressionTests, ConjunctionExpressionJsonTest) {
   // Create expression
-  std::vector<std::shared_ptr<AbstractExpression>> children1;
-  children1.emplace_back(std::make_shared<ConstantValueExpression>(type::TransientValueFactory::GetBoolean(true)));
-  children1.emplace_back(std::make_shared<ConstantValueExpression>(type::TransientValueFactory::GetBoolean(false)));
+  std::vector<std::unique_ptr<AbstractExpression>> children1;
+  children1.emplace_back(std::make_unique<ConstantValueExpression>(type::TransientValueFactory::GetBoolean(true)));
+  children1.emplace_back(std::make_unique<ConstantValueExpression>(type::TransientValueFactory::GetBoolean(false)));
   auto c_expr_1 = new ConjunctionExpression(ExpressionType::CONJUNCTION_AND, std::move(children1));
 
   EXPECT_EQ(*c_expr_1, *(c_expr_1->Copy()));
@@ -299,9 +316,10 @@ TEST(ExpressionTests, ConjunctionExpressionJsonTest) {
   delete from_json_expr;
 
   // Deserialize expression
-  auto deserialized_expression = DeserializeExpression(json);
-  EXPECT_EQ(*c_expr_1, *deserialized_expression);
-  auto *deserialized_c_expr_1 = static_cast<ConjunctionExpression *>(deserialized_expression.get());
+  auto deserialized = DeserializeExpression(json);
+  auto deserialized_expr = common::ManagedPointer(deserialized.result_);
+  EXPECT_EQ(*c_expr_1, *deserialized_expr);
+  auto deserialized_c_expr_1 = deserialized_expr.CastManagedPointerTo<ConjunctionExpression>();
   EXPECT_EQ(c_expr_1->GetReturnValueType(), deserialized_c_expr_1->GetReturnValueType());
 
   delete c_expr_1;
@@ -310,39 +328,34 @@ TEST(ExpressionTests, ConjunctionExpressionJsonTest) {
 // NOLINTNEXTLINE
 TEST(ExpressionTests, AggregateExpressionTest) {
   // Create expression 1
-  std::vector<std::shared_ptr<AbstractExpression>> children_1;
-  auto child_expr_1 = std::make_shared<StarExpression>();
-  children_1.push_back(std::move(child_expr_1));
-  auto childrent_1_cp = children_1;
+  std::vector<std::unique_ptr<AbstractExpression>> children_1;
+  children_1.emplace_back(std::make_unique<StarExpression>());
+  std::vector<std::unique_ptr<AbstractExpression>> childrent_1_cp;
+  childrent_1_cp.emplace_back(std::make_unique<StarExpression>());
   auto agg_expr_1 = new AggregateExpression(ExpressionType::AGGREGATE_COUNT, std::move(children_1), true);
 
   // Create expression 2
-  std::vector<std::shared_ptr<AbstractExpression>> children_2;
-  auto child_expr_2 = std::make_shared<StarExpression>();
-  children_2.push_back(std::move(child_expr_2));
+  std::vector<std::unique_ptr<AbstractExpression>> children_2;
+  children_2.emplace_back(std::make_unique<StarExpression>());
   auto agg_expr_2 = new AggregateExpression(ExpressionType::AGGREGATE_COUNT, std::move(children_2), true);
 
   // Create expression 3, field distinct
-  std::vector<std::shared_ptr<AbstractExpression>> children_3;
-  auto child_expr_3 = std::make_shared<StarExpression>();
-  children_3.push_back(std::move(child_expr_3));
+  std::vector<std::unique_ptr<AbstractExpression>> children_3;
+  children_3.emplace_back(std::make_unique<StarExpression>());
   auto agg_expr_3 = new AggregateExpression(ExpressionType::AGGREGATE_COUNT, std::move(children_3), false);
 
   // Expresion type comparison and children comparison are implemented in the base class abstract expression
   //  testing them here once is enough
 
   // Create expression 4, field childsize
-  std::vector<std::shared_ptr<AbstractExpression>> children_4;
-  auto child_expr_4 = std::make_shared<StarExpression>();
-  auto child_expr_4_2 = std::make_shared<StarExpression>();
-  children_4.push_back(std::move(child_expr_4));
-  children_4.push_back(std::move(child_expr_4_2));
+  std::vector<std::unique_ptr<AbstractExpression>> children_4;
+  children_4.emplace_back(std::make_unique<StarExpression>());
+  children_4.emplace_back(std::make_unique<StarExpression>());
   auto agg_expr_4 = new AggregateExpression(ExpressionType::AGGREGATE_COUNT, std::move(children_4), true);
 
   // Create expression 5, field child type
-  std::vector<std::shared_ptr<AbstractExpression>> children_5;
-  auto child_expr_5 = std::make_shared<ConstantValueExpression>();
-  children_5.push_back(std::move(child_expr_5));
+  std::vector<std::unique_ptr<AbstractExpression>> children_5;
+  children_5.emplace_back(std::make_unique<ConstantValueExpression>(type::TransientValueFactory::GetBoolean(false)));
   auto agg_expr_5 = new AggregateExpression(ExpressionType::AGGREGATE_COUNT, std::move(children_5), true);
 
   EXPECT_TRUE(*agg_expr_1 == *agg_expr_2);
@@ -362,7 +375,7 @@ TEST(ExpressionTests, AggregateExpressionTest) {
   agg_expr_1->DeriveReturnValueType();
   EXPECT_EQ(agg_expr_1->GetReturnValueType(), type::TypeId::INTEGER);
   EXPECT_EQ(agg_expr_1->GetChildrenSize(), 1);
-  EXPECT_EQ(agg_expr_1->GetChildren(), childrent_1_cp);
+  EXPECT_TRUE(CompareExpressionsEqual(agg_expr_1->GetChildren(), childrent_1_cp));
   EXPECT_TRUE(agg_expr_1->IsDistinct());
   // Private members depth will be initialized as -1 and has_subquery as false.
   EXPECT_EQ(agg_expr_1->GetDepth(), -1);
@@ -371,8 +384,8 @@ TEST(ExpressionTests, AggregateExpressionTest) {
   EXPECT_EQ(agg_expr_1->GetExpressionName(), "COUNT STAR");
 
   // Testing DeriveReturnValueType functionality
-  auto children_6 = std::vector<std::shared_ptr<AbstractExpression>>{
-      std::make_shared<ConstantValueExpression>(type::TransientValueFactory::GetBoolean(true))};
+  std::vector<std::unique_ptr<AbstractExpression>> children_6;
+  children_6.emplace_back(std::make_unique<ConstantValueExpression>(type::TransientValueFactory::GetBoolean(true)));
   auto agg_expr_6 = new AggregateExpression(ExpressionType::AGGREGATE_MAX, std::move(children_6), true);
   agg_expr_6->DeriveReturnValueType();
 
@@ -381,8 +394,8 @@ TEST(ExpressionTests, AggregateExpressionTest) {
   EXPECT_EQ(agg_expr_6->GetReturnValueType(), type::TransientValueFactory::GetBoolean(true).Type());
 
   // Testing DeriveReturnValueType functionality
-  auto children_7 = std::vector<std::shared_ptr<AbstractExpression>>{
-      std::make_shared<ConstantValueExpression>(type::TransientValueFactory::GetBoolean(true))};
+  std::vector<std::unique_ptr<AbstractExpression>> children_7;
+  children_7.emplace_back(std::make_unique<ConstantValueExpression>(type::TransientValueFactory::GetBoolean(true)));
   auto agg_expr_7 = new AggregateExpression(ExpressionType::AGGREGATE_AVG, std::move(children_7), true);
   agg_expr_7->DeriveReturnValueType();
 
@@ -391,9 +404,10 @@ TEST(ExpressionTests, AggregateExpressionTest) {
   EXPECT_EQ(agg_expr_7->GetReturnValueType(), type::TypeId::DECIMAL);
 
   // Testing DeriveReturnValueType functionality
-  auto children_8 = std::vector<std::shared_ptr<AbstractExpression>>{
-      std::make_shared<ConstantValueExpression>(type::TransientValueFactory::GetBoolean(true))};
+  std::vector<std::unique_ptr<AbstractExpression>> children_8;
+  children_8.emplace_back(std::make_unique<ConstantValueExpression>(type::TransientValueFactory::GetBoolean(true)));
   auto agg_expr_8 = new AggregateExpression(ExpressionType(100), std::move(children_8), true);
+  // TODO(WAN): Why is there a random NDEBUG here?
 #ifndef NDEBUG
   EXPECT_THROW(agg_expr_8->DeriveReturnValueType(), ParserException);
 #endif
@@ -411,11 +425,11 @@ TEST(ExpressionTests, AggregateExpressionTest) {
 // NOLINTNEXTLINE
 TEST(ExpressionTests, AggregateExpressionJsonTest) {
   // Create expression
-  std::vector<std::shared_ptr<AbstractExpression>> children;
-  auto child_expr = std::make_shared<StarExpression>();
+  std::vector<std::unique_ptr<AbstractExpression>> children;
+  auto child_expr = std::make_unique<StarExpression>();
   children.push_back(std::move(child_expr));
-  std::shared_ptr<AggregateExpression> original_expr =
-      std::make_shared<AggregateExpression>(ExpressionType::AGGREGATE_COUNT, std::move(children), true /* distinct */);
+  std::unique_ptr<AggregateExpression> original_expr =
+      std::make_unique<AggregateExpression>(ExpressionType::AGGREGATE_COUNT, std::move(children), true /* distinct */);
 
   EXPECT_EQ(*original_expr, *(original_expr->Copy()));
 
@@ -430,41 +444,47 @@ TEST(ExpressionTests, AggregateExpressionJsonTest) {
   delete from_json_expr;
 
   // Deserialize expression
-  auto deserialized_expression = DeserializeExpression(json);
-  EXPECT_EQ(*original_expr, *deserialized_expression);
-  EXPECT_EQ(original_expr->IsDistinct(),
-            dynamic_cast<AggregateExpression *>(deserialized_expression.get())->IsDistinct());
+  auto deserialized = DeserializeExpression(json);
+  auto deserialized_expr = common::ManagedPointer(deserialized.result_);
+  EXPECT_EQ(*original_expr, *deserialized_expr);
+  EXPECT_EQ(original_expr->IsDistinct(), deserialized_expr.CastManagedPointerTo<AggregateExpression>()->IsDistinct());
 }
 
 // NOLINTNEXTLINE
 TEST(ExpressionTests, CaseExpressionTest) {
   // Create expression 1
-  std::shared_ptr<StarExpression> const_expr = std::make_shared<StarExpression>();
   std::vector<CaseExpression::WhenClause> when_clauses;
-  CaseExpression::WhenClause when{const_expr, const_expr};
-  when_clauses.push_back(when);
-  auto case_expr = new CaseExpression(type::TypeId::BOOLEAN, std::move(when_clauses), const_expr);
+  when_clauses.emplace_back(
+      CaseExpression::WhenClause{std::make_unique<StarExpression>(), std::make_unique<StarExpression>()});
+  auto case_expr =
+      new CaseExpression(type::TypeId::BOOLEAN, std::move(when_clauses), std::make_unique<StarExpression>());
 
   // Create expression 2
-  std::shared_ptr<StarExpression> const_expr_2 = std::make_shared<StarExpression>();
   std::vector<CaseExpression::WhenClause> when_clauses_2;
-  CaseExpression::WhenClause when_2{const_expr_2, const_expr_2};
-  when_clauses_2.push_back(when_2);
-  auto case_expr_2 = new CaseExpression(type::TypeId::BOOLEAN, std::move(when_clauses_2), const_expr_2);
+  when_clauses_2.emplace_back(
+      CaseExpression::WhenClause{std::make_unique<StarExpression>(), std::make_unique<StarExpression>()});
+  auto case_expr_2 =
+      new CaseExpression(type::TypeId::BOOLEAN, std::move(when_clauses_2), std::make_unique<StarExpression>());
 
   // Create expression 3
-  std::shared_ptr<ConstantValueExpression> const_expr_3 = std::make_shared<ConstantValueExpression>();
   std::vector<CaseExpression::WhenClause> when_clauses_3;
-  CaseExpression::WhenClause when_3{const_expr_3, const_expr_2};
-  when_clauses_3.push_back(when_3);
-  auto case_expr_3 = new CaseExpression(type::TypeId::BOOLEAN, std::move(when_clauses_3), const_expr_3);
+  when_clauses_3.emplace_back(CaseExpression::WhenClause{
+      std::make_unique<ConstantValueExpression>(type::TransientValueFactory::GetBoolean(false)),
+      std::make_unique<StarExpression>()});
+  auto case_expr_3 =
+      new CaseExpression(type::TypeId::BOOLEAN, std::move(when_clauses_3),
+                         std::make_unique<ConstantValueExpression>(type::TransientValueFactory::GetBoolean(false)));
 
   // Create expression 4
-  std::shared_ptr<StarExpression> const_expr_4 = std::make_shared<StarExpression>();
   std::vector<CaseExpression::WhenClause> when_clauses_4;
-  CaseExpression::WhenClause when_4{const_expr_4, const_expr_4};
-  when_clauses_4.push_back(when_4);
-  auto case_expr_4 = new CaseExpression(type::TypeId::INTEGER, std::move(when_clauses_4), const_expr_4);
+  when_clauses_4.emplace_back(
+      CaseExpression::WhenClause{std::make_unique<StarExpression>(), std::make_unique<StarExpression>()});
+  auto case_expr_4 =
+      new CaseExpression(type::TypeId::INTEGER, std::move(when_clauses_4), std::make_unique<StarExpression>());
+
+  // TODO(WAN): StarExpression should probably be a singleton some day.
+  // Reusable star expression.
+  auto star_expr = std::make_unique<StarExpression>();
 
   EXPECT_TRUE(*case_expr == *case_expr_2);
   EXPECT_FALSE(*case_expr == *case_expr_3);
@@ -480,9 +500,9 @@ TEST(ExpressionTests, CaseExpressionTest) {
   case_expr->DeriveReturnValueType();
   EXPECT_EQ(case_expr->GetReturnValueType(), type::TypeId::BOOLEAN);
   EXPECT_EQ(case_expr->GetChildrenSize(), 0);
-  EXPECT_EQ(case_expr->GetWhenClauseCondition(0), const_expr);
-  EXPECT_EQ(case_expr->GetWhenClauseResult(0), const_expr);
-  EXPECT_EQ(case_expr->GetDefaultClause(), const_expr);
+  EXPECT_EQ(*case_expr->GetWhenClauseCondition(0), *star_expr);
+  EXPECT_EQ(*case_expr->GetWhenClauseResult(0), *star_expr);
+  EXPECT_EQ(*case_expr->GetDefaultClause(), *star_expr);
   // Private members depth will be initialized as -1 and has_subquery as false.
   EXPECT_EQ(case_expr->GetDepth(), -1);
   EXPECT_FALSE(case_expr->HasSubquery());
@@ -500,12 +520,11 @@ TEST(ExpressionTests, CaseExpressionTest) {
 // NOLINTNEXTLINE
 TEST(ExpressionTests, CaseExpressionJsonTest) {
   // Create expression
-  std::shared_ptr<StarExpression> const_expr = std::make_shared<StarExpression>();
   std::vector<CaseExpression::WhenClause> when_clauses;
-  CaseExpression::WhenClause when{const_expr, const_expr};
-  when_clauses.push_back(when);
-  std::shared_ptr<CaseExpression> case_expr =
-      std::make_shared<CaseExpression>(type::TypeId::BOOLEAN, std::move(when_clauses), const_expr);
+  when_clauses.emplace_back(
+      CaseExpression::WhenClause{std::make_unique<StarExpression>(), std::make_unique<StarExpression>()});
+  auto case_expr = std::make_unique<CaseExpression>(type::TypeId::BOOLEAN, std::move(when_clauses),
+                                                    std::make_unique<StarExpression>());
 
   EXPECT_EQ(*case_expr, *(case_expr->Copy()));
 
@@ -520,31 +539,32 @@ TEST(ExpressionTests, CaseExpressionJsonTest) {
   delete from_json_expr;
 
   // Deserialize expression
-  auto deserialized_expression = DeserializeExpression(json);
-  EXPECT_EQ(*case_expr, *deserialized_expression);
-  auto *deserialized_case_expr = static_cast<CaseExpression *>(deserialized_expression.get());
+  auto deserialized = DeserializeExpression(json);
+  auto deserialized_case_expr = common::ManagedPointer(deserialized.result_).CastManagedPointerTo<CaseExpression>();
+  EXPECT_EQ(*case_expr, *deserialized_case_expr);
   EXPECT_EQ(case_expr->GetReturnValueType(), deserialized_case_expr->GetReturnValueType());
   EXPECT_TRUE(deserialized_case_expr->GetDefaultClause() != nullptr);
-  EXPECT_EQ(const_expr->GetExpressionType(), deserialized_case_expr->GetDefaultClause()->GetExpressionType());
+  EXPECT_EQ(std::make_unique<StarExpression>()->GetExpressionType(),
+            deserialized_case_expr->GetDefaultClause()->GetExpressionType());
 }
 
 // NOLINTNEXTLINE
 TEST(ExpressionTests, FunctionExpressionTest) {
-  auto func_expr_1 = std::make_shared<FunctionExpression>("FullHouse", type::TypeId::VARCHAR,
-                                                          std::vector<std::shared_ptr<AbstractExpression>>());
-  auto func_expr_2 = std::make_shared<FunctionExpression>("FullHouse", type::TypeId::VARCHAR,
-                                                          std::vector<std::shared_ptr<AbstractExpression>>());
-  auto func_expr_3 = std::make_shared<FunctionExpression>("Flush", type::TypeId::VARCHAR,
-                                                          std::vector<std::shared_ptr<AbstractExpression>>());
-  auto func_expr_4 = std::make_shared<FunctionExpression>("FullHouse", type::TypeId::VARBINARY,
-                                                          std::vector<std::shared_ptr<AbstractExpression>>());
+  auto func_expr_1 = std::make_unique<FunctionExpression>("FullHouse", type::TypeId::VARCHAR,
+                                                          std::vector<std::unique_ptr<AbstractExpression>>());
+  auto func_expr_2 = std::make_unique<FunctionExpression>("FullHouse", type::TypeId::VARCHAR,
+                                                          std::vector<std::unique_ptr<AbstractExpression>>());
+  auto func_expr_3 = std::make_unique<FunctionExpression>("Flush", type::TypeId::VARCHAR,
+                                                          std::vector<std::unique_ptr<AbstractExpression>>());
+  auto func_expr_4 = std::make_unique<FunctionExpression>("FullHouse", type::TypeId::VARBINARY,
+                                                          std::vector<std::unique_ptr<AbstractExpression>>());
 
-  std::vector<std::shared_ptr<AbstractExpression>> children;
-  auto child_expr = std::make_shared<StarExpression>();
-  auto child_expr_2 = std::make_shared<ConstantValueExpression>(type::TransientValueFactory::GetBoolean(true));
+  std::vector<std::unique_ptr<AbstractExpression>> children;
+  auto child_expr = std::make_unique<StarExpression>();
+  auto child_expr_2 = std::make_unique<ConstantValueExpression>(type::TransientValueFactory::GetBoolean(true));
   children.push_back(std::move(child_expr));
   children.push_back(std::move(child_expr_2));
-  auto func_expr_5 = std::make_shared<FunctionExpression>("FullHouse", type::TypeId::VARCHAR, std::move(children));
+  auto func_expr_5 = std::make_unique<FunctionExpression>("FullHouse", type::TypeId::VARCHAR, std::move(children));
 
   EXPECT_TRUE(*func_expr_1 == *func_expr_2);
   EXPECT_FALSE(*func_expr_1 == *func_expr_3);
@@ -563,9 +583,9 @@ TEST(ExpressionTests, FunctionExpressionTest) {
 // NOLINTNEXTLINE
 TEST(ExpressionTests, FunctionExpressionJsonTest) {
   // Create expression
-  std::vector<std::shared_ptr<AbstractExpression>> children;
+  std::vector<std::unique_ptr<AbstractExpression>> children;
   auto fn_ret_type = type::TypeId::VARCHAR;
-  auto original_expr = std::make_shared<FunctionExpression>("Funhouse", fn_ret_type, std::move(children));
+  auto original_expr = std::make_unique<FunctionExpression>("Funhouse", fn_ret_type, std::move(children));
 
   EXPECT_EQ(*original_expr, *(original_expr->Copy()));
 
@@ -574,10 +594,11 @@ TEST(ExpressionTests, FunctionExpressionJsonTest) {
   EXPECT_FALSE(json.is_null());
 
   // Deserialize expression
-  auto deserialized_expression = DeserializeExpression(json);
-  EXPECT_EQ(*original_expr, *deserialized_expression);
-  EXPECT_EQ(static_cast<FunctionExpression *>(deserialized_expression.get())->GetFuncName(), "Funhouse");
-  EXPECT_EQ(static_cast<FunctionExpression *>(deserialized_expression.get())->GetReturnValueType(), fn_ret_type);
+  auto deserialized = DeserializeExpression(json);
+  auto deserialized_expr = common::ManagedPointer(deserialized.result_).CastManagedPointerTo<FunctionExpression>();
+  EXPECT_EQ(*original_expr, *deserialized_expr);
+  EXPECT_EQ(deserialized_expr->GetFuncName(), "Funhouse");
+  EXPECT_EQ(deserialized_expr->GetReturnValueType(), fn_ret_type);
 }
 
 // NOLINTNEXTLINE
@@ -587,24 +608,27 @@ TEST(ExpressionTests, OperatorExpressionTest) {
 
   auto op_ret_type = type::TypeId::BOOLEAN;
   auto op_expr_1 = new OperatorExpression(ExpressionType::OPERATOR_NOT, op_ret_type,
-                                          std::vector<std::shared_ptr<AbstractExpression>>());
+                                          std::vector<std::unique_ptr<AbstractExpression>>());
   op_expr_1->DeriveReturnValueType();
   EXPECT_TRUE(op_expr_1->GetReturnValueType() == type::TypeId::BOOLEAN);
   op_expr_1->DeriveExpressionName();
   EXPECT_EQ(op_expr_1->GetExpressionName(), "OPERATOR_NOT");
 
-  auto child1 = std::make_shared<ConstantValueExpression>(type::TransientValueFactory::GetDecimal(1));
-  auto child2 = std::make_shared<ConstantValueExpression>(type::TransientValueFactory::GetBigInt(32768));
-  auto children = std::vector<std::shared_ptr<AbstractExpression>>{child1, child2};
-  auto children_cp = children;
+  std::vector<std::unique_ptr<AbstractExpression>> children;
+  children.emplace_back(std::make_unique<ConstantValueExpression>(type::TransientValueFactory::GetDecimal(1)));
+  children.emplace_back(std::make_unique<ConstantValueExpression>(type::TransientValueFactory::GetBigInt(32768)));
+  std::vector<std::unique_ptr<AbstractExpression>> children_cp;
+  children_cp.emplace_back(std::make_unique<ConstantValueExpression>(type::TransientValueFactory::GetDecimal(1)));
+  children_cp.emplace_back(std::make_unique<ConstantValueExpression>(type::TransientValueFactory::GetBigInt(32768)));
+
   auto op_expr_2 = new OperatorExpression(ExpressionType::OPERATOR_PLUS, type::TypeId::INVALID, std::move(children));
   op_expr_2->DeriveReturnValueType();
   EXPECT_TRUE(op_expr_2->GetReturnValueType() == type::TransientValueFactory::GetDecimal(1).Type());
   op_expr_2->DeriveExpressionName();
   EXPECT_EQ(op_expr_2->GetExpressionName(), "+ DECIMAL + BIGINT");
 
-  auto child3 = std::make_shared<ConstantValueExpression>(type::TransientValueFactory::GetDate(type::date_t(1)));
-  children_cp.push_back(child3);
+  auto child3 = std::make_unique<ConstantValueExpression>(type::TransientValueFactory::GetDate(type::date_t(1)));
+  children_cp.push_back(std::move(child3));
   auto op_expr_3 =
       new OperatorExpression(ExpressionType::OPERATOR_CONCAT, type::TypeId::INVALID, std::move(children_cp));
 
@@ -631,9 +655,9 @@ TEST(ExpressionTests, OperatorExpressionJsonTest) {
 
   for (const auto &op : operators) {
     // Create expression
-    std::vector<std::shared_ptr<AbstractExpression>> children;
+    std::vector<std::unique_ptr<AbstractExpression>> children;
     auto op_ret_type = type::TypeId::BOOLEAN;
-    auto original_expr = std::make_shared<OperatorExpression>(op, op_ret_type, std::move(children));
+    auto original_expr = std::make_unique<OperatorExpression>(op, op_ret_type, std::move(children));
 
     EXPECT_EQ(*original_expr, *(original_expr->Copy()));
 
@@ -642,10 +666,11 @@ TEST(ExpressionTests, OperatorExpressionJsonTest) {
     EXPECT_FALSE(json.is_null());
 
     // Deserialize expression
-    auto deserialized_expression = DeserializeExpression(json);
-    EXPECT_EQ(*original_expr, *deserialized_expression);
-    EXPECT_EQ(static_cast<OperatorExpression *>(deserialized_expression.get())->GetExpressionType(), op);
-    EXPECT_EQ(static_cast<OperatorExpression *>(deserialized_expression.get())->GetReturnValueType(), op_ret_type);
+    auto deserialized = DeserializeExpression(json);
+    auto deserialized_expr = common::ManagedPointer(deserialized.result_).CastManagedPointerTo<OperatorExpression>();
+    EXPECT_EQ(*original_expr, *deserialized_expr);
+    EXPECT_EQ(deserialized_expr->GetExpressionType(), op);
+    EXPECT_EQ(deserialized_expr->GetReturnValueType(), op_ret_type);
   }
 }
 
@@ -653,8 +678,8 @@ TEST(ExpressionTests, OperatorExpressionJsonTest) {
 TEST(ExpressionTests, TypeCastExpressionJsonTest) {
   // No generic TypeCastExpression test
   // Create expression
-  std::vector<std::shared_ptr<AbstractExpression>> children;
-  auto child_expr = std::make_shared<StarExpression>();
+  std::vector<std::unique_ptr<AbstractExpression>> children;
+  auto child_expr = std::make_unique<StarExpression>();
   children.push_back(std::move(child_expr));
   auto original_expr = new TypeCastExpression(type::TypeId::SMALLINT, std::move(children));
   EXPECT_EQ(original_expr->GetExpressionType(), ExpressionType::OPERATOR_CAST);
@@ -667,12 +692,11 @@ TEST(ExpressionTests, TypeCastExpressionJsonTest) {
   EXPECT_FALSE(json.is_null());
 
   // Deserialize expression
-  auto deserialized_expression = DeserializeExpression(json);
-  EXPECT_EQ(*original_expr, *deserialized_expression);
-  EXPECT_EQ(static_cast<TypeCastExpression *>(deserialized_expression.get())->GetExpressionType(),
-            ExpressionType::OPERATOR_CAST);
-  EXPECT_EQ(original_expr->GetReturnValueType(),
-            static_cast<TypeCastExpression *>(deserialized_expression.get())->GetReturnValueType());
+  auto deserialized = DeserializeExpression(json);
+  auto deserialized_expr = common::ManagedPointer(deserialized.result_).CastManagedPointerTo<TypeCastExpression>();
+  EXPECT_EQ(*original_expr, *deserialized_expr);
+  EXPECT_EQ(deserialized_expr->GetExpressionType(), ExpressionType::OPERATOR_CAST);
+  EXPECT_EQ(original_expr->GetReturnValueType(), deserialized_expr->GetReturnValueType());
   delete original_expr;
 }
 
@@ -702,8 +726,8 @@ TEST(ExpressionTests, ParameterValueExpressionTest) {
 // NOLINTNEXTLINE
 TEST(ExpressionTests, ParameterValueExpressionJsonTest) {
   // Create expression
-  std::shared_ptr<ParameterValueExpression> original_expr =
-      std::make_shared<ParameterValueExpression>(42 /* value_idx */);
+  std::unique_ptr<ParameterValueExpression> original_expr =
+      std::make_unique<ParameterValueExpression>(42 /* value_idx */);
 
   EXPECT_EQ(*original_expr, *(original_expr->Copy()));
 
@@ -712,10 +736,11 @@ TEST(ExpressionTests, ParameterValueExpressionJsonTest) {
   EXPECT_FALSE(json.is_null());
 
   // Deserialize expression
-  auto deserialized_expression = DeserializeExpression(json);
-  EXPECT_EQ(*original_expr, *deserialized_expression);
-  EXPECT_EQ(original_expr->GetValueIdx(),
-            static_cast<ParameterValueExpression *>(deserialized_expression.get())->GetValueIdx());
+  auto deserialized = DeserializeExpression(json);
+  auto deserialized_expr =
+      common::ManagedPointer(deserialized.result_).CastManagedPointerTo<ParameterValueExpression>();
+  EXPECT_EQ(*original_expr, *deserialized_expr);
+  EXPECT_EQ(original_expr->GetValueIdx(), deserialized_expr->GetValueIdx());
 }
 
 // NOLINTNEXTLINE
@@ -810,8 +835,8 @@ TEST(ExpressionTests, ColumnValueExpressionTest) {
 // NOLINTNEXTLINE
 TEST(ExpressionTests, ColumnValueExpressionJsonTest) {
   // Create expression
-  std::shared_ptr<ColumnValueExpression> original_expr =
-      std::make_shared<ColumnValueExpression>("", "table_name", "column_name", "alias");
+  std::unique_ptr<ColumnValueExpression> original_expr =
+      std::make_unique<ColumnValueExpression>("", "table_name", "column_name", "alias");
 
   EXPECT_EQ(*original_expr, *(original_expr->Copy()));
 
@@ -820,49 +845,51 @@ TEST(ExpressionTests, ColumnValueExpressionJsonTest) {
   EXPECT_FALSE(json.is_null());
 
   // Deserialize expression
-  auto deserialized_expression = DeserializeExpression(json);
-  EXPECT_EQ(*original_expr, *deserialized_expression);
-  auto *expr = static_cast<ColumnValueExpression *>(deserialized_expression.get());
-  EXPECT_EQ(original_expr->GetNamespaceName(), expr->GetNamespaceName());
-  EXPECT_EQ(original_expr->GetColumnName(), expr->GetColumnName());
-  EXPECT_EQ(original_expr->GetTableName(), expr->GetTableName());
-  EXPECT_EQ(original_expr->GetAlias(), expr->GetAlias());
+  auto deserialized = DeserializeExpression(json);
+  auto deserialized_expr = common::ManagedPointer(deserialized.result_).CastManagedPointerTo<ColumnValueExpression>();
+  EXPECT_EQ(*original_expr, *deserialized_expr);
+  EXPECT_EQ(original_expr->GetNamespaceName(), deserialized_expr->GetNamespaceName());
+  EXPECT_EQ(original_expr->GetColumnName(), deserialized_expr->GetColumnName());
+  EXPECT_EQ(original_expr->GetTableName(), deserialized_expr->GetTableName());
+  EXPECT_EQ(original_expr->GetAlias(), deserialized_expr->GetAlias());
 
   // Create expression
-  std::shared_ptr<ColumnValueExpression> original_expr_2 =
-      std::make_shared<ColumnValueExpression>("table_name", "column_name");
+  std::unique_ptr<ColumnValueExpression> original_expr_2 =
+      std::make_unique<ColumnValueExpression>("table_name", "column_name");
 
   // Serialize expression
   auto json_2 = original_expr_2->ToJson();
   EXPECT_FALSE(json_2.is_null());
 
   // Deserialize expression
-  auto deserialized_expression_2 = DeserializeExpression(json_2);
-  EXPECT_EQ(*original_expr_2, *deserialized_expression_2);
-  auto *expr_2 = static_cast<ColumnValueExpression *>(deserialized_expression_2.get());
-  EXPECT_EQ(original_expr_2->GetNamespaceName(), expr_2->GetNamespaceName());
-  EXPECT_EQ(original_expr_2->GetAlias(), expr_2->GetAlias());
-  EXPECT_EQ(original_expr_2->GetColumnName(), expr_2->GetColumnName());
-  EXPECT_EQ(original_expr_2->GetTableName(), expr_2->GetTableName());
+  auto deserialized_2 = DeserializeExpression(json_2);
+  auto deserialized_expr_2 =
+      common::ManagedPointer(deserialized_2.result_).CastManagedPointerTo<ColumnValueExpression>();
+  EXPECT_EQ(*original_expr_2, *deserialized_expr_2);
+  EXPECT_EQ(original_expr_2->GetNamespaceName(), deserialized_expr_2->GetNamespaceName());
+  EXPECT_EQ(original_expr_2->GetAlias(), deserialized_expr_2->GetAlias());
+  EXPECT_EQ(original_expr_2->GetColumnName(), deserialized_expr_2->GetColumnName());
+  EXPECT_EQ(original_expr_2->GetTableName(), deserialized_expr_2->GetTableName());
 
   // Create expression
-  std::shared_ptr<ColumnValueExpression> original_expr_3 =
-      std::make_shared<ColumnValueExpression>("namespace_name", "table_name", "column_name");
+  std::unique_ptr<ColumnValueExpression> original_expr_3 =
+      std::make_unique<ColumnValueExpression>("namespace_name", "table_name", "column_name");
 
   // Serialize expression
   auto json_3 = original_expr_3->ToJson();
   EXPECT_FALSE(json_3.is_null());
 
   // Deserialize expression
-  auto deserialized_expression_3 = DeserializeExpression(json_3);
-  EXPECT_EQ(*original_expr_3, *deserialized_expression_3);
-  auto *expr_3 = static_cast<ColumnValueExpression *>(deserialized_expression_3.get());
-  EXPECT_EQ(original_expr_3->GetNamespaceName(), expr_3->GetNamespaceName());
-  EXPECT_EQ(original_expr_3->GetAlias(), expr_3->GetAlias());
-  EXPECT_EQ(original_expr_3->GetColumnName(), expr_3->GetColumnName());
-  EXPECT_EQ(original_expr_3->GetTableName(), expr_3->GetTableName());
-  EXPECT_EQ(original_expr_3->GetColumnOid(), expr_3->GetColumnOid());
-  EXPECT_EQ(original_expr_3->GetTableOid(), expr_3->GetTableOid());
+  auto deserialized_3 = DeserializeExpression(json_3);
+  auto deserialized_expr_3 =
+      common::ManagedPointer(deserialized_3.result_).CastManagedPointerTo<ColumnValueExpression>();
+  EXPECT_EQ(*original_expr_3, *deserialized_expr_3);
+  EXPECT_EQ(original_expr_3->GetNamespaceName(), deserialized_expr_3->GetNamespaceName());
+  EXPECT_EQ(original_expr_3->GetAlias(), deserialized_expr_3->GetAlias());
+  EXPECT_EQ(original_expr_3->GetColumnName(), deserialized_expr_3->GetColumnName());
+  EXPECT_EQ(original_expr_3->GetTableName(), deserialized_expr_3->GetTableName());
+  EXPECT_EQ(original_expr_3->GetColumnOid(), deserialized_expr_3->GetColumnOid());
+  EXPECT_EQ(original_expr_3->GetTableOid(), deserialized_expr_3->GetTableOid());
 }
 
 // NOLINTNEXTLINE
@@ -901,8 +928,8 @@ TEST(ExpressionTests, DerivedValueExpressionTest) {
 // NOLINTNEXTLINE
 TEST(ExpressionTests, DerivedValueExpressionJsonTest) {
   // Create expression
-  std::shared_ptr<DerivedValueExpression> original_expr =
-      std::make_shared<DerivedValueExpression>(type::TypeId::BOOLEAN, 3, 3);
+  std::unique_ptr<DerivedValueExpression> original_expr =
+      std::make_unique<DerivedValueExpression>(type::TypeId::BOOLEAN, 3, 3);
 
   EXPECT_EQ(*original_expr, *(original_expr->Copy()));
 
@@ -911,20 +938,20 @@ TEST(ExpressionTests, DerivedValueExpressionJsonTest) {
   EXPECT_FALSE(json.is_null());
 
   // Deserialize expression
-  auto deserialized_expression = DeserializeExpression(json);
-  EXPECT_EQ(*original_expr, *deserialized_expression);
-  auto *expr = static_cast<DerivedValueExpression *>(deserialized_expression.get());
-  EXPECT_EQ(original_expr->GetTupleIdx(), expr->GetTupleIdx());
-  EXPECT_EQ(original_expr->GetValueIdx(), expr->GetValueIdx());
-  EXPECT_EQ(original_expr->GetReturnValueType(), expr->GetReturnValueType());
+  auto deserialized = DeserializeExpression(json);
+  auto deserialized_expr = common::ManagedPointer(deserialized.result_).CastManagedPointerTo<DerivedValueExpression>();
+  EXPECT_EQ(*original_expr, *deserialized_expr);
+  EXPECT_EQ(original_expr->GetTupleIdx(), deserialized_expr->GetTupleIdx());
+  EXPECT_EQ(original_expr->GetValueIdx(), deserialized_expr->GetValueIdx());
+  EXPECT_EQ(original_expr->GetReturnValueType(), deserialized_expr->GetReturnValueType());
 }
 
 // NOLINTNEXTLINE
 TEST(ExpressionTests, ComparisonExpressionJsonTest) {
   // No Generic ComparisonExpression Test needed as it is simple.
-  std::vector<std::shared_ptr<AbstractExpression>> children;
-  children.emplace_back(std::make_shared<ConstantValueExpression>(type::TransientValueFactory::GetInteger(1)));
-  children.emplace_back(std::make_shared<ConstantValueExpression>(type::TransientValueFactory::GetInteger(2)));
+  std::vector<std::unique_ptr<AbstractExpression>> children;
+  children.emplace_back(std::make_unique<ConstantValueExpression>(type::TransientValueFactory::GetInteger(1)));
+  children.emplace_back(std::make_unique<ConstantValueExpression>(type::TransientValueFactory::GetInteger(2)));
 
   // Create expression
   auto original_expr = new ComparisonExpression(ExpressionType::COMPARE_EQUAL, std::move(children));
@@ -939,8 +966,9 @@ TEST(ExpressionTests, ComparisonExpressionJsonTest) {
   EXPECT_FALSE(json.is_null());
 
   // Deserialize expression
-  auto deserialized_expression = DeserializeExpression(json);
-  EXPECT_EQ(*original_expr, *deserialized_expression);
+  auto deserialized = DeserializeExpression(json);
+  auto deserialized_expr = common::ManagedPointer(deserialized.result_);
+  EXPECT_EQ(*original_expr, *deserialized_expr);
 
   delete original_expr;
 }
@@ -961,8 +989,9 @@ TEST(ExpressionTests, StarExpressionJsonTest) {
   EXPECT_FALSE(json.is_null());
 
   // Deserialize expression
-  auto deserialized_expression = DeserializeExpression(json);
-  EXPECT_EQ(*original_expr, *deserialized_expression);
+  auto deserialized = DeserializeExpression(json);
+  auto deserialized_expr = common::ManagedPointer(deserialized.result_);
+  EXPECT_EQ(*original_expr, *deserialized_expr);
 
   delete original_expr;
 }
@@ -983,8 +1012,9 @@ TEST(ExpressionTests, DefaultValueExpressionJsonTest) {
   EXPECT_FALSE(json.is_null());
 
   // Deserialize expression
-  auto deserialized_expression = DeserializeExpression(json);
-  EXPECT_EQ(*original_expr, *deserialized_expression);
+  auto deserialized = DeserializeExpression(json);
+  auto deserialized_expr = common::ManagedPointer(deserialized.result_);
+  EXPECT_EQ(*original_expr, *deserialized_expr);
 
   delete original_expr;
 }
@@ -997,41 +1027,47 @@ TEST(ExpressionTests, SubqueryExpressionTest) {
   PostgresParser pgparser;
   auto stmts0 = pgparser.BuildParseTree(
       "SELECT * FROM foo INNER JOIN bar ON foo.a = bar.a WHERE foo.a > 0 GROUP BY foo.b ORDER BY bar.b ASC LIMIT 5;");
-  EXPECT_EQ(stmts0.size(), 1);
-  EXPECT_EQ(stmts0[0]->GetType(), StatementType::SELECT);
+  EXPECT_EQ(stmts0.GetStatements().size(), 1);
+  EXPECT_EQ(stmts0.GetStatement(0)->GetType(), StatementType::SELECT);
 
-  auto select0 = std::shared_ptr<SelectStatement>(reinterpret_cast<SelectStatement *>(stmts0[0].release()));
-  auto subselect_expr0 = new SubqueryExpression(select0);
+  auto select0 = std::unique_ptr<SelectStatement>(
+      reinterpret_cast<SelectStatement *>(stmts0.TakeStatementsOwnership()[0].release()));
+  auto subselect_expr0 = new SubqueryExpression(std::move(select0));
 
   auto stmts1 = pgparser.BuildParseTree(
       "SELECT * FROM foo INNER JOIN bar ON foo.a = bar.a WHERE foo.a > 0 GROUP BY foo.b ORDER BY bar.b ASC LIMIT 5;");
-  auto select1 = std::shared_ptr<SelectStatement>(reinterpret_cast<SelectStatement *>(stmts1[0].release()));
-  auto subselect_expr1 = new SubqueryExpression(select1);
+  auto select1 = std::unique_ptr<SelectStatement>(
+      reinterpret_cast<SelectStatement *>(stmts1.TakeStatementsOwnership()[0].release()));
+  auto subselect_expr1 = new SubqueryExpression(std::move(select1));
 
   // different in select columns
   auto stmts2 = pgparser.BuildParseTree(
       "SELECT a, b FROM foo INNER JOIN bar ON foo.a = bar.a WHERE foo.a > 0 GROUP BY foo.b ORDER BY bar.b ASC LIMIT "
       "5;");
-  auto select2 = std::shared_ptr<SelectStatement>(reinterpret_cast<SelectStatement *>(stmts2[0].release()));
-  auto subselect_expr2 = new SubqueryExpression(select2);
+  auto select2 = std::unique_ptr<SelectStatement>(
+      reinterpret_cast<SelectStatement *>(stmts2.TakeStatementsOwnership()[0].release()));
+  auto subselect_expr2 = new SubqueryExpression(std::move(select2));
 
   // different in distinct flag
   auto stmts3 = pgparser.BuildParseTree(
       "SELECT DISTINCT a, b FROM foo INNER JOIN bar ON foo.a = bar.a WHERE foo.a > 0 GROUP BY foo.b ORDER BY bar.b ASC "
       "LIMIT 5;");
-  auto select3 = std::shared_ptr<SelectStatement>(reinterpret_cast<SelectStatement *>(stmts3[0].release()));
-  auto subselect_expr3 = new SubqueryExpression(select3);
+  auto select3 = std::unique_ptr<SelectStatement>(
+      reinterpret_cast<SelectStatement *>(stmts3.TakeStatementsOwnership()[0].release()));
+  auto subselect_expr3 = new SubqueryExpression(std::move(select3));
 
   // different in where
   auto stmts4 = pgparser.BuildParseTree(
       "SELECT * FROM foo INNER JOIN bar ON foo.b = bar.a WHERE foo.b > 0 GROUP BY foo.b ORDER BY bar.b ASC LIMIT 5;");
-  auto select4 = std::shared_ptr<SelectStatement>(reinterpret_cast<SelectStatement *>(stmts4[0].release()));
-  auto subselect_expr4 = new SubqueryExpression(select4);
+  auto select4 = std::unique_ptr<SelectStatement>(
+      reinterpret_cast<SelectStatement *>(stmts4.TakeStatementsOwnership()[0].release()));
+  auto subselect_expr4 = new SubqueryExpression(std::move(select4));
 
   // different in where
   auto stmts5 = pgparser.BuildParseTree("SELECT * FROM foo INNER JOIN bar ON foo.b = bar.a;");
-  auto select5 = std::shared_ptr<SelectStatement>(reinterpret_cast<SelectStatement *>(stmts5[0].release()));
-  auto subselect_expr5 = new SubqueryExpression(select5);
+  auto select5 = std::unique_ptr<SelectStatement>(
+      reinterpret_cast<SelectStatement *>(stmts5.TakeStatementsOwnership()[0].release()));
+  auto subselect_expr5 = new SubqueryExpression(std::move(select5));
 
   // depth is still -1 after deriveDepth, as the depth is set in binder
   EXPECT_EQ(subselect_expr0->DeriveDepth(), -1);
@@ -1060,12 +1096,13 @@ TEST(ExpressionTests, SubqueryExpressionTest) {
 TEST(ExpressionTests, SimpleSubqueryExpressionJsonTest) {
   // Create expression
   PostgresParser pgparser;
-  auto stmts = pgparser.BuildParseTree("SELECT * FROM foo;");
-  EXPECT_EQ(stmts.size(), 1);
-  EXPECT_EQ(stmts[0]->GetType(), StatementType::SELECT);
+  auto result = pgparser.BuildParseTree("SELECT * FROM foo;");
+  EXPECT_EQ(result.GetStatements().size(), 1);
+  EXPECT_EQ(result.GetStatement(0)->GetType(), StatementType::SELECT);
 
-  auto select = std::shared_ptr<SelectStatement>(reinterpret_cast<SelectStatement *>(stmts[0].release()));
-  auto original_expr = std::make_shared<SubqueryExpression>(select);
+  auto select = std::unique_ptr<SelectStatement>(
+      reinterpret_cast<SelectStatement *>(result.TakeStatementsOwnership()[0].release()));
+  auto original_expr = std::make_unique<SubqueryExpression>(std::move(select));
   EXPECT_EQ(*original_expr, *(original_expr->Copy()));
 
   // Serialize expression
@@ -1073,43 +1110,44 @@ TEST(ExpressionTests, SimpleSubqueryExpressionJsonTest) {
   EXPECT_FALSE(json.is_null());
 
   // Deserialize expression
-  auto deserialized_expression = DeserializeExpression(json);
-  EXPECT_EQ(*original_expr, *deserialized_expression);
-  auto *deserialized_subquery_expr = static_cast<SubqueryExpression *>(deserialized_expression.get());
-  EXPECT_TRUE(deserialized_subquery_expr->GetSubselect() != nullptr);
-  EXPECT_TRUE(deserialized_subquery_expr->GetSubselect()->GetSelectTable() != nullptr);
+  auto deserialized = DeserializeExpression(json);
+  auto deserialized_expr = common::ManagedPointer(deserialized.result_).CastManagedPointerTo<SubqueryExpression>();
+  EXPECT_EQ(*original_expr, *deserialized_expr);
+  EXPECT_TRUE(deserialized_expr->GetSubselect() != nullptr);
+  EXPECT_TRUE(deserialized_expr->GetSubselect()->GetSelectTable() != nullptr);
   EXPECT_EQ(original_expr->GetSubselect()->GetSelectTable()->GetTableName(),
-            deserialized_subquery_expr->GetSubselect()->GetSelectTable()->GetTableName());
+            deserialized_expr->GetSubselect()->GetSelectTable()->GetTableName());
   EXPECT_EQ(original_expr->GetSubselect()->GetSelectColumns().size(),
-            deserialized_subquery_expr->GetSubselect()->GetSelectColumns().size());
-  EXPECT_EQ(1, deserialized_subquery_expr->GetSubselect()->GetSelectColumns().size());
+            deserialized_expr->GetSubselect()->GetSelectColumns().size());
+  EXPECT_EQ(1, deserialized_expr->GetSubselect()->GetSelectColumns().size());
   EXPECT_EQ(original_expr->GetSubselect()->GetSelectColumns()[0]->GetExpressionType(),
-            deserialized_subquery_expr->GetSubselect()->GetSelectColumns()[0]->GetExpressionType());
+            deserialized_expr->GetSubselect()->GetSelectColumns()[0]->GetExpressionType());
 }
 
 // NOLINTNEXTLINE
 TEST(ExpressionTests, ComplexSubqueryExpressionJsonTest) {
   // Create expression
   PostgresParser pgparser;
-  auto stmts = pgparser.BuildParseTree(
+  auto result = pgparser.BuildParseTree(
       "SELECT * FROM foo INNER JOIN bar ON foo.a = bar.a GROUP BY foo.b ORDER BY bar.b ASC LIMIT 5;");
-  EXPECT_EQ(stmts.size(), 1);
-  EXPECT_EQ(stmts[0]->GetType(), StatementType::SELECT);
+  EXPECT_EQ(result.GetStatements().size(), 1);
+  EXPECT_EQ(result.GetStatements()[0]->GetType(), StatementType::SELECT);
 
-  auto select = std::shared_ptr<SelectStatement>(reinterpret_cast<SelectStatement *>(stmts[0].release()));
-  auto original_expr = std::make_shared<SubqueryExpression>(select);
+  auto select = std::unique_ptr<SelectStatement>(
+      reinterpret_cast<SelectStatement *>(result.TakeStatementsOwnership()[0].release()));
+  auto original_expr = std::make_unique<SubqueryExpression>(std::move(select));
 
   // Serialize expression
   auto json = original_expr->ToJson();
   EXPECT_FALSE(json.is_null());
 
   // Deserialize expression
-  auto deserialized_expression = DeserializeExpression(json);
-  EXPECT_EQ(*original_expr, *deserialized_expression);
-  auto *deserialized_subquery_expr = static_cast<SubqueryExpression *>(deserialized_expression.get());
+  auto deserialized = DeserializeExpression(json);
+  auto deserialized_expr = common::ManagedPointer(deserialized.result_).CastManagedPointerTo<SubqueryExpression>();
+  EXPECT_EQ(*original_expr, *deserialized_expr);
 
   // Check Limit
-  auto subselect = deserialized_subquery_expr->GetSubselect();
+  auto subselect = deserialized_expr->GetSubselect();
   EXPECT_TRUE(subselect != nullptr);
   EXPECT_TRUE(subselect->GetSelectLimit() != nullptr);
   EXPECT_EQ(original_expr->GetSubselect()->GetSelectLimit()->GetLimit(), subselect->GetSelectLimit()->GetLimit());
