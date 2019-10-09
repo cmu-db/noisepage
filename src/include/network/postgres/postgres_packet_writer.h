@@ -4,19 +4,19 @@
 #include <string>
 #include <vector>
 
-#include "network/abstract_packet_writer.h"
+#include "network/packet_writer.h"
 
 namespace terrier::network {
 /**
  * Wrapper around an I/O layer WriteQueue to provide Postgres-specific
  * helper methods.
  */
-class PostgresPacketWriter : public AbstractPacketWriter {
+class PostgresPacketWriter : public PacketWriter {
  public:
   /**
    * Instantiates a new PostgresPacketWriter backed by the given WriteQueue
    */
-  explicit PostgresPacketWriter(const std::shared_ptr<WriteQueue> &write_queue) : AbstractPacketWriter(write_queue) {}
+  explicit PostgresPacketWriter(const std::shared_ptr<WriteQueue> &write_queue) : PacketWriter(write_queue) {}
 
   /**
    * Writes a simple query
@@ -109,7 +109,7 @@ class PostgresPacketWriter : public AbstractPacketWriter {
    */
   void WriteParseCommand(const std::string &destinationStmt, const std::string &query,
                          const std::vector<int32_t> &params) {
-    AbstractPacketWriter &writer = BeginPacket(NetworkMessageType::PG_PARSE_COMMAND)
+    PacketWriter &writer = BeginPacket(NetworkMessageType::PG_PARSE_COMMAND)
                                        .AppendString(destinationStmt)
                                        .AppendString(query)
                                        .AppendValue(static_cast<int16_t>(params.size()));
@@ -133,7 +133,7 @@ class PostgresPacketWriter : public AbstractPacketWriter {
                         std::initializer_list<int16_t> paramFormatCodes,
                         std::initializer_list<std::vector<char> *> paramVals,
                         std::initializer_list<int16_t> resultFormatCodes) {
-    AbstractPacketWriter &writer = BeginPacket(NetworkMessageType::PG_BIND_COMMAND)
+    PacketWriter &writer = BeginPacket(NetworkMessageType::PG_BIND_COMMAND)
                                        .AppendString(destinationPortal)
                                        .AppendString(sourcePreparedStmt);
     writer.AppendValue(static_cast<int16_t>(paramFormatCodes.size()));
