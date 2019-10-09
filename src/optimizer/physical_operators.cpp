@@ -126,10 +126,10 @@ common::hash_t IndexScan::Hash() const {
     else
       hash = common::HashUtil::SumHashes(hash, BaseOperatorNode::Hash());
   }
-  for (auto &col_oid : key_column_oid_list_)
-    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&col_oid));
-  for (auto &expr_type : expr_type_list_)
-    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&expr_type));
+  for (const auto &col_oid : key_column_oid_list_)
+    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(col_oid));
+  for (const auto &expr_type : expr_type_list_)
+    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(expr_type));
   for (auto &val : value_list_) hash = common::HashUtil::CombineHashes(hash, val.Hash());
   return hash;
 }
