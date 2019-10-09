@@ -110,9 +110,9 @@ class PostgresPacketWriter : public PacketWriter {
   void WriteParseCommand(const std::string &destinationStmt, const std::string &query,
                          const std::vector<int32_t> &params) {
     PacketWriter &writer = BeginPacket(NetworkMessageType::PG_PARSE_COMMAND)
-                                       .AppendString(destinationStmt)
-                                       .AppendString(query)
-                                       .AppendValue(static_cast<int16_t>(params.size()));
+                               .AppendString(destinationStmt)
+                               .AppendString(query)
+                               .AppendValue(static_cast<int16_t>(params.size()));
     for (auto param : params) {
       writer.AppendValue(param);
     }
@@ -134,8 +134,8 @@ class PostgresPacketWriter : public PacketWriter {
                         std::initializer_list<std::vector<char> *> paramVals,
                         std::initializer_list<int16_t> resultFormatCodes) {
     PacketWriter &writer = BeginPacket(NetworkMessageType::PG_BIND_COMMAND)
-                                       .AppendString(destinationPortal)
-                                       .AppendString(sourcePreparedStmt);
+                               .AppendString(destinationPortal)
+                               .AppendString(sourcePreparedStmt);
     writer.AppendValue(static_cast<int16_t>(paramFormatCodes.size()));
 
     for (auto code : paramFormatCodes) {

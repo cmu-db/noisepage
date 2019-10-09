@@ -4,10 +4,10 @@
 
 #include "common/macros.h"
 #include "common/managed_pointer.h"
-#include "network/packet_writer.h"
 #include "network/connection_context.h"
 #include "network/network_defs.h"
 #include "network/network_types.h"
+#include "network/packet_writer.h"
 #include "network/protocol_interpreter.h"
 
 namespace terrier::network {
@@ -33,8 +33,7 @@ class NetworkCommand {
    * @param in The input packets to this command
    * @param flush Whether or not to flush the outuput packets on completion
    */
-  NetworkCommand(InputPacket *in, bool flush)
-      : in_(in->buf_->ReadIntoView(in->len_)), flush_on_complete_(flush) {}
+  NetworkCommand(InputPacket *in, bool flush) : in_(in->buf_->ReadIntoView(in->len_)), flush_on_complete_(flush) {}
 
   /**
    * The ReadBufferView to read input packets from

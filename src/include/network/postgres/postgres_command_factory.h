@@ -2,7 +2,8 @@
 #include <memory>
 #include "network/postgres/postgres_network_commands.h"
 
-#define MAKE_POSTGRES_COMMAND(type) std::static_pointer_cast<PostgresNetworkCommand, type>(std::make_shared<type>(packet))
+#define MAKE_POSTGRES_COMMAND(type) \
+  std::static_pointer_cast<PostgresNetworkCommand, type>(std::make_shared<type>(packet))
 
 namespace terrier::network {
 

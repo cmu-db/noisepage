@@ -52,12 +52,8 @@ DBMain::DBMain(std::unordered_map<settings::Param, settings::ParamInfo> &&param_
   t_cop_ = new trafficcop::TrafficCop;
   connection_handle_factory_ = new network::ConnectionHandleFactory(common::ManagedPointer(t_cop_));
 
-  // TODO(Gus): Change later to take in both providers
-  bool hot_standby = false;
-  if (!hot_standby) {
-    command_factory_ = new network::PostgresCommandFactory;
-    provider_ = new network::PostgresProtocolInterpreter::Provider(common::ManagedPointer(command_factory_));
-  }
+  command_factory_ = new network::PostgresCommandFactory;
+  provider_ = new network::PostgresProtocolInterpreter::Provider(common::ManagedPointer(command_factory_));
   server_ =
       new network::TerrierServer(common::ManagedPointer(provider_), common::ManagedPointer(connection_handle_factory_),
                                  common::ManagedPointer(thread_registry_));

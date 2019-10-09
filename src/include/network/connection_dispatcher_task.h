@@ -29,7 +29,6 @@ class ConnectionDispatcherTask : public common::NotifiableTask {
   /**
    * Creates a new ConnectionDispatcherTask
    *
-   * @param hot_standby whether this server is running in hot standby mode
    * @param num_handlers The number of handler tasks to spawn.
    * @param listen_fd The server socket fd to listen on.
    * @param dedicated_thread_owner The DedicatedThreadOwner associated with this task
@@ -38,8 +37,7 @@ class ConnectionDispatcherTask : public common::NotifiableTask {
    * @param thread_registry DedicatedThreadRegistry dependency needed because it eventually spawns more threads in
    * RunTask
    */
-  ConnectionDispatcherTask(bool hot_standby, uint32_t num_handlers, int listen_fd,
-                           common::DedicatedThreadOwner *dedicated_thread_owner,
+  ConnectionDispatcherTask(uint32_t num_handlers, int listen_fd, common::DedicatedThreadOwner *dedicated_thread_owner,
                            common::ManagedPointer<ProtocolInterpreter::Provider> interpreter_provider,
                            common::ManagedPointer<ConnectionHandleFactory> connection_handle_factory,
                            common::ManagedPointer<common::DedicatedThreadRegistry> thread_registry);
