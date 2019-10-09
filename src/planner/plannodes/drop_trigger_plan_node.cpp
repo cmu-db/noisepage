@@ -17,11 +17,11 @@ common::hash_t DropTriggerPlanNode::Hash() const {
 
   // Hash trigger_oid
   auto trigger_oid = GetTriggerOid();
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&trigger_oid));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(trigger_oid));
 
   // Hash if_exists_
   auto if_exist = IsIfExists();
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&if_exist));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(if_exist));
 
   return hash;
 }
