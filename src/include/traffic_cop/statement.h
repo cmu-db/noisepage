@@ -3,7 +3,6 @@
 #include <sqlite3.h>
 #include <utility>
 #include <vector>
-
 #include "network/postgres/postgres_protocol_utils.h"
 #include "type/transient_value.h"
 
