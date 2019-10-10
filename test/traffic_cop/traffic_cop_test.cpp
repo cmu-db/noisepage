@@ -25,7 +25,7 @@ class TrafficCopTests : public TerrierTest {
   network::PostgresCommandFactory command_factory_;
   network::PostgresProtocolInterpreter::Provider interpreter_provider_{common::ManagedPointer(&command_factory_)};
   std::unique_ptr<network::ConnectionHandleFactory> handle_factory_;
-  common::DedicatedThreadRegistry thread_registry_;
+  common::DedicatedThreadRegistry thread_registry_ = common::DedicatedThreadRegistry(DISABLED);
 
   void SetUp() override {
     TerrierTest::SetUp();

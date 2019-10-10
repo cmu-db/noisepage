@@ -4,6 +4,7 @@
 #include <utility>
 #include <vector>
 #include "gtest/gtest.h"
+#include "metrics/metrics_thread.h"
 #include "storage/data_table.h"
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_manager.h"
@@ -132,9 +133,10 @@ class LargeDataTableBenchmarkObject {
    *
    * @param num_transactions total number of transactions to run
    * @param num_concurrent_txns number of transactions allowed to run concurrently
-   * @return abort count
+   * @return abort count, elapsed_ms
    */
-  uint64_t SimulateOltp(uint32_t num_transactions, uint32_t num_concurrent_txns);
+  std::pair<uint64_t, uint64_t> SimulateOltp(uint32_t num_transactions, uint32_t num_concurrent_txns,
+                                             metrics::MetricsThread *metrics_thread = DISABLED);
 
   /**
    * @return layout of the randomly generated table

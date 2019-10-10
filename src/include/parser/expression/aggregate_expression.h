@@ -10,7 +10,8 @@
 namespace terrier::parser {
 
 /**
- * An AggregateExpression is only used for parsing, planning and optimizing.
+ * AggregateExpression is only used for parsing, planning and optimizing.
+ * TODO(WAN): how is it used? Check with William?
  */
 class AggregateExpression : public AbstractExpression {
  public:
@@ -20,15 +21,21 @@ class AggregateExpression : public AbstractExpression {
    * @param children children to be added
    * @param distinct whether to eliminate duplicate values in aggregate function calculations
    */
-  AggregateExpression(ExpressionType type, std::vector<std::shared_ptr<AbstractExpression>> &&children, bool distinct)
+  AggregateExpression(ExpressionType type, std::vector<std::unique_ptr<AbstractExpression>> &&children, bool distinct)
       : AbstractExpression(type, type::TypeId::INVALID, std::move(children)), distinct_(distinct) {}
 
-  /**
-   * Default constructor for deserialization
-   */
+  /** Default constructor for deserialization. */
   AggregateExpression() = default;
 
-  std::shared_ptr<AbstractExpression> Copy() const override { return std::make_shared<AggregateExpression>(*this); }
+  std::unique_ptr<AbstractExpression> Copy() const override {
+    std::vector<std::unique_ptr<AbstractExpression>> children;
+    for (const auto &child : GetChildren()) {
+      children.emplace_back(child->Copy());
+    }
+    auto expr = std::make_unique<AggregateExpression>(GetExpressionType(), std::move(children), IsDistinct());
+    expr->SetMutableStateForCopy(*this);
+    return expr;
+  }
 
   common::hash_t Hash() const override {
     common::hash_t hash = AbstractExpression::Hash();
@@ -42,9 +49,7 @@ class AggregateExpression : public AbstractExpression {
     return IsDistinct() == other.IsDistinct();
   }
 
-  /**
-   * @return true if we should eliminate duplicate values in aggregate function calculations
-   */
+  /** @return true if we should eliminate duplicate values in aggregate function calculations */
   bool IsDistinct() const { return distinct_; }
 
   void DeriveReturnValueType() override {
@@ -72,9 +77,7 @@ class AggregateExpression : public AbstractExpression {
 
   void Accept(SqlNodeVisitor *v) override { v->Visit(this); }
 
-  /**
-   * @return expression serialized to json
-   */
+  /** @return expression serialized to json */
   nlohmann::json ToJson() const override {
     nlohmann::json j = AbstractExpression::ToJson();
     j["distinct"] = distinct_;
@@ -84,15 +87,16 @@ class AggregateExpression : public AbstractExpression {
   /**
    * @param j json to deserialize
    */
-  void FromJson(const nlohmann::json &j) override {
-    AbstractExpression::FromJson(j);
+  std::vector<std::unique_ptr<AbstractExpression>> FromJson(const nlohmann::json &j) override {
+    std::vector<std::unique_ptr<AbstractExpression>> exprs;
+    auto e1 = AbstractExpression::FromJson(j);
+    exprs.insert(exprs.end(), std::make_move_iterator(e1.begin()), std::make_move_iterator(e1.end()));
     distinct_ = j.at("distinct").get<bool>();
+    return exprs;
   }
 
  private:
-  /**
-   * If duplicate rows will be removed
-   */
+  /** True if duplicate rows should be removed. */
   bool distinct_;
 };
 

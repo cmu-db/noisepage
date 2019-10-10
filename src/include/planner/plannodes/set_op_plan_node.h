@@ -43,8 +43,8 @@ class SetOpPlanNode : public AbstractPlanNode {
      * Build the setop plan node
      * @return plan node
      */
-    std::shared_ptr<SetOpPlanNode> Build() {
-      return std::shared_ptr<SetOpPlanNode>(
+    std::unique_ptr<SetOpPlanNode> Build() {
+      return std::unique_ptr<SetOpPlanNode>(
           new SetOpPlanNode(std::move(children_), std::move(output_schema_), set_op_));
     }
 
@@ -61,7 +61,7 @@ class SetOpPlanNode : public AbstractPlanNode {
    * @param output_schema Schema representing the structure of the output of this plan node
    * @param set_op the set pperation of this node
    */
-  SetOpPlanNode(std::vector<std::shared_ptr<AbstractPlanNode>> &&children, std::shared_ptr<OutputSchema> output_schema,
+  SetOpPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children, std::unique_ptr<OutputSchema> output_schema,
                 SetOpType set_op)
       : AbstractPlanNode(std::move(children), std::move(output_schema)), set_op_(set_op) {}
 
@@ -91,7 +91,7 @@ class SetOpPlanNode : public AbstractPlanNode {
   bool operator==(const AbstractPlanNode &rhs) const override;
 
   nlohmann::json ToJson() const override;
-  void FromJson(const nlohmann::json &j) override;
+  std::vector<std::unique_ptr<parser::AbstractExpression>> FromJson(const nlohmann::json &j) override;
 
  private:
   /**

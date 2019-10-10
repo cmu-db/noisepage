@@ -5,15 +5,15 @@
 #include <utility>
 #include <vector>
 
+#include "common/managed_pointer.h"
 #include "common/sql_node_visitor.h"
 #include "parser/sql_statement.h"
 #include "parser/table_ref.h"
 
 namespace terrier {
 namespace parser {
-
 /**
- * Represents the sql "ANALYZE ...".
+ * AnalyzeStatement represents the sql "ANALYZE ...".
  */
 class AnalyzeStatement : public SQLStatement {
  public:
@@ -22,7 +22,7 @@ class AnalyzeStatement : public SQLStatement {
    * @param analyze_table table to be analyzed
    * @param analyze_columns columns to be analyzed
    */
-  AnalyzeStatement(std::shared_ptr<TableRef> analyze_table, std::shared_ptr<std::vector<std::string>> analyze_columns)
+  AnalyzeStatement(std::unique_ptr<TableRef> analyze_table, std::unique_ptr<std::vector<std::string>> analyze_columns)
       : SQLStatement(StatementType::ANALYZE),
         analyze_table_(std::move(analyze_table)),
         analyze_columns_(std::move(analyze_columns)) {}
@@ -31,19 +31,17 @@ class AnalyzeStatement : public SQLStatement {
 
   void Accept(SqlNodeVisitor *v) override { v->Visit(this); }
 
-  /**
-   * @return analyze table
-   */
-  std::shared_ptr<TableRef> GetAnalyzeTable() { return analyze_table_; }
+  /** @return analyze table */
+  common::ManagedPointer<TableRef> GetAnalyzeTable() { return common::ManagedPointer(analyze_table_); }
 
-  /**
-   * @return analyze columns
-   */
-  std::shared_ptr<std::vector<std::string>> GetAnalyzeColumns() { return analyze_columns_; }
+  /** @return analyze columns */
+  common::ManagedPointer<std::vector<std::string>> GetAnalyzeColumns() {
+    return common::ManagedPointer(analyze_columns_);
+  }
 
  private:
-  const std::shared_ptr<TableRef> analyze_table_;
-  const std::shared_ptr<std::vector<std::string>> analyze_columns_;
+  std::unique_ptr<TableRef> analyze_table_;
+  std::unique_ptr<std::vector<std::string>> analyze_columns_;
 };
 
 }  // namespace parser

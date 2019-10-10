@@ -9,6 +9,7 @@ namespace terrier::parser {
 /**
  * All possible expression types.
  * TODO(WAN): Do we really need some of this stuff? e.g. HASH_RANGE for elastic
+ * TODO(LING): The binder via OperatorExpression now assumes a certain ordering on the ExpressionType.
  */
 enum class ExpressionType : uint8_t {
   INVALID,

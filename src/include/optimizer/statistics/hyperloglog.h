@@ -6,7 +6,7 @@
 #include "common/macros.h"
 #include "libcount/hll.h"
 #include "loggers/optimizer_logger.h"
-#include "murmur3/MurmurHash3.h"
+#include "xxHash/xxh3.h"
 
 namespace terrier::optimizer {
 
@@ -49,16 +49,7 @@ class HyperLogLog {
    * @param key a pointer to the underlying storage of the key
    * @param length the length of the key.
    */
-  void Update(const void *key, size_t length) {
-    // Throw the given key at murmur3 and get back a 128-bit hash.
-    // We then update the HLL using the first 64-bits of the hash.
-    // Andy tried using the second 64-bits and found that it produced
-    // slightly less accurate estimations. He did not perform
-    // a rigorous test of this though...
-    uint64_t hash[2];
-    murmur3::MurmurHash3_x64_128(key, static_cast<int>(length), 0, reinterpret_cast<void *>(&hash));
-    hll_->Update(hash[0]);
-  }
+  void Update(const void *key, size_t length) { hll_->Update(XXH3_64bits(key, length)); }
 
   /**
    * Compute the bias-corrected estimate using the HyperLogLog++ algorithm.
