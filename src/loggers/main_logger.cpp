@@ -2,7 +2,7 @@
 #include <memory>
 
 std::shared_ptr<spdlog::sinks::stdout_sink_mt> default_sink;  // NOLINT
-std::shared_ptr<spdlog::logger> main_logger;  // NOLINT
+std::shared_ptr<spdlog::logger> main_logger;                  // NOLINT
 
 void InitMainLogger() {
   // create the default, shared sink

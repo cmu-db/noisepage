@@ -202,7 +202,7 @@ class Operator {
     if (node_) {
       auto &n = *node_;
       if (typeid(n) == typeid(T)) {
-        return reinterpret_cast<const T *>(node_.get());
+        return reinterpret_cast<const T *>(node_.Get());
       }
     }
     return nullptr;
@@ -212,7 +212,7 @@ class Operator {
   /**
    * Pointer to the base operator
    */
-  std::shared_ptr<BaseOperatorNode> node_;
+  common::ManagedPointer<BaseOperatorNode> node_;
 };
 }  // namespace terrier::optimizer
 

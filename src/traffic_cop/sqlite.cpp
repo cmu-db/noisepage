@@ -42,7 +42,7 @@ sqlite3_stmt *SqliteEngine::PrepareStatement(std::string query) {
   return nullptr;
 }
 
-void SqliteEngine::Bind(sqlite3_stmt *stmt, const std::shared_ptr<std::vector<type::TransientValue>> &p_params) {
+void SqliteEngine::Bind(sqlite3_stmt *stmt, common::ManagedPointer<std::vector<type::TransientValue>> p_params) {
   using type::TransientValuePeeker;
   using type::TypeId;
 

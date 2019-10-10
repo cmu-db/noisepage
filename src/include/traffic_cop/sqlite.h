@@ -32,7 +32,7 @@ class SqliteEngine {
    * @param stmt
    * @param p_params
    */
-  void Bind(sqlite3_stmt *stmt, const std::shared_ptr<std::vector<type::TransientValue>> &p_params);
+  void Bind(sqlite3_stmt *stmt, common::ManagedPointer<std::vector<type::TransientValue>> p_params);
 
   /**
    * Return the description of the columns.

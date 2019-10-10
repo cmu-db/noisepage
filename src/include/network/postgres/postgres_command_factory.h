@@ -16,7 +16,7 @@ class PostgresCommandFactory {
    * @param packet the Postgres input packet
    * @return a shared_ptr to the converted command
    */
-  virtual std::shared_ptr<PostgresNetworkCommand> PostgresPacketToCommand(PostgresInputPacket *packet);
+  virtual std::unique_ptr<PostgresNetworkCommand> PostgresPacketToCommand(PostgresInputPacket *packet);
 
   virtual ~PostgresCommandFactory() = default;
 };

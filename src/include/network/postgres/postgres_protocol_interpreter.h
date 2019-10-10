@@ -87,7 +87,7 @@ class PostgresProtocolInterpreter : public ProtocolInterpreter {
    * @param out
    * @return
    */
-  Transition ProcessStartup(const std::shared_ptr<ReadBuffer> &in, const std::shared_ptr<WriteQueue> &out);
+  Transition ProcessStartup(std::shared_ptr<ReadBuffer> in, std::shared_ptr<WriteQueue> out);
 
   /**
    *
@@ -117,8 +117,8 @@ class PostgresProtocolInterpreter : public ProtocolInterpreter {
   std::unordered_map<std::string, std::string> cmdline_options_;
   common::ManagedPointer<PostgresCommandFactory> command_factory_;
 
-  bool TryBuildPacket(const std::shared_ptr<ReadBuffer> &in);
-  bool TryReadPacketHeader(const std::shared_ptr<ReadBuffer> &in);
+  bool TryBuildPacket(std::shared_ptr<ReadBuffer> in);
+  bool TryReadPacketHeader(std::shared_ptr<ReadBuffer> in);
 };
 
 }  // namespace terrier::network

@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "common/exception.h"
+#include "common/managed_pointer.h"
 #include "network/network_defs.h"
 #include "util/portable_endian.h"
 
@@ -379,7 +380,7 @@ class WriteQueue {
     offset_ = 0;
     flush_ = false;
     if (buffers_[0] == nullptr)
-      buffers_[0] = std::make_shared<WriteBuffer>();
+      buffers_[0] = std::make_unique<WriteBuffer>();
     else
       buffers_[0]->Reset();
   }
@@ -387,8 +388,8 @@ class WriteQueue {
   /**
    * @return The head of the WriteQueue
    */
-  std::shared_ptr<WriteBuffer> FlushHead() {
-    if (buffers_.size() > offset_) return buffers_[offset_];
+  common::ManagedPointer<WriteBuffer> FlushHead() {
+    if (buffers_.size() > offset_) return common::ManagedPointer(buffers_[offset_]);
     return nullptr;
   }
 
@@ -428,7 +429,7 @@ class WriteQueue {
       // Only write partially if we are allowed to
       size_t written = breakup ? tail.RemainingCapacity() : 0;
       tail.AppendRaw(src, written);
-      buffers_.push_back(std::make_shared<WriteBuffer>());
+      buffers_.push_back(std::make_unique<WriteBuffer>());
       BufferWriteRaw(reinterpret_cast<const uchar *>(src) + written, len - written);
     }
   }
@@ -449,7 +450,7 @@ class WriteQueue {
 
  private:
   friend class PostgresPacketWriter;
-  std::vector<std::shared_ptr<WriteBuffer>> buffers_;
+  std::vector<std::unique_ptr<WriteBuffer>> buffers_;
   size_t offset_ = 0;
   bool flush_ = false;
 };

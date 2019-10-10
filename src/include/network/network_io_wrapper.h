@@ -36,8 +36,8 @@ class NetworkIoWrapper {
    * @param in The ReadBuffer this NetworkIOWrapper uses for reads
    * @param out The WriteQueue this NetworkIOWrapper uses for writes
    */
-  explicit NetworkIoWrapper(int sock_fd, std::shared_ptr<ReadBuffer> in = std::make_shared<ReadBuffer>(),
-                            std::shared_ptr<WriteQueue> out = std::make_shared<WriteQueue>())
+  explicit NetworkIoWrapper(int sock_fd, std::unique_ptr<ReadBuffer> in = std::make_unique<ReadBuffer>(),
+                            std::unique_ptr<WriteQueue> out = std::make_unique<WriteQueue>())
       : sock_fd_(sock_fd), in_(std::move(in)), out_(std::move(out)) {
     in_->Reset();
     out_->Reset();

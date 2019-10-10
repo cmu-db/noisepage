@@ -2,9 +2,9 @@
 #include <memory>
 namespace terrier::network {
 
-#define MAKE_COMMAND(type) std::static_pointer_cast<PostgresNetworkCommand, type>(std::make_shared<type>(packet))
+#define MAKE_COMMAND(type) std::unique_ptr<PostgresNetworkCommand>(std::make_unique<type>(packet))
 
-std::shared_ptr<PostgresNetworkCommand> PostgresCommandFactory::PostgresPacketToCommand(PostgresInputPacket *packet) {
+std::unique_ptr<PostgresNetworkCommand> PostgresCommandFactory::PostgresPacketToCommand(PostgresInputPacket *packet) {
   switch (packet->msg_type_) {
     case NetworkMessageType::SIMPLE_QUERY_COMMAND:
       return MAKE_COMMAND(SimpleQueryCommand);

@@ -149,7 +149,7 @@ Transition BindCommand::Exec(common::ManagedPointer<PostgresProtocolInterpreter>
   using type::TransientValueFactory;
   using type::TypeId;
 
-  auto params = std::make_shared<std::vector<TransientValue>>();
+  auto params = std::make_unique<std::vector<TransientValue>>();
 
   for (size_t i = 0; i < num_params; i++) {
     auto len = static_cast<size_t>(in_.ReadValue<int32_t>());
@@ -212,8 +212,8 @@ Transition BindCommand::Exec(common::ManagedPointer<PostgresProtocolInterpreter>
   // because we cannot copy a sqlite3 statement.
   trafficcop::Portal portal;
   portal.sqlite_stmt_ = statement->sqlite3_stmt_;
-  portal.params_ = params;
-  connection->portals_[portal_name] = portal;
+  portal.params_ = std::move(params);
+  connection->portals_[portal_name] = std::move(portal);
 
   out->WriteBindComplete();
   return Transition::PROCEED;
@@ -284,7 +284,7 @@ Transition ExecuteCommand::Exec(common::ManagedPointer<PostgresProtocolInterpret
   trafficcop::Portal &portal = p_portal->second;
 
   trafficcop::SqliteEngine *execution_engine = t_cop->GetExecutionEngine();
-  execution_engine->Bind(portal.sqlite_stmt_, portal.params_);
+  execution_engine->Bind(portal.sqlite_stmt_, common::ManagedPointer(portal.params_));
   trafficcop::ResultSet result = execution_engine->Execute(portal.sqlite_stmt_);
   for (const auto &row : result.rows_) out->WriteDataRow(row);
 

@@ -27,17 +27,17 @@ Transition PostgresProtocolInterpreter::Process(std::shared_ptr<ReadBuffer> in, 
     curr_input_packet_.Clear();
     return ProcessStartup(in, out);
   }
-  std::shared_ptr<PostgresNetworkCommand> command = command_factory_->PostgresPacketToCommand(&curr_input_packet_);
+  std::unique_ptr<PostgresNetworkCommand> command = command_factory_->PostgresPacketToCommand(&curr_input_packet_);
   PostgresPacketWriter writer(out);
   if (command->FlushOnComplete()) out->ForceFlush();
   Transition ret = command->Exec(common::ManagedPointer(this), common::ManagedPointer(&writer), t_cop,
-                                 common::ManagedPointer(context), callback);
+                                 common::ManagedPointer(context), std::move(callback));
   curr_input_packet_.Clear();
   return ret;
 }
 
-Transition PostgresProtocolInterpreter::ProcessStartup(const std::shared_ptr<ReadBuffer> &in,
-                                                       const std::shared_ptr<WriteQueue> &out) {
+Transition PostgresProtocolInterpreter::ProcessStartup(std::shared_ptr<ReadBuffer> in,
+                                                       std::shared_ptr<WriteQueue> out) {
   PostgresPacketWriter writer(out);
   auto proto_version = in->ReadValue<uint32_t>();
   NETWORK_LOG_TRACE("protocol version: {0}", proto_version);
@@ -73,7 +73,7 @@ Transition PostgresProtocolInterpreter::ProcessStartup(const std::shared_ptr<Rea
   return Transition::PROCEED;
 }
 
-bool PostgresProtocolInterpreter::TryBuildPacket(const std::shared_ptr<ReadBuffer> &in) {
+bool PostgresProtocolInterpreter::TryBuildPacket(std::shared_ptr<ReadBuffer> in) {
   if (!TryReadPacketHeader(in)) return false;
 
   size_t size_needed = curr_input_packet_.extended_
@@ -92,7 +92,7 @@ bool PostgresProtocolInterpreter::TryBuildPacket(const std::shared_ptr<ReadBuffe
   return remaining_bytes <= 0;
 }
 
-bool PostgresProtocolInterpreter::TryReadPacketHeader(const std::shared_ptr<ReadBuffer> &in) {
+bool PostgresProtocolInterpreter::TryReadPacketHeader(std::shared_ptr<ReadBuffer> in) {
   if (curr_input_packet_.header_parsed_) return true;
 
   // Header format: 1 byte message type (only if non-startup)
@@ -112,7 +112,7 @@ bool PostgresProtocolInterpreter::TryReadPacketHeader(const std::shared_ptr<Read
   // Extend the buffer as needed
   if (curr_input_packet_.len_ > in->Capacity()) {
     // Allocate a larger buffer and copy bytes off from the I/O layer's buffer
-    curr_input_packet_.buf_ = std::make_shared<ReadBuffer>(curr_input_packet_.len_);
+    curr_input_packet_.buf_ = std::make_unique<ReadBuffer>(curr_input_packet_.len_);
     NETWORK_LOG_TRACE("Extended Buffer size required for packet of size {0}", curr_input_packet_.len_);
     curr_input_packet_.extended_ = true;
   } else {
