@@ -18,9 +18,9 @@ class PostgresCommandFactory {
    * @param packet the Postgres input packet
    * @return a shared_ptr to the converted command
    */
-  std::shared_ptr<PostgresNetworkCommand> PacketToCommand(InputPacket *packet);
+  virtual std::shared_ptr<PostgresNetworkCommand> PacketToCommand(InputPacket *packet);
 
-  ~PostgresCommandFactory() = default;
+  virtual ~PostgresCommandFactory() = default;
 };
 
 }  // namespace terrier::network
