@@ -1,5 +1,7 @@
 #pragma once
 #include <functional>
+#include <memory>
+
 namespace terrier::common {
 
 /**
@@ -26,6 +28,17 @@ class ManagedPointer {
   explicit ManagedPointer(Underlying *ptr) : underlying_(ptr) {}
 
   /**
+   * Constructs a new ManagedPointer.
+   * @param smart_ptr the pointer value this ManagedPointer wraps
+   */
+  explicit ManagedPointer(const std::unique_ptr<Underlying> &smart_ptr) : underlying_(smart_ptr.get()) {}
+
+  /**
+   * @param null_ptr null pointer
+   */
+  ManagedPointer(std::nullptr_t null_ptr) noexcept : underlying_(nullptr) {}  // NOLINT
+
+  /**
    * @return the underlying pointer
    */
   Underlying &operator*() const { return *underlying_; }
@@ -38,12 +51,39 @@ class ManagedPointer {
   /**
    * @return the underlying pointer
    */
-  Underlying *get() const { return underlying_; }
+  Underlying *Get() const { return underlying_; }
 
   /**
    * @return True if it is not a nullptr, false otherwise
    */
   explicit operator bool() const { return underlying_; }
+
+  /**
+   * Overloaded assignment operator for nullptr type
+   * @return reference to this
+   */
+  ManagedPointer &operator=(std::nullptr_t) {
+    underlying_ = nullptr;
+    return *this;
+  }
+
+  /**
+   * Overloaded assignment operator for unique_ptr type
+   * @return reference to this
+   */
+  ManagedPointer &operator=(const std::unique_ptr<Underlying> &smart_ptr) {
+    underlying_ = smart_ptr.get();
+    return *this;
+  }
+
+  /**
+   * Overloaded assignment operator for underlying ptr type
+   * @return reference to this
+   */
+  ManagedPointer &operator=(Underlying *const ptr) {
+    underlying_ = ptr;
+    return *this;
+  }
 
   /**
    * Equality operator
@@ -80,6 +120,16 @@ class ManagedPointer {
    * @return modified output stream.
    */
   friend std::ostream &operator<<(std::ostream &os, const ManagedPointer &pointer) { return os << pointer.underlying_; }
+
+  /**
+   * Performs a reinterpret cast on the underlying pointer of a ManagedPointer to a different type
+   * @tparam NewType type to cast to. Underlying type must be reinterpretable to new type
+   * @return ManagedPointer holding the new type
+   */
+  template <class NewType>
+  ManagedPointer<NewType> CastManagedPointerTo() const {
+    return ManagedPointer<NewType>(reinterpret_cast<NewType *>(underlying_));
+  }
 
  private:
   Underlying *underlying_;

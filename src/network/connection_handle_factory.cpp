@@ -6,21 +6,22 @@
 #include "network/connection_handler_task.h"
 
 namespace terrier::network {
-ConnectionHandle &ConnectionHandleFactory::NewConnectionHandle(int conn_fd, NetworkProtocolType protocol_type,
-                                                               ConnectionHandlerTask *task) {
+ConnectionHandle &ConnectionHandleFactory::NewConnectionHandle(int conn_fd,
+                                                               std::unique_ptr<ProtocolInterpreter> interpreter,
+                                                               common::ManagedPointer<ConnectionHandlerTask> handler) {
   auto it = reusable_handles_.find(conn_fd);
   if (it == reusable_handles_.end()) {
-    auto ret = reusable_handles_.try_emplace(conn_fd, conn_fd, task, traffic_cop_, command_factory_, protocol_type);
+    auto ret = reusable_handles_.try_emplace(conn_fd, conn_fd, handler, traffic_cop_, std::move(interpreter));
     TERRIER_ASSERT(ret.second, "ret.second false");
     return ret.first->second;
   }
 
   auto &reused_handle = it->second;
-  reused_handle.conn_handler_ = task;
+  reused_handle.conn_handler_ = handler;
   reused_handle.network_event_ = nullptr;
   reused_handle.workpool_event_ = nullptr;
   reused_handle.io_wrapper_->Restart();
-  reused_handle.BuildProtocolInterpreter(protocol_type, command_factory_);
+  reused_handle.protocol_interpreter_ = std::move(interpreter);
   reused_handle.state_machine_ = ConnectionHandle::StateMachine();
   reused_handle.context_.Reset();
   TERRIER_ASSERT(reused_handle.network_event_ == nullptr, "network_event_ != nullptr");

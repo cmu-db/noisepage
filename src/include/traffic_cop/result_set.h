@@ -5,7 +5,7 @@
 #include <vector>
 #include "type/transient_value.h"
 
-namespace terrier::traffic_cop {
+namespace terrier::trafficcop {
 
 using Row = std::vector<type::TransientValue>;
 
@@ -26,4 +26,4 @@ class ResultSet {
   std::vector<Row> rows_;
 };
 
-}  // namespace terrier::traffic_cop
+}  // namespace terrier::trafficcop

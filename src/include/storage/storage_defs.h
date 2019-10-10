@@ -15,16 +15,14 @@
 #include "common/object_pool.h"
 #include "common/strong_typedef.h"
 #include "storage/block_access_controller.h"
+#include "storage/write_ahead_log/log_io.h"
+#include "transaction/transaction_defs.h"
 
 namespace terrier::storage {
-// Write Ahead Logging:
-#define LOGGING_DISABLED nullptr
-#define ACTION_FRAMEWORK_DISABLED nullptr
-
 // All tuples potentially visible to txns should have a non-null attribute of version vector.
 // This is not to be confused with a non-null version vector that has value nullptr (0).
 #define VERSION_POINTER_COLUMN_ID ::terrier::storage::col_id_t(0)
-#define NUM_RESERVED_COLUMNS 1u
+#define NUM_RESERVED_COLUMNS 1U
 
 // In type_util.h there are a total of 5 possible inlined attribute sizes:
 // 1, 2, 4, 8, and 16-bytes (16 byte is the structure portion of varlen).
@@ -46,7 +44,8 @@ class DataTable;
  *
  * @warning If you change the layout please also change the way header sizes are computed in block layout!
  */
-struct alignas(common::Constants::BLOCK_SIZE) RawBlock {
+class alignas(common::Constants::BLOCK_SIZE) RawBlock {
+ public:
   /**
    * Data Table for this RawBlock. This is used by indexes and GC to get back to the DataTable given only a TupleSlot
    */
@@ -66,6 +65,9 @@ struct alignas(common::Constants::BLOCK_SIZE) RawBlock {
    * The insert head tells us where the next insertion should take place. Notice that this counter is never
    * decreased as slot recycling does not happen on the fly with insertions. A background compaction process
    * scans through blocks and free up slots.
+   * Since the block size is less then (1<<20) the uppper 12 bits of insert_head_ is free. We use the first bit (1<<31)
+   * to indicate if the block is insertable.
+   * If the first bit is 0, the block is insertable, otherwise one txn is inserting to this block
    */
   std::atomic<uint32_t> insert_head_;
   /**
@@ -80,7 +82,14 @@ struct alignas(common::Constants::BLOCK_SIZE) RawBlock {
   byte content_[common::Constants::BLOCK_SIZE - sizeof(uintptr_t) - sizeof(uint16_t) - sizeof(layout_version_t) -
                 sizeof(uint32_t) - sizeof(BlockAccessController)];
   // A Block needs to always be aligned to 1 MB, so we can get free bytes to
-  // store offsets within a block in ine 8-byte word.
+  // store offsets within a block in one 8-byte word
+
+  /**
+   * Get the offset of this block. Because the first bit insert_head_ is used to indicate the status
+   * of the block, we need to clear the status bit to get the real offset
+   * @return the offset which tells us where the next insertion should take place
+   */
+  uint32_t GetInsertHead() { return INT32_MAX & insert_head_.load(); }
 };
 
 /**
@@ -199,7 +208,18 @@ enum class DeltaRecordType : uint8_t { UPDATE = 0, INSERT, DELETE };
 /**
  * Types of LogRecords
  */
-enum class LogRecordType : uint8_t { REDO = 1, DELETE, COMMIT };
+enum class LogRecordType : uint8_t { REDO = 1, DELETE, COMMIT, ABORT };
+
+/**
+ * Callback function and arguments to be called when record is persisted
+ */
+using CommitCallback = std::pair<transaction::callback_fn, void *>;
+
+/**
+ * A BufferedLogWriter containing serialized logs, as well as all commit callbacks for transaction's whose commit are
+ * serialized in this BufferedLogWriter
+ */
+using SerializedLogs = std::pair<BufferedLogWriter *, std::vector<CommitCallback>>;
 
 /**
  * A varlen entry is always a 32-bit size field and the varlen content,

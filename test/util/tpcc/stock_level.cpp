@@ -7,7 +7,7 @@ namespace terrier::tpcc {
 // 2.8.2
 bool StockLevel::Execute(transaction::TransactionManager *const txn_manager, Database *const db, Worker *const worker,
                          const TransactionArgs &args) const {
-  TERRIER_ASSERT(args.type == TransactionType::StockLevel, "Wrong transaction type.");
+  TERRIER_ASSERT(args.type_ == TransactionType::StockLevel, "Wrong transaction type.");
   // ARGS: W_ID, D_ID, S_QUANTITY_THRESHOLD
 
   auto *const txn = txn_manager->BeginTransaction();
@@ -15,16 +15,16 @@ bool StockLevel::Execute(transaction::TransactionManager *const txn_manager, Dat
 
   // Look up D_W_ID and D_ID, retrieve D_NEXT_O_ID
   const auto district_key_pr_initializer = db->district_primary_index_->GetProjectedRowInitializer();
-  auto *const district_key = district_key_pr_initializer.InitializeRow(worker->district_key_buffer);
+  auto *const district_key = district_key_pr_initializer.InitializeRow(worker->district_key_buffer_);
 
-  *reinterpret_cast<int8_t *>(district_key->AccessForceNotNull(d_id_key_pr_offset)) = args.d_id;
-  *reinterpret_cast<int8_t *>(district_key->AccessForceNotNull(d_w_id_key_pr_offset)) = args.w_id;
+  *reinterpret_cast<int8_t *>(district_key->AccessForceNotNull(d_id_key_pr_offset_)) = args.d_id_;
+  *reinterpret_cast<int8_t *>(district_key->AccessForceNotNull(d_w_id_key_pr_offset_)) = args.w_id_;
 
   index_scan_results.clear();
   db->district_primary_index_->ScanKey(*txn, *district_key, &index_scan_results);
   TERRIER_ASSERT(index_scan_results.size() == 1, "District index lookup failed.");
 
-  auto *district_select_tuple = district_select_pr_initializer.InitializeRow(worker->district_tuple_buffer);
+  auto *district_select_tuple = district_select_pr_initializer_.InitializeRow(worker->district_tuple_buffer_);
   bool select_result UNUSED_ATTRIBUTE = db->district_table_->Select(txn, index_scan_results[0], district_select_tuple);
   TERRIER_ASSERT(select_result, "District should be present.");
 
@@ -33,18 +33,18 @@ bool StockLevel::Execute(transaction::TransactionManager *const txn_manager, Dat
 
   // Select all matching OL_W_ID and OL_D_ID and OL_O_ID in range [D_NEXT_O_ID - 20, D_NEXT_OID)
   const auto order_line_key_pr_initializer = db->order_line_primary_index_->GetProjectedRowInitializer();
-  auto *const order_line_key_lo = order_line_key_pr_initializer.InitializeRow(worker->order_line_key_buffer);
-  auto *const order_line_key_hi = order_line_key_pr_initializer.InitializeRow(worker->order_line_tuple_buffer);
+  auto *const order_line_key_lo = order_line_key_pr_initializer.InitializeRow(worker->order_line_key_buffer_);
+  auto *const order_line_key_hi = order_line_key_pr_initializer.InitializeRow(worker->order_line_tuple_buffer_);
 
-  *reinterpret_cast<int8_t *>(order_line_key_lo->AccessForceNotNull(ol_w_id_key_pr_offset)) = args.w_id;
-  *reinterpret_cast<int8_t *>(order_line_key_lo->AccessForceNotNull(ol_d_id_key_pr_offset)) = args.d_id;
-  *reinterpret_cast<int32_t *>(order_line_key_lo->AccessForceNotNull(ol_o_id_key_pr_offset)) = d_next_o_id - 20;
-  *reinterpret_cast<int8_t *>(order_line_key_lo->AccessForceNotNull(ol_number_key_pr_offset)) = 1;
+  *reinterpret_cast<int8_t *>(order_line_key_lo->AccessForceNotNull(ol_w_id_key_pr_offset_)) = args.w_id_;
+  *reinterpret_cast<int8_t *>(order_line_key_lo->AccessForceNotNull(ol_d_id_key_pr_offset_)) = args.d_id_;
+  *reinterpret_cast<int32_t *>(order_line_key_lo->AccessForceNotNull(ol_o_id_key_pr_offset_)) = d_next_o_id - 20;
+  *reinterpret_cast<int8_t *>(order_line_key_lo->AccessForceNotNull(ol_number_key_pr_offset_)) = 1;
 
-  *reinterpret_cast<int8_t *>(order_line_key_hi->AccessForceNotNull(ol_w_id_key_pr_offset)) = args.w_id;
-  *reinterpret_cast<int8_t *>(order_line_key_hi->AccessForceNotNull(ol_d_id_key_pr_offset)) = args.d_id;
-  *reinterpret_cast<int32_t *>(order_line_key_hi->AccessForceNotNull(ol_o_id_key_pr_offset)) = d_next_o_id - 1;
-  *reinterpret_cast<int8_t *>(order_line_key_hi->AccessForceNotNull(ol_number_key_pr_offset)) = 15;  // max OL_NUMBER
+  *reinterpret_cast<int8_t *>(order_line_key_hi->AccessForceNotNull(ol_w_id_key_pr_offset_)) = args.w_id_;
+  *reinterpret_cast<int8_t *>(order_line_key_hi->AccessForceNotNull(ol_d_id_key_pr_offset_)) = args.d_id_;
+  *reinterpret_cast<int32_t *>(order_line_key_hi->AccessForceNotNull(ol_o_id_key_pr_offset_)) = d_next_o_id - 1;
+  *reinterpret_cast<int8_t *>(order_line_key_hi->AccessForceNotNull(ol_number_key_pr_offset_)) = 15;  // max OL_NUMBER
 
   index_scan_results.clear();
   db->order_line_primary_index_->ScanAscending(*txn, *order_line_key_lo, *order_line_key_hi, &index_scan_results);
@@ -57,7 +57,7 @@ bool StockLevel::Execute(transaction::TransactionManager *const txn_manager, Dat
 
   for (const auto &order_line_tuple_slot : index_scan_results) {
     storage::ProjectedRow *order_line_select_tuple =
-        order_line_select_pr_initializer.InitializeRow(worker->order_line_tuple_buffer);
+        order_line_select_pr_initializer_.InitializeRow(worker->order_line_tuple_buffer_);
     select_result = db->order_line_table_->Select(txn, order_line_tuple_slot, order_line_select_tuple);
     TERRIER_ASSERT(select_result, "Order line index contained this.");
     const auto ol_i_id = *reinterpret_cast<int32_t *>(order_line_select_tuple->AccessForceNotNull(0));
@@ -66,16 +66,16 @@ bool StockLevel::Execute(transaction::TransactionManager *const txn_manager, Dat
     if (item_counts.count(ol_i_id) > 0) continue;  // don't look up items we've already checked
 
     const auto stock_key_pr_initializer = db->stock_primary_index_->GetProjectedRowInitializer();
-    auto *const stock_key = stock_key_pr_initializer.InitializeRow(worker->stock_key_buffer);
-    *reinterpret_cast<int8_t *>(stock_key->AccessForceNotNull(s_w_id_key_pr_offset)) = args.w_id;
-    *reinterpret_cast<int32_t *>(stock_key->AccessForceNotNull(s_i_id_key_pr_offset)) = ol_i_id;
+    auto *const stock_key = stock_key_pr_initializer.InitializeRow(worker->stock_key_buffer_);
+    *reinterpret_cast<int8_t *>(stock_key->AccessForceNotNull(s_w_id_key_pr_offset_)) = args.w_id_;
+    *reinterpret_cast<int32_t *>(stock_key->AccessForceNotNull(s_i_id_key_pr_offset_)) = ol_i_id;
 
     std::vector<storage::TupleSlot> stock_index_scan_results;
     stock_index_scan_results.clear();
     db->stock_primary_index_->ScanKey(*txn, *stock_key, &stock_index_scan_results);
     TERRIER_ASSERT(stock_index_scan_results.size() == 1, "Couldn't find a matching stock item.");
 
-    auto *const stock_select_tuple = stock_select_pr_initializer.InitializeRow(worker->stock_tuple_buffer);
+    auto *const stock_select_tuple = stock_select_pr_initializer_.InitializeRow(worker->stock_tuple_buffer_);
     select_result = db->stock_table_->Select(txn, stock_index_scan_results[0], stock_select_tuple);
     TERRIER_ASSERT(select_result, "Stock index contained this.");
     const auto s_quantity = *reinterpret_cast<int16_t *>(stock_select_tuple->AccessForceNotNull(0));
@@ -86,7 +86,7 @@ bool StockLevel::Execute(transaction::TransactionManager *const txn_manager, Dat
 
   uint16_t low_stock = 0;
   for (const auto &it : item_counts) {
-    low_stock = static_cast<uint16_t>(low_stock + static_cast<uint16_t>(it.second < args.s_quantity_threshold));
+    low_stock = static_cast<uint16_t>(low_stock + static_cast<uint16_t>(it.second < args.s_quantity_threshold_));
   }
 
   txn_manager->Commit(txn, TestCallbacks::EmptyCallback, nullptr);

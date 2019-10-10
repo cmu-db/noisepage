@@ -9,33 +9,69 @@ From the directory in which this script resides
 ./run_micro_bench.py
 """
 
+import os
+import sys
 import argparse
 import datetime
 import json
-import os
 import pprint
 import subprocess
-import sys
 import urllib
+import logging
+from pprint import pprint
 
 import xml.etree.ElementTree as ElementTree
 
 from types import (ListType, StringType)
 
-import cpu_lib
+## =========================================================
+## LOGGING
+## =========================================================
 
-class TestConfig(object):
+LOG = logging.getLogger(__name__)
+LOG_handler = logging.StreamHandler()
+LOG_formatter = logging.Formatter(fmt='%(asctime)s [%(funcName)s:%(lineno)03d] %(levelname)-5s: %(message)s',
+                                  datefmt='%m-%d-%Y %H:%M:%S')
+LOG_handler.setFormatter(LOG_formatter)
+LOG.addHandler(LOG_handler)
+LOG.setLevel(logging.INFO)
+
+
+## =========================================================
+
+# Jenkins URL
+JENKINS_URL = "http://jenkins.db.cs.cmu.edu:8080"
+
+# LIST OF BENCHMARKS
+# Add the name of your benchmark in the list below and
+# it will automatically get executed when this script runs.
+BENCHMARKS_TO_RUN = [
+    "catalog_benchmark",
+    "data_table_benchmark",
+    "garbage_collector_benchmark",
+    "large_transaction_benchmark",
+    "logging_benchmark",
+    "recovery_benchmark",
+    "large_transaction_metrics_benchmark",
+    "logging_metrics_benchmark",
+    "tuple_access_strategy_benchmark",
+    "tpcc_benchmark",
+    "bwtree_benchmark",
+    "cuckoomap_benchmark"
+]
+
+# Where to find the benchmarks to execute
+BENCHMARK_PATH = "../../build/release/"
+
+## =========================================================
+
+class Config(object):
     """ Configuration for run_micro_bench.
         All information is read-only.
     """
     def __init__(self):
         # benchmark executables to run
-        self.benchmark_list = ["data_table_benchmark",
-                               "garbage_collector_benchmark",
-                               "large_transaction_benchmark",
-                               "logging_benchmark",
-                               "tuple_access_strategy_benchmark",
-                               "tpcc_benchmark"]
+        self.benchmarks = BENCHMARKS_TO_RUN
 
         # how many historical values are "required".
         self.min_ref_values = 10
@@ -54,28 +90,14 @@ class TestConfig(object):
         # of sources. Stop if the history requirements are met.
         self.ref_data_sources = [
             {"project" : "terrier-nightly",
-             "min_build" : 263,
+             "min_build" : 363,
             },
         ]
         return
+## CLASS
 
-    def get_benchmark_list(self):
-        """ Return list of benchmarks to be run """
-        return self.benchmark_list
+## =========================================================
 
-    def get_min_ref_values(self):
-        """ Return how many historical values we require for our
-            historical average calculations.
-        """
-        return self.min_ref_values
-
-    def get_ref_branch(self):
-        """ return: branch name containing benchmark reference data """
-        return self.branch
-
-    def get_ref_project(self):
-        """ return: project name containing benchmark reference data """
-        return self.project
 
 class TextTable(object):
     """ Print out data as text, in a formatted table """
@@ -104,7 +126,7 @@ class TextTable(object):
         col_dict = {}
         col_dict['name'] = column
         if col_format:
-            col_dict['format'] = col_format
+            col_dict['format'] = " " + col_format + " "
         if heading:
             col_dict['heading'] = heading
         if right_justify:
@@ -131,7 +153,7 @@ class TextTable(object):
             return u""
         if col.has_key('format'):
             return col['format'] % row[field]
-        return u"{}".format(row[field])
+        return u" {} ".format(row[field])
 
     def _width_dict(self, *width_args):
         """ Return width of field (dictionary) """
@@ -268,8 +290,8 @@ class Build(object):
         build_url = self.get_build_url()
 
         # get the list of artifacts
-        python_url = "{}/api/python".format(build_url)
-        data = eval(urllib.urlopen(python_url).read())
+        python_url = "{}/api/json".format(build_url)
+        data = json.loads(urllib.urlopen(python_url).read())
         artifacts_lod = data['artifacts']
         # returns a list of artifact dictionaries. These look like:
         #
@@ -626,6 +648,7 @@ class GBenchToJUnit(object):
         self.output_file = output_file
 
         testsuite_dict = self.read_gb_results(self.input_file)
+        LOG.debug("Converting Google Benchmark file '%s' to JUNIT file '%s'", input_file, output_file)
         self.write_output(testsuite_dict)
         return
 
@@ -651,6 +674,7 @@ class GBenchToJUnit(object):
         test_suite = {"testcases" : testcases}
 
         # read the results file
+        LOG.debug("Reading results file '%s'", input_file)
         with open(input_file) as rf:
             gb_data = json.load(rf)
 
@@ -709,20 +733,8 @@ class RunMicroBenchmarks(object):
     """ Run micro benchmarks. Output is to json files for post processing.
         Returns True if all benchmarks run, False otherwise
     """
-    def __init__(self, verbose=False, debug=False):
-        # list of benchmarks to run
-        self.benchmark_list = ["data_table_benchmark",
-                               "garbage_collector_benchmark",
-                               "large_transaction_benchmark",
-                               "logging_benchmark",
-                               "tuple_access_strategy_benchmark",
-                               "tpcc_benchmark"]
-
-        # minimum run time for the benchmark
-        self.min_time = 10
-
-        self.verbose = verbose
-        self.debug = debug
+    def __init__(self, config):
+        self.config = config
         return
 
     def run_all_benchmarks(self):
@@ -732,79 +744,58 @@ class RunMicroBenchmarks(object):
         ret_val = 0
 
         # iterate over all benchmarks and run them
-        for benchmark_name in self.benchmark_list:
-            bench_ret_val = self.run_single_benchmark(benchmark_name)
+        for bench_name in config.benchmarks:
+            LOG.info("Running '%s'" % bench_name)
+            bench_ret_val = self.run_single_benchmark(bench_name)
             if bench_ret_val:
-                if self.verbose:
-                    print("{} terminated with {}".format(benchmark_name,
+                LOG.debug("{} terminated with {}".format(bench_name,
                                                          bench_ret_val))
                 ret_val = bench_ret_val
 
         # return fail, if any of the benchmarks failed to run or complete
         return ret_val
 
-    def run_single_benchmark(self, benchmark_name):
+    def run_single_benchmark(self, bench_name):
         """ Run benchmark, generate JSON results
         """
-        benchmark_path = os.path.join("../../build/release", benchmark_name)
-        output_file = "{}.json".format(benchmark_name)
+        benchmark_path = os.path.join(BENCHMARK_PATH, bench_name)
+        output_file = "{}.json".format(bench_name)
 
         cmd = "{} --benchmark_min_time={} " + \
               " --benchmark_format=json" + \
               " --benchmark_out={}"
-        cmd = cmd.format(benchmark_path,
-                         self.min_time,
-                         output_file)
+        cmd = cmd.format(benchmark_path, config.min_time, output_file)
 
         # use all the cpus from the highest numbered numa node
-        cpu_id_list = self._get_single_numa_cpu_list()
-        cmd = self._taskset_cmd_by_cpu_id_list(cmd, cpu_id_list)
-        print("cmd = {}".format(cmd))
 
-        ret_val = subprocess.call([cmd],
-                                  shell=True,
-                                  stdout=sys.stdout,
-                                  stderr=sys.stderr)
+        output = subprocess.check_output("numactl --hardware | grep 'available: ' | cut -d' ' -f2", shell=True)
+        if not output:
+            raise Exception("Missing numactl binary. Please install package")
+        highest_cpu_node = int(output) - 1
+        LOG.debug("Number of NUMA Nodes = {}".format(highest_cpu_node))
+
+        cmd = "numactl --cpunodebind={} --preferred={} {}".format(highest_cpu_node, highest_cpu_node, cmd)
+        LOG.debug("Executing command: {}".format(cmd))
+
+        proc = subprocess.Popen([cmd], shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        out, err = proc.communicate()
+        ret_val = proc.returncode
+        #LOG.debug("OUTPUT: %s" % out)
 
         # convert json results file to xml
-        xml_output_file = "{}.xml".format(benchmark_name)
-        GBenchToJUnit(output_file, xml_output_file)
+        if ret_val == 0:
+            xml_output_file = "{}.xml".format(bench_name)
+            GBenchToJUnit(output_file, xml_output_file)
+        else:
+            LOG.error("Unexpected failure of '%s' [ret_val=%d]", bench_name, ret_val)
+            LOG.error(err)
 
         # return the process exit code
         return ret_val
 
-    def _taskset_cmd(self, cmd, num_cpus):
-        """ modify cmd to be via taskset """
-        cpu_a = cpu_lib.CPUAllocator()
-        assert num_cpus
-        # use high numbered cpus
-        cpu_list = cpu_a.get_n_cpus(num_cpus, low=False)
-
-        new_cmd = "taskset -c {} {}".format(",".join(map(str, cpu_list)), cmd)
-        return new_cmd
-
-    def _taskset_cmd_by_cpu_id_list(self, cmd, cpu_id_list):
-        new_cmd = "taskset -c {} {}".format(",".join(map(str, cpu_id_list)),
-                                            cmd)
-        return new_cmd
-
-    def _get_single_numa_cpu_list(self):
-        cpu_a = cpu_lib.CPUAllocator()
-        # get the highest number numa node
-        numa_id = cpu_a.get_numa_ids()[-1]
-        numa_obj = cpu_a.get_numa_by_id(numa_id)
-        cpu_obj_list = numa_obj.get_cpu_list()
-
-        cpu_id_list = []
-        for cpu in cpu_obj_list:
-            if not cpu.is_free():
-                continue
-            cpu_id_list.append(cpu.get_cpu_id())
-        return cpu_id_list
-
 class Jenkins(object):
     """ Wrapper for Jenkins web api """
-    def __init__(self, base_url="http://jenkins.db.cs.cmu.edu:8080"):
+    def __init__(self, base_url):
         self.base_url = base_url
         return
 
@@ -824,11 +815,13 @@ class Jenkins(object):
         """
 
         url = "{}/job/{}".format(self.base_url, project)
-        if branch:
-            url = "{}/job/{}".format(url, branch)
-        python_url = "{}/api/python".format(url)
+        if branch: url = "{}/job/{}".format(url, branch)
+        json_url = "{}/api/json".format(url)
+        LOG.debug("Retrieving Jenkins JSON data from %s" % json_url)
         try:
-            data = eval(urllib.urlopen(python_url).read())
+            # We are running eval here because Jenkins is returning back Python code
+            #data = eval(urllib.urlopen(python_url).read())
+            data = json.loads(urllib.urlopen(json_url).read())
         except:
             return []
 
@@ -843,8 +836,8 @@ class Jenkins(object):
         # retrieve data for each build and turn into a Build object
         ret_list = []
         for item in data['builds']:
-            build_url = "{}/api/python".format(item['url'])
-            data = eval(urllib.urlopen(build_url).read())
+            build_url = "{}/api/json".format(item['url'])
+            data = json.loads(urllib.urlopen(build_url).read())
             ret_list.append(Build(data))
 
         if status_filter:
@@ -858,12 +851,7 @@ class Jenkins(object):
                         if build.get_number() >= min_build]
 
         return ret_list
-
-    def debug_print(self, data):
-        """ Print data in human friendly form """
-        pp = pprint.PrettyPrinter()
-        pp.pprint(data)
-        return
+## CLASS
 
 class ReferenceValue(object):
     """ Container to hold reference benchmark result + result of comparison
@@ -874,6 +862,7 @@ class ReferenceValue(object):
         self.num_results = None
         self.time = None
         self.time_type = None
+        self.iterations = 0
 
         # actual value from benchmark
         self.ips = None
@@ -939,12 +928,18 @@ class ReferenceValue(object):
         """ Return a ReferenceValue constructed from historical
             benchmark data
         """
+
+        #for x in gbrp.gbresults:
+            #pprint(x.__dict__)
+        #sys.exit(1)
+
         key = (gbrp.get_suite_name(), gbrp.get_test_name())
         assert key == in_key
         ret_obj = cls()
         ret_obj.key = key
         ret_obj.num_results = gbrp.get_num_items()
         ret_obj.time = gbrp.get_mean_time()
+        ret_obj.iterations = 888
         ret_obj.ref_ips = gbrp.get_mean_items_per_second()
         ret_obj.tolerance = config.ref_tolerance
         ret_obj.reference_type = "history"
@@ -962,6 +957,7 @@ class ReferenceValue(object):
         ret_obj.key = key
         ret_obj.num_results = gbrp.get_num_items()
         ret_obj.time = gbrp.get_mean_time()
+        ret_obj.iterations = 777
         ret_obj.ref_ips = gbrp.get_mean_items_per_second()
         ret_obj.tolerance = config.lax_tolerance
         ret_obj.reference_type = "lax"
@@ -989,6 +985,7 @@ class ReferenceValue(object):
         ret_dict["test"] = test_name
         ret_dict["num_results"] = self.num_results
         ret_dict["value"] = self.ips
+        ret_dict["iterations"] = self.iterations
         ret_dict["tolerance"] = self.tolerance
         if not self.ref_ips:
             self.ref_ips = 0.0
@@ -1032,17 +1029,21 @@ class ReferenceValueProvider(object):
         # no checking
         return ReferenceValue.config(key, self.config)
 
+## =========================================================
+## MAIN
+## =========================================================
+
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
 
-    parser.add_argument("-v",
+    parser.add_argument("--run",
                         action="store_true",
-                        dest="verbose",
+                        dest="run",
                         default=False,
-                        help="verbose")
+                        help="Run Benchmarks")
 
-    parser.add_argument("-d",
+    parser.add_argument("--debug",
                         action="store_true",
                         dest="debug",
                         default=False,
@@ -1050,15 +1051,30 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    test_config = TestConfig()
-    run_bench = RunMicroBenchmarks()
-    ret = run_bench.run_all_benchmarks()
+    # -------------------------------------------------------
+
+
+    if args.debug: LOG.setLevel(logging.DEBUG)
+
+    # -------------------------------------------------------
+
+    config = Config()
+
+    if not os.path.exists(BENCHMARK_PATH):
+        LOG.error("The benchmark executable path directory '%s' does not exist" % BENCHMARK_PATH)
+        sys.exit(1)
+
+    # Run benchmarks
+    ret = 0
+    if args.run:
+        run_bench = RunMicroBenchmarks(config)
+        ret = run_bench.run_all_benchmarks()
 
     # need <n> benchmark results to compare against
-    ap = ArtifactProcessor(test_config.get_min_ref_values())
-    h = Jenkins()
+    ap = ArtifactProcessor(config.min_ref_values)
+    h = Jenkins(JENKINS_URL)
 
-    data_src_list = test_config.ref_data_sources
+    data_src_list = config.ref_data_sources
     more = True
     for repo_dict in data_src_list:
         project = repo_dict.get("project")
@@ -1069,16 +1085,13 @@ if __name__ == "__main__":
         builds = h.get_builds(project, branch, **kwargs)
 
         for build in builds:
-            if args.verbose:
-                print("({}, {}), build {}, status {}".format(project,
-                                                             branch,
-                                                             build.get_number(),
-                                                             build.get_result()))
+            LOG.debug("(%s, %s), build=#%d, status=%s", \
+                      project, branch, build.get_number(), build.get_result())
+
             artifacts = build.get_artifacts()
             for artifact in artifacts:
                 artifact_filename = artifact.get_filename()
-                if args.verbose:
-                    print("artifact: {}".format(artifact_filename))
+                LOG.debug("artifact: {}".format(artifact_filename))
 
                 ap.add_artifact_file(artifact.get_data())
 
@@ -1101,14 +1114,14 @@ if __name__ == "__main__":
         print "ips = ",  v.get_mean_items_per_second()
     """
 
-    rvp = ReferenceValueProvider(test_config, ap)
+    rvp = ReferenceValueProvider(config, ap)
     tt = TextTable()
 
     # parse all the result files and compare current results vs. reference
-    benchmark_list = test_config.get_benchmark_list()
-    for bench in benchmark_list:
+    for bench in config.benchmarks:
         filename = "{}.json".format(bench)
         # parse the json result file
+        LOG.debug("Loading benchmark result file '%s'", filename)
         with open(filename) as fh:
             data = json.load(fh)
         bench_results = GBFileResult(data)
@@ -1117,12 +1130,14 @@ if __name__ == "__main__":
         for key in bench_results.get_keys():
             # get the GBBenchResult object
             result = bench_results.get_result(key)
+            LOG.debug("%s Result:\n%s", bench, result)
 
             # get reference value to compare against
             reference = rvp.get_reference(key)
 
             # if reference.reference_type == "history":
             reference.set_ips(result.get_items_per_second())
+            reference.iterations = result.iterations
 
             reference.set_pass_fail()
             tt.add_row(reference.to_dict())
@@ -1133,8 +1148,9 @@ if __name__ == "__main__":
 
     # benchmark key, value, reference, tolerance, reference type, pass
     # add difference
-    tt.add_column("pass", "RES.")
+    tt.add_column("pass", "    ")
     tt.add_column("value", col_format="%01.4g")
+    tt.add_column("iterations", col_format="%d")
     tt.add_column("reference", col_format="%01.4g")
     tt.add_column("tolerance", "% tol.")
     tt.add_column("p_diff", col_format="%+3d")
@@ -1147,5 +1163,5 @@ if __name__ == "__main__":
     print("")
     print(tt)
 
-    print("Exit code = {}".format(ret))
+    LOG.debug("Exit code = {}".format(ret))
     sys.exit(ret)

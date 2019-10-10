@@ -287,13 +287,13 @@ TEST_F(BwTreeTests, ConcurrentMixed) {
     tree->AssignGCID(gcid);
     if ((id % 2) == 0) {
       for (uint32_t i = 0; i < key_num; i++) {
-        int key = num_threads_ * i + id;
+        int key = num_threads_ * i + id;  // NOLINT
 
         tree->Insert(key, key);
       }
     } else {
       for (uint32_t i = 0; i < key_num; i++) {
-        int key = num_threads_ * i + id - 1;
+        int key = num_threads_ * i + id - 1;  // NOLINT
 
         while (!tree->Delete(key, key)) {
         }
@@ -335,7 +335,7 @@ TEST_F(BwTreeTests, Interleaved) {
    *
    * |---- thread 0 ----|---- thread 1----|----thread 2----| .... |---- thread n----|
    */
-  auto InsertTest1 = [&](uint32_t id) {
+  auto insert_test1 = [&](uint32_t id) {
     const uint32_t gcid = id + 1;
     tree->AssignGCID(gcid);
     for (uint32_t i = id * basic_test_key_num; i < static_cast<uint32_t>(id + 1) * basic_test_key_num; i++) {
@@ -350,7 +350,7 @@ TEST_F(BwTreeTests, Interleaved) {
   /*
    * DeleteTest1() - Same pattern as InsertTest1()
    */
-  auto DeleteTest1 = [&](uint32_t id) {
+  auto delete_test1 = [&](uint32_t id) {
     const uint32_t gcid = id + 1;
     tree->AssignGCID(gcid);
     for (uint32_t i = id * basic_test_key_num; i < static_cast<uint32_t>(id + 1) * basic_test_key_num; i++) {
@@ -370,7 +370,7 @@ TEST_F(BwTreeTests, Interleaved) {
    * This test is supposed to be slower since the contention is very high
    * between different threads
    */
-  auto InsertTest2 = [&](uint32_t id) {
+  auto insert_test2 = [&](uint32_t id) {
     const uint32_t gcid = id + 1;
     tree->AssignGCID(gcid);
     for (uint32_t i = 0; i < basic_test_key_num; i++) {
@@ -387,7 +387,7 @@ TEST_F(BwTreeTests, Interleaved) {
   /*
    * DeleteTest2() - The same pattern as InsertTest2()
    */
-  auto DeleteTest2 = [&](uint32_t id) {
+  auto delete_test2 = [&](uint32_t id) {
     const uint32_t gcid = id + 1;
     tree->AssignGCID(gcid);
     for (uint32_t i = 0; i < basic_test_key_num; i++) {
@@ -406,7 +406,7 @@ TEST_F(BwTreeTests, Interleaved) {
    *
    * This function verifies on key_num * thread_num key space
    */
-  auto DeleteGetValueTest = [&]() {
+  auto delete_get_value_test = [&]() {
     for (uint32_t i = 0; i < basic_test_key_num * num_threads_; i++) {
       auto value_set = tree->GetValue(i);
 
@@ -417,7 +417,7 @@ TEST_F(BwTreeTests, Interleaved) {
   /*
    * InsertGetValueTest() - Verifies all values have been inserted
    */
-  auto InsertGetValueTest = [&]() {
+  auto insert_get_value_test = [&]() {
     for (uint32_t i = 0; i < basic_test_key_num * num_threads_; i++) {
       auto value_set = tree->GetValue(i);
 
@@ -426,52 +426,52 @@ TEST_F(BwTreeTests, Interleaved) {
   };
 
   tree->UpdateThreadLocal(num_threads_ + 1);
-  MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, num_threads_, InsertTest2);
+  MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, num_threads_, insert_test2);
   tree->UpdateThreadLocal(1);
 
-  InsertGetValueTest();
+  insert_get_value_test();
 
   tree->UpdateThreadLocal(num_threads_ + 1);
-  MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, num_threads_, DeleteTest1);
+  MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, num_threads_, delete_test1);
   tree->UpdateThreadLocal(1);
 
-  DeleteGetValueTest();
+  delete_get_value_test();
 
   tree->UpdateThreadLocal(num_threads_ + 1);
-  MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, num_threads_, InsertTest1);
+  MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, num_threads_, insert_test1);
   tree->UpdateThreadLocal(1);
 
-  InsertGetValueTest();
+  insert_get_value_test();
 
   tree->UpdateThreadLocal(num_threads_ + 1);
-  MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, num_threads_, DeleteTest2);
+  MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, num_threads_, delete_test2);
   tree->UpdateThreadLocal(1);
 
-  DeleteGetValueTest();
+  delete_get_value_test();
 
   tree->UpdateThreadLocal(num_threads_ + 1);
-  MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, num_threads_, InsertTest1);
+  MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, num_threads_, insert_test1);
   tree->UpdateThreadLocal(1);
 
-  InsertGetValueTest();
+  insert_get_value_test();
 
   tree->UpdateThreadLocal(num_threads_ + 1);
-  MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, num_threads_, DeleteTest1);
+  MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, num_threads_, delete_test1);
   tree->UpdateThreadLocal(1);
 
-  DeleteGetValueTest();
+  delete_get_value_test();
 
   tree->UpdateThreadLocal(num_threads_ + 1);
-  MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, num_threads_, InsertTest2);
+  MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, num_threads_, insert_test2);
   tree->UpdateThreadLocal(1);
 
-  InsertGetValueTest();
+  insert_get_value_test();
 
   tree->UpdateThreadLocal(num_threads_ + 1);
-  MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, num_threads_, DeleteTest2);
+  MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, num_threads_, delete_test2);
   tree->UpdateThreadLocal(1);
 
-  DeleteGetValueTest();
+  delete_get_value_test();
 
   delete tree;
 }

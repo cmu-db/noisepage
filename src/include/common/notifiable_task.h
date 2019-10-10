@@ -43,7 +43,7 @@ class NotifiableTask : public DedicatedThreadTask {
    * Destructs this NotifiableTask. All events currently registered to its base
    * are also deleted and freed.
    */
-  virtual ~NotifiableTask();
+  ~NotifiableTask() override;
 
   /**
    * @return unique id assigned to this task
@@ -170,7 +170,7 @@ class NotifiableTask : public DedicatedThreadTask {
   /**
    * Exits the event loop
    */
-  virtual void ExitLoop() { event_active(terminate_, 0, 0); }
+  void ExitLoop() { event_active(terminate_, 0, 0); }
 
   /**
    * Wrapper around ExitLoop() to conform to libevent callback signature

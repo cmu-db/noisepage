@@ -1,4 +1,5 @@
 #pragma once
+#include <string>
 #include <unordered_map>
 #include <utility>
 #include <vector>
@@ -131,11 +132,61 @@ class StorageUtil {
                                                            uint16_t num_reserved_columns);
 
   /**
+   * Computes the index attribute boundaries for a list of col ids. Col ids must be in ascending sorted order
+   * See comment on AttrSizeFromBoundaries for explanation of size boundaries.
+   * The boundries are for the indexes of each col_id, not the col_ids themselves. For
+   * example (given the resulting vector is attr_boundries), if attr_boundries[0] = 2, then columns col_ids[0] and
+   * col_ids[1] have attribute sizes of 16.
+   * @warning col_ids must be in sorted order
+   * @param layout block layout to get attribute size for col id
+   * @param col_ids col ids to generate boundaries for
+   * @param num_cols number of column ids
+   * @param attr_boundaries pointer to array to store attribute boundaries
+   */
+  static void ComputeAttributeSizeBoundaries(const storage::BlockLayout &layout, const col_id_t *col_ids,
+                                             uint16_t num_cols, uint16_t *attr_boundaries);
+
+  /**
+   * @brief Get attribute size for a col index
+   * The boundaries denote the col idx boundaries, such that for a column index k, if boundaries[i] <= k <
+   * boundaries[i+1], then, the size of the column is 16 >> i.
+   * Example: If of the boundaries are [1, 4, 5, 7], and the column index is 3, then the size of the column is 16 >> 1
+   * which is 8
+   * @param boundaries vector attribute size boundries
+   * @param col_idx index of column
+   * @return attribute size of col at index col_idx
+   */
+  static uint8_t AttrSizeFromBoundaries(const std::vector<uint16_t> &boundaries, uint16_t col_idx);
+
+  /**
    * Return a vector of all the column ids in the layout, excluding columns reserved by the storage layer
    * for internal use.
    * @param layout
    * @return vector of column ids
    */
   static std::vector<storage::col_id_t> ProjectionListAllColumns(const storage::BlockLayout &layout);
+
+  /**
+   * Deallocates the value buffers along varlen columns within a block
+   * @param block the block to clean up
+   * @param accessor accessor used to interact with the block
+   */
+  static void DeallocateVarlens(RawBlock *block, const TupleAccessStrategy &accessor);
+
+  /**
+   * Helper method to turn a string into a VarlenEntry
+   * @param str input to be turned into a VarlenEntry
+   * @return varlen entry representing string
+   * @warning checking IsInlined() to see if you need to possibly clean up a buffer
+   */
+  static storage::VarlenEntry CreateVarlen(const std::string &str) {
+    if (str.size() > storage::VarlenEntry::InlineThreshold()) {
+      byte *contents = common::AllocationUtil::AllocateAligned(str.size());
+      std::memcpy(contents, str.data(), str.size());
+      return storage::VarlenEntry::Create(contents, static_cast<uint32_t>(str.size()), true);
+    }
+    return storage::VarlenEntry::CreateInline(reinterpret_cast<const byte *>(str.data()),
+                                              static_cast<uint32_t>(str.size()));
+  }
 };
 }  // namespace terrier::storage

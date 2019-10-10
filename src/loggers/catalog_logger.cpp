@@ -6,7 +6,7 @@ namespace terrier::catalog {
 
 std::shared_ptr<spdlog::logger> catalog_logger;  // NOLINT
 
-void init_catalog_logger() {
+void InitCatalogLogger() {
   catalog_logger = std::make_shared<spdlog::logger>("catalog_logger", ::default_sink);  // NOLINT
   spdlog::register_logger(catalog_logger);
   catalog_logger->set_level(spdlog::level::trace);

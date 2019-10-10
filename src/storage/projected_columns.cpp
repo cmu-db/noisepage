@@ -5,15 +5,15 @@
 #include <utility>
 #include <vector>
 namespace terrier::storage {
-const uint32_t ProjectedColumns::AttrSizeForColumn(uint16_t col_id) {
-  TERRIER_ASSERT(col_id < num_cols_, "Cannot get size for out-of-bounds column");
+uint32_t ProjectedColumns::AttrSizeForColumn(const uint16_t projection_col_index) {
+  TERRIER_ASSERT(projection_col_index < num_cols_, "Cannot get size for out-of-bounds column");
   uint8_t shift;
   for (shift = 0; shift < NUM_ATTR_BOUNDARIES; shift++) {
-    if (col_id < attr_ends_[shift]) break;
+    if (projection_col_index < attr_ends_[shift]) break;
   }
   TERRIER_ASSERT(shift <= NUM_ATTR_BOUNDARIES, "Out-of-bounds attribute size");
   TERRIER_ASSERT(shift >= 0, "Out-of-bounds attribute size");
-  return 16u >> shift;
+  return 16U >> shift;
 }
 
 ProjectedColumnsInitializer::ProjectedColumnsInitializer(const BlockLayout &layout, std::vector<col_id_t> col_ids,
@@ -40,7 +40,7 @@ ProjectedColumnsInitializer::ProjectedColumnsInitializer(const BlockLayout &layo
   size_ += static_cast<uint32_t>(sizeof(TupleSlot) * max_tuples_);
 
   int attr_size_index = 0;
-  for (int attr : {0, NUM_ATTR_BOUNDARIES - 1}) attr_ends_[attr] = 0;
+  for (auto &attr_end : attr_ends_) attr_end = 0;
 
   for (uint32_t i = 0; i < col_ids_.size(); i++) {
     TERRIER_ASSERT(i < (1 << 15), "Out-of-bounds index");

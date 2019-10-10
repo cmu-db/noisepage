@@ -19,11 +19,6 @@ struct Settings {
   static const uint16_t SERVER_PORT = 15721;
 
   /**
-   * Maximum number of connections to the server.
-   */
-  static const size_t MAX_CONNECTIONS = 250;
-
-  /**
    * Server connection backlog.
    */
   static const int CONNECTION_BACKLOG = 12;

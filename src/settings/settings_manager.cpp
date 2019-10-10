@@ -69,12 +69,20 @@ std::string SettingsManager::GetString(Param param) {
   return std::string(ValuePeeker::PeekVarChar(GetValue(param)));
 }
 
-void SettingsManager::SetInt(Param param, int32_t value, common::ManagedPointer<ActionContext> action_context,
+void SettingsManager::SetInt(Param param, int32_t value, const std::shared_ptr<ActionContext> &action_context,
                              setter_callback_fn setter_callback) {
-  common::SharedLatch::ScopedExclusiveLatch guard(&latch_);
+  // The ActionContext state must be set to INITIATED to prevent
+  // somebody from reusing it for multiple invocations
+  if (action_context->GetState() != ActionState::INITIATED) {
+    SETTINGS_LOG_ERROR("ActionContext state is not set to INITIATED");
+    throw SETTINGS_EXCEPTION("Invalid ActionContext state");
+  }
+
   const auto &param_info = db_->param_map_.find(param)->second;
-  auto min_value = static_cast<int>(param_info.min_value_);
-  auto max_value = static_cast<int>(param_info.max_value_);
+  auto min_value = static_cast<const int>(param_info.min_value_);
+  auto max_value = static_cast<const int>(param_info.max_value_);
+
+  common::SharedLatch::ScopedExclusiveLatch guard(&latch_);
   if (!(value >= min_value && value <= max_value)) {
     action_context->SetState(ActionState::FAILURE);
   } else {
@@ -84,20 +92,31 @@ void SettingsManager::SetInt(Param param, int32_t value, common::ManagedPointer<
     } else {
       ActionState action_state = InvokeCallback(param, &old_value, &value, action_context);
       if (action_state == ActionState::FAILURE) {
-        TERRIER_ASSERT(SetValue(param, ValueFactory::GetInteger(old_value)),
-                       "Resetting parameter value should not fail");
+        bool result = SetValue(param, ValueFactory::GetInteger(old_value));
+        if (!result) {
+          SETTINGS_LOG_ERROR("Failed to revert parameter \"{}\"", param_info.name_);
+          throw SETTINGS_EXCEPTION("Failed to reset parameter");
+        }
       }
     }
   }
   setter_callback(action_context);
 }
 
-void SettingsManager::SetDouble(Param param, double value, common::ManagedPointer<ActionContext> action_context,
+void SettingsManager::SetDouble(Param param, double value, const std::shared_ptr<ActionContext> &action_context,
                                 setter_callback_fn setter_callback) {
-  common::SharedLatch::ScopedExclusiveLatch guard(&latch_);
+  // The ActionContext state must be set to INITIATED to prevent
+  // somebody from reusing it for multiple invocations
+  if (action_context->GetState() != ActionState::INITIATED) {
+    SETTINGS_LOG_ERROR("ActionContext state is not set to INITIATED");
+    throw SETTINGS_EXCEPTION("Invalid ActionContext state");
+  }
+
   const auto &param_info = db_->param_map_.find(param)->second;
-  double min_value = param_info.min_value_;
-  double max_value = param_info.max_value_;
+  auto min_value = static_cast<const int>(param_info.min_value_);
+  auto max_value = static_cast<const int>(param_info.max_value_);
+
+  common::SharedLatch::ScopedExclusiveLatch guard(&latch_);
   if (!(value >= min_value && value <= max_value)) {
     action_context->SetState(ActionState::FAILURE);
   } else {
@@ -107,16 +126,28 @@ void SettingsManager::SetDouble(Param param, double value, common::ManagedPointe
     } else {
       ActionState action_state = InvokeCallback(param, &old_value, &value, action_context);
       if (action_state == ActionState::FAILURE) {
-        TERRIER_ASSERT(SetValue(param, ValueFactory::GetDecimal(old_value)),
-                       "Resetting parameter value should not fail");
+        bool result = SetValue(param, ValueFactory::GetDecimal(old_value));
+        if (!result) {
+          SETTINGS_LOG_ERROR("Failed to revert parameter \"{}\"", param_info.name_);
+          throw SETTINGS_EXCEPTION("Failed to reset parameter");
+        }
       }
     }
   }
   setter_callback(action_context);
 }
 
-void SettingsManager::SetBool(Param param, bool value, common::ManagedPointer<ActionContext> action_context,
+void SettingsManager::SetBool(Param param, bool value, const std::shared_ptr<ActionContext> &action_context,
                               setter_callback_fn setter_callback) {
+  // The ActionContext state must be set to INITIATED to prevent
+  // somebody from reusing it for multiple invocations
+  if (action_context->GetState() != ActionState::INITIATED) {
+    SETTINGS_LOG_ERROR("ActionContext state is not set to INITIATED");
+    throw SETTINGS_EXCEPTION("Invalid ActionContext state");
+  }
+
+  const auto &param_info = db_->param_map_.find(param)->second;
+
   common::SharedLatch::ScopedExclusiveLatch guard(&latch_);
   bool old_value = ValuePeeker::PeekBoolean(GetValue(param));
   if (!SetValue(param, ValueFactory::GetBoolean(value))) {
@@ -124,15 +155,28 @@ void SettingsManager::SetBool(Param param, bool value, common::ManagedPointer<Ac
   } else {
     ActionState action_state = InvokeCallback(param, &old_value, &value, action_context);
     if (action_state == ActionState::FAILURE) {
-      TERRIER_ASSERT(SetValue(param, ValueFactory::GetBoolean(old_value)), "Resetting parameter value should not fail");
+      bool result = SetValue(param, ValueFactory::GetBoolean(old_value));
+      if (!result) {
+        SETTINGS_LOG_ERROR("Failed to revert parameter \"{}\"", param_info.name_);
+        throw SETTINGS_EXCEPTION("Failed to reset parameter");
+      }
     }
   }
   setter_callback(action_context);
 }
 
 void SettingsManager::SetString(Param param, const std::string_view &value,
-                                common::ManagedPointer<ActionContext> action_context,
+                                const std::shared_ptr<ActionContext> &action_context,
                                 setter_callback_fn setter_callback) {
+  // The ActionContext state must be set to INITIATED to prevent
+  // somebody from reusing it for multiple invocations
+  if (action_context->GetState() != ActionState::INITIATED) {
+    SETTINGS_LOG_ERROR("ActionContext state is not set to INITIATED");
+    throw SETTINGS_EXCEPTION("Invalid ActionContext state");
+  }
+
+  const auto &param_info = db_->param_map_.find(param)->second;
+
   common::SharedLatch::ScopedExclusiveLatch guard(&latch_);
   std::string_view old_value = ValuePeeker::PeekVarChar(GetValue(param));
   if (!SetValue(param, ValueFactory::GetVarChar(value))) {
@@ -141,7 +185,11 @@ void SettingsManager::SetString(Param param, const std::string_view &value,
     std::string_view new_value(value);
     ActionState action_state = InvokeCallback(param, &old_value, &new_value, action_context);
     if (action_state == ActionState::FAILURE) {
-      TERRIER_ASSERT(SetValue(param, ValueFactory::GetVarChar(old_value)), "Resetting parameter value should not fail");
+      bool result = SetValue(param, ValueFactory::GetVarChar(old_value));
+      if (!result) {
+        SETTINGS_LOG_ERROR("Failed to revert parameter \"{}\"", param_info.name_);
+        throw SETTINGS_EXCEPTION("Failed to reset parameter");
+      }
     }
   }
   setter_callback(action_context);
@@ -176,7 +224,7 @@ bool SettingsManager::ValidateValue(const type::TransientValue &value, const typ
 }
 
 common::ActionState SettingsManager::InvokeCallback(Param param, void *old_value, void *new_value,
-                                                    common::ManagedPointer<common::ActionContext> action_context) {
+                                                    const std::shared_ptr<common::ActionContext> &action_context) {
   callback_fn callback = db_->param_map_.find(param)->second.callback_;
   (callback)(old_value, new_value, db_, action_context);
   ActionState action_state = action_context->GetState();

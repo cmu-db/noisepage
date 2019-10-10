@@ -4,7 +4,9 @@
 #include <string>
 #include <utility>
 #include <vector>
+
 #include "catalog/schema.h"
+#include "common/managed_pointer.h"
 #include "parser/create_statement.h"
 #include "parser/expression/abstract_expression.h"
 #include "parser/expression/constant_value_expression.h"
@@ -155,10 +157,10 @@ struct ForeignKeyInfo {
     hash = common::HashUtil::CombineHashInRange(hash, foreign_key_sinks_.begin(), foreign_key_sinks_.end());
 
     // Hash upd_action
-    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&upd_action_));
+    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(upd_action_));
 
     // Hash del_action
-    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&del_action_));
+    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(del_action_));
     return hash;
   }
 
@@ -168,27 +170,24 @@ struct ForeignKeyInfo {
    * @return true if the two check info are logically equal
    */
   bool operator==(const ForeignKeyInfo &rhs) const {
+    // Constraint Name
     if (constraint_name_ != rhs.constraint_name_) return false;
 
+    // Sink Table Name
     if (sink_table_name_ != rhs.sink_table_name_) return false;
 
+    // Update TransactionAction
     if (upd_action_ != rhs.upd_action_) return false;
 
+    // Delete TransactionAction
     if (del_action_ != rhs.del_action_) return false;
 
-    if (foreign_key_sources_.size() != rhs.foreign_key_sources_.size()) return false;
-    for (size_t i = 0; i < foreign_key_sources_.size(); i++) {
-      if (foreign_key_sources_[i] != rhs.foreign_key_sources_[i]) {
-        return false;
-      }
-    }
+    // Foreign Key Sources
+    if (foreign_key_sources_ != rhs.foreign_key_sources_) return false;
 
-    if (foreign_key_sinks_.size() != rhs.foreign_key_sinks_.size()) return false;
-    for (size_t i = 0; i < foreign_key_sinks_.size(); i++) {
-      if (foreign_key_sinks_[i] != rhs.foreign_key_sinks_[i]) {
-        return false;
-      }
-    }
+    // Foreign Key Sinks
+    if (foreign_key_sinks_ != rhs.foreign_key_sinks_) return false;
+
     return true;
   }
 
@@ -236,11 +235,12 @@ struct UniqueInfo {
    * @return the hashed value of this unique info
    */
   common::hash_t Hash() const {
-    // Hash constraint_name
+    // Constraint Name
     common::hash_t hash = common::HashUtil::Hash(constraint_name_);
 
-    // Hash unique_cols
+    // Unique Columns
     hash = common::HashUtil::CombineHashInRange(hash, unique_cols_.begin(), unique_cols_.end());
+
     return hash;
   }
 
@@ -250,14 +250,12 @@ struct UniqueInfo {
    * @return true if the two unique info are logically equal
    */
   bool operator==(const UniqueInfo &rhs) const {
+    // Constraint Name
     if (constraint_name_ != rhs.constraint_name_) return false;
 
-    if (unique_cols_.size() != rhs.unique_cols_.size()) return false;
-    for (size_t i = 0; i < unique_cols_.size(); i++) {
-      if (unique_cols_[i] != rhs.unique_cols_[i]) {
-        return false;
-      }
-    }
+    // Unique Columns
+    if (unique_cols_ != rhs.unique_cols_) return false;
+
     return true;
   }
 
@@ -343,7 +341,7 @@ struct CheckInfo {
     hash = common::HashUtil::CombineHashInRange(hash, check_cols_.begin(), check_cols_.end());
 
     // Hash expr_type
-    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&expr_type_));
+    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(expr_type_));
 
     // Hash expr_value
     hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(expr_value_.Hash()));
@@ -356,18 +354,18 @@ struct CheckInfo {
    * @return true if the two check info are logically equal
    */
   bool operator==(const CheckInfo &rhs) const {
+    // Constraint Name
     if (constraint_name_ != rhs.constraint_name_) return false;
 
+    // Expression Type
     if (expr_type_ != rhs.expr_type_) return false;
 
+    // Expression Value
     if (expr_value_ != rhs.expr_value_) return false;
 
-    if (check_cols_.size() != rhs.check_cols_.size()) return false;
-    for (size_t i = 0; i < check_cols_.size(); i++) {
-      if (check_cols_[i] != rhs.check_cols_[i]) {
-        return false;
-      }
-    }
+    // Check Columns
+    if (check_cols_ != rhs.check_cols_) return false;
+
     return true;
   }
 
@@ -427,7 +425,7 @@ class CreateTablePlanNode : public AbstractPlanNode {
      * @param table_schema the schema of the table
      * @return builder object
      */
-    Builder &SetTableSchema(std::shared_ptr<catalog::Schema> table_schema) {
+    Builder &SetTableSchema(std::unique_ptr<catalog::Schema> table_schema) {
       table_schema_ = std::move(table_schema);
       return *this;
     }
@@ -488,24 +486,23 @@ class CreateTablePlanNode : public AbstractPlanNode {
         std::vector<std::string> pri_cols;
 
         for (auto &col : create_stmt->GetColumns()) {
-          type::TypeId val = col->GetValueType(col->GetColumnType());
+          type::TypeId val = col->GetValueType();
 
           // Create column
-          // TODO(Gus,WEN) create columns using the catalog once it is available
-          auto column = catalog::Schema::Column(std::string(col->GetColumnName()), val, false, catalog::col_oid_t(0));
-
-          // Add DEFAULT constraints to the column
-          if (col->GetDefaultExpression() != nullptr) {
-            // Referenced from insert_plan.cpp
-            if (col->GetDefaultExpression()->GetExpressionType() != parser::ExpressionType::VALUE_PARAMETER) {
-              // TODO(Gus,Wen) set default value
-              // parser::ConstantValueExpression *const_expr_elem =
-              //    dynamic_cast<parser::ConstantValueExpression *>(col->GetDefaultExpression().get());
-              // column.SetDefaultValue(const_expr_elem->GetValue());
-            }
+          // TODO(John) The default value expressions in the column definitions are currently shared pointers.
+          // The dereferences below are completely unsafe (there is no safe way to do it), but not fatal at the
+          // moment because we don't actually use them yet... Fixing this requires overhauling the plannodes to strip
+          // away shared pointers.
+          if (col->GetVarlenSize() != 0) {
+            TERRIER_ASSERT(val == type::TypeId::VARCHAR || val == type::TypeId::VARBINARY,
+                           "Variable length types should have a non-zero max varlen size");
+            columns.emplace_back(std::string(col->GetColumnName()), val, col->GetVarlenSize(), false,
+                                 *col->GetDefaultExpression());
+          } else {
+            TERRIER_ASSERT(val != type::TypeId::VARCHAR && val != type::TypeId::VARBINARY,
+                           "Fixed length types should have max varlen of size 0");
+            columns.emplace_back(std::string(col->GetColumnName()), val, false, *col->GetDefaultExpression());
           }
-
-          columns.emplace_back(column);
 
           // Collect Multi-column constraints information
 
@@ -541,7 +538,7 @@ class CreateTablePlanNode : public AbstractPlanNode {
           ProcessForeignKeyConstraint(table_name_, fk);
         }
 
-        table_schema_ = std::make_shared<catalog::Schema>(columns);
+        table_schema_ = std::make_unique<catalog::Schema>(columns);
       }
       return *this;
     }
@@ -553,7 +550,7 @@ class CreateTablePlanNode : public AbstractPlanNode {
      * @return builder object
      */
     Builder &ProcessForeignKeyConstraint(const std::string &table_name,
-                                         const std::shared_ptr<parser::ColumnDefinition> &col) {
+                                         const common::ManagedPointer<parser::ColumnDefinition> col) {
       ForeignKeyInfo fkey_info;
 
       fkey_info.foreign_key_sources_ = std::vector<std::string>();
@@ -585,7 +582,7 @@ class CreateTablePlanNode : public AbstractPlanNode {
      * @param col multi-column constraint definition
      * @return builder object
      */
-    Builder &ProcessUniqueConstraint(const std::shared_ptr<parser::ColumnDefinition> &col) {
+    Builder &ProcessUniqueConstraint(const common::ManagedPointer<parser::ColumnDefinition> col) {
       UniqueInfo unique_info;
 
       unique_info.unique_cols_ = {col->GetColumnName()};
@@ -600,15 +597,15 @@ class CreateTablePlanNode : public AbstractPlanNode {
      * @param col multi-column constraint definition
      * @return builder object
      */
-    Builder &ProcessCheckConstraint(const std::shared_ptr<parser::ColumnDefinition> &col) {
+    Builder &ProcessCheckConstraint(const common::ManagedPointer<parser::ColumnDefinition> col) {
       auto check_cols = std::vector<std::string>();
 
       // TODO(Gus,Wen) more expression types need to be supported
       if (col->GetCheckExpression()->GetReturnValueType() == type::TypeId::BOOLEAN) {
         check_cols.push_back(col->GetColumnName());
 
-        parser::ConstantValueExpression *const_expr_elem =
-            dynamic_cast<parser::ConstantValueExpression *>(col->GetCheckExpression()->GetChild(1).get());
+        common::ManagedPointer<parser::ConstantValueExpression> const_expr_elem =
+            (col->GetCheckExpression()->GetChild(1)).CastManagedPointerTo<parser::ConstantValueExpression>();
         type::TransientValue tmp_value = const_expr_elem->GetValue();
 
         CheckInfo check_info(check_cols, "con_check", col->GetCheckExpression()->GetExpressionType(),
@@ -622,8 +619,8 @@ class CreateTablePlanNode : public AbstractPlanNode {
      * Build the create table plan node
      * @return plan node
      */
-    std::shared_ptr<CreateTablePlanNode> Build() {
-      return std::shared_ptr<CreateTablePlanNode>(new CreateTablePlanNode(
+    std::unique_ptr<CreateTablePlanNode> Build() {
+      return std::unique_ptr<CreateTablePlanNode>(new CreateTablePlanNode(
           std::move(children_), std::move(output_schema_), database_oid_, namespace_oid_, std::move(table_name_),
           std::move(table_schema_), has_primary_key_, std::move(primary_key_), std::move(foreign_keys_),
           std::move(con_uniques_), std::move(con_checks_)));
@@ -648,7 +645,7 @@ class CreateTablePlanNode : public AbstractPlanNode {
     /**
      * Table Schema
      */
-    std::shared_ptr<catalog::Schema> table_schema_;
+    std::unique_ptr<catalog::Schema> table_schema_;
 
     /**
      * ColumnDefinition for multi-column constraints (including foreign key)
@@ -691,10 +688,10 @@ class CreateTablePlanNode : public AbstractPlanNode {
    * @param con_uniques unique constraints
    * @param con_checks check constraints
    */
-  CreateTablePlanNode(std::vector<std::shared_ptr<AbstractPlanNode>> &&children,
-                      std::shared_ptr<OutputSchema> output_schema, catalog::db_oid_t database_oid,
+  CreateTablePlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
+                      std::unique_ptr<OutputSchema> output_schema, catalog::db_oid_t database_oid,
                       catalog::namespace_oid_t namespace_oid, std::string table_name,
-                      std::shared_ptr<catalog::Schema> table_schema, bool has_primary_key, PrimaryKeyInfo primary_key,
+                      std::unique_ptr<catalog::Schema> table_schema, bool has_primary_key, PrimaryKeyInfo primary_key,
                       std::vector<ForeignKeyInfo> &&foreign_keys, std::vector<UniqueInfo> &&con_uniques,
                       std::vector<CheckInfo> &&con_checks)
       : AbstractPlanNode(std::move(children), std::move(output_schema)),
@@ -739,7 +736,7 @@ class CreateTablePlanNode : public AbstractPlanNode {
   /**
    * @return pointer to the schema
    */
-  std::shared_ptr<catalog::Schema> GetTableSchema() const { return table_schema_; }
+  common::ManagedPointer<catalog::Schema> GetTableSchema() const { return common::ManagedPointer(table_schema_); }
 
   /**
    * @return true if index/table has primary key
@@ -759,12 +756,12 @@ class CreateTablePlanNode : public AbstractPlanNode {
   /**
    * @return unique constraints
    */
-  const std::vector<UniqueInfo> &GetUniqueConstraintss() const { return con_uniques_; }
+  const std::vector<UniqueInfo> &GetUniqueConstraints() const { return con_uniques_; }
 
   /**
    * @return check constraints
    */
-  const std::vector<CheckInfo> &GetCheckConstrinats() const { return con_checks_; }
+  const std::vector<CheckInfo> &GetCheckConstraints() const { return con_checks_; }
 
   /**
    * @return the hashed value of this plan node
@@ -774,7 +771,7 @@ class CreateTablePlanNode : public AbstractPlanNode {
   bool operator==(const AbstractPlanNode &rhs) const override;
 
   nlohmann::json ToJson() const override;
-  void FromJson(const nlohmann::json &j) override;
+  std::vector<std::unique_ptr<parser::AbstractExpression>> FromJson(const nlohmann::json &j) override;
 
  private:
   /**
@@ -795,7 +792,7 @@ class CreateTablePlanNode : public AbstractPlanNode {
   /**
    * Table Schema
    */
-  std::shared_ptr<catalog::Schema> table_schema_;
+  std::unique_ptr<catalog::Schema> table_schema_;
 
   /**
    * ColumnDefinition for multi-column constraints (including foreign key)

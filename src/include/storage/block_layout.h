@@ -31,7 +31,7 @@ class BlockLayout {
    * @return number of columns.
    *
    */
-  const uint16_t NumColumns() const { return static_cast<uint16_t>(attr_sizes_.size()); }
+  uint16_t NumColumns() const { return static_cast<uint16_t>(attr_sizes_.size()); }
 
   /**
    * @param col_id the column id to check for
@@ -68,17 +68,17 @@ class BlockLayout {
   /**
    * @return size, in bytes, of a full tuple in this block.
    */
-  const uint32_t TupleSize() const { return tuple_size_; }
+  uint32_t TupleSize() const { return tuple_size_; }
 
   /**
    * @return header size of the block.
    */
-  const uint32_t HeaderSize() const { return header_size_; }
+  uint32_t HeaderSize() const { return header_size_; }
 
   /**
    * @return number of tuple slots in a block with this layout.
    */
-  const uint32_t NumSlots() const { return num_slots_; }
+  uint32_t NumSlots() const { return num_slots_; }
 
  private:
   std::vector<uint8_t> attr_sizes_;

@@ -5,6 +5,7 @@
 #include <unordered_map>
 #include <utility>
 #include <vector>
+#include "catalog/index_schema.h"
 #include "common/macros.h"
 #include "storage/index/index_defs.h"
 #include "storage/projected_row.h"
@@ -30,13 +31,15 @@ class IndexMetadata {
         compact_ints_offsets_(std::move(other.compact_ints_offsets_)),
         key_oid_to_offset_(std::move(other.key_oid_to_offset_)),
         initializer_(std::move(other.initializer_)),
-        inlined_initializer_(std::move(other.inlined_initializer_)) {}
+        inlined_initializer_(std::move(other.inlined_initializer_)),
+        key_size_(other.key_size_),
+        key_kind_(other.key_kind_) {}
 
   /**
    * Precomputes metadata for the given key schema.
    * @param key_schema index key schema
    */
-  explicit IndexMetadata(IndexKeySchema key_schema)
+  explicit IndexMetadata(catalog::IndexSchema key_schema)
       : key_schema_(std::move(key_schema)),
         attr_sizes_(ComputeAttributeSizes(key_schema_)),
         inlined_attr_sizes_(ComputeInlinedAttributeSizes(key_schema_)),
@@ -46,12 +49,13 @@ class IndexMetadata {
         initializer_(
             ProjectedRowInitializer::Create(GetRealAttrSizes(attr_sizes_), ComputePROffsets(inlined_attr_sizes_))),
         inlined_initializer_(
-            ProjectedRowInitializer::Create(inlined_attr_sizes_, ComputePROffsets(inlined_attr_sizes_))) {}
+            ProjectedRowInitializer::Create(inlined_attr_sizes_, ComputePROffsets(inlined_attr_sizes_))),
+        key_size_(ComputeKeySize(key_schema_)) {}
 
   /**
    * @return index key schema
    */
-  const std::vector<IndexKeyColumn> &GetKeySchema() const { return key_schema_; }
+  const catalog::IndexSchema &GetSchema() const { return key_schema_; }
 
   /**
    * @return unsorted index attribute sizes (key schema order), varlens are marked
@@ -90,13 +94,30 @@ class IndexMetadata {
    */
   const ProjectedRowInitializer &GetInlinedPRInitializer() const { return inlined_initializer_; }
 
+  /**
+   * @return sum of attribute sizes, NOT inlined attribute sizes
+   */
+  uint16_t KeySize() const { return key_size_; }
+
+  /**
+   * @return IndexKeyKind selected by the IndexBuilder at index construction
+   */
+  IndexKeyKind KeyKind() const { return key_kind_; }
+
+  /**
+   * This should only be used by the IndexBuilder class, and this metadata is only used for testing purposes. We don't
+   * expect to need to make this durable since the IndexBuilder should select the same key type every time.
+   * @param key_kind IndexKeyKind for the index that was built
+   */
+  void SetKeyKind(const IndexKeyKind key_kind) { key_kind_ = key_kind; }
+
  private:
   DISALLOW_COPY(IndexMetadata);
-  FRIEND_TEST(BwTreeKeyTests, IndexMetadataCompactIntsKeyTest);
-  FRIEND_TEST(BwTreeKeyTests, IndexMetadataGenericKeyNoMustInlineVarlenTest);
-  FRIEND_TEST(BwTreeKeyTests, IndexMetadataGenericKeyMustInlineVarlenTest);
+  FRIEND_TEST(IndexKeyTests, IndexMetadataCompactIntsKeyTest);
+  FRIEND_TEST(IndexKeyTests, IndexMetadataGenericKeyNoMustInlineVarlenTest);
+  FRIEND_TEST(IndexKeyTests, IndexMetadataGenericKeyMustInlineVarlenTest);
 
-  std::vector<IndexKeyColumn> key_schema_;                                      // for GenericKey
+  catalog::IndexSchema key_schema_;                                             // for GenericKey
   std::vector<uint8_t> attr_sizes_;                                             // for CompactIntsKey
   std::vector<uint16_t> inlined_attr_sizes_;                                    // for GenericKey
   bool must_inline_varlen_;                                                     // for GenericKey
@@ -104,19 +125,35 @@ class IndexMetadata {
   std::unordered_map<catalog::indexkeycol_oid_t, uint16_t> key_oid_to_offset_;  // for execution layer
   ProjectedRowInitializer initializer_;                                         // user-facing initializer
   ProjectedRowInitializer inlined_initializer_;                                 // for GenericKey, internal only
+  uint16_t key_size_;                                                           // for IndexBuilder
+  IndexKeyKind key_kind_;                                                       // for testing
 
   /**
    * Computes the attribute sizes as given by the key schema.
    * e.g.   if key_schema is {INTEGER, INTEGER, BIGINT, TINYINT, SMALLINT}
    *        then attr_sizes returned is {4, 4, 8, 1, 2}
    */
-  static std::vector<uint8_t> ComputeAttributeSizes(const IndexKeySchema &key_schema) {
+  static std::vector<uint8_t> ComputeAttributeSizes(const catalog::IndexSchema &key_schema) {
     std::vector<uint8_t> attr_sizes;
-    attr_sizes.reserve(key_schema.size());
-    for (const auto &key : key_schema) {
-      attr_sizes.emplace_back(type::TypeUtil::GetTypeSize(key.GetType()));
+    auto key_cols = key_schema.GetColumns();
+    attr_sizes.reserve(key_cols.size());
+    for (const auto &key : key_cols) {
+      attr_sizes.emplace_back(type::TypeUtil::GetTypeSize(key.Type()));
     }
     return attr_sizes;
+  }
+
+  /**
+   * Computes attribute size sum, not inlined
+   */
+  static uint16_t ComputeKeySize(const catalog::IndexSchema &key_schema) {
+    uint16_t key_size = 0;
+    auto key_cols = key_schema.GetColumns();
+    for (const auto &key : key_cols) {
+      key_size =
+          static_cast<uint16_t>(key_size + static_cast<uint16_t>(type::TypeUtil::GetTypeSize(key.Type()) & INT8_MAX));
+    }
+    return key_size;
   }
 
   /**
@@ -125,17 +162,18 @@ class IndexMetadata {
    * e.g.   if key_schema is {INTEGER, VARCHAR(8), VARCHAR(0), TINYINT, VARCHAR(12)}
    *        then attr_sizes returned is {4, 16, 16, 1, 16}
    */
-  static std::vector<uint16_t> ComputeInlinedAttributeSizes(const IndexKeySchema &key_schema) {
+  static std::vector<uint16_t> ComputeInlinedAttributeSizes(const catalog::IndexSchema &key_schema) {
     std::vector<uint16_t> inlined_attr_sizes;
-    inlined_attr_sizes.reserve(key_schema.size());
-    for (const auto &key : key_schema) {
-      auto key_type = key.GetType();
+    auto key_cols = key_schema.GetColumns();
+    inlined_attr_sizes.reserve(key_cols.size());
+    for (const auto &key : key_cols) {
+      auto key_type = key.Type();
       switch (key_type) {
         case type::TypeId::VARBINARY:
         case type::TypeId::VARCHAR: {
           // Add 4 bytes because we'll prepend a size field. If we're too small, we'll just use a VarlenEntry.
           auto varlen_size =
-              std::max(static_cast<uint16_t>(key.GetMaxVarlenSize() + 4), static_cast<uint16_t>(sizeof(VarlenEntry)));
+              std::max(static_cast<uint16_t>(key.MaxVarlenSize() + 4), static_cast<uint16_t>(sizeof(VarlenEntry)));
           inlined_attr_sizes.emplace_back(varlen_size);
           break;
         }
@@ -150,12 +188,13 @@ class IndexMetadata {
   /**
    * Computes whether we need to manually inline varlen attributes, i.e. too big for VarlenEntry::CreateInline.
    */
-  static bool ComputeMustInlineVarlen(const IndexKeySchema &key_schema) {
-    return std::any_of(key_schema.begin(), key_schema.end(), [](const auto &key) -> bool {
-      switch (key.GetType()) {
+  static bool ComputeMustInlineVarlen(const catalog::IndexSchema &key_schema) {
+    auto key_cols = key_schema.GetColumns();
+    return std::any_of(key_cols.begin(), key_cols.end(), [](const auto &key) -> bool {
+      switch (key.Type()) {
         case type::TypeId::VARBINARY:
         case type::TypeId::VARCHAR:
-          return key.GetMaxVarlenSize() > VarlenEntry::InlineThreshold();
+          return key.MaxVarlenSize() > VarlenEntry::InlineThreshold();
         default:
           break;
       }
@@ -209,11 +248,12 @@ class IndexMetadata {
    * Computes the mapping from key oid to projected row offset.
    */
   static std::unordered_map<catalog::indexkeycol_oid_t, uint16_t> ComputeKeyOidToOffset(
-      const IndexKeySchema &key_schema, const std::vector<uint16_t> &pr_offsets) {
+      const catalog::IndexSchema &key_schema, const std::vector<uint16_t> &pr_offsets) {
     std::unordered_map<catalog::indexkeycol_oid_t, uint16_t> key_oid_to_offset;
-    key_oid_to_offset.reserve(key_schema.size());
-    for (uint16_t i = 0; i < key_schema.size(); i++) {
-      key_oid_to_offset[key_schema[i].GetOid()] = pr_offsets[i];
+    const auto &key_cols = key_schema.GetColumns();
+    key_oid_to_offset.reserve(key_cols.size());
+    for (uint16_t i = 0; i < key_cols.size(); i++) {
+      key_oid_to_offset[key_cols[i].Oid()] = pr_offsets[i];
     }
     return key_oid_to_offset;
   }

@@ -2,9 +2,11 @@
 
 #include <iostream>
 #include "loggers/catalog_logger.h"
+#include "loggers/execution_logger.h"
 #include "loggers/index_logger.h"
 #include "loggers/main_logger.h"
 #include "loggers/network_logger.h"
+#include "loggers/optimizer_logger.h"
 #include "loggers/parser_logger.h"
 #include "loggers/settings_logger.h"
 #include "loggers/storage_logger.h"
@@ -26,18 +28,20 @@ class LoggersUtil {
    */
   static void Initialize(const bool testing) {
     try {
-      init_main_logger();
+      InitMainLogger();
       // initialize namespace specific loggers
-      storage::init_index_logger();
-      storage::init_storage_logger();
-      transaction::init_transaction_logger();
-      catalog::init_catalog_logger();
-      settings::init_settings_logger();
-      parser::init_parser_logger();
-      network::init_network_logger();
+      storage::InitIndexLogger();
+      storage::InitStorageLogger();
+      transaction::InitTransactionLogger();
+      catalog::InitCatalogLogger();
+      optimizer::InitOptimizerLogger();
+      settings::InitSettingsLogger();
+      parser::InitParserLogger();
+      network::InitNetworkLogger();
+      execution::InitExecutionLogger();
 
       if (testing) {
-        init_test_logger();
+        InitTestLogger();
       }
 
       // Flush all *registered* loggers using a worker thread. Registered loggers must be thread safe for this to work

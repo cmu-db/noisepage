@@ -1,41 +1,41 @@
 #include "planner/plannodes/drop_trigger_plan_node.h"
+
+#include <memory>
 #include <string>
 #include <utility>
+#include <vector>
 
 namespace terrier::planner {
 common::hash_t DropTriggerPlanNode::Hash() const {
-  auto type = GetPlanNodeType();
-  common::hash_t hash = common::HashUtil::Hash(&type);
+  common::hash_t hash = AbstractPlanNode::Hash();
 
-  // Hash databse_oid
-  auto database_oid = GetDatabaseOid();
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&database_oid));
+  // Hash database_oid
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_oid_));
 
   // Hash namespace oid
-  auto namespace_oid = GetNamespaceOid();
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&namespace_oid));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(namespace_oid_));
 
   // Hash trigger_oid
   auto trigger_oid = GetTriggerOid();
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&trigger_oid));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(trigger_oid));
 
   // Hash if_exists_
   auto if_exist = IsIfExists();
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&if_exist));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(if_exist));
 
-  return common::HashUtil::CombineHashes(hash, AbstractPlanNode::Hash());
+  return hash;
 }
 
 bool DropTriggerPlanNode::operator==(const AbstractPlanNode &rhs) const {
-  if (GetPlanNodeType() != rhs.GetPlanNodeType()) return false;
+  if (!AbstractPlanNode::operator==(rhs)) return false;
 
   auto &other = dynamic_cast<const DropTriggerPlanNode &>(rhs);
 
   // Database OID
-  if (GetDatabaseOid() != other.GetDatabaseOid()) return false;
+  if (database_oid_ != other.database_oid_) return false;
 
   // Namespace OID
-  if (GetNamespaceOid() != other.GetNamespaceOid()) return false;
+  if (namespace_oid_ != other.namespace_oid_) return false;
 
   // Trigger OID
   if (GetTriggerOid() != other.GetTriggerOid()) return false;
@@ -43,7 +43,7 @@ bool DropTriggerPlanNode::operator==(const AbstractPlanNode &rhs) const {
   // If exists
   if (IsIfExists() != other.IsIfExists()) return false;
 
-  return AbstractPlanNode::operator==(rhs);
+  return true;
 }
 
 nlohmann::json DropTriggerPlanNode::ToJson() const {
@@ -55,12 +55,15 @@ nlohmann::json DropTriggerPlanNode::ToJson() const {
   return j;
 }
 
-void DropTriggerPlanNode::FromJson(const nlohmann::json &j) {
-  AbstractPlanNode::FromJson(j);
+std::vector<std::unique_ptr<parser::AbstractExpression>> DropTriggerPlanNode::FromJson(const nlohmann::json &j) {
+  std::vector<std::unique_ptr<parser::AbstractExpression>> exprs;
+  auto e1 = AbstractPlanNode::FromJson(j);
+  exprs.insert(exprs.end(), std::make_move_iterator(e1.begin()), std::make_move_iterator(e1.end()));
   database_oid_ = j.at("database_oid").get<catalog::db_oid_t>();
   namespace_oid_ = j.at("namespace_oid").get<catalog::namespace_oid_t>();
   trigger_oid_ = j.at("trigger_oid").get<catalog::trigger_oid_t>();
   if_exists_ = j.at("if_exists").get<bool>();
+  return exprs;
 }
 
 }  // namespace terrier::planner

@@ -1,6 +1,6 @@
 #pragma once
 
-namespace terrier {
+namespace terrier::common {
 /**
  * @brief Interface for a task to be run on a dedicated thread
  *
@@ -10,11 +10,16 @@ namespace terrier {
  */
 class DedicatedThreadTask {
  public:
+  virtual ~DedicatedThreadTask() = default;
+
   /**
    * Send a termination signal to the dedicated thread.
    *
    * The thread must then wrap up and exit from its Run function. The
-   * termination is guaranteed to be communicated to the owner
+   * termination is guaranteed to be communicated to the owner.
+   *
+   * @warning Terminate should not assume that RunTask has already been called. Its possible that has been registered,
+   * but has not started yet.
    */
   virtual void Terminate() = 0;
 
@@ -24,4 +29,4 @@ class DedicatedThreadTask {
    */
   virtual void RunTask() = 0;
 };
-}  // namespace terrier
+}  // namespace terrier::common

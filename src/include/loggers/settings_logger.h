@@ -1,13 +1,14 @@
 #pragma once
 
 #include <memory>
+#include "spdlog/fmt/ostr.h"
 #include "spdlog/sinks/basic_file_sink.h"
 #include "spdlog/spdlog.h"
 
 namespace terrier::settings {
 extern std::shared_ptr<spdlog::logger> settings_logger;  // NOLINT
 
-void init_settings_logger();
+void InitSettingsLogger();
 }  // namespace terrier::settings
 
 #define SETTINGS_LOG_TRACE(...) ::terrier::settings::settings_logger->trace(__VA_ARGS__);

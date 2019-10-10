@@ -4,17 +4,17 @@
 #include <functional>
 #include <vector>
 
-#include "common/hash_util.h"
 #include "portable_endian/portable_endian.h"
 #include "storage/index/index_metadata.h"
 #include "storage/projected_row.h"
 #include "storage/storage_defs.h"
+#include "xxHash/xxh3.h"
 
 namespace terrier::storage::index {
 
-// This is the maximum number of 8-byte slots to pack into a single CompactIntsKey template. This constraint is not
-// arbitrary and cannot be increased beyond 256 bits until AVX-512 is more widely available.
-#define INTSKEY_MAX_SLOTS 4
+// This is the maximum number of bytes to pack into a single CompactIntsKey template. This constraint is not
+// arbitrary and cannot be increased beyond 32 bytes (256 bits) until AVX-512 is more widely available.
+constexpr uint8_t COMPACTINTSKEY_MAX_SIZE = 32;
 
 /**
  * CompactIntsKey - Compact representation of multifield integers
@@ -35,17 +35,13 @@ namespace terrier::storage::index {
  * Note: CompactIntsKey size must always be aligned to 64 bit boundaries; There
  * are static assertion to enforce this rule
  *
- * @tparam KeySize number of 8-byte fields to use. Valid range is 1 through 4.
+ * @tparam KeySize number of 8 byte fields to use. Valid range is 1 through 4.
  */
 template <uint8_t KeySize>
 class CompactIntsKey {
  public:
-  /**
-   * key size in bytes, exposed for hasher and comparators
-   */
-  static constexpr size_t key_size_byte = KeySize * sizeof(uint64_t);
-  static_assert(KeySize > 0 && KeySize <= INTSKEY_MAX_SLOTS);  // size must be no greater than 256-bits
-  static_assert(key_size_byte % sizeof(uintptr_t) == 0);       // size must be multiple of 8 bytes
+  static_assert(KeySize > 0 && KeySize <= COMPACTINTSKEY_MAX_SIZE);  // size must be no greater than 256-bits
+  static_assert(KeySize % sizeof(uintptr_t) == 0);                   // size must be multiple of 8 bytes
 
   /**
    * @return underlying byte array, exposed for hasher and comparators
@@ -67,16 +63,36 @@ class CompactIntsKey {
                    "attr_sizes and attr_offsets must be equal in size.");
     TERRIER_ASSERT(!attr_sizes.empty(), "attr_sizes has too few values.");
 
-    std::memset(key_data_, 0, key_size_byte);
+    // NOLINTNEXTLINE (Matt): tidy thinks this has side-effects. I disagree.
+    TERRIER_ASSERT(std::invoke([&]() -> bool {
+                     for (uint16_t i = 0; i < from.NumColumns(); i++) {
+                       if (from.IsNull(i)) return false;
+                     }
+                     return true;
+                   }),
+                   "There should not be any NULL attributes in this key.");
+
+    // NOLINTNEXTLINE (Matt): tidy thinks this has side-effects. I disagree.
+    TERRIER_ASSERT(std::invoke([&]() -> bool {
+                     for (const auto &i : metadata.GetSchema().GetColumns()) {
+                       if (i.Nullable()) return false;
+                     }
+                     return true;
+                   }),
+                   "There should not be any NULL attributes in this schema.");
+
+    // we hash and compare KeySize bytes in all of our operations. Since there might be over-provisioned bytes, we want
+    // to make sure the entire key is memset to 0
+    std::memset(key_data_, 0, KeySize);
 
     for (uint8_t i = 0; i < from.NumColumns(); i++) {
-      TERRIER_ASSERT(compact_ints_offsets[i] + attr_sizes[i] <= key_size_byte, "out of bounds");
+      TERRIER_ASSERT(compact_ints_offsets[i] + attr_sizes[i] <= KeySize, "out of bounds");
       CopyAttrFromProjection(from, static_cast<uint16_t>(from.ColumnIds()[i]), attr_sizes[i], compact_ints_offsets[i]);
     }
   }
 
  private:
-  byte key_data_[key_size_byte];
+  byte key_data_[KeySize];
 
   void CopyAttrFromProjection(const storage::ProjectedRow &from, const uint16_t projection_list_offset,
                               const uint8_t attr_size, const uint8_t compact_ints_offset) {
@@ -238,7 +254,7 @@ class CompactIntsKey {
     // so we must use automatic type inference
     const auto big_endian = ToBigEndian(data);
 
-    TERRIER_ASSERT(offset + sizeof(IntType) <= key_size_byte, "Out of bounds access on key_data_.");
+    TERRIER_ASSERT(offset + sizeof(IntType) <= KeySize, "Out of bounds access on key_data_.");
 
     // This will almost always be optimized into single move
     std::memcpy(key_data_ + offset, &big_endian, sizeof(IntType));
@@ -271,12 +287,18 @@ class CompactIntsKey {
     return static_cast<IntType>(host_endian);
   }
 };
+
+static_assert(sizeof(CompactIntsKey<8>) == 8, "size of the class should be 8 bytes");
+static_assert(sizeof(CompactIntsKey<16>) == 16, "size of the class should be 16 bytes");
+static_assert(sizeof(CompactIntsKey<24>) == 24, "size of the class should be 24 bytes");
+static_assert(sizeof(CompactIntsKey<32>) == 32, "size of the class should be 32 bytes");
+
 }  // namespace terrier::storage::index
 
 namespace std {
 
 /**
- * Implements std::hash for CompactIntsKey. Allows the class to be used with STL containers and the BwTree index.
+ * Implements std::hash for CompactIntsKey. Allows the class to be used with containers that expect STL interface.
  * @tparam KeySize number of 8-byte fields to use. Valid range is 1 through 4.
  */
 template <uint8_t KeySize>
@@ -286,13 +308,13 @@ struct hash<terrier::storage::index::CompactIntsKey<KeySize>> {
    * @return hash of the key's underlying data
    */
   size_t operator()(const terrier::storage::index::CompactIntsKey<KeySize> &key) const {
-    const auto *const ptr = key.KeyData();
-    return terrier::common::HashUtil::HashBytes(ptr, terrier::storage::index::CompactIntsKey<KeySize>::key_size_byte);
+    const auto *const data = reinterpret_cast<const void *const>(key.KeyData());
+    return static_cast<size_t>(XXH3_64bits(data, KeySize));
   }
 };
 
 /**
- * Implements std::equal_to for CompactIntsKey. Allows the class to be used with STL containers and the BwTree index.
+ * Implements std::equal_to for CompactIntsKey. Allows the class to be used with containers that expect STL interface.
  * @tparam KeySize number of 8-byte fields to use. Valid range is 1 through 4.
  */
 template <uint8_t KeySize>
@@ -305,13 +327,12 @@ struct equal_to<terrier::storage::index::CompactIntsKey<KeySize>> {
    */
   bool operator()(const terrier::storage::index::CompactIntsKey<KeySize> &lhs,
                   const terrier::storage::index::CompactIntsKey<KeySize> &rhs) const {
-    return std::memcmp(lhs.KeyData(), rhs.KeyData(), terrier::storage::index::CompactIntsKey<KeySize>::key_size_byte) ==
-           0;
+    return std::memcmp(lhs.KeyData(), rhs.KeyData(), KeySize) == 0;
   }
 };
 
 /**
- * Implements std::less for CompactIntsKey. Allows the class to be used with STL containers and the BwTree index.
+ * Implements std::less for CompactIntsKey. Allows the class to be used with containers that expect STL interface.
  * @tparam KeySize number of 8-byte fields to use. Valid range is 1 through 4.
  */
 template <uint8_t KeySize>
@@ -324,8 +345,7 @@ struct less<terrier::storage::index::CompactIntsKey<KeySize>> {
    */
   bool operator()(const terrier::storage::index::CompactIntsKey<KeySize> &lhs,
                   const terrier::storage::index::CompactIntsKey<KeySize> &rhs) const {
-    return std::memcmp(lhs.KeyData(), rhs.KeyData(), terrier::storage::index::CompactIntsKey<KeySize>::key_size_byte) <
-           0;
+    return std::memcmp(lhs.KeyData(), rhs.KeyData(), KeySize) < 0;
   }
 };
 }  // namespace std

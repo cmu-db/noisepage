@@ -27,17 +27,15 @@ void TupleAccessStrategy::InitializeRawBlock(storage::DataTable *const data_tabl
   raw->data_table_ = data_table;
   raw->layout_version_ = layout_version;
   raw->insert_head_ = 0;
+  raw->controller_.Initialize();
   auto *result = reinterpret_cast<TupleAccessStrategy::Block *>(raw);
-  for (uint16_t i = 0; i < layout_.NumColumns(); i++) result->AttrOffsets()[i] = column_offsets_[i];
   result->GetArrowBlockMetadata().Initialize(GetBlockLayout().NumColumns());
-
-  for (uint16_t i = 0; i < layout_.NumColumns(); i++) result->AttrOffets(layout_)[i] = column_offsets_[i];
+  for (uint16_t i = 0; i < layout_.NumColumns(); i++) result->AttrOffsets(layout_)[i] = column_offsets_[i];
 
   result->SlotAllocationBitmap(layout_)->UnsafeClear(layout_.NumSlots());
   result->Column(layout_, VERSION_POINTER_COLUMN_ID)->NullBitmap()->UnsafeClear(layout_.NumSlots());
   // TODO(Tianyu): This can be a slight drag on insert performance. With the exception of some test cases where GC is
   // not enabled, we should be able to do this step in the GC and still be good.
-
   // Also need to clean up any potential dangling version pointers (in cases where GC is off, or when a table is deleted
   // and individual tuples in it are not)
   std::memset(ColumnStart(raw, VERSION_POINTER_COLUMN_ID), 0, sizeof(void *) * layout_.NumSlots());
@@ -45,21 +43,19 @@ void TupleAccessStrategy::InitializeRawBlock(storage::DataTable *const data_tabl
 
 bool TupleAccessStrategy::Allocate(RawBlock *const block, TupleSlot *const slot) const {
   common::RawConcurrentBitmap *bitmap = reinterpret_cast<Block *>(block)->SlotAllocationBitmap(layout_);
-  const uint32_t start = block->insert_head_;
+  const uint32_t start = block->GetInsertHead();
 
   // We are not allowed to insert into this block any more
   if (start == layout_.NumSlots()) return false;
 
   uint32_t pos = start;
-
-  while (bitmap->FirstUnsetPos(layout_.NumSlots(), pos, &pos)) {
-    if (bitmap->Flip(pos, false)) {
-      *slot = TupleSlot(block, pos);
-      block->insert_head_++;
-      return true;
-    }
-  }
-
-  return false;
+  // We do not support concurrent insertion to the same block anymore
+  // Assumption: Different threads cannot insert into the same block at the same time
+  // If the block is not full, the function should always succeed (Flip should always return true)
+  bool UNUSED_ATTRIBUTE flip_res = bitmap->Flip(pos, false);
+  TERRIER_ASSERT(flip_res, "Flip should always succeed");
+  *slot = TupleSlot(block, pos);
+  block->insert_head_++;
+  return true;
 }
 }  // namespace terrier::storage

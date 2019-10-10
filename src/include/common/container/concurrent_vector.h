@@ -46,7 +46,7 @@ class ConcurrentVector {
      * postfix-increment
      * @return iterator equal to this iterator before increment
      */
-    const Iterator operator++(int) {
+    Iterator operator++(int) {
       Iterator result(it_++);
       return result;
     }
@@ -117,13 +117,13 @@ class ConcurrentVector {
    * Returns an iterator pointing to the first element in the vector.
    * @return an iterator pointing to the first element in the vector.
    */
-  Iterator Begin() { return Iterator(vector_.begin()); }
+  Iterator begin() { return Iterator(vector_.begin()); }  // NOLINT for STL name compability
 
   /**
    * Returns an iterator pointing to the last element in the vector.
    * @return an iterator pointing to the last element in the vector.
    */
-  Iterator End() { return Iterator(vector_.end()); }
+  Iterator end() { return Iterator(vector_.end()); }  // NOLINT for STL name compability
 
  private:
   tbb::concurrent_vector<T, Alloc> vector_;

@@ -7,9 +7,9 @@
 #include "storage/storage_util.h"
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_manager.h"
+#include "util/data_table_test_util.h"
 #include "util/storage_test_util.h"
 #include "util/test_harness.h"
-#include "util/transaction_test_util.h"
 
 namespace terrier {
 // Not thread-safe
@@ -30,9 +30,9 @@ class MVCCDataTableTestObject {
 
   template <class Random>
   storage::ProjectedRow *GenerateRandomTuple(Random *generator) {
-    auto *buffer = common::AllocationUtil::AllocateAligned(redo_initializer.ProjectedRowSize());
+    auto *buffer = common::AllocationUtil::AllocateAligned(redo_initializer_.ProjectedRowSize());
     loose_pointers_.push_back(buffer);
-    storage::ProjectedRow *redo = redo_initializer.InitializeRow(buffer);
+    storage::ProjectedRow *redo = redo_initializer_.InitializeRow(buffer);
     StorageTestUtil::PopulateRandomRow(redo, layout_, null_bias_, generator);
     return redo;
   }
@@ -51,10 +51,10 @@ class MVCCDataTableTestObject {
 
   storage::ProjectedRow *GenerateVersionFromUpdate(const storage::ProjectedRow &delta,
                                                    const storage::ProjectedRow &previous) {
-    auto *buffer = common::AllocationUtil::AllocateAligned(redo_initializer.ProjectedRowSize());
+    auto *buffer = common::AllocationUtil::AllocateAligned(redo_initializer_.ProjectedRowSize());
     loose_pointers_.push_back(buffer);
     // Copy previous version
-    std::memcpy(buffer, &previous, redo_initializer.ProjectedRowSize());
+    std::memcpy(buffer, &previous, redo_initializer_.ProjectedRowSize());
     auto *version = reinterpret_cast<storage::ProjectedRow *>(buffer);
     std::unordered_map<uint16_t, uint16_t> col_to_projection_list_index;
     storage::StorageUtil::ApplyDelta(layout_, delta, version);
@@ -63,7 +63,7 @@ class MVCCDataTableTestObject {
 
   storage::ProjectedRow *SelectIntoBuffer(transaction::TransactionContext *const txn, const storage::TupleSlot slot) {
     // generate a redo ProjectedRow for Select
-    storage::ProjectedRow *select_row = redo_initializer.InitializeRow(select_buffer_);
+    storage::ProjectedRow *select_row = redo_initializer_.InitializeRow(select_buffer_);
     select_result_ = table_.Select(txn, slot, select_row);
     return select_row;
   }
@@ -75,9 +75,9 @@ class MVCCDataTableTestObject {
   const double null_bias_ = 0;
   std::vector<byte *> loose_pointers_;
   std::vector<transaction::TransactionContext *> loose_txns_;
-  storage::ProjectedRowInitializer redo_initializer =
+  storage::ProjectedRowInitializer redo_initializer_ =
       storage::ProjectedRowInitializer::Create(layout_, StorageTestUtil::ProjectionListAllColumns(layout_));
-  byte *select_buffer_ = common::AllocationUtil::AllocateAligned(redo_initializer.ProjectedRowSize());
+  byte *select_buffer_ = common::AllocationUtil::AllocateAligned(redo_initializer_.ProjectedRowSize());
   bool select_result_;
 };
 
@@ -112,7 +112,8 @@ class MVCCTests : public ::terrier::TerrierTest {
 // NOLINTNEXTLINE
 TEST_F(MVCCTests, CommitInsert1) {
   for (uint32_t iteration = 0; iteration < num_iterations_; ++iteration) {
-    transaction::TransactionManager txn_manager(&buffer_pool_, false, LOGGING_DISABLED);
+    transaction::TimestampManager timestamp_manager;
+    transaction::TransactionManager txn_manager(&timestamp_manager, DISABLED, &buffer_pool_, false, DISABLED);
     MVCCDataTableTestObject tested(&block_store_, max_columns_, &generator_);
 
     auto *txn0 = txn_manager.BeginTransaction();
@@ -170,7 +171,8 @@ TEST_F(MVCCTests, CommitInsert1) {
 // NOLINTNEXTLINE
 TEST_F(MVCCTests, CommitInsert2) {
   for (uint32_t iteration = 0; iteration < num_iterations_; ++iteration) {
-    transaction::TransactionManager txn_manager(&buffer_pool_, false, LOGGING_DISABLED);
+    transaction::TimestampManager timestamp_manager;
+    transaction::TransactionManager txn_manager(&timestamp_manager, DISABLED, &buffer_pool_, false, DISABLED);
     MVCCDataTableTestObject tested(&block_store_, max_columns_, &generator_);
 
     auto *txn0 = txn_manager.BeginTransaction();
@@ -229,7 +231,8 @@ TEST_F(MVCCTests, CommitInsert2) {
 // NOLINTNEXTLINE
 TEST_F(MVCCTests, AbortInsert1) {
   for (uint32_t iteration = 0; iteration < num_iterations_; ++iteration) {
-    transaction::TransactionManager txn_manager(&buffer_pool_, false, LOGGING_DISABLED);
+    transaction::TimestampManager timestamp_manager;
+    transaction::TransactionManager txn_manager(&timestamp_manager, DISABLED, &buffer_pool_, false, DISABLED);
     MVCCDataTableTestObject tested(&block_store_, max_columns_, &generator_);
 
     auto *txn0 = txn_manager.BeginTransaction();
@@ -286,7 +289,8 @@ TEST_F(MVCCTests, AbortInsert1) {
 // NOLINTNEXTLINE
 TEST_F(MVCCTests, AbortInsert2) {
   for (uint32_t iteration = 0; iteration < num_iterations_; ++iteration) {
-    transaction::TransactionManager txn_manager(&buffer_pool_, false, LOGGING_DISABLED);
+    transaction::TimestampManager timestamp_manager;
+    transaction::TransactionManager txn_manager(&timestamp_manager, DISABLED, &buffer_pool_, false, DISABLED);
     MVCCDataTableTestObject tested(&block_store_, max_columns_, &generator_);
 
     auto *txn0 = txn_manager.BeginTransaction();
@@ -343,7 +347,8 @@ TEST_F(MVCCTests, AbortInsert2) {
 // NOLINTNEXTLINE
 TEST_F(MVCCTests, CommitUpdate1) {
   for (uint32_t iteration = 0; iteration < num_iterations_; ++iteration) {
-    transaction::TransactionManager txn_manager(&buffer_pool_, false, LOGGING_DISABLED);
+    transaction::TimestampManager timestamp_manager;
+    transaction::TransactionManager txn_manager(&timestamp_manager, DISABLED, &buffer_pool_, false, DISABLED);
     MVCCDataTableTestObject tested(&block_store_, max_columns_, &generator_);
 
     auto *insert_tuple = tested.GenerateRandomTuple(&generator_);
@@ -414,7 +419,8 @@ TEST_F(MVCCTests, CommitUpdate1) {
 // NOLINTNEXTLINE
 TEST_F(MVCCTests, CommitUpdate2) {
   for (uint32_t iteration = 0; iteration < num_iterations_; ++iteration) {
-    transaction::TransactionManager txn_manager(&buffer_pool_, false, LOGGING_DISABLED);
+    transaction::TimestampManager timestamp_manager;
+    transaction::TransactionManager txn_manager(&timestamp_manager, DISABLED, &buffer_pool_, false, DISABLED);
     MVCCDataTableTestObject tested(&block_store_, max_columns_, &generator_);
 
     auto *insert_tuple = tested.GenerateRandomTuple(&generator_);
@@ -484,7 +490,8 @@ TEST_F(MVCCTests, CommitUpdate2) {
 // NOLINTNEXTLINE
 TEST_F(MVCCTests, AbortUpdate1) {
   for (uint32_t iteration = 0; iteration < num_iterations_; ++iteration) {
-    transaction::TransactionManager txn_manager(&buffer_pool_, false, LOGGING_DISABLED);
+    transaction::TimestampManager timestamp_manager;
+    transaction::TransactionManager txn_manager(&timestamp_manager, DISABLED, &buffer_pool_, false, DISABLED);
     MVCCDataTableTestObject tested(&block_store_, max_columns_, &generator_);
 
     auto *insert_tuple = tested.GenerateRandomTuple(&generator_);
@@ -555,7 +562,8 @@ TEST_F(MVCCTests, AbortUpdate1) {
 // NOLINTNEXTLINE
 TEST_F(MVCCTests, AbortUpdate2) {
   for (uint32_t iteration = 0; iteration < num_iterations_; ++iteration) {
-    transaction::TransactionManager txn_manager(&buffer_pool_, false, LOGGING_DISABLED);
+    transaction::TimestampManager timestamp_manager;
+    transaction::TransactionManager txn_manager(&timestamp_manager, DISABLED, &buffer_pool_, false, DISABLED);
     MVCCDataTableTestObject tested(&block_store_, max_columns_, &generator_);
 
     auto *insert_tuple = tested.GenerateRandomTuple(&generator_);
@@ -622,7 +630,8 @@ TEST_F(MVCCTests, AbortUpdate2) {
 // NOLINTNEXTLINE
 TEST_F(MVCCTests, InsertUpdate1) {
   for (uint32_t iteration = 0; iteration < num_iterations_; ++iteration) {
-    transaction::TransactionManager txn_manager(&buffer_pool_, false, LOGGING_DISABLED);
+    transaction::TimestampManager timestamp_manager;
+    transaction::TransactionManager txn_manager(&timestamp_manager, DISABLED, &buffer_pool_, false, DISABLED);
     MVCCDataTableTestObject tested(&block_store_, max_columns_, &generator_);
 
     auto *txn0 = txn_manager.BeginTransaction();
@@ -671,7 +680,8 @@ TEST_F(MVCCTests, InsertUpdate1) {
 // NOLINTNEXTLINE
 TEST_F(MVCCTests, CommitDelete1) {
   for (uint32_t iteration = 0; iteration < num_iterations_; ++iteration) {
-    transaction::TransactionManager txn_manager(&buffer_pool_, false, LOGGING_DISABLED);
+    transaction::TimestampManager timestamp_manager;
+    transaction::TransactionManager txn_manager(&timestamp_manager, DISABLED, &buffer_pool_, false, DISABLED);
     MVCCDataTableTestObject tested(&block_store_, max_columns_, &generator_);
 
     auto *insert_tuple = tested.GenerateRandomTuple(&generator_);
@@ -736,7 +746,8 @@ TEST_F(MVCCTests, CommitDelete1) {
 // NOLINTNEXTLINE
 TEST_F(MVCCTests, CommitDelete2) {
   for (uint32_t iteration = 0; iteration < num_iterations_; ++iteration) {
-    transaction::TransactionManager txn_manager(&buffer_pool_, false, LOGGING_DISABLED);
+    transaction::TimestampManager timestamp_manager;
+    transaction::TransactionManager txn_manager(&timestamp_manager, DISABLED, &buffer_pool_, false, DISABLED);
     MVCCDataTableTestObject tested(&block_store_, max_columns_, &generator_);
 
     auto *insert_tuple = tested.GenerateRandomTuple(&generator_);
@@ -801,7 +812,8 @@ TEST_F(MVCCTests, CommitDelete2) {
 // NOLINTNEXTLINE
 TEST_F(MVCCTests, AbortDelete1) {
   for (uint32_t iteration = 0; iteration < num_iterations_; ++iteration) {
-    transaction::TransactionManager txn_manager(&buffer_pool_, false, LOGGING_DISABLED);
+    transaction::TimestampManager timestamp_manager;
+    transaction::TransactionManager txn_manager(&timestamp_manager, DISABLED, &buffer_pool_, false, DISABLED);
     MVCCDataTableTestObject tested(&block_store_, max_columns_, &generator_);
 
     auto *insert_tuple = tested.GenerateRandomTuple(&generator_);
@@ -867,7 +879,8 @@ TEST_F(MVCCTests, AbortDelete1) {
 // NOLINTNEXTLINE
 TEST_F(MVCCTests, AbortDelete2) {
   for (uint32_t iteration = 0; iteration < num_iterations_; ++iteration) {
-    transaction::TransactionManager txn_manager(&buffer_pool_, false, LOGGING_DISABLED);
+    transaction::TimestampManager timestamp_manager;
+    transaction::TransactionManager txn_manager(&timestamp_manager, DISABLED, &buffer_pool_, false, DISABLED);
     MVCCDataTableTestObject tested(&block_store_, max_columns_, &generator_);
 
     auto *insert_tuple = tested.GenerateRandomTuple(&generator_);
@@ -935,7 +948,8 @@ TEST_F(MVCCTests, AbortDelete2) {
 // NOLINTNEXTLINE
 TEST_F(MVCCTests, CommitUpdateDelete1) {
   for (uint32_t iteration = 0; iteration < num_iterations_; ++iteration) {
-    transaction::TransactionManager txn_manager(&buffer_pool_, false, LOGGING_DISABLED);
+    transaction::TimestampManager timestamp_manager;
+    transaction::TransactionManager txn_manager(&timestamp_manager, DISABLED, &buffer_pool_, false, DISABLED);
     MVCCDataTableTestObject tested(&block_store_, max_columns_, &generator_);
 
     auto *insert_tuple = tested.GenerateRandomTuple(&generator_);
@@ -1012,7 +1026,8 @@ TEST_F(MVCCTests, CommitUpdateDelete1) {
 // NOLINTNEXTLINE
 TEST_F(MVCCTests, CommitUpdateDelete2) {
   for (uint32_t iteration = 0; iteration < num_iterations_; ++iteration) {
-    transaction::TransactionManager txn_manager(&buffer_pool_, false, LOGGING_DISABLED);
+    transaction::TimestampManager timestamp_manager;
+    transaction::TransactionManager txn_manager(&timestamp_manager, DISABLED, &buffer_pool_, false, DISABLED);
     MVCCDataTableTestObject tested(&block_store_, max_columns_, &generator_);
 
     auto *insert_tuple = tested.GenerateRandomTuple(&generator_);
@@ -1088,7 +1103,8 @@ TEST_F(MVCCTests, CommitUpdateDelete2) {
 // NOLINTNEXTLINE
 TEST_F(MVCCTests, AbortUpdateDelete1) {
   for (uint32_t iteration = 0; iteration < num_iterations_; ++iteration) {
-    transaction::TransactionManager txn_manager(&buffer_pool_, false, LOGGING_DISABLED);
+    transaction::TimestampManager timestamp_manager;
+    transaction::TransactionManager txn_manager(&timestamp_manager, DISABLED, &buffer_pool_, false, DISABLED);
     MVCCDataTableTestObject tested(&block_store_, max_columns_, &generator_);
 
     auto *insert_tuple = tested.GenerateRandomTuple(&generator_);
@@ -1166,7 +1182,8 @@ TEST_F(MVCCTests, AbortUpdateDelete1) {
 // NOLINTNEXTLINE
 TEST_F(MVCCTests, AbortUpdateDelete2) {
   for (uint32_t iteration = 0; iteration < num_iterations_; ++iteration) {
-    transaction::TransactionManager txn_manager(&buffer_pool_, false, LOGGING_DISABLED);
+    transaction::TimestampManager timestamp_manager;
+    transaction::TransactionManager txn_manager(&timestamp_manager, DISABLED, &buffer_pool_, false, DISABLED);
     MVCCDataTableTestObject tested(&block_store_, max_columns_, &generator_);
 
     auto *insert_tuple = tested.GenerateRandomTuple(&generator_);
@@ -1237,7 +1254,8 @@ TEST_F(MVCCTests, AbortUpdateDelete2) {
 // NOLINTNEXTLINE
 TEST_F(MVCCTests, SimpleDelete1) {
   for (uint32_t iteration = 0; iteration < num_iterations_; ++iteration) {
-    transaction::TransactionManager txn_manager(&buffer_pool_, false, LOGGING_DISABLED);
+    transaction::TimestampManager timestamp_manager;
+    transaction::TransactionManager txn_manager(&timestamp_manager, DISABLED, &buffer_pool_, false, DISABLED);
     MVCCDataTableTestObject tested(&block_store_, max_columns_, &generator_);
 
     auto *insert_tuple = tested.GenerateRandomTuple(&generator_);
@@ -1301,7 +1319,8 @@ TEST_F(MVCCTests, SimpleDelete1) {
 // NOLINTNEXTLINE
 TEST_F(MVCCTests, SimpleDelete2) {
   for (uint32_t iteration = 0; iteration < num_iterations_; ++iteration) {
-    transaction::TransactionManager txn_manager(&buffer_pool_, false, LOGGING_DISABLED);
+    transaction::TimestampManager timestamp_manager;
+    transaction::TransactionManager txn_manager(&timestamp_manager, DISABLED, &buffer_pool_, false, DISABLED);
     MVCCDataTableTestObject tested(&block_store_, max_columns_, &generator_);
 
     auto *insert_tuple = tested.GenerateRandomTuple(&generator_);

@@ -8,21 +8,18 @@
 #include "parser/parser_defs.h"
 
 namespace terrier::planner {
+
 common::hash_t CreateTriggerPlanNode::Hash() const {
-  auto type = GetPlanNodeType();
-  common::hash_t hash = common::HashUtil::Hash(&type);
+  common::hash_t hash = AbstractPlanNode::Hash();
 
   // Hash database_oid
-  auto database_oid = GetDatabaseOid();
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&database_oid));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_oid_));
 
   // Hash namespace oid
-  auto namespace_oid = GetNamespaceOid();
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&namespace_oid));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(namespace_oid_));
 
   // Hash table_oid
-  auto table_oid = GetTableOid();
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&table_oid));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_oid_));
 
   // Hash trigger_name
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(trigger_name_));
@@ -41,24 +38,24 @@ common::hash_t CreateTriggerPlanNode::Hash() const {
 
   // Hash trigger_type
   auto trigger_type = GetTriggerType();
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&trigger_type));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(trigger_type));
 
-  return common::HashUtil::CombineHashes(hash, AbstractPlanNode::Hash());
+  return hash;
 }
 
 bool CreateTriggerPlanNode::operator==(const AbstractPlanNode &rhs) const {
-  if (GetPlanNodeType() != rhs.GetPlanNodeType()) return false;
+  if (!AbstractPlanNode::operator==(rhs)) return false;
 
   auto &other = dynamic_cast<const CreateTriggerPlanNode &>(rhs);
 
   // Database OID
-  if (GetDatabaseOid() != other.GetDatabaseOid()) return false;
+  if (database_oid_ != other.database_oid_) return false;
 
   // Namespace OID
-  if (GetNamespaceOid() != other.GetNamespaceOid()) return false;
+  if (namespace_oid_ != other.namespace_oid_) return false;
 
   // Table OID
-  if (GetTableOid() != other.GetTableOid()) return false;
+  if (table_oid_ != other.table_oid_) return false;
 
   // Hash trigger_name
   if (GetTriggerName() != other.GetTriggerName()) return false;
@@ -107,7 +104,7 @@ bool CreateTriggerPlanNode::operator==(const AbstractPlanNode &rhs) const {
   // Hash trigger_type
   if (GetTriggerType() != other.GetTriggerType()) return false;
 
-  return AbstractPlanNode::operator==(rhs);
+  return true;
 }
 
 nlohmann::json CreateTriggerPlanNode::ToJson() const {
@@ -119,13 +116,15 @@ nlohmann::json CreateTriggerPlanNode::ToJson() const {
   j["trigger_funcnames"] = trigger_funcnames_;
   j["trigger_args"] = trigger_args_;
   j["trigger_columns"] = trigger_columns_;
-  j["trigger_when"] = trigger_when_;
+  j["trigger_when"] = trigger_when_->ToJson();
   j["trigger_type"] = trigger_type_;
   return j;
 }
 
-void CreateTriggerPlanNode::FromJson(const nlohmann::json &j) {
-  AbstractPlanNode::FromJson(j);
+std::vector<std::unique_ptr<parser::AbstractExpression>> CreateTriggerPlanNode::FromJson(const nlohmann::json &j) {
+  std::vector<std::unique_ptr<parser::AbstractExpression>> exprs;
+  auto e1 = AbstractPlanNode::FromJson(j);
+  exprs.insert(exprs.end(), std::make_move_iterator(e1.begin()), std::make_move_iterator(e1.end()));
   database_oid_ = j.at("database_oid").get<catalog::db_oid_t>();
   namespace_oid_ = j.at("namespace_oid").get<catalog::namespace_oid_t>();
   table_oid_ = j.at("table_oid").get<catalog::table_oid_t>();
@@ -135,10 +134,15 @@ void CreateTriggerPlanNode::FromJson(const nlohmann::json &j) {
   trigger_columns_ = j.at("trigger_columns").get<std::vector<catalog::col_oid_t>>();
 
   if (!j.at("trigger_when").is_null()) {
-    trigger_when_ = parser::DeserializeExpression(j.at("trigger_when"));
+    auto deserialized = parser::DeserializeExpression(j.at("trigger_when"));
+    trigger_when_ = common::ManagedPointer(deserialized.result_);
+    exprs.emplace_back(std::move(deserialized.result_));
+    exprs.insert(exprs.end(), std::make_move_iterator(deserialized.non_owned_exprs_.begin()),
+                 std::make_move_iterator(deserialized.non_owned_exprs_.end()));
   }
 
   trigger_type_ = j.at("trigger_type").get<int16_t>();
+  return exprs;
 }
 
 }  // namespace terrier::planner

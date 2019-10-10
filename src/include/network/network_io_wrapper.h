@@ -77,7 +77,7 @@ class NetworkIoWrapper {
    * @return The next transition for this client's state machine
    */
   Transition Close() {
-    terrier_close(sock_fd_);
+    TerrierClose(sock_fd_);
     return Transition::PROCEED;
   }
 
@@ -101,24 +101,14 @@ class NetworkIoWrapper {
    */
   std::shared_ptr<WriteQueue> GetWriteQueue() { return out_; }
 
-  ~NetworkIoWrapper() = default;
-
-  /**
-   * The file descriptor associated with this NetworkIoWrapper
-   */
+ private:
+  // The file descriptor associated with this NetworkIoWrapper
   int sock_fd_;
-
-  /**
-   * The ReadBuffer associated with this NetworkIoWrapper
-   */
+  // The ReadBuffer associated with this NetworkIoWrapper
   std::shared_ptr<ReadBuffer> in_;
-
-  /**
-   * The WriteQueue associated with this NetworkIoWrapper
-   */
+  // The WriteQueue associated with this NetworkIoWrapper
   std::shared_ptr<WriteQueue> out_;
 
- private:
   void RestartState();
 };
 }  // namespace terrier::network

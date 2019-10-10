@@ -1,29 +1,27 @@
 #include "planner/plannodes/set_op_plan_node.h"
+
 #include <memory>
 #include <utility>
+#include <vector>
 
 namespace terrier::planner {
 
 common::hash_t SetOpPlanNode::Hash() const {
-  auto type = GetPlanNodeType();
-  common::hash_t hash = common::HashUtil::Hash(&type);
+  common::hash_t hash = AbstractPlanNode::Hash();
 
   // Hash set_op
-  auto set_op = GetSetOp();
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&set_op));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(set_op_));
 
-  return common::HashUtil::CombineHashes(hash, AbstractPlanNode::Hash());
+  return hash;
 }
 
 bool SetOpPlanNode::operator==(const AbstractPlanNode &rhs) const {
-  if (GetPlanNodeType() != rhs.GetPlanNodeType()) return false;
+  if (!AbstractPlanNode::operator==(rhs)) return false;
 
   auto &other = dynamic_cast<const SetOpPlanNode &>(rhs);
 
   // Set op
-  if (GetSetOp() != other.GetSetOp()) return false;
-
-  return AbstractPlanNode::operator==(rhs);
+  return (set_op_ == other.set_op_);
 }
 
 nlohmann::json SetOpPlanNode::ToJson() const {
@@ -32,8 +30,11 @@ nlohmann::json SetOpPlanNode::ToJson() const {
   return j;
 }
 
-void SetOpPlanNode::FromJson(const nlohmann::json &j) {
-  AbstractPlanNode::FromJson(j);
+std::vector<std::unique_ptr<parser::AbstractExpression>> SetOpPlanNode::FromJson(const nlohmann::json &j) {
+  std::vector<std::unique_ptr<parser::AbstractExpression>> exprs;
+  auto e1 = AbstractPlanNode::FromJson(j);
+  exprs.insert(exprs.end(), std::make_move_iterator(e1.begin()), std::make_move_iterator(e1.end()));
   set_op_ = j.at("set_op").get<SetOpType>();
+  return exprs;
 }
 }  // namespace terrier::planner

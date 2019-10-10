@@ -86,7 +86,12 @@ class StrongTypeAlias {
   /**
    * @return the underlying value.
    */
-  const IntType &operator!() const { return val_; }
+  constexpr IntType &operator!() { return val_; }
+
+  /**
+   * @return the underlying value.
+   */
+  constexpr const IntType &operator!() const { return val_; }
 
   /**
    * @return the underlying value
@@ -226,7 +231,10 @@ class StrongTypeAlias {
 /* Define all typedefs here */
 namespace terrier {
 using byte = std::byte;
-}
+using int128_t = __int128;
+using uint128_t = unsigned __int128;
+using hash_t = uint64_t;
+}  // namespace terrier
 
 namespace std {
 // TODO(Tianyu): Expand this specialization if needed.
@@ -259,14 +267,16 @@ struct atomic<terrier::common::StrongTypeAlias<Tag, IntType>> {
    * Checks if the atomic object is lock-free.
    * @return true if the atomic operations on the objects of this type are lock-free, false otherwise.
    */
-  bool is_lock_free() const noexcept { return underlying_.is_lock_free(); }
+  bool is_lock_free() const noexcept {  // NOLINT match underlying API
+    return underlying_.is_lock_free();
+  }
 
   /**
    * Atomically replaces the current value with desired. Memory is affected according to the value of order.
    * @param desired	the value to store into the atomic variable.
    * @param order memory order constraints to enforce.
    */
-  void store(t desired, memory_order order = memory_order_seq_cst) volatile noexcept {
+  void store(t desired, memory_order order = memory_order_seq_cst) volatile noexcept {  // NOLINT match underlying API
     underlying_.store(!desired, order);
   }
 
@@ -276,7 +286,9 @@ struct atomic<terrier::common::StrongTypeAlias<Tag, IntType>> {
    * @param order memory order constraints to enforce.
    * @return The current value of the atomic variable.
    */
-  t load(memory_order order = memory_order_seq_cst) const volatile noexcept { return t(underlying_.load(order)); }
+  t load(memory_order order = memory_order_seq_cst) const volatile noexcept {  // NOLINT match underlying API
+    return t(underlying_.load(order));
+  }
 
   /**
    * Atomically replaces the underlying value with desired. The operation is read-modify-write operation.
@@ -285,7 +297,7 @@ struct atomic<terrier::common::StrongTypeAlias<Tag, IntType>> {
    * @param order memory order constraints to enforce.
    * @return The value of the atomic variable before the call.
    */
-  t exchange(t desired, memory_order order = memory_order_seq_cst) volatile noexcept {
+  t exchange(t desired, memory_order order = memory_order_seq_cst) volatile noexcept {  // NOLINT match underlying API
     return t(underlying_.exchange(!desired, order));
   }
 

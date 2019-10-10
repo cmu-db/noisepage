@@ -6,6 +6,9 @@
 #include "common/strong_typedef.h"
 namespace terrier::common {
 
+/**
+ * This is our typedef that we use throughout the entire code to represent a hash value.
+ */
 using hash_t = uint64_t;
 
 /**
@@ -13,7 +16,7 @@ using hash_t = uint64_t;
  */
 class HashUtil {
  private:
-  static const hash_t prime_factor = 10000019;
+  static const hash_t PRIME_FACTOR = 10000019;
 
  public:
   // Static utility class
@@ -71,7 +74,7 @@ class HashUtil {
    * @return sum of two hashes
    */
   static hash_t SumHashes(const hash_t l, const hash_t r) {
-    return (l % prime_factor + r % prime_factor) % prime_factor;
+    return (l % PRIME_FACTOR + r % PRIME_FACTOR) % PRIME_FACTOR;
   }
 
   /**

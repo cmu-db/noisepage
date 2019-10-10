@@ -2,7 +2,6 @@
 
 #include <memory>
 #include "common/action_context.h"
-#include "common/managed_pointer.h"
 
 namespace terrier {
 class DBMain;
@@ -25,7 +24,7 @@ class Callbacks {
    * @param action_context pointer to the action context for this settings change
    */
   static void NoOp(void *old_value, void *new_value, DBMain *db_main,
-                   const common::ManagedPointer<common::ActionContext> &action_context);
+                   const std::shared_ptr<common::ActionContext> &action_context);
 
   /**
    * Changes the buffer segment pool size limit.
@@ -35,7 +34,7 @@ class Callbacks {
    * @param action_context pointer to the action context for this settings change
    */
   static void BufferSegmentPoolSizeLimit(void *old_value, void *new_value, DBMain *db_main,
-                                         const common::ManagedPointer<common::ActionContext> &action_context);
+                                         const std::shared_ptr<common::ActionContext> &action_context);
 
   /**
    * Changes the buffer segment pool reuse limit.
@@ -45,7 +44,7 @@ class Callbacks {
    * @param action_context pointer to the action context for this settings change
    */
   static void BufferSegmentPoolReuseLimit(void *old_value, void *new_value, DBMain *db_main,
-                                          const common::ManagedPointer<common::ActionContext> &action_context);
+                                          const std::shared_ptr<common::ActionContext> &action_context);
 
   /**
    * Changes the number of worker pool threads.
@@ -55,7 +54,36 @@ class Callbacks {
    * @param action_context pointer to the action context for this settings change
    */
   static void WorkerPoolThreads(void *old_value, void *new_value, DBMain *db_main,
-                                const common::ManagedPointer<common::ActionContext> &action_context);
-};
+                                const std::shared_ptr<common::ActionContext> &action_context);
 
+  /**
+   * Changes the number of buffers the log manager uses.
+   * @param old_value old settings value
+   * @param new_value new settings value
+   * @param db_main pointer to db_main
+   * @param action_context pointer to the action context for this settings change
+   */
+  static void NumLogManagerBuffers(void *old_value, void *new_value, DBMain *db_main,
+                                   const std::shared_ptr<common::ActionContext> &action_context);
+
+  /**
+   * Enable or disable metrics collection for Logging component
+   * @param old_value old settings value
+   * @param new_value new settings value
+   * @param db_main pointer to db_main
+   * @param action_context pointer to the action context for this settings change
+   */
+  static void MetricsLogging(void *old_value, void *new_value, DBMain *db_main,
+                             const std::shared_ptr<common::ActionContext> &action_context);
+
+  /**
+   * Enable or disable metrics collection for TransactionManager component
+   * @param old_value old settings value
+   * @param new_value new settings value
+   * @param db_main pointer to db_main
+   * @param action_context pointer to the action context for this settings change
+   */
+  static void MetricsTransaction(void *old_value, void *new_value, DBMain *db_main,
+                                 const std::shared_ptr<common::ActionContext> &action_context);
+};
 }  // namespace terrier::settings

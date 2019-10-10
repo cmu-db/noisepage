@@ -169,6 +169,11 @@ class TransientValue {
   }
 
   /**
+   * @return string representation of the underlying type
+   */
+  std::string ToString() const { return TypeUtil::TypeIdToString(type_); }
+
+  /**
    * @return transient value serialized to json
    * @warning this method is ONLY used for serialization and deserialization. It should NOT be used to peek at the
    * values
@@ -176,8 +181,7 @@ class TransientValue {
   nlohmann::json ToJson() const {
     nlohmann::json j;
     j["type"] = type_;
-    j["data"] = data_;
-    if (Type() == TypeId::VARCHAR) {
+    if (Type() == TypeId::VARCHAR && !Null()) {
       const uint32_t length = *reinterpret_cast<const uint32_t *const>(data_);
       auto varchar = std::string(reinterpret_cast<const char *const>(data_), length + sizeof(uint32_t));
       j["data"] = varchar;
@@ -194,10 +198,9 @@ class TransientValue {
    */
   void FromJson(const nlohmann::json &j) {
     type_ = j.at("type").get<TypeId>();
-    if (Type() == TypeId::VARCHAR) {
+    if (Type() == TypeId::VARCHAR && !Null()) {
       data_ = 0;
       CopyVarChar(reinterpret_cast<const char *const>(j.at("data").get<std::string>().c_str()));
-
     } else {
       data_ = j.at("data").get<uintptr_t>();
     }
@@ -244,7 +247,7 @@ class TransientValue {
     // clear internal buffer
     data_ = 0;
     type_ = type;
-    const auto num_bytes = std::min(static_cast<uint8_t>(static_cast<uint8_t>(TypeUtil::GetTypeSize(type)) & 0x7F),
+    const auto num_bytes = std::min(static_cast<uint8_t>(static_cast<uint8_t>(TypeUtil::GetTypeSize(type)) & INT8_MAX),
                                     static_cast<uint8_t>(sizeof(uintptr_t)));
     std::memcpy(&data_, &data, num_bytes);
   }
@@ -262,7 +265,7 @@ class TransientValue {
     // clear internal buffer
     data_ = 0;
     type_ = other.type_;
-    if (Type() != TypeId::VARCHAR) {
+    if (Type() != TypeId::VARCHAR || other.data_ == 0) {
       data_ = other.data_;
     } else {
       CopyVarChar(reinterpret_cast<const char *const>(other.data_));
@@ -281,14 +284,14 @@ class TransientValue {
    */
   TransientValue &operator=(const TransientValue &other) {
     if (this != &other) {  // self-assignment check expected
-      if (Type() == TypeId::VARCHAR) {
+      if (Type() == TypeId::VARCHAR && data_ != 0) {
         // free VARCHAR buffer
         delete[] reinterpret_cast<char *const>(data_);
       }
       // clear internal buffer
       data_ = 0;
       type_ = other.type_;
-      if (Type() != TypeId::VARCHAR) {
+      if (Type() != TypeId::VARCHAR || other.data_ == 0) {
         data_ = other.data_;
       } else {
         CopyVarChar(reinterpret_cast<const char *const>(other.data_));

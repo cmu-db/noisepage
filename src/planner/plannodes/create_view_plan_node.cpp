@@ -5,43 +5,41 @@
 #include <vector>
 
 namespace terrier::planner {
+
 common::hash_t CreateViewPlanNode::Hash() const {
-  auto type = GetPlanNodeType();
-  common::hash_t hash = common::HashUtil::Hash(&type);
+  common::hash_t hash = AbstractPlanNode::Hash();
 
   // Hash database_oid
-  auto database_oid = GetDatabaseOid();
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&database_oid));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_oid_));
 
   // Hash namespace_oid
-  auto namespace_oid = GetNamespaceOid();
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&namespace_oid));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(namespace_oid_));
 
   // Hash view_name
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(view_name_));
 
   // TODO(Gus,Wen) missing Hash for select statement
 
-  return common::HashUtil::CombineHashes(hash, AbstractPlanNode::Hash());
+  return hash;
 }
 
 bool CreateViewPlanNode::operator==(const AbstractPlanNode &rhs) const {
-  if (GetPlanNodeType() != rhs.GetPlanNodeType()) return false;
+  if (!AbstractPlanNode::operator==(rhs)) return false;
 
   auto &other = dynamic_cast<const CreateViewPlanNode &>(rhs);
 
   // Database OID
-  if (GetDatabaseOid() != other.GetDatabaseOid()) return false;
+  if (database_oid_ != other.database_oid_) return false;
 
   // Namespace OID
-  if (GetNamespaceOid() != other.GetNamespaceOid()) return false;
+  if (namespace_oid_ != other.namespace_oid_) return false;
 
   // Hash view_name
   if (GetViewName() != other.GetViewName()) return false;
 
   // TODO(Gus,Wen) missing == operator for select statement
 
-  return AbstractPlanNode::operator==(rhs);
+  return true;
 }
 
 nlohmann::json CreateViewPlanNode::ToJson() const {
@@ -49,19 +47,23 @@ nlohmann::json CreateViewPlanNode::ToJson() const {
   j["database_oid"] = database_oid_;
   j["namespace_oid"] = namespace_oid_;
   j["view_name"] = view_name_;
-  j["view_query"] = view_query_;
+  j["view_query"] = view_query_->ToJson();
   return j;
 }
 
-void CreateViewPlanNode::FromJson(const nlohmann::json &j) {
-  AbstractPlanNode::FromJson(j);
+std::vector<std::unique_ptr<parser::AbstractExpression>> CreateViewPlanNode::FromJson(const nlohmann::json &j) {
+  std::vector<std::unique_ptr<parser::AbstractExpression>> exprs;
+  auto e1 = AbstractPlanNode::FromJson(j);
+  exprs.insert(exprs.end(), std::make_move_iterator(e1.begin()), std::make_move_iterator(e1.end()));
   database_oid_ = j.at("database_oid").get<catalog::db_oid_t>();
   namespace_oid_ = j.at("namespace_oid").get<catalog::namespace_oid_t>();
   view_name_ = j.at("view_name").get<std::string>();
   if (!j.at("view_query").is_null()) {
-    view_query_ = std::make_shared<parser::SelectStatement>();
-    view_query_->FromJson(j.at("view_query"));
+    view_query_ = std::make_unique<parser::SelectStatement>();
+    auto e2 = view_query_->FromJson(j.at("view_query"));
+    exprs.insert(exprs.end(), std::make_move_iterator(e2.begin()), std::make_move_iterator(e2.end()));
   }
+  return exprs;
 }
 
 }  // namespace terrier::planner

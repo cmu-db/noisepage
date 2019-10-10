@@ -2,6 +2,7 @@
 #include <vector>
 
 #include "benchmark/benchmark.h"
+#include "common/scoped_timer.h"
 #include "common/strong_typedef.h"
 #include "storage/data_table.h"
 #include "storage/storage_util.h"
@@ -86,12 +87,17 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, SimpleInsert)(benchmark::State &state) {
   // NOLINTNEXTLINE
   for (auto _ : state) {
     storage::DataTable table(&block_store_, layout_, storage::layout_version_t(0));
-    // We can use dummy timestamps here since we're not invoking concurrency control
-    transaction::TransactionContext txn(transaction::timestamp_t(0), transaction::timestamp_t(0), &buffer_pool_,
-                                        LOGGING_DISABLED, ACTION_FRAMEWORK_DISABLED);
-    for (uint32_t i = 0; i < num_inserts_; ++i) {
-      table.Insert(&txn, *redo_);
+    uint64_t elapsed_ms;
+    {
+      common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
+      // We can use dummy timestamps here since we're not invoking concurrency control
+      transaction::TransactionContext txn(transaction::timestamp_t(0), transaction::timestamp_t(0), &buffer_pool_,
+                                          DISABLED);
+      for (uint32_t i = 0; i < num_inserts_; ++i) {
+        table.Insert(&txn, *redo_);
+      }
     }
+    state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
   }
 
   state.SetItemsProcessed(state.iterations() * num_inserts_);
@@ -106,13 +112,20 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, ConcurrentInsert)(benchmark::State &state
     auto workload = [&](uint32_t id) {
       // We can use dummy timestamps here since we're not invoking concurrency control
       transaction::TransactionContext txn(transaction::timestamp_t(0), transaction::timestamp_t(0), &buffer_pool_,
-                                          LOGGING_DISABLED, ACTION_FRAMEWORK_DISABLED);
+                                          DISABLED);
       for (uint32_t i = 0; i < num_inserts_ / num_threads_; i++) table.Insert(&txn, *redo_);
     };
     common::WorkerPool thread_pool(num_threads_, {});
-    MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, num_threads_, workload);
+    uint64_t elapsed_ms;
+    {
+      common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
+      for (uint32_t j = 0; j < num_threads_; j++) {
+        thread_pool.SubmitTask([j, &workload] { workload(j); });
+      }
+      thread_pool.WaitUntilAllFinished();
+    }
+    state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
   }
-
   state.SetItemsProcessed(state.iterations() * num_inserts_);
 }
 
@@ -123,7 +136,7 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, SequentialRead)(benchmark::State &state) 
   // Populate read_table by inserting tuples
   // We can use dummy timestamps here since we're not invoking concurrency control
   transaction::TransactionContext txn(transaction::timestamp_t(0), transaction::timestamp_t(0), &buffer_pool_,
-                                      LOGGING_DISABLED, ACTION_FRAMEWORK_DISABLED);
+                                      DISABLED);
   std::vector<storage::TupleSlot> read_order;
   for (uint32_t i = 0; i < num_reads_; ++i) {
     read_order.emplace_back(read_table.Insert(&txn, *redo_));
@@ -145,7 +158,7 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, RandomRead)(benchmark::State &state) {
   // Populate read_table_ by inserting tuples
   // We can use dummy timestamps here since we're not invoking concurrency control
   transaction::TransactionContext txn(transaction::timestamp_t(0), transaction::timestamp_t(0), &buffer_pool_,
-                                      LOGGING_DISABLED, ACTION_FRAMEWORK_DISABLED);
+                                      DISABLED);
   std::vector<storage::TupleSlot> read_order;
   for (uint32_t i = 0; i < num_reads_; ++i) {
     read_order.emplace_back(read_table.Insert(&txn, *redo_));
@@ -170,7 +183,7 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, ConcurrentRandomRead)(benchmark::State &s
   // populate read_table_ by inserting tuples
   // We can use dummy timestamps here since we're not invoking concurrency control
   transaction::TransactionContext txn(transaction::timestamp_t(0), transaction::timestamp_t(0), &buffer_pool_,
-                                      LOGGING_DISABLED, ACTION_FRAMEWORK_DISABLED);
+                                      DISABLED);
   std::vector<storage::TupleSlot> read_order;
   for (uint32_t i = 0; i < num_reads_; ++i) {
     read_order.emplace_back(read_table.Insert(&txn, *redo_));
@@ -188,24 +201,38 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, ConcurrentRandomRead)(benchmark::State &s
     auto workload = [&](uint32_t id) {
       // We can use dummy timestamps here since we're not invoking concurrency control
       transaction::TransactionContext txn(transaction::timestamp_t(0), transaction::timestamp_t(0), &buffer_pool_,
-                                          LOGGING_DISABLED, ACTION_FRAMEWORK_DISABLED);
+                                          DISABLED);
       for (uint32_t i = 0; i < num_reads_ / num_threads_; i++)
         read_table.Select(&txn, read_order[(rand_read_offsets[id] + i) % read_order.size()], reads_[id]);
     };
     common::WorkerPool thread_pool(num_threads_, {});
-    MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, num_threads_, workload);
+    uint64_t elapsed_ms;
+    {
+      common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
+      for (uint32_t j = 0; j < num_threads_; j++) {
+        thread_pool.SubmitTask([j, &workload] { workload(j); });
+      }
+      thread_pool.WaitUntilAllFinished();
+    }
+    state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
   }
 
   state.SetItemsProcessed(state.iterations() * num_reads_);
 }
 
-BENCHMARK_REGISTER_F(DataTableBenchmark, SimpleInsert)->Unit(benchmark::kMillisecond);
+BENCHMARK_REGISTER_F(DataTableBenchmark, SimpleInsert)->Unit(benchmark::kMillisecond)->UseManualTime();
 
-BENCHMARK_REGISTER_F(DataTableBenchmark, ConcurrentInsert)->Unit(benchmark::kMillisecond)->UseRealTime();
+BENCHMARK_REGISTER_F(DataTableBenchmark, ConcurrentInsert)
+    ->Unit(benchmark::kMillisecond)
+    ->UseRealTime()
+    ->UseManualTime();
 
 BENCHMARK_REGISTER_F(DataTableBenchmark, SequentialRead)->Unit(benchmark::kMillisecond);
 
 BENCHMARK_REGISTER_F(DataTableBenchmark, RandomRead)->Unit(benchmark::kMillisecond);
 
-BENCHMARK_REGISTER_F(DataTableBenchmark, ConcurrentRandomRead)->Unit(benchmark::kMillisecond)->UseRealTime();
+BENCHMARK_REGISTER_F(DataTableBenchmark, ConcurrentRandomRead)
+    ->Unit(benchmark::kMillisecond)
+    ->UseRealTime()
+    ->UseManualTime();
 }  // namespace terrier

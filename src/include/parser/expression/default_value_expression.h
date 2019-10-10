@@ -4,32 +4,23 @@
 #include "parser/expression/abstract_expression.h"
 
 namespace terrier::parser {
-
 /**
- * Represents a default value, e.g. in an INSERT. Note that the return value type is unspecified,
- * this expression should be replaced by the binder.
+ * DefaultValueExpression represents a default value, e.g. in an INSERT.
+ * Note that the return value type is unspecified and that the expression should be replaced by the binder.
+ * TODO(WAN): check with Ling if this is happening. I believe we gave up on the binder translating to new objects.
  */
 class DefaultValueExpression : public AbstractExpression {
  public:
-  /**
-   * Instantiates a new default value expression.
-   */
+  /** Instantiates a new default value expression. */
   DefaultValueExpression() : AbstractExpression(ExpressionType::VALUE_DEFAULT, type::TypeId::INVALID, {}) {}
 
-  std::shared_ptr<AbstractExpression> Copy() const override { return std::make_shared<DefaultValueExpression>(*this); }
-
-  /**
-   * @return expression serialized to json
-   */
-  nlohmann::json ToJson() const override {
-    nlohmann::json j = AbstractExpression::ToJson();
-    return j;
+  std::unique_ptr<AbstractExpression> Copy() const override {
+    auto expr = std::make_unique<DefaultValueExpression>();
+    expr->SetMutableStateForCopy(*this);
+    return expr;
   }
 
-  /**
-   * @param j json to deserialize
-   */
-  void FromJson(const nlohmann::json &j) override { AbstractExpression::FromJson(j); }
+  void Accept(SqlNodeVisitor *v) override { v->Visit(this); }
 };
 
 DEFINE_JSON_DECLARATIONS(DefaultValueExpression);

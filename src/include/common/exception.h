@@ -14,6 +14,7 @@ namespace terrier {
 
 #define NOT_IMPLEMENTED_EXCEPTION(msg) NotImplementedException(msg, __FILE__, __LINE__)
 #define CATALOG_EXCEPTION(msg) CatalogException(msg, __FILE__, __LINE__)
+#define CONVERSION_EXCEPTION(msg) ConversionException(msg, __FILE__, __LINE__)
 #define PARSER_EXCEPTION(msg) ParserException(msg, __FILE__, __LINE__)
 #define NETWORK_PROCESS_EXCEPTION(msg) NetworkProcessException(msg, __FILE__, __LINE__)
 #define SETTINGS_EXCEPTION(msg) SettingsException(msg, __FILE__, __LINE__)
@@ -21,7 +22,7 @@ namespace terrier {
 /**
  * Exception types
  */
-enum class ExceptionType : uint8_t { RESERVED, NOT_IMPLEMENTED, CATALOG, NETWORK, PARSER, SETTINGS };
+enum class ExceptionType : uint8_t { RESERVED, NOT_IMPLEMENTED, CATALOG, CONVERSION, NETWORK, PARSER, SETTINGS };
 
 /**
  * Exception base class.
@@ -39,12 +40,13 @@ class Exception : public std::runtime_error {
       : std::runtime_error(msg), type_(type), file_(file), line_(line) {}
 
   /**
-   * Allows type and source location of the exception to be recorded in the log at the catch point.
+   * Allows type and source location of the exception to be recorded in the log
+   * at the catch point.
    */
   friend std::ostream &operator<<(std::ostream &out, const Exception &ex) {
-    out << ex.get_type() << " exception:";
-    out << ex.get_file() << ":";
-    out << ex.get_line() << ":";
+    out << ex.GetType() << " exception:";
+    out << ex.GetFile() << ":";
+    out << ex.GetLine() << ":";
     out << ex.what();
     return out;
   }
@@ -52,7 +54,7 @@ class Exception : public std::runtime_error {
   /**
    * @return the exception type
    */
-  const char *get_type() const {
+  const char *GetType() const {
     switch (type_) {
       case ExceptionType::NOT_IMPLEMENTED:
         return "Not Implemented";
@@ -72,12 +74,12 @@ class Exception : public std::runtime_error {
   /**
    * @return the file that threw the exception
    */
-  const char *get_file() const { return file_; }
+  const char *GetFile() const { return file_; }
 
   /**
    * @return the line number that threw the exception
    */
-  const int get_line() const { return line_; }
+  int GetLine() const { return line_; }
 
  protected:
   /**
@@ -111,5 +113,6 @@ DEFINE_EXCEPTION(CatalogException, ExceptionType::CATALOG);
 DEFINE_EXCEPTION(ParserException, ExceptionType::PARSER);
 DEFINE_EXCEPTION(NetworkProcessException, ExceptionType::NETWORK);
 DEFINE_EXCEPTION(SettingsException, ExceptionType::SETTINGS);
+DEFINE_EXCEPTION(ConversionException, ExceptionType::CONVERSION);
 
 }  // namespace terrier

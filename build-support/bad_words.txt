@@ -10,3 +10,5 @@
 \bprintf(
 \bshared_ptr\b
 \bmake_shared\b
+\bweak_ptr\b
+namespace .*_.* {

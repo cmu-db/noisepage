@@ -36,4 +36,37 @@ void Callbacks::WorkerPoolThreads(void *const old_value, void *const new_value, 
   action_context->SetState(common::ActionState::SUCCESS);
 }
 
+void Callbacks::NumLogManagerBuffers(void *const old_value, void *const new_value, DBMain *const db_main,
+                                     const std::shared_ptr<common::ActionContext> &action_context) {
+  action_context->SetState(common::ActionState::IN_PROGRESS);
+  int new_size = *static_cast<int *>(new_value);
+  bool success = db_main->log_manager_->SetNumBuffers(new_size);
+  if (success)
+    action_context->SetState(common::ActionState::SUCCESS);
+  else
+    action_context->SetState(common::ActionState::FAILURE);
+}
+
+void Callbacks::MetricsLogging(void *const old_value, void *const new_value, DBMain *const db_main,
+                               const std::shared_ptr<common::ActionContext> &action_context) {
+  action_context->SetState(common::ActionState::IN_PROGRESS);
+  bool new_status = *static_cast<bool *>(new_value);
+  if (new_status)
+    db_main->metrics_manager_->EnableMetric(metrics::MetricsComponent::LOGGING);
+  else
+    db_main->metrics_manager_->DisableMetric(metrics::MetricsComponent::LOGGING);
+  action_context->SetState(common::ActionState::SUCCESS);
+}
+
+void Callbacks::MetricsTransaction(void *const old_value, void *const new_value, DBMain *const db_main,
+                                   const std::shared_ptr<common::ActionContext> &action_context) {
+  action_context->SetState(common::ActionState::IN_PROGRESS);
+  bool new_status = *static_cast<bool *>(new_value);
+  if (new_status)
+    db_main->metrics_manager_->EnableMetric(metrics::MetricsComponent::TRANSACTION);
+  else
+    db_main->metrics_manager_->DisableMetric(metrics::MetricsComponent::TRANSACTION);
+  action_context->SetState(common::ActionState::SUCCESS);
+}
+
 }  // namespace terrier::settings

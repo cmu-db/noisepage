@@ -26,10 +26,10 @@ TEST(OperatorTests, TableFreeScanTest) {
   // TableFreeScan operator does not have any data members.
   // So we just need to make sure that all instantiations
   // of the object are equivalent.
-  Operator op1 = TableFreeScan::make();
+  Operator op1 = TableFreeScan::Make();
   EXPECT_EQ(op1.GetType(), OpType::TABLEFREESCAN);
 
-  Operator op2 = TableFreeScan::make();
+  Operator op2 = TableFreeScan::Make();
   EXPECT_TRUE(op1 == op2);
   EXPECT_EQ(op1.Hash(), op2.Hash());
 }
@@ -53,27 +53,27 @@ TEST(OperatorTests, SeqScanTest) {
   auto annotated_expr_2 = AnnotatedExpression(x_2, std::unordered_set<std::string>());
   auto annotated_expr_3 = AnnotatedExpression(x_3, std::unordered_set<std::string>());
 
-  Operator seq_scan_01 = SeqScan::make(catalog::db_oid_t(2), catalog::namespace_oid_t(2), catalog::table_oid_t(3),
+  Operator seq_scan_01 = SeqScan::Make(catalog::db_oid_t(2), catalog::namespace_oid_t(2), catalog::table_oid_t(3),
                                        std::vector<AnnotatedExpression>(), "table", false);
-  Operator seq_scan_02 = SeqScan::make(catalog::db_oid_t(1), catalog::namespace_oid_t(3), catalog::table_oid_t(3),
+  Operator seq_scan_02 = SeqScan::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(3), catalog::table_oid_t(3),
                                        std::vector<AnnotatedExpression>(), "table", false);
-  Operator seq_scan_03 = SeqScan::make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(4),
+  Operator seq_scan_03 = SeqScan::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(4),
                                        std::vector<AnnotatedExpression>(), "table", false);
-  Operator seq_scan_04 = SeqScan::make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3),
+  Operator seq_scan_04 = SeqScan::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3),
                                        std::vector<AnnotatedExpression>(), "tableTable", false);
-  Operator seq_scan_05 = SeqScan::make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3),
+  Operator seq_scan_05 = SeqScan::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3),
                                        std::vector<AnnotatedExpression>(), "table", true);
-  Operator seq_scan_1 = SeqScan::make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3),
+  Operator seq_scan_1 = SeqScan::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3),
                                       std::vector<AnnotatedExpression>(), "table", false);
-  Operator seq_scan_2 = SeqScan::make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3),
+  Operator seq_scan_2 = SeqScan::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3),
                                       std::vector<AnnotatedExpression>(), "table", false);
-  Operator seq_scan_3 = SeqScan::make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3),
+  Operator seq_scan_3 = SeqScan::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3),
                                       std::vector<AnnotatedExpression>{annotated_expr_0}, "table", false);
-  Operator seq_scan_4 = SeqScan::make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3),
+  Operator seq_scan_4 = SeqScan::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3),
                                       std::vector<AnnotatedExpression>{annotated_expr_1}, "table", false);
-  Operator seq_scan_5 = SeqScan::make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3),
+  Operator seq_scan_5 = SeqScan::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3),
                                       std::vector<AnnotatedExpression>{annotated_expr_2}, "table", false);
-  Operator seq_scan_6 = SeqScan::make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3),
+  Operator seq_scan_6 = SeqScan::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3),
                                       std::vector<AnnotatedExpression>{annotated_expr_3}, "table", false);
 
   EXPECT_EQ(seq_scan_1.GetType(), OpType::SEQSCAN);
@@ -133,39 +133,39 @@ TEST(OperatorTests, IndexScanTest) {
 
   // different from index_scan_1 in dbOID
   Operator index_scan_01 =
-      IndexScan::make(catalog::db_oid_t(2), catalog::namespace_oid_t(2), catalog::index_oid_t(3),
+      IndexScan::Make(catalog::db_oid_t(2), catalog::namespace_oid_t(2), catalog::index_oid_t(3),
                       std::vector<AnnotatedExpression>(), "table", false, std::vector<catalog::col_oid_t>(),
                       std::vector<parser::ExpressionType>(), std::vector<type::TransientValue>());
   // different from index_scan_1 in namespace OID
   Operator index_scan_02 =
-      IndexScan::make(catalog::db_oid_t(1), catalog::namespace_oid_t(3), catalog::index_oid_t(3),
+      IndexScan::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(3), catalog::index_oid_t(3),
                       std::vector<AnnotatedExpression>(), "table", false, std::vector<catalog::col_oid_t>(),
                       std::vector<parser::ExpressionType>(), std::vector<type::TransientValue>());
   // different from index_scan_1 in index OID
   Operator index_scan_03 =
-      IndexScan::make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::index_oid_t(4),
+      IndexScan::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::index_oid_t(4),
                       std::vector<AnnotatedExpression>(), "table", false, std::vector<catalog::col_oid_t>(),
                       std::vector<parser::ExpressionType>(), std::vector<type::TransientValue>());
   // different from index_scan_1 in table alias
   Operator index_scan_04 =
-      IndexScan::make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::index_oid_t(3),
+      IndexScan::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::index_oid_t(3),
                       std::vector<AnnotatedExpression>(), "tableTable", false, std::vector<catalog::col_oid_t>(),
                       std::vector<parser::ExpressionType>(), std::vector<type::TransientValue>());
   // different from index_scan_1 in 'is for update'
   Operator index_scan_05 =
-      IndexScan::make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::index_oid_t(3),
+      IndexScan::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::index_oid_t(3),
                       std::vector<AnnotatedExpression>(), "table", true, std::vector<catalog::col_oid_t>(),
                       std::vector<parser::ExpressionType>(), std::vector<type::TransientValue>());
   // different from index_scan_1 in key column list
   std::vector<catalog::col_oid_t> key_column1 = {catalog::col_oid_t(1), catalog::col_oid_t(2)};
   std::vector<catalog::col_oid_t> key_column2 = {catalog::col_oid_t(1), catalog::col_oid_t(2)};
-  Operator index_scan_06 = IndexScan::make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::index_oid_t(3),
+  Operator index_scan_06 = IndexScan::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::index_oid_t(3),
                                            std::vector<AnnotatedExpression>(), "table", false, std::move(key_column1),
                                            std::vector<parser::ExpressionType>(), std::vector<type::TransientValue>());
   // different from index_scan_1 in expr type list
   std::vector<parser::ExpressionType> expr_type1 = {parser::ExpressionType::COMPARE_IN};
   std::vector<parser::ExpressionType> expr_type2 = {parser::ExpressionType::COMPARE_IN};
-  Operator index_scan_07 = IndexScan::make(
+  Operator index_scan_07 = IndexScan::Make(
       catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::index_oid_t(3), std::vector<AnnotatedExpression>(),
       "table", false, std::vector<catalog::col_oid_t>(), std::move(expr_type1), std::vector<type::TransientValue>());
   // different from index_scan_1 in value list
@@ -173,32 +173,32 @@ TEST(OperatorTests, IndexScanTest) {
   std::vector<type::TransientValue> value2;
   value1.push_back(type::TransientValueFactory::GetInteger(1));
   value2.push_back(type::TransientValueFactory::GetInteger(1));
-  Operator index_scan_08 = IndexScan::make(
+  Operator index_scan_08 = IndexScan::Make(
       catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::index_oid_t(3), std::vector<AnnotatedExpression>(),
       "table", false, std::vector<catalog::col_oid_t>(), std::vector<parser::ExpressionType>(), std::move(value1));
 
   Operator index_scan_1 =
-      IndexScan::make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::index_oid_t(3),
+      IndexScan::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::index_oid_t(3),
                       std::vector<AnnotatedExpression>(), "table", false, std::vector<catalog::col_oid_t>(),
                       std::vector<parser::ExpressionType>(), std::vector<type::TransientValue>());
   Operator index_scan_2 =
-      IndexScan::make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::index_oid_t(3),
+      IndexScan::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::index_oid_t(3),
                       std::vector<AnnotatedExpression>(), "table", false, std::vector<catalog::col_oid_t>(),
                       std::vector<parser::ExpressionType>(), std::vector<type::TransientValue>());
   // different from index_scan_1 in predicates
-  Operator index_scan_3 = IndexScan::make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::index_oid_t(3),
+  Operator index_scan_3 = IndexScan::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::index_oid_t(3),
                                           std::vector<AnnotatedExpression>{annotated_expr_0}, "table", false,
                                           std::vector<catalog::col_oid_t>(), std::vector<parser::ExpressionType>(),
                                           std::vector<type::TransientValue>());
-  Operator index_scan_4 = IndexScan::make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::index_oid_t(3),
+  Operator index_scan_4 = IndexScan::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::index_oid_t(3),
                                           std::vector<AnnotatedExpression>{annotated_expr_1}, "table", false,
                                           std::vector<catalog::col_oid_t>(), std::vector<parser::ExpressionType>(),
                                           std::vector<type::TransientValue>());
-  Operator index_scan_5 = IndexScan::make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::index_oid_t(3),
+  Operator index_scan_5 = IndexScan::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::index_oid_t(3),
                                           std::vector<AnnotatedExpression>{annotated_expr_2}, "table", false,
                                           std::vector<catalog::col_oid_t>(), std::vector<parser::ExpressionType>(),
                                           std::vector<type::TransientValue>());
-  Operator index_scan_6 = IndexScan::make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::index_oid_t(3),
+  Operator index_scan_6 = IndexScan::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::index_oid_t(3),
                                           std::vector<AnnotatedExpression>{annotated_expr_3}, "table", false,
                                           std::vector<catalog::col_oid_t>(), std::vector<parser::ExpressionType>(),
                                           std::vector<type::TransientValue>());
@@ -252,13 +252,13 @@ TEST(OperatorTests, ExternalFileScanTest) {
   //===--------------------------------------------------------------------===//
   // ExternalFileScan
   //===--------------------------------------------------------------------===//
-  Operator ext_file_scan_1 = ExternalFileScan::make(parser::ExternalFileFormat::CSV, "file.txt", ',', '"', '\\');
-  Operator ext_file_scan_2 = ExternalFileScan::make(parser::ExternalFileFormat::CSV, "file.txt", ',', '"', '\\');
-  Operator ext_file_scan_3 = ExternalFileScan::make(parser::ExternalFileFormat::CSV, "file2.txt", ',', '"', '\\');
-  Operator ext_file_scan_4 = ExternalFileScan::make(parser::ExternalFileFormat::BINARY, "file.txt", ',', '"', '\\');
-  Operator ext_file_scan_5 = ExternalFileScan::make(parser::ExternalFileFormat::CSV, "file.txt", ' ', '"', '\\');
-  Operator ext_file_scan_6 = ExternalFileScan::make(parser::ExternalFileFormat::CSV, "file.txt", ',', '\'', '\\');
-  Operator ext_file_scan_7 = ExternalFileScan::make(parser::ExternalFileFormat::CSV, "file.txt", ',', '"', '&');
+  Operator ext_file_scan_1 = ExternalFileScan::Make(parser::ExternalFileFormat::CSV, "file.txt", ',', '"', '\\');
+  Operator ext_file_scan_2 = ExternalFileScan::Make(parser::ExternalFileFormat::CSV, "file.txt", ',', '"', '\\');
+  Operator ext_file_scan_3 = ExternalFileScan::Make(parser::ExternalFileFormat::CSV, "file2.txt", ',', '"', '\\');
+  Operator ext_file_scan_4 = ExternalFileScan::Make(parser::ExternalFileFormat::BINARY, "file.txt", ',', '"', '\\');
+  Operator ext_file_scan_5 = ExternalFileScan::Make(parser::ExternalFileFormat::CSV, "file.txt", ' ', '"', '\\');
+  Operator ext_file_scan_6 = ExternalFileScan::Make(parser::ExternalFileFormat::CSV, "file.txt", ',', '\'', '\\');
+  Operator ext_file_scan_7 = ExternalFileScan::Make(parser::ExternalFileFormat::CSV, "file.txt", ',', '"', '&');
 
   EXPECT_EQ(ext_file_scan_1.GetType(), OpType::EXTERNALFILESCAN);
   EXPECT_EQ(ext_file_scan_1.GetName(), "ExternalFileScan");
@@ -308,13 +308,13 @@ TEST(OperatorTests, QueryDerivedScanTest) {
   alias_to_expr_map_5["constant expr"] = expr1;
   alias_to_expr_map_5["constant expr2"] = expr2;
 
-  Operator query_derived_scan_1 = QueryDerivedScan::make("alias", std::move(alias_to_expr_map_1));
-  Operator query_derived_scan_2 = QueryDerivedScan::make("alias", std::move(alias_to_expr_map_2));
-  Operator query_derived_scan_3 = QueryDerivedScan::make(
+  Operator query_derived_scan_1 = QueryDerivedScan::Make("alias", std::move(alias_to_expr_map_1));
+  Operator query_derived_scan_2 = QueryDerivedScan::Make("alias", std::move(alias_to_expr_map_2));
+  Operator query_derived_scan_3 = QueryDerivedScan::Make(
       "alias", std::unordered_map<std::string, common::ManagedPointer<parser::AbstractExpression>>());
-  Operator query_derived_scan_4 = QueryDerivedScan::make("alias", std::move(alias_to_expr_map_3));
-  Operator query_derived_scan_5 = QueryDerivedScan::make("alias", std::move(alias_to_expr_map_4));
-  Operator query_derived_scan_6 = QueryDerivedScan::make("alias", std::move(alias_to_expr_map_5));
+  Operator query_derived_scan_4 = QueryDerivedScan::Make("alias", std::move(alias_to_expr_map_3));
+  Operator query_derived_scan_5 = QueryDerivedScan::Make("alias", std::move(alias_to_expr_map_4));
+  Operator query_derived_scan_6 = QueryDerivedScan::Make("alias", std::move(alias_to_expr_map_5));
 
   EXPECT_EQ(query_derived_scan_1.GetType(), OpType::QUERYDERIVEDSCAN);
   EXPECT_EQ(query_derived_scan_1.GetName(), "QueryDerivedScan");
@@ -340,10 +340,10 @@ TEST(OperatorTests, OrderByTest) {
   // OrderBy operator does not have any data members.
   // So we just need to make sure that all instantiations
   // of the object are equivalent.
-  Operator op1 = OrderBy::make();
+  Operator op1 = OrderBy::Make();
   EXPECT_EQ(op1.GetType(), OpType::ORDERBY);
 
-  Operator op2 = OrderBy::make();
+  Operator op2 = OrderBy::Make();
   EXPECT_TRUE(op1 == op2);
   EXPECT_EQ(op1.Hash(), op2.Hash());
 }
@@ -360,7 +360,7 @@ TEST(OperatorTests, LimitTest) {
   planner::OrderByOrderingType sort_dir = planner::OrderByOrderingType::ASC;
 
   // Check that all of our GET methods work as expected
-  Operator op1 = Limit::make(offset, limit, {sort_expr}, {sort_dir});
+  Operator op1 = Limit::Make(offset, limit, {sort_expr}, {sort_dir});
   EXPECT_EQ(op1.GetType(), OpType::LIMIT);
   EXPECT_EQ(op1.As<Limit>()->GetOffset(), offset);
   EXPECT_EQ(op1.As<Limit>()->GetLimit(), limit);
@@ -371,14 +371,14 @@ TEST(OperatorTests, LimitTest) {
 
   // Check that if we make a new object with the same values, then it will
   // be equal to our first object and have the same hash
-  Operator op2 = Limit::make(offset, limit, {sort_expr}, {sort_dir});
+  Operator op2 = Limit::Make(offset, limit, {sort_expr}, {sort_dir});
   EXPECT_TRUE(op1 == op2);
   EXPECT_EQ(op1.Hash(), op2.Hash());
 
   // Lastly, make a different object and make sure that it is not equal
   // and that it's hash is not the same!
   size_t other_offset = 1111;
-  Operator op3 = Limit::make(other_offset, limit, {sort_expr}, {sort_dir});
+  Operator op3 = Limit::Make(other_offset, limit, {sort_expr}, {sort_dir});
   EXPECT_FALSE(op1 == op3);
   EXPECT_NE(op1.Hash(), op3.Hash());
 
@@ -404,15 +404,15 @@ TEST(OperatorTests, InnerNLJoinTest) {
   auto annotated_expr_2 = AnnotatedExpression(x_2, std::unordered_set<std::string>());
   auto annotated_expr_3 = AnnotatedExpression(x_3, std::unordered_set<std::string>());
 
-  Operator inner_nl_join_1 = InnerNLJoin::make(std::vector<AnnotatedExpression>(), {x_1}, {x_1});
-  Operator inner_nl_join_2 = InnerNLJoin::make(std::vector<AnnotatedExpression>(), {x_1}, {x_1});
-  Operator inner_nl_join_3 = InnerNLJoin::make(std::vector<AnnotatedExpression>{annotated_expr_0}, {x_1}, {x_1});
-  Operator inner_nl_join_4 = InnerNLJoin::make(std::vector<AnnotatedExpression>{annotated_expr_1}, {x_1}, {x_1});
-  Operator inner_nl_join_5 = InnerNLJoin::make(std::vector<AnnotatedExpression>{annotated_expr_2}, {x_2}, {x_1});
-  Operator inner_nl_join_6 = InnerNLJoin::make(std::vector<AnnotatedExpression>{annotated_expr_1}, {x_1}, {x_2});
-  Operator inner_nl_join_7 = InnerNLJoin::make(std::vector<AnnotatedExpression>{annotated_expr_3}, {x_1}, {x_1});
-  Operator inner_nl_join_8 = InnerNLJoin::make(std::vector<AnnotatedExpression>{annotated_expr_1}, {x_3}, {x_1});
-  Operator inner_nl_join_9 = InnerNLJoin::make(std::vector<AnnotatedExpression>{annotated_expr_1}, {x_1}, {x_3});
+  Operator inner_nl_join_1 = InnerNLJoin::Make(std::vector<AnnotatedExpression>(), {x_1}, {x_1});
+  Operator inner_nl_join_2 = InnerNLJoin::Make(std::vector<AnnotatedExpression>(), {x_1}, {x_1});
+  Operator inner_nl_join_3 = InnerNLJoin::Make(std::vector<AnnotatedExpression>{annotated_expr_0}, {x_1}, {x_1});
+  Operator inner_nl_join_4 = InnerNLJoin::Make(std::vector<AnnotatedExpression>{annotated_expr_1}, {x_1}, {x_1});
+  Operator inner_nl_join_5 = InnerNLJoin::Make(std::vector<AnnotatedExpression>{annotated_expr_2}, {x_2}, {x_1});
+  Operator inner_nl_join_6 = InnerNLJoin::Make(std::vector<AnnotatedExpression>{annotated_expr_1}, {x_1}, {x_2});
+  Operator inner_nl_join_7 = InnerNLJoin::Make(std::vector<AnnotatedExpression>{annotated_expr_3}, {x_1}, {x_1});
+  Operator inner_nl_join_8 = InnerNLJoin::Make(std::vector<AnnotatedExpression>{annotated_expr_1}, {x_3}, {x_1});
+  Operator inner_nl_join_9 = InnerNLJoin::Make(std::vector<AnnotatedExpression>{annotated_expr_1}, {x_1}, {x_3});
 
   EXPECT_EQ(inner_nl_join_1.GetType(), OpType::INNERNLJOIN);
   EXPECT_EQ(inner_nl_join_3.GetType(), OpType::INNERNLJOIN);
@@ -459,9 +459,9 @@ TEST(OperatorTests, LeftNLJoinTest) {
   auto x_2 = common::ManagedPointer<parser::AbstractExpression>(expr_b_2);
   auto x_3 = common::ManagedPointer<parser::AbstractExpression>(expr_b_3);
 
-  Operator left_nl_join_1 = LeftNLJoin::make(x_1);
-  Operator left_nl_join_2 = LeftNLJoin::make(x_2);
-  Operator left_nl_join_3 = LeftNLJoin::make(x_3);
+  Operator left_nl_join_1 = LeftNLJoin::Make(x_1);
+  Operator left_nl_join_2 = LeftNLJoin::Make(x_2);
+  Operator left_nl_join_3 = LeftNLJoin::Make(x_3);
 
   EXPECT_EQ(left_nl_join_1.GetType(), OpType::LEFTNLJOIN);
   EXPECT_EQ(left_nl_join_3.GetType(), OpType::LEFTNLJOIN);
@@ -492,9 +492,9 @@ TEST(OperatorTests, RightNLJoinTest) {
   auto x_2 = common::ManagedPointer<parser::AbstractExpression>(expr_b_2);
   auto x_3 = common::ManagedPointer<parser::AbstractExpression>(expr_b_3);
 
-  Operator right_nl_join_1 = RightNLJoin::make(x_1);
-  Operator right_nl_join_2 = RightNLJoin::make(x_2);
-  Operator right_nl_join_3 = RightNLJoin::make(x_3);
+  Operator right_nl_join_1 = RightNLJoin::Make(x_1);
+  Operator right_nl_join_2 = RightNLJoin::Make(x_2);
+  Operator right_nl_join_3 = RightNLJoin::Make(x_3);
 
   EXPECT_EQ(right_nl_join_1.GetType(), OpType::RIGHTNLJOIN);
   EXPECT_EQ(right_nl_join_3.GetType(), OpType::RIGHTNLJOIN);
@@ -525,9 +525,9 @@ TEST(OperatorTests, OuterNLJoin) {
   auto x_2 = common::ManagedPointer<parser::AbstractExpression>(expr_b_2);
   auto x_3 = common::ManagedPointer<parser::AbstractExpression>(expr_b_3);
 
-  Operator outer_nl_join_1 = OuterNLJoin::make(x_1);
-  Operator outer_nl_join_2 = OuterNLJoin::make(x_2);
-  Operator outer_nl_join_3 = OuterNLJoin::make(x_3);
+  Operator outer_nl_join_1 = OuterNLJoin::Make(x_1);
+  Operator outer_nl_join_2 = OuterNLJoin::Make(x_2);
+  Operator outer_nl_join_3 = OuterNLJoin::Make(x_3);
 
   EXPECT_EQ(outer_nl_join_1.GetType(), OpType::OUTERNLJOIN);
   EXPECT_EQ(outer_nl_join_3.GetType(), OpType::OUTERNLJOIN);
@@ -564,15 +564,15 @@ TEST(OperatorTests, InnerHashJoinTest) {
   auto annotated_expr_2 = AnnotatedExpression(x_2, std::unordered_set<std::string>());
   auto annotated_expr_3 = AnnotatedExpression(x_3, std::unordered_set<std::string>());
 
-  Operator inner_hash_join_1 = InnerHashJoin::make(std::vector<AnnotatedExpression>(), {x_1}, {x_1});
-  Operator inner_hash_join_2 = InnerHashJoin::make(std::vector<AnnotatedExpression>(), {x_1}, {x_1});
-  Operator inner_hash_join_3 = InnerHashJoin::make(std::vector<AnnotatedExpression>{annotated_expr_0}, {x_1}, {x_1});
-  Operator inner_hash_join_4 = InnerHashJoin::make(std::vector<AnnotatedExpression>{annotated_expr_1}, {x_1}, {x_1});
-  Operator inner_hash_join_5 = InnerHashJoin::make(std::vector<AnnotatedExpression>{annotated_expr_2}, {x_2}, {x_1});
-  Operator inner_hash_join_6 = InnerHashJoin::make(std::vector<AnnotatedExpression>{annotated_expr_1}, {x_1}, {x_2});
-  Operator inner_hash_join_7 = InnerHashJoin::make(std::vector<AnnotatedExpression>{annotated_expr_3}, {x_1}, {x_1});
-  Operator inner_hash_join_8 = InnerHashJoin::make(std::vector<AnnotatedExpression>{annotated_expr_1}, {x_3}, {x_1});
-  Operator inner_hash_join_9 = InnerHashJoin::make(std::vector<AnnotatedExpression>{annotated_expr_1}, {x_1}, {x_3});
+  Operator inner_hash_join_1 = InnerHashJoin::Make(std::vector<AnnotatedExpression>(), {x_1}, {x_1});
+  Operator inner_hash_join_2 = InnerHashJoin::Make(std::vector<AnnotatedExpression>(), {x_1}, {x_1});
+  Operator inner_hash_join_3 = InnerHashJoin::Make(std::vector<AnnotatedExpression>{annotated_expr_0}, {x_1}, {x_1});
+  Operator inner_hash_join_4 = InnerHashJoin::Make(std::vector<AnnotatedExpression>{annotated_expr_1}, {x_1}, {x_1});
+  Operator inner_hash_join_5 = InnerHashJoin::Make(std::vector<AnnotatedExpression>{annotated_expr_2}, {x_2}, {x_1});
+  Operator inner_hash_join_6 = InnerHashJoin::Make(std::vector<AnnotatedExpression>{annotated_expr_1}, {x_1}, {x_2});
+  Operator inner_hash_join_7 = InnerHashJoin::Make(std::vector<AnnotatedExpression>{annotated_expr_3}, {x_1}, {x_1});
+  Operator inner_hash_join_8 = InnerHashJoin::Make(std::vector<AnnotatedExpression>{annotated_expr_1}, {x_3}, {x_1});
+  Operator inner_hash_join_9 = InnerHashJoin::Make(std::vector<AnnotatedExpression>{annotated_expr_1}, {x_1}, {x_3});
 
   EXPECT_EQ(inner_hash_join_1.GetType(), OpType::INNERHASHJOIN);
   EXPECT_EQ(inner_hash_join_3.GetType(), OpType::INNERHASHJOIN);
@@ -621,9 +621,9 @@ TEST(OperatorTests, LeftHashJoinTest) {
   auto x_2 = common::ManagedPointer<parser::AbstractExpression>(expr_b_2);
   auto x_3 = common::ManagedPointer<parser::AbstractExpression>(expr_b_3);
 
-  Operator left_hash_join_1 = LeftHashJoin::make(x_1);
-  Operator left_hash_join_2 = LeftHashJoin::make(x_2);
-  Operator left_hash_join_3 = LeftHashJoin::make(x_3);
+  Operator left_hash_join_1 = LeftHashJoin::Make(x_1);
+  Operator left_hash_join_2 = LeftHashJoin::Make(x_2);
+  Operator left_hash_join_3 = LeftHashJoin::Make(x_3);
 
   EXPECT_EQ(left_hash_join_1.GetType(), OpType::LEFTHASHJOIN);
   EXPECT_EQ(left_hash_join_3.GetType(), OpType::LEFTHASHJOIN);
@@ -654,9 +654,9 @@ TEST(OperatorTests, RightHashJoinTest) {
   auto x_2 = common::ManagedPointer<parser::AbstractExpression>(expr_b_2);
   auto x_3 = common::ManagedPointer<parser::AbstractExpression>(expr_b_3);
 
-  Operator right_hash_join_1 = RightHashJoin::make(x_1);
-  Operator right_hash_join_2 = RightHashJoin::make(x_2);
-  Operator right_hash_join_3 = RightHashJoin::make(x_3);
+  Operator right_hash_join_1 = RightHashJoin::Make(x_1);
+  Operator right_hash_join_2 = RightHashJoin::Make(x_2);
+  Operator right_hash_join_3 = RightHashJoin::Make(x_3);
 
   EXPECT_EQ(right_hash_join_1.GetType(), OpType::RIGHTHASHJOIN);
   EXPECT_EQ(right_hash_join_3.GetType(), OpType::RIGHTHASHJOIN);
@@ -687,9 +687,9 @@ TEST(OperatorTests, OuterHashJoinTest) {
   auto x_2 = common::ManagedPointer<parser::AbstractExpression>(expr_b_2);
   auto x_3 = common::ManagedPointer<parser::AbstractExpression>(expr_b_3);
 
-  Operator outer_hash_join_1 = OuterHashJoin::make(x_1);
-  Operator outer_hash_join_2 = OuterHashJoin::make(x_2);
-  Operator outer_hash_join_3 = OuterHashJoin::make(x_3);
+  Operator outer_hash_join_1 = OuterHashJoin::Make(x_1);
+  Operator outer_hash_join_2 = OuterHashJoin::Make(x_2);
+  Operator outer_hash_join_3 = OuterHashJoin::Make(x_3);
 
   EXPECT_EQ(outer_hash_join_1.GetType(), OpType::OUTERHASHJOIN);
   EXPECT_EQ(outer_hash_join_3.GetType(), OpType::OUTERHASHJOIN);
@@ -716,6 +716,7 @@ TEST(OperatorTests, InsertTest) {
   catalog::namespace_oid_t namespace_oid(456);
   catalog::table_oid_t table_oid(789);
   catalog::col_oid_t columns[] = {catalog::col_oid_t(1), catalog::col_oid_t(2)};
+  std::vector<catalog::index_oid_t> indexes = {catalog::index_oid_t(4), catalog::index_oid_t(5)};
   parser::AbstractExpression *raw_values[] = {
       new parser::ConstantValueExpression(type::TransientValueFactory::GetTinyInt(1)),
       new parser::ConstantValueExpression(type::TransientValueFactory::GetTinyInt(9))};
@@ -724,20 +725,23 @@ TEST(OperatorTests, InsertTest) {
 
   // Check that all of our GET methods work as expected
   Operator op1 =
-      Insert::make(database_oid, namespace_oid, table_oid, std::vector<catalog::col_oid_t>(columns, std::end(columns)),
-                   std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>(values));
+      Insert::Make(database_oid, namespace_oid, table_oid, std::vector<catalog::col_oid_t>(columns, std::end(columns)),
+                   std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>(values),
+                   std::vector<catalog::index_oid_t>(indexes));
   EXPECT_EQ(op1.GetType(), OpType::INSERT);
   EXPECT_EQ(op1.As<Insert>()->GetDatabaseOid(), database_oid);
   EXPECT_EQ(op1.As<Insert>()->GetNamespaceOid(), namespace_oid);
   EXPECT_EQ(op1.As<Insert>()->GetTableOid(), table_oid);
   EXPECT_EQ(op1.As<Insert>()->GetValues(), values);
   EXPECT_EQ(op1.As<Insert>()->GetColumns(), (std::vector<catalog::col_oid_t>(columns, std::end(columns))));
+  EXPECT_EQ(op1.As<Insert>()->GetIndexes(), indexes);
 
   // Check that if we make a new object with the same values, then it will
   // be equal to our first object and have the same hash
   Operator op2 =
-      Insert::make(database_oid, namespace_oid, table_oid, std::vector<catalog::col_oid_t>(columns, std::end(columns)),
-                   std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>(values));
+      Insert::Make(database_oid, namespace_oid, table_oid, std::vector<catalog::col_oid_t>(columns, std::end(columns)),
+                   std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>(values),
+                   std::vector<catalog::index_oid_t>(indexes));
   EXPECT_TRUE(op1 == op2);
   EXPECT_EQ(op1.Hash(), op2.Hash());
 
@@ -747,8 +751,9 @@ TEST(OperatorTests, InsertTest) {
       std::vector<common::ManagedPointer<parser::AbstractExpression>>(raw_values, std::end(raw_values)),
       std::vector<common::ManagedPointer<parser::AbstractExpression>>(raw_values, std::end(raw_values))};
   Operator op3 =
-      Insert::make(database_oid, namespace_oid, table_oid, std::vector<catalog::col_oid_t>(columns, std::end(columns)),
-                   std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>(other_values));
+      Insert::Make(database_oid, namespace_oid, table_oid, std::vector<catalog::col_oid_t>(columns, std::end(columns)),
+                   std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>(other_values),
+                   std::vector<catalog::index_oid_t>(indexes));
   EXPECT_FALSE(op1 == op3);
   EXPECT_NE(op1.Hash(), op3.Hash());
 
@@ -763,8 +768,9 @@ TEST(OperatorTests, InsertTest) {
   std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>> bad_values = {
       std::vector<common::ManagedPointer<parser::AbstractExpression>>(bad_raw_values, std::end(bad_raw_values))};
   EXPECT_DEATH(
-      Insert::make(database_oid, namespace_oid, table_oid, std::vector<catalog::col_oid_t>(columns, std::end(columns)),
-                   std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>(bad_values)),
+      Insert::Make(database_oid, namespace_oid, table_oid, std::vector<catalog::col_oid_t>(columns, std::end(columns)),
+                   std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>(bad_values),
+                   std::vector<catalog::index_oid_t>(indexes)),
       "Mismatched");
   for (auto entry : bad_raw_values) delete entry;
 #endif
@@ -780,24 +786,29 @@ TEST(OperatorTests, InsertSelectTest) {
   catalog::db_oid_t database_oid(123);
   catalog::namespace_oid_t namespace_oid(456);
   catalog::table_oid_t table_oid(789);
+  std::vector<catalog::index_oid_t> index_oids{721};
 
   // Check that all of our GET methods work as expected
-  Operator op1 = InsertSelect::make(database_oid, namespace_oid, table_oid);
+  Operator op1 =
+      InsertSelect::Make(database_oid, namespace_oid, table_oid, std::vector<catalog::index_oid_t>(index_oids));
   EXPECT_EQ(op1.GetType(), OpType::INSERTSELECT);
   EXPECT_EQ(op1.As<InsertSelect>()->GetDatabaseOid(), database_oid);
   EXPECT_EQ(op1.As<InsertSelect>()->GetNamespaceOid(), namespace_oid);
   EXPECT_EQ(op1.As<InsertSelect>()->GetTableOid(), table_oid);
+  EXPECT_EQ(op1.As<InsertSelect>()->GetIndexes(), index_oids);
 
   // Check that if we make a new object with the same values, then it will
   // be equal to our first object and have the same hash
-  Operator op2 = InsertSelect::make(database_oid, namespace_oid, table_oid);
+  Operator op2 =
+      InsertSelect::Make(database_oid, namespace_oid, table_oid, std::vector<catalog::index_oid_t>(index_oids));
   EXPECT_TRUE(op1 == op2);
   EXPECT_EQ(op1.Hash(), op2.Hash());
 
   // Lastly, make a different object and make sure that it is not equal
   // and that it's hash is not the same!
   catalog::db_oid_t other_database_oid(999);
-  Operator op3 = InsertSelect::make(other_database_oid, namespace_oid, table_oid);
+  Operator op3 =
+      InsertSelect::Make(other_database_oid, namespace_oid, table_oid, std::vector<catalog::index_oid_t>(index_oids));
   EXPECT_FALSE(op1 == op3);
   EXPECT_NE(op1.Hash(), op3.Hash());
 }
@@ -820,7 +831,7 @@ TEST(OperatorTests, DeleteTest) {
   catalog::table_oid_t table_oid(789);
 
   // Check that all of our GET methods work as expected
-  Operator op1 = Delete::make(database_oid, namespace_oid, table_oid, x_1);
+  Operator op1 = Delete::Make(database_oid, namespace_oid, table_oid, x_1);
   EXPECT_EQ(op1.GetType(), OpType::DELETE);
   EXPECT_EQ(op1.As<Delete>()->GetDatabaseOid(), database_oid);
   EXPECT_EQ(op1.As<Delete>()->GetNamespaceOid(), namespace_oid);
@@ -829,20 +840,20 @@ TEST(OperatorTests, DeleteTest) {
 
   // Check that if we make a new object with the same values, then it will
   // be equal to our first object and have the same hash
-  Operator op2 = Delete::make(database_oid, namespace_oid, table_oid, x_2);
+  Operator op2 = Delete::Make(database_oid, namespace_oid, table_oid, x_2);
   EXPECT_TRUE(op1 == op2);
   EXPECT_EQ(op1.Hash(), op2.Hash());
 
   // make a different object and make sure that it is not equal
   // and that it's hash is not the same!
   catalog::db_oid_t other_database_oid(999);
-  Operator op3 = Delete::make(other_database_oid, namespace_oid, table_oid, x_1);
+  Operator op3 = Delete::Make(other_database_oid, namespace_oid, table_oid, x_1);
   EXPECT_FALSE(op1 == op3);
   EXPECT_NE(op1.Hash(), op3.Hash());
 
   // Lastly, make another different object and make sure that it is not equal
   // and that it's hash is not the same!
-  Operator op4 = Delete::make(database_oid, namespace_oid, table_oid, x_3);
+  Operator op4 = Delete::Make(database_oid, namespace_oid, table_oid, x_3);
   EXPECT_FALSE(op1 == op4);
   EXPECT_NE(op1.Hash(), op4.Hash());
 
@@ -862,7 +873,7 @@ TEST(OperatorTests, ExportExternalFileTest) {
   char escape = 'Z';
 
   // Check that all of our GET methods work as expected
-  Operator op1 = ExportExternalFile::make(parser::ExternalFileFormat::BINARY, file_name, delimiter, quote, escape);
+  Operator op1 = ExportExternalFile::Make(parser::ExternalFileFormat::BINARY, file_name, delimiter, quote, escape);
   EXPECT_EQ(op1.GetType(), OpType::EXPORTEXTERNALFILE);
   EXPECT_EQ(op1.As<ExportExternalFile>()->GetFilename(), file_name);
   EXPECT_EQ(op1.As<ExportExternalFile>()->GetFormat(), parser::ExternalFileFormat::BINARY);
@@ -873,13 +884,13 @@ TEST(OperatorTests, ExportExternalFileTest) {
   // Check that if we make a new object with the same values, then it will
   // be equal to our first object and have the same hash
   std::string file_name_copy = file_name;  // NOLINT
-  Operator op2 = ExportExternalFile::make(parser::ExternalFileFormat::BINARY, file_name_copy, delimiter, quote, escape);
+  Operator op2 = ExportExternalFile::Make(parser::ExternalFileFormat::BINARY, file_name_copy, delimiter, quote, escape);
   EXPECT_TRUE(op1 == op2);
   EXPECT_EQ(op1.Hash(), op2.Hash());
 
   // Lastly, make a different object and make sure that it is not equal
   // and that it's hash is not the same!
-  Operator op3 = ExportExternalFile::make(parser::ExternalFileFormat::CSV, file_name, delimiter, quote, escape);
+  Operator op3 = ExportExternalFile::Make(parser::ExternalFileFormat::CSV, file_name, delimiter, quote, escape);
   EXPECT_FALSE(op1 == op3);
   EXPECT_NE(op1.Hash(), op3.Hash());
 }
@@ -898,7 +909,7 @@ TEST(OperatorTests, UpdateTest) {
   catalog::table_oid_t table_oid(789);
 
   // Check that all of our GET methods work as expected
-  Operator op1 = Update::make(database_oid, namespace_oid, table_oid, {update_clause});
+  Operator op1 = Update::Make(database_oid, namespace_oid, table_oid, {update_clause});
   EXPECT_EQ(op1.GetType(), OpType::UPDATE);
   EXPECT_EQ(op1.As<Update>()->GetDatabaseOid(), database_oid);
   EXPECT_EQ(op1.As<Update>()->GetNamespaceOid(), namespace_oid);
@@ -908,13 +919,13 @@ TEST(OperatorTests, UpdateTest) {
 
   // Check that if we make a new object with the same values, then it will
   // be equal to our first object and have the same hash
-  Operator op2 = Update::make(database_oid, namespace_oid, table_oid, {update_clause});
+  Operator op2 = Update::Make(database_oid, namespace_oid, table_oid, {update_clause});
   EXPECT_TRUE(op1 == op2);
   EXPECT_EQ(op1.Hash(), op2.Hash());
 
   // Lastly, make a different object and make sure that it is not equal
   // and that it's hash is not the same!
-  Operator op3 = Update::make(database_oid, namespace_oid, table_oid, {});
+  Operator op3 = Update::Make(database_oid, namespace_oid, table_oid, {});
   EXPECT_FALSE(op1 == op3);
   EXPECT_NE(op1.Hash(), op3.Hash());
 
@@ -957,17 +968,17 @@ TEST(OperatorTests, HashGroupByTest) {
   auto annotated_expr_3 = AnnotatedExpression(x_6, std::unordered_set<std::string>());
   auto annotated_expr_4 = AnnotatedExpression(x_8, std::unordered_set<std::string>());
 
-  Operator group_by_1_0 = HashGroupBy::make(std::vector<common::ManagedPointer<parser::AbstractExpression>>{x_1},
+  Operator group_by_1_0 = HashGroupBy::Make(std::vector<common::ManagedPointer<parser::AbstractExpression>>{x_1},
                                             std::vector<AnnotatedExpression>{annotated_expr_0});
-  Operator group_by_1_1 = HashGroupBy::make(std::vector<common::ManagedPointer<parser::AbstractExpression>>{x_1},
+  Operator group_by_1_1 = HashGroupBy::Make(std::vector<common::ManagedPointer<parser::AbstractExpression>>{x_1},
                                             std::vector<AnnotatedExpression>{annotated_expr_1});
-  Operator group_by_2_2 = HashGroupBy::make(std::vector<common::ManagedPointer<parser::AbstractExpression>>{x_2},
+  Operator group_by_2_2 = HashGroupBy::Make(std::vector<common::ManagedPointer<parser::AbstractExpression>>{x_2},
                                             std::vector<AnnotatedExpression>{annotated_expr_2});
-  Operator group_by_3 = HashGroupBy::make(std::vector<common::ManagedPointer<parser::AbstractExpression>>{x_3},
+  Operator group_by_3 = HashGroupBy::Make(std::vector<common::ManagedPointer<parser::AbstractExpression>>{x_3},
                                           std::vector<AnnotatedExpression>());
-  Operator group_by_7_4 = HashGroupBy::make(std::vector<common::ManagedPointer<parser::AbstractExpression>>{x_7},
+  Operator group_by_7_4 = HashGroupBy::Make(std::vector<common::ManagedPointer<parser::AbstractExpression>>{x_7},
                                             std::vector<AnnotatedExpression>{annotated_expr_4});
-  Operator group_by_4 = HashGroupBy::make(std::vector<common::ManagedPointer<parser::AbstractExpression>>(),
+  Operator group_by_4 = HashGroupBy::Make(std::vector<common::ManagedPointer<parser::AbstractExpression>>(),
                                           std::vector<AnnotatedExpression>{annotated_expr_1});
 
   EXPECT_EQ(group_by_1_1.GetType(), OpType::HASHGROUPBY);
@@ -1036,17 +1047,17 @@ TEST(OperatorTests, SortGroupByTest) {
   auto annotated_expr_3 = AnnotatedExpression(x_6, std::unordered_set<std::string>());
   auto annotated_expr_4 = AnnotatedExpression(x_8, std::unordered_set<std::string>());
 
-  Operator group_by_1_0 = SortGroupBy::make(std::vector<common::ManagedPointer<parser::AbstractExpression>>{x_1},
+  Operator group_by_1_0 = SortGroupBy::Make(std::vector<common::ManagedPointer<parser::AbstractExpression>>{x_1},
                                             std::vector<AnnotatedExpression>{annotated_expr_0});
-  Operator group_by_1_1 = SortGroupBy::make(std::vector<common::ManagedPointer<parser::AbstractExpression>>{x_1},
+  Operator group_by_1_1 = SortGroupBy::Make(std::vector<common::ManagedPointer<parser::AbstractExpression>>{x_1},
                                             std::vector<AnnotatedExpression>{annotated_expr_1});
-  Operator group_by_2_2 = SortGroupBy::make(std::vector<common::ManagedPointer<parser::AbstractExpression>>{x_2},
+  Operator group_by_2_2 = SortGroupBy::Make(std::vector<common::ManagedPointer<parser::AbstractExpression>>{x_2},
                                             std::vector<AnnotatedExpression>{annotated_expr_2});
-  Operator group_by_3 = SortGroupBy::make(std::vector<common::ManagedPointer<parser::AbstractExpression>>{x_3},
+  Operator group_by_3 = SortGroupBy::Make(std::vector<common::ManagedPointer<parser::AbstractExpression>>{x_3},
                                           std::vector<AnnotatedExpression>());
-  Operator group_by_7_4 = SortGroupBy::make(std::vector<common::ManagedPointer<parser::AbstractExpression>>{x_7},
+  Operator group_by_7_4 = SortGroupBy::Make(std::vector<common::ManagedPointer<parser::AbstractExpression>>{x_7},
                                             std::vector<AnnotatedExpression>{annotated_expr_4});
-  Operator group_by_4 = SortGroupBy::make(std::vector<common::ManagedPointer<parser::AbstractExpression>>(),
+  Operator group_by_4 = SortGroupBy::Make(std::vector<common::ManagedPointer<parser::AbstractExpression>>(),
                                           std::vector<AnnotatedExpression>{annotated_expr_1});
 
   EXPECT_EQ(group_by_1_1.GetType(), OpType::SORTGROUPBY);
@@ -1088,10 +1099,10 @@ TEST(OperatorTests, AggregateTest) {
   // Aggregate operator does not have any data members.
   // So we just need to make sure that all instantiations
   // of the object are equivalent.
-  Operator op1 = Aggregate::make();
+  Operator op1 = Aggregate::Make();
   EXPECT_EQ(op1.GetType(), OpType::AGGREGATE);
 
-  Operator op2 = Aggregate::make();
+  Operator op2 = Aggregate::Make();
   EXPECT_TRUE(op1 == op2);
   EXPECT_EQ(op1.Hash(), op2.Hash());
 }
@@ -1104,10 +1115,10 @@ TEST(OperatorTests, DistinctTest) {
   // Distinct operator does not have any data members.
   // So we just need to make sure that all instantiations
   // of the object are equivalent.
-  Operator op1 = Distinct::make();
+  Operator op1 = Distinct::Make();
   EXPECT_EQ(op1.GetType(), OpType::DISTINCT);
 
-  Operator op2 = Distinct::make();
+  Operator op2 = Distinct::Make();
   EXPECT_TRUE(op1 == op2);
   EXPECT_EQ(op1.Hash(), op2.Hash());
 }

@@ -19,10 +19,12 @@ byte *RedoBuffer::NewEntry(const uint32_t size) {
     buffer_seg_ = buffer_pool_->Get();
   } else if (!buffer_seg_->HasBytesLeft(size)) {
     // old log buffer is full
-    if (log_manager_ != LOGGING_DISABLED)
+    if (log_manager_ != DISABLED) {
       log_manager_->AddBufferToFlushQueue(buffer_seg_);
-    else
+      has_flushed_ = true;
+    } else {
       buffer_pool_->Release(buffer_seg_);
+    }
     buffer_seg_ = buffer_pool_->Get();
   }
   TERRIER_ASSERT(buffer_seg_->HasBytesLeft(size),
@@ -31,11 +33,13 @@ byte *RedoBuffer::NewEntry(const uint32_t size) {
   return last_record_;
 }
 
-void RedoBuffer::Finalize(bool committed) {
-  if (buffer_seg_ == nullptr) return;
-  if (log_manager_ != LOGGING_DISABLED && committed)
+void RedoBuffer::Finalize(bool flush_buffer) {
+  if (buffer_seg_ == nullptr) return;  // If we never initialized a buffer (logging was disabled), we don't do anything
+  if (log_manager_ != DISABLED && flush_buffer) {
     log_manager_->AddBufferToFlushQueue(buffer_seg_);
-  else
+    has_flushed_ = true;
+  } else {
     buffer_pool_->Release(buffer_seg_);
+  }
 }
 }  // namespace terrier::storage

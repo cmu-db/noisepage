@@ -12,24 +12,21 @@
 
 namespace terrier::network {
 
-using traffic_cop::Portal;
-using traffic_cop::ResultSet;
-using traffic_cop::SqliteEngine;
-using traffic_cop::Statement;
-
-void LogAndWriteErrorMsg(const std::string &msg, PostgresPacketWriter *out) {
+void LogAndWriteErrorMsg(const std::string &msg, common::ManagedPointer<PostgresPacketWriter> out) {
   NETWORK_LOG_ERROR(msg);
   out->WriteSingleErrorResponse(NetworkMessageType::HUMAN_READABLE_ERROR, msg);
 }
 
-Transition SimpleQueryCommand::Exec(PostgresProtocolInterpreter *interpreter, PostgresPacketWriter *out,
-                                    TrafficCop *t_cop, ConnectionContext *connection, NetworkCallback callback) {
+Transition SimpleQueryCommand::Exec(common::ManagedPointer<PostgresProtocolInterpreter> interpreter,
+                                    common::ManagedPointer<PostgresPacketWriter> out,
+                                    common::ManagedPointer<trafficcop::TrafficCop> t_cop,
+                                    common::ManagedPointer<ConnectionContext> connection, NetworkCallback callback) {
   std::string query = in_.ReadString();
   NETWORK_LOG_TRACE("Execute SimpleQuery: {0}", query.c_str());
 
-  SqliteEngine *execution_engine = t_cop->GetExecutionEngine();
+  trafficcop::SqliteEngine *execution_engine = t_cop->GetExecutionEngine();
   sqlite3_stmt *stmt = execution_engine->PrepareStatement(query);
-  ResultSet result = execution_engine->Execute(stmt);
+  trafficcop::ResultSet result = execution_engine->Execute(stmt);
   if (result.column_names_.empty()) {
     out->WriteEmptyQueryResponse();
   } else {
@@ -47,8 +44,10 @@ Transition SimpleQueryCommand::Exec(PostgresProtocolInterpreter *interpreter, Po
   return Transition::PROCEED;
 }
 
-Transition ParseCommand::Exec(PostgresProtocolInterpreter *interpreter, PostgresPacketWriter *out, TrafficCop *t_cop,
-                              ConnectionContext *connection, NetworkCallback callback) {
+Transition ParseCommand::Exec(common::ManagedPointer<PostgresProtocolInterpreter> interpreter,
+                              common::ManagedPointer<PostgresPacketWriter> out,
+                              common::ManagedPointer<trafficcop::TrafficCop> t_cop,
+                              common::ManagedPointer<ConnectionContext> connection, NetworkCallback callback) {
   std::string stmt_name = in_.ReadString();
   NETWORK_LOG_TRACE("ParseCommand Statement Name: {0}", stmt_name.c_str());
 
@@ -67,23 +66,25 @@ Transition ParseCommand::Exec(PostgresProtocolInterpreter *interpreter, Postgres
   }
 
   // if a statement with that name exists, return error
-  if (!stmt_name.empty() && connection->statements.count(stmt_name) > 0) {
+  if (!stmt_name.empty() && connection->statements_.count(stmt_name) > 0) {
     LogAndWriteErrorMsg("There is already a statement with name " + stmt_name, out);
     return Transition::PROCEED;
   }
 
-  SqliteEngine *execution_engine = t_cop->GetExecutionEngine();
+  trafficcop::SqliteEngine *execution_engine = t_cop->GetExecutionEngine();
   sqlite3_stmt *sqlite_stmt = execution_engine->PrepareStatement(query);
 
-  Statement stmt(sqlite_stmt, param_types);
-  connection->statements[stmt_name] = stmt;
+  trafficcop::Statement stmt(sqlite_stmt, param_types);
+  connection->statements_[stmt_name] = stmt;
 
   out->WriteParseComplete();
   return Transition::PROCEED;
 }
 
-Transition BindCommand::Exec(PostgresProtocolInterpreter *interpreter, PostgresPacketWriter *out, TrafficCop *t_cop,
-                             ConnectionContext *connection, NetworkCallback callback) {
+Transition BindCommand::Exec(common::ManagedPointer<PostgresProtocolInterpreter> interpreter,
+                             common::ManagedPointer<PostgresPacketWriter> out,
+                             common::ManagedPointer<trafficcop::TrafficCop> t_cop,
+                             common::ManagedPointer<ConnectionContext> connection, NetworkCallback callback) {
   using std::pair;
   using std::string;
   using std::vector;
@@ -93,8 +94,8 @@ Transition BindCommand::Exec(PostgresProtocolInterpreter *interpreter, PostgresP
   string stmt_name = in_.ReadString();
   NETWORK_LOG_TRACE("BindCommand, portal name = {0}, stmt name = {1}", portal_name, stmt_name);
 
-  auto statement_pair = connection->statements.find(stmt_name);
-  if (statement_pair == connection->statements.end()) {
+  auto statement_pair = connection->statements_.find(stmt_name);
+  if (statement_pair == connection->statements_.end()) {
     string error_msg = fmt::format("Error: There is no statement with name {0}", stmt_name);
     LogAndWriteErrorMsg(error_msg, out);
     return Transition::PROCEED;
@@ -104,7 +105,7 @@ Transition BindCommand::Exec(PostgresProtocolInterpreter *interpreter, PostgresP
   // You can find detailed documentation at
   // https://www.postgresql.org/docs/9.3/protocol-message-formats.html
 
-  Statement *statement = &statement_pair->second;
+  trafficcop::Statement *statement = &statement_pair->second;
   auto num_formats = static_cast<size_t>(in_.ReadValue<int16_t>());
   vector<int16_t> is_binary;
   size_t num_params = statement->NumParams();
@@ -209,39 +210,41 @@ Transition BindCommand::Exec(PostgresProtocolInterpreter *interpreter, PostgresP
 
   // With SQLite backend, we only produce a list of param values as the portal,
   // because we cannot copy a sqlite3 statement.
-  Portal portal;
+  trafficcop::Portal portal;
   portal.sqlite_stmt_ = statement->sqlite3_stmt_;
-  portal.params = params;
-  connection->portals[portal_name] = portal;
+  portal.params_ = params;
+  connection->portals_[portal_name] = portal;
 
   out->WriteBindComplete();
   return Transition::PROCEED;
 }
 
-Transition DescribeCommand::Exec(PostgresProtocolInterpreter *interpreter, PostgresPacketWriter *out, TrafficCop *t_cop,
-                                 ConnectionContext *connection, NetworkCallback callback) {
+Transition DescribeCommand::Exec(common::ManagedPointer<PostgresProtocolInterpreter> interpreter,
+                                 common::ManagedPointer<PostgresPacketWriter> out,
+                                 common::ManagedPointer<trafficcop::TrafficCop> t_cop,
+                                 common::ManagedPointer<ConnectionContext> connection, NetworkCallback callback) {
   auto type = in_.ReadValue<DescribeCommandObjectType>();
   std::string name = in_.ReadString();
   NETWORK_LOG_TRACE("Describe query: type = {0}, name = {1}", static_cast<char>(type), name.c_str());
   std::vector<std::string> column_names;
 
-  SqliteEngine *execution_engine = t_cop->GetExecutionEngine();
+  trafficcop::SqliteEngine *execution_engine = t_cop->GetExecutionEngine();
 
   if (type == DescribeCommandObjectType::STATEMENT) {
-    auto p_statement = connection->statements.find(name);
-    if (p_statement == connection->statements.end()) {
+    auto p_statement = connection->statements_.find(name);
+    if (p_statement == connection->statements_.end()) {
       std::string error_msg = fmt::format("There is no statement with name {0}", name);
       LogAndWriteErrorMsg(error_msg, out);
       return Transition::PROCEED;
     }
-    Statement &statement = p_statement->second;
+    trafficcop::Statement &statement = p_statement->second;
     out->WriteParameterDescription(statement.param_types_);
 
     if (statement.sqlite3_stmt_ != nullptr) column_names = execution_engine->DescribeColumns(statement.sqlite3_stmt_);
 
   } else if (type == DescribeCommandObjectType::PORTAL) {
-    auto p_portal = connection->portals.find(name);
-    if (p_portal == connection->portals.end()) {
+    auto p_portal = connection->portals_.find(name);
+    if (p_portal == connection->portals_.end()) {
       std::string error_msg = fmt::format("There is no portal with name {0}", name);
       LogAndWriteErrorMsg(error_msg, out);
       return Transition::PROCEED;
@@ -262,53 +265,63 @@ Transition DescribeCommand::Exec(PostgresProtocolInterpreter *interpreter, Postg
   return Transition::PROCEED;
 }
 
-Transition ExecuteCommand::Exec(PostgresProtocolInterpreter *interpreter, PostgresPacketWriter *out, TrafficCop *t_cop,
-                                ConnectionContext *connection, NetworkCallback callback) {
+Transition ExecuteCommand::Exec(common::ManagedPointer<PostgresProtocolInterpreter> interpreter,
+                                common::ManagedPointer<PostgresPacketWriter> out,
+                                common::ManagedPointer<trafficcop::TrafficCop> t_cop,
+                                common::ManagedPointer<ConnectionContext> connection, NetworkCallback callback) {
   using std::string;
   string portal_name = in_.ReadString();
   NETWORK_LOG_TRACE("ExecuteCommand portal name = {0}", portal_name);
 
-  auto p_portal = connection->portals.find(portal_name);
-  if (p_portal == connection->portals.end()) {
+  auto p_portal = connection->portals_.find(portal_name);
+  if (p_portal == connection->portals_.end()) {
     string error_msg = fmt::format("Error: Portal {0} does not exist.", portal_name);
     NETWORK_LOG_ERROR(error_msg);
     out->WriteSingleErrorResponse(NetworkMessageType::HUMAN_READABLE_ERROR, error_msg);
     return Transition::PROCEED;
   }
 
-  Portal &portal = p_portal->second;
+  trafficcop::Portal &portal = p_portal->second;
 
-  SqliteEngine *execution_engine = t_cop->GetExecutionEngine();
-  execution_engine->Bind(portal.sqlite_stmt_, portal.params);
-  ResultSet result = execution_engine->Execute(portal.sqlite_stmt_);
+  trafficcop::SqliteEngine *execution_engine = t_cop->GetExecutionEngine();
+  execution_engine->Bind(portal.sqlite_stmt_, portal.params_);
+  trafficcop::ResultSet result = execution_engine->Execute(portal.sqlite_stmt_);
   for (const auto &row : result.rows_) out->WriteDataRow(row);
 
   out->WriteCommandComplete("");
   return Transition::PROCEED;
 }
 
-Transition SyncCommand::Exec(PostgresProtocolInterpreter *interpreter, PostgresPacketWriter *out, TrafficCop *t_cop,
-                             ConnectionContext *connection, NetworkCallback callback) {
+Transition SyncCommand::Exec(common::ManagedPointer<PostgresProtocolInterpreter> interpreter,
+                             common::ManagedPointer<PostgresPacketWriter> out,
+                             common::ManagedPointer<trafficcop::TrafficCop> t_cop,
+                             common::ManagedPointer<ConnectionContext> connection, NetworkCallback callback) {
   NETWORK_LOG_TRACE("Sync query");
   out->WriteReadyForQuery(NetworkTransactionStateType::IDLE);
   return Transition::PROCEED;
 }
 
-Transition CloseCommand::Exec(PostgresProtocolInterpreter *interpreter, PostgresPacketWriter *out, TrafficCop *t_cop,
-                              ConnectionContext *connection, NetworkCallback callback) {
+Transition CloseCommand::Exec(common::ManagedPointer<PostgresProtocolInterpreter> interpreter,
+                              common::ManagedPointer<PostgresPacketWriter> out,
+                              common::ManagedPointer<trafficcop::TrafficCop> t_cop,
+                              common::ManagedPointer<ConnectionContext> connection, NetworkCallback callback) {
   NETWORK_LOG_TRACE("Close Command");
   // Send close complete response
   return Transition::PROCEED;
 }
 
-Transition TerminateCommand::Exec(PostgresProtocolInterpreter *interpreter, PostgresPacketWriter *out,
-                                  TrafficCop *t_cop, ConnectionContext *connection, NetworkCallback callback) {
+Transition TerminateCommand::Exec(common::ManagedPointer<PostgresProtocolInterpreter> interpreter,
+                                  common::ManagedPointer<PostgresPacketWriter> out,
+                                  common::ManagedPointer<trafficcop::TrafficCop> t_cop,
+                                  common::ManagedPointer<ConnectionContext> connection, NetworkCallback callback) {
   NETWORK_LOG_TRACE("Terminated");
   return Transition::TERMINATE;
 }
 
-Transition EmptyCommand::Exec(PostgresProtocolInterpreter *interpreter, PostgresPacketWriter *out, TrafficCop *t_cop,
-                              ConnectionContext *connection, NetworkCallback callback) {
+Transition EmptyCommand::Exec(common::ManagedPointer<PostgresProtocolInterpreter> interpreter,
+                              common::ManagedPointer<PostgresPacketWriter> out,
+                              common::ManagedPointer<trafficcop::TrafficCop> t_cop,
+                              common::ManagedPointer<ConnectionContext> connection, NetworkCallback callback) {
   NETWORK_LOG_TRACE("Empty Command");
   out->WriteEmptyQueryResponse();
   out->WriteReadyForQuery(NetworkTransactionStateType::IDLE);

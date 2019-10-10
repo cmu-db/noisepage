@@ -5,6 +5,11 @@
 #include "common/strong_typedef.h"
 #include "storage/storage_util.h"
 
+namespace terrier::catalog {
+class Catalog;
+class DatabaseCatalog;
+}  // namespace terrier::catalog
+
 namespace terrier::storage {
 // TODO(Tianyu): To be consistent with other places, maybe move val_offset fields in front of col_ids
 /**
@@ -37,7 +42,7 @@ class PACKED ProjectedRow {
   MEM_REINTERPRETATION_ONLY(ProjectedRow)
 
   /**
-   * Populates the ProjectedRow's members based on an existing ProjectedRow. The new ProjectRow has the
+   * Populates the ProjectedRow's members based on an existing ProjectedRow. The new ProjectedRow has the
    * same layout as the given one.
    *
    * @param head pointer to the byte buffer to initialize as a ProjectedRow
@@ -133,6 +138,7 @@ class PACKED ProjectedRow {
 
  private:
   friend class ProjectedRowInitializer;
+  friend class LogSerializerTask;
   uint32_t size_;
   uint16_t num_cols_;
   byte varlen_contents_[0];
@@ -210,6 +216,23 @@ class ProjectedRowInitializer {
   static ProjectedRowInitializer Create(std::vector<AttrType> real_attr_sizes, const std::vector<uint16_t> &pr_offsets);
 
  private:
+  friend class catalog::Catalog;          // access to the PRI default constructor
+  friend class catalog::DatabaseCatalog;  // access to the PRI default constructor
+  friend class WriteAheadLoggingTests;
+  friend class AbstractLogProvider;
+
+  /**
+   * Constructs a ProjectedRowInitializer. Calculates the size of this ProjectedRow, including all members, values,
+   * bitmap, and potential padding, and the offsets to jump to for each value. This information is cached for repeated
+   * initialization.
+   *
+   * @tparam AttrType datatype of attribute sizes
+   * @param real_attr_sizes unsorted REAL attribute sizes, e.g. they shouldn't use MSB to indicate varlen.
+   * @param col_ids column ids
+   */
+  template <typename AttrType>
+  static ProjectedRowInitializer Create(std::vector<AttrType> real_attr_sizes, const std::vector<col_id_t> &col_ids);
+
   /**
    * Constructs a ProjectedRowInitializer. Calculates the size of this ProjectedRow, including all members, values,
    * bitmap, and potential padding, and the offsets to jump to for each value. This information is cached for repeated
@@ -221,6 +244,12 @@ class ProjectedRowInitializer {
    */
   template <typename AttrType>
   ProjectedRowInitializer(const std::vector<AttrType> &attr_sizes, std::vector<col_id_t> col_ids);
+
+  /**
+   * This exists for classes that need a PRI as a member, but their arguments aren't known at construction. This allows
+   * a default PRI to be constructed and then replaced later without relying on a pointer and heap allocation.
+   */
+  ProjectedRowInitializer() = default;
 
   uint32_t size_ = 0;
   std::vector<col_id_t> col_ids_;

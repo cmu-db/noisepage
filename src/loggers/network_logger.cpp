@@ -7,7 +7,7 @@ namespace terrier::network {
 
 std::shared_ptr<spdlog::logger> network_logger;  // NOLINT
 
-void init_network_logger() {
+void InitNetworkLogger() {
   network_logger = std::make_shared<spdlog::logger>("network_logger", ::default_sink);  // NOLINT
   spdlog::register_logger(network_logger);
 }

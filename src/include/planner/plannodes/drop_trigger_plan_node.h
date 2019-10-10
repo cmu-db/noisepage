@@ -77,8 +77,8 @@ class DropTriggerPlanNode : public AbstractPlanNode {
      * Build the drop trigger plan node
      * @return plan node
      */
-    std::shared_ptr<DropTriggerPlanNode> Build() {
-      return std::shared_ptr<DropTriggerPlanNode>(new DropTriggerPlanNode(
+    std::unique_ptr<DropTriggerPlanNode> Build() {
+      return std::unique_ptr<DropTriggerPlanNode>(new DropTriggerPlanNode(
           std::move(children_), std::move(output_schema_), database_oid_, namespace_oid_, trigger_oid_, if_exists_));
     }
 
@@ -112,8 +112,8 @@ class DropTriggerPlanNode : public AbstractPlanNode {
    * @param namespace_oid OID of the namespace
    * @param trigger_oid OID of the trigger to drop
    */
-  DropTriggerPlanNode(std::vector<std::shared_ptr<AbstractPlanNode>> &&children,
-                      std::shared_ptr<OutputSchema> output_schema, catalog::db_oid_t database_oid,
+  DropTriggerPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
+                      std::unique_ptr<OutputSchema> output_schema, catalog::db_oid_t database_oid,
                       catalog::namespace_oid_t namespace_oid, catalog::trigger_oid_t trigger_oid, bool if_exists)
       : AbstractPlanNode(std::move(children), std::move(output_schema)),
         database_oid_(database_oid),
@@ -162,7 +162,7 @@ class DropTriggerPlanNode : public AbstractPlanNode {
   bool operator==(const AbstractPlanNode &rhs) const override;
 
   nlohmann::json ToJson() const override;
-  void FromJson(const nlohmann::json &j) override;
+  std::vector<std::unique_ptr<parser::AbstractExpression>> FromJson(const nlohmann::json &j) override;
 
  private:
   /**

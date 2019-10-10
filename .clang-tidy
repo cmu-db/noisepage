@@ -26,10 +26,61 @@ Checks:     '
             performance-*,
             portability-*,
             readability-*,
+            -bugprone-exception-escape,
+            -bugprone-macro-parentheses,
+            -bugprone-too-small-loop-variable,
+            -clang-analyzer-cplusplus.NewDelete,
+            -clang-analyzer-cplusplus.NewDeleteLeaks,
             -google-readability-braces-around-statements,
-            -google-readability-namespace-comments,
+            -modernize-use-nodiscard,
+            -modernize-avoid-c-arrays,
             -readability-braces-around-statements,
+            -readability-isolate-declaration,
+            -readability-magic-numbers,
+            -readability-uppercase-literal-suffix,
+            -portability-simd-intrinsics,
             '
+CheckOptions:
+  - { key: readability-identifier-naming.ClassCase,           value: CamelCase  }
+  - { key: readability-identifier-naming.EnumCase,            value: CamelCase  }
+  - { key: readability-identifier-naming.FunctionCase,        value: CamelCase  }
+  - { key: readability-identifier-naming.GlobalConstantCase,  value: UPPER_CASE }
+  - { key: readability-identifier-naming.MemberCase,          value: lower_case }
+  - { key: readability-identifier-naming.MemberSuffix,        value: _          }
+  - { key: readability-identifier-naming.NamespaceCase,       value: lower_case }
+  - { key: readability-identifier-naming.StructCase,          value: CamelCase  }
+  - { key: readability-identifier-naming.UnionCase,           value: CamelCase  }
+  - { key: readability-identifier-naming.VariableCase,        value: lower_case }
 WarningsAsErrors: '*'
-HeaderFilterRegex: '(benchmark|src|test)/include'
+HeaderFilterRegex: '(benchmark|src|test|util)/include'
 AnalyzeTemporaryDtors: true
+
+#### Disabled checks and why: #####
+#
+# -bugprone-exception-escape,
+# Suggest re-enabling in the future as it seems to find a few legit issues with destructors that can throw
+# -bugprone-macro-parentheses,
+# Suggest re-enabling in the future, I just didn't want to tackle it right now
+# -bugprone-too-small-loop-variable,
+# Complains about uin8_t or uint16_t when the limit on the loop is a container's .size() (size_t).
+# We usually do this when we know the maximum size of the container though, so propose leaving disabled.
+# -clang-analyzer-cplusplus.NewDelete,
+# Seems to generate false positives. Suggest relying on ASAN and valgrind for memory stuff.
+# -clang-analyzer-cplusplus.NewDeleteLeaks,
+# Seems to generate false positives. Suggest relying on ASAN and valgrind for memory stuff.
+# -google-readability-braces-around-statements,
+# @tli2 really likes his single statements without braces
+# -modernize-use-nodiscard,
+# New C++17 that seems related to the GCC warned about unused result attribute. Would really clutter codebase.
+# -modernize-avoid-c-arrays,
+# Not feasible in the storage layer
+# -readability-braces-around-statements,
+# @tli2 really likes his single statements without braces
+# -readability-isolate-declaration,
+# Prevents "uint8_t x, y;" which I don't have a strong opinion about, but decided not to refactor now.
+# -readability-magic-numbers,
+# Blows up in tests. Found some reasonable issues in the src/ folder if we want to tackle them piecemeal.
+# -readability-uppercase-literal-suffix,
+# Easy to fix but touches the code all over and don't want to conflict with the TPL branch while we're trying to merge
+# -portability-simd-intrinsics,
+# Unavoidable. We explicitly want SIMD intrinsics.

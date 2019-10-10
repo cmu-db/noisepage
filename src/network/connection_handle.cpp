@@ -12,8 +12,7 @@
 
 /*
  *  Here we are abusing macro expansion to allow for human readable definition
- *  of the finite state machine's transition table. We put these macros in an
- *  anonymous namespace to avoid them confusing people elsewhere.
+ *  of the finite state machine's transition table.
  *
  *  The macros merely compose a large function. Unless you know what you are
  *  doing, do not modify their definitions.
@@ -45,7 +44,7 @@
 // undefined state or transition on said state will throw a runtime error.
 
 #define DEF_TRANSITION_GRAPH                                                                                        \
-  ConnectionHandle::StateMachine::transition_result ConnectionHandle::StateMachine::Delta_(ConnState state,         \
+  ConnectionHandle::StateMachine::transition_result ConnectionHandle::StateMachine::Delta(ConnState state,         \
                                                                                            Transition transition) { \
     switch (state) {
 #define DEFINE_STATE(s) \
@@ -148,7 +147,7 @@ END_DEF
     void ConnectionHandle::StateMachine::Accept(Transition action, ConnectionHandle &connection) {
   Transition next = action;
   while (next != Transition::NONE) {
-    transition_result result = Delta_(current_state_, next);
+    transition_result result = Delta(current_state_, next);
     current_state_ = result.first;
     try {
       next = result.second(connection);
@@ -157,13 +156,6 @@ END_DEF
       next = Transition::TERMINATE;
     }
   }
-}
-
-// TODO(Tianyu): Maybe use a factory to initialize protocol_interpreter here
-ConnectionHandle::ConnectionHandle(int sock_fd, ConnectionHandlerTask *handler, TrafficCop *t_cop,
-                                   CommandFactory *command_factory, NetworkProtocolType protocol_type)
-    : conn_handler_(handler), io_wrapper_{new NetworkIoWrapper(sock_fd)}, traffic_cop_(t_cop) {
-  BuildProtocolInterpreter(protocol_type, command_factory);
 }
 
 Transition ConnectionHandle::GetResult() {
@@ -185,13 +177,6 @@ Transition ConnectionHandle::TryCloseConnection() {
   conn_handler_->UnregisterEvent(workpool_event_);
 
   return Transition::NONE;
-}
-
-void ConnectionHandle::BuildProtocolInterpreter(NetworkProtocolType protocol_type, CommandFactory *command_factory) {
-  if (protocol_type == NetworkProtocolType::POSTGRES_PSQL)
-    protocol_interpreter_ = std::make_unique<PostgresProtocolInterpreter>(command_factory);
-  else
-    NETWORK_LOG_ERROR("Unsupported Protocol: {0}", static_cast<int>(protocol_type));
 }
 
 }  // namespace terrier::network

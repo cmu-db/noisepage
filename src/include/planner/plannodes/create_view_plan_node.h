@@ -58,7 +58,7 @@ class CreateViewPlanNode : public AbstractPlanNode {
      * @param view_query view query
      * @return builder object
      */
-    Builder &SetViewQuery(std::shared_ptr<parser::SelectStatement> view_query) {
+    Builder &SetViewQuery(std::unique_ptr<parser::SelectStatement> view_query) {
       view_query_ = std::move(view_query);
       return *this;
     }
@@ -79,32 +79,24 @@ class CreateViewPlanNode : public AbstractPlanNode {
      * Build the create view plan node
      * @return plan node
      */
-    std::shared_ptr<CreateViewPlanNode> Build() {
-      return std::shared_ptr<CreateViewPlanNode>(new CreateViewPlanNode(std::move(children_), std::move(output_schema_),
+    std::unique_ptr<CreateViewPlanNode> Build() {
+      return std::unique_ptr<CreateViewPlanNode>(new CreateViewPlanNode(std::move(children_), std::move(output_schema_),
                                                                         database_oid_, namespace_oid_,
                                                                         std::move(view_name_), std::move(view_query_)));
     }
 
    protected:
-    /**
-     * OID of the database
-     */
+    /** OID of the database */
     catalog::db_oid_t database_oid_;
 
-    /**
-     * OID of the schema/namespace
-     */
+    /** OID of the schema/namespace */
     catalog::namespace_oid_t namespace_oid_;
 
-    /**
-     * Name of the view
-     */
+    /** Name of the view */
     std::string view_name_;
 
-    /**
-     * View query
-     */
-    std::shared_ptr<parser::SelectStatement> view_query_;
+    /** View query */
+    std::unique_ptr<parser::SelectStatement> view_query_;
   };
 
  private:
@@ -116,10 +108,10 @@ class CreateViewPlanNode : public AbstractPlanNode {
    * @param view_name  view name
    * @param view_query view query
    */
-  CreateViewPlanNode(std::vector<std::shared_ptr<AbstractPlanNode>> &&children,
-                     std::shared_ptr<OutputSchema> output_schema, catalog::db_oid_t database_oid,
+  CreateViewPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
+                     std::unique_ptr<OutputSchema> output_schema, catalog::db_oid_t database_oid,
                      catalog::namespace_oid_t namespace_oid, std::string view_name,
-                     std::shared_ptr<parser::SelectStatement> view_query)
+                     std::unique_ptr<parser::SelectStatement> view_query)
       : AbstractPlanNode(std::move(children), std::move(output_schema)),
         database_oid_(database_oid),
         namespace_oid_(namespace_oid),
@@ -127,68 +119,46 @@ class CreateViewPlanNode : public AbstractPlanNode {
         view_query_(std::move(view_query)) {}
 
  public:
-  /**
-   * Default constructor for deserialization
-   */
+  /** Default constructor for deserialization. */
   CreateViewPlanNode() = default;
 
   DISALLOW_COPY_AND_MOVE(CreateViewPlanNode)
 
-  /**
-   * @return OID of the database
-   */
+  /** @return OID of the database */
   catalog::db_oid_t GetDatabaseOid() const { return database_oid_; }
 
-  /**
-   * @return OID of the namespace
-   */
+  /** @return OID of the namespace */
   catalog::namespace_oid_t GetNamespaceOid() const { return namespace_oid_; }
 
-  /**
-   * @return the type of this plan node
-   */
+  /** @return the type of this plan node */
   PlanNodeType GetPlanNodeType() const override { return PlanNodeType::CREATE_VIEW; }
 
-  /**
-   * @return view name
-   */
+  /** @return view name */
   const std::string &GetViewName() const { return view_name_; }
 
-  /**
-   * @return view query
-   */
-  std::shared_ptr<parser::SelectStatement> GetViewQuery() { return view_query_; }
+  /** @return view query */
+  common::ManagedPointer<parser::SelectStatement> GetViewQuery() { return common::ManagedPointer(view_query_); }
 
-  /**
-   * @return the hashed value of this plan node
-   */
+  /** @return the hashed value of this plan node */
   common::hash_t Hash() const override;
 
   bool operator==(const AbstractPlanNode &rhs) const override;
 
   nlohmann::json ToJson() const override;
-  void FromJson(const nlohmann::json &j) override;
+  std::vector<std::unique_ptr<parser::AbstractExpression>> FromJson(const nlohmann::json &j) override;
 
  private:
-  /**
-   * OID of the database
-   */
+  /** OID of the database */
   catalog::db_oid_t database_oid_;
 
-  /**
-   * OID of the namespace
-   */
+  /** OID of the namespace */
   catalog::namespace_oid_t namespace_oid_;
 
-  /**
-   * Name of the view
-   */
+  /** Name of the view */
   std::string view_name_;
 
-  /**
-   * View query
-   */
-  std::shared_ptr<parser::SelectStatement> view_query_;
+  /** View query */
+  std::unique_ptr<parser::SelectStatement> view_query_;
 };
 
 DEFINE_JSON_DECLARATIONS(CreateViewPlanNode);

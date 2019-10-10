@@ -29,3 +29,34 @@ GBENCHMARK_VERSION=1.4.1
 # branch: v1.x
 # commit hash: 8179b26388d118fa887030f2609560ec287531dd
 # commit hash date: 7 Aug 2018
+
+# madoka
+# url: https://github.com/s-yata/madoka.git
+# branch: master
+# commit hash: 66783ee5b84a432f934517ad65452d54b19230bb
+# commit hash date: 16 Nov 2018
+
+# libcount
+# url: https://github.com/dialtr/libcount.git
+# branch: master
+# commit hash: 476492b3763e850ad61e28e24d3448175348076d
+# commit hash date: 20 Mar 2018
+
+# murmur3
+# url: https://github.com/aappleby/smhasher.git
+# branch: master
+# commit hash: 61a0530f28277f2e850bfc39600ce61d02b518de
+# commit hash date: 9 Jan 2018
+
+# xxhash
+# url: https://github.com/Cyan4973/xxHash
+# release: 0.7.1
+# commit hash: dfd1bf117c816e4774adc1e1cdcb1687c0f7913c
+# commit hash date: 15 Aug 2019
+
+# libcuckoo
+# url: https://github.com/efficient/libcuckoo.git
+# branch: master
+# commit hash: f3138045810b2c2e9b59dbede296b4a5194af4f9
+# commit hash date: 24 Dec 2018
+# modifications: replaced their own-rolled spinlock with TBB's to get exponential backoff with pause. formatted

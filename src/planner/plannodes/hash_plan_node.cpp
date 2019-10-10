@@ -1,53 +1,61 @@
 #include "planner/plannodes/hash_plan_node.h"
+
 #include <memory>
+#include <utility>
 #include <vector>
 
 namespace terrier::planner {
 
 common::hash_t HashPlanNode::Hash() const {
-  auto type = GetPlanNodeType();
-  common::hash_t hash = common::HashUtil::Hash(&type);
+  common::hash_t hash = AbstractPlanNode::Hash();
 
   // Hash keys
   for (const auto &key : hash_keys_) {
     hash = common::HashUtil::CombineHashes(hash, key->Hash());
   }
 
-  return common::HashUtil::CombineHashes(hash, AbstractPlanNode::Hash());
+  return hash;
 }
 
 bool HashPlanNode::operator==(const AbstractPlanNode &rhs) const {
-  if (GetPlanNodeType() != rhs.GetPlanNodeType()) return false;
+  if (!AbstractPlanNode::operator==(rhs)) return false;
 
   const auto &other = static_cast<const HashPlanNode &>(rhs);
 
-  // Check keys
-  auto left_keys = GetHashKeys();
-  auto right_keys = other.GetHashKeys();
-  if (left_keys.size() != right_keys.size()) return false;
-  for (size_t i = 0; i < left_keys.size(); i++) {
-    if ((left_keys[i] == nullptr && right_keys[i] != nullptr) || (left_keys[i] != nullptr && right_keys[i] == nullptr))
-      return false;
-    if (left_keys[i] != nullptr && *left_keys[i] != *right_keys[i]) return false;
+  // Hash keys
+  if (hash_keys_.size() != other.hash_keys_.size()) return false;
+  for (size_t i = 0; i < hash_keys_.size(); i++) {
+    if (*hash_keys_[i] != *other.hash_keys_[i]) return false;
   }
 
-  return AbstractPlanNode::operator==(rhs);
+  return true;
 }
 
 nlohmann::json HashPlanNode::ToJson() const {
   nlohmann::json j = AbstractPlanNode::ToJson();
-  j["hash_keys"] = hash_keys_;
+  std::vector<nlohmann::json> hash_keys;
+  for (const auto &key : hash_keys_) {
+    hash_keys.emplace_back(key->ToJson());
+  }
+  j["hash_keys"] = hash_keys;
   return j;
 }
 
-void HashPlanNode::FromJson(const nlohmann::json &j) {
-  AbstractPlanNode::FromJson(j);
+std::vector<std::unique_ptr<parser::AbstractExpression>> HashPlanNode::FromJson(const nlohmann::json &j) {
+  std::vector<std::unique_ptr<parser::AbstractExpression>> exprs;
+  auto e1 = AbstractPlanNode::FromJson(j);
+  exprs.insert(exprs.end(), std::make_move_iterator(e1.begin()), std::make_move_iterator(e1.end()));
   auto keys = j.at("hash_keys").get<std::vector<nlohmann::json>>();
   for (const auto &key_json : keys) {
     if (!key_json.is_null()) {
-      hash_keys_.push_back(parser::DeserializeExpression(key_json));
+      auto deserialized = parser::DeserializeExpression(key_json);
+      hash_keys_.emplace_back(common::ManagedPointer(deserialized.result_));
+      exprs.emplace_back(std::move(deserialized.result_));
+      exprs.insert(exprs.end(), std::make_move_iterator(deserialized.non_owned_exprs_.begin()),
+                   std::make_move_iterator(deserialized.non_owned_exprs_.end()));
     }
   }
+  return exprs;
 }
 
 }  // namespace terrier::planner

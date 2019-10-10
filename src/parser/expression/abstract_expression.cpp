@@ -1,18 +1,22 @@
 #include <memory>
+#include <string>
+#include <utility>
 #include <vector>
 
 #include "parser/expression/abstract_expression.h"
 #include "parser/expression/aggregate_expression.h"
 #include "parser/expression/case_expression.h"
+#include "parser/expression/column_value_expression.h"
 #include "parser/expression/comparison_expression.h"
 #include "parser/expression/conjunction_expression.h"
 #include "parser/expression/constant_value_expression.h"
+#include "parser/expression/default_value_expression.h"
+#include "parser/expression/derived_value_expression.h"
 #include "parser/expression/function_expression.h"
 #include "parser/expression/operator_expression.h"
 #include "parser/expression/parameter_value_expression.h"
 #include "parser/expression/star_expression.h"
 #include "parser/expression/subquery_expression.h"
-#include "parser/expression/tuple_value_expression.h"
 #include "parser/expression/type_cast_expression.h"
 
 namespace terrier::parser {
@@ -24,8 +28,17 @@ namespace terrier::parser {
 nlohmann::json AbstractExpression::ToJson() const {
   nlohmann::json j;
   j["expression_type"] = expression_type_;
+  j["expression_name"] = expression_name_;
+  j["alias"] = alias_;
+  j["depth"] = depth_;
+  j["has_subquery"] = has_subquery_;
   j["return_value_type"] = return_value_type_;
-  j["children"] = children_;
+  std::vector<nlohmann::json> children_json;
+  children_json.reserve(children_.size());
+  for (const auto &child : children_) {
+    children_json.emplace_back(child->ToJson());
+  }
+  j["children"] = children_json;
   return j;
 }
 
@@ -33,35 +46,48 @@ nlohmann::json AbstractExpression::ToJson() const {
  * Derived expressions should call this base method
  * @param j json to deserialize
  */
-void AbstractExpression::FromJson(const nlohmann::json &j) {
+std::vector<std::unique_ptr<AbstractExpression>> AbstractExpression::FromJson(const nlohmann::json &j) {
+  std::vector<std::unique_ptr<AbstractExpression>> result_exprs;
+
   expression_type_ = j.at("expression_type").get<ExpressionType>();
+  expression_name_ = j.at("expression_name").get<std::string>();
+  alias_ = j.at("alias").get<std::string>();
   return_value_type_ = j.at("return_value_type").get<type::TypeId>();
-  children_ = {};
+  depth_ = j.at("depth").get<int>();
+  has_subquery_ = j.at("has_subquery").get<bool>();
 
   // Deserialize children
+  std::vector<std::unique_ptr<AbstractExpression>> children;
   auto children_json = j.at("children").get<std::vector<nlohmann::json>>();
+  children.reserve(children_json.size());
   for (const auto &child_json : children_json) {
-    children_.push_back(DeserializeExpression(child_json));
+    auto deserialized = DeserializeExpression(child_json);
+    children.emplace_back(std::move(deserialized.result_));
+    result_exprs.insert(result_exprs.end(), std::make_move_iterator(deserialized.non_owned_exprs_.begin()),
+                        std::make_move_iterator(deserialized.non_owned_exprs_.end()));
   }
+
+  children_ = std::move(children);
+
+  return result_exprs;
 }
 
-std::shared_ptr<AbstractExpression> DeserializeExpression(const nlohmann::json &j) {
-  std::shared_ptr<AbstractExpression> expr;
+JSONDeserializeExprIntermediate DeserializeExpression(const nlohmann::json &j) {
+  std::unique_ptr<AbstractExpression> expr;
 
   auto expression_type = j.at("expression_type").get<ExpressionType>();
   switch (expression_type) {
     case ExpressionType::AGGREGATE_COUNT:
-    case ExpressionType::AGGREGATE_COUNT_STAR:
     case ExpressionType::AGGREGATE_SUM:
     case ExpressionType::AGGREGATE_MIN:
     case ExpressionType::AGGREGATE_MAX:
     case ExpressionType::AGGREGATE_AVG: {
-      expr = std::make_shared<AggregateExpression>();
+      expr = std::make_unique<AggregateExpression>();
       break;
     }
 
     case ExpressionType::OPERATOR_CASE_EXPR: {
-      expr = std::make_shared<CaseExpression>();
+      expr = std::make_unique<CaseExpression>();
       break;
     }
 
@@ -75,23 +101,27 @@ std::shared_ptr<AbstractExpression> DeserializeExpression(const nlohmann::json &
     case ExpressionType::COMPARE_NOT_LIKE:
     case ExpressionType::COMPARE_IN:
     case ExpressionType::COMPARE_IS_DISTINCT_FROM: {
-      expr = std::make_shared<ComparisonExpression>();
+      expr = std::make_unique<ComparisonExpression>();
       break;
     }
 
     case ExpressionType::CONJUNCTION_AND:
     case ExpressionType::CONJUNCTION_OR: {
-      expr = std::make_shared<ConjunctionExpression>();
+      expr = std::make_unique<ConjunctionExpression>();
       break;
     }
 
     case ExpressionType::VALUE_CONSTANT: {
-      expr = std::make_shared<ConstantValueExpression>();
+      expr = std::make_unique<ConstantValueExpression>();
       break;
     }
 
+    case ExpressionType ::VALUE_DEFAULT: {
+      expr = std::make_unique<DefaultValueExpression>();
+      break;
+    }
     case ExpressionType::FUNCTION: {
-      expr = std::make_shared<FunctionExpression>();
+      expr = std::make_unique<FunctionExpression>();
       break;
     }
 
@@ -106,40 +136,86 @@ std::shared_ptr<AbstractExpression> DeserializeExpression(const nlohmann::json &
     case ExpressionType::OPERATOR_IS_NULL:
     case ExpressionType::OPERATOR_IS_NOT_NULL:
     case ExpressionType::OPERATOR_EXISTS: {
-      expr = std::make_shared<OperatorExpression>();
+      expr = std::make_unique<OperatorExpression>();
       break;
     }
 
     case ExpressionType::VALUE_PARAMETER: {
-      expr = std::make_shared<ParameterValueExpression>();
+      expr = std::make_unique<ParameterValueExpression>();
       break;
     }
 
     case ExpressionType::STAR: {
-      expr = std::make_shared<StarExpression>();
+      expr = std::make_unique<StarExpression>();
       break;
     }
 
     case ExpressionType::ROW_SUBQUERY: {
-      expr = std::make_shared<SubqueryExpression>();
+      expr = std::make_unique<SubqueryExpression>();
       break;
     }
 
     case ExpressionType::VALUE_TUPLE: {
-      expr = std::make_shared<TupleValueExpression>();
+      expr = std::make_unique<DerivedValueExpression>();
+      break;
+    }
+
+    case ExpressionType::COLUMN_VALUE: {
+      expr = std::make_unique<ColumnValueExpression>();
       break;
     }
 
     case ExpressionType::OPERATOR_CAST: {
-      expr = std::make_shared<TypeCastExpression>();
+      expr = std::make_unique<TypeCastExpression>();
       break;
     }
 
     default:
       throw std::runtime_error("Unknown expression type during deserialization");
   }
-  expr->FromJson(j);
-  return expr;
+  auto non_owned_exprs = expr->FromJson(j);
+  return JSONDeserializeExprIntermediate{std::move(expr), std::move(non_owned_exprs)};
 }
 
+bool AbstractExpression::DeriveSubqueryFlag() {
+  if (expression_type_ == ExpressionType::ROW_SUBQUERY) {
+    has_subquery_ = true;
+  } else {
+    for (auto &child : children_) {
+      if (child->DeriveSubqueryFlag()) {
+        has_subquery_ = true;
+        break;
+      }
+    }
+  }
+  return has_subquery_;
+}
+
+int AbstractExpression::DeriveDepth() {
+  if (depth_ < 0) {
+    for (auto &child : children_) {
+      auto child_depth = child->DeriveDepth();
+      if (child_depth >= 0 && (depth_ == -1 || child_depth < depth_)) depth_ = child_depth;
+    }
+  }
+  return depth_;
+}
+
+void AbstractExpression::DeriveExpressionName() {
+  // If alias exists, it will be used in TrafficCop
+  if (!alias_.empty()) {
+    expression_name_ = alias_;
+    return;
+  }
+
+  bool first = true;
+  auto op_str = ExpressionTypeToString(expression_type_, true);
+  for (auto &child : children_) {
+    if (!first) expression_name_ += " ";
+    child->DeriveExpressionName();
+    expression_name_ += op_str + " " + child->expression_name_;
+    first = false;
+  }
+  if (first) expression_name_ = op_str;
+}
 }  // namespace terrier::parser

@@ -6,6 +6,7 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
+#include "catalog/index_schema.h"
 #include "catalog/schema.h"
 #include "storage/garbage_collector.h"
 #include "storage/projected_row.h"
@@ -29,12 +30,25 @@ struct Util {
     gc->RegisterIndexForGC(tpcc_db->order_line_primary_index_);
   }
 
+  static void UnregisterIndexesForGC(storage::GarbageCollector *const gc, Database *const tpcc_db) {
+    gc->UnregisterIndexForGC(tpcc_db->item_primary_index_);
+    gc->UnregisterIndexForGC(tpcc_db->warehouse_primary_index_);
+    gc->UnregisterIndexForGC(tpcc_db->stock_primary_index_);
+    gc->UnregisterIndexForGC(tpcc_db->district_primary_index_);
+    gc->UnregisterIndexForGC(tpcc_db->customer_primary_index_);
+    gc->UnregisterIndexForGC(tpcc_db->customer_secondary_index_);
+    gc->UnregisterIndexForGC(tpcc_db->new_order_primary_index_);
+    gc->UnregisterIndexForGC(tpcc_db->order_primary_index_);
+    gc->UnregisterIndexForGC(tpcc_db->order_secondary_index_);
+    gc->UnregisterIndexForGC(tpcc_db->order_line_primary_index_);
+  }
+
   static std::vector<catalog::col_oid_t> AllColOidsForSchema(const catalog::Schema &schema) {
     const auto &cols = schema.GetColumns();
     std::vector<catalog::col_oid_t> col_oids;
     col_oids.reserve(cols.size());
     for (const auto &col : cols) {
-      col_oids.emplace_back(col.GetOid());
+      col_oids.emplace_back(col.Oid());
     }
     return col_oids;
   }
@@ -43,20 +57,21 @@ struct Util {
   static void SetTupleAttribute(const catalog::Schema &schema, const uint32_t col_offset,
                                 const storage::ProjectionMap &projection_map, storage::ProjectedRow *const pr,
                                 T value) {
-    TERRIER_ASSERT((schema.GetColumn(col_offset).GetAttrSize() & INT8_MAX) == sizeof(T), "Invalid attribute size.");
-    const auto col_oid = schema.GetColumn(col_offset).GetOid();
+    TERRIER_ASSERT((schema.GetColumn(col_offset).AttrSize() & INT8_MAX) == sizeof(T), "Invalid attribute size.");
+    const auto col_oid = schema.GetColumn(col_offset).Oid();
     const auto attr_offset = projection_map.at(col_oid);
     auto *const attr = pr->AccessForceNotNull(attr_offset);
     *reinterpret_cast<T *>(attr) = value;
   }
 
   template <typename T>
-  static void SetKeyAttribute(const storage::index::IndexKeySchema &schema, const uint32_t col_offset,
+  static void SetKeyAttribute(const catalog::IndexSchema &schema, const uint32_t col_offset,
                               const std::unordered_map<catalog::indexkeycol_oid_t, uint16_t> &projection_map,
                               storage::ProjectedRow *const pr, T value) {
-    TERRIER_ASSERT((type::TypeUtil::GetTypeSize(schema.at(col_offset).GetType()) & INT8_MAX) == sizeof(T),
+    const auto &key_cols = schema.GetColumns();
+    TERRIER_ASSERT((type::TypeUtil::GetTypeSize(key_cols.at(col_offset).Type()) & INT8_MAX) == sizeof(T),
                    "Invalid attribute size.");
-    const auto col_oid = schema.at(col_offset).GetOid();
+    const auto col_oid = key_cols.at(col_offset).Oid();
     const auto attr_offset = static_cast<uint16_t>(projection_map.at(col_oid));
     auto *const attr = pr->AccessForceNotNull(attr_offset);
     *reinterpret_cast<T *>(attr) = value;
@@ -75,24 +90,24 @@ struct Util {
                        || (A == 8191 && x == 1 && y == 100000),  // OL_I_ID
                    "Invalid inputs to NURand().");
 
-    static const auto C_c_last = RandomWithin<uint32_t>(0, 255, 0, generator);
-    static const auto C_c_id = RandomWithin<uint32_t>(0, 1023, 0, generator);
-    static const auto C_ol_i_id = RandomWithin<uint32_t>(0, 8191, 0, generator);
+    static const auto c_c_last = RandomWithin<uint32_t>(0, 255, 0, generator);
+    static const auto c_c_id = RandomWithin<uint32_t>(0, 1023, 0, generator);
+    static const auto c_ol_i_id = RandomWithin<uint32_t>(0, 8191, 0, generator);
 
-    uint32_t C;
+    uint32_t c;
 
     if (A == 255) {
-      C = C_c_last;
+      c = c_c_last;
     } else if (A == 1023) {
-      C = C_c_id;
+      c = c_c_id;
     } else {
-      C = C_ol_i_id;
+      c = c_ol_i_id;
     }
 
-    const auto rand0A = RandomWithin<uint32_t>(0, A, 0, generator);
+    const auto rand0_a = RandomWithin<uint32_t>(0, A, 0, generator);
     const auto randxy = RandomWithin<uint32_t>(x, y, 0, generator);
 
-    return (((rand0A | randxy) + C) % (y - x + 1)) + x;
+    return (((rand0_a | randxy) + c) % (y - x + 1)) + x;
   }
 
   // 4.3.2.2

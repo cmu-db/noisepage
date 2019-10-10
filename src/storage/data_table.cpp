@@ -1,7 +1,10 @@
 #include "storage/data_table.h"
+#include <pthread.h>
 #include <cstring>
+#include <list>
 #include <unordered_map>
 #include "common/allocator.h"
+#include "storage/block_access_controller.h"
 #include "storage/storage_util.h"
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_util.h"
@@ -13,12 +16,20 @@ DataTable::DataTable(BlockStore *const store, const BlockLayout &layout, const l
                  "First column must have size 8 for the version chain.");
   TERRIER_ASSERT(layout.NumColumns() > NUM_RESERVED_COLUMNS,
                  "First column is reserved for version info, second column is reserved for logical delete.");
+  if (block_store_ != nullptr) {
+    RawBlock *new_block = NewBlock();
+    // insert block
+    blocks_.push_back(new_block);
+  }
+  insertion_head_ = blocks_.begin();
 }
 
 DataTable::~DataTable() {
   common::SpinLatch::ScopedSpinLatch guard(&blocks_latch_);
   for (RawBlock *block : blocks_) {
-    DeallocateVarlensOnShutdown(block);
+    StorageUtil::DeallocateVarlens(block, accessor_);
+    for (col_id_t i : accessor_.GetBlockLayout().Varlens())
+      accessor_.GetArrowBlockMetadata(block).GetColumnInfo(accessor_.GetBlockLayout(), i).Deallocate();
     block_store_->Release(block);
   }
 }
@@ -61,7 +72,7 @@ DataTable::SlotIterator &DataTable::SlotIterator::operator++() {
   return *this;
 }
 
-DataTable::SlotIterator DataTable::end() const {
+DataTable::SlotIterator DataTable::end() const {  // NOLINT for STL name compability
   common::SpinLatch::ScopedSpinLatch guard(&blocks_latch_);
   // TODO(Tianyu): Need to look in detail at how this interacts with compaction when that gets in.
 
@@ -70,7 +81,7 @@ DataTable::SlotIterator DataTable::end() const {
   // 0 to denote that this is the case. This solution makes increment logic simple and natural.
   if (blocks_.empty()) return {this, blocks_.end(), 0};
   auto last_block = --blocks_.end();
-  uint32_t insert_head = (*last_block)->insert_head_;
+  uint32_t insert_head = (*last_block)->GetInsertHead();
   // Last block is full, return the default end iterator that doesn't point to anything
   if (insert_head == accessor_.GetBlockLayout().NumSlots()) return {this, blocks_.end(), 0};
   // Otherwise, insert head points to the slot that will be inserted next, which would be exactly what we want.
@@ -82,6 +93,7 @@ bool DataTable::Update(transaction::TransactionContext *const txn, const TupleSl
                  "The input buffer cannot change the reserved columns, so it should have fewer attributes.");
   TERRIER_ASSERT(redo.NumColumns() > 0, "The input buffer should modify at least one attribute.");
   UndoRecord *const undo = txn->UndoRecordForUpdate(this, slot, redo);
+  slot.GetBlock()->controller_.WaitUntilHot();
   UndoRecord *version_ptr;
   do {
     version_ptr = AtomicallyReadVersionPtr(slot, accessor_);
@@ -117,23 +129,77 @@ bool DataTable::Update(transaction::TransactionContext *const txn, const TupleSl
   return true;
 }
 
+void DataTable::CheckMoveHead(std::list<RawBlock *>::iterator block) {
+  // Assume block is full
+  common::SpinLatch::ScopedSpinLatch guard_head(&header_latch_);
+  if (block == insertion_head_) {
+    // If the header block is full, move the header to point to the next block
+    insertion_head_++;
+  }
+
+  // If there are no more free blocks, create a new empty block and  point the insertion_head to it
+  if (insertion_head_ == blocks_.end()) {
+    RawBlock *new_block = NewBlock();
+    // take latch
+    common::SpinLatch::ScopedSpinLatch guard_block(&blocks_latch_);
+    // insert block
+    blocks_.push_back(new_block);
+    // set insertion header to --end()
+    insertion_head_ = --blocks_.end();
+  }
+}
+
 TupleSlot DataTable::Insert(transaction::TransactionContext *const txn, const ProjectedRow &redo) {
   TERRIER_ASSERT(redo.NumColumns() == accessor_.GetBlockLayout().NumColumns() - NUM_RESERVED_COLUMNS,
                  "The input buffer never changes the version pointer column, so it should have  exactly 1 fewer "
                  "attribute than the DataTable's layout.");
 
-  // Attempt to allocate a new tuple from the block we are working on right now.
-  // If that block is full, try to request a new block. Because other concurrent
-  // inserts could have already created a new block, we need to use compare and swap
-  // to change the insertion head. We do not expect this loop to be executed more than
-  // twice, but there is technically a possibility for blocks with only a few slots.
+  // Insertion header points to the first block that has free tuple slots
+  // Once a txn arrives, it will start from the insertion header to find the first
+  // idle (no other txn is trying to get tuple slots in that block) and non-full block.
+  // If no such block is found, the txn will create a new block.
+  // Before the txn writes to the block, it will set block status to busy.
+  // The first bit of block insert_head_ is used to indicate if the block is busy
+  // If the first bit is 1, it indicates one txn is writing to the block.
+
   TupleSlot result;
+  auto block = insertion_head_;
   while (true) {
-    RawBlock *block = insertion_head_.load();
-    if (block != nullptr && accessor_.Allocate(block, &result)) break;
-    NewBlock(block);
+    // No free block left
+    if (block == blocks_.end()) {
+      RawBlock *new_block = NewBlock();
+      TERRIER_ASSERT(accessor_.SetBlockBusyStatus(new_block), "Status of new block should not be busy");
+      // No need to flip the busy status bit
+      accessor_.Allocate(new_block, &result);
+      // take latch
+      common::SpinLatch::ScopedSpinLatch guard(&blocks_latch_);
+      // insert block
+      blocks_.push_back(new_block);
+      block = --blocks_.end();
+      break;
+    }
+
+    if (accessor_.SetBlockBusyStatus(*block)) {
+      // No one is inserting into this block
+      if (accessor_.Allocate(*block, &result)) {
+        // The block is not full, succeed
+        break;
+      }
+      // Fail to insert into the block, flip back the status bit
+      accessor_.ClearBlockBusyStatus(*block);
+      // if the full block is the insertion_header, move the insertion_header
+      // Next insert txn will search from the new insertion_header
+      CheckMoveHead(block);
+    }
+    // The block is full or the block is being inserted by other txn, try next block
+    ++block;
   }
+
+  // Do not need to wait unit finish inserting,
+  // can flip back the status bit once the thread gets the allocated tuple slot
+  accessor_.ClearBlockBusyStatus(*block);
   InsertInto(txn, redo, result);
+
   data_table_counter_.IncrementNumInsert(1);
   return result;
 }
@@ -145,6 +211,8 @@ void DataTable::InsertInto(transaction::TransactionContext *txn, const Projected
   // At this point, sequential scan down the block can still see this, except it thinks it is logically deleted if we 0
   // the primary key column
   UndoRecord *undo = txn->UndoRecordForInsert(this, dest);
+  TERRIER_ASSERT(dest.GetBlock()->controller_.GetBlockState()->load() == BlockState::HOT,
+                 "Should only be able to insert into hot blocks");
   AtomicallyWriteVersionPtr(dest, accessor_, undo);
   // Set the logically deleted bit to present as the undo record is ready
   accessor_.AccessForceNotNull(dest, VERSION_POINTER_COLUMN_ID);
@@ -159,6 +227,7 @@ void DataTable::InsertInto(transaction::TransactionContext *txn, const Projected
 bool DataTable::Delete(transaction::TransactionContext *const txn, const TupleSlot slot) {
   data_table_counter_.IncrementNumDelete(1);
   UndoRecord *const undo = txn->UndoRecordForDelete(this, slot);
+  slot.GetBlock()->controller_.WaitUntilHot();
   UndoRecord *version_ptr;
   do {
     version_ptr = AtomicallyReadVersionPtr(slot, accessor_);
@@ -235,7 +304,7 @@ bool DataTable::SelectIntoBuffer(transaction::TransactionContext *const txn, con
 
   // Nullptr in version chain means no other versions visible to any transaction alive at this point.
   // Alternatively, if the current transaction holds the write lock, it should be able to read its own updates.
-  if (version_ptr == nullptr || version_ptr->Timestamp().load() == txn->TxnId().load()) {
+  if (version_ptr == nullptr || version_ptr->Timestamp().load() == txn->FinishTime()) {
     return visible;
   }
 
@@ -290,7 +359,7 @@ bool DataTable::Visible(const TupleSlot slot, const TupleAccessStrategy &accesso
 bool DataTable::HasConflict(const transaction::TransactionContext &txn, UndoRecord *const version_ptr) const {
   if (version_ptr == nullptr) return false;  // Nobody owns this tuple's write lock, no older version visible
   const transaction::timestamp_t version_timestamp = version_ptr->Timestamp().load();
-  const transaction::timestamp_t txn_id = txn.TxnId().load();
+  const transaction::timestamp_t txn_id = txn.FinishTime();
   const transaction::timestamp_t start_time = txn.StartTime();
   const bool owned_by_other_txn =
       (!transaction::TransactionUtil::Committed(version_timestamp) && version_timestamp != txn_id);
@@ -306,28 +375,11 @@ bool DataTable::CompareAndSwapVersionPtr(const TupleSlot slot, const TupleAccess
   return reinterpret_cast<std::atomic<UndoRecord *> *>(ptr_location)->compare_exchange_strong(expected, desired);
 }
 
-void DataTable::NewBlock(RawBlock *expected_val) {
-  common::SpinLatch::ScopedSpinLatch guard(&blocks_latch_);
-  // Want to stop early if another thread is already getting a new block
-  if (expected_val != insertion_head_) return;
+RawBlock *DataTable::NewBlock() {
   RawBlock *new_block = block_store_->Get();
   accessor_.InitializeRawBlock(this, new_block, layout_version_);
-  blocks_.push_back(new_block);
-  insertion_head_ = new_block;
   data_table_counter_.IncrementNumNewBlock(1);
-}
-
-void DataTable::DeallocateVarlensOnShutdown(RawBlock *block) {
-  const BlockLayout &layout = accessor_.GetBlockLayout();
-  for (col_id_t col : layout.Varlens()) {
-    for (uint32_t offset = 0; offset < layout.NumSlots(); offset++) {
-      TupleSlot slot(block, offset);
-      if (!accessor_.Allocated(slot)) continue;
-      auto *entry = reinterpret_cast<VarlenEntry *>(accessor_.AccessWithNullCheck(slot, col));
-      // If entry is null here, the varlen entry is a null SQL value.
-      if (entry != nullptr && entry->NeedReclaim()) delete[] entry->Content();
-    }
-  }
+  return new_block;
 }
 
 bool DataTable::HasConflict(const transaction::TransactionContext &txn, const TupleSlot slot) const {
@@ -347,7 +399,7 @@ bool DataTable::IsVisible(const transaction::TransactionContext &txn, const Tupl
 
   // Nullptr in version chain means no other versions visible to any transaction alive at this point.
   // Alternatively, if the current transaction holds the write lock, it should be able to read its own updates.
-  if (version_ptr == nullptr || version_ptr->Timestamp().load() == txn.TxnId().load()) {
+  if (version_ptr == nullptr || version_ptr->Timestamp().load() == txn.FinishTime()) {
     return visible;
   }
 
