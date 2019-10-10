@@ -94,20 +94,20 @@ class NetworkIoWrapper {
   /**
    * @return The ReadBuffer for this IOWrapper
    */
-  std::shared_ptr<ReadBuffer> GetReadBuffer() { return in_; }
+  std::shared_ptr<ReadBuffer> GetReadBuffer() { return in_; }  // NOLINT
 
   /**
    * @return The WriteQueue for this IOWrapper
    */
-  std::shared_ptr<WriteQueue> GetWriteQueue() { return out_; }
+  std::shared_ptr<WriteQueue> GetWriteQueue() { return out_; }  // NOLINT
 
  private:
   // The file descriptor associated with this NetworkIoWrapper
   int sock_fd_;
   // The ReadBuffer associated with this NetworkIoWrapper
-  std::shared_ptr<ReadBuffer> in_;
+  std::shared_ptr<ReadBuffer> in_;  // NOLINT
   // The WriteQueue associated with this NetworkIoWrapper
-  std::shared_ptr<WriteQueue> out_;
+  std::shared_ptr<WriteQueue> out_;  // NOLINT
 
   void RestartState();
 };

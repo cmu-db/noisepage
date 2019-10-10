@@ -51,7 +51,7 @@ struct PostgresInputPacket {
   /**
    * ReadBuffer containing this packet's contents
    */
-  std::shared_ptr<ReadBuffer> buf_;
+  std::shared_ptr<ReadBuffer> buf_;  // NOLINT
 
   /**
    * Whether or not this packet's header has been parsed yet
@@ -134,7 +134,7 @@ class PostgresPacketWriter {
   /**
    * Instantiates a new PostgresPacketWriter backed by the given WriteQueue
    */
-  explicit PostgresPacketWriter(const std::shared_ptr<WriteQueue> &write_queue) : queue_(*write_queue) {}
+  explicit PostgresPacketWriter(const std::shared_ptr<WriteQueue> &write_queue) : queue_(*write_queue) {}  // NOLINT
 
   ~PostgresPacketWriter() {
     // Make sure no packet is being written on destruction, otherwise we are

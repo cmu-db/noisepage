@@ -56,7 +56,7 @@ class PostgresProtocolInterpreter : public ProtocolInterpreter {
    * @param context the connection context
    * @return
    */
-  Transition Process(std::shared_ptr<ReadBuffer> in, std::shared_ptr<WriteQueue> out,
+  Transition Process(std::shared_ptr<ReadBuffer> in, std::shared_ptr<WriteQueue> out,  // NOLINT
                      common::ManagedPointer<trafficcop::TrafficCop> t_cop,
                      common::ManagedPointer<ConnectionContext> context, NetworkCallback callback) override;
 
@@ -65,7 +65,7 @@ class PostgresProtocolInterpreter : public ProtocolInterpreter {
    *
    * @param out
    */
-  void GetResult(std::shared_ptr<WriteQueue> out) override {
+  void GetResult(std::shared_ptr<WriteQueue> out) override {  // NOLINT
     PostgresPacketWriter writer(out);
     ExecQueryMessageGetResult(&writer, ResultType::SUCCESS);
     // TODO(Tianyu): This looks wrong. JDBC and PSQL should be united under one wire protocol. This field was set
@@ -87,7 +87,7 @@ class PostgresProtocolInterpreter : public ProtocolInterpreter {
    * @param out
    * @return
    */
-  Transition ProcessStartup(std::shared_ptr<ReadBuffer> in, std::shared_ptr<WriteQueue> out);
+  Transition ProcessStartup(std::shared_ptr<ReadBuffer> in, std::shared_ptr<WriteQueue> out);  // NOLINT
 
   /**
    *
@@ -117,8 +117,8 @@ class PostgresProtocolInterpreter : public ProtocolInterpreter {
   std::unordered_map<std::string, std::string> cmdline_options_;
   common::ManagedPointer<PostgresCommandFactory> command_factory_;
 
-  bool TryBuildPacket(std::shared_ptr<ReadBuffer> in);
-  bool TryReadPacketHeader(std::shared_ptr<ReadBuffer> in);
+  bool TryBuildPacket(std::shared_ptr<ReadBuffer> in);       // NOLINT
+  bool TryReadPacketHeader(std::shared_ptr<ReadBuffer> in);  // NOLINT
 };
 
 }  // namespace terrier::network

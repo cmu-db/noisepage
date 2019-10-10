@@ -38,7 +38,7 @@ class ProtocolInterpreter {
    * @param callback The callback function to trigger on completion
    * @return The next transition for the client's associated state machine
    */
-  virtual Transition Process(std::shared_ptr<ReadBuffer> in, std::shared_ptr<WriteQueue> out,
+  virtual Transition Process(std::shared_ptr<ReadBuffer> in, std::shared_ptr<WriteQueue> out,  // NOLINT
                              common::ManagedPointer<trafficcop::TrafficCop> t_cop,
                              common::ManagedPointer<ConnectionContext> context, NetworkCallback callback) = 0;
 
@@ -46,7 +46,7 @@ class ProtocolInterpreter {
    * Sends a result
    * @param out
    */
-  virtual void GetResult(std::shared_ptr<WriteQueue> out) = 0;
+  virtual void GetResult(std::shared_ptr<WriteQueue> out) = 0;  // NOLINT
 
   /**
    * Default destructor for ProtocolInterpreter

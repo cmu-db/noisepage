@@ -81,7 +81,8 @@ TEST_F(MetricsTests, LoggingCSVTest) {
   for (const auto &file : metrics::LoggingMetricRawData::FILES) unlink(std::string(file).c_str());
   const settings::setter_callback_fn setter_callback = MetricsTests::EmptySetterCallback;
   auto action_context = std::make_unique<common::ActionContext>(common::action_id_t(1));
-  settings_manager_->SetBool(settings::Param::metrics_logging, true, common::ManagedPointer(action_context), setter_callback);
+  settings_manager_->SetBool(settings::Param::metrics_logging, true, common::ManagedPointer(action_context),
+                             setter_callback);
 
   Insert();
 
@@ -137,7 +138,8 @@ TEST_F(MetricsTests, TransactionCSVTest) {
   for (const auto &file : metrics::TransactionMetricRawData::FILES) unlink(std::string(file).c_str());
   const settings::setter_callback_fn setter_callback = MetricsTests::EmptySetterCallback;
   auto action_context = std::make_unique<common::ActionContext>(common::action_id_t(1));
-  settings_manager_->SetBool(settings::Param::metrics_transaction, true, common::ManagedPointer(action_context), setter_callback);
+  settings_manager_->SetBool(settings::Param::metrics_transaction, true, common::ManagedPointer(action_context),
+                             setter_callback);
 
   metrics_manager_->RegisterThread();
 

@@ -11,7 +11,8 @@
 #define PROTO_MAJOR_VERSION(x) ((x) >> 16)
 
 namespace terrier::network {
-Transition PostgresProtocolInterpreter::Process(std::shared_ptr<ReadBuffer> in, std::shared_ptr<WriteQueue> out,
+Transition PostgresProtocolInterpreter::Process(std::shared_ptr<ReadBuffer> in,   // NOLINT
+                                                std::shared_ptr<WriteQueue> out,  // NOLINT
                                                 common::ManagedPointer<trafficcop::TrafficCop> t_cop,
                                                 common::ManagedPointer<ConnectionContext> context,
                                                 NetworkCallback callback) {
@@ -36,8 +37,8 @@ Transition PostgresProtocolInterpreter::Process(std::shared_ptr<ReadBuffer> in, 
   return ret;
 }
 
-Transition PostgresProtocolInterpreter::ProcessStartup(std::shared_ptr<ReadBuffer> in,
-                                                       std::shared_ptr<WriteQueue> out) {
+Transition PostgresProtocolInterpreter::ProcessStartup(std::shared_ptr<ReadBuffer> in,     // NOLINT
+                                                       std::shared_ptr<WriteQueue> out) {  // NOLINT
   PostgresPacketWriter writer(out);
   auto proto_version = in->ReadValue<uint32_t>();
   NETWORK_LOG_TRACE("protocol version: {0}", proto_version);
@@ -73,7 +74,7 @@ Transition PostgresProtocolInterpreter::ProcessStartup(std::shared_ptr<ReadBuffe
   return Transition::PROCEED;
 }
 
-bool PostgresProtocolInterpreter::TryBuildPacket(std::shared_ptr<ReadBuffer> in) {
+bool PostgresProtocolInterpreter::TryBuildPacket(std::shared_ptr<ReadBuffer> in) {  // NOLINT
   if (!TryReadPacketHeader(in)) return false;
 
   size_t size_needed = curr_input_packet_.extended_
@@ -92,7 +93,7 @@ bool PostgresProtocolInterpreter::TryBuildPacket(std::shared_ptr<ReadBuffer> in)
   return remaining_bytes <= 0;
 }
 
-bool PostgresProtocolInterpreter::TryReadPacketHeader(std::shared_ptr<ReadBuffer> in) {
+bool PostgresProtocolInterpreter::TryReadPacketHeader(std::shared_ptr<ReadBuffer> in) {  // NOLINT
   if (curr_input_packet_.header_parsed_) return true;
 
   // Header format: 1 byte message type (only if non-startup)
