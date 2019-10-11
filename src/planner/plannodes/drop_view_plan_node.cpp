@@ -1,6 +1,9 @@
 #include "planner/plannodes/drop_view_plan_node.h"
+
+#include <memory>
 #include <string>
 #include <utility>
+#include <vector>
 
 namespace terrier::planner {
 common::hash_t DropViewPlanNode::Hash() const {
@@ -52,12 +55,15 @@ nlohmann::json DropViewPlanNode::ToJson() const {
   return j;
 }
 
-void DropViewPlanNode::FromJson(const nlohmann::json &j) {
-  AbstractPlanNode::FromJson(j);
+std::vector<std::unique_ptr<parser::AbstractExpression>> DropViewPlanNode::FromJson(const nlohmann::json &j) {
+  std::vector<std::unique_ptr<parser::AbstractExpression>> exprs;
+  auto e1 = AbstractPlanNode::FromJson(j);
+  exprs.insert(exprs.end(), std::make_move_iterator(e1.begin()), std::make_move_iterator(e1.end()));
   database_oid_ = j.at("database_oid").get<catalog::db_oid_t>();
   namespace_oid_ = j.at("namespace_oid").get<catalog::namespace_oid_t>();
   view_oid_ = j.at("view_oid").get<catalog::view_oid_t>();
   if_exists_ = j.at("if_exists").get<bool>();
+  return exprs;
 }
 
 }  // namespace terrier::planner

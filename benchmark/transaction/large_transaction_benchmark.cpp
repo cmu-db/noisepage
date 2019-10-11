@@ -1,6 +1,5 @@
 #include <vector>
 #include "benchmark/benchmark.h"
-#include "common/scoped_timer.h"
 #include "storage/garbage_collector_thread.h"
 #include "util/data_table_benchmark_util.h"
 
@@ -34,12 +33,9 @@ BENCHMARK_DEFINE_F(LargeTransactionBenchmark, TPCCish)(benchmark::State &state) 
                                          &block_store_, &buffer_pool_, &generator_, true);
     gc_ = new storage::GarbageCollector(tested.GetTimestampManager(), DISABLED, tested.GetTxnManager(), DISABLED);
     gc_thread_ = new storage::GarbageCollectorThread(gc_, gc_period_);
-    uint64_t elapsed_ms;
-    {
-      common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
-      abort_count += tested.SimulateOltp(num_txns_, num_concurrent_txns_);
-    }
-    state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
+    const auto result = tested.SimulateOltp(num_txns_, num_concurrent_txns_);
+    abort_count += result.first;
+    state.SetIterationTime(static_cast<double>(result.second) / 1000.0);
     delete gc_thread_;
     delete gc_;
   }
@@ -61,12 +57,9 @@ BENCHMARK_DEFINE_F(LargeTransactionBenchmark, HighAbortRate)(benchmark::State &s
                                          &buffer_pool_, &generator_, true);
     gc_ = new storage::GarbageCollector(tested.GetTimestampManager(), DISABLED, tested.GetTxnManager(), DISABLED);
     gc_thread_ = new storage::GarbageCollectorThread(gc_, gc_period_);
-    uint64_t elapsed_ms;
-    {
-      common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
-      abort_count += tested.SimulateOltp(num_txns_, num_concurrent_txns_);
-    }
-    state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
+    const auto result = tested.SimulateOltp(num_txns_, num_concurrent_txns_);
+    abort_count += result.first;
+    state.SetIterationTime(static_cast<double>(result.second) / 1000.0);
     delete gc_thread_;
     delete gc_;
   }
@@ -88,12 +81,9 @@ BENCHMARK_DEFINE_F(LargeTransactionBenchmark, SingleStatementInsert)(benchmark::
                                          &buffer_pool_, &generator_, true);
     gc_ = new storage::GarbageCollector(tested.GetTimestampManager(), DISABLED, tested.GetTxnManager(), DISABLED);
     gc_thread_ = new storage::GarbageCollectorThread(gc_, gc_period_);
-    uint64_t elapsed_ms;
-    {
-      common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
-      abort_count += tested.SimulateOltp(num_txns_, num_concurrent_txns_);
-    }
-    state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
+    const auto result = tested.SimulateOltp(num_txns_, num_concurrent_txns_);
+    abort_count += result.first;
+    state.SetIterationTime(static_cast<double>(result.second) / 1000.0);
     delete gc_thread_;
     delete gc_;
   }
@@ -114,12 +104,9 @@ BENCHMARK_DEFINE_F(LargeTransactionBenchmark, SingleStatementUpdate)(benchmark::
                                          &block_store_, &buffer_pool_, &generator_, true);
     gc_ = new storage::GarbageCollector(tested.GetTimestampManager(), DISABLED, tested.GetTxnManager(), DISABLED);
     gc_thread_ = new storage::GarbageCollectorThread(gc_, gc_period_);
-    uint64_t elapsed_ms;
-    {
-      common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
-      abort_count += tested.SimulateOltp(num_txns_, num_concurrent_txns_);
-    }
-    state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
+    const auto result = tested.SimulateOltp(num_txns_, num_concurrent_txns_);
+    abort_count += result.first;
+    state.SetIterationTime(static_cast<double>(result.second) / 1000.0);
     delete gc_thread_;
     delete gc_;
   }
@@ -141,12 +128,9 @@ BENCHMARK_DEFINE_F(LargeTransactionBenchmark, SingleStatementSelect)(benchmark::
 
     gc_ = new storage::GarbageCollector(tested.GetTimestampManager(), DISABLED, tested.GetTxnManager(), DISABLED);
     gc_thread_ = new storage::GarbageCollectorThread(gc_, gc_period_);
-    uint64_t elapsed_ms;
-    {
-      common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
-      abort_count += tested.SimulateOltp(num_txns_, num_concurrent_txns_);
-    }
-    state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
+    const auto result = tested.SimulateOltp(num_txns_, num_concurrent_txns_);
+    abort_count += result.first;
+    state.SetIterationTime(static_cast<double>(result.second) / 1000.0);
     delete gc_thread_;
     delete gc_;
   }

@@ -4,6 +4,7 @@
 #include <string>
 #include <utility>
 
+#include "common/managed_pointer.h"
 #include "common/sql_node_visitor.h"
 #include "parser/select_statement.h"
 #include "parser/sql_statement.h"
@@ -11,9 +12,8 @@
 
 namespace terrier {
 namespace parser {
-
 /**
- * Represents PSQL COPY statements.
+ * CopyStatement represents COPY statements.
  */
 class CopyStatement : public SQLStatement {
  public:
@@ -27,7 +27,7 @@ class CopyStatement : public SQLStatement {
    * @param quote quote character
    * @param escape escape character
    */
-  CopyStatement(std::shared_ptr<TableRef> table, std::shared_ptr<SelectStatement> select_stmt, std::string file_path,
+  CopyStatement(std::unique_ptr<TableRef> table, std::unique_ptr<SelectStatement> select_stmt, std::string file_path,
                 ExternalFileFormat format, bool is_from, char delimiter, char quote, char escape)
       : SQLStatement(StatementType::COPY),
         table_(std::move(table)),
@@ -43,49 +43,33 @@ class CopyStatement : public SQLStatement {
 
   void Accept(SqlNodeVisitor *v) override { v->Visit(this); }
 
-  /**
-   * @return copy table
-   */
-  std::shared_ptr<TableRef> GetCopyTable() { return table_; }
+  /** @return copy table */
+  common::ManagedPointer<TableRef> GetCopyTable() { return common::ManagedPointer(table_); }
 
-  /**
-   * @return select statement
-   */
-  std::shared_ptr<SelectStatement> GetSelectStatement() { return select_stmt_; }
+  /** @return select statement */
+  common::ManagedPointer<SelectStatement> GetSelectStatement() { return common::ManagedPointer(select_stmt_); }
 
-  /**
-   * @return file path
-   */
+  /** @return file path */
   std::string GetFilePath() { return file_path_; }
 
-  /**
-   * @return external file format
-   */
+  /** @return external file format */
   ExternalFileFormat GetExternalFileFormat() { return format_; }
 
-  /**
-   * @return true if FROM, false if TO
-   */
+  /** @return true if FROM, false if TO */
   bool IsFrom() { return is_from_; }
 
-  /**
-   * @return delimiter
-   */
+  /** @return delimiter */
   char GetDelimiter() { return delimiter_; }
 
-  /**
-   * @return quote char
-   */
+  /** @return quote char */
   char GetQuoteChar() { return quote_; }
 
-  /**
-   * @return escape char
-   */
+  /** @return escape char */
   char GetEscapeChar() { return escape_; }
 
  private:
-  const std::shared_ptr<TableRef> table_;
-  const std::shared_ptr<SelectStatement> select_stmt_;
+  const std::unique_ptr<TableRef> table_;
+  const std::unique_ptr<SelectStatement> select_stmt_;
   const std::string file_path_;
   const ExternalFileFormat format_;
 

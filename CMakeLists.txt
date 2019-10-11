@@ -165,18 +165,6 @@ enable_testing()
 
 include(ThirdpartyToolchain)
 
-# Add common flags
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CXX_COMMON_FLAGS}")
-
-# For any C code, use the same flags.
-set(CMAKE_C_FLAGS "${CMAKE_CXX_FLAGS}")
-
-# Remove --std=c++17 to avoid errors from C compilers
-string(REPLACE "-std=c++17" "" CMAKE_C_FLAGS ${CMAKE_C_FLAGS})
-
-# Add C++-only flags, like -std=c++17
-set(CMAKE_CXX_FLAGS "${CXX_ONLY_FLAGS} ${CMAKE_CXX_FLAGS}")
-
 # ASAN / TSAN / UBSAN
 include(san-config)
 
@@ -193,11 +181,24 @@ if (TERRIER_GENERATE_COVERAGE)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --coverage")
 endif ()
 
+# Add common flags
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CXX_COMMON_FLAGS}")
+
+# For any C code, use the same flags.
+set(CMAKE_C_FLAGS "${CMAKE_CXX_FLAGS}")
+
+# Remove --std=c++17 to avoid errors from C compilers
+string(REPLACE "-std=c++17" "" CMAKE_C_FLAGS ${CMAKE_C_FLAGS})
+
+# Add C++-only flags, like -std=c++17
+set(CMAKE_CXX_FLAGS "${CXX_ONLY_FLAGS} ${CMAKE_CXX_FLAGS}")
+
 # CMAKE_CXX_FLAGS now fully assembled
-#message(STATUS "CXX_ONLY_FLAGS: ${CXX_ONLY_FLAGS}")
-#message(STATUS "CXX_COMMON_FLAGS: ${CXX_COMMON_FLAGS}")
-#message(STATUS "CXX_OPTIMIZATION_FLAGS: ${CXX_OPTIMIZATION_FLAGS}")
+message(STATUS "CXX_ONLY_FLAGS: ${CXX_ONLY_FLAGS}")
+message(STATUS "CXX_COMMON_FLAGS: ${CXX_COMMON_FLAGS}")
+message(STATUS "CXX_OPTIMIZATION_FLAGS: ${CXX_OPTIMIZATION_FLAGS}")
 message(STATUS "CMAKE_CXX_FLAGS: ${CMAKE_CXX_FLAGS}")
+message(STATUS "CMAKE_C_FLAGS: ${CMAKE_C_FLAGS}")
 
 ###########################################################
 # "make check-lint" and "make check-censored" targets
