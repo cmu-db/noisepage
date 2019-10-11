@@ -138,7 +138,7 @@ class OperatorTransformerTest : public TerrierTest {
     TerrierTest::TearDown();
   }
 
-  const std::string GetInfo(optimizer::OperatorExpression *op) const {
+  std::string GetInfo(optimizer::OperatorExpression *op) const {
     std::string info = "{";
     {
       info += "\"Op\":";

@@ -406,9 +406,7 @@ class SelectStatement : public SQLStatement {
   /** @return select limit */
   common::ManagedPointer<LimitDescription> GetSelectLimit() { return common::ManagedPointer(limit_); }
 
-  /**
-   * @return depth of the select statement
-   */
+  /** @return depth of the select statement */
   int GetDepth() { return depth_; }
 
   /**
@@ -476,14 +474,10 @@ class SelectStatement : public SQLStatement {
   std::unique_ptr<SelectStatement> union_select_;
   int depth_ = -1;
 
-  /**
-   * @param select List of select columns
-   */
+  /** @param select List of select columns */
   void SetSelectColumns(std::vector<common::ManagedPointer<AbstractExpression>> select) { select_ = std::move(select); }
 
-  /**
-   * @param depth Depth of the select statement
-   */
+  /** @param depth Depth of the select statement */
   void SetDepth(int depth) { depth_ = depth; }
 };
 
