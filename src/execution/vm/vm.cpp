@@ -1570,8 +1570,9 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {
     auto table_oid = READ_UIMM4();
     auto *col_oids = frame->LocalAt<uint32_t *>(READ_LOCAL_ID());
     auto num_oids = READ_UIMM4();
+    auto is_index_key_update = frame->LocalAt<bool>(READ_LOCAL_ID());
 
-    OpUpdaterInit(updater, exec_ctx, table_oid, col_oids, num_oids);
+    OpUpdaterInit(updater, exec_ctx, table_oid, col_oids, num_oids, is_index_key_update);
     DISPATCH_NEXT();
   }
 

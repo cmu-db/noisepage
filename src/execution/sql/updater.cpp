@@ -7,36 +7,25 @@
 namespace terrier::execution::sql {
 
 Updater::Updater(exec::ExecutionContext *exec_ctx, catalog::table_oid_t table_oid, uint32_t *col_oids,
-                 uint32_t num_oids)
-    : table_oid_(table_oid), col_oids_(col_oids, col_oids + num_oids), exec_ctx_(exec_ctx) {
+                 uint32_t num_oids, bool is_index_key_update)
+    : table_oid_(table_oid),
+      col_oids_(col_oids, col_oids + num_oids),
+      exec_ctx_(exec_ctx),
+      is_index_key_update_(is_index_key_update) {
   table_ = exec_ctx->GetAccessor()->GetTable(table_oid);
 
   // We need this to calculate the max sized index pr
   uint32_t index_pr_size = 0;
   auto index_oids = exec_ctx->GetAccessor()->GetIndexes(table_oid_);
-  for (auto index_oid : index_oids) {
-    auto pri = GetIndex(index_oid)->GetProjectedRowInitializer();
 
-    // Calculate the max sized index pr
-    index_pr_size = std::max(index_pr_size, pri.ProjectedRowSize());
-
-    // We don't need to do anything if we already know that we have to update index
-    if (!is_index_key_update_) {
-      // If there is an index key that is being updated
-      auto num_cols_in_index = pri.NumColumns();
-
-      // Loop through every column for that index and see if that column is being updated
-      for (auto pri_col_idx = 0; pri_col_idx < num_cols_in_index; pri_col_idx += 1) {
-        auto is_index_key = std::find(col_oids_.begin(), col_oids_.end(), pri.ColId(pri_col_idx)) != col_oids_.end();
-        if (is_index_key) {
-          is_index_key_update_ = true;
-          break;
-        }
-      }
+  if (is_index_key_update) {
+    // Calculate the max sized index pr, and allocate that size for the index_pr_buffer
+    for (auto index_oid : index_oids) {
+      auto pri = GetIndex(index_oid)->GetProjectedRowInitializer();
+      index_pr_size = std::max(index_pr_size, pri.ProjectedRowSize());
     }
+    index_pr_buffer_ = exec_ctx->GetMemoryPool()->AllocateAligned(index_pr_size, sizeof(uint64_t), true);
   }
-
-  index_pr_buffer_ = exec_ctx->GetMemoryPool()->AllocateAligned(index_pr_size, sizeof(uint64_t), true);
 }
 
 common::ManagedPointer<storage::index::Index> execution::sql::Updater::GetIndex(catalog::index_oid_t index_oid) {
@@ -60,9 +49,13 @@ storage::ProjectedRow *Updater::GetTablePR() {
 }
 
 storage::ProjectedRow *Updater::GetIndexPR(catalog::index_oid_t index_oid) {
-  auto index = GetIndex(index_oid);
-  index_pr_ = index->GetProjectedRowInitializer().InitializeRow(index_pr_buffer_);
-  return index_pr_;
+  if (is_index_key_update_) {
+    auto index = GetIndex(index_oid);
+    index_pr_ = index->GetProjectedRowInitializer().InitializeRow(index_pr_buffer_);
+    return index_pr_;
+  }
+  TERRIER_ASSERT(false, "This function should not be called as index key is not being updated");
+  return nullptr;
 }
 
 storage::TupleSlot Updater::TableUpdate(storage::TupleSlot table_tuple_slot) {
@@ -83,6 +76,7 @@ bool Updater::IndexInsert(catalog::index_oid_t index_oid) {
     auto index = GetIndex(index_oid);
     return index->Insert(exec_ctx_->GetTxn(), *index_pr_, table_redo_->GetTupleSlot());
   }
+  TERRIER_ASSERT(false, "This function should not be called as index key is not being updated");
   return false;
 }
 
@@ -91,5 +85,6 @@ void Updater::IndexDelete(catalog::index_oid_t index_oid) {
     auto index = GetIndex(index_oid);
     index->Delete(exec_ctx_->GetTxn(), *index_pr_, table_redo_->GetTupleSlot());
   }
+  TERRIER_ASSERT(false, "This function should not be called as index key is not being updated");
 }
 }  // namespace terrier::execution::sql

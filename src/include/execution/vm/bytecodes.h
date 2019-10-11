@@ -379,7 +379,8 @@ namespace terrier::execution::vm {
   F(DeleterIndexDelete, OperandType::Local, OperandType::UImm4, OperandType::Local)                                   \
                                                                                                                       \
   /* Updater */                                                                                                       \
-  F(UpdaterInit, OperandType::Local, OperandType::Local, OperandType::UImm4, OperandType::Local, OperandType::UImm4)  \
+  F(UpdaterInit, OperandType::Local, OperandType::Local, OperandType::UImm4, OperandType::Local, OperandType::UImm4,  \
+    OperandType::Local)                                                                                               \
   F(UpdaterGetTablePR, OperandType::Local, OperandType::Local)                                                        \
   F(UpdaterTableUpdate, OperandType::Local, OperandType::Local)                                                       \
   F(UpdaterGetIndexPR, OperandType::Local, OperandType::Local, OperandType::UImm4)                                    \

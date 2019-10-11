@@ -1804,6 +1804,9 @@ void Sema::CheckBuiltinUpdaterCall(ast::CallExpr *call, ast::Builtin builtin) {
 
   const auto updater_kind = ast::BuiltinType::Updater;
   const auto int32_kind = ast::BuiltinType::Int32;
+  // TODO(pulkit): Both ast::BuiltinType::Bool and ast::BuiltinType::Boolean are allowed here,
+  //  and I couldn't find the declaration for builtin types. Which one should be used?
+  const auto boolean_kind = ast::BuiltinType::Boolean;
 
   if (!CheckArgCountAtLeast(call, 1)) {
     return;
@@ -1815,7 +1818,7 @@ void Sema::CheckBuiltinUpdaterCall(ast::CallExpr *call, ast::Builtin builtin) {
 
   switch (builtin) {
     case ast::Builtin::UpdaterInit: {
-      if (!CheckArgCount(call, 5)) {
+      if (!CheckArgCount(call, 6)) {
         return;
       }
 
@@ -1844,12 +1847,18 @@ void Sema::CheckBuiltinUpdaterCall(ast::CallExpr *call, ast::Builtin builtin) {
         return;
       }
 
+      // is_index_key_update
+      if (!call_args[5]->IsBooleanLiteral()) {
+        ReportIncorrectCallArg(call, 5, GetBuiltinType(boolean_kind));
+        return;
+      }
+
       // void
       call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
       break;
     }
     case ast::Builtin::UpdaterInitBind: {
-      if (!CheckArgCount(call, 5)) {
+      if (!CheckArgCount(call, 6)) {
         return;
       }
 
@@ -1875,6 +1884,12 @@ void Sema::CheckBuiltinUpdaterCall(ast::CallExpr *call, ast::Builtin builtin) {
       // num_oids
       if (!call_args[4]->IsIntegerLiteral()) {
         ReportIncorrectCallArg(call, 4, GetBuiltinType(int32_kind));
+        return;
+      }
+
+      // is_index_key_update
+      if (!call_args[5]->IsBooleanLiteral()) {
+        ReportIncorrectCallArg(call, 5, GetBuiltinType(boolean_kind));
         return;
       }
 
@@ -2383,6 +2398,29 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
     case ast::Builtin::InserterIndexInsertBind:
     case ast::Builtin::InserterIndexInsert: {
       CheckBuiltinInserterCall(call, builtin);
+      break;
+    }
+    case ast::Builtin::DeleterInit:
+    case ast::Builtin::DeleterInitBind:
+    case ast::Builtin::DeleterTableDelete:
+    case ast::Builtin::DeleterGetIndexPR:
+    case ast::Builtin::DeleterGetIndexPRBind:
+    case ast::Builtin::DeleterIndexDelete:
+    case ast::Builtin::DeleterIndexDeleteBind: {
+      CheckBuiltinDeleterCall(call, builtin);
+      break;
+    }
+    case ast::Builtin::UpdaterInit:
+    case ast::Builtin::UpdaterInitBind:
+    case ast::Builtin::UpdaterGetTablePR:
+    case ast::Builtin::UpdaterTableUpdate:
+    case ast::Builtin::UpdaterGetIndexPR:
+    case ast::Builtin::UpdaterGetIndexPRBind:
+    case ast::Builtin::UpdaterIndexInsert:
+    case ast::Builtin::UpdaterIndexInsertBind:
+    case ast::Builtin::UpdaterIndexDelete:
+    case ast::Builtin::UpdaterIndexDeleteBind: {
+      CheckBuiltinUpdaterCall(call, builtin);
       break;
     }
     default: {

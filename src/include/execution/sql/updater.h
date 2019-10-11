@@ -8,11 +8,12 @@ namespace terrier::execution::sql {
  */
 class EXPORT Updater {
  public:
-  explicit Updater(exec::ExecutionContext *exec_ctx, std::string table_name, uint32_t *col_oids, uint32_t num_oids)
-      : Updater(exec_ctx, exec_ctx->GetAccessor()->GetTableOid(table_name), col_oids, num_oids) {}
+  explicit Updater(exec::ExecutionContext *exec_ctx, std::string table_name, uint32_t *col_oids, uint32_t num_oids,
+                   bool is_index_key_update)
+      : Updater(exec_ctx, exec_ctx->GetAccessor()->GetTableOid(table_name), col_oids, num_oids, is_index_key_update) {}
 
   explicit Updater(exec::ExecutionContext *exec_ctx, catalog::table_oid_t table_oid, uint32_t *col_oids,
-                   uint32_t num_oids);
+                   uint32_t num_oids, bool is_index_key_update);
 
   storage::ProjectedRow *GetTablePR();
 

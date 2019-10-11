@@ -1814,7 +1814,9 @@ void BytecodeGenerator::VisitBuiltinUpdaterCall(ast::CallExpr *call, ast::Builti
       auto table_oid = static_cast<uint32_t>(call->Arguments()[2]->As<ast::LitExpr>()->Int64Val());
       LocalVar col_oids = VisitExpressionForRValue(call->Arguments()[3]);
       auto num_oids = static_cast<uint32_t>(call->Arguments()[4]->As<ast::LitExpr>()->Int64Val());
-      Emitter()->EmitUpdaterInit(Bytecode::UpdaterInit, updater, exec_ctx, table_oid, col_oids, num_oids);
+      auto is_index_key_update = static_cast<bool>(call->Arguments()[5]->As<ast::LitExpr>()->BoolVal());
+      Emitter()->EmitUpdaterInit(Bytecode::UpdaterInit, updater, exec_ctx, table_oid, col_oids, num_oids,
+                                 is_index_key_update);
       break;
     }
     case ast::Builtin::UpdaterInitBind: {
@@ -1824,7 +1826,9 @@ void BytecodeGenerator::VisitBuiltinUpdaterCall(ast::CallExpr *call, ast::Builti
       auto table_oid = exec_ctx_->GetAccessor()->GetTableOid(ns_oid, table_name.Data());
       LocalVar col_oids = VisitExpressionForRValue(call->Arguments()[3]);
       auto num_oids = static_cast<uint32_t>(call->Arguments()[4]->As<ast::LitExpr>()->Int64Val());
-      Emitter()->EmitUpdaterInit(Bytecode::UpdaterInit, updater, exec_ctx, !table_oid, col_oids, num_oids);
+      auto is_index_key_update = static_cast<bool>(call->Arguments()[5]->As<ast::LitExpr>()->BoolVal());
+      Emitter()->EmitUpdaterInit(Bytecode::UpdaterInit, updater, exec_ctx, !table_oid, col_oids, num_oids,
+                                 is_index_key_update);
       break;
     }
     case ast::Builtin::UpdaterGetTablePR: {

@@ -235,9 +235,9 @@ VM_OP void OpDeleterIndexDelete(terrier::execution::sql::Deleter *deleter, uint3
 
 VM_OP void OpUpdaterInit(terrier::execution::sql::Updater *updater,
                          terrier::execution::exec::ExecutionContext *exec_ctx, uint32_t table_oid, uint32_t *col_oids,
-                         uint32_t num_oids) {
-  new (updater)
-      terrier::execution::sql::Updater(exec_ctx, terrier::catalog::table_oid_t(table_oid), col_oids, num_oids);
+                         uint32_t num_oids, bool is_index_key_update) {
+  new (updater) terrier::execution::sql::Updater(exec_ctx, terrier::catalog::table_oid_t(table_oid), col_oids, num_oids,
+                                                 is_index_key_update);
 }
 
 VM_OP void OpUpdaterGetTablePR(terrier::execution::sql::ProjectedRowWrapper *pr_result,

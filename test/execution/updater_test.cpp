@@ -32,15 +32,24 @@ TEST_F(UpdaterTest, SimpleUpdaterTest) {
   auto table_oid = exec_ctx_->GetAccessor()->GetTableOid(NSOid(), "test_1");
   Inserter inserter(exec_ctx_.get(), table_oid);
   uint32_t col_oid_array[] = {1, 2};
-  Updater updater(exec_ctx_.get(), table_oid, col_oid_array, 2);
+  auto is_index_key_update = false;  // The key is col oid 0, we don't modify that
+  Updater updater(exec_ctx_.get(), table_oid, col_oid_array, 2, is_index_key_update);
 
   auto table_pr = inserter.GetTablePR();
   auto schema = exec_ctx_->GetAccessor()->GetSchema(table_oid);
 
-  *reinterpret_cast<int32_t *>(table_pr->AccessForceNotNull(0)) = 445;
-  *reinterpret_cast<int32_t *>(table_pr->AccessForceNotNull(1)) = 721;
-  *reinterpret_cast<int32_t *>(table_pr->AccessForceNotNull(2)) = 4256;
-  *reinterpret_cast<int32_t *>(table_pr->AccessForceNotNull(3)) = 15;
+  int32_t value0 = 445;
+  int32_t value1 = 721;
+  int32_t value2 = 4256;
+  int32_t value3 = 15;
+
+  int32_t value1_changed = 720;
+  int32_t value2_changed = 4250;
+
+  *reinterpret_cast<int32_t *>(table_pr->AccessForceNotNull(0)) = value0;
+  *reinterpret_cast<int32_t *>(table_pr->AccessForceNotNull(1)) = value1;
+  *reinterpret_cast<int32_t *>(table_pr->AccessForceNotNull(2)) = value2;
+  *reinterpret_cast<int32_t *>(table_pr->AccessForceNotNull(3)) = value3;
 
   // Insert into table, and verify that insert succeeds
   auto tuple_slot = inserter.TableInsert();
@@ -56,7 +65,7 @@ TEST_F(UpdaterTest, SimpleUpdaterTest) {
 
   // Create Insert PR
   auto insert_pr = inserter.GetIndexPR(index_oid);
-  *reinterpret_cast<int32_t *>(insert_pr->AccessForceNotNull(0)) = 1337;
+  *reinterpret_cast<int32_t *>(insert_pr->AccessForceNotNull(0)) = value0;
 
   // Insert into index
   std::vector<storage::TupleSlot> results_before_insertion, results_after_insertion;
@@ -69,10 +78,9 @@ TEST_F(UpdaterTest, SimpleUpdaterTest) {
 
   // Create Update PR
   auto update_pr = updater.GetTablePR();
-  *reinterpret_cast<int32_t *>(update_pr->AccessForceNotNull(0)) = 720;
-  *reinterpret_cast<int32_t *>(update_pr->AccessForceNotNull(1)) = 4250;
-
-  EXPECT_TRUE(updater.TableUpdate(tuple_slot));
+  *reinterpret_cast<int32_t *>(update_pr->AccessForceNotNull(0)) = value1_changed;
+  *reinterpret_cast<int32_t *>(update_pr->AccessForceNotNull(1)) = value2_changed;
+  updater.TableUpdate(tuple_slot);
   count = 0;
   for (auto iter = table->begin(); iter != table->end(); iter++) {
     count++;

@@ -475,6 +475,7 @@ class BytecodeEmitter {
   void EmitInserterGetIndexPR(Bytecode bytecode, LocalVar pr, LocalVar inserter, uint32_t index_oid);
 
   void EmitInserterIndexInsert(Bytecode bytecode, LocalVar inserter, uint32_t index_oid);
+
   void EmitDeleterInit(Bytecode bytecode, LocalVar deleter, LocalVar exec_ctx, uint32_t table_oid);
 
   void EmitDeleterGetIndexPR(Bytecode bytecode, LocalVar pr, LocalVar deleter, uint32_t index_oid);
@@ -482,7 +483,7 @@ class BytecodeEmitter {
   void EmitDeleterIndexDelete(Bytecode bytecode, LocalVar deleter, uint32_t index_oid, LocalVar tuple_slot);
 
   void EmitUpdaterInit(Bytecode bytecode, LocalVar updater, LocalVar exec_ctx, uint32_t table_oid, LocalVar col_oids,
-                       uint32_t num_oids);
+                       uint32_t num_oids, bool is_index_key_update);
 
   void EmitUpdaterGetIndexPR(Bytecode bytecode, LocalVar pr, LocalVar updater, uint32_t index_oid);
 
