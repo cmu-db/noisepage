@@ -388,7 +388,7 @@ class LogicalInnerJoin : public OperatorNode<LogicalInnerJoin> {
   /**
    * @return an InnerJoin operator
    */
-  static Operator Make();
+  static Operator Make(common::ManagedPointer<parser::AbstractExpression> join_predicate);
 
   /**
    * @param conditions conditions of the join

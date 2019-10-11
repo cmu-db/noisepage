@@ -131,8 +131,8 @@ void QueryToOperatorTransformer::Visit(parser::JoinDefinition *node, parser::Par
   OperatorExpression *join_expr;
   switch (node->GetJoinType()) {
     case parser::JoinType::INNER: {
-      CollectPredicates(node->GetJoinCondition(), parse_result, &predicates_);
-      join_expr = new OperatorExpression(LogicalInnerJoin::Make(), {left_expr, right_expr});
+      // CollectPredicates(node->GetJoinCondition(), parse_result, &predicates_);
+      join_expr = new OperatorExpression(LogicalInnerJoin::Make(node->GetJoinCondition()), {left_expr, right_expr});
       break;
     }
     case parser::JoinType::OUTER: {
