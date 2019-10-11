@@ -263,6 +263,12 @@ class AbstractExpression {
   friend class binder::BindNodeVisitor;
   friend class optimizer::QueryToOperatorTransformer;
 
+  /**
+   * Set the specified child of this expression to the given expression.
+   * It is used by the QueryToOperatorTransformer to convert subquery to the selected column in the sub-select
+   * @param index Index of the child to be changed
+   * @param expr The abstract expression which we set the child to
+   */
   void SetChild(int index, common::ManagedPointer<AbstractExpression> expr) {
     if (index >= static_cast<int>(children_.size())) {
       children_.resize(index + 1);
@@ -292,6 +298,7 @@ class AbstractExpression {
    */
   int depth_ = -1;
   /**
+   *
    * MUTABLE Flag indicating if there's a sub-query in the current expression or in any of its children.
    * Per LING, this is required to detect the query predicate IsSupportedConjunctivePredicate.
    */

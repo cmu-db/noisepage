@@ -1086,7 +1086,7 @@ std::unique_ptr<CopyStatement> PostgresParser::CopyTransform(ParseResult *parse_
     for (ListCell *cell = root->options_->head; cell != nullptr; cell = cell->next) {
       auto def_elem = reinterpret_cast<DefElem *>(cell->data.ptr_value);
 
-      if (strncmp(def_elem->defname_, kFormatTok, sizeof(kFormatTok)) == 0) {
+      if (strncmp(def_elem->defname_, k_format_tok, sizeof(k_format_tok)) == 0) {
         auto format_cstr = reinterpret_cast<value *>(def_elem->arg_)->val_.str_;
         // lowercase
         if (strcmp(format_cstr, "csv") == 0) {
@@ -1096,15 +1096,15 @@ std::unique_ptr<CopyStatement> PostgresParser::CopyTransform(ParseResult *parse_
         }
       }
 
-      if (strncmp(def_elem->defname_, kDelimiterTok, sizeof(kDelimiterTok)) == 0) {
+      if (strncmp(def_elem->defname_, k_delimiter_tok, sizeof(k_delimiter_tok)) == 0) {
         delimiter = *(reinterpret_cast<value *>(def_elem->arg_)->val_.str_);
       }
 
-      if (strncmp(def_elem->defname_, kQuoteTok, sizeof(kQuoteTok)) == 0) {
+      if (strncmp(def_elem->defname_, k_quote_tok, sizeof(k_quote_tok)) == 0) {
         quote = *(reinterpret_cast<value *>(def_elem->arg_)->val_.str_);
       }
 
-      if (strncmp(def_elem->defname_, kEscapeTok, sizeof(kEscapeTok)) == 0) {
+      if (strncmp(def_elem->defname_, k_escape_tok, sizeof(k_escape_tok)) == 0) {
         escape = *(reinterpret_cast<value *>(def_elem->arg_)->val_.str_);
       }
     }

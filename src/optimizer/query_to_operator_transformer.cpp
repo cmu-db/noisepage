@@ -549,7 +549,7 @@ bool QueryToOperatorTransformer::IsSupportedSubSelect(common::ManagedPointer<par
 
 bool QueryToOperatorTransformer::GenerateSubqueryTree(parser::AbstractExpression *expr, int child_id,
                                                       parser::ParseResult *parse_result, bool single_join) {
-  // TODO(Ling): Part A start
+  // TODO(Ling): See if we could or should move this function, which expands subquery to list of columns, in binder
   // Get potential subquery
   auto subquery_expr = expr->GetChild(child_id);
   if (subquery_expr->GetExpressionType() != parser::ExpressionType::ROW_SUBQUERY) return false;
@@ -559,7 +559,6 @@ bool QueryToOperatorTransformer::GenerateSubqueryTree(parser::AbstractExpression
     throw NOT_IMPLEMENTED_EXCEPTION("Sub-select not supported");
   // We only support subselect with single row
   if (sub_select->GetSelectColumns().size() != 1) throw NOT_IMPLEMENTED_EXCEPTION("Array in predicates not supported");
-  // TODO(Ling): Part A end
 
   std::vector<parser::AbstractExpression *> select_list;
   // Construct join
@@ -577,18 +576,7 @@ bool QueryToOperatorTransformer::GenerateSubqueryTree(parser::AbstractExpression
 
   output_expr_ = op_expr;
 
-  // TODO(Ling): part B
-  //    put part A and part B into a function in binder
-  //    assuming that the sub_select->Accept() and the code following this comment does not have order dependency
-  //    This way we might need not let the current class make friend with expression
-
   // Convert subquery to the selected column in the sub-select
-  // TODO(Ling): set child looks suspicious... It feels like we are changing the subquery expression
-  //   which is a child of the parent expr, to a columnValueExpression?
-  //   should we do that in binder?
-  //   or we would make this class a friend of the expression
-
-  // TODO(Ling): we are setting the underlying pointer managedPtr to unique pointer...
   expr->SetChild(child_id, sub_select->GetSelectColumns().at(0));
   return true;
 }

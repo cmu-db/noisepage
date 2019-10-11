@@ -102,7 +102,7 @@ class UpdateStatement : public SQLStatement {
 
  private:
   const std::unique_ptr<TableRef> table_;
-  std::vector<std::unique_ptr<UpdateClause>> updates_;
+  const std::vector<std::unique_ptr<UpdateClause>> updates_;
   const common::ManagedPointer<AbstractExpression> where_;
 };
 
