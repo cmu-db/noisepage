@@ -20,10 +20,18 @@ class ITPPacketWriter : public PacketWriter {
 
   /**
    * Writes a Replication command
-   * @param replication_data
+   * --------------------------------------------------------------------------------------------------
+   * | message type (char) | message id (uint64_t) | data size (uint64_t) | replication data (varlen) |
+   * --------------------------------------------------------------------------------------------------
+   * @param message_id message id
+   * @param replication_data data for replication
    */
-  void WriteReplicationCommand(const std::string& replication_data) {
-    BeginPacket(NetworkMessageType::ITP_REPLICATION_COMMAND).AppendString(replication_data).EndPacket();
+  void WriteReplicationCommand(uint64_t message_id, const std::string& replication_data) {
+    BeginPacket(NetworkMessageType::ITP_REPLICATION_COMMAND)
+      .AppendValue<uint64_t>(message_id)
+      .AppendValue<uint64_t>(replication_data.length())
+      .AppendString(replication_data)
+      .EndPacket();
   }
 
 };
