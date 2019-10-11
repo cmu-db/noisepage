@@ -19,17 +19,30 @@ class EXPORT Updater {
 
   storage::ProjectedRow *GetIndexPR(catalog::index_oid_t index_oid);
 
-  storage::TupleSlot TableUpdate(storage::TupleSlot table_tuple_slot);
+  bool TableUpdate(storage::TupleSlot table_tuple_slot);
 
-  void IndexDelete(catalog::index_oid_t index_oid);
+  bool TableDelete(storage::TupleSlot table_tuple_slot);
+
+  storage::TupleSlot TableInsert();
+
+  void IndexDelete(catalog::index_oid_t index_oid, storage::TupleSlot table_tuple_slot);
 
   bool IndexInsert(catalog::index_oid_t index_oid);
 
  private:
   common::ManagedPointer<storage::index::Index> GetIndex(catalog::index_oid_t index_oid);
 
+  uint32_t CalculateMaxIndexPRSize();
+  void *GetMaxSizedIndexPRBuffer();
+
+  void PopulateAllColOids(std::vector<catalog::col_oid_t> &all_col_oids);
+
+
+  storage::ProjectedRow *GetTablePRForColumns(const std::vector<catalog::col_oid_t> &col_oids);
+
   catalog::table_oid_t table_oid_;
   std::vector<catalog::col_oid_t> col_oids_;
+  std::vector<catalog::col_oid_t> all_col_oids_;
   exec::ExecutionContext *exec_ctx_;
   common::ManagedPointer<terrier::storage::SqlTable> table_;
 

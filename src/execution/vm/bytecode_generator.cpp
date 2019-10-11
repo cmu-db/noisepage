@@ -1837,6 +1837,17 @@ void BytecodeGenerator::VisitBuiltinUpdaterCall(ast::CallExpr *call, ast::Builti
       Emitter()->Emit(Bytecode::UpdaterGetTablePR, pr, updater);
       break;
     }
+    case ast::Builtin::UpdaterTableInsert: {
+      ast::Type *tuple_slot_type = ast::BuiltinType::Get(ctx, ast::BuiltinType::TupleSlot);
+      LocalVar tuple_slot = ExecutionResult()->GetOrCreateDestination(tuple_slot_type);
+      Emitter()->Emit(Bytecode::InserterTableInsert, tuple_slot, updater);
+      break;
+    }
+    case ast::Builtin::UpdaterTableDelete: {
+      LocalVar tuple_slot = VisitExpressionForRValue(call->Arguments()[1]);
+      Emitter()->Emit(Bytecode::DeleterTableDelete, updater, tuple_slot);
+      break;
+    }
     case ast::Builtin::UpdaterTableUpdate: {
       LocalVar tuple_slot = VisitExpressionForRValue(call->Arguments()[1]);
       Emitter()->Emit(Bytecode::UpdaterTableUpdate, updater, tuple_slot);
@@ -1872,14 +1883,16 @@ void BytecodeGenerator::VisitBuiltinUpdaterCall(ast::CallExpr *call, ast::Builti
     }
     case ast::Builtin::UpdaterIndexDelete: {
       auto index_oid = static_cast<uint32_t>(call->Arguments()[1]->As<ast::LitExpr>()->Int64Val());
-      Emitter()->EmitUpdaterIndexDelete(Bytecode::UpdaterIndexDelete, updater, index_oid);
+      LocalVar tuple_slot = VisitExpressionForRValue(call->Arguments()[2]);
+      Emitter()->EmitDeleterIndexDelete(Bytecode::DeleterIndexDelete, updater, index_oid, tuple_slot);
       break;
     }
     case ast::Builtin::UpdaterIndexDeleteBind: {
       ast::Identifier index_name = call->Arguments()[1]->As<ast::LitExpr>()->RawStringVal();
       auto ns_oid = exec_ctx_->GetAccessor()->GetDefaultNamespace();
       auto index_oid = exec_ctx_->GetAccessor()->GetIndexOid(ns_oid, index_name.Data());
-      Emitter()->EmitUpdaterIndexDelete(Bytecode::UpdaterIndexDelete, updater, !index_oid);
+      LocalVar tuple_slot = VisitExpressionForRValue(call->Arguments()[2]);
+      Emitter()->EmitDeleterIndexDelete(Bytecode::DeleterIndexDelete, updater, !index_oid, tuple_slot);
       break;
     }
     default:

@@ -1904,6 +1904,29 @@ void Sema::CheckBuiltinUpdaterCall(ast::CallExpr *call, ast::Builtin builtin) {
       call->SetType(GetBuiltinType(ast::BuiltinType::ProjectedRow)->PointerTo());
       break;
     }
+    case ast::Builtin::UpdaterTableInsert: {
+      if (!CheckArgCount(call, 1)) {
+        return;
+      }
+
+      auto tuple_slot_type = ast::BuiltinType::TupleSlot;
+      call->SetType(GetBuiltinType(tuple_slot_type));
+      break;
+    }
+    case ast::Builtin::UpdaterTableDelete: {
+      if (!CheckArgCount(call, 1)) {
+        return;
+      }
+
+      auto tuple_slot_type = ast::BuiltinType::TupleSlot;
+      if (!IsPointerToSpecificBuiltin(call_args[1]->GetType(), tuple_slot_type)) {
+        ReportIncorrectCallArg(call, 1, GetBuiltinType(tuple_slot_type)->PointerTo());
+        return;
+      }
+
+      call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
+      break;
+    }
     case ast::Builtin::UpdaterTableUpdate: {
       if (!CheckArgCount(call, 1)) {
         return;
@@ -1967,22 +1990,32 @@ void Sema::CheckBuiltinUpdaterCall(ast::CallExpr *call, ast::Builtin builtin) {
       break;
     }
     case ast::Builtin::UpdaterIndexDelete: {
-      if (!CheckArgCount(call, 2)) {
+      if (!CheckArgCount(call, 3)) {
         return;
       }
       if (!call_args[1]->IsIntegerLiteral()) {
         ReportIncorrectCallArg(call, 1, GetBuiltinType(int32_kind));
         return;
       }
+      auto tuple_slot_type = ast::BuiltinType::TupleSlot;
+      if (!IsPointerToSpecificBuiltin(call_args[2]->GetType(), tuple_slot_type)) {
+        ReportIncorrectCallArg(call, 2, GetBuiltinType(tuple_slot_type)->PointerTo());
+        return;
+      }
       call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
       break;
     }
     case ast::Builtin::UpdaterIndexDeleteBind: {
-      if (!CheckArgCount(call, 2)) {
+      if (!CheckArgCount(call, 3)) {
         return;
       }
       if (!call_args[1]->IsStringLiteral()) {
         ReportIncorrectCallArg(call, 1, ast::StringType::Get(GetContext()));
+        return;
+      }
+      auto tuple_slot_type = ast::BuiltinType::TupleSlot;
+      if (!IsPointerToSpecificBuiltin(call_args[2]->GetType(), tuple_slot_type)) {
+        ReportIncorrectCallArg(call, 2, GetBuiltinType(tuple_slot_type)->PointerTo());
         return;
       }
       call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
@@ -2413,6 +2446,8 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
     case ast::Builtin::UpdaterInit:
     case ast::Builtin::UpdaterInitBind:
     case ast::Builtin::UpdaterGetTablePR:
+    case ast::Builtin::UpdaterTableInsert:
+    case ast::Builtin::UpdaterTableDelete:
     case ast::Builtin::UpdaterTableUpdate:
     case ast::Builtin::UpdaterGetIndexPR:
     case ast::Builtin::UpdaterGetIndexPRBind:

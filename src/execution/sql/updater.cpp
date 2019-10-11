@@ -14,17 +14,32 @@ Updater::Updater(exec::ExecutionContext *exec_ctx, catalog::table_oid_t table_oi
       is_index_key_update_(is_index_key_update) {
   table_ = exec_ctx->GetAccessor()->GetTable(table_oid);
 
-  // We need this to calculate the max sized index pr
-  uint32_t index_pr_size = 0;
-  auto index_oids = exec_ctx->GetAccessor()->GetIndexes(table_oid_);
-
   if (is_index_key_update) {
-    // Calculate the max sized index pr, and allocate that size for the index_pr_buffer
-    for (auto index_oid : index_oids) {
-      auto pri = GetIndex(index_oid)->GetProjectedRowInitializer();
-      index_pr_size = std::max(index_pr_size, pri.ProjectedRowSize());
-    }
-    index_pr_buffer_ = exec_ctx->GetMemoryPool()->AllocateAligned(index_pr_size, sizeof(uint64_t), true);
+    index_pr_buffer_ = GetMaxSizedIndexPRBuffer();
+    PopulateAllColOids(all_col_oids_);
+  }
+}
+
+void * Updater::GetMaxSizedIndexPRBuffer() {
+  // Calculate the max sized index pr, and allocate that size for the index_pr_buffer
+  auto index_pr_size = CalculateMaxIndexPRSize();
+  return exec_ctx_->GetMemoryPool()->AllocateAligned(index_pr_size, sizeof(uint64_t), true);
+}
+
+uint32_t Updater::CalculateMaxIndexPRSize() {
+  uint32_t index_pr_size = 0;
+  auto index_oids = exec_ctx_->GetAccessor()->GetIndexes(table_oid_);
+  for (auto index_oid : index_oids) {
+    auto pri = GetIndex(index_oid)->GetProjectedRowInitializer();
+    index_pr_size = std::max(index_pr_size, pri.ProjectedRowSize());
+  }
+  return index_pr_size;
+}
+
+void Updater::PopulateAllColOids(std::vector<catalog::col_oid_t> &all_col_oids) {
+  auto columns = exec_ctx_->GetAccessor()->GetSchema(table_oid_).GetColumns();
+  for (const auto &col : columns) {
+    all_col_oids.push_back(col.Oid());
   }
 }
 
@@ -41,50 +56,56 @@ common::ManagedPointer<storage::index::Index> execution::sql::Updater::GetIndex(
 }
 
 storage::ProjectedRow *Updater::GetTablePR() {
-  // We need all the columns
-  storage::ProjectedRowInitializer pri = table_->InitializerForProjectedRow(col_oids_);
+  if (is_index_key_update_) {
+    return GetTablePRForColumns(all_col_oids_);
+  } else {
+    return GetTablePRForColumns(col_oids_);
+  }
+}
+
+storage::ProjectedRow *Updater::GetTablePRForColumns(const std::vector<catalog::col_oid_t> &col_oids) {
+  TERRIER_ASSERT(!col_oids.empty(), "Should have at least one column oid");
+  storage::ProjectedRowInitializer pri = table_->InitializerForProjectedRow(col_oids);
   auto txn = exec_ctx_->GetTxn();
   table_redo_ = txn->StageWrite(exec_ctx_->DBOid(), table_oid_, pri);
   return table_redo_->Delta();
 }
 
 storage::ProjectedRow *Updater::GetIndexPR(catalog::index_oid_t index_oid) {
-  if (is_index_key_update_) {
-    auto index = GetIndex(index_oid);
-    index_pr_ = index->GetProjectedRowInitializer().InitializeRow(index_pr_buffer_);
-    return index_pr_;
-  }
-  TERRIER_ASSERT(false, "This function should not be called as index key is not being updated");
-  return nullptr;
+  TERRIER_ASSERT(is_index_key_update_, "Should not be called as index key is not being updated");
+  auto index = GetIndex(index_oid);
+  index_pr_ = index->GetProjectedRowInitializer().InitializeRow(index_pr_buffer_);
+  return index_pr_;
 }
 
-storage::TupleSlot Updater::TableUpdate(storage::TupleSlot table_tuple_slot) {
-  if (is_index_key_update_) {
-    // If any index key is modified, we have to Delete and Insert from the table.
-    table_->Delete(exec_ctx_->GetTxn(), table_tuple_slot);
-    table_->Insert(exec_ctx_->GetTxn(), table_redo_);
-    return table_redo_->GetTupleSlot();
-  }
-
+bool Updater::TableUpdate(storage::TupleSlot table_tuple_slot) {
+  TERRIER_ASSERT(!is_index_key_update_, "Should not be called as index key is being updated");
   table_redo_->SetTupleSlot(table_tuple_slot);
-  table_->Update(exec_ctx_->GetTxn(), table_redo_);
+  return table_->Update(exec_ctx_->GetTxn(), table_redo_);
+}
+
+bool Updater::TableDelete(storage::TupleSlot table_tuple_slot) {
+  TERRIER_ASSERT(is_index_key_update_, "Should not be called as index key is not being updated");
+  auto txn = exec_ctx_->GetTxn();
+  txn->StageDelete(exec_ctx_->DBOid(), table_oid_, table_tuple_slot);
+  return table_->Delete(exec_ctx_->GetTxn(), table_tuple_slot);
+}
+
+storage::TupleSlot Updater::TableInsert() {
+  TERRIER_ASSERT(is_index_key_update_, "Should not be called as index key is not being updated");
+  auto table_tuple_slot = table_->Insert(exec_ctx_->GetTxn(), table_redo_);
   return table_tuple_slot;
 }
 
 bool Updater::IndexInsert(catalog::index_oid_t index_oid) {
-  if (is_index_key_update_) {
-    auto index = GetIndex(index_oid);
-    return index->Insert(exec_ctx_->GetTxn(), *index_pr_, table_redo_->GetTupleSlot());
-  }
-  TERRIER_ASSERT(false, "This function should not be called as index key is not being updated");
-  return false;
+  TERRIER_ASSERT(is_index_key_update_, "Should not be called as index key is not being updated");
+  auto index = GetIndex(index_oid);
+  return index->Insert(exec_ctx_->GetTxn(), *index_pr_, table_redo_->GetTupleSlot());
 }
 
-void Updater::IndexDelete(catalog::index_oid_t index_oid) {
-  if (is_index_key_update_) {
-    auto index = GetIndex(index_oid);
-    index->Delete(exec_ctx_->GetTxn(), *index_pr_, table_redo_->GetTupleSlot());
-  }
-  TERRIER_ASSERT(false, "This function should not be called as index key is not being updated");
+void Updater::IndexDelete(catalog::index_oid_t index_oid, storage::TupleSlot table_tuple_slot) {
+  TERRIER_ASSERT(is_index_key_update_, "Should not be called as index key is not being updated");
+  auto index = GetIndex(index_oid);
+  index->Delete(exec_ctx_->GetTxn(), *index_pr_, table_tuple_slot);
 }
 }  // namespace terrier::execution::sql

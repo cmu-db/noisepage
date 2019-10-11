@@ -249,6 +249,14 @@ VM_OP void OpUpdaterTableUpdate(terrier::execution::sql::Updater *updater, terri
   updater->TableUpdate(*tuple_slot);
 }
 
+VM_OP void OpUpdaterTableDelete(terrier::execution::sql::Updater *updater, terrier::storage::TupleSlot *tuple_slot) {
+  updater->TableDelete(*tuple_slot);
+}
+
+VM_OP void OpUpdaterTableInsert(terrier::storage::TupleSlot *tuple_slot, terrier::execution::sql::Updater *updater) {
+  *tuple_slot = updater->TableInsert();
+}
+
 VM_OP void OpUpdaterGetIndexPR(terrier::execution::sql::ProjectedRowWrapper *pr_result,
                                terrier::execution::sql::Updater *updater, uint32_t index_oid) {
   *pr_result =
@@ -259,8 +267,9 @@ VM_OP void OpUpdaterIndexInsert(terrier::execution::sql::Updater *updater, uint3
   updater->IndexInsert(terrier::catalog::index_oid_t(index_oid));
 }
 
-VM_OP void OpUpdaterIndexDelete(terrier::execution::sql::Updater *updater, uint32_t index_oid) {
-  updater->IndexDelete(terrier::catalog::index_oid_t(index_oid));
+VM_OP void OpUpdaterIndexDelete(terrier::execution::sql::Updater *updater, uint32_t index_oid,
+                                terrier::storage::TupleSlot *tuple_slot) {
+  updater->IndexDelete(terrier::catalog::index_oid_t(index_oid), *tuple_slot);
 }
 
 // -------------------------------------------------------------

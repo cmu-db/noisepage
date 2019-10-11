@@ -1512,12 +1512,17 @@ VM_OP void OpUpdaterGetTablePR(terrier::execution::sql::ProjectedRowWrapper *pr_
 
 VM_OP void OpUpdaterTableUpdate(terrier::execution::sql::Updater *updater, terrier::storage::TupleSlot *tuple_slot);
 
+VM_OP void OpUpdaterTableDelete(terrier::execution::sql::Updater *updater, terrier::storage::TupleSlot *tuple_slot);
+
+VM_OP void OpUpdaterTableInsert(terrier::storage::TupleSlot *tuple_slot, terrier::execution::sql::Updater *updater);
+
 VM_OP void OpUpdaterGetIndexPR(terrier::execution::sql::ProjectedRowWrapper *pr_result,
                                terrier::execution::sql::Updater *updater, uint32_t index_oid);
 
 VM_OP void OpUpdaterIndexInsert(terrier::execution::sql::Updater *updater, uint32_t index_oid);
 
-VM_OP void OpUpdaterIndexDelete(terrier::execution::sql::Updater *updater, uint32_t index_oid);
+VM_OP void OpUpdaterIndexDelete(terrier::execution::sql::Updater *updater, uint32_t index_oid,
+                                terrier::storage::TupleSlot *tuple_slot);
 
 // Output Calls
 // ---------------------------------------------------------------

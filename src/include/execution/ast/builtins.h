@@ -207,6 +207,8 @@ namespace terrier::execution::ast {
   F(UpdaterInit, updaterInit)                                   \
   F(UpdaterInitBind, updaterInitBind)                           \
   F(UpdaterGetTablePR, updaterGetTablePR)                       \
+  F(UpdaterTableInsert, updaterTableInsert)                     \
+  F(UpdaterTableDelete, updaterTableDelete)                     \
   F(UpdaterTableUpdate, updaterTableUpdate)                     \
   F(UpdaterGetIndexPR, updaterGetIndexPR)                       \
   F(UpdaterGetIndexPRBind, updaterGetIndexPRBind)               \

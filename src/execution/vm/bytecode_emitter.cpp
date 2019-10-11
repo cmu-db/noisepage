@@ -387,8 +387,9 @@ void BytecodeEmitter::EmitUpdaterIndexInsert(Bytecode bytecode, LocalVar updater
   EmitAll(bytecode, updater, index_oid);
 }
 
-void BytecodeEmitter::EmitUpdaterIndexDelete(Bytecode bytecode, LocalVar updater, uint32_t index_oid) {
-  EmitAll(bytecode, updater, index_oid);
+void BytecodeEmitter::EmitUpdaterIndexDelete(Bytecode bytecode, LocalVar updater, uint32_t index_oid,
+                                             LocalVar tuple_slot) {
+  EmitAll(bytecode, updater, index_oid, tuple_slot);
 }
 
 }  // namespace terrier::execution::vm
