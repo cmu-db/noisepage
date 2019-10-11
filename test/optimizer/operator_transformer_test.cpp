@@ -732,8 +732,7 @@ TEST_F(OperatorTransformerTest, DeleteStatementWhereTest) {
   EXPECT_EQ(default_namespace_oid, logical_get->GetNamespaceOid());
   EXPECT_EQ(table_b_oid_, logical_get->GetTableOid());
   EXPECT_TRUE(logical_get->GetIsForUpdate());
-  EXPECT_EQ(parser::ExpressionType::COMPARE_EQUAL,
-            logical_get->GetPredicates()[0].GetExpr()->GetExpressionType());
+  EXPECT_EQ(parser::ExpressionType::COMPARE_EQUAL, logical_get->GetPredicates()[0].GetExpr()->GetExpressionType());
   EXPECT_EQ(parser::ExpressionType::COMPARE_GREATER_THAN,
             logical_get->GetPredicates()[1].GetExpr()->GetExpressionType());
 }

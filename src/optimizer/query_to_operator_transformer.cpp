@@ -57,7 +57,6 @@ void QueryToOperatorTransformer::Visit(parser::SelectStatement *op, parser::Pars
     auto filter_expr = new OperatorExpression(LogicalFilter::Make(std::move(predicates_)), {output_expr_});
     // TODO(Ling): Do something after the predicates are moved to make the vector valid?
     predicates_.clear();
-
     output_expr_ = filter_expr;
   }
 
@@ -72,8 +71,7 @@ void QueryToOperatorTransformer::Visit(parser::SelectStatement *op, parser::Pars
       size_t num_group_by_cols = op->GetSelectGroupBy()->GetColumns().size();
       auto group_by_cols = std::vector<common::ManagedPointer<parser::AbstractExpression>>(num_group_by_cols);
       for (size_t i = 0; i < num_group_by_cols; i++) {
-        group_by_cols[i] =
-            common::ManagedPointer<parser::AbstractExpression>(op->GetSelectGroupBy()->GetColumns()[i]);
+        group_by_cols[i] = common::ManagedPointer<parser::AbstractExpression>(op->GetSelectGroupBy()->GetColumns()[i]);
       }
       agg_expr = new OperatorExpression(LogicalAggregateAndGroupBy::Make(std::move(group_by_cols)), {output_expr_});
       output_expr_ = agg_expr;
