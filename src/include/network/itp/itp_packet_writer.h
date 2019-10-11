@@ -24,7 +24,7 @@ class ITPPacketWriter : public PacketWriter {
    * | message type (char) | message id (uint64_t) | data size (uint64_t) | replication data (varlen) |
    * --------------------------------------------------------------------------------------------------
    * @param message_id message id
-   * @param replication_data data for replication
+   * @param data_size total size of replication data to be added
    */
   void BeginReplicationCommand(uint64_t message_id, uint64_t data_size) {
     BeginPacket(NetworkMessageType::ITP_REPLICATION_COMMAND);
