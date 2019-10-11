@@ -39,7 +39,7 @@ class AbstractExpression {
    * @param return_value_type the type of the expression's value
    * @param children the list of children for this node
    */
-  AbstractExpression(ExpressionType expression_type, type::TypeId return_value_type,
+  AbstractExpression(const ExpressionType expression_type, const type::TypeId return_value_type,
                      std::vector<std::unique_ptr<AbstractExpression>> &&children)
       : expression_type_(expression_type), return_value_type_(return_value_type), children_(std::move(children)) {}
   /**

@@ -1065,10 +1065,10 @@ std::unique_ptr<TableRef> PostgresParser::RangeSubselectTransform(ParseResult *p
 
 // Postgres.CopyStmt -> terrier.CopyStatement
 std::unique_ptr<CopyStatement> PostgresParser::CopyTransform(ParseResult *parse_result, CopyStmt *root) {
-  static constexpr char kDelimiterTok[] = "delimiter";
-  static constexpr char kFormatTok[] = "format";
-  static constexpr char kQuoteTok[] = "quote";
-  static constexpr char kEscapeTok[] = "escape";
+  static constexpr char k_delimiter_tok[] = "delimiter";
+  static constexpr char k_format_tok[] = "format";
+  static constexpr char k_quote_tok[] = "quote";
+  static constexpr char k_escape_tok[] = "escape";
 
   std::unique_ptr<TableRef> table;
   std::unique_ptr<SelectStatement> select_stmt;
