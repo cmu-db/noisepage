@@ -1818,7 +1818,7 @@ void Sema::CheckBuiltinUpdaterCall(ast::CallExpr *call, ast::Builtin builtin) {
 
   switch (builtin) {
     case ast::Builtin::UpdaterInit: {
-      if (!CheckArgCount(call, 6)) {
+      if (!CheckArgCount(call, 5)) {
         return;
       }
 
@@ -1837,19 +1837,18 @@ void Sema::CheckBuiltinUpdaterCall(ast::CallExpr *call, ast::Builtin builtin) {
 
       // uint32_t *col_oids
       if (!call_args[3]->GetType()->IsArrayType()) {
-        ReportIncorrectCallArg(call, 3, "Third argument should be a uint32 array");
+        ReportIncorrectCallArg(call, 3, "Third argument should be a fixed length uint32 array");
         return;
       }
-
-      // num_oids
-      if (!call_args[4]->IsIntegerLiteral()) {
-        ReportIncorrectCallArg(call, 4, GetBuiltinType(int32_kind));
-        return;
+      auto *arr_type = call_args[3]->GetType()->SafeAs<ast::ArrayType>();
+      auto uint32_t_kind = ast::BuiltinType::Uint32;
+      if (!arr_type->ElementType()->IsSpecificBuiltin(uint32_t_kind) || !arr_type->HasKnownLength()) {
+        ReportIncorrectCallArg(call, 3, "Third argument should be a fixed length uint32 array");
       }
 
       // is_index_key_update
-      if (!call_args[5]->IsBooleanLiteral()) {
-        ReportIncorrectCallArg(call, 5, GetBuiltinType(boolean_kind));
+      if (!call_args[4]->GetType()->IsBoolType()) {
+        ReportIncorrectCallArg(call, 4, GetBuiltinType(ast::BuiltinType::Bool));
         return;
       }
 
@@ -1858,7 +1857,7 @@ void Sema::CheckBuiltinUpdaterCall(ast::CallExpr *call, ast::Builtin builtin) {
       break;
     }
     case ast::Builtin::UpdaterInitBind: {
-      if (!CheckArgCount(call, 6)) {
+      if (!CheckArgCount(call, 5)) {
         return;
       }
 
@@ -1877,19 +1876,18 @@ void Sema::CheckBuiltinUpdaterCall(ast::CallExpr *call, ast::Builtin builtin) {
 
       // uint32_t *col_oids
       if (!call_args[3]->GetType()->IsArrayType()) {
-        ReportIncorrectCallArg(call, 3, "Third argument should be a uint32 array");
+        ReportIncorrectCallArg(call, 3, "Third argument should be a fixed length uint32 array");
         return;
       }
-
-      // num_oids
-      if (!call_args[4]->IsIntegerLiteral()) {
-        ReportIncorrectCallArg(call, 4, GetBuiltinType(int32_kind));
-        return;
+      auto *arr_type = call_args[3]->GetType()->SafeAs<ast::ArrayType>();
+      auto uint32_t_kind = ast::BuiltinType::Uint32;
+      if (!arr_type->ElementType()->IsSpecificBuiltin(uint32_t_kind) || !arr_type->HasKnownLength()) {
+        ReportIncorrectCallArg(call, 3, "Fourth argument should be a fixed length uint32 array");
       }
 
       // is_index_key_update
-      if (!call_args[5]->IsBooleanLiteral()) {
-        ReportIncorrectCallArg(call, 5, GetBuiltinType(boolean_kind));
+      if (!call_args[4]->GetType()->IsBoolType()) {
+        ReportIncorrectCallArg(call, 4, GetBuiltinType(ast::BuiltinType::Bool));
         return;
       }
 

@@ -387,7 +387,7 @@ namespace terrier::execution::vm {
   F(UpdaterTableDelete, OperandType::Local, OperandType::Local)                                                       \
   F(UpdaterGetIndexPR, OperandType::Local, OperandType::Local, OperandType::UImm4)                                    \
   F(UpdaterIndexInsert, OperandType::Local, OperandType::UImm4)                                                       \
-  F(UpdaterIndexDelete, OperandType::Local, OperandType::UImm4, OperandType::Local)                                                       \
+  F(UpdaterIndexDelete, OperandType::Local, OperandType::UImm4, OperandType::Local)                                   \
                                                                                                                       \
   /* Trig functions */                                                                                                \
   F(Pi, OperandType::Local)                                                                                           \

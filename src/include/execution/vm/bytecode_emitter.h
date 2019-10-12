@@ -492,7 +492,7 @@ class BytecodeEmitter {
    * Emit bytecode to update tuples in the table
    */
   void EmitUpdaterInit(Bytecode bytecode, LocalVar updater, LocalVar exec_ctx, uint32_t table_oid, LocalVar col_oids,
-                       uint32_t num_oids, bool is_index_key_update);
+                       uint32_t num_oids, LocalVar is_index_key_update);
 
   void EmitUpdaterGetIndexPR(Bytecode bytecode, LocalVar pr, LocalVar updater, uint32_t index_oid);
 

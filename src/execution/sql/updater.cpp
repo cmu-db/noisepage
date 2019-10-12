@@ -20,7 +20,7 @@ Updater::Updater(exec::ExecutionContext *exec_ctx, catalog::table_oid_t table_oi
   }
 }
 
-void * Updater::GetMaxSizedIndexPRBuffer() {
+void *Updater::GetMaxSizedIndexPRBuffer() {
   // Calculate the max sized index pr, and allocate that size for the index_pr_buffer
   auto index_pr_size = CalculateMaxIndexPRSize();
   return exec_ctx_->GetMemoryPool()->AllocateAligned(index_pr_size, sizeof(uint64_t), true);

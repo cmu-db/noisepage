@@ -1812,9 +1812,10 @@ void BytecodeGenerator::VisitBuiltinUpdaterCall(ast::CallExpr *call, ast::Builti
     case ast::Builtin::UpdaterInit: {
       LocalVar exec_ctx = VisitExpressionForRValue(call->Arguments()[1]);
       auto table_oid = static_cast<uint32_t>(call->Arguments()[2]->As<ast::LitExpr>()->Int64Val());
-      LocalVar col_oids = VisitExpressionForRValue(call->Arguments()[3]);
-      auto num_oids = static_cast<uint32_t>(call->Arguments()[4]->As<ast::LitExpr>()->Int64Val());
-      auto is_index_key_update = static_cast<bool>(call->Arguments()[5]->As<ast::LitExpr>()->BoolVal());
+      auto *arr_type = call->Arguments()[3]->GetType()->As<ast::ArrayType>();
+      auto num_oids = static_cast<uint32_t>(arr_type->Length());
+      LocalVar col_oids = VisitExpressionForLValue(call->Arguments()[3]);
+      LocalVar is_index_key_update = VisitExpressionForRValue(call->Arguments()[4]);
       Emitter()->EmitUpdaterInit(Bytecode::UpdaterInit, updater, exec_ctx, table_oid, col_oids, num_oids,
                                  is_index_key_update);
       break;
@@ -1824,9 +1825,10 @@ void BytecodeGenerator::VisitBuiltinUpdaterCall(ast::CallExpr *call, ast::Builti
       ast::Identifier table_name = call->Arguments()[2]->As<ast::LitExpr>()->RawStringVal();
       auto ns_oid = exec_ctx_->GetAccessor()->GetDefaultNamespace();
       auto table_oid = exec_ctx_->GetAccessor()->GetTableOid(ns_oid, table_name.Data());
-      LocalVar col_oids = VisitExpressionForRValue(call->Arguments()[3]);
-      auto num_oids = static_cast<uint32_t>(call->Arguments()[4]->As<ast::LitExpr>()->Int64Val());
-      auto is_index_key_update = static_cast<bool>(call->Arguments()[5]->As<ast::LitExpr>()->BoolVal());
+      auto *arr_type = call->Arguments()[3]->GetType()->As<ast::ArrayType>();
+      auto num_oids = static_cast<uint32_t>(arr_type->Length());
+      LocalVar col_oids = VisitExpressionForLValue(call->Arguments()[3]);
+      LocalVar is_index_key_update = VisitExpressionForRValue(call->Arguments()[4]);
       Emitter()->EmitUpdaterInit(Bytecode::UpdaterInit, updater, exec_ctx, !table_oid, col_oids, num_oids,
                                  is_index_key_update);
       break;

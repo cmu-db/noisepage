@@ -375,7 +375,7 @@ void BytecodeEmitter::EmitDeleterIndexDelete(Bytecode bytecode, LocalVar deleter
 }
 
 void BytecodeEmitter::EmitUpdaterInit(Bytecode bytecode, LocalVar updater, LocalVar exec_ctx, uint32_t table_oid,
-                                      LocalVar col_oids, uint32_t num_oids, bool is_index_key_update) {
+                                      LocalVar col_oids, uint32_t num_oids, LocalVar is_index_key_update) {
   EmitAll(bytecode, updater, exec_ctx, table_oid, col_oids, num_oids, is_index_key_update);
 }
 

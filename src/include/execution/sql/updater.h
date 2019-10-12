@@ -37,7 +37,6 @@ class EXPORT Updater {
 
   void PopulateAllColOids(std::vector<catalog::col_oid_t> &all_col_oids);
 
-
   storage::ProjectedRow *GetTablePRForColumns(const std::vector<catalog::col_oid_t> &col_oids);
 
   catalog::table_oid_t table_oid_;
