@@ -1840,12 +1840,12 @@ void BytecodeGenerator::VisitBuiltinUpdaterCall(ast::CallExpr *call, ast::Builti
     case ast::Builtin::UpdaterTableInsert: {
       ast::Type *tuple_slot_type = ast::BuiltinType::Get(ctx, ast::BuiltinType::TupleSlot);
       LocalVar tuple_slot = ExecutionResult()->GetOrCreateDestination(tuple_slot_type);
-      Emitter()->Emit(Bytecode::InserterTableInsert, tuple_slot, updater);
+      Emitter()->Emit(Bytecode::UpdaterTableInsert, tuple_slot, updater);
       break;
     }
     case ast::Builtin::UpdaterTableDelete: {
       LocalVar tuple_slot = VisitExpressionForRValue(call->Arguments()[1]);
-      Emitter()->Emit(Bytecode::DeleterTableDelete, updater, tuple_slot);
+      Emitter()->Emit(Bytecode::UpdaterTableDelete, updater, tuple_slot);
       break;
     }
     case ast::Builtin::UpdaterTableUpdate: {
@@ -1884,7 +1884,7 @@ void BytecodeGenerator::VisitBuiltinUpdaterCall(ast::CallExpr *call, ast::Builti
     case ast::Builtin::UpdaterIndexDelete: {
       auto index_oid = static_cast<uint32_t>(call->Arguments()[1]->As<ast::LitExpr>()->Int64Val());
       LocalVar tuple_slot = VisitExpressionForRValue(call->Arguments()[2]);
-      Emitter()->EmitDeleterIndexDelete(Bytecode::DeleterIndexDelete, updater, index_oid, tuple_slot);
+      Emitter()->EmitUpdaterIndexDelete(Bytecode::DeleterIndexDelete, updater, index_oid, tuple_slot);
       break;
     }
     case ast::Builtin::UpdaterIndexDeleteBind: {
@@ -1892,7 +1892,7 @@ void BytecodeGenerator::VisitBuiltinUpdaterCall(ast::CallExpr *call, ast::Builti
       auto ns_oid = exec_ctx_->GetAccessor()->GetDefaultNamespace();
       auto index_oid = exec_ctx_->GetAccessor()->GetIndexOid(ns_oid, index_name.Data());
       LocalVar tuple_slot = VisitExpressionForRValue(call->Arguments()[2]);
-      Emitter()->EmitDeleterIndexDelete(Bytecode::DeleterIndexDelete, updater, !index_oid, tuple_slot);
+      Emitter()->EmitUpdaterIndexDelete(Bytecode::DeleterIndexDelete, updater, !index_oid, tuple_slot);
       break;
     }
     default:
@@ -2143,6 +2143,8 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
     case ast::Builtin::UpdaterInit:
     case ast::Builtin::UpdaterInitBind:
     case ast::Builtin::UpdaterGetTablePR:
+    case ast::Builtin::UpdaterTableInsert:
+    case ast::Builtin::UpdaterTableDelete:
     case ast::Builtin::UpdaterTableUpdate:
     case ast::Builtin::UpdaterGetIndexPR:
     case ast::Builtin::UpdaterGetIndexPRBind:
