@@ -11,9 +11,8 @@
 
 namespace terrier {
 namespace parser {
-
 /**
- * Represents the sql "INSERT ..."
+ * InsertStatement represents the sql "INSERT ..."
  */
 class InsertStatement : public SQLStatement {
  public:
@@ -23,8 +22,8 @@ class InsertStatement : public SQLStatement {
    * @param table_ref table
    * @param select select statement to insert from
    */
-  InsertStatement(std::shared_ptr<std::vector<std::string>> columns, std::shared_ptr<TableRef> table_ref,
-                  std::shared_ptr<SelectStatement> select)
+  InsertStatement(std::unique_ptr<std::vector<std::string>> columns, std::unique_ptr<TableRef> table_ref,
+                  std::unique_ptr<SelectStatement> select)
       : SQLStatement(StatementType::INSERT),
         type_(InsertType::SELECT),
         columns_(std::move(columns)),
@@ -37,55 +36,44 @@ class InsertStatement : public SQLStatement {
    * @param table_ref table
    * @param insert_values values to be inserted
    */
-  InsertStatement(std::shared_ptr<std::vector<std::string>> columns, std::shared_ptr<TableRef> table_ref,
-                  std::shared_ptr<std::vector<std::vector<std::shared_ptr<AbstractExpression>>>> insert_values)
+  InsertStatement(std::unique_ptr<std::vector<std::string>> columns, std::unique_ptr<TableRef> table_ref,
+                  std::unique_ptr<std::vector<std::vector<common::ManagedPointer<AbstractExpression>>>> insert_values)
       : SQLStatement(StatementType::INSERT),
         type_(InsertType::VALUES),
         columns_(std::move(columns)),
         table_ref_(std::move(table_ref)),
         insert_values_(std::move(insert_values)) {}
 
-  /**
-   * @param type insert type (SELECT or VALUES)
-   */
+  /** @param type insert type (SELECT or VALUES) */
   explicit InsertStatement(InsertType type) : SQLStatement(StatementType::INSERT), type_(type) {}
 
   ~InsertStatement() override = default;
 
   void Accept(SqlNodeVisitor *v) override { v->Visit(this); }
 
-  /**
-   * @return type of insertion
-   */
+  /** @return type of insertion */
   InsertType GetInsertType() { return type_; }
 
-  /**
-   * @return columns to insert into
-   */
-  std::shared_ptr<std::vector<std::string>> GetInsertColumns() { return columns_; }
+  /** @return columns to insert into */
+  common::ManagedPointer<std::vector<std::string>> GetInsertColumns() { return common::ManagedPointer(columns_); }
 
-  /**
-   * @return table to insert into
-   */
-  std::shared_ptr<TableRef> GetInsertionTable() const { return table_ref_; }
+  /** @return table to insert into */
+  common::ManagedPointer<TableRef> GetInsertionTable() const { return common::ManagedPointer(table_ref_); }
 
-  /**
-   * @return select statement we're inserting from
-   */
-  std::shared_ptr<SelectStatement> GetSelect() const { return select_; }
+  /** @return select statement we're inserting from */
+  common::ManagedPointer<SelectStatement> GetSelect() const { return common::ManagedPointer(select_); }
 
-  /**
-   * @return values that we're inserting
-   */
-  std::shared_ptr<std::vector<std::vector<std::shared_ptr<AbstractExpression>>>> GetValues() { return insert_values_; }
+  /** @return values that we're inserting */
+  common::ManagedPointer<std::vector<std::vector<common::ManagedPointer<AbstractExpression>>>> GetValues() {
+    return common::ManagedPointer(insert_values_);
+  }
 
  private:
   const InsertType type_;
-  const std::shared_ptr<std::vector<std::string>> columns_;
-  const std::shared_ptr<TableRef> table_ref_;
-  const std::shared_ptr<SelectStatement> select_;
-  // TODO(WAN): unsure about this one.
-  const std::shared_ptr<std::vector<std::vector<std::shared_ptr<AbstractExpression>>>> insert_values_;
+  const std::unique_ptr<std::vector<std::string>> columns_;
+  const std::unique_ptr<TableRef> table_ref_;
+  const std::unique_ptr<SelectStatement> select_;
+  const std::unique_ptr<std::vector<std::vector<common::ManagedPointer<AbstractExpression>>>> insert_values_;
 };
 
 }  // namespace parser

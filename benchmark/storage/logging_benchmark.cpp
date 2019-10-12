@@ -25,7 +25,7 @@ class LoggingBenchmark : public benchmark::Fixture {
   storage::GarbageCollector *gc_;
   storage::GarbageCollectorThread *gc_thread_ = nullptr;
   const std::chrono::milliseconds gc_period_{10};
-  common::DedicatedThreadRegistry thread_registry_;
+  common::DedicatedThreadRegistry thread_registry_ = common::DedicatedThreadRegistry(nullptr);
 
   // Settings for log manager
   const uint64_t num_log_buffers_ = 100;
@@ -56,13 +56,14 @@ BENCHMARK_DEFINE_F(LoggingBenchmark, TPCCish)(benchmark::State &state) {
 
     gc_ = new storage::GarbageCollector(tested.GetTimestampManager(), DISABLED, tested.GetTxnManager(), DISABLED);
     gc_thread_ = new storage::GarbageCollectorThread(gc_, gc_period_);
+    const auto result = tested.SimulateOltp(num_txns_, num_concurrent_txns_);
+    abort_count += result.first;
     uint64_t elapsed_ms;
     {
       common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
-      abort_count += tested.SimulateOltp(num_txns_, num_concurrent_txns_);
       log_manager_->ForceFlush();
     }
-    state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
+    state.SetIterationTime(static_cast<double>(result.second + elapsed_ms) / 1000.0);
     log_manager_->PersistAndStop();
     delete log_manager_;
     delete gc_thread_;
@@ -95,13 +96,14 @@ BENCHMARK_DEFINE_F(LoggingBenchmark, HighAbortRate)(benchmark::State &state) {
 
     gc_ = new storage::GarbageCollector(tested.GetTimestampManager(), DISABLED, tested.GetTxnManager(), DISABLED);
     gc_thread_ = new storage::GarbageCollectorThread(gc_, gc_period_);
+    const auto result = tested.SimulateOltp(num_txns_, num_concurrent_txns_);
+    abort_count += result.first;
     uint64_t elapsed_ms;
     {
       common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
-      abort_count += tested.SimulateOltp(num_txns_, num_concurrent_txns_);
       log_manager_->ForceFlush();
     }
-    state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
+    state.SetIterationTime(static_cast<double>(result.second + elapsed_ms) / 1000.0);
     log_manager_->PersistAndStop();
     delete log_manager_;
     delete gc_thread_;
@@ -133,13 +135,14 @@ BENCHMARK_DEFINE_F(LoggingBenchmark, SingleStatementInsert)(benchmark::State &st
 
     gc_ = new storage::GarbageCollector(tested.GetTimestampManager(), DISABLED, tested.GetTxnManager(), DISABLED);
     gc_thread_ = new storage::GarbageCollectorThread(gc_, gc_period_);
+    const auto result = tested.SimulateOltp(num_txns_, num_concurrent_txns_);
+    abort_count += result.first;
     uint64_t elapsed_ms;
     {
       common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
-      abort_count += tested.SimulateOltp(num_txns_, num_concurrent_txns_);
       log_manager_->ForceFlush();
     }
-    state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
+    state.SetIterationTime(static_cast<double>(result.second + elapsed_ms) / 1000.0);
     log_manager_->PersistAndStop();
     delete log_manager_;
     delete gc_thread_;
@@ -171,13 +174,14 @@ BENCHMARK_DEFINE_F(LoggingBenchmark, SingleStatementUpdate)(benchmark::State &st
 
     gc_ = new storage::GarbageCollector(tested.GetTimestampManager(), DISABLED, tested.GetTxnManager(), DISABLED);
     gc_thread_ = new storage::GarbageCollectorThread(gc_, gc_period_);
+    const auto result = tested.SimulateOltp(num_txns_, num_concurrent_txns_);
+    abort_count += result.first;
     uint64_t elapsed_ms;
     {
       common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
-      abort_count += tested.SimulateOltp(num_txns_, num_concurrent_txns_);
       log_manager_->ForceFlush();
     }
-    state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
+    state.SetIterationTime(static_cast<double>(result.second + elapsed_ms) / 1000.0);
     log_manager_->PersistAndStop();
     delete log_manager_;
     delete gc_thread_;
@@ -209,13 +213,14 @@ BENCHMARK_DEFINE_F(LoggingBenchmark, SingleStatementSelect)(benchmark::State &st
 
     gc_ = new storage::GarbageCollector(tested.GetTimestampManager(), DISABLED, tested.GetTxnManager(), DISABLED);
     gc_thread_ = new storage::GarbageCollectorThread(gc_, gc_period_);
+    const auto result = tested.SimulateOltp(num_txns_, num_concurrent_txns_);
+    abort_count += result.first;
     uint64_t elapsed_ms;
     {
       common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
-      abort_count += tested.SimulateOltp(num_txns_, num_concurrent_txns_);
       log_manager_->ForceFlush();
     }
-    state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
+    state.SetIterationTime(static_cast<double>(result.second + elapsed_ms) / 1000.0);
     log_manager_->PersistAndStop();
     delete log_manager_;
     delete gc_thread_;

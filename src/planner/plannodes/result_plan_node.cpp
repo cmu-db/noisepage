@@ -1,6 +1,8 @@
 #include "planner/plannodes/result_plan_node.h"
+
 #include <memory>
 #include <utility>
+#include <vector>
 
 namespace terrier::planner {
 
@@ -27,15 +29,22 @@ bool ResultPlanNode::operator==(const AbstractPlanNode &rhs) const {
 
 nlohmann::json ResultPlanNode::ToJson() const {
   nlohmann::json j = AbstractPlanNode::ToJson();
-  j["expr"] = expr_;
+  j["expr"] = expr_ == nullptr ? nlohmann::json(nullptr) : expr_->ToJson();
   return j;
 }
 
-void ResultPlanNode::FromJson(const nlohmann::json &j) {
-  AbstractPlanNode::FromJson(j);
+std::vector<std::unique_ptr<parser::AbstractExpression>> ResultPlanNode::FromJson(const nlohmann::json &j) {
+  std::vector<std::unique_ptr<parser::AbstractExpression>> exprs;
+  auto e1 = AbstractPlanNode::FromJson(j);
+  exprs.insert(exprs.end(), std::make_move_iterator(e1.begin()), std::make_move_iterator(e1.end()));
   if (!j.at("expr").is_null()) {
-    expr_ = parser::DeserializeExpression(j.at("expr"));
+    auto deserialized = parser::DeserializeExpression(j.at("expr"));
+    expr_ = common::ManagedPointer(deserialized.result_);
+    exprs.emplace_back(std::move(deserialized.result_));
+    exprs.insert(exprs.end(), std::make_move_iterator(deserialized.non_owned_exprs_.begin()),
+                 std::make_move_iterator(deserialized.non_owned_exprs_.end()));
   }
+  return exprs;
 }
 
 }  // namespace terrier::planner
