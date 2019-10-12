@@ -48,6 +48,7 @@ types/strings.tpl,false,0
 agg.tpl,true,10
 agg-vec.tpl,true,10
 agg-vec-filter.tpl,true,10
+deleter.tpl,true,0
 inserter.tpl,true,2
 inserter-2.tpl,true,3
 join.tpl,true,0
