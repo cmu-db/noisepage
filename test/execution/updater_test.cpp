@@ -169,6 +169,22 @@ TEST_F(UpdaterTest, MultiIndexTest) {
 
   // Create Update PR
   updater.TableDelete(tuple_slot);
+
+  {
+    // Delete from index 1
+    auto update_index_pr = updater.GetIndexPR(index_oid);
+    *reinterpret_cast<int16_t *>(update_index_pr->AccessForceNotNull(0)) = value0;
+    updater.IndexDelete(index_oid, tuple_slot);
+  }
+
+  {
+    // Test that multi index delete succeeds
+    auto update_index_pr = updater.GetIndexPR(index_oid2);
+    *reinterpret_cast<int16_t *>(update_index_pr->AccessForceNotNull(0)) = value0;
+    *reinterpret_cast<int32_t *>(update_index_pr->AccessForceNotNull(1)) = value1;
+    updater.IndexDelete(index_oid2, tuple_slot);
+  }
+
   auto update_pr = updater.GetTablePR();
   *reinterpret_cast<int16_t *>(update_pr->AccessForceNotNull(0)) = value0;
   *reinterpret_cast<int32_t *>(update_pr->AccessForceNotNull(1)) = value1_changed;
@@ -176,25 +192,19 @@ TEST_F(UpdaterTest, MultiIndexTest) {
   *reinterpret_cast<int32_t *>(update_pr->AccessForceNotNull(3)) = value3;
   updater.TableInsert();
 
-  // Update index 1
   {
+    // Update index1
     auto update_index_pr = updater.GetIndexPR(index_oid);
     *reinterpret_cast<int16_t *>(update_index_pr->AccessForceNotNull(0)) = value0;
-    updater.IndexDelete(index_oid, tuple_slot);
     updater.IndexInsert(index_oid);
-
     index->ScanKey(*exec_ctx_->GetTxn(), *update_index_pr, &results_after_update);
     EXPECT_EQ(results_before_update.size(), results_after_update.size());
   }
 
-  // Test that multi index delete succeeds
   {
+    // Update index2
     auto update_index_pr = updater.GetIndexPR(index_oid2);
     *reinterpret_cast<int16_t *>(update_index_pr->AccessForceNotNull(0)) = value0;
-    *reinterpret_cast<int32_t *>(update_index_pr->AccessForceNotNull(1)) = value1;
-    updater.IndexDelete(index_oid2, tuple_slot);
-
-    // Update value
     *reinterpret_cast<int32_t *>(update_index_pr->AccessForceNotNull(1)) = value1_changed;
     updater.IndexInsert(index_oid2);
 
