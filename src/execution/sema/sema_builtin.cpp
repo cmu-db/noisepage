@@ -1746,7 +1746,7 @@ void Sema::CheckBuiltinDeleterCall(ast::CallExpr *call, ast::Builtin builtin) {
         return;
       }
 
-      call->SetType(GetBuiltinType(ast::BuiltinType::ProjectedRow)->PointerTo());
+      call->SetType(GetBuiltinType(ast::BuiltinType::ProjectedRow));
       break;
     }
     case ast::Builtin::DeleterGetIndexPRBind: {
@@ -1759,7 +1759,7 @@ void Sema::CheckBuiltinDeleterCall(ast::CallExpr *call, ast::Builtin builtin) {
         return;
       }
 
-      call->SetType(GetBuiltinType(ast::BuiltinType::ProjectedRow)->PointerTo());
+      call->SetType(GetBuiltinType(ast::BuiltinType::ProjectedRow));
       break;
     }
     case ast::Builtin::DeleterIndexDelete: {
@@ -1901,7 +1901,7 @@ void Sema::CheckBuiltinUpdaterCall(ast::CallExpr *call, ast::Builtin builtin) {
       if (!CheckArgCount(call, 1)) {
         return;
       }
-      call->SetType(GetBuiltinType(ast::BuiltinType::ProjectedRow)->PointerTo());
+      call->SetType(GetBuiltinType(ast::BuiltinType::ProjectedRow));
       break;
     }
     case ast::Builtin::UpdaterTableInsert: {
@@ -1951,7 +1951,7 @@ void Sema::CheckBuiltinUpdaterCall(ast::CallExpr *call, ast::Builtin builtin) {
         return;
       }
 
-      call->SetType(GetBuiltinType(ast::BuiltinType::ProjectedRow)->PointerTo());
+      call->SetType(GetBuiltinType(ast::BuiltinType::ProjectedRow));
       break;
     }
     case ast::Builtin::UpdaterGetIndexPRBind: {
@@ -1964,7 +1964,7 @@ void Sema::CheckBuiltinUpdaterCall(ast::CallExpr *call, ast::Builtin builtin) {
         return;
       }
 
-      call->SetType(GetBuiltinType(ast::BuiltinType::ProjectedRow)->PointerTo());
+      call->SetType(GetBuiltinType(ast::BuiltinType::ProjectedRow));
       break;
     }
     case ast::Builtin::UpdaterIndexInsert: {

@@ -57,13 +57,11 @@ fun main(execCtx: *ExecutionContext) -> int64 {
   // The oids are the table col_oids that will be selected
   // Initialization
 
-  var tvi: TableVectorIterator
   var oids: [4]uint32
   oids[0] = 1 // colA
   oids[1] = 2 // colB
   oids[2] = 3 // colC
   oids[3] = 4 // colD
-  @tableIterInitBind(&tvi, execCtx, "test_1", oids)
   var col0_val = 15
   var inserter : Inserter
   var deleter : Deleter
@@ -84,13 +82,16 @@ fun main(execCtx: *ExecutionContext) -> int64 {
   var index_count_before_insert = index_count(execCtx, col0_val)
   @inserterIndexInsertBind(&inserter, "index_1")
 
-  @tableIterInitBind(&tvi, execCtx, "test_1", oids)
   var table_count_after_insert = table_count(execCtx, &oids)
   var table_count_before_delete = table_count_after_insert
   var index_count_after_insert = index_count(execCtx, col0_val)
   var index_count_before_delete = index_count_after_insert
 
+  var index_delete_pr : *ProjectedRow = @deleterGetIndexPRBind(&deleter, "index_1")
+  @prSetInt(index_delete_pr, 0, @prGetInt(table_pr, 0))
   @deleterTableDelete(&deleter, &ts)
+
+  @deleterIndexDeleteBind(&deleter, "index_1", &ts)
 
   var table_count_after_delete = table_count(execCtx, &oids)
   var index_count_after_delete = index_count(execCtx, col0_val)
