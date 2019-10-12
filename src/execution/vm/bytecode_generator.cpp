@@ -1886,7 +1886,7 @@ void BytecodeGenerator::VisitBuiltinUpdaterCall(ast::CallExpr *call, ast::Builti
     case ast::Builtin::UpdaterIndexDelete: {
       auto index_oid = static_cast<uint32_t>(call->Arguments()[1]->As<ast::LitExpr>()->Int64Val());
       LocalVar tuple_slot = VisitExpressionForRValue(call->Arguments()[2]);
-      Emitter()->EmitUpdaterIndexDelete(Bytecode::DeleterIndexDelete, updater, index_oid, tuple_slot);
+      Emitter()->EmitUpdaterIndexDelete(Bytecode::UpdaterIndexDelete, updater, index_oid, tuple_slot);
       break;
     }
     case ast::Builtin::UpdaterIndexDeleteBind: {
@@ -1894,7 +1894,7 @@ void BytecodeGenerator::VisitBuiltinUpdaterCall(ast::CallExpr *call, ast::Builti
       auto ns_oid = exec_ctx_->GetAccessor()->GetDefaultNamespace();
       auto index_oid = exec_ctx_->GetAccessor()->GetIndexOid(ns_oid, index_name.Data());
       LocalVar tuple_slot = VisitExpressionForRValue(call->Arguments()[2]);
-      Emitter()->EmitUpdaterIndexDelete(Bytecode::DeleterIndexDelete, updater, !index_oid, tuple_slot);
+      Emitter()->EmitUpdaterIndexDelete(Bytecode::UpdaterIndexDelete, updater, !index_oid, tuple_slot);
       break;
     }
     default:
