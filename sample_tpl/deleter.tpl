@@ -89,9 +89,9 @@ fun main(execCtx: *ExecutionContext) -> int64 {
 
   var index_delete_pr : *ProjectedRow = @deleterGetIndexPRBind(&deleter, "index_1")
   @prSetInt(index_delete_pr, 0, @prGetInt(table_pr, 0))
-  @deleterTableDelete(&deleter, &ts)
 
   @deleterIndexDeleteBind(&deleter, "index_1", &ts)
+  @deleterTableDelete(&deleter, &ts)
 
   var table_count_after_delete = table_count(execCtx, &oids)
   var index_count_after_delete = index_count(execCtx, col0_val)

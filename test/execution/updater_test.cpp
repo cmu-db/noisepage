@@ -174,8 +174,7 @@ TEST_F(UpdaterTest, MultiIndexTest) {
   *reinterpret_cast<int32_t *>(update_pr->AccessForceNotNull(1)) = value1_changed;
   *reinterpret_cast<int64_t *>(update_pr->AccessForceNotNull(2)) = value2_changed;
   *reinterpret_cast<int32_t *>(update_pr->AccessForceNotNull(3)) = value3;
-  auto new_tuple_slot = updater.TableInsert();
-(void) new_tuple_slot;
+  updater.TableInsert();
 
   // Update index 1
   {
