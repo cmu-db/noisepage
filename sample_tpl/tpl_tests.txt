@@ -52,6 +52,7 @@ deleter.tpl,true,0
 deleter-2.tpl,true,0
 inserter.tpl,true,2
 inserter-2.tpl,true,3
+updater.tpl,true,2
 join.tpl,true,0
 #parallel-join.tpl,true,0 <Parallel scan not yet supported>
 #parallel-scan.tpl,true,0 <Parallel scan not yet supported>

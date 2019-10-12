@@ -1804,9 +1804,6 @@ void Sema::CheckBuiltinUpdaterCall(ast::CallExpr *call, ast::Builtin builtin) {
 
   const auto updater_kind = ast::BuiltinType::Updater;
   const auto int32_kind = ast::BuiltinType::Int32;
-  // TODO(pulkit): Both ast::BuiltinType::Bool and ast::BuiltinType::Boolean are allowed here,
-  //  and I couldn't find the declaration for builtin types. Which one should be used?
-  const auto boolean_kind = ast::BuiltinType::Boolean;
 
   if (!CheckArgCountAtLeast(call, 1)) {
     return;
@@ -1926,7 +1923,7 @@ void Sema::CheckBuiltinUpdaterCall(ast::CallExpr *call, ast::Builtin builtin) {
       break;
     }
     case ast::Builtin::UpdaterTableUpdate: {
-      if (!CheckArgCount(call, 1)) {
+      if (!CheckArgCount(call, 2)) {
         return;
       }
 
