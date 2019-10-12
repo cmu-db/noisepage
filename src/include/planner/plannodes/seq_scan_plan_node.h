@@ -42,10 +42,10 @@ class SeqScanPlanNode : public AbstractScanPlanNode {
      * Build the sequential scan plan node
      * @return plan node
      */
-    std::shared_ptr<SeqScanPlanNode> Build() {
-      return std::shared_ptr<SeqScanPlanNode>(
-          new SeqScanPlanNode(std::move(children_), std::move(output_schema_), std::move(scan_predicate_),
-                              is_for_update_, is_parallel_, database_oid_, namespace_oid_, table_oid_));
+    std::unique_ptr<SeqScanPlanNode> Build() {
+      return std::unique_ptr<SeqScanPlanNode>(new SeqScanPlanNode(std::move(children_), std::move(output_schema_),
+                                                                  scan_predicate_, is_for_update_, is_parallel_,
+                                                                  database_oid_, namespace_oid_, table_oid_));
     }
 
    protected:
@@ -65,12 +65,13 @@ class SeqScanPlanNode : public AbstractScanPlanNode {
    * @param database_oid database oid for scan
    * @param table_oid OID for table to scan
    */
-  SeqScanPlanNode(std::vector<std::shared_ptr<AbstractPlanNode>> &&children,
-                  std::shared_ptr<OutputSchema> output_schema, std::shared_ptr<parser::AbstractExpression> predicate,
-                  bool is_for_update, bool is_parallel, catalog::db_oid_t database_oid,
-                  catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid)
-      : AbstractScanPlanNode(std::move(children), std::move(output_schema), std::move(predicate), is_for_update,
-                             is_parallel, database_oid, namespace_oid),
+  SeqScanPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
+                  std::unique_ptr<OutputSchema> output_schema,
+                  common::ManagedPointer<parser::AbstractExpression> predicate, bool is_for_update, bool is_parallel,
+                  catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
+                  catalog::table_oid_t table_oid)
+      : AbstractScanPlanNode(std::move(children), std::move(output_schema), predicate, is_for_update, is_parallel,
+                             database_oid, namespace_oid),
         table_oid_(table_oid) {}
 
  public:
@@ -99,7 +100,7 @@ class SeqScanPlanNode : public AbstractScanPlanNode {
   bool operator==(const AbstractPlanNode &rhs) const override;
 
   nlohmann::json ToJson() const override;
-  void FromJson(const nlohmann::json &j) override;
+  std::vector<std::unique_ptr<parser::AbstractExpression>> FromJson(const nlohmann::json &j) override;
 
  private:
   /**

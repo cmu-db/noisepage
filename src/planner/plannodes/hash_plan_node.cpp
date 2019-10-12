@@ -1,5 +1,7 @@
 #include "planner/plannodes/hash_plan_node.h"
+
 #include <memory>
+#include <utility>
 #include <vector>
 
 namespace terrier::planner {
@@ -31,18 +33,29 @@ bool HashPlanNode::operator==(const AbstractPlanNode &rhs) const {
 
 nlohmann::json HashPlanNode::ToJson() const {
   nlohmann::json j = AbstractPlanNode::ToJson();
-  j["hash_keys"] = hash_keys_;
+  std::vector<nlohmann::json> hash_keys;
+  for (const auto &key : hash_keys_) {
+    hash_keys.emplace_back(key->ToJson());
+  }
+  j["hash_keys"] = hash_keys;
   return j;
 }
 
-void HashPlanNode::FromJson(const nlohmann::json &j) {
-  AbstractPlanNode::FromJson(j);
+std::vector<std::unique_ptr<parser::AbstractExpression>> HashPlanNode::FromJson(const nlohmann::json &j) {
+  std::vector<std::unique_ptr<parser::AbstractExpression>> exprs;
+  auto e1 = AbstractPlanNode::FromJson(j);
+  exprs.insert(exprs.end(), std::make_move_iterator(e1.begin()), std::make_move_iterator(e1.end()));
   auto keys = j.at("hash_keys").get<std::vector<nlohmann::json>>();
   for (const auto &key_json : keys) {
     if (!key_json.is_null()) {
-      hash_keys_.push_back(parser::DeserializeExpression(key_json));
+      auto deserialized = parser::DeserializeExpression(key_json);
+      hash_keys_.emplace_back(common::ManagedPointer(deserialized.result_));
+      exprs.emplace_back(std::move(deserialized.result_));
+      exprs.insert(exprs.end(), std::make_move_iterator(deserialized.non_owned_exprs_.begin()),
+                   std::make_move_iterator(deserialized.non_owned_exprs_.end()));
     }
   }
+  return exprs;
 }
 
 }  // namespace terrier::planner

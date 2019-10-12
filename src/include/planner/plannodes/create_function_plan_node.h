@@ -142,8 +142,8 @@ class CreateFunctionPlanNode : public AbstractPlanNode {
      * Build the create function plan node
      * @return plan node
      */
-    std::shared_ptr<CreateFunctionPlanNode> Build() {
-      return std::shared_ptr<CreateFunctionPlanNode>(new CreateFunctionPlanNode(
+    std::unique_ptr<CreateFunctionPlanNode> Build() {
+      return std::unique_ptr<CreateFunctionPlanNode>(new CreateFunctionPlanNode(
           std::move(children_), std::move(output_schema_), database_oid_, namespace_oid_, language_,
           std::move(function_param_names_), std::move(function_param_types_), std::move(function_body_), is_replace_,
           std::move(function_name_), return_type_, param_count_));
@@ -216,8 +216,8 @@ class CreateFunctionPlanNode : public AbstractPlanNode {
    * @param return_type return type of the UDF
    * @param param_count number of parameter of UDF
    */
-  CreateFunctionPlanNode(std::vector<std::shared_ptr<AbstractPlanNode>> &&children,
-                         std::shared_ptr<OutputSchema> output_schema, catalog::db_oid_t database_oid,
+  CreateFunctionPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
+                         std::unique_ptr<OutputSchema> output_schema, catalog::db_oid_t database_oid,
                          catalog::namespace_oid_t namespace_oid, parser::PLType language,
                          std::vector<std::string> &&function_param_names,
                          std::vector<parser::BaseFunctionParameter::DataType> &&function_param_types,
@@ -308,7 +308,7 @@ class CreateFunctionPlanNode : public AbstractPlanNode {
   bool operator==(const AbstractPlanNode &rhs) const override;
 
   nlohmann::json ToJson() const override;
-  void FromJson(const nlohmann::json &j) override;
+  std::vector<std::unique_ptr<parser::AbstractExpression>> FromJson(const nlohmann::json &j) override;
 
  private:
   /**

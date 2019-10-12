@@ -65,13 +65,13 @@ class GarbageCollector {
    * Register an index to be periodically garbage collected
    * @param index pointer to the index to register
    */
-  void RegisterIndexForGC(index::Index *index);
+  void RegisterIndexForGC(common::ManagedPointer<index::Index> index);
 
   /**
    * Unregister an index to be periodically garbage collected
    * @param index pointer to the index to unregister
    */
-  void UnregisterIndexForGC(index::Index *index);
+  void UnregisterIndexForGC(common::ManagedPointer<index::Index> index);
 
  private:
   /**
@@ -110,7 +110,7 @@ class GarbageCollector {
   // queue of txns that need to be unlinked
   transaction::TransactionQueue txns_to_unlink_;
 
-  std::unordered_set<index::Index *> indexes_;
+  std::unordered_set<common::ManagedPointer<index::Index>> indexes_;
   common::SharedLatch indexes_latch_;
 };
 
