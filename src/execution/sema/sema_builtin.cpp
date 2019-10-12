@@ -1723,7 +1723,7 @@ void Sema::CheckBuiltinDeleterCall(ast::CallExpr *call, ast::Builtin builtin) {
       break;
     }
     case ast::Builtin::DeleterTableDelete: {
-      if (!CheckArgCount(call, 1)) {
+      if (!CheckArgCount(call, 2)) {
         return;
       }
 
@@ -1914,7 +1914,7 @@ void Sema::CheckBuiltinUpdaterCall(ast::CallExpr *call, ast::Builtin builtin) {
       break;
     }
     case ast::Builtin::UpdaterTableDelete: {
-      if (!CheckArgCount(call, 1)) {
+      if (!CheckArgCount(call, 2)) {
         return;
       }
 
