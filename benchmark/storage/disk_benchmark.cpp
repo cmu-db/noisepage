@@ -83,8 +83,8 @@ BENCHMARK_DEFINE_F(DiskBenchmark, SequentialRead)(benchmark::State &state) {
     std::cout << "Instructions: " << counters.instructions_ << std::endl;
     std::cout << "Cache references: " << counters.cache_references_ << std::endl;
     std::cout << "Cache misses: " << counters.cache_misses_ << std::endl;
-//    std::cout << "Branch instructions: " << counters.branch_instructions_ << std::endl;
-//    std::cout << "Branch misses: " << counters.branch_misses_ << std::endl;
+    //    std::cout << "Branch instructions: " << counters.branch_instructions_ << std::endl;
+    //    std::cout << "Branch misses: " << counters.branch_misses_ << std::endl;
     std::cout << "Bus cycles:: " << counters.bus_cycles_ << std::endl;
     std::cout << "Reference CPU cycles: " << counters.ref_cpu_cycles_ << std::endl << std::endl;
 
@@ -150,8 +150,8 @@ BENCHMARK_DEFINE_F(DiskBenchmark, RandomRead)(benchmark::State &state) {
     std::cout << "Instructions: " << counters.instructions_ << std::endl;
     std::cout << "Cache references: " << counters.cache_references_ << std::endl;
     std::cout << "Cache misses: " << counters.cache_misses_ << std::endl;
-//    std::cout << "Branch instructions: " << counters.branch_instructions_ << std::endl;
-//    std::cout << "Branch misses: " << counters.branch_misses_ << std::endl;
+    //    std::cout << "Branch instructions: " << counters.branch_instructions_ << std::endl;
+    //    std::cout << "Branch misses: " << counters.branch_misses_ << std::endl;
     std::cout << "Bus cycles:: " << counters.bus_cycles_ << std::endl;
     std::cout << "Reference CPU cycles: " << counters.ref_cpu_cycles_ << std::endl << std::endl;
 
@@ -204,8 +204,8 @@ BENCHMARK_DEFINE_F(DiskBenchmark, SequentialWrite)(benchmark::State &state) {
     std::cout << "Instructions: " << counters.instructions_ << std::endl;
     std::cout << "Cache references: " << counters.cache_references_ << std::endl;
     std::cout << "Cache misses: " << counters.cache_misses_ << std::endl;
-//    std::cout << "Branch instructions: " << counters.branch_instructions_ << std::endl;
-//    std::cout << "Branch misses: " << counters.branch_misses_ << std::endl;
+    //    std::cout << "Branch instructions: " << counters.branch_instructions_ << std::endl;
+    //    std::cout << "Branch misses: " << counters.branch_misses_ << std::endl;
     std::cout << "Bus cycles:: " << counters.bus_cycles_ << std::endl;
     std::cout << "Reference CPU cycles: " << counters.ref_cpu_cycles_ << std::endl << std::endl;
 
@@ -273,8 +273,8 @@ BENCHMARK_DEFINE_F(DiskBenchmark, RandomWrite)(benchmark::State &state) {
     std::cout << "Instructions: " << counters.instructions_ << std::endl;
     std::cout << "Cache references: " << counters.cache_references_ << std::endl;
     std::cout << "Cache misses: " << counters.cache_misses_ << std::endl;
-//    std::cout << "Branch instructions: " << counters.branch_instructions_ << std::endl;
-//    std::cout << "Branch misses: " << counters.branch_misses_ << std::endl;
+    //    std::cout << "Branch instructions: " << counters.branch_instructions_ << std::endl;
+    //    std::cout << "Branch misses: " << counters.branch_misses_ << std::endl;
     std::cout << "Bus cycles:: " << counters.bus_cycles_ << std::endl;
     std::cout << "Reference CPU cycles: " << counters.ref_cpu_cycles_ << std::endl << std::endl;
 

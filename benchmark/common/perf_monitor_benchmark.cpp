@@ -5,9 +5,7 @@ namespace terrier {
 
 class PerfMonitorBenchmarks : public benchmark::Fixture {
  public:
-  void SetUp(const benchmark::State &state) final {
-
-  }
+  void SetUp(const benchmark::State &state) final {}
 
   void TearDown(const benchmark::State &state) final {}
 };
@@ -40,7 +38,8 @@ BENCHMARK_DEFINE_F(PerfMonitorBenchmarks, Read)(benchmark::State &state) {
   monitor.Start();
   // NOLINTNEXTLINE
   for (auto _ : state) {
-    monitor.ReadCounters();
+    const auto counters = monitor.ReadCounters();
+    counters.Print();
   }
   monitor.Stop();
   state.SetItemsProcessed(state.iterations());

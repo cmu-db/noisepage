@@ -5,6 +5,7 @@
 #include <sys/syscall.h>
 #include <unistd.h>
 #include <cstring>
+#include <iostream>
 #include "common/macros.h"
 
 namespace terrier::common {
@@ -17,10 +18,21 @@ class PerfMonitor {
     uint64_t instructions_;
     uint64_t cache_references_;
     uint64_t cache_misses_;
-//    uint64_t branch_instructions_;
-//    uint64_t branch_misses_;
+    //    uint64_t branch_instructions_;
+    //    uint64_t branch_misses_;
     uint64_t bus_cycles_;
     uint64_t ref_cpu_cycles_;
+
+    void Print() const {
+      std::cout << "CPU Cycles: " << cpu_cycles_ << std::endl;
+      std::cout << "Instructions: " << instructions_ << std::endl;
+      std::cout << "Cache References: " << cache_references_ << std::endl;
+      std::cout << "Cache Misses: " << cache_misses_ << std::endl;
+      //      std::cout << "Branch Instructions: " << branch_instructions_ << std::endl;
+      //      std::cout << "Branch Misses: " << branch_misses_ << std::endl;
+      std::cout << "Bus Cycles: " << bus_cycles_ << std::endl;
+      std::cout << "Reference CPU Cycles: " << ref_cpu_cycles_ << std::endl << std::endl;
+    }
   };
 
   PerfMonitor() {
@@ -77,12 +89,11 @@ class PerfMonitor {
   static constexpr uint8_t NUM_HW_EVENTS = 6;
   std::array<int32_t, NUM_HW_EVENTS> event_files_{
       -1};  // set the first file descriptor to -1. Since event_files[0] is always passed into group_fd on
-            // perf_event_open, this has the effect of making the first event the group leader
+  // perf_event_open, this has the effect of making the first event the group leader
   bool running_ = false;
 
   static constexpr std::array<uint64_t, NUM_HW_EVENTS> HW_EVENTS{
-      PERF_COUNT_HW_CPU_CYCLES,   PERF_COUNT_HW_INSTRUCTIONS,        PERF_COUNT_HW_CACHE_REFERENCES,
-      PERF_COUNT_HW_CACHE_MISSES,
-      PERF_COUNT_HW_BUS_CYCLES,   PERF_COUNT_HW_REF_CPU_CYCLES};
+      PERF_COUNT_HW_CPU_CYCLES,   PERF_COUNT_HW_INSTRUCTIONS, PERF_COUNT_HW_CACHE_REFERENCES,
+      PERF_COUNT_HW_CACHE_MISSES, PERF_COUNT_HW_BUS_CYCLES,   PERF_COUNT_HW_REF_CPU_CYCLES};
 };
 }  // namespace terrier::common
