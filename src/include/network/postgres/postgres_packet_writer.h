@@ -29,7 +29,7 @@ class PostgresPacketWriter : public PacketWriter {
     switch (type) {
       case NetworkMessageType::PG_SSL_YES:
       case NetworkMessageType::PG_SSL_NO:
-        AppendRawValue(type);
+        WriteType(type);
         break;
       default:
         BeginPacket(type).EndPacket();

@@ -34,6 +34,14 @@ class PacketWriter {
   bool IsPacketEmpty() { return curr_packet_len_ == nullptr; }
 
   /**
+   * Write out a single type
+   * @param type to write to the queue
+   */
+  void WriteType(NetworkMessageType type) {
+    queue_.BufferWriteRawValue(type);
+  }
+
+  /**
    * Write out a packet with a single type that is not related to Postgres SSL.
    * @param type Type of message to write out
    */

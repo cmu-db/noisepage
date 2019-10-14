@@ -45,7 +45,7 @@ Transition PostgresProtocolInterpreter::ProcessStartup(const std::shared_ptr<Rea
 
   if (proto_version == SSL_MESSAGE_VERNO) {
     // TODO(Tianyu): Should this be moved from PelotonServer into settings?
-    writer.WriteSingleTypePacket(NetworkMessageType::PG_SSL_NO);
+    writer.WriteSSLPacket(NetworkMessageType::PG_SSL_NO);
     return Transition::PROCEED;
   }
 
