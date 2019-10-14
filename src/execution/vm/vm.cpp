@@ -1521,6 +1521,117 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {
     DISPATCH_NEXT();
   }
 
+  /////////////////////////////////
+  //// Deleter Calls
+  /////////////////////////////////
+
+  OP(DeleterInit) : {
+    auto *deleter = frame->LocalAt<sql::Deleter *>(READ_LOCAL_ID());
+    auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
+    auto table_oid = READ_UIMM4();
+
+    OpDeleterInit(deleter, exec_ctx, table_oid);
+    DISPATCH_NEXT();
+  }
+
+  OP(DeleterTableDelete) : {
+    auto *deleter = frame->LocalAt<sql::Deleter *>(READ_LOCAL_ID());
+    auto *tuple_slot = frame->LocalAt<storage::TupleSlot *>(READ_LOCAL_ID());
+
+    OpDeleterTableDelete(deleter, tuple_slot);
+    DISPATCH_NEXT();
+  }
+
+  OP(DeleterGetIndexPR) : {
+    auto *pr_result = frame->LocalAt<sql::ProjectedRowWrapper *>(READ_LOCAL_ID());
+    auto *deleter = frame->LocalAt<sql::Deleter *>(READ_LOCAL_ID());
+    auto index_oid = READ_UIMM4();
+
+    OpDeleterGetIndexPR(pr_result, deleter, index_oid);
+    DISPATCH_NEXT();
+  }
+
+  OP(DeleterIndexDelete) : {
+    auto *deleter = frame->LocalAt<sql::Deleter *>(READ_LOCAL_ID());
+    auto index_oid = READ_UIMM4();
+    auto *tuple_slot = frame->LocalAt<storage::TupleSlot *>(READ_LOCAL_ID());
+
+    OpDeleterIndexDelete(deleter, index_oid, tuple_slot);
+    DISPATCH_NEXT();
+  }
+
+  /////////////////////////////////
+  //// Updater Calls
+  /////////////////////////////////
+
+  OP(UpdaterInit) : {
+    auto *updater = frame->LocalAt<sql::Updater *>(READ_LOCAL_ID());
+    auto *exec_ctx = frame->LocalAt<exec::ExecutionContext *>(READ_LOCAL_ID());
+    auto table_oid = READ_UIMM4();
+    auto *col_oids = frame->LocalAt<uint32_t *>(READ_LOCAL_ID());
+    auto num_oids = READ_UIMM4();
+    auto is_index_key_update = frame->LocalAt<bool>(READ_LOCAL_ID());
+
+    OpUpdaterInit(updater, exec_ctx, table_oid, col_oids, num_oids, is_index_key_update);
+    DISPATCH_NEXT();
+  }
+
+  OP(UpdaterGetTablePR) : {
+    auto *pr_result = frame->LocalAt<sql::ProjectedRowWrapper *>(READ_LOCAL_ID());
+    auto *updater = frame->LocalAt<sql::Updater *>(READ_LOCAL_ID());
+
+    OpUpdaterGetTablePR(pr_result, updater);
+    DISPATCH_NEXT();
+  }
+
+  OP(UpdaterTableInsert) : {
+    auto *tuple_slot = frame->LocalAt<storage::TupleSlot *>(READ_LOCAL_ID());
+    auto *updater = frame->LocalAt<sql::Updater *>(READ_LOCAL_ID());
+
+    OpUpdaterTableInsert(tuple_slot, updater);
+    DISPATCH_NEXT();
+  }
+
+  OP(UpdaterTableDelete) : {
+    auto *updater = frame->LocalAt<sql::Updater *>(READ_LOCAL_ID());
+    auto *tuple_slot = frame->LocalAt<storage::TupleSlot *>(READ_LOCAL_ID());
+
+    OpUpdaterTableDelete(updater, tuple_slot);
+    DISPATCH_NEXT();
+  }
+
+  OP(UpdaterTableUpdate) : {
+    auto *updater = frame->LocalAt<sql::Updater *>(READ_LOCAL_ID());
+    auto *tuple_slot = frame->LocalAt<storage::TupleSlot *>(READ_LOCAL_ID());
+
+    OpUpdaterTableUpdate(updater, tuple_slot);
+    DISPATCH_NEXT();
+  }
+
+  OP(UpdaterGetIndexPR) : {
+    auto *pr_result = frame->LocalAt<sql::ProjectedRowWrapper *>(READ_LOCAL_ID());
+    auto *updater = frame->LocalAt<sql::Updater *>(READ_LOCAL_ID());
+    auto index_oid = READ_UIMM4();
+
+    OpUpdaterGetIndexPR(pr_result, updater, index_oid);
+    DISPATCH_NEXT();
+  }
+
+  OP(UpdaterIndexInsert) : {
+    auto *updater = frame->LocalAt<sql::Updater *>(READ_LOCAL_ID());
+    auto index_oid = READ_UIMM4();
+    OpUpdaterIndexInsert(updater, index_oid);
+    DISPATCH_NEXT();
+  }
+
+  OP(UpdaterIndexDelete) : {
+    auto *updater = frame->LocalAt<sql::Updater *>(READ_LOCAL_ID());
+    auto index_oid = READ_UIMM4();
+    auto *tuple_slot = frame->LocalAt<storage::TupleSlot *>(READ_LOCAL_ID());
+    OpUpdaterIndexDelete(updater, index_oid, tuple_slot);
+    DISPATCH_NEXT();
+  }
+
   // -------------------------------------------------------
   // Real-value functions
   // -------------------------------------------------------

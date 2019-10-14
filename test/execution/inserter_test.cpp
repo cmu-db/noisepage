@@ -39,7 +39,6 @@ TEST_F(InserterTest, SimpleInserterTest) {
   *reinterpret_cast<int32_t *>(table_pr->AccessForceNotNull(2)) = 4256;
   *reinterpret_cast<int64_t *>(table_pr->AccessForceNotNull(0)) = 445;
 
-
   inserter.TableInsert();
 
   auto table = exec_ctx_->GetAccessor()->GetTable(table_oid);
