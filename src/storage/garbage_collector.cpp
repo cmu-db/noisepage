@@ -19,8 +19,6 @@ std::pair<uint32_t, uint32_t> GarbageCollector::PerformGarbageCollection(
   uint32_t txns_unlinked = ProcessUnlinkQueue(oldest_txn, txns_to_unlink);
   STORAGE_LOG_TRACE("GarbageCollector::PerformGarbageCollection(): txns_unlinked: {}", txns_unlinked);
 
-  ProcessDeferredActions(
-      oldest_txn);   // TODO(Yashwanth): move this to some other function, this isn't going to be called on a thread
   ProcessIndexes();  // TODO(Yashwanth): move this to some other function, this isn't going to be called on a thread
   return std::make_pair(0, txns_unlinked);
 }
@@ -108,13 +106,6 @@ uint32_t GarbageCollector::ProcessUnlinkQueue(transaction::timestamp_t oldest_tx
   });
 
   return txns_processed;
-}
-
-void GarbageCollector::ProcessDeferredActions(transaction::timestamp_t oldest_txn) {
-  if (deferred_action_manager_ != DISABLED) {
-    // TODO(Tianyu): Eventually we will remove the GC and implement version chain pruning with deferred actions
-    deferred_action_manager_->Process(oldest_txn);
-  }
 }
 
 void GarbageCollector::TruncateVersionChain(DataTable *const table, const TupleSlot slot,

@@ -8,6 +8,7 @@
 #include "storage/index/index.h"
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_defs.h"
+#include "transaction/timestamp_manager.h"
 
 #define MAX_OUTSTANDING_UNLINK_TRANSACTIONS 20
 
@@ -34,7 +35,7 @@ class GarbageCollector {
    */
   // TODO(Tianyu): Eventually the GC will be re-written to be purely on the deferred action manager. which will
   //  eliminate this perceived redundancy of taking in a transaction manager.
-  GarbageCollector(transaction::TimestampManager *timestamp_manager,
+  BOOST_DI_INJECT (GarbageCollector, transaction::TimestampManager *timestamp_manager,
                    transaction::DeferredActionManager *deferred_action_manager, AccessObserver *observer)
       : timestamp_manager_(timestamp_manager),
         deferred_action_manager_(deferred_action_manager),
@@ -79,11 +80,6 @@ class GarbageCollector {
    * @return number of txns (not UndoRecords) processed for debugging/testing
    */
   uint32_t ProcessUnlinkQueue(transaction::timestamp_t oldest_txn, transaction::TransactionQueue &txns_to_unlink);
-
-  /**
-   * Process deferred actions
-   */
-  void ProcessDeferredActions(transaction::timestamp_t oldest_txn);
 
   void ReclaimSlotIfDeleted(UndoRecord *undo_record) const;
 

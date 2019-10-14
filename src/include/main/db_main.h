@@ -10,8 +10,9 @@
 #include "network/terrier_server.h"
 #include "settings/settings_manager.h"
 #include "settings/settings_param.h"
-#include "storage/garbage_collector_thread.h"
 #include "transaction/transaction_manager.h"
+#include "transaction/deferred_action_thread.h"  
+#include "transaction/deferred_action_manager.h"  
 
 namespace terrier {
 
@@ -61,7 +62,8 @@ class DBMain {
     ForceShutdown();
     // TODO(Matt): might as well make these std::unique_ptr, but then will need to refactor other classes to take
     // ManagedPointers unless we want a bunch of .get()s, which sounds like a future PR
-    delete gc_thread_;
+    delete deferred_action_thread_;
+    delete deferred_action_manager_;
     delete metrics_manager_;
     delete garbage_collector_;
     delete settings_manager_;
@@ -101,10 +103,11 @@ class DBMain {
   std::unordered_map<settings::Param, settings::ParamInfo> param_map_;
   transaction::TimestampManager *timestamp_manager_;
   transaction::TransactionManager *txn_manager_;
+  transaction::DeferredActionManager *deferred_action_manager_;
+  transaction::DeferredActionThread *deferred_action_thread_;
   settings::SettingsManager *settings_manager_;
   storage::LogManager *log_manager_;
   storage::GarbageCollector *garbage_collector_;
-  storage::GarbageCollectorThread *gc_thread_;
   network::TerrierServer *server_;
   storage::RecordBufferSegmentPool *buffer_segment_pool_;
   common::WorkerPool *thread_pool_;

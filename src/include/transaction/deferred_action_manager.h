@@ -15,7 +15,8 @@ class DeferredActionManager {
    * Constructs a new DeferredActionManager
    * @param timestamp_manager source of timestamps in the system
    */
-  explicit DeferredActionManager(TimestampManager *timestamp_manager) : timestamp_manager_(timestamp_manager) {}
+  BOOST_DI_INJECT(DeferredActionManager, TimestampManager *timestamp_manager) //NOLINT
+  :  timestamp_manager_(timestamp_manager) {};
 
   ~DeferredActionManager() {
     common::SpinLatch::ScopedSpinLatch guard(&deferred_actions_latch_);
@@ -55,9 +56,10 @@ class DeferredActionManager {
    * Clear the queue and apply as many actions as possible
    * @return numbers of deferred actions processed
    */
-  uint32_t Process(transaction::timestamp_t oldest_txn) {
+  uint32_t Process() {
     // Check out a timestamp from the transaction manager to determine the progress of
     // running transactions in the system.
+    const transaction::timestamp_t oldest_txn = timestamp_manager_->OldestTransactionStartTime();
     const auto backlog_size = static_cast<uint32_t>(back_log_.size());
     uint32_t processed = ClearBacklog(oldest_txn);
     // There is no point in draining new actions if we haven't cleared the backlog.
