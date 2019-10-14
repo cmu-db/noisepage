@@ -11,7 +11,7 @@
 
 namespace terrier::storage {
 
-std::pair<uint32_t, uint32_t> GarbageCollector::PerformGarbageCollection(transaction::TransactionQueue txns_to_unlink) {
+std::pair<uint32_t, uint32_t> GarbageCollector::PerformGarbageCollection(transaction::TransactionQueue &txns_to_unlink) {
   if (observer_ != nullptr) observer_->ObserveGCInvocation();
   timestamp_manager_->CheckOutTimestamp();
   const transaction::timestamp_t oldest_txn = timestamp_manager_->OldestTransactionStartTime();
@@ -53,7 +53,7 @@ void GarbageCollector::CleanupTransaction(transaction::TransactionContext *txn) 
 }
 
 uint32_t GarbageCollector::ProcessUnlinkQueue(
-  transaction::timestamp_t oldest_txn, transaction::TransactionQueue txns_to_unlink) {
+  transaction::timestamp_t oldest_txn, transaction::TransactionQueue &txns_to_unlink) {
   transaction::TransactionContext *txn = nullptr;
 
   uint32_t txns_processed = 0;

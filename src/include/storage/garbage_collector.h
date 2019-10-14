@@ -55,7 +55,7 @@ class GarbageCollector {
    * @return A pair of numbers: the first is the number of transactions deallocated (deleted) on this iteration, while
    * the second is the number of transactions unlinked on this iteration.
    */
-  std::pair<uint32_t, uint32_t> PerformGarbageCollection(transaction::TransactionQueue txns_to_unlink_);
+  std::pair<uint32_t, uint32_t> PerformGarbageCollection(transaction::TransactionQueue &txns_to_unlink);
 
   /**
    * Register an index to be periodically garbage collected
@@ -82,7 +82,7 @@ class GarbageCollector {
    * Process the unlink queue
    * @return number of txns (not UndoRecords) processed for debugging/testing
    */
-  uint32_t ProcessUnlinkQueue(transaction::timestamp_t oldest_txn, transaction::TransactionQueue txns_to_unlink);
+  uint32_t ProcessUnlinkQueue(transaction::timestamp_t oldest_txn, transaction::TransactionQueue &txns_to_unlink);
 
   /**
    * Process deferred actions
