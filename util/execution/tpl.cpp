@@ -99,7 +99,7 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
   sql::TableGenerator table_generator{&exec_ctx, &block_store, ns_oid};
   table_generator.GenerateTestTables();
   // Comment out to make more tables available at runtime
-  // table_generator.GenerateTPCHTables(<path_to_tpch_dir>);
+  table_generator.GenerateTPCHTables("../../tpl_tables/tables/");
   // table_generator.GenerateTableFromFile(<path_to_schema>, <path_to_data>);
 
   // Let's scan the source

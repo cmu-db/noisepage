@@ -2,7 +2,7 @@
 
 namespace terrier::execution::compiler {
 OutputTranslator::OutputTranslator(execution::compiler::CodeGen *codegen)
-    : OperatorTranslator(nullptr, codegen),
+    : OperatorTranslator(codegen),
       output_struct_(codegen->NewIdentifier(output_struct_name_)),
       output_var_(codegen->NewIdentifier(output_var_name_)) {}
 

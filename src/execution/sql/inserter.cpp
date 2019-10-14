@@ -15,7 +15,7 @@ terrier::execution::sql::Inserter::Inserter(terrier::execution::exec::ExecutionC
   uint32_t index_pr_size = 0;
   auto index_oids = exec_ctx->GetAccessor()->GetIndexes(table_oid_);
   for (auto index_oid : index_oids) {
-    index_pr_size = MAX(index_pr_size, GetIndex(index_oid)->GetProjectedRowInitializer().ProjectedRowSize());
+    index_pr_size = std::max(index_pr_size, GetIndex(index_oid)->GetProjectedRowInitializer().ProjectedRowSize());
   }
 
   index_pr_buffer_ = exec_ctx->GetMemoryPool()->AllocateAligned(index_pr_size, sizeof(uint64_t), true);

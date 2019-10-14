@@ -17,7 +17,7 @@ class ArithmeticTranslator : public ExpressionTranslator {
    */
   ArithmeticTranslator(const terrier::parser::AbstractExpression *expression, CodeGen *codegen);
 
-  ast::Expr *DeriveExpr(OperatorTranslator *translator) override;
+  ast::Expr *DeriveExpr(ExpressionEvaluator *evaluator) override;
 
  private:
   std::unique_ptr<ExpressionTranslator> left_;

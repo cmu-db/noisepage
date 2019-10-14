@@ -16,8 +16,9 @@ class NestedLoopRightTranslator;
  */
 class NestedLoopLeftTransaltor : public OperatorTranslator {
  public:
-  NestedLoopLeftTransaltor(const terrier::planner::AbstractPlanNode *op, CodeGen *codegen)
-      : OperatorTranslator(op, codegen) {}
+  NestedLoopLeftTransaltor(const terrier::planner::NestedLoopJoinPlanNode *op, CodeGen *codegen)
+      : OperatorTranslator(codegen),
+        op_(op){}
 
   // Does nothing
   void InitializeStateFields(util::RegionVector<ast::FieldDecl *> *state_fields) override {}
@@ -47,6 +48,13 @@ class NestedLoopLeftTransaltor : public OperatorTranslator {
   ast::Expr *GetChildOutput(uint32_t child_idx, uint32_t attr_idx, terrier::type::TypeId type) override {
     return nullptr;
   }
+
+  const planner::AbstractPlanNode* Op() override {
+    return op_;
+  }
+
+ private:
+  const planner::NestedLoopJoinPlanNode *op_;
 };
 
 /**
@@ -56,8 +64,10 @@ class NestedLoopLeftTransaltor : public OperatorTranslator {
  */
 class NestedLoopRightTransaltor : public OperatorTranslator {
  public:
-  NestedLoopRightTransaltor(const terrier::planner::AbstractPlanNode *op, CodeGen *codegen, OperatorTranslator *left)
-      : OperatorTranslator(op, codegen), left_(dynamic_cast<NestedLoopLeftTransaltor *>(left)) {}
+  NestedLoopRightTransaltor(const terrier::planner::NestedLoopJoinPlanNode *op, CodeGen *codegen, OperatorTranslator *left)
+      : OperatorTranslator(codegen),
+      op_(op),
+      left_(dynamic_cast<NestedLoopLeftTransaltor *>(left)) {}
 
   // Does nothing
   void InitializeStateFields(util::RegionVector<ast::FieldDecl *> *state_fields) override {}
@@ -110,7 +120,12 @@ class NestedLoopRightTransaltor : public OperatorTranslator {
     return child_translator_->GetOutput(attr_idx);
   }
 
+  const planner::AbstractPlanNode* Op() override {
+    return op_;
+  }
+
  private:
+  const planner::NestedLoopJoinPlanNode *op_;
   NestedLoopLeftTransaltor *left_;
 };
 }  // namespace terrier::execution::compiler

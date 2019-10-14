@@ -1,4 +1,4 @@
-#include "execution/compiler/operator/index_join_translator.h"
+#include "execution/compiler/operator/index_scan_translator.h"
 #include "execution/compiler/function_builder.h"
 #include "execution/compiler/operator/operator_translator.h"
 #include "execution/compiler/translator_factory.h"
@@ -6,7 +6,7 @@
 
 namespace terrier::execution::compiler {
 
-IndexJoinTranslator::IndexJoinTranslator(const planner::IndexJoinPlanNode *op, CodeGen *codegen)
+IndexScanTranslator::IndexScanTranslator(const planner::IndexScanPlanNode *op, CodeGen *codegen)
     : OperatorTranslator(codegen),
       op_(op),
       input_oids_(op_->CollectInputOids()),
@@ -19,7 +19,7 @@ IndexJoinTranslator::IndexJoinTranslator(const planner::IndexJoinPlanNode *op, C
       index_pr_(codegen->NewIdentifier(index_pr_name_)),
       table_pr_(codegen->NewIdentifier(table_pr_name_)) {}
 
-void IndexJoinTranslator::Produce(FunctionBuilder *builder) {
+void IndexScanTranslator::Produce(FunctionBuilder *builder) {
   // Create the col_oid array
   SetOids(builder);
   // Declare an index iterator
@@ -36,14 +36,14 @@ void IndexJoinTranslator::Produce(FunctionBuilder *builder) {
   FreeIterator(builder);
 }
 
-void IndexJoinTranslator::Consume(FunctionBuilder *builder) {
+void IndexScanTranslator::Consume(FunctionBuilder *builder) {
   // Fill the key with table data
   FillKey(builder);
   // Generate the loop
   GenForLoop(builder);
   // Get Table PR
   DeclareTablePR(builder);
-  bool has_predicate = op_->GetJoinPredicate() != nullptr;
+  bool has_predicate = op_->GetScanPredicate() != nullptr;
   if (has_predicate) GenPredicate(builder);
   // Let parent consume the matching tuples
   parent_translator_->Consume(builder);
@@ -53,29 +53,25 @@ void IndexJoinTranslator::Consume(FunctionBuilder *builder) {
   builder->FinishBlockStmt();
 }
 
-ast::Expr *IndexJoinTranslator::GetOutput(uint32_t attr_idx) {
+ast::Expr *IndexScanTranslator::GetOutput(uint32_t attr_idx) {
   auto output_expr = op_->GetOutputSchema()->GetColumn(attr_idx).GetExpr();
   std::unique_ptr<ExpressionTranslator> translator =
       TranslatorFactory::CreateExpressionTranslator(output_expr, codegen_);
   return translator->DeriveExpr(this);
 }
 
-ast::Expr *IndexJoinTranslator::GetChildOutput(uint32_t child_idx, uint32_t attr_idx, type::TypeId type) {
-  if (child_idx == 0) {
-    // For the left child, pass through
-    return child_translator_->GetOutput(attr_idx);
-  }
-  UNREACHABLE("Right child should be accessed using a ColumnValueExpression");
+ast::Expr *IndexScanTranslator::GetChildOutput(uint32_t child_idx, uint32_t attr_idx, type::TypeId type) {
+  UNREACHABLE("IndexScan nodes should use column value expressions");
 }
 
-ast::Expr *IndexJoinTranslator::GetTableColumn(const catalog::col_oid_t &col_oid) {
+ast::Expr *IndexScanTranslator::GetTableColumn(const catalog::col_oid_t &col_oid) {
   auto type = table_schema_.GetColumn(col_oid).Type();
   auto nullable = table_schema_.GetColumn(col_oid).Nullable();
   uint16_t attr_idx = table_pm_[col_oid];
   return codegen_->PRGet(table_pr_, type, nullable, attr_idx);
 }
 
-void IndexJoinTranslator::SetOids(FunctionBuilder *builder) {
+void IndexScanTranslator::SetOids(FunctionBuilder *builder) {
   // Declare: var col_oids: [num_cols]uint32
   ast::Expr *arr_type = codegen_->ArrayType(input_oids_.size(), ast::BuiltinType::Kind::Uint32);
   builder->Append(codegen_->DeclareVariable(col_oids_, arr_type, nullptr));
@@ -88,7 +84,7 @@ void IndexJoinTranslator::SetOids(FunctionBuilder *builder) {
   }
 }
 
-void IndexJoinTranslator::DeclareIterator(FunctionBuilder *builder) {
+void IndexScanTranslator::DeclareIterator(FunctionBuilder *builder) {
   // Declare: var index_iter : IndexIterator
   ast::Expr *iter_type = codegen_->BuiltinType(ast::BuiltinType::IndexIterator);
   builder->Append(codegen_->DeclareVariable(index_iter_, iter_type, nullptr));
@@ -98,19 +94,19 @@ void IndexJoinTranslator::DeclareIterator(FunctionBuilder *builder) {
   builder->Append(codegen_->MakeStmt(init_call));
 }
 
-void IndexJoinTranslator::DeclareIndexPR(terrier::execution::compiler::FunctionBuilder *builder) {
+void IndexScanTranslator::DeclareIndexPR(terrier::execution::compiler::FunctionBuilder *builder) {
   ast::Expr *pr_type = codegen_->BuiltinType(ast::BuiltinType::ProjectedRow);
   ast::Expr *get_pr_call = codegen_->IndexIteratorGetIndexPR(index_iter_);
   builder->Append(codegen_->DeclareVariable(index_pr_, pr_type, get_pr_call));
 }
 
-void IndexJoinTranslator::DeclareTablePR(terrier::execution::compiler::FunctionBuilder *builder) {
+void IndexScanTranslator::DeclareTablePR(terrier::execution::compiler::FunctionBuilder *builder) {
   ast::Expr *pr_type = codegen_->BuiltinType(ast::BuiltinType::ProjectedRow);
   ast::Expr *get_pr_call = codegen_->IndexIteratorGetTablePR(index_iter_);
   builder->Append(codegen_->DeclareVariable(table_pr_, pr_type, get_pr_call));
 }
 
-void IndexJoinTranslator::FillKey(FunctionBuilder *builder) {
+void IndexScanTranslator::FillKey(FunctionBuilder *builder) {
   // Set key.attr_i = expr_i for each key attribute
   for (const auto &key : op_->GetIndexColumns()) {
     auto translator = TranslatorFactory::CreateExpressionTranslator(key.second.get(), codegen_);
@@ -122,7 +118,7 @@ void IndexJoinTranslator::FillKey(FunctionBuilder *builder) {
   }
 }
 
-void IndexJoinTranslator::GenForLoop(FunctionBuilder *builder) {
+void IndexScanTranslator::GenForLoop(FunctionBuilder *builder) {
   // for (@indexIteratorScanKey(&index_iter); @indexIteratorAdvance(&index_iter);)
   // Loop Initialization
   ast::Expr *scan_call = codegen_->IndexIteratorScanKey(index_iter_);
@@ -133,13 +129,13 @@ void IndexJoinTranslator::GenForLoop(FunctionBuilder *builder) {
   builder->StartForStmt(loop_init, has_next_call, nullptr);
 }
 
-void IndexJoinTranslator::GenPredicate(FunctionBuilder *builder) {
-  auto translator = TranslatorFactory::CreateExpressionTranslator(op_->GetJoinPredicate().get(), codegen_);
+void IndexScanTranslator::GenPredicate(FunctionBuilder *builder) {
+  auto translator = TranslatorFactory::CreateExpressionTranslator(op_->GetScanPredicate().get(), codegen_);
   ast::Expr *cond = translator->DeriveExpr(this);
   builder->StartIfStmt(cond);
 }
 
-void IndexJoinTranslator::FreeIterator(FunctionBuilder *builder) {
+void IndexScanTranslator::FreeIterator(FunctionBuilder *builder) {
   // @indexIteratorFree(&index_iter_)
   ast::Expr *free_call = codegen_->IndexIteratorFree(index_iter_);
   builder->Append(codegen_->MakeStmt(free_call));

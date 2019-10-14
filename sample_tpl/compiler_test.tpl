@@ -1,78 +1,78 @@
-// Perform:
-// select colA from test_1 WHERE colA < 500;
-//
-// Should output 500 (number of output rows)
+/// Inserter API
+// Initialization
+var inserter : Inserter
+@inserterInit(&inserter, execCtx, table_oid) // oid
+@inserterInitBind(&inserter, execCtx, "table_name") // name
 
-fun main(execCtx: *ExecutionContext) -> int64 {
-  var ret = 0
-  var tvi1: TableVectorIterator
-  var tvi2: TableVectorIterator
-  var oids: [2]uint32
-  oids[0] = 1 // col1
-  oids[1] = 2 // col2
-  @tableIterInitBind(&tvi1, execCtx, "test_1", oids)
-  @tableIterInitBind(&tvi2, execCtx, "test_2", oids)
-  for (@tableIterAdvance(&tvi2)) {
-    var pci2 = @tableIterGetPCI(&tvi2)
-    for (; @pciHasNext(pci2); @pciAdvance(pci2)) {
+// Getting and filling table PR
+var pr : *ProjectedRow = @inserterGetTablePR(&inserter)
+@prSetInt(pr, 0, ...)
+@prSetDateNull(pr, 1, ...)
 
-      for (@tableIterAdvance(&tvi1)) {
-        var pci1 = @tableIterGetPCI(&tvi1)
-        for (; @pciHasNext(pci1); @pciAdvance(pci1)) {
-          ret = ret + 1
-        }
-      }
-      @tableIterReset(&tvi1)
-    }
-  }
-  @tableIterClose(&tvi1)
-  @tableIterClose(&tvi2)
-  return ret
-}
+// Inserting in table
+var tuple_slot: *Tupleslot = @inserterTableInsert(&inserter)
+
+// Getting and filling each index PR
+var index_pr: *ProjectedRow = @inserterGetIndexPR(&inserter, index_oid1)
+@prSetInt(index_pr, 1, @prGetInt(table_pr, 0))
+@inserterIndexInsert(&inserter, index_oid1) // explicitly pass in tuple slot?
 
 
-/// Example Code 1 (Insert something in table, and in indexes)
-// Initialize table and index
-var table : SqlTable
-@sqlTableInit(&table, table_oid)
-var index : Index
-@indexInit(&index, index_oid)
+/// Selector API
+// Initialization
+var selector: Selector
+var col_oids : [2]uint32
+col_oids[0] = 1
+col_oids[1] = 2
+@selectorInit(&selector, execCtx, table_oid, col_oids)
+@selectorInitBind(&selector, execCtx, "table_name", col_oids)
 
-// Initialize table and index projected rows
-var table_redo : *RedoRecord = @sqlTableInitRedo(&table)
-var table_pr : *ProjectedRow = @redoGetPR(table_redo) // calls redo->Delta()
-var index_pr : *ProjectedRow = @indexInitPR(&index)
-
-// Set table projected row and insert
-@prSetInt(table_pr, 0, @intToSql(0))
-@prSetVarlen(table_pr, 1, @stringToSql("tttttt"))
-var slot: *TupleSlot = @sqlTableInsert(table_redo)
-
-// Set index projected row from table project row
-@prSetInt(index_pr, 0, @prGetInt(table_pr))
-@indexInsert(&index, slot, index_pr)
+// Select
+var pr : *ProjectedRow = @selectorSelect(&select, tuple_slot) // Assume slot is received from the an index iterator.
 
 
+/// Updater API
+// Initialization
+var updater : Updater
+var col_oids : [2]uint32
+col_oids[0] = 1
+col_oids[1] = 2
+@updaterInit(&selector, execCtx, table_oid, col_oids)
+@updaterInitBind(&selector, execCtx, "table_name", col_oids)
 
-/// Example Code 2 (scan index, perform operations on returned tuple slots):
-// Initialize the projected rows
-var index_pr : *ProjectedRow = @indexInitPR(&index)
-var table_pr : *ProjectedRow = @sqlTableInitPR(&table) // Maybe specify col oids
+// Getting and filling table PR
+var pr : *ProjectedRow = @updaterGetTablePR(&inserter)
+@prSetInt(pr, 0, ...)
+@prSetDateNull(pr, 1, ...)
 
-// Set the index key
-@prSetInt(index_pr, 0, @intToSql(0))
-@prSetVarlen(index_pr, 1, @stringToSql("tttttt"))
-// Scan the index
-@indexScan(&index, index_pr)
+// Updating in table
+@updaterTableUpdate(&inserter, slot) // Assume slot is received from the an index iterator.
 
-// Iterate through matches and select or delete them
-for (var i = 0; i < @indexNumMatches(&index); i++) {
-  var slot : *TupleSlot = @indexGetMatch(&index, i)
-  // To Delete
-  @sqlTableDelete(&table, slot)
-  // To Select
-  @sqlTableSelect(&table, slot, table_pr)
-}
+// Delete + Insert in indexes
+var index_pr: *ProjectedRow = @updaterGetIndexPR(&inserter, index_oid1)
+@updaterIndexDelete(&inserter, index_oid1)
+@updaterIndexInsert(&inserter, index_oid1, slot) // explicitely pass in tuple slot?
+
+
+
+/// Deleter API
+var deleter : Deleter
+@deleterInit(&deleter, execCtx, table_oid)
+@deleterInitBind(&deleter, execCtx, "table_name")
+
+// Get table PR
+var pr : *ProjectedRow = @deleterTableSelect(&select, tuple_slot) // // Assume slot is received from the an index iterator.
+
+// Delete in all indexes
+var index_pr : *ProjectorRow = @deleterGetIndexPR(&deleter, index_oid1)
+@prSetInt(pr, 0, ...)
+@deleterIndexDelete(index_pr)
+
+// Delete in table
+@deleterTableDelete(&select, tuple_slot)
+
+
+
 
 
 

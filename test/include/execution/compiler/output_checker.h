@@ -117,7 +117,7 @@ class SingleIntComparisonChecker : public OutputChecker {
   void ProcessBatch(const std::vector<std::vector<sql::Val *>> &output) override {
     for (const auto &vals : output) {
       auto int_val = static_cast<const sql::Integer *>(vals[col_idx_]);
-      EXPECT_TRUE(comp_fn_(int_val->val, rhs_));
+      EXPECT_TRUE(comp_fn_(int_val->val_, rhs_));
     }
   }
 
@@ -152,7 +152,7 @@ class SingleIntJoinChecker : public OutputChecker {
     for (const auto &vals : output) {
       auto val1 = static_cast<const sql::Integer *>(vals[col1_]);
       auto val2 = static_cast<const sql::Integer *>(vals[col2_]);
-      EXPECT_EQ(val1->val, val2->val);
+      EXPECT_EQ(val1->val_, val2->val_);
     }
   }
 
@@ -185,7 +185,7 @@ class SingleIntSumChecker : public OutputChecker {
   void ProcessBatch(const std::vector<std::vector<sql::Val *>> &output) override {
     for (const auto &vals : output) {
       auto int_val = static_cast<sql::Integer *>(vals[col_idx_]);
-      if (!int_val->is_null) curr_sum_ += int_val->val;
+      if (!int_val->is_null_) curr_sum_ += int_val->val_;
     }
   }
 
@@ -218,10 +218,10 @@ class SingleIntSortChecker : public OutputChecker {
   void ProcessBatch(const std::vector<std::vector<sql::Val *>> &output) override {
     for (const auto &vals : output) {
       auto int_val = static_cast<sql::Integer *>(vals[col_idx_]);
-      if (int_val->is_null) {
-        EXPECT_TRUE(prev_val_.is_null);
+      if (int_val->is_null_) {
+        EXPECT_TRUE(prev_val_.is_null_);
       } else {
-        EXPECT_TRUE(prev_val_.is_null || int_val->val >= prev_val_.val);
+        EXPECT_TRUE(prev_val_.is_null_ || int_val->val_ >= prev_val_.val_);
       }
       // Copy the value since the pointer does not belong to this class.
       prev_val_ = *int_val;

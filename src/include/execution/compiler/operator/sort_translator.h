@@ -1,5 +1,6 @@
 #pragma once
 #include "execution/compiler/operator/operator_translator.h"
+#include "planner/plannodes/order_by_plan_node.h"
 
 namespace terrier::execution::compiler {
 
@@ -11,7 +12,7 @@ class SortTopTranslator;
  */
 class SortBottomTranslator : public OperatorTranslator {
  public:
-  SortBottomTranslator(const terrier::planner::AbstractPlanNode *op, CodeGen *codegen);
+  SortBottomTranslator(const terrier::planner::OrderByPlanNode *op, CodeGen *codegen);
 
   // Declare the Sorter
   void InitializeStateFields(util::RegionVector<ast::FieldDecl *> *state_fields) override;
@@ -50,6 +51,10 @@ class SortBottomTranslator : public OperatorTranslator {
     return {&sorter_row_, &sorter_struct_};
   }
 
+  const planner::AbstractPlanNode* Op() override {
+    return op_;
+  }
+
  private:
   friend class SortTopTranslator;
 
@@ -66,6 +71,9 @@ class SortBottomTranslator : public OperatorTranslator {
    * Generate the comparisons in the comparison function
    */
   void GenComparisons(FunctionBuilder *builder);
+
+  // The sort plan node
+  const planner::OrderByPlanNode * op_;
 
   /**
    * GetChildOutput will need to return different results depending on the calling function.
@@ -99,7 +107,7 @@ class SortBottomTranslator : public OperatorTranslator {
  */
 class SortTopTranslator : public OperatorTranslator {
  public:
-  SortTopTranslator(const terrier::planner::AbstractPlanNode *op, CodeGen *codegen, OperatorTranslator *bottom);
+  SortTopTranslator(const terrier::planner::OrderByPlanNode *op, CodeGen *codegen, OperatorTranslator *bottom);
 
   // Does nothing
   void InitializeStateFields(util::RegionVector<ast::FieldDecl *> *state_fields) override {}
@@ -138,11 +146,18 @@ class SortTopTranslator : public OperatorTranslator {
     return {&bottom_->sorter_row_, &bottom_->sorter_struct_};
   }
 
+  const planner::AbstractPlanNode* Op() override {
+    return op_;
+  }
+
  private:
   void DeclareIterator(FunctionBuilder *builder);
   void GenForLoop(FunctionBuilder *builder);
   void CloseIterator(FunctionBuilder *builder);
   void DeclareResult(FunctionBuilder *builder);
+
+  // The sort plan node
+  const planner::OrderByPlanNode * op_;
 
   // The bottom translator
   SortBottomTranslator *bottom_;

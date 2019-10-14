@@ -4,8 +4,9 @@
 #include "execution/compiler/translator_factory.h"
 
 namespace terrier::execution::compiler {
-AggregateBottomTranslator::AggregateBottomTranslator(const terrier::planner::AbstractPlanNode *op, CodeGen *codegen)
-    : OperatorTranslator(op, codegen),
+AggregateBottomTranslator::AggregateBottomTranslator(const terrier::planner::AggregatePlanNode *op, CodeGen *codegen)
+    : OperatorTranslator(codegen),
+      op_(op),
       hash_val_(codegen->NewIdentifier(hash_val_name)),
       agg_values_(codegen->NewIdentifier(agg_values_name)),
       values_struct_(codegen->NewIdentifier(values_struct_name)),
@@ -99,10 +100,9 @@ ast::Expr *AggregateBottomTranslator::GetAggTerm(ast::Identifier object, uint32_
  */
 void AggregateBottomTranslator::GenPayloadStruct(util::RegionVector<ast::Decl *> *decls) {
   util::RegionVector<ast::FieldDecl *> fields{codegen_->Region()};
-  auto agg_op = dynamic_cast<const terrier::planner::AggregatePlanNode *>(op_);
   // Create a field for every group by term
   uint32_t term_idx = 0;
-  for (const auto &term : agg_op->GetGroupByTerms()) {
+  for (const auto &term : op_->GetGroupByTerms()) {
     ast::Identifier field_name = codegen_->Context()->GetIdentifier(group_by_term_names + std::to_string(term_idx));
     ast::Expr *type = codegen_->TplType(term->GetReturnValueType());
     fields.emplace_back(codegen_->MakeField(field_name, type));
@@ -113,7 +113,7 @@ void AggregateBottomTranslator::GenPayloadStruct(util::RegionVector<ast::Decl *>
 
   // Create a field for every aggregate term
   term_idx = 0;
-  for (const auto &term : agg_op->GetAggregateTerms()) {
+  for (const auto &term : op_->GetAggregateTerms()) {
     ast::Identifier field_name = codegen_->Context()->GetIdentifier(agg_term_names + std::to_string(term_idx));
     ast::Expr *type = codegen_->AggregateType(term->GetExpressionType(), term->GetChild(0)->GetReturnValueType());
     fields.emplace_back(codegen_->MakeField(field_name, type));
@@ -129,11 +129,10 @@ void AggregateBottomTranslator::GenPayloadStruct(util::RegionVector<ast::Decl *>
  */
 void AggregateBottomTranslator::GenValuesStruct(util::RegionVector<ast::Decl *> *decls) {
   util::RegionVector<ast::FieldDecl *> fields{codegen_->Region()};
-  auto agg_op = dynamic_cast<const terrier::planner::AggregatePlanNode *>(op_);
   // Create a field for every group by term
   // TODO(Amadou): same as payload, so dedup code.
   uint32_t term_idx = 0;
-  for (const auto &term : agg_op->GetGroupByTerms()) {
+  for (const auto &term : op_->GetGroupByTerms()) {
     ast::Identifier field_name = codegen_->Context()->GetIdentifier(group_by_term_names + std::to_string(term_idx));
     ast::Expr *type = codegen_->TplType(term->GetReturnValueType());
     fields.emplace_back(codegen_->MakeField(field_name, type));
@@ -143,7 +142,7 @@ void AggregateBottomTranslator::GenValuesStruct(util::RegionVector<ast::Decl *> 
   // Create a field of every aggregate term.
   // Unlike the payload, these are scalar types, not aggregate types
   term_idx = 0;
-  for (const auto &term : agg_op->GetAggregateTerms()) {
+  for (const auto &term : op_->GetAggregateTerms()) {
     ast::Identifier field_name = codegen_->Context()->GetIdentifier(agg_term_names + std::to_string(term_idx));
     ast::Expr *type = codegen_->TplType(term->GetChild(0)->GetReturnValueType());
     fields.emplace_back(codegen_->MakeField(field_name, type));
@@ -158,10 +157,9 @@ void AggregateBottomTranslator::GenValuesStruct(util::RegionVector<ast::Decl *> 
  * Generate the key check logic
  */
 void AggregateBottomTranslator::GenKeyCheck(FunctionBuilder *builder) {
-  auto agg_op = dynamic_cast<const terrier::planner::AggregatePlanNode *>(op_);
   // Compare group by terms one by one
   // Generate if (payload.term_i )
-  for (uint32_t term_idx = 0; term_idx < agg_op->GetGroupByTerms().size(); term_idx++) {
+  for (uint32_t term_idx = 0; term_idx < op_->GetGroupByTerms().size(); term_idx++) {
     ast::Expr *lhs = GetGroupByTerm(agg_payload_, term_idx);
     ast::Expr *rhs = GetGroupByTerm(agg_values_, term_idx);
     ast::Expr *cond = codegen_->Compare(parsing::Token::Type::BANG_EQUAL, lhs, rhs);
@@ -183,8 +181,7 @@ void AggregateBottomTranslator::FillValues(FunctionBuilder *builder) {
 
   // Add group by terms
   uint32_t term_idx = 0;
-  auto agg_op = dynamic_cast<const terrier::planner::AggregatePlanNode *>(op_);
-  for (const auto &term : agg_op->GetGroupByTerms()) {
+  for (const auto &term : op_->GetGroupByTerms()) {
     // Set agg_values.term_i = group_term_i
     ast::Expr *lhs = GetGroupByTerm(agg_values_, term_idx);
     auto term_translator = TranslatorFactory::CreateExpressionTranslator(term.get(), codegen_);
@@ -194,7 +191,7 @@ void AggregateBottomTranslator::FillValues(FunctionBuilder *builder) {
   }
   // Add aggregates
   term_idx = 0;
-  for (const auto &term : agg_op->GetAggregateTerms()) {
+  for (const auto &term : op_->GetAggregateTerms()) {
     // Set agg_values.expr_i = agg_expr_i
     ast::Expr *lhs = GetAggTerm(agg_values_, term_idx, false);
     auto term_translator = TranslatorFactory::CreateExpressionTranslator(term->GetChild(0).get(), codegen_);
@@ -234,14 +231,13 @@ void AggregateBottomTranslator::GenConstruct(FunctionBuilder *builder) {
   builder->Append(codegen_->Assign(codegen_->MakeExpr(agg_payload_), cast_call));
 
   // Set the Aggregate Keys (agg_payload.term_i = agg_value.term_i)
-  auto agg_op = dynamic_cast<const terrier::planner::AggregatePlanNode *>(op_);
-  for (uint32_t term_idx = 0; term_idx < agg_op->GetGroupByTerms().size(); term_idx++) {
+  for (uint32_t term_idx = 0; term_idx < op_->GetGroupByTerms().size(); term_idx++) {
     ast::Expr *lhs = GetGroupByTerm(agg_payload_, term_idx);
     ast::Expr *rhs = GetGroupByTerm(agg_values_, term_idx);
     builder->Append(codegen_->Assign(lhs, rhs));
   }
   // Call @aggInit(&agg_payload.expr_i) for each expression
-  for (uint32_t term_idx = 0; term_idx < agg_op->GetAggregateTerms().size(); term_idx++) {
+  for (uint32_t term_idx = 0; term_idx < op_->GetAggregateTerms().size(); term_idx++) {
     ast::Expr *init_call = codegen_->AggInit(GetAggTerm(agg_payload_, term_idx, true));
     builder->Append(codegen_->MakeStmt(init_call));
   }
@@ -254,8 +250,7 @@ void AggregateBottomTranslator::GenConstruct(FunctionBuilder *builder) {
  */
 void AggregateBottomTranslator::GenAdvance(FunctionBuilder *builder) {
   // Call @aggAdvance(&agg_payload.expr_i) for each expression
-  auto agg_op = dynamic_cast<const terrier::planner::AggregatePlanNode *>(op_);
-  for (uint32_t term_idx = 0; term_idx < agg_op->GetAggregateTerms().size(); term_idx++) {
+  for (uint32_t term_idx = 0; term_idx < op_->GetAggregateTerms().size(); term_idx++) {
     ast::Expr *arg1 = GetAggTerm(agg_payload_, term_idx, true);
     ast::Expr *arg2 = GetAggTerm(agg_values_, term_idx, true);
     ast::Expr *advance_call = codegen_->AggAdvance(arg1, arg2);
@@ -266,9 +261,8 @@ void AggregateBottomTranslator::GenAdvance(FunctionBuilder *builder) {
 // Generate var agg_hash_val = @hash(groub_by_term1, group_by_term2, ...)
 void AggregateBottomTranslator::GenHashCall(FunctionBuilder *builder) {
   // Create the @hash(group_by_term1, group_by_term2, ...) call
-  auto agg_op = dynamic_cast<const terrier::planner::AggregatePlanNode *>(op_);
   util::RegionVector<ast::Expr *> hash_args{codegen_->Region()};
-  for (uint32_t term_idx = 0; term_idx < agg_op->GetGroupByTerms().size(); term_idx++) {
+  for (uint32_t term_idx = 0; term_idx < op_->GetGroupByTerms().size(); term_idx++) {
     hash_args.emplace_back(GetGroupByTerm(agg_values_, term_idx));
   }
   ast::Expr *hash_call = codegen_->Hash(std::move(hash_args));
@@ -379,9 +373,8 @@ void AggregateTopTranslator::CloseIterator(FunctionBuilder *builder) {
 }
 
 bool AggregateTopTranslator::GenHaving(execution::compiler::FunctionBuilder *builder) {
-  auto agg_op = dynamic_cast<const terrier::planner::AggregatePlanNode *>(op_);
-  if (agg_op->GetHavingClausePredicate() != nullptr) {
-    auto predicate = agg_op->GetHavingClausePredicate().get();
+  if (op_->GetHavingClausePredicate() != nullptr) {
+    auto predicate = op_->GetHavingClausePredicate().get();
     auto translator = TranslatorFactory::CreateExpressionTranslator(predicate, codegen_);
     ast::Expr *cond = translator->DeriveExpr(this);
     builder->StartIfStmt(cond);

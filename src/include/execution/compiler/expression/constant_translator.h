@@ -15,6 +15,6 @@ class ConstantTranslator : public ExpressionTranslator {
    */
   ConstantTranslator(const terrier::parser::AbstractExpression *expression, CodeGen *codegen);
 
-  ast::Expr *DeriveExpr(OperatorTranslator *translator) override;
+  ast::Expr *DeriveExpr(ExpressionEvaluator *evaluator) override;
 };
 }  // namespace terrier::execution::compiler

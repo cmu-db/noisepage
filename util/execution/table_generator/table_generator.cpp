@@ -9,11 +9,28 @@
 #include "loggers/execution_logger.h"
 #include "storage/index/bwtree_index.h"
 #include "storage/index/index_builder.h"
+#include "parser/expression/column_value_expression.h"
 
 namespace terrier::execution::sql {
+
+void TableGenerator::GenerateTableFromFile(const std::string &schema_file, const std::string &data_file) {
+  table_reader_.ReadTable(schema_file, data_file);
+}
+
+void TableGenerator::GenerateTPCHTables(const std::string &dir_name) {
+  // TPCH table names;
+  static const std::vector<std::string> tpch_tables{
+      "part", "supplier", "partsupp", "customer", "orders", "lineitem", "nation", "region",
+  };
+  for (const auto &table_name : tpch_tables) {
+    auto num_rows = table_reader_.ReadTable(dir_name + table_name + ".schema", dir_name + table_name + ".data");
+    std::cout << "Wrote " << num_rows << " rows for table " << table_name << std::endl;
+  }
+}
+
 template <typename T>
-T *TableGenerator::CreateNumberColumnData(Dist dist, uint32_t num_vals, uint64_t min, uint64_t max) {
-  static uint64_t serial_counter = 0;
+T *TableGenerator::CreateNumberColumnData(Dist dist, uint32_t num_vals, uint64_t serial_counter, uint64_t min,
+                                          uint64_t max) {
   auto *val = new T[num_vals];
 
   switch (dist) {
@@ -50,19 +67,19 @@ std::pair<byte *, uint32_t *> TableGenerator::GenerateColumnData(const ColumnIns
       throw std::runtime_error("Implement me!");
     }
     case type::TypeId::SMALLINT: {
-      col_data = reinterpret_cast<byte *>(
-          CreateNumberColumnData<int16_t>(col_meta.dist_, num_rows, col_meta.min_, col_meta.max_));
+      col_data = reinterpret_cast<byte *>(CreateNumberColumnData<int16_t>(
+          col_meta.dist_, num_rows, col_meta.serial_counter_, col_meta.min_, col_meta.max_));
       break;
     }
     case type::TypeId::INTEGER: {
-      col_data = reinterpret_cast<byte *>(
-          CreateNumberColumnData<int32_t>(col_meta.dist_, num_rows, col_meta.min_, col_meta.max_));
+      col_data = reinterpret_cast<byte *>(CreateNumberColumnData<int32_t>(
+          col_meta.dist_, num_rows, col_meta.serial_counter_, col_meta.min_, col_meta.max_));
       break;
     }
     case type::TypeId::BIGINT:
     case type::TypeId::DECIMAL: {
-      col_data = reinterpret_cast<byte *>(
-          CreateNumberColumnData<int64_t>(col_meta.dist_, num_rows, col_meta.min_, col_meta.max_));
+      col_data = reinterpret_cast<byte *>(CreateNumberColumnData<int64_t>(
+          col_meta.dist_, num_rows, col_meta.serial_counter_, col_meta.min_, col_meta.max_));
       break;
     }
     default: {
@@ -277,7 +294,9 @@ void TableGenerator::InitTestIndexes() {
     // Create Index Schema
     std::vector<catalog::IndexSchema::Column> index_cols;
     for (const auto &col_meta : index_meta.cols_) {
-      index_cols.emplace_back(col_meta.name_, col_meta.type_, col_meta.nullable_, DummyCVE());
+      const auto &table_col = table_schema.GetColumn(col_meta.table_col_name_);
+      parser::ColumnValueExpression col_expr(exec_ctx_->DBOid(), table_oid, table_col.Oid(), table_col.Type());
+      index_cols.emplace_back(col_meta.name_, col_meta.type_, col_meta.nullable_, col_expr);
     }
     catalog::IndexSchema tmp_index_schema{index_cols, false, false, false, false};
     // Create Index

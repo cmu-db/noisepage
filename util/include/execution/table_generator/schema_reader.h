@@ -54,7 +54,7 @@ struct IndexInfo {
   /**
    * Projected row to use for inserts
    */
-  storage::ProjectedRow * index_pr;
+  storage::ProjectedRow *index_pr;
 };
 
 /**

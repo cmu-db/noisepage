@@ -7,8 +7,8 @@ namespace terrier::execution::compiler {
 ColumnValueTranslator::ColumnValueTranslator(const terrier::parser::AbstractExpression *expression, CodeGen *codegen)
     : ExpressionTranslator(expression, codegen) {}
 
-ast::Expr *ColumnValueTranslator::DeriveExpr(OperatorTranslator *translator) {
+ast::Expr *ColumnValueTranslator::DeriveExpr(ExpressionEvaluator *evaluator) {
   auto column_val = GetExpressionAs<parser::ColumnValueExpression>();
-  return translator->GetTableColumn(column_val->GetColumnOid());
+  return evaluator->GetTableColumn(column_val->GetColumnOid());
 }
 };  // namespace terrier::execution::compiler

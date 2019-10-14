@@ -12,11 +12,8 @@ fun index_count_2(execCtx: *ExecutionContext, key : int64, key2 : int64) -> int6
   // Next we fill up the index's projected row
   var index_pr : *ProjectedRow = @indexIteratorGetPR(&index)
 
-  @prSetInt(index_pr, 0, @intToSql(0)) // This seems to be required for the index to find matches
-                                        // (see inserter_test.cpp)
-
-  @prSetSmallInt(index_pr, 0, @intToSql(key)) // Set colA
-  @prSetInt(index_pr, 1, @intToSql(key2)) // Set colB
+  @prSetSmallInt(index_pr, 1, @intToSql(key)) // Set colA
+  @prSetInt(index_pr, 0, @intToSql(key2)) // Set colB
 
   // Now we iterate through the matches
   for (@indexIteratorScanKey(&index); @indexIteratorAdvance(&index);) {
@@ -57,10 +54,10 @@ fun main(execCtx: *ExecutionContext) -> int64 {
 
   var tvi: TableVectorIterator
   var oids: [4]uint32
-  oids[0] = 1 // colA
-  oids[1] = 2 // colB
-  oids[2] = 3 // colC
-  oids[3] = 4 // colD
+  oids[0] = 1 // colA (raw offset = 3)
+  oids[1] = 2 // colB (raw offset = 1)
+  oids[2] = 3 // colC (raw offset = 0)
+  oids[3] = 4 // colD (raw offset = 2)
 
   @tableIterInitBind(&tvi, execCtx, "test_2", oids)
   var count1 : int64
@@ -71,11 +68,12 @@ fun main(execCtx: *ExecutionContext) -> int64 {
   var inserter : Inserter
   @inserterInitBind(&inserter, execCtx, "test_2")
   var table_pr : *ProjectedRow = @inserterGetTablePR(&inserter)
-  @prSetSmallInt(table_pr, 0, @intToSql(15))
-  @prSetInt(table_pr, 1, @intToSql(14))
-  @prSetBigInt(table_pr, 2, @intToSql(0))
-  @prSetInt(table_pr, 3, @intToSql(48))
+  @prSetSmallInt(table_pr, 3, @intToSql(15))
+  @prSetIntNull(table_pr, 1, @intToSql(14))
+  @prSetBigInt(table_pr, 0, @intToSql(0))
+  @prSetIntNull(table_pr, 2, @intToSql(48))
 
+  // counting table tuples before insert
   for (@tableIterAdvance(&tvi)) {
     var pci = @tableIterGetPCI(&tvi)
         for (; @pciHasNext(pci); @pciAdvance(pci)) {
@@ -87,18 +85,18 @@ fun main(execCtx: *ExecutionContext) -> int64 {
 
   var ts : TupleSlot = @inserterTableInsert(&inserter)
   var index_pr : *ProjectedRow = @inserterGetIndexPRBind(&inserter, "index_2")
-  @prSetSmallInt(index_pr, 0, @prGetSmallInt(table_pr, 0))
+  @prSetSmallInt(index_pr, 0, @prGetSmallInt(table_pr, 3))
 
+  // index scan counts before index inserts
   var index_count_before = index_count_1(execCtx, 15)
   var index_count_before_2 = index_count_2(execCtx, 15, 14)
 
   @inserterIndexInsertBind(&inserter, "index_2")
 
+  // counting table tuples after insert
   @tableIterInitBind(&tvi, execCtx, "test_2", oids)
   var count2 : int64
   count2 = 0
-
-  var c = 0
   for (@tableIterAdvance(&tvi)) {
       var pci = @tableIterGetPCI(&tvi)
           for (; @pciHasNext(pci); @pciAdvance(pci)) {
@@ -109,11 +107,12 @@ fun main(execCtx: *ExecutionContext) -> int64 {
   @tableIterClose(&tvi)
 
  var index_pr_2 : *ProjectedRow = @inserterGetIndexPRBind(&inserter, "index_2_multi")
- @prSetSmallInt(index_pr_2, 0, @prGetSmallInt(table_pr, 0))
- @prSetInt(index_pr_2, 1, @prGetInt(table_pr, 1))
+ @prSetSmallInt(index_pr_2, 1, @prGetSmallInt(table_pr, 3))
+ @prSetInt(index_pr_2, 0, @prGetInt(table_pr, 1))
  @inserterIndexInsertBind(&inserter, "index_2_multi")
 
 
+ // index scan counts after index inserts
  var index_count_after = index_count_1(execCtx, 15)
  var index_count_after_2 = index_count_2(execCtx, 15, 14)
  return (count2 - count1) + (index_count_after - index_count_before) + (index_count_after_2 - index_count_before_2)

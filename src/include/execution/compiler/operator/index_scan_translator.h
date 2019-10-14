@@ -1,16 +1,16 @@
 #pragma once
 #include "execution/compiler/operator/operator_translator.h"
-#include "planner/plannodes/index_join_plan_node.h"
+#include "planner/plannodes/index_scan_plan_node.h"
 #include "catalog/index_schema.h"
 
 namespace terrier::execution::compiler {
 
 /**
- * Index Nested Loop join translator.
+ * Index scan translator.
  */
-class IndexJoinTranslator : public OperatorTranslator {
+class IndexScanTranslator : public OperatorTranslator {
  public:
-  IndexJoinTranslator(const terrier::planner::IndexJoinPlanNode *op, CodeGen *codegen);
+  IndexScanTranslator(const terrier::planner::IndexScanPlanNode *op, CodeGen *codegen);
 
   // Does nothing
   void InitializeStateFields(util::RegionVector<ast::FieldDecl *> *state_fields) override {}
@@ -61,7 +61,7 @@ class IndexJoinTranslator : public OperatorTranslator {
   void DeclareTablePR(FunctionBuilder *builder);
 
  private:
-  const planner::IndexJoinPlanNode *op_;
+  const planner::IndexScanPlanNode *op_;
   std::vector<catalog::col_oid_t> input_oids_;
   const catalog::Schema &table_schema_;
   storage::ProjectionMap table_pm_;

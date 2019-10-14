@@ -9,7 +9,7 @@
 
 namespace terrier::planner {
 
-using SortKey = std::pair<catalog::col_oid_t, OrderByOrderingType>;
+using SortKey = std::pair<std::shared_ptr<parser::AbstractExpression>, OrderByOrderingType>;
 
 /**
  * Plan node for order by operator

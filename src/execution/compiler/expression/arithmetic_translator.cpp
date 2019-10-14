@@ -8,9 +8,9 @@ ArithmeticTranslator::ArithmeticTranslator(const terrier::parser::AbstractExpres
       left_(TranslatorFactory::CreateExpressionTranslator(expression_->GetChild(0).get(), codegen_)),
       right_(TranslatorFactory::CreateExpressionTranslator(expression_->GetChild(1).get(), codegen_)) {}
 
-ast::Expr *ArithmeticTranslator::DeriveExpr(OperatorTranslator *translator) {
-  auto *left_expr = left_->DeriveExpr(translator);
-  auto *right_expr = right_->DeriveExpr(translator);
+ast::Expr *ArithmeticTranslator::DeriveExpr(ExpressionEvaluator *evaluator) {
+  auto *left_expr = left_->DeriveExpr(evaluator);
+  auto *right_expr = right_->DeriveExpr(evaluator);
   parsing::Token::Type type;
   switch (expression_->GetExpressionType()) {
     case terrier::parser::ExpressionType::OPERATOR_DIVIDE:

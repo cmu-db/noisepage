@@ -6,13 +6,13 @@
 
 namespace terrier::execution::compiler {
 
-Compiler::Compiler(execution::compiler::Query *query) : query_(query), codegen_(query) {
+Compiler::Compiler(CodeGen* codegen, const planner::AbstractPlanNode* plan) : codegen_(codegen), plan_(plan) {
   // Make the pipelines
-  auto main_pipeline = std::make_unique<Pipeline>(&codegen_);
-  MakePipelines(query_->GetPlan(), main_pipeline.get());
+  auto main_pipeline = std::make_unique<Pipeline>(codegen_);
+  MakePipelines(*plan, main_pipeline.get());
   // The query has an ouput
-  if (query->GetPlan().GetOutputSchema() != nullptr) {
-    auto output_translator = std::make_unique<OutputTranslator>(&codegen_);
+  if (plan_->GetOutputSchema() != nullptr) {
+    auto output_translator = std::make_unique<OutputTranslator>(codegen_);
     main_pipeline->Add(std::move(output_translator));
   }
   // Finally add the main pipeline
@@ -20,23 +20,23 @@ Compiler::Compiler(execution::compiler::Query *query) : query_(query), codegen_(
   EXECUTION_LOG_INFO("Made {} pipelines", pipelines_.size());
 }
 
-void Compiler::Compile() {
+ast::File* Compiler::Compile() {
   // Step 1: Generate state, structs, helper functions
-  util::RegionVector<ast::Decl *> decls(codegen_.Region());
-  util::RegionVector<ast::FieldDecl *> state_fields(codegen_.Region());
-  util::RegionVector<ast::Stmt *> setup_stmts(codegen_.Region());
-  util::RegionVector<ast::Stmt *> teardow_stmts(codegen_.Region());
+  util::RegionVector<ast::Decl *> decls(codegen_->Region());
+  util::RegionVector<ast::FieldDecl *> state_fields(codegen_->Region());
+  util::RegionVector<ast::Stmt *> setup_stmts(codegen_->Region());
+  util::RegionVector<ast::Stmt *> teardow_stmts(codegen_->Region());
   // 1.1 Let every pipeline initialize itself
   for (auto &pipeline : pipelines_) {
     pipeline->Initialize(&decls, &state_fields, &setup_stmts, &teardow_stmts);
   }
 
   // 1.2 Make the top level declarations
-  util::RegionVector<ast::Decl *> top_level(codegen_.Region());
+  util::RegionVector<ast::Decl *> top_level(codegen_->Region());
   GenStateStruct(&top_level, std::move(state_fields));
   GenHelperStructsAndFunctions(&top_level, std::move(decls));
-  GenFunction(&top_level, codegen_.GetSetupFn(), std::move(setup_stmts));
-  GenFunction(&top_level, codegen_.GetTeardownFn(), std::move(teardow_stmts));
+  GenFunction(&top_level, codegen_->GetSetupFn(), std::move(setup_stmts));
+  GenFunction(&top_level, codegen_->GetTeardownFn(), std::move(teardow_stmts));
 
   // Step 2: For each pipeline: Generate a pipeline function that performs the produce, consume logic
   // TODO(Amadou): This can actually be combined with the previous step to avoid the additional pass
@@ -50,20 +50,20 @@ void Compiler::Compile() {
   top_level.emplace_back(GenMainFunction());
 
   // Compile
-  ast::File *compiled_file = codegen_.Compile(std::move(top_level));
+  ast::File *compiled_file = codegen_->Compile(std::move(top_level));
   EXECUTION_LOG_INFO("Generated File");
-  sema::Sema type_checker{codegen_.Context()};
+  sema::Sema type_checker{codegen_->Context()};
   type_checker.Run(compiled_file);
-  query_->SetCompiledFile(compiled_file);
+  return compiled_file;
 }
 
 void Compiler::GenStateStruct(execution::util::RegionVector<execution::ast::Decl *> *top_level,
                               execution::util::RegionVector<execution::ast::FieldDecl *> &&fields) {
   // Make a dummy fields in case no operator has a state
-  ast::Identifier dummy_name = codegen_.Context()->GetIdentifier("DUMMY");
-  ast::Expr *dummy_type = codegen_.BuiltinType(ast::BuiltinType::Kind::Int32);
-  fields.emplace_back(codegen_.MakeField(dummy_name, dummy_type));
-  top_level->emplace_back(codegen_.MakeStruct(codegen_.GetStateType(), std::move(fields)));
+  ast::Identifier dummy_name = codegen_->Context()->GetIdentifier("DUMMY");
+  ast::Expr *dummy_type = codegen_->BuiltinType(ast::BuiltinType::Kind::Int32);
+  fields.emplace_back(codegen_->MakeField(dummy_name, dummy_type));
+  top_level->emplace_back(codegen_->MakeStruct(codegen_->GetStateType(), std::move(fields)));
 }
 
 void Compiler::GenHelperStructsAndFunctions(execution::util::RegionVector<execution::ast::Decl *> *top_level,
@@ -74,13 +74,13 @@ void Compiler::GenHelperStructsAndFunctions(execution::util::RegionVector<execut
 void Compiler::GenFunction(execution::util::RegionVector<execution::ast::Decl *> *top_level, ast::Identifier fn_name,
                            execution::util::RegionVector<execution::ast::Stmt *> &&stmts) {
   // Function parameter
-  util::RegionVector<ast::FieldDecl *> params = codegen_.ExecParams();
+  util::RegionVector<ast::FieldDecl *> params = codegen_->ExecParams();
 
   // Function return type (nil)
-  ast::Expr *ret_type = codegen_.BuiltinType(ast::BuiltinType::Kind::Nil);
+  ast::Expr *ret_type = codegen_->BuiltinType(ast::BuiltinType::Kind::Nil);
 
   // Make the function
-  FunctionBuilder builder{&codegen_, fn_name, std::move(params), ret_type};
+  FunctionBuilder builder{codegen_, fn_name, std::move(params), ret_type};
   for (const auto &stmt : stmts) {
     builder.Append(stmt);
   }
@@ -89,32 +89,32 @@ void Compiler::GenFunction(execution::util::RegionVector<execution::ast::Decl *>
 
 ast::Decl *Compiler::GenMainFunction() {
   // Function name
-  ast::Identifier fn_name = codegen_.GetMainFn();
+  ast::Identifier fn_name = codegen_->GetMainFn();
 
   // Function parameter
-  util::RegionVector<ast::FieldDecl *> params = codegen_.MainParams();
+  util::RegionVector<ast::FieldDecl *> params = codegen_->MainParams();
 
   // Function return type (int32)
-  ast::Expr *ret_type = codegen_.BuiltinType(ast::BuiltinType::Kind::Int32);
+  ast::Expr *ret_type = codegen_->BuiltinType(ast::BuiltinType::Kind::Int32);
 
   // Make the function
-  FunctionBuilder builder{&codegen_, fn_name, std::move(params), ret_type};
+  FunctionBuilder builder{codegen_, fn_name, std::move(params), ret_type};
 
   // Step 0: Define the state variable.
-  ast::Identifier state = codegen_.GetStateVar();
-  ast::Expr *state_type = codegen_.MakeExpr(codegen_.GetStateType());
-  builder.Append(codegen_.DeclareVariable(state, state_type, nullptr));
+  ast::Identifier state = codegen_->GetStateVar();
+  ast::Expr *state_type = codegen_->MakeExpr(codegen_->GetStateType());
+  builder.Append(codegen_->DeclareVariable(state, state_type, nullptr));
 
   // Step 1: Call setupFn(state, execCtx)
-  builder.Append(codegen_.ExecCall(codegen_.GetSetupFn()));
+  builder.Append(codegen_->ExecCall(codegen_->GetSetupFn()));
   // Step 2: For each pipeline, call its function
   for (const auto &pipeline : pipelines_) {
-    builder.Append(codegen_.ExecCall(pipeline->GetPipelineName()));
+    builder.Append(codegen_->ExecCall(pipeline->GetPipelineName()));
   }
   // Step 3: Call the teardown function
-  builder.Append(codegen_.ExecCall(codegen_.GetTeardownFn()));
+  builder.Append(codegen_->ExecCall(codegen_->GetTeardownFn()));
   // Step 4: return a value of 0
-  builder.Append(codegen_.ReturnStmt(codegen_.IntLiteral(37)));
+  builder.Append(codegen_->ReturnStmt(codegen_->IntLiteral(37)));
   return builder.Finish();
 }
 
@@ -122,11 +122,11 @@ void Compiler::MakePipelines(const terrier::planner::AbstractPlanNode &op, Pipel
   switch (op.GetPlanNodeType()) {
     case terrier::planner::PlanNodeType::AGGREGATE:
     case terrier::planner::PlanNodeType::ORDERBY: {
-      auto bottom_translator = TranslatorFactory::CreateBottomTranslator(&op, &codegen_);
-      auto top_translator = TranslatorFactory::CreateTopTranslator(&op, bottom_translator.get(), &codegen_);
+      auto bottom_translator = TranslatorFactory::CreateBottomTranslator(&op, codegen_);
+      auto top_translator = TranslatorFactory::CreateTopTranslator(&op, bottom_translator.get(), codegen_);
       curr_pipeline->Add(std::move(top_translator));
       // Make the next pipeline
-      auto next_pipeline = std::make_unique<Pipeline>(&codegen_);
+      auto next_pipeline = std::make_unique<Pipeline>(codegen_);
       MakePipelines(*op.GetChild(0), next_pipeline.get());
       next_pipeline->Add(std::move(bottom_translator));
       pipelines_.emplace_back(std::move(next_pipeline));
@@ -134,10 +134,10 @@ void Compiler::MakePipelines(const terrier::planner::AbstractPlanNode &op, Pipel
     }
     case terrier::planner::PlanNodeType::HASHJOIN: {
       // Create left and right translators
-      auto left_translator = TranslatorFactory::CreateLeftTranslator(&op, &codegen_);
-      auto right_translator = TranslatorFactory::CreateRightTranslator(&op, left_translator.get(), &codegen_);
+      auto left_translator = TranslatorFactory::CreateLeftTranslator(&op, codegen_);
+      auto right_translator = TranslatorFactory::CreateRightTranslator(&op, left_translator.get(), codegen_);
       // Generate left pipeline
-      auto next_pipeline = std::make_unique<Pipeline>(&codegen_);
+      auto next_pipeline = std::make_unique<Pipeline>(codegen_);
       MakePipelines(*op.GetChild(0), next_pipeline.get());
       next_pipeline->Add(std::move(left_translator));
       pipelines_.emplace_back(std::move(next_pipeline));
@@ -148,8 +148,8 @@ void Compiler::MakePipelines(const terrier::planner::AbstractPlanNode &op, Pipel
     }
     case terrier::planner::PlanNodeType::NESTLOOP: {
       // Create left and right translators
-      auto left_translator = TranslatorFactory::CreateLeftTranslator(&op, &codegen_);
-      auto right_translator = TranslatorFactory::CreateRightTranslator(&op, left_translator.get(), &codegen_);
+      auto left_translator = TranslatorFactory::CreateLeftTranslator(&op, codegen_);
+      auto right_translator = TranslatorFactory::CreateRightTranslator(&op, left_translator.get(), codegen_);
       // Outer loop
       MakePipelines(*op.GetChild(1), curr_pipeline);
       curr_pipeline->Add(std::move(left_translator));
@@ -159,7 +159,7 @@ void Compiler::MakePipelines(const terrier::planner::AbstractPlanNode &op, Pipel
       return;
     }
     default: {
-      auto translator = TranslatorFactory::CreateRegularTranslator(&op, &codegen_);
+      auto translator = TranslatorFactory::CreateRegularTranslator(&op, codegen_);
       if (op.GetChildrenSize() != 0) MakePipelines(*op.GetChild(0), curr_pipeline);
       curr_pipeline->Add(std::move(translator));
       return;

@@ -11,14 +11,14 @@
 
 namespace terrier::execution::compiler {
 
-SeqScanTranslator::SeqScanTranslator(const terrier::planner::AbstractPlanNode *op, CodeGen *codegen)
-    : OperatorTranslator(op, codegen),
-      seqscan_op_(static_cast<const terrier::planner::SeqScanPlanNode *>(op)),
-      schema_(codegen->Accessor()->GetSchema(seqscan_op_->GetTableOid())),
-      input_oids_(seqscan_op_->CollectInputOids()),
-      pm_(codegen->Accessor()->GetTable(seqscan_op_->GetTableOid())->ProjectionMapForOids(input_oids_)),
-      has_predicate_(seqscan_op_->GetScanPredicate() != nullptr),
-      is_vectorizable_{IsVectorizable(seqscan_op_->GetScanPredicate().get())},
+SeqScanTranslator::SeqScanTranslator(const terrier::planner::SeqScanPlanNode *op, CodeGen *codegen)
+    : OperatorTranslator(codegen),
+      op_(op),
+      schema_(codegen->Accessor()->GetSchema(op_->GetTableOid())),
+      input_oids_(op_->CollectInputOids()),
+      pm_(codegen->Accessor()->GetTable(op_->GetTableOid())->ProjectionMapForOids(input_oids_)),
+      has_predicate_(op_->GetScanPredicate() != nullptr),
+      is_vectorizable_{IsVectorizable(op_->GetScanPredicate().get())},
       tvi_(codegen->NewIdentifier(tvi_name_)),
       col_oids_(codegen->NewIdentifier(col_oids_name_)),
       pci_(codegen->NewIdentifier(pci_name_)),
@@ -52,7 +52,7 @@ void SeqScanTranslator::Consume(FunctionBuilder *builder) {
   // TODO(Amadou): This logic will more complex if the whole pipeline is vectorized. Move it to a function.
   bool has_if_stmt = false;
   if (is_vectorizable_) {
-    if (has_predicate_) GenVectorizedPredicate(builder, seqscan_op_->GetScanPredicate().get());
+    if (has_predicate_) GenVectorizedPredicate(builder, op_->GetScanPredicate().get());
     GenPCILoop(builder);
   } else {
     GenPCILoop(builder);
@@ -96,7 +96,7 @@ void SeqScanTranslator::DeclareTVI(FunctionBuilder *builder) {
   builder->Append(codegen_->DeclareVariable(tvi_, iter_type, nullptr));
 
   // Call @tableIterInit(&tvi, execCtx, table_oid, col_oids)
-  ast::Expr *init_call = codegen_->TableIterInit(tvi_, !seqscan_op_->GetTableOid(), col_oids_);
+  ast::Expr *init_call = codegen_->TableIterInit(tvi_, !op_->GetTableOid(), col_oids_);
   builder->Append(codegen_->MakeStmt(init_call));
 }
 
@@ -139,7 +139,7 @@ void SeqScanTranslator::GenPCILoop(FunctionBuilder *builder) {
 }
 
 void SeqScanTranslator::GenScanCondition(FunctionBuilder *builder) {
-  auto predicate = seqscan_op_->GetScanPredicate();
+  auto predicate = op_->GetScanPredicate();
   // Regular codegen
   auto cond_translator = TranslatorFactory::CreateExpressionTranslator(predicate.get(), codegen_);
   ast::Expr *cond = cond_translator->DeriveExpr(this);

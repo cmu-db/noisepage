@@ -2,14 +2,16 @@
 
 #include <string>
 #include <utility>
-#include <execution/compiler/codegen.h>
-
 #include "type/transient_value_peeker.h"
 
 namespace terrier::execution::compiler {
 
-CodeGen::CodeGen(Query *query)
-    : query_(query),
+CodeGen::CodeGen(catalog::CatalogAccessor * accessor)
+    : region_("QueryRegion"),
+      error_reporter_(&region_),
+      ast_ctx_(&region_, &error_reporter_),
+      factory_(&region_),
+      accessor_(accessor),
       state_struct_{Context()->GetIdentifier("State")},
       state_var_{Context()->GetIdentifier("state")},
       exec_ctx_var_(Context()->GetIdentifier("execCtx")),
@@ -457,8 +459,18 @@ ast::Expr *CodeGen::IndexIteratorScanKey(ast::Identifier iter) {
 }
 
 ast::Expr *CodeGen::IndexIteratorAdvance(ast::Identifier iter) {
-  // @indexIteratorHasNext(&iter)
+  // @indexIteratorAdvance(&iter)
   return OneArgCall(ast::Builtin::IndexIteratorAdvance, iter, true);
+}
+
+ast::Expr *CodeGen::IndexIteratorGetIndexPR(ast::Identifier iter) {
+  // @indexIteratorGetPR(&iter)
+  return OneArgCall(ast::Builtin::IndexIteratorGetPR, iter, true);
+}
+
+ast::Expr *CodeGen::IndexIteratorGetTablePR(ast::Identifier iter) {
+  // @indexIteratorGetTablePR(&iter)
+  return OneArgCall(ast::Builtin::IndexIteratorGetTablePR, iter, true);
 }
 
 ast::Expr *CodeGen::IndexIteratorFree(ast::Identifier iter) {
@@ -467,24 +479,30 @@ ast::Expr *CodeGen::IndexIteratorFree(ast::Identifier iter) {
 }
 
 // TODO(Amadou): Generator GetNull calls if the columns is nullable
-ast::Expr *CodeGen::IndexIteratorGet(ast::Identifier iter, type::TypeId type, bool nullable, uint32_t attr_idx) {
+ast::Expr *CodeGen::PRGet(ast::Identifier iter, type::TypeId type, bool nullable, uint32_t attr_idx) {
   // @indexIteratorGetTypeNull(&iter, attr_idx)
   ast::Builtin builtin;
   switch (type) {
     case type::TypeId::INTEGER:
-      builtin = nullable ? ast::Builtin::IndexIteratorGetIntNull : ast::Builtin::IndexIteratorGetInt;
+      builtin = nullable ? ast::Builtin::PRGetIntNull : ast::Builtin::PRGetInt;
       break;
     case type::TypeId::SMALLINT:
-      builtin = nullable ? ast::Builtin::IndexIteratorGetSmallIntNull : ast::Builtin::IndexIteratorGetSmallInt;
+      builtin = nullable ? ast::Builtin::PRGetSmallIntNull : ast::Builtin::PRGetSmallInt;
       break;
     case type::TypeId::TINYINT:
-      builtin = nullable ? ast::Builtin::IndexIteratorGetTinyIntNull : ast::Builtin::IndexIteratorGetTinyInt;
+      builtin = nullable ? ast::Builtin::PRGetTinyIntNull : ast::Builtin::PRGetTinyInt;
       break;
     case type::TypeId::BIGINT:
-      builtin = nullable ? ast::Builtin::IndexIteratorGetBigIntNull : ast::Builtin::IndexIteratorGetBigInt;
+      builtin = nullable ? ast::Builtin::PRGetBigIntNull : ast::Builtin::PRGetBigInt;
       break;
     case type::TypeId::DECIMAL:
-      builtin = nullable ? ast::Builtin::IndexIteratorGetDoubleNull : ast::Builtin::IndexIteratorGetDouble;
+      builtin = nullable ? ast::Builtin::PRGetDoubleNull : ast::Builtin::PRGetDouble;
+      break;
+    case type::TypeId::DATE:
+      builtin = nullable ? ast::Builtin::PRGetDateNull : ast::Builtin::PRGetDate;
+      break;
+    case type::TypeId::VARCHAR:
+      builtin = nullable ? ast::Builtin::PRGetVarlenNull : ast::Builtin::PRGetVarlen;
       break;
     default:
       // TODO: Support other types.
@@ -497,24 +515,65 @@ ast::Expr *CodeGen::IndexIteratorGet(ast::Identifier iter, type::TypeId type, bo
   return Factory()->NewBuiltinCallExpr(fun, std::move(args));
 }
 
-ast::Expr *CodeGen::IndexIteratorSetKey(ast::Identifier iter, type::TypeId type, bool nullable, uint32_t attr_idx,
-                                        ast::Expr *val) {
+ast::Expr *CodeGen::PRGet(ast::Expr* iter_ptr, type::TypeId type, bool nullable, uint32_t attr_idx) {
+  // @indexIteratorGetTypeNull(&iter, attr_idx)
   ast::Builtin builtin;
   switch (type) {
     case type::TypeId::INTEGER:
-      builtin = nullable ? ast::Builtin::IndexIteratorSetKeyIntNull : ast::Builtin::IndexIteratorSetKeyInt;
+      builtin = nullable ? ast::Builtin::PRGetIntNull : ast::Builtin::PRGetInt;
       break;
     case type::TypeId::SMALLINT:
-      builtin = nullable ? ast::Builtin::IndexIteratorSetKeySmallIntNull : ast::Builtin::IndexIteratorSetKeySmallInt;
+      builtin = nullable ? ast::Builtin::PRGetSmallIntNull : ast::Builtin::PRGetSmallInt;
       break;
     case type::TypeId::TINYINT:
-      builtin = nullable ? ast::Builtin::IndexIteratorSetKeyTinyIntNull : ast::Builtin::IndexIteratorSetKeyTinyInt;
+      builtin = nullable ? ast::Builtin::PRGetTinyIntNull : ast::Builtin::PRGetTinyInt;
       break;
     case type::TypeId::BIGINT:
-      builtin = nullable ? ast::Builtin::IndexIteratorSetKeyBigIntNull : ast::Builtin::IndexIteratorSetKeyBigInt;
+      builtin = nullable ? ast::Builtin::PRGetBigIntNull : ast::Builtin::PRGetBigInt;
       break;
     case type::TypeId::DECIMAL:
-      builtin = nullable ? ast::Builtin::IndexIteratorSetKeyDoubleNull : ast::Builtin::IndexIteratorSetKeyDouble;
+      builtin = nullable ? ast::Builtin::PRGetDoubleNull : ast::Builtin::PRGetDouble;
+      break;
+    case type::TypeId::DATE:
+      builtin = nullable ? ast::Builtin::PRGetDateNull : ast::Builtin::PRGetDate;
+      break;
+    case type::TypeId::VARCHAR:
+      builtin = nullable ? ast::Builtin::PRGetVarlenNull : ast::Builtin::PRGetVarlen;
+      break;
+    default:
+      // TODO: Support other types.
+      UNREACHABLE("Unsupported index get type!");
+  }
+  ast::Expr *fun = BuiltinFunction(builtin);
+  ast::Expr *idx_expr = Factory()->NewIntLiteral(DUMMY_POS, attr_idx);
+  util::RegionVector<ast::Expr *> args{{iter_ptr, idx_expr}, Region()};
+  return Factory()->NewBuiltinCallExpr(fun, std::move(args));
+}
+
+
+ast::Expr *CodeGen::PRSet(ast::Identifier iter, type::TypeId type, bool nullable, uint32_t attr_idx, ast::Expr *val) {
+  ast::Builtin builtin;
+  switch (type) {
+    case type::TypeId::INTEGER:
+      builtin = nullable ? ast::Builtin::PRSetIntNull : ast::Builtin::PRSetInt;
+      break;
+    case type::TypeId::SMALLINT:
+      builtin = nullable ? ast::Builtin::PRSetSmallIntNull : ast::Builtin::PRSetSmallInt;
+      break;
+    case type::TypeId::TINYINT:
+      builtin = nullable ? ast::Builtin::PRSetTinyIntNull : ast::Builtin::PRSetTinyInt;
+      break;
+    case type::TypeId::BIGINT:
+      builtin = nullable ? ast::Builtin::PRSetBigIntNull : ast::Builtin::PRSetBigInt;
+      break;
+    case type::TypeId::DECIMAL:
+      builtin = nullable ? ast::Builtin::PRSetDoubleNull : ast::Builtin::PRSetDouble;
+      break;
+    case type::TypeId::DATE:
+      builtin = nullable ? ast::Builtin::PRSetDateNull : ast::Builtin::PRSetDate;
+      break;
+    case type::TypeId::VARCHAR:
+      builtin = nullable ? ast::Builtin::PRSetVarlenNull : ast::Builtin::PRSetVarlen;
       break;
     default:
       // TODO: Support other types.
@@ -522,6 +581,40 @@ ast::Expr *CodeGen::IndexIteratorSetKey(ast::Identifier iter, type::TypeId type,
   }
   ast::Expr *fun = BuiltinFunction(builtin);
   ast::Expr *iter_ptr = PointerTo(iter);
+  ast::Expr *idx_expr = Factory()->NewIntLiteral(DUMMY_POS, attr_idx);
+  util::RegionVector<ast::Expr *> args{{iter_ptr, idx_expr, val}, Region()};
+  return Factory()->NewBuiltinCallExpr(fun, std::move(args));
+}
+
+ast::Expr *CodeGen::PRSet(ast::Expr* iter_ptr, type::TypeId type, bool nullable, uint32_t attr_idx, ast::Expr *val) {
+  ast::Builtin builtin;
+  switch (type) {
+    case type::TypeId::INTEGER:
+      builtin = nullable ? ast::Builtin::PRSetIntNull : ast::Builtin::PRSetInt;
+      break;
+    case type::TypeId::SMALLINT:
+      builtin = nullable ? ast::Builtin::PRSetSmallIntNull : ast::Builtin::PRSetSmallInt;
+      break;
+    case type::TypeId::TINYINT:
+      builtin = nullable ? ast::Builtin::PRSetTinyIntNull : ast::Builtin::PRSetTinyInt;
+      break;
+    case type::TypeId::BIGINT:
+      builtin = nullable ? ast::Builtin::PRSetBigIntNull : ast::Builtin::PRSetBigInt;
+      break;
+    case type::TypeId::DECIMAL:
+      builtin = nullable ? ast::Builtin::PRSetDoubleNull : ast::Builtin::PRSetDouble;
+      break;
+    case type::TypeId::DATE:
+      builtin = nullable ? ast::Builtin::PRSetDateNull : ast::Builtin::PRSetDate;
+      break;
+    case type::TypeId::VARCHAR:
+      builtin = nullable ? ast::Builtin::PRSetVarlenNull : ast::Builtin::PRSetVarlen;
+      break;
+    default:
+      // TODO: Support other types.
+      UNREACHABLE("Unsupported index set type!");
+  }
+  ast::Expr *fun = BuiltinFunction(builtin);
   ast::Expr *idx_expr = Factory()->NewIntLiteral(DUMMY_POS, attr_idx);
   util::RegionVector<ast::Expr *> args{{iter_ptr, idx_expr, val}, Region()};
   return Factory()->NewBuiltinCallExpr(fun, std::move(args));
@@ -686,49 +779,6 @@ ast::Expr *CodeGen::StringToSql(std::string_view str) {
   ast::Identifier str_ident = Context()->GetIdentifier(str.data());
   ast::Expr *str_lit = Factory()->NewStringLiteral(DUMMY_POS, str_ident);
   return OneArgCall(ast::Builtin::StringToSql, str_lit);
-}
-ast::Expr *CodeGen::InserterInit(ast::Identifier inserter, uint32_t table_oid) {
-  ast::Expr *fun = BuiltinFunction(ast::Builtin::InserterInit);
-  ast::Expr *inserter_ptr = PointerTo(inserter);
-  ast::Expr *exec_ctx_expr = MakeExpr(exec_ctx_var_);
-  ast::Expr *table_oid_expr = IntLiteral(static_cast<int64_t>(table_oid));
-
-  util::RegionVector<ast::Expr *> args{{inserter_ptr, exec_ctx_expr, table_oid_expr}, Region()};
-  return Factory()->NewBuiltinCallExpr(fun, std::move(args));
-}
-
-ast::Expr *CodeGen::InserterGetTablePR(ast::Identifier inserter) {
-  ast::Expr *fun = BuiltinFunction(ast::Builtin::InserterGetTablePR);
-  ast::Expr *inserter_ptr = PointerTo(inserter);
-
-  util::RegionVector<ast::Expr *> args{{inserter_ptr}, Region()};
-  return Factory()->NewBuiltinCallExpr(fun, std::move(args));
-}
-
-ast::Expr *CodeGen::InserterTableInsert(ast::Identifier inserter) {
-  ast::Expr *fun = BuiltinFunction(ast::Builtin::InserterTableInsert);
-  ast::Expr *inserter_ptr = PointerTo(inserter);
-
-  util::RegionVector<ast::Expr *> args{{inserter_ptr}, Region()};
-  return Factory()->NewBuiltinCallExpr(fun, std::move(args));
-}
-
-ast::Expr *CodeGen::InserterGetIndexPR(ast::Identifier inserter, uint32_t index_oid) {
-  ast::Expr *fun = BuiltinFunction(ast::Builtin::InserterGetIndexPR);
-  ast::Expr *inserter_ptr = PointerTo(inserter);
-  ast::Expr *index_oid_expr = IntLiteral(static_cast<int64_t>(index_oid));
-
-  util::RegionVector<ast::Expr *> args{{inserter_ptr, index_oid_expr}, Region()};
-  return Factory()->NewBuiltinCallExpr(fun, std::move(args));
-}
-
-ast::Expr *CodeGen::InserterIndexInsert(ast::Identifier inserter, uint32_t index_oid) {
-  ast::Expr *fun = BuiltinFunction(ast::Builtin::InserterIndexInsert);
-  ast::Expr *inserter_ptr = PointerTo(inserter);
-  ast::Expr *index_oid_expr = IntLiteral(static_cast<int64_t>(index_oid));
-
-  util::RegionVector<ast::Expr *> args{{inserter_ptr, index_oid_expr}, Region()};
-  return Factory()->NewBuiltinCallExpr(fun, std::move(args));
 }
 
 }  // namespace terrier::execution::compiler

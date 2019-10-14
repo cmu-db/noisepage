@@ -9,7 +9,6 @@
 #include "execution/ast/ast_dump.h"
 
 #include "execution/compiler/compiler.h"
-#include "execution/compiler/query.h"
 #include "execution/exec/execution_context.h"
 #include "execution/exec/output.h"
 #include "execution/sema/sema.h"
@@ -23,6 +22,7 @@
 #include "planner/plannodes/aggregate_plan_node.h"
 #include "planner/plannodes/hash_join_plan_node.h"
 #include "planner/plannodes/index_join_plan_node.h"
+#include "planner/plannodes/index_scan_plan_node.h"
 #include "planner/plannodes/nested_loop_join_plan_node.h"
 #include "planner/plannodes/order_by_plan_node.h"
 #include "planner/plannodes/output_schema.h"
@@ -51,16 +51,14 @@ class CompilerTest : public SqlBasedTest {
 
   static void CompileAndRun(terrier::planner::AbstractPlanNode *node, exec::ExecutionContext *exec_ctx) {
     // Create the query object, whose region must outlive all the processing.
-    execution::compiler::Query query(*node, exec_ctx);
-
     // Compile and check for errors
-    Compiler compiler(&query);
-    compiler.Compile();
-    if (query.GetReporter()->HasErrors()) {
-      EXECUTION_LOG_ERROR("Type-checking error! \n {}", query.GetReporter()->SerializeErrors());
+    CodeGen codegen(exec_ctx->GetAccessor());
+    Compiler compiler(&codegen, node);
+    auto root = compiler.Compile();
+    if (codegen.Reporter()->HasErrors()) {
+      EXECUTION_LOG_ERROR("Type-checking error! \n {}", codegen.Reporter()->SerializeErrors());
     }
 
-    auto root = query.GetCompiledFile();
     EXECUTION_LOG_INFO("Converted: \n {}", execution::ast::AstDump::Dump(root));
 
     // Convert to bytecode
@@ -69,13 +67,29 @@ class CompilerTest : public SqlBasedTest {
 
     // Run the main function
     std::function<int64_t(exec::ExecutionContext *)> main;
-    if (!module->GetFunction("main", vm::ExecutionMode::Interpret, &main)) {
+    if (!module->GetFunction("main", vm::ExecutionMode::Compiled, &main)) {
       EXECUTION_LOG_ERROR(
           "Missing 'main' entry function with signature "
           "(*ExecutionContext)->int32");
       return;
     }
     EXECUTION_LOG_INFO("VM main() returned: {}", main(exec_ctx));
+  }
+
+  /**
+   * Initialize all TPL subsystems
+   */
+  static void InitTPL() {
+    execution::CpuInfo::Instance();
+    execution::vm::LLVMEngine::Initialize();
+  }
+
+  /**
+   * Shutdown all TPL subsystems
+   */
+  static void ShutdownTPL() {
+    terrier::execution::vm::LLVMEngine::Shutdown();
+    terrier::LoggersUtil::ShutDown();
   }
 };
 
@@ -130,6 +144,45 @@ TEST_F(CompilerTest, SimpleSeqScanTest) {
   CompileAndRun(seq_scan.get(), exec_ctx.get());
   multi_checker.CheckCorrectness();
 }
+
+
+// NOLINTNEXTLINE
+TEST_F(CompilerTest, SimpleIndexScanTest) {
+  // SELECT colA, colB FROM test_1 WHERE colA = 500;
+  auto accessor = MakeAccessor();
+  auto table_oid = accessor->GetTableOid(NSOid(), "test_1");
+  auto index_oid = accessor->GetIndexOid(NSOid(), "index_1");
+  auto table_schema = accessor->GetSchema(table_oid);
+  std::shared_ptr<AbstractPlanNode> index_scan;
+  OutputSchemaHelper index_scan_out{0};
+  {
+    // Get Table columns
+    auto col1 = ExpressionUtil::CVE(table_schema.GetColumn("colA").Oid(), type::TypeId::INTEGER);
+    auto col2 = ExpressionUtil::CVE(table_schema.GetColumn("colB").Oid(), type::TypeId::INTEGER);
+    auto const_500 = ExpressionUtil::Constant(500);
+    index_scan_out.AddOutput("col1", col1);
+    index_scan_out.AddOutput("col2", col2);
+    auto schema = index_scan_out.MakeSchema();
+    IndexScanPlanNode::Builder builder;
+    index_scan = builder.SetTableOid(table_oid).SetIndexOid(index_oid)
+                  .AddIndexColum(catalog::indexkeycol_oid_t(1), const_500)
+                  .SetNamespaceOid(NSOid())
+                  .SetOutputSchema(schema).Build();
+  }
+  NumChecker num_checker(1);
+  SingleIntComparisonChecker col1_checker(std::equal_to<int64_t>(), 0, 500);
+  MultiChecker multi_checker{std::vector<OutputChecker *>{&col1_checker, &num_checker}};
+  // Create the execution context
+  OutputStore store{&multi_checker, index_scan->GetOutputSchema().get()};
+  exec::OutputPrinter printer(index_scan->GetOutputSchema().get());
+  MultiOutputCallback callack{std::vector<exec::OutputCallback>{store, printer}};
+  auto exec_ctx = MakeExecCtx(std::move(callack), index_scan->GetOutputSchema().get());
+
+  // Run & Check
+  CompileAndRun(index_scan.get(), exec_ctx.get());
+  multi_checker.CheckCorrectness();
+}
+
 
 // NOLINTNEXTLINE
 TEST_F(CompilerTest, SimpleAggregateTest) {
@@ -265,11 +318,11 @@ TEST_F(CompilerTest, SimpleAggregateHavingTest) {
     // Read cols
     auto col2 = static_cast<sql::Integer *>(vals[0]);
     auto sum_col1 = static_cast<sql::Integer *>(vals[1]);
-    ASSERT_FALSE(col2->is_null || sum_col1->is_null);
+    ASSERT_FALSE(col2->is_null_ || sum_col1->is_null_);
     // Check col2 >= 3
-    ASSERT_GE(col2->val, 3);
+    ASSERT_GE(col2->val_, 3);
     // Check sum_col1 < 50000
-    ASSERT_LT(sum_col1->val, 50000);
+    ASSERT_LT(sum_col1->val_, 50000);
   };
   CorrectnessFn correcteness_fn;
   GenericChecker checker(row_checker, correcteness_fn);
@@ -382,11 +435,11 @@ TEST_F(CompilerTest, SimpleHashJoinTest) {
     auto col2 = static_cast<sql::Integer *>(vals[1]);
     auto col3 = static_cast<sql::Integer *>(vals[2]);
     auto col4 = static_cast<sql::Integer *>(vals[3]);
-    ASSERT_FALSE(col1->is_null || col2->is_null);
+    ASSERT_FALSE(col1->is_null_ || col2->is_null_);
     // Check join cols
-    ASSERT_EQ(col1->val, col2->val);
+    ASSERT_EQ(col1->val_, col2->val_);
     // Check that col4 = col1 + col3
-    ASSERT_EQ(col4->val, col1->val + col3->val);
+    ASSERT_EQ(col4->val_, col1->val_ + col3->val_);
     // Check the number of output row
     num_output_rows++;
     ASSERT_LE(num_output_rows, num_expected_rows);
@@ -471,19 +524,19 @@ TEST_F(CompilerTest, SimpleSortTest) {
     // Read cols
     auto col1 = static_cast<sql::Integer *>(vals[0]);
     auto col2 = static_cast<sql::Integer *>(vals[1]);
-    ASSERT_FALSE(col1->is_null || col2->is_null);
+    ASSERT_FALSE(col1->is_null_ || col2->is_null_);
     // Check col1 and number of outputs
-    ASSERT_LT(col1->val, 500);
+    ASSERT_LT(col1->val_, 500);
     num_output_rows++;
     ASSERT_LE(num_output_rows, num_expected_rows);
 
     // Check that output is sorted by col2 ASC, then col1 DESC
-    ASSERT_LE(curr_col2, col2->val);
-    if (curr_col2 == col2->val) {
-      ASSERT_GE(curr_col1, col1->val);
+    ASSERT_LE(curr_col2, col2->val_);
+    if (curr_col2 == col2->val_) {
+      ASSERT_GE(curr_col1, col1->val_);
     }
-    curr_col1 = col1->val;
-    curr_col2 = col2->val;
+    curr_col1 = col1->val_;
+    curr_col2 = col2->val_;
   };
   CorrectnessFn correcteness_fn = [&num_output_rows, num_expected_rows]() {
     ASSERT_EQ(num_output_rows, num_expected_rows);
@@ -596,11 +649,11 @@ TEST_F(CompilerTest, SimpleNestedLoopJoinTest) {
     auto col2 = static_cast<sql::Integer *>(vals[1]);
     auto col3 = static_cast<sql::Integer *>(vals[2]);
     auto col4 = static_cast<sql::Integer *>(vals[3]);
-    ASSERT_FALSE(col1->is_null || col2->is_null);
+    ASSERT_FALSE(col1->is_null_ || col2->is_null_);
     // Check join cols
-    ASSERT_EQ(col1->val, col2->val);
+    ASSERT_EQ(col1->val_, col2->val_);
     // Check that col4 = col1 + col3
-    ASSERT_EQ(col4->val, col1->val + col3->val);
+    ASSERT_EQ(col4->val_, col1->val_ + col3->val_);
     // Check the number of output row
     num_output_rows++;
     ASSERT_LE(num_output_rows, num_expected_rows);
@@ -699,11 +752,11 @@ TEST_F(CompilerTest, SimpleIndexNestedLoopJoinTest) {
     auto col2 = static_cast<sql::Integer *>(vals[1]);
     auto col3 = static_cast<sql::Integer *>(vals[2]);
     auto col4 = static_cast<sql::Integer *>(vals[3]);
-    ASSERT_FALSE(col1->is_null || col2->is_null);
+    ASSERT_FALSE(col1->is_null_ || col2->is_null_);
     // Check join cols
-    ASSERT_EQ(col1->val, col2->val);
+    ASSERT_EQ(col1->val_, col2->val_);
     // Check that col4 = col1 + col3
-    ASSERT_EQ(col4->val, col1->val + col3->val);
+    ASSERT_EQ(col4->val_, col1->val_ + col3->val_);
     // Check the number of output row
     num_output_rows++;
     ASSERT_LE(num_output_rows, num_expected_rows);
@@ -798,11 +851,11 @@ TEST_F(CompilerTest, SimpleIndexNestedLoopJoinMultiColumnTest) {
     auto col2 = static_cast<sql::Integer *>(vals[1]);
     auto col3 = static_cast<sql::Integer *>(vals[2]);
     auto col4 = static_cast<sql::Integer *>(vals[3]);
-    ASSERT_FALSE(col1->is_null || col2->is_null);
+    ASSERT_FALSE(col1->is_null_ || col2->is_null_);
     // Check join cols
-    ASSERT_EQ(col1->val, col2->val);
+    ASSERT_EQ(col1->val_, col2->val_);
     // Check that col4 = col1 + col3
-    ASSERT_EQ(col4->val, col1->val + col3->val);
+    ASSERT_EQ(col4->val_, col1->val_ + col3->val_);
     num_output_rows++;
     ASSERT_LT(num_output_rows, max_output_rows);
   };
@@ -819,6 +872,7 @@ TEST_F(CompilerTest, SimpleIndexNestedLoopJoinMultiColumnTest) {
   CompileAndRun(index_join.get(), exec_ctx.get());
   checker.CheckCorrectness();
 }
+
 
 /*
 // NOLINTNEXTLINE
@@ -953,3 +1007,11 @@ TEST_F(CompilerTest, TPCHQ1Test) {
 }
 */
 }  // namespace terrier::execution::compiler::test
+
+int main(int argc, char **argv) {
+  ::testing::InitGoogleTest(&argc, argv);
+  terrier::execution::compiler::test::CompilerTest::InitTPL();
+  int ret = RUN_ALL_TESTS();
+  terrier::execution::compiler::test::CompilerTest::ShutdownTPL();
+  return ret;
+}
