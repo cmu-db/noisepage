@@ -35,16 +35,13 @@ class GarbageCollector {
   // TODO(Tianyu): Eventually the GC will be re-written to be purely on the deferred action manager. which will
   //  eliminate this perceived redundancy of taking in a transaction manager.
   GarbageCollector(transaction::TimestampManager *timestamp_manager,
-                   transaction::DeferredActionManager *deferred_action_manager,
-                   AccessObserver *observer)
+                   transaction::DeferredActionManager *deferred_action_manager, AccessObserver *observer)
       : timestamp_manager_(timestamp_manager),
         deferred_action_manager_(deferred_action_manager),
         observer_(observer),
-        last_unlinked_{0} { }
+        last_unlinked_{0} {}
 
-  ~GarbageCollector() {
-    TERRIER_ASSERT(txns_to_unlink_.empty(), "Not all txns have been unlinked");
-  }
+  ~GarbageCollector() { TERRIER_ASSERT(txns_to_unlink_.empty(), "Not all txns have been unlinked"); }
 
   /**
    * Deallocates transactions that can no longer be referenced by running transactions, and unlinks UndoRecords that
@@ -70,14 +67,13 @@ class GarbageCollector {
   void UnregisterIndexForGC(common::ManagedPointer<index::Index> index);
 
   /**
-  * Unlink the transaction, if unlink successful defers an event to deallocate
-  * the tarnsaction
-  * @param the transaction context associated with transaction to unlink
-  */
+   * Unlink the transaction, if unlink successful defers an event to deallocate
+   * the tarnsaction
+   * @param the transaction context associated with transaction to unlink
+   */
   void CleanupTransaction(transaction::TransactionContext *);
 
  private:
-
   /**
    * Process the unlink queue
    * @return number of txns (not UndoRecords) processed for debugging/testing
@@ -110,7 +106,6 @@ class GarbageCollector {
 
   std::unordered_set<common::ManagedPointer<index::Index>> indexes_;
   common::SharedLatch indexes_latch_;
-
 };
 
 }  // namespace terrier::storage

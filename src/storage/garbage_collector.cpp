@@ -11,25 +11,26 @@
 
 namespace terrier::storage {
 
-std::pair<uint32_t, uint32_t> GarbageCollector::PerformGarbageCollection(transaction::TransactionQueue &txns_to_unlink) {
+std::pair<uint32_t, uint32_t> GarbageCollector::PerformGarbageCollection(
+    transaction::TransactionQueue &txns_to_unlink) {
   if (observer_ != nullptr) observer_->ObserveGCInvocation();
   timestamp_manager_->CheckOutTimestamp();
   const transaction::timestamp_t oldest_txn = timestamp_manager_->OldestTransactionStartTime();
   uint32_t txns_unlinked = ProcessUnlinkQueue(oldest_txn, txns_to_unlink);
   STORAGE_LOG_TRACE("GarbageCollector::PerformGarbageCollection(): txns_unlinked: {}", txns_unlinked);
 
-  ProcessDeferredActions(oldest_txn); //TODO (Yashwanth) move this to some other function, this isn't going to be called on a thread
-  ProcessIndexes(); // TODO (Yashwanth) move this to some other function, this isn't going to be called on a thread
+  ProcessDeferredActions(
+      oldest_txn);   // TODO(Yashwanth): move this to some other function, this isn't going to be called on a thread
+  ProcessIndexes();  // TODO(Yashwanth): move this to some other function, this isn't going to be called on a thread
   return std::make_pair(0, txns_unlinked);
 }
 
 void GarbageCollector::CleanupTransaction(transaction::TransactionContext *txn) {
   txns_since_unlink_++;
   if (txn->IsReadOnly()) {
-      // This is a read-only transaction so this is safe to immediately delete
-      delete txn;
+    // This is a read-only transaction so this is safe to immediately delete
+    delete txn;
   } else {
-
     bool perform_gc = false;
     transaction::TransactionQueue *txns_unlink;
     {
@@ -37,30 +38,27 @@ void GarbageCollector::CleanupTransaction(transaction::TransactionContext *txn) 
       common::SpinLatch::ScopedSpinLatch guard(&txn_to_unlink_latch_);
       txns_to_unlink_.push_front(txn);
 
-      //If number of transactions since last unlink is exceeded reset the transactions to unlink queue
-      if (txns_since_unlink_ > MAX_OUTSTANDING_UNLINK_TRANSACTIONS){
-
+      // If number of transactions since last unlink is exceeded reset the transactions to unlink queue
+      if (txns_since_unlink_ > MAX_OUTSTANDING_UNLINK_TRANSACTIONS) {
         // This is safe because txns_since_unlink_ is an atomic variable and only increments that could have
         // been missed by resetting to 0 here are from ReadOnly transactions. It is impossible for a write
-        // to have happened and the txns_to_unlink_ queue to grow during this assignment. 
-        txns_since_unlink_ = 0;  
+        // to have happened and the txns_to_unlink_ queue to grow during this assignment.
+        txns_since_unlink_ = 0;
 
         transaction::TransactionQueue txns_unlink_queue(std::move(txns_to_unlink_));
         txns_unlink = &txns_unlink_queue;
         perform_gc = true;
-        
-      } 
+      }
     }
 
-    if(perform_gc){
+    if (perform_gc) {
       PerformGarbageCollection(*txns_unlink);
     }
-
-  } 
+  }
 }
 
-uint32_t GarbageCollector::ProcessUnlinkQueue(
-  transaction::timestamp_t oldest_txn, transaction::TransactionQueue &txns_to_unlink) {
+uint32_t GarbageCollector::ProcessUnlinkQueue(transaction::timestamp_t oldest_txn,
+                                              transaction::TransactionQueue &txns_to_unlink) {
   transaction::TransactionContext *txn = nullptr;
 
   uint32_t txns_processed = 0;
@@ -100,12 +98,11 @@ uint32_t GarbageCollector::ProcessUnlinkQueue(
       }
       txns_to_deallocate.push_front(txn);
       txns_processed++;
-    } 
+    }
   }
 
-
   deferred_action_manager_->RegisterDeferredAction([=]() {
-    for(transaction::TransactionContext *ctx : txns_to_deallocate) {
+    for (transaction::TransactionContext *ctx : txns_to_deallocate) {
       delete ctx;
     }
   });
@@ -199,7 +196,7 @@ void GarbageCollector::ReclaimBufferIfVarlen(transaction::TransactionContext *co
   }
 }
 
-// TODO (yash) move this to some other thread
+// TODO(yash): move this to some other thread
 void GarbageCollector::RegisterIndexForGC(const common::ManagedPointer<index::Index> index) {
   TERRIER_ASSERT(index != nullptr, "Index cannot be nullptr.");
   common::SharedLatch::ScopedExclusiveLatch guard(&indexes_latch_);
@@ -207,7 +204,7 @@ void GarbageCollector::RegisterIndexForGC(const common::ManagedPointer<index::In
   indexes_.insert(index);
 }
 
-// TODO (yash) move this to some other thread
+// TODO(yash): move this to some other thread
 void GarbageCollector::UnregisterIndexForGC(const common::ManagedPointer<index::Index> index) {
   TERRIER_ASSERT(index != nullptr, "Index cannot be nullptr.");
   common::SharedLatch::ScopedExclusiveLatch guard(&indexes_latch_);

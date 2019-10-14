@@ -7,11 +7,11 @@
 #include "common/strong_typedef.h"
 #include "di/di_help.h"
 #include "storage/data_table.h"
+#include "storage/garbage_collector.h"
 #include "storage/record_buffer.h"
 #include "storage/undo_record.h"
-#include "transaction/timestamp_manager.h"
-#include "storage/garbage_collector.h"
 #include "transaction/deferred_action_manager.h"
+#include "transaction/timestamp_manager.h"
 
 #include "storage/write_ahead_log/log_manager.h"
 #include "transaction/transaction_context.h"
@@ -35,10 +35,9 @@ class TransactionManager {
    * @param gc_enabled true if txns should be stored in a local queue to hand off to the GC, false otherwise
    * @param log_manager the log manager in the system, or DISABLED(nulllptr) if logging is turned off.
    */
-  BOOST_DI_INJECT(TransactionManager, TimestampManager *timestamp_manager,
-                  terrier::storage::GarbageCollector *gc, DeferredActionManager *deferred_action_manager, 
-                  storage::RecordBufferSegmentPool *buffer_pool, (named = GC_ENABLED) bool gc_enabled, 
-                  storage::LogManager *log_manager)
+  BOOST_DI_INJECT(TransactionManager, TimestampManager *timestamp_manager, terrier::storage::GarbageCollector *gc,
+                  DeferredActionManager *deferred_action_manager, storage::RecordBufferSegmentPool *buffer_pool,
+                  (named = GC_ENABLED) bool gc_enabled, storage::LogManager *log_manager)
       : timestamp_manager_(timestamp_manager),
         gc_(gc),
         deferred_action_manager_(deferred_action_manager),

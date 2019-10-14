@@ -41,7 +41,8 @@ DBMain::DBMain(std::unordered_map<settings::Param, settings::ParamInfo> &&param_
 
   timestamp_manager_ = new transaction::TimestampManager;
   garbage_collector_ = new storage::GarbageCollector(timestamp_manager_, DISABLED, DISABLED);
-  txn_manager_ = new transaction::TransactionManager(timestamp_manager_, txn_manager_, DISABLED, buffer_segment_pool_, true, log_manager_);
+  txn_manager_ = new transaction::TransactionManager(timestamp_manager_, txn_manager_, DISABLED, buffer_segment_pool_,
+                                                     true, log_manager_);
   gc_thread_ = new storage::GarbageCollectorThread(garbage_collector_,
                                                    std::chrono::milliseconds{type::TransientValuePeeker::PeekInteger(
                                                        param_map_.find(settings::Param::gc_interval)->second.value_)});

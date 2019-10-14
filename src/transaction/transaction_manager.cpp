@@ -119,9 +119,7 @@ timestamp_t TransactionManager::Commit(TransactionContext *const txn, transactio
     // It is not necessary to have to GC process read-only transactions, but it's probably faster to call free off
     // the critical path there anyway
     // Also note here that GC will figure out what varlen entries to GC, as opposed to in the abort case.
-    deferred_action_manager_->RegisterDeferredAction([=]() {
-      gc_->CleanupTransaction(txn);
-    });
+    deferred_action_manager_->RegisterDeferredAction([=]() { gc_->CleanupTransaction(txn); });
   }
   return result;
 }
@@ -190,9 +188,7 @@ timestamp_t TransactionManager::Abort(TransactionContext *const txn) {
     // It is not necessary to have to GC process read-only transactions, but it's probably faster to call free off
     // the critical path there anyway
     // Also note here that GC will figure out what varlen entries to GC, as opposed to in the abort case.
-    deferred_action_manager_->RegisterDeferredAction([=]() {
-      gc_->CleanupTransaction(txn);
-    });
+    deferred_action_manager_->RegisterDeferredAction([=]() { gc_->CleanupTransaction(txn); });
   }
 
   return abort_time;
