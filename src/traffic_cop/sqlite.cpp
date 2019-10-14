@@ -16,8 +16,8 @@
 namespace terrier::trafficcop {
 
 SqliteEngine::SqliteEngine() {
-  auto rc = sqlite3_open_v2("sqlite.db", &sqlite_db_, SQLITE_OPEN_FULLMUTEX | SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE,
-                            nullptr);
+  auto rc = sqlite3_open_v2("sqlite.db", &sqlite_db_,
+                            SQLITE_OPEN_FULLMUTEX | SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, nullptr);
   if (rc != 0) {
     fprintf(stderr, "Can't open database: %s\n", sqlite3_errmsg(sqlite_db_));
     LOG_ERROR("Can't open database %s", sqlite3_errmsg(sqlite_db_));
@@ -35,7 +35,6 @@ sqlite3_stmt *SqliteEngine::PrepareStatement(std::string query) {
     if (c == '$') c = '?';
 
   sqlite3_stmt *stmt;
-  //LOG_INFO("Query = {0}", query);
   int error_code = sqlite3_prepare_v2(sqlite_db_, query.c_str(), -1, &stmt, nullptr);
   if (error_code == SQLITE_OK) return stmt;
   LOG_ERROR("Sqlite Prepare Error: Error Code = {0}, msg = {1}", error_code, sqlite3_errmsg(sqlite_db_));
@@ -61,12 +60,8 @@ void SqliteEngine::Bind(sqlite3_stmt *stmt, const std::shared_ptr<std::vector<ty
         res = sqlite3_bind_double(stmt, i + 1, TransientValuePeeker::PeekDecimal(params[i]));
       } else if (type == TypeId::VARCHAR) {
         std::string_view varchar_value = TransientValuePeeker::PeekVarChar(params[i]);
-        res =
-            sqlite3_bind_text(stmt,
-                              i + 1,
-                              varchar_value.data(),
-                              static_cast<int>(varchar_value.length()),
-                              SQLITE_STATIC);
+        res = sqlite3_bind_text(stmt, i + 1, varchar_value.data(), static_cast<int>(varchar_value.length()),
+                                SQLITE_STATIC);
       } else if (type == TypeId::TIMESTAMP) {
         auto value = static_cast<int64_t>(!TransientValuePeeker::PeekTimestamp(params[i]));
         res = sqlite3_bind_int64(stmt, i + 1, value);
@@ -130,8 +125,6 @@ ResultSet SqliteEngine::Execute(sqlite3_stmt *stmt) {
   return result_set;
 }
 
-int32_t SqliteEngine::GetAffected() {
-  return sqlite3_changes(sqlite_db_);
-}
+int32_t SqliteEngine::GetAffected() { return sqlite3_changes(sqlite_db_); }
 
 }  // namespace terrier::trafficcop

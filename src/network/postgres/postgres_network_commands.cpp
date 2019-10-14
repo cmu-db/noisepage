@@ -55,8 +55,7 @@ Transition ParseCommand::Exec(common::ManagedPointer<PostgresProtocolInterpreter
   NETWORK_LOG_TRACE("ParseCommand: {0}", query);
   if (query.find("BEGIN") != std::string::npos) {
     connection->in_transaction_ = true;
-  } else if (query.find("COMMIT") != std::string::npos ||
-             query.find("ROLLBACK") != std::string::npos) {
+  } else if (query.find("COMMIT") != std::string::npos || query.find("ROLLBACK") != std::string::npos) {
     connection->in_transaction_ = false;
   }
   // TODO(Weichen): This implementation does not strictly follow Postgres protocol.
@@ -322,7 +321,7 @@ Transition ExecuteCommand::Exec(common::ManagedPointer<PostgresProtocolInterpret
     out->WriteDataRow(row);
   }
 
-  string & query_string = portal.statement_->query_string_;
+  string &query_string = portal.statement_->query_string_;
   if (query_string.find("INSERT") != string::npos) {
     // TODO(YUZE): OID
     out->WriteCommandComplete("INSERT 0 " + std::to_string(rows_affected));
