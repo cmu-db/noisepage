@@ -35,7 +35,7 @@ class PacketWriter {
   void WriteSingleTypePacket(NetworkMessageType type) {
     // Make sure no active packet being constructed
     TERRIER_ASSERT(curr_packet_len_ == nullptr, "packet length is null");
-    static_assert(NetworkMessageType != PG_SSL_YES && NetworkMessageType != PG_SSL_NO);
+    static_assert(type != NetworkMessageType::PG_SSL_YES && type != NetworkMessageType::PG_SSL_NO);
     BeginPacket(type).EndPacket();
   }
 
