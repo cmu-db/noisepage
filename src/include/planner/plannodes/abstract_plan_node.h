@@ -33,7 +33,7 @@ class AbstractPlanNode {
      * @param child child to be added
      * @return builder object
      */
-    ConcreteType &AddChild(std::shared_ptr<AbstractPlanNode> child) {
+    ConcreteType &AddChild(std::unique_ptr<AbstractPlanNode> child) {
       children_.emplace_back(std::move(child));
       return *dynamic_cast<ConcreteType *>(this);
     }
@@ -42,8 +42,8 @@ class AbstractPlanNode {
      * @param output_schema output schema for plan node
      * @return builder object
      */
-    ConcreteType &SetOutputSchema(const std::shared_ptr<OutputSchema> &output_schema) {
-      output_schema_ = output_schema;
+    ConcreteType &SetOutputSchema(std::unique_ptr<OutputSchema> output_schema) {
+      output_schema_ = std::move(output_schema);
       return *dynamic_cast<ConcreteType *>(this);
     }
 
@@ -51,11 +51,11 @@ class AbstractPlanNode {
     /**
      * child plans
      */
-    std::vector<std::shared_ptr<AbstractPlanNode>> children_;
+    std::vector<std::unique_ptr<AbstractPlanNode>> children_;
     /**
      * schema describing output of the node
      */
-    std::shared_ptr<OutputSchema> output_schema_{nullptr};
+    std::unique_ptr<OutputSchema> output_schema_{nullptr};
   };
 
   /**
@@ -63,8 +63,8 @@ class AbstractPlanNode {
    * @param children child plan nodes
    * @param output_schema Schema representing the structure of the output of this plan node
    */
-  AbstractPlanNode(std::vector<std::shared_ptr<AbstractPlanNode>> &&children,
-                   std::shared_ptr<OutputSchema> output_schema)
+  AbstractPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
+                   std::unique_ptr<OutputSchema> output_schema)
       : children_(std::move(children)), output_schema_(std::move(output_schema)) {}
 
  public:
@@ -84,7 +84,14 @@ class AbstractPlanNode {
   /**
    * @return child plan nodes
    */
-  const std::vector<std::shared_ptr<AbstractPlanNode>> &GetChildren() const { return children_; }
+  std::vector<common::ManagedPointer<AbstractPlanNode>> GetChildren() const {
+    std::vector<common::ManagedPointer<AbstractPlanNode>> children;
+    children.reserve(children_.size());
+    for (const auto &child : children_) {
+      children.emplace_back(common::ManagedPointer(child));
+    }
+    return children;
+  }
 
   /**
    * @return number of children
@@ -115,7 +122,7 @@ class AbstractPlanNode {
    * @return output schema for the node. The output schema contains information on columns of the output of the plan
    * node operator
    */
-  std::shared_ptr<OutputSchema> GetOutputSchema() const { return output_schema_; }
+  common::ManagedPointer<OutputSchema> GetOutputSchema() const { return common::ManagedPointer(output_schema_); }
 
   //===--------------------------------------------------------------------===//
   // JSON Serialization/Deserialization
@@ -131,7 +138,7 @@ class AbstractPlanNode {
    * Populates the plan node with the information in the given JSON.
    * @param j json to deserialize
    */
-  virtual void FromJson(const nlohmann::json &j);
+  virtual std::vector<std::unique_ptr<parser::AbstractExpression>> FromJson(const nlohmann::json &j);
 
   //===--------------------------------------------------------------------===//
   // Utilities
@@ -189,19 +196,34 @@ class AbstractPlanNode {
   bool operator!=(const AbstractPlanNode &rhs) const { return !(*this == rhs); }
 
  private:
-  std::vector<std::shared_ptr<AbstractPlanNode>> children_;
-  std::shared_ptr<OutputSchema> output_schema_;
+  std::vector<std::unique_ptr<AbstractPlanNode>> children_;
+  std::unique_ptr<OutputSchema> output_schema_;
 };
 
 DEFINE_JSON_DECLARATIONS(AbstractPlanNode);
 
 /**
+ * To deserialize JSON expressions, we need to maintain a separate vector of all the unique pointers to expressions
+ * that were created but not owned by deserialized objects.
+ */
+struct JSONDeserializeNodeIntermediate {
+  /**
+   * The primary result of the deserialization.
+   */
+  std::unique_ptr<AbstractPlanNode> result_;
+  /**
+   * Any non-owned expressions generated during deserialization that are contained within the plan node.
+   */
+  std::vector<std::unique_ptr<parser::AbstractExpression>> non_owned_exprs_;
+};
+
+/**
  * Main deserialization method. This is the only method that should be used to deserialize. You should never be calling
  * FromJson to deserialize a plan node
  * @param json json to deserialize
- * @return deserialized plan node
+ * @return json deserialization result
  */
-std::shared_ptr<AbstractPlanNode> DeserializePlanNode(const nlohmann::json &json);
+JSONDeserializeNodeIntermediate DeserializePlanNode(const nlohmann::json &json);
 
 }  // namespace terrier::planner
 
@@ -211,27 +233,27 @@ namespace std {
  * template for std::hash of plan nodes
  */
 template <>
-struct hash<std::shared_ptr<terrier::planner::AbstractPlanNode>> {
+struct hash<std::unique_ptr<terrier::planner::AbstractPlanNode>> {
   /**
    * Hashes the given plan node
    * @param plan the plan to hash
    * @return hash code of the given plan node
    */
-  size_t operator()(const std::shared_ptr<terrier::planner::AbstractPlanNode> &plan) const { return plan->Hash(); }
+  size_t operator()(const std::unique_ptr<terrier::planner::AbstractPlanNode> &plan) const { return plan->Hash(); }
 };
 
 /**
  * std template for equality predicate
  */
 template <>
-struct equal_to<std::shared_ptr<terrier::planner::AbstractPlanNode>> {
+struct equal_to<std::unique_ptr<terrier::planner::AbstractPlanNode>> {
   /**
    * @param lhs left hand side plan node
    * @param rhs right hand side plan node
    * @return true if plan nodes are equivalent
    */
-  bool operator()(const std::shared_ptr<terrier::planner::AbstractPlanNode> &lhs,
-                  const std::shared_ptr<terrier::planner::AbstractPlanNode> &rhs) const {
+  bool operator()(const std::unique_ptr<terrier::planner::AbstractPlanNode> &lhs,
+                  const std::unique_ptr<terrier::planner::AbstractPlanNode> &rhs) const {
     return *lhs == *rhs;
   }
 };

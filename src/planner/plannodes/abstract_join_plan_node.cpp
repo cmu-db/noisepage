@@ -1,5 +1,9 @@
 #include "planner/plannodes/abstract_join_plan_node.h"
 
+#include <memory>
+#include <utility>
+#include <vector>
+
 namespace terrier::planner {
 
 bool AbstractJoinPlanNode::operator==(const AbstractPlanNode &rhs) const {
@@ -39,16 +43,23 @@ common::hash_t AbstractJoinPlanNode::Hash() const {
 nlohmann::json AbstractJoinPlanNode::ToJson() const {
   nlohmann::json j = AbstractPlanNode::ToJson();
   j["join_type"] = join_type_;
-  j["join_predicate"] = join_predicate_;
+  j["join_predicate"] = join_predicate_->ToJson();
   return j;
 }
 
-void AbstractJoinPlanNode::FromJson(const nlohmann::json &j) {
-  AbstractPlanNode::FromJson(j);
+std::vector<std::unique_ptr<parser::AbstractExpression>> AbstractJoinPlanNode::FromJson(const nlohmann::json &j) {
+  std::vector<std::unique_ptr<parser::AbstractExpression>> exprs;
+  auto e1 = AbstractPlanNode::FromJson(j);
+  exprs.insert(exprs.end(), std::make_move_iterator(e1.begin()), std::make_move_iterator(e1.end()));
   join_type_ = j.at("join_type").get<LogicalJoinType>();
   if (!j.at("join_predicate").is_null()) {
-    join_predicate_ = parser::DeserializeExpression(j.at("join_predicate"));
+    auto deserialized = parser::DeserializeExpression(j.at("join_predicate"));
+    join_predicate_ = common::ManagedPointer(deserialized.result_);
+    exprs.emplace_back(std::move(deserialized.result_));
+    exprs.insert(exprs.end(), std::make_move_iterator(deserialized.non_owned_exprs_.begin()),
+                 std::make_move_iterator(deserialized.non_owned_exprs_.end()));
   }
+  return exprs;
 }
 
 }  // namespace terrier::planner

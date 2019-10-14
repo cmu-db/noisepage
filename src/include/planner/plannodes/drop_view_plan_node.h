@@ -77,8 +77,8 @@ class DropViewPlanNode : public AbstractPlanNode {
      * Build the drop view plan node
      * @return plan node
      */
-    std::shared_ptr<DropViewPlanNode> Build() {
-      return std::shared_ptr<DropViewPlanNode>(new DropViewPlanNode(
+    std::unique_ptr<DropViewPlanNode> Build() {
+      return std::unique_ptr<DropViewPlanNode>(new DropViewPlanNode(
           std::move(children_), std::move(output_schema_), database_oid_, namespace_oid_, view_oid_, if_exists_));
     }
 
@@ -112,8 +112,8 @@ class DropViewPlanNode : public AbstractPlanNode {
    * @param namespace_oid OID of the namespace
    * @param view_oid OID of the view to drop
    */
-  DropViewPlanNode(std::vector<std::shared_ptr<AbstractPlanNode>> &&children,
-                   std::shared_ptr<OutputSchema> output_schema, catalog::db_oid_t database_oid,
+  DropViewPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
+                   std::unique_ptr<OutputSchema> output_schema, catalog::db_oid_t database_oid,
                    catalog::namespace_oid_t namespace_oid, catalog::view_oid_t view_oid, bool if_exists)
       : AbstractPlanNode(std::move(children), std::move(output_schema)),
         database_oid_(database_oid),
@@ -162,7 +162,7 @@ class DropViewPlanNode : public AbstractPlanNode {
   bool operator==(const AbstractPlanNode &rhs) const override;
 
   nlohmann::json ToJson() const override;
-  void FromJson(const nlohmann::json &j) override;
+  std::vector<std::unique_ptr<parser::AbstractExpression>> FromJson(const nlohmann::json &j) override;
 
  private:
   /**

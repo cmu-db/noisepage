@@ -1,6 +1,8 @@
 #include "planner/plannodes/delete_plan_node.h"
+
 #include <memory>
 #include <utility>
+#include <vector>
 
 namespace terrier::planner {
 
@@ -49,18 +51,25 @@ nlohmann::json DeletePlanNode::ToJson() const {
   j["database_oid"] = database_oid_;
   j["namespace_oid"] = namespace_oid_;
   j["table_oid"] = table_oid_;
-  j["delete_condition"] = delete_condition_;
+  j["delete_condition"] = delete_condition_ == nullptr ? nlohmann::json(nullptr) : delete_condition_->ToJson();
   return j;
 }
 
-void DeletePlanNode::FromJson(const nlohmann::json &j) {
-  AbstractPlanNode::FromJson(j);
+std::vector<std::unique_ptr<parser::AbstractExpression>> DeletePlanNode::FromJson(const nlohmann::json &j) {
+  std::vector<std::unique_ptr<parser::AbstractExpression>> exprs;
+  auto e1 = AbstractPlanNode::FromJson(j);
+  exprs.insert(exprs.end(), std::make_move_iterator(e1.begin()), std::make_move_iterator(e1.end()));
   database_oid_ = j.at("database_oid").get<catalog::db_oid_t>();
   namespace_oid_ = j.at("namespace_oid").get<catalog::namespace_oid_t>();
   table_oid_ = j.at("table_oid").get<catalog::table_oid_t>();
   if (!j.at("delete_condition").is_null()) {
-    delete_condition_ = parser::DeserializeExpression(j.at("delete_condition"));
+    auto deserialized = parser::DeserializeExpression(j.at("delete_condition"));
+    delete_condition_ = common::ManagedPointer(deserialized.result_);
+    exprs.emplace_back(std::move(deserialized.result_));
+    exprs.insert(exprs.end(), std::make_move_iterator(deserialized.non_owned_exprs_.begin()),
+                 std::make_move_iterator(deserialized.non_owned_exprs_.end()));
   }
+  return exprs;
 }
 
 }  // namespace terrier::planner

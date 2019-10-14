@@ -47,19 +47,23 @@ nlohmann::json CreateViewPlanNode::ToJson() const {
   j["database_oid"] = database_oid_;
   j["namespace_oid"] = namespace_oid_;
   j["view_name"] = view_name_;
-  j["view_query"] = view_query_;
+  j["view_query"] = view_query_->ToJson();
   return j;
 }
 
-void CreateViewPlanNode::FromJson(const nlohmann::json &j) {
-  AbstractPlanNode::FromJson(j);
+std::vector<std::unique_ptr<parser::AbstractExpression>> CreateViewPlanNode::FromJson(const nlohmann::json &j) {
+  std::vector<std::unique_ptr<parser::AbstractExpression>> exprs;
+  auto e1 = AbstractPlanNode::FromJson(j);
+  exprs.insert(exprs.end(), std::make_move_iterator(e1.begin()), std::make_move_iterator(e1.end()));
   database_oid_ = j.at("database_oid").get<catalog::db_oid_t>();
   namespace_oid_ = j.at("namespace_oid").get<catalog::namespace_oid_t>();
   view_name_ = j.at("view_name").get<std::string>();
   if (!j.at("view_query").is_null()) {
-    view_query_ = std::make_shared<parser::SelectStatement>();
-    view_query_->FromJson(j.at("view_query"));
+    view_query_ = std::make_unique<parser::SelectStatement>();
+    auto e2 = view_query_->FromJson(j.at("view_query"));
+    exprs.insert(exprs.end(), std::make_move_iterator(e2.begin()), std::make_move_iterator(e2.end()));
   }
+  return exprs;
 }
 
 }  // namespace terrier::planner
