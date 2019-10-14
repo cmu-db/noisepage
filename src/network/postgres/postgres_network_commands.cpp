@@ -204,18 +204,12 @@ Transition BindCommand::Exec(common::ManagedPointer<PostgresProtocolInterpreter>
 
     } else if (type == TypeId::TIMESTAMP) {
       if (len != -1) {
-        type::timestamp_t timestamp;
-        if (is_binary[i] == 0) {
-          char buf[len + 1];
-          memset(buf, 0, len + 1);
-          in_.Read(len, buf);
-          timestamp = type::timestamp_t(std::stoull(buf));
-        } else {
-          timestamp = type::timestamp_t(in_.ReadValue<uint64_t>());
-        }
-        params->push_back(TransientValueFactory::GetTimestamp(timestamp));
+        char buf[len + 1];
+        memset(buf, 0, len + 1);
+        in_.Read(len, buf);
+        params->push_back(TransientValueFactory::GetVarChar(buf));
       } else {
-        params->push_back(TransientValueFactory::GetNull(TypeId::TIMESTAMP));
+        params->push_back(TransientValueFactory::GetNull(TypeId::VARCHAR));
       }
 
     } else if (type == TypeId::BIGINT) {
@@ -323,6 +317,7 @@ Transition ExecuteCommand::Exec(common::ManagedPointer<PostgresProtocolInterpret
   trafficcop::SqliteEngine *execution_engine = t_cop->GetExecutionEngine();
   execution_engine->Bind(portal.statement_->sqlite3_stmt_, portal.params_);
   trafficcop::ResultSet result = execution_engine->Execute(portal.statement_->sqlite3_stmt_);
+  int32_t rows_affected = execution_engine->GetAffected();
   for (const auto &row : result.rows_) {
     out->WriteDataRow(row);
   }
@@ -330,13 +325,13 @@ Transition ExecuteCommand::Exec(common::ManagedPointer<PostgresProtocolInterpret
   string & query_string = portal.statement_->query_string_;
   if (query_string.find("INSERT") != string::npos) {
     // TODO(YUZE): OID
-    out->WriteCommandComplete(string("INSERT 0 {0}",result.rows_.size()));
+    out->WriteCommandComplete("INSERT 0 " + std::to_string(rows_affected));
   } else if (query_string.find("DELETE") != string::npos) {
-    out->WriteCommandComplete(string("DELETE {0}",result.rows_.size()));
+    out->WriteCommandComplete("DELETE " + std::to_string(rows_affected));
   } else if (query_string.find("UPDATE") != string::npos) {
-    out->WriteCommandComplete(string("UPDATE {0}",result.rows_.size()));
+    out->WriteCommandComplete("UPDATE " + std::to_string(rows_affected));
   } else if (query_string.find("SELECT") != string::npos) {
-    out->WriteCommandComplete(string("SELECT {0}",result.rows_.size()));
+    out->WriteCommandComplete("SELECT " + std::to_string(result.rows_.size()));
   } else if (query_string.find("BEGIN") != string::npos) {
     out->WriteCommandComplete("BEGIN");
   }

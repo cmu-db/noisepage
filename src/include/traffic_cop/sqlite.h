@@ -48,6 +48,8 @@ class SqliteEngine {
    */
   ResultSet Execute(sqlite3_stmt *stmt);
 
+  int32_t GetAffected();
+
  private:
   // SQLite database
   struct sqlite3 *sqlite_db_;
