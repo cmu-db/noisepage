@@ -30,6 +30,7 @@ class PacketWriter {
 
   /**
    * Checks whether the packet is null
+   * @return whether packet is null
    */
   bool IsPacketEmpty() { return curr_packet_len_ == nullptr; }
 
@@ -63,7 +64,7 @@ class PacketWriter {
   PacketWriter &BeginPacket(NetworkMessageType type) {
     // No active packet being constructed
     TERRIER_ASSERT(curr_packet_len_ == nullptr, "packet length is null");
-    if (type != NetworkMessageType::NO_HEADER) queue_.BufferWriteRawValue(type);
+    if (type != NetworkMessageType::NO_HEADER) WriteType(type);
     // Remember the size field since we will need to modify it as we go along.
     // It is important that our size field is contiguous and not broken between
     // two buffers.
