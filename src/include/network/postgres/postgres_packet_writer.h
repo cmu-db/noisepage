@@ -19,6 +19,24 @@ class PostgresPacketWriter : public PacketWriter {
   explicit PostgresPacketWriter(const std::shared_ptr<WriteQueue> &write_queue) : PacketWriter(write_queue) {}
 
   /**
+   * Write out a packet with a single type that is associated with SSL.
+   * (PG_SSL_YES, PG_SSL_NO)
+   * @param type Type of message to write out
+   */
+  void WriteSSLPacket(NetworkMessageType type) {
+    // Make sure no active packet being constructed
+    TERRIER_ASSERT(curr_packet_len_ == nullptr, "packet length is null");
+    switch (type) {
+      case NetworkMessageType::PG_SSL_YES:
+      case NetworkMessageType::PG_SSL_NO:
+        queue_.BufferWriteRawValue(type);
+        break;
+      default:
+        BeginPacket(type).EndPacket();
+    }
+  }
+
+  /**
    * Writes a simple query
    * @param query string to execute
    */
