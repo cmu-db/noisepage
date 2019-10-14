@@ -24,31 +24,38 @@ std::pair<uint32_t, uint32_t> GarbageCollector::PerformGarbageCollection(transac
 }
 
 void GarbageCollector::CleanupTransaction(transaction::TransactionContext *txn) {
+  txns_since_unlink_++;
   if (txn->IsReadOnly()) {
       // This is a read-only transaction so this is safe to immediately delete
       delete txn;
   } else {
-    // TODO (yash) If we don't have async threads handling the perform gc below we need to change process here
-    // 1. Acquire txn_to_unlink_latch_ 
-    // 2. push_front
-    // 3. num_txns_to_unlink++
-    // 4. Check if num_txns_to_unlink > MAX_OUTSTANDING_UNLINK_TRANSACTIONS
-    //    4a. If true: transaction::TransactionQueue txns_unlink(std::move(txns_to_unlink_));
-    //    4b. Set perform gc bool to true
-    // 5. Release latch
-    // 6. PerformGarbageCollection(txns_to_unlink_); //don't want to block txns from comitting while this is running
-    common::SpinLatch::ScopedSpinLatch guard(&txn_to_unlink_latch_);
-    txns_to_unlink_.push_front(txn);
-    num_txns_to_unlink_++;
 
-    // If more more than max number of transactions to link then clear list and unlink
-    if(num_txns_to_unlink_ > MAX_OUTSTANDING_UNLINK_TRANSACTIONS){
-      transaction::TransactionQueue txns_unlink(std::move(txns_to_unlink_));
-      deferred_action_manager_->RegisterDeferredAction([=]() { //TODO (Yashwanth) don't need to this to be a deferred event, just need some kind of async task registration mechanism
-        PerformGarbageCollection(txns_unlink);
-      });
-      num_txns_to_unlink_ = 0;
+    bool perform_gc = false;
+    transaction::TransactionQueue *txns_unlink;
+    {
+      // Critical section to access to transactions to unlink queue
+      common::SpinLatch::ScopedSpinLatch guard(&txn_to_unlink_latch_);
+      txns_to_unlink_.push_front(txn);
+
+      //If number of transactions since last unlink is exceeded reset the transactions to unlink queue
+      if (txns_since_unlink_ > MAX_OUTSTANDING_UNLINK_TRANSACTIONS){
+
+        // This is safe because txns_since_unlink_ is an atomic variable and only increments that could have
+        // been missed by resetting to 0 here are from ReadOnly transactions. It is impossible for a write
+        // to have happened and the txns_to_unlink_ queue to grow during this assignment. 
+        txns_since_unlink_ = 0;  
+
+        transaction::TransactionQueue txns_unlink_queue(std::move(txns_to_unlink_));
+        txns_unlink = &txns_unlink_queue;
+        perform_gc = true;
+        
+      } 
     }
+
+    if(perform_gc){
+      PerformGarbageCollection(*txns_unlink);
+    }
+
   } 
 }
 

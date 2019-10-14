@@ -106,7 +106,7 @@ class GarbageCollector {
   // queue of txns that need to be unlinked
   transaction::TransactionQueue txns_to_unlink_;
   common::SpinLatch txn_to_unlink_latch_;
-  int num_txns_to_unlink_;
+  std::atomic<int> txns_since_unlink_;
 
   std::unordered_set<common::ManagedPointer<index::Index>> indexes_;
   common::SharedLatch indexes_latch_;
