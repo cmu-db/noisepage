@@ -28,14 +28,18 @@ class PacketWriter {
     TERRIER_ASSERT(curr_packet_len_ == nullptr, "packet length is not null");
   }
 
+  bool IsPacketEmpty() {
+    return curr_packet_len_ == nullptr;
+  }
+
   /**
    * Write out a packet with a single type that is not related to Postgres SSL.
    * @param type Type of message to write out
    */
   void WriteSingleTypePacket(NetworkMessageType type) {
     // Make sure no active packet being constructed
-    TERRIER_ASSERT(curr_packet_len_ == nullptr, "packet length is null");
-    static_assert(type != NetworkMessageType::PG_SSL_YES && type != NetworkMessageType::PG_SSL_NO);
+    TERRIER_ASSERT(IsPacketEmpty(), "packet length is null");
+    TERRIER_ASSERT(type != NetworkMessageType::PG_SSL_YES && type != NetworkMessageType::PG_SSL_NO);
     BeginPacket(type).EndPacket();
   }
 

@@ -25,7 +25,7 @@ class PostgresPacketWriter : public PacketWriter {
    */
   void WriteSSLPacket(NetworkMessageType type) {
     // Make sure no active packet being constructed
-    TERRIER_ASSERT(curr_packet_len_ == nullptr, "packet length is null");
+    TERRIER_ASSERT(IsPacketEmpty(), "packet length is null");
     switch (type) {
       case NetworkMessageType::PG_SSL_YES:
       case NetworkMessageType::PG_SSL_NO:
