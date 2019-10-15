@@ -74,8 +74,8 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
   storage::RecordBufferSegmentPool buffer_pool(100000, 100000);
   transaction::TimestampManager tm_manager{};
   transaction::DeferredActionManager da_manager{&tm_manager};
-  transaction::TransactionManager txn_manager(&tm_manager, &da_manager, &buffer_pool, true, nullptr);
-  storage::GarbageCollector gc(&tm_manager, &da_manager, &txn_manager, nullptr);
+  storage::GarbageCollector gc(&tm_manager, &da_manager, nullptr);
+  transaction::TransactionManager txn_manager(&tm_manager, &gc, &da_manager, &buffer_pool, true, nullptr);
   auto *txn = txn_manager.BeginTransaction();
 
   // Get the correct output format for this test
@@ -252,8 +252,8 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
       parse_ms, typecheck_ms, codegen_ms, interp_exec_ms, adaptive_exec_ms, jit_exec_ms);
   txn_manager.Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
   catalog.TearDown();
-  gc.PerformGarbageCollection();
-  gc.PerformGarbageCollection();
+  da_manager.Process();
+  da_manager.Process();
 }
 
 /**
