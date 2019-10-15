@@ -29,6 +29,7 @@ class TrafficCop;
 
 namespace terrier::network {
 class PostgresPacketWriter;
+class ReadBuffer;
 
 // For threads
 #define CONNECTION_THREAD_COUNT 4
@@ -71,35 +72,102 @@ enum class NetworkMessageType : unsigned char {
   // Messages that don't have headers (like Startup message)
   NO_HEADER = 255,
 
+  ////////////////////////////
+  // Postgres message types //
+  ////////////////////////////
+
   // Responses
-  PARSE_COMPLETE = '1',
-  BIND_COMPLETE = '2',
-  CLOSE_COMPLETE = '3',
-  COMMAND_COMPLETE = 'C',
-  PARAMETER_STATUS = 'S',
-  AUTHENTICATION_REQUEST = 'R',
-  ERROR_RESPONSE = 'E',
-  EMPTY_QUERY_RESPONSE = 'I',
-  NO_DATA_RESPONSE = 'n',
-  READY_FOR_QUERY = 'Z',
-  PARAMETER_DESCRIPTION = 't',
-  ROW_DESCRIPTION = 'T',
-  DATA_ROW = 'D',
+  PG_PARSE_COMPLETE = '1',
+  PG_BIND_COMPLETE = '2',
+  PG_CLOSE_COMPLETE = '3',
+  PG_COMMAND_COMPLETE = 'C',
+  PG_PARAMETER_STATUS = 'S',
+  PG_AUTHENTICATION_REQUEST = 'R',
+  PG_ERROR_RESPONSE = 'E',
+  PG_EMPTY_QUERY_RESPONSE = 'I',
+  PG_NO_DATA_RESPONSE = 'n',
+  PG_READY_FOR_QUERY = 'Z',
+  PG_PARAMETER_DESCRIPTION = 't',
+  PG_ROW_DESCRIPTION = 'T',
+  PG_DATA_ROW = 'D',
   // Errors
-  HUMAN_READABLE_ERROR = 'M',
-  SQLSTATE_CODE_ERROR = 'C',
+  PG_HUMAN_READABLE_ERROR = 'M',
+  PG_SQLSTATE_CODE_ERROR = 'C',
   // Commands
-  EXECUTE_COMMAND = 'E',
-  SYNC_COMMAND = 'S',
-  TERMINATE_COMMAND = 'X',
-  DESCRIBE_COMMAND = 'D',
-  BIND_COMMAND = 'B',
-  PARSE_COMMAND = 'P',
-  SIMPLE_QUERY_COMMAND = 'Q',
-  CLOSE_COMMAND = 'C',
+  PG_EXECUTE_COMMAND = 'E',
+  PG_SYNC_COMMAND = 'S',
+  PG_TERMINATE_COMMAND = 'X',
+  PG_DESCRIBE_COMMAND = 'D',
+  PG_BIND_COMMAND = 'B',
+  PG_PARSE_COMMAND = 'P',
+  PG_SIMPLE_QUERY_COMMAND = 'Q',
+  PG_CLOSE_COMMAND = 'C',
   // SSL willingness
-  SSL_YES = 'S',
-  SSL_NO = 'N',
+  PG_SSL_YES = 'S',
+  PG_SSL_NO = 'N',
+
+  ////////////////////////
+  // ITP message types  //
+  ////////////////////////
+};
+
+//===--------------------------------------------------------------------===//
+// Network packet defs
+//===--------------------------------------------------------------------===//
+
+/**
+ * Encapsulates an input packet
+ */
+struct InputPacket {
+  /**
+   * Type of message this packet encodes
+   */
+  NetworkMessageType msg_type_ = NetworkMessageType::NULL_COMMAND;
+
+  /**
+   * Length of this packet's contents
+   */
+  size_t len_ = 0;
+
+  /**
+   * ReadBuffer containing this packet's contents
+   */
+  std::shared_ptr<ReadBuffer> buf_;
+
+  /**
+   * Whether or not this packet's header has been parsed yet
+   */
+  bool header_parsed_ = false;
+
+  /**
+   * Whether or not this packet's buffer was extended
+   */
+  bool extended_ = false;
+
+  /**
+   * Constructs an empty InputPacket
+   */
+  InputPacket() = default;
+
+  /**
+   * Constructs an empty InputPacket
+   */
+  InputPacket(const InputPacket &) = default;
+
+  /**
+   * Constructs an empty InputPacket
+   */
+  InputPacket(InputPacket &&) = default;
+
+  /**
+   * Clears the packet's contents
+   */
+  virtual void Clear() {
+    msg_type_ = NetworkMessageType::NULL_COMMAND;
+    len_ = 0;
+    buf_ = nullptr;
+    header_parsed_ = false;
+  }
 };
 
 //===--------------------------------------------------------------------===//
