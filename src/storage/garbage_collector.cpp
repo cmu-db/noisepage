@@ -19,7 +19,6 @@ std::pair<uint32_t, uint32_t> GarbageCollector::PerformGarbageCollection(
   uint32_t txns_unlinked = ProcessUnlinkQueue(oldest_txn, txns_to_unlink);
   STORAGE_LOG_TRACE("GarbageCollector::PerformGarbageCollection(): txns_unlinked: {}", txns_unlinked);
 
-  ProcessIndexes();  // TODO(Yashwanth): move this to some other function, this isn't going to be called on a thread
   return std::make_pair(0, txns_unlinked);
 }
 
@@ -186,26 +185,4 @@ void GarbageCollector::ReclaimBufferIfVarlen(transaction::TransactionContext *co
       throw std::runtime_error("unexpected delta record type");
   }
 }
-
-// TODO(yash): move this to some other thread
-void GarbageCollector::RegisterIndexForGC(const common::ManagedPointer<index::Index> index) {
-  TERRIER_ASSERT(index != nullptr, "Index cannot be nullptr.");
-  common::SharedLatch::ScopedExclusiveLatch guard(&indexes_latch_);
-  TERRIER_ASSERT(indexes_.count(index) == 0, "Trying to register an index that has already been registered.");
-  indexes_.insert(index);
-}
-
-// TODO(yash): move this to some other thread
-void GarbageCollector::UnregisterIndexForGC(const common::ManagedPointer<index::Index> index) {
-  TERRIER_ASSERT(index != nullptr, "Index cannot be nullptr.");
-  common::SharedLatch::ScopedExclusiveLatch guard(&indexes_latch_);
-  TERRIER_ASSERT(indexes_.count(index) == 1, "Trying to unregister an index that has not been registered.");
-  indexes_.erase(index);
-}
-
-void GarbageCollector::ProcessIndexes() {
-  common::SharedLatch::ScopedSharedLatch guard(&indexes_latch_);
-  for (const auto &index : indexes_) index->PerformGarbageCollection();
-}
-
 }  // namespace terrier::storage

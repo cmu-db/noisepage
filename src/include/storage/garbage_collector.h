@@ -5,7 +5,6 @@
 #include <utility>
 #include "common/shared_latch.h"
 #include "storage/access_observer.h"
-#include "storage/index/index.h"
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_defs.h"
 #include "transaction/timestamp_manager.h"
@@ -87,8 +86,6 @@ class GarbageCollector {
 
   void TruncateVersionChain(DataTable *table, TupleSlot slot, transaction::timestamp_t oldest) const;
 
-  void ProcessIndexes();
-
   transaction::TimestampManager *timestamp_manager_;
   transaction::DeferredActionManager *deferred_action_manager_;
   AccessObserver *observer_;
@@ -99,9 +96,6 @@ class GarbageCollector {
   transaction::TransactionQueue txns_to_unlink_;
   common::SpinLatch txn_to_unlink_latch_;
   std::atomic<int> txns_since_unlink_;
-
-  std::unordered_set<common::ManagedPointer<index::Index>> indexes_;
-  common::SharedLatch indexes_latch_;
 };
 
 }  // namespace terrier::storage
