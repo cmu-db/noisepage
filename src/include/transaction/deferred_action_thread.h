@@ -64,12 +64,7 @@ class DeferredActionThread {
   std::chrono::milliseconds deferred_actions_period_;
   std::thread deferred_actions_thread_;
 
-  void DeferredActionThreadLoop() {
-    while (run_deferred_events_) {
-      std::this_thread::sleep_for(deferred_actions_period_);
-      if (!deferred_events_paused_) deferred_actions_manager_->Process();
-    }
-  }
+  void DeferredActionThreadLoop(); 
 };
 
 }  // namespace terrier::storage

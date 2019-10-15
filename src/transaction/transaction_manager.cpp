@@ -1,4 +1,5 @@
 #include "transaction/transaction_manager.h"
+#include "transaction/deferred_action_manager.h"
 #include <unordered_set>
 #include <utility>
 #include "common/scoped_timer.h"

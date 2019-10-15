@@ -7,11 +7,12 @@
 #include "transaction/deferred_action_manager.h"
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_defs.h"
-#include "transaction/transaction_util.h
+#include "transaction/transaction_util.h"
 #include "transaction/deferred_action_manager.h"
 
 namespace terrier::transaction {
-    timestamp_t DeferredActionManager::RegisterDeferredAction(const DeferredAction &a) {
+
+  timestamp_t DeferredActionManager::RegisterDeferredAction(const DeferredAction &a) {
     common::SpinLatch::ScopedSpinLatch guard(&deferred_actions_latch_);
     // Timestamp needs to be fetched inside the critical section such that actions in the
     // deferred action queue is in order. This simplifies the interleavings we need to deal
