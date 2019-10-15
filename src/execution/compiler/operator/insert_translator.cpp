@@ -51,6 +51,9 @@ void InsertTranslator::Produce(FunctionBuilder *builder) {
     auto index_pm = index->GetKeyOidToOffsetMap();
     auto index_schema = codegen_->Accessor()->GetIndexSchema(index_oid);
     pr_filler.GenFiller(index_pm, index_schema, table_pr_, builder);
+
+    //@inserterInsertIndex(&inserter, index_oid)
+    builder->Append(codegen_->MakeStmt(codegen_->InserterIndexInsert(inserter_struct_, !index_oid)));
   }
 }
 
