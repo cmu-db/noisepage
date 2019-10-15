@@ -1,8 +1,7 @@
-
+#include "execution/sql/deleter.h"
+#include <algorithm>
 #include "execution/exec/execution_context.h"
 #include "execution/util/execution_common.h"
-
-#include "execution/sql/deleter.h"
 
 namespace terrier::execution::sql {
 

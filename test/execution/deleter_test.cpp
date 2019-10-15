@@ -1,11 +1,11 @@
 #include <array>
 #include <memory>
-
-#include "execution/sql_test.h"
+#include <vector>
 
 #include "catalog/catalog_defs.h"
 #include "execution/sql/deleter.h"
 #include "execution/sql/inserter.h"
+#include "execution/sql_test.h"
 #include "execution/util/timer.h"
 
 #include "execution/sql/index_iterator.h"
@@ -168,5 +168,4 @@ TEST_F(DeleterTest, MultiIndexTest) {
     EXPECT_EQ(results_before_delete_2.size() - 1, results_after_delete_2.size());
   }
 }
-
 }  // namespace terrier::execution::sql::test
