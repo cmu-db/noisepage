@@ -35,9 +35,9 @@ fun index_count(execCtx: *ExecutionContext, key : int64) -> int64 {
   return count
 }
 
-fun table_count(execCtx: *ExecutionContext, oids: [*]uint32) -> int64 {
+fun table_count(execCtx: *ExecutionContext, oids: *[4]uint32) -> int64 {
   var tvi: TableVectorIterator
-  @tableIterInitBind(&tvi, execCtx, "test_1", oids)
+  @tableIterInitBind(&tvi, execCtx, "test_1", *oids)
   var count : int64
   count = 0
   for (@tableIterAdvance(&tvi)) {

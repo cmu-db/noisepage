@@ -1439,6 +1439,24 @@ void BytecodeGenerator::VisitBuiltinIndexIteratorCall(ast::CallExpr *call, ast::
       Emitter()->Emit(Bytecode::IndexIteratorScanKey, iterator);
       break;
     }
+    case ast::Builtin::IndexIteratorScanAscending: {
+      Emitter()->Emit(Bytecode::IndexIteratorScanAscending, iterator);
+      break;
+    }
+    case ast::Builtin::IndexIteratorScanDescending: {
+      Emitter()->Emit(Bytecode::IndexIteratorScanDescending, iterator);
+      break;
+    }
+    case ast::Builtin::IndexIteratorScanLimitAscending: {
+      auto limit = VisitExpressionForRValue(call->Arguments()[1]);
+      Emitter()->Emit(Bytecode::IndexIteratorScanLimitAscending, iterator, limit);
+      break;
+    }
+    case ast::Builtin::IndexIteratorScanLimitDescending: {
+      auto limit = VisitExpressionForRValue(call->Arguments()[1]);
+      Emitter()->Emit(Bytecode::IndexIteratorScanLimitDescending, iterator, limit);
+      break;
+    }
     case ast::Builtin::IndexIteratorAdvance: {
       LocalVar cond = ExecutionResult()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Bool));
       Emitter()->Emit(Bytecode::IndexIteratorAdvance, cond, iterator);
@@ -1453,6 +1471,18 @@ void BytecodeGenerator::VisitBuiltinIndexIteratorCall(ast::CallExpr *call, ast::
       ast::Type *pr_type = ast::BuiltinType::Get(ctx, ast::BuiltinType::ProjectedRow);
       LocalVar pr = ExecutionResult()->GetOrCreateDestination(pr_type);
       Emitter()->Emit(Bytecode::IndexIteratorGetPR, pr, iterator);
+      break;
+    }
+    case ast::Builtin::IndexIteratorGetLoPR: {
+      ast::Type *pr_type = ast::BuiltinType::Get(ctx, ast::BuiltinType::ProjectedRow);
+      LocalVar pr = ExecutionResult()->GetOrCreateDestination(pr_type);
+      Emitter()->Emit(Bytecode::IndexIteratorGetLoPR, pr, iterator);
+      break;
+    }
+    case ast::Builtin::IndexIteratorGetHiPR: {
+      ast::Type *pr_type = ast::BuiltinType::Get(ctx, ast::BuiltinType::ProjectedRow);
+      LocalVar pr = ExecutionResult()->GetOrCreateDestination(pr_type);
+      Emitter()->Emit(Bytecode::IndexIteratorGetHiPR, pr, iterator);
       break;
     }
     case ast::Builtin::IndexIteratorGetTablePR: {
@@ -1742,7 +1772,7 @@ void BytecodeGenerator::VisitBuiltinInserterCall(ast::CallExpr *call, ast::Built
     default: {
       UNREACHABLE("Impossible bytecode");
     }
-  };
+  }
 }
 
 void BytecodeGenerator::VisitBuiltinDeleterCall(ast::CallExpr *call, ast::Builtin builtin) {
@@ -2078,9 +2108,15 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
     case ast::Builtin::IndexIteratorInit:
     case ast::Builtin::IndexIteratorInitBind:
     case ast::Builtin::IndexIteratorScanKey:
+    case ast::Builtin::IndexIteratorScanAscending:
+    case ast::Builtin::IndexIteratorScanDescending:
+    case ast::Builtin::IndexIteratorScanLimitAscending:
+    case ast::Builtin::IndexIteratorScanLimitDescending:
     case ast::Builtin::IndexIteratorAdvance:
     case ast::Builtin::IndexIteratorFree:
     case ast::Builtin::IndexIteratorGetPR:
+    case ast::Builtin::IndexIteratorGetLoPR:
+    case ast::Builtin::IndexIteratorGetHiPR:
     case ast::Builtin::IndexIteratorGetTablePR:
     case ast::Builtin::IndexIteratorGetSlot:
       VisitBuiltinIndexIteratorCall(call, builtin);

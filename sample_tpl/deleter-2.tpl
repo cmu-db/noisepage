@@ -45,9 +45,9 @@ fun index_count_1(execCtx: *ExecutionContext, key : int64) -> int64 {
   return count
 }
 
-fun table_count(execCtx: *ExecutionContext, oids: [*]uint32) -> int64 {
+fun table_count(execCtx: *ExecutionContext, oids: *[4]uint32) -> int64 {
   var tvi: TableVectorIterator
-  @tableIterInitBind(&tvi, execCtx, "test_2", oids)
+  @tableIterInitBind(&tvi, execCtx, "test_2", *oids)
   var count : int64
   count = 0
   for (@tableIterAdvance(&tvi)) {
@@ -110,6 +110,8 @@ fun main(execCtx: *ExecutionContext) -> int64 {
   var index_count_2_after_insert = index_count_2(execCtx, col3_val, col1_val)
   var index_count_2_before_delete = index_count_2_after_insert
 
+  @deleterTableDelete(&deleter, &ts)
+
   var index_delete_pr : *ProjectedRow = @deleterGetIndexPRBind(&deleter, "index_2")
   @prSetSmallInt(index_delete_pr, 0, @prGetSmallInt(table_pr, 3))
   @deleterIndexDeleteBind(&deleter, "index_2", &ts)
@@ -119,7 +121,6 @@ fun main(execCtx: *ExecutionContext) -> int64 {
   @prSetInt(index_2_delete_pr, 0, @prGetInt(table_pr, 1))
   @deleterIndexDeleteBind(&deleter, "index_2_multi", &ts)
 
-  @deleterTableDelete(&deleter, &ts)
 
   var table_count_after_delete = table_count(execCtx, &oids)
   var index_count_after_delete = index_count_1(execCtx, col3_val)

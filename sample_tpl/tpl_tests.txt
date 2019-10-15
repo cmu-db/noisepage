@@ -67,4 +67,5 @@ vec-filter.tpl,true,3000
 #output1.tpl,true,500 <Relies on output buffer>
 scan-index.tpl,true,1
 scan-index-2.tpl,true,1
+scan-index-3.tpl,true,32
 join-index.tpl,true,0

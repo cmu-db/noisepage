@@ -1492,8 +1492,8 @@ void Sema::CheckBuiltinIndexIteratorInit(execution::ast::CallExpr *call, ast::Bu
   call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
 }
 
-void Sema::CheckBuiltinIndexIteratorScanKey(execution::ast::CallExpr *call) {
-  if (!CheckArgCount(call, 1)) {
+void Sema::CheckBuiltinIndexIteratorScan(execution::ast::CallExpr *call, ast::Builtin builtin) {
+  if (!CheckArgCountAtLeast(call, 1)) {
     return;
   }
   // First argument must be a pointer to a IndexIterator
@@ -1501,6 +1501,27 @@ void Sema::CheckBuiltinIndexIteratorScanKey(execution::ast::CallExpr *call) {
   if (!IsPointerToSpecificBuiltin(call->Arguments()[0]->GetType(), index_kind)) {
     ReportIncorrectCallArg(call, 0, GetBuiltinType(index_kind)->PointerTo());
     return;
+  }
+
+  switch (builtin) {
+    case ast::Builtin::IndexIteratorScanKey:
+    case ast::Builtin::IndexIteratorScanAscending:
+    case ast::Builtin::IndexIteratorScanDescending:
+      if (!CheckArgCount(call, 1)) return;
+      break;
+    case ast::Builtin::IndexIteratorScanLimitAscending:
+    case ast::Builtin::IndexIteratorScanLimitDescending: {
+      if (!CheckArgCount(call, 2)) return;
+      auto uint32_kind = ast::BuiltinType::Uint32;
+      // Second argument is an integer
+      if (!call->Arguments()[1]->GetType()->IsIntegerType()) {
+        ReportIncorrectCallArg(call, 1, GetBuiltinType(uint32_kind));
+        return;
+      }
+      break;
+    }
+    default:
+      UNREACHABLE("Impossible Scan call!");
   }
   // Return nothing
   call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
@@ -1549,6 +1570,8 @@ void Sema::CheckBuiltinIndexIteratorPRCall(ast::CallExpr *call, ast::Builtin bui
   }
   switch (builtin) {
     case ast::Builtin::IndexIteratorGetPR:
+    case ast::Builtin::IndexIteratorGetLoPR:
+    case ast::Builtin::IndexIteratorGetHiPR:
     case ast::Builtin::IndexIteratorGetTablePR:
       call->SetType(GetBuiltinType(ast::BuiltinType::ProjectedRow));
       break;
@@ -2353,8 +2376,12 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
       CheckBuiltinIndexIteratorInit(call, builtin);
       break;
     }
-    case ast::Builtin::IndexIteratorScanKey: {
-      CheckBuiltinIndexIteratorScanKey(call);
+    case ast::Builtin::IndexIteratorScanKey:
+    case ast::Builtin::IndexIteratorScanAscending:
+    case ast::Builtin::IndexIteratorScanDescending:
+    case ast::Builtin::IndexIteratorScanLimitAscending:
+    case ast::Builtin::IndexIteratorScanLimitDescending: {
+      CheckBuiltinIndexIteratorScan(call, builtin);
       break;
     }
     case ast::Builtin::IndexIteratorAdvance: {
@@ -2362,6 +2389,8 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
       break;
     }
     case ast::Builtin::IndexIteratorGetPR:
+    case ast::Builtin::IndexIteratorGetLoPR:
+    case ast::Builtin::IndexIteratorGetHiPR:
     case ast::Builtin::IndexIteratorGetSlot:
     case ast::Builtin::IndexIteratorGetTablePR: {
       CheckBuiltinIndexIteratorPRCall(call, builtin);

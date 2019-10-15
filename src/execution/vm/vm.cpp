@@ -1388,6 +1388,32 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {
     DISPATCH_NEXT();
   }
 
+  OP(IndexIteratorScanAscending) : {
+    auto *iter = frame->LocalAt<sql::IndexIterator *>(READ_LOCAL_ID());
+    OpIndexIteratorScanAscending(iter);
+    DISPATCH_NEXT();
+  }
+
+  OP(IndexIteratorScanDescending) : {
+    auto *iter = frame->LocalAt<sql::IndexIterator *>(READ_LOCAL_ID());
+    OpIndexIteratorScanDescending(iter);
+    DISPATCH_NEXT();
+  }
+
+  OP(IndexIteratorScanLimitAscending) : {
+    auto *iter = frame->LocalAt<sql::IndexIterator *>(READ_LOCAL_ID());
+    auto limit = frame->LocalAt<uint32_t>(READ_LOCAL_ID());
+    OpIndexIteratorScanLimitAscending(iter, limit);
+    DISPATCH_NEXT();
+  }
+
+  OP(IndexIteratorScanLimitDescending) : {
+    auto *iter = frame->LocalAt<sql::IndexIterator *>(READ_LOCAL_ID());
+    auto limit = frame->LocalAt<uint32_t>(READ_LOCAL_ID());
+    OpIndexIteratorScanLimitDescending(iter, limit);
+    DISPATCH_NEXT();
+  }
+
   OP(IndexIteratorFree) : {
     auto *iter = frame->LocalAt<sql::IndexIterator *>(READ_LOCAL_ID());
     OpIndexIteratorFree(iter);
@@ -1405,6 +1431,20 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {
     auto *pr = frame->LocalAt<sql::ProjectedRowWrapper *>(READ_LOCAL_ID());
     auto *iter = frame->LocalAt<sql::IndexIterator *>(READ_LOCAL_ID());
     OpIndexIteratorGetPR(pr, iter);
+    DISPATCH_NEXT();
+  }
+
+  OP(IndexIteratorGetLoPR) : {
+    auto *pr = frame->LocalAt<sql::ProjectedRowWrapper *>(READ_LOCAL_ID());
+    auto *iter = frame->LocalAt<sql::IndexIterator *>(READ_LOCAL_ID());
+    OpIndexIteratorGetLoPR(pr, iter);
+    DISPATCH_NEXT();
+  }
+
+  OP(IndexIteratorGetHiPR) : {
+    auto *pr = frame->LocalAt<sql::ProjectedRowWrapper *>(READ_LOCAL_ID());
+    auto *iter = frame->LocalAt<sql::IndexIterator *>(READ_LOCAL_ID());
+    OpIndexIteratorGetHiPR(pr, iter);
     DISPATCH_NEXT();
   }
 

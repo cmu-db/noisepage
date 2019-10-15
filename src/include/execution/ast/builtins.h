@@ -6,215 +6,221 @@ namespace terrier::execution::ast {
 
 // The list of all builtin functions
 // Args: internal name, function name
-#define BUILTINS_LIST(F)                                        \
-  /* Primitive <-> SQL */                                       \
-  F(IntToSql, intToSql)                                         \
-  F(BoolToSql, boolToSql)                                       \
-  F(FloatToSql, floatToSql)                                     \
-  F(SqlToBool, sqlToBool)                                       \
-  F(StringToSql, stringToSql)                                   \
-  F(VarlenToSql, varlenToSql)                                   \
-  F(DateToSql, dateToSql)                                       \
-                                                                \
-  /* Vectorized Filters */                                      \
-  F(FilterEq, filterEq)                                         \
-  F(FilterGe, filterGe)                                         \
-  F(FilterGt, filterGt)                                         \
-  F(FilterLe, filterLe)                                         \
-  F(FilterLt, filterLt)                                         \
-  F(FilterNe, filterNe)                                         \
-                                                                \
-  /* Thread State Container */                                  \
-  F(ExecutionContextGetMemoryPool, execCtxGetMem)               \
-  F(ThreadStateContainerInit, tlsInit)                          \
-  F(ThreadStateContainerReset, tlsReset)                        \
-  F(ThreadStateContainerIterate, tlsIterate)                    \
-  F(ThreadStateContainerFree, tlsFree)                          \
-                                                                \
-  /* Table scans */                                             \
-  F(TableIterInit, tableIterInit)                               \
-  F(TableIterInitBind, tableIterInitBind)                       \
-  F(TableIterAdvance, tableIterAdvance)                         \
-  F(TableIterGetPCI, tableIterGetPCI)                           \
-  F(TableIterClose, tableIterClose)                             \
-  F(TableIterParallel, iterateTableParallel)                    \
-                                                                \
-  /* PCI */                                                     \
-  F(PCIIsFiltered, pciIsFiltered)                               \
-  F(PCIHasNext, pciHasNext)                                     \
-  F(PCIHasNextFiltered, pciHasNextFiltered)                     \
-  F(PCIAdvance, pciAdvance)                                     \
-  F(PCIAdvanceFiltered, pciAdvanceFiltered)                     \
-  F(PCIMatch, pciMatch)                                         \
-  F(PCIReset, pciReset)                                         \
-  F(PCIResetFiltered, pciResetFiltered)                         \
-  F(PCIGetTinyInt, pciGetTinyInt)                               \
-  F(PCIGetSmallInt, pciGetSmallInt)                             \
-  F(PCIGetInt, pciGetInt)                                       \
-  F(PCIGetBigInt, pciGetBigInt)                                 \
-  F(PCIGetReal, pciGetReal)                                     \
-  F(PCIGetDouble, pciGetDouble)                                 \
-  F(PCIGetDate, pciGetDate)                                     \
-  F(PCIGetVarlen, pciGetVarlen)                                 \
-  F(PCIGetTinyIntNull, pciGetTinyIntNull)                       \
-  F(PCIGetSmallIntNull, pciGetSmallIntNull)                     \
-  F(PCIGetIntNull, pciGetIntNull)                               \
-  F(PCIGetBigIntNull, pciGetBigIntNull)                         \
-  F(PCIGetRealNull, pciGetRealNull)                             \
-  F(PCIGetDoubleNull, pciGetDoubleNull)                         \
-  F(PCIGetDateNull, pciGetDateNull)                             \
-  F(PCIGetVarlenNull, pciGetVarlenNull)                         \
-                                                                \
-  /* Hashing */                                                 \
-  F(Hash, hash)                                                 \
-                                                                \
-  /* Filter Manager */                                          \
-  F(FilterManagerInit, filterManagerInit)                       \
-  F(FilterManagerInsertFilter, filterManagerInsertFilter)       \
-  F(FilterManagerFinalize, filterManagerFinalize)               \
-  F(FilterManagerRunFilters, filtersRun)                        \
-  F(FilterManagerFree, filterManagerFree)                       \
-                                                                \
-  /* Aggregations */                                            \
-  F(AggHashTableInit, aggHTInit)                                \
-  F(AggHashTableInsert, aggHTInsert)                            \
-  F(AggHashTableLookup, aggHTLookup)                            \
-  F(AggHashTableProcessBatch, aggHTProcessBatch)                \
-  F(AggHashTableMovePartitions, aggHTMoveParts)                 \
-  F(AggHashTableParallelPartitionedScan, aggHTParallelPartScan) \
-  F(AggHashTableFree, aggHTFree)                                \
-  F(AggHashTableIterInit, aggHTIterInit)                        \
-  F(AggHashTableIterHasNext, aggHTIterHasNext)                  \
-  F(AggHashTableIterNext, aggHTIterNext)                        \
-  F(AggHashTableIterGetRow, aggHTIterGetRow)                    \
-  F(AggHashTableIterClose, aggHTIterClose)                      \
-  F(AggPartIterHasNext, aggPartIterHasNext)                     \
-  F(AggPartIterNext, aggPartIterNext)                           \
-  F(AggPartIterGetHash, aggPartIterGetHash)                     \
-  F(AggPartIterGetRow, aggPartIterGetRow)                       \
-  F(AggInit, aggInit)                                           \
-  F(AggAdvance, aggAdvance)                                     \
-  F(AggMerge, aggMerge)                                         \
-  F(AggReset, aggReset)                                         \
-  F(AggResult, aggResult)                                       \
-                                                                \
-  /* Joins */                                                   \
-  F(JoinHashTableInit, joinHTInit)                              \
-  F(JoinHashTableInsert, joinHTInsert)                          \
-  F(JoinHashTableIterInit, joinHTIterInit)                      \
-  F(JoinHashTableIterHasNext, joinHTIterHasNext)                \
-  F(JoinHashTableIterGetRow, joinHTIterGetRow)                  \
-  F(JoinHashTableIterClose, joinHTIterClose)                    \
-  F(JoinHashTableBuild, joinHTBuild)                            \
-  F(JoinHashTableBuildParallel, joinHTBuildParallel)            \
-  F(JoinHashTableFree, joinHTFree)                              \
-                                                                \
-  /* Sorting */                                                 \
-  F(SorterInit, sorterInit)                                     \
-  F(SorterInsert, sorterInsert)                                 \
-  F(SorterSort, sorterSort)                                     \
-  F(SorterSortParallel, sorterSortParallel)                     \
-  F(SorterSortTopKParallel, sorterSortTopKParallel)             \
-  F(SorterFree, sorterFree)                                     \
-  F(SorterIterInit, sorterIterInit)                             \
-  F(SorterIterHasNext, sorterIterHasNext)                       \
-  F(SorterIterNext, sorterIterNext)                             \
-  F(SorterIterGetRow, sorterIterGetRow)                         \
-  F(SorterIterClose, sorterIterClose)                           \
-                                                                \
-  /* Trig */                                                    \
-  F(ACos, acos)                                                 \
-  F(ASin, asin)                                                 \
-  F(ATan, atan)                                                 \
-  F(ATan2, atan2)                                               \
-  F(Cos, cos)                                                   \
-  F(Cot, cot)                                                   \
-  F(Sin, sin)                                                   \
-  F(Tan, tan)                                                   \
-                                                                \
-  /* Generic */                                                 \
-  F(SizeOf, sizeOf)                                             \
-  F(PtrCast, ptrCast)                                           \
-                                                                \
-  /* Output Buffer */                                           \
-  F(OutputAlloc, outputAlloc)                                   \
-  F(OutputFinalize, outputFinalize)                             \
-                                                                \
-  /* Index */                                                   \
-  F(IndexIteratorInit, indexIteratorInit)                       \
-  F(IndexIteratorInitBind, indexIteratorInitBind)               \
-  F(IndexIteratorScanKey, indexIteratorScanKey)                 \
-  F(IndexIteratorAdvance, indexIteratorAdvance)                 \
-  F(IndexIteratorGetPR, indexIteratorGetPR)                     \
-  F(IndexIteratorGetSlot, indexIteratorGetSlot)                 \
-  F(IndexIteratorGetTablePR, indexIteratorGetTablePR)           \
-  F(IndexIteratorFree, indexIteratorFree)                       \
-                                                                \
-  /* Projected Row Operations */                                \
-  F(PRSetTinyInt, prSetTinyInt)                                 \
-  F(PRSetSmallInt, prSetSmallInt)                               \
-  F(PRSetInt, prSetInt)                                         \
-  F(PRSetBigInt, prSetBigInt)                                   \
-  F(PRSetReal, prSetReal)                                       \
-  F(PRSetDouble, prSetDouble)                                   \
-  F(PRSetDate, prSetDate)                                       \
-  F(PRSetVarlen, prSetVarlen)                                   \
-  F(PRSetTinyIntNull, prSetTinyIntNull)                         \
-  F(PRSetSmallIntNull, prSetSmallIntNull)                       \
-  F(PRSetIntNull, prSetIntNull)                                 \
-  F(PRSetBigIntNull, prSetBigIntNull)                           \
-  F(PRSetRealNull, prSetRealNull)                               \
-  F(PRSetDoubleNull, prSetDoubleNull)                           \
-  F(PRSetDateNull, prSetDateNull)                               \
-  F(PRSetVarlenNull, prSetVarlenNull)                           \
-  F(PRGetTinyInt, prGetTinyInt)                                 \
-  F(PRGetSmallInt, prGetSmallInt)                               \
-  F(PRGetInt, prGetInt)                                         \
-  F(PRGetBigInt, prGetBigInt)                                   \
-  F(PRGetReal, prGetReal)                                       \
-  F(PRGetDouble, prGetDouble)                                   \
-  F(PRGetDate, prGetDate)                                       \
-  F(PRGetVarlen, prGetVarlen)                                   \
-  F(PRGetTinyIntNull, prGetTinyIntNull)                         \
-  F(PRGetSmallIntNull, prGetSmallIntNull)                       \
-  F(PRGetIntNull, prGetIntNull)                                 \
-  F(PRGetBigIntNull, prGetBigIntNull)                           \
-  F(PRGetRealNull, prGetRealNull)                               \
-  F(PRGetDoubleNull, prGetDoubleNull)                           \
-  F(PRGetDateNull, prGetDateNull)                               \
-  F(PRGetVarlenNull, prGetVarlenNull)                           \
-                                                                \
-  /* Inserter Calls */                                          \
-  F(InserterInit, inserterInit)                                 \
-  F(InserterInitBind, inserterInitBind)                         \
-  F(InserterGetTablePR, inserterGetTablePR)                     \
-  F(InserterTableInsert, inserterTableInsert)                   \
-  F(InserterGetIndexPR, inserterGetIndexPR)                     \
-  F(InserterGetIndexPRBind, inserterGetIndexPRBind)             \
-  F(InserterIndexInsert, inserterIndexInsert)                   \
-  F(InserterIndexInsertBind, inserterIndexInsertBind)           \
-                                                                \
-  /* Deleter Calls */                                           \
-  F(DeleterInit, deleterInit)                                   \
-  F(DeleterInitBind, deleterInitBind)                           \
-  F(DeleterTableDelete, deleterTableDelete)                     \
-  F(DeleterGetIndexPR, deleterGetIndexPR)                       \
-  F(DeleterGetIndexPRBind, deleterGetIndexPRBind)               \
-  F(DeleterIndexDelete, deleterIndexDelete)                     \
-  F(DeleterIndexDeleteBind, deleterIndexDeleteBind)             \
-                                                                \
-  /* Updater Calls */                                           \
-  F(UpdaterInit, updaterInit)                                   \
-  F(UpdaterInitBind, updaterInitBind)                           \
-  F(UpdaterGetTablePR, updaterGetTablePR)                       \
-  F(UpdaterTableInsert, updaterTableInsert)                     \
-  F(UpdaterTableDelete, updaterTableDelete)                     \
-  F(UpdaterTableUpdate, updaterTableUpdate)                     \
-  F(UpdaterGetIndexPR, updaterGetIndexPR)                       \
-  F(UpdaterGetIndexPRBind, updaterGetIndexPRBind)               \
-  F(UpdaterIndexInsert, updaterIndexInsert)                     \
-  F(UpdaterIndexInsertBind, updaterIndexInsertBind)             \
-  F(UpdaterIndexDelete, updaterIndexDelete)                     \
+#define BUILTINS_LIST(F)                                                \
+  /* Primitive <-> SQL */                                               \
+  F(IntToSql, intToSql)                                                 \
+  F(BoolToSql, boolToSql)                                               \
+  F(FloatToSql, floatToSql)                                             \
+  F(SqlToBool, sqlToBool)                                               \
+  F(StringToSql, stringToSql)                                           \
+  F(VarlenToSql, varlenToSql)                                           \
+  F(DateToSql, dateToSql)                                               \
+                                                                        \
+  /* Vectorized Filters */                                              \
+  F(FilterEq, filterEq)                                                 \
+  F(FilterGe, filterGe)                                                 \
+  F(FilterGt, filterGt)                                                 \
+  F(FilterLe, filterLe)                                                 \
+  F(FilterLt, filterLt)                                                 \
+  F(FilterNe, filterNe)                                                 \
+                                                                        \
+  /* Thread State Container */                                          \
+  F(ExecutionContextGetMemoryPool, execCtxGetMem)                       \
+  F(ThreadStateContainerInit, tlsInit)                                  \
+  F(ThreadStateContainerReset, tlsReset)                                \
+  F(ThreadStateContainerIterate, tlsIterate)                            \
+  F(ThreadStateContainerFree, tlsFree)                                  \
+                                                                        \
+  /* Table scans */                                                     \
+  F(TableIterInit, tableIterInit)                                       \
+  F(TableIterInitBind, tableIterInitBind)                               \
+  F(TableIterAdvance, tableIterAdvance)                                 \
+  F(TableIterGetPCI, tableIterGetPCI)                                   \
+  F(TableIterClose, tableIterClose)                                     \
+  F(TableIterParallel, iterateTableParallel)                            \
+                                                                        \
+  /* PCI */                                                             \
+  F(PCIIsFiltered, pciIsFiltered)                                       \
+  F(PCIHasNext, pciHasNext)                                             \
+  F(PCIHasNextFiltered, pciHasNextFiltered)                             \
+  F(PCIAdvance, pciAdvance)                                             \
+  F(PCIAdvanceFiltered, pciAdvanceFiltered)                             \
+  F(PCIMatch, pciMatch)                                                 \
+  F(PCIReset, pciReset)                                                 \
+  F(PCIResetFiltered, pciResetFiltered)                                 \
+  F(PCIGetTinyInt, pciGetTinyInt)                                       \
+  F(PCIGetSmallInt, pciGetSmallInt)                                     \
+  F(PCIGetInt, pciGetInt)                                               \
+  F(PCIGetBigInt, pciGetBigInt)                                         \
+  F(PCIGetReal, pciGetReal)                                             \
+  F(PCIGetDouble, pciGetDouble)                                         \
+  F(PCIGetDate, pciGetDate)                                             \
+  F(PCIGetVarlen, pciGetVarlen)                                         \
+  F(PCIGetTinyIntNull, pciGetTinyIntNull)                               \
+  F(PCIGetSmallIntNull, pciGetSmallIntNull)                             \
+  F(PCIGetIntNull, pciGetIntNull)                                       \
+  F(PCIGetBigIntNull, pciGetBigIntNull)                                 \
+  F(PCIGetRealNull, pciGetRealNull)                                     \
+  F(PCIGetDoubleNull, pciGetDoubleNull)                                 \
+  F(PCIGetDateNull, pciGetDateNull)                                     \
+  F(PCIGetVarlenNull, pciGetVarlenNull)                                 \
+                                                                        \
+  /* Hashing */                                                         \
+  F(Hash, hash)                                                         \
+                                                                        \
+  /* Filter Manager */                                                  \
+  F(FilterManagerInit, filterManagerInit)                               \
+  F(FilterManagerInsertFilter, filterManagerInsertFilter)               \
+  F(FilterManagerFinalize, filterManagerFinalize)                       \
+  F(FilterManagerRunFilters, filtersRun)                                \
+  F(FilterManagerFree, filterManagerFree)                               \
+                                                                        \
+  /* Aggregations */                                                    \
+  F(AggHashTableInit, aggHTInit)                                        \
+  F(AggHashTableInsert, aggHTInsert)                                    \
+  F(AggHashTableLookup, aggHTLookup)                                    \
+  F(AggHashTableProcessBatch, aggHTProcessBatch)                        \
+  F(AggHashTableMovePartitions, aggHTMoveParts)                         \
+  F(AggHashTableParallelPartitionedScan, aggHTParallelPartScan)         \
+  F(AggHashTableFree, aggHTFree)                                        \
+  F(AggHashTableIterInit, aggHTIterInit)                                \
+  F(AggHashTableIterHasNext, aggHTIterHasNext)                          \
+  F(AggHashTableIterNext, aggHTIterNext)                                \
+  F(AggHashTableIterGetRow, aggHTIterGetRow)                            \
+  F(AggHashTableIterClose, aggHTIterClose)                              \
+  F(AggPartIterHasNext, aggPartIterHasNext)                             \
+  F(AggPartIterNext, aggPartIterNext)                                   \
+  F(AggPartIterGetHash, aggPartIterGetHash)                             \
+  F(AggPartIterGetRow, aggPartIterGetRow)                               \
+  F(AggInit, aggInit)                                                   \
+  F(AggAdvance, aggAdvance)                                             \
+  F(AggMerge, aggMerge)                                                 \
+  F(AggReset, aggReset)                                                 \
+  F(AggResult, aggResult)                                               \
+                                                                        \
+  /* Joins */                                                           \
+  F(JoinHashTableInit, joinHTInit)                                      \
+  F(JoinHashTableInsert, joinHTInsert)                                  \
+  F(JoinHashTableIterInit, joinHTIterInit)                              \
+  F(JoinHashTableIterHasNext, joinHTIterHasNext)                        \
+  F(JoinHashTableIterGetRow, joinHTIterGetRow)                          \
+  F(JoinHashTableIterClose, joinHTIterClose)                            \
+  F(JoinHashTableBuild, joinHTBuild)                                    \
+  F(JoinHashTableBuildParallel, joinHTBuildParallel)                    \
+  F(JoinHashTableFree, joinHTFree)                                      \
+                                                                        \
+  /* Sorting */                                                         \
+  F(SorterInit, sorterInit)                                             \
+  F(SorterInsert, sorterInsert)                                         \
+  F(SorterSort, sorterSort)                                             \
+  F(SorterSortParallel, sorterSortParallel)                             \
+  F(SorterSortTopKParallel, sorterSortTopKParallel)                     \
+  F(SorterFree, sorterFree)                                             \
+  F(SorterIterInit, sorterIterInit)                                     \
+  F(SorterIterHasNext, sorterIterHasNext)                               \
+  F(SorterIterNext, sorterIterNext)                                     \
+  F(SorterIterGetRow, sorterIterGetRow)                                 \
+  F(SorterIterClose, sorterIterClose)                                   \
+                                                                        \
+  /* Trig */                                                            \
+  F(ACos, acos)                                                         \
+  F(ASin, asin)                                                         \
+  F(ATan, atan)                                                         \
+  F(ATan2, atan2)                                                       \
+  F(Cos, cos)                                                           \
+  F(Cot, cot)                                                           \
+  F(Sin, sin)                                                           \
+  F(Tan, tan)                                                           \
+                                                                        \
+  /* Generic */                                                         \
+  F(SizeOf, sizeOf)                                                     \
+  F(PtrCast, ptrCast)                                                   \
+                                                                        \
+  /* Output Buffer */                                                   \
+  F(OutputAlloc, outputAlloc)                                           \
+  F(OutputFinalize, outputFinalize)                                     \
+                                                                        \
+  /* Index */                                                           \
+  F(IndexIteratorInit, indexIteratorInit)                               \
+  F(IndexIteratorInitBind, indexIteratorInitBind)                       \
+  F(IndexIteratorScanKey, indexIteratorScanKey)                         \
+  F(IndexIteratorScanAscending, indexIteratorScanAscending)             \
+  F(IndexIteratorScanDescending, indexIteratorScanDescending)           \
+  F(IndexIteratorScanLimitAscending, indexIteratorScanLimitAscending)   \
+  F(IndexIteratorScanLimitDescending, indexIteratorScanLimitDescending) \
+  F(IndexIteratorAdvance, indexIteratorAdvance)                         \
+  F(IndexIteratorGetPR, indexIteratorGetPR)                             \
+  F(IndexIteratorGetLoPR, indexIteratorGetLoPR)                         \
+  F(IndexIteratorGetHiPR, indexIteratorGetHiPR)                         \
+  F(IndexIteratorGetSlot, indexIteratorGetSlot)                         \
+  F(IndexIteratorGetTablePR, indexIteratorGetTablePR)                   \
+  F(IndexIteratorFree, indexIteratorFree)                               \
+                                                                        \
+  /* Projected Row Operations */                                        \
+  F(PRSetTinyInt, prSetTinyInt)                                         \
+  F(PRSetSmallInt, prSetSmallInt)                                       \
+  F(PRSetInt, prSetInt)                                                 \
+  F(PRSetBigInt, prSetBigInt)                                           \
+  F(PRSetReal, prSetReal)                                               \
+  F(PRSetDouble, prSetDouble)                                           \
+  F(PRSetDate, prSetDate)                                               \
+  F(PRSetVarlen, prSetVarlen)                                           \
+  F(PRSetTinyIntNull, prSetTinyIntNull)                                 \
+  F(PRSetSmallIntNull, prSetSmallIntNull)                               \
+  F(PRSetIntNull, prSetIntNull)                                         \
+  F(PRSetBigIntNull, prSetBigIntNull)                                   \
+  F(PRSetRealNull, prSetRealNull)                                       \
+  F(PRSetDoubleNull, prSetDoubleNull)                                   \
+  F(PRSetDateNull, prSetDateNull)                                       \
+  F(PRSetVarlenNull, prSetVarlenNull)                                   \
+  F(PRGetTinyInt, prGetTinyInt)                                         \
+  F(PRGetSmallInt, prGetSmallInt)                                       \
+  F(PRGetInt, prGetInt)                                                 \
+  F(PRGetBigInt, prGetBigInt)                                           \
+  F(PRGetReal, prGetReal)                                               \
+  F(PRGetDouble, prGetDouble)                                           \
+  F(PRGetDate, prGetDate)                                               \
+  F(PRGetVarlen, prGetVarlen)                                           \
+  F(PRGetTinyIntNull, prGetTinyIntNull)                                 \
+  F(PRGetSmallIntNull, prGetSmallIntNull)                               \
+  F(PRGetIntNull, prGetIntNull)                                         \
+  F(PRGetBigIntNull, prGetBigIntNull)                                   \
+  F(PRGetRealNull, prGetRealNull)                                       \
+  F(PRGetDoubleNull, prGetDoubleNull)                                   \
+  F(PRGetDateNull, prGetDateNull)                                       \
+  F(PRGetVarlenNull, prGetVarlenNull)                                   \
+                                                                        \
+  /* Inserter Calls */                                                  \
+  F(InserterInit, inserterInit)                                         \
+  F(InserterInitBind, inserterInitBind)                                 \
+  F(InserterGetTablePR, inserterGetTablePR)                             \
+  F(InserterTableInsert, inserterTableInsert)                           \
+  F(InserterGetIndexPR, inserterGetIndexPR)                             \
+  F(InserterGetIndexPRBind, inserterGetIndexPRBind)                     \
+  F(InserterIndexInsert, inserterIndexInsert)                           \
+  F(InserterIndexInsertBind, inserterIndexInsertBind)                   \
+                                                                        \
+  /* Deleter Calls */                                                   \
+  F(DeleterInit, deleterInit)                                           \
+  F(DeleterInitBind, deleterInitBind)                                   \
+  F(DeleterTableDelete, deleterTableDelete)                             \
+  F(DeleterGetIndexPR, deleterGetIndexPR)                               \
+  F(DeleterGetIndexPRBind, deleterGetIndexPRBind)                       \
+  F(DeleterIndexDelete, deleterIndexDelete)                             \
+  F(DeleterIndexDeleteBind, deleterIndexDeleteBind)                     \
+                                                                        \
+  /* Updater Calls */                                                   \
+  F(UpdaterInit, updaterInit)                                           \
+  F(UpdaterInitBind, updaterInitBind)                                   \
+  F(UpdaterGetTablePR, updaterGetTablePR)                               \
+  F(UpdaterTableInsert, updaterTableInsert)                             \
+  F(UpdaterTableDelete, updaterTableDelete)                             \
+  F(UpdaterTableUpdate, updaterTableUpdate)                             \
+  F(UpdaterGetIndexPR, updaterGetIndexPR)                               \
+  F(UpdaterGetIndexPRBind, updaterGetIndexPRBind)                       \
+  F(UpdaterIndexInsert, updaterIndexInsert)                             \
+  F(UpdaterIndexInsertBind, updaterIndexInsertBind)                     \
+  F(UpdaterIndexDelete, updaterIndexDelete)                             \
   F(UpdaterIndexDeleteBind, updaterIndexDeleteBind)
 
 /**
