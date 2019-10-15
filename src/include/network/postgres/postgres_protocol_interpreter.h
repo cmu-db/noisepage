@@ -9,6 +9,7 @@
 #include "network/connection_handle.h"
 #include "network/postgres/postgres_command_factory.h"
 #include "network/postgres/postgres_network_commands.h"
+#include "network/postgres/postgres_packet_writer.h"
 #include "network/protocol_interpreter.h"
 
 namespace terrier::network {
@@ -113,7 +114,7 @@ class PostgresProtocolInterpreter : public ProtocolInterpreter {
 
  private:
   bool startup_ = true;
-  PostgresInputPacket curr_input_packet_{};
+  InputPacket curr_input_packet_{};
   std::unordered_map<std::string, std::string> cmdline_options_;
   common::ManagedPointer<PostgresCommandFactory> command_factory_;
 
