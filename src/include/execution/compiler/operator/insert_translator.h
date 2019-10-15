@@ -11,7 +11,7 @@ namespace terrier::execution::compiler {
 class InsertTranslator : public OperatorTranslator {
  public:
 
-  InsertTranslator(const terrier::planner::AbstractPlanNode *op, CodeGen *codegen);
+  InsertTranslator(const terrier::planner::InsertPlanNode *o, CodeGen *codegen);
 
   /// Declare the inserter
   void InitializeStateFields(util::RegionVector<ast::FieldDecl *> *state_fields) override;
@@ -40,48 +40,47 @@ class InsertTranslator : public OperatorTranslator {
     return true;
   }
 
-  // Return the payload and its type
-//  std::pair<ast::Identifier *, ast::Identifier *> GetMaterializedTuple() override {
-//    return {&agg_payload_, &payload_struct_};
-//  }
-
  private:
   // var tvi : TableVectorIterator
-  void DeclareTVI(FunctionBuilder *builder);
-
-  void SetOids(FunctionBuilder *builder);
-
-  // for (@tableIterInit(&tvi, ...); @tableIterAdvance(&tvi);) {...}
-  void GenTVILoop(FunctionBuilder *builder);
-
-  void DeclarePCI(FunctionBuilder *builder);
-
-  // var pci = @tableIterGetPCI(&tvi)
-  // for (; @pciHasNext(pci); @pciAdvance(pci)) {...}
-  void GenPCILoop(FunctionBuilder *builder);
-
-  // if (cond) {...}
-  void GenScanCondition(FunctionBuilder *builder);
-
-  // @tableIterClose(&tvi)
-  void GenTVIClose(FunctionBuilder *builder);
-
-  // @tableIterReset(&tvi)
-  void GenTVIReset(FunctionBuilder *builder);
-
-  // Whether the seq scan can be vectorized
-  static bool IsVectorizable(const terrier::parser::AbstractExpression *predicate);
-
-  // Generated vectorized filters
-  void GenVectorizedPredicate(FunctionBuilder *builder, const terrier::parser::AbstractExpression *predicate);
+//  void DeclareTVI(FunctionBuilder *builder);
+//
+//  void SetOids(FunctionBuilder *builder);
+//
+//  // for (@tableIterInit(&tvi, ...); @tableIterAdvance(&tvi);) {...}
+//  void GenTVILoop(FunctionBuilder *builder);
+//
+//  void DeclarePCI(FunctionBuilder *builder);
+//
+//  // var pci = @tableIterGetPCI(&tvi)
+//  // for (; @pciHasNext(pci); @pciAdvance(pci)) {...}
+//  void GenPCILoop(FunctionBuilder *builder);
+//
+//  // if (cond) {...}
+//  void GenScanCondition(FunctionBuilder *builder);
+//
+//  // @tableIterClose(&tvi)
+//  void GenTVIClose(FunctionBuilder *builder);
+//
+//  // @tableIterReset(&tvi)
+//  void GenTVIReset(FunctionBuilder *builder);
+//
+//  // Whether the seq scan can be vectorized
+//  static bool IsVectorizable(const terrier::parser::AbstractExpression *predicate);
+//
+//  // Generated vectorized filters
+//  void GenVectorizedPredicate(FunctionBuilder *builder, const terrier::parser::AbstractExpression *predicate);
 
  private:
+  const planner::InsertPlanNode* op_;
   static constexpr const char *inserter_name_ = "inserter";
 
   ast::Identifier inserter_struct_;
 
-  static constexpr const char *table_pr_name_ "projected_row";
+  static constexpr const char *table_pr_name_ = "projected_row";
   ast::Identifier table_pr_;
+
+  const catalog::Schema &table_schema_;
+  storage::ProjectionMap table_pm_;
 //  const planner::InsertPlanNode *insert_op_;
 //  const catalog::Schema &schema_;
 //  std::vector<catalog::col_oid_t> input_oids_;
