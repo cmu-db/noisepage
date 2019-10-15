@@ -24,7 +24,7 @@ class AbstractJoinPlanNode : public AbstractPlanNode {
      * @param predicate join predicate
      * @return builder object
      */
-    ConcreteType &SetJoinPredicate(const parser::AbstractExpression *predicate) {
+    ConcreteType &SetJoinPredicate(common::ManagedPointer<parser::AbstractExpression> predicate) {
       join_predicate_ = predicate;
       return *dynamic_cast<ConcreteType *>(this);
     }
@@ -46,7 +46,7 @@ class AbstractJoinPlanNode : public AbstractPlanNode {
     /**
      * Join predicate
      */
-    const parser::AbstractExpression *join_predicate_;
+    common::ManagedPointer<parser::AbstractExpression> join_predicate_;
   };
 
   /**
@@ -56,9 +56,9 @@ class AbstractJoinPlanNode : public AbstractPlanNode {
    * @param join_type logical join type
    * @param predicate join predicate
    */
-  AbstractJoinPlanNode(std::vector<std::shared_ptr<AbstractPlanNode>> &&children,
-                       std::shared_ptr<OutputSchema> output_schema, LogicalJoinType join_type,
-                       const parser::AbstractExpression *predicate)
+  AbstractJoinPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
+                       std::unique_ptr<OutputSchema> output_schema, LogicalJoinType join_type,
+                       common::ManagedPointer<parser::AbstractExpression> predicate)
       : AbstractPlanNode(std::move(children), std::move(output_schema)),
         join_type_(join_type),
         join_predicate_(predicate) {}
@@ -69,8 +69,6 @@ class AbstractJoinPlanNode : public AbstractPlanNode {
    */
   AbstractJoinPlanNode() = default;
 
-  ~AbstractJoinPlanNode() override { delete join_predicate_; }
-
   DISALLOW_COPY_AND_MOVE(AbstractJoinPlanNode)
 
   /**
@@ -80,7 +78,7 @@ class AbstractJoinPlanNode : public AbstractPlanNode {
   bool operator==(const AbstractPlanNode &rhs) const override;
 
   nlohmann::json ToJson() const override;
-  void FromJson(const nlohmann::json &j) override;
+  std::vector<std::unique_ptr<parser::AbstractExpression>> FromJson(const nlohmann::json &j) override;
 
   //===--------------------------------------------------------------------===//
   // Accessors
@@ -94,13 +92,11 @@ class AbstractJoinPlanNode : public AbstractPlanNode {
   /**
    * @return pointer to predicate used for join
    */
-  common::ManagedPointer<const parser::AbstractExpression> GetJoinPredicate() const {
-    return common::ManagedPointer<const parser::AbstractExpression>(join_predicate_);
-  }
+  common::ManagedPointer<parser::AbstractExpression> GetJoinPredicate() const { return join_predicate_; }
 
  private:
   LogicalJoinType join_type_;
-  const parser::AbstractExpression *join_predicate_;
+  common::ManagedPointer<parser::AbstractExpression> join_predicate_;
 };
 
 }  // namespace terrier::planner

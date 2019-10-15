@@ -1,6 +1,9 @@
 #include "planner/plannodes/abstract_plan_node.h"
+
 #include <memory>
+#include <utility>
 #include <vector>
+
 #include "planner/plannodes/aggregate_plan_node.h"
 #include "planner/plannodes/analyze_plan_node.h"
 #include "planner/plannodes/create_database_plan_node.h"
@@ -37,178 +40,188 @@ namespace terrier::planner {
 nlohmann::json AbstractPlanNode::ToJson() const {
   nlohmann::json j;
   j["plan_node_type"] = GetPlanNodeType();
-  j["children"] = children_;
-  j["output_schema"] = output_schema_;
-
+  std::vector<nlohmann::json> children;
+  for (const auto &child : children_) {
+    children.emplace_back(child->ToJson());
+  }
+  j["children"] = children;
+  j["output_schema"] = output_schema_ == nullptr ? nlohmann::json(nullptr) : output_schema_->ToJson();
   return j;
 }
 
-void AbstractPlanNode::FromJson(const nlohmann::json &j) {
+std::vector<std::unique_ptr<parser::AbstractExpression>> AbstractPlanNode::FromJson(const nlohmann::json &j) {
+  std::vector<std::unique_ptr<parser::AbstractExpression>> exprs;
   TERRIER_ASSERT(GetPlanNodeType() == j.at("plan_node_type").get<PlanNodeType>(), "Mismatching plan node types");
   // Deserialize output schema
   if (!j.at("output_schema").is_null()) {
-    output_schema_ = std::make_shared<OutputSchema>();
-    output_schema_->FromJson(j.at("output_schema"));
+    output_schema_ = std::make_unique<OutputSchema>();
+    auto e1 = output_schema_->FromJson(j.at("output_schema"));
+    exprs.insert(exprs.end(), std::make_move_iterator(e1.begin()), std::make_move_iterator(e1.end()));
   }
 
   // Deserialize children
   auto children_json = j.at("children").get<std::vector<nlohmann::json>>();
   for (const auto &child_json : children_json) {
-    children_.push_back(DeserializePlanNode(child_json));
+    auto deserialized = DeserializePlanNode(child_json);
+    children_.emplace_back(std::move(deserialized.result_));
+    exprs.insert(exprs.end(), std::make_move_iterator(deserialized.non_owned_exprs_.begin()),
+                 std::make_move_iterator(deserialized.non_owned_exprs_.end()));
   }
+
+  return exprs;
 }
 
-std::shared_ptr<AbstractPlanNode> DeserializePlanNode(const nlohmann::json &json) {
-  std::shared_ptr<AbstractPlanNode> plan_node;
+JSONDeserializeNodeIntermediate DeserializePlanNode(const nlohmann::json &json) {
+  std::unique_ptr<AbstractPlanNode> plan_node;
 
   auto plan_type = json.at("plan_node_type").get<PlanNodeType>();
   switch (plan_type) {
     case PlanNodeType::AGGREGATE: {
-      plan_node = std::make_shared<AggregatePlanNode>();
+      plan_node = std::make_unique<AggregatePlanNode>();
       break;
     }
 
     case PlanNodeType::ANALYZE: {
-      plan_node = std::make_shared<AnalyzePlanNode>();
+      plan_node = std::make_unique<AnalyzePlanNode>();
       break;
     }
 
     case PlanNodeType::CREATE_DATABASE: {
-      plan_node = std::make_shared<CreateDatabasePlanNode>();
+      plan_node = std::make_unique<CreateDatabasePlanNode>();
       break;
     }
 
     case PlanNodeType::CREATE_FUNC: {
-      plan_node = std::make_shared<CreateFunctionPlanNode>();
+      plan_node = std::make_unique<CreateFunctionPlanNode>();
       break;
     }
 
     case PlanNodeType::CREATE_INDEX: {
-      plan_node = std::make_shared<CreateIndexPlanNode>();
+      plan_node = std::make_unique<CreateIndexPlanNode>();
       break;
     }
 
     case PlanNodeType::CREATE_NAMESPACE: {
-      plan_node = std::make_shared<CreateNamespacePlanNode>();
+      plan_node = std::make_unique<CreateNamespacePlanNode>();
       break;
     }
 
     case PlanNodeType::CREATE_TABLE: {
-      plan_node = std::make_shared<CreateTablePlanNode>();
+      plan_node = std::make_unique<CreateTablePlanNode>();
       break;
     }
 
     case PlanNodeType::CREATE_TRIGGER: {
-      plan_node = std::make_shared<CreateTriggerPlanNode>();
+      plan_node = std::make_unique<CreateTriggerPlanNode>();
       break;
     }
 
     case PlanNodeType::CREATE_VIEW: {
-      plan_node = std::make_shared<CreateViewPlanNode>();
+      plan_node = std::make_unique<CreateViewPlanNode>();
       break;
     }
 
     case PlanNodeType::CSVSCAN: {
-      plan_node = std::make_shared<CSVScanPlanNode>();
+      plan_node = std::make_unique<CSVScanPlanNode>();
       break;
     }
 
     case PlanNodeType::DELETE: {
-      plan_node = std::make_shared<DeletePlanNode>();
+      plan_node = std::make_unique<DeletePlanNode>();
       break;
     }
 
     case PlanNodeType::DROP_DATABASE: {
-      plan_node = std::make_shared<DropDatabasePlanNode>();
+      plan_node = std::make_unique<DropDatabasePlanNode>();
       break;
     }
 
     case PlanNodeType::DROP_INDEX: {
-      plan_node = std::make_shared<DropIndexPlanNode>();
+      plan_node = std::make_unique<DropIndexPlanNode>();
       break;
     }
 
     case PlanNodeType::DROP_NAMESPACE: {
-      plan_node = std::make_shared<DropNamespacePlanNode>();
+      plan_node = std::make_unique<DropNamespacePlanNode>();
       break;
     }
 
     case PlanNodeType::DROP_TABLE: {
-      plan_node = std::make_shared<DropTablePlanNode>();
+      plan_node = std::make_unique<DropTablePlanNode>();
       break;
     }
 
     case PlanNodeType::DROP_TRIGGER: {
-      plan_node = std::make_shared<DropTriggerPlanNode>();
+      plan_node = std::make_unique<DropTriggerPlanNode>();
       break;
     }
 
     case PlanNodeType::DROP_VIEW: {
-      plan_node = std::make_shared<DropViewPlanNode>();
+      plan_node = std::make_unique<DropViewPlanNode>();
       break;
     }
     case PlanNodeType::EXPORT_EXTERNAL_FILE: {
-      plan_node = std::make_shared<ExportExternalFilePlanNode>();
+      plan_node = std::make_unique<ExportExternalFilePlanNode>();
       break;
     }
 
     case PlanNodeType::HASHJOIN: {
-      plan_node = std::make_shared<HashJoinPlanNode>();
+      plan_node = std::make_unique<HashJoinPlanNode>();
       break;
     }
 
     case PlanNodeType::HASH: {
-      plan_node = std::make_shared<HashPlanNode>();
+      plan_node = std::make_unique<HashPlanNode>();
       break;
     }
 
     case PlanNodeType::INDEXSCAN: {
-      plan_node = std::make_shared<IndexScanPlanNode>();
+      plan_node = std::make_unique<IndexScanPlanNode>();
       break;
     }
 
     case PlanNodeType::INSERT: {
-      plan_node = std::make_shared<InsertPlanNode>();
+      plan_node = std::make_unique<InsertPlanNode>();
       break;
     }
 
     case PlanNodeType::LIMIT: {
-      plan_node = std::make_shared<LimitPlanNode>();
+      plan_node = std::make_unique<LimitPlanNode>();
       break;
     }
 
     case PlanNodeType::NESTLOOP: {
-      plan_node = std::make_shared<NestedLoopJoinPlanNode>();
+      plan_node = std::make_unique<NestedLoopJoinPlanNode>();
       break;
     }
 
     case PlanNodeType::ORDERBY: {
-      plan_node = std::make_shared<OrderByPlanNode>();
+      plan_node = std::make_unique<OrderByPlanNode>();
       break;
     }
 
     case PlanNodeType::PROJECTION: {
-      plan_node = std::make_shared<ProjectionPlanNode>();
+      plan_node = std::make_unique<ProjectionPlanNode>();
       break;
     }
 
     case PlanNodeType::RESULT: {
-      plan_node = std::make_shared<ResultPlanNode>();
+      plan_node = std::make_unique<ResultPlanNode>();
       break;
     }
 
     case PlanNodeType::SEQSCAN: {
-      plan_node = std::make_shared<SeqScanPlanNode>();
+      plan_node = std::make_unique<SeqScanPlanNode>();
       break;
     }
 
     case PlanNodeType::SETOP: {
-      plan_node = std::make_shared<SetOpPlanNode>();
+      plan_node = std::make_unique<SetOpPlanNode>();
       break;
     }
 
     case PlanNodeType::UPDATE: {
-      plan_node = std::make_shared<UpdatePlanNode>();
+      plan_node = std::make_unique<UpdatePlanNode>();
       break;
     }
 
@@ -216,8 +229,8 @@ std::shared_ptr<AbstractPlanNode> DeserializePlanNode(const nlohmann::json &json
       throw std::runtime_error("Unknown plan node type during deserialization");
   }
 
-  plan_node->FromJson(json);
-  return plan_node;
+  auto non_owned_exprs = plan_node->FromJson(json);
+  return JSONDeserializeNodeIntermediate{std::move(plan_node), std::move(non_owned_exprs)};
 }
 
 }  // namespace terrier::planner

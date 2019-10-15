@@ -33,7 +33,7 @@ class HashPlanNode : public AbstractPlanNode {
      * @param key Hash key to be added
      * @return builder object
      */
-    Builder &AddHashKey(const parser::AbstractExpression *key) {
+    Builder &AddHashKey(common::ManagedPointer<parser::AbstractExpression> key) {
       TERRIER_ASSERT(key != nullptr, "Can't add nullptr key to HashPlanNode");
       hash_keys_.emplace_back(key);
       return *this;
@@ -43,8 +43,8 @@ class HashPlanNode : public AbstractPlanNode {
      * Build the Hash plan node
      * @return plan node
      */
-    std::shared_ptr<HashPlanNode> Build() {
-      return std::shared_ptr<HashPlanNode>(
+    std::unique_ptr<HashPlanNode> Build() {
+      return std::unique_ptr<HashPlanNode>(
           new HashPlanNode(std::move(children_), std::move(output_schema_), std::move(hash_keys_)));
     }
 
@@ -52,7 +52,7 @@ class HashPlanNode : public AbstractPlanNode {
     /**
      * keys to be hashed on
      */
-    std::vector<const parser::AbstractExpression *> hash_keys_;
+    std::vector<common::ManagedPointer<parser::AbstractExpression>> hash_keys_;
   };
 
  private:
@@ -61,8 +61,8 @@ class HashPlanNode : public AbstractPlanNode {
    * @param output_schema Schema representing the structure of the output of this plan node
    * @param hash_keys keys to be hashed on
    */
-  HashPlanNode(std::vector<std::shared_ptr<AbstractPlanNode>> &&children, std::shared_ptr<OutputSchema> output_schema,
-               std::vector<const parser::AbstractExpression *> hash_keys)
+  HashPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children, std::unique_ptr<OutputSchema> output_schema,
+               std::vector<common::ManagedPointer<parser::AbstractExpression>> hash_keys)
       : AbstractPlanNode(std::move(children), std::move(output_schema)), hash_keys_(std::move(hash_keys)) {}
 
  public:
@@ -70,12 +70,6 @@ class HashPlanNode : public AbstractPlanNode {
    * Default constructor used for deserialization
    */
   HashPlanNode() = default;
-
-  ~HashPlanNode() override {
-    for (auto *key : hash_keys_) {
-      delete key;
-    }
-  }
 
   DISALLOW_COPY_AND_MOVE(HashPlanNode)
 
@@ -87,7 +81,7 @@ class HashPlanNode : public AbstractPlanNode {
   /**
    * @return keys to be hashed on
    */
-  const std::vector<const parser::AbstractExpression *> &GetHashKeys() const { return hash_keys_; }
+  std::vector<common::ManagedPointer<parser::AbstractExpression>> GetHashKeys() const { return hash_keys_; }
 
   /**
    * @return the hashed value of this plan node
@@ -97,10 +91,10 @@ class HashPlanNode : public AbstractPlanNode {
   bool operator==(const AbstractPlanNode &rhs) const override;
 
   nlohmann::json ToJson() const override;
-  void FromJson(const nlohmann::json &j) override;
+  std::vector<std::unique_ptr<parser::AbstractExpression>> FromJson(const nlohmann::json &j) override;
 
  private:
-  std::vector<const parser::AbstractExpression *> hash_keys_;
+  std::vector<common::ManagedPointer<parser::AbstractExpression>> hash_keys_;
 };
 
 DEFINE_JSON_DECLARATIONS(HashPlanNode);

@@ -133,7 +133,7 @@ class Group {
    * Get stats for a column
    * @param column_name Column to get stats for
    */
-  common::ManagedPointer<ColumnStats> GetStats(std::string column_name) {
+  common::ManagedPointer<ColumnStats> GetStats(const std::string &column_name) {
     TERRIER_ASSERT(stats_.count(column_name) != 0U, "Column Stats missing");
     return common::ManagedPointer<ColumnStats>(stats_[column_name].get());
   }
@@ -142,14 +142,16 @@ class Group {
    * Checks if there are stats for a column
    * @param column_name Column to check
    */
-  bool HasColumnStats(std::string column_name) { return stats_.count(column_name) != 0U; }
+  bool HasColumnStats(const std::string &column_name) { return stats_.count(column_name) != 0U; }
 
   /**
    * Add stats for a column
    * @param column_name Column to add stats
    * @param stats Stats to add
    */
-  void AddStats(std::string column_name, std::unique_ptr<ColumnStats> stats) { stats_[column_name] = std::move(stats); }
+  void AddStats(const std::string &column_name, std::unique_ptr<ColumnStats> stats) {
+    stats_[column_name] = std::move(stats);
+  }
 
   /**
    * Gets this Group's GroupID

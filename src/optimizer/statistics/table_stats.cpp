@@ -40,7 +40,7 @@ bool TableStats::HasColumnStats(catalog::col_oid_t column_id) const {
 
 common::ManagedPointer<ColumnStats> TableStats::GetColumnStats(catalog::col_oid_t column_id) {
   auto col_it = column_stats_.find(column_id);
-  TERRIER_ASSERT(col_it != column_stats_.end(), "TableStats missing column stats");
+  if (col_it == column_stats_.end()) return nullptr;
   return common::ManagedPointer<ColumnStats>(col_it->second);
 }
 

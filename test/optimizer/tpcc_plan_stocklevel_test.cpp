@@ -1,3 +1,4 @@
+/*
 #include <string>
 
 #include "util/test_harness.h"
@@ -29,3 +30,4 @@ TEST_F(TpccPlanStockLevelTests, GetCountStock) {
 }
 
 }  // namespace terrier
+*/

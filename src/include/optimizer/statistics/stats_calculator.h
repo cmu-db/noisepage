@@ -71,7 +71,8 @@ class StatsCalculator : public OperatorVisitor {
    * @param table_stats Base table stats
    * @param stats The stats map to add
    */
-  void AddBaseTableStats(const parser::AbstractExpression *col, common::ManagedPointer<TableStats> table_stats,
+  void AddBaseTableStats(common::ManagedPointer<parser::AbstractExpression> col,
+                         common::ManagedPointer<TableStats> table_stats,
                          std::unordered_map<std::string, std::unique_ptr<ColumnStats>> *stats);
 
   /**
@@ -92,13 +93,13 @@ class StatsCalculator : public OperatorVisitor {
    * @returns selectivity estimate
    */
   double CalculateSelectivityForPredicate(common::ManagedPointer<TableStats> predicate_table_stats,
-                                          common::ManagedPointer<const parser::AbstractExpression> expr);
+                                          common::ManagedPointer<parser::AbstractExpression> expr);
 
   /**
    * Creates default ColumnStats
    * @param col ColumnValueExpression
    */
-  std::unique_ptr<ColumnStats> CreateDefaultStats(const parser::ColumnValueExpression *tv_expr) {
+  std::unique_ptr<ColumnStats> CreateDefaultStats(common::ManagedPointer<parser::ColumnValueExpression> tv_expr) {
     return std::make_unique<ColumnStats>(tv_expr->GetDatabaseOid(), tv_expr->GetTableOid(), tv_expr->GetColumnOid(), 0,
                                          0.F, false, std::vector<double>{}, std::vector<double>{},
                                          std::vector<double>{}, true);

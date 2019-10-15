@@ -34,10 +34,10 @@ class InputColumnDeriver : public OperatorVisitor {
    * Pointers returned are not ManagedPointer. However, the returned pointers
    * should not be deleted or ever modified.
    */
-  std::pair<std::vector<const parser::AbstractExpression *>,
-            std::vector<std::vector<const parser::AbstractExpression *>>>
+  std::pair<std::vector<common::ManagedPointer<parser::AbstractExpression>>,
+            std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>>
   DeriveInputColumns(GroupExpression *gexpr, PropertySet *properties,
-                     std::vector<const parser::AbstractExpression *> required_cols, Memo *memo);
+                     std::vector<common::ManagedPointer<parser::AbstractExpression>> required_cols, Memo *memo);
 
   /**
    * Visit function to derive input/output columns for TableFreeScan
@@ -241,14 +241,14 @@ class InputColumnDeriver : public OperatorVisitor {
    * The derived output columns and input columns, note that the current
    * operator may have more than one children
    */
-  std::pair<std::vector<const parser::AbstractExpression *>,
-            std::vector<std::vector<const parser::AbstractExpression *>>>
+  std::pair<std::vector<common::ManagedPointer<parser::AbstractExpression>>,
+            std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>>
       output_input_cols_;
 
   /**
    * The required columns
    */
-  std::vector<const parser::AbstractExpression *> required_cols_;
+  std::vector<common::ManagedPointer<parser::AbstractExpression>> required_cols_;
 
   /**
    * The required physical properties

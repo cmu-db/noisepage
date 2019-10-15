@@ -1,3 +1,4 @@
+/*
 // TODO(wz2): Verify OutputSchema after sync-up meeting
 #include <memory>
 #include <string>
@@ -269,3 +270,4 @@ TEST_F(TpccPlanSeqScanTests, SimpleSeqScanSelectWithPredicateOrderByLimit) {
 }
 
 }  // namespace terrier::optimizer
+*/

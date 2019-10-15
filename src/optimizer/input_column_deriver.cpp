@@ -15,20 +15,20 @@ namespace terrier::optimizer {
 /**
  * Definition for first type of pair
  */
-using PT1 = std::vector<const parser::AbstractExpression *>;
+using PT1 = std::vector<common::ManagedPointer<parser::AbstractExpression>>;
 
 /**
  * Definition for second type of pair
  * This is defined here to make following code more readable and
  * also to satisfy clang-tidy.
  */
-using PT2 = std::vector<std::vector<const parser::AbstractExpression *>>;
+using PT2 = std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>;
 
 InputColumnDeriver::InputColumnDeriver() = default;
 
 std::pair<PT1, PT2> InputColumnDeriver::DeriveInputColumns(
-    GroupExpression *gexpr, PropertySet *properties, std::vector<const parser::AbstractExpression *> required_cols,
-    Memo *memo) {
+    GroupExpression *gexpr, PropertySet *properties,
+    std::vector<common::ManagedPointer<parser::AbstractExpression>> required_cols, Memo *memo) {
   properties_ = properties;
   gexpr_ = gexpr;
   required_cols_ = std::move(required_cols);
@@ -52,16 +52,15 @@ void InputColumnDeriver::Visit(const QueryDerivedScan *op) {
     parser::ExpressionUtil::GetTupleValueExprs(&output_cols_map, expr);
   }
 
-  auto output_cols = std::vector<const parser::AbstractExpression *>(output_cols_map.size());
-  std::vector<const parser::AbstractExpression *> input_cols(output_cols.size());
+  auto output_cols = std::vector<common::ManagedPointer<parser::AbstractExpression>>(output_cols_map.size());
+  std::vector<common::ManagedPointer<parser::AbstractExpression>> input_cols(output_cols.size());
   auto alias_expr_map = op->GetAliasToExprMap();
   for (auto &entry : output_cols_map) {
-    auto tv_expr = dynamic_cast<const parser::ColumnValueExpression *>(entry.first);
-    TERRIER_ASSERT(tv_expr, "GetTupleValueExprs should only find ColumnValueExpressions");
-    output_cols[entry.second] = tv_expr;
+    auto tv_expr = entry.first.CastManagedPointerTo<parser::ColumnValueExpression>();
+    output_cols[entry.second] = entry.first;
 
     // Get the actual expression
-    const parser::AbstractExpression *input_col = alias_expr_map[tv_expr->GetColumnName()].Get();
+    auto input_col = alias_expr_map[tv_expr->GetColumnName()];
 
     // QueryDerivedScan only modify the column name to be a tv_expr, does not change the mapping
     input_cols[entry.second] = input_col;
@@ -85,10 +84,10 @@ void InputColumnDeriver::Visit(const Limit *op) {
 
   auto sort_expressions = op->GetSortExpressions();
   for (const auto &sort_column : sort_expressions) {
-    input_cols_set.insert(sort_column.Get());
+    input_cols_set.insert(sort_column);
   }
 
-  std::vector<const parser::AbstractExpression *> cols;
+  std::vector<common::ManagedPointer<parser::AbstractExpression>> cols;
   for (const auto &expr : input_cols_set) {
     cols.push_back(expr);
   }
@@ -114,10 +113,10 @@ void InputColumnDeriver::Visit(UNUSED_ATTRIBUTE const OrderBy *op) {
   auto sort_prop = prop->As<PropertySort>();
   size_t sort_col_size = sort_prop->GetSortColumnSize();
   for (size_t idx = 0; idx < sort_col_size; ++idx) {
-    input_cols_set.insert(sort_prop->GetSortColumn(idx).Get());
+    input_cols_set.insert(sort_prop->GetSortColumn(idx));
   }
 
-  std::vector<const parser::AbstractExpression *> cols;
+  std::vector<common::ManagedPointer<parser::AbstractExpression>> cols;
   for (auto &expr : input_cols_set) {
     cols.push_back(expr);
   }
@@ -161,7 +160,7 @@ void InputColumnDeriver::Visit(UNUSED_ATTRIBUTE const OuterHashJoin *op) {
 }
 
 void InputColumnDeriver::Visit(UNUSED_ATTRIBUTE const Insert *op) {
-  auto input = std::vector<std::vector<const parser::AbstractExpression *>>{};
+  auto input = std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>{};
   output_input_cols_ = std::make_pair(std::move(required_cols_), std::move(input));
 }
 
@@ -181,13 +180,13 @@ void InputColumnDeriver::ScanHelper() {
     parser::ExpressionUtil::GetTupleValueExprs(&output_cols_map, expr);
   }
 
-  auto output_cols = std::vector<const parser::AbstractExpression *>(output_cols_map.size());
+  auto output_cols = std::vector<common::ManagedPointer<parser::AbstractExpression>>(output_cols_map.size());
   for (auto &entry : output_cols_map) {
     output_cols[entry.second] = entry.first;
   }
 
   // Scan does not have input columns
-  auto input = std::vector<std::vector<const parser::AbstractExpression *>>{};
+  auto input = std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>{};
   output_input_cols_ = std::make_pair(std::move(output_cols), std::move(input));
 }
 
@@ -197,8 +196,8 @@ void InputColumnDeriver::AggregateHelper(const BaseOperatorNode *op) {
   unsigned int output_col_idx = 0;
   for (auto &expr : required_cols_) {
     // Get all AggregateExpressions and ColumnValueExpressions in expr
-    std::vector<const parser::AggregateExpression *> aggr_exprs;
-    std::vector<const parser::ColumnValueExpression *> tv_exprs;
+    std::vector<common::ManagedPointer<parser::AbstractExpression>> aggr_exprs;
+    std::vector<common::ManagedPointer<parser::AbstractExpression>> tv_exprs;
     parser::ExpressionUtil::GetTupleAndAggregateExprs(&aggr_exprs, &tv_exprs, expr);
 
     for (auto &aggr_expr : aggr_exprs) {
@@ -208,7 +207,7 @@ void InputColumnDeriver::AggregateHelper(const BaseOperatorNode *op) {
         size_t child_size = aggr_expr->GetChildrenSize();
         for (size_t idx = 0; idx < child_size; ++idx) {
           // Add all ColumnValueExpression used by the Aggregate to input columns
-          parser::ExpressionUtil::GetTupleValueExprs(&input_cols_set, aggr_expr->GetChild(idx).Get());
+          parser::ExpressionUtil::GetTupleValueExprs(&input_cols_set, aggr_expr->GetChild(idx));
         }
       }
     }
@@ -221,7 +220,7 @@ void InputColumnDeriver::AggregateHelper(const BaseOperatorNode *op) {
     }
   }
 
-  std::vector<common::ManagedPointer<const parser::AbstractExpression>> groupby_cols;
+  std::vector<common::ManagedPointer<parser::AbstractExpression>> groupby_cols;
   std::vector<AnnotatedExpression> having_exprs;
   if (op->GetType() == OpType::HASHGROUPBY) {
     auto groupby = reinterpret_cast<const HashGroupBy *>(op);
@@ -235,26 +234,26 @@ void InputColumnDeriver::AggregateHelper(const BaseOperatorNode *op) {
 
   // Add all group by columns to the list of input columns
   for (auto &groupby_col : groupby_cols) {
-    input_cols_set.insert(groupby_col.Get());
+    input_cols_set.insert(groupby_col);
   }
 
   // Check having predicate, since the predicate may use columns other than output columns
   for (auto &having_expr : having_exprs) {
     // We perform aggregate here so the output contains aggregate exprs while
     // input should contain all tuple value exprs used to perform aggregation.
-    parser::ExpressionUtil::GetTupleValueExprs(&input_cols_set, having_expr.GetExpr().Get());
-    parser::ExpressionUtil::GetTupleAndAggregateExprs(&output_cols_map, having_expr.GetExpr().Get());
+    parser::ExpressionUtil::GetTupleValueExprs(&input_cols_set, having_expr.GetExpr());
+    parser::ExpressionUtil::GetTupleAndAggregateExprs(&output_cols_map, having_expr.GetExpr());
   }
 
   // Create the input_cols vector
-  std::vector<const parser::AbstractExpression *> input_cols;
+  std::vector<common::ManagedPointer<parser::AbstractExpression>> input_cols;
   for (auto &col : input_cols_set) {
     input_cols.push_back(col);
   }
 
   // Create the output_cols vector
   output_col_idx = static_cast<unsigned int>(output_cols_map.size());
-  std::vector<const parser::AbstractExpression *> output_cols(output_col_idx);
+  std::vector<common::ManagedPointer<parser::AbstractExpression>> output_cols(output_col_idx);
   for (auto &expr_idx_pair : output_cols_map) {
     output_cols[expr_idx_pair.second] = expr_idx_pair.first;
   }
@@ -265,8 +264,8 @@ void InputColumnDeriver::AggregateHelper(const BaseOperatorNode *op) {
 
 void InputColumnDeriver::JoinHelper(const BaseOperatorNode *op) {
   std::vector<AnnotatedExpression> join_conds;
-  std::vector<common::ManagedPointer<const parser::AbstractExpression>> left_keys;
-  std::vector<common::ManagedPointer<const parser::AbstractExpression>> right_keys;
+  std::vector<common::ManagedPointer<parser::AbstractExpression>> left_keys;
+  std::vector<common::ManagedPointer<parser::AbstractExpression>> right_keys;
   if (op->GetType() == OpType::INNERHASHJOIN) {
     auto join_op = reinterpret_cast<const InnerHashJoin *>(op);
     join_conds = join_op->GetJoinPredicates();
@@ -282,15 +281,15 @@ void InputColumnDeriver::JoinHelper(const BaseOperatorNode *op) {
   ExprSet input_cols_set;
   for (auto &left_key : left_keys) {
     // Get all Tuple/Aggregate expressions from left keys
-    parser::ExpressionUtil::GetTupleAndAggregateExprs(&input_cols_set, left_key.Get());
+    parser::ExpressionUtil::GetTupleAndAggregateExprs(&input_cols_set, left_key);
   }
   for (auto &right_key : right_keys) {
     // Get all Tuple/Aggregate expressions from right keys
-    parser::ExpressionUtil::GetTupleAndAggregateExprs(&input_cols_set, right_key.Get());
+    parser::ExpressionUtil::GetTupleAndAggregateExprs(&input_cols_set, right_key);
   }
   for (auto &join_cond : join_conds) {
     // Get all Tuple/Aggregate expressions from join conditions
-    parser::ExpressionUtil::GetTupleAndAggregateExprs(&input_cols_set, join_cond.GetExpr().Get());
+    parser::ExpressionUtil::GetTupleAndAggregateExprs(&input_cols_set, join_cond.GetExpr());
   }
 
   ExprMap output_cols_map;
@@ -307,10 +306,9 @@ void InputColumnDeriver::JoinHelper(const BaseOperatorNode *op) {
   auto &build_table_aliases = memo_->GetGroupByID(gexpr_->GetChildGroupId(0))->GetTableAliases();
   auto &probe_table_aliases = memo_->GetGroupByID(gexpr_->GetChildGroupId(1))->GetTableAliases();
   for (auto &col : input_cols_set) {
-    const parser::ColumnValueExpression *tv_expr;
+    common::ManagedPointer<parser::ColumnValueExpression> tv_expr;
     if (col->GetExpressionType() == parser::ExpressionType::VALUE_TUPLE) {
-      tv_expr = dynamic_cast<const parser::ColumnValueExpression *>(col);
-      TERRIER_ASSERT(tv_expr, "col should be a ColumnValueExpression");
+      tv_expr = col.CastManagedPointerTo<parser::ColumnValueExpression>();
     } else {
       TERRIER_ASSERT(parser::ExpressionUtil::IsAggregateExpression(col), "col should be AggregateExpression");
 
@@ -323,8 +321,7 @@ void InputColumnDeriver::JoinHelper(const BaseOperatorNode *op) {
       }
 
       // We get only the first ColumnValueExpression (should probably assert check this)
-      tv_expr = dynamic_cast<const parser::ColumnValueExpression *>(*(tv_exprs.begin()));
-      TERRIER_ASSERT(tv_expr, "GetTupleValueExprs should only return ColumnValueExpression");
+      tv_expr = (*(tv_exprs.begin())).CastManagedPointerTo<parser::ColumnValueExpression>();
       TERRIER_ASSERT(tv_exprs.size() == 1, "Uh oh, multiple TVEs in AggregateExpression found");
     }
 
@@ -340,19 +337,19 @@ void InputColumnDeriver::JoinHelper(const BaseOperatorNode *op) {
   }
 
   // Derive output columns
-  std::vector<const parser::AbstractExpression *> output_cols(output_cols_map.size());
+  std::vector<common::ManagedPointer<parser::AbstractExpression>> output_cols(output_cols_map.size());
   for (auto &expr_idx_pair : output_cols_map) {
     output_cols[expr_idx_pair.second] = expr_idx_pair.first;
   }
 
   // Derive build columns (first element of input column vector)
-  std::vector<const parser::AbstractExpression *> build_cols;
+  std::vector<common::ManagedPointer<parser::AbstractExpression>> build_cols;
   for (auto &col : build_table_cols_set) {
     build_cols.push_back(col);
   }
 
   // Derive probe columns (second element of input column vector)
-  std::vector<const parser::AbstractExpression *> probe_cols;
+  std::vector<common::ManagedPointer<parser::AbstractExpression>> probe_cols;
   for (auto &col : probe_table_cols_set) {
     probe_cols.push_back(col);
   }
@@ -362,7 +359,7 @@ void InputColumnDeriver::JoinHelper(const BaseOperatorNode *op) {
 }
 
 void InputColumnDeriver::Passdown() {
-  auto input = std::vector<std::vector<const parser::AbstractExpression *>>{required_cols_};
+  auto input = std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>{required_cols_};
   output_input_cols_ = std::make_pair(std::move(required_cols_), std::move(input));
 }
 

@@ -14,7 +14,7 @@
 namespace terrier::optimizer {
 
 std::vector<ExprSet> ChildStatsDeriver::DeriveInputStats(GroupExpression *gexpr, ExprSet required_cols, Memo *memo) {
-  required_cols_ = required_cols;
+  required_cols_ = std::move(required_cols);
   gexpr_ = gexpr;
   memo_ = memo;
   output_ = std::vector<ExprSet>(gexpr->GetChildrenGroupsSize(), ExprSet{});
@@ -29,7 +29,7 @@ void ChildStatsDeriver::Visit(const LogicalInnerJoin *op) {
   PassDownRequiredCols();
   for (auto &annotated_expr : op->GetJoinPredicates()) {
     ExprSet expr_set;
-    parser::ExpressionUtil::GetTupleValueExprs(&expr_set, annotated_expr.GetExpr().Get());
+    parser::ExpressionUtil::GetTupleValueExprs(&expr_set, annotated_expr.GetExpr());
     for (auto &col : expr_set) {
       PassDownColumn(col);
     }
@@ -51,9 +51,9 @@ void ChildStatsDeriver::PassDownRequiredCols() {
   }
 }
 
-void ChildStatsDeriver::PassDownColumn(const parser::AbstractExpression *col) {
+void ChildStatsDeriver::PassDownColumn(common::ManagedPointer<parser::AbstractExpression> col) {
   TERRIER_ASSERT(col->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE, "ColumnValue expected");
-  auto tv_expr = reinterpret_cast<const parser::ColumnValueExpression *>(col);
+  auto tv_expr = col.CastManagedPointerTo<parser::ColumnValueExpression>();
   for (size_t idx = 0; idx < gexpr_->GetChildrenGroupsSize(); ++idx) {
     auto child_group = memo_->GetGroupByID(gexpr_->GetChildGroupId(static_cast<int>(idx)));
     if ((child_group->GetTableAliases().count(tv_expr->GetTableName()) != 0U) &&

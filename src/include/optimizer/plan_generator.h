@@ -53,11 +53,11 @@ class PlanGenerator : public OperatorVisitor {
    * @param txn TransactionContext
    * @returns Output plan node
    */
-  std::shared_ptr<planner::AbstractPlanNode> ConvertOpExpression(
+  std::unique_ptr<planner::AbstractPlanNode> ConvertOpExpression(
       OperatorExpression *op, PropertySet *required_props,
-      const std::vector<const parser::AbstractExpression *> &required_cols,
-      const std::vector<const parser::AbstractExpression *> &output_cols,
-      std::vector<std::shared_ptr<planner::AbstractPlanNode>> &&children_plans,
+      const std::vector<common::ManagedPointer<parser::AbstractExpression>> &required_cols,
+      const std::vector<common::ManagedPointer<parser::AbstractExpression>> &output_cols,
+      std::vector<std::unique_ptr<planner::AbstractPlanNode>> &&children_plans,
       std::vector<ExprMap> &&children_expr_map, settings::SettingsManager *settings, catalog::CatalogAccessor *accessor,
       transaction::TransactionContext *txn);
 
@@ -213,7 +213,7 @@ class PlanGenerator : public OperatorVisitor {
    * @param onAbort Whether to delete on transaction abort
    */
   template <class T>
-  void RegisterPointerCleanup(const void *ptr, bool onCommit, bool onAbort) {
+  void RegisterPointerCleanup(void *ptr, bool onCommit, bool onAbort) {
     if (onCommit) {
       txn_->RegisterCommitAction([=]() { delete reinterpret_cast<T *>(ptr); });
     }
@@ -233,9 +233,9 @@ class PlanGenerator : public OperatorVisitor {
    * @return a vector of tuple value expression representing column name to
    * table column id mapping
    */
-  std::vector<const parser::AbstractExpression *> GenerateTableColumnValueExprs(const std::string &alias,
-                                                                                catalog::db_oid_t db_oid,
-                                                                                catalog::table_oid_t tbl_oid);
+  std::vector<parser::AbstractExpression *> GenerateTableColumnValueExprs(const std::string &alias,
+                                                                          catalog::db_oid_t db_oid,
+                                                                          catalog::table_oid_t tbl_oid);
 
   /**
    * Generate the column oids vector for a scan plan
@@ -250,7 +250,7 @@ class PlanGenerator : public OperatorVisitor {
    * @param tbl_oid Table OID of table being scanned
    * @returns OutputSchema
    */
-  std::shared_ptr<planner::OutputSchema> GenerateScanOutputSchema(catalog::table_oid_t tbl_oid);
+  std::unique_ptr<planner::OutputSchema> GenerateScanOutputSchema(catalog::table_oid_t tbl_oid);
 
   /**
    * Generate a predicate expression for scan plans
@@ -263,15 +263,15 @@ class PlanGenerator : public OperatorVisitor {
    * @return a predicate that is already evaluated, which could be used to
    * generate a scan plan i.e. all tuple idx are set
    */
-  const parser::AbstractExpression *GeneratePredicateForScan(const parser::AbstractExpression *predicate_expr,
-                                                             const std::string &alias, catalog::db_oid_t db_oid,
-                                                             catalog::table_oid_t tbl_oid);
+  std::unique_ptr<parser::AbstractExpression> GeneratePredicateForScan(
+      common::ManagedPointer<parser::AbstractExpression> predicate_expr, const std::string &alias,
+      catalog::db_oid_t db_oid, catalog::table_oid_t tbl_oid);
 
   /**
    * Generate projection info and projection schema for join
    * @returns output schema of projection
    */
-  std::shared_ptr<planner::OutputSchema> GenerateProjectionForJoin();
+  std::unique_ptr<planner::OutputSchema> GenerateProjectionForJoin();
 
   /**
    * The Plan node's OutputSchema may not match the required columns. As such,
@@ -288,8 +288,8 @@ class PlanGenerator : public OperatorVisitor {
    * @param having_predicate Having clause expression
    */
   void BuildAggregatePlan(planner::AggregateStrategyType aggr_type,
-                          const std::vector<common::ManagedPointer<const parser::AbstractExpression>> *groupby_cols,
-                          const parser::AbstractExpression *having_predicate);
+                          const std::vector<common::ManagedPointer<parser::AbstractExpression>> *groupby_cols,
+                          common::ManagedPointer<parser::AbstractExpression> having_predicate);
 
   /**
    * The required output property. Note that we have previously enforced
@@ -302,17 +302,17 @@ class PlanGenerator : public OperatorVisitor {
    * can always generate a projection if the output column does not fulfill the
    * requirement
    */
-  std::vector<const parser::AbstractExpression *> required_cols_;
+  std::vector<common::ManagedPointer<parser::AbstractExpression>> required_cols_;
 
   /**
    * The output columns, which can be fulfilled by the current operator.
    */
-  std::vector<const parser::AbstractExpression *> output_cols_;
+  std::vector<common::ManagedPointer<parser::AbstractExpression>> output_cols_;
 
   /**
    * Vector of child plans
    */
-  std::vector<std::shared_ptr<planner::AbstractPlanNode>> children_plans_;
+  std::vector<std::unique_ptr<planner::AbstractPlanNode>> children_plans_;
 
   /**
    * The expression maps (expression -> tuple idx)
@@ -322,7 +322,7 @@ class PlanGenerator : public OperatorVisitor {
   /**
    * Final output plan
    */
-  std::shared_ptr<planner::AbstractPlanNode> output_plan_;
+  std::unique_ptr<planner::AbstractPlanNode> output_plan_;
 
   /**
    * Settings Manager

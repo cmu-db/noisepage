@@ -29,7 +29,7 @@ class ExpressionUtil {
   static void GetColumnOids(std::set<catalog::col_oid_t> *col_oids, common::ManagedPointer<AbstractExpression> expr) {
     // Recurse into our children
     for (const auto &child : expr->GetChildren()) {
-      ExpressionUtil::GetColumnOids(col_oids, common::ManagedPointer<AbstractExpression>(child.get()));
+      ExpressionUtil::GetColumnOids(col_oids, child);
     }
 
     // If our mofo is a ColumnValueExpression, then pull out our

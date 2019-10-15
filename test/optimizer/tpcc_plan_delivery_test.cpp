@@ -1,3 +1,4 @@
+/*
 #include <string>
 
 #include "util/test_harness.h"
@@ -70,3 +71,4 @@ TEST_F(TpccPlanDeliveryTests, UpdateCustomBalanceDeliveryCount) {
 }
 
 }  // namespace terrier
+*/

@@ -128,11 +128,6 @@ class IndexUtil {
       return false;
     }
 
-    // Index is not queryable
-    if (!index_schema.Valid()) {
-      return false;
-    }
-
     std::vector<catalog::col_oid_t> mapped_cols;
     if (!GetIndexColOid(tbl_oid, index_schema, accessor, &mapped_cols)) {
       // Unable to translate indexkeycol_oid_t -> col_oid_t
@@ -187,8 +182,8 @@ class IndexUtil {
 
       // Fetch column reference and value
       auto expr_type = expr->GetExpressionType();
-      common::ManagedPointer<const parser::AbstractExpression> tv_expr;
-      common::ManagedPointer<const parser::AbstractExpression> value_expr;
+      common::ManagedPointer<parser::AbstractExpression> tv_expr;
+      common::ManagedPointer<parser::AbstractExpression> value_expr;
       if (expr->GetChild(0)->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE) {
         auto r_type = expr->GetChild(1)->GetExpressionType();
         if (r_type == parser::ExpressionType::VALUE_CONSTANT || r_type == parser::ExpressionType::VALUE_PARAMETER) {
@@ -207,7 +202,7 @@ class IndexUtil {
       // If found valid tv_expr and value_expr, update col_id_list, expr_type_list and val_list
       if (tv_expr != nullptr) {
         // Get the column's col_oid_t from catalog
-        auto col_expr = tv_expr.CastManagedPointerTo<const parser::ColumnValueExpression>();
+        auto col_expr = tv_expr.CastManagedPointerTo<parser::ColumnValueExpression>();
         auto col_oid = col_expr->GetColumnOid();
         TERRIER_ASSERT(col_oid != catalog::col_oid_t(-1), "ColumnValueExpression at scan should be bound");
         key_column_id_list.push_back(col_oid);
@@ -216,11 +211,11 @@ class IndexUtil {
         expr_type_list.push_back(expr_type);
 
         if (value_expr->GetExpressionType() == parser::ExpressionType::VALUE_CONSTANT) {
-          auto cve = value_expr.CastManagedPointerTo<const parser::ConstantValueExpression>();
+          auto cve = value_expr.CastManagedPointerTo<parser::ConstantValueExpression>();
           type::TransientValue value = cve->GetValue();
           value_list.emplace_back(std::move(value));
         } else {
-          auto poe = value_expr.CastManagedPointerTo<const parser::ParameterValueExpression>();
+          auto poe = value_expr.CastManagedPointerTo<parser::ParameterValueExpression>();
           value_list.push_back(type::TransientValueFactory::GetParameterOffset(poe->GetValueIdx()));
         }
       }
@@ -245,10 +240,6 @@ class IndexUtil {
                                           catalog::CatalogAccessor *accessor) {
     auto &index_schema = accessor->GetIndexSchema(index_oid);
     if (!SatisfiesBaseColumnRequirement(index_schema)) {
-      return false;
-    }
-
-    if (!index_schema.Valid()) {
       return false;
     }
 
@@ -303,7 +294,8 @@ class IndexUtil {
    */
   static bool SatisfiesBaseColumnRequirement(const catalog::IndexSchema &schema) {
     for (auto &column : schema.GetColumns()) {
-      if (!IsBaseColumn(column.StoredExpression())) {
+      auto recast = const_cast<parser::AbstractExpression *>(column.StoredExpression().Get());
+      if (!IsBaseColumn(common::ManagedPointer(recast))) {
         return false;
       }
     }
@@ -360,7 +352,7 @@ class IndexUtil {
    * @param expr AbstractExpression to evaluate
    * @returns TRUE if base column, false otherwise
    */
-  static bool IsBaseColumn(common::ManagedPointer<const parser::AbstractExpression> expr) {
+  static bool IsBaseColumn(common::ManagedPointer<parser::AbstractExpression> expr) {
     return (expr->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE);
   }
 };

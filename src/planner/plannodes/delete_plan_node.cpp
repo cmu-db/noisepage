@@ -1,6 +1,8 @@
 #include "planner/plannodes/delete_plan_node.h"
+
 #include <memory>
 #include <utility>
+#include <vector>
 
 namespace terrier::planner {
 
@@ -46,11 +48,14 @@ nlohmann::json DeletePlanNode::ToJson() const {
   return j;
 }
 
-void DeletePlanNode::FromJson(const nlohmann::json &j) {
-  AbstractPlanNode::FromJson(j);
+std::vector<std::unique_ptr<parser::AbstractExpression>> DeletePlanNode::FromJson(const nlohmann::json &j) {
+  std::vector<std::unique_ptr<parser::AbstractExpression>> exprs;
+  auto e1 = AbstractPlanNode::FromJson(j);
+  exprs.insert(exprs.end(), std::make_move_iterator(e1.begin()), std::make_move_iterator(e1.end()));
   database_oid_ = j.at("database_oid").get<catalog::db_oid_t>();
   namespace_oid_ = j.at("namespace_oid").get<catalog::namespace_oid_t>();
   table_oid_ = j.at("table_oid").get<catalog::table_oid_t>();
+  return exprs;
 }
 
 }  // namespace terrier::planner

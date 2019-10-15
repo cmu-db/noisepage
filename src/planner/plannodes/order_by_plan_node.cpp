@@ -1,4 +1,6 @@
 #include "planner/plannodes/order_by_plan_node.h"
+
+#include <memory>
 #include <utility>
 #include <vector>
 
@@ -52,23 +54,38 @@ bool OrderByPlanNode::operator==(const AbstractPlanNode &rhs) const {
 
 nlohmann::json OrderByPlanNode::ToJson() const {
   nlohmann::json j = AbstractPlanNode::ToJson();
-  j["sort_keys"] = sort_keys_;
+
+  std::vector<std::pair<nlohmann::json, OrderByOrderingType>> sort_keys;
+  sort_keys.reserve(sort_keys_.size());
+  for (const auto &key : sort_keys_) {
+    sort_keys.emplace_back(key.first->ToJson(), key.second);
+  }
+  j["sort_keys"] = sort_keys;
   j["has_limit"] = has_limit_;
   j["limit"] = limit_;
   j["offset"] = offset_;
   return j;
 }
 
-void OrderByPlanNode::FromJson(const nlohmann::json &j) {
-  AbstractPlanNode::FromJson(j);
+std::vector<std::unique_ptr<parser::AbstractExpression>> OrderByPlanNode::FromJson(const nlohmann::json &j) {
+  std::vector<std::unique_ptr<parser::AbstractExpression>> exprs;
+  auto e1 = AbstractPlanNode::FromJson(j);
+  exprs.insert(exprs.end(), std::make_move_iterator(e1.begin()), std::make_move_iterator(e1.end()));
+
+  // Deserialize sort keys
   auto sort_keys = j.at("sort_keys").get<std::vector<std::pair<nlohmann::json, OrderByOrderingType>>>();
-  for (auto &pair : sort_keys) {
-    sort_keys_.emplace_back(parser::DeserializeExpression(pair.first), pair.second);
+  for (const auto &key_json : sort_keys) {
+    auto deserialized = parser::DeserializeExpression(key_json.first);
+    sort_keys_.emplace_back(common::ManagedPointer(deserialized.result_), key_json.second);
+    exprs.emplace_back(std::move(deserialized.result_));
+    exprs.insert(exprs.end(), std::make_move_iterator(deserialized.non_owned_exprs_.begin()),
+                 std::make_move_iterator(deserialized.non_owned_exprs_.end()));
   }
 
   has_limit_ = j.at("has_limit").get<bool>();
   limit_ = j.at("limit").get<size_t>();
   offset_ = j.at("offset").get<size_t>();
+  return exprs;
 }
 
 }  // namespace terrier::planner

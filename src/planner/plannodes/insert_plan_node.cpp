@@ -78,28 +78,46 @@ nlohmann::json InsertPlanNode::ToJson() const {
   j["database_oid"] = database_oid_;
   j["namespace_oid"] = namespace_oid_;
   j["table_oid"] = table_oid_;
-  j["values"] = values_;
+
+  std::vector<std::vector<nlohmann::json>> values;
+  values.reserve(values_.size());
+  for (const auto &tuple : values_) {
+    std::vector<nlohmann::json> tuple_json;
+    tuple_json.reserve(tuple.size());
+    for (const auto &elem : tuple) {
+      tuple_json.emplace_back(elem->ToJson());
+    }
+    values.emplace_back(std::move(tuple_json));
+  }
+  j["values"] = values;
   j["parameter_info"] = parameter_info_;
   return j;
 }
 
-void InsertPlanNode::FromJson(const nlohmann::json &j) {
-  AbstractPlanNode::FromJson(j);
+std::vector<std::unique_ptr<parser::AbstractExpression>> InsertPlanNode::FromJson(const nlohmann::json &j) {
+  std::vector<std::unique_ptr<parser::AbstractExpression>> exprs;
+  auto e1 = AbstractPlanNode::FromJson(j);
+  exprs.insert(exprs.end(), std::make_move_iterator(e1.begin()), std::make_move_iterator(e1.end()));
   database_oid_ = j.at("database_oid").get<catalog::db_oid_t>();
   namespace_oid_ = j.at("namespace_oid").get<catalog::namespace_oid_t>();
   table_oid_ = j.at("table_oid").get<catalog::table_oid_t>();
 
-  values_ = std::vector<std::vector<const parser::AbstractExpression *>>();
+  values_ = std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>();
   auto values = j.at("values").get<std::vector<std::vector<nlohmann::json>>>();
   for (auto &vec : values) {
-    auto tuple = std::vector<const parser::AbstractExpression *>();
+    auto tuple = std::vector<common::ManagedPointer<parser::AbstractExpression>>();
     for (const auto &json : vec) {
-      tuple.push_back(parser::DeserializeExpression(json));
+      auto deserialized = parser::DeserializeExpression(json);
+      tuple.emplace_back(common::ManagedPointer(deserialized.result_));
+      exprs.emplace_back(std::move(deserialized.result_));
+      exprs.insert(exprs.end(), std::make_move_iterator(deserialized.non_owned_exprs_.begin()),
+                   std::make_move_iterator(deserialized.non_owned_exprs_.end()));
     }
     values_.push_back(std::move(tuple));
   }
 
   parameter_info_ = j.at("parameter_info").get<std::vector<catalog::col_oid_t>>();
+  return exprs;
 }
 
 }  // namespace terrier::planner

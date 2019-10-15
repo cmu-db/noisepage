@@ -7,14 +7,16 @@
 #include "parser/expression/abstract_expression.h"
 
 namespace terrier::parser {
-
 /**
- * Represents a tuple of values that are derived from nested expressions
+ * DerivedValueExpression represents a tuple of values that are derived from nested expressions
+ *
+ * Per Ling, this is only generated in the optimizer.
  */
 class DerivedValueExpression : public AbstractExpression {
  public:
   /**
    * This constructor is called by the optimizer
+   * TODO(WAN): does it make sense to make this a private constructor, and friend the optimizer? Ask William, Ling.
    * @param type type of the return value of the expression
    * @param tuple_idx index of the tuple
    * @param value_idx offset of the value in the tuple
@@ -22,36 +24,34 @@ class DerivedValueExpression : public AbstractExpression {
   DerivedValueExpression(type::TypeId type, int tuple_idx, int value_idx)
       : AbstractExpression(ExpressionType::VALUE_TUPLE, type, {}), tuple_idx_(tuple_idx), value_idx_(value_idx) {}
 
-  /**
-   * Default constructor for deserialization
-   */
+  /** Default constructor for deserialization. */
   DerivedValueExpression() = default;
 
   /**
    * Copies this DerivedValueExpression
    * @returns copy of this
    */
-  const AbstractExpression *Copy() const override { return new DerivedValueExpression(*this); }
+  std::unique_ptr<AbstractExpression> Copy() const override {
+    auto expr = std::make_unique<DerivedValueExpression>(GetReturnValueType(), GetTupleIdx(), GetValueIdx());
+    expr->SetMutableStateForCopy(*this);
+    return expr;
+  }
 
   /**
    * Copies this DerivedValueExpression with new children
    * @param children New Children
    * @returns copy of this with new children
    */
-  const AbstractExpression *CopyWithChildren(
-      UNUSED_ATTRIBUTE std::vector<const AbstractExpression *> children) const override {
+  std::unique_ptr<AbstractExpression> CopyWithChildren(
+      std::vector<std::unique_ptr<AbstractExpression>> &&children) const override {
     TERRIER_ASSERT(children.empty(), "DerivedValueExpression should have no children");
     return Copy();
   }
 
-  /**
-   * @return index of the tuple
-   */
+  /** @return index of the tuple */
   int GetTupleIdx() const { return tuple_idx_; }
 
-  /**
-   * @return offset of the value in the tuple
-   */
+  /** @return offset of the value in the tuple */
   int GetValueIdx() const { return value_idx_; }
 
   common::hash_t Hash() const override {
@@ -70,9 +70,7 @@ class DerivedValueExpression : public AbstractExpression {
 
   void Accept(SqlNodeVisitor *v) override { v->Visit(this); }
 
-  /**
-   * @return expression serialized to json
-   */
+  /** @return expression serialized to json */
   nlohmann::json ToJson() const override {
     nlohmann::json j = AbstractExpression::ToJson();
     j["tuple_idx"] = tuple_idx_;
@@ -80,31 +78,20 @@ class DerivedValueExpression : public AbstractExpression {
     return j;
   }
 
-  /**
-   * @param j json to deserialize
-   */
-  void FromJson(const nlohmann::json &j) override {
-    AbstractExpression::FromJson(j);
+  /** @param j json to deserialize */
+  std::vector<std::unique_ptr<AbstractExpression>> FromJson(const nlohmann::json &j) override {
+    std::vector<std::unique_ptr<AbstractExpression>> exprs;
+    auto e1 = AbstractExpression::FromJson(j);
+    exprs.insert(exprs.end(), std::make_move_iterator(e1.begin()), std::make_move_iterator(e1.end()));
     tuple_idx_ = j.at("tuple_idx").get<int>();
     value_idx_ = j.at("value_idx").get<int>();
+    return exprs;
   }
 
  private:
-  /**
-   * Copy constructor for DerivedValueExpression
-   * Relies on AbstractExpression's copy constructor for base members
-   * @param other Other DerivedValueExpression to copy from
-   */
-  DerivedValueExpression(const DerivedValueExpression &other) = default;
-
-  /**
-   * Index of the tuple
-   */
+  /** Index of the tuple. */
   int tuple_idx_;
-
-  /**
-   * Offset of the value in the tuple
-   */
+  /** Offset of the value in the tuple. */
   int value_idx_;
 };
 

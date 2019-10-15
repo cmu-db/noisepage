@@ -40,10 +40,13 @@ nlohmann::json CreateNamespacePlanNode::ToJson() const {
   return j;
 }
 
-void CreateNamespacePlanNode::FromJson(const nlohmann::json &j) {
-  AbstractPlanNode::FromJson(j);
+std::vector<std::unique_ptr<parser::AbstractExpression>> CreateNamespacePlanNode::FromJson(const nlohmann::json &j) {
+  std::vector<std::unique_ptr<parser::AbstractExpression>> exprs;
+  auto e1 = AbstractPlanNode::FromJson(j);
+  exprs.insert(exprs.end(), std::make_move_iterator(e1.begin()), std::make_move_iterator(e1.end()));
   database_oid_ = j.at("database_oid").get<catalog::db_oid_t>();
   namespace_name_ = j.at("namespace_name").get<std::string>();
+  return exprs;
 }
 
 }  // namespace terrier::planner

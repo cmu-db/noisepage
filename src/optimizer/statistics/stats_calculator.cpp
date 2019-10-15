@@ -23,7 +23,7 @@ namespace terrier::optimizer {
 
 void StatsCalculator::CalculateStats(GroupExpression *gexpr, ExprSet required_cols, OptimizerMetadata *metadata) {
   gexpr_ = gexpr;
-  required_cols_ = required_cols;
+  required_cols_ = std::move(required_cols);
   metadata_ = metadata;
   gexpr->Op().Accept(this);
 }
@@ -53,7 +53,7 @@ void StatsCalculator::Visit(const LogicalGet *op) {
     std::unordered_map<std::string, std::unique_ptr<ColumnStats>> predicate_stats;
     for (auto &annotated_expr : op->GetPredicates()) {
       ExprSet expr_set;
-      auto predicate = annotated_expr.GetExpr().Get();
+      auto predicate = annotated_expr.GetExpr();
       parser::ExpressionUtil::GetTupleValueExprs(&expr_set, predicate);
       for (auto &col : expr_set) {
         AddBaseTableStats(col, table_stats, &predicate_stats);
@@ -84,7 +84,7 @@ void StatsCalculator::Visit(UNUSED_ATTRIBUTE const LogicalQueryDerivedGet *op) {
   root_group->SetNumRows(0);
   for (auto &col : required_cols_) {
     TERRIER_ASSERT(col->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE, "CVE expected");
-    auto tv_expr = reinterpret_cast<const parser::ColumnValueExpression *>(col);
+    auto tv_expr = col.CastManagedPointerTo<parser::ColumnValueExpression>();
     root_group->AddStats(tv_expr->GetFullName(), CreateDefaultStats(tv_expr));
   }
 }
@@ -104,10 +104,8 @@ void StatsCalculator::Visit(const LogicalInnerJoin *op) {
       if (annotated_expr.GetExpr()->GetExpressionType() == parser::ExpressionType::COMPARE_EQUAL &&
           annotated_expr.GetExpr()->GetChild(0)->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE &&
           annotated_expr.GetExpr()->GetChild(1)->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE) {
-        auto left_child =
-            reinterpret_cast<const parser::ColumnValueExpression *>(annotated_expr.GetExpr()->GetChild(0).Get());
-        auto right_child =
-            reinterpret_cast<const parser::ColumnValueExpression *>(annotated_expr.GetExpr()->GetChild(1).Get());
+        auto left_child = annotated_expr.GetExpr()->GetChild(0).CastManagedPointerTo<parser::ColumnValueExpression>();
+        auto right_child = annotated_expr.GetExpr()->GetChild(1).CastManagedPointerTo<parser::ColumnValueExpression>();
         auto left_col = left_child->GetFullName();
         auto right_col = right_child->GetFullName();
         if ((left_child_group->HasColumnStats(left_col) && right_child_group->HasColumnStats(right_col)) ||
@@ -122,7 +120,7 @@ void StatsCalculator::Visit(const LogicalInnerJoin *op) {
   size_t num_rows = root_group->GetNumRows();
   for (auto &col : required_cols_) {
     TERRIER_ASSERT(col->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE, "CVE expected");
-    auto tv_expr = reinterpret_cast<const parser::ColumnValueExpression *>(col);
+    auto tv_expr = col.CastManagedPointerTo<parser::ColumnValueExpression>();
     auto col_name = tv_expr->GetFullName();
     std::unique_ptr<ColumnStats> column_stats;
 
@@ -151,7 +149,7 @@ void StatsCalculator::Visit(UNUSED_ATTRIBUTE const LogicalAggregateAndGroupBy *o
   metadata_->GetMemo().GetGroupByID(gexpr_->GetGroupID())->SetNumRows(child_group->GetNumRows());
   for (auto &col : required_cols_) {
     TERRIER_ASSERT(col->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE, "CVE expected");
-    auto col_name = reinterpret_cast<const parser::ColumnValueExpression *>(col)->GetFullName();
+    auto col_name = col.CastManagedPointerTo<parser::ColumnValueExpression>()->GetFullName();
 
     TERRIER_ASSERT(child_group->HasColumnStats(col_name), "Stats missing in child group");
     metadata_->GetMemo()
@@ -167,7 +165,7 @@ void StatsCalculator::Visit(const LogicalLimit *op) {
   group->SetNumRows(std::min(static_cast<int>(op->GetLimit()), child_group->GetNumRows()));
   for (auto &col : required_cols_) {
     TERRIER_ASSERT(col->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE, "CVE expected");
-    auto col_name = reinterpret_cast<const parser::ColumnValueExpression *>(col)->GetFullName();
+    auto col_name = col.CastManagedPointerTo<parser::ColumnValueExpression>()->GetFullName();
 
     TERRIER_ASSERT(child_group->HasColumnStats(col_name), "Stats missing in child group");
     auto stats = std::make_unique<ColumnStats>(*child_group->GetStats(col_name));
@@ -184,18 +182,18 @@ void StatsCalculator::Visit(UNUSED_ATTRIBUTE const LogicalDistinct *op) {
   group->SetNumRows(child_group->GetNumRows());
   for (auto &col : required_cols_) {
     TERRIER_ASSERT(col->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE, "CVE expected");
-    auto col_name = reinterpret_cast<const parser::ColumnValueExpression *>(col)->GetFullName();
+    auto col_name = col.CastManagedPointerTo<parser::ColumnValueExpression>()->GetFullName();
 
     TERRIER_ASSERT(child_group->HasColumnStats(col_name), "Stats missing in child group");
     group->AddStats(col_name, std::make_unique<ColumnStats>(*child_group->GetStats(col_name)));
   }
 }
 
-void StatsCalculator::AddBaseTableStats(const parser::AbstractExpression *col,
+void StatsCalculator::AddBaseTableStats(common::ManagedPointer<parser::AbstractExpression> col,
                                         common::ManagedPointer<TableStats> table_stats,
                                         std::unordered_map<std::string, std::unique_ptr<ColumnStats>> *stats) {
   TERRIER_ASSERT(col->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE, "Expected ColumnValue");
-  auto tv_expr = reinterpret_cast<const parser::ColumnValueExpression *>(col);
+  auto tv_expr = col.CastManagedPointerTo<parser::ColumnValueExpression>();
   if (table_stats->GetColumnCount() == 0 || !table_stats->HasColumnStats(tv_expr->GetColumnOid())) {
     // We do not have stats for the table yet, use default value
     stats->insert(std::make_pair(tv_expr->GetFullName(), CreateDefaultStats(tv_expr)));
@@ -229,9 +227,8 @@ size_t StatsCalculator::EstimateCardinalityForFilter(
 
 // Calculate the selectivity given the predicate and the stats of columns in the
 // predicate
-double StatsCalculator::CalculateSelectivityForPredicate(
-    common::ManagedPointer<TableStats> predicate_table_stats,
-    common::ManagedPointer<const parser::AbstractExpression> expr) {
+double StatsCalculator::CalculateSelectivityForPredicate(common::ManagedPointer<TableStats> predicate_table_stats,
+                                                         common::ManagedPointer<parser::AbstractExpression> expr) {
   double selectivity = 1.F;
   if (predicate_table_stats->GetColumnCount() == 0) {
     return selectivity;
@@ -248,7 +245,7 @@ double StatsCalculator::CalculateSelectivityForPredicate(
     int right_index = expr->GetChild(0)->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE ? 1 : 0;
     auto left_expr = expr->GetChild(1 - right_index);
     TERRIER_ASSERT(left_expr->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE, "CVE expected");
-    auto col_name = reinterpret_cast<const parser::ColumnValueExpression *>(left_expr.Get())->GetFullName();
+    auto col_name = left_expr.CastManagedPointerTo<parser::ColumnValueExpression>()->GetFullName();
 
     auto expr_type = expr->GetExpressionType();
     if (right_index == 0) {
@@ -257,10 +254,10 @@ double StatsCalculator::CalculateSelectivityForPredicate(
 
     std::shared_ptr<type::TransientValue> value;
     if (expr->GetChild(right_index)->GetExpressionType() == parser::ExpressionType::VALUE_CONSTANT) {
-      auto cve = reinterpret_cast<const parser::ConstantValueExpression *>(expr->GetChild(right_index).Get());
+      auto cve = expr->GetChild(right_index).CastManagedPointerTo<parser::ConstantValueExpression>();
       value = std::make_shared<type::TransientValue>(cve->GetValue());
     } else {
-      auto pve = reinterpret_cast<const parser::ParameterValueExpression *>(expr->GetChild(right_index).Get());
+      auto pve = expr->GetChild(right_index).CastManagedPointerTo<parser::ParameterValueExpression>();
       value =
           std::make_shared<type::TransientValue>(type::TransientValueFactory::GetParameterOffset(pve->GetValueIdx()));
     }

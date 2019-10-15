@@ -63,7 +63,7 @@ class Optimizer : public AbstractOptimizer {
    * @param storage StatsStorage
    * @returns execution plan
    */
-  std::shared_ptr<planner::AbstractPlanNode> BuildPlanTree(OperatorExpression *op_tree, QueryInfo query_info,
+  std::unique_ptr<planner::AbstractPlanNode> BuildPlanTree(OperatorExpression *op_tree, QueryInfo query_info,
                                                            transaction::TransactionContext *txn,
                                                            settings::SettingsManager *settings,
                                                            catalog::CatalogAccessor *accessor,
@@ -101,8 +101,9 @@ class Optimizer : public AbstractOptimizer {
    * @param txn TransactionContext
    * @returns Lowest cost plan
    */
-  std::shared_ptr<planner::AbstractPlanNode> ChooseBestPlan(
-      GroupID id, PropertySet *required_props, const std::vector<const parser::AbstractExpression *> &required_cols,
+  std::unique_ptr<planner::AbstractPlanNode> ChooseBestPlan(
+      GroupID id, PropertySet *required_props,
+      const std::vector<common::ManagedPointer<parser::AbstractExpression>> &required_cols,
       settings::SettingsManager *settings, catalog::CatalogAccessor *accessor, transaction::TransactionContext *txn);
 
   /**

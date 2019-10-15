@@ -8,9 +8,8 @@
 #include "type/transient_value.h"
 
 namespace terrier::parser {
-
 /**
- * Represents a logical constant expression.
+ * ConstantValueExpression represents a constant, e.g. numbers, string literals.
  */
 class ConstantValueExpression : public AbstractExpression {
  public:
@@ -21,12 +20,8 @@ class ConstantValueExpression : public AbstractExpression {
   explicit ConstantValueExpression(type::TransientValue value)
       : AbstractExpression(ExpressionType::VALUE_CONSTANT, value.Type(), {}), value_(std::move(value)) {}
 
-  /**
-   * Default constructor for deserialization
-   */
+  /** Default constructor for deserialization. */
   ConstantValueExpression() = default;
-
-  ~ConstantValueExpression() override = default;
 
   common::hash_t Hash() const override {
     return common::HashUtil::CombineHashes(AbstractExpression::Hash(), value_.Hash());
@@ -42,7 +37,11 @@ class ConstantValueExpression : public AbstractExpression {
    * Copies this ConstantValueExpression
    * @returns copy of this
    */
-  const AbstractExpression *Copy() const override { return new ConstantValueExpression(*this); }
+  std::unique_ptr<AbstractExpression> Copy() const override {
+    auto expr = std::make_unique<ConstantValueExpression>(GetValue());
+    expr->SetMutableStateForCopy(*this);
+    return expr;
+  }
 
   /**
    * Creates a copy of the current AbstractExpression with new children implanted.
@@ -50,30 +49,29 @@ class ConstantValueExpression : public AbstractExpression {
    * @param children New children to be owned by the copy
    * @returns copy of this with new children
    */
-  const AbstractExpression *CopyWithChildren(std::vector<const AbstractExpression *> children) const override {
+  std::unique_ptr<AbstractExpression> CopyWithChildren(
+      std::vector<std::unique_ptr<AbstractExpression>> &&children) const override {
     TERRIER_ASSERT(children.empty(), "COnstantValueExpression should have 0 children");
     return Copy();
   }
 
   void DeriveExpressionName() override {
-    if (!this->GetAlias().empty())
+    if (!this->GetAlias().empty()) {
       this->SetExpressionName(this->GetAlias());
-    else
+    } else {
       this->SetExpressionName(value_.ToString());
+    }
   }
 
-  /**
-   * @return the constant value stored in this expression
-   */
+  /** @return the constant value stored in this expression */
   type::TransientValue GetValue() const { return value_; }
 
   void Accept(SqlNodeVisitor *v) override { v->Visit(this); }
 
   /**
    * @return expression serialized to json
-   * @note ToJson is a private member of TransientValue, ConstantValueExpression can access it because it
-   * is a friend class of TransientValue.
-   * @see TransientValue for why ToJson is made private
+   * @note TransientValue::ToJson() is private, ConstantValueExpression is a friend
+   * @see TransientValue for why TransientValue::ToJson is private
    */
   nlohmann::json ToJson() const override {
     nlohmann::json j = AbstractExpression::ToJson();
@@ -83,26 +81,19 @@ class ConstantValueExpression : public AbstractExpression {
 
   /**
    * @param j json to deserialize
-   * @note FromJson is a private member of TransientValue, ConstantValueExpression can access it because it
-   * is a friend class of TransientValue.
-   * @see TransientValue for why FromJson is made private
+   * @note TransientValue::FromJson() is private, ConstantValueExpression is a friend
+   * @see TransientValue for why TransientValue::FromJson is private
    */
-  void FromJson(const nlohmann::json &j) override {
-    AbstractExpression::FromJson(j);
+  std::vector<std::unique_ptr<AbstractExpression>> FromJson(const nlohmann::json &j) override {
+    std::vector<std::unique_ptr<AbstractExpression>> exprs;
+    auto e1 = AbstractExpression::FromJson(j);
+    exprs.insert(exprs.end(), std::make_move_iterator(e1.begin()), std::make_move_iterator(e1.end()));
     value_ = j.at("value").get<type::TransientValue>();
+    return exprs;
   }
 
  private:
-  /**
-   * Copy constructor for ConstantValueExpresison
-   * Relies on AbstractExpression copy constructor for base members
-   * @param other Other ConstantValueExpression to copy from
-   */
-  ConstantValueExpression(const ConstantValueExpression &other) = default;
-
-  /**
-   * Value of the constant value expression
-   */
+  /** The constant held inside this ConstantValueExpression. */
   type::TransientValue value_;
 };
 

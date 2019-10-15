@@ -53,11 +53,7 @@ class IndexSchema {
      * @param definition definition of this attribute
      */
     Column(std::string name, type::TypeId type_id, bool nullable, const parser::AbstractExpression &definition)
-        : name_(std::move(name)),
-          oid_(INVALID_INDEXKEYCOL_OID),
-          packed_type_(0),
-          definition_(std::shared_ptr<parser::AbstractExpression>(
-              const_cast<parser::AbstractExpression *>(definition.Copy()))) {
+        : name_(std::move(name)), oid_(INVALID_INDEXKEYCOL_OID), packed_type_(0), definition_(definition.Copy()) {
       TERRIER_ASSERT(!(type_id == type::TypeId::VARCHAR || type_id == type::TypeId::VARBINARY),
                      "Non-varlen constructor.");
       SetTypeId(type_id);
@@ -74,13 +70,8 @@ class IndexSchema {
      */
     Column(std::string name, type::TypeId type_id, uint16_t max_varlen_size, bool nullable,
            const parser::AbstractExpression &definition)
-        : name_(std::move(name)),
-          oid_(INVALID_INDEXKEYCOL_OID),
-          packed_type_(0),
-          definition_(std::shared_ptr<parser::AbstractExpression>(
-              const_cast<parser::AbstractExpression *>(definition.Copy()))) {
+        : name_(std::move(name)), oid_(INVALID_INDEXKEYCOL_OID), packed_type_(0), definition_(definition.Copy()) {
       TERRIER_ASSERT(type_id == type::TypeId::VARCHAR || type_id == type::TypeId::VARBINARY, "Varlen constructor.");
-      TERRIER_ASSERT(definition_.use_count() == 1, "This expression should only be shared using managed pointers");
       SetTypeId(type_id);
       SetNullable(nullable);
       SetMaxVarlenSize(max_varlen_size);
@@ -94,9 +85,19 @@ class IndexSchema {
         : name_(old_column.name_),
           oid_(old_column.oid_),
           packed_type_(old_column.packed_type_),
-          definition_(std::shared_ptr<parser::AbstractExpression>(
-              const_cast<parser::AbstractExpression *>(old_column.definition_->Copy()))) {
-      TERRIER_ASSERT(definition_.use_count() == 1, "This expression should only be shared using managed pointers");
+          definition_(old_column.definition_->Copy()) {}
+
+    /**
+     * Allows operator= to call Column's custom copy-constructor.
+     * @param col column to be copied
+     * @return the current column after update
+     */
+    Column &operator=(const Column &col) {
+      name_ = col.name_;
+      oid_ = col.oid_;
+      packed_type_ = col.packed_type_;
+      definition_ = col.definition_->Copy();
+      return *this;
     }
 
     /**
@@ -113,7 +114,6 @@ class IndexSchema {
      * @return definition expression
      */
     common::ManagedPointer<const parser::AbstractExpression> StoredExpression() const {
-      TERRIER_ASSERT(definition_.use_count() == 1, "This expression should only be shared using managed pointers");
       return common::ManagedPointer(static_cast<const parser::AbstractExpression *>(definition_.get()));
     }
 
@@ -153,7 +153,7 @@ class IndexSchema {
       j["max_varlen_size"] = MaxVarlenSize();
       j["nullable"] = Nullable();
       j["oid"] = oid_;
-      j["definition"] = definition_;
+      j["definition"] = definition_->ToJson();
       return j;
     }
 
@@ -161,13 +161,15 @@ class IndexSchema {
      * Deserializes a column
      * @param j serialized column
      */
-    void FromJson(const nlohmann::json &j) {
+    std::vector<std::unique_ptr<parser::AbstractExpression>> FromJson(const nlohmann::json &j) {
       name_ = j.at("name").get<std::string>();
       SetTypeId(j.at("type").get<type::TypeId>());
       SetMaxVarlenSize(j.at("max_varlen_size").get<uint16_t>());
       SetNullable(j.at("nullable").get<bool>());
       SetOid(j.at("oid").get<indexkeycol_oid_t>());
-      definition_ = std::shared_ptr<parser::AbstractExpression>(parser::DeserializeExpression(j.at("definition")));
+      auto deserialized = parser::DeserializeExpression(j.at("definition"));
+      definition_ = std::move(deserialized.result_);
+      return std::move(deserialized.non_owned_exprs_);
     }
 
    private:
@@ -180,8 +182,7 @@ class IndexSchema {
     indexkeycol_oid_t oid_;
     uint32_t packed_type_;
 
-    // TODO(John) this should become a unique_ptr as part of addressing #489
-    std::shared_ptr<parser::AbstractExpression> definition_;
+    std::unique_ptr<parser::AbstractExpression> definition_;
 
     // TODO(John): Should these "OIDS" be implicitly set by the index in the columns?
     void SetOid(indexkeycol_oid_t oid) { oid_ = oid; }
@@ -264,11 +265,6 @@ class IndexSchema {
   bool Unique() const { return is_unique_; }
 
   /**
-   * @return true if this index is queryable
-   */
-  bool Valid() const { return is_valid_; }
-
-  /**
    * @return true if this schema is for a unique index
    */
   bool Primary() const { return is_primary_; }
@@ -322,6 +318,7 @@ class IndexSchema {
    */
   std::shared_ptr<IndexSchema> static DeserializeSchema(const nlohmann::json &j) {
     auto columns = j.at("columns").get<std::vector<IndexSchema::Column>>();
+
     auto unique = j.at("unique").get<bool>();
     auto primary = j.at("primary").get<bool>();
     auto exclusion = j.at("exclusion").get<bool>();
@@ -368,10 +365,9 @@ class IndexSchema {
         }
 
         // Add children to queue
-        for (size_t i = 0; i < expr->GetChildrenSize(); i++) {
-          auto child = expr->GetChild(i);
-          TERRIER_ASSERT(child.Get() != nullptr, "We should not be adding missing expressions to the queue");
-          expr_queue.push_back(child);
+        for (const auto &child : expr->GetChildren()) {
+          TERRIER_ASSERT(child != nullptr, "We should not be adding missing expressions to the queue");
+          expr_queue.emplace_back(child.CastManagedPointerTo<const parser::AbstractExpression>());
         }
       }
     }

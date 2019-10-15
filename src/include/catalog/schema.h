@@ -52,8 +52,7 @@ class Schema {
           attr_size_(type::TypeUtil::GetTypeSize(type_)),
           nullable_(nullable),
           oid_(INVALID_COLUMN_OID),
-          default_value_(std::shared_ptr<parser::AbstractExpression>(
-              const_cast<parser::AbstractExpression *>(default_value.Copy()))) {
+          default_value_(default_value.Copy()) {
       TERRIER_ASSERT(attr_size_ == 1 || attr_size_ == 2 || attr_size_ == 4 || attr_size_ == 8,
                      "This constructor is meant for non-VARLEN columns.");
       TERRIER_ASSERT(type_ != type::TypeId::INVALID, "Attribute type cannot be INVALID.");
@@ -75,11 +74,9 @@ class Schema {
           max_varlen_size_(max_varlen_size),
           nullable_(nullable),
           oid_(INVALID_COLUMN_OID),
-          default_value_(std::shared_ptr<parser::AbstractExpression>(
-              const_cast<parser::AbstractExpression *>(default_value.Copy()))) {
+          default_value_(default_value.Copy()) {
       TERRIER_ASSERT(attr_size_ == VARLEN_COLUMN, "This constructor is meant for VARLEN columns.");
       TERRIER_ASSERT(type_ != type::TypeId::INVALID, "Attribute type cannot be INVALID.");
-      TERRIER_ASSERT(default_value_.use_count() == 1, "This expression should only be shared using managed pointers");
     }
 
     /**
@@ -93,10 +90,24 @@ class Schema {
           max_varlen_size_(old_column.max_varlen_size_),
           nullable_(old_column.nullable_),
           oid_(old_column.oid_),
-          default_value_(std::shared_ptr<parser::AbstractExpression>(
-              const_cast<parser::AbstractExpression *>(old_column.default_value_->Copy()))) {
+          default_value_(old_column.default_value_->Copy()) {
       TERRIER_ASSERT(type_ != type::TypeId::INVALID, "Attribute type cannot be INVALID.");
-      TERRIER_ASSERT(default_value_.use_count() == 1, "This expression should only be shared using managed pointers");
+    }
+
+    /**
+     * Allows operator= to call Column's custom copy-constructor.
+     * @param col column to be copied
+     * @return the current column after update
+     */
+    Column &operator=(const Column &col) {
+      name_ = col.name_;
+      type_ = col.type_;
+      attr_size_ = col.attr_size_;
+      max_varlen_size_ = col.max_varlen_size_;
+      nullable_ = col.nullable_;
+      oid_ = col.oid_;
+      default_value_ = col.default_value_->Copy();
+      return *this;
     }
 
     /**
@@ -135,7 +146,6 @@ class Schema {
      * @return default value expression
      */
     common::ManagedPointer<const parser::AbstractExpression> StoredExpression() const {
-      TERRIER_ASSERT(default_value_.use_count() == 1, "This expression should only be shared using managed pointers");
       return common::ManagedPointer(static_cast<const parser::AbstractExpression *>(default_value_.get()));
     }
 
@@ -155,7 +165,7 @@ class Schema {
       j["max_varlen_size"] = max_varlen_size_;
       j["nullable"] = nullable_;
       j["oid"] = oid_;
-      j["default_value"] = default_value_;
+      j["default_value"] = default_value_->ToJson();
       return j;
     }
 
@@ -163,15 +173,16 @@ class Schema {
      * Deserializes a column
      * @param j serialized column
      */
-    void FromJson(const nlohmann::json &j) {
+    std::vector<std::unique_ptr<parser::AbstractExpression>> FromJson(const nlohmann::json &j) {
       name_ = j.at("name").get<std::string>();
       type_ = j.at("type").get<type::TypeId>();
       attr_size_ = j.at("attr_size").get<uint8_t>();
       max_varlen_size_ = j.at("max_varlen_size").get<uint16_t>();
       nullable_ = j.at("nullable").get<bool>();
       oid_ = j.at("oid").get<col_oid_t>();
-      default_value_ =
-          std::shared_ptr<parser::AbstractExpression>(parser::DeserializeExpression(j.at("default_value")));
+      auto deserialized = parser::DeserializeExpression(j.at("default_value"));
+      default_value_ = std::move(deserialized.result_);
+      return std::move(deserialized.non_owned_exprs_);
     }
 
    private:
@@ -182,8 +193,7 @@ class Schema {
     bool nullable_;
     col_oid_t oid_;
 
-    // TODO(John) this should become a unique_ptr as part of addressing #489
-    std::shared_ptr<parser::AbstractExpression> default_value_;
+    std::unique_ptr<parser::AbstractExpression> default_value_;
 
     void SetOid(col_oid_t oid) { oid_ = oid; }
 
@@ -277,9 +287,9 @@ class Schema {
    * @param j json containing serialized schema
    * @return deserialized schema object
    */
-  std::shared_ptr<Schema> static DeserializeSchema(const nlohmann::json &j) {
+  std::unique_ptr<Schema> static DeserializeSchema(const nlohmann::json &j) {
     auto columns = j.at("columns").get<std::vector<Schema::Column>>();
-    return std::make_shared<Schema>(columns);
+    return std::make_unique<Schema>(columns);
   }
 
  private:

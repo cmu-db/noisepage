@@ -40,7 +40,7 @@ class RecoveryTests : public TerrierTest {
   const std::chrono::milliseconds gc_period_{10};
 
   // Original Components
-  common::DedicatedThreadRegistry thread_registry_;
+  common::DedicatedThreadRegistry *thread_registry_;
   LogManager *log_manager_;
   transaction::TimestampManager *timestamp_manager_;
   transaction::DeferredActionManager *deferred_action_manager_;
@@ -61,8 +61,9 @@ class RecoveryTests : public TerrierTest {
     TerrierTest::SetUp();
     // Unlink log file incase one exists from previous test iteration
     unlink(LOG_FILE_NAME);
+    thread_registry_ = new common::DedicatedThreadRegistry(DISABLED);
     log_manager_ = new LogManager(LOG_FILE_NAME, num_log_buffers_, log_serialization_interval_, log_persist_interval_,
-                                  log_persist_threshold_, &buffer_pool_, common::ManagedPointer(&thread_registry_));
+                                  log_persist_threshold_, &buffer_pool_, common::ManagedPointer(thread_registry_));
     log_manager_->Start();
     timestamp_manager_ = new transaction::TimestampManager;
     deferred_action_manager_ = new transaction::DeferredActionManager(timestamp_manager_);
@@ -112,6 +113,7 @@ class RecoveryTests : public TerrierTest {
     delete deferred_action_manager_;
     delete timestamp_manager_;
     delete log_manager_;
+    delete thread_registry_;
   }
 
   catalog::IndexSchema DummyIndexSchema() {
@@ -213,7 +215,7 @@ class RecoveryTests : public TerrierTest {
     // Instantiate recovery manager, and recover the tables.
     DiskLogProvider log_provider(LOG_FILE_NAME);
     RecoveryManager recovery_manager(&log_provider, common::ManagedPointer(recovery_catalog_), recovery_txn_manager_,
-                                     recovery_deferred_action_manager_, common::ManagedPointer(&thread_registry_),
+                                     recovery_deferred_action_manager_, common::ManagedPointer(thread_registry_),
                                      &block_store_);
     recovery_manager.StartRecovery();
     recovery_manager.WaitForRecoveryToFinish();
@@ -312,7 +314,7 @@ TEST_F(RecoveryTests, DropDatabaseTest) {
   // Instantiate recovery manager, and recover the catalog_->
   DiskLogProvider log_provider(LOG_FILE_NAME);
   RecoveryManager recovery_manager(&log_provider, common::ManagedPointer(recovery_catalog_), recovery_txn_manager_,
-                                   recovery_deferred_action_manager_, common::ManagedPointer(&thread_registry_),
+                                   recovery_deferred_action_manager_, common::ManagedPointer(thread_registry_),
                                    &block_store_);
   recovery_manager.StartRecovery();
   recovery_manager.WaitForRecoveryToFinish();
@@ -344,7 +346,7 @@ TEST_F(RecoveryTests, DropTableTest) {
   // Instantiate recovery manager, and recover the catalog_->
   DiskLogProvider log_provider(LOG_FILE_NAME);
   RecoveryManager recovery_manager(&log_provider, common::ManagedPointer(recovery_catalog_), recovery_txn_manager_,
-                                   recovery_deferred_action_manager_, common::ManagedPointer(&thread_registry_),
+                                   recovery_deferred_action_manager_, common::ManagedPointer(thread_registry_),
                                    &block_store_);
   recovery_manager.StartRecovery();
   recovery_manager.WaitForRecoveryToFinish();
@@ -383,7 +385,7 @@ TEST_F(RecoveryTests, DropIndexTest) {
   // Instantiate recovery manager, and recover the catalog_->
   DiskLogProvider log_provider(LOG_FILE_NAME);
   RecoveryManager recovery_manager(&log_provider, common::ManagedPointer(recovery_catalog_), recovery_txn_manager_,
-                                   recovery_deferred_action_manager_, common::ManagedPointer(&thread_registry_),
+                                   recovery_deferred_action_manager_, common::ManagedPointer(thread_registry_),
                                    &block_store_);
   recovery_manager.StartRecovery();
   recovery_manager.WaitForRecoveryToFinish();
@@ -423,7 +425,7 @@ TEST_F(RecoveryTests, DropNamespaceTest) {
   // Instantiate recovery manager, and recover the catalog_->
   DiskLogProvider log_provider(LOG_FILE_NAME);
   RecoveryManager recovery_manager(&log_provider, common::ManagedPointer(recovery_catalog_), recovery_txn_manager_,
-                                   recovery_deferred_action_manager_, common::ManagedPointer(&thread_registry_),
+                                   recovery_deferred_action_manager_, common::ManagedPointer(thread_registry_),
                                    &block_store_);
   recovery_manager.StartRecovery();
   recovery_manager.WaitForRecoveryToFinish();
@@ -463,7 +465,7 @@ TEST_F(RecoveryTests, DropDatabaseCascadeDeleteTest) {
   // Instantiate recovery manager, and recover the catalog_->
   DiskLogProvider log_provider(LOG_FILE_NAME);
   RecoveryManager recovery_manager(&log_provider, common::ManagedPointer(recovery_catalog_), recovery_txn_manager_,
-                                   recovery_deferred_action_manager_, common::ManagedPointer(&thread_registry_),
+                                   recovery_deferred_action_manager_, common::ManagedPointer(thread_registry_),
                                    &block_store_);
   recovery_manager.StartRecovery();
   recovery_manager.WaitForRecoveryToFinish();
@@ -508,7 +510,7 @@ TEST_F(RecoveryTests, UnrecoverableTransactionsTest) {
   // Instantiate recovery manager, and recover the catalog_->
   DiskLogProvider log_provider(LOG_FILE_NAME);
   RecoveryManager recovery_manager(&log_provider, common::ManagedPointer(recovery_catalog_), recovery_txn_manager_,
-                                   recovery_deferred_action_manager_, common::ManagedPointer(&thread_registry_),
+                                   recovery_deferred_action_manager_, common::ManagedPointer(thread_registry_),
                                    &block_store_);
   recovery_manager.StartRecovery();
   recovery_manager.WaitForRecoveryToFinish();
@@ -577,7 +579,7 @@ TEST_F(RecoveryTests, ConcurrentCatalogDDLChangesTest) {
   // Instantiate recovery manager, and recover the catalog_->
   DiskLogProvider log_provider(LOG_FILE_NAME);
   RecoveryManager recovery_manager(&log_provider, common::ManagedPointer(recovery_catalog_), recovery_txn_manager_,
-                                   recovery_deferred_action_manager_, common::ManagedPointer(&thread_registry_),
+                                   recovery_deferred_action_manager_, common::ManagedPointer(thread_registry_),
                                    &block_store_);
   recovery_manager.StartRecovery();
   recovery_manager.WaitForRecoveryToFinish();
@@ -648,7 +650,7 @@ TEST_F(RecoveryTests, ConcurrentDDLChangesTest) {
   // Instantiate recovery manager, and recover the catalog
   DiskLogProvider log_provider(LOG_FILE_NAME);
   RecoveryManager recovery_manager(&log_provider, common::ManagedPointer(recovery_catalog_), recovery_txn_manager_,
-                                   recovery_deferred_action_manager_, common::ManagedPointer(&thread_registry_),
+                                   recovery_deferred_action_manager_, common::ManagedPointer(thread_registry_),
                                    &block_store_);
   recovery_manager.StartRecovery();
   recovery_manager.WaitForRecoveryToFinish();
@@ -689,7 +691,7 @@ TEST_F(RecoveryTests, DoubleRecoveryTest) {
   // We create a new log manager to log the changes replayed during recovery
   LogManager secondary_log_manager(secondary_log_file, num_log_buffers_, log_serialization_interval_,
                                    log_persist_interval_, log_persist_threshold_, &buffer_pool_,
-                                   common::ManagedPointer(&thread_registry_));
+                                   common::ManagedPointer(thread_registry_));
   secondary_log_manager.Start();
 
   // Override the recovery txn manager to now log out
@@ -713,7 +715,7 @@ TEST_F(RecoveryTests, DoubleRecoveryTest) {
   // Instantiate recovery manager, and recover the tables.
   DiskLogProvider log_provider(LOG_FILE_NAME);
   RecoveryManager recovery_manager(&log_provider, common::ManagedPointer(recovery_catalog_), recovery_txn_manager_,
-                                   recovery_deferred_action_manager_, common::ManagedPointer(&thread_registry_),
+                                   recovery_deferred_action_manager_, common::ManagedPointer(thread_registry_),
                                    &block_store_);
   recovery_manager.StartRecovery();
   recovery_manager.WaitForRecoveryToFinish();
@@ -777,7 +779,7 @@ TEST_F(RecoveryTests, DoubleRecoveryTest) {
   DiskLogProvider secondary_log_provider(secondary_log_file);
   RecoveryManager secondary_recovery_manager(
       &secondary_log_provider, common::ManagedPointer(&secondary_recovery_catalog), &secondary_recovery_txn_manager,
-      &secondary_recovery_deferred_action_manager, common::ManagedPointer(&thread_registry_), &block_store_);
+      &secondary_recovery_deferred_action_manager, common::ManagedPointer(thread_registry_), &block_store_);
   secondary_recovery_manager.StartRecovery();
   secondary_recovery_manager.WaitForRecoveryToFinish();
 

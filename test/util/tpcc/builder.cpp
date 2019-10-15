@@ -3,27 +3,112 @@
 namespace terrier::tpcc {
 
 Database *Builder::Build(const storage::index::IndexType index_type) {
-  // generate all of the table schemas
-  auto item_schema = Schemas::BuildItemTableSchema(&oid_counter_);
-  auto warehouse_schema = Schemas::BuildWarehouseTableSchema(&oid_counter_);
-  auto stock_schema = Schemas::BuildStockTableSchema(&oid_counter_);
-  auto district_schema = Schemas::BuildDistrictTableSchema(&oid_counter_);
-  auto customer_schema = Schemas::BuildCustomerTableSchema(&oid_counter_);
-  auto history_schema = Schemas::BuildHistoryTableSchema(&oid_counter_);
-  auto new_order_schema = Schemas::BuildNewOrderTableSchema(&oid_counter_);
-  auto order_schema = Schemas::BuildOrderTableSchema(&oid_counter_);
-  auto order_line_schema = Schemas::BuildOrderLineTableSchema(&oid_counter_);
+  // create the database in the catalog
+  auto *txn = txn_manager_->BeginTransaction();
+  const catalog::db_oid_t db_oid = catalog_->CreateDatabase(txn, "tpcc", true);
+  txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
-  // instantiate all of the tables
-  auto *const item_table = new storage::SqlTable(store_, item_schema);
-  auto *const warehouse_table = new storage::SqlTable(store_, warehouse_schema);
-  auto *const stock_table = new storage::SqlTable(store_, stock_schema);
-  auto *const district_table = new storage::SqlTable(store_, district_schema);
-  auto *const customer_table = new storage::SqlTable(store_, customer_schema);
-  auto *const history_table = new storage::SqlTable(store_, history_schema);
-  auto *const new_order_table = new storage::SqlTable(store_, new_order_schema);
-  auto *const order_table = new storage::SqlTable(store_, order_schema);
-  auto *const order_line_table = new storage::SqlTable(store_, order_line_schema);
+  // generate all of the table schemas
+  auto item_schema = Schemas::BuildItemTableSchema();
+  auto warehouse_schema = Schemas::BuildWarehouseTableSchema();
+  auto stock_schema = Schemas::BuildStockTableSchema();
+  auto district_schema = Schemas::BuildDistrictTableSchema();
+  auto customer_schema = Schemas::BuildCustomerTableSchema();
+  auto history_schema = Schemas::BuildHistoryTableSchema();
+  auto new_order_schema = Schemas::BuildNewOrderTableSchema();
+  auto order_schema = Schemas::BuildOrderTableSchema();
+  auto order_line_schema = Schemas::BuildOrderLineTableSchema();
+
+  // create the tables in the catalog
+  txn = txn_manager_->BeginTransaction();
+  auto accessor = catalog_->GetAccessor(txn, db_oid);
+
+  const catalog::table_oid_t item_table_oid =
+      accessor->CreateTable(accessor->GetDefaultNamespace(), "ITEM", item_schema);
+  const catalog::table_oid_t warehouse_table_oid =
+      accessor->CreateTable(accessor->GetDefaultNamespace(), "WAREHOUSE", warehouse_schema);
+  const catalog::table_oid_t stock_table_oid =
+      accessor->CreateTable(accessor->GetDefaultNamespace(), "STOCK", stock_schema);
+  const catalog::table_oid_t district_table_oid =
+      accessor->CreateTable(accessor->GetDefaultNamespace(), "DISTRICT", district_schema);
+  const catalog::table_oid_t customer_table_oid =
+      accessor->CreateTable(accessor->GetDefaultNamespace(), "CUSTOMER", customer_schema);
+  const catalog::table_oid_t history_table_oid =
+      accessor->CreateTable(accessor->GetDefaultNamespace(), "HISTORY", history_schema);
+  const catalog::table_oid_t new_order_table_oid =
+      accessor->CreateTable(accessor->GetDefaultNamespace(), "NEW ORDER", new_order_schema);
+  const catalog::table_oid_t order_table_oid =
+      accessor->CreateTable(accessor->GetDefaultNamespace(), "ORDER", order_schema);
+  const catalog::table_oid_t order_line_table_oid =
+      accessor->CreateTable(accessor->GetDefaultNamespace(), "ORDER LINE", order_line_schema);
+  TERRIER_ASSERT(item_table_oid != catalog::INVALID_TABLE_OID, "Failed to create table.");
+  TERRIER_ASSERT(warehouse_table_oid != catalog::INVALID_TABLE_OID, "Failed to create table.");
+  TERRIER_ASSERT(stock_table_oid != catalog::INVALID_TABLE_OID, "Failed to create table.");
+  TERRIER_ASSERT(district_table_oid != catalog::INVALID_TABLE_OID, "Failed to create table.");
+  TERRIER_ASSERT(customer_table_oid != catalog::INVALID_TABLE_OID, "Failed to create table.");
+  TERRIER_ASSERT(history_table_oid != catalog::INVALID_TABLE_OID, "Failed to create table.");
+  TERRIER_ASSERT(new_order_table_oid != catalog::INVALID_TABLE_OID, "Failed to create table.");
+  TERRIER_ASSERT(order_table_oid != catalog::INVALID_TABLE_OID, "Failed to create table.");
+  TERRIER_ASSERT(order_line_table_oid != catalog::INVALID_TABLE_OID, "Failed to create table.");
+
+  txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+
+  // get the schemas from the catalog
+  txn = txn_manager_->BeginTransaction();
+  accessor = catalog_->GetAccessor(txn, db_oid);
+
+  item_schema = accessor->GetSchema(item_table_oid);
+  warehouse_schema = accessor->GetSchema(warehouse_table_oid);
+  stock_schema = accessor->GetSchema(stock_table_oid);
+  district_schema = accessor->GetSchema(district_table_oid);
+  customer_schema = accessor->GetSchema(customer_table_oid);
+  history_schema = accessor->GetSchema(history_table_oid);
+  new_order_schema = accessor->GetSchema(new_order_table_oid);
+  order_schema = accessor->GetSchema(order_table_oid);
+  order_line_schema = accessor->GetSchema(order_line_table_oid);
+
+  txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+
+  // instantiate and set the table pointers in the catalog
+  txn = txn_manager_->BeginTransaction();
+  accessor = catalog_->GetAccessor(txn, db_oid);
+
+  auto result UNUSED_ATTRIBUTE = accessor->SetTablePointer(item_table_oid, new storage::SqlTable(store_, item_schema));
+  TERRIER_ASSERT(result, "Failed to set table pointer.");
+  result = accessor->SetTablePointer(warehouse_table_oid, new storage::SqlTable(store_, warehouse_schema));
+  TERRIER_ASSERT(result, "Failed to set table pointer.");
+  result = accessor->SetTablePointer(stock_table_oid, new storage::SqlTable(store_, stock_schema));
+  TERRIER_ASSERT(result, "Failed to set table pointer.");
+  result = accessor->SetTablePointer(district_table_oid, new storage::SqlTable(store_, district_schema));
+  TERRIER_ASSERT(result, "Failed to set table pointer.");
+  result = accessor->SetTablePointer(customer_table_oid, new storage::SqlTable(store_, customer_schema));
+  TERRIER_ASSERT(result, "Failed to set table pointer.");
+  result = accessor->SetTablePointer(history_table_oid, new storage::SqlTable(store_, history_schema));
+  TERRIER_ASSERT(result, "Failed to set table pointer.");
+  result = accessor->SetTablePointer(new_order_table_oid, new storage::SqlTable(store_, new_order_schema));
+  TERRIER_ASSERT(result, "Failed to set table pointer.");
+  result = accessor->SetTablePointer(order_table_oid, new storage::SqlTable(store_, order_schema));
+  TERRIER_ASSERT(result, "Failed to set table pointer.");
+  result = accessor->SetTablePointer(order_line_table_oid, new storage::SqlTable(store_, order_line_schema));
+  TERRIER_ASSERT(result, "Failed to set table pointer.");
+
+  txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+
+  // get the table pointers back from the catalog
+  txn = txn_manager_->BeginTransaction();
+  accessor = catalog_->GetAccessor(txn, db_oid);
+
+  const auto item_table = accessor->GetTable(item_table_oid);
+  const auto warehouse_table = accessor->GetTable(warehouse_table_oid);
+  const auto stock_table = accessor->GetTable(stock_table_oid);
+  const auto district_table = accessor->GetTable(district_table_oid);
+  const auto customer_table = accessor->GetTable(customer_table_oid);
+  const auto history_table = accessor->GetTable(history_table_oid);
+  const auto new_order_table = accessor->GetTable(new_order_table_oid);
+  const auto order_table = accessor->GetTable(order_table_oid);
+  const auto order_line_table = accessor->GetTable(order_line_table_oid);
+
+  txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
   // The following assertions verify that all of the primary key and their respective foreign key dependencies have
   // the same types across schemas.
@@ -77,34 +162,123 @@ Database *Builder::Build(const storage::index::IndexType index_type) {
 
   // generate all of the index schemas
   auto warehouse_primary_index_schema =
-      Schemas::BuildWarehousePrimaryIndexSchema(warehouse_schema, index_type, &oid_counter_);
+      Schemas::BuildWarehousePrimaryIndexSchema(warehouse_schema, index_type, db_oid, warehouse_table_oid);
   auto district_primary_index_schema =
-      Schemas::BuildDistrictPrimaryIndexSchema(district_schema, index_type, &oid_counter_);
+      Schemas::BuildDistrictPrimaryIndexSchema(district_schema, index_type, db_oid, district_table_oid);
   auto customer_primary_index_schema =
-      Schemas::BuildCustomerPrimaryIndexSchema(customer_schema, index_type, &oid_counter_);
+      Schemas::BuildCustomerPrimaryIndexSchema(customer_schema, index_type, db_oid, customer_table_oid);
   auto customer_secondary_index_schema =
-      Schemas::BuildCustomerSecondaryIndexSchema(customer_schema, index_type, &oid_counter_);
-  auto new_order_primary_index_schema =
-      Schemas::BuildNewOrderPrimaryIndexSchema(new_order_schema, storage::index::IndexType::BWTREE, &oid_counter_);
-  auto order_primary_index_schema = Schemas::BuildOrderPrimaryIndexSchema(order_schema, index_type, &oid_counter_);
+      Schemas::BuildCustomerSecondaryIndexSchema(customer_schema, index_type, db_oid, customer_table_oid);
+  auto new_order_primary_index_schema = Schemas::BuildNewOrderPrimaryIndexSchema(
+      new_order_schema, storage::index::IndexType::BWTREE, db_oid, new_order_table_oid);
+  auto order_primary_index_schema =
+      Schemas::BuildOrderPrimaryIndexSchema(order_schema, index_type, db_oid, order_table_oid);
   auto order_secondary_index_schema =
-      Schemas::BuildOrderSecondaryIndexSchema(order_schema, storage::index::IndexType::BWTREE, &oid_counter_);
-  auto order_line_primary_index_schema =
-      Schemas::BuildOrderLinePrimaryIndexSchema(order_line_schema, storage::index::IndexType::BWTREE, &oid_counter_);
-  auto item_primary_index_schema = Schemas::BuildItemPrimaryIndexSchema(item_schema, index_type, &oid_counter_);
-  auto stock_primary_index_schema = Schemas::BuildStockPrimaryIndexSchema(stock_schema, index_type, &oid_counter_);
+      Schemas::BuildOrderSecondaryIndexSchema(order_schema, storage::index::IndexType::BWTREE, db_oid, order_table_oid);
+  auto order_line_primary_index_schema = Schemas::BuildOrderLinePrimaryIndexSchema(
+      order_line_schema, storage::index::IndexType::BWTREE, db_oid, order_line_table_oid);
+  auto item_primary_index_schema =
+      Schemas::BuildItemPrimaryIndexSchema(item_schema, index_type, db_oid, item_table_oid);
+  auto stock_primary_index_schema =
+      Schemas::BuildStockPrimaryIndexSchema(stock_schema, index_type, db_oid, stock_table_oid);
 
-  // instantiate all of the indexes
-  auto *const warehouse_index = BuildIndex(warehouse_primary_index_schema);
-  auto *const district_index = BuildIndex(district_primary_index_schema);
-  auto *const customer_index = BuildIndex(customer_primary_index_schema);
-  auto *const customer_secondary_index = BuildIndex(customer_secondary_index_schema);
-  auto *const new_order_index = BuildIndex(new_order_primary_index_schema);
-  auto *const order_index = BuildIndex(order_primary_index_schema);
-  auto *const order_secondary_index = BuildIndex(order_secondary_index_schema);
-  auto *const order_line_index = BuildIndex(order_line_primary_index_schema);
-  auto *const item_index = BuildIndex(item_primary_index_schema);
-  auto *const stock_index = BuildIndex(stock_primary_index_schema);
+  // create the indexes in the catalog
+  txn = txn_manager_->BeginTransaction();
+  accessor = catalog_->GetAccessor(txn, db_oid);
+
+  const catalog::index_oid_t warehouse_primary_index_oid = accessor->CreateIndex(
+      accessor->GetDefaultNamespace(), warehouse_table_oid, "WAREHOUSE PRIMARY", warehouse_primary_index_schema);
+  const catalog::index_oid_t district_primary_index_oid = accessor->CreateIndex(
+      accessor->GetDefaultNamespace(), district_table_oid, "DISTRICT PRIMARY", district_primary_index_schema);
+  const catalog::index_oid_t customer_primary_index_oid = accessor->CreateIndex(
+      accessor->GetDefaultNamespace(), customer_table_oid, "CUSTOMER PRIMARY", customer_primary_index_schema);
+  const catalog::index_oid_t customer_secondary_index_oid = accessor->CreateIndex(
+      accessor->GetDefaultNamespace(), customer_table_oid, "WAREHOUSE SECONDARY", customer_secondary_index_schema);
+  const catalog::index_oid_t new_order_primary_index_oid = accessor->CreateIndex(
+      accessor->GetDefaultNamespace(), new_order_table_oid, "NEW ORDER PRIMARY", new_order_primary_index_schema);
+  const catalog::index_oid_t order_primary_index_oid = accessor->CreateIndex(
+      accessor->GetDefaultNamespace(), order_table_oid, "ORDER PRIMARY", order_primary_index_schema);
+  const catalog::index_oid_t order_secondary_index_oid = accessor->CreateIndex(
+      accessor->GetDefaultNamespace(), order_table_oid, "ORDER SECONDARY", order_secondary_index_schema);
+  const catalog::index_oid_t order_line_primary_index_oid = accessor->CreateIndex(
+      accessor->GetDefaultNamespace(), order_line_table_oid, "ORDER LINE PRIMARY", order_line_primary_index_schema);
+  const catalog::index_oid_t item_primary_index_oid =
+      accessor->CreateIndex(accessor->GetDefaultNamespace(), item_table_oid, "ITEM PRIMARY", item_primary_index_schema);
+  const catalog::index_oid_t stock_primary_index_oid = accessor->CreateIndex(
+      accessor->GetDefaultNamespace(), stock_table_oid, "STOCK PRIMARY", stock_primary_index_schema);
+  TERRIER_ASSERT(warehouse_primary_index_oid != catalog::INVALID_INDEX_OID, "Failed to create index.");
+  TERRIER_ASSERT(district_primary_index_oid != catalog::INVALID_INDEX_OID, "Failed to create index.");
+  TERRIER_ASSERT(customer_primary_index_oid != catalog::INVALID_INDEX_OID, "Failed to create index.");
+  TERRIER_ASSERT(customer_secondary_index_oid != catalog::INVALID_INDEX_OID, "Failed to create index.");
+  TERRIER_ASSERT(new_order_primary_index_oid != catalog::INVALID_INDEX_OID, "Failed to create index.");
+  TERRIER_ASSERT(order_primary_index_oid != catalog::INVALID_INDEX_OID, "Failed to create index.");
+  TERRIER_ASSERT(order_secondary_index_oid != catalog::INVALID_INDEX_OID, "Failed to create index.");
+  TERRIER_ASSERT(order_line_primary_index_oid != catalog::INVALID_INDEX_OID, "Failed to create index.");
+  TERRIER_ASSERT(item_primary_index_oid != catalog::INVALID_INDEX_OID, "Failed to create index.");
+  TERRIER_ASSERT(stock_primary_index_oid != catalog::INVALID_INDEX_OID, "Failed to create index.");
+
+  txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+
+  // get the schemas from the catalog
+  txn = txn_manager_->BeginTransaction();
+  accessor = catalog_->GetAccessor(txn, db_oid);
+
+  warehouse_primary_index_schema = accessor->GetIndexSchema(warehouse_primary_index_oid);
+  district_primary_index_schema = accessor->GetIndexSchema(district_primary_index_oid);
+  customer_primary_index_schema = accessor->GetIndexSchema(customer_primary_index_oid);
+  customer_secondary_index_schema = accessor->GetIndexSchema(customer_secondary_index_oid);
+  new_order_primary_index_schema = accessor->GetIndexSchema(new_order_primary_index_oid);
+  order_primary_index_schema = accessor->GetIndexSchema(order_primary_index_oid);
+  order_secondary_index_schema = accessor->GetIndexSchema(order_secondary_index_oid);
+  order_line_primary_index_schema = accessor->GetIndexSchema(order_line_primary_index_oid);
+  item_primary_index_schema = accessor->GetIndexSchema(item_primary_index_oid);
+  stock_primary_index_schema = accessor->GetIndexSchema(stock_primary_index_oid);
+
+  txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+
+  // instantiate and set the index pointers in the catalog
+  txn = txn_manager_->BeginTransaction();
+  accessor = catalog_->GetAccessor(txn, db_oid);
+
+  result = accessor->SetIndexPointer(warehouse_primary_index_oid, BuildIndex(warehouse_primary_index_schema));
+  TERRIER_ASSERT(result, "Failed to set index pointer.");
+  result = accessor->SetIndexPointer(district_primary_index_oid, BuildIndex(district_primary_index_schema));
+  TERRIER_ASSERT(result, "Failed to set index pointer.");
+  result = accessor->SetIndexPointer(customer_primary_index_oid, BuildIndex(customer_primary_index_schema));
+  TERRIER_ASSERT(result, "Failed to set index pointer.");
+  result = accessor->SetIndexPointer(customer_secondary_index_oid, BuildIndex(customer_secondary_index_schema));
+  TERRIER_ASSERT(result, "Failed to set index pointer.");
+  result = accessor->SetIndexPointer(new_order_primary_index_oid, BuildIndex(new_order_primary_index_schema));
+  TERRIER_ASSERT(result, "Failed to set index pointer.");
+  result = accessor->SetIndexPointer(order_primary_index_oid, BuildIndex(order_primary_index_schema));
+  TERRIER_ASSERT(result, "Failed to set index pointer.");
+  result = accessor->SetIndexPointer(order_secondary_index_oid, BuildIndex(order_secondary_index_schema));
+  TERRIER_ASSERT(result, "Failed to set index pointer.");
+  result = accessor->SetIndexPointer(order_line_primary_index_oid, BuildIndex(order_line_primary_index_schema));
+  TERRIER_ASSERT(result, "Failed to set index pointer.");
+  result = accessor->SetIndexPointer(item_primary_index_oid, BuildIndex(item_primary_index_schema));
+  TERRIER_ASSERT(result, "Failed to set index pointer.");
+  result = accessor->SetIndexPointer(stock_primary_index_oid, BuildIndex(stock_primary_index_schema));
+  TERRIER_ASSERT(result, "Failed to set index pointer.");
+
+  txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+
+  // get the table pointers back from the catalog
+  txn = txn_manager_->BeginTransaction();
+  accessor = catalog_->GetAccessor(txn, db_oid);
+
+  const auto warehouse_index = accessor->GetIndex(warehouse_primary_index_oid);
+  const auto district_index = accessor->GetIndex(district_primary_index_oid);
+  const auto customer_index = accessor->GetIndex(customer_primary_index_oid);
+  const auto customer_secondary_index = accessor->GetIndex(customer_secondary_index_oid);
+  const auto new_order_index = accessor->GetIndex(new_order_primary_index_oid);
+  const auto order_index = accessor->GetIndex(order_primary_index_oid);
+  const auto order_secondary_index = accessor->GetIndex(order_secondary_index_oid);
+  const auto order_line_index = accessor->GetIndex(order_line_primary_index_oid);
+  const auto item_index = accessor->GetIndex(item_primary_index_oid);
+  const auto stock_index = accessor->GetIndex(stock_primary_index_oid);
+
+  txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
   // Verify that we got the indexes and key types that we expect out of the builder
   if (index_type == storage::index::IndexType::HASHMAP) {
@@ -178,18 +352,6 @@ Database *Builder::Build(const storage::index::IndexType index_type) {
     TERRIER_ASSERT(stock_index->KeyKind() == storage::index::IndexKeyKind::COMPACTINTSKEY,
                    "Constructed the wrong index key type.");
   }
-
-  const catalog::db_oid_t db_oid(++oid_counter_);
-
-  const catalog::table_oid_t item_table_oid(++oid_counter_);
-  const catalog::table_oid_t warehouse_table_oid(++oid_counter_);
-  const catalog::table_oid_t stock_table_oid(++oid_counter_);
-  const catalog::table_oid_t district_table_oid(++oid_counter_);
-  const catalog::table_oid_t customer_table_oid(++oid_counter_);
-  const catalog::table_oid_t history_table_oid(++oid_counter_);
-  const catalog::table_oid_t new_order_table_oid(++oid_counter_);
-  const catalog::table_oid_t order_table_oid(++oid_counter_);
-  const catalog::table_oid_t order_line_table_oid(++oid_counter_);
 
   return new Database(item_schema, warehouse_schema, stock_schema, district_schema, customer_schema, history_schema,
                       new_order_schema, order_schema, order_line_schema,

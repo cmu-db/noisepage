@@ -80,7 +80,7 @@ class ChildStatsDeriver : public OperatorVisitor {
    * Function for passing down a single column
    * @param col Column to passdown
    */
-  void PassDownColumn(const parser::AbstractExpression *col);
+  void PassDownColumn(common::ManagedPointer<parser::AbstractExpression> col);
 
   /**
    * Set of required child stats columns

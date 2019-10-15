@@ -1,3 +1,4 @@
+/*
 #include <string>
 
 #include "util/test_harness.h"
@@ -45,3 +46,4 @@ TEST_F(TpccPlanOrderStatusTests, CustomerByName) {
 }
 
 }  // namespace terrier
+*/

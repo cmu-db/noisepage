@@ -53,11 +53,17 @@ class DeletePlanNode : public AbstractPlanNode {
     }
 
     /**
+     * @param delete_stmt the SQL DELETE statement
+     * @return builder object
+     */
+    Builder &SetFromDeleteStatement(parser::DeleteStatement *delete_stmt) { return *this; }
+
+    /**
      * Build the delete plan node
      * @return plan node
      */
-    std::shared_ptr<DeletePlanNode> Build() {
-      return std::shared_ptr<DeletePlanNode>(new DeletePlanNode(std::move(children_), std::move(output_schema_),
+    std::unique_ptr<DeletePlanNode> Build() {
+      return std::unique_ptr<DeletePlanNode>(new DeletePlanNode(std::move(children_), std::move(output_schema_),
                                                                 database_oid_, namespace_oid_, table_oid_));
     }
 
@@ -86,7 +92,7 @@ class DeletePlanNode : public AbstractPlanNode {
    * @param namespace_oid OID of the namespace
    * @param table_oid the OID of the target SQL table
    */
-  DeletePlanNode(std::vector<std::shared_ptr<AbstractPlanNode>> &&children, std::shared_ptr<OutputSchema> output_schema,
+  DeletePlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children, std::unique_ptr<OutputSchema> output_schema,
                  catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid)
       : AbstractPlanNode(std::move(children), std::move(output_schema)),
         database_oid_(database_oid),
@@ -118,20 +124,16 @@ class DeletePlanNode : public AbstractPlanNode {
    */
   catalog::table_oid_t GetTableOid() const { return table_oid_; }
 
-  /**
-   * @return the type of this plan node
-   */
+  /** @return the type of this plan node */
   PlanNodeType GetPlanNodeType() const override { return PlanNodeType::DELETE; }
 
-  /**
-   * @return the hashed value of this plan node
-   */
+  /** @return the hashed value of this plan node */
   common::hash_t Hash() const override;
 
   bool operator==(const AbstractPlanNode &rhs) const override;
 
   nlohmann::json ToJson() const override;
-  void FromJson(const nlohmann::json &j) override;
+  std::vector<std::unique_ptr<parser::AbstractExpression>> FromJson(const nlohmann::json &j) override;
 
  private:
   /**

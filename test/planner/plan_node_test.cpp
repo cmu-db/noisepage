@@ -21,11 +21,11 @@ namespace terrier::planner {
 
 class PlanNodeTest : public TerrierTest {
  public:
-  static std::shared_ptr<OutputSchema> BuildOneColumnSchema(std::string name, const type::TypeId type) {
+  static std::unique_ptr<OutputSchema> BuildOneColumnSchema(std::string name, const type::TypeId type) {
     OutputSchema::Column col(std::move(name), type);
     std::vector<OutputSchema::Column> cols;
     cols.push_back(col);
-    auto schema = std::make_shared<OutputSchema>(cols);
+    auto schema = std::make_unique<OutputSchema>(cols);
     return schema;
   }
 };
@@ -89,7 +89,7 @@ TEST(PlanNodeTest, AnalyzePlanTest) {
     auto plan3 = builder3.SetDatabaseOid(other_db_oid)
                      .SetNamespaceOid(other_ns_oid)
                      .SetTableOid(other_table_oid)
-                     .SetOutputSchema(other_schema)
+                     .SetOutputSchema(std::move(other_schema))
                      .Build();
     EXPECT_NE(*plan, *plan3);
     EXPECT_NE(plan->Hash(), plan3->Hash());
@@ -99,9 +99,9 @@ TEST(PlanNodeTest, AnalyzePlanTest) {
 // NOLINTNEXTLINE
 TEST(PlanNodeTest, CreateDatabasePlanTest) {
   parser::PostgresParser pgparser;
-  auto stms = pgparser.BuildParseTree("CREATE DATABASE test");
-  EXPECT_EQ(1, stms.size());
-  auto *create_stmt = static_cast<parser::CreateStatement *>(stms[0].get());
+  auto result = pgparser.BuildParseTree("CREATE DATABASE test");
+  EXPECT_EQ(1, result.GetStatements().size());
+  auto *create_stmt = static_cast<parser::CreateStatement *>(result.TakeStatementsOwnership()[0].release());
 
   CreateDatabasePlanNode::Builder builder;
   auto plan = builder.SetFromCreateStatement(create_stmt).Build();
@@ -109,14 +109,15 @@ TEST(PlanNodeTest, CreateDatabasePlanTest) {
   EXPECT_TRUE(plan != nullptr);
   EXPECT_STREQ("test", plan->GetDatabaseName().c_str());
   EXPECT_EQ(PlanNodeType::CREATE_DATABASE, plan->GetPlanNodeType());
+  delete create_stmt;
 }
 
 // NOLINTNEXTLINE
 TEST(PlanNodeTest, DropDatabasePlanTest) {
   parser::PostgresParser pgparser;
-  auto stms = pgparser.BuildParseTree("DROP DATABASE test");
-  EXPECT_EQ(1, stms.size());
-  auto *drop_stmt = static_cast<parser::DropStatement *>(stms[0].get());
+  auto result = pgparser.BuildParseTree("DROP DATABASE test");
+  EXPECT_EQ(1, result.GetStatements().size());
+  auto *drop_stmt = static_cast<parser::DropStatement *>(result.TakeStatementsOwnership()[0].release());
 
   DropDatabasePlanNode::Builder builder;
   auto plan = builder.SetDatabaseOid(catalog::db_oid_t(0)).SetFromDropStatement(drop_stmt).Build();
@@ -125,14 +126,15 @@ TEST(PlanNodeTest, DropDatabasePlanTest) {
   EXPECT_EQ(catalog::db_oid_t(0), plan->GetDatabaseOid());
   EXPECT_FALSE(plan->IsIfExists());
   EXPECT_EQ(PlanNodeType::DROP_DATABASE, plan->GetPlanNodeType());
+  delete drop_stmt;
 }
 
 // NOLINTNEXTLINE
 TEST(PlanNodeTest, DropDatabasePlanIfExistsTest) {
   parser::PostgresParser pgparser;
-  auto stms = pgparser.BuildParseTree("DROP DATABASE IF EXISTS test");
-  EXPECT_EQ(1, stms.size());
-  auto *drop_stmt = static_cast<parser::DropStatement *>(stms[0].get());
+  auto result = pgparser.BuildParseTree("DROP DATABASE IF EXISTS test");
+  EXPECT_EQ(1, result.GetStatements().size());
+  auto *drop_stmt = static_cast<parser::DropStatement *>(result.TakeStatementsOwnership()[0].release());
 
   DropDatabasePlanNode::Builder builder;
   auto plan = builder.SetDatabaseOid(catalog::db_oid_t(0)).SetFromDropStatement(drop_stmt).Build();
@@ -141,6 +143,7 @@ TEST(PlanNodeTest, DropDatabasePlanIfExistsTest) {
   EXPECT_EQ(catalog::db_oid_t(0), plan->GetDatabaseOid());
   EXPECT_TRUE(plan->IsIfExists());
   EXPECT_EQ(PlanNodeType::DROP_DATABASE, plan->GetPlanNodeType());
+  delete drop_stmt;
 }
 
 // Test creation of simple two table join.
@@ -151,15 +154,16 @@ TEST(PlanNodeTest, HashJoinPlanTest) {
   HashPlanNode::Builder hash_builder;
   HashJoinPlanNode::Builder hash_join_builder;
 
+  auto scan_pred_1 = std::make_unique<parser::StarExpression>();
   // Build left scan
-  auto predicate = new parser::StarExpression();
-  auto seq_scan_1 = seq_scan_builder.SetOutputSchema(PlanNodeTest::BuildOneColumnSchema("col1", type::TypeId::INTEGER))
-                        .SetTableOid(catalog::table_oid_t(1))
-                        .SetDatabaseOid(catalog::db_oid_t(0))
-                        .SetScanPredicate(predicate)
-                        .SetIsForUpdateFlag(false)
-                        .SetIsParallelFlag(true)
-                        .Build();
+  auto seq_scan_1 =
+      seq_scan_builder.SetOutputSchema(PlanNodeTest::BuildOneColumnSchema("col1", type::TypeId::INTEGER))
+          .SetTableOid(catalog::table_oid_t(1))
+          .SetDatabaseOid(catalog::db_oid_t(0))
+          .SetScanPredicate(common::ManagedPointer(scan_pred_1).CastManagedPointerTo<parser::AbstractExpression>())
+          .SetIsForUpdateFlag(false)
+          .SetIsParallelFlag(true)
+          .Build();
 
   EXPECT_EQ(PlanNodeType::SEQSCAN, seq_scan_1->GetPlanNodeType());
   EXPECT_EQ(0, seq_scan_1->GetChildrenSize());
@@ -169,13 +173,15 @@ TEST(PlanNodeTest, HashJoinPlanTest) {
   EXPECT_FALSE(seq_scan_1->IsForUpdate());
   EXPECT_TRUE(seq_scan_1->IsParallel());
 
-  auto seq_scan_2 = seq_scan_builder.SetOutputSchema(PlanNodeTest::BuildOneColumnSchema("col2", type::TypeId::INTEGER))
-                        .SetTableOid(catalog::table_oid_t(2))
-                        .SetDatabaseOid(catalog::db_oid_t(0))
-                        .SetScanPredicate(predicate)
-                        .SetIsForUpdateFlag(false)
-                        .SetIsParallelFlag(true)
-                        .Build();
+  auto scan_pred_2 = std::make_unique<parser::StarExpression>();
+  auto seq_scan_2 =
+      seq_scan_builder.SetOutputSchema(PlanNodeTest::BuildOneColumnSchema("col2", type::TypeId::INTEGER))
+          .SetTableOid(catalog::table_oid_t(2))
+          .SetDatabaseOid(catalog::db_oid_t(0))
+          .SetScanPredicate(common::ManagedPointer(scan_pred_2).CastManagedPointerTo<parser::AbstractExpression>())
+          .SetIsForUpdateFlag(false)
+          .SetIsParallelFlag(true)
+          .Build();
 
   EXPECT_EQ(PlanNodeType::SEQSCAN, seq_scan_2->GetPlanNodeType());
   EXPECT_EQ(0, seq_scan_2->GetChildrenSize());
@@ -185,8 +191,9 @@ TEST(PlanNodeTest, HashJoinPlanTest) {
   EXPECT_FALSE(seq_scan_2->IsForUpdate());
   EXPECT_TRUE(seq_scan_2->IsParallel());
 
+  auto hash_key = std::make_unique<parser::ColumnValueExpression>("table2", "col2");
   auto hash_plan = hash_builder.SetOutputSchema(PlanNodeTest::BuildOneColumnSchema("col2", type::TypeId::INTEGER))
-                       .AddHashKey(new parser::ColumnValueExpression("col2", "table2"))
+                       .AddHashKey(common::ManagedPointer(hash_key).CastManagedPointerTo<parser::AbstractExpression>())
                        .AddChild(std::move(seq_scan_2))
                        .Build();
 
@@ -195,37 +202,40 @@ TEST(PlanNodeTest, HashJoinPlanTest) {
   EXPECT_EQ(1, hash_plan->GetHashKeys().size());
   EXPECT_EQ(parser::ExpressionType::COLUMN_VALUE, hash_plan->GetHashKeys()[0]->GetExpressionType());
 
-  std::vector<const parser::AbstractExpression *> expr_children;
-  expr_children.push_back(new parser::ColumnValueExpression("col1", "table1"));
-  expr_children.push_back(new parser::ColumnValueExpression("col2", "table2"));
+  std::vector<std::unique_ptr<parser::AbstractExpression>> expr_children;
+  expr_children.push_back(std::make_unique<parser::ColumnValueExpression>("table1", "col1"));
+  expr_children.push_back(std::make_unique<parser::ColumnValueExpression>("table2", "col2"));
   auto cmp_expression =
-      new parser::ComparisonExpression(parser::ExpressionType::COMPARE_EQUAL, std::move(expr_children));
+      std::make_unique<parser::ComparisonExpression>(parser::ExpressionType::COMPARE_EQUAL, std::move(expr_children));
 
-  auto hash_join_plan = hash_join_builder.SetJoinType(LogicalJoinType::INNER)
-                            .SetOutputSchema(PlanNodeTest::BuildOneColumnSchema("col1", type::TypeId::INTEGER))
-                            .SetJoinPredicate(cmp_expression)
-                            .AddChild(std::move(seq_scan_1))
-                            .AddChild(std::move(hash_plan))
-                            .Build();
+  auto hash_join_plan =
+      hash_join_builder.SetJoinType(LogicalJoinType::INNER)
+          .SetOutputSchema(PlanNodeTest::BuildOneColumnSchema("col1", type::TypeId::INTEGER))
+          .SetJoinPredicate(common::ManagedPointer(cmp_expression).CastManagedPointerTo<parser::AbstractExpression>())
+          .AddChild(std::move(seq_scan_1))
+          .AddChild(std::move(hash_plan))
+          .Build();
 
   EXPECT_EQ(PlanNodeType::HASHJOIN, hash_join_plan->GetPlanNodeType());
   EXPECT_EQ(2, hash_join_plan->GetChildrenSize());
   EXPECT_EQ(LogicalJoinType::INNER, hash_join_plan->GetLogicalJoinType());
   EXPECT_EQ(parser::ExpressionType::COMPARE_EQUAL, hash_join_plan->GetJoinPredicate()->GetExpressionType());
-
-  delete predicate;
 }
 
 // NOLINTNEXTLINE
 TEST(PlanNodeTest, AggregatePlanTest) {
-  auto *predicate = new parser::StarExpression();
-  auto *cve = new parser::ColumnValueExpression("tbl", "col1");
-  auto *aggr_term = new parser::AggregateExpression(parser::ExpressionType::AGGREGATE_COUNT, {cve}, false);
+  parser::AbstractExpression *predicate = new parser::StarExpression();
+  auto cve = std::make_unique<parser::ColumnValueExpression>("tbl", "col1");
+  std::vector<std::unique_ptr<parser::AbstractExpression>> children;
+  children.emplace_back(std::move(cve));
+
+  auto *aggr_term =
+      new parser::AggregateExpression(parser::ExpressionType::AGGREGATE_COUNT, std::move(children), false);
 
   planner::AggregatePlanNode::Builder builder;
-  builder.AddAggregateTerm(aggr_term);
+  builder.AddAggregateTerm(common::ManagedPointer(aggr_term));
   builder.SetGroupByColOffsets({0});
-  builder.SetHavingClausePredicate(predicate);
+  builder.SetHavingClausePredicate(common::ManagedPointer(predicate));
   builder.SetAggregateStrategyType(planner::AggregateStrategyType::HASH);
   builder.SetOutputSchema(PlanNodeTest::BuildOneColumnSchema("col1", type::TypeId::INTEGER));
   auto plan = builder.Build();
@@ -238,13 +248,12 @@ TEST(PlanNodeTest, AggregatePlanTest) {
   EXPECT_EQ(*plan->GetHavingClausePredicate(), *predicate);
 
   planner::AggregatePlanNode::Builder builder2;
-  auto aggr_copy = reinterpret_cast<const parser::AggregateExpression *>(aggr_term->Copy());
-  auto nc_aggr = const_cast<parser::AggregateExpression *>(aggr_copy);
+  auto nc_aggr = dynamic_cast<parser::AggregateExpression *>(aggr_term->Copy().release());
   auto predicate2 = predicate->Copy();
 
-  builder2.AddAggregateTerm(nc_aggr);
+  builder2.AddAggregateTerm(common::ManagedPointer(nc_aggr));
   builder2.SetGroupByColOffsets({0});
-  builder2.SetHavingClausePredicate(predicate2);
+  builder2.SetHavingClausePredicate(common::ManagedPointer(predicate2));
   builder2.SetAggregateStrategyType(planner::AggregateStrategyType::HASH);
   builder2.SetOutputSchema(PlanNodeTest::BuildOneColumnSchema("col1", type::TypeId::INTEGER));
   auto plan2 = builder2.Build();
@@ -257,21 +266,22 @@ TEST(PlanNodeTest, AggregatePlanTest) {
     auto other_predicate = predicate->Copy();
     std::vector<unsigned> col_offsets = {0};
     auto other_strategy = planner::AggregateStrategyType::HASH;
-    auto other_aggr = aggr_term->Copy();
+    parser::AggregateExpression *other_aggr = dynamic_cast<parser::AggregateExpression *>(aggr_term->Copy().release());
     auto other_schema = PlanNodeTest::BuildOneColumnSchema("col1", type::TypeId::INTEGER);
 
     switch (i) {
       case 0:
-        delete other_predicate;
-        other_predicate = new parser::ColumnValueExpression("tbl", "col");
+        other_predicate = std::make_unique<parser::ColumnValueExpression>("tbl", "col");
         break;
       case 1:
         col_offsets = {1, 2};
         break;
       case 2: {
+        auto o_cve = std::make_unique<parser::ColumnValueExpression>("tbl", "col");
+        std::vector<std::unique_ptr<parser::AbstractExpression>> children;
+        children.emplace_back(std::move(o_cve));
         delete other_aggr;
-        auto *o_cve = new parser::ColumnValueExpression("tbl", "col");
-        other_aggr = new parser::AggregateExpression(parser::ExpressionType::AGGREGATE_MAX, {o_cve}, false);
+        other_aggr = new parser::AggregateExpression(parser::ExpressionType::AGGREGATE_MAX, std::move(children), false);
         break;
       }
       case 3:
@@ -279,19 +289,21 @@ TEST(PlanNodeTest, AggregatePlanTest) {
         break;
     }
 
-    auto other_aggr_term = reinterpret_cast<const parser::AggregateExpression *>(other_aggr);
-    auto nc_other_aggr = const_cast<parser::AggregateExpression *>(other_aggr_term);
-
     planner::AggregatePlanNode::Builder builder3;
-    auto plan3 = builder3.AddAggregateTerm(nc_other_aggr)
+    auto plan3 = builder3.AddAggregateTerm(common::ManagedPointer(other_aggr))
                      .SetGroupByColOffsets(col_offsets)
-                     .SetHavingClausePredicate(other_predicate)
+                     .SetHavingClausePredicate(common::ManagedPointer(other_predicate))
                      .SetAggregateStrategyType(other_strategy)
-                     .SetOutputSchema(other_schema)
+                     .SetOutputSchema(std::move(other_schema))
                      .Build();
     EXPECT_NE(*plan, *plan3);
     EXPECT_NE(plan->Hash(), plan3->Hash());
+    delete other_aggr;
   }
+
+  delete aggr_term;
+  delete nc_aggr;
+  delete predicate;
 }
 
 // NOLINTNEXTLINE
@@ -410,7 +422,7 @@ TEST(PlanNodeTest, CSVScanPlanTest) {
                      .SetEscape(o_escape)
                      .SetNullString(o_null_string)
                      .SetValueTypes(o_value_types)
-                     .SetOutputSchema(o_schema)
+                     .SetOutputSchema(std::move(o_schema))
                      .Build();
     EXPECT_NE(*plan, *plan3);
     EXPECT_NE(plan->Hash(), plan3->Hash());

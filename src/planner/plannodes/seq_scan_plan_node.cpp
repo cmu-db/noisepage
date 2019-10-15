@@ -1,3 +1,5 @@
+#include <memory>
+#include <utility>
 #include <vector>
 
 #include "common/hash_util.h"
@@ -26,10 +28,13 @@ nlohmann::json SeqScanPlanNode::ToJson() const {
   return j;
 }
 
-void SeqScanPlanNode::FromJson(const nlohmann::json &j) {
-  AbstractScanPlanNode::FromJson(j);
+std::vector<std::unique_ptr<parser::AbstractExpression>> SeqScanPlanNode::FromJson(const nlohmann::json &j) {
+  std::vector<std::unique_ptr<parser::AbstractExpression>> exprs;
+  auto e1 = AbstractScanPlanNode::FromJson(j);
+  exprs.insert(exprs.end(), std::make_move_iterator(e1.begin()), std::make_move_iterator(e1.end()));
   column_ids_ = j.at("column_ids").get<std::vector<catalog::col_oid_t>>();
   table_oid_ = j.at("table_oid").get<catalog::table_oid_t>();
+  return exprs;
 }
 
 }  // namespace terrier::planner

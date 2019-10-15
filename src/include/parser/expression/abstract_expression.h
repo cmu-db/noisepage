@@ -19,21 +19,23 @@ class PlanGenerator;
 
 namespace terrier::parser {
 /**
- * An abstract parser expression. Dumb and immutable.
+ * AbstractExpression is the base class of any expression which is output from the parser.
+ *
+ * TODO(WAN): So these are supposed to be dumb and immutable, but we're cheating in the binder. Figure out how to
+ * document these assumptions exactly.
  */
 class AbstractExpression {
   friend class PlanGenerator;  // Access to DeriveReturnValueType
 
  protected:
   /**
-   * Instantiates a new abstract expression. Because these are logical expressions, everything should be known
-   * at the time of instantiation, i.e. the resulting object is immutable.
+   * Instantiates a new abstract expression.
    * @param expression_type what type of expression we have
    * @param return_value_type the type of the expression's value
    * @param children the list of children for this node
    */
   AbstractExpression(const ExpressionType expression_type, const type::TypeId return_value_type,
-                     std::vector<const AbstractExpression *> children)
+                     std::vector<std::unique_ptr<AbstractExpression>> &&children)
       : expression_type_(expression_type), return_value_type_(return_value_type), children_(std::move(children)) {}
   /**
    * Instantiates a new abstract expression with alias used for select statement column references.
@@ -43,7 +45,7 @@ class AbstractExpression {
    * @param children the list of children for this node
    */
   AbstractExpression(const ExpressionType expression_type, const type::TypeId return_value_type, std::string alias,
-                     std::vector<const AbstractExpression *> children)
+                     std::vector<std::unique_ptr<AbstractExpression>> &&children)
       : expression_type_(expression_type),
         alias_(std::move(alias)),
         return_value_type_(return_value_type),
@@ -75,19 +77,28 @@ class AbstractExpression {
    */
   void SetDepth(int depth) { depth_ = depth; }
 
- public:
-  virtual ~AbstractExpression() {
-    for (auto *child : children_) {
-      delete child;
-    }
+  /**
+   * Copies the mutable state of copy_expr. This should only be used for copying where we don't need to
+   * re-derive the expression.
+   * @param copy_expr the expression whose mutable state should be copied
+   */
+  void SetMutableStateForCopy(const AbstractExpression &copy_expr) {
+    SetExpressionName(copy_expr.GetExpressionName());
+    SetReturnValueType(copy_expr.GetReturnValueType());
+    SetDepth(copy_expr.GetDepth());
+    has_subquery_ = copy_expr.HasSubquery();
+    alias_ = copy_expr.alias_;
   }
+
+ public:
+  virtual ~AbstractExpression() = default;
 
   /**
    * Hashes the current abstract expression.
    */
   virtual common::hash_t Hash() const {
     common::hash_t hash = common::HashUtil::Hash(expression_type_);
-    for (const auto *child : children_) {
+    for (const auto &child : children_) {
       hash = common::HashUtil::CombineHashes(hash, child->Hash());
     }
     hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(return_value_type_));
@@ -125,19 +136,23 @@ class AbstractExpression {
 
   /**
    * Creates a deep copy of the current AbstractExpression.
-   * @warning Should be called sparingly and under careful consideration. A shallow copy will do most times. Consider
-   * that AbstractExpression trees can be very large, and a deep copy can be expensive
-   * @warning It is incorrect to supply a default implementation here since that will return an object of base type
-   * AbstractExpression instead of the desired non-abstract type.
+   *
+   * Transplanted comment from subquery_expression.h,
+   * TODO(WAN): Previous codebase described as a hack, will we need a deep copy?
+   * Tianyu: No need for deep copy if your objects are always immutable! (why even copy at all, but that's beyond me)
+   * Wan: objects are becoming mutable again..
    */
-  virtual const AbstractExpression *Copy() const = 0;
+  // It is incorrect to supply a default implementation here since that will return an object
+  // of base type AbstractExpression instead of the desired non-abstract type.
+  virtual std::unique_ptr<AbstractExpression> Copy() const = 0;
 
   /**
    * Creates a copy of the current AbstractExpression with new children implanted.
    * The children should not be owned by any other AbstractExpression.
    * @param children New children to be owned by the copy
    */
-  virtual const AbstractExpression *CopyWithChildren(std::vector<const AbstractExpression *> children) const = 0;
+  virtual std::unique_ptr<AbstractExpression> CopyWithChildren(
+      std::vector<std::unique_ptr<AbstractExpression>> &&children) const = 0;
 
   /**
    * @return type of this expression
@@ -154,18 +169,26 @@ class AbstractExpression {
    */
   size_t GetChildrenSize() const { return children_.size(); }
 
+  /** @return children of this abstract expression */
+  std::vector<common::ManagedPointer<AbstractExpression>> GetChildren() const {
+    std::vector<common::ManagedPointer<AbstractExpression>> children;
+    children.reserve(children_.size());
+    for (const auto &child : children_) {
+      children.emplace_back(common::ManagedPointer(child));
+    }
+    return children;
+  }
+
   /**
    * @param index index of child
    * @return child of abstract expression at that index
    */
-  common::ManagedPointer<const AbstractExpression> GetChild(uint64_t index) const {
+  common::ManagedPointer<AbstractExpression> GetChild(uint64_t index) const {
     TERRIER_ASSERT(index < children_.size(), "Index must be in bounds.");
-    return common::ManagedPointer<const AbstractExpression>(children_[index]);
+    return common::ManagedPointer(children_[index]);
   }
 
-  /**
-   * @return Name of the expression.
-   */
+  /** @return Name of the expression. */
   const std::string &GetExpressionName() const { return expression_name_; }
 
   /**
@@ -173,9 +196,7 @@ class AbstractExpression {
    */
   virtual void DeriveExpressionName();
 
-  /**
-   * @return alias of this abstract expression
-   */
+  /** @return alias of this abstract expression */
   const std::string &GetAlias() const { return alias_; }
 
   /**
@@ -183,39 +204,36 @@ class AbstractExpression {
    */
   virtual void DeriveReturnValueType() {}
 
-  /**
-   * @param v Visitor pattern for the expression
-   */
+  // TODO(WAN): it looks like we are returning to Peloton style Accept calls AcceptChildren calls Accept, must we?
+
+  /** @param v Visitor pattern for the expression */
   virtual void Accept(SqlNodeVisitor *v) = 0;
 
-  /**
-   * @param v Visitor pattern for the expression
-   */
+  /** @param v Visitor pattern for the expression */
   virtual void AcceptChildren(SqlNodeVisitor *v) {
     for (auto &child : children_) {
-      const_cast<parser::AbstractExpression *>(child)->Accept(v);
+      child->Accept(v);
     }
   }
 
-  /**
-   * @return The sub-query depth level
-   */
+  /** @return the sub-query depth level (SEE COMMENT in depth_) */
   int GetDepth() const { return depth_; }
 
   /**
    * Derive the sub-query depth level of the current expression
-   * @return the derived depth
+   * @return the derived depth (SEE COMMENT in depth_)
    */
   virtual int DeriveDepth();
 
-  /**
-   * @return The sub-query flag that tells if the current expression contain a sub-query
-   */
+  /** @return true iff the current expression contains a subquery
+   * DeriveSubqueryFlag() MUST be called between modifications to this expression or its children for this
+   * function to return a meaningful value.
+   * */
   bool HasSubquery() const { return has_subquery_; }
 
   /**
    * Derive if there's sub-query in the current expression
-   * @return If there is sub-query, then return true, otherwise return false
+   * @return true iff the current expression contains a subquery
    */
   virtual bool DeriveSubqueryFlag();
 
@@ -229,54 +247,64 @@ class AbstractExpression {
    * Derived expressions should call this base method
    * @param j json to deserialize
    */
-  virtual void FromJson(const nlohmann::json &j);
+  virtual std::vector<std::unique_ptr<AbstractExpression>> FromJson(const nlohmann::json &j);
 
  protected:
-  /**
-   * type of current expression
-   */
+  /** Type of the current expression */
   ExpressionType expression_type_;
-
-  /**
-   * Name of the current expression
-   */
+  /** MUTABLE Name of the current expression */
   std::string expression_name_;
-
-  /**
-   * Alias of the current expression
-   */
+  /** Alias of the current expression */
   std::string alias_;
-
-  /**
-   * Type of the return value
-   */
+  /** Type of the return value */
   type::TypeId return_value_type_;
 
   /**
-   * The current sub-query depth level in the current expression, -1
-   *  stands for not derived
+   * MUTABLE Sub-query depth level for the current expression.
+   *
+   * Per LING, depth is used to detect correlated subquery.
+   * Note that depth might still be -1 after calling DeriveDepth().
+   *
+   * DeriveDepth() MUST be called on this expression tree whenever the structure of the tree is modified.
+   * -1 indicates that the depth has not been set, but we have no safeguard for maintaining accurate depths between
+   * tree modifications.
    */
   int depth_ = -1;
 
   /**
-   * The flag indicating if there's sub-query in the current expression
+   * MUTABLE Flag indicating if there's a sub-query in the current expression or in any of its children.
+   * Per LING, this is required to detect the query predicate IsSupportedConjunctivePredicate.
    */
   bool has_subquery_ = false;
 
-  /**
-   * List of children expressions
-   */
-  std::vector<const AbstractExpression *> children_;
+  /** List of children expressions. */
+  std::vector<std::unique_ptr<AbstractExpression>> children_;
 };
 
-DEFINE_JSON_DECLARATIONS(AbstractExpression);
+DEFINE_JSON_DECLARATIONS(AbstractExpression)
 
 /**
- * This should be the primary function used to deserialize an expression
- * @param json json to deserialize
- * @return pointer to deserialized expression
+ * To deserialize JSON expressions, we need to maintain a separate vector of all the unique pointers to expressions
+ * that were created but not owned by deserialized objects.
  */
-AbstractExpression *DeserializeExpression(const nlohmann::json &j);
+struct JSONDeserializeExprIntermediate {
+  /**
+   * The primary abstract expression result.
+   */
+  std::unique_ptr<AbstractExpression> result_;
+  /**
+   * Non-owned expressions that were created during deserialization that are contained inside the abstract expression.
+   */
+  std::vector<std::unique_ptr<AbstractExpression>> non_owned_exprs_;
+};
+
+/**
+ * DeserializeExpression is the primary function used to deserialize arbitrary expressions.
+ * It will switch on the type in the JSON object to construct the appropriate expression.
+ * @param json json to deserialize
+ * @return intermediate result for deserialized JSON
+ */
+JSONDeserializeExprIntermediate DeserializeExpression(const nlohmann::json &j);
 
 }  // namespace terrier::parser
 

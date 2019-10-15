@@ -123,31 +123,35 @@ class LogSerializerTask : public common::DedicatedThreadTask {
   /**
    * Serialize out the task buffer to the current serialization buffer
    * @param buffer_to_serialize the iterator to the redo buffer to be serialized
+   * @return pair representing number of bytes and number of records serialized, used for metrics
    */
-  void SerializeBuffer(IterableBufferSegment<LogRecord> *buffer_to_serialize);
+  std::pair<uint64_t, uint64_t> SerializeBuffer(IterableBufferSegment<LogRecord> *buffer_to_serialize);
 
   /**
    * Serialize out the record to the log
    * @param record the redo record to serialise
+   * @return bytes serialized, used for metrics
    */
-  void SerializeRecord(const LogRecord &record);
+  uint64_t SerializeRecord(const LogRecord &record);
 
   /**
    * Serialize the data pointed to by val to current serialization buffer
    * @tparam T Type of the value
    * @param val The value to write to the buffer
+   * @return bytes written, used for metrics
    */
   template <class T>
-  void WriteValue(const T &val) {
-    WriteValue(&val, sizeof(T));
+  uint32_t WriteValue(const T &val) {
+    return WriteValue(&val, sizeof(T));
   }
 
   /**
    * Serialize the data pointed to by val to current serialization buffer
    * @param val the value
    * @param size size of the value to serialize
+   * @return bytes written, used for metrics
    */
-  void WriteValue(const void *val, uint32_t size);
+  uint32_t WriteValue(const void *val, uint32_t size);
 
   /**
    * Returns the current buffer to serialize logs to

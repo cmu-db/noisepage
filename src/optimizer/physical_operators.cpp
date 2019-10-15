@@ -200,7 +200,7 @@ BaseOperatorNode *QueryDerivedScan::Copy() const { return new QueryDerivedScan(*
 
 Operator QueryDerivedScan::Make(
     std::string table_alias,
-    std::unordered_map<std::string, common::ManagedPointer<const parser::AbstractExpression>> &&alias_to_expr_map) {
+    std::unordered_map<std::string, common::ManagedPointer<parser::AbstractExpression>> &&alias_to_expr_map) {
   auto *get = new QueryDerivedScan;
   get->table_alias_ = std::move(table_alias);
   get->alias_to_expr_map_ = alias_to_expr_map;
@@ -253,7 +253,7 @@ common::hash_t OrderBy::Hash() const {
 BaseOperatorNode *Limit::Copy() const { return new Limit(*this); }
 
 Operator Limit::Make(size_t offset, size_t limit,
-                     std::vector<common::ManagedPointer<const parser::AbstractExpression>> &&sort_columns,
+                     std::vector<common::ManagedPointer<parser::AbstractExpression>> &&sort_columns,
                      std::vector<planner::OrderByOrderingType> &&sort_directions) {
   auto *limit_op = new Limit;
   limit_op->offset_ = offset;
@@ -288,8 +288,8 @@ common::hash_t Limit::Hash() const {
 BaseOperatorNode *InnerNLJoin::Copy() const { return new InnerNLJoin(*this); }
 
 Operator InnerNLJoin::Make(std::vector<AnnotatedExpression> &&join_predicates,
-                           std::vector<common::ManagedPointer<const parser::AbstractExpression>> &&left_keys,
-                           std::vector<common::ManagedPointer<const parser::AbstractExpression>> &&right_keys) {
+                           std::vector<common::ManagedPointer<parser::AbstractExpression>> &&left_keys,
+                           std::vector<common::ManagedPointer<parser::AbstractExpression>> &&right_keys) {
   auto *join = new InnerNLJoin();
   join->join_predicates_ = std::move(join_predicates);
   join->left_keys_ = std::move(left_keys);
@@ -333,7 +333,7 @@ bool InnerNLJoin::operator==(const BaseOperatorNode &r) {
 //===--------------------------------------------------------------------===//
 BaseOperatorNode *LeftNLJoin::Copy() const { return new LeftNLJoin(*this); }
 
-Operator LeftNLJoin::Make(common::ManagedPointer<const parser::AbstractExpression> join_predicate) {
+Operator LeftNLJoin::Make(common::ManagedPointer<parser::AbstractExpression> join_predicate) {
   auto *join = new LeftNLJoin();
   join->join_predicate_ = join_predicate;
   return Operator(join);
@@ -355,7 +355,7 @@ bool LeftNLJoin::operator==(const BaseOperatorNode &r) {
 //===--------------------------------------------------------------------===//
 BaseOperatorNode *RightNLJoin::Copy() const { return new RightNLJoin(*this); }
 
-Operator RightNLJoin::Make(common::ManagedPointer<const parser::AbstractExpression> join_predicate) {
+Operator RightNLJoin::Make(common::ManagedPointer<parser::AbstractExpression> join_predicate) {
   auto *join = new RightNLJoin();
   join->join_predicate_ = join_predicate;
   return Operator(join);
@@ -378,7 +378,7 @@ bool RightNLJoin::operator==(const BaseOperatorNode &r) {
 //===--------------------------------------------------------------------===//
 BaseOperatorNode *OuterNLJoin::Copy() const { return new OuterNLJoin(*this); }
 
-Operator OuterNLJoin::Make(common::ManagedPointer<const parser::AbstractExpression> join_predicate) {
+Operator OuterNLJoin::Make(common::ManagedPointer<parser::AbstractExpression> join_predicate) {
   auto *join = new OuterNLJoin();
   join->join_predicate_ = join_predicate;
   return Operator(join);
@@ -402,8 +402,8 @@ bool OuterNLJoin::operator==(const BaseOperatorNode &r) {
 BaseOperatorNode *InnerHashJoin::Copy() const { return new InnerHashJoin(*this); }
 
 Operator InnerHashJoin::Make(std::vector<AnnotatedExpression> &&join_predicates,
-                             std::vector<common::ManagedPointer<const parser::AbstractExpression>> &&left_keys,
-                             std::vector<common::ManagedPointer<const parser::AbstractExpression>> &&right_keys) {
+                             std::vector<common::ManagedPointer<parser::AbstractExpression>> &&left_keys,
+                             std::vector<common::ManagedPointer<parser::AbstractExpression>> &&right_keys) {
   auto *join = new InnerHashJoin();
   join->join_predicates_ = std::move(join_predicates);
   join->left_keys_ = std::move(left_keys);
@@ -446,7 +446,7 @@ bool InnerHashJoin::operator==(const BaseOperatorNode &r) {
 //===--------------------------------------------------------------------===//
 BaseOperatorNode *LeftHashJoin::Copy() const { return new LeftHashJoin(*this); }
 
-Operator LeftHashJoin::Make(common::ManagedPointer<const parser::AbstractExpression> join_predicate) {
+Operator LeftHashJoin::Make(common::ManagedPointer<parser::AbstractExpression> join_predicate) {
   auto *join = new LeftHashJoin();
   join->join_predicate_ = join_predicate;
   return Operator(join);
@@ -469,7 +469,7 @@ bool LeftHashJoin::operator==(const BaseOperatorNode &r) {
 //===--------------------------------------------------------------------===//
 BaseOperatorNode *RightHashJoin::Copy() const { return new RightHashJoin(*this); }
 
-Operator RightHashJoin::Make(common::ManagedPointer<const parser::AbstractExpression> join_predicate) {
+Operator RightHashJoin::Make(common::ManagedPointer<parser::AbstractExpression> join_predicate) {
   auto *join = new RightHashJoin();
   join->join_predicate_ = join_predicate;
   return Operator(join);
@@ -492,7 +492,7 @@ bool RightHashJoin::operator==(const BaseOperatorNode &r) {
 //===--------------------------------------------------------------------===//
 BaseOperatorNode *OuterHashJoin::Copy() const { return new OuterHashJoin(*this); }
 
-Operator OuterHashJoin::Make(common::ManagedPointer<const parser::AbstractExpression> join_predicate) {
+Operator OuterHashJoin::Make(common::ManagedPointer<parser::AbstractExpression> join_predicate) {
   auto *join = new OuterHashJoin();
   join->join_predicate_ = join_predicate;
   return Operator(join);
@@ -517,7 +517,7 @@ BaseOperatorNode *Insert::Copy() const { return new Insert(*this); }
 
 Operator Insert::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
                       catalog::table_oid_t table_oid, std::vector<catalog::col_oid_t> &&columns,
-                      std::vector<std::vector<common::ManagedPointer<const parser::AbstractExpression>>> &&values,
+                      std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>> &&values,
                       std::vector<catalog::index_oid_t> &&index_oids) {
 #ifndef NDEBUG
   // We need to check whether the number of values for each insert vector
@@ -632,7 +632,7 @@ BaseOperatorNode *Update::Copy() const { return new Update(*this); }
 
 Operator Update::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid, std::string table_alias,
                       catalog::table_oid_t table_oid,
-                      std::vector<common::ManagedPointer<const parser::UpdateClause>> &&updates) {
+                      std::vector<common::ManagedPointer<parser::UpdateClause>> &&updates) {
   auto *op = new Update;
   op->database_oid_ = database_oid;
   op->namespace_oid_ = namespace_oid;
@@ -700,7 +700,7 @@ common::hash_t ExportExternalFile::Hash() const {
 //===--------------------------------------------------------------------===//
 BaseOperatorNode *HashGroupBy::Copy() const { return new HashGroupBy(*this); }
 
-Operator HashGroupBy::Make(std::vector<common::ManagedPointer<const parser::AbstractExpression>> &&columns,
+Operator HashGroupBy::Make(std::vector<common::ManagedPointer<parser::AbstractExpression>> &&columns,
                            std::vector<AnnotatedExpression> &&having) {
   auto *agg = new HashGroupBy;
   agg->columns_ = std::move(columns);
@@ -739,7 +739,7 @@ common::hash_t HashGroupBy::Hash() const {
 //===--------------------------------------------------------------------===//
 BaseOperatorNode *SortGroupBy::Copy() const { return new SortGroupBy(*this); }
 
-Operator SortGroupBy::Make(std::vector<common::ManagedPointer<const parser::AbstractExpression>> &&columns,
+Operator SortGroupBy::Make(std::vector<common::ManagedPointer<parser::AbstractExpression>> &&columns,
                            std::vector<AnnotatedExpression> &&having) {
   auto *agg = new SortGroupBy;
   agg->columns_ = std::move(columns);

@@ -6,24 +6,25 @@
 
 namespace terrier::parser {
 /**
- * Represents a star, e.g. COUNT(*).
+ * StarExpression represents a star in expressions like COUNT(*).
  */
 class StarExpression : public AbstractExpression {
  public:
   /**
-   * Instantiates a new star expression, e.g. as in COUNT(*)
+   * Instantiates a new star expression, e.g. as in COUNT(*).
    */
   StarExpression() : AbstractExpression(ExpressionType::STAR, type::TypeId::INVALID, {}) {}
-
-  ~StarExpression() override = default;
 
   /**
    * Copies this StarExpression
    * @returns this
    */
-  const AbstractExpression *Copy() const override {
+  std::unique_ptr<AbstractExpression> Copy() const override {
     // TODO(Tianyu): This really should be a singleton object
-    return new StarExpression(*this);
+    // ^WAN: jokes on you there's mutable state now and it can't be hahahaha
+    auto expr = std::make_unique<StarExpression>();
+    expr->SetMutableStateForCopy(*this);
+    return expr;
   }
 
   /**
@@ -32,20 +33,13 @@ class StarExpression : public AbstractExpression {
    * @param children New children to be owned by the copy
    * @returns copy of this
    */
-  const AbstractExpression *CopyWithChildren(std::vector<const AbstractExpression *> children) const override {
+  std::unique_ptr<AbstractExpression> CopyWithChildren(
+      std::vector<std::unique_ptr<AbstractExpression>> &&children) const override {
     TERRIER_ASSERT(children.empty(), "StarExpression should have 0 children");
     return Copy();
   }
 
   void Accept(SqlNodeVisitor *v) override { v->Visit(this); }
-
- private:
-  /**
-   * Copy constructor for StarExpression
-   * Relies on AbstractExpression copy constructor for base members
-   * @param other Other AbstractExpression to copy
-   */
-  StarExpression(const StarExpression &other) = default;
 };
 
 DEFINE_JSON_DECLARATIONS(StarExpression);

@@ -99,7 +99,7 @@ void ChildPropertyDeriver::Visit(const Limit *op) {
   std::vector<PropertySet *> child_input_properties{new PropertySet()};
   auto provided_prop = new PropertySet();
   if (!op->GetSortExpressions().empty()) {
-    const std::vector<common::ManagedPointer<const parser::AbstractExpression>> &exprs = op->GetSortExpressions();
+    const std::vector<common::ManagedPointer<parser::AbstractExpression>> &exprs = op->GetSortExpressions();
     const std::vector<planner::OrderByOrderingType> &sorts{op->GetSortAscending()};
     provided_prop->AddProperty(new PropertySort(exprs, sorts));
   }
@@ -172,10 +172,9 @@ void ChildPropertyDeriver::DeriveForJoin() {
       Group *probe_group = memo_->GetGroupByID(gexpr_->GetChildGroupId(1));
       for (size_t idx = 0; idx < sort_col_size; ++idx) {
         ExprSet tuples;
-        parser::ExpressionUtil::GetTupleValueExprs(&tuples, sort_prop->GetSortColumn(idx).Get());
+        parser::ExpressionUtil::GetTupleValueExprs(&tuples, sort_prop->GetSortColumn(idx));
         for (auto &expr : tuples) {
-          auto tv_expr = dynamic_cast<const parser::ColumnValueExpression *>(expr);
-          TERRIER_ASSERT(tv_expr, "Expected ColumnValueExpression");
+          auto tv_expr = expr.CastManagedPointerTo<parser::ColumnValueExpression>();
 
           // If a column is not in the prob table, we cannot fulfill the sort
           // property in the requirement

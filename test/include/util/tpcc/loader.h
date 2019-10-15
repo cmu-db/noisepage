@@ -22,15 +22,12 @@ namespace terrier::tpcc {
 struct Loader {
   Loader() = delete;
 
-  template <class Random>
-  static void PopulateDatabase(transaction::TransactionManager *const txn_manager, Random *const generator,
-                               Database *const db, const std::vector<Worker> &workers) {
+  static void PopulateDatabase(transaction::TransactionManager *const txn_manager, Database *const db,
+                               std::vector<Worker> *const workers, common::WorkerPool *const thread_pool) {
     TERRIER_ASSERT(txn_manager != nullptr, "TransactionManager does not exist.");
-    TERRIER_ASSERT(generator != nullptr, "Random number generator does not exist.");
     TERRIER_ASSERT(db != nullptr, "Database does not exist.");
 
-    const auto *worker = &workers[0];
-    const auto num_warehouses = static_cast<int8_t>(workers.size());
+    const auto num_warehouses = static_cast<int8_t>(workers->size());
 
     // Item tuple
     const auto item_tuple_col_oids = Util::AllColOidsForSchema(db->item_schema_);
@@ -129,8 +126,9 @@ struct Loader {
     const auto order_line_key_pr_initializer = db->order_line_primary_index_->GetProjectedRowInitializer();
     const auto order_line_key_pr_map = db->order_line_primary_index_->GetKeyOidToOffsetMap();
 
-    auto *const txn = txn_manager->BeginTransaction();
-
+    // Populate the ITEM table. We don't do this in parallel since it's not very big. Just use the first Worker for it.
+    const auto *worker = &(workers->front());
+    auto *const item_txn = txn_manager->BeginTransaction();
     {
       // generate booleans to represent ORIGINAL for item. 10% are ORIGINAL (true), and then shuffled
       std::vector<bool> item_original;
@@ -138,220 +136,234 @@ struct Loader {
       for (uint32_t i_id = 0; i_id < 100000; i_id++) {
         item_original.emplace_back(i_id < 10000);
       }
-      std::shuffle(item_original.begin(), item_original.end(), *generator);
+      std::shuffle(item_original.begin(), item_original.end(), *(worker->generator_));
 
       for (int32_t i_id = 0; i_id < 100000; i_id++) {
         // 100,000 rows in the ITEM table
         // insert in table
-        auto *const item_redo = txn->StageWrite(db->db_oid_, db->item_table_oid_, item_tuple_pr_initializer);
+        auto *const item_redo = item_txn->StageWrite(db->db_oid_, db->item_table_oid_, item_tuple_pr_initializer);
         BuildItemTuple(i_id + 1, item_original[i_id], item_redo->Delta(), item_tuple_pr_map, db->item_schema_,
-                       generator);
-        const auto item_slot = db->item_table_->Insert(txn, item_redo);
+                       worker->generator_);
+        const auto item_slot = db->item_table_->Insert(item_txn, item_redo);
 
         // insert in index
         const auto *const item_key = BuildItemKey(i_id + 1, worker->item_key_buffer_, item_key_pr_initializer,
                                                   item_key_pr_map, db->item_primary_index_schema_);
-        bool UNUSED_ATTRIBUTE index_insert_result = db->item_primary_index_->InsertUnique(txn, *item_key, item_slot);
+        bool UNUSED_ATTRIBUTE index_insert_result =
+            db->item_primary_index_->InsertUnique(item_txn, *item_key, item_slot);
         TERRIER_ASSERT(index_insert_result, "Item index insertion failed.");
       }
     }
+    txn_manager->Commit(item_txn, TestCallbacks::EmptyCallback, nullptr);
 
+    // Populate the other tables in parallel
     for (int8_t w_id = 0; w_id < num_warehouses; w_id++) {
-      // 1 row in the WAREHOUSE table for each configured warehouse
-      // insert in table
-      auto *const warehouse_redo =
-          txn->StageWrite(db->db_oid_, db->warehouse_table_oid_, warehouse_tuple_pr_initializer);
-      BuildWarehouseTuple(static_cast<int8_t>(w_id + 1), warehouse_redo->Delta(), warehouse_tuple_pr_map,
-                          db->warehouse_schema_, generator);
-      const auto warehouse_slot = db->warehouse_table_->Insert(txn, warehouse_redo);
+      // copy the pr_map and pr_initializers by reference since they're on the stack in this scope, but the remaining
+      // are pointers or integers so we'll copy by value
+      thread_pool->SubmitTask([&, w_id, txn_manager, db] {
+        Worker *const worker = &((*workers)[w_id]);
 
-      // insert in index
-      const auto *const warehouse_key =
-          BuildWarehouseKey(static_cast<int8_t>(w_id + 1), worker->warehouse_key_buffer_, warehouse_key_pr_initializer,
-                            warehouse_key_pr_map, db->warehouse_primary_index_schema_);
-      bool UNUSED_ATTRIBUTE index_insert_result =
-          db->warehouse_primary_index_->InsertUnique(txn, *warehouse_key, warehouse_slot);
-      TERRIER_ASSERT(index_insert_result, "Warehouse index insertion failed.");
+        auto *const txn = txn_manager->BeginTransaction();
 
-      {
-        // generate booleans to represent ORIGINAL for stock. 10% are ORIGINAL (true), and then shuffled
-        std::vector<bool> stock_original;
-        stock_original.reserve(100000);
-        for (int32_t i_id = 0; i_id < 100000; i_id++) {
-          stock_original.emplace_back(i_id < 10000);
-        }
-        std::shuffle(stock_original.begin(), stock_original.end(), *generator);
-
-        for (int32_t s_i_id = 0; s_i_id < 100000; s_i_id++) {
-          // For each row in the WAREHOUSE table:
-          // 100,000 rows in the STOCK table
-
-          // insert in table
-          auto *const stock_redo = txn->StageWrite(db->db_oid_, db->stock_table_oid_, stock_tuple_pr_initializer);
-          BuildStockTuple(s_i_id + 1, static_cast<int8_t>(w_id + 1), stock_original[s_i_id], stock_redo->Delta(),
-                          stock_tuple_pr_map, db->stock_schema_, generator);
-          const auto stock_slot = db->stock_table_->Insert(txn, stock_redo);
-
-          // insert in index
-          const auto *const stock_key =
-              BuildStockKey(s_i_id + 1, static_cast<int8_t>(w_id + 1), worker->stock_key_buffer_,
-                            stock_key_pr_initializer, stock_key_pr_map, db->stock_primary_index_schema_);
-          index_insert_result = db->stock_primary_index_->InsertUnique(txn, *stock_key, stock_slot);
-          TERRIER_ASSERT(index_insert_result, "Stock index insertion failed.");
-        }
-      }
-
-      for (int8_t d_id = 0; d_id < 10; d_id++) {
-        // For each row in the WAREHOUSE table:
-        // 10 rows in the DISTRICT table
-
+        // 1 row in the WAREHOUSE table for each configured warehouse
         // insert in table
-        auto *const district_redo =
-            txn->StageWrite(db->db_oid_, db->district_table_oid_, district_tuple_pr_initializer);
-        BuildDistrictTuple(static_cast<int8_t>(d_id + 1), static_cast<int8_t>(w_id + 1), district_redo->Delta(),
-                           district_tuple_pr_map, db->district_schema_, generator);
-        const auto district_slot = db->district_table_->Insert(txn, district_redo);
+        auto *const warehouse_redo =
+            txn->StageWrite(db->db_oid_, db->warehouse_table_oid_, warehouse_tuple_pr_initializer);
+        BuildWarehouseTuple(static_cast<int8_t>(w_id + 1), warehouse_redo->Delta(), warehouse_tuple_pr_map,
+                            db->warehouse_schema_, worker->generator_);
+        const auto warehouse_slot = db->warehouse_table_->Insert(txn, warehouse_redo);
 
         // insert in index
-        const auto *const district_key =
-            BuildDistrictKey(static_cast<int8_t>(d_id + 1), static_cast<int8_t>(w_id + 1), worker->district_key_buffer_,
-                             district_key_pr_initializer, district_key_pr_map, db->district_primary_index_schema_);
-        index_insert_result = db->district_primary_index_->InsertUnique(txn, *district_key, district_slot);
-        TERRIER_ASSERT(index_insert_result, "District index insertion failed.");
+        const auto *const warehouse_key =
+            BuildWarehouseKey(static_cast<int8_t>(w_id + 1), worker->warehouse_key_buffer_,
+                              warehouse_key_pr_initializer, warehouse_key_pr_map, db->warehouse_primary_index_schema_);
+        bool UNUSED_ATTRIBUTE index_insert_result =
+            db->warehouse_primary_index_->InsertUnique(txn, *warehouse_key, warehouse_slot);
+        TERRIER_ASSERT(index_insert_result, "Warehouse index insertion failed.");
 
-        // O_C_ID selected sequentially from a random permutation of [1 .. 3,000] for Order table
-        std::vector<int32_t> o_c_ids;
-        o_c_ids.reserve(3000);
-        // generate booleans to represent GC or BC for customers. 90% are GC (true), and then shuffled
-        std::vector<bool> c_credit;
-        c_credit.reserve(3000);
-        for (int32_t c_id = 0; c_id < 3000; c_id++) {
-          c_credit.emplace_back(c_id < 3000 / 10);
-          o_c_ids.emplace_back(c_id + 1);
-        }
-        std::shuffle(c_credit.begin(), c_credit.end(), *generator);
-        std::shuffle(o_c_ids.begin(), o_c_ids.end(), *generator);
-
-        for (int32_t c_id = 0; c_id < 3000; c_id++) {
-          // For each row in the DISTRICT table:
-          // 3,000 rows in the CUSTOMER table
-
-          // insert in table
-          auto *const customer_redo =
-              txn->StageWrite(db->db_oid_, db->customer_table_oid_, customer_tuple_pr_initializer);
-          BuildCustomerTuple(c_id + 1, static_cast<int8_t>(d_id + 1), static_cast<int8_t>(w_id + 1), c_credit[c_id],
-                             customer_redo->Delta(), customer_tuple_pr_map, db->customer_schema_, generator);
-          const auto customer_slot = db->customer_table_->Insert(txn, customer_redo);
-
-          // insert in index
-          const auto *const customer_key = BuildCustomerKey(
-              c_id + 1, static_cast<int8_t>(d_id + 1), static_cast<int8_t>(w_id + 1), worker->customer_key_buffer_,
-              customer_key_pr_initializer, customer_key_pr_map, db->customer_primary_index_schema_);
-          index_insert_result = db->customer_primary_index_->InsertUnique(txn, *customer_key, customer_slot);
-          TERRIER_ASSERT(index_insert_result, "Customer index insertion failed.");
-
-          // insert in customer name index
-          const auto c_last_tuple =
-              *reinterpret_cast<const storage::VarlenEntry *const>(customer_redo->Delta()->AccessWithNullCheck(
-                  customer_tuple_pr_map.at(db->customer_schema_.GetColumn(5).Oid())));
-
-          storage::ProjectedRow *customer_name_key = nullptr;
-          if (c_last_tuple.Size() <= storage::VarlenEntry::InlineThreshold()) {
-            customer_name_key =
-                BuildCustomerNameKey(c_last_tuple, static_cast<int8_t>(d_id + 1), static_cast<int8_t>(w_id + 1),
-                                     worker->customer_name_key_buffer_, customer_name_key_pr_initializer,
-                                     customer_name_key_pr_map, db->customer_secondary_index_schema_);
-          } else {
-            std::memcpy(worker->customer_name_varlen_buffer_, c_last_tuple.Content(), c_last_tuple.Size());
-            const auto c_last_key =
-                storage::VarlenEntry::Create(worker->customer_name_varlen_buffer_, c_last_tuple.Size(), false);
-
-            customer_name_key =
-                BuildCustomerNameKey(c_last_key, static_cast<int8_t>(d_id + 1), static_cast<int8_t>(w_id + 1),
-                                     worker->customer_name_key_buffer_, customer_name_key_pr_initializer,
-                                     customer_name_key_pr_map, db->customer_secondary_index_schema_);
+        {
+          // generate booleans to represent ORIGINAL for stock. 10% are ORIGINAL (true), and then shuffled
+          std::vector<bool> stock_original;
+          stock_original.reserve(100000);
+          for (int32_t i_id = 0; i_id < 100000; i_id++) {
+            stock_original.emplace_back(i_id < 10000);
           }
+          std::shuffle(stock_original.begin(), stock_original.end(), *(worker->generator_));
 
-          index_insert_result = db->customer_secondary_index_->Insert(txn, *customer_name_key, customer_slot);
-          TERRIER_ASSERT(index_insert_result, "Customer Name index insertion failed.");
+          for (int32_t s_i_id = 0; s_i_id < 100000; s_i_id++) {
+            // For each row in the WAREHOUSE table:
+            // 100,000 rows in the STOCK table
 
-          // For each row in the CUSTOMER table:
-          // 1 row in the HISTORY table
-          auto *const history_redo = txn->StageWrite(db->db_oid_, db->history_table_oid_, history_tuple_pr_initializer);
-          BuildHistoryTuple(c_id + 1, static_cast<int8_t>(d_id + 1), static_cast<int8_t>(w_id + 1),
-                            history_redo->Delta(), history_tuple_pr_map, db->history_schema_, generator);
-          db->history_table_->Insert(txn, history_redo);
-
-          // For each row in the DISTRICT table:
-          // 3,000 rows in the ORDER table
-
-          // insert in table
-          const auto o_id = c_id;
-          auto *const order_redo = txn->StageWrite(db->db_oid_, db->order_table_oid_, order_tuple_pr_initializer);
-          const auto order_results =
-              BuildOrderTuple(o_id + 1, o_c_ids[c_id], static_cast<int8_t>(d_id + 1), static_cast<int8_t>(w_id + 1),
-                              order_redo->Delta(), order_tuple_pr_map, db->order_schema_, generator);
-          const auto order_slot = db->order_table_->Insert(txn, order_redo);
-
-          // insert in index
-          const auto *const order_key = BuildOrderKey(
-              o_id + 1, static_cast<int8_t>(d_id + 1), static_cast<int8_t>(w_id + 1), worker->order_key_buffer_,
-              order_key_pr_initializer, order_key_pr_map, db->order_primary_index_schema_);
-          index_insert_result = db->order_primary_index_->InsertUnique(txn, *order_key, order_slot);
-          TERRIER_ASSERT(index_insert_result, "Order index insertion failed.");
-
-          // insert in secondary index
-          const auto *const order_secondary_key = BuildOrderSecondaryKey(
-              o_id + 1, o_c_ids[c_id], static_cast<int8_t>(d_id + 1), static_cast<int8_t>(w_id + 1),
-              worker->order_secondary_key_buffer_, order_secondary_key_pr_initializer, order_secondary_key_pr_map,
-              db->order_secondary_index_schema_);
-          index_insert_result = db->order_secondary_index_->InsertUnique(txn, *order_secondary_key, order_slot);
-          TERRIER_ASSERT(index_insert_result, "Order secondary index insertion failed.");
-
-          // For each row in the ORDER table:
-          // A number of rows in the ORDER-LINE table equal to O_OL_CNT, generated according to the rules for input
-          // data generation of the New-Order transaction (see Clause 2.4.1)
-          for (int8_t ol_number = 0; ol_number < order_results.o_ol_cnt_; ol_number++) {
             // insert in table
-            auto *const order_line_redo =
-                txn->StageWrite(db->db_oid_, db->order_line_table_oid_, order_line_tuple_pr_initializer);
-            BuildOrderLineTuple(o_id + 1, static_cast<int8_t>(d_id + 1), static_cast<int8_t>(w_id + 1),
-                                static_cast<int8_t>(ol_number + 1), order_results.o_entry_d_, order_line_redo->Delta(),
-                                order_line_tuple_pr_map, db->order_line_schema_, generator);
-            const auto order_line_slot = db->order_line_table_->Insert(txn, order_line_redo);
+            auto *const stock_redo = txn->StageWrite(db->db_oid_, db->stock_table_oid_, stock_tuple_pr_initializer);
+            BuildStockTuple(s_i_id + 1, static_cast<int8_t>(w_id + 1), stock_original[s_i_id], stock_redo->Delta(),
+                            stock_tuple_pr_map, db->stock_schema_, worker->generator_);
+            const auto stock_slot = db->stock_table_->Insert(txn, stock_redo);
 
             // insert in index
-            const auto *const order_line_key = BuildOrderLineKey(
-                o_id + 1, static_cast<int8_t>(d_id + 1), static_cast<int8_t>(w_id + 1),
-                static_cast<int8_t>(ol_number + 1), worker->order_line_key_buffer_, order_line_key_pr_initializer,
-                order_line_key_pr_map, db->order_line_primary_index_schema_);
-            index_insert_result = db->order_line_primary_index_->InsertUnique(txn, *order_line_key, order_line_slot);
-            TERRIER_ASSERT(index_insert_result, "Order Line index insertion failed.");
-          }
-
-          // For each row in the DISTRICT table:
-          // 900 rows in the NEW-ORDER table corresponding to the last 900 rows in the ORDER table for that district
-          // (i.e., with NO_O_ID between 2,101 and 3,000)
-          if (o_id + 1 >= 2101) {
-            // insert in table
-            auto *const new_order_redo =
-                txn->StageWrite(db->db_oid_, db->new_order_table_oid_, new_order_tuple_pr_initializer);
-            BuildNewOrderTuple(o_id + 1, static_cast<int8_t>(d_id + 1), static_cast<int8_t>(w_id + 1),
-                               new_order_redo->Delta(), new_order_tuple_pr_map, db->new_order_schema_);
-            const auto new_order_slot = db->new_order_table_->Insert(txn, new_order_redo);
-
-            // insert in index
-            const auto *const new_order_key = BuildNewOrderKey(
-                o_id + 1, static_cast<int8_t>(d_id + 1), static_cast<int8_t>(w_id + 1), worker->new_order_key_buffer_,
-                new_order_key_pr_initializer, new_order_key_pr_map, db->new_order_primary_index_schema_);
-            index_insert_result = db->new_order_primary_index_->InsertUnique(txn, *new_order_key, new_order_slot);
-            TERRIER_ASSERT(index_insert_result, "New Order index insertion failed.");
+            const auto *const stock_key =
+                BuildStockKey(s_i_id + 1, static_cast<int8_t>(w_id + 1), worker->stock_key_buffer_,
+                              stock_key_pr_initializer, stock_key_pr_map, db->stock_primary_index_schema_);
+            index_insert_result = db->stock_primary_index_->InsertUnique(txn, *stock_key, stock_slot);
+            TERRIER_ASSERT(index_insert_result, "Stock index insertion failed.");
           }
         }
-      }
+
+        for (int8_t d_id = 0; d_id < 10; d_id++) {
+          // For each row in the WAREHOUSE table:
+          // 10 rows in the DISTRICT table
+
+          // insert in table
+          auto *const district_redo =
+              txn->StageWrite(db->db_oid_, db->district_table_oid_, district_tuple_pr_initializer);
+          BuildDistrictTuple(static_cast<int8_t>(d_id + 1), static_cast<int8_t>(w_id + 1), district_redo->Delta(),
+                             district_tuple_pr_map, db->district_schema_, worker->generator_);
+          const auto district_slot = db->district_table_->Insert(txn, district_redo);
+
+          // insert in index
+          const auto *const district_key = BuildDistrictKey(
+              static_cast<int8_t>(d_id + 1), static_cast<int8_t>(w_id + 1), worker->district_key_buffer_,
+              district_key_pr_initializer, district_key_pr_map, db->district_primary_index_schema_);
+          index_insert_result = db->district_primary_index_->InsertUnique(txn, *district_key, district_slot);
+          TERRIER_ASSERT(index_insert_result, "District index insertion failed.");
+
+          // O_C_ID selected sequentially from a random permutation of [1 .. 3,000] for Order table
+          std::vector<int32_t> o_c_ids;
+          o_c_ids.reserve(3000);
+          // generate booleans to represent GC or BC for customers. 90% are GC (true), and then shuffled
+          std::vector<bool> c_credit;
+          c_credit.reserve(3000);
+          for (int32_t c_id = 0; c_id < 3000; c_id++) {
+            c_credit.emplace_back(c_id < 3000 / 10);
+            o_c_ids.emplace_back(c_id + 1);
+          }
+          std::shuffle(c_credit.begin(), c_credit.end(), *(worker->generator_));
+          std::shuffle(o_c_ids.begin(), o_c_ids.end(), *(worker->generator_));
+
+          for (int32_t c_id = 0; c_id < 3000; c_id++) {
+            // For each row in the DISTRICT table:
+            // 3,000 rows in the CUSTOMER table
+
+            // insert in table
+            auto *const customer_redo =
+                txn->StageWrite(db->db_oid_, db->customer_table_oid_, customer_tuple_pr_initializer);
+            BuildCustomerTuple(c_id + 1, static_cast<int8_t>(d_id + 1), static_cast<int8_t>(w_id + 1), c_credit[c_id],
+                               customer_redo->Delta(), customer_tuple_pr_map, db->customer_schema_, worker->generator_);
+            const auto customer_slot = db->customer_table_->Insert(txn, customer_redo);
+
+            // insert in index
+            const auto *const customer_key = BuildCustomerKey(
+                c_id + 1, static_cast<int8_t>(d_id + 1), static_cast<int8_t>(w_id + 1), worker->customer_key_buffer_,
+                customer_key_pr_initializer, customer_key_pr_map, db->customer_primary_index_schema_);
+            index_insert_result = db->customer_primary_index_->InsertUnique(txn, *customer_key, customer_slot);
+            TERRIER_ASSERT(index_insert_result, "Customer index insertion failed.");
+
+            // insert in customer name index
+            const auto c_last_tuple =
+                *reinterpret_cast<const storage::VarlenEntry *const>(customer_redo->Delta()->AccessWithNullCheck(
+                    customer_tuple_pr_map.at(db->customer_schema_.GetColumn(5).Oid())));
+
+            storage::ProjectedRow *customer_name_key = nullptr;
+            if (c_last_tuple.Size() <= storage::VarlenEntry::InlineThreshold()) {
+              customer_name_key =
+                  BuildCustomerNameKey(c_last_tuple, static_cast<int8_t>(d_id + 1), static_cast<int8_t>(w_id + 1),
+                                       worker->customer_name_key_buffer_, customer_name_key_pr_initializer,
+                                       customer_name_key_pr_map, db->customer_secondary_index_schema_);
+            } else {
+              std::memcpy(worker->customer_name_varlen_buffer_, c_last_tuple.Content(), c_last_tuple.Size());
+              const auto c_last_key =
+                  storage::VarlenEntry::Create(worker->customer_name_varlen_buffer_, c_last_tuple.Size(), false);
+
+              customer_name_key =
+                  BuildCustomerNameKey(c_last_key, static_cast<int8_t>(d_id + 1), static_cast<int8_t>(w_id + 1),
+                                       worker->customer_name_key_buffer_, customer_name_key_pr_initializer,
+                                       customer_name_key_pr_map, db->customer_secondary_index_schema_);
+            }
+
+            index_insert_result = db->customer_secondary_index_->Insert(txn, *customer_name_key, customer_slot);
+            TERRIER_ASSERT(index_insert_result, "Customer Name index insertion failed.");
+
+            // For each row in the CUSTOMER table:
+            // 1 row in the HISTORY table
+            auto *const history_redo =
+                txn->StageWrite(db->db_oid_, db->history_table_oid_, history_tuple_pr_initializer);
+            BuildHistoryTuple(c_id + 1, static_cast<int8_t>(d_id + 1), static_cast<int8_t>(w_id + 1),
+                              history_redo->Delta(), history_tuple_pr_map, db->history_schema_, worker->generator_);
+            db->history_table_->Insert(txn, history_redo);
+
+            // For each row in the DISTRICT table:
+            // 3,000 rows in the ORDER table
+
+            // insert in table
+            const auto o_id = c_id;
+            auto *const order_redo = txn->StageWrite(db->db_oid_, db->order_table_oid_, order_tuple_pr_initializer);
+            const auto order_results =
+                BuildOrderTuple(o_id + 1, o_c_ids[c_id], static_cast<int8_t>(d_id + 1), static_cast<int8_t>(w_id + 1),
+                                order_redo->Delta(), order_tuple_pr_map, db->order_schema_, worker->generator_);
+            const auto order_slot = db->order_table_->Insert(txn, order_redo);
+
+            // insert in index
+            const auto *const order_key = BuildOrderKey(
+                o_id + 1, static_cast<int8_t>(d_id + 1), static_cast<int8_t>(w_id + 1), worker->order_key_buffer_,
+                order_key_pr_initializer, order_key_pr_map, db->order_primary_index_schema_);
+            index_insert_result = db->order_primary_index_->InsertUnique(txn, *order_key, order_slot);
+            TERRIER_ASSERT(index_insert_result, "Order index insertion failed.");
+
+            // insert in secondary index
+            const auto *const order_secondary_key = BuildOrderSecondaryKey(
+                o_id + 1, o_c_ids[c_id], static_cast<int8_t>(d_id + 1), static_cast<int8_t>(w_id + 1),
+                worker->order_secondary_key_buffer_, order_secondary_key_pr_initializer, order_secondary_key_pr_map,
+                db->order_secondary_index_schema_);
+            index_insert_result = db->order_secondary_index_->InsertUnique(txn, *order_secondary_key, order_slot);
+            TERRIER_ASSERT(index_insert_result, "Order secondary index insertion failed.");
+
+            // For each row in the ORDER table:
+            // A number of rows in the ORDER-LINE table equal to O_OL_CNT, generated according to the rules for input
+            // data generation of the New-Order transaction (see Clause 2.4.1)
+            for (int8_t ol_number = 0; ol_number < order_results.o_ol_cnt_; ol_number++) {
+              // insert in table
+              auto *const order_line_redo =
+                  txn->StageWrite(db->db_oid_, db->order_line_table_oid_, order_line_tuple_pr_initializer);
+              BuildOrderLineTuple(o_id + 1, static_cast<int8_t>(d_id + 1), static_cast<int8_t>(w_id + 1),
+                                  static_cast<int8_t>(ol_number + 1), order_results.o_entry_d_,
+                                  order_line_redo->Delta(), order_line_tuple_pr_map, db->order_line_schema_,
+                                  worker->generator_);
+              const auto order_line_slot = db->order_line_table_->Insert(txn, order_line_redo);
+
+              // insert in index
+              const auto *const order_line_key = BuildOrderLineKey(
+                  o_id + 1, static_cast<int8_t>(d_id + 1), static_cast<int8_t>(w_id + 1),
+                  static_cast<int8_t>(ol_number + 1), worker->order_line_key_buffer_, order_line_key_pr_initializer,
+                  order_line_key_pr_map, db->order_line_primary_index_schema_);
+              index_insert_result = db->order_line_primary_index_->InsertUnique(txn, *order_line_key, order_line_slot);
+              TERRIER_ASSERT(index_insert_result, "Order Line index insertion failed.");
+            }
+
+            // For each row in the DISTRICT table:
+            // 900 rows in the NEW-ORDER table corresponding to the last 900 rows in the ORDER table for that district
+            // (i.e., with NO_O_ID between 2,101 and 3,000)
+            if (o_id + 1 >= 2101) {
+              // insert in table
+              auto *const new_order_redo =
+                  txn->StageWrite(db->db_oid_, db->new_order_table_oid_, new_order_tuple_pr_initializer);
+              BuildNewOrderTuple(o_id + 1, static_cast<int8_t>(d_id + 1), static_cast<int8_t>(w_id + 1),
+                                 new_order_redo->Delta(), new_order_tuple_pr_map, db->new_order_schema_);
+              const auto new_order_slot = db->new_order_table_->Insert(txn, new_order_redo);
+
+              // insert in index
+              const auto *const new_order_key = BuildNewOrderKey(
+                  o_id + 1, static_cast<int8_t>(d_id + 1), static_cast<int8_t>(w_id + 1), worker->new_order_key_buffer_,
+                  new_order_key_pr_initializer, new_order_key_pr_map, db->new_order_primary_index_schema_);
+              index_insert_result = db->new_order_primary_index_->InsertUnique(txn, *new_order_key, new_order_slot);
+              TERRIER_ASSERT(index_insert_result, "New Order index insertion failed.");
+            }
+          }
+        }
+
+        txn_manager->Commit(txn, TestCallbacks::EmptyCallback, nullptr);
+      });
     }
-
-    txn_manager->Commit(txn, TestCallbacks::EmptyCallback, nullptr);
+    thread_pool->WaitUntilAllFinished();
   }
 
   template <class Random>
@@ -408,6 +420,7 @@ struct Loader {
     uint32_t col_offset = 0;
 
     // Primary Key: I_ID
+    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "I_ID", "Wrong attribute.");
     Util::SetKeyAttribute(schema, col_offset++, pr_map, pr, i_id);
 
     TERRIER_ASSERT(col_offset == schema.GetColumns().size(), "Didn't get every attribute for Item key.");
@@ -481,6 +494,7 @@ struct Loader {
     uint32_t col_offset = 0;
 
     // Primary Key: W_ID
+    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "W_ID", "Wrong attribute.");
     Util::SetKeyAttribute(schema, col_offset++, pr_map, pr, w_id);
 
     TERRIER_ASSERT(col_offset == schema.GetColumns().size(), "Didn't get every attribute for Warehouse key.");
@@ -601,7 +615,9 @@ struct Loader {
     uint32_t col_offset = 0;
 
     // Primary Key: (S_W_ID, S_I_ID)
+    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "S_W_ID", "Wrong attribute.");
     Util::SetKeyAttribute(schema, col_offset++, pr_map, pr, w_id);
+    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "S_I_ID", "Wrong attribute.");
     Util::SetKeyAttribute(schema, col_offset++, pr_map, pr, s_i_id);
 
     TERRIER_ASSERT(col_offset == schema.GetColumns().size(), "Didn't get every attribute for Stock key.");
@@ -686,7 +702,9 @@ struct Loader {
     uint32_t col_offset = 0;
 
     // Primary Key: (D_W_ID, D_ID)
+    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "D_W_ID", "Wrong attribute.");
     Util::SetKeyAttribute(schema, col_offset++, pr_map, pr, w_id);
+    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "D_ID", "Wrong attribute.");
     Util::SetKeyAttribute(schema, col_offset++, pr_map, pr, d_id);
 
     TERRIER_ASSERT(col_offset == schema.GetColumns().size(), "Didn't get every attribute for District key.");
@@ -837,8 +855,11 @@ struct Loader {
     uint32_t col_offset = 0;
 
     // Primary Key: (C_W_ID, C_D_ID, C_ID)
+    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "C_W_ID", "Wrong attribute.");
     Util::SetKeyAttribute(schema, col_offset++, pr_map, pr, w_id);
+    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "C_D_ID", "Wrong attribute.");
     Util::SetKeyAttribute(schema, col_offset++, pr_map, pr, d_id);
+    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "C_ID", "Wrong attribute.");
     Util::SetKeyAttribute(schema, col_offset++, pr_map, pr, c_id);
 
     TERRIER_ASSERT(col_offset == schema.GetColumns().size(), "Didn't get every attribute for Customer key.");
@@ -859,8 +880,11 @@ struct Loader {
     uint32_t col_offset = 0;
 
     // Primary Key: (C_W_ID, C_D_ID, C_LAST)
+    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "C_W_ID", "Wrong attribute.");
     Util::SetKeyAttribute(schema, col_offset++, pr_map, pr, w_id);
+    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "C_D_ID", "Wrong attribute.");
     Util::SetKeyAttribute(schema, col_offset++, pr_map, pr, d_id);
+    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "C_LAST", "Wrong attribute.");
     Util::SetKeyAttribute(schema, col_offset++, pr_map, pr, c_last);
 
     TERRIER_ASSERT(col_offset == schema.GetColumns().size(), "Didn't get every attribute for Customer key.");
@@ -955,8 +979,11 @@ struct Loader {
     uint32_t col_offset = 0;
 
     // Primary Key: (NO_W_ID, NO_D_ID, NO_O_ID)
+    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "NO_W_ID", "Wrong attribute.");
     Util::SetKeyAttribute(schema, col_offset++, pr_map, pr, w_id);
+    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "NO_D_ID", "Wrong attribute.");
     Util::SetKeyAttribute(schema, col_offset++, pr_map, pr, d_id);
+    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "NO_O_ID", "Wrong attribute.");
     Util::SetKeyAttribute(schema, col_offset++, pr_map, pr, o_id);
 
     TERRIER_ASSERT(col_offset == schema.GetColumns().size(), "Didn't get every attribute for New Order key.");
@@ -1043,8 +1070,11 @@ struct Loader {
     uint32_t col_offset = 0;
 
     // Primary Key: (O_W_ID, O_D_ID, O_ID)
+    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "O_W_ID", "Wrong attribute.");
     Util::SetKeyAttribute(schema, col_offset++, pr_map, pr, w_id);
+    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "O_D_ID", "Wrong attribute.");
     Util::SetKeyAttribute(schema, col_offset++, pr_map, pr, d_id);
+    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "O_ID", "Wrong attribute.");
     Util::SetKeyAttribute(schema, col_offset++, pr_map, pr, o_id);
 
     TERRIER_ASSERT(col_offset == schema.GetColumns().size(), "Didn't get every attribute for Order key.");
@@ -1067,9 +1097,13 @@ struct Loader {
     uint32_t col_offset = 0;
 
     // Secondary Key: (O_W_ID, O_D_ID, O_C_ID O_ID)
+    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "O_W_ID", "Wrong attribute.");
     Util::SetKeyAttribute(schema, col_offset++, pr_map, pr, w_id);
+    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "O_D_ID", "Wrong attribute.");
     Util::SetKeyAttribute(schema, col_offset++, pr_map, pr, d_id);
+    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "O_C_ID", "Wrong attribute.");
     Util::SetKeyAttribute(schema, col_offset++, pr_map, pr, c_id);
+    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "O_ID", "Wrong attribute.");
     Util::SetKeyAttribute(schema, col_offset++, pr_map, pr, o_id);
 
     TERRIER_ASSERT(col_offset == schema.GetColumns().size(), "Didn't get every attribute for Order secondary key.");
@@ -1160,9 +1194,13 @@ struct Loader {
     uint32_t col_offset = 0;
 
     // Primary Key: (OL_W_ID, OL_D_ID, OL_O_ID, OL_NUMBER)
+    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "OL_W_ID", "Wrong attribute.");
     Util::SetKeyAttribute(schema, col_offset++, pr_map, pr, w_id);
+    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "OL_D_ID", "Wrong attribute.");
     Util::SetKeyAttribute(schema, col_offset++, pr_map, pr, d_id);
+    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "OL_O_ID", "Wrong attribute.");
     Util::SetKeyAttribute(schema, col_offset++, pr_map, pr, o_id);
+    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "OL_NUMBER", "Wrong attribute.");
     Util::SetKeyAttribute(schema, col_offset++, pr_map, pr, ol_number);
 
     TERRIER_ASSERT(col_offset == schema.GetColumns().size(), "Didn't get every attribute for Order Line key.");

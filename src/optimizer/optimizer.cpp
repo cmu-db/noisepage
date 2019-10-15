@@ -16,6 +16,7 @@
 #include "optimizer/property_enforcer.h"
 #include "optimizer/rule.h"
 #include "optimizer/rule_impls.h"
+#include "planner/plannodes/abstract_plan_node.h"
 
 namespace terrier::optimizer {
 
@@ -25,7 +26,7 @@ void Optimizer::Reset() {
   metadata_ = new OptimizerMetadata(cost_model_);
 }
 
-std::shared_ptr<planner::AbstractPlanNode> Optimizer::BuildPlanTree(OperatorExpression *op_tree, QueryInfo query_info,
+std::unique_ptr<planner::AbstractPlanNode> Optimizer::BuildPlanTree(OperatorExpression *op_tree, QueryInfo query_info,
                                                                     transaction::TransactionContext *txn,
                                                                     settings::SettingsManager *settings,
                                                                     catalog::CatalogAccessor *accessor,
@@ -45,9 +46,9 @@ std::shared_ptr<planner::AbstractPlanNode> Optimizer::BuildPlanTree(OperatorExpr
   PropertySet *phys_properties = query_info.GetPhysicalProperties();
 
   // Give raw pointers to ChooseBestPlan
-  std::vector<const parser::AbstractExpression *> output_exprs;
+  std::vector<common::ManagedPointer<parser::AbstractExpression>> output_exprs;
   for (auto expr : query_info.GetOutputExprs()) {
-    output_exprs.push_back(expr.Get());
+    output_exprs.push_back(expr);
   }
 
   try {
@@ -68,8 +69,9 @@ std::shared_ptr<planner::AbstractPlanNode> Optimizer::BuildPlanTree(OperatorExpr
   }
 }
 
-std::shared_ptr<planner::AbstractPlanNode> Optimizer::ChooseBestPlan(
-    GroupID id, PropertySet *required_props, const std::vector<const parser::AbstractExpression *> &required_cols,
+std::unique_ptr<planner::AbstractPlanNode> Optimizer::ChooseBestPlan(
+    GroupID id, PropertySet *required_props,
+    const std::vector<common::ManagedPointer<parser::AbstractExpression>> &required_cols,
     settings::SettingsManager *settings, catalog::CatalogAccessor *accessor, transaction::TransactionContext *txn) {
   Group *group = metadata_->GetMemo().GetGroupByID(id);
   auto gexpr = group->GetBestExpression(required_props);
@@ -93,7 +95,7 @@ std::shared_ptr<planner::AbstractPlanNode> Optimizer::ChooseBestPlan(
 
   // Derive chidren plans first because they are useful in the derivation of
   // root plan. Also keep propagate expression to column offset mapping
-  std::vector<std::shared_ptr<planner::AbstractPlanNode>> children_plans;
+  std::vector<std::unique_ptr<planner::AbstractPlanNode>> children_plans;
   std::vector<ExprMap> children_expr_map;
   for (size_t i = 0; i < child_groups.size(); ++i) {
     ExprMap child_expr_map;

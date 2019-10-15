@@ -14,9 +14,8 @@
 
 namespace terrier {
 namespace parser {
-
 /**
- * Represents the definition of a table column.
+ * ColumnDefinition represents the logical description of a table column.
  */
 struct ColumnDefinition {
   // TODO(WAN): I really hate how everything is mashed together.
@@ -84,7 +83,8 @@ struct ColumnDefinition {
    * @param varlen size of column if varlen
    */
   ColumnDefinition(std::string name, DataType type, bool is_primary, bool is_not_null, bool is_unique,
-                   const AbstractExpression *default_expr, const AbstractExpression *check_expr, size_t varlen)
+                   common::ManagedPointer<AbstractExpression> default_expr,
+                   common::ManagedPointer<AbstractExpression> check_expr, size_t varlen)
       : name_(std::move(name)),
         type_(type),
         is_primary_(is_primary),
@@ -93,11 +93,6 @@ struct ColumnDefinition {
         default_expr_(default_expr),
         check_expr_(check_expr),
         varlen_(varlen) {}
-
-  ~ColumnDefinition() {
-    delete default_expr_;
-    delete check_expr_;
-  }
 
   /**
    * @param str type string
@@ -225,100 +220,64 @@ struct ColumnDefinition {
     }
   }
 
-  /**
-   * @return column name
-   */
+  /** @return column name */
   std::string GetColumnName() { return name_; }
 
-  /**
-   * @return table information
-   */
-  std::shared_ptr<TableInfo> GetTableInfo() { return table_info_; }
+  /** @return table information */
+  common::ManagedPointer<TableInfo> GetTableInfo() { return common::ManagedPointer(table_info_); }
 
-  /**
-   * @return column data type
-   */
+  /** @return column data type */
   DataType GetColumnType() { return type_; }
 
-  /**
-   * @return true if primary key
-   */
+  /** @return true if primary key */
   bool IsPrimaryKey() { return is_primary_; }
 
-  /**
-   * @return true if column nullable
-   */
+  /** @return true if column nullable */
   bool IsNullable() { return !is_not_null_; }
 
-  /**
-   * @return true if column should be unique
-   */
+  /** @return true if column should be unique */
   bool IsUnique() { return is_unique_; }
 
-  /**
-   * @return default expression
-   */
-  common::ManagedPointer<const AbstractExpression> GetDefaultExpression() {
-    return common::ManagedPointer<const AbstractExpression>(default_expr_);
-  }
+  /** @return default expression */
+  common::ManagedPointer<AbstractExpression> GetDefaultExpression() { return default_expr_; }
 
-  /**
-   * @return check expression
-   */
-  common::ManagedPointer<const AbstractExpression> GetCheckExpression() {
-    return common::ManagedPointer<const AbstractExpression>(check_expr_);
-  }
+  /** @return check expression */
+  common::ManagedPointer<AbstractExpression> GetCheckExpression() { return check_expr_; }
 
-  /**
-   * @return varlen size
-   */
+  /** @return varlen size */
   size_t GetVarlenSize() { return varlen_; }
 
-  /**
-   * @return foreign key sources
-   */
+  /** @return foreign key sources */
   std::vector<std::string> GetForeignKeySources() { return fk_sources_; }
 
-  /**
-   * @return foreign key sinks
-   */
+  /** @return foreign key sinks */
   std::vector<std::string> GetForeignKeySinks() { return fk_sinks_; }
 
-  /**
-   * @return foreign key sink table name
-   */
+  /** @return foreign key sink table name */
   std::string GetForeignKeySinkTableName() { return fk_sink_table_name_; }
 
-  /**
-   * @return foreign key delete action
-   */
+  /** @return foreign key delete action */
   FKConstrActionType GetForeignKeyDeleteAction() { return fk_delete_action_; }
 
-  /**
-   * @return foreign key update action
-   */
+  /** @return foreign key update action */
   FKConstrActionType GetForeignKeyUpdateAction() { return fk_update_action_; }
 
-  /**
-   * @return foreign key match type
-   */
+  /** @return foreign key match type */
   FKConstrMatchType GetForeignKeyMatchType() { return fk_match_type_; }
 
-  /**
-   * @param b true if should be primary key, false otherwise
-   */
+  /** @param b true if should be primary key, false otherwise */
   void SetPrimary(bool b) { is_primary_ = b; }
 
  private:
   const std::string name_;
-  const std::shared_ptr<TableInfo> table_info_ = nullptr;
+  const std::unique_ptr<TableInfo> table_info_ = nullptr;
 
   const DataType type_;
   bool is_primary_ = false;  // not const because of how the parser returns us columns and primary key info separately
   const bool is_not_null_ = false;
   const bool is_unique_ = false;
-  const AbstractExpression *default_expr_ = nullptr;
-  const AbstractExpression *check_expr_ = nullptr;
+  common::ManagedPointer<AbstractExpression> default_expr_;
+  common::ManagedPointer<AbstractExpression> check_expr_;
   const size_t varlen_ = 0;
 
   const std::vector<std::string> fk_sources_;
@@ -335,37 +294,24 @@ struct ColumnDefinition {
  */
 class IndexAttr {
  public:
-  /**
-   * Create an index attribute on a column name.
-   */
+  /** Create an index attribute on a column name. */
   explicit IndexAttr(std::string name) : name_(std::move(name)), expr_(nullptr) {}
 
-  /**
-   * Create an index attribute on an expression.
-   */
-  explicit IndexAttr(const AbstractExpression *expr) : name_(""), expr_(expr) {}
+  /** Create an index attribute on an expression. */
+  explicit IndexAttr(common::ManagedPointer<AbstractExpression> expr) : name_(""), expr_(expr) {}
 
-  ~IndexAttr() { delete expr_; }
-
-  /**
-   * @return the name of the column that we're indexed on
-   */
+  /** @return the name of the column that we're indexed on */
   std::string GetName() const {
     TERRIER_ASSERT(expr_ == nullptr, "Expressions don't come with names.");
     return name_;
   }
 
-  /**
-   * @return the expression that we're indexed on
-   */
-  common::ManagedPointer<const AbstractExpression> GetExpression() const {
-    TERRIER_ASSERT(expr_ != nullptr, "Names don't come with expressions.");
-    return common::ManagedPointer<const AbstractExpression>(expr_);
-  }
+  /** @return the expression that we're indexed on */
+  common::ManagedPointer<AbstractExpression> GetExpression() const { return expr_; }
 
  private:
   std::string name_;
-  const AbstractExpression *expr_;
+  common::ManagedPointer<AbstractExpression> expr_;
 };
 
 /**
@@ -386,9 +332,9 @@ class CreateStatement : public TableRefStatement {
    * @param columns columns to be created
    * @param foreign_keys foreign keys to be created
    */
-  CreateStatement(std::shared_ptr<TableInfo> table_info, CreateType create_type,
-                  std::vector<std::shared_ptr<ColumnDefinition>> columns,
-                  std::vector<std::shared_ptr<ColumnDefinition>> foreign_keys)
+  CreateStatement(std::unique_ptr<TableInfo> table_info, CreateType create_type,
+                  std::vector<std::unique_ptr<ColumnDefinition>> columns,
+                  std::vector<std::unique_ptr<ColumnDefinition>> foreign_keys)
       : TableRefStatement(StatementType::CREATE, std::move(table_info)),
         create_type_(create_type),
         columns_(std::move(columns)),
@@ -402,8 +348,8 @@ class CreateStatement : public TableRefStatement {
    * @param index_name index name
    * @param index_attrs index attributes
    */
-  CreateStatement(std::shared_ptr<TableInfo> table_info, IndexType index_type, bool unique, std::string index_name,
-                  std::vector<IndexAttr *> index_attrs)
+  CreateStatement(std::unique_ptr<TableInfo> table_info, IndexType index_type, bool unique, std::string index_name,
+                  std::vector<IndexAttr> index_attrs)
       : TableRefStatement(StatementType::CREATE, std::move(table_info)),
         create_type_(kIndex),
         index_type_(index_type),
@@ -416,7 +362,7 @@ class CreateStatement : public TableRefStatement {
    * @param table_info table information
    * @param if_not_exists true if "IF NOT EXISTS" was used, false otherwise
    */
-  CreateStatement(std::shared_ptr<TableInfo> table_info, bool if_not_exists)
+  CreateStatement(std::unique_ptr<TableInfo> table_info, bool if_not_exists)
       : TableRefStatement(StatementType::CREATE, std::move(table_info)),
         create_type_(kSchema),
         if_not_exists_(if_not_exists) {}
@@ -431,9 +377,9 @@ class CreateStatement : public TableRefStatement {
    * @param trigger_when trigger when clause
    * @param trigger_type trigger type
    */
-  CreateStatement(std::shared_ptr<TableInfo> table_info, std::string trigger_name,
+  CreateStatement(std::unique_ptr<TableInfo> table_info, std::string trigger_name,
                   std::vector<std::string> trigger_funcnames, std::vector<std::string> trigger_args,
-                  std::vector<std::string> trigger_columns, const AbstractExpression *trigger_when,
+                  std::vector<std::string> trigger_columns, common::ManagedPointer<AbstractExpression> trigger_when,
                   int16_t trigger_type)
       : TableRefStatement(StatementType::CREATE, std::move(table_info)),
         create_type_(kTrigger),
@@ -449,116 +395,89 @@ class CreateStatement : public TableRefStatement {
    * @param view_name view name
    * @param view_query query associated with view
    */
-  CreateStatement(std::string view_name, std::shared_ptr<SelectStatement> view_query)
+  CreateStatement(std::string view_name, std::unique_ptr<SelectStatement> view_query)
       : TableRefStatement(StatementType::CREATE, nullptr),
         create_type_(kView),
         view_name_(std::move(view_name)),
         view_query_(std::move(view_query)) {}
 
-  ~CreateStatement() override {
-    delete trigger_when_;
-    for (auto *attr : index_attrs_) {
-      delete attr;
-    }
-  }
-
   void Accept(SqlNodeVisitor *v) override { v->Visit(this); }
 
-  /**
-   * @return the type of create statement
-   */
+  /** @return the type of create statement */
   CreateType GetCreateType() { return create_type_; }
 
-  /**
-   * @return columns for [CREATE TABLE, CREATE DATABASE]
-   */
-  std::vector<std::shared_ptr<ColumnDefinition>> GetColumns() { return columns_; }
-
-  /**
-   * @return foreign keys for [CREATE TABLE, CREATE DATABASE]
-   */
-  std::vector<std::shared_ptr<ColumnDefinition>> GetForeignKeys() { return foreign_keys_; }
-
-  /**
-   * @return index type for [CREATE INDEX]
-   */
-  IndexType GetIndexType() { return index_type_; }
-
-  /**
-   * @return true if index should be unique for [CREATE INDEX]
-   */
-  bool IsUniqueIndex() { return unique_index_; }
-
-  /**
-   * @return index name for [CREATE INDEX]
-   */
-  std::string GetIndexName() { return index_name_; }
-
-  /**
-   * @return index attributes for [CREATE INDEX]
-   */
-  const std::vector<IndexAttr *> &GetIndexAttributes() const { return index_attrs_; }
-
-  /**
-   * @return true if "IF NOT EXISTS" for [CREATE SCHEMA], false otherwise
-   */
-  bool IsIfNotExists() { return if_not_exists_; }
-
-  /**
-   * @return trigger name for [CREATE TRIGGER]
-   */
-  std::string GetTriggerName() { return trigger_name_; }
-
-  /**
-   * @return trigger function names for [CREATE TRIGGER]
-   */
-  std::vector<std::string> GetTriggerFuncNames() { return trigger_funcnames_; }
-
-  /**
-   * @return trigger args for [CREATE TRIGGER]
-   */
-  std::vector<std::string> GetTriggerArgs() { return trigger_args_; }
-
-  /**
-   * @return trigger columns for [CREATE TRIGGER]
-   */
-  std::vector<std::string> GetTriggerColumns() { return trigger_columns_; }
-
-  /**
-   * @return trigger when clause for [CREATE TRIGGER]
-   */
-  common::ManagedPointer<const AbstractExpression> GetTriggerWhen() {
-    return common::ManagedPointer<const AbstractExpression>(trigger_when_);
+  /** @return columns for [CREATE TABLE, CREATE DATABASE] */
+  std::vector<common::ManagedPointer<ColumnDefinition>> GetColumns() {
+    std::vector<common::ManagedPointer<ColumnDefinition>> cols;
+    cols.reserve(columns_.size());
+    for (const auto &col : columns_) {
+      cols.emplace_back(common::ManagedPointer(col));
+    }
+    return cols;
   }
 
-  /**
-   * @return trigger type, i.e. information about row, timing, events, access by pg_trigger
-   */
+  /** @return foreign keys for [CREATE TABLE, CREATE DATABASE] */
+  std::vector<common::ManagedPointer<ColumnDefinition>> GetForeignKeys() {
+    std::vector<common::ManagedPointer<ColumnDefinition>> foreign_keys;
+    foreign_keys.reserve(foreign_keys_.size());
+    for (const auto &fk : foreign_keys_) {
+      foreign_keys.emplace_back(common::ManagedPointer(fk));
+    }
+    return foreign_keys;
+  }
+
+  /** @return index type for [CREATE INDEX] */
+  IndexType GetIndexType() { return index_type_; }
+
+  /** @return true if index should be unique for [CREATE INDEX] */
+  bool IsUniqueIndex() { return unique_index_; }
+
+  /** @return index name for [CREATE INDEX] */
+  std::string GetIndexName() { return index_name_; }
+
+  /** @return index attributes for [CREATE INDEX] */
+  const std::vector<IndexAttr> &GetIndexAttributes() const { return index_attrs_; }
+
+  /** @return true if "IF NOT EXISTS" for [CREATE SCHEMA], false otherwise */
+  bool IsIfNotExists() { return if_not_exists_; }
+
+  /** @return trigger name for [CREATE TRIGGER] */
+  std::string GetTriggerName() { return trigger_name_; }
+
+  /** @return trigger function names for [CREATE TRIGGER] */
+  std::vector<std::string> GetTriggerFuncNames() { return trigger_funcnames_; }
+
+  /** @return trigger args for [CREATE TRIGGER] */
+  std::vector<std::string> GetTriggerArgs() { return trigger_args_; }
+
+  /** @return trigger columns for [CREATE TRIGGER] */
+  std::vector<std::string> GetTriggerColumns() { return trigger_columns_; }
+
+  /** @return trigger when clause for [CREATE TRIGGER] */
+  common::ManagedPointer<AbstractExpression> GetTriggerWhen() { return common::ManagedPointer(trigger_when_); }
+
+  /** @return trigger type, i.e. information about row, timing, events, access by pg_trigger */
   int16_t GetTriggerType() { return trigger_type_; }
 
-  /**
-   * @return view name for [CREATE VIEW]
-   */
+  /** @return view name for [CREATE VIEW] */
   std::string GetViewName() { return view_name_; }
 
-  /**
-   * @return view query for [CREATE VIEW]
-   */
-  std::shared_ptr<SelectStatement> GetViewQuery() { return view_query_; }
+  /** @return view query for [CREATE VIEW] */
+  common::ManagedPointer<SelectStatement> GetViewQuery() { return common::ManagedPointer(view_query_); }
 
  private:
   // ALL
   const CreateType create_type_;
 
   // CREATE TABLE, CREATE DATABASE
-  const std::vector<std::shared_ptr<ColumnDefinition>> columns_;
-  const std::vector<std::shared_ptr<ColumnDefinition>> foreign_keys_;
+  const std::vector<std::unique_ptr<ColumnDefinition>> columns_;
+  const std::vector<std::unique_ptr<ColumnDefinition>> foreign_keys_;
 
   // CREATE INDEX
   const IndexType index_type_ = IndexType::INVALID;
   const bool unique_index_ = false;
   const std::string index_name_;
-  const std::vector<IndexAttr *> index_attrs_;
+  const std::vector<IndexAttr> index_attrs_;
 
   // CREATE SCHEMA
   const bool if_not_exists_ = false;
@@ -568,12 +487,12 @@ class CreateStatement : public TableRefStatement {
   const std::vector<std::string> trigger_funcnames_;
   const std::vector<std::string> trigger_args_;
   const std::vector<std::string> trigger_columns_;
-  const AbstractExpression *trigger_when_ = nullptr;
+  const common::ManagedPointer<AbstractExpression> trigger_when_ = common::ManagedPointer<AbstractExpression>(nullptr);
   const int16_t trigger_type_ = 0;
 
   // CREATE VIEW
   const std::string view_name_;
-  const std::shared_ptr<SelectStatement> view_query_;
+  const std::unique_ptr<SelectStatement> view_query_;
 };
 
 }  // namespace parser

@@ -7,31 +7,26 @@
 
 namespace terrier::parser {
 /**
- * Represents a type cast expression.
+ * TypeCastExpression represents cast expressions of the form CAST(expr) or expr::TYPE.
  */
 class TypeCastExpression : public AbstractExpression {
   // TODO(Ling):  Do we need a separate class for operator_cast? We can put it in operatorExpression
+  // Wan: can you elaborate? How do you envision this being used?
  public:
-  /**
-   * Instantiates a new type cast expression.
-   */
-  TypeCastExpression(type::TypeId type, std::vector<const AbstractExpression *> children)
+  /** Instantiates a new type cast expression. */
+  TypeCastExpression(type::TypeId type, std::vector<std::unique_ptr<AbstractExpression>> &&children)
       : AbstractExpression(ExpressionType::OPERATOR_CAST, type, std::move(children)) {}
 
-  /**
-   * Default constructor for deserialization
-   */
+  /** Default constructor for JSON deserialization. */
   TypeCastExpression() = default;
-
-  ~TypeCastExpression() override = default;
 
   /**
    * Copies this TypeCastExpression
    * @returns copy of this
    */
-  const AbstractExpression *Copy() const override {
-    std::vector<const AbstractExpression *> children;
-    for (const auto *child : children_) {
+  std::unique_ptr<AbstractExpression> Copy() const override {
+    std::vector<std::unique_ptr<AbstractExpression>> children;
+    for (const auto &child : GetChildren()) {
       children.emplace_back(child->Copy());
     }
     return CopyWithChildren(std::move(children));
@@ -43,23 +38,14 @@ class TypeCastExpression : public AbstractExpression {
    * @param children New children to be owned by the copy
    * @returns copy of this with new children
    */
-  const AbstractExpression *CopyWithChildren(std::vector<const AbstractExpression *> children) const override {
-    return new TypeCastExpression(*this, std::move(children));
+  std::unique_ptr<AbstractExpression> CopyWithChildren(
+      std::vector<std::unique_ptr<AbstractExpression>> &&children) const override {
+    auto expr = std::make_unique<TypeCastExpression>(GetReturnValueType(), std::move(children));
+    expr->SetMutableStateForCopy(*this);
+    return expr;
   }
 
   void Accept(SqlNodeVisitor *v) override { v->Visit(this); }
-
- private:
-  /**
-   * Copy constructor for TypeCastExpression
-   * Relies on AbstractExpression copy constructor for base members
-   * @param other Other TypeCastExpression to copy from
-   * @param children new TypeCastExpression's children
-   */
-  TypeCastExpression(const TypeCastExpression &other, std::vector<const AbstractExpression *> &&children)
-      : AbstractExpression(other) {
-    children_ = children;
-  }
 };
 
 DEFINE_JSON_DECLARATIONS(TypeCastExpression);

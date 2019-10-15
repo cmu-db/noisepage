@@ -51,8 +51,8 @@ class SeqScanPlanNode : public AbstractScanPlanNode {
      * Build the sequential scan plan node
      * @return plan node
      */
-    std::shared_ptr<SeqScanPlanNode> Build() {
-      return std::shared_ptr<SeqScanPlanNode>(
+    std::unique_ptr<SeqScanPlanNode> Build() {
+      return std::unique_ptr<SeqScanPlanNode>(
           new SeqScanPlanNode(std::move(children_), std::move(output_schema_), scan_predicate_, std::move(column_ids_),
                               is_for_update_, is_parallel_, database_oid_, namespace_oid_, table_oid_));
     }
@@ -80,8 +80,9 @@ class SeqScanPlanNode : public AbstractScanPlanNode {
    * @param database_oid database oid for scan
    * @param table_oid OID for table to scan
    */
-  SeqScanPlanNode(std::vector<std::shared_ptr<AbstractPlanNode>> &&children,
-                  std::shared_ptr<OutputSchema> output_schema, const parser::AbstractExpression *predicate,
+  SeqScanPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
+                  std::unique_ptr<OutputSchema> output_schema,
+                  common::ManagedPointer<parser::AbstractExpression> predicate,
                   std::vector<catalog::col_oid_t> &&column_ids, bool is_for_update, bool is_parallel,
                   catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
                   catalog::table_oid_t table_oid)
@@ -121,7 +122,7 @@ class SeqScanPlanNode : public AbstractScanPlanNode {
   bool operator==(const AbstractPlanNode &rhs) const override;
 
   nlohmann::json ToJson() const override;
-  void FromJson(const nlohmann::json &j) override;
+  std::vector<std::unique_ptr<parser::AbstractExpression>> FromJson(const nlohmann::json &j) override;
 
  private:
   /**
