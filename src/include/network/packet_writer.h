@@ -38,9 +38,7 @@ class PacketWriter {
    * Write out a single type
    * @param type to write to the queue
    */
-  void WriteType(NetworkMessageType type) {
-    queue_.BufferWriteRawValue(type);
-  }
+  void WriteType(NetworkMessageType type) { queue_.BufferWriteRawValue(type); }
 
   /**
    * Write out a packet with a single type that is not related to Postgres SSL.
