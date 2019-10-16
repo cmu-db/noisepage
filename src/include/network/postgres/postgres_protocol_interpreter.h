@@ -121,7 +121,7 @@ class PostgresProtocolInterpreter : public ProtocolInterpreter {
   /**
    * @see ProtocolInterpreter::SetPacketMessageType
    */
-  void SetPacketMessageType() override;
+  void SetPacketMessageType(InputPacket& curr_input_packet) override;
 
  private:
   bool startup_ = true;

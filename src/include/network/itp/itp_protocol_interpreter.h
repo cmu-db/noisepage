@@ -75,7 +75,7 @@ class ITPProtocolInterpreter : public ProtocolInterpreter {
   /**
    * @see ProtocolInterpreter::SetPacketMessageType
    */
-  void SetPacketMessageType() override;
+  void SetPacketMessageType(InputPacket& curr_input_packet) override;
 
  private:
   InputPacket curr_input_packet_{};

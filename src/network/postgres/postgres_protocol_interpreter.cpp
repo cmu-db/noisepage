@@ -78,8 +78,8 @@ size_t PostgresProtocolInterpreter::GetPacketHeaderSize() {
   return startup_ ? sizeof(int32_t) : 1 + sizeof(int32_t);
 }
 
-void PostgresProtocolInterpreter::SetPacketMessageType() {
-  if (!startup_) curr_input_packet_.msg_type_ = in->ReadValue<NetworkMessageType>();
+void PostgresProtocolInterpreter::SetPacketMessageType(InputPacket& curr_input_packet) {
+  if (!startup_) curr_input_packet.msg_type_ = in->ReadValue<NetworkMessageType>();
 }
 
 void PostgresProtocolInterpreter::CompleteCommand(PostgresPacketWriter *const out, const QueryType &query_type,
