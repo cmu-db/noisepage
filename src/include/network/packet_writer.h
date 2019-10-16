@@ -29,21 +29,29 @@ class PacketWriter {
   }
 
   /**
-   * Write out a packet with a single type. Some messages will be
-   * special cases since no size field is provided. (PG_SSL_YES, PG_SSL_NO)
+   * Checks whether the packet is null
+   * @return whether packet is null
+   */
+  bool IsPacketEmpty() { return curr_packet_len_ == nullptr; }
+
+  /**
+   * Write out a single type
+   * @param type to write to the queue
+   */
+  void WriteType(NetworkMessageType type) {
+    queue_.BufferWriteRawValue(type);
+  }
+
+  /**
+   * Write out a packet with a single type that is not related to Postgres SSL.
    * @param type Type of message to write out
    */
   void WriteSingleTypePacket(NetworkMessageType type) {
     // Make sure no active packet being constructed
-    TERRIER_ASSERT(curr_packet_len_ == nullptr, "packet length is null");
-    switch (type) {
-      case NetworkMessageType::PG_SSL_YES:
-      case NetworkMessageType::PG_SSL_NO:
-        queue_.BufferWriteRawValue(type);
-        break;
-      default:
-        BeginPacket(type).EndPacket();
-    }
+    TERRIER_ASSERT(IsPacketEmpty(), "packet length is null");
+    TERRIER_ASSERT(type != NetworkMessageType::PG_SSL_YES && type != NetworkMessageType::PG_SSL_NO,
+                   "SSL types not allowed");
+    BeginPacket(type).EndPacket();
   }
 
   /**
@@ -55,8 +63,8 @@ class PacketWriter {
    */
   PacketWriter &BeginPacket(NetworkMessageType type) {
     // No active packet being constructed
-    TERRIER_ASSERT(curr_packet_len_ == nullptr, "packet length is null");
-    if (type != NetworkMessageType::NO_HEADER) queue_.BufferWriteRawValue(type);
+    TERRIER_ASSERT(IsPacketEmpty(), "packet length is null");
+    if (type != NetworkMessageType::NO_HEADER) WriteType(type);
     // Remember the size field since we will need to modify it as we go along.
     // It is important that our size field is contiguous and not broken between
     // two buffers.
@@ -74,7 +82,7 @@ class PacketWriter {
    * @return self-reference for chaining
    */
   PacketWriter &AppendRaw(const void *src, size_t len) {
-    TERRIER_ASSERT(curr_packet_len_ != nullptr, "packet length is null");
+    TERRIER_ASSERT(!IsPacketEmpty(), "packet length is null");
     queue_.BufferWriteRaw(src, len);
     // Add the size field to the len of the packet. Be mindful of byte
     // ordering. We switch to network ordering only when the packet is finished
@@ -197,7 +205,7 @@ class PacketWriter {
    * well-formed until this method is called.
    */
   void EndPacket() {
-    TERRIER_ASSERT(curr_packet_len_ != nullptr, "packet length is null");
+    TERRIER_ASSERT(!IsPacketEmpty(), "packet length is null");
     // Switch to network byte ordering, add the 4 bytes of size field
     *curr_packet_len_ = htonl(*curr_packet_len_ + static_cast<uint32_t>(sizeof(uint32_t)));
     curr_packet_len_ = nullptr;

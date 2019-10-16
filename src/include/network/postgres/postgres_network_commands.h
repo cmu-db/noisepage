@@ -36,7 +36,7 @@ class PostgresNetworkCommand : public NetworkCommand {
   /**
    * Constructor for a PostgresNetworkCommand instance
    * @param in The input packets to this command
-   * @pram flush Whether or not to flush the output packets on completion
+   * @param flush Whether or not to flush the output packets on completion
    */
   PostgresNetworkCommand(InputPacket *in, bool flush) : NetworkCommand(in, flush) {}
 };
