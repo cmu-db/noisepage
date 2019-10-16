@@ -66,19 +66,8 @@ class ITPProtocolInterpreter : public ProtocolInterpreter {
    * @param out
    */
   void GetResult(std::shared_ptr<WriteQueue> out) override {
-    PostgresPacketWriter writer(out);
+    ITPPacketWriter writer(out);
     ExecQueryMessageGetResult(&writer, ResultType::SUCCESS);
-    // TODO(Tianyu): This looks wrong. JDBC and PSQL should be united under one wire protocol. This field was set
-    // statically for all connections before I removed it. Also, the difference between these two methods look
-    // superficial. Some one should dig deeper to figure out what's going on here.
-    //    switch (protocol_type_) {
-    //      case NetworkProtocolType::POSTGRES_JDBC:NETWORK_LOG_TRACE("JDBC result");
-    //        ExecExecuteMessageGetResult(&writer, ResultType::SUCCESS);
-    //        break;
-    //      case NetworkProtocolType::POSTGRES_PSQL:NETWORK_LOG_TRACE("PSQL result");
-    //        ExecQueryMessageGetResult(&writer, ResultType::SUCCESS);
-    //      default:throw NETWORK_PROCESS_EXCEPTION("Unsupported protocol type");
-    //    }
   }
 
  private:
