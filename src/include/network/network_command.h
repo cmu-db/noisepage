@@ -40,11 +40,6 @@ class NetworkCommand {
    */
   ReadBufferView in_;
 
-  /**
-   * Size of the ReadBufferView
-   */
-  size_t in_len_;
-
  private:
   bool flush_on_complete_;
 };

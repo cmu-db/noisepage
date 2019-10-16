@@ -60,21 +60,20 @@ class ITPProtocolInterpreter : public ProtocolInterpreter {
                      common::ManagedPointer<trafficcop::TrafficCop> t_cop,
                      common::ManagedPointer<ConnectionContext> context, NetworkCallback callback) override;
 
-  // TODO(Tianyu): Fill in the following documentation at some point
   /**
-   *
+   * Writes result to the client
    * @param out
    */
   void GetResult(std::shared_ptr<WriteQueue> out) override {
     ITPPacketWriter writer(out);
-    ExecQueryMessageGetResult(&writer, ResultType::SUCCESS);
+    out->BeginPacket(NetworkMessageType::ITP_COMMAND_COMPLETE).EndPacket();
   }
 
  private:
   bool startup_ = true;
   InputPacket curr_input_packet_{};
   std::unordered_map<std::string, std::string> cmdline_options_;
-  common::ManagedPointer<PostgresCommandFactory> command_factory_;
+  common::ManagedPointer<ITPCommandFactory> command_factory_;
 
   bool TryBuildPacket(const std::shared_ptr<ReadBuffer> &in);
   bool TryReadPacketHeader(const std::shared_ptr<ReadBuffer> &in);
