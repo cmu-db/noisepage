@@ -67,8 +67,14 @@ class ITPProtocolInterpreter : public ProtocolInterpreter {
   void GetResult(std::shared_ptr<WriteQueue> out) override;
 
  protected:
+  /**
+   * @see ProtocolInterpreter::GetPacketHeaderSize
+   */
   size_t GetPacketHeaderSize() override;
 
+  /**
+   * @see ProtocolInterpreter::SetPacketMessageType
+   */
   void SetPacketMessageType() override;
 
  private:

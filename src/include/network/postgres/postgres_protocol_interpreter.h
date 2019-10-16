@@ -113,8 +113,14 @@ class PostgresProtocolInterpreter : public ProtocolInterpreter {
   void ExecExecuteMessageGetResult(PostgresPacketWriter *out, ResultType status);
 
  protected:
+  /**
+   * @see ProtocolInterpreter::GetPacketHeaderSize
+   */
   size_t GetPacketHeaderSize() override;
 
+  /**
+   * @see ProtocolInterpreter::SetPacketMessageType
+   */
   void SetPacketMessageType() override;
 
  private:
@@ -122,9 +128,6 @@ class PostgresProtocolInterpreter : public ProtocolInterpreter {
   InputPacket curr_input_packet_{};
   std::unordered_map<std::string, std::string> cmdline_options_;
   common::ManagedPointer<PostgresCommandFactory> command_factory_;
-
-  bool TryBuildPacket(const std::shared_ptr<ReadBuffer> &in);
-  bool TryReadPacketHeader(const std::shared_ptr<ReadBuffer> &in);
 };
 
 }  // namespace terrier::network
