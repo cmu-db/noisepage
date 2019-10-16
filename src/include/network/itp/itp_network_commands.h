@@ -37,7 +37,11 @@ class ITPNetworkCommand : public NetworkCommand {
    * @param in The input packets to this command
    * @pram flush Whether or not to flush the output packets on completion
    */
-  ITPNetworkCommand(InputPacket *in, bool flush) : NetworkCommand(in, flush) {}
+  ITPNetworkCommand(InputPacket *in, bool flush) : NetworkCommand(in, flush), in_len_(in->len_) {}
+
+ private:
+  // Size of the input packet
+  size_t in_len_;
 };
 
 DEFINE_ITP_COMMAND(ReplicationCommand, true);

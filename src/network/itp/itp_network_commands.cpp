@@ -16,6 +16,9 @@ Transition ReplicationCommand::Exec(common::ManagedPointer<ProtocolInterpreter> 
                                     common::ManagedPointer<ITPPacketWriter> out,
                                     common::ManagedPointer<trafficcop::TrafficCop> t_cop,
                                     common::ManagedPointer<ConnectionContext> connection, NetworkCallback callback) {
+  std::unique_ptr<ReadBuffer> buffer;
+  buffer->FillBufferFrom(in_, in_len_);
+  t_cop->HandBufferToReplication(buffer);
   return Transition::PROCEED;
 }
 
