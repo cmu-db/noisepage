@@ -112,6 +112,11 @@ class PostgresProtocolInterpreter : public ProtocolInterpreter {
    */
   void ExecExecuteMessageGetResult(PostgresPacketWriter *out, ResultType status);
 
+ protected:
+  size_t GetPacketHeaderSize() override;
+
+  void SetPacketMessageType() override;
+
  private:
   bool startup_ = true;
   InputPacket curr_input_packet_{};
