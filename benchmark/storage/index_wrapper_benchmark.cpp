@@ -37,7 +37,7 @@ class IndexBenchmark : public benchmark::Fixture {
       storage::ProjectedRowInitializer::Create(std::vector<uint8_t>{1}, std::vector<uint16_t>{1});  // This is a dummy
 
   // HashIndex
-  storage::index::Index *index_;
+  common::ManagedPointer<storage::index::Index> index_;
   transaction::TimestampManager *timestamp_manager_;
   transaction::DeferredActionManager *deferred_action_manager_;
   transaction::TransactionManager *txn_manager_;
