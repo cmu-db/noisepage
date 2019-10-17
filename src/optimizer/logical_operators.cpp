@@ -289,7 +289,7 @@ common::hash_t LogicalDistinct::Hash() const {
 
 Operator LogicalLimit::Make(size_t offset, size_t limit,
                             std::vector<common::ManagedPointer<parser::AbstractExpression>> &&sort_exprs,
-                            std::vector<planner::OrderByOrderingType> &&sort_directions) {
+                            std::vector<optimizer::OrderByOrderingType> &&sort_directions) {
   TERRIER_ASSERT(sort_exprs.size() == sort_directions.size(), "Mismatched ORDER BY expressions + directions");
   auto *op = new LogicalLimit;
   op->offset_ = offset;

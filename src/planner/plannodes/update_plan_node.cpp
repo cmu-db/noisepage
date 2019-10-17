@@ -22,7 +22,7 @@ common::hash_t UpdatePlanNode::Hash() const {
 
   // Hash update_primary_key
   auto is_update_primary_key = GetUpdatePrimaryKey();
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&is_update_primary_key));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(is_update_primary_key));
 
   return hash;
 }

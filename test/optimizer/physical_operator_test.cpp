@@ -357,7 +357,7 @@ TEST(OperatorTests, LimitTest) {
   size_t limit = 22;
   auto sort_expr_ori = new parser::ConstantValueExpression(type::TransientValueFactory::GetTinyInt(1));
   auto sort_expr = common::ManagedPointer<parser::AbstractExpression>(sort_expr_ori);
-  planner::OrderByOrderingType sort_dir = planner::OrderByOrderingType::ASC;
+  OrderByOrderingType sort_dir = OrderByOrderingType::ASC;
 
   // Check that all of our GET methods work as expected
   Operator op1 = Limit::Make(offset, limit, {sort_expr}, {sort_dir});

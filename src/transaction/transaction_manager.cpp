@@ -1,14 +1,28 @@
 #include "transaction/transaction_manager.h"
-#include <queue>
 #include <unordered_set>
 #include <utility>
+#include "common/scoped_timer.h"
+#include "common/thread_context.h"
+#include "metrics/metrics_store.h"
 
 namespace terrier::transaction {
 TransactionContext *TransactionManager::BeginTransaction() {
-  timestamp_t start_time = timestamp_manager_->BeginTransaction();
-  auto *const result = new TransactionContext(start_time, start_time + INT64_MIN, buffer_pool_, log_manager_);
-  // Ensure we do not return from this function if there are ongoing write commits
-  common::Gate::ScopedExit gate(&txn_gate_);
+  uint64_t elapsed_us = 0;
+  timestamp_t start_time;
+  TransactionContext *result;
+  {
+    start_time = timestamp_manager_->BeginTransaction();
+    result = new TransactionContext(start_time, start_time + INT64_MIN, buffer_pool_, log_manager_);
+    // Ensure we do not return from this function if there are ongoing write commits
+    if (common::thread_context.metrics_store_ != nullptr &&
+        common::thread_context.metrics_store_->ComponentEnabled(metrics::MetricsComponent::TRANSACTION))
+      common::ScopedTimer<std::chrono::nanoseconds> timer(&elapsed_us);
+    // Ensure we do not return from this function if there are ongoing write commits
+    txn_gate_.Traverse();
+  }
+  if (elapsed_us > 0) {
+    common::thread_context.metrics_store_->RecordBeginData(elapsed_us, start_time);
+  }
   return result;
 }
 
@@ -58,35 +72,46 @@ timestamp_t TransactionManager::UpdatingCommitCriticalSection(TransactionContext
 
 timestamp_t TransactionManager::Commit(TransactionContext *const txn, transaction::callback_fn callback,
                                        void *callback_arg) {
-  TERRIER_ASSERT(!txn->must_abort_,
-                 "This txn was marked that it must abort. Set a breakpoint at TransactionContext::MustAbort() to see a "
-                 "stack trace for when this flag is getting tripped.");
-  const timestamp_t result =
-      txn->IsReadOnly() ? timestamp_manager_->CheckOutTimestamp() : UpdatingCommitCriticalSection(txn);
-  while (!txn->commit_actions_.empty()) {
-    TERRIER_ASSERT(deferred_action_manager_ != DISABLED, "No deferred action manager exists to process actions");
-    txn->commit_actions_.front()(deferred_action_manager_);
-    txn->commit_actions_.pop_front();
+  uint64_t elapsed_us = 0;
+  timestamp_t result;
+  {
+    if (common::thread_context.metrics_store_ != nullptr &&
+        common::thread_context.metrics_store_->ComponentEnabled(metrics::MetricsComponent::TRANSACTION))
+      common::ScopedTimer<std::chrono::nanoseconds> timer(&elapsed_us);
+    TERRIER_ASSERT(
+        !txn->must_abort_,
+        "This txn was marked that it must abort. Set a breakpoint at TransactionContext::MustAbort() to see a "
+        "stack trace for when this flag is getting tripped.");
+    result = txn->IsReadOnly() ? timestamp_manager_->CheckOutTimestamp() : UpdatingCommitCriticalSection(txn);
+    while (!txn->commit_actions_.empty()) {
+      TERRIER_ASSERT(deferred_action_manager_ != DISABLED, "No deferred action manager exists to process actions");
+      txn->commit_actions_.front()(deferred_action_manager_);
+      txn->commit_actions_.pop_front();
+    }
+
+    // If logging is enabled and our txn is not read only, we need to persist the oldest active txn at the time we
+    // committed. This will allow us to correctly order and execute transactions during recovery.
+    timestamp_t oldest_active_txn = INVALID_TXN_TIMESTAMP;
+    if (log_manager_ != DISABLED && !txn->IsReadOnly()) {
+      // TODO(Gus): Getting the cached timestamp may cause replication delays, as the cached timestamp is a stale value,
+      // so transactions may wait for longer than they need to. We should analyze the impact of this when replication is
+      // added.
+      oldest_active_txn = timestamp_manager_->CachedOldestTransactionStartTime();
+    }
+    LogCommit(txn, result, callback, callback_arg, oldest_active_txn);
+
+    // We hand off txn to GC, however, it won't be GC'd until the LogManager marks it as serialized
+    if (gc_enabled_) {
+      common::SpinLatch::ScopedSpinLatch guard(&timestamp_manager_->curr_running_txns_latch_);
+      // It is not necessary to have to GC process read-only transactions, but it's probably faster to call free off
+      // the critical path there anyway
+      // Also note here that GC will figure out what varlen entries to GC, as opposed to in the abort case.
+      completed_txns_.push_front(txn);
+    }
   }
 
-  // If logging is enabled and our txn is not read only, we need to persist the oldest active txn at the time we
-  // committed. This will allow us to correctly order and execute transactions during recovery.
-  timestamp_t oldest_active_txn = INVALID_TXN_TIMESTAMP;
-  if (log_manager_ != DISABLED && !txn->IsReadOnly()) {
-    // TODO(Gus): Getting the cached timestamp may cause replication delays, as the cached timestamp is a stale value,
-    // so transactions may wait for longer than they need to. We should analyze the impact of this when replication is
-    // added.
-    oldest_active_txn = timestamp_manager_->CachedOldestTransactionStartTime();
-  }
-  LogCommit(txn, result, callback, callback_arg, oldest_active_txn);
-
-  // We hand off txn to GC, however, it won't be GC'd until the LogManager marks it as serialized
-  if (gc_enabled_) {
-    common::SpinLatch::ScopedSpinLatch guard(&timestamp_manager_->curr_running_txns_latch_);
-    // It is not necessary to have to GC process read-only transactions, but it's probably faster to call free off
-    // the critical path there anyway
-    // Also note here that GC will figure out what varlen entries to GC, as opposed to in the abort case.
-    completed_txns_.push_front(txn);
+  if (elapsed_us > 0) {
+    common::thread_context.metrics_store_->RecordCommitData(elapsed_us, txn->StartTime());
   }
   return result;
 }

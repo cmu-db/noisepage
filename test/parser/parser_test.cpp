@@ -248,7 +248,6 @@ TEST_F(ParserTestBase, CreateViewTest) {
   EXPECT_EQ(create_stmt->GetViewName(), "foo");
   EXPECT_NE(create_stmt->GetViewQuery(), nullptr);
   auto view_query = create_stmt->GetViewQuery();
-
   EXPECT_EQ(view_query->GetSelectTable()->GetTableName(), "bar");
   EXPECT_EQ(view_query->GetSelectColumns().size(), 1);
   EXPECT_NE(view_query->GetSelectCondition(), nullptr);

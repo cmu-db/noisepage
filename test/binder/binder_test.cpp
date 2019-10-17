@@ -138,26 +138,26 @@ class BinderCorrectnessTest : public TerrierTest {
 TEST_F(BinderCorrectnessTest, SelectStatementComplexTest) {
   // Test regular table name
   LOG_INFO("Parsing sql query");
-  std::string selectSQL =
+  std::string select_sql =
       "SELECT A.A1, B.B2 FROM A INNER JOIN b ON a.a1 = b.b1 WHERE a1 < 100 "
       "GROUP BY A.a1, B.b2 HAVING a1 > 50 ORDER BY a1";
 
-  auto parse_tree = parser_.BuildParseTree(selectSQL);
+  auto parse_tree = parser_.BuildParseTree(select_sql);
   auto statement = parse_tree.GetStatements()[0];
   binder_->BindNameToNode(statement, &parse_tree);
-  auto selectStmt = statement.CastManagedPointerTo<parser::SelectStatement>();
-  EXPECT_EQ(0, selectStmt->GetDepth());
+  auto select_stmt = statement.CastManagedPointerTo<parser::SelectStatement>();
+  EXPECT_EQ(0, select_stmt->GetDepth());
 
   // Check select_list
   LOG_INFO("Checking select list");
-  auto col_expr = selectStmt->GetSelectColumns()[0].CastManagedPointerTo<parser::ColumnValueExpression>();
+  auto col_expr = select_stmt->GetSelectColumns()[0].CastManagedPointerTo<parser::ColumnValueExpression>();
   EXPECT_EQ(col_expr->GetDatabaseOid(), db_oid_);              // A.a1
   EXPECT_EQ(col_expr->GetTableOid(), table_a_oid_);            // A.a1
   EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(1));  // A.a1; columns are indexed from 1
   EXPECT_EQ(type::TypeId::INTEGER, col_expr->GetReturnValueType());
   EXPECT_EQ(0, col_expr->GetDepth());
 
-  col_expr = selectStmt->GetSelectColumns()[1].CastManagedPointerTo<parser::ColumnValueExpression>();
+  col_expr = select_stmt->GetSelectColumns()[1].CastManagedPointerTo<parser::ColumnValueExpression>();
   EXPECT_EQ(col_expr->GetDatabaseOid(), db_oid_);              // B.b2
   EXPECT_EQ(col_expr->GetTableOid(), table_b_oid_);            // B.b2
   EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(2));  // B.b2; columns are indexed from 1
@@ -166,7 +166,7 @@ TEST_F(BinderCorrectnessTest, SelectStatementComplexTest) {
 
   // Check join condition
   LOG_INFO("Checking join condition");
-  col_expr = selectStmt->GetSelectTable()
+  col_expr = select_stmt->GetSelectTable()
                  ->GetJoin()
                  ->GetJoinCondition()
                  ->GetChild(0)
@@ -177,7 +177,7 @@ TEST_F(BinderCorrectnessTest, SelectStatementComplexTest) {
   EXPECT_EQ(type::TypeId::INTEGER, col_expr->GetReturnValueType());
   EXPECT_EQ(0, col_expr->GetDepth());
 
-  col_expr = selectStmt->GetSelectTable()
+  col_expr = select_stmt->GetSelectTable()
                  ->GetJoin()
                  ->GetJoinCondition()
                  ->GetChild(1)
@@ -191,7 +191,7 @@ TEST_F(BinderCorrectnessTest, SelectStatementComplexTest) {
 
   // Check Where clause
   LOG_INFO("Checking where clause");
-  col_expr = selectStmt->GetSelectCondition()->GetChild(0).CastManagedPointerTo<parser::ColumnValueExpression>();
+  col_expr = select_stmt->GetSelectCondition()->GetChild(0).CastManagedPointerTo<parser::ColumnValueExpression>();
   EXPECT_EQ(col_expr->GetDatabaseOid(), db_oid_);              // A.a1
   EXPECT_EQ(col_expr->GetTableOid(), table_a_oid_);            // A.a1
   EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(1));  // A.a1; columns are indexed from 1
@@ -200,14 +200,14 @@ TEST_F(BinderCorrectnessTest, SelectStatementComplexTest) {
 
   // Check Group By and Having
   LOG_INFO("Checking group by");
-  col_expr = selectStmt->GetSelectGroupBy()->GetColumns()[0].CastManagedPointerTo<parser::ColumnValueExpression>();
+  col_expr = select_stmt->GetSelectGroupBy()->GetColumns()[0].CastManagedPointerTo<parser::ColumnValueExpression>();
   EXPECT_EQ(col_expr->GetDatabaseOid(), db_oid_);              // A.a1
   EXPECT_EQ(col_expr->GetTableOid(), table_a_oid_);            // A.a1
   EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(1));  // A.a1; columns are indexed from 1
   EXPECT_EQ(type::TypeId::INTEGER, col_expr->GetReturnValueType());
   EXPECT_EQ(0, col_expr->GetDepth());
 
-  col_expr = selectStmt->GetSelectGroupBy()->GetColumns()[1].CastManagedPointerTo<parser::ColumnValueExpression>();
+  col_expr = select_stmt->GetSelectGroupBy()->GetColumns()[1].CastManagedPointerTo<parser::ColumnValueExpression>();
   EXPECT_EQ(col_expr->GetDatabaseOid(), db_oid_);              // B.b2
   EXPECT_EQ(col_expr->GetTableOid(), table_b_oid_);            // B.b2
   EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(2));  // B.b2; columns are indexed from 1
@@ -215,7 +215,7 @@ TEST_F(BinderCorrectnessTest, SelectStatementComplexTest) {
   EXPECT_EQ(0, col_expr->GetDepth());
 
   col_expr =
-      selectStmt->GetSelectGroupBy()->GetHaving()->GetChild(0).CastManagedPointerTo<parser::ColumnValueExpression>();
+      select_stmt->GetSelectGroupBy()->GetHaving()->GetChild(0).CastManagedPointerTo<parser::ColumnValueExpression>();
   EXPECT_EQ(col_expr->GetDatabaseOid(), db_oid_);              // A.a1
   EXPECT_EQ(col_expr->GetTableOid(), table_a_oid_);            // A.a1
   EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(1));  // A.a1; columns are indexed from 1
@@ -225,7 +225,7 @@ TEST_F(BinderCorrectnessTest, SelectStatementComplexTest) {
   // Check Order By
   LOG_INFO("Checking order by");
   col_expr =
-      selectStmt->GetSelectOrderBy()->GetOrderByExpressions()[0].CastManagedPointerTo<parser::ColumnValueExpression>();
+      select_stmt->GetSelectOrderBy()->GetOrderByExpressions()[0].CastManagedPointerTo<parser::ColumnValueExpression>();
   EXPECT_EQ(col_expr->GetDatabaseOid(), db_oid_);              // A.a1
   EXPECT_EQ(col_expr->GetTableOid(), table_a_oid_);            // A.a1
   EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(1));  // A.a1; columns are indexed from 1
@@ -238,17 +238,17 @@ TEST_F(BinderCorrectnessTest, SelectStatementStarTest) {
   // Check if star expression is correctly processed
   LOG_INFO("Checking STAR expression in select and sub-select");
 
-  std::string selectSQL = "SELECT * FROM A LEFT OUTER JOIN B ON A.A1 < B.B1";
-  auto parse_tree = parser_.BuildParseTree(selectSQL);
+  std::string select_sql = "SELECT * FROM A LEFT OUTER JOIN B ON A.A1 < B.B1";
+  auto parse_tree = parser_.BuildParseTree(select_sql);
   auto statement = parse_tree.GetStatements()[0];
   binder_->BindNameToNode(statement, &parse_tree);
-  auto selectStmt = statement.CastManagedPointerTo<parser::SelectStatement>();
-  EXPECT_EQ(0, selectStmt->GetDepth());
+  auto select_stmt = statement.CastManagedPointerTo<parser::SelectStatement>();
+  EXPECT_EQ(0, select_stmt->GetDepth());
 
   // Check select_list
   LOG_INFO("Checking select list expansion");
 
-  auto columns = selectStmt->GetSelectColumns();
+  auto columns = select_stmt->GetSelectColumns();
   EXPECT_EQ(columns.size(), 4);
 
   // check if all required columns exist regardless of order, are they come from traversing unordered maps
@@ -301,17 +301,17 @@ TEST_F(BinderCorrectnessTest, SelectStatementStarNestedSelectTest) {
   // Check if star expression is correctly processed
   LOG_INFO("Checking STAR expression in nested select from.");
 
-  std::string selectSQL =
+  std::string select_sql =
       "SELECT * FROM A LEFT OUTER JOIN (SELECT * FROM B INNER JOIN A ON B1 = A1) AS C ON C.B2 = a.A1";
-  auto parse_tree = parser_.BuildParseTree(selectSQL);
+  auto parse_tree = parser_.BuildParseTree(select_sql);
   auto statement = parse_tree.GetStatements()[0];
   binder_->BindNameToNode(statement, &parse_tree);
-  auto selectStmt = statement.CastManagedPointerTo<parser::SelectStatement>();
-  EXPECT_EQ(0, selectStmt->GetDepth());
+  auto select_stmt = statement.CastManagedPointerTo<parser::SelectStatement>();
+  EXPECT_EQ(0, select_stmt->GetDepth());
 
   // Check select_list
   LOG_INFO("Checking select list expansion");
-  auto columns = selectStmt->GetSelectColumns();
+  auto columns = select_stmt->GetSelectColumns();
   EXPECT_EQ(columns.size(), 6);
 
   // check if all required columns exist regardless of order, are they come from traversing unordered maps
@@ -376,7 +376,7 @@ TEST_F(BinderCorrectnessTest, SelectStatementStarNestedSelectTest) {
 
   // Check join condition
   LOG_INFO("Checking join condition");
-  auto col_expr = selectStmt->GetSelectTable()
+  auto col_expr = select_stmt->GetSelectTable()
                       ->GetJoin()
                       ->GetJoinCondition()
                       ->GetChild(0)
@@ -389,7 +389,7 @@ TEST_F(BinderCorrectnessTest, SelectStatementStarNestedSelectTest) {
   EXPECT_EQ(type::TypeId::VARCHAR, col_expr->GetReturnValueType());
   EXPECT_EQ(col_expr->GetDepth(), 0);  // not from derived subquery
 
-  col_expr = selectStmt->GetSelectTable()
+  col_expr = select_stmt->GetSelectTable()
                  ->GetJoin()
                  ->GetJoinCondition()
                  ->GetChild(1)
@@ -404,7 +404,7 @@ TEST_F(BinderCorrectnessTest, SelectStatementStarNestedSelectTest) {
 
   // check right table
   LOG_INFO("Checking nested table of the join");
-  auto right_tb = selectStmt->GetSelectTable()
+  auto right_tb = select_stmt->GetSelectTable()
                       ->GetJoin()
                       ->GetRightTable()
                       ->GetSelect()
@@ -483,16 +483,16 @@ TEST_F(BinderCorrectnessTest, SelectStatementNestedColumnTest) {
   // Check if nested select columns are correctly processed
   LOG_INFO("Checking nested select columns.");
 
-  std::string selectSQL = "SELECT A1, (SELECT B2 FROM B where B2 IS NULL LIMIT 1) FROM A";
-  auto parse_tree = parser_.BuildParseTree(selectSQL);
+  std::string select_sql = "SELECT A1, (SELECT B2 FROM B where B2 IS NULL LIMIT 1) FROM A";
+  auto parse_tree = parser_.BuildParseTree(select_sql);
   auto statement = parse_tree.GetStatements()[0];
   binder_->BindNameToNode(statement, &parse_tree);
-  auto selectStmt = statement.CastManagedPointerTo<parser::SelectStatement>();
-  EXPECT_EQ(0, selectStmt->GetDepth());
+  auto select_stmt = statement.CastManagedPointerTo<parser::SelectStatement>();
+  EXPECT_EQ(0, select_stmt->GetDepth());
 
   // Check select_list
   LOG_INFO("Checking select list");
-  auto col_expr = selectStmt->GetSelectColumns()[0].CastManagedPointerTo<parser::ColumnValueExpression>();
+  auto col_expr = select_stmt->GetSelectColumns()[0].CastManagedPointerTo<parser::ColumnValueExpression>();
   EXPECT_EQ(col_expr->GetDatabaseOid(), db_oid_);              // A.a1
   EXPECT_EQ(col_expr->GetTableOid(), table_a_oid_);            // A.a1
   EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(1));  // A.a1; columns are indexed from 1
@@ -500,7 +500,7 @@ TEST_F(BinderCorrectnessTest, SelectStatementNestedColumnTest) {
   EXPECT_EQ(0, col_expr->GetDepth());
 
   LOG_INFO("Checking nested select in select list");
-  auto subquery = selectStmt->GetSelectColumns()[1].CastManagedPointerTo<parser::SubqueryExpression>();
+  auto subquery = select_stmt->GetSelectColumns()[1].CastManagedPointerTo<parser::SubqueryExpression>();
   EXPECT_EQ(subquery->GetDepth(), 1);
 
   auto subselect = subquery->GetSubselect().CastManagedPointerTo<parser::SelectStatement>();
@@ -531,27 +531,27 @@ TEST_F(BinderCorrectnessTest, SelectStatementDupAliasTest) {
   // Check alias ambiguous
   LOG_INFO("Checking duplicate alias and table name.");
 
-  std::string selectSQL = "SELECT * FROM A, B as A";
-  auto parse_tree = parser_.BuildParseTree(selectSQL);
-  auto selectStmt = parse_tree.GetStatements()[0];
-  EXPECT_THROW(binder_->BindNameToNode(selectStmt, &parse_tree), BinderException);
+  std::string select_sql = "SELECT * FROM A, B as A";
+  auto parse_tree = parser_.BuildParseTree(select_sql);
+  auto select_stmt = parse_tree.GetStatements()[0];
+  EXPECT_THROW(binder_->BindNameToNode(select_stmt, &parse_tree), BinderException);
 }
 
 // NOLINTNEXTLINE
 TEST_F(BinderCorrectnessTest, SelectStatementDiffTableSameSchemaTest) {
   // Test select from different table instances from the same physical schema
-  std::string selectSQL = "SELECT * FROM A, A as AA where A.a1 = AA.a2";
-  auto parse_tree = parser_.BuildParseTree(selectSQL);
+  std::string select_sql = "SELECT * FROM A, A as AA where A.a1 = AA.a2";
+  auto parse_tree = parser_.BuildParseTree(select_sql);
   auto statement = parse_tree.GetStatements()[0];
   binder_->BindNameToNode(statement, &parse_tree);
-  auto selectStmt = statement.CastManagedPointerTo<parser::SelectStatement>();
+  auto select_stmt = statement.CastManagedPointerTo<parser::SelectStatement>();
   LOG_INFO("Checking where clause");
-  auto col_expr = selectStmt->GetSelectCondition()->GetChild(0).CastManagedPointerTo<parser::ColumnValueExpression>();
+  auto col_expr = select_stmt->GetSelectCondition()->GetChild(0).CastManagedPointerTo<parser::ColumnValueExpression>();
   EXPECT_EQ(col_expr->GetDatabaseOid(), db_oid_);              // A.a1
   EXPECT_EQ(col_expr->GetTableOid(), table_a_oid_);            // A.a1
   EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(1));  // A.a1; columns are indexed from 1
 
-  col_expr = selectStmt->GetSelectCondition()->GetChild(1).CastManagedPointerTo<parser::ColumnValueExpression>();
+  col_expr = select_stmt->GetSelectCondition()->GetChild(1).CastManagedPointerTo<parser::ColumnValueExpression>();
   EXPECT_EQ(col_expr->GetDatabaseOid(), db_oid_);              // AA.a2
   EXPECT_EQ(col_expr->GetTableOid(), table_a_oid_);            // AA.a2
   EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(2));  // AA.a2; columns are indexed from 1
@@ -562,17 +562,17 @@ TEST_F(BinderCorrectnessTest, SelectStatementSelectListAliasTest) {
   // Test alias and select_list
   LOG_INFO("Checking select_list and table alias binding");
 
-  std::string selectSQL = "SELECT AA.a1, b2 FROM A as AA, B WHERE AA.a1 = B.b1";
-  auto parse_tree = parser_.BuildParseTree(selectSQL);
+  std::string select_sql = "SELECT AA.a1, b2 FROM A as AA, B WHERE AA.a1 = B.b1";
+  auto parse_tree = parser_.BuildParseTree(select_sql);
   auto statement = parse_tree.GetStatements()[0];
   binder_->BindNameToNode(statement, &parse_tree);
-  auto selectStmt = statement.CastManagedPointerTo<parser::SelectStatement>();
-  auto col_expr = selectStmt->GetSelectColumns()[0].CastManagedPointerTo<parser::ColumnValueExpression>();
+  auto select_stmt = statement.CastManagedPointerTo<parser::SelectStatement>();
+  auto col_expr = select_stmt->GetSelectColumns()[0].CastManagedPointerTo<parser::ColumnValueExpression>();
   EXPECT_EQ(col_expr->GetDatabaseOid(), db_oid_);              // AA.a1
   EXPECT_EQ(col_expr->GetTableOid(), table_a_oid_);            // AA.a1
   EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(1));  // AA.a1; columns are indexed from 1
 
-  col_expr = selectStmt->GetSelectColumns()[1].CastManagedPointerTo<parser::ColumnValueExpression>();
+  col_expr = select_stmt->GetSelectColumns()[1].CastManagedPointerTo<parser::ColumnValueExpression>();
   EXPECT_EQ(col_expr->GetDatabaseOid(), db_oid_);              // b2
   EXPECT_EQ(col_expr->GetTableOid(), table_b_oid_);            // b2
   EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(2));  // b2; columns are indexed from 1
@@ -584,22 +584,22 @@ TEST_F(BinderCorrectnessTest, SelectStatementSelectListAliasTest) {
 
 // NOLINTNEXTLINE
 TEST_F(BinderCorrectnessTest, DeleteStatementWhereTest) {
-  std::string deleteSQL = "DELETE FROM b WHERE 1 = b1 AND b2 = 'str'";
-  auto parse_tree = parser_.BuildParseTree(deleteSQL);
+  std::string delete_sql = "DELETE FROM b WHERE 1 = b1 AND b2 = 'str'";
+  auto parse_tree = parser_.BuildParseTree(delete_sql);
   auto statement = parse_tree.GetStatements()[0];
   binder_->BindNameToNode(statement, &parse_tree);
-  auto deleteStmt = statement.CastManagedPointerTo<parser::DeleteStatement>();
+  auto delete_stmt = statement.CastManagedPointerTo<parser::DeleteStatement>();
 
   LOG_INFO("Checking first condition in where clause");
   auto col_expr =
-      deleteStmt->GetDeleteCondition()->GetChild(0)->GetChild(1).CastManagedPointerTo<parser::ColumnValueExpression>();
+      delete_stmt->GetDeleteCondition()->GetChild(0)->GetChild(1).CastManagedPointerTo<parser::ColumnValueExpression>();
   EXPECT_EQ(col_expr->GetDatabaseOid(), db_oid_);              // b1
   EXPECT_EQ(col_expr->GetTableOid(), table_b_oid_);            // b1
   EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(1));  // b1; columns are indexed from 1
 
   LOG_INFO("Checking second condition in where clause");
   col_expr =
-      deleteStmt->GetDeleteCondition()->GetChild(1)->GetChild(0).CastManagedPointerTo<parser::ColumnValueExpression>();
+      delete_stmt->GetDeleteCondition()->GetChild(1)->GetChild(0).CastManagedPointerTo<parser::ColumnValueExpression>();
   EXPECT_EQ(col_expr->GetDatabaseOid(), db_oid_);              // b2
   EXPECT_EQ(col_expr->GetTableOid(), table_b_oid_);            // b2
   EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(2));  // b2; columns are indexed from 1
@@ -610,14 +610,14 @@ TEST_F(BinderCorrectnessTest, AggregateSimpleTest) {
   // Check if nested select columns are correctly processed
   LOG_INFO("Checking simple aggregate select.");
 
-  std::string selectSQL = "SELECT MAX(b1) FROM B;";
-  auto parse_tree = parser_.BuildParseTree(selectSQL);
+  std::string select_sql = "SELECT MAX(b1) FROM B;";
+  auto parse_tree = parser_.BuildParseTree(select_sql);
   auto statement = parse_tree.GetStatements()[0];
   binder_->BindNameToNode(statement, &parse_tree);
-  auto selectStmt = statement.CastManagedPointerTo<parser::SelectStatement>();
-  EXPECT_EQ(0, selectStmt->GetDepth());
+  auto select_stmt = statement.CastManagedPointerTo<parser::SelectStatement>();
+  EXPECT_EQ(0, select_stmt->GetDepth());
 
-  auto agg_expr = selectStmt->GetSelectColumns()[0].CastManagedPointerTo<parser::AggregateExpression>();
+  auto agg_expr = select_stmt->GetSelectColumns()[0].CastManagedPointerTo<parser::AggregateExpression>();
   EXPECT_EQ(type::TypeId::INTEGER, agg_expr->GetReturnValueType());
   EXPECT_EQ(0, agg_expr->GetDepth());
 
@@ -634,14 +634,14 @@ TEST_F(BinderCorrectnessTest, AggregateComplexTest) {
   // Check if nested select columns are correctly processed
   LOG_INFO("Checking aggregate in subselect.");
 
-  std::string selectSQL = "SELECT A.a1 FROM A WHERE A.a1 IN (SELECT MAX(b1) FROM B);";
-  auto parse_tree = parser_.BuildParseTree(selectSQL);
+  std::string select_sql = "SELECT A.a1 FROM A WHERE A.a1 IN (SELECT MAX(b1) FROM B);";
+  auto parse_tree = parser_.BuildParseTree(select_sql);
   auto statement = parse_tree.GetStatements()[0];
   binder_->BindNameToNode(statement, &parse_tree);
-  auto selectStmt = statement.CastManagedPointerTo<parser::SelectStatement>();
-  EXPECT_EQ(0, selectStmt->GetDepth());
+  auto select_stmt = statement.CastManagedPointerTo<parser::SelectStatement>();
+  EXPECT_EQ(0, select_stmt->GetDepth());
 
-  auto subquery = selectStmt->GetSelectCondition()->GetChild(1).CastManagedPointerTo<parser::SubqueryExpression>();
+  auto subquery = select_stmt->GetSelectCondition()->GetChild(1).CastManagedPointerTo<parser::SubqueryExpression>();
   auto subselect = subquery->GetSubselect().CastManagedPointerTo<parser::SelectStatement>();
 
   auto agg_expr = subselect->GetSelectColumns()[0].CastManagedPointerTo<parser::AggregateExpression>();
@@ -661,14 +661,14 @@ TEST_F(BinderCorrectnessTest, OperatorComplexTest) {
   // Check if nested select columns are correctly processed
   LOG_INFO("Checking if operator expressions are correctly parsed.");
 
-  std::string selectSQL = "SELECT A.a1 FROM A WHERE 2 * A.a1 IN (SELECT b1+1 FROM B);";
-  auto parse_tree = parser_.BuildParseTree(selectSQL);
+  std::string select_sql = "SELECT A.a1 FROM A WHERE 2 * A.a1 IN (SELECT b1+1 FROM B);";
+  auto parse_tree = parser_.BuildParseTree(select_sql);
   auto statement = parse_tree.GetStatements()[0];
   binder_->BindNameToNode(statement, &parse_tree);
-  auto selectStmt = statement.CastManagedPointerTo<parser::SelectStatement>();
-  EXPECT_EQ(0, selectStmt->GetDepth());
+  auto select_stmt = statement.CastManagedPointerTo<parser::SelectStatement>();
+  EXPECT_EQ(0, select_stmt->GetDepth());
 
-  auto op_expr = selectStmt->GetSelectCondition()->GetChild(0).CastManagedPointerTo<parser::OperatorExpression>();
+  auto op_expr = select_stmt->GetSelectCondition()->GetChild(0).CastManagedPointerTo<parser::OperatorExpression>();
   EXPECT_EQ(type::TypeId::INTEGER, op_expr->GetReturnValueType());
   EXPECT_EQ(0, op_expr->GetDepth());
 
@@ -679,7 +679,7 @@ TEST_F(BinderCorrectnessTest, OperatorComplexTest) {
   EXPECT_EQ(0, col_expr->GetDepth());
   EXPECT_EQ(type::TypeId::INTEGER, col_expr->GetReturnValueType());
 
-  auto subquery = selectStmt->GetSelectCondition()->GetChild(1).CastManagedPointerTo<parser::SubqueryExpression>();
+  auto subquery = select_stmt->GetSelectCondition()->GetChild(1).CastManagedPointerTo<parser::SubqueryExpression>();
   auto subselect = subquery->GetSubselect().CastManagedPointerTo<parser::SelectStatement>();
 
   op_expr = subselect->GetSelectColumns()[0].CastManagedPointerTo<parser::OperatorExpression>();
@@ -699,28 +699,28 @@ TEST_F(BinderCorrectnessTest, BindDepthTest) {
   // Test regular table name
   LOG_INFO("Parsing sql query");
 
-  std::string selectSQL =
+  std::string select_sql =
       "SELECT A.a1 FROM A WHERE A.a1 IN (SELECT b1 FROM B WHERE b1 = 2 AND "
       "b2 > (SELECT a1 FROM A WHERE a2 > 0)) AND EXISTS (SELECT b1 FROM B WHERE B.b1 = A.a1)";
-  auto parse_tree = parser_.BuildParseTree(selectSQL);
+  auto parse_tree = parser_.BuildParseTree(select_sql);
   auto statement = parse_tree.GetStatements()[0];
   binder_->BindNameToNode(statement, &parse_tree);
-  auto selectStmt = statement.CastManagedPointerTo<parser::SelectStatement>();
+  auto select_stmt = statement.CastManagedPointerTo<parser::SelectStatement>();
 
   // Check select depthGetSelectCondition
-  EXPECT_EQ(0, selectStmt->GetDepth());
+  EXPECT_EQ(0, select_stmt->GetDepth());
 
   // Check select_list
   LOG_INFO("Checking select list");
-  auto tv_expr = selectStmt->GetSelectColumns()[0];
+  auto tv_expr = select_stmt->GetSelectColumns()[0];
   EXPECT_EQ(0, tv_expr->GetDepth());  // A.a1
 
   // Check Where clause
   LOG_INFO("Checking where clause");
-  EXPECT_EQ(0, selectStmt->GetSelectCondition()->GetDepth());  // XXX AND YYY
+  EXPECT_EQ(0, select_stmt->GetSelectCondition()->GetDepth());  // XXX AND YYY
 
   // A.a1 IN (SELECT b1 FROM B WHERE b1 = 2 AND b2 > (SELECT a1 FROM A WHERE a2 > 0))
-  auto in_expr = selectStmt->GetSelectCondition()->GetChild(0);  // A compare_in expression
+  auto in_expr = select_stmt->GetSelectCondition()->GetChild(0);  // A compare_in expression
   EXPECT_EQ(0, in_expr->GetDepth());
 
   auto in_tv_expr = in_expr->GetChild(0);  // A.a1
@@ -773,7 +773,7 @@ TEST_F(BinderCorrectnessTest, BindDepthTest) {
   EXPECT_EQ(2, in_sub_expr_select_where_right_sub_select_ele->GetDepth());
 
   // EXISTS (SELECT b1 FROM B WHERE B.b1 = A.a1)
-  auto exists_expr = selectStmt->GetSelectCondition()->GetChild(1);  // An operator_exists expression
+  auto exists_expr = select_stmt->GetSelectCondition()->GetChild(1);  // An operator_exists expression
   EXPECT_EQ(0, exists_expr->GetDepth());
 
   // a subquery expression

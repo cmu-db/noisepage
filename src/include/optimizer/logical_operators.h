@@ -56,17 +56,17 @@ class LogicalGet : public OperatorNode<LogicalGet> {
   /**
    * @return the OID of the database
    */
-  const catalog::db_oid_t &GetDatabaseOID() const { return database_oid_; }
+  const catalog::db_oid_t &GetDatabaseOid() const { return database_oid_; }
 
   /**
    * @return the OID of the namespace
    */
-  const catalog::namespace_oid_t &GetNamespaceOID() const { return namespace_oid_; }
+  const catalog::namespace_oid_t &GetNamespaceOid() const { return namespace_oid_; }
 
   /**
    * @return the OID of the table
    */
-  const catalog::table_oid_t &GetTableOID() const { return table_oid_; }
+  const catalog::table_oid_t &GetTableOid() const { return table_oid_; }
 
   /**
    * @return the vector of predicates for get
@@ -727,7 +727,7 @@ class LogicalLimit : public OperatorNode<LogicalLimit> {
    */
   static Operator Make(size_t offset, size_t limit,
                        std::vector<common::ManagedPointer<parser::AbstractExpression>> &&sort_exprs,
-                       std::vector<planner::OrderByOrderingType> &&sort_directions);
+                       std::vector<optimizer::OrderByOrderingType> &&sort_directions);
 
   bool operator==(const BaseOperatorNode &r) override;
   common::hash_t Hash() const override;
@@ -752,7 +752,7 @@ class LogicalLimit : public OperatorNode<LogicalLimit> {
   /**
    * @return inlined sort directions (can be empty)
    */
-  const std::vector<planner::OrderByOrderingType> &GetSortDirections() const { return sort_directions_; }
+  const std::vector<optimizer::OrderByOrderingType> &GetSortDirections() const { return sort_directions_; }
 
  private:
   /**
@@ -776,7 +776,7 @@ class LogicalLimit : public OperatorNode<LogicalLimit> {
   /**
    * The sort direction of sort expressions
    */
-  std::vector<planner::OrderByOrderingType> sort_directions_;
+  std::vector<optimizer::OrderByOrderingType> sort_directions_;
 };
 
 /**

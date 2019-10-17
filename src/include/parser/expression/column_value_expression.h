@@ -170,20 +170,9 @@ class ColumnValueExpression : public AbstractExpression {
   void SetTableOID(catalog::table_oid_t table_oid) { table_oid_ = table_oid; }
   /** @param column_oid Column OID to be assigned to this expression */
   void SetColumnOID(catalog::col_oid_t column_oid) { column_oid_ = column_oid; }
-  //
-  //  /**
-  //   * @param database_oid Database OID to be assigned to this expression
-  //   */
-  //  void SetDatabaseOID(catalog::db_oid_t database_oid) { database_oid_ = database_oid; }
-
-  /**
-   * @param table_oid Table OID to be assigned to this expression
-   */
+  /** @param table_oid Table OID to be assigned to this expression */
   void SetTableName(const std::string &table_name) { table_name_ = std::string(table_name); }
-
-  /**
-   * @param column_oid Column OID to be assigned to this expression
-   */
+  /** @param column_oid Column OID to be assigned to this expression */
   void SetColumnName(const std::string &col_name) { column_name_ = std::string(col_name); }
 
   /** Namespace name. */
@@ -193,20 +182,13 @@ class ColumnValueExpression : public AbstractExpression {
   /** Column name. */
   std::string column_name_;
 
-  // TODO(Ling): change to INVALID_*_OID after catalog completion
-  /**
-   * OID of the database
-   */
+  /** OID of the database */
   catalog::db_oid_t database_oid_ = catalog::INVALID_DATABASE_OID;
 
-  /**
-   * OID of the table
-   */
+  /** OID of the table */
   catalog::table_oid_t table_oid_ = catalog::INVALID_TABLE_OID;
 
-  /**
-   * OID of the column
-   */
+  /** OID of the column */
   catalog::col_oid_t column_oid_ = catalog::INVALID_COLUMN_OID;
 };
 

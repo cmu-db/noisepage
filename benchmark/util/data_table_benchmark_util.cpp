@@ -4,6 +4,8 @@
 #include <utility>
 #include <vector>
 #include "common/allocator.h"
+#include "common/scoped_timer.h"
+#include "metrics/metrics_thread.h"
 #include "transaction/transaction_util.h"
 #include "util/catalog_test_util.h"
 
@@ -90,7 +92,8 @@ LargeDataTableBenchmarkObject::~LargeDataTableBenchmarkObject() {
 }
 
 // Caller is responsible for freeing the returned results if bookkeeping is on.
-uint64_t LargeDataTableBenchmarkObject::SimulateOltp(uint32_t num_transactions, uint32_t num_concurrent_txns) {
+std::pair<uint64_t, uint64_t> LargeDataTableBenchmarkObject::SimulateOltp(
+    uint32_t num_transactions, uint32_t num_concurrent_txns, metrics::MetricsThread *const metrics_thread) {
   common::WorkerPool thread_pool(num_concurrent_txns, {});
   std::vector<RandomDataTableTransaction *> txns;
   std::function<void(uint32_t)> workload;
@@ -98,6 +101,7 @@ uint64_t LargeDataTableBenchmarkObject::SimulateOltp(uint32_t num_transactions, 
   if (gc_on_) {
     // Then there is no need to keep track of RandomWorkloadTransaction objects
     workload = [&](uint32_t /*unused*/) {
+      if (metrics_thread != DISABLED) metrics_thread->GetMetricsManager().RegisterThread();
       for (uint32_t txn_id = txns_run++; txn_id < num_transactions; txn_id = txns_run++) {
         RandomDataTableTransaction txn(this);
         SimulateOneTransaction(&txn, txn_id);
@@ -108,6 +112,7 @@ uint64_t LargeDataTableBenchmarkObject::SimulateOltp(uint32_t num_transactions, 
     // Either for correctness checking, or to cleanup memory afterwards, we need to retain these
     // test objects
     workload = [&](uint32_t /*unused*/) {
+      if (metrics_thread != DISABLED) metrics_thread->GetMetricsManager().RegisterThread();
       for (uint32_t txn_id = txns_run++; txn_id < num_transactions; txn_id = txns_run++) {
         txns[txn_id] = new RandomDataTableTransaction(this);
         SimulateOneTransaction(txns[txn_id], txn_id);
@@ -115,7 +120,15 @@ uint64_t LargeDataTableBenchmarkObject::SimulateOltp(uint32_t num_transactions, 
     };
   }
 
-  MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, num_concurrent_txns, workload);
+  uint64_t elapsed_ms;
+  {
+    common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
+    // add the jobs to the queue
+    for (uint32_t j = 0; j < thread_pool.NumWorkers(); j++) {
+      thread_pool.SubmitTask([j, &workload] { workload(j); });
+    }
+    thread_pool.WaitUntilAllFinished();
+  }
 
   // We only need to deallocate, and return, if gc is on, this loop is a no-op
   for (RandomDataTableTransaction *txn : txns) {
@@ -123,7 +136,7 @@ uint64_t LargeDataTableBenchmarkObject::SimulateOltp(uint32_t num_transactions, 
     delete txn;
   }
   // This result is meaningless if bookkeeping is not turned on.
-  return abort_count_;
+  return {abort_count_, elapsed_ms};
 }
 
 void LargeDataTableBenchmarkObject::SimulateOneTransaction(terrier::RandomDataTableTransaction *txn, uint32_t txn_id) {
