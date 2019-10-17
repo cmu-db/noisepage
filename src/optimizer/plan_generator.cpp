@@ -317,7 +317,6 @@ void PlanGenerator::Visit(const ExternalFileScan *op) {
                          .SetDelimiter(op->GetDelimiter())
                          .SetQuote(op->GetQuote())
                          .SetEscape(op->GetEscape())
-                         .SetNullString(op->GetNullString())
                          .SetValueTypes(std::move(value_types))
                          .Build();
       break;

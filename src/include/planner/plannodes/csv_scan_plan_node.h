@@ -61,15 +61,6 @@ class CSVScanPlanNode : public AbstractScanPlanNode {
     }
 
     /**
-     * @param null_string null string for CSV
-     * @return builder object
-     */
-    Builder &SetNullString(std::string null_string) {
-      null_string_ = std::move(null_string);
-      return *this;
-    }
-
-    /**
      * @param val_types vector of value types for columns
      * @return builder object
      */
@@ -85,7 +76,7 @@ class CSVScanPlanNode : public AbstractScanPlanNode {
     std::unique_ptr<CSVScanPlanNode> Build() {
       return std::unique_ptr<CSVScanPlanNode>(new CSVScanPlanNode(
           std::move(children_), std::move(output_schema_), nullptr /* predicate */, is_for_update_, is_parallel_,
-          database_oid_, namespace_oid_, file_name_, delimiter_, quote_, escape_, null_string_, value_types_));
+          database_oid_, namespace_oid_, file_name_, delimiter_, quote_, escape_, value_types_));
     }
 
    protected:
@@ -106,10 +97,6 @@ class CSVScanPlanNode : public AbstractScanPlanNode {
      */
     char escape_ = DEFAULT_ESCAPE_CHAR;
     /**
-     * null string for CSV
-     */
-    std::string null_string_ = DEFAULT_NULL_STRING;
-    /**
      * Value Types vector
      */
     std::vector<type::TypeId> value_types_;
@@ -128,14 +115,13 @@ class CSVScanPlanNode : public AbstractScanPlanNode {
    * @param delimiter The character that separates columns within a row
    * @param quote The character used to quote data (i.e., strings)
    * @param escape The character that should appear before any data characters that match the quote character.
-   * @param null_string the null string for the file
    * @param value_types Value types for vector of columns
    */
   CSVScanPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
                   std::unique_ptr<OutputSchema> output_schema,
                   common::ManagedPointer<parser::AbstractExpression> predicate, bool is_for_update, bool is_parallel,
                   catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid, std::string file_name,
-                  char delimiter, char quote, char escape, std::string null_string,
+                  char delimiter, char quote, char escape,
                   std::vector<type::TypeId> value_types)
       : AbstractScanPlanNode(std::move(children), std::move(output_schema), predicate, is_for_update, is_parallel,
                              database_oid, namespace_oid),
@@ -143,7 +129,6 @@ class CSVScanPlanNode : public AbstractScanPlanNode {
         delimiter_(delimiter),
         quote_(quote),
         escape_(escape),
-        null_string_(std::move(null_string)),
         value_types_(std::move(value_types)) {}
 
  public:
@@ -180,11 +165,6 @@ class CSVScanPlanNode : public AbstractScanPlanNode {
   char GetEscapeChar() const { return escape_; }
 
   /**
-   * @return null string for CSV
-   */
-  const std::string &GetNullString() const { return null_string_; }
-
-  /**
    * @return value types
    */
   const std::vector<type::TypeId> &GetValueTypes() const { return value_types_; }
@@ -204,7 +184,6 @@ class CSVScanPlanNode : public AbstractScanPlanNode {
   char delimiter_;
   char quote_;
   char escape_;
-  std::string null_string_;
   std::vector<type::TypeId> value_types_;
 };
 

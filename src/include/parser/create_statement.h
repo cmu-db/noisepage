@@ -401,7 +401,9 @@ class CreateStatement : public TableRefStatement {
         view_name_(std::move(view_name)),
         view_query_(std::move(view_query)) {}
 
-  void Accept(SqlNodeVisitor *v) override { v->Visit(this); }
+  ~CreateStatement() override = default;
+
+  void Accept(SqlNodeVisitor *v, ParseResult *parse_result) override { v->Visit(this, parse_result); }
 
   /** @return the type of create statement */
   CreateType GetCreateType() { return create_type_; }

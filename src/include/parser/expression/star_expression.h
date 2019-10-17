@@ -39,7 +39,7 @@ class StarExpression : public AbstractExpression {
     return Copy();
   }
 
-  void Accept(SqlNodeVisitor *v) override { v->Visit(this); }
+  void Accept(SqlNodeVisitor *v, ParseResult *parse_result) override { v->Visit(this, parse_result); }
 };
 
 DEFINE_JSON_DECLARATIONS(StarExpression);

@@ -314,7 +314,6 @@ TEST(PlanNodeTest, CSVScanPlanTest) {
   char delimiter = ',';
   char quote = '"';
   char escape = '\\';
-  std::string null_string = "";
   std::vector<type::TypeId> value_types = {type::TypeId::INTEGER};
 
   planner::CSVScanPlanNode::Builder builder;
@@ -326,7 +325,6 @@ TEST(PlanNodeTest, CSVScanPlanTest) {
                   .SetDelimiter(delimiter)
                   .SetQuote(quote)
                   .SetEscape(escape)
-                  .SetNullString(null_string)
                   .SetValueTypes(value_types)
                   .SetOutputSchema(PlanNodeTest::BuildOneColumnSchema("col1", type::TypeId::INTEGER))
                   .Build();
@@ -339,7 +337,6 @@ TEST(PlanNodeTest, CSVScanPlanTest) {
   EXPECT_EQ(plan->GetDelimiterChar(), delimiter);
   EXPECT_EQ(plan->GetQuoteChar(), quote);
   EXPECT_EQ(plan->GetEscapeChar(), escape);
-  EXPECT_EQ(plan->GetNullString(), null_string);
   EXPECT_EQ(plan->GetValueTypes(), value_types);
   EXPECT_EQ(plan->IsForUpdate(), false);
   EXPECT_EQ(plan->IsParallel(), true);
@@ -353,7 +350,6 @@ TEST(PlanNodeTest, CSVScanPlanTest) {
                    .SetDelimiter(delimiter)
                    .SetQuote(quote)
                    .SetEscape(escape)
-                   .SetNullString(null_string)
                    .SetValueTypes(value_types)
                    .SetOutputSchema(PlanNodeTest::BuildOneColumnSchema("col1", type::TypeId::INTEGER))
                    .Build();
@@ -362,14 +358,13 @@ TEST(PlanNodeTest, CSVScanPlanTest) {
 
   // Make different variations of the plan node and make
   // sure that they are not equal
-  for (int i = 0; i < 11; i++) {
+  for (int i = 0; i < 10; i++) {
     catalog::db_oid_t o_db_oid(1);
     catalog::namespace_oid_t o_ns_oid(2);
     std::string o_file_name = "/home/file.txt";
     char o_delimiter = ',';
     char o_quote = '"';
     char o_escape = '\\';
-    std::string o_null_string = "";
     std::vector<type::TypeId> o_value_types = {type::TypeId::INTEGER};
     auto o_schema = PlanNodeTest::BuildOneColumnSchema("col1", type::TypeId::INTEGER);
     auto o_parallel = true;
@@ -395,18 +390,15 @@ TEST(PlanNodeTest, CSVScanPlanTest) {
         o_escape = '\0';
         break;
       case 6:
-        o_null_string = "NULL";
-        break;
-      case 7:
         o_value_types = {type::TypeId::VARCHAR};
         break;
-      case 8:
+      case 7:
         o_schema = PlanNodeTest::BuildOneColumnSchema("XXXX", type::TypeId::INTEGER);
         break;
-      case 9:
+      case 8:
         o_parallel = false;
         break;
-      case 10:
+      case 9:
         o_update = true;
         break;
     }
@@ -420,7 +412,6 @@ TEST(PlanNodeTest, CSVScanPlanTest) {
                      .SetDelimiter(o_delimiter)
                      .SetQuote(o_quote)
                      .SetEscape(o_escape)
-                     .SetNullString(o_null_string)
                      .SetValueTypes(o_value_types)
                      .SetOutputSchema(std::move(o_schema))
                      .Build();

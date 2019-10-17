@@ -21,9 +21,6 @@ common::hash_t CSVScanPlanNode::Hash() const {
   // Escape Char
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(escape_));
 
-  // Null String
-  hash = common::HashUtil::CombineHashes(hash, std::hash<std::string>{}(null_string_));
-
   hash = common::HashUtil::CombineHashInRange(hash, value_types_.begin(), value_types_.end());
   return hash;
 }
@@ -46,9 +43,6 @@ bool CSVScanPlanNode::operator==(const AbstractPlanNode &rhs) const {
   // Escape Char
   if (escape_ != other.escape_) return false;
 
-  // Null String
-  if (null_string_ != other.null_string_) return false;
-
   return value_types_ == other.value_types_;
 }
 
@@ -58,7 +52,6 @@ nlohmann::json CSVScanPlanNode::ToJson() const {
   j["delimiter"] = delimiter_;
   j["quote"] = quote_;
   j["escape"] = escape_;
-  j["null_string"] = null_string_;
   j["value_types"] = value_types_;
   return j;
 }
@@ -71,7 +64,6 @@ std::vector<std::unique_ptr<parser::AbstractExpression>> CSVScanPlanNode::FromJs
   delimiter_ = j.at("delimiter").get<char>();
   quote_ = j.at("quote").get<char>();
   escape_ = j.at("escape").get<char>();
-  null_string_ = j.at("null_string").get<std::string>();
   value_types_ = j.at("value_types").get<std::vector<type::TypeId>>();
   return exprs;
 }

@@ -5,6 +5,7 @@
 #include <utility>
 #include <vector>
 
+#include "catalog/catalog_defs.h"
 #include "optimizer/logical_operators.h"
 #include "optimizer/operator_visitor.h"
 #include "parser/expression/abstract_expression.h"
@@ -49,6 +50,15 @@ Operator LogicalGet::Make(catalog::db_oid_t database_oid, catalog::namespace_oid
   return Operator(get);
 }
 
+Operator LogicalGet::Make() {
+  auto *get = new LogicalGet;
+  get->database_oid_ = catalog::INVALID_DATABASE_OID;
+  get->namespace_oid_ = catalog::INVALID_NAMESPACE_OID;
+  get->table_oid_ = catalog::INVALID_TABLE_OID;
+  get->is_for_update_ = false;
+  return Operator(get);
+}
+
 common::hash_t LogicalGet::Hash() const {
   common::hash_t hash = BaseOperatorNode::Hash();
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_oid_));
@@ -80,14 +90,13 @@ bool LogicalGet::operator==(const BaseOperatorNode &r) {
 BaseOperatorNode *LogicalExternalFileGet::Copy() const { return new LogicalExternalFileGet(*this); }
 
 Operator LogicalExternalFileGet::Make(parser::ExternalFileFormat format, std::string file_name, char delimiter,
-                                      char quote, char escape, std::string null_string) {
+                                      char quote, char escape) {
   auto *get = new LogicalExternalFileGet();
   get->format_ = format;
   get->file_name_ = std::move(file_name);
   get->delimiter_ = delimiter;
   get->quote_ = quote;
   get->escape_ = escape;
-  get->null_string_ = std::move(null_string);
   return Operator(get);
 }
 
@@ -95,7 +104,7 @@ bool LogicalExternalFileGet::operator==(const BaseOperatorNode &r) {
   if (r.GetType() != OpType::LOGICALEXTERNALFILEGET) return false;
   const auto &get = *static_cast<const LogicalExternalFileGet *>(&r);
   return (format_ == get.format_ && file_name_ == get.file_name_ && delimiter_ == get.delimiter_ &&
-          quote_ == get.quote_ && escape_ == get.escape_ && null_string_ == get.null_string_);
+          quote_ == get.quote_ && escape_ == get.escape_);
 }
 
 common::hash_t LogicalExternalFileGet::Hash() const {
@@ -105,7 +114,6 @@ common::hash_t LogicalExternalFileGet::Hash() const {
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(delimiter_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(quote_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(escape_));
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(null_string_));
   return hash;
 }
 
@@ -206,13 +214,14 @@ common::hash_t LogicalProjection::Hash() const {
 //===--------------------------------------------------------------------===//
 BaseOperatorNode *LogicalInsert::Copy() const { return new LogicalInsert(*this); }
 
-Operator LogicalInsert::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
-                             catalog::table_oid_t table_oid, std::vector<catalog::col_oid_t> &&columns,
-                             std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>> &&values) {
+Operator LogicalInsert::Make(
+    catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid,
+    std::vector<catalog::col_oid_t> &&columns,
+    common::ManagedPointer<std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>> values) {
 #ifndef NDEBUG
   // We need to check whether the number of values for each insert vector
   // matches the number of columns
-  for (const auto &insert_vals : values) {
+  for (const auto &insert_vals : *values) {
     TERRIER_ASSERT(columns.size() == insert_vals.size(), "Mismatched number of columns and values");
   }
 #endif
@@ -222,7 +231,7 @@ Operator LogicalInsert::Make(catalog::db_oid_t database_oid, catalog::namespace_
   op->namespace_oid_ = namespace_oid;
   op->table_oid_ = table_oid;
   op->columns_ = std::move(columns);
-  op->values_ = std::move(values);
+  op->values_ = values;
   return Operator(op);
 }
 
@@ -234,7 +243,7 @@ common::hash_t LogicalInsert::Hash() const {
   hash = common::HashUtil::CombineHashInRange(hash, columns_.begin(), columns_.end());
 
   // Perform a deep hash of the values
-  for (const auto &insert_vals : values_) {
+  for (const auto &insert_vals : *values_) {
     hash = common::HashUtil::CombineHashInRange(hash, insert_vals.begin(), insert_vals.end());
   }
 
@@ -313,7 +322,7 @@ BaseOperatorNode *LogicalLimit::Copy() const { return new LogicalLimit(*this); }
 
 Operator LogicalLimit::Make(size_t offset, size_t limit,
                             std::vector<common::ManagedPointer<parser::AbstractExpression>> &&sort_exprs,
-                            std::vector<planner::OrderByOrderingType> &&sort_directions) {
+                            std::vector<optimizer::OrderByOrderingType> &&sort_directions) {
   TERRIER_ASSERT(sort_exprs.size() == sort_directions.size(), "Mismatched ORDER BY expressions + directions");
   auto *op = new LogicalLimit;
   op->offset_ = offset;
@@ -386,7 +395,7 @@ Operator LogicalUpdate::Make(catalog::db_oid_t database_oid, catalog::namespace_
   op->namespace_oid_ = namespace_oid;
   op->table_alias_ = std::move(table_alias);
   op->table_oid_ = table_oid;
-  op->updates_ = updates;
+  op->updates_ = std::move(updates);
   return Operator(op);
 }
 
@@ -396,7 +405,10 @@ common::hash_t LogicalUpdate::Hash() const {
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(namespace_oid_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_alias_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_oid_));
-  hash = common::HashUtil::CombineHashInRange(hash, updates_.begin(), updates_.end());
+  for (const auto &clause : updates_) {
+    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(clause->GetUpdateValue()));
+    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(clause->GetColumnName()));
+  }
   return hash;
 }
 
@@ -406,7 +418,10 @@ bool LogicalUpdate::operator==(const BaseOperatorNode &r) {
   if (database_oid_ != node.database_oid_) return false;
   if (namespace_oid_ != node.namespace_oid_) return false;
   if (table_oid_ != node.table_oid_) return false;
-  if (updates_ != node.updates_) return false;
+  if (updates_.size() != node.updates_.size()) return false;
+  for (size_t i = 0; i < updates_.size(); i++) {
+    if (*(updates_[i]) != *(node.updates_[i])) return false;
+  }
   return table_alias_ == node.table_alias_;
 }
 

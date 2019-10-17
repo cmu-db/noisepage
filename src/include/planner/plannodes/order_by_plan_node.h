@@ -5,11 +5,12 @@
 #include <utility>
 #include <vector>
 #include "catalog/catalog_defs.h"
+#include "optimizer/optimizer_defs.h"
 #include "planner/plannodes/abstract_plan_node.h"
 
 namespace terrier::planner {
 
-using SortKey = std::pair<common::ManagedPointer<parser::AbstractExpression>, OrderByOrderingType>;
+using SortKey = std::pair<common::ManagedPointer<parser::AbstractExpression>, optimizer::OrderByOrderingType>;
 
 /**
  * Plan node for order by operator
@@ -38,7 +39,7 @@ class OrderByPlanNode : public AbstractPlanNode {
      * @param ordering ordering (ASC or DESC) for key
      * @return builder object
      */
-    Builder &AddSortKey(common::ManagedPointer<parser::AbstractExpression> key, OrderByOrderingType ordering) {
+    Builder &AddSortKey(common::ManagedPointer<parser::AbstractExpression> key, optimizer::OrderByOrderingType ordering) {
       sort_keys_.emplace_back(key, ordering);
       return *this;
     }

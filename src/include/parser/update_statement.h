@@ -37,6 +37,23 @@ class UpdateClause {
    */
   common::ManagedPointer<AbstractExpression> GetUpdateValue() const { return value_; }
 
+  /**
+   * Logical equality check
+   * @param r Right hand side; the other update clause
+   * @return true if the two update clause are logically equal
+   */
+  bool operator==(const UpdateClause &r) {
+    if (column_ != r.column_) return false;
+    return *value_ == *r.value_;
+  }
+
+  /**
+   * Logical inequality check
+   * @param r Right hand side; the other update clause
+   * @return true if the two update clause are not logically equal
+   */
+  bool operator!=(const UpdateClause &r) { return !(*this == r); }
+
  private:
   const std::string column_;
   common::ManagedPointer<AbstractExpression> value_;
@@ -59,7 +76,9 @@ class UpdateStatement : public SQLStatement {
 
   UpdateStatement() : SQLStatement(StatementType::UPDATE), table_(nullptr), where_(nullptr) {}
 
-  void Accept(SqlNodeVisitor *v) override { v->Visit(this); }
+  ~UpdateStatement() override = default;
+
+  void Accept(SqlNodeVisitor *v, ParseResult *parse_result) override { v->Visit(this, parse_result); }
 
   /** @return update table target */
   common::ManagedPointer<TableRef> GetUpdateTable() { return common::ManagedPointer(table_); }

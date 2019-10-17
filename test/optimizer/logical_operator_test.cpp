@@ -27,13 +27,13 @@ TEST(OperatorTests, LogicalInsertTest) {
   parser::AbstractExpression *raw_values[] = {
       new parser::ConstantValueExpression(type::TransientValueFactory::GetTinyInt(1)),
       new parser::ConstantValueExpression(type::TransientValueFactory::GetTinyInt(9))};
-  std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>> values = {
-      std::vector<common::ManagedPointer<parser::AbstractExpression>>(raw_values, std::end(raw_values))};
+  std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>> *values = new std::vector(
+      {std::vector<common::ManagedPointer<parser::AbstractExpression>>(raw_values, std::end(raw_values))});
 
   // Check that all of our GET methods work as expected
   Operator op1 = LogicalInsert::Make(
       database_oid, namespace_oid, table_oid, std::vector<catalog::col_oid_t>(columns, std::end(columns)),
-      std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>(values));
+      common::ManagedPointer<std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>>(values));
   EXPECT_EQ(op1.GetType(), OpType::LOGICALINSERT);
   EXPECT_EQ(op1.As<LogicalInsert>()->GetDatabaseOid(), database_oid);
   EXPECT_EQ(op1.As<LogicalInsert>()->GetNamespaceOid(), namespace_oid);
@@ -46,18 +46,19 @@ TEST(OperatorTests, LogicalInsertTest) {
   // be equal to our first object and have the same hash
   Operator op2 = LogicalInsert::Make(
       database_oid, namespace_oid, table_oid, std::vector<catalog::col_oid_t>(columns, std::end(columns)),
-      std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>(values));
+      common::ManagedPointer<std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>>(values));
   EXPECT_TRUE(op1 == op2);
   EXPECT_EQ(op1.Hash(), op2.Hash());
 
   // For this last check, we are going to give it more rows to insert
   // This will make sure that our hash is going deep into the vectors
-  std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>> other_values = {
+  std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>> *other_values = new std::vector{
       std::vector<common::ManagedPointer<parser::AbstractExpression>>(raw_values, std::end(raw_values)),
       std::vector<common::ManagedPointer<parser::AbstractExpression>>(raw_values, std::end(raw_values))};
   Operator op3 = LogicalInsert::Make(
       database_oid, namespace_oid, table_oid, std::vector<catalog::col_oid_t>(columns, std::end(columns)),
-      std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>(other_values));
+      common::ManagedPointer<std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>>(
+          other_values));
   EXPECT_FALSE(op1 == op3);
   EXPECT_NE(op1.Hash(), op3.Hash());
 
@@ -69,17 +70,20 @@ TEST(OperatorTests, LogicalInsertTest) {
       new parser::ConstantValueExpression(type::TransientValueFactory::GetTinyInt(1)),
       new parser::ConstantValueExpression(type::TransientValueFactory::GetTinyInt(2)),
       new parser::ConstantValueExpression(type::TransientValueFactory::GetTinyInt(3))};
-  std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>> bad_values = {
-      std::vector<common::ManagedPointer<parser::AbstractExpression>>(bad_raw_values, std::end(bad_raw_values))};
-
+  std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>> *bad_values = new std::vector(
+      {std::vector<common::ManagedPointer<parser::AbstractExpression>>(bad_raw_values, std::end(bad_raw_values))});
   EXPECT_DEATH(LogicalInsert::Make(
                    database_oid, namespace_oid, table_oid, std::vector<catalog::col_oid_t>(columns, std::end(columns)),
-                   std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>(bad_values)),
+                   common::ManagedPointer<std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>>(
+                       bad_values)),
                "Mismatched");
   for (auto entry : bad_raw_values) delete entry;
+  delete bad_values;
 #endif
 
   for (auto entry : raw_values) delete entry;
+  delete values;
+  delete other_values;
 }
 
 // NOLINTNEXTLINE
@@ -129,7 +133,7 @@ TEST(OperatorTests, LogicalLimitTest) {
   parser::AbstractExpression *sort_expr_ori =
       new parser::ConstantValueExpression(type::TransientValueFactory::GetTinyInt(1));
   auto sort_expr = common::ManagedPointer<parser::AbstractExpression>(sort_expr_ori);
-  planner::OrderByOrderingType sort_dir = planner::OrderByOrderingType::ASC;
+  OrderByOrderingType sort_dir = OrderByOrderingType::ASC;
 
   // Check that all of our GET methods work as expected
   Operator op1 = LogicalLimit::Make(offset, limit, {sort_expr}, {sort_dir});
@@ -188,24 +192,31 @@ TEST(OperatorTests, LogicalDeleteTest) {
 TEST(OperatorTests, LogicalUpdateTest) {
   std::string column = "abc";
   parser::AbstractExpression *value = new parser::ConstantValueExpression(type::TransientValueFactory::GetTinyInt(1));
-  parser::UpdateClause *raw_update_clause = new parser::UpdateClause(column, common::ManagedPointer(value));
-  auto update_clause = common::ManagedPointer(raw_update_clause);
+  auto update_clause =
+      std::make_unique<parser::UpdateClause>(column, common::ManagedPointer<parser::AbstractExpression>(value));
+  auto update_clause2 =
+      std::make_unique<parser::UpdateClause>(column, common::ManagedPointer<parser::AbstractExpression>(value));
+  std::vector<common::ManagedPointer<parser::UpdateClause>> update_clause_v;
+  update_clause_v.emplace_back(common::ManagedPointer<parser::UpdateClause>(update_clause));
   catalog::db_oid_t database_oid(123);
   catalog::namespace_oid_t namespace_oid(456);
   catalog::table_oid_t table_oid(789);
 
   // Check that all of our GET methods work as expected
-  Operator op1 = LogicalUpdate::Make(database_oid, namespace_oid, "tbl", table_oid, {update_clause});
+  Operator op1 = LogicalUpdate::Make(database_oid, namespace_oid, "tbl", table_oid, std::move(update_clause_v));
   EXPECT_EQ(op1.GetType(), OpType::LOGICALUPDATE);
   EXPECT_EQ(op1.As<LogicalUpdate>()->GetDatabaseOid(), database_oid);
   EXPECT_EQ(op1.As<LogicalUpdate>()->GetNamespaceOid(), namespace_oid);
   EXPECT_EQ(op1.As<LogicalUpdate>()->GetTableOid(), table_oid);
   EXPECT_EQ(op1.As<LogicalUpdate>()->GetUpdateClauses().size(), 1);
-  EXPECT_EQ(op1.As<LogicalUpdate>()->GetUpdateClauses()[0], update_clause);
+  EXPECT_EQ(update_clause2->GetColumnName(), op1.As<LogicalUpdate>()->GetUpdateClauses()[0]->GetColumnName());
+  EXPECT_EQ(update_clause2->GetUpdateValue(), op1.As<LogicalUpdate>()->GetUpdateClauses()[0]->GetUpdateValue());
 
   // Check that if we make a new object with the same values, then it will
   // be equal to our first object and have the same hash
-  Operator op2 = LogicalUpdate::Make(database_oid, namespace_oid, "tbl", table_oid, {update_clause});
+  std::vector<common::ManagedPointer<parser::UpdateClause>> update_clause_v2;
+  update_clause_v2.emplace_back(common::ManagedPointer<parser::UpdateClause>(update_clause2));
+  Operator op2 = LogicalUpdate::Make(database_oid, namespace_oid, "tbl", table_oid, std::move(update_clause_v2));
   EXPECT_TRUE(op1 == op2);
   EXPECT_EQ(op1.Hash(), op2.Hash());
 
@@ -215,7 +226,6 @@ TEST(OperatorTests, LogicalUpdateTest) {
   EXPECT_FALSE(op1 == op3);
   EXPECT_NE(op1.Hash(), op3.Hash());
 
-  delete raw_update_clause;
   delete value;
 }
 
@@ -297,9 +307,9 @@ TEST(OperatorTests, LogicalGetTest) {
                                             std::vector<AnnotatedExpression>{annotated_expr_3}, "table", false);
 
   EXPECT_EQ(logical_get_1.GetType(), OpType::LOGICALGET);
-  EXPECT_EQ(logical_get_1.As<LogicalGet>()->GetDatabaseOID(), catalog::db_oid_t(1));
-  EXPECT_EQ(logical_get_1.As<LogicalGet>()->GetNamespaceOID(), catalog::namespace_oid_t(2));
-  EXPECT_EQ(logical_get_1.As<LogicalGet>()->GetTableOID(), catalog::table_oid_t(3));
+  EXPECT_EQ(logical_get_1.As<LogicalGet>()->GetDatabaseOid(), catalog::db_oid_t(1));
+  EXPECT_EQ(logical_get_1.As<LogicalGet>()->GetNamespaceOid(), catalog::namespace_oid_t(2));
+  EXPECT_EQ(logical_get_1.As<LogicalGet>()->GetTableOid(), catalog::table_oid_t(3));
   EXPECT_EQ(logical_get_1.As<LogicalGet>()->GetPredicates(), std::vector<AnnotatedExpression>());
   EXPECT_EQ(logical_get_3.As<LogicalGet>()->GetPredicates(), std::vector<AnnotatedExpression>{annotated_expr_0});
   EXPECT_EQ(logical_get_4.As<LogicalGet>()->GetPredicates(), std::vector<AnnotatedExpression>{annotated_expr_1});
@@ -337,19 +347,19 @@ TEST(OperatorTests, LogicalExternalFileGetTest) {
   // LogicalExternalFileGet
   //===--------------------------------------------------------------------===//
   Operator logical_ext_file_get_1 =
-      LogicalExternalFileGet::Make(parser::ExternalFileFormat::CSV, "file.txt", ',', '"', '\\', "");
+      LogicalExternalFileGet::Make(parser::ExternalFileFormat::CSV, "file.txt", ',', '"', '\\');
   Operator logical_ext_file_get_2 =
-      LogicalExternalFileGet::Make(parser::ExternalFileFormat::CSV, "file.txt", ',', '"', '\\', "");
+      LogicalExternalFileGet::Make(parser::ExternalFileFormat::CSV, "file.txt", ',', '"', '\\');
   Operator logical_ext_file_get_3 =
-      LogicalExternalFileGet::Make(parser::ExternalFileFormat::CSV, "file2.txt", ',', '"', '\\', "");
+      LogicalExternalFileGet::Make(parser::ExternalFileFormat::CSV, "file2.txt", ',', '"', '\\');
   Operator logical_ext_file_get_4 =
-      LogicalExternalFileGet::Make(parser::ExternalFileFormat::BINARY, "file.txt", ',', '"', '\\', "");
+      LogicalExternalFileGet::Make(parser::ExternalFileFormat::BINARY, "file.txt", ',', '"', '\\');
   Operator logical_ext_file_get_5 =
-      LogicalExternalFileGet::Make(parser::ExternalFileFormat::CSV, "file.txt", ' ', '"', '\\', "");
+      LogicalExternalFileGet::Make(parser::ExternalFileFormat::CSV, "file.txt", ' ', '"', '\\');
   Operator logical_ext_file_get_6 =
-      LogicalExternalFileGet::Make(parser::ExternalFileFormat::CSV, "file.txt", ',', '\'', '\\', "");
+      LogicalExternalFileGet::Make(parser::ExternalFileFormat::CSV, "file.txt", ',', '\'', '\\');
   Operator logical_ext_file_get_7 =
-      LogicalExternalFileGet::Make(parser::ExternalFileFormat::CSV, "file.txt", ',', '"', '&', "");
+      LogicalExternalFileGet::Make(parser::ExternalFileFormat::CSV, "file.txt", ',', '"', '&');
 
   EXPECT_EQ(logical_ext_file_get_1.GetType(), OpType::LOGICALEXTERNALFILEGET);
   EXPECT_EQ(logical_ext_file_get_1.GetName(), "LogicalExternalFileGet");

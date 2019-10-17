@@ -96,7 +96,7 @@ class CreateFunctionStatement : public SQLStatement {
         pl_type_(pl_type),
         as_type_(as_type) {}
 
-  void Accept(SqlNodeVisitor *v) override { v->Visit(this); }
+  void Accept(SqlNodeVisitor *v, ParseResult *parse_result) override { v->Visit(this, parse_result); }
 
   /**
    * @return true if this function should replace existing definitions

@@ -24,7 +24,9 @@ class ExecuteStatement : public SQLStatement {
   ExecuteStatement(std::string name, std::vector<common::ManagedPointer<AbstractExpression>> parameters)
       : SQLStatement(StatementType::EXECUTE), name_(std::move(name)), parameters_(std::move(parameters)) {}
 
-  void Accept(SqlNodeVisitor *v) override { v->Visit(this); }
+  ~ExecuteStatement() override = default;
+
+  void Accept(SqlNodeVisitor *v, ParseResult *parse_result) override { v->Visit(this, parse_result); }
 
   /** @return execute statement name */
   std::string GetName() { return name_; }

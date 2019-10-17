@@ -47,7 +47,9 @@ class InsertStatement : public SQLStatement {
   /** @param type insert type (SELECT or VALUES) */
   explicit InsertStatement(InsertType type) : SQLStatement(StatementType::INSERT), type_(type) {}
 
-  void Accept(SqlNodeVisitor *v) override { v->Visit(this); }
+  ~InsertStatement() override = default;
+
+  void Accept(SqlNodeVisitor *v, ParseResult *parse_result) override { v->Visit(this, parse_result); }
 
   /** @return type of insertion */
   InsertType GetInsertType() { return type_; }

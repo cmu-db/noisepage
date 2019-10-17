@@ -158,7 +158,7 @@ GetToTableFreeScan::GetToTableFreeScan() {
 bool GetToTableFreeScan::Check(OperatorExpression *plan, OptimizeContext *context) const {
   (void)context;
   const auto get = plan->GetOp().As<LogicalGet>();
-  return get->GetTableOID() == catalog::INVALID_TABLE_OID;
+  return get->GetTableOid() == catalog::INVALID_TABLE_OID;
 }
 
 void GetToTableFreeScan::Transform(UNUSED_ATTRIBUTE OperatorExpression *input,
@@ -179,7 +179,7 @@ GetToSeqScan::GetToSeqScan() {
 bool GetToSeqScan::Check(OperatorExpression *plan, OptimizeContext *context) const {
   (void)context;
   const auto get = plan->GetOp().As<LogicalGet>();
-  return get->GetTableOID() != catalog::INVALID_TABLE_OID;
+  return get->GetTableOid() != catalog::INVALID_TABLE_OID;
 }
 
 void GetToSeqScan::Transform(OperatorExpression *input, std::vector<OperatorExpression *> *transformed,
@@ -188,9 +188,9 @@ void GetToSeqScan::Transform(OperatorExpression *input, std::vector<OperatorExpr
   const auto get = input->GetOp().As<LogicalGet>();
 
   // Need to copy because SeqScan uses std::move
-  auto db_oid = get->GetDatabaseOID();
-  auto ns_oid = get->GetNamespaceOID();
-  auto tbl_oid = get->GetTableOID();
+  auto db_oid = get->GetDatabaseOid();
+  auto ns_oid = get->GetNamespaceOid();
+  auto tbl_oid = get->GetTableOid();
   auto tbl_alias = std::string(get->GetTableAlias());
   auto preds = std::vector<AnnotatedExpression>(get->GetPredicates());
   auto is_update = get->GetIsForUpdate();
@@ -216,12 +216,12 @@ bool GetToIndexScan::Check(OperatorExpression *plan, OptimizeContext *context) c
     return false;
   }
 
-  if (get->GetTableOID() == catalog::INVALID_TABLE_OID) {
+  if (get->GetTableOid() == catalog::INVALID_TABLE_OID) {
     return false;
   }
 
   auto *accessor = context->GetMetadata()->GetCatalogAccessor();
-  return !accessor->GetIndexOids(get->GetTableOID()).empty();
+  return !accessor->GetIndexOids(get->GetTableOid()).empty();
 }
 
 void GetToIndexScan::Transform(OperatorExpression *input, std::vector<OperatorExpression *> *transformed,
@@ -229,8 +229,8 @@ void GetToIndexScan::Transform(OperatorExpression *input, std::vector<OperatorEx
   const auto get = input->GetOp().As<LogicalGet>();
   TERRIER_ASSERT(input->GetChildren().empty(), "Get should have no children");
 
-  auto db_oid = get->GetDatabaseOID();
-  auto ns_oid = get->GetNamespaceOID();
+  auto db_oid = get->GetDatabaseOid();
+  auto ns_oid = get->GetNamespaceOid();
   bool is_update = get->GetIsForUpdate();
   auto *accessor = context->GetMetadata()->GetCatalogAccessor();
 
@@ -240,9 +240,9 @@ void GetToIndexScan::Transform(OperatorExpression *input, std::vector<OperatorEx
     // Check if can satisfy sort property with an index
     auto sort_prop = sort->As<PropertySort>();
     if (IndexUtil::CheckSortProperty(sort_prop)) {
-      auto indexes = accessor->GetIndexOids(get->GetTableOID());
+      auto indexes = accessor->GetIndexOids(get->GetTableOid());
       for (auto index : indexes) {
-        if (IndexUtil::SatisfiesSortWithIndex(sort_prop, get->GetTableOID(), index, accessor)) {
+        if (IndexUtil::SatisfiesSortWithIndex(sort_prop, get->GetTableOid(), index, accessor)) {
           std::vector<AnnotatedExpression> preds = get->GetPredicates();
           std::string tbl_alias = std::string(get->GetTableAlias());
           auto result = new OperatorExpression(
@@ -259,10 +259,10 @@ void GetToIndexScan::Transform(OperatorExpression *input, std::vector<OperatorEx
     IndexUtil::PopulateMetadata(get->GetPredicates(), &metadata);
 
     // Find match index for the predicates
-    auto indexes = accessor->GetIndexOids(get->GetTableOID());
+    auto indexes = accessor->GetIndexOids(get->GetTableOid());
     for (auto &index : indexes) {
       IndexUtilMetadata output;
-      if (IndexUtil::SatisfiesPredicateWithIndex(get->GetTableOID(), index, &metadata, &output, accessor)) {
+      if (IndexUtil::SatisfiesPredicateWithIndex(get->GetTableOid(), index, &metadata, &output, accessor)) {
         std::vector<AnnotatedExpression> preds = get->GetPredicates();
         std::string tbl_alias = std::string(get->GetTableAlias());
 
@@ -335,9 +335,8 @@ void LogicalExternalFileGetToPhysical::Transform(OperatorExpression *input,
   auto delimiter = get->GetDelimiter();
   auto quote = get->GetQuote();
   auto escape = get->GetEscape();
-  const auto &null_string = get->GetNullString();
   auto result_plan =
-      new OperatorExpression(ExternalFileScan::Make(format, filename, delimiter, quote, escape, null_string), {});
+      new OperatorExpression(ExternalFileScan::Make(format, filename, delimiter, quote, escape), {});
   transformed->push_back(result_plan);
 }
 
@@ -423,8 +422,8 @@ void LogicalInsertToPhysical::Transform(OperatorExpression *input, std::vector<O
   auto tbl_oid = insert_op->GetTableOid();
   auto indexes = accessor->GetIndexOids(tbl_oid);
 
-  std::vector<catalog::col_oid_t> cols = insert_op->GetColumns();
-  std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>> vals = insert_op->GetValues();
+  std::vector<catalog::col_oid_t> cols(insert_op->GetColumns());
+  std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>> vals = *(insert_op->GetValues());
   auto result = new OperatorExpression(
       Insert::Make(insert_op->GetDatabaseOid(), insert_op->GetNamespaceOid(), insert_op->GetTableOid(), std::move(cols),
                    std::move(vals), std::move(indexes)),
@@ -668,7 +667,7 @@ void ImplementLimit::Transform(OperatorExpression *input, std::vector<OperatorEx
   TERRIER_ASSERT(input->GetChildren().size() == 1, "LogicalLimit should have 1 child");
 
   std::vector<common::ManagedPointer<parser::AbstractExpression>> sorts = limit_op->GetSortExpressions();
-  std::vector<planner::OrderByOrderingType> types = limit_op->GetSortDirections();
+  std::vector<OrderByOrderingType> types = limit_op->GetSortDirections();
   auto child = input->GetChildren()[0]->Copy();
   auto result_plan = new OperatorExpression(
       Limit::Make(limit_op->GetOffset(), limit_op->GetLimit(), std::move(sorts), std::move(types)), {child});
@@ -907,7 +906,7 @@ void EmbedFilterIntoGet::Transform(OperatorExpression *input, std::vector<Operat
   std::string tbl_alias = std::string(get->GetTableAlias());
   std::vector<AnnotatedExpression> predicates = input->GetOp().As<LogicalFilter>()->GetPredicates();
   auto output =
-      new OperatorExpression(LogicalGet::Make(get->GetDatabaseOID(), get->GetNamespaceOID(), get->GetTableOID(),
+      new OperatorExpression(LogicalGet::Make(get->GetDatabaseOid(), get->GetNamespaceOid(), get->GetTableOid(),
                                               predicates, tbl_alias, get->GetIsForUpdate()),
                              {});
   transformed->push_back(output);

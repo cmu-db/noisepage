@@ -719,7 +719,6 @@ std::unique_ptr<AbstractExpression> PostgresParser::ValueTransform(ParseResult *
       result = std::make_unique<ConstantValueExpression>(std::move(v));
       break;
     }
-
     default: {
       PARSER_LOG_AND_THROW("ValueTransform", "Value type", val.type_);
     }

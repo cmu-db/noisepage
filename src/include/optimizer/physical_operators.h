@@ -272,11 +272,9 @@ class ExternalFileScan : public OperatorNode<ExternalFileScan> {
    * @param delimiter character used as delimiter
    * @param quote character used for quotation
    * @param escape character used for escape sequences
-   * @param null_string null string identifier
    * @return an ExternalFileScan operator
    */
-  static Operator Make(parser::ExternalFileFormat format, std::string file_name, char delimiter, char quote,
-                       char escape, std::string null_string);
+  static Operator Make(parser::ExternalFileFormat format, std::string file_name, char delimiter, char quote, char escape);
 
   /**
    * Copy
@@ -313,11 +311,6 @@ class ExternalFileScan : public OperatorNode<ExternalFileScan> {
    */
   char GetEscape() const { return escape_; }
 
-  /**
-   * @return null string identifier
-   */
-  const std::string &GetNullString() const { return null_string_; }
-
  private:
   /**
    * File format
@@ -343,11 +336,6 @@ class ExternalFileScan : public OperatorNode<ExternalFileScan> {
    * Character used for escape sequences
    */
   char escape_;
-
-  /**
-   * Null String Identifier
-   */
-  std::string null_string_;
 };
 
 /**
@@ -432,7 +420,7 @@ class Limit : public OperatorNode<Limit> {
    */
   static Operator Make(size_t offset, size_t limit,
                        std::vector<common::ManagedPointer<parser::AbstractExpression>> &&sort_columns,
-                       std::vector<planner::OrderByOrderingType> &&sort_directions);
+                       std::vector<optimizer::OrderByOrderingType> &&sort_directions);
 
   /**
    * Copy
@@ -463,7 +451,7 @@ class Limit : public OperatorNode<Limit> {
   /**
    * @return sorting orders (if ascending)
    */
-  const std::vector<planner::OrderByOrderingType> &GetSortAscending() const { return sort_directions_; }
+  const std::vector<optimizer::OrderByOrderingType> &GetSortAscending() const { return sort_directions_; }
 
  private:
   /**
@@ -491,7 +479,7 @@ class Limit : public OperatorNode<Limit> {
   /**
    * Sorting order
    */
-  std::vector<planner::OrderByOrderingType> sort_directions_;
+  std::vector<optimizer::OrderByOrderingType> sort_directions_;
 };
 
 /**

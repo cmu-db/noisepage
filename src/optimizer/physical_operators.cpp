@@ -164,14 +164,13 @@ common::hash_t IndexScan::Hash() const {
 BaseOperatorNode *ExternalFileScan::Copy() const { return new ExternalFileScan(*this); }
 
 Operator ExternalFileScan::Make(parser::ExternalFileFormat format, std::string file_name, char delimiter, char quote,
-                                char escape, std::string null_string) {
+                                char escape) {
   auto *get = new ExternalFileScan();
   get->format_ = format;
   get->file_name_ = std::move(file_name);
   get->delimiter_ = delimiter;
   get->quote_ = quote;
   get->escape_ = escape;
-  get->null_string_ = std::move(null_string);
   return Operator(get);
 }
 
@@ -179,7 +178,7 @@ bool ExternalFileScan::operator==(const BaseOperatorNode &r) {
   if (r.GetType() != OpType::EXTERNALFILESCAN) return false;
   const auto &get = *dynamic_cast<const ExternalFileScan *>(&r);
   return (format_ == get.format_ && file_name_ == get.file_name_ && delimiter_ == get.delimiter_ &&
-          quote_ == get.quote_ && escape_ == get.escape_ && null_string_ == get.null_string_);
+          quote_ == get.quote_ && escape_ == get.escape_);
 }
 
 common::hash_t ExternalFileScan::Hash() const {
@@ -189,7 +188,6 @@ common::hash_t ExternalFileScan::Hash() const {
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(delimiter_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(quote_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(escape_));
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(null_string_));
   return hash;
 }
 
@@ -254,7 +252,7 @@ BaseOperatorNode *Limit::Copy() const { return new Limit(*this); }
 
 Operator Limit::Make(size_t offset, size_t limit,
                      std::vector<common::ManagedPointer<parser::AbstractExpression>> &&sort_columns,
-                     std::vector<planner::OrderByOrderingType> &&sort_directions) {
+                     std::vector<optimizer::OrderByOrderingType> &&sort_directions) {
   auto *limit_op = new Limit;
   limit_op->offset_ = offset;
   limit_op->limit_ = limit;

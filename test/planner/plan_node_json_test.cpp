@@ -448,7 +448,7 @@ TEST(PlanNodeJsonTest, CSVScanPlanNodeTest) {
   // Construct CSVScanPlanNode
   CSVScanPlanNode::Builder builder;
   auto plan_node =
-      builder.SetFileName("/dev/null").SetDelimiter(',').SetQuote('\'').SetEscape('`').SetNullString("").Build();
+      builder.SetFileName("/dev/null").SetDelimiter(',').SetQuote('\'').SetEscape('`').Build();
 
   // Serialize to Json
   auto json = plan_node->ToJson();
@@ -866,8 +866,8 @@ TEST(PlanNodeJsonTest, OrderByPlanNodeJsonTest) {
   parser::AbstractExpression *sortkey2 = new parser::DerivedValueExpression(type::TypeId::INTEGER, 0, 1);
 
   auto plan_node = builder.SetOutputSchema(PlanNodeJsonTest::BuildDummyOutputSchema())
-                       .AddSortKey(common::ManagedPointer(sortkey1), OrderByOrderingType::ASC)
-                       .AddSortKey(common::ManagedPointer(sortkey2), OrderByOrderingType::DESC)
+                       .AddSortKey(common::ManagedPointer(sortkey1), optimizer::OrderByOrderingType::ASC)
+                       .AddSortKey(common::ManagedPointer(sortkey2), optimizer::OrderByOrderingType::DESC)
                        .SetLimit(10)
                        .SetOffset(10)
                        .Build();

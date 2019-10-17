@@ -29,12 +29,12 @@ void StatsCalculator::CalculateStats(GroupExpression *gexpr, ExprSet required_co
 }
 
 void StatsCalculator::Visit(const LogicalGet *op) {
-  if (op->GetTableOID() == catalog::INVALID_TABLE_OID) {
+  if (op->GetTableOid() == catalog::INVALID_TABLE_OID) {
     // Dummy scan
     return;
   }
 
-  auto table_stats = metadata_->GetStatsStorage()->GetTableStats(op->GetDatabaseOID(), op->GetTableOID());
+  auto table_stats = metadata_->GetStatsStorage()->GetTableStats(op->GetDatabaseOid(), op->GetTableOid());
   if (table_stats == nullptr) {
     // no table stats
     return;
