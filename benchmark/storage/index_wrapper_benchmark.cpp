@@ -67,7 +67,6 @@ class IndexBenchmark : public benchmark::Fixture {
     delete gc_thread_;
     delete gc_;
     delete sql_table_;
-    delete index_;
     delete[] key_buffer_;
     delete txn_manager_;
     delete deferred_action_manager_;

@@ -49,6 +49,7 @@ BENCHMARKS_TO_RUN = [
     "catalog_benchmark",
     "data_table_benchmark",
     "garbage_collector_benchmark",
+    "index_wrapper_benchmark",
     "large_transaction_benchmark",
     "logging_benchmark",
     "recovery_benchmark",
