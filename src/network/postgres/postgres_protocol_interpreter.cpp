@@ -4,6 +4,7 @@
 #include <utility>
 
 #include "network/network_defs.h"
+#include "network/postgres/postgres_network_commands.h"
 #include "network/postgres/postgres_protocol_interpreter.h"
 #include "network/terrier_server.h"
 
@@ -27,11 +28,11 @@ Transition PostgresProtocolInterpreter::Process(std::shared_ptr<ReadBuffer> in, 
     curr_input_packet_.Clear();
     return ProcessStartup(in, out);
   }
-  std::shared_ptr<PostgresNetworkCommand> command = command_factory_->PostgresPacketToCommand(&curr_input_packet_);
+  std::shared_ptr<PostgresNetworkCommand> command = command_factory_->PacketToCommand(&curr_input_packet_);
   PostgresPacketWriter writer(out);
   if (command->FlushOnComplete()) out->ForceFlush();
-  Transition ret = command->Exec(common::ManagedPointer(this), common::ManagedPointer(&writer), t_cop,
-                                 common::ManagedPointer(context), callback);
+  Transition ret = command->Exec(common::ManagedPointer<ProtocolInterpreter>(this),
+                                 common::ManagedPointer<PostgresPacketWriter>(&writer), t_cop, context, callback);
   curr_input_packet_.Clear();
   return ret;
 }
@@ -44,14 +45,14 @@ Transition PostgresProtocolInterpreter::ProcessStartup(const std::shared_ptr<Rea
 
   if (proto_version == SSL_MESSAGE_VERNO) {
     // TODO(Tianyu): Should this be moved from PelotonServer into settings?
-    writer.WriteSingleTypePacket(NetworkMessageType::SSL_NO);
+    writer.WriteSSLPacket(NetworkMessageType::PG_SSL_NO);
     return Transition::PROCEED;
   }
 
   // Process startup packet
   if (PROTO_MAJOR_VERSION(proto_version) != 3) {
     NETWORK_LOG_TRACE("Protocol error: only protocol version 3 is supported");
-    writer.WriteErrorResponse({{NetworkMessageType::HUMAN_READABLE_ERROR, "Protocol Version Not Supported"}});
+    writer.WriteErrorResponse({{NetworkMessageType::PG_HUMAN_READABLE_ERROR, "Protocol Version Not Supported"}});
     return Transition::TERMINATE;
   }
 
@@ -125,7 +126,7 @@ bool PostgresProtocolInterpreter::TryReadPacketHeader(const std::shared_ptr<Read
 
 void PostgresProtocolInterpreter::CompleteCommand(PostgresPacketWriter *const out, const QueryType &query_type,
                                                   int rows) {
-  out->BeginPacket(NetworkMessageType::COMMAND_COMPLETE).EndPacket();
+  out->BeginPacket(NetworkMessageType::PG_COMMAND_COMPLETE).EndPacket();
 }
 
 void PostgresProtocolInterpreter::ExecQueryMessageGetResult(PostgresPacketWriter *const out, ResultType status) {
