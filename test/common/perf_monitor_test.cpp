@@ -2,7 +2,6 @@
 #include <thread>
 #include "catalog/catalog.h"
 #include "common/macros.h"
-#include "common/perf_monitor.h"
 #include "common/scoped_timer.h"
 #include "storage/garbage_collector_thread.h"
 #include "storage/storage_defs.h"
@@ -48,15 +47,8 @@ class PerfMonitorTests : public TerrierTest {
     monitor.Stop();
     *counters = monitor.ReadCounters();
   }
+};
 
-};  // namespace terrier
-
-/**
- * This is a bit difficult to test due to some non-determinism from thread scheduling, CPU frequency scaling, etc.
- * The idea is to have a simple task and run it for some number of iterations while timing it. Then, scale the number of
- * iterations by 10 and then 100. At the end, we expect the CPU time spent on this to scale roughly linearly with the
- * iterations, but this is difficult to guarantee so we just use EXPECT_LT.
- */
 // NOLINTNEXTLINE
 TEST_F(PerfMonitorTests, BasicTest) {
   common::PerfMonitor monitor;
@@ -68,12 +60,6 @@ TEST_F(PerfMonitorTests, BasicTest) {
   thread2.join();
   monitor.Stop();
   parent_counters = monitor.ReadCounters();
-
-  parent_counters.Print();
-
-  catalog_counters.Print();
-
-  sleep_counters.Print();
 
   bool got_valid_results = parent_counters.num_events_ == common::PerfMonitor::NUM_HW_EVENTS;
   got_valid_results = got_valid_results || (catalog_counters.num_events_ == common::PerfMonitor::NUM_HW_EVENTS);
