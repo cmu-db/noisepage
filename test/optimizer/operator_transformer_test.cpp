@@ -430,7 +430,7 @@ TEST_F(OperatorTransformerTest, SelectStatementLeftJoinTest) {
   // Test LogicalLeftJoin
   auto logical_left_join = operator_tree_->GetOp().As<optimizer::LogicalLeftJoin>();
   EXPECT_EQ(parser::ExpressionType::COMPARE_LESS_THAN,
-            logical_left_join->GetJoinPredicate().Get()->GetExpressionType());
+            logical_left_join->GetJoinPredicates()[0].GetExpr()->GetExpressionType());
 
   // Test LogicalGet
   auto logical_get_left = operator_tree_->GetChildren()[0]->GetOp().As<optimizer::LogicalGet>();
@@ -469,7 +469,7 @@ TEST_F(OperatorTransformerTest, SelectStatementRightJoinTest) {
   // Test LogicalRightJoin
   auto logical_right_join = operator_tree_->GetOp().As<optimizer::LogicalRightJoin>();
   EXPECT_EQ(parser::ExpressionType::COMPARE_GREATER_THAN,
-            logical_right_join->GetJoinPredicate().Get()->GetExpressionType());
+            logical_right_join->GetJoinPredicates()[0].GetExpr().Get()->GetExpressionType());
 
   // Test LogicalGet
   auto logical_get_left = operator_tree_->GetChildren()[0]->GetOp().As<optimizer::LogicalGet>();
@@ -507,7 +507,8 @@ TEST_F(OperatorTransformerTest, SelectStatementInnerJoinTest) {
 
   // Test LogicalInnerJoin
   auto logical_inner_join = operator_tree_->GetOp().As<optimizer::LogicalInnerJoin>();
-  EXPECT_EQ(parser::ExpressionType::COMPARE_EQUAL, logical_inner_join->GetJoinPredicate().Get()->GetExpressionType());
+  EXPECT_EQ(parser::ExpressionType::COMPARE_EQUAL,
+            logical_inner_join->GetJoinPredicates()[0].GetExpr().Get()->GetExpressionType());
 
   // Test LogicalGet
   auto logical_get_left = operator_tree_->GetChildren()[0]->GetOp().As<optimizer::LogicalGet>();
@@ -545,7 +546,8 @@ TEST_F(OperatorTransformerTest, SelectStatementOuterJoinTest) {
 
   // Test LogicalOuterJoin
   auto logical_outer_join = operator_tree_->GetOp().As<optimizer::LogicalOuterJoin>();
-  EXPECT_EQ(parser::ExpressionType::COMPARE_EQUAL, logical_outer_join->GetJoinPredicate().Get()->GetExpressionType());
+  EXPECT_EQ(parser::ExpressionType::COMPARE_EQUAL,
+            logical_outer_join->GetJoinPredicates()[0].GetExpr().Get()->GetExpressionType());
 
   // Test LogicalGet
   auto logical_get_left = operator_tree_->GetChildren()[0]->GetOp().As<optimizer::LogicalGet>();
