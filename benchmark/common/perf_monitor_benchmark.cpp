@@ -6,19 +6,13 @@
 #include "catalog/catalog.h"
 #include "common/macros.h"
 #include "common/perf_monitor.h"
+#include "common/thread_cpu_timer.h"
 #include "common/scoped_timer.h"
-#include "common/worker_pool.h"
-#include "metrics/logging_metric.h"
-#include "metrics/metrics_thread.h"
+#include "transaction/deferred_action_manager.h"
 #include "storage/garbage_collector_thread.h"
 #include "storage/storage_defs.h"
 #include "transaction/transaction_manager.h"
-#include "util/tpcc/builder.h"
-#include "util/tpcc/database.h"
-#include "util/tpcc/loader.h"
-#include "util/tpcc/worker.h"
-#include "util/tpcc/workload.h"
-#include "util/tpcc/util.h"
+#include "util/storage_test_util.h"
 
 namespace terrier {
 
@@ -29,7 +23,9 @@ class PerfMonitorBenchmarks : public benchmark::Fixture {
   void TearDown(const benchmark::State &state) final {}
 
   static void ThreadWork1() {
+    common::ThreadUsage timer;
     common::PerfMonitor monitor;
+    timer.Start();
     monitor.Start();
 
     const uint64_t blockstore_size_limit_ =
@@ -54,35 +50,45 @@ class PerfMonitorBenchmarks : public benchmark::Fixture {
     catalog.TearDown();
     StorageTestUtil::FullyPerformGC(&gc, DISABLED);
     monitor.Stop();
+    timer.Stop();
     std::cout << "THREAD 1" << std::endl;
+    std::cout << timer.ElapsedCPUTime().user_time_us_ << std::endl;
     monitor.ReadCounters().Print();
   }
 
   static void ThreadWork2() {
+    common::ThreadUsage timer;
     common::PerfMonitor monitor;
+    timer.Start();
     monitor.Start();
     std::this_thread::sleep_for(std::chrono::seconds(1));
     monitor.Stop();
+    timer.Stop();
     std::cout << "THREAD 2" << std::endl;
+    std::cout << timer.ElapsedCPUTime().user_time_us_ << std::endl;
     monitor.ReadCounters().Print();
   }
 };
 
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(PerfMonitorBenchmarks, PerfMonitor)(benchmark::State &state) {
+  common::ThreadUsage timer;
   common::PerfMonitor parent;
+  timer.Start();
   parent.Start();
   // NOLINTNEXTLINE
-//  for (auto _ : state) {
-    std::thread thread1(ThreadWork1);
-    std::thread thread2(ThreadWork2);
-    thread1.join();
-    thread2.join();
-//  }
+  //  for (auto _ : state) {
+  std::thread thread1(ThreadWork1);
+  std::thread thread2(ThreadWork2);
+  thread1.join();
+  thread2.join();
+  //  }
   parent.Stop();
+  timer.Stop();
   std::cout << "PARENT" << std::endl;
+  std::cout << timer.ElapsedCPUTime().user_time_us_ << std::endl;
   parent.ReadCounters().Print();
-//  state.SetItemsProcessed(state.iterations());
+  //  state.SetItemsProcessed(state.iterations());
 }
 
 BENCHMARK_REGISTER_F(PerfMonitorBenchmarks, PerfMonitor);

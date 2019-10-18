@@ -12,7 +12,7 @@ namespace terrier {
  */
 // NOLINTNEXTLINE
 TEST(ThreadCPUTimerTests, BasicTest) {
-  common::ThreadCPUTimer timer;
+  common::ThreadUsage timer;
   volatile uint64_t j = 0;
   const uint64_t num_iters = 1e8;
 
@@ -25,7 +25,7 @@ TEST(ThreadCPUTimerTests, BasicTest) {
   }
   timer.Stop();
 
-  EXPECT_GT(timer.ElapsedTime().user_time_us_, 0);
+  EXPECT_GT(timer.ElapsedCPUTime().user_time_us_, 0);
 }
 
 }  // namespace terrier
