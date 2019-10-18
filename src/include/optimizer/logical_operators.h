@@ -394,22 +394,22 @@ class LogicalInnerJoin : public OperatorNode<LogicalInnerJoin> {
    * @param conditions conditions of the join
    * @return an InnerJoin operator
    */
-  static Operator Make(std::vector<AnnotatedExpression> &&conditions);
+  static Operator Make(common::ManagedPointer<parser::AbstractExpression> join_predicate);
 
   bool operator==(const BaseOperatorNode &r) override;
 
   common::hash_t Hash() const override;
 
   /**
-   * @return vector of join predicates
+   * @return pointer to the join predicate expression
    */
-  const std::vector<AnnotatedExpression> &GetJoinPredicates() const { return join_predicates_; }
+  const common::ManagedPointer<parser::AbstractExpression> &GetJoinPredicate() const { return join_predicate_; }
 
  private:
   /**
-   * Join predicates
+   * Join predicate
    */
-  std::vector<AnnotatedExpression> join_predicates_;
+  common::ManagedPointer<parser::AbstractExpression> join_predicate_;
 };
 
 /**

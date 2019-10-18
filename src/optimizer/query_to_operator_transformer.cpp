@@ -131,8 +131,8 @@ void QueryToOperatorTransformer::Visit(parser::JoinDefinition *node, parser::Par
   OperatorExpression *join_expr;
   switch (node->GetJoinType()) {
     case parser::JoinType::INNER: {
-      CollectPredicates(node->GetJoinCondition(), parse_result, &predicates_);
-      join_expr = new OperatorExpression(LogicalInnerJoin::Make(), {left_expr, right_expr});
+      join_expr = new OperatorExpression(LogicalInnerJoin::Make(common::ManagedPointer(node->GetJoinCondition())),
+                                         {left_expr, right_expr});
       break;
     }
     case parser::JoinType::OUTER: {
@@ -190,7 +190,9 @@ void QueryToOperatorTransformer::Visit(parser::TableRef *node, parser::ParseResu
     // Build a left deep join tree
     for (auto &list_elem : node->GetList()) {
       list_elem->Accept(this, parse_result);
-      auto join_expr = new OperatorExpression(LogicalInnerJoin::Make(), {prev_expr, output_expr_});
+      auto join_expr = new OperatorExpression(
+          LogicalInnerJoin::Make(common::ManagedPointer(std::unique_ptr<parser::AbstractExpression>())),
+          {prev_expr, output_expr_});
       TERRIER_ASSERT(join_expr->GetChildren().size() == 2, "The join expr should have exactly 2 elements");
       prev_expr = join_expr;
     }
