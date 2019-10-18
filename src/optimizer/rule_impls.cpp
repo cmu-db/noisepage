@@ -335,8 +335,7 @@ void LogicalExternalFileGetToPhysical::Transform(OperatorExpression *input,
   auto delimiter = get->GetDelimiter();
   auto quote = get->GetQuote();
   auto escape = get->GetEscape();
-  auto result_plan =
-      new OperatorExpression(ExternalFileScan::Make(format, filename, delimiter, quote, escape), {});
+  auto result_plan = new OperatorExpression(ExternalFileScan::Make(format, filename, delimiter, quote, escape), {});
   transformed->push_back(result_plan);
 }
 

@@ -166,7 +166,8 @@ class LogicalExternalFileGet : public OperatorNode<LogicalExternalFileGet> {
    * @param escape character used for escape sequences
    * @return an LogicalExternalFileGet operator
    */
-  static Operator Make(parser::ExternalFileFormat format, std::string file_name, char delimiter, char quote, char escape);
+  static Operator Make(parser::ExternalFileFormat format, std::string file_name, char delimiter, char quote,
+                       char escape);
 
   /**
    * Copy

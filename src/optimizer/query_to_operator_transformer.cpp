@@ -13,11 +13,11 @@
 #include "optimizer/logical_operators.h"
 #include "optimizer/operator_expression.h"
 #include "optimizer/query_to_operator_transformer.h"
-#include "parser/expression_util.h"
 #include "parser/expression/column_value_expression.h"
 #include "parser/expression/comparison_expression.h"
 #include "parser/expression/operator_expression.h"
 #include "parser/expression/subquery_expression.h"
+#include "parser/expression_util.h"
 #include "parser/statements.h"
 #include "planner/plannodes/plan_node_defs.h"
 

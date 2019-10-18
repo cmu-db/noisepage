@@ -447,8 +447,7 @@ TEST(PlanNodeJsonTest, CreateViewPlanNodeTest) {
 TEST(PlanNodeJsonTest, CSVScanPlanNodeTest) {
   // Construct CSVScanPlanNode
   CSVScanPlanNode::Builder builder;
-  auto plan_node =
-      builder.SetFileName("/dev/null").SetDelimiter(',').SetQuote('\'').SetEscape('`').Build();
+  auto plan_node = builder.SetFileName("/dev/null").SetDelimiter(',').SetQuote('\'').SetEscape('`').Build();
 
   // Serialize to Json
   auto json = plan_node->ToJson();

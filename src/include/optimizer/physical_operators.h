@@ -274,7 +274,8 @@ class ExternalFileScan : public OperatorNode<ExternalFileScan> {
    * @param escape character used for escape sequences
    * @return an ExternalFileScan operator
    */
-  static Operator Make(parser::ExternalFileFormat format, std::string file_name, char delimiter, char quote, char escape);
+  static Operator Make(parser::ExternalFileFormat format, std::string file_name, char delimiter, char quote,
+                       char escape);
 
   /**
    * Copy

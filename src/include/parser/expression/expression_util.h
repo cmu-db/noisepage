@@ -21,8 +21,6 @@ class ExpressionUtil {
  public:
   // Static utility class
   ExpressionUtil() = delete;
-
-
 };
 
 }  // namespace terrier::parser::expression
