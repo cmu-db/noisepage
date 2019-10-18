@@ -129,30 +129,27 @@ void QueryToOperatorTransformer::Visit(parser::JoinDefinition *node, parser::Par
 
   // Construct join operator
   OperatorExpression *join_expr;
+  std::vector<AnnotatedExpression> join_predicates;
+  CollectPredicates(node->GetJoinCondition(), parse_result, &join_predicates);
   switch (node->GetJoinType()) {
     case parser::JoinType::INNER: {
-      join_expr = new OperatorExpression(LogicalInnerJoin::Make(common::ManagedPointer(node->GetJoinCondition())),
-                                         {left_expr, right_expr});
+      join_expr = new OperatorExpression(LogicalInnerJoin::Make(std::move(join_predicates)), {left_expr, right_expr});
       break;
     }
     case parser::JoinType::OUTER: {
-      join_expr = new OperatorExpression(LogicalOuterJoin::Make(common::ManagedPointer(node->GetJoinCondition())),
-                                         {left_expr, right_expr});
+      join_expr = new OperatorExpression(LogicalOuterJoin::Make(std::move(join_predicates)), {left_expr, right_expr});
       break;
     }
     case parser::JoinType::LEFT: {
-      join_expr = new OperatorExpression(LogicalLeftJoin::Make(common::ManagedPointer(node->GetJoinCondition())),
-                                         {left_expr, right_expr});
+      join_expr = new OperatorExpression(LogicalLeftJoin::Make(std::move(join_predicates)), {left_expr, right_expr});
       break;
     }
     case parser::JoinType::RIGHT: {
-      join_expr = new OperatorExpression(LogicalRightJoin::Make(common::ManagedPointer(node->GetJoinCondition())),
-                                         {left_expr, right_expr});
+      join_expr = new OperatorExpression(LogicalRightJoin::Make(std::move(join_predicates)), {left_expr, right_expr});
       break;
     }
     case parser::JoinType::SEMI: {
-      join_expr = new OperatorExpression(LogicalSemiJoin::Make(common::ManagedPointer(node->GetJoinCondition())),
-                                         {left_expr, right_expr});
+      join_expr = new OperatorExpression(LogicalSemiJoin::Make(std::move(join_predicates)), {left_expr, right_expr});
       break;
     }
     default:
@@ -190,9 +187,7 @@ void QueryToOperatorTransformer::Visit(parser::TableRef *node, parser::ParseResu
     // Build a left deep join tree
     for (auto &list_elem : node->GetList()) {
       list_elem->Accept(this, parse_result);
-      auto join_expr = new OperatorExpression(
-          LogicalInnerJoin::Make(common::ManagedPointer(std::unique_ptr<parser::AbstractExpression>())),
-          {prev_expr, output_expr_});
+      auto join_expr = new OperatorExpression(LogicalInnerJoin::Make(), {prev_expr, output_expr_});
       TERRIER_ASSERT(join_expr->GetChildren().size() == 2, "The join expr should have exactly 2 elements");
       prev_expr = join_expr;
     }
