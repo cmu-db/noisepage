@@ -84,7 +84,7 @@ class InsertPlanNode : public AbstractPlanNode {
      * @return builder object
      */
     Builder &SetIndexOids(std::vector<catalog::index_oid_t> &&index_oids) {
-      index_oids_ = index_oids;
+      index_oids_ = std::move(index_oids);
       return *this;
     }
 
@@ -97,7 +97,8 @@ class InsertPlanNode : public AbstractPlanNode {
       TERRIER_ASSERT(values_[0].size() == parameter_info_.size(), "Must have parameter info for each value");
       return std::shared_ptr<InsertPlanNode>(new InsertPlanNode(std::move(children_), std::move(output_schema_),
                                                                 database_oid_, namespace_oid_, table_oid_,
-                                                                std::move(values_), std::move(parameter_info_)));
+                                                                std::move(values_), std::move(parameter_info_),
+                                                                std::move(index_oids_)));
     }
 
    protected:
@@ -148,13 +149,15 @@ class InsertPlanNode : public AbstractPlanNode {
   InsertPlanNode(std::vector<std::shared_ptr<AbstractPlanNode>> &&children, std::shared_ptr<OutputSchema> output_schema,
                  catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid,
                  std::vector<std::vector<type::TransientValue>> &&values,
-                 std::vector<catalog::col_oid_t> &&parameter_info)
+                 std::vector<catalog::col_oid_t> &&parameter_info,
+                 std::vector<catalog::index_oid_t> &&index_oids)
       : AbstractPlanNode(std::move(children), std::move(output_schema)),
         database_oid_(database_oid),
         namespace_oid_(namespace_oid),
         table_oid_(table_oid),
         values_(std::move(values)),
-        parameter_info_(std::move(parameter_info)) {}
+        parameter_info_(std::move(parameter_info)),
+        index_oids_(std::move(index_oids)) {}
 
  public:
   DISALLOW_COPY_AND_MOVE(InsertPlanNode)

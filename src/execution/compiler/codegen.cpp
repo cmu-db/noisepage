@@ -634,7 +634,7 @@ ast::Expr *CodeGen::PeekValue(const type::TransientValue &transient_val) {
     }
     case type::TypeId::INTEGER: {
       auto val = type::TransientValuePeeker::PeekInteger(transient_val);
-      return Factory()->NewIntLiteral(DUMMY_POS, static_cast<int32_t>(val));
+      return IntToSql(static_cast<int32_t>(val));
     }
     case type::TypeId::BIGINT: {
       // TODO(WAN): the factory's IntLiteral only goes to int32_t
@@ -784,7 +784,7 @@ ast::Expr *CodeGen::StringToSql(std::string_view str) {
 }
 ast::Expr *CodeGen::InserterInit(ast::Identifier inserter, uint32_t table_oid) {
   ast::Expr *fun = BuiltinFunction(ast::Builtin::InserterInit);
-  ast::Expr *inserter_ptr = PointerTo(inserter);
+  ast::Expr *inserter_ptr = GetStateMemberPtr(inserter);
   ast::Expr *exec_ctx_expr = MakeExpr(exec_ctx_var_);
   ast::Expr *table_oid_expr = IntLiteral(static_cast<int64_t>(table_oid));
 
@@ -794,7 +794,7 @@ ast::Expr *CodeGen::InserterInit(ast::Identifier inserter, uint32_t table_oid) {
 
 ast::Expr *CodeGen::InserterGetTablePR(ast::Identifier inserter) {
   ast::Expr *fun = BuiltinFunction(ast::Builtin::InserterGetTablePR);
-  ast::Expr *inserter_ptr = PointerTo(inserter);
+  ast::Expr *inserter_ptr = GetStateMemberPtr(inserter);
 
   util::RegionVector<ast::Expr *> args{{inserter_ptr}, Region()};
   return Factory()->NewBuiltinCallExpr(fun, std::move(args));
@@ -802,7 +802,7 @@ ast::Expr *CodeGen::InserterGetTablePR(ast::Identifier inserter) {
 
 ast::Expr *CodeGen::InserterTableInsert(ast::Identifier inserter) {
   ast::Expr *fun = BuiltinFunction(ast::Builtin::InserterTableInsert);
-  ast::Expr *inserter_ptr = PointerTo(inserter);
+  ast::Expr *inserter_ptr = GetStateMemberPtr(inserter);
 
   util::RegionVector<ast::Expr *> args{{inserter_ptr}, Region()};
   return Factory()->NewBuiltinCallExpr(fun, std::move(args));
@@ -810,7 +810,7 @@ ast::Expr *CodeGen::InserterTableInsert(ast::Identifier inserter) {
 
 ast::Expr *CodeGen::InserterGetIndexPR(ast::Identifier inserter, uint32_t index_oid) {
   ast::Expr *fun = BuiltinFunction(ast::Builtin::InserterGetIndexPR);
-  ast::Expr *inserter_ptr = PointerTo(inserter);
+  ast::Expr *inserter_ptr = GetStateMemberPtr(inserter);
   ast::Expr *index_oid_expr = IntLiteral(static_cast<int64_t>(index_oid));
 
   util::RegionVector<ast::Expr *> args{{inserter_ptr, index_oid_expr}, Region()};
@@ -819,7 +819,7 @@ ast::Expr *CodeGen::InserterGetIndexPR(ast::Identifier inserter, uint32_t index_
 
 ast::Expr *CodeGen::InserterIndexInsert(ast::Identifier inserter, uint32_t index_oid) {
   ast::Expr *fun = BuiltinFunction(ast::Builtin::InserterIndexInsert);
-  ast::Expr *inserter_ptr = PointerTo(inserter);
+  ast::Expr *inserter_ptr = GetStateMemberPtr(inserter);
   ast::Expr *index_oid_expr = IntLiteral(static_cast<int64_t>(index_oid));
 
   util::RegionVector<ast::Expr *> args{{inserter_ptr, index_oid_expr}, Region()};

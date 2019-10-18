@@ -121,7 +121,7 @@ TEST_F(PRFillerTest, SimpleIndexFillerTest) {
 
   // Now get the compiled function
   std::function<void(sql::ProjectedRowWrapper*, sql::ProjectedRowWrapper*)> filler_fn;
-  ASSERT_TRUE(module->GetFunction(fn_name.Data(), vm::ExecutionMode::Compiled, &filler_fn));
+  ASSERT_TRUE(module->GetFunction(fn_name.Data(), vm::ExecutionMode::Interpret, &filler_fn));
 
   // Try it out.
   auto table_init = table->InitializerForProjectedRow(col_oids);

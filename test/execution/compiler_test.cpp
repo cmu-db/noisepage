@@ -23,6 +23,7 @@
 #include "planner/plannodes/hash_join_plan_node.h"
 #include "planner/plannodes/index_join_plan_node.h"
 #include "planner/plannodes/index_scan_plan_node.h"
+#include "planner/plannodes/insert_plan_node.h"
 #include "planner/plannodes/nested_loop_join_plan_node.h"
 #include "planner/plannodes/order_by_plan_node.h"
 #include "planner/plannodes/output_schema.h"
@@ -67,7 +68,7 @@ class CompilerTest : public SqlBasedTest {
 
     // Run the main function
     std::function<int64_t(exec::ExecutionContext *)> main;
-    if (!module->GetFunction("main", vm::ExecutionMode::Compiled, &main)) {
+    if (!module->GetFunction("main", vm::ExecutionMode::Interpret, &main)) {
       EXECUTION_LOG_ERROR(
           "Missing 'main' entry function with signature "
           "(*ExecutionContext)->int32");
@@ -873,6 +874,110 @@ TEST_F(CompilerTest, SimpleIndexNestedLoopJoinMultiColumnTest) {
   checker.CheckCorrectness();
 }
 
+// NOLINTNEXTLINE
+TEST_F(CompilerTest, SimpleInsertTest) {
+  // SELECT COUNT(*) FROM test_1 WHERE test_1.colB == 23
+  // INSERT INTO test_1 (colA, colB, colC, colD) VALUES (0,23,2,3)
+  // SELECT COUNT(*) FROM test_1 WHERE test_1.colB == 23,
+  auto accessor = MakeAccessor();
+  auto table_oid1 = accessor->GetTableOid(NSOid(), "test_1");
+  auto index_oid1 = accessor->GetIndexOid(NSOid(), "index_1");
+  auto table_schema1 = accessor->GetSchema(table_oid1);
+  auto col_oid_0 = table_schema1.GetColumn("colA").Oid();
+  auto col_oid_1 = table_schema1.GetColumn("colB").Oid();
+  auto col_oid_2 = table_schema1.GetColumn("colC").Oid();
+  auto col_oid_3 = table_schema1.GetColumn("colD").Oid();
+  // Get original count
+  std::shared_ptr<AbstractPlanNode> seq_scan1;
+  OutputSchemaHelper seq_scan_out1{0};
+  {
+    auto col1 = ExpressionUtil::CVE(table_schema1.GetColumn("colB").Oid(), type::TypeId::INTEGER);
+    seq_scan_out1.AddOutput("col1", col1);
+    auto schema = seq_scan_out1.MakeSchema();
+
+    auto predicate = ExpressionUtil::ComparisonEq(col1, ExpressionUtil::Constant(23));
+    // Build
+    SeqScanPlanNode::Builder builder;
+    seq_scan1 = builder.SetOutputSchema(schema)
+        .SetScanPredicate(predicate)
+        .SetIsParallelFlag(false)
+        .SetIsForUpdateFlag(false)
+        .SetNamespaceOid(NSOid())
+        .SetTableOid(table_oid1)
+        .Build();
+  }
+
+
+
+  uint32_t num_rows_count{0};
+
+  exec::OutputCallback counter = [&num_rows_count](byte *data,
+      uint32_t num_tuples, uint32_t size){
+    num_rows_count = num_tuples;
+  };
+
+  uint32_t orig_num_rows = num_rows_count;
+
+  MultiOutputCallback count_callback{std::vector<exec::OutputCallback>{counter}};
+  auto count_exec_ctx = MakeExecCtx(std::move(count_callback),
+      seq_scan1->GetOutputSchema().get());
+  CompileAndRun(seq_scan1.get(), count_exec_ctx.get());
+
+  std::shared_ptr<AbstractPlanNode> index_scan;
+  OutputSchemaHelper index_scan_out{0};
+  {
+    // Get Table columns
+    auto col1 = ExpressionUtil::CVE(table_schema1.GetColumn("colA").Oid(), type::TypeId::INTEGER);
+    auto const_0 = ExpressionUtil::Constant(0);
+    index_scan_out.AddOutput("col1", col1);
+    auto schema = index_scan_out.MakeSchema();
+    IndexScanPlanNode::Builder builder;
+    index_scan = builder.SetTableOid(table_oid1).SetIndexOid(index_oid1)
+        .AddIndexColum(catalog::indexkeycol_oid_t(1), const_0)
+        .SetNamespaceOid(NSOid())
+        .SetOutputSchema(schema).Build();
+  }
+  num_rows_count = 0;
+
+  CompileAndRun(index_scan.get(), count_exec_ctx.get());
+
+  uint32_t orig_index_count = num_rows_count;
+
+  // make InsertPlanNode
+  std::shared_ptr<AbstractPlanNode> insert;
+  {
+    std::vector<type::TransientValue> values;
+
+    values.push_back(type::TransientValueFactory::GetInteger(0));
+    values.push_back(type::TransientValueFactory::GetInteger(23));
+    values.push_back(type::TransientValueFactory::GetInteger(2));
+    values.push_back(type::TransientValueFactory::GetInteger(3));
+    InsertPlanNode::Builder builder;
+    insert = builder
+        .AddParameterInfo(col_oid_0)
+        .AddParameterInfo(col_oid_1)
+        .AddParameterInfo(col_oid_2)
+        .AddParameterInfo(col_oid_3)
+        .SetIndexOids({index_oid1})
+        .AddValues(std::move(values))
+        .SetNamespaceOid(NSOid())
+        .SetTableOid(table_oid1)
+        .Build();
+  }
+
+  MultiOutputCallback callback{std::vector<exec::OutputCallback>{}};
+  auto exec_ctx = MakeExecCtx(std::move(callback), insert->GetOutputSchema().get());
+  // Run & Check
+  CompileAndRun(insert.get(), exec_ctx.get());
+
+  num_rows_count = 0;
+  CompileAndRun(seq_scan1.get(), count_exec_ctx.get());
+  ASSERT_EQ(num_rows_count, orig_num_rows + 1);
+
+  num_rows_count= 0;
+  CompileAndRun(index_scan.get(), count_exec_ctx.get());
+  ASSERT_EQ(num_rows_count, orig_index_count + 1);
+}
 
 /*
 // NOLINTNEXTLINE

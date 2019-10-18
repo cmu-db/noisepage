@@ -31,7 +31,7 @@ std::unique_ptr<OperatorTranslator> TranslatorFactory::CreateRegularTranslator(
       return std::make_unique<SeqScanTranslator>(static_cast<const planner::SeqScanPlanNode*>(op), codegen);
     }
     case terrier::planner::PlanNodeType::INSERT: {
-      return nullptr;
+      return std::make_unique<InsertTranslator>(static_cast<const planner::InsertPlanNode*>(op), codegen);
     }
     case terrier::planner::PlanNodeType::INDEXNLJOIN: {
       return std::make_unique<IndexJoinTranslator>(static_cast<const planner::IndexJoinPlanNode*>(op), codegen);

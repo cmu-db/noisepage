@@ -20,14 +20,14 @@ class InsertTranslator : public OperatorTranslator {
   void InitializeStructs(util::RegionVector<ast::Decl *> *decls) override;
 
   // Create the key check function.
-  //void InitializeHelperFunctions(util::RegionVector<ast::Decl *> *decls) override;
+  void InitializeHelperFunctions(util::RegionVector<ast::Decl *> *decls) override {};
 
   // Call @inserterInit on inserter
   // Call @inserterInitBind(&inserter)
   void InitializeSetup(util::RegionVector<ast::Stmt *> *setup_stmts) override;
 
-  // Call @aggHTFree
-  //void InitializeTeardown(util::RegionVector<ast::Stmt *> *teardown_stmts) override;
+  // Call @inserterFree?
+  void InitializeTeardown(util::RegionVector<ast::Stmt *> *teardown_stmts) override {};
 
   // real stuff
   void Produce(FunctionBuilder *builder) override;
@@ -38,6 +38,18 @@ class InsertTranslator : public OperatorTranslator {
   bool IsMaterializer(bool *is_ptr) override {
     *is_ptr = true;
     return true;
+  }
+
+  ast::Expr *GetOutput(uint32_t attr_idx) override {return nullptr;};
+
+  const planner::AbstractPlanNode* Op() override {
+    return op_;
+  }
+
+  //TODO(tanujnay112) do this properly
+  ast::Expr *GetChildOutput(uint32_t child_idx, uint32_t attr_idx,
+      terrier::type::TypeId type) override {
+    return nullptr;
   }
 
  private:

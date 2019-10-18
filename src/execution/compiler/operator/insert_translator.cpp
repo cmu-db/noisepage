@@ -20,45 +20,63 @@ void InsertTranslator::Produce(FunctionBuilder *builder) {
   // generate the code for the insertion
   // var pr : *ProjectedRow
 
-  builder->Append(codegen_->DeclareVariable(table_pr_, codegen_->BuiltinType(ast::BuiltinType::ProjectedRow),
+  builder->Append(codegen_->DeclareVariable(table_pr_,
+      codegen_->PointerType(codegen_->BuiltinType(ast::BuiltinType::ProjectedRow)),
                                             nullptr));
 
   //pr = @inserterGetTablePR(&inserter)
   builder->Append(codegen_->Assign(codegen_->MakeExpr(table_pr_), codegen_->InserterGetTablePR(inserter_struct_)));
-  // populate v
-  const auto &node_vals = op_->GetValues(0);
-  auto param_info = op_->GetParameterInfo();
-  for (size_t i = 0; i < node_vals.size(); i++) {
-    auto &val = node_vals[i];
-    auto *src = codegen_->PeekValue(node_vals[i]);
-    auto *set_stmt = codegen_->MakeStmt(codegen_->PRSet(codegen_->PointerTo(table_pr_), val.Type(),
-        table_schema_.GetColumn(param_info[i]).Nullable(), table_pm_[param_info[i]], src));
-    builder->Append(set_stmt);
-  }
+  // populate v[
+
+  // code size proportional to number of tuples???
+  for(size_t tuple = 0;tuple < op_->GetBulkInsertCount();tuple++) {
+    const auto &node_vals = op_->GetValues(tuple);
+    auto param_info = op_->GetParameterInfo();
+    for (size_t i = 0; i < node_vals.size(); i++) {
+      auto &val = node_vals[i];
+      auto *src = codegen_->PeekValue(node_vals[i]);
+      auto *set_stmt = codegen_->MakeStmt(codegen_->PRSet(codegen_->MakeExpr(table_pr_),
+                                                          val.Type(),
+                                                          table_schema_.GetColumn(param_info[i]).Nullable(),
+                                                          table_pm_[param_info[i]],
+                                                          src));
+      builder->Append(set_stmt);
+    }
 
 
-  // @inserterTableInsert(&inserter)
-  builder->Append(codegen_->MakeStmt(codegen_->InserterTableInsert(inserter_struct_)));
+    // @inserterTableInsert(&inserter)
+    auto slot_ident = codegen_->NewIdentifier("slot");
+    auto tuple_slot_decl = codegen_->DeclareVariable(slot_ident, codegen_->BuiltinType(ast::BuiltinType::TupleSlot),
+                                                     nullptr);
+    builder->Append(tuple_slot_decl);
+    builder->Append(codegen_->Assign(codegen_->MakeExpr(slot_ident),
+        codegen_->InserterTableInsert(inserter_struct_)));
 
-  const auto &indexes = op_->GetIndexOids();
-  PRFiller pr_filler(codegen_, table_schema_, table_pm_, table_pr_);
+    const auto &indexes = op_->GetIndexOids();
+    PRFiller pr_filler(codegen_, table_schema_, table_pm_, table_pr_);
 
-  for (auto &index_oid : indexes) {
-    // pr = @inserterGetIndexPR(&inserter, oid)
-    builder->Append(codegen_->Assign(codegen_->MakeExpr(table_pr_),
-        codegen_->InserterGetIndexPR(inserter_struct_, !index_oid)));
-    auto index = codegen_->Accessor()->GetIndex(index_oid);
-    auto index_pm = index->GetKeyOidToOffsetMap();
-    auto index_schema = codegen_->Accessor()->GetIndexSchema(index_oid);
-    pr_filler.GenFiller(index_pm, index_schema, table_pr_, builder);
+    auto index_pr_name = codegen_->NewIdentifier("index_pr");
+    builder->Append(codegen_->DeclareVariable(index_pr_name,
+        codegen_->PointerType(codegen_->BuiltinType(ast::BuiltinType::ProjectedRow)), nullptr));
 
-    //@inserterInsertIndex(&inserter, index_oid)
-    builder->Append(codegen_->MakeStmt(codegen_->InserterIndexInsert(inserter_struct_, !index_oid)));
+    for (auto &index_oid : indexes) {
+      // pr = @inserterGetIndexPR(&inserter, oid)
+      builder->Append(codegen_->Assign(codegen_->MakeExpr(index_pr_name),
+                                       codegen_->InserterGetIndexPR(inserter_struct_, !index_oid)));
+      auto index = codegen_->Accessor()->GetIndex(index_oid);
+      auto index_pm = index->GetKeyOidToOffsetMap();
+      auto index_schema = codegen_->Accessor()->GetIndexSchema(index_oid);
+      pr_filler.GenFiller(index_pm, index_schema, index_pr_name, builder);
+
+      //@inserterInsertIndex(&inserter, index_oid)
+      builder->Append(codegen_->MakeStmt(
+          codegen_->InserterIndexInsert(inserter_struct_, !index_oid)));
+    }
   }
 }
 
 void InsertTranslator::Consume(FunctionBuilder *builder) {
-  // generate the code for insert select
+  // generate the code for insert into select
 //  auto var_ex = batch->GetIdentifierExpr();
 //
 //  // @insert(db_oid, table_oid, &v)
