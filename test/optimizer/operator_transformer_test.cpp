@@ -491,9 +491,8 @@ TEST_F(OperatorTransformerTest, SelectStatementInnerJoinTest) {
   std::string selectSQL = "SELECT * FROM A Inner JOIN B ON A.A1 = B.B1";
 
   std::string ref =
-      "{\"Op\":\"LogicalFilter\",\"Children\":"
-      "[{\"Op\":\"LogicalInnerJoin\",\"Children\":"
-      "[{\"Op\":\"LogicalGet\",},{\"Op\":\"LogicalGet\",}]}]}";
+      "{\"Op\":\"LogicalInnerJoin\",\"Children\":"
+      "[{\"Op\":\"LogicalGet\",},{\"Op\":\"LogicalGet\",}]}";
 
   auto parse_tree = parser_.BuildParseTree(selectSQL);
   auto statement = parse_tree.GetStatements()[0];
@@ -506,18 +505,18 @@ TEST_F(OperatorTransformerTest, SelectStatementInnerJoinTest) {
 
   EXPECT_EQ(ref, info);
 
-  // Test LogicalFilter
-  auto logical_filter = operator_tree_->GetOp().As<optimizer::LogicalFilter>();
-  EXPECT_EQ(parser::ExpressionType::COMPARE_EQUAL, logical_filter->GetPredicates()[0].GetExpr()->GetExpressionType());
+  // Test LogicalInnerJoin
+  auto logical_inner_join = operator_tree_->GetOp().As<optimizer::LogicalInnerJoin>();
+  EXPECT_EQ(parser::ExpressionType::COMPARE_EQUAL, logical_inner_join->GetJoinPredicate().Get()->GetExpressionType());
 
   // Test LogicalGet
-  auto logical_get_left = operator_tree_->GetChildren()[0]->GetChildren()[0]->GetOp().As<optimizer::LogicalGet>();
+  auto logical_get_left = operator_tree_->GetChildren()[0]->GetOp().As<optimizer::LogicalGet>();
   EXPECT_EQ(db_oid_, logical_get_left->GetDatabaseOid());
   EXPECT_EQ(default_namespace_oid, logical_get_left->GetNamespaceOid());
   EXPECT_EQ(table_a_oid_, logical_get_left->GetTableOid());
   EXPECT_FALSE(logical_get_left->GetIsForUpdate());
 
-  auto logical_get_right = operator_tree_->GetChildren()[0]->GetChildren()[1]->GetOp().As<optimizer::LogicalGet>();
+  auto logical_get_right = operator_tree_->GetChildren()[1]->GetOp().As<optimizer::LogicalGet>();
   EXPECT_EQ(db_oid_, logical_get_right->GetDatabaseOid());
   EXPECT_EQ(default_namespace_oid, logical_get_right->GetNamespaceOid());
   EXPECT_EQ(table_b_oid_, logical_get_right->GetTableOid());
@@ -621,9 +620,8 @@ TEST_F(OperatorTransformerTest, SelectStatementStarNestedSelectTest) {
   std::string ref =
       "{\"Op\":\"LogicalLeftJoin\",\"Children\":"
       "[{\"Op\":\"LogicalGet\",},{\"Op\":\"LogicalQueryDerivedGet\",\"Children\":"
-      "[{\"Op\":\"LogicalFilter\",\"Children\":"
       "[{\"Op\":\"LogicalInnerJoin\",\"Children\":"
-      "[{\"Op\":\"LogicalGet\",},{\"Op\":\"LogicalGet\",}]}]}]}]}";
+      "[{\"Op\":\"LogicalGet\",},{\"Op\":\"LogicalGet\",}]}]}]}";
 
   auto parse_tree = parser_.BuildParseTree(select_sql);
   auto statement = parse_tree.GetStatements()[0];

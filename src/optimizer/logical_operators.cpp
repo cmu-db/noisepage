@@ -526,34 +526,22 @@ bool LogicalSingleJoin::operator==(const BaseOperatorNode &r) {
 //===--------------------------------------------------------------------===//
 // InnerJoin
 //===--------------------------------------------------------------------===//
-Operator LogicalInnerJoin::Make() {
-  auto *join = new LogicalInnerJoin;
-  join->join_predicates_ = {};
-  return Operator(join);
-}
-
-Operator LogicalInnerJoin::Make(std::vector<AnnotatedExpression> &&conditions) {
-  auto *join = new LogicalInnerJoin;
-  join->join_predicates_ = std::move(conditions);
+Operator LogicalInnerJoin::Make(common::ManagedPointer<parser::AbstractExpression> join_predicate) {
+  auto *join = new LogicalInnerJoin();
+  join->join_predicate_ = join_predicate;
   return Operator(join);
 }
 
 common::hash_t LogicalInnerJoin::Hash() const {
   common::hash_t hash = BaseOperatorNode::Hash();
-  for (auto &pred : join_predicates_) {
-    auto expr = pred.GetExpr();
-    if (expr)
-      hash = common::HashUtil::SumHashes(hash, expr->Hash());
-    else
-      hash = common::HashUtil::SumHashes(hash, BaseOperatorNode::Hash());
-  }
+  hash = common::HashUtil::CombineHashes(hash, join_predicate_->Hash());
   return hash;
 }
 
 bool LogicalInnerJoin::operator==(const BaseOperatorNode &r) {
   if (r.GetType() != OpType::LOGICALINNERJOIN) return false;
   const LogicalInnerJoin &node = *static_cast<const LogicalInnerJoin *>(&r);
-  return (join_predicates_ == node.join_predicates_);
+  return (join_predicate_ == node.join_predicate_);
 }
 
 //===--------------------------------------------------------------------===//
