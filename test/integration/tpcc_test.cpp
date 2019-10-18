@@ -11,6 +11,7 @@
 #include "storage/storage_defs.h"
 #include "transaction/transaction_manager.h"
 #include "util/tpcc/builder.h"
+#include "util/test_harness.h"
 #include "util/tpcc/database.h"
 #include "util/tpcc/loader.h"
 #include "util/tpcc/worker.h"

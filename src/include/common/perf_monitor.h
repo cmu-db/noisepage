@@ -4,6 +4,7 @@
 #include <sys/ioctl.h>
 #include <sys/syscall.h>
 #include <unistd.h>
+#include <array>
 #include <cstring>
 #include <iostream>
 #include "common/macros.h"
@@ -64,6 +65,10 @@ class PerfMonitor {
   };
 
   PerfMonitor() {
+#if __APPLE__
+    // Apple doesn't support perf events and currently doesn't expose an equivalent kernal API
+    valid_ = false;
+#else
     // Initialize perf configuration
     perf_event_attr pe;
     std::memset(&pe, 0, sizeof(perf_event_attr));
@@ -78,49 +83,64 @@ class PerfMonitor {
     for (uint8_t i = 0; i < NUM_HW_EVENTS; i++) {
       pe.config = HW_EVENTS[i];
       event_files_[i] = syscall(__NR_perf_event_open, &pe, 0, -1, event_files_[0], 0);
-      TERRIER_ASSERT(event_files_[i] > 0, "Failed to open perf_event.");
+      TERRIER_ASSERT(event_files_[i] > 2,
+                     "Failed to open perf_event.");  // 0, 1, 2 are reserved for stdin, stdout, stderr respectively
+      valid_ = valid_ || event_files_[i] > 2;
     }
+#endif
   }
 
   ~PerfMonitor() {
-    for (const auto i : event_files_) {
-      const auto result UNUSED_ATTRIBUTE = close(i);
-      TERRIER_ASSERT(result == 0, "Failed to close perf_event.");
+    if (valid_) {
+      // It's unclear to me from the man pages if calling close on the group leader's fd closes everything, but right
+      // now iterating through all fd's (including the group leader) results in successful syscalls, so I'll play it
+      // safe and close all of them.
+      for (const auto i : event_files_) {
+        const auto result UNUSED_ATTRIBUTE = close(i);
+        TERRIER_ASSERT(result == 0, "Failed to close perf_event.");
+      }
     }
   }
 
   DISALLOW_COPY_AND_MOVE(PerfMonitor)
 
   void Start() {
-    auto result UNUSED_ATTRIBUTE = ioctl(event_files_[0], PERF_EVENT_IOC_RESET, PERF_IOC_FLAG_GROUP);
-    TERRIER_ASSERT(result >= 0, "Failed to reset events.");
-    result = ioctl(event_files_[0], PERF_EVENT_IOC_ENABLE, PERF_IOC_FLAG_GROUP);
-    TERRIER_ASSERT(result >= 0, "Failed to enable events.");
-    running_ = true;
+    if (valid_) {
+      auto result UNUSED_ATTRIBUTE = ioctl(event_files_[0], PERF_EVENT_IOC_RESET, PERF_IOC_FLAG_GROUP);
+      TERRIER_ASSERT(result >= 0, "Failed to reset events.");
+      result = ioctl(event_files_[0], PERF_EVENT_IOC_ENABLE, PERF_IOC_FLAG_GROUP);
+      TERRIER_ASSERT(result >= 0, "Failed to enable events.");
+      running_ = true;
+    }
   }
 
   void Stop() {
-    TERRIER_ASSERT(running_, "StopEvents() called without StartEvents() first.");
-    auto result UNUSED_ATTRIBUTE = ioctl(event_files_[0], PERF_EVENT_IOC_DISABLE, PERF_IOC_FLAG_GROUP);
-    TERRIER_ASSERT(result >= 0, "Failed to disable events.");
-    running_ = false;
+    if (valid_) {
+      TERRIER_ASSERT(running_, "StopEvents() called without StartEvents() first.");
+      auto result UNUSED_ATTRIBUTE = ioctl(event_files_[0], PERF_EVENT_IOC_DISABLE, PERF_IOC_FLAG_GROUP);
+      TERRIER_ASSERT(result >= 0, "Failed to disable events.");
+      running_ = false;
+    }
   }
 
   PerfCounters ReadCounters() {
     PerfCounters counters{};  // zero initialization
-    const auto bytes_read UNUSED_ATTRIBUTE = read(event_files_[0], &counters, sizeof(PerfCounters));
-    TERRIER_ASSERT(bytes_read == sizeof(PerfCounters), "Failed to read the entire struct.");
-    TERRIER_ASSERT(counters.num_events_ == NUM_HW_EVENTS, "Failed to read the correct number of events.");
+    if (valid_) {
+      const auto bytes_read UNUSED_ATTRIBUTE = read(event_files_[0], &counters, sizeof(PerfCounters));
+      TERRIER_ASSERT(bytes_read == sizeof(PerfCounters), "Failed to read the entire struct.");
+      TERRIER_ASSERT(counters.num_events_ == NUM_HW_EVENTS, "Failed to read the correct number of events.");
+    }
     return counters;
   }
+  static constexpr uint8_t NUM_HW_EVENTS = 6;
 
  private:
-  static constexpr uint8_t NUM_HW_EVENTS = 6;
   // set the first file descriptor to -1. Since event_files[0] is always passed into group_fd on
   // perf_event_open, this has the effect of making the first event the group leader. All subsequent syscalls can use
   // that fd.
   std::array<int32_t, NUM_HW_EVENTS> event_files_{-1};
   bool running_ = false;
+  bool valid_ = true;
 
   static constexpr std::array<uint64_t, NUM_HW_EVENTS> HW_EVENTS{
       PERF_COUNT_HW_CPU_CYCLES,   PERF_COUNT_HW_INSTRUCTIONS, PERF_COUNT_HW_CACHE_REFERENCES,

@@ -1,5 +1,4 @@
 #include "common/thread_cpu_timer.h"
-#include <iostream>
 #include "gtest/gtest.h"
 
 namespace terrier {
