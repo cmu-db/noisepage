@@ -1,8 +1,12 @@
 #pragma once
 
+#if __APPLE__
+// nothing to include since it doesn't support perf events
+#else
 #include <linux/perf_event.h>
 #include <sys/ioctl.h>
 #include <sys/syscall.h>
+#endif
 #include <unistd.h>
 #include <array>
 #include <cstring>
@@ -133,6 +137,9 @@ class PerfMonitor {
    * Start monitoring perf counters
    */
   void Start() {
+#if __APPLE__
+    // do nothing
+#else
     if (valid_) {
       auto result UNUSED_ATTRIBUTE = ioctl(event_files_[0], PERF_EVENT_IOC_RESET, PERF_IOC_FLAG_GROUP);
       TERRIER_ASSERT(result >= 0, "Failed to reset events.");
@@ -140,18 +147,23 @@ class PerfMonitor {
       TERRIER_ASSERT(result >= 0, "Failed to enable events.");
       running_ = true;
     }
+#endif
   }
 
   /**
    * Stop monitoring perf counters
    */
   void Stop() {
+#if __APPLE__
+    // do nothing
+#else
     if (valid_) {
       TERRIER_ASSERT(running_, "StopEvents() called without StartEvents() first.");
       auto result UNUSED_ATTRIBUTE = ioctl(event_files_[0], PERF_EVENT_IOC_DISABLE, PERF_IOC_FLAG_GROUP);
       TERRIER_ASSERT(result >= 0, "Failed to disable events.");
       running_ = false;
     }
+#endif
   }
 
   /**
@@ -178,11 +190,16 @@ class PerfMonitor {
   // perf_event_open, this has the effect of making the first event the group leader. All subsequent syscalls can use
   // that fd.
   std::array<int32_t, NUM_HW_EVENTS> event_files_{-1};
-  bool running_ = false;
   bool valid_ = true;
 
+#if __APPLE__
+  // do nothing
+#else
+
+  bool running_ = false;
   static constexpr std::array<uint64_t, NUM_HW_EVENTS> HW_EVENTS{
       PERF_COUNT_HW_CPU_CYCLES,   PERF_COUNT_HW_INSTRUCTIONS, PERF_COUNT_HW_CACHE_REFERENCES,
       PERF_COUNT_HW_CACHE_MISSES, PERF_COUNT_HW_BUS_CYCLES,   PERF_COUNT_HW_REF_CPU_CYCLES};
+#endif
 };
 }  // namespace terrier::common

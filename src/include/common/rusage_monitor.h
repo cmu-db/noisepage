@@ -29,7 +29,7 @@ class RusageMonitor {
    */
   void Stop() {
     TERRIER_ASSERT(running_, "Stop() called while not running.");
-    valid = running;
+    valid_ = running_;
     Now(&end_);
     running_ = false;
   }
@@ -57,7 +57,7 @@ class RusageMonitor {
   rusage start_;
   rusage end_;
   bool running_ = false;
-  bool valid = false;
+  bool valid_ = false;
 
   static timeval SubtractTimeval(const timeval &lhs, const timeval &rhs) {
     return {lhs.tv_sec - rhs.tv_sec, lhs.tv_usec - rhs.tv_usec};
@@ -66,20 +66,20 @@ class RusageMonitor {
   static rusage SubtractRusage(const rusage &lhs, const rusage &rhs) {
     return {SubtractTimeval(lhs.ru_utime, rhs.ru_utime),
             SubtractTimeval(lhs.ru_stime, rhs.ru_stime),
-            {lhs.ru_maxrss - rhs.ru_maxrss},
-            {lhs.ru_ixrss - rhs.ru_ixrss},
-            {lhs.ru_idrss - rhs.ru_idrss},
-            {lhs.ru_isrss - rhs.ru_isrss},
-            {lhs.ru_minflt - rhs.ru_minflt},
-            {lhs.ru_majflt - rhs.ru_majflt},
-            {lhs.ru_nswap - rhs.ru_nswap},
-            {lhs.ru_inblock - rhs.ru_inblock},
-            {lhs.ru_oublock - rhs.ru_oublock},
-            {lhs.ru_msgsnd - rhs.ru_msgsnd},
-            {lhs.ru_msgrcv - rhs.ru_msgrcv},
-            {lhs.ru_nsignals - rhs.ru_nsignals},
-            {lhs.ru_nvcsw - rhs.ru_nvcsw},
-            {lhs.ru_nivcsw - rhs.ru_nivcsw}};
+            lhs.ru_maxrss - rhs.ru_maxrss,
+            lhs.ru_ixrss - rhs.ru_ixrss,
+            lhs.ru_idrss - rhs.ru_idrss,
+            lhs.ru_isrss - rhs.ru_isrss,
+            lhs.ru_minflt - rhs.ru_minflt,
+            lhs.ru_majflt - rhs.ru_majflt,
+            lhs.ru_nswap - rhs.ru_nswap,
+            lhs.ru_inblock - rhs.ru_inblock,
+            lhs.ru_oublock - rhs.ru_oublock,
+            lhs.ru_msgsnd - rhs.ru_msgsnd,
+            lhs.ru_msgrcv - rhs.ru_msgrcv,
+            lhs.ru_nsignals - rhs.ru_nsignals,
+            lhs.ru_nvcsw - rhs.ru_nvcsw,
+            lhs.ru_nivcsw - rhs.ru_nivcsw};
   }
 
   /**
@@ -94,5 +94,5 @@ class RusageMonitor {
 #endif
     TERRIER_ASSERT(ret == 0, "getrusage failed.");
   }
-};
+};  // namespace terrier::common
 }  // namespace terrier::common
