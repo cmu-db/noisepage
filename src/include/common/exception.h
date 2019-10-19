@@ -32,12 +32,22 @@ class Exception : public std::runtime_error {
   /**
    * Creates a new Exception with the given parameters.
    * @param type exception type
-   * @param msg exception message to be displayed
+   * @param msg exception message to be displayed (char*)
    * @param file name of the file in which the exception occurred
    * @param line line number at which the exception occurred
    */
   Exception(const ExceptionType type, const char *msg, const char *file, int line)
       : std::runtime_error(msg), type_(type), file_(file), line_(line) {}
+  
+  /**
+   * Creates a new Exception with the given parameters.
+   * @param type exception type
+   * @param msg exception message to be displayed (std::string)
+   * @param file name of the file in which the exception occurred
+   * @param line line number at which the exception occurred
+   */
+  Exception(const ExceptionType type, const std::string &msg, const char *file, int line) :
+      : Exception(type, msg.c_str(), file, line) {}
 
   /**
    * Allows type and source location of the exception to be recorded in the log
