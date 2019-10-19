@@ -5,35 +5,59 @@
 #include "common/macros.h"
 
 namespace terrier::common {
+/**
+ * Helped class around get_rusage syscall that allows to profile specific sections of code. If Start() and Stop() are
+ * called on the same object from separate threads then the results will likely be garbage.
+ */
 class RusageMonitor {
  public:
   RusageMonitor() = default;
 
   DISALLOW_COPY_AND_MOVE(RusageMonitor)
 
+  /**
+   * Start monitoring rusage by capturing current values
+   */
   void Start() {
     TERRIER_ASSERT(!running_, "Start() called while already running.");
     Now(&start_);
     running_ = true;
   }
 
+  /**
+   * Stop monitoring rusage by capturing current values
+   */
   void Stop() {
     TERRIER_ASSERT(running_, "Stop() called while not running.");
+    valid = running;
     Now(&end_);
     running_ = false;
   }
 
+  /**
+   * Return rusage for the profiled period
+   */
   rusage Usage() const {
     TERRIER_ASSERT(!running_, "Usage() called while still running.");
-    return SubtractRusage(end_, start_);
+    if (valid_) {
+      return SubtractRusage(end_, start_);
+    }
+    return rusage{};
   }
 
+  /**
+   * Helper method to convert timeval to microseconds. Might eventually live elsewhere, but timeval only used here right
+   * now
+   * @param t timeval to convert
+   * @return timeval converted to microseconds
+   */
   static int64_t TimevalToMicroseconds(const timeval &t) { return static_cast<int64_t>(t.tv_sec) * 1e6 + t.tv_usec; }
 
  private:
   rusage start_;
   rusage end_;
   bool running_ = false;
+  bool valid = false;
 
   static timeval SubtractTimeval(const timeval &lhs, const timeval &rhs) {
     return {lhs.tv_sec - rhs.tv_sec, lhs.tv_usec - rhs.tv_usec};
@@ -59,7 +83,8 @@ class RusageMonitor {
   }
 
   /**
-   * Platform-specific representation of current rusage
+   * Platform-specific representation of current rusage. On macOS it can only get process info. Thread-specific info is
+   * non-POSIX and added in later Linux kernels.
    */
   static void Now(rusage *const usage) {
 #if __APPLE__

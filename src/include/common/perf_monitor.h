@@ -11,7 +11,9 @@
 
 namespace terrier::common {
 /**
- * Wrapper around hw perf events provided by the Linux kernel.
+ * Wrapper around hw perf events provided by the Linux kernel. Instantiating and destroying PerfMonitors are a bit
+ * expensive because they open multiple file descriptors (read: syscalls). Ideally you want to keep a PerfMonitor object
+ * around for a portion of code you want to profile, and then just rely on Start() and Stop().
  */
 class PerfMonitor {
  public:
@@ -20,30 +22,47 @@ class PerfMonitor {
    * PERF_FORMAT_TOTAL_TIME_RUNNING disabled. http://www.man7.org/linux/man-pages/man2/perf_event_open.2.html
    */
   struct PerfCounters {
+    /**
+     * Number of events read. This should be PerfMonitor::NUM_HW_EVENTS if working, 0 otherwise
+     */
     uint64_t num_events_;
+    /**
+     * Total cycles. Be wary of what happens during CPU frequency scaling.
+     */
     uint64_t cpu_cycles_;
+    /**
+     * Retired instructions. Be careful, these can be affected by various issues, most notably hardware interrupt
+     * counts.
+     */
     uint64_t instructions_;
+    /**
+     * Cache accesses. Usually this indicates Last Level Cache accesses but this may vary depending on your CPU.  This
+     * may include prefetches and coherency messages; again this depends on the design of your CPU.
+     */
     uint64_t cache_references_;
+    /**
+     * Cache misses.  Usually this indicates Last Level Cache misses.
+     */
     uint64_t cache_misses_;
     // TODO(Matt): there seems to be a bug with enabling these counters along with the cache counters. When enabled,
     // just get 0s out of all of the counters. Eventually we might want them but can't enable them right now.
     // https://lkml.org/lkml/2018/2/13/810
     // uint64_t branch_instructions_;
     // uint64_t branch_misses_;
+    /**
+     * Bus cycles, which can be different from total cycles.
+     */
     uint64_t bus_cycles_;
+    /**
+     * Total cycles; not affected by CPU frequency scaling.
+     */
     uint64_t ref_cpu_cycles_;
 
-    //    void Print() const {
-    //      std::cout << "CPU Cycles: " << cpu_cycles_ << std::endl;
-    //      std::cout << "Instructions: " << instructions_ << std::endl;
-    //      std::cout << "Cache References: " << cache_references_ << std::endl;
-    //      std::cout << "Cache Misses: " << cache_misses_ << std::endl;
-    //      // std::cout << "Branch Instructions: " << branch_instructions_ << std::endl;
-    //      // std::cout << "Branch Misses: " << branch_misses_ << std::endl;
-    //      std::cout << "Bus Cycles: " << bus_cycles_ << std::endl;
-    //      std::cout << "Reference CPU Cycles: " << ref_cpu_cycles_ << std::endl << std::endl;
-    //    }
-
+    /**
+     * compound assignment
+     * @param rhs you know subtraction? this is the right side of that binary operator
+     * @return reference to this
+     */
     PerfCounters &operator-=(const PerfCounters &rhs) {
       TERRIER_ASSERT(this->num_events_ == rhs.num_events_,
                      "Operating on PerfCounters objects with different num_events_ doesnt' make sense.");
@@ -58,6 +77,12 @@ class PerfMonitor {
       return *this;
     }
 
+    /**
+     * subtract implemented from compound assignment. passing lhs by value helps optimize chained a+b+c
+     * @param lhs you know subtraction? this is the left side of that binary operator
+     * @param rhs you know subtraction? this is the right side of that binary operator
+     * @return
+     */
     friend PerfCounters operator-(PerfCounters lhs, const PerfCounters &rhs) {
       lhs -= rhs;
       return lhs;
@@ -104,6 +129,9 @@ class PerfMonitor {
 
   DISALLOW_COPY_AND_MOVE(PerfMonitor)
 
+  /**
+   * Start monitoring perf counters
+   */
   void Start() {
     if (valid_) {
       auto result UNUSED_ATTRIBUTE = ioctl(event_files_[0], PERF_EVENT_IOC_RESET, PERF_IOC_FLAG_GROUP);
@@ -114,6 +142,9 @@ class PerfMonitor {
     }
   }
 
+  /**
+   * Stop monitoring perf counters
+   */
   void Stop() {
     if (valid_) {
       TERRIER_ASSERT(running_, "StopEvents() called without StartEvents() first.");
@@ -123,6 +154,10 @@ class PerfMonitor {
     }
   }
 
+  /**
+   * Read out counters for the profiled period
+   * @return
+   */
   PerfCounters Counters() const {
     PerfCounters counters{};  // zero initialization
     if (valid_) {
@@ -132,6 +167,10 @@ class PerfMonitor {
     }
     return counters;
   }
+
+  /**
+   * Number of currently enabled HW perf events. Update this if more are added.
+   */
   static constexpr uint8_t NUM_HW_EVENTS = 6;
 
  private:
