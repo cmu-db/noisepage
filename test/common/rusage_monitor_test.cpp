@@ -5,6 +5,10 @@
 
 namespace terrier {
 
+/**
+ * Simple test that just does some work wrapped in a RusageMonitor and checks the user time afterwards. It should be
+ * greated than 0 since we did work.
+ */
 // NOLINTNEXTLINE
 TEST(RusageMonitorTests, BasicTest) {
   common::RusageMonitor monitor;

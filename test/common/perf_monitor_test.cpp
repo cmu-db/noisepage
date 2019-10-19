@@ -49,6 +49,10 @@ class PerfMonitorTests : public TerrierTest {
   }
 };
 
+/**
+ * Simple test that spins off 2 threads. One thread builds and then destroys a Catalog. The other sleeps. The parent
+ * waits. We then do comparisons on their respective perf counters based on the work performed.k
+ */
 // NOLINTNEXTLINE
 TEST_F(PerfMonitorTests, BasicTest) {
   common::PerfMonitor monitor;
