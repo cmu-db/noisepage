@@ -33,16 +33,16 @@ class PerfMonitor {
     uint64_t bus_cycles_;
     uint64_t ref_cpu_cycles_;
 
-    void Print() const {
-      std::cout << "CPU Cycles: " << cpu_cycles_ << std::endl;
-      std::cout << "Instructions: " << instructions_ << std::endl;
-      std::cout << "Cache References: " << cache_references_ << std::endl;
-      std::cout << "Cache Misses: " << cache_misses_ << std::endl;
-      // std::cout << "Branch Instructions: " << branch_instructions_ << std::endl;
-      // std::cout << "Branch Misses: " << branch_misses_ << std::endl;
-      std::cout << "Bus Cycles: " << bus_cycles_ << std::endl;
-      std::cout << "Reference CPU Cycles: " << ref_cpu_cycles_ << std::endl << std::endl;
-    }
+    //    void Print() const {
+    //      std::cout << "CPU Cycles: " << cpu_cycles_ << std::endl;
+    //      std::cout << "Instructions: " << instructions_ << std::endl;
+    //      std::cout << "Cache References: " << cache_references_ << std::endl;
+    //      std::cout << "Cache Misses: " << cache_misses_ << std::endl;
+    //      // std::cout << "Branch Instructions: " << branch_instructions_ << std::endl;
+    //      // std::cout << "Branch Misses: " << branch_misses_ << std::endl;
+    //      std::cout << "Bus Cycles: " << bus_cycles_ << std::endl;
+    //      std::cout << "Reference CPU Cycles: " << ref_cpu_cycles_ << std::endl << std::endl;
+    //    }
 
     PerfCounters &operator-=(const PerfCounters &rhs) {
       TERRIER_ASSERT(this->num_events_ == rhs.num_events_,
@@ -123,7 +123,7 @@ class PerfMonitor {
     }
   }
 
-  PerfCounters ReadCounters() {
+  PerfCounters Counters() const {
     PerfCounters counters{};  // zero initialization
     if (valid_) {
       const auto bytes_read UNUSED_ATTRIBUTE = read(event_files_[0], &counters, sizeof(PerfCounters));

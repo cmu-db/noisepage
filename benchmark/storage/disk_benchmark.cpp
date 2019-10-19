@@ -3,11 +3,12 @@
 #include <algorithm>
 #include <iostream>
 #include <random>
+#include <vector>
 
 #include "benchmark/benchmark.h"
 #include "common/perf_monitor.h"
+#include "common/rusage_monitor.h"
 #include "common/scoped_timer.h"
-#include "common/thread_cpu_timer.h"
 
 namespace terrier {
 
@@ -55,7 +56,7 @@ BENCHMARK_DEFINE_F(DiskBenchmark, SequentialRead)(benchmark::State &state) {
   // NOLINTNEXTLINE
   for (auto _ : state) {
     common::PerfMonitor monitor;
-    common::ThreadUsage usage;
+    common::RusageMonitor usage;
     usage.Start();
     monitor.Start();
     char buffer[OPERATION_SIZE];
@@ -78,7 +79,7 @@ BENCHMARK_DEFINE_F(DiskBenchmark, SequentialRead)(benchmark::State &state) {
     usage.Stop();
     monitor.Stop();
 
-    const auto counters = monitor.ReadCounters();
+    const auto counters = monitor.Counters();
     std::cout << "CPU cycles: " << counters.cpu_cycles_ << std::endl;
     std::cout << "Instructions: " << counters.instructions_ << std::endl;
     std::cout << "Cache references: " << counters.cache_references_ << std::endl;
@@ -117,7 +118,7 @@ BENCHMARK_DEFINE_F(DiskBenchmark, RandomRead)(benchmark::State &state) {
   // NOLINTNEXTLINE
   for (auto _ : state) {
     common::PerfMonitor monitor;
-    common::ThreadUsage usage;
+    common::RusageMonitor usage;
     usage.Start();
     monitor.Start();
     char buffer[OPERATION_SIZE];
@@ -145,7 +146,7 @@ BENCHMARK_DEFINE_F(DiskBenchmark, RandomRead)(benchmark::State &state) {
     TERRIER_ASSERT(ret == 0, "File close failed.");
     usage.Stop();
     monitor.Stop();
-    const auto counters = monitor.ReadCounters();
+    const auto counters = monitor.Counters();
     std::cout << "CPU cycles: " << counters.cpu_cycles_ << std::endl;
     std::cout << "Instructions: " << counters.instructions_ << std::endl;
     std::cout << "Cache references: " << counters.cache_references_ << std::endl;
@@ -175,7 +176,7 @@ BENCHMARK_DEFINE_F(DiskBenchmark, SequentialWrite)(benchmark::State &state) {
   // NOLINTNEXTLINE
   for (auto _ : state) {
     common::PerfMonitor monitor;
-    common::ThreadUsage usage;
+    common::RusageMonitor usage;
     usage.Start();
     monitor.Start();
     char buffer[OPERATION_SIZE];
@@ -199,7 +200,7 @@ BENCHMARK_DEFINE_F(DiskBenchmark, SequentialWrite)(benchmark::State &state) {
     usage.Stop();
     monitor.Stop();
 
-    const auto counters = monitor.ReadCounters();
+    const auto counters = monitor.Counters();
     std::cout << "CPU cycles: " << counters.cpu_cycles_ << std::endl;
     std::cout << "Instructions: " << counters.instructions_ << std::endl;
     std::cout << "Cache references: " << counters.cache_references_ << std::endl;
@@ -238,7 +239,7 @@ BENCHMARK_DEFINE_F(DiskBenchmark, RandomWrite)(benchmark::State &state) {
   // NOLINTNEXTLINE
   for (auto _ : state) {
     common::PerfMonitor monitor;
-    common::ThreadUsage usage;
+    common::RusageMonitor usage;
     usage.Start();
     monitor.Start();
     char buffer[OPERATION_SIZE];
@@ -268,7 +269,7 @@ BENCHMARK_DEFINE_F(DiskBenchmark, RandomWrite)(benchmark::State &state) {
     usage.Stop();
     monitor.Stop();
 
-    const auto counters = monitor.ReadCounters();
+    const auto counters = monitor.Counters();
     std::cout << "CPU cycles: " << counters.cpu_cycles_ << std::endl;
     std::cout << "Instructions: " << counters.instructions_ << std::endl;
     std::cout << "Cache references: " << counters.cache_references_ << std::endl;

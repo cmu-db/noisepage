@@ -1,5 +1,5 @@
 #include "common/perf_monitor.h"
-#include <thread>
+#include <thread>  //NOLINT
 #include "catalog/catalog.h"
 #include "common/macros.h"
 #include "common/scoped_timer.h"
@@ -37,7 +37,7 @@ class PerfMonitorTests : public TerrierTest {
     catalog.TearDown();
     StorageTestUtil::FullyPerformGC(&gc, DISABLED);
     monitor.Stop();
-    *counters = monitor.ReadCounters();
+    *counters = monitor.Counters();
   }
 
   static void JustSleep(common::PerfMonitor::PerfCounters *const counters) {
@@ -45,7 +45,7 @@ class PerfMonitorTests : public TerrierTest {
     monitor.Start();
     std::this_thread::sleep_for(std::chrono::seconds(2));
     monitor.Stop();
-    *counters = monitor.ReadCounters();
+    *counters = monitor.Counters();
   }
 };
 
@@ -59,7 +59,7 @@ TEST_F(PerfMonitorTests, BasicTest) {
   thread1.join();
   thread2.join();
   monitor.Stop();
-  parent_counters = monitor.ReadCounters();
+  parent_counters = monitor.Counters();
 
   bool got_valid_results = parent_counters.num_events_ == common::PerfMonitor::NUM_HW_EVENTS;
   got_valid_results = got_valid_results || (catalog_counters.num_events_ == common::PerfMonitor::NUM_HW_EVENTS);
