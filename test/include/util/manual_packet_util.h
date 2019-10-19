@@ -42,12 +42,12 @@ class ManualPacketUtil {
   }
 
   /**
-   * A wrapper for ReadUntilMessageOrClose since most of the times people expect READY_FOR_QUERY.
+   * A wrapper for ReadUntilMessageOrClose since most of the times people expect PG_READY_FOR_QUERY.
    * @param io_socket
    * @return
    */
   static bool ReadUntilReadyOrClose(const std::shared_ptr<NetworkIoWrapper> &io_socket) {
-    return ReadUntilMessageOrClose(io_socket, NetworkMessageType::READY_FOR_QUERY);
+    return ReadUntilMessageOrClose(io_socket, NetworkMessageType::PG_READY_FOR_QUERY);
   }
 
   static std::shared_ptr<NetworkIoWrapper> StartConnection(uint16_t port) {

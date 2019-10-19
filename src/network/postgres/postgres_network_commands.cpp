@@ -14,10 +14,10 @@ namespace terrier::network {
 
 void LogAndWriteErrorMsg(const std::string &msg, common::ManagedPointer<PostgresPacketWriter> out) {
   NETWORK_LOG_ERROR(msg);
-  out->WriteSingleErrorResponse(NetworkMessageType::HUMAN_READABLE_ERROR, msg);
+  out->WriteSingleErrorResponse(NetworkMessageType::PG_HUMAN_READABLE_ERROR, msg);
 }
 
-Transition SimpleQueryCommand::Exec(common::ManagedPointer<PostgresProtocolInterpreter> interpreter,
+Transition SimpleQueryCommand::Exec(common::ManagedPointer<ProtocolInterpreter> interpreter,
                                     common::ManagedPointer<PostgresPacketWriter> out,
                                     common::ManagedPointer<trafficcop::TrafficCop> t_cop,
                                     common::ManagedPointer<ConnectionContext> connection, NetworkCallback callback) {
@@ -44,7 +44,7 @@ Transition SimpleQueryCommand::Exec(common::ManagedPointer<PostgresProtocolInter
   return Transition::PROCEED;
 }
 
-Transition ParseCommand::Exec(common::ManagedPointer<PostgresProtocolInterpreter> interpreter,
+Transition ParseCommand::Exec(common::ManagedPointer<ProtocolInterpreter> interpreter,
                               common::ManagedPointer<PostgresPacketWriter> out,
                               common::ManagedPointer<trafficcop::TrafficCop> t_cop,
                               common::ManagedPointer<ConnectionContext> connection, NetworkCallback callback) {
@@ -81,7 +81,7 @@ Transition ParseCommand::Exec(common::ManagedPointer<PostgresProtocolInterpreter
   return Transition::PROCEED;
 }
 
-Transition BindCommand::Exec(common::ManagedPointer<PostgresProtocolInterpreter> interpreter,
+Transition BindCommand::Exec(common::ManagedPointer<ProtocolInterpreter> interpreter,
                              common::ManagedPointer<PostgresPacketWriter> out,
                              common::ManagedPointer<trafficcop::TrafficCop> t_cop,
                              common::ManagedPointer<ConnectionContext> connection, NetworkCallback callback) {
@@ -219,7 +219,7 @@ Transition BindCommand::Exec(common::ManagedPointer<PostgresProtocolInterpreter>
   return Transition::PROCEED;
 }
 
-Transition DescribeCommand::Exec(common::ManagedPointer<PostgresProtocolInterpreter> interpreter,
+Transition DescribeCommand::Exec(common::ManagedPointer<ProtocolInterpreter> interpreter,
                                  common::ManagedPointer<PostgresPacketWriter> out,
                                  common::ManagedPointer<trafficcop::TrafficCop> t_cop,
                                  common::ManagedPointer<ConnectionContext> connection, NetworkCallback callback) {
@@ -265,7 +265,7 @@ Transition DescribeCommand::Exec(common::ManagedPointer<PostgresProtocolInterpre
   return Transition::PROCEED;
 }
 
-Transition ExecuteCommand::Exec(common::ManagedPointer<PostgresProtocolInterpreter> interpreter,
+Transition ExecuteCommand::Exec(common::ManagedPointer<ProtocolInterpreter> interpreter,
                                 common::ManagedPointer<PostgresPacketWriter> out,
                                 common::ManagedPointer<trafficcop::TrafficCop> t_cop,
                                 common::ManagedPointer<ConnectionContext> connection, NetworkCallback callback) {
@@ -277,7 +277,7 @@ Transition ExecuteCommand::Exec(common::ManagedPointer<PostgresProtocolInterpret
   if (p_portal == connection->portals_.end()) {
     string error_msg = fmt::format("Error: Portal {0} does not exist.", portal_name);
     NETWORK_LOG_ERROR(error_msg);
-    out->WriteSingleErrorResponse(NetworkMessageType::HUMAN_READABLE_ERROR, error_msg);
+    out->WriteSingleErrorResponse(NetworkMessageType::PG_HUMAN_READABLE_ERROR, error_msg);
     return Transition::PROCEED;
   }
 
@@ -292,7 +292,7 @@ Transition ExecuteCommand::Exec(common::ManagedPointer<PostgresProtocolInterpret
   return Transition::PROCEED;
 }
 
-Transition SyncCommand::Exec(common::ManagedPointer<PostgresProtocolInterpreter> interpreter,
+Transition SyncCommand::Exec(common::ManagedPointer<ProtocolInterpreter> interpreter,
                              common::ManagedPointer<PostgresPacketWriter> out,
                              common::ManagedPointer<trafficcop::TrafficCop> t_cop,
                              common::ManagedPointer<ConnectionContext> connection, NetworkCallback callback) {
@@ -301,7 +301,7 @@ Transition SyncCommand::Exec(common::ManagedPointer<PostgresProtocolInterpreter>
   return Transition::PROCEED;
 }
 
-Transition CloseCommand::Exec(common::ManagedPointer<PostgresProtocolInterpreter> interpreter,
+Transition CloseCommand::Exec(common::ManagedPointer<ProtocolInterpreter> interpreter,
                               common::ManagedPointer<PostgresPacketWriter> out,
                               common::ManagedPointer<trafficcop::TrafficCop> t_cop,
                               common::ManagedPointer<ConnectionContext> connection, NetworkCallback callback) {
@@ -310,7 +310,7 @@ Transition CloseCommand::Exec(common::ManagedPointer<PostgresProtocolInterpreter
   return Transition::PROCEED;
 }
 
-Transition TerminateCommand::Exec(common::ManagedPointer<PostgresProtocolInterpreter> interpreter,
+Transition TerminateCommand::Exec(common::ManagedPointer<ProtocolInterpreter> interpreter,
                                   common::ManagedPointer<PostgresPacketWriter> out,
                                   common::ManagedPointer<trafficcop::TrafficCop> t_cop,
                                   common::ManagedPointer<ConnectionContext> connection, NetworkCallback callback) {
@@ -318,7 +318,7 @@ Transition TerminateCommand::Exec(common::ManagedPointer<PostgresProtocolInterpr
   return Transition::TERMINATE;
 }
 
-Transition EmptyCommand::Exec(common::ManagedPointer<PostgresProtocolInterpreter> interpreter,
+Transition EmptyCommand::Exec(common::ManagedPointer<ProtocolInterpreter> interpreter,
                               common::ManagedPointer<PostgresPacketWriter> out,
                               common::ManagedPointer<trafficcop::TrafficCop> t_cop,
                               common::ManagedPointer<ConnectionContext> connection, NetworkCallback callback) {
