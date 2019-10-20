@@ -112,7 +112,7 @@ class PerfMonitor {
     for (uint8_t i = 0; i < NUM_HW_EVENTS; i++) {
       pe.config = HW_EVENTS[i];
       event_files_[i] = syscall(__NR_perf_event_open, &pe, 0, -1, event_files_[0], 0);
-      valid_ = valid_ || event_files_[i] > 2;  // 0, 1, 2 are reserved for stdin, stdout, stderr respectively
+      valid_ = valid_ && event_files_[i] > 2;  // 0, 1, 2 are reserved for stdin, stdout, stderr respectively
     }
 #endif
   }
