@@ -1,4 +1,3 @@
-/*
 #include <string>
 
 #include "util/test_harness.h"
@@ -10,8 +9,8 @@ struct TpccPlanDeliveryTests : public TpccPlanTest {};
 
 // NOLINTNEXTLINE
 TEST_F(TpccPlanDeliveryTests, DeliveryGetOrderId) {
-  std::string query = "SELECT NO_O_ID FROM NEW_ORDER WHERE NO_D_ID = 1 AND NO_W_ID = 2 ORDER BY NO_O_ID LIMIT 1";
-  OptimizeQuery(query, "new_order", tbl_new_order_, TpccPlanTest::CheckIndexScan);
+  std::string query = "SELECT NO_O_ID FROM \"NEW ORDER\" WHERE NO_D_ID = 1 AND NO_W_ID = 2 ORDER BY NO_O_ID LIMIT 1";
+  OptimizeQuery(query, tbl_new_order_, TpccPlanTest::CheckIndexScan);
 }
 
 // NOLINTNEXTLINE
@@ -27,13 +26,14 @@ TEST_F(TpccPlanDeliveryTests, DeliveryDeleteNewOrder) {
 // NOLINTNEXTLINE
 TEST_F(TpccPlanDeliveryTests, DeliveryGetCustomerId) {
   std::string query = "SELECT O_C_ID FROM \"ORDER\" WHERE O_ID = 1 AND (O_D_ID = 2 AND O_W_ID = 3)";
-  OptimizeQuery(query, "order", tbl_order_, TpccPlanTest::CheckIndexScan);
+  OptimizeQuery(query, tbl_order_, TpccPlanTest::CheckIndexScan);
 }
 
 // NOLINTNEXTLINE
 TEST_F(TpccPlanDeliveryTests, DeliveryUpdateCarrierId) {
-  std::string query = "UPDATE \"ORDER\" SET O_CARRIER_ID = 1 WHERE O_ID = 1 AND O_D_ID = 2 AND O_W_ID = 3";
-  OptimizeUpdate(query, "order", tbl_order_);
+  // std::string query = "UPDATE \"ORDER\" SET O_CARRIER_ID = 1 WHERE O_ID = 1 AND O_D_ID = 2 AND O_W_ID = 3";
+  // OptimizeUpdate(query, tbl_order_);
+  EXPECT_TRUE(false);
 }
 
 // NOLINTNEXTLINE
@@ -71,4 +71,3 @@ TEST_F(TpccPlanDeliveryTests, UpdateCustomBalanceDeliveryCount) {
 }
 
 }  // namespace terrier
-*/

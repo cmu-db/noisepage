@@ -1,4 +1,3 @@
-/*
 // TODO(wz2): Verify OutputSchema after sync-up meeting
 #include <memory>
 #include <string>
@@ -25,7 +24,7 @@ class TpccPlanIndexScanTests : public TpccPlanTest {};
 // NOLINTNEXTLINE
 TEST_F(TpccPlanIndexScanTests, SimplePredicateIndexScan) {
   auto check = [](TpccPlanTest *test, parser::SelectStatement *sel_stmt, catalog::table_oid_t tbl_oid,
-                  std::shared_ptr<planner::AbstractPlanNode> plan) {
+                  std::unique_ptr<planner::AbstractPlanNode> plan) {
     // Get Schema
     auto &schema = test->accessor_->GetSchema(test->tbl_new_order_);
     unsigned no_d_id_offset = 0;
@@ -37,7 +36,7 @@ TEST_F(TpccPlanIndexScanTests, SimplePredicateIndexScan) {
     // Should use New Order Primary Key (NO_W_ID, NO_D_ID, NO_O_ID)
     EXPECT_EQ(plan->GetPlanNodeType(), planner::PlanNodeType::INDEXSCAN);
     EXPECT_EQ(plan->GetChildrenSize(), 0);
-    auto index_plan = std::dynamic_pointer_cast<planner::IndexScanPlanNode>(plan);
+    auto index_plan = reinterpret_cast<planner::IndexScanPlanNode *>(plan.get());
     EXPECT_EQ(index_plan->GetIndexOid(), test->pk_new_order_);
     EXPECT_EQ(index_plan->GetColumnIds().size(), 1);
     EXPECT_EQ(index_plan->GetColumnIds()[0], schema.GetColumn("no_o_id").Oid());
@@ -61,21 +60,21 @@ TEST_F(TpccPlanIndexScanTests, SimplePredicateIndexScan) {
     EXPECT_EQ(scan_pred->GetChildrenSize(), 2);
     EXPECT_EQ(scan_pred->GetChild(0)->GetExpressionType(), parser::ExpressionType::VALUE_TUPLE);
     EXPECT_EQ(scan_pred->GetChild(1)->GetExpressionType(), parser::ExpressionType::VALUE_CONSTANT);
-    auto *dve = reinterpret_cast<const parser::DerivedValueExpression *>(scan_pred->GetChild(0).Get());
-    auto *cve = reinterpret_cast<const parser::ConstantValueExpression *>(scan_pred->GetChild(1).Get());
+    auto dve = scan_pred->GetChild(0).CastManagedPointerTo<parser::DerivedValueExpression>();
+    auto cve = scan_pred->GetChild(1).CastManagedPointerTo<parser::ConstantValueExpression>();
     EXPECT_EQ(dve->GetTupleIdx(), 0);
     EXPECT_EQ(dve->GetValueIdx(), no_d_id_offset);  // ValueIdx() should be offset into underlying tuple
     EXPECT_EQ(type::TransientValuePeeker::PeekInteger(cve->GetValue()), 1);
   };
 
-  std::string query = "SELECT NO_O_ID FROM NEW_ORDER WHERE NO_D_ID = 1";
-  OptimizeQuery(query, "new_order", tbl_new_order_, check);
+  std::string query = "SELECT NO_O_ID FROM \"NEW ORDER\" WHERE NO_D_ID = 1";
+  OptimizeQuery(query, tbl_new_order_, check);
 }
 
 // NOLINTNEXTLINE
 TEST_F(TpccPlanIndexScanTests, SimplePredicateFlippedIndexScan) {
   auto check = [](TpccPlanTest *test, parser::SelectStatement *sel_stmt, catalog::table_oid_t tbl_oid,
-                  std::shared_ptr<planner::AbstractPlanNode> plan) {
+                  std::unique_ptr<planner::AbstractPlanNode> plan) {
     // Get Schema
     auto &schema = test->accessor_->GetSchema(test->tbl_new_order_);
     unsigned no_d_id_offset = 0;
@@ -87,7 +86,7 @@ TEST_F(TpccPlanIndexScanTests, SimplePredicateFlippedIndexScan) {
     // Should use New Order Primary Key (NO_W_ID, NO_D_ID, NO_O_ID)
     EXPECT_EQ(plan->GetPlanNodeType(), planner::PlanNodeType::INDEXSCAN);
     EXPECT_EQ(plan->GetChildrenSize(), 0);
-    auto index_plan = std::dynamic_pointer_cast<planner::IndexScanPlanNode>(plan);
+    auto index_plan = reinterpret_cast<planner::IndexScanPlanNode *>(plan.get());
     EXPECT_EQ(index_plan->GetIndexOid(), test->pk_new_order_);
     EXPECT_EQ(index_plan->GetColumnIds().size(), 1);
     EXPECT_EQ(index_plan->GetColumnIds()[0], schema.GetColumn("no_o_id").Oid());
@@ -112,28 +111,28 @@ TEST_F(TpccPlanIndexScanTests, SimplePredicateFlippedIndexScan) {
     EXPECT_EQ(scan_pred->GetChildrenSize(), 2);
     EXPECT_EQ(scan_pred->GetChild(1)->GetExpressionType(), parser::ExpressionType::VALUE_TUPLE);
     EXPECT_EQ(scan_pred->GetChild(0)->GetExpressionType(), parser::ExpressionType::VALUE_CONSTANT);
-    auto *dve = reinterpret_cast<const parser::DerivedValueExpression *>(scan_pred->GetChild(1).Get());
-    auto *cve = reinterpret_cast<const parser::ConstantValueExpression *>(scan_pred->GetChild(0).Get());
+    auto dve = scan_pred->GetChild(1).CastManagedPointerTo<parser::DerivedValueExpression>();
+    auto cve = scan_pred->GetChild(0).CastManagedPointerTo<parser::ConstantValueExpression>();
     EXPECT_EQ(dve->GetTupleIdx(), 0);
     EXPECT_EQ(dve->GetValueIdx(), no_d_id_offset);  // ValueIdx() should be offset into underlying tuple
     EXPECT_EQ(type::TransientValuePeeker::PeekInteger(cve->GetValue()), 1);
   };
 
-  std::string query = "SELECT NO_O_ID FROM NEW_ORDER WHERE 1 < NO_D_ID";
-  OptimizeQuery(query, "new_order", tbl_new_order_, check);
+  std::string query = "SELECT NO_O_ID FROM \"NEW ORDER\" WHERE 1 < NO_D_ID";
+  OptimizeQuery(query, tbl_new_order_, check);
 }
 
 // NOLINTNEXTLINE
 TEST_F(TpccPlanIndexScanTests, IndexFulfillSort) {
   auto check = [](TpccPlanTest *test, parser::SelectStatement *sel_stmt, catalog::table_oid_t tbl_oid,
-                  std::shared_ptr<planner::AbstractPlanNode> plan) {
+                  std::unique_ptr<planner::AbstractPlanNode> plan) {
     // Get Schema
     auto &schema = test->accessor_->GetSchema(test->tbl_new_order_);
 
     // Should use New Order Primary Key (NO_W_ID, NO_D_ID, NO_O_ID)
     EXPECT_EQ(plan->GetPlanNodeType(), planner::PlanNodeType::INDEXSCAN);
     EXPECT_EQ(plan->GetChildrenSize(), 0);
-    auto index_plan = std::dynamic_pointer_cast<planner::IndexScanPlanNode>(plan);
+    auto index_plan = reinterpret_cast<planner::IndexScanPlanNode *>(plan.get());
     EXPECT_EQ(index_plan->GetIndexOid(), test->pk_new_order_);
     EXPECT_EQ(index_plan->GetColumnIds().size(), 1);
     EXPECT_EQ(index_plan->GetColumnIds()[0], schema.GetColumn("no_o_id").Oid());
@@ -148,29 +147,29 @@ TEST_F(TpccPlanIndexScanTests, IndexFulfillSort) {
     EXPECT_EQ(index_plan->GetScanPredicate().Get(), nullptr);
   };
 
-  std::string query = "SELECT NO_O_ID FROM NEW_ORDER ORDER BY NO_W_ID";
-  OptimizeQuery(query, "new_order", tbl_new_order_, check);
+  std::string query = "SELECT NO_O_ID FROM \"NEW ORDER\" ORDER BY NO_W_ID";
+  OptimizeQuery(query, tbl_new_order_, check);
 }
 
 // NOLINTNEXTLINE
 TEST_F(TpccPlanIndexScanTests, IndexCannotFulfillSort) {
   auto check = [](TpccPlanTest *test, parser::SelectStatement *sel_stmt, catalog::table_oid_t tbl_oid,
-                  std::shared_ptr<planner::AbstractPlanNode> plan) {
+                  std::unique_ptr<planner::AbstractPlanNode> plan) {
     // If we need to use a SeqScan to fulfill sort, then there must be a child
     // Since the root is an OrderBy
     EXPECT_NE(plan->GetChildrenSize(), 0);
     EXPECT_NE(plan->GetPlanNodeType(), planner::PlanNodeType::INDEXSCAN);
   };
 
-  OptimizeQuery("SELECT NO_O_ID FROM NEW_ORDER ORDER BY NO_W_ID DESC", "new_order", tbl_new_order_, check);
-  OptimizeQuery("SELECT NO_O_ID FROM NEW_ORDER ORDER BY NO_D_ID", "new_order", tbl_new_order_, check);
-  OptimizeQuery("SELECT NO_O_ID FROM NEW_ORDER ORDER BY NO_W_ID, NO_D_ID DESC", "new_order", tbl_new_order_, check);
+  OptimizeQuery("SELECT NO_O_ID FROM \"NEW ORDER\" ORDER BY NO_W_ID DESC", tbl_new_order_, check);
+  OptimizeQuery("SELECT NO_O_ID FROM \"NEW ORDER\" ORDER BY NO_D_ID", tbl_new_order_, check);
+  OptimizeQuery("SELECT NO_O_ID FROM \"NEW ORDER\" ORDER BY NO_W_ID, NO_D_ID DESC", tbl_new_order_, check);
 }
 
 // NOLINTNEXTLINE
 TEST_F(TpccPlanIndexScanTests, IndexFulfillSortAndPredicate) {
   auto check = [](TpccPlanTest *test, parser::SelectStatement *sel_stmt, catalog::table_oid_t tbl_oid,
-                  std::shared_ptr<planner::AbstractPlanNode> plan) {
+                  std::unique_ptr<planner::AbstractPlanNode> plan) {
     // Get Schema
     auto &schema = test->accessor_->GetSchema(test->tbl_new_order_);
     unsigned no_w_id_offset = 0;
@@ -184,7 +183,7 @@ TEST_F(TpccPlanIndexScanTests, IndexFulfillSortAndPredicate) {
     // Should use New Order Primary Key (NO_W_ID, NO_D_ID, NO_O_ID)
     EXPECT_EQ(plan->GetPlanNodeType(), planner::PlanNodeType::INDEXSCAN);
     EXPECT_EQ(plan->GetChildrenSize(), 0);
-    auto index_plan = std::dynamic_pointer_cast<planner::IndexScanPlanNode>(plan);
+    auto index_plan = reinterpret_cast<planner::IndexScanPlanNode *>(plan.get());
     EXPECT_EQ(index_plan->GetIndexOid(), test->pk_new_order_);
     EXPECT_EQ(index_plan->GetColumnIds().size(), 1);
     EXPECT_EQ(index_plan->GetColumnIds()[0], schema.GetColumn("no_o_id").Oid());
@@ -210,21 +209,21 @@ TEST_F(TpccPlanIndexScanTests, IndexFulfillSortAndPredicate) {
     EXPECT_EQ(scan_pred->GetChildrenSize(), 2);
     EXPECT_EQ(scan_pred->GetChild(0)->GetExpressionType(), parser::ExpressionType::VALUE_TUPLE);
     EXPECT_EQ(scan_pred->GetChild(1)->GetExpressionType(), parser::ExpressionType::VALUE_CONSTANT);
-    auto *dve = reinterpret_cast<const parser::DerivedValueExpression *>(scan_pred->GetChild(0).Get());
-    auto *cve = reinterpret_cast<const parser::ConstantValueExpression *>(scan_pred->GetChild(1).Get());
+    auto dve = scan_pred->GetChild(0).CastManagedPointerTo<parser::DerivedValueExpression>();
+    auto cve = scan_pred->GetChild(1).CastManagedPointerTo<parser::ConstantValueExpression>();
     EXPECT_EQ(dve->GetTupleIdx(), 0);
     EXPECT_EQ(dve->GetValueIdx(), no_w_id_offset);  // ValueIdx() should be offset into underlying tuple
     EXPECT_EQ(type::TransientValuePeeker::PeekInteger(cve->GetValue()), 1);
   };
 
-  std::string query = "SELECT NO_O_ID FROM NEW_ORDER WHERE NO_W_ID = 1 ORDER BY NO_W_ID";
-  OptimizeQuery(query, "new_order", tbl_new_order_, check);
+  std::string query = "SELECT NO_O_ID FROM \"NEW ORDER\" WHERE NO_W_ID = 1 ORDER BY NO_W_ID";
+  OptimizeQuery(query, tbl_new_order_, check);
 }
 
 // NOLINTNEXTLINE
 TEST_F(TpccPlanIndexScanTests, IndexFulfillSortAndPredicateWithLimitOffset) {
   auto check = [](TpccPlanTest *test, parser::SelectStatement *sel_stmt, catalog::table_oid_t tbl_oid,
-                  std::shared_ptr<planner::AbstractPlanNode> plan) {
+                  std::unique_ptr<planner::AbstractPlanNode> plan) {
     // Get Schema
     auto &schema = test->accessor_->GetSchema(test->tbl_new_order_);
     unsigned no_w_id_offset = 0;
@@ -254,8 +253,8 @@ TEST_F(TpccPlanIndexScanTests, IndexFulfillSortAndPredicateWithLimitOffset) {
     EXPECT_EQ(orderby->GetLimit(), sel_stmt->GetSelectLimit()->GetLimit());
     EXPECT_EQ(orderby->GetOffset(), sel_stmt->GetSelectLimit()->GetOffset());
     EXPECT_EQ(orderby->GetSortKeys().size(), 1);
-    EXPECT_EQ(orderby->GetSortKeys()[0].second, planner::OrderByOrderingType::ASC);
-    auto sortkey = reinterpret_cast<const parser::DerivedValueExpression *>(orderby->GetSortKeys()[0].first);
+    EXPECT_EQ(orderby->GetSortKeys()[0].second, optimizer::OrderByOrderingType::ASC);
+    auto sortkey = orderby->GetSortKeys()[0].first.CastManagedPointerTo<parser::DerivedValueExpression>();
     EXPECT_TRUE(sortkey != nullptr);
     EXPECT_EQ(sortkey->GetExpressionType(), parser::ExpressionType::VALUE_TUPLE);
     EXPECT_EQ(sortkey->GetTupleIdx(), 0);
@@ -292,16 +291,15 @@ TEST_F(TpccPlanIndexScanTests, IndexFulfillSortAndPredicateWithLimitOffset) {
     EXPECT_EQ(scan_pred->GetChildrenSize(), 2);
     EXPECT_EQ(scan_pred->GetChild(0)->GetExpressionType(), parser::ExpressionType::VALUE_TUPLE);
     EXPECT_EQ(scan_pred->GetChild(1)->GetExpressionType(), parser::ExpressionType::VALUE_CONSTANT);
-    auto *dve = reinterpret_cast<const parser::DerivedValueExpression *>(scan_pred->GetChild(0).Get());
-    auto *cve = reinterpret_cast<const parser::ConstantValueExpression *>(scan_pred->GetChild(1).Get());
+    auto dve = scan_pred->GetChild(0).CastManagedPointerTo<parser::DerivedValueExpression>();
+    auto cve = scan_pred->GetChild(1).CastManagedPointerTo<parser::ConstantValueExpression>();
     EXPECT_EQ(dve->GetTupleIdx(), 0);
     EXPECT_EQ(dve->GetValueIdx(), no_w_id_offset);  // ValueIdx() should be offset into underlying tuple
     EXPECT_EQ(type::TransientValuePeeker::PeekInteger(cve->GetValue()), 1);
   };
 
-  std::string query = "SELECT NO_O_ID FROM NEW_ORDER WHERE NO_W_ID = 1 ORDER BY NO_W_ID LIMIT 15 OFFSET 445";
-  OptimizeQuery(query, "new_order", tbl_new_order_, check);
+  std::string query = "SELECT NO_O_ID FROM \"NEW ORDER\" WHERE NO_W_ID = 1 ORDER BY NO_W_ID LIMIT 15 OFFSET 445";
+  OptimizeQuery(query, tbl_new_order_, check);
 }
 
 }  // namespace terrier::optimizer
-*/

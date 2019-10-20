@@ -416,7 +416,7 @@ void LogicalInsertToPhysical::Transform(OperatorExpression *input, std::vector<O
   const auto insert_op = input->GetOp().As<LogicalInsert>();
   TERRIER_ASSERT(input->GetChildren().empty(), "LogicalInsert should have 0 children");
 
-  // For now any insert will update all indexes
+  // TODO(wz2): For now any insert will update all indexes
   auto *accessor = context->GetMetadata()->GetCatalogAccessor();
   auto tbl_oid = insert_op->GetTableOid();
   auto indexes = accessor->GetIndexOids(tbl_oid);

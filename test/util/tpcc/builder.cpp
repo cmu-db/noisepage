@@ -370,7 +370,12 @@ Database *Builder::Build(const storage::index::IndexType index_type) {
                       db_oid,
 
                       item_table_oid, warehouse_table_oid, stock_table_oid, district_table_oid, customer_table_oid,
-                      history_table_oid, new_order_table_oid, order_table_oid, order_line_table_oid);
+                      history_table_oid, new_order_table_oid, order_table_oid, order_line_table_oid,
+
+                      warehouse_primary_index_oid, district_primary_index_oid, customer_primary_index_oid,
+                      customer_secondary_index_oid, new_order_primary_index_oid, order_primary_index_oid,
+                      order_secondary_index_oid, order_line_primary_index_oid, item_primary_index_oid,
+                      stock_primary_index_oid);
 }
 
 }  // namespace terrier::tpcc

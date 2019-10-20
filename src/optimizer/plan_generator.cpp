@@ -765,6 +765,9 @@ void PlanGenerator::Visit(const Insert *op) {
   builder.SetNamespaceOid(op->GetNamespaceOid());
   builder.SetTableOid(op->GetTableOid());
 
+  std::vector<catalog::index_oid_t> indexes(op->GetIndexes());
+  builder.SetIndexOids(std::move(indexes));
+
   auto values = op->GetValues();
   for (auto &tuple_value : values) {
     std::vector<common::ManagedPointer<parser::AbstractExpression>> row;
@@ -792,17 +795,9 @@ void PlanGenerator::Visit(const Insert *op) {
   builder.SetOutputSchema(std::move(output));
 
   // This is based on what Peloton does/did with query_to_operator_transformer.cpp
-  if (op->GetColumns().empty()) {
-    // INSERT INTO tbl VALUES (...)
-    // Generate column ids from underlying table
-    for (auto &col : tbl_cols) {
-      builder.AddParameterInfo(col.Oid());
-    }
-  } else {
-    // INSERT INTO tbl (col,....) VALUES (....)
-    for (auto &col : op->GetColumns()) {
-      builder.AddParameterInfo(col);
-    }
+  TERRIER_ASSERT(!op->GetColumns().empty(), "Transformer should added columns");
+  for (auto &col : op->GetColumns()) {
+    builder.AddParameterInfo(col);
   }
 
   output_plan_ = builder.Build();

@@ -10,7 +10,6 @@
 namespace terrier::optimizer {
 
 bool GroupBindingIterator::HasNext() {
-  OPTIMIZER_LOG_TRACE("HasNext");
   if (pattern_->Type() == OpType::LEAF) {
     return current_item_index_ == 0;
   }
@@ -100,7 +99,6 @@ GroupExprBindingIterator::GroupExprBindingIterator(const Memo &memo, GroupExpres
 }
 
 bool GroupExprBindingIterator::HasNext() {
-  OPTIMIZER_LOG_TRACE("HasNext");
   if (has_next_ && first_) {
     first_ = false;
     return true;

@@ -139,7 +139,8 @@ class ColumnValueExpression : public AbstractExpression {
   }
 
   common::hash_t Hash() const override {
-    common::hash_t hash = AbstractExpression::Hash();
+    common::hash_t hash = common::HashUtil::Hash(GetExpressionType());
+    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(GetReturnValueType()));
     hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(namespace_name_));
     hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_name_));
     hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(column_name_));
@@ -150,7 +151,9 @@ class ColumnValueExpression : public AbstractExpression {
   }
 
   bool operator==(const AbstractExpression &rhs) const override {
-    if (!AbstractExpression::operator==(rhs)) return false;
+    if (GetExpressionType() != rhs.GetExpressionType()) return false;
+    if (GetReturnValueType() != rhs.GetReturnValueType()) return false;
+
     auto const &other = dynamic_cast<const ColumnValueExpression &>(rhs);
     if (GetColumnName() != other.GetColumnName()) return false;
     if (GetTableName() != other.GetTableName()) return false;

@@ -275,6 +275,7 @@ void QueryToOperatorTransformer::Visit(parser::InsertStatement *op, parser::Pars
       try {
         const auto &column_object = schema.GetColumn(col);
         specified.insert(column_object.Oid());
+        col_ids.emplace_back(column_object.Oid());
       } catch (const std::out_of_range &oor) {
         throw CATALOG_EXCEPTION(
             ("ERROR:  column \"" + col + "\" of relation \"" + target_table->GetTableName() + "\" does not exist")
@@ -291,8 +292,6 @@ void QueryToOperatorTransformer::Visit(parser::InsertStatement *op, parser::Pars
             ("ERROR: null value in column \"" + column.Name() + "\" violates not-null constraint").c_str());
       }
     }
-
-    col_ids.insert(col_ids.end(), specified.begin(), specified.end());
   }
 
   auto insert_expr = new OperatorExpression(

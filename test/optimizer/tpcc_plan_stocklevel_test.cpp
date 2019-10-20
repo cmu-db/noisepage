@@ -1,4 +1,3 @@
-/*
 #include <string>
 
 #include "util/test_harness.h"
@@ -11,7 +10,7 @@ struct TpccPlanStockLevelTests : public TpccPlanTest {};
 // NOLINTNEXTLINE
 TEST_F(TpccPlanStockLevelTests, GetDistrictOrderId) {
   std::string query = "SELECT D_NEXT_O_ID FROM DISTRICT WHERE D_W_ID=1 AND D_ID=2";
-  OptimizeQuery(query, "district", tbl_district_, TpccPlanTest::CheckIndexScan);
+  OptimizeQuery(query, tbl_district_, TpccPlanTest::CheckIndexScan);
 }
 
 // NOLINTNEXTLINE
@@ -30,4 +29,3 @@ TEST_F(TpccPlanStockLevelTests, GetCountStock) {
 }
 
 }  // namespace terrier
-*/

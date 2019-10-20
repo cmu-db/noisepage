@@ -76,6 +76,17 @@ class Database {
   const catalog::table_oid_t order_table_oid_;
   const catalog::table_oid_t order_line_table_oid_;
 
+  const catalog::index_oid_t warehouse_primary_index_oid_;
+  const catalog::index_oid_t district_primary_index_oid_;
+  const catalog::index_oid_t customer_primary_index_oid_;
+  const catalog::index_oid_t customer_secondary_index_oid_;
+  const catalog::index_oid_t new_order_primary_index_oid_;
+  const catalog::index_oid_t order_primary_index_oid_;
+  const catalog::index_oid_t order_secondary_index_oid_;
+  const catalog::index_oid_t order_line_primary_index_oid_;
+  const catalog::index_oid_t item_primary_index_oid_;
+  const catalog::index_oid_t stock_primary_index_oid_;
+
  private:
   friend class Builder;
 
@@ -113,7 +124,13 @@ class Database {
       const catalog::table_oid_t stock_table_oid, const catalog::table_oid_t district_table_oid,
       const catalog::table_oid_t customer_table_oid, const catalog::table_oid_t history_table_oid,
       const catalog::table_oid_t new_order_table_oid, const catalog::table_oid_t order_table_oid,
-      const catalog::table_oid_t order_line_table_oid)
+      const catalog::table_oid_t order_line_table_oid,
+
+      const catalog::index_oid_t warehouse_primary_index_oid, const catalog::index_oid_t district_primary_index_oid,
+      const catalog::index_oid_t customer_primary_index_oid, const catalog::index_oid_t customer_secondary_index_oid,
+      const catalog::index_oid_t new_order_primary_index_oid, const catalog::index_oid_t order_primary_index_oid,
+      const catalog::index_oid_t order_secondary_index_oid, const catalog::index_oid_t order_line_primary_index_oid,
+      const catalog::index_oid_t item_primary_index_oid, const catalog::index_oid_t stock_primary_index_oid)
 
       : item_schema_(std::move(item_schema)),
         warehouse_schema_(std::move(warehouse_schema)),
@@ -162,7 +179,17 @@ class Database {
         history_table_oid_(history_table_oid),
         new_order_table_oid_(new_order_table_oid),
         order_table_oid_(order_table_oid),
-        order_line_table_oid_(order_line_table_oid) {}
+        order_line_table_oid_(order_line_table_oid),
+        warehouse_primary_index_oid_(warehouse_primary_index_oid),
+        district_primary_index_oid_(district_primary_index_oid),
+        customer_primary_index_oid_(customer_primary_index_oid),
+        customer_secondary_index_oid_(customer_secondary_index_oid),
+        new_order_primary_index_oid_(new_order_primary_index_oid),
+        order_primary_index_oid_(order_primary_index_oid),
+        order_secondary_index_oid_(order_secondary_index_oid),
+        order_line_primary_index_oid_(order_line_primary_index_oid),
+        item_primary_index_oid_(item_primary_index_oid),
+        stock_primary_index_oid_(stock_primary_index_oid) {}
 };
 
 }  // namespace terrier::tpcc
