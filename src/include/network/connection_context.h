@@ -24,6 +24,11 @@ struct ConnectionContext {
   std::unordered_map<std::string, trafficcop::Portal> portals_;
 
   /**
+   * Indicate if the current command is in a transaction block
+   */
+  bool in_transaction_ = false;
+
+  /**
    * Cleans up this ConnectionContext.
    * This is called when its connection handle is reused to occupy another connection or destroyed.
    */
@@ -34,9 +39,6 @@ struct ConnectionContext {
     statements_.clear();
     portals_.clear();
   }
-
-  /* Indicate if the current command is in a transaction block */
-  bool in_transaction_ = false;
 };
 
 }  // namespace terrier::network

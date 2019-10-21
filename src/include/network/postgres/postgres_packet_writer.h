@@ -110,7 +110,6 @@ class PostgresPacketWriter : public PacketWriter {
       } else {
         AppendValue<int32_t>(static_cast<int32_t>(ret.length())).AppendString(ret, false);
       }
-      AppendValue<int32_t>(static_cast<int32_t>(ret.length())).AppendString(ret, false);
     }
     EndPacket();
   }
