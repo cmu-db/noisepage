@@ -34,6 +34,8 @@ struct ConnectionContext {
     statements_.clear();
     portals_.clear();
   }
+
+  /* Indicate if the current command is in a transaction block */
   bool in_transaction_ = false;
 };
 

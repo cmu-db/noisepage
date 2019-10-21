@@ -224,7 +224,7 @@ Transition BindCommand::Exec(common::ManagedPointer<ProtocolInterpreter> interpr
       } else {
         params->push_back(TransientValueFactory::GetNull(TypeId::BIGINT));
       }
-    }else {
+    } else {
       string error_msg =
           fmt::format("Param type {0} is not implemented yet", static_cast<int>(statement->param_types_[i]));
 
