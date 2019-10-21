@@ -714,10 +714,13 @@ void PlanGenerator::BuildAggregatePlan(
   }
 
   // Generate group by ids
-  std::vector<unsigned> col_offsets;
   if (groupby_cols != nullptr) {
     for (auto &col : *groupby_cols) {
-      col_offsets.push_back(child_expr_map.at(col));
+      auto eval = parser::ExpressionUtil::EvaluateExpression({child_expr_map}, col);
+      auto gb_term = parser::ExpressionUtil::ConvertExprCVNodes(common::ManagedPointer(eval), {child_expr_map}).release();
+      RegisterPointerCleanup<parser::AbstractExpression>(gb_term, true, true);
+
+      builder.AddGroupByTerm(common::ManagedPointer(gb_term));
     }
   }
 
@@ -732,7 +735,6 @@ void PlanGenerator::BuildAggregatePlan(
 
   builder.SetHavingClausePredicate(common::ManagedPointer(predicate));
   builder.SetAggregateStrategyType(aggr_type);
-  builder.SetGroupByColOffsets(std::move(col_offsets));
   builder.AddChild(std::move(children_plans_[0]));
   output_plan_ = builder.Build();
 }

@@ -3,6 +3,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include "parser/expression/derived_value_expression.h"
 #include "parser/expression/column_value_expression.h"
 #include "parser/expression/comparison_expression.h"
 #include "parser/expression/star_expression.h"
@@ -226,6 +227,8 @@ TEST(PlanNodeTest, HashJoinPlanTest) {
 TEST(PlanNodeTest, AggregatePlanTest) {
   parser::AbstractExpression *predicate = new parser::StarExpression();
   auto cve = std::make_unique<parser::ColumnValueExpression>("tbl", "col1");
+  auto dve = std::make_unique<parser::DerivedValueExpression>(type::TypeId::INTEGER, 0, 0);
+  auto gb_term = reinterpret_cast<parser::AbstractExpression*>(dve.get());
   std::vector<std::unique_ptr<parser::AbstractExpression>> children;
   children.emplace_back(std::move(cve));
 
@@ -234,7 +237,7 @@ TEST(PlanNodeTest, AggregatePlanTest) {
 
   planner::AggregatePlanNode::Builder builder;
   builder.AddAggregateTerm(common::ManagedPointer(aggr_term));
-  builder.SetGroupByColOffsets({0});
+  builder.AddGroupByTerm(common::ManagedPointer(gb_term));
   builder.SetHavingClausePredicate(common::ManagedPointer(predicate));
   builder.SetAggregateStrategyType(planner::AggregateStrategyType::HASH);
   builder.SetOutputSchema(PlanNodeTest::BuildOneColumnSchema("col1", type::TypeId::INTEGER));
@@ -252,7 +255,7 @@ TEST(PlanNodeTest, AggregatePlanTest) {
   auto predicate2 = predicate->Copy();
 
   builder2.AddAggregateTerm(common::ManagedPointer(nc_aggr));
-  builder2.SetGroupByColOffsets({0});
+  builder2.AddGroupByTerm(common::ManagedPointer(gb_term));
   builder2.SetHavingClausePredicate(common::ManagedPointer(predicate2));
   builder2.SetAggregateStrategyType(planner::AggregateStrategyType::HASH);
   builder2.SetOutputSchema(PlanNodeTest::BuildOneColumnSchema("col1", type::TypeId::INTEGER));
@@ -264,7 +267,7 @@ TEST(PlanNodeTest, AggregatePlanTest) {
   // sure that they are not equal
   for (int i = 0; i < 4; i++) {
     auto other_predicate = predicate->Copy();
-    std::vector<unsigned> col_offsets = {0};
+    auto dve_copy = dve->Copy();
     auto other_strategy = planner::AggregateStrategyType::HASH;
     parser::AggregateExpression *other_aggr = dynamic_cast<parser::AggregateExpression *>(aggr_term->Copy().release());
     auto other_schema = PlanNodeTest::BuildOneColumnSchema("col1", type::TypeId::INTEGER);
@@ -274,7 +277,7 @@ TEST(PlanNodeTest, AggregatePlanTest) {
         other_predicate = std::make_unique<parser::ColumnValueExpression>("tbl", "col");
         break;
       case 1:
-        col_offsets = {1, 2};
+        dve_copy = std::make_unique<parser::DerivedValueExpression>(type::TypeId::INTEGER, 0, 1);
         break;
       case 2: {
         auto o_cve = std::make_unique<parser::ColumnValueExpression>("tbl", "col");
@@ -291,7 +294,7 @@ TEST(PlanNodeTest, AggregatePlanTest) {
 
     planner::AggregatePlanNode::Builder builder3;
     auto plan3 = builder3.AddAggregateTerm(common::ManagedPointer(other_aggr))
-                     .SetGroupByColOffsets(col_offsets)
+                     .AddGroupByTerm(common::ManagedPointer(dve_copy))
                      .SetHavingClausePredicate(common::ManagedPointer(other_predicate))
                      .SetAggregateStrategyType(other_strategy)
                      .SetOutputSchema(std::move(other_schema))
