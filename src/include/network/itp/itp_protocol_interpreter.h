@@ -75,10 +75,11 @@ class ITPProtocolInterpreter : public ProtocolInterpreter {
   /**
    * @see ProtocolInterpreter::SetPacketMessageType
    */
-  void SetPacketMessageType(InputPacket &curr_input_packet, const std::shared_ptr<ReadBuffer> &in) override;
+  void SetPacketMessageType(const std::unique_ptr<InputPacket> &curr_input_packet,
+                            const std::shared_ptr<ReadBuffer> &in) override;
 
  private:
-  InputPacket curr_input_packet_{};
+  std::unique_ptr<InputPacket> curr_input_packet_;
   common::ManagedPointer<ITPCommandFactory> command_factory_;
 };
 

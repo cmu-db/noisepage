@@ -25,15 +25,15 @@ Transition PostgresProtocolInterpreter::Process(std::shared_ptr<ReadBuffer> in, 
   if (startup_) {
     // Always flush startup packet response
     out->ForceFlush();
-    curr_input_packet_.Clear();
+    curr_input_packet_->Clear();
     return ProcessStartup(in, out);
   }
-  std::shared_ptr<PostgresNetworkCommand> command = command_factory_->PacketToCommand(&curr_input_packet_);
+  std::shared_ptr<PostgresNetworkCommand> command = command_factory_->PacketToCommand(curr_input_packet_.get());
   PostgresPacketWriter writer(out);
   if (command->FlushOnComplete()) out->ForceFlush();
   Transition ret = command->Exec(common::ManagedPointer<ProtocolInterpreter>(this),
                                  common::ManagedPointer<PostgresPacketWriter>(&writer), t_cop, context, callback);
-  curr_input_packet_.Clear();
+  curr_input_packet_->Clear();
   return ret;
 }
 
@@ -76,9 +76,9 @@ Transition PostgresProtocolInterpreter::ProcessStartup(const std::shared_ptr<Rea
 
 size_t PostgresProtocolInterpreter::GetPacketHeaderSize() { return startup_ ? sizeof(int32_t) : 1 + sizeof(int32_t); }
 
-void PostgresProtocolInterpreter::SetPacketMessageType(InputPacket &curr_input_packet,
+void PostgresProtocolInterpreter::SetPacketMessageType(const std::unique_ptr<InputPacket> &curr_input_packet,
                                                        const std::shared_ptr<ReadBuffer> &in) {
-  if (!startup_) curr_input_packet.msg_type_ = in->ReadValue<NetworkMessageType>();
+  if (!startup_) curr_input_packet->msg_type_ = in->ReadValue<NetworkMessageType>();
 }
 
 void PostgresProtocolInterpreter::CompleteCommand(PostgresPacketWriter *const out, const QueryType &query_type,

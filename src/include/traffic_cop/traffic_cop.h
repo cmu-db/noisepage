@@ -1,6 +1,7 @@
 #pragma once
 #include <memory>
 #include <string>
+#include <utility>
 #include <vector>
 #include "network/postgres/postgres_protocol_utils.h"
 #include "storage/recovery/replication_log_provider.h"
@@ -23,7 +24,7 @@ class TrafficCop {
   /**
    * @param replication_log_provider if given, the tcop will forward replication logs to this provider
    */
-  TrafficCop(common::ManagedPointer<storage::ReplicationLogProvider> replication_log_provider = DISABLED)
+  explicit TrafficCop(common::ManagedPointer<storage::ReplicationLogProvider> replication_log_provider = DISABLED)
       : replication_log_provider_(replication_log_provider) {}
 
   virtual ~TrafficCop() = default;

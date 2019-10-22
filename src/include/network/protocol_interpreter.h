@@ -1,4 +1,5 @@
 #pragma once
+#include <algorithm>
 #include <functional>
 #include <memory>
 #include "common/managed_pointer.h"
@@ -65,7 +66,8 @@ class ProtocolInterpreter {
    * Sets the message type of the current packet
    * @param curr_input_packet packet to send
    */
-  virtual void SetPacketMessageType(InputPacket &curr_input_packet, const std::shared_ptr<ReadBuffer> &in) = 0;
+  virtual void SetPacketMessageType(const std::unique_ptr<InputPacket> &curr_input_packet,
+                                    const std::shared_ptr<ReadBuffer> &in) = 0;
 
   /**
    * Reads the header of the packet to see if it is valid
@@ -73,8 +75,9 @@ class ProtocolInterpreter {
    * @param curr_input_packet packet to send
    * @return whether the packet header is valid or not
    */
-  bool TryReadPacketHeader(const std::shared_ptr<ReadBuffer> &in, InputPacket &curr_input_packet) {
-    if (curr_input_packet.header_parsed_) return true;
+  bool TryReadPacketHeader(const std::shared_ptr<ReadBuffer> &in,
+                           const std::unique_ptr<InputPacket> &curr_input_packet) {
+    if (curr_input_packet->header_parsed_) return true;
 
     // Header format: 1 byte message type (only if non-startup)
     //              + 4 byte message size (inclusive of these 4 bytes)
@@ -84,23 +87,23 @@ class ProtocolInterpreter {
 
     // The header is ready to be read, fill in fields accordingly
     SetPacketMessageType(curr_input_packet, in);
-    curr_input_packet.len_ = in->ReadValue<uint32_t>() - sizeof(uint32_t);
-    if (curr_input_packet.len_ > PACKET_LEN_LIMIT) {
-      NETWORK_LOG_ERROR("Packet size {} > limit {}", curr_input_packet.len_, PACKET_LEN_LIMIT);
+    curr_input_packet->len_ = in->ReadValue<uint32_t>() - sizeof(uint32_t);
+    if (curr_input_packet->len_ > PACKET_LEN_LIMIT) {
+      NETWORK_LOG_ERROR("Packet size {} > limit {}", curr_input_packet->len_, PACKET_LEN_LIMIT);
       throw NETWORK_PROCESS_EXCEPTION("Packet too large");
     }
 
     // Extend the buffer as needed
-    if (curr_input_packet.len_ > in->Capacity()) {
+    if (curr_input_packet->len_ > in->Capacity()) {
       // Allocate a larger buffer and copy bytes off from the I/O layer's buffer
-      curr_input_packet.buf_ = std::make_shared<ReadBuffer>(curr_input_packet.len_);
-      NETWORK_LOG_TRACE("Extended Buffer size required for packet of size {0}", curr_input_packet.len_);
-      curr_input_packet.extended_ = true;
+      curr_input_packet->buf_ = std::make_shared<ReadBuffer>(curr_input_packet->len_);
+      NETWORK_LOG_TRACE("Extended Buffer size required for packet of size {0}", curr_input_packet->len_);
+      curr_input_packet->extended_ = true;
     } else {
-      curr_input_packet.buf_ = in;
+      curr_input_packet->buf_ = in;
     }
 
-    curr_input_packet.header_parsed_ = true;
+    curr_input_packet->header_parsed_ = true;
     return true;
   }
 
@@ -110,19 +113,20 @@ class ProtocolInterpreter {
    * @param curr_input_packet packet to send
    * @return whether the packet is valid or not
    */
-  bool TryBuildPacket(const std::shared_ptr<ReadBuffer> &in, InputPacket &curr_input_packet) {
+  bool TryBuildPacket(const std::shared_ptr<ReadBuffer> &in, const std::unique_ptr<InputPacket> &curr_input_packet) {
     if (!TryReadPacketHeader(in, curr_input_packet)) return false;
 
-    size_t size_needed = curr_input_packet.extended_ ? curr_input_packet.len_ - curr_input_packet.buf_->BytesAvailable()
-                                                     : curr_input_packet.len_;
+    size_t size_needed = curr_input_packet->extended_
+                             ? curr_input_packet->len_ - curr_input_packet->buf_->BytesAvailable()
+                             : curr_input_packet->len_;
 
     size_t can_read = std::min(size_needed, in->BytesAvailable());
     size_t remaining_bytes = size_needed - can_read;
 
     // copy bytes only if the packet is longer than the read buffer,
     // otherwise we can use the read buffer to save space
-    if (curr_input_packet.extended_) {
-      curr_input_packet.buf_->FillBufferFrom(*in, can_read);
+    if (curr_input_packet->extended_) {
+      curr_input_packet->buf_->FillBufferFrom(*in, can_read);
     }
 
     return remaining_bytes <= 0;
