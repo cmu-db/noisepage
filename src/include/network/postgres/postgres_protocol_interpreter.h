@@ -123,12 +123,10 @@ class PostgresProtocolInterpreter : public ProtocolInterpreter {
   /**
    * @see ProtocolInterpreter::SetPacketMessageType
    */
-  void SetPacketMessageType(const std::unique_ptr<InputPacket> &curr_input_packet,
-                            const std::shared_ptr<ReadBuffer> &in) override;
+  void SetPacketMessageType(const std::shared_ptr<ReadBuffer> &in) override;
 
  private:
   bool startup_ = true;
-  std::unique_ptr<InputPacket> curr_input_packet_;
   std::unordered_map<std::string, std::string> cmdline_options_;
   common::ManagedPointer<PostgresCommandFactory> command_factory_;
 };

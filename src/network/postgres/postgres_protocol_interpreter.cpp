@@ -17,7 +17,7 @@ Transition PostgresProtocolInterpreter::Process(std::shared_ptr<ReadBuffer> in, 
                                                 common::ManagedPointer<ConnectionContext> context,
                                                 NetworkCallback callback) {
   try {
-    if (!TryBuildPacket(in, curr_input_packet_)) return Transition::NEED_READ_TIMEOUT;
+    if (!TryBuildPacket(in)) return Transition::NEED_READ_TIMEOUT;
   } catch (std::exception &e) {
     NETWORK_LOG_ERROR("Encountered exception {0} when parsing packet", e.what());
     return Transition::TERMINATE;
@@ -25,15 +25,15 @@ Transition PostgresProtocolInterpreter::Process(std::shared_ptr<ReadBuffer> in, 
   if (startup_) {
     // Always flush startup packet response
     out->ForceFlush();
-    curr_input_packet_->Clear();
+    curr_input_packet_.Clear();
     return ProcessStartup(in, out);
   }
-  std::shared_ptr<PostgresNetworkCommand> command = command_factory_->PacketToCommand(curr_input_packet_.get());
+  std::shared_ptr<PostgresNetworkCommand> command = command_factory_->PacketToCommand(&curr_input_packet_);
   PostgresPacketWriter writer(out);
   if (command->FlushOnComplete()) out->ForceFlush();
   Transition ret = command->Exec(common::ManagedPointer<ProtocolInterpreter>(this),
                                  common::ManagedPointer<PostgresPacketWriter>(&writer), t_cop, context, callback);
-  curr_input_packet_->Clear();
+  curr_input_packet_.Clear();
   return ret;
 }
 
@@ -76,9 +76,8 @@ Transition PostgresProtocolInterpreter::ProcessStartup(const std::shared_ptr<Rea
 
 size_t PostgresProtocolInterpreter::GetPacketHeaderSize() { return startup_ ? sizeof(int32_t) : 1 + sizeof(int32_t); }
 
-void PostgresProtocolInterpreter::SetPacketMessageType(const std::unique_ptr<InputPacket> &curr_input_packet,
-                                                       const std::shared_ptr<ReadBuffer> &in) {
-  if (!startup_) curr_input_packet->msg_type_ = in->ReadValue<NetworkMessageType>();
+void PostgresProtocolInterpreter::SetPacketMessageType(const std::shared_ptr<ReadBuffer> &in) {
+  if (!startup_) curr_input_packet_.msg_type_ = in->ReadValue<NetworkMessageType>();
 }
 
 void PostgresProtocolInterpreter::CompleteCommand(PostgresPacketWriter *const out, const QueryType &query_type,

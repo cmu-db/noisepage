@@ -17,17 +17,17 @@ Transition ITPProtocolInterpreter::Process(std::shared_ptr<ReadBuffer> in, std::
                                            common::ManagedPointer<ConnectionContext> context,
                                            NetworkCallback callback) {
   try {
-    if (!TryBuildPacket(in, curr_input_packet_)) return Transition::NEED_READ_TIMEOUT;
+    if (!TryBuildPacket(in)) return Transition::NEED_READ_TIMEOUT;
   } catch (std::exception &e) {
     NETWORK_LOG_ERROR("Encountered exception {0} when parsing packet", e.what());
     return Transition::TERMINATE;
   }
-  std::shared_ptr<ITPNetworkCommand> command = command_factory_->PacketToCommand(curr_input_packet_.get());
+  std::shared_ptr<ITPNetworkCommand> command = command_factory_->PacketToCommand(&curr_input_packet_);
   ITPPacketWriter writer(out);
   if (command->FlushOnComplete()) out->ForceFlush();
   Transition ret = command->Exec(common::ManagedPointer<ProtocolInterpreter>(this),
                                  common::ManagedPointer<ITPPacketWriter>(&writer), t_cop, context, callback);
-  curr_input_packet_->Clear();
+  curr_input_packet_.Clear();
   return ret;
 }
 
@@ -38,9 +38,8 @@ void ITPProtocolInterpreter::GetResult(std::shared_ptr<WriteQueue> out) {
 
 size_t ITPProtocolInterpreter::GetPacketHeaderSize() { return 1 + sizeof(int32_t); }
 
-void ITPProtocolInterpreter::SetPacketMessageType(const std::unique_ptr<InputPacket> &curr_input_packet,
-                                                  const std::shared_ptr<ReadBuffer> &in) {
-  curr_input_packet->msg_type_ = in->ReadValue<NetworkMessageType>();
+void ITPProtocolInterpreter::SetPacketMessageType(const std::shared_ptr<ReadBuffer> &in) {
+  curr_input_packet_.msg_type_ = in->ReadValue<NetworkMessageType>();
 }
 
 }  // namespace terrier::network

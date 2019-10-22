@@ -165,7 +165,7 @@ struct InputPacket {
   /**
    * Clears the packet's contents
    */
-  void Clear() {
+  virtual void Clear() {
     msg_type_ = NetworkMessageType::NULL_COMMAND;
     len_ = 0;
     buf_ = nullptr;
