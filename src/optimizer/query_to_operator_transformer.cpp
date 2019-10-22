@@ -458,7 +458,7 @@ void QueryToOperatorTransformer::CollectPredicates(common::ManagedPointer<parser
   for (const auto &pred : predicate_ptrs) {
     if (!QueryToOperatorTransformer::IsSupportedConjunctivePredicate(pred)) {
       throw NOT_IMPLEMENTED_EXCEPTION(
-          ("Expression " + std::to_string(static_cast<int>(pred.Get()->GetExpressionType())) + " is not supported")
+          ("Expression type " + std::to_string(static_cast<int>(pred.Get()->GetExpressionType())) + " is not supported")
               .c_str());
     }
   }
