@@ -1,4 +1,5 @@
 #pragma once
+#include "network/itp/itp_packet_writer.h"
 #include "network/network_command.h"
 
 #define DEFINE_ITP_COMMAND(name, flush)                                                                                \
@@ -39,7 +40,6 @@ class ITPNetworkCommand : public NetworkCommand {
    */
   ITPNetworkCommand(InputPacket *in, bool flush) : NetworkCommand(in, flush), in_len_(in->len_) {}
 
- private:
   // Size of the input packet
   size_t in_len_;
 };

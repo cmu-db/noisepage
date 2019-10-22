@@ -33,7 +33,7 @@ class NetworkCommand {
    * @param in The input packets to this command
    * @param flush Whether or not to flush the outuput packets on completion
    */
-  NetworkCommand(InputPacket *in, bool flush) : in_(in->buf_->ReadIntoView(in->len_)), in_len_(in->len_), flush_on_complete_(flush) {}
+  NetworkCommand(InputPacket *in, bool flush) : in_(in->buf_->ReadIntoView(in->len_)), flush_on_complete_(flush) {}
 
   /**
    * The ReadBufferView to read input packets from

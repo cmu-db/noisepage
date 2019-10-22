@@ -7,9 +7,9 @@
 #include "loggers/network_logger.h"
 #include "network/connection_context.h"
 #include "network/connection_handle.h"
-#include "network/postgres/itp_command_factory.h"
-#include "network/postgres/itp_network_commands.h"
-#include "network/postgres/itp_packet_writer.h"
+#include "network/itp/itp_command_factory.h"
+#include "network/itp/itp_network_commands.h"
+#include "network/itp/itp_packet_writer.h"
 #include "network/protocol_interpreter.h"
 
 namespace terrier::network {
@@ -44,7 +44,7 @@ class ITPProtocolInterpreter : public ProtocolInterpreter {
   /**
    * Default constructor
    */
-  explicit ITPProtocolInterpreter(common::ManagedPointer<PostgresCommandFactory> command_factory)
+  explicit ITPProtocolInterpreter(common::ManagedPointer<ITPCommandFactory> command_factory)
       : command_factory_(command_factory) {}
 
   /**
@@ -75,7 +75,7 @@ class ITPProtocolInterpreter : public ProtocolInterpreter {
   /**
    * @see ProtocolInterpreter::SetPacketMessageType
    */
-  void SetPacketMessageType(InputPacket& curr_input_packet) override;
+  void SetPacketMessageType(InputPacket &curr_input_packet, const std::shared_ptr<ReadBuffer> &in) override;
 
  private:
   InputPacket curr_input_packet_{};

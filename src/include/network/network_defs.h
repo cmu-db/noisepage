@@ -111,7 +111,7 @@ enum class NetworkMessageType : unsigned char {
   ////////////////////////
   ITP_REPLICATION_COMMAND = 'r',
   ITP_STOP_REPLICATION_COMMAND = 'e',
-  ITP_REPLICATION_COMPLETE = 'c',
+  ITP_COMMAND_COMPLETE = 'c',
 };
 
 //===--------------------------------------------------------------------===//

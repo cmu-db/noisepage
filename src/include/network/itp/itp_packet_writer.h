@@ -38,13 +38,10 @@ class ITPPacketWriter : public PacketWriter {
    */
   void StopReplicationCommand() { BeginPacket(NetworkMessageType::ITP_STOP_REPLICATION_COMMAND); }
 
-
   /**
    * Tells the client that the command is complete.
    */
-  void WriteCommandComplete() {
-    BeginPacket(NetworkMessageType::ITP_REPLICATION_COMPLETE).EndPacket();
-  }
+  void WriteCommandComplete() { BeginPacket(NetworkMessageType::ITP_COMMAND_COMPLETE).EndPacket(); }
 };
 
 }  // namespace terrier::network

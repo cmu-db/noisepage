@@ -2,6 +2,7 @@
 #include <functional>
 #include <memory>
 #include "common/managed_pointer.h"
+#include "loggers/network_logger.h"
 #include "network/connection_context.h"
 #include "network/network_io_utils.h"
 #include "network/network_types.h"
@@ -54,7 +55,6 @@ class ProtocolInterpreter {
   virtual ~ProtocolInterpreter() = default;
 
  protected:
-
   /**
    * Return the size of the packet header
    * @return size of header
@@ -65,25 +65,25 @@ class ProtocolInterpreter {
    * Sets the message type of the current packet
    * @param curr_input_packet packet to send
    */
-  virtual void SetPacketMessageType(InputPacket& curr_input_packet) = 0;
-  
+  virtual void SetPacketMessageType(InputPacket &curr_input_packet, const std::shared_ptr<ReadBuffer> &in) = 0;
+
   /**
    * Reads the header of the packet to see if it is valid
    * @param in The ReadBuffer to read input from
    * @param curr_input_packet packet to send
    * @return whether the packet header is valid or not
    */
-  bool TryReadPacketHeader(const std::shared_ptr<ReadBuffer> &in, InputPacket& curr_input_packet) {
+  bool TryReadPacketHeader(const std::shared_ptr<ReadBuffer> &in, InputPacket &curr_input_packet) {
     if (curr_input_packet.header_parsed_) return true;
 
     // Header format: 1 byte message type (only if non-startup)
     //              + 4 byte message size (inclusive of these 4 bytes)
-    size_t header_size = GetPacketHeaderSize(); 
+    size_t header_size = GetPacketHeaderSize();
     // Make sure the entire header is readable
     if (!in->HasMore(header_size)) return false;
 
     // The header is ready to be read, fill in fields accordingly
-    SetPacketMessageType(curr_input_packet);
+    SetPacketMessageType(curr_input_packet, in);
     curr_input_packet.len_ = in->ReadValue<uint32_t>() - sizeof(uint32_t);
     if (curr_input_packet.len_ > PACKET_LEN_LIMIT) {
       NETWORK_LOG_ERROR("Packet size {} > limit {}", curr_input_packet.len_, PACKET_LEN_LIMIT);
@@ -110,12 +110,11 @@ class ProtocolInterpreter {
    * @param curr_input_packet packet to send
    * @return whether the packet is valid or not
    */
-  bool TryBuildPacket(const std::shared_ptr<ReadBuffer>& in, InputPacket& curr_input_packet) {
-    if (!TryReadPacketHeader(in)) return false;
+  bool TryBuildPacket(const std::shared_ptr<ReadBuffer> &in, InputPacket &curr_input_packet) {
+    if (!TryReadPacketHeader(in, curr_input_packet)) return false;
 
-    size_t size_needed = curr_input_packet.extended_
-                            ? curr_input_packet.len_ - curr_input_packet.buf_->BytesAvailable()
-                            : curr_input_packet.len_;
+    size_t size_needed = curr_input_packet.extended_ ? curr_input_packet.len_ - curr_input_packet.buf_->BytesAvailable()
+                                                     : curr_input_packet.len_;
 
     size_t can_read = std::min(size_needed, in->BytesAvailable());
     size_t remaining_bytes = size_needed - can_read;

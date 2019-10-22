@@ -17,7 +17,7 @@ Transition PostgresProtocolInterpreter::Process(std::shared_ptr<ReadBuffer> in, 
                                                 common::ManagedPointer<ConnectionContext> context,
                                                 NetworkCallback callback) {
   try {
-    if (!TryBuildPacket(in, &curr_input_packet_)) return Transition::NEED_READ_TIMEOUT;
+    if (!TryBuildPacket(in, curr_input_packet_)) return Transition::NEED_READ_TIMEOUT;
   } catch (std::exception &e) {
     NETWORK_LOG_ERROR("Encountered exception {0} when parsing packet", e.what());
     return Transition::TERMINATE;
@@ -74,11 +74,10 @@ Transition PostgresProtocolInterpreter::ProcessStartup(const std::shared_ptr<Rea
   return Transition::PROCEED;
 }
 
-size_t PostgresProtocolInterpreter::GetPacketHeaderSize() {
-  return startup_ ? sizeof(int32_t) : 1 + sizeof(int32_t);
-}
+size_t PostgresProtocolInterpreter::GetPacketHeaderSize() { return startup_ ? sizeof(int32_t) : 1 + sizeof(int32_t); }
 
-void PostgresProtocolInterpreter::SetPacketMessageType(InputPacket& curr_input_packet) {
+void PostgresProtocolInterpreter::SetPacketMessageType(InputPacket &curr_input_packet,
+                                                       const std::shared_ptr<ReadBuffer> &in) {
   if (!startup_) curr_input_packet.msg_type_ = in->ReadValue<NetworkMessageType>();
 }
 
