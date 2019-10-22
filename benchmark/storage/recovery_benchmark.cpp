@@ -263,9 +263,9 @@ BENCHMARK_DEFINE_F(RecoveryBenchmark, IndexRecovery)(benchmark::State &state) {
   state.SetItemsProcessed(num_txns_ * state.iterations());
 }
 
-BENCHMARK_REGISTER_F(RecoveryBenchmark, ReadWriteWorkload)->Unit(benchmark::kMillisecond)->UseManualTime()->MinTime(4);
+BENCHMARK_REGISTER_F(RecoveryBenchmark, ReadWriteWorkload)->Unit(benchmark::kMillisecond)->UseManualTime()->MinTime(10);
 
-BENCHMARK_REGISTER_F(RecoveryBenchmark, HighStress)->Unit(benchmark::kMillisecond)->UseManualTime()->MinTime(4);
+BENCHMARK_REGISTER_F(RecoveryBenchmark, HighStress)->Unit(benchmark::kMillisecond)->UseManualTime()->MinTime(10);
 
 BENCHMARK_REGISTER_F(RecoveryBenchmark, IndexRecovery)->Unit(benchmark::kMillisecond)->UseManualTime()->MinTime(4);
 
