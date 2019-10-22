@@ -24,7 +24,7 @@ struct ConnectionContext {
   std::unordered_map<std::string, trafficcop::Portal> portals_;
 
   /**
-   * Indicate if the current command is in a transaction block
+   * Indicate whether the current command is in a transaction block
    */
   bool in_transaction_ = false;
 
