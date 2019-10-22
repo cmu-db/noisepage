@@ -27,7 +27,10 @@ Transition StopReplicationCommand::Exec(common::ManagedPointer<ProtocolInterpret
                                         common::ManagedPointer<trafficcop::TrafficCop> t_cop,
                                         common::ManagedPointer<ConnectionContext> connection,
                                         NetworkCallback callback) {
-  // TODO(Tianlei): implement this
+  // TODO(Tianlei): modify this implementation for the complete ITP protocol
+  std::unique_ptr<ReadBuffer> buffer;
+  buffer->FillBufferFrom(in_, in_len_);
+  t_cop->HandBufferToReplication(std::move(buffer));
   return Transition::PROCEED;
 }
 
