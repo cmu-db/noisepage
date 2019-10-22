@@ -59,7 +59,6 @@ pipeline {
                         sh 'echo $NODE_NAME'
                         sh 'echo y | sudo ./script/installation/packages.sh'
                         sh 'sudo apt-get -y install curl lcov'
-                        sh 'sudo sysctl -w kernel.perf_event_paranoid=2'
                         sh 'mkdir build'
                         sh 'cd build && cmake -DCMAKE_BUILD_TYPE=Debug -DTERRIER_USE_ASAN=OFF -DTERRIER_GENERATE_COVERAGE=ON -DTERRIER_BUILD_BENCHMARKS=OFF .. && make -j$(nproc)'
                         sh 'cd build && timeout 1h make unittest'
