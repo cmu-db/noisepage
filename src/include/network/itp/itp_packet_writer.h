@@ -23,6 +23,8 @@ class ITPPacketWriter : public PacketWriter {
    * --------------------------------------------------------------------------------------------------
    * | message type (char) | message id (uint64_t) | data size (uint64_t) | replication data (varlen) |
    * --------------------------------------------------------------------------------------------------
+   * This begins the creation of the Replication command. After this is called , we can append further
+   * bytes to the packet and call EndReplicationCommand when we want to finish the current command.
    * @param message_id message id
    * @param data_size total size of replication data to be added
    */
