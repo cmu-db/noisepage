@@ -183,8 +183,7 @@ TEST_F(TrafficCopTests, ManualExtendedQueryTest) {
     std::string stmt_name = "begin_statement";
     std::string query = "BEGIN";
 
-    writer.WriteParseCommand(stmt_name, query,
-        std::vector<int>());
+    writer.WriteParseCommand(stmt_name, query, std::vector<int>());
     io_socket->FlushAllWrites();
     ReadUntilMessageOrClose(io_socket, network::NetworkMessageType::PG_PARSE_COMPLETE);
 
@@ -275,7 +274,8 @@ TEST_F(TrafficCopTests, ManualExtendedQueryTest) {
 
       std::string portal_name = "test_portal-3";
       // Use text format, don't care about result column formats
-      writer.WriteBindCommand(portal_name, stmt_name, {0, 0, 0, 0, 0}, {&param1, &param2, &param3, &param4, &param5}, {});
+      writer.WriteBindCommand(portal_name, stmt_name, {0, 0, 0, 0, 0}, {&param1, &param2, &param3, &param4, &param5},
+                              {});
       io_socket->FlushAllWrites();
       ReadUntilMessageOrClose(io_socket, network::NetworkMessageType::PG_BIND_COMPLETE);
 
@@ -299,24 +299,23 @@ TEST_F(TrafficCopTests, ManualExtendedQueryTest) {
     stmt_name = "commit_statement";
     query = "COMMIT";
 
-    writer.WriteParseCommand(stmt_name, query,
-        std::vector<int>());
+    writer.WriteParseCommand(stmt_name, query, std::vector<int>());
     io_socket->FlushAllWrites();
     ReadUntilMessageOrClose(io_socket, network::NetworkMessageType::PG_PARSE_COMPLETE);
 
     {
-    std::string portal_name = "test_portal";
-    // Use text format, don't care about result column formats
-    writer.WriteBindCommand(portal_name, stmt_name, {}, {}, {});
-    io_socket->FlushAllWrites();
-    ReadUntilMessageOrClose(io_socket, network::NetworkMessageType::PG_BIND_COMPLETE);
+      std::string portal_name = "test_portal";
+      // Use text format, don't care about result column formats
+      writer.WriteBindCommand(portal_name, stmt_name, {}, {}, {});
+      io_socket->FlushAllWrites();
+      ReadUntilMessageOrClose(io_socket, network::NetworkMessageType::PG_BIND_COMPLETE);
 
-    writer.WriteExecuteCommand(portal_name, 0);
-    io_socket->FlushAllWrites();
+      writer.WriteExecuteCommand(portal_name, 0);
+      io_socket->FlushAllWrites();
 
-    writer.WriteSyncCommand();
-    io_socket->FlushAllWrites();
-    ReadUntilReadyOrClose(io_socket);
+      writer.WriteSyncCommand();
+      io_socket->FlushAllWrites();
+      ReadUntilReadyOrClose(io_socket);
     }
 
   } catch (const std::exception &e) {
