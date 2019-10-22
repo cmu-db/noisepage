@@ -46,7 +46,7 @@ class Exception : public std::runtime_error {
    * @param file name of the file in which the exception occurred
    * @param line line number at which the exception occurred
    */
-  Exception(const ExceptionType type, const std::string &msg, const char *file, int line) :
+  Exception(const ExceptionType type, const std::string &msg, const char *file, int line)
       : Exception(type, msg.c_str(), file, line) {}
 
   /**
