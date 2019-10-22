@@ -162,6 +162,8 @@ struct InputPacket {
    */
   InputPacket(InputPacket &&) = default;
 
+  ~InputPacket() = default;
+
   /**
    * Clears the packet's contents
    */
