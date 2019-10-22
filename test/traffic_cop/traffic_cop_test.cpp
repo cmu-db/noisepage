@@ -317,7 +317,6 @@ TEST_F(TrafficCopTests, ManualExtendedQueryTest) {
       io_socket->FlushAllWrites();
       ReadUntilReadyOrClose(io_socket);
     }
-
   } catch (const std::exception &e) {
     TEST_LOG_ERROR("Exception occurred: {0}", e.what());
     EXPECT_TRUE(false);
