@@ -7,7 +7,7 @@
 namespace terrier::network {
 
 /**
- * ITPCommandFactory constructs PostgresNetworkCommands that parses input packets to API calls
+ * ITPCommandFactory constructs ITPNetworkCommands that parses input packets to API calls
  * into traffic cop
  */
 class ITPCommandFactory {

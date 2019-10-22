@@ -162,12 +162,10 @@ struct InputPacket {
    */
   InputPacket(InputPacket &&) = default;
 
-  ~InputPacket() = default;
-
   /**
    * Clears the packet's contents
    */
-  virtual void Clear() {
+  void Clear() {
     msg_type_ = NetworkMessageType::NULL_COMMAND;
     len_ = 0;
     buf_ = nullptr;
