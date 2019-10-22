@@ -237,15 +237,14 @@ void QueryToOperatorTransformer::Visit(parser::InsertStatement *op, parser::Pars
   if (op->GetInsertColumns()->empty()) {
     for (const auto &values : *(op->GetValues())) {
       if (values.size() > column_objects.size()) {
-        throw CATALOG_EXCEPTION("ERROR:  INSERT has more expressions than target columns");
+        throw CATALOG_EXCEPTION("INSERT has more expressions than target columns");
       }
       if (values.size() < column_objects.size()) {
         for (auto i = values.size(); i != column_objects.size(); ++i) {
           // check whether null values or default values can be used in the rest of the columns
           if (!column_objects[i].Nullable() && column_objects[i].StoredExpression() == nullptr) {
             throw CATALOG_EXCEPTION(
-                ("ERROR:  null value in column \"" + column_objects[i].Name() + "\" violates not-null constraint")
-                    .c_str());
+                ("Null value in column \"" + column_objects[i].Name() + "\" violates not-null constraint").c_str());
           }
         }
       }
@@ -257,10 +256,10 @@ void QueryToOperatorTransformer::Visit(parser::InsertStatement *op, parser::Pars
     auto num_columns = op->GetInsertColumns()->size();
     for (const auto &tuple : *(op->GetValues())) {  // check size of each tuple
       if (tuple.size() > num_columns) {
-        throw CATALOG_EXCEPTION("ERROR:  INSERT has more expressions than target columns");
+        throw CATALOG_EXCEPTION("INSERT has more expressions than target columns");
       }
       if (tuple.size() < num_columns) {
-        throw CATALOG_EXCEPTION("ERROR:  INSERT has more target columns than expressions");
+        throw CATALOG_EXCEPTION("INSERT has more target columns than expressions");
       }
     }
 
@@ -274,8 +273,7 @@ void QueryToOperatorTransformer::Visit(parser::InsertStatement *op, parser::Pars
         specified.insert(column_object.Oid());
       } catch (const std::out_of_range &oor) {
         throw CATALOG_EXCEPTION(
-            ("ERROR:  column \"" + col + "\" of relation \"" + target_table->GetTableName() + "\" does not exist")
-                .c_str());
+            ("Column \"" + col + "\" of relation \"" + target_table->GetTableName() + "\" does not exist").c_str());
       }
     }
 
@@ -283,9 +281,8 @@ void QueryToOperatorTransformer::Visit(parser::InsertStatement *op, parser::Pars
       // this loop checks not null constraint for unspecified columns
       if (specified.find(column.Oid()) == specified.end() && !column.Nullable() &&
           column.StoredExpression() == nullptr) {
-        // TODO(peloton): Add check for default value's existence for the current column
         throw CATALOG_EXCEPTION(
-            ("ERROR: null value in column \"" + column.Name() + "\" violates not-null constraint").c_str());
+            ("Null value in column \"" + column.Name() + "\" violates not-null constraint").c_str());
       }
     }
 
@@ -360,8 +357,6 @@ void QueryToOperatorTransformer::Visit(parser::CopyStatement *op, parser::ParseR
     // The copy statement is reading from a file into a table. We construct a
     // logical external-file get operator as the leaf, and an insert operator
     // as the root.
-
-    // TODO(Ling): filename? copy statement only has file path
     auto get_op = new OperatorExpression(
         LogicalExternalFileGet::Make(op->GetExternalFileFormat(), op->GetFilePath(), op->GetDelimiter(),
                                      op->GetQuoteChar(), op->GetEscapeChar()),
@@ -398,13 +393,7 @@ void QueryToOperatorTransformer::Visit(UNUSED_ATTRIBUTE parser::AnalyzeStatement
 void QueryToOperatorTransformer::Visit(parser::ComparisonExpression *expr, parser::ParseResult *parse_result) {
   auto expr_type = expr->GetExpressionType();
   if (expr->GetExpressionType() == parser::ExpressionType::COMPARE_IN) {
-    if (GenerateSubqueryTree(expr, 1, parse_result, false)) {
-      // TODO(boweic): Should use IN to preserve the semantic, for now we do not
-      //  have semi-join so use = to transform into inner join
-      // TODO(Ling): now we have semi-join operators. Are we supporting it?
-      expr->SetExpressionType(parser::ExpressionType::COMPARE_EQUAL);
-    }
-
+    GenerateSubqueryTree(expr, 1, parse_result, false);
   } else if (expr_type == parser::ExpressionType::COMPARE_EQUAL ||
              expr_type == parser::ExpressionType::COMPARE_GREATER_THAN ||
              expr_type == parser::ExpressionType::COMPARE_GREATER_THAN_OR_EQUAL_TO ||
@@ -412,7 +401,7 @@ void QueryToOperatorTransformer::Visit(parser::ComparisonExpression *expr, parse
              expr_type == parser::ExpressionType::COMPARE_LESS_THAN_OR_EQUAL_TO) {
     if (expr->GetChild(0)->GetExpressionType() == parser::ExpressionType::ROW_SUBQUERY &&
         expr->GetChild(1)->GetExpressionType() == parser::ExpressionType::ROW_SUBQUERY) {
-      throw NOT_IMPLEMENTED_EXCEPTION("Do not support comparison between sub-select");
+      throw NOT_IMPLEMENTED_EXCEPTION("Comparisons between sub-selects are not supported");
     }
     // Transform if either child is sub-query
     GenerateSubqueryTree(expr, 0, parse_result, true) || GenerateSubqueryTree(expr, 1, parse_result, true);
@@ -468,7 +457,9 @@ void QueryToOperatorTransformer::CollectPredicates(common::ManagedPointer<parser
   QueryToOperatorTransformer::SplitPredicates(expr, &predicate_ptrs);
   for (const auto &pred : predicate_ptrs) {
     if (!QueryToOperatorTransformer::IsSupportedConjunctivePredicate(pred)) {
-      throw NOT_IMPLEMENTED_EXCEPTION("Predicate type not supported yet");
+      throw NOT_IMPLEMENTED_EXCEPTION(
+          ("Expression " + std::to_string(static_cast<int>(pred.Get()->GetExpressionType())) + " is not supported")
+              .c_str());
     }
   }
   // Accept will change the expression, e.g. (a in (select b from test)) into
