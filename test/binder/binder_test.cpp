@@ -11,7 +11,6 @@
 #include "parser/postgresparser.h"
 #include "storage/garbage_collector.h"
 #include "traffic_cop/statement.h"
-#include "traffic_cop/traffic_cop.h"
 #include "transaction/deferred_action_manager.h"
 #include "transaction/transaction_manager.h"
 #include "util/data_table_benchmark_util.h"
@@ -24,7 +23,6 @@ using std::vector;
 
 namespace terrier {
 
-// TODO(Ling): write meaningful setup
 class BinderCorrectnessTest : public TerrierTest {
  private:
   storage::RecordBufferSegmentPool buffer_pool_{1000000, 1000000};
@@ -594,8 +592,7 @@ TEST_F(BinderCorrectnessTest, UpdateStatementSimpleTest) {
   EXPECT_EQ(type::TransientValuePeeker::PeekInteger(constant->GetValue()), 999);
 
   LOG_DEBUG("Checking update condition");
-  auto col_expr =
-      update_stmt->GetUpdateCondition()->GetChild(0).CastManagedPointerTo<parser::ColumnValueExpression>();
+  auto col_expr = update_stmt->GetUpdateCondition()->GetChild(0).CastManagedPointerTo<parser::ColumnValueExpression>();
   EXPECT_EQ(col_expr->GetDatabaseOid(), db_oid_);              // a1
   EXPECT_EQ(col_expr->GetTableOid(), table_a_oid_);            // a1
   EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(1));  // a1; columns are indexed from 1
