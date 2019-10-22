@@ -115,6 +115,8 @@ class PostgresProtocolInterpreter : public ProtocolInterpreter {
  protected:
   /**
    * @see ProtocolInterpreter::GetPacketHeaderSize
+   * Header format: 1 byte message type (only if non-startup)
+   *              + 4 byte message size (inclusive of these 4 bytes)
    */
   size_t GetPacketHeaderSize() override;
 

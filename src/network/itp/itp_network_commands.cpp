@@ -27,6 +27,7 @@ Transition StopReplicationCommand::Exec(common::ManagedPointer<ProtocolInterpret
                                         common::ManagedPointer<trafficcop::TrafficCop> t_cop,
                                         common::ManagedPointer<ConnectionContext> connection,
                                         NetworkCallback callback) {
+  // TODO(Tianlei): implement this
   return Transition::PROCEED;
 }
 

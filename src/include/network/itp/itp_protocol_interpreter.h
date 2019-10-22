@@ -69,6 +69,7 @@ class ITPProtocolInterpreter : public ProtocolInterpreter {
  protected:
   /**
    * @see ProtocolInterpreter::GetPacketHeaderSize
+   * Header format: 5 byte message size
    */
   size_t GetPacketHeaderSize() override;
 
