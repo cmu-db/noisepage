@@ -62,11 +62,11 @@ class OperatorTransformerTest : public TerrierTest {
 
     // create database
     txn_ = txn_manager_->BeginTransaction();
-    LOG_DEBUG("Creating database %s", default_database_name_.c_str());
+    OPTIMIZER_LOG_DEBUG("Creating database %s", default_database_name_.c_str());
     db_oid_ = catalog_->CreateDatabase(txn_, default_database_name_, true);
     // commit the transactions
     txn_manager_->Commit(txn_, TestCallbacks::EmptyCallback, nullptr);
-    LOG_DEBUG("database %s created!", default_database_name_.c_str());
+    OPTIMIZER_LOG_DEBUG("database %s created!", default_database_name_.c_str());
 
     // get default values of the columns
     auto int_default = parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER));
@@ -166,7 +166,7 @@ class OperatorTransformerTest : public TerrierTest {
 
 // NOLINTNEXTLINE
 TEST_F(OperatorTransformerTest, SelectStatementSimpleTest) {
-  LOG_DEBUG("Parsing sql query");
+  OPTIMIZER_LOG_DEBUG("Parsing sql query");
   std::string select_sql = "SELECT A.A1 FROM A";
 
   std::string ref = R"({"Op":"LogicalGet",})";
@@ -191,7 +191,7 @@ TEST_F(OperatorTransformerTest, SelectStatementSimpleTest) {
 
 // NOLINTNEXTLINE
 TEST_F(OperatorTransformerTest, InsertStatementSimpleTest) {
-  LOG_DEBUG("Parsing sql query");
+  OPTIMIZER_LOG_DEBUG("Parsing sql query");
   std::string insert_sql = "INSERT INTO A (A1, A2) VALUES (5, \'MY DATA\')";
 
   std::string ref = R"({"Op":"LogicalInsert",})";
@@ -227,7 +227,7 @@ TEST_F(OperatorTransformerTest, InsertStatementSimpleTest) {
 
 // NOLINTNEXTLINE
 TEST_F(OperatorTransformerTest, InsertStatementSelectTest) {
-  LOG_DEBUG("Parsing sql query");
+  OPTIMIZER_LOG_DEBUG("Parsing sql query");
   std::string insert_sql = "INSERT INTO A (A1) SELECT B1 FROM B WHERE B1 > 0";
 
   std::string ref =
@@ -267,7 +267,7 @@ TEST_F(OperatorTransformerTest, InsertStatementSelectTest) {
 
 // NOLINTNEXTLINE
 TEST_F(OperatorTransformerTest, UpdateStatementSimpleTest) {
-  LOG_DEBUG("Parsing sql query");
+  OPTIMIZER_LOG_DEBUG("Parsing sql query");
   std::string update_sql = "UPDATE A SET A1 = 999 WHERE A1 >= 1";
 
   std::string ref =
@@ -305,7 +305,7 @@ TEST_F(OperatorTransformerTest, UpdateStatementSimpleTest) {
 
 // NOLINTNEXTLINE
 TEST_F(OperatorTransformerTest, SelectStatementAggregateTest) {
-  LOG_DEBUG("Parsing sql query");
+  OPTIMIZER_LOG_DEBUG("Parsing sql query");
   std::string select_sql = "SELECT MAX(b1) FROM B GROUP BY b2";
 
   std::string ref =
@@ -339,7 +339,7 @@ TEST_F(OperatorTransformerTest, SelectStatementAggregateTest) {
 
 // NOLINTNEXTLINE
 TEST_F(OperatorTransformerTest, SelectStatementDistinctTest) {
-  LOG_DEBUG("Parsing sql query");
+  OPTIMIZER_LOG_DEBUG("Parsing sql query");
   std::string select_sql = "SELECT DISTINCT B1 FROM B WHERE B1 <= 5";
 
   std::string ref =
@@ -373,7 +373,7 @@ TEST_F(OperatorTransformerTest, SelectStatementDistinctTest) {
 
 // NOLINTNEXTLINE
 TEST_F(OperatorTransformerTest, SelectStatementOrderByTest) {
-  LOG_DEBUG("Parsing sql query");
+  OPTIMIZER_LOG_DEBUG("Parsing sql query");
   std::string select_sql = "SELECT b1 FROM B ORDER BY b2 ASC LIMIT 2 OFFSET 1";
 
   std::string ref =
@@ -411,7 +411,7 @@ TEST_F(OperatorTransformerTest, SelectStatementOrderByTest) {
 // NOLINTNEXTLINE
 TEST_F(OperatorTransformerTest, SelectStatementLeftJoinTest) {
   // Check if star expression is correctly processed
-  LOG_DEBUG("Checking STAR expression in select and subselect");
+  OPTIMIZER_LOG_DEBUG("Checking STAR expression in select and subselect");
 
   std::string select_sql = "SELECT * FROM A LEFT OUTER JOIN B ON A.A1 < B.B1";
 
@@ -451,7 +451,7 @@ TEST_F(OperatorTransformerTest, SelectStatementLeftJoinTest) {
 
 // NOLINTNEXTLINE
 TEST_F(OperatorTransformerTest, SelectStatementRightJoinTest) {
-  LOG_DEBUG("Parsing sql query");
+  OPTIMIZER_LOG_DEBUG("Parsing sql query");
   std::string select_sql = "SELECT * FROM A RIGHT JOIN B ON A.A1 > B.B1";
 
   std::string ref =
@@ -490,7 +490,7 @@ TEST_F(OperatorTransformerTest, SelectStatementRightJoinTest) {
 
 // NOLINTNEXTLINE
 TEST_F(OperatorTransformerTest, SelectStatementInnerJoinTest) {
-  LOG_DEBUG("Parsing sql query");
+  OPTIMIZER_LOG_DEBUG("Parsing sql query");
   std::string select_sql = "SELECT * FROM A Inner JOIN B ON A.A1 = B.B1";
 
   std::string ref =
@@ -529,7 +529,7 @@ TEST_F(OperatorTransformerTest, SelectStatementInnerJoinTest) {
 
 // NOLINTNEXTLINE
 TEST_F(OperatorTransformerTest, SelectStatementOuterJoinTest) {
-  LOG_DEBUG("Parsing sql query");
+  OPTIMIZER_LOG_DEBUG("Parsing sql query");
   std::string select_sql = "SELECT * FROM A FULL OUTER JOIN B ON A.A1 = B.B1";
 
   std::string ref =
@@ -568,7 +568,7 @@ TEST_F(OperatorTransformerTest, SelectStatementOuterJoinTest) {
 
 // NOLINTNEXTLINE
 TEST_F(OperatorTransformerTest, SelectStatementComplexTest) {
-  LOG_DEBUG("Parsing sql query");
+  OPTIMIZER_LOG_DEBUG("Parsing sql query");
   std::string select_sql =
       "SELECT A.A1, B.B2 FROM A INNER JOIN b ON a.a1 = b.b1 WHERE a1 < 100 "
       "GROUP BY A.a1, B.b2 HAVING a1 > 50 ORDER BY a1";
@@ -593,7 +593,7 @@ TEST_F(OperatorTransformerTest, SelectStatementComplexTest) {
 
 // NOLINTNEXTLINE
 TEST_F(OperatorTransformerTest, SelectStatementMarkJoinTest) {
-  LOG_DEBUG("Parsing sql query");
+  OPTIMIZER_LOG_DEBUG("Parsing sql query");
   std::string select_sql = "SELECT * FROM A WHERE A1 = 0 AND A1 IN (SELECT B1 FROM B WHERE B1 IN (SELECT A1 FROM A))";
 
   std::string ref =
@@ -617,7 +617,7 @@ TEST_F(OperatorTransformerTest, SelectStatementMarkJoinTest) {
 // NOLINTNEXTLINE
 TEST_F(OperatorTransformerTest, SelectStatementStarNestedSelectTest) {
   // Check if star expression is correctly processed
-  LOG_DEBUG("Checking STAR expression in nested select from.");
+  OPTIMIZER_LOG_DEBUG("Checking STAR expression in nested select from.");
 
   std::string select_sql =
       "SELECT * FROM A LEFT OUTER JOIN (SELECT * FROM B INNER JOIN A ON B1 = A1) AS C ON C.B2 = a.A1";
@@ -642,7 +642,7 @@ TEST_F(OperatorTransformerTest, SelectStatementStarNestedSelectTest) {
 // NOLINTNEXTLINE
 TEST_F(OperatorTransformerTest, SelectStatementNestedColumnTest) {
   // Check if nested select columns are correctly processed
-  LOG_DEBUG("Checking nested select columns.");
+  OPTIMIZER_LOG_DEBUG("Checking nested select columns.");
 
   std::string select_sql = "SELECT A1, (SELECT B2 FROM B where B2 IS NULL LIMIT 1) FROM A";
 
@@ -683,7 +683,7 @@ TEST_F(OperatorTransformerTest, SelectStatementDiffTableSameSchemaTest) {
 
 // NOLINTNEXTLINE
 TEST_F(OperatorTransformerTest, SelectStatementSelectListAliasTest) {
-  LOG_DEBUG("Checking select_list and table alias binding");
+  OPTIMIZER_LOG_DEBUG("Checking select_list and table alias binding");
 
   std::string select_sql = "SELECT AA.a1, b2 FROM A as AA, B WHERE AA.a1 = B.b1";
 
@@ -743,7 +743,7 @@ TEST_F(OperatorTransformerTest, DeleteStatementWhereTest) {
 // NOLINTNEXTLINE
 TEST_F(OperatorTransformerTest, AggregateComplexTest) {
   // Check if nested select columns are correctly processed
-  LOG_DEBUG("Checking aggregate in subselect.");
+  OPTIMIZER_LOG_DEBUG("Checking aggregate in subselect.");
 
   std::string select_sql = "SELECT A.a1 FROM A WHERE A.a1 IN (SELECT MAX(b1) FROM B);";
 
@@ -767,7 +767,7 @@ TEST_F(OperatorTransformerTest, AggregateComplexTest) {
 // NOLINTNEXTLINE
 TEST_F(OperatorTransformerTest, OperatorComplexTest) {
   // Check if nested select columns are correctly processed
-  LOG_DEBUG("Checking if operator expressions are correctly parsed.");
+  OPTIMIZER_LOG_DEBUG("Checking if operator expressions are correctly parsed.");
 
   std::string select_sql = "SELECT A.a1 FROM A WHERE 2 * A.a1 IN (SELECT b1+1 FROM B);";
 
@@ -807,7 +807,7 @@ TEST_F(OperatorTransformerTest, OperatorComplexTest) {
 
 // NOLINTNEXTLINE
 TEST_F(OperatorTransformerTest, SubqueryComplexTest) {
-  LOG_DEBUG("Parsing sql query");
+  OPTIMIZER_LOG_DEBUG("Parsing sql query");
 
   std::string select_sql =
       "SELECT A.a1 FROM A WHERE A.a1 IN (SELECT b1 FROM B WHERE b1 = 2 AND "
