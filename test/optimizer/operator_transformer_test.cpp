@@ -212,7 +212,7 @@ TEST_F(OperatorTransformerTest, InsertStatementSimpleTest) {
   EXPECT_EQ(db_oid_, logical_insert->GetDatabaseOid());
   EXPECT_EQ(default_namespace_oid, logical_insert->GetNamespaceOid());
   EXPECT_EQ(table_a_oid_, logical_insert->GetTableOid());
-  EXPECT_EQ(std::vector<catalog::col_oid_t>({catalog::col_oid_t(2), catalog::col_oid_t(1)}),
+  EXPECT_EQ(std::vector<catalog::col_oid_t>({catalog::col_oid_t(1), catalog::col_oid_t(2)}),
             logical_insert->GetColumns());
 
   auto insert_value_a1 =

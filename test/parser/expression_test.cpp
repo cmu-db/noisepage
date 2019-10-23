@@ -753,8 +753,6 @@ TEST(ExpressionTests, ColumnValueExpressionTest) {
   auto tve2 = new ColumnValueExpression("", "table_name", "column_name", "alias");
   auto tve3 = new ColumnValueExpression("", "table_name2", "column_name", "alias");
   auto tve4 = new ColumnValueExpression("", "table_name", "column_name2", "alias");
-  auto tve5 = new ColumnValueExpression("", "table_name", "column_name", "alias2");
-  auto tve6 = new ColumnValueExpression("table_name", "column_name");
   auto tve7 = new ColumnValueExpression(catalog::db_oid_t(1), catalog::table_oid_t(2), catalog::col_oid_t(3));
   auto tve8 = new ColumnValueExpression(catalog::db_oid_t(1), catalog::table_oid_t(2), catalog::col_oid_t(3));
   auto tve9 = new ColumnValueExpression(catalog::db_oid_t(1), catalog::table_oid_t(4), catalog::col_oid_t(3));
@@ -767,8 +765,6 @@ TEST(ExpressionTests, ColumnValueExpressionTest) {
   EXPECT_TRUE(*tve1 == *tve2);
   EXPECT_FALSE(*tve1 == *tve3);
   EXPECT_FALSE(*tve1 == *tve4);
-  EXPECT_FALSE(*tve1 == *tve5);
-  EXPECT_FALSE(*tve1 == *tve6);
   EXPECT_TRUE(*tve7 == *tve8);
   EXPECT_FALSE(*tve7 == *tve9);
   EXPECT_FALSE(*tve7 == *tve10);
@@ -776,13 +772,10 @@ TEST(ExpressionTests, ColumnValueExpressionTest) {
   EXPECT_FALSE(*tve7 == *tve14);
   EXPECT_TRUE(*tve11 == *tve12);
   EXPECT_FALSE(*tve11 == *tve13);
-  EXPECT_FALSE(*tve11 == *tve6);
 
   EXPECT_EQ(tve1->Hash(), tve2->Hash());
   EXPECT_NE(tve1->Hash(), tve3->Hash());
   EXPECT_NE(tve1->Hash(), tve4->Hash());
-  EXPECT_NE(tve1->Hash(), tve5->Hash());
-  EXPECT_NE(tve1->Hash(), tve6->Hash());
   EXPECT_EQ(tve7->Hash(), tve8->Hash());
   EXPECT_NE(tve7->Hash(), tve9->Hash());
   EXPECT_NE(tve7->Hash(), tve10->Hash());
@@ -790,7 +783,6 @@ TEST(ExpressionTests, ColumnValueExpressionTest) {
   EXPECT_NE(tve7->Hash(), tve14->Hash());
   EXPECT_EQ(tve11->Hash(), tve12->Hash());
   EXPECT_NE(tve11->Hash(), tve13->Hash());
-  EXPECT_NE(tve11->Hash(), tve6->Hash());
 
   EXPECT_EQ(tve1->GetExpressionType(), ExpressionType::COLUMN_VALUE);
   EXPECT_EQ(tve1->GetReturnValueType(), type::TypeId::INVALID);
@@ -815,8 +807,6 @@ TEST(ExpressionTests, ColumnValueExpressionTest) {
 
   tve1->DeriveExpressionName();
   EXPECT_EQ(tve1->GetExpressionName(), "alias");
-  tve6->DeriveExpressionName();
-  EXPECT_EQ(tve6->GetExpressionName(), "column_name");
   tve7->DeriveExpressionName();
   EXPECT_EQ(tve7->GetExpressionName(), "");
 
@@ -824,8 +814,6 @@ TEST(ExpressionTests, ColumnValueExpressionTest) {
   delete tve2;
   delete tve3;
   delete tve4;
-  delete tve5;
-  delete tve6;
   delete tve7;
   delete tve8;
   delete tve9;

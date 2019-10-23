@@ -20,7 +20,6 @@ class SampleOutput {
    */
   void InitTestOutput() {
     // Sample output formats
-    catalog::col_oid_t col_oid{0};
     planner::OutputSchema::Column int_col{"dummy", type::TypeId::INTEGER};
     planner::OutputSchema::Column real_col{"dummy", type::TypeId::DECIMAL};
     planner::OutputSchema::Column date_col{"dummy", type::TypeId::DATE};
@@ -53,7 +52,6 @@ class SampleOutput {
 
  private:
   void InitTPCHOutput() {
-    catalog::col_oid_t col_oid{0};
     planner::OutputSchema::Column int_col{"dummy", type::TypeId::INTEGER};
     planner::OutputSchema::Column real_col{"dummy", type::TypeId::DECIMAL};
     planner::OutputSchema::Column date_col{"dummy", type::TypeId::DATE};
