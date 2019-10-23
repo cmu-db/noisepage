@@ -140,12 +140,12 @@ TEST_F(OptimizerMetadataTest, RecordTransformedExpressionDuplicateSingleLayer) {
   auto metadata = OptimizerMetadata(nullptr);
 
   // Create OperatorExpression of JOIN <= (GET A, GET A)
-  auto *leftGet = new OperatorExpression(
+  auto *left_get = new OperatorExpression(
       LogicalGet::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3), {}, "tbl", false),
       {});
-  auto *rightGet = leftGet->Copy();
-  EXPECT_EQ(*leftGet, *rightGet);
-  auto *join = new OperatorExpression(LogicalInnerJoin::Make(), {leftGet, rightGet});
+  auto *right_get = left_get->Copy();
+  EXPECT_EQ(*left_get, *right_get);
+  auto *join = new OperatorExpression(LogicalInnerJoin::Make(), {left_get, right_get});
 
   // RecordTransformedExpression
   GroupExpression *joinGexpr;
@@ -161,8 +161,8 @@ TEST_F(OptimizerMetadataTest, RecordTransformedExpressionDuplicateSingleLayer) {
   EXPECT_EQ(group->GetLogicalExpressions().size(), 1);
 
   auto child_gexpr = group->GetLogicalExpressions()[0];
-  EXPECT_EQ(child_gexpr->Op(), leftGet->GetOp());
-  EXPECT_EQ(child_gexpr->Op(), rightGet->GetOp());
+  EXPECT_EQ(child_gexpr->Op(), left_get->GetOp());
+  EXPECT_EQ(child_gexpr->Op(), right_get->GetOp());
   EXPECT_EQ(child_gexpr->GetChildGroupIDs().size(), 0);
 
   delete join;
@@ -197,8 +197,8 @@ TEST_F(OptimizerMetadataTest, RecordTransformedExpressionDuplicateMultiLayer) {
   EXPECT_EQ(join_group->GetLogicalExpressions().size(), 1);
 
   auto join_gexpr = join_group->GetLogicalExpressions()[0];
-  EXPECT_EQ(join_gexpr->Op(), leftJoin->GetOp());
-  EXPECT_EQ(join_gexpr->Op(), rightJoin->GetOp());
+  EXPECT_EQ(join_gexpr->Op(), left_join->GetOp());
+  EXPECT_EQ(join_gexpr->Op(), right_join->GetOp());
   EXPECT_EQ(join_gexpr->GetChildGroupIDs().size(), 2);
   EXPECT_EQ(join_gexpr->GetChildGroupId(0), join_gexpr->GetChildGroupId(1));
 
@@ -207,8 +207,8 @@ TEST_F(OptimizerMetadataTest, RecordTransformedExpressionDuplicateMultiLayer) {
   EXPECT_EQ(child_group->GetLogicalExpressions().size(), 1);
 
   auto child_gexpr = child_group->GetLogicalExpressions()[0];
-  EXPECT_EQ(child_gexpr->Op(), leftGet->GetOp());
-  EXPECT_EQ(child_gexpr->Op(), rightGet->GetOp());
+  EXPECT_EQ(child_gexpr->Op(), left_get->GetOp());
+  EXPECT_EQ(child_gexpr->Op(), right_get->GetOp());
   EXPECT_EQ(child_gexpr->GetChildGroupIDs().size(), 0);
 
   delete join;
@@ -237,12 +237,12 @@ TEST_F(OptimizerMetadataTest, RecordTransformedExpressionDuplicate) {
 TEST_F(OptimizerMetadataTest, SimpleBindingTest) {
   auto metadata = OptimizerMetadata(nullptr);
 
-  auto *leftGet = new OperatorExpression(
+  auto *left_get = new OperatorExpression(
       LogicalGet::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3), {}, "tbl", false),
       {});
-  auto *rightGet = leftGet->Copy();
-  EXPECT_EQ(*leftGet, *rightGet);
-  auto *join = new OperatorExpression(LogicalInnerJoin::Make(), {leftGet, rightGet});
+  auto *right_get = left_get->Copy();
+  EXPECT_EQ(*left_get, *right_get);
+  auto *join = new OperatorExpression(LogicalInnerJoin::Make(), {left_get, right_get});
 
   GroupExpression *gexpr = nullptr;
   EXPECT_TRUE(metadata.RecordTransformedExpression(join, &gexpr));
