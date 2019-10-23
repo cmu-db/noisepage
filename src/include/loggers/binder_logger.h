@@ -8,7 +8,7 @@
 namespace terrier::binder {
 extern std::shared_ptr<spdlog::logger> binder_logger;
 
-void InitOptimizerLogger();
+void InitBinderLogger();
 }  // namespace terrier::binder
 
 #define BINDER_LOG_TRACE(...) ::terrier::binder::binder_logger->trace(__VA_ARGS__);

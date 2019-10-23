@@ -4,6 +4,7 @@
 #include <vector>
 #include "binder/bind_node_visitor.h"
 #include "catalog/catalog.h"
+#include "loggers/binder_logger.h"
 #include "parser/expression/aggregate_expression.h"
 #include "parser/expression/column_value_expression.h"
 #include "parser/expression/operator_expression.h"
