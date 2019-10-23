@@ -52,7 +52,7 @@ TEST_F(TpccPlanSeqScanTests, SimpleSeqScanSelectWithPredicate) {
     auto &schema = test->accessor_->GetSchema(test->tbl_order_);
     auto offset = 0;
     for (size_t idx = 0; idx < schema.GetColumns().size(); idx++) {
-      unsigned idx_u = static_cast<unsigned>(idx);
+      auto idx_u = static_cast<unsigned>(idx);
       if (schema.GetColumn(idx_u).Name() == "o_carrier_id") {
         offset = static_cast<unsigned>(idx_u);
       }

@@ -121,7 +121,7 @@ class TpccPlanTest : public TerrierTest {
   }
 
   // Optimizer on Insert
-  void OptimizeInsert(std::string query, catalog::table_oid_t tbl_oid) {
+  void OptimizeInsert(const std::string &query, catalog::table_oid_t tbl_oid) {
     parser::PostgresParser pgparser;
     auto stmt_list = pgparser.BuildParseTree(query);
     auto ins_stmt = stmt_list.GetStatement(0).CastManagedPointerTo<parser::InsertStatement>();
@@ -171,7 +171,7 @@ class TpccPlanTest : public TerrierTest {
   }
 
   // Optimize an Update
-  void OptimizeUpdate(std::string query, catalog::table_oid_t tbl_oid) {
+  void OptimizeUpdate(const std::string &query, catalog::table_oid_t tbl_oid) {
     parser::PostgresParser pgparser;
     auto stmt_list = pgparser.BuildParseTree(query);
 
@@ -203,7 +203,7 @@ class TpccPlanTest : public TerrierTest {
   }
 
   // Optimize a Query
-  void OptimizeQuery(std::string query, catalog::table_oid_t tbl_oid,
+  void OptimizeQuery(const std::string &query, catalog::table_oid_t tbl_oid,
                      void (*Check)(TpccPlanTest *test, parser::SelectStatement *sel_stmt, catalog::table_oid_t tbl_oid,
                                    std::unique_ptr<planner::AbstractPlanNode> plan)) {
     parser::PostgresParser pgparser;

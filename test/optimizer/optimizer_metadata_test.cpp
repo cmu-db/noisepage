@@ -173,15 +173,15 @@ TEST_F(OptimizerMetadataTest, RecordTransformedExpressionDuplicateMultiLayer) {
   auto metadata = OptimizerMetadata(nullptr);
 
   // Create OperatorExpression (A JOIN B) JOIN (A JOIN B)
-  auto *leftGet = new OperatorExpression(
+  auto *left_get = new OperatorExpression(
       LogicalGet::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3), {}, "tbl", false),
       {});
-  auto *rightGet = leftGet->Copy();
-  EXPECT_EQ(*leftGet, *rightGet);
-  auto *leftJoin = new OperatorExpression(LogicalInnerJoin::Make(), {leftGet, rightGet});
-  auto *rightJoin = leftJoin->Copy();
-  EXPECT_EQ(*leftJoin, *rightJoin);
-  auto *join = new OperatorExpression(LogicalInnerJoin::Make(), {leftJoin, rightJoin});
+  auto *right_get = left_get->Copy();
+  EXPECT_EQ(*left_get, *right_get);
+  auto *left_join = new OperatorExpression(LogicalInnerJoin::Make(), {left_get, right_get});
+  auto *right_join = left_join->Copy();
+  EXPECT_EQ(*left_join, *right_join);
+  auto *join = new OperatorExpression(LogicalInnerJoin::Make(), {left_join, right_join});
 
   // RecordTransformedExpression
   GroupExpression *joinGexpr;
@@ -269,12 +269,12 @@ TEST_F(OptimizerMetadataTest, SimpleBindingTest) {
 TEST_F(OptimizerMetadataTest, SingleWildcardTest) {
   auto metadata = OptimizerMetadata(nullptr);
 
-  auto *leftGet = new OperatorExpression(
+  auto *left_get = new OperatorExpression(
       LogicalGet::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3), {}, "tbl", false),
       {});
-  auto *rightGet = leftGet->Copy();
-  EXPECT_EQ(*leftGet, *rightGet);
-  auto *join = new OperatorExpression(LogicalInnerJoin::Make(), {leftGet, rightGet});
+  auto *right_get = left_get->Copy();
+  EXPECT_EQ(*left_get, *right_get);
+  auto *join = new OperatorExpression(LogicalInnerJoin::Make(), {left_get, right_get});
 
   GroupExpression *gexpr = nullptr;
   EXPECT_TRUE(metadata.RecordTransformedExpression(join, &gexpr));

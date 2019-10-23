@@ -357,10 +357,10 @@ class LogicalDependentJoin : public OperatorNode<LogicalDependentJoin> {
   static Operator Make();
 
   /**
-   * @param conditions condition of the join
+   * @param join_predicates conditions of the join
    * @return a DependentJoin operator
    */
-  static Operator Make(std::vector<AnnotatedExpression> &&conditions);
+  static Operator Make(std::vector<AnnotatedExpression> &&join_predicates);
 
   /**
    * Copy
@@ -395,10 +395,10 @@ class LogicalMarkJoin : public OperatorNode<LogicalMarkJoin> {
   static Operator Make();
 
   /**
-   * @param conditions conditions of the join
+   * @param join_predicates conditions of the join
    * @return a MarkJoin operator
    */
-  static Operator Make(std::vector<AnnotatedExpression> &&conditions);
+  static Operator Make(std::vector<AnnotatedExpression> &&join_predicates);
 
   /**
    * Copy
@@ -433,10 +433,10 @@ class LogicalSingleJoin : public OperatorNode<LogicalSingleJoin> {
   static Operator Make();
 
   /**
-   * @param conditions conditions of the join
+   * @param join_predicates conditions of the join
    * @return a SingleJoin operator
    */
-  static Operator Make(std::vector<AnnotatedExpression> &&conditions);
+  static Operator Make(std::vector<AnnotatedExpression> &&join_predicates);
 
   /**
    * Copy
@@ -471,10 +471,10 @@ class LogicalInnerJoin : public OperatorNode<LogicalInnerJoin> {
   static Operator Make();
 
   /**
-   * @param conditions conditions of the join
+   * @param join_predicates conditions of the join
    * @return an InnerJoin operator
    */
-  static Operator Make(std::vector<AnnotatedExpression> &&conditions);
+  static Operator Make(std::vector<AnnotatedExpression> &&join_predicates);
 
   /**
    * Copy
@@ -504,10 +504,15 @@ class LogicalInnerJoin : public OperatorNode<LogicalInnerJoin> {
 class LogicalLeftJoin : public OperatorNode<LogicalLeftJoin> {
  public:
   /**
-   * @param join_predicate condition of the join
    * @return a LeftJoin operator
    */
-  static Operator Make(common::ManagedPointer<parser::AbstractExpression> join_predicate);
+  static Operator Make();
+
+  /**
+   * @param join_predicates conditions of the join
+   * @return a LeftJoin operator
+   */
+  static Operator Make(std::vector<AnnotatedExpression> &&join_predicates);
 
   /**
    * Copy
@@ -520,15 +525,15 @@ class LogicalLeftJoin : public OperatorNode<LogicalLeftJoin> {
   common::hash_t Hash() const override;
 
   /**
-   * @return pointer to the join predicate expression
+   * @return vector of join predicates
    */
-  const common::ManagedPointer<parser::AbstractExpression> &GetJoinPredicate() const { return join_predicate_; }
+  const std::vector<AnnotatedExpression> &GetJoinPredicates() const { return join_predicates_; }
 
  private:
   /**
-   * Join predicate
+   * Join predicates
    */
-  common::ManagedPointer<parser::AbstractExpression> join_predicate_;
+  std::vector<AnnotatedExpression> join_predicates_;
 };
 
 /**
@@ -537,10 +542,15 @@ class LogicalLeftJoin : public OperatorNode<LogicalLeftJoin> {
 class LogicalRightJoin : public OperatorNode<LogicalRightJoin> {
  public:
   /**
-   * @param join_predicate condition of the join
    * @return a RightJoin operator
    */
-  static Operator Make(common::ManagedPointer<parser::AbstractExpression> join_predicate);
+  static Operator Make();
+
+  /**
+   * @param join_predicates conditions of the join
+   * @return a RightJoin operator
+   */
+  static Operator Make(std::vector<AnnotatedExpression> &&join_predicates);
 
   /**
    * Copy
@@ -553,15 +563,15 @@ class LogicalRightJoin : public OperatorNode<LogicalRightJoin> {
   common::hash_t Hash() const override;
 
   /**
-   * @return pointer to the join predicate expression
+   * @return vector of join predicates
    */
-  const common::ManagedPointer<parser::AbstractExpression> &GetJoinPredicate() const { return join_predicate_; }
+  const std::vector<AnnotatedExpression> &GetJoinPredicates() const { return join_predicates_; }
 
  private:
   /**
-   * Join predicate
+   * Join predicates
    */
-  common::ManagedPointer<parser::AbstractExpression> join_predicate_;
+  std::vector<AnnotatedExpression> join_predicates_;
 };
 
 /**
@@ -570,10 +580,15 @@ class LogicalRightJoin : public OperatorNode<LogicalRightJoin> {
 class LogicalOuterJoin : public OperatorNode<LogicalOuterJoin> {
  public:
   /**
-   * @param join_predicate condition of the join
    * @return an OuterJoin operator
    */
-  static Operator Make(common::ManagedPointer<parser::AbstractExpression> join_predicate);
+  static Operator Make();
+
+  /**
+   * @param join_predicates conditions of the join
+   * @return an OuterJoin operator
+   */
+  static Operator Make(std::vector<AnnotatedExpression> &&join_predicates);
 
   /**
    * Copy
@@ -586,15 +601,15 @@ class LogicalOuterJoin : public OperatorNode<LogicalOuterJoin> {
   common::hash_t Hash() const override;
 
   /**
-   * @return pointer to the join predicate expression
+   * @return vector of join predicates
    */
-  const common::ManagedPointer<parser::AbstractExpression> &GetJoinPredicate() const { return join_predicate_; }
+  const std::vector<AnnotatedExpression> &GetJoinPredicates() const { return join_predicates_; }
 
  private:
   /**
-   * Join predicate
+   * Join predicates
    */
-  common::ManagedPointer<parser::AbstractExpression> join_predicate_;
+  std::vector<AnnotatedExpression> join_predicates_;
 };
 
 /**
@@ -603,10 +618,15 @@ class LogicalOuterJoin : public OperatorNode<LogicalOuterJoin> {
 class LogicalSemiJoin : public OperatorNode<LogicalSemiJoin> {
  public:
   /**
-   * @param join_predicate condition of the join
    * @return a SemiJoin operator
    */
-  static Operator Make(common::ManagedPointer<parser::AbstractExpression> join_predicate);
+  static Operator Make();
+
+  /**
+   * @param join_predicates conditions of the join
+   * @return a SemiJoin operator
+   */
+  static Operator Make(std::vector<AnnotatedExpression> &&join_predicates);
 
   /**
    * Copy
@@ -619,15 +639,15 @@ class LogicalSemiJoin : public OperatorNode<LogicalSemiJoin> {
   common::hash_t Hash() const override;
 
   /**
-   * @return pointer to the join predicate expression
+   * @return vector of join predicates
    */
-  const common::ManagedPointer<parser::AbstractExpression> &GetJoinPredicate() const { return join_predicate_; }
+  const std::vector<AnnotatedExpression> &GetJoinPredicates() const { return join_predicates_; }
 
  private:
   /**
-   * Join predicate
+   * Join predicates
    */
-  common::ManagedPointer<parser::AbstractExpression> join_predicate_;
+  std::vector<AnnotatedExpression> join_predicates_;
 };
 
 /**

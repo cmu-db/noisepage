@@ -57,7 +57,9 @@ class OptimizerTaskStack : public OptimizerTaskPool {
    */
   ~OptimizerTaskStack() override {
     while (!task_stack_.empty()) {
-      delete Pop();
+      auto task = task_stack_.top();
+      task_stack_.pop();
+      delete task;
     }
   }
 

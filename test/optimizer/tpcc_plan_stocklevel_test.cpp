@@ -29,4 +29,17 @@ TEST_F(TpccPlanStockLevelTests, GetCountStock) {
   EXPECT_TRUE(true);
 }
 
+/*
+// NOLINTNEXTLINE
+TEST_F(TpccPlanStockLevelTests, GetJoinStock) {
+  auto check = [](TpccPlanTest *test, parser::SelectStatement *sel_stmt, catalog::table_oid_t tbl_oid,
+                  std::unique_ptr<planner::AbstractPlanNode> plan) {
+
+  };
+
+  std::string query = "SELECT S_I_ID FROM \"ORDER LINE\", STOCK WHERE OL_W_ID=1 AND S_W_ID=1";
+  OptimizeQuery(query, tbl_stock_, check);
+}
+*/
+
 }  // namespace terrier

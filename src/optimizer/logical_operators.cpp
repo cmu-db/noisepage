@@ -468,15 +468,28 @@ bool LogicalExportExternalFile::operator==(const BaseOperatorNode &r) {
 BaseOperatorNode *LogicalDependentJoin::Copy() const { return new LogicalDependentJoin(*this); }
 
 Operator LogicalDependentJoin::Make() {
-  auto *join = new LogicalDependentJoin;
+  auto *join = new LogicalDependentJoin();
   join->join_predicates_ = {};
   return Operator(join);
 }
 
-Operator LogicalDependentJoin::Make(std::vector<AnnotatedExpression> &&conditions) {
-  auto *join = new LogicalDependentJoin;
-  join->join_predicates_ = std::move(conditions);
+Operator LogicalDependentJoin::Make(std::vector<AnnotatedExpression> &&join_predicates) {
+  auto *join = new LogicalDependentJoin();
+  join->join_predicates_ = std::move(join_predicates);
   return Operator(join);
+}
+
+common::hash_t LogicalDependentJoin::Hash() const {
+  common::hash_t hash = BaseOperatorNode::Hash();
+  for (auto &pred : join_predicates_) {
+    auto expr = pred.GetExpr();
+    if (expr) {
+      hash = common::HashUtil::SumHashes(hash, expr->Hash());
+    } else {
+      hash = common::HashUtil::SumHashes(hash, BaseOperatorNode::Hash());
+    }
+  }
+  return hash;
 }
 
 bool LogicalDependentJoin::operator==(const BaseOperatorNode &r) {
@@ -485,32 +498,20 @@ bool LogicalDependentJoin::operator==(const BaseOperatorNode &r) {
   return (join_predicates_ == node.join_predicates_);
 }
 
-common::hash_t LogicalDependentJoin::Hash() const {
-  common::hash_t hash = BaseOperatorNode::Hash();
-  for (auto &pred : join_predicates_) {
-    auto expr = pred.GetExpr();
-    if (expr)
-      hash = common::HashUtil::SumHashes(hash, expr->Hash());
-    else
-      hash = common::HashUtil::SumHashes(hash, BaseOperatorNode::Hash());
-  }
-  return hash;
-}
-
 //===--------------------------------------------------------------------===//
 // MarkJoin
 //===--------------------------------------------------------------------===//
 BaseOperatorNode *LogicalMarkJoin::Copy() const { return new LogicalMarkJoin(*this); }
 
 Operator LogicalMarkJoin::Make() {
-  auto *join = new LogicalMarkJoin;
+  auto *join = new LogicalMarkJoin();
   join->join_predicates_ = {};
   return Operator(join);
 }
 
-Operator LogicalMarkJoin::Make(std::vector<AnnotatedExpression> &&conditions) {
-  auto *join = new LogicalMarkJoin;
-  join->join_predicates_ = std::move(conditions);
+Operator LogicalMarkJoin::Make(std::vector<AnnotatedExpression> &&join_predicates) {
+  auto *join = new LogicalMarkJoin();
+  join->join_predicates_ = join_predicates;
   return Operator(join);
 }
 
@@ -518,10 +519,11 @@ common::hash_t LogicalMarkJoin::Hash() const {
   common::hash_t hash = BaseOperatorNode::Hash();
   for (auto &pred : join_predicates_) {
     auto expr = pred.GetExpr();
-    if (expr)
+    if (expr) {
       hash = common::HashUtil::SumHashes(hash, expr->Hash());
-    else
+    } else {
       hash = common::HashUtil::SumHashes(hash, BaseOperatorNode::Hash());
+    }
   }
   return hash;
 }
@@ -538,14 +540,14 @@ bool LogicalMarkJoin::operator==(const BaseOperatorNode &r) {
 BaseOperatorNode *LogicalSingleJoin::Copy() const { return new LogicalSingleJoin(*this); }
 
 Operator LogicalSingleJoin::Make() {
-  auto *join = new LogicalSingleJoin;
+  auto *join = new LogicalSingleJoin();
   join->join_predicates_ = {};
   return Operator(join);
 }
 
-Operator LogicalSingleJoin::Make(std::vector<AnnotatedExpression> &&conditions) {
-  auto *join = new LogicalSingleJoin;
-  join->join_predicates_ = std::move(conditions);
+Operator LogicalSingleJoin::Make(std::vector<AnnotatedExpression> &&join_predicates) {
+  auto *join = new LogicalSingleJoin();
+  join->join_predicates_ = join_predicates;
   return Operator(join);
 }
 
@@ -553,10 +555,11 @@ common::hash_t LogicalSingleJoin::Hash() const {
   common::hash_t hash = BaseOperatorNode::Hash();
   for (auto &pred : join_predicates_) {
     auto expr = pred.GetExpr();
-    if (expr)
+    if (expr) {
       hash = common::HashUtil::SumHashes(hash, expr->Hash());
-    else
+    } else {
       hash = common::HashUtil::SumHashes(hash, BaseOperatorNode::Hash());
+    }
   }
   return hash;
 }
@@ -573,14 +576,14 @@ bool LogicalSingleJoin::operator==(const BaseOperatorNode &r) {
 BaseOperatorNode *LogicalInnerJoin::Copy() const { return new LogicalInnerJoin(*this); }
 
 Operator LogicalInnerJoin::Make() {
-  auto *join = new LogicalInnerJoin;
+  auto *join = new LogicalInnerJoin();
   join->join_predicates_ = {};
   return Operator(join);
 }
 
-Operator LogicalInnerJoin::Make(std::vector<AnnotatedExpression> &&conditions) {
-  auto *join = new LogicalInnerJoin;
-  join->join_predicates_ = std::move(conditions);
+Operator LogicalInnerJoin::Make(std::vector<AnnotatedExpression> &&join_predicates) {
+  auto *join = new LogicalInnerJoin();
+  join->join_predicates_ = join_predicates;
   return Operator(join);
 }
 
@@ -588,10 +591,11 @@ common::hash_t LogicalInnerJoin::Hash() const {
   common::hash_t hash = BaseOperatorNode::Hash();
   for (auto &pred : join_predicates_) {
     auto expr = pred.GetExpr();
-    if (expr)
+    if (expr) {
       hash = common::HashUtil::SumHashes(hash, expr->Hash());
-    else
+    } else {
       hash = common::HashUtil::SumHashes(hash, BaseOperatorNode::Hash());
+    }
   }
   return hash;
 }
@@ -607,22 +611,35 @@ bool LogicalInnerJoin::operator==(const BaseOperatorNode &r) {
 //===--------------------------------------------------------------------===//
 BaseOperatorNode *LogicalLeftJoin::Copy() const { return new LogicalLeftJoin(*this); }
 
-Operator LogicalLeftJoin::Make(common::ManagedPointer<parser::AbstractExpression> join_predicate) {
+Operator LogicalLeftJoin::Make() {
   auto *join = new LogicalLeftJoin();
-  join->join_predicate_ = join_predicate;
+  join->join_predicates_ = {};
+  return Operator(join);
+}
+
+Operator LogicalLeftJoin::Make(std::vector<AnnotatedExpression> &&join_predicates) {
+  auto *join = new LogicalLeftJoin();
+  join->join_predicates_ = join_predicates;
   return Operator(join);
 }
 
 common::hash_t LogicalLeftJoin::Hash() const {
   common::hash_t hash = BaseOperatorNode::Hash();
-  hash = common::HashUtil::CombineHashes(hash, join_predicate_->Hash());
+  for (auto &pred : join_predicates_) {
+    auto expr = pred.GetExpr();
+    if (expr) {
+      hash = common::HashUtil::SumHashes(hash, expr->Hash());
+    } else {
+      hash = common::HashUtil::SumHashes(hash, BaseOperatorNode::Hash());
+    }
+  }
   return hash;
 }
 
 bool LogicalLeftJoin::operator==(const BaseOperatorNode &r) {
   if (r.GetType() != OpType::LOGICALLEFTJOIN) return false;
   const LogicalLeftJoin &node = *static_cast<const LogicalLeftJoin *>(&r);
-  return (*join_predicate_ == *(node.join_predicate_));
+  return (join_predicates_ == node.join_predicates_);
 }
 
 //===--------------------------------------------------------------------===//
@@ -630,22 +647,35 @@ bool LogicalLeftJoin::operator==(const BaseOperatorNode &r) {
 //===--------------------------------------------------------------------===//
 BaseOperatorNode *LogicalRightJoin::Copy() const { return new LogicalRightJoin(*this); }
 
-Operator LogicalRightJoin::Make(common::ManagedPointer<parser::AbstractExpression> join_predicate) {
+Operator LogicalRightJoin::Make() {
   auto *join = new LogicalRightJoin();
-  join->join_predicate_ = join_predicate;
+  join->join_predicates_ = {};
+  return Operator(join);
+}
+
+Operator LogicalRightJoin::Make(std::vector<AnnotatedExpression> &&join_predicates) {
+  auto *join = new LogicalRightJoin();
+  join->join_predicates_ = join_predicates;
   return Operator(join);
 }
 
 common::hash_t LogicalRightJoin::Hash() const {
   common::hash_t hash = BaseOperatorNode::Hash();
-  hash = common::HashUtil::CombineHashes(hash, join_predicate_->Hash());
+  for (auto &pred : join_predicates_) {
+    auto expr = pred.GetExpr();
+    if (expr) {
+      hash = common::HashUtil::SumHashes(hash, expr->Hash());
+    } else {
+      hash = common::HashUtil::SumHashes(hash, BaseOperatorNode::Hash());
+    }
+  }
   return hash;
 }
 
 bool LogicalRightJoin::operator==(const BaseOperatorNode &r) {
   if (r.GetType() != OpType::LOGICALRIGHTJOIN) return false;
   const LogicalRightJoin &node = *static_cast<const LogicalRightJoin *>(&r);
-  return (*join_predicate_ == *(node.join_predicate_));
+  return (join_predicates_ == node.join_predicates_);
 }
 
 //===--------------------------------------------------------------------===//
@@ -653,22 +683,35 @@ bool LogicalRightJoin::operator==(const BaseOperatorNode &r) {
 //===--------------------------------------------------------------------===//
 BaseOperatorNode *LogicalOuterJoin::Copy() const { return new LogicalOuterJoin(*this); }
 
-Operator LogicalOuterJoin::Make(common::ManagedPointer<parser::AbstractExpression> join_predicate) {
+Operator LogicalOuterJoin::Make() {
+  auto *join = new LogicalOuterJoin();
+  join->join_predicates_ = {};
+  return Operator(join);
+}
+
+Operator LogicalOuterJoin::Make(std::vector<AnnotatedExpression> &&join_predicates) {
   auto *join = new LogicalOuterJoin;
-  join->join_predicate_ = join_predicate;
+  join->join_predicates_ = join_predicates;
   return Operator(join);
 }
 
 common::hash_t LogicalOuterJoin::Hash() const {
   common::hash_t hash = BaseOperatorNode::Hash();
-  hash = common::HashUtil::CombineHashes(hash, join_predicate_->Hash());
+  for (auto &pred : join_predicates_) {
+    auto expr = pred.GetExpr();
+    if (expr) {
+      hash = common::HashUtil::SumHashes(hash, expr->Hash());
+    } else {
+      hash = common::HashUtil::SumHashes(hash, BaseOperatorNode::Hash());
+    }
+  }
   return hash;
 }
 
 bool LogicalOuterJoin::operator==(const BaseOperatorNode &r) {
   if (r.GetType() != OpType::LOGICALOUTERJOIN) return false;
   const LogicalOuterJoin &node = *static_cast<const LogicalOuterJoin *>(&r);
-  return (*join_predicate_ == *(node.join_predicate_));
+  return (join_predicates_ == node.join_predicates_);
 }
 
 //===--------------------------------------------------------------------===//
@@ -676,22 +719,35 @@ bool LogicalOuterJoin::operator==(const BaseOperatorNode &r) {
 //===--------------------------------------------------------------------===//
 BaseOperatorNode *LogicalSemiJoin::Copy() const { return new LogicalSemiJoin(*this); }
 
-Operator LogicalSemiJoin::Make(common::ManagedPointer<parser::AbstractExpression> join_predicate) {
+Operator LogicalSemiJoin::Make() {
   auto *join = new LogicalSemiJoin;
-  join->join_predicate_ = join_predicate;
+  join->join_predicates_ = {};
+  return Operator(join);
+}
+
+Operator LogicalSemiJoin::Make(std::vector<AnnotatedExpression> &&join_predicates) {
+  auto *join = new LogicalSemiJoin;
+  join->join_predicates_ = join_predicates;
   return Operator(join);
 }
 
 common::hash_t LogicalSemiJoin::Hash() const {
   common::hash_t hash = BaseOperatorNode::Hash();
-  hash = common::HashUtil::CombineHashes(hash, join_predicate_->Hash());
+  for (auto &pred : join_predicates_) {
+    auto expr = pred.GetExpr();
+    if (expr) {
+      hash = common::HashUtil::SumHashes(hash, expr->Hash());
+    } else {
+      hash = common::HashUtil::SumHashes(hash, BaseOperatorNode::Hash());
+    }
+  }
   return hash;
 }
 
 bool LogicalSemiJoin::operator==(const BaseOperatorNode &r) {
   if (r.GetType() != OpType::LOGICALSEMIJOIN) return false;
   const LogicalSemiJoin &node = *static_cast<const LogicalSemiJoin *>(&r);
-  return (*join_predicate_ == *(node.join_predicate_));
+  return (join_predicates_ == node.join_predicates_);
 }
 
 //===--------------------------------------------------------------------===//

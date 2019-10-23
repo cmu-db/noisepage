@@ -757,16 +757,23 @@ TEST(OperatorTests, LogicalLeftJoinTest) {
   auto x_2 = common::ManagedPointer<parser::AbstractExpression>(expr_b_2);
   auto x_3 = common::ManagedPointer<parser::AbstractExpression>(expr_b_3);
 
-  Operator logical_left_join_1 = LogicalLeftJoin::Make(x_1);
-  Operator logical_left_join_2 = LogicalLeftJoin::Make(x_2);
-  Operator logical_left_join_3 = LogicalLeftJoin::Make(x_3);
+  auto annotated_expr_1 = AnnotatedExpression(x_1, std::unordered_set<std::string>());
+  auto annotated_expr_2 = AnnotatedExpression(x_2, std::unordered_set<std::string>());
+  auto annotated_expr_3 = AnnotatedExpression(x_3, std::unordered_set<std::string>());
+
+  Operator logical_left_join_1 = LogicalLeftJoin::Make(std::vector<AnnotatedExpression>({annotated_expr_1}));
+  Operator logical_left_join_2 = LogicalLeftJoin::Make(std::vector<AnnotatedExpression>({annotated_expr_2}));
+  Operator logical_left_join_3 = LogicalLeftJoin::Make(std::vector<AnnotatedExpression>({annotated_expr_3}));
 
   EXPECT_EQ(logical_left_join_1.GetType(), OpType::LOGICALLEFTJOIN);
   EXPECT_EQ(logical_left_join_3.GetType(), OpType::LOGICALLEFTJOIN);
   EXPECT_EQ(logical_left_join_1.GetName(), "LogicalLeftJoin");
-  EXPECT_EQ(*(logical_left_join_1.As<LogicalLeftJoin>()->GetJoinPredicate()), *x_1);
-  EXPECT_EQ(*(logical_left_join_2.As<LogicalLeftJoin>()->GetJoinPredicate()), *x_2);
-  EXPECT_EQ(*(logical_left_join_3.As<LogicalLeftJoin>()->GetJoinPredicate()), *x_3);
+  EXPECT_EQ(logical_left_join_1.As<LogicalLeftJoin>()->GetJoinPredicates(),
+            std::vector<AnnotatedExpression>({annotated_expr_1}));
+  EXPECT_EQ(logical_left_join_2.As<LogicalLeftJoin>()->GetJoinPredicates(),
+            std::vector<AnnotatedExpression>({annotated_expr_2}));
+  EXPECT_EQ(logical_left_join_3.As<LogicalLeftJoin>()->GetJoinPredicates(),
+            std::vector<AnnotatedExpression>({annotated_expr_3}));
   EXPECT_TRUE(logical_left_join_1 == logical_left_join_2);
   EXPECT_FALSE(logical_left_join_1 == logical_left_join_3);
   EXPECT_EQ(logical_left_join_1.Hash(), logical_left_join_2.Hash());
@@ -793,16 +800,24 @@ TEST(OperatorTests, LogicalRightJoinTest) {
   auto x_2 = common::ManagedPointer<parser::AbstractExpression>(expr_b_2);
   auto x_3 = common::ManagedPointer<parser::AbstractExpression>(expr_b_3);
 
-  Operator logical_right_join_1 = LogicalRightJoin::Make(x_1);
-  Operator logical_right_join_2 = LogicalRightJoin::Make(x_2);
-  Operator logical_right_join_3 = LogicalRightJoin::Make(x_3);
+  auto annotated_expr_1 = AnnotatedExpression(x_1, std::unordered_set<std::string>());
+  auto annotated_expr_2 = AnnotatedExpression(x_2, std::unordered_set<std::string>());
+  auto annotated_expr_3 = AnnotatedExpression(x_3, std::unordered_set<std::string>());
+
+  Operator logical_right_join_1 = LogicalRightJoin::Make(std::vector<AnnotatedExpression>({annotated_expr_1}));
+  Operator logical_right_join_2 = LogicalRightJoin::Make(std::vector<AnnotatedExpression>({annotated_expr_2}));
+  Operator logical_right_join_3 = LogicalRightJoin::Make(std::vector<AnnotatedExpression>({annotated_expr_3}));
 
   EXPECT_EQ(logical_right_join_1.GetType(), OpType::LOGICALRIGHTJOIN);
   EXPECT_EQ(logical_right_join_3.GetType(), OpType::LOGICALRIGHTJOIN);
   EXPECT_EQ(logical_right_join_1.GetName(), "LogicalRightJoin");
-  EXPECT_EQ(*(logical_right_join_1.As<LogicalRightJoin>()->GetJoinPredicate()), *x_1);
-  EXPECT_EQ(*(logical_right_join_2.As<LogicalRightJoin>()->GetJoinPredicate()), *x_2);
-  EXPECT_EQ(*(logical_right_join_3.As<LogicalRightJoin>()->GetJoinPredicate()), *x_3);
+  EXPECT_EQ(logical_right_join_1.As<LogicalRightJoin>()->GetJoinPredicates(),
+            std::vector<AnnotatedExpression>({annotated_expr_1}));
+  EXPECT_EQ(logical_right_join_2.As<LogicalRightJoin>()->GetJoinPredicates(),
+            std::vector<AnnotatedExpression>({annotated_expr_2}));
+  EXPECT_EQ(logical_right_join_3.As<LogicalRightJoin>()->GetJoinPredicates(),
+            std::vector<AnnotatedExpression>({annotated_expr_3}));
+
   EXPECT_TRUE(logical_right_join_1 == logical_right_join_2);
   EXPECT_FALSE(logical_right_join_1 == logical_right_join_3);
   EXPECT_EQ(logical_right_join_1.Hash(), logical_right_join_2.Hash());
@@ -829,16 +844,23 @@ TEST(OperatorTests, LogicalOuterJoinTest) {
   auto x_2 = common::ManagedPointer<parser::AbstractExpression>(expr_b_2);
   auto x_3 = common::ManagedPointer<parser::AbstractExpression>(expr_b_3);
 
-  Operator logical_outer_join_1 = LogicalOuterJoin::Make(x_1);
-  Operator logical_outer_join_2 = LogicalOuterJoin::Make(x_2);
-  Operator logical_outer_join_3 = LogicalOuterJoin::Make(x_3);
+  auto annotated_expr_1 = AnnotatedExpression(x_1, std::unordered_set<std::string>());
+  auto annotated_expr_2 = AnnotatedExpression(x_2, std::unordered_set<std::string>());
+  auto annotated_expr_3 = AnnotatedExpression(x_3, std::unordered_set<std::string>());
+
+  Operator logical_outer_join_1 = LogicalOuterJoin::Make(std::vector<AnnotatedExpression>({annotated_expr_1}));
+  Operator logical_outer_join_2 = LogicalOuterJoin::Make(std::vector<AnnotatedExpression>({annotated_expr_2}));
+  Operator logical_outer_join_3 = LogicalOuterJoin::Make(std::vector<AnnotatedExpression>({annotated_expr_3}));
 
   EXPECT_EQ(logical_outer_join_1.GetType(), OpType::LOGICALOUTERJOIN);
   EXPECT_EQ(logical_outer_join_3.GetType(), OpType::LOGICALOUTERJOIN);
   EXPECT_EQ(logical_outer_join_1.GetName(), "LogicalOuterJoin");
-  EXPECT_EQ(*(logical_outer_join_1.As<LogicalOuterJoin>()->GetJoinPredicate()), *x_1);
-  EXPECT_EQ(*(logical_outer_join_2.As<LogicalOuterJoin>()->GetJoinPredicate()), *x_2);
-  EXPECT_EQ(*(logical_outer_join_3.As<LogicalOuterJoin>()->GetJoinPredicate()), *x_3);
+  EXPECT_EQ(logical_outer_join_1.As<LogicalOuterJoin>()->GetJoinPredicates(),
+            std::vector<AnnotatedExpression>({annotated_expr_1}));
+  EXPECT_EQ(logical_outer_join_2.As<LogicalOuterJoin>()->GetJoinPredicates(),
+            std::vector<AnnotatedExpression>({annotated_expr_2}));
+  EXPECT_EQ(logical_outer_join_3.As<LogicalOuterJoin>()->GetJoinPredicates(),
+            std::vector<AnnotatedExpression>({annotated_expr_3}));
   EXPECT_TRUE(logical_outer_join_1 == logical_outer_join_2);
   EXPECT_FALSE(logical_outer_join_1 == logical_outer_join_3);
   EXPECT_EQ(logical_outer_join_1.Hash(), logical_outer_join_2.Hash());
@@ -865,16 +887,23 @@ TEST(OperatorTests, LogicalSemiJoinTest) {
   auto x_2 = common::ManagedPointer<parser::AbstractExpression>(expr_b_2);
   auto x_3 = common::ManagedPointer<parser::AbstractExpression>(expr_b_3);
 
-  Operator logical_semi_join_1 = LogicalSemiJoin::Make(x_1);
-  Operator logical_semi_join_2 = LogicalSemiJoin::Make(x_2);
-  Operator logical_semi_join_3 = LogicalSemiJoin::Make(x_3);
+  auto annotated_expr_1 = AnnotatedExpression(x_1, std::unordered_set<std::string>());
+  auto annotated_expr_2 = AnnotatedExpression(x_2, std::unordered_set<std::string>());
+  auto annotated_expr_3 = AnnotatedExpression(x_3, std::unordered_set<std::string>());
+
+  Operator logical_semi_join_1 = LogicalSemiJoin::Make(std::vector<AnnotatedExpression>({annotated_expr_1}));
+  Operator logical_semi_join_2 = LogicalSemiJoin::Make(std::vector<AnnotatedExpression>({annotated_expr_2}));
+  Operator logical_semi_join_3 = LogicalSemiJoin::Make(std::vector<AnnotatedExpression>({annotated_expr_3}));
 
   EXPECT_EQ(logical_semi_join_1.GetType(), OpType::LOGICALSEMIJOIN);
   EXPECT_EQ(logical_semi_join_3.GetType(), OpType::LOGICALSEMIJOIN);
   EXPECT_EQ(logical_semi_join_1.GetName(), "LogicalSemiJoin");
-  EXPECT_EQ(*(logical_semi_join_1.As<LogicalSemiJoin>()->GetJoinPredicate()), *x_1);
-  EXPECT_EQ(*(logical_semi_join_2.As<LogicalSemiJoin>()->GetJoinPredicate()), *x_2);
-  EXPECT_EQ(*(logical_semi_join_3.As<LogicalSemiJoin>()->GetJoinPredicate()), *x_3);
+  EXPECT_EQ(logical_semi_join_1.As<LogicalSemiJoin>()->GetJoinPredicates(),
+            std::vector<AnnotatedExpression>({annotated_expr_1}));
+  EXPECT_EQ(logical_semi_join_2.As<LogicalSemiJoin>()->GetJoinPredicates(),
+            std::vector<AnnotatedExpression>({annotated_expr_2}));
+  EXPECT_EQ(logical_semi_join_3.As<LogicalSemiJoin>()->GetJoinPredicates(),
+            std::vector<AnnotatedExpression>({annotated_expr_3}));
   EXPECT_TRUE(logical_semi_join_1 == logical_semi_join_2);
   EXPECT_FALSE(logical_semi_join_1 == logical_semi_join_3);
   EXPECT_EQ(logical_semi_join_1.Hash(), logical_semi_join_2.Hash());
