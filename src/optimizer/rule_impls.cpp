@@ -1010,7 +1010,7 @@ bool PullFilterThroughMarkJoin::Check(OperatorExpression *plan, OptimizeContext 
   auto &children = plan->GetChildren();
   TERRIER_ASSERT(children.size() == 2, "MarkJoin should have two children");
 
-  auto &r_grandchildren = children[0]->GetChildren();
+  UNUSED_ATTRIBUTE auto &r_grandchildren = children[0]->GetChildren();
   TERRIER_ASSERT(r_grandchildren.size() == 1, "Filter should have only 1 child");
   return true;
 }

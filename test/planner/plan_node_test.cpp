@@ -3,9 +3,9 @@
 #include <string>
 #include <utility>
 #include <vector>
-#include "parser/expression/derived_value_expression.h"
 #include "parser/expression/column_value_expression.h"
 #include "parser/expression/comparison_expression.h"
+#include "parser/expression/derived_value_expression.h"
 #include "parser/expression/star_expression.h"
 #include "parser/postgresparser.h"
 #include "planner/plannodes/aggregate_plan_node.h"
@@ -228,7 +228,7 @@ TEST(PlanNodeTest, AggregatePlanTest) {
   parser::AbstractExpression *predicate = new parser::StarExpression();
   auto cve = std::make_unique<parser::ColumnValueExpression>("tbl", "col1");
   auto dve = std::make_unique<parser::DerivedValueExpression>(type::TypeId::INTEGER, 0, 0);
-  auto gb_term = reinterpret_cast<parser::AbstractExpression*>(dve.get());
+  auto gb_term = reinterpret_cast<parser::AbstractExpression *>(dve.get());
   std::vector<std::unique_ptr<parser::AbstractExpression>> children;
   children.emplace_back(std::move(cve));
 

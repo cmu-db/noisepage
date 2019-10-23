@@ -205,7 +205,7 @@ class OptimizerMetadata {
    */
   void ReplaceRewritedExpression(OperatorExpression *expr, GroupID target_group) {
     memo_.EraseExpression(target_group);
-    auto ret = memo_.InsertExpression(MakeGroupExpression(expr), target_group, false);
+    UNUSED_ATTRIBUTE auto ret = memo_.InsertExpression(MakeGroupExpression(expr), target_group, false);
     TERRIER_ASSERT(ret, "Root expr should always be inserted");
   }
 

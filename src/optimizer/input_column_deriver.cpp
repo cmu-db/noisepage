@@ -304,7 +304,7 @@ void InputColumnDeriver::JoinHelper(const BaseOperatorNode *op) {
   ExprSet build_table_cols_set;
   ExprSet probe_table_cols_set;
   auto &build_table_aliases = memo_->GetGroupByID(gexpr_->GetChildGroupId(0))->GetTableAliases();
-  auto &probe_table_aliases = memo_->GetGroupByID(gexpr_->GetChildGroupId(1))->GetTableAliases();
+  UNUSED_ATTRIBUTE auto &probe_table_aliases = memo_->GetGroupByID(gexpr_->GetChildGroupId(1))->GetTableAliases();
   for (auto &col : input_cols_set) {
     common::ManagedPointer<parser::ColumnValueExpression> tv_expr;
     if (col->GetExpressionType() == parser::ExpressionType::VALUE_TUPLE) {

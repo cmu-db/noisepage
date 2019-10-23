@@ -717,7 +717,8 @@ void PlanGenerator::BuildAggregatePlan(
   if (groupby_cols != nullptr) {
     for (auto &col : *groupby_cols) {
       auto eval = parser::ExpressionUtil::EvaluateExpression({child_expr_map}, col);
-      auto gb_term = parser::ExpressionUtil::ConvertExprCVNodes(common::ManagedPointer(eval), {child_expr_map}).release();
+      auto gb_term =
+          parser::ExpressionUtil::ConvertExprCVNodes(common::ManagedPointer(eval), {child_expr_map}).release();
       RegisterPointerCleanup<parser::AbstractExpression>(gb_term, true, true);
 
       builder.AddGroupByTerm(common::ManagedPointer(gb_term));
