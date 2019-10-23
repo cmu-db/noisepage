@@ -176,6 +176,7 @@ TEST_F(OperatorTransformerTest, SelectStatementSimpleTest) {
   auto statement = parse_tree.GetStatements()[0];
   binder_->BindNameToNode(statement, &parse_tree);
   accessor_ = binder_->GetCatalogAccessor();
+  auto default_namespace_oid = accessor_->GetDefaultNamespace();
   operator_transformer_ = new optimizer::QueryToOperatorTransformer(std::move(accessor_));
   operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, &parse_tree);
   auto info = GenerateOperatorAudit(operator_tree_);
@@ -200,6 +201,7 @@ TEST_F(OperatorTransformerTest, InsertStatementSimpleTest) {
   auto statement = parse_tree.GetStatements()[0];
   binder_->BindNameToNode(statement, &parse_tree);
   accessor_ = binder_->GetCatalogAccessor();
+  auto default_namespace_oid = accessor_->GetDefaultNamespace();
   operator_transformer_ = new optimizer::QueryToOperatorTransformer(std::move(accessor_));
   operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, &parse_tree);
   auto info = GenerateOperatorAudit(operator_tree_);
@@ -238,6 +240,7 @@ TEST_F(OperatorTransformerTest, InsertStatementSelectTest) {
   auto statement = parse_tree.GetStatements()[0];
   binder_->BindNameToNode(statement, &parse_tree);
   accessor_ = binder_->GetCatalogAccessor();
+  auto default_namespace_oid = accessor_->GetDefaultNamespace();
   operator_transformer_ = new optimizer::QueryToOperatorTransformer(std::move(accessor_));
   operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, &parse_tree);
   auto info = GenerateOperatorAudit(operator_tree_);
@@ -276,6 +279,7 @@ TEST_F(OperatorTransformerTest, UpdateStatementSimpleTest) {
   auto statement = parse_tree.GetStatements()[0];
   binder_->BindNameToNode(statement, &parse_tree);
   accessor_ = binder_->GetCatalogAccessor();
+  auto default_namespace_oid = accessor_->GetDefaultNamespace();
   operator_transformer_ = new optimizer::QueryToOperatorTransformer(std::move(accessor_));
   operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, &parse_tree);
   auto info = GenerateOperatorAudit(operator_tree_);
@@ -312,7 +316,7 @@ TEST_F(OperatorTransformerTest, SelectStatementAggregateTest) {
   auto parse_tree = parser_.BuildParseTree(select_sql);
   auto statement = parse_tree.GetStatements()[0];
   binder_->BindNameToNode(statement, &parse_tree);
-  auto accessor_ = binder_->GetCatalogAccessor();
+  accessor_ = binder_->GetCatalogAccessor();
   auto default_namespace_oid = accessor_->GetDefaultNamespace();
   operator_transformer_ = new optimizer::QueryToOperatorTransformer(std::move(accessor_));
   operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, &parse_tree);
@@ -347,7 +351,7 @@ TEST_F(OperatorTransformerTest, SelectStatementDistinctTest) {
   auto parse_tree = parser_.BuildParseTree(select_sql);
   auto statement = parse_tree.GetStatements()[0];
   binder_->BindNameToNode(statement, &parse_tree);
-  auto accessor_ = binder_->GetCatalogAccessor();
+  accessor_ = binder_->GetCatalogAccessor();
   auto default_namespace_oid = accessor_->GetDefaultNamespace();
   operator_transformer_ = new optimizer::QueryToOperatorTransformer(std::move(accessor_));
   operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, &parse_tree);
@@ -380,7 +384,7 @@ TEST_F(OperatorTransformerTest, SelectStatementOrderByTest) {
   auto parse_tree = parser_.BuildParseTree(select_sql);
   auto statement = parse_tree.GetStatements()[0];
   binder_->BindNameToNode(statement, &parse_tree);
-  auto accessor_ = binder_->GetCatalogAccessor();
+  accessor_ = binder_->GetCatalogAccessor();
   auto default_namespace_oid = accessor_->GetDefaultNamespace();
   operator_transformer_ = new optimizer::QueryToOperatorTransformer(std::move(accessor_));
   operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, &parse_tree);
@@ -419,7 +423,7 @@ TEST_F(OperatorTransformerTest, SelectStatementLeftJoinTest) {
   auto parse_tree = parser_.BuildParseTree(select_sql);
   auto statement = parse_tree.GetStatements()[0];
   binder_->BindNameToNode(statement, &parse_tree);
-  auto accessor_ = binder_->GetCatalogAccessor();
+  accessor_ = binder_->GetCatalogAccessor();
   auto default_namespace_oid = accessor_->GetDefaultNamespace();
   operator_transformer_ = new optimizer::QueryToOperatorTransformer(std::move(accessor_));
   operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, &parse_tree);
@@ -458,7 +462,7 @@ TEST_F(OperatorTransformerTest, SelectStatementRightJoinTest) {
   auto parse_tree = parser_.BuildParseTree(select_sql);
   auto statement = parse_tree.GetStatements()[0];
   binder_->BindNameToNode(statement, &parse_tree);
-  auto accessor_ = binder_->GetCatalogAccessor();
+  accessor_ = binder_->GetCatalogAccessor();
   auto default_namespace_oid = accessor_->GetDefaultNamespace();
   operator_transformer_ = new optimizer::QueryToOperatorTransformer(std::move(accessor_));
   operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, &parse_tree);
@@ -494,10 +498,10 @@ TEST_F(OperatorTransformerTest, SelectStatementInnerJoinTest) {
       "{\"Op\":\"LogicalInnerJoin\",\"Children\":"
       "[{\"Op\":\"LogicalGet\",},{\"Op\":\"LogicalGet\",}]}";
 
-  auto parse_tree = parser_.BuildParseTree(selectSQL);
+  auto parse_tree = parser_.BuildParseTree(select_sql);
   auto statement = parse_tree.GetStatements()[0];
   binder_->BindNameToNode(statement, &parse_tree);
-  auto accessor_ = binder_->GetCatalogAccessor();
+  accessor_ = binder_->GetCatalogAccessor();
   auto default_namespace_oid = accessor_->GetDefaultNamespace();
   operator_transformer_ = new optimizer::QueryToOperatorTransformer(std::move(accessor_));
   operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, &parse_tree);
@@ -533,10 +537,10 @@ TEST_F(OperatorTransformerTest, SelectStatementOuterJoinTest) {
       "{\"Op\":\"LogicalOuterJoin\",\"Children\":"
       "[{\"Op\":\"LogicalGet\",},{\"Op\":\"LogicalGet\",}]}";
 
-  auto parse_tree = parser_.BuildParseTree(selectSQL);
+  auto parse_tree = parser_.BuildParseTree(select_sql);
   auto statement = parse_tree.GetStatements()[0];
   binder_->BindNameToNode(statement, &parse_tree);
-  auto accessor_ = binder_->GetCatalogAccessor();
+  accessor_ = binder_->GetCatalogAccessor();
   auto default_namespace_oid = accessor_->GetDefaultNamespace();
   operator_transformer_ = new optimizer::QueryToOperatorTransformer(std::move(accessor_));
   operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, &parse_tree);
@@ -703,16 +707,16 @@ TEST_F(OperatorTransformerTest, SelectStatementSelectListAliasTest) {
 
 // NOLINTNEXTLINE
 TEST_F(OperatorTransformerTest, DeleteStatementWhereTest) {
-  std::string deleteSQL = "DELETE FROM b WHERE b1 = 1 AND b2 > 'str'";
+  std::string delete_sql = "DELETE FROM b WHERE b1 = 1 AND b2 > 'str'";
 
   std::string ref =
       "{\"Op\":\"LogicalDelete\",\"Children\":"
       "[{\"Op\":\"LogicalGet\",}]}";
 
-  auto parse_tree = parser_.BuildParseTree(deleteSQL);
+  auto parse_tree = parser_.BuildParseTree(delete_sql);
   auto statement = parse_tree.GetStatements()[0];
   binder_->BindNameToNode(statement, &parse_tree);
-  auto accessor_ = binder_->GetCatalogAccessor();
+  accessor_ = binder_->GetCatalogAccessor();
   auto default_namespace_oid = accessor_->GetDefaultNamespace();
   operator_transformer_ = new optimizer::QueryToOperatorTransformer(std::move(accessor_));
   operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, &parse_tree);
@@ -776,7 +780,7 @@ TEST_F(OperatorTransformerTest, OperatorComplexTest) {
   auto parse_tree = parser_.BuildParseTree(select_sql);
   auto statement = parse_tree.GetStatements()[0];
   binder_->BindNameToNode(statement, &parse_tree);
-  auto accessor_ = binder_->GetCatalogAccessor();
+  accessor_ = binder_->GetCatalogAccessor();
   auto default_namespace_oid = accessor_->GetDefaultNamespace();
   operator_transformer_ = new optimizer::QueryToOperatorTransformer(std::move(accessor_));
   operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, &parse_tree);

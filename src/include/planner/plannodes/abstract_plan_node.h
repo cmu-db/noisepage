@@ -42,8 +42,8 @@ class AbstractPlanNode {
      * @param output_schema output schema for plan node
      * @return builder object
      */
-    ConcreteType &SetOutputSchema(const std::shared_ptr<OutputSchema> &output_schema) {
-      output_schema_ = output_schema;
+    ConcreteType &SetOutputSchema(std::unique_ptr<OutputSchema> output_schema) {
+      output_schema_ = std::move(output_schema);
       return *dynamic_cast<ConcreteType *>(this);
     }
 
@@ -55,7 +55,7 @@ class AbstractPlanNode {
     /**
      * schema describing output of the node
      */
-    std::unique_ptr<OutputSchema> output_schema_;
+    std::unique_ptr<OutputSchema> output_schema_{nullptr};
   };
 
   /**

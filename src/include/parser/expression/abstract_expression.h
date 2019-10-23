@@ -39,7 +39,7 @@ class AbstractExpression {
    * @param return_value_type the type of the expression's value
    * @param children the list of children for this node
    */
-  AbstractExpression(ExpressionType expression_type, type::TypeId return_value_type,
+  AbstractExpression(const ExpressionType expression_type, const type::TypeId return_value_type,
                      std::vector<std::unique_ptr<AbstractExpression>> &&children)
       : expression_type_(expression_type), return_value_type_(return_value_type), children_(std::move(children)) {}
   /**
@@ -92,13 +92,12 @@ class AbstractExpression {
    * re-derive the expression.
    * @param copy_expr the expression whose mutable state should be copied
    */
-  void SetAlias(const std::string &alias) { alias_ = alias; }
-
-  void SetChild(int index, common::ManagedPointer<AbstractExpression> expr) {
-    if (index >= static_cast<int>(children_.size())) {
-      children_.resize(index + 1);
-    }
-    children_[index] = expr->Copy();
+  void SetMutableStateForCopy(const AbstractExpression &copy_expr) {
+    SetExpressionName(copy_expr.GetExpressionName());
+    SetReturnValueType(copy_expr.GetReturnValueType());
+    SetDepth(copy_expr.GetDepth());
+    has_subquery_ = copy_expr.HasSubquery();
+    alias_ = copy_expr.alias_;
   }
 
  public:

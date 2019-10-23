@@ -4,7 +4,9 @@
 #include <string>
 #include <utility>
 #include <vector>
+
 #include "catalog/schema.h"
+#include "common/managed_pointer.h"
 #include "parser/create_statement.h"
 #include "parser/expression/abstract_expression.h"
 #include "parser/expression/constant_value_expression.h"

@@ -89,7 +89,6 @@ class ColumnValueExpression : public AbstractExpression {
   /** @return column oid */
   catalog::col_oid_t GetColumnOid() const { return column_oid_; }
 
-  // TODO(WAN) we should really have a constructor that's just "everything"
   std::unique_ptr<AbstractExpression> Copy() const override {
     auto expr = std::make_unique<ColumnValueExpression>(GetDatabaseOid(), GetTableOid(), GetColumnOid());
     expr->SetMutableStateForCopy(*this);

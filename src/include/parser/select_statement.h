@@ -102,7 +102,12 @@ class OrderByDescription {
   nlohmann::json ToJson() const {
     nlohmann::json j;
     j["types"] = types_;
-    // TODO(WAN)    j["exprs"] = exprs_;
+    std::vector<nlohmann::json> exprs_json;
+    exprs_json.reserve(exprs_.size());
+    for (const auto &expr : exprs_) {
+      exprs_json.emplace_back(expr->ToJson());
+    }
+    j["exprs"] = exprs_json;
     return j;
   }
 
@@ -237,7 +242,7 @@ class GroupByDescription {
    */
   GroupByDescription(std::vector<common::ManagedPointer<AbstractExpression>> columns,
                      common::ManagedPointer<AbstractExpression> having)
-      : columns_(std::move(columns)), having_(std::move(having)) {}
+      : columns_(std::move(columns)), having_(having) {}
 
   /**
    * Default constructor for deserialization
@@ -379,6 +384,9 @@ class SelectStatement : public SQLStatement {
   SelectStatement() = default;
 
   void Accept(SqlNodeVisitor *v, ParseResult *parse_result) override { v->Visit(this, parse_result); }
+
+  /** @return a copy of the select statement */
+  std::unique_ptr<SelectStatement> Copy();
 
   /** @return select columns */
   const std::vector<common::ManagedPointer<AbstractExpression>> &GetSelectColumns() { return select_; }

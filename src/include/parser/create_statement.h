@@ -83,8 +83,8 @@ struct ColumnDefinition {
    * @param varlen size of column if varlen
    */
   ColumnDefinition(std::string name, DataType type, bool is_primary, bool is_not_null, bool is_unique,
-                   common::ManagedPointer<AbstractExpression> default_expr, common::ManagedPointer<AbstractExpression> check_expr,
-                   size_t varlen)
+                   common::ManagedPointer<AbstractExpression> default_expr,
+                   common::ManagedPointer<AbstractExpression> check_expr, size_t varlen)
       : name_(std::move(name)),
         type_(type),
         is_primary_(is_primary),
@@ -392,7 +392,7 @@ class CreateStatement : public TableRefStatement {
         trigger_funcnames_(std::move(trigger_funcnames)),
         trigger_args_(std::move(trigger_args)),
         trigger_columns_(std::move(trigger_columns)),
-        trigger_when_(std::move(trigger_when)),
+        trigger_when_(trigger_when),
         trigger_type_(trigger_type) {}
 
   /**

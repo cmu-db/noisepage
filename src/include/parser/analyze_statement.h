@@ -12,7 +12,6 @@
 
 namespace terrier {
 namespace parser {
-class ParseResult;
 /**
  * AnalyzeStatement represents the sql "ANALYZE ...".
  */

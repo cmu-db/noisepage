@@ -87,7 +87,7 @@ class SubqueryExpression : public AbstractExpression {
   /** @return expression serialized to json */
   nlohmann::json ToJson() const override {
     nlohmann::json j = AbstractExpression::ToJson();
-    // TODO(WAN) json    j["subselect"] = subselect_;
+    j["subselect"] = subselect_->ToJson();
     return j;
   }
 

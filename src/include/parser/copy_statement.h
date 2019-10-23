@@ -68,8 +68,8 @@ class CopyStatement : public SQLStatement {
   char GetEscapeChar() { return escape_; }
 
  private:
-  std::unique_ptr<TableRef> table_;
-  std::unique_ptr<SelectStatement> select_stmt_;
+  const std::unique_ptr<TableRef> table_;
+  const std::unique_ptr<SelectStatement> select_stmt_;
   const std::string file_path_;
   const ExternalFileFormat format_;
 
