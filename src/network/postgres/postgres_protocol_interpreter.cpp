@@ -74,7 +74,7 @@ Transition PostgresProtocolInterpreter::ProcessStartup(const std::shared_ptr<Rea
   return Transition::PROCEED;
 }
 
-size_t PostgresProtocolInterpreter::GetPacketHeaderSize() { return startup_ ? sizeof(int32_t) : 1 + sizeof(int32_t); }
+size_t PostgresProtocolInterpreter::GetPacketHeaderSize() { return startup_ ? sizeof(uint32_t) : 1 + sizeof(uint32_t); }
 
 void PostgresProtocolInterpreter::SetPacketMessageType(const std::shared_ptr<ReadBuffer> &in) {
   if (!startup_) curr_input_packet_.msg_type_ = in->ReadValue<NetworkMessageType>();

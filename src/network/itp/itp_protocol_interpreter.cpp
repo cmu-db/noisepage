@@ -8,9 +8,6 @@
 #include "network/network_defs.h"
 #include "network/terrier_server.h"
 
-#define SSL_MESSAGE_VERNO 80877103
-#define PROTO_MAJOR_VERSION(x) ((x) >> 16)
-
 namespace terrier::network {
 Transition ITPProtocolInterpreter::Process(std::shared_ptr<ReadBuffer> in, std::shared_ptr<WriteQueue> out,
                                            common::ManagedPointer<trafficcop::TrafficCop> t_cop,
@@ -36,7 +33,7 @@ void ITPProtocolInterpreter::GetResult(std::shared_ptr<WriteQueue> out) {
   writer.BeginPacket(NetworkMessageType::ITP_COMMAND_COMPLETE).EndPacket();
 }
 
-size_t ITPProtocolInterpreter::GetPacketHeaderSize() { return 1 + sizeof(int32_t); }
+size_t ITPProtocolInterpreter::GetPacketHeaderSize() { return 1 + sizeof(uint32_t); }
 
 void ITPProtocolInterpreter::SetPacketMessageType(const std::shared_ptr<ReadBuffer> &in) {
   curr_input_packet_.msg_type_ = in->ReadValue<NetworkMessageType>();

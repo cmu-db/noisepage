@@ -15,7 +15,7 @@
 namespace terrier::network {
 
 /**
- * Interprets the network protocol for postgres clients
+ * Interprets the network protocol for ITP
  */
 class ITPProtocolInterpreter : public ProtocolInterpreter {
  public:
@@ -69,7 +69,7 @@ class ITPProtocolInterpreter : public ProtocolInterpreter {
  protected:
   /**
    * @see ProtocolInterpreter::GetPacketHeaderSize
-   * Header format: 5 byte message size
+   * Header format: 1 byte message type + 4 byte message size
    */
   size_t GetPacketHeaderSize() override;
 
