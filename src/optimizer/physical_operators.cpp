@@ -220,7 +220,7 @@ common::hash_t OrderBy::Hash() const {
 //===--------------------------------------------------------------------===//
 Operator Limit::Make(size_t offset, size_t limit,
                      std::vector<common::ManagedPointer<parser::AbstractExpression>> &&sort_columns,
-                     std::vector<planner::OrderByOrderingType> &&sort_directions) {
+                     std::vector<optimizer::OrderByOrderingType> &&sort_directions) {
   auto *limit_op = new Limit;
   limit_op->offset_ = offset;
   limit_op->limit_ = limit;

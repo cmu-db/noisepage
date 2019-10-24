@@ -1,6 +1,7 @@
 #pragma once
 
 #include <iostream>
+#include "loggers/binder_logger.h"
 #include "loggers/catalog_logger.h"
 #include "loggers/execution_logger.h"
 #include "loggers/index_logger.h"
@@ -34,6 +35,7 @@ class LoggersUtil {
       storage::InitStorageLogger();
       transaction::InitTransactionLogger();
       catalog::InitCatalogLogger();
+      binder::InitBinderLogger();
       optimizer::InitOptimizerLogger();
       settings::InitSettingsLogger();
       parser::InitParserLogger();

@@ -855,8 +855,8 @@ TEST(PlanNodeJsonTest, OrderByPlanNodeJsonTest) {
   // Construct OrderByPlanNode
   OrderByPlanNode::Builder builder;
   auto plan_node = builder.SetOutputSchema(PlanNodeJsonTest::BuildDummyOutputSchema())
-                       .AddSortKey(catalog::col_oid_t(0), OrderByOrderingType::ASC)
-                       .AddSortKey(catalog::col_oid_t(1), OrderByOrderingType::DESC)
+                       .AddSortKey(catalog::col_oid_t(0), optimizer::OrderByOrderingType::ASC)
+                       .AddSortKey(catalog::col_oid_t(1), optimizer::OrderByOrderingType::DESC)
                        .SetLimit(10)
                        .SetOffset(10)
                        .Build();
