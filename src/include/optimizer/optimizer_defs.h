@@ -18,6 +18,11 @@ class AbstractExpression;
 
 namespace optimizer {
 /**
+ * OrderBy ordering
+ */
+enum class OrderByOrderingType { ASC, DESC };
+
+/**
  * Operator type
  */
 enum class OpType {

@@ -9,7 +9,8 @@ if (TERRIER_BUILD_TESTS)
     add_dependencies(test_util terrier_static util_static gtest gmock_main)
 
     # tests
-
+    
+    add_subdirectory(binder)
     add_subdirectory(catalog)
     add_subdirectory(common)
     add_subdirectory(execution)
@@ -24,5 +25,6 @@ if (TERRIER_BUILD_TESTS)
     add_subdirectory(traffic_cop)
     add_subdirectory(transaction)
     add_subdirectory(type)
+
 endif ()
 
