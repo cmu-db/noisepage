@@ -30,7 +30,7 @@ Transition ITPProtocolInterpreter::Process(std::shared_ptr<ReadBuffer> in, std::
 
 void ITPProtocolInterpreter::GetResult(std::shared_ptr<WriteQueue> out) {
   ITPPacketWriter writer(out);
-  writer.BeginPacket(NetworkMessageType::ITP_COMMAND_COMPLETE).EndPacket();
+  writer.WriteCommandComplete();
 }
 
 size_t ITPProtocolInterpreter::GetPacketHeaderSize() { return 1 + sizeof(uint32_t); }

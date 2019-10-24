@@ -38,7 +38,7 @@ class ITPPacketWriter : public PacketWriter {
   /**
    * Writes a Stop Replication packet
    */
-  void StopReplicationCommand() { BeginPacket(NetworkMessageType::ITP_STOP_REPLICATION_COMMAND); }
+  void StopReplicationCommand() { BeginPacket(NetworkMessageType::ITP_STOP_REPLICATION_COMMAND).EndPacket(); }
 
   /**
    * Tells the client that the command is complete.
