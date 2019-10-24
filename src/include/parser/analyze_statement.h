@@ -29,7 +29,7 @@ class AnalyzeStatement : public SQLStatement {
 
   ~AnalyzeStatement() override = default;
 
-  void Accept(SqlNodeVisitor *v) override { v->Visit(this); }
+  void Accept(SqlNodeVisitor *v, ParseResult *parse_result) override { v->Visit(this, parse_result); }
 
   /** @return analyze table */
   common::ManagedPointer<TableRef> GetAnalyzeTable() { return common::ManagedPointer(analyze_table_); }

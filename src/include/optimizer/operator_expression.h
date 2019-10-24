@@ -41,6 +41,12 @@ class OperatorExpression {
     for (auto child : children_) delete child;
   }
 
+  /**
+   * Add a operator expression as child
+   * @param child_op The operator expression to be added as child
+   */
+  void PushChild(OperatorExpression *child_op) { children_.push_back(child_op); }
+
  private:
   /**
    * Underlying operator
