@@ -34,9 +34,7 @@ class AstVisitor {
    */
   RetType Visit(AstNode *node) {
     switch (node->GetKind()) {
-      default: {
-        llvm_unreachable("Impossible node type");
-      }
+      default: { llvm_unreachable("Impossible node type"); }
 #define T(kind)               \
   case AstNode::Kind::kind: { \
     DISPATCH(kind)            \

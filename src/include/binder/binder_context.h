@@ -39,7 +39,6 @@ class BinderContext {
    * It also takes in a pointer to the binder context's upper context, and the constructor determines the depth of the
    * current context based on the upper context. These two fields are used in nested queries.
    * @param upper_context Pointer to the upper level binder context of the current binder context.
-   *
    */
   explicit BinderContext(BinderContext *upper_context) : upper_context_(upper_context) {
     if (upper_context != nullptr) depth_ = upper_context->depth_ + 1;

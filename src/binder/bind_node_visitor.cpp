@@ -9,6 +9,7 @@
 #include "catalog/catalog_defs.h"
 #include "common/exception.h"
 #include "common/managed_pointer.h"
+#include "loggers/binder_logger.h"
 #include "parser/expression/abstract_expression.h"
 #include "parser/expression/aggregate_expression.h"
 #include "parser/expression/case_expression.h"
@@ -32,6 +33,7 @@ void BindNodeVisitor::BindNameToNode(common::ManagedPointer<parser::SQLStatement
 }
 
 void BindNodeVisitor::Visit(parser::SelectStatement *node, parser::ParseResult *parse_result) {
+  BINDER_LOG_DEBUG("Visiting SelectStatement ...");
   context_ = new BinderContext(context_);
 
   if (node->GetSelectTable() != nullptr) node->GetSelectTable()->Accept(this, parse_result);
@@ -48,6 +50,7 @@ void BindNodeVisitor::Visit(parser::SelectStatement *node, parser::ParseResult *
   if (node->GetSelectGroupBy() != nullptr) node->GetSelectGroupBy()->Accept(this, parse_result);
 
   std::vector<common::ManagedPointer<parser::AbstractExpression>> new_select_list;
+  BINDER_LOG_DEBUG("Gathering select columns...");
   for (auto &select_element : node->GetSelectColumns()) {
     if (select_element->GetExpressionType() == parser::ExpressionType::STAR) {
       context_->GenerateAllColumnExpressions(parse_result, &new_select_list);
@@ -77,6 +80,7 @@ void BindNodeVisitor::Visit(parser::SelectStatement *node, parser::ParseResult *
 
 // Some sub query nodes inside SelectStatement
 void BindNodeVisitor::Visit(parser::JoinDefinition *node, parser::ParseResult *parse_result) {
+  BINDER_LOG_DEBUG("Visiting JoinDefinition ...");
   // The columns in join condition can only bind to the join tables
   node->GetLeftTable()->Accept(this, parse_result);
   node->GetRightTable()->Accept(this, parse_result);
@@ -84,6 +88,7 @@ void BindNodeVisitor::Visit(parser::JoinDefinition *node, parser::ParseResult *p
 }
 
 void BindNodeVisitor::Visit(parser::TableRef *node, parser::ParseResult *parse_result) {
+  BINDER_LOG_DEBUG("Visiting TableRef ...");
   node->TryBindDatabaseName(default_database_name_);
   if (node->GetSelect() != nullptr) {
     if (node->GetAlias().empty()) throw BINDER_EXCEPTION("Alias not found for query derived table");
@@ -108,32 +113,33 @@ void BindNodeVisitor::Visit(parser::TableRef *node, parser::ParseResult *parse_r
 }
 
 void BindNodeVisitor::Visit(parser::GroupByDescription *node, parser::ParseResult *parse_result) {
+  BINDER_LOG_DEBUG("Visiting GroupByDescription ...");
   for (auto &col : node->GetColumns()) col->Accept(this, parse_result);
   if (node->GetHaving() != nullptr) node->GetHaving()->Accept(this, parse_result);
 }
 
 void BindNodeVisitor::Visit(parser::OrderByDescription *node, parser::ParseResult *parse_result) {
+  BINDER_LOG_DEBUG("Visiting OrderByDescription ...");
   for (auto &expr : node->GetOrderByExpressions())
     if (expr != nullptr) expr->Accept(this, parse_result);
 }
 
 void BindNodeVisitor::Visit(parser::UpdateStatement *node, parser::ParseResult *parse_result) {
+  BINDER_LOG_DEBUG("Visiting UpdateStatement ...");
   context_ = new BinderContext(nullptr);
 
   node->GetUpdateTable()->Accept(this, parse_result);
   if (node->GetUpdateCondition() != nullptr) node->GetUpdateCondition()->Accept(this, parse_result);
   for (auto &update : node->GetUpdateClauses()) {
-    // TODO(Ling): we need Accept() method for updateClause?
     update->GetUpdateValue()->Accept(this, parse_result);
   }
 
-  // TODO(peloton): Update columns are not bound because they are char*
-  //  not TupleValueExpression in update_statement.h
   delete context_;
   context_ = nullptr;
 }
 
 void BindNodeVisitor::Visit(parser::DeleteStatement *node, parser::ParseResult *parse_result) {
+  BINDER_LOG_DEBUG("Visiting DeleteStatement ...");
   context_ = new BinderContext(nullptr);
   node->GetDeletionTable()->TryBindDatabaseName(default_database_name_);
   auto table = node->GetDeletionTable();
@@ -147,9 +153,13 @@ void BindNodeVisitor::Visit(parser::DeleteStatement *node, parser::ParseResult *
   context_ = nullptr;
 }
 
-void BindNodeVisitor::Visit(parser::LimitDescription *node, parser::ParseResult *parse_result) {}
+void BindNodeVisitor::Visit(UNUSED_ATTRIBUTE parser::LimitDescription *node,
+                            UNUSED_ATTRIBUTE parser::ParseResult *parse_result) {
+  BINDER_LOG_DEBUG("Visiting LimitDescription ...");
+}
 
 void BindNodeVisitor::Visit(parser::CopyStatement *node, parser::ParseResult *parse_result) {
+  BINDER_LOG_DEBUG("Visiting CopyStatement ...");
   context_ = new BinderContext(nullptr);
   if (node->GetCopyTable() != nullptr) {
     node->GetCopyTable()->Accept(this, parse_result);
@@ -162,15 +172,23 @@ void BindNodeVisitor::Visit(parser::CopyStatement *node, parser::ParseResult *pa
   } else {
     node->GetSelectStatement()->Accept(this, parse_result);
   }
+
+  delete context_;
+  context_ = nullptr;
 }
 
-void BindNodeVisitor::Visit(parser::CreateFunctionStatement *node, parser::ParseResult *parse_result) {}
+void BindNodeVisitor::Visit(UNUSED_ATTRIBUTE parser::CreateFunctionStatement *node,
+                            UNUSED_ATTRIBUTE parser::ParseResult *parse_result) {
+  BINDER_LOG_DEBUG("Visiting CreateFunctionStatement ...");
+}
 
-void BindNodeVisitor::Visit(parser::CreateStatement *node, parser::ParseResult *parse_result) {
+void BindNodeVisitor::Visit(parser::CreateStatement *node, UNUSED_ATTRIBUTE parser::ParseResult *parse_result) {
+  BINDER_LOG_DEBUG("Visiting CreateStatement ...");
   node->TryBindDatabaseName(default_database_name_);
 }
 
 void BindNodeVisitor::Visit(parser::InsertStatement *node, parser::ParseResult *parse_result) {
+  BINDER_LOG_DEBUG("Visiting InsertStatement ...");
   context_ = new BinderContext(nullptr);
   node->GetInsertionTable()->TryBindDatabaseName(default_database_name_);
 
@@ -182,22 +200,37 @@ void BindNodeVisitor::Visit(parser::InsertStatement *node, parser::ParseResult *
   context_ = nullptr;
 }
 
-void BindNodeVisitor::Visit(parser::DropStatement *node, parser::ParseResult *parse_result) {
+void BindNodeVisitor::Visit(parser::DropStatement *node, UNUSED_ATTRIBUTE parser::ParseResult *parse_result) {
+  BINDER_LOG_DEBUG("Visiting DropStatement ...");
   node->TryBindDatabaseName(default_database_name_);
 }
-void BindNodeVisitor::Visit(parser::PrepareStatement *node, parser::ParseResult *parse_result) {}
-void BindNodeVisitor::Visit(parser::ExecuteStatement *node, parser::ParseResult *parse_result) {}
-void BindNodeVisitor::Visit(parser::TransactionStatement *node, parser::ParseResult *parse_result) {}
-void BindNodeVisitor::Visit(parser::AnalyzeStatement *node, parser::ParseResult *parse_result) {
+void BindNodeVisitor::Visit(UNUSED_ATTRIBUTE parser::PrepareStatement *node,
+                            UNUSED_ATTRIBUTE parser::ParseResult *parse_result) {
+  BINDER_LOG_DEBUG("Visiting PrepareStatement ...");
+}
+void BindNodeVisitor::Visit(UNUSED_ATTRIBUTE parser::ExecuteStatement *node,
+                            UNUSED_ATTRIBUTE parser::ParseResult *parse_result) {
+  BINDER_LOG_DEBUG("Visiting ExecuteStatement ...");
+}
+void BindNodeVisitor::Visit(UNUSED_ATTRIBUTE parser::TransactionStatement *node,
+                            UNUSED_ATTRIBUTE parser::ParseResult *parse_result) {
+  BINDER_LOG_DEBUG("Visiting TransactionStatement ...");
+}
+void BindNodeVisitor::Visit(parser::AnalyzeStatement *node, UNUSED_ATTRIBUTE parser::ParseResult *parse_result) {
+  BINDER_LOG_DEBUG("Visiting AnalyzeStatement ...");
   node->GetAnalyzeTable()->TryBindDatabaseName(default_database_name_);
 }
 
-void BindNodeVisitor::Visit(parser::ConstantValueExpression *expr, parser::ParseResult *parse_result) {}
+void BindNodeVisitor::Visit(UNUSED_ATTRIBUTE parser::ConstantValueExpression *expr,
+                            UNUSED_ATTRIBUTE parser::ParseResult *parse_result) {
+  BINDER_LOG_DEBUG("Visiting ConstantValueExpression ...");
+}
 
-void BindNodeVisitor::Visit(parser::ColumnValueExpression *expr, parser::ParseResult *parse_result) {
+void BindNodeVisitor::Visit(parser::ColumnValueExpression *expr, UNUSED_ATTRIBUTE parser::ParseResult *parse_result) {
+  BINDER_LOG_DEBUG("Visiting ColumnValueExpression ...");
   // TODO(Ling): consider remove precondition check if the *_oid_ will never be initialized till binder
-  //   That is, the object would not be initialized using ColumnValueeExpression(database_oid, table_oid, column_oid)
-  //   at this point
+  //  That is, the object would not be initialized using ColumnValueExpression(database_oid, table_oid, column_oid)
+  //  at this point
   if (expr->GetTableOid() == catalog::INVALID_TABLE_OID) {
     std::tuple<catalog::db_oid_t, catalog::table_oid_t, catalog::Schema> tuple;
     std::string table_name = expr->GetTableName();
@@ -227,16 +260,20 @@ void BindNodeVisitor::Visit(parser::ColumnValueExpression *expr, parser::ParseRe
 }
 
 void BindNodeVisitor::Visit(parser::CaseExpression *expr, parser::ParseResult *parse_result) {
+  BINDER_LOG_DEBUG("Visiting CaseExpression ...");
   for (size_t i = 0; i < expr->GetWhenClauseSize(); ++i) {
     expr->GetWhenClauseCondition(i)->Accept(this, parse_result);
   }
 }
 
 void BindNodeVisitor::Visit(parser::SubqueryExpression *expr, parser::ParseResult *parse_result) {
+  BINDER_LOG_DEBUG("Visiting SubqueryExpression ...");
   expr->GetSubselect()->Accept(this, parse_result);
 }
 
-void BindNodeVisitor::Visit(parser::StarExpression *expr, parser::ParseResult *parse_result) {
+void BindNodeVisitor::Visit(UNUSED_ATTRIBUTE parser::StarExpression *expr,
+                            UNUSED_ATTRIBUTE parser::ParseResult *parse_result) {
+  BINDER_LOG_DEBUG("Visiting StarExpression ...");
   if (context_ == nullptr || !context_->HasTables()) {
     throw BINDER_EXCEPTION("Invalid [Expression :: STAR].");
   }
@@ -244,54 +281,13 @@ void BindNodeVisitor::Visit(parser::StarExpression *expr, parser::ParseResult *p
 
 // Derive value type for these expressions
 void BindNodeVisitor::Visit(parser::OperatorExpression *expr, parser::ParseResult *parse_result) {
+  BINDER_LOG_DEBUG("Visiting OperatorExpression ...");
   SqlNodeVisitor::Visit(expr, parse_result);
   expr->DeriveReturnValueType();
 }
 void BindNodeVisitor::Visit(parser::AggregateExpression *expr, parser::ParseResult *parse_result) {
+  BINDER_LOG_DEBUG("Visiting AggregateExpression ...");
   SqlNodeVisitor::Visit(expr, parse_result);
   expr->DeriveReturnValueType();
 }
-
-// void BindNodeVisitor::Visit(parser::FunctionExpression *expr, parser::ParseResult *parse_result) {
-//  // Visit the subtree first
-//  SqlNodeVisitor::Visit(expr);
-//
-//  // Check catalog and bind function
-//  std::vector<type::TypeId> argtypes;
-//  for (size_t i = 0; i < expr->GetChildrenSize(); i++)
-//    argtypes.push_back(expr->GetChild(i)->GetReturnValueType());
-//  // Check and set the function ptr
-//  // TODO(boweic): Visit the catalog using the interface that is protected by
-//  // transaction
-//  // TODO(Ling): Do we need GetFunction in catalog?
-//  const catalog::FunctionData &func_data =
-//      catalog_accessor_->GetFunction(expr->GetFuncName(), argtypes);
-//  LOG_DEBUG("Function %s found in the catalog", func_data.func_name_.c_str());
-//  LOG_DEBUG("Argument num: %ld", func_data.argument_types_.size());
-//  LOG_DEBUG("Is UDF %d", func_data.is_udf_);
-//
-//  if (!func_data.is_udf_) {
-//    expr->SetBuiltinFunctionExpressionParameters(
-//        func_data.func_, func_data.return_type_, func_data.argument_types_);
-//
-//    // Look into the OperatorId for built-in functions to check the first
-//    // argument for timestamp functions.
-//    // TODO(LM): The OperatorId might need to be changed to global ID after we
-//    // rewrite the function identification logic.
-//    auto func_operator_id = func_data.func_.op_id;
-//    if (func_operator_id == OperatorId::DateTrunc ||
-//        func_operator_id == OperatorId::DatePart) {
-//      auto date_part = expr->GetChild(0);
-//
-//      // Test whether the first argument is a correct DatePartType
-//      StringToDatePartType(
-//          date_part->Evaluate(nullptr, nullptr, nullptr).ToString());
-//    }
-//  } else {
-//    expr->SetUDFFunctionExpressionParameters(func_data.func_context_,
-//                                             func_data.return_type_,
-//                                             func_data.argument_types_);
-//  }
-//}
-
 }  // namespace terrier::binder

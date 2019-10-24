@@ -258,7 +258,7 @@ class AbstractExpression {
  private:
   // We make abstract expression friend with both binder and query to operator transformer
   // as they each traverse the ast independently and add in necessary information to the ast
-  // TODO(Ling): we could look into whether the two traversals can be commbined to one in the future
+  // TODO(Ling): we could look into whether the two traversals can be combined to one in the future
   friend class binder::BindNodeVisitor;
   friend class optimizer::QueryToOperatorTransformer;
 
@@ -297,7 +297,6 @@ class AbstractExpression {
    */
   int depth_ = -1;
   /**
-   *
    * MUTABLE Flag indicating if there's a sub-query in the current expression or in any of its children.
    * Per LING, this is required to detect the query predicate IsSupportedConjunctivePredicate.
    */
