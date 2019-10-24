@@ -45,7 +45,7 @@ class DeleteStatement : public SQLStatement {
   /** @return expression that represents deletion condition */
   common::ManagedPointer<AbstractExpression> GetDeleteCondition() { return expr_; }
 
-  void Accept(SqlNodeVisitor *v) override { v->Visit(this); }
+  void Accept(SqlNodeVisitor *v, ParseResult *parse_result) override { v->Visit(this, parse_result); }
 
  private:
   const std::unique_ptr<TableRef> table_ref_;

@@ -389,7 +389,7 @@ class Limit : public OperatorNode<Limit> {
    */
   static Operator Make(size_t offset, size_t limit,
                        std::vector<common::ManagedPointer<parser::AbstractExpression>> &&sort_columns,
-                       std::vector<planner::OrderByOrderingType> &&sort_directions);
+                       std::vector<optimizer::OrderByOrderingType> &&sort_directions);
 
   bool operator==(const BaseOperatorNode &r) override;
   common::hash_t Hash() const override;
@@ -414,7 +414,7 @@ class Limit : public OperatorNode<Limit> {
   /**
    * @return sorting orders (if ascending)
    */
-  const std::vector<planner::OrderByOrderingType> &GetSortAscending() const { return sort_directions_; }
+  const std::vector<optimizer::OrderByOrderingType> &GetSortAscending() const { return sort_directions_; }
 
  private:
   /**
@@ -442,7 +442,7 @@ class Limit : public OperatorNode<Limit> {
   /**
    * Sorting order
    */
-  std::vector<planner::OrderByOrderingType> sort_directions_;
+  std::vector<optimizer::OrderByOrderingType> sort_directions_;
 };
 
 /**
