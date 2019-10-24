@@ -42,18 +42,19 @@ class ITPProtocolInterpreter : public ProtocolInterpreter {
   };
 
   /**
-   * Default constructor
+   * Creates the interpreter for ITP
+   * @param command_factory to convert packet into commands
    */
   explicit ITPProtocolInterpreter(common::ManagedPointer<ITPCommandFactory> command_factory)
       : command_factory_(command_factory) {}
 
   /**
    * @see ProtocolIntepreter::Process
-   * @param in
-   * @param out
-   * @param callback
+   * @param in The ReadBuffer to read input from
+   * @param out The WriteQueue to communicate with the client through
    * @param t_cop the traffic cop pointer
    * @param context the connection context
+   * @param callback The callback function to trigger on completion
    * @return
    */
   Transition Process(std::shared_ptr<ReadBuffer> in, std::shared_ptr<WriteQueue> out,

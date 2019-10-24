@@ -2,7 +2,8 @@
 #include <memory>
 #include "network/itp/itp_network_commands.h"
 
-#define MAKE_ITP_COMMAND(type) std::unique_ptr<ITPNetworkCommand>(static_cast<ITPNetworkCommand*>(std::make_unique<type>(packet).release()))
+#define MAKE_ITP_COMMAND(type) \
+  std::unique_ptr<ITPNetworkCommand>(static_cast<ITPNetworkCommand *>(std::make_unique<type>(packet).release()))
 
 namespace terrier::network {
 

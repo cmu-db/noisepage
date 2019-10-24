@@ -43,7 +43,8 @@ class PostgresProtocolInterpreter : public ProtocolInterpreter {
   };
 
   /**
-   * Default constructor
+   * Creates the interpreter for Postgres
+   * @param command_factory to convert packet into commands
    */
   explicit PostgresProtocolInterpreter(common::ManagedPointer<PostgresCommandFactory> command_factory)
       : command_factory_(command_factory) {}
