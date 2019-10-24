@@ -171,10 +171,9 @@ TEST_F(JoinHashTableTest, ParallelBuildTest) {
   MemoryPool memory(nullptr);
   ThreadStateContainer container(&memory);
 
-  container.Reset(
-      sizeof(JoinHashTable),
-      [](auto *ctx, auto *s) { new (s) JoinHashTable(reinterpret_cast<MemoryPool *>(ctx), sizeof(Tuple)); },
-      [](auto *ctx, auto *s) { reinterpret_cast<JoinHashTable *>(s)->~JoinHashTable(); }, &memory);
+  container.Reset(sizeof(JoinHashTable),
+                  [](auto *ctx, auto *s) { new (s) JoinHashTable(reinterpret_cast<MemoryPool *>(ctx), sizeof(Tuple)); },
+                  [](auto *ctx, auto *s) { reinterpret_cast<JoinHashTable *>(s)->~JoinHashTable(); }, &memory);
 
   // Parallel populate hash tables
   tbb::task_scheduler_init sched;
