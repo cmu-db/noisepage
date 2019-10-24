@@ -75,7 +75,7 @@ class AggregateExpression : public AbstractExpression {
     }
   }
 
-  void Accept(SqlNodeVisitor *v) override { v->Visit(this); }
+  void Accept(SqlNodeVisitor *v, ParseResult *parse_result) override { v->Visit(this, parse_result); }
 
   /** @return expression serialized to json */
   nlohmann::json ToJson() const override {
