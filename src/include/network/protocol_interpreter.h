@@ -56,7 +56,6 @@ class ProtocolInterpreter {
   virtual ~ProtocolInterpreter() = default;
 
  protected:
-  
   /**
    * Where the data is being forwarded to
    */
