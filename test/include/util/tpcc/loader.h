@@ -420,7 +420,7 @@ struct Loader {
     uint32_t col_offset = 0;
 
     // Primary Key: I_ID
-    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "I_ID", "Wrong attribute.");
+    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "i_id", "Wrong attribute.");
     Util::SetKeyAttribute(schema, col_offset++, pr_map, pr, i_id);
 
     TERRIER_ASSERT(col_offset == schema.GetColumns().size(), "Didn't get every attribute for Item key.");
@@ -494,7 +494,7 @@ struct Loader {
     uint32_t col_offset = 0;
 
     // Primary Key: W_ID
-    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "W_ID", "Wrong attribute.");
+    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "w_id", "Wrong attribute.");
     Util::SetKeyAttribute(schema, col_offset++, pr_map, pr, w_id);
 
     TERRIER_ASSERT(col_offset == schema.GetColumns().size(), "Didn't get every attribute for Warehouse key.");
@@ -615,9 +615,9 @@ struct Loader {
     uint32_t col_offset = 0;
 
     // Primary Key: (S_W_ID, S_I_ID)
-    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "S_W_ID", "Wrong attribute.");
+    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "s_w_id", "Wrong attribute.");
     Util::SetKeyAttribute(schema, col_offset++, pr_map, pr, w_id);
-    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "S_I_ID", "Wrong attribute.");
+    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "s_i_id", "Wrong attribute.");
     Util::SetKeyAttribute(schema, col_offset++, pr_map, pr, s_i_id);
 
     TERRIER_ASSERT(col_offset == schema.GetColumns().size(), "Didn't get every attribute for Stock key.");
@@ -702,9 +702,9 @@ struct Loader {
     uint32_t col_offset = 0;
 
     // Primary Key: (D_W_ID, D_ID)
-    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "D_W_ID", "Wrong attribute.");
+    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "d_w_id", "Wrong attribute.");
     Util::SetKeyAttribute(schema, col_offset++, pr_map, pr, w_id);
-    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "D_ID", "Wrong attribute.");
+    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "d_id", "Wrong attribute.");
     Util::SetKeyAttribute(schema, col_offset++, pr_map, pr, d_id);
 
     TERRIER_ASSERT(col_offset == schema.GetColumns().size(), "Didn't get every attribute for District key.");
@@ -855,11 +855,11 @@ struct Loader {
     uint32_t col_offset = 0;
 
     // Primary Key: (C_W_ID, C_D_ID, C_ID)
-    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "C_W_ID", "Wrong attribute.");
+    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "c_w_id", "Wrong attribute.");
     Util::SetKeyAttribute(schema, col_offset++, pr_map, pr, w_id);
-    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "C_D_ID", "Wrong attribute.");
+    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "c_d_id", "Wrong attribute.");
     Util::SetKeyAttribute(schema, col_offset++, pr_map, pr, d_id);
-    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "C_ID", "Wrong attribute.");
+    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "c_id", "Wrong attribute.");
     Util::SetKeyAttribute(schema, col_offset++, pr_map, pr, c_id);
 
     TERRIER_ASSERT(col_offset == schema.GetColumns().size(), "Didn't get every attribute for Customer key.");
@@ -880,11 +880,11 @@ struct Loader {
     uint32_t col_offset = 0;
 
     // Primary Key: (C_W_ID, C_D_ID, C_LAST)
-    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "C_W_ID", "Wrong attribute.");
+    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "c_w_id", "Wrong attribute.");
     Util::SetKeyAttribute(schema, col_offset++, pr_map, pr, w_id);
-    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "C_D_ID", "Wrong attribute.");
+    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "c_d_id", "Wrong attribute.");
     Util::SetKeyAttribute(schema, col_offset++, pr_map, pr, d_id);
-    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "C_LAST", "Wrong attribute.");
+    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "c_last", "Wrong attribute.");
     Util::SetKeyAttribute(schema, col_offset++, pr_map, pr, c_last);
 
     TERRIER_ASSERT(col_offset == schema.GetColumns().size(), "Didn't get every attribute for Customer key.");
@@ -979,11 +979,11 @@ struct Loader {
     uint32_t col_offset = 0;
 
     // Primary Key: (NO_W_ID, NO_D_ID, NO_O_ID)
-    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "NO_W_ID", "Wrong attribute.");
+    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "no_w_id", "Wrong attribute.");
     Util::SetKeyAttribute(schema, col_offset++, pr_map, pr, w_id);
-    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "NO_D_ID", "Wrong attribute.");
+    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "no_d_id", "Wrong attribute.");
     Util::SetKeyAttribute(schema, col_offset++, pr_map, pr, d_id);
-    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "NO_O_ID", "Wrong attribute.");
+    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "no_o_id", "Wrong attribute.");
     Util::SetKeyAttribute(schema, col_offset++, pr_map, pr, o_id);
 
     TERRIER_ASSERT(col_offset == schema.GetColumns().size(), "Didn't get every attribute for New Order key.");
@@ -1070,11 +1070,11 @@ struct Loader {
     uint32_t col_offset = 0;
 
     // Primary Key: (O_W_ID, O_D_ID, O_ID)
-    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "O_W_ID", "Wrong attribute.");
+    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "o_w_id", "Wrong attribute.");
     Util::SetKeyAttribute(schema, col_offset++, pr_map, pr, w_id);
-    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "O_D_ID", "Wrong attribute.");
+    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "o_d_id", "Wrong attribute.");
     Util::SetKeyAttribute(schema, col_offset++, pr_map, pr, d_id);
-    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "O_ID", "Wrong attribute.");
+    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "o_id", "Wrong attribute.");
     Util::SetKeyAttribute(schema, col_offset++, pr_map, pr, o_id);
 
     TERRIER_ASSERT(col_offset == schema.GetColumns().size(), "Didn't get every attribute for Order key.");
@@ -1097,13 +1097,13 @@ struct Loader {
     uint32_t col_offset = 0;
 
     // Secondary Key: (O_W_ID, O_D_ID, O_C_ID O_ID)
-    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "O_W_ID", "Wrong attribute.");
+    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "o_w_id", "Wrong attribute.");
     Util::SetKeyAttribute(schema, col_offset++, pr_map, pr, w_id);
-    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "O_D_ID", "Wrong attribute.");
+    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "o_d_id", "Wrong attribute.");
     Util::SetKeyAttribute(schema, col_offset++, pr_map, pr, d_id);
-    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "O_C_ID", "Wrong attribute.");
+    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "o_c_id", "Wrong attribute.");
     Util::SetKeyAttribute(schema, col_offset++, pr_map, pr, c_id);
-    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "O_ID", "Wrong attribute.");
+    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "o_id", "Wrong attribute.");
     Util::SetKeyAttribute(schema, col_offset++, pr_map, pr, o_id);
 
     TERRIER_ASSERT(col_offset == schema.GetColumns().size(), "Didn't get every attribute for Order secondary key.");
@@ -1194,13 +1194,13 @@ struct Loader {
     uint32_t col_offset = 0;
 
     // Primary Key: (OL_W_ID, OL_D_ID, OL_O_ID, OL_NUMBER)
-    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "OL_W_ID", "Wrong attribute.");
+    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "ol_w_id", "Wrong attribute.");
     Util::SetKeyAttribute(schema, col_offset++, pr_map, pr, w_id);
-    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "OL_D_ID", "Wrong attribute.");
+    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "ol_d_id", "Wrong attribute.");
     Util::SetKeyAttribute(schema, col_offset++, pr_map, pr, d_id);
-    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "OL_O_ID", "Wrong attribute.");
+    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "ol_o_id", "Wrong attribute.");
     Util::SetKeyAttribute(schema, col_offset++, pr_map, pr, o_id);
-    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "OL_NUMBER", "Wrong attribute.");
+    TERRIER_ASSERT(schema.GetColumn(col_offset).Name() == "ol_number", "Wrong attribute.");
     Util::SetKeyAttribute(schema, col_offset++, pr_map, pr, ol_number);
 
     TERRIER_ASSERT(col_offset == schema.GetColumns().size(), "Didn't get every attribute for Order Line key.");
