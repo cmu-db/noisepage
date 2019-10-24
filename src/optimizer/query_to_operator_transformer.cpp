@@ -96,7 +96,7 @@ void QueryToOperatorTransformer::Visit(parser::SelectStatement *op, parser::Pars
   }
 
   if (op->GetSelectLimit() != nullptr && op->GetSelectLimit()->GetLimit() != -1) {
-    OPTIMIZER_LOG_DEBUG("Handling limit in SelectStatement ...");
+    OPTIMIZER_LOG_DEBUG("Handling order by/limit/offset in SelectStatement ...");
     std::vector<common::ManagedPointer<parser::AbstractExpression>> sort_exprs;
     std::vector<optimizer::OrderByOrderingType> sort_direction;
 
