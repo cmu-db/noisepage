@@ -10,7 +10,6 @@
 #include "catalog/catalog_accessor.h"
 #include "common/macros.h"
 #include "common/managed_pointer.h"
-#include "loggers/optimizer_logger.h"
 #include "optimizer/logical_operators.h"
 #include "optimizer/operator_expression.h"
 #include "optimizer/query_to_operator_transformer.h"
@@ -37,7 +36,6 @@ OperatorExpression *QueryToOperatorTransformer::ConvertToOpExpression(common::Ma
 }
 
 void QueryToOperatorTransformer::Visit(parser::SelectStatement *op, parser::ParseResult *parse_result) {
-  OPTIMIZER_LOG_DEBUG("Transforming SelectStatement to operators ...");
   // We do not visit the select list of a base table because the column
   // information is derived before the plan generation, at this step we
   // don't need to derive that
@@ -52,18 +50,17 @@ void QueryToOperatorTransformer::Visit(parser::SelectStatement *op, parser::Pars
   }
 
   if (op->GetSelectCondition() != nullptr) {
-    OPTIMIZER_LOG_DEBUG("Collecting predicates ...");
     CollectPredicates(op->GetSelectCondition(), parse_result, &predicates_);
   }
 
   if (!predicates_.empty()) {
     auto filter_expr = new OperatorExpression(LogicalFilter::Make(std::move(predicates_)), {output_expr_});
+    // TODO(Ling): Do something after the predicates are moved to make the vector valid?
     predicates_.clear();
     output_expr_ = filter_expr;
   }
 
   if (QueryToOperatorTransformer::RequireAggregation(common::ManagedPointer(op))) {
-    OPTIMIZER_LOG_DEBUG("Handling aggregation in SelectStatement ...");
     // Plain aggregation
     OperatorExpression *agg_expr;
     if (op->GetSelectGroupBy() == nullptr) {
@@ -91,13 +88,11 @@ void QueryToOperatorTransformer::Visit(parser::SelectStatement *op, parser::Pars
   }
 
   if (op->IsSelectDistinct()) {
-    OPTIMIZER_LOG_DEBUG("Handling distinct in SelectStatement ...");
     auto distinct_expr = new OperatorExpression(LogicalDistinct::Make(), {output_expr_});
     output_expr_ = distinct_expr;
   }
 
   if (op->GetSelectLimit() != nullptr && op->GetSelectLimit()->GetLimit() != -1) {
-    OPTIMIZER_LOG_DEBUG("Handling limit in SelectStatement ...");
     std::vector<common::ManagedPointer<parser::AbstractExpression>> sort_exprs;
     std::vector<optimizer::OrderByOrderingType> sort_direction;
 
@@ -124,7 +119,6 @@ void QueryToOperatorTransformer::Visit(parser::SelectStatement *op, parser::Pars
 }
 
 void QueryToOperatorTransformer::Visit(parser::JoinDefinition *node, parser::ParseResult *parse_result) {
-  OPTIMIZER_LOG_DEBUG("Transforming JoinDefinition to operators ...");
   // Get left operator
   node->GetLeftTable()->Accept(this, parse_result);
   auto left_expr = output_expr_;
@@ -166,7 +160,6 @@ void QueryToOperatorTransformer::Visit(parser::JoinDefinition *node, parser::Par
 }
 
 void QueryToOperatorTransformer::Visit(parser::TableRef *node, parser::ParseResult *parse_result) {
-  OPTIMIZER_LOG_DEBUG("Transforming TableRef to operators ...");
   if (node->GetSelect() != nullptr) {
     // Store previous context
 
@@ -211,27 +204,15 @@ void QueryToOperatorTransformer::Visit(parser::TableRef *node, parser::ParseResu
   }
 }
 
-void QueryToOperatorTransformer::Visit(parser::GroupByDescription *node, parser::ParseResult *parse_result) {
-  OPTIMIZER_LOG_DEBUG("Transforming GroupByDescription to operators ...");
-}
-void QueryToOperatorTransformer::Visit(parser::OrderByDescription *node, parser::ParseResult *parse_result) {
-  OPTIMIZER_LOG_DEBUG("Transforming OrderByDescription to operators ...");
-}
-void QueryToOperatorTransformer::Visit(UNUSED_ATTRIBUTE parser::LimitDescription *node,
-                                       UNUSED_ATTRIBUTE parser::ParseResult *parse_result) {
-  OPTIMIZER_LOG_DEBUG("Transforming LimitDecription to operators ...");
-}
+void QueryToOperatorTransformer::Visit(parser::GroupByDescription *node, parser::ParseResult *parse_result) {}
+void QueryToOperatorTransformer::Visit(parser::OrderByDescription *node, parser::ParseResult *parse_result) {}
+void QueryToOperatorTransformer::Visit(parser::LimitDescription *node, parser::ParseResult *parse_result) {}
 void QueryToOperatorTransformer::Visit(UNUSED_ATTRIBUTE parser::CreateFunctionStatement *op,
-                                       UNUSED_ATTRIBUTE parser::ParseResult *parse_result) {
-  OPTIMIZER_LOG_DEBUG("Transforming CreateFunctionStatement to operators ...");
-}
+                                       parser::ParseResult *parse_result) {}
 
 void QueryToOperatorTransformer::Visit(UNUSED_ATTRIBUTE parser::CreateStatement *op,
-                                       UNUSED_ATTRIBUTE parser::ParseResult *parse_result) {
-  OPTIMIZER_LOG_DEBUG("Transforming CreateStatement to operators ...");
-}
+                                       UNUSED_ATTRIBUTE parser::ParseResult *parse_result) {}
 void QueryToOperatorTransformer::Visit(parser::InsertStatement *op, parser::ParseResult *parse_result) {
-  OPTIMIZER_LOG_DEBUG("Transforming InsertStatement to operators ...");
   auto target_table = op->GetInsertionTable();
   auto target_table_id = accessor_->GetTableOid(target_table->GetTableName());
   auto target_db_id = accessor_->GetDatabaseOid(target_table->GetDatabaseName());
@@ -282,7 +263,7 @@ void QueryToOperatorTransformer::Visit(parser::InsertStatement *op, parser::Pars
       }
     }
 
-    // The set below contains names of columns mentioned in the insert statement
+    // set below contains names of columns mentioned in the insert statement
     std::unordered_set<catalog::col_oid_t> specified;
     auto schema = accessor_->GetSchema(target_table_id);
 
@@ -314,7 +295,6 @@ void QueryToOperatorTransformer::Visit(parser::InsertStatement *op, parser::Pars
 }
 
 void QueryToOperatorTransformer::Visit(parser::DeleteStatement *op, parser::ParseResult *parse_result) {
-  OPTIMIZER_LOG_DEBUG("Transforming DeleteStatement to operators ...");
   auto target_table = op->GetDeletionTable();
   auto target_db_id = accessor_->GetDatabaseOid(target_table->GetDatabaseName());
   auto target_table_id = accessor_->GetTableOid(target_table->GetTableName());
@@ -338,25 +318,15 @@ void QueryToOperatorTransformer::Visit(parser::DeleteStatement *op, parser::Pars
   output_expr_ = delete_expr;
 }
 
-void QueryToOperatorTransformer::Visit(UNUSED_ATTRIBUTE parser::DropStatement *op, parser::ParseResult *parse_result) {
-  OPTIMIZER_LOG_DEBUG("Transforming DropStatement to operators ...");
-}
+void QueryToOperatorTransformer::Visit(UNUSED_ATTRIBUTE parser::DropStatement *op, parser::ParseResult *parse_result) {}
 void QueryToOperatorTransformer::Visit(UNUSED_ATTRIBUTE parser::PrepareStatement *op,
-                                       UNUSED_ATTRIBUTE parser::ParseResult *parse_result) {
-  OPTIMIZER_LOG_DEBUG("Transforming PrepareStatement to operators ...");
-}
+                                       UNUSED_ATTRIBUTE parser::ParseResult *parse_result) {}
 void QueryToOperatorTransformer::Visit(UNUSED_ATTRIBUTE parser::ExecuteStatement *op,
-                                       UNUSED_ATTRIBUTE parser::ParseResult *parse_result) {
-  OPTIMIZER_LOG_DEBUG("Transforming ExecuteStatement to operators ...");
-}
+                                       UNUSED_ATTRIBUTE parser::ParseResult *parse_result) {}
 void QueryToOperatorTransformer::Visit(UNUSED_ATTRIBUTE parser::TransactionStatement *op,
-                                       UNUSED_ATTRIBUTE parser::ParseResult *parse_result) {
-  OPTIMIZER_LOG_DEBUG("Transforming Transaction to operators ...");
-}
+                                       UNUSED_ATTRIBUTE parser::ParseResult *parse_result) {}
 
-void QueryToOperatorTransformer::Visit(parser::UpdateStatement *op,
-                                       UNUSED_ATTRIBUTE parser::ParseResult *parse_result) {
-  OPTIMIZER_LOG_DEBUG("Transforming UpdateStatement to operators ...");
+void QueryToOperatorTransformer::Visit(parser::UpdateStatement *op, parser::ParseResult *parse_result) {
   auto target_table = op->GetUpdateTable();
   auto target_db_id = accessor_->GetDatabaseOid(target_table->GetDatabaseName());
   auto target_table_id = accessor_->GetTableOid(target_table->GetTableName());
@@ -383,7 +353,6 @@ void QueryToOperatorTransformer::Visit(parser::UpdateStatement *op,
 }
 
 void QueryToOperatorTransformer::Visit(parser::CopyStatement *op, parser::ParseResult *parse_result) {
-  OPTIMIZER_LOG_DEBUG("Transforming CopyStatement to operators ...");
   if (op->IsFrom()) {
     // The copy statement is reading from a file into a table. We construct a
     // logical external-file get operator as the leaf, and an insert operator
@@ -419,12 +388,9 @@ void QueryToOperatorTransformer::Visit(parser::CopyStatement *op, parser::ParseR
 }
 
 void QueryToOperatorTransformer::Visit(UNUSED_ATTRIBUTE parser::AnalyzeStatement *op,
-                                       UNUSED_ATTRIBUTE parser::ParseResult *parse_result) {
-  OPTIMIZER_LOG_DEBUG("Transforming AnalyzeStatement to operators ...");
-}
+                                       parser::ParseResult *parse_result) {}
 
 void QueryToOperatorTransformer::Visit(parser::ComparisonExpression *expr, parser::ParseResult *parse_result) {
-  OPTIMIZER_LOG_DEBUG("Transforming ComparisonExpression to operators ...");
   auto expr_type = expr->GetExpressionType();
   if (expr->GetExpressionType() == parser::ExpressionType::COMPARE_IN) {
     GenerateSubqueryTree(expr, 1, parse_result, false);
@@ -444,7 +410,6 @@ void QueryToOperatorTransformer::Visit(parser::ComparisonExpression *expr, parse
 }
 
 void QueryToOperatorTransformer::Visit(parser::OperatorExpression *expr, parser::ParseResult *parse_result) {
-  OPTIMIZER_LOG_DEBUG("Transforming OperatorExpression to operators ...");
   // TODO(boweic): We may want to do the rewrite (exist -> in) in the binder
   if (expr->GetExpressionType() == parser::ExpressionType::OPERATOR_EXISTS) {
     if (GenerateSubqueryTree(expr, 0, parse_result, false)) {
@@ -572,6 +537,7 @@ bool QueryToOperatorTransformer::IsSupportedSubSelect(common::ManagedPointer<par
 
 bool QueryToOperatorTransformer::GenerateSubqueryTree(parser::AbstractExpression *expr, int child_id,
                                                       parser::ParseResult *parse_result, bool single_join) {
+  // TODO(Ling): See if we could or should move this function, which expands subquery to list of columns, in binder
   // Get potential subquery
   auto subquery_expr = expr->GetChild(child_id);
   if (subquery_expr->GetExpressionType() != parser::ExpressionType::ROW_SUBQUERY) return false;

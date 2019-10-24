@@ -45,7 +45,9 @@ void Sema::VisitBinaryOpExpr(ast::BinaryOpExpr *node) {
       if (node->Right() != right) node->SetRight(right);
       break;
     }
-    default: { EXECUTION_LOG_ERROR("{} is not a binary operation!", parsing::Token::GetString(node->Op())); }
+    default: {
+      EXECUTION_LOG_ERROR("{} is not a binary operation!", parsing::Token::GetString(node->Op()));
+    }
   }
 }
 
@@ -73,7 +75,9 @@ void Sema::VisitComparisonOpExpr(ast::ComparisonOpExpr *node) {
       if (node->Right() != right) node->SetRight(right);
       break;
     }
-    default: { EXECUTION_LOG_ERROR("{} is not a comparison operation", parsing::Token::GetString(node->Op())); }
+    default: {
+      EXECUTION_LOG_ERROR("{} is not a comparison operation", parsing::Token::GetString(node->Op()));
+    }
   }
 }
 
@@ -300,7 +304,9 @@ void Sema::VisitUnaryOpExpr(ast::UnaryOpExpr *node) {
       node->SetType(expr_type->PointerTo());
       break;
     }
-    default: { UNREACHABLE("Impossible unary operation!"); }
+    default: {
+      UNREACHABLE("Impossible unary operation!");
+    }
   }
 }
 
