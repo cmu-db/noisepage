@@ -44,7 +44,7 @@ class SubqueryExpression : public AbstractExpression {
   /** @return managed pointer to the sub-select */
   common::ManagedPointer<parser::SelectStatement> GetSubselect() { return common::ManagedPointer(subselect_); }
 
-  void Accept(SqlNodeVisitor *v) override { v->Visit(this); }
+  void Accept(SqlNodeVisitor *v, ParseResult *parse_result) override { v->Visit(this, parse_result); }
 
   /**
    * TODO(WAN): document the depths, ask Ling
