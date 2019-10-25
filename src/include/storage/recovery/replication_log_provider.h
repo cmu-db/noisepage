@@ -10,7 +10,6 @@ namespace terrier::storage {
  */
 class ReplicationLogProvider {
  public:
-
   /**
    * Passes the content of the buffer to traffic cop
    * @param buffer content to pass to traffic cop
