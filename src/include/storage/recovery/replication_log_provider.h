@@ -12,8 +12,6 @@ class ReplicationLogProvider {
  public:
   ReplicationLogProvider() {}
 
-  ~ReplicationLogProvider() {}
-
   virtual void HandBufferToReplication(std::unique_ptr<network::ReadBuffer> buffer);
 };
 }  // namespace terrier::storage
