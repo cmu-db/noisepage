@@ -9,7 +9,7 @@ namespace terrier::network {
 
 /**
  * ITPCommandFactory constructs ITPNetworkCommands that parses input packets to API calls
- * into traffic cop
+ * for traffic cop
  */
 class ITPCommandFactory {
  public:
