@@ -12,7 +12,7 @@ class ReplicationLogProvider {
  public:
   ReplicationLogProvider() {}
 
-  virtual ~ReplicationLogProvider() = default;
+  ~ReplicationLogProvider() {}
 
   virtual void HandBufferToReplication(std::unique_ptr<network::ReadBuffer> buffer);
 };
