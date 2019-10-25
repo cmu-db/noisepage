@@ -63,7 +63,7 @@ class ITPProtocolInterpreter : public ProtocolInterpreter {
 
   /**
    * Writes result to the client
-   * @param out
+   * @param out WriteQueue to flush message to client
    */
   void GetResult(std::shared_ptr<WriteQueue> out) override;
 
@@ -76,6 +76,7 @@ class ITPProtocolInterpreter : public ProtocolInterpreter {
 
   /**
    * @see ProtocolInterpreter::SetPacketMessageType
+   * @param in ReadBuffer to read input from
    */
   void SetPacketMessageType(const std::shared_ptr<ReadBuffer> &in) override;
 

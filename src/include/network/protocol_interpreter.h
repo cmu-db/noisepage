@@ -69,7 +69,7 @@ class ProtocolInterpreter {
 
   /**
    * Sets the message type of the current packet
-   * @param curr_input_packet packet to send
+   * @param in ReadBuffer to read input from
    */
   virtual void SetPacketMessageType(const std::shared_ptr<ReadBuffer> &in) = 0;
 
@@ -113,7 +113,6 @@ class ProtocolInterpreter {
   /**
    * Build the packet if it is valid
    * @param in The ReadBuffer to read input from
-   * @param curr_input_packet packet to send
    * @return whether the packet is valid or not
    */
   bool TryBuildPacket(const std::shared_ptr<ReadBuffer> &in) {

@@ -26,7 +26,6 @@ class ITPPacketWriter : public PacketWriter {
    * This begins the creation of the Replication command. After this is called , we can append further
    * bytes to the packet and call EndReplicationCommand when we want to finish the current command.
    * @param message_id message id
-   * @param data_size total size of replication data to be added
    */
   void BeginReplicationCommand(uint64_t message_id) { BeginPacket(NetworkMessageType::ITP_REPLICATION_COMMAND); }
 

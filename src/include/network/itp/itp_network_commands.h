@@ -36,11 +36,13 @@ class ITPNetworkCommand : public NetworkCommand {
   /**
    * Constructor for a ITPNetworkCommand instance
    * @param in The input packets to this command
-   * @pram flush Whether or not to flush the output packets on completion
+   * @param flush Whether or not to flush the output packets on completion
    */
   ITPNetworkCommand(InputPacket *in, bool flush) : NetworkCommand(in, flush), in_len_(in->len_) {}
 
-  // Size of the input packet
+  /**
+   * Size of the input packet
+   */
   size_t in_len_;
 };
 

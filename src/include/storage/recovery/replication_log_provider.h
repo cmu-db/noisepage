@@ -10,8 +10,15 @@ namespace terrier::storage {
  */
 class ReplicationLogProvider {
  public:
+  /**
+   * Default constructor
+   */
   ReplicationLogProvider() {}
 
+  /**
+   * Passes the content of the buffer to traffic cop
+   * @param buffer content to pass to traffic cop
+   */
   virtual void HandBufferToReplication(std::unique_ptr<network::ReadBuffer> buffer);
 };
 }  // namespace terrier::storage
