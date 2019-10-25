@@ -49,7 +49,7 @@ TEST_F(ThreadStateContainerTest, ComplexObjectContainerTest) {
       sizeof(Object),
       [](UNUSED_ATTRIBUTE auto *_, auto *s) {
         // Set some stuff to indicate object is initialized
-        auto obj = new (s) Object();
+        auto *obj = reinterpret_cast<Object *>(s);
         obj->x_ = 10;
         obj->initialized_ = true;
       },
