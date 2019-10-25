@@ -30,7 +30,6 @@ RuleSet::RuleSet() {
   AddImplementationRule(new LogicalQueryDerivedGetToPhysical());
   AddImplementationRule(new InnerJoinToInnerNLJoin());
   AddImplementationRule(new InnerJoinToInnerHashJoin());
-  AddImplementationRule(new ImplementDistinct());
   AddImplementationRule(new ImplementLimit());
   AddImplementationRule(new LogicalExportToPhysicalExport());
 

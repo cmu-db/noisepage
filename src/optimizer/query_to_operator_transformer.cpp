@@ -90,11 +90,17 @@ void QueryToOperatorTransformer::Visit(parser::SelectStatement *op, parser::Pars
     }
   }
 
-  if (op->IsSelectDistinct()) {
-    OPTIMIZER_LOG_DEBUG("Handling distinct in SelectStatement ...");
-    auto distinct_expr = new OperatorExpression(LogicalDistinct::Make(), {output_expr_});
-    output_expr_ = distinct_expr;
-  }
+  // DISTINCT() should be captured correctly by the select output.
+  // If for some reason, the statement above is incorrect, then the following would
+  // need to be uncommented and the LogicalDistinct/Distinct operators would need
+  // to be readded and integrated into a HashPlanNode/AggregatePlanNode.
+  // - wz2
+
+  // if (op->IsSelectDistinct()) {
+  //  OPTIMIZER_LOG_DEBUG("Handling distinct in SelectStatement ...");
+  //  auto distinct_expr = new OperatorExpression(LogicalDistinct::Make(), {output_expr_});
+  //  output_expr_ = distinct_expr;
+  // }
 
   if (op->GetSelectLimit() != nullptr && op->GetSelectLimit()->GetLimit() != -1) {
     OPTIMIZER_LOG_DEBUG("Handling order by/limit/offset in SelectStatement ...");

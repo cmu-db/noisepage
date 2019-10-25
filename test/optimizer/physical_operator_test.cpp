@@ -1134,20 +1134,4 @@ TEST(OperatorTests, AggregateTest) {
   EXPECT_EQ(op1.Hash(), op2.Hash());
 }
 
-// NOLINTNEXTLINE
-TEST(OperatorTests, DistinctTest) {
-  //===--------------------------------------------------------------------===//
-  // Distinct
-  //===--------------------------------------------------------------------===//
-  // Distinct operator does not have any data members.
-  // So we just need to make sure that all instantiations
-  // of the object are equivalent.
-  Operator op1 = Distinct::Make();
-  EXPECT_EQ(op1.GetType(), OpType::DISTINCT);
-
-  Operator op2 = Distinct::Make();
-  EXPECT_TRUE(op1 == op2);
-  EXPECT_EQ(op1.Hash(), op2.Hash());
-}
-
 }  // namespace terrier::optimizer

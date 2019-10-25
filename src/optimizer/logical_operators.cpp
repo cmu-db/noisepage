@@ -293,29 +293,6 @@ bool LogicalInsertSelect::operator==(const BaseOperatorNode &r) {
 }
 
 //===--------------------------------------------------------------------===//
-// LogicalDistinct
-//===--------------------------------------------------------------------===//
-BaseOperatorNode *LogicalDistinct::Copy() const { return new LogicalDistinct(*this); }
-
-Operator LogicalDistinct::Make() {
-  auto *op = new LogicalDistinct;
-  // We don't have anything that we need to store, so we're just going
-  // to throw this mofo out to the world as is...
-  return Operator(op);
-}
-
-bool LogicalDistinct::operator==(const BaseOperatorNode &r) {
-  return (r.GetType() == OpType::LOGICALDISTINCT);
-  // Again, there isn't any internal data so I guess we're always equal!
-}
-
-common::hash_t LogicalDistinct::Hash() const {
-  common::hash_t hash = BaseOperatorNode::Hash();
-  // I guess every LogicalDistinct object hashes to the same thing?
-  return hash;
-}
-
-//===--------------------------------------------------------------------===//
 // LogicalLimit
 //===--------------------------------------------------------------------===//
 BaseOperatorNode *LogicalLimit::Copy() const { return new LogicalLimit(*this); }
@@ -860,8 +837,6 @@ const char *OperatorNode<LogicalDelete>::name = "LogicalDelete";
 template <>
 const char *OperatorNode<LogicalLimit>::name = "LogicalLimit";
 template <>
-const char *OperatorNode<LogicalDistinct>::name = "LogicalDistinct";
-template <>
 const char *OperatorNode<LogicalExportExternalFile>::name = "LogicalExportExternalFile";
 
 //===--------------------------------------------------------------------===//
@@ -903,8 +878,6 @@ template <>
 OpType OperatorNode<LogicalUpdate>::type = OpType::LOGICALUPDATE;
 template <>
 OpType OperatorNode<LogicalDelete>::type = OpType::LOGICALDELETE;
-template <>
-OpType OperatorNode<LogicalDistinct>::type = OpType::LOGICALDISTINCT;
 template <>
 OpType OperatorNode<LogicalLimit>::type = OpType::LOGICALLIMIT;
 template <>

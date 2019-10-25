@@ -1273,25 +1273,5 @@ class Aggregate : public OperatorNode<Aggregate> {
   common::hash_t Hash() const override;
 };
 
-/**
- * Physical operator for DISTINCT
- */
-class Distinct : public OperatorNode<Distinct> {
- public:
-  /**
-   * @return a distinct operator
-   */
-  static Operator Make();
-
-  /**
-   * Copy
-   * @returns copy of this
-   */
-  BaseOperatorNode *Copy() const override;
-
-  bool operator==(const BaseOperatorNode &r) override;
-  common::hash_t Hash() const override;
-};
-
 }  // namespace optimizer
 }  // namespace terrier

@@ -845,28 +845,6 @@ class LogicalInsertSelect : public OperatorNode<LogicalInsertSelect> {
 };
 
 /**
- * Logical operator for DISTINCT
- */
-class LogicalDistinct : public OperatorNode<LogicalDistinct> {
- public:
-  /**
-   * This generates the LogicalDistinct.
-   * It doesn't need to store any data. It is just a placeholder
-   * @return
-   */
-  static Operator Make();
-
-  /**
-   * Copy
-   * @returns copy of this
-   */
-  BaseOperatorNode *Copy() const override;
-
-  bool operator==(const BaseOperatorNode &r) override;
-  common::hash_t Hash() const override;
-};
-
-/**
  * Logical operator for LIMIT
  * This supports embedded ORDER BY information
  */

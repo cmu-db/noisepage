@@ -153,12 +153,6 @@ class TrivialCostModel : public AbstractCostModel {
   void Visit(UNUSED_ATTRIBUTE const SortGroupBy *op) override { output_cost_ = 1.f; }
 
   /**
-   * Visit a Distinct operator
-   * @param op operator
-   */
-  void Visit(UNUSED_ATTRIBUTE const Distinct *op) override { output_cost_ = 0.f; }
-
-  /**
    * Visit a Aggregate operator
    * @param op operator
    */

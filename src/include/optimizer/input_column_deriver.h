@@ -166,12 +166,6 @@ class InputColumnDeriver : public OperatorVisitor {
   void Visit(const SortGroupBy *op) override;
 
   /**
-   * Visit function to derive input/output columns for Distinct
-   * @param op Distinct operator to visit
-   */
-  void Visit(const Distinct *op) override;
-
-  /**
    * Visit function to derive input/output columns for Aggregate
    * @param op Aggregate operator to visit
    */

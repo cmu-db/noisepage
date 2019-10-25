@@ -174,21 +174,6 @@ void StatsCalculator::Visit(const LogicalLimit *op) {
   }
 }
 
-void StatsCalculator::Visit(UNUSED_ATTRIBUTE const LogicalDistinct *op) {
-  // TODO(boweic) calculate stats for distinct
-  TERRIER_ASSERT(gexpr_->GetChildrenGroupsSize() == 1, "Distinct must have 1 child");
-  auto child_group = metadata_->GetMemo().GetGroupByID(gexpr_->GetChildGroupId(0));
-  auto group = metadata_->GetMemo().GetGroupByID(gexpr_->GetGroupID());
-  group->SetNumRows(child_group->GetNumRows());
-  for (auto &col : required_cols_) {
-    TERRIER_ASSERT(col->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE, "CVE expected");
-    auto col_name = col.CastManagedPointerTo<parser::ColumnValueExpression>()->GetFullName();
-
-    TERRIER_ASSERT(child_group->HasColumnStats(col_name), "Stats missing in child group");
-    group->AddStats(col_name, std::make_unique<ColumnStats>(*child_group->GetStats(col_name)));
-  }
-}
-
 void StatsCalculator::AddBaseTableStats(common::ManagedPointer<parser::AbstractExpression> col,
                                         common::ManagedPointer<TableStats> table_stats,
                                         std::unordered_map<std::string, std::unique_ptr<ColumnStats>> *stats) {

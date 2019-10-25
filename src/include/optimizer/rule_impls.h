@@ -438,34 +438,6 @@ class InnerJoinToInnerHashJoin : public Rule {
 };
 
 /**
- * Rule transforms LogicalDistinct -> Distinct
- */
-class ImplementDistinct : public Rule {
- public:
-  /**
-   * Constructor
-   */
-  ImplementDistinct();
-
-  /**
-   * Checks whether the given rule can be applied
-   * @param plan OperatorExpression to check
-   * @param context Current OptimizeContext executing under
-   * @returns Whether the input OperatorExpression passes the check
-   */
-  bool Check(OperatorExpression *plan, OptimizeContext *context) const override;
-
-  /**
-   * Transforms the input expression using the given rule
-   * @param input Input OperatorExpression to transform
-   * @param transformed Vector of transformed OperatorExpressions
-   * @param context Current OptimizeContext executing under
-   */
-  void Transform(OperatorExpression *input, std::vector<OperatorExpression *> *transformed,
-                 OptimizeContext *context) const override;
-};
-
-/**
  * Rule transforms LogicalLimit -> Limit
  */
 class ImplementLimit : public Rule {

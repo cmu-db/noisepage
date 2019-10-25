@@ -171,12 +171,6 @@ class ChildPropertyDeriver : public OperatorVisitor {
   void Visit(const SortGroupBy *op) override;
 
   /**
-   * Visitor function for Distinct
-   * @param op Distinct operator to visit
-   */
-  void Visit(const Distinct *op) override;
-
-  /**
    * Visitor function for Aggregate
    * @param op Aggregate operator to visit
    */

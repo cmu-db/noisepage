@@ -793,27 +793,6 @@ common::hash_t Aggregate::Hash() const {
 }
 
 //===--------------------------------------------------------------------===//
-// Hash
-//===--------------------------------------------------------------------===//
-BaseOperatorNode *Distinct::Copy() const { return new Distinct(*this); }
-
-Operator Distinct::Make() {
-  auto *hash = new Distinct;
-  return Operator(hash);
-}
-
-bool Distinct::operator==(const BaseOperatorNode &r) {
-  return (r.GetType() == OpType::DISTINCT);
-  // Again, there isn't any internal data so I guess we're always equal!
-}
-
-common::hash_t Distinct::Hash() const {
-  common::hash_t hash = BaseOperatorNode::Hash();
-  // I guess every Aggregate object hashes to the same thing?
-  return hash;
-}
-
-//===--------------------------------------------------------------------===//
 template <typename T>
 void OperatorNode<T>::Accept(OperatorVisitor *v) const {
   v->Visit(reinterpret_cast<const T *>(this));
@@ -863,8 +842,6 @@ const char *OperatorNode<HashGroupBy>::name = "HashGroupBy";
 template <>
 const char *OperatorNode<SortGroupBy>::name = "SortGroupBy";
 template <>
-const char *OperatorNode<Distinct>::name = "Distinct";
-template <>
 const char *OperatorNode<Aggregate>::name = "Aggregate";
 template <>
 const char *OperatorNode<ExportExternalFile>::name = "ExportExternalFile";
@@ -882,8 +859,6 @@ template <>
 OpType OperatorNode<QueryDerivedScan>::type = OpType::QUERYDERIVEDSCAN;
 template <>
 OpType OperatorNode<OrderBy>::type = OpType::ORDERBY;
-template <>
-OpType OperatorNode<Distinct>::type = OpType::DISTINCT;
 template <>
 OpType OperatorNode<Limit>::type = OpType::LIMIT;
 template <>

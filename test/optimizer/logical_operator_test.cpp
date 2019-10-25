@@ -114,19 +114,6 @@ TEST(OperatorTests, LogicalInsertSelectTest) {
 }
 
 // NOLINTNEXTLINE
-TEST(OperatorTests, LogicalDistinctTest) {
-  // DISTINCT operator does not have any data members.
-  // So we just need to make sure that all instantiations
-  // of the object are equivalent.
-  Operator op1 = LogicalDistinct::Make();
-  EXPECT_EQ(op1.GetType(), OpType::LOGICALDISTINCT);
-
-  Operator op2 = LogicalDistinct::Make();
-  EXPECT_TRUE(op1 == op2);
-  EXPECT_EQ(op1.Hash(), op2.Hash());
-}
-
-// NOLINTNEXTLINE
 TEST(OperatorTests, LogicalLimitTest) {
   size_t offset = 90;
   size_t limit = 22;

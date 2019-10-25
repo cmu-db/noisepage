@@ -145,12 +145,6 @@ class OperatorVisitor {
   virtual void Visit(const SortGroupBy *sort_group_by) {}
 
   /**
-   * Visit a Distinct operator
-   * @param distinct operator
-   */
-  virtual void Visit(const Distinct *distinct) {}
-
-  /**
    * Visit a Aggregate operator
    * @param aggregate operator
    */
@@ -269,12 +263,6 @@ class OperatorVisitor {
    * @param logical_update operator
    */
   virtual void Visit(const LogicalUpdate *logical_update) {}
-
-  /**
-   * Visit a LogicalDistinct operator
-   * @param logical_distinct operator
-   */
-  virtual void Visit(const LogicalDistinct *logical_distinct) {}
 
   /**
    * Visit a LogicalLimit operator

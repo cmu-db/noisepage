@@ -4,7 +4,6 @@
 #include <vector>
 
 #include "common/hash_util.h"
-#include "planner/plannodes/hash_plan_node.h"
 
 namespace terrier::planner {
 

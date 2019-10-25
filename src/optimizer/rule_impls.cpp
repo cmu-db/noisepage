@@ -618,32 +618,6 @@ void InnerJoinToInnerHashJoin::Transform(OperatorExpression *input, std::vector<
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-/// ImplementDistinct
-///////////////////////////////////////////////////////////////////////////////
-ImplementDistinct::ImplementDistinct() {
-  type_ = RuleType::IMPLEMENT_DISTINCT;
-
-  match_pattern_ = new Pattern(OpType::LOGICALDISTINCT);
-  match_pattern_->AddChild(new Pattern(OpType::LEAF));
-}
-
-bool ImplementDistinct::Check(OperatorExpression *plan, OptimizeContext *context) const {
-  (void)context;
-  (void)plan;
-  return true;
-}
-
-void ImplementDistinct::Transform(OperatorExpression *input, std::vector<OperatorExpression *> *transformed,
-                                  OptimizeContext *context) const {
-  (void)context;
-
-  TERRIER_ASSERT(input->GetChildren().size() == 1, "LogicalDistinct should have 1 child");
-  auto child = input->GetChildren()[0]->Copy();
-  auto result_plan = new OperatorExpression(Distinct::Make(), {child});
-  transformed->push_back(result_plan);
-}
-
-///////////////////////////////////////////////////////////////////////////////
 /// ImplementLimit
 ///////////////////////////////////////////////////////////////////////////////
 ImplementLimit::ImplementLimit() {

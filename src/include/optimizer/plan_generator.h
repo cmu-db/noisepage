@@ -188,12 +188,6 @@ class PlanGenerator : public OperatorVisitor {
   void Visit(const SortGroupBy *op) override;
 
   /**
-   * Visitor function for a Distinct operator
-   * @param op Distinct operator being visited
-   */
-  void Visit(const Distinct *op) override;
-
-  /**
    * Visitor function for a Aggregate operator
    * @param op Aggregate operator being visited
    */

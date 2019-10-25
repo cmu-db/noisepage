@@ -29,7 +29,6 @@
 #include "planner/plannodes/drop_view_plan_node.h"
 #include "planner/plannodes/export_external_file_plan_node.h"
 #include "planner/plannodes/hash_join_plan_node.h"
-#include "planner/plannodes/hash_plan_node.h"
 #include "planner/plannodes/index_scan_plan_node.h"
 #include "planner/plannodes/insert_plan_node.h"
 #include "planner/plannodes/limit_plan_node.h"
@@ -678,43 +677,6 @@ TEST(PlanNodeJsonTest, HashJoinPlanNodeJoinTest) {
   auto deserialized_plan = common::ManagedPointer(deserialized.result_).CastManagedPointerTo<HashJoinPlanNode>();
   EXPECT_TRUE(deserialized_plan != nullptr);
   EXPECT_EQ(PlanNodeType::HASHJOIN, deserialized_plan->GetPlanNodeType());
-  EXPECT_EQ(*plan_node, *deserialized_plan);
-  EXPECT_EQ(plan_node->Hash(), deserialized_plan->Hash());
-}
-
-// NOLINTNEXTLINE
-TEST(PlanNodeJsonTest, HashPlanNodeJsonTest) {
-  auto scan_pred = PlanNodeJsonTest::BuildDummyPredicate();
-  SeqScanPlanNode::Builder seqbuilder;
-  auto seq_scan_plan = seqbuilder.SetOutputSchema(PlanNodeJsonTest::BuildDummyOutputSchema())
-                           .SetScanPredicate(common::ManagedPointer(scan_pred))
-                           .SetIsParallelFlag(true)
-                           .SetIsForUpdateFlag(false)
-                           .SetDatabaseOid(catalog::db_oid_t(0))
-                           .SetTableOid(catalog::table_oid_t(0))
-                           .SetNamespaceOid(catalog::namespace_oid_t(0))
-                           .Build();
-
-  // Construct HashPlanNode
-  auto left_hash_key = std::make_unique<parser::ColumnValueExpression>("table1", "col1");
-  auto right_hash_key = std::make_unique<parser::ColumnValueExpression>("col2", "table1");
-  HashPlanNode::Builder builder;
-  auto plan_node =
-      builder.SetOutputSchema(PlanNodeJsonTest::BuildDummyOutputSchema())
-          .AddHashKey(common::ManagedPointer(left_hash_key).CastManagedPointerTo<parser::AbstractExpression>())
-          .AddHashKey(common::ManagedPointer(right_hash_key).CastManagedPointerTo<parser::AbstractExpression>())
-          .AddChild(std::move(seq_scan_plan))
-          .Build();
-
-  // Serialize to Json
-  auto json = plan_node->ToJson();
-  EXPECT_FALSE(json.is_null());
-
-  // Deserialize plan node
-  auto deserialized = DeserializePlanNode(json);
-  auto deserialized_plan = common::ManagedPointer(deserialized.result_).CastManagedPointerTo<HashPlanNode>();
-  EXPECT_TRUE(deserialized_plan != nullptr);
-  EXPECT_EQ(PlanNodeType::HASH, deserialized_plan->GetPlanNodeType());
   EXPECT_EQ(*plan_node, *deserialized_plan);
   EXPECT_EQ(plan_node->Hash(), deserialized_plan->Hash());
 }

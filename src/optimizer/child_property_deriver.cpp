@@ -107,12 +107,6 @@ void ChildPropertyDeriver::Visit(const Limit *op) {
   output_.emplace_back(provided_prop, std::move(child_input_properties));
 }
 
-void ChildPropertyDeriver::Visit(UNUSED_ATTRIBUTE const Distinct *op) {
-  // Let child fulfil all the required properties
-  std::vector<PropertySet *> child_input_properties{requirements_->Copy()};
-  output_.emplace_back(requirements_->Copy(), std::move(child_input_properties));
-}
-
 void ChildPropertyDeriver::Visit(UNUSED_ATTRIBUTE const OrderBy *op) {}
 void ChildPropertyDeriver::Visit(UNUSED_ATTRIBUTE const InnerNLJoin *op) { DeriveForJoin(); }
 void ChildPropertyDeriver::Visit(UNUSED_ATTRIBUTE const LeftNLJoin *op) {}

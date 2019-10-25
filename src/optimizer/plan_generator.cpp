@@ -20,7 +20,6 @@
 #include "planner/plannodes/delete_plan_node.h"
 #include "planner/plannodes/export_external_file_plan_node.h"
 #include "planner/plannodes/hash_join_plan_node.h"
-#include "planner/plannodes/hash_plan_node.h"
 #include "planner/plannodes/index_scan_plan_node.h"
 #include "planner/plannodes/insert_plan_node.h"
 #include "planner/plannodes/limit_plan_node.h"
@@ -472,50 +471,6 @@ void PlanGenerator::Visit(UNUSED_ATTRIBUTE const OrderBy *op) {
   }
 
   builder.AddChild(std::move(children_plans_[0]));
-  output_plan_ = builder.Build();
-}
-
-///////////////////////////////////////////////////////////////////////////////
-// Distinct
-///////////////////////////////////////////////////////////////////////////////
-
-void PlanGenerator::Visit(UNUSED_ATTRIBUTE const Distinct *op) {
-  // Now distinct is a flag in the parser, so we only support
-  // distinct on all output columns
-  TERRIER_ASSERT(children_expr_map_.size() == 1, "Distinct needs 1 child expr map");
-  TERRIER_ASSERT(children_plans_.size() == 1, "Distinct needs 1 child plan");
-  auto &child_expr_map = children_expr_map_[0];
-
-  // Distinct output schema is defined by output cols...
-  // Output_cols_ must be provided by the child plan (i.e child_expr_map_)
-  std::vector<planner::OutputSchema::DerivedTarget> tl;
-  std::vector<planner::OutputSchema::DirectMap> dml;
-  std::vector<planner::OutputSchema::Column> output_schema_columns;
-  std::vector<common::ManagedPointer<parser::AbstractExpression>> hash_keys;
-  unsigned idx = 0;
-  for (auto &col : output_cols_) {
-    auto col_offset = child_expr_map.at(col);
-
-    // Create new DerivedValueExpression
-    parser::AbstractExpression *dve = new parser::DerivedValueExpression(col->GetReturnValueType(), 0, col_offset);
-    RegisterPointerCleanup<parser::DerivedValueExpression>(dve, true, true);
-    hash_keys.emplace_back(dve);
-
-    dml.emplace_back(idx, std::make_pair(0, col_offset));
-    output_schema_columns.emplace_back(col->GetExpressionName(), col->GetReturnValueType());
-    idx++;
-  }
-
-  auto schema =
-      std::make_unique<planner::OutputSchema>(std::move(output_schema_columns), std::move(tl), std::move(dml));
-
-  auto builder = planner::HashPlanNode::Builder();
-  builder.SetOutputSchema(std::move(schema));
-  builder.AddChild(std::move(children_plans_[0]));
-  for (auto key : hash_keys) {
-    builder.AddHashKey(key);
-  }
-
   output_plan_ = builder.Build();
 }
 

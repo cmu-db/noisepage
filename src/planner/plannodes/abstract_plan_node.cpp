@@ -23,7 +23,6 @@
 #include "planner/plannodes/drop_view_plan_node.h"
 #include "planner/plannodes/export_external_file_plan_node.h"
 #include "planner/plannodes/hash_join_plan_node.h"
-#include "planner/plannodes/hash_plan_node.h"
 #include "planner/plannodes/index_scan_plan_node.h"
 #include "planner/plannodes/insert_plan_node.h"
 #include "planner/plannodes/limit_plan_node.h"
@@ -167,11 +166,6 @@ JSONDeserializeNodeIntermediate DeserializePlanNode(const nlohmann::json &json) 
 
     case PlanNodeType::HASHJOIN: {
       plan_node = std::make_unique<HashJoinPlanNode>();
-      break;
-    }
-
-    case PlanNodeType::HASH: {
-      plan_node = std::make_unique<HashPlanNode>();
       break;
     }
 

@@ -63,7 +63,6 @@ enum class OpType {
   LOGICALDELETE,
   LOGICALUPDATE,
   LOGICALLIMIT,
-  LOGICALDISTINCT,
   LOGICALEXPORTEXTERNALFILE,
 
   // Separation of logical and physical operators
@@ -77,7 +76,6 @@ enum class OpType {
   QUERYDERIVEDSCAN,
   ORDERBY,
   LIMIT,
-  DISTINCT,
   INNERNLJOIN,
   LEFTNLJOIN,
   RIGHTNLJOIN,

@@ -14,7 +14,6 @@
 #include "planner/plannodes/csv_scan_plan_node.h"
 #include "planner/plannodes/drop_database_plan_node.h"
 #include "planner/plannodes/hash_join_plan_node.h"
-#include "planner/plannodes/hash_plan_node.h"
 #include "planner/plannodes/seq_scan_plan_node.h"
 #include "util/test_harness.h"
 
@@ -152,7 +151,6 @@ TEST(PlanNodeTest, DropDatabasePlanIfExistsTest) {
 // table2.col2; NOLINTNEXTLINE
 TEST(PlanNodeTest, HashJoinPlanTest) {
   SeqScanPlanNode::Builder seq_scan_builder;
-  HashPlanNode::Builder hash_builder;
   HashJoinPlanNode::Builder hash_join_builder;
 
   auto scan_pred_1 = std::make_unique<parser::StarExpression>();
@@ -192,17 +190,6 @@ TEST(PlanNodeTest, HashJoinPlanTest) {
   EXPECT_FALSE(seq_scan_2->IsForUpdate());
   EXPECT_TRUE(seq_scan_2->IsParallel());
 
-  auto hash_key = std::make_unique<parser::ColumnValueExpression>("table2", "col2");
-  auto hash_plan = hash_builder.SetOutputSchema(PlanNodeTest::BuildOneColumnSchema("col2", type::TypeId::INTEGER))
-                       .AddHashKey(common::ManagedPointer(hash_key).CastManagedPointerTo<parser::AbstractExpression>())
-                       .AddChild(std::move(seq_scan_2))
-                       .Build();
-
-  EXPECT_EQ(PlanNodeType::HASH, hash_plan->GetPlanNodeType());
-  EXPECT_EQ(1, hash_plan->GetChildrenSize());
-  EXPECT_EQ(1, hash_plan->GetHashKeys().size());
-  EXPECT_EQ(parser::ExpressionType::COLUMN_VALUE, hash_plan->GetHashKeys()[0]->GetExpressionType());
-
   std::vector<std::unique_ptr<parser::AbstractExpression>> expr_children;
   expr_children.push_back(std::make_unique<parser::ColumnValueExpression>("table1", "col1"));
   expr_children.push_back(std::make_unique<parser::ColumnValueExpression>("table2", "col2"));
@@ -214,7 +201,7 @@ TEST(PlanNodeTest, HashJoinPlanTest) {
           .SetOutputSchema(PlanNodeTest::BuildOneColumnSchema("col1", type::TypeId::INTEGER))
           .SetJoinPredicate(common::ManagedPointer(cmp_expression).CastManagedPointerTo<parser::AbstractExpression>())
           .AddChild(std::move(seq_scan_1))
-          .AddChild(std::move(hash_plan))
+          .AddChild(std::move(seq_scan_2))
           .Build();
 
   EXPECT_EQ(PlanNodeType::HASHJOIN, hash_join_plan->GetPlanNodeType());

@@ -131,8 +131,6 @@ void InputColumnDeriver::Visit(const SortGroupBy *op) { AggregateHelper(op); }
 
 void InputColumnDeriver::Visit(const Aggregate *op) { AggregateHelper(op); }
 
-void InputColumnDeriver::Visit(UNUSED_ATTRIBUTE const Distinct *op) { Passdown(); }
-
 void InputColumnDeriver::Visit(const InnerNLJoin *op) { JoinHelper(op); }
 
 void InputColumnDeriver::Visit(UNUSED_ATTRIBUTE const LeftNLJoin *op) { TERRIER_ASSERT(0, "LeftNLJoin not supported"); }

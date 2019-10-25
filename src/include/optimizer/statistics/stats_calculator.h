@@ -57,12 +57,6 @@ class StatsCalculator : public OperatorVisitor {
    */
   void Visit(const LogicalLimit *op) override;
 
-  /**
-   * Visit a LogicalDistinct
-   * @param op Operator being visited
-   */
-  void Visit(const LogicalDistinct *op) override;
-
  private:
   /**
    * Add the base table stats if the base table maintain stats, or else

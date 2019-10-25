@@ -107,35 +107,6 @@ TEST_F(OptimizerMetadataTest, OptimizerMetadataTaskStackNullptrTest) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(OptimizerMetadataTest, RecordTransformedExpressionNoDuplicate) {
-  auto metadata = OptimizerMetadata(nullptr);
-
-  // Create OperatorExpression of DISTINCT <= GET
-  auto *get = new OperatorExpression(
-      LogicalGet::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3), {}, "tbl", false),
-      {});
-  auto *distinct = new OperatorExpression(LogicalDistinct::Make(), {get});
-
-  // RecordTransformedExpression
-  GroupExpression *gexpr;
-  EXPECT_TRUE(metadata.RecordTransformedExpression(distinct, &gexpr));
-  EXPECT_TRUE(gexpr != nullptr);
-
-  EXPECT_EQ(gexpr->Op(), distinct->GetOp());
-  EXPECT_EQ(gexpr->GetChildGroupIDs().size(), 1);
-
-  auto child_group = gexpr->GetChildGroupId(0);
-  auto group = metadata.GetMemo().GetGroupByID(child_group);
-  EXPECT_EQ(group->GetLogicalExpressions().size(), 1);
-
-  auto child_gexpr = group->GetLogicalExpressions()[0];
-  EXPECT_EQ(child_gexpr->Op(), get->GetOp());
-  EXPECT_EQ(child_gexpr->GetChildGroupIDs().size(), 0);
-
-  delete distinct;
-}
-
-// NOLINTNEXTLINE
 TEST_F(OptimizerMetadataTest, RecordTransformedExpressionDuplicateSingleLayer) {
   auto metadata = OptimizerMetadata(nullptr);
 
