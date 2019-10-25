@@ -52,7 +52,13 @@ Transition ParseCommand::Exec(common::ManagedPointer<ProtocolInterpreter> interp
   NETWORK_LOG_TRACE("ParseCommand Statement Name: {0}", stmt_name.c_str());
 
   std::string query = in_.ReadString();
-  NETWORK_LOG_TRACE("ParseCommand: {0}", query);
+  NETWORK_LOG_INFO("ParseCommand: {0}", query);
+
+  if (query.find("BEGIN") != std::string::npos) {
+    connection->in_transaction_ = true;
+  } else if (query.find("COMMIT") != std::string::npos || query.find("ROLLBACK") != std::string::npos) {
+    connection->in_transaction_ = false;
+  }
 
   // TODO(Weichen): This implementation does not strictly follow Postgres protocol.
   // This param num here is just the number of params that the client wants to pre-specify types for.
@@ -74,7 +80,7 @@ Transition ParseCommand::Exec(common::ManagedPointer<ProtocolInterpreter> interp
   trafficcop::SqliteEngine *execution_engine = t_cop->GetExecutionEngine();
   sqlite3_stmt *sqlite_stmt = execution_engine->PrepareStatement(query);
 
-  trafficcop::Statement stmt(sqlite_stmt, param_types);
+  trafficcop::Statement stmt(sqlite_stmt, param_types, query);
   connection->statements_[stmt_name] = stmt;
 
   out->WriteParseComplete();
@@ -152,50 +158,72 @@ Transition BindCommand::Exec(common::ManagedPointer<ProtocolInterpreter> interpr
   auto params = std::make_shared<std::vector<TransientValue>>();
 
   for (size_t i = 0; i < num_params; i++) {
-    auto len = static_cast<size_t>(in_.ReadValue<int32_t>());
+    auto len = static_cast<int32_t>(in_.ReadValue<int32_t>());
     auto type = PostgresValueTypeToInternalValueType(statement->param_types_[i]);
 
     if (type == TypeId::INTEGER) {
-      int32_t value;
-      if (is_binary[i] == 0) {
-        char buf[len + 1];
-        memset(buf, 0, len + 1);
-        in_.Read(len, buf);
-        value = std::stoi(buf);
+      if (len != -1) {
+        int32_t value;
+        if (is_binary[i] == 0) {
+          char buf[len + 1];
+          memset(buf, 0, len + 1);
+          in_.Read(len, buf);
+          value = std::stoi(buf);
+        } else {
+          value = in_.ReadValue<int32_t>();
+        }
+        params->push_back(TransientValueFactory::GetInteger(value));
       } else {
-        value = in_.ReadValue<int32_t>();
+        params->push_back(TransientValueFactory::GetNull(TypeId::INTEGER));
       }
-      params->push_back(TransientValueFactory::GetInteger(value));
-
     } else if (type == TypeId::DECIMAL) {
-      double value;
-      if (is_binary[i] == 0) {
-        char buf[len + 1];
-        memset(buf, 0, len + 1);
-        in_.Read(len, buf);
-        value = std::stod(buf);
+      if (len != -1) {
+        double value;
+        if (is_binary[i] == 0) {
+          char buf[len + 1];
+          memset(buf, 0, len + 1);
+          in_.Read(len, buf);
+          value = std::stod(buf);
+        } else {
+          value = in_.ReadValue<double>();
+        }
+        params->push_back(TransientValueFactory::GetDecimal(value));
       } else {
-        value = in_.ReadValue<double>();
+        params->push_back(TransientValueFactory::GetNull(TypeId::DECIMAL));
       }
-      params->push_back(TransientValueFactory::GetDecimal(value));
-
     } else if (type == TypeId::VARCHAR) {
-      char buf[len + 1];
-      memset(buf, 0, len + 1);
-      in_.Read(len, buf);
-      params->push_back(TransientValueFactory::GetVarChar(buf));
-
-    } else if (type == TypeId::TIMESTAMP) {
-      type::timestamp_t timestamp;
-      if (is_binary[i] == 0) {
+      if (len != -1) {
         char buf[len + 1];
         memset(buf, 0, len + 1);
         in_.Read(len, buf);
-        timestamp = type::timestamp_t(std::stoull(buf));
+        params->push_back(TransientValueFactory::GetVarChar(buf));
       } else {
-        timestamp = type::timestamp_t(in_.ReadValue<uint64_t>());
+        params->push_back(TransientValueFactory::GetNull(TypeId::VARCHAR));
       }
-      params->push_back(TransientValueFactory::GetTimestamp(timestamp));
+    } else if (type == TypeId::TIMESTAMP) {
+      if (len != -1) {
+        char buf[len + 1];
+        memset(buf, 0, len + 1);
+        in_.Read(len, buf);
+        params->push_back(TransientValueFactory::GetVarChar(buf));
+      } else {
+        params->push_back(TransientValueFactory::GetNull(TypeId::VARCHAR));
+      }
+    } else if (type == TypeId::BIGINT) {
+      if (len != -1) {
+        int64_t value;
+        if (is_binary[i] == 0) {
+          char buf[len + 1];
+          memset(buf, 0, len + 1);
+          in_.Read(len, buf);
+          value = std::stoll(buf);
+        } else {
+          value = in_.ReadValue<int64_t>();
+        }
+        params->push_back(TransientValueFactory::GetBigInt(value));
+      } else {
+        params->push_back(TransientValueFactory::GetNull(TypeId::BIGINT));
+      }
     } else {
       string error_msg =
           fmt::format("Param type {0} is not implemented yet", static_cast<int>(statement->param_types_[i]));
@@ -211,7 +239,7 @@ Transition BindCommand::Exec(common::ManagedPointer<ProtocolInterpreter> interpr
   // With SQLite backend, we only produce a list of param values as the portal,
   // because we cannot copy a sqlite3 statement.
   trafficcop::Portal portal;
-  portal.sqlite_stmt_ = statement->sqlite3_stmt_;
+  portal.statement_ = statement;
   portal.params_ = params;
   connection->portals_[portal_name] = portal;
 
@@ -249,8 +277,8 @@ Transition DescribeCommand::Exec(common::ManagedPointer<ProtocolInterpreter> int
       LogAndWriteErrorMsg(error_msg, out);
       return Transition::PROCEED;
     }
-    if (p_portal->second.sqlite_stmt_ != nullptr)
-      column_names = execution_engine->DescribeColumns(p_portal->second.sqlite_stmt_);
+    if (p_portal->second.statement_->sqlite3_stmt_ != nullptr)
+      column_names = execution_engine->DescribeColumns(p_portal->second.statement_->sqlite3_stmt_);
 
   } else {
     std::string error_msg = fmt::format("Wrong type: {0}, should be either 'S' or 'P'.", static_cast<char>(type));
@@ -284,11 +312,26 @@ Transition ExecuteCommand::Exec(common::ManagedPointer<ProtocolInterpreter> inte
   trafficcop::Portal &portal = p_portal->second;
 
   trafficcop::SqliteEngine *execution_engine = t_cop->GetExecutionEngine();
-  execution_engine->Bind(portal.sqlite_stmt_, portal.params_);
-  trafficcop::ResultSet result = execution_engine->Execute(portal.sqlite_stmt_);
-  for (const auto &row : result.rows_) out->WriteDataRow(row);
+  execution_engine->Bind(portal.statement_->sqlite3_stmt_, portal.params_);
+  trafficcop::ResultSet result = execution_engine->Execute(portal.statement_->sqlite3_stmt_);
+  int32_t rows_affected = execution_engine->GetAffected();
+  for (const auto &row : result.rows_) {
+    out->WriteDataRow(row);
+  }
 
-  out->WriteCommandComplete("");
+  string &query_string = portal.statement_->query_string_;
+  if (query_string.find("INSERT") != string::npos) {
+    // TODO(YUZE): OID
+    out->WriteCommandComplete("INSERT 0 " + std::to_string(rows_affected));
+  } else if (query_string.find("DELETE") != string::npos) {
+    out->WriteCommandComplete("DELETE " + std::to_string(rows_affected));
+  } else if (query_string.find("UPDATE") != string::npos) {
+    out->WriteCommandComplete("UPDATE " + std::to_string(rows_affected));
+  } else if (query_string.find("SELECT") != string::npos) {
+    out->WriteCommandComplete("SELECT " + std::to_string(result.rows_.size()));
+  } else if (query_string.find("BEGIN") != string::npos) {
+    out->WriteCommandComplete("BEGIN");
+  }
   return Transition::PROCEED;
 }
 
@@ -297,7 +340,11 @@ Transition SyncCommand::Exec(common::ManagedPointer<ProtocolInterpreter> interpr
                              common::ManagedPointer<trafficcop::TrafficCop> t_cop,
                              common::ManagedPointer<ConnectionContext> connection, NetworkCallback callback) {
   NETWORK_LOG_TRACE("Sync query");
-  out->WriteReadyForQuery(NetworkTransactionStateType::IDLE);
+  if (connection->in_transaction_) {
+    out->WriteReadyForQuery(NetworkTransactionStateType::BLOCK);
+  } else {
+    out->WriteReadyForQuery(NetworkTransactionStateType::IDLE);
+  }
   return Transition::PROCEED;
 }
 
