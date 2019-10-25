@@ -76,7 +76,6 @@ class ProtocolInterpreter {
   /**
    * Reads the header of the packet to see if it is valid
    * @param in The ReadBuffer to read input from
-   * @param curr_input_packet packet to send
    * @return whether the packet header is valid or not
    */
   bool TryReadPacketHeader(const std::shared_ptr<ReadBuffer> &in) {
