@@ -86,7 +86,7 @@ std::unique_ptr<planner::AbstractPlanNode> Optimizer::ChooseBestPlan(
   TERRIER_ASSERT(required_input_props.size() == child_groups.size(), "input properties and group size mismatch");
 
   // Firstly derive input/output columns
-  InputColumnDeriver deriver;
+  InputColumnDeriver deriver(accessor, txn);
   auto output_input_cols_pair = deriver.DeriveInputColumns(gexpr, required_props, required_cols, &metadata_->GetMemo());
 
   auto &output_cols = output_input_cols_pair.first;

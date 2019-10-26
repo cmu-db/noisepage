@@ -964,7 +964,7 @@ class Delete : public OperatorNode<Delete> {
    * @param table_oid OID of the table
    * @return an InsertSelect operator
    */
-  static Operator Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
+  static Operator Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid, std::string table_alias,
                        catalog::table_oid_t table_oid);
 
   /**
@@ -987,6 +987,11 @@ class Delete : public OperatorNode<Delete> {
   const catalog::namespace_oid_t &GetNamespaceOid() const { return namespace_oid_; }
 
   /**
+   * @return Alias
+   */
+  const std::string &GetTableAlias() const { return table_alias_; }
+
+  /**
    * @return OID of the table
    */
   const catalog::table_oid_t &GetTableOid() const { return table_oid_; }
@@ -1001,6 +1006,11 @@ class Delete : public OperatorNode<Delete> {
    * OID of the namespace
    */
   catalog::namespace_oid_t namespace_oid_;
+
+  /**
+   * Table Alias
+   */
+  std::string table_alias_;
 
   /**
    * OID of the table

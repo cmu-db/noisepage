@@ -1,5 +1,7 @@
+#include <memory>
 #include <string>
 
+#include "planner/plannodes/update_plan_node.h"
 #include "util/test_harness.h"
 #include "util/tpcc/tpcc_plan_test.h"
 
@@ -15,13 +17,10 @@ TEST_F(TpccPlanDeliveryTests, DeliveryGetOrderId) {
 
 // NOLINTNEXTLINE
 TEST_F(TpccPlanDeliveryTests, DeliveryDeleteNewOrder) {
-  // TODO(wz2): Test Plan
-  // From OLTPBenchmark (L45-49)
-  // DELETE FROM NEW-ORDER
-  //  WHERE NO_O_ID = ?
-  //    AND NO_D_ID = ?
-  //    AND NO_W_ID = ?
-  EXPECT_TRUE(true);
+  auto check = [](TpccPlanTest *test, catalog::table_oid_t tbl_oid, std::unique_ptr<planner::AbstractPlanNode> plan) {};
+
+  std::string query = "DELETE FROM \"NEW ORDER\" WHERE NO_O_ID = 1 AND NO_D_ID = 2 AND NO_W_ID = 3";
+  OptimizeDelete(query, tbl_new_order_, check);
 }
 
 // NOLINTNEXTLINE
@@ -32,22 +31,48 @@ TEST_F(TpccPlanDeliveryTests, DeliveryGetCustomerId) {
 
 // NOLINTNEXTLINE
 TEST_F(TpccPlanDeliveryTests, DeliveryUpdateCarrierId) {
-  // TODO(wz2): Test Plan
-  // std::string query = "UPDATE \"ORDER\" SET O_CARRIER_ID = 1 WHERE O_ID = 1 AND O_D_ID = 2 AND O_W_ID = 3";
-  // OptimizeUpdate(query, tbl_order_);
-  EXPECT_TRUE(true);
+  auto check = [](TpccPlanTest *test, catalog::table_oid_t tbl_oid, std::unique_ptr<planner::AbstractPlanNode> plan) {
+    EXPECT_EQ(plan->GetPlanNodeType(), planner::PlanNodeType::UPDATE);
+
+    auto update = reinterpret_cast<planner::UpdatePlanNode *>(plan.get());
+    EXPECT_EQ(update->GetDatabaseOid(), test->db_);
+    EXPECT_EQ(update->GetNamespaceOid(), test->accessor_->GetDefaultNamespace());
+    EXPECT_EQ(update->GetTableOid(), test->tbl_order_);
+
+    auto &schema = test->accessor_->GetSchema(test->tbl_order_);
+    EXPECT_EQ(update->GetSetClauses()[0].first, schema.GetColumn("o_carrier_id").Oid());
+
+    auto expr = update->GetSetClauses()[0].second;
+    EXPECT_EQ(expr->GetExpressionType(), parser::ExpressionType::VALUE_CONSTANT);
+    auto cve = expr.CastManagedPointerTo<parser::ConstantValueExpression>();
+    EXPECT_EQ(type::TransientValuePeeker::PeekInteger(cve->GetValue()), 1);
+  };
+
+  std::string query = "UPDATE \"ORDER\" SET O_CARRIER_ID = 1 WHERE O_ID = 1 AND O_D_ID = 2 AND O_W_ID = 3";
+  OptimizeUpdate(query, tbl_order_, check);
 }
 
 // NOLINTNEXTLINE
 TEST_F(TpccPlanDeliveryTests, DeliveryUpdateDeliveryDate) {
-  // TODO(wz2): Test plan
-  // From OLTPBenchmark (L65-69)
-  // UPDATE ORDER-LINE
-  //    SET OL_DELIVERY_D = ?
-  //  WHERE OL_O_ID = ?
-  //    AND OL_D_ID = ?
-  //    AND OL_W_ID = ?
-  EXPECT_TRUE(true);
+  auto check = [](TpccPlanTest *test, catalog::table_oid_t tbl_oid, std::unique_ptr<planner::AbstractPlanNode> plan) {
+    EXPECT_EQ(plan->GetPlanNodeType(), planner::PlanNodeType::UPDATE);
+
+    auto update = reinterpret_cast<planner::UpdatePlanNode *>(plan.get());
+    EXPECT_EQ(update->GetDatabaseOid(), test->db_);
+    EXPECT_EQ(update->GetNamespaceOid(), test->accessor_->GetDefaultNamespace());
+    EXPECT_EQ(update->GetTableOid(), test->tbl_order_line_);
+
+    auto &schema = test->accessor_->GetSchema(test->tbl_order_line_);
+    EXPECT_EQ(update->GetSetClauses()[0].first, schema.GetColumn("ol_delivery_d").Oid());
+
+    auto expr = update->GetSetClauses()[0].second;
+    EXPECT_EQ(expr->GetExpressionType(), parser::ExpressionType::VALUE_CONSTANT);
+    auto cve = expr.CastManagedPointerTo<parser::ConstantValueExpression>();
+    EXPECT_EQ(type::TransientValuePeeker::PeekInteger(cve->GetValue()), 1);
+  };
+
+  std::string query = "UPDATE \"ORDER LINE\" SET OL_DELIVERY_D = 1 WHERE OL_O_ID = 1 AND OL_D_ID = 2 AND OL_W_ID = 3";
+  OptimizeUpdate(query, tbl_order_line_, check);
 }
 
 // NOLINTNEXTLINE
@@ -64,15 +89,12 @@ TEST_F(TpccPlanDeliveryTests, DeliverySumOrderAmount) {
 
 // NOLINTNEXTLINE
 TEST_F(TpccPlanDeliveryTests, UpdateCustomBalanceDeliveryCount) {
-  // TODO(wz2): Test Plan
-  // From OLTPBenchmark (L78-84)
-  // UPDATE CUSTOMER
-  //    SET C_BALANCE = C_BALANCE + ?
-  //        C_DELIVERY_CNT = C_DELIVERY_CNT + 1
-  //  WHERE C_W_ID = ?
-  //    AND C_D_ID = ?
-  //    AND C_ID = ?
-  EXPECT_TRUE(true);
+  auto check = [](TpccPlanTest *test, catalog::table_oid_t tbl_oid, std::unique_ptr<planner::AbstractPlanNode> plan) {};
+
+  std::string query =
+      "UPDATE CUSTOMER SET C_BALANCE = C_BALANCE+1, C_DELIVERY_CNT=C_DELIVERY_CNT+1"
+      "WHERE C_W_ID=1 AND C_D_ID=2 AND C_ID=3";
+  OptimizeUpdate(query, tbl_order_line_, check);
 }
 
 }  // namespace terrier

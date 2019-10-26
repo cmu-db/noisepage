@@ -123,7 +123,7 @@ void InnerJoinAssociativity::Transform(OperatorExpression *input, std::vector<Op
   std::vector<AnnotatedExpression> new_child_join_predicates;
   std::vector<AnnotatedExpression> new_parent_join_predicates;
   for (const auto &predicate : predicates) {
-    if (util::IsSubset(right_join_aliases_set, predicate.GetTableAliasSet())) {
+    if (Util::IsSubset(right_join_aliases_set, predicate.GetTableAliasSet())) {
       new_child_join_predicates.emplace_back(predicate);
     } else {
       new_parent_join_predicates.emplace_back(predicate);
@@ -361,8 +361,8 @@ void LogicalDeleteToPhysical::Transform(OperatorExpression *input, std::vector<O
   TERRIER_ASSERT(input->GetChildren().size() == 1, "LogicalDelete should have 1 child");
 
   auto child = input->GetChildren()[0]->Copy();
-  auto result =
-      new OperatorExpression(Delete::Make(del->GetDatabaseOid(), del->GetNamespaceOid(), del->GetTableOid()), {child});
+  auto result = new OperatorExpression(
+      Delete::Make(del->GetDatabaseOid(), del->GetNamespaceOid(), del->GetTableAlias(), del->GetTableOid()), {child});
   transformed->push_back(result);
 }
 
@@ -558,7 +558,7 @@ void InnerJoinToInnerNLJoin::Transform(OperatorExpression *input, std::vector<Op
   std::vector<common::ManagedPointer<parser::AbstractExpression>> right_keys;
 
   std::vector<AnnotatedExpression> join_preds = inner_join->GetJoinPredicates();
-  util::ExtractEquiJoinKeys(join_preds, &left_keys, &right_keys, left_group_alias, right_group_alias);
+  Util::ExtractEquiJoinKeys(join_preds, &left_keys, &right_keys, left_group_alias, right_group_alias);
 
   TERRIER_ASSERT(right_keys.size() == left_keys.size(), "# left/right keys should equal");
   std::vector<OperatorExpression *> child = {children[0]->Copy(), children[1]->Copy()};
@@ -606,7 +606,7 @@ void InnerJoinToInnerHashJoin::Transform(OperatorExpression *input, std::vector<
   std::vector<common::ManagedPointer<parser::AbstractExpression>> right_keys;
 
   std::vector<AnnotatedExpression> join_preds = inner_join->GetJoinPredicates();
-  util::ExtractEquiJoinKeys(join_preds, &left_keys, &right_keys, left_group_alias, right_group_alias);
+  Util::ExtractEquiJoinKeys(join_preds, &left_keys, &right_keys, left_group_alias, right_group_alias);
 
   TERRIER_ASSERT(right_keys.size() == left_keys.size(), "# left/right keys should equal");
   std::vector<OperatorExpression *> child = {children[0]->Copy(), children[1]->Copy()};
@@ -725,9 +725,9 @@ void PushFilterThroughJoin::Transform(OperatorExpression *input, std::vector<Ope
   // E.g. An expression (test.a = test1.b and test.a = 5) would become
   // {test.a = test1.b, test.a = 5}
   for (auto &predicate : predicates) {
-    if (util::IsSubset(left_group_aliases_set, predicate.GetTableAliasSet())) {
+    if (Util::IsSubset(left_group_aliases_set, predicate.GetTableAliasSet())) {
       left_predicates.emplace_back(predicate);
-    } else if (util::IsSubset(right_group_aliases_set, predicate.GetTableAliasSet())) {
+    } else if (Util::IsSubset(right_group_aliases_set, predicate.GetTableAliasSet())) {
       right_predicates.emplace_back(predicate);
     } else {
       join_predicates.emplace_back(predicate);
@@ -1046,7 +1046,7 @@ void PullFilterThroughAggregation::Transform(OperatorExpression *input, std::vec
   std::vector<AnnotatedExpression> normal_predicates;
   std::vector<common::ManagedPointer<parser::AbstractExpression>> new_groupby_cols;
   for (auto &predicate : predicates) {
-    if (util::IsSubset(child_group_aliases_set, predicate.GetTableAliasSet())) {
+    if (Util::IsSubset(child_group_aliases_set, predicate.GetTableAliasSet())) {
       normal_predicates.emplace_back(predicate);
     } else {
       // Correlated predicate, already in the form of

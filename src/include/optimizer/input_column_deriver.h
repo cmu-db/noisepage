@@ -1,10 +1,13 @@
 #pragma once
 
+#include <string>
 #include <utility>
 #include <vector>
 
+#include "catalog/catalog_accessor.h"
 #include "common/managed_pointer.h"
 #include "optimizer/operator_visitor.h"
+#include "transaction/transaction_context.h"
 
 namespace terrier::optimizer {
 
@@ -20,7 +23,8 @@ class Memo;
  */
 class InputColumnDeriver : public OperatorVisitor {
  public:
-  InputColumnDeriver();
+  InputColumnDeriver(catalog::CatalogAccessor *accessor, transaction::TransactionContext *txn)
+      : accessor_(accessor), txn_(txn) {}
 
   /**
    * Derives the input and output columns for a physical operator
@@ -222,6 +226,14 @@ class InputColumnDeriver : public OperatorVisitor {
   void Passdown();
 
   /**
+   * Generates input set to be all columns of the base table
+   * @param alias Table Alias
+   * @param db DB OID
+   * @param tbl Table OID
+   */
+  void InputBaseTableColumns(const std::string &alias, catalog::db_oid_t db, catalog::table_oid_t tbl);
+
+  /**
    * GroupExpression analyzing
    */
   GroupExpression *gexpr_;
@@ -248,6 +260,16 @@ class InputColumnDeriver : public OperatorVisitor {
    * The required physical properties
    */
   PropertySet *properties_;
+
+  /**
+   * CatalogAccessor
+   */
+  catalog::CatalogAccessor *accessor_;
+
+  /**
+   * TransactionContext
+   */
+  transaction::TransactionContext *txn_;
 };
 
 }  // namespace terrier::optimizer

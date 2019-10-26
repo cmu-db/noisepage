@@ -1,3 +1,4 @@
+#include <memory>
 #include <string>
 
 #include "util/test_harness.h"
@@ -33,13 +34,10 @@ TEST_F(TpccPlanNewOrderTests, InsertNewOrder) {
 
 // NOLINTNEXTLINE
 TEST_F(TpccPlanNewOrderTests, UpdateDistrict) {
-  // TODO(wz2): Enable plan
-  // From OLTPBenchmark (L60-63)
-  // UDPATE DISTRICT
-  //    SET D_NEXT_O_ID = D_NEXT_O_ID + 1
-  //  WHERE D_W_ID = ?
-  //    AND D_ID = ?
-  EXPECT_TRUE(true);
+  auto check = [](TpccPlanTest *test, catalog::table_oid_t tbl_oid, std::unique_ptr<planner::AbstractPlanNode> plan) {};
+
+  std::string query = "UPDATE DISTRICT SET D_NEXT_O_ID = D_NEXT_O_ID + 1 WHERE D_W_ID = 1 AND D_ID = 2";
+  OptimizeUpdate(query, tbl_district_, check);
 }
 
 // NOLINTNEXTLINE
@@ -67,16 +65,13 @@ TEST_F(TpccPlanNewOrderTests, GetStock) {
 
 // NOLINTNEXTLINE
 TEST_F(TpccPlanNewOrderTests, UpdateStock) {
-  // TODO(wz2): Enable plan
-  // From OLTPBenchmark (L83-89)
-  // UPDATE STOCK
-  //    SET S_QUANTITY = ?
-  //        S_YTD = S_YTD + ?
-  //        S_ORDER_CNT = S_ORDER_CNT + 1
-  //        S_REMOTE_CNT = S_REMOTE_CNT + ?
-  //  WHERE S_I_ID = ?
-  //    AND S_W_ID = ?
-  EXPECT_TRUE(true);
+  auto check = [](TpccPlanTest *test, catalog::table_oid_t tbl_oid, std::unique_ptr<planner::AbstractPlanNode> plan) {};
+
+  std::string query =
+      "UPDATE STOCK SET S_QUANTITY = 1, "
+      "S_YTD = S_YTD + 1, S_ORDER_CNT = S_ORDER_CNT + 1, "
+      "S_REMOTE_CNT = S_REMOTE_CNT + 1 WHERE S_I_ID = 2 AND S_W_ID = 3";
+  OptimizeUpdate(query, tbl_stock_, check);
 }
 
 // NOLINTNEXTLINE

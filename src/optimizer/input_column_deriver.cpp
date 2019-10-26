@@ -7,6 +7,7 @@
 #include "optimizer/operator_expression.h"
 #include "optimizer/physical_operators.h"
 #include "optimizer/properties.h"
+#include "optimizer/util.h"
 #include "parser/expression_util.h"
 #include "storage/data_table.h"
 
@@ -23,8 +24,6 @@ using PT1 = std::vector<common::ManagedPointer<parser::AbstractExpression>>;
  * also to satisfy clang-tidy.
  */
 using PT2 = std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>;
-
-InputColumnDeriver::InputColumnDeriver() = default;
 
 std::pair<PT1, PT2> InputColumnDeriver::DeriveInputColumns(
     GroupExpression *gexpr, PropertySet *properties,
@@ -164,9 +163,34 @@ void InputColumnDeriver::Visit(UNUSED_ATTRIBUTE const Insert *op) {
 
 void InputColumnDeriver::Visit(UNUSED_ATTRIBUTE const InsertSelect *op) { Passdown(); }
 
-void InputColumnDeriver::Visit(UNUSED_ATTRIBUTE const Delete *op) { Passdown(); }
+void InputColumnDeriver::InputBaseTableColumns(const std::string &alias, catalog::db_oid_t db,
+                                               catalog::table_oid_t tbl) {
+  auto exprs = Util::GenerateTableColumnValueExprs(alias, db, tbl, accessor_);
 
-void InputColumnDeriver::Visit(UNUSED_ATTRIBUTE const Update *op) { Passdown(); }
+  std::vector<common::ManagedPointer<parser::AbstractExpression>> inputs(required_cols_);
+  for (auto *expr : exprs) {
+    inputs.emplace_back(expr);
+    txn_->RegisterCommitAction([=]() { delete expr; });
+    txn_->RegisterAbortAction([=]() { delete expr; });
+  }
+
+  auto input = std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>>{std::move(inputs)};
+  output_input_cols_ = std::make_pair(std::move(required_cols_), std::move(input));
+}
+
+void InputColumnDeriver::Visit(UNUSED_ATTRIBUTE const Delete *op) {
+  const auto &alias = op->GetTableAlias();
+  auto db_id = op->GetDatabaseOid();
+  auto tbl_id = op->GetTableOid();
+  InputBaseTableColumns(alias, db_id, tbl_id);
+}
+
+void InputColumnDeriver::Visit(UNUSED_ATTRIBUTE const Update *op) {
+  const auto &alias = op->GetTableAlias();
+  auto db_id = op->GetDatabaseOid();
+  auto tbl_id = op->GetTableOid();
+  InputBaseTableColumns(alias, db_id, tbl_id);
+}
 
 void InputColumnDeriver::Visit(UNUSED_ATTRIBUTE const ExportExternalFile *op) { Passdown(); }
 

@@ -12,7 +12,7 @@ class TpccPlanTest;
 }  // namespace terrier
 
 namespace terrier::optimizer {
-class PlanGenerator;
+class Util;
 }  // namespace terrier::optimizer
 
 namespace terrier::binder {
@@ -27,7 +27,7 @@ namespace terrier::parser {
 class ColumnValueExpression : public AbstractExpression {
   // PlanGenerator creates ColumnValueexpressions and will
   // need to set the bound oids
-  friend class terrier::optimizer::PlanGenerator;
+  friend class terrier::optimizer::Util;
   friend class terrier::TpccPlanTest;
 
  public:

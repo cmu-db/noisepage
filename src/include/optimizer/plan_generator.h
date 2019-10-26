@@ -218,20 +218,6 @@ class PlanGenerator : public OperatorVisitor {
   }
 
   /**
-   * Generate all tuple value expressions of a base table
-   *
-   * @param alias Table alias used in constructing ColumnValue
-   * @param db_oid Database OID
-   * @param tbl_oid Table OID for catalog lookup
-   *
-   * @return a vector of tuple value expression representing column name to
-   * table column id mapping
-   */
-  std::vector<parser::AbstractExpression *> GenerateTableColumnValueExprs(const std::string &alias,
-                                                                          catalog::db_oid_t db_oid,
-                                                                          catalog::table_oid_t tbl_oid);
-
-  /**
    * Generate the column oids vector for a scan plan
    *
    * @return a vector of column oid indicating which columns to scan

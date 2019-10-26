@@ -171,7 +171,9 @@ class TpccPlanTest : public TerrierTest {
   }
 
   // Optimize an Update
-  void OptimizeUpdate(const std::string &query, catalog::table_oid_t tbl_oid) {
+  void OptimizeUpdate(const std::string &query, catalog::table_oid_t tbl_oid,
+                      void (*Check)(TpccPlanTest *test, catalog::table_oid_t tbl_oid,
+                                    std::unique_ptr<planner::AbstractPlanNode> plan)) {
     parser::PostgresParser pgparser;
     auto stmt_list = pgparser.BuildParseTree(query);
 
@@ -195,6 +197,42 @@ class TpccPlanTest : public TerrierTest {
     EXPECT_EQ(out_plan->GetPlanNodeType(), planner::PlanNodeType::UPDATE);
     EXPECT_EQ(out_plan->GetChildrenSize(), 1);
     EXPECT_EQ(out_plan->GetChild(0)->GetPlanNodeType(), planner::PlanNodeType::INDEXSCAN);
+    Check(this, tbl_oid, std::move(out_plan));
+
+    delete plan;
+    delete property_set;
+    delete optimizer;
+    EndTransaction(true);
+  }
+
+  // Optimize a Delete
+  void OptimizeDelete(const std::string &query, catalog::table_oid_t tbl_oid,
+                      void (*Check)(TpccPlanTest *test, catalog::table_oid_t tbl_oid,
+                                    std::unique_ptr<planner::AbstractPlanNode> plan)) {
+    parser::PostgresParser pgparser;
+    auto stmt_list = pgparser.BuildParseTree(query);
+
+    BeginTransaction();
+
+    // Bind + Transform
+    auto accessor = catalog_->GetAccessor(txn_, db_);
+    auto *binder = new binder::BindNodeVisitor(std::move(accessor), "tpcc");
+    binder->BindNameToNode(stmt_list.GetStatement(0), &stmt_list);
+    accessor = binder->GetCatalogAccessor();
+    auto *transformer = new optimizer::QueryToOperatorTransformer(std::move(accessor));
+    auto *plan = transformer->ConvertToOpExpression(stmt_list.GetStatement(0), &stmt_list);
+    delete binder;
+    delete transformer;
+
+    auto property_set = new optimizer::PropertySet();
+    auto query_info = optimizer::QueryInfo(parser::StatementType::UPDATE, {}, property_set);
+    auto optimizer = new optimizer::Optimizer(new optimizer::TrivialCostModel());
+    auto out_plan = optimizer->BuildPlanTree(plan, query_info, txn_, settings_manager_, accessor_, stats_storage_);
+
+    EXPECT_EQ(out_plan->GetPlanNodeType(), planner::PlanNodeType::DELETE);
+    EXPECT_EQ(out_plan->GetChildrenSize(), 1);
+    EXPECT_EQ(out_plan->GetChild(0)->GetPlanNodeType(), planner::PlanNodeType::INDEXSCAN);
+    Check(this, tbl_oid, std::move(out_plan));
 
     delete plan;
     delete property_set;

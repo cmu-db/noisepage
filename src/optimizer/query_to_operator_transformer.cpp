@@ -326,7 +326,8 @@ void QueryToOperatorTransformer::Visit(parser::DeleteStatement *op, parser::Pars
   auto target_ns_id = accessor_->GetDefaultNamespace();
   auto target_table_alias = target_table->GetAlias();
 
-  auto delete_expr = new OperatorExpression(LogicalDelete::Make(target_db_id, target_ns_id, target_table_id), {});
+  auto delete_expr =
+      new OperatorExpression(LogicalDelete::Make(target_db_id, target_ns_id, target_table_alias, target_table_id), {});
 
   OperatorExpression *table_scan;
   if (op->GetDeleteCondition() != nullptr) {

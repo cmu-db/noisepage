@@ -1,3 +1,4 @@
+#include <memory>
 #include <string>
 
 #include "util/test_harness.h"
@@ -9,12 +10,10 @@ struct TpccPlanPaymentTests : public TpccPlanTest {};
 
 // NOLINTNEXTLINE
 TEST_F(TpccPlanPaymentTests, UpdateWarehouse) {
-  // TODO(wz2): Test
-  // OLTPBenchmark 40-42
-  // UPDATE WAREHOUSE
-  //    SET W_YTD = W_YTD + ?
-  //  WHERE W_ID = ?
-  EXPECT_TRUE(true);
+  auto check = [](TpccPlanTest *test, catalog::table_oid_t tbl_oid, std::unique_ptr<planner::AbstractPlanNode> plan) {};
+
+  std::string query = "UPDATE WAREHOUSE SET W_YTD = W_YTD + 1 WHERE W_ID = 2";
+  OptimizeUpdate(query, tbl_warehouse_, check);
 }
 
 // NOLINTNEXTLINE
@@ -25,13 +24,10 @@ TEST_F(TpccPlanPaymentTests, GetWarehouse) {
 
 // NOLINTNEXTLINE
 TEST_F(TpccPlanPaymentTests, UpdateDistrict) {
-  // TODO(wz2): Test
-  // OLTPbenchmark 50-53
-  // UPDATE DISTRICT
-  //    SET D_YTD = D_YTD + ?
-  //  WHERE D_W_ID = ?
-  //    AND D_ID = ?
-  EXPECT_TRUE(true);
+  auto check = [](TpccPlanTest *test, catalog::table_oid_t tbl_oid, std::unique_ptr<planner::AbstractPlanNode> plan) {};
+
+  std::string query = "UPDATE DISTRICT SET D_YTD = D_YTD + 1 WHERE D_W_ID = 2 AND D_ID = 3";
+  OptimizeUpdate(query, tbl_district_, check);
 }
 
 // NOLINTNEXTLINE
@@ -59,31 +55,12 @@ TEST_F(TpccPlanPaymentTests, GetCustomerCData) {
 
 // NOLINTNEXTLINE
 TEST_F(TpccPlanPaymentTests, UpdateCustomerBalance) {
-  // TODO(wz2): Update
-  // OLTPBenchmark 78-85
-  // UPDATE CUSTOMER
-  //    SET C_BALANCE = ?
-  //        C_YTD_PAYMENT = ?
-  //        C_PAYMENT_CNT = ?
-  //        C_DATA = ?
-  //  WHERE C_W_ID = ?
-  //    AND C_D_ID = ?
-  //    AND C_ID = ?
-  EXPECT_TRUE(true);
-}
+  auto check = [](TpccPlanTest *test, catalog::table_oid_t tbl_oid, std::unique_ptr<planner::AbstractPlanNode> plan) {};
 
-// NOLINTNEXTLINE
-TEST_F(TpccPlanPaymentTests, UpdateCustBal) {
-  // TODO(wz2): Update
-  // OLTPBenchmark 88-94
-  // UPDATE CUSTOMER
-  //    SET C_BALANCE = ?
-  //        C_YTD_PAYMENT = ?
-  //        C_PAYMENT_CNT = ?
-  //  WHERE C_W_ID = ?
-  //    AND C_D_ID = ?
-  //    AND C_ID = ?
-  EXPECT_TRUE(true);
+  std::string query =
+      "UPDATE CUSTOMER SET C_BALANCE = 1, C_YTD_PAYMENT = 2,"
+      "C_PAYMENT_CNT = 3, C_DATA = '4' WHERE C_W_ID = 1 AND C_D_ID = 2 AND C_ID = 3";
+  OptimizeUpdate(query, tbl_customer_, check);
 }
 
 // NOLINTNEXTLINE

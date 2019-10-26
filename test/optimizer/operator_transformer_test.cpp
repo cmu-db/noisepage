@@ -344,7 +344,7 @@ TEST_F(OperatorTransformerTest, SelectStatementDistinctTest) {
   std::string select_sql = "SELECT DISTINCT B1 FROM B WHERE B1 <= 5";
 
   std::string ref =
-      "{\"Op\":\"LogicalDistinct\",\"Children\":"
+      "{\"Op\":\"LogicalAggregate\",\"Children\":"
       "[{\"Op\":\"LogicalFilter\",\"Children\":"
       "[{\"Op\":\"LogicalGet\",}]}]}";
 

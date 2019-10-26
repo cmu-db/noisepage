@@ -14,7 +14,7 @@
 #include "type/type_id.h"
 
 namespace terrier::optimizer {
-class PlanGenerator;
+class Util;
 class QueryToOperatorTransformer;
 }  // namespace terrier::optimizer
 
@@ -32,7 +32,7 @@ class ParseResult;
  * document these assumptions exactly.
  */
 class AbstractExpression {
-  friend class PlanGenerator;  // Access to DeriveReturnValueType
+  friend class optimizer::Util;
 
  protected:
   /**

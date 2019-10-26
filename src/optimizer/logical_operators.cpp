@@ -334,10 +334,11 @@ common::hash_t LogicalLimit::Hash() const {
 BaseOperatorNode *LogicalDelete::Copy() const { return new LogicalDelete(*this); }
 
 Operator LogicalDelete::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
-                             catalog::table_oid_t table_oid) {
+                             std::string table_alias, catalog::table_oid_t table_oid) {
   auto *op = new LogicalDelete;
   op->database_oid_ = database_oid;
   op->namespace_oid_ = namespace_oid;
+  op->table_alias_ = std::move(table_alias);
   op->table_oid_ = table_oid;
   return Operator(op);
 }
@@ -346,6 +347,7 @@ common::hash_t LogicalDelete::Hash() const {
   common::hash_t hash = BaseOperatorNode::Hash();
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_oid_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(namespace_oid_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_alias_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_oid_));
   return hash;
 }
