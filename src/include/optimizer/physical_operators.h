@@ -961,6 +961,7 @@ class Delete : public OperatorNode<Delete> {
   /**
    * @param database_oid OID of the database
    * @param namespace_oid OID of the namespace
+   * @param table_alias Alias of the table
    * @param table_oid OID of the table
    * @return an InsertSelect operator
    */

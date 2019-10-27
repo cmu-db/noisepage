@@ -23,6 +23,11 @@ class Memo;
  */
 class InputColumnDeriver : public OperatorVisitor {
  public:
+  /**
+   * Constructor
+   * @param accessor CatalogAccessor
+   * @param txn TransactionContext
+   */
   InputColumnDeriver(catalog::CatalogAccessor *accessor, transaction::TransactionContext *txn)
       : accessor_(accessor), txn_(txn) {}
 

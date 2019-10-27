@@ -88,19 +88,19 @@ void QueryToOperatorTransformer::Visit(parser::SelectStatement *op, parser::Pars
         output_expr_ = filter_expr;
       }
     }
+  } else if (op->IsSelectDistinct()) {
+    // SELECT DISTINCT a1 FROM A should be transformed to
+    // SELECT a1 FROM A GROUP BY a1
+    // Assumption: SELECT DISTINCT on columns (not expressions)
+    auto num_cols = op->GetSelectColumns().size();
+    auto group_by_cols = std::vector<common::ManagedPointer<parser::AbstractExpression>>(num_cols);
+    for (size_t i = 0; i < num_cols; i++) {
+      group_by_cols[i] = common::ManagedPointer<parser::AbstractExpression>(op->GetSelectColumns()[i]);
+    }
+
+    auto *agg_expr = new OperatorExpression(LogicalAggregateAndGroupBy::Make(std::move(group_by_cols)), {output_expr_});
+    output_expr_ = agg_expr;
   }
-
-  // DISTINCT() should be captured correctly by the select output.
-  // If for some reason, the statement above is incorrect, then the following would
-  // need to be uncommented and the LogicalDistinct/Distinct operators would need
-  // to be readded and integrated into a HashPlanNode/AggregatePlanNode.
-  // - wz2
-
-  // if (op->IsSelectDistinct()) {
-  //  OPTIMIZER_LOG_DEBUG("Handling distinct in SelectStatement ...");
-  //  auto distinct_expr = new OperatorExpression(LogicalDistinct::Make(), {output_expr_});
-  //  output_expr_ = distinct_expr;
-  // }
 
   if (op->GetSelectLimit() != nullptr && op->GetSelectLimit()->GetLimit() != -1) {
     OPTIMIZER_LOG_DEBUG("Handling order by/limit/offset in SelectStatement ...");

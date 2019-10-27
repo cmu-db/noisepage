@@ -24,6 +24,9 @@ namespace terrier::planner {
  */
 class OutputSchema {
  public:
+  /**
+   * Describes a column output by a plan
+   */
   class Column {
    public:
     /**

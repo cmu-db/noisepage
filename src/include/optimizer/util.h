@@ -14,6 +14,9 @@
 
 namespace terrier::optimizer {
 
+/**
+ * Collection of utility functions for the optimizer
+ */
 class Util {
  public:
   /**
@@ -54,6 +57,7 @@ class Util {
    * @param alias Table alias used in constructing ColumnValue
    * @param db_oid Database OID
    * @param tbl_oid Table OID for catalog lookup
+   * @param accessor CatalogAccessor
    * @return a vector of tuple value expression representing column name to
    * table column id mapping
    */
