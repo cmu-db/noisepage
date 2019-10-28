@@ -85,10 +85,8 @@ class DataTableBenchmark : public benchmark::Fixture {
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(DataTableBenchmark, SimpleInsert)(benchmark::State &state) {
   // NOLINTNEXTLINE
-  //preprocessing
   for (auto _ : state) {
-    //inside gets measured
-    storage::DataTable table(&block_store_, layout_, storage::layout_version_t(0)); // done for initialization
+    storage::DataTable table(&block_store_, layout_, storage::layout_version_t(0));
     uint64_t elapsed_ms;
     {
       common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
@@ -279,34 +277,22 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, ConcurrentScan)(benchmark::State &state) 
     read_order.emplace_back(read_table.Insert(&txn, *redo_));
   }
 
-  // NOLINTNEXTLINE
   for (auto _ : state) {
     auto workload = [&](uint32_t id) {
     // We can use dummy timestamps here since we're not invoking concurrency control
       transaction::TransactionContext txn(transaction::timestamp_t(0), transaction::timestamp_t(0), &buffer_pool_,
                                       DISABLED);
 
-
-
-
-
-      /*std::vector<storage::col_id_t> all_cols = StorageTestUtil::ProjectionListAllColumns(read_table.Layout());
+      std::vector<storage::col_id_t> all_cols = StorageTestUtil::ProjectionListAllColumns(layout_);
       EXPECT_NE((!all_cols[all_cols.size() - 1]), -1);
-      storage::ProjectedColumnsInitializer initializer(read_table.Layout(), all_cols, num_reads_);
+      storage::ProjectedColumnsInitializer initializer(layout_, all_cols, num_reads_);
       auto *buffer = common::AllocationUtil::AllocateAligned(initializer.ProjectedColumnsSize());
       storage::ProjectedColumns *columns = initializer.Initialize(buffer);
-      auto it = read_table.GetTable().begin();
-      read_table.Scan(&it, transaction::timestamp_t(1), columns, &buffer_pool_);
-      */
+      auto it = read_table.begin();
 
-
-
-
-
-      for (uint32_t i = 0; i < num_reads_ / num_threads_; i++)  //ask: what will happen if a new thread comes, it will again start from the 0 ryt?
-        //then everytime we are just reading the first num_reads_/num_threads_ rows in the db
-        //read_table.Scan(&txn, read_order[i], reads_[id]);
-        read_table.Select(&txn, read_order[i], reads_[id]);
+      while (it!= read_table.end()) {
+        read_table.Scan(&txn, &it, columns);
+      }
     };
     common::WorkerPool thread_pool(num_threads_, {});
     uint64_t elapsed_ms;
@@ -319,11 +305,8 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, ConcurrentScan)(benchmark::State &state) 
     }
     state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
   }
-
   state.SetItemsProcessed(state.iterations() * num_reads_);
 }
-
-
 
 BENCHMARK_REGISTER_F(DataTableBenchmark, SimpleInsert)->Unit(benchmark::kMillisecond)->UseManualTime();
 
