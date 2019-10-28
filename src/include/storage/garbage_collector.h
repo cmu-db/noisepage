@@ -44,7 +44,7 @@ class GarbageCollector {
   ~GarbageCollector() = default;
 
   /**
-   * Unlink the transaction, if unlink successful defers an event to deallocate
+   * Unlink the transaction and then defers an event to deallocate
    * the transaction context
    * @param the transaction context associated with transaction to unlink
    */

@@ -8,15 +8,15 @@
 namespace terrier::transaction {
 
 /**
- * Class for spinning off a thread that runs garbage collection at a fixed interval. This should be used in most cases
+ * Class for spinning off a thread that runs deferred actions at a fixed interval. This should be used in most cases
  * to enable GC in the system unless you need fine-grained control over table state or profiling.
  */
 class DeferredActionThread {
  public:
   DECLARE_ANNOTATION(GC_PERIOD)  // TODO(yash): Change this to deferred events rather than gc
   /**
-   * @param gc pointer to the garbage collector object to be run on this thread
-   * @param gc_period sleep time between GC invocations
+   * @param deferred_actions_manager pointer to the deferred action manager object to be run on this thread
+   * @param deferred_actions_period sleep time between deferred actions process invocations
    */
   BOOST_DI_INJECT(DeferredActionThread, transaction::DeferredActionManager *deferred_actions_manager,
                   (named = GC_PERIOD) std::chrono::milliseconds deferred_actions_period)

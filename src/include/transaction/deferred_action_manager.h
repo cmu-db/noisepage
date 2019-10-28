@@ -49,18 +49,21 @@ class DeferredActionManager {
   uint32_t Process();
 
   /**
+   * TOOD(yash): Clean this up when removing bw-tree
    * Register an index to be periodically garbage collected
    * @param index pointer to the index to register
    */
   void RegisterIndexForGC(common::ManagedPointer<storage::index::Index> index);
 
   /**
+   * TOOD(yash): Clean this up when removing bw-tree
    * Unregister an index to be periodically garbage collected
    * @param index pointer to the index to unregister
    */
   void UnregisterIndexForGC(common::ManagedPointer<storage::index::Index> index);
 
  private:
+  friend transaction::DeferredActionThread; 
   TimestampManager *timestamp_manager_;
   // TODO(Tianyu): We might want to change this data structure to be more specialized than std::queue
   std::queue<std::pair<timestamp_t, DeferredAction>> new_deferred_actions_, back_log_;
