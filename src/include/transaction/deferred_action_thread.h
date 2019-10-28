@@ -13,18 +13,18 @@ namespace terrier::transaction {
  */
 class DeferredActionThread {
  public:
-  DECLARE_ANNOTATION(GC_PERIOD) //TODO(yash): Change this to deferred events rather than gc
+  DECLARE_ANNOTATION(GC_PERIOD)  // TODO(yash): Change this to deferred events rather than gc
   /**
    * @param gc pointer to the garbage collector object to be run on this thread
    * @param gc_period sleep time between GC invocations
    */
   BOOST_DI_INJECT(DeferredActionThread, transaction::DeferredActionManager *deferred_actions_manager,
                   (named = GC_PERIOD) std::chrono::milliseconds deferred_actions_period)
-    : deferred_actions_manager_(deferred_actions_manager),
-      run_deferred_events_(true),
-      deferred_events_paused_(false),
-      deferred_actions_period_(deferred_actions_period),
-      deferred_actions_thread_(std::thread([this] { DeferredActionThreadLoop(); })) {};
+      : deferred_actions_manager_(deferred_actions_manager),
+        run_deferred_events_(true),
+        deferred_events_paused_(false),
+        deferred_actions_period_(deferred_actions_period),
+        deferred_actions_thread_(std::thread([this] { DeferredActionThreadLoop(); })){};
 
   ~DeferredActionThread() {
     run_deferred_events_ = false;
@@ -36,35 +36,36 @@ class DeferredActionThread {
   }
 
   /**
-   * Pause the GC from running, typically for use in tests when the state of tables need to be fixed.
+   * Pause the Deferred Actions thread from running, typically for use in tests when the state of tables need to be
+   * fixed.
    */
-  void DeferredActionsGC() {
-    TERRIER_ASSERT(!deferred_events_paused_, "GC should not already be paused.");
+  void PauseDeferredActions() {
+    TERRIER_ASSERT(!deferred_events_paused_, "Deferred actions should not already be paused.");
     deferred_events_paused_ = true;
   }
 
   /**
-   * Resume GC after being paused.
+   * Resume Deferred Actions thread after being paused.
    */
   void ResumeDeferredActions() {
-    TERRIER_ASSERT(deferred_events_paused_, "GC should already be paused.");
+    TERRIER_ASSERT(deferred_events_paused_, "Deferred actions should already be paused.");
     deferred_events_paused_ = false;
   }
 
   /**
-   * @return the underlying GC object, mostly to register indexes currently.
+   * @return the underlying DeferredActionsManager object, mostly to register indexes currently.
    */
   DeferredActionManager &GetDeferredActionManager() { return *deferred_actions_manager_; }
 
  private:
   transaction::DeferredActionManager *deferred_actions_manager_;
-  volatile bool run_deferred_events_; 
+  volatile bool run_deferred_events_;
   volatile bool deferred_events_paused_;
 
   std::chrono::milliseconds deferred_actions_period_;
   std::thread deferred_actions_thread_;
 
-  void DeferredActionThreadLoop(); 
+  void DeferredActionThreadLoop();
 };
 
-}  // namespace terrier::storage
+}  // namespace terrier::transaction

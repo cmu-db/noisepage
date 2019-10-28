@@ -1,10 +1,10 @@
 #include "transaction/transaction_manager.h"
-#include "transaction/deferred_action_manager.h"
 #include <unordered_set>
 #include <utility>
 #include "common/scoped_timer.h"
 #include "common/thread_context.h"
 #include "metrics/metrics_store.h"
+#include "transaction/deferred_action_manager.h"
 
 namespace terrier::transaction {
 TransactionContext *TransactionManager::BeginTransaction() {
@@ -103,11 +103,10 @@ timestamp_t TransactionManager::Commit(TransactionContext *const txn, transactio
 
     // We hand off txn to GC, however, it won't be GC'd until the LogManager marks it as serialized
     if (gc_enabled_) {
-      common::SpinLatch::ScopedSpinLatch guard(&timestamp_manager_->curr_running_txns_latch_);
       // It is not necessary to have to GC process read-only transactions, but it's probably faster to call free off
       // the critical path there anyway
       // Also note here that GC will figure out what varlen entries to GC, as opposed to in the abort case.
-      completed_txns_.push_front(txn);
+      deferred_action_manager_->RegisterDeferredAction([=]() { gc_->CleanupTransaction(txn); });
     }
   }
 
@@ -115,13 +114,6 @@ timestamp_t TransactionManager::Commit(TransactionContext *const txn, transactio
     common::thread_context.metrics_store_->RecordCommitData(elapsed_us, txn->StartTime());
   }
 
-  // We hand off txn to GC, however, it won't be GC'd until the LogManager marks it as serialized
-  if (gc_enabled_) {
-    // It is not necessary to have to GC process read-only transactions, but it's probably faster to call free off
-    // the critical path there anyway
-    // Also note here that GC will figure out what varlen entries to GC, as opposed to in the abort case.
-    deferred_action_manager_->RegisterDeferredAction([=]() { gc_->CleanupTransaction(txn); });
-  }
   return result;
 }
 
@@ -227,11 +219,6 @@ void TransactionManager::GCLastUpdateOnAbort(TransactionContext *const txn) {
       }
     }
   }
-}
-
-TransactionQueue TransactionManager::CompletedTransactionsForGC() {
-  common::SpinLatch::ScopedSpinLatch guard(&timestamp_manager_->curr_running_txns_latch_);
-  return std::move(completed_txns_);
 }
 
 void TransactionManager::Rollback(TransactionContext *txn, const storage::UndoRecord &record) const {

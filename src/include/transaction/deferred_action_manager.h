@@ -17,8 +17,8 @@ class DeferredActionManager {
    * Constructs a new DeferredActionManager
    * @param timestamp_manager source of timestamps in the system
    */
-  BOOST_DI_INJECT(DeferredActionManager, TimestampManager *timestamp_manager) //NOLINT
-  :  timestamp_manager_(timestamp_manager) {};
+  BOOST_DI_INJECT(DeferredActionManager, TimestampManager *timestamp_manager)  // NOLINT
+  : timestamp_manager_(timestamp_manager){};
 
   ~DeferredActionManager() {
     common::SpinLatch::ScopedSpinLatch guard(&deferred_actions_latch_);
@@ -40,7 +40,7 @@ class DeferredActionManager {
    * transaction) is more recent than the time this function was called.
    * @param a functional implementation of the action that is deferred
    */
-  timestamp_t RegisterDeferredAction(const std::function<void()> &a); 
+  timestamp_t RegisterDeferredAction(const std::function<void()> &a);
 
   /**
    * Clear the queue and apply as many actions as possible
@@ -74,6 +74,5 @@ class DeferredActionManager {
   uint32_t ProcessNewActions(timestamp_t oldest_txn);
 
   void ProcessIndexes();
-
 };
 }  // namespace terrier::transaction

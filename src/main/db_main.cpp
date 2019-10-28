@@ -6,9 +6,9 @@
 #include "loggers/loggers_util.h"
 #include "settings/settings_manager.h"
 #include "settings/settings_param.h"
+#include "transaction/deferred_action_thread.h"
 #include "transaction/transaction_manager.h"
 #include "transaction/transaction_util.h"
-#include "transaction/deferred_action_thread.h"
 
 namespace terrier {
 
@@ -42,12 +42,12 @@ DBMain::DBMain(std::unordered_map<settings::Param, settings::ParamInfo> &&param_
   timestamp_manager_ = new transaction::TimestampManager;
   deferred_action_manager_ = new transaction::DeferredActionManager(timestamp_manager_);
   garbage_collector_ = new storage::GarbageCollector(timestamp_manager_, deferred_action_manager_, DISABLED);
-  txn_manager_ = new transaction::TransactionManager(timestamp_manager_, garbage_collector_, deferred_action_manager_, buffer_segment_pool_,
-                                                     true, log_manager_);
+  txn_manager_ = new transaction::TransactionManager(timestamp_manager_, garbage_collector_, deferred_action_manager_,
+                                                     buffer_segment_pool_, true, log_manager_);
 
-  deferred_action_thread_ = new transaction::DeferredActionThread(deferred_action_manager_,
-                                                    std::chrono::milliseconds{type::TransientValuePeeker::PeekInteger(
-                                                       param_map_.find(settings::Param::gc_interval)->second.value_)});
+  deferred_action_thread_ = new transaction::DeferredActionThread(
+      deferred_action_manager_, std::chrono::milliseconds{type::TransientValuePeeker::PeekInteger(
+                                    param_map_.find(settings::Param::gc_interval)->second.value_)});
 
   thread_pool_ = new common::WorkerPool(
       type::TransientValuePeeker::PeekInteger(param_map_.find(settings::Param::num_worker_threads)->second.value_), {});

@@ -11,100 +11,34 @@
 
 namespace terrier::storage {
 
-std::pair<uint32_t, uint32_t> GarbageCollector::PerformGarbageCollection(
-    transaction::TransactionQueue &txns_to_unlink) {
-  if (observer_ != nullptr) observer_->ObserveGCInvocation();
-  timestamp_manager_->CheckOutTimestamp();
-  const transaction::timestamp_t oldest_txn = timestamp_manager_->OldestTransactionStartTime();
-  uint32_t txns_unlinked = ProcessUnlinkQueue(oldest_txn, txns_to_unlink);
-  STORAGE_LOG_TRACE("GarbageCollector::PerformGarbageCollection(): txns_unlinked: {}", txns_unlinked);
-
-  return std::make_pair(0, txns_unlinked);
-}
-
 void GarbageCollector::CleanupTransaction(transaction::TransactionContext *txn) {
-  txns_since_unlink_++;
+  if (observer_ != nullptr) observer_->ObserveGCInvocation();
   if (txn->IsReadOnly()) {
     // This is a read-only transaction so this is safe to immediately delete
     delete txn;
   } else {
-    bool perform_gc = false;
-    transaction::TransactionQueue *txns_unlink;
-    {
-      // Critical section to access to transactions to unlink queue
-      common::SpinLatch::ScopedSpinLatch guard(&txn_to_unlink_latch_);
-      txns_to_unlink_.push_front(txn);
-
-      // If number of transactions since last unlink is exceeded reset the transactions to unlink queue
-      if (txns_since_unlink_ > MAX_OUTSTANDING_UNLINK_TRANSACTIONS) {
-        // This is safe because txns_since_unlink_ is an atomic variable and only increments that could have
-        // been missed by resetting to 0 here are from ReadOnly transactions. It is impossible for a write
-        // to have happened and the txns_to_unlink_ queue to grow during this assignment.
-        txns_since_unlink_ = 0;
-
-        transaction::TransactionQueue txns_unlink_queue(std::move(txns_to_unlink_));
-        txns_unlink = &txns_unlink_queue;
-        perform_gc = true;
-      }
-    }
-
-    if (perform_gc) {
-      PerformGarbageCollection(*txns_unlink);
-    }
+    timestamp_manager_->CheckOutTimestamp();
+    const transaction::timestamp_t oldest_txn = timestamp_manager_->OldestTransactionStartTime();
+    UnlinkTransaction(oldest_txn, txn);
+    deferred_action_manager_->RegisterDeferredAction([=]() { delete txn; });
   }
 }
 
-uint32_t GarbageCollector::ProcessUnlinkQueue(transaction::timestamp_t oldest_txn,
-                                              transaction::TransactionQueue &txns_to_unlink) {
-  transaction::TransactionContext *txn = nullptr;
-
-  uint32_t txns_processed = 0;
-  // Certain transactions might not be yet safe to gc. Need to requeue them
-  transaction::TransactionQueue requeue;
-  // It is sufficient to truncate each version chain once in a GC invocation because we only read the maximal safe
-  // timestamp once, and the version chain is sorted by timestamp. Here we keep a set of slots to truncate to avoid
-  // wasteful traversals of the version chain.
-  std::unordered_set<TupleSlot> visited_slots;
-  transaction::TransactionQueue txns_to_deallocate;
-
-  // Process every transaction in the unlink queue
-  while (!txns_to_unlink.empty()) {
-    txn = txns_to_unlink.front();
-    txns_to_unlink.pop_front();
-
-    if (txn->IsReadOnly()) {
-      // This is a read-only transaction so this is safe to immediately delete
-      delete txn;
-      txns_processed++;
-    } else {
-      // Safe to garbage collect.
-      for (auto &undo_record : txn->undo_buffer_) {
-        // It is possible for the table field to be null, for aborted transaction's last conflicting record
-        DataTable *&table = undo_record.Table();
-        // Each version chain needs to be traversed and truncated at most once every GC period. Check
-        // if we have already visited this tuple slot; if not, proceed to prune the version chain.
-        if (table != nullptr && visited_slots.insert(undo_record.Slot()).second)
-          TruncateVersionChain(table, undo_record.Slot(), oldest_txn);
-        // Regardless of the version chain we will need to reclaim deleted slots and any dangling pointers to varlens,
-        // unless the transaction is aborted, and the record holds a version that is still visible.
-        if (!txn->Aborted()) {
-          ReclaimSlotIfDeleted(&undo_record);
-          ReclaimBufferIfVarlen(txn, &undo_record);
-        }
-        if (observer_ != nullptr) observer_->ObserveWrite(undo_record.Slot().GetBlock());
-      }
-      txns_to_deallocate.push_front(txn);
-      txns_processed++;
+void GarbageCollector::UnlinkTransaction(transaction::timestamp_t oldest_txn, transaction::TransactionContext *txn) {
+  for (auto &undo_record : txn->undo_buffer_) {
+    // It is possible for the table field to be null, for aborted transaction's last conflicting record
+    DataTable *&table = undo_record.Table();
+    // Each version chain needs to be traversed and truncated at most once every GC period. Check
+    // if we have already visited this tuple slot; if not, proceed to prune the version chain.
+    if (table != nullptr) TruncateVersionChain(table, undo_record.Slot(), oldest_txn);
+    // Regardless of the version chain we will need to reclaim deleted slots and any dangling pointers to varlens,
+    // unless the transaction is aborted, and the record holds a version that is still visible.
+    if (!txn->Aborted()) {
+      ReclaimSlotIfDeleted(&undo_record);
+      ReclaimBufferIfVarlen(txn, &undo_record);
     }
+    if (observer_ != nullptr) observer_->ObserveWrite(undo_record.Slot().GetBlock());
   }
-
-  deferred_action_manager_->RegisterDeferredAction([=]() {
-    for (transaction::TransactionContext *ctx : txns_to_deallocate) {
-      delete ctx;
-    }
-  });
-
-  return txns_processed;
 }
 
 void GarbageCollector::TruncateVersionChain(DataTable *const table, const TupleSlot slot,

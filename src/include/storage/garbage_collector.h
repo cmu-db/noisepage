@@ -5,9 +5,9 @@
 #include <utility>
 #include "common/shared_latch.h"
 #include "storage/access_observer.h"
+#include "transaction/timestamp_manager.h"
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_defs.h"
-#include "transaction/timestamp_manager.h"
 
 #define MAX_OUTSTANDING_UNLINK_TRANSACTIONS 20
 
@@ -34,51 +34,24 @@ class GarbageCollector {
    */
   // TODO(Tianyu): Eventually the GC will be re-written to be purely on the deferred action manager. which will
   //  eliminate this perceived redundancy of taking in a transaction manager.
-  BOOST_DI_INJECT (GarbageCollector, transaction::TimestampManager *timestamp_manager,
-                   transaction::DeferredActionManager *deferred_action_manager, AccessObserver *observer)
+  BOOST_DI_INJECT(GarbageCollector, transaction::TimestampManager *timestamp_manager,
+                  transaction::DeferredActionManager *deferred_action_manager, AccessObserver *observer)
       : timestamp_manager_(timestamp_manager),
         deferred_action_manager_(deferred_action_manager),
         observer_(observer),
         last_unlinked_{0} {}
 
-  ~GarbageCollector() { TERRIER_ASSERT(txns_to_unlink_.empty(), "Not all txns have been unlinked"); }
-
-  /**
-   * Deallocates transactions that can no longer be referenced by running transactions, and unlinks UndoRecords that
-   * are no longer visible to running transactions. This needs to be invoked twice to actually free memory, since the
-   * first invocation will unlink a transaction's UndoRecords, while the second time around will allow the GC to free
-   * the transaction if safe to do so. The only exception is read-only transactions, which can be deallocated in a
-   * single GC pass.
-   * @return A pair of numbers: the first is the number of transactions deallocated (deleted) on this iteration, while
-   * the second is the number of transactions unlinked on this iteration.
-   */
-  std::pair<uint32_t, uint32_t> PerformGarbageCollection(transaction::TransactionQueue &txns_to_unlink);
-
-  /**
-   * Register an index to be periodically garbage collected
-   * @param index pointer to the index to register
-   */
-  void RegisterIndexForGC(common::ManagedPointer<index::Index> index);
-
-  /**
-   * Unregister an index to be periodically garbage collected
-   * @param index pointer to the index to unregister
-   */
-  void UnregisterIndexForGC(common::ManagedPointer<index::Index> index);
+  ~GarbageCollector() = default;
 
   /**
    * Unlink the transaction, if unlink successful defers an event to deallocate
-   * the tarnsaction
+   * the transaction context
    * @param the transaction context associated with transaction to unlink
    */
   void CleanupTransaction(transaction::TransactionContext *);
 
  private:
-  /**
-   * Process the unlink queue
-   * @return number of txns (not UndoRecords) processed for debugging/testing
-   */
-  uint32_t ProcessUnlinkQueue(transaction::timestamp_t oldest_txn, transaction::TransactionQueue &txns_to_unlink);
+  void UnlinkTransaction(transaction::timestamp_t oldest_txn, transaction::TransactionContext *txn);
 
   void ReclaimSlotIfDeleted(UndoRecord *undo_record) const;
 
@@ -91,11 +64,6 @@ class GarbageCollector {
   AccessObserver *observer_;
   // timestamp of the last time GC unlinked anything. We need this to know when unlinked versions are safe to deallocate
   transaction::timestamp_t last_unlinked_;
-
-  // queue of txns that need to be unlinked
-  transaction::TransactionQueue txns_to_unlink_;
-  common::SpinLatch txn_to_unlink_latch_;
-  std::atomic<int> txns_since_unlink_;
 };
 
 }  // namespace terrier::storage

@@ -10,9 +10,9 @@
 #include "network/terrier_server.h"
 #include "settings/settings_manager.h"
 #include "settings/settings_param.h"
+#include "transaction/deferred_action_manager.h"
+#include "transaction/deferred_action_thread.h"
 #include "transaction/transaction_manager.h"
-#include "transaction/deferred_action_thread.h"  
-#include "transaction/deferred_action_manager.h"  
 
 namespace terrier {
 

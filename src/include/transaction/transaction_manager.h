@@ -74,12 +74,6 @@ class TransactionManager {
    */
   bool GCEnabled() const { return gc_enabled_; }
 
-  /**
-   * Return a copy of the completed txns queue and empty the local version
-   * @return copy of the completed txns for the GC to process
-   */
-  TransactionQueue CompletedTransactionsForGC();
-
  private:
   TimestampManager *timestamp_manager_;
   terrier::storage::GarbageCollector *gc_;
@@ -89,7 +83,6 @@ class TransactionManager {
   common::Gate txn_gate_;
 
   bool gc_enabled_ = false;
-  TransactionQueue completed_txns_;
   storage::LogManager *const log_manager_;
 
   timestamp_t UpdatingCommitCriticalSection(TransactionContext *txn);
