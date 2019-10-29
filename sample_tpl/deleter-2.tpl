@@ -126,6 +126,10 @@ fun main(execCtx: *ExecutionContext) -> int64 {
   var index_count_after_delete = index_count_1(execCtx, col3_val)
   var index_count_2_after_delete = index_count_2(execCtx, col3_val, col1_val)
 
+  // Free Memory
+  @inserterFree(&inserter)
+  @deleterFree(&deleter)
+
   return (table_count_after_delete - table_count_before_delete) + (table_count_after_insert - table_count_before_insert) + (index_count_after_insert - index_count_before_insert) + (index_count_after_delete - index_count_before_delete) +
   (index_count_2_after_insert - index_count_2_before_insert) + (index_count_2_after_delete - index_count_2_before_delete)
 }

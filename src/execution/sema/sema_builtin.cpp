@@ -1817,6 +1817,14 @@ void Sema::CheckBuiltinDeleterCall(ast::CallExpr *call, ast::Builtin builtin) {
       call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
       break;
     }
+    case ast::Builtin::DeleterFree: {
+      if (!CheckArgCount(call, 1)) {
+        return;
+      }
+      // Return nothing
+      call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
+      break;
+    }
     default:
       UNREACHABLE("Undefined deleter call!");
   }
@@ -2039,6 +2047,14 @@ void Sema::CheckBuiltinUpdaterCall(ast::CallExpr *call, ast::Builtin builtin) {
       call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
       break;
     }
+    case ast::Builtin::UpdaterFree: {
+      if (!CheckArgCount(call, 1)) {
+        return;
+      }
+      // Return nothing
+      call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
+      break;
+    }
     default:
       UNREACHABLE("Undefined updater call!");
   }
@@ -2157,6 +2173,14 @@ void Sema::CheckBuiltinInserterCall(ast::CallExpr *call, ast::Builtin builtin) {
       }
 
       call->SetType(GetBuiltinType(ast::BuiltinType::ProjectedRow));
+      break;
+    }
+    case ast::Builtin::InserterFree: {
+      if (!CheckArgCount(call, 1)) {
+        return;
+      }
+      // Return nothing
+      call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
       break;
     }
     default:
@@ -2453,7 +2477,8 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
     case ast::Builtin::InserterGetIndexPR:
     case ast::Builtin::InserterGetIndexPRBind:
     case ast::Builtin::InserterIndexInsertBind:
-    case ast::Builtin::InserterIndexInsert: {
+    case ast::Builtin::InserterIndexInsert:
+    case ast::Builtin::InserterFree: {
       CheckBuiltinInserterCall(call, builtin);
       break;
     }
@@ -2463,7 +2488,8 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
     case ast::Builtin::DeleterGetIndexPR:
     case ast::Builtin::DeleterGetIndexPRBind:
     case ast::Builtin::DeleterIndexDelete:
-    case ast::Builtin::DeleterIndexDeleteBind: {
+    case ast::Builtin::DeleterIndexDeleteBind:
+    case ast::Builtin::DeleterFree: {
       CheckBuiltinDeleterCall(call, builtin);
       break;
     }
@@ -2478,7 +2504,8 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
     case ast::Builtin::UpdaterIndexInsert:
     case ast::Builtin::UpdaterIndexInsertBind:
     case ast::Builtin::UpdaterIndexDelete:
-    case ast::Builtin::UpdaterIndexDeleteBind: {
+    case ast::Builtin::UpdaterIndexDeleteBind:
+    case ast::Builtin::UpdaterFree: {
       CheckBuiltinUpdaterCall(call, builtin);
       break;
     }

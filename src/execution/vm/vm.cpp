@@ -1561,6 +1561,12 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {
     DISPATCH_NEXT();
   }
 
+  OP(InserterFree) : {
+    auto *inserter = frame->LocalAt<sql::Inserter *>(READ_LOCAL_ID());
+    OpInserterFree(inserter);
+    DISPATCH_NEXT();
+  }
+
   /////////////////////////////////
   //// Deleter Calls
   /////////////////////////////////
@@ -1597,6 +1603,12 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {
     auto *tuple_slot = frame->LocalAt<storage::TupleSlot *>(READ_LOCAL_ID());
 
     OpDeleterIndexDelete(deleter, index_oid, tuple_slot);
+    DISPATCH_NEXT();
+  }
+
+  OP(DeleterFree) : {
+    auto *deleter = frame->LocalAt<sql::Deleter *>(READ_LOCAL_ID());
+    OpDeleterFree(deleter);
     DISPATCH_NEXT();
   }
 
@@ -1669,6 +1681,12 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {
     auto index_oid = READ_UIMM4();
     auto *tuple_slot = frame->LocalAt<storage::TupleSlot *>(READ_LOCAL_ID());
     OpUpdaterIndexDelete(updater, index_oid, tuple_slot);
+    DISPATCH_NEXT();
+  }
+
+  OP(UpdaterFree) : {
+    auto *updater = frame->LocalAt<sql::Updater *>(READ_LOCAL_ID());
+    OpUpdaterFree(updater);
     DISPATCH_NEXT();
   }
 

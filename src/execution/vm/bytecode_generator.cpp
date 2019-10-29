@@ -1769,6 +1769,10 @@ void BytecodeGenerator::VisitBuiltinInserterCall(ast::CallExpr *call, ast::Built
       Emitter()->EmitInserterIndexInsert(Bytecode::InserterIndexInsert, inserter, !index_oid);
       break;
     }
+    case ast::Builtin::InserterFree: {
+      Emitter()->Emit(Bytecode::InserterFree, inserter);
+      break;
+    }
     default: {
       UNREACHABLE("Impossible bytecode");
     }
@@ -1827,6 +1831,10 @@ void BytecodeGenerator::VisitBuiltinDeleterCall(ast::CallExpr *call, ast::Builti
       auto index_oid = exec_ctx_->GetAccessor()->GetIndexOid(ns_oid, index_name.Data());
       LocalVar tuple_slot = VisitExpressionForRValue(call->Arguments()[2]);
       Emitter()->EmitDeleterIndexDelete(Bytecode::DeleterIndexDelete, deleter, !index_oid, tuple_slot);
+      break;
+    }
+    case ast::Builtin::DeleterFree: {
+      Emitter()->Emit(Bytecode::DeleterFree, deleter);
       break;
     }
     default:
@@ -1925,6 +1933,10 @@ void BytecodeGenerator::VisitBuiltinUpdaterCall(ast::CallExpr *call, ast::Builti
       auto index_oid = exec_ctx_->GetAccessor()->GetIndexOid(ns_oid, index_name.Data());
       LocalVar tuple_slot = VisitExpressionForRValue(call->Arguments()[2]);
       Emitter()->EmitUpdaterIndexDelete(Bytecode::UpdaterIndexDelete, updater, !index_oid, tuple_slot);
+      break;
+    }
+    case ast::Builtin::UpdaterFree: {
+      Emitter()->Emit(Bytecode::UpdaterFree, updater);
       break;
     }
     default:
@@ -2164,7 +2176,8 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
     case ast::Builtin::InserterGetIndexPR:
     case ast::Builtin::InserterGetIndexPRBind:
     case ast::Builtin::InserterIndexInsert:
-    case ast::Builtin::InserterIndexInsertBind: {
+    case ast::Builtin::InserterIndexInsertBind:
+    case ast::Builtin::InserterFree: {
       VisitBuiltinInserterCall(call, builtin);
       break;
     }
@@ -2174,7 +2187,8 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
     case ast::Builtin::DeleterGetIndexPR:
     case ast::Builtin::DeleterGetIndexPRBind:
     case ast::Builtin::DeleterIndexDelete:
-    case ast::Builtin::DeleterIndexDeleteBind: {
+    case ast::Builtin::DeleterIndexDeleteBind:
+    case ast::Builtin::DeleterFree: {
       VisitBuiltinDeleterCall(call, builtin);
       break;
     }
@@ -2189,7 +2203,8 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
     case ast::Builtin::UpdaterIndexInsert:
     case ast::Builtin::UpdaterIndexInsertBind:
     case ast::Builtin::UpdaterIndexDelete:
-    case ast::Builtin::UpdaterIndexDeleteBind: {
+    case ast::Builtin::UpdaterIndexDeleteBind:
+    case ast::Builtin::UpdaterFree: {
       VisitBuiltinUpdaterCall(call, builtin);
       break;
     }

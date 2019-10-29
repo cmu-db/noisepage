@@ -107,5 +107,10 @@ fun main(execCtx: *ExecutionContext) -> int64 {
 
   var table_count_after_update = table_count(execCtx, &oids)
   var index_count_after_update = index_count(execCtx, value0)
+
+   // Free Memory
+  @inserterFree(&inserter)
+  @updaterFree(&updater)
+
   return (table_count_after_update - table_count_before_update) + (table_count_after_insert - table_count_before_insert) + (index_count_after_insert - index_count_before_insert) + (index_count_after_update - index_count_before_update)
 }

@@ -115,5 +115,9 @@ fun main(execCtx: *ExecutionContext) -> int64 {
  // index scan counts after index inserts
  var index_count_after = index_count_1(execCtx, 15)
  var index_count_after_2 = index_count_2(execCtx, 15, 14)
+
+ // Free Memory
+ @inserterFree(&inserter)
+
  return (count2 - count1) + (index_count_after - index_count_before) + (index_count_after_2 - index_count_before_2)
 }

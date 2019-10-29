@@ -20,7 +20,9 @@ Updater::Updater(exec::ExecutionContext *exec_ctx, catalog::table_oid_t table_oi
   }
 }
 
-Updater::~Updater() { exec_ctx_->GetMemoryPool()->Deallocate(index_pr_buffer_, max_pr_size_); }
+Updater::~Updater() {
+  if (is_index_key_update_) exec_ctx_->GetMemoryPool()->Deallocate(index_pr_buffer_, max_pr_size_);
+}
 
 void *Updater::GetMaxSizedIndexPRBuffer() {
   // Calculate the max sized index pr, and allocate that size for the index_pr_buffer

@@ -377,12 +377,14 @@ namespace terrier::execution::vm {
   F(InserterTableInsert, OperandType::Local, OperandType::Local)                                                      \
   F(InserterGetIndexPR, OperandType::Local, OperandType::Local, OperandType::UImm4)                                   \
   F(InserterIndexInsert, OperandType::Local, OperandType::UImm4)                                                      \
+  F(InserterFree, OperandType::Local)                                                                                 \
                                                                                                                       \
   /* Deleter */                                                                                                       \
   F(DeleterInit, OperandType::Local, OperandType::Local, OperandType::UImm4)                                          \
   F(DeleterTableDelete, OperandType::Local, OperandType::Local)                                                       \
   F(DeleterGetIndexPR, OperandType::Local, OperandType::Local, OperandType::UImm4)                                    \
   F(DeleterIndexDelete, OperandType::Local, OperandType::UImm4, OperandType::Local)                                   \
+  F(DeleterFree, OperandType::Local)                                                                                  \
                                                                                                                       \
   /* Updater */                                                                                                       \
   F(UpdaterInit, OperandType::Local, OperandType::Local, OperandType::UImm4, OperandType::Local, OperandType::UImm4,  \
@@ -394,6 +396,7 @@ namespace terrier::execution::vm {
   F(UpdaterGetIndexPR, OperandType::Local, OperandType::Local, OperandType::UImm4)                                    \
   F(UpdaterIndexInsert, OperandType::Local, OperandType::UImm4)                                                       \
   F(UpdaterIndexDelete, OperandType::Local, OperandType::UImm4, OperandType::Local)                                   \
+  F(UpdaterFree, OperandType::Local)                                                                                  \
                                                                                                                       \
   /* Trig functions */                                                                                                \
   F(Pi, OperandType::Local)                                                                                           \

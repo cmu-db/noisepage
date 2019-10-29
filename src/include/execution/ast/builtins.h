@@ -199,6 +199,7 @@ namespace terrier::execution::ast {
   F(InserterGetIndexPRBind, inserterGetIndexPRBind)                     \
   F(InserterIndexInsert, inserterIndexInsert)                           \
   F(InserterIndexInsertBind, inserterIndexInsertBind)                   \
+  F(InserterFree, inserterFree)                                         \
                                                                         \
   /* Deleter Calls */                                                   \
   F(DeleterInit, deleterInit)                                           \
@@ -208,6 +209,7 @@ namespace terrier::execution::ast {
   F(DeleterGetIndexPRBind, deleterGetIndexPRBind)                       \
   F(DeleterIndexDelete, deleterIndexDelete)                             \
   F(DeleterIndexDeleteBind, deleterIndexDeleteBind)                     \
+  F(DeleterFree, deleterFree)                                           \
                                                                         \
   /* Updater Calls */                                                   \
   F(UpdaterInit, updaterInit)                                           \
@@ -221,7 +223,8 @@ namespace terrier::execution::ast {
   F(UpdaterIndexInsert, updaterIndexInsert)                             \
   F(UpdaterIndexInsertBind, updaterIndexInsertBind)                     \
   F(UpdaterIndexDelete, updaterIndexDelete)                             \
-  F(UpdaterIndexDeleteBind, updaterIndexDeleteBind)
+  F(UpdaterIndexDeleteBind, updaterIndexDeleteBind)                     \
+  F(UpdaterFree, updaterFree)
 
 /**
  * Enum of builtins

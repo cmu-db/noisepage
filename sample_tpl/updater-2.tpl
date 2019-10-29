@@ -162,6 +162,10 @@ fun main(execCtx: *ExecutionContext) -> int64 {
   var index_count_2_after_update_unchanged = index_count_2(execCtx, value3, value1)
   var index_count_2_after_update_changed = index_count_2(execCtx, value3, value1_changed)
 
+   // Free Memory
+  @inserterFree(&inserter)
+  @updaterFree(&updater)
+
   return (table_count_after_update - table_count_before_update) 
          + (table_count_after_insert - table_count_before_insert)
          + (index_count_after_insert - index_count_before_insert)

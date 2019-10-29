@@ -91,6 +91,9 @@ fun main(execCtx: *ExecutionContext) -> int64 {
     }
   @tableIterClose(&tvi)
 
+  // Free Memory
+  @inserterFree(&inserter)
+
   var index_count_after = index_count(execCtx, 15)
   return (count2 - count1) + (index_count_after - index_count_before)
 }

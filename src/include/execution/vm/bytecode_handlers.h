@@ -1508,6 +1508,8 @@ VM_OP void OpInserterGetIndexPR(terrier::execution::sql::ProjectedRowWrapper *pr
 
 VM_OP void OpInserterIndexInsert(terrier::execution::sql::Inserter *inserter, uint32_t index_oid);
 
+VM_OP void OpInserterFree(terrier::execution::sql::Inserter *inserter);
+
 // Deleter Calls
 // ---------------------------------------------------------------
 
@@ -1521,6 +1523,8 @@ VM_OP void OpDeleterGetIndexPR(terrier::execution::sql::ProjectedRowWrapper *pr_
 
 VM_OP void OpDeleterIndexDelete(terrier::execution::sql::Deleter *deleter, uint32_t index_oid,
                                 terrier::storage::TupleSlot *tuple_slot);
+
+VM_OP void OpDeleterFree(terrier::execution::sql::Deleter *deleter);
 
 // Updater Calls
 // ---------------------------------------------------------------
@@ -1545,6 +1549,8 @@ VM_OP void OpUpdaterIndexInsert(terrier::execution::sql::Updater *updater, uint3
 
 VM_OP void OpUpdaterIndexDelete(terrier::execution::sql::Updater *updater, uint32_t index_oid,
                                 terrier::storage::TupleSlot *tuple_slot);
+
+VM_OP void OpUpdaterFree(terrier::execution::sql::Updater *updater);
 
 // Output Calls
 // ---------------------------------------------------------------
