@@ -3,6 +3,8 @@
 #include "execution/compiler/operator/operator_translator.h"
 #include "planner/plannodes/insert_plan_node.h"
 
+#include <execution/compiler/storage/pr_filler.h>
+
 namespace terrier::execution::compiler {
 
 /**
@@ -48,9 +50,17 @@ class InsertTranslator : public OperatorTranslator {
 
   //TODO(tanujnay112) do this properly
   ast::Expr *GetChildOutput(uint32_t child_idx, uint32_t attr_idx,
-      terrier::type::TypeId type) override {
-    return nullptr;
-  }
+      terrier::type::TypeId type) override;
+
+  void GenSetTablePR(FunctionBuilder *builder, size_t tuple);
+
+  void GenInserterTableInsert(FunctionBuilder *builder);
+
+  ast::Identifier GenDeclareIndexPR(FunctionBuilder *builder);
+
+  void GenInsertTuplesIntoIndex(FunctionBuilder *builder, ast::Identifier index_pr_name,
+                                                  PRFiller &pr_filler,
+                                                  const catalog::index_oid_t &index_oid);
 
  private:
   // var tvi : TableVectorIterator
