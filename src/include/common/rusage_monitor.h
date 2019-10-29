@@ -11,7 +11,16 @@ namespace terrier::common {
  */
 class RusageMonitor {
  public:
-  RusageMonitor() = default;
+  explicit RusageMonitor(const bool entire_process)
+      :
+#if __APPLE__
+        who_(RUSAGE_SELF)
+#else
+        who_(entire_process ? RUSAGE_SELF : RUSAGE_THREAD)
+#endif
+
+  {
+  }
 
   DISALLOW_COPY_AND_MOVE(RusageMonitor)
 
@@ -58,6 +67,7 @@ class RusageMonitor {
   rusage end_;
   bool running_ = false;
   bool valid_ = false;
+  const __rusage_who who_;
 
   static timeval SubtractTimeval(const timeval &lhs, const timeval &rhs) {
     return {lhs.tv_sec - rhs.tv_sec, lhs.tv_usec - rhs.tv_usec};
@@ -86,11 +96,11 @@ class RusageMonitor {
    * Platform-specific representation of current rusage. On macOS it can only get process info. Thread-specific info is
    * non-POSIX and added in later Linux kernels.
    */
-  static void Now(rusage *const usage) {
+  void Now(rusage *const usage) const {
 #if __APPLE__
-    auto ret UNUSED_ATTRIBUTE = getrusage(RUSAGE_SELF, usage);
+    auto ret UNUSED_ATTRIBUTE = getrusage(who_, usage);
 #else
-    auto ret UNUSED_ATTRIBUTE = getrusage(RUSAGE_THREAD, usage);
+    auto ret UNUSED_ATTRIBUTE = getrusage(who_, usage);
 #endif
     TERRIER_ASSERT(ret == 0, "getrusage failed.");
   }
