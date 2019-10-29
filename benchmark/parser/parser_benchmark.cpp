@@ -12,11 +12,11 @@ namespace terrier {
 /**
  * Magic macro for our parser microbencmarks
  */
-#define PARSER_BENCHMARK_EXECUTE(QUERIES, TYPE)                        \
-  for (const auto &sql : QUERIES) {                                   \
-    auto result = parser_.BuildParseTree(sql);                         \
+#define PARSER_BENCHMARK_EXECUTE(QUERIES, TYPE)                      \
+  for (const auto &sql : QUERIES) {                                  \
+    auto result = parser_.BuildParseTree(sql);                       \
     auto stmt = result.GetStatement(0).CastManagedPointerTo<TYPE>(); \
-    TERRIER_ASSERT(stmt != nullptr, "Failed to get ##TYPE object");    \
+    TERRIER_ASSERT(stmt != nullptr, "Failed to get ##TYPE object");  \
   }
 
 class ParserBenchmark : public benchmark::Fixture {
@@ -44,7 +44,7 @@ class ParserBenchmark : public benchmark::Fixture {
       for (int i = 0; i < 10000; i++) {
         os << (i != 0 ? " OR " : "") << "my_column = '" << i << "'";
       }
-      selects_complex_ = { "SELECT * FROM foo INNER JOIN bar ON " + os.str() + ";" };
+      selects_complex_ = {"SELECT * FROM foo INNER JOIN bar ON " + os.str() + ";"};
     }
 
     // -------------------------------
@@ -60,14 +60,14 @@ class ParserBenchmark : public benchmark::Fixture {
         "UPDATE xxx SET col0 = col1 + col2 + col3 WHERE col0 != col1;"
     };
     // clang-format on
-    
+
     // COMPLEX
     {
       std::ostringstream os;
       for (int i = 0; i < 1000; i++) {
         os << (i != 0 ? " + " : "") << i;
       }
-      updates_complex_ = { "UPDATE xxx SET val = " + os.str() + " WHERE val = 123;" };
+      updates_complex_ = {"UPDATE xxx SET val = " + os.str() + " WHERE val = 123;"};
     }
 
     // -------------------------------
@@ -92,7 +92,7 @@ class ParserBenchmark : public benchmark::Fixture {
         os1 << (i != 0 ? ", " : "") << "\"col" << i << "\"";
         os2 << (i != 0 ? ", " : "") << i;
       }
-      inserts_complex_ = { "INSERT INTO xxx (" + os1.str() + ") VALUES (" + os2.str() + ");" };
+      inserts_complex_ = {"INSERT INTO xxx (" + os1.str() + ") VALUES (" + os2.str() + ");"};
     }
 
     // -------------------------------
@@ -214,7 +214,6 @@ BENCHMARK_DEFINE_F(ParserBenchmark, NOOPs)(benchmark::State &state) {
   }
   state.SetItemsProcessed(state.iterations());
 }
-
 
 // Parser Benchmarks!
 BENCHMARK_REGISTER_F(ParserBenchmark, SelectsSimple)->Unit(benchmark::kNanosecond);
