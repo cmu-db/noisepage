@@ -1,10 +1,10 @@
 #include <array>
 #include <memory>
-
-#include "execution/sql_test.h"
+#include <vector>
 
 #include "catalog/catalog_defs.h"
 #include "execution/sql/inserter.h"
+#include "execution/sql_test.h"
 #include "execution/util/timer.h"
 
 #include "execution/sql/index_iterator.h"

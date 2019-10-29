@@ -1,8 +1,8 @@
-
+#include "execution/sql/updater.h"
+#include <algorithm>
+#include <vector>
 #include "execution/exec/execution_context.h"
 #include "execution/util/execution_common.h"
-
-#include "execution/sql/updater.h"
 
 namespace terrier::execution::sql {
 
@@ -16,7 +16,7 @@ Updater::Updater(exec::ExecutionContext *exec_ctx, catalog::table_oid_t table_oi
 
   if (is_index_key_update) {
     index_pr_buffer_ = GetMaxSizedIndexPRBuffer();
-    PopulateAllColOids(all_col_oids_);
+    PopulateAllColOids(&all_col_oids_);
   }
 }
 
@@ -36,10 +36,10 @@ uint32_t Updater::CalculateMaxIndexPRSize() {
   return index_pr_size;
 }
 
-void Updater::PopulateAllColOids(std::vector<catalog::col_oid_t> &all_col_oids) {
+void Updater::PopulateAllColOids(std::vector<catalog::col_oid_t> *all_col_oids) {
   auto columns = exec_ctx_->GetAccessor()->GetSchema(table_oid_).GetColumns();
   for (const auto &col : columns) {
-    all_col_oids.push_back(col.Oid());
+    all_col_oids->push_back(col.Oid());
   }
 }
 
@@ -58,10 +58,8 @@ common::ManagedPointer<storage::index::Index> execution::sql::Updater::GetIndex(
 storage::ProjectedRow *Updater::GetTablePR() {
   if (is_index_key_update_) {
     return GetTablePRForColumns(all_col_oids_);
-  } else {
-    return GetTablePRForColumns(col_oids_);
   }
-  cd
+  return GetTablePRForColumns(col_oids_);
 }
 
 storage::ProjectedRow *Updater::GetTablePRForColumns(const std::vector<catalog::col_oid_t> &col_oids) {

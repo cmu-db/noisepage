@@ -1,4 +1,7 @@
 #pragma once
+
+#include <map>
+#include <string>
 #include "execution/exec/execution_context.h"
 #include "execution/util/execution_common.h"
 
@@ -14,8 +17,7 @@ class EXPORT Deleter {
    * @param exec_ctx The execution context.
    * @param table_name Name of the table.
    */
-  Deleter(exec::ExecutionContext *exec_ctx, std::string table_name)
-      : Deleter(exec_ctx, exec_ctx->GetAccessor()->GetTableOid(table_name)) {}
+  Deleter(exec::ExecutionContext *exec_ctx, std::string table_name);
 
   /**
    * Constructor

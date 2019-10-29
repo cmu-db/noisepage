@@ -1,4 +1,8 @@
 #pragma once
+
+#include <map>
+#include <string>
+#include <vector>
 #include "execution/exec/execution_context.h"
 #include "execution/util/execution_common.h"
 namespace terrier::execution::sql {
@@ -12,18 +16,6 @@ class EXPORT Updater {
    * Constructor
    * @param exec_ctx The execution context.
    * @param table_name Name of the table
-   * @param col_oids Col oids to updated.
-   * @param num_oids Number of column oids.
-   * @param is_index_key_update Whether this will update indexed keys.
-   */
-  explicit Updater(exec::ExecutionContext *exec_ctx, std::string table_name, uint32_t *col_oids, uint32_t num_oids,
-                   bool is_index_key_update)
-      : Updater(exec_ctx, exec_ctx->GetAccessor()->GetTableOid(table_name), col_oids, num_oids, is_index_key_update) {}
-
-  /**
-   * Constructor
-   * @param exec_ctx The execution context.
-   * @param table_oid Oid of the table
    * @param col_oids Col oids to updated.
    * @param num_oids Number of column oids.
    * @param is_index_key_update Whether this will update indexed keys.
@@ -82,7 +74,7 @@ class EXPORT Updater {
   uint32_t CalculateMaxIndexPRSize();
   void *GetMaxSizedIndexPRBuffer();
 
-  void PopulateAllColOids(std::vector<catalog::col_oid_t> &all_col_oids);
+  void PopulateAllColOids(std::vector<catalog::col_oid_t> *all_col_oids);
 
   storage::ProjectedRow *GetTablePRForColumns(const std::vector<catalog::col_oid_t> &col_oids);
 
