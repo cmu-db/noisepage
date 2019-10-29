@@ -24,21 +24,64 @@ class ParserBenchmark : public benchmark::Fixture {
   void SetUp(const benchmark::State &state) final {
     // We only need to bring up the parser for these benchmarks
 
-    // SIMPLE SELECT
+    // SIMPLE SELECTS
     // clang-format off
-    simple_select_ = {
-        "SELECT * FROM foo",
+    selects_simple_ = {
+        "SELECT * FROM foo WHERE id = 123",
         "SELECT a, b, c, d FROM foo WHERE e = 123",
+        "SELECT col + 1 AS xxx FROM foo WHERE terrier = 'dangerous'",
         "SELECT COUNT(DISTINCT id) FROM foo WHERE wu_tang_clan = 'nuthin to fuck wit'"
     };
     // clang-format on
 
-    // LARGE SELECT
-    std::ostringstream os;
-    for (int i = 0; i < 10000; i++) {
-      os << (i != 0 ? " OR " : "") << "my_column = '" << i << "'";
+    // COMPLEX SELECTS
+    {
+      std::ostringstream os;
+      for (int i = 0; i < 10000; i++) {
+        os << (i != 0 ? " OR " : "") << "my_column = '" << i << "'";
+      }
+      selects_complex_ = {"SELECT * FROM foo INNER JOIN bar ON " + os.str() + ";"};
     }
-    large_select_ = { "SELECT * FROM foo WHERE " + os.str() + ";" };
+    
+    // SIMPLE UPDATES
+    // clang-format off
+    updates_simple_ = {
+        "UPDATE xxx SET a = 999 WHERE id = 123",
+        "UPDATE xxx SET val = val + 1 WHERE id = 123",
+        "UPDATE xxx SET col0 = 1, col1 = 2, col3 = 3 WHERE id = 123 AND kb = 'awesome'",
+        "UPDATE xxx SET col0 = col1 + col2 + col3 WHERE col0 != col1"
+    };
+    // clang-format on
+    
+    // COMPLEX UPDATES
+    {
+      std::ostringstream os;
+      for (int i = 0; i < 1000; i++) {
+        os << (i != 0 ? " + " : "") << i;
+      }
+      updates_complex_.emplace_back("UPDATE xxx SET val = " + os.str() + " WHERE val = 123;");
+    }
+
+    // SIMPLE INSERT
+    // clang-format off
+    inserts_simple_ = {
+        "INSERT INTO xxx VALUES (1, 2, 3)",
+        "INSERT INTO xxx (col1, col2, col3, col4) VALUES (DEFAULT, NULL, 3, 4)",
+        "INSERT INTO xxx (col1, col2, col3, col4) VALUES ('DEFAULT', 'NULL', DEFAULT, NULL)",
+        "INSERT INTO xxx (\"col1XXXXXXXXXXXXXXXXXX\") VALUES ('TKBM')",
+    };
+    // clang-format on
+
+    // COMPLEX INSERTS
+    {
+      std::ostringstream os1;
+      std::ostringstream os2;
+      for (int i = 0; i < 10000; i++) {
+        os1 << (i != 0 ? ", " : "") << "\"col" << i << "\"";
+        os2 << (i != 0 ? ", " : "") << i;
+      }
+      inserts_complex_.emplace_back("INSERT INTO xxx (" + os1.str() + ") VALUES (" + os2.str() + ")");
+    }
   }
 
   void TearDown(const benchmark::State &state) final {
@@ -46,30 +89,74 @@ class ParserBenchmark : public benchmark::Fixture {
   }
 
   parser::PostgresParser parser_;
-  std::vector<std::string> simple_select_;
-  std::vector<std::string> large_select_;
+  std::vector<std::string> selects_simple_;
+  std::vector<std::string> selects_complex_;
+  std::vector<std::string> updates_simple_;
+  std::vector<std::string> updates_complex_;
+  std::vector<std::string> inserts_simple_;
+  std::vector<std::string> inserts_complex_;
 };
 
 // NOLINTNEXTLINE
-BENCHMARK_DEFINE_F(ParserBenchmark, SimpleSelect)(benchmark::State &state) {
+BENCHMARK_DEFINE_F(ParserBenchmark, SelectsSimple)(benchmark::State &state) {
   // NOLINTNEXTLINE
   for (auto _ : state) {
-    PARSER_BENCHMARK_EXECUTE(simple_select_, parser::SelectStatement);
+    PARSER_BENCHMARK_EXECUTE(selects_simple_, parser::SelectStatement);
   }
   state.SetItemsProcessed(state.iterations());
 }
 
 // NOLINTNEXTLINE
-BENCHMARK_DEFINE_F(ParserBenchmark, LargeSelect)(benchmark::State &state) {
+BENCHMARK_DEFINE_F(ParserBenchmark, SelectsComplex)(benchmark::State &state) {
   // NOLINTNEXTLINE
   for (auto _ : state) {
-    PARSER_BENCHMARK_EXECUTE(large_select_, parser::SelectStatement);
+    PARSER_BENCHMARK_EXECUTE(selects_complex_, parser::SelectStatement);
+  }
+  state.SetItemsProcessed(state.iterations());
+}
+
+// NOLINTNEXTLINE
+BENCHMARK_DEFINE_F(ParserBenchmark, UpdatesSimple)(benchmark::State &state) {
+  // NOLINTNEXTLINE
+  for (auto _ : state) {
+    PARSER_BENCHMARK_EXECUTE(updates_simple_, parser::UpdateStatement);
+  }
+  state.SetItemsProcessed(state.iterations());
+}
+
+// NOLINTNEXTLINE
+BENCHMARK_DEFINE_F(ParserBenchmark, UpdatesComplex)(benchmark::State &state) {
+  // NOLINTNEXTLINE
+  for (auto _ : state) {
+    PARSER_BENCHMARK_EXECUTE(updates_complex_, parser::UpdateStatement);
+  }
+  state.SetItemsProcessed(state.iterations());
+}
+
+// NOLINTNEXTLINE
+BENCHMARK_DEFINE_F(ParserBenchmark, InsertsSimple)(benchmark::State &state) {
+  // NOLINTNEXTLINE
+  for (auto _ : state) {
+    PARSER_BENCHMARK_EXECUTE(inserts_simple_, parser::InsertStatement);
+  }
+  state.SetItemsProcessed(state.iterations());
+}
+
+// NOLINTNEXTLINE
+BENCHMARK_DEFINE_F(ParserBenchmark, InsertsComplex)(benchmark::State &state) {
+  // NOLINTNEXTLINE
+  for (auto _ : state) {
+    PARSER_BENCHMARK_EXECUTE(inserts_complex_, parser::InsertStatement);
   }
   state.SetItemsProcessed(state.iterations());
 }
 
 // Parser Benchmarks!
-BENCHMARK_REGISTER_F(ParserBenchmark, SimpleSelect)->Unit(benchmark::kNanosecond);
-BENCHMARK_REGISTER_F(ParserBenchmark, LargeSelect)->Unit(benchmark::kNanosecond);
+BENCHMARK_REGISTER_F(ParserBenchmark, SelectsSimple)->Unit(benchmark::kNanosecond);
+BENCHMARK_REGISTER_F(ParserBenchmark, SelectsComplex)->Unit(benchmark::kNanosecond);
+BENCHMARK_REGISTER_F(ParserBenchmark, UpdatesSimple)->Unit(benchmark::kNanosecond);
+BENCHMARK_REGISTER_F(ParserBenchmark, UpdatesComplex)->Unit(benchmark::kNanosecond);
+BENCHMARK_REGISTER_F(ParserBenchmark, InsertsSimple)->Unit(benchmark::kNanosecond);
+BENCHMARK_REGISTER_F(ParserBenchmark, InsertsComplex)->Unit(benchmark::kNanosecond);
 
 }  // namespace terrier
