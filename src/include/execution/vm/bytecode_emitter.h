@@ -468,36 +468,60 @@ class BytecodeEmitter {
    */
   void EmitPRSet(Bytecode bytecode, LocalVar pr, uint16_t col_idx, LocalVar val);
 
+  /**
+   * Emit bytecode to get a value from a PR
+   */
   void EmitPRGet(Bytecode bytecode, LocalVar out, LocalVar pr, uint16_t col_idx);
 
   /**
-   * Emit bytecode to insert tuples into the table
+   * Emit bytecode to init an Inserter.
    */
   void EmitInserterInit(Bytecode bytecode, LocalVar inserter, LocalVar exec_ctx, uint32_t table_oid);
 
+  /**
+   * Emit bytecode to get an index's PR for the inserter.
+   */
   void EmitInserterGetIndexPR(Bytecode bytecode, LocalVar pr, LocalVar inserter, uint32_t index_oid);
 
+  /**
+   * Emit bytecode to insert into an index for the inserter.
+   */
   void EmitInserterIndexInsert(Bytecode bytecode, LocalVar inserter, uint32_t index_oid);
 
   /**
-   * Emit bytecode to delete tuples from the table
+   * Emit bytecode to init a Deleter.
    */
   void EmitDeleterInit(Bytecode bytecode, LocalVar deleter, LocalVar exec_ctx, uint32_t table_oid);
 
+  /**
+   * Emit bytecode to get an index's PR for the deleter.
+   */
   void EmitDeleterGetIndexPR(Bytecode bytecode, LocalVar pr, LocalVar deleter, uint32_t index_oid);
 
+  /**
+   * Emit bytecode to delete from an index.
+   */
   void EmitDeleterIndexDelete(Bytecode bytecode, LocalVar deleter, uint32_t index_oid, LocalVar tuple_slot);
 
   /**
-   * Emit bytecode to update tuples in the table
+   * Emit bytecode to init an Updater
    */
   void EmitUpdaterInit(Bytecode bytecode, LocalVar updater, LocalVar exec_ctx, uint32_t table_oid, LocalVar col_oids,
                        uint32_t num_oids, LocalVar is_index_key_update);
 
+  /**
+   * Emit bytecode to get an index PR for the updater.
+   */
   void EmitUpdaterGetIndexPR(Bytecode bytecode, LocalVar pr, LocalVar updater, uint32_t index_oid);
 
+  /**
+   * Emit bytecode to insert into an index for the updater.
+   */
   void EmitUpdaterIndexInsert(Bytecode bytecode, LocalVar updater, uint32_t index_oid);
 
+  /**
+   * Emit bytecode to delete from an index for the updater.
+   */
   void EmitUpdaterIndexDelete(Bytecode bytecode, LocalVar updater, uint32_t index_oid, LocalVar tuple_slot);
 
   /**

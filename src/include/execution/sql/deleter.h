@@ -9,15 +9,39 @@ namespace terrier::execution::sql {
  */
 class EXPORT Deleter {
  public:
+  /**
+   * Constructor
+   * @param exec_ctx The execution context.
+   * @param table_name Name of the table.
+   */
   Deleter(exec::ExecutionContext *exec_ctx, std::string table_name)
       : Deleter(exec_ctx, exec_ctx->GetAccessor()->GetTableOid(table_name)) {}
 
+  /**
+   * Constructor
+   * @param exec_ctx The execution context.
+   * @param table_oid Oid of the table
+   */
   Deleter(exec::ExecutionContext *exec_ctx, catalog::table_oid_t table_oid);
 
+  /**
+   * @param index_oid OID of the index to access.
+   * @return PR of the index.
+   */
   storage::ProjectedRow *GetIndexPR(catalog::index_oid_t index_oid);
 
+  /**
+   * Delete slot from the table.
+   * @param tuple_slot slot to delete.
+   * @return Whether the deletion was successful.
+   */
   bool TableDelete(storage::TupleSlot tuple_slot);
 
+  /**
+   * Delete item from an index.
+   * @param index_oid oid of the index.
+   * @param table_tuple_slot slot corresponding to the item.
+   */
   void IndexDelete(catalog::index_oid_t index_oid, storage::TupleSlot table_tuple_slot);
 
  private:

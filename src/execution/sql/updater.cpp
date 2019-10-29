@@ -61,6 +61,7 @@ storage::ProjectedRow *Updater::GetTablePR() {
   } else {
     return GetTablePRForColumns(col_oids_);
   }
+  cd
 }
 
 storage::ProjectedRow *Updater::GetTablePRForColumns(const std::vector<catalog::col_oid_t> &col_oids) {

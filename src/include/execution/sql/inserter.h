@@ -8,16 +8,40 @@
 
 namespace terrier::execution::sql {
 
+/**
+ * Allows insertion from TPL.
+ */
 class EXPORT Inserter {
  public:
+  /**
+   * Constructor
+   * @param exec_ctx The execution context
+   * @param table_oid The oid of the table to insert into
+   */
   explicit Inserter(exec::ExecutionContext *exec_ctx, catalog::table_oid_t table_oid);
 
+  /**
+   * @return The table's projected row.
+   */
   terrier::storage::ProjectedRow *GetTablePR();
 
+  /**
+   * @param index_oid oid of the index to access
+   * @return The projected row of the index.
+   */
   storage::ProjectedRow *GetIndexPR(catalog::index_oid_t index_oid);
 
+  /**
+   * Insert a tuple into the table
+   * @return The tuple slot of the inserted tuple.
+   */
   storage::TupleSlot TableInsert();
 
+  /**
+   * Insert into the index
+   * @param index_oid oid of the index to insert into.
+   * @return Whether insertion was successful.
+   */
   bool IndexInsert(catalog::index_oid_t index_oid);
 
  private:
