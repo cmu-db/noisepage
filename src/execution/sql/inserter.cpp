@@ -13,7 +13,7 @@ terrier::execution::sql::Inserter::Inserter(terrier::execution::exec::ExecutionC
 
   // getting index pr size
   uint32_t index_pr_size = 0;
-  auto index_oids = exec_ctx->GetAccessor()->GetIndexes(table_oid_);
+  auto index_oids = exec_ctx->GetAccessor()->GetIndexOids(table_oid_);
   for (auto index_oid : index_oids) {
     index_pr_size = std::max(index_pr_size, GetIndex(index_oid)->GetProjectedRowInitializer().ProjectedRowSize());
   }

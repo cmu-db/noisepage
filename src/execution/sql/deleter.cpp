@@ -11,7 +11,7 @@ Deleter::Deleter(exec::ExecutionContext *exec_ctx, catalog::table_oid_t table_oi
   table_ = exec_ctx->GetAccessor()->GetTable(table_oid);
 
   uint32_t index_pr_size = 0;
-  auto index_oids = exec_ctx->GetAccessor()->GetIndexes(table_oid_);
+  auto index_oids = exec_ctx->GetAccessor()->GetIndexOids(table_oid_);
   for (auto index_oid : index_oids) {
     index_pr_size = std::max(index_pr_size, GetIndex(index_oid)->GetProjectedRowInitializer().ProjectedRowSize());
   }

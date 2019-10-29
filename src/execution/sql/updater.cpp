@@ -28,7 +28,7 @@ void *Updater::GetMaxSizedIndexPRBuffer() {
 
 uint32_t Updater::CalculateMaxIndexPRSize() {
   uint32_t index_pr_size = 0;
-  auto index_oids = exec_ctx_->GetAccessor()->GetIndexes(table_oid_);
+  auto index_oids = exec_ctx_->GetAccessor()->GetIndexOids(table_oid_);
   for (auto index_oid : index_oids) {
     auto pri = GetIndex(index_oid)->GetProjectedRowInitializer();
     index_pr_size = std::max(index_pr_size, pri.ProjectedRowSize());
