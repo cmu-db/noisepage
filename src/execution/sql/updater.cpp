@@ -20,10 +20,12 @@ Updater::Updater(exec::ExecutionContext *exec_ctx, catalog::table_oid_t table_oi
   }
 }
 
+Updater::~Updater() { exec_ctx_->GetMemoryPool()->Deallocate(index_pr_buffer_, max_pr_size_); }
+
 void *Updater::GetMaxSizedIndexPRBuffer() {
   // Calculate the max sized index pr, and allocate that size for the index_pr_buffer
-  auto index_pr_size = CalculateMaxIndexPRSize();
-  return exec_ctx_->GetMemoryPool()->AllocateAligned(index_pr_size, sizeof(uint64_t), true);
+  max_pr_size_ = CalculateMaxIndexPRSize();
+  return exec_ctx_->GetMemoryPool()->AllocateAligned(max_pr_size_, sizeof(uint64_t), true);
 }
 
 uint32_t Updater::CalculateMaxIndexPRSize() {

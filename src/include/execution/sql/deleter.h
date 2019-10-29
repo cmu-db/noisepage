@@ -15,16 +15,14 @@ class EXPORT Deleter {
   /**
    * Constructor
    * @param exec_ctx The execution context.
-   * @param table_name Name of the table.
-   */
-  Deleter(exec::ExecutionContext *exec_ctx, std::string table_name);
-
-  /**
-   * Constructor
-   * @param exec_ctx The execution context.
    * @param table_oid Oid of the table
    */
   Deleter(exec::ExecutionContext *exec_ctx, catalog::table_oid_t table_oid);
+
+  /**
+   * Destructor.
+   */
+  ~Deleter();
 
   /**
    * @param index_oid OID of the index to access.
@@ -54,6 +52,7 @@ class EXPORT Deleter {
   common::ManagedPointer<terrier::storage::SqlTable> table_;
 
   void *index_pr_buffer_;
+  uint32_t max_pr_size_;
   storage::ProjectedRow *index_pr_{nullptr};
 
   std::map<terrier::catalog::index_oid_t, common::ManagedPointer<storage::index::Index>> index_cache_;

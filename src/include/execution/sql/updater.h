@@ -15,13 +15,18 @@ class EXPORT Updater {
   /**
    * Constructor
    * @param exec_ctx The execution context.
-   * @param table_name Name of the table
+   * @param table_oid Oid of the table
    * @param col_oids Col oids to updated.
    * @param num_oids Number of column oids.
    * @param is_index_key_update Whether this will update indexed keys.
    */
   explicit Updater(exec::ExecutionContext *exec_ctx, catalog::table_oid_t table_oid, uint32_t *col_oids,
                    uint32_t num_oids, bool is_index_key_update);
+
+  /**
+   * Destructor.
+   */
+  ~Updater();
 
   /**
    * @return The table's projected row.
@@ -87,6 +92,7 @@ class EXPORT Updater {
   storage::RedoRecord *table_redo_{nullptr};
 
   void *index_pr_buffer_;
+  uint32_t max_pr_size_;
   storage::ProjectedRow *index_pr_{nullptr};
 
   std::map<terrier::catalog::index_oid_t, common::ManagedPointer<storage::index::Index>> index_cache_;

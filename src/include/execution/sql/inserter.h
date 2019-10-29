@@ -22,6 +22,11 @@ class EXPORT Inserter {
   explicit Inserter(exec::ExecutionContext *exec_ctx, catalog::table_oid_t table_oid);
 
   /**
+   * Destructor
+   */
+  ~Inserter();
+
+  /**
    * @return The table's projected row.
    */
   terrier::storage::ProjectedRow *GetTablePR();
@@ -59,6 +64,7 @@ class EXPORT Inserter {
   storage::ProjectedRow *table_pr_{nullptr};
 
   void *index_pr_buffer_;
+  uint32_t max_pr_size_;
   storage::ProjectedRow *index_pr_{nullptr};
 
   std::map<terrier::catalog::index_oid_t, common::ManagedPointer<storage::index::Index>> index_cache_;

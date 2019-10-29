@@ -9,13 +9,15 @@ Deleter::Deleter(exec::ExecutionContext *exec_ctx, catalog::table_oid_t table_oi
     : table_oid_(table_oid), exec_ctx_(exec_ctx) {
   table_ = exec_ctx->GetAccessor()->GetTable(table_oid);
 
-  uint32_t index_pr_size = 0;
+  max_pr_size_ = 0;
   auto index_oids = exec_ctx->GetAccessor()->GetIndexOids(table_oid_);
   for (auto index_oid : index_oids) {
-    index_pr_size = std::max(index_pr_size, GetIndex(index_oid)->GetProjectedRowInitializer().ProjectedRowSize());
+    max_pr_size_ = std::max(max_pr_size_, GetIndex(index_oid)->GetProjectedRowInitializer().ProjectedRowSize());
   }
-  index_pr_buffer_ = exec_ctx->GetMemoryPool()->AllocateAligned(index_pr_size, sizeof(uint64_t), true);
+  index_pr_buffer_ = exec_ctx->GetMemoryPool()->AllocateAligned(max_pr_size_, sizeof(uint64_t), true);
 }
+
+Deleter::~Deleter() { exec_ctx_->GetMemoryPool()->Deallocate(index_pr_buffer_, max_pr_size_); }
 
 common::ManagedPointer<storage::index::Index> execution::sql::Deleter::GetIndex(catalog::index_oid_t index_oid) {
   auto iter = index_cache_.find(index_oid);
