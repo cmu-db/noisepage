@@ -1,4 +1,7 @@
 #pragma once
+
+#include <map>
+#include <string>
 #include "execution/exec/execution_context.h"
 #include "execution/util/execution_common.h"
 
@@ -9,10 +12,7 @@ namespace terrier::execution::sql {
  */
 class EXPORT Deleter {
  public:
-  Deleter(exec::ExecutionContext *exec_ctx, std::string table_name)
-      : Deleter(exec_ctx, exec_ctx->GetAccessor()->GetTableOid(table_name)) {}
-
-  Deleter(exec::ExecutionContext *exec_ctx, catalog::table_oid_t table_oid);
+  explicit Deleter(exec::ExecutionContext *exec_ctx, catalog::table_oid_t table_oid);
 
   storage::ProjectedRow *GetIndexPR(catalog::index_oid_t index_oid);
 

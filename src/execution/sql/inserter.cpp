@@ -1,7 +1,6 @@
-
 #include <execution/sql/inserter.h>
+#include <algorithm>
 
-#include "execution/sql/inserter.h"
 terrier::execution::sql::Inserter::Inserter(terrier::execution::exec::ExecutionContext *exec_ctx,
                                             terrier::catalog::table_oid_t table_oid)
     : table_oid_{table_oid}, exec_ctx_{exec_ctx} {

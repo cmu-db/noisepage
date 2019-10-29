@@ -1,4 +1,8 @@
 #pragma once
+
+#include <map>
+#include <string>
+#include <vector>
 #include "execution/exec/execution_context.h"
 #include "execution/util/execution_common.h"
 namespace terrier::execution::sql {
@@ -8,10 +12,6 @@ namespace terrier::execution::sql {
  */
 class EXPORT Updater {
  public:
-  explicit Updater(exec::ExecutionContext *exec_ctx, std::string table_name, uint32_t *col_oids, uint32_t num_oids,
-                   bool is_index_key_update)
-      : Updater(exec_ctx, exec_ctx->GetAccessor()->GetTableOid(table_name), col_oids, num_oids, is_index_key_update) {}
-
   explicit Updater(exec::ExecutionContext *exec_ctx, catalog::table_oid_t table_oid, uint32_t *col_oids,
                    uint32_t num_oids, bool is_index_key_update);
 
@@ -35,7 +35,7 @@ class EXPORT Updater {
   uint32_t CalculateMaxIndexPRSize();
   void *GetMaxSizedIndexPRBuffer();
 
-  void PopulateAllColOids(std::vector<catalog::col_oid_t> &all_col_oids);
+  void PopulateAllColOids(std::vector<catalog::col_oid_t> *all_col_oids);
 
   storage::ProjectedRow *GetTablePRForColumns(const std::vector<catalog::col_oid_t> &col_oids);
 
