@@ -193,7 +193,16 @@ class CatalogAccessor {
    * @param table being queried
    * @return vector of OIDs for all of the indexes on this table
    */
-  std::vector<index_oid_t> GetIndexes(table_oid_t table) const;
+  std::vector<index_oid_t> GetIndexOids(table_oid_t table) const;
+
+  /**
+   * Returns index pointers and schemas for every index on a table. Provides much better performance than individual
+   * calls to GetIndex and GetIndexSchema
+   * @param table table to get index objects for
+   * @return vector of pairs of index pointers and their corresponding schemas
+   */
+  std::vector<std::pair<common::ManagedPointer<storage::index::Index>, const IndexSchema &>> GetIndexes(
+      table_oid_t table);
 
   /**
    * Given an index name, resolve it to the corresponding OID
@@ -209,13 +218,6 @@ class CatalogAccessor {
    * @return OID of the index, INVALID_INDEX_OID if the index was not found
    */
   index_oid_t GetIndexOid(namespace_oid_t ns, std::string name) const;
-
-  /**
-   * Given a table, find all indexes for data in that table
-   * @param table OID being queried
-   * @return vector of index OIDs that reference the queried table
-   */
-  std::vector<index_oid_t> GetIndexOids(table_oid_t table) const;
 
   /**
    * Given the index name and its specification, add it to the catalog
@@ -271,8 +273,8 @@ class CatalogAccessor {
       : catalog_(catalog),
         dbc_(dbc),
         txn_(txn),
-        search_path_({NAMESPACE_CATALOG_NAMESPACE_OID, NAMESPACE_DEFAULT_NAMESPACE_OID}),
-        default_namespace_(NAMESPACE_DEFAULT_NAMESPACE_OID) {}
+        search_path_({postgres::NAMESPACE_CATALOG_NAMESPACE_OID, postgres::NAMESPACE_DEFAULT_NAMESPACE_OID}),
+        default_namespace_(postgres::NAMESPACE_DEFAULT_NAMESPACE_OID) {}
 
  private:
   const common::ManagedPointer<Catalog> catalog_;

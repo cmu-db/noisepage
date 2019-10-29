@@ -1,11 +1,13 @@
 #pragma once
 
 #include <utility>
-#include "catalog/catalog_defs.h"
+#include "catalog/catalog.h"
+#include "catalog/catalog_accessor.h"
 #include "catalog/schema.h"
 #include "common/macros.h"
 #include "storage/index/index_builder.h"
-#include "storage/sql_table.h"
+#include "storage/index/index_defs.h"
+#include "util/catalog_test_util.h"
 #include "util/tpcc/database.h"
 #include "util/tpcc/schemas.h"
 
@@ -16,29 +18,24 @@ namespace terrier::tpcc {
  */
 class Builder {
  public:
-  explicit Builder(storage::BlockStore *const store)
-      : store_(store),
-        oid_counter_(1)  // 0 is a reserved oid in the catalog, so we'll start at 1 for our counter
-  {}
-  Database *Build();
+  Builder(storage::BlockStore *const store, catalog::Catalog *const catalog,
+          transaction::TransactionManager *const txn_manager)
+      : store_(store), catalog_(catalog), txn_manager_(txn_manager) {
+    TERRIER_ASSERT(store_ != nullptr, "BlockStore cannot be nullptr.");
+    TERRIER_ASSERT(catalog_ != nullptr, "Catalog cannot be nullptr.");
+    TERRIER_ASSERT(txn_manager_ != nullptr, "TransactionManager cannot be nullptr.");
+  }
+  Database *Build(storage::index::IndexType index_type);
 
  private:
-  storage::index::Index *BuildPrimaryIndex(const catalog::IndexSchema &key_schema) {
+  storage::index::Index *BuildIndex(const catalog::IndexSchema &key_schema) {
     storage::index::IndexBuilder index_builder;
-    index_builder.SetOid(static_cast<catalog::index_oid_t>(static_cast<uint32_t>(++oid_counter_)))
-        .SetKeySchema(key_schema)
-        .SetConstraintType(storage::index::ConstraintType::UNIQUE);
-    return index_builder.Build();
-  }
-  storage::index::Index *BuildSecondaryIndex(const catalog::IndexSchema &key_schema) {
-    storage::index::IndexBuilder index_builder;
-    index_builder.SetOid(static_cast<catalog::index_oid_t>(static_cast<uint32_t>(++oid_counter_)))
-        .SetKeySchema(key_schema)
-        .SetConstraintType(storage::index::ConstraintType::DEFAULT);
+    index_builder.SetKeySchema(key_schema);
     return index_builder.Build();
   }
 
   storage::BlockStore *const store_;
-  uint32_t oid_counter_;
+  catalog::Catalog *const catalog_;
+  transaction::TransactionManager *const txn_manager_;
 };
 }  // namespace terrier::tpcc

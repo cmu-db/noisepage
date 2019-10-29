@@ -19,7 +19,7 @@
 
 namespace terrier::catalog::postgres {
 
-#define MAX_NAME_LENGTH 63  // This mimics PostgreSQL behavior
+constexpr uint8_t MAX_NAME_LENGTH = 63;  // This mimics PostgreSQL behavior
 
 /**
  * Helper function to handle generating the implicit "NULL" default values
@@ -53,9 +53,7 @@ IndexSchema Builder::GetDatabaseOidIndexSchema() {
   columns.back().SetOid(indexkeycol_oid_t(1));
 
   // Primary
-  IndexSchema schema(columns, true, true, false, true);
-  schema.SetValid(true);
-  schema.SetReady(true);
+  IndexSchema schema(columns, storage::index::IndexType::HASHMAP, true, true, false, true);
 
   return schema;
 }
@@ -68,9 +66,7 @@ IndexSchema Builder::GetDatabaseNameIndexSchema() {
   columns.back().SetOid(indexkeycol_oid_t(1));
 
   // Unique, not primary
-  IndexSchema schema(columns, true, false, false, true);
-  schema.SetValid(true);
-  schema.SetReady(true);
+  IndexSchema schema(columns, storage::index::IndexType::HASHMAP, true, false, false, true);
 
   return schema;
 }
@@ -256,6 +252,9 @@ Schema Builder::GetIndexTableSchema() {
   columns.emplace_back("indislive", type::TypeId::BOOLEAN, false, MakeNull(type::TypeId::BOOLEAN));
   columns.back().SetOid(INDISLIVE_COL_OID);
 
+  columns.emplace_back("implementation", type::TypeId::TINYINT, false, MakeNull(type::TypeId::TINYINT));
+  columns.back().SetOid(IND_TYPE_COL_OID);
+
   return Schema(columns);
 }
 
@@ -303,9 +302,7 @@ IndexSchema Builder::GetNamespaceOidIndexSchema(db_oid_t db) {
   columns.back().SetOid(indexkeycol_oid_t(1));
 
   // Primary
-  IndexSchema schema(columns, true, true, false, true);
-  schema.SetValid(true);
-  schema.SetReady(true);
+  IndexSchema schema(columns, storage::index::IndexType::HASHMAP, true, true, false, true);
 
   return schema;
 }
@@ -318,9 +315,7 @@ IndexSchema Builder::GetNamespaceNameIndexSchema(db_oid_t db) {
   columns.back().SetOid(indexkeycol_oid_t(1));
 
   // Unique, not primary
-  IndexSchema schema(columns, true, false, false, true);
-  schema.SetValid(true);
-  schema.SetReady(true);
+  IndexSchema schema(columns, storage::index::IndexType::HASHMAP, true, false, false, true);
 
   return schema;
 }
@@ -333,9 +328,7 @@ IndexSchema Builder::GetClassOidIndexSchema(db_oid_t db) {
   columns.back().SetOid(indexkeycol_oid_t(1));
 
   // Primary
-  IndexSchema schema(columns, true, true, false, true);
-  schema.SetValid(true);
-  schema.SetReady(true);
+  IndexSchema schema(columns, storage::index::IndexType::HASHMAP, true, true, false, true);
 
   return schema;
 }
@@ -352,9 +345,7 @@ IndexSchema Builder::GetClassNameIndexSchema(db_oid_t db) {
   columns.back().SetOid(indexkeycol_oid_t(2));
 
   // Unique, not primary
-  IndexSchema schema(columns, true, false, false, true);
-  schema.SetValid(true);
-  schema.SetReady(true);
+  IndexSchema schema(columns, storage::index::IndexType::HASHMAP, true, false, false, true);
 
   return schema;
 }
@@ -366,10 +357,8 @@ IndexSchema Builder::GetClassNamespaceIndexSchema(db_oid_t db) {
                        parser::ColumnValueExpression(db, CLASS_TABLE_OID, RELNAMESPACE_COL_OID));
   columns.back().SetOid(indexkeycol_oid_t(1));
 
-  // Unique, not primary
-  IndexSchema schema(columns, false, false, false, true);
-  schema.SetValid(true);
-  schema.SetReady(true);
+  // Not unique
+  IndexSchema schema(columns, storage::index::IndexType::HASHMAP, false, false, false, true);
 
   return schema;
 }
@@ -382,9 +371,7 @@ IndexSchema Builder::GetIndexOidIndexSchema(db_oid_t db) {
   columns.back().SetOid(indexkeycol_oid_t(1));
 
   // Primary
-  IndexSchema schema(columns, true, true, false, true);
-  schema.SetValid(true);
-  schema.SetReady(true);
+  IndexSchema schema(columns, storage::index::IndexType::HASHMAP, true, true, false, true);
 
   return schema;
 }
@@ -397,9 +384,7 @@ IndexSchema Builder::GetIndexTableIndexSchema(db_oid_t db) {
   columns.back().SetOid(indexkeycol_oid_t(1));
 
   // Not unique
-  IndexSchema schema(columns, false, false, false, true);
-  schema.SetValid(true);
-  schema.SetReady(true);
+  IndexSchema schema(columns, storage::index::IndexType::HASHMAP, false, false, false, true);
 
   return schema;
 }
@@ -415,10 +400,8 @@ IndexSchema Builder::GetColumnOidIndexSchema(db_oid_t db) {
                        parser::ColumnValueExpression(db, COLUMN_TABLE_OID, ATTNUM_COL_OID));
   columns.back().SetOid(indexkeycol_oid_t(2));
 
-  // Primary
-  IndexSchema schema(columns, true, true, false, true);
-  schema.SetValid(true);
-  schema.SetReady(true);
+  // Primary, must be a BWTREE due to ScanAscending usage
+  IndexSchema schema(columns, storage::index::IndexType::BWTREE, true, true, false, true);
 
   return schema;
 }
@@ -435,9 +418,7 @@ IndexSchema Builder::GetColumnNameIndexSchema(db_oid_t db) {
   columns.back().SetOid(indexkeycol_oid_t(2));
 
   // Unique, not primary
-  IndexSchema schema(columns, true, false, false, true);
-  schema.SetValid(true);
-  schema.SetReady(true);
+  IndexSchema schema(columns, storage::index::IndexType::HASHMAP, true, false, false, true);
 
   return schema;
 }
@@ -450,9 +431,7 @@ IndexSchema Builder::GetTypeOidIndexSchema(db_oid_t db) {
   columns.back().SetOid(indexkeycol_oid_t(1));
 
   // Primary
-  IndexSchema schema(columns, true, true, false, true);
-  schema.SetValid(true);
-  schema.SetReady(true);
+  IndexSchema schema(columns, storage::index::IndexType::HASHMAP, true, true, false, true);
 
   return schema;
 }
@@ -469,9 +448,7 @@ IndexSchema Builder::GetTypeNameIndexSchema(db_oid_t db) {
   columns.back().SetOid(indexkeycol_oid_t(2));
 
   // Unique, not primary
-  IndexSchema schema(columns, true, false, false, true);
-  schema.SetValid(true);
-  schema.SetReady(true);
+  IndexSchema schema(columns, storage::index::IndexType::HASHMAP, true, false, false, true);
 
   return schema;
 }
@@ -483,10 +460,8 @@ IndexSchema Builder::GetTypeNamespaceIndexSchema(db_oid_t db) {
                        parser::ColumnValueExpression(db, TYPE_TABLE_OID, TYPNAMESPACE_COL_OID));
   columns.back().SetOid(indexkeycol_oid_t(1));
 
-  // Unique, not primary
-  IndexSchema schema(columns, false, false, false, true);
-  schema.SetValid(true);
-  schema.SetReady(true);
+  // Not unique
+  IndexSchema schema(columns, storage::index::IndexType::HASHMAP, false, false, false, true);
 
   return schema;
 }
@@ -499,9 +474,7 @@ IndexSchema Builder::GetConstraintOidIndexSchema(db_oid_t db) {
   columns.back().SetOid(indexkeycol_oid_t(1));
 
   // Primary
-  IndexSchema schema(columns, true, true, false, true);
-  schema.SetValid(true);
-  schema.SetReady(true);
+  IndexSchema schema(columns, storage::index::IndexType::HASHMAP, true, true, false, true);
 
   return schema;
 }
@@ -518,9 +491,7 @@ IndexSchema Builder::GetConstraintNameIndexSchema(db_oid_t db) {
   columns.back().SetOid(indexkeycol_oid_t(2));
 
   // Unique, not primary
-  IndexSchema schema(columns, true, false, false, true);
-  schema.SetValid(true);
-  schema.SetReady(true);
+  IndexSchema schema(columns, storage::index::IndexType::HASHMAP, true, false, false, true);
 
   return schema;
 }
@@ -532,10 +503,8 @@ IndexSchema Builder::GetConstraintNamespaceIndexSchema(db_oid_t db) {
                        parser::ColumnValueExpression(db, CONSTRAINT_TABLE_OID, CONNAMESPACE_COL_OID));
   columns.back().SetOid(indexkeycol_oid_t(1));
 
-  // Unique, not primary
-  IndexSchema schema(columns, false, false, false, true);
-  schema.SetValid(true);
-  schema.SetReady(true);
+  // Not unique
+  IndexSchema schema(columns, storage::index::IndexType::HASHMAP, false, false, false, true);
 
   return schema;
 }
@@ -548,9 +517,7 @@ IndexSchema Builder::GetConstraintTableIndexSchema(db_oid_t db) {
   columns.back().SetOid(indexkeycol_oid_t(1));
 
   // Not unique
-  IndexSchema schema(columns, false, false, false, true);
-  schema.SetValid(true);
-  schema.SetReady(true);
+  IndexSchema schema(columns, storage::index::IndexType::HASHMAP, false, false, false, true);
 
   return schema;
 }
@@ -563,9 +530,7 @@ IndexSchema Builder::GetConstraintIndexIndexSchema(db_oid_t db) {
   columns.back().SetOid(indexkeycol_oid_t(1));
 
   // Not unique
-  IndexSchema schema(columns, false, false, false, true);
-  schema.SetValid(true);
-  schema.SetReady(true);
+  IndexSchema schema(columns, storage::index::IndexType::HASHMAP, false, false, false, true);
 
   return schema;
 }
@@ -578,9 +543,7 @@ IndexSchema Builder::GetConstraintForeignTableIndexSchema(db_oid_t db) {
   columns.back().SetOid(indexkeycol_oid_t(1));
 
   // Not unique
-  IndexSchema schema(columns, false, false, false, true);
-  schema.SetValid(true);
-  schema.SetReady(true);
+  IndexSchema schema(columns, storage::index::IndexType::HASHMAP, false, false, false, true);
 
   return schema;
 }

@@ -1,15 +1,22 @@
 #pragma once
 
+#include "type/type_id.h"
+
 namespace terrier::storage::index {
 /**
- * The type of index.
+ * This enum indicates the backing implementation that should be used for the index.  It is a character enum in order
+ * to better match PostgreSQL's look and feel when persisted through the catalog.
  */
-enum class ConstraintType : uint8_t {
-  // invalid index constraint type
-  INVALID = 0,
-  // default type - not used to enforce constraints
-  DEFAULT = 1,
-  // used for unique constraint
-  UNIQUE = 2
-};
+enum class IndexType : char { BWTREE = 'B', HASHMAP = 'H' };
+
+/**
+ * Internal enum to stash with the index to represent its key type. We don't need to persist this.
+ */
+enum class IndexKeyKind : uint8_t { COMPACTINTSKEY, GENERICKEY, HASHKEY };
+
+/**
+ * Types that can be used in simple keys, i.e. CompactIntsKey and HashKey
+ */
+constexpr std::array<type::TypeId, 4> NUMERIC_KEY_TYPES{type::TypeId::TINYINT, type::TypeId::SMALLINT,
+                                                        type::TypeId::INTEGER, type::TypeId::BIGINT};
 }  // namespace terrier::storage::index

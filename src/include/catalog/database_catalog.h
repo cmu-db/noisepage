@@ -1,5 +1,6 @@
 #pragma once
 
+#include <algorithm>
 #include <memory>
 #include <string>
 #include <utility>
@@ -165,7 +166,7 @@ class DatabaseCatalog {
    * @param table being queried
    * @return vector of OIDs for all of the indexes on this table
    */
-  std::vector<index_oid_t> GetIndexes(transaction::TransactionContext *txn, table_oid_t table);
+  std::vector<index_oid_t> GetIndexOids(transaction::TransactionContext *txn, table_oid_t table);
 
   /**
    * Create the catalog entries for a new index.
@@ -227,6 +228,16 @@ class DatabaseCatalog {
    */
   common::ManagedPointer<storage::index::Index> GetIndex(transaction::TransactionContext *txn, index_oid_t index);
 
+  /**
+   * Returns index pointers and schemas for every index on a table. Provides much better performance than individual
+   * calls to GetIndex and GetIndexSchema
+   * @param txn transaction to use
+   * @param table table to get index objects for
+   * @return vector of pairs of index pointers and their corresponding schemas
+   */
+  std::vector<std::pair<common::ManagedPointer<storage::index::Index>, const IndexSchema &>> GetIndexes(
+      transaction::TransactionContext *txn, table_oid_t table);
+
  private:
   /**
    * Create a namespace with a given ns oid
@@ -270,24 +281,50 @@ class DatabaseCatalog {
   storage::SqlTable *namespaces_;
   storage::index::Index *namespaces_oid_index_;
   storage::index::Index *namespaces_name_index_;
+  storage::ProjectedRowInitializer pg_namespace_all_cols_pri_;
+  storage::ProjectionMap pg_namespace_all_cols_prm_;
+  storage::ProjectedRowInitializer delete_namespace_pri_;
+  storage::ProjectedRowInitializer get_namespace_pri_;
 
   storage::SqlTable *classes_;
   storage::index::Index *classes_oid_index_;
   storage::index::Index *classes_name_index_;  // indexed on namespace OID and name
   storage::index::Index *classes_namespace_index_;
+  storage::ProjectedRowInitializer pg_class_all_cols_pri_;
+  storage::ProjectionMap pg_class_all_cols_prm_;
+  storage::ProjectedRowInitializer get_class_oid_kind_pri_;
+  storage::ProjectedRowInitializer set_class_pointer_pri_;
+  storage::ProjectedRowInitializer set_class_schema_pri_;
+  storage::ProjectedRowInitializer get_class_pointer_kind_pri_;
+  storage::ProjectedRowInitializer get_class_schema_pointer_kind_pri_;
+  storage::ProjectedRowInitializer get_class_object_and_schema_pri_;
+  storage::ProjectionMap get_class_object_and_schema_prm_;
 
   storage::SqlTable *indexes_;
   storage::index::Index *indexes_oid_index_;
   storage::index::Index *indexes_table_index_;
+  storage::ProjectedRowInitializer get_indexes_pri_;
+  storage::ProjectedRowInitializer delete_index_pri_;
+  storage::ProjectionMap delete_index_prm_;
+  storage::ProjectedRowInitializer pg_index_all_cols_pri_;
+  storage::ProjectionMap pg_index_all_cols_prm_;
 
   storage::SqlTable *columns_;
   storage::index::Index *columns_oid_index_;   // indexed on class OID and column OID
   storage::index::Index *columns_name_index_;  // indexed on class OID and column name
+  storage::ProjectedRowInitializer pg_attribute_all_cols_pri_;
+  storage::ProjectionMap pg_attribute_all_cols_prm_;
+  storage::ProjectedRowInitializer get_columns_pri_;
+  storage::ProjectionMap get_columns_prm_;
+  storage::ProjectedRowInitializer delete_columns_pri_;
+  storage::ProjectionMap delete_columns_prm_;
 
   storage::SqlTable *types_;
   storage::index::Index *types_oid_index_;
   storage::index::Index *types_name_index_;  // indexed on namespace OID and name
   storage::index::Index *types_namespace_index_;
+  storage::ProjectedRowInitializer pg_type_all_cols_pri_;
+  storage::ProjectionMap pg_type_all_cols_prm_;
 
   storage::SqlTable *constraints_;
   storage::index::Index *constraints_oid_index_;
@@ -309,6 +346,19 @@ class DatabaseCatalog {
 
   friend class Catalog;
   friend class postgres::Builder;
+  friend class storage::RecoveryManager;
+
+  /**
+   * Atomically updates the next oid counter to the max of the current count and the provided next oid
+   * @param oid next oid to move oid counter to
+   */
+  void UpdateNextOid(uint32_t oid) {
+    uint32_t expected, desired;
+    do {
+      expected = next_oid_.load();
+      desired = std::max(expected, oid);
+    } while (!next_oid_.compare_exchange_weak(expected, desired));
+  }
 
   /**
    * Helper method to create index entries into pg_class and pg_indexes.
@@ -328,6 +378,12 @@ class DatabaseCatalog {
    * @param txn transaction to insert into catalog with
    */
   void BootstrapTypes(transaction::TransactionContext *txn);
+
+  /**
+   * Creates all of the ProjectedRowInitializers and ProjectionMaps for the catalog. These can be stashed because the
+   * catalog shouldn't undergo schema changes at runtime
+   */
+  void BootstrapPRIs();
 
   /**
    * Helper function to insert a type into PG_Type and the type indexes
@@ -379,16 +435,39 @@ class DatabaseCatalog {
   std::pair<void *, postgres::ClassKind> GetClassSchemaPtrKind(transaction::TransactionContext *txn, uint32_t oid);
 
   /**
-   * Helper method since SetIndexPointer and SetTablePointer are basically indentical outside of input types
+   * Sets a table's schema in pg_class
+   * @warning Should only be used by recovery
+   * @param txn transaction to query
+   * @param oid oid to object
+   * @param schema object schema to insert
+   * @return true if succesfull
+   */
+  bool SetTableSchemaPointer(transaction::TransactionContext *txn, table_oid_t oid, const Schema *schema);
+
+  /**
+   * Sets an index's schema in pg_class
+   * @warning Should only be used by recovery
+   * @param txn transaction to query
+   * @param oid oid to object
+   * @param schema object schema to insert
+   * @return true if succesfull
+   */
+  bool SetIndexSchemaPointer(transaction::TransactionContext *txn, index_oid_t oid, const IndexSchema *schema);
+
+  /**
+   * Inserts a provided pointer into a given pg_class column. Can be used for class object and schema pointers
+   * Helper method since SetIndexPointer/SetTablePointer and SetIndexSchemaPointer/SetTableSchemaPointer
+   * are basically indentical outside of input types
    * @tparam ClassOid either index_oid_t or table_oid_t
-   * @tparam Class either Index or SqlTable
+   * @tparam Ptr either Index or SqlTable
    * @param txn transaction to query
    * @param oid oid to object
    * @param pointer pointer to set
+   * @param class_col pg_class column to insert pointer into
    * @return true if successful
    */
-  template <typename ClassOid, typename Class>
-  bool SetClassPointer(transaction::TransactionContext *txn, ClassOid oid, const Class *pointer);
+  template <typename ClassOid, typename Ptr>
+  bool SetClassPointer(transaction::TransactionContext *txn, ClassOid oid, const Ptr *pointer, col_oid_t class_col);
 
   /**
    * @tparam Column column type (either index or table)

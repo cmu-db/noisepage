@@ -25,9 +25,9 @@ void CatalogAccessor::SetSearchPath(std::vector<namespace_oid_t> namespaces) {
 
   // Check if 'pg_catalog is explicitly set'
   for (auto &ns : search_path_)
-    if (ns == NAMESPACE_CATALOG_NAMESPACE_OID) return;
+    if (ns == postgres::NAMESPACE_CATALOG_NAMESPACE_OID) return;
 
-  search_path_.emplace(search_path_.begin(), NAMESPACE_CATALOG_NAMESPACE_OID);
+  search_path_.emplace(search_path_.begin(), postgres::NAMESPACE_CATALOG_NAMESPACE_OID);
 }
 
 namespace_oid_t CatalogAccessor::GetNamespaceOid(std::string name) const {
@@ -86,7 +86,14 @@ std::vector<constraint_oid_t> CatalogAccessor::GetConstraints(table_oid_t table)
   return dbc_->GetConstraints(txn_, table);
 }
 
-std::vector<index_oid_t> CatalogAccessor::GetIndexes(table_oid_t table) const { return dbc_->GetIndexes(txn_, table); }
+std::vector<index_oid_t> CatalogAccessor::GetIndexOids(table_oid_t table) const {
+  return dbc_->GetIndexOids(txn_, table);
+}
+
+std::vector<std::pair<common::ManagedPointer<storage::index::Index>, const IndexSchema &>> CatalogAccessor::GetIndexes(
+    table_oid_t table) {
+  return dbc_->GetIndexes(txn_, table);
+}
 
 index_oid_t CatalogAccessor::GetIndexOid(std::string name) const {
   NormalizeObjectName(&name);
@@ -100,10 +107,6 @@ index_oid_t CatalogAccessor::GetIndexOid(std::string name) const {
 index_oid_t CatalogAccessor::GetIndexOid(namespace_oid_t ns, std::string name) const {
   NormalizeObjectName(&name);
   return dbc_->GetIndexOid(txn_, ns, name);
-}
-
-std::vector<index_oid_t> CatalogAccessor::GetIndexOids(table_oid_t table) const {
-  return dbc_->GetIndexes(txn_, table);
 }
 
 index_oid_t CatalogAccessor::CreateIndex(namespace_oid_t ns, table_oid_t table, std::string name,

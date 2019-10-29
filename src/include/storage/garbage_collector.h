@@ -45,6 +45,11 @@ class GarbageCollector {
                    "The TransactionManager needs to be instantiated with gc_enabled true for GC to work!");
   }
 
+  ~GarbageCollector() {
+    TERRIER_ASSERT(txns_to_deallocate_.empty(), "Not all txns have been deallocated");
+    TERRIER_ASSERT(txns_to_unlink_.empty(), "Not all txns have been unlinked");
+  }
+
   /**
    * Deallocates transactions that can no longer be referenced by running transactions, and unlinks UndoRecords that
    * are no longer visible to running transactions. This needs to be invoked twice to actually free memory, since the
@@ -60,31 +65,31 @@ class GarbageCollector {
    * Register an index to be periodically garbage collected
    * @param index pointer to the index to register
    */
-  void RegisterIndexForGC(index::Index *index);
+  void RegisterIndexForGC(common::ManagedPointer<index::Index> index);
 
   /**
    * Unregister an index to be periodically garbage collected
    * @param index pointer to the index to unregister
    */
-  void UnregisterIndexForGC(index::Index *index);
+  void UnregisterIndexForGC(common::ManagedPointer<index::Index> index);
 
  private:
   /**
    * Process the deallocate queue
    * @return number of txns (not UndoRecords) processed for debugging/testing
    */
-  uint32_t ProcessDeallocateQueue();
+  uint32_t ProcessDeallocateQueue(transaction::timestamp_t oldest_txn);
 
   /**
    * Process the unlink queue
    * @return number of txns (not UndoRecords) processed for debugging/testing
    */
-  uint32_t ProcessUnlinkQueue();
+  uint32_t ProcessUnlinkQueue(transaction::timestamp_t oldest_txn);
 
   /**
    * Process deferred actions
    */
-  void ProcessDeferredActions();
+  void ProcessDeferredActions(transaction::timestamp_t oldest_txn);
 
   void ReclaimSlotIfDeleted(UndoRecord *undo_record) const;
 
@@ -105,7 +110,7 @@ class GarbageCollector {
   // queue of txns that need to be unlinked
   transaction::TransactionQueue txns_to_unlink_;
 
-  std::unordered_set<index::Index *> indexes_;
+  std::unordered_set<common::ManagedPointer<index::Index>> indexes_;
   common::SharedLatch indexes_latch_;
 };
 

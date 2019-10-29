@@ -126,10 +126,10 @@ common::hash_t IndexScan::Hash() const {
     else
       hash = common::HashUtil::SumHashes(hash, BaseOperatorNode::Hash());
   }
-  for (auto &col_oid : key_column_oid_list_)
-    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&col_oid));
-  for (auto &expr_type : expr_type_list_)
-    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&expr_type));
+  for (const auto &col_oid : key_column_oid_list_)
+    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(col_oid));
+  for (const auto &expr_type : expr_type_list_)
+    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(expr_type));
   for (auto &val : value_list_) hash = common::HashUtil::CombineHashes(hash, val.Hash());
   return hash;
 }
@@ -220,7 +220,7 @@ common::hash_t OrderBy::Hash() const {
 //===--------------------------------------------------------------------===//
 Operator Limit::Make(size_t offset, size_t limit,
                      std::vector<common::ManagedPointer<parser::AbstractExpression>> &&sort_columns,
-                     std::vector<planner::OrderByOrderingType> &&sort_directions) {
+                     std::vector<optimizer::OrderByOrderingType> &&sort_directions) {
   auto *limit_op = new Limit;
   limit_op->offset_ = offset;
   limit_op->limit_ = limit;
@@ -465,7 +465,8 @@ bool OuterHashJoin::operator==(const BaseOperatorNode &r) {
 //===--------------------------------------------------------------------===//
 Operator Insert::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
                       catalog::table_oid_t table_oid, std::vector<catalog::col_oid_t> &&columns,
-                      std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>> &&values) {
+                      std::vector<std::vector<common::ManagedPointer<parser::AbstractExpression>>> &&values,
+                      std::vector<catalog::index_oid_t> &&index_oids) {
 #ifndef NDEBUG
   // We need to check whether the number of values for each insert vector
   // matches the number of columns
@@ -480,6 +481,7 @@ Operator Insert::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t n
   op->table_oid_ = table_oid;
   op->columns_ = std::move(columns);
   op->values_ = std::move(values);
+  op->index_oids_ = std::move(index_oids);
   return Operator(op);
 }
 
@@ -513,11 +515,12 @@ bool Insert::operator==(const BaseOperatorNode &r) {
 // InsertSelect
 //===--------------------------------------------------------------------===//
 Operator InsertSelect::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
-                            catalog::table_oid_t table_oid) {
+                            catalog::table_oid_t table_oid, std::vector<catalog::index_oid_t> &&index_oids) {
   auto *insert_op = new InsertSelect;
   insert_op->database_oid_ = database_oid;
   insert_op->namespace_oid_ = namespace_oid;
   insert_op->table_oid_ = table_oid;
+  insert_op->index_oids_ = index_oids;
   return Operator(insert_op);
 }
 

@@ -8,7 +8,7 @@
 
 namespace terrier::planner {
 
-using IndexExpression = std::shared_ptr<parser::AbstractExpression>;
+using IndexExpression = common::ManagedPointer<parser::AbstractExpression>;
 
 /**
  * Plan node for nested loop joins
@@ -31,10 +31,10 @@ class IndexJoinPlanNode : public AbstractJoinPlanNode {
      * Build the nested loop join plan node
      * @return plan node
      */
-    std::shared_ptr<IndexJoinPlanNode> Build() {
-      return std::shared_ptr<IndexJoinPlanNode>(new IndexJoinPlanNode(std::move(children_), std::move(output_schema_),
-                                                                      join_type_, std::move(join_predicate_),
-                                                                      index_oid_, table_oid_, std::move(index_cols_)));
+    std::unique_ptr<IndexJoinPlanNode> Build() {
+      return std::unique_ptr<IndexJoinPlanNode>(new IndexJoinPlanNode(std::move(children_), std::move(output_schema_),
+                                                                      join_type_, join_predicate_, index_oid_,
+                                                                      table_oid_, std::move(index_cols_)));
     }
 
     /**
@@ -51,7 +51,7 @@ class IndexJoinPlanNode : public AbstractJoinPlanNode {
      * TODO(Amadou): Ideally, these expressions should come from the catalog.
      * But the optimizer may change the expression, so perhaps this is the right place
      */
-    Builder &AddIndexColum(const IndexExpression &expr) {
+    Builder &AddIndexColumn(IndexExpression expr) {
       index_cols_.emplace_back(expr);
       return *this;
     }
@@ -88,11 +88,11 @@ class IndexJoinPlanNode : public AbstractJoinPlanNode {
    * @param join_type logical join type
    * @param predicate join predicate
    */
-  IndexJoinPlanNode(std::vector<std::shared_ptr<AbstractPlanNode>> &&children,
-                    std::shared_ptr<OutputSchema> output_schema, LogicalJoinType join_type,
-                    std::shared_ptr<parser::AbstractExpression> predicate, catalog::index_oid_t index_oid,
+  IndexJoinPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
+                    std::unique_ptr<OutputSchema> output_schema, LogicalJoinType join_type,
+                    common::ManagedPointer<parser::AbstractExpression> predicate, catalog::index_oid_t index_oid,
                     catalog::table_oid_t table_oid, std::vector<IndexExpression> &&index_cols)
-      : AbstractJoinPlanNode(std::move(children), std::move(output_schema), join_type, std::move(predicate)),
+      : AbstractJoinPlanNode(std::move(children), std::move(output_schema), join_type, predicate),
         index_oid_(index_oid),
         table_oid_(table_oid),
         index_cols_(std::move(index_cols)) {}
@@ -118,7 +118,7 @@ class IndexJoinPlanNode : public AbstractJoinPlanNode {
   bool operator==(const AbstractPlanNode &rhs) const override;
 
   nlohmann::json ToJson() const override;
-  void FromJson(const nlohmann::json &j) override;
+  std::vector<std::unique_ptr<parser::AbstractExpression>> FromJson(const nlohmann::json &j) override;
 
   /**
    * @return the OID of the index
@@ -133,7 +133,7 @@ class IndexJoinPlanNode : public AbstractJoinPlanNode {
   /**
    * @return the index columns
    */
-  const std::vector<IndexExpression> &GetIndexColumns() const { return index_cols_; }
+  std::vector<IndexExpression> GetIndexColumns() const { return index_cols_; }
 
  private:
   /**

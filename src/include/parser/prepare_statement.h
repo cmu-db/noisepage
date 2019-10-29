@@ -29,8 +29,8 @@ class PrepareStatement : public SQLStatement {
    * @param query - the parsed form of statement
    * @param placeholders - placeholder values? (explain)
    */
-  PrepareStatement(std::string name, std::shared_ptr<SQLStatement> query,
-                   std::vector<std::shared_ptr<ParameterValueExpression>> placeholders)
+  PrepareStatement(std::string name, std::unique_ptr<SQLStatement> query,
+                   std::vector<common::ManagedPointer<ParameterValueExpression>> placeholders)
       : SQLStatement(StatementType::PREPARE),
         name_(std::move(name)),
         query_(std::move(query)),
@@ -38,27 +38,21 @@ class PrepareStatement : public SQLStatement {
 
   ~PrepareStatement() override = default;
 
-  void Accept(SqlNodeVisitor *v) override { v->Visit(this); }
+  void Accept(SqlNodeVisitor *v, ParseResult *parse_result) override { v->Visit(this, parse_result); }
 
-  /**
-   * @return prepared statement name
-   */
+  /** @return prepared statement name */
   std::string GetName() { return name_; }
 
-  /**
-   * @return query
-   */
-  std::shared_ptr<SQLStatement> GetQuery() { return query_; }
+  /** @return query */
+  common::ManagedPointer<SQLStatement> GetQuery() { return common::ManagedPointer(query_); }
 
-  /**
-   * @return placeholders
-   */
-  std::vector<std::shared_ptr<ParameterValueExpression>> GetPlaceholders() { return placeholders_; }
+  /** @return placeholders */
+  const std::vector<common::ManagedPointer<ParameterValueExpression>> &GetPlaceholders() { return placeholders_; }
 
  private:
   const std::string name_;
-  const std::shared_ptr<SQLStatement> query_;
-  const std::vector<std::shared_ptr<ParameterValueExpression>> placeholders_;
+  const std::unique_ptr<SQLStatement> query_;
+  const std::vector<common::ManagedPointer<ParameterValueExpression>> placeholders_;
 };
 
 }  // namespace parser

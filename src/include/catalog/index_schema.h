@@ -1,17 +1,25 @@
 #pragma once
 
+#include <deque>
 #include <memory>
 #include <string>
+#include <unordered_map>
 #include <utility>
 #include <vector>
 #include "catalog/catalog_defs.h"
 #include "common/json.h"
 #include "common/macros.h"
 #include "parser/expression/abstract_expression.h"
+#include "parser/expression/column_value_expression.h"
+#include "storage/index/index_defs.h"
 #include "type/type_id.h"
 
 namespace terrier {
 class StorageTestUtil;
+}
+
+namespace terrier::storage {
+class RecoveryManager;
 }
 
 namespace terrier::tpcc {
@@ -63,7 +71,6 @@ class IndexSchema {
            const parser::AbstractExpression &definition)
         : name_(std::move(name)), oid_(INVALID_INDEXKEYCOL_OID), packed_type_(0), definition_(definition.Copy()) {
       TERRIER_ASSERT(type_id == type::TypeId::VARCHAR || type_id == type::TypeId::VARBINARY, "Varlen constructor.");
-      TERRIER_ASSERT(definition_.use_count() == 1, "This expression should only be shared using managed pointers");
       SetTypeId(type_id);
       SetNullable(nullable);
       SetMaxVarlenSize(max_varlen_size);
@@ -77,8 +84,19 @@ class IndexSchema {
         : name_(old_column.name_),
           oid_(old_column.oid_),
           packed_type_(old_column.packed_type_),
-          definition_(old_column.definition_->Copy()) {
-      TERRIER_ASSERT(definition_.use_count() == 1, "This expression should only be shared using managed pointers");
+          definition_(old_column.definition_->Copy()) {}
+
+    /**
+     * Allows operator= to call Column's custom copy-constructor.
+     * @param col column to be copied
+     * @return the current column after update
+     */
+    Column &operator=(const Column &col) {
+      name_ = col.name_;
+      oid_ = col.oid_;
+      packed_type_ = col.packed_type_;
+      definition_ = col.definition_->Copy();
+      return *this;
     }
 
     /**
@@ -95,7 +113,6 @@ class IndexSchema {
      * @return definition expression
      */
     common::ManagedPointer<const parser::AbstractExpression> StoredExpression() const {
-      TERRIER_ASSERT(definition_.use_count() == 1, "This expression should only be shared using managed pointers");
       return common::ManagedPointer(static_cast<const parser::AbstractExpression *>(definition_.get()));
     }
 
@@ -135,7 +152,7 @@ class IndexSchema {
       j["max_varlen_size"] = MaxVarlenSize();
       j["nullable"] = Nullable();
       j["oid"] = oid_;
-      j["definition"] = definition_;
+      j["definition"] = definition_->ToJson();
       return j;
     }
 
@@ -143,13 +160,15 @@ class IndexSchema {
      * Deserializes a column
      * @param j serialized column
      */
-    void FromJson(const nlohmann::json &j) {
+    std::vector<std::unique_ptr<parser::AbstractExpression>> FromJson(const nlohmann::json &j) {
       name_ = j.at("name").get<std::string>();
       SetTypeId(j.at("type").get<type::TypeId>());
       SetMaxVarlenSize(j.at("max_varlen_size").get<uint16_t>());
       SetNullable(j.at("nullable").get<bool>());
       SetOid(j.at("oid").get<indexkeycol_oid_t>());
-      definition_ = parser::DeserializeExpression(j.at("definition"));
+      auto deserialized = parser::DeserializeExpression(j.at("definition"));
+      definition_ = std::move(deserialized.result_);
+      return std::move(deserialized.non_owned_exprs_);
     }
 
    private:
@@ -162,8 +181,7 @@ class IndexSchema {
     indexkeycol_oid_t oid_;
     uint32_t packed_type_;
 
-    // TODO(John) this should become a unique_ptr as part of addressing #489
-    std::shared_ptr<parser::AbstractExpression> definition_;
+    std::unique_ptr<parser::AbstractExpression> definition_;
 
     // TODO(John): Should these "OIDS" be implicitly set by the index in the columns?
     void SetOid(indexkeycol_oid_t oid) { oid_ = oid; }
@@ -194,22 +212,22 @@ class IndexSchema {
   /**
    * Instantiates a new catalog description of an index
    * @param columns describing the individual parts of the key
+   * @param type backing data structure of the index
    * @param is_unique indicating whether the same key can be (logically) visible repeats are allowed in the index
    * @param is_primary indicating whether this will be the index for a primary key
    * @param is_exclusion indicating whether this index is for exclusion constraints
    * @param is_immediate indicating that the uniqueness check fails at insertion time
    */
-  IndexSchema(std::vector<Column> columns, const bool is_unique, const bool is_primary, const bool is_exclusion,
-              const bool is_immediate)
+  IndexSchema(std::vector<Column> columns, const storage::index::IndexType type, const bool is_unique,
+              const bool is_primary, const bool is_exclusion, const bool is_immediate)
       : columns_(std::move(columns)),
+        type_(type),
         is_unique_(is_unique),
         is_primary_(is_primary),
         is_exclusion_(is_exclusion),
-        is_immediate_(is_immediate),
-        is_valid_(false),
-        is_ready_(false),
-        is_live_(true) {
+        is_immediate_(is_immediate) {
     TERRIER_ASSERT((is_primary && is_unique) || (!is_primary), "is_primary requires is_unique to be true as well.");
+    ExtractIndexedColOids();
   }
 
   IndexSchema() = default;
@@ -223,7 +241,7 @@ class IndexSchema {
    * @param index in the column vector for the requested column
    * @return requested key column
    */
-  const Column &GetColumn(int index) const { return columns_.at(index); }
+  const Column &GetColumn(uint32_t index) const { return columns_.at(index); }
 
   /**
    * @param name name of the Column to access
@@ -242,24 +260,34 @@ class IndexSchema {
   }
 
   /**
-   * @return true if this schema is for a unique index
+   * @return true if is a unique index
    */
   bool Unique() const { return is_unique_; }
 
   /**
-   * @return true if this schema is for a unique index
+   * @return true if index represents the primary key of the table (Unique should always be true when this is true)
    */
   bool Primary() const { return is_primary_; }
 
   /**
-   * @return true if this schema is for a unique index
+   * @return true if index supports an exclusion constraint
    */
   bool Exclusion() const { return is_exclusion_; }
 
   /**
-   * @return true if this schema is for a unique index
+   * @return true if uniqueness check is enforced immediately on insertion
    */
   bool Immediate() const { return is_immediate_; }
+
+  /**
+   * @return the backend that should be used to implement this index
+   */
+  storage::index::IndexType Type() const { return type_; }
+
+  /**
+   * @param index_type that should be used to back this index
+   */
+  void SetType(storage::index::IndexType index_type) { type_ = index_type; }
 
   /**
    * @return serialized schema
@@ -268,13 +296,11 @@ class IndexSchema {
     // Only need to serialize columns_ because col_oid_to_offset is derived from columns_
     nlohmann::json j;
     j["columns"] = columns_;
+    j["type"] = static_cast<char>(type_);
     j["unique"] = is_unique_;
     j["primary"] = is_primary_;
     j["exclusion"] = is_exclusion_;
     j["immediate"] = is_immediate_;
-    j["valid"] = is_valid_;
-    j["ready"] = is_ready_;
-    j["live"] = is_live_;
     return j;
   }
 
@@ -292,34 +318,70 @@ class IndexSchema {
    */
   std::shared_ptr<IndexSchema> static DeserializeSchema(const nlohmann::json &j) {
     auto columns = j.at("columns").get<std::vector<IndexSchema::Column>>();
+
     auto unique = j.at("unique").get<bool>();
     auto primary = j.at("primary").get<bool>();
     auto exclusion = j.at("exclusion").get<bool>();
     auto immediate = j.at("immediate").get<bool>();
+    auto type = static_cast<storage::index::IndexType>(j.at("type").get<char>());
 
-    auto schema = std::make_shared<IndexSchema>(columns, unique, primary, exclusion, immediate);
-
-    schema->SetValid(j.at("valid").get<bool>());
-    schema->SetReady(j.at("ready").get<bool>());
-    schema->SetLive(j.at("live").get<bool>());
+    auto schema = std::make_shared<IndexSchema>(columns, type, unique, primary, exclusion, immediate);
 
     return schema;
+  }
+
+  /**
+   * @return map of index key oid to col_oid contained in that index key
+   */
+  const std::vector<col_oid_t> &GetIndexedColOids() const {
+    TERRIER_ASSERT(!indexed_oids_.empty(),
+                   "The indexed oids map should not be empty. Was ExtractIndexedColOids called before?");
+    return indexed_oids_;
+  }
+
+  /**
+   * @warning Calling this function will traverse the entire expression tree for each column, which may be expensive for
+   * large expressions. Thus, it should only be called once during object construction.
+   * @return col oids in index keys, ordered by index key
+   */
+  void ExtractIndexedColOids() {
+    // We will traverse every expr tree
+    std::deque<common::ManagedPointer<const parser::AbstractExpression>> expr_queue;
+
+    // Traverse expression tree for each index key
+    for (auto &col : GetColumns()) {
+      TERRIER_ASSERT(col.StoredExpression() != nullptr, "Index column expr should not be missing");
+      // Add root of expression of tree for the column
+      expr_queue.push_back(col.StoredExpression());
+
+      // Iterate over the tree
+      while (!expr_queue.empty()) {
+        auto expr = expr_queue.front();
+        expr_queue.pop_front();
+
+        // If this expr is a column value, add it to the queue
+        if (expr->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE) {
+          indexed_oids_.push_back(expr.CastManagedPointerTo<const parser::ColumnValueExpression>()->GetColumnOid());
+        }
+
+        // Add children to queue
+        for (const auto &child : expr->GetChildren()) {
+          TERRIER_ASSERT(child != nullptr, "We should not be adding missing expressions to the queue");
+          expr_queue.emplace_back(child.CastManagedPointerTo<const parser::AbstractExpression>());
+        }
+      }
+    }
   }
 
  private:
   friend class DatabaseCatalog;
   std::vector<Column> columns_;
+  storage::index::IndexType type_;
+  std::vector<col_oid_t> indexed_oids_;
   bool is_unique_;
   bool is_primary_;
   bool is_exclusion_;
   bool is_immediate_;
-  bool is_valid_;
-  bool is_ready_;
-  bool is_live_;
-
-  void SetValid(const bool is_valid) { is_valid_ = is_valid; }
-  void SetReady(const bool is_ready) { is_ready_ = is_ready; }
-  void SetLive(const bool is_live) { is_live_ = is_live; }
 
   friend class Catalog;
   friend class postgres::Builder;

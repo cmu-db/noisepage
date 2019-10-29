@@ -19,6 +19,8 @@ namespace index {
 class Index;
 template <typename KeyType>
 class BwTreeIndex;
+template <typename KeyType>
+class HashIndex;
 }  // namespace index
 
 // clang-format off
@@ -207,8 +209,7 @@ class DataTable {
   DataTableCounter *GetDataTableCounter() { return &data_table_counter_; }
 
   /**
-   * Returns a read-only view of this DataTable's BlockLayout.
-   * @return this DataTable's BlockLayout.
+   * @return read-only view of this DataTable's BlockLayout
    */
   const BlockLayout &GetBlockLayout() const { return accessor_.GetBlockLayout(); }
 
@@ -221,6 +222,8 @@ class DataTable {
   friend class index::Index;
   template <typename KeyType>
   friend class index::BwTreeIndex;
+  template <typename KeyType>
+  friend class index::HashIndex;
   // The block compactor elides transactional protection in the gather/compression phase and
   // needs raw access to the underlying table.
   friend class BlockCompactor;
@@ -238,10 +241,14 @@ class DataTable {
   // We also might need our own implementation because we need to handle GC of an unlinked block, as a sequential scan
   // might be on it
   std::list<RawBlock *> blocks_;
+  // latch used to protect block list
   mutable common::SpinLatch blocks_latch_;
-  // to avoid having to grab a latch every time we insert. Failures are very, very infrequent since these
-  // only happen when blocks are full, thus we can afford to be optimistic
-  std::atomic<RawBlock *> insertion_head_ = nullptr;
+  // latch used to protect insertion_head_
+  mutable common::SpinLatch header_latch_;
+  std::list<RawBlock *>::iterator insertion_head_;
+  // Check if we need to advance the insertion_head_
+  // This function uses header_latch_ to ensure correctness
+  void CheckMoveHead(std::list<RawBlock *>::iterator block);
   mutable DataTableCounter data_table_counter_;
 
   // A templatized version for select, so that we can use the same code for both row and column access.
@@ -275,7 +282,7 @@ class DataTable {
                                 UndoRecord *desired);
 
   // Allocates a new block to be used as insertion head.
-  void NewBlock(RawBlock *expected_val);
+  RawBlock *NewBlock();
 
   /**
    * Determine if a Tuple is visible (present and not deleted) to the given transaction. It's effectively Select's logic

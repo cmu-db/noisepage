@@ -62,7 +62,7 @@ class LogManager : public common::DedicatedThreadOwner {
    */
   BOOST_DI_INJECT(LogManager, (named = LOG_FILE_PATH) std::string log_file_path,
                   (named = NUM_BUFFERS) uint64_t num_buffers,
-                  (named = SERIALIZATION_INTERVAL) std::chrono::milliseconds serialization_interval,
+                  (named = SERIALIZATION_INTERVAL) std::chrono::microseconds serialization_interval,
                   (named = PERSIST_INTERVAL) std::chrono::milliseconds persist_interval,
                   (named = PERSIST_THRESHOLD) uint64_t persist_threshold, RecordBufferSegmentPool *buffer_pool,
                   common::ManagedPointer<terrier::common::DedicatedThreadRegistry> thread_registry)
@@ -84,7 +84,7 @@ class LogManager : public common::DedicatedThreadOwner {
   void Start();
 
   /**
-   * Flush the logs to make sure all serialized records before this invocation are persistent. Callbacks from committed
+   * Serialize and flush the logs to make sure all serialized records are persistent. Callbacks from committed
    * transactions are invoked by log consumers when the commit records are persisted on disk.
    * @warning This method should only be called from a dedicated flushing thread or during testing
    * @warning Beware the performance consequences of calling flush too frequently
@@ -160,7 +160,7 @@ class LogManager : public common::DedicatedThreadOwner {
   // Log serializer task that processes buffers handed over by transactions and serializes them into consumer buffers
   common::ManagedPointer<LogSerializerTask> log_serializer_task_ = common::ManagedPointer<LogSerializerTask>(nullptr);
   // Interval used by log serialization task
-  const std::chrono::milliseconds serialization_interval_;
+  const std::chrono::microseconds serialization_interval_;
 
   // The log consumer task which flushes filled buffers to the disk
   common::ManagedPointer<DiskLogConsumerTask> disk_log_writer_task_ =

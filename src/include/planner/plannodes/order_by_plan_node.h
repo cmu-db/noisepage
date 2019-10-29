@@ -5,11 +5,12 @@
 #include <utility>
 #include <vector>
 #include "catalog/catalog_defs.h"
+#include "optimizer/optimizer_defs.h"
 #include "planner/plannodes/abstract_plan_node.h"
 
 namespace terrier::planner {
 
-using SortKey = std::pair<catalog::col_oid_t, OrderByOrderingType>;
+using SortKey = std::pair<catalog::col_oid_t, optimizer::OrderByOrderingType>;
 
 /**
  * Plan node for order by operator
@@ -33,7 +34,7 @@ class OrderByPlanNode : public AbstractPlanNode {
      * @param ordering ordering (ASC or DESC) for key
      * @return builder object
      */
-    Builder &AddSortKey(catalog::col_oid_t key, OrderByOrderingType ordering) {
+    Builder &AddSortKey(catalog::col_oid_t key, optimizer::OrderByOrderingType ordering) {
       sort_keys_.emplace_back(key, ordering);
       return *this;
     }
@@ -61,8 +62,8 @@ class OrderByPlanNode : public AbstractPlanNode {
      * Build the order by plan node
      * @return plan node
      */
-    std::shared_ptr<OrderByPlanNode> Build() {
-      return std::shared_ptr<OrderByPlanNode>(new OrderByPlanNode(std::move(children_), std::move(output_schema_),
+    std::unique_ptr<OrderByPlanNode> Build() {
+      return std::unique_ptr<OrderByPlanNode>(new OrderByPlanNode(std::move(children_), std::move(output_schema_),
                                                                   std::move(sort_keys_), has_limit_, limit_, offset_));
     }
 
@@ -95,8 +96,8 @@ class OrderByPlanNode : public AbstractPlanNode {
    * @param limit number of tuples to limit output to
    * @param offset offset in sort from where to limit from
    */
-  OrderByPlanNode(std::vector<std::shared_ptr<AbstractPlanNode>> &&children,
-                  std::shared_ptr<OutputSchema> output_schema, std::vector<SortKey> sort_keys, bool has_limit,
+  OrderByPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
+                  std::unique_ptr<OutputSchema> output_schema, std::vector<SortKey> sort_keys, bool has_limit,
                   size_t limit, size_t offset)
       : AbstractPlanNode(std::move(children), std::move(output_schema)),
         sort_keys_(std::move(sort_keys)),
@@ -153,7 +154,7 @@ class OrderByPlanNode : public AbstractPlanNode {
   bool operator==(const AbstractPlanNode &rhs) const override;
 
   nlohmann::json ToJson() const override;
-  void FromJson(const nlohmann::json &j) override;
+  std::vector<std::unique_ptr<parser::AbstractExpression>> FromJson(const nlohmann::json &j) override;
 
  private:
   /* Column Ids and ordering type ([ASC] or [DESC]) used (in order) to sort input tuples */

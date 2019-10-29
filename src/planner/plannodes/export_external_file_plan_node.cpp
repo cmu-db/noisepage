@@ -1,6 +1,8 @@
 #include "planner/plannodes/export_external_file_plan_node.h"
+
 #include <memory>
 #include <string>
+#include <vector>
 
 namespace terrier::planner {
 
@@ -51,11 +53,14 @@ nlohmann::json ExportExternalFilePlanNode::ToJson() const {
   return j;
 }
 
-void ExportExternalFilePlanNode::FromJson(const nlohmann::json &j) {
-  AbstractPlanNode::FromJson(j);
+std::vector<std::unique_ptr<parser::AbstractExpression>> ExportExternalFilePlanNode::FromJson(const nlohmann::json &j) {
+  std::vector<std::unique_ptr<parser::AbstractExpression>> exprs;
+  auto e1 = AbstractPlanNode::FromJson(j);
+  exprs.insert(exprs.end(), std::make_move_iterator(e1.begin()), std::make_move_iterator(e1.end()));
   file_name_ = j.at("file_name").get<std::string>();
   delimiter_ = j.at("delimiter").get<char>();
   quote_ = j.at("quote").get<char>();
   escape_ = j.at("escape").get<char>();
+  return exprs;
 }
 }  // namespace terrier::planner

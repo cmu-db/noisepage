@@ -54,7 +54,7 @@ class ConnectionDispatcherTask : public common::NotifiableTask {
    * @param flags Unused. This is here to conform to libevent callback function
    * signature.
    */
-  void DispatchPostgresConnection(int fd, int16_t flags);
+  void DispatchConnection(int fd, int16_t flags);
 
   /**
    * Creates all of the ConnectionHandlerTasks (num_handlers of them) and then sits in its event loop until stopped.

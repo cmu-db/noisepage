@@ -1,5 +1,7 @@
 #include "planner/plannodes/aggregate_plan_node.h"
+
 #include <memory>
+#include <utility>
 #include <vector>
 
 namespace terrier::planner {
@@ -50,26 +52,43 @@ bool AggregatePlanNode::operator==(const AbstractPlanNode &rhs) const {
 
 nlohmann::json AggregatePlanNode::ToJson() const {
   nlohmann::json j = AbstractPlanNode::ToJson();
-  j["having_clause_predicate"] = having_clause_predicate_;
-  j["aggregate_terms"] = aggregate_terms_;
+  j["having_clause_predicate"] = having_clause_predicate_->ToJson();
+  std::vector<nlohmann::json> agg_terms;
+  agg_terms.reserve(aggregate_terms_.size());
+  for (const auto &agg : aggregate_terms_) {
+    agg_terms.emplace_back(agg->ToJson());
+  }
+  j["aggregate_terms"] = agg_terms;
   j["aggregate_strategy"] = aggregate_strategy_;
   return j;
 }
 
-void AggregatePlanNode::FromJson(const nlohmann::json &j) {
-  AbstractPlanNode::FromJson(j);
+std::vector<std::unique_ptr<parser::AbstractExpression>> AggregatePlanNode::FromJson(const nlohmann::json &j) {
+  std::vector<std::unique_ptr<parser::AbstractExpression>> exprs;
+  auto e1 = AbstractPlanNode::FromJson(j);
+  exprs.insert(exprs.end(), std::make_move_iterator(e1.begin()), std::make_move_iterator(e1.end()));
   if (!j.at("having_clause_predicate").is_null()) {
-    having_clause_predicate_ = parser::DeserializeExpression(j.at("having_clause_predicate"));
+    auto deserialized = parser::DeserializeExpression(j.at("having_clause_predicate"));
+    having_clause_predicate_ = common::ManagedPointer(deserialized.result_);
+    exprs.emplace_back(std::move(deserialized.result_));
+    exprs.insert(exprs.end(), std::make_move_iterator(deserialized.non_owned_exprs_.begin()),
+                 std::make_move_iterator(deserialized.non_owned_exprs_.end()));
   }
 
   // Deserialize aggregate terms
   auto aggregate_term_jsons = j.at("aggregate_terms").get<std::vector<nlohmann::json>>();
   for (const auto &json : aggregate_term_jsons) {
-    aggregate_terms_.push_back(
-        std::dynamic_pointer_cast<parser::AggregateExpression>(parser::DeserializeExpression(json)));
+    auto deserialized = parser::DeserializeExpression(json);
+    auto agg_ptr = common::ManagedPointer(deserialized.result_).CastManagedPointerTo<parser::AggregateExpression>();
+    aggregate_terms_.emplace_back(agg_ptr);
+    exprs.emplace_back(std::move(deserialized.result_));
+    exprs.insert(exprs.end(), std::make_move_iterator(deserialized.non_owned_exprs_.begin()),
+                 std::make_move_iterator(deserialized.non_owned_exprs_.end()));
   }
 
   aggregate_strategy_ = j.at("aggregate_strategy").get<AggregateStrategyType>();
+
+  return exprs;
 }
 
 }  // namespace terrier::planner

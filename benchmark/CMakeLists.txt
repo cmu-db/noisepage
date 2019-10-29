@@ -10,7 +10,9 @@ if (TERRIER_BUILD_BENCHMARKS)
 
     # benchmarks
 
+    add_subdirectory(catalog)
     add_subdirectory(integration)
+    add_subdirectory(metrics)
     add_subdirectory(storage)
     add_subdirectory(transaction)
 endif ()
