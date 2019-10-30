@@ -12,11 +12,11 @@ namespace terrier {
 /**
  * Magic macro for our parser microbencmarks
  */
-#define PARSER_BENCHMARK_EXECUTE(QUERIES, TYPE)                      \
-  for (const auto &sql : QUERIES) {                                  \
-    auto result = parser_.BuildParseTree(sql);                       \
-    auto stmt = result.GetStatement(0).CastManagedPointerTo<TYPE>(); \
-    TERRIER_ASSERT(stmt != nullptr, "Failed to get ##TYPE object");  \
+#define PARSER_BENCHMARK_EXECUTE(QUERIES, TYPE)                                             \
+  for (const auto &sql : QUERIES) {                                                         \
+    auto result = parser_.BuildParseTree(sql);                                              \
+    const auto stmt UNUSED_ATTRIBUTE = result.GetStatement(0).CastManagedPointerTo<TYPE>(); \
+    TERRIER_ASSERT(stmt != nullptr, "Failed to get ##TYPE object");                         \
   }
 
 class ParserBenchmark : public benchmark::Fixture {
