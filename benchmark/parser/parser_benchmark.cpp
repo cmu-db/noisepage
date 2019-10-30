@@ -12,11 +12,10 @@ namespace terrier {
 /**
  * Magic macro for our parser microbencmarks
  */
-#define PARSER_BENCHMARK_EXECUTE(QUERIES, TYPE)                                             \
-  for (const auto &sql : QUERIES) {                                                         \
-    auto result = parser_.BuildParseTree(sql);                                              \
-    const auto stmt UNUSED_ATTRIBUTE = result.GetStatement(0).CastManagedPointerTo<TYPE>(); \
-    TERRIER_ASSERT(stmt != nullptr, "Failed to get ##TYPE object");                         \
+#define PARSER_BENCHMARK_EXECUTE(QUERIES, TYPE)                                                                    \
+  for (const auto &sql : QUERIES) {                                                                                \
+    auto result = parser_.BuildParseTree(sql);                                                                     \
+    TERRIER_ASSERT(result.GetStatement(0).CastManagedPointerTo<TYPE>() != nullptr, "Failed to get ##TYPE object"); \
   }
 
 class ParserBenchmark : public benchmark::Fixture {
@@ -138,7 +137,7 @@ BENCHMARK_DEFINE_F(ParserBenchmark, SelectsSimple)(benchmark::State &state) {
   for (auto _ : state) {
     PARSER_BENCHMARK_EXECUTE(selects_simple_, parser::SelectStatement);
   }
-  state.SetItemsProcessed(state.iterations());
+  state.SetItemsProcessed(state.iterations() * selects_simple_.size());
 }
 
 // NOLINTNEXTLINE
@@ -147,7 +146,7 @@ BENCHMARK_DEFINE_F(ParserBenchmark, SelectsComplex)(benchmark::State &state) {
   for (auto _ : state) {
     PARSER_BENCHMARK_EXECUTE(selects_complex_, parser::SelectStatement);
   }
-  state.SetItemsProcessed(state.iterations());
+  state.SetItemsProcessed(state.iterations() * selects_complex_.size());
 }
 
 // NOLINTNEXTLINE
@@ -156,7 +155,7 @@ BENCHMARK_DEFINE_F(ParserBenchmark, UpdatesSimple)(benchmark::State &state) {
   for (auto _ : state) {
     PARSER_BENCHMARK_EXECUTE(updates_simple_, parser::UpdateStatement);
   }
-  state.SetItemsProcessed(state.iterations());
+  state.SetItemsProcessed(state.iterations() * updates_simple_.size());
 }
 
 // NOLINTNEXTLINE
@@ -165,7 +164,7 @@ BENCHMARK_DEFINE_F(ParserBenchmark, UpdatesComplex)(benchmark::State &state) {
   for (auto _ : state) {
     PARSER_BENCHMARK_EXECUTE(updates_complex_, parser::UpdateStatement);
   }
-  state.SetItemsProcessed(state.iterations());
+  state.SetItemsProcessed(state.iterations() * updates_complex_.size());
 }
 
 // NOLINTNEXTLINE
@@ -174,7 +173,7 @@ BENCHMARK_DEFINE_F(ParserBenchmark, InsertsSimple)(benchmark::State &state) {
   for (auto _ : state) {
     PARSER_BENCHMARK_EXECUTE(inserts_simple_, parser::InsertStatement);
   }
-  state.SetItemsProcessed(state.iterations());
+  state.SetItemsProcessed(state.iterations() * inserts_simple_.size());
 }
 
 // NOLINTNEXTLINE
@@ -183,7 +182,7 @@ BENCHMARK_DEFINE_F(ParserBenchmark, InsertsComplex)(benchmark::State &state) {
   for (auto _ : state) {
     PARSER_BENCHMARK_EXECUTE(inserts_complex_, parser::InsertStatement);
   }
-  state.SetItemsProcessed(state.iterations());
+  state.SetItemsProcessed(state.iterations() * inserts_complex_.size());
 }
 
 // NOLINTNEXTLINE
@@ -192,7 +191,7 @@ BENCHMARK_DEFINE_F(ParserBenchmark, DeletesSimple)(benchmark::State &state) {
   for (auto _ : state) {
     PARSER_BENCHMARK_EXECUTE(deletes_simple_, parser::DeleteStatement);
   }
-  state.SetItemsProcessed(state.iterations());
+  state.SetItemsProcessed(state.iterations() * deletes_simple_.size());
 }
 
 // NOLINTNEXTLINE
@@ -201,7 +200,7 @@ BENCHMARK_DEFINE_F(ParserBenchmark, DeletesComplex)(benchmark::State &state) {
   for (auto _ : state) {
     PARSER_BENCHMARK_EXECUTE(deletes_complex_, parser::DeleteStatement);
   }
-  state.SetItemsProcessed(state.iterations());
+  state.SetItemsProcessed(state.iterations() * deletes_complex_.size());
 }
 
 // NOLINTNEXTLINE
