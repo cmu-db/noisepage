@@ -207,9 +207,8 @@ BENCHMARK_DEFINE_F(ParserBenchmark, DeletesComplex)(benchmark::State &state) {
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(ParserBenchmark, NOOPs)(benchmark::State &state) {
   // NOLINTNEXTLINE
-  std::string sql = ";";
   for (auto _ : state) {
-    auto result = parser_.BuildParseTree(sql);
+    auto result = parser_.BuildParseTree(";");
     TERRIER_ASSERT(result.GetStatements().empty(), "Unexpected return result for NOOP");
   }
   state.SetItemsProcessed(state.iterations());
