@@ -6,20 +6,63 @@ pipeline {
     stages {
 
         stage('Check') {
-            agent {
-                docker {
-                    image 'ubuntu:bionic'
+            parallel {
+                stage('macos-10.14/AppleClang-1001.0.46.4 (Debug/format/lint/censored)') {
+                    agent { label 'macos' }
+                    environment {
+                        LLVM_DIR="/usr/local/Cellar/llvm@8/8.0.1"
+                    }
+                    steps {
+                        sh 'echo $NODE_NAME'
+                        sh 'echo y | ./script/installation/packages.sh'
+                        sh 'mkdir build'
+                        sh 'cd build && cmake -DCMAKE_BUILD_TYPE=Debug -DTERRIER_USE_ASAN=OFF .. && make -j4'
+                        sh 'cd build && timeout 1h make check-format'
+                        sh 'cd build && timeout 1h make check-lint'
+                        sh 'cd build && timeout 1h make check-censored'
+                        sh 'cd build && make clean'
+                    }
                 }
-            }
-            steps {
-                sh 'echo $NODE_NAME'
-                sh 'echo y | sudo ./script/installation/packages.sh'
-                sh 'mkdir build'
-                sh 'cd build && cmake -DCMAKE_BUILD_TYPE=Release -DTERRIER_USE_ASAN=OFF .. && make -j$(nproc)'
-                sh 'cd build && timeout 1h make check-format'
-                sh 'cd build && timeout 1h make check-lint'
-                sh 'cd build && timeout 1h make check-censored'
-                sh 'cd build && make clean'
+
+                stage('ubuntu-18.04/gcc-7.3.0 (Debug/format/lint/censored)') {
+                    agent {
+                        docker {
+                            image 'ubuntu:bionic'
+                            args '--cap-add sys_ptrace'
+                        }
+                    }
+                    steps {
+                        sh 'echo $NODE_NAME'
+                        sh 'echo y | sudo ./script/installation/packages.sh'
+                        sh 'mkdir build'
+                        sh 'cd build && cmake -DCMAKE_BUILD_TYPE=Debug -DTERRIER_USE_ASAN=OFF .. && make -j$(nproc)'
+                        sh 'cd build && timeout 1h make check-format'
+                        sh 'cd build && timeout 1h make check-lint'
+                        sh 'cd build && timeout 1h make check-censored'
+                    }
+                }
+
+                stage('ubuntu-18.04/clang-8.0.0 (Debug/format/lint/censored)') {
+                    agent {
+                        docker {
+                            image 'ubuntu:bionic'
+                            args '--cap-add sys_ptrace'
+                        }
+                    }
+                    environment {
+                        CC="/usr/bin/clang-8"
+                        CXX="/usr/bin/clang++-8"
+                    }
+                    steps {
+                        sh 'echo $NODE_NAME'
+                        sh 'echo y | sudo ./script/installation/packages.sh'
+                        sh 'mkdir build'
+                        sh 'cd build && cmake -DCMAKE_BUILD_TYPE=Debug -DTERRIER_USE_ASAN=OFF .. && make -j$(nproc)'
+                        sh 'cd build && timeout 1h make check-format'
+                        sh 'cd build && timeout 1h make check-lint'
+                        sh 'cd build && timeout 1h make check-censored'
+                    }
+                }
             }
         }
 
