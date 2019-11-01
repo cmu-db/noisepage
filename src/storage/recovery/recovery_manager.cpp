@@ -102,12 +102,13 @@ void RecoveryManager::ProcessCommittedTransaction(terrier::transaction::timestam
       }
     }
 
-    // Check if we need to export throughput metric
+    // Update metrics
     total_elapsed_us += elapsed_us;
-    if (total_elapsed_us < recovery_metric_interval_) {
-      num_txns++;
-      num_bytes += buffered_record->Size();
-    } else {
+    num_txns += 1;
+    num_bytes += buffered_record->Size();
+
+    // Check if we need to export throughput metric
+    if (total_elapsed_us >= recovery_metric_interval_) {
       // Export throughput metric
       if (num_txns > 0 && common::thread_context.metrics_store_ != nullptr &&
           common::thread_context.metrics_store_->ComponentEnabled(metrics::MetricsComponent::RECOVERY)) {
