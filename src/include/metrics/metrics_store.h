@@ -76,10 +76,9 @@ class MetricsStore {
   }
 
   /*
-   * Record metrics for recovery manager during recovery
-   * @param elapsed_us FILL
-   * @param num_txns FILL
-   * @param num_bytes FILL
+   * Record throughput metrics for recovery manager during recovery
+   * @param num_txns number of transactions
+   * @param num_bytes size of log files processed
    */
   void RecordRecoveryData(const uint64_t num_txns, const uint64_t num_bytes) {
     //TERRIER_ASSERT(ComponentEnabled(MetricsComponent::RECOVERY), "RecoveryMetric not enabled.");
