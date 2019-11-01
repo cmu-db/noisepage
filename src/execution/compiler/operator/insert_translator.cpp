@@ -105,20 +105,33 @@ void InsertTranslator::Produce(FunctionBuilder *builder) {
 
 void InsertTranslator::Consume(FunctionBuilder *builder) {
   // generate the code for insert into select
-  //  auto var_ex = batch->GetIdentifierExpr();
-  //
-  //  // @insert(db_oid, table_oid, &v)
-  //  util::RegionVector<ast::Expr *> args(codegen_->GetRegion());
-  //  args.emplace_back(codegen_->NewIntLiteral(DUMMY_POS, !node.GetDatabaseOid()));
-  //  args.emplace_back(codegen_->NewIntLiteral(DUMMY_POS, !node.GetTableOid()));
-  //  args.emplace_back(codegen_->NewUnaryOpExpr(DUMMY_POS, parsing::Token::Type::AMPERSAND, var_ex));
-  //  auto call_stmt = codegen_->NewCallExpr(codegen_->Binsert(), std::move(args));
-  //  codegen_->GetCurrentFunction()->Append(codegen_->NewExpressionStmt(call_stmt));
+  builder->Append(codegen_->DeclareVariable(table_pr_,
+                                            codegen_->PointerType(codegen_->BuiltinType(ast::BuiltinType::ProjectedRow)),
+                                            nullptr));
 
-  //  codegen_->DeclareVariable(ast::Identifier("projected_row"), )
-  //  codegen_->Assign()
-  //  builder->Append(codegen_->MakeStmt(codegen_->InserterGetTablePR()))
+  builder->Append(codegen_->Assign(codegen_->MakeExpr(table_pr_), codegen_->InserterGetTablePR(inserter_struct_)));
 
+  auto columns = child_translator_->Op()->GetOutputSchema()->GetColumns();
+  auto param_info = op_->GetParameterInfo();
+  for (size_t i = 0; i < columns.size(); i++) {
+    auto column = columns[i];
+    auto val = GetChildOutput(0, i, column.GetType());
+    auto set_stmt = codegen_->MakeStmt(codegen_->PRSet(codegen_->MakeExpr(table_pr_), column.GetType(),
+        column.GetNullable(), table_pm_[catalog::col_oid_t(i)], val));
+    builder->Append(set_stmt);
+  }
+
+  // @inserterTableInsert(&inserter)
+  GenInserterTableInsert(builder);
+
+  const auto &indexes = op_->GetIndexOids();
+  PRFiller pr_filler(codegen_, table_schema_, table_pm_, table_pr_);
+
+  auto index_pr_name = GenDeclareIndexPR(builder);
+
+  for (auto &index_oid : indexes) {
+    GenInsertTuplesIntoIndex(builder, index_pr_name, pr_filler, index_oid);
+  }
 }
 
 void InsertTranslator::InitializeStateFields(util::RegionVector<ast::FieldDecl *> *state_fields) {
@@ -137,7 +150,7 @@ void InsertTranslator::InitializeSetup(util::RegionVector<ast::Stmt *> *setup_st
 ast::Expr *InsertTranslator::GetChildOutput(uint32_t child_idx, uint32_t attr_idx,
                           terrier::type::TypeId type) {
   TERRIER_ASSERT(child_idx == 0, "Insert plan can only have one child");
-//  child_translator_->GetOutput()
+  return child_translator_->GetOutput(attr_idx);
 }
 
 
