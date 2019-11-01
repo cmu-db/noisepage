@@ -1,11 +1,11 @@
-#include "util/data_table_test_util.h"
+#include "test_util/data_table_test_util.h"
 #include <algorithm>
 #include <cstring>
 #include <utility>
 #include <vector>
 #include "common/allocator.h"
 #include "transaction/transaction_util.h"
-#include "util/catalog_test_util.h"
+#include "test_util/catalog_test_util.h"
 
 namespace terrier {
 RandomDataTableTransaction::RandomDataTableTransaction(LargeDataTableTestObject *test_object)

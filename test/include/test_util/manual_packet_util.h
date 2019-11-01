@@ -8,7 +8,7 @@
 
 #include "loggers/test_logger.h"
 #include "network/connection_handle_factory.h"
-#include "util/manual_packet_util.h"
+#include "test_util/manual_packet_util.h"
 
 namespace terrier::network {
 /*

@@ -7,10 +7,10 @@
 #include "storage/storage_defs.h"
 #include "transaction/transaction_manager.h"
 #include "util/data_table_benchmark_util.h"
-#include "util/tpcc/database.h"
-#include "util/tpcc/tpcc_defs.h"
-#include "util/tpcc/util.h"
-#include "util/tpcc/worker.h"
+#include "test_util/tpcc/database.h"
+#include "test_util/tpcc/tpcc_defs.h"
+#include "test_util/tpcc/util.h"
+#include "test_util/tpcc/worker.h"
 
 namespace terrier::tpcc {
 

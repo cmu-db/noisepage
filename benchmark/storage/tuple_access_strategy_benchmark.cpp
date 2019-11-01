@@ -5,8 +5,8 @@
 #include "common/strong_typedef.h"
 #include "storage/storage_util.h"
 #include "storage/tuple_access_strategy.h"
-#include "util/multithread_test_util.h"
-#include "util/storage_test_util.h"
+#include "test_util/multithread_test_util.h"
+#include "test_util/storage_test_util.h"
 
 namespace terrier {
 

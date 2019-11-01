@@ -1,4 +1,4 @@
-#include "util/tpcc/payment.h"
+#include "test_util/tpcc/payment.h"
 #include <algorithm>
 #include <map>
 #include <string>

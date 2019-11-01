@@ -15,7 +15,7 @@
 #include "transaction/deferred_action_manager.h"
 #include "transaction/transaction_manager.h"
 #include "util/data_table_benchmark_util.h"
-#include "util/test_harness.h"
+#include "test_util/test_harness.h"
 
 using std::make_tuple;
 

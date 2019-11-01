@@ -1,4 +1,4 @@
-#include "util/tpcc/order_status.h"
+#include "test_util/tpcc/order_status.h"
 #include <map>
 #include <string>
 #include <vector>

@@ -1,4 +1,4 @@
-#include "util/tpcc/builder.h"
+#include "test_util/tpcc/builder.h"
 
 namespace terrier::tpcc {
 

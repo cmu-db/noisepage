@@ -7,9 +7,9 @@
 #include "common/macros.h"
 #include "storage/index/index_builder.h"
 #include "storage/index/index_defs.h"
-#include "util/catalog_test_util.h"
-#include "util/tpcc/database.h"
-#include "util/tpcc/schemas.h"
+#include "test_util/catalog_test_util.h"
+#include "test_util/tpcc/database.h"
+#include "test_util/tpcc/schemas.h"
 
 namespace terrier::tpcc {
 

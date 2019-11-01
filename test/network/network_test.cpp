@@ -16,8 +16,8 @@
 #include "network/terrier_server.h"
 #include "traffic_cop/result_set.h"
 #include "traffic_cop/traffic_cop.h"
-#include "util/manual_packet_util.h"
-#include "util/test_harness.h"
+#include "test_util/manual_packet_util.h"
+#include "test_util/test_harness.h"
 
 namespace terrier::network {
 

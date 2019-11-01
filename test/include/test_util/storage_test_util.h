@@ -25,8 +25,8 @@
 #include "transaction/transaction_manager.h"
 #include "type/transient_value_factory.h"
 #include "type/type_id.h"
-#include "util/multithread_test_util.h"
-#include "util/random_test_util.h"
+#include "test_util/multithread_test_util.h"
+#include "test_util/random_test_util.h"
 namespace terrier {
 class StorageTestUtil {
  public:

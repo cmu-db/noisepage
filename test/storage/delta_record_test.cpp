@@ -6,8 +6,8 @@
 #include "storage/data_table.h"
 #include "storage/storage_defs.h"
 #include "storage/storage_util.h"
-#include "util/storage_test_util.h"
-#include "util/test_harness.h"
+#include "test_util/storage_test_util.h"
+#include "test_util/test_harness.h"
 
 namespace terrier {
 

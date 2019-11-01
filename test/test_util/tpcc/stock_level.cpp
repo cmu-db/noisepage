@@ -1,4 +1,4 @@
-#include "util/tpcc/stock_level.h"
+#include "test_util/tpcc/stock_level.h"
 #include <unordered_map>
 #include <vector>
 

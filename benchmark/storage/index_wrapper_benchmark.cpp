@@ -10,8 +10,8 @@
 #include "storage/projected_row.h"
 #include "storage/sql_table.h"
 #include "type/type_id.h"
-#include "util/catalog_test_util.h"
-#include "util/multithread_test_util.h"
+#include "test_util/catalog_test_util.h"
+#include "test_util/multithread_test_util.h"
 
 namespace terrier {
 

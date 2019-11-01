@@ -1,4 +1,4 @@
-#include "util/tpcc/workload.h"
+#include "test_util/tpcc/workload.h"
 #include <vector>
 
 namespace terrier::tpcc {

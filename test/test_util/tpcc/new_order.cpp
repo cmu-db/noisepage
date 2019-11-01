@@ -1,4 +1,4 @@
-#include "util/tpcc/new_order.h"
+#include "test_util/tpcc/new_order.h"
 #include <string>
 #include <vector>
 

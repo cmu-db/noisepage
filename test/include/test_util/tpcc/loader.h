@@ -10,9 +10,9 @@
 #include "storage/sql_table.h"
 #include "transaction/transaction_manager.h"
 #include "util/data_table_benchmark_util.h"
-#include "util/tpcc/database.h"
-#include "util/tpcc/util.h"
-#include "util/tpcc/worker.h"
+#include "test_util/tpcc/database.h"
+#include "test_util/tpcc/util.h"
+#include "test_util/tpcc/worker.h"
 
 namespace terrier::tpcc {
 

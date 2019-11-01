@@ -1,13 +1,13 @@
 #pragma once
 
 #include <vector>
-#include "util/tpcc/delivery.h"
-#include "util/tpcc/new_order.h"
-#include "util/tpcc/order_status.h"
-#include "util/tpcc/payment.h"
-#include "util/tpcc/stock_level.h"
-#include "util/tpcc/tpcc_defs.h"
-#include "util/tpcc/util.h"
+#include "test_util/tpcc/delivery.h"
+#include "test_util/tpcc/new_order.h"
+#include "test_util/tpcc/order_status.h"
+#include "test_util/tpcc/payment.h"
+#include "test_util/tpcc/stock_level.h"
+#include "test_util/tpcc/tpcc_defs.h"
+#include "test_util/tpcc/util.h"
 
 namespace terrier::tpcc {
 

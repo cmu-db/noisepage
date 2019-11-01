@@ -10,7 +10,7 @@
 #include "catalog/schema.h"
 #include "storage/garbage_collector.h"
 #include "storage/projected_row.h"
-#include "util/catalog_test_util.h"
+#include "test_util/catalog_test_util.h"
 
 namespace terrier::tpcc {
 

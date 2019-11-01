@@ -1,4 +1,4 @@
-#include "util/tpcc/delivery.h"
+#include "test_util/tpcc/delivery.h"
 #include <vector>
 
 namespace terrier::tpcc {

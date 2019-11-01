@@ -12,8 +12,8 @@
 #include "storage/sql_table.h"
 #include "transaction/transaction_defs.h"
 #include "transaction/transaction_manager.h"
-#include "util/catalog_test_util.h"
-#include "util/test_harness.h"
+#include "test_util/catalog_test_util.h"
+#include "test_util/test_harness.h"
 
 #define __SETTING_GFLAGS_DEFINE__      // NOLINT
 #include "settings/settings_common.h"  // NOLINT

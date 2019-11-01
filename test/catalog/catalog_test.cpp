@@ -16,7 +16,7 @@
 #include "transaction/transaction_manager.h"
 #include "transaction/transaction_util.h"
 #include "type/transient_value_factory.h"
-#include "util/test_harness.h"
+#include "test_util/test_harness.h"
 
 namespace terrier {
 

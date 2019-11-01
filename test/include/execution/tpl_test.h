@@ -5,7 +5,7 @@
 #include "execution/util/timer.h"
 #include "gtest/gtest.h"
 #include "loggers/execution_logger.h"
-#include "util/test_harness.h"
+#include "test_util/test_harness.h"
 
 namespace terrier::execution {
 

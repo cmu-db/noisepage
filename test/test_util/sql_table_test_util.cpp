@@ -1,8 +1,8 @@
-#include "util/sql_table_test_util.h"
+#include "test_util/sql_table_test_util.h"
 #include <utility>
 #include <vector>
 #include "storage/sql_table.h"
-#include "util/catalog_test_util.h"
+#include "test_util/catalog_test_util.h"
 
 namespace terrier {
 
