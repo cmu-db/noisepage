@@ -9,7 +9,7 @@
 #include "storage/projected_row.h"
 #include "storage/sql_table.h"
 #include "transaction/transaction_manager.h"
-#include "util/data_table_benchmark_util.h"
+#include "benchmark_util/data_table_benchmark_util.h"
 #include "test_util/tpcc/database.h"
 #include "test_util/tpcc/util.h"
 #include "test_util/tpcc/worker.h"

@@ -7,7 +7,7 @@
 #include "storage/sql_table.h"
 #include "storage/storage_defs.h"
 #include "transaction/transaction_manager.h"
-#include "util/data_table_benchmark_util.h"
+#include "benchmark_util/data_table_benchmark_util.h"
 #include "test_util/tpcc/database.h"
 #include "test_util/tpcc/tpcc_defs.h"
 #include "test_util/tpcc/util.h"

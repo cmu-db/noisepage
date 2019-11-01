@@ -4,7 +4,7 @@
 #include "benchmark/benchmark.h"
 #include "common/scoped_timer.h"
 #include "storage/garbage_collector.h"
-#include "util/data_table_benchmark_util.h"
+#include "benchmark_util/data_table_benchmark_util.h"
 
 namespace terrier {
 
