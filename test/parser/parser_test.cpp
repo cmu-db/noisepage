@@ -60,6 +60,12 @@ TEST_F(ParserTestBase, AnalyzeTest) {
 }
 
 // NOLINTNEXTLINE
+TEST_F(ParserTestBase, NOOPTest) {
+  auto result = pgparser_.BuildParseTree(";");
+  EXPECT_EQ(result.GetStatements().size(), 0);
+}
+
+// NOLINTNEXTLINE
 TEST_F(ParserTestBase, CastTest) {
   auto result = pgparser_.BuildParseTree("SELECT CAST('100' AS INTEGER);");
   auto cast_stmt = result.GetStatement(0).CastManagedPointerTo<SelectStatement>();
