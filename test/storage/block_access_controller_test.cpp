@@ -1,6 +1,6 @@
 #include "storage/block_access_controller.h"
 #include <thread>  // NOLINT
-#include "util/test_harness.h"
+#include "test_util/test_harness.h"
 namespace terrier {
 // Some hacked together infrastructure to reason about the progress of test threads.
 #define DECLARE_PROGRAM_POINT(name) volatile bool name = false;

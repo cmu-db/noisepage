@@ -77,8 +77,8 @@ class DropTablePlanNode : public AbstractPlanNode {
      * Build the drop table plan node
      * @return plan node
      */
-    std::shared_ptr<DropTablePlanNode> Build() {
-      return std::shared_ptr<DropTablePlanNode>(new DropTablePlanNode(
+    std::unique_ptr<DropTablePlanNode> Build() {
+      return std::unique_ptr<DropTablePlanNode>(new DropTablePlanNode(
           std::move(children_), std::move(output_schema_), database_oid_, namespace_oid_, table_oid_, if_exists_));
     }
 
@@ -112,8 +112,8 @@ class DropTablePlanNode : public AbstractPlanNode {
    * @param namespace_oid OID of the namespace
    * @param table_oid OID of the table to drop
    */
-  DropTablePlanNode(std::vector<std::shared_ptr<AbstractPlanNode>> &&children,
-                    std::shared_ptr<OutputSchema> output_schema, catalog::db_oid_t database_oid,
+  DropTablePlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
+                    std::unique_ptr<OutputSchema> output_schema, catalog::db_oid_t database_oid,
                     catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid, bool if_exists)
       : AbstractPlanNode(std::move(children), std::move(output_schema)),
         database_oid_(database_oid),
@@ -162,7 +162,7 @@ class DropTablePlanNode : public AbstractPlanNode {
   bool operator==(const AbstractPlanNode &rhs) const override;
 
   nlohmann::json ToJson() const override;
-  void FromJson(const nlohmann::json &j) override;
+  std::vector<std::unique_ptr<parser::AbstractExpression>> FromJson(const nlohmann::json &j) override;
 
  private:
   /**

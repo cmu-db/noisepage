@@ -10,12 +10,12 @@
 #include "storage/index/index_builder.h"
 #include "storage/projected_row.h"
 #include "storage/sql_table.h"
+#include "test_util/catalog_test_util.h"
+#include "test_util/storage_test_util.h"
+#include "test_util/test_harness.h"
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_manager.h"
 #include "type/type_id.h"
-#include "util/catalog_test_util.h"
-#include "util/storage_test_util.h"
-#include "util/test_harness.h"
 
 namespace terrier::storage::index {
 
@@ -82,18 +82,12 @@ class HashIndexTests : public TerrierTest {
     unique_index_ = (IndexBuilder().SetKeySchema(unique_schema_)).Build();
     default_index_ = (IndexBuilder().SetKeySchema(default_schema_)).Build();
 
-    gc_thread_->GetGarbageCollector().RegisterIndexForGC(unique_index_);
-    gc_thread_->GetGarbageCollector().RegisterIndexForGC(default_index_);
-
     key_buffer_1_ =
         common::AllocationUtil::AllocateAligned(default_index_->GetProjectedRowInitializer().ProjectedRowSize());
     key_buffer_2_ =
         common::AllocationUtil::AllocateAligned(default_index_->GetProjectedRowInitializer().ProjectedRowSize());
   }
   void TearDown() override {
-    gc_thread_->GetGarbageCollector().UnregisterIndexForGC(unique_index_);
-    gc_thread_->GetGarbageCollector().UnregisterIndexForGC(default_index_);
-
     delete gc_thread_;
     delete gc_;
     delete sql_table_;

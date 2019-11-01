@@ -1,5 +1,5 @@
 #pragma once
-#include "../type/type_id.h"
+#include "type/type_id.h"
 
 namespace terrier::parser {
 
@@ -8,9 +8,7 @@ namespace terrier::parser {
  */
 class Parameter {
  public:
-  /**
-   * Whether a parameter is a constant or a variable.
-   */
+  /** Whether a parameter is a constant or a variable. */
   enum class Mutability { CONSTANT = 0, VARIABLE = 1 };
 
   /**
@@ -42,19 +40,13 @@ class Parameter {
     return {Mutability::VARIABLE, type_id, is_nullable};
   }
 
-  /**
-   * @return parameter type (constant or variable)
-   */
+  /** @return parameter type (constant or variable) */
   Mutability GetMutability() const { return type_; }
 
-  /**
-   * @return SQL type ID
-   */
+  /** @return SQL type ID */
   type::TypeId GetTypeId() const { return type_id_; }
 
-  /**
-   * @return true if parameter is nullable, false otherwise
-   */
+  /** @return true if parameter is nullable, false otherwise */
   bool IsNullable() const { return is_nullable_; }
 
  private:

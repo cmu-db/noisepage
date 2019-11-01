@@ -16,8 +16,8 @@
 namespace terrier::trafficcop {
 
 SqliteEngine::SqliteEngine() {
-  auto rc = sqlite3_open_v2("sqlite.db", &sqlite_db_, SQLITE_OPEN_NOMUTEX | SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE,
-                            nullptr);
+  auto rc = sqlite3_open_v2("sqlite.db", &sqlite_db_,
+                            SQLITE_OPEN_FULLMUTEX | SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, nullptr);
   if (rc != 0) {
     fprintf(stderr, "Can't open database: %s\n", sqlite3_errmsg(sqlite_db_));
     LOG_ERROR("Can't open database %s", sqlite3_errmsg(sqlite_db_));
@@ -50,22 +50,28 @@ void SqliteEngine::Bind(sqlite3_stmt *stmt, const std::shared_ptr<std::vector<ty
   auto &params = *p_params;
 
   for (int i = 0; i < static_cast<int>(params.size()); i++) {
-    auto type = params[i].Type();
     int res;
-    if (type == TypeId::INTEGER) {
-      res = sqlite3_bind_int(stmt, i + 1, TransientValuePeeker::PeekInteger(params[i]));
-    } else if (type == TypeId::DECIMAL) {
-      res = sqlite3_bind_double(stmt, i + 1, TransientValuePeeker::PeekDecimal(params[i]));
-    } else if (type == TypeId::VARCHAR) {
-      std::string_view varchar_value = TransientValuePeeker::PeekVarChar(params[i]);
-      res =
-          sqlite3_bind_text(stmt, i + 1, varchar_value.data(), static_cast<int>(varchar_value.length()), SQLITE_STATIC);
-    } else if (type == TypeId::TIMESTAMP) {
-      auto value = static_cast<int64_t>(!TransientValuePeeker::PeekTimestamp(params[i]));
-      res = sqlite3_bind_int64(stmt, i + 1, value);
+    if (params[i].Null()) {
+      res = sqlite3_bind_null(stmt, i + 1);
     } else {
-      LOG_ERROR("Unsupported type: {0}", static_cast<int>(type));
-      res = 0;
+      auto type = params[i].Type();
+      if (type == TypeId::INTEGER) {
+        res = sqlite3_bind_int(stmt, i + 1, TransientValuePeeker::PeekInteger(params[i]));
+      } else if (type == TypeId::DECIMAL) {
+        res = sqlite3_bind_double(stmt, i + 1, TransientValuePeeker::PeekDecimal(params[i]));
+      } else if (type == TypeId::VARCHAR) {
+        std::string_view varchar_value = TransientValuePeeker::PeekVarChar(params[i]);
+        res = sqlite3_bind_text(stmt, i + 1, varchar_value.data(), static_cast<int>(varchar_value.length()),
+                                SQLITE_STATIC);
+      } else if (type == TypeId::TIMESTAMP) {
+        auto value = static_cast<int64_t>(!TransientValuePeeker::PeekTimestamp(params[i]));
+        res = sqlite3_bind_int64(stmt, i + 1, value);
+      } else if (type == TypeId::BIGINT) {
+        res = sqlite3_bind_int64(stmt, i + 1, TransientValuePeeker::PeekBigInt(params[i]));
+      } else {
+        LOG_ERROR("Unsupported type: {0}", static_cast<int>(type));
+        res = 0;
+      }
     }
 
     if (res != SQLITE_OK) {
@@ -120,5 +126,7 @@ ResultSet SqliteEngine::Execute(sqlite3_stmt *stmt) {
 
   return result_set;
 }
+
+int32_t SqliteEngine::GetAffected() { return sqlite3_changes(sqlite_db_); }
 
 }  // namespace terrier::trafficcop

@@ -2,7 +2,7 @@
 #include <vector>
 #include "libpg_query/pg_query.h"
 
-#include "util/test_harness.h"
+#include "test_util/test_harness.h"
 
 namespace terrier::parser {
 

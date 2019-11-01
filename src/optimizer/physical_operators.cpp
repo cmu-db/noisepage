@@ -126,10 +126,10 @@ common::hash_t IndexScan::Hash() const {
     else
       hash = common::HashUtil::SumHashes(hash, BaseOperatorNode::Hash());
   }
-  for (auto &col_oid : key_column_oid_list_)
-    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&col_oid));
-  for (auto &expr_type : expr_type_list_)
-    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&expr_type));
+  for (const auto &col_oid : key_column_oid_list_)
+    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(col_oid));
+  for (const auto &expr_type : expr_type_list_)
+    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(expr_type));
   for (auto &val : value_list_) hash = common::HashUtil::CombineHashes(hash, val.Hash());
   return hash;
 }
@@ -220,7 +220,7 @@ common::hash_t OrderBy::Hash() const {
 //===--------------------------------------------------------------------===//
 Operator Limit::Make(size_t offset, size_t limit,
                      std::vector<common::ManagedPointer<parser::AbstractExpression>> &&sort_columns,
-                     std::vector<planner::OrderByOrderingType> &&sort_directions) {
+                     std::vector<optimizer::OrderByOrderingType> &&sort_directions) {
   auto *limit_op = new Limit;
   limit_op->offset_ = offset;
   limit_op->limit_ = limit;

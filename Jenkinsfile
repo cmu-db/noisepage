@@ -19,12 +19,12 @@ pipeline {
                 sh 'cd build && timeout 1h make check-format'
                 sh 'cd build && timeout 1h make check-lint'
                 sh 'cd build && timeout 1h make check-censored'
+                sh 'cd build && make clean'
             }
         }
 
         stage('Test') {
             parallel {
-
                 stage('macos-10.14/AppleClang-1001.0.46.4 (Debug/ASAN/unittest)') {
                     agent { label 'macos' }
                     environment {
@@ -40,6 +40,7 @@ pipeline {
                         sh 'cd build && gtimeout 1h make unittest'
                         sh 'cd build && gtimeout 1h make check-tpl'
                         sh 'cd build && python ../script/testing/junit/run_junit.py'
+                        sh 'cd build && make clean'
                     }
                 }
 
@@ -59,6 +60,7 @@ pipeline {
                         sh 'cd build && timeout 1h make unittest'
                         sh 'cd build && timeout 1h make check-tpl'
                         sh 'cd build && python ../script/testing/junit/run_junit.py'
+                        sh 'cd build && make clean'
                     }
                 }
 
@@ -92,6 +94,7 @@ pipeline {
                         sh 'cd build && curl -s https://codecov.io/bash > ./codecov.sh'
                         sh 'cd build && chmod a+x ./codecov.sh'
                         sh 'cd build && /bin/bash ./codecov.sh -X gcov'
+                        sh 'cd build && make clean'
                     }
                 }
 
@@ -115,6 +118,7 @@ pipeline {
                         sh 'cd build && timeout 1h make unittest'
                         sh 'cd build && timeout 1h make check-tpl'
                         sh 'cd build && python ../script/testing/junit/run_junit.py'
+                        sh 'cd build && make clean'
                     }
                 }
 
@@ -132,6 +136,7 @@ pipeline {
                         sh 'cd build && gtimeout 1h make unittest'
                         sh 'cd build && gtimeout 1h make check-tpl'
                         sh 'cd build && python ../script/testing/junit/run_junit.py --build_type=release'
+                        sh 'cd build && make clean'
                     }
                 }
 
@@ -149,6 +154,7 @@ pipeline {
                         sh 'cd build && timeout 1h make unittest'
                         sh 'cd build && timeout 1h make check-tpl'
                         sh 'cd build && python ../script/testing/junit/run_junit.py --build_type=release'
+                        sh 'cd build && make clean'
                     }
                 }
 
@@ -170,6 +176,7 @@ pipeline {
                         sh 'cd build && timeout 1h make unittest'
                         sh 'cd build && timeout 1h make check-tpl'
                         sh 'cd build && python ../script/testing/junit/run_junit.py --build_type=release'
+                        sh 'cd build && make clean'
                     }
                 }
             }
@@ -181,11 +188,11 @@ pipeline {
                 sh 'echo $NODE_NAME'
                 sh 'echo y | sudo ./script/installation/packages.sh'
                 sh 'mkdir build'
-                sh 'cd build && cmake -DCMAKE_BUILD_TYPE=Release -DTERRIER_USE_ASAN=OFF -DTERRIER_USE_JEMALLOC=ON .. && make -j$(nproc)'
-                sh 'cd build && timeout 1h make runbenchmark'
-                sh 'cd script/micro_bench && timeout 1h ./run_micro_bench.py'
+                sh 'cd build && cmake -DCMAKE_BUILD_TYPE=Release -DTERRIER_USE_ASAN=OFF -DTERRIER_USE_JEMALLOC=ON .. && make -j$(nproc) all'
+                sh 'cd script/micro_bench && timeout 1h ./run_micro_bench.py --run'
                 archiveArtifacts 'script/micro_bench/*.json'
                 junit 'script/micro_bench/*.xml'
+                sh 'cd build && make clean'
             }
         }
     }

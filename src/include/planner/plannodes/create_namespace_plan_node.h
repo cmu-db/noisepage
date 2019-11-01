@@ -60,8 +60,8 @@ class CreateNamespacePlanNode : public AbstractPlanNode {
      * Build the create namespace plan node
      * @return plan node
      */
-    std::shared_ptr<CreateNamespacePlanNode> Build() {
-      return std::shared_ptr<CreateNamespacePlanNode>(new CreateNamespacePlanNode(
+    std::unique_ptr<CreateNamespacePlanNode> Build() {
+      return std::unique_ptr<CreateNamespacePlanNode>(new CreateNamespacePlanNode(
           std::move(children_), std::move(output_schema_), database_oid_, std::move(namespace_name_)));
     }
 
@@ -84,8 +84,8 @@ class CreateNamespacePlanNode : public AbstractPlanNode {
    * @param database_oid OID of the database
    * @param namespace_name name of the namespace
    */
-  CreateNamespacePlanNode(std::vector<std::shared_ptr<AbstractPlanNode>> &&children,
-                          std::shared_ptr<OutputSchema> output_schema, catalog::db_oid_t database_oid,
+  CreateNamespacePlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
+                          std::unique_ptr<OutputSchema> output_schema, catalog::db_oid_t database_oid,
                           std::string namespace_name)
       : AbstractPlanNode(std::move(children), std::move(output_schema)), namespace_name_(std::move(namespace_name)) {}
 
@@ -120,7 +120,7 @@ class CreateNamespacePlanNode : public AbstractPlanNode {
   bool operator==(const AbstractPlanNode &rhs) const override;
 
   nlohmann::json ToJson() const override;
-  void FromJson(const nlohmann::json &j) override;
+  std::vector<std::unique_ptr<parser::AbstractExpression>> FromJson(const nlohmann::json &j) override;
 
  private:
   /**

@@ -31,8 +31,8 @@ class HashJoinPlanNode : public AbstractJoinPlanNode {
      * @param key key to add to left hash keys
      * @return builder object
      */
-    Builder &AddLeftHashKey(std::shared_ptr<parser::AbstractExpression> key) {
-      left_hash_keys_.emplace_back(std::move(key));
+    Builder &AddLeftHashKey(common::ManagedPointer<parser::AbstractExpression> key) {
+      left_hash_keys_.emplace_back(key);
       return *this;
     }
 
@@ -40,8 +40,8 @@ class HashJoinPlanNode : public AbstractJoinPlanNode {
      * @param key key to add to right hash keys
      * @return builder object
      */
-    Builder &AddRightHashKey(std::shared_ptr<parser::AbstractExpression> key) {
-      right_hash_keys_.emplace_back(std::move(key));
+    Builder &AddRightHashKey(common::ManagedPointer<parser::AbstractExpression> key) {
+      right_hash_keys_.emplace_back(key);
       return *this;
     }
 
@@ -54,25 +54,26 @@ class HashJoinPlanNode : public AbstractJoinPlanNode {
       return *this;
     }
 
+    // TODO(WAN) do we want to invalidate the builder after build?
     /**
      * Build the hash join plan node
      * @return plan node
      */
-    std::shared_ptr<HashJoinPlanNode> Build() {
-      return std::shared_ptr<HashJoinPlanNode>(
-          new HashJoinPlanNode(std::move(children_), std::move(output_schema_), join_type_, std::move(join_predicate_),
-                               left_hash_keys_, right_hash_keys_, build_bloomfilter_));
+    std::unique_ptr<HashJoinPlanNode> Build() {
+      return std::unique_ptr<HashJoinPlanNode>(
+          new HashJoinPlanNode(std::move(children_), std::move(output_schema_), join_type_, join_predicate_,
+                               std::move(left_hash_keys_), std::move(right_hash_keys_), build_bloomfilter_));
     }
 
    protected:
     /**
      * left side hash keys
      */
-    std::vector<std::shared_ptr<parser::AbstractExpression>> left_hash_keys_;
+    std::vector<common::ManagedPointer<parser::AbstractExpression>> left_hash_keys_;
     /**
      * right side hash keys
      */
-    std::vector<std::shared_ptr<parser::AbstractExpression>> right_hash_keys_;
+    std::vector<common::ManagedPointer<parser::AbstractExpression>> right_hash_keys_;
     /**
      * if bloom filter should be built
      */
@@ -89,12 +90,13 @@ class HashJoinPlanNode : public AbstractJoinPlanNode {
    * @param right_hash_keys right side keys to be hashed on
    * @param build_bloomfilter flag whether to build a bloom filter
    */
-  HashJoinPlanNode(std::vector<std::shared_ptr<AbstractPlanNode>> &&children,
-                   std::shared_ptr<OutputSchema> output_schema, LogicalJoinType join_type,
-                   std::shared_ptr<parser::AbstractExpression> predicate,
-                   std::vector<std::shared_ptr<parser::AbstractExpression>> left_hash_keys,
-                   std::vector<std::shared_ptr<parser::AbstractExpression>> right_hash_keys, bool build_bloomfilter)
-      : AbstractJoinPlanNode(std::move(children), std::move(output_schema), join_type, std::move(predicate)),
+  HashJoinPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
+                   std::unique_ptr<OutputSchema> output_schema, LogicalJoinType join_type,
+                   common::ManagedPointer<parser::AbstractExpression> predicate,
+                   std::vector<common::ManagedPointer<parser::AbstractExpression>> &&left_hash_keys,
+                   std::vector<common::ManagedPointer<parser::AbstractExpression>> &&right_hash_keys,
+                   bool build_bloomfilter)
+      : AbstractJoinPlanNode(std::move(children), std::move(output_schema), join_type, predicate),
         left_hash_keys_(std::move(left_hash_keys)),
         right_hash_keys_(std::move(right_hash_keys)),
         build_bloomfilter_(build_bloomfilter) {}
@@ -120,12 +122,16 @@ class HashJoinPlanNode : public AbstractJoinPlanNode {
   /**
    * @return left side hash keys
    */
-  const std::vector<std::shared_ptr<parser::AbstractExpression>> &GetLeftHashKeys() const { return left_hash_keys_; }
+  const std::vector<common::ManagedPointer<parser::AbstractExpression>> &GetLeftHashKeys() const {
+    return left_hash_keys_;
+  }
 
   /**
    * @return right side hash keys
    */
-  const std::vector<std::shared_ptr<parser::AbstractExpression>> &GetRightHashKeys() const { return right_hash_keys_; }
+  const std::vector<common::ManagedPointer<parser::AbstractExpression>> &GetRightHashKeys() const {
+    return right_hash_keys_;
+  }
 
   /**
    * @return the hashed value of this plan node
@@ -135,12 +141,12 @@ class HashJoinPlanNode : public AbstractJoinPlanNode {
   bool operator==(const AbstractPlanNode &rhs) const override;
 
   nlohmann::json ToJson() const override;
-  void FromJson(const nlohmann::json &j) override;
+  std::vector<std::unique_ptr<parser::AbstractExpression>> FromJson(const nlohmann::json &j) override;
 
  private:
   // The left and right expressions that constitute the join keys
-  std::vector<std::shared_ptr<parser::AbstractExpression>> left_hash_keys_;
-  std::vector<std::shared_ptr<parser::AbstractExpression>> right_hash_keys_;
+  std::vector<common::ManagedPointer<parser::AbstractExpression>> left_hash_keys_;
+  std::vector<common::ManagedPointer<parser::AbstractExpression>> right_hash_keys_;
 
   // Flag indicating whether we build a bloom filter
   bool build_bloomfilter_;

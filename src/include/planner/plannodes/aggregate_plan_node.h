@@ -16,7 +16,7 @@
 
 namespace terrier::planner {
 
-using AggregateTerm = std::shared_ptr<parser::AggregateExpression>;
+using AggregateTerm = common::ManagedPointer<parser::AggregateExpression>;
 
 /**
  * Plan node for aggregates
@@ -40,7 +40,7 @@ class AggregatePlanNode : public AbstractPlanNode {
      * @return builder object
      */
     Builder &AddAggregateTerm(AggregateTerm term) {
-      aggregate_terms_.emplace_back(std::move(term));
+      aggregate_terms_.emplace_back(term);
       return *this;
     }
 
@@ -48,8 +48,8 @@ class AggregatePlanNode : public AbstractPlanNode {
      * @param predicate having clause predicate to use for aggregate term
      * @return builder object
      */
-    Builder &SetHavingClausePredicate(std::shared_ptr<parser::AbstractExpression> predicate) {
-      having_clause_predicate_ = std::move(predicate);
+    Builder &SetHavingClausePredicate(common::ManagedPointer<parser::AbstractExpression> predicate) {
+      having_clause_predicate_ = predicate;
       return *this;
     }
 
@@ -66,9 +66,9 @@ class AggregatePlanNode : public AbstractPlanNode {
      * Build the aggregate plan node
      * @return plan node
      */
-    std::shared_ptr<AggregatePlanNode> Build() {
-      return std::shared_ptr<AggregatePlanNode>(
-          new AggregatePlanNode(std::move(children_), std::move(output_schema_), std::move(having_clause_predicate_),
+    std::unique_ptr<AggregatePlanNode> Build() {
+      return std::unique_ptr<AggregatePlanNode>(
+          new AggregatePlanNode(std::move(children_), std::move(output_schema_), having_clause_predicate_,
                                 std::move(aggregate_terms_), aggregate_strategy_));
     }
 
@@ -76,7 +76,7 @@ class AggregatePlanNode : public AbstractPlanNode {
     /**
      * Predicate for having clause if it exists
      */
-    std::shared_ptr<parser::AbstractExpression> having_clause_predicate_;
+    common::ManagedPointer<parser::AbstractExpression> having_clause_predicate_;
     /**
      * List of aggregate terms for aggregation
      */
@@ -95,12 +95,12 @@ class AggregatePlanNode : public AbstractPlanNode {
    * @param aggregate_terms vector of aggregate terms for the aggregation
    * @param aggregate_strategy aggregation strategy to be used
    */
-  AggregatePlanNode(std::vector<std::shared_ptr<AbstractPlanNode>> &&children,
-                    std::shared_ptr<OutputSchema> output_schema,
-                    std::shared_ptr<parser::AbstractExpression> having_clause_predicate,
+  AggregatePlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
+                    std::unique_ptr<OutputSchema> output_schema,
+                    common::ManagedPointer<parser::AbstractExpression> having_clause_predicate,
                     std::vector<AggregateTerm> aggregate_terms, AggregateStrategyType aggregate_strategy)
       : AbstractPlanNode(std::move(children), std::move(output_schema)),
-        having_clause_predicate_(std::move(having_clause_predicate)),
+        having_clause_predicate_(having_clause_predicate),
         aggregate_terms_(std::move(aggregate_terms)),
         aggregate_strategy_(aggregate_strategy) {}
 
@@ -119,7 +119,7 @@ class AggregatePlanNode : public AbstractPlanNode {
   /**
    * @return pointer to predicate for having clause
    */
-  const std::shared_ptr<parser::AbstractExpression> &GetHavingClausePredicate() const {
+  common::ManagedPointer<parser::AbstractExpression> GetHavingClausePredicate() const {
     return having_clause_predicate_;
   }
 
@@ -146,10 +146,10 @@ class AggregatePlanNode : public AbstractPlanNode {
   bool operator==(const AbstractPlanNode &rhs) const override;
 
   nlohmann::json ToJson() const override;
-  void FromJson(const nlohmann::json &j) override;
+  std::vector<std::unique_ptr<parser::AbstractExpression>> FromJson(const nlohmann::json &j) override;
 
  private:
-  std::shared_ptr<parser::AbstractExpression> having_clause_predicate_;
+  common::ManagedPointer<parser::AbstractExpression> having_clause_predicate_;
   std::vector<AggregateTerm> aggregate_terms_;
   AggregateStrategyType aggregate_strategy_;
 };

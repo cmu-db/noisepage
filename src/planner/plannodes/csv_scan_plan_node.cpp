@@ -1,6 +1,8 @@
 #include "planner/plannodes/csv_scan_plan_node.h"
+
 #include <memory>
 #include <string>
+#include <vector>
 
 namespace terrier::planner {
 
@@ -59,13 +61,16 @@ nlohmann::json CSVScanPlanNode::ToJson() const {
   return j;
 }
 
-void CSVScanPlanNode::FromJson(const nlohmann::json &j) {
-  AbstractScanPlanNode::FromJson(j);
+std::vector<std::unique_ptr<parser::AbstractExpression>> CSVScanPlanNode::FromJson(const nlohmann::json &j) {
+  std::vector<std::unique_ptr<parser::AbstractExpression>> exprs;
+  auto e1 = AbstractScanPlanNode::FromJson(j);
+  exprs.insert(exprs.end(), std::make_move_iterator(e1.begin()), std::make_move_iterator(e1.end()));
   file_name_ = j.at("file_name").get<std::string>();
   delimiter_ = j.at("delimiter").get<char>();
   quote_ = j.at("quote").get<char>();
   escape_ = j.at("escape").get<char>();
   null_string_ = j.at("null_string").get<std::string>();
+  return exprs;
 }
 
 }  // namespace terrier::planner

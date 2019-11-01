@@ -1,6 +1,9 @@
 #include "planner/plannodes/update_plan_node.h"
+
 #include <memory>
 #include <utility>
+#include <vector>
+
 #include "planner/plannodes/abstract_scan_plan_node.h"
 
 namespace terrier::planner {
@@ -19,7 +22,7 @@ common::hash_t UpdatePlanNode::Hash() const {
 
   // Hash update_primary_key
   auto is_update_primary_key = GetUpdatePrimaryKey();
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(&is_update_primary_key));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(is_update_primary_key));
 
   return hash;
 }
@@ -53,12 +56,15 @@ nlohmann::json UpdatePlanNode::ToJson() const {
   return j;
 }
 
-void UpdatePlanNode::FromJson(const nlohmann::json &j) {
-  AbstractPlanNode::FromJson(j);
+std::vector<std::unique_ptr<parser::AbstractExpression>> UpdatePlanNode::FromJson(const nlohmann::json &j) {
+  std::vector<std::unique_ptr<parser::AbstractExpression>> exprs;
+  auto e1 = AbstractPlanNode::FromJson(j);
+  exprs.insert(exprs.end(), std::make_move_iterator(e1.begin()), std::make_move_iterator(e1.end()));
   database_oid_ = j.at("database_oid").get<catalog::db_oid_t>();
   namespace_oid_ = j.at("namespace_oid").get<catalog::namespace_oid_t>();
   table_oid_ = j.at("table_oid").get<catalog::table_oid_t>();
   update_primary_key_ = j.at("update_primary_key").get<bool>();
+  return exprs;
 }
 
 }  // namespace terrier::planner
