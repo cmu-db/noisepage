@@ -10,8 +10,8 @@
 #include "metrics/abstract_raw_data.h"
 #include "metrics/logging_metric.h"
 #include "metrics/metrics_defs.h"
-#include "metrics/transaction_metric.h"
 #include "metrics/recovery_metric.h"
+#include "metrics/transaction_metric.h"
 
 namespace terrier::metrics {
 

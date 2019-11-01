@@ -105,7 +105,7 @@ void RecoveryManager::ProcessCommittedTransaction(terrier::transaction::timestam
     // Check if we need to export throughput metric
     total_elapsed_us += elapsed_us;
     if (total_elapsed_us < recovery_metric_interval_) {
-      num_txns ++;
+      num_txns++;
       num_bytes += buffered_record->Size();
     } else {
       // Export throughput metric

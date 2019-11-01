@@ -42,8 +42,7 @@ class RecoveryMetricRawData : public AbstractRawData {
                    "Not all files are open.");
 
     for (const auto &data : recovery_data_) {
-      ((*outfiles)[0]) << data.now_ << "," << data.num_txns_ << "," << data.num_bytes_ 
-      << std::endl;
+      ((*outfiles)[0]) << data.now_ << "," << data.num_txns_ << "," << data.num_bytes_ << std::endl;
     }
 
     recovery_data_.clear();
@@ -66,7 +65,6 @@ class RecoveryMetricRawData : public AbstractRawData {
     recovery_data_.emplace_front(num_txns, num_bytes);
   }
 
-
   struct RecoveryData {
     RecoveryData(const uint64_t num_txns, const uint64_t num_bytes)
         : now_(MetricsUtil::Now()), num_txns_(num_txns), num_bytes_(num_bytes) {}
@@ -88,6 +86,5 @@ class RecoveryMetric : public AbstractMetric<RecoveryMetricRawData> {
   void RecordRecoveryData(const uint64_t num_txns, const uint64_t num_bytes) {
     GetRawData()->RecordRecoveryData(num_txns, num_bytes);
   }
-
 };
 }  // namespace terrier::metrics
