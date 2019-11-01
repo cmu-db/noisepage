@@ -2,10 +2,10 @@
 #include <unordered_map>
 #include <vector>
 #include "storage/data_table.h"
+#include "test_util/multithread_test_util.h"
+#include "test_util/storage_test_util.h"
+#include "test_util/test_harness.h"
 #include "transaction/transaction_context.h"
-#include "util/multithread_test_util.h"
-#include "util/storage_test_util.h"
-#include "util/test_harness.h"
 
 namespace terrier {
 class FakeTransaction {

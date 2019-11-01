@@ -3,7 +3,7 @@
 #include "di/di_help.h"
 #include "di/injectors.h"
 #include "gtest/gtest.h"
-#include "util/data_table_test_util.h"
+#include "test_util/data_table_test_util.h"
 
 namespace terrier {
 class LargeTransactionTests : public TerrierTest {

@@ -5,7 +5,7 @@
 #include "loggers/optimizer_logger.h"
 #include "optimizer/statistics/hyperloglog.h"
 
-#include "util/test_harness.h"
+#include "test_util/test_harness.h"
 
 namespace terrier::optimizer {
 

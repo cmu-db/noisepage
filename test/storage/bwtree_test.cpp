@@ -3,9 +3,9 @@
 #include <vector>
 #include "bwtree/bloom_filter.h"
 #include "bwtree/sorted_small_set.h"
-#include "util/bwtree_test_util.h"
-#include "util/multithread_test_util.h"
-#include "util/test_harness.h"
+#include "test_util/bwtree_test_util.h"
+#include "test_util/multithread_test_util.h"
+#include "test_util/test_harness.h"
 
 namespace terrier {
 
