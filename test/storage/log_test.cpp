@@ -11,12 +11,12 @@
 #include "storage/projected_row.h"
 #include "storage/sql_table.h"
 #include "storage/write_ahead_log/log_manager.h"
-#include "transaction/transaction_manager.h"
-#include "type/transient_value_factory.h"
 #include "test_util/catalog_test_util.h"
 #include "test_util/data_table_test_util.h"
 #include "test_util/storage_test_util.h"
 #include "test_util/test_harness.h"
+#include "transaction/transaction_manager.h"
+#include "type/transient_value_factory.h"
 
 #define __SETTING_GFLAGS_DEFINE__      // NOLINT
 #include "settings/settings_common.h"  // NOLINT

@@ -10,10 +10,10 @@
 #include "settings/settings_callbacks.h"
 #include "settings/settings_manager.h"
 #include "storage/sql_table.h"
-#include "transaction/transaction_defs.h"
-#include "transaction/transaction_manager.h"
 #include "test_util/catalog_test_util.h"
 #include "test_util/test_harness.h"
+#include "transaction/transaction_defs.h"
+#include "transaction/transaction_manager.h"
 
 #define __SETTING_GFLAGS_DEFINE__      // NOLINT
 #include "settings/settings_common.h"  // NOLINT

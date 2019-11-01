@@ -4,16 +4,16 @@
 #include <map>
 #include <string>
 #include <vector>
+#include "benchmark_util/data_table_benchmark_util.h"
 #include "catalog/catalog_defs.h"
 #include "storage/index/index.h"
 #include "storage/sql_table.h"
 #include "storage/storage_defs.h"
-#include "transaction/transaction_manager.h"
-#include "benchmark_util/data_table_benchmark_util.h"
 #include "test_util/tpcc/database.h"
 #include "test_util/tpcc/tpcc_defs.h"
 #include "test_util/tpcc/util.h"
 #include "test_util/tpcc/worker.h"
+#include "transaction/transaction_manager.h"
 
 namespace terrier::tpcc {
 

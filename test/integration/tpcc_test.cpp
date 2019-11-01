@@ -9,12 +9,12 @@
 #include "metrics/metrics_thread.h"
 #include "storage/garbage_collector_thread.h"
 #include "storage/storage_defs.h"
-#include "transaction/transaction_manager.h"
 #include "test_util/tpcc/builder.h"
 #include "test_util/tpcc/database.h"
 #include "test_util/tpcc/loader.h"
 #include "test_util/tpcc/worker.h"
 #include "test_util/tpcc/workload.h"
+#include "transaction/transaction_manager.h"
 
 namespace terrier::tpcc {
 

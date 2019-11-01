@@ -22,11 +22,11 @@
 #include "storage/storage_util.h"
 #include "storage/tuple_access_strategy.h"
 #include "storage/undo_record.h"
+#include "test_util/multithread_test_util.h"
+#include "test_util/random_test_util.h"
 #include "transaction/transaction_manager.h"
 #include "type/transient_value_factory.h"
 #include "type/type_id.h"
-#include "test_util/multithread_test_util.h"
-#include "test_util/random_test_util.h"
 namespace terrier {
 class StorageTestUtil {
  public:

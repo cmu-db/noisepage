@@ -6,8 +6,8 @@
 #include "common/allocator.h"
 #include "common/scoped_timer.h"
 #include "metrics/metrics_thread.h"
-#include "transaction/transaction_util.h"
 #include "test_util/catalog_test_util.h"
+#include "transaction/transaction_util.h"
 
 namespace terrier {
 RandomDataTableTransaction::RandomDataTableTransaction(LargeDataTableBenchmarkObject *test_object)

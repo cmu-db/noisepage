@@ -7,10 +7,10 @@
 #include "catalog/catalog.h"
 #include "gtest/gtest.h"
 #include "storage/garbage_collector.h"
-#include "transaction/transaction_context.h"
-#include "transaction/transaction_manager.h"
 #include "test_util/storage_test_util.h"
 #include "test_util/test_harness.h"
+#include "transaction/transaction_context.h"
+#include "transaction/transaction_manager.h"
 
 namespace terrier {
 

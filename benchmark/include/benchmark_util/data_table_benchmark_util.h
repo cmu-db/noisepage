@@ -6,10 +6,10 @@
 #include "gtest/gtest.h"
 #include "metrics/metrics_thread.h"
 #include "storage/data_table.h"
-#include "transaction/transaction_context.h"
-#include "transaction/transaction_manager.h"
 #include "test_util/storage_test_util.h"
 #include "test_util/test_harness.h"
+#include "transaction/transaction_context.h"
+#include "transaction/transaction_manager.h"
 
 namespace terrier {
 struct TestCallbacks {

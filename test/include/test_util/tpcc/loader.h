@@ -2,17 +2,17 @@
 
 #include <unordered_map>
 #include <vector>
+#include "benchmark_util/data_table_benchmark_util.h"
 #include "catalog/index_schema.h"
 #include "catalog/schema.h"
 #include "common/macros.h"
 #include "storage/index/index.h"
 #include "storage/projected_row.h"
 #include "storage/sql_table.h"
-#include "transaction/transaction_manager.h"
-#include "benchmark_util/data_table_benchmark_util.h"
 #include "test_util/tpcc/database.h"
 #include "test_util/tpcc/util.h"
 #include "test_util/tpcc/worker.h"
+#include "transaction/transaction_manager.h"
 
 namespace terrier::tpcc {
 

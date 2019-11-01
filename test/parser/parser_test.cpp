@@ -16,8 +16,8 @@
 #include "parser/pg_trigger.h"
 #include "parser/postgresparser.h"
 
-#include "type/transient_value_peeker.h"
 #include "test_util/test_harness.h"
+#include "type/transient_value_peeker.h"
 
 namespace terrier::parser {
 
