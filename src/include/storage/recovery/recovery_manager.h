@@ -154,6 +154,9 @@ class RecoveryManager : public common::DedicatedThreadOwner {
   // Number of recovered committed txns. Used for benchmarking
   uint32_t recovered_txns_;
 
+  // How often the recovery throughput metric is collected
+  const uint32_t recovery_metric_interval_ = 1;
+
   /**
    * Recovers the databases using the provided log provider
    * @return number of committed transactions replayed

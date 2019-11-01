@@ -12,6 +12,7 @@ MetricsStore::MetricsStore(const common::ManagedPointer<metrics::MetricsManager>
     : metrics_manager_(metrics_manager), enabled_metrics_{enabled_metrics} {
   logging_metric_ = std::make_unique<LoggingMetric>();
   txn_metric_ = std::make_unique<TransactionMetric>();
+  recovery_metric_ = std::make_unique<RecoveryMetric>();
 }
 
 std::array<std::unique_ptr<AbstractRawData>, NUM_COMPONENTS> MetricsStore::GetDataToAggregate() {
@@ -32,6 +33,13 @@ std::array<std::unique_ptr<AbstractRawData>, NUM_COMPONENTS> MetricsStore::GetDa
               txn_metric_ != nullptr,
               "TransactionMetric cannot be a nullptr. Check the MetricsStore constructor that it was allocated.");
           result[component] = txn_metric_->Swap();
+          break;
+        }
+        case MetricsComponent::RECOVERY: {
+          TERRIER_ASSERT(
+              recovery_metric_ != nullptr,
+              "RecoveryMetric cannot be a nullptr. Check the MetricsStore constructor that it was allocated.");
+          result[component] = recovery_metric_->Swap();
           break;
         }
       }

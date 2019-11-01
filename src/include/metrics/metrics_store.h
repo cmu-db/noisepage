@@ -11,6 +11,7 @@
 #include "metrics/logging_metric.h"
 #include "metrics/metrics_defs.h"
 #include "metrics/transaction_metric.h"
+#include "metrics/recovery_metric.h"
 
 namespace terrier::metrics {
 
@@ -63,7 +64,7 @@ class MetricsStore {
     txn_metric_->RecordBeginData(elapsed_us, txn_start);
   }
 
-  /**
+  /*
    * Record metrics for transaction manager when ending transaction
    * @param elapsed_us first entry of txn datapoint
    * @param txn_start second entry of txn datapoint
@@ -72,6 +73,18 @@ class MetricsStore {
     TERRIER_ASSERT(ComponentEnabled(MetricsComponent::TRANSACTION), "TransactionMetric not enabled.");
     TERRIER_ASSERT(txn_metric_ != nullptr, "TransactionMetric not allocated. Check MetricsStore constructor.");
     txn_metric_->RecordCommitData(elapsed_us, txn_start);
+  }
+
+  /*
+   * Record metrics for recovery manager during recovery
+   * @param elapsed_us FILL
+   * @param num_txns FILL
+   * @param num_bytes FILL
+   */
+  void RecordRecoveryData(const uint64_t num_txns, const uint64_t num_bytes) {
+    //TERRIER_ASSERT(ComponentEnabled(MetricsComponent::RECOVERY), "RecoveryMetric not enabled.");
+    TERRIER_ASSERT(txn_metric_ != nullptr, "RecoveryMetric not allocated. Check MetricsStore constructor.");
+    recovery_metric_->RecordRecoveryData(num_txns, num_bytes);
   }
 
   /**
@@ -99,6 +112,7 @@ class MetricsStore {
 
   std::unique_ptr<LoggingMetric> logging_metric_;
   std::unique_ptr<TransactionMetric> txn_metric_;
+  std::unique_ptr<RecoveryMetric> recovery_metric_;
 
   const std::bitset<NUM_COMPONENTS> &enabled_metrics_;
 };

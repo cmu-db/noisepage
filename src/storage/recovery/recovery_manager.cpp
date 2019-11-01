@@ -5,6 +5,7 @@
 #include <utility>
 #include <vector>
 
+#include "common/scoped_timer.h"
 #include "storage/recovery/recovery_manager.h"
 
 #include "catalog/postgres/pg_attribute.h"
@@ -59,6 +60,7 @@ void RecoveryManager::RecoverFromLogs() {
         buffered_changes_map_[log_record->TxnBegin()].push_back(pair);
     }
   }
+
   // Process all deferred txns
   ProcessDeferredTransactions(transaction::INVALID_TXN_TIMESTAMP);
   TERRIER_ASSERT(deferred_txns_.empty(), "We should have no unprocessed deferred transactions at the end of recovery");
@@ -77,19 +79,43 @@ void RecoveryManager::ProcessCommittedTransaction(terrier::transaction::timestam
   // Begin a txn to replay changes with.
   auto *txn = txn_manager_->BeginTransaction();
 
+  // Recovery throughput metric
+  uint64_t elapsed_us = 0;
+  uint64_t total_elapsed_us = 0;
+  uint64_t num_txns = 0;
+  uint64_t num_bytes = 0;
+
   // Apply all buffered changes. They should all succeed. After applying we can safely delete the record
   for (uint32_t idx = 0; idx < buffered_changes_map_[txn_id].size(); idx++) {
     auto *buffered_record = buffered_changes_map_[txn_id][idx].first;
     TERRIER_ASSERT(
         buffered_record->RecordType() == LogRecordType::REDO || buffered_record->RecordType() == LogRecordType::DELETE,
         "Buffered record must be a redo or delete.");
+    {
+      common::ScopedTimer<std::chrono::microseconds> scoped_timer(&elapsed_us);
+      if (IsSpecialCaseCatalogRecord(buffered_record)) {
+        idx += ProcessSpecialCaseCatalogRecord(txn, &buffered_changes_map_[txn_id], idx);
+      } else if (buffered_record->RecordType() == LogRecordType::REDO) {
+        ReplayRedoRecord(txn, buffered_record);
+      } else {
+        ReplayDeleteRecord(txn, buffered_record);
+      }
+    }
 
-    if (IsSpecialCaseCatalogRecord(buffered_record)) {
-      idx += ProcessSpecialCaseCatalogRecord(txn, &buffered_changes_map_[txn_id], idx);
-    } else if (buffered_record->RecordType() == LogRecordType::REDO) {
-      ReplayRedoRecord(txn, buffered_record);
+    // Exports throughput metric
+    total_elapsed_us += elapsed_us;
+    if (total_elapsed_us < recovery_metric_interval_) {
+      num_txns ++;
+      num_bytes += buffered_record->Size();
     } else {
-      ReplayDeleteRecord(txn, buffered_record);
+      // Record
+      if (num_txns > 0 && common::thread_context.metrics_store_ != nullptr &&
+          common::thread_context.metrics_store_->ComponentEnabled(metrics::MetricsComponent::RECOVERY)) {
+        common::thread_context.metrics_store_->RecordRecoveryData(num_txns, num_bytes);
+        num_txns = 0;
+        num_bytes = 0;
+      }
+      total_elapsed_us = 0;
     }
   }
 

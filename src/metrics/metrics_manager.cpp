@@ -57,6 +57,11 @@ void MetricsManager::ResetMetric(const MetricsComponent component) const {
         metric->Swap();
         break;
       }
+      case MetricsComponent::RECOVERY: {
+        const auto &metric = metrics_store.second->recovery_metric_;
+        metric->Swap();
+        break;
+      }
     }
   }
 }
@@ -94,6 +99,10 @@ void MetricsManager::ToCSV() const {
         }
         case MetricsComponent::TRANSACTION: {
           OpenFiles<TransactionMetricRawData>(&outfiles);
+          break;
+        }
+        case MetricsComponent::RECOVERY: {
+          OpenFiles<RecoveryMetricRawData>(&outfiles);
           break;
         }
       }
