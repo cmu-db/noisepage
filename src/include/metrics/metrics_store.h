@@ -81,7 +81,7 @@ class MetricsStore {
    * @param num_bytes size of log files processed
    */
   void RecordRecoveryData(const uint64_t num_txns, const uint64_t num_bytes) {
-    //TERRIER_ASSERT(ComponentEnabled(MetricsComponent::RECOVERY), "RecoveryMetric not enabled.");
+    TERRIER_ASSERT(ComponentEnabled(MetricsComponent::RECOVERY), "RecoveryMetric not enabled.");
     TERRIER_ASSERT(txn_metric_ != nullptr, "RecoveryMetric not allocated. Check MetricsStore constructor.");
     recovery_metric_->RecordRecoveryData(num_txns, num_bytes);
   }

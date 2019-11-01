@@ -79,7 +79,7 @@ void RecoveryManager::ProcessCommittedTransaction(terrier::transaction::timestam
   // Begin a txn to replay changes with.
   auto *txn = txn_manager_->BeginTransaction();
 
-  // Recovery throughput metric
+  // For recording recovery throughput metric
   uint64_t elapsed_us = 0;
   uint64_t total_elapsed_us = 0;
   uint64_t num_txns = 0;
@@ -102,13 +102,13 @@ void RecoveryManager::ProcessCommittedTransaction(terrier::transaction::timestam
       }
     }
 
-    // Exports throughput metric
+    // Check if we need to export throughput metric
     total_elapsed_us += elapsed_us;
     if (total_elapsed_us < recovery_metric_interval_) {
       num_txns ++;
       num_bytes += buffered_record->Size();
     } else {
-      // Record
+      // Export throughput metric
       if (num_txns > 0 && common::thread_context.metrics_store_ != nullptr &&
           common::thread_context.metrics_store_->ComponentEnabled(metrics::MetricsComponent::RECOVERY)) {
         common::thread_context.metrics_store_->RecordRecoveryData(num_txns, num_bytes);
