@@ -78,7 +78,7 @@ class StringUtil {
    * @param bytes
    * @return
    */
-  static std::string FormatSize(long bytes);
+  static std::string FormatSize(int64_t bytes);
 
   /**
    * Wrap the given string with the control characters
@@ -124,7 +124,7 @@ class StringUtil {
    * Remove the whitespace char in the right end of the string
    * @param str
    */
-  static void RTrim(std::string &str);
+  static std::string RTrim(const std::string &str);
 
   /**
    *

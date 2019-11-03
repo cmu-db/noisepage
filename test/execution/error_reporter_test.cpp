@@ -5,10 +5,10 @@
 #include <utility>
 #include <vector>
 
-#include "execution/tpl_test.h"
 #include "execution/ast/ast_dump.h"
 #include "execution/parsing/parser.h"
 #include "execution/parsing/scanner.h"
+#include "execution/tpl_test.h"
 #include "util/string_util.h"
 
 namespace terrier::execution::parsing::test {
@@ -54,7 +54,6 @@ TEST_F(ErrorReporterTest, SerializeErrorsTest) {
   // the output is meant for human consumption
   auto lines = terrier::util::StringUtil::Split(errors, '\n');
   EXPECT_EQ(lines.size(), 2);
-
 }
 
 }  // namespace terrier::execution::parsing::test
