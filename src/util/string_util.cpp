@@ -1,12 +1,12 @@
 #include "util/string_util.h"
 
 #include <stdarg.h>
-#include <string.h>
 #include <algorithm>
 #include <iomanip>
 #include <memory>
 #include <sstream>
 #include <string>
+#include <vector>
 
 namespace terrier::util {
 
@@ -17,8 +17,10 @@ bool StringUtil::Contains(const std::string &haystack, const std::string &needle
 /*
  * Remove trailing ' ', '\f', '\n', '\r', '\t', '\v'
  */
-void StringUtil::RTrim(std::string &str) {
-  str.erase(std::find_if(str.rbegin(), str.rend(), [](int ch) { return !std::isspace(ch); }).base(), str.end());
+std::string StringUtil::RTrim(const std::string &str) {
+  std::string copy(str);
+  str.erase(std::find_if(copy.rbegin(), copy.rend(), [](int ch) { return !std::isspace(ch); }).base(), copy.end());
+  return (copy);
 }
 
 std::string StringUtil::Indent(int num_indent) { return std::string(num_indent, ' '); }
@@ -83,7 +85,7 @@ std::string StringUtil::Prefix(const std::string &str, const std::string &prefix
   return (os.str());
 }
 
-std::string StringUtil::FormatSize(long bytes) {
+std::string StringUtil::FormatSize(int64_t bytes) {
   double BASE = 1024;
   double KB = BASE;
   double MB = KB * BASE;
@@ -126,7 +128,7 @@ std::string StringUtil::Lower(const std::string &str) {
 
 std::string StringUtil::Format(const std::string fmt_str, ...) {
   // Reserve two times as much as the length of the fmt_str
-  int final_n, n = ((int)fmt_str.size()) * 2;
+  int final_n, n = static_cast<int>(fmt_str.size()) * 2;
   std::string str;
   std::unique_ptr<char[]> formatted;
   va_list ap;
@@ -134,6 +136,7 @@ std::string StringUtil::Format(const std::string fmt_str, ...) {
   while (1) {
     // Wrap the plain char array into the unique_ptr
     formatted.reset(new char[n]);
+    // NOLINTNEXTLINE
     strcpy(&formatted[0], fmt_str.c_str());
     va_start(ap, fmt_str);
     final_n = vsnprintf(&formatted[0], n, fmt_str.c_str(), ap);

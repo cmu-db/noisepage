@@ -9,6 +9,7 @@ namespace terrier::util {
 
 class StringUtilTests : public TerrierTest {};
 
+// NOLINTNEXTLINE
 TEST_F(StringUtilTests, ContainsTest) {
   std::string str = "Word up, two for fives over here baby";
   EXPECT_TRUE(StringUtil::Contains(str, "fives"));
@@ -17,6 +18,7 @@ TEST_F(StringUtilTests, ContainsTest) {
   EXPECT_TRUE(StringUtil::Contains(str, ""));
 }
 
+// NOLINTNEXTLINE
 TEST_F(StringUtilTests, StartsWithTest) {
   std::string str = "I grew up on the crime side, the New York Times side";
   EXPECT_TRUE(StringUtil::StartsWith(str, "I"));
@@ -27,6 +29,7 @@ TEST_F(StringUtilTests, StartsWithTest) {
   EXPECT_FALSE(StringUtil::StartsWith(str, "CREAM"));
 }
 
+// NOLINTNEXTLINE
 TEST_F(StringUtilTests, EndsWithTest) {
   std::string str = "Staying alive was no jive";
   EXPECT_TRUE(StringUtil::EndsWith(str, "jive"));
@@ -37,6 +40,7 @@ TEST_F(StringUtilTests, EndsWithTest) {
   EXPECT_FALSE(StringUtil::EndsWith(str, "CREAM"));
 }
 
+// NOLINTNEXTLINE
 TEST_F(StringUtilTests, RepeatTest) {
   std::vector<int> sizes = {0, 1, 2, 4, 8, 16, 17};
   std::vector<std::string> strs = {"", "A", "XYZ"};
@@ -64,6 +68,7 @@ TEST_F(StringUtilTests, RepeatTest) {
   }
 }
 
+// NOLINTNEXTLINE
 TEST_F(StringUtilTests, PrefixTest) {
   std::string message =
       "My man Inf left a Tec and a nine at my crib\n"
@@ -88,8 +93,9 @@ TEST_F(StringUtilTests, PrefixTest) {
   }
 }
 
+// NOLINTNEXTLINE
 TEST_F(StringUtilTests, FormatSizeTest) {
-  std::vector<std::pair<long, std::string>> data = {
+  std::vector<std::pair<int64_t , std::string>> data = {
       std::make_pair(100, "100 bytes"),
       std::make_pair(1200, "1.17 KB"),
       std::make_pair(15721000, "14.99 MB"),
@@ -104,6 +110,7 @@ TEST_F(StringUtilTests, FormatSizeTest) {
   }
 }
 
+// NOLINTNEXTLINE
 TEST_F(StringUtilTests, UpperTest) {
   std::string input = "smoke crack rocks";
   std::string expected = "SMOKE CRACK ROCKS";
@@ -111,6 +118,7 @@ TEST_F(StringUtilTests, UpperTest) {
   EXPECT_EQ(expected, result);
 }
 
+// NOLINTNEXTLINE
 TEST_F(StringUtilTests, FormatIntTest) {
   int val = 10;
 
@@ -126,6 +134,7 @@ TEST_F(StringUtilTests, FormatIntTest) {
   }
 }
 
+// NOLINTNEXTLINE
 TEST_F(StringUtilTests, FormatFloatTest) {
   float val = 10.3456;
 
@@ -141,6 +150,7 @@ TEST_F(StringUtilTests, FormatFloatTest) {
   }
 }
 
+// NOLINTNEXTLINE
 TEST_F(StringUtilTests, SplitTest) {
   // clang-format off
   std::vector<std::string> words = {
@@ -170,6 +180,7 @@ TEST_F(StringUtilTests, SplitTest) {
   }  // FOR
 }
 
+// NOLINTNEXTLINE
 TEST_F(StringUtilTests, JoinTest) {
   {
     // Empty input test

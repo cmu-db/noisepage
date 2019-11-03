@@ -245,11 +245,7 @@ TEST_F(AstDumpTest, CallTest) {
     })";
 
   std::vector<std::string> constants = {
-      "AAAA",
-      "xxxx",
-      "yyyy",
-      "date1",
-      "date2",
+      "AAAA", "xxxx", "yyyy", "date1", "date2",
   };
 
   CheckDump(src, constants);
