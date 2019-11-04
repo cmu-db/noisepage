@@ -49,7 +49,7 @@ TEST_F(StringUtilTests, RepeatTest) {
   for (int size : sizes) {
     for (const std::string &str : strs) {
       std::string result = StringUtil::Repeat(str, size);
-      LOG_TRACE("[%d / '%s'] => '%s'", size, str.c_str(), result.c_str());
+      // LOG_TRACE("[%d / '%s'] => '%s'", size, str.c_str(), result.c_str());
 
       if (size == 0 || str.empty()) {
         EXPECT_TRUE(result.empty());
@@ -71,6 +71,7 @@ TEST_F(StringUtilTests, RepeatTest) {
 
 // NOLINTNEXTLINE
 TEST_F(StringUtilTests, PrefixTest) {
+  // clang-format off
   const std::string message =
       "My man Inf left a Tec and a nine at my crib\n"
       "Turned himself in, he had to do a bid\n"
@@ -78,13 +79,14 @@ TEST_F(StringUtilTests, PrefixTest) {
       "\n"
       "A one-to-three, he be home the end of '93\n"
       "I'm ready to get this paper, G, you with me?\n";
+  // clang-format on
 
   std::vector<std::string> prefixes = {"*", ">>>"};
 
   for (const std::string &prefix : prefixes) {
     std::string result = StringUtil::Prefix(message, prefix);
     EXPECT_FALSE(result.empty());
-    LOG_TRACE("[PREFIX=%s]\n%s\n=======\n", prefix.c_str(), result.c_str());
+    // LOG_TRACE("[PREFIX=%s]\n%s\n=======\n", prefix.c_str(), result.c_str());
 
     std::vector<std::string> lines = StringUtil::Split(result, '\n');
     for (const auto &line : lines) {
@@ -96,17 +98,19 @@ TEST_F(StringUtilTests, PrefixTest) {
 
 // NOLINTNEXTLINE
 TEST_F(StringUtilTests, FormatSizeTest) {
+  // clang-format off
   std::vector<std::pair<int64_t, std::string>> data = {
       std::make_pair(100, "100 bytes"),
       std::make_pair(1200, "1.17 KB"),
       std::make_pair(15721000, "14.99 MB"),
       std::make_pair(9990000000, "9.30 GB"),
   };
+  // clang-format on
 
   for (const auto &x : data) {
     std::string result = StringUtil::FormatSize(x.first);
     EXPECT_FALSE(result.empty());
-    LOG_TRACE("[%ld / '%s'] => %s", x.first, x.second.c_str(), result.c_str());
+    // LOG_TRACE("[%ld / '%s'] => %s", x.first, x.second.c_str(), result.c_str());
     EXPECT_EQ(x.second, result);
   }
 }
@@ -121,13 +125,18 @@ TEST_F(StringUtilTests, UpperTest) {
 
 // NOLINTNEXTLINE
 TEST_F(StringUtilTests, FormatIntTest) {
-  int val = 10;
+  const int val = 10;
 
   // <FORMAT, EXPECTED>
+  // clang-format off
   std::vector<std::pair<std::string, std::string>> data{
-      std::make_pair("%5d", "   10"),  std::make_pair("%-5d", "10   "),  std::make_pair("%05d", "00010"),
-      std::make_pair("%+5d", "  +10"), std::make_pair("%-+5d", "+10  "),
+      std::make_pair("%5d", "   10"),
+      std::make_pair("%-5d", "10   "),
+      std::make_pair("%05d", "00010"),
+      std::make_pair("%+5d", "  +10"),
+      std::make_pair("%-+5d", "+10  "),
   };
+  // clang-format on
 
   for (const std::pair<std::string, std::string> &x : data) {
     std::string result = StringUtil::Format(x.first, val);
@@ -137,13 +146,19 @@ TEST_F(StringUtilTests, FormatIntTest) {
 
 // NOLINTNEXTLINE
 TEST_F(StringUtilTests, FormatFloatTest) {
-  float val = 10.3456;
+  const float val = 10.3456;
 
   // <FORMAT, EXPECTED>
+  // clang-format off
   std::vector<std::pair<std::string, std::string>> data{
-      std::make_pair("%.1f", "10.3"),      std::make_pair("%.2f", "10.35"),      std::make_pair("%8.2f", "   10.35"),
-      std::make_pair("%8.4f", " 10.3456"), std::make_pair("%08.2f", "00010.35"), std::make_pair("%-8.2f", "10.35   "),
+      std::make_pair("%.1f", "10.3"),
+      std::make_pair("%.2f", "10.35"),
+      std::make_pair("%8.2f", "   10.35"),
+      std::make_pair("%8.4f", " 10.3456"),
+      std::make_pair("%08.2f", "00010.35"),
+      std::make_pair("%-8.2f", "10.35   "),
   };
+  // clang-format on
 
   for (const std::pair<std::string, std::string> &x : data) {
     std::string result = StringUtil::Format(x.first, val);
@@ -155,7 +170,8 @@ TEST_F(StringUtilTests, FormatFloatTest) {
 TEST_F(StringUtilTests, SplitTest) {
   // clang-format off
   std::vector<std::string> words = {
-		  "Come", "on", "motherfuckers," "come", "on"};
+	"Come", "on", "motherfuckers," "come", "on"
+  };
   // clang-format on
 
   std::string split_char = "_";
