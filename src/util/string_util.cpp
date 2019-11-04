@@ -1,7 +1,8 @@
 #include "util/string_util.h"
 
-#include <stdarg.h>
 #include <algorithm>
+#include <cstdarg>
+#include <cstring>
 #include <iomanip>
 #include <memory>
 #include <sstream>
@@ -19,11 +20,10 @@ bool StringUtil::Contains(const std::string &haystack, const std::string &needle
  */
 std::string StringUtil::RTrim(const std::string &str) {
   std::string copy(str);
-  str.erase(std::find_if(copy.rbegin(), copy.rend(), [](int ch) { return !std::isspace(ch); }).base(), copy.end());
+  copy.erase(std::find_if(copy.rbegin(), copy.rend(),
+      [](unsigned char c){ return std::isspace(c) == 0; }).base(), copy.end());
   return (copy);
 }
-
-std::string StringUtil::Indent(int num_indent) { return std::string(num_indent, ' '); }
 
 bool StringUtil::StartsWith(const std::string &str, const std::string &prefix) {
   return std::equal(prefix.begin(), prefix.end(), str.begin());
@@ -86,19 +86,19 @@ std::string StringUtil::Prefix(const std::string &str, const std::string &prefix
 }
 
 std::string StringUtil::FormatSize(int64_t bytes) {
-  double BASE = 1024;
-  double KB = BASE;
-  double MB = KB * BASE;
-  double GB = MB * BASE;
+  constexpr double base = 1024;
+  constexpr double min_kb = base;
+  constexpr double min_mb = min_kb * base;
+  constexpr double min_gb = min_mb * base;
 
   std::ostringstream os;
 
-  if (bytes >= GB) {
-    os << std::fixed << std::setprecision(2) << (bytes / GB) << " GB";
-  } else if (bytes >= MB) {
-    os << std::fixed << std::setprecision(2) << (bytes / MB) << " MB";
-  } else if (bytes >= KB) {
-    os << std::fixed << std::setprecision(2) << (bytes / KB) << " KB";
+  if (bytes >= min_gb) {
+    os << std::fixed << std::setprecision(2) << (bytes / min_gb) << " GB";
+  } else if (bytes >= min_mb) {
+    os << std::fixed << std::setprecision(2) << (bytes / min_mb) << " MB";
+  } else if (bytes >= min_kb) {
+    os << std::fixed << std::setprecision(2) << (bytes / min_kb) << " KB";
   } else {
     os << std::to_string(bytes) + " bytes";
   }
@@ -106,11 +106,11 @@ std::string StringUtil::FormatSize(int64_t bytes) {
 }
 
 std::string StringUtil::Bold(const std::string &str) {
-  std::string SET_PLAIN_TEXT = "\033[0;0m";
-  std::string SET_BOLD_TEXT = "\033[0;1m";
+  const std::string set_plain_text = "\033[0;0m";
+  const std::string set_bold_text = "\033[0;1m";
 
   std::ostringstream os;
-  os << SET_BOLD_TEXT << str << SET_PLAIN_TEXT;
+  os << set_bold_text << str << set_plain_text;
   return (os.str());
 }
 
@@ -126,14 +126,14 @@ std::string StringUtil::Lower(const std::string &str) {
   return (copy);
 }
 
-std::string StringUtil::Format(const std::string fmt_str, ...) {
+std::string StringUtil::Format(const std::string fmt_str, ...) { // NOLINT
   // Reserve two times as much as the length of the fmt_str
   int final_n, n = static_cast<int>(fmt_str.size()) * 2;
   std::string str;
   std::unique_ptr<char[]> formatted;
   va_list ap;
 
-  while (1) {
+  while (true) {
     // Wrap the plain char array into the unique_ptr
     formatted.reset(new char[n]);
     // NOLINTNEXTLINE
@@ -163,7 +163,7 @@ std::vector<std::string> StringUtil::Split(const std::string &input, const std::
 
     // Push the substring [last, next) on to splits
     std::string substr = input.substr(last, next - last);
-    if (substr.empty() == false) {
+    if (!substr.empty()) {
       splits.push_back(substr);
     }
     last = next + split_len;
@@ -174,9 +174,9 @@ std::vector<std::string> StringUtil::Split(const std::string &input, const std::
 std::string StringUtil::Strip(const std::string &str, char c) {
   // There's a copy here which is wasteful, so don't use this in performance
   // critical code!
-  std::string tmp = str;
-  tmp.erase(std::remove(tmp.begin(), tmp.end(), c), tmp.end());
-  return tmp;
+  std::string copy(str);
+  copy.erase(std::remove(copy.begin(), copy.end(), c), copy.end());
+  return copy;
 }
 
 }  // namespace terrier::util

@@ -1,3 +1,4 @@
+#include <sstream>
 #include <string>
 #include <utility>
 #include <vector>
@@ -46,11 +47,11 @@ TEST_F(StringUtilTests, RepeatTest) {
   std::vector<std::string> strs = {"", "A", "XYZ"};
 
   for (int size : sizes) {
-    for (std::string str : strs) {
+    for (const std::string &str : strs) {
       std::string result = StringUtil::Repeat(str, size);
       LOG_TRACE("[%d / '%s'] => '%s'", size, str.c_str(), result.c_str());
 
-      if (size == 0 || str.size() == 0) {
+      if (size == 0 || str.empty()) {
         EXPECT_TRUE(result.empty());
       } else {
         EXPECT_FALSE(result.empty());
@@ -70,7 +71,7 @@ TEST_F(StringUtilTests, RepeatTest) {
 
 // NOLINTNEXTLINE
 TEST_F(StringUtilTests, PrefixTest) {
-  std::string message =
+  const std::string message =
       "My man Inf left a Tec and a nine at my crib\n"
       "Turned himself in, he had to do a bid\n"
       // Note the extra newline here
@@ -80,13 +81,13 @@ TEST_F(StringUtilTests, PrefixTest) {
 
   std::vector<std::string> prefixes = {"*", ">>>"};
 
-  for (std::string prefix : prefixes) {
+  for (const std::string &prefix : prefixes) {
     std::string result = StringUtil::Prefix(message, prefix);
     EXPECT_FALSE(result.empty());
     LOG_TRACE("[PREFIX=%s]\n%s\n=======\n", prefix.c_str(), result.c_str());
 
     std::vector<std::string> lines = StringUtil::Split(result, '\n');
-    for (std::string line : lines) {
+    for (const auto &line : lines) {
       std::string substr = line.substr(0, prefix.size());
       EXPECT_EQ(prefix, substr);
     }
@@ -95,14 +96,14 @@ TEST_F(StringUtilTests, PrefixTest) {
 
 // NOLINTNEXTLINE
 TEST_F(StringUtilTests, FormatSizeTest) {
-  std::vector<std::pair<int64_t , std::string>> data = {
+  std::vector<std::pair<int64_t, std::string>> data = {
       std::make_pair(100, "100 bytes"),
       std::make_pair(1200, "1.17 KB"),
       std::make_pair(15721000, "14.99 MB"),
       std::make_pair(9990000000, "9.30 GB"),
   };
 
-  for (auto x : data) {
+  for (const auto &x : data) {
     std::string result = StringUtil::FormatSize(x.first);
     EXPECT_FALSE(result.empty());
     LOG_TRACE("[%ld / '%s'] => %s", x.first, x.second.c_str(), result.c_str());
@@ -128,7 +129,7 @@ TEST_F(StringUtilTests, FormatIntTest) {
       std::make_pair("%+5d", "  +10"), std::make_pair("%-+5d", "+10  "),
   };
 
-  for (std::pair<std::string, std::string> x : data) {
+  for (const std::pair<std::string, std::string> &x : data) {
     std::string result = StringUtil::Format(x.first, val);
     EXPECT_EQ(x.second, result);
   }
@@ -144,7 +145,7 @@ TEST_F(StringUtilTests, FormatFloatTest) {
       std::make_pair("%8.4f", " 10.3456"), std::make_pair("%08.2f", "00010.35"), std::make_pair("%-8.2f", "10.35   "),
   };
 
-  for (std::pair<std::string, std::string> x : data) {
+  for (const std::pair<std::string, std::string> &x : data) {
     std::string result = StringUtil::Format(x.first, val);
     EXPECT_EQ(x.second, result);
   }
@@ -157,12 +158,12 @@ TEST_F(StringUtilTests, SplitTest) {
 		  "Come", "on", "motherfuckers," "come", "on"};
   // clang-format on
 
-  std::string splitChar = "_";
+  std::string split_char = "_";
   for (int i = 1; i <= 5; i++) {
-    std::string split = StringUtil::Repeat(splitChar, i);
+    std::string split = StringUtil::Repeat(split_char, i);
     EXPECT_EQ(i, split.size());
     std::ostringstream os;
-    for (auto w : words) {
+    for (const auto &w : words) {
       os << split << w;
     }
     os << split;
@@ -170,7 +171,7 @@ TEST_F(StringUtilTests, SplitTest) {
 
     // Check that we can split both with the single char
     // and with the full string
-    std::vector<std::string> result0 = StringUtil::Split(input, splitChar);
+    std::vector<std::string> result0 = StringUtil::Split(input, split_char);
     EXPECT_EQ(words.size(), result0.size());
     EXPECT_EQ(words, result0);
 

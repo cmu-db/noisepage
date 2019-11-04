@@ -44,7 +44,7 @@ class StringUtil {
    * @param n
    * @return
    */
-  static std::string Repeat(const std::string &str, const std::size_t n);
+  static std::string Repeat(const std::string &str, std::size_t n);
 
   /**
    * Split the input string based on newline char
@@ -109,7 +109,7 @@ class StringUtil {
    * @param ...
    * @return
    */
-  static std::string Format(const std::string fmt_str, ...);
+  static std::string Format(const std::string fmt_str, ...); // NOLINT
 
   /**
    * Split the input string into a vector of strings based on
@@ -125,13 +125,6 @@ class StringUtil {
    * @param str
    */
   static std::string RTrim(const std::string &str);
-
-  /**
-   *
-   * @param num_indent
-   * @return
-   */
-  static std::string Indent(const int num_indent);
 
   /**
    * Return a new string that has stripped all occurrences of the provided
