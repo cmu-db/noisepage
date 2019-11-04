@@ -282,3 +282,6 @@ list(APPEND TERRIER_LINK_LIBS ${LLVM_LIBRARIES})
 find_package(Sqlite3 REQUIRED)
 include_directories(SYSTEM ${SQLITE3_INCLUDE_DIRS})
 list(APPEND TERRIER_LINK_LIBS ${SQLITE3_LIBRARIES})
+
+#flatbuffers
+include_directories(SYSTEM "${THIRDPARTY_DIR}/flatbuffers/include")

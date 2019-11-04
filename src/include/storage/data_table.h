@@ -1,4 +1,7 @@
 #pragma once
+#include <flatbuffers/flatbuffers.h>
+#include <flatbuffers/generated/Schema_generated.h>
+#include <flatbuffers/generated/Message_generated.h>
 #include <list>
 #include <unordered_map>
 #include <vector>
@@ -212,6 +215,11 @@ class DataTable {
    * @return read-only view of this DataTable's BlockLayout
    */
   const BlockLayout &GetBlockLayout() const { return accessor_.GetBlockLayout(); }
+
+  /**
+   * Dump a table to disk in arrow IPC format.
+   */
+   void DumpTable() const;
 
  private:
   // The GarbageCollector needs to modify VersionPtrs when pruning version chains
