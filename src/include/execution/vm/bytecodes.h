@@ -25,10 +25,14 @@ namespace terrier::execution::vm {
   F(op##_##float, __VA_ARGS__)             \
   F(op##_##double, __VA_ARGS__)
 
+// Creates instances of a given opcode for boolean primitive types
+#define CREATE_FOR_BOOL_TYPES(F, op, ...) F(op##_##bool, __VA_ARGS__)
+
 // Creates instances of a given opcode for *ALL* primitive types
-#define CREATE_FOR_ALL_TYPES(F, op, ...)   \
-  CREATE_FOR_INT_TYPES(F, op, __VA_ARGS__) \
-  CREATE_FOR_FLOAT_TYPES(F, op, __VA_ARGS__)
+#define CREATE_FOR_ALL_TYPES(F, op, ...)     \
+  CREATE_FOR_INT_TYPES(F, op, __VA_ARGS__)   \
+  CREATE_FOR_FLOAT_TYPES(F, op, __VA_ARGS__) \
+  CREATE_FOR_BOOL_TYPES(F, op, __VA_ARGS__)
 
 #define GET_BASE_FOR_INT_TYPES(op) (op##_int8_t)
 #define GET_BASE_FOR_FLOAT_TYPES(op) (op##_float)
@@ -55,6 +59,12 @@ namespace terrier::execution::vm {
   CREATE_FOR_INT_TYPES(F, LessThan, OperandType::Local, OperandType::Local, OperandType::Local)                       \
   CREATE_FOR_INT_TYPES(F, LessThanEqual, OperandType::Local, OperandType::Local, OperandType::Local)                  \
   CREATE_FOR_INT_TYPES(F, NotEqual, OperandType::Local, OperandType::Local, OperandType::Local)                       \
+  CREATE_FOR_BOOL_TYPES(F, GreaterThan, OperandType::Local, OperandType::Local, OperandType::Local)                   \
+  CREATE_FOR_BOOL_TYPES(F, GreaterThanEqual, OperandType::Local, OperandType::Local, OperandType::Local)              \
+  CREATE_FOR_BOOL_TYPES(F, Equal, OperandType::Local, OperandType::Local, OperandType::Local)                         \
+  CREATE_FOR_BOOL_TYPES(F, LessThan, OperandType::Local, OperandType::Local, OperandType::Local)                      \
+  CREATE_FOR_BOOL_TYPES(F, LessThanEqual, OperandType::Local, OperandType::Local, OperandType::Local)                 \
+  CREATE_FOR_BOOL_TYPES(F, NotEqual, OperandType::Local, OperandType::Local, OperandType::Local)                      \
   /* Boolean compliment */                                                                                            \
   F(Not, OperandType::Local, OperandType::Local)                                                                      \
                                                                                                                       \
@@ -159,12 +169,18 @@ namespace terrier::execution::vm {
                                                                                                                       \
   /* SQL type comparisons */                                                                                          \
   F(ForceBoolTruth, OperandType::Local, OperandType::Local)                                                           \
-  F(InitBool, OperandType::Local, OperandType::Local)                                                                 \
+  F(InitBoolVal, OperandType::Local, OperandType::Local)                                                              \
   F(InitInteger, OperandType::Local, OperandType::Local)                                                              \
   F(InitReal, OperandType::Local, OperandType::Local)                                                                 \
   F(InitDate, OperandType::Local, OperandType::Local, OperandType::Local, OperandType::Local)                         \
   F(InitString, OperandType::Local, OperandType::Imm8, OperandType::Imm8)                                             \
   F(InitVarlen, OperandType::Local, OperandType::Local)                                                               \
+  F(LessThanBoolVal, OperandType::Local, OperandType::Local, OperandType::Local)                                      \
+  F(LessThanEqualBoolVal, OperandType::Local, OperandType::Local, OperandType::Local)                                 \
+  F(GreaterThanBoolVal, OperandType::Local, OperandType::Local, OperandType::Local)                                   \
+  F(GreaterThanEqualBoolVal, OperandType::Local, OperandType::Local, OperandType::Local)                              \
+  F(EqualBoolVal, OperandType::Local, OperandType::Local, OperandType::Local)                                         \
+  F(NotEqualBoolVal, OperandType::Local, OperandType::Local, OperandType::Local)                                      \
   F(LessThanInteger, OperandType::Local, OperandType::Local, OperandType::Local)                                      \
   F(LessThanEqualInteger, OperandType::Local, OperandType::Local, OperandType::Local)                                 \
   F(GreaterThanInteger, OperandType::Local, OperandType::Local, OperandType::Local)                                   \
@@ -345,12 +361,14 @@ namespace terrier::execution::vm {
   F(IndexIteratorGetDecimalNull, OperandType::Local, OperandType::Local, OperandType::UImm2)                          \
   F(IndexIteratorGetRealNull, OperandType::Local, OperandType::Local, OperandType::UImm2)                             \
   F(IndexIteratorGetDoubleNull, OperandType::Local, OperandType::Local, OperandType::UImm2)                           \
+  F(IndexIteratorSetKeyBool, OperandType::Local, OperandType::UImm2, OperandType::Local)                              \
   F(IndexIteratorSetKeyTinyInt, OperandType::Local, OperandType::UImm2, OperandType::Local)                           \
   F(IndexIteratorSetKeySmallInt, OperandType::Local, OperandType::UImm2, OperandType::Local)                          \
   F(IndexIteratorSetKeyInt, OperandType::Local, OperandType::UImm2, OperandType::Local)                               \
   F(IndexIteratorSetKeyBigInt, OperandType::Local, OperandType::UImm2, OperandType::Local)                            \
   F(IndexIteratorSetKeyReal, OperandType::Local, OperandType::UImm2, OperandType::Local)                              \
   F(IndexIteratorSetKeyDouble, OperandType::Local, OperandType::UImm2, OperandType::Local)                            \
+  F(IndexIteratorSetKeyBoolNull, OperandType::Local, OperandType::UImm2, OperandType::Local)                          \
   F(IndexIteratorSetKeyTinyIntNull, OperandType::Local, OperandType::UImm2, OperandType::Local)                       \
   F(IndexIteratorSetKeySmallIntNull, OperandType::Local, OperandType::UImm2, OperandType::Local)                      \
   F(IndexIteratorSetKeyIntNull, OperandType::Local, OperandType::UImm2, OperandType::Local)                           \

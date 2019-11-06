@@ -56,6 +56,7 @@ extern "C" {
   VM_OP_HOT void OpNotEqual##_##type(bool *result, type lhs, type rhs) { *result = (lhs != rhs); }
 
 INT_TYPES(COMPARISONS);
+BOOL_TYPES(COMPARISONS);
 
 #undef COMPARISONS
 
@@ -543,7 +544,7 @@ VM_OP_HOT void OpForceBoolTruth(bool *result, terrier::execution::sql::BoolVal *
   *result = input->ForceTruth();
 }
 
-VM_OP_HOT void OpInitBool(terrier::execution::sql::BoolVal *result, bool input) {
+VM_OP_HOT void OpInitBoolVal(terrier::execution::sql::BoolVal *result, bool input) {
   result->is_null_ = false;
   result->val_ = input;
 }
@@ -604,6 +605,7 @@ VM_OP_HOT void OpInitVarlen(terrier::execution::sql::StringVal *result, uintptr_
     terrier::execution::sql::ComparisonFunctions::Ne##TYPE(result, *left, *right);            \
   }
 
+GEN_SQL_COMPARISONS(BoolVal)
 GEN_SQL_COMPARISONS(Integer)
 GEN_SQL_COMPARISONS(Real)
 GEN_SQL_COMPARISONS(StringVal)
@@ -1516,6 +1518,11 @@ VM_OP_HOT void OpIndexIteratorGetDecimalNull(terrier::execution::sql::Decimal *o
   out->is_null_ = false;
 }
 
+VM_OP_HOT void OpIndexIteratorSetKeyBool(terrier::execution::sql::IndexIterator *iter, uint16_t col_idx,
+                                         terrier::execution::sql::BoolVal *val) {
+  iter->SetKey<bool, false>(col_idx, static_cast<bool>(val->val_), val->is_null_);
+}
+
 VM_OP_HOT void OpIndexIteratorSetKeyTinyInt(terrier::execution::sql::IndexIterator *iter, uint16_t col_idx,
                                             terrier::execution::sql::Integer *val) {
   iter->SetKey<int8_t, false>(col_idx, static_cast<int8_t>(val->val_), val->is_null_);
@@ -1544,6 +1551,11 @@ VM_OP_HOT void OpIndexIteratorSetKeyReal(terrier::execution::sql::IndexIterator 
 VM_OP_HOT void OpIndexIteratorSetKeyDouble(terrier::execution::sql::IndexIterator *iter, uint16_t col_idx,
                                            terrier::execution::sql::Real *val) {
   iter->SetKey<double, false>(col_idx, static_cast<double>(val->val_), val->is_null_);
+}
+
+VM_OP_HOT void OpIndexIteratorSetKeyBoolNull(terrier::execution::sql::IndexIterator *iter, uint16_t col_idx,
+                                             terrier::execution::sql::BoolVal *val) {
+  iter->SetKey<bool, true>(col_idx, static_cast<bool>(val->val_), val->is_null_);
 }
 
 VM_OP_HOT void OpIndexIteratorSetKeyTinyIntNull(terrier::execution::sql::IndexIterator *iter, uint16_t col_idx,

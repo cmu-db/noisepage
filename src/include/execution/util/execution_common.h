@@ -31,13 +31,20 @@
   F(float, __VA_ARGS__)             \
   F(double, __VA_ARGS__)
 
+#define FOR_EACH_BOOL_TYPE(F, ...) F(bool, __VA_ARGS__)
+
 #define INT_TYPES(F, ...)                  \
   FOR_EACH_SIGNED_INT_TYPE(F, __VA_ARGS__) \
   FOR_EACH_UNSIGNED_INT_TYPE(F, __VA_ARGS__)
 
-#define ALL_TYPES(F, ...)   \
-  INT_TYPES(F, __VA_ARGS__) \
-  FOR_EACH_FLOAT_TYPE(F, __VA_ARGS__)
+#define FLOAT_TYPES(F, ...) FOR_EACH_FLOAT_TYPE(F, __VA_ARGS__)
+
+#define BOOL_TYPES(F, ...) FOR_EACH_BOOL_TYPE(F, __VA_ARGS__)
+
+#define ALL_TYPES(F, ...)     \
+  INT_TYPES(F, __VA_ARGS__)   \
+  FLOAT_TYPES(F, __VA_ARGS__) \
+  BOOL_TYPES(F, __VA_ARGS__)
 
 //===----------------------------------------------------------------------===//
 // Indicate that a statement should not be reached
