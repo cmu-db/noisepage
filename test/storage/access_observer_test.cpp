@@ -2,8 +2,8 @@
 #include <random>
 #include <thread>  // NOLINT
 #include "storage/block_compactor.h"
-#include "util/storage_test_util.h"
-#include "util/test_harness.h"
+#include "test_util/storage_test_util.h"
+#include "test_util/test_harness.h"
 namespace terrier {
 class MockBlockCompactor : public storage::BlockCompactor {
  public:

@@ -16,8 +16,8 @@
 #include "parser/pg_trigger.h"
 #include "parser/postgresparser.h"
 
+#include "test_util/test_harness.h"
 #include "type/transient_value_peeker.h"
-#include "util/test_harness.h"
 
 namespace terrier::parser {
 
@@ -57,6 +57,12 @@ TEST_F(ParserTestBase, AnalyzeTest) {
   auto analyze_stmt = result.GetStatement(0).CastManagedPointerTo<AnalyzeStatement>();
   EXPECT_EQ(analyze_stmt->GetType(), StatementType::ANALYZE);
   EXPECT_EQ(analyze_stmt->GetAnalyzeTable()->GetTableName(), "table_name");
+}
+
+// NOLINTNEXTLINE
+TEST_F(ParserTestBase, NOOPTest) {
+  auto result = pgparser_.BuildParseTree(";");
+  EXPECT_EQ(result.GetStatements().size(), 0);
 }
 
 // NOLINTNEXTLINE

@@ -3,8 +3,8 @@
 
 #include "benchmark/benchmark.h"
 #include "common/scoped_timer.h"
-#include "util/bwtree_test_util.h"
-#include "util/multithread_test_util.h"
+#include "test_util/bwtree_test_util.h"
+#include "test_util/multithread_test_util.h"
 
 namespace terrier {
 
