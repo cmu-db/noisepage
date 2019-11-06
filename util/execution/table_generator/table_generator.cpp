@@ -49,6 +49,11 @@ std::pair<byte *, uint32_t *> TableGenerator::GenerateColumnData(const ColumnIns
     case type::TypeId::BOOLEAN: {
       throw std::runtime_error("Implement me!");
     }
+    case type::TypeId::TINYINT: {
+      col_data = reinterpret_cast<byte *>(
+          CreateNumberColumnData<int8_t>(col_meta.dist_, num_rows, col_meta.min_, col_meta.max_));
+      break;
+    }
     case type::TypeId::SMALLINT: {
       col_data = reinterpret_cast<byte *>(
           CreateNumberColumnData<int16_t>(col_meta.dist_, num_rows, col_meta.min_, col_meta.max_));
@@ -168,6 +173,14 @@ void TableGenerator::GenerateTestTables() {
         {"col2", type::TypeId::INTEGER, true, Dist::Uniform, 0, 9},
         {"col3", type::TypeId::BIGINT, false, Dist::Uniform, 0, common::Constants::K_DEFAULT_VECTOR_SIZE},
         {"col4", type::TypeId::INTEGER, true, Dist::Uniform, 0, 2 * common::Constants::K_DEFAULT_VECTOR_SIZE}}},
+
+      // Table 3
+      {"all_types",
+       TEST2_SIZE,
+       {{"tinyint_col", type::TypeId::TINYINT, false, Dist::Uniform, 0, 127},
+        {"smallint_col", type::TypeId::SMALLINT, false, Dist::Serial, 0, 1000},
+        {"int_col", type::TypeId::INTEGER, false, Dist::Uniform, 0, 1000},
+        {"bigint_col", type::TypeId::BIGINT, false, Dist::Uniform, 0, 1000}}},
 
       // Empty table with two columns
       {"empty_table2",
