@@ -79,44 +79,18 @@ void RecoveryManager::ProcessCommittedTransaction(terrier::transaction::timestam
   // Begin a txn to replay changes with.
   auto *txn = txn_manager_->BeginTransaction();
 
-  // For recording recovery throughput metric
-  uint64_t elapsed_us = 0;
-  uint64_t total_elapsed_us = 0;
-  uint64_t num_txns = 0;
-  uint64_t num_bytes = 0;
-
   // Apply all buffered changes. They should all succeed. After applying we can safely delete the record
   for (uint32_t idx = 0; idx < buffered_changes_map_[txn_id].size(); idx++) {
     auto *buffered_record = buffered_changes_map_[txn_id][idx].first;
     TERRIER_ASSERT(
         buffered_record->RecordType() == LogRecordType::REDO || buffered_record->RecordType() == LogRecordType::DELETE,
         "Buffered record must be a redo or delete.");
-    {
-      common::ScopedTimer<std::chrono::microseconds> scoped_timer(&elapsed_us);
-      if (IsSpecialCaseCatalogRecord(buffered_record)) {
-        idx += ProcessSpecialCaseCatalogRecord(txn, &buffered_changes_map_[txn_id], idx);
-      } else if (buffered_record->RecordType() == LogRecordType::REDO) {
-        ReplayRedoRecord(txn, buffered_record);
-      } else {
-        ReplayDeleteRecord(txn, buffered_record);
-      }
-    }
-
-    // Update metrics
-    total_elapsed_us += elapsed_us;
-    num_txns += 1;
-    num_bytes += buffered_record->Size();
-
-    // Check if we need to export throughput metric
-    if (total_elapsed_us >= recovery_metric_interval_) {
-      // Export throughput metric
-      if (num_txns > 0 && common::thread_context.metrics_store_ != nullptr &&
-          common::thread_context.metrics_store_->ComponentEnabled(metrics::MetricsComponent::RECOVERY)) {
-        common::thread_context.metrics_store_->RecordRecoveryData(num_txns, num_bytes);
-        num_txns = 0;
-        num_bytes = 0;
-      }
-      total_elapsed_us = 0;
+    if (IsSpecialCaseCatalogRecord(buffered_record)) {
+      idx += ProcessSpecialCaseCatalogRecord(txn, &buffered_changes_map_[txn_id], idx);
+    } else if (buffered_record->RecordType() == LogRecordType::REDO) {
+      ReplayRedoRecord(txn, buffered_record);
+    } else {
+      ReplayDeleteRecord(txn, buffered_record);
     }
   }
 
@@ -144,15 +118,41 @@ void RecoveryManager::DeferRecordDeletes(terrier::transaction::timestamp_t txn_i
 
 uint32_t RecoveryManager::ProcessDeferredTransactions(terrier::transaction::timestamp_t upper_bound_ts) {
   auto txns_processed = 0;
+
   // If the upper bound is INVALID_TXN_TIMESTAMP, then we should process all deferred txns. We can accomplish this by
   // setting the upper bound to INT_MAX
   upper_bound_ts =
       (upper_bound_ts == transaction::INVALID_TXN_TIMESTAMP) ? transaction::timestamp_t(INT64_MAX) : upper_bound_ts;
   auto upper_bound_it = deferred_txns_.upper_bound(upper_bound_ts);
 
+  // For recording recovery throughput metric
+  uint64_t elapsed_us = 0;
+  uint64_t total_elapsed_us = 0;
+  uint64_t num_txns = 0;
+  uint64_t num_bytes = 0;
   for (auto it = deferred_txns_.begin(); it != upper_bound_it; it++) {
-    ProcessCommittedTransaction(*it);
+    {
+      common::ScopedTimer<std::chrono::microseconds> scoped_timer(&elapsed_us);
+      ProcessCommittedTransaction(*it);
+    }
     txns_processed++;
+
+    // Update metrics
+    total_elapsed_us += elapsed_us;
+    num_txns += 1;
+    num_bytes += buffered_record->Size();
+
+    // Check if we need to export throughput metric
+    if (total_elapsed_us >= recovery_metric_interval_) {
+      // Export throughput metric
+      if (num_txns > 0 && common::thread_context.metrics_store_ != DISABLED &&
+          common::thread_context.metrics_store_->ComponentEnabled(metrics::MetricsComponent::RECOVERY)) {
+        common::thread_context.metrics_store_->RecordRecoveryData(num_txns, num_bytes);
+        num_txns = 0;
+        num_bytes = 0;
+        total_elapsed_us = 0;
+      }
+    }
   }
 
   // If we actually processed some txns, remove them from the set
