@@ -39,7 +39,7 @@ namespace terrier::execution::ast {
   F(TableIterClose, tableIterClose)                                   \
   F(TableIterParallel, iterateTableParallel)                          \
                                                                       \
-  /* PCI */                                                           \
+  /* Projected Column Iterator (PCI) */                               \
   F(PCIIsFiltered, pciIsFiltered)                                     \
   F(PCIHasNext, pciHasNext)                                           \
   F(PCIHasNextFiltered, pciHasNextFiltered)                           \
@@ -48,6 +48,7 @@ namespace terrier::execution::ast {
   F(PCIMatch, pciMatch)                                               \
   F(PCIReset, pciReset)                                               \
   F(PCIResetFiltered, pciResetFiltered)                               \
+  F(PCIGetBool, pciGetBool)                                           \
   F(PCIGetTinyInt, pciGetTinyInt)                                     \
   F(PCIGetSmallInt, pciGetSmallInt)                                   \
   F(PCIGetInt, pciGetInt)                                             \
@@ -56,6 +57,7 @@ namespace terrier::execution::ast {
   F(PCIGetDouble, pciGetDouble)                                       \
   F(PCIGetDate, pciGetDate)                                           \
   F(PCIGetVarlen, pciGetVarlen)                                       \
+  F(PCIGetBoolNull, pciGetBoolNull)                                   \
   F(PCIGetTinyIntNull, pciGetTinyIntNull)                             \
   F(PCIGetSmallIntNull, pciGetSmallIntNull)                           \
   F(PCIGetIntNull, pciGetIntNull)                                     \
@@ -145,12 +147,14 @@ namespace terrier::execution::ast {
   F(IndexIteratorInitBind, indexIteratorInitBind)                     \
   F(IndexIteratorScanKey, indexIteratorScanKey)                       \
   F(IndexIteratorAdvance, indexIteratorAdvance)                       \
+  F(IndexIteratorGetBool, indexIteratorGetBool)                       \
   F(IndexIteratorGetTinyInt, indexIteratorGetTinyInt)                 \
   F(IndexIteratorGetSmallInt, indexIteratorGetSmallInt)               \
   F(IndexIteratorGetInt, indexIteratorGetInt)                         \
   F(IndexIteratorGetBigInt, indexIteratorGetBigInt)                   \
   F(IndexIteratorGetReal, indexIteratorGetReal)                       \
   F(IndexIteratorGetDouble, indexIteratorGetDouble)                   \
+  F(IndexIteratorGetBoolNull, indexIteratorGetBoolNull)               \
   F(IndexIteratorGetTinyIntNull, indexIteratorGetTinyIntNull)         \
   F(IndexIteratorGetSmallIntNull, indexIteratorGetSmallIntNull)       \
   F(IndexIteratorGetIntNull, indexIteratorGetIntNull)                 \

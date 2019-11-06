@@ -250,6 +250,17 @@ VM_OP_HOT void OpPCIReset(terrier::execution::sql::ProjectedColumnsIterator *pci
 
 VM_OP_HOT void OpPCIResetFiltered(terrier::execution::sql::ProjectedColumnsIterator *pci) { pci->ResetFiltered(); }
 
+VM_OP_HOT void OpPCIGetBool(terrier::execution::sql::BoolVal *out,
+                            terrier::execution::sql::ProjectedColumnsIterator *iter, uint16_t col_idx) {
+  // Read
+  auto *ptr = iter->Get<bool, false>(col_idx, nullptr);
+  TERRIER_ASSERT(ptr != nullptr, "Null pointer when trying to read bool");
+
+  // Set
+  out->is_null_ = false;
+  out->val_ = *ptr;
+}
+
 VM_OP_HOT void OpPCIGetTinyInt(terrier::execution::sql::Integer *out,
                                terrier::execution::sql::ProjectedColumnsIterator *iter, uint16_t col_idx) {
   // Read
@@ -345,6 +356,18 @@ VM_OP_HOT void OpPCIGetVarlen(terrier::execution::sql::StringVal *out,
 
   // Set
   *out = terrier::execution::sql::StringVal(reinterpret_cast<const char *>(varlen->Content()), varlen->Size());
+}
+
+VM_OP_HOT void OpPCIGetBoolNull(terrier::execution::sql::BoolVal *out,
+                                terrier::execution::sql::ProjectedColumnsIterator *iter, uint16_t col_idx) {
+  // Read
+  bool null = false;
+  auto *ptr = iter->Get<bool, true>(col_idx, &null);
+  TERRIER_ASSERT(ptr != nullptr, "Null pointer when trying to read bool");
+
+  // Set
+  out->is_null_ = null;
+  out->val_ = *ptr;
 }
 
 VM_OP_HOT void OpPCIGetTinyIntNull(terrier::execution::sql::Integer *out,
@@ -1325,6 +1348,17 @@ VM_OP_HOT void OpIndexIteratorAdvance(bool *has_more, terrier::execution::sql::I
   *has_more = iter->Advance();
 }
 
+VM_OP_HOT void OpIndexIteratorGetBool(terrier::execution::sql::BoolVal *out,
+                                      terrier::execution::sql::IndexIterator *iter, uint16_t col_idx) {
+  // Read
+  auto *ptr = iter->Get<bool, false>(col_idx, nullptr);
+  TERRIER_ASSERT(ptr != nullptr, "Null pointer when trying to read boolean");
+
+  // Set
+  out->is_null_ = false;
+  out->val_ = *ptr;
+}
+
 VM_OP_HOT void OpIndexIteratorGetTinyInt(terrier::execution::sql::Integer *out,
                                          terrier::execution::sql::IndexIterator *iter, uint16_t col_idx) {
   // Read
@@ -1397,6 +1431,17 @@ VM_OP_HOT void OpIndexIteratorGetDecimal(terrier::execution::sql::Decimal *out,
   // Set
   out->is_null_ = false;
   out->val_ = 0;
+}
+
+VM_OP_HOT void OpIndexIteratorGetBoolNull(terrier::execution::sql::BoolVal *out,
+                                          terrier::execution::sql::IndexIterator *iter, uint16_t col_idx) {
+  // Read
+  bool null = false;
+  auto *ptr = iter->Get<bool, true>(col_idx, &null);
+
+  // Set
+  out->is_null_ = null;
+  out->val_ = null ? 0 : *ptr;
 }
 
 VM_OP_HOT void OpIndexIteratorGetTinyIntNull(terrier::execution::sql::Integer *out,

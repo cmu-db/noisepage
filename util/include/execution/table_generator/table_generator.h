@@ -168,9 +168,25 @@ class TableGenerator {
 
   void InitTestIndexes();
 
-  // Create integer data with the given distribution
+  /**
+   * Create an array of integer data with the given distribution
+   * @tparam T data type
+   * @param dist distribution type
+   * @param num_vals the number of elements in the array
+   * @param min the min value
+   * @param max the max value
+   * @return
+   */
   template <typename T>
   T *CreateNumberColumnData(Dist dist, uint32_t num_vals, uint64_t min, uint64_t max);
+
+  /**
+   * Create an array of
+   * @param dist
+   * @param num_vals
+   * @return
+   */
+  bool *CreateBooleanColumnData(Dist dist, uint32_t num_vals);
 
   // Generate column data
   std::pair<byte *, uint32_t *> GenerateColumnData(const ColumnInsertMeta &col_meta, uint32_t num_rows);

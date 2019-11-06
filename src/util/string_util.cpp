@@ -20,8 +20,8 @@ bool StringUtil::Contains(const std::string &haystack, const std::string &needle
  */
 std::string StringUtil::RTrim(const std::string &str) {
   std::string copy(str);
-  copy.erase(std::find_if(copy.rbegin(), copy.rend(),
-      [](unsigned char c){ return std::isspace(c) == 0; }).base(), copy.end());
+  copy.erase(std::find_if(copy.rbegin(), copy.rend(), [](unsigned char c) { return std::isspace(c) == 0; }).base(),
+             copy.end());
   return (copy);
 }
 
@@ -126,7 +126,7 @@ std::string StringUtil::Lower(const std::string &str) {
   return (copy);
 }
 
-std::string StringUtil::Format(const std::string fmt_str, ...) { // NOLINT
+std::string StringUtil::Format(const std::string fmt_str, ...) {  // NOLINT
   // Reserve two times as much as the length of the fmt_str
   int final_n, n = static_cast<int>(fmt_str.size()) * 2;
   std::string str;

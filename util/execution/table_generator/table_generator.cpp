@@ -41,13 +41,40 @@ T *TableGenerator::CreateNumberColumnData(Dist dist, uint32_t num_vals, uint64_t
   return val;
 }
 
+bool *TableGenerator::CreateBooleanColumnData(Dist dist, uint32_t num_vals) {
+  auto *val = new bool[num_vals];
+
+  switch (dist) {
+    case Dist::Uniform: {
+      std::mt19937 generator{};
+      std::uniform_int_distribution<int16_t> distribution(0, 1);
+      for (uint32_t i = 0; i < num_vals; i++) {
+        val[i] = distribution(generator) % 2 == 0;
+      }
+      break;
+    }
+    case Dist::Serial: {
+      // Split the false/true values by half
+      uint32_t half = num_vals / 2;
+      for (uint32_t i = 0; i < num_vals; i++) {
+        val[i] = (i >= half);
+      }
+      break;
+    }
+    default:
+      throw std::runtime_error("Unsupported distribution type for boolean columns");
+  }
+
+  return val;
+}
+
 // Generate column data
 std::pair<byte *, uint32_t *> TableGenerator::GenerateColumnData(const ColumnInsertMeta &col_meta, uint32_t num_rows) {
   // Create data
   byte *col_data = nullptr;
   switch (col_meta.type_) {
     case type::TypeId::BOOLEAN: {
-      throw std::runtime_error("Implement me!");
+      col_data = reinterpret_cast<byte *>(CreateBooleanColumnData(col_meta.dist_, num_rows));
     }
     case type::TypeId::TINYINT: {
       col_data = reinterpret_cast<byte *>(
@@ -71,7 +98,7 @@ std::pair<byte *, uint32_t *> TableGenerator::GenerateColumnData(const ColumnIns
       break;
     }
     default: {
-      throw std::runtime_error("Implement me!");
+      throw std::runtime_error("Unsupported type");
     }
   }
 
@@ -177,7 +204,8 @@ void TableGenerator::GenerateTestTables() {
       // Table 3
       {"all_types",
        TEST2_SIZE,
-       {{"tinyint_col", type::TypeId::TINYINT, false, Dist::Uniform, 0, 127},
+       {{"bool_col", type::TypeId::BOOLEAN, false, Dist::Serial, 0, 0},
+        {"tinyint_col", type::TypeId::TINYINT, false, Dist::Uniform, 0, 127},
         {"smallint_col", type::TypeId::SMALLINT, false, Dist::Serial, 0, 1000},
         {"int_col", type::TypeId::INTEGER, false, Dist::Uniform, 0, 1000},
         {"bigint_col", type::TypeId::BIGINT, false, Dist::Uniform, 0, 1000}}},

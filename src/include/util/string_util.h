@@ -109,7 +109,7 @@ class StringUtil {
    * @param ...
    * @return
    */
-  static std::string Format(const std::string fmt_str, ...); // NOLINT
+  static std::string Format(const std::string fmt_str, ...);  // NOLINT
 
   /**
    * Split the input string into a vector of strings based on

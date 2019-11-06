@@ -1002,6 +1002,8 @@ void Sema::CheckBuiltinPCICall(ast::CallExpr *call, ast::Builtin builtin) {
       call->SetType(GetBuiltinType(ast::BuiltinType::Nil));
       break;
     }
+    case ast::Builtin::PCIGetBool:
+    case ast::Builtin::PCIGetBoolNull:
     case ast::Builtin::PCIGetTinyInt:
     case ast::Builtin::PCIGetTinyIntNull:
     case ast::Builtin::PCIGetSmallInt:
@@ -1539,6 +1541,10 @@ void Sema::CheckBuiltinIndexIteratorGet(execution::ast::CallExpr *call, ast::Bui
 
   // Set return type
   switch (builtin) {
+    case ast::Builtin::IndexIteratorGetBool:
+    case ast::Builtin::IndexIteratorGetBoolNull:
+      call->SetType(ast::BuiltinType::Get(GetContext(), ast::BuiltinType::Bool));
+      break;
     case ast::Builtin::IndexIteratorGetTinyInt:
     case ast::Builtin::IndexIteratorGetSmallInt:
     case ast::Builtin::IndexIteratorGetInt:
@@ -1693,6 +1699,8 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
     case ast::Builtin::PCIMatch:
     case ast::Builtin::PCIReset:
     case ast::Builtin::PCIResetFiltered:
+    case ast::Builtin::PCIGetBool:
+    case ast::Builtin::PCIGetBoolNull:
     case ast::Builtin::PCIGetTinyInt:
     case ast::Builtin::PCIGetTinyIntNull:
     case ast::Builtin::PCIGetSmallInt:
@@ -1841,12 +1849,14 @@ void Sema::CheckBuiltinCall(ast::CallExpr *call) {
       CheckBuiltinIndexIteratorAdvance(call);
       break;
     }
+    case ast::Builtin::IndexIteratorGetBool:
     case ast::Builtin::IndexIteratorGetTinyInt:
     case ast::Builtin::IndexIteratorGetSmallInt:
     case ast::Builtin::IndexIteratorGetInt:
     case ast::Builtin::IndexIteratorGetBigInt:
     case ast::Builtin::IndexIteratorGetDouble:
     case ast::Builtin::IndexIteratorGetReal:
+    case ast::Builtin::IndexIteratorGetBoolNull:
     case ast::Builtin::IndexIteratorGetTinyIntNull:
     case ast::Builtin::IndexIteratorGetSmallIntNull:
     case ast::Builtin::IndexIteratorGetIntNull:
