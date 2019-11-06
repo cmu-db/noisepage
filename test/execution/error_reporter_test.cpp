@@ -31,8 +31,9 @@ class ErrorReporterTest : public TplTest {
   std::unique_ptr<ast::Context> ctx_;
 };
 
+// TODO(pavlo): This test is disabled until the invalid memory access error in the TPL parser is fixed (#610)
 // NOLINTNEXTLINE
-TEST_F(ErrorReporterTest, SerializeErrorsTest) {
+TEST_F(ErrorReporterTest, DISABLED_SerializeErrorsTest) {
   // Throw some busted TPL at the parser and check the error
   const auto src = R"(
     fun bad_function(xyz: int) -> void {

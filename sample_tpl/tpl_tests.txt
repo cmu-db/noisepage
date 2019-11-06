@@ -55,6 +55,7 @@ scan-table.tpl,true,500
 scan-table-2.tpl,true,500
 scan-table-3.tpl,true,9950
 #scan-table-4.tpl,true,5 <Non deterministic>
+scan-alltypes.tpl,true,1000
 scan-vpi-iter.tpl,true,500
 sort.tpl,true,2000
 vec-filter.tpl,true,3000
