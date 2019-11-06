@@ -117,6 +117,7 @@ namespace terrier::execution::vm {
   F(PCIMatch, OperandType::Local, OperandType::Local)                                                                 \
   F(PCIReset, OperandType::Local)                                                                                     \
   F(PCIResetFiltered, OperandType::Local)                                                                             \
+  F(PCIGetBool, OperandType::Local, OperandType::Local, OperandType::UImm2)                                           \
   F(PCIGetTinyInt, OperandType::Local, OperandType::Local, OperandType::UImm2)                                        \
   F(PCIGetSmallInt, OperandType::Local, OperandType::Local, OperandType::UImm2)                                       \
   F(PCIGetInteger, OperandType::Local, OperandType::Local, OperandType::UImm2)                                        \
@@ -126,6 +127,7 @@ namespace terrier::execution::vm {
   F(PCIGetDecimal, OperandType::Local, OperandType::Local, OperandType::UImm2)                                        \
   F(PCIGetDate, OperandType::Local, OperandType::Local, OperandType::UImm2)                                           \
   F(PCIGetVarlen, OperandType::Local, OperandType::Local, OperandType::UImm2)                                         \
+  F(PCIGetBoolNull, OperandType::Local, OperandType::Local, OperandType::UImm2)                                       \
   F(PCIGetTinyIntNull, OperandType::Local, OperandType::Local, OperandType::UImm2)                                    \
   F(PCIGetSmallIntNull, OperandType::Local, OperandType::Local, OperandType::UImm2)                                   \
   F(PCIGetIntegerNull, OperandType::Local, OperandType::Local, OperandType::UImm2)                                    \
@@ -327,6 +329,7 @@ namespace terrier::execution::vm {
   F(IndexIteratorScanKey, OperandType::Local)                                                                         \
   F(IndexIteratorFree, OperandType::Local)                                                                            \
   F(IndexIteratorAdvance, OperandType::Local, OperandType::Local)                                                     \
+  F(IndexIteratorGetBool, OperandType::Local, OperandType::Local, OperandType::UImm2)                                 \
   F(IndexIteratorGetTinyInt, OperandType::Local, OperandType::Local, OperandType::UImm2)                              \
   F(IndexIteratorGetSmallInt, OperandType::Local, OperandType::Local, OperandType::UImm2)                             \
   F(IndexIteratorGetInteger, OperandType::Local, OperandType::Local, OperandType::UImm2)                              \
@@ -334,6 +337,7 @@ namespace terrier::execution::vm {
   F(IndexIteratorGetDecimal, OperandType::Local, OperandType::Local, OperandType::UImm2)                              \
   F(IndexIteratorGetReal, OperandType::Local, OperandType::Local, OperandType::UImm2)                                 \
   F(IndexIteratorGetDouble, OperandType::Local, OperandType::Local, OperandType::UImm2)                               \
+  F(IndexIteratorGetBoolNull, OperandType::Local, OperandType::Local, OperandType::UImm2)                             \
   F(IndexIteratorGetTinyIntNull, OperandType::Local, OperandType::Local, OperandType::UImm2)                          \
   F(IndexIteratorGetSmallIntNull, OperandType::Local, OperandType::Local, OperandType::UImm2)                         \
   F(IndexIteratorGetIntegerNull, OperandType::Local, OperandType::Local, OperandType::UImm2)                          \

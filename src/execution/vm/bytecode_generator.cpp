@@ -599,6 +599,18 @@ void BytecodeGenerator::VisitBuiltinPCICall(ast::CallExpr *call, ast::Builtin bu
       Emitter()->Emit(bytecode, pci);
       break;
     }
+    case ast::Builtin::PCIGetBool: {
+      LocalVar val = ExecutionResult()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Boolean));
+      auto col_idx = static_cast<uint16_t>(call->Arguments()[1]->As<ast::LitExpr>()->Int64Val());
+      Emitter()->EmitPCIGet(Bytecode::PCIGetBool, val, pci, col_idx);
+      break;
+    }
+    case ast::Builtin::PCIGetBoolNull: {
+      LocalVar val = ExecutionResult()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Boolean));
+      auto col_idx = static_cast<uint16_t>(call->Arguments()[1]->As<ast::LitExpr>()->Int64Val());
+      Emitter()->EmitPCIGet(Bytecode::PCIGetBoolNull, val, pci, col_idx);
+      break;
+    }
     case ast::Builtin::PCIGetTinyInt: {
       LocalVar val = ExecutionResult()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Integer));
       auto col_idx = static_cast<uint16_t>(call->Arguments()[1]->As<ast::LitExpr>()->Int64Val());
@@ -1449,6 +1461,12 @@ void BytecodeGenerator::VisitBuiltinIndexIteratorCall(ast::CallExpr *call, ast::
       Emitter()->Emit(Bytecode::IndexIteratorFree, iterator);
       break;
     }
+    case ast::Builtin::IndexIteratorGetBool: {
+      LocalVar val = ExecutionResult()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Bool));
+      auto col_idx = static_cast<uint16_t>(call->Arguments()[1]->As<ast::LitExpr>()->Int64Val());
+      Emitter()->EmitIndexIteratorGet(Bytecode::IndexIteratorGetBool, val, iterator, col_idx);
+      break;
+    }
     case ast::Builtin::IndexIteratorGetTinyInt: {
       LocalVar val = ExecutionResult()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Integer));
       auto col_idx = static_cast<uint16_t>(call->Arguments()[1]->As<ast::LitExpr>()->Int64Val());
@@ -1483,6 +1501,12 @@ void BytecodeGenerator::VisitBuiltinIndexIteratorCall(ast::CallExpr *call, ast::
       LocalVar val = ExecutionResult()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Real));
       auto col_idx = static_cast<uint16_t>(call->Arguments()[1]->As<ast::LitExpr>()->Int64Val());
       Emitter()->EmitIndexIteratorGet(Bytecode::IndexIteratorGetDouble, val, iterator, col_idx);
+      break;
+    }
+    case ast::Builtin::IndexIteratorGetBoolNull: {
+      LocalVar val = ExecutionResult()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Bool));
+      auto col_idx = static_cast<uint16_t>(call->Arguments()[1]->As<ast::LitExpr>()->Int64Val());
+      Emitter()->EmitIndexIteratorGet(Bytecode::IndexIteratorGetBoolNull, val, iterator, col_idx);
       break;
     }
     case ast::Builtin::IndexIteratorGetTinyIntNull: {
@@ -1656,6 +1680,8 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
     case ast::Builtin::PCIMatch:
     case ast::Builtin::PCIReset:
     case ast::Builtin::PCIResetFiltered:
+    case ast::Builtin::PCIGetBool:
+    case ast::Builtin::PCIGetBoolNull:
     case ast::Builtin::PCIGetTinyInt:
     case ast::Builtin::PCIGetTinyIntNull:
     case ast::Builtin::PCIGetSmallInt:
@@ -1776,12 +1802,14 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
     case ast::Builtin::IndexIteratorInitBind:
     case ast::Builtin::IndexIteratorScanKey:
     case ast::Builtin::IndexIteratorAdvance:
+    case ast::Builtin::IndexIteratorGetBool:
     case ast::Builtin::IndexIteratorGetTinyInt:
     case ast::Builtin::IndexIteratorGetSmallInt:
     case ast::Builtin::IndexIteratorGetInt:
     case ast::Builtin::IndexIteratorGetBigInt:
     case ast::Builtin::IndexIteratorGetReal:
     case ast::Builtin::IndexIteratorGetDouble:
+    case ast::Builtin::IndexIteratorGetBoolNull:
     case ast::Builtin::IndexIteratorGetTinyIntNull:
     case ast::Builtin::IndexIteratorGetSmallIntNull:
     case ast::Builtin::IndexIteratorGetIntNull:
