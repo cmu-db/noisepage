@@ -245,6 +245,7 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {
   DO_GEN_COMPARISON(NotEqual, type)
 
   INT_TYPES(GEN_COMPARISON_TYPES)
+  BOOL_TYPES(GEN_COMPARISON_TYPES)
 #undef GEN_COMPARISON_TYPES
 #undef DO_GEN_COMPARISON
 
@@ -613,6 +614,7 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {
     OpPCIGet##type_str##Null(result, pci, col_idx);                               \
     DISPATCH_NEXT();                                                              \
   }
+  GEN_PCI_ACCESS(Bool, sql::BoolVal)
   GEN_PCI_ACCESS(TinyInt, sql::Integer)
   GEN_PCI_ACCESS(SmallInt, sql::Integer)
   GEN_PCI_ACCESS(Integer, sql::Integer)
@@ -718,7 +720,7 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {
   }
 
   // -------------------------------------------------------
-  // SQL Integer Comparison Operations
+  // SQL Comparison Operations
   // -------------------------------------------------------
 
   OP(ForceBoolTruth) : {
@@ -728,10 +730,10 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {
     DISPATCH_NEXT();
   }
 
-  OP(InitBool) : {
+  OP(InitBoolVal) : {
     auto *sql_bool = frame->LocalAt<sql::BoolVal *>(READ_LOCAL_ID());
     auto val = frame->LocalAt<bool>(READ_LOCAL_ID());
-    OpInitBool(sql_bool, val);
+    OpInitBoolVal(sql_bool, val);
     DISPATCH_NEXT();
   }
 
@@ -774,6 +776,13 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {
   }
 
 #define GEN_CMP(op)                                                  \
+  OP(op##BoolVal) : {                                                \
+    auto *result = frame->LocalAt<sql::BoolVal *>(READ_LOCAL_ID());  \
+    auto *left = frame->LocalAt<sql::BoolVal *>(READ_LOCAL_ID());    \
+    auto *right = frame->LocalAt<sql::BoolVal *>(READ_LOCAL_ID());   \
+    Op##op##BoolVal(result, left, right);                            \
+    DISPATCH_NEXT();                                                 \
+  }                                                                  \
   OP(op##Integer) : {                                                \
     auto *result = frame->LocalAt<sql::BoolVal *>(READ_LOCAL_ID());  \
     auto *left = frame->LocalAt<sql::Integer *>(READ_LOCAL_ID());    \
@@ -1420,6 +1429,7 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {
     OpIndexIteratorGet##type_str##Null(result, iter, col_idx);          \
     DISPATCH_NEXT();                                                    \
   }
+  GEN_INDEX_ITERATOR_ACCESS(Bool, sql::BoolVal)
   GEN_INDEX_ITERATOR_ACCESS(TinyInt, sql::Integer)
   GEN_INDEX_ITERATOR_ACCESS(SmallInt, sql::Integer)
   GEN_INDEX_ITERATOR_ACCESS(Integer, sql::Integer)
@@ -1444,6 +1454,7 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {
     OpIndexIteratorSetKey##type_str##Null(iter, col_idx, val);          \
     DISPATCH_NEXT();                                                    \
   }
+  GEN_INDEX_ITERATOR_SET(Bool, sql::BoolVal)
   GEN_INDEX_ITERATOR_SET(TinyInt, sql::Integer)
   GEN_INDEX_ITERATOR_SET(SmallInt, sql::Integer)
   GEN_INDEX_ITERATOR_SET(Int, sql::Integer)

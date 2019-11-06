@@ -440,7 +440,7 @@ void BytecodeGenerator::VisitSqlConversionCall(ast::CallExpr *call, ast::Builtin
     case ast::Builtin::BoolToSql: {
       auto dest = ExecutionResult()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Boolean));
       auto input = VisitExpressionForRValue(call->Arguments()[0]);
-      Emitter()->Emit(Bytecode::InitBool, dest, input);
+      Emitter()->Emit(Bytecode::InitBoolVal, dest, input);
       break;
     }
     case ast::Builtin::IntToSql: {
@@ -1545,6 +1545,12 @@ void BytecodeGenerator::VisitBuiltinIndexIteratorCall(ast::CallExpr *call, ast::
       Emitter()->EmitIndexIteratorGet(Bytecode::IndexIteratorGetDoubleNull, val, iterator, col_idx);
       break;
     }
+    case ast::Builtin::IndexIteratorSetKeyBool: {
+      auto col_idx = static_cast<uint16_t>(call->Arguments()[1]->As<ast::LitExpr>()->Int64Val());
+      LocalVar val = VisitExpressionForLValue(call->Arguments()[2]);
+      Emitter()->EmitIndexIteratorSetKey(Bytecode::IndexIteratorSetKeyBool, iterator, col_idx, val);
+      break;
+    }
     case ast::Builtin::IndexIteratorSetKeyTinyInt: {
       auto col_idx = static_cast<uint16_t>(call->Arguments()[1]->As<ast::LitExpr>()->Int64Val());
       LocalVar val = VisitExpressionForLValue(call->Arguments()[2]);
@@ -1579,6 +1585,12 @@ void BytecodeGenerator::VisitBuiltinIndexIteratorCall(ast::CallExpr *call, ast::
       auto col_idx = static_cast<uint16_t>(call->Arguments()[1]->As<ast::LitExpr>()->Int64Val());
       LocalVar val = VisitExpressionForLValue(call->Arguments()[2]);
       Emitter()->EmitIndexIteratorSetKey(Bytecode::IndexIteratorSetKeyDouble, iterator, col_idx, val);
+      break;
+    }
+    case ast::Builtin::IndexIteratorSetKeyBoolNull: {
+      auto col_idx = static_cast<uint16_t>(call->Arguments()[1]->As<ast::LitExpr>()->Int64Val());
+      LocalVar val = VisitExpressionForLValue(call->Arguments()[2]);
+      Emitter()->EmitIndexIteratorSetKey(Bytecode::IndexIteratorSetKeyBoolNull, iterator, col_idx, val);
       break;
     }
     case ast::Builtin::IndexIteratorSetKeyTinyIntNull: {
