@@ -2,8 +2,6 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
-#include "di/di_help.h"
-#include "di/injectors.h"
 #include "gtest/gtest.h"
 #include "main/db_main.h"
 #include "storage/data_table.h"

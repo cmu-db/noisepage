@@ -1,8 +1,6 @@
 #include <memory>
 #include <random>
 #include <vector>
-#include "di/di_help.h"
-#include "di/injectors.h"
 #include "gtest/gtest.h"
 #include "storage/garbage_collector_thread.h"
 #include "test_util/data_table_test_util.h"

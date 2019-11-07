@@ -1,7 +1,5 @@
 #include <memory>
 #include <vector>
-#include "di/di_help.h"
-#include "di/injectors.h"
 #include "gtest/gtest.h"
 #include "test_util/data_table_test_util.h"
 
