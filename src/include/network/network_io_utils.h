@@ -229,6 +229,18 @@ class ReadBuffer : public Buffer {
   }
 
   /**
+   * Read the specified amount of bytes off from a ReadBufferView. The bytes
+   * will be consumed (cursor moved) on the view and appended to the end
+   * of this buffer
+   * @param other The view to read from
+   * @param size Number of bytes to read
+   */
+  void FillBufferFrom(ReadBufferView other, size_t size) {
+    other.Read(size, &buf_[size_]);
+    size_ += size;
+  }
+
+  /**
    * Read the specified amount of bytes off from another read buffer. The bytes
    * will be consumed (cursor moved) on the other buffer and appended to the end
    * of this buffer
@@ -236,8 +248,7 @@ class ReadBuffer : public Buffer {
    * @param size Number of bytes to read
    */
   void FillBufferFrom(ReadBuffer &other, size_t size) {  // NOLINT
-    other.ReadIntoView(size).Read(size, &buf_[size_]);
-    size_ += size;
+    FillBufferFrom(other.ReadIntoView(size), size);
   }
 
   /**

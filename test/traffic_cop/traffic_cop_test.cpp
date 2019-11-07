@@ -10,9 +10,9 @@
 #include "loggers/main_logger.h"
 #include "network/connection_handle_factory.h"
 #include "network/terrier_server.h"
+#include "test_util/manual_packet_util.h"
+#include "test_util/test_harness.h"
 #include "traffic_cop/traffic_cop.h"
-#include "util/manual_packet_util.h"
-#include "util/test_harness.h"
 
 namespace terrier::trafficcop {
 class TrafficCopTests : public TerrierTest {
@@ -172,22 +172,46 @@ TEST_F(TrafficCopTests, ManualExtendedQueryTest) {
     ReadUntilReadyOrClose(io_socket);
 
     writer.WriteSimpleQuery(
-        "CREATE TABLE TableA (a_int INT PRIMARY KEY, a_dec DECIMAL, a_text TEXT, a_time TIMESTAMP);");
+        "CREATE TABLE TableA (a_int INT PRIMARY KEY, a_dec DECIMAL, a_text TEXT, a_time TIMESTAMP, a_bigint BIGINT);");
     io_socket->FlushAllWrites();
     ReadUntilReadyOrClose(io_socket);
 
-    writer.WriteSimpleQuery("INSERT INTO TableA VALUES(100, 3.14, 'nico', 114514)");
+    writer.WriteSimpleQuery("INSERT INTO TableA VALUES(100, 3.14, 'nico', 114514, 1234)");
     io_socket->FlushAllWrites();
     ReadUntilReadyOrClose(io_socket);
 
-    std::string stmt_name = "test_statement";
-    std::string query = "SELECT * FROM TableA WHERE a_int = $1 AND a_dec = $2 AND a_text = $3 AND a_time = $4";
+    std::string stmt_name = "begin_statement";
+    std::string query = "BEGIN";
+
+    writer.WriteParseCommand(stmt_name, query, std::vector<int>());
+    io_socket->FlushAllWrites();
+    ReadUntilMessageOrClose(io_socket, network::NetworkMessageType::PG_PARSE_COMPLETE);
+
+    {
+      std::string portal_name = "test_portal";
+      // Use text format, don't care about result column formats
+      writer.WriteBindCommand(portal_name, stmt_name, {}, {}, {});
+      io_socket->FlushAllWrites();
+      ReadUntilMessageOrClose(io_socket, network::NetworkMessageType::PG_BIND_COMPLETE);
+
+      writer.WriteExecuteCommand(portal_name, 0);
+      io_socket->FlushAllWrites();
+      ReadUntilMessageOrClose(io_socket, network::NetworkMessageType::PG_COMMAND_COMPLETE);
+
+      writer.WriteSyncCommand();
+      io_socket->FlushAllWrites();
+      ReadUntilReadyOrClose(io_socket);
+    }
+
+    stmt_name = "test_statement";
+    query = "SELECT * FROM TableA WHERE a_int = $1 AND a_dec = $2 AND a_text = $3 AND a_time = $4 AND a_bigint = $5";
 
     writer.WriteParseCommand(stmt_name, query,
                              std::vector<int>({static_cast<int32_t>(network::PostgresValueType::INTEGER),
                                                static_cast<int32_t>(network::PostgresValueType::DECIMAL),
                                                static_cast<int32_t>(network::PostgresValueType::VARCHAR),
-                                               static_cast<int32_t>(network::PostgresValueType::TIMESTAMPS)}));
+                                               static_cast<int32_t>(network::PostgresValueType::TIMESTAMPS),
+                                               static_cast<int32_t>(network::PostgresValueType::BIGINT)}));
     io_socket->FlushAllWrites();
     ReadUntilMessageOrClose(io_socket, network::NetworkMessageType::PG_PARSE_COMPLETE);
 
@@ -196,11 +220,12 @@ TEST_F(TrafficCopTests, ManualExtendedQueryTest) {
     auto param2 = std::vector<char>({'3', '.', '1', '4'});
     auto param3 = std::vector<char>({'n', 'i', 'c', 'o'});
     auto param4 = std::vector<char>({'1', '1', '4', '5', '1', '4'});
+    auto param5 = std::vector<char>({'1', '2', '3', '4'});
 
     {
       std::string portal_name = "test_portal";
       // Use text format, don't care about result column formats
-      writer.WriteBindCommand(portal_name, stmt_name, {}, {&param1, &param2, &param3, &param4}, {});
+      writer.WriteBindCommand(portal_name, stmt_name, {}, {&param1, &param2, &param3, &param4, &param5}, {});
       io_socket->FlushAllWrites();
       ReadUntilMessageOrClose(io_socket, network::NetworkMessageType::PG_BIND_COMPLETE);
 
@@ -227,7 +252,7 @@ TEST_F(TrafficCopTests, ManualExtendedQueryTest) {
 
       std::string portal_name = "test_portal-2";
       // Use text format, don't care about result column formats, specify "0" for using text for all params
-      writer.WriteBindCommand(portal_name, stmt_name, {0}, {&param1, &param2, &param3, &param4}, {});
+      writer.WriteBindCommand(portal_name, stmt_name, {0}, {&param1, &param2, &param3, &param4, &param5}, {});
       io_socket->FlushAllWrites();
       ReadUntilMessageOrClose(io_socket, network::NetworkMessageType::PG_BIND_COMPLETE);
 
@@ -249,7 +274,8 @@ TEST_F(TrafficCopTests, ManualExtendedQueryTest) {
 
       std::string portal_name = "test_portal-3";
       // Use text format, don't care about result column formats
-      writer.WriteBindCommand(portal_name, stmt_name, {0, 0, 0, 0}, {&param1, &param2, &param3, &param4}, {});
+      writer.WriteBindCommand(portal_name, stmt_name, {0, 0, 0, 0, 0}, {&param1, &param2, &param3, &param4, &param5},
+                              {});
       io_socket->FlushAllWrites();
       ReadUntilMessageOrClose(io_socket, network::NetworkMessageType::PG_BIND_COMPLETE);
 
@@ -260,6 +286,32 @@ TEST_F(TrafficCopTests, ManualExtendedQueryTest) {
       writer.WriteExecuteCommand(portal_name, 0);
       io_socket->FlushAllWrites();
       ReadUntilMessageOrClose(io_socket, network::NetworkMessageType::PG_DATA_ROW);
+
+      writer.WriteSyncCommand();
+      io_socket->FlushAllWrites();
+      ReadUntilReadyOrClose(io_socket);
+    }
+
+    // CloseCommand
+    writer.WriteCloseCommand(network::DescribeCommandObjectType::STATEMENT, stmt_name);
+    io_socket->FlushAllWrites();
+
+    stmt_name = "commit_statement";
+    query = "COMMIT";
+
+    writer.WriteParseCommand(stmt_name, query, std::vector<int>());
+    io_socket->FlushAllWrites();
+    ReadUntilMessageOrClose(io_socket, network::NetworkMessageType::PG_PARSE_COMPLETE);
+
+    {
+      std::string portal_name = "test_portal";
+      // Use text format, don't care about result column formats
+      writer.WriteBindCommand(portal_name, stmt_name, {}, {}, {});
+      io_socket->FlushAllWrites();
+      ReadUntilMessageOrClose(io_socket, network::NetworkMessageType::PG_BIND_COMPLETE);
+
+      writer.WriteExecuteCommand(portal_name, 0);
+      io_socket->FlushAllWrites();
 
       writer.WriteSyncCommand();
       io_socket->FlushAllWrites();

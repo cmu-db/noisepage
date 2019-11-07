@@ -6,10 +6,10 @@
 #include "common/strong_typedef.h"
 #include "storage/data_table.h"
 #include "storage/storage_util.h"
+#include "test_util/multithread_test_util.h"
+#include "test_util/storage_test_util.h"
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_manager.h"
-#include "util/multithread_test_util.h"
-#include "util/storage_test_util.h"
 
 namespace terrier {
 

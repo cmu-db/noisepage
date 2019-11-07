@@ -43,7 +43,8 @@ class PostgresProtocolInterpreter : public ProtocolInterpreter {
   };
 
   /**
-   * Default constructor
+   * Creates the interpreter for Postgres
+   * @param command_factory to convert packet into commands
    */
   explicit PostgresProtocolInterpreter(common::ManagedPointer<PostgresCommandFactory> command_factory)
       : command_factory_(command_factory) {}
@@ -112,14 +113,23 @@ class PostgresProtocolInterpreter : public ProtocolInterpreter {
    */
   void ExecExecuteMessageGetResult(PostgresPacketWriter *out, ResultType status);
 
+ protected:
+  /**
+   * @see ProtocolInterpreter::GetPacketHeaderSize
+   * Header format: 1 byte message type (only if non-startup)
+   *              + 4 byte message size (inclusive of these 4 bytes)
+   */
+  size_t GetPacketHeaderSize() override;
+
+  /**
+   * @see ProtocolInterpreter::SetPacketMessageType
+   */
+  void SetPacketMessageType(const std::shared_ptr<ReadBuffer> &in) override;
+
  private:
   bool startup_ = true;
-  InputPacket curr_input_packet_{};
   std::unordered_map<std::string, std::string> cmdline_options_;
   common::ManagedPointer<PostgresCommandFactory> command_factory_;
-
-  bool TryBuildPacket(const std::shared_ptr<ReadBuffer> &in);
-  bool TryReadPacketHeader(const std::shared_ptr<ReadBuffer> &in);
 };
 
 }  // namespace terrier::network

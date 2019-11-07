@@ -7,7 +7,7 @@
 #include "storage/recovery/recovery_manager.h"
 #include "storage/storage_defs.h"
 #include "storage/write_ahead_log/log_manager.h"
-#include "util/sql_table_test_util.h"
+#include "test_util/sql_table_test_util.h"
 
 #define LOG_FILE_NAME "/mnt/ramdisk/benchmark.txt"
 

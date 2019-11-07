@@ -50,6 +50,7 @@ BENCHMARKS_TO_RUN = [
     "data_table_benchmark",
     "garbage_collector_benchmark",
     "large_transaction_benchmark",
+    "index_wrapper_benchmark",
     "logging_benchmark",
     "recovery_benchmark",
     "large_transaction_metrics_benchmark",
@@ -57,7 +58,8 @@ BENCHMARKS_TO_RUN = [
     "tuple_access_strategy_benchmark",
     "tpcc_benchmark",
     "bwtree_benchmark",
-    "cuckoomap_benchmark"
+    "cuckoomap_benchmark",
+    "parser_benchmark",
 ]
 
 # Where to find the benchmarks to execute

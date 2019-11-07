@@ -50,7 +50,7 @@ class ConstantValueExpression : public AbstractExpression {
   /** @return the constant value stored in this expression */
   type::TransientValue GetValue() const { return value_; }
 
-  void Accept(SqlNodeVisitor *v) override { v->Visit(this); }
+  void Accept(SqlNodeVisitor *v, ParseResult *parse_result) override { v->Visit(this, parse_result); }
 
   /**
    * @return expression serialized to json

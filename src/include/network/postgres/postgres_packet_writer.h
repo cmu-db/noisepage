@@ -105,8 +105,11 @@ class PostgresPacketWriter : public PacketWriter {
         ret = std::to_string(TransientValuePeeker::PeekDecimal(value));
       else if (value.Type() == TypeId::VARCHAR)
         ret = TransientValuePeeker::PeekVarChar(value);
-
-      AppendValue<int32_t>(static_cast<int32_t>(ret.length())).AppendString(ret, false);
+      if (ret == "NULL") {
+        AppendValue<int32_t>(static_cast<int32_t>(-1));
+      } else {
+        AppendValue<int32_t>(static_cast<int32_t>(ret.length())).AppendString(ret, false);
+      }
     }
     EndPacket();
   }
