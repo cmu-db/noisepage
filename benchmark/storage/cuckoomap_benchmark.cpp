@@ -4,7 +4,7 @@
 #include "benchmark/benchmark.h"
 #include "common/scoped_timer.h"
 #include "libcuckoo/cuckoohash_map.hh"
-#include "util/multithread_test_util.h"
+#include "test_util/multithread_test_util.h"
 #include "xxHash/xxh3.h"
 
 namespace terrier {

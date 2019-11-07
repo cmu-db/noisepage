@@ -7,8 +7,8 @@
 #include "common/scoped_timer.h"
 #include "storage/block_compactor.h"
 #include "storage/garbage_collector.h"
+#include "test_util/storage_test_util.h"
 #include "transaction/deferred_action_manager.h"
-#include "util/storage_test_util.h"
 
 namespace terrier {
 class BlockCompactorBenchmark : public benchmark::Fixture {

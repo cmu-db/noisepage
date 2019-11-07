@@ -1,4 +1,4 @@
-file(GLOB_RECURSE BENCHMARK_UTIL_SRCS ${PROJECT_SOURCE_DIR}/benchmark/util/*.cpp ${PROJECT_SOURCE_DIR}/benchmark/include/*.h)
+file(GLOB_RECURSE BENCHMARK_UTIL_SRCS ${PROJECT_SOURCE_DIR}/benchmark/benchmark_util/*.cpp ${PROJECT_SOURCE_DIR}/benchmark/include/*.h)
 
 ###############################################
 # Benchmark library
