@@ -116,11 +116,40 @@ TEST_F(StringUtilTests, FormatSizeTest) {
 }
 
 // NOLINTNEXTLINE
+TEST_F(StringUtilTests, BoldTest) {
+  // Just check that we get back a string that contains
+  // the original string but is not the same length
+  std::string input = "Protect yo neck";
+  std::string result = StringUtil::Bold(input);
+  EXPECT_TRUE(StringUtil::Contains(result, input));
+  EXPECT_NE(result.length(), input.length());
+}
+
+// NOLINTNEXTLINE
 TEST_F(StringUtilTests, UpperTest) {
   std::string input = "smoke crack rocks";
   std::string expected = "SMOKE CRACK ROCKS";
   std::string result = StringUtil::Upper(input);
   EXPECT_EQ(expected, result);
+}
+
+// NOLINTNEXTLINE
+TEST_F(StringUtilTests, LowerTest) {
+  std::string input = "SMOKE CRACK ROCKS";
+  std::string expected = "smoke crack rocks";
+  std::string result = StringUtil::Lower(input);
+  EXPECT_EQ(expected, result);
+}
+
+// NOLINTNEXTLINE
+TEST_F(StringUtilTests, RTrimTest) {
+  std::vector<std::string> suffixes = {" ", "\f", "\n", "\r", "\t", "\v"};
+  std::string orig = "Playing With Fire, Son";
+  for (const auto &suffix : suffixes) {
+    std::string input = orig + suffix;
+    std::string result = StringUtil::RTrim(input);
+    EXPECT_EQ(orig, result);
+  }
 }
 
 // NOLINTNEXTLINE
