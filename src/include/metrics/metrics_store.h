@@ -79,11 +79,12 @@ class MetricsStore {
    * Record throughput metrics for recovery manager during recovery
    * @param num_txns number of transactions
    * @param num_bytes size of log files processed
+   * @param elapsed_us time taken to execute the transactions
    */
-  void RecordRecoveryData(const uint64_t num_txns, const uint64_t num_bytes) {
+  void RecordRecoveryData(const uint64_t num_txns, const uint64_t num_bytes, const uint64_t elapsed_us) {
     TERRIER_ASSERT(ComponentEnabled(MetricsComponent::RECOVERY), "RecoveryMetric not enabled.");
     TERRIER_ASSERT(txn_metric_ != nullptr, "RecoveryMetric not allocated. Check MetricsStore constructor.");
-    recovery_metric_->RecordRecoveryData(num_txns, num_bytes);
+    recovery_metric_->RecordRecoveryData(num_txns, num_bytes, elapsed_us);
   }
 
   /**

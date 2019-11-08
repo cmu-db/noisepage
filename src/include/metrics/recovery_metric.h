@@ -42,7 +42,8 @@ class RecoveryMetricRawData : public AbstractRawData {
                    "Not all files are open.");
 
     for (const auto &data : recovery_data_) {
-      ((*outfiles)[0]) << data.now_ << "," << data.num_txns_ << "," << data.num_bytes_ << std::endl;
+      ((*outfiles)[0]) << data.now_ << "," << data.num_txns_ << "," << data.num_bytes_ << "," << data.elapsed_us_
+                       << std::endl;
     }
 
     recovery_data_.clear();
@@ -55,22 +56,23 @@ class RecoveryMetricRawData : public AbstractRawData {
   /**
    * Columns to use for writing to CSV.
    */
-  static constexpr std::array<std::string_view, 1> COLUMNS = {"now,num_txns,num_bytes"};
+  static constexpr std::array<std::string_view, 1> COLUMNS = {"now,num_txns,num_bytes,elapsed_us"};
 
  private:
   friend class RecoveryMetric;
   FRIEND_TEST(MetricsTests, RecoveryCSVTest);
 
-  void RecordRecoveryData(const uint64_t num_txns, const uint64_t num_bytes) {
-    recovery_data_.emplace_front(num_txns, num_bytes);
+  void RecordRecoveryData(const uint64_t num_txns, const uint64_t num_bytes, const uint64_t elapsed_us) {
+    recovery_data_.emplace_front(num_txns, num_bytes, elapsed_us);
   }
 
   struct RecoveryData {
-    RecoveryData(const uint64_t num_txns, const uint64_t num_bytes)
-        : now_(MetricsUtil::Now()), num_txns_(num_txns), num_bytes_(num_bytes) {}
+    RecoveryData(const uint64_t num_txns, const uint64_t num_bytes, const uint64_t elapsed_us)
+        : now_(MetricsUtil::Now()), num_txns_(num_txns), num_bytes_(num_bytes), elapsed_us_(elapsed_us) {}
     const uint64_t now_;
     const uint64_t num_txns_;
     const uint64_t num_bytes_;
+    const uint64_t elapsed_us_;
   };
 
   std::list<RecoveryData> recovery_data_;
@@ -83,8 +85,8 @@ class RecoveryMetric : public AbstractMetric<RecoveryMetricRawData> {
  private:
   friend class MetricsStore;
 
-  void RecordRecoveryData(const uint64_t num_txns, const uint64_t num_bytes) {
-    GetRawData()->RecordRecoveryData(num_txns, num_bytes);
+  void RecordRecoveryData(const uint64_t num_txns, const uint64_t num_bytes, const uint64_t elapsed_us) {
+    GetRawData()->RecordRecoveryData(num_txns, num_bytes, elapsed_us);
   }
 };
 }  // namespace terrier::metrics

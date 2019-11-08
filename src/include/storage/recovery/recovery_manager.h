@@ -63,19 +63,21 @@ class RecoveryManager : public common::DedicatedThreadOwner {
    * @param deferred_action_manager manager to use for deferred deletes
    * @param thread_registry thread registry to register tasks
    * @param store block store used for SQLTable creation during recovery
+   * @param the interval at which the recovery throughput is recorded
    */
   explicit RecoveryManager(AbstractLogProvider *log_provider, common::ManagedPointer<catalog::Catalog> catalog,
                            transaction::TransactionManager *txn_manager,
                            transaction::DeferredActionManager *deferred_action_manager,
                            common::ManagedPointer<terrier::common::DedicatedThreadRegistry> thread_registry,
-                           BlockStore *store)
+                           BlockStore *store, std::chrono::milliseconds recovery_metric_interval)
       : DedicatedThreadOwner(thread_registry),
         log_provider_(log_provider),
         catalog_(catalog),
         txn_manager_(txn_manager),
         deferred_action_manager_(deferred_action_manager),
         block_store_(store),
-        recovered_txns_(0) {
+        recovered_txns_(0),
+        recovery_metric_interval_(recovery_metric_interval) {
     // Initialize catalog_table_schemas_ map
     catalog_table_schemas_[catalog::postgres::CLASS_TABLE_OID] = catalog::postgres::Builder::GetClassTableSchema();
     catalog_table_schemas_[catalog::postgres::NAMESPACE_TABLE_OID] =
@@ -155,7 +157,7 @@ class RecoveryManager : public common::DedicatedThreadOwner {
   uint32_t recovered_txns_;
 
   // How often the recovery throughput metric is collected
-  const uint32_t recovery_metric_interval_ = 1;
+  std::chrono::milliseconds recovery_metric_interval_;
 
   /**
    * Recovers the databases using the provided log provider
@@ -172,8 +174,9 @@ class RecoveryManager : public common::DedicatedThreadOwner {
   /**
    * @brief Replay a committed transaction corresponding to txn_id.
    * @param txn_id start timestamp for committed transaction
+   * @return total size of records
    */
-  void ProcessCommittedTransaction(transaction::timestamp_t txn_id);
+  uint64_t ProcessCommittedTransaction(transaction::timestamp_t txn_id);
 
   /**
    * Defers log records deletes with the transaction manager
