@@ -15,11 +15,9 @@ bool StringUtil::Contains(const std::string &haystack, const std::string &needle
   return (haystack.find(needle) != std::string::npos);
 }
 
-/*
- * Remove trailing ' ', '\f', '\n', '\r', '\t', '\v'
- */
 std::string StringUtil::RTrim(const std::string &str) {
   std::string copy(str);
+  // Remove trailing ' ', '\f', '\n', '\r', '\t', '\v'
   copy.erase(std::find_if(copy.rbegin(), copy.rend(), [](unsigned char c) { return std::isspace(c) == 0; }).base(),
              copy.end());
   return (copy);
