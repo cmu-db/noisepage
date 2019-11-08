@@ -75,6 +75,7 @@ std::pair<byte *, uint32_t *> TableGenerator::GenerateColumnData(const ColumnIns
   switch (col_meta.type_) {
     case type::TypeId::BOOLEAN: {
       col_data = reinterpret_cast<byte *>(CreateBooleanColumnData(col_meta.dist_, num_rows));
+      break;
     }
     case type::TypeId::TINYINT: {
       col_data = reinterpret_cast<byte *>(

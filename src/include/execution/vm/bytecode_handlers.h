@@ -1443,7 +1443,7 @@ VM_OP_HOT void OpIndexIteratorGetBoolNull(terrier::execution::sql::BoolVal *out,
 
   // Set
   out->is_null_ = null;
-  out->val_ = null ? 0 : *ptr;
+  out->val_ = null ? false : *ptr;
 }
 
 VM_OP_HOT void OpIndexIteratorGetTinyIntNull(terrier::execution::sql::Integer *out,
