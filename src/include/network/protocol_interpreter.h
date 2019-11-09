@@ -95,6 +95,9 @@ class ProtocolInterpreter {
       throw NETWORK_PROCESS_EXCEPTION("Packet too large");
     }
 
+    TERRIER_ASSERT(!curr_input_packet_.extended_,
+                   "InputPacket shouldn't already be extended before beginning parsing of the body.");
+
     // Extend the buffer as needed
     if (curr_input_packet_.len_ > in->Capacity()) {
       // Allocate a larger buffer and copy bytes off from the I/O layer's buffer
@@ -127,6 +130,9 @@ class ProtocolInterpreter {
     // copy bytes only if the packet is longer than the read buffer,
     // otherwise we can use the read buffer to save space
     if (curr_input_packet_.extended_) {
+      TERRIER_ASSERT(curr_input_packet_.len_ == curr_input_packet_.buf_->Capacity(),
+                     "The buffer should have been extended to support the packet length. Otherwise, there's a mismatch "
+                     "between the extended_ flag.");
       curr_input_packet_.buf_->FillBufferFrom(*in, can_read);
     }
 

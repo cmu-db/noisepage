@@ -208,4 +208,42 @@ TEST_F(NetworkTests, LargePacketsTest) {
   }
 }
 
+/**
+ * There was a bug in InputPacket::Clear. If the InputPacket had been extended for a big packet, then Clear was called,
+ * the extended_ flag was not set back to false, so future reuse of that InputPacket was subject to copying garbage
+ * data due to incorrect length and capacity.
+ *
+ * The test is so named because it fixed a bug that Gus was seeing in trying to replicate TPC-C across the network.
+ */
+// NOLINTNEXTLINE
+TEST_F(NetworkTests, GusThesisSaver) {
+  try {
+    TEST_LOG_INFO("[GusThesisSaver] Starting, expect errors to be logged");
+    std::shared_ptr<NetworkIoWrapper> io_socket = ManualPacketUtil::StartConnection(port_);
+    PostgresPacketWriter writer(io_socket->GetWriteQueue());
+
+    // Create a large packet that will require the InputPacket to be extended
+    std::string big_query;
+    for (uint32_t i = 0; i < 1000; i++) {
+      big_query.append("SELECT A FROM B;");
+    }
+    writer.WriteSimpleQuery(big_query);
+    io_socket->FlushAllWrites();
+    bool is_ready = ManualPacketUtil::ReadUntilReadyOrClose(io_socket);
+    EXPECT_TRUE(is_ready);  // should be okay
+
+    // Create a small packet. Correctness is checked via added asserts in ProtocolInterpreter
+    writer.WriteSimpleQuery("SELECT A FROM B;");
+    io_socket->FlushAllWrites();
+
+    is_ready = ManualPacketUtil::ReadUntilReadyOrClose(io_socket);
+    EXPECT_TRUE(is_ready);  // should be okay
+    io_socket->Close();
+  } catch (const std::exception &e) {
+    TEST_LOG_ERROR("[GusThesisSaver] Exception occurred: {0}", e.what());
+    EXPECT_TRUE(false);
+  }
+  TEST_LOG_INFO("[GusThesisSaver] Completed");
+}
+
 }  // namespace terrier::network
