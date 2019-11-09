@@ -155,7 +155,7 @@ TEST(OperatorTests, LogicalDeleteTest) {
   catalog::table_oid_t table_oid(789);
 
   // Check that all of our GET methods work as expected
-  Operator op1 = LogicalDelete::Make(database_oid, namespace_oid, table_oid);
+  Operator op1 = LogicalDelete::Make(database_oid, namespace_oid, "tbl", table_oid);
   EXPECT_EQ(op1.GetType(), OpType::LOGICALDELETE);
   EXPECT_EQ(op1.As<LogicalDelete>()->GetDatabaseOid(), database_oid);
   EXPECT_EQ(op1.As<LogicalDelete>()->GetNamespaceOid(), namespace_oid);
@@ -163,14 +163,14 @@ TEST(OperatorTests, LogicalDeleteTest) {
 
   // Check that if we make a new object with the same values, then it will
   // be equal to our first object and have the same hash
-  Operator op2 = LogicalDelete::Make(database_oid, namespace_oid, table_oid);
+  Operator op2 = LogicalDelete::Make(database_oid, namespace_oid, "tbl", table_oid);
   EXPECT_TRUE(op1 == op2);
   EXPECT_EQ(op1.Hash(), op2.Hash());
 
   // Lastly, make a different object and make sure that it is not equal
   // and that it's hash is not the same!
   catalog::db_oid_t other_database_oid(999);
-  Operator op3 = LogicalDelete::Make(other_database_oid, namespace_oid, table_oid);
+  Operator op3 = LogicalDelete::Make(other_database_oid, namespace_oid, "tbl", table_oid);
   EXPECT_FALSE(op1 == op3);
   EXPECT_NE(op1.Hash(), op3.Hash());
 }
