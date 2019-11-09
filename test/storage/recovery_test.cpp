@@ -11,12 +11,12 @@
 #include "storage/recovery/recovery_manager.h"
 #include "storage/sql_table.h"
 #include "storage/write_ahead_log/log_manager.h"
+#include "test_util/catalog_test_util.h"
+#include "test_util/sql_table_test_util.h"
+#include "test_util/storage_test_util.h"
+#include "test_util/test_harness.h"
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_manager.h"
-#include "util/catalog_test_util.h"
-#include "util/sql_table_test_util.h"
-#include "util/storage_test_util.h"
-#include "util/test_harness.h"
 
 // Make sure that if you create additional files, you call unlink on them after the test finishes. Otherwise, repeated
 // executions will read old test's data, and the cause of the errors will be hard to identify. Trust me it will drive

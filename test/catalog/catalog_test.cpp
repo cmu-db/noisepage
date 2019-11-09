@@ -13,10 +13,10 @@
 #include "storage/index/index_builder.h"
 #include "storage/sql_table.h"
 #include "storage/storage_defs.h"
+#include "test_util/test_harness.h"
 #include "transaction/transaction_manager.h"
 #include "transaction/transaction_util.h"
 #include "type/transient_value_factory.h"
-#include "util/test_harness.h"
 
 namespace terrier {
 

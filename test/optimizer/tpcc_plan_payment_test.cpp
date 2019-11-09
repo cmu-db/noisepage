@@ -6,8 +6,8 @@
 #include "parser/expression/operator_expression.h"
 #include "planner/plannodes/index_scan_plan_node.h"
 #include "planner/plannodes/update_plan_node.h"
-#include "util/test_harness.h"
-#include "util/tpcc/tpcc_plan_test.h"
+#include "test_util/test_harness.h"
+#include "test_util/tpcc/tpcc_plan_test.h"
 
 namespace terrier {
 

@@ -1,4 +1,4 @@
-file(GLOB_RECURSE TEST_UTIL_SRCS ${PROJECT_SOURCE_DIR}/test/util/*.cpp ${PROJECT_SOURCE_DIR}/test/include/*.h)
+file(GLOB_RECURSE TEST_UTIL_SRCS ${PROJECT_SOURCE_DIR}/test/test_util/*.cpp ${PROJECT_SOURCE_DIR}/test/include/*.h)
 
 ###############################################
 # Test library
@@ -25,6 +25,7 @@ if (TERRIER_BUILD_TESTS)
     add_subdirectory(traffic_cop)
     add_subdirectory(transaction)
     add_subdirectory(type)
+    # add_subdirectory(util)
 
 endif ()
 
