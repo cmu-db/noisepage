@@ -15,7 +15,7 @@ class PostgresCommandFactory {
   /**
    * Convert a Postgres packet to command.
    * @param packet the Postgres input packet
-   * @return a shared_ptr to the converted command
+   * @return a raw pointer to the converted command
    */
   virtual PostgresNetworkCommand *PacketToCommand(InputPacket *packet);
 
