@@ -56,11 +56,9 @@ class PlanNodeJsonTest : public TerrierTest {
    * @return dummy output schema
    */
   static std::unique_ptr<OutputSchema> BuildDummyOutputSchema() {
-    OutputSchema::Column col("dummy_col", type::TypeId::INTEGER);
     std::vector<OutputSchema::Column> cols;
-    cols.push_back(col);
-    auto schema = std::make_unique<OutputSchema>(cols);
-    return schema;
+    cols.emplace_back(OutputSchema::Column("dummy_col", type::TypeId::INTEGER, BuildDummyPredicate()));
+    return std::make_unique<OutputSchema>(std::move(cols));
   }
 
   /**
@@ -75,7 +73,7 @@ class PlanNodeJsonTest : public TerrierTest {
 // NOLINTNEXTLINE
 TEST(PlanNodeJsonTest, OutputSchemaJsonTest) {
   // Test Column serialization
-  OutputSchema::Column col("col1", type::TypeId::BOOLEAN);
+  OutputSchema::Column col("col1", type::TypeId::BOOLEAN, PlanNodeJsonTest::BuildDummyPredicate());
   auto col_json = col.ToJson();
   EXPECT_FALSE(col_json.is_null());
 
@@ -83,28 +81,10 @@ TEST(PlanNodeJsonTest, OutputSchemaJsonTest) {
   deserialized_col.FromJson(col_json);
   EXPECT_EQ(col, deserialized_col);
 
-  // Test DerivedColumn serialization
-  std::vector<std::unique_ptr<parser::AbstractExpression>> children;
-  children.emplace_back(std::make_unique<parser::ColumnValueExpression>("table1", "col1"));
-  children.emplace_back(PlanNodeJsonTest::BuildDummyPredicate());
-  auto expr =
-      std::make_unique<parser::ComparisonExpression>(parser::ExpressionType::CONJUNCTION_OR, std::move(children));
-
-  OutputSchema::DerivedColumn derived_col(
-      col, common::ManagedPointer(expr).CastManagedPointerTo<parser::AbstractExpression>());
-  auto derived_col_json = derived_col.ToJson();
-  EXPECT_FALSE(derived_col_json.is_null());
-
-  OutputSchema::DerivedColumn deserialized_derived_col;
-  auto deserialized_derived_res = deserialized_derived_col.FromJson(derived_col_json);
-  EXPECT_EQ(derived_col, deserialized_derived_col);
-
   // Test OutputSchema Serialization
   std::vector<OutputSchema::Column> cols;
-  cols.push_back(col);
-  std::vector<OutputSchema::DerivedTarget> targets;
-  targets.emplace_back(0, std::move(derived_col));
-  auto output_schema = std::make_unique<OutputSchema>(cols, std::move(targets));
+  cols.emplace_back(col.Copy());
+  auto output_schema = std::make_unique<OutputSchema>(std::move(cols));
   auto output_schema_json = output_schema->ToJson();
   EXPECT_FALSE(output_schema_json.is_null());
 

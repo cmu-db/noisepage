@@ -16,17 +16,17 @@
 #include "planner/plannodes/hash_join_plan_node.h"
 #include "planner/plannodes/seq_scan_plan_node.h"
 #include "test_util/test_harness.h"
+#include "type/transient_value_factory.h"
 
 namespace terrier::planner {
 
 class PlanNodeTest : public TerrierTest {
  public:
   static std::unique_ptr<OutputSchema> BuildOneColumnSchema(std::string name, const type::TypeId type) {
-    OutputSchema::Column col(std::move(name), type);
+    auto pred = std::make_unique<parser::ConstantValueExpression>(type::TransientValueFactory::GetBoolean(true));
     std::vector<OutputSchema::Column> cols;
-    cols.push_back(col);
-    auto schema = std::make_unique<OutputSchema>(cols);
-    return schema;
+    cols.emplace_back(OutputSchema::Column(std::move(name), type, std::move(pred)));
+    return std::make_unique<OutputSchema>(std::move(cols));
   }
 };
 
