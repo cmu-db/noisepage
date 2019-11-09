@@ -59,7 +59,7 @@ class NetworkIoWrapper {
    * @brief Flushes the write buffer of this IOWrapper to the assigned fd
    * @return The next transition for this client's state machine
    */
-  Transition FlushWriteBuffer(WriteBuffer *wbuf);
+  Transition FlushWriteBuffer(common::ManagedPointer<WriteBuffer> wbuf);
 
   /**
    * @brief Flushes all writes to this IOWrapper
