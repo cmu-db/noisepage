@@ -151,7 +151,7 @@ class PacketWriter {
     for (const auto &entry : error_status) AppendRawValue(entry.first).AppendString(entry.second);
 
     // Nul-terminate packet
-    AppendRawValue<byte>(static_cast<byte>(0)).EndPacket();
+    AppendRawValue<uchar>(0).EndPacket();
   }
 
   /**
@@ -194,7 +194,7 @@ class PacketWriter {
     // Build header, assume minor version is always 0
     BeginPacket(NetworkMessageType::NO_HEADER).AppendValue<int16_t>(major_version).AppendValue<int16_t>(0);
     for (const auto &pair : config) AppendString(pair.first).AppendString(pair.second);
-    AppendRawValue<byte>(static_cast<byte>(0));  // Startup message should have (byte+1) length
+    AppendRawValue<uchar>(0);  // Startup message should have (byte+1) length
     EndPacket();
   }
 
