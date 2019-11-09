@@ -133,7 +133,7 @@ class ProtocolInterpreter {
       TERRIER_ASSERT(curr_input_packet_.len_ == curr_input_packet_.buf_->Capacity(),
                      "The buffer should have been extended to support the packet length. Otherwise, there's a mismatch "
                      "between the extended_ flag.");
-      curr_input_packet_.buf_->FillBufferFrom(*in, can_read);
+      curr_input_packet_.buf_->FillBufferFrom(in, can_read);
     }
 
     return remaining_bytes <= 0;

@@ -246,8 +246,8 @@ class ReadBuffer : public Buffer {
    * @param other The other buffer to read from
    * @param size Number of bytes to read
    */
-  void FillBufferFrom(ReadBuffer &other, size_t size) {  // NOLINT
-    FillBufferFrom(other.ReadIntoView(size), size);
+  void FillBufferFrom(const common::ManagedPointer<ReadBuffer> other, const size_t size) {
+    FillBufferFrom(other->ReadIntoView(size), size);
   }
 
   /**
