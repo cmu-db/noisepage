@@ -33,8 +33,6 @@ class NetworkIoWrapper {
   /**
    * @brief Constructor for a PosixSocketIoWrapper
    * @param sock_fd The fd this IoWrapper communicates on
-   * @param in The ReadBuffer this NetworkIOWrapper uses for reads
-   * @param out The WriteQueue this NetworkIOWrapper uses for writes
    */
   explicit NetworkIoWrapper(const int sock_fd)
       : sock_fd_(sock_fd), in_(std::make_unique<ReadBuffer>()), out_(std::make_unique<WriteQueue>()) {
