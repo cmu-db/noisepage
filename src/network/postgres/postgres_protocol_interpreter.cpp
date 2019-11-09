@@ -12,7 +12,8 @@
 #define PROTO_MAJOR_VERSION(x) ((x) >> 16)
 
 namespace terrier::network {
-Transition PostgresProtocolInterpreter::Process(common::ManagedPointer<ReadBuffer> in, common::ManagedPointer<WriteQueue> out,
+Transition PostgresProtocolInterpreter::Process(common::ManagedPointer<ReadBuffer> in,
+                                                common::ManagedPointer<WriteQueue> out,
                                                 common::ManagedPointer<trafficcop::TrafficCop> t_cop,
                                                 common::ManagedPointer<ConnectionContext> context,
                                                 NetworkCallback callback) {

@@ -112,53 +112,6 @@ enum class NetworkMessageType : unsigned char {
 // Network packet defs
 //===--------------------------------------------------------------------===//
 
-/**
- * Encapsulates an input packet
- */
-struct InputPacket {
-  ~InputPacket() {
-    if (extended_) delete buf_;
-  }
-
-  /**
-   * Type of message this packet encodes
-   */
-  NetworkMessageType msg_type_ = NetworkMessageType::NULL_COMMAND;
-
-  /**
-   * Length of this packet's contents
-   */
-  size_t len_ = 0;
-
-  /**
-   * ReadBuffer containing this packet's contents
-   */
-  ReadBuffer *buf_;
-
-  /**
-   * Whether or not this packet's header has been parsed yet
-   */
-  bool header_parsed_ = false;
-
-  /**
-   * Whether or not this packet's buffer was extended
-   */
-  bool extended_ = false;
-
-  /**
-   * Clears the packet's contents
-   */
-  virtual void Clear() {
-    msg_type_ = NetworkMessageType::NULL_COMMAND;
-    len_ = 0;
-
-    if (extended_) delete buf_;
-    buf_ = nullptr;
-    header_parsed_ = false;
-    extended_ = false;
-  }
-};
-
 //===--------------------------------------------------------------------===//
 // Describe Message Types
 //===--------------------------------------------------------------------===//

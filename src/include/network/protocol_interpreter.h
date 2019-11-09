@@ -101,11 +101,11 @@ class ProtocolInterpreter {
     // Extend the buffer as needed
     if (curr_input_packet_.len_ > in->Capacity()) {
       // Allocate a larger buffer and copy bytes off from the I/O layer's buffer
-      curr_input_packet_.buf_ = std::make_unique<ReadBuffer>(curr_input_packet_.len_);
+      curr_input_packet_.buf_ = new ReadBuffer(curr_input_packet_.len_);
       NETWORK_LOG_TRACE("Extended Buffer size required for packet of size {0}", curr_input_packet_.len_);
       curr_input_packet_.extended_ = true;
     } else {
-      curr_input_packet_.buf_ = in;
+      curr_input_packet_.buf_ = in.Get();
     }
 
     curr_input_packet_.header_parsed_ = true;

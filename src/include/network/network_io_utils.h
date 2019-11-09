@@ -21,13 +21,12 @@ namespace terrier::network {
  */
 class Buffer {
  public:
+  Buffer() { buf_.resize(capacity_); }
+
   /**
    * Instantiates a new buffer and reserve capacity many bytes.
    */
-  explicit Buffer(size_t capacity) : capacity_(capacity) {
-    // TODO(tanujnay112) this used to be reserve but nothing was actually getting allocated
-    buf_.resize(capacity);
-  }
+  explicit Buffer(size_t capacity) : capacity_(capacity) { buf_.resize(capacity_); }
 
   /**
    * Reset the buffer pointer and clears content
@@ -91,7 +90,7 @@ class Buffer {
   /**
    * Capacity of the buffer
    */
-  size_t capacity_;
+  const size_t capacity_ = SOCKET_BUFFER_CAPACITY;
 
   /**
    * Actual character buffer where bytes are held
@@ -303,7 +302,6 @@ class ReadBuffer : public Buffer {
  */
 class WriteBuffer : public Buffer {
  public:
-
   /**
    * Write as many bytes as possible using Posix write to fd
    * @param fd File descriptor to write out to
@@ -386,7 +384,7 @@ class WriteQueue {
     offset_ = 0;
     flush_ = false;
     if (buffers_[0] == nullptr)
-      buffers_[0] = std::make_shared<WriteBuffer>();
+      buffers_[0] = std::make_unique<WriteBuffer>();
     else
       buffers_[0]->Reset();
   }
@@ -394,8 +392,8 @@ class WriteQueue {
   /**
    * @return The head of the WriteQueue
    */
-  std::shared_ptr<WriteBuffer> FlushHead() {
-    if (buffers_.size() > offset_) return buffers_[offset_];
+  common::ManagedPointer<WriteBuffer> FlushHead() {
+    if (buffers_.size() > offset_) return common::ManagedPointer(buffers_[offset_]);
     return nullptr;
   }
 
@@ -435,7 +433,7 @@ class WriteQueue {
       // Only write partially if we are allowed to
       size_t written = breakup ? tail.RemainingCapacity() : 0;
       tail.AppendRaw(src, written);
-      buffers_.push_back(std::make_shared<WriteBuffer>());
+      buffers_.push_back(std::make_unique<WriteBuffer>());
       BufferWriteRaw(reinterpret_cast<const uchar *>(src) + written, len - written);
     }
   }
@@ -456,9 +454,56 @@ class WriteQueue {
 
  private:
   friend class PacketWriter;
-  std::vector<std::shared_ptr<WriteBuffer>> buffers_;
+  std::vector<std::unique_ptr<WriteBuffer>> buffers_;
   size_t offset_ = 0;
   bool flush_ = false;
+};
+
+/**
+ * Encapsulates an input packet
+ */
+struct InputPacket {
+  ~InputPacket() {
+    if (extended_) delete buf_;
+  }
+
+  /**
+   * Type of message this packet encodes
+   */
+  NetworkMessageType msg_type_ = NetworkMessageType::NULL_COMMAND;
+
+  /**
+   * Length of this packet's contents
+   */
+  size_t len_ = 0;
+
+  /**
+   * ReadBuffer containing this packet's contents
+   */
+  ReadBuffer *buf_;
+
+  /**
+   * Whether or not this packet's header has been parsed yet
+   */
+  bool header_parsed_ = false;
+
+  /**
+   * Whether or not this packet's buffer was extended
+   */
+  bool extended_ = false;
+
+  /**
+   * Clears the packet's contents
+   */
+  virtual void Clear() {
+    msg_type_ = NetworkMessageType::NULL_COMMAND;
+    len_ = 0;
+
+    if (extended_) delete buf_;
+    buf_ = nullptr;
+    header_parsed_ = false;
+    extended_ = false;
+  }
 };
 
 }  // namespace terrier::network
