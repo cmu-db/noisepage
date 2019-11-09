@@ -36,11 +36,8 @@ class NetworkIoWrapper {
    * @param in The ReadBuffer this NetworkIOWrapper uses for reads
    * @param out The WriteQueue this NetworkIOWrapper uses for writes
    */
-  explicit NetworkIoWrapper(int sock_fd, std::shared_ptr<ReadBuffer> in = std::make_shared<ReadBuffer>(),
-                            std::shared_ptr<WriteQueue> out = std::make_shared<WriteQueue>())
-      : sock_fd_(sock_fd), in_(std::move(in)), out_(std::move(out)) {
-    in_->Reset();
-    out_->Reset();
+  explicit NetworkIoWrapper(const int sock_fd)
+      : sock_fd_(sock_fd), in_(std::make_unique<ReadBuffer>()), out_(std::make_unique<WriteQueue>()) {
     RestartState();
   }
 
@@ -87,27 +84,27 @@ class NetworkIoWrapper {
   void Restart();
 
   /**
-   * @return The socket file descriptor this IOWrapper communciates on
+   * @return The socket file descriptor this IOWrapper communicates on
    */
   int GetSocketFd() { return sock_fd_; }
 
   /**
    * @return The ReadBuffer for this IOWrapper
    */
-  std::shared_ptr<ReadBuffer> GetReadBuffer() { return in_; }
+  common::ManagedPointer<ReadBuffer> GetReadBuffer() { return common::ManagedPointer<ReadBuffer>(in_); }
 
   /**
    * @return The WriteQueue for this IOWrapper
    */
-  std::shared_ptr<WriteQueue> GetWriteQueue() { return out_; }
+  common::ManagedPointer<WriteQueue> GetWriteQueue() { return common::ManagedPointer<WriteQueue>(out_); }
 
  private:
   // The file descriptor associated with this NetworkIoWrapper
-  int sock_fd_;
+  const int sock_fd_;
   // The ReadBuffer associated with this NetworkIoWrapper
-  std::shared_ptr<ReadBuffer> in_;
+  std::unique_ptr<ReadBuffer> in_;
   // The WriteQueue associated with this NetworkIoWrapper
-  std::shared_ptr<WriteQueue> out_;
+  std::unique_ptr<WriteQueue> out_;
 
   void RestartState();
 };

@@ -303,10 +303,6 @@ class ReadBuffer : public Buffer {
  */
 class WriteBuffer : public Buffer {
  public:
-  /**
-   * Instantiates a new buffer and reserve capacity many bytes.
-   */
-  explicit WriteBuffer(size_t capacity = SOCKET_BUFFER_CAPACITY) : Buffer(capacity) {}
 
   /**
    * Write as many bytes as possible using Posix write to fd

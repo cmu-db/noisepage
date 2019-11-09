@@ -221,7 +221,6 @@ class ConnectionHandle {
   friend class ConnectionHandleFactory;
 
   std::unique_ptr<NetworkIoWrapper> io_wrapper_;
-  // A raw pointer is used here because references cannot be rebound.
   common::ManagedPointer<ConnectionHandlerTask> conn_handler_;
   common::ManagedPointer<trafficcop::TrafficCop> traffic_cop_;
   std::unique_ptr<ProtocolInterpreter> protocol_interpreter_;

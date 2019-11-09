@@ -9,7 +9,8 @@
 #include "network/terrier_server.h"
 
 namespace terrier::network {
-Transition ITPProtocolInterpreter::Process(std::shared_ptr<ReadBuffer> in, std::shared_ptr<WriteQueue> out,
+Transition ITPProtocolInterpreter::Process(common::ManagedPointer<ReadBuffer> in,
+                                           common::ManagedPointer<WriteQueue> out,
                                            common::ManagedPointer<trafficcop::TrafficCop> t_cop,
                                            common::ManagedPointer<ConnectionContext> context,
                                            NetworkCallback callback) {
@@ -28,14 +29,14 @@ Transition ITPProtocolInterpreter::Process(std::shared_ptr<ReadBuffer> in, std::
   return ret;
 }
 
-void ITPProtocolInterpreter::GetResult(std::shared_ptr<WriteQueue> out) {
+void ITPProtocolInterpreter::GetResult(const common::ManagedPointer<WriteQueue> out) {
   ITPPacketWriter writer(out);
   writer.WriteCommandComplete();
 }
 
 size_t ITPProtocolInterpreter::GetPacketHeaderSize() { return 1 + sizeof(uint32_t); }
 
-void ITPProtocolInterpreter::SetPacketMessageType(const std::shared_ptr<ReadBuffer> &in) {
+void ITPProtocolInterpreter::SetPacketMessageType(const common::ManagedPointer<ReadBuffer> in) {
   curr_input_packet_.msg_type_ = in->ReadValue<NetworkMessageType>();
 }
 
