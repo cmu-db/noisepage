@@ -631,6 +631,7 @@ void PlanGenerator::BuildAggregatePlan(
       parser::ExpressionUtil::ConvertExprCVNodes(common::ManagedPointer(eval_have), {output_expr_map}).release();
   RegisterPointerCleanup<parser::AbstractExpression>(predicate, true, true);
 
+  builder.SetOutputSchema(std::move(output_schema));
   builder.SetHavingClausePredicate(common::ManagedPointer(predicate));
   builder.SetAggregateStrategyType(aggr_type);
   builder.AddChild(std::move(children_plans_[0]));

@@ -67,7 +67,9 @@ bool AggregatePlanNode::operator==(const AbstractPlanNode &rhs) const {
 
 nlohmann::json AggregatePlanNode::ToJson() const {
   nlohmann::json j = AbstractPlanNode::ToJson();
-  j["having_clause_predicate"] = having_clause_predicate_->ToJson();
+  if (having_clause_predicate_) {
+    j["having_clause_predicate"] = having_clause_predicate_->ToJson();
+  }
 
   std::vector<nlohmann::json> gb_terms;
   gb_terms.reserve(groupby_terms_.size());
