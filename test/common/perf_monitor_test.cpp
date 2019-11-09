@@ -19,8 +19,8 @@ class PerfMonitorTests : public TerrierTest {
   void TearDown() final { TerrierTest::TearDown(); }
 
   static void CreateAndDestroyCatalog(common::PerfMonitor::PerfCounters *const counters) {
-    common::PerfMonitor monitor;
-    monitor.Start();
+    //    common::PerfMonitor monitor(true);
+    //    monitor.Start();
 
     storage::BlockStore block_store{1000, 1000};
     storage::RecordBufferSegmentPool buffer_pool{1000000, 1000000};
@@ -36,16 +36,16 @@ class PerfMonitorTests : public TerrierTest {
 
     catalog.TearDown();
     StorageTestUtil::FullyPerformGC(&gc, DISABLED);
-    monitor.Stop();
-    *counters = monitor.Counters();
+    //    monitor.Stop();
+    //    *counters = monitor.Counters();
   }
 
   static void JustSleep(common::PerfMonitor::PerfCounters *const counters) {
-    common::PerfMonitor monitor;
-    monitor.Start();
+    //    common::PerfMonitor monitor(true);
+    //    monitor.Start();
     std::this_thread::sleep_for(std::chrono::seconds(2));
-    monitor.Stop();
-    *counters = monitor.Counters();
+    //    monitor.Stop();
+    //    *counters = monitor.Counters();
   }
 };
 
@@ -55,7 +55,7 @@ class PerfMonitorTests : public TerrierTest {
  */
 // NOLINTNEXTLINE
 TEST_F(PerfMonitorTests, BasicTest) {
-  common::PerfMonitor monitor;
+  common::PerfMonitor monitor(true);
   common::PerfMonitor::PerfCounters parent_counters, catalog_counters, sleep_counters;
   monitor.Start();
   std::thread thread1(CreateAndDestroyCatalog, &catalog_counters);

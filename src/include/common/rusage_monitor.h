@@ -11,6 +11,9 @@ namespace terrier::common {
  */
 class RusageMonitor {
  public:
+  /**
+   * @param entire_process true to accumulate for process, false for just this threadk
+   */
   explicit RusageMonitor(const bool entire_process)
       :
 #if __APPLE__
