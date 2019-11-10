@@ -4,6 +4,7 @@
 #include <utility>
 
 #include "network/network_defs.h"
+#include "network/postgres/postgres_network_commands.h"
 #include "network/postgres/postgres_protocol_interpreter.h"
 #include "network/terrier_server.h"
 
@@ -11,8 +12,8 @@
 #define PROTO_MAJOR_VERSION(x) ((x) >> 16)
 
 namespace terrier::network {
-Transition PostgresProtocolInterpreter::Process(std::shared_ptr<ReadBuffer> in,   // NOLINT
-                                                std::shared_ptr<WriteQueue> out,  // NOLINT
+Transition PostgresProtocolInterpreter::Process(common::ManagedPointer<ReadBuffer> in,
+                                                common::ManagedPointer<WriteQueue> out,
                                                 common::ManagedPointer<trafficcop::TrafficCop> t_cop,
                                                 common::ManagedPointer<ConnectionContext> context,
                                                 NetworkCallback callback) {
@@ -28,31 +29,31 @@ Transition PostgresProtocolInterpreter::Process(std::shared_ptr<ReadBuffer> in, 
     curr_input_packet_.Clear();
     return ProcessStartup(in, out);
   }
-  std::unique_ptr<PostgresNetworkCommand> command = command_factory_->PostgresPacketToCommand(&curr_input_packet_);
+  auto command = command_factory_->PacketToCommand(common::ManagedPointer<InputPacket>(&curr_input_packet_));
   PostgresPacketWriter writer(out);
   if (command->FlushOnComplete()) out->ForceFlush();
-  Transition ret = command->Exec(common::ManagedPointer(this), common::ManagedPointer(&writer), t_cop,
-                                 common::ManagedPointer(context), std::move(callback));
+  Transition ret = command->Exec(common::ManagedPointer<ProtocolInterpreter>(this),
+                                 common::ManagedPointer<PostgresPacketWriter>(&writer), t_cop, context, callback);
   curr_input_packet_.Clear();
   return ret;
 }
 
-Transition PostgresProtocolInterpreter::ProcessStartup(std::shared_ptr<ReadBuffer> in,     // NOLINT
-                                                       std::shared_ptr<WriteQueue> out) {  // NOLINT
+Transition PostgresProtocolInterpreter::ProcessStartup(const common::ManagedPointer<ReadBuffer> in,
+                                                       const common::ManagedPointer<WriteQueue> out) {
   PostgresPacketWriter writer(out);
   auto proto_version = in->ReadValue<uint32_t>();
   NETWORK_LOG_TRACE("protocol version: {0}", proto_version);
 
   if (proto_version == SSL_MESSAGE_VERNO) {
     // TODO(Tianyu): Should this be moved from PelotonServer into settings?
-    writer.WriteSingleTypePacket(NetworkMessageType::SSL_NO);
+    writer.WriteSSLPacket(NetworkMessageType::PG_SSL_NO);
     return Transition::PROCEED;
   }
 
   // Process startup packet
   if (PROTO_MAJOR_VERSION(proto_version) != 3) {
     NETWORK_LOG_TRACE("Protocol error: only protocol version 3 is supported");
-    writer.WriteErrorResponse({{NetworkMessageType::HUMAN_READABLE_ERROR, "Protocol Version Not Supported"}});
+    writer.WriteErrorResponse({{NetworkMessageType::PG_HUMAN_READABLE_ERROR, "Protocol Version Not Supported"}});
     return Transition::TERMINATE;
   }
 
@@ -74,59 +75,15 @@ Transition PostgresProtocolInterpreter::ProcessStartup(std::shared_ptr<ReadBuffe
   return Transition::PROCEED;
 }
 
-bool PostgresProtocolInterpreter::TryBuildPacket(std::shared_ptr<ReadBuffer> in) {  // NOLINT
-  if (!TryReadPacketHeader(in)) return false;
+size_t PostgresProtocolInterpreter::GetPacketHeaderSize() { return startup_ ? sizeof(uint32_t) : 1 + sizeof(uint32_t); }
 
-  size_t size_needed = curr_input_packet_.extended_
-                           ? curr_input_packet_.len_ - curr_input_packet_.buf_->BytesAvailable()
-                           : curr_input_packet_.len_;
-
-  size_t can_read = std::min(size_needed, in->BytesAvailable());
-  size_t remaining_bytes = size_needed - can_read;
-
-  // copy bytes only if the packet is longer than the read buffer,
-  // otherwise we can use the read buffer to save space
-  if (curr_input_packet_.extended_) {
-    curr_input_packet_.buf_->FillBufferFrom(*in, can_read);
-  }
-
-  return remaining_bytes <= 0;
-}
-
-bool PostgresProtocolInterpreter::TryReadPacketHeader(std::shared_ptr<ReadBuffer> in) {  // NOLINT
-  if (curr_input_packet_.header_parsed_) return true;
-
-  // Header format: 1 byte message type (only if non-startup)
-  //              + 4 byte message size (inclusive of these 4 bytes)
-  size_t header_size = startup_ ? sizeof(int32_t) : 1 + sizeof(int32_t);
-  // Make sure the entire header is readable
-  if (!in->HasMore(header_size)) return false;
-
-  // The header is ready to be read, fill in fields accordingly
+void PostgresProtocolInterpreter::SetPacketMessageType(const common::ManagedPointer<ReadBuffer> in) {
   if (!startup_) curr_input_packet_.msg_type_ = in->ReadValue<NetworkMessageType>();
-  curr_input_packet_.len_ = in->ReadValue<uint32_t>() - sizeof(uint32_t);
-  if (curr_input_packet_.len_ > PACKET_LEN_LIMIT) {
-    NETWORK_LOG_ERROR("Packet size {} > limit {}", curr_input_packet_.len_, PACKET_LEN_LIMIT);
-    throw NETWORK_PROCESS_EXCEPTION("Packet too large");
-  }
-
-  // Extend the buffer as needed
-  if (curr_input_packet_.len_ > in->Capacity()) {
-    // Allocate a larger buffer and copy bytes off from the I/O layer's buffer
-    curr_input_packet_.buf_ = std::make_unique<ReadBuffer>(curr_input_packet_.len_);
-    NETWORK_LOG_TRACE("Extended Buffer size required for packet of size {0}", curr_input_packet_.len_);
-    curr_input_packet_.extended_ = true;
-  } else {
-    curr_input_packet_.buf_ = in;
-  }
-
-  curr_input_packet_.header_parsed_ = true;
-  return true;
 }
 
 void PostgresProtocolInterpreter::CompleteCommand(PostgresPacketWriter *const out, const QueryType &query_type,
                                                   int rows) {
-  out->BeginPacket(NetworkMessageType::COMMAND_COMPLETE).EndPacket();
+  out->BeginPacket(NetworkMessageType::PG_COMMAND_COMPLETE).EndPacket();
 }
 
 void PostgresProtocolInterpreter::ExecQueryMessageGetResult(PostgresPacketWriter *const out, ResultType status) {

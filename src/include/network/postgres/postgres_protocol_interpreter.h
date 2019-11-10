@@ -9,6 +9,7 @@
 #include "network/connection_handle.h"
 #include "network/postgres/postgres_command_factory.h"
 #include "network/postgres/postgres_network_commands.h"
+#include "network/postgres/postgres_packet_writer.h"
 #include "network/protocol_interpreter.h"
 
 namespace terrier::network {
@@ -42,7 +43,8 @@ class PostgresProtocolInterpreter : public ProtocolInterpreter {
   };
 
   /**
-   * Default constructor
+   * Creates the interpreter for Postgres
+   * @param command_factory to convert packet into commands
    */
   explicit PostgresProtocolInterpreter(common::ManagedPointer<PostgresCommandFactory> command_factory)
       : command_factory_(command_factory) {}
@@ -56,7 +58,7 @@ class PostgresProtocolInterpreter : public ProtocolInterpreter {
    * @param context the connection context
    * @return
    */
-  Transition Process(std::shared_ptr<ReadBuffer> in, std::shared_ptr<WriteQueue> out,  // NOLINT
+  Transition Process(common::ManagedPointer<ReadBuffer> in, common::ManagedPointer<WriteQueue> out,
                      common::ManagedPointer<trafficcop::TrafficCop> t_cop,
                      common::ManagedPointer<ConnectionContext> context, NetworkCallback callback) override;
 
@@ -65,20 +67,9 @@ class PostgresProtocolInterpreter : public ProtocolInterpreter {
    *
    * @param out
    */
-  void GetResult(std::shared_ptr<WriteQueue> out) override {  // NOLINT
+  void GetResult(const common::ManagedPointer<WriteQueue> out) override {
     PostgresPacketWriter writer(out);
     ExecQueryMessageGetResult(&writer, ResultType::SUCCESS);
-    // TODO(Tianyu): This looks wrong. JDBC and PSQL should be united under one wire protocol. This field was set
-    // statically for all connections before I removed it. Also, the difference between these two methods look
-    // superficial. Some one should dig deeper to figure out what's going on here.
-    //    switch (protocol_type_) {
-    //      case NetworkProtocolType::POSTGRES_JDBC:NETWORK_LOG_TRACE("JDBC result");
-    //        ExecExecuteMessageGetResult(&writer, ResultType::SUCCESS);
-    //        break;
-    //      case NetworkProtocolType::POSTGRES_PSQL:NETWORK_LOG_TRACE("PSQL result");
-    //        ExecQueryMessageGetResult(&writer, ResultType::SUCCESS);
-    //      default:throw NETWORK_PROCESS_EXCEPTION("Unsupported protocol type");
-    //    }
   }
 
   /**
@@ -87,7 +78,7 @@ class PostgresProtocolInterpreter : public ProtocolInterpreter {
    * @param out
    * @return
    */
-  Transition ProcessStartup(std::shared_ptr<ReadBuffer> in, std::shared_ptr<WriteQueue> out);  // NOLINT
+  Transition ProcessStartup(common::ManagedPointer<ReadBuffer> in, common::ManagedPointer<WriteQueue> out);
 
   /**
    *
@@ -111,14 +102,23 @@ class PostgresProtocolInterpreter : public ProtocolInterpreter {
    */
   void ExecExecuteMessageGetResult(PostgresPacketWriter *out, ResultType status);
 
+ protected:
+  /**
+   * @see ProtocolInterpreter::GetPacketHeaderSize
+   * Header format: 1 byte message type (only if non-startup)
+   *              + 4 byte message size (inclusive of these 4 bytes)
+   */
+  size_t GetPacketHeaderSize() override;
+
+  /**
+   * @see ProtocolInterpreter::SetPacketMessageType
+   */
+  void SetPacketMessageType(common::ManagedPointer<ReadBuffer> in) override;
+
  private:
   bool startup_ = true;
-  PostgresInputPacket curr_input_packet_{};
   std::unordered_map<std::string, std::string> cmdline_options_;
   common::ManagedPointer<PostgresCommandFactory> command_factory_;
-
-  bool TryBuildPacket(std::shared_ptr<ReadBuffer> in);       // NOLINT
-  bool TryReadPacketHeader(std::shared_ptr<ReadBuffer> in);  // NOLINT
 };
 
 }  // namespace terrier::network

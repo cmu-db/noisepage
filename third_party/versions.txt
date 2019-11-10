@@ -42,17 +42,11 @@ GBENCHMARK_VERSION=1.4.1
 # commit hash: 476492b3763e850ad61e28e24d3448175348076d
 # commit hash date: 20 Mar 2018
 
-# murmur3
-# url: https://github.com/aappleby/smhasher.git
-# branch: master
-# commit hash: 61a0530f28277f2e850bfc39600ce61d02b518de
-# commit hash date: 9 Jan 2018
-
 # xxhash
 # url: https://github.com/Cyan4973/xxHash
-# release: 0.7.1
-# commit hash: dfd1bf117c816e4774adc1e1cdcb1687c0f7913c
-# commit hash date: 15 Aug 2019
+# release: 0.7.2
+# commit hash: e2f4695899e831171ecd2e780078474712ea61d3
+# commit hash date: 8 Oct 2019
 
 # libcuckoo
 # url: https://github.com/efficient/libcuckoo.git

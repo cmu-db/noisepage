@@ -7,7 +7,7 @@
 #include "storage/recovery/recovery_manager.h"
 #include "storage/storage_defs.h"
 #include "storage/write_ahead_log/log_manager.h"
-#include "util/sql_table_test_util.h"
+#include "test_util/sql_table_test_util.h"
 
 #define LOG_FILE_NAME "/mnt/ramdisk/benchmark.txt"
 
@@ -263,9 +263,9 @@ BENCHMARK_DEFINE_F(RecoveryBenchmark, IndexRecovery)(benchmark::State &state) {
   state.SetItemsProcessed(num_txns_ * state.iterations());
 }
 
-BENCHMARK_REGISTER_F(RecoveryBenchmark, ReadWriteWorkload)->Unit(benchmark::kMillisecond)->UseManualTime()->MinTime(4);
+BENCHMARK_REGISTER_F(RecoveryBenchmark, ReadWriteWorkload)->Unit(benchmark::kMillisecond)->UseManualTime()->MinTime(10);
 
-BENCHMARK_REGISTER_F(RecoveryBenchmark, HighStress)->Unit(benchmark::kMillisecond)->UseManualTime()->MinTime(4);
+BENCHMARK_REGISTER_F(RecoveryBenchmark, HighStress)->Unit(benchmark::kMillisecond)->UseManualTime()->MinTime(10);
 
 BENCHMARK_REGISTER_F(RecoveryBenchmark, IndexRecovery)->Unit(benchmark::kMillisecond)->UseManualTime()->MinTime(4);
 

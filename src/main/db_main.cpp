@@ -52,9 +52,9 @@ DBMain::DBMain(std::unordered_map<settings::Param, settings::ParamInfo> &&param_
   thread_pool_->Startup();
 
   t_cop_ = new trafficcop::TrafficCop;
-  command_factory_ = new network::PostgresCommandFactory;
-
   connection_handle_factory_ = new network::ConnectionHandleFactory(common::ManagedPointer(t_cop_));
+
+  command_factory_ = new network::PostgresCommandFactory;
   provider_ = new network::PostgresProtocolInterpreter::Provider(common::ManagedPointer(command_factory_));
   server_ =
       new network::TerrierServer(common::ManagedPointer(provider_), common::ManagedPointer(connection_handle_factory_),

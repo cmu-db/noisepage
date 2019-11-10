@@ -795,9 +795,9 @@ TEST(ExpressionTests, ColumnValueExpressionTest) {
   EXPECT_EQ(tve1->GetTableName(), "table_name");
   EXPECT_EQ(tve1->GetColumnName(), "column_name");
   // Uninitialized OIDs set to 0; TODO(Ling): change to INVALID_*_OID after catalog completion
-  EXPECT_EQ(tve1->GetTableOid(), catalog::table_oid_t(0));
-  EXPECT_EQ(tve1->GetDatabaseOid(), catalog::db_oid_t(0));
-  EXPECT_EQ(tve1->GetColumnOid(), catalog::col_oid_t(0));
+  EXPECT_EQ(tve1->GetTableOid(), catalog::INVALID_TABLE_OID);
+  EXPECT_EQ(tve1->GetDatabaseOid(), catalog::INVALID_DATABASE_OID);
+  EXPECT_EQ(tve1->GetColumnOid(), catalog::INVALID_COLUMN_OID);
   EXPECT_EQ(tve1->GetNamespaceName(), "");
 
   EXPECT_EQ(tve11->GetNamespaceName(), "namespace_name");

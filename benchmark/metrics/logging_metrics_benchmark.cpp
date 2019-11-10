@@ -1,12 +1,12 @@
 #include <string>
 #include <vector>
 #include "benchmark/benchmark.h"
+#include "benchmark_util/data_table_benchmark_util.h"
 #include "common/scoped_timer.h"
 #include "metrics/metrics_thread.h"
 #include "storage/garbage_collector_thread.h"
 #include "storage/storage_defs.h"
 #include "storage/write_ahead_log/log_manager.h"
-#include "util/data_table_benchmark_util.h"
 
 #define LOG_FILE_NAME "/mnt/ramdisk/benchmark.txt"
 

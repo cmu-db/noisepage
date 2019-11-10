@@ -14,15 +14,15 @@
 #include "storage/index/index_builder.h"
 #include "storage/projected_row.h"
 #include "storage/sql_table.h"
+#include "test_util/catalog_test_util.h"
+#include "test_util/data_table_test_util.h"
+#include "test_util/random_test_util.h"
+#include "test_util/storage_test_util.h"
+#include "test_util/test_harness.h"
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_manager.h"
 #include "type/type_id.h"
 #include "type/type_util.h"
-#include "util/catalog_test_util.h"
-#include "util/data_table_test_util.h"
-#include "util/random_test_util.h"
-#include "util/storage_test_util.h"
-#include "util/test_harness.h"
 
 namespace terrier::storage::index {
 

@@ -44,8 +44,8 @@
 #include "type/transient_value_factory.h"
 #include "type/type_id.h"
 
-#include "util/storage_test_util.h"
-#include "util/test_harness.h"
+#include "test_util/storage_test_util.h"
+#include "test_util/test_harness.h"
 
 namespace terrier::planner {
 
@@ -855,8 +855,8 @@ TEST(PlanNodeJsonTest, OrderByPlanNodeJsonTest) {
   // Construct OrderByPlanNode
   OrderByPlanNode::Builder builder;
   auto plan_node = builder.SetOutputSchema(PlanNodeJsonTest::BuildDummyOutputSchema())
-                       .AddSortKey(catalog::col_oid_t(0), OrderByOrderingType::ASC)
-                       .AddSortKey(catalog::col_oid_t(1), OrderByOrderingType::DESC)
+                       .AddSortKey(catalog::col_oid_t(0), optimizer::OrderByOrderingType::ASC)
+                       .AddSortKey(catalog::col_oid_t(1), optimizer::OrderByOrderingType::DESC)
                        .SetLimit(10)
                        .SetOffset(10)
                        .Build();

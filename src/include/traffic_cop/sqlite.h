@@ -48,6 +48,12 @@ class SqliteEngine {
    */
   ResultSet Execute(sqlite3_stmt *stmt);
 
+  /**
+   * Get the number of affected rows by the most recent query
+   * @return the number of affected rows
+   */
+  int32_t GetAffected();
+
  private:
   // SQLite database
   struct sqlite3 *sqlite_db_;

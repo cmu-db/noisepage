@@ -3,6 +3,7 @@
 #include <sqlite3.h>
 #include <memory>
 #include <vector>
+#include "traffic_cop/statement.h"
 #include "type/transient_value.h"
 
 namespace terrier::trafficcop {
@@ -12,9 +13,9 @@ namespace terrier::trafficcop {
  */
 struct Portal {
   /**
-   * The sqlite3 statement
+   * The statement
    */
-  sqlite3_stmt *sqlite_stmt_;
+  Statement *statement_;
 
   /**
    * The sequence of parameter values
