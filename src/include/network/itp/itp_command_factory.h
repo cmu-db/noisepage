@@ -18,7 +18,7 @@ class ITPCommandFactory {
    * @param packet the Postgres input packet
    * @return a unique_ptr to the converted command
    */
-  virtual std::unique_ptr<ITPNetworkCommand> PacketToCommand(const common::ManagedPointer<InputPacket> packet);
+  virtual std::unique_ptr<ITPNetworkCommand> PacketToCommand(common::ManagedPointer<InputPacket> packet);
 
   virtual ~ITPCommandFactory() = default;
 };
