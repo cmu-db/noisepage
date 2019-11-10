@@ -119,15 +119,15 @@ TEST_F(OptimizerMetadataTest, RecordTransformedExpressionDuplicateSingleLayer) {
   auto *join = new OperatorExpression(LogicalInnerJoin::Make(), {left_get, right_get});
 
   // RecordTransformedExpression
-  GroupExpression *joinGexpr;
-  EXPECT_TRUE(metadata.RecordTransformedExpression(join, &joinGexpr));
-  EXPECT_TRUE(joinGexpr != nullptr);
+  GroupExpression *join_gexpr;
+  EXPECT_TRUE(metadata.RecordTransformedExpression(join, &join_gexpr));
+  EXPECT_TRUE(join_gexpr != nullptr);
 
-  EXPECT_EQ(joinGexpr->Op(), join->GetOp());
-  EXPECT_EQ(joinGexpr->GetChildGroupIDs().size(), 2);
-  EXPECT_EQ(joinGexpr->GetChildGroupId(0), joinGexpr->GetChildGroupId(1));
+  EXPECT_EQ(join_gexpr->Op(), join->GetOp());
+  EXPECT_EQ(join_gexpr->GetChildGroupIDs().size(), 2);
+  EXPECT_EQ(join_gexpr->GetChildGroupId(0), join_gexpr->GetChildGroupId(1));
 
-  auto child = joinGexpr->GetChildGroupId(0);
+  auto child = join_gexpr->GetChildGroupId(0);
   auto group = metadata.GetMemo().GetGroupByID(child);
   EXPECT_EQ(group->GetLogicalExpressions().size(), 1);
 
@@ -155,15 +155,15 @@ TEST_F(OptimizerMetadataTest, RecordTransformedExpressionDuplicateMultiLayer) {
   auto *join = new OperatorExpression(LogicalInnerJoin::Make(), {left_join, right_join});
 
   // RecordTransformedExpression
-  GroupExpression *joinGexpr;
-  EXPECT_TRUE(metadata.RecordTransformedExpression(join, &joinGexpr));
-  EXPECT_TRUE(joinGexpr != nullptr);
+  GroupExpression *join_g_expr;
+  EXPECT_TRUE(metadata.RecordTransformedExpression(join, &join_g_expr));
+  EXPECT_TRUE(join_g_expr != nullptr);
 
-  EXPECT_EQ(joinGexpr->Op(), join->GetOp());
-  EXPECT_EQ(joinGexpr->GetChildGroupIDs().size(), 2);
-  EXPECT_EQ(joinGexpr->GetChildGroupId(0), joinGexpr->GetChildGroupId(1));
+  EXPECT_EQ(join_g_expr->Op(), join->GetOp());
+  EXPECT_EQ(join_g_expr->GetChildGroupIDs().size(), 2);
+  EXPECT_EQ(join_g_expr->GetChildGroupId(0), join_g_expr->GetChildGroupId(1));
 
-  auto join_child = joinGexpr->GetChildGroupId(0);
+  auto join_child = join_g_expr->GetChildGroupId(0);
   auto join_group = metadata.GetMemo().GetGroupByID(join_child);
   EXPECT_EQ(join_group->GetLogicalExpressions().size(), 1);
 

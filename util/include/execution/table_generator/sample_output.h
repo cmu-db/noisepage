@@ -1,9 +1,12 @@
+#include <memory>
 #include <string>
 #include <unordered_map>
 #include <utility>
 #include <vector>
 
+#include "parser/expression/constant_value_expression.h"
 #include "planner/plannodes/output_schema.h"
+#include "type/transient_value_factory.h"
 
 namespace terrier::execution::exec {
 /**
@@ -21,10 +24,11 @@ class SampleOutput {
    */
   void InitTestOutput() {
     // Sample output formats
-    planner::OutputSchema::Column int_col{"dummy", type::TypeId::INTEGER, nullptr};
-    planner::OutputSchema::Column real_col{"dummy", type::TypeId::DECIMAL, nullptr};
-    planner::OutputSchema::Column date_col{"dummy", type::TypeId::DATE, nullptr};
-    planner::OutputSchema::Column string_col{"dummy", type::TypeId::VARCHAR, nullptr};
+    auto pred = std::make_unique<parser::ConstantValueExpression>(type::TransientValueFactory::GetBoolean(true));
+    planner::OutputSchema::Column int_col{"dummy", type::TypeId::INTEGER, pred->Copy()};
+    planner::OutputSchema::Column real_col{"dummy", type::TypeId::DECIMAL, pred->Copy()};
+    planner::OutputSchema::Column date_col{"dummy", type::TypeId::DATE, pred->Copy()};
+    planner::OutputSchema::Column string_col{"dummy", type::TypeId::VARCHAR, pred->Copy()};
 
     // Create schemas with up to 10 integer columns.
     for (uint32_t i = 0; i < 10; i++) {
@@ -57,10 +61,11 @@ class SampleOutput {
 
  private:
   void InitTPCHOutput() {
-    planner::OutputSchema::Column int_col{"dummy", type::TypeId::INTEGER, nullptr};
-    planner::OutputSchema::Column real_col{"dummy", type::TypeId::DECIMAL, nullptr};
-    planner::OutputSchema::Column date_col{"dummy", type::TypeId::DATE, nullptr};
-    planner::OutputSchema::Column string_col{"dummy", type::TypeId::VARCHAR, nullptr};
+    auto pred = std::make_unique<parser::ConstantValueExpression>(type::TransientValueFactory::GetBoolean(true));
+    planner::OutputSchema::Column int_col{"dummy", type::TypeId::INTEGER, pred->Copy()};
+    planner::OutputSchema::Column real_col{"dummy", type::TypeId::DECIMAL, pred->Copy()};
+    planner::OutputSchema::Column date_col{"dummy", type::TypeId::DATE, pred->Copy()};
+    planner::OutputSchema::Column string_col{"dummy", type::TypeId::VARCHAR, pred->Copy()};
     // Q1 (two strings, 7 reals, 1 int)
     {
       std::vector<planner::OutputSchema::Column> cols{};

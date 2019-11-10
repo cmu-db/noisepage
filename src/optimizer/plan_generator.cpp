@@ -72,8 +72,7 @@ void PlanGenerator::CorrectOutputPlanWithProjection() {
   }
 
   std::vector<planner::OutputSchema::Column> columns;
-  for (size_t idx = 0; idx < required_cols_.size(); ++idx) {
-    auto &col = required_cols_[idx];
+  for (auto &col: required_cols_) {
     col->DeriveReturnValueType();
     if (child_expr_map.find(col) != child_expr_map.end()) {
       // remapping so point to correct location
