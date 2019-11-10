@@ -9,7 +9,7 @@ namespace terrier::transaction {
 
 /**
  * Class for spinning off a thread that runs deferred actions at a fixed interval. This should be used in most cases
- * to enable GC in the system unless you need fine-grained control over table state or profiling.
+ * to enable deferred actions in the system unless you need fine-grained control over table state or profiling.
  */
 class DeferredActionThread {
  public:
