@@ -20,7 +20,7 @@ Transition ITPProtocolInterpreter::Process(common::ManagedPointer<ReadBuffer> in
     NETWORK_LOG_ERROR("Encountered exception {0} when parsing packet", e.what());
     return Transition::TERMINATE;
   }
-  std::unique_ptr<ITPNetworkCommand> command = command_factory_->PacketToCommand(&curr_input_packet_);
+  auto command = command_factory_->PacketToCommand(common::ManagedPointer(&curr_input_packet_));
   ITPPacketWriter writer(out);
   if (command->FlushOnComplete()) out->ForceFlush();
   Transition ret = command->Exec(common::ManagedPointer<ProtocolInterpreter>(this),
