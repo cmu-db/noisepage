@@ -198,7 +198,9 @@ void QueryToOperatorTransformer::Visit(parser::TableRef *node, parser::ParseResu
     node->GetList().at(0)->Accept(this, parse_result);
     auto prev_expr = output_expr_;
     // Build a left deep join tree
-    for (auto &list_elem : node->GetList()) {
+    for (size_t i = 1; i < node->GetList().size(); i++) {
+      // Start at i = 1 due to the Accept() above
+      auto list_elem = node->GetList().at(i);
       list_elem->Accept(this, parse_result);
       auto join_expr = new OperatorExpression(LogicalInnerJoin::Make(), {prev_expr, output_expr_});
       TERRIER_ASSERT(join_expr->GetChildren().size() == 2, "The join expr should have exactly 2 elements");
