@@ -16,7 +16,7 @@ class ITPPacketWriter : public PacketWriter {
   /**
    * Instantiates a new ITPPacketWriter backed by the given WriteQueue
    */
-  explicit ITPPacketWriter(const std::shared_ptr<WriteQueue> &write_queue) : PacketWriter(write_queue) {}
+  explicit ITPPacketWriter(common::ManagedPointer<WriteQueue> write_queue) : PacketWriter(write_queue) {}
 
   /**
    * Create a Replication command
