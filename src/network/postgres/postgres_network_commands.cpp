@@ -155,7 +155,7 @@ Transition BindCommand::Exec(common::ManagedPointer<ProtocolInterpreter> interpr
   using type::TransientValueFactory;
   using type::TypeId;
 
-  auto params = std::make_shared<std::vector<TransientValue>>();
+  auto params = std::make_unique<std::vector<TransientValue>>();
 
   for (size_t i = 0; i < num_params; i++) {
     auto len = static_cast<int32_t>(in_.ReadValue<int32_t>());
@@ -240,7 +240,7 @@ Transition BindCommand::Exec(common::ManagedPointer<ProtocolInterpreter> interpr
   // because we cannot copy a sqlite3 statement.
   trafficcop::Portal portal;
   portal.statement_ = statement;
-  portal.params_ = params;
+  portal.params_ = std::move(params);
   connection->portals_[portal_name] = portal;
 
   out->WriteBindComplete();
