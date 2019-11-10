@@ -241,7 +241,7 @@ Transition BindCommand::Exec(common::ManagedPointer<ProtocolInterpreter> interpr
   trafficcop::Portal portal;
   portal.statement_ = statement;
   portal.params_ = std::move(params);
-  connection->portals_[portal_name] = portal;
+  connection->portals_[portal_name] = std::move(portal);
 
   out->WriteBindComplete();
   return Transition::PROCEED;
@@ -312,7 +312,8 @@ Transition ExecuteCommand::Exec(common::ManagedPointer<ProtocolInterpreter> inte
   trafficcop::Portal &portal = p_portal->second;
 
   trafficcop::SqliteEngine *execution_engine = t_cop->GetExecutionEngine();
-  execution_engine->Bind(portal.statement_->sqlite3_stmt_, portal.params_);
+  execution_engine->Bind(portal.statement_->sqlite3_stmt_,
+                         common::ManagedPointer<std::vector<type::TransientValue>>(portal.params_));
   trafficcop::ResultSet result = execution_engine->Execute(portal.statement_->sqlite3_stmt_);
   int32_t rows_affected = execution_engine->GetAffected();
   for (const auto &row : result.rows_) {
