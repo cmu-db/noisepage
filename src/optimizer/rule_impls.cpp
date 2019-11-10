@@ -682,16 +682,10 @@ void LogicalExportToPhysicalExport::Transform(OperatorExpression *input, std::ve
 PushFilterThroughJoin::PushFilterThroughJoin() {
   type_ = RuleType::PUSH_FILTER_THROUGH_JOIN;
 
-  // Make three node types for pattern matching
-  auto child(new Pattern(OpType::LOGICALINNERJOIN));
-  child->AddChild(new Pattern(OpType::LEAF));
-  child->AddChild(new Pattern(OpType::LEAF));
-
-  // Initialize a pattern for optimizer to match
-  match_pattern_ = new Pattern(OpType::LOGICALFILTER);
-
-  // Add node - we match join relation R and S as well as the predicate exp
-  match_pattern_->AddChild(child);
+  // Make join for pattern matching
+  match_pattern_ = new Pattern(OpType::LOGICALINNERJOIN);
+  match_pattern_->AddChild(new Pattern(OpType::LEAF));
+  match_pattern_->AddChild(new Pattern(OpType::LEAF));
 }
 
 bool PushFilterThroughJoin::Check(OperatorExpression *plan, OptimizeContext *context) const {
@@ -705,14 +699,14 @@ void PushFilterThroughJoin::Transform(OperatorExpression *input, std::vector<Ope
   OPTIMIZER_LOG_TRACE("PushFilterThroughJoin::Transform");
 
   auto &memo = context->GetMetadata()->GetMemo();
-  auto join_op_expr = input->GetChildren()[0];
+  auto join_op_expr = input;
   auto &join_children = join_op_expr->GetChildren();
   auto left_group_id = join_children[0]->GetOp().As<LeafOperator>()->GetOriginGroup();
   auto right_group_id = join_children[1]->GetOp().As<LeafOperator>()->GetOriginGroup();
 
   const auto &left_group_aliases_set = memo.GetGroupByID(left_group_id)->GetTableAliases();
   const auto &right_group_aliases_set = memo.GetGroupByID(right_group_id)->GetTableAliases();
-  auto &predicates = input->GetOp().As<LogicalFilter>()->GetPredicates();
+  auto &predicates = input->GetOp().As<LogicalInnerJoin>()->GetJoinPredicates();
 
   std::vector<AnnotatedExpression> left_predicates;
   std::vector<AnnotatedExpression> right_predicates;
@@ -736,8 +730,11 @@ void PushFilterThroughJoin::Transform(OperatorExpression *input, std::vector<Ope
 
   OperatorExpression *left_branch = nullptr;
   OperatorExpression *right_branch = nullptr;
+  bool pushed_down = false;
+
   // Construct left filter if any
   if (!left_predicates.empty()) {
+    pushed_down = true;
     auto left_child = join_op_expr->GetChildren()[0]->Copy();
     left_branch = new OperatorExpression(LogicalFilter::Make(std::move(left_predicates)), {left_child});
   } else {
@@ -746,24 +743,27 @@ void PushFilterThroughJoin::Transform(OperatorExpression *input, std::vector<Ope
 
   // Construct right filter if any
   if (!right_predicates.empty()) {
+    pushed_down = true;
     auto right_child = join_op_expr->GetChildren()[1]->Copy();
     right_branch = new OperatorExpression(LogicalFilter::Make(std::move(right_predicates)), {right_child});
   } else {
     right_branch = join_op_expr->GetChildren()[1]->Copy();
   }
 
-  // Construct join operator
-  auto pre_join_predicate = join_op_expr->GetOp().As<LogicalInnerJoin>()->GetJoinPredicates();
-  join_predicates.insert(join_predicates.end(), pre_join_predicate.begin(), pre_join_predicate.end());
-  auto output = new OperatorExpression(LogicalInnerJoin::Make(std::move(join_predicates)), {left_branch, right_branch});
-  transformed->push_back(output);
+  // Only construct the output if either filter has been pushed down
+  if (pushed_down) {
+    auto pre_join_predicate = join_op_expr->GetOp().As<LogicalInnerJoin>()->GetJoinPredicates();
+    join_predicates.insert(join_predicates.end(), pre_join_predicate.begin(), pre_join_predicate.end());
+    auto output = new OperatorExpression(LogicalInnerJoin::Make(std::move(join_predicates)), {left_branch, right_branch});
+    transformed->push_back(output);
+  }
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 /// PushFilterThroughAggregation
 ///////////////////////////////////////////////////////////////////////////////
 PushFilterThroughAggregation::PushFilterThroughAggregation() {
-  type_ = RuleType::PUSH_FILTER_THROUGH_JOIN;
+  type_ = RuleType::PUSH_FILTER_THROUGH_AGGREGATION;
 
   auto child = new Pattern(OpType::LOGICALAGGREGATEANDGROUPBY);
   child->AddChild(new Pattern(OpType::LEAF));

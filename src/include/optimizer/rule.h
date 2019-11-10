@@ -44,6 +44,7 @@ enum class RuleType : uint32_t {
 
   // Rewrite rules (logical -> logical)
   PUSH_FILTER_THROUGH_JOIN,
+  PUSH_FILTER_THROUGH_AGGREGATION,
   COMBINE_CONSECUTIVE_FILTER,
   EMBED_FILTER_INTO_GET,
   MARK_JOIN_GET_TO_INNER_JOIN,
