@@ -20,7 +20,7 @@ TEST(OperatorExpressionTests, BasicOperatorExpressionTest) {
       LogicalExternalFileGet::Make(parser::ExternalFileFormat::CSV, "file.txt", ',', '"', '\\');
   Operator logical_ext_file_get_2 =
       LogicalExternalFileGet::Make(parser::ExternalFileFormat::CSV, "file.txt", ',', '"', '\\');
-  auto ope5 = new OperatorExpression(std::move(logical_ext_file_get_1), std::vector<OperatorExpression *>{ope3});
+  auto ope5 = new OperatorExpression(logical_ext_file_get_1, std::vector<OperatorExpression *>{ope3});
   auto ope6 = new OperatorExpression(LogicalDistinct::Make(), std::vector<OperatorExpression *>());
 
   auto ope7 = new OperatorExpression(TableFreeScan::Make(), std::vector<OperatorExpression *>{ope4, ope5, ope6});
