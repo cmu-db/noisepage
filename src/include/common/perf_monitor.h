@@ -27,10 +27,6 @@ class PerfMonitor {
    */
   struct PerfCounters {
     /**
-     * Number of events read. This should be PerfMonitor::NUM_HW_EVENTS if working, 0 otherwise
-     */
-    uint64_t num_events_;
-    /**
      * Total cycles. Be wary of what happens during CPU frequency scaling.
      */
     uint64_t cpu_cycles_;
@@ -68,8 +64,6 @@ class PerfMonitor {
      * @return reference to this
      */
     PerfCounters &operator-=(const PerfCounters &rhs) {
-      TERRIER_ASSERT(this->num_events_ == rhs.num_events_,
-                     "Operating on PerfCounters objects with different num_events_ doesnt' make sense.");
       this->cpu_cycles_ -= rhs.cpu_cycles_;
       this->instructions_ -= rhs.instructions_;
       this->cache_references_ -= rhs.cache_references_;
@@ -204,8 +198,6 @@ class PerfMonitor {
 
       bytes_read = read(event_files_[5], &counters.ref_cpu_cycles_, sizeof(uint64_t));
       TERRIER_ASSERT(bytes_read == sizeof(uint64_t), "Failed to read the counter.");
-
-      //      TERRIER_ASSERT(counters.num_events_ == NUM_HW_EVENTS, "Failed to read the correct number of events.");
     }
     return counters;
   }
