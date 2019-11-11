@@ -275,22 +275,24 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, ConcurrentScan)(benchmark::State &state) 
     read_order.emplace_back(read_table.Insert(&txn, *redo_));
   }
 
+  std::vector<storage::col_id_t> all_cols = StorageTestUtil::ProjectionListAllColumns(layout_);
+  storage::ProjectedColumnsInitializer initializer(layout_, all_cols, num_reads_);
+
+  std::vector<storage::ProjectedColumns *> allColumns;
+  std::vector<byte *> buf;
+  for (uint32_t j = 0; j < num_threads_; j++) {
+    auto *buffer = common::AllocationUtil::AllocateAligned(initializer.ProjectedColumnsSize());
+    storage::ProjectedColumns *columns = initializer.Initialize(buffer);
+    allColumns.push_back(columns);
+    buf.push_back(buffer);
+  }
+
   // NOLINTNEXTLINE
   for (auto _ : state) {
     auto workload = [&](uint32_t id) {
-      // We can use dummy timestamps here since we're not invoking concurrency control
-      transaction::TransactionContext txn(transaction::timestamp_t(0), transaction::timestamp_t(0), &buffer_pool_,
-                                          DISABLED);
-
-      std::vector<storage::col_id_t> all_cols = StorageTestUtil::ProjectionListAllColumns(layout_);
-      EXPECT_NE((!all_cols[all_cols.size() - 1]), -1);
-      storage::ProjectedColumnsInitializer initializer(layout_, all_cols, num_reads_);
-      auto *buffer = common::AllocationUtil::AllocateAligned(initializer.ProjectedColumnsSize());
-      storage::ProjectedColumns *columns = initializer.Initialize(buffer);
       auto it = read_table.begin();
-
       while (it != read_table.end()) {
-        read_table.Scan(&txn, &it, columns);
+        read_table.Scan(&txn, &it, allColumns[id]);
       }
     };
     common::WorkerPool thread_pool(num_threads_, {});
@@ -304,6 +306,12 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, ConcurrentScan)(benchmark::State &state) 
     }
     state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
   }
+  for (auto p : buf) {
+    delete p;
+  }
+  buf.clear();
+  // projected columns are deleted automatically
+  allColumns.clear();
   state.SetItemsProcessed(state.iterations() * num_reads_);
 }
 
