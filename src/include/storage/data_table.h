@@ -11,6 +11,8 @@
 #include "storage/tuple_access_strategy.h"
 #include "storage/undo_record.h"
 
+namespace flatbuf = org::apache::arrow::flatbuf;
+
 namespace terrier::transaction {
 class TransactionContext;
 class TransactionManager;
@@ -219,7 +221,11 @@ class DataTable {
   /**
    * Dump a table to disk in arrow IPC format.
    */
-   void DumpTable() const;
+  void DumpTable(const std::string file_name) const;
+
+  void WriteSchemaMessage(std::ofstream &outfile,
+                          std::unordered_map<col_id_t, int64_t> &dictionary_ids,
+                          flatbuffers::FlatBufferBuilder &flatbuf_builder) const;
 
  private:
   // The GarbageCollector needs to modify VersionPtrs when pruning version chains

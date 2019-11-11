@@ -1,7 +1,9 @@
 #include "storage/data_table.h"
+#include <fstream>
 #include <pthread.h>
 #include <cstring>
 #include <list>
+#include <sys/stat.h>
 #include <unordered_map>
 #include "common/allocator.h"
 #include "storage/block_access_controller.h"
@@ -247,6 +249,147 @@ bool DataTable::Delete(transaction::TransactionContext *const txn, const TupleSl
   // We have the write lock. Go ahead and flip the logically deleted bit to true
   accessor_.SetNull(slot, VERSION_POINTER_COLUMN_ID);
   return true;
+}
+
+const int32_t flatbuf_continuation = -1;
+const char alignment[8] = {0};
+
+void DataTable::WriteSchemaMessage(std::ofstream &outfile,
+                                   std::unordered_map<col_id_t, int64_t> &dictionary_ids,
+                                   flatbuffers::FlatBufferBuilder &flatbuf_builder) const {
+  RawBlock *block = blocks_.front();
+  const BlockLayout &layout = accessor_.GetBlockLayout();
+  ArrowBlockMetadata &metadata = accessor_.GetArrowBlockMetadata(block);
+  std::vector<flatbuffers::Offset<flatbuf::Field>> fields;
+  int64_t dictionary_id = 0;
+  for (col_id_t col_id : layout.AllColumns()) {
+    ArrowColumnInfo &col_info = metadata.GetColumnInfo(layout, col_id);
+    auto name = flatbuf_builder.CreateString("TestCol");
+    flatbuf::Type type;
+    flatbuffers::Offset<void> type_offset;
+    flatbuffers::Offset<flatbuf::DictionaryEncoding> dictionary = 0;
+    if (!layout.IsVarlen(col_id)) {
+      uint8_t byte_width = accessor_.GetBlockLayout().AttrSize(col_id);
+      type = flatbuf::Type_FixedSizeBinary;
+      type_offset = flatbuf::CreateFixedSizeBinary(flatbuf_builder, byte_width).Union();
+    } else {
+      switch (col_info.Type()) {
+        case ArrowColumnType::DICTIONARY_COMPRESSED:
+          dictionary = flatbuf::CreateDictionaryEncoding(flatbuf_builder,
+                                                         dictionary_id,
+                                                         flatbuf::CreateInt(flatbuf_builder, sizeof(uint32_t), false),
+                                                         false);
+          dictionary_ids[col_id] = dictionary_id++;
+        case ArrowColumnType::GATHERED_VARLEN: // fall through
+          type = flatbuf::Type_LargeBinary;
+          type_offset = flatbuf::CreateLargeBinary(flatbuf_builder).Union();
+          break;
+        default:
+          throw std::runtime_error("unexpected control flow");
+      }
+    }
+    fields.emplace_back(flatbuf::CreateField(flatbuf_builder, name, true, type, type_offset, dictionary));
+  }
+  auto schema = flatbuf::CreateSchema(flatbuf_builder,
+                                      flatbuf::Endianness_Little,
+                                      flatbuf_builder.CreateVector(fields));
+  auto message = flatbuf::CreateMessage(flatbuf_builder,
+                                        flatbuf::MetadataVersion_V4,
+                                        flatbuf::MessageHeader_Schema,
+                                        schema.Union(),
+                                        0);
+  flatbuf_builder.Finish(message);
+  int32_t flatbuf_size = flatbuf_builder.GetSize();
+  int32_t padded_flatbuf_size = (flatbuf_size + 7) / 8 * 8;
+  outfile.write(reinterpret_cast<const char *>(&flatbuf_continuation), sizeof(int32_t));
+  outfile.write(reinterpret_cast<const char *>(&padded_flatbuf_size), sizeof(int32_t));
+  outfile.write(reinterpret_cast<const char *>(flatbuf_builder.GetBufferPointer()), flatbuf_size);
+  if (padded_flatbuf_size != flatbuf_size) {
+    outfile.write(alignment, padded_flatbuf_size - flatbuf_size);
+  }
+  outfile.flush();
+}
+
+void DataTable::DumpTable(const std::string file_name) const {
+  // TODO(YUZE) Is it the upper layer's responsibility to guarantee
+  // that most of the blocks of the table are frozen and will not be
+  // updated frequently? Otherwise current implementation may introduce
+  // high overhead.
+  flatbuffers::FlatBufferBuilder flatbuf_builder;
+  std::ofstream outfile(file_name, std::ios_base::out | std::ios_base::app | std::ios_base::binary);
+  std::unordered_map<col_id_t, int64_t> dictionary_ids;
+  WriteSchemaMessage(outfile, dictionary_ids, flatbuf_builder);
+
+  const BlockLayout &layout = accessor_.GetBlockLayout();
+  uint32_t num_slots = layout.NumSlots();
+  auto column_ids = layout.AllColumns();
+  common::SpinLatch::ScopedSpinLatch guard(&blocks_latch_);
+
+  for (RawBlock *block : blocks_) {
+    std::vector<flatbuf::FieldNode> field_nodes;
+    std::vector<flatbuf::Buffer> buffers;
+    while(!block->controller_.TryAcquireInPlaceRead());
+    ArrowBlockMetadata &metadata = accessor_.GetArrowBlockMetadata(block);
+
+    size_t buffer_offset = 0;
+    size_t column_id_size = column_ids.size();
+    for (auto i = 0; i < column_id_size; ++i) {
+      auto col_id = column_ids[i];
+      common::RawConcurrentBitmap *column_bitmap = accessor_.ColumnNullBitmap(block, col_id);
+      std::byte *column_start = accessor_.ColumnStart(block, col_id);
+
+      ArrowColumnInfo &col_info = metadata.GetColumnInfo(layout, col_id);
+      // TODO(YUZE) Check if we need to count the null count here
+      field_nodes.emplace_back(num_slots, metadata.NullCount(col_id));
+
+      size_t cur_buffer_len = reinterpret_cast<char *>(column_start) - reinterpret_cast<char *>(column_bitmap);
+      buffers.emplace_back(buffer_offset, cur_buffer_len);
+      buffer_offset += cur_buffer_len;
+      if (layout.IsVarlen(col_id)) {
+        switch (col_info.Type()) {
+          case ArrowColumnType::GATHERED_VARLEN:
+            // TODO(YUZE): Support Varlen
+            break;
+          case ArrowColumnType::DICTIONARY_COMPRESSED:
+            // TODO(YUZE): Write out dictionary message.
+            break;
+          default:
+            throw std::runtime_error("unexpected control flow");
+        }
+      }
+      if (i == column_id_size - 1) {
+        int64_t casted_column_start = reinterpret_cast<int64_t >(column_start);
+        int64_t mask = (1 << 20) - 1;
+        cur_buffer_len = ((casted_column_start + mask) & (~mask)) - casted_column_start;
+      } else {
+        cur_buffer_len = reinterpret_cast<char *>(accessor_.ColumnNullBitmap(block, column_ids[i + 1])) -
+                         reinterpret_cast<char *>(column_start);
+      }
+      buffers.emplace_back(buffer_offset, cur_buffer_len);
+      buffer_offset += cur_buffer_len;
+    }
+    auto record_batch = flatbuf::CreateRecordBatch(flatbuf_builder,
+                                                   num_slots,
+                                                   flatbuf_builder.CreateVectorOfStructs(field_nodes),
+                                                   flatbuf_builder.CreateVectorOfStructs(buffers));
+    auto message = flatbuf::CreateMessage(flatbuf_builder,
+                                          flatbuf::MetadataVersion_V4,
+                                          flatbuf::MessageHeader_RecordBatch,
+                                          record_batch.Union(),
+                                          buffer_offset);
+    flatbuf_builder.Finish(message);
+    int32_t flatbuf_size = flatbuf_builder.GetSize();
+    int32_t padded_flatbuf_size = (flatbuf_size + 7) / 8 * 8;
+    outfile.write(reinterpret_cast<const char *>(&flatbuf_continuation), sizeof(int32_t));
+    outfile.write(reinterpret_cast<const char *>(&padded_flatbuf_size), sizeof(int32_t));
+    outfile.write(reinterpret_cast<const char *>(flatbuf_builder.GetBufferPointer()), flatbuf_size);
+    if (padded_flatbuf_size != flatbuf_size) {
+      outfile.write(alignment, padded_flatbuf_size - flatbuf_size);
+    }
+    outfile.write(reinterpret_cast<char *>(accessor_.ColumnStart(block, column_ids[0])), buffer_offset);
+    outfile.flush();
+    block->controller_.ReleaseInPlaceRead();
+  }
 }
 
 template <class RowType>
