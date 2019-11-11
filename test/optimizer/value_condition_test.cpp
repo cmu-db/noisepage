@@ -39,6 +39,6 @@ TEST(ValueConditionTests, GetPointerToValueTest) {
   auto val = std::make_unique<type::TransientValue>(type::TransientValueFactory::GetInteger(1));
   ValueCondition v(catalog::col_oid_t(1), "", parser::ExpressionType::INVALID, std::move(val));
 
-  EXPECT_EQ(*val, *v.GetPointerToValue());
+  EXPECT_EQ(type::TransientValueFactory::GetInteger(1), *v.GetPointerToValue());
 }
 }  // namespace terrier::optimizer
