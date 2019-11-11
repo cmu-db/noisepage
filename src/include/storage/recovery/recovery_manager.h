@@ -69,7 +69,7 @@ class RecoveryManager : public common::DedicatedThreadOwner {
                            transaction::TransactionManager *txn_manager,
                            transaction::DeferredActionManager *deferred_action_manager,
                            common::ManagedPointer<terrier::common::DedicatedThreadRegistry> thread_registry,
-                           BlockStore *store, std::chrono::milliseconds recovery_metric_interval)
+                           BlockStore *store, const std::chrono::milliseconds recovery_metric_interval)
       : DedicatedThreadOwner(thread_registry),
         log_provider_(log_provider),
         catalog_(catalog),
