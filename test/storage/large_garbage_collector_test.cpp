@@ -5,7 +5,7 @@
 #include "di/injectors.h"
 #include "gtest/gtest.h"
 #include "storage/garbage_collector_thread.h"
-#include "util/data_table_test_util.h"
+#include "test_util/data_table_test_util.h"
 
 namespace terrier {
 class LargeGCTests : public TerrierTest {

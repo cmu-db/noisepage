@@ -1,9 +1,9 @@
 #include "type/transient_value.h"
 #include <random>
 #include <utility>
+#include "test_util/test_harness.h"
 #include "type/transient_value_factory.h"
 #include "type/transient_value_peeker.h"
-#include "util/test_harness.h"
 
 namespace terrier::type {
 

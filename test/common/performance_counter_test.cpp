@@ -4,7 +4,7 @@
 #include <vector>
 #include "common/json.h"
 #include "gtest/gtest.h"
-#include "util/random_test_util.h"
+#include "test_util/random_test_util.h"
 
 namespace terrier {
 
