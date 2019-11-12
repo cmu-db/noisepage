@@ -223,9 +223,27 @@ class DataTable {
    */
   void DumpTable(const std::string file_name) const;
 
+  /**
+   * Write a schema message
+   * @param outfile the output file
+   * @param dictionary_ids when encountered columns that are dictionary-encoded, we pre-assign the
+   *                       dictionary id
+   * @param flatbuf_builder flatbuffer builder
+   */
   void WriteSchemaMessage(std::ofstream &outfile,
                           std::unordered_map<col_id_t, int64_t> &dictionary_ids,
                           flatbuffers::FlatBufferBuilder &flatbuf_builder) const;
+
+  /**
+   * Write a dictionary message
+   * @param outfile the output file
+   * @param dictionary_id the id of this dictionary id
+   * @param flatbuf_builder flatbuffer builder
+   */
+  void WriteDictionaryMessage(std::ofstream &outfile,
+                              int64_t dictionary_id,
+                              ArrowVarlenColumn &varlen_col,
+                              flatbuffers::FlatBufferBuilder &flatbuf_builder) const;
 
  private:
   // The GarbageCollector needs to modify VersionPtrs when pruning version chains

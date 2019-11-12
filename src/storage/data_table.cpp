@@ -310,6 +310,46 @@ void DataTable::WriteSchemaMessage(std::ofstream &outfile,
   outfile.flush();
 }
 
+void DataTable::WriteDictionaryMessage(std::ofstream &outfile,
+                                       int64_t dictionary_id,
+                                       ArrowVarlenColumn &varlen_col,
+                                       flatbuffers::FlatBufferBuilder &flatbuf_builder) const {
+  std::vector<flatbuf::FieldNode> field_nodes;
+  std::vector<flatbuf::Buffer> buffers;
+  uint32_t num_elements = varlen_col.OffsetsLength() - 1;
+  size_t buffer_offset = 0;
+  size_t cur_buffer_len = 0;
+  field_nodes.emplace_back(num_elements, 0);
+  cur_buffer_len = varlen_col.OffsetsLength() * sizeof(uint32_t);
+  buffers.emplace_back(buffer_offset, cur_buffer_len);
+  buffer_offset += cur_buffer_len;
+  cur_buffer_len = varlen_col.ValuesLength();
+  buffers.emplace_back(buffer_offset, cur_buffer_len);
+  auto record_batch = flatbuf::CreateRecordBatch(flatbuf_builder,
+                                                 num_elements,
+                                                 flatbuf_builder.CreateVectorOfStructs(field_nodes),
+                                                 flatbuf_builder.CreateVectorOfStructs(buffers));
+  auto dictionary_batch = flatbuf::CreateDictionaryBatch(flatbuf_builder, dictionary_id, record_batch);
+  auto aligned_offset = (buffer_offset + 7) & (~7);
+  auto message = flatbuf::CreateMessage(flatbuf_builder,
+                                        flatbuf::MetadataVersion_V4,
+                                        flatbuf::MessageHeader_DictionaryBatch,
+                                        dictionary_batch.Union(),
+                                        aligned_offset);
+  flatbuf_builder.Finish(message);
+  int32_t flatbuf_size = flatbuf_builder.GetSize();
+  int32_t padded_flatbuf_size = ((flatbuf_size + 7) & (~7));
+  outfile.write(reinterpret_cast<const char *>(&flatbuf_continuation), sizeof(int32_t));
+  outfile.write(reinterpret_cast<const char *>(&padded_flatbuf_size), sizeof(int32_t));
+  outfile.write(reinterpret_cast<const char *>(flatbuf_builder.GetBufferPointer()), flatbuf_size);
+  if (padded_flatbuf_size != flatbuf_size) {
+    outfile.write(alignment, padded_flatbuf_size - flatbuf_size);
+  }
+  outfile.write(reinterpret_cast<const char *>(varlen_col.Offsets()), varlen_col.OffsetsLength() * sizeof(uint32_t));
+  outfile.write(reinterpret_cast<const char *>(varlen_col.Values()), varlen_col.ValuesLength());
+  outfile.flush();
+}
+
 void DataTable::DumpTable(const std::string file_name) const {
   // TODO(YUZE) Is it the upper layer's responsibility to guarantee
   // that most of the blocks of the table are frozen and will not be
@@ -351,7 +391,7 @@ void DataTable::DumpTable(const std::string file_name) const {
         switch (col_info.Type()) {
           case ArrowColumnType::GATHERED_VARLEN: {
             ArrowVarlenColumn &varlen_col = col_info.VarlenColumn();
-            cur_buffer_len = varlen_col.OffsetsLength();
+            cur_buffer_len = varlen_col.OffsetsLength() * sizeof(uint32_t);
             buffers.emplace_back(buffer_offset, cur_buffer_len);
             memcpy(dump_buffer + buffer_offset, varlen_col.Offsets(), cur_buffer_len);
             buffer_offset += cur_buffer_len;
@@ -362,6 +402,8 @@ void DataTable::DumpTable(const std::string file_name) const {
             break;
           }
           case ArrowColumnType::DICTIONARY_COMPRESSED: {
+            ArrowVarlenColumn &varlen_col = col_info.VarlenColumn();
+            WriteDictionaryMessage(outfile, dictionary_ids[col_id], varlen_col, flatbuf_builder);
             auto indices = col_info.Indices();
             cur_buffer_len = num_slots * sizeof(uint32_t);
             buffers.emplace_back(buffer_offset, cur_buffer_len);
@@ -409,6 +451,7 @@ void DataTable::DumpTable(const std::string file_name) const {
     outfile.flush();
     block->controller_.ReleaseInPlaceRead();
   }
+  outfile.close();
 }
 
 template <class RowType>
