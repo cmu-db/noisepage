@@ -41,7 +41,7 @@ void QueryToOperatorTransformer::Visit(parser::SelectStatement *op, parser::Pars
   // information is derived before the plan generation, at this step we
   // don't need to derive that
   auto pre_predicates = std::move(predicates_);
-  predicates_ = std::vector<AnnotatedExpression>();
+  predicates_ = {};
 
   if (op->GetSelectTable() != nullptr) {
     // SELECT with FROM
