@@ -70,7 +70,7 @@ class RusageMonitor {
   rusage end_;
   bool running_ = false;
   bool valid_ = false;
-  const __rusage_who who_;
+  const int who_;
 
   static timeval SubtractTimeval(const timeval &lhs, const timeval &rhs) {
     return {lhs.tv_sec - rhs.tv_sec, lhs.tv_usec - rhs.tv_usec};
