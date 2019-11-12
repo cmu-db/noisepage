@@ -63,8 +63,6 @@ class RecoveryTests : public TerrierTest {
   storage::GarbageCollector *recovery_gc_;
   storage::GarbageCollectorThread *recovery_gc_thread_;
 
-  static void EmptySetterCallback(const std::shared_ptr<common::ActionContext> &action_context UNUSED_ATTRIBUTE) {}
-
   void SetUp() override {
     TerrierTest::SetUp();
     // Unlink log file incase one exists from previous test iteration
