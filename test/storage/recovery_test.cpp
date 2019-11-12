@@ -92,13 +92,6 @@ class RecoveryTests : public TerrierTest {
     recovery_gc_ = new storage::GarbageCollector(recovery_timestamp_manager_, recovery_deferred_action_manager_,
                                                  recovery_txn_manager_, DISABLED);
     recovery_gc_thread_ = new storage::GarbageCollectorThread(recovery_gc_, gc_period_);  // Enable background GC
-
-
-    std::unordered_map<settings::Param, settings::ParamInfo> param_map;
-    terrier::settings::SettingsManager::ConstructParamMap(param_map);
-
-    db_main_ = new DBMain(std::move(param_map));
-    settings_manager_ = db_main_->settings_manager_;
   }
 
   void TearDown() override {
