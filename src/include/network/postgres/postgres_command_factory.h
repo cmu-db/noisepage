@@ -3,7 +3,7 @@
 #include "network/postgres/postgres_network_commands.h"
 
 #define MAKE_POSTGRES_COMMAND(type) \
-  std::static_pointer_cast<PostgresNetworkCommand, type>(std::make_shared<type>(packet))
+  std::unique_ptr<PostgresNetworkCommand>(reinterpret_cast<PostgresNetworkCommand *>(new type(packet)))
 
 namespace terrier::network {
 
@@ -16,9 +16,9 @@ class PostgresCommandFactory {
   /**
    * Convert a Postgres packet to command.
    * @param packet the Postgres input packet
-   * @return a shared_ptr to the converted command
+   * @return a raw pointer to the converted command
    */
-  virtual std::shared_ptr<PostgresNetworkCommand> PacketToCommand(InputPacket *packet);
+  virtual std::unique_ptr<PostgresNetworkCommand> PacketToCommand(common::ManagedPointer<InputPacket> packet);
 
   virtual ~PostgresCommandFactory() = default;
 };
