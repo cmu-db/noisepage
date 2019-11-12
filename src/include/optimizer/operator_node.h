@@ -143,7 +143,7 @@ class Operator {
    * Move constructor
    * @param o other to construct from
    */
-  Operator(Operator &&o);
+  Operator(Operator &&o) noexcept;
 
   /**
    * Calls corresponding visitor to this operator node

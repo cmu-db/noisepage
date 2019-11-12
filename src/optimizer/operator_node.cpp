@@ -10,7 +10,7 @@ Operator::Operator() noexcept : node_(nullptr) {}
 
 Operator::Operator(std::unique_ptr<BaseOperatorNode> node) : node_(std::move(node)) {}
 
-Operator::Operator(Operator &&o) : node_(std::move(o.node_)) {}
+Operator::Operator(Operator &&o) noexcept : node_(std::move(o.node_)) {}
 
 void Operator::Accept(common::ManagedPointer<OperatorVisitor> v) const { node_->Accept(v); }
 
