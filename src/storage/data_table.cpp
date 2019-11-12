@@ -324,7 +324,8 @@ void DataTable::DumpTable(const std::string file_name) const {
   uint32_t num_slots = layout.NumSlots();
   auto column_ids = layout.AllColumns();
   common::SpinLatch::ScopedSpinLatch guard(&blocks_latch_);
-
+  // TODO(YUZE) Maybe use heap space?
+  char dump_buffer[common::Constants::BLOCK_SIZE];
   for (RawBlock *block : blocks_) {
     std::vector<flatbuf::FieldNode> field_nodes;
     std::vector<flatbuf::Buffer> buffers;
@@ -344,49 +345,67 @@ void DataTable::DumpTable(const std::string file_name) const {
 
       size_t cur_buffer_len = reinterpret_cast<char *>(column_start) - reinterpret_cast<char *>(column_bitmap);
       buffers.emplace_back(buffer_offset, cur_buffer_len);
+      memcpy(dump_buffer + buffer_offset, column_bitmap, cur_buffer_len);
       buffer_offset += cur_buffer_len;
       if (layout.IsVarlen(col_id)) {
         switch (col_info.Type()) {
-          case ArrowColumnType::GATHERED_VARLEN:
-            // TODO(YUZE): Support Varlen
+          case ArrowColumnType::GATHERED_VARLEN: {
+            ArrowVarlenColumn &varlen_col = col_info.VarlenColumn();
+            cur_buffer_len = varlen_col.OffsetsLength();
+            buffers.emplace_back(buffer_offset, cur_buffer_len);
+            memcpy(dump_buffer + buffer_offset, varlen_col.Offsets(), cur_buffer_len);
+            buffer_offset += cur_buffer_len;
+            cur_buffer_len = varlen_col.ValuesLength();
+            buffers.emplace_back(buffer_offset, cur_buffer_len);
+            memcpy(dump_buffer + buffer_offset, varlen_col.Values(), cur_buffer_len);
+            buffer_offset += cur_buffer_len;
             break;
-          case ArrowColumnType::DICTIONARY_COMPRESSED:
-            // TODO(YUZE): Write out dictionary message.
+          }
+          case ArrowColumnType::DICTIONARY_COMPRESSED: {
+            auto indices = col_info.Indices();
+            cur_buffer_len = num_slots * sizeof(uint32_t);
+            buffers.emplace_back(buffer_offset, cur_buffer_len);
+            memcpy(dump_buffer + buffer_offset, indices, num_slots * sizeof(uint32_t));
+            buffer_offset += cur_buffer_len;
             break;
+          }
           default:
             throw std::runtime_error("unexpected control flow");
         }
-      }
-      if (i == column_id_size - 1) {
-        int64_t casted_column_start = reinterpret_cast<int64_t >(column_start);
-        int64_t mask = (1 << 20) - 1;
-        cur_buffer_len = ((casted_column_start + mask) & (~mask)) - casted_column_start;
       } else {
-        cur_buffer_len = reinterpret_cast<char *>(accessor_.ColumnNullBitmap(block, column_ids[i + 1])) -
-                         reinterpret_cast<char *>(column_start);
+        if (i == column_id_size - 1) {
+          uintptr_t casted_column_start = reinterpret_cast<uintptr_t>(column_start);
+          uintptr_t mask = (1 << 20) - 1;
+          cur_buffer_len = ((casted_column_start + mask) & (~mask)) - casted_column_start;
+        } else {
+          cur_buffer_len = reinterpret_cast<char *>(accessor_.ColumnNullBitmap(block, column_ids[i + 1])) -
+              reinterpret_cast<char *>(column_start);
+        }
+        buffers.emplace_back(buffer_offset, cur_buffer_len);
+        memcpy(dump_buffer + buffer_offset, column_start, cur_buffer_len);
+        buffer_offset += cur_buffer_len;
       }
-      buffers.emplace_back(buffer_offset, cur_buffer_len);
-      buffer_offset += cur_buffer_len;
     }
     auto record_batch = flatbuf::CreateRecordBatch(flatbuf_builder,
                                                    num_slots,
                                                    flatbuf_builder.CreateVectorOfStructs(field_nodes),
                                                    flatbuf_builder.CreateVectorOfStructs(buffers));
+    auto aligned_offset = (buffer_offset + 7) & (~7);
     auto message = flatbuf::CreateMessage(flatbuf_builder,
                                           flatbuf::MetadataVersion_V4,
                                           flatbuf::MessageHeader_RecordBatch,
                                           record_batch.Union(),
-                                          buffer_offset);
+                                          aligned_offset);
     flatbuf_builder.Finish(message);
     int32_t flatbuf_size = flatbuf_builder.GetSize();
-    int32_t padded_flatbuf_size = (flatbuf_size + 7) / 8 * 8;
+    int32_t padded_flatbuf_size = ((flatbuf_size + 7) & (~7));
     outfile.write(reinterpret_cast<const char *>(&flatbuf_continuation), sizeof(int32_t));
     outfile.write(reinterpret_cast<const char *>(&padded_flatbuf_size), sizeof(int32_t));
     outfile.write(reinterpret_cast<const char *>(flatbuf_builder.GetBufferPointer()), flatbuf_size);
     if (padded_flatbuf_size != flatbuf_size) {
       outfile.write(alignment, padded_flatbuf_size - flatbuf_size);
     }
-    outfile.write(reinterpret_cast<char *>(accessor_.ColumnStart(block, column_ids[0])), buffer_offset);
+    outfile.write(dump_buffer, aligned_offset);
     outfile.flush();
     block->controller_.ReleaseInPlaceRead();
   }
