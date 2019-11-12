@@ -2,7 +2,7 @@
 #include <thread>  //NOLINT
 #include "common/macros.h"
 #include "storage/storage_defs.h"
-#include "util/test_harness.h"
+#include "test_util/test_harness.h"
 
 namespace terrier {
 

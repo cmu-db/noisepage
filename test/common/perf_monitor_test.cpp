@@ -5,10 +5,10 @@
 #include "common/scoped_timer.h"
 #include "storage/garbage_collector_thread.h"
 #include "storage/storage_defs.h"
+#include "test_util/storage_test_util.h"
+#include "test_util/test_harness.h"
 #include "transaction/deferred_action_manager.h"
 #include "transaction/transaction_manager.h"
-#include "util/storage_test_util.h"
-#include "util/test_harness.h"
 
 namespace terrier {
 
