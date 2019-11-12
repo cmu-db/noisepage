@@ -671,7 +671,6 @@ Operator LogicalAggregateAndGroupBy::Make() { return Operator(std::make_unique<L
 Operator LogicalAggregateAndGroupBy::Make(std::vector<common::ManagedPointer<parser::AbstractExpression>> &&columns) {
   auto group_by = std::make_unique<LogicalAggregateAndGroupBy>();
   group_by->columns_ = std::move(columns);
-  group_by->having_ = {};
   return Operator(std::move(group_by));
 }
 
