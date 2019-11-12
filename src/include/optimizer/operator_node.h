@@ -139,6 +139,10 @@ class Operator {
    */
   explicit Operator(std::unique_ptr<BaseOperatorNode> node);
 
+  /**
+   * Move constructor
+   * @param o other to construct from
+   */
   Operator(Operator &&o);
 
   /**

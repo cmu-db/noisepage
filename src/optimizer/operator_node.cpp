@@ -1,5 +1,7 @@
 #include "optimizer/operator_node.h"
+#include <memory>
 #include <string>
+#include <utility>
 #include "common/managed_pointer.h"
 
 namespace terrier::optimizer {

@@ -24,6 +24,10 @@ class OperatorExpression {
   explicit OperatorExpression(Operator op, std::vector<std::unique_ptr<OperatorExpression>> &&children)
       : op_(std::move(op)), children_(std::move(children)) {}
 
+  /**
+   * Move constructor
+   * @param op other to construct from
+   */
   OperatorExpression(OperatorExpression &&op) noexcept : op_(std::move(op.op_)), children_(std::move(op.children_)) {}
 
   /**
