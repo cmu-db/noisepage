@@ -18,6 +18,11 @@
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_manager.h"
 
+#define __SETTING_GFLAGS_DEFINE__      // NOLINT
+#include "settings/settings_common.h"  // NOLINT
+#include "settings/settings_defs.h"    // NOLINT
+#undef __SETTING_GFLAGS_DEFINE__       // NOLINT
+
 // Make sure that if you create additional files, you call unlink on them after the test finishes. Otherwise, repeated
 // executions will read old test's data, and the cause of the errors will be hard to identify. Trust me it will drive
 // you nuts...
@@ -31,6 +36,7 @@ class RecoveryTests : public TerrierTest {
   const std::chrono::microseconds log_serialization_interval_{10};
   const std::chrono::milliseconds log_persist_interval_{20};
   const uint64_t log_persist_threshold_ = (1 << 20);  // 1MB
+  const std::chrono::milliseconds recovery_metric_interval_{1000};
 
   std::default_random_engine generator_;
   storage::RecordBufferSegmentPool buffer_pool_{2000, 100};
@@ -57,6 +63,11 @@ class RecoveryTests : public TerrierTest {
   storage::GarbageCollector *recovery_gc_;
   storage::GarbageCollectorThread *recovery_gc_thread_;
 
+  settings::SettingsManager *settings_manager_;
+  DBMain *db_main_; 
+
+  static void EmptySetterCallback(const std::shared_ptr<common::ActionContext> &action_context UNUSED_ATTRIBUTE) {}
+
   void SetUp() override {
     TerrierTest::SetUp();
     // Unlink log file incase one exists from previous test iteration
@@ -81,6 +92,13 @@ class RecoveryTests : public TerrierTest {
     recovery_gc_ = new storage::GarbageCollector(recovery_timestamp_manager_, recovery_deferred_action_manager_,
                                                  recovery_txn_manager_, DISABLED);
     recovery_gc_thread_ = new storage::GarbageCollectorThread(recovery_gc_, gc_period_);  // Enable background GC
+
+
+    std::unordered_map<settings::Param, settings::ParamInfo> param_map;
+    terrier::settings::SettingsManager::ConstructParamMap(param_map);
+
+    db_main_ = new DBMain(std::move(param_map));
+    settings_manager_ = db_main_->settings_manager_;
   }
 
   void TearDown() override {
@@ -216,7 +234,7 @@ class RecoveryTests : public TerrierTest {
     DiskLogProvider log_provider(LOG_FILE_NAME);
     RecoveryManager recovery_manager(&log_provider, common::ManagedPointer(recovery_catalog_), recovery_txn_manager_,
                                      recovery_deferred_action_manager_, common::ManagedPointer(thread_registry_),
-                                     &block_store_);
+                                     &block_store_, recovery_metric_interval_);
     recovery_manager.StartRecovery();
     recovery_manager.WaitForRecoveryToFinish();
 
@@ -315,7 +333,7 @@ TEST_F(RecoveryTests, DropDatabaseTest) {
   DiskLogProvider log_provider(LOG_FILE_NAME);
   RecoveryManager recovery_manager(&log_provider, common::ManagedPointer(recovery_catalog_), recovery_txn_manager_,
                                    recovery_deferred_action_manager_, common::ManagedPointer(thread_registry_),
-                                   &block_store_);
+                                   &block_store_, recovery_metric_interval_);
   recovery_manager.StartRecovery();
   recovery_manager.WaitForRecoveryToFinish();
 
@@ -347,7 +365,7 @@ TEST_F(RecoveryTests, DropTableTest) {
   DiskLogProvider log_provider(LOG_FILE_NAME);
   RecoveryManager recovery_manager(&log_provider, common::ManagedPointer(recovery_catalog_), recovery_txn_manager_,
                                    recovery_deferred_action_manager_, common::ManagedPointer(thread_registry_),
-                                   &block_store_);
+                                   &block_store_, recovery_metric_interval_);
   recovery_manager.StartRecovery();
   recovery_manager.WaitForRecoveryToFinish();
 
@@ -386,7 +404,7 @@ TEST_F(RecoveryTests, DropIndexTest) {
   DiskLogProvider log_provider(LOG_FILE_NAME);
   RecoveryManager recovery_manager(&log_provider, common::ManagedPointer(recovery_catalog_), recovery_txn_manager_,
                                    recovery_deferred_action_manager_, common::ManagedPointer(thread_registry_),
-                                   &block_store_);
+                                   &block_store_, recovery_metric_interval_);
   recovery_manager.StartRecovery();
   recovery_manager.WaitForRecoveryToFinish();
 
@@ -426,7 +444,7 @@ TEST_F(RecoveryTests, DropNamespaceTest) {
   DiskLogProvider log_provider(LOG_FILE_NAME);
   RecoveryManager recovery_manager(&log_provider, common::ManagedPointer(recovery_catalog_), recovery_txn_manager_,
                                    recovery_deferred_action_manager_, common::ManagedPointer(thread_registry_),
-                                   &block_store_);
+                                   &block_store_, recovery_metric_interval_);
   recovery_manager.StartRecovery();
   recovery_manager.WaitForRecoveryToFinish();
 
@@ -466,7 +484,7 @@ TEST_F(RecoveryTests, DropDatabaseCascadeDeleteTest) {
   DiskLogProvider log_provider(LOG_FILE_NAME);
   RecoveryManager recovery_manager(&log_provider, common::ManagedPointer(recovery_catalog_), recovery_txn_manager_,
                                    recovery_deferred_action_manager_, common::ManagedPointer(thread_registry_),
-                                   &block_store_);
+                                   &block_store_, recovery_metric_interval_);
   recovery_manager.StartRecovery();
   recovery_manager.WaitForRecoveryToFinish();
 
@@ -511,7 +529,7 @@ TEST_F(RecoveryTests, UnrecoverableTransactionsTest) {
   DiskLogProvider log_provider(LOG_FILE_NAME);
   RecoveryManager recovery_manager(&log_provider, common::ManagedPointer(recovery_catalog_), recovery_txn_manager_,
                                    recovery_deferred_action_manager_, common::ManagedPointer(thread_registry_),
-                                   &block_store_);
+                                   &block_store_, recovery_metric_interval_);
   recovery_manager.StartRecovery();
   recovery_manager.WaitForRecoveryToFinish();
 
@@ -580,7 +598,7 @@ TEST_F(RecoveryTests, ConcurrentCatalogDDLChangesTest) {
   DiskLogProvider log_provider(LOG_FILE_NAME);
   RecoveryManager recovery_manager(&log_provider, common::ManagedPointer(recovery_catalog_), recovery_txn_manager_,
                                    recovery_deferred_action_manager_, common::ManagedPointer(thread_registry_),
-                                   &block_store_);
+                                   &block_store_, recovery_metric_interval_);
   recovery_manager.StartRecovery();
   recovery_manager.WaitForRecoveryToFinish();
 
@@ -651,7 +669,7 @@ TEST_F(RecoveryTests, ConcurrentDDLChangesTest) {
   DiskLogProvider log_provider(LOG_FILE_NAME);
   RecoveryManager recovery_manager(&log_provider, common::ManagedPointer(recovery_catalog_), recovery_txn_manager_,
                                    recovery_deferred_action_manager_, common::ManagedPointer(thread_registry_),
-                                   &block_store_);
+                                   &block_store_, recovery_metric_interval_);
   recovery_manager.StartRecovery();
   recovery_manager.WaitForRecoveryToFinish();
 
@@ -716,7 +734,7 @@ TEST_F(RecoveryTests, DoubleRecoveryTest) {
   DiskLogProvider log_provider(LOG_FILE_NAME);
   RecoveryManager recovery_manager(&log_provider, common::ManagedPointer(recovery_catalog_), recovery_txn_manager_,
                                    recovery_deferred_action_manager_, common::ManagedPointer(thread_registry_),
-                                   &block_store_);
+                                   &block_store_, recovery_metric_interval_);
   recovery_manager.StartRecovery();
   recovery_manager.WaitForRecoveryToFinish();
 
@@ -779,7 +797,7 @@ TEST_F(RecoveryTests, DoubleRecoveryTest) {
   DiskLogProvider secondary_log_provider(secondary_log_file);
   RecoveryManager secondary_recovery_manager(
       &secondary_log_provider, common::ManagedPointer(&secondary_recovery_catalog), &secondary_recovery_txn_manager,
-      &secondary_recovery_deferred_action_manager, common::ManagedPointer(thread_registry_), &block_store_);
+      &secondary_recovery_deferred_action_manager, common::ManagedPointer(thread_registry_), &block_store_, recovery_metric_interval_);
   secondary_recovery_manager.StartRecovery();
   secondary_recovery_manager.WaitForRecoveryToFinish();
 
