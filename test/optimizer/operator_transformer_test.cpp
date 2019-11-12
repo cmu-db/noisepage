@@ -46,8 +46,8 @@ class OperatorTransformerTest : public TerrierTest {
   transaction::TransactionContext *txn_;
   std::unique_ptr<catalog::CatalogAccessor> accessor_;
   binder::BindNodeVisitor *binder_;
-  optimizer::QueryToOperatorTransformer *operator_transformer_;
-  optimizer::OperatorExpression *operator_tree_;
+  std::unique_ptr<optimizer::QueryToOperatorTransformer> operator_transformer_;
+  std::unique_ptr<optimizer::OperatorExpression> operator_tree_;
   std::vector<optimizer::OpType> op_types_;
 
   void SetUpTables() {
@@ -132,13 +132,13 @@ class OperatorTransformerTest : public TerrierTest {
     txn_manager_->Commit(txn_, TestCallbacks::EmptyCallback, nullptr);
     accessor_.reset(nullptr);
     delete binder_;
-    delete operator_transformer_;
-    delete operator_tree_;
+    operator_transformer_.reset(nullptr);
+    operator_tree_.reset(nullptr);
     TearDownTables();
     TerrierTest::TearDown();
   }
 
-  std::string GenerateOperatorAudit(optimizer::OperatorExpression *op) const {
+  std::string GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorExpression> op) const {
     std::string info = "{";
     {
       info += "\"Op\":";
@@ -177,9 +177,9 @@ TEST_F(OperatorTransformerTest, SelectStatementSimpleTest) {
   binder_->BindNameToNode(statement, &parse_tree);
   accessor_ = binder_->GetCatalogAccessor();
   auto default_namespace_oid = accessor_->GetDefaultNamespace();
-  operator_transformer_ = new optimizer::QueryToOperatorTransformer(std::move(accessor_));
+  operator_transformer_ = std::make_unique<optimizer::QueryToOperatorTransformer>(std::move(accessor_));
   operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, &parse_tree);
-  auto info = GenerateOperatorAudit(operator_tree_);
+  auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorExpression>(operator_tree_));
 
   EXPECT_EQ(ref, info);
 
@@ -202,9 +202,9 @@ TEST_F(OperatorTransformerTest, InsertStatementSimpleTest) {
   binder_->BindNameToNode(statement, &parse_tree);
   accessor_ = binder_->GetCatalogAccessor();
   auto default_namespace_oid = accessor_->GetDefaultNamespace();
-  operator_transformer_ = new optimizer::QueryToOperatorTransformer(std::move(accessor_));
+  operator_transformer_ = std::make_unique<optimizer::QueryToOperatorTransformer>(std::move(accessor_));
   operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, &parse_tree);
-  auto info = GenerateOperatorAudit(operator_tree_);
+  auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorExpression>(operator_tree_));
 
   EXPECT_EQ(ref, info);
 
@@ -241,9 +241,9 @@ TEST_F(OperatorTransformerTest, InsertStatementSelectTest) {
   binder_->BindNameToNode(statement, &parse_tree);
   accessor_ = binder_->GetCatalogAccessor();
   auto default_namespace_oid = accessor_->GetDefaultNamespace();
-  operator_transformer_ = new optimizer::QueryToOperatorTransformer(std::move(accessor_));
+  operator_transformer_ = std::make_unique<optimizer::QueryToOperatorTransformer>(std::move(accessor_));
   operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, &parse_tree);
-  auto info = GenerateOperatorAudit(operator_tree_);
+  auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorExpression>(operator_tree_));
 
   EXPECT_EQ(ref, info);
 
@@ -280,9 +280,9 @@ TEST_F(OperatorTransformerTest, UpdateStatementSimpleTest) {
   binder_->BindNameToNode(statement, &parse_tree);
   accessor_ = binder_->GetCatalogAccessor();
   auto default_namespace_oid = accessor_->GetDefaultNamespace();
-  operator_transformer_ = new optimizer::QueryToOperatorTransformer(std::move(accessor_));
+  operator_transformer_ = std::make_unique<optimizer::QueryToOperatorTransformer>(std::move(accessor_));
   operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, &parse_tree);
-  auto info = GenerateOperatorAudit(operator_tree_);
+  auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorExpression>(operator_tree_));
 
   EXPECT_EQ(ref, info);
 
@@ -318,9 +318,9 @@ TEST_F(OperatorTransformerTest, SelectStatementAggregateTest) {
   binder_->BindNameToNode(statement, &parse_tree);
   accessor_ = binder_->GetCatalogAccessor();
   auto default_namespace_oid = accessor_->GetDefaultNamespace();
-  operator_transformer_ = new optimizer::QueryToOperatorTransformer(std::move(accessor_));
+  operator_transformer_ = std::make_unique<optimizer::QueryToOperatorTransformer>(std::move(accessor_));
   operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, &parse_tree);
-  auto info = GenerateOperatorAudit(operator_tree_);
+  auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorExpression>(operator_tree_));
 
   EXPECT_EQ(ref, info);
 
@@ -353,9 +353,9 @@ TEST_F(OperatorTransformerTest, SelectStatementDistinctTest) {
   binder_->BindNameToNode(statement, &parse_tree);
   accessor_ = binder_->GetCatalogAccessor();
   auto default_namespace_oid = accessor_->GetDefaultNamespace();
-  operator_transformer_ = new optimizer::QueryToOperatorTransformer(std::move(accessor_));
+  operator_transformer_ = std::make_unique<optimizer::QueryToOperatorTransformer>(std::move(accessor_));
   operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, &parse_tree);
-  auto info = GenerateOperatorAudit(operator_tree_);
+  auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorExpression>(operator_tree_));
 
   EXPECT_EQ(ref, info);
 
@@ -386,9 +386,9 @@ TEST_F(OperatorTransformerTest, SelectStatementOrderByTest) {
   binder_->BindNameToNode(statement, &parse_tree);
   accessor_ = binder_->GetCatalogAccessor();
   auto default_namespace_oid = accessor_->GetDefaultNamespace();
-  operator_transformer_ = new optimizer::QueryToOperatorTransformer(std::move(accessor_));
+  operator_transformer_ = std::make_unique<optimizer::QueryToOperatorTransformer>(std::move(accessor_));
   operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, &parse_tree);
-  auto info = GenerateOperatorAudit(operator_tree_);
+  auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorExpression>(operator_tree_));
 
   EXPECT_EQ(ref, info);
 
@@ -425,9 +425,9 @@ TEST_F(OperatorTransformerTest, SelectStatementLeftJoinTest) {
   binder_->BindNameToNode(statement, &parse_tree);
   accessor_ = binder_->GetCatalogAccessor();
   auto default_namespace_oid = accessor_->GetDefaultNamespace();
-  operator_transformer_ = new optimizer::QueryToOperatorTransformer(std::move(accessor_));
+  operator_transformer_ = std::make_unique<optimizer::QueryToOperatorTransformer>(std::move(accessor_));
   operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, &parse_tree);
-  auto info = GenerateOperatorAudit(operator_tree_);
+  auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorExpression>(operator_tree_));
 
   EXPECT_EQ(ref, info);
 
@@ -464,9 +464,9 @@ TEST_F(OperatorTransformerTest, SelectStatementRightJoinTest) {
   binder_->BindNameToNode(statement, &parse_tree);
   accessor_ = binder_->GetCatalogAccessor();
   auto default_namespace_oid = accessor_->GetDefaultNamespace();
-  operator_transformer_ = new optimizer::QueryToOperatorTransformer(std::move(accessor_));
+  operator_transformer_ = std::make_unique<optimizer::QueryToOperatorTransformer>(std::move(accessor_));
   operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, &parse_tree);
-  auto info = GenerateOperatorAudit(operator_tree_);
+  auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorExpression>(operator_tree_));
 
   EXPECT_EQ(ref, info);
 
@@ -503,9 +503,9 @@ TEST_F(OperatorTransformerTest, SelectStatementInnerJoinTest) {
   binder_->BindNameToNode(statement, &parse_tree);
   accessor_ = binder_->GetCatalogAccessor();
   auto default_namespace_oid = accessor_->GetDefaultNamespace();
-  operator_transformer_ = new optimizer::QueryToOperatorTransformer(std::move(accessor_));
+  operator_transformer_ = std::make_unique<optimizer::QueryToOperatorTransformer>(std::move(accessor_));
   operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, &parse_tree);
-  auto info = GenerateOperatorAudit(operator_tree_);
+  auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorExpression>(operator_tree_));
 
   EXPECT_EQ(ref, info);
 
@@ -542,9 +542,9 @@ TEST_F(OperatorTransformerTest, SelectStatementOuterJoinTest) {
   binder_->BindNameToNode(statement, &parse_tree);
   accessor_ = binder_->GetCatalogAccessor();
   auto default_namespace_oid = accessor_->GetDefaultNamespace();
-  operator_transformer_ = new optimizer::QueryToOperatorTransformer(std::move(accessor_));
+  operator_transformer_ = std::make_unique<optimizer::QueryToOperatorTransformer>(std::move(accessor_));
   operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, &parse_tree);
-  auto info = GenerateOperatorAudit(operator_tree_);
+  auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorExpression>(operator_tree_));
 
   EXPECT_EQ(ref, info);
 
@@ -585,9 +585,9 @@ TEST_F(OperatorTransformerTest, SelectStatementComplexTest) {
   auto statement = parse_tree.GetStatements()[0];
   binder_->BindNameToNode(statement, &parse_tree);
   accessor_ = binder_->GetCatalogAccessor();
-  operator_transformer_ = new optimizer::QueryToOperatorTransformer(std::move(accessor_));
+  operator_transformer_ = std::make_unique<optimizer::QueryToOperatorTransformer>(std::move(accessor_));
   operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, &parse_tree);
-  auto info = GenerateOperatorAudit(operator_tree_);
+  auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorExpression>(operator_tree_));
 
   EXPECT_EQ(ref, info);
 }
@@ -608,9 +608,9 @@ TEST_F(OperatorTransformerTest, SelectStatementMarkJoinTest) {
   auto statement = parse_tree.GetStatements()[0];
   binder_->BindNameToNode(statement, &parse_tree);
   accessor_ = binder_->GetCatalogAccessor();
-  operator_transformer_ = new optimizer::QueryToOperatorTransformer(std::move(accessor_));
+  operator_transformer_ = std::make_unique<optimizer::QueryToOperatorTransformer>(std::move(accessor_));
   operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, &parse_tree);
-  auto info = GenerateOperatorAudit(operator_tree_);
+  auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorExpression>(operator_tree_));
 
   EXPECT_EQ(ref, info);
 }
@@ -633,9 +633,9 @@ TEST_F(OperatorTransformerTest, SelectStatementStarNestedSelectTest) {
   auto statement = parse_tree.GetStatements()[0];
   binder_->BindNameToNode(statement, &parse_tree);
   accessor_ = binder_->GetCatalogAccessor();
-  operator_transformer_ = new optimizer::QueryToOperatorTransformer(std::move(accessor_));
+  operator_transformer_ = std::make_unique<optimizer::QueryToOperatorTransformer>(std::move(accessor_));
   operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, &parse_tree);
-  auto info = GenerateOperatorAudit(operator_tree_);
+  auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorExpression>(operator_tree_));
 
   EXPECT_EQ(ref, info);
 }
@@ -653,9 +653,9 @@ TEST_F(OperatorTransformerTest, SelectStatementNestedColumnTest) {
   auto statement = parse_tree.GetStatements()[0];
   binder_->BindNameToNode(statement, &parse_tree);
   accessor_ = binder_->GetCatalogAccessor();
-  operator_transformer_ = new optimizer::QueryToOperatorTransformer(std::move(accessor_));
+  operator_transformer_ = std::make_unique<optimizer::QueryToOperatorTransformer>(std::move(accessor_));
   operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, &parse_tree);
-  auto info = GenerateOperatorAudit(operator_tree_);
+  auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorExpression>(operator_tree_));
 
   EXPECT_EQ(ref, info);
 }
@@ -675,9 +675,9 @@ TEST_F(OperatorTransformerTest, SelectStatementDiffTableSameSchemaTest) {
   auto statement = parse_tree.GetStatements()[0];
   binder_->BindNameToNode(statement, &parse_tree);
   accessor_ = binder_->GetCatalogAccessor();
-  operator_transformer_ = new optimizer::QueryToOperatorTransformer(std::move(accessor_));
+  operator_transformer_ = std::make_unique<optimizer::QueryToOperatorTransformer>(std::move(accessor_));
   operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, &parse_tree);
-  auto info = GenerateOperatorAudit(operator_tree_);
+  auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorExpression>(operator_tree_));
 
   EXPECT_EQ(ref, info);
 }
@@ -698,9 +698,9 @@ TEST_F(OperatorTransformerTest, SelectStatementSelectListAliasTest) {
   auto statement = parse_tree.GetStatements()[0];
   binder_->BindNameToNode(statement, &parse_tree);
   accessor_ = binder_->GetCatalogAccessor();
-  operator_transformer_ = new optimizer::QueryToOperatorTransformer(std::move(accessor_));
+  operator_transformer_ = std::make_unique<optimizer::QueryToOperatorTransformer>(std::move(accessor_));
   operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, &parse_tree);
-  auto info = GenerateOperatorAudit(operator_tree_);
+  auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorExpression>(operator_tree_));
 
   EXPECT_EQ(ref, info);
 }
@@ -718,9 +718,9 @@ TEST_F(OperatorTransformerTest, DeleteStatementWhereTest) {
   binder_->BindNameToNode(statement, &parse_tree);
   accessor_ = binder_->GetCatalogAccessor();
   auto default_namespace_oid = accessor_->GetDefaultNamespace();
-  operator_transformer_ = new optimizer::QueryToOperatorTransformer(std::move(accessor_));
+  operator_transformer_ = std::make_unique<optimizer::QueryToOperatorTransformer>(std::move(accessor_));
   operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, &parse_tree);
-  auto info = GenerateOperatorAudit(operator_tree_);
+  auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorExpression>(operator_tree_));
 
   EXPECT_EQ(ref, info);
 
@@ -758,9 +758,9 @@ TEST_F(OperatorTransformerTest, AggregateComplexTest) {
   auto statement = parse_tree.GetStatements()[0];
   binder_->BindNameToNode(statement, &parse_tree);
   accessor_ = binder_->GetCatalogAccessor();
-  operator_transformer_ = new optimizer::QueryToOperatorTransformer(std::move(accessor_));
+  operator_transformer_ = std::make_unique<optimizer::QueryToOperatorTransformer>(std::move(accessor_));
   operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, &parse_tree);
-  auto info = GenerateOperatorAudit(operator_tree_);
+  auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorExpression>(operator_tree_));
 
   EXPECT_EQ(ref, info);
 }
@@ -782,9 +782,9 @@ TEST_F(OperatorTransformerTest, OperatorComplexTest) {
   binder_->BindNameToNode(statement, &parse_tree);
   accessor_ = binder_->GetCatalogAccessor();
   auto default_namespace_oid = accessor_->GetDefaultNamespace();
-  operator_transformer_ = new optimizer::QueryToOperatorTransformer(std::move(accessor_));
+  operator_transformer_ = std::make_unique<optimizer::QueryToOperatorTransformer>(std::move(accessor_));
   operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, &parse_tree);
-  auto info = GenerateOperatorAudit(operator_tree_);
+  auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorExpression>(operator_tree_));
 
   EXPECT_EQ(ref, info);
 
@@ -828,9 +828,9 @@ TEST_F(OperatorTransformerTest, SubqueryComplexTest) {
   auto statement = parse_tree.GetStatements()[0];
   binder_->BindNameToNode(statement, &parse_tree);
   accessor_ = binder_->GetCatalogAccessor();
-  operator_transformer_ = new optimizer::QueryToOperatorTransformer(std::move(accessor_));
+  operator_transformer_ = std::make_unique<optimizer::QueryToOperatorTransformer>(std::move(accessor_));
   operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, &parse_tree);
-  auto info = GenerateOperatorAudit(operator_tree_);
+  auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorExpression>(operator_tree_));
 
   EXPECT_EQ(ref, info);
 }
