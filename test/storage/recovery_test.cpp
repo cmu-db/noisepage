@@ -63,9 +63,6 @@ class RecoveryTests : public TerrierTest {
   storage::GarbageCollector *recovery_gc_;
   storage::GarbageCollectorThread *recovery_gc_thread_;
 
-  settings::SettingsManager *settings_manager_;
-  DBMain *db_main_; 
-
   static void EmptySetterCallback(const std::shared_ptr<common::ActionContext> &action_context UNUSED_ATTRIBUTE) {}
 
   void SetUp() override {
@@ -790,7 +787,8 @@ TEST_F(RecoveryTests, DoubleRecoveryTest) {
   DiskLogProvider secondary_log_provider(secondary_log_file);
   RecoveryManager secondary_recovery_manager(
       &secondary_log_provider, common::ManagedPointer(&secondary_recovery_catalog), &secondary_recovery_txn_manager,
-      &secondary_recovery_deferred_action_manager, common::ManagedPointer(thread_registry_), &block_store_, recovery_metric_interval_);
+      &secondary_recovery_deferred_action_manager, common::ManagedPointer(thread_registry_), &block_store_,
+      recovery_metric_interval_);
   secondary_recovery_manager.StartRecovery();
   secondary_recovery_manager.WaitForRecoveryToFinish();
 
