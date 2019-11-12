@@ -4,7 +4,7 @@
 #define DEFINE_POSTGRES_COMMAND(name, flush)                                                                  \
   class name : public PostgresNetworkCommand {                                                                \
    public:                                                                                                    \
-    explicit name(InputPacket *in) : PostgresNetworkCommand(in, flush) {}                                     \
+    explicit name(const common::ManagedPointer<InputPacket> in) : PostgresNetworkCommand(in, flush) {}        \
     Transition Exec(common::ManagedPointer<ProtocolInterpreter> interpreter,                                  \
                     common::ManagedPointer<PostgresPacketWriter> out,                                         \
                     common::ManagedPointer<trafficcop::TrafficCop> t_cop,                                     \
@@ -38,7 +38,7 @@ class PostgresNetworkCommand : public NetworkCommand {
    * @param in The input packets to this command
    * @param flush Whether or not to flush the output packets on completion
    */
-  PostgresNetworkCommand(InputPacket *in, bool flush) : NetworkCommand(in, flush) {}
+  PostgresNetworkCommand(const common::ManagedPointer<InputPacket> in, bool flush) : NetworkCommand(in, flush) {}
 };
 
 // Set all to force flush for now

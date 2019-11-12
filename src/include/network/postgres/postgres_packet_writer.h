@@ -16,7 +16,7 @@ class PostgresPacketWriter : public PacketWriter {
   /**
    * Instantiates a new PostgresPacketWriter backed by the given WriteQueue
    */
-  explicit PostgresPacketWriter(const std::shared_ptr<WriteQueue> &write_queue) : PacketWriter(write_queue) {}
+  explicit PostgresPacketWriter(const common::ManagedPointer<WriteQueue> write_queue) : PacketWriter(write_queue) {}
 
   /**
    * Write out a packet with a single type that is associated with SSL.
