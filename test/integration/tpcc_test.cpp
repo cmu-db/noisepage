@@ -9,6 +9,7 @@
 #include "metrics/metrics_thread.h"
 #include "storage/garbage_collector_thread.h"
 #include "storage/storage_defs.h"
+#include "test_util/test_harness.h"
 #include "test_util/tpcc/builder.h"
 #include "test_util/tpcc/database.h"
 #include "test_util/tpcc/loader.h"
