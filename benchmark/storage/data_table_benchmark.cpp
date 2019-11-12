@@ -278,12 +278,12 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, ConcurrentScan)(benchmark::State &state) 
   std::vector<storage::col_id_t> all_cols = StorageTestUtil::ProjectionListAllColumns(layout_);
   storage::ProjectedColumnsInitializer initializer(layout_, all_cols, num_reads_);
 
-  std::vector<storage::ProjectedColumns *> allColumns;
+  std::vector<storage::ProjectedColumns *> all_columns;
   std::vector<byte *> buf;
   for (uint32_t j = 0; j < num_threads_; j++) {
     auto *buffer = common::AllocationUtil::AllocateAligned(initializer.ProjectedColumnsSize());
     storage::ProjectedColumns *columns = initializer.Initialize(buffer);
-    allColumns.push_back(columns);
+    all_columns.push_back(columns);
     buf.push_back(buffer);
   }
 
@@ -292,7 +292,7 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, ConcurrentScan)(benchmark::State &state) 
     auto workload = [&](uint32_t id) {
       auto it = read_table.begin();
       while (it != read_table.end()) {
-        read_table.Scan(&txn, &it, allColumns[id]);
+        read_table.Scan(&txn, &it, all_columns[id]);
       }
     };
     common::WorkerPool thread_pool(num_threads_, {});
@@ -311,7 +311,7 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, ConcurrentScan)(benchmark::State &state) 
   }
   buf.clear();
   // projected columns are deleted automatically
-  allColumns.clear();
+  all_columns.clear();
   state.SetItemsProcessed(state.iterations() * num_reads_);
 }
 
