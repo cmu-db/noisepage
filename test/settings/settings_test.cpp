@@ -7,7 +7,7 @@
 #include "main/db_main.h"
 #include "settings/settings_callbacks.h"
 #include "settings/settings_manager.h"
-#include "util/test_harness.h"
+#include "test_util/test_harness.h"
 
 #define __SETTING_GFLAGS_DEFINE__      // NOLINT
 #include "settings/settings_common.h"  // NOLINT

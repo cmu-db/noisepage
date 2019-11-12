@@ -58,7 +58,7 @@ class PostgresProtocolInterpreter : public ProtocolInterpreter {
    * @param context the connection context
    * @return
    */
-  Transition Process(std::shared_ptr<ReadBuffer> in, std::shared_ptr<WriteQueue> out,
+  Transition Process(common::ManagedPointer<ReadBuffer> in, common::ManagedPointer<WriteQueue> out,
                      common::ManagedPointer<trafficcop::TrafficCop> t_cop,
                      common::ManagedPointer<ConnectionContext> context, NetworkCallback callback) override;
 
@@ -67,20 +67,9 @@ class PostgresProtocolInterpreter : public ProtocolInterpreter {
    *
    * @param out
    */
-  void GetResult(std::shared_ptr<WriteQueue> out) override {
+  void GetResult(const common::ManagedPointer<WriteQueue> out) override {
     PostgresPacketWriter writer(out);
     ExecQueryMessageGetResult(&writer, ResultType::SUCCESS);
-    // TODO(Tianyu): This looks wrong. JDBC and PSQL should be united under one wire protocol. This field was set
-    // statically for all connections before I removed it. Also, the difference between these two methods look
-    // superficial. Some one should dig deeper to figure out what's going on here.
-    //    switch (protocol_type_) {
-    //      case NetworkProtocolType::POSTGRES_JDBC:NETWORK_LOG_TRACE("JDBC result");
-    //        ExecExecuteMessageGetResult(&writer, ResultType::SUCCESS);
-    //        break;
-    //      case NetworkProtocolType::POSTGRES_PSQL:NETWORK_LOG_TRACE("PSQL result");
-    //        ExecQueryMessageGetResult(&writer, ResultType::SUCCESS);
-    //      default:throw NETWORK_PROCESS_EXCEPTION("Unsupported protocol type");
-    //    }
   }
 
   /**
@@ -89,7 +78,7 @@ class PostgresProtocolInterpreter : public ProtocolInterpreter {
    * @param out
    * @return
    */
-  Transition ProcessStartup(const std::shared_ptr<ReadBuffer> &in, const std::shared_ptr<WriteQueue> &out);
+  Transition ProcessStartup(common::ManagedPointer<ReadBuffer> in, common::ManagedPointer<WriteQueue> out);
 
   /**
    *
@@ -124,7 +113,7 @@ class PostgresProtocolInterpreter : public ProtocolInterpreter {
   /**
    * @see ProtocolInterpreter::SetPacketMessageType
    */
-  void SetPacketMessageType(const std::shared_ptr<ReadBuffer> &in) override;
+  void SetPacketMessageType(common::ManagedPointer<ReadBuffer> in) override;
 
  private:
   bool startup_ = true;

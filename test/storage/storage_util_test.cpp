@@ -13,10 +13,10 @@
 #include "parser/expression/constant_value_expression.h"
 #include "storage/data_table.h"
 #include "storage/storage_defs.h"
+#include "test_util/catalog_test_util.h"
+#include "test_util/storage_test_util.h"
+#include "test_util/test_harness.h"
 #include "type/transient_value_factory.h"
-#include "util/catalog_test_util.h"
-#include "util/storage_test_util.h"
-#include "util/test_harness.h"
 
 namespace terrier {
 
