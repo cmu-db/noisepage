@@ -16,10 +16,11 @@ pipeline {
                         sh 'echo $NODE_NAME'
                         sh 'echo y | ./script/installation/packages.sh'
                         sh 'mkdir build'
+                        sh 'cd build && cmake -DCMAKE_BUILD_TYPE=Debug -DTERRIER_USE_ASAN=OFF ..'
                         sh 'cd build && timeout 1h make check-format'
                         sh 'cd build && timeout 1h make check-lint'
                         sh 'cd build && timeout 1h make check-censored'
-                        sh 'cd build && cmake -DCMAKE_BUILD_TYPE=Debug -DTERRIER_USE_ASAN=OFF .. && make -j4'
+                        sh 'cd build && make -j4'
                         sh 'cd build && make clean'
                     }
                 }
@@ -35,10 +36,12 @@ pipeline {
                         sh 'echo $NODE_NAME'
                         sh 'echo y | sudo ./script/installation/packages.sh'
                         sh 'mkdir build'
+                        sh 'cd build && cmake -DCMAKE_BUILD_TYPE=Debug -DTERRIER_USE_ASAN=OFF ..'
                         sh 'cd build && timeout 1h make check-format'
                         sh 'cd build && timeout 1h make check-lint'
                         sh 'cd build && timeout 1h make check-censored'
-                        sh 'cd build && cmake -DCMAKE_BUILD_TYPE=Debug -DTERRIER_USE_ASAN=OFF .. && make -j$(nproc)'
+                        sh 'cd build  && make -j$(nproc)'
+                        sh 'cd build && make clean'
                     }
                 }
 
@@ -57,10 +60,12 @@ pipeline {
                         sh 'echo $NODE_NAME'
                         sh 'echo y | sudo ./script/installation/packages.sh'
                         sh 'mkdir build'
+                        sh 'cd build && cmake -DCMAKE_BUILD_TYPE=Debug -DTERRIER_USE_ASAN=OFF ..'
                         sh 'cd build && timeout 1h make check-format'
                         sh 'cd build && timeout 1h make check-lint'
                         sh 'cd build && timeout 1h make check-censored'
-                        sh 'cd build && cmake -DCMAKE_BUILD_TYPE=Debug -DTERRIER_USE_ASAN=OFF .. && make -j$(nproc)'
+                        sh 'cd build  && make -j$(nproc)'
+                        sh 'cd build && make clean'
                     }
                 }
             }
