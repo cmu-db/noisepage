@@ -16,23 +16,23 @@ namespace terrier::optimizer {
 Operator LogicalGet::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
                           catalog::table_oid_t table_oid, std::vector<AnnotatedExpression> predicates,
                           std::string table_alias, bool is_for_update) {
-  auto *get = new LogicalGet;
+  auto get = std::make_unique<LogicalGet>();
   get->database_oid_ = database_oid;
   get->namespace_oid_ = namespace_oid;
   get->table_oid_ = table_oid;
   get->predicates_ = std::move(predicates);
   get->table_alias_ = std::move(table_alias);
   get->is_for_update_ = is_for_update;
-  return Operator(get);
+  return Operator(std::move(get));
 }
 
 Operator LogicalGet::Make() {
-  auto *get = new LogicalGet;
+  auto get = std::make_unique<LogicalGet>();
   get->database_oid_ = catalog::INVALID_DATABASE_OID;
   get->namespace_oid_ = catalog::INVALID_NAMESPACE_OID;
   get->table_oid_ = catalog::INVALID_TABLE_OID;
   get->is_for_update_ = false;
-  return Operator(get);
+  return Operator(std::move(get));
 }
 
 common::hash_t LogicalGet::Hash() const {
@@ -66,13 +66,13 @@ bool LogicalGet::operator==(const BaseOperatorNode &r) {
 
 Operator LogicalExternalFileGet::Make(parser::ExternalFileFormat format, std::string file_name, char delimiter,
                                       char quote, char escape) {
-  auto *get = new LogicalExternalFileGet();
+  auto get = std::make_unique<LogicalExternalFileGet>();
   get->format_ = format;
   get->file_name_ = std::move(file_name);
   get->delimiter_ = delimiter;
   get->quote_ = quote;
   get->escape_ = escape;
-  return Operator(get);
+  return Operator(std::move(get));
 }
 
 bool LogicalExternalFileGet::operator==(const BaseOperatorNode &r) {
@@ -98,10 +98,10 @@ common::hash_t LogicalExternalFileGet::Hash() const {
 Operator LogicalQueryDerivedGet::Make(
     std::string table_alias,
     std::unordered_map<std::string, common::ManagedPointer<parser::AbstractExpression>> &&alias_to_expr_map) {
-  auto *get = new LogicalQueryDerivedGet;
+  auto get = std::make_unique<LogicalQueryDerivedGet>();
   get->table_alias_ = std::move(table_alias);
   get->alias_to_expr_map_ = std::move(alias_to_expr_map);
-  return Operator(get);
+  return Operator(std::move(get));
 }
 
 bool LogicalQueryDerivedGet::operator==(const BaseOperatorNode &r) {
@@ -126,9 +126,9 @@ common::hash_t LogicalQueryDerivedGet::Hash() const {
 //===--------------------------------------------------------------------===//
 
 Operator LogicalFilter::Make(std::vector<AnnotatedExpression> &&predicates) {
-  auto *op = new LogicalFilter;
+  auto op = std::make_unique<LogicalFilter>();
   op->predicates_ = std::move(predicates);
-  return Operator(op);
+  return Operator(std::move(op));
 }
 
 bool LogicalFilter::operator==(const BaseOperatorNode &r) {
@@ -160,9 +160,9 @@ common::hash_t LogicalFilter::Hash() const {
 //===--------------------------------------------------------------------===//
 
 Operator LogicalProjection::Make(std::vector<common::ManagedPointer<parser::AbstractExpression>> &&expressions) {
-  auto *op = new LogicalProjection;
+  auto op = std::make_unique<LogicalProjection>();
   op->expressions_ = std::move(expressions);
-  return Operator(op);
+  return Operator(std::move(op));
 }
 
 bool LogicalProjection::operator==(const BaseOperatorNode &r) {
@@ -196,13 +196,13 @@ Operator LogicalInsert::Make(
   }
 #endif
 
-  auto *op = new LogicalInsert;
+  auto op = std::make_unique<LogicalInsert>();
   op->database_oid_ = database_oid;
   op->namespace_oid_ = namespace_oid;
   op->table_oid_ = table_oid;
   op->columns_ = std::move(columns);
   op->values_ = values;
-  return Operator(op);
+  return Operator(std::move(op));
 }
 
 common::hash_t LogicalInsert::Hash() const {
@@ -237,11 +237,11 @@ bool LogicalInsert::operator==(const BaseOperatorNode &r) {
 
 Operator LogicalInsertSelect::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
                                    catalog::table_oid_t table_oid) {
-  auto *op = new LogicalInsertSelect;
+  auto op = std::make_unique<LogicalInsertSelect>();
   op->database_oid_ = database_oid;
   op->namespace_oid_ = namespace_oid;
   op->table_oid_ = table_oid;
-  return Operator(op);
+  return Operator(std::move(op));
 }
 
 common::hash_t LogicalInsertSelect::Hash() const {
@@ -266,10 +266,9 @@ bool LogicalInsertSelect::operator==(const BaseOperatorNode &r) {
 //===--------------------------------------------------------------------===//
 
 Operator LogicalDistinct::Make() {
-  auto *op = new LogicalDistinct;
   // We don't have anything that we need to store, so we're just going
   // to throw this mofo out to the world as is...
-  return Operator(op);
+  return Operator(std::make_unique<LogicalDistinct>());
 }
 
 bool LogicalDistinct::operator==(const BaseOperatorNode &r) {
@@ -291,12 +290,12 @@ Operator LogicalLimit::Make(size_t offset, size_t limit,
                             std::vector<common::ManagedPointer<parser::AbstractExpression>> &&sort_exprs,
                             std::vector<optimizer::OrderByOrderingType> &&sort_directions) {
   TERRIER_ASSERT(sort_exprs.size() == sort_directions.size(), "Mismatched ORDER BY expressions + directions");
-  auto *op = new LogicalLimit;
+  auto op = std::make_unique<LogicalLimit>();
   op->offset_ = offset;
   op->limit_ = limit;
   op->sort_exprs_ = sort_exprs;
   op->sort_directions_ = std::move(sort_directions);
-  return Operator(op);
+  return Operator(std::move(op));
 }
 
 bool LogicalLimit::operator==(const BaseOperatorNode &r) {
@@ -324,11 +323,11 @@ common::hash_t LogicalLimit::Hash() const {
 
 Operator LogicalDelete::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
                              catalog::table_oid_t table_oid) {
-  auto *op = new LogicalDelete;
+  auto op = std::make_unique<LogicalDelete>();
   op->database_oid_ = database_oid;
   op->namespace_oid_ = namespace_oid;
   op->table_oid_ = table_oid;
-  return Operator(op);
+  return Operator(std::move(op));
 }
 
 common::hash_t LogicalDelete::Hash() const {
@@ -355,12 +354,12 @@ bool LogicalDelete::operator==(const BaseOperatorNode &r) {
 Operator LogicalUpdate::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
                              catalog::table_oid_t table_oid,
                              std::vector<common::ManagedPointer<parser::UpdateClause>> &&updates) {
-  auto *op = new LogicalUpdate;
+  auto op = std::make_unique<LogicalUpdate>();
   op->database_oid_ = database_oid;
   op->namespace_oid_ = namespace_oid;
   op->table_oid_ = table_oid;
   op->updates_ = std::move(updates);
-  return Operator(op);
+  return Operator(std::move(op));
 }
 
 common::hash_t LogicalUpdate::Hash() const {
@@ -394,13 +393,13 @@ bool LogicalUpdate::operator==(const BaseOperatorNode &r) {
 
 Operator LogicalExportExternalFile::Make(parser::ExternalFileFormat format, std::string file_name, char delimiter,
                                          char quote, char escape) {
-  auto *op = new LogicalExportExternalFile;
+  auto op = std::make_unique<LogicalExportExternalFile>();
   op->format_ = format;
   op->file_name_ = std::move(file_name);
   op->delimiter_ = delimiter;
   op->quote_ = quote;
   op->escape_ = escape;
-  return Operator(op);
+  return Operator(std::move(op));
 }
 
 common::hash_t LogicalExportExternalFile::Hash() const {
@@ -427,16 +426,12 @@ bool LogicalExportExternalFile::operator==(const BaseOperatorNode &r) {
 //===--------------------------------------------------------------------===//
 // Logical Dependent Join
 //===--------------------------------------------------------------------===//
-Operator LogicalDependentJoin::Make() {
-  auto *join = new LogicalDependentJoin();
-  join->join_predicates_ = {};
-  return Operator(join);
-}
+Operator LogicalDependentJoin::Make() { return Operator(std::make_unique<LogicalDependentJoin>()); }
 
 Operator LogicalDependentJoin::Make(std::vector<AnnotatedExpression> &&join_predicates) {
-  auto *join = new LogicalDependentJoin();
+  auto join = std::make_unique<LogicalDependentJoin>();
   join->join_predicates_ = std::move(join_predicates);
-  return Operator(join);
+  return Operator(std::move(join));
 }
 
 common::hash_t LogicalDependentJoin::Hash() const {
@@ -461,16 +456,12 @@ bool LogicalDependentJoin::operator==(const BaseOperatorNode &r) {
 //===--------------------------------------------------------------------===//
 // MarkJoin
 //===--------------------------------------------------------------------===//
-Operator LogicalMarkJoin::Make() {
-  auto *join = new LogicalMarkJoin();
-  join->join_predicates_ = {};
-  return Operator(join);
-}
+Operator LogicalMarkJoin::Make() { return Operator(std::make_unique<LogicalMarkJoin>()); }
 
 Operator LogicalMarkJoin::Make(std::vector<AnnotatedExpression> &&join_predicates) {
-  auto *join = new LogicalMarkJoin();
+  auto join = std::make_unique<LogicalMarkJoin>();
   join->join_predicates_ = join_predicates;
-  return Operator(join);
+  return Operator(std::move(join));
 }
 
 common::hash_t LogicalMarkJoin::Hash() const {
@@ -495,16 +486,12 @@ bool LogicalMarkJoin::operator==(const BaseOperatorNode &r) {
 //===--------------------------------------------------------------------===//
 // SingleJoin
 //===--------------------------------------------------------------------===//
-Operator LogicalSingleJoin::Make() {
-  auto *join = new LogicalSingleJoin();
-  join->join_predicates_ = {};
-  return Operator(join);
-}
+Operator LogicalSingleJoin::Make() { return Operator(std::make_unique<LogicalSingleJoin>()); }
 
 Operator LogicalSingleJoin::Make(std::vector<AnnotatedExpression> &&join_predicates) {
-  auto *join = new LogicalSingleJoin();
+  auto join = std::make_unique<LogicalSingleJoin>();
   join->join_predicates_ = join_predicates;
-  return Operator(join);
+  return Operator(std::move(join));
 }
 
 common::hash_t LogicalSingleJoin::Hash() const {
@@ -529,16 +516,12 @@ bool LogicalSingleJoin::operator==(const BaseOperatorNode &r) {
 //===--------------------------------------------------------------------===//
 // InnerJoin
 //===--------------------------------------------------------------------===//
-Operator LogicalInnerJoin::Make() {
-  auto *join = new LogicalInnerJoin();
-  join->join_predicates_ = {};
-  return Operator(join);
-}
+Operator LogicalInnerJoin::Make() { return Operator(std::make_unique<LogicalInnerJoin>()); }
 
 Operator LogicalInnerJoin::Make(std::vector<AnnotatedExpression> &&join_predicates) {
-  auto *join = new LogicalInnerJoin();
+  auto join = std::make_unique<LogicalInnerJoin>();
   join->join_predicates_ = join_predicates;
-  return Operator(join);
+  return Operator(std::move(join));
 }
 
 common::hash_t LogicalInnerJoin::Hash() const {
@@ -563,16 +546,12 @@ bool LogicalInnerJoin::operator==(const BaseOperatorNode &r) {
 //===--------------------------------------------------------------------===//
 // LeftJoin
 //===--------------------------------------------------------------------===//
-Operator LogicalLeftJoin::Make() {
-  auto *join = new LogicalLeftJoin();
-  join->join_predicates_ = {};
-  return Operator(join);
-}
+Operator LogicalLeftJoin::Make() { return Operator(std::make_unique<LogicalLeftJoin>()); }
 
 Operator LogicalLeftJoin::Make(std::vector<AnnotatedExpression> &&join_predicates) {
-  auto *join = new LogicalLeftJoin();
+  auto join = std::make_unique<LogicalLeftJoin>();
   join->join_predicates_ = join_predicates;
-  return Operator(join);
+  return Operator(std::move(join));
 }
 
 common::hash_t LogicalLeftJoin::Hash() const {
@@ -597,16 +576,12 @@ bool LogicalLeftJoin::operator==(const BaseOperatorNode &r) {
 //===--------------------------------------------------------------------===//
 // RightJoin
 //===--------------------------------------------------------------------===//
-Operator LogicalRightJoin::Make() {
-  auto *join = new LogicalRightJoin();
-  join->join_predicates_ = {};
-  return Operator(join);
-}
+Operator LogicalRightJoin::Make() { return Operator(std::make_unique<LogicalRightJoin>()); }
 
 Operator LogicalRightJoin::Make(std::vector<AnnotatedExpression> &&join_predicates) {
-  auto *join = new LogicalRightJoin();
+  auto join = std::make_unique<LogicalRightJoin>();
   join->join_predicates_ = join_predicates;
-  return Operator(join);
+  return Operator(std::move(join));
 }
 
 common::hash_t LogicalRightJoin::Hash() const {
@@ -631,16 +606,12 @@ bool LogicalRightJoin::operator==(const BaseOperatorNode &r) {
 //===--------------------------------------------------------------------===//
 // OuterJoin
 //===--------------------------------------------------------------------===//
-Operator LogicalOuterJoin::Make() {
-  auto *join = new LogicalOuterJoin();
-  join->join_predicates_ = {};
-  return Operator(join);
-}
+Operator LogicalOuterJoin::Make() { return Operator(std::make_unique<LogicalOuterJoin>()); }
 
 Operator LogicalOuterJoin::Make(std::vector<AnnotatedExpression> &&join_predicates) {
-  auto *join = new LogicalOuterJoin;
+  auto join = std::make_unique<LogicalOuterJoin>();
   join->join_predicates_ = join_predicates;
-  return Operator(join);
+  return Operator(std::move(join));
 }
 
 common::hash_t LogicalOuterJoin::Hash() const {
@@ -665,16 +636,12 @@ bool LogicalOuterJoin::operator==(const BaseOperatorNode &r) {
 //===--------------------------------------------------------------------===//
 // SemiJoin
 //===--------------------------------------------------------------------===//
-Operator LogicalSemiJoin::Make() {
-  auto *join = new LogicalSemiJoin;
-  join->join_predicates_ = {};
-  return Operator(join);
-}
+Operator LogicalSemiJoin::Make() { return Operator(std::make_unique<LogicalSemiJoin>()); }
 
 Operator LogicalSemiJoin::Make(std::vector<AnnotatedExpression> &&join_predicates) {
-  auto *join = new LogicalSemiJoin;
+  auto join = std::make_unique<LogicalSemiJoin>();
   join->join_predicates_ = join_predicates;
-  return Operator(join);
+  return Operator(std::move(join));
 }
 
 common::hash_t LogicalSemiJoin::Hash() const {
@@ -699,26 +666,20 @@ bool LogicalSemiJoin::operator==(const BaseOperatorNode &r) {
 //===--------------------------------------------------------------------===//
 // Aggregate
 //===--------------------------------------------------------------------===//
-Operator LogicalAggregateAndGroupBy::Make() {
-  auto *group_by = new LogicalAggregateAndGroupBy;
-  group_by->columns_ = {};
-  group_by->having_ = {};
-  return Operator(group_by);
-}
+Operator LogicalAggregateAndGroupBy::Make() { return Operator(std::make_unique<LogicalAggregateAndGroupBy>()); }
 
 Operator LogicalAggregateAndGroupBy::Make(std::vector<common::ManagedPointer<parser::AbstractExpression>> &&columns) {
-  auto *group_by = new LogicalAggregateAndGroupBy;
+  auto group_by = std::make_unique<LogicalAggregateAndGroupBy>();
   group_by->columns_ = std::move(columns);
-  group_by->having_ = {};
-  return Operator(group_by);
+  return Operator(std::move(group_by));
 }
 
 Operator LogicalAggregateAndGroupBy::Make(std::vector<common::ManagedPointer<parser::AbstractExpression>> &&columns,
                                           std::vector<AnnotatedExpression> &&having) {
-  auto *group_by = new LogicalAggregateAndGroupBy;
+  auto group_by = std::make_unique<LogicalAggregateAndGroupBy>();
   group_by->columns_ = std::move(columns);
   group_by->having_ = std::move(having);
-  return Operator(group_by);
+  return Operator(std::move(group_by));
 }
 bool LogicalAggregateAndGroupBy::operator==(const BaseOperatorNode &r) {
   if (r.GetType() != OpType::LOGICALAGGREGATEANDGROUPBY) return false;
@@ -758,7 +719,7 @@ common::hash_t LogicalAggregateAndGroupBy::Hash() const {
 
 //===--------------------------------------------------------------------===//
 template <typename T>
-void OperatorNode<T>::Accept(OperatorVisitor *v) const {
+void OperatorNode<T>::Accept(common::ManagedPointer<OperatorVisitor> v) const {
   v->Visit(reinterpret_cast<const T *>(this));
 }
 
