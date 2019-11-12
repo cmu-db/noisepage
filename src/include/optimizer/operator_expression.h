@@ -35,6 +35,7 @@ class OperatorExpression {
    */
   std::vector<common::ManagedPointer<OperatorExpression>> GetChildren() const {
     std::vector<common::ManagedPointer<OperatorExpression>> result;
+    result.reserve(children_.size());
     for (auto &i : children_) result.emplace_back(i);
     return result;
   }
