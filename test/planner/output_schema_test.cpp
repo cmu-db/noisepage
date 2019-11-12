@@ -12,7 +12,7 @@
 #include "type/transient_value_factory.h"
 #include "type/type_id.h"
 
-#include "util/test_harness.h"
+#include "test_util/test_harness.h"
 
 namespace terrier::planner {
 

@@ -3,7 +3,7 @@
 #include "gtest/gtest.h"
 #include "optimizer/statistics/table_stats.h"
 
-#include "util/test_harness.h"
+#include "test_util/test_harness.h"
 
 namespace terrier::optimizer {
 class TableStatsTests : public TerrierTest {

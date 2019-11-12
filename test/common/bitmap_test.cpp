@@ -5,7 +5,7 @@
 #include <unordered_set>
 #include <vector>
 #include "gtest/gtest.h"
-#include "util/container_test_util.h"
+#include "test_util/container_test_util.h"
 
 namespace terrier {
 

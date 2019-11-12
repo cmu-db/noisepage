@@ -13,7 +13,7 @@
 #include "planner/plannodes/hash_join_plan_node.h"
 #include "planner/plannodes/hash_plan_node.h"
 #include "planner/plannodes/seq_scan_plan_node.h"
-#include "util/test_harness.h"
+#include "test_util/test_harness.h"
 
 namespace terrier::planner {
 

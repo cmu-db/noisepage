@@ -2,13 +2,13 @@
 #include "storage/garbage_collector.h"
 #include "storage/sql_table.h"
 #include "storage/storage_defs.h"
+#include "test_util/catalog_test_util.h"
+#include "test_util/data_table_test_util.h"
+#include "test_util/test_harness.h"
 #include "transaction/deferred_action_manager.h"
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_defs.h"
 #include "transaction/transaction_manager.h"
-#include "util/catalog_test_util.h"
-#include "util/data_table_test_util.h"
-#include "util/test_harness.h"
 
 namespace terrier {
 

@@ -58,7 +58,8 @@ BENCHMARKS_TO_RUN = [
     "tuple_access_strategy_benchmark",
     "tpcc_benchmark",
     "bwtree_benchmark",
-    "cuckoomap_benchmark"
+    "cuckoomap_benchmark",
+    "parser_benchmark",
 ]
 
 # Where to find the benchmarks to execute
