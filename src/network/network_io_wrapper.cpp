@@ -10,9 +10,10 @@
 
 namespace terrier::network {
 Transition NetworkIoWrapper::FlushAllWrites() {
-  for (; out_->FlushHead() != nullptr; out_->MarkHeadFlushed()) {
-    auto result = FlushWriteBuffer(&(*out_->FlushHead()));
+  for (auto flush_head = out_->FlushHead(); flush_head != nullptr; out_->MarkHeadFlushed()) {
+    const auto result = FlushWriteBuffer(flush_head);
     if (result != Transition::PROCEED) return result;
+    flush_head = out_->FlushHead();
   }
   out_->Reset();
   return Transition::PROCEED;
@@ -46,7 +47,7 @@ Transition NetworkIoWrapper::FillReadBuffer() {
   return result;
 }
 
-Transition NetworkIoWrapper::FlushWriteBuffer(WriteBuffer *wbuf) {
+Transition NetworkIoWrapper::FlushWriteBuffer(const common::ManagedPointer<WriteBuffer> wbuf) {
   while (wbuf->HasMore()) {
     auto bytes_written = wbuf->WriteOutTo(sock_fd_);
     if (bytes_written < 0) {

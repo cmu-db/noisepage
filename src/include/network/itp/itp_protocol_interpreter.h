@@ -57,7 +57,7 @@ class ITPProtocolInterpreter : public ProtocolInterpreter {
    * @param callback The callback function to trigger on completion
    * @return
    */
-  Transition Process(std::shared_ptr<ReadBuffer> in, std::shared_ptr<WriteQueue> out,
+  Transition Process(common::ManagedPointer<ReadBuffer> in, common::ManagedPointer<WriteQueue> out,
                      common::ManagedPointer<trafficcop::TrafficCop> t_cop,
                      common::ManagedPointer<ConnectionContext> context, NetworkCallback callback) override;
 
@@ -65,7 +65,7 @@ class ITPProtocolInterpreter : public ProtocolInterpreter {
    * Writes result to the client
    * @param out WriteQueue to flush message to client
    */
-  void GetResult(std::shared_ptr<WriteQueue> out) override;
+  void GetResult(common::ManagedPointer<WriteQueue> out) override;
 
  protected:
   /**
@@ -78,7 +78,7 @@ class ITPProtocolInterpreter : public ProtocolInterpreter {
    * @see ProtocolInterpreter::SetPacketMessageType
    * @param in ReadBuffer to read input from
    */
-  void SetPacketMessageType(const std::shared_ptr<ReadBuffer> &in) override;
+  void SetPacketMessageType(common::ManagedPointer<ReadBuffer> in) override;
 
  private:
   common::ManagedPointer<ITPCommandFactory> command_factory_;
