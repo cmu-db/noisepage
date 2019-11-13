@@ -20,13 +20,18 @@ namespace terrier::execution::vm {
   F(op##_##uint32_t, __VA_ARGS__)        \
   F(op##_##uint64_t, __VA_ARGS__)
 
+// Creates instances of a given opcode for primitive boolean types
+#define CREATE_FOR_BOOL_TYPES(F, op, ...) F(op##_bool, __VA_ARGS__)
+
 // Creates instances of a given opcode for all floating-point primitive types
 #define CREATE_FOR_FLOAT_TYPES(F, op, ...) \
   F(op##_##float, __VA_ARGS__)             \
   F(op##_##double, __VA_ARGS__)
 
-// Creates instances of a given opcode for boolean primitive types
-#define CREATE_FOR_BOOL_TYPES(F, op, ...) F(op##_##bool, __VA_ARGS__)
+// Creates instances of a given opcode for primitive numeric types
+#define CREATE_FOR_NUMERIC_TYPES(F, op, ...) \
+  CREATE_FOR_INT_TYPES(F, op, __VA_ARGS__)   \
+  CREATE_FOR_FLOAT_TYPES(F, op, __VA_ARGS__)
 
 // Creates instances of a given opcode for *ALL* primitive types
 #define CREATE_FOR_ALL_TYPES(F, op, ...)     \
@@ -43,28 +48,22 @@ namespace terrier::execution::vm {
  */
 #define BYTECODE_LIST(F)                                                                                              \
   /* Primitive operations */                                                                                          \
-  CREATE_FOR_INT_TYPES(F, Add, OperandType::Local, OperandType::Local, OperandType::Local)                            \
-  CREATE_FOR_INT_TYPES(F, Neg, OperandType::Local, OperandType::Local)                                                \
-  CREATE_FOR_INT_TYPES(F, Sub, OperandType::Local, OperandType::Local, OperandType::Local)                            \
-  CREATE_FOR_INT_TYPES(F, Mul, OperandType::Local, OperandType::Local, OperandType::Local)                            \
-  CREATE_FOR_INT_TYPES(F, Div, OperandType::Local, OperandType::Local, OperandType::Local)                            \
-  CREATE_FOR_INT_TYPES(F, Rem, OperandType::Local, OperandType::Local, OperandType::Local)                            \
+  CREATE_FOR_NUMERIC_TYPES(F, Neg, OperandType::Local, OperandType::Local)                                            \
+  CREATE_FOR_NUMERIC_TYPES(F, Add, OperandType::Local, OperandType::Local, OperandType::Local)                        \
+  CREATE_FOR_NUMERIC_TYPES(F, Sub, OperandType::Local, OperandType::Local, OperandType::Local)                        \
+  CREATE_FOR_NUMERIC_TYPES(F, Mul, OperandType::Local, OperandType::Local, OperandType::Local)                        \
+  CREATE_FOR_NUMERIC_TYPES(F, Div, OperandType::Local, OperandType::Local, OperandType::Local)                        \
+  CREATE_FOR_NUMERIC_TYPES(F, Rem, OperandType::Local, OperandType::Local, OperandType::Local)                        \
   CREATE_FOR_INT_TYPES(F, BitAnd, OperandType::Local, OperandType::Local, OperandType::Local)                         \
   CREATE_FOR_INT_TYPES(F, BitOr, OperandType::Local, OperandType::Local, OperandType::Local)                          \
   CREATE_FOR_INT_TYPES(F, BitXor, OperandType::Local, OperandType::Local, OperandType::Local)                         \
   CREATE_FOR_INT_TYPES(F, BitNeg, OperandType::Local, OperandType::Local)                                             \
-  CREATE_FOR_INT_TYPES(F, GreaterThan, OperandType::Local, OperandType::Local, OperandType::Local)                    \
-  CREATE_FOR_INT_TYPES(F, GreaterThanEqual, OperandType::Local, OperandType::Local, OperandType::Local)               \
-  CREATE_FOR_INT_TYPES(F, Equal, OperandType::Local, OperandType::Local, OperandType::Local)                          \
-  CREATE_FOR_INT_TYPES(F, LessThan, OperandType::Local, OperandType::Local, OperandType::Local)                       \
-  CREATE_FOR_INT_TYPES(F, LessThanEqual, OperandType::Local, OperandType::Local, OperandType::Local)                  \
-  CREATE_FOR_INT_TYPES(F, NotEqual, OperandType::Local, OperandType::Local, OperandType::Local)                       \
-  CREATE_FOR_BOOL_TYPES(F, GreaterThan, OperandType::Local, OperandType::Local, OperandType::Local)                   \
-  CREATE_FOR_BOOL_TYPES(F, GreaterThanEqual, OperandType::Local, OperandType::Local, OperandType::Local)              \
-  CREATE_FOR_BOOL_TYPES(F, Equal, OperandType::Local, OperandType::Local, OperandType::Local)                         \
-  CREATE_FOR_BOOL_TYPES(F, LessThan, OperandType::Local, OperandType::Local, OperandType::Local)                      \
-  CREATE_FOR_BOOL_TYPES(F, LessThanEqual, OperandType::Local, OperandType::Local, OperandType::Local)                 \
-  CREATE_FOR_BOOL_TYPES(F, NotEqual, OperandType::Local, OperandType::Local, OperandType::Local)                      \
+  CREATE_FOR_ALL_TYPES(F, GreaterThan, OperandType::Local, OperandType::Local, OperandType::Local)                    \
+  CREATE_FOR_ALL_TYPES(F, GreaterThanEqual, OperandType::Local, OperandType::Local, OperandType::Local)               \
+  CREATE_FOR_ALL_TYPES(F, Equal, OperandType::Local, OperandType::Local, OperandType::Local)                          \
+  CREATE_FOR_ALL_TYPES(F, LessThan, OperandType::Local, OperandType::Local, OperandType::Local)                       \
+  CREATE_FOR_ALL_TYPES(F, LessThanEqual, OperandType::Local, OperandType::Local, OperandType::Local)                  \
+  CREATE_FOR_ALL_TYPES(F, NotEqual, OperandType::Local, OperandType::Local, OperandType::Local)                       \
   /* Boolean compliment */                                                                                            \
   F(Not, OperandType::Local, OperandType::Local)                                                                      \
                                                                                                                       \
