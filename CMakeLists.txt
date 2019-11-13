@@ -268,6 +268,11 @@ if (UNIX)
             # Description: This one is a false positive on the macro Op##AGG_TYPE##Free
             | grep --invert-match -e 'src/execution/vm/vm.cpp:.*Free\(.*'
 
+            # Description: We're allowing shared_ptr and make_shared in testing folders.
+            # I don't actually remember the justification.
+            | grep --invert-match -e '${CMAKE_SOURCE_DIR}/test/.*shared_ptr'
+            | grep --invert-match -e '${CMAKE_SOURCE_DIR}/test/.*make_shared'
+
             # whitelist-end
             || exit 0                                                     # if nothing found, return 0
             && exit 1                                                     # else return 1, note || && left-associative
