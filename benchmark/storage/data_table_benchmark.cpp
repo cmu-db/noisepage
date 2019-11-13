@@ -276,7 +276,7 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, ConcurrentScan)(benchmark::State &state) 
   }
 
   std::vector<storage::col_id_t> all_cols = StorageTestUtil::ProjectionListAllColumns(layout_);
-  storage::ProjectedColumnsInitializer initializer(layout_, all_cols, num_reads_);
+  storage::ProjectedColumnsInitializer initializer(layout_, all_cols, common::Constants::K_DEFAULT_VECTOR_SIZE);
 
   std::vector<storage::ProjectedColumns *> all_columns;
   std::vector<byte *> buf;
@@ -309,10 +309,7 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, ConcurrentScan)(benchmark::State &state) 
   for (auto p : buf) {
     delete p;
   }
-  buf.clear();
-  // projected columns are deleted automatically
-  all_columns.clear();
-  state.SetItemsProcessed(state.iterations() * num_reads_);
+  state.SetItemsProcessed(state.iterations() * num_reads_ * num_threads_);
 }
 
 BENCHMARK_REGISTER_F(DataTableBenchmark, SimpleInsert)->Unit(benchmark::kMillisecond)->UseManualTime();
