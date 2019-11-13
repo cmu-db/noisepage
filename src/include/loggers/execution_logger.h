@@ -5,7 +5,7 @@
 #include "spdlog/spdlog.h"
 
 namespace terrier::execution {
-extern std::shared_ptr<spdlog::logger> execution_logger;
+extern std::shared_ptr<spdlog::logger> execution_logger;  // NOLINT
 
 void InitExecutionLogger();
 }  // namespace terrier::execution
