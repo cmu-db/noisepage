@@ -55,8 +55,7 @@ extern "C" {
   /* Primitive not-equal-to implementation */                                                              \
   VM_OP_HOT void OpNotEqual##_##type(bool *result, type lhs, type rhs) { *result = (lhs != rhs); }
 
-INT_TYPES(COMPARISONS);
-BOOL_TYPES(COMPARISONS);
+ALL_TYPES(COMPARISONS);
 
 #undef COMPARISONS
 
@@ -66,37 +65,48 @@ VM_OP_HOT void OpNot(bool *const result, const bool input) { *result = !input; }
 // Primitive arithmetic
 // ---------------------------------------------------------
 
-#define MODULAR(type, ...)                                          \
+#define ARITHMETIC(type, ...)                                                              \
+  /* Primitive addition */                                                                 \
+  VM_OP_HOT void OpAdd##_##type(type *result, type lhs, type rhs) { *result = lhs + rhs; } \
+                                                                                           \
+  /* Primitive subtraction */                                                              \
+  VM_OP_HOT void OpSub##_##type(type *result, type lhs, type rhs) { *result = lhs - rhs; } \
+                                                                                           \
+  /* Primitive multiplication */                                                           \
+  VM_OP_HOT void OpMul##_##type(type *result, type lhs, type rhs) { *result = lhs * rhs; } \
+                                                                                           \
+  /* Primitive negation */                                                                 \
+  VM_OP_HOT void OpNeg##_##type(type *result, type input) { *result = -input; }            \
+                                                                                           \
+  /* Primitive division (no zero-check) */                                                 \
+  VM_OP_HOT void OpDiv##_##type(type *result, type lhs, type rhs) {                        \
+    TERRIER_ASSERT(rhs != 0, "Division-by-zero error!");                                   \
+    *result = lhs / rhs;                                                                   \
+  }
+
+ALL_NUMERIC_TYPES(ARITHMETIC);
+
+#undef ARITHMETIC
+
+#define INT_MODULAR(type, ...)                                      \
   /* Primitive modulo-remainder (no zero-check) */                  \
   VM_OP_HOT void OpRem##_##type(type *result, type lhs, type rhs) { \
     TERRIER_ASSERT(rhs != 0, "Division-by-zero error!");            \
-    *result = static_cast<type>(lhs % rhs);                         \
+    *result = lhs % rhs;                                            \
   }
 
-INT_TYPES(MODULAR)
-
-#define ARITHMETIC(type, ...)                                                                                 \
-  /* Primitive addition */                                                                                    \
-  VM_OP_HOT void OpAdd##_##type(type *result, type lhs, type rhs) { *result = static_cast<type>(lhs + rhs); } \
-                                                                                                              \
-  /* Primitive subtraction */                                                                                 \
-  VM_OP_HOT void OpSub##_##type(type *result, type lhs, type rhs) { *result = static_cast<type>(lhs - rhs); } \
-                                                                                                              \
-  /* Primitive multiplication */                                                                              \
-  VM_OP_HOT void OpMul##_##type(type *result, type lhs, type rhs) { *result = static_cast<type>(lhs * rhs); } \
-                                                                                                              \
-  /* Primitive negation */                                                                                    \
-  VM_OP_HOT void OpNeg##_##type(type *result, type input) { *result = static_cast<type>(-input); }            \
-                                                                                                              \
-  /* Primitive division (no zero-check) */                                                                    \
-  VM_OP_HOT void OpDiv##_##type(type *result, type lhs, type rhs) {                                           \
-    TERRIER_ASSERT(rhs != 0, "Division-by-zero error!");                                                      \
-    *result = static_cast<type>(lhs / rhs);                                                                   \
+#define FLOAT_MODULAR(type, ...)                                    \
+  /* Primitive modulo-remainder (no zero-check) */                  \
+  VM_OP_HOT void OpRem##_##type(type *result, type lhs, type rhs) { \
+    TERRIER_ASSERT(rhs != 0, "Division-by-zero error!");            \
+    *result = std::fmod(lhs, rhs);                                  \
   }
 
-INT_TYPES(ARITHMETIC);
+INT_TYPES(INT_MODULAR)
+FLOAT_TYPES(FLOAT_MODULAR)
 
-#undef ARITHMETIC
+#undef FLOAT_MODULAR
+#undef INT_MODULAR
 
 // ---------------------------------------------------------
 // Bitwise operations
@@ -228,6 +238,10 @@ VM_OP_HOT void OpParallelScanTable(const uint32_t db_oid, const uint32_t table_o
                                    const terrier::execution::sql::TableVectorIterator::ScanFn scanner) {
   terrier::execution::sql::TableVectorIterator::ParallelScan(db_oid, table_oid, query_state, thread_states, scanner);
 }
+
+// ---------------------------------------------------------
+// Projected Columns Iterator
+// ---------------------------------------------------------
 
 VM_OP_HOT void OpPCIIsFiltered(bool *is_filtered, terrier::execution::sql::ProjectedColumnsIterator *pci) {
   *is_filtered = pci->IsFiltered();
@@ -612,9 +626,10 @@ GEN_SQL_COMPARISONS(StringVal)
 GEN_SQL_COMPARISONS(Date)
 #undef GEN_SQL_COMPARISONS
 
-// ----------------------------------
+// ---------------------------------------------------------
 // SQL arithmetic
-// ---------------------------------
+// ---------------------------------------------------------
+
 VM_OP_WARM void OpAbsInteger(terrier::execution::sql::Integer *const result,
                              const terrier::execution::sql::Integer *const left) {
   terrier::execution::sql::ArithmeticFunctions::Abs(result, *left);
@@ -1029,6 +1044,7 @@ VM_OP_HOT void OpAvgAggregateGetResult(terrier::execution::sql::Real *result,
 }
 
 VM_OP_HOT void OpAvgAggregateFree(terrier::execution::sql::AvgAggregate *agg) { agg->~AvgAggregate(); }
+
 // ---------------------------------------------------------
 // Hash Joins
 // ---------------------------------------------------------
@@ -1334,12 +1350,15 @@ VM_OP_WARM void OpUpper(terrier::execution::exec::ExecutionContext *ctx, terrier
                         const terrier::execution::sql::StringVal *str) {
   terrier::execution::sql::StringFunctions::Upper(ctx, result, *str);
 }
-// ---------------------------------------------------------------
+
+// ---------------------------------------------------------
 // Index Iterator
-// ---------------------------------------------------------------
+// ---------------------------------------------------------
+
 VM_OP void OpIndexIteratorInit(terrier::execution::sql::IndexIterator *iter,
                                terrier::execution::exec::ExecutionContext *exec_ctx, uint32_t table_oid,
                                uint32_t index_oid, uint32_t *col_oids, uint32_t num_oids);
+
 VM_OP void OpIndexIteratorFree(terrier::execution::sql::IndexIterator *iter);
 
 VM_OP void OpIndexIteratorPerformInit(terrier::execution::sql::IndexIterator *iter);
@@ -1588,8 +1607,9 @@ VM_OP_HOT void OpIndexIteratorSetKeyDoubleNull(terrier::execution::sql::IndexIte
   iter->SetKey<double, true>(col_idx, static_cast<double>(val->val_), val->is_null_);
 }
 
+// ---------------------------------------------------------
 // Output Calls
-// ---------------------------------------------------------------
+// ---------------------------------------------------------
 
 VM_OP void OpOutputAlloc(terrier::execution::exec::ExecutionContext *exec_ctx, terrier::byte **result);
 
