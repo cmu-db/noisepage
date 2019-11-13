@@ -1,13 +1,18 @@
 #include "optimizer/operator_node.h"
+#include <memory>
 #include <string>
+#include <utility>
+#include "common/managed_pointer.h"
 
 namespace terrier::optimizer {
 
 Operator::Operator() noexcept : node_(nullptr) {}
 
-Operator::Operator(BaseOperatorNode *node) : node_(node) {}
+Operator::Operator(std::unique_ptr<BaseOperatorNode> node) : node_(std::move(node)) {}
 
-void Operator::Accept(OperatorVisitor *v) const { node_->Accept(v); }
+Operator::Operator(Operator &&o) noexcept : node_(std::move(o.node_)) {}
+
+void Operator::Accept(common::ManagedPointer<OperatorVisitor> v) const { node_->Accept(v); }
 
 std::string Operator::GetName() const {
   if (IsDefined()) {

@@ -1,4 +1,5 @@
 #include "network/postgres/postgres_protocol_utils.h"
+#include "loggers/main_logger.h"
 
 namespace terrier::network {
 
