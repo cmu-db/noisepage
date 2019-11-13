@@ -97,7 +97,7 @@ class DBMain {
   friend class settings::SettingsTests;
   friend class settings::Callbacks;
   friend class metrics::MetricsTests;
-  std::shared_ptr<common::StatisticsRegistry> main_stat_reg_;
+  std::unique_ptr<common::StatisticsRegistry> main_stat_reg_;
   std::unordered_map<settings::Param, settings::ParamInfo> param_map_;
   transaction::TimestampManager *timestamp_manager_;
   transaction::TransactionManager *txn_manager_;
