@@ -264,11 +264,11 @@ void DataTable::WriteSchemaMessage(std::ofstream &outfile,
   int64_t dictionary_id = 0;
   for (col_id_t col_id : layout.AllColumns()) {
     ArrowColumnInfo &col_info = metadata.GetColumnInfo(layout, col_id);
-    auto name = flatbuf_builder.CreateString("TestCol");
+    auto name = flatbuf_builder.CreateString("TestCol" + std::to_string(!col_id));
     flatbuf::Type type;
     flatbuffers::Offset<void> type_offset;
     flatbuffers::Offset<flatbuf::DictionaryEncoding> dictionary = 0;
-    if (!layout.IsVarlen(col_id)) {
+    if (!layout.IsVarlen(col_id) || col_info.Type() == ArrowColumnType::FIXED_LENGTH) {
       uint8_t byte_width = accessor_.GetBlockLayout().AttrSize(col_id);
       type = flatbuf::Type_FixedSizeBinary;
       type_offset = flatbuf::CreateFixedSizeBinary(flatbuf_builder, byte_width).Union();
@@ -288,7 +288,14 @@ void DataTable::WriteSchemaMessage(std::ofstream &outfile,
           throw std::runtime_error("unexpected control flow");
       }
     }
-    fields.emplace_back(flatbuf::CreateField(flatbuf_builder, name, true, type, type_offset, dictionary));
+    std::vector<flatbuffers::Offset<org::apache::arrow::flatbuf::Field>> fake_children;
+    fields.emplace_back(flatbuf::CreateField(flatbuf_builder,
+                                             name,
+                                             true,
+                                             type,
+                                             type_offset,
+                                             dictionary,
+                                             flatbuf_builder.CreateVector(fake_children)));
   }
   auto schema = flatbuf::CreateSchema(flatbuf_builder,
                                       flatbuf::Endianness_Little,
@@ -320,10 +327,16 @@ void DataTable::WriteDictionaryMessage(std::ofstream &outfile,
   size_t buffer_offset = 0;
   size_t cur_buffer_len = 0;
   field_nodes.emplace_back(num_elements, 0);
-  cur_buffer_len = varlen_col.OffsetsLength() * sizeof(uint32_t);
+  char dump_buffer[common::Constants::BLOCK_SIZE];
+
+  cur_buffer_len = varlen_col.OffsetsLength() * sizeof(uint64_t);
+  memcpy(dump_buffer + buffer_offset, reinterpret_cast<const char *>(varlen_col.Offsets()), cur_buffer_len);
+  //cur_buffer_len = ((cur_buffer_len + 7) & (~7));
   buffers.emplace_back(buffer_offset, cur_buffer_len);
   buffer_offset += cur_buffer_len;
   cur_buffer_len = varlen_col.ValuesLength();
+  memcpy(dump_buffer + buffer_offset, reinterpret_cast<const char *>(varlen_col.Values()), cur_buffer_len);
+  cur_buffer_len = (cur_buffer_len + 7) & (~7);
   buffers.emplace_back(buffer_offset, cur_buffer_len);
   auto record_batch = flatbuf::CreateRecordBatch(flatbuf_builder,
                                                  num_elements,
@@ -345,8 +358,9 @@ void DataTable::WriteDictionaryMessage(std::ofstream &outfile,
   if (padded_flatbuf_size != flatbuf_size) {
     outfile.write(alignment, padded_flatbuf_size - flatbuf_size);
   }
-  outfile.write(reinterpret_cast<const char *>(varlen_col.Offsets()), varlen_col.OffsetsLength() * sizeof(uint32_t));
-  outfile.write(reinterpret_cast<const char *>(varlen_col.Values()), varlen_col.ValuesLength());
+  //outfile.write(reinterpret_cast<const char *>(varlen_col.Offsets()), varlen_col.OffsetsLength() * sizeof(uint32_t));
+  //outfile.write(reinterpret_cast<const char *>(varlen_col.Values()), varlen_col.ValuesLength());
+  outfile.write(dump_buffer, aligned_offset);
   outfile.flush();
 }
 
@@ -356,21 +370,21 @@ void DataTable::DumpTable(const std::string file_name) const {
   // updated frequently? Otherwise current implementation may introduce
   // high overhead.
   flatbuffers::FlatBufferBuilder flatbuf_builder;
-  std::ofstream outfile(file_name, std::ios_base::out | std::ios_base::app | std::ios_base::binary);
+  std::ofstream outfile(file_name, std::ios_base::out | std::ios_base::trunc | std::ios_base::binary);
   std::unordered_map<col_id_t, int64_t> dictionary_ids;
   WriteSchemaMessage(outfile, dictionary_ids, flatbuf_builder);
 
   const BlockLayout &layout = accessor_.GetBlockLayout();
-  uint32_t num_slots = layout.NumSlots();
   auto column_ids = layout.AllColumns();
   common::SpinLatch::ScopedSpinLatch guard(&blocks_latch_);
   // TODO(YUZE) Maybe use heap space?
-  char dump_buffer[common::Constants::BLOCK_SIZE];
+  char dump_buffer[5 * common::Constants::BLOCK_SIZE];
   for (RawBlock *block : blocks_) {
     std::vector<flatbuf::FieldNode> field_nodes;
     std::vector<flatbuf::Buffer> buffers;
     while(!block->controller_.TryAcquireInPlaceRead());
     ArrowBlockMetadata &metadata = accessor_.GetArrowBlockMetadata(block);
+    uint32_t num_slots = metadata.NumRecords();
 
     size_t buffer_offset = 0;
     size_t column_id_size = column_ids.size();
@@ -384,20 +398,23 @@ void DataTable::DumpTable(const std::string file_name) const {
       field_nodes.emplace_back(num_slots, metadata.NullCount(col_id));
 
       size_t cur_buffer_len = reinterpret_cast<char *>(column_start) - reinterpret_cast<char *>(column_bitmap);
-      buffers.emplace_back(buffer_offset, cur_buffer_len);
       memcpy(dump_buffer + buffer_offset, column_bitmap, cur_buffer_len);
+      cur_buffer_len = (cur_buffer_len + 7) & (~7);
+      buffers.emplace_back(buffer_offset, cur_buffer_len);
       buffer_offset += cur_buffer_len;
-      if (layout.IsVarlen(col_id)) {
+      if (layout.IsVarlen(col_id) && !(col_info.Type() == ArrowColumnType::FIXED_LENGTH)) {
         switch (col_info.Type()) {
           case ArrowColumnType::GATHERED_VARLEN: {
             ArrowVarlenColumn &varlen_col = col_info.VarlenColumn();
-            cur_buffer_len = varlen_col.OffsetsLength() * sizeof(uint32_t);
-            buffers.emplace_back(buffer_offset, cur_buffer_len);
+            cur_buffer_len = varlen_col.OffsetsLength() * sizeof(uint64_t);
             memcpy(dump_buffer + buffer_offset, varlen_col.Offsets(), cur_buffer_len);
+            //cur_buffer_len = ((cur_buffer_len + 7) & (~7));
+            buffers.emplace_back(buffer_offset, cur_buffer_len);
             buffer_offset += cur_buffer_len;
             cur_buffer_len = varlen_col.ValuesLength();
-            buffers.emplace_back(buffer_offset, cur_buffer_len);
             memcpy(dump_buffer + buffer_offset, varlen_col.Values(), cur_buffer_len);
+            cur_buffer_len = (cur_buffer_len + 7) & (~7);
+            buffers.emplace_back(buffer_offset, cur_buffer_len);
             buffer_offset += cur_buffer_len;
             break;
           }
@@ -406,8 +423,9 @@ void DataTable::DumpTable(const std::string file_name) const {
             WriteDictionaryMessage(outfile, dictionary_ids[col_id], varlen_col, flatbuf_builder);
             auto indices = col_info.Indices();
             cur_buffer_len = num_slots * sizeof(uint32_t);
-            buffers.emplace_back(buffer_offset, cur_buffer_len);
             memcpy(dump_buffer + buffer_offset, indices, num_slots * sizeof(uint32_t));
+            cur_buffer_len = (cur_buffer_len + 7) & (~7);
+            buffers.emplace_back(buffer_offset, cur_buffer_len);
             buffer_offset += cur_buffer_len;
             break;
           }
@@ -423,8 +441,9 @@ void DataTable::DumpTable(const std::string file_name) const {
           cur_buffer_len = reinterpret_cast<char *>(accessor_.ColumnNullBitmap(block, column_ids[i + 1])) -
               reinterpret_cast<char *>(column_start);
         }
-        buffers.emplace_back(buffer_offset, cur_buffer_len);
         memcpy(dump_buffer + buffer_offset, column_start, cur_buffer_len);
+        cur_buffer_len = (cur_buffer_len + 7) & (~7);
+        buffers.emplace_back(buffer_offset, cur_buffer_len);
         buffer_offset += cur_buffer_len;
       }
     }
