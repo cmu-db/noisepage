@@ -24,7 +24,7 @@ int main(int argc, char *argv[]) {
   std::unordered_map<terrier::settings::Param, terrier::settings::ParamInfo> param_map;
 
   // initialize stat registry
-  auto main_stat_reg = std::make_shared<terrier::common::StatisticsRegistry>();
+  auto main_stat_reg = std::make_unique<terrier::common::StatisticsRegistry>();
 
   terrier::settings::SettingsManager::ConstructParamMap(param_map);
   terrier::DBMain db(std::move(param_map));

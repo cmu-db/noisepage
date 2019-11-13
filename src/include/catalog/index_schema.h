@@ -316,7 +316,7 @@ class IndexSchema {
    * @param j json containing serialized schema
    * @return deserialized schema object
    */
-  std::shared_ptr<IndexSchema> static DeserializeSchema(const nlohmann::json &j) {
+  std::unique_ptr<IndexSchema> static DeserializeSchema(const nlohmann::json &j) {
     auto columns = j.at("columns").get<std::vector<IndexSchema::Column>>();
 
     auto unique = j.at("unique").get<bool>();
@@ -325,7 +325,7 @@ class IndexSchema {
     auto immediate = j.at("immediate").get<bool>();
     auto type = static_cast<storage::index::IndexType>(j.at("type").get<char>());
 
-    auto schema = std::make_shared<IndexSchema>(columns, type, unique, primary, exclusion, immediate);
+    auto schema = std::make_unique<IndexSchema>(columns, type, unique, primary, exclusion, immediate);
 
     return schema;
   }

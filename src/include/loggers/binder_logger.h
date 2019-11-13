@@ -6,7 +6,7 @@
 #include "spdlog/spdlog.h"
 
 namespace terrier::binder {
-extern std::shared_ptr<spdlog::logger> binder_logger;
+extern std::shared_ptr<spdlog::logger> binder_logger;  // NOLINT
 
 void InitBinderLogger();
 }  // namespace terrier::binder

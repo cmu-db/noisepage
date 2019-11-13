@@ -2,7 +2,6 @@
 
 #include <chrono>  //NOLINT
 #include <thread>  //NOLINT
-#include "di/di_help.h"
 #include "metrics/metrics_manager.h"
 
 namespace terrier::metrics {
@@ -13,17 +12,14 @@ namespace terrier::metrics {
  */
 class MetricsThread {
  public:
-  DECLARE_ANNOTATION(METRICS_PERIOD)
   /**
    * @param metrics_period sleep time between metrics invocations
    */
-  BOOST_DI_INJECT(MetricsThread, (named = METRICS_PERIOD) std::chrono::milliseconds metrics_period)  // NOLINT
-  : run_metrics_(true),
-    /// @cond DOXYGEN_IGNORE // TODO(Matt): no idea why this is currently necessary. Doxygen thinks these are functions
-    metrics_paused_(false),
-    metrics_period_(metrics_period),
-    metrics_thread_(std::thread([this] { MetricsThreadLoop(); })) {}
-  /// @endcond
+  MetricsThread(std::chrono::milliseconds metrics_period)  // NOLINT
+      : run_metrics_(true),
+        metrics_paused_(false),
+        metrics_period_(metrics_period),
+        metrics_thread_(std::thread([this] { MetricsThreadLoop(); })) {}
 
   ~MetricsThread() {
     run_metrics_ = false;
