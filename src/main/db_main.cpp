@@ -32,10 +32,10 @@ DBMain::DBMain(std::unordered_map<settings::Param, settings::ParamInfo> &&param_
   // Create LogManager
   log_manager_ = new storage::LogManager(
       settings_manager_->GetString(settings::Param::log_file_path),
-      settings_manager_->GetInt(settings::Param::num_log_manager_buffers),
+      static_cast<uint64_t>(settings_manager_->GetInt64(settings::Param::num_log_manager_buffers)),
       std::chrono::milliseconds{settings_manager_->GetInt(settings::Param::log_serialization_interval)},
       std::chrono::milliseconds{settings_manager_->GetInt(settings::Param::log_persist_interval)},
-      settings_manager_->GetInt(settings::Param::log_persist_threshold), buffer_segment_pool_,
+      static_cast<uint64_t>(settings_manager_->GetInt64(settings::Param::log_persist_threshold)), buffer_segment_pool_,
       common::ManagedPointer(thread_registry_));
   log_manager_->Start();
 
@@ -48,10 +48,16 @@ DBMain::DBMain(std::unordered_map<settings::Param, settings::ParamInfo> &&param_
                                                        param_map_.find(settings::Param::gc_interval)->second.value_)});
 
   thread_pool_ = new common::WorkerPool(
-      type::TransientValuePeeker::PeekInteger(param_map_.find(settings::Param::num_worker_threads)->second.value_), {});
+      static_cast<uint32_t>(type::TransientValuePeeker::PeekInteger(param_map_.find(settings::Param::num_worker_threads)->second.value_)), {});
   thread_pool_->Startup();
 
-  t_cop_ = new trafficcop::TrafficCop;
+  block_store_ = new storage::BlockStore{
+      static_cast<uint64_t>(type::TransientValuePeeker::PeekBigInt(param_map_.find(settings::Param::block_store_size)->second.value_)),
+      static_cast<uint64_t>(type::TransientValuePeeker::PeekBigInt(param_map_.find(settings::Param::block_store_size)->second.value_))};
+
+  catalog_ = new catalog::Catalog(txn_manager_, block_store_);
+
+  t_cop_ = new trafficcop::TrafficCop(common::ManagedPointer(txn_manager_), common::ManagedPointer(catalog_));
   connection_handle_factory_ = new network::ConnectionHandleFactory(common::ManagedPointer(t_cop_));
 
   command_factory_ = new network::PostgresCommandFactory;
@@ -65,7 +71,7 @@ DBMain::DBMain(std::unordered_map<settings::Param, settings::ParamInfo> &&param_
 
 void DBMain::Run() {
   running_ = true;
-  server_->SetPort(static_cast<int16_t>(
+  server_->SetPort(static_cast<uint16_t>(
       type::TransientValuePeeker::PeekInteger(param_map_.find(settings::Param::port)->second.value_)));
   server_->RunServer();
 

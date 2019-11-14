@@ -3,6 +3,7 @@
 #include <memory>
 #include <unordered_map>
 #include <utility>
+#include "catalog/catalog.h"
 #include "common/action_context.h"
 #include "common/stat_registry.h"
 #include "common/worker_pool.h"
@@ -63,6 +64,7 @@ class DBMain {
     // ManagedPointers unless we want a bunch of .get()s, which sounds like a future PR
     delete gc_thread_;
     delete metrics_manager_;
+    delete catalog_;
     delete garbage_collector_;
     delete settings_manager_;
     delete txn_manager_;
@@ -101,10 +103,12 @@ class DBMain {
   std::unordered_map<settings::Param, settings::ParamInfo> param_map_;
   transaction::TimestampManager *timestamp_manager_;
   transaction::TransactionManager *txn_manager_;
+  catalog::Catalog *catalog_;
   settings::SettingsManager *settings_manager_;
   storage::LogManager *log_manager_;
   storage::GarbageCollector *garbage_collector_;
   storage::GarbageCollectorThread *gc_thread_;
+  storage::BlockStore *block_store_;
   network::TerrierServer *server_;
   storage::RecordBufferSegmentPool *buffer_segment_pool_;
   common::WorkerPool *thread_pool_;

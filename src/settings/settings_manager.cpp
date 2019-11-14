@@ -54,6 +54,11 @@ int32_t SettingsManager::GetInt(Param param) {
   return ValuePeeker::PeekInteger(GetValue(param));
 }
 
+int64_t SettingsManager::GetInt64(Param param) {
+  common::SharedLatch::ScopedSharedLatch guard(&latch_);
+  return ValuePeeker::PeekBigInt(GetValue(param));
+}
+
 double SettingsManager::GetDouble(Param param) {
   common::SharedLatch::ScopedSharedLatch guard(&latch_);
   return ValuePeeker::PeekDecimal(GetValue(param));

@@ -81,7 +81,7 @@ class ConnectionHandle {
   }
 
   /**
-   * Handles a libevent event. This simply delegates the the state machine.
+   * Handles a libevent event. This simply delegates to the state machine.
    */
   void HandleEvent(int fd, int16_t flags) {
     Transition t;
@@ -95,6 +95,20 @@ class ConnectionHandle {
   }
 
   /* State Machine Actions */
+  /**
+   * @brief Actions performed after receiving startup packet
+   * @return The transition to trigger in the state machine after
+   */
+  Transition StartUp() {
+    auto oids = traffic_cop_->CreateTempNamespace(io_wrapper_->GetSocketFd());
+    context_.db_oid_ = oids.first;
+    if (context_.db_oid_ == catalog::INVALID_DATABASE_OID) {
+      return Transition::TERMINATE;
+    }
+    context_.temp_namespace_oid_ = oids.second;
+    return Transition::PROCEED;
+  }
+
   /**
    * @brief Tries to read from the event port onto the read buffer
    * @return The transition to trigger in the state machine after
