@@ -293,6 +293,11 @@ static_assert(sizeof(CompactIntsKey<16>) == 16, "size of the class should be 16 
 static_assert(sizeof(CompactIntsKey<24>) == 24, "size of the class should be 24 bytes");
 static_assert(sizeof(CompactIntsKey<32>) == 32, "size of the class should be 32 bytes");
 
+extern template class CompactIntsKey<8>;
+extern template class CompactIntsKey<16>;
+extern template class CompactIntsKey<24>;
+extern template class CompactIntsKey<32>;
+
 }  // namespace terrier::storage::index
 
 namespace std {
