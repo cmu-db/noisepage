@@ -7,8 +7,11 @@
 #include "transaction/timestamp_manager.h"
 #include "transaction/transaction_defs.h"
 
+namespace terrier{
+  class TransactionTestUtil;
+}
 namespace terrier::transaction {
-class DeferredActionThread;
+  class DeferredActionThread;
 /**
  * The deferred action manager tracks deferred actions and provides a function to process them
  */
@@ -18,7 +21,7 @@ class DeferredActionManager {
    * Constructs a new DeferredActionManager
    * @param timestamp_manager source of timestamps in the system
    */
-  BOOST_DI_INJECT(DeferredActionManager, TimestampManager *timestamp_manager)  // NOLINT
+  DeferredActionManager(TimestampManager *timestamp_manager)  // NOLINT
   : timestamp_manager_(timestamp_manager){};
 
   ~DeferredActionManager() {
@@ -64,7 +67,9 @@ class DeferredActionManager {
   void UnregisterIndexForGC(common::ManagedPointer<storage::index::Index> index);
 
  private:
-  friend transaction::DeferredActionThread; 
+  friend class transaction::DeferredActionThread; 
+  friend class terrier::TransactionTestUtil;
+
   TimestampManager *timestamp_manager_;
   // TODO(Tianyu): We might want to change this data structure to be more specialized than std::queue
   std::queue<std::pair<timestamp_t, DeferredAction>> new_deferred_actions_, back_log_;
