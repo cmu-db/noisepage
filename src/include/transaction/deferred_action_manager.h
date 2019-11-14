@@ -8,6 +8,7 @@
 #include "transaction/transaction_defs.h"
 
 namespace terrier::transaction {
+class DeferredActionThread;
 /**
  * The deferred action manager tracks deferred actions and provides a function to process them
  */

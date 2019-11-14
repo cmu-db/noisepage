@@ -34,7 +34,7 @@ class GarbageCollector {
    */
   // TODO(Tianyu): Eventually the GC will be re-written to be purely on the deferred action manager. which will
   //  eliminate this perceived redundancy of taking in a transaction manager.
-  BOOST_DI_INJECT(GarbageCollector, transaction::TimestampManager *timestamp_manager,
+  GarbageCollector(transaction::TimestampManager *timestamp_manager,
                   transaction::DeferredActionManager *deferred_action_manager, AccessObserver *observer)
       : timestamp_manager_(timestamp_manager),
         deferred_action_manager_(deferred_action_manager),

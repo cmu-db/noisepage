@@ -30,7 +30,8 @@ void GarbageCollector::UnlinkTransaction(transaction::timestamp_t oldest_txn, tr
     DataTable *&table = undo_record.Table();
     // Each version chain needs to be traversed and truncated at most once every GC period. Check
     // if we have already visited this tuple slot; if not, proceed to prune the version chain.
-    if (table != nullptr) TruncateVersionChain(table, undo_record.Slot(), oldest_txn);
+    // TODO(Yash): check where table pointer in an undo record is set to null. I don't think it can be null. 
+    if (!undo_record.IsUnlinked() && table != nullptr) TruncateVersionChain(table, undo_record.Slot(), oldest_txn);
     // Regardless of the version chain we will need to reclaim deleted slots and any dangling pointers to varlens,
     // unless the transaction is aborted, and the record holds a version that is still visible.
     if (!txn->Aborted()) {
@@ -75,7 +76,14 @@ void GarbageCollector::TruncateVersionChain(DataTable *const table, const TupleS
   }
   // The rest of the version chain must also be invisible to any running transactions since our version
   // is newest-to-oldest sorted.
+  next = curr->Next();
   curr->Next().store(nullptr);
+
+  // Set all undo records to be unlinked
+  while(next) {
+    next->SetUnlinked();
+    next = next->Next();
+  }
 
   // If the head of the version chain was not committed, it could have been aborted and requires a retry.
   if (curr == version_ptr && !transaction::TransactionUtil::Committed(version_ptr->Timestamp().load()) &&
