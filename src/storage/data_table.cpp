@@ -37,6 +37,7 @@ DataTable::~DataTable() {
 bool DataTable::Select(terrier::transaction::TransactionContext *txn, terrier::storage::TupleSlot slot,
                        terrier::storage::ProjectedRow *out_buffer) const {
   data_table_counter_.IncrementNumSelect(1);
+  //printf("%d da", 4);
   return SelectIntoBuffer(txn, slot, out_buffer);
 }
 
@@ -257,12 +258,15 @@ bool DataTable::SelectIntoBuffer(transaction::TransactionContext *const txn, con
                  "fewer attributes.");
   TERRIER_ASSERT(out_buffer->NumColumns() > 0, "The output buffer should return at least one attribute.");
   // This cannot be visible if it's already deallocated.
+  //printf("%d db", 4);
   if (!accessor_.Allocated(slot)) return false;
 
   UndoRecord *version_ptr;
   bool visible;
   do {
+    //printf("%d dc", 4);
     version_ptr = AtomicallyReadVersionPtr(slot, accessor_);
+    //printf("%d dd", 4);
     // Copy the current (most recent) tuple into the output buffer. These operations don't need to be atomic,
     // because so long as we set the version ptr before updating in place, the reader will know if a conflict
     // can potentially happen, and chase the version chain before returning anyway,
@@ -271,6 +275,7 @@ bool DataTable::SelectIntoBuffer(transaction::TransactionContext *const txn, con
                      "Output buffer should not read the version pointer column.");
       StorageUtil::CopyAttrIntoProjection(accessor_, slot, out_buffer, i);
     }
+    //printf("%d de", 4);
 
     // We still need to check the allocated bit because GC could have flipped it since last check
     visible = Visible(slot, accessor_);
@@ -301,12 +306,15 @@ bool DataTable::SelectIntoBuffer(transaction::TransactionContext *const txn, con
     // way to achieve that is to take a timestamp as well when all changes have been rolled back for an aborted
     // transaction, and let GC handle the unlinking.
   } while (version_ptr != AtomicallyReadVersionPtr(slot, accessor_));
+  //printf("%d df \n", 4);
 
   // Nullptr in version chain means no other versions visible to any transaction alive at this point.
   // Alternatively, if the current transaction holds the write lock, it should be able to read its own updates.
   if (version_ptr == nullptr || version_ptr->Timestamp().load() == txn->FinishTime()) {
     return visible;
   }
+  //printf("%d dg \n", 4);
+  //int tempCount = 0;
 
   // Apply deltas until we reconstruct a version safe for us to read
   while (version_ptr != nullptr &&
@@ -325,8 +333,11 @@ bool DataTable::SelectIntoBuffer(transaction::TransactionContext *const txn, con
       default:
         throw std::runtime_error("unexpected delta record type");
     }
+    //printf("Equal? %d \n", (version_ptr == version_ptr->Next()));
     version_ptr = version_ptr->Next();
+    //printf("TEmp count: %d \n", tempCount++);
   }
+  //printf("%d dh \n", 4);
 
   return visible;
 }

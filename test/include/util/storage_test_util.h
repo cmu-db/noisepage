@@ -23,6 +23,7 @@
 #include "storage/tuple_access_strategy.h"
 #include "storage/undo_record.h"
 #include "transaction/transaction_manager.h"
+#include "transaction/deferred_action_manager.h"
 #include "type/transient_value_factory.h"
 #include "type/type_id.h"
 #include "util/multithread_test_util.h"
@@ -567,10 +568,10 @@ class StorageTestUtil {
    * @param gc gc to use for garbage collection
    * @param log_manager log manager to use for flushing logs
    */
-  static void FullyPerformGC(storage::GarbageCollector *const gc, storage::LogManager *const log_manager) {
+  static void FullyPerformGC(transaction::DeferredActionManager *const dam, storage::LogManager *const log_manager) {
     for (int i = 0; i < MIN_GC_INVOCATIONS; i++) {
       if (log_manager != DISABLED) log_manager->ForceFlush();
-      gc->PerformGarbageCollection();
+      dam->Process();
     }
   }
 

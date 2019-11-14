@@ -29,10 +29,10 @@ class SqlBasedTest : public TplTest {
     buffer_pool_ = std::make_unique<storage::RecordBufferSegmentPool>(100000, 100000);
     tm_manager_ = std::make_unique<transaction::TimestampManager>();
     da_manager_ = std::make_unique<transaction::DeferredActionManager>(tm_manager_.get());
-    txn_manager_ = std::make_unique<transaction::TransactionManager>(tm_manager_.get(), da_manager_.get(),
-                                                                     buffer_pool_.get(), true, nullptr);
     gc_ =
-        std::make_unique<storage::GarbageCollector>(tm_manager_.get(), da_manager_.get(), txn_manager_.get(), nullptr);
+        std::make_unique<storage::GarbageCollector>(tm_manager_.get(), da_manager_.get(), DISABLED);
+    txn_manager_ = std::make_unique<transaction::TransactionManager>(tm_manager_.get(), gc_.get(), da_manager_.get(),
+                                                                     buffer_pool_.get(), true, DISABLED);
     test_txn_ = txn_manager_->BeginTransaction();
 
     // Create catalog and test namespace
@@ -46,8 +46,9 @@ class SqlBasedTest : public TplTest {
   ~SqlBasedTest() override {
     txn_manager_->Commit(test_txn_, transaction::TransactionUtil::EmptyCallback, nullptr);
     catalog_->TearDown();
-    gc_->PerformGarbageCollection();
-    gc_->PerformGarbageCollection();
+    da_manager_->Process();
+    da_manager_->Process();
+    da_manager_->Process();
   }
 
   catalog::namespace_oid_t NSOid() { return test_ns_oid_; }

@@ -8,8 +8,8 @@
 #include <vector>
 #include "catalog/index_schema.h"
 #include "catalog/schema.h"
-#include "storage/garbage_collector.h"
 #include "storage/projected_row.h"
+#include "transaction/deferred_action_manager.h"
 #include "util/catalog_test_util.h"
 
 namespace terrier::tpcc {
@@ -17,30 +17,30 @@ namespace terrier::tpcc {
 struct Util {
   Util() = delete;
 
-  static void RegisterIndexesForGC(storage::GarbageCollector *const gc, Database *const tpcc_db) {
-    gc->RegisterIndexForGC(tpcc_db->item_primary_index_);
-    gc->RegisterIndexForGC(tpcc_db->warehouse_primary_index_);
-    gc->RegisterIndexForGC(tpcc_db->stock_primary_index_);
-    gc->RegisterIndexForGC(tpcc_db->district_primary_index_);
-    gc->RegisterIndexForGC(tpcc_db->customer_primary_index_);
-    gc->RegisterIndexForGC(tpcc_db->customer_secondary_index_);
-    gc->RegisterIndexForGC(tpcc_db->new_order_primary_index_);
-    gc->RegisterIndexForGC(tpcc_db->order_primary_index_);
-    gc->RegisterIndexForGC(tpcc_db->order_secondary_index_);
-    gc->RegisterIndexForGC(tpcc_db->order_line_primary_index_);
+  static void RegisterIndexesForGC(transaction::DeferredActionManager*const dam, Database *const tpcc_db) {
+    dam->RegisterIndexForGC(tpcc_db->item_primary_index_);
+    dam->RegisterIndexForGC(tpcc_db->warehouse_primary_index_);
+    dam->RegisterIndexForGC(tpcc_db->stock_primary_index_);
+    dam->RegisterIndexForGC(tpcc_db->district_primary_index_);
+    dam->RegisterIndexForGC(tpcc_db->customer_primary_index_);
+    dam->RegisterIndexForGC(tpcc_db->customer_secondary_index_);
+    dam->RegisterIndexForGC(tpcc_db->new_order_primary_index_);
+    dam->RegisterIndexForGC(tpcc_db->order_primary_index_);
+    dam->RegisterIndexForGC(tpcc_db->order_secondary_index_);
+    dam->RegisterIndexForGC(tpcc_db->order_line_primary_index_);
   }
 
-  static void UnregisterIndexesForGC(storage::GarbageCollector *const gc, Database *const tpcc_db) {
-    gc->UnregisterIndexForGC(tpcc_db->item_primary_index_);
-    gc->UnregisterIndexForGC(tpcc_db->warehouse_primary_index_);
-    gc->UnregisterIndexForGC(tpcc_db->stock_primary_index_);
-    gc->UnregisterIndexForGC(tpcc_db->district_primary_index_);
-    gc->UnregisterIndexForGC(tpcc_db->customer_primary_index_);
-    gc->UnregisterIndexForGC(tpcc_db->customer_secondary_index_);
-    gc->UnregisterIndexForGC(tpcc_db->new_order_primary_index_);
-    gc->UnregisterIndexForGC(tpcc_db->order_primary_index_);
-    gc->UnregisterIndexForGC(tpcc_db->order_secondary_index_);
-    gc->UnregisterIndexForGC(tpcc_db->order_line_primary_index_);
+  static void UnregisterIndexesForGC(transaction::DeferredActionManager *const dam, Database *const tpcc_db) {
+    dam->UnregisterIndexForGC(tpcc_db->item_primary_index_);
+    dam->UnregisterIndexForGC(tpcc_db->warehouse_primary_index_);
+    dam->UnregisterIndexForGC(tpcc_db->stock_primary_index_);
+    dam->UnregisterIndexForGC(tpcc_db->district_primary_index_);
+    dam->UnregisterIndexForGC(tpcc_db->customer_primary_index_);
+    dam->UnregisterIndexForGC(tpcc_db->customer_secondary_index_);
+    dam->UnregisterIndexForGC(tpcc_db->new_order_primary_index_);
+    dam->UnregisterIndexForGC(tpcc_db->order_primary_index_);
+    dam->UnregisterIndexForGC(tpcc_db->order_secondary_index_);
+    dam->UnregisterIndexForGC(tpcc_db->order_line_primary_index_);
   }
 
   static std::vector<catalog::col_oid_t> AllColOidsForSchema(const catalog::Schema &schema) {

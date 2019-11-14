@@ -63,8 +63,11 @@ class GarbageCollectorDataTableTestObject {
 
   storage::ProjectedRow *SelectIntoBuffer(transaction::TransactionContext *const txn, const storage::TupleSlot slot) {
     // generate a redo ProjectedRow for Select
+    //printf("%dc\n", 4);
     storage::ProjectedRow *select_row = initializer_.InitializeRow(select_buffer_);
+    //printf("%d d\n", 4);
     select_result_ = table_.Select(txn, slot, select_row);
+    //printf("%de\n", 4);
     return select_row;
   }
 
@@ -109,7 +112,7 @@ struct Components {
     delete txn_manager;
   }
 
-}
+};
 
 // Run a single txn that performs an Insert. Confirm that it takes 2 GC cycles to process this tuple.
 // NOLINTNEXTLINE
@@ -131,7 +134,6 @@ TEST_F(GarbageCollectorTests, SingleInsert) {
     EXPECT_EQ(0, components.deferred_action_manager->Process());
 
     components.txn_manager->Commit(txn0, transaction::TransactionUtil::EmptyCallback, nullptr);
-    EXPECT_EQ(TransactionTestUtil::ActionsInDeferredQueue(components.deferred_action_manager), 0);
     EXPECT_EQ(1, components.deferred_action_manager->Process());
     EXPECT_EQ(1, components.deferred_action_manager->Process());
   }
@@ -148,7 +150,7 @@ TEST_F(GarbageCollectorTests, ReadOnly) {
 
     // Unlink the txn and deallocate immediately because it's read-only
     EXPECT_EQ(1, components.deferred_action_manager->Process());
-    EXPECT_EQ(1, components.deferred_action_manager->Process());
+    EXPECT_EQ(0, components.deferred_action_manager->Process());
   }
 }
 
@@ -374,6 +376,7 @@ TEST_F(GarbageCollectorTests, CommitUpdate1) {
     components.txn_manager->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
     // Unlink and reclaim the Insert
+    //printf("Got %d \n", 1);
     EXPECT_EQ(1, components.deferred_action_manager->Process());
     EXPECT_EQ(1, components.deferred_action_manager->Process());
 
@@ -381,35 +384,44 @@ TEST_F(GarbageCollectorTests, CommitUpdate1) {
 
     auto *txn0 = components.txn_manager->BeginTransaction();
 
+    //printf("Got %d \n", 2);
     EXPECT_TRUE(tested.table_.Update(txn0, slot, *update));
 
     auto *update_tuple = tested.GenerateVersionFromUpdate(*update, *insert_tuple);
 
     storage::ProjectedRow *select_tuple = tested.SelectIntoBuffer(txn0, slot);
+    //printf("Got %d \n", 3);
     EXPECT_TRUE(tested.select_result_);
     EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, update_tuple));
 
     // Nothing should be able to be GC'd yet because txn0 has not committed yet
+    //printf("Got %d \n", 4);
     EXPECT_EQ(0, components.deferred_action_manager->Process());
+    //printf("Got %da \n", 4);
 
     auto *txn1 = components.txn_manager->BeginTransaction();
+    //printf("Got %db \n", 4);
 
     select_tuple = tested.SelectIntoBuffer(txn1, slot);
+    //printf("Got %d \n", 5);
     EXPECT_TRUE(tested.select_result_);
     EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, insert_tuple));
 
     components.txn_manager->Commit(txn0, transaction::TransactionUtil::EmptyCallback, nullptr);
 
     // Nothing should be able to be GC'd yet because txn1 started before txn0's commit
+    //printf("Got %d \n", 6);
     EXPECT_EQ(0, components.deferred_action_manager->Process());
 
     select_tuple = tested.SelectIntoBuffer(txn1, slot);
+    //printf("Got %d \n", 7);
     EXPECT_TRUE(tested.select_result_);
     EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, insert_tuple));
 
     components.txn_manager->Commit(txn1, transaction::TransactionUtil::EmptyCallback, nullptr);
 
     // Unlink the update and read-only txns, then deallocate the update txn
+    //printf("Got %d \n", 8);
     EXPECT_EQ(2, components.deferred_action_manager->Process());
     // Read-only transaction shouldn't have made it to the deallocate queue
     EXPECT_EQ(1, components.deferred_action_manager->Process());
@@ -417,14 +429,17 @@ TEST_F(GarbageCollectorTests, CommitUpdate1) {
     auto *txn2 = components.txn_manager->BeginTransaction();
 
     select_tuple = tested.SelectIntoBuffer(txn2, slot);
+    //printf("Got %d \n", 9);
     EXPECT_TRUE(tested.select_result_);
     EXPECT_TRUE(StorageTestUtil::ProjectionListEqualShallow(tested.Layout(), select_tuple, update_tuple));
     components.txn_manager->Commit(txn2, transaction::TransactionUtil::EmptyCallback, nullptr);
 
     // Unlink the read-only transaction
+    //printf("Got %d \n", 10);
     EXPECT_EQ(1, components.deferred_action_manager->Process());
     // It shouldn't make it to the second invocation because it's read-only
     EXPECT_EQ(0, components.deferred_action_manager->Process());
+    //printf("Got %d \n", 11);
   }
 }
 

@@ -225,9 +225,9 @@ class IndexKeyTests : public TerrierTest {
 
     transaction::TimestampManager timestamp_manager;
     transaction::DeferredActionManager deferred_action_manager(&timestamp_manager);
-    transaction::TransactionManager txn_manager(&timestamp_manager, &deferred_action_manager, &buffer_pool, true,
+    storage::GarbageCollector gc_manager(&timestamp_manager, &deferred_action_manager, DISABLED);
+    transaction::TransactionManager txn_manager(&timestamp_manager, &gc_manager, &deferred_action_manager, &buffer_pool, true,
                                                 DISABLED);
-    storage::GarbageCollector gc_manager(&timestamp_manager, &deferred_action_manager, &txn_manager, DISABLED);
 
     auto *const txn = txn_manager.BeginTransaction();
 
@@ -270,8 +270,8 @@ class IndexKeyTests : public TerrierTest {
     txn_manager.Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
     // Clean up
-    gc_manager.PerformGarbageCollection();
-    gc_manager.PerformGarbageCollection();
+    deferred_action_manager.Process();
+    deferred_action_manager.Process();
     delete[] key_buffer;
   }
 

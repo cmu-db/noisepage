@@ -6,13 +6,13 @@
 #include <vector>
 #include "parser/expression/column_value_expression.h"
 #include "portable_endian/portable_endian.h"
-#include "storage/garbage_collector_thread.h"
 #include "storage/index/compact_ints_key.h"
 #include "storage/index/index_builder.h"
 #include "storage/projected_row.h"
 #include "storage/sql_table.h"
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_manager.h"
+#include "transaction/deferred_action_thread.h"
 #include "type/type_id.h"
 #include "type/type_util.h"
 #include "util/catalog_test_util.h"
@@ -27,7 +27,7 @@ class BwTreeIndexTests : public TerrierTest {
  private:
   const std::chrono::milliseconds gc_period_{10};
   storage::GarbageCollector *gc_;
-  storage::GarbageCollectorThread *gc_thread_;
+  transaction::DeferredActionThread *da_thread_;
 
   storage::BlockStore block_store_{1000, 1000};
   storage::RecordBufferSegmentPool buffer_pool_{1000000, 1000000};
@@ -78,16 +78,16 @@ class BwTreeIndexTests : public TerrierTest {
 
     timestamp_manager_ = new transaction::TimestampManager;
     deferred_action_manager_ = new transaction::DeferredActionManager(timestamp_manager_);
-    txn_manager_ = new transaction::TransactionManager(timestamp_manager_, deferred_action_manager_, &buffer_pool_,
+    gc_ = new storage::GarbageCollector(timestamp_manager_, deferred_action_manager_, DISABLED);
+    txn_manager_ = new transaction::TransactionManager(timestamp_manager_, gc_, deferred_action_manager_, &buffer_pool_,
                                                        true, DISABLED);
-    gc_ = new storage::GarbageCollector(timestamp_manager_, deferred_action_manager_, txn_manager_, DISABLED);
-    gc_thread_ = new storage::GarbageCollectorThread(gc_, gc_period_);
+    da_thread_ = new transaction::DeferredActionThread(deferred_action_manager_, gc_period_);
 
     unique_index_ = (IndexBuilder().SetKeySchema(unique_schema_)).Build();
     default_index_ = (IndexBuilder().SetKeySchema(default_schema_)).Build();
 
-    gc_thread_->GetGarbageCollector().RegisterIndexForGC(common::ManagedPointer<Index>(unique_index_));
-    gc_thread_->GetGarbageCollector().RegisterIndexForGC(common::ManagedPointer<Index>(default_index_));
+    da_thread_->GetDeferredActionManager().RegisterIndexForGC(common::ManagedPointer<Index>(unique_index_));
+    da_thread_->GetDeferredActionManager().RegisterIndexForGC(common::ManagedPointer<Index>(default_index_));
 
     key_buffer_1_ =
         common::AllocationUtil::AllocateAligned(default_index_->GetProjectedRowInitializer().ProjectedRowSize());
@@ -95,10 +95,10 @@ class BwTreeIndexTests : public TerrierTest {
         common::AllocationUtil::AllocateAligned(default_index_->GetProjectedRowInitializer().ProjectedRowSize());
   }
   void TearDown() override {
-    gc_thread_->GetGarbageCollector().UnregisterIndexForGC(common::ManagedPointer<Index>(unique_index_));
-    gc_thread_->GetGarbageCollector().UnregisterIndexForGC(common::ManagedPointer<Index>(default_index_));
+    da_thread_->GetDeferredActionManager().UnregisterIndexForGC(common::ManagedPointer<Index>(unique_index_));
+    da_thread_->GetDeferredActionManager().UnregisterIndexForGC(common::ManagedPointer<Index>(default_index_));
 
-    delete gc_thread_;
+    delete da_thread_;
     delete gc_;
     delete sql_table_;
     delete default_index_;

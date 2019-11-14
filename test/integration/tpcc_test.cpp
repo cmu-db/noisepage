@@ -7,9 +7,9 @@
 #include "common/worker_pool.h"
 #include "metrics/logging_metric.h"
 #include "metrics/metrics_thread.h"
-#include "storage/garbage_collector_thread.h"
 #include "storage/storage_defs.h"
 #include "transaction/transaction_manager.h"
+#include "transaction/deferred_action_thread.h"
 #include "util/tpcc/builder.h"
 #include "util/tpcc/database.h"
 #include "util/tpcc/loader.h"
@@ -62,8 +62,9 @@ class TPCCTests : public TerrierTest {
   const std::chrono::milliseconds log_persist_interval_{20};
   const uint64_t log_persist_threshold_ = (1U << 20U);  // 1MB
 
+  transaction::DeferredActionManager *da_manager_ = nullptr;
   storage::GarbageCollector *gc_ = nullptr;
-  storage::GarbageCollectorThread *gc_thread_ = nullptr;
+  transaction::DeferredActionThread *deferred_action_thread_ = nullptr; 
   const std::chrono::milliseconds gc_period_{10};
   const std::chrono::milliseconds metrics_period_{100};
 
@@ -93,7 +94,8 @@ class TPCCTests : public TerrierTest {
 
     transaction::TimestampManager timestamp_manager;
     transaction::DeferredActionManager deferred_action_manager(&timestamp_manager);
-    transaction::TransactionManager txn_manager(&timestamp_manager, &deferred_action_manager, &buffer_pool_, true,
+    gc_ = new storage::GarbageCollector(&timestamp_manager, &deferred_action_manager, DISABLED);
+    transaction::TransactionManager txn_manager(&timestamp_manager, gc_, &deferred_action_manager, &buffer_pool_, true,
                                                 log_manager_);
     catalog::Catalog catalog(&txn_manager, &block_store_);
     Builder tpcc_builder(&block_store_, &catalog, &txn_manager);
@@ -115,9 +117,8 @@ class TPCCTests : public TerrierTest {
     Loader::PopulateDatabase(&txn_manager, tpcc_db, &workers, &thread_pool_);
     if (logging_enabled) log_manager_->ForceFlush();
 
-    gc_ = new storage::GarbageCollector(&timestamp_manager, &deferred_action_manager, &txn_manager, DISABLED);
-    gc_thread_ = new storage::GarbageCollectorThread(gc_, gc_period_);
-    Util::RegisterIndexesForGC(&(gc_thread_->GetGarbageCollector()), tpcc_db);
+    deferred_action_thread_ = new transaction::DeferredActionThread(da_manager_, gc_period_);
+    Util::RegisterIndexesForGC(&(deferred_action_thread_->GetDeferredActionManager()), tpcc_db);
     std::this_thread::sleep_for(std::chrono::seconds(2));  // Let GC clean up
 
     // run the TPCC workload to completion
@@ -129,10 +130,10 @@ class TPCCTests : public TerrierTest {
     thread_pool_.WaitUntilAllFinished();
 
     // cleanup
-    Util::UnregisterIndexesForGC(&(gc_thread_->GetGarbageCollector()), tpcc_db);
-    delete gc_thread_;
+    Util::UnregisterIndexesForGC(&(deferred_action_thread_->GetDeferredActionManager()), tpcc_db);
+    delete deferred_action_thread_;
     catalog.TearDown();
-    StorageTestUtil::FullyPerformGC(gc_, log_manager_);
+    StorageTestUtil::FullyPerformGC(da_manager_, log_manager_);
     thread_pool_.Shutdown();
     if (logging_enabled) {
       log_manager_->PersistAndStop();

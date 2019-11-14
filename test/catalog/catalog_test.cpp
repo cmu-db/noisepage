@@ -27,9 +27,9 @@ struct CatalogTests : public TerrierTest {
     // Initialize the transaction manager and GC
     timestamp_manager_ = new transaction::TimestampManager;
     deferred_action_manager_ = new transaction::DeferredActionManager(timestamp_manager_);
-    txn_manager_ = new transaction::TransactionManager(timestamp_manager_, deferred_action_manager_, &buffer_pool_,
-                                                       true, DISABLED);
-    gc_ = new storage::GarbageCollector(timestamp_manager_, deferred_action_manager_, txn_manager_, nullptr);
+    gc_ = new storage::GarbageCollector(timestamp_manager_, deferred_action_manager_, DISABLED);
+    txn_manager_ = new transaction::TransactionManager(timestamp_manager_, gc_, deferred_action_manager_, &buffer_pool_, true,
+                                                      DISABLED);
 
     // Build out the catalog and commit so that it is visible to other transactions
     catalog_ = new catalog::Catalog(txn_manager_, &block_store_);
@@ -40,16 +40,17 @@ struct CatalogTests : public TerrierTest {
     txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
     // Run the GC to flush it down to a clean system
-    gc_->PerformGarbageCollection();
-    gc_->PerformGarbageCollection();
+    deferred_action_manager_->Process();
+    deferred_action_manager_->Process();
+    deferred_action_manager_->Process();
   }
 
   void TearDown() override {
     catalog_->TearDown();
     // Run the GC to clean up transactions
-    gc_->PerformGarbageCollection();
-    gc_->PerformGarbageCollection();
-    gc_->PerformGarbageCollection();
+    deferred_action_manager_->Process();
+    deferred_action_manager_->Process();
+    deferred_action_manager_->Process();
 
     delete catalog_;  // need to delete catalog_first
     delete gc_;
