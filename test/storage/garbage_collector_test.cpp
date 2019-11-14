@@ -89,33 +89,33 @@ struct GarbageCollectorTests : public ::terrier::TerrierTest {
 };
 
 struct Components {
-  transaction::TimestampManager* timestamp_manager;
-  transaction::DeferredActionManager* deferred_action_manager;
-  storage::GarbageCollector* gc;
-  transaction::TransactionManager* txn_manager;
+  transaction::TimestampManager *timestamp_manager;
+  transaction::DeferredActionManager *deferred_action_manager;
+  storage::GarbageCollector *gc;
+  transaction::TransactionManager *txn_manager;
 
   Components(storage::RecordBufferSegmentPool *buffer_pool) {
     timestamp_manager = new transaction::TimestampManager;
     deferred_action_manager = new transaction::DeferredActionManager(timestamp_manager);
     gc = new storage::GarbageCollector(timestamp_manager, deferred_action_manager, DISABLED);
-    txn_manager = new transaction::TransactionManager(timestamp_manager, gc, deferred_action_manager,
-                                                      buffer_pool, true, DISABLED);
+    txn_manager = new transaction::TransactionManager(timestamp_manager, gc, deferred_action_manager, buffer_pool, true,
+                                                      DISABLED);
   }
 
   ~Components() {
     delete timestamp_manager;
     delete deferred_action_manager;
     delete gc;
-    delete txn_manager; 
+    delete txn_manager;
   }
 
-} 
+}
 
 // Run a single txn that performs an Insert. Confirm that it takes 2 GC cycles to process this tuple.
 // NOLINTNEXTLINE
 TEST_F(GarbageCollectorTests, SingleInsert) {
   for (uint32_t iteration = 0; iteration < num_iterations_; ++iteration) {
-    Components components(&buffer_pool_);                              
+    Components components(&buffer_pool_);
     GarbageCollectorDataTableTestObject tested(&block_store_, max_columns_, &generator_);
 
     auto *txn0 = components.txn_manager->BeginTransaction();
@@ -141,7 +141,7 @@ TEST_F(GarbageCollectorTests, SingleInsert) {
 // NOLINTNEXTLINE
 TEST_F(GarbageCollectorTests, ReadOnly) {
   for (uint32_t iteration = 0; iteration < num_iterations_; ++iteration) {
-    Components components(&buffer_pool_);                              
+    Components components(&buffer_pool_);
 
     auto *txn0 = components.txn_manager->BeginTransaction();
     components.txn_manager->Commit(txn0, transaction::TransactionUtil::EmptyCallback, nullptr);
@@ -156,7 +156,7 @@ TEST_F(GarbageCollectorTests, ReadOnly) {
 // NOLINTNEXTLINE
 TEST_F(GarbageCollectorTests, CommitInsert1) {
   for (uint32_t iteration = 0; iteration < num_iterations_; ++iteration) {
-    Components components(&buffer_pool_);                              
+    Components components(&buffer_pool_);
     GarbageCollectorDataTableTestObject tested(&block_store_, max_columns_, &generator_);
 
     auto *txn0 = components.txn_manager->BeginTransaction();
@@ -207,7 +207,7 @@ TEST_F(GarbageCollectorTests, CommitInsert1) {
 // NOLINTNEXTLINE
 TEST_F(GarbageCollectorTests, CommitInsert2) {
   for (uint32_t iteration = 0; iteration < num_iterations_; ++iteration) {
-    Components components(&buffer_pool_);                              
+    Components components(&buffer_pool_);
     GarbageCollectorDataTableTestObject tested(&block_store_, max_columns_, &generator_);
 
     auto *txn0 = components.txn_manager->BeginTransaction();
@@ -259,7 +259,7 @@ TEST_F(GarbageCollectorTests, CommitInsert2) {
 // NOLINTNEXTLINE
 TEST_F(GarbageCollectorTests, AbortInsert1) {
   for (uint32_t iteration = 0; iteration < num_iterations_; ++iteration) {
-    Components components(&buffer_pool_);                              
+    Components components(&buffer_pool_);
     GarbageCollectorDataTableTestObject tested(&block_store_, max_columns_, &generator_);
 
     auto *txn0 = components.txn_manager->BeginTransaction();
@@ -311,7 +311,7 @@ TEST_F(GarbageCollectorTests, AbortInsert1) {
 // NOLINTNEXTLINE
 TEST_F(GarbageCollectorTests, AbortInsert2) {
   for (uint32_t iteration = 0; iteration < num_iterations_; ++iteration) {
-    Components components(&buffer_pool_);                              
+    Components components(&buffer_pool_);
     GarbageCollectorDataTableTestObject tested(&block_store_, max_columns_, &generator_);
 
     auto *txn0 = components.txn_manager->BeginTransaction();

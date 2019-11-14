@@ -7,11 +7,11 @@
 #include "transaction/timestamp_manager.h"
 #include "transaction/transaction_defs.h"
 
-namespace terrier{
-  class TransactionTestUtil;
+namespace terrier {
+class TransactionTestUtil;
 }
 namespace terrier::transaction {
-  class DeferredActionThread;
+class DeferredActionThread;
 /**
  * The deferred action manager tracks deferred actions and provides a function to process them
  */
@@ -22,7 +22,7 @@ class DeferredActionManager {
    * @param timestamp_manager source of timestamps in the system
    */
   DeferredActionManager(TimestampManager *timestamp_manager)  // NOLINT
-  : timestamp_manager_(timestamp_manager){};
+      : timestamp_manager_(timestamp_manager){};
 
   ~DeferredActionManager() {
     common::SpinLatch::ScopedSpinLatch guard(&deferred_actions_latch_);
@@ -67,7 +67,7 @@ class DeferredActionManager {
   void UnregisterIndexForGC(common::ManagedPointer<storage::index::Index> index);
 
  private:
-  friend class transaction::DeferredActionThread; 
+  friend class transaction::DeferredActionThread;
   friend class terrier::TransactionTestUtil;
 
   TimestampManager *timestamp_manager_;

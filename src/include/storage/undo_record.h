@@ -76,19 +76,15 @@ class UndoRecord {
     return static_cast<uint32_t>(sizeof(UndoRecord) + (type_ == DeltaRecordType::UPDATE ? Delta()->Size() : 0));
   }
 
-   /**
-   * Set the unlinked flag to indicate this undo record has been unlinked 
+  /**
+   * Set the unlinked flag to indicate this undo record has been unlinked
    */
-  void SetUnlinked() {
-    flags = flags | 0x10;
-  }
+  void SetUnlinked() { flags = flags | 0x10; }
 
   /**
    * @return whether the undo record has been unlnked
    */
-  bool IsUnlinked() {
-    return (bool) (flags & 0x10);
-  }
+  bool IsUnlinked() { return (bool)(flags & 0x10); }
 
   /**
    * @param redo the redo changes to be applied
@@ -197,14 +193,13 @@ class UndoRecord {
     return result;
   }
 
- 
  private:
   DeltaRecordType type_;
   std::atomic<UndoRecord *> next_;
   std::atomic<transaction::timestamp_t> timestamp_;
   DataTable *table_;
   TupleSlot slot_;
-  uint8_t flags; // unlinked|n/a|n/a|n/a|n/a|n/a|n/a|n/a
+  uint8_t flags;  // unlinked|n/a|n/a|n/a|n/a|n/a|n/a|n/a
 
   // This needs to be aligned to 8 bytes to ensure the real size of UndoRecord (plus actual ProjectedRow) is also
   // a multiple of 8.

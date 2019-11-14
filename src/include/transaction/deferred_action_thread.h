@@ -19,7 +19,7 @@ class DeferredActionThread {
    * @param deferred_actions_period sleep time between deferred actions process invocations
    */
   DeferredActionThread(transaction::DeferredActionManager *deferred_actions_manager,
-                  std::chrono::milliseconds deferred_actions_period)
+                       std::chrono::milliseconds deferred_actions_period)
       : deferred_actions_manager_(deferred_actions_manager),
         run_deferred_events_(true),
         deferred_events_paused_(false),
