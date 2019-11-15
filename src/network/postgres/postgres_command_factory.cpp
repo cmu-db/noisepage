@@ -2,7 +2,8 @@
 #include <memory>
 namespace terrier::network {
 
-std::shared_ptr<PostgresNetworkCommand> PostgresCommandFactory::PacketToCommand(InputPacket *packet) {
+std::unique_ptr<PostgresNetworkCommand> PostgresCommandFactory::PacketToCommand(
+    const common::ManagedPointer<InputPacket> packet) {
   switch (packet->msg_type_) {
     case NetworkMessageType::PG_SIMPLE_QUERY_COMMAND:
       return MAKE_POSTGRES_COMMAND(SimpleQueryCommand);

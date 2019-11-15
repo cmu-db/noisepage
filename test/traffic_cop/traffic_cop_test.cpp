@@ -14,9 +14,9 @@
 #include "test_util/manual_packet_util.h"
 #include "test_util/test_harness.h"
 #include "traffic_cop/traffic_cop.h"
-#include <traffic_cop/traffic_cop_defs.h>"
-#include "transaction/transaction_manager.h"
+#include "traffic_cop/traffic_cop_defs.h"
 #include "transaction/deferred_action_manager.h"
+#include "transaction/transaction_manager.h"
 
 namespace terrier {
 class TrafficCopTests : public TerrierTest {
@@ -62,7 +62,6 @@ class TrafficCopTests : public TerrierTest {
     // Run the GC to flush it down to a clean system
     gc_->PerformGarbageCollection();
     gc_->PerformGarbageCollection();
-
 
     network::network_logger->set_level(spdlog::level::trace);
     test_logger->set_level(spdlog::level::debug);
@@ -187,8 +186,8 @@ class TrafficCopTests : public TerrierTest {
 // NOLINTNEXTLINE
 TEST_F(TrafficCopTests, RoundTripTest) {
   try {
-    pqxx::connection connection(
-        fmt::format("host=127.0.0.1 port={0} user={1} sslmode=disable application_name=psql", port_, catalog::DEFAULT_DATABASE));
+    pqxx::connection connection(fmt::format("host=127.0.0.1 port={0} user={1} sslmode=disable application_name=psql",
+                                            port_, catalog::DEFAULT_DATABASE));
 
     pqxx::work txn1(connection);
     txn1.exec("DROP TABLE IF EXISTS TableA");
@@ -381,8 +380,8 @@ TEST_F(TrafficCopTests, ManualExtendedQueryTest) {
 // NOLINTNEXTLINE
 TEST_F(TrafficCopTests, TemporaryNamespaceTest) {
   try {
-    pqxx::connection connection(
-        fmt::format("host=127.0.0.1 port={0} user={1} sslmode=disable application_name=psql", port_, catalog::DEFAULT_DATABASE));
+    pqxx::connection connection(fmt::format("host=127.0.0.1 port={0} user={1} sslmode=disable application_name=psql",
+                                            port_, catalog::DEFAULT_DATABASE));
 
     pqxx::work txn1(connection);
 

@@ -204,6 +204,10 @@ class GenericKey {
   const IndexMetadata *metadata_ = nullptr;
 };
 
+extern template class GenericKey<64>;
+extern template class GenericKey<128>;
+extern template class GenericKey<256>;
+
 }  // namespace terrier::storage::index
 
 namespace std {

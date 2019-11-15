@@ -3,7 +3,7 @@
 #include "network/itp/itp_network_commands.h"
 
 #define MAKE_ITP_COMMAND(type) \
-  std::unique_ptr<ITPNetworkCommand>(static_cast<ITPNetworkCommand *>(std::make_unique<type>(packet).release()))
+  std::unique_ptr<ITPNetworkCommand>(reinterpret_cast<ITPNetworkCommand *>(new type(packet)))
 
 namespace terrier::network {
 
@@ -18,7 +18,7 @@ class ITPCommandFactory {
    * @param packet the Postgres input packet
    * @return a unique_ptr to the converted command
    */
-  virtual std::unique_ptr<ITPNetworkCommand> PacketToCommand(InputPacket *packet);
+  virtual std::unique_ptr<ITPNetworkCommand> PacketToCommand(common::ManagedPointer<InputPacket> packet);
 
   virtual ~ITPCommandFactory() = default;
 };

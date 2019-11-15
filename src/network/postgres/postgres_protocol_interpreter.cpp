@@ -12,7 +12,8 @@
 #define PROTO_MAJOR_VERSION(x) ((x) >> 16)
 
 namespace terrier::network {
-Transition PostgresProtocolInterpreter::Process(std::shared_ptr<ReadBuffer> in, std::shared_ptr<WriteQueue> out,
+Transition PostgresProtocolInterpreter::Process(common::ManagedPointer<ReadBuffer> in,
+                                                common::ManagedPointer<WriteQueue> out,
                                                 common::ManagedPointer<trafficcop::TrafficCop> t_cop,
                                                 common::ManagedPointer<ConnectionContext> context,
                                                 NetworkCallback callback) {
@@ -28,7 +29,7 @@ Transition PostgresProtocolInterpreter::Process(std::shared_ptr<ReadBuffer> in, 
     curr_input_packet_.Clear();
     return ProcessStartup(in, out, context);
   }
-  std::shared_ptr<PostgresNetworkCommand> command = command_factory_->PacketToCommand(&curr_input_packet_);
+  auto command = command_factory_->PacketToCommand(common::ManagedPointer<InputPacket>(&curr_input_packet_));
   PostgresPacketWriter writer(out);
   if (command->FlushOnComplete()) out->ForceFlush();
   Transition ret = command->Exec(common::ManagedPointer<ProtocolInterpreter>(this),
@@ -37,8 +38,8 @@ Transition PostgresProtocolInterpreter::Process(std::shared_ptr<ReadBuffer> in, 
   return ret;
 }
 
-Transition PostgresProtocolInterpreter::ProcessStartup(const std::shared_ptr<ReadBuffer> &in,
-                                                       const std::shared_ptr<WriteQueue> &out,
+Transition PostgresProtocolInterpreter::ProcessStartup(const common::ManagedPointer<ReadBuffer> in,
+                                                       const common::ManagedPointer<WriteQueue> out,
                                                        common::ManagedPointer<ConnectionContext> context) {
   PostgresPacketWriter writer(out);
   auto proto_version = in->ReadValue<uint32_t>();
@@ -77,7 +78,7 @@ Transition PostgresProtocolInterpreter::ProcessStartup(const std::shared_ptr<Rea
 
 size_t PostgresProtocolInterpreter::GetPacketHeaderSize() { return startup_ ? sizeof(uint32_t) : 1 + sizeof(uint32_t); }
 
-void PostgresProtocolInterpreter::SetPacketMessageType(const std::shared_ptr<ReadBuffer> &in) {
+void PostgresProtocolInterpreter::SetPacketMessageType(const common::ManagedPointer<ReadBuffer> in) {
   if (!startup_) curr_input_packet_.msg_type_ = in->ReadValue<NetworkMessageType>();
 }
 

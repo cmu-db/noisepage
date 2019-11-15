@@ -90,6 +90,13 @@ class HashKey {
   byte key_data_[KeySize];
 };
 
+extern template class HashKey<8>;
+extern template class HashKey<16>;
+extern template class HashKey<32>;
+extern template class HashKey<64>;
+extern template class HashKey<128>;
+extern template class HashKey<256>;
+
 }  // namespace terrier::storage::index
 
 namespace std {

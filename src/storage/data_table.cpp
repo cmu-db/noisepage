@@ -1,8 +1,5 @@
 #include "storage/data_table.h"
-#include <pthread.h>
-#include <cstring>
 #include <list>
-#include <unordered_map>
 #include "common/allocator.h"
 #include "storage/block_access_controller.h"
 #include "storage/storage_util.h"
