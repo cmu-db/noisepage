@@ -146,7 +146,7 @@ uint32_t RecoveryManager::ProcessDeferredTransactions(terrier::transaction::time
     num_txns += 1;
 
     // Check if we need to export throughput metric
-    if (std::chrono::milliseconds(total_elapsed_us) >= recovery_metric_interval_) {
+    if (std::chrono::milliseconds(total_elapsed_us) >= recovery_metric_interval_ || std::next(it) == upper_bound_it) {
       // Export throughput metric
       if (num_txns > 0 && common::thread_context.metrics_store_ != DISABLED &&
           common::thread_context.metrics_store_->ComponentEnabled(metrics::MetricsComponent::RECOVERY)) {

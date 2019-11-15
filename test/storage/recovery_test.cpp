@@ -4,7 +4,8 @@
 #include "catalog/catalog.h"
 #include "catalog/postgres/pg_namespace.h"
 #include "gtest/gtest.h"
-#include "main/db_main.h"
+#include "metrics/metrics_manager.h"
+#include "metrics/recovery_metric.h"
 #include "storage/garbage_collector_thread.h"
 #include "storage/index/index_builder.h"
 #include "storage/recovery/disk_log_provider.h"
@@ -252,6 +253,67 @@ class RecoveryTests : public TerrierTest {
     }
     delete tested;
   }
+
+  void RunTestWithMetrics(const LargeSqlTableTestConfiguration &config) {
+    // Run workload
+    auto *tested = new LargeSqlTableTestObject(config, txn_manager_, catalog_, &block_store_, &generator_);
+    tested->SimulateOltp(100, 4);
+
+    ShutdownAndRestartSystem();
+
+    // Instantiate recovery manager, and recover the tables.
+    DiskLogProvider log_provider(LOG_FILE_NAME);
+    RecoveryManager recovery_manager(&log_provider, common::ManagedPointer(recovery_catalog_), recovery_txn_manager_,
+                                     recovery_deferred_action_manager_, common::ManagedPointer(thread_registry_),
+                                     &block_store_, recovery_metric_interval_, true);
+
+    recovery_manager.StartRecovery();
+    recovery_manager.WaitForRecoveryToFinish();
+
+    // Check we recovered all the original tables
+    for (auto &database : tested->GetTables()) {
+      auto database_oid = database.first;
+      for (auto &table_oid : database.second) {
+        // Get original sql table
+        auto original_txn = txn_manager_->BeginTransaction();
+        auto original_sql_table =
+            catalog_->GetDatabaseCatalog(original_txn, database_oid)->GetTable(original_txn, table_oid);
+
+        // Get Recovered table
+        auto *recovery_txn = recovery_txn_manager_->BeginTransaction();
+        auto db_catalog = recovery_catalog_->GetDatabaseCatalog(recovery_txn, database_oid);
+        EXPECT_TRUE(db_catalog != nullptr);
+        auto recovered_sql_table = db_catalog->GetTable(recovery_txn, table_oid);
+        EXPECT_TRUE(recovered_sql_table != nullptr);
+
+        EXPECT_TRUE(StorageTestUtil::SqlTableEqualDeep(
+            original_sql_table->table_.layout_, original_sql_table, recovered_sql_table,
+            tested->GetTupleSlotsForTable(database_oid, table_oid), recovery_manager.tuple_slot_map_, txn_manager_,
+            recovery_txn_manager_));
+        txn_manager_->Commit(original_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+        recovery_txn_manager_->Commit(recovery_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+      }
+    }
+
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+
+    const auto aggregated_data = reinterpret_cast<metrics::RecoveryMetricRawData *>(
+        recovery_manager.metrics_manager_->AggregatedMetrics()
+            .at(static_cast<uint8_t>(metrics::MetricsComponent::RECOVERY))
+            .get());
+    EXPECT_NE(aggregated_data, nullptr);
+
+    // Calculate total number of txns
+    uint64_t total_num_txns = 0;
+    uint64_t total_num_bytes = 0;
+    for (auto &data : aggregated_data->recovery_data_) {
+      total_num_txns += data.num_txns_;
+      total_num_bytes += data.num_bytes_;
+    }
+    EXPECT_EQ(total_num_txns, 101);
+    EXPECT_EQ(total_num_bytes, 91176);
+    delete tested;
+  }
 };
 
 // This test inserts some tuples into a single table. It then recreates the test table from
@@ -268,6 +330,22 @@ TEST_F(RecoveryTests, SingleTableTest) {
                                               .SetVarlenAllowed(true)
                                               .Build();
   RecoveryTests::RunTest(config);
+}
+
+// This test inserts some tuples into a single table. It then recreates the test table from
+// the log, and verifies that this new table is the same as the original table
+// NOLINTNEXTLINE
+TEST_F(RecoveryTests, MetricTest) {
+  LargeSqlTableTestConfiguration config = LargeSqlTableTestConfiguration::Builder()
+                                              .SetNumDatabases(1)
+                                              .SetNumTables(1)
+                                              .SetMaxColumns(5)
+                                              .SetInitialTableSize(1000)
+                                              .SetTxnLength(5)
+                                              .SetInsertUpdateSelectDeleteRatio({1.0, 0.0, 0.0, 0.0})
+                                              .SetVarlenAllowed(true)
+                                              .Build();
+  RecoveryTests::RunTestWithMetrics(config);
 }
 
 // This test checks that we recover correctly in a high abort rate workload. We achieve the high abort rate by having

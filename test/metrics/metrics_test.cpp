@@ -185,13 +185,4 @@ TEST_F(MetricsTests, TransactionCSVTest) {
   metrics_manager_->UnregisterThread();
 }
 
-TEST_F(MetricsTests, RecoveryCSVTest) {
-  for (const auto &file : metrics::RecoveryMetricRawData::FILES) unlink(std::string(file).c_str());
-  const settings::setter_callback_fn setter_callback = MetricsTests::EmptySetterCallback;
-  std::shared_ptr<common::ActionContext> action_context =
-      std::make_shared<common::ActionContext>(common::action_id_t(1));
-  settings_manager_->SetBool(settings::Param::metrics_transaction, true, action_context, setter_callback);
-
-  metrics_manager_->RegisterThread();
-}
 }  // namespace terrier::metrics

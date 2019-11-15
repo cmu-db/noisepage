@@ -43,7 +43,17 @@ class RecoveryManager : public common::DedicatedThreadOwner {
     /**
      * Runs the recovery task. Our task only calls Recover on the log manager.
      */
-    void RunTask() override { recovery_manager_->Recover(); }
+    void RunTask() override {
+      if (recovery_manager_->enable_metric_) {
+        // Enable metrics
+        recovery_manager_->metrics_manager_->RegisterThread();
+        recovery_manager_->metrics_manager_->EnableMetric(metrics::MetricsComponent::RECOVERY);
+      }
+      recovery_manager_->Recover();
+      if (recovery_manager_->enable_metric_) {
+        recovery_manager_->metrics_manager_->Aggregate();
+      }
+    }
 
     /**
      * Terminate does nothing, the task will terminate when RunTask() returns. In the future if we need to support
@@ -69,7 +79,8 @@ class RecoveryManager : public common::DedicatedThreadOwner {
                            transaction::TransactionManager *txn_manager,
                            transaction::DeferredActionManager *deferred_action_manager,
                            common::ManagedPointer<terrier::common::DedicatedThreadRegistry> thread_registry,
-                           BlockStore *store, const std::chrono::milliseconds recovery_metric_interval)
+                           BlockStore *store, const std::chrono::milliseconds recovery_metric_interval,
+                           bool enable_metric = false)
       : DedicatedThreadOwner(thread_registry),
         log_provider_(log_provider),
         catalog_(catalog),
@@ -87,6 +98,12 @@ class RecoveryManager : public common::DedicatedThreadOwner {
         catalog::postgres::Builder::GetConstraintTableSchema();
     catalog_table_schemas_[catalog::postgres::INDEX_TABLE_OID] = catalog::postgres::Builder::GetIndexTableSchema();
     catalog_table_schemas_[catalog::postgres::TYPE_TABLE_OID] = catalog::postgres::Builder::GetTypeTableSchema();
+
+    enable_metric_ = enable_metric;
+    if (enable_metric_) {
+      // Enable metrics
+      metrics_manager_ = common::ManagedPointer(new metrics::MetricsManager);
+    }
   }
 
   /**
@@ -112,6 +129,10 @@ class RecoveryManager : public common::DedicatedThreadOwner {
   FRIEND_TEST(RecoveryTests, DoubleRecoveryTest);
   friend class RecoveryTests;
   friend class terrier::RecoveryBenchmark;
+
+  // Metric manager
+  bool enable_metric_;
+  common::ManagedPointer<metrics::MetricsManager> metrics_manager_;
 
   // Log provider for reading in logs
   AbstractLogProvider *log_provider_;

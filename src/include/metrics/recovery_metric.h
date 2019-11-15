@@ -12,6 +12,10 @@
 #include "metrics/metrics_util.h"
 #include "transaction/transaction_defs.h"
 
+namespace terrier::storage {
+class RecoveryTests;
+}  // namespace terrier::storage
+
 namespace terrier::metrics {
 
 /**
@@ -60,7 +64,7 @@ class RecoveryMetricRawData : public AbstractRawData {
 
  private:
   friend class RecoveryMetric;
-  FRIEND_TEST(MetricsTests, RecoveryCSVTest);
+  friend class storage::RecoveryTests;
 
   void RecordRecoveryData(const uint64_t num_txns, const uint64_t num_bytes, const uint64_t elapsed_us) {
     recovery_data_.emplace_front(num_txns, num_bytes, elapsed_us);
