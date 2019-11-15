@@ -55,7 +55,7 @@ class Callbacks {
    * @param action_context pointer to the action context for this settings change
    */
   static void BlockStoreSizeLimit(void *old_value, void *new_value, DBMain *db_main,
-                                  const std::shared_ptr<common::ActionContext> &action_context);
+                                  common::ManagedPointer<common::ActionContext> action_context);
 
   /**
    * Changes the block store reuse limit.
@@ -65,7 +65,7 @@ class Callbacks {
    * @param action_context pointer to the action context for this settings change
    */
   static void BlockStoreReuseLimit(void *old_value, void *new_value, DBMain *db_main,
-                                   const std::shared_ptr<common::ActionContext> &action_context);
+                                   common::ManagedPointer<common::ActionContext> action_context);
 
   /**
    * Changes the number of worker pool threads.
