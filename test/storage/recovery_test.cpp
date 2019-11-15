@@ -869,5 +869,4 @@ TEST_F(RecoveryTests, DoubleRecoveryTest) {
   StorageTestUtil::FullyPerformGC(&secondary_recovery_gc, DISABLED);
   unlink(secondary_log_file.c_str());
 }
-
 }  // namespace terrier::storage

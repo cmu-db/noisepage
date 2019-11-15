@@ -184,5 +184,4 @@ TEST_F(MetricsTests, TransactionCSVTest) {
 
   metrics_manager_->UnregisterThread();
 }
-
 }  // namespace terrier::metrics
