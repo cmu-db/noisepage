@@ -4,7 +4,6 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
-#include <traffic_cop/traffic_cop_defs.h>
 
 #include "common/settings.h"
 #include "gtest/gtest.h"
@@ -15,6 +14,7 @@
 #include "test_util/manual_packet_util.h"
 #include "test_util/test_harness.h"
 #include "traffic_cop/traffic_cop.h"
+#include <traffic_cop/traffic_cop_defs.h>"
 #include "transaction/transaction_manager.h"
 #include "transaction/deferred_action_manager.h"
 
