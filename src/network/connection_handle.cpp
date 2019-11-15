@@ -169,7 +169,7 @@ Transition ConnectionHandle::GetResult() {
 Transition ConnectionHandle::TryCloseConnection() {
   NETWORK_LOG_TRACE("Attempt to close the connection {0}", io_wrapper_->GetSocketFd());
   TERRIER_ASSERT(traffic_cop_->DropTempNamespace(context_.temp_namespace_oid_, context_.db_oid_),
-      "Per seesion temporary namespace has been deleted unintentionally!");
+                 "Per seesion temporary namespace has been deleted unintentionally!");
   Transition close = io_wrapper_->Close();
   if (close != Transition::PROCEED) return close;
   // Remove listening event
