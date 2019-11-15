@@ -108,6 +108,40 @@ void SettingsManager::SetInt(Param param, int32_t value, common::ManagedPointer<
   setter_callback(action_context);
 }
 
+void SettingsManager::SetInt64(Param param, int64_t value, common::ManagedPointer<ActionContext> action_context,
+                             setter_callback_fn setter_callback) {
+  // The ActionContext state must be set to INITIATED to prevent
+  // somebody from reusing it for multiple invocations
+  if (action_context->GetState() != ActionState::INITIATED) {
+    SETTINGS_LOG_ERROR("ActionContext state is not set to INITIATED");
+    throw SETTINGS_EXCEPTION("Invalid ActionContext state");
+  }
+
+  const auto &param_info = db_->param_map_.find(param)->second;
+  auto min_value = static_cast<const int64_t>(param_info.min_value_);
+  auto max_value = static_cast<const int64_t>(param_info.max_value_);
+
+  common::SharedLatch::ScopedExclusiveLatch guard(&latch_);
+  if (!(value >= min_value && value <= max_value)) {
+    action_context->SetState(ActionState::FAILURE);
+  } else {
+    int old_value = ValuePeeker::PeekBigInt(GetValue(param));
+    if (!SetValue(param, ValueFactory::GetBigInt(value))) {
+      action_context->SetState(ActionState::FAILURE);
+    } else {
+      ActionState action_state = InvokeCallback(param, &old_value, &value, action_context);
+      if (action_state == ActionState::FAILURE) {
+        bool result = SetValue(param, ValueFactory::GetBigInt(old_value));
+        if (!result) {
+          SETTINGS_LOG_ERROR("Failed to revert parameter \"{}\"", param_info.name_);
+          throw SETTINGS_EXCEPTION("Failed to reset parameter");
+        }
+      }
+    }
+  }
+  setter_callback(action_context);
+}
+
 void SettingsManager::SetDouble(Param param, double value, common::ManagedPointer<ActionContext> action_context,
                                 setter_callback_fn setter_callback) {
   // The ActionContext state must be set to INITIATED to prevent

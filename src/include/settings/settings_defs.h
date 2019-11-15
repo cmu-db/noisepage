@@ -87,7 +87,7 @@ SETTING_string(
 )
 
 // Number of buffers log manager can use to buffer logs
-SETTING_int(
+SETTING_int64(
     num_log_manager_buffers,
     "The number of buffers the log manager uses to buffer logs to hand off to log consumer(s) (default: 4)",
     100,
@@ -120,7 +120,7 @@ SETTING_int(
 )
 
 // Log file persisting threshold
-SETTING_int(
+SETTING_int64(
     log_persist_threshold,
     "Log file persisting write threshold (bytes) (default: 1MB)",
     (1 << 20) /* 1MB */,

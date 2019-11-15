@@ -39,7 +39,7 @@ class TrafficCopTests : public TerrierTest {
   std::unique_ptr<network::ConnectionHandleFactory> handle_factory_;
   common::DedicatedThreadRegistry thread_registry_ = common::DedicatedThreadRegistry(DISABLED);
 
-  catalog::db_oid_t db_;
+  bool manual_test_ = false;
 
   void SetUp() override {
     TerrierTest::SetUp();
@@ -55,8 +55,7 @@ class TrafficCopTests : public TerrierTest {
     tcop_ = new trafficcop::TrafficCop(common::ManagedPointer(txn_manager_), common::ManagedPointer(catalog_));
 
     auto txn = txn_manager_->BeginTransaction();
-    db_ = catalog_->CreateDatabase(txn, catalog::DEFAULT_DATABASE, true);
-
+    catalog_->CreateDatabase(txn, catalog::DEFAULT_DATABASE, true);
     txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
     // Run the GC to flush it down to a clean system

@@ -79,6 +79,16 @@ class SettingsManager {
               setter_callback_fn setter_callback);
 
   /**
+   * Set the value of an int64_t setting
+   * @param param setting name
+   * @param value the new value
+   * @param action_context action context for setting an integer param
+   * @param setter_callback callback from caller
+   */
+  void SetInt64(Param param, int64_t value, common::ManagedPointer<common::ActionContext> action_context,
+              setter_callback_fn setter_callback);
+
+  /**
    * Set the value of a double setting
    * @param param setting name
    * @param value the new value

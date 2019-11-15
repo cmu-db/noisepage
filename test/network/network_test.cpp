@@ -14,10 +14,13 @@
 #include "loggers/main_logger.h"
 #include "network/connection_handle_factory.h"
 #include "network/terrier_server.h"
+#include "storage/garbage_collector.h"
 #include "test_util/manual_packet_util.h"
 #include "test_util/test_harness.h"
 #include "traffic_cop/result_set.h"
 #include "traffic_cop/traffic_cop.h"
+#include "transaction/deferred_action_manager.h"
+#include "transaction/transaction_manager.h"
 
 namespace terrier::network {
 
@@ -34,11 +37,19 @@ class FakeCommandFactory : public PostgresCommandFactory {
 
 class NetworkTests : public TerrierTest {
  protected:
+  trafficcop::TrafficCop *tcop_;
+  catalog::Catalog *catalog_;
+  storage::RecordBufferSegmentPool buffer_pool_{100, 100};
+  storage::BlockStore block_store_{100, 100};
+  transaction::TimestampManager *timestamp_manager_;
+  transaction::DeferredActionManager *deferred_action_manager_;
+  transaction::TransactionManager *txn_manager_;
+
+  storage::GarbageCollector *gc_;
   std::unique_ptr<TerrierServer> server_;
   std::unique_ptr<ConnectionHandleFactory> handle_factory_;
   common::DedicatedThreadRegistry thread_registry_ = common::DedicatedThreadRegistry(DISABLED);
   uint16_t port_ = common::Settings::SERVER_PORT;
-  trafficcop::TrafficCop tcop_;
   FakeCommandFactory fake_command_factory_;
   PostgresProtocolInterpreter::Provider protocol_provider_{
       common::ManagedPointer<PostgresCommandFactory>(&fake_command_factory_)};
@@ -46,11 +57,25 @@ class NetworkTests : public TerrierTest {
   void SetUp() override {
     TerrierTest::SetUp();
 
+    timestamp_manager_ = new transaction::TimestampManager;
+    deferred_action_manager_ = new transaction::DeferredActionManager(timestamp_manager_);
+    txn_manager_ = new transaction::TransactionManager(timestamp_manager_, deferred_action_manager_, &buffer_pool_,
+                                                       true, DISABLED);
+    gc_ = new storage::GarbageCollector(timestamp_manager_, deferred_action_manager_, txn_manager_, nullptr);
+
+    catalog_ = new catalog::Catalog(txn_manager_, &block_store_);
+
+    tcop_ = new trafficcop::TrafficCop(common::ManagedPointer(txn_manager_), common::ManagedPointer(catalog_));
+
+    auto txn = txn_manager_->BeginTransaction();
+    catalog_->CreateDatabase(txn, catalog::DEFAULT_DATABASE, true);
+    txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+
     network_logger->set_level(spdlog::level::trace);
     spdlog::flush_every(std::chrono::seconds(1));
 
     try {
-      handle_factory_ = std::make_unique<ConnectionHandleFactory>(common::ManagedPointer(&tcop_));
+      handle_factory_ = std::make_unique<ConnectionHandleFactory>(common::ManagedPointer(tcop_));
       server_ = std::make_unique<TerrierServer>(
           common::ManagedPointer<ProtocolInterpreter::Provider>(&protocol_provider_),
           common::ManagedPointer(handle_factory_.get()), common::ManagedPointer(&thread_registry_));
@@ -120,7 +145,8 @@ class NetworkTests : public TerrierTest {
 TEST_F(NetworkTests, SimpleQueryTest) {
   try {
     pqxx::connection c(
-        fmt::format("host=127.0.0.1 port={0} user=postgres sslmode=disable application_name=psql", port_));
+        fmt::format("host=127.0.0.1 port={0} user={1} sslmode=disable application_name=psql",
+                    port_, catalog::DEFAULT_DATABASE));
 
     pqxx::work txn1(c);
     txn1.exec("INSERT INTO employee VALUES (1, 'Han LI');");
@@ -170,7 +196,9 @@ TEST_F(NetworkTests, BadQueryTest) {
 // NOLINTNEXTLINE
 TEST_F(NetworkTests, NoSSLTest) {
   try {
-    pqxx::connection c(fmt::format("host=127.0.0.1 port={0} user=postgres application_name=psql", port_));
+    pqxx::connection c(
+        fmt::format("host=127.0.0.1 port={0} user={1} sslmode=disable application_name=psql",
+                    port_, catalog::DEFAULT_DATABASE));
 
     pqxx::work txn1(c);
     txn1.exec("INSERT INTO employee VALUES (1, 'Han LI');");
@@ -196,7 +224,8 @@ TEST_F(NetworkTests, PgNetworkCommandsTest) {
 TEST_F(NetworkTests, LargePacketsTest) {
   try {
     pqxx::connection c(
-        fmt::format("host=127.0.0.1 port={0} user=postgres sslmode=disable application_name=psql", port_));
+        fmt::format("host=127.0.0.1 port={0} user={1} sslmode=disable application_name=psql",
+                    port_, catalog::DEFAULT_DATABASE));
 
     pqxx::work txn1(c);
     std::string long_query_packet_string(255555, 'a');
