@@ -2,7 +2,8 @@
 #include <memory>
 namespace terrier::network {
 
-std::unique_ptr<ITPNetworkCommand> ITPCommandFactory::PacketToCommand(InputPacket *packet) {
+std::unique_ptr<ITPNetworkCommand> ITPCommandFactory::PacketToCommand(
+    const common::ManagedPointer<InputPacket> packet) {
   switch (packet->msg_type_) {
     case NetworkMessageType::ITP_REPLICATION_COMMAND:
       return MAKE_ITP_COMMAND(ReplicationCommand);
