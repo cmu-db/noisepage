@@ -33,6 +33,7 @@ class RecoveryBenchmark : public benchmark::Fixture {
   const std::chrono::microseconds log_serialization_interval_{5};
   const std::chrono::milliseconds log_persist_interval_{10};
   const uint64_t log_persist_threshold_ = (1u << 20u);  // 1MB
+  const std::chrono::milliseconds recovery_metric_interval_{1000};
 
   /**
    * Runs the recovery benchmark with the provided config
@@ -80,7 +81,8 @@ class RecoveryBenchmark : public benchmark::Fixture {
       storage::DiskLogProvider log_provider(LOG_FILE_NAME);
       storage::RecoveryManager recovery_manager(&log_provider, common::ManagedPointer(&recovered_catalog),
                                                 &recovery_txn_manager, &recovery_deferred_action_manager,
-                                                common::ManagedPointer(thread_registry_), &block_store_);
+                                                common::ManagedPointer(thread_registry_), &block_store_,
+                                                recovery_metric_interval_, false);
 
       uint64_t elapsed_ms;
       {
@@ -237,7 +239,8 @@ BENCHMARK_DEFINE_F(RecoveryBenchmark, IndexRecovery)(benchmark::State &state) {
     storage::DiskLogProvider log_provider(LOG_FILE_NAME);
     storage::RecoveryManager recovery_manager(&log_provider, common::ManagedPointer(&recovered_catalog),
                                               &recovery_txn_manager, &recovery_deferred_action_manager,
-                                              common::ManagedPointer(thread_registry_), &block_store_);
+                                              common::ManagedPointer(thread_registry_), &block_store_,
+                                              recovery_metric_interval_, false);
 
     uint64_t elapsed_ms;
     {
