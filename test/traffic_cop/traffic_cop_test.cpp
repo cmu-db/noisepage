@@ -87,6 +87,11 @@ class TrafficCopTests : public TerrierTest {
     server_->StopServer();
     TEST_LOG_DEBUG("Terrier has shut down");
 
+    auto txn = txn_manager_->BeginTransaction();
+    auto db_accessor = catalog_->GetAccessor(txn, catalog_->GetDatabaseOid(txn, catalog::DEFAULT_DATABASE));
+    EXPECT_FALSE(db_accessor->DropNamespace(catalog::namespace_oid_t{catalog::START_OID}));
+    txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+
     catalog_->TearDown();
     // Run the GC to clean up transactions
     gc_->PerformGarbageCollection();
@@ -370,14 +375,41 @@ TEST_F(TrafficCopTests, ManualExtendedQueryTest) {
   }
 }
 
+/**
+ * Test whether a temporary namespace is created for a connection to the database
+ */
+// NOLINTNEXTLINE
+TEST_F(TrafficCopTests, TemporaryNamespaceTest) {
+  try {
+    pqxx::connection connection(
+        fmt::format("host=127.0.0.1 port={0} user={1} sslmode=disable application_name=psql", port_, catalog::DEFAULT_DATABASE));
+
+    pqxx::work txn1(connection);
+
+    auto txn = txn_manager_->BeginTransaction();
+    auto db_accessor = catalog_->GetAccessor(txn, catalog_->GetDatabaseOid(txn, catalog::DEFAULT_DATABASE));
+
+    // Create a new namespace and make sure that its OID is highes than the default start OID,
+    // which should have been assigned to the temporary namespace for this connection
+    auto new_namespace_oid = db_accessor->CreateNamespace(std::string(trafficcop::TEMP_NAMESPACE_PREFIX));
+    EXPECT_GT(static_cast<uint32_t>(new_namespace_oid), catalog::START_OID);
+    txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+
+    txn1.commit();
+  } catch (const std::exception &e) {
+    TEST_LOG_ERROR("Exception occurred: {0}", e.what());
+    EXPECT_TRUE(false);
+  }
+}
+
 // -------------------------------------------------------------------------
 
-/*
+/**
  * The manual tests below are for debugging. They can be disabled when testing other components.
  * You can launch a Postgres backend and compare packets from terrier and from Postgres
  * to find if you have created correct packets.
  *
- * */
+ */
 
 // NOLINTNEXTLINE
 TEST_F(TrafficCopTests, ManualRoundTripTest) {
@@ -398,25 +430,6 @@ TEST_F(TrafficCopTests, ManualRoundTripTest) {
     writer.WriteSimpleQuery("SELECT * FROM TableA");
     io_socket->FlushAllWrites();
     ReadUntilReadyOrClose(io_socket);
-  } catch (const std::exception &e) {
-    TEST_LOG_ERROR("Exception occurred: {0}", e.what());
-    EXPECT_TRUE(false);
-  }
-}
-
-// NOLINTNEXTLINE
-TEST_F(TrafficCopTests, TemporaryNamespaceTest) {
-  try {
-    auto io_socket = StartConnection(port_);
-    network::PostgresPacketWriter writer(io_socket->GetWriteQueue());
-
-    auto txn = txn_manager_->BeginTransaction();
-    auto db_accessor = catalog_->GetAccessor(txn, catalog_->GetDatabaseOid(txn, catalog::DEFAULT_DATABASE));
-    auto new_namespace_oid = db_accessor->CreateNamespace(std::string(trafficcop::TEMP_NAMESPACE_PREFIX));
-    EXPECT_GT(static_cast<uint32_t>(new_namespace_oid), catalog::START_OID);
-    txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
-
-    io_socket->Close();
   } catch (const std::exception &e) {
     TEST_LOG_ERROR("Exception occurred: {0}", e.what());
     EXPECT_TRUE(false);

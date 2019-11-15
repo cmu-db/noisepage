@@ -26,10 +26,11 @@ std::pair<catalog::db_oid_t, catalog::namespace_oid_t> TrafficCop::CreateTempNam
   return std::pair<catalog::db_oid_t, catalog::namespace_oid_t>{db_oid, ns_oid};
 }
 
-void TrafficCop::DropTempNamespace(catalog::namespace_oid_t ns_oid, catalog::db_oid_t db_oid) {
+bool TrafficCop::DropTempNamespace(catalog::namespace_oid_t ns_oid, catalog::db_oid_t db_oid) {
   auto txn = txn_manager_->BeginTransaction();
-  catalog_->GetAccessor(txn, db_oid)->DropNamespace(ns_oid);
+  auto result = catalog_->GetAccessor(txn, db_oid)->DropNamespace(ns_oid);
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+  return result;
 }
 
 }  // namespace terrier::trafficcop

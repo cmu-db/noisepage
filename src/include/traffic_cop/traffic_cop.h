@@ -50,6 +50,7 @@ class TrafficCop {
    * Create a temporary namespace for a connection
    * @param sockfd the socket file descriptor the connection communicates on
    * @param database_name the name of the database the connection is accessing
+   * @return a pair of OIDs for the database and the temporary namespace
    */
   std::pair<catalog::db_oid_t, catalog::namespace_oid_t> CreateTempNamespace(int sockfd,
                                                                              std::string database_name);
@@ -58,8 +59,9 @@ class TrafficCop {
    * Drop the temporary namespace for a connection and all enclosing database objects
    * @param ns_oid the OID of the temmporary namespace associated with the connection
    * @param db_oid the OID of the database the connection is accessing
+   * @return true if the temporary namespace has been deleted, false otherwise
    */
-  void DropTempNamespace(catalog::namespace_oid_t ns_oid, catalog::db_oid_t db_oid = catalog::INVALID_DATABASE_OID);
+  bool DropTempNamespace(catalog::namespace_oid_t ns_oid, catalog::db_oid_t db_oid = catalog::INVALID_DATABASE_OID);
 
  private:
   SqliteEngine sqlite_engine_;
