@@ -18,7 +18,7 @@ void GarbageCollector::CleanupTransaction(transaction::TransactionContext *txn) 
     delete txn;
   } else {
     timestamp_manager_->CheckOutTimestamp();
-    const transaction::timestamp_t oldest_txn = timestamp_manager_->OldestTransactionStartTime();
+    const transaction::timestamp_t oldest_txn = timestamp_manager_->CachedOldestTransactionStartTime();
     UnlinkTransaction(oldest_txn, txn);
     deferred_action_manager_->RegisterDeferredAction([=]() { delete txn; });
   }
