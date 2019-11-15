@@ -100,7 +100,11 @@ class ConnectionHandle {
    * @return The transition to trigger in the state machine after
    */
   Transition StartUp() {
-    auto oids = traffic_cop_->CreateTempNamespace(io_wrapper_->GetSocketFd());
+    std::string db_name = catalog::DEFAULT_DATABASE;
+    if (context_.cmdline_args_.find("database") != context_.cmdline_args_.end()) {
+      db_name = context_.cmdline_args_["database"];
+    }
+    auto oids = traffic_cop_->CreateTempNamespace(io_wrapper_->GetSocketFd(), db_name);
     context_.db_oid_ = oids.first;
     if (context_.db_oid_ == catalog::INVALID_DATABASE_OID) {
       return Transition::TERMINATE;

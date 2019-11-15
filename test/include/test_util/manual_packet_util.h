@@ -6,6 +6,7 @@
 #include <string>
 #include <unordered_map>
 
+#include "catalog/catalog_defs.h"
 #include "loggers/test_logger.h"
 #include "network/connection_handle_factory.h"
 #include "test_util/manual_packet_util.h"
@@ -67,7 +68,7 @@ class ManualPacketUtil {
     PostgresPacketWriter writer(io_socket->GetWriteQueue());
 
     std::unordered_map<std::string, std::string> params{
-        {"user", "postgres"}, {"database", "postgres"}, {"application_name", "psql"}};
+        {"user", catalog::DEFAULT_DATABASE}, {"database", catalog::DEFAULT_DATABASE}, {"application_name", "psql"}};
 
     writer.WriteStartupRequest(params);
     io_socket->FlushAllWrites();

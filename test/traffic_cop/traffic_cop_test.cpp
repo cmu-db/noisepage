@@ -4,6 +4,7 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
+#include <traffic_cop/traffic_cop_defs.h>
 
 #include "common/settings.h"
 #include "gtest/gtest.h"
@@ -54,8 +55,8 @@ class TrafficCopTests : public TerrierTest {
     tcop_ = new trafficcop::TrafficCop(common::ManagedPointer(txn_manager_), common::ManagedPointer(catalog_));
 
     auto txn = txn_manager_->BeginTransaction();
-    db_ = catalog_->CreateDatabase(txn, "terrier", true);
-    EXPECT_NE(db_, catalog::INVALID_DATABASE_OID);
+    db_ = catalog_->CreateDatabase(txn, catalog::DEFAULT_DATABASE, true);
+
     txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
     // Run the GC to flush it down to a clean system
@@ -153,7 +154,7 @@ class TrafficCopTests : public TerrierTest {
     network::PostgresPacketWriter writer(io_socket->GetWriteQueue());
 
     std::unordered_map<std::string, std::string> params{
-        {"user", "postgres"}, {"database", "postgres"}, {"application_name", "psql"}};
+        {"user", catalog::DEFAULT_DATABASE}, {"database", catalog::DEFAULT_DATABASE}, {"application_name", "psql"}};
 
     writer.WriteStartupRequest(params);
     io_socket->FlushAllWrites();
@@ -182,7 +183,7 @@ class TrafficCopTests : public TerrierTest {
 TEST_F(TrafficCopTests, RoundTripTest) {
   try {
     pqxx::connection connection(
-        fmt::format("host=127.0.0.1 port={0} user=postgres sslmode=disable application_name=psql", port_));
+        fmt::format("host=127.0.0.1 port={0} user={1} sslmode=disable application_name=psql", port_, catalog::DEFAULT_DATABASE));
 
     pqxx::work txn1(connection);
     txn1.exec("DROP TABLE IF EXISTS TableA");
@@ -397,6 +398,25 @@ TEST_F(TrafficCopTests, ManualRoundTripTest) {
     writer.WriteSimpleQuery("SELECT * FROM TableA");
     io_socket->FlushAllWrites();
     ReadUntilReadyOrClose(io_socket);
+  } catch (const std::exception &e) {
+    TEST_LOG_ERROR("Exception occurred: {0}", e.what());
+    EXPECT_TRUE(false);
+  }
+}
+
+// NOLINTNEXTLINE
+TEST_F(TrafficCopTests, TemporaryNamespaceTest) {
+  try {
+    auto io_socket = StartConnection(port_);
+    network::PostgresPacketWriter writer(io_socket->GetWriteQueue());
+
+    auto txn = txn_manager_->BeginTransaction();
+    auto db_accessor = catalog_->GetAccessor(txn, catalog_->GetDatabaseOid(txn, catalog::DEFAULT_DATABASE));
+    auto new_namespace_oid = db_accessor->CreateNamespace(std::string(trafficcop::TEMP_NAMESPACE_PREFIX));
+    EXPECT_GT(static_cast<uint32_t>(new_namespace_oid), catalog::START_OID);
+    txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+
+    io_socket->Close();
   } catch (const std::exception &e) {
     TEST_LOG_ERROR("Exception occurred: {0}", e.what());
     EXPECT_TRUE(false);

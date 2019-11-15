@@ -16,6 +16,10 @@ std::pair<catalog::db_oid_t, catalog::namespace_oid_t> TrafficCop::CreateTempNam
                                                                                        std::string database_name) {
   auto txn = txn_manager_->BeginTransaction();
   auto db_oid = catalog_->GetDatabaseOid(txn, database_name);
+  if (db_oid == catalog::INVALID_DATABASE_OID) {
+    return std::pair<catalog::db_oid_t, catalog::namespace_oid_t>{catalog::INVALID_DATABASE_OID, catalog::INVALID_NAMESPACE_OID};
+  }
+
   auto ns_oid =
       catalog_->GetAccessor(txn, db_oid)->CreateNamespace(std::string(TEMP_NAMESPACE_PREFIX) + std::to_string(sockfd));
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
