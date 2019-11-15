@@ -51,7 +51,8 @@ class TrafficCop {
    * @param sockfd the socket file descriptor the connection communicates on
    * @param database_name the name of the database the connection is accessing
    */
-  std::pair<catalog::db_oid_t, catalog::namespace_oid_t> CreateTempNamespace(int sockfd, std::string database_name = "");
+  std::pair<catalog::db_oid_t, catalog::namespace_oid_t> CreateTempNamespace(int sockfd,
+                                                                             std::string database_name = "");
 
   /**
    * Drop the temporary namespace for a connection and all enclosing database objects

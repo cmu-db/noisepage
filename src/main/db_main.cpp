@@ -47,13 +47,15 @@ DBMain::DBMain(std::unordered_map<settings::Param, settings::ParamInfo> &&param_
                                                    std::chrono::milliseconds{type::TransientValuePeeker::PeekInteger(
                                                        param_map_.find(settings::Param::gc_interval)->second.value_)});
 
-  thread_pool_ = new common::WorkerPool(
-      static_cast<uint32_t>(type::TransientValuePeeker::PeekInteger(param_map_.find(settings::Param::num_worker_threads)->second.value_)), {});
+  thread_pool_ = new common::WorkerPool(static_cast<uint32_t>(type::TransientValuePeeker::PeekInteger(
+                                            param_map_.find(settings::Param::num_worker_threads)->second.value_)),
+                                        {});
   thread_pool_->Startup();
 
-  block_store_ = new storage::BlockStore{
-      static_cast<uint64_t>(type::TransientValuePeeker::PeekBigInt(param_map_.find(settings::Param::block_store_size)->second.value_)),
-      static_cast<uint64_t>(type::TransientValuePeeker::PeekBigInt(param_map_.find(settings::Param::block_store_size)->second.value_))};
+  block_store_ = new storage::BlockStore{static_cast<uint64_t>(type::TransientValuePeeker::PeekBigInt(
+                                             param_map_.find(settings::Param::block_store_size)->second.value_)),
+                                         static_cast<uint64_t>(type::TransientValuePeeker::PeekBigInt(
+                                             param_map_.find(settings::Param::block_store_size)->second.value_))};
 
   catalog_ = new catalog::Catalog(txn_manager_, block_store_);
 

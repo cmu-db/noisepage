@@ -41,10 +41,10 @@ class SettingsManager {
   int32_t GetInt(Param param);
 
   /**
- * Get the value of an int64_t setting
- * @param param setting name
- * @return current setting value
- */
+   * Get the value of an int64_t setting
+   * @param param setting name
+   * @return current setting value
+   */
   int64_t GetInt64(Param param);
 
   /**

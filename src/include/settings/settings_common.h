@@ -195,9 +195,9 @@
                                    terrier::type::TransientValueFactory::GetInteger(default_value), is_mutable,        \
                                    min_value, max_value, &callback_fn));
 
-#define SETTING_int64(name, description, default_value, min_value, max_value, is_mutable, callback_fn)                   \
-  param_map.emplace(                                                                                                   \
-      terrier::settings::Param::name,                                                                                  \
+#define SETTING_int64(name, description, default_value, min_value, max_value, is_mutable, callback_fn)                \
+  param_map.emplace(                                                                                                  \
+      terrier::settings::Param::name,                                                                                 \
       terrier::settings::ParamInfo(#name, terrier::type::TransientValueFactory::GetBigInt(FLAGS_##name), description, \
                                    terrier::type::TransientValueFactory::GetBigInt(default_value), is_mutable,        \
                                    min_value, max_value, &callback_fn));
