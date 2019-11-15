@@ -10,32 +10,65 @@
 #include "loggers/main_logger.h"
 #include "network/connection_handle_factory.h"
 #include "network/terrier_server.h"
+#include "storage/garbage_collector.h"
 #include "test_util/manual_packet_util.h"
 #include "test_util/test_harness.h"
 #include "traffic_cop/traffic_cop.h"
+#include "transaction/transaction_manager.h"
+#include "transaction/deferred_action_manager.h"
 
-namespace terrier::trafficcop {
+namespace terrier {
 class TrafficCopTests : public TerrierTest {
  protected:
   std::unique_ptr<network::TerrierServer> server_;
   uint16_t port_ = common::Settings::SERVER_PORT;
   std::thread server_thread_;
 
-  TrafficCop tcop_;
+  trafficcop::TrafficCop *tcop_;
+  catalog::Catalog *catalog_;
+  storage::RecordBufferSegmentPool buffer_pool_{100, 100};
+  storage::BlockStore block_store_{100, 100};
+  transaction::TimestampManager *timestamp_manager_;
+  transaction::DeferredActionManager *deferred_action_manager_;
+  transaction::TransactionManager *txn_manager_;
+
+  storage::GarbageCollector *gc_;
   network::PostgresCommandFactory command_factory_;
   network::PostgresProtocolInterpreter::Provider interpreter_provider_{common::ManagedPointer(&command_factory_)};
   std::unique_ptr<network::ConnectionHandleFactory> handle_factory_;
   common::DedicatedThreadRegistry thread_registry_ = common::DedicatedThreadRegistry(DISABLED);
 
+  catalog::db_oid_t db_;
+
   void SetUp() override {
     TerrierTest::SetUp();
+
+    timestamp_manager_ = new transaction::TimestampManager;
+    deferred_action_manager_ = new transaction::DeferredActionManager(timestamp_manager_);
+    txn_manager_ = new transaction::TransactionManager(timestamp_manager_, deferred_action_manager_, &buffer_pool_,
+                                                       true, DISABLED);
+    gc_ = new storage::GarbageCollector(timestamp_manager_, deferred_action_manager_, txn_manager_, nullptr);
+
+    catalog_ = new catalog::Catalog(txn_manager_, &block_store_);
+
+    tcop_ = new trafficcop::TrafficCop(common::ManagedPointer(txn_manager_), common::ManagedPointer(catalog_));
+
+    auto txn = txn_manager_->BeginTransaction();
+    db_ = catalog_->CreateDatabase(txn, "terrier", true);
+    EXPECT_NE(db_, catalog::INVALID_DATABASE_OID);
+    txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+
+    // Run the GC to flush it down to a clean system
+    gc_->PerformGarbageCollection();
+    gc_->PerformGarbageCollection();
+
 
     network::network_logger->set_level(spdlog::level::trace);
     test_logger->set_level(spdlog::level::debug);
     spdlog::flush_every(std::chrono::seconds(1));
 
     try {
-      handle_factory_ = std::make_unique<network::ConnectionHandleFactory>(common::ManagedPointer(&tcop_));
+      handle_factory_ = std::make_unique<network::ConnectionHandleFactory>(common::ManagedPointer(tcop_));
       server_ = std::make_unique<network::TerrierServer>(
           common::ManagedPointer<network::ProtocolInterpreter::Provider>(&interpreter_provider_),
           common::ManagedPointer(handle_factory_.get()),
@@ -52,6 +85,19 @@ class TrafficCopTests : public TerrierTest {
   void TearDown() override {
     server_->StopServer();
     TEST_LOG_DEBUG("Terrier has shut down");
+
+    catalog_->TearDown();
+    // Run the GC to clean up transactions
+    gc_->PerformGarbageCollection();
+    gc_->PerformGarbageCollection();
+    gc_->PerformGarbageCollection();
+
+    delete tcop_;
+    delete catalog_;
+    delete gc_;
+    delete txn_manager_;
+    delete deferred_action_manager_;
+    delete timestamp_manager_;
     TerrierTest::TearDown();
   }
 
@@ -487,4 +533,4 @@ TEST_F(TrafficCopTests, DISABLED_ExtendedQueryTest) {
   }
 }
 
-}  // namespace terrier::trafficcop
+}  // namespace terrier
