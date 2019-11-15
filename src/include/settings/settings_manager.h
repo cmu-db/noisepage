@@ -14,7 +14,7 @@
 #include "type/transient_value_peeker.h"
 
 namespace terrier::settings {
-using setter_callback_fn = void (*)(const std::shared_ptr<common::ActionContext> &action_context);
+using setter_callback_fn = void (*)(common::ManagedPointer<common::ActionContext> action_context);
 
 /**
  * A wrapper for pg_settings table, does not store values in it.
@@ -68,7 +68,7 @@ class SettingsManager {
    * @param action_context action context for setting an integer param
    * @param setter_callback callback from caller
    */
-  void SetInt(Param param, int32_t value, const std::shared_ptr<common::ActionContext> &action_context,
+  void SetInt(Param param, int32_t value, common::ManagedPointer<common::ActionContext> action_context,
               setter_callback_fn setter_callback);
 
   /**
@@ -78,7 +78,7 @@ class SettingsManager {
    * @param action_context action context for setting a double param
    * @param setter_callback callback from caller
    */
-  void SetDouble(Param param, double value, const std::shared_ptr<common::ActionContext> &action_context,
+  void SetDouble(Param param, double value, common::ManagedPointer<common::ActionContext> action_context,
                  setter_callback_fn setter_callback);
 
   /**
@@ -88,7 +88,7 @@ class SettingsManager {
    * @param action_context action context for setting a boolean param
    * @param setter_callback callback from caller
    */
-  void SetBool(Param param, bool value, const std::shared_ptr<common::ActionContext> &action_context,
+  void SetBool(Param param, bool value, common::ManagedPointer<common::ActionContext> action_context,
                setter_callback_fn setter_callback);
 
   /**
@@ -99,7 +99,7 @@ class SettingsManager {
    * @param setter_callback callback from caller
    */
   void SetString(Param param, const std::string_view &value,
-                 const std::shared_ptr<common::ActionContext> &action_context, setter_callback_fn setter_callback);
+                 common::ManagedPointer<common::ActionContext> action_context, setter_callback_fn setter_callback);
 
   /**
    * Validate values from DBMain map
@@ -124,7 +124,7 @@ class SettingsManager {
   bool ValidateValue(const type::TransientValue &value, const type::TransientValue &min_value,
                      const type::TransientValue &max_value);
   common::ActionState InvokeCallback(Param param, void *old_value, void *new_value,
-                                     const std::shared_ptr<common::ActionContext> &action_context);
+                                     common::ManagedPointer<common::ActionContext> action_context);
 };
 
 }  // namespace terrier::settings

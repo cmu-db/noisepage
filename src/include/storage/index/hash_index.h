@@ -17,6 +17,11 @@
 
 namespace terrier::storage::index {
 
+template <uint16_t KeySize>
+class HashKey;
+template <uint16_t KeySize>
+class GenericKey;
+
 // TODO(Matt): unclear at the moment if we would want this to be tunable via the SettingsManager. Alternatively, it
 // might be something that is a per-index hint based on the table size (cardinality?), rather than a global setting
 constexpr uint16_t INITIAL_CUCKOOHASH_MAP_SIZE = 256;
@@ -263,5 +268,16 @@ class HashIndex final : public Index {
 
 #undef ERASE_KEY_ACTION
 };
+
+extern template class HashIndex<HashKey<8>>;
+extern template class HashIndex<HashKey<16>>;
+extern template class HashIndex<HashKey<32>>;
+extern template class HashIndex<HashKey<64>>;
+extern template class HashIndex<HashKey<128>>;
+extern template class HashIndex<HashKey<256>>;
+
+extern template class HashIndex<GenericKey<64>>;
+extern template class HashIndex<GenericKey<128>>;
+extern template class HashIndex<GenericKey<256>>;
 
 }  // namespace terrier::storage::index

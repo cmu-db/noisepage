@@ -4,10 +4,10 @@
 
 namespace terrier::binder {
 
-std::shared_ptr<spdlog::logger> binder_logger;
+std::shared_ptr<spdlog::logger> binder_logger;  // NOLINT
 
 void InitBinderLogger() {
-  binder_logger = std::make_shared<spdlog::logger>("binder_logger", ::default_sink);
+  binder_logger = std::make_shared<spdlog::logger>("binder_logger", ::default_sink);  // NOLINT
   spdlog::register_logger(binder_logger);
   binder_logger->set_level(spdlog::level::trace);
 }
