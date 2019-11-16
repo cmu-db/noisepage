@@ -25,7 +25,7 @@ set(CMAKE_CXX_TARGET_INCLUDE_PATH
   "gflags_ep-prefix/src/gflags_ep/include"
   "gbenchmark_ep/src/gbenchmark_ep-install/include"
   "/usr/local/include"
-  "/usr/local/Cellar/llvm@8/8.0.1_1/include"
+  "/usr/local/Cellar/llvm@8/8.0.1/include"
   )
 
 # Targets to which this target links.

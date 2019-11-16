@@ -29,14 +29,14 @@ Added static library dependency benchmark: /Users/dpatra/Research/terrier/cmake-
 -- Found libevent (include: /usr/local/include, library: /usr/local/lib/libevent.dylib)
 -- Found LLVM 8.0.1
 -- CXX_ONLY_FLAGS: -std=c++17 -fPIC -mcx16 -march=native -fvisibility=hidden
--- CXX_COMMON_FLAGS: -Wall -Werror -Wno-c++98-compat -Wno-c++98-compat-pedantic -Wno-braced-scalar-init
+-- CXX_COMMON_FLAGS: -Wall -Werror -Wno-c++98-compat -Wno-c++98-compat-pedantic
 -- CXX_OPTIMIZATION_FLAGS: -ggdb -O2 -DNDEBUG
--- CMAKE_CXX_FLAGS: -std=c++17 -fPIC -mcx16 -march=native -fvisibility=hidden -ggdb -O2 -DNDEBUG -Wall -Werror -Wno-c++98-compat -Wno-c++98-compat-pedantic -Wno-braced-scalar-init
--- CMAKE_C_FLAGS: -ggdb -O2 -DNDEBUG -Wall -Werror -Wno-c++98-compat -Wno-c++98-compat-pedantic -Wno-braced-scalar-init
+-- CMAKE_CXX_FLAGS: -std=c++17 -fPIC -mcx16 -march=native -fvisibility=hidden -ggdb -O2 -DNDEBUG -Wall -Werror -Wno-c++98-compat -Wno-c++98-compat-pedantic
+-- CMAKE_C_FLAGS: -ggdb -O2 -DNDEBUG -Wall -Werror -Wno-c++98-compat -Wno-c++98-compat-pedantic
 -- Found cpplint executable at /Users/dpatra/Research/terrier/build-support/cpplint.py
 -- Found Clang /usr/bin/clang++
--- CLANG_IR_CXX_FLAGS: -std=c++17;;-mcx16;-march=native;-fvisibility=hidden;-ggdb;-O2;-DNDEBUG;-Wall;-Werror;-Wno-c++98-compat;-Wno-c++98-compat-pedantic;-Wno-braced-scalar-init;-emit-llvm;-c
--- CLANG_IR_CXX_INCLUDES: -I/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/googletest_ep-prefix/src/googletest_ep/include;-I/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/gflags_ep-prefix/src/gflags_ep/include;-I/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/gbenchmark_ep/src/gbenchmark_ep-install/include;-I/usr/local/include;-I/usr/local/Cellar/llvm@8/8.0.1_1/include;-I/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.15.sdk/usr/include;-I/Users/dpatra/Research/terrier/src/include;-I/Users/dpatra/Research/terrier/third_party;-I/Users/dpatra/Research/terrier/test/include;-I/Users/dpatra/Research/terrier/util/include;-I/Users/dpatra/Research/terrier/benchmark/include;-I/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo
+-- CLANG_IR_CXX_FLAGS: -std=c++17;;-mcx16;-march=native;-fvisibility=hidden;-ggdb;-O2;-DNDEBUG;-Wall;-Werror;-Wno-c++98-compat;-Wno-c++98-compat-pedantic;-emit-llvm;-c
+-- CLANG_IR_CXX_INCLUDES: -I/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/googletest_ep-prefix/src/googletest_ep/include;-I/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/gflags_ep-prefix/src/gflags_ep/include;-I/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/gbenchmark_ep/src/gbenchmark_ep-install/include;-I/usr/local/include;-I/usr/local/Cellar/llvm@8/8.0.1/include;-I/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.15.sdk/usr/include;-I/Users/dpatra/Research/terrier/src/include;-I/Users/dpatra/Research/terrier/third_party;-I/Users/dpatra/Research/terrier/test/include;-I/Users/dpatra/Research/terrier/util/include;-I/Users/dpatra/Research/terrier/benchmark/include;-I/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo
 -- Configuring done
 -- Generating done
 -- Build files have been written to: /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo
