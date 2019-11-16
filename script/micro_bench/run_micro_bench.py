@@ -52,6 +52,7 @@ BENCHMARKS_TO_RUN = [
     "large_transaction_benchmark",
     "seqscan_benchmark",
     "index_wrapper_benchmark",
+    "seqscan_benchmark",
     "logging_benchmark",
     "recovery_benchmark",
     "large_transaction_metrics_benchmark",
