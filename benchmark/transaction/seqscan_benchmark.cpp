@@ -11,11 +11,14 @@
 namespace terrier::execution {
 
 class SeqscanBenchmark : public benchmark::Fixture, public SqlBasedTest {
-  void SetUp(state& st) override {
-      // Create test tables
-      benchmark::Fixture::SetUp(state& st);
-      exec_ctx_ = MakeExecCtx();
-      GenerateTestTables(exec_ctx_.get());
+  // TODO: Fix disagreement between SetUp function argument types
+  void SetUp(State& st) {
+    // Run setup file
+    SqlBasedTest::SetUp();
+    // Create execution context
+    exec_ctx_ = MakeExecCtx();
+    // Create test tables
+    GenerateTestTables(exec_ctx_.get());
   }
 
  public:
@@ -36,18 +39,16 @@ class SeqscanBenchmark : public benchmark::Fixture, public SqlBasedTest {
    */
   // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(SeqscanBenchmark, SequentialScan)(benchmark::State &state) {
-//  // Pause timer while populating table
-//  state.PauseTiming();
-////  // Populate table?
-////  // execution context?, block_store_, catalogns_oid?
-////  execution::sql::TableGenerator();
-//  state.ResumeTiming();
+  // TODO: Import main function from tpl.cpp and run with command line options
+  // TODO: Determine path to tpl.cpp and vec-filter.tpl
 
-   // Where is the tpl.cpp header file?
-  // Run TPL file
-  execution::RunFile("vec-filter.tpl");
+  // Pause timer while running compiler
+  state.PauseTiming();
+  system("gcc -o a.out tpl.cpp vec-filter.tpl");
+  state.ResumeTiming();
 
-  // can set iteration time and total items processed count but not time for entire scan
+  // Determine time to run input tpl file
+  system("./a.out");
 }
 
 BENCHMARK_REGISTER_F(SeqscanBenchmark, SequentialScan)->UseManualTime()->Unit(benchmark::kMillisecond);
