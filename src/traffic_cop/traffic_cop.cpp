@@ -12,8 +12,8 @@ void TrafficCop::HandBufferToReplication(std::unique_ptr<network::ReadBuffer> bu
   replication_log_provider_->HandBufferToReplication(std::move(buffer));
 }
 
-std::pair<catalog::db_oid_t, catalog::namespace_oid_t> TrafficCop::CreateTempNamespace(int sockfd,
-                                                                                       const std::string &database_name) {
+std::pair<catalog::db_oid_t, catalog::namespace_oid_t> TrafficCop::CreateTempNamespace(
+    int sockfd, const std::string &database_name) {
   auto txn = txn_manager_->BeginTransaction();
   auto db_oid = catalog_->GetDatabaseOid(txn, database_name);
   if (db_oid == catalog::INVALID_DATABASE_OID) {
@@ -41,9 +41,7 @@ bool TrafficCop::DropTempNamespace(catalog::namespace_oid_t ns_oid, catalog::db_
 
   auto result = db_accessor->DropNamespace(ns_oid);
   if (result) {
-    txn_manager_->Commit(txn,
-                         transaction::TransactionUtil::EmptyCallback,
-                         nullptr);
+    txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
   } else {
     txn_manager_->Abort(txn);
   }
