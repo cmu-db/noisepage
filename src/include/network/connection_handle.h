@@ -106,10 +106,10 @@ class ConnectionHandle {
       db_name = context_.cmdline_args_["database"];
     }
     auto oids = traffic_cop_->CreateTempNamespace(io_wrapper_->GetSocketFd(), db_name);
-    context_.db_oid_ = oids.first;
-    if (context_.db_oid_ == catalog::INVALID_DATABASE_OID) {
+    if (oids.first == catalog::INVALID_DATABASE_OID || oids.second == catalog::INVALID_NAMESPACE_OID) {
       return Transition::TERMINATE;
     }
+    context_.db_oid_ = oids.first;
     context_.temp_namespace_oid_ = oids.second;
     return Transition::PROCEED;
   }
