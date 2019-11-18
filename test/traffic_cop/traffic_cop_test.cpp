@@ -39,8 +39,6 @@ class TrafficCopTests : public TerrierTest {
   std::unique_ptr<network::ConnectionHandleFactory> handle_factory_;
   common::DedicatedThreadRegistry thread_registry_ = common::DedicatedThreadRegistry(DISABLED);
 
-  bool manual_test_ = false;
-
   void SetUp() override {
     TerrierTest::SetUp();
 
@@ -178,7 +176,7 @@ class TrafficCopTests : public TerrierTest {
     out_buffer[0] = 'X';
     int len = sizeof(int32_t) + sizeof(char);
     reinterpret_cast<int32_t *>(out_buffer + 1)[0] = htonl(len);
-    write(socket_fd, nullptr, len + 1);
+    write(socket_fd, nullptr, len);
   }
 };
 
@@ -367,6 +365,9 @@ TEST_F(TrafficCopTests, ManualExtendedQueryTest) {
       io_socket->FlushAllWrites();
       ReadUntilReadyOrClose(io_socket);
     }
+
+    TerminateConnection(io_socket->GetSocketFd());
+    io_socket->Close();
   } catch (const std::exception &e) {
     TEST_LOG_ERROR("Exception occurred: {0}", e.what());
     EXPECT_TRUE(false);
@@ -387,7 +388,7 @@ TEST_F(TrafficCopTests, TemporaryNamespaceTest) {
     auto txn = txn_manager_->BeginTransaction();
     auto db_accessor = catalog_->GetAccessor(txn, catalog_->GetDatabaseOid(txn, catalog::DEFAULT_DATABASE));
 
-    // Create a new namespace and make sure that its OID is highes than the default start OID,
+    // Create a new namespace and make sure that its OID is higher than the default start OID,
     // which should have been assigned to the temporary namespace for this connection
     auto new_namespace_oid = db_accessor->CreateNamespace(std::string(trafficcop::TEMP_NAMESPACE_PREFIX));
     EXPECT_GT(static_cast<uint32_t>(new_namespace_oid), catalog::START_OID);
@@ -428,6 +429,8 @@ TEST_F(TrafficCopTests, ManualRoundTripTest) {
     writer.WriteSimpleQuery("SELECT * FROM TableA");
     io_socket->FlushAllWrites();
     ReadUntilReadyOrClose(io_socket);
+    TerminateConnection(io_socket->GetSocketFd());
+    io_socket->Close();
   } catch (const std::exception &e) {
     TEST_LOG_ERROR("Exception occurred: {0}", e.what());
     EXPECT_TRUE(false);
@@ -520,6 +523,9 @@ TEST_F(TrafficCopTests, ErrorHandlingTest) {
     io_socket->FlushAllWrites();
     ReadUntilMessageOrClose(io_socket, network::NetworkMessageType::PG_ERROR_RESPONSE);
   }
+
+  TerminateConnection(io_socket->GetSocketFd());
+  io_socket->Close();
 }
 
 /**
