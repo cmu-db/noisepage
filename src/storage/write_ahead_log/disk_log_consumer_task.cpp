@@ -1,5 +1,5 @@
 #include "storage/write_ahead_log/disk_log_consumer_task.h"
-#include "common/scoped_timer.h"
+#include "common/timer.h"
 #include "common/thread_context.h"
 #include "metrics/metrics_store.h"
 
@@ -65,7 +65,7 @@ void DiskLogConsumerTask::DiskLogConsumerTaskLoop() {
                                           [&] { return do_persist_ || !filled_buffer_queue_->Empty() || !run_task_; });
     }
 
-    uint64_t elapsed_us = 0;
+    double elapsed_us = 0;
     {
       common::ScopedTimer<std::chrono::microseconds> scoped_timer(&elapsed_us);
       // Flush all the buffers to the log file

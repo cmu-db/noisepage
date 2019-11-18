@@ -2,7 +2,7 @@
 #include <thread>  //NOLINT
 #include "catalog/catalog.h"
 #include "common/macros.h"
-#include "common/scoped_timer.h"
+#include "common/timer.h"
 #include "storage/garbage_collector_thread.h"
 #include "storage/storage_defs.h"
 #include "test_util/storage_test_util.h"

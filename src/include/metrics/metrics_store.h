@@ -32,7 +32,7 @@ class MetricsStore {
    * @param num_bytes second entry of metrics datapoint
    * @param num_records third entry of metrics datapoint
    */
-  void RecordSerializerData(const uint64_t elapsed_us, const uint64_t num_bytes, const uint64_t num_records) {
+  void RecordSerializerData(const double elapsed_us, const uint64_t num_bytes, const uint64_t num_records) {
     TERRIER_ASSERT(ComponentEnabled(MetricsComponent::LOGGING), "LoggingMetric not enabled.");
     TERRIER_ASSERT(logging_metric_ != nullptr, "LoggingMetric not allocated. Check MetricsStore constructor.");
     logging_metric_->RecordSerializerData(elapsed_us, num_bytes, num_records);
@@ -57,7 +57,7 @@ class MetricsStore {
    * @param elapsed_us first entry of txn datapoint
    * @param txn_start second entry of txn datapoint
    */
-  void RecordBeginData(const uint64_t elapsed_us, const transaction::timestamp_t txn_start) {
+  void RecordBeginData(const double elapsed_us, const transaction::timestamp_t txn_start) {
     TERRIER_ASSERT(ComponentEnabled(MetricsComponent::TRANSACTION), "TransactionMetric not enabled.");
     TERRIER_ASSERT(txn_metric_ != nullptr, "TransactionMetric not allocated. Check MetricsStore constructor.");
     txn_metric_->RecordBeginData(elapsed_us, txn_start);
@@ -68,7 +68,7 @@ class MetricsStore {
    * @param elapsed_us first entry of txn datapoint
    * @param txn_start second entry of txn datapoint
    */
-  void RecordCommitData(const uint64_t elapsed_us, const transaction::timestamp_t txn_start) {
+  void RecordCommitData(const double elapsed_us, const transaction::timestamp_t txn_start) {
     TERRIER_ASSERT(ComponentEnabled(MetricsComponent::TRANSACTION), "TransactionMetric not enabled.");
     TERRIER_ASSERT(txn_metric_ != nullptr, "TransactionMetric not allocated. Check MetricsStore constructor.");
     txn_metric_->RecordCommitData(elapsed_us, txn_start);

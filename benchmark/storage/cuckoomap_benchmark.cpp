@@ -2,7 +2,7 @@
 #include <vector>
 
 #include "benchmark/benchmark.h"
-#include "common/scoped_timer.h"
+#include "common/timer.h"
 #include "libcuckoo/cuckoohash_map.hh"
 #include "test_util/multithread_test_util.h"
 #include "xxHash/xxh3.h"
@@ -57,7 +57,7 @@ BENCHMARK_DEFINE_F(CuckooMapBenchmark, RandomInsert)(benchmark::State &state) {
       }
     };
 
-    uint64_t elapsed_ms;
+    double elapsed_ms;
     {
       common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
       MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, num_threads_, workload);
@@ -84,7 +84,7 @@ BENCHMARK_DEFINE_F(CuckooMapBenchmark, SequentialInsert)(benchmark::State &state
       }
     };
 
-    uint64_t elapsed_ms;
+    double elapsed_ms;
     {
       common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
       MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, num_threads_, workload);
@@ -118,7 +118,7 @@ BENCHMARK_DEFINE_F(CuckooMapBenchmark, RandomInsertRandomRead)(benchmark::State 
       }
     };
 
-    uint64_t elapsed_ms;
+    double elapsed_ms;
     {
       common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
       MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, num_threads_, workload);
@@ -153,7 +153,7 @@ BENCHMARK_DEFINE_F(CuckooMapBenchmark, RandomInsertSequentialRead)(benchmark::St
       }
     };
 
-    uint64_t elapsed_ms;
+    double elapsed_ms;
     {
       common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
       MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, num_threads_, workload);
@@ -188,7 +188,7 @@ BENCHMARK_DEFINE_F(CuckooMapBenchmark, SequentialInsertRandomRead)(benchmark::St
       }
     };
 
-    uint64_t elapsed_ms;
+    double elapsed_ms;
     {
       common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
       MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, num_threads_, workload);
@@ -223,7 +223,7 @@ BENCHMARK_DEFINE_F(CuckooMapBenchmark, SequentialInsertSequentialRead)(benchmark
       }
     };
 
-    uint64_t elapsed_ms;
+    double elapsed_ms;
     {
       common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
       MultiThreadTestUtil::RunThreadsUntilFinish(&thread_pool, num_threads_, workload);

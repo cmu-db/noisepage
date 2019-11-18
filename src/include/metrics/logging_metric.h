@@ -71,7 +71,7 @@ class LoggingMetricRawData : public AbstractRawData {
   friend class LoggingMetric;
   FRIEND_TEST(MetricsTests, LoggingCSVTest);
 
-  void RecordSerializerData(const uint64_t elapsed_us, const uint64_t num_bytes, const uint64_t num_records) {
+  void RecordSerializerData(const double elapsed_us, const uint64_t num_bytes, const uint64_t num_records) {
     serializer_data_.emplace_front(elapsed_us, num_bytes, num_records);
   }
 
@@ -81,10 +81,10 @@ class LoggingMetricRawData : public AbstractRawData {
   }
 
   struct SerializerData {
-    SerializerData(const uint64_t elapsed_us, const uint64_t num_bytes, const uint64_t num_records)
+    SerializerData(const double elapsed_us, const uint64_t num_bytes, const uint64_t num_records)
         : now_(MetricsUtil::Now()), elapsed_us_(elapsed_us), num_bytes_(num_bytes), num_records_(num_records) {}
     const uint64_t now_;
-    const uint64_t elapsed_us_;
+    const double elapsed_us_;
     const uint64_t num_bytes_;
     const uint64_t num_records_;
   };
@@ -116,7 +116,7 @@ class LoggingMetric : public AbstractMetric<LoggingMetricRawData> {
  private:
   friend class MetricsStore;
 
-  void RecordSerializerData(const uint64_t elapsed_us, const uint64_t num_bytes, const uint64_t num_records) {
+  void RecordSerializerData(const double elapsed_us, const uint64_t num_bytes, const uint64_t num_records) {
     GetRawData()->RecordSerializerData(elapsed_us, num_bytes, num_records);
   }
   void RecordConsumerData(const uint64_t write_us, const uint64_t persist_us, const uint64_t num_bytes,

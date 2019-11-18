@@ -68,19 +68,19 @@ class TransactionMetricRawData : public AbstractRawData {
   friend class TransactionMetric;
   FRIEND_TEST(MetricsTests, TransactionCSVTest);
 
-  void RecordBeginData(const uint64_t elapsed_us, const transaction::timestamp_t txn_start) {
+  void RecordBeginData(const double elapsed_us, const transaction::timestamp_t txn_start) {
     begin_data_.emplace_back(elapsed_us, txn_start);
   }
 
-  void RecordCommitData(const uint64_t elapsed_us, const transaction::timestamp_t txn_start) {
+  void RecordCommitData(const double elapsed_us, const transaction::timestamp_t txn_start) {
     commit_data_.emplace_back(elapsed_us, txn_start);
   }
 
   struct Data {
-    Data(const uint64_t elapsed_us, const transaction::timestamp_t txn_start)
+    Data(const double elapsed_us, const transaction::timestamp_t txn_start)
         : now_(MetricsUtil::Now()), elapsed_us_(elapsed_us), txn_start_(txn_start) {}
     const uint64_t now_;
-    const uint64_t elapsed_us_;
+    const double elapsed_us_;
     const transaction::timestamp_t txn_start_;
   };
 
@@ -95,10 +95,10 @@ class TransactionMetric : public AbstractMetric<TransactionMetricRawData> {
  private:
   friend class MetricsStore;
 
-  void RecordBeginData(const uint64_t elapsed_us, const transaction::timestamp_t txn_start) {
+  void RecordBeginData(const double elapsed_us, const transaction::timestamp_t txn_start) {
     GetRawData()->RecordBeginData(elapsed_us, txn_start);
   }
-  void RecordCommitData(const uint64_t elapsed_us, const transaction::timestamp_t txn_start) {
+  void RecordCommitData(const double elapsed_us, const transaction::timestamp_t txn_start) {
     GetRawData()->RecordCommitData(elapsed_us, txn_start);
   }
 };

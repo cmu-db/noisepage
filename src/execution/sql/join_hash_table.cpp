@@ -13,7 +13,7 @@
 #include "execution/sql/thread_state_container.h"
 #include "execution/util/cpu_info.h"
 #include "execution/util/memory.h"
-#include "execution/util/timer.h"
+#include "common/timer.h"
 #include "loggers/execution_logger.h"
 
 namespace terrier::execution::sql {
@@ -577,7 +577,7 @@ void JoinHashTable::Build() {
 
   EXECUTION_LOG_DEBUG("Unique estimate: {}", hll_estimator_->Estimate());
 
-  util::Timer<> timer;
+  common::Timer<std::chrono::milliseconds> timer;
   timer.Start();
 
   // Build

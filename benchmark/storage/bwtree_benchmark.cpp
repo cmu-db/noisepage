@@ -2,7 +2,7 @@
 #include <vector>
 
 #include "benchmark/benchmark.h"
-#include "common/scoped_timer.h"
+#include "common/timer.h"
 #include "test_util/bwtree_test_util.h"
 #include "test_util/multithread_test_util.h"
 
@@ -51,7 +51,7 @@ BENCHMARK_DEFINE_F(BwTreeBenchmark, RandomInsert)(benchmark::State &state) {
       tree->UnregisterThread(gcid);
     };
 
-    uint64_t elapsed_ms;
+    double elapsed_ms;
     tree->UpdateThreadLocal(num_threads_ + 1);
     {
       common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
@@ -84,7 +84,7 @@ BENCHMARK_DEFINE_F(BwTreeBenchmark, SequentialInsert)(benchmark::State &state) {
       tree->UnregisterThread(gcid);
     };
 
-    uint64_t elapsed_ms;
+    double elapsed_ms;
     tree->UpdateThreadLocal(num_threads_ + 1);
     {
       common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
@@ -124,7 +124,7 @@ BENCHMARK_DEFINE_F(BwTreeBenchmark, RandomInsertRandomRead)(benchmark::State &st
       tree->UnregisterThread(gcid);
     };
 
-    uint64_t elapsed_ms;
+    double elapsed_ms;
     tree->UpdateThreadLocal(num_threads_ + 1);
     {
       common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
@@ -165,7 +165,7 @@ BENCHMARK_DEFINE_F(BwTreeBenchmark, RandomInsertSequentialRead)(benchmark::State
       tree->UnregisterThread(gcid);
     };
 
-    uint64_t elapsed_ms;
+    double elapsed_ms;
     tree->UpdateThreadLocal(num_threads_ + 1);
     {
       common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
@@ -206,7 +206,7 @@ BENCHMARK_DEFINE_F(BwTreeBenchmark, SequentialInsertRandomRead)(benchmark::State
       tree->UnregisterThread(gcid);
     };
 
-    uint64_t elapsed_ms;
+    double elapsed_ms;
     tree->UpdateThreadLocal(num_threads_ + 1);
     {
       common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
@@ -247,7 +247,7 @@ BENCHMARK_DEFINE_F(BwTreeBenchmark, SequentialInsertSequentialRead)(benchmark::S
       tree->UnregisterThread(gcid);
     };
 
-    uint64_t elapsed_ms;
+    double elapsed_ms;
     tree->UpdateThreadLocal(num_threads_ + 1);
     {
       common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);

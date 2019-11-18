@@ -213,7 +213,7 @@ TEST_F(JoinHashTableTest, DISABLED_PerfTest) {
       tuple->d_ = i + 3;
     }
 
-    util::Timer<std::milli> timer;
+    common::Timer<std::chrono::milliseconds> timer;
     timer.Start();
 
     join_hash_table.Build();

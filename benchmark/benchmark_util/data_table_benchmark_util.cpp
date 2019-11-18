@@ -4,7 +4,7 @@
 #include <utility>
 #include <vector>
 #include "common/allocator.h"
-#include "common/scoped_timer.h"
+#include "common/timer.h"
 #include "metrics/metrics_thread.h"
 #include "test_util/catalog_test_util.h"
 #include "transaction/transaction_util.h"
@@ -120,7 +120,7 @@ std::pair<uint64_t, uint64_t> LargeDataTableBenchmarkObject::SimulateOltp(
     };
   }
 
-  uint64_t elapsed_ms;
+  double elapsed_ms;
   {
     common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
     // add the jobs to the queue

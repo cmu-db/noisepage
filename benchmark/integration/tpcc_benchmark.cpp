@@ -4,7 +4,7 @@
 #include "benchmark/benchmark.h"
 #include "catalog/catalog.h"
 #include "common/macros.h"
-#include "common/scoped_timer.h"
+#include "common/timer.h"
 #include "common/worker_pool.h"
 #include "metrics/logging_metric.h"
 #include "metrics/metrics_thread.h"
@@ -101,7 +101,7 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithoutLogging)(benchmark::State &
     std::this_thread::sleep_for(std::chrono::seconds(2));  // Let GC clean up
 
     // run the TPCC workload to completion, timing the execution
-    uint64_t elapsed_ms;
+    double elapsed_ms;
     {
       common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
       for (int8_t i = 0; i < num_threads_; i++) {
@@ -186,7 +186,7 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithLogging)(benchmark::State &sta
     std::this_thread::sleep_for(std::chrono::seconds(2));  // Let GC clean up
 
     // run the TPCC workload to completion, timing the execution
-    uint64_t elapsed_ms;
+    double elapsed_ms;
     {
       common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
       for (int8_t i = 0; i < num_threads_; i++) {
@@ -280,7 +280,7 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithLoggingAndMetrics)(benchmark::
     std::this_thread::sleep_for(std::chrono::seconds(2));  // Let GC clean up
 
     // run the TPCC workload to completion, timing the execution
-    uint64_t elapsed_ms;
+    double elapsed_ms;
     {
       common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
       for (int8_t i = 0; i < num_threads_; i++) {
@@ -366,7 +366,7 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithMetrics)(benchmark::State &sta
     std::this_thread::sleep_for(std::chrono::seconds(2));  // Let GC clean up
 
     // run the TPCC workload to completion, timing the execution
-    uint64_t elapsed_ms;
+    double elapsed_ms;
     {
       common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
       for (int8_t i = 0; i < num_threads_; i++) {

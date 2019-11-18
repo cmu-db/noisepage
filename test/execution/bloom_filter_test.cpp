@@ -79,7 +79,7 @@ TEST_F(BloomFilterTest, ComprehensiveTest) {
 
     auto expected_found = static_cast<uint32_t>(prob_success * static_cast<double>(lookups.size()));
 
-    util::Timer<std::milli> timer;
+    common::Timer<std::chrono::milliseconds> timer;
     timer.Start();
 
     uint32_t actual_found = 0;

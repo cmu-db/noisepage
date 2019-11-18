@@ -7,7 +7,7 @@
 #include "execution/tpl_test.h"
 
 #include "execution/sql/memory_pool.h"
-#include "execution/util/timer.h"
+#include "common/timer.h"
 #include "execution/util/vector_util.h"
 
 namespace terrier::execution::util::test {

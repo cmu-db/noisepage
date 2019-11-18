@@ -96,7 +96,7 @@ void RunExperiment(bandit::MultiArmedBandit *bandit, bandit::Agent *agent, bool 
   for (uint32_t exp = 0; exp < NUM_EXPERIMENTS; exp++) {
     environment.Reset();
     {
-      util::ScopedTimer<std::milli> timer(&total_time);
+      common::ScopedTimer<std::chrono::milliseconds> timer(&total_time);
       environment.Run(num_trials, &rewards, &actions, shuffle);
     }
 

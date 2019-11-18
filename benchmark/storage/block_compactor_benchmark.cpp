@@ -4,7 +4,7 @@
 #include <vector>
 
 #include "benchmark/benchmark.h"
-#include "common/scoped_timer.h"
+#include "common/timer.h"
 #include "storage/block_compactor.h"
 #include "storage/garbage_collector.h"
 #include "test_util/storage_test_util.h"
@@ -50,7 +50,7 @@ class BlockCompactorBenchmark : public benchmark::Fixture {
         blocks.push_back(block);
       }
       for (storage::RawBlock *block : blocks) compactor_.PutInQueue(block);
-      uint64_t compaction_ms;
+      double compaction_ms;
       {
         common::ScopedTimer<std::chrono::milliseconds> timer(&compaction_ms);
         compactor_.ProcessCompactionQueue(&deferred_action_manager_, &txn_manager_);
@@ -58,7 +58,7 @@ class BlockCompactorBenchmark : public benchmark::Fixture {
       gc_.PerformGarbageCollection();
       gc_.PerformGarbageCollection();
       for (storage::RawBlock *block : blocks) compactor_.PutInQueue(block);
-      uint64_t gather_ms;
+      double gather_ms;
       {
         common::ScopedTimer<std::chrono::milliseconds> timer(&gather_ms);
         compactor_.ProcessCompactionQueue(&deferred_action_manager_, &txn_manager_);
@@ -89,7 +89,7 @@ class BlockCompactorBenchmark : public benchmark::Fixture {
       }
       // generate our table and instantiate GC
       for (storage::RawBlock *block : blocks) compactor_.PutInQueue(block);
-      uint64_t elapsed_ms;
+      double elapsed_ms;
       {
         common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
         compactor_.ProcessCompactionQueue(&deferred_action_manager_, &txn_manager_);
@@ -125,7 +125,7 @@ class BlockCompactorBenchmark : public benchmark::Fixture {
       gc_.PerformGarbageCollection();
       gc_.PerformGarbageCollection();
       for (storage::RawBlock *block : blocks) compactor_.PutInQueue(block);
-      uint64_t time;
+      double time;
       {
         common::ScopedTimer<std::chrono::milliseconds> timer(&time);
         compactor_.ProcessCompactionQueue(&deferred_action_manager_, &txn_manager_);

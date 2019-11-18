@@ -11,7 +11,7 @@
 #include "execution/exec/execution_context.h"
 #include "execution/sql/functions/string_functions.h"
 #include "execution/sql/value.h"
-#include "execution/util/timer.h"
+#include "common/timer.h"
 
 namespace terrier::execution::sql::test {
 

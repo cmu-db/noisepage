@@ -111,7 +111,7 @@ void Sorter::Sort() {
   }
 
   // Time it
-  util::Timer<std::milli> timer;
+  common::Timer<std::chrono::milliseconds> timer;
   timer.Start();
 
   // Sort the sucker
@@ -163,7 +163,7 @@ void Sorter::SortParallel(const ThreadStateContainer *thread_state_container, co
   // 1. Make room in this sorter for all result tuples
   // -------------------------------------------------------
 
-  util::StageTimer<std::milli> timer;
+  util::StageTimer<std::chrono::milliseconds> timer;
   timer.EnterStage("Resize Main Sorter");
 
   const uint64_t num_tuples =

@@ -3,7 +3,7 @@
 #include <queue>
 #include <utility>
 #include <vector>
-#include "common/scoped_timer.h"
+#include "common/timer.h"
 #include "common/thread_context.h"
 #include "metrics/metrics_store.h"
 #include "transaction/transaction_context.h"
@@ -32,7 +32,7 @@ void LogSerializerTask::LogSerializerTaskLoop() {
 }
 
 bool LogSerializerTask::Process() {
-  uint64_t elapsed_us = 0, num_bytes = 0, num_records = 0;
+  double elapsed_us = 0, num_bytes = 0, num_records = 0;
   bool buffers_processed = false;
   {
     common::ScopedTimer<std::chrono::microseconds> scoped_timer(&elapsed_us);

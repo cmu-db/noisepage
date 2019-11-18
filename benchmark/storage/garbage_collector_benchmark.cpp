@@ -3,7 +3,7 @@
 
 #include "benchmark/benchmark.h"
 #include "benchmark_util/data_table_benchmark_util.h"
-#include "common/scoped_timer.h"
+#include "common/timer.h"
 #include "storage/garbage_collector.h"
 
 namespace terrier {
@@ -69,7 +69,7 @@ BENCHMARK_DEFINE_F(GarbageCollectorBenchmark, UnlinkTime)(benchmark::State &stat
     tested.SimulateOltp(num_txns_, num_concurrent_txns_);
 
     // time just the unlinking process, verify nothing deallocated
-    uint64_t elapsed_ms;
+    double elapsed_ms;
     std::pair<uint32_t, uint32_t> result;
     {
       common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
@@ -112,7 +112,7 @@ BENCHMARK_DEFINE_F(GarbageCollectorBenchmark, ReclaimTime)(benchmark::State &sta
     EXPECT_EQ(result.first, 0);
 
     // time just the deallocation process, verify nothing unlinked
-    uint64_t elapsed_ms;
+    double elapsed_ms;
     {
       common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
       result = gc_->PerformGarbageCollection();
@@ -140,7 +140,7 @@ BENCHMARK_DEFINE_F(GarbageCollectorBenchmark, HighContention)(benchmark::State &
     LargeDataTableBenchmarkObject tested({8, 8, 8}, 100, txn_length_, update_select_ratio_, &block_store_,
                                          &buffer_pool_, &generator_, true);
     StartGC(tested.GetTimestampManager(), tested.GetTxnManager());
-    uint64_t elapsed_ms;
+    double elapsed_ms;
     {
       common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
       tested.SimulateOltp(num_txns_, num_concurrent_txns_);

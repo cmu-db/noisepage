@@ -233,7 +233,7 @@ TEST_F(BytecodeTrampolineTest, DISABLED_PerfGenComparisonForSortTest) {
     auto module = compiler.CompileToModule(src);
     auto compare = reinterpret_cast<int32_t (*)(const int32_t, const int32_t)>(GetTrampoline(*module, "compare"));
 
-    util::Timer<std::milli> timer;
+    common::Timer<std::chrono::milliseconds> timer;
     timer.Start();
     ips4o::sort(vec.begin(), vec.end(),
                 // NOLINTNEXTLINE
@@ -249,7 +249,7 @@ TEST_F(BytecodeTrampolineTest, DISABLED_PerfGenComparisonForSortTest) {
     std::function<int32_t(const int32_t, const int32_t)> compare;
     EXPECT_TRUE(module->GetFunction("compare", ExecutionMode::Interpret, &compare));
 
-    util::Timer<std::milli> timer;
+    common::Timer<std::chrono::milliseconds> timer;
     timer.Start();
     ips4o::sort(vec.begin(), vec.end(),
                 // NOLINTNEXTLINE
@@ -260,7 +260,7 @@ TEST_F(BytecodeTrampolineTest, DISABLED_PerfGenComparisonForSortTest) {
 
   UNUSED_ATTRIBUTE auto bench_std = [](auto &vec) {
     auto compiler = ModuleCompiler();
-    util::Timer<std::milli> timer;
+    common::Timer<std::chrono::milliseconds> timer;
     timer.Start();
     ips4o::sort(vec.begin(), vec.end(),
                 // NOLINTNEXTLINE

@@ -3,7 +3,7 @@
 #include <vector>
 #include "catalog/catalog.h"
 #include "common/macros.h"
-#include "common/scoped_timer.h"
+#include "common/timer.h"
 #include "common/worker_pool.h"
 #include "metrics/logging_metric.h"
 #include "metrics/metrics_thread.h"

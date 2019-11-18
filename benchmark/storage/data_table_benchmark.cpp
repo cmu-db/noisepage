@@ -2,7 +2,7 @@
 #include <vector>
 
 #include "benchmark/benchmark.h"
-#include "common/scoped_timer.h"
+#include "common/timer.h"
 #include "common/strong_typedef.h"
 #include "storage/data_table.h"
 #include "storage/storage_util.h"
@@ -87,7 +87,7 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, SimpleInsert)(benchmark::State &state) {
   // NOLINTNEXTLINE
   for (auto _ : state) {
     storage::DataTable table(&block_store_, layout_, storage::layout_version_t(0));
-    uint64_t elapsed_ms;
+    double elapsed_ms;
     {
       common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
       // We can use dummy timestamps here since we're not invoking concurrency control
@@ -118,7 +118,7 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, ConcurrentInsert)(benchmark::State &state
       }
     };
     common::WorkerPool thread_pool(num_threads_, {});
-    uint64_t elapsed_ms;
+    double elapsed_ms;
     {
       common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
       for (uint32_t j = 0; j < num_threads_; j++) {
@@ -209,7 +209,7 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, ConcurrentSelectRandom)(benchmark::State 
         read_table.Select(&txn, read_order[(rand_read_offsets[id] + i) % read_order.size()], reads_[id]);
     };
     common::WorkerPool thread_pool(num_threads_, {});
-    uint64_t elapsed_ms;
+    double elapsed_ms;
     {
       common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
       for (uint32_t j = 0; j < num_threads_; j++) {
@@ -247,7 +247,7 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, ConcurrentSelectSequential)(benchmark::St
       for (uint32_t i = 0; i < num_reads_ / num_threads_; i++) read_table.Select(&txn, read_order[i], reads_[id]);
     };
     common::WorkerPool thread_pool(num_threads_, {});
-    uint64_t elapsed_ms;
+    double elapsed_ms;
     {
       common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
       for (uint32_t j = 0; j < num_threads_; j++) {
@@ -296,7 +296,7 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, ConcurrentScan)(benchmark::State &state) 
       }
     };
     common::WorkerPool thread_pool(num_threads_, {});
-    uint64_t elapsed_ms;
+    double elapsed_ms;
     {
       common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
       for (uint32_t j = 0; j < num_threads_; j++) {

@@ -13,7 +13,7 @@
 #include "execution/sql/thread_state_container.h"
 #include "execution/util/bit_util.h"
 #include "execution/util/cpu_info.h"
-#include "execution/util/timer.h"
+#include "common/timer.h"
 #include "execution/util/vector_util.h"
 #include "loggers/execution_logger.h"
 
@@ -400,7 +400,7 @@ AggregationHashTable *AggregationHashTable::BuildTableOverPartition(void *const 
   auto *agg_table = new (memory_->AllocateAligned(sizeof(AggregationHashTable), alignof(AggregationHashTable), false))
       AggregationHashTable(memory_, payload_size_, static_cast<uint32_t>(estimated_size));
 
-  util::Timer<std::milli> timer;
+  common::Timer<std::chrono::milliseconds> timer;
   timer.Start();
 
   // Build it

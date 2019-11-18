@@ -9,7 +9,7 @@
 #include "execution/bandit/multi_armed_bandit.h"
 #include "execution/bandit/policy.h"
 #include "execution/sql/projected_columns_iterator.h"
-#include "execution/util/timer.h"
+#include "common/timer.h"
 #include "loggers/execution_logger.h"
 
 namespace terrier::execution::sql {
@@ -116,7 +116,7 @@ std::pair<uint32_t, double> FilterManager::RunFilterClauseImpl(ProjectedColumnsI
                                                                const FilterManager::MatchFn func) {
   // Time and execute the match function, returning the number of selected
   // tuples and the execution time in milliseconds
-  util::Timer<> timer;
+  common::Timer<std::chrono::milliseconds> timer;
   timer.Start();
   const uint32_t num_selected = func(pci);
   timer.Stop();

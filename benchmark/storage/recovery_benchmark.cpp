@@ -1,7 +1,7 @@
 #include <vector>
 #include "benchmark/benchmark.h"
 #include "catalog/catalog_accessor.h"
-#include "common/scoped_timer.h"
+#include "common/timer.h"
 #include "storage/garbage_collector_thread.h"
 #include "storage/recovery/disk_log_provider.h"
 #include "storage/recovery/recovery_manager.h"
@@ -82,7 +82,7 @@ class RecoveryBenchmark : public benchmark::Fixture {
                                                 &recovery_txn_manager, &recovery_deferred_action_manager,
                                                 common::ManagedPointer(thread_registry_), &block_store_);
 
-      uint64_t elapsed_ms;
+      double elapsed_ms;
       {
         common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
         recovery_manager.StartRecovery();
@@ -239,7 +239,7 @@ BENCHMARK_DEFINE_F(RecoveryBenchmark, IndexRecovery)(benchmark::State &state) {
                                               &recovery_txn_manager, &recovery_deferred_action_manager,
                                               common::ManagedPointer(thread_registry_), &block_store_);
 
-    uint64_t elapsed_ms;
+    double elapsed_ms;
     {
       common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
       recovery_manager.StartRecovery();

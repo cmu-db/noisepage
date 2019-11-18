@@ -7,7 +7,7 @@
 #include "catalog/catalog.h"
 #include "catalog/catalog_accessor.h"
 #include "catalog/catalog_defs.h"
-#include "common/scoped_timer.h"
+#include "common/timer.h"
 #include "parser/expression/column_value_expression.h"
 #include "parser/expression/constant_value_expression.h"
 #include "storage/garbage_collector.h"

@@ -197,7 +197,7 @@ TEST_F(JoinHashTableVectorProbeTest, DISABLED_PerfLookupTest) {
     // Lookup
     JoinHashTableVectorProbe lookup(*jht);
 
-    util::Timer<std::milli> timer;
+    common::Timer<std::chrono::milliseconds> timer;
     timer.Start();
 
     // Loop over all matches

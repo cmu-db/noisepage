@@ -3,7 +3,7 @@
 #include <vector>
 
 #include "common/macros.h"
-#include "execution/util/timer.h"
+#include "common/timer.h"
 
 namespace terrier::execution::util {
 
@@ -83,7 +83,7 @@ class StageTimer {
   const std::vector<Stage> &GetStages() const { return stages_; }
 
  private:
-  util::Timer<ResolutionRatio> timer_;
+  common::Timer<ResolutionRatio> timer_;
   std::vector<Stage> stages_;
 };
 

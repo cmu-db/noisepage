@@ -21,7 +21,7 @@
 #include "execution/table_generator/table_generator.h"
 #include "execution/tpl.h"
 #include "execution/util/cpu_info.h"
-#include "execution/util/timer.h"
+#include "common/timer.h"
 #include "execution/vm/bytecode_generator.h"
 #include "execution/vm/bytecode_module.h"
 #include "execution/vm/llvm_engine.h"
@@ -120,7 +120,7 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
 
   ast::AstNode *root;
   {
-    util::ScopedTimer<std::milli> timer(&parse_ms);
+    common::ScopedTimer<std::chrono::milliseconds> timer(&parse_ms);
     root = parser.Parse();
   }
 
@@ -134,7 +134,7 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
   //
 
   {
-    util::ScopedTimer<std::milli> timer(&typecheck_ms);
+    common::ScopedTimer<std::chrono::milliseconds> timer(&typecheck_ms);
     sema::Sema type_check(&context);
     type_check.Run(root);
   }
@@ -155,7 +155,7 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
 
   std::unique_ptr<vm::BytecodeModule> bytecode_module;
   {
-    util::ScopedTimer<std::milli> timer(&codegen_ms);
+    common::ScopedTimer<std::chrono::milliseconds> timer(&codegen_ms);
     bytecode_module = vm::BytecodeGenerator::Compile(root, &exec_ctx, name);
   }
 
@@ -173,7 +173,7 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
   //
 
   {
-    util::ScopedTimer<std::milli> timer(&interp_exec_ms);
+    common::ScopedTimer<std::chrono::milliseconds> timer(&interp_exec_ms);
 
     if (is_sql) {
       std::function<int64_t(exec::ExecutionContext *)> main;
@@ -199,7 +199,7 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
   //
 
   {
-    util::ScopedTimer<std::milli> timer(&adaptive_exec_ms);
+    common::ScopedTimer<std::chrono::milliseconds> timer(&adaptive_exec_ms);
 
     if (is_sql) {
       std::function<int64_t(exec::ExecutionContext *)> main;
@@ -224,7 +224,7 @@ static void CompileAndRun(const std::string &source, const std::string &name = "
   // JIT
   //
   {
-    util::ScopedTimer<std::milli> timer(&jit_exec_ms);
+    common::ScopedTimer<std::chrono::milliseconds> timer(&jit_exec_ms);
 
     if (is_sql) {
       std::function<int64_t(exec::ExecutionContext *)> main;

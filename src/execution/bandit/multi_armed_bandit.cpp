@@ -1,6 +1,6 @@
 #include "execution/bandit/multi_armed_bandit.h"
 
-#include "execution/util/timer.h"
+#include "common/timer.h"
 #include "execution/vm/module.h"
 
 namespace terrier::execution::bandit {
@@ -18,7 +18,7 @@ double MultiArmedBandit::RewardToExecutionTime(double reward) {
 double MultiArmedBandit::ExecuteAction(uint32_t action) {
   double exec_ms = 0;
   {
-    util::ScopedTimer<std::milli> timer(&exec_ms);
+    common::ScopedTimer<std::chrono::milliseconds> timer(&exec_ms);
 
     // TODO(siva): Templatize this.
     std::function<uint32_t()> f;

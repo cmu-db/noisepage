@@ -2,7 +2,7 @@
 #include <vector>
 
 #include "benchmark/benchmark.h"
-#include "common/scoped_timer.h"
+#include "common/timer.h"
 #include "parser/expression/column_value_expression.h"
 #include "storage/garbage_collector_thread.h"
 #include "storage/index/index.h"
@@ -143,8 +143,8 @@ class IndexBenchmark : public benchmark::Fixture {
     // Set-up transaction manager, buffer, and times for scans
     auto *scan_txn = txn_manager_->BeginTransaction();
     auto *const scan_key_pr = index_->GetProjectedRowInitializer().InitializeRow(key_buffer_);
-    uint64_t total_ns = 0;
-    uint64_t elapsed_ns = 0;
+    double total_ns = 0;
+    double elapsed_ns = 0;
 
     std::vector<storage::TupleSlot> results;
     // Get random key table_size times and measure time elapsed for search operation
