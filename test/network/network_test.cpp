@@ -144,9 +144,8 @@ class NetworkTests : public TerrierTest {
 // NOLINTNEXTLINE
 TEST_F(NetworkTests, SimpleQueryTest) {
   try {
-    pqxx::connection c(
-        fmt::format("host=127.0.0.1 port={0} user={1} sslmode=disable application_name=psql",
-                    port_, catalog::DEFAULT_DATABASE));
+    pqxx::connection c(fmt::format("host=127.0.0.1 port={0} user={1} sslmode=disable application_name=psql", port_,
+                                   catalog::DEFAULT_DATABASE));
 
     pqxx::work txn1(c);
     txn1.exec("INSERT INTO employee VALUES (1, 'Han LI');");
@@ -196,9 +195,8 @@ TEST_F(NetworkTests, BadQueryTest) {
 // NOLINTNEXTLINE
 TEST_F(NetworkTests, NoSSLTest) {
   try {
-    pqxx::connection c(
-        fmt::format("host=127.0.0.1 port={0} user={1} sslmode=disable application_name=psql",
-                    port_, catalog::DEFAULT_DATABASE));
+    pqxx::connection c(fmt::format("host=127.0.0.1 port={0} user={1} sslmode=disable application_name=psql", port_,
+                                   catalog::DEFAULT_DATABASE));
 
     pqxx::work txn1(c);
     txn1.exec("INSERT INTO employee VALUES (1, 'Han LI');");
@@ -223,9 +221,8 @@ TEST_F(NetworkTests, PgNetworkCommandsTest) {
 // NOLINTNEXTLINE
 TEST_F(NetworkTests, LargePacketsTest) {
   try {
-    pqxx::connection c(
-        fmt::format("host=127.0.0.1 port={0} user={1} sslmode=disable application_name=psql",
-                    port_, catalog::DEFAULT_DATABASE));
+    pqxx::connection c(fmt::format("host=127.0.0.1 port={0} user={1} sslmode=disable application_name=psql", port_,
+                                   catalog::DEFAULT_DATABASE));
 
     pqxx::work txn1(c);
     std::string long_query_packet_string(255555, 'a');

@@ -109,7 +109,7 @@ void SettingsManager::SetInt(Param param, int32_t value, common::ManagedPointer<
 }
 
 void SettingsManager::SetInt64(Param param, int64_t value, common::ManagedPointer<ActionContext> action_context,
-                             setter_callback_fn setter_callback) {
+                               setter_callback_fn setter_callback) {
   // The ActionContext state must be set to INITIATED to prevent
   // somebody from reusing it for multiple invocations
   if (action_context->GetState() != ActionState::INITIATED) {

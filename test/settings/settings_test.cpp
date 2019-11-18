@@ -178,7 +178,7 @@ TEST_F(SettingsTests, LogManagerSettingsTest) {
   auto action_context = std::make_unique<common::ActionContext>(action_id);
   setter_callback_fn setter_callback = SettingsTests::EmptySetterCallback;
   settings_manager_->SetInt64(Param::num_log_manager_buffers, new_num_buffers, common::ManagedPointer(action_context),
-                            setter_callback);
+                              setter_callback);
 
   // Check new value is propagated
   EXPECT_EQ(new_num_buffers, settings_manager_->GetInt64(Param::num_log_manager_buffers));
