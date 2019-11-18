@@ -44,8 +44,7 @@ bool TrafficCop::DropTempNamespace(catalog::namespace_oid_t ns_oid, catalog::db_
     txn_manager_->Commit(txn,
                          transaction::TransactionUtil::EmptyCallback,
                          nullptr);
-  }
-  else {
+  } else {
     txn_manager_->Abort(txn);
   }
   return result;
