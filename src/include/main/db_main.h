@@ -3,6 +3,7 @@
 #include <memory>
 #include <unordered_map>
 #include <utility>
+
 #include "common/action_context.h"
 #include "common/stat_registry.h"
 #include "common/worker_pool.h"
@@ -15,23 +16,27 @@
 
 namespace terrier {
 
+namespace common {
+class DedicatedThreadRegistry;
+}  // namespace common
+
+namespace metrics {
+class MetricsTests;
+}  // namespace metrics
+
 namespace settings {
 class SettingsManager;
 class SettingsTests;
 class Callbacks;
 }  // namespace settings
 
-namespace metrics {
-class MetricsTests;
-}
-
 namespace storage {
 class WriteAheadLoggingTests;
-}
+}  // namespace storage
 
-namespace common {
-class DedicatedThreadRegistry;
-}
+namespace trafficcop {
+class TerrierEngine;
+}  // namespace trafficcop
 
 /**
  * The DBMain Class holds all the singleton pointers. It has the full knowledge
@@ -57,26 +62,7 @@ class DBMain {
    */
   explicit DBMain(std::unordered_map<settings::Param, settings::ParamInfo> &&param_map);
 
-  ~DBMain() {
-    ForceShutdown();
-    // TODO(Matt): might as well make these std::unique_ptr, but then will need to refactor other classes to take
-    // ManagedPointers unless we want a bunch of .get()s, which sounds like a future PR
-    delete gc_thread_;
-    delete metrics_manager_;
-    delete garbage_collector_;
-    delete settings_manager_;
-    delete txn_manager_;
-    delete timestamp_manager_;
-    delete buffer_segment_pool_;
-    delete thread_pool_;
-    delete log_manager_;
-    delete connection_handle_factory_;
-    delete server_;
-    delete command_factory_;
-    delete provider_;
-    delete t_cop_;
-    delete thread_registry_;
-  }
+  ~DBMain();
 
   /**
    * Boots the traffic cop and networking layer, starts the server loop.
@@ -114,6 +100,11 @@ class DBMain {
   network::ProtocolInterpreter::Provider *provider_;
   metrics::MetricsManager *metrics_manager_;
   common::DedicatedThreadRegistry *thread_registry_;
+  std::unique_ptr<catalog::Catalog> catalog_;
+  std::unique_ptr<parser::PostgresParser> parser_;
+  std::unique_ptr<trafficcop::TerrierEngine> terrier_engine_;
+  catalog::db_oid_t default_database_oid_;
+  storage::BlockStore block_store_{10000, 10000};
 
   bool running_ = false;
 

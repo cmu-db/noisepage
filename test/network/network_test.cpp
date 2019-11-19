@@ -38,7 +38,7 @@ class NetworkTests : public TerrierTest {
   std::unique_ptr<ConnectionHandleFactory> handle_factory_;
   common::DedicatedThreadRegistry thread_registry_ = common::DedicatedThreadRegistry(DISABLED);
   uint16_t port_ = common::Settings::SERVER_PORT;
-  trafficcop::TrafficCop tcop_;
+  trafficcop::TrafficCop tcop_{catalog::INVALID_DATABASE_OID, DISABLED};
   FakeCommandFactory fake_command_factory_;
   PostgresProtocolInterpreter::Provider protocol_provider_{
       common::ManagedPointer<PostgresCommandFactory>(&fake_command_factory_)};

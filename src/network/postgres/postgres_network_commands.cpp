@@ -4,8 +4,8 @@
 #include <utility>
 #include <vector>
 #include "network/postgres/postgres_protocol_interpreter.h"
-#include "network/terrier_server.h"
 #include "traffic_cop/portal.h"
+#include "traffic_cop/terrier_engine.h"
 #include "traffic_cop/traffic_cop.h"
 #include "type/transient_value_factory.h"
 #include "type/type_id.h"
@@ -24,7 +24,9 @@ Transition SimpleQueryCommand::Exec(common::ManagedPointer<ProtocolInterpreter> 
   std::string query = in_.ReadString();
   NETWORK_LOG_TRACE("Execute SimpleQuery: {0}", query.c_str());
 
-  trafficcop::SqliteEngine *execution_engine = t_cop->GetExecutionEngine();
+  // TODO(WAN): some day!
+  // t_cop->GetTerrierEngine()->ParseAndBind(t_cop->GetDefaultDatabaseOid(), query);
+  trafficcop::SqliteEngine *execution_engine = t_cop->GetSqliteEngine();
   sqlite3_stmt *stmt = execution_engine->PrepareStatement(query);
   trafficcop::ResultSet result = execution_engine->Execute(stmt);
   if (result.column_names_.empty()) {
@@ -77,7 +79,9 @@ Transition ParseCommand::Exec(common::ManagedPointer<ProtocolInterpreter> interp
     return Transition::PROCEED;
   }
 
-  trafficcop::SqliteEngine *execution_engine = t_cop->GetExecutionEngine();
+  // TODO(WAN): some day!
+  // t_cop->GetTerrierEngine()->ParseAndBind(t_cop->GetDefaultDatabaseOid(), query);
+  trafficcop::SqliteEngine *execution_engine = t_cop->GetSqliteEngine();
   sqlite3_stmt *sqlite_stmt = execution_engine->PrepareStatement(query);
 
   trafficcop::Statement stmt(sqlite_stmt, param_types, query);
@@ -256,7 +260,7 @@ Transition DescribeCommand::Exec(common::ManagedPointer<ProtocolInterpreter> int
   NETWORK_LOG_TRACE("Describe query: type = {0}, name = {1}", static_cast<char>(type), name.c_str());
   std::vector<std::string> column_names;
 
-  trafficcop::SqliteEngine *execution_engine = t_cop->GetExecutionEngine();
+  trafficcop::SqliteEngine *execution_engine = t_cop->GetSqliteEngine();
 
   if (type == DescribeCommandObjectType::STATEMENT) {
     auto p_statement = connection->statements_.find(name);
@@ -311,7 +315,7 @@ Transition ExecuteCommand::Exec(common::ManagedPointer<ProtocolInterpreter> inte
 
   trafficcop::Portal &portal = p_portal->second;
 
-  trafficcop::SqliteEngine *execution_engine = t_cop->GetExecutionEngine();
+  trafficcop::SqliteEngine *execution_engine = t_cop->GetSqliteEngine();
   execution_engine->Bind(portal.statement_->sqlite3_stmt_,
                          common::ManagedPointer<std::vector<type::TransientValue>>(portal.params_));
   trafficcop::ResultSet result = execution_engine->Execute(portal.statement_->sqlite3_stmt_);

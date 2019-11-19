@@ -5,14 +5,18 @@
 #include <unordered_map>
 #include <vector>
 
+#include "catalog/catalog.h"
 #include "common/settings.h"
 #include "gtest/gtest.h"
 #include "loggers/main_logger.h"
 #include "network/connection_handle_factory.h"
 #include "network/terrier_server.h"
+#include "storage/write_ahead_log/log_manager.h"
 #include "test_util/manual_packet_util.h"
 #include "test_util/test_harness.h"
+#include "traffic_cop/terrier_engine.h"
 #include "traffic_cop/traffic_cop.h"
+#include "transaction/transaction_manager.h"
 
 namespace terrier::trafficcop {
 class TrafficCopTests : public TerrierTest {
@@ -21,11 +25,20 @@ class TrafficCopTests : public TerrierTest {
   uint16_t port_ = common::Settings::SERVER_PORT;
   std::thread server_thread_;
 
-  TrafficCop tcop_;
+  common::DedicatedThreadRegistry thread_registry_{DISABLED};
+  storage::RecordBufferSegmentPool buffer_segment_pool_{100000, 1000};
+  transaction::TimestampManager timestamp_manager_{};
+  parser::PostgresParser parser_{};
+  transaction::TransactionManager txn_manager_{&timestamp_manager_, DISABLED, &buffer_segment_pool_, false, DISABLED};
+  storage::BlockStore block_store_{10000, 10000};
+  catalog::Catalog catalog_{&txn_manager_, &block_store_};
+  trafficcop::TerrierEngine terrier_engine_{common::ManagedPointer(&parser_), common::ManagedPointer(&txn_manager_),
+                                            common::ManagedPointer(&catalog_)};
+
+  std::unique_ptr<TrafficCop> tcop_;
   network::PostgresCommandFactory command_factory_;
   network::PostgresProtocolInterpreter::Provider interpreter_provider_{common::ManagedPointer(&command_factory_)};
   std::unique_ptr<network::ConnectionHandleFactory> handle_factory_;
-  common::DedicatedThreadRegistry thread_registry_ = common::DedicatedThreadRegistry(DISABLED);
 
   void SetUp() override {
     TerrierTest::SetUp();
@@ -34,8 +47,15 @@ class TrafficCopTests : public TerrierTest {
     test_logger->set_level(spdlog::level::debug);
     spdlog::flush_every(std::chrono::seconds(1));
 
+    // Bootstrap default database.
+    auto *bootstrap_txn = txn_manager_.BeginTransaction();
+    auto default_database_oid = catalog_.CreateDatabase(bootstrap_txn, catalog::DEFAULT_DATABASE, true);
+    txn_manager_.Commit(bootstrap_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+
+    tcop_ = std::make_unique<TrafficCop>(default_database_oid, common::ManagedPointer(&terrier_engine_));
+
     try {
-      handle_factory_ = std::make_unique<network::ConnectionHandleFactory>(common::ManagedPointer(&tcop_));
+      handle_factory_ = std::make_unique<network::ConnectionHandleFactory>(common::ManagedPointer(tcop_));
       server_ = std::make_unique<network::TerrierServer>(
           common::ManagedPointer<network::ProtocolInterpreter::Provider>(&interpreter_provider_),
           common::ManagedPointer(handle_factory_.get()),
