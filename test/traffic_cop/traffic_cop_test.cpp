@@ -1,6 +1,7 @@
 #include <pqxx/pqxx> /* libpqxx is used to instantiate C++ client */
 
 #include <memory>
+#include <string>
 #include <unordered_map>
 #include <vector>
 
