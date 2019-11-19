@@ -24,11 +24,22 @@ namespace terrier::trafficcop {
  */
 class TerrierEngine {
  public:
+  /**
+   * Creates a new engine that uses the Terrier subsystem.
+   * @param parser the parser in use
+   * @param txn_manager the transaction manager in use
+   * @param catalog the catalog in use
+   */
   TerrierEngine(common::ManagedPointer<parser::PostgresParser> parser,
                 common::ManagedPointer<transaction::TransactionManager> txn_manager,
                 common::ManagedPointer<catalog::Catalog> catalog)
       : parser_(parser), txn_manager_(txn_manager), catalog_(catalog) {}
 
+  /**
+   * Parses and binds the query in the context of the given database.
+   * @param db_oid the oid of the database
+   * @param query the query to be parsed and bound
+   */
   void ParseAndBind(catalog::db_oid_t db_oid, const std::string &query);
 
  private:

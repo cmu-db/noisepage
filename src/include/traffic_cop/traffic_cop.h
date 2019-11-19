@@ -25,6 +25,7 @@ class TerrierEngine;
 class TrafficCop {
  public:
   /**
+   * @param default_database_oid OID of the default bootstrapped database
    * @param terrier_engine Terrier execution engine
    * @param replication_log_provider if given, the tcop will forward replication logs to this provider
    */
