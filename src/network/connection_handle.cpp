@@ -57,33 +57,33 @@
   {                     \
     ConnState::s,
 #define AND_INVOKE(m)                         \
-  ([](ConnectionHandle &w) { return w.m(); }) \
+  ([](const common::ManagedPointer<ConnectionHandle> w) { return w->m(); }) \
   };                                          // NOLINT
 
 #define AND_WAIT_ON_READ                      \
-  ([](ConnectionHandle &w) {                  \
-    w.UpdateEventFlags(EV_READ | EV_PERSIST); \
+  ([](const common::ManagedPointer<ConnectionHandle> w) {                  \
+    w->UpdateEventFlags(EV_READ | EV_PERSIST); \
     return Transition::NONE;                  \
   })                                          \
   };                                          // NOLINT
 
 #define AND_WAIT_ON_WRITE                      \
-  ([](ConnectionHandle &w) {                   \
-    w.UpdateEventFlags(EV_WRITE | EV_PERSIST); \
+  ([](const common::ManagedPointer<ConnectionHandle> w) {                   \
+    w->UpdateEventFlags(EV_WRITE | EV_PERSIST); \
     return Transition::NONE;                   \
   })                                           \
   };                                            // NOLINT
 
 #define AND_WAIT_ON_TERRIER        \
-  ([](ConnectionHandle &w) {       \
-    w.StopReceivingNetworkEvent(); \
+  ([](const common::ManagedPointer<ConnectionHandle> w) {       \
+    w->StopReceivingNetworkEvent(); \
     return Transition::NONE;       \
   })                               \
   };                               // NOLINT
 
 #define AND_WAIT_ON_READ_TIMEOUT        \
-  ([](ConnectionHandle &w) {       \
-    w.UpdateEventFlags(EV_READ | EV_PERSIST | EV_TIMEOUT, READ_TIMEOUT); \
+  ([](const common::ManagedPointer<ConnectionHandle> w) {       \
+    w->UpdateEventFlags(EV_READ | EV_PERSIST | EV_TIMEOUT, READ_TIMEOUT); \
     return Transition::NONE;       \
   })                               \
   };                               // NOLINT
@@ -144,7 +144,8 @@ DEF_TRANSITION_GRAPH
 END_DEF
     // clang-format on
 
-    void ConnectionHandle::StateMachine::Accept(Transition action, ConnectionHandle &connection) {
+    void ConnectionHandle::StateMachine::Accept(Transition action,
+                                                const common::ManagedPointer<ConnectionHandle> connection) {
   Transition next = action;
   while (next != Transition::NONE) {
     transition_result result = Delta(current_state_, next);

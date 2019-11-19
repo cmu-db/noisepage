@@ -4,13 +4,80 @@ pipeline {
         buildDiscarder(logRotator(daysToKeepStr: '30'))
     }
     stages {
-        stage('Build') {
+
+        stage('Check') {
+            parallel {
+                stage('macos-10.14/AppleClang-1001.0.46.4 (Debug/format/lint/censored)') {
+                    agent { label 'macos' }
+                    environment {
+                        LLVM_DIR="/usr/local/Cellar/llvm@8/8.0.1_1"
+                    }
+                    steps {
+                        sh 'echo $NODE_NAME'
+                        sh 'echo y | ./script/installation/packages.sh'
+                        sh 'mkdir build'
+                        sh 'cd build && cmake -DCMAKE_BUILD_TYPE=Debug -DTERRIER_USE_ASAN=OFF ..'
+                        sh 'cd build && timeout 1h make check-format'
+                        sh 'cd build && timeout 1h make check-lint'
+                        sh 'cd build && timeout 1h make check-censored'
+                        sh 'cd build && make -j4'
+                        sh 'cd build && make clean'
+                    }
+                }
+
+                stage('ubuntu-18.04/gcc-7.3.0 (Debug/format/lint/censored)') {
+                    agent {
+                        docker {
+                            image 'ubuntu:bionic'
+                            args '--cap-add sys_ptrace'
+                        }
+                    }
+                    steps {
+                        sh 'echo $NODE_NAME'
+                        sh 'echo y | sudo ./script/installation/packages.sh'
+                        sh 'mkdir build'
+                        sh 'cd build && cmake -DCMAKE_BUILD_TYPE=Debug -DTERRIER_USE_ASAN=OFF ..'
+                        sh 'cd build && timeout 1h make check-format'
+                        sh 'cd build && timeout 1h make check-lint'
+                        sh 'cd build && timeout 1h make check-censored'
+                        sh 'cd build  && make -j$(nproc)'
+                        sh 'cd build && make clean'
+                    }
+                }
+
+                stage('ubuntu-18.04/clang-8.0.0 (Debug/format/lint/censored)') {
+                    agent {
+                        docker {
+                            image 'ubuntu:bionic'
+                            args '--cap-add sys_ptrace'
+                        }
+                    }
+                    environment {
+                        CC="/usr/bin/clang-8"
+                        CXX="/usr/bin/clang++-8"
+                    }
+                    steps {
+                        sh 'echo $NODE_NAME'
+                        sh 'echo y | sudo ./script/installation/packages.sh'
+                        sh 'mkdir build'
+                        sh 'cd build && cmake -DCMAKE_BUILD_TYPE=Debug -DTERRIER_USE_ASAN=OFF ..'
+                        sh 'cd build && timeout 1h make check-format'
+                        sh 'cd build && timeout 1h make check-lint'
+                        sh 'cd build && timeout 1h make check-censored'
+                        sh 'cd build  && make -j$(nproc)'
+                        sh 'cd build && make clean'
+                    }
+                }
+            }
+        }
+
+        stage('Test') {
             parallel {
                 stage('macos-10.14/AppleClang-1001.0.46.4 (Debug/ASAN/unittest)') {
                     agent { label 'macos' }
                     environment {
                         ASAN_OPTIONS="detect_container_overflow=0"
-                        LLVM_DIR="/usr/local/Cellar/llvm@8/8.0.1"
+                        LLVM_DIR="/usr/local/Cellar/llvm@8/8.0.1_1"
                     }
                     steps {
                         sh 'echo $NODE_NAME'
@@ -107,7 +174,7 @@ pipeline {
                     agent { label 'macos' }
                     environment {
                         ASAN_OPTIONS="detect_container_overflow=0"
-                        LLVM_DIR="/usr/local/Cellar/llvm@8/8.0.1"
+                        LLVM_DIR="/usr/local/Cellar/llvm@8/8.0.1_1"
                     }
                     steps {
                         sh 'echo $NODE_NAME'
@@ -160,21 +227,20 @@ pipeline {
                         sh 'cd build && make clean'
                     }
                 }
-                
-                stage('ubuntu-18.04/gcc-7.3.0 (Release/benchmark)') {
-                    agent { label 'benchmark' }
-                    steps {
-                        sh 'echo $NODE_NAME'
-                        sh 'echo y | sudo ./script/installation/packages.sh'
-                        sh 'mkdir build'
-                        sh 'cd build && cmake -DCMAKE_BUILD_TYPE=Release -DTERRIER_USE_ASAN=OFF -DTERRIER_USE_JEMALLOC=ON .. && make -j$(nproc) all'
-                        // sh 'cd build && timeout 1h make runbenchmark'
-                        sh 'cd script/micro_bench && timeout 1h ./run_micro_bench.py --run'
-                        archiveArtifacts 'script/micro_bench/*.json'
-                        junit 'script/micro_bench/*.xml'
-                        sh 'cd build && make clean'
-                    }
-                }
+            }
+        }
+
+        stage('Benchmark') {
+            agent { label 'benchmark' }
+            steps {
+                sh 'echo $NODE_NAME'
+                sh 'echo y | sudo ./script/installation/packages.sh'
+                sh 'mkdir build'
+                sh 'cd build && cmake -DCMAKE_BUILD_TYPE=Release -DTERRIER_USE_ASAN=OFF -DTERRIER_USE_JEMALLOC=ON .. && make -j$(nproc) all'
+                sh 'cd script/micro_bench && timeout 1h ./run_micro_bench.py --run'
+                archiveArtifacts 'script/micro_bench/*.json'
+                junit 'script/micro_bench/*.xml'
+                sh 'cd build && make clean'
             }
         }
     }

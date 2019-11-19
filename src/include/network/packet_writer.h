@@ -6,6 +6,7 @@
 #include <utility>
 #include <vector>
 
+#include "common/managed_pointer.h"
 #include "network/postgres/postgres_protocol_utils.h"
 #include "type/transient_value_peeker.h"
 
@@ -20,7 +21,7 @@ class PacketWriter {
   /**
    * Instantiates a new PacketWriter backed by the given WriteQueue
    */
-  explicit PacketWriter(const std::shared_ptr<WriteQueue> &write_queue) : queue_(*write_queue) {}
+  explicit PacketWriter(const common::ManagedPointer<WriteQueue> write_queue) : queue_(write_queue) {}
 
   ~PacketWriter() {
     // Make sure no packet is being written on destruction, otherwise we are
@@ -38,7 +39,7 @@ class PacketWriter {
    * Write out a single type
    * @param type to write to the queue
    */
-  void WriteType(NetworkMessageType type) { queue_.BufferWriteRawValue(type); }
+  void WriteType(NetworkMessageType type) { queue_->BufferWriteRawValue(type); }
 
   /**
    * Write out a packet with a single type that is not related to Postgres SSL.
@@ -66,8 +67,8 @@ class PacketWriter {
     // Remember the size field since we will need to modify it as we go along.
     // It is important that our size field is contiguous and not broken between
     // two buffers.
-    queue_.BufferWriteRawValue<int32_t>(0, false);
-    WriteBuffer &tail = *(queue_.buffers_[queue_.buffers_.size() - 1]);
+    queue_->BufferWriteRawValue<int32_t>(0, false);
+    WriteBuffer &tail = *(queue_->buffers_[queue_->buffers_.size() - 1]);
     curr_packet_len_ = reinterpret_cast<uint32_t *>(&tail.buf_[tail.size_ - sizeof(int32_t)]);
     return *this;
   }
@@ -81,7 +82,7 @@ class PacketWriter {
    */
   PacketWriter &AppendRaw(const void *src, size_t len) {
     TERRIER_ASSERT(!IsPacketEmpty(), "packet length is null");
-    queue_.BufferWriteRaw(src, len);
+    queue_->BufferWriteRaw(src, len);
     // Add the size field to the len of the packet. Be mindful of byte
     // ordering. We switch to network ordering only when the packet is finished
     *curr_packet_len_ += static_cast<uint32_t>(len);
@@ -214,7 +215,7 @@ class PacketWriter {
   // so we can update it as more bytes are written into this packet.
   uint32_t *curr_packet_len_ = nullptr;
   // Underlying WriteQueue backing this writer
-  WriteQueue &queue_;
+  const common::ManagedPointer<WriteQueue> queue_;
 };
 
 }  // namespace terrier::network

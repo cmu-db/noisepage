@@ -21,13 +21,24 @@ class OperatorExpression {
    * @param op an operator to bind to this OperatorExpression node
    * @param children children of this OperatorExpression
    */
-  explicit OperatorExpression(Operator &&op, std::vector<OperatorExpression *> &&children)
-      : op_(op), children_(std::move(children)) {}
+  explicit OperatorExpression(Operator op, std::vector<std::unique_ptr<OperatorExpression>> &&children)
+      : op_(std::move(op)), children_(std::move(children)) {}
+
+  /**
+   * Move constructor
+   * @param op other to construct from
+   */
+  OperatorExpression(OperatorExpression &&op) noexcept : op_(std::move(op.op_)), children_(std::move(op.children_)) {}
 
   /**
    * @return vector of children
    */
-  const std::vector<OperatorExpression *> &GetChildren() const { return children_; }
+  std::vector<common::ManagedPointer<OperatorExpression>> GetChildren() const {
+    std::vector<common::ManagedPointer<OperatorExpression>> result;
+    result.reserve(children_.size());
+    for (auto &i : children_) result.emplace_back(i);
+    return result;
+  }
 
   /**
    * @return underlying operator
@@ -35,17 +46,10 @@ class OperatorExpression {
   const Operator &GetOp() const { return op_; }
 
   /**
-   * destructor that delete its children
-   */
-  ~OperatorExpression() {
-    for (auto child : children_) delete child;
-  }
-
-  /**
    * Add a operator expression as child
    * @param child_op The operator expression to be added as child
    */
-  void PushChild(OperatorExpression *child_op) { children_.push_back(child_op); }
+  void PushChild(std::unique_ptr<OperatorExpression> child_op) { children_.emplace_back(std::move(child_op)); }
 
  private:
   /**
@@ -56,7 +60,7 @@ class OperatorExpression {
   /**
    * Vector of children
    */
-  std::vector<OperatorExpression *> children_;
+  std::vector<std::unique_ptr<OperatorExpression>> children_;
 };
 
 }  // namespace terrier::optimizer

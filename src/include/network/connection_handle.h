@@ -91,7 +91,7 @@ class ConnectionHandle {
     } else {
       t = Transition ::WAKEUP;
     }
-    state_machine_.Accept(t, *this);
+    state_machine_.Accept(t, common::ManagedPointer<ConnectionHandle>(this));
   }
 
   /* State Machine Actions */
@@ -180,7 +180,7 @@ class ConnectionHandle {
    */
   class StateMachine {
    public:
-    using action = Transition (*)(ConnectionHandle &);
+    using action = Transition (*)(const common::ManagedPointer<ConnectionHandle>);
     using transition_result = std::pair<ConnState, action>;
     /**
      * Runs the internal state machine, starting from the symbol given, until no
@@ -202,10 +202,7 @@ class ConnectionHandle {
      * @param action starting symbol
      * @param connection the network connection object to apply actions to
      */
-    void Accept(Transition action, ConnectionHandle &connection);  // NOLINT
-    // clang-tidy is suppressed here as it complains about the reference param having
-    // no const qualifier as this must be casted into a (void*) to pass as an argument to METHOD_AS_CALLBACK
-    // in the forward dependencies of Accept in the state_machine
+    void Accept(Transition action, common::ManagedPointer<ConnectionHandle> connection);
 
    private:
     /**
@@ -221,7 +218,6 @@ class ConnectionHandle {
   friend class ConnectionHandleFactory;
 
   std::unique_ptr<NetworkIoWrapper> io_wrapper_;
-  // A raw pointer is used here because references cannot be rebound.
   common::ManagedPointer<ConnectionHandlerTask> conn_handler_;
   common::ManagedPointer<trafficcop::TrafficCop> traffic_cop_;
   std::unique_ptr<ProtocolInterpreter> protocol_interpreter_;
