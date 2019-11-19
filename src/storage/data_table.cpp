@@ -277,7 +277,7 @@ void DataTable::WriteSchemaMessage(std::ofstream &outfile,
         case ArrowColumnType::DICTIONARY_COMPRESSED:
           dictionary = flatbuf::CreateDictionaryEncoding(flatbuf_builder,
                                                          dictionary_id,
-                                                         flatbuf::CreateInt(flatbuf_builder, sizeof(uint32_t), false),
+                                                         flatbuf::CreateInt(flatbuf_builder, 8 * sizeof(uint64_t), true),
                                                          false);
           dictionary_ids[col_id] = dictionary_id++;
         case ArrowColumnType::GATHERED_VARLEN: // fall through
@@ -328,6 +328,9 @@ void DataTable::WriteDictionaryMessage(std::ofstream &outfile,
   size_t cur_buffer_len = 0;
   field_nodes.emplace_back(num_elements, 0);
   char dump_buffer[common::Constants::BLOCK_SIZE];
+
+  // Fake validity buffer
+  buffers.emplace_back(buffer_offset, cur_buffer_len);
 
   cur_buffer_len = varlen_col.OffsetsLength() * sizeof(uint64_t);
   memcpy(dump_buffer + buffer_offset, reinterpret_cast<const char *>(varlen_col.Offsets()), cur_buffer_len);
@@ -422,9 +425,9 @@ void DataTable::DumpTable(const std::string file_name) const {
             ArrowVarlenColumn &varlen_col = col_info.VarlenColumn();
             WriteDictionaryMessage(outfile, dictionary_ids[col_id], varlen_col, flatbuf_builder);
             auto indices = col_info.Indices();
-            cur_buffer_len = num_slots * sizeof(uint32_t);
-            memcpy(dump_buffer + buffer_offset, indices, num_slots * sizeof(uint32_t));
-            cur_buffer_len = (cur_buffer_len + 7) & (~7);
+            cur_buffer_len = num_slots * sizeof(uint64_t);
+            memcpy(dump_buffer + buffer_offset, indices, cur_buffer_len);
+            //cur_buffer_len = (cur_buffer_len + 7) & (~7);
             buffers.emplace_back(buffer_offset, cur_buffer_len);
             buffer_offset += cur_buffer_len;
             break;

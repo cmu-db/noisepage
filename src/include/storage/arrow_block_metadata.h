@@ -174,7 +174,7 @@ class ArrowColumnInfo {
    * size of this array is equal to the number of slots in a block.
    * @return the indices array
    */
-  uint32_t *&Indices() {
+  uint64_t *&Indices() {
     TERRIER_ASSERT(type_ == ArrowColumnType::DICTIONARY_COMPRESSED,
                    "this array is only meaningful if the column is dicationary compressed");
     return indices_;
@@ -195,7 +195,7 @@ class ArrowColumnInfo {
   ArrowColumnType type_;
   ArrowVarlenColumn varlen_column_;  // For varlen and dictionary
   // TODO(Tianyu): Add null bitmap
-  uint32_t *indices_ = nullptr;  // for dictionary
+  uint64_t *indices_ = nullptr;  // for dictionary
 };
 
 /**
