@@ -12,6 +12,7 @@
 #include "settings/settings_manager.h"
 #include "settings/settings_param.h"
 #include "storage/garbage_collector_thread.h"
+#include "transaction/deferred_action_manager.h"
 #include "transaction/transaction_manager.h"
 
 namespace terrier {
@@ -64,11 +65,13 @@ class DBMain {
     // ManagedPointers unless we want a bunch of .get()s, which sounds like a future PR
     delete gc_thread_;
     delete metrics_manager_;
-    delete catalog_;
+    delete block_store_;
     delete garbage_collector_;
     delete settings_manager_;
     delete txn_manager_;
+    delete catalog_;
     delete timestamp_manager_;
+    delete deferred_action_manager_;
     delete buffer_segment_pool_;
     delete thread_pool_;
     delete log_manager_;
@@ -102,6 +105,7 @@ class DBMain {
   std::unique_ptr<common::StatisticsRegistry> main_stat_reg_;
   std::unordered_map<settings::Param, settings::ParamInfo> param_map_;
   transaction::TimestampManager *timestamp_manager_;
+  transaction::DeferredActionManager *deferred_action_manager_;
   transaction::TransactionManager *txn_manager_;
   catalog::Catalog *catalog_;
   settings::SettingsManager *settings_manager_;

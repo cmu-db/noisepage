@@ -1,12 +1,8 @@
-#include <sys/socket.h>
-#include <sys/types.h>
 #include <pqxx/pqxx> /* libpqxx is used to instantiate C++ client */
 
-#include <cstdio>
 #include <cstring>
 #include <memory>
 #include <string>
-#include <unordered_map>
 #include <vector>
 #include "common/managed_pointer.h"
 #include "common/settings.h"
@@ -92,6 +88,19 @@ class NetworkTests : public TerrierTest {
   void TearDown() override {
     server_->StopServer();
     TEST_LOG_DEBUG("Terrier has shut down");
+    catalog_->TearDown();
+
+    // Run the GC to clean up transactions
+    gc_->PerformGarbageCollection();
+    gc_->PerformGarbageCollection();
+    gc_->PerformGarbageCollection();
+
+    delete catalog_;
+    delete tcop_;
+    delete gc_;
+    delete txn_manager_;
+    delete deferred_action_manager_;
+    delete timestamp_manager_;
     TerrierTest::TearDown();
   }
 

@@ -2,7 +2,6 @@
 #include <memory>
 #include <unordered_map>
 #include <utility>
-#include "common/managed_pointer.h"
 #include "loggers/loggers_util.h"
 #include "settings/settings_manager.h"
 #include "settings/settings_param.h"
@@ -40,6 +39,7 @@ DBMain::DBMain(std::unordered_map<settings::Param, settings::ParamInfo> &&param_
   log_manager_->Start();
 
   timestamp_manager_ = new transaction::TimestampManager;
+  deferred_action_manager_ = new transaction::DeferredActionManager(timestamp_manager_);
   txn_manager_ =
       new transaction::TransactionManager(timestamp_manager_, DISABLED, buffer_segment_pool_, true, log_manager_);
   garbage_collector_ = new storage::GarbageCollector(timestamp_manager_, DISABLED, txn_manager_, DISABLED);
@@ -99,6 +99,11 @@ void DBMain::CleanUp() {
   thread_pool_->Shutdown();
   LOG_INFO("Terrier has shut down.");
   LoggersUtil::ShutDown();
+  catalog_->TearDown();
+
+  garbage_collector_->PerformGarbageCollection();
+  garbage_collector_->PerformGarbageCollection();
+  garbage_collector_->PerformGarbageCollection();
 }
 
 }  // namespace terrier

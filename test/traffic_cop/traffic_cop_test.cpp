@@ -1,7 +1,6 @@
 #include <pqxx/pqxx> /* libpqxx is used to instantiate C++ client */
 
 #include <memory>
-#include <string>
 #include <unordered_map>
 #include <vector>
 
@@ -176,7 +175,7 @@ class TrafficCopTests : public TerrierTest {
     out_buffer[0] = 'X';
     int len = sizeof(int32_t) + sizeof(char);
     reinterpret_cast<int32_t *>(out_buffer + 1)[0] = htonl(len);
-    write(socket_fd, nullptr, len);
+    write(socket_fd, nullptr, len + 1);
   }
 };
 
@@ -201,7 +200,7 @@ TEST_F(TrafficCopTests, RoundTripTest) {
       TEST_LOG_INFO(row_str);
     }
     txn1.commit();
-
+    connection.disconnect();
     EXPECT_EQ(r.size(), 1);
   } catch (const std::exception &e) {
     TEST_LOG_ERROR("Exception occurred: {0}", e.what());
@@ -395,6 +394,7 @@ TEST_F(TrafficCopTests, TemporaryNamespaceTest) {
     txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 
     txn1.commit();
+    connection.disconnect();
   } catch (const std::exception &e) {
     TEST_LOG_ERROR("Exception occurred: {0}", e.what());
     EXPECT_TRUE(false);
