@@ -6,6 +6,7 @@
 #include "gtest/gtest.h"
 #include "metrics/metrics_manager.h"
 #include "metrics/recovery_metric.h"
+#include "metrics/metrics_thread.h"
 #include "storage/garbage_collector_thread.h"
 #include "storage/index/index_builder.h"
 #include "storage/recovery/disk_log_provider.h"
@@ -64,7 +65,11 @@ class RecoveryTests : public TerrierTest {
   storage::GarbageCollector *recovery_gc_;
   storage::GarbageCollectorThread *recovery_gc_thread_;
 
-  void SetUp() override {
+  void SetUp () override {
+
+  }
+
+  void SetUp1() {
     TerrierTest::SetUp();
     // Unlink log file incase one exists from previous test iteration
     unlink(LOG_FILE_NAME);
@@ -212,7 +217,7 @@ class RecoveryTests : public TerrierTest {
     gc_thread_ = new storage::GarbageCollectorThread(gc_, gc_period_);
   }
 
-  void RunTest(const LargeSqlTableTestConfiguration &config, bool enable_metric) {
+  void RunTest(const LargeSqlTableTestConfiguration &config) {
     // Run workload
     auto *tested = new LargeSqlTableTestObject(config, txn_manager_, catalog_, &block_store_, &generator_);
     tested->SimulateOltp(100, 4);
@@ -223,7 +228,7 @@ class RecoveryTests : public TerrierTest {
     DiskLogProvider log_provider(LOG_FILE_NAME);
     RecoveryManager recovery_manager(&log_provider, common::ManagedPointer(recovery_catalog_), recovery_txn_manager_,
                                      recovery_deferred_action_manager_, common::ManagedPointer(thread_registry_),
-                                     &block_store_, recovery_metric_interval_, enable_metric);
+                                     &block_store_, recovery_metric_interval_, DISABLED);
     recovery_manager.StartRecovery();
     recovery_manager.WaitForRecoveryToFinish();
 
@@ -252,28 +257,104 @@ class RecoveryTests : public TerrierTest {
       }
     }
 
-    if (enable_metric) {
-      // Make sure everything is finished
-      std::this_thread::sleep_for(std::chrono::seconds(1));
+    delete tested;
+  }
 
-      // Metrics tests
-      const auto aggregated_data = reinterpret_cast<metrics::RecoveryMetricRawData *>(
-          recovery_manager.metrics_manager_->AggregatedMetrics()
-              .at(static_cast<uint8_t>(metrics::MetricsComponent::RECOVERY))
-              .get());
-      EXPECT_NE(aggregated_data, nullptr);
+  void RunTestWithMetrics(const LargeSqlTableTestConfiguration &config) {
+    TerrierTest::SetUp();
+    // Unlink log file incase one exists from previous test iteration
+    unlink(LOG_FILE_NAME);
+    for (const auto &file : metrics::RecoveryMetricRawData::FILES) unlink(std::string(file).c_str());
+    const std::chrono::milliseconds metrics_period_{100};
+    auto *const metrics_thread = new metrics::MetricsThread(metrics_period_);
+    metrics_thread->GetMetricsManager().EnableMetric(metrics::MetricsComponent::RECOVERY);
+    common::ManagedPointer<metrics::MetricsManager> metrics_manager(&(metrics_thread->GetMetricsManager()));
+    thread_registry_ = new common::DedicatedThreadRegistry(metrics_manager);
+    log_manager_ = new LogManager(LOG_FILE_NAME, num_log_buffers_, log_serialization_interval_, log_persist_interval_,
+                                  log_persist_threshold_, &buffer_pool_, common::ManagedPointer(thread_registry_));
+    log_manager_->Start();
+    timestamp_manager_ = new transaction::TimestampManager;
+    deferred_action_manager_ = new transaction::DeferredActionManager(timestamp_manager_);
+    txn_manager_ = new transaction::TransactionManager(timestamp_manager_, deferred_action_manager_, &buffer_pool_,
+                                                       true, log_manager_);
+    catalog_ = new catalog::Catalog(txn_manager_, &block_store_);
+    gc_ = new storage::GarbageCollector(timestamp_manager_, deferred_action_manager_, txn_manager_, DISABLED);
+    gc_thread_ = new storage::GarbageCollectorThread(gc_, gc_period_);  // Enable background GC
 
-      // Calculate total number of txns
-      uint64_t total_num_txns = 0;
-      uint64_t total_num_bytes = 0;
-      for (auto &data : aggregated_data->recovery_data_) {
-        total_num_txns += data.num_txns_;
-        total_num_bytes += data.num_bytes_;
-      }
+    recovery_timestamp_manager_ = new transaction::TimestampManager;
+    recovery_deferred_action_manager_ = new transaction::DeferredActionManager(recovery_timestamp_manager_);
+    recovery_txn_manager_ = new transaction::TransactionManager(
+        recovery_timestamp_manager_, recovery_deferred_action_manager_, &buffer_pool_, true, DISABLED);
+    recovery_catalog_ = new catalog::Catalog(recovery_txn_manager_, &block_store_);
+    recovery_gc_ = new storage::GarbageCollector(recovery_timestamp_manager_, recovery_deferred_action_manager_,
+                                                 recovery_txn_manager_, DISABLED);
+    recovery_gc_thread_ = new storage::GarbageCollectorThread(recovery_gc_, gc_period_);  // Enable background GC
 
-      EXPECT_EQ(total_num_txns, 101);
-      EXPECT_EQ(total_num_bytes, 91176);
+    // Run workload
+    auto *tested = new LargeSqlTableTestObject(config, txn_manager_, catalog_, &block_store_, &generator_);
+    tested->SimulateOltp(100, 4);
+
+    ShutdownAndRestartSystem();
+
+    // Instantiate recovery manager, and recover the tables.
+    DiskLogProvider log_provider(LOG_FILE_NAME);
+    RecoveryManager recovery_manager(&log_provider, common::ManagedPointer(recovery_catalog_), recovery_txn_manager_,
+                                     recovery_deferred_action_manager_, common::ManagedPointer(thread_registry_),
+                                     &block_store_, recovery_metric_interval_, metrics_manager);
+    recovery_manager.StartRecovery();
+    recovery_manager.WaitForRecoveryToFinish();
+    
+    // Make sure everything is finished
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+    
+    // Metrics tests
+    recovery_manager.metrics_manager_->Aggregate();
+    const auto aggregated_data = reinterpret_cast<metrics::RecoveryMetricRawData *>(
+        recovery_manager.metrics_manager_->AggregatedMetrics()
+            .at(static_cast<uint8_t>(metrics::MetricsComponent::RECOVERY))
+            .get());
+    EXPECT_NE(aggregated_data, nullptr);
+
+    // Calculate total number of txns
+    uint64_t total_num_txns = 0;
+    uint64_t total_num_bytes = 0;
+    for (auto &data : aggregated_data->recovery_data_) {
+      std::cout << data.num_txns_ << std::endl;
+      total_num_txns += data.num_txns_;
+      total_num_bytes += data.num_bytes_;
     }
+
+    EXPECT_EQ(total_num_txns, 101);
+    EXPECT_EQ(total_num_bytes, 91176);
+    std::cout << "finish" << std::endl;
+
+    // Check we recovered all the original tables
+    for (auto &database : tested->GetTables()) {
+      auto database_oid = database.first;
+      for (auto &table_oid : database.second) {
+        // Get original sql table
+        auto original_txn = txn_manager_->BeginTransaction();
+        auto original_sql_table =
+            catalog_->GetDatabaseCatalog(original_txn, database_oid)->GetTable(original_txn, table_oid);
+
+        // Get Recovered table
+        auto *recovery_txn = recovery_txn_manager_->BeginTransaction();
+        auto db_catalog = recovery_catalog_->GetDatabaseCatalog(recovery_txn, database_oid);
+        EXPECT_TRUE(db_catalog != nullptr);
+        auto recovered_sql_table = db_catalog->GetTable(recovery_txn, table_oid);
+        EXPECT_TRUE(recovered_sql_table != nullptr);
+
+        EXPECT_TRUE(StorageTestUtil::SqlTableEqualDeep(
+            original_sql_table->table_.layout_, original_sql_table, recovered_sql_table,
+            tested->GetTupleSlotsForTable(database_oid, table_oid), recovery_manager.tuple_slot_map_, txn_manager_,
+            recovery_txn_manager_));
+        txn_manager_->Commit(original_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+        recovery_txn_manager_->Commit(recovery_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+      }
+    }
+
+    
+
 
     delete tested;
   }
@@ -283,6 +364,7 @@ class RecoveryTests : public TerrierTest {
 // the log, and verifies that this new table is the same as the original table
 // NOLINTNEXTLINE
 TEST_F(RecoveryTests, SingleTableTest) {
+  SetUp1();
   LargeSqlTableTestConfiguration config = LargeSqlTableTestConfiguration::Builder()
                                               .SetNumDatabases(1)
                                               .SetNumTables(1)
@@ -292,7 +374,7 @@ TEST_F(RecoveryTests, SingleTableTest) {
                                               .SetInsertUpdateSelectDeleteRatio({0.2, 0.5, 0.2, 0.1})
                                               .SetVarlenAllowed(true)
                                               .Build();
-  RecoveryTests::RunTest(config, false);
+  RecoveryTests::RunTest(config);
 }
 
 // This test inserts some tuples into a single table. It then recreates the test table from
@@ -309,7 +391,7 @@ TEST_F(RecoveryTests, RecoveryMetricsTest) {
                                               .SetInsertUpdateSelectDeleteRatio({1.0, 0.0, 0.0, 0.0})
                                               .SetVarlenAllowed(true)
                                               .Build();
-  RecoveryTests::RunTest(config, true);
+  RecoveryTests::RunTestWithMetrics(config);
 }
 
 // This test checks that we recover correctly in a high abort rate workload. We achieve the high abort rate by having
@@ -318,6 +400,7 @@ TEST_F(RecoveryTests, RecoveryMetricsTest) {
 // fill quickly.
 // NOLINTNEXTLINE
 TEST_F(RecoveryTests, HighAbortRateTest) {
+  SetUp1();
   LargeSqlTableTestConfiguration config = LargeSqlTableTestConfiguration::Builder()
                                               .SetNumDatabases(1)
                                               .SetNumTables(1)
@@ -327,13 +410,14 @@ TEST_F(RecoveryTests, HighAbortRateTest) {
                                               .SetInsertUpdateSelectDeleteRatio({0.2, 0.5, 0.3, 0.0})
                                               .SetVarlenAllowed(true)
                                               .Build();
-  RecoveryTests::RunTest(config, false);
+  RecoveryTests::RunTest(config);
 }
 
 // This test inserts some tuples into multiple tables across multiple databases. It then recovers these tables, and
 // verifies that the recovered tables are equal to the test tables.
 // NOLINTNEXTLINE
 TEST_F(RecoveryTests, MultiDatabaseTest) {
+  SetUp1();
   LargeSqlTableTestConfiguration config = LargeSqlTableTestConfiguration::Builder()
                                               .SetNumDatabases(3)
                                               .SetNumTables(5)
@@ -343,12 +427,13 @@ TEST_F(RecoveryTests, MultiDatabaseTest) {
                                               .SetInsertUpdateSelectDeleteRatio({0.3, 0.6, 0.0, 0.1})
                                               .SetVarlenAllowed(true)
                                               .Build();
-  RecoveryTests::RunTest(config, false);
+  RecoveryTests::RunTest(config);
 }
 
 // Tests that we correctly process records corresponding to a drop database command.
 // NOLINTNEXTLINE
 TEST_F(RecoveryTests, DropDatabaseTest) {
+  SetUp1();
   std::string database_name = "testdb";
 
   // Create and drop the database
@@ -363,7 +448,7 @@ TEST_F(RecoveryTests, DropDatabaseTest) {
   DiskLogProvider log_provider(LOG_FILE_NAME);
   RecoveryManager recovery_manager(&log_provider, common::ManagedPointer(recovery_catalog_), recovery_txn_manager_,
                                    recovery_deferred_action_manager_, common::ManagedPointer(thread_registry_),
-                                   &block_store_, recovery_metric_interval_, false);
+                                   &block_store_, recovery_metric_interval_, DISABLED);
   recovery_manager.StartRecovery();
   recovery_manager.WaitForRecoveryToFinish();
 
@@ -377,6 +462,7 @@ TEST_F(RecoveryTests, DropDatabaseTest) {
 // Tests that we correctly process records corresponding to a drop table command.
 // NOLINTNEXTLINE
 TEST_F(RecoveryTests, DropTableTest) {
+  SetUp1();
   std::string database_name = "testdb";
   auto namespace_oid = catalog::postgres::NAMESPACE_DEFAULT_NAMESPACE_OID;
   std::string table_name = "testtable";
@@ -395,7 +481,7 @@ TEST_F(RecoveryTests, DropTableTest) {
   DiskLogProvider log_provider(LOG_FILE_NAME);
   RecoveryManager recovery_manager(&log_provider, common::ManagedPointer(recovery_catalog_), recovery_txn_manager_,
                                    recovery_deferred_action_manager_, common::ManagedPointer(thread_registry_),
-                                   &block_store_, recovery_metric_interval_, false);
+                                   &block_store_, recovery_metric_interval_, DISABLED);
   recovery_manager.StartRecovery();
   recovery_manager.WaitForRecoveryToFinish();
 
@@ -414,6 +500,7 @@ TEST_F(RecoveryTests, DropTableTest) {
 // Tests that we correctly process records corresponding to a drop index command.
 // NOLINTNEXTLINE
 TEST_F(RecoveryTests, DropIndexTest) {
+  SetUp1();
   std::string database_name = "testdb";
   auto namespace_oid = catalog::postgres::NAMESPACE_DEFAULT_NAMESPACE_OID;
   std::string table_name = "testtable";
@@ -434,7 +521,7 @@ TEST_F(RecoveryTests, DropIndexTest) {
   DiskLogProvider log_provider(LOG_FILE_NAME);
   RecoveryManager recovery_manager(&log_provider, common::ManagedPointer(recovery_catalog_), recovery_txn_manager_,
                                    recovery_deferred_action_manager_, common::ManagedPointer(thread_registry_),
-                                   &block_store_, recovery_metric_interval_, false);
+                                   &block_store_, recovery_metric_interval_, DISABLED);
   recovery_manager.StartRecovery();
   recovery_manager.WaitForRecoveryToFinish();
 
@@ -457,6 +544,7 @@ TEST_F(RecoveryTests, DropIndexTest) {
 // Tests that we correctly process records corresponding to a drop namespace command.
 // NOLINTNEXTLINE
 TEST_F(RecoveryTests, DropNamespaceTest) {
+  SetUp1();
   std::string database_name = "testdb";
   std::string namespace_name = "testnamespace";
 
@@ -474,7 +562,7 @@ TEST_F(RecoveryTests, DropNamespaceTest) {
   DiskLogProvider log_provider(LOG_FILE_NAME);
   RecoveryManager recovery_manager(&log_provider, common::ManagedPointer(recovery_catalog_), recovery_txn_manager_,
                                    recovery_deferred_action_manager_, common::ManagedPointer(thread_registry_),
-                                   &block_store_, recovery_metric_interval_, false);
+                                   &block_store_, recovery_metric_interval_, DISABLED);
   recovery_manager.StartRecovery();
   recovery_manager.WaitForRecoveryToFinish();
 
@@ -493,6 +581,7 @@ TEST_F(RecoveryTests, DropNamespaceTest) {
 // deletes of tables and indexes
 // NOLINTNEXTLINE
 TEST_F(RecoveryTests, DropDatabaseCascadeDeleteTest) {
+  SetUp1();
   std::string database_name = "testdb";
   std::string namespace_name = "testnamespace";
   std::string table_name = "testtable";
@@ -514,7 +603,7 @@ TEST_F(RecoveryTests, DropDatabaseCascadeDeleteTest) {
   DiskLogProvider log_provider(LOG_FILE_NAME);
   RecoveryManager recovery_manager(&log_provider, common::ManagedPointer(recovery_catalog_), recovery_txn_manager_,
                                    recovery_deferred_action_manager_, common::ManagedPointer(thread_registry_),
-                                   &block_store_, recovery_metric_interval_, false);
+                                   &block_store_, recovery_metric_interval_, DISABLED);
   recovery_manager.StartRecovery();
   recovery_manager.WaitForRecoveryToFinish();
 
@@ -529,6 +618,7 @@ TEST_F(RecoveryTests, DropDatabaseCascadeDeleteTest) {
 // during crash situations.
 // NOLINTNEXTLINE
 TEST_F(RecoveryTests, UnrecoverableTransactionsTest) {
+  SetUp1();
   std::string database_name = "testdb";
 
   // Create a database and commit, we should see this one after recovery
@@ -559,7 +649,7 @@ TEST_F(RecoveryTests, UnrecoverableTransactionsTest) {
   DiskLogProvider log_provider(LOG_FILE_NAME);
   RecoveryManager recovery_manager(&log_provider, common::ManagedPointer(recovery_catalog_), recovery_txn_manager_,
                                    recovery_deferred_action_manager_, common::ManagedPointer(thread_registry_),
-                                   &block_store_, recovery_metric_interval_, false);
+                                   &block_store_, recovery_metric_interval_, DISABLED);
   recovery_manager.StartRecovery();
   recovery_manager.WaitForRecoveryToFinish();
 
@@ -599,6 +689,7 @@ TEST_F(RecoveryTests, UnrecoverableTransactionsTest) {
 // able to create a table.
 // NOLINTNEXTLINE
 TEST_F(RecoveryTests, ConcurrentCatalogDDLChangesTest) {
+  SetUp1();
   std::string database_name = "testdb";
   auto namespace_oid = catalog::postgres::NAMESPACE_DEFAULT_NAMESPACE_OID;
   std::string table_name = "foo";
@@ -628,7 +719,7 @@ TEST_F(RecoveryTests, ConcurrentCatalogDDLChangesTest) {
   DiskLogProvider log_provider(LOG_FILE_NAME);
   RecoveryManager recovery_manager(&log_provider, common::ManagedPointer(recovery_catalog_), recovery_txn_manager_,
                                    recovery_deferred_action_manager_, common::ManagedPointer(thread_registry_),
-                                   &block_store_, recovery_metric_interval_, false);
+                                   &block_store_, recovery_metric_interval_, DISABLED);
   recovery_manager.StartRecovery();
   recovery_manager.WaitForRecoveryToFinish();
 
@@ -660,6 +751,7 @@ TEST_F(RecoveryTests, ConcurrentCatalogDDLChangesTest) {
 // able to insert into it.
 // NOLINTNEXTLINE
 TEST_F(RecoveryTests, ConcurrentDDLChangesTest) {
+  SetUp1();
   std::string database_name = "testdb";
   auto namespace_oid = catalog::postgres::NAMESPACE_DEFAULT_NAMESPACE_OID;
   std::string table_name = "foo";
@@ -699,7 +791,7 @@ TEST_F(RecoveryTests, ConcurrentDDLChangesTest) {
   DiskLogProvider log_provider(LOG_FILE_NAME);
   RecoveryManager recovery_manager(&log_provider, common::ManagedPointer(recovery_catalog_), recovery_txn_manager_,
                                    recovery_deferred_action_manager_, common::ManagedPointer(thread_registry_),
-                                   &block_store_, recovery_metric_interval_, false);
+                                   &block_store_, recovery_metric_interval_, DISABLED);
   recovery_manager.StartRecovery();
   recovery_manager.WaitForRecoveryToFinish();
 
@@ -718,6 +810,7 @@ TEST_F(RecoveryTests, ConcurrentDDLChangesTest) {
 // recovering from the logs generated by the original workload's recovery.
 // NOLINTNEXTLINE
 TEST_F(RecoveryTests, DoubleRecoveryTest) {
+  SetUp1();
   std::string secondary_log_file = "test2.log";
   unlink(secondary_log_file.c_str());
   LargeSqlTableTestConfiguration config = LargeSqlTableTestConfiguration::Builder()
@@ -764,7 +857,7 @@ TEST_F(RecoveryTests, DoubleRecoveryTest) {
   DiskLogProvider log_provider(LOG_FILE_NAME);
   RecoveryManager recovery_manager(&log_provider, common::ManagedPointer(recovery_catalog_), recovery_txn_manager_,
                                    recovery_deferred_action_manager_, common::ManagedPointer(thread_registry_),
-                                   &block_store_, recovery_metric_interval_, false);
+                                   &block_store_, recovery_metric_interval_, DISABLED);
   recovery_manager.StartRecovery();
   recovery_manager.WaitForRecoveryToFinish();
 
@@ -828,7 +921,7 @@ TEST_F(RecoveryTests, DoubleRecoveryTest) {
   RecoveryManager secondary_recovery_manager(
       &secondary_log_provider, common::ManagedPointer(&secondary_recovery_catalog), &secondary_recovery_txn_manager,
       &secondary_recovery_deferred_action_manager, common::ManagedPointer(thread_registry_), &block_store_,
-      recovery_metric_interval_, false);
+      recovery_metric_interval_, DISABLED);
   secondary_recovery_manager.StartRecovery();
   secondary_recovery_manager.WaitForRecoveryToFinish();
 

@@ -11,6 +11,7 @@
 #include "common/spin_latch.h"
 
 #include "metrics/metrics_manager.h"
+#include <iostream>
 
 namespace terrier::common {
 
@@ -78,7 +79,10 @@ class DedicatedThreadRegistry {
     auto *task = new T(args...);  // Create task
     thread_owners_table_[requester].insert(task);
     threads_table_.emplace(task, std::thread([=] {
-                             if (metrics_manager_ != DISABLED) metrics_manager_->RegisterThread();
+                             if (metrics_manager_ != DISABLED) {
+                               std::cout << "registering" << std::this_thread::get_id() << std::endl;
+                               metrics_manager_->RegisterThread();
+                             }
                              task->RunTask();
                            }));
     requester->AddThread();

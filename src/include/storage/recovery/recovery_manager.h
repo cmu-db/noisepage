@@ -44,18 +44,8 @@ class RecoveryManager : public common::DedicatedThreadOwner {
      * Runs the recovery task. Our task only calls Recover on the log manager.
      */
     void RunTask() override {
-      if (recovery_manager_->enable_metric_) {
-        // Enable metrics
-        recovery_manager_->metrics_manager_->RegisterThread();
-        recovery_manager_->metrics_manager_->EnableMetric(metrics::MetricsComponent::RECOVERY);
-      }
-
+      std::cout << "this thread: " << std::this_thread::get_id() << std::endl;
       recovery_manager_->Recover();
-
-      // Save results to metrics manager, otherwise the results are lost
-      if (recovery_manager_->enable_metric_) {
-        recovery_manager_->metrics_manager_->Aggregate();
-      }
     }
 
     /**
@@ -84,7 +74,7 @@ class RecoveryManager : public common::DedicatedThreadOwner {
                            transaction::DeferredActionManager *deferred_action_manager,
                            common::ManagedPointer<terrier::common::DedicatedThreadRegistry> thread_registry,
                            BlockStore *store, const std::chrono::milliseconds recovery_metric_interval,
-                           bool enable_metric)
+                           common::ManagedPointer<metrics::MetricsManager> metrics_manager)
       : DedicatedThreadOwner(thread_registry),
         log_provider_(log_provider),
         catalog_(catalog),
@@ -93,7 +83,7 @@ class RecoveryManager : public common::DedicatedThreadOwner {
         block_store_(store),
         recovered_txns_(0),
         recovery_metric_interval_(recovery_metric_interval),
-        enable_metric_(enable_metric) {
+        metrics_manager_(metrics_manager) {
     // Initialize catalog_table_schemas_ map
     catalog_table_schemas_[catalog::postgres::CLASS_TABLE_OID] = catalog::postgres::Builder::GetClassTableSchema();
     catalog_table_schemas_[catalog::postgres::NAMESPACE_TABLE_OID] =
@@ -103,10 +93,6 @@ class RecoveryManager : public common::DedicatedThreadOwner {
         catalog::postgres::Builder::GetConstraintTableSchema();
     catalog_table_schemas_[catalog::postgres::INDEX_TABLE_OID] = catalog::postgres::Builder::GetIndexTableSchema();
     catalog_table_schemas_[catalog::postgres::TYPE_TABLE_OID] = catalog::postgres::Builder::GetTypeTableSchema();
-
-    if (enable_metric_) {
-      metrics_manager_ = common::ManagedPointer(new metrics::MetricsManager);
-    }
   }
 
   /**
@@ -122,6 +108,10 @@ class RecoveryManager : public common::DedicatedThreadOwner {
    * Blocks until recovery finishes, if it has not already, and stops background thread.
    */
   void WaitForRecoveryToFinish() {
+    if (metrics_manager_ != DISABLED) {
+      metrics_manager_->Aggregate();
+      std::cout << "ag" << std::endl;
+    }
     TERRIER_ASSERT(recovery_task_ != nullptr, "Recovery must already have been started");
     if (!thread_registry_->StopTask(this, recovery_task_.CastManagedPointerTo<common::DedicatedThreadTask>())) {
       throw std::runtime_error("Recovery task termination failed");
@@ -180,7 +170,6 @@ class RecoveryManager : public common::DedicatedThreadOwner {
   std::chrono::milliseconds recovery_metric_interval_;
 
   // Metric manager
-  bool enable_metric_;
   common::ManagedPointer<metrics::MetricsManager> metrics_manager_;
 
   /**

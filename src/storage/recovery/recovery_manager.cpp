@@ -151,6 +151,7 @@ uint32_t RecoveryManager::ProcessDeferredTransactions(terrier::transaction::time
       if (num_txns > 0 && common::thread_context.metrics_store_ != DISABLED &&
           common::thread_context.metrics_store_->ComponentEnabled(metrics::MetricsComponent::RECOVERY)) {
         common::thread_context.metrics_store_->RecordRecoveryData(num_txns, num_bytes, total_elapsed_us);
+        std::cout << "added: " << num_txns << std::endl;
         num_txns = 0;
         num_bytes = 0;
         total_elapsed_us = 0;
