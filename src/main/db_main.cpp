@@ -41,8 +41,8 @@ DBMain::DBMain(std::unordered_map<settings::Param, settings::ParamInfo> &&param_
   timestamp_manager_ = new transaction::TimestampManager;
   deferred_action_manager_ = new transaction::DeferredActionManager(timestamp_manager_);
   txn_manager_ =
-      new transaction::TransactionManager(timestamp_manager_, DISABLED, buffer_segment_pool_, true, log_manager_);
-  garbage_collector_ = new storage::GarbageCollector(timestamp_manager_, DISABLED, txn_manager_, DISABLED);
+      new transaction::TransactionManager(timestamp_manager_, deferred_action_manager_, buffer_segment_pool_, true, log_manager_);
+  garbage_collector_ = new storage::GarbageCollector(timestamp_manager_, deferred_action_manager_, txn_manager_, DISABLED);
   gc_thread_ = new storage::GarbageCollectorThread(garbage_collector_,
                                                    std::chrono::milliseconds{type::TransientValuePeeker::PeekInteger(
                                                        param_map_.find(settings::Param::gc_interval)->second.value_)});
@@ -94,16 +94,15 @@ void DBMain::ForceShutdown() {
 }
 
 void DBMain::CleanUp() {
+  catalog_->TearDown();
+  garbage_collector_->PerformGarbageCollection();
+  garbage_collector_->PerformGarbageCollection();
+  garbage_collector_->PerformGarbageCollection();
   main_stat_reg_->Shutdown(false);
   log_manager_->PersistAndStop();
   thread_pool_->Shutdown();
   LOG_INFO("Terrier has shut down.");
   LoggersUtil::ShutDown();
-  catalog_->TearDown();
-
-  garbage_collector_->PerformGarbageCollection();
-  garbage_collector_->PerformGarbageCollection();
-  garbage_collector_->PerformGarbageCollection();
 }
 
 }  // namespace terrier
