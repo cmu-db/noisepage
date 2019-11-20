@@ -3,7 +3,6 @@
 #include <string>
 #include <utility>
 #include <vector>
-#include "parser/parser_defs.h"
 
 namespace terrier::planner {
 
