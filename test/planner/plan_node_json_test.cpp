@@ -224,9 +224,6 @@ TEST(PlanNodeJsonTest, CreateIndexPlanNodeTest) {
                        .SetNamespaceOid(catalog::namespace_oid_t(0))
                        .SetTableOid(catalog::table_oid_t(2))
                        .SetIndexName("test_index")
-                       .SetUniqueIndex(true)
-                       .SetIndexAttrs({"a", "foo"})
-                       .SetKeyAttrs({"a", "bar"})
                        .Build();
 
   // Serialize to Json
