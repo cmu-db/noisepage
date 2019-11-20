@@ -516,11 +516,7 @@ TEST(PlanNodeJsonTest, DropDatabasePlanNodeTest) {
 TEST(PlanNodeJsonTest, DropIndexPlanNodeTest) {
   // Construct DropIndexPlanNode
   DropIndexPlanNode::Builder builder;
-  auto plan_node = builder.SetDatabaseOid(catalog::db_oid_t(7))
-                       .SetNamespaceOid(catalog::namespace_oid_t(0))
-                       .SetIndexOid(catalog::index_oid_t(8))
-                       .SetIfExist(true)
-                       .Build();
+  auto plan_node = builder.SetIndexOid(catalog::index_oid_t(8)).Build();
 
   // Serialize to Json
   auto json = plan_node->ToJson();
@@ -539,10 +535,7 @@ TEST(PlanNodeJsonTest, DropIndexPlanNodeTest) {
 TEST(PlanNodeJsonTest, DropNamespacePlanNodeTest) {
   // Construct DropNamespacePlanNode
   DropNamespacePlanNode::Builder builder;
-  auto plan_node = builder.SetDatabaseOid(catalog::db_oid_t(8))
-                       .SetNamespaceOid(catalog::namespace_oid_t(9))
-                       .SetIfExist(true)
-                       .Build();
+  auto plan_node = builder.SetNamespaceOid(catalog::namespace_oid_t(9)).Build();
 
   // Serialize to Json
   auto json = plan_node->ToJson();
@@ -561,11 +554,7 @@ TEST(PlanNodeJsonTest, DropNamespacePlanNodeTest) {
 TEST(PlanNodeJsonTest, DropTablePlanNodeTest) {
   // Construct DropTablePlanNode
   DropTablePlanNode::Builder builder;
-  auto plan_node = builder.SetDatabaseOid(catalog::db_oid_t(9))
-                       .SetNamespaceOid(catalog::namespace_oid_t(0))
-                       .SetTableOid(catalog::table_oid_t(10))
-                       .SetIfExist(true)
-                       .Build();
+  auto plan_node = builder.SetTableOid(catalog::table_oid_t(10)).Build();
 
   // Serialize to Json
   auto json = plan_node->ToJson();

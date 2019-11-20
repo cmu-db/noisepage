@@ -50,7 +50,7 @@ class DropDatabasePlanNode : public AbstractPlanNode {
      */
     std::unique_ptr<DropDatabasePlanNode> Build() {
       return std::unique_ptr<DropDatabasePlanNode>(
-          new DropDatabasePlanNode(std::move(children_), std::move(output_schema_), database_oid_, if_exists_));
+          new DropDatabasePlanNode(std::move(children_), std::move(output_schema_), database_oid_));
     }
 
    protected:
@@ -72,10 +72,8 @@ class DropDatabasePlanNode : public AbstractPlanNode {
    * @param database_oid OID of the database to drop
    */
   DropDatabasePlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
-                       std::unique_ptr<OutputSchema> output_schema, catalog::db_oid_t database_oid, bool if_exists)
-      : AbstractPlanNode(std::move(children), std::move(output_schema)),
-        database_oid_(database_oid),
-        if_exists_(if_exists) {}
+                       std::unique_ptr<OutputSchema> output_schema, catalog::db_oid_t database_oid)
+      : AbstractPlanNode(std::move(children), std::move(output_schema)), database_oid_(database_oid) {}
 
  public:
   /**
@@ -96,11 +94,6 @@ class DropDatabasePlanNode : public AbstractPlanNode {
   catalog::db_oid_t GetDatabaseOid() const { return database_oid_; }
 
   /**
-   * @return true if "IF EXISTS" was used
-   */
-  bool IsIfExists() const { return if_exists_; }
-
-  /**
    * @return the hashed value of this plan node
    */
   common::hash_t Hash() const override;
@@ -111,15 +104,7 @@ class DropDatabasePlanNode : public AbstractPlanNode {
   std::vector<std::unique_ptr<parser::AbstractExpression>> FromJson(const nlohmann::json &j) override;
 
  private:
-  /**
-   * OID of the database to drop
-   */
   catalog::db_oid_t database_oid_;
-
-  /**
-   * Whether "IF EXISTS" was used
-   */
-  bool if_exists_;
 };
 
 DEFINE_JSON_DECLARATIONS(DropDatabasePlanNode);
