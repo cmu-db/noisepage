@@ -201,9 +201,9 @@ TEST_F(TrafficCopTests, RoundTripTest) {
       TEST_LOG_INFO(row_str);
     }
     txn1.commit();
+    EXPECT_EQ(r.size(), 1);
     connection.disconnect();
     std::this_thread::sleep_for(std::chrono::seconds(5));
-    EXPECT_EQ(r.size(), 1);
   } catch (const std::exception &e) {
     TEST_LOG_ERROR("Exception occurred: {0}", e.what());
     EXPECT_TRUE(false);
