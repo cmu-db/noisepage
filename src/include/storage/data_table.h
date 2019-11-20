@@ -1,7 +1,7 @@
 #pragma once
 #include <flatbuffers/flatbuffers.h>
-#include <flatbuffers/generated/Schema_generated.h>
 #include <flatbuffers/generated/Message_generated.h>
+#include <flatbuffers/generated/Schema_generated.h>
 #include <list>
 #include <unordered_map>
 #include <vector>
@@ -220,30 +220,9 @@ class DataTable {
 
   /**
    * Dump a table to disk in arrow IPC format.
+   * @param file_name the file that the table will be exported to
    */
-  void DumpTable(const std::string file_name) const;
-
-  /**
-   * Write a schema message
-   * @param outfile the output file
-   * @param dictionary_ids when encountered columns that are dictionary-encoded, we pre-assign the
-   *                       dictionary id
-   * @param flatbuf_builder flatbuffer builder
-   */
-  void WriteSchemaMessage(std::ofstream &outfile,
-                          std::unordered_map<col_id_t, int64_t> &dictionary_ids,
-                          flatbuffers::FlatBufferBuilder &flatbuf_builder) const;
-
-  /**
-   * Write a dictionary message
-   * @param outfile the output file
-   * @param dictionary_id the id of this dictionary id
-   * @param flatbuf_builder flatbuffer builder
-   */
-  void WriteDictionaryMessage(std::ofstream &outfile,
-                              int64_t dictionary_id,
-                              ArrowVarlenColumn &varlen_col,
-                              flatbuffers::FlatBufferBuilder &flatbuf_builder) const;
+  void ExportTable(const std::string file_name) const;
 
  private:
   // The GarbageCollector needs to modify VersionPtrs when pruning version chains
@@ -312,6 +291,25 @@ class DataTable {
   // Compares and swaps the version pointer to be the undo record, only if its value is equal to the expected one.
   bool CompareAndSwapVersionPtr(TupleSlot slot, const TupleAccessStrategy &accessor, UndoRecord *expected,
                                 UndoRecord *desired);
+
+  /**
+   * Write a schema message
+   * @param outfile the output file
+   * @param dictionary_ids when encountered columns that are dictionary-encoded, we pre-assign the
+   *                       dictionary id
+   * @param flatbuf_builder flatbuffer builder
+   */
+  void WriteSchemaMessage(std::ofstream &outfile, std::unordered_map<col_id_t, int64_t> &dictionary_ids,
+                          flatbuffers::FlatBufferBuilder &flatbuf_builder) const;
+
+  /**
+   * Write a dictionary message
+   * @param outfile the output file
+   * @param dictionary_id the id of this dictionary
+   * @param flatbuf_builder flatbuffer builder
+   */
+  void WriteDictionaryMessage(std::ofstream &outfile, int64_t dictionary_id, ArrowVarlenColumn &varlen_col,
+                              flatbuffers::FlatBufferBuilder &flatbuf_builder) const;
 
   // Allocates a new block to be used as insertion head.
   RawBlock *NewBlock();
