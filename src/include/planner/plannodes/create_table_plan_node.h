@@ -395,15 +395,6 @@ class CreateTablePlanNode : public AbstractPlanNode {
     DISALLOW_COPY_AND_MOVE(Builder);
 
     /**
-     * @param database_oid  OID of the database
-     * @return builder object
-     */
-    Builder &SetDatabaseOid(catalog::db_oid_t database_oid) {
-      database_oid_ = database_oid;
-      return *this;
-    }
-
-    /**
      * @param namespace_oid OID of the namespace
      * @return builder object
      */
@@ -427,6 +418,15 @@ class CreateTablePlanNode : public AbstractPlanNode {
      */
     Builder &SetTableSchema(std::unique_ptr<catalog::Schema> table_schema) {
       table_schema_ = std::move(table_schema);
+      return *this;
+    }
+
+    /**
+     * @param block_store the BlockStore to associate with this table
+     * @return builder object
+     */
+    Builder &SetBlockStore(common::ManagedPointer<storage::BlockStore> block_store) {
+      block_store_ = block_store;
       return *this;
     }
 
@@ -553,17 +553,12 @@ class CreateTablePlanNode : public AbstractPlanNode {
      */
     std::unique_ptr<CreateTablePlanNode> Build() {
       return std::unique_ptr<CreateTablePlanNode>(new CreateTablePlanNode(
-          std::move(children_), std::move(output_schema_), database_oid_, namespace_oid_, std::move(table_name_),
-          std::move(table_schema_), has_primary_key_, std::move(primary_key_), std::move(foreign_keys_),
+          std::move(children_), std::move(output_schema_), namespace_oid_, std::move(table_name_),
+          std::move(table_schema_), block_store_, has_primary_key_, std::move(primary_key_), std::move(foreign_keys_),
           std::move(con_uniques_), std::move(con_checks_)));
     }
 
    protected:
-    /**
-     * OID of the database
-     */
-    catalog::db_oid_t database_oid_;
-
     /**
      * OID of the schema/namespace
      */
@@ -578,6 +573,8 @@ class CreateTablePlanNode : public AbstractPlanNode {
      * Table Schema
      */
     std::unique_ptr<catalog::Schema> table_schema_;
+
+    common::ManagedPointer<storage::BlockStore> block_store_;
 
     /**
      * ColumnDefinition for multi-column constraints (including foreign key)
@@ -621,16 +618,16 @@ class CreateTablePlanNode : public AbstractPlanNode {
    * @param con_checks check constraints
    */
   CreateTablePlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
-                      std::unique_ptr<OutputSchema> output_schema, catalog::db_oid_t database_oid,
-                      catalog::namespace_oid_t namespace_oid, std::string table_name,
-                      std::unique_ptr<catalog::Schema> table_schema, bool has_primary_key, PrimaryKeyInfo primary_key,
-                      std::vector<ForeignKeyInfo> &&foreign_keys, std::vector<UniqueInfo> &&con_uniques,
-                      std::vector<CheckInfo> &&con_checks)
+                      std::unique_ptr<OutputSchema> output_schema, catalog::namespace_oid_t namespace_oid,
+                      std::string table_name, std::unique_ptr<catalog::Schema> table_schema,
+                      common::ManagedPointer<storage::BlockStore> block_store, bool has_primary_key,
+                      PrimaryKeyInfo primary_key, std::vector<ForeignKeyInfo> &&foreign_keys,
+                      std::vector<UniqueInfo> &&con_uniques, std::vector<CheckInfo> &&con_checks)
       : AbstractPlanNode(std::move(children), std::move(output_schema)),
-        database_oid_(database_oid),
         namespace_oid_(namespace_oid),
         table_name_(std::move(table_name)),
         table_schema_(std::move(table_schema)),
+        block_store_(block_store),
         has_primary_key_(has_primary_key),
         primary_key_(std::move(primary_key)),
         foreign_keys_(std::move(foreign_keys)),
@@ -649,11 +646,6 @@ class CreateTablePlanNode : public AbstractPlanNode {
    * @return the type of this plan node
    */
   PlanNodeType GetPlanNodeType() const override { return PlanNodeType::CREATE_TABLE; }
-
-  /**
-   * @return OID of the database
-   */
-  catalog::db_oid_t GetDatabaseOid() const { return database_oid_; }
 
   /**
    * @return OID of the namespace to create index on
@@ -708,11 +700,6 @@ class CreateTablePlanNode : public AbstractPlanNode {
   std::vector<std::unique_ptr<parser::AbstractExpression>> FromJson(const nlohmann::json &j) override;
 
  private:
-  /**
-   * OID of the database
-   */
-  catalog::db_oid_t database_oid_;
-
   /**
    * OID of the namespace
    */

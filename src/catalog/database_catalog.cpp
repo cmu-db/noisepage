@@ -745,7 +745,7 @@ std::pair<uint32_t, postgres::ClassKind> DatabaseCatalog::GetClassOidKind(transa
   if (index_results.empty()) {
     delete[] buffer;
     // If the OID is invalid, we don't care the class kind and return a random one.
-    return std::make_pair(0, postgres::ClassKind::REGULAR_TABLE);
+    return std::make_pair(catalog::NULL_OID, postgres::ClassKind::REGULAR_TABLE);
   }
   TERRIER_ASSERT(index_results.size() == 1, "name not unique in classes_name_index_");
 
@@ -768,7 +768,7 @@ std::pair<uint32_t, postgres::ClassKind> DatabaseCatalog::GetClassOidKind(transa
 table_oid_t DatabaseCatalog::GetTableOid(transaction::TransactionContext *const txn, const namespace_oid_t ns,
                                          const std::string &name) {
   const auto oid_pair = GetClassOidKind(txn, ns, name);
-  if (oid_pair.second != postgres::ClassKind::REGULAR_TABLE) {
+  if (oid_pair.first == catalog::NULL_OID || oid_pair.second != postgres::ClassKind::REGULAR_TABLE) {
     // User called GetTableOid on an object that doesn't have type REGULAR_TABLE
     return INVALID_TABLE_OID;
   }
@@ -1076,7 +1076,7 @@ common::ManagedPointer<storage::index::Index> DatabaseCatalog::GetIndex(transact
 index_oid_t DatabaseCatalog::GetIndexOid(transaction::TransactionContext *txn, namespace_oid_t ns,
                                          const std::string &name) {
   const auto oid_pair = GetClassOidKind(txn, ns, name);
-  if (oid_pair.second != postgres::ClassKind::INDEX) {
+  if (oid_pair.first == NULL_OID || oid_pair.second != postgres::ClassKind::INDEX) {
     // User called GetIndexOid on an object that doesn't have type INDEX
     return INVALID_INDEX_OID;
   }

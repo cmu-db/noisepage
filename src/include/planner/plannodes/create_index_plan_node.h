@@ -29,15 +29,6 @@ class CreateIndexPlanNode : public AbstractPlanNode {
     DISALLOW_COPY_AND_MOVE(Builder);
 
     /**
-     * @param database_oid  OID of the database
-     * @return builder object
-     */
-    Builder &SetDatabaseOid(catalog::db_oid_t database_oid) {
-      database_oid_ = database_oid;
-      return *this;
-    }
-
-    /**
      * @param namespace_oid OID of the namespace
      * @return builder object
      */
@@ -75,15 +66,11 @@ class CreateIndexPlanNode : public AbstractPlanNode {
      */
     std::unique_ptr<CreateIndexPlanNode> Build() {
       return std::unique_ptr<CreateIndexPlanNode>(
-          new CreateIndexPlanNode(std::move(children_), std::move(output_schema_), database_oid_, namespace_oid_,
+          new CreateIndexPlanNode(std::move(children_), std::move(output_schema_), namespace_oid_,
                                   table_oid_, std::move(index_name_)));
     }
 
    protected:
-    /**
-     * OID of the database
-     */
-    catalog::db_oid_t database_oid_;
 
     /**
      * OID of namespace
@@ -116,10 +103,9 @@ class CreateIndexPlanNode : public AbstractPlanNode {
    * @param index_name name of index to be created
    */
   CreateIndexPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
-                      std::unique_ptr<OutputSchema> output_schema, catalog::db_oid_t database_oid,
+                      std::unique_ptr<OutputSchema> output_schema,
                       catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid, std::string index_name)
       : AbstractPlanNode(std::move(children), std::move(output_schema)),
-        database_oid_(database_oid),
         namespace_oid_(namespace_oid),
         table_oid_(table_oid),
         index_name_(std::move(index_name)) {}
@@ -136,11 +122,6 @@ class CreateIndexPlanNode : public AbstractPlanNode {
    * @return the type of this plan node
    */
   PlanNodeType GetPlanNodeType() const override { return PlanNodeType::CREATE_INDEX; }
-
-  /**
-   * @return OID of the database
-   */
-  catalog::db_oid_t GetDatabaseOid() const { return database_oid_; }
 
   /**
    * @return OID of the namespace
@@ -173,7 +154,6 @@ class CreateIndexPlanNode : public AbstractPlanNode {
   std::vector<std::unique_ptr<parser::AbstractExpression>> FromJson(const nlohmann::json &j) override;
 
  private:
-  catalog::db_oid_t database_oid_;
   catalog::namespace_oid_t namespace_oid_;
   catalog::table_oid_t table_oid_;
   std::string index_name_;

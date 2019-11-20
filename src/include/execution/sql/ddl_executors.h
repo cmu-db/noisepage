@@ -56,20 +56,10 @@ class DDLExecutors {
                                 parser::ColumnValueExpression(context->DBOid(), table_oid, table_col.Oid()));
         }
       }
-      auto index_schema =
-          std::make_unique<catalog::IndexSchema>(key_cols, storage::index::IndexType::BWTREE, true, true, false, true);
+      catalog::IndexSchema index_schema(key_cols, storage::index::IndexType::BWTREE, true, true, false, true);
 
-      // Build the CreateIndexPlanNode
-      planner::CreateIndexPlanNode::Builder builder;
-      builder.SetDatabaseOid(context->DBOid())
-          .SetNamespaceOid(node->GetNamespaceOid())
-          .SetTableOid(table_oid)
-          .SetIndexName(primary_key_info.constraint_name_)
-          .SetSchema(std::move(index_schema));
-      auto create_index_node = builder.Build();
-
-      // Execute the CreateIndexPlanNode, and use its return value as overall success result
-      return CreateIndexExecutor(common::ManagedPointer<planner::CreateIndexPlanNode>(create_index_node), context);
+      // Create the index, and use its return value as overall success result
+      return CreateIndex(context, node->GetNamespaceOid(), primary_key_info.constraint_name_, table_oid, index_schema);
     }
 
     // TODO(Matt): interpret other fields in CreateTablePlanNode when we support them in the Catalog:
@@ -80,23 +70,8 @@ class DDLExecutors {
 
   static bool CreateIndexExecutor(const common::ManagedPointer<planner::CreateIndexPlanNode> node,
                                   const common::ManagedPointer<exec::ExecutionContext> context) {
-    auto *const accessor = context->GetAccessor();
-    // Request permission from the Catalog to see if this a valid namespace and table name
-    const auto index_oid =
-        accessor->CreateIndex(node->GetNamespaceOid(), node->GetTableOid(), node->GetIndexName(), *(node->GetSchema()));
-    if (index_oid == catalog::INVALID_INDEX_OID) {
-      // Catalog wasn't able to proceed, txn must now abort
-      return false;
-    }
-    // Get the canonical IndexSchema from the Catalog now that column oids have been assigned
-    const auto &schema = accessor->GetIndexSchema(index_oid);
-    // Instantiate an Index and update the pointer in the Catalog
-    storage::index::IndexBuilder index_builder;
-    index_builder.SetKeySchema(schema);
-    auto *const index = index_builder.Build();
-    bool result UNUSED_ATTRIBUTE = accessor->SetIndexPointer(index_oid, index);
-    TERRIER_ASSERT(result, "CreateIndex succeeded, SetIndexPointer must also succeed.");
-    return true;
+    return CreateIndex(context, node->GetNamespaceOid(), node->GetIndexName(), node->GetTableOid(),
+                       *(node->GetSchema()));
   }
 
   static bool CreateDatabaseExecutor(const common::ManagedPointer<planner::CreateDatabasePlanNode> node,
@@ -117,6 +92,7 @@ class DDLExecutors {
                                 const common::ManagedPointer<exec::ExecutionContext> context) {
     auto *const accessor = context->GetAccessor();
     const bool result = accessor->DropTable(node->GetTableOid());
+    // TODO(Matt): drop all indexes, constraints, etc.?
     return result;
   }
 
@@ -134,6 +110,7 @@ class DDLExecutors {
                    "the binder.");
     auto *const accessor = context->GetAccessor();
     const bool result = accessor->DropDatabase(node->GetDatabaseOid());
+    // TODO(Matt): drop all namespaces?
     return result;
   }
 
@@ -141,7 +118,30 @@ class DDLExecutors {
                                     const common::ManagedPointer<exec::ExecutionContext> context) {
     auto *const accessor = context->GetAccessor();
     const bool result = accessor->DropNamespace(node->GetNamespaceOid());
+    // TODO(Matt): drop all tables?
     return result;
+  }
+
+ private:
+  static bool CreateIndex(const common::ManagedPointer<exec::ExecutionContext> context,
+                          const catalog::namespace_oid_t ns, const std::string &name, const catalog::table_oid_t table,
+                          const catalog::IndexSchema &input_schema) {
+    auto *const accessor = context->GetAccessor();
+    // Request permission from the Catalog to see if this a valid namespace and table name
+    const auto index_oid = accessor->CreateIndex(ns, table, name, input_schema);
+    if (index_oid == catalog::INVALID_INDEX_OID) {
+      // Catalog wasn't able to proceed, txn must now abort
+      return false;
+    }
+    // Get the canonical IndexSchema from the Catalog now that column oids have been assigned
+    const auto &schema = accessor->GetIndexSchema(index_oid);
+    // Instantiate an Index and update the pointer in the Catalog
+    storage::index::IndexBuilder index_builder;
+    index_builder.SetKeySchema(schema);
+    auto *const index = index_builder.Build();
+    bool result UNUSED_ATTRIBUTE = accessor->SetIndexPointer(index_oid, index);
+    TERRIER_ASSERT(result, "CreateIndex succeeded, SetIndexPointer must also succeed.");
+    return true;
   }
 };
 }  // namespace terrier::execution

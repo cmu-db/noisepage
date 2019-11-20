@@ -220,7 +220,7 @@ TEST(PlanNodeJsonTest, CreateFunctionPlanNodeTest) {
 TEST(PlanNodeJsonTest, CreateIndexPlanNodeTest) {
   // Construct CreateIndexPlanNode
   CreateIndexPlanNode::Builder builder;
-  auto plan_node = builder.SetDatabaseOid(catalog::db_oid_t(1))
+  auto plan_node = builder
                        .SetNamespaceOid(catalog::namespace_oid_t(0))
                        .SetTableOid(catalog::table_oid_t(2))
                        .SetIndexName("test_index")
@@ -243,7 +243,7 @@ TEST(PlanNodeJsonTest, CreateIndexPlanNodeTest) {
 TEST(PlanNodeJsonTest, CreateNamespacePlanNodeTest) {
   // Construct CreateNamespacePlanNode
   CreateNamespacePlanNode::Builder builder;
-  auto plan_node = builder.SetDatabaseOid(catalog::db_oid_t(2)).SetNamespaceName("test_namespace").Build();
+  auto plan_node = builder.SetNamespaceName("test_namespace").Build();
 
   // Serialize to Json
   auto json = plan_node->ToJson();
@@ -316,7 +316,7 @@ TEST(PlanNodeJsonTest, CreateTablePlanNodeTest) {
 
   // Construct CreateTablePlanNode (1 with PK and 1 without PK)
   CreateTablePlanNode::Builder builder;
-  auto pk_plan_node = builder.SetDatabaseOid(catalog::db_oid_t(1))
+  auto pk_plan_node = builder
                           .SetNamespaceOid(catalog::namespace_oid_t(2))
                           .SetTableName("test_tbl")
                           .SetTableSchema(get_schema())
@@ -327,7 +327,7 @@ TEST(PlanNodeJsonTest, CreateTablePlanNodeTest) {
                           .SetCheckConstraints(get_check_info())
                           .Build();
 
-  auto no_pk_plan_node = builder.SetDatabaseOid(catalog::db_oid_t(1))
+  auto no_pk_plan_node = builder
                              .SetNamespaceOid(catalog::namespace_oid_t(2))
                              .SetTableName("test_tbl")
                              .SetTableSchema(get_schema())
