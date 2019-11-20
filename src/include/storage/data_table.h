@@ -223,7 +223,7 @@ class DataTable {
    * Dump a table to disk in arrow IPC format.
    * @param file_name the file that the table will be exported to
    */
-  void ExportTable(const std::string file_name) const;
+  void ExportTable(const std::string &file_name) const;
 
  private:
   // The GarbageCollector needs to modify VersionPtrs when pruning version chains

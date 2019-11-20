@@ -15,10 +15,10 @@
 
 namespace terrier::storage {
 
-const int32_t flatbuf_continuation = -1;
-const int32_t max_dump_buffer_block = 5;
-const uint8_t arrow_alignment = 8;
-const char alignment[8] = {0};
+const int32_t FLATBUF_CONTINUZATION = -1;
+const int32_t MAX_DUMP_BUFFER_BLOCK = 5;
+const uint8_t ARROW_ALIGNMENT = 8;
+const char ALIGNMENT[8] = {0};
 
 template <typename SizeType>
 SizeType AlignedSize(uint8_t alignment, SizeType size) {
@@ -30,7 +30,7 @@ SizeType AlignedSize(uint8_t alignment, SizeType size) {
 void MemoryBlockToBuffer(const char *src, char *dest, size_t *offset, size_t len,
                          std::vector<flatbuf::Buffer> *buffers) {
   memcpy(dest + *offset, src, len);
-  len = AlignedSize<size_t>(arrow_alignment, len);
+  len = AlignedSize<size_t>(ARROW_ALIGNMENT, len);
   buffers->emplace_back(*offset, len);
   *offset += len;
 }
@@ -316,12 +316,12 @@ void DataTable::WriteSchemaMessage(std::ofstream &outfile, std::unordered_map<co
                                         schema.Union(), 0);
   flatbuf_builder->Finish(message);
   int32_t flatbuf_size = flatbuf_builder->GetSize();
-  int32_t padded_flatbuf_size = AlignedSize<int32_t>(arrow_alignment, flatbuf_size);
-  outfile.write(reinterpret_cast<const char *>(&flatbuf_continuation), sizeof(int32_t));
+  auto padded_flatbuf_size = AlignedSize<int32_t>(ARROW_ALIGNMENT, flatbuf_size);
+  outfile.write(reinterpret_cast<const char *>(&FLATBUF_CONTINUZATION), sizeof(int32_t));
   outfile.write(reinterpret_cast<const char *>(&padded_flatbuf_size), sizeof(int32_t));
   outfile.write(reinterpret_cast<const char *>(flatbuf_builder->GetBufferPointer()), flatbuf_size);
   if (padded_flatbuf_size != flatbuf_size) {
-    outfile.write(alignment, padded_flatbuf_size - flatbuf_size);
+    outfile.write(ALIGNMENT, padded_flatbuf_size - flatbuf_size);
   }
   outfile.flush();
 }
@@ -349,24 +349,24 @@ void DataTable::WriteDictionaryMessage(std::ofstream &outfile, int64_t dictionar
       flatbuf::CreateRecordBatch(*flatbuf_builder, num_elements, flatbuf_builder->CreateVectorOfStructs(field_nodes),
                                  flatbuf_builder->CreateVectorOfStructs(buffers));
   auto dictionary_batch = flatbuf::CreateDictionaryBatch(*flatbuf_builder, dictionary_id, record_batch);
-  size_t aligned_offset = AlignedSize<size_t>(arrow_alignment, buffer_offset);
+  auto aligned_offset = AlignedSize<size_t>(ARROW_ALIGNMENT, buffer_offset);
   auto message =
       flatbuf::CreateMessage(*flatbuf_builder, flatbuf::MetadataVersion_V4, flatbuf::MessageHeader_DictionaryBatch,
                              dictionary_batch.Union(), aligned_offset);
   flatbuf_builder->Finish(message);
   int32_t flatbuf_size = flatbuf_builder->GetSize();
-  int32_t padded_flatbuf_size = AlignedSize<int32_t>(arrow_alignment, flatbuf_size);
-  outfile.write(reinterpret_cast<const char *>(&flatbuf_continuation), sizeof(int32_t));
+  auto padded_flatbuf_size = AlignedSize<int32_t>(ARROW_ALIGNMENT, flatbuf_size);
+  outfile.write(reinterpret_cast<const char *>(&FLATBUF_CONTINUZATION), sizeof(int32_t));
   outfile.write(reinterpret_cast<const char *>(&padded_flatbuf_size), sizeof(int32_t));
   outfile.write(reinterpret_cast<const char *>(flatbuf_builder->GetBufferPointer()), flatbuf_size);
   if (padded_flatbuf_size != flatbuf_size) {
-    outfile.write(alignment, padded_flatbuf_size - flatbuf_size);
+    outfile.write(ALIGNMENT, padded_flatbuf_size - flatbuf_size);
   }
   outfile.write(dump_buffer, aligned_offset);
   outfile.flush();
 }
 
-void DataTable::ExportTable(const std::string file_name) const {
+void DataTable::ExportTable(const std::string &file_name) const {
   flatbuffers::FlatBufferBuilder flatbuf_builder;
   std::ofstream outfile(file_name, std::ios_base::out | std::ios_base::trunc | std::ios_base::binary);
   std::unordered_map<col_id_t, int64_t> dictionary_ids;
@@ -376,7 +376,7 @@ void DataTable::ExportTable(const std::string file_name) const {
   auto column_ids = layout.AllColumns();
   common::SpinLatch::ScopedSpinLatch guard(&blocks_latch_);
   // We may choose to scan twice instead of using a buffer?
-  auto dump_buffer = new char[max_dump_buffer_block * common::Constants::BLOCK_SIZE];
+  auto dump_buffer = new char[MAX_DUMP_BUFFER_BLOCK * common::Constants::BLOCK_SIZE];
   for (RawBlock *block : blocks_) {
     std::vector<flatbuf::FieldNode> field_nodes;
     std::vector<flatbuf::Buffer> buffers;
@@ -423,7 +423,7 @@ void DataTable::ExportTable(const std::string file_name) const {
       } else {
         int32_t cur_buffer_len;
         if (i == column_id_size - 1) {
-          uintptr_t casted_column_start = reinterpret_cast<uintptr_t>(column_start);
+          auto casted_column_start = reinterpret_cast<uintptr_t>(column_start);
           uintptr_t mask = common::Constants::BLOCK_SIZE - 1;
           cur_buffer_len = ((casted_column_start + mask) & (~mask)) - casted_column_start;
         } else {
@@ -437,17 +437,17 @@ void DataTable::ExportTable(const std::string file_name) const {
     auto record_batch =
         flatbuf::CreateRecordBatch(flatbuf_builder, num_slots, flatbuf_builder.CreateVectorOfStructs(field_nodes),
                                    flatbuf_builder.CreateVectorOfStructs(buffers));
-    size_t aligned_offset = AlignedSize<size_t>(arrow_alignment, buffer_offset);
+    auto aligned_offset = AlignedSize<size_t>(ARROW_ALIGNMENT, buffer_offset);
     auto message = flatbuf::CreateMessage(flatbuf_builder, flatbuf::MetadataVersion_V4,
                                           flatbuf::MessageHeader_RecordBatch, record_batch.Union(), aligned_offset);
     flatbuf_builder.Finish(message);
     int32_t flatbuf_size = flatbuf_builder.GetSize();
-    int32_t padded_flatbuf_size = AlignedSize<int32_t>(arrow_alignment, flatbuf_size);
-    outfile.write(reinterpret_cast<const char *>(&flatbuf_continuation), sizeof(int32_t));
+    auto padded_flatbuf_size = AlignedSize<int32_t>(ARROW_ALIGNMENT, flatbuf_size);
+    outfile.write(reinterpret_cast<const char *>(&FLATBUF_CONTINUZATION), sizeof(int32_t));
     outfile.write(reinterpret_cast<const char *>(&padded_flatbuf_size), sizeof(int32_t));
     outfile.write(reinterpret_cast<const char *>(flatbuf_builder.GetBufferPointer()), flatbuf_size);
     if (padded_flatbuf_size != flatbuf_size) {
-      outfile.write(alignment, padded_flatbuf_size - flatbuf_size);
+      outfile.write(ALIGNMENT, padded_flatbuf_size - flatbuf_size);
     }
     outfile.write(dump_buffer, aligned_offset);
     outfile.flush();

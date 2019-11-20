@@ -8,10 +8,6 @@
 #include "storage/block_layout.h"
 #include "storage/storage_defs.h"
 
-namespace terrier::catalog {
-class Schema;
-}
-
 namespace terrier::storage {
 class ProjectedRow;
 class TupleAccessStrategy;
