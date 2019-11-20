@@ -371,4 +371,92 @@ TEST_F(BlockCompactorTest, DictionaryCompressionTest) {
   }
 }
 
+// A fake test that exports a random data table to increase test coverage. Will later be replaced by an formal
+// automated export table test.
+// NOLINTNEXTLINE
+TEST_F(BlockCompactorTest, ExportDictionaryCompressedTableTest) {
+  storage::BlockLayout layout = StorageTestUtil::RandomLayoutWithVarlens(100, &generator_);
+  storage::TupleAccessStrategy accessor(layout);
+  // Technically, the block above is not "in" the table, but since we don't sequential scan that does not matter
+  storage::DataTable table(&block_store_, layout, storage::layout_version_t(0));
+  storage::RawBlock *block = table.begin()->GetBlock();
+  accessor.InitializeRawBlock(&table, block, storage::layout_version_t(0));
+
+  // Enable GC to cleanup transactions started by the block compactor
+  transaction::TimestampManager timestamp_manager;
+  transaction::DeferredActionManager deferred_action_manager{&timestamp_manager};
+  transaction::TransactionManager txn_manager(&timestamp_manager, &deferred_action_manager, &buffer_pool_, true,
+                                              DISABLED);
+  storage::GarbageCollector gc(&timestamp_manager, &deferred_action_manager, &txn_manager, DISABLED);
+  StorageTestUtil::PopulateBlockRandomly(&table, block, percent_empty_, &generator_);
+
+  // Manually populate the block header's arrow metadata for test initialization
+  auto &arrow_metadata = accessor.GetArrowBlockMetadata(block);
+  for (storage::col_id_t col_id : layout.AllColumns()) {
+    if (layout.IsVarlen(col_id)) {
+      arrow_metadata.GetColumnInfo(layout, col_id).Type() = storage::ArrowColumnType::DICTIONARY_COMPRESSED;
+    } else {
+      arrow_metadata.GetColumnInfo(layout, col_id).Type() = storage::ArrowColumnType::FIXED_LENGTH;
+    }
+  }
+
+  storage::BlockCompactor compactor;
+  compactor.PutInQueue(block);
+  compactor.ProcessCompactionQueue(&deferred_action_manager, &txn_manager);  // compaction pass
+
+  // Need to prune the version chain in order to make sure that the second pass succeeds
+  gc.PerformGarbageCollection();
+  compactor.PutInQueue(block);
+  compactor.ProcessCompactionQueue(&deferred_action_manager, &txn_manager);  // gathering pass
+
+  table.ExportTable("test_table.arrow");
+  EXPECT_EQ(std::remove("test_table.arrow"), 0);
+  gc.PerformGarbageCollection();
+  gc.PerformGarbageCollection();  // Second call to deallocate.
+}
+
+// A fake test that exports a random data table to increase test coverage. Will later be replaced by an formal
+// automated export table test.
+// NOLINTNEXTLINE
+TEST_F(BlockCompactorTest, ExportVarlenTableTest) {
+  storage::BlockLayout layout = StorageTestUtil::RandomLayoutWithVarlens(100, &generator_);
+  storage::TupleAccessStrategy accessor(layout);
+  // Technically, the block above is not "in" the table, but since we don't sequential scan that does not matter
+  storage::DataTable table(&block_store_, layout, storage::layout_version_t(0));
+  storage::RawBlock *block = table.begin()->GetBlock();
+  accessor.InitializeRawBlock(&table, block, storage::layout_version_t(0));
+
+  // Enable GC to cleanup transactions started by the block compactor
+  transaction::TimestampManager timestamp_manager;
+  transaction::DeferredActionManager deferred_action_manager{&timestamp_manager};
+  transaction::TransactionManager txn_manager(&timestamp_manager, &deferred_action_manager, &buffer_pool_, true,
+                                              DISABLED);
+  storage::GarbageCollector gc(&timestamp_manager, &deferred_action_manager, &txn_manager, DISABLED);
+  StorageTestUtil::PopulateBlockRandomly(&table, block, percent_empty_, &generator_);
+
+  // Manually populate the block header's arrow metadata for test initialization
+  auto &arrow_metadata = accessor.GetArrowBlockMetadata(block);
+  for (storage::col_id_t col_id : layout.AllColumns()) {
+    if (layout.IsVarlen(col_id)) {
+      arrow_metadata.GetColumnInfo(layout, col_id).Type() = storage::ArrowColumnType::GATHERED_VARLEN;
+    } else {
+      arrow_metadata.GetColumnInfo(layout, col_id).Type() = storage::ArrowColumnType::FIXED_LENGTH;
+    }
+  }
+
+  storage::BlockCompactor compactor;
+  compactor.PutInQueue(block);
+  compactor.ProcessCompactionQueue(&deferred_action_manager, &txn_manager);  // compaction pass
+
+  // Need to prune the version chain in order to make sure that the second pass succeeds
+  gc.PerformGarbageCollection();
+  compactor.PutInQueue(block);
+  compactor.ProcessCompactionQueue(&deferred_action_manager, &txn_manager);  // gathering pass
+
+  table.ExportTable("test_table.arrow");
+  EXPECT_EQ(std::remove("test_table.arrow"), 0);
+  gc.PerformGarbageCollection();
+  gc.PerformGarbageCollection();  // Second call to deallocate.
+}
+
 }  // namespace terrier
