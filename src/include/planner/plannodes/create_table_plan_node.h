@@ -476,74 +476,6 @@ class CreateTablePlanNode : public AbstractPlanNode {
     }
 
     /**
-     * @param create_stmt the SQL CREATE statement
-     * @return builder object
-     */
-    Builder &SetFromCreateStatement(parser::CreateStatement *create_stmt) {
-      if (create_stmt->GetCreateType() == parser::CreateStatement::CreateType::kTable) {
-        table_name_ = std::string(create_stmt->GetTableName());
-        std::vector<catalog::Schema::Column> columns;
-        std::vector<std::string> pri_cols;
-
-        for (auto &col : create_stmt->GetColumns()) {
-          type::TypeId val = col->GetValueType();
-
-          // Create column
-          // TODO(John) The default value expressions in the column definitions are currently shared pointers.
-          // The dereferences below are completely unsafe (there is no safe way to do it), but not fatal at the
-          // moment because we don't actually use them yet... Fixing this requires overhauling the plannodes to strip
-          // away shared pointers.
-          if (col->GetVarlenSize() != 0) {
-            TERRIER_ASSERT(val == type::TypeId::VARCHAR || val == type::TypeId::VARBINARY,
-                           "Variable length types should have a non-zero max varlen size");
-            columns.emplace_back(std::string(col->GetColumnName()), val, col->GetVarlenSize(), false,
-                                 *col->GetDefaultExpression());
-          } else {
-            TERRIER_ASSERT(val != type::TypeId::VARCHAR && val != type::TypeId::VARBINARY,
-                           "Fixed length types should have max varlen of size 0");
-            columns.emplace_back(std::string(col->GetColumnName()), val, false, *col->GetDefaultExpression());
-          }
-
-          // Collect Multi-column constraints information
-
-          // Primary key
-          if (col->IsPrimaryKey()) {
-            pri_cols.push_back(col->GetColumnName());
-          }
-
-          // Unique constraint
-          // Currently only supports for single column
-          if (col->IsUnique()) {
-            ProcessUniqueConstraint(col);
-          }
-
-          // Check expression constraint
-          // Currently only supports simple boolean forms like (a > 0)
-          if (col->GetCheckExpression() != nullptr) {
-            ProcessCheckConstraint(col);
-          }
-        }
-
-        // The parser puts the multi-column constraint information
-        // into an artificial ColumnDefinition.
-        // primary key constraint
-        if (!pri_cols.empty()) {
-          primary_key_.primary_key_cols_ = pri_cols;
-          primary_key_.constraint_name_ = "con_primary";
-          has_primary_key_ = true;
-        }
-
-        // foreign key
-        for (auto &fk : create_stmt->GetForeignKeys()) {
-          ProcessForeignKeyConstraint(table_name_, fk);
-        }
-
-        table_schema_ = std::make_unique<catalog::Schema>(columns);
-      }
-      return *this;
-    }
-
-    /**
      * Extract foreign key constraints from column definition
      * @param table_name name of the table to get foreign key constraints
      * @param col multi-column constraint definition
@@ -733,10 +665,12 @@ class CreateTablePlanNode : public AbstractPlanNode {
    */
   const std::string &GetTableName() const { return table_name_; }
 
+  common::ManagedPointer<storage::BlockStore> GetBlockStore() const { return block_store_; }
+
   /**
    * @return pointer to the schema
    */
-  common::ManagedPointer<catalog::Schema> GetTableSchema() const { return common::ManagedPointer(table_schema_); }
+  common::ManagedPointer<catalog::Schema> GetSchema() const { return common::ManagedPointer(table_schema_); }
 
   /**
    * @return true if index/table has primary key
@@ -746,7 +680,7 @@ class CreateTablePlanNode : public AbstractPlanNode {
   /**
    * @return primary key meta-data
    */
-  PrimaryKeyInfo GetPrimaryKey() const { return primary_key_; }
+  const PrimaryKeyInfo &GetPrimaryKey() const { return primary_key_; }
 
   /**
    * @return foreign keys meta-data
@@ -793,6 +727,8 @@ class CreateTablePlanNode : public AbstractPlanNode {
    * Table Schema
    */
   std::unique_ptr<catalog::Schema> table_schema_;
+
+  common::ManagedPointer<storage::BlockStore> block_store_;
 
   /**
    * ColumnDefinition for multi-column constraints (including foreign key)
