@@ -1,5 +1,8 @@
 #pragma once
 
+#include <memory>
+#include <utility>
+#include <vector>
 #include "catalog/catalog_accessor.h"
 #include "common/macros.h"
 #include "execution/exec/execution_context.h"
@@ -17,9 +20,9 @@
 
 namespace terrier::execution {
 
-class DDLUtil {
+class DDLExecutors {
  public:
-  DDLUtil() = delete;
+  DDLExecutors() = delete;
 
   static bool CreateTableExecutor(const common::ManagedPointer<planner::CreateTablePlanNode> node,
                                   const common::ManagedPointer<exec::ExecutionContext> context) {
@@ -45,32 +48,32 @@ class DDLUtil {
       for (const auto &parser_col : primary_key_info.primary_key_cols_) {
         const auto &table_col = schema.GetColumn(parser_col);
         if (table_col.Type() == type::TypeId::VARCHAR || table_col.Type() == type::TypeId::VARBINARY) {
-          key_cols.emplace_back(
-              table_col.Name(), table_col.Type(), table_col.MaxVarlenSize(), table_col.Nullable(),
-              parser::ColumnValueExpression(context->DBOid(), table_oid,
-                                            table_col.Oid()));  // TODO(Matt): is table_col.Name() right?
+          key_cols.emplace_back(table_col.Name(), table_col.Type(), table_col.MaxVarlenSize(), table_col.Nullable(),
+                                parser::ColumnValueExpression(context->DBOid(), table_oid, table_col.Oid()));
 
         } else {
-          key_cols.emplace_back(
-              table_col.Name(), table_col.Type(), table_col.Nullable(),
-              parser::ColumnValueExpression(context->DBOid(), table_oid,
-                                            table_col.Oid()));  // TODO(Matt): is table_col.Name() right?
+          key_cols.emplace_back(table_col.Name(), table_col.Type(), table_col.Nullable(),
+                                parser::ColumnValueExpression(context->DBOid(), table_oid, table_col.Oid()));
         }
       }
       auto index_schema =
           std::make_unique<catalog::IndexSchema>(key_cols, storage::index::IndexType::BWTREE, true, true, false, true);
 
+      // Build the CreateIndexPlanNode
       planner::CreateIndexPlanNode::Builder builder;
       builder.SetDatabaseOid(context->DBOid())
           .SetNamespaceOid(node->GetNamespaceOid())
           .SetTableOid(table_oid)
           .SetIndexName(primary_key_info.constraint_name_)
           .SetSchema(std::move(index_schema));
-
       auto create_index_node = builder.Build();
 
+      // Execute the CreateIndexPlanNode, and use its return value as overall success result
       return CreateIndexExecutor(common::ManagedPointer<planner::CreateIndexPlanNode>(create_index_node), context);
     }
+
+    // TODO(Matt): interpret other fields in CreateTablePlanNode when we support them in the Catalog:
+    // foreign_keys_, con_uniques_, con_checks_,
 
     return true;
   }

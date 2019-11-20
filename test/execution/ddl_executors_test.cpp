@@ -5,7 +5,7 @@
 #include "execution/sql_test.h"
 
 #include "catalog/catalog_defs.h"
-#include "execution/sql/ddl_util.h"
+#include "execution/sql/ddl_executors.h"
 
 namespace terrier::execution::sql::test {
 
