@@ -387,7 +387,7 @@ void DataTable::ExportTable(const std::string file_name) const {
 
     size_t buffer_offset = 0;
     size_t column_id_size = column_ids.size();
-    for (auto i = 0; i < column_id_size; ++i) {
+    for (size_t i = 0; i < column_id_size; ++i) {
       auto col_id = column_ids[i];
       common::RawConcurrentBitmap *column_bitmap = accessor_.ColumnNullBitmap(block, col_id);
       std::byte *column_start = accessor_.ColumnStart(block, col_id);
