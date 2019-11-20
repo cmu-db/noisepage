@@ -381,7 +381,7 @@ void DataTable::ExportTable(const std::string file_name) const {
     std::vector<flatbuf::FieldNode> field_nodes;
     std::vector<flatbuf::Buffer> buffers;
     while (!block->controller_.TryAcquireInPlaceRead()) {
-    };
+    }
     ArrowBlockMetadata &metadata = accessor_.GetArrowBlockMetadata(block);
     uint32_t num_slots = metadata.NumRecords();
 
