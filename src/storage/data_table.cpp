@@ -4,7 +4,9 @@
 #include <cstring>
 #include <fstream>
 #include <list>
+#include <string>
 #include <unordered_map>
+#include <vector>
 #include "common/allocator.h"
 #include "storage/block_access_controller.h"
 #include "storage/storage_util.h"
@@ -25,12 +27,12 @@ SizeType AlignedSize(uint8_t alignment, SizeType size) {
   return (size + mask) & (~mask);
 }
 
-void MemoryBlockToBuffer(const char *src, char *dest, size_t &offset, size_t len,
-                         std::vector<flatbuf::Buffer> &buffers) {
-  memcpy(dest + offset, src, len);
+void MemoryBlockToBuffer(const char *src, char *dest, size_t *offset, size_t len,
+                         std::vector<flatbuf::Buffer> *buffers) {
+  memcpy(dest + *offset, src, len);
   len = AlignedSize<size_t>(arrow_alignment, len);
-  buffers.emplace_back(offset, len);
-  offset += len;
+  buffers->emplace_back(*offset, len);
+  *offset += len;
 }
 
 DataTable::DataTable(BlockStore *const store, const BlockLayout &layout, const layout_version_t layout_version)
@@ -272,8 +274,8 @@ bool DataTable::Delete(transaction::TransactionContext *const txn, const TupleSl
   return true;
 }
 
-void DataTable::WriteSchemaMessage(std::ofstream &outfile, std::unordered_map<col_id_t, int64_t> &dictionary_ids,
-                                   flatbuffers::FlatBufferBuilder &flatbuf_builder) const {
+void DataTable::WriteSchemaMessage(std::ofstream &outfile, std::unordered_map<col_id_t, int64_t> *dictionary_ids,
+                                   flatbuffers::FlatBufferBuilder *flatbuf_builder) const {
   RawBlock *block = blocks_.front();
   const BlockLayout &layout = accessor_.GetBlockLayout();
   ArrowBlockMetadata &metadata = accessor_.GetArrowBlockMetadata(block);
@@ -282,50 +284,51 @@ void DataTable::WriteSchemaMessage(std::ofstream &outfile, std::unordered_map<co
   for (col_id_t col_id : layout.AllColumns()) {
     ArrowColumnInfo &col_info = metadata.GetColumnInfo(layout, col_id);
     // Current column name is meaningless
-    auto name = flatbuf_builder.CreateString("TestCol" + std::to_string(!col_id));
+    auto name = flatbuf_builder->CreateString("TestCol" + std::to_string(!col_id));
     flatbuf::Type type;
     flatbuffers::Offset<void> type_offset;
     flatbuffers::Offset<flatbuf::DictionaryEncoding> dictionary = 0;
     if (!layout.IsVarlen(col_id) || col_info.Type() == ArrowColumnType::FIXED_LENGTH) {
       uint8_t byte_width = accessor_.GetBlockLayout().AttrSize(col_id);
       type = flatbuf::Type_FixedSizeBinary;
-      type_offset = flatbuf::CreateFixedSizeBinary(flatbuf_builder, byte_width).Union();
+      type_offset = flatbuf::CreateFixedSizeBinary(*flatbuf_builder, byte_width).Union();
     } else {
       switch (col_info.Type()) {
         case ArrowColumnType::DICTIONARY_COMPRESSED:
           dictionary = flatbuf::CreateDictionaryEncoding(
-              flatbuf_builder, dictionary_id, flatbuf::CreateInt(flatbuf_builder, 8 * sizeof(uint64_t), true), false);
-          dictionary_ids[col_id] = dictionary_id++;
+              *flatbuf_builder, dictionary_id, flatbuf::CreateInt(*flatbuf_builder, 8 * sizeof(uint64_t), true), false);
+          (*dictionary_ids)[col_id] = dictionary_id++;
         case ArrowColumnType::GATHERED_VARLEN:  // fall through
           type = flatbuf::Type_LargeBinary;
-          type_offset = flatbuf::CreateLargeBinary(flatbuf_builder).Union();
+          type_offset = flatbuf::CreateLargeBinary(*flatbuf_builder).Union();
           break;
         default:
           throw std::runtime_error("unexpected control flow");
       }
     }
     std::vector<flatbuffers::Offset<org::apache::arrow::flatbuf::Field>> fake_children;
-    fields.emplace_back(flatbuf::CreateField(flatbuf_builder, name, true, type, type_offset, dictionary,
-                                             flatbuf_builder.CreateVector(fake_children)));
+    fields.emplace_back(flatbuf::CreateField(*flatbuf_builder, name, true, type, type_offset, dictionary,
+                                             flatbuf_builder->CreateVector(fake_children)));
   }
   auto schema =
-      flatbuf::CreateSchema(flatbuf_builder, flatbuf::Endianness_Little, flatbuf_builder.CreateVector(fields));
-  auto message = flatbuf::CreateMessage(flatbuf_builder, flatbuf::MetadataVersion_V4, flatbuf::MessageHeader_Schema,
+      flatbuf::CreateSchema(*flatbuf_builder, flatbuf::Endianness_Little, flatbuf_builder->CreateVector(fields));
+  auto message = flatbuf::CreateMessage(*flatbuf_builder, flatbuf::MetadataVersion_V4, flatbuf::MessageHeader_Schema,
                                         schema.Union(), 0);
-  flatbuf_builder.Finish(message);
-  int32_t flatbuf_size = flatbuf_builder.GetSize();
+  flatbuf_builder->Finish(message);
+  int32_t flatbuf_size = flatbuf_builder->GetSize();
   int32_t padded_flatbuf_size = AlignedSize<int32_t>(arrow_alignment, flatbuf_size);
   outfile.write(reinterpret_cast<const char *>(&flatbuf_continuation), sizeof(int32_t));
   outfile.write(reinterpret_cast<const char *>(&padded_flatbuf_size), sizeof(int32_t));
-  outfile.write(reinterpret_cast<const char *>(flatbuf_builder.GetBufferPointer()), flatbuf_size);
+  outfile.write(reinterpret_cast<const char *>(flatbuf_builder->GetBufferPointer()), flatbuf_size);
   if (padded_flatbuf_size != flatbuf_size) {
     outfile.write(alignment, padded_flatbuf_size - flatbuf_size);
   }
   outfile.flush();
 }
 
-void DataTable::WriteDictionaryMessage(std::ofstream &outfile, int64_t dictionary_id, ArrowVarlenColumn &varlen_col,
-                                       flatbuffers::FlatBufferBuilder &flatbuf_builder) const {
+void DataTable::WriteDictionaryMessage(std::ofstream &outfile, int64_t dictionary_id,
+                                       const ArrowVarlenColumn &varlen_col,
+                                       flatbuffers::FlatBufferBuilder *flatbuf_builder) const {
   std::vector<flatbuf::FieldNode> field_nodes;
   std::vector<flatbuf::Buffer> buffers;
   uint32_t num_elements = varlen_col.OffsetsLength() - 1;
@@ -336,26 +339,26 @@ void DataTable::WriteDictionaryMessage(std::ofstream &outfile, int64_t dictionar
   // Fake validity buffer
   buffers.emplace_back(buffer_offset, 0);
 
-  MemoryBlockToBuffer(reinterpret_cast<const char *>(varlen_col.Offsets()), dump_buffer, buffer_offset,
-                      varlen_col.OffsetsLength() * sizeof(uint64_t), buffers);
+  MemoryBlockToBuffer(reinterpret_cast<const char *>(varlen_col.Offsets()), dump_buffer, &buffer_offset,
+                      varlen_col.OffsetsLength() * sizeof(uint64_t), &buffers);
 
-  MemoryBlockToBuffer(reinterpret_cast<const char *>(varlen_col.Values()), dump_buffer, buffer_offset,
-                      varlen_col.ValuesLength(), buffers);
+  MemoryBlockToBuffer(reinterpret_cast<const char *>(varlen_col.Values()), dump_buffer, &buffer_offset,
+                      varlen_col.ValuesLength(), &buffers);
 
   auto record_batch =
-      flatbuf::CreateRecordBatch(flatbuf_builder, num_elements, flatbuf_builder.CreateVectorOfStructs(field_nodes),
-                                 flatbuf_builder.CreateVectorOfStructs(buffers));
-  auto dictionary_batch = flatbuf::CreateDictionaryBatch(flatbuf_builder, dictionary_id, record_batch);
+      flatbuf::CreateRecordBatch(*flatbuf_builder, num_elements, flatbuf_builder->CreateVectorOfStructs(field_nodes),
+                                 flatbuf_builder->CreateVectorOfStructs(buffers));
+  auto dictionary_batch = flatbuf::CreateDictionaryBatch(*flatbuf_builder, dictionary_id, record_batch);
   size_t aligned_offset = AlignedSize<size_t>(arrow_alignment, buffer_offset);
   auto message =
-      flatbuf::CreateMessage(flatbuf_builder, flatbuf::MetadataVersion_V4, flatbuf::MessageHeader_DictionaryBatch,
+      flatbuf::CreateMessage(*flatbuf_builder, flatbuf::MetadataVersion_V4, flatbuf::MessageHeader_DictionaryBatch,
                              dictionary_batch.Union(), aligned_offset);
-  flatbuf_builder.Finish(message);
-  int32_t flatbuf_size = flatbuf_builder.GetSize();
+  flatbuf_builder->Finish(message);
+  int32_t flatbuf_size = flatbuf_builder->GetSize();
   int32_t padded_flatbuf_size = AlignedSize<int32_t>(arrow_alignment, flatbuf_size);
   outfile.write(reinterpret_cast<const char *>(&flatbuf_continuation), sizeof(int32_t));
   outfile.write(reinterpret_cast<const char *>(&padded_flatbuf_size), sizeof(int32_t));
-  outfile.write(reinterpret_cast<const char *>(flatbuf_builder.GetBufferPointer()), flatbuf_size);
+  outfile.write(reinterpret_cast<const char *>(flatbuf_builder->GetBufferPointer()), flatbuf_size);
   if (padded_flatbuf_size != flatbuf_size) {
     outfile.write(alignment, padded_flatbuf_size - flatbuf_size);
   }
@@ -367,7 +370,7 @@ void DataTable::ExportTable(const std::string file_name) const {
   flatbuffers::FlatBufferBuilder flatbuf_builder;
   std::ofstream outfile(file_name, std::ios_base::out | std::ios_base::trunc | std::ios_base::binary);
   std::unordered_map<col_id_t, int64_t> dictionary_ids;
-  WriteSchemaMessage(outfile, dictionary_ids, flatbuf_builder);
+  WriteSchemaMessage(outfile, &dictionary_ids, &flatbuf_builder);
 
   const BlockLayout &layout = accessor_.GetBlockLayout();
   auto column_ids = layout.AllColumns();
@@ -392,26 +395,26 @@ void DataTable::ExportTable(const std::string file_name) const {
       ArrowColumnInfo &col_info = metadata.GetColumnInfo(layout, col_id);
       field_nodes.emplace_back(num_slots, metadata.NullCount(col_id));
 
-      MemoryBlockToBuffer(reinterpret_cast<const char *>(column_bitmap), dump_buffer, buffer_offset,
+      MemoryBlockToBuffer(reinterpret_cast<const char *>(column_bitmap), dump_buffer, &buffer_offset,
                           reinterpret_cast<uintptr_t>(column_start) - reinterpret_cast<uintptr_t>(column_bitmap),
-                          buffers);
+                          &buffers);
 
       if (layout.IsVarlen(col_id) && !(col_info.Type() == ArrowColumnType::FIXED_LENGTH)) {
         switch (col_info.Type()) {
           case ArrowColumnType::GATHERED_VARLEN: {
             ArrowVarlenColumn &varlen_col = col_info.VarlenColumn();
-            MemoryBlockToBuffer(reinterpret_cast<const char *>(varlen_col.Offsets()), dump_buffer, buffer_offset,
-                                varlen_col.OffsetsLength() * sizeof(uint64_t), buffers);
-            MemoryBlockToBuffer(reinterpret_cast<const char *>(varlen_col.Values()), dump_buffer, buffer_offset,
-                                varlen_col.ValuesLength(), buffers);
+            MemoryBlockToBuffer(reinterpret_cast<const char *>(varlen_col.Offsets()), dump_buffer, &buffer_offset,
+                                varlen_col.OffsetsLength() * sizeof(uint64_t), &buffers);
+            MemoryBlockToBuffer(reinterpret_cast<const char *>(varlen_col.Values()), dump_buffer, &buffer_offset,
+                                varlen_col.ValuesLength(), &buffers);
             break;
           }
           case ArrowColumnType::DICTIONARY_COMPRESSED: {
             ArrowVarlenColumn &varlen_col = col_info.VarlenColumn();
-            WriteDictionaryMessage(outfile, dictionary_ids[col_id], varlen_col, flatbuf_builder);
+            WriteDictionaryMessage(outfile, dictionary_ids[col_id], varlen_col, &flatbuf_builder);
             auto indices = col_info.Indices();
-            MemoryBlockToBuffer(reinterpret_cast<const char *>(indices), dump_buffer, buffer_offset,
-                                num_slots * sizeof(uint64_t), buffers);
+            MemoryBlockToBuffer(reinterpret_cast<const char *>(indices), dump_buffer, &buffer_offset,
+                                num_slots * sizeof(uint64_t), &buffers);
             break;
           }
           default:
@@ -427,8 +430,8 @@ void DataTable::ExportTable(const std::string file_name) const {
           cur_buffer_len = reinterpret_cast<uintptr_t>(accessor_.ColumnNullBitmap(block, column_ids[i + 1])) -
                            reinterpret_cast<uintptr_t>(column_start);
         }
-        MemoryBlockToBuffer(reinterpret_cast<const char *>(column_start), dump_buffer, buffer_offset, cur_buffer_len,
-                            buffers);
+        MemoryBlockToBuffer(reinterpret_cast<const char *>(column_start), dump_buffer, &buffer_offset, cur_buffer_len,
+                            &buffers);
       }
     }
     auto record_batch =

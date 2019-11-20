@@ -3,6 +3,7 @@
 #include <flatbuffers/generated/Message_generated.h>
 #include <flatbuffers/generated/Schema_generated.h>
 #include <list>
+#include <string>
 #include <unordered_map>
 #include <vector>
 #include "common/performance_counter.h"
@@ -299,8 +300,8 @@ class DataTable {
    *                       dictionary id
    * @param flatbuf_builder flatbuffer builder
    */
-  void WriteSchemaMessage(std::ofstream &outfile, std::unordered_map<col_id_t, int64_t> &dictionary_ids,
-                          flatbuffers::FlatBufferBuilder &flatbuf_builder) const;
+  void WriteSchemaMessage(std::ofstream &outfile, std::unordered_map<col_id_t, int64_t> *dictionary_ids,
+                          flatbuffers::FlatBufferBuilder *flatbuf_builder) const;
 
   /**
    * Write a dictionary message
@@ -308,8 +309,8 @@ class DataTable {
    * @param dictionary_id the id of this dictionary
    * @param flatbuf_builder flatbuffer builder
    */
-  void WriteDictionaryMessage(std::ofstream &outfile, int64_t dictionary_id, ArrowVarlenColumn &varlen_col,
-                              flatbuffers::FlatBufferBuilder &flatbuf_builder) const;
+  void WriteDictionaryMessage(std::ofstream &outfile, int64_t dictionary_id, const ArrowVarlenColumn &varlen_col,
+                              flatbuffers::FlatBufferBuilder *flatbuf_builder) const;
 
   // Allocates a new block to be used as insertion head.
   RawBlock *NewBlock();
