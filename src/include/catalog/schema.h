@@ -1,6 +1,5 @@
 #pragma once
 
-#include <algorithm>
 #include <memory>
 #include <string>
 #include <unordered_map>
@@ -252,11 +251,14 @@ class Schema {
    * @throw std::out_of_range if the column doesn't exist.
    */
   const Column &GetColumn(const std::string &name) const {
-    const auto find_fn = [&](const Column &c) { return c.Name() == name; };
-    TERRIER_ASSERT(std::count_if(columns_.cbegin(), columns_.cend(), find_fn) > 0,
-                   "column name does not exist in this Schema");
-    const auto it = std::find_if(columns_.cbegin(), columns_.cend(), find_fn);
-    return *it;
+    for (const auto &c : columns_) {
+      if (c.Name() == name) {
+        return c;
+      }
+    }
+    // TODO(John): Should this be a TERRIER_ASSERT to have the same semantics
+    // as the other accessor methods above?
+    throw std::out_of_range("Column name doesn't exist");
   }
   /**
    * @return description of this SQL table's schema as a collection of Columns
