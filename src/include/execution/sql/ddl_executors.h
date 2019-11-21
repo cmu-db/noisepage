@@ -24,6 +24,20 @@ class DDLExecutors {
  public:
   DDLExecutors() = delete;
 
+  static bool CreateDatabaseExecutor(const common::ManagedPointer<planner::CreateDatabasePlanNode> node,
+                                     const common::ManagedPointer<exec::ExecutionContext> context) {
+    auto *const accessor = context->GetAccessor();
+    // Request permission from the Catalog to see if this a valid database name
+    return accessor->CreateDatabase(node->GetDatabaseName()) != catalog::INVALID_DATABASE_OID;
+  }
+
+  static bool CreateNamespaceExecutor(const common::ManagedPointer<planner::CreateNamespacePlanNode> node,
+                                      const common::ManagedPointer<exec::ExecutionContext> context) {
+    auto *const accessor = context->GetAccessor();
+    // Request permission from the Catalog to see if this a valid namespace name
+    return accessor->CreateNamespace(node->GetNamespaceName()) != catalog::INVALID_NAMESPACE_OID;
+  }
+
   static bool CreateTableExecutor(const common::ManagedPointer<planner::CreateTablePlanNode> node,
                                   const common::ManagedPointer<exec::ExecutionContext> context) {
     auto *const accessor = context->GetAccessor();
@@ -74,36 +88,6 @@ class DDLExecutors {
                        *(node->GetSchema()));
   }
 
-  static bool CreateDatabaseExecutor(const common::ManagedPointer<planner::CreateDatabasePlanNode> node,
-                                     const common::ManagedPointer<exec::ExecutionContext> context) {
-    auto *const accessor = context->GetAccessor();
-    // Request permission from the Catalog to see if this a valid database name
-    return accessor->CreateDatabase(node->GetDatabaseName()) != catalog::INVALID_DATABASE_OID;
-  }
-
-  static bool CreateNamespaceExecutor(const common::ManagedPointer<planner::CreateNamespacePlanNode> node,
-                                      const common::ManagedPointer<exec::ExecutionContext> context) {
-    auto *const accessor = context->GetAccessor();
-    // Request permission from the Catalog to see if this a valid namespace name
-    return accessor->CreateNamespace(node->GetNamespaceName()) != catalog::INVALID_NAMESPACE_OID;
-  }
-
-  static bool DropTableExecutor(const common::ManagedPointer<planner::DropTablePlanNode> node,
-                                const common::ManagedPointer<exec::ExecutionContext> context) {
-    auto *const accessor = context->GetAccessor();
-    const bool result = accessor->DropTable(node->GetTableOid());
-    // TODO(Matt): CASCADE?
-    return result;
-  }
-
-  static bool DropIndexExecutor(const common::ManagedPointer<planner::DropIndexPlanNode> node,
-                                const common::ManagedPointer<exec::ExecutionContext> context) {
-    auto *const accessor = context->GetAccessor();
-    const bool result = accessor->DropIndex(node->GetIndexOid());
-    // TODO(Matt): CASCADE?
-    return result;
-  }
-
   static bool DropDatabaseExecutor(const common::ManagedPointer<planner::DropDatabasePlanNode> node,
                                    const common::ManagedPointer<exec::ExecutionContext> context) {
     TERRIER_ASSERT(context->DBOid() != node->GetDatabaseOid(),
@@ -118,6 +102,22 @@ class DDLExecutors {
                                     const common::ManagedPointer<exec::ExecutionContext> context) {
     auto *const accessor = context->GetAccessor();
     const bool result = accessor->DropNamespace(node->GetNamespaceOid());
+    // TODO(Matt): CASCADE?
+    return result;
+  }
+
+  static bool DropTableExecutor(const common::ManagedPointer<planner::DropTablePlanNode> node,
+                                const common::ManagedPointer<exec::ExecutionContext> context) {
+    auto *const accessor = context->GetAccessor();
+    const bool result = accessor->DropTable(node->GetTableOid());
+    // TODO(Matt): CASCADE?
+    return result;
+  }
+
+  static bool DropIndexExecutor(const common::ManagedPointer<planner::DropIndexPlanNode> node,
+                                const common::ManagedPointer<exec::ExecutionContext> context) {
+    auto *const accessor = context->GetAccessor();
+    const bool result = accessor->DropIndex(node->GetIndexOid());
     // TODO(Matt): CASCADE?
     return result;
   }
