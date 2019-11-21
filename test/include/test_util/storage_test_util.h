@@ -580,7 +580,7 @@ class StorageTestUtil {
     TERRIER_ASSERT(max_cols > NUM_RESERVED_COLUMNS, "There should be at least 2 cols (reserved for version).");
     // We probably won't allow tables with fewer than 2 columns
     const uint16_t num_attrs = std::uniform_int_distribution<uint16_t>(NUM_RESERVED_COLUMNS + 1, max_cols)(*generator);
-    std::vector<uint8_t> possible_attr_sizes{1, 2, 4, 8}, attr_sizes(num_attrs);
+    std::vector<uint16_t> possible_attr_sizes{1, 2, 4, 8}, attr_sizes(num_attrs);
     if (allow_varlen) possible_attr_sizes.push_back(VARLEN_COLUMN);
 
     for (uint16_t i = 0; i < NUM_RESERVED_COLUMNS; i++) {

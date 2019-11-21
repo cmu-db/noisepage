@@ -122,7 +122,7 @@ class Schema {
     /**
      * @return size of the attribute in bytes. Varlen attributes have the sign bit set.
      */
-    uint8_t AttrSize() const { return attr_size_; }
+    uint16_t AttrSize() const { return attr_size_; }
 
     /**
      * @return The maximum length of this column (only valid if it's VARLEN)
@@ -176,7 +176,7 @@ class Schema {
     std::vector<std::unique_ptr<parser::AbstractExpression>> FromJson(const nlohmann::json &j) {
       name_ = j.at("name").get<std::string>();
       type_ = j.at("type").get<type::TypeId>();
-      attr_size_ = j.at("attr_size").get<uint8_t>();
+      attr_size_ = j.at("attr_size").get<uint16_t>();
       max_varlen_size_ = j.at("max_varlen_size").get<uint16_t>();
       nullable_ = j.at("nullable").get<bool>();
       oid_ = j.at("oid").get<col_oid_t>();
@@ -188,7 +188,7 @@ class Schema {
    private:
     std::string name_;
     type::TypeId type_;
-    uint8_t attr_size_;
+    uint16_t attr_size_;
     uint16_t max_varlen_size_;
     bool nullable_;
     col_oid_t oid_;

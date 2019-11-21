@@ -60,7 +60,7 @@ class IndexMetadata {
   /**
    * @return unsorted index attribute sizes (key schema order), varlens are marked
    */
-  const std::vector<uint8_t> &GetAttributeSizes() const { return attr_sizes_; }
+  const std::vector<uint16_t> &GetAttributeSizes() const { return attr_sizes_; }
 
   /**
    * @return actual inlined index attribute sizes
@@ -118,7 +118,7 @@ class IndexMetadata {
   FRIEND_TEST(IndexKeyTests, IndexMetadataGenericKeyMustInlineVarlenTest);
 
   catalog::IndexSchema key_schema_;                                             // for GenericKey
-  std::vector<uint8_t> attr_sizes_;                                             // for CompactIntsKey
+  std::vector<uint16_t> attr_sizes_;                                             // for CompactIntsKey
   std::vector<uint16_t> inlined_attr_sizes_;                                    // for GenericKey
   bool must_inline_varlen_;                                                     // for GenericKey
   std::vector<uint8_t> compact_ints_offsets_;                                   // for CompactIntsKey
@@ -133,8 +133,8 @@ class IndexMetadata {
    * e.g.   if key_schema is {INTEGER, INTEGER, BIGINT, TINYINT, SMALLINT}
    *        then attr_sizes returned is {4, 4, 8, 1, 2}
    */
-  static std::vector<uint8_t> ComputeAttributeSizes(const catalog::IndexSchema &key_schema) {
-    std::vector<uint8_t> attr_sizes;
+  static std::vector<uint16_t> ComputeAttributeSizes(const catalog::IndexSchema &key_schema) {
+    std::vector<uint16_t> attr_sizes;
     auto key_cols = key_schema.GetColumns();
     attr_sizes.reserve(key_cols.size());
     for (const auto &key : key_cols) {
@@ -208,7 +208,7 @@ class IndexMetadata {
    *        exclusive scan {0, 4, 8, 16, 17}
    *        since offset[i] = where to write sorted attr i in a compact ints key
    */
-  static std::vector<uint8_t> ComputeCompactIntsOffsets(const std::vector<uint8_t> &attr_sizes) {
+  static std::vector<uint8_t> ComputeCompactIntsOffsets(const std::vector<uint16_t> &attr_sizes) {
     // exclusive scan
     std::vector<uint8_t> scan;
     scan.reserve(attr_sizes.size());
@@ -259,12 +259,12 @@ class IndexMetadata {
   }
 
   /**
-   * By default, the uint8_t attr_sizes that we pass around in our system are not the real attribute sizes.
+   * By default, the uint16_t attr_sizes that we pass around in our system are not the real attribute sizes.
    * The MSB is set to indicate whether a column is VARLEN or otherwise. We mask these off to get the real sizes.
    */
-  static std::vector<uint8_t> GetRealAttrSizes(std::vector<uint8_t> attr_sizes) {
+  static std::vector<uint16_t> GetRealAttrSizes(std::vector<uint16_t> attr_sizes) {
     std::transform(attr_sizes.begin(), attr_sizes.end(), attr_sizes.begin(),
-                   [](uint8_t elem) -> uint8_t { return static_cast<uint8_t>(elem & INT8_MAX); });
+                   [](uint16_t elem) -> uint16_t { return static_cast<uint16_t>(elem & INT16_MAX); });
     return attr_sizes;
   }
 };

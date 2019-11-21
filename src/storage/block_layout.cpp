@@ -7,13 +7,13 @@
 #include "storage/storage_util.h"
 
 namespace terrier::storage {
-BlockLayout::BlockLayout(std::vector<uint8_t> attr_sizes)
+BlockLayout::BlockLayout(std::vector<uint16_t> attr_sizes)
     : attr_sizes_(std::move(attr_sizes)),
       tuple_size_(ComputeTupleSize()),
       static_header_size_(ComputeStaticHeaderSize()),
       num_slots_(ComputeNumSlots()),
       header_size_(ComputeHeaderSize()) {
-  for (uint8_t size UNUSED_ATTRIBUTE : attr_sizes_)
+  for (uint16_t size UNUSED_ATTRIBUTE : attr_sizes_)
     TERRIER_ASSERT(size == VARLEN_COLUMN || (size >= 0 && size <= INT8_MAX), "Invalid size of a column");
   TERRIER_ASSERT(!attr_sizes_.empty() && static_cast<uint16_t>(attr_sizes_.size()) <= common::Constants::MAX_COL,
                  "number of columns must be between 1 and MAX_COL");
@@ -28,7 +28,7 @@ BlockLayout::BlockLayout(std::vector<uint8_t> attr_sizes)
 uint32_t BlockLayout::ComputeTupleSize() const {
   uint32_t result = 0;
   // size in attr_sizes_ can be negative to denote varlens.
-  for (auto size : attr_sizes_) result += static_cast<uint8_t>(INT8_MAX & size);
+  for (auto size : attr_sizes_) result += static_cast<uint16_t>(INT16_MAX & size);
   return result;
 }
 

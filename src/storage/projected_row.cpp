@@ -33,7 +33,7 @@ ProjectedRowInitializer::ProjectedRowInitializer(const std::vector<AttrType> &at
   // space needed to store value offsets, we don't need to pad as we're using a regular non-concurrent bitmap
   size_ = size_ + static_cast<uint32_t>(col_ids_.size() * sizeof(uint32_t));
   // Pad up to either the first value's size, or 8 bytes if the value is larger than 8
-  auto first_alignment = static_cast<uint8_t>(std::min(attr_sizes[0], static_cast<AttrType>(sizeof(uint64_t))));
+  auto first_alignment = static_cast<uint16_t>(std::min(attr_sizes[0], static_cast<AttrType>(sizeof(uint64_t))));
   // space needed to store the bitmap, padded up to the size of the first value in this projected row
   size_ = StorageUtil::PadUpToSize(first_alignment,
                                    size_ + common::RawBitmap::SizeInBytes(static_cast<uint32_t>(col_ids_.size())));
@@ -41,7 +41,7 @@ ProjectedRowInitializer::ProjectedRowInitializer(const std::vector<AttrType> &at
     offsets_[i] = size_;
     // Pad up to either the next value's size, or 8 bytes at the end of the ProjectedRow, or 8 byte if the value
     // is larger than 8
-    auto next_alignment = static_cast<uint8_t>(
+    auto next_alignment = static_cast<uint16_t>(
         i == col_ids_.size() - 1 ? sizeof(uint64_t)
                                  : std::min(attr_sizes[i + 1], static_cast<AttrType>(sizeof(uint64_t))));
     size_ = StorageUtil::PadUpToSize(next_alignment, size_ + attr_sizes[i]);

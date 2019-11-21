@@ -109,7 +109,7 @@ class WriteAheadLoggingTests : public TerrierTest {
     }
 
     // Compute attr sizes
-    std::vector<uint8_t> attr_sizes;
+    std::vector<uint16_t> attr_sizes;
     attr_sizes.reserve(num_cols);
     for (uint16_t attr_idx = 0; attr_idx < num_cols; attr_idx++) {
       attr_sizes.push_back(storage::StorageUtil::AttrSizeFromBoundaries(attr_size_boundaries, attr_idx));
