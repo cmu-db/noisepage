@@ -388,7 +388,7 @@ TEST_F(BlockCompactorTest, ExportDictionaryCompressedTableTest) {
   transaction::TransactionManager txn_manager(&timestamp_manager, &deferred_action_manager, &buffer_pool_, true,
                                               DISABLED);
   storage::GarbageCollector gc(&timestamp_manager, &deferred_action_manager, &txn_manager, DISABLED);
-  StorageTestUtil::PopulateBlockRandomly(&table, block, percent_empty_, &generator_);
+  auto tuples = StorageTestUtil::PopulateBlockRandomly(&table, block, percent_empty_, &generator_);
 
   // Manually populate the block header's arrow metadata for test initialization
   auto &arrow_metadata = accessor.GetArrowBlockMetadata(block);
@@ -411,6 +411,8 @@ TEST_F(BlockCompactorTest, ExportDictionaryCompressedTableTest) {
 
   table.ExportTable("test_table.arrow");
   EXPECT_EQ(std::remove("test_table.arrow"), 0);
+
+  for (auto &entry : tuples) delete[] reinterpret_cast<byte *>(entry.second);  // reclaim memory used for bookkeeping
   gc.PerformGarbageCollection();
   gc.PerformGarbageCollection();  // Second call to deallocate.
 }
@@ -432,7 +434,7 @@ TEST_F(BlockCompactorTest, ExportVarlenTableTest) {
   transaction::TransactionManager txn_manager(&timestamp_manager, &deferred_action_manager, &buffer_pool_, true,
                                               DISABLED);
   storage::GarbageCollector gc(&timestamp_manager, &deferred_action_manager, &txn_manager, DISABLED);
-  StorageTestUtil::PopulateBlockRandomly(&table, block, percent_empty_, &generator_);
+  auto tuples = StorageTestUtil::PopulateBlockRandomly(&table, block, percent_empty_, &generator_);
 
   // Manually populate the block header's arrow metadata for test initialization
   auto &arrow_metadata = accessor.GetArrowBlockMetadata(block);
@@ -455,6 +457,8 @@ TEST_F(BlockCompactorTest, ExportVarlenTableTest) {
 
   table.ExportTable("test_table.arrow");
   EXPECT_EQ(std::remove("test_table.arrow"), 0);
+
+  for (auto &entry : tuples) delete[] reinterpret_cast<byte *>(entry.second);  // reclaim memory used for bookkeeping
   gc.PerformGarbageCollection();
   gc.PerformGarbageCollection();  // Second call to deallocate.
 }
