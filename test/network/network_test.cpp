@@ -105,7 +105,8 @@ class NetworkTests : public TerrierTest {
   }
 
   void TestExtendedQuery(uint16_t port) {
-    std::shared_ptr<NetworkIoWrapper> io_socket = ManualPacketUtil::StartConnection(port);
+    auto io_socket_unique_ptr = network::ManualPacketUtil::StartConnection(port_);
+    auto io_socket = common::ManagedPointer(io_socket_unique_ptr);
     io_socket->GetWriteQueue()->Reset();
     std::string stmt_name = "prepared_test";
     std::string query = "INSERT INTO foo VALUES($1, $2, $3, $4);";
@@ -175,7 +176,8 @@ TEST_F(NetworkTests, SimpleQueryTest) {
 TEST_F(NetworkTests, BadQueryTest) {
   try {
     TEST_LOG_INFO("[BadQueryTest] Starting, expect errors to be logged");
-    std::shared_ptr<NetworkIoWrapper> io_socket = ManualPacketUtil::StartConnection(port_);
+    auto io_socket_unique_ptr = network::ManualPacketUtil::StartConnection(port_);
+    auto io_socket = common::ManagedPointer(io_socket_unique_ptr);
     PostgresPacketWriter writer(io_socket->GetWriteQueue());
 
     // Build a correct query message, "SELECT A FROM B"
@@ -255,7 +257,8 @@ TEST_F(NetworkTests, LargePacketsTest) {
 TEST_F(NetworkTests, GusThesisSaver) {
   try {
     TEST_LOG_INFO("[GusThesisSaver] Starting, expect errors to be logged");
-    std::shared_ptr<NetworkIoWrapper> io_socket = ManualPacketUtil::StartConnection(port_);
+    auto io_socket_unique_ptr = network::ManualPacketUtil::StartConnection(port_);
+    auto io_socket = common::ManagedPointer(io_socket_unique_ptr);
     PostgresPacketWriter writer(io_socket->GetWriteQueue());
 
     // Create a large packet that will require the InputPacket to be extended
