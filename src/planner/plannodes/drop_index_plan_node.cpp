@@ -10,7 +10,6 @@ namespace terrier::planner {
 common::hash_t DropIndexPlanNode::Hash() const {
   common::hash_t hash = AbstractPlanNode::Hash();
 
-  // Hash index_oid
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(index_oid_));
 
   return hash;
@@ -21,10 +20,7 @@ bool DropIndexPlanNode::operator==(const AbstractPlanNode &rhs) const {
 
   auto &other = dynamic_cast<const DropIndexPlanNode &>(rhs);
 
-  // Index OID
-  if (index_oid_ != other.index_oid_) return false;
-
-  return true;
+  return index_oid_ != other.index_oid_;
 }
 
 nlohmann::json DropIndexPlanNode::ToJson() const {

@@ -22,9 +22,7 @@ bool CreateNamespacePlanNode::operator==(const AbstractPlanNode &rhs) const {
   auto &other = dynamic_cast<const CreateNamespacePlanNode &>(rhs);
 
   // Schema name
-  if (GetNamespaceName() != other.GetNamespaceName()) return false;
-
-  return true;
+  return namespace_name_ == other.namespace_name_;
 }
 
 nlohmann::json CreateNamespacePlanNode::ToJson() const {

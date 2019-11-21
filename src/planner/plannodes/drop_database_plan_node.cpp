@@ -10,7 +10,6 @@ namespace terrier::planner {
 common::hash_t DropDatabasePlanNode::Hash() const {
   common::hash_t hash = AbstractPlanNode::Hash();
 
-  // Database Oid
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_oid_));
 
   return hash;
@@ -21,10 +20,7 @@ bool DropDatabasePlanNode::operator==(const AbstractPlanNode &rhs) const {
 
   auto &other = dynamic_cast<const DropDatabasePlanNode &>(rhs);
 
-  // Database OID
-  if (database_oid_ != other.database_oid_) return false;
-
-  return true;
+  return database_oid_ != other.database_oid_;
 }
 
 nlohmann::json DropDatabasePlanNode::ToJson() const {

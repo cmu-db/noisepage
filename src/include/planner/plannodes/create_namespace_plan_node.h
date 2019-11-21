@@ -41,12 +41,11 @@ class CreateNamespacePlanNode : public AbstractPlanNode {
      * @return plan node
      */
     std::unique_ptr<CreateNamespacePlanNode> Build() {
-      return std::unique_ptr<CreateNamespacePlanNode>(new CreateNamespacePlanNode(
-          std::move(children_), std::move(output_schema_), std::move(namespace_name_)));
+      return std::unique_ptr<CreateNamespacePlanNode>(
+          new CreateNamespacePlanNode(std::move(children_), std::move(output_schema_), std::move(namespace_name_)));
     }
 
    protected:
-
     /**
      * Namespace name
      */
@@ -61,8 +60,7 @@ class CreateNamespacePlanNode : public AbstractPlanNode {
    * @param namespace_name name of the namespace
    */
   CreateNamespacePlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
-                          std::unique_ptr<OutputSchema> output_schema,
-                          std::string namespace_name)
+                          std::unique_ptr<OutputSchema> output_schema, std::string namespace_name)
       : AbstractPlanNode(std::move(children), std::move(output_schema)), namespace_name_(std::move(namespace_name)) {}
 
  public:
@@ -94,7 +92,6 @@ class CreateNamespacePlanNode : public AbstractPlanNode {
   std::vector<std::unique_ptr<parser::AbstractExpression>> FromJson(const nlohmann::json &j) override;
 
  private:
-
   /**
    * Namespace name
    */

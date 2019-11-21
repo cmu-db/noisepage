@@ -10,7 +10,6 @@ namespace terrier::planner {
 common::hash_t DropTablePlanNode::Hash() const {
   common::hash_t hash = AbstractPlanNode::Hash();
 
-  // Hash table_oid
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_oid_));
 
   return hash;
@@ -22,9 +21,7 @@ bool DropTablePlanNode::operator==(const AbstractPlanNode &rhs) const {
   auto &other = dynamic_cast<const DropTablePlanNode &>(rhs);
 
   // Table OID
-  if (table_oid_ != other.table_oid_) return false;
-
-  return true;
+  return table_oid_ == other.table_oid_;
 }
 
 nlohmann::json DropTablePlanNode::ToJson() const {

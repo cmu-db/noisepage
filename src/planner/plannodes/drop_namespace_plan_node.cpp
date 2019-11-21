@@ -10,7 +10,6 @@ namespace terrier::planner {
 common::hash_t DropNamespacePlanNode::Hash() const {
   common::hash_t hash = AbstractPlanNode::Hash();
 
-  // Hash namespace_oid
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(namespace_oid_));
 
   return hash;
@@ -21,10 +20,7 @@ bool DropNamespacePlanNode::operator==(const AbstractPlanNode &rhs) const {
 
   auto &other = dynamic_cast<const DropNamespacePlanNode &>(rhs);
 
-  // Namespace OID
-  if (namespace_oid_ != other.namespace_oid_) return false;
-
-  return true;
+  return namespace_oid_ == other.namespace_oid_;
 }
 
 nlohmann::json DropNamespacePlanNode::ToJson() const {
