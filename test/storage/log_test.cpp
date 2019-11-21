@@ -138,7 +138,7 @@ class WriteAheadLoggingTests : public TerrierTest {
 
       // The column is not null, so set the bitmap accordingly and get access to the column value.
       auto *column_value_address = delta->AccessForceNotNull(i);
-      if (attr_sizes[i] == (VARLEN_COLUMN & INT16_MAX)) {
+      if (attr_sizes[i] == ATTR_SIZE_BYTES(VARLEN_COLUMN) {
         // Read how many bytes this varlen actually is.
         const auto varlen_attribute_size = in->ReadValue<uint32_t>();
         // Allocate a varlen buffer of this many bytes.

@@ -100,7 +100,7 @@ std::pair<LogRecord *, std::vector<byte *>> AbstractLogProvider::ReadNextRecord(
         // The column is not null, so set the bitmap accordingly and get access to the column value.
         auto *column_value_address = delta->AccessForceNotNull(i);
         // Need to mask off sign bit from VARLEN_COLUMN to get the varlen size
-        if (attr_sizes[i] == (VARLEN_COLUMN & INT8_MAX)) {
+        if (attr_sizes[i] == ATTR_SIZE_BYTES(VARLEN_COLUMN)) {
           // Read how many bytes this varlen actually is.
           const auto varlen_attribute_size = ReadValue<uint32_t>();
 

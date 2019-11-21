@@ -28,7 +28,7 @@ BlockLayout::BlockLayout(std::vector<uint16_t> attr_sizes)
 uint32_t BlockLayout::ComputeTupleSize() const {
   uint32_t result = 0;
   // size in attr_sizes_ can be negative to denote varlens.
-  for (auto size : attr_sizes_) result += static_cast<uint16_t>(INT16_MAX & size);
+  for (auto size : attr_sizes_) result += ATTR_SIZE_BYTES(size);
   return result;
 }
 

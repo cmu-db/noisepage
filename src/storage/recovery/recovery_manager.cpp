@@ -320,7 +320,7 @@ void RecoveryManager::UpdateIndexesOnTable(transaction::TransactionContext *txn,
       if (table_pr->IsNull(pr_map[table_col_oid])) {
         index_pr->SetNull(index->GetKeyOidToOffsetMap().at(index_col_oid));
       } else {
-        auto size = col.AttrSize() & INT8_MAX;
+        auto size = col.AttrSize() & INT_MAX;
         std::memcpy(index_pr->AccessForceNotNull(index->GetKeyOidToOffsetMap().at(index_col_oid)),
                     table_pr->AccessWithNullCheck(pr_map[table_col_oid]), size);
       }

@@ -151,7 +151,7 @@ class IndexMetadata {
     auto key_cols = key_schema.GetColumns();
     for (const auto &key : key_cols) {
       key_size =
-          static_cast<uint16_t>(key_size + static_cast<uint16_t>(type::TypeUtil::GetTypeSize(key.Type()) & INT8_MAX));
+          static_cast<uint16_t>(key_size + ATTR_SIZE_BYTES(type::TypeUtil::GetTypeSize(key.Type())));
     }
     return key_size;
   }
@@ -264,7 +264,7 @@ class IndexMetadata {
    */
   static std::vector<uint16_t> GetRealAttrSizes(std::vector<uint16_t> attr_sizes) {
     std::transform(attr_sizes.begin(), attr_sizes.end(), attr_sizes.begin(),
-                   [](uint16_t elem) -> uint16_t { return static_cast<uint16_t>(elem & INT16_MAX); });
+                   [](uint16_t elem) -> uint16_t { return ATTR_SIZE_BYTES(elem); });
     return attr_sizes;
   }
 };

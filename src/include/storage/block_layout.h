@@ -10,6 +10,7 @@ namespace terrier::storage {
 // we always allocate 16 bytes for a varlen entry, with the first 8 bytes being the pointer to the value and following
 // 4 bytes be the size of the varlen. There are 4 bytes of padding for alignment purposes.
 #define VARLEN_COLUMN static_cast<uint16_t>(0x8010)  // 16 with the first (most significant) bit set to 1
+#define ATTR_SIZE_BYTES(size) static_cast<uint16_t>((size) & INT16_MAX)
 /**
  * Stores metadata about the layout of a block.
  */
@@ -39,7 +40,7 @@ class BlockLayout {
    */
   uint16_t AttrSize(col_id_t col_id) const {
     // mask off the first bit as we use that to check for varlen
-    return static_cast<uint16_t>(INT16_MAX & attr_sizes_.at(!col_id));
+    return ATTR_SIZE_BYTES(attr_sizes_.at(!col_id));
   }
 
   /**

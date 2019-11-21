@@ -45,6 +45,7 @@ class TypeUtil {
     }
   }
 
+
   /**
    * This function stringify the Types for getting expression name for the constant value expression
    * @param type_id the type to get the string version of
