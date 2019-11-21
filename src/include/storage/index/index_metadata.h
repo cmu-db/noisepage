@@ -118,7 +118,7 @@ class IndexMetadata {
   FRIEND_TEST(IndexKeyTests, IndexMetadataGenericKeyMustInlineVarlenTest);
 
   catalog::IndexSchema key_schema_;                                             // for GenericKey
-  std::vector<uint16_t> attr_sizes_;                                             // for CompactIntsKey
+  std::vector<uint16_t> attr_sizes_;                                            // for CompactIntsKey
   std::vector<uint16_t> inlined_attr_sizes_;                                    // for GenericKey
   bool must_inline_varlen_;                                                     // for GenericKey
   std::vector<uint8_t> compact_ints_offsets_;                                   // for CompactIntsKey
@@ -150,8 +150,7 @@ class IndexMetadata {
     uint16_t key_size = 0;
     auto key_cols = key_schema.GetColumns();
     for (const auto &key : key_cols) {
-      key_size =
-          static_cast<uint16_t>(key_size + ATTR_SIZE_BYTES(type::TypeUtil::GetTypeSize(key.Type())));
+      key_size = static_cast<uint16_t>(key_size + ATTR_SIZE_BYTES(type::TypeUtil::GetTypeSize(key.Type())));
     }
     return key_size;
   }
