@@ -26,7 +26,7 @@ class ManualPacketUtil {
    * @return true if reads the expected type message, false for closed.
    */
   static bool ReadUntilMessageOrClose(common::ManagedPointer<NetworkIoWrapper> io_socket,
-                               const NetworkMessageType &expected_msg_type) {
+                                      const NetworkMessageType &expected_msg_type) {
     while (true) {
       io_socket->GetReadBuffer()->Reset();
       Transition trans = io_socket->FillReadBuffer();
