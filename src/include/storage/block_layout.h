@@ -9,7 +9,7 @@ namespace terrier::storage {
 // Internally we use the sign bit to represent if a column is varlen or not. Down to the implementation detail though,
 // we always allocate 16 bytes for a varlen entry, with the first 8 bytes being the pointer to the value and following
 // 4 bytes be the size of the varlen. There are 4 bytes of padding for alignment purposes.
-#define VARLEN_COLUMN static_cast<uint16_t>(0x90)  // 16 with the first (most significant) bit set to 1
+#define VARLEN_COLUMN static_cast<uint16_t>(0x8010)  // 16 with the first (most significant) bit set to 1
 /**
  * Stores metadata about the layout of a block.
  */
