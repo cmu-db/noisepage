@@ -29,7 +29,8 @@ class TrafficCopTests : public TerrierTest {
   storage::RecordBufferSegmentPool buffer_segment_pool_{100000, 1000};
   transaction::TimestampManager timestamp_manager_{};
   transaction::DeferredActionManager deferred_action_manager_{&timestamp_manager_};
-  transaction::TransactionManager txn_manager_{&timestamp_manager_, &deferred_action_manager_, &buffer_segment_pool_, true, DISABLED};
+  transaction::TransactionManager txn_manager_{&timestamp_manager_, &deferred_action_manager_, &buffer_segment_pool_,
+                                               true, DISABLED};
   storage::BlockStore block_store_{10000, 10000};
   catalog::Catalog catalog_{&txn_manager_, &block_store_};
   storage::GarbageCollector gc_{&timestamp_manager_, &deferred_action_manager_, &txn_manager_, DISABLED};
@@ -50,7 +51,8 @@ class TrafficCopTests : public TerrierTest {
     gc_.PerformGarbageCollection();
     gc_.PerformGarbageCollection();
 
-    tcop_ = std::make_unique<trafficcop::TrafficCop>(common::ManagedPointer(&txn_manager_), common::ManagedPointer(&catalog_));
+    tcop_ = std::make_unique<trafficcop::TrafficCop>(common::ManagedPointer(&txn_manager_),
+                                                     common::ManagedPointer(&catalog_));
 
     network::network_logger->set_level(spdlog::level::trace);
     test_logger->set_level(spdlog::level::debug);
@@ -218,7 +220,8 @@ TEST_F(TrafficCopTests, ManualExtendedQueryTest) {
 
       writer.WriteDescribeCommand(network::DescribeCommandObjectType::STATEMENT, stmt_name);
       io_socket->FlushAllWrites();
-      network::ManualPacketUtil::ReadUntilMessageOrClose(io_socket, network::NetworkMessageType::PG_PARAMETER_DESCRIPTION);
+      network::ManualPacketUtil::ReadUntilMessageOrClose(io_socket,
+                                                         network::NetworkMessageType::PG_PARAMETER_DESCRIPTION);
 
       writer.WriteDescribeCommand(network::DescribeCommandObjectType::PORTAL, portal_name);
       io_socket->FlushAllWrites();
