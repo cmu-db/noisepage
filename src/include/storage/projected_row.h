@@ -227,7 +227,8 @@ class ProjectedRowInitializer {
    * @param real_attr_sizes unsorted REAL attribute sizes, e.g. they shouldn't use MSB to indicate varlen.
    * @param col_ids column ids
    */
-  static ProjectedRowInitializer Create(std::vector<uint16_t> real_attr_sizes, const std::vector<col_id_t> &col_ids);
+  static ProjectedRowInitializer Create(const std::vector<uint16_t> &real_attr_sizes,
+                                        const std::vector<col_id_t> &col_ids);
 
   /**
    * Constructs a ProjectedRowInitializer. Calculates the size of this ProjectedRow, including all members, values,
