@@ -1786,14 +1786,14 @@ Column DatabaseCatalog::MakeColumn(storage::ProjectedRow *const pr, const storag
 
 bool DatabaseCatalog::TryLock(transaction::TransactionContext *const txn) {
   auto current_val = write_lock_.load();
-  if (current_val == txn->StartTime()) return true;  // already hold the lock
+  if (current_val == txn->FinishTime()) return true;  // already hold the lock
 
   if (transaction::TransactionUtil::NewerThan(txn->StartTime(), current_val) &&
-      write_lock_.compare_exchange_strong(current_val, txn->StartTime())) {
+      write_lock_.compare_exchange_strong(current_val, txn->FinishTime())) {
     auto *const write_lock = &write_lock_;
     auto release = [=]() -> void {
-      auto txn_start = txn->StartTime();
-      const auto result = write_lock->compare_exchange_strong(txn_start, txn->FinishTime());
+      auto txn_finish = txn->StartTime();
+      const auto result = write_lock->compare_exchange_strong(txn_finish, txn->StartTime());
       TERRIER_ASSERT(result, "Failed to release the lock.");
     };
     txn->RegisterCommitAction(release);

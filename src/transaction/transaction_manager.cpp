@@ -29,6 +29,8 @@ TransactionContext *TransactionManager::BeginTransaction() {
 void TransactionManager::LogCommit(TransactionContext *const txn, const timestamp_t commit_time,
                                    const callback_fn commit_callback, void *const commit_callback_arg,
                                    const timestamp_t oldest_active_txn) {
+  txn->finish_time_.store(commit_time);
+
   if (log_manager_ != DISABLED) {
     // At this point the commit has already happened for the rest of the system.
     // Here we will manually add a commit record and flush the buffer to ensure the logger
@@ -82,9 +84,6 @@ timestamp_t TransactionManager::Commit(TransactionContext *const txn, transactio
         "This txn was marked that it must abort. Set a breakpoint at TransactionContext::MustAbort() to see a "
         "stack trace for when this flag is getting tripped.");
     result = txn->IsReadOnly() ? timestamp_manager_->CheckOutTimestamp() : UpdatingCommitCriticalSection(txn);
-
-    txn->finish_time_.store(result);
-
     while (!txn->commit_actions_.empty()) {
       TERRIER_ASSERT(deferred_action_manager_ != DISABLED, "No deferred action manager exists to process actions");
       txn->commit_actions_.front()(deferred_action_manager_);
@@ -144,6 +143,13 @@ void TransactionManager::LogAbort(TransactionContext *const txn) {
 }
 
 timestamp_t TransactionManager::Abort(TransactionContext *const txn) {
+  // Immediately clear the abort actions stack
+  while (!txn->abort_actions_.empty()) {
+    TERRIER_ASSERT(deferred_action_manager_ != DISABLED, "No deferred action manager exists to process actions");
+    txn->abort_actions_.front()(deferred_action_manager_);
+    txn->abort_actions_.pop_front();
+  }
+
   // We need to beware not to rollback a version chain multiple times, as that is just wasted computation
   std::unordered_set<storage::TupleSlot> slots_rolled_back;
   for (auto &record : txn->undo_buffer_) {
@@ -167,13 +173,6 @@ timestamp_t TransactionManager::Abort(TransactionContext *const txn) {
   // The last update might not have been installed, and thus Rollback would miss it if it contains a
   // varlen entry whose memory content needs to be freed. We have to check for this case manually.
   GCLastUpdateOnAbort(txn);
-
-  // Immediately clear the abort actions stack
-  while (!txn->abort_actions_.empty()) {
-    TERRIER_ASSERT(deferred_action_manager_ != DISABLED, "No deferred action manager exists to process actions");
-    txn->abort_actions_.front()(deferred_action_manager_);
-    txn->abort_actions_.pop_front();
-  }
 
   LogAbort(txn);
 
