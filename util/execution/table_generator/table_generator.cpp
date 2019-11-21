@@ -234,7 +234,7 @@ void TableGenerator::FillIndex(common::ManagedPointer<storage::index::Index> ind
         index_pr->SetNull(index_offset);
       } else {
         byte *index_data = index_pr->AccessForceNotNull(index_offset);
-        uint16_t type_size = ATTR_SIZE_BYTES(type::TypeUtil::GetTypeSize(index_col.Type()));
+        auto type_size = ATTR_SIZE_BYTES(type::TypeUtil::GetTypeSize(index_col.Type()));
         std::memcpy(index_data, table_pr->AccessForceNotNull(table_offset), type_size);
       }
     }

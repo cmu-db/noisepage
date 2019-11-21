@@ -86,7 +86,7 @@ ProjectedRowInitializer ProjectedRowInitializer::Create(std::vector<uint16_t> re
   return ProjectedRowInitializer(real_attr_sizes, col_ids);
 }
 
-ProjectedRowInitializer ProjectedRowInitializer::Create(std::vector<uint16_t> real_attr_sizes,
+ProjectedRowInitializer ProjectedRowInitializer::Create(const std::vector<uint16_t> &real_attr_sizes,
                                                         const std::vector<col_id_t> &col_ids) {
   return ProjectedRowInitializer(real_attr_sizes, col_ids);
 }
