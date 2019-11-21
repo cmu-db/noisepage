@@ -55,6 +55,10 @@ class CreateIndexPlanNode : public AbstractPlanNode {
       return *this;
     }
 
+    /**
+     * @param schema table schema, node takes ownership
+     * @return builder object
+     */
     Builder &SetSchema(std::unique_ptr<catalog::IndexSchema> schema) {
       schema_ = std::move(schema);
       return *this;
@@ -86,6 +90,9 @@ class CreateIndexPlanNode : public AbstractPlanNode {
      */
     std::string index_name_;
 
+    /**
+     * table schema
+     */
     std::unique_ptr<catalog::IndexSchema> schema_;
   };
 

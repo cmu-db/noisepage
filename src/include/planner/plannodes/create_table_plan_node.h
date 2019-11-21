@@ -574,6 +574,9 @@ class CreateTablePlanNode : public AbstractPlanNode {
      */
     std::unique_ptr<catalog::Schema> table_schema_;
 
+    /**
+     * block store to be used when constructing this table
+     */
     common::ManagedPointer<storage::BlockStore> block_store_;
 
     /**
@@ -657,6 +660,9 @@ class CreateTablePlanNode : public AbstractPlanNode {
    */
   const std::string &GetTableName() const { return table_name_; }
 
+  /**
+   * @return block store to be used when constructing this table
+   */
   common::ManagedPointer<storage::BlockStore> GetBlockStore() const { return block_store_; }
 
   /**

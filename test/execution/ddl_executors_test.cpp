@@ -1,5 +1,5 @@
-#include <array>
 #include <memory>
+#include <utility>
 #include <vector>
 
 #include "catalog/catalog.h"
@@ -17,6 +17,7 @@
 #include "planner/plannodes/drop_table_plan_node.h"
 #include "test_util/catalog_test_util.h"
 #include "test_util/test_harness.h"
+#include "transaction/deferred_action_manager.h"
 #include "transaction/transaction_manager.h"
 #include "transaction/transaction_util.h"
 
@@ -98,7 +99,7 @@ TEST_F(DDLExecutorsTests, CreateDatabasePlanNode) {
   auto create_db_node = builder.SetDatabaseName("foo").Build();
   auto exec_ctx = CreateExecutionContext();
   auto accessor = exec_ctx->GetAccessor();
-  EXPECT_TRUE(execution::DDLExecutors::CreateDatabaseExecutor(
+  EXPECT_TRUE(execution::sql::DDLExecutors::CreateDatabaseExecutor(
       common::ManagedPointer<planner::CreateDatabasePlanNode>(create_db_node),
       common::ManagedPointer<exec::ExecutionContext>(exec_ctx)));
   auto db_oid = accessor->GetDatabaseOid("foo");
@@ -112,12 +113,12 @@ TEST_F(DDLExecutorsTests, CreateDatabasePlanNodeNameConflict) {
   auto create_db_node = builder.SetDatabaseName("foo").Build();
   auto exec_ctx = CreateExecutionContext();
   auto accessor = exec_ctx->GetAccessor();
-  EXPECT_TRUE(execution::DDLExecutors::CreateDatabaseExecutor(
+  EXPECT_TRUE(execution::sql::DDLExecutors::CreateDatabaseExecutor(
       common::ManagedPointer<planner::CreateDatabasePlanNode>(create_db_node),
       common::ManagedPointer<exec::ExecutionContext>(exec_ctx)));
   auto db_oid = accessor->GetDatabaseOid("foo");
   EXPECT_NE(db_oid, catalog::INVALID_DATABASE_OID);
-  EXPECT_FALSE(execution::DDLExecutors::CreateDatabaseExecutor(
+  EXPECT_FALSE(execution::sql::DDLExecutors::CreateDatabaseExecutor(
       common::ManagedPointer<planner::CreateDatabasePlanNode>(create_db_node),
       common::ManagedPointer<exec::ExecutionContext>(exec_ctx)));
   txn_manager_->Abort(exec_ctx->GetTxn());
@@ -129,7 +130,7 @@ TEST_F(DDLExecutorsTests, CreateNamespacePlanNode) {
   auto create_ns_node = builder.SetNamespaceName("foo").Build();
   auto exec_ctx = CreateExecutionContext();
   auto accessor = exec_ctx->GetAccessor();
-  EXPECT_TRUE(execution::DDLExecutors::CreateNamespaceExecutor(
+  EXPECT_TRUE(execution::sql::DDLExecutors::CreateNamespaceExecutor(
       common::ManagedPointer<planner::CreateNamespacePlanNode>(create_ns_node),
       common::ManagedPointer<exec::ExecutionContext>(exec_ctx)));
   auto ns_oid = accessor->GetNamespaceOid("foo");
@@ -143,12 +144,12 @@ TEST_F(DDLExecutorsTests, CreateNamespacePlanNodeNameConflict) {
   auto create_ns_node = builder.SetNamespaceName("foo").Build();
   auto exec_ctx = CreateExecutionContext();
   auto accessor = exec_ctx->GetAccessor();
-  EXPECT_TRUE(execution::DDLExecutors::CreateNamespaceExecutor(
+  EXPECT_TRUE(execution::sql::DDLExecutors::CreateNamespaceExecutor(
       common::ManagedPointer<planner::CreateNamespacePlanNode>(create_ns_node),
       common::ManagedPointer<exec::ExecutionContext>(exec_ctx)));
   auto ns_oid = accessor->GetNamespaceOid("foo");
   EXPECT_NE(ns_oid, catalog::INVALID_NAMESPACE_OID);
-  EXPECT_FALSE(execution::DDLExecutors::CreateNamespaceExecutor(
+  EXPECT_FALSE(execution::sql::DDLExecutors::CreateNamespaceExecutor(
       common::ManagedPointer<planner::CreateNamespacePlanNode>(create_ns_node),
       common::ManagedPointer<exec::ExecutionContext>(exec_ctx)));
   txn_manager_->Abort(exec_ctx->GetTxn());
@@ -164,7 +165,7 @@ TEST_F(DDLExecutorsTests, CreateTablePlanNode) {
                                .Build();
   auto exec_ctx = CreateExecutionContext();
   auto accessor = exec_ctx->GetAccessor();
-  EXPECT_TRUE(execution::DDLExecutors::CreateTableExecutor(
+  EXPECT_TRUE(execution::sql::DDLExecutors::CreateTableExecutor(
       common::ManagedPointer<planner::CreateTablePlanNode>(create_table_node),
       common::ManagedPointer<exec::ExecutionContext>(exec_ctx)));
   auto table_oid = accessor->GetTableOid(CatalogTestUtil::TEST_NAMESPACE_OID, "foo");
@@ -184,7 +185,7 @@ TEST_F(DDLExecutorsTests, CreateTablePlanNodeAbort) {
                                .Build();
   auto exec_ctx = CreateExecutionContext();
   auto accessor = exec_ctx->GetAccessor();
-  EXPECT_TRUE(execution::DDLExecutors::CreateTableExecutor(
+  EXPECT_TRUE(execution::sql::DDLExecutors::CreateTableExecutor(
       common::ManagedPointer<planner::CreateTablePlanNode>(create_table_node),
       common::ManagedPointer<exec::ExecutionContext>(exec_ctx)));
   auto table_oid = accessor->GetTableOid(CatalogTestUtil::TEST_NAMESPACE_OID, "foo");
@@ -204,14 +205,14 @@ TEST_F(DDLExecutorsTests, CreateTablePlanNodeTableNameConflict) {
                                .Build();
   auto exec_ctx = CreateExecutionContext();
   auto accessor = exec_ctx->GetAccessor();
-  EXPECT_TRUE(execution::DDLExecutors::CreateTableExecutor(
+  EXPECT_TRUE(execution::sql::DDLExecutors::CreateTableExecutor(
       common::ManagedPointer<planner::CreateTablePlanNode>(create_table_node),
       common::ManagedPointer<exec::ExecutionContext>(exec_ctx)));
   auto table_oid = accessor->GetTableOid(CatalogTestUtil::TEST_NAMESPACE_OID, "foo");
   EXPECT_NE(table_oid, catalog::INVALID_TABLE_OID);
   auto table_ptr = accessor->GetTable(table_oid);
   EXPECT_NE(table_ptr, nullptr);
-  EXPECT_FALSE(execution::DDLExecutors::CreateTableExecutor(
+  EXPECT_FALSE(execution::sql::DDLExecutors::CreateTableExecutor(
       common::ManagedPointer<planner::CreateTablePlanNode>(create_table_node),
       common::ManagedPointer<exec::ExecutionContext>(exec_ctx)));
   txn_manager_->Abort(exec_ctx->GetTxn());
@@ -233,7 +234,7 @@ TEST_F(DDLExecutorsTests, CreateTablePlanNodePKey) {
                                .Build();
   auto exec_ctx = CreateExecutionContext();
   auto accessor = exec_ctx->GetAccessor();
-  EXPECT_TRUE(execution::DDLExecutors::CreateTableExecutor(
+  EXPECT_TRUE(execution::sql::DDLExecutors::CreateTableExecutor(
       common::ManagedPointer<planner::CreateTablePlanNode>(create_table_node),
       common::ManagedPointer<exec::ExecutionContext>(exec_ctx)));
   auto table_oid = accessor->GetTableOid(CatalogTestUtil::TEST_NAMESPACE_OID, "foo");
@@ -259,7 +260,7 @@ TEST_F(DDLExecutorsTests, CreateTablePlanNodePKeyAbort) {
                                .Build();
   auto exec_ctx = CreateExecutionContext();
   auto accessor = exec_ctx->GetAccessor();
-  EXPECT_TRUE(execution::DDLExecutors::CreateTableExecutor(
+  EXPECT_TRUE(execution::sql::DDLExecutors::CreateTableExecutor(
       common::ManagedPointer<planner::CreateTablePlanNode>(create_table_node),
       common::ManagedPointer<exec::ExecutionContext>(exec_ctx)));
   auto table_oid = accessor->GetTableOid(CatalogTestUtil::TEST_NAMESPACE_OID, "foo");
@@ -285,7 +286,7 @@ TEST_F(DDLExecutorsTests, CreateTablePlanNodePKeyNameConflict) {
                                .Build();
   auto exec_ctx = CreateExecutionContext();
   auto accessor = exec_ctx->GetAccessor();
-  EXPECT_FALSE(execution::DDLExecutors::CreateTableExecutor(
+  EXPECT_FALSE(execution::sql::DDLExecutors::CreateTableExecutor(
       common::ManagedPointer<planner::CreateTablePlanNode>(create_table_node),
       common::ManagedPointer<exec::ExecutionContext>(exec_ctx)));
   auto table_oid = accessor->GetTableOid(CatalogTestUtil::TEST_NAMESPACE_OID, "foo");
@@ -305,7 +306,7 @@ TEST_F(DDLExecutorsTests, CreateIndexPlanNode) {
                                .Build();
   auto exec_ctx = CreateExecutionContext();
   auto accessor = exec_ctx->GetAccessor();
-  EXPECT_TRUE(execution::DDLExecutors::CreateIndexExecutor(
+  EXPECT_TRUE(execution::sql::DDLExecutors::CreateIndexExecutor(
       common::ManagedPointer<planner::CreateIndexPlanNode>(create_index_node),
       common::ManagedPointer<exec::ExecutionContext>(exec_ctx)));
   auto index_oid = accessor->GetIndexOid(CatalogTestUtil::TEST_NAMESPACE_OID, "foo");
@@ -325,7 +326,7 @@ TEST_F(DDLExecutorsTests, CreateIndexPlanNodeAbort) {
                                .Build();
   auto exec_ctx = CreateExecutionContext();
   auto accessor = exec_ctx->GetAccessor();
-  EXPECT_TRUE(execution::DDLExecutors::CreateIndexExecutor(
+  EXPECT_TRUE(execution::sql::DDLExecutors::CreateIndexExecutor(
       common::ManagedPointer<planner::CreateIndexPlanNode>(create_index_node),
       common::ManagedPointer<exec::ExecutionContext>(exec_ctx)));
   auto index_oid = accessor->GetIndexOid(CatalogTestUtil::TEST_NAMESPACE_OID, "foo");
@@ -345,14 +346,14 @@ TEST_F(DDLExecutorsTests, CreateIndexPlanNodeIndexNameConflict) {
                                .Build();
   auto exec_ctx = CreateExecutionContext();
   auto accessor = exec_ctx->GetAccessor();
-  EXPECT_TRUE(execution::DDLExecutors::CreateIndexExecutor(
+  EXPECT_TRUE(execution::sql::DDLExecutors::CreateIndexExecutor(
       common::ManagedPointer<planner::CreateIndexPlanNode>(create_index_node),
       common::ManagedPointer<exec::ExecutionContext>(exec_ctx)));
   auto index_oid = accessor->GetIndexOid(CatalogTestUtil::TEST_NAMESPACE_OID, "foo");
   EXPECT_NE(index_oid, catalog::INVALID_INDEX_OID);
   auto index_ptr = accessor->GetIndex(index_oid);
   EXPECT_NE(index_ptr, nullptr);
-  EXPECT_FALSE(execution::DDLExecutors::CreateIndexExecutor(
+  EXPECT_FALSE(execution::sql::DDLExecutors::CreateIndexExecutor(
       common::ManagedPointer<planner::CreateIndexPlanNode>(create_index_node),
       common::ManagedPointer<exec::ExecutionContext>(exec_ctx)));
   txn_manager_->Abort(exec_ctx->GetTxn());
@@ -368,7 +369,7 @@ TEST_F(DDLExecutorsTests, DropTablePlanNode) {
                                .Build();
   auto exec_ctx = CreateExecutionContext();
   auto accessor = exec_ctx->GetAccessor();
-  EXPECT_TRUE(execution::DDLExecutors::CreateTableExecutor(
+  EXPECT_TRUE(execution::sql::DDLExecutors::CreateTableExecutor(
       common::ManagedPointer<planner::CreateTablePlanNode>(create_table_node),
       common::ManagedPointer<exec::ExecutionContext>(exec_ctx)));
   auto table_oid = accessor->GetTableOid(CatalogTestUtil::TEST_NAMESPACE_OID, "foo");
@@ -378,9 +379,9 @@ TEST_F(DDLExecutorsTests, DropTablePlanNode) {
 
   planner::DropTablePlanNode::Builder drop_builder;
   auto drop_table_node = drop_builder.SetTableOid(table_oid).Build();
-  EXPECT_TRUE(
-      execution::DDLExecutors::DropTableExecutor(common::ManagedPointer<planner::DropTablePlanNode>(drop_table_node),
-                                                 common::ManagedPointer<exec::ExecutionContext>(exec_ctx)));
+  EXPECT_TRUE(execution::sql::DDLExecutors::DropTableExecutor(
+      common::ManagedPointer<planner::DropTablePlanNode>(drop_table_node),
+      common::ManagedPointer<exec::ExecutionContext>(exec_ctx)));
 
   txn_manager_->Commit(exec_ctx->GetTxn(), transaction::TransactionUtil::EmptyCallback, nullptr);
 }
