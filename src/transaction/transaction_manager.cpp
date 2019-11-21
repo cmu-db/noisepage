@@ -30,7 +30,6 @@ void TransactionManager::LogCommit(TransactionContext *const txn, const timestam
                                    const callback_fn commit_callback, void *const commit_callback_arg,
                                    const timestamp_t oldest_active_txn) {
   txn->finish_time_.store(commit_time);
-
   if (log_manager_ != DISABLED) {
     // At this point the commit has already happened for the rest of the system.
     // Here we will manually add a commit record and flush the buffer to ensure the logger
