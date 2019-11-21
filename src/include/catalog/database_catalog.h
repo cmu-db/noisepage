@@ -335,10 +335,11 @@ class DatabaseCatalog {
   storage::index::Index *constraints_foreigntable_index_;
 
   std::atomic<uint32_t> next_oid_;
+  std::atomic<transaction::timestamp_t> write_lock_;
 
   const db_oid_t db_oid_;
 
-  explicit DatabaseCatalog(db_oid_t oid) : db_oid_(oid) {}
+  explicit DatabaseCatalog(db_oid_t oid) : write_lock_(transaction::INITIAL_TXN_TIMESTAMP), db_oid_(oid) {}
 
   void TearDown(transaction::TransactionContext *txn);
   bool CreateTableEntry(transaction::TransactionContext *txn, table_oid_t table_oid, namespace_oid_t ns_oid,
@@ -347,6 +348,8 @@ class DatabaseCatalog {
   friend class Catalog;
   friend class postgres::Builder;
   friend class storage::RecoveryManager;
+
+  bool TryLock(transaction::TransactionContext *txn);
 
   /**
    * Atomically updates the next oid counter to the max of the current count and the provided next oid

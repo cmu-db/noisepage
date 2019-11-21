@@ -286,6 +286,7 @@ void DatabaseCatalog::BootstrapPRIs() {
 }
 
 namespace_oid_t DatabaseCatalog::CreateNamespace(transaction::TransactionContext *const txn, const std::string &name) {
+  if (!TryLock(txn)) return INVALID_NAMESPACE_OID;
   const namespace_oid_t ns_oid{next_oid_++};
   if (!CreateNamespace(txn, name, ns_oid)) {
     return INVALID_NAMESPACE_OID;
@@ -335,6 +336,7 @@ bool DatabaseCatalog::CreateNamespace(transaction::TransactionContext *const txn
 }
 
 bool DatabaseCatalog::DeleteNamespace(transaction::TransactionContext *const txn, const namespace_oid_t ns_oid) {
+  if (!TryLock(txn)) return false;
   // Step 1: Read the oid index
   // Buffer is large enough for all prs because it's meant to hold 1 VarlenEntry
   byte *const buffer = common::AllocationUtil::AllocateAligned(delete_namespace_pri_.ProjectedRowSize());
@@ -631,12 +633,14 @@ bool DatabaseCatalog::DeleteColumns(transaction::TransactionContext *const txn, 
 
 table_oid_t DatabaseCatalog::CreateTable(transaction::TransactionContext *const txn, const namespace_oid_t ns,
                                          const std::string &name, const Schema &schema) {
+  if (!TryLock(txn)) return INVALID_TABLE_OID;
   const table_oid_t table_oid = static_cast<table_oid_t>(next_oid_++);
 
   return CreateTableEntry(txn, table_oid, ns, name, schema) ? table_oid : INVALID_TABLE_OID;
 }
 
 bool DatabaseCatalog::DeleteTable(transaction::TransactionContext *const txn, const table_oid_t table) {
+  if (!TryLock(txn)) return false;
   // We should respect foreign key relations and attempt to delete the table's columns first
   auto result = DeleteColumns<Schema::Column, table_oid_t>(txn, table);
   if (!result) return false;
@@ -785,6 +789,7 @@ table_oid_t DatabaseCatalog::GetTableOid(transaction::TransactionContext *const 
 
 bool DatabaseCatalog::SetTablePointer(transaction::TransactionContext *const txn, const table_oid_t table,
                                       const storage::SqlTable *const table_ptr) {
+  if (!TryLock(txn)) return false;
   // We need to defer the deletion because their may be subsequent undo records into this table that need to be GCed
   // before we can safely delete this.
   txn->RegisterAbortAction([=](transaction::DeferredActionManager *deferred_action_manager) {
@@ -810,6 +815,7 @@ common::ManagedPointer<storage::SqlTable> DatabaseCatalog::GetTable(transaction:
 
 bool DatabaseCatalog::RenameTable(transaction::TransactionContext *const txn, const table_oid_t table,
                                   const std::string &name) {
+  if (!TryLock(txn)) return false;
   // TODO(John): Implement
   TERRIER_ASSERT(false, "Not implemented");
   return false;
@@ -817,6 +823,7 @@ bool DatabaseCatalog::RenameTable(transaction::TransactionContext *const txn, co
 
 bool DatabaseCatalog::UpdateSchema(transaction::TransactionContext *const txn, const table_oid_t table,
                                    Schema *const new_schema) {
+  if (!TryLock(txn)) return false;
   // TODO(John): Implement
   TERRIER_ASSERT(false, "Not implemented");
   return false;
@@ -871,11 +878,13 @@ std::vector<index_oid_t> DatabaseCatalog::GetIndexOids(transaction::TransactionC
 
 index_oid_t DatabaseCatalog::CreateIndex(transaction::TransactionContext *txn, namespace_oid_t ns,
                                          const std::string &name, table_oid_t table, const IndexSchema &schema) {
+  if (!TryLock(txn)) return INVALID_INDEX_OID;
   const index_oid_t index_oid = static_cast<index_oid_t>(next_oid_++);
   return CreateIndexEntry(txn, ns, table, index_oid, name, schema) ? index_oid : INVALID_INDEX_OID;
 }
 
 bool DatabaseCatalog::DeleteIndex(transaction::TransactionContext *txn, index_oid_t index) {
+  if (!TryLock(txn)) return false;
   // We should respect foreign key relations and attempt to delete the table's columns first
   auto result = DeleteColumns<IndexSchema::Column, index_oid_t>(txn, index);
   if (!result) return false;
@@ -1073,6 +1082,7 @@ bool DatabaseCatalog::SetClassPointer(transaction::TransactionContext *const txn
 
 bool DatabaseCatalog::SetIndexPointer(transaction::TransactionContext *const txn, const index_oid_t index,
                                       const storage::index::Index *const index_ptr) {
+  if (!TryLock(txn)) return false;
   // This needs to be deferred because if any items were subsequently inserted into this index, they will have deferred
   // abort actions that will be above this action on the abort stack.  The defer ensures we execute after them.
   txn->RegisterAbortAction([=](transaction::DeferredActionManager *deferred_action_manager) {
@@ -1772,6 +1782,26 @@ Column DatabaseCatalog::MakeColumn(storage::ProjectedRow *const pr, const storag
                    : Column(name, col_type, col_null, *expr);
   col.SetOid(ColOid(col_oid));
   return col;
+}
+
+bool DatabaseCatalog::TryLock(transaction::TransactionContext *const txn) {
+  auto current_val = write_lock_.load();
+  if (current_val == txn->StartTime()) return true;  // already hold the lock
+
+  if (transaction::TransactionUtil::NewerThan(txn->StartTime(), current_val) &&
+      write_lock_.compare_exchange_strong(current_val, txn->StartTime())) {
+    auto *const write_lock = &write_lock_;
+    auto release = [=]() -> void {
+      auto txn_start = txn->StartTime();
+      const auto result = write_lock->compare_exchange_strong(txn_start, txn->FinishTime());
+      TERRIER_ASSERT(result, "Failed to release the lock.");
+    };
+    txn->RegisterCommitAction(release);
+    txn->RegisterAbortAction(release);
+    return true;
+  }
+  txn->MustAbort();
+  return false;
 }
 
 template bool DatabaseCatalog::CreateColumn<Schema::Column, table_oid_t>(transaction::TransactionContext *const txn,
