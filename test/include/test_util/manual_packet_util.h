@@ -25,8 +25,8 @@ class ManualPacketUtil {
    * @param expected_msg_type
    * @return true if reads the expected type message, false for closed.
    */
-  static bool ReadUntilMessageOrClose(const std::shared_ptr<NetworkIoWrapper> &io_socket,
-                                      const NetworkMessageType &expected_msg_type) {
+  static bool ReadUntilMessageOrClose(common::ManagedPointer<NetworkIoWrapper> io_socket,
+                               const NetworkMessageType &expected_msg_type) {
     while (true) {
       io_socket->GetReadBuffer()->Reset();
       Transition trans = io_socket->FillReadBuffer();
@@ -47,11 +47,11 @@ class ManualPacketUtil {
    * @param io_socket
    * @return
    */
-  static bool ReadUntilReadyOrClose(const std::shared_ptr<NetworkIoWrapper> &io_socket) {
+  static bool ReadUntilReadyOrClose(common::ManagedPointer<NetworkIoWrapper> io_socket) {
     return ReadUntilMessageOrClose(io_socket, NetworkMessageType::PG_READY_FOR_QUERY);
   }
 
-  static std::shared_ptr<NetworkIoWrapper> StartConnection(uint16_t port) {
+  static std::unique_ptr<NetworkIoWrapper> StartConnection(uint16_t port) {
     // Manually open a socket
     int socket_fd = socket(AF_INET, SOCK_STREAM, 0);
 
@@ -64,7 +64,7 @@ class ManualPacketUtil {
     int64_t ret = connect(socket_fd, reinterpret_cast<sockaddr *>(&serv_addr), sizeof(serv_addr));
     if (ret < 0) TEST_LOG_ERROR("Connection Error");
 
-    auto io_socket = std::make_shared<NetworkIoWrapper>(socket_fd);
+    auto io_socket = std::make_unique<NetworkIoWrapper>(socket_fd);
     PostgresPacketWriter writer(io_socket->GetWriteQueue());
 
     std::unordered_map<std::string, std::string> params{
@@ -73,7 +73,7 @@ class ManualPacketUtil {
     writer.WriteStartupRequest(params);
     io_socket->FlushAllWrites();
 
-    ReadUntilReadyOrClose(io_socket);
+    ReadUntilReadyOrClose(common::ManagedPointer(io_socket));
     return io_socket;
   }
 
