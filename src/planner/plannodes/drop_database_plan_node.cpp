@@ -11,6 +11,7 @@ common::hash_t DropDatabasePlanNode::Hash() const {
   common::hash_t hash = AbstractPlanNode::Hash();
 
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_oid_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_oid_));
 
   return hash;
 }
@@ -20,7 +21,7 @@ bool DropDatabasePlanNode::operator==(const AbstractPlanNode &rhs) const {
 
   auto &other = dynamic_cast<const DropDatabasePlanNode &>(rhs);
 
-  return database_oid_ != other.database_oid_;
+  return database_oid_ == other.database_oid_;
 }
 
 nlohmann::json DropDatabasePlanNode::ToJson() const {

@@ -484,7 +484,7 @@ TEST(PlanNodeJsonTest, DeletePlanNodeTest) {
 TEST(PlanNodeJsonTest, DropDatabasePlanNodeTest) {
   // Construct DropDatabasePlanNode
   DropDatabasePlanNode::Builder builder;
-  auto plan_node = builder.SetDatabaseOid(catalog::db_oid_t(7)).SetIfExist(true).Build();
+  auto plan_node = builder.SetDatabaseOid(catalog::db_oid_t(7)).Build();
 
   // Serialize to Json
   auto json = plan_node->ToJson();
@@ -500,7 +500,7 @@ TEST(PlanNodeJsonTest, DropDatabasePlanNodeTest) {
 
   // Sanity check to make sure that it actually fails if the plan nodes are truly different
   DropDatabasePlanNode::Builder builder2;
-  auto plan_node2 = builder2.SetDatabaseOid(catalog::db_oid_t(9999)).SetIfExist(true).Build();
+  auto plan_node2 = builder2.SetDatabaseOid(catalog::db_oid_t(9999)).Build();
   auto json2 = plan_node2->ToJson();
   auto deserialized2 = DeserializePlanNode(json2);
   auto deserialized_plan2 = common::ManagedPointer(deserialized2.result_).CastManagedPointerTo<DropDatabasePlanNode>();

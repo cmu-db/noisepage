@@ -36,15 +36,6 @@ class DropDatabasePlanNode : public AbstractPlanNode {
     }
 
     /**
-     * @param if_exists true if "IF EXISTS" was used
-     * @return builder object
-     */
-    Builder &SetIfExist(bool if_exists) {
-      if_exists_ = if_exists;
-      return *this;
-    }
-
-    /**
      * Build the drop database plan node
      * @return plan node
      */
@@ -58,11 +49,6 @@ class DropDatabasePlanNode : public AbstractPlanNode {
      * OID of the database to drop
      */
     catalog::db_oid_t database_oid_;
-
-    /**
-     * Whether "IF EXISTS" was used
-     */
-    bool if_exists_;
   };
 
  private:

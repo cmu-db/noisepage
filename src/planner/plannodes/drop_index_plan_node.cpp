@@ -20,7 +20,7 @@ bool DropIndexPlanNode::operator==(const AbstractPlanNode &rhs) const {
 
   auto &other = dynamic_cast<const DropIndexPlanNode &>(rhs);
 
-  return index_oid_ != other.index_oid_;
+  return index_oid_ == other.index_oid_;
 }
 
 nlohmann::json DropIndexPlanNode::ToJson() const {
