@@ -92,7 +92,7 @@ class DDLExecutors {
                                 const common::ManagedPointer<exec::ExecutionContext> context) {
     auto *const accessor = context->GetAccessor();
     const bool result = accessor->DropTable(node->GetTableOid());
-    // TODO(Matt): drop all indexes, constraints, etc.?
+    // TODO(Matt): CASCADE?
     return result;
   }
 
@@ -100,6 +100,7 @@ class DDLExecutors {
                                 const common::ManagedPointer<exec::ExecutionContext> context) {
     auto *const accessor = context->GetAccessor();
     const bool result = accessor->DropIndex(node->GetIndexOid());
+    // TODO(Matt): CASCADE?
     return result;
   }
 
@@ -110,7 +111,6 @@ class DDLExecutors {
                    "the binder.");
     auto *const accessor = context->GetAccessor();
     const bool result = accessor->DropDatabase(node->GetDatabaseOid());
-    // TODO(Matt): drop all namespaces?
     return result;
   }
 
@@ -118,7 +118,7 @@ class DDLExecutors {
                                     const common::ManagedPointer<exec::ExecutionContext> context) {
     auto *const accessor = context->GetAccessor();
     const bool result = accessor->DropNamespace(node->GetNamespaceOid());
-    // TODO(Matt): drop all tables?
+    // TODO(Matt): CASCADE?
     return result;
   }
 

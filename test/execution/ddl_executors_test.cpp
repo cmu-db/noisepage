@@ -136,7 +136,7 @@ TEST_F(DDLExecutorsTests, CreateTablePlanNodeAbort) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(DDLExecutorsTests, CreateTablePlanNodeNameConflict) {
+TEST_F(DDLExecutorsTests, CreateTablePlanNodeTableNameConflict) {
   planner::CreateTablePlanNode::Builder builder;
   auto create_table_node = builder.SetNamespaceOid(CatalogTestUtil::TEST_NAMESPACE_OID)
                                .SetTableSchema(std::move(table_schema_))
@@ -159,12 +159,18 @@ TEST_F(DDLExecutorsTests, CreateTablePlanNodeNameConflict) {
 }
 
 // NOLINTNEXTLINE
-TEST_F(DDLExecutorsTests, CreateTablePlanNodeWriteWriteConflict) {
+TEST_F(DDLExecutorsTests, CreateTablePlanNodePKey) {
+  planner::PrimaryKeyInfo pk_info;
+  pk_info.primary_key_cols_ = {"attribute"};
+  pk_info.constraint_name_ = "foo_pkey";
+
   planner::CreateTablePlanNode::Builder builder;
   auto create_table_node = builder.SetNamespaceOid(CatalogTestUtil::TEST_NAMESPACE_OID)
                                .SetTableSchema(std::move(table_schema_))
                                .SetTableName("foo")
                                .SetBlockStore(common::ManagedPointer<storage::BlockStore>(&block_store_))
+                               .SetHasPrimaryKey(true)
+                               .SetPrimaryKey(std::move(pk_info))
                                .Build();
   auto exec_ctx = CreateExecutionContext();
   auto accessor = exec_ctx->GetAccessor();
@@ -172,16 +178,62 @@ TEST_F(DDLExecutorsTests, CreateTablePlanNodeWriteWriteConflict) {
       common::ManagedPointer<planner::CreateTablePlanNode>(create_table_node),
       common::ManagedPointer<exec::ExecutionContext>(exec_ctx)));
   auto table_oid = accessor->GetTableOid(CatalogTestUtil::TEST_NAMESPACE_OID, "foo");
+  auto index_oid = accessor->GetIndexOid(CatalogTestUtil::TEST_NAMESPACE_OID, "foo_pkey");
   EXPECT_NE(table_oid, catalog::INVALID_TABLE_OID);
-  auto table_ptr = accessor->GetTable(table_oid);
-  EXPECT_NE(table_ptr, nullptr);
+  EXPECT_NE(index_oid, catalog::INVALID_INDEX_OID);
+  txn_manager_->Commit(exec_ctx->GetTxn(), transaction::TransactionUtil::EmptyCallback, nullptr);
+}
 
-  auto other_ctx = CreateExecutionContext();
+// NOLINTNEXTLINE
+TEST_F(DDLExecutorsTests, CreateTablePlanNodePKeyAbort) {
+  planner::PrimaryKeyInfo pk_info;
+  pk_info.primary_key_cols_ = {"attribute"};
+  pk_info.constraint_name_ = "foo_pkey";
+
+  planner::CreateTablePlanNode::Builder builder;
+  auto create_table_node = builder.SetNamespaceOid(CatalogTestUtil::TEST_NAMESPACE_OID)
+                               .SetTableSchema(std::move(table_schema_))
+                               .SetTableName("foo")
+                               .SetBlockStore(common::ManagedPointer<storage::BlockStore>(&block_store_))
+                               .SetHasPrimaryKey(true)
+                               .SetPrimaryKey(std::move(pk_info))
+                               .Build();
+  auto exec_ctx = CreateExecutionContext();
+  auto accessor = exec_ctx->GetAccessor();
+  EXPECT_TRUE(execution::DDLExecutors::CreateTableExecutor(
+      common::ManagedPointer<planner::CreateTablePlanNode>(create_table_node),
+      common::ManagedPointer<exec::ExecutionContext>(exec_ctx)));
+  auto table_oid = accessor->GetTableOid(CatalogTestUtil::TEST_NAMESPACE_OID, "foo");
+  auto index_oid = accessor->GetIndexOid(CatalogTestUtil::TEST_NAMESPACE_OID, "foo_pkey");
+  EXPECT_NE(table_oid, catalog::INVALID_TABLE_OID);
+  EXPECT_NE(index_oid, catalog::INVALID_INDEX_OID);
+  txn_manager_->Abort(exec_ctx->GetTxn());
+}
+
+// NOLINTNEXTLINE
+TEST_F(DDLExecutorsTests, CreateTablePlanNodePKeyNameConflict) {
+  planner::PrimaryKeyInfo pk_info;
+  pk_info.primary_key_cols_ = {"attribute"};
+  pk_info.constraint_name_ = "foo";
+
+  planner::CreateTablePlanNode::Builder builder;
+  auto create_table_node = builder.SetNamespaceOid(CatalogTestUtil::TEST_NAMESPACE_OID)
+                               .SetTableSchema(std::move(table_schema_))
+                               .SetTableName("foo")
+                               .SetBlockStore(common::ManagedPointer<storage::BlockStore>(&block_store_))
+                               .SetHasPrimaryKey(true)
+                               .SetPrimaryKey(std::move(pk_info))
+                               .Build();
+  auto exec_ctx = CreateExecutionContext();
+  auto accessor = exec_ctx->GetAccessor();
   EXPECT_FALSE(execution::DDLExecutors::CreateTableExecutor(
       common::ManagedPointer<planner::CreateTablePlanNode>(create_table_node),
-      common::ManagedPointer<exec::ExecutionContext>(other_ctx)));
-  txn_manager_->Commit(exec_ctx->GetTxn(), transaction::TransactionUtil::EmptyCallback, nullptr);
-  txn_manager_->Abort(other_ctx->GetTxn());
+      common::ManagedPointer<exec::ExecutionContext>(exec_ctx)));
+  auto table_oid = accessor->GetTableOid(CatalogTestUtil::TEST_NAMESPACE_OID, "foo");
+  auto index_oid = accessor->GetIndexOid(CatalogTestUtil::TEST_NAMESPACE_OID, "foo");
+  EXPECT_NE(table_oid, catalog::INVALID_TABLE_OID);
+  EXPECT_EQ(index_oid, catalog::INVALID_INDEX_OID);
+  txn_manager_->Abort(exec_ctx->GetTxn());
 }
 
 // NOLINTNEXTLINE
