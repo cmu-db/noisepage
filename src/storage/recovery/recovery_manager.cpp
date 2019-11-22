@@ -129,7 +129,6 @@ uint32_t RecoveryManager::ProcessDeferredTransactions(terrier::transaction::time
 
   // For recording recovery throughput metric
   uint64_t elapsed_us = 0;
-  uint64_t total_elapsed_us = 0;
   uint64_t num_txns = 0;
   uint64_t num_bytes = 0;
 
@@ -137,9 +136,6 @@ uint32_t RecoveryManager::ProcessDeferredTransactions(terrier::transaction::time
     common::ScopedTimer<std::chrono::microseconds> scoped_timer(&elapsed_us);
     for (auto it = deferred_txns_.begin(); it != upper_bound_it; it++) {
       num_bytes += ProcessCommittedTransaction(*it);
-
-      // Update metrics
-      total_elapsed_us += elapsed_us;
       num_txns += 1;
     }
   }
@@ -151,7 +147,7 @@ uint32_t RecoveryManager::ProcessDeferredTransactions(terrier::transaction::time
     // Output metric if possible
     if (common::thread_context.metrics_store_ != DISABLED &&
         common::thread_context.metrics_store_->ComponentEnabled(metrics::MetricsComponent::RECOVERY)) {
-      common::thread_context.metrics_store_->RecordRecoveryData(num_txns, num_bytes, total_elapsed_us);
+      common::thread_context.metrics_store_->RecordRecoveryData(num_txns, num_bytes, elapsed_us);
     }
   }
 
