@@ -64,17 +64,6 @@ class RecoveryTests : public TerrierTest {
   catalog::Catalog *recovery_catalog_;
   storage::GarbageCollector *recovery_gc_;
   storage::GarbageCollectorThread *recovery_gc_thread_;
-  struct SqlTableMetadata {
-    // Column oids for this table. We cache them to generate random updates. They never change because we don't make ddl
-    // changes
-    std::vector<catalog::col_oid_t> col_oids_;
-    // Tuple slots inserted into this sql table
-    std::vector<storage::TupleSlot> inserted_tuples_;
-    // Latch to protect inserted tuples to allow for concurrent transactions
-    common::SpinLatch inserted_tuples_latch_;
-    // Buffer for select queries. Not thread safe, but since we aren't doing bookkeeping, it doesn't matter
-    byte *buffer_;
-  };
 
   void SetUp() override {
     TerrierTest::SetUp();
