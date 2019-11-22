@@ -502,4 +502,54 @@ TEST_F(CatalogTests, GetIndexObjectsTest) {
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 }
 
+/*
+ *
+ */
+// NOLINTNEXTLINE
+TEST_F(CatalogTests, DDLLockTest) {
+  auto *txn2 = txn_manager_->BeginTransaction();
+
+  auto *txn0 = txn_manager_->BeginTransaction();
+  auto accessor0 = catalog_->GetAccessor(txn0, db_);
+  EXPECT_NE(accessor0, nullptr);
+  auto ns_oid = accessor0->CreateNamespace("test_namespace0");
+  EXPECT_NE(ns_oid, catalog::INVALID_NAMESPACE_OID);
+  VerifyCatalogTables(*accessor0);  // Check visibility to me
+
+  ns_oid = accessor0->CreateNamespace("test_namespace4");  // Should work since txn0 already holds lock
+  EXPECT_NE(ns_oid, catalog::INVALID_NAMESPACE_OID);
+  VerifyCatalogTables(*accessor0);  // Check visibility to me
+
+  auto *txn1 = txn_manager_->BeginTransaction();
+
+  auto accessor1 = catalog_->GetAccessor(txn1, db_);
+  ns_oid = accessor1->CreateNamespace("test_namespace1");
+  EXPECT_EQ(ns_oid, catalog::INVALID_NAMESPACE_OID);  // Should fail to get the lock because txn0 holds it
+
+  auto accessor2 = catalog_->GetAccessor(txn2, db_);
+  ns_oid = accessor2->CreateNamespace("test_namespace2");
+  EXPECT_EQ(ns_oid, catalog::INVALID_NAMESPACE_OID);  // Should fail to get the lock because txn0 holds it
+
+  txn_manager_->Abort(txn1);
+  txn_manager_->Commit(txn0, transaction::TransactionUtil::EmptyCallback, nullptr);
+
+  ns_oid = accessor2->CreateNamespace("test_namespace2");
+  EXPECT_EQ(ns_oid,
+            catalog::INVALID_NAMESPACE_OID);  // Should fail to get the lock because txn0 is newer and made a DDL change
+
+  txn_manager_->Abort(txn2);
+
+  // Get an accessor into the database and validate the catalog tables exist
+  // then delete it and verify an invalid OID is now returned for the lookup
+  auto *txn3 = txn_manager_->BeginTransaction();
+  auto accessor3 = catalog_->GetAccessor(txn3, db_);
+  EXPECT_NE(accessor3, nullptr);
+  VerifyCatalogTables(*accessor3);  // Check visibility to me
+  ns_oid = accessor3->GetNamespaceOid("test_namespace0");
+  EXPECT_TRUE(accessor3->DropNamespace(ns_oid));
+  ns_oid = accessor3->GetNamespaceOid("test_namespace0");
+  EXPECT_EQ(ns_oid, catalog::INVALID_NAMESPACE_OID);
+  txn_manager_->Commit(txn3, transaction::TransactionUtil::EmptyCallback, nullptr);
+}
+
 }  // namespace terrier
