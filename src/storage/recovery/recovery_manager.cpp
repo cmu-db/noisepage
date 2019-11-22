@@ -133,15 +133,15 @@ uint32_t RecoveryManager::ProcessDeferredTransactions(terrier::transaction::time
   uint64_t num_txns = 0;
   uint64_t num_bytes = 0;
 
-  for (auto it = deferred_txns_.begin(); it != upper_bound_it; it++) {
-    {
-      common::ScopedTimer<std::chrono::microseconds> scoped_timer(&elapsed_us);
+  {
+    common::ScopedTimer<std::chrono::microseconds> scoped_timer(&elapsed_us);
+    for (auto it = deferred_txns_.begin(); it != upper_bound_it; it++) {
       num_bytes += ProcessCommittedTransaction(*it);
-    }
 
-    // Update metrics
-    total_elapsed_us += elapsed_us;
-    num_txns += 1;
+      // Update metrics
+      total_elapsed_us += elapsed_us;
+      num_txns += 1;
+    }
   }
 
   // If we actually processed some txns, remove them from the set
