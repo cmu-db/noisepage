@@ -117,7 +117,8 @@ TEST_F(TrafficCopTests, RoundTripTest) {
 }
 
 /**
- * Test whether a temporary namespace is created for a connection to the database
+ * Test whether a temporary namespace is created for a connection to the database and that namespace
+ * is blown away when the connection is closed
  */
 // NOLINTNEXTLINE
 TEST_F(TrafficCopTests, TemporaryNamespaceTest) {
@@ -138,7 +139,7 @@ TEST_F(TrafficCopTests, TemporaryNamespaceTest) {
     txn1.commit();
     connection.disconnect();
 
-    std::this_thread::sleep_for(std::chrono::seconds(10));
+    std::this_thread::sleep_for(std::chrono::seconds(5));
     txn = txn_manager_.BeginTransaction();
     db_accessor = catalog_.GetAccessor(txn, catalog_.GetDatabaseOid(txn, catalog::DEFAULT_DATABASE));
     EXPECT_FALSE(db_accessor->DropNamespace(catalog::namespace_oid_t{catalog::START_OID}));

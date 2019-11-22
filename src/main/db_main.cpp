@@ -60,6 +60,11 @@ DBMain::DBMain(std::unordered_map<settings::Param, settings::ParamInfo> &&param_
 
   catalog_ = new catalog::Catalog(txn_manager_, block_store_);
 
+  // Bootstrap the default database in the catalog.
+  auto *bootstrap_txn = txn_manager_->BeginTransaction();
+  catalog_->CreateDatabase(bootstrap_txn, catalog::DEFAULT_DATABASE, true);
+  txn_manager_->Commit(bootstrap_txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+
   t_cop_ = new trafficcop::TrafficCop(common::ManagedPointer(txn_manager_), common::ManagedPointer(catalog_));
   connection_handle_factory_ = new network::ConnectionHandleFactory(common::ManagedPointer(t_cop_));
 
