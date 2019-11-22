@@ -82,7 +82,7 @@ class RecoveryBenchmark : public benchmark::Fixture {
       storage::RecoveryManager recovery_manager(&log_provider, common::ManagedPointer(&recovered_catalog),
                                                 &recovery_txn_manager, &recovery_deferred_action_manager,
                                                 common::ManagedPointer(thread_registry_), &block_store_,
-                                                recovery_metric_interval_, false);
+                                                recovery_metric_interval_);
 
       uint64_t elapsed_ms;
       {
@@ -240,7 +240,7 @@ BENCHMARK_DEFINE_F(RecoveryBenchmark, IndexRecovery)(benchmark::State &state) {
     storage::RecoveryManager recovery_manager(&log_provider, common::ManagedPointer(&recovered_catalog),
                                               &recovery_txn_manager, &recovery_deferred_action_manager,
                                               common::ManagedPointer(thread_registry_), &block_store_,
-                                              recovery_metric_interval_, false);
+                                              recovery_metric_interval_);
 
     uint64_t elapsed_ms;
     {
