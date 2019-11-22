@@ -144,6 +144,13 @@ void TransactionManager::LogAbort(TransactionContext *const txn) {
 }
 
 timestamp_t TransactionManager::Abort(TransactionContext *const txn) {
+  // Immediately clear the abort actions stack
+  while (!txn->abort_actions_.empty()) {
+    TERRIER_ASSERT(deferred_action_manager_ != DISABLED, "No deferred action manager exists to process actions");
+    txn->abort_actions_.front()(deferred_action_manager_);
+    txn->abort_actions_.pop_front();
+  }
+
   // We need to beware not to rollback a version chain multiple times, as that is just wasted computation
   std::unordered_set<storage::TupleSlot> slots_rolled_back;
   for (auto &record : txn->undo_buffer_) {
@@ -154,7 +161,7 @@ timestamp_t TransactionManager::Abort(TransactionContext *const txn) {
     }
   }
 
-  // Now that the in-place versions have been restored, we neeed to check out an abort timestamp as well. This serves
+  // Now that the in-place versions have been restored, we need to check out an abort timestamp as well. This serves
   // to force the rest of the system to acknowledge the rollback, lest a reader suffers from an a-b-a problem in the
   // version record
   const timestamp_t abort_time = timestamp_manager_->CheckOutTimestamp();
@@ -167,13 +174,6 @@ timestamp_t TransactionManager::Abort(TransactionContext *const txn) {
   // The last update might not have been installed, and thus Rollback would miss it if it contains a
   // varlen entry whose memory content needs to be freed. We have to check for this case manually.
   GCLastUpdateOnAbort(txn);
-
-  // Immediately clear the abort actions stack
-  while (!txn->abort_actions_.empty()) {
-    TERRIER_ASSERT(deferred_action_manager_ != DISABLED, "No deferred action manager exists to process actions");
-    txn->abort_actions_.front()(deferred_action_manager_);
-    txn->abort_actions_.pop_front();
-  }
 
   LogAbort(txn);
 
