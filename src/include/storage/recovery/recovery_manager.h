@@ -65,8 +65,7 @@ class RecoveryManager : public common::DedicatedThreadOwner {
    * @param deferred_action_manager manager to use for deferred deletes
    * @param thread_registry thread registry to register tasks
    * @param store block store used for SQLTable creation during recovery
-   * @param the interval at which the recovery throughput is recorded
-   * @param whether to enable metrics or not
+   * @param recovery_metric_interval the interval at which the recovery throughput is recorded
    */
   explicit RecoveryManager(AbstractLogProvider *log_provider, common::ManagedPointer<catalog::Catalog> catalog,
                            transaction::TransactionManager *txn_manager,

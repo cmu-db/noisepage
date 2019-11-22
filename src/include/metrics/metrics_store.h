@@ -64,7 +64,7 @@ class MetricsStore {
     txn_metric_->RecordBeginData(elapsed_us, txn_start);
   }
 
-  /*
+  /**
    * Record metrics for transaction manager when ending transaction
    * @param elapsed_us first entry of txn datapoint
    * @param txn_start second entry of txn datapoint
@@ -75,7 +75,7 @@ class MetricsStore {
     txn_metric_->RecordCommitData(elapsed_us, txn_start);
   }
 
-  /*
+  /**
    * Record throughput metrics for recovery manager during recovery
    * @param num_txns number of transactions
    * @param num_bytes size of log files processed

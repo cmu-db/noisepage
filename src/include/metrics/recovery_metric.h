@@ -62,6 +62,10 @@ class RecoveryMetricRawData : public AbstractRawData {
    */
   static constexpr std::array<std::string_view, 1> COLUMNS = {"now,num_txns,num_bytes,elapsed_us"};
 
+ private:
+  friend class RecoveryMetric;
+  friend class storage::RecoveryTests;
+
   struct RecoveryData {
     RecoveryData(const uint64_t num_txns, const uint64_t num_bytes, const uint64_t elapsed_us)
         : now_(MetricsUtil::Now()), num_txns_(num_txns), num_bytes_(num_bytes), elapsed_us_(elapsed_us) {}
@@ -70,13 +74,9 @@ class RecoveryMetricRawData : public AbstractRawData {
     const uint64_t num_bytes_;
     const uint64_t elapsed_us_;
   };
+
   std::list<RecoveryData> recovery_data_;
 
- private:
-  friend class RecoveryMetric;
-  friend class storage::RecoveryTests;
-  friend class MetricsThread;
-  friend class MetricsManager;
 
   void RecordRecoveryData(const uint64_t num_txns, const uint64_t num_bytes, const uint64_t elapsed_us) {
     recovery_data_.emplace_front(num_txns, num_bytes, elapsed_us);
