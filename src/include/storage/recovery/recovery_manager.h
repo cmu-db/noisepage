@@ -72,8 +72,7 @@ class RecoveryManager : public common::DedicatedThreadOwner {
                            transaction::TransactionManager *txn_manager,
                            transaction::DeferredActionManager *deferred_action_manager,
                            common::ManagedPointer<terrier::common::DedicatedThreadRegistry> thread_registry,
-                           BlockStore *store, const std::chrono::milliseconds recovery_metric_interval,
-                           common::ManagedPointer<metrics::MetricsManager> metrics_manager)
+                           BlockStore *store, const std::chrono::milliseconds recovery_metric_interval)
       : DedicatedThreadOwner(thread_registry),
         log_provider_(log_provider),
         catalog_(catalog),
@@ -81,8 +80,7 @@ class RecoveryManager : public common::DedicatedThreadOwner {
         deferred_action_manager_(deferred_action_manager),
         block_store_(store),
         recovered_txns_(0),
-        recovery_metric_interval_(recovery_metric_interval),
-        metrics_manager_(metrics_manager) {
+        recovery_metric_interval_(recovery_metric_interval) {
     // Initialize catalog_table_schemas_ map
     catalog_table_schemas_[catalog::postgres::CLASS_TABLE_OID] = catalog::postgres::Builder::GetClassTableSchema();
     catalog_table_schemas_[catalog::postgres::NAMESPACE_TABLE_OID] =
@@ -163,9 +161,6 @@ class RecoveryManager : public common::DedicatedThreadOwner {
 
   // How often the recovery throughput metric is collected
   std::chrono::milliseconds recovery_metric_interval_;
-
-  // Metric manager
-  common::ManagedPointer<metrics::MetricsManager> metrics_manager_;
 
   /**
    * Recovers the databases using the provided log provider
