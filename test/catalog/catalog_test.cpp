@@ -509,9 +509,14 @@ TEST_F(CatalogTests, GetIndexObjectsTest) {
 TEST_F(CatalogTests, DDLLockTest) {
   // txn2 is used to verify that older txns can't acquire the lock
   auto *txn2 = txn_manager_->BeginTransaction();
+  // txn5 is used to verify that older txns can't acquire the lock
+  auto *txn5 = txn_manager_->BeginTransaction();
 
   // txn0 is used to verify conflict scenarios and that commits release the lock
   auto *txn0 = txn_manager_->BeginTransaction();
+  // txn6 is used to verify that newer txns (than holding txn, older than lock acquisition) can't acquire the lock
+  auto *txn6 = txn_manager_->BeginTransaction();
+
   auto accessor0 = catalog_->GetAccessor(txn0, db_);
   EXPECT_NE(accessor0, nullptr);
   auto ns_oid = accessor0->CreateNamespace("test_namespace0");  // Should succeed as txn0 acquires the lock
@@ -532,14 +537,21 @@ TEST_F(CatalogTests, DDLLockTest) {
   auto accessor2 = catalog_->GetAccessor(txn2, db_);
   ns_oid = accessor2->CreateNamespace("test_namespace2");
   EXPECT_EQ(ns_oid, catalog::INVALID_NAMESPACE_OID);  // Should fail to get the lock because txn0 holds it (txn2 < txn0)
+  txn_manager_->Abort(txn2);
 
   txn_manager_->Commit(txn0, transaction::TransactionUtil::EmptyCallback, nullptr);  // txn0 releases the lock
 
-  ns_oid = accessor2->CreateNamespace("test_namespace2");
+  auto accessor5 = catalog_->GetAccessor(txn5, db_);
+  ns_oid = accessor5->CreateNamespace("test_namespace5");
   EXPECT_EQ(ns_oid,
-            catalog::INVALID_NAMESPACE_OID);  // Should fail to get the lock because txn0 committed (txn2 < txn0)
+            catalog::INVALID_NAMESPACE_OID);  // Should fail to get the lock because txn0 committed (txn5 < txn0)
+  txn_manager_->Abort(txn5);
 
-  txn_manager_->Abort(txn2);
+  auto accessor6 = catalog_->GetAccessor(txn6, db_);
+  ns_oid = accessor6->CreateNamespace("test_namespace6");
+  EXPECT_EQ(ns_oid,
+            catalog::INVALID_NAMESPACE_OID);  // Should fail to get the lock because txn0 committed ( < )
+  txn_manager_->Abort(txn6);
 
   // txn4 is used to verify that older txns can acquire the lock after an abort
   auto *txn4 = txn_manager_->BeginTransaction();

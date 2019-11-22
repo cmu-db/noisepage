@@ -29,6 +29,9 @@ void DatabaseCatalog::Bootstrap(transaction::TransactionContext *const txn) {
   // Declare variable for return values (UNUSED when compiled for release)
   bool UNUSED_ATTRIBUTE retval;
 
+  retval = TryLock(txn);
+  TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
+
   retval = CreateNamespace(txn, "pg_catalog", postgres::NAMESPACE_CATALOG_NAMESPACE_OID);
   TERRIER_ASSERT(retval, "Bootstrap operations should not fail");
 
@@ -789,7 +792,9 @@ table_oid_t DatabaseCatalog::GetTableOid(transaction::TransactionContext *const 
 
 bool DatabaseCatalog::SetTablePointer(transaction::TransactionContext *const txn, const table_oid_t table,
                                       const storage::SqlTable *const table_ptr) {
-  if (!TryLock(txn)) return false;
+  TERRIER_ASSERT(write_lock_.load() == txn->FinishTime(),
+                 "Setting the object's pointer should only be done after successful DDL change request. i.e. this txn "
+                 "should already have the lock.");
   // We need to defer the deletion because their may be subsequent undo records into this table that need to be GCed
   // before we can safely delete this.
   txn->RegisterAbortAction([=](transaction::DeferredActionManager *deferred_action_manager) {
@@ -1082,7 +1087,9 @@ bool DatabaseCatalog::SetClassPointer(transaction::TransactionContext *const txn
 
 bool DatabaseCatalog::SetIndexPointer(transaction::TransactionContext *const txn, const index_oid_t index,
                                       const storage::index::Index *const index_ptr) {
-  if (!TryLock(txn)) return false;
+  TERRIER_ASSERT(write_lock_.load() == txn->FinishTime(),
+                 "Setting the object's pointer should only be done after successful DDL change request. i.e. this txn "
+                 "should already have the lock.");
   // This needs to be deferred because if any items were subsequently inserted into this index, they will have deferred
   // abort actions that will be above this action on the abort stack.  The defer ensures we execute after them.
   txn->RegisterAbortAction([=](transaction::DeferredActionManager *deferred_action_manager) {
@@ -1793,7 +1800,7 @@ bool DatabaseCatalog::TryLock(transaction::TransactionContext *const txn) {
   const bool already_hold_lock = current_val == txn_id;
   if (already_hold_lock) return true;
 
-  const bool owned_by_other_txn = (!transaction::TransactionUtil::Committed(current_val) && !already_hold_lock);
+  const bool owned_by_other_txn = !transaction::TransactionUtil::Committed(current_val);
   const bool newer_committed_version = transaction::TransactionUtil::Committed(current_val) &&
                                        transaction::TransactionUtil::NewerThan(current_val, start_time);
 
