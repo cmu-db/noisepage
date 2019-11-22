@@ -20,11 +20,6 @@
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_manager.h"
 
-#define __SETTING_GFLAGS_DEFINE__      // NOLINT
-#include "settings/settings_common.h"  // NOLINT
-#include "settings/settings_defs.h"    // NOLINT
-#undef __SETTING_GFLAGS_DEFINE__       // NOLINT
-
 // Make sure that if you create additional files, you call unlink on them after the test finishes. Otherwise, repeated
 // executions will read old test's data, and the cause of the errors will be hard to identify. Trust me it will drive
 // you nuts...
