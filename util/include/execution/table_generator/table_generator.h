@@ -17,11 +17,16 @@ namespace terrier::execution::sql {
 /**
  * Size of the first table
  */
-constexpr uint32_t TEST1_SIZE = 10000;
+constexpr uint32_t TABLE_TEST1_SIZE = 10000;
 /**
  * Size of the second table
  */
-constexpr uint32_t TEST2_SIZE = 1000;
+constexpr uint32_t TABLE_TEST2_SIZE = 1000;
+
+/**
+ * Size of the alltypes table
+ */
+constexpr uint32_t TABLE_ALLTYPES_SIZE = 10;
 
 /**
  * Helper class to generate test tables and their indexes.
@@ -181,9 +186,9 @@ class TableGenerator {
   T *CreateNumberColumnData(Dist dist, uint32_t num_vals, uint64_t min, uint64_t max);
 
   /**
-   * Create an array of
-   * @param dist
-   * @param num_vals
+   * Create an array of boolean data with the given distribution
+   * @param dist dist distribution type
+   * @param num_vals the number of elements in the array
    * @return
    */
   bool *CreateBooleanColumnData(Dist dist, uint32_t num_vals);

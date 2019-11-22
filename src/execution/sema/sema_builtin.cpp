@@ -1003,7 +1003,10 @@ void Sema::CheckBuiltinPCICall(ast::CallExpr *call, ast::Builtin builtin) {
       break;
     }
     case ast::Builtin::PCIGetBool:
-    case ast::Builtin::PCIGetBoolNull:
+    case ast::Builtin::PCIGetBoolNull: {
+      call->SetType(GetBuiltinType(ast::BuiltinType::Bool));
+      break;
+    }
     case ast::Builtin::PCIGetTinyInt:
     case ast::Builtin::PCIGetTinyIntNull:
     case ast::Builtin::PCIGetSmallInt:
