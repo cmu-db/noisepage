@@ -274,6 +274,8 @@ VM_OP_HOT void OpPCIGetBool(terrier::execution::sql::BoolVal *out,
   // Set
   out->is_null_ = false;
   out->val_ = *ptr;
+
+  std::cout << "GET: [" << col_idx << "] => " << out->val_ << "\n";
 }
 
 VM_OP_HOT void OpPCIGetTinyInt(terrier::execution::sql::Integer *out,

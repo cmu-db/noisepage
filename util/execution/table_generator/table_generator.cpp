@@ -1,10 +1,12 @@
 #include "execution/table_generator/table_generator.h"
+#include <util/string_util.h>
 #include <algorithm>
 #include <memory>
 #include <random>
 #include <string>
 #include <utility>
 #include <vector>
+#include <bitset>
 #include "execution/util/bit_util.h"
 #include "loggers/execution_logger.h"
 #include "storage/index/bwtree_index.h"
@@ -58,6 +60,7 @@ bool *TableGenerator::CreateBooleanColumnData(Dist dist, uint32_t num_vals) {
       uint32_t half = num_vals / 2;
       for (uint32_t i = 0; i < num_vals; i++) {
         val[i] = (i >= half);
+        std::cout << "GENERATE: [" << i << "] => " << val[i] << "\n";
       }
       break;
     }
@@ -161,10 +164,39 @@ void TableGenerator::FillTable(catalog::table_oid_t table_oid, common::ManagedPo
           byte *data = redo->Delta()->AccessForceNotNull(offset);
           uint32_t elem_size = type::TypeUtil::GetTypeSize(table_meta.col_meta_[k].type_);
           std::memcpy(data, column_data[k].first + j * elem_size, elem_size);
+
+//          if (terrier::util::StringUtil::Contains(table_meta.name_, "all_types") && k == 0) {
+//            std::cout << "INSERT: [" << j << "] => " << static_cast<bool>(*data) << "\n";
+//          }
+
         }
       }
       table->Insert(exec_ctx_->GetTxn(), redo);
       vals_written++;
+    }
+
+    // Dump Table
+    if (terrier::util::StringUtil::Contains(table_meta.name_, "all_types")) {
+      std::vector<catalog::col_oid_t> col_oids;
+      for (const auto &col : schema.GetColumns()) {
+        col_oids.emplace_back(col.Oid());
+      }
+      auto pc_init = table->InitializerForProjectedColumns(col_oids, common::Constants::K_DEFAULT_VECTOR_SIZE);
+      auto buffer = common::AllocationUtil::AllocateAligned(pc_init.ProjectedColumnsSize());
+      auto pc = pc_init.Initialize(buffer);
+      pc->SetNumTuples(common::Constants::K_DEFAULT_VECTOR_SIZE);
+      auto iterator = table->begin();
+      table->Scan(exec_ctx_->GetTxn(), &iterator, pc);
+      auto col0 = reinterpret_cast<bool*>(pc->ColumnStart(0));
+
+      auto bits = std::bitset<80>(reinterpret_cast<const char*>(pc->ColumnStart(0)));
+      std::cout << "BITS: " << bits << "\n\n";
+
+      for (uint tuple_idx = 0; tuple_idx < pc->NumTuples(); tuple_idx++) {
+        std::cout << "SCAN: [" << tuple_idx << "] => " << col0[tuple_idx] << "\n";
+
+        // auto raw = pc->ColumnStart(0)[tuple_idx];
+      }
     }
 
     // Free allocated buffers
@@ -188,7 +220,7 @@ void TableGenerator::GenerateTestTables() {
 
       // Table 1
       {"test_1",
-       TEST1_SIZE,
+       TABLE_TEST1_SIZE,
        {{"colA", type::TypeId::INTEGER, false, Dist::Serial, 0, 0},
         {"colB", type::TypeId::INTEGER, false, Dist::Uniform, 0, 9},
         {"colC", type::TypeId::INTEGER, false, Dist::Uniform, 0, 9999},
@@ -196,7 +228,7 @@ void TableGenerator::GenerateTestTables() {
 
       // Table 2
       {"test_2",
-       TEST2_SIZE,
+       TABLE_TEST2_SIZE,
        {{"col1", type::TypeId::SMALLINT, false, Dist::Serial, 0, 0},
         {"col2", type::TypeId::INTEGER, true, Dist::Uniform, 0, 9},
         {"col3", type::TypeId::BIGINT, false, Dist::Uniform, 0, common::Constants::K_DEFAULT_VECTOR_SIZE},
@@ -204,7 +236,7 @@ void TableGenerator::GenerateTestTables() {
 
       // Table 3
       {"all_types",
-       TEST2_SIZE,
+       TABLE_ALLTYPES_SIZE,
        {{"bool_col", type::TypeId::BOOLEAN, false, Dist::Serial, 0, 0},
         {"tinyint_col", type::TypeId::TINYINT, false, Dist::Uniform, 0, 127},
         {"smallint_col", type::TypeId::SMALLINT, false, Dist::Serial, 0, 1000},

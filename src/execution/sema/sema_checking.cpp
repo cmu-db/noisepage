@@ -163,6 +163,11 @@ Sema::CheckResult Sema::CheckComparisonOperands(parsing::Token::Type op, const S
     return {built_ret_type(left->GetType()), left, right};
   }
 
+  // Two Booleans
+  if (left->GetType()->IsBoolType() && right->GetType()->IsBoolType()) {
+    return {ast::BuiltinType::Get(GetContext(), ast::BuiltinType::Bool), left, right};
+  }
+
   // If neither input expression is arithmetic, it's an ill-formed operation
   if (!left->GetType()->IsArithmetic() || !right->GetType()->IsArithmetic()) {
     GetErrorReporter()->Report(pos, ErrorMessages::kIllegalTypesForBinary, op, left->GetType(), right->GetType());
