@@ -309,7 +309,7 @@ LIBEVENT_PTHREAD_LIBRARIES:FILEPATH=/usr/local/lib/libevent_pthreads.dylib
 LIBEVENT_ROOT:PATH=
 
 //The directory containing a CMake configuration file for LLVM.
-LLVM_DIR:PATH=/usr/local/Cellar/llvm@8/8.0.1/lib/cmake/llvm
+LLVM_DIR:PATH=/usr/local/Cellar/llvm@8/8.0.1_1/lib/cmake/llvm
 
 //Path to a program.
 MAKE:FILEPATH=/usr/bin/make
@@ -587,7 +587,7 @@ CMAKE_VERBOSE_MAKEFILE-ADVANCED:INTERNAL=1
 //Details about finding SQLITE3
 FIND_PACKAGE_MESSAGE_DETAILS_SQLITE3:INTERNAL=[/usr/lib/libsqlite3.dylib][/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.15.sdk/usr/include][v()]
 //Details about finding TBB
-FIND_PACKAGE_MESSAGE_DETAILS_TBB:INTERNAL=[/usr/local/include][/usr/local/lib/libtbb.dylib][c ][v2019.0()]
+FIND_PACKAGE_MESSAGE_DETAILS_TBB:INTERNAL=[/usr/local/include][/usr/local/lib/libtbb.dylib][c ][v2019.9()]
 //Details about finding Threads
 FIND_PACKAGE_MESSAGE_DETAILS_Threads:INTERNAL=[TRUE][v()]
 //ADVANCED property for variable: JEMALLOC_INCLUDE_DIR

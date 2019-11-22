@@ -339,6 +339,11 @@ CMakeFiles/googletest_ep.dir/clean:
 # Target rules for target CMakeFiles/runbenchmark.dir
 
 # All Build rule for target.
+CMakeFiles/runbenchmark.dir/all: benchmark/catalog/CMakeFiles/catalog_benchmark.dir/all
+CMakeFiles/runbenchmark.dir/all: benchmark/integration/CMakeFiles/tpcc_benchmark.dir/all
+CMakeFiles/runbenchmark.dir/all: benchmark/metrics/CMakeFiles/logging_metrics_benchmark.dir/all
+CMakeFiles/runbenchmark.dir/all: benchmark/metrics/CMakeFiles/large_transaction_metrics_benchmark.dir/all
+CMakeFiles/runbenchmark.dir/all: benchmark/parser/CMakeFiles/parser_benchmark.dir/all
 CMakeFiles/runbenchmark.dir/all: benchmark/storage/CMakeFiles/cuckoomap_benchmark.dir/all
 CMakeFiles/runbenchmark.dir/all: benchmark/storage/CMakeFiles/data_table_benchmark.dir/all
 CMakeFiles/runbenchmark.dir/all: benchmark/storage/CMakeFiles/tuple_access_strategy_benchmark.dir/all
@@ -350,11 +355,6 @@ CMakeFiles/runbenchmark.dir/all: benchmark/storage/CMakeFiles/bwtree_benchmark.d
 CMakeFiles/runbenchmark.dir/all: benchmark/storage/CMakeFiles/block_compactor_benchmark.dir/all
 CMakeFiles/runbenchmark.dir/all: benchmark/transaction/CMakeFiles/large_transaction_benchmark.dir/all
 CMakeFiles/runbenchmark.dir/all: benchmark/transaction/CMakeFiles/seqscan_benchmark.dir/all
-CMakeFiles/runbenchmark.dir/all: benchmark/catalog/CMakeFiles/catalog_benchmark.dir/all
-CMakeFiles/runbenchmark.dir/all: benchmark/integration/CMakeFiles/tpcc_benchmark.dir/all
-CMakeFiles/runbenchmark.dir/all: benchmark/metrics/CMakeFiles/logging_metrics_benchmark.dir/all
-CMakeFiles/runbenchmark.dir/all: benchmark/metrics/CMakeFiles/large_transaction_metrics_benchmark.dir/all
-CMakeFiles/runbenchmark.dir/all: benchmark/parser/CMakeFiles/parser_benchmark.dir/all
 	$(MAKE) -f CMakeFiles/runbenchmark.dir/build.make CMakeFiles/runbenchmark.dir/depend
 	$(MAKE) -f CMakeFiles/runbenchmark.dir/build.make CMakeFiles/runbenchmark.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num= "Built target runbenchmark"
@@ -381,50 +381,6 @@ CMakeFiles/runbenchmark.dir/clean:
 # Target rules for target CMakeFiles/unittest.dir
 
 # All Build rule for target.
-CMakeFiles/unittest.dir/all: test/optimizer/CMakeFiles/top_k_elements_test.dir/all
-CMakeFiles/unittest.dir/all: test/optimizer/CMakeFiles/table_stats_test.dir/all
-CMakeFiles/unittest.dir/all: test/parser/CMakeFiles/expression_test.dir/all
-CMakeFiles/unittest.dir/all: test/parser/CMakeFiles/pg_parser_test.dir/all
-CMakeFiles/unittest.dir/all: test/parser/CMakeFiles/parser_test.dir/all
-CMakeFiles/unittest.dir/all: test/parser/CMakeFiles/expression_util_test.dir/all
-CMakeFiles/unittest.dir/all: test/parser/CMakeFiles/expression_defs_test.dir/all
-CMakeFiles/unittest.dir/all: test/planner/CMakeFiles/plan_node_test.dir/all
-CMakeFiles/unittest.dir/all: test/planner/CMakeFiles/plan_node_json_test.dir/all
-CMakeFiles/unittest.dir/all: test/planner/CMakeFiles/output_schema_test.dir/all
-CMakeFiles/unittest.dir/all: test/settings/CMakeFiles/settings_test.dir/all
-CMakeFiles/unittest.dir/all: test/storage/CMakeFiles/garbage_collector_test.dir/all
-CMakeFiles/unittest.dir/all: test/storage/CMakeFiles/block_access_controller_test.dir/all
-CMakeFiles/unittest.dir/all: test/storage/CMakeFiles/recovery_test.dir/all
-CMakeFiles/unittest.dir/all: test/storage/CMakeFiles/bwtree_index_test.dir/all
-CMakeFiles/unittest.dir/all: test/storage/CMakeFiles/projected_row_test.dir/all
-CMakeFiles/unittest.dir/all: test/storage/CMakeFiles/index_key_test.dir/all
-CMakeFiles/unittest.dir/all: test/storage/CMakeFiles/data_table_test.dir/all
-CMakeFiles/unittest.dir/all: test/storage/CMakeFiles/bwtree_test.dir/all
-CMakeFiles/unittest.dir/all: test/storage/CMakeFiles/delta_record_test.dir/all
-CMakeFiles/unittest.dir/all: test/storage/CMakeFiles/hash_index_test.dir/all
-CMakeFiles/unittest.dir/all: test/storage/CMakeFiles/tuple_access_strategy_test.dir/all
-CMakeFiles/unittest.dir/all: test/storage/CMakeFiles/storage_util_test.dir/all
-CMakeFiles/unittest.dir/all: test/storage/CMakeFiles/large_garbage_collector_test.dir/all
-CMakeFiles/unittest.dir/all: test/storage/CMakeFiles/data_table_concurrent_test.dir/all
-CMakeFiles/unittest.dir/all: test/storage/CMakeFiles/block_compactor_test.dir/all
-CMakeFiles/unittest.dir/all: test/storage/CMakeFiles/varlen_entry_test.dir/all
-CMakeFiles/unittest.dir/all: test/storage/CMakeFiles/access_observer_test.dir/all
-CMakeFiles/unittest.dir/all: test/storage/CMakeFiles/log_test.dir/all
-CMakeFiles/unittest.dir/all: test/traffic_cop/CMakeFiles/traffic_cop_test.dir/all
-CMakeFiles/unittest.dir/all: test/transaction/CMakeFiles/mvcc_test.dir/all
-CMakeFiles/unittest.dir/all: test/transaction/CMakeFiles/large_transaction_test.dir/all
-CMakeFiles/unittest.dir/all: test/transaction/CMakeFiles/deferred_actions_test.dir/all
-CMakeFiles/unittest.dir/all: test/optimizer/CMakeFiles/physical_operator_test.dir/all
-CMakeFiles/unittest.dir/all: test/optimizer/CMakeFiles/operator_expression_test.dir/all
-CMakeFiles/unittest.dir/all: test/optimizer/CMakeFiles/logical_operator_test.dir/all
-CMakeFiles/unittest.dir/all: test/optimizer/CMakeFiles/column_stats_test.dir/all
-CMakeFiles/unittest.dir/all: test/optimizer/CMakeFiles/operator_transformer_test.dir/all
-CMakeFiles/unittest.dir/all: test/optimizer/CMakeFiles/histogram_test.dir/all
-CMakeFiles/unittest.dir/all: test/optimizer/CMakeFiles/stats_storage_test.dir/all
-CMakeFiles/unittest.dir/all: test/optimizer/CMakeFiles/hyperloglog_test.dir/all
-CMakeFiles/unittest.dir/all: test/optimizer/CMakeFiles/count_min_sketch_test.dir/all
-CMakeFiles/unittest.dir/all: test/type/CMakeFiles/type_util_test.dir/all
-CMakeFiles/unittest.dir/all: test/type/CMakeFiles/transient_value_test.dir/all
 CMakeFiles/unittest.dir/all: test/binder/CMakeFiles/binder_test.dir/all
 CMakeFiles/unittest.dir/all: test/catalog/CMakeFiles/catalog_test.dir/all
 CMakeFiles/unittest.dir/all: test/common/CMakeFiles/worker_pool_test.dir/all
@@ -479,6 +435,50 @@ CMakeFiles/unittest.dir/all: test/integration/CMakeFiles/tpcc_test.dir/all
 CMakeFiles/unittest.dir/all: test/metrics/CMakeFiles/metrics_test.dir/all
 CMakeFiles/unittest.dir/all: test/network/CMakeFiles/network_test.dir/all
 CMakeFiles/unittest.dir/all: test/optimizer/CMakeFiles/value_condition_test.dir/all
+CMakeFiles/unittest.dir/all: test/optimizer/CMakeFiles/operator_transformer_test.dir/all
+CMakeFiles/unittest.dir/all: test/optimizer/CMakeFiles/histogram_test.dir/all
+CMakeFiles/unittest.dir/all: test/optimizer/CMakeFiles/stats_storage_test.dir/all
+CMakeFiles/unittest.dir/all: test/optimizer/CMakeFiles/hyperloglog_test.dir/all
+CMakeFiles/unittest.dir/all: test/optimizer/CMakeFiles/count_min_sketch_test.dir/all
+CMakeFiles/unittest.dir/all: test/parser/CMakeFiles/expression_test.dir/all
+CMakeFiles/unittest.dir/all: test/parser/CMakeFiles/pg_parser_test.dir/all
+CMakeFiles/unittest.dir/all: test/parser/CMakeFiles/parser_test.dir/all
+CMakeFiles/unittest.dir/all: test/parser/CMakeFiles/expression_util_test.dir/all
+CMakeFiles/unittest.dir/all: test/parser/CMakeFiles/expression_defs_test.dir/all
+CMakeFiles/unittest.dir/all: test/planner/CMakeFiles/plan_node_test.dir/all
+CMakeFiles/unittest.dir/all: test/planner/CMakeFiles/plan_node_json_test.dir/all
+CMakeFiles/unittest.dir/all: test/planner/CMakeFiles/output_schema_test.dir/all
+CMakeFiles/unittest.dir/all: test/settings/CMakeFiles/settings_test.dir/all
+CMakeFiles/unittest.dir/all: test/storage/CMakeFiles/garbage_collector_test.dir/all
+CMakeFiles/unittest.dir/all: test/storage/CMakeFiles/block_access_controller_test.dir/all
+CMakeFiles/unittest.dir/all: test/storage/CMakeFiles/recovery_test.dir/all
+CMakeFiles/unittest.dir/all: test/storage/CMakeFiles/bwtree_index_test.dir/all
+CMakeFiles/unittest.dir/all: test/storage/CMakeFiles/projected_row_test.dir/all
+CMakeFiles/unittest.dir/all: test/storage/CMakeFiles/index_key_test.dir/all
+CMakeFiles/unittest.dir/all: test/storage/CMakeFiles/data_table_test.dir/all
+CMakeFiles/unittest.dir/all: test/storage/CMakeFiles/bwtree_test.dir/all
+CMakeFiles/unittest.dir/all: test/storage/CMakeFiles/delta_record_test.dir/all
+CMakeFiles/unittest.dir/all: test/storage/CMakeFiles/hash_index_test.dir/all
+CMakeFiles/unittest.dir/all: test/storage/CMakeFiles/tuple_access_strategy_test.dir/all
+CMakeFiles/unittest.dir/all: test/storage/CMakeFiles/storage_util_test.dir/all
+CMakeFiles/unittest.dir/all: test/storage/CMakeFiles/large_garbage_collector_test.dir/all
+CMakeFiles/unittest.dir/all: test/storage/CMakeFiles/data_table_concurrent_test.dir/all
+CMakeFiles/unittest.dir/all: test/storage/CMakeFiles/block_compactor_test.dir/all
+CMakeFiles/unittest.dir/all: test/storage/CMakeFiles/varlen_entry_test.dir/all
+CMakeFiles/unittest.dir/all: test/storage/CMakeFiles/access_observer_test.dir/all
+CMakeFiles/unittest.dir/all: test/storage/CMakeFiles/log_test.dir/all
+CMakeFiles/unittest.dir/all: test/traffic_cop/CMakeFiles/traffic_cop_test.dir/all
+CMakeFiles/unittest.dir/all: test/transaction/CMakeFiles/mvcc_test.dir/all
+CMakeFiles/unittest.dir/all: test/transaction/CMakeFiles/large_transaction_test.dir/all
+CMakeFiles/unittest.dir/all: test/transaction/CMakeFiles/deferred_actions_test.dir/all
+CMakeFiles/unittest.dir/all: test/type/CMakeFiles/type_util_test.dir/all
+CMakeFiles/unittest.dir/all: test/type/CMakeFiles/transient_value_test.dir/all
+CMakeFiles/unittest.dir/all: test/optimizer/CMakeFiles/top_k_elements_test.dir/all
+CMakeFiles/unittest.dir/all: test/optimizer/CMakeFiles/table_stats_test.dir/all
+CMakeFiles/unittest.dir/all: test/optimizer/CMakeFiles/physical_operator_test.dir/all
+CMakeFiles/unittest.dir/all: test/optimizer/CMakeFiles/operator_expression_test.dir/all
+CMakeFiles/unittest.dir/all: test/optimizer/CMakeFiles/logical_operator_test.dir/all
+CMakeFiles/unittest.dir/all: test/optimizer/CMakeFiles/column_stats_test.dir/all
 	$(MAKE) -f CMakeFiles/unittest.dir/build.make CMakeFiles/unittest.dir/depend
 	$(MAKE) -f CMakeFiles/unittest.dir/build.make CMakeFiles/unittest.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num= "Built target unittest"
@@ -750,11 +750,11 @@ test/preinstall: test/type/preinstall
 # Target rules for target test/CMakeFiles/test_util.dir
 
 # All Build rule for target.
-test/CMakeFiles/test_util.dir/all: util/CMakeFiles/util_static.dir/all
 test/CMakeFiles/test_util.dir/all: CMakeFiles/gflags_ep.dir/all
 test/CMakeFiles/test_util.dir/all: CMakeFiles/googletest_ep.dir/all
 test/CMakeFiles/test_util.dir/all: src/CMakeFiles/terrier_static.dir/all
 test/CMakeFiles/test_util.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
+test/CMakeFiles/test_util.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f test/CMakeFiles/test_util.dir/build.make test/CMakeFiles/test_util.dir/depend
 	$(MAKE) -f test/CMakeFiles/test_util.dir/build.make test/CMakeFiles/test_util.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num=91,92 "Built target test_util"
@@ -799,12 +799,12 @@ test/binder/preinstall:
 # Target rules for target test/binder/CMakeFiles/binder_test.dir
 
 # All Build rule for target.
-test/binder/CMakeFiles/binder_test.dir/all: util/CMakeFiles/util_static.dir/all
 test/binder/CMakeFiles/binder_test.dir/all: CMakeFiles/gflags_ep.dir/all
 test/binder/CMakeFiles/binder_test.dir/all: CMakeFiles/googletest_ep.dir/all
 test/binder/CMakeFiles/binder_test.dir/all: src/CMakeFiles/terrier_static.dir/all
 test/binder/CMakeFiles/binder_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 test/binder/CMakeFiles/binder_test.dir/all: test/CMakeFiles/test_util.dir/all
+test/binder/CMakeFiles/binder_test.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f test/binder/CMakeFiles/binder_test.dir/build.make test/binder/CMakeFiles/binder_test.dir/depend
 	$(MAKE) -f test/binder/CMakeFiles/binder_test.dir/build.make test/binder/CMakeFiles/binder_test.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num= "Built target binder_test"
@@ -849,12 +849,12 @@ test/catalog/preinstall:
 # Target rules for target test/catalog/CMakeFiles/catalog_test.dir
 
 # All Build rule for target.
-test/catalog/CMakeFiles/catalog_test.dir/all: util/CMakeFiles/util_static.dir/all
 test/catalog/CMakeFiles/catalog_test.dir/all: CMakeFiles/gflags_ep.dir/all
 test/catalog/CMakeFiles/catalog_test.dir/all: CMakeFiles/googletest_ep.dir/all
 test/catalog/CMakeFiles/catalog_test.dir/all: src/CMakeFiles/terrier_static.dir/all
 test/catalog/CMakeFiles/catalog_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 test/catalog/CMakeFiles/catalog_test.dir/all: test/CMakeFiles/test_util.dir/all
+test/catalog/CMakeFiles/catalog_test.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f test/catalog/CMakeFiles/catalog_test.dir/build.make test/catalog/CMakeFiles/catalog_test.dir/depend
 	$(MAKE) -f test/catalog/CMakeFiles/catalog_test.dir/build.make test/catalog/CMakeFiles/catalog_test.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num=11 "Built target catalog_test"
@@ -915,12 +915,12 @@ test/common/preinstall:
 # Target rules for target test/common/CMakeFiles/worker_pool_test.dir
 
 # All Build rule for target.
-test/common/CMakeFiles/worker_pool_test.dir/all: util/CMakeFiles/util_static.dir/all
 test/common/CMakeFiles/worker_pool_test.dir/all: CMakeFiles/gflags_ep.dir/all
 test/common/CMakeFiles/worker_pool_test.dir/all: CMakeFiles/googletest_ep.dir/all
 test/common/CMakeFiles/worker_pool_test.dir/all: src/CMakeFiles/terrier_static.dir/all
 test/common/CMakeFiles/worker_pool_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 test/common/CMakeFiles/worker_pool_test.dir/all: test/CMakeFiles/test_util.dir/all
+test/common/CMakeFiles/worker_pool_test.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f test/common/CMakeFiles/worker_pool_test.dir/build.make test/common/CMakeFiles/worker_pool_test.dir/depend
 	$(MAKE) -f test/common/CMakeFiles/worker_pool_test.dir/build.make test/common/CMakeFiles/worker_pool_test.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num=100 "Built target worker_pool_test"
@@ -947,12 +947,12 @@ test/common/CMakeFiles/worker_pool_test.dir/clean:
 # Target rules for target test/common/CMakeFiles/thread_cpu_timer_test.dir
 
 # All Build rule for target.
-test/common/CMakeFiles/thread_cpu_timer_test.dir/all: util/CMakeFiles/util_static.dir/all
 test/common/CMakeFiles/thread_cpu_timer_test.dir/all: CMakeFiles/gflags_ep.dir/all
 test/common/CMakeFiles/thread_cpu_timer_test.dir/all: CMakeFiles/googletest_ep.dir/all
 test/common/CMakeFiles/thread_cpu_timer_test.dir/all: src/CMakeFiles/terrier_static.dir/all
 test/common/CMakeFiles/thread_cpu_timer_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 test/common/CMakeFiles/thread_cpu_timer_test.dir/all: test/CMakeFiles/test_util.dir/all
+test/common/CMakeFiles/thread_cpu_timer_test.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f test/common/CMakeFiles/thread_cpu_timer_test.dir/build.make test/common/CMakeFiles/thread_cpu_timer_test.dir/depend
 	$(MAKE) -f test/common/CMakeFiles/thread_cpu_timer_test.dir/build.make test/common/CMakeFiles/thread_cpu_timer_test.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num=93 "Built target thread_cpu_timer_test"
@@ -979,12 +979,12 @@ test/common/CMakeFiles/thread_cpu_timer_test.dir/clean:
 # Target rules for target test/common/CMakeFiles/performance_counter_test.dir
 
 # All Build rule for target.
-test/common/CMakeFiles/performance_counter_test.dir/all: util/CMakeFiles/util_static.dir/all
 test/common/CMakeFiles/performance_counter_test.dir/all: CMakeFiles/gflags_ep.dir/all
 test/common/CMakeFiles/performance_counter_test.dir/all: CMakeFiles/googletest_ep.dir/all
 test/common/CMakeFiles/performance_counter_test.dir/all: src/CMakeFiles/terrier_static.dir/all
 test/common/CMakeFiles/performance_counter_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 test/common/CMakeFiles/performance_counter_test.dir/all: test/CMakeFiles/test_util.dir/all
+test/common/CMakeFiles/performance_counter_test.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f test/common/CMakeFiles/performance_counter_test.dir/build.make test/common/CMakeFiles/performance_counter_test.dir/depend
 	$(MAKE) -f test/common/CMakeFiles/performance_counter_test.dir/build.make test/common/CMakeFiles/performance_counter_test.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num=37 "Built target performance_counter_test"
@@ -1011,12 +1011,12 @@ test/common/CMakeFiles/performance_counter_test.dir/clean:
 # Target rules for target test/common/CMakeFiles/concurrent_bitmap_test.dir
 
 # All Build rule for target.
-test/common/CMakeFiles/concurrent_bitmap_test.dir/all: util/CMakeFiles/util_static.dir/all
 test/common/CMakeFiles/concurrent_bitmap_test.dir/all: CMakeFiles/gflags_ep.dir/all
 test/common/CMakeFiles/concurrent_bitmap_test.dir/all: CMakeFiles/googletest_ep.dir/all
 test/common/CMakeFiles/concurrent_bitmap_test.dir/all: src/CMakeFiles/terrier_static.dir/all
 test/common/CMakeFiles/concurrent_bitmap_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 test/common/CMakeFiles/concurrent_bitmap_test.dir/all: test/CMakeFiles/test_util.dir/all
+test/common/CMakeFiles/concurrent_bitmap_test.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f test/common/CMakeFiles/concurrent_bitmap_test.dir/build.make test/common/CMakeFiles/concurrent_bitmap_test.dir/depend
 	$(MAKE) -f test/common/CMakeFiles/concurrent_bitmap_test.dir/build.make test/common/CMakeFiles/concurrent_bitmap_test.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num= "Built target concurrent_bitmap_test"
@@ -1043,12 +1043,12 @@ test/common/CMakeFiles/concurrent_bitmap_test.dir/clean:
 # Target rules for target test/common/CMakeFiles/object_pool_test.dir
 
 # All Build rule for target.
-test/common/CMakeFiles/object_pool_test.dir/all: util/CMakeFiles/util_static.dir/all
 test/common/CMakeFiles/object_pool_test.dir/all: CMakeFiles/gflags_ep.dir/all
 test/common/CMakeFiles/object_pool_test.dir/all: CMakeFiles/googletest_ep.dir/all
 test/common/CMakeFiles/object_pool_test.dir/all: src/CMakeFiles/terrier_static.dir/all
 test/common/CMakeFiles/object_pool_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 test/common/CMakeFiles/object_pool_test.dir/all: test/CMakeFiles/test_util.dir/all
+test/common/CMakeFiles/object_pool_test.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f test/common/CMakeFiles/object_pool_test.dir/build.make test/common/CMakeFiles/object_pool_test.dir/depend
 	$(MAKE) -f test/common/CMakeFiles/object_pool_test.dir/build.make test/common/CMakeFiles/object_pool_test.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num= "Built target object_pool_test"
@@ -1075,12 +1075,12 @@ test/common/CMakeFiles/object_pool_test.dir/clean:
 # Target rules for target test/common/CMakeFiles/bitmap_test.dir
 
 # All Build rule for target.
-test/common/CMakeFiles/bitmap_test.dir/all: util/CMakeFiles/util_static.dir/all
 test/common/CMakeFiles/bitmap_test.dir/all: CMakeFiles/gflags_ep.dir/all
 test/common/CMakeFiles/bitmap_test.dir/all: CMakeFiles/googletest_ep.dir/all
 test/common/CMakeFiles/bitmap_test.dir/all: src/CMakeFiles/terrier_static.dir/all
 test/common/CMakeFiles/bitmap_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 test/common/CMakeFiles/bitmap_test.dir/all: test/CMakeFiles/test_util.dir/all
+test/common/CMakeFiles/bitmap_test.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f test/common/CMakeFiles/bitmap_test.dir/build.make test/common/CMakeFiles/bitmap_test.dir/depend
 	$(MAKE) -f test/common/CMakeFiles/bitmap_test.dir/build.make test/common/CMakeFiles/bitmap_test.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num= "Built target bitmap_test"
@@ -1107,12 +1107,12 @@ test/common/CMakeFiles/bitmap_test.dir/clean:
 # Target rules for target test/common/CMakeFiles/hash_util_test.dir
 
 # All Build rule for target.
-test/common/CMakeFiles/hash_util_test.dir/all: util/CMakeFiles/util_static.dir/all
 test/common/CMakeFiles/hash_util_test.dir/all: CMakeFiles/gflags_ep.dir/all
 test/common/CMakeFiles/hash_util_test.dir/all: CMakeFiles/googletest_ep.dir/all
 test/common/CMakeFiles/hash_util_test.dir/all: src/CMakeFiles/terrier_static.dir/all
 test/common/CMakeFiles/hash_util_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 test/common/CMakeFiles/hash_util_test.dir/all: test/CMakeFiles/test_util.dir/all
+test/common/CMakeFiles/hash_util_test.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f test/common/CMakeFiles/hash_util_test.dir/build.make test/common/CMakeFiles/hash_util_test.dir/depend
 	$(MAKE) -f test/common/CMakeFiles/hash_util_test.dir/build.make test/common/CMakeFiles/hash_util_test.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num= "Built target hash_util_test"
@@ -1139,12 +1139,12 @@ test/common/CMakeFiles/hash_util_test.dir/clean:
 # Target rules for target test/common/CMakeFiles/managed_pointer_test.dir
 
 # All Build rule for target.
-test/common/CMakeFiles/managed_pointer_test.dir/all: util/CMakeFiles/util_static.dir/all
 test/common/CMakeFiles/managed_pointer_test.dir/all: CMakeFiles/gflags_ep.dir/all
 test/common/CMakeFiles/managed_pointer_test.dir/all: CMakeFiles/googletest_ep.dir/all
 test/common/CMakeFiles/managed_pointer_test.dir/all: src/CMakeFiles/terrier_static.dir/all
 test/common/CMakeFiles/managed_pointer_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 test/common/CMakeFiles/managed_pointer_test.dir/all: test/CMakeFiles/test_util.dir/all
+test/common/CMakeFiles/managed_pointer_test.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f test/common/CMakeFiles/managed_pointer_test.dir/build.make test/common/CMakeFiles/managed_pointer_test.dir/depend
 	$(MAKE) -f test/common/CMakeFiles/managed_pointer_test.dir/build.make test/common/CMakeFiles/managed_pointer_test.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num=32 "Built target managed_pointer_test"
@@ -1171,12 +1171,12 @@ test/common/CMakeFiles/managed_pointer_test.dir/clean:
 # Target rules for target test/common/CMakeFiles/stat_registry_test.dir
 
 # All Build rule for target.
-test/common/CMakeFiles/stat_registry_test.dir/all: util/CMakeFiles/util_static.dir/all
 test/common/CMakeFiles/stat_registry_test.dir/all: CMakeFiles/gflags_ep.dir/all
 test/common/CMakeFiles/stat_registry_test.dir/all: CMakeFiles/googletest_ep.dir/all
 test/common/CMakeFiles/stat_registry_test.dir/all: src/CMakeFiles/terrier_static.dir/all
 test/common/CMakeFiles/stat_registry_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 test/common/CMakeFiles/stat_registry_test.dir/all: test/CMakeFiles/test_util.dir/all
+test/common/CMakeFiles/stat_registry_test.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f test/common/CMakeFiles/stat_registry_test.dir/build.make test/common/CMakeFiles/stat_registry_test.dir/depend
 	$(MAKE) -f test/common/CMakeFiles/stat_registry_test.dir/build.make test/common/CMakeFiles/stat_registry_test.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num= "Built target stat_registry_test"
@@ -1297,12 +1297,12 @@ test/execution/preinstall:
 # Target rules for target test/execution/CMakeFiles/type_test.dir
 
 # All Build rule for target.
-test/execution/CMakeFiles/type_test.dir/all: util/CMakeFiles/util_static.dir/all
 test/execution/CMakeFiles/type_test.dir/all: CMakeFiles/gflags_ep.dir/all
 test/execution/CMakeFiles/type_test.dir/all: CMakeFiles/googletest_ep.dir/all
 test/execution/CMakeFiles/type_test.dir/all: src/CMakeFiles/terrier_static.dir/all
 test/execution/CMakeFiles/type_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 test/execution/CMakeFiles/type_test.dir/all: test/CMakeFiles/test_util.dir/all
+test/execution/CMakeFiles/type_test.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f test/execution/CMakeFiles/type_test.dir/build.make test/execution/CMakeFiles/type_test.dir/depend
 	$(MAKE) -f test/execution/CMakeFiles/type_test.dir/build.make test/execution/CMakeFiles/type_test.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num= "Built target type_test"
@@ -1329,12 +1329,12 @@ test/execution/CMakeFiles/type_test.dir/clean:
 # Target rules for target test/execution/CMakeFiles/thread_state_container_test.dir
 
 # All Build rule for target.
-test/execution/CMakeFiles/thread_state_container_test.dir/all: util/CMakeFiles/util_static.dir/all
 test/execution/CMakeFiles/thread_state_container_test.dir/all: CMakeFiles/gflags_ep.dir/all
 test/execution/CMakeFiles/thread_state_container_test.dir/all: CMakeFiles/googletest_ep.dir/all
 test/execution/CMakeFiles/thread_state_container_test.dir/all: src/CMakeFiles/terrier_static.dir/all
 test/execution/CMakeFiles/thread_state_container_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 test/execution/CMakeFiles/thread_state_container_test.dir/all: test/CMakeFiles/test_util.dir/all
+test/execution/CMakeFiles/thread_state_container_test.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f test/execution/CMakeFiles/thread_state_container_test.dir/build.make test/execution/CMakeFiles/thread_state_container_test.dir/depend
 	$(MAKE) -f test/execution/CMakeFiles/thread_state_container_test.dir/build.make test/execution/CMakeFiles/thread_state_container_test.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num= "Built target thread_state_container_test"
@@ -1361,12 +1361,12 @@ test/execution/CMakeFiles/thread_state_container_test.dir/clean:
 # Target rules for target test/execution/CMakeFiles/table_vector_iterator_test.dir
 
 # All Build rule for target.
-test/execution/CMakeFiles/table_vector_iterator_test.dir/all: util/CMakeFiles/util_static.dir/all
 test/execution/CMakeFiles/table_vector_iterator_test.dir/all: CMakeFiles/gflags_ep.dir/all
 test/execution/CMakeFiles/table_vector_iterator_test.dir/all: CMakeFiles/googletest_ep.dir/all
 test/execution/CMakeFiles/table_vector_iterator_test.dir/all: src/CMakeFiles/terrier_static.dir/all
 test/execution/CMakeFiles/table_vector_iterator_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 test/execution/CMakeFiles/table_vector_iterator_test.dir/all: test/CMakeFiles/test_util.dir/all
+test/execution/CMakeFiles/table_vector_iterator_test.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f test/execution/CMakeFiles/table_vector_iterator_test.dir/build.make test/execution/CMakeFiles/table_vector_iterator_test.dir/depend
 	$(MAKE) -f test/execution/CMakeFiles/table_vector_iterator_test.dir/build.make test/execution/CMakeFiles/table_vector_iterator_test.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num=56 "Built target table_vector_iterator_test"
@@ -1393,12 +1393,12 @@ test/execution/CMakeFiles/table_vector_iterator_test.dir/clean:
 # Target rules for target test/execution/CMakeFiles/string_functions_test.dir
 
 # All Build rule for target.
-test/execution/CMakeFiles/string_functions_test.dir/all: util/CMakeFiles/util_static.dir/all
 test/execution/CMakeFiles/string_functions_test.dir/all: CMakeFiles/gflags_ep.dir/all
 test/execution/CMakeFiles/string_functions_test.dir/all: CMakeFiles/googletest_ep.dir/all
 test/execution/CMakeFiles/string_functions_test.dir/all: src/CMakeFiles/terrier_static.dir/all
 test/execution/CMakeFiles/string_functions_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 test/execution/CMakeFiles/string_functions_test.dir/all: test/CMakeFiles/test_util.dir/all
+test/execution/CMakeFiles/string_functions_test.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f test/execution/CMakeFiles/string_functions_test.dir/build.make test/execution/CMakeFiles/string_functions_test.dir/depend
 	$(MAKE) -f test/execution/CMakeFiles/string_functions_test.dir/build.make test/execution/CMakeFiles/string_functions_test.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num=55 "Built target string_functions_test"
@@ -1425,12 +1425,12 @@ test/execution/CMakeFiles/string_functions_test.dir/clean:
 # Target rules for target test/execution/CMakeFiles/sema_builtin_test.dir
 
 # All Build rule for target.
-test/execution/CMakeFiles/sema_builtin_test.dir/all: util/CMakeFiles/util_static.dir/all
 test/execution/CMakeFiles/sema_builtin_test.dir/all: CMakeFiles/gflags_ep.dir/all
 test/execution/CMakeFiles/sema_builtin_test.dir/all: CMakeFiles/googletest_ep.dir/all
 test/execution/CMakeFiles/sema_builtin_test.dir/all: src/CMakeFiles/terrier_static.dir/all
 test/execution/CMakeFiles/sema_builtin_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 test/execution/CMakeFiles/sema_builtin_test.dir/all: test/CMakeFiles/test_util.dir/all
+test/execution/CMakeFiles/sema_builtin_test.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f test/execution/CMakeFiles/sema_builtin_test.dir/build.make test/execution/CMakeFiles/sema_builtin_test.dir/depend
 	$(MAKE) -f test/execution/CMakeFiles/sema_builtin_test.dir/build.make test/execution/CMakeFiles/sema_builtin_test.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num= "Built target sema_builtin_test"
@@ -1457,12 +1457,12 @@ test/execution/CMakeFiles/sema_builtin_test.dir/clean:
 # Target rules for target test/execution/CMakeFiles/projected_columns_iterator_test.dir
 
 # All Build rule for target.
-test/execution/CMakeFiles/projected_columns_iterator_test.dir/all: util/CMakeFiles/util_static.dir/all
 test/execution/CMakeFiles/projected_columns_iterator_test.dir/all: CMakeFiles/gflags_ep.dir/all
 test/execution/CMakeFiles/projected_columns_iterator_test.dir/all: CMakeFiles/googletest_ep.dir/all
 test/execution/CMakeFiles/projected_columns_iterator_test.dir/all: src/CMakeFiles/terrier_static.dir/all
 test/execution/CMakeFiles/projected_columns_iterator_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 test/execution/CMakeFiles/projected_columns_iterator_test.dir/all: test/CMakeFiles/test_util.dir/all
+test/execution/CMakeFiles/projected_columns_iterator_test.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f test/execution/CMakeFiles/projected_columns_iterator_test.dir/build.make test/execution/CMakeFiles/projected_columns_iterator_test.dir/depend
 	$(MAKE) -f test/execution/CMakeFiles/projected_columns_iterator_test.dir/build.make test/execution/CMakeFiles/projected_columns_iterator_test.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num= "Built target projected_columns_iterator_test"
@@ -1489,12 +1489,12 @@ test/execution/CMakeFiles/projected_columns_iterator_test.dir/clean:
 # Target rules for target test/execution/CMakeFiles/parsing_test.dir
 
 # All Build rule for target.
-test/execution/CMakeFiles/parsing_test.dir/all: util/CMakeFiles/util_static.dir/all
 test/execution/CMakeFiles/parsing_test.dir/all: CMakeFiles/gflags_ep.dir/all
 test/execution/CMakeFiles/parsing_test.dir/all: CMakeFiles/googletest_ep.dir/all
 test/execution/CMakeFiles/parsing_test.dir/all: src/CMakeFiles/terrier_static.dir/all
 test/execution/CMakeFiles/parsing_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 test/execution/CMakeFiles/parsing_test.dir/all: test/CMakeFiles/test_util.dir/all
+test/execution/CMakeFiles/parsing_test.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f test/execution/CMakeFiles/parsing_test.dir/build.make test/execution/CMakeFiles/parsing_test.dir/depend
 	$(MAKE) -f test/execution/CMakeFiles/parsing_test.dir/build.make test/execution/CMakeFiles/parsing_test.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num= "Built target parsing_test"
@@ -1521,12 +1521,12 @@ test/execution/CMakeFiles/parsing_test.dir/clean:
 # Target rules for target test/execution/CMakeFiles/math_util_test.dir
 
 # All Build rule for target.
-test/execution/CMakeFiles/math_util_test.dir/all: util/CMakeFiles/util_static.dir/all
 test/execution/CMakeFiles/math_util_test.dir/all: CMakeFiles/gflags_ep.dir/all
 test/execution/CMakeFiles/math_util_test.dir/all: CMakeFiles/googletest_ep.dir/all
 test/execution/CMakeFiles/math_util_test.dir/all: src/CMakeFiles/terrier_static.dir/all
 test/execution/CMakeFiles/math_util_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 test/execution/CMakeFiles/math_util_test.dir/all: test/CMakeFiles/test_util.dir/all
+test/execution/CMakeFiles/math_util_test.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f test/execution/CMakeFiles/math_util_test.dir/build.make test/execution/CMakeFiles/math_util_test.dir/depend
 	$(MAKE) -f test/execution/CMakeFiles/math_util_test.dir/build.make test/execution/CMakeFiles/math_util_test.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num= "Built target math_util_test"
@@ -1553,12 +1553,12 @@ test/execution/CMakeFiles/math_util_test.dir/clean:
 # Target rules for target test/execution/CMakeFiles/join_hash_table_vector_probe_test.dir
 
 # All Build rule for target.
-test/execution/CMakeFiles/join_hash_table_vector_probe_test.dir/all: util/CMakeFiles/util_static.dir/all
 test/execution/CMakeFiles/join_hash_table_vector_probe_test.dir/all: CMakeFiles/gflags_ep.dir/all
 test/execution/CMakeFiles/join_hash_table_vector_probe_test.dir/all: CMakeFiles/googletest_ep.dir/all
 test/execution/CMakeFiles/join_hash_table_vector_probe_test.dir/all: src/CMakeFiles/terrier_static.dir/all
 test/execution/CMakeFiles/join_hash_table_vector_probe_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 test/execution/CMakeFiles/join_hash_table_vector_probe_test.dir/all: test/CMakeFiles/test_util.dir/all
+test/execution/CMakeFiles/join_hash_table_vector_probe_test.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f test/execution/CMakeFiles/join_hash_table_vector_probe_test.dir/build.make test/execution/CMakeFiles/join_hash_table_vector_probe_test.dir/depend
 	$(MAKE) -f test/execution/CMakeFiles/join_hash_table_vector_probe_test.dir/build.make test/execution/CMakeFiles/join_hash_table_vector_probe_test.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num= "Built target join_hash_table_vector_probe_test"
@@ -1585,12 +1585,12 @@ test/execution/CMakeFiles/join_hash_table_vector_probe_test.dir/clean:
 # Target rules for target test/execution/CMakeFiles/join_hash_table_test.dir
 
 # All Build rule for target.
-test/execution/CMakeFiles/join_hash_table_test.dir/all: util/CMakeFiles/util_static.dir/all
 test/execution/CMakeFiles/join_hash_table_test.dir/all: CMakeFiles/gflags_ep.dir/all
 test/execution/CMakeFiles/join_hash_table_test.dir/all: CMakeFiles/googletest_ep.dir/all
 test/execution/CMakeFiles/join_hash_table_test.dir/all: src/CMakeFiles/terrier_static.dir/all
 test/execution/CMakeFiles/join_hash_table_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 test/execution/CMakeFiles/join_hash_table_test.dir/all: test/CMakeFiles/test_util.dir/all
+test/execution/CMakeFiles/join_hash_table_test.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f test/execution/CMakeFiles/join_hash_table_test.dir/build.make test/execution/CMakeFiles/join_hash_table_test.dir/depend
 	$(MAKE) -f test/execution/CMakeFiles/join_hash_table_test.dir/build.make test/execution/CMakeFiles/join_hash_table_test.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num=28 "Built target join_hash_table_test"
@@ -1617,12 +1617,12 @@ test/execution/CMakeFiles/join_hash_table_test.dir/clean:
 # Target rules for target test/execution/CMakeFiles/is_null_predicate_test.dir
 
 # All Build rule for target.
-test/execution/CMakeFiles/is_null_predicate_test.dir/all: util/CMakeFiles/util_static.dir/all
 test/execution/CMakeFiles/is_null_predicate_test.dir/all: CMakeFiles/gflags_ep.dir/all
 test/execution/CMakeFiles/is_null_predicate_test.dir/all: CMakeFiles/googletest_ep.dir/all
 test/execution/CMakeFiles/is_null_predicate_test.dir/all: src/CMakeFiles/terrier_static.dir/all
 test/execution/CMakeFiles/is_null_predicate_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 test/execution/CMakeFiles/is_null_predicate_test.dir/all: test/CMakeFiles/test_util.dir/all
+test/execution/CMakeFiles/is_null_predicate_test.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f test/execution/CMakeFiles/is_null_predicate_test.dir/build.make test/execution/CMakeFiles/is_null_predicate_test.dir/depend
 	$(MAKE) -f test/execution/CMakeFiles/is_null_predicate_test.dir/build.make test/execution/CMakeFiles/is_null_predicate_test.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num= "Built target is_null_predicate_test"
@@ -1649,12 +1649,12 @@ test/execution/CMakeFiles/is_null_predicate_test.dir/clean:
 # Target rules for target test/execution/CMakeFiles/hash_test.dir
 
 # All Build rule for target.
-test/execution/CMakeFiles/hash_test.dir/all: util/CMakeFiles/util_static.dir/all
 test/execution/CMakeFiles/hash_test.dir/all: CMakeFiles/gflags_ep.dir/all
 test/execution/CMakeFiles/hash_test.dir/all: CMakeFiles/googletest_ep.dir/all
 test/execution/CMakeFiles/hash_test.dir/all: src/CMakeFiles/terrier_static.dir/all
 test/execution/CMakeFiles/hash_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 test/execution/CMakeFiles/hash_test.dir/all: test/CMakeFiles/test_util.dir/all
+test/execution/CMakeFiles/hash_test.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f test/execution/CMakeFiles/hash_test.dir/build.make test/execution/CMakeFiles/hash_test.dir/depend
 	$(MAKE) -f test/execution/CMakeFiles/hash_test.dir/build.make test/execution/CMakeFiles/hash_test.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num=25 "Built target hash_test"
@@ -1681,12 +1681,12 @@ test/execution/CMakeFiles/hash_test.dir/clean:
 # Target rules for target test/execution/CMakeFiles/filter_manager_test.dir
 
 # All Build rule for target.
-test/execution/CMakeFiles/filter_manager_test.dir/all: util/CMakeFiles/util_static.dir/all
 test/execution/CMakeFiles/filter_manager_test.dir/all: CMakeFiles/gflags_ep.dir/all
 test/execution/CMakeFiles/filter_manager_test.dir/all: CMakeFiles/googletest_ep.dir/all
 test/execution/CMakeFiles/filter_manager_test.dir/all: src/CMakeFiles/terrier_static.dir/all
 test/execution/CMakeFiles/filter_manager_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 test/execution/CMakeFiles/filter_manager_test.dir/all: test/CMakeFiles/test_util.dir/all
+test/execution/CMakeFiles/filter_manager_test.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f test/execution/CMakeFiles/filter_manager_test.dir/build.make test/execution/CMakeFiles/filter_manager_test.dir/depend
 	$(MAKE) -f test/execution/CMakeFiles/filter_manager_test.dir/build.make test/execution/CMakeFiles/filter_manager_test.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num= "Built target filter_manager_test"
@@ -1713,12 +1713,12 @@ test/execution/CMakeFiles/filter_manager_test.dir/clean:
 # Target rules for target test/execution/CMakeFiles/bytecode_generator_test.dir
 
 # All Build rule for target.
-test/execution/CMakeFiles/bytecode_generator_test.dir/all: util/CMakeFiles/util_static.dir/all
 test/execution/CMakeFiles/bytecode_generator_test.dir/all: CMakeFiles/gflags_ep.dir/all
 test/execution/CMakeFiles/bytecode_generator_test.dir/all: CMakeFiles/googletest_ep.dir/all
 test/execution/CMakeFiles/bytecode_generator_test.dir/all: src/CMakeFiles/terrier_static.dir/all
 test/execution/CMakeFiles/bytecode_generator_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 test/execution/CMakeFiles/bytecode_generator_test.dir/all: test/CMakeFiles/test_util.dir/all
+test/execution/CMakeFiles/bytecode_generator_test.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f test/execution/CMakeFiles/bytecode_generator_test.dir/build.make test/execution/CMakeFiles/bytecode_generator_test.dir/depend
 	$(MAKE) -f test/execution/CMakeFiles/bytecode_generator_test.dir/build.make test/execution/CMakeFiles/bytecode_generator_test.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num=9 "Built target bytecode_generator_test"
@@ -1745,12 +1745,12 @@ test/execution/CMakeFiles/bytecode_generator_test.dir/clean:
 # Target rules for target test/execution/CMakeFiles/concise_hash_table_test.dir
 
 # All Build rule for target.
-test/execution/CMakeFiles/concise_hash_table_test.dir/all: util/CMakeFiles/util_static.dir/all
 test/execution/CMakeFiles/concise_hash_table_test.dir/all: CMakeFiles/gflags_ep.dir/all
 test/execution/CMakeFiles/concise_hash_table_test.dir/all: CMakeFiles/googletest_ep.dir/all
 test/execution/CMakeFiles/concise_hash_table_test.dir/all: src/CMakeFiles/terrier_static.dir/all
 test/execution/CMakeFiles/concise_hash_table_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 test/execution/CMakeFiles/concise_hash_table_test.dir/all: test/CMakeFiles/test_util.dir/all
+test/execution/CMakeFiles/concise_hash_table_test.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f test/execution/CMakeFiles/concise_hash_table_test.dir/build.make test/execution/CMakeFiles/concise_hash_table_test.dir/depend
 	$(MAKE) -f test/execution/CMakeFiles/concise_hash_table_test.dir/build.make test/execution/CMakeFiles/concise_hash_table_test.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num= "Built target concise_hash_table_test"
@@ -1777,12 +1777,12 @@ test/execution/CMakeFiles/concise_hash_table_test.dir/clean:
 # Target rules for target test/execution/CMakeFiles/bytecodes_test.dir
 
 # All Build rule for target.
-test/execution/CMakeFiles/bytecodes_test.dir/all: util/CMakeFiles/util_static.dir/all
 test/execution/CMakeFiles/bytecodes_test.dir/all: CMakeFiles/gflags_ep.dir/all
 test/execution/CMakeFiles/bytecodes_test.dir/all: CMakeFiles/googletest_ep.dir/all
 test/execution/CMakeFiles/bytecodes_test.dir/all: src/CMakeFiles/terrier_static.dir/all
 test/execution/CMakeFiles/bytecodes_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 test/execution/CMakeFiles/bytecodes_test.dir/all: test/CMakeFiles/test_util.dir/all
+test/execution/CMakeFiles/bytecodes_test.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f test/execution/CMakeFiles/bytecodes_test.dir/build.make test/execution/CMakeFiles/bytecodes_test.dir/depend
 	$(MAKE) -f test/execution/CMakeFiles/bytecodes_test.dir/build.make test/execution/CMakeFiles/bytecodes_test.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num=10 "Built target bytecodes_test"
@@ -1809,12 +1809,12 @@ test/execution/CMakeFiles/bytecodes_test.dir/clean:
 # Target rules for target test/execution/CMakeFiles/scanner_test.dir
 
 # All Build rule for target.
-test/execution/CMakeFiles/scanner_test.dir/all: util/CMakeFiles/util_static.dir/all
 test/execution/CMakeFiles/scanner_test.dir/all: CMakeFiles/gflags_ep.dir/all
 test/execution/CMakeFiles/scanner_test.dir/all: CMakeFiles/googletest_ep.dir/all
 test/execution/CMakeFiles/scanner_test.dir/all: src/CMakeFiles/terrier_static.dir/all
 test/execution/CMakeFiles/scanner_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 test/execution/CMakeFiles/scanner_test.dir/all: test/CMakeFiles/test_util.dir/all
+test/execution/CMakeFiles/scanner_test.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f test/execution/CMakeFiles/scanner_test.dir/build.make test/execution/CMakeFiles/scanner_test.dir/depend
 	$(MAKE) -f test/execution/CMakeFiles/scanner_test.dir/build.make test/execution/CMakeFiles/scanner_test.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num= "Built target scanner_test"
@@ -1841,12 +1841,12 @@ test/execution/CMakeFiles/scanner_test.dir/clean:
 # Target rules for target test/execution/CMakeFiles/ast_traversal_visitor_test.dir
 
 # All Build rule for target.
-test/execution/CMakeFiles/ast_traversal_visitor_test.dir/all: util/CMakeFiles/util_static.dir/all
 test/execution/CMakeFiles/ast_traversal_visitor_test.dir/all: CMakeFiles/gflags_ep.dir/all
 test/execution/CMakeFiles/ast_traversal_visitor_test.dir/all: CMakeFiles/googletest_ep.dir/all
 test/execution/CMakeFiles/ast_traversal_visitor_test.dir/all: src/CMakeFiles/terrier_static.dir/all
 test/execution/CMakeFiles/ast_traversal_visitor_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 test/execution/CMakeFiles/ast_traversal_visitor_test.dir/all: test/CMakeFiles/test_util.dir/all
+test/execution/CMakeFiles/ast_traversal_visitor_test.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f test/execution/CMakeFiles/ast_traversal_visitor_test.dir/build.make test/execution/CMakeFiles/ast_traversal_visitor_test.dir/depend
 	$(MAKE) -f test/execution/CMakeFiles/ast_traversal_visitor_test.dir/build.make test/execution/CMakeFiles/ast_traversal_visitor_test.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num=3 "Built target ast_traversal_visitor_test"
@@ -1873,12 +1873,12 @@ test/execution/CMakeFiles/ast_traversal_visitor_test.dir/clean:
 # Target rules for target test/execution/CMakeFiles/bytecode_iterator_test.dir
 
 # All Build rule for target.
-test/execution/CMakeFiles/bytecode_iterator_test.dir/all: util/CMakeFiles/util_static.dir/all
 test/execution/CMakeFiles/bytecode_iterator_test.dir/all: CMakeFiles/gflags_ep.dir/all
 test/execution/CMakeFiles/bytecode_iterator_test.dir/all: CMakeFiles/googletest_ep.dir/all
 test/execution/CMakeFiles/bytecode_iterator_test.dir/all: src/CMakeFiles/terrier_static.dir/all
 test/execution/CMakeFiles/bytecode_iterator_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 test/execution/CMakeFiles/bytecode_iterator_test.dir/all: test/CMakeFiles/test_util.dir/all
+test/execution/CMakeFiles/bytecode_iterator_test.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f test/execution/CMakeFiles/bytecode_iterator_test.dir/build.make test/execution/CMakeFiles/bytecode_iterator_test.dir/depend
 	$(MAKE) -f test/execution/CMakeFiles/bytecode_iterator_test.dir/build.make test/execution/CMakeFiles/bytecode_iterator_test.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num= "Built target bytecode_iterator_test"
@@ -1905,12 +1905,12 @@ test/execution/CMakeFiles/bytecode_iterator_test.dir/clean:
 # Target rules for target test/execution/CMakeFiles/token_test.dir
 
 # All Build rule for target.
-test/execution/CMakeFiles/token_test.dir/all: util/CMakeFiles/util_static.dir/all
 test/execution/CMakeFiles/token_test.dir/all: CMakeFiles/gflags_ep.dir/all
 test/execution/CMakeFiles/token_test.dir/all: CMakeFiles/googletest_ep.dir/all
 test/execution/CMakeFiles/token_test.dir/all: src/CMakeFiles/terrier_static.dir/all
 test/execution/CMakeFiles/token_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 test/execution/CMakeFiles/token_test.dir/all: test/CMakeFiles/test_util.dir/all
+test/execution/CMakeFiles/token_test.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f test/execution/CMakeFiles/token_test.dir/build.make test/execution/CMakeFiles/token_test.dir/depend
 	$(MAKE) -f test/execution/CMakeFiles/token_test.dir/build.make test/execution/CMakeFiles/token_test.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num= "Built target token_test"
@@ -1937,12 +1937,12 @@ test/execution/CMakeFiles/token_test.dir/clean:
 # Target rules for target test/execution/CMakeFiles/sorter_test.dir
 
 # All Build rule for target.
-test/execution/CMakeFiles/sorter_test.dir/all: util/CMakeFiles/util_static.dir/all
 test/execution/CMakeFiles/sorter_test.dir/all: CMakeFiles/gflags_ep.dir/all
 test/execution/CMakeFiles/sorter_test.dir/all: CMakeFiles/googletest_ep.dir/all
 test/execution/CMakeFiles/sorter_test.dir/all: src/CMakeFiles/terrier_static.dir/all
 test/execution/CMakeFiles/sorter_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 test/execution/CMakeFiles/sorter_test.dir/all: test/CMakeFiles/test_util.dir/all
+test/execution/CMakeFiles/sorter_test.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f test/execution/CMakeFiles/sorter_test.dir/build.make test/execution/CMakeFiles/sorter_test.dir/depend
 	$(MAKE) -f test/execution/CMakeFiles/sorter_test.dir/build.make test/execution/CMakeFiles/sorter_test.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num= "Built target sorter_test"
@@ -1969,12 +1969,12 @@ test/execution/CMakeFiles/sorter_test.dir/clean:
 # Target rules for target test/execution/CMakeFiles/aggregation_hash_table_test.dir
 
 # All Build rule for target.
-test/execution/CMakeFiles/aggregation_hash_table_test.dir/all: util/CMakeFiles/util_static.dir/all
 test/execution/CMakeFiles/aggregation_hash_table_test.dir/all: CMakeFiles/gflags_ep.dir/all
 test/execution/CMakeFiles/aggregation_hash_table_test.dir/all: CMakeFiles/googletest_ep.dir/all
 test/execution/CMakeFiles/aggregation_hash_table_test.dir/all: src/CMakeFiles/terrier_static.dir/all
 test/execution/CMakeFiles/aggregation_hash_table_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 test/execution/CMakeFiles/aggregation_hash_table_test.dir/all: test/CMakeFiles/test_util.dir/all
+test/execution/CMakeFiles/aggregation_hash_table_test.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f test/execution/CMakeFiles/aggregation_hash_table_test.dir/build.make test/execution/CMakeFiles/aggregation_hash_table_test.dir/depend
 	$(MAKE) -f test/execution/CMakeFiles/aggregation_hash_table_test.dir/build.make test/execution/CMakeFiles/aggregation_hash_table_test.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num= "Built target aggregation_hash_table_test"
@@ -2001,12 +2001,12 @@ test/execution/CMakeFiles/aggregation_hash_table_test.dir/clean:
 # Target rules for target test/execution/CMakeFiles/bloom_filter_test.dir
 
 # All Build rule for target.
-test/execution/CMakeFiles/bloom_filter_test.dir/all: util/CMakeFiles/util_static.dir/all
 test/execution/CMakeFiles/bloom_filter_test.dir/all: CMakeFiles/gflags_ep.dir/all
 test/execution/CMakeFiles/bloom_filter_test.dir/all: CMakeFiles/googletest_ep.dir/all
 test/execution/CMakeFiles/bloom_filter_test.dir/all: src/CMakeFiles/terrier_static.dir/all
 test/execution/CMakeFiles/bloom_filter_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 test/execution/CMakeFiles/bloom_filter_test.dir/all: test/CMakeFiles/test_util.dir/all
+test/execution/CMakeFiles/bloom_filter_test.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f test/execution/CMakeFiles/bloom_filter_test.dir/build.make test/execution/CMakeFiles/bloom_filter_test.dir/depend
 	$(MAKE) -f test/execution/CMakeFiles/bloom_filter_test.dir/build.make test/execution/CMakeFiles/bloom_filter_test.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num= "Built target bloom_filter_test"
@@ -2033,12 +2033,12 @@ test/execution/CMakeFiles/bloom_filter_test.dir/clean:
 # Target rules for target test/execution/CMakeFiles/bitfield_test.dir
 
 # All Build rule for target.
-test/execution/CMakeFiles/bitfield_test.dir/all: util/CMakeFiles/util_static.dir/all
 test/execution/CMakeFiles/bitfield_test.dir/all: CMakeFiles/gflags_ep.dir/all
 test/execution/CMakeFiles/bitfield_test.dir/all: CMakeFiles/googletest_ep.dir/all
 test/execution/CMakeFiles/bitfield_test.dir/all: src/CMakeFiles/terrier_static.dir/all
 test/execution/CMakeFiles/bitfield_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 test/execution/CMakeFiles/bitfield_test.dir/all: test/CMakeFiles/test_util.dir/all
+test/execution/CMakeFiles/bitfield_test.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f test/execution/CMakeFiles/bitfield_test.dir/build.make test/execution/CMakeFiles/bitfield_test.dir/depend
 	$(MAKE) -f test/execution/CMakeFiles/bitfield_test.dir/build.make test/execution/CMakeFiles/bitfield_test.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num= "Built target bitfield_test"
@@ -2065,12 +2065,12 @@ test/execution/CMakeFiles/bitfield_test.dir/clean:
 # Target rules for target test/execution/CMakeFiles/bandit_test.dir
 
 # All Build rule for target.
-test/execution/CMakeFiles/bandit_test.dir/all: util/CMakeFiles/util_static.dir/all
 test/execution/CMakeFiles/bandit_test.dir/all: CMakeFiles/gflags_ep.dir/all
 test/execution/CMakeFiles/bandit_test.dir/all: CMakeFiles/googletest_ep.dir/all
 test/execution/CMakeFiles/bandit_test.dir/all: src/CMakeFiles/terrier_static.dir/all
 test/execution/CMakeFiles/bandit_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 test/execution/CMakeFiles/bandit_test.dir/all: test/CMakeFiles/test_util.dir/all
+test/execution/CMakeFiles/bandit_test.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f test/execution/CMakeFiles/bandit_test.dir/build.make test/execution/CMakeFiles/bandit_test.dir/depend
 	$(MAKE) -f test/execution/CMakeFiles/bandit_test.dir/build.make test/execution/CMakeFiles/bandit_test.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num= "Built target bandit_test"
@@ -2097,12 +2097,12 @@ test/execution/CMakeFiles/bandit_test.dir/clean:
 # Target rules for target test/execution/CMakeFiles/ast_test.dir
 
 # All Build rule for target.
-test/execution/CMakeFiles/ast_test.dir/all: util/CMakeFiles/util_static.dir/all
 test/execution/CMakeFiles/ast_test.dir/all: CMakeFiles/gflags_ep.dir/all
 test/execution/CMakeFiles/ast_test.dir/all: CMakeFiles/googletest_ep.dir/all
 test/execution/CMakeFiles/ast_test.dir/all: src/CMakeFiles/terrier_static.dir/all
 test/execution/CMakeFiles/ast_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 test/execution/CMakeFiles/ast_test.dir/all: test/CMakeFiles/test_util.dir/all
+test/execution/CMakeFiles/ast_test.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f test/execution/CMakeFiles/ast_test.dir/build.make test/execution/CMakeFiles/ast_test.dir/depend
 	$(MAKE) -f test/execution/CMakeFiles/ast_test.dir/build.make test/execution/CMakeFiles/ast_test.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num= "Built target ast_test"
@@ -2129,12 +2129,12 @@ test/execution/CMakeFiles/ast_test.dir/clean:
 # Target rules for target test/execution/CMakeFiles/ast_dump_test.dir
 
 # All Build rule for target.
-test/execution/CMakeFiles/ast_dump_test.dir/all: util/CMakeFiles/util_static.dir/all
 test/execution/CMakeFiles/ast_dump_test.dir/all: CMakeFiles/gflags_ep.dir/all
 test/execution/CMakeFiles/ast_dump_test.dir/all: CMakeFiles/googletest_ep.dir/all
 test/execution/CMakeFiles/ast_dump_test.dir/all: src/CMakeFiles/terrier_static.dir/all
 test/execution/CMakeFiles/ast_dump_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 test/execution/CMakeFiles/ast_dump_test.dir/all: test/CMakeFiles/test_util.dir/all
+test/execution/CMakeFiles/ast_dump_test.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f test/execution/CMakeFiles/ast_dump_test.dir/build.make test/execution/CMakeFiles/ast_dump_test.dir/depend
 	$(MAKE) -f test/execution/CMakeFiles/ast_dump_test.dir/build.make test/execution/CMakeFiles/ast_dump_test.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num= "Built target ast_dump_test"
@@ -2161,12 +2161,12 @@ test/execution/CMakeFiles/ast_dump_test.dir/clean:
 # Target rules for target test/execution/CMakeFiles/chunked_vector_test.dir
 
 # All Build rule for target.
-test/execution/CMakeFiles/chunked_vector_test.dir/all: util/CMakeFiles/util_static.dir/all
 test/execution/CMakeFiles/chunked_vector_test.dir/all: CMakeFiles/gflags_ep.dir/all
 test/execution/CMakeFiles/chunked_vector_test.dir/all: CMakeFiles/googletest_ep.dir/all
 test/execution/CMakeFiles/chunked_vector_test.dir/all: src/CMakeFiles/terrier_static.dir/all
 test/execution/CMakeFiles/chunked_vector_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 test/execution/CMakeFiles/chunked_vector_test.dir/all: test/CMakeFiles/test_util.dir/all
+test/execution/CMakeFiles/chunked_vector_test.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f test/execution/CMakeFiles/chunked_vector_test.dir/build.make test/execution/CMakeFiles/chunked_vector_test.dir/depend
 	$(MAKE) -f test/execution/CMakeFiles/chunked_vector_test.dir/build.make test/execution/CMakeFiles/chunked_vector_test.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num= "Built target chunked_vector_test"
@@ -2193,12 +2193,12 @@ test/execution/CMakeFiles/chunked_vector_test.dir/clean:
 # Target rules for target test/execution/CMakeFiles/bit_util_test.dir
 
 # All Build rule for target.
-test/execution/CMakeFiles/bit_util_test.dir/all: util/CMakeFiles/util_static.dir/all
 test/execution/CMakeFiles/bit_util_test.dir/all: CMakeFiles/gflags_ep.dir/all
 test/execution/CMakeFiles/bit_util_test.dir/all: CMakeFiles/googletest_ep.dir/all
 test/execution/CMakeFiles/bit_util_test.dir/all: src/CMakeFiles/terrier_static.dir/all
 test/execution/CMakeFiles/bit_util_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 test/execution/CMakeFiles/bit_util_test.dir/all: test/CMakeFiles/test_util.dir/all
+test/execution/CMakeFiles/bit_util_test.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f test/execution/CMakeFiles/bit_util_test.dir/build.make test/execution/CMakeFiles/bit_util_test.dir/depend
 	$(MAKE) -f test/execution/CMakeFiles/bit_util_test.dir/build.make test/execution/CMakeFiles/bit_util_test.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num=5 "Built target bit_util_test"
@@ -2225,12 +2225,12 @@ test/execution/CMakeFiles/bit_util_test.dir/clean:
 # Target rules for target test/execution/CMakeFiles/date_functions_test.dir
 
 # All Build rule for target.
-test/execution/CMakeFiles/date_functions_test.dir/all: util/CMakeFiles/util_static.dir/all
 test/execution/CMakeFiles/date_functions_test.dir/all: CMakeFiles/gflags_ep.dir/all
 test/execution/CMakeFiles/date_functions_test.dir/all: CMakeFiles/googletest_ep.dir/all
 test/execution/CMakeFiles/date_functions_test.dir/all: src/CMakeFiles/terrier_static.dir/all
 test/execution/CMakeFiles/date_functions_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 test/execution/CMakeFiles/date_functions_test.dir/all: test/CMakeFiles/test_util.dir/all
+test/execution/CMakeFiles/date_functions_test.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f test/execution/CMakeFiles/date_functions_test.dir/build.make test/execution/CMakeFiles/date_functions_test.dir/depend
 	$(MAKE) -f test/execution/CMakeFiles/date_functions_test.dir/build.make test/execution/CMakeFiles/date_functions_test.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num=15 "Built target date_functions_test"
@@ -2257,12 +2257,12 @@ test/execution/CMakeFiles/date_functions_test.dir/clean:
 # Target rules for target test/execution/CMakeFiles/vector_util_test.dir
 
 # All Build rule for target.
-test/execution/CMakeFiles/vector_util_test.dir/all: util/CMakeFiles/util_static.dir/all
 test/execution/CMakeFiles/vector_util_test.dir/all: CMakeFiles/gflags_ep.dir/all
 test/execution/CMakeFiles/vector_util_test.dir/all: CMakeFiles/googletest_ep.dir/all
 test/execution/CMakeFiles/vector_util_test.dir/all: src/CMakeFiles/terrier_static.dir/all
 test/execution/CMakeFiles/vector_util_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 test/execution/CMakeFiles/vector_util_test.dir/all: test/CMakeFiles/test_util.dir/all
+test/execution/CMakeFiles/vector_util_test.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f test/execution/CMakeFiles/vector_util_test.dir/build.make test/execution/CMakeFiles/vector_util_test.dir/depend
 	$(MAKE) -f test/execution/CMakeFiles/vector_util_test.dir/build.make test/execution/CMakeFiles/vector_util_test.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num= "Built target vector_util_test"
@@ -2289,12 +2289,12 @@ test/execution/CMakeFiles/vector_util_test.dir/clean:
 # Target rules for target test/execution/CMakeFiles/bytecode_trampoline_test.dir
 
 # All Build rule for target.
-test/execution/CMakeFiles/bytecode_trampoline_test.dir/all: util/CMakeFiles/util_static.dir/all
 test/execution/CMakeFiles/bytecode_trampoline_test.dir/all: CMakeFiles/gflags_ep.dir/all
 test/execution/CMakeFiles/bytecode_trampoline_test.dir/all: CMakeFiles/googletest_ep.dir/all
 test/execution/CMakeFiles/bytecode_trampoline_test.dir/all: src/CMakeFiles/terrier_static.dir/all
 test/execution/CMakeFiles/bytecode_trampoline_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 test/execution/CMakeFiles/bytecode_trampoline_test.dir/all: test/CMakeFiles/test_util.dir/all
+test/execution/CMakeFiles/bytecode_trampoline_test.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f test/execution/CMakeFiles/bytecode_trampoline_test.dir/build.make test/execution/CMakeFiles/bytecode_trampoline_test.dir/depend
 	$(MAKE) -f test/execution/CMakeFiles/bytecode_trampoline_test.dir/build.make test/execution/CMakeFiles/bytecode_trampoline_test.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num= "Built target bytecode_trampoline_test"
@@ -2321,12 +2321,12 @@ test/execution/CMakeFiles/bytecode_trampoline_test.dir/clean:
 # Target rules for target test/execution/CMakeFiles/ast_context_test.dir
 
 # All Build rule for target.
-test/execution/CMakeFiles/ast_context_test.dir/all: util/CMakeFiles/util_static.dir/all
 test/execution/CMakeFiles/ast_context_test.dir/all: CMakeFiles/gflags_ep.dir/all
 test/execution/CMakeFiles/ast_context_test.dir/all: CMakeFiles/googletest_ep.dir/all
 test/execution/CMakeFiles/ast_context_test.dir/all: src/CMakeFiles/terrier_static.dir/all
 test/execution/CMakeFiles/ast_context_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 test/execution/CMakeFiles/ast_context_test.dir/all: test/CMakeFiles/test_util.dir/all
+test/execution/CMakeFiles/ast_context_test.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f test/execution/CMakeFiles/ast_context_test.dir/build.make test/execution/CMakeFiles/ast_context_test.dir/depend
 	$(MAKE) -f test/execution/CMakeFiles/ast_context_test.dir/build.make test/execution/CMakeFiles/ast_context_test.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num=2 "Built target ast_context_test"
@@ -2353,12 +2353,12 @@ test/execution/CMakeFiles/ast_context_test.dir/clean:
 # Target rules for target test/execution/CMakeFiles/arithmetic_functions_test.dir
 
 # All Build rule for target.
-test/execution/CMakeFiles/arithmetic_functions_test.dir/all: util/CMakeFiles/util_static.dir/all
 test/execution/CMakeFiles/arithmetic_functions_test.dir/all: CMakeFiles/gflags_ep.dir/all
 test/execution/CMakeFiles/arithmetic_functions_test.dir/all: CMakeFiles/googletest_ep.dir/all
 test/execution/CMakeFiles/arithmetic_functions_test.dir/all: src/CMakeFiles/terrier_static.dir/all
 test/execution/CMakeFiles/arithmetic_functions_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 test/execution/CMakeFiles/arithmetic_functions_test.dir/all: test/CMakeFiles/test_util.dir/all
+test/execution/CMakeFiles/arithmetic_functions_test.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f test/execution/CMakeFiles/arithmetic_functions_test.dir/build.make test/execution/CMakeFiles/arithmetic_functions_test.dir/depend
 	$(MAKE) -f test/execution/CMakeFiles/arithmetic_functions_test.dir/build.make test/execution/CMakeFiles/arithmetic_functions_test.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num= "Built target arithmetic_functions_test"
@@ -2385,12 +2385,12 @@ test/execution/CMakeFiles/arithmetic_functions_test.dir/clean:
 # Target rules for target test/execution/CMakeFiles/sema_expr_test.dir
 
 # All Build rule for target.
-test/execution/CMakeFiles/sema_expr_test.dir/all: util/CMakeFiles/util_static.dir/all
 test/execution/CMakeFiles/sema_expr_test.dir/all: CMakeFiles/gflags_ep.dir/all
 test/execution/CMakeFiles/sema_expr_test.dir/all: CMakeFiles/googletest_ep.dir/all
 test/execution/CMakeFiles/sema_expr_test.dir/all: src/CMakeFiles/terrier_static.dir/all
 test/execution/CMakeFiles/sema_expr_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 test/execution/CMakeFiles/sema_expr_test.dir/all: test/CMakeFiles/test_util.dir/all
+test/execution/CMakeFiles/sema_expr_test.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f test/execution/CMakeFiles/sema_expr_test.dir/build.make test/execution/CMakeFiles/sema_expr_test.dir/depend
 	$(MAKE) -f test/execution/CMakeFiles/sema_expr_test.dir/build.make test/execution/CMakeFiles/sema_expr_test.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num=52 "Built target sema_expr_test"
@@ -2417,12 +2417,12 @@ test/execution/CMakeFiles/sema_expr_test.dir/clean:
 # Target rules for target test/execution/CMakeFiles/generic_hash_table_test.dir
 
 # All Build rule for target.
-test/execution/CMakeFiles/generic_hash_table_test.dir/all: util/CMakeFiles/util_static.dir/all
 test/execution/CMakeFiles/generic_hash_table_test.dir/all: CMakeFiles/gflags_ep.dir/all
 test/execution/CMakeFiles/generic_hash_table_test.dir/all: CMakeFiles/googletest_ep.dir/all
 test/execution/CMakeFiles/generic_hash_table_test.dir/all: src/CMakeFiles/terrier_static.dir/all
 test/execution/CMakeFiles/generic_hash_table_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 test/execution/CMakeFiles/generic_hash_table_test.dir/all: test/CMakeFiles/test_util.dir/all
+test/execution/CMakeFiles/generic_hash_table_test.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f test/execution/CMakeFiles/generic_hash_table_test.dir/build.make test/execution/CMakeFiles/generic_hash_table_test.dir/depend
 	$(MAKE) -f test/execution/CMakeFiles/generic_hash_table_test.dir/build.make test/execution/CMakeFiles/generic_hash_table_test.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num= "Built target generic_hash_table_test"
@@ -2449,12 +2449,12 @@ test/execution/CMakeFiles/generic_hash_table_test.dir/clean:
 # Target rules for target test/execution/CMakeFiles/region_test.dir
 
 # All Build rule for target.
-test/execution/CMakeFiles/region_test.dir/all: util/CMakeFiles/util_static.dir/all
 test/execution/CMakeFiles/region_test.dir/all: CMakeFiles/gflags_ep.dir/all
 test/execution/CMakeFiles/region_test.dir/all: CMakeFiles/googletest_ep.dir/all
 test/execution/CMakeFiles/region_test.dir/all: src/CMakeFiles/terrier_static.dir/all
 test/execution/CMakeFiles/region_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 test/execution/CMakeFiles/region_test.dir/all: test/CMakeFiles/test_util.dir/all
+test/execution/CMakeFiles/region_test.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f test/execution/CMakeFiles/region_test.dir/build.make test/execution/CMakeFiles/region_test.dir/depend
 	$(MAKE) -f test/execution/CMakeFiles/region_test.dir/build.make test/execution/CMakeFiles/region_test.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num=51 "Built target region_test"
@@ -2481,12 +2481,12 @@ test/execution/CMakeFiles/region_test.dir/clean:
 # Target rules for target test/execution/CMakeFiles/aggregators_test.dir
 
 # All Build rule for target.
-test/execution/CMakeFiles/aggregators_test.dir/all: util/CMakeFiles/util_static.dir/all
 test/execution/CMakeFiles/aggregators_test.dir/all: CMakeFiles/gflags_ep.dir/all
 test/execution/CMakeFiles/aggregators_test.dir/all: CMakeFiles/googletest_ep.dir/all
 test/execution/CMakeFiles/aggregators_test.dir/all: src/CMakeFiles/terrier_static.dir/all
 test/execution/CMakeFiles/aggregators_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 test/execution/CMakeFiles/aggregators_test.dir/all: test/CMakeFiles/test_util.dir/all
+test/execution/CMakeFiles/aggregators_test.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f test/execution/CMakeFiles/aggregators_test.dir/build.make test/execution/CMakeFiles/aggregators_test.dir/depend
 	$(MAKE) -f test/execution/CMakeFiles/aggregators_test.dir/build.make test/execution/CMakeFiles/aggregators_test.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num=1 "Built target aggregators_test"
@@ -2513,12 +2513,12 @@ test/execution/CMakeFiles/aggregators_test.dir/clean:
 # Target rules for target test/execution/CMakeFiles/index_iterator_test.dir
 
 # All Build rule for target.
-test/execution/CMakeFiles/index_iterator_test.dir/all: util/CMakeFiles/util_static.dir/all
 test/execution/CMakeFiles/index_iterator_test.dir/all: CMakeFiles/gflags_ep.dir/all
 test/execution/CMakeFiles/index_iterator_test.dir/all: CMakeFiles/googletest_ep.dir/all
 test/execution/CMakeFiles/index_iterator_test.dir/all: src/CMakeFiles/terrier_static.dir/all
 test/execution/CMakeFiles/index_iterator_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 test/execution/CMakeFiles/index_iterator_test.dir/all: test/CMakeFiles/test_util.dir/all
+test/execution/CMakeFiles/index_iterator_test.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f test/execution/CMakeFiles/index_iterator_test.dir/build.make test/execution/CMakeFiles/index_iterator_test.dir/depend
 	$(MAKE) -f test/execution/CMakeFiles/index_iterator_test.dir/build.make test/execution/CMakeFiles/index_iterator_test.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num= "Built target index_iterator_test"
@@ -2563,12 +2563,12 @@ test/integration/preinstall:
 # Target rules for target test/integration/CMakeFiles/tpcc_test.dir
 
 # All Build rule for target.
-test/integration/CMakeFiles/tpcc_test.dir/all: util/CMakeFiles/util_static.dir/all
 test/integration/CMakeFiles/tpcc_test.dir/all: CMakeFiles/gflags_ep.dir/all
 test/integration/CMakeFiles/tpcc_test.dir/all: CMakeFiles/googletest_ep.dir/all
 test/integration/CMakeFiles/tpcc_test.dir/all: src/CMakeFiles/terrier_static.dir/all
 test/integration/CMakeFiles/tpcc_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 test/integration/CMakeFiles/tpcc_test.dir/all: test/CMakeFiles/test_util.dir/all
+test/integration/CMakeFiles/tpcc_test.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f test/integration/CMakeFiles/tpcc_test.dir/build.make test/integration/CMakeFiles/tpcc_test.dir/depend
 	$(MAKE) -f test/integration/CMakeFiles/tpcc_test.dir/build.make test/integration/CMakeFiles/tpcc_test.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num=95 "Built target tpcc_test"
@@ -2613,12 +2613,12 @@ test/metrics/preinstall:
 # Target rules for target test/metrics/CMakeFiles/metrics_test.dir
 
 # All Build rule for target.
-test/metrics/CMakeFiles/metrics_test.dir/all: util/CMakeFiles/util_static.dir/all
 test/metrics/CMakeFiles/metrics_test.dir/all: CMakeFiles/gflags_ep.dir/all
 test/metrics/CMakeFiles/metrics_test.dir/all: CMakeFiles/googletest_ep.dir/all
 test/metrics/CMakeFiles/metrics_test.dir/all: src/CMakeFiles/terrier_static.dir/all
 test/metrics/CMakeFiles/metrics_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 test/metrics/CMakeFiles/metrics_test.dir/all: test/CMakeFiles/test_util.dir/all
+test/metrics/CMakeFiles/metrics_test.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f test/metrics/CMakeFiles/metrics_test.dir/build.make test/metrics/CMakeFiles/metrics_test.dir/depend
 	$(MAKE) -f test/metrics/CMakeFiles/metrics_test.dir/build.make test/metrics/CMakeFiles/metrics_test.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num=33 "Built target metrics_test"
@@ -2663,12 +2663,12 @@ test/network/preinstall:
 # Target rules for target test/network/CMakeFiles/network_test.dir
 
 # All Build rule for target.
-test/network/CMakeFiles/network_test.dir/all: util/CMakeFiles/util_static.dir/all
 test/network/CMakeFiles/network_test.dir/all: CMakeFiles/gflags_ep.dir/all
 test/network/CMakeFiles/network_test.dir/all: CMakeFiles/googletest_ep.dir/all
 test/network/CMakeFiles/network_test.dir/all: src/CMakeFiles/terrier_static.dir/all
 test/network/CMakeFiles/network_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 test/network/CMakeFiles/network_test.dir/all: test/CMakeFiles/test_util.dir/all
+test/network/CMakeFiles/network_test.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f test/network/CMakeFiles/network_test.dir/build.make test/network/CMakeFiles/network_test.dir/depend
 	$(MAKE) -f test/network/CMakeFiles/network_test.dir/build.make test/network/CMakeFiles/network_test.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num=34 "Built target network_test"
@@ -2735,12 +2735,12 @@ test/optimizer/preinstall:
 # Target rules for target test/optimizer/CMakeFiles/value_condition_test.dir
 
 # All Build rule for target.
-test/optimizer/CMakeFiles/value_condition_test.dir/all: util/CMakeFiles/util_static.dir/all
 test/optimizer/CMakeFiles/value_condition_test.dir/all: CMakeFiles/gflags_ep.dir/all
 test/optimizer/CMakeFiles/value_condition_test.dir/all: CMakeFiles/googletest_ep.dir/all
 test/optimizer/CMakeFiles/value_condition_test.dir/all: src/CMakeFiles/terrier_static.dir/all
 test/optimizer/CMakeFiles/value_condition_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 test/optimizer/CMakeFiles/value_condition_test.dir/all: test/CMakeFiles/test_util.dir/all
+test/optimizer/CMakeFiles/value_condition_test.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f test/optimizer/CMakeFiles/value_condition_test.dir/build.make test/optimizer/CMakeFiles/value_condition_test.dir/depend
 	$(MAKE) -f test/optimizer/CMakeFiles/value_condition_test.dir/build.make test/optimizer/CMakeFiles/value_condition_test.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num= "Built target value_condition_test"
@@ -2767,12 +2767,12 @@ test/optimizer/CMakeFiles/value_condition_test.dir/clean:
 # Target rules for target test/optimizer/CMakeFiles/top_k_elements_test.dir
 
 # All Build rule for target.
-test/optimizer/CMakeFiles/top_k_elements_test.dir/all: util/CMakeFiles/util_static.dir/all
 test/optimizer/CMakeFiles/top_k_elements_test.dir/all: CMakeFiles/gflags_ep.dir/all
 test/optimizer/CMakeFiles/top_k_elements_test.dir/all: CMakeFiles/googletest_ep.dir/all
 test/optimizer/CMakeFiles/top_k_elements_test.dir/all: src/CMakeFiles/terrier_static.dir/all
 test/optimizer/CMakeFiles/top_k_elements_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 test/optimizer/CMakeFiles/top_k_elements_test.dir/all: test/CMakeFiles/test_util.dir/all
+test/optimizer/CMakeFiles/top_k_elements_test.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f test/optimizer/CMakeFiles/top_k_elements_test.dir/build.make test/optimizer/CMakeFiles/top_k_elements_test.dir/depend
 	$(MAKE) -f test/optimizer/CMakeFiles/top_k_elements_test.dir/build.make test/optimizer/CMakeFiles/top_k_elements_test.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num=94 "Built target top_k_elements_test"
@@ -2799,12 +2799,12 @@ test/optimizer/CMakeFiles/top_k_elements_test.dir/clean:
 # Target rules for target test/optimizer/CMakeFiles/table_stats_test.dir
 
 # All Build rule for target.
-test/optimizer/CMakeFiles/table_stats_test.dir/all: util/CMakeFiles/util_static.dir/all
 test/optimizer/CMakeFiles/table_stats_test.dir/all: CMakeFiles/gflags_ep.dir/all
 test/optimizer/CMakeFiles/table_stats_test.dir/all: CMakeFiles/googletest_ep.dir/all
 test/optimizer/CMakeFiles/table_stats_test.dir/all: src/CMakeFiles/terrier_static.dir/all
 test/optimizer/CMakeFiles/table_stats_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 test/optimizer/CMakeFiles/table_stats_test.dir/all: test/CMakeFiles/test_util.dir/all
+test/optimizer/CMakeFiles/table_stats_test.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f test/optimizer/CMakeFiles/table_stats_test.dir/build.make test/optimizer/CMakeFiles/table_stats_test.dir/depend
 	$(MAKE) -f test/optimizer/CMakeFiles/table_stats_test.dir/build.make test/optimizer/CMakeFiles/table_stats_test.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num= "Built target table_stats_test"
@@ -2831,12 +2831,12 @@ test/optimizer/CMakeFiles/table_stats_test.dir/clean:
 # Target rules for target test/optimizer/CMakeFiles/physical_operator_test.dir
 
 # All Build rule for target.
-test/optimizer/CMakeFiles/physical_operator_test.dir/all: util/CMakeFiles/util_static.dir/all
 test/optimizer/CMakeFiles/physical_operator_test.dir/all: CMakeFiles/gflags_ep.dir/all
 test/optimizer/CMakeFiles/physical_operator_test.dir/all: CMakeFiles/googletest_ep.dir/all
 test/optimizer/CMakeFiles/physical_operator_test.dir/all: src/CMakeFiles/terrier_static.dir/all
 test/optimizer/CMakeFiles/physical_operator_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 test/optimizer/CMakeFiles/physical_operator_test.dir/all: test/CMakeFiles/test_util.dir/all
+test/optimizer/CMakeFiles/physical_operator_test.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f test/optimizer/CMakeFiles/physical_operator_test.dir/build.make test/optimizer/CMakeFiles/physical_operator_test.dir/depend
 	$(MAKE) -f test/optimizer/CMakeFiles/physical_operator_test.dir/build.make test/optimizer/CMakeFiles/physical_operator_test.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num=48 "Built target physical_operator_test"
@@ -2863,12 +2863,12 @@ test/optimizer/CMakeFiles/physical_operator_test.dir/clean:
 # Target rules for target test/optimizer/CMakeFiles/operator_expression_test.dir
 
 # All Build rule for target.
-test/optimizer/CMakeFiles/operator_expression_test.dir/all: util/CMakeFiles/util_static.dir/all
 test/optimizer/CMakeFiles/operator_expression_test.dir/all: CMakeFiles/gflags_ep.dir/all
 test/optimizer/CMakeFiles/operator_expression_test.dir/all: CMakeFiles/googletest_ep.dir/all
 test/optimizer/CMakeFiles/operator_expression_test.dir/all: src/CMakeFiles/terrier_static.dir/all
 test/optimizer/CMakeFiles/operator_expression_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 test/optimizer/CMakeFiles/operator_expression_test.dir/all: test/CMakeFiles/test_util.dir/all
+test/optimizer/CMakeFiles/operator_expression_test.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f test/optimizer/CMakeFiles/operator_expression_test.dir/build.make test/optimizer/CMakeFiles/operator_expression_test.dir/depend
 	$(MAKE) -f test/optimizer/CMakeFiles/operator_expression_test.dir/build.make test/optimizer/CMakeFiles/operator_expression_test.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num= "Built target operator_expression_test"
@@ -2895,12 +2895,12 @@ test/optimizer/CMakeFiles/operator_expression_test.dir/clean:
 # Target rules for target test/optimizer/CMakeFiles/logical_operator_test.dir
 
 # All Build rule for target.
-test/optimizer/CMakeFiles/logical_operator_test.dir/all: util/CMakeFiles/util_static.dir/all
 test/optimizer/CMakeFiles/logical_operator_test.dir/all: CMakeFiles/gflags_ep.dir/all
 test/optimizer/CMakeFiles/logical_operator_test.dir/all: CMakeFiles/googletest_ep.dir/all
 test/optimizer/CMakeFiles/logical_operator_test.dir/all: src/CMakeFiles/terrier_static.dir/all
 test/optimizer/CMakeFiles/logical_operator_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 test/optimizer/CMakeFiles/logical_operator_test.dir/all: test/CMakeFiles/test_util.dir/all
+test/optimizer/CMakeFiles/logical_operator_test.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f test/optimizer/CMakeFiles/logical_operator_test.dir/build.make test/optimizer/CMakeFiles/logical_operator_test.dir/depend
 	$(MAKE) -f test/optimizer/CMakeFiles/logical_operator_test.dir/build.make test/optimizer/CMakeFiles/logical_operator_test.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num= "Built target logical_operator_test"
@@ -2927,12 +2927,12 @@ test/optimizer/CMakeFiles/logical_operator_test.dir/clean:
 # Target rules for target test/optimizer/CMakeFiles/column_stats_test.dir
 
 # All Build rule for target.
-test/optimizer/CMakeFiles/column_stats_test.dir/all: util/CMakeFiles/util_static.dir/all
 test/optimizer/CMakeFiles/column_stats_test.dir/all: CMakeFiles/gflags_ep.dir/all
 test/optimizer/CMakeFiles/column_stats_test.dir/all: CMakeFiles/googletest_ep.dir/all
 test/optimizer/CMakeFiles/column_stats_test.dir/all: src/CMakeFiles/terrier_static.dir/all
 test/optimizer/CMakeFiles/column_stats_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 test/optimizer/CMakeFiles/column_stats_test.dir/all: test/CMakeFiles/test_util.dir/all
+test/optimizer/CMakeFiles/column_stats_test.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f test/optimizer/CMakeFiles/column_stats_test.dir/build.make test/optimizer/CMakeFiles/column_stats_test.dir/depend
 	$(MAKE) -f test/optimizer/CMakeFiles/column_stats_test.dir/build.make test/optimizer/CMakeFiles/column_stats_test.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num=12 "Built target column_stats_test"
@@ -2959,12 +2959,12 @@ test/optimizer/CMakeFiles/column_stats_test.dir/clean:
 # Target rules for target test/optimizer/CMakeFiles/operator_transformer_test.dir
 
 # All Build rule for target.
-test/optimizer/CMakeFiles/operator_transformer_test.dir/all: util/CMakeFiles/util_static.dir/all
 test/optimizer/CMakeFiles/operator_transformer_test.dir/all: CMakeFiles/gflags_ep.dir/all
 test/optimizer/CMakeFiles/operator_transformer_test.dir/all: CMakeFiles/googletest_ep.dir/all
 test/optimizer/CMakeFiles/operator_transformer_test.dir/all: src/CMakeFiles/terrier_static.dir/all
 test/optimizer/CMakeFiles/operator_transformer_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 test/optimizer/CMakeFiles/operator_transformer_test.dir/all: test/CMakeFiles/test_util.dir/all
+test/optimizer/CMakeFiles/operator_transformer_test.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f test/optimizer/CMakeFiles/operator_transformer_test.dir/build.make test/optimizer/CMakeFiles/operator_transformer_test.dir/depend
 	$(MAKE) -f test/optimizer/CMakeFiles/operator_transformer_test.dir/build.make test/optimizer/CMakeFiles/operator_transformer_test.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num=35 "Built target operator_transformer_test"
@@ -2991,12 +2991,12 @@ test/optimizer/CMakeFiles/operator_transformer_test.dir/clean:
 # Target rules for target test/optimizer/CMakeFiles/histogram_test.dir
 
 # All Build rule for target.
-test/optimizer/CMakeFiles/histogram_test.dir/all: util/CMakeFiles/util_static.dir/all
 test/optimizer/CMakeFiles/histogram_test.dir/all: CMakeFiles/gflags_ep.dir/all
 test/optimizer/CMakeFiles/histogram_test.dir/all: CMakeFiles/googletest_ep.dir/all
 test/optimizer/CMakeFiles/histogram_test.dir/all: src/CMakeFiles/terrier_static.dir/all
 test/optimizer/CMakeFiles/histogram_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 test/optimizer/CMakeFiles/histogram_test.dir/all: test/CMakeFiles/test_util.dir/all
+test/optimizer/CMakeFiles/histogram_test.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f test/optimizer/CMakeFiles/histogram_test.dir/build.make test/optimizer/CMakeFiles/histogram_test.dir/depend
 	$(MAKE) -f test/optimizer/CMakeFiles/histogram_test.dir/build.make test/optimizer/CMakeFiles/histogram_test.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num= "Built target histogram_test"
@@ -3023,12 +3023,12 @@ test/optimizer/CMakeFiles/histogram_test.dir/clean:
 # Target rules for target test/optimizer/CMakeFiles/stats_storage_test.dir
 
 # All Build rule for target.
-test/optimizer/CMakeFiles/stats_storage_test.dir/all: util/CMakeFiles/util_static.dir/all
 test/optimizer/CMakeFiles/stats_storage_test.dir/all: CMakeFiles/gflags_ep.dir/all
 test/optimizer/CMakeFiles/stats_storage_test.dir/all: CMakeFiles/googletest_ep.dir/all
 test/optimizer/CMakeFiles/stats_storage_test.dir/all: src/CMakeFiles/terrier_static.dir/all
 test/optimizer/CMakeFiles/stats_storage_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 test/optimizer/CMakeFiles/stats_storage_test.dir/all: test/CMakeFiles/test_util.dir/all
+test/optimizer/CMakeFiles/stats_storage_test.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f test/optimizer/CMakeFiles/stats_storage_test.dir/build.make test/optimizer/CMakeFiles/stats_storage_test.dir/depend
 	$(MAKE) -f test/optimizer/CMakeFiles/stats_storage_test.dir/build.make test/optimizer/CMakeFiles/stats_storage_test.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num=54 "Built target stats_storage_test"
@@ -3055,12 +3055,12 @@ test/optimizer/CMakeFiles/stats_storage_test.dir/clean:
 # Target rules for target test/optimizer/CMakeFiles/hyperloglog_test.dir
 
 # All Build rule for target.
-test/optimizer/CMakeFiles/hyperloglog_test.dir/all: util/CMakeFiles/util_static.dir/all
 test/optimizer/CMakeFiles/hyperloglog_test.dir/all: CMakeFiles/gflags_ep.dir/all
 test/optimizer/CMakeFiles/hyperloglog_test.dir/all: CMakeFiles/googletest_ep.dir/all
 test/optimizer/CMakeFiles/hyperloglog_test.dir/all: src/CMakeFiles/terrier_static.dir/all
 test/optimizer/CMakeFiles/hyperloglog_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 test/optimizer/CMakeFiles/hyperloglog_test.dir/all: test/CMakeFiles/test_util.dir/all
+test/optimizer/CMakeFiles/hyperloglog_test.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f test/optimizer/CMakeFiles/hyperloglog_test.dir/build.make test/optimizer/CMakeFiles/hyperloglog_test.dir/depend
 	$(MAKE) -f test/optimizer/CMakeFiles/hyperloglog_test.dir/build.make test/optimizer/CMakeFiles/hyperloglog_test.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num=26 "Built target hyperloglog_test"
@@ -3087,12 +3087,12 @@ test/optimizer/CMakeFiles/hyperloglog_test.dir/clean:
 # Target rules for target test/optimizer/CMakeFiles/count_min_sketch_test.dir
 
 # All Build rule for target.
-test/optimizer/CMakeFiles/count_min_sketch_test.dir/all: util/CMakeFiles/util_static.dir/all
 test/optimizer/CMakeFiles/count_min_sketch_test.dir/all: CMakeFiles/gflags_ep.dir/all
 test/optimizer/CMakeFiles/count_min_sketch_test.dir/all: CMakeFiles/googletest_ep.dir/all
 test/optimizer/CMakeFiles/count_min_sketch_test.dir/all: src/CMakeFiles/terrier_static.dir/all
 test/optimizer/CMakeFiles/count_min_sketch_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 test/optimizer/CMakeFiles/count_min_sketch_test.dir/all: test/CMakeFiles/test_util.dir/all
+test/optimizer/CMakeFiles/count_min_sketch_test.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f test/optimizer/CMakeFiles/count_min_sketch_test.dir/build.make test/optimizer/CMakeFiles/count_min_sketch_test.dir/depend
 	$(MAKE) -f test/optimizer/CMakeFiles/count_min_sketch_test.dir/build.make test/optimizer/CMakeFiles/count_min_sketch_test.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num=13 "Built target count_min_sketch_test"
@@ -3145,12 +3145,12 @@ test/parser/preinstall:
 # Target rules for target test/parser/CMakeFiles/expression_test.dir
 
 # All Build rule for target.
-test/parser/CMakeFiles/expression_test.dir/all: util/CMakeFiles/util_static.dir/all
 test/parser/CMakeFiles/expression_test.dir/all: CMakeFiles/gflags_ep.dir/all
 test/parser/CMakeFiles/expression_test.dir/all: CMakeFiles/googletest_ep.dir/all
 test/parser/CMakeFiles/expression_test.dir/all: src/CMakeFiles/terrier_static.dir/all
 test/parser/CMakeFiles/expression_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 test/parser/CMakeFiles/expression_test.dir/all: test/CMakeFiles/test_util.dir/all
+test/parser/CMakeFiles/expression_test.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f test/parser/CMakeFiles/expression_test.dir/build.make test/parser/CMakeFiles/expression_test.dir/depend
 	$(MAKE) -f test/parser/CMakeFiles/expression_test.dir/build.make test/parser/CMakeFiles/expression_test.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num= "Built target expression_test"
@@ -3177,12 +3177,12 @@ test/parser/CMakeFiles/expression_test.dir/clean:
 # Target rules for target test/parser/CMakeFiles/pg_parser_test.dir
 
 # All Build rule for target.
-test/parser/CMakeFiles/pg_parser_test.dir/all: util/CMakeFiles/util_static.dir/all
 test/parser/CMakeFiles/pg_parser_test.dir/all: CMakeFiles/gflags_ep.dir/all
 test/parser/CMakeFiles/pg_parser_test.dir/all: CMakeFiles/googletest_ep.dir/all
 test/parser/CMakeFiles/pg_parser_test.dir/all: src/CMakeFiles/terrier_static.dir/all
 test/parser/CMakeFiles/pg_parser_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 test/parser/CMakeFiles/pg_parser_test.dir/all: test/CMakeFiles/test_util.dir/all
+test/parser/CMakeFiles/pg_parser_test.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f test/parser/CMakeFiles/pg_parser_test.dir/build.make test/parser/CMakeFiles/pg_parser_test.dir/depend
 	$(MAKE) -f test/parser/CMakeFiles/pg_parser_test.dir/build.make test/parser/CMakeFiles/pg_parser_test.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num= "Built target pg_parser_test"
@@ -3209,12 +3209,12 @@ test/parser/CMakeFiles/pg_parser_test.dir/clean:
 # Target rules for target test/parser/CMakeFiles/parser_test.dir
 
 # All Build rule for target.
-test/parser/CMakeFiles/parser_test.dir/all: util/CMakeFiles/util_static.dir/all
 test/parser/CMakeFiles/parser_test.dir/all: CMakeFiles/gflags_ep.dir/all
 test/parser/CMakeFiles/parser_test.dir/all: CMakeFiles/googletest_ep.dir/all
 test/parser/CMakeFiles/parser_test.dir/all: src/CMakeFiles/terrier_static.dir/all
 test/parser/CMakeFiles/parser_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 test/parser/CMakeFiles/parser_test.dir/all: test/CMakeFiles/test_util.dir/all
+test/parser/CMakeFiles/parser_test.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f test/parser/CMakeFiles/parser_test.dir/build.make test/parser/CMakeFiles/parser_test.dir/depend
 	$(MAKE) -f test/parser/CMakeFiles/parser_test.dir/build.make test/parser/CMakeFiles/parser_test.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num= "Built target parser_test"
@@ -3241,12 +3241,12 @@ test/parser/CMakeFiles/parser_test.dir/clean:
 # Target rules for target test/parser/CMakeFiles/expression_util_test.dir
 
 # All Build rule for target.
-test/parser/CMakeFiles/expression_util_test.dir/all: util/CMakeFiles/util_static.dir/all
 test/parser/CMakeFiles/expression_util_test.dir/all: CMakeFiles/gflags_ep.dir/all
 test/parser/CMakeFiles/expression_util_test.dir/all: CMakeFiles/googletest_ep.dir/all
 test/parser/CMakeFiles/expression_util_test.dir/all: src/CMakeFiles/terrier_static.dir/all
 test/parser/CMakeFiles/expression_util_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 test/parser/CMakeFiles/expression_util_test.dir/all: test/CMakeFiles/test_util.dir/all
+test/parser/CMakeFiles/expression_util_test.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f test/parser/CMakeFiles/expression_util_test.dir/build.make test/parser/CMakeFiles/expression_util_test.dir/depend
 	$(MAKE) -f test/parser/CMakeFiles/expression_util_test.dir/build.make test/parser/CMakeFiles/expression_util_test.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num=17 "Built target expression_util_test"
@@ -3273,12 +3273,12 @@ test/parser/CMakeFiles/expression_util_test.dir/clean:
 # Target rules for target test/parser/CMakeFiles/expression_defs_test.dir
 
 # All Build rule for target.
-test/parser/CMakeFiles/expression_defs_test.dir/all: util/CMakeFiles/util_static.dir/all
 test/parser/CMakeFiles/expression_defs_test.dir/all: CMakeFiles/gflags_ep.dir/all
 test/parser/CMakeFiles/expression_defs_test.dir/all: CMakeFiles/googletest_ep.dir/all
 test/parser/CMakeFiles/expression_defs_test.dir/all: src/CMakeFiles/terrier_static.dir/all
 test/parser/CMakeFiles/expression_defs_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 test/parser/CMakeFiles/expression_defs_test.dir/all: test/CMakeFiles/test_util.dir/all
+test/parser/CMakeFiles/expression_defs_test.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f test/parser/CMakeFiles/expression_defs_test.dir/build.make test/parser/CMakeFiles/expression_defs_test.dir/depend
 	$(MAKE) -f test/parser/CMakeFiles/expression_defs_test.dir/build.make test/parser/CMakeFiles/expression_defs_test.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num= "Built target expression_defs_test"
@@ -3327,12 +3327,12 @@ test/planner/preinstall:
 # Target rules for target test/planner/CMakeFiles/plan_node_test.dir
 
 # All Build rule for target.
-test/planner/CMakeFiles/plan_node_test.dir/all: util/CMakeFiles/util_static.dir/all
 test/planner/CMakeFiles/plan_node_test.dir/all: CMakeFiles/gflags_ep.dir/all
 test/planner/CMakeFiles/plan_node_test.dir/all: CMakeFiles/googletest_ep.dir/all
 test/planner/CMakeFiles/plan_node_test.dir/all: src/CMakeFiles/terrier_static.dir/all
 test/planner/CMakeFiles/plan_node_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 test/planner/CMakeFiles/plan_node_test.dir/all: test/CMakeFiles/test_util.dir/all
+test/planner/CMakeFiles/plan_node_test.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f test/planner/CMakeFiles/plan_node_test.dir/build.make test/planner/CMakeFiles/plan_node_test.dir/depend
 	$(MAKE) -f test/planner/CMakeFiles/plan_node_test.dir/build.make test/planner/CMakeFiles/plan_node_test.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num=49 "Built target plan_node_test"
@@ -3359,12 +3359,12 @@ test/planner/CMakeFiles/plan_node_test.dir/clean:
 # Target rules for target test/planner/CMakeFiles/plan_node_json_test.dir
 
 # All Build rule for target.
-test/planner/CMakeFiles/plan_node_json_test.dir/all: util/CMakeFiles/util_static.dir/all
 test/planner/CMakeFiles/plan_node_json_test.dir/all: CMakeFiles/gflags_ep.dir/all
 test/planner/CMakeFiles/plan_node_json_test.dir/all: CMakeFiles/googletest_ep.dir/all
 test/planner/CMakeFiles/plan_node_json_test.dir/all: src/CMakeFiles/terrier_static.dir/all
 test/planner/CMakeFiles/plan_node_json_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 test/planner/CMakeFiles/plan_node_json_test.dir/all: test/CMakeFiles/test_util.dir/all
+test/planner/CMakeFiles/plan_node_json_test.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f test/planner/CMakeFiles/plan_node_json_test.dir/build.make test/planner/CMakeFiles/plan_node_json_test.dir/depend
 	$(MAKE) -f test/planner/CMakeFiles/plan_node_json_test.dir/build.make test/planner/CMakeFiles/plan_node_json_test.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num= "Built target plan_node_json_test"
@@ -3391,12 +3391,12 @@ test/planner/CMakeFiles/plan_node_json_test.dir/clean:
 # Target rules for target test/planner/CMakeFiles/output_schema_test.dir
 
 # All Build rule for target.
-test/planner/CMakeFiles/output_schema_test.dir/all: util/CMakeFiles/util_static.dir/all
 test/planner/CMakeFiles/output_schema_test.dir/all: CMakeFiles/gflags_ep.dir/all
 test/planner/CMakeFiles/output_schema_test.dir/all: CMakeFiles/googletest_ep.dir/all
 test/planner/CMakeFiles/output_schema_test.dir/all: src/CMakeFiles/terrier_static.dir/all
 test/planner/CMakeFiles/output_schema_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 test/planner/CMakeFiles/output_schema_test.dir/all: test/CMakeFiles/test_util.dir/all
+test/planner/CMakeFiles/output_schema_test.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f test/planner/CMakeFiles/output_schema_test.dir/build.make test/planner/CMakeFiles/output_schema_test.dir/depend
 	$(MAKE) -f test/planner/CMakeFiles/output_schema_test.dir/build.make test/planner/CMakeFiles/output_schema_test.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num= "Built target output_schema_test"
@@ -3441,12 +3441,12 @@ test/settings/preinstall:
 # Target rules for target test/settings/CMakeFiles/settings_test.dir
 
 # All Build rule for target.
-test/settings/CMakeFiles/settings_test.dir/all: util/CMakeFiles/util_static.dir/all
 test/settings/CMakeFiles/settings_test.dir/all: CMakeFiles/gflags_ep.dir/all
 test/settings/CMakeFiles/settings_test.dir/all: CMakeFiles/googletest_ep.dir/all
 test/settings/CMakeFiles/settings_test.dir/all: src/CMakeFiles/terrier_static.dir/all
 test/settings/CMakeFiles/settings_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 test/settings/CMakeFiles/settings_test.dir/all: test/CMakeFiles/test_util.dir/all
+test/settings/CMakeFiles/settings_test.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f test/settings/CMakeFiles/settings_test.dir/build.make test/settings/CMakeFiles/settings_test.dir/depend
 	$(MAKE) -f test/settings/CMakeFiles/settings_test.dir/build.make test/settings/CMakeFiles/settings_test.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num=53 "Built target settings_test"
@@ -3525,12 +3525,12 @@ test/storage/preinstall:
 # Target rules for target test/storage/CMakeFiles/garbage_collector_test.dir
 
 # All Build rule for target.
-test/storage/CMakeFiles/garbage_collector_test.dir/all: util/CMakeFiles/util_static.dir/all
 test/storage/CMakeFiles/garbage_collector_test.dir/all: CMakeFiles/gflags_ep.dir/all
 test/storage/CMakeFiles/garbage_collector_test.dir/all: CMakeFiles/googletest_ep.dir/all
 test/storage/CMakeFiles/garbage_collector_test.dir/all: src/CMakeFiles/terrier_static.dir/all
 test/storage/CMakeFiles/garbage_collector_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 test/storage/CMakeFiles/garbage_collector_test.dir/all: test/CMakeFiles/test_util.dir/all
+test/storage/CMakeFiles/garbage_collector_test.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f test/storage/CMakeFiles/garbage_collector_test.dir/build.make test/storage/CMakeFiles/garbage_collector_test.dir/depend
 	$(MAKE) -f test/storage/CMakeFiles/garbage_collector_test.dir/build.make test/storage/CMakeFiles/garbage_collector_test.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num= "Built target garbage_collector_test"
@@ -3557,12 +3557,12 @@ test/storage/CMakeFiles/garbage_collector_test.dir/clean:
 # Target rules for target test/storage/CMakeFiles/block_access_controller_test.dir
 
 # All Build rule for target.
-test/storage/CMakeFiles/block_access_controller_test.dir/all: util/CMakeFiles/util_static.dir/all
 test/storage/CMakeFiles/block_access_controller_test.dir/all: CMakeFiles/gflags_ep.dir/all
 test/storage/CMakeFiles/block_access_controller_test.dir/all: CMakeFiles/googletest_ep.dir/all
 test/storage/CMakeFiles/block_access_controller_test.dir/all: src/CMakeFiles/terrier_static.dir/all
 test/storage/CMakeFiles/block_access_controller_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 test/storage/CMakeFiles/block_access_controller_test.dir/all: test/CMakeFiles/test_util.dir/all
+test/storage/CMakeFiles/block_access_controller_test.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f test/storage/CMakeFiles/block_access_controller_test.dir/build.make test/storage/CMakeFiles/block_access_controller_test.dir/depend
 	$(MAKE) -f test/storage/CMakeFiles/block_access_controller_test.dir/build.make test/storage/CMakeFiles/block_access_controller_test.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num=6 "Built target block_access_controller_test"
@@ -3589,12 +3589,12 @@ test/storage/CMakeFiles/block_access_controller_test.dir/clean:
 # Target rules for target test/storage/CMakeFiles/recovery_test.dir
 
 # All Build rule for target.
-test/storage/CMakeFiles/recovery_test.dir/all: util/CMakeFiles/util_static.dir/all
 test/storage/CMakeFiles/recovery_test.dir/all: CMakeFiles/gflags_ep.dir/all
 test/storage/CMakeFiles/recovery_test.dir/all: CMakeFiles/googletest_ep.dir/all
 test/storage/CMakeFiles/recovery_test.dir/all: src/CMakeFiles/terrier_static.dir/all
 test/storage/CMakeFiles/recovery_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 test/storage/CMakeFiles/recovery_test.dir/all: test/CMakeFiles/test_util.dir/all
+test/storage/CMakeFiles/recovery_test.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f test/storage/CMakeFiles/recovery_test.dir/build.make test/storage/CMakeFiles/recovery_test.dir/depend
 	$(MAKE) -f test/storage/CMakeFiles/recovery_test.dir/build.make test/storage/CMakeFiles/recovery_test.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num= "Built target recovery_test"
@@ -3621,12 +3621,12 @@ test/storage/CMakeFiles/recovery_test.dir/clean:
 # Target rules for target test/storage/CMakeFiles/bwtree_index_test.dir
 
 # All Build rule for target.
-test/storage/CMakeFiles/bwtree_index_test.dir/all: util/CMakeFiles/util_static.dir/all
 test/storage/CMakeFiles/bwtree_index_test.dir/all: CMakeFiles/gflags_ep.dir/all
 test/storage/CMakeFiles/bwtree_index_test.dir/all: CMakeFiles/googletest_ep.dir/all
 test/storage/CMakeFiles/bwtree_index_test.dir/all: src/CMakeFiles/terrier_static.dir/all
 test/storage/CMakeFiles/bwtree_index_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 test/storage/CMakeFiles/bwtree_index_test.dir/all: test/CMakeFiles/test_util.dir/all
+test/storage/CMakeFiles/bwtree_index_test.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f test/storage/CMakeFiles/bwtree_index_test.dir/build.make test/storage/CMakeFiles/bwtree_index_test.dir/depend
 	$(MAKE) -f test/storage/CMakeFiles/bwtree_index_test.dir/build.make test/storage/CMakeFiles/bwtree_index_test.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num=8 "Built target bwtree_index_test"
@@ -3653,12 +3653,12 @@ test/storage/CMakeFiles/bwtree_index_test.dir/clean:
 # Target rules for target test/storage/CMakeFiles/projected_row_test.dir
 
 # All Build rule for target.
-test/storage/CMakeFiles/projected_row_test.dir/all: util/CMakeFiles/util_static.dir/all
 test/storage/CMakeFiles/projected_row_test.dir/all: CMakeFiles/gflags_ep.dir/all
 test/storage/CMakeFiles/projected_row_test.dir/all: CMakeFiles/googletest_ep.dir/all
 test/storage/CMakeFiles/projected_row_test.dir/all: src/CMakeFiles/terrier_static.dir/all
 test/storage/CMakeFiles/projected_row_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 test/storage/CMakeFiles/projected_row_test.dir/all: test/CMakeFiles/test_util.dir/all
+test/storage/CMakeFiles/projected_row_test.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f test/storage/CMakeFiles/projected_row_test.dir/build.make test/storage/CMakeFiles/projected_row_test.dir/depend
 	$(MAKE) -f test/storage/CMakeFiles/projected_row_test.dir/build.make test/storage/CMakeFiles/projected_row_test.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num= "Built target projected_row_test"
@@ -3685,12 +3685,12 @@ test/storage/CMakeFiles/projected_row_test.dir/clean:
 # Target rules for target test/storage/CMakeFiles/index_key_test.dir
 
 # All Build rule for target.
-test/storage/CMakeFiles/index_key_test.dir/all: util/CMakeFiles/util_static.dir/all
 test/storage/CMakeFiles/index_key_test.dir/all: CMakeFiles/gflags_ep.dir/all
 test/storage/CMakeFiles/index_key_test.dir/all: CMakeFiles/googletest_ep.dir/all
 test/storage/CMakeFiles/index_key_test.dir/all: src/CMakeFiles/terrier_static.dir/all
 test/storage/CMakeFiles/index_key_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 test/storage/CMakeFiles/index_key_test.dir/all: test/CMakeFiles/test_util.dir/all
+test/storage/CMakeFiles/index_key_test.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f test/storage/CMakeFiles/index_key_test.dir/build.make test/storage/CMakeFiles/index_key_test.dir/depend
 	$(MAKE) -f test/storage/CMakeFiles/index_key_test.dir/build.make test/storage/CMakeFiles/index_key_test.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num=27 "Built target index_key_test"
@@ -3717,12 +3717,12 @@ test/storage/CMakeFiles/index_key_test.dir/clean:
 # Target rules for target test/storage/CMakeFiles/data_table_test.dir
 
 # All Build rule for target.
-test/storage/CMakeFiles/data_table_test.dir/all: util/CMakeFiles/util_static.dir/all
 test/storage/CMakeFiles/data_table_test.dir/all: CMakeFiles/gflags_ep.dir/all
 test/storage/CMakeFiles/data_table_test.dir/all: CMakeFiles/googletest_ep.dir/all
 test/storage/CMakeFiles/data_table_test.dir/all: src/CMakeFiles/terrier_static.dir/all
 test/storage/CMakeFiles/data_table_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 test/storage/CMakeFiles/data_table_test.dir/all: test/CMakeFiles/test_util.dir/all
+test/storage/CMakeFiles/data_table_test.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f test/storage/CMakeFiles/data_table_test.dir/build.make test/storage/CMakeFiles/data_table_test.dir/depend
 	$(MAKE) -f test/storage/CMakeFiles/data_table_test.dir/build.make test/storage/CMakeFiles/data_table_test.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num= "Built target data_table_test"
@@ -3749,12 +3749,12 @@ test/storage/CMakeFiles/data_table_test.dir/clean:
 # Target rules for target test/storage/CMakeFiles/bwtree_test.dir
 
 # All Build rule for target.
-test/storage/CMakeFiles/bwtree_test.dir/all: util/CMakeFiles/util_static.dir/all
 test/storage/CMakeFiles/bwtree_test.dir/all: CMakeFiles/gflags_ep.dir/all
 test/storage/CMakeFiles/bwtree_test.dir/all: CMakeFiles/googletest_ep.dir/all
 test/storage/CMakeFiles/bwtree_test.dir/all: src/CMakeFiles/terrier_static.dir/all
 test/storage/CMakeFiles/bwtree_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 test/storage/CMakeFiles/bwtree_test.dir/all: test/CMakeFiles/test_util.dir/all
+test/storage/CMakeFiles/bwtree_test.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f test/storage/CMakeFiles/bwtree_test.dir/build.make test/storage/CMakeFiles/bwtree_test.dir/depend
 	$(MAKE) -f test/storage/CMakeFiles/bwtree_test.dir/build.make test/storage/CMakeFiles/bwtree_test.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num= "Built target bwtree_test"
@@ -3781,12 +3781,12 @@ test/storage/CMakeFiles/bwtree_test.dir/clean:
 # Target rules for target test/storage/CMakeFiles/delta_record_test.dir
 
 # All Build rule for target.
-test/storage/CMakeFiles/delta_record_test.dir/all: util/CMakeFiles/util_static.dir/all
 test/storage/CMakeFiles/delta_record_test.dir/all: CMakeFiles/gflags_ep.dir/all
 test/storage/CMakeFiles/delta_record_test.dir/all: CMakeFiles/googletest_ep.dir/all
 test/storage/CMakeFiles/delta_record_test.dir/all: src/CMakeFiles/terrier_static.dir/all
 test/storage/CMakeFiles/delta_record_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 test/storage/CMakeFiles/delta_record_test.dir/all: test/CMakeFiles/test_util.dir/all
+test/storage/CMakeFiles/delta_record_test.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f test/storage/CMakeFiles/delta_record_test.dir/build.make test/storage/CMakeFiles/delta_record_test.dir/depend
 	$(MAKE) -f test/storage/CMakeFiles/delta_record_test.dir/build.make test/storage/CMakeFiles/delta_record_test.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num=16 "Built target delta_record_test"
@@ -3813,12 +3813,12 @@ test/storage/CMakeFiles/delta_record_test.dir/clean:
 # Target rules for target test/storage/CMakeFiles/hash_index_test.dir
 
 # All Build rule for target.
-test/storage/CMakeFiles/hash_index_test.dir/all: util/CMakeFiles/util_static.dir/all
 test/storage/CMakeFiles/hash_index_test.dir/all: CMakeFiles/gflags_ep.dir/all
 test/storage/CMakeFiles/hash_index_test.dir/all: CMakeFiles/googletest_ep.dir/all
 test/storage/CMakeFiles/hash_index_test.dir/all: src/CMakeFiles/terrier_static.dir/all
 test/storage/CMakeFiles/hash_index_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 test/storage/CMakeFiles/hash_index_test.dir/all: test/CMakeFiles/test_util.dir/all
+test/storage/CMakeFiles/hash_index_test.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f test/storage/CMakeFiles/hash_index_test.dir/build.make test/storage/CMakeFiles/hash_index_test.dir/depend
 	$(MAKE) -f test/storage/CMakeFiles/hash_index_test.dir/build.make test/storage/CMakeFiles/hash_index_test.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num= "Built target hash_index_test"
@@ -3845,12 +3845,12 @@ test/storage/CMakeFiles/hash_index_test.dir/clean:
 # Target rules for target test/storage/CMakeFiles/tuple_access_strategy_test.dir
 
 # All Build rule for target.
-test/storage/CMakeFiles/tuple_access_strategy_test.dir/all: util/CMakeFiles/util_static.dir/all
 test/storage/CMakeFiles/tuple_access_strategy_test.dir/all: CMakeFiles/gflags_ep.dir/all
 test/storage/CMakeFiles/tuple_access_strategy_test.dir/all: CMakeFiles/googletest_ep.dir/all
 test/storage/CMakeFiles/tuple_access_strategy_test.dir/all: src/CMakeFiles/terrier_static.dir/all
 test/storage/CMakeFiles/tuple_access_strategy_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 test/storage/CMakeFiles/tuple_access_strategy_test.dir/all: test/CMakeFiles/test_util.dir/all
+test/storage/CMakeFiles/tuple_access_strategy_test.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f test/storage/CMakeFiles/tuple_access_strategy_test.dir/build.make test/storage/CMakeFiles/tuple_access_strategy_test.dir/depend
 	$(MAKE) -f test/storage/CMakeFiles/tuple_access_strategy_test.dir/build.make test/storage/CMakeFiles/tuple_access_strategy_test.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num=97 "Built target tuple_access_strategy_test"
@@ -3877,12 +3877,12 @@ test/storage/CMakeFiles/tuple_access_strategy_test.dir/clean:
 # Target rules for target test/storage/CMakeFiles/storage_util_test.dir
 
 # All Build rule for target.
-test/storage/CMakeFiles/storage_util_test.dir/all: util/CMakeFiles/util_static.dir/all
 test/storage/CMakeFiles/storage_util_test.dir/all: CMakeFiles/gflags_ep.dir/all
 test/storage/CMakeFiles/storage_util_test.dir/all: CMakeFiles/googletest_ep.dir/all
 test/storage/CMakeFiles/storage_util_test.dir/all: src/CMakeFiles/terrier_static.dir/all
 test/storage/CMakeFiles/storage_util_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 test/storage/CMakeFiles/storage_util_test.dir/all: test/CMakeFiles/test_util.dir/all
+test/storage/CMakeFiles/storage_util_test.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f test/storage/CMakeFiles/storage_util_test.dir/build.make test/storage/CMakeFiles/storage_util_test.dir/depend
 	$(MAKE) -f test/storage/CMakeFiles/storage_util_test.dir/build.make test/storage/CMakeFiles/storage_util_test.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num= "Built target storage_util_test"
@@ -3909,12 +3909,12 @@ test/storage/CMakeFiles/storage_util_test.dir/clean:
 # Target rules for target test/storage/CMakeFiles/large_garbage_collector_test.dir
 
 # All Build rule for target.
-test/storage/CMakeFiles/large_garbage_collector_test.dir/all: util/CMakeFiles/util_static.dir/all
 test/storage/CMakeFiles/large_garbage_collector_test.dir/all: CMakeFiles/gflags_ep.dir/all
 test/storage/CMakeFiles/large_garbage_collector_test.dir/all: CMakeFiles/googletest_ep.dir/all
 test/storage/CMakeFiles/large_garbage_collector_test.dir/all: src/CMakeFiles/terrier_static.dir/all
 test/storage/CMakeFiles/large_garbage_collector_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 test/storage/CMakeFiles/large_garbage_collector_test.dir/all: test/CMakeFiles/test_util.dir/all
+test/storage/CMakeFiles/large_garbage_collector_test.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f test/storage/CMakeFiles/large_garbage_collector_test.dir/build.make test/storage/CMakeFiles/large_garbage_collector_test.dir/depend
 	$(MAKE) -f test/storage/CMakeFiles/large_garbage_collector_test.dir/build.make test/storage/CMakeFiles/large_garbage_collector_test.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num=29 "Built target large_garbage_collector_test"
@@ -3941,12 +3941,12 @@ test/storage/CMakeFiles/large_garbage_collector_test.dir/clean:
 # Target rules for target test/storage/CMakeFiles/data_table_concurrent_test.dir
 
 # All Build rule for target.
-test/storage/CMakeFiles/data_table_concurrent_test.dir/all: util/CMakeFiles/util_static.dir/all
 test/storage/CMakeFiles/data_table_concurrent_test.dir/all: CMakeFiles/gflags_ep.dir/all
 test/storage/CMakeFiles/data_table_concurrent_test.dir/all: CMakeFiles/googletest_ep.dir/all
 test/storage/CMakeFiles/data_table_concurrent_test.dir/all: src/CMakeFiles/terrier_static.dir/all
 test/storage/CMakeFiles/data_table_concurrent_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 test/storage/CMakeFiles/data_table_concurrent_test.dir/all: test/CMakeFiles/test_util.dir/all
+test/storage/CMakeFiles/data_table_concurrent_test.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f test/storage/CMakeFiles/data_table_concurrent_test.dir/build.make test/storage/CMakeFiles/data_table_concurrent_test.dir/depend
 	$(MAKE) -f test/storage/CMakeFiles/data_table_concurrent_test.dir/build.make test/storage/CMakeFiles/data_table_concurrent_test.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num= "Built target data_table_concurrent_test"
@@ -3973,12 +3973,12 @@ test/storage/CMakeFiles/data_table_concurrent_test.dir/clean:
 # Target rules for target test/storage/CMakeFiles/block_compactor_test.dir
 
 # All Build rule for target.
-test/storage/CMakeFiles/block_compactor_test.dir/all: util/CMakeFiles/util_static.dir/all
 test/storage/CMakeFiles/block_compactor_test.dir/all: CMakeFiles/gflags_ep.dir/all
 test/storage/CMakeFiles/block_compactor_test.dir/all: CMakeFiles/googletest_ep.dir/all
 test/storage/CMakeFiles/block_compactor_test.dir/all: src/CMakeFiles/terrier_static.dir/all
 test/storage/CMakeFiles/block_compactor_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 test/storage/CMakeFiles/block_compactor_test.dir/all: test/CMakeFiles/test_util.dir/all
+test/storage/CMakeFiles/block_compactor_test.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f test/storage/CMakeFiles/block_compactor_test.dir/build.make test/storage/CMakeFiles/block_compactor_test.dir/depend
 	$(MAKE) -f test/storage/CMakeFiles/block_compactor_test.dir/build.make test/storage/CMakeFiles/block_compactor_test.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num=7 "Built target block_compactor_test"
@@ -4005,12 +4005,12 @@ test/storage/CMakeFiles/block_compactor_test.dir/clean:
 # Target rules for target test/storage/CMakeFiles/varlen_entry_test.dir
 
 # All Build rule for target.
-test/storage/CMakeFiles/varlen_entry_test.dir/all: util/CMakeFiles/util_static.dir/all
 test/storage/CMakeFiles/varlen_entry_test.dir/all: CMakeFiles/gflags_ep.dir/all
 test/storage/CMakeFiles/varlen_entry_test.dir/all: CMakeFiles/googletest_ep.dir/all
 test/storage/CMakeFiles/varlen_entry_test.dir/all: src/CMakeFiles/terrier_static.dir/all
 test/storage/CMakeFiles/varlen_entry_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 test/storage/CMakeFiles/varlen_entry_test.dir/all: test/CMakeFiles/test_util.dir/all
+test/storage/CMakeFiles/varlen_entry_test.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f test/storage/CMakeFiles/varlen_entry_test.dir/build.make test/storage/CMakeFiles/varlen_entry_test.dir/depend
 	$(MAKE) -f test/storage/CMakeFiles/varlen_entry_test.dir/build.make test/storage/CMakeFiles/varlen_entry_test.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num=99 "Built target varlen_entry_test"
@@ -4037,12 +4037,12 @@ test/storage/CMakeFiles/varlen_entry_test.dir/clean:
 # Target rules for target test/storage/CMakeFiles/access_observer_test.dir
 
 # All Build rule for target.
-test/storage/CMakeFiles/access_observer_test.dir/all: util/CMakeFiles/util_static.dir/all
 test/storage/CMakeFiles/access_observer_test.dir/all: CMakeFiles/gflags_ep.dir/all
 test/storage/CMakeFiles/access_observer_test.dir/all: CMakeFiles/googletest_ep.dir/all
 test/storage/CMakeFiles/access_observer_test.dir/all: src/CMakeFiles/terrier_static.dir/all
 test/storage/CMakeFiles/access_observer_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 test/storage/CMakeFiles/access_observer_test.dir/all: test/CMakeFiles/test_util.dir/all
+test/storage/CMakeFiles/access_observer_test.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f test/storage/CMakeFiles/access_observer_test.dir/build.make test/storage/CMakeFiles/access_observer_test.dir/depend
 	$(MAKE) -f test/storage/CMakeFiles/access_observer_test.dir/build.make test/storage/CMakeFiles/access_observer_test.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num= "Built target access_observer_test"
@@ -4069,12 +4069,12 @@ test/storage/CMakeFiles/access_observer_test.dir/clean:
 # Target rules for target test/storage/CMakeFiles/log_test.dir
 
 # All Build rule for target.
-test/storage/CMakeFiles/log_test.dir/all: util/CMakeFiles/util_static.dir/all
 test/storage/CMakeFiles/log_test.dir/all: CMakeFiles/gflags_ep.dir/all
 test/storage/CMakeFiles/log_test.dir/all: CMakeFiles/googletest_ep.dir/all
 test/storage/CMakeFiles/log_test.dir/all: src/CMakeFiles/terrier_static.dir/all
 test/storage/CMakeFiles/log_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 test/storage/CMakeFiles/log_test.dir/all: test/CMakeFiles/test_util.dir/all
+test/storage/CMakeFiles/log_test.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f test/storage/CMakeFiles/log_test.dir/build.make test/storage/CMakeFiles/log_test.dir/depend
 	$(MAKE) -f test/storage/CMakeFiles/log_test.dir/build.make test/storage/CMakeFiles/log_test.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num= "Built target log_test"
@@ -4119,12 +4119,12 @@ test/traffic_cop/preinstall:
 # Target rules for target test/traffic_cop/CMakeFiles/traffic_cop_test.dir
 
 # All Build rule for target.
-test/traffic_cop/CMakeFiles/traffic_cop_test.dir/all: util/CMakeFiles/util_static.dir/all
 test/traffic_cop/CMakeFiles/traffic_cop_test.dir/all: CMakeFiles/gflags_ep.dir/all
 test/traffic_cop/CMakeFiles/traffic_cop_test.dir/all: CMakeFiles/googletest_ep.dir/all
 test/traffic_cop/CMakeFiles/traffic_cop_test.dir/all: src/CMakeFiles/terrier_static.dir/all
 test/traffic_cop/CMakeFiles/traffic_cop_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 test/traffic_cop/CMakeFiles/traffic_cop_test.dir/all: test/CMakeFiles/test_util.dir/all
+test/traffic_cop/CMakeFiles/traffic_cop_test.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f test/traffic_cop/CMakeFiles/traffic_cop_test.dir/build.make test/traffic_cop/CMakeFiles/traffic_cop_test.dir/depend
 	$(MAKE) -f test/traffic_cop/CMakeFiles/traffic_cop_test.dir/build.make test/traffic_cop/CMakeFiles/traffic_cop_test.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num= "Built target traffic_cop_test"
@@ -4173,12 +4173,12 @@ test/transaction/preinstall:
 # Target rules for target test/transaction/CMakeFiles/mvcc_test.dir
 
 # All Build rule for target.
-test/transaction/CMakeFiles/mvcc_test.dir/all: util/CMakeFiles/util_static.dir/all
 test/transaction/CMakeFiles/mvcc_test.dir/all: CMakeFiles/gflags_ep.dir/all
 test/transaction/CMakeFiles/mvcc_test.dir/all: CMakeFiles/googletest_ep.dir/all
 test/transaction/CMakeFiles/mvcc_test.dir/all: src/CMakeFiles/terrier_static.dir/all
 test/transaction/CMakeFiles/mvcc_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 test/transaction/CMakeFiles/mvcc_test.dir/all: test/CMakeFiles/test_util.dir/all
+test/transaction/CMakeFiles/mvcc_test.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f test/transaction/CMakeFiles/mvcc_test.dir/build.make test/transaction/CMakeFiles/mvcc_test.dir/depend
 	$(MAKE) -f test/transaction/CMakeFiles/mvcc_test.dir/build.make test/transaction/CMakeFiles/mvcc_test.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num= "Built target mvcc_test"
@@ -4205,12 +4205,12 @@ test/transaction/CMakeFiles/mvcc_test.dir/clean:
 # Target rules for target test/transaction/CMakeFiles/large_transaction_test.dir
 
 # All Build rule for target.
-test/transaction/CMakeFiles/large_transaction_test.dir/all: util/CMakeFiles/util_static.dir/all
 test/transaction/CMakeFiles/large_transaction_test.dir/all: CMakeFiles/gflags_ep.dir/all
 test/transaction/CMakeFiles/large_transaction_test.dir/all: CMakeFiles/googletest_ep.dir/all
 test/transaction/CMakeFiles/large_transaction_test.dir/all: src/CMakeFiles/terrier_static.dir/all
 test/transaction/CMakeFiles/large_transaction_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 test/transaction/CMakeFiles/large_transaction_test.dir/all: test/CMakeFiles/test_util.dir/all
+test/transaction/CMakeFiles/large_transaction_test.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f test/transaction/CMakeFiles/large_transaction_test.dir/build.make test/transaction/CMakeFiles/large_transaction_test.dir/depend
 	$(MAKE) -f test/transaction/CMakeFiles/large_transaction_test.dir/build.make test/transaction/CMakeFiles/large_transaction_test.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num=30 "Built target large_transaction_test"
@@ -4237,12 +4237,12 @@ test/transaction/CMakeFiles/large_transaction_test.dir/clean:
 # Target rules for target test/transaction/CMakeFiles/deferred_actions_test.dir
 
 # All Build rule for target.
-test/transaction/CMakeFiles/deferred_actions_test.dir/all: util/CMakeFiles/util_static.dir/all
 test/transaction/CMakeFiles/deferred_actions_test.dir/all: CMakeFiles/gflags_ep.dir/all
 test/transaction/CMakeFiles/deferred_actions_test.dir/all: CMakeFiles/googletest_ep.dir/all
 test/transaction/CMakeFiles/deferred_actions_test.dir/all: src/CMakeFiles/terrier_static.dir/all
 test/transaction/CMakeFiles/deferred_actions_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 test/transaction/CMakeFiles/deferred_actions_test.dir/all: test/CMakeFiles/test_util.dir/all
+test/transaction/CMakeFiles/deferred_actions_test.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f test/transaction/CMakeFiles/deferred_actions_test.dir/build.make test/transaction/CMakeFiles/deferred_actions_test.dir/depend
 	$(MAKE) -f test/transaction/CMakeFiles/deferred_actions_test.dir/build.make test/transaction/CMakeFiles/deferred_actions_test.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num= "Built target deferred_actions_test"
@@ -4289,12 +4289,12 @@ test/type/preinstall:
 # Target rules for target test/type/CMakeFiles/type_util_test.dir
 
 # All Build rule for target.
-test/type/CMakeFiles/type_util_test.dir/all: util/CMakeFiles/util_static.dir/all
 test/type/CMakeFiles/type_util_test.dir/all: CMakeFiles/gflags_ep.dir/all
 test/type/CMakeFiles/type_util_test.dir/all: CMakeFiles/googletest_ep.dir/all
 test/type/CMakeFiles/type_util_test.dir/all: src/CMakeFiles/terrier_static.dir/all
 test/type/CMakeFiles/type_util_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 test/type/CMakeFiles/type_util_test.dir/all: test/CMakeFiles/test_util.dir/all
+test/type/CMakeFiles/type_util_test.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f test/type/CMakeFiles/type_util_test.dir/build.make test/type/CMakeFiles/type_util_test.dir/depend
 	$(MAKE) -f test/type/CMakeFiles/type_util_test.dir/build.make test/type/CMakeFiles/type_util_test.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num= "Built target type_util_test"
@@ -4321,12 +4321,12 @@ test/type/CMakeFiles/type_util_test.dir/clean:
 # Target rules for target test/type/CMakeFiles/transient_value_test.dir
 
 # All Build rule for target.
-test/type/CMakeFiles/transient_value_test.dir/all: util/CMakeFiles/util_static.dir/all
 test/type/CMakeFiles/transient_value_test.dir/all: CMakeFiles/gflags_ep.dir/all
 test/type/CMakeFiles/transient_value_test.dir/all: CMakeFiles/googletest_ep.dir/all
 test/type/CMakeFiles/transient_value_test.dir/all: src/CMakeFiles/terrier_static.dir/all
 test/type/CMakeFiles/transient_value_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 test/type/CMakeFiles/transient_value_test.dir/all: test/CMakeFiles/test_util.dir/all
+test/type/CMakeFiles/transient_value_test.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f test/type/CMakeFiles/transient_value_test.dir/build.make test/type/CMakeFiles/transient_value_test.dir/depend
 	$(MAKE) -f test/type/CMakeFiles/transient_value_test.dir/build.make test/type/CMakeFiles/transient_value_test.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num=96 "Built target transient_value_test"
@@ -4388,12 +4388,12 @@ benchmark/preinstall: benchmark/transaction/preinstall
 # Target rules for target benchmark/CMakeFiles/benchmark_util.dir
 
 # All Build rule for target.
-benchmark/CMakeFiles/benchmark_util.dir/all: util/CMakeFiles/util_static.dir/all
 benchmark/CMakeFiles/benchmark_util.dir/all: CMakeFiles/gbenchmark_ep.dir/all
 benchmark/CMakeFiles/benchmark_util.dir/all: CMakeFiles/gflags_ep.dir/all
 benchmark/CMakeFiles/benchmark_util.dir/all: src/CMakeFiles/terrier_static.dir/all
 benchmark/CMakeFiles/benchmark_util.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 benchmark/CMakeFiles/benchmark_util.dir/all: test/CMakeFiles/test_util.dir/all
+benchmark/CMakeFiles/benchmark_util.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f benchmark/CMakeFiles/benchmark_util.dir/build.make benchmark/CMakeFiles/benchmark_util.dir/depend
 	$(MAKE) -f benchmark/CMakeFiles/benchmark_util.dir/build.make benchmark/CMakeFiles/benchmark_util.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num=4 "Built target benchmark_util"
@@ -4438,14 +4438,14 @@ benchmark/catalog/preinstall:
 # Target rules for target benchmark/catalog/CMakeFiles/catalog_benchmark.dir
 
 # All Build rule for target.
-benchmark/catalog/CMakeFiles/catalog_benchmark.dir/all: util/CMakeFiles/util_static.dir/all
-benchmark/catalog/CMakeFiles/catalog_benchmark.dir/all: benchmark/CMakeFiles/benchmark_util.dir/all
 benchmark/catalog/CMakeFiles/catalog_benchmark.dir/all: CMakeFiles/gbenchmark_ep.dir/all
 benchmark/catalog/CMakeFiles/catalog_benchmark.dir/all: CMakeFiles/gflags_ep.dir/all
 benchmark/catalog/CMakeFiles/catalog_benchmark.dir/all: CMakeFiles/googletest_ep.dir/all
 benchmark/catalog/CMakeFiles/catalog_benchmark.dir/all: src/CMakeFiles/terrier_static.dir/all
 benchmark/catalog/CMakeFiles/catalog_benchmark.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 benchmark/catalog/CMakeFiles/catalog_benchmark.dir/all: test/CMakeFiles/test_util.dir/all
+benchmark/catalog/CMakeFiles/catalog_benchmark.dir/all: benchmark/CMakeFiles/benchmark_util.dir/all
+benchmark/catalog/CMakeFiles/catalog_benchmark.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f benchmark/catalog/CMakeFiles/catalog_benchmark.dir/build.make benchmark/catalog/CMakeFiles/catalog_benchmark.dir/depend
 	$(MAKE) -f benchmark/catalog/CMakeFiles/catalog_benchmark.dir/build.make benchmark/catalog/CMakeFiles/catalog_benchmark.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num= "Built target catalog_benchmark"
@@ -4490,14 +4490,14 @@ benchmark/integration/preinstall:
 # Target rules for target benchmark/integration/CMakeFiles/tpcc_benchmark.dir
 
 # All Build rule for target.
-benchmark/integration/CMakeFiles/tpcc_benchmark.dir/all: util/CMakeFiles/util_static.dir/all
-benchmark/integration/CMakeFiles/tpcc_benchmark.dir/all: benchmark/CMakeFiles/benchmark_util.dir/all
 benchmark/integration/CMakeFiles/tpcc_benchmark.dir/all: CMakeFiles/gbenchmark_ep.dir/all
 benchmark/integration/CMakeFiles/tpcc_benchmark.dir/all: CMakeFiles/gflags_ep.dir/all
 benchmark/integration/CMakeFiles/tpcc_benchmark.dir/all: CMakeFiles/googletest_ep.dir/all
 benchmark/integration/CMakeFiles/tpcc_benchmark.dir/all: src/CMakeFiles/terrier_static.dir/all
 benchmark/integration/CMakeFiles/tpcc_benchmark.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 benchmark/integration/CMakeFiles/tpcc_benchmark.dir/all: test/CMakeFiles/test_util.dir/all
+benchmark/integration/CMakeFiles/tpcc_benchmark.dir/all: benchmark/CMakeFiles/benchmark_util.dir/all
+benchmark/integration/CMakeFiles/tpcc_benchmark.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f benchmark/integration/CMakeFiles/tpcc_benchmark.dir/build.make benchmark/integration/CMakeFiles/tpcc_benchmark.dir/depend
 	$(MAKE) -f benchmark/integration/CMakeFiles/tpcc_benchmark.dir/build.make benchmark/integration/CMakeFiles/tpcc_benchmark.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num= "Built target tpcc_benchmark"
@@ -4544,14 +4544,14 @@ benchmark/metrics/preinstall:
 # Target rules for target benchmark/metrics/CMakeFiles/logging_metrics_benchmark.dir
 
 # All Build rule for target.
-benchmark/metrics/CMakeFiles/logging_metrics_benchmark.dir/all: util/CMakeFiles/util_static.dir/all
-benchmark/metrics/CMakeFiles/logging_metrics_benchmark.dir/all: benchmark/CMakeFiles/benchmark_util.dir/all
 benchmark/metrics/CMakeFiles/logging_metrics_benchmark.dir/all: CMakeFiles/gbenchmark_ep.dir/all
 benchmark/metrics/CMakeFiles/logging_metrics_benchmark.dir/all: CMakeFiles/gflags_ep.dir/all
 benchmark/metrics/CMakeFiles/logging_metrics_benchmark.dir/all: CMakeFiles/googletest_ep.dir/all
 benchmark/metrics/CMakeFiles/logging_metrics_benchmark.dir/all: src/CMakeFiles/terrier_static.dir/all
 benchmark/metrics/CMakeFiles/logging_metrics_benchmark.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 benchmark/metrics/CMakeFiles/logging_metrics_benchmark.dir/all: test/CMakeFiles/test_util.dir/all
+benchmark/metrics/CMakeFiles/logging_metrics_benchmark.dir/all: benchmark/CMakeFiles/benchmark_util.dir/all
+benchmark/metrics/CMakeFiles/logging_metrics_benchmark.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f benchmark/metrics/CMakeFiles/logging_metrics_benchmark.dir/build.make benchmark/metrics/CMakeFiles/logging_metrics_benchmark.dir/depend
 	$(MAKE) -f benchmark/metrics/CMakeFiles/logging_metrics_benchmark.dir/build.make benchmark/metrics/CMakeFiles/logging_metrics_benchmark.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num= "Built target logging_metrics_benchmark"
@@ -4578,14 +4578,14 @@ benchmark/metrics/CMakeFiles/logging_metrics_benchmark.dir/clean:
 # Target rules for target benchmark/metrics/CMakeFiles/large_transaction_metrics_benchmark.dir
 
 # All Build rule for target.
-benchmark/metrics/CMakeFiles/large_transaction_metrics_benchmark.dir/all: util/CMakeFiles/util_static.dir/all
-benchmark/metrics/CMakeFiles/large_transaction_metrics_benchmark.dir/all: benchmark/CMakeFiles/benchmark_util.dir/all
 benchmark/metrics/CMakeFiles/large_transaction_metrics_benchmark.dir/all: CMakeFiles/gbenchmark_ep.dir/all
 benchmark/metrics/CMakeFiles/large_transaction_metrics_benchmark.dir/all: CMakeFiles/gflags_ep.dir/all
 benchmark/metrics/CMakeFiles/large_transaction_metrics_benchmark.dir/all: CMakeFiles/googletest_ep.dir/all
 benchmark/metrics/CMakeFiles/large_transaction_metrics_benchmark.dir/all: src/CMakeFiles/terrier_static.dir/all
 benchmark/metrics/CMakeFiles/large_transaction_metrics_benchmark.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 benchmark/metrics/CMakeFiles/large_transaction_metrics_benchmark.dir/all: test/CMakeFiles/test_util.dir/all
+benchmark/metrics/CMakeFiles/large_transaction_metrics_benchmark.dir/all: benchmark/CMakeFiles/benchmark_util.dir/all
+benchmark/metrics/CMakeFiles/large_transaction_metrics_benchmark.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f benchmark/metrics/CMakeFiles/large_transaction_metrics_benchmark.dir/build.make benchmark/metrics/CMakeFiles/large_transaction_metrics_benchmark.dir/depend
 	$(MAKE) -f benchmark/metrics/CMakeFiles/large_transaction_metrics_benchmark.dir/build.make benchmark/metrics/CMakeFiles/large_transaction_metrics_benchmark.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num= "Built target large_transaction_metrics_benchmark"
@@ -4630,14 +4630,14 @@ benchmark/parser/preinstall:
 # Target rules for target benchmark/parser/CMakeFiles/parser_benchmark.dir
 
 # All Build rule for target.
-benchmark/parser/CMakeFiles/parser_benchmark.dir/all: util/CMakeFiles/util_static.dir/all
-benchmark/parser/CMakeFiles/parser_benchmark.dir/all: benchmark/CMakeFiles/benchmark_util.dir/all
 benchmark/parser/CMakeFiles/parser_benchmark.dir/all: CMakeFiles/gbenchmark_ep.dir/all
 benchmark/parser/CMakeFiles/parser_benchmark.dir/all: CMakeFiles/gflags_ep.dir/all
 benchmark/parser/CMakeFiles/parser_benchmark.dir/all: CMakeFiles/googletest_ep.dir/all
 benchmark/parser/CMakeFiles/parser_benchmark.dir/all: src/CMakeFiles/terrier_static.dir/all
 benchmark/parser/CMakeFiles/parser_benchmark.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 benchmark/parser/CMakeFiles/parser_benchmark.dir/all: test/CMakeFiles/test_util.dir/all
+benchmark/parser/CMakeFiles/parser_benchmark.dir/all: benchmark/CMakeFiles/benchmark_util.dir/all
+benchmark/parser/CMakeFiles/parser_benchmark.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f benchmark/parser/CMakeFiles/parser_benchmark.dir/build.make benchmark/parser/CMakeFiles/parser_benchmark.dir/depend
 	$(MAKE) -f benchmark/parser/CMakeFiles/parser_benchmark.dir/build.make benchmark/parser/CMakeFiles/parser_benchmark.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num=36 "Built target parser_benchmark"
@@ -4698,14 +4698,14 @@ benchmark/storage/preinstall:
 # Target rules for target benchmark/storage/CMakeFiles/cuckoomap_benchmark.dir
 
 # All Build rule for target.
-benchmark/storage/CMakeFiles/cuckoomap_benchmark.dir/all: util/CMakeFiles/util_static.dir/all
-benchmark/storage/CMakeFiles/cuckoomap_benchmark.dir/all: benchmark/CMakeFiles/benchmark_util.dir/all
 benchmark/storage/CMakeFiles/cuckoomap_benchmark.dir/all: CMakeFiles/gbenchmark_ep.dir/all
 benchmark/storage/CMakeFiles/cuckoomap_benchmark.dir/all: CMakeFiles/gflags_ep.dir/all
 benchmark/storage/CMakeFiles/cuckoomap_benchmark.dir/all: CMakeFiles/googletest_ep.dir/all
 benchmark/storage/CMakeFiles/cuckoomap_benchmark.dir/all: src/CMakeFiles/terrier_static.dir/all
 benchmark/storage/CMakeFiles/cuckoomap_benchmark.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 benchmark/storage/CMakeFiles/cuckoomap_benchmark.dir/all: test/CMakeFiles/test_util.dir/all
+benchmark/storage/CMakeFiles/cuckoomap_benchmark.dir/all: benchmark/CMakeFiles/benchmark_util.dir/all
+benchmark/storage/CMakeFiles/cuckoomap_benchmark.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f benchmark/storage/CMakeFiles/cuckoomap_benchmark.dir/build.make benchmark/storage/CMakeFiles/cuckoomap_benchmark.dir/depend
 	$(MAKE) -f benchmark/storage/CMakeFiles/cuckoomap_benchmark.dir/build.make benchmark/storage/CMakeFiles/cuckoomap_benchmark.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num= "Built target cuckoomap_benchmark"
@@ -4732,14 +4732,14 @@ benchmark/storage/CMakeFiles/cuckoomap_benchmark.dir/clean:
 # Target rules for target benchmark/storage/CMakeFiles/data_table_benchmark.dir
 
 # All Build rule for target.
-benchmark/storage/CMakeFiles/data_table_benchmark.dir/all: util/CMakeFiles/util_static.dir/all
-benchmark/storage/CMakeFiles/data_table_benchmark.dir/all: benchmark/CMakeFiles/benchmark_util.dir/all
 benchmark/storage/CMakeFiles/data_table_benchmark.dir/all: CMakeFiles/gbenchmark_ep.dir/all
 benchmark/storage/CMakeFiles/data_table_benchmark.dir/all: CMakeFiles/gflags_ep.dir/all
 benchmark/storage/CMakeFiles/data_table_benchmark.dir/all: CMakeFiles/googletest_ep.dir/all
 benchmark/storage/CMakeFiles/data_table_benchmark.dir/all: src/CMakeFiles/terrier_static.dir/all
 benchmark/storage/CMakeFiles/data_table_benchmark.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 benchmark/storage/CMakeFiles/data_table_benchmark.dir/all: test/CMakeFiles/test_util.dir/all
+benchmark/storage/CMakeFiles/data_table_benchmark.dir/all: benchmark/CMakeFiles/benchmark_util.dir/all
+benchmark/storage/CMakeFiles/data_table_benchmark.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f benchmark/storage/CMakeFiles/data_table_benchmark.dir/build.make benchmark/storage/CMakeFiles/data_table_benchmark.dir/depend
 	$(MAKE) -f benchmark/storage/CMakeFiles/data_table_benchmark.dir/build.make benchmark/storage/CMakeFiles/data_table_benchmark.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num=14 "Built target data_table_benchmark"
@@ -4766,14 +4766,14 @@ benchmark/storage/CMakeFiles/data_table_benchmark.dir/clean:
 # Target rules for target benchmark/storage/CMakeFiles/tuple_access_strategy_benchmark.dir
 
 # All Build rule for target.
-benchmark/storage/CMakeFiles/tuple_access_strategy_benchmark.dir/all: util/CMakeFiles/util_static.dir/all
-benchmark/storage/CMakeFiles/tuple_access_strategy_benchmark.dir/all: benchmark/CMakeFiles/benchmark_util.dir/all
 benchmark/storage/CMakeFiles/tuple_access_strategy_benchmark.dir/all: CMakeFiles/gbenchmark_ep.dir/all
 benchmark/storage/CMakeFiles/tuple_access_strategy_benchmark.dir/all: CMakeFiles/gflags_ep.dir/all
 benchmark/storage/CMakeFiles/tuple_access_strategy_benchmark.dir/all: CMakeFiles/googletest_ep.dir/all
 benchmark/storage/CMakeFiles/tuple_access_strategy_benchmark.dir/all: src/CMakeFiles/terrier_static.dir/all
 benchmark/storage/CMakeFiles/tuple_access_strategy_benchmark.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 benchmark/storage/CMakeFiles/tuple_access_strategy_benchmark.dir/all: test/CMakeFiles/test_util.dir/all
+benchmark/storage/CMakeFiles/tuple_access_strategy_benchmark.dir/all: benchmark/CMakeFiles/benchmark_util.dir/all
+benchmark/storage/CMakeFiles/tuple_access_strategy_benchmark.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f benchmark/storage/CMakeFiles/tuple_access_strategy_benchmark.dir/build.make benchmark/storage/CMakeFiles/tuple_access_strategy_benchmark.dir/depend
 	$(MAKE) -f benchmark/storage/CMakeFiles/tuple_access_strategy_benchmark.dir/build.make benchmark/storage/CMakeFiles/tuple_access_strategy_benchmark.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num= "Built target tuple_access_strategy_benchmark"
@@ -4800,14 +4800,14 @@ benchmark/storage/CMakeFiles/tuple_access_strategy_benchmark.dir/clean:
 # Target rules for target benchmark/storage/CMakeFiles/recovery_benchmark.dir
 
 # All Build rule for target.
-benchmark/storage/CMakeFiles/recovery_benchmark.dir/all: util/CMakeFiles/util_static.dir/all
-benchmark/storage/CMakeFiles/recovery_benchmark.dir/all: benchmark/CMakeFiles/benchmark_util.dir/all
 benchmark/storage/CMakeFiles/recovery_benchmark.dir/all: CMakeFiles/gbenchmark_ep.dir/all
 benchmark/storage/CMakeFiles/recovery_benchmark.dir/all: CMakeFiles/gflags_ep.dir/all
 benchmark/storage/CMakeFiles/recovery_benchmark.dir/all: CMakeFiles/googletest_ep.dir/all
 benchmark/storage/CMakeFiles/recovery_benchmark.dir/all: src/CMakeFiles/terrier_static.dir/all
 benchmark/storage/CMakeFiles/recovery_benchmark.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 benchmark/storage/CMakeFiles/recovery_benchmark.dir/all: test/CMakeFiles/test_util.dir/all
+benchmark/storage/CMakeFiles/recovery_benchmark.dir/all: benchmark/CMakeFiles/benchmark_util.dir/all
+benchmark/storage/CMakeFiles/recovery_benchmark.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f benchmark/storage/CMakeFiles/recovery_benchmark.dir/build.make benchmark/storage/CMakeFiles/recovery_benchmark.dir/depend
 	$(MAKE) -f benchmark/storage/CMakeFiles/recovery_benchmark.dir/build.make benchmark/storage/CMakeFiles/recovery_benchmark.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num=50 "Built target recovery_benchmark"
@@ -4834,14 +4834,14 @@ benchmark/storage/CMakeFiles/recovery_benchmark.dir/clean:
 # Target rules for target benchmark/storage/CMakeFiles/logging_benchmark.dir
 
 # All Build rule for target.
-benchmark/storage/CMakeFiles/logging_benchmark.dir/all: util/CMakeFiles/util_static.dir/all
-benchmark/storage/CMakeFiles/logging_benchmark.dir/all: benchmark/CMakeFiles/benchmark_util.dir/all
 benchmark/storage/CMakeFiles/logging_benchmark.dir/all: CMakeFiles/gbenchmark_ep.dir/all
 benchmark/storage/CMakeFiles/logging_benchmark.dir/all: CMakeFiles/gflags_ep.dir/all
 benchmark/storage/CMakeFiles/logging_benchmark.dir/all: CMakeFiles/googletest_ep.dir/all
 benchmark/storage/CMakeFiles/logging_benchmark.dir/all: src/CMakeFiles/terrier_static.dir/all
 benchmark/storage/CMakeFiles/logging_benchmark.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 benchmark/storage/CMakeFiles/logging_benchmark.dir/all: test/CMakeFiles/test_util.dir/all
+benchmark/storage/CMakeFiles/logging_benchmark.dir/all: benchmark/CMakeFiles/benchmark_util.dir/all
+benchmark/storage/CMakeFiles/logging_benchmark.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f benchmark/storage/CMakeFiles/logging_benchmark.dir/build.make benchmark/storage/CMakeFiles/logging_benchmark.dir/depend
 	$(MAKE) -f benchmark/storage/CMakeFiles/logging_benchmark.dir/build.make benchmark/storage/CMakeFiles/logging_benchmark.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num=31 "Built target logging_benchmark"
@@ -4868,14 +4868,14 @@ benchmark/storage/CMakeFiles/logging_benchmark.dir/clean:
 # Target rules for target benchmark/storage/CMakeFiles/index_wrapper_benchmark.dir
 
 # All Build rule for target.
-benchmark/storage/CMakeFiles/index_wrapper_benchmark.dir/all: util/CMakeFiles/util_static.dir/all
-benchmark/storage/CMakeFiles/index_wrapper_benchmark.dir/all: benchmark/CMakeFiles/benchmark_util.dir/all
 benchmark/storage/CMakeFiles/index_wrapper_benchmark.dir/all: CMakeFiles/gbenchmark_ep.dir/all
 benchmark/storage/CMakeFiles/index_wrapper_benchmark.dir/all: CMakeFiles/gflags_ep.dir/all
 benchmark/storage/CMakeFiles/index_wrapper_benchmark.dir/all: CMakeFiles/googletest_ep.dir/all
 benchmark/storage/CMakeFiles/index_wrapper_benchmark.dir/all: src/CMakeFiles/terrier_static.dir/all
 benchmark/storage/CMakeFiles/index_wrapper_benchmark.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 benchmark/storage/CMakeFiles/index_wrapper_benchmark.dir/all: test/CMakeFiles/test_util.dir/all
+benchmark/storage/CMakeFiles/index_wrapper_benchmark.dir/all: benchmark/CMakeFiles/benchmark_util.dir/all
+benchmark/storage/CMakeFiles/index_wrapper_benchmark.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f benchmark/storage/CMakeFiles/index_wrapper_benchmark.dir/build.make benchmark/storage/CMakeFiles/index_wrapper_benchmark.dir/depend
 	$(MAKE) -f benchmark/storage/CMakeFiles/index_wrapper_benchmark.dir/build.make benchmark/storage/CMakeFiles/index_wrapper_benchmark.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num= "Built target index_wrapper_benchmark"
@@ -4902,14 +4902,14 @@ benchmark/storage/CMakeFiles/index_wrapper_benchmark.dir/clean:
 # Target rules for target benchmark/storage/CMakeFiles/garbage_collector_benchmark.dir
 
 # All Build rule for target.
-benchmark/storage/CMakeFiles/garbage_collector_benchmark.dir/all: util/CMakeFiles/util_static.dir/all
-benchmark/storage/CMakeFiles/garbage_collector_benchmark.dir/all: benchmark/CMakeFiles/benchmark_util.dir/all
 benchmark/storage/CMakeFiles/garbage_collector_benchmark.dir/all: CMakeFiles/gbenchmark_ep.dir/all
 benchmark/storage/CMakeFiles/garbage_collector_benchmark.dir/all: CMakeFiles/gflags_ep.dir/all
 benchmark/storage/CMakeFiles/garbage_collector_benchmark.dir/all: CMakeFiles/googletest_ep.dir/all
 benchmark/storage/CMakeFiles/garbage_collector_benchmark.dir/all: src/CMakeFiles/terrier_static.dir/all
 benchmark/storage/CMakeFiles/garbage_collector_benchmark.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 benchmark/storage/CMakeFiles/garbage_collector_benchmark.dir/all: test/CMakeFiles/test_util.dir/all
+benchmark/storage/CMakeFiles/garbage_collector_benchmark.dir/all: benchmark/CMakeFiles/benchmark_util.dir/all
+benchmark/storage/CMakeFiles/garbage_collector_benchmark.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f benchmark/storage/CMakeFiles/garbage_collector_benchmark.dir/build.make benchmark/storage/CMakeFiles/garbage_collector_benchmark.dir/depend
 	$(MAKE) -f benchmark/storage/CMakeFiles/garbage_collector_benchmark.dir/build.make benchmark/storage/CMakeFiles/garbage_collector_benchmark.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num=18 "Built target garbage_collector_benchmark"
@@ -4936,14 +4936,14 @@ benchmark/storage/CMakeFiles/garbage_collector_benchmark.dir/clean:
 # Target rules for target benchmark/storage/CMakeFiles/bwtree_benchmark.dir
 
 # All Build rule for target.
-benchmark/storage/CMakeFiles/bwtree_benchmark.dir/all: util/CMakeFiles/util_static.dir/all
-benchmark/storage/CMakeFiles/bwtree_benchmark.dir/all: benchmark/CMakeFiles/benchmark_util.dir/all
 benchmark/storage/CMakeFiles/bwtree_benchmark.dir/all: CMakeFiles/gbenchmark_ep.dir/all
 benchmark/storage/CMakeFiles/bwtree_benchmark.dir/all: CMakeFiles/gflags_ep.dir/all
 benchmark/storage/CMakeFiles/bwtree_benchmark.dir/all: CMakeFiles/googletest_ep.dir/all
 benchmark/storage/CMakeFiles/bwtree_benchmark.dir/all: src/CMakeFiles/terrier_static.dir/all
 benchmark/storage/CMakeFiles/bwtree_benchmark.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 benchmark/storage/CMakeFiles/bwtree_benchmark.dir/all: test/CMakeFiles/test_util.dir/all
+benchmark/storage/CMakeFiles/bwtree_benchmark.dir/all: benchmark/CMakeFiles/benchmark_util.dir/all
+benchmark/storage/CMakeFiles/bwtree_benchmark.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f benchmark/storage/CMakeFiles/bwtree_benchmark.dir/build.make benchmark/storage/CMakeFiles/bwtree_benchmark.dir/depend
 	$(MAKE) -f benchmark/storage/CMakeFiles/bwtree_benchmark.dir/build.make benchmark/storage/CMakeFiles/bwtree_benchmark.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num= "Built target bwtree_benchmark"
@@ -4970,14 +4970,14 @@ benchmark/storage/CMakeFiles/bwtree_benchmark.dir/clean:
 # Target rules for target benchmark/storage/CMakeFiles/block_compactor_benchmark.dir
 
 # All Build rule for target.
-benchmark/storage/CMakeFiles/block_compactor_benchmark.dir/all: util/CMakeFiles/util_static.dir/all
-benchmark/storage/CMakeFiles/block_compactor_benchmark.dir/all: benchmark/CMakeFiles/benchmark_util.dir/all
 benchmark/storage/CMakeFiles/block_compactor_benchmark.dir/all: CMakeFiles/gbenchmark_ep.dir/all
 benchmark/storage/CMakeFiles/block_compactor_benchmark.dir/all: CMakeFiles/gflags_ep.dir/all
 benchmark/storage/CMakeFiles/block_compactor_benchmark.dir/all: CMakeFiles/googletest_ep.dir/all
 benchmark/storage/CMakeFiles/block_compactor_benchmark.dir/all: src/CMakeFiles/terrier_static.dir/all
 benchmark/storage/CMakeFiles/block_compactor_benchmark.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 benchmark/storage/CMakeFiles/block_compactor_benchmark.dir/all: test/CMakeFiles/test_util.dir/all
+benchmark/storage/CMakeFiles/block_compactor_benchmark.dir/all: benchmark/CMakeFiles/benchmark_util.dir/all
+benchmark/storage/CMakeFiles/block_compactor_benchmark.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f benchmark/storage/CMakeFiles/block_compactor_benchmark.dir/build.make benchmark/storage/CMakeFiles/block_compactor_benchmark.dir/depend
 	$(MAKE) -f benchmark/storage/CMakeFiles/block_compactor_benchmark.dir/build.make benchmark/storage/CMakeFiles/block_compactor_benchmark.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num= "Built target block_compactor_benchmark"
@@ -5024,14 +5024,14 @@ benchmark/transaction/preinstall:
 # Target rules for target benchmark/transaction/CMakeFiles/large_transaction_benchmark.dir
 
 # All Build rule for target.
-benchmark/transaction/CMakeFiles/large_transaction_benchmark.dir/all: util/CMakeFiles/util_static.dir/all
-benchmark/transaction/CMakeFiles/large_transaction_benchmark.dir/all: benchmark/CMakeFiles/benchmark_util.dir/all
 benchmark/transaction/CMakeFiles/large_transaction_benchmark.dir/all: CMakeFiles/gbenchmark_ep.dir/all
 benchmark/transaction/CMakeFiles/large_transaction_benchmark.dir/all: CMakeFiles/gflags_ep.dir/all
 benchmark/transaction/CMakeFiles/large_transaction_benchmark.dir/all: CMakeFiles/googletest_ep.dir/all
 benchmark/transaction/CMakeFiles/large_transaction_benchmark.dir/all: src/CMakeFiles/terrier_static.dir/all
 benchmark/transaction/CMakeFiles/large_transaction_benchmark.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 benchmark/transaction/CMakeFiles/large_transaction_benchmark.dir/all: test/CMakeFiles/test_util.dir/all
+benchmark/transaction/CMakeFiles/large_transaction_benchmark.dir/all: benchmark/CMakeFiles/benchmark_util.dir/all
+benchmark/transaction/CMakeFiles/large_transaction_benchmark.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f benchmark/transaction/CMakeFiles/large_transaction_benchmark.dir/build.make benchmark/transaction/CMakeFiles/large_transaction_benchmark.dir/depend
 	$(MAKE) -f benchmark/transaction/CMakeFiles/large_transaction_benchmark.dir/build.make benchmark/transaction/CMakeFiles/large_transaction_benchmark.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num= "Built target large_transaction_benchmark"
@@ -5058,14 +5058,14 @@ benchmark/transaction/CMakeFiles/large_transaction_benchmark.dir/clean:
 # Target rules for target benchmark/transaction/CMakeFiles/seqscan_benchmark.dir
 
 # All Build rule for target.
-benchmark/transaction/CMakeFiles/seqscan_benchmark.dir/all: util/CMakeFiles/util_static.dir/all
-benchmark/transaction/CMakeFiles/seqscan_benchmark.dir/all: benchmark/CMakeFiles/benchmark_util.dir/all
 benchmark/transaction/CMakeFiles/seqscan_benchmark.dir/all: CMakeFiles/gbenchmark_ep.dir/all
 benchmark/transaction/CMakeFiles/seqscan_benchmark.dir/all: CMakeFiles/gflags_ep.dir/all
 benchmark/transaction/CMakeFiles/seqscan_benchmark.dir/all: CMakeFiles/googletest_ep.dir/all
 benchmark/transaction/CMakeFiles/seqscan_benchmark.dir/all: src/CMakeFiles/terrier_static.dir/all
 benchmark/transaction/CMakeFiles/seqscan_benchmark.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 benchmark/transaction/CMakeFiles/seqscan_benchmark.dir/all: test/CMakeFiles/test_util.dir/all
+benchmark/transaction/CMakeFiles/seqscan_benchmark.dir/all: benchmark/CMakeFiles/benchmark_util.dir/all
+benchmark/transaction/CMakeFiles/seqscan_benchmark.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f benchmark/transaction/CMakeFiles/seqscan_benchmark.dir/build.make benchmark/transaction/CMakeFiles/seqscan_benchmark.dir/depend
 	$(MAKE) -f benchmark/transaction/CMakeFiles/seqscan_benchmark.dir/build.make benchmark/transaction/CMakeFiles/seqscan_benchmark.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num= "Built target seqscan_benchmark"
@@ -5171,11 +5171,11 @@ util/CMakeFiles/util_static.dir/clean:
 # Target rules for target util/CMakeFiles/tpl.dir
 
 # All Build rule for target.
-util/CMakeFiles/tpl.dir/all: util/CMakeFiles/util_static.dir/all
-util/CMakeFiles/tpl.dir/all: util/CMakeFiles/gen_opt_bc.dir/all
 util/CMakeFiles/tpl.dir/all: CMakeFiles/gflags_ep.dir/all
 util/CMakeFiles/tpl.dir/all: src/CMakeFiles/terrier_static.dir/all
 util/CMakeFiles/tpl.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
+util/CMakeFiles/tpl.dir/all: util/CMakeFiles/util_static.dir/all
+util/CMakeFiles/tpl.dir/all: util/CMakeFiles/gen_opt_bc.dir/all
 	$(MAKE) -f util/CMakeFiles/tpl.dir/build.make util/CMakeFiles/tpl.dir/depend
 	$(MAKE) -f util/CMakeFiles/tpl.dir/build.make util/CMakeFiles/tpl.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num= "Built target tpl"
