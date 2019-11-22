@@ -64,6 +64,8 @@ install_mac() {
   fi
   # Update Homebrew.
   brew update
+  brew upgrade
+  brew cleanup
   # Install packages.
   brew ls --versions cmake || brew install cmake
   brew ls --versions coreutils || brew install coreutils
