@@ -77,7 +77,6 @@ class RecoveryMetricRawData : public AbstractRawData {
 
   std::list<RecoveryData> recovery_data_;
 
-
   void RecordRecoveryData(const uint64_t num_txns, const uint64_t num_bytes, const uint64_t elapsed_us) {
     recovery_data_.emplace_front(num_txns, num_bytes, elapsed_us);
   }

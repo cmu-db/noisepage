@@ -121,7 +121,6 @@ void RecoveryManager::DeferRecordDeletes(terrier::transaction::timestamp_t txn_i
 }
 
 uint32_t RecoveryManager::ProcessDeferredTransactions(terrier::transaction::timestamp_t upper_bound_ts) {
-
   // If the upper bound is INVALID_TXN_TIMESTAMP, then we should process all deferred txns. We can accomplish this by
   // setting the upper bound to INT_MAX
   upper_bound_ts =
