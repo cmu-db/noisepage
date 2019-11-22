@@ -349,6 +349,16 @@ class DatabaseCatalog {
   friend class postgres::Builder;
   friend class storage::RecoveryManager;
 
+  /**
+   * Internal function to DatabaseCatalog to disallow concurrent DDL changes. This also disallows older txns to enact
+   * DDL chances after a newer transaction has committed one. This effectively follows the same timestamp ordering logic
+   * as the version pointer MVCC stuff in the storage layer.
+   * @param txn Requesting txn. This is used to inspect the timestamp and register commit/abort events to release the
+   * lock if it is acquired.
+   * @return true if lock was acquired, false otherwise
+   * @warning this requires that commit and abort actions be performed after the commit time is stored in the
+   * TransactionContext's FinishTime.
+   */
   bool TryLock(transaction::TransactionContext *txn);
 
   /**

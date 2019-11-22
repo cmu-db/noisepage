@@ -1787,8 +1787,8 @@ Column DatabaseCatalog::MakeColumn(storage::ProjectedRow *const pr, const storag
 bool DatabaseCatalog::TryLock(transaction::TransactionContext *const txn) {
   auto current_val = write_lock_.load();
 
-  const transaction::timestamp_t txn_id = txn->FinishTime();
-  const transaction::timestamp_t start_time = txn->StartTime();
+  const transaction::timestamp_t txn_id = txn->FinishTime();     // this is the uncommitted txn id
+  const transaction::timestamp_t start_time = txn->StartTime();  // this is the unchanging start time of the txn
 
   const bool already_hold_lock = current_val == txn_id;
   if (already_hold_lock) return true;
@@ -1800,13 +1800,14 @@ bool DatabaseCatalog::TryLock(transaction::TransactionContext *const txn) {
   if (owned_by_other_txn || newer_committed_version) return false;
 
   if (write_lock_.compare_exchange_strong(current_val, txn_id)) {
+    // acquired the lock
     auto *const write_lock = &write_lock_;
-    auto release = [=]() -> void { write_lock->store(txn->FinishTime()); };
-    txn->RegisterCommitAction(release);
-    txn->RegisterAbortAction(release);
+    txn->RegisterCommitAction([=]() -> void { write_lock->store(txn->FinishTime()); });
+    txn->RegisterAbortAction([=]() -> void { write_lock->store(current_val); });
     return true;
   }
-  txn->MustAbort();
+  txn->MustAbort();  // though no changes were written to the storage layer, we'll treat this as a DDL change failure
+                     // and force the txn to rollback
   return false;
 }
 
