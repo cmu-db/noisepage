@@ -121,7 +121,6 @@ void RecoveryManager::DeferRecordDeletes(terrier::transaction::timestamp_t txn_i
 }
 
 uint32_t RecoveryManager::ProcessDeferredTransactions(terrier::transaction::timestamp_t upper_bound_ts) {
-  auto txns_processed = 0;
 
   // If the upper bound is INVALID_TXN_TIMESTAMP, then we should process all deferred txns. We can accomplish this by
   // setting the upper bound to INT_MAX
@@ -134,34 +133,30 @@ uint32_t RecoveryManager::ProcessDeferredTransactions(terrier::transaction::time
   uint64_t total_elapsed_us = 0;
   uint64_t num_txns = 0;
   uint64_t num_bytes = 0;
+
   for (auto it = deferred_txns_.begin(); it != upper_bound_it; it++) {
     {
-      common::ScopedTimer<std::chrono::milliseconds> scoped_timer(&elapsed_us);
+      common::ScopedTimer<std::chrono::microseconds> scoped_timer(&elapsed_us);
       num_bytes += ProcessCommittedTransaction(*it);
     }
-    txns_processed++;
 
     // Update metrics
     total_elapsed_us += elapsed_us;
     num_txns += 1;
-
-    // Check if we need to export throughput metric
-    if (std::chrono::milliseconds(total_elapsed_us) >= recovery_metric_interval_ || std::next(it) == upper_bound_it) {
-      // Export throughput metric
-      if (num_txns > 0 && common::thread_context.metrics_store_ != DISABLED &&
-          common::thread_context.metrics_store_->ComponentEnabled(metrics::MetricsComponent::RECOVERY)) {
-        common::thread_context.metrics_store_->RecordRecoveryData(num_txns, num_bytes, total_elapsed_us);
-        num_txns = 0;
-        num_bytes = 0;
-        total_elapsed_us = 0;
-      }
-    }
   }
 
   // If we actually processed some txns, remove them from the set
-  if (txns_processed > 0) deferred_txns_.erase(deferred_txns_.begin(), upper_bound_it);
+  if (num_txns > 0) {
+    deferred_txns_.erase(deferred_txns_.begin(), upper_bound_it);
 
-  return txns_processed;
+    // Output metric if possible
+    if (common::thread_context.metrics_store_ != DISABLED &&
+        common::thread_context.metrics_store_->ComponentEnabled(metrics::MetricsComponent::RECOVERY)) {
+      common::thread_context.metrics_store_->RecordRecoveryData(num_txns, num_bytes, total_elapsed_us);
+    }
+  }
+
+  return num_txns;
 }
 
 void RecoveryManager::ReplayRedoRecord(transaction::TransactionContext *txn, LogRecord *record) {

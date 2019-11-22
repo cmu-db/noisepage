@@ -65,21 +65,19 @@ class RecoveryManager : public common::DedicatedThreadOwner {
    * @param deferred_action_manager manager to use for deferred deletes
    * @param thread_registry thread registry to register tasks
    * @param store block store used for SQLTable creation during recovery
-   * @param recovery_metric_interval the interval at which the recovery throughput is recorded
    */
   explicit RecoveryManager(AbstractLogProvider *log_provider, common::ManagedPointer<catalog::Catalog> catalog,
                            transaction::TransactionManager *txn_manager,
                            transaction::DeferredActionManager *deferred_action_manager,
                            common::ManagedPointer<terrier::common::DedicatedThreadRegistry> thread_registry,
-                           BlockStore *store, const std::chrono::milliseconds recovery_metric_interval)
+                           BlockStore *store)
       : DedicatedThreadOwner(thread_registry),
         log_provider_(log_provider),
         catalog_(catalog),
         txn_manager_(txn_manager),
         deferred_action_manager_(deferred_action_manager),
         block_store_(store),
-        recovered_txns_(0),
-        recovery_metric_interval_(recovery_metric_interval) {
+        recovered_txns_(0) {
     // Initialize catalog_table_schemas_ map
     catalog_table_schemas_[catalog::postgres::CLASS_TABLE_OID] = catalog::postgres::Builder::GetClassTableSchema();
     catalog_table_schemas_[catalog::postgres::NAMESPACE_TABLE_OID] =
@@ -157,9 +155,6 @@ class RecoveryManager : public common::DedicatedThreadOwner {
 
   // Number of recovered committed txns. Used for benchmarking
   uint32_t recovered_txns_;
-
-  // How often the recovery throughput metric is collected
-  std::chrono::milliseconds recovery_metric_interval_;
 
   /**
    * Recovers the databases using the provided log provider

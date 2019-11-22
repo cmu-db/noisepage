@@ -77,9 +77,7 @@ class DedicatedThreadRegistry {
     auto *task = new T(args...);  // Create task
     thread_owners_table_[requester].insert(task);
     threads_table_.emplace(task, std::thread([=] {
-                             if (metrics_manager_ != DISABLED) {
-                               metrics_manager_->RegisterThread();
-                             }
+                             if (metrics_manager_ != DISABLED) metrics_manager_->RegisterThread();
                              task->RunTask();
                            }));
     requester->AddThread();
