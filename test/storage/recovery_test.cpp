@@ -279,6 +279,7 @@ class RecoveryTests : public TerrierTest {
     std::this_thread::sleep_for(std::chrono::seconds(1));
 
     // See if anything is logged at all
+    // It is possible for aggregated_data to contain no objects, but it should not be a nullptr
     const auto aggregated_data = reinterpret_cast<metrics::RecoveryMetricRawData *>(
         metrics_manager->AggregatedMetrics().at(static_cast<uint8_t>(metrics::MetricsComponent::RECOVERY)).get());
     EXPECT_NE(aggregated_data, nullptr);
