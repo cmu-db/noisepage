@@ -32,7 +32,6 @@ void OpenFiles(std::vector<std::ofstream> *outfiles) {
 void MetricsManager::Aggregate() {
   common::SpinLatch::ScopedSpinLatch guard(&latch_);
   for (const auto &metrics_store : stores_map_) {
-    std::cout << "thread id: " << metrics_store.first << std::endl;
     auto raw_data = metrics_store.second->GetDataToAggregate();
 
     for (uint8_t component = 0; component < NUM_COMPONENTS; component++) {
@@ -71,7 +70,6 @@ void MetricsManager::ResetMetric(const MetricsComponent component) const {
 void MetricsManager::RegisterThread() {
   common::SpinLatch::ScopedSpinLatch guard(&latch_);
   const auto thread_id = std::this_thread::get_id();
-  std::cout << "register: " << thread_id << std::endl;
   TERRIER_ASSERT(stores_map_.count(thread_id) == 0, "This thread was already registered.");
   auto result = stores_map_.emplace(thread_id, new MetricsStore(common::ManagedPointer(this), enabled_metrics_));
   TERRIER_ASSERT(result.second, "Insertion to concurrent map failed.");

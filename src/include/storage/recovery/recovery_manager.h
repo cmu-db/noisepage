@@ -19,6 +19,8 @@
 #include "storage/sql_table.h"
 #include "transaction/transaction_manager.h"
 
+#include "common/scoped_timer.h"
+
 namespace terrier {
 class RecoveryBenchmark;
 }
@@ -44,7 +46,6 @@ class RecoveryManager : public common::DedicatedThreadOwner {
      * Runs the recovery task. Our task only calls Recover on the log manager.
      */
     void RunTask() override {
-      std::cout << "this thread: " << std::this_thread::get_id() << std::endl;
       recovery_manager_->Recover();
     }
 
@@ -108,10 +109,6 @@ class RecoveryManager : public common::DedicatedThreadOwner {
    * Blocks until recovery finishes, if it has not already, and stops background thread.
    */
   void WaitForRecoveryToFinish() {
-    if (metrics_manager_ != DISABLED) {
-      metrics_manager_->Aggregate();
-      std::cout << "ag" << std::endl;
-    }
     TERRIER_ASSERT(recovery_task_ != nullptr, "Recovery must already have been started");
     if (!thread_registry_->StopTask(this, recovery_task_.CastManagedPointerTo<common::DedicatedThreadTask>())) {
       throw std::runtime_error("Recovery task termination failed");

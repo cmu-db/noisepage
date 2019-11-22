@@ -75,6 +75,8 @@ class RecoveryMetricRawData : public AbstractRawData {
  private:
   friend class RecoveryMetric;
   friend class storage::RecoveryTests;
+  friend class MetricsThread;
+  friend class MetricsManager;
 
   void RecordRecoveryData(const uint64_t num_txns, const uint64_t num_bytes, const uint64_t elapsed_us) {
     recovery_data_.emplace_front(num_txns, num_bytes, elapsed_us);
