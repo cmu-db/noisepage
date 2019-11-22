@@ -45,9 +45,7 @@ class RecoveryManager : public common::DedicatedThreadOwner {
     /**
      * Runs the recovery task. Our task only calls Recover on the log manager.
      */
-    void RunTask() override {
-      recovery_manager_->Recover();
-    }
+    void RunTask() override { recovery_manager_->Recover(); }
 
     /**
      * Terminate does nothing, the task will terminate when RunTask() returns. In the future if we need to support

@@ -5,8 +5,8 @@
 #include "catalog/postgres/pg_namespace.h"
 #include "gtest/gtest.h"
 #include "metrics/metrics_manager.h"
-#include "metrics/recovery_metric.h"
 #include "metrics/metrics_thread.h"
+#include "metrics/recovery_metric.h"
 #include "storage/garbage_collector_thread.h"
 #include "storage/index/index_builder.h"
 #include "storage/recovery/disk_log_provider.h"
@@ -290,10 +290,10 @@ class RecoveryTests : public TerrierTest {
                                      &block_store_, recovery_metric_interval_, metrics_manager);
     recovery_manager.StartRecovery();
     recovery_manager.WaitForRecoveryToFinish();
-    
+
     // Make sure everything is finished
     std::this_thread::sleep_for(std::chrono::seconds(1));
-  
+
     // See if anything is logged at all
     const auto aggregated_data = reinterpret_cast<metrics::RecoveryMetricRawData *>(
         metrics_manager->AggregatedMetrics().at(static_cast<uint8_t>(metrics::MetricsComponent::RECOVERY)).get());

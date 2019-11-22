@@ -1,11 +1,11 @@
 #include "metrics/metrics_manager.h"
 #include <sys/stat.h>
 #include <fstream>
+#include <iostream>
 #include <memory>
 #include <string>
 #include <utility>
 #include <vector>
-#include <iostream>
 
 namespace terrier::metrics {
 
