@@ -270,8 +270,8 @@ void BlockCompactor::CopyToArrowVarlen(std::vector<const byte *> *loose_ptrs, Ar
                                        ArrowColumnInfo *col, VarlenEntry *values) {
   uint32_t varlen_size = 0;
   // Read through every tuple and update null count and total varlen size
+  metadata->NullCount(col_id) = 0;
   for (uint32_t i = 0; i < metadata->NumRecords(); i++) {
-    metadata->NullCount(col_id) = 0;
     if (!column_bitmap->Test(i))
       // Update null count
       metadata->NullCount(col_id)++;
@@ -312,8 +312,8 @@ void BlockCompactor::BuildDictionary(std::vector<const byte *> *loose_ptrs, Arro
   VarlenEntryMap<uint32_t> dictionary;
   // Read through every tuple and update null count and build the dictionary
   uint32_t varlen_size = 0;
+  metadata->NullCount(col_id) = 0;
   for (uint32_t i = 0; i < metadata->NumRecords(); i++) {
-    metadata->NullCount(col_id) = 0;
     if (!column_bitmap->Test(i)) {
       // Update null count
       metadata->NullCount(col_id)++;

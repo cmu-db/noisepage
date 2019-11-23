@@ -10,6 +10,8 @@
 #include "test_util/test_harness.h"
 #include "transaction/deferred_action_manager.h"
 
+#define EXPORT_TABLE_NAME "test_table.arrow"
+
 namespace terrier {
 
 class ProjectedRowDeepEqual {
@@ -375,6 +377,10 @@ TEST_F(BlockCompactorTest, DictionaryCompressionTest) {
 // automated export table test.
 // NOLINTNEXTLINE
 TEST_F(BlockCompactorTest, ExportDictionaryCompressedTableTest) {
+  unlink(EXPORT_TABLE_NAME);
+  generator_.seed(
+      std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch())
+          .count());
   storage::BlockLayout layout = StorageTestUtil::RandomLayoutWithVarlens(100, &generator_);
   storage::TupleAccessStrategy accessor(layout);
   // Technically, the block above is not "in" the table, but since we don't sequential scan that does not matter
@@ -409,8 +415,8 @@ TEST_F(BlockCompactorTest, ExportDictionaryCompressedTableTest) {
   compactor.PutInQueue(block);
   compactor.ProcessCompactionQueue(&deferred_action_manager, &txn_manager);  // gathering pass
 
-  table.ExportTable("test_table.arrow");
-  EXPECT_EQ(std::remove("test_table.arrow"), 0);
+  table.ExportTable(EXPORT_TABLE_NAME);
+  EXPECT_EQ(unlink(EXPORT_TABLE_NAME), 0);
 
   for (auto &entry : tuples) delete[] reinterpret_cast<byte *>(entry.second);  // reclaim memory used for bookkeeping
   gc.PerformGarbageCollection();
@@ -421,6 +427,10 @@ TEST_F(BlockCompactorTest, ExportDictionaryCompressedTableTest) {
 // automated export table test.
 // NOLINTNEXTLINE
 TEST_F(BlockCompactorTest, ExportVarlenTableTest) {
+  unlink(EXPORT_TABLE_NAME);
+  generator_.seed(
+      std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch())
+          .count());
   storage::BlockLayout layout = StorageTestUtil::RandomLayoutWithVarlens(100, &generator_);
   storage::TupleAccessStrategy accessor(layout);
   // Technically, the block above is not "in" the table, but since we don't sequential scan that does not matter
@@ -455,8 +465,8 @@ TEST_F(BlockCompactorTest, ExportVarlenTableTest) {
   compactor.PutInQueue(block);
   compactor.ProcessCompactionQueue(&deferred_action_manager, &txn_manager);  // gathering pass
 
-  table.ExportTable("test_table.arrow");
-  EXPECT_EQ(std::remove("test_table.arrow"), 0);
+  table.ExportTable(EXPORT_TABLE_NAME);
+  EXPECT_EQ(std::remove(EXPORT_TABLE_NAME), 0);
 
   for (auto &entry : tuples) delete[] reinterpret_cast<byte *>(entry.second);  // reclaim memory used for bookkeeping
   gc.PerformGarbageCollection();

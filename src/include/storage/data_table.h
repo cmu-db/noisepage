@@ -220,10 +220,29 @@ class DataTable {
   const BlockLayout &GetBlockLayout() const { return accessor_.GetBlockLayout(); }
 
   /**
-   * Dump a table to disk in arrow IPC format.
+   * Dump a table to disk in arrow IPC format. The high-level IPC format is defined as below:
+   *
+   *    <SCHEMA MESSAGE>
+   *    <DICTIONARY MESSAGE 0>
+   *     ...
+   *    <DICTIONARY MESSAGE k - 1>
+   *    <RECORDBATCH MESSAGE 0>
+   *     ...
+   *    <RECORDBATCH MESSAGE n - 1>
+   *
+   * Where Dictionary messages and RecordBatch messages can interleave. Table data are primarily
+   * stored in RecordBatch messages, each of which has the following format:
+   *
+   *    <metadata_size: int32>
+   *    <metadata_flatbuffer: bytes>
+   *    <padding to 8-byte>
+   *    <message body>
+   * Message body is the data, which are organized as several buffers. Each buffer is described by
+   * a metadata_flatbuffer
+   *
    * @param file_name the file that the table will be exported to
    */
-  void ExportTable(const std::string &file_name) const;
+  void ExportTable(const std::string &file_name);
 
  private:
   // The GarbageCollector needs to modify VersionPtrs when pruning version chains
@@ -294,23 +313,60 @@ class DataTable {
                                 UndoRecord *desired);
 
   /**
-   * Write a schema message
-   * @param outfile the output file
-   * @param dictionary_ids when encountered columns that are dictionary-encoded, we pre-assign the
-   *                       dictionary id
+   * WriteDataBlock write a memory block to file. Such a memory block can be: offsets of varlen column,
+   * data of a fixed-size column, bitmap of a column, etc.
+   * @param outfile the file write to
+   * @param src the memory block
+   * @param len the size, will be padded to arrow alignment according to the specification
+   */
+  void WriteDataBlock(std::ofstream &outfile, const char *src, size_t len);
+
+  /**
+   * AddBufferInfo adds a buffer info to the buffers array. A buffer is a continuous memory region defined by its
+   * length and offset.
+   * @param offset the offset of current buffer. It will be updated by adding current len when return from this
+   *               function
+   * @param len the length of the buffer, will be padded to arrow alignment
+   * @param buffers the array that gathers the buffer info
+   */
+  void AddBufferInfo(size_t *offset, size_t len, std::vector<flatbuf::Buffer> *buffers);
+
+  /**
+   * This function write a Schema message. The Schema message provides metadata describing the following RecordBatch
+   * messages (you may think of it as a batch of rows), which includes but not limited to the logical type of each
+   * column, the byte-width, etc. It's serialized via Flatbuffer and should be written to the file at the very
+   * beginning.
+   *
+   * For the detailed definition of Schema message and RecordBatch message, please refer to:
+   *    https://arrow.apache.org/docs/format/Columnar.html
+   *
+   * For the flatbuffer schema of Schema message, please refer to:
+   *    https://github.com/apache/arrow/blob/master/format/Schema.fbs
+   *
+   * @param dictionary_ids The dictionary entries and the indices for a batch of rows are written seperately.
+   *                       Therefore, when a column is dictionary-compressed, we need to assign an id to it,
+   *                       so that the dictionary and the indices can be paired.
    * @param flatbuf_builder flatbuffer builder
    */
   void WriteSchemaMessage(std::ofstream &outfile, std::unordered_map<col_id_t, int64_t> *dictionary_ids,
-                          flatbuffers::FlatBufferBuilder *flatbuf_builder) const;
+                          flatbuffers::FlatBufferBuilder *flatbuf_builder);
 
   /**
-   * Write a dictionary message
+   * This function write a Dictionary message. The dictionary message is something contains the dictionary entries.
+   * It can be reused by multiple following RecordBatch messages (you may think of it as a batch of rows).
+   *
+   * For the detailed definition of Dictionary message and RecordBatch message, please refer to:
+   *    https://arrow.apache.org/docs/format/Columnar.html
+   *
+   * For the flatbuffer schema of Dictionary message, please refer to:
+   *    https://github.com/apache/arrow/blob/master/format/Message.fbs
+   *
    * @param outfile the output file
-   * @param dictionary_id the id of this dictionary
+   * @param dictionary_id id of this dictionary, should have been assigned previously when writing the schema message.
    * @param flatbuf_builder flatbuffer builder
    */
   void WriteDictionaryMessage(std::ofstream &outfile, int64_t dictionary_id, const ArrowVarlenColumn &varlen_col,
-                              flatbuffers::FlatBufferBuilder *flatbuf_builder) const;
+                              flatbuffers::FlatBufferBuilder *flatbuf_builder);
 
   // Allocates a new block to be used as insertion head.
   RawBlock *NewBlock();
