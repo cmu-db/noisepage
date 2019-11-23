@@ -111,16 +111,24 @@ TEST_F(OptimizerMetadataTest, RecordTransformedExpressionDuplicateSingleLayer) {
   auto metadata = OptimizerMetadata(nullptr);
 
   // Create OperatorExpression of JOIN <= (GET A, GET A)
-  auto *left_get = new OperatorExpression(
+  std::vector<std::unique_ptr<OperatorExpression>> c;
+  auto left_get = std::make_unique<OperatorExpression>(
       LogicalGet::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3), {}, "tbl", false),
-      {});
-  auto *right_get = left_get->Copy();
+      std::move(c));
+  auto lg_copy = left_get->Copy();
+
+  auto right_get = left_get->Copy();
+  auto rg_copy = right_get->Copy();
   EXPECT_EQ(*left_get, *right_get);
-  auto *join = new OperatorExpression(LogicalInnerJoin::Make(), {left_get, right_get});
+
+  std::vector<std::unique_ptr<OperatorExpression>> jc;
+  jc.emplace_back(std::move(left_get));
+  jc.emplace_back(std::move(right_get));
+  auto join = std::make_unique<OperatorExpression>(LogicalInnerJoin::Make(), std::move(jc));
 
   // RecordTransformedExpression
   GroupExpression *join_gexpr;
-  EXPECT_TRUE(metadata.RecordTransformedExpression(join, &join_gexpr));
+  EXPECT_TRUE(metadata.RecordTransformedExpression(common::ManagedPointer(join), &join_gexpr));
   EXPECT_TRUE(join_gexpr != nullptr);
 
   EXPECT_EQ(join_gexpr->Op(), join->GetOp());
@@ -132,11 +140,9 @@ TEST_F(OptimizerMetadataTest, RecordTransformedExpressionDuplicateSingleLayer) {
   EXPECT_EQ(group->GetLogicalExpressions().size(), 1);
 
   auto child_gexpr = group->GetLogicalExpressions()[0];
-  EXPECT_EQ(child_gexpr->Op(), left_get->GetOp());
-  EXPECT_EQ(child_gexpr->Op(), right_get->GetOp());
+  EXPECT_EQ(child_gexpr->Op(), lg_copy->GetOp());
+  EXPECT_EQ(child_gexpr->Op(), rg_copy->GetOp());
   EXPECT_EQ(child_gexpr->GetChildGroupIDs().size(), 0);
-
-  delete join;
 }
 
 // NOLINTNEXTLINE
@@ -144,19 +150,34 @@ TEST_F(OptimizerMetadataTest, RecordTransformedExpressionDuplicateMultiLayer) {
   auto metadata = OptimizerMetadata(nullptr);
 
   // Create OperatorExpression (A JOIN B) JOIN (A JOIN B)
-  auto *left_get = new OperatorExpression(
+  std::vector<std::unique_ptr<OperatorExpression>> c;
+  auto left_get = std::make_unique<OperatorExpression>(
       LogicalGet::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3), {}, "tbl", false),
-      {});
-  auto *right_get = left_get->Copy();
+      std::move(c));
+  auto lg_copy = left_get->Copy();
+
+  auto right_get = left_get->Copy();
+  auto rg_copy = right_get->Copy();
   EXPECT_EQ(*left_get, *right_get);
-  auto *left_join = new OperatorExpression(LogicalInnerJoin::Make(), {left_get, right_get});
-  auto *right_join = left_join->Copy();
+
+  std::vector<std::unique_ptr<OperatorExpression>> jc;
+  jc.emplace_back(std::move(left_get));
+  jc.emplace_back(std::move(right_get));
+  auto left_join = std::make_unique<OperatorExpression>(LogicalInnerJoin::Make(), std::move(jc));
+  auto lj_copy = left_join->Copy();
+
+  auto right_join = left_join->Copy();
+  auto rj_copy = right_join->Copy();
   EXPECT_EQ(*left_join, *right_join);
-  auto *join = new OperatorExpression(LogicalInnerJoin::Make(), {left_join, right_join});
+
+  std::vector<std::unique_ptr<OperatorExpression>> jjc;
+  jjc.emplace_back(std::move(left_join));
+  jjc.emplace_back(std::move(right_join));
+  auto join = std::make_unique<OperatorExpression>(LogicalInnerJoin::Make(), std::move(jjc));
 
   // RecordTransformedExpression
   GroupExpression *join_g_expr;
-  EXPECT_TRUE(metadata.RecordTransformedExpression(join, &join_g_expr));
+  EXPECT_TRUE(metadata.RecordTransformedExpression(common::ManagedPointer(join), &join_g_expr));
   EXPECT_TRUE(join_g_expr != nullptr);
 
   EXPECT_EQ(join_g_expr->Op(), join->GetOp());
@@ -168,8 +189,8 @@ TEST_F(OptimizerMetadataTest, RecordTransformedExpressionDuplicateMultiLayer) {
   EXPECT_EQ(join_group->GetLogicalExpressions().size(), 1);
 
   auto join_gexpr = join_group->GetLogicalExpressions()[0];
-  EXPECT_EQ(join_gexpr->Op(), left_join->GetOp());
-  EXPECT_EQ(join_gexpr->Op(), right_join->GetOp());
+  EXPECT_EQ(join_gexpr->Op(), lj_copy->GetOp());
+  EXPECT_EQ(join_gexpr->Op(), rj_copy->GetOp());
   EXPECT_EQ(join_gexpr->GetChildGroupIDs().size(), 2);
   EXPECT_EQ(join_gexpr->GetChildGroupId(0), join_gexpr->GetChildGroupId(1));
 
@@ -178,45 +199,47 @@ TEST_F(OptimizerMetadataTest, RecordTransformedExpressionDuplicateMultiLayer) {
   EXPECT_EQ(child_group->GetLogicalExpressions().size(), 1);
 
   auto child_gexpr = child_group->GetLogicalExpressions()[0];
-  EXPECT_EQ(child_gexpr->Op(), left_get->GetOp());
-  EXPECT_EQ(child_gexpr->Op(), right_get->GetOp());
+  EXPECT_EQ(child_gexpr->Op(), lg_copy->GetOp());
+  EXPECT_EQ(child_gexpr->Op(), rg_copy->GetOp());
   EXPECT_EQ(child_gexpr->GetChildGroupIDs().size(), 0);
-
-  delete join;
 }
 
 // NOLINTNEXTLINE
 TEST_F(OptimizerMetadataTest, RecordTransformedExpressionDuplicate) {
   auto metadata = OptimizerMetadata(nullptr);
 
-  auto *tbl_free = new OperatorExpression(TableFreeScan::Make(), {});
+  std::vector<std::unique_ptr<OperatorExpression>> c;
+  auto tbl_free = std::make_unique<OperatorExpression>(TableFreeScan::Make(), std::move(c));
 
   GroupExpression *tbl_free_gexpr;
-  EXPECT_TRUE(metadata.RecordTransformedExpression(tbl_free, &tbl_free_gexpr));
+  EXPECT_TRUE(metadata.RecordTransformedExpression(common::ManagedPointer(tbl_free), &tbl_free_gexpr));
   EXPECT_TRUE(tbl_free_gexpr != nullptr);
 
   // Duplicate should return false
   GroupExpression *dup_free_gexpr;
-  EXPECT_TRUE(!metadata.RecordTransformedExpression(tbl_free, &dup_free_gexpr));
+  EXPECT_TRUE(!metadata.RecordTransformedExpression(common::ManagedPointer(tbl_free), &dup_free_gexpr));
   EXPECT_TRUE(dup_free_gexpr != nullptr);
   EXPECT_EQ(tbl_free_gexpr, dup_free_gexpr);
-
-  delete tbl_free;
 }
 
 // NOLINTNEXTLINE
 TEST_F(OptimizerMetadataTest, SimpleBindingTest) {
   auto metadata = OptimizerMetadata(nullptr);
 
-  auto *left_get = new OperatorExpression(
+  std::vector<std::unique_ptr<OperatorExpression>> c;
+  auto left_get = std::make_unique<OperatorExpression>(
       LogicalGet::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3), {}, "tbl", false),
-      {});
-  auto *right_get = left_get->Copy();
+      std::move(c));
+  auto right_get = left_get->Copy();
   EXPECT_EQ(*left_get, *right_get);
-  auto *join = new OperatorExpression(LogicalInnerJoin::Make(), {left_get, right_get});
+
+  std::vector<std::unique_ptr<OperatorExpression>> jc;
+  jc.emplace_back(std::move(left_get));
+  jc.emplace_back(std::move(right_get));
+  auto join = std::make_unique<OperatorExpression>(LogicalInnerJoin::Make(), std::move(jc));
 
   GroupExpression *gexpr = nullptr;
-  EXPECT_TRUE(metadata.RecordTransformedExpression(join, &gexpr));
+  EXPECT_TRUE(metadata.RecordTransformedExpression(common::ManagedPointer(join), &gexpr));
   EXPECT_TRUE(gexpr != nullptr);
 
   auto *pattern = new Pattern(OpType::LOGICALINNERJOIN);
@@ -226,29 +249,32 @@ TEST_F(OptimizerMetadataTest, SimpleBindingTest) {
   auto *binding_iterator = new GroupExprBindingIterator(metadata.GetMemo(), gexpr, pattern);
   EXPECT_TRUE(binding_iterator->HasNext());
 
-  auto *binding = binding_iterator->Next();
+  auto binding = binding_iterator->Next();
   EXPECT_EQ(*binding, *join);
   EXPECT_TRUE(!binding_iterator->HasNext());
 
-  delete binding;
   delete binding_iterator;
   delete pattern;
-  delete join;
 }
 
 // NOLINTNEXTLINE
 TEST_F(OptimizerMetadataTest, SingleWildcardTest) {
   auto metadata = OptimizerMetadata(nullptr);
 
-  auto *left_get = new OperatorExpression(
+  std::vector<std::unique_ptr<OperatorExpression>> c;
+  auto left_get = std::make_unique<OperatorExpression>(
       LogicalGet::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(2), catalog::table_oid_t(3), {}, "tbl", false),
-      {});
-  auto *right_get = left_get->Copy();
+      std::move(c));
+  auto right_get = left_get->Copy();
   EXPECT_EQ(*left_get, *right_get);
-  auto *join = new OperatorExpression(LogicalInnerJoin::Make(), {left_get, right_get});
+
+  std::vector<std::unique_ptr<OperatorExpression>> jc;
+  jc.emplace_back(std::move(left_get));
+  jc.emplace_back(std::move(right_get));
+  auto join = std::make_unique<OperatorExpression>(LogicalInnerJoin::Make(), std::move(jc));
 
   GroupExpression *gexpr = nullptr;
-  EXPECT_TRUE(metadata.RecordTransformedExpression(join, &gexpr));
+  EXPECT_TRUE(metadata.RecordTransformedExpression(common::ManagedPointer(join), &gexpr));
   EXPECT_TRUE(gexpr != nullptr);
 
   auto *pattern = new Pattern(OpType::LOGICALINNERJOIN);
@@ -258,12 +284,12 @@ TEST_F(OptimizerMetadataTest, SingleWildcardTest) {
   auto *binding_iterator = new GroupExprBindingIterator(metadata.GetMemo(), gexpr, pattern);
   EXPECT_TRUE(binding_iterator->HasNext());
 
-  auto *binding = binding_iterator->Next();
+  auto binding = binding_iterator->Next();
   EXPECT_EQ(binding->GetOp(), join->GetOp());
   EXPECT_EQ(binding->GetChildren().size(), 2);
 
-  auto *left = binding->GetChildren()[0];
-  auto *right = binding->GetChildren()[1];
+  auto left = binding->GetChildren()[0];
+  auto right = binding->GetChildren()[1];
   EXPECT_TRUE(*left == *right);
 
   auto leaf = binding->GetChildren()[0]->GetOp().As<LeafOperator>();
@@ -272,10 +298,8 @@ TEST_F(OptimizerMetadataTest, SingleWildcardTest) {
 
   EXPECT_TRUE(!binding_iterator->HasNext());
 
-  delete binding;
   delete binding_iterator;
   delete pattern;
-  delete join;
 }
 
 }  // namespace terrier::optimizer
