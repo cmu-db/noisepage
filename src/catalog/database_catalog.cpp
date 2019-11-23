@@ -1804,7 +1804,11 @@ bool DatabaseCatalog::TryLock(transaction::TransactionContext *const txn) {
   const bool newer_committed_version = transaction::TransactionUtil::Committed(current_val) &&
                                        transaction::TransactionUtil::NewerThan(current_val, start_time);
 
-  if (owned_by_other_txn || newer_committed_version) return false;
+  if (owned_by_other_txn || newer_committed_version) {
+    txn->MustAbort();  // though no changes were written to the storage layer, we'll treat this as a DDL change failure
+    // and force the txn to rollback
+    return false;
+  }
 
   if (write_lock_.compare_exchange_strong(current_val, txn_id)) {
     // acquired the lock
