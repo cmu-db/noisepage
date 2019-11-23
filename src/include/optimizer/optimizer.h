@@ -63,8 +63,8 @@ class Optimizer : public AbstractOptimizer {
    * @param storage StatsStorage
    * @returns execution plan
    */
-  std::unique_ptr<planner::AbstractPlanNode> BuildPlanTree(OperatorExpression *op_tree, QueryInfo query_info,
-                                                           transaction::TransactionContext *txn,
+  std::unique_ptr<planner::AbstractPlanNode> BuildPlanTree(std::unique_ptr<OperatorExpression> op_tree,
+                                                           QueryInfo query_info, transaction::TransactionContext *txn,
                                                            settings::SettingsManager *settings,
                                                            catalog::CatalogAccessor *accessor,
                                                            StatsStorage *storage) override;

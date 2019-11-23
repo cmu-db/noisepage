@@ -3,6 +3,7 @@
 #include <map>
 #include <memory>
 #include <tuple>
+#include <utility>
 #include <vector>
 
 #include "loggers/optimizer_logger.h"
@@ -42,7 +43,7 @@ class BindingIterator {
    * Virtual function for getting the next binding
    * @returns next OperatorExpression that matches
    */
-  virtual OperatorExpression *Next() = 0;
+  virtual std::unique_ptr<OperatorExpression> Next() = 0;
 
  protected:
   /**
@@ -83,7 +84,7 @@ class GroupBindingIterator : public BindingIterator {
    * Virtual function for getting the next binding
    * @returns next OperatorExpression that matches
    */
-  OperatorExpression *Next() override;
+  std::unique_ptr<OperatorExpression> Next() override;
 
  private:
   /**
@@ -132,19 +133,6 @@ class GroupExprBindingIterator : public BindingIterator {
   GroupExprBindingIterator(const Memo &memo, GroupExpression *gexpr, Pattern *pattern);
 
   /**
-   * Destructor
-   */
-  ~GroupExprBindingIterator() override {
-    for (auto &vec : children_bindings_) {
-      for (auto expr : vec) {
-        delete expr;
-      }
-    }
-
-    delete current_binding_;
-  }
-
-  /**
    * Virtual function for whether a binding exists
    * @returns Whether or not a binding still exists
    */
@@ -155,11 +143,9 @@ class GroupExprBindingIterator : public BindingIterator {
    * Pointer returned must be deleted by caller when done.
    * @returns next OperatorExpression that matches
    */
-  OperatorExpression *Next() override {
+  std::unique_ptr<OperatorExpression> Next() override {
     TERRIER_ASSERT(current_binding_, "binding must exist");
-    auto binding = current_binding_;
-    current_binding_ = nullptr;
-    return binding;
+    return std::move(current_binding_);
   }
 
  private:
@@ -181,12 +167,12 @@ class GroupExprBindingIterator : public BindingIterator {
   /**
    * Current binding
    */
-  OperatorExpression *current_binding_;
+  std::unique_ptr<OperatorExpression> current_binding_;
 
   /**
    * Stored bindings for children expressions
    */
-  std::vector<std::vector<OperatorExpression *>> children_bindings_;
+  std::vector<std::vector<std::unique_ptr<OperatorExpression>>> children_bindings_;
 
   /**
    * Position indicators tracking progress within children_bindings_

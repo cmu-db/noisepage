@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <functional>
+#include <memory>
 #include <vector>
 
 #include "loggers/optimizer_logger.h"
@@ -149,18 +150,18 @@ void ApplyRule::Execute() {
   GroupExprBindingIterator iterator(GetMemo(), group_expr_, rule_->GetMatchPattern());
   while (iterator.HasNext()) {
     auto before = iterator.Next();
-    if (!rule_->Check(before, context_)) {
-      delete before;
+    if (!rule_->Check(common::ManagedPointer(before.get()), context_)) {
       continue;
     }
 
     // Caller frees after
-    std::vector<OperatorExpression *> after;
-    rule_->Transform(before, &after, context_);
-    for (auto &new_expr : after) {
+    std::vector<std::unique_ptr<OperatorExpression>> after;
+    rule_->Transform(common::ManagedPointer(before.get()), &after, context_);
+    for (const auto &new_expr : after) {
       GroupExpression *new_gexpr = nullptr;
       GroupID g_id = group_expr_->GetGroupID();
-      if (context_->GetMetadata()->RecordTransformedExpression(new_expr, &new_gexpr, g_id)) {
+      if (context_->GetMetadata()->RecordTransformedExpression(common::ManagedPointer(new_expr.get()), &new_gexpr,
+                                                               g_id)) {
         // A new group expression is generated
         if (new_gexpr->Op().IsLogical()) {
           // Derive stats for the *logical expression*
@@ -177,13 +178,7 @@ void ApplyRule::Execute() {
           PushTask(new OptimizeInputs(new_gexpr, context_));
         }
       }
-
-      // Cleanup OperatorExpression from Transform()
-      delete new_expr;
     }
-
-    // Cleanup
-    delete before;
   }
 
   group_expr_->SetRuleExplored(rule_);
@@ -388,22 +383,15 @@ void TopDownRewrite::Execute() {
     if (iterator.HasNext()) {
       auto before = iterator.Next();
       TERRIER_ASSERT(!iterator.HasNext(), "there should only be 1 binding");
-      std::vector<OperatorExpression *> after;
-      rule->Transform(before, &after, context_);
+      std::vector<std::unique_ptr<OperatorExpression>> after;
+      rule->Transform(common::ManagedPointer(before.get()), &after, context_);
 
       // Rewrite rule should provide at most 1 expression
       TERRIER_ASSERT(after.size() <= 1, "rule provided too many transformations");
-      // If a rule is applied, we replace the old expression and optimize this
-      // group again, this will ensure that we apply rule for this level until
-      // saturated
-      delete before;
-
       if (!after.empty()) {
         auto &new_expr = after[0];
-        context_->GetMetadata()->ReplaceRewritedExpression(new_expr, group_id_);
+        context_->GetMetadata()->ReplaceRewritedExpression(common::ManagedPointer(new_expr.get()), group_id_);
         PushTask(new TopDownRewrite(group_id_, context_, rule_set_name_));
-
-        delete new_expr;
         return;
       }
     }
@@ -452,22 +440,18 @@ void BottomUpRewrite::Execute() {
     if (iterator.HasNext()) {
       auto before = iterator.Next();
       TERRIER_ASSERT(!iterator.HasNext(), "should only bind to 1");
-      std::vector<OperatorExpression *> after;
-      rule->Transform(before, &after, context_);
+      std::vector<std::unique_ptr<OperatorExpression>> after;
+      rule->Transform(common::ManagedPointer(before.get()), &after, context_);
 
       // Rewrite rule should provide at most 1 expression
       TERRIER_ASSERT(after.size() <= 1, "rule generated too many transformations");
       // If a rule is applied, we replace the old expression and optimize this
       // group again, this will ensure that we apply rule for this level until
       // saturated, also childs are already been rewritten
-      delete before;
-
       if (!after.empty()) {
         auto &new_expr = after[0];
-        context_->GetMetadata()->ReplaceRewritedExpression(new_expr, group_id_);
+        context_->GetMetadata()->ReplaceRewritedExpression(common::ManagedPointer(new_expr.get()), group_id_);
         PushTask(new BottomUpRewrite(group_id_, context_, rule_set_name_, false));
-
-        delete new_expr;
         return;
       }
     }

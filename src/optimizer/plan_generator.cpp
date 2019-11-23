@@ -49,7 +49,7 @@ std::unique_ptr<planner::AbstractPlanNode> PlanGenerator::ConvertOpExpression(
   accessor_ = accessor;
   txn_ = txn;
 
-  op->GetOp().Accept(this);
+  op->GetOp().Accept(common::ManagedPointer<OperatorVisitor>(this));
 
   CorrectOutputPlanWithProjection();
   return std::move(output_plan_);

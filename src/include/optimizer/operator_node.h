@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 #include "common/hash_util.h"
+#include "common/managed_pointer.h"
 #include "optimizer/optimizer_defs.h"
 
 namespace terrier::optimizer {
@@ -38,7 +39,7 @@ class BaseOperatorNode {
    * Utility method for visitor pattern
    * @param v operator visitor for visitor pattern
    */
-  virtual void Accept(OperatorVisitor *v) const = 0;
+  virtual void Accept(common::ManagedPointer<OperatorVisitor> v) const = 0;
 
   /**
    * @return the string name of this operator
@@ -94,7 +95,7 @@ class OperatorNode : public BaseOperatorNode {
    * Utility method for applying visitor pattern on the underlying operator
    * @param v operator visitor for visitor pattern
    */
-  void Accept(OperatorVisitor *v) const override;
+  void Accept(common::ManagedPointer<OperatorVisitor> v) const override;
 
   /**
    * Copy
@@ -148,7 +149,13 @@ class Operator {
    * Create a new operator from a BaseOperatorNode
    * @param node a BaseOperatorNode that specifies basic information about the operator to be created
    */
-  explicit Operator(BaseOperatorNode *node);
+  explicit Operator(std::unique_ptr<BaseOperatorNode> node);
+
+  /**
+   * Move constructor
+   * @param o other to construct from
+   */
+  Operator(Operator &&o) noexcept;
 
   /**
    * Copy constructor for Operator
@@ -156,18 +163,9 @@ class Operator {
   Operator(const Operator &op) : node_(op.node_->Copy()) {}
 
   /**
-   * Move constructor for operator
-   * @param op Other operator to move-construct from
-   */
-  Operator(Operator &&op) noexcept {
-    node_ = op.node_;
-    op.node_ = nullptr;
-  }
-
-  /**
    * Calls corresponding visitor to this operator node
    */
-  void Accept(OperatorVisitor *v) const;
+  void Accept(common::ManagedPointer<OperatorVisitor> v) const;
 
   /**
    * @return string name of this operator
@@ -214,21 +212,16 @@ class Operator {
   bool IsPhysical() const;
 
   /**
-   * Destructor
-   */
-  ~Operator() { delete node_; }
-
-  /**
    * Re-interpret the operator
    * @tparam T the type of the operator to be re-interpreted as
    * @return pointer to the re-interpreted operator, nullptr if the types mismatch
    */
   template <typename T>
-  const T *As() const {
+  common::ManagedPointer<T> As() const {
     if (node_) {
       auto &n = *node_;
       if (typeid(n) == typeid(T)) {
-        return reinterpret_cast<const T *>(node_);
+        return common::ManagedPointer<T>(reinterpret_cast<T *>(node_.get()));
       }
     }
     return nullptr;
@@ -238,7 +231,7 @@ class Operator {
   /**
    * Pointer to the base operator
    */
-  BaseOperatorNode *node_ = nullptr;
+  std::unique_ptr<BaseOperatorNode> node_;
 };
 }  // namespace terrier::optimizer
 

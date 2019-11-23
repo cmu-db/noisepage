@@ -1,3 +1,4 @@
+#include <memory>
 #include <utility>
 #include <vector>
 
@@ -41,10 +42,11 @@ bool GroupBindingIterator::HasNext() {
   return current_iterator_ != nullptr;
 }
 
-OperatorExpression *GroupBindingIterator::Next() {
+std::unique_ptr<OperatorExpression> GroupBindingIterator::Next() {
   if (pattern_->Type() == OpType::LEAF) {
     current_item_index_ = num_group_items_;
-    return new OperatorExpression(LeafOperator::Make(group_id_), {});
+    std::vector<std::unique_ptr<OperatorExpression>> c;
+    return std::make_unique<OperatorExpression>(LeafOperator::Make(group_id_), std::move(c));
   }
 
   return current_iterator_->Next();
@@ -69,20 +71,20 @@ GroupExprBindingIterator::GroupExprBindingIterator(const Memo &memo, GroupExpres
                       gexpr->GetGroupID(), gexpr->Op().GetName().c_str(), child_groups.size());
 
   // Find all bindings for children
-  children_bindings_.resize(child_groups.size(), {});
+  children_bindings_.resize(child_groups.size());
   children_bindings_pos_.resize(child_groups.size(), 0);
 
   // Get first level children
-  std::vector<OperatorExpression *> children;
+  std::vector<std::unique_ptr<OperatorExpression>> children;
 
   for (size_t i = 0; i < child_groups.size(); ++i) {
     // Try to find a match in the given group
-    std::vector<OperatorExpression *> &child_bindings = children_bindings_[i];
+    std::vector<std::unique_ptr<OperatorExpression>> &child_bindings = children_bindings_[i];
     GroupBindingIterator iterator(memo_, child_groups[i], child_patterns[i]);
 
     // Get all bindings
     while (iterator.HasNext()) {
-      child_bindings.push_back(iterator.Next());
+      child_bindings.emplace_back(iterator.Next());
     }
 
     if (child_bindings.empty()) {
@@ -91,11 +93,11 @@ GroupExprBindingIterator::GroupExprBindingIterator(const Memo &memo, GroupExpres
     }
 
     // Push a copy
-    children.push_back(child_bindings[0]->Copy());
+    children.emplace_back(child_bindings[0]->Copy());
   }
 
   has_next_ = true;
-  current_binding_ = new OperatorExpression(Operator(gexpr->Op()), std::move(children));
+  current_binding_ = std::make_unique<OperatorExpression>(Operator(gexpr->Op()), std::move(children));
 }
 
 bool GroupExprBindingIterator::HasNext() {
@@ -108,7 +110,7 @@ bool GroupExprBindingIterator::HasNext() {
     // The first child to be modified
     int first_modified_idx = static_cast<int>(children_bindings_pos_.size()) - 1;
     for (; first_modified_idx >= 0; --first_modified_idx) {
-      const std::vector<OperatorExpression *> &child_binding = children_bindings_[first_modified_idx];
+      const std::vector<std::unique_ptr<OperatorExpression>> &child_binding = children_bindings_[first_modified_idx];
 
       // Try to increment idx from the back
       size_t new_pos = ++children_bindings_pos_[first_modified_idx];
@@ -123,14 +125,14 @@ bool GroupExprBindingIterator::HasNext() {
       // We have explored all combinations of the child bindings
       has_next_ = false;
     } else {
-      std::vector<OperatorExpression *> children;
+      std::vector<std::unique_ptr<OperatorExpression>> children;
       for (size_t idx = 0; idx < children_bindings_pos_.size(); ++idx) {
-        const std::vector<OperatorExpression *> &child_binding = children_bindings_[idx];
-        children.push_back(child_binding[children_bindings_pos_[idx]]->Copy());
+        const std::vector<std::unique_ptr<OperatorExpression>> &child_binding = children_bindings_[idx];
+        children.emplace_back(child_binding[children_bindings_pos_[idx]]->Copy());
       }
 
       TERRIER_ASSERT(!current_binding_, "Next() should have been called");
-      current_binding_ = new OperatorExpression(Operator(gexpr_->Op()), std::move(children));
+      current_binding_ = std::make_unique<OperatorExpression>(Operator(gexpr_->Op()), std::move(children));
     }
   }
 

@@ -21,18 +21,18 @@ class OperatorExpression {
    * @param op an operator to bind to this OperatorExpression node
    * @param children children of this OperatorExpression
    */
-  explicit OperatorExpression(Operator &&op, std::vector<OperatorExpression *> &&children)
-      : op_(op), children_(std::move(children)) {}
+  explicit OperatorExpression(Operator op, std::vector<std::unique_ptr<OperatorExpression>> &&children)
+      : op_(std::move(op)), children_(std::move(children)) {}
 
   /**
    * Copy
    */
-  OperatorExpression *Copy() {
-    std::vector<OperatorExpression *> child;
-    for (auto op : children_) {
-      child.push_back(op->Copy());
+  std::unique_ptr<OperatorExpression> Copy() {
+    std::vector<std::unique_ptr<OperatorExpression>> child;
+    for (const auto &op : children_) {
+      child.emplace_back(op->Copy());
     }
-    return new OperatorExpression(Operator(op_), std::move(child));
+    return std::make_unique<OperatorExpression>(Operator(op_), std::move(child));
   }
 
   /**
@@ -45,8 +45,8 @@ class OperatorExpression {
     if (children_.size() != other.children_.size()) return false;
 
     for (size_t idx = 0; idx < children_.size(); idx++) {
-      auto child = children_[idx];
-      auto other_child = other.children_[idx];
+      auto &child = children_[idx];
+      auto &other_child = other.children_[idx];
       TERRIER_ASSERT(child != nullptr, "OperatorExpression should not have null children");
       TERRIER_ASSERT(other_child != nullptr, "OperatorExpression should not have null children");
 
@@ -64,9 +64,20 @@ class OperatorExpression {
   bool operator!=(const OperatorExpression &other) const { return !(*this == other); }
 
   /**
+   * Move constructor
+   * @param op other to construct from
+   */
+  OperatorExpression(OperatorExpression &&op) noexcept : op_(std::move(op.op_)), children_(std::move(op.children_)) {}
+
+  /**
    * @return vector of children
    */
-  const std::vector<OperatorExpression *> &GetChildren() const { return children_; }
+  std::vector<common::ManagedPointer<OperatorExpression>> GetChildren() const {
+    std::vector<common::ManagedPointer<OperatorExpression>> result;
+    result.reserve(children_.size());
+    for (auto &i : children_) result.emplace_back(i);
+    return result;
+  }
 
   /**
    * @return underlying operator
@@ -74,17 +85,10 @@ class OperatorExpression {
   const Operator &GetOp() const { return op_; }
 
   /**
-   * destructor that delete its children
-   */
-  ~OperatorExpression() {
-    for (auto child : children_) delete child;
-  }
-
-  /**
    * Add a operator expression as child
    * @param child_op The operator expression to be added as child
    */
-  void PushChild(OperatorExpression *child_op) { children_.push_back(child_op); }
+  void PushChild(std::unique_ptr<OperatorExpression> child_op) { children_.emplace_back(std::move(child_op)); }
 
  private:
   /**
@@ -95,7 +99,7 @@ class OperatorExpression {
   /**
    * Vector of children
    */
-  std::vector<OperatorExpression *> children_;
+  std::vector<std::unique_ptr<OperatorExpression>> children_;
 };
 
 }  // namespace terrier::optimizer

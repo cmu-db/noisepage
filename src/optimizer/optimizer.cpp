@@ -26,18 +26,16 @@ void Optimizer::Reset() {
   metadata_ = new OptimizerMetadata(cost_model_);
 }
 
-std::unique_ptr<planner::AbstractPlanNode> Optimizer::BuildPlanTree(OperatorExpression *op_tree, QueryInfo query_info,
-                                                                    transaction::TransactionContext *txn,
-                                                                    settings::SettingsManager *settings,
-                                                                    catalog::CatalogAccessor *accessor,
-                                                                    StatsStorage *storage) {
+std::unique_ptr<planner::AbstractPlanNode> Optimizer::BuildPlanTree(
+    std::unique_ptr<OperatorExpression> op_tree, QueryInfo query_info, transaction::TransactionContext *txn,
+    settings::SettingsManager *settings, catalog::CatalogAccessor *accessor, StatsStorage *storage) {
   metadata_->SetTxn(txn);
   metadata_->SetCatalogAccessor(accessor);
   metadata_->SetStatsStorage(storage);
 
   // Generate initial operator tree from query tree
   GroupExpression *gexpr = nullptr;
-  UNUSED_ATTRIBUTE bool insert = metadata_->RecordTransformedExpression(op_tree, &gexpr);
+  UNUSED_ATTRIBUTE bool insert = metadata_->RecordTransformedExpression(common::ManagedPointer(op_tree), &gexpr);
   TERRIER_ASSERT(insert && gexpr, "Logical expression tree should insert");
 
   GroupID root_id = gexpr->GetGroupID();

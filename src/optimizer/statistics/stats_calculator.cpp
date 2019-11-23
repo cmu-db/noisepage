@@ -25,7 +25,7 @@ void StatsCalculator::CalculateStats(GroupExpression *gexpr, ExprSet required_co
   gexpr_ = gexpr;
   required_cols_ = std::move(required_cols);
   metadata_ = metadata;
-  gexpr->Op().Accept(this);
+  gexpr->Op().Accept(common::ManagedPointer<OperatorVisitor>(this));
 }
 
 void StatsCalculator::Visit(const LogicalGet *op) {
@@ -237,17 +237,17 @@ double StatsCalculator::CalculateSelectivityForPredicate(common::ManagedPointer<
       expr_type = parser::ExpressionUtil::ReverseComparisonExpressionType(expr_type);
     }
 
-    std::shared_ptr<type::TransientValue> value;
+    std::unique_ptr<type::TransientValue> value;
     if (expr->GetChild(right_index)->GetExpressionType() == parser::ExpressionType::VALUE_CONSTANT) {
       auto cve = expr->GetChild(right_index).CastManagedPointerTo<parser::ConstantValueExpression>();
-      value = std::make_shared<type::TransientValue>(cve->GetValue());
+      value = std::make_unique<type::TransientValue>(cve->GetValue());
     } else {
       auto pve = expr->GetChild(right_index).CastManagedPointerTo<parser::ParameterValueExpression>();
       value =
-          std::make_shared<type::TransientValue>(type::TransientValueFactory::GetParameterOffset(pve->GetValueIdx()));
+          std::make_unique<type::TransientValue>(type::TransientValueFactory::GetParameterOffset(pve->GetValueIdx()));
     }
 
-    ValueCondition condition(col_name, expr_type, value);
+    ValueCondition condition(col_name, expr_type, std::move(value));
     selectivity = Selectivity::ComputeSelectivity(predicate_table_stats, condition);
   } else if (expr->GetExpressionType() == parser::ExpressionType::CONJUNCTION_AND ||
              expr->GetExpressionType() == parser::ExpressionType::CONJUNCTION_OR) {

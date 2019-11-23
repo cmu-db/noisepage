@@ -104,11 +104,9 @@ class AbstractOptimizer {
    * @param storage StatsStorage
    * @returns execution plan
    */
-  virtual std::unique_ptr<planner::AbstractPlanNode> BuildPlanTree(OperatorExpression *op_tree, QueryInfo query_info,
-                                                                   transaction::TransactionContext *txn,
-                                                                   settings::SettingsManager *settings,
-                                                                   catalog::CatalogAccessor *accessor,
-                                                                   StatsStorage *storage) = 0;
+  virtual std::unique_ptr<planner::AbstractPlanNode> BuildPlanTree(
+      std::unique_ptr<OperatorExpression> op_tree, QueryInfo query_info, transaction::TransactionContext *txn,
+      settings::SettingsManager *settings, catalog::CatalogAccessor *accessor, StatsStorage *storage) = 0;
 
   /**
    * Reset the optimizer's internal state

@@ -113,7 +113,9 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, ConcurrentInsert)(benchmark::State &state
       // We can use dummy timestamps here since we're not invoking concurrency control
       transaction::TransactionContext txn(transaction::timestamp_t(0), transaction::timestamp_t(0), &buffer_pool_,
                                           DISABLED);
-      for (uint32_t i = 0; i < num_inserts_ / num_threads_; i++) table.Insert(&txn, *redo_);
+      for (uint32_t i = 0; i < num_inserts_ / num_threads_; i++) {
+        table.Insert(&txn, *redo_);
+      }
     };
     common::WorkerPool thread_pool(num_threads_, {});
     uint64_t elapsed_ms;
@@ -131,7 +133,7 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, ConcurrentInsert)(benchmark::State &state
 
 // Read the num_reads_ of tuples in a sequential order from a DataTable in a single thread
 // NOLINTNEXTLINE
-BENCHMARK_DEFINE_F(DataTableBenchmark, SequentialRead)(benchmark::State &state) {
+BENCHMARK_DEFINE_F(DataTableBenchmark, SelectSequential)(benchmark::State &state) {
   storage::DataTable read_table(&block_store_, layout_, storage::layout_version_t(0));
   // Populate read_table by inserting tuples
   // We can use dummy timestamps here since we're not invoking concurrency control
@@ -153,7 +155,7 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, SequentialRead)(benchmark::State &state) 
 
 // Read the num_reads_ of tuples in a random order from a DataTable in a single thread
 // NOLINTNEXTLINE
-BENCHMARK_DEFINE_F(DataTableBenchmark, RandomRead)(benchmark::State &state) {
+BENCHMARK_DEFINE_F(DataTableBenchmark, SelectRandom)(benchmark::State &state) {
   storage::DataTable read_table(&block_store_, layout_, storage::layout_version_t(0));
   // Populate read_table_ by inserting tuples
   // We can use dummy timestamps here since we're not invoking concurrency control
@@ -177,7 +179,7 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, RandomRead)(benchmark::State &state) {
 
 // Read the num_reads_ of tuples in a random order from a DataTable concurrently
 // NOLINTNEXTLINE
-BENCHMARK_DEFINE_F(DataTableBenchmark, ConcurrentRandomRead)(benchmark::State &state) {
+BENCHMARK_DEFINE_F(DataTableBenchmark, ConcurrentSelectRandom)(benchmark::State &state) {
   storage::DataTable read_table(&block_store_, layout_, storage::layout_version_t(0));
 
   // populate read_table_ by inserting tuples
@@ -185,6 +187,7 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, ConcurrentRandomRead)(benchmark::State &s
   transaction::TransactionContext txn(transaction::timestamp_t(0), transaction::timestamp_t(0), &buffer_pool_,
                                       DISABLED);
   std::vector<storage::TupleSlot> read_order;
+  // adding num_reads_ rows in the table
   for (uint32_t i = 0; i < num_reads_; ++i) {
     read_order.emplace_back(read_table.Insert(&txn, *redo_));
   }
@@ -220,6 +223,95 @@ BENCHMARK_DEFINE_F(DataTableBenchmark, ConcurrentRandomRead)(benchmark::State &s
   state.SetItemsProcessed(state.iterations() * num_reads_);
 }
 
+// Read the num_reads_ of tuples in the sequential  order from a DataTable concurrently
+// NOLINTNEXTLINE
+BENCHMARK_DEFINE_F(DataTableBenchmark, ConcurrentSelectSequential)(benchmark::State &state) {
+  storage::DataTable read_table(&block_store_, layout_, storage::layout_version_t(0));
+
+  // populate read_table_ by inserting tuples
+  // We can use dummy timestamps here since we're not invoking concurrency control
+  transaction::TransactionContext txn(transaction::timestamp_t(0), transaction::timestamp_t(0), &buffer_pool_,
+                                      DISABLED);
+  std::vector<storage::TupleSlot> read_order;
+
+  // inserted the table with 10 million rows
+  for (uint32_t i = 0; i < num_reads_; ++i) {
+    read_order.emplace_back(read_table.Insert(&txn, *redo_));
+  }
+  // NOLINTNEXTLINE
+  for (auto _ : state) {
+    auto workload = [&](uint32_t id) {
+      // We can use dummy timestamps here since we're not invoking concurrency control
+      transaction::TransactionContext txn(transaction::timestamp_t(0), transaction::timestamp_t(0), &buffer_pool_,
+                                          DISABLED);
+      for (uint32_t i = 0; i < num_reads_ / num_threads_; i++) read_table.Select(&txn, read_order[i], reads_[id]);
+    };
+    common::WorkerPool thread_pool(num_threads_, {});
+    uint64_t elapsed_ms;
+    {
+      common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
+      for (uint32_t j = 0; j < num_threads_; j++) {
+        thread_pool.SubmitTask([j, &workload] { workload(j); });
+      }
+      thread_pool.WaitUntilAllFinished();
+    }
+    state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
+  }
+
+  state.SetItemsProcessed(state.iterations() * num_reads_);
+}
+
+// Read the num_reads_ of tuples in the sequential  order from a DataTable concurrently
+// NOLINTNEXTLINE
+BENCHMARK_DEFINE_F(DataTableBenchmark, ConcurrentScan)(benchmark::State &state) {
+  storage::DataTable read_table(&block_store_, layout_, storage::layout_version_t(0));
+
+  // populate read_table_ by inserting tuples
+  // We can use dummy timestamps here since we're not invoking concurrency control
+  transaction::TransactionContext txn(transaction::timestamp_t(0), transaction::timestamp_t(0), &buffer_pool_,
+                                      DISABLED);
+  std::vector<storage::TupleSlot> read_order;
+  for (uint32_t i = 0; i < num_reads_; ++i) {
+    read_order.emplace_back(read_table.Insert(&txn, *redo_));
+  }
+
+  std::vector<storage::col_id_t> all_cols = StorageTestUtil::ProjectionListAllColumns(layout_);
+  storage::ProjectedColumnsInitializer initializer(layout_, all_cols, common::Constants::K_DEFAULT_VECTOR_SIZE);
+
+  std::vector<storage::ProjectedColumns *> all_columns;
+  std::vector<byte *> buf;
+  for (uint32_t j = 0; j < num_threads_; j++) {
+    auto *buffer = common::AllocationUtil::AllocateAligned(initializer.ProjectedColumnsSize());
+    storage::ProjectedColumns *columns = initializer.Initialize(buffer);
+    all_columns.push_back(columns);
+    buf.push_back(buffer);
+  }
+
+  // NOLINTNEXTLINE
+  for (auto _ : state) {
+    auto workload = [&](uint32_t id) {
+      auto it = read_table.begin();
+      while (it != read_table.end()) {
+        read_table.Scan(&txn, &it, all_columns[id]);
+      }
+    };
+    common::WorkerPool thread_pool(num_threads_, {});
+    uint64_t elapsed_ms;
+    {
+      common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
+      for (uint32_t j = 0; j < num_threads_; j++) {
+        thread_pool.SubmitTask([j, &workload] { workload(j); });
+      }
+      thread_pool.WaitUntilAllFinished();
+    }
+    state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
+  }
+  for (auto p : buf) {
+    delete p;
+  }
+  state.SetItemsProcessed(state.iterations() * num_reads_ * num_threads_);
+}
+
 BENCHMARK_REGISTER_F(DataTableBenchmark, SimpleInsert)->Unit(benchmark::kMillisecond)->UseManualTime();
 
 BENCHMARK_REGISTER_F(DataTableBenchmark, ConcurrentInsert)
@@ -227,12 +319,19 @@ BENCHMARK_REGISTER_F(DataTableBenchmark, ConcurrentInsert)
     ->UseRealTime()
     ->UseManualTime();
 
-BENCHMARK_REGISTER_F(DataTableBenchmark, SequentialRead)->Unit(benchmark::kMillisecond);
+BENCHMARK_REGISTER_F(DataTableBenchmark, SelectSequential)->Unit(benchmark::kMillisecond);
 
-BENCHMARK_REGISTER_F(DataTableBenchmark, RandomRead)->Unit(benchmark::kMillisecond);
+BENCHMARK_REGISTER_F(DataTableBenchmark, SelectRandom)->Unit(benchmark::kMillisecond);
 
-BENCHMARK_REGISTER_F(DataTableBenchmark, ConcurrentRandomRead)
+BENCHMARK_REGISTER_F(DataTableBenchmark, ConcurrentSelectRandom)
     ->Unit(benchmark::kMillisecond)
     ->UseRealTime()
     ->UseManualTime();
+
+BENCHMARK_REGISTER_F(DataTableBenchmark, ConcurrentSelectSequential)
+    ->Unit(benchmark::kMillisecond)
+    ->UseRealTime()
+    ->UseManualTime();
+
+BENCHMARK_REGISTER_F(DataTableBenchmark, ConcurrentScan)->Unit(benchmark::kMillisecond)->UseRealTime()->UseManualTime();
 }  // namespace terrier

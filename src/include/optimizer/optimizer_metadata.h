@@ -139,7 +139,7 @@ class OptimizerMetadata {
    * @param expr OperatorExpression to convert
    * @returns GroupExpression representing OperatorExpression
    */
-  GroupExpression *MakeGroupExpression(OperatorExpression *expr) {
+  GroupExpression *MakeGroupExpression(common::ManagedPointer<OperatorExpression> expr) {
     std::vector<GroupID> child_groups;
     for (auto &child : expr->GetChildren()) {
       // Create a GroupExpression for the child
@@ -169,7 +169,7 @@ class OptimizerMetadata {
    * @param gexpr Places the newly created GroupExpression
    * @returns Whether the OperatorExpression already exists
    */
-  bool RecordTransformedExpression(OperatorExpression *expr, GroupExpression **gexpr) {
+  bool RecordTransformedExpression(common::ManagedPointer<OperatorExpression> expr, GroupExpression **gexpr) {
     return RecordTransformedExpression(expr, gexpr, UNDEFINED_GROUP);
   }
 
@@ -184,7 +184,8 @@ class OptimizerMetadata {
    * @param target_group ID of the Group that the OperatorExpression belongs to
    * @returns Whether the OperatorExpression already exists
    */
-  bool RecordTransformedExpression(OperatorExpression *expr, GroupExpression **gexpr, GroupID target_group) {
+  bool RecordTransformedExpression(common::ManagedPointer<OperatorExpression> expr, GroupExpression **gexpr,
+                                   GroupID target_group) {
     auto new_gexpr = MakeGroupExpression(expr);
     auto ptr = memo_.InsertExpression(new_gexpr, target_group, false);
     TERRIER_ASSERT(ptr, "Root of expr should not fail insertion");
@@ -203,7 +204,7 @@ class OptimizerMetadata {
    * @param expr OperatorExpression to store into the group
    * @param target_group ID of the Group to replace
    */
-  void ReplaceRewritedExpression(OperatorExpression *expr, GroupID target_group) {
+  void ReplaceRewritedExpression(common::ManagedPointer<OperatorExpression> expr, GroupID target_group) {
     memo_.EraseExpression(target_group);
     UNUSED_ATTRIBUTE auto ret = memo_.InsertExpression(MakeGroupExpression(expr), target_group, false);
     TERRIER_ASSERT(ret, "Root expr should always be inserted");
