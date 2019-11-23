@@ -668,8 +668,7 @@ TEST_F(OperatorTransformerTest, SelectStatementDiffTableSameSchemaTest) {
   std::string ref =
       "{\"Op\":\"LogicalFilter\",\"Children\":"
       "[{\"Op\":\"LogicalInnerJoin\",\"Children\":"
-      "[{\"Op\":\"LogicalInnerJoin\",\"Children\":"
-      "[{\"Op\":\"LogicalGet\",},{\"Op\":\"LogicalGet\",}]},{\"Op\":\"LogicalGet\",}]}]}";
+      "[{\"Op\":\"LogicalGet\",},{\"Op\":\"LogicalGet\",}]}]}";
 
   auto parse_tree = parser_.BuildParseTree(select_sql);
   auto statement = parse_tree.GetStatements()[0];
@@ -691,8 +690,7 @@ TEST_F(OperatorTransformerTest, SelectStatementSelectListAliasTest) {
   std::string ref =
       "{\"Op\":\"LogicalFilter\",\"Children\":"
       "[{\"Op\":\"LogicalInnerJoin\",\"Children\":"
-      "[{\"Op\":\"LogicalInnerJoin\",\"Children\":"
-      "[{\"Op\":\"LogicalGet\",},{\"Op\":\"LogicalGet\",}]},{\"Op\":\"LogicalGet\",}]}]}";
+      "[{\"Op\":\"LogicalGet\",},{\"Op\":\"LogicalGet\",}]}]}";
 
   auto parse_tree = parser_.BuildParseTree(select_sql);
   auto statement = parse_tree.GetStatements()[0];

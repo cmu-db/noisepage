@@ -1140,7 +1140,7 @@ void PullFilterThroughAggregation::Transform(common::ManagedPointer<OperatorExpr
                                              UNUSED_ATTRIBUTE OptimizeContext *context) const {
   OPTIMIZER_LOG_TRACE("PullFilterThroughAggregation::Transform");
   auto &memo = context->GetMetadata()->GetMemo();
-  auto &filter_expr = input->GetChildren()[0];
+  auto filter_expr = input->GetChildren()[0];
   auto child_group_id = filter_expr->GetChildren()[0]->GetOp().As<LeafOperator>()->GetOriginGroup();
   const auto &child_group_aliases_set = memo.GetGroupByID(child_group_id)->GetTableAliases();
   auto &predicates = filter_expr->GetOp().As<LogicalFilter>()->GetPredicates();

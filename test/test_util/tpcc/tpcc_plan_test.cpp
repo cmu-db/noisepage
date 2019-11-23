@@ -39,7 +39,7 @@ void TpccPlanTest::CheckIndexScan(TpccPlanTest *test, parser::SelectStatement *s
   const planner::AbstractPlanNode *node = plan.get();
   while (node != nullptr) {
     if (node->GetPlanNodeType() == planner::PlanNodeType::INDEXSCAN) {
-      EXPECT_EQ(plan->GetChildrenSize(), 0);
+      EXPECT_EQ(node->GetChildrenSize(), 0);
       break;
     }
 
@@ -122,7 +122,6 @@ std::unique_ptr<planner::AbstractPlanNode> TpccPlanTest::Optimize(const std::str
                                                                   parser::StatementType stmt_type) {
   parser::PostgresParser pgparser;
   auto stmt_list = pgparser.BuildParseTree(query);
-  BeginTransaction();
 
   // Bind + Transform
   auto accessor = catalog_->GetAccessor(txn_, db_);
@@ -164,6 +163,35 @@ std::unique_ptr<planner::AbstractPlanNode> TpccPlanTest::Optimize(const std::str
     out_plan =
         optimizer->BuildPlanTree(std::move(plan), query_info, txn_, settings_manager_, accessor_, stats_storage_);
     delete property_set;
+  } else if (stmt_type == parser::StatementType::INSERT) {
+    auto ins_stmt = stmt_list.GetStatement(0).CastManagedPointerTo<parser::InsertStatement>();
+
+    auto &schema = accessor_->GetSchema(tbl_oid);
+    std::vector<catalog::col_oid_t> col_oids;
+    for (auto &col : *ins_stmt->GetInsertColumns()) {
+      col_oids.push_back(schema.GetColumn(col).Oid());
+    }
+
+    auto property_set = new optimizer::PropertySet();
+    auto query_info = optimizer::QueryInfo(stmt_type, {}, property_set);
+    out_plan =
+        optimizer->BuildPlanTree(std::move(plan), query_info, txn_, settings_manager_, accessor_, stats_storage_);
+    delete property_set;
+
+    EXPECT_EQ(out_plan->GetPlanNodeType(), planner::PlanNodeType::INSERT);
+    auto insert = reinterpret_cast<planner::InsertPlanNode *>(out_plan.get());
+    EXPECT_EQ(insert->GetDatabaseOid(), db_);
+    EXPECT_EQ(insert->GetNamespaceOid(), accessor_->GetDefaultNamespace());
+    EXPECT_EQ(insert->GetTableOid(), tbl_oid);
+    EXPECT_EQ(insert->GetParameterInfo(), col_oids);
+    EXPECT_EQ(insert->GetBulkInsertCount(), 1);
+
+    auto values = *(ins_stmt->GetValues());
+    EXPECT_EQ(values.size(), 1);
+    EXPECT_EQ(insert->GetValues(0).size(), values[0].size());
+    for (size_t idx = 0; idx < ins_stmt->GetValues()->size(); idx++) {
+      EXPECT_EQ(*(values[0][idx].Get()), *(insert->GetValues(0)[idx].Get()));
+    }
   } else {
     auto property_set = new optimizer::PropertySet();
     auto query_info = optimizer::QueryInfo(stmt_type, {}, property_set);
@@ -179,6 +207,7 @@ std::unique_ptr<planner::AbstractPlanNode> TpccPlanTest::Optimize(const std::str
 void TpccPlanTest::OptimizeUpdate(const std::string &query, catalog::table_oid_t tbl_oid,
                                   void (*Check)(TpccPlanTest *test, catalog::table_oid_t tbl_oid,
                                                 std::unique_ptr<planner::AbstractPlanNode> plan)) {
+  BeginTransaction();
   auto plan = Optimize(query, tbl_oid, parser::StatementType::UPDATE);
   EXPECT_EQ(plan->GetPlanNodeType(), planner::PlanNodeType::UPDATE);
   EXPECT_EQ(plan->GetChildrenSize(), 1);
@@ -190,38 +219,15 @@ void TpccPlanTest::OptimizeUpdate(const std::string &query, catalog::table_oid_t
 void TpccPlanTest::OptimizeDelete(const std::string &query, catalog::table_oid_t tbl_oid,
                                   void (*Check)(TpccPlanTest *test, catalog::table_oid_t tbl_oid,
                                                 std::unique_ptr<planner::AbstractPlanNode> plan)) {
+  BeginTransaction();
   auto plan = Optimize(query, tbl_oid, parser::StatementType::DELETE);
   Check(this, tbl_oid, std::move(plan));
   EndTransaction(true);
 }
 
 void TpccPlanTest::OptimizeInsert(const std::string &query, catalog::table_oid_t tbl_oid) {
-  parser::PostgresParser pgparser;
-  auto stmt_list = pgparser.BuildParseTree(query);
-  auto ins_stmt = stmt_list.GetStatement(0).CastManagedPointerTo<parser::InsertStatement>();
-
-  auto &schema = accessor_->GetSchema(tbl_oid);
-  std::vector<catalog::col_oid_t> col_oids;
-  for (auto &col : *ins_stmt->GetInsertColumns()) {
-    col_oids.push_back(schema.GetColumn(col).Oid());
-  }
-
-  auto out_plan = Optimize(query, tbl_oid, parser::StatementType::INSERT);
-  EXPECT_EQ(out_plan->GetPlanNodeType(), planner::PlanNodeType::INSERT);
-  auto insert = reinterpret_cast<planner::InsertPlanNode *>(out_plan.get());
-  EXPECT_EQ(insert->GetDatabaseOid(), db_);
-  EXPECT_EQ(insert->GetNamespaceOid(), accessor_->GetDefaultNamespace());
-  EXPECT_EQ(insert->GetTableOid(), tbl_oid);
-  EXPECT_EQ(insert->GetParameterInfo(), col_oids);
-  EXPECT_EQ(insert->GetBulkInsertCount(), 1);
-
-  auto values = *(ins_stmt->GetValues());
-  EXPECT_EQ(values.size(), 1);
-  EXPECT_EQ(insert->GetValues(0).size(), values[0].size());
-  for (size_t idx = 0; idx < ins_stmt->GetValues()->size(); idx++) {
-    EXPECT_EQ(*(values[0][idx].Get()), *(insert->GetValues(0)[idx].Get()));
-  }
-
+  BeginTransaction();
+  Optimize(query, tbl_oid, parser::StatementType::INSERT);
   EndTransaction(true);
 }
 
@@ -229,6 +235,7 @@ void TpccPlanTest::OptimizeQuery(const std::string &query, catalog::table_oid_t 
                                  void (*Check)(TpccPlanTest *test, parser::SelectStatement *sel_stmt,
                                                catalog::table_oid_t tbl_oid,
                                                std::unique_ptr<planner::AbstractPlanNode> plan)) {
+  BeginTransaction();
   parser::PostgresParser pgparser;
   auto stmt_list = pgparser.BuildParseTree(query);
   auto sel_stmt = stmt_list.GetStatement(0).CastManagedPointerTo<parser::SelectStatement>();
