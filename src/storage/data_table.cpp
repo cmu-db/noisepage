@@ -321,7 +321,7 @@ void DataTable::WriteSchemaMessage(std::ofstream &outfile, std::unordered_map<co
   outfile.write(reinterpret_cast<const char *>(&FLATBUF_CONTINUZATION), sizeof(int32_t));
   outfile.write(reinterpret_cast<const char *>(&padded_flatbuf_size), sizeof(int32_t));
   outfile.write(reinterpret_cast<const char *>(flatbuf_builder->GetBufferPointer()), flatbuf_size);
-  if (padded_flatbuf_size != flatbuf_size) {
+  if (padded_flatbuf_size != static_cast<uint32_t>(flatbuf_size)) {
     outfile.write(ALIGNMENT, padded_flatbuf_size - flatbuf_size);
   }
   outfile.flush();
@@ -359,7 +359,7 @@ void DataTable::WriteDictionaryMessage(std::ofstream &outfile, int64_t dictionar
   outfile.write(reinterpret_cast<const char *>(&FLATBUF_CONTINUZATION), sizeof(int32_t));
   outfile.write(reinterpret_cast<const char *>(&padded_flatbuf_size), sizeof(int32_t));
   outfile.write(reinterpret_cast<const char *>(flatbuf_builder->GetBufferPointer()), flatbuf_size);
-  if (padded_flatbuf_size != flatbuf_size) {
+  if (padded_flatbuf_size != static_cast<uint32_t>(flatbuf_size)) {
     outfile.write(ALIGNMENT, padded_flatbuf_size - flatbuf_size);
   }
 
@@ -451,7 +451,7 @@ void DataTable::ExportTable(const std::string &file_name) {
     outfile.write(reinterpret_cast<const char *>(&FLATBUF_CONTINUZATION), sizeof(int32_t));
     outfile.write(reinterpret_cast<const char *>(&padded_flatbuf_size), sizeof(int32_t));
     outfile.write(reinterpret_cast<const char *>(flatbuf_builder.GetBufferPointer()), flatbuf_size);
-    if (padded_flatbuf_size != flatbuf_size) {
+    if (padded_flatbuf_size != static_cast<uint32_t>(flatbuf_size)) {
       outfile.write(ALIGNMENT, padded_flatbuf_size - flatbuf_size);
     }
 
