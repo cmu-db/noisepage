@@ -258,8 +258,8 @@ class RecoveryTests : public TerrierTest {
     ShutdownAndRestartSystem();
 
     // Enable metrics for recovery
-    const std::chrono::milliseconds metrics_period_{10};
-    auto *const metrics_thread = new metrics::MetricsThread(metrics_period_);
+    const std::chrono::milliseconds metrics_period{10};
+    auto *const metrics_thread = new metrics::MetricsThread(metrics_period);
     metrics_thread->GetMetricsManager().EnableMetric(metrics::MetricsComponent::RECOVERY);
     common::ManagedPointer<metrics::MetricsManager> metrics_manager(&(metrics_thread->GetMetricsManager()));
 
