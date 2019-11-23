@@ -173,7 +173,7 @@ std::unique_ptr<planner::AbstractPlanNode> TpccPlanTest::Optimize(const std::str
   }
 
   delete optimizer;
-  return std::move(out_plan);
+  return out_plan;
 }
 
 void TpccPlanTest::OptimizeUpdate(const std::string &query, catalog::table_oid_t tbl_oid,
