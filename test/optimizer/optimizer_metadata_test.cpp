@@ -1,4 +1,7 @@
+#include <memory>
 #include <stack>
+#include <utility>
+#include <vector>
 
 #include "optimizer/binding.h"
 #include "optimizer/optimizer_defs.h"
