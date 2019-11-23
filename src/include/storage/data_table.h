@@ -222,21 +222,21 @@ class DataTable {
   /**
    * Dump a table to disk in arrow IPC format. The high-level IPC format is defined as below:
    *
-   *    <SCHEMA MESSAGE>
-   *    <DICTIONARY MESSAGE 0>
+   *    SCHEMA MESSAGE
+   *    DICTIONARY MESSAGE 0
    *     ...
-   *    <DICTIONARY MESSAGE k - 1>
-   *    <RECORDBATCH MESSAGE 0>
+   *    DICTIONARY MESSAGE k - 1
+   *    RECORDBATCH MESSAGE 0
    *     ...
-   *    <RECORDBATCH MESSAGE n - 1>
+   *    RECORDBATCH MESSAGE n - 1
    *
    * Where Dictionary messages and RecordBatch messages can interleave. Table data are primarily
    * stored in RecordBatch messages, each of which has the following format:
    *
-   *    <metadata_size: int32>
-   *    <metadata_flatbuffer: bytes>
-   *    <padding to 8-byte>
-   *    <message body>
+   *    metadata_size: int32
+   *    metadata_flatbuffer: bytes
+   *    padding to 8-byte
+   *    message body
    * Message body is the data, which are organized as several buffers. Each buffer is described by
    * a metadata_flatbuffer
    *
