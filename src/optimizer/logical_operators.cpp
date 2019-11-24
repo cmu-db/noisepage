@@ -721,20 +721,22 @@ common::hash_t LogicalAggregateAndGroupBy::Hash() const {
 // LogicalCreateDatabase
 //===--------------------------------------------------------------------===//
 
-Operator LogicalCreateDatabase::Make() {
-  auto *op = new LogicalCreateDatabase;
-  return Operator(op);
+Operator LogicalCreateDatabase::Make(std::string database_name) {
+  auto op = std::make_unique<LogicalCreateDatabase>();
+  op->database_name_ = std::move(database_name);
+  return Operator(std::move(op));
 }
 
 common::hash_t LogicalCreateDatabase::Hash() const {
   common::hash_t hash = BaseOperatorNode::Hash();
- return hash;
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_name_));
+  return hash;
 }
 
 bool LogicalCreateDatabase::operator==(const BaseOperatorNode &r) {
   if (r.GetType() != OpType::LOGICALCREATEDATABASE) return false;
   const LogicalCreateDatabase &node = *dynamic_cast<const LogicalCreateDatabase *>(&r);
-  return (true);
+  return node.database_name_ == database_name_;
 }
 
 //===--------------------------------------------------------------------===//
@@ -797,26 +799,41 @@ bool LogicalCreateIndex::operator==(const BaseOperatorNode &r) {
 // LogicalCreateTable
 //===--------------------------------------------------------------------===//
 
-Operator LogicalCreateTable::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid) {
-  auto *op = new LogicalCreateTable;
-  op->database_oid_ = database_oid;
+Operator LogicalCreateTable::Make(catalog::namespace_oid_t namespace_oid, std::string table_name, std::vector<common::ManagedPointer<parser::ColumnDefinition>> && columns, std::vector<common::ManagedPointer<parser::ColumnDefinition>> &&foreign_keys) {
+  auto op = std::make_unique<LogicalCreateTable>();
   op->namespace_oid_ = namespace_oid;
-  return Operator(op);
+  op->table_name_ = std::move(table_name);
+  op->columns_ = std::move(columns);
+  op->foreign_keys_ = std::move(foreign_keys);
+  return Operator(std::move(op));
 }
 
 common::hash_t LogicalCreateTable::Hash() const {
   common::hash_t hash = BaseOperatorNode::Hash();
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_oid_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(namespace_oid_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_name_));
+  hash = common::HashUtil::CombineHashInRange(hash, columns_.begin(), columns_.end());
+  for (const auto &col : columns_)
+    hash = common::HashUtil::CombineHashes(hash, col->Hash());
+  for (const auto &fk : foreign_keys_)
+    hash = common::HashUtil::CombineHashes(hash, fk->Hash());
   return hash;
 }
 
 bool LogicalCreateTable::operator==(const BaseOperatorNode &r) {
-  if (r.GetType() != OpType::LOGICALDELETE) return false;
+  if (r.GetType() != OpType::LOGICALCREATETABLE) return false;
   const LogicalCreateTable &node = *dynamic_cast<const LogicalCreateTable *>(&r);
-  if (database_oid_ != node.database_oid_) return false;
   if (namespace_oid_ != node.namespace_oid_) return false;
-  return (true);
+  if (table_name_ != node.table_name_) return false;
+  if (columns_.size() != node.columns_.size()) return false;
+  for (size_t i = 0; i < columns_.size(); i++) {
+    if (*(columns_[i]) != *(node.columns_[i])) return false;
+  }
+  if (foreign_keys_.size() != node.foreign_keys_.size()) return false;
+  for (size_t i = 0; i < foreign_keys_.size(); i++) {
+    if (*(foreign_keys_[i]) != *(node.foreign_keys_[i])) return false;
+  }
+  return true;
 }
 
 //===--------------------------------------------------------------------===//

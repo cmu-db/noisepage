@@ -990,10 +990,15 @@ class LogicalCreateDatabase : public OperatorNode<LogicalCreateDatabase> {
   /**
    * @return
    */
-  static Operator Make();
+  static Operator Make(std::string database_name);
 
   bool operator==(const BaseOperatorNode &r) override;
   common::hash_t Hash() const override;
+ private:
+  /**
+   * Name of the new database
+   */
+  std::string database_name_;
 };
 
 /**
@@ -1093,15 +1098,15 @@ class LogicalCreateTable : public OperatorNode<LogicalCreateTable> {
    * @param namespace_oid OID of the namespace
    * @return
    */
-  static Operator Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid);
+  static Operator Make(catalog::namespace_oid_t namespace_oid, std::string table_name, std::vector<common::ManagedPointer<parser::ColumnDefinition>> && columns, std::vector<common::ManagedPointer<parser::ColumnDefinition>> &&foreign_keys);
 
   bool operator==(const BaseOperatorNode &r) override;
   common::hash_t Hash() const override;
 
-  /**
-   * @return OID of the database
-   */
-  const catalog::db_oid_t &GetDatabaseOid() const { return database_oid_; }
+//  /**
+//   * @return OID of the database
+//   */
+//  const catalog::db_oid_t &GetDatabaseOid() const { return database_oid_; }
 
   /**
    * @return OID of the namespace
@@ -1110,14 +1115,24 @@ class LogicalCreateTable : public OperatorNode<LogicalCreateTable> {
 
  private:
   /**
-   * OID of the database
-   */
-  catalog::db_oid_t database_oid_;
-
-  /**
    * OID of the namespace
    */
   catalog::namespace_oid_t namespace_oid_;
+
+  /**
+   * Table Name
+   */
+   std::string table_name_;
+
+  /**
+   * Vector of column definations of the new table
+   */
+   std::vector<common::ManagedPointer<parser::ColumnDefinition>> columns_;
+
+  /**
+   * Vector of foreign key references of the new table
+   */
+   std::vector<common::ManagedPointer<parser::ColumnDefinition>> foreign_keys_;
 };
 
 /**

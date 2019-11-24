@@ -258,9 +258,86 @@ void QueryToOperatorTransformer::Visit(UNUSED_ATTRIBUTE parser::CreateFunctionSt
   OPTIMIZER_LOG_DEBUG("Transforming CreateFunctionStatement to operators ...");
 }
 
-void QueryToOperatorTransformer::Visit(UNUSED_ATTRIBUTE parser::CreateStatement *op,
-                                       UNUSED_ATTRIBUTE parser::ParseResult *parse_result) {
+void QueryToOperatorTransformer::Visit(parser::CreateStatement *op, parser::ParseResult *parse_result) {
   OPTIMIZER_LOG_DEBUG("Transforming CreateStatement to operators ...");
+  auto create_type = op->GetCreateType();
+  std::unique_ptr<OperatorExpression> create_expr;
+  switch (create_type) {
+    case parser::CreateStatement::CreateType::kDatabase:
+      create_expr = std::make_unique<OperatorExpression>(LogicalCreateDatabase::Make(op->GetDatabaseName()));
+      break;
+    case parser::CreateStatement::CreateType::kTable:
+      create_expr = std::make_unique<OperatorExpression>(LogicalCreateTable::Make(accessor_->GetDefaultNamespace(), op->GetTableName(), op->GetColumns(), op->GetForeignKeys()));
+
+      break;
+      // TODO(Ling): copied from create_table_plan_node builder.
+      //  Following part might be more adequate to be handled by optimizer when it it actually constructing the plan
+      //  I don't think we should extract out the desired fields here:
+//      std::vector<catalog::Schema::Column> columns;
+//      std::vector<std::string> pri_cols;
+//
+//      for (auto &col : op->GetColumns()) {
+//        type::TypeId val = col->GetValueType();
+//
+//        // Create column
+//        // The dereferences below are completely unsafe (there is no safe way to do it), but not fatal at the
+//        // moment because we don't actually use them yet... Fixing this requires overhauling the plannodes to strip
+//        // away shared pointers.
+//        if (col->GetVarlenSize() != 0) {
+//          TERRIER_ASSERT(val == type::TypeId::VARCHAR || val == type::TypeId::VARBINARY,
+//                         "Variable length types should have a non-zero max varlen size");
+//          columns.emplace_back(std::string(col->GetColumnName()), val, col->GetVarlenSize(), false,
+//                               *col->GetDefaultExpression());
+//        } else {
+//          TERRIER_ASSERT(val != type::TypeId::VARCHAR && val != type::TypeId::VARBINARY,
+//                         "Fixed length types should have max varlen of size 0");
+//          columns.emplace_back(std::string(col->GetColumnName()), val, false, *col->GetDefaultExpression());
+//        }
+//
+//        // Collect Multi-column constraints information
+//
+//        // Primary key
+//        if (col->IsPrimaryKey()) {
+//          pri_cols.push_back(col->GetColumnName());
+//        }
+//
+//        // Unique constraint
+//        // Currently only supports for single column
+//        if (col->IsUnique()) {
+//          ProcessUniqueConstraint(col);
+//        }
+//
+//        // Check expression constraint
+//        // Currently only supports simple boolean forms like (a > 0)
+//        if (col->GetCheckExpression() != nullptr) {
+//          ProcessCheckConstraint(col);
+//        }
+//      }
+//
+//      // The parser puts the multi-column constraint information
+//      // into an artificial ColumnDefinition.
+//      // primary key constraint
+//      if (!pri_cols.empty()) {
+//        primary_key_.primary_key_cols_ = pri_cols;
+//        primary_key_.constraint_name_ = "con_primary";
+//        has_primary_key_ = true;
+//      }
+//
+//      // foreign key
+//      for (auto &fk : create_stmt->GetForeignKeys()) {
+//        ProcessForeignKeyConstraint(table_name_, fk);
+//      }
+//
+//      table_schema_ = std::make_unique<catalog::Schema>(columns);
+    case parser::CreateStatement::CreateType::kIndex:
+    case parser::CreateStatement::CreateType::kTrigger:
+    case parser::CreateStatement::CreateType::kSchema:
+    case parser::CreateStatement::CreateType::kView:
+      break;
+  }
+
+  create_expr = std::make_unique<OperatorExpression>();
+  output_expr_ = std::move(create_expr);
 }
 void QueryToOperatorTransformer::Visit(parser::InsertStatement *op, parser::ParseResult *parse_result) {
   OPTIMIZER_LOG_DEBUG("Transforming InsertStatement to operators ...");

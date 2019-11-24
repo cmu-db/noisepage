@@ -270,6 +270,61 @@ struct ColumnDefinition {
   /** @param b true if should be primary key, false otherwise */
   void SetPrimary(bool b) { is_primary_ = b; }
 
+  /**
+ * Hashes the current column Defination
+ */
+  common::hash_t Hash() const {
+    common::hash_t hash = common::HashUtil::Hash(name_);
+    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_info_));
+    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(type_));
+    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(static_cast<char>(is_primary_)));
+    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(static_cast<char>(is_not_null_)));
+    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(static_cast<char>(is_unique_)));
+    if (default_expr_) hash = common::HashUtil::CombineHashes(hash, default_expr_->Hash());
+    if (check_expr_) hash = common::HashUtil::CombineHashes(hash, check_expr_->Hash());
+    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(varlen_));
+    hash = common::HashUtil::CombineHashInRange(hash, fk_sources_.begin(), fk_sinks_.end());
+    hash = common::HashUtil::CombineHashInRange(hash, fk_sinks_.begin(), fk_sinks_.end());
+    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(fk_sink_table_name_));
+    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(fk_delete_action_));
+    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(fk_update_action_));
+    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(fk_match_type_));
+    return hash;
+  }
+
+  /**
+   * Logical equality check.
+   * @param rhs other
+   * @return true if the two column definitions are logically equal
+   */
+  bool operator==(const ColumnDefinition &rhs) const {
+    if (name_ != rhs.name_) return false;
+    if (type_ != rhs.type_) return false;
+    if ((!table_info_ && rhs.table_info_) || (table_info_ && table_info_ != rhs.table_info_)) return false;
+    if (is_primary_ != rhs.is_primary_) return false;
+    if (is_not_null_ != rhs.is_not_null_) return false;
+    if (is_unique_!= rhs.is_unique_) return false;
+    if (varlen_!= rhs.varlen_) return false;
+    if ((!default_expr_ && rhs.default_expr_) || (default_expr_ && default_expr_ != rhs.default_expr_)) return false;
+    if ((!check_expr_ && rhs.check_expr_) || (check_expr_ && check_expr_ != rhs.check_expr_)) return false;
+    if (fk_sources_.size() != rhs.fk_sources_.size()) return false;
+    for (size_t i = 0; i < fk_sources_.size(); i++)
+      if (fk_sources_[i] != rhs.fk_sources_[i]) return false;
+    if (fk_sinks_.size() != rhs.fk_sinks_.size()) return false;
+    for (size_t i = 0; i < fk_sinks_.size(); i++)
+      if (fk_sinks_[i] != rhs.fk_sinks_[i]) return false;
+    if (fk_sink_table_name_ != rhs.fk_sink_table_name_) return false;
+    if (fk_delete_action_ != rhs.fk_delete_action_) return false;
+    return fk_match_type_ == rhs.fk_match_type_;
+  }
+
+
+  /**
+   * Logical inequality check.
+   * @param rhs other
+   * @return true if the two column definitions are logically not equal
+   */
+  bool operator!=(const ColumnDefinition &rhs) const { return !operator==(rhs); }
  private:
   const std::string name_;
   const std::unique_ptr<TableInfo> table_info_ = nullptr;
