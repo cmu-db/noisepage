@@ -8,6 +8,7 @@
 #include "loggers/binder_logger.h"
 #include "parser/expression/aggregate_expression.h"
 #include "parser/expression/column_value_expression.h"
+#include "parser/expression/comparison_expression.h"
 #include "parser/expression/operator_expression.h"
 #include "parser/expression/subquery_expression.h"
 #include "parser/postgresparser.h"
@@ -816,6 +817,36 @@ TEST_F(BinderCorrectnessTest, BindDepthTest) {
 
   auto exists_sub_expr_select_ele = exists_sub_expr_select->GetSelectColumns()[0];  // b1
   EXPECT_EQ(1, exists_sub_expr_select_ele->GetDepth());
+}
+
+// NOLINTNEXTLINE
+TEST_F(BinderCorrectnessTest, CreateDatabaseTest) {
+  // Check if nested select columns are correctly processed
+  BINDER_LOG_DEBUG("Checking create database.");
+
+  std::string create_sql = "CREATE DATABASE C;";
+  auto parse_tree = parser_.BuildParseTree(create_sql);
+  auto statement = parse_tree.GetStatements()[0];
+  EXPECT_NO_THROW(binder_->BindNameToNode(statement, &parse_tree));
+}
+
+// NOLINTNEXTLINE
+TEST_F(BinderCorrectnessTest, CreateTableTest) {
+  // Check if nested select columns are correctly processed
+  BINDER_LOG_DEBUG("Checking create table. Note that CREATE AS from select is not supported.");
+
+  std::string create_sql = "CREATE TABLE C ( C1 int NOT NULL, C2 varchar(255) NOT NULL UNIQUE, C3 INT REFERENCES A(A1), C4 INT DEFAULT 14 CHECK (C4<100), PRIMARY KEY(C1));";
+  auto parse_tree = parser_.BuildParseTree(create_sql);
+  auto statement = parse_tree.GetStatements()[0];
+  binder_->BindNameToNode(statement, &parse_tree);
+
+  auto create_stmt = statement.CastManagedPointerTo<parser::CreateStatement>();
+  EXPECT_TRUE(create_stmt != nullptr);
+  auto check_expr = create_stmt->GetColumns().at(3)->GetCheckExpression();
+  EXPECT_TRUE(check_expr != nullptr);
+  auto comp_expr = check_expr.CastManagedPointerTo<parser::ComparisonExpression>();
+  // check (c4 < 100)
+  EXPECT_EQ(comp_expr->GetChild(0).CastManagedPointerTo<parser::ColumnValueExpression>()->GetTableName(), "c");
 }
 
 }  // namespace terrier

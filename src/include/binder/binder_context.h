@@ -70,6 +70,15 @@ class BinderContext {
                       const std::vector<common::ManagedPointer<parser::AbstractExpression>> &select_list);
 
   /**
+   * Add the new table by update the nested table alias map. This is called only in create table statement.
+   * We insert the new table information to the nested table alias map because the structure of the attribute matches
+   * the information we have about the new table; the name of the attribute might confuse people.
+   * @param new_table_name Name of the new table
+   * @param new_columns List of column definations of the new table
+   */
+  void AddNewTable(const std::string &new_table_name, const std::vector<common::ManagedPointer<parser::ColumnDefinition>> &new_columns);
+
+  /**
    * Check if the current context has any table
    */
   bool HasTables() { return (!regular_table_alias_map_.empty() || !nested_table_alias_map_.empty()); }

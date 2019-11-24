@@ -182,9 +182,43 @@ void BindNodeVisitor::Visit(UNUSED_ATTRIBUTE parser::CreateFunctionStatement *no
   BINDER_LOG_DEBUG("Visiting CreateFunctionStatement ...");
 }
 
-void BindNodeVisitor::Visit(parser::CreateStatement *node, UNUSED_ATTRIBUTE parser::ParseResult *parse_result) {
+void BindNodeVisitor::Visit(parser::CreateStatement *node, parser::ParseResult *parse_result) {
   BINDER_LOG_DEBUG("Visiting CreateStatement ...");
-  node->TryBindDatabaseName(default_database_name_);
+  context_ = new BinderContext(context_);
+
+  auto create_type = node->GetCreateType();
+  switch (create_type) {
+    case parser::CreateStatement::CreateType::kDatabase:
+      break;
+    case parser::CreateStatement::CreateType::kTable:
+      node->TryBindDatabaseName(default_database_name_);
+      context_->AddNewTable(node->GetTableName(), node->GetColumns());
+      for (const auto &col : node->GetColumns()) {
+        if (col->GetDefaultExpression() != nullptr) col->GetDefaultExpression()->Accept(this, parse_result);
+        if (col->GetCheckExpression() != nullptr)
+          col->GetCheckExpression()->Accept(this, parse_result);
+      }
+      for (const auto &fk : node->GetForeignKeys()){
+        if (fk->GetDefaultExpression() != nullptr) fk->GetDefaultExpression()->Accept(this, parse_result);
+        if (fk->GetCheckExpression() != nullptr)
+          fk->GetCheckExpression()->Accept(this, parse_result);
+      }
+
+      break;
+    case parser::CreateStatement::CreateType::kIndex:
+      for (auto &attr : node->GetIndexAttributes()) {
+        auto expr = attr.GetExpression();
+        if (expr != nullptr) expr->Accept(this, parse_result);
+      }
+      break;
+    case parser::CreateStatement::CreateType::kTrigger:
+    case parser::CreateStatement::CreateType::kSchema:
+    case parser::CreateStatement::CreateType::kView:
+      break;
+  }
+  auto curr_context = context_;
+  context_ = context_->GetUpperContext();
+  delete curr_context;
 }
 
 void BindNodeVisitor::Visit(parser::InsertStatement *node, parser::ParseResult *parse_result) {
