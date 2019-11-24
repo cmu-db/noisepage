@@ -123,27 +123,29 @@ TEST_F(TrafficCopTests, RoundTripTest) {
 // NOLINTNEXTLINE
 TEST_F(TrafficCopTests, TemporaryNamespaceTest) {
   try {
-    pqxx::connection connection(fmt::format("host=127.0.0.1 port={0} user={1} sslmode=disable application_name=psql",
-                                            port_, catalog::DEFAULT_DATABASE));
+    std::thread([this] {
+      pqxx::connection connection(fmt::format("host=127.0.0.1 port={0} user={1} sslmode=disable application_name=psql",
+                                              port_, catalog::DEFAULT_DATABASE));
 
-    pqxx::work txn1(connection);
+      pqxx::work txn1(connection);
 
-    auto txn = txn_manager_.BeginTransaction();
-    auto db_accessor = catalog_.GetAccessor(txn, catalog_.GetDatabaseOid(txn, catalog::DEFAULT_DATABASE));
+      auto txn = txn_manager_.BeginTransaction();
+      auto db_accessor = catalog_.GetAccessor(txn, catalog_.GetDatabaseOid(txn, catalog::DEFAULT_DATABASE));
 
-    // Create a new namespace and make sure that its OID is higher than the default start OID,
-    // which should have been assigned to the temporary namespace for this connection
-    auto new_namespace_oid = db_accessor->CreateNamespace(std::string(trafficcop::TEMP_NAMESPACE_PREFIX));
-    EXPECT_GT(static_cast<uint32_t>(new_namespace_oid), catalog::START_OID);
-    txn_manager_.Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
-    txn1.commit();
-    connection.disconnect();
+      // Create a new namespace and make sure that its OID is higher than the default start OID,
+      // which should have been assigned to the temporary namespace for this connection
+      auto new_namespace_oid = db_accessor->CreateNamespace(std::string(trafficcop::TEMP_NAMESPACE_PREFIX));
+      EXPECT_GT(static_cast<uint32_t>(new_namespace_oid), catalog::START_OID);
+      txn_manager_.Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+      txn1.commit();
+      connection.disconnect();
 
-    std::this_thread::sleep_for(std::chrono::seconds(5));
-    txn = txn_manager_.BeginTransaction();
-    db_accessor = catalog_.GetAccessor(txn, catalog_.GetDatabaseOid(txn, catalog::DEFAULT_DATABASE));
-    EXPECT_FALSE(db_accessor->DropNamespace(catalog::namespace_oid_t{catalog::START_OID}));
-    txn_manager_.Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+      std::this_thread::sleep_for(std::chrono::seconds(5));
+      txn = txn_manager_.BeginTransaction();
+      db_accessor = catalog_.GetAccessor(txn, catalog_.GetDatabaseOid(txn, catalog::DEFAULT_DATABASE));
+      EXPECT_FALSE(db_accessor->DropNamespace(catalog::namespace_oid_t{catalog::START_OID}));
+      txn_manager_.Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+    });
   } catch (const std::exception &e) {
     TEST_LOG_ERROR("Exception occurred: {0}", e.what());
     EXPECT_TRUE(false);
