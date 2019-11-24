@@ -832,7 +832,6 @@ TEST_F(BinderCorrectnessTest, CreateDatabaseTest) {
 
 // NOLINTNEXTLINE
 TEST_F(BinderCorrectnessTest, CreateTableTest) {
-  // Check if nested select columns are correctly processed
   BINDER_LOG_DEBUG("Checking create table. Note that CREATE AS from select is not supported.");
 
   std::string create_sql = "CREATE TABLE C ( C1 int NOT NULL, C2 varchar(255) NOT NULL UNIQUE, C3 INT REFERENCES A(A1), C4 INT DEFAULT 14 CHECK (C4<100), PRIMARY KEY(C1));";
@@ -847,6 +846,28 @@ TEST_F(BinderCorrectnessTest, CreateTableTest) {
   auto comp_expr = check_expr.CastManagedPointerTo<parser::ComparisonExpression>();
   // check (c4 < 100)
   EXPECT_EQ(comp_expr->GetChild(0).CastManagedPointerTo<parser::ColumnValueExpression>()->GetTableName(), "c");
+}
+
+// NOLINTNEXTLINE
+TEST_F(BinderCorrectnessTest, CreateTableSimpleForeignTest) {
+  BINDER_LOG_DEBUG("Checking create table foreign key");
+
+  std::string
+      create_sql = "CREATE TABLE D ( D1 int NOT NULL, D2 varchar(255) NOT NULL UNIQUE, D3 INT UNIQUE, D4 VARCHAR(20) UNIQUE, PRIMARY KEY(D1, D2), FOREIGN KEY(D3, D4) REFERENCES A(A1, A2));";
+  auto parse_tree = parser_.BuildParseTree(create_sql);
+  auto statement = parse_tree.GetStatements()[0];
+  EXPECT_NO_THROW(binder_->BindNameToNode(statement, &parse_tree));
+}
+
+// NOLINTNEXTLINE
+TEST_F(BinderCorrectnessTest, CreateTableSimpleForeignViolateTest) {
+  BINDER_LOG_DEBUG("Checking create table foreign key type unmatch");
+
+  std::string
+      create_sql = "CREATE TABLE D ( D1 int NOT NULL, D2 varchar(255) NOT NULL UNIQUE, D3 INT UNIQUE, D4 INT UNIQUE, PRIMARY KEY(D1, D2), FOREIGN KEY(D4, D3) REFERENCES A(A1, A2));";
+  auto parse_tree = parser_.BuildParseTree(create_sql);
+  auto statement = parse_tree.GetStatements()[0];
+  EXPECT_THROW(binder_->BindNameToNode(statement, &parse_tree), BinderException);
 }
 
 }  // namespace terrier

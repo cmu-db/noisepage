@@ -195,10 +195,45 @@ void BindNodeVisitor::Visit(parser::CreateStatement *node, parser::ParseResult *
       context_->AddNewTable(node->GetTableName(), node->GetColumns());
       for (const auto &col : node->GetColumns()) {
         if (col->GetDefaultExpression() != nullptr) col->GetDefaultExpression()->Accept(this, parse_result);
-        if (col->GetCheckExpression() != nullptr)
-          col->GetCheckExpression()->Accept(this, parse_result);
+        if (col->GetCheckExpression() != nullptr) col->GetCheckExpression()->Accept(this, parse_result);
       }
-      // foreign key does not have check exprssion nor default expression
+      for (const auto &fk : node->GetForeignKeys()) {
+        // foreign key does not have check exprssion nor default expression
+        auto table_oid = catalog_accessor_->GetTableOid(fk->GetForeignKeySinkTableName());
+        if (table_oid == catalog::INVALID_TABLE_OID) {
+          throw BINDER_EXCEPTION("Foreign key referencing non-existing table");
+        }
+
+        auto src = fk->GetForeignKeySources();
+        auto ref = fk->GetForeignKeySinks();
+
+        // TODO(Ling): assuming no composite key? Do we support create type?
+        //  Where should we check uniqueness constraint
+        if (src.size() != ref.size())
+          throw BINDER_EXCEPTION("Number of columns in foreign key does not match number of reference columns");
+
+        for (size_t i = 0; i < src.size(); i++) {
+          auto ref_col = catalog_accessor_->GetSchema(table_oid).GetColumn(ref[i]);
+          if (ref_col.Oid() == catalog::INVALID_COLUMN_OID) {
+            throw BINDER_EXCEPTION("Foreign key referencing non-existing column");
+          }
+
+          bool find = false;
+          for (const auto &col : node->GetColumns()) {
+            if (col->GetColumnName() == src[i]) {
+              find = true;
+
+              // check if their type matches
+              if (ref_col.Type() != col->GetValueType())
+                throw BINDER_EXCEPTION(("Foreign key source column " + src[i] + "type does not match reference column type").c_str());
+
+              break;
+            }
+          }
+          if (!find)
+            throw BINDER_EXCEPTION(("Cannot find column " + src[i] + " in foreign key source").c_str());
+        }
+      }
       break;
     case parser::CreateStatement::CreateType::kIndex:
       for (auto &attr : node->GetIndexAttributes()) {

@@ -251,7 +251,7 @@ void QueryToOperatorTransformer::Visit(parser::OrderByDescription *node, parser:
 }
 void QueryToOperatorTransformer::Visit(UNUSED_ATTRIBUTE parser::LimitDescription *node,
                                        UNUSED_ATTRIBUTE parser::ParseResult *parse_result) {
-  OPTIMIZER_LOG_DEBUG("Transforming LimitDecription to operators ...");
+  OPTIMIZER_LOG_DEBUG("Transforming LimitDescription to operators ...");
 }
 void QueryToOperatorTransformer::Visit(UNUSED_ATTRIBUTE parser::CreateFunctionStatement *op,
                                        UNUSED_ATTRIBUTE parser::ParseResult *parse_result) {
@@ -264,10 +264,10 @@ void QueryToOperatorTransformer::Visit(parser::CreateStatement *op, parser::Pars
   std::unique_ptr<OperatorExpression> create_expr;
   switch (create_type) {
     case parser::CreateStatement::CreateType::kDatabase:
-      create_expr = std::make_unique<OperatorExpression>(LogicalCreateDatabase::Make(op->GetDatabaseName()));
+      create_expr = std::make_unique<OperatorExpression>(LogicalCreateDatabase::Make(op->GetDatabaseName()), std::vector<std::unique_ptr<OperatorExpression>>{});
       break;
     case parser::CreateStatement::CreateType::kTable:
-      create_expr = std::make_unique<OperatorExpression>(LogicalCreateTable::Make(accessor_->GetDefaultNamespace(), op->GetTableName(), op->GetColumns(), op->GetForeignKeys()));
+      create_expr = std::make_unique<OperatorExpression>(LogicalCreateTable::Make(accessor_->GetDefaultNamespace(), op->GetTableName(), op->GetColumns(), op->GetForeignKeys()), std::vector<std::unique_ptr<OperatorExpression>>{});
 
       break;
       // TODO(Ling): copied from create_table_plan_node builder.
@@ -330,13 +330,28 @@ void QueryToOperatorTransformer::Visit(parser::CreateStatement *op, parser::Pars
 //
 //      table_schema_ = std::make_unique<catalog::Schema>(columns);
     case parser::CreateStatement::CreateType::kIndex:
+//      index_name_ = std::string(op->GetIndexName());
+//
+//      // This holds the attribute names.
+//      std::vector<std::string> index_attrs_holder;
+//
+//      for (auto &attr : op->GetIndexAttributes()) {
+//        if (attr.GetExpression() == nullptr)
+//          index_attrs_holder.push_back(attr.GetName());
+//        else index_attrs_holder.push_back(attr.GetExpression()->GetExpressionName());
+//      }
+//
+//      index_attrs_ = index_attrs_holder;
+//
+//      index_type_ = op->GetIndexType();
+//
+//      unique_index_ = op->IsUniqueIndex();
     case parser::CreateStatement::CreateType::kTrigger:
     case parser::CreateStatement::CreateType::kSchema:
     case parser::CreateStatement::CreateType::kView:
       break;
   }
 
-  create_expr = std::make_unique<OperatorExpression>();
   output_expr_ = std::move(create_expr);
 }
 void QueryToOperatorTransformer::Visit(parser::InsertStatement *op, parser::ParseResult *parse_result) {

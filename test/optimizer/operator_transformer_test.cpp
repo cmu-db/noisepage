@@ -835,4 +835,50 @@ TEST_F(OperatorTransformerTest, SubqueryComplexTest) {
   EXPECT_EQ(ref, info);
 }
 
+// NOLINTNEXTLINE
+TEST_F(OperatorTransformerTest, CreateDatabaseTest) {
+  std::string create_sql = "CREATE DATABASE C;";
+
+  std::string ref ="{\"Op\":\"LogicalCreateDatabase\",}";
+
+  auto parse_tree = parser_.BuildParseTree(create_sql);
+  auto statement = parse_tree.GetStatements()[0];
+  binder_->BindNameToNode(statement, &parse_tree);
+  accessor_ = binder_->GetCatalogAccessor();
+  operator_transformer_ = std::make_unique<optimizer::QueryToOperatorTransformer>(std::move(accessor_));
+  operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, &parse_tree);
+  auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorExpression>(operator_tree_));
+
+  EXPECT_EQ(ref, info);
+
+  // Test logical create
+  auto logical_create = operator_tree_->GetOp().As<optimizer::LogicalCreateDatabase>();
+  EXPECT_EQ("c", logical_create->GetDatabaseName());
+}
+
+// NOLINTNEXTLINE
+TEST_F(OperatorTransformerTest, CreateTableTest) {
+  std::string create_sql = "CREATE TABLE C ( C1 int NOT NULL, C2 varchar(255) NOT NULL UNIQUE, C3 INT REFERENCES A(A1), C4 INT DEFAULT 14 CHECK (C4<100), PRIMARY KEY(C1));";
+
+  std::string ref ="{\"Op\":\"LogicalCreateTable\",}";
+
+  auto parse_tree = parser_.BuildParseTree(create_sql);
+  auto statement = parse_tree.GetStatements()[0];
+  binder_->BindNameToNode(statement, &parse_tree);
+  accessor_ = binder_->GetCatalogAccessor();
+  auto ns_oid = accessor_->GetDefaultNamespace();
+  operator_transformer_ = std::make_unique<optimizer::QueryToOperatorTransformer>(std::move(accessor_));
+  operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, &parse_tree);
+  auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorExpression>(operator_tree_));
+
+  EXPECT_EQ(ref, info);
+
+  // Test logical create
+  auto logical_create = operator_tree_->GetOp().As<optimizer::LogicalCreateTable>();
+  EXPECT_EQ(ns_oid, logical_create->GetNamespaceOid());
+  auto create_stmt = statement.CastManagedPointerTo<parser::CreateStatement>();
+  EXPECT_EQ(logical_create->GetColumns(), create_stmt->GetColumns());
+  EXPECT_EQ(logical_create->GetForeignKeys(), create_stmt->GetForeignKeys());
+}
+
 }  // namespace terrier
