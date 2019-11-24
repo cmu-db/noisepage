@@ -100,10 +100,6 @@ void DBMain::ForceShutdown() {
 }
 
 void DBMain::CleanUp() {
-  catalog_->TearDown();
-  garbage_collector_->PerformGarbageCollection();
-  garbage_collector_->PerformGarbageCollection();
-  garbage_collector_->PerformGarbageCollection();
   main_stat_reg_->Shutdown(false);
   log_manager_->PersistAndStop();
   thread_pool_->Shutdown();
