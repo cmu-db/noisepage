@@ -198,12 +198,7 @@ void BindNodeVisitor::Visit(parser::CreateStatement *node, parser::ParseResult *
         if (col->GetCheckExpression() != nullptr)
           col->GetCheckExpression()->Accept(this, parse_result);
       }
-      for (const auto &fk : node->GetForeignKeys()){
-        if (fk->GetDefaultExpression() != nullptr) fk->GetDefaultExpression()->Accept(this, parse_result);
-        if (fk->GetCheckExpression() != nullptr)
-          fk->GetCheckExpression()->Accept(this, parse_result);
-      }
-
+      // foreign key does not have check exprssion nor default expression
       break;
     case parser::CreateStatement::CreateType::kIndex:
       for (auto &attr : node->GetIndexAttributes()) {

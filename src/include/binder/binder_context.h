@@ -9,6 +9,7 @@
 
 #include "catalog/catalog.h"
 #include "catalog/catalog_defs.h"
+#include "parser/create_statement.h"
 
 namespace terrier {
 
