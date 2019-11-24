@@ -48,7 +48,7 @@ DEFINE_PERFORMANCE_CLASS(DataTableCounter, DataTableCounterMembers)
 class DataTable {
  public:
   /**
-   * Iterator for all the slots, claimed or otherwise, in the data table. This is useful for sequential scans.
+   * Iterator for all the slots, claimed or otherwise, in the data table. This is useful for sequential scans
    */
   class SlotIterator {
    public:
