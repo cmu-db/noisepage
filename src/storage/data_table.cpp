@@ -338,7 +338,7 @@ void DataTable::WriteDictionaryMessage(std::ofstream &outfile, int64_t dictionar
 
   // Add a fake validity buffer. This is required by flatbuffer. The dictionary message is
   // actually a warpped recordbatch message, i.e., the dictionary entries are written
-  // in one RecordBatch. RecordBatch is something requires a validity buffer.
+  // in one RecordBatch. RecordBatch is something requires a validity buffer
   buffers.emplace_back(buffer_offset, 0);
 
   AddBufferInfo(&buffer_offset, varlen_col.OffsetsLength() * sizeof(uint64_t), &buffers);
