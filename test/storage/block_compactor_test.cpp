@@ -378,9 +378,7 @@ TEST_F(BlockCompactorTest, DictionaryCompressionTest) {
 // NOLINTNEXTLINE
 TEST_F(BlockCompactorTest, ExportDictionaryCompressedTableTest) {
   unlink(EXPORT_TABLE_NAME);
-  generator_.seed(
-      std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch())
-          .count());
+  generator_.seed(0);
   storage::BlockLayout layout = StorageTestUtil::RandomLayoutWithVarlens(100, &generator_);
   storage::TupleAccessStrategy accessor(layout);
   // Technically, the block above is not "in" the table, but since we don't sequential scan that does not matter
@@ -428,9 +426,7 @@ TEST_F(BlockCompactorTest, ExportDictionaryCompressedTableTest) {
 // NOLINTNEXTLINE
 TEST_F(BlockCompactorTest, ExportVarlenTableTest) {
   unlink(EXPORT_TABLE_NAME);
-  generator_.seed(
-      std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch())
-          .count());
+  generator_.seed(0);
   storage::BlockLayout layout = StorageTestUtil::RandomLayoutWithVarlens(100, &generator_);
   storage::TupleAccessStrategy accessor(layout);
   // Technically, the block above is not "in" the table, but since we don't sequential scan that does not matter
