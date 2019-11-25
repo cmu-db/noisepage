@@ -193,6 +193,7 @@ void DeriveStats::Execute() {
   ChildStatsDeriver deriver;
   auto children_required_stats = deriver.DeriveInputStats(gexpr_, required_cols_, &context_->GetMetadata()->GetMemo());
   bool derive_children = false;
+  OPTIMIZER_LOG_TRACE("DeriveStats::Execute() group {0}", gexpr_->GetGroupID());
 
   // If we haven't got enough stats to compute the current stats, derive them
   // from the child first

@@ -329,7 +329,7 @@ void InputColumnDeriver::JoinHelper(const BaseOperatorNode *op) {
   UNUSED_ATTRIBUTE auto &probe_table_aliases = memo_->GetGroupByID(gexpr_->GetChildGroupId(1))->GetTableAliases();
   for (auto &col : input_cols_set) {
     common::ManagedPointer<parser::ColumnValueExpression> tv_expr;
-    if (col->GetExpressionType() == parser::ExpressionType::VALUE_TUPLE) {
+    if (col->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE) {
       tv_expr = col.CastManagedPointerTo<parser::ColumnValueExpression>();
     } else {
       TERRIER_ASSERT(parser::ExpressionUtil::IsAggregateExpression(col), "col should be AggregateExpression");

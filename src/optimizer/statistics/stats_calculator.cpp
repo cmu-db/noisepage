@@ -34,9 +34,16 @@ void StatsCalculator::Visit(const LogicalGet *op) {
     return;
   }
 
+  auto root_group = metadata_->GetMemo().GetGroupByID(gexpr_->GetGroupID());
   auto table_stats = metadata_->GetStatsStorage()->GetTableStats(op->GetDatabaseOid(), op->GetTableOid());
   if (table_stats == nullptr) {
     // no table stats
+    // Fill with defaults to prevent an infinite loop from above
+    for (auto &col : required_cols_) {
+      TERRIER_ASSERT(col->GetExpressionType() == parser::ExpressionType::COLUMN_VALUE, "Expected ColumnValue");
+      auto tv_expr = col.CastManagedPointerTo<parser::ColumnValueExpression>();
+      root_group->AddStats(tv_expr->GetFullName(), CreateDefaultStats(tv_expr));
+    }
     return;
   }
 
@@ -48,7 +55,6 @@ void StatsCalculator::Visit(const LogicalGet *op) {
   }
 
   // Compute selectivity at the first time
-  auto root_group = metadata_->GetMemo().GetGroupByID(gexpr_->GetGroupID());
   if (root_group->GetNumRows() == -1) {
     std::unordered_map<std::string, std::unique_ptr<ColumnStats>> predicate_stats;
     for (auto &annotated_expr : op->GetPredicates()) {

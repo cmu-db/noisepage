@@ -546,7 +546,6 @@ class PushImplicitFilterThroughJoin : public Rule {
                  OptimizeContext *context) const override;
 };
 
-
 /**
  * Rule performs predicate push-down to push a filter through join. For
  * example, for query "SELECT test.a, test.b FROM test, test1 WHERE test.a = 5"
@@ -578,7 +577,6 @@ class PushExplicitFilterThroughJoin : public Rule {
                  std::vector<std::unique_ptr<OperatorExpression>> *transformed,
                  OptimizeContext *context) const override;
 };
-
 
 /**
  * Rule transforms consecutive filters into a single filter
