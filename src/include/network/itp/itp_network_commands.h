@@ -5,7 +5,7 @@
 #define DEFINE_ITP_COMMAND(name, flush)                                                                                \
   class name : public ITPNetworkCommand {                                                                              \
    public:                                                                                                             \
-    explicit name(InputPacket *in) : ITPNetworkCommand(in, flush) {}                                                   \
+    explicit name(const common::ManagedPointer<InputPacket> in) : ITPNetworkCommand(in, flush) {}                      \
     Transition Exec(common::ManagedPointer<ProtocolInterpreter> interpreter,                                           \
                     common::ManagedPointer<ITPPacketWriter> out, common::ManagedPointer<trafficcop::TrafficCop> t_cop, \
                     common::ManagedPointer<ConnectionContext> connection, NetworkCallback callback) override;          \
@@ -38,7 +38,8 @@ class ITPNetworkCommand : public NetworkCommand {
    * @param in The input packets to this command
    * @param flush Whether or not to flush the output packets on completion
    */
-  ITPNetworkCommand(InputPacket *in, bool flush) : NetworkCommand(in, flush), in_len_(in->len_) {}
+  ITPNetworkCommand(const common::ManagedPointer<InputPacket> in, bool flush)
+      : NetworkCommand(in, flush), in_len_(in->len_) {}
 
   /**
    * Size of the input packet

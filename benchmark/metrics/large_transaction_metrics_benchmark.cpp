@@ -1,9 +1,9 @@
 #include <string>
 #include <vector>
 #include "benchmark/benchmark.h"
+#include "benchmark_util/data_table_benchmark_util.h"
 #include "metrics/metrics_thread.h"
 #include "storage/garbage_collector_thread.h"
-#include "util/data_table_benchmark_util.h"
 
 namespace terrier {
 

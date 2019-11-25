@@ -3,8 +3,8 @@
 #include <string_view>  // NOLINT
 #include "common/allocator.h"
 #include "storage/storage_defs.h"
-#include "util/storage_test_util.h"
-#include "util/test_harness.h"
+#include "test_util/storage_test_util.h"
+#include "test_util/test_harness.h"
 
 namespace terrier {
 // This is a simple test for the behavior of varlen entry with various creation parameters, particularly

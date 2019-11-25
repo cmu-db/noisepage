@@ -7,9 +7,9 @@
 #include "common/strong_typedef.h"
 #include "storage/storage_util.h"
 #include "storage/undo_record.h"
-#include "util/multithread_test_util.h"
-#include "util/storage_test_util.h"
-#include "util/test_harness.h"
+#include "test_util/multithread_test_util.h"
+#include "test_util/storage_test_util.h"
+#include "test_util/test_harness.h"
 
 namespace terrier {
 

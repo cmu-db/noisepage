@@ -1,7 +1,7 @@
 #include "optimizer/statistics/column_stats.h"
 #include "gtest/gtest.h"
 
-#include "util/test_harness.h"
+#include "test_util/test_harness.h"
 
 namespace terrier::optimizer {
 class ColumnStatsTests : public TerrierTest {

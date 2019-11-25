@@ -40,7 +40,7 @@ class ProtocolInterpreter {
    * @param callback The callback function to trigger on completion
    * @return The next transition for the client's associated state machine
    */
-  virtual Transition Process(std::shared_ptr<ReadBuffer> in, std::shared_ptr<WriteQueue> out,
+  virtual Transition Process(common::ManagedPointer<ReadBuffer> in, common::ManagedPointer<WriteQueue> out,
                              common::ManagedPointer<trafficcop::TrafficCop> t_cop,
                              common::ManagedPointer<ConnectionContext> context, NetworkCallback callback) = 0;
 
@@ -48,7 +48,7 @@ class ProtocolInterpreter {
    * Sends a result
    * @param out The WriteQueue to communicate with the client through
    */
-  virtual void GetResult(std::shared_ptr<WriteQueue> out) = 0;
+  virtual void GetResult(common::ManagedPointer<WriteQueue> out) = 0;
 
   /**
    * Default destructor for ProtocolInterpreter
@@ -71,14 +71,14 @@ class ProtocolInterpreter {
    * Sets the message type of the current packet
    * @param in ReadBuffer to read input from
    */
-  virtual void SetPacketMessageType(const std::shared_ptr<ReadBuffer> &in) = 0;
+  virtual void SetPacketMessageType(common::ManagedPointer<ReadBuffer> in) = 0;
 
   /**
    * Reads the header of the packet to see if it is valid
    * @param in The ReadBuffer to read input from
    * @return whether the packet header is valid or not
    */
-  bool TryReadPacketHeader(const std::shared_ptr<ReadBuffer> &in) {
+  bool TryReadPacketHeader(const common::ManagedPointer<ReadBuffer> in) {
     if (curr_input_packet_.header_parsed_) return true;
 
     // Header format: 1 byte message type (only if non-startup)
@@ -95,14 +95,17 @@ class ProtocolInterpreter {
       throw NETWORK_PROCESS_EXCEPTION("Packet too large");
     }
 
+    TERRIER_ASSERT(!curr_input_packet_.extended_,
+                   "InputPacket shouldn't already be extended before beginning parsing of the body.");
+
     // Extend the buffer as needed
     if (curr_input_packet_.len_ > in->Capacity()) {
       // Allocate a larger buffer and copy bytes off from the I/O layer's buffer
-      curr_input_packet_.buf_ = std::make_shared<ReadBuffer>(curr_input_packet_.len_);
+      curr_input_packet_.buf_ = new ReadBuffer(curr_input_packet_.len_);
       NETWORK_LOG_TRACE("Extended Buffer size required for packet of size {0}", curr_input_packet_.len_);
       curr_input_packet_.extended_ = true;
     } else {
-      curr_input_packet_.buf_ = in;
+      curr_input_packet_.buf_ = in.Get();
     }
 
     curr_input_packet_.header_parsed_ = true;
@@ -114,7 +117,7 @@ class ProtocolInterpreter {
    * @param in The ReadBuffer to read input from
    * @return whether the packet is valid or not
    */
-  bool TryBuildPacket(const std::shared_ptr<ReadBuffer> &in) {
+  bool TryBuildPacket(const common::ManagedPointer<ReadBuffer> in) {
     if (!TryReadPacketHeader(in)) return false;
 
     size_t size_needed = curr_input_packet_.extended_
@@ -127,7 +130,10 @@ class ProtocolInterpreter {
     // copy bytes only if the packet is longer than the read buffer,
     // otherwise we can use the read buffer to save space
     if (curr_input_packet_.extended_) {
-      curr_input_packet_.buf_->FillBufferFrom(*in, can_read);
+      TERRIER_ASSERT(curr_input_packet_.len_ == curr_input_packet_.buf_->Capacity(),
+                     "The buffer should have been extended to support the packet length. Otherwise, there's a mismatch "
+                     "between the extended_ flag.");
+      curr_input_packet_.buf_->FillBufferFrom(in, can_read);
     }
 
     return remaining_bytes <= 0;

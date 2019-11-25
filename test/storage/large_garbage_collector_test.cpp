@@ -1,42 +1,31 @@
-#include <memory>
 #include <random>
-#include <vector>
-#include "di/di_help.h"
-#include "di/injectors.h"
 #include "gtest/gtest.h"
 #include "storage/garbage_collector_thread.h"
-#include "util/data_table_test_util.h"
+#include "test_util/data_table_test_util.h"
+#include "transaction/deferred_action_manager.h"
 
 namespace terrier {
 class LargeGCTests : public TerrierTest {
  public:
   void RunTest(const LargeDataTableTestConfiguration &config) {
     for (uint32_t iteration = 0; iteration < config.NumIterations(); iteration++) {
-      auto injector = di::make_injector<di::TestBindingPolicy>(
-          di::storage_injector(), di::bind<storage::AccessObserver>().in(di::disabled),
-          di::bind<common::DedicatedThreadRegistry>().in(
-              di::disabled)[di::override],  // no need for thread registry in this test
-          di::bind<metrics::MetricsManager>().in(di::disabled)[di::override],  // no need for metrics in this test
-          di::bind<storage::LogManager>().in(di::disabled)[di::override],      // no need for logging in this test
-          di::bind<LargeDataTableTestConfiguration>().to(config),
-          di::bind<std::default_random_engine>().in(di::terrier_singleton),  // need to be universal across injectors
-          di::bind<uint64_t>().named(storage::BlockStore::SIZE_LIMIT).to(static_cast<uint64_t>(1000)),
-          di::bind<uint64_t>().named(storage::BlockStore::REUSE_LIMIT).to(static_cast<uint64_t>(1000)),
-          di::bind<uint64_t>().named(storage::RecordBufferSegmentPool::SIZE_LIMIT).to(static_cast<uint64_t>(10000)),
-          di::bind<uint64_t>().named(storage::RecordBufferSegmentPool::REUSE_LIMIT).to(static_cast<uint64_t>(10000)),
-          di::bind<bool>().named(transaction::TransactionManager::GC_ENABLED).to(true),
-          di::bind<std::chrono::milliseconds>()
-              .named(storage::GarbageCollectorThread::GC_PERIOD)
-              .to(std::chrono::milliseconds(10)));
-      auto tested = injector.create<std::unique_ptr<LargeDataTableTestObject>>();
-      auto gc_thread = injector.create<std::unique_ptr<storage::GarbageCollectorThread>>();
+      std::default_random_engine generator;
+      storage::BlockStore store(10000, 1000);
+      storage::RecordBufferSegmentPool buffer_pool(10000, 10000);
+      transaction::TimestampManager timestamp_manager;
+      transaction::DeferredActionManager deferred_action_manager(&timestamp_manager);
+      transaction::TransactionManager txn_manager(&timestamp_manager, &deferred_action_manager, &buffer_pool, true,
+                                                  DISABLED);
+      storage::GarbageCollector gc(&timestamp_manager, &deferred_action_manager, &txn_manager, DISABLED);
+      LargeDataTableTestObject tested(config, &store, &txn_manager, &generator, DISABLED);
+      storage::GarbageCollectorThread gc_thread(&gc, std::chrono::milliseconds(10));
       for (uint32_t batch = 0; batch * config.BatchSize() < config.NumTxns(); batch++) {
-        auto result = tested->SimulateOltp(config.BatchSize(), config.NumConcurrentTxns());
-        gc_thread->PauseGC();
-        tested->CheckReadsCorrect(&result.first);
+        auto result = tested.SimulateOltp(config.BatchSize(), config.NumConcurrentTxns());
+        gc_thread.PauseGC();
+        tested.CheckReadsCorrect(&result.first);
         for (auto w : result.first) delete w;
         for (auto w : result.second) delete w;
-        gc_thread->ResumeGC();
+        gc_thread.ResumeGC();
       }
     }
   }
