@@ -1314,11 +1314,6 @@ std::unique_ptr<SQLStatement> PostgresParser::CreateIndexTransform(ParseResult *
     index_type = IndexType::BWTREE;
   } else if (strcmp(access_method, "hash") == 0) {
     index_type = IndexType::HASH;
-    // TODO(Matt) are we ever gonna support these again? if not we should remove them
-    //  } else if (strcmp(access_method, "skiplist") == 0) {
-    //    index_type = IndexType::SKIPLIST;
-    //  } else if (strcmp(access_method, "art") == 0) {
-    //    index_type = IndexType::ART;
   } else {
     PARSER_LOG_DEBUG("CreateIndexTransform: IndexType {} not supported", access_method);
     throw NOT_IMPLEMENTED_EXCEPTION("CreateIndexTransform error");

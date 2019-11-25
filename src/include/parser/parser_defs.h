@@ -60,9 +60,6 @@ enum class IndexType {
   INVALID = INVALID_TYPE_ID,  // invalid index type
   BWTREE = 1,                 // bwtree
   HASH = 2,                   // hash
-  // TODO(Matt) are we ever gonna support these again? if not we should remove them
-  //  SKIPLIST = 3,               // skiplist
-  //  ART = 4,                    // ART
 };
 
 enum class InsertType {
