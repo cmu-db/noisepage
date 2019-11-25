@@ -20,6 +20,7 @@
 #include "parser/expression/subquery_expression.h"
 #include "parser/statements.h"
 #include "planner/plannodes/plan_node_defs.h"
+#include "parser/postgresparser.h"
 
 namespace terrier::optimizer {
 
@@ -268,84 +269,27 @@ void QueryToOperatorTransformer::Visit(parser::CreateStatement *op, parser::Pars
       break;
     case parser::CreateStatement::CreateType::kTable:
       create_expr = std::make_unique<OperatorExpression>(LogicalCreateTable::Make(accessor_->GetDefaultNamespace(), op->GetTableName(), op->GetColumns(), op->GetForeignKeys()), std::vector<std::unique_ptr<OperatorExpression>>{});
-
-      break;
-      // TODO(Ling): copied from create_table_plan_node builder.
+      // TODO(Ling): for other procedures to generate create table plan, refer to create_table_plan_node builder.
       //  Following part might be more adequate to be handled by optimizer when it it actually constructing the plan
-      //  I don't think we should extract out the desired fields here:
-//      std::vector<catalog::Schema::Column> columns;
-//      std::vector<std::string> pri_cols;
-//
-//      for (auto &col : op->GetColumns()) {
-//        type::TypeId val = col->GetValueType();
-//
-//        // Create column
-//        // The dereferences below are completely unsafe (there is no safe way to do it), but not fatal at the
-//        // moment because we don't actually use them yet... Fixing this requires overhauling the plannodes to strip
-//        // away shared pointers.
-//        if (col->GetVarlenSize() != 0) {
-//          TERRIER_ASSERT(val == type::TypeId::VARCHAR || val == type::TypeId::VARBINARY,
-//                         "Variable length types should have a non-zero max varlen size");
-//          columns.emplace_back(std::string(col->GetColumnName()), val, col->GetVarlenSize(), false,
-//                               *col->GetDefaultExpression());
-//        } else {
-//          TERRIER_ASSERT(val != type::TypeId::VARCHAR && val != type::TypeId::VARBINARY,
-//                         "Fixed length types should have max varlen of size 0");
-//          columns.emplace_back(std::string(col->GetColumnName()), val, false, *col->GetDefaultExpression());
-//        }
-//
-//        // Collect Multi-column constraints information
-//
-//        // Primary key
-//        if (col->IsPrimaryKey()) {
-//          pri_cols.push_back(col->GetColumnName());
-//        }
-//
-//        // Unique constraint
-//        // Currently only supports for single column
-//        if (col->IsUnique()) {
-//          ProcessUniqueConstraint(col);
-//        }
-//
-//        // Check expression constraint
-//        // Currently only supports simple boolean forms like (a > 0)
-//        if (col->GetCheckExpression() != nullptr) {
-//          ProcessCheckConstraint(col);
-//        }
-//      }
-//
-//      // The parser puts the multi-column constraint information
-//      // into an artificial ColumnDefinition.
-//      // primary key constraint
-//      if (!pri_cols.empty()) {
-//        primary_key_.primary_key_cols_ = pri_cols;
-//        primary_key_.constraint_name_ = "con_primary";
-//        has_primary_key_ = true;
-//      }
-//
-//      // foreign key
-//      for (auto &fk : create_stmt->GetForeignKeys()) {
-//        ProcessForeignKeyConstraint(table_name_, fk);
-//      }
-//
-//      table_schema_ = std::make_unique<catalog::Schema>(columns);
-    case parser::CreateStatement::CreateType::kIndex:
-//      index_name_ = std::string(op->GetIndexName());
-//
-//      // This holds the attribute names.
-//      std::vector<std::string> index_attrs_holder;
-//
-//      for (auto &attr : op->GetIndexAttributes()) {
-//        if (attr.GetExpression() == nullptr)
-//          index_attrs_holder.push_back(attr.GetName());
-//        else index_attrs_holder.push_back(attr.GetExpression()->GetExpressionName());
-//      }
-//
-//      index_attrs_ = index_attrs_holder;
-//
-//      index_type_ = op->GetIndexType();
-//
-//      unique_index_ = op->IsUniqueIndex();
+      //  I don't think we should extract out the desired fields here.
+      break;
+
+    case parser::CreateStatement::CreateType::kIndex: {
+      // create vector of expressions of the index entires
+      std::vector<common::ManagedPointer<parser::AbstractExpression>> entries;
+      for (auto &attr : op->GetIndexAttributes()) {
+        if (attr.HasExpr()) {
+          entries.emplace_back(attr.GetExpression());
+        } else {
+          auto tb_oid = accessor_->GetTableOid(op->GetTableName());
+          auto unique_col_expr = std::make_unique<parser::ColumnValueExpression>(op->GetTableName(), attr.GetName(), accessor_->GetDatabaseOid(op->GetDatabaseName()), tb_oid, accessor_->GetSchema(tb_oid).GetColumn(attr.GetName()).Oid());
+          parse_result->AddExpression(std::move(unique_col_expr));
+          auto new_col_expr = common::ManagedPointer(parse_result->GetExpressions().back());
+          entries.push_back(new_col_expr);
+        }
+      }
+      create_expr = std::make_unique<OperatorExpression>(LogicalCreateIndex::Make(accessor_->GetDefaultNamespace(), accessor_->GetTableOid(op->GetTableName()), op->GetIndexType(), op->IsUniqueIndex(), op->GetIndexName(), std::move(entries)), std::vector<std::unique_ptr<OperatorExpression>>{});
+    }
     case parser::CreateStatement::CreateType::kTrigger:
     case parser::CreateStatement::CreateType::kSchema:
     case parser::CreateStatement::CreateType::kView:

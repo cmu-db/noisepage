@@ -870,4 +870,15 @@ TEST_F(BinderCorrectnessTest, CreateTableSimpleForeignViolateTest) {
   EXPECT_THROW(binder_->BindNameToNode(statement, &parse_tree), BinderException);
 }
 
+// NOLINTNEXTLINE
+TEST_F(BinderCorrectnessTest, CreateIndexTest) {
+  BINDER_LOG_DEBUG("Checking create index");
+
+  std::string
+      create_sql = "CREATE UNIQUE INDEX idx_d ON A (lower(A2), A1);";
+  auto parse_tree = parser_.BuildParseTree(create_sql);
+  auto statement = parse_tree.GetStatements()[0];
+  EXPECT_NO_THROW(binder_->BindNameToNode(statement, &parse_tree));
+}
+
 }  // namespace terrier

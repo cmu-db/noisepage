@@ -236,9 +236,23 @@ void BindNodeVisitor::Visit(parser::CreateStatement *node, parser::ParseResult *
       }
       break;
     case parser::CreateStatement::CreateType::kIndex:
+      if (catalog_accessor_->GetTableOid(node->GetTableName()) == catalog::INVALID_TABLE_OID) {
+        throw BINDER_EXCEPTION("Build index on non-existing table.");
+      }
+      if (catalog_accessor_->GetIndexOid(node->GetIndexName()) != catalog::INVALID_INDEX_OID) {
+        throw BINDER_EXCEPTION("This index already exists.");
+      }
+      node->TryBindDatabaseName(default_database_name_);
+      context_->AddRegularTable(catalog_accessor_, node->GetDatabaseName(), node->GetTableName(), node->GetTableName());
+
       for (auto &attr : node->GetIndexAttributes()) {
-        auto expr = attr.GetExpression();
-        if (expr != nullptr) expr->Accept(this, parse_result);
+        if (attr.HasExpr()) {
+          attr.GetExpression()->Accept(this, parse_result);
+        } else {
+          auto tb_oid = catalog_accessor_->GetTableOid(node->GetTableName());
+          if (!BinderContext::ColumnInSchema(catalog_accessor_->GetSchema(tb_oid), attr.GetName()))
+            throw BINDER_EXCEPTION(("No such column specified by the index attribute "+ attr.GetName()).c_str());
+        }
       }
       break;
     case parser::CreateStatement::CreateType::kTrigger:

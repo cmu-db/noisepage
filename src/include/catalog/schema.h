@@ -258,6 +258,7 @@ class Schema {
     }
     // TODO(John): Should this be a TERRIER_ASSERT to have the same semantics
     // as the other accessor methods above?
+    //  (Ling): Probably not? Or is there a proper way for binder to check if a column exists?
     throw std::out_of_range("Column name doesn't exist");
   }
   /**

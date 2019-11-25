@@ -881,4 +881,49 @@ TEST_F(OperatorTransformerTest, CreateTableTest) {
   EXPECT_EQ(logical_create->GetForeignKeys(), create_stmt->GetForeignKeys());
 }
 
+
+// NOLINTNEXTLINE
+TEST_F(OperatorTransformerTest, CreateIndexTest) {
+  std::string
+      create_sql = "CREATE UNIQUE INDEX idx_d ON A (lower(A2), A1);";
+  std::string ref ="{\"Op\":\"LogicalCreateIndex\",}";
+
+  auto parse_tree = parser_.BuildParseTree(create_sql);
+  auto statement = parse_tree.GetStatements()[0];
+  binder_->BindNameToNode(statement, &parse_tree);
+  accessor_ = binder_->GetCatalogAccessor();
+  auto ns_oid = accessor_->GetDefaultNamespace();
+  auto col_a1_oid = accessor_->GetSchema(table_a_oid_).GetColumn("a1").Oid();
+  auto col_a2_oid = accessor_->GetSchema(table_a_oid_).GetColumn("a2").Oid();
+  operator_transformer_ = std::make_unique<optimizer::QueryToOperatorTransformer>(std::move(accessor_));
+  operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, &parse_tree);
+  auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorExpression>(operator_tree_));
+
+  EXPECT_EQ(ref, info);
+
+  // Test logical create
+  auto logical_create = operator_tree_->GetOp().As<optimizer::LogicalCreateIndex>();
+  EXPECT_EQ(logical_create->GetTableOid(), table_a_oid_);
+  EXPECT_EQ(logical_create->GetNamespaceOid(), ns_oid);
+  EXPECT_EQ(logical_create->GetIndexType(), parser::IndexType::BWTREE);
+  EXPECT_EQ(logical_create->GetIndexName(), "idx_d");
+  EXPECT_TRUE(logical_create->IsUnique());
+  auto create_stmt = statement.CastManagedPointerTo<parser::CreateStatement>();
+  EXPECT_EQ(logical_create->GetIndexAttr().size(), 2);
+  EXPECT_EQ(logical_create->GetIndexAttr()[0], create_stmt->GetIndexAttributes()[0].GetExpression());
+  auto col_attr = logical_create->GetIndexAttr()[1].CastManagedPointerTo<parser::ColumnValueExpression>();
+  EXPECT_EQ(col_attr->GetTableName(), "a");
+  EXPECT_EQ(col_attr->GetTableOid(), table_a_oid_);
+  EXPECT_EQ(col_attr->GetColumnName(), "a1");
+  EXPECT_EQ(col_attr->GetColumnOid(), col_a1_oid);
+  EXPECT_EQ(col_attr->GetDatabaseOid(), db_oid_);
+
+  col_attr = logical_create->GetIndexAttr()[0]->GetChild(0).CastManagedPointerTo<parser::ColumnValueExpression>();
+  EXPECT_EQ(col_attr->GetTableName(), "a");
+  EXPECT_EQ(col_attr->GetTableOid(), table_a_oid_);
+  EXPECT_EQ(col_attr->GetColumnName(), "a2");
+  EXPECT_EQ(col_attr->GetColumnOid(), col_a2_oid);
+  EXPECT_EQ(col_attr->GetDatabaseOid(), db_oid_);
+}
+
 }  // namespace terrier

@@ -352,10 +352,13 @@ struct ColumnDefinition {
 class IndexAttr {
  public:
   /** Create an index attribute on a column name. */
-  explicit IndexAttr(std::string name) : name_(std::move(name)), expr_(nullptr) {}
+  explicit IndexAttr(std::string name) : has_expr_(false), name_(std::move(name)), expr_(nullptr) {}
 
   /** Create an index attribute on an expression. */
-  explicit IndexAttr(common::ManagedPointer<AbstractExpression> expr) : name_(""), expr_(expr) {}
+  explicit IndexAttr(common::ManagedPointer<AbstractExpression> expr) :has_expr_(true), name_(""), expr_(expr) {}
+
+  /** @return if the index attribute contains expression */
+  bool HasExpr() const { return has_expr_; }
 
   /** @return the name of the column that we're indexed on */
   std::string GetName() const {
@@ -370,6 +373,7 @@ class IndexAttr {
   }
 
  private:
+  bool has_expr_;
   std::string name_;
   common::ManagedPointer<AbstractExpression> expr_;
 };
