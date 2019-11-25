@@ -261,11 +261,12 @@ DatabaseCatalog *Catalog::DeleteDatabaseEntry(transaction::TransactionContext *t
   *(reinterpret_cast<db_oid_t *>(pr->AccessForceNotNull(0))) = db;
 
   databases_oid_index_->ScanKey(*txn, *pr, &index_results);
-  if (index_results.empty()) {
-    delete[] buffer;
-    return nullptr;
-  }
-  TERRIER_ASSERT(index_results.size() == 1, "Database OID not unique in index");
+  TERRIER_ASSERT(
+      index_results.size() == 1,
+      "Incorrect number of results from index scan. Expect 1 because it's a unique index. 0 implies that "
+      "function was called with an oid that doesn't exist in the Catalog, but binding somehow succeeded. That doesn't "
+      "make sense. Was a DROP plan node reused twice? IF EXISTS should be handled in the Binder, rather than "
+      "pushing logic here.");
 
   pr = delete_database_entry_pri_.InitializeRow(buffer);
   const auto UNUSED_ATTRIBUTE result = databases_->Select(txn, index_results[0], pr);
