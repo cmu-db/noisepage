@@ -1555,9 +1555,9 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {
   }
 
   OP(InserterIndexInsert) : {
+    auto *result = frame->LocalAt<bool *>(READ_LOCAL_ID());
     auto *inserter = frame->LocalAt<sql::Inserter *>(READ_LOCAL_ID());
-    auto index_oid = READ_UIMM4();
-    OpInserterIndexInsert(inserter, index_oid);
+    OpInserterIndexInsert(result, inserter);
     DISPATCH_NEXT();
   }
 
@@ -1581,10 +1581,11 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {
   }
 
   OP(DeleterTableDelete) : {
+    auto *result = frame->LocalAt<bool *>(READ_LOCAL_ID());
     auto *deleter = frame->LocalAt<sql::Deleter *>(READ_LOCAL_ID());
     auto *tuple_slot = frame->LocalAt<storage::TupleSlot *>(READ_LOCAL_ID());
 
-    OpDeleterTableDelete(deleter, tuple_slot);
+    OpDeleterTableDelete(result, deleter, tuple_slot);
     DISPATCH_NEXT();
   }
 
@@ -1599,10 +1600,9 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {
 
   OP(DeleterIndexDelete) : {
     auto *deleter = frame->LocalAt<sql::Deleter *>(READ_LOCAL_ID());
-    auto index_oid = READ_UIMM4();
     auto *tuple_slot = frame->LocalAt<storage::TupleSlot *>(READ_LOCAL_ID());
 
-    OpDeleterIndexDelete(deleter, index_oid, tuple_slot);
+    OpDeleterIndexDelete(deleter, tuple_slot);
     DISPATCH_NEXT();
   }
 
@@ -1645,18 +1645,20 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {
   }
 
   OP(UpdaterTableDelete) : {
+    auto *result = frame->LocalAt<bool *>(READ_LOCAL_ID());
     auto *updater = frame->LocalAt<sql::Updater *>(READ_LOCAL_ID());
     auto *tuple_slot = frame->LocalAt<storage::TupleSlot *>(READ_LOCAL_ID());
 
-    OpUpdaterTableDelete(updater, tuple_slot);
+    OpUpdaterTableDelete(result, updater, tuple_slot);
     DISPATCH_NEXT();
   }
 
   OP(UpdaterTableUpdate) : {
+    auto *result = frame->LocalAt<bool *>(READ_LOCAL_ID());
     auto *updater = frame->LocalAt<sql::Updater *>(READ_LOCAL_ID());
     auto *tuple_slot = frame->LocalAt<storage::TupleSlot *>(READ_LOCAL_ID());
 
-    OpUpdaterTableUpdate(updater, tuple_slot);
+    OpUpdaterTableUpdate(result, updater, tuple_slot);
     DISPATCH_NEXT();
   }
 
@@ -1670,17 +1672,16 @@ void VM::Interpret(const uint8_t *ip, Frame *frame) {
   }
 
   OP(UpdaterIndexInsert) : {
+    auto *result = frame->LocalAt<bool *>(READ_LOCAL_ID());
     auto *updater = frame->LocalAt<sql::Updater *>(READ_LOCAL_ID());
-    auto index_oid = READ_UIMM4();
-    OpUpdaterIndexInsert(updater, index_oid);
+    OpUpdaterIndexInsert(result, updater);
     DISPATCH_NEXT();
   }
 
   OP(UpdaterIndexDelete) : {
     auto *updater = frame->LocalAt<sql::Updater *>(READ_LOCAL_ID());
-    auto index_oid = READ_UIMM4();
     auto *tuple_slot = frame->LocalAt<storage::TupleSlot *>(READ_LOCAL_ID());
-    OpUpdaterIndexDelete(updater, index_oid, tuple_slot);
+    OpUpdaterIndexDelete(updater, tuple_slot);
     DISPATCH_NEXT();
   }
 

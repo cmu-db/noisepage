@@ -92,7 +92,12 @@ fun main(execCtx: *ExecutionContext) -> int64 {
   @prSetInt(index_pr, 0, @prGetInt(table_pr, 0))
 
   var index_count_before_insert = index_count(execCtx, value0)
-  @inserterIndexInsertBind(&inserter, "index_1")
+  if(!@inserterIndexInsert(&inserter)) {
+    // Free memory and abort
+    @inserterFree(&inserter)
+    @updaterFree(&updater)
+    return 0
+  }
 
   var table_count_after_insert = table_count(execCtx, &oids)
   var table_count_before_update = table_count_after_insert
@@ -103,7 +108,12 @@ fun main(execCtx: *ExecutionContext) -> int64 {
   @prSetInt(update_pr, 0, @intToSql(value1_changed))
   @prSetInt(update_pr, 1, @intToSql(value2_changed))
 
-  @updaterTableUpdate(&updater, &ts)
+  if (!@updaterTableUpdate(&updater, &ts)) {
+    // Free memory and abort
+    @inserterFree(&inserter)
+    @updaterFree(&updater)
+    return 0
+  }
 
   var table_count_after_update = table_count(execCtx, &oids)
   var index_count_after_update = index_count(execCtx, value0)

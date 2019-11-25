@@ -80,7 +80,12 @@ fun main(execCtx: *ExecutionContext) -> int64 {
   @prSetInt(index_pr, 0, @prGetInt(table_pr, 0))
 
   var index_count_before_insert = index_count(execCtx, col0_val)
-  @inserterIndexInsertBind(&inserter, "index_1")
+  if (!@inserterIndexInsert(&inserter)) {
+    // Free memory and abort.
+    @inserterFree(&inserter)
+    @deleterFree(&deleter)
+    return 0
+  }
 
   var table_count_after_insert = table_count(execCtx, &oids)
   var table_count_before_delete = table_count_after_insert
@@ -90,8 +95,13 @@ fun main(execCtx: *ExecutionContext) -> int64 {
   var index_delete_pr : *ProjectedRow = @deleterGetIndexPRBind(&deleter, "index_1")
   @prSetInt(index_delete_pr, 0, @prGetInt(table_pr, 0))
 
-  @deleterTableDelete(&deleter, &ts)
-  @deleterIndexDeleteBind(&deleter, "index_1", &ts)
+  if (!@deleterTableDelete(&deleter, &ts)) {
+    // Free memory and abort.
+    @inserterFree(&inserter)
+    @deleterFree(&deleter)
+    return 0
+  }
+  @deleterIndexDelete(&deleter, &ts)
 
   var table_count_after_delete = table_count(execCtx, &oids)
   var index_count_after_delete = index_count(execCtx, col0_val)

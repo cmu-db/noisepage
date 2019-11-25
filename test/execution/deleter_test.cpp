@@ -3,8 +3,7 @@
 #include <vector>
 
 #include "catalog/catalog_defs.h"
-#include "execution/sql/deleter.h"
-#include "execution/sql/inserter.h"
+#include "execution/sql/storage_interface.h"
 #include "execution/sql_test.h"
 #include "execution/util/timer.h"
 
@@ -59,7 +58,7 @@ TEST_F(DeleterTest, SimpleDeleterTest) {
   // Insert into index
   std::vector<storage::TupleSlot> results_before_insertion, results_after_insertion;
   index->ScanKey(*exec_ctx_->GetTxn(), *insert_pr, &results_before_insertion);
-  EXPECT_TRUE(inserter.IndexInsert(index_oid));
+  EXPECT_TRUE(inserter.IndexInsert());
 
   // Verify that insertion succeeds
   index->ScanKey(*exec_ctx_->GetTxn(), *insert_pr, &results_after_insertion);
@@ -73,7 +72,7 @@ TEST_F(DeleterTest, SimpleDeleterTest) {
   std::vector<storage::TupleSlot> results_before_delete, results_after_delete;
   index->ScanKey(*exec_ctx_->GetTxn(), *delete_pr, &results_before_delete);
   EXPECT_TRUE(deleter.TableDelete(tuple_slot));
-  deleter.IndexDelete(index_oid, tuple_slot);
+  deleter.IndexDelete(tuple_slot);
 
   // Test that index delete succeeds
   index->ScanKey(*exec_ctx_->GetTxn(), *delete_pr, &results_after_delete);
@@ -109,7 +108,7 @@ TEST_F(DeleterTest, MultiIndexTest) {
   *reinterpret_cast<int16_t *>(index_pr->AccessForceNotNull(0)) = 15;
   std::vector<storage::TupleSlot> results1;
   index->ScanKey(*exec_ctx_->GetTxn(), *index_pr, &results1);
-  EXPECT_TRUE(inserter.IndexInsert(index_oid));
+  EXPECT_TRUE(inserter.IndexInsert());
   {
     std::vector<storage::TupleSlot> results2;
     index->ScanKey(*exec_ctx_->GetTxn(), *index_pr, &results2);
@@ -123,7 +122,7 @@ TEST_F(DeleterTest, MultiIndexTest) {
   *reinterpret_cast<int16_t *>(index_pr2->AccessForceNotNull(0)) = 721;
   std::vector<storage::TupleSlot> results3;
   index2->ScanKey(*exec_ctx_->GetTxn(), *index_pr2, &results3);
-  EXPECT_TRUE(inserter.IndexInsert(index_oid2));
+  EXPECT_TRUE(inserter.IndexInsert());
   std::vector<storage::TupleSlot> results4;
   index2->ScanKey(*exec_ctx_->GetTxn(), *index_pr2, &results4);
   EXPECT_EQ(results3.size() + 1, results4.size());
@@ -153,7 +152,7 @@ TEST_F(DeleterTest, MultiIndexTest) {
   {
     auto delete_pr = deleter.GetIndexPR(index_oid);
     *reinterpret_cast<int32_t *>(delete_pr->AccessForceNotNull(0)) = 15;
-    deleter.IndexDelete(index_oid, tuple_slot);
+    deleter.IndexDelete(tuple_slot);
     index->ScanKey(*exec_ctx_->GetTxn(), *delete_pr, &results_after_delete);
     EXPECT_EQ(results_before_delete.size() - 1, results_after_delete.size());
   }
@@ -163,7 +162,7 @@ TEST_F(DeleterTest, MultiIndexTest) {
     auto delete_pr = deleter.GetIndexPR(index_oid2);
     *reinterpret_cast<int16_t *>(delete_pr->AccessForceNotNull(0)) = 721;
     *reinterpret_cast<int32_t *>(delete_pr->AccessForceNotNull(1)) = 15;
-    deleter.IndexDelete(index_oid2, tuple_slot);
+    deleter.IndexDelete(tuple_slot);
     index2->ScanKey(*exec_ctx_->GetTxn(), *delete_pr, &results_after_delete_2);
     EXPECT_EQ(results_before_delete_2.size() - 1, results_after_delete_2.size());
   }

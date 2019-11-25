@@ -91,7 +91,11 @@ fun main(execCtx: *ExecutionContext) -> int64 {
   var index_count_before = index_count_1(execCtx, 15)
   var index_count_before_2 = index_count_2(execCtx, 15, 14)
 
-  @inserterIndexInsertBind(&inserter, "index_2")
+  if (!@inserterIndexInsert(&inserter)) {
+    // Free Memory & Abort
+    @inserterFree(&inserter)
+    return 0
+  }
 
   // counting table tuples after insert
   @tableIterInitBind(&tvi, execCtx, "test_2", oids)
@@ -109,7 +113,13 @@ fun main(execCtx: *ExecutionContext) -> int64 {
  var index_pr_2 : *ProjectedRow = @inserterGetIndexPRBind(&inserter, "index_2_multi")
  @prSetSmallInt(index_pr_2, 1, @prGetSmallInt(table_pr, 3))
  @prSetInt(index_pr_2, 0, @prGetInt(table_pr, 1))
- @inserterIndexInsertBind(&inserter, "index_2_multi")
+
+
+ if (!@inserterIndexInsert(&inserter)) {
+   // Free Memory & Abort
+   @inserterFree(&inserter)
+   return 0
+ }
 
 
  // index scan counts after index inserts

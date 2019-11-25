@@ -95,7 +95,12 @@ fun main(execCtx: *ExecutionContext) -> int64 {
   // index scan counts before index inserts
   var index_count_before_insert = index_count_1(execCtx, col3_val)
   var index_count_2_before_insert = index_count_2(execCtx, col3_val, col1_val)
-  @inserterIndexInsertBind(&inserter, "index_2")
+  if (!@inserterIndexInsert(&inserter)) {
+    // Free memory and abort.
+    @inserterFree(&inserter)
+    @deleterFree(&deleter)
+    return 0
+  }
 
   var table_count_after_insert = table_count(execCtx, &oids)
   var table_count_before_delete = table_count_after_insert
@@ -103,23 +108,33 @@ fun main(execCtx: *ExecutionContext) -> int64 {
   var index_2_pr : *ProjectedRow = @inserterGetIndexPRBind(&inserter, "index_2_multi")
   @prSetSmallInt(index_2_pr, 1, @prGetSmallInt(table_pr, 3))
   @prSetInt(index_2_pr, 0, @prGetInt(table_pr, 1))
-  @inserterIndexInsertBind(&inserter, "index_2_multi")
+  if (!@inserterIndexInsert(&inserter)) {
+    // Free memory and abort.
+    @inserterFree(&inserter)
+    @deleterFree(&deleter)
+    return 0
+  }
 
   var index_count_after_insert = index_count_1(execCtx, col3_val)
   var index_count_before_delete = index_count_after_insert
   var index_count_2_after_insert = index_count_2(execCtx, col3_val, col1_val)
   var index_count_2_before_delete = index_count_2_after_insert
 
-  @deleterTableDelete(&deleter, &ts)
+  if (!@deleterTableDelete(&deleter, &ts)) {
+    // Free memory and abort.
+    @inserterFree(&inserter)
+    @deleterFree(&deleter)
+    return 0
+  }
 
   var index_delete_pr : *ProjectedRow = @deleterGetIndexPRBind(&deleter, "index_2")
   @prSetSmallInt(index_delete_pr, 0, @prGetSmallInt(table_pr, 3))
-  @deleterIndexDeleteBind(&deleter, "index_2", &ts)
+  @deleterIndexDelete(&deleter, &ts)
 
   var index_2_delete_pr : *ProjectedRow = @deleterGetIndexPRBind(&deleter, "index_2_multi")
   @prSetSmallInt(index_2_delete_pr, 1, @prGetSmallInt(table_pr, 3))
   @prSetInt(index_2_delete_pr, 0, @prGetInt(table_pr, 1))
-  @deleterIndexDeleteBind(&deleter, "index_2_multi", &ts)
+  @deleterIndexDelete(&deleter, &ts)
 
 
   var table_count_after_delete = table_count(execCtx, &oids)

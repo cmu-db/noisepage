@@ -3,7 +3,7 @@
 #include <vector>
 
 #include "catalog/catalog_defs.h"
-#include "execution/sql/inserter.h"
+#include "execution/sql/storage_interface.h"
 #include "execution/sql_test.h"
 #include "execution/util/timer.h"
 
@@ -34,10 +34,10 @@ TEST_F(InserterTest, SimpleInserterTest) {
   auto table_pr = inserter.GetTablePR();
   auto schema = exec_ctx_->GetAccessor()->GetSchema(table_oid);
 
-  *reinterpret_cast<int16_t *>(table_pr->AccessForceNotNull(3)) = 15;
+  *reinterpret_cast<int32_t *>(table_pr->AccessForceNotNull(3)) = 15;
   *reinterpret_cast<int32_t *>(table_pr->AccessForceNotNull(1)) = 721;
   *reinterpret_cast<int32_t *>(table_pr->AccessForceNotNull(2)) = 4256;
-  *reinterpret_cast<int64_t *>(table_pr->AccessForceNotNull(0)) = 445;
+  *reinterpret_cast<int32_t *>(table_pr->AccessForceNotNull(0)) = 445;
 
   inserter.TableInsert();
 
@@ -55,7 +55,7 @@ TEST_F(InserterTest, SimpleInserterTest) {
   *reinterpret_cast<int32_t *>(index_pr->AccessForceNotNull(0)) = 15;
   std::vector<storage::TupleSlot> results1;
   index->ScanKey(*exec_ctx_->GetTxn(), *index_pr, &results1);
-  EXPECT_TRUE(inserter.IndexInsert(index_oid));
+  EXPECT_TRUE(inserter.IndexInsert());
   std::vector<storage::TupleSlot> results2;
   index->ScanKey(*exec_ctx_->GetTxn(), *index_pr, &results2);
   EXPECT_EQ(results1.size() + 1, results2.size());
@@ -90,7 +90,7 @@ TEST_F(InserterTest, MultiIndexTest) {
   *reinterpret_cast<int16_t *>(index_pr->AccessForceNotNull(0)) = 15;
   std::vector<storage::TupleSlot> results1;
   index->ScanKey(*exec_ctx_->GetTxn(), *index_pr, &results1);
-  EXPECT_TRUE(inserter.IndexInsert(index_oid));
+  EXPECT_TRUE(inserter.IndexInsert());
   {
     std::vector<storage::TupleSlot> results2;
     index->ScanKey(*exec_ctx_->GetTxn(), *index_pr, &results2);
@@ -104,7 +104,7 @@ TEST_F(InserterTest, MultiIndexTest) {
   *reinterpret_cast<int32_t *>(index_pr2->AccessForceNotNull(0)) = 721;
   std::vector<storage::TupleSlot> results3;
   index2->ScanKey(*exec_ctx_->GetTxn(), *index_pr2, &results3);
-  EXPECT_TRUE(inserter.IndexInsert(index_oid2));
+  EXPECT_TRUE(inserter.IndexInsert());
   std::vector<storage::TupleSlot> results4;
   index2->ScanKey(*exec_ctx_->GetTxn(), *index_pr2, &results4);
   EXPECT_EQ(results3.size() + 1, results4.size());

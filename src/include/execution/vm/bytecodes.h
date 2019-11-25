@@ -376,26 +376,26 @@ namespace terrier::execution::vm {
   F(InserterGetTablePR, OperandType::Local, OperandType::Local)                                                       \
   F(InserterTableInsert, OperandType::Local, OperandType::Local)                                                      \
   F(InserterGetIndexPR, OperandType::Local, OperandType::Local, OperandType::UImm4)                                   \
-  F(InserterIndexInsert, OperandType::Local, OperandType::UImm4)                                                      \
+  F(InserterIndexInsert, OperandType::Local, OperandType::Local)                                                      \
   F(InserterFree, OperandType::Local)                                                                                 \
                                                                                                                       \
   /* Deleter */                                                                                                       \
   F(DeleterInit, OperandType::Local, OperandType::Local, OperandType::UImm4)                                          \
-  F(DeleterTableDelete, OperandType::Local, OperandType::Local)                                                       \
+  F(DeleterTableDelete, OperandType::Local, OperandType::Local, OperandType::Local)                                   \
   F(DeleterGetIndexPR, OperandType::Local, OperandType::Local, OperandType::UImm4)                                    \
-  F(DeleterIndexDelete, OperandType::Local, OperandType::UImm4, OperandType::Local)                                   \
+  F(DeleterIndexDelete, OperandType::Local, OperandType::Local)                                                       \
   F(DeleterFree, OperandType::Local)                                                                                  \
                                                                                                                       \
   /* Updater */                                                                                                       \
   F(UpdaterInit, OperandType::Local, OperandType::Local, OperandType::UImm4, OperandType::Local, OperandType::UImm4,  \
     OperandType::Local)                                                                                               \
   F(UpdaterGetTablePR, OperandType::Local, OperandType::Local)                                                        \
-  F(UpdaterTableUpdate, OperandType::Local, OperandType::Local)                                                       \
+  F(UpdaterTableUpdate, OperandType::Local, OperandType::Local, OperandType::Local)                                   \
   F(UpdaterTableInsert, OperandType::Local, OperandType::Local)                                                       \
-  F(UpdaterTableDelete, OperandType::Local, OperandType::Local)                                                       \
+  F(UpdaterTableDelete, OperandType::Local, OperandType::Local, OperandType::Local)                                   \
   F(UpdaterGetIndexPR, OperandType::Local, OperandType::Local, OperandType::UImm4)                                    \
-  F(UpdaterIndexInsert, OperandType::Local, OperandType::UImm4)                                                       \
-  F(UpdaterIndexDelete, OperandType::Local, OperandType::UImm4, OperandType::Local)                                   \
+  F(UpdaterIndexInsert, OperandType::Local, OperandType::Local)                                                       \
+  F(UpdaterIndexDelete, OperandType::Local, OperandType::Local)                                                       \
   F(UpdaterFree, OperandType::Local)                                                                                  \
                                                                                                                       \
   /* Trig functions */                                                                                                \

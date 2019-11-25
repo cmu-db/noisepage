@@ -1709,7 +1709,6 @@ void BytecodeGenerator::VisitBuiltinPRCall(ast::CallExpr *call, ast::Builtin bui
 }
 
 void BytecodeGenerator::VisitBuiltinInserterCall(ast::CallExpr *call, ast::Builtin builtin) {
-  ast::Context *ctx = call->GetType()->GetContext();
   LocalVar inserter = VisitExpressionForRValue(call->Arguments()[0]);
 
   switch (builtin) {
@@ -1728,27 +1727,23 @@ void BytecodeGenerator::VisitBuiltinInserterCall(ast::CallExpr *call, ast::Built
       break;
     }
     case ast::Builtin::InserterGetTablePR: {
-      ast::Type *pr_type = ast::BuiltinType::Get(ctx, ast::BuiltinType::ProjectedRow);
-      LocalVar pr = ExecutionResult()->GetOrCreateDestination(pr_type);
+      LocalVar pr = ExecutionResult()->GetOrCreateDestination(call->GetType());
       Emitter()->Emit(Bytecode::InserterGetTablePR, pr, inserter);
       break;
     }
     case ast::Builtin::InserterTableInsert: {
-      ast::Type *tuple_slot_type = ast::BuiltinType::Get(ctx, ast::BuiltinType::TupleSlot);
-      LocalVar ts = ExecutionResult()->GetOrCreateDestination(tuple_slot_type);
+      LocalVar ts = ExecutionResult()->GetOrCreateDestination(call->GetType());
       Emitter()->Emit(Bytecode::InserterTableInsert, ts, inserter);
       break;
     }
     case ast::Builtin::InserterGetIndexPR: {
-      ast::Type *pr_type = ast::BuiltinType::Get(ctx, ast::BuiltinType::ProjectedRow);
-      LocalVar pr = ExecutionResult()->GetOrCreateDestination(pr_type);
+      LocalVar pr = ExecutionResult()->GetOrCreateDestination(call->GetType());
       auto index_oid = static_cast<uint32_t>(call->Arguments()[1]->As<ast::LitExpr>()->Int64Val());
       Emitter()->EmitInserterGetIndexPR(Bytecode::InserterGetIndexPR, pr, inserter, index_oid);
       break;
     }
     case ast::Builtin::InserterGetIndexPRBind: {
-      ast::Type *pr_type = ast::BuiltinType::Get(ctx, ast::BuiltinType::ProjectedRow);
-      LocalVar pr = ExecutionResult()->GetOrCreateDestination(pr_type);
+      LocalVar pr = ExecutionResult()->GetOrCreateDestination(call->GetType());
       ast::Identifier index_name = call->Arguments()[1]->As<ast::LitExpr>()->RawStringVal();
       auto ns_oid = exec_ctx_->GetAccessor()->GetDefaultNamespace();
       auto index_oid = exec_ctx_->GetAccessor()->GetIndexOid(ns_oid, index_name.Data());
@@ -1757,16 +1752,9 @@ void BytecodeGenerator::VisitBuiltinInserterCall(ast::CallExpr *call, ast::Built
       break;
     }
     case ast::Builtin::InserterIndexInsert: {
-      auto index_oid = static_cast<uint32_t>(call->Arguments()[1]->As<ast::LitExpr>()->Int64Val());
-      Emitter()->EmitInserterIndexInsert(Bytecode::InserterIndexInsert, inserter, index_oid);
-      break;
-    }
-    case ast::Builtin::InserterIndexInsertBind: {
-      ast::Identifier index_name = call->Arguments()[1]->As<ast::LitExpr>()->RawStringVal();
-      auto ns_oid = exec_ctx_->GetAccessor()->GetDefaultNamespace();
-      auto index_oid = exec_ctx_->GetAccessor()->GetIndexOid(ns_oid, index_name.Data());
-
-      Emitter()->EmitInserterIndexInsert(Bytecode::InserterIndexInsert, inserter, !index_oid);
+      LocalVar cond = ExecutionResult()->GetOrCreateDestination(call->GetType());
+      Emitter()->Emit(Bytecode::InserterIndexInsert, cond, inserter);
+      ExecutionResult()->SetDestination(cond.ValueOf());
       break;
     }
     case ast::Builtin::InserterFree: {
@@ -1799,20 +1787,20 @@ void BytecodeGenerator::VisitBuiltinDeleterCall(ast::CallExpr *call, ast::Builti
       break;
     }
     case ast::Builtin::DeleterTableDelete: {
+      LocalVar cond = ExecutionResult()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Bool));
       LocalVar tuple_slot = VisitExpressionForRValue(call->Arguments()[1]);
-      Emitter()->Emit(Bytecode::DeleterTableDelete, deleter, tuple_slot);
+      Emitter()->Emit(Bytecode::DeleterTableDelete, cond, deleter, tuple_slot);
+      ExecutionResult()->SetDestination(cond.ValueOf());
       break;
     }
     case ast::Builtin::DeleterGetIndexPR: {
-      ast::Type *pr_type = ast::BuiltinType::Get(ctx, ast::BuiltinType::ProjectedRow);
-      LocalVar pr = ExecutionResult()->GetOrCreateDestination(pr_type);
+      LocalVar pr = ExecutionResult()->GetOrCreateDestination(call->GetType());
       auto index_oid = static_cast<uint32_t>(call->Arguments()[1]->As<ast::LitExpr>()->Int64Val());
       Emitter()->EmitDeleterGetIndexPR(Bytecode::DeleterGetIndexPR, pr, deleter, index_oid);
       break;
     }
     case ast::Builtin::DeleterGetIndexPRBind: {
-      ast::Type *pr_type = ast::BuiltinType::Get(ctx, ast::BuiltinType::ProjectedRow);
-      LocalVar pr = ExecutionResult()->GetOrCreateDestination(pr_type);
+      LocalVar pr = ExecutionResult()->GetOrCreateDestination(call->GetType());
       ast::Identifier index_name = call->Arguments()[1]->As<ast::LitExpr>()->RawStringVal();
       auto ns_oid = exec_ctx_->GetAccessor()->GetDefaultNamespace();
       auto index_oid = exec_ctx_->GetAccessor()->GetIndexOid(ns_oid, index_name.Data());
@@ -1820,17 +1808,8 @@ void BytecodeGenerator::VisitBuiltinDeleterCall(ast::CallExpr *call, ast::Builti
       break;
     }
     case ast::Builtin::DeleterIndexDelete: {
-      auto index_oid = static_cast<uint32_t>(call->Arguments()[1]->As<ast::LitExpr>()->Int64Val());
-      LocalVar tuple_slot = VisitExpressionForRValue(call->Arguments()[2]);
-      Emitter()->EmitDeleterIndexDelete(Bytecode::DeleterIndexDelete, deleter, index_oid, tuple_slot);
-      break;
-    }
-    case ast::Builtin::DeleterIndexDeleteBind: {
-      ast::Identifier index_name = call->Arguments()[1]->As<ast::LitExpr>()->RawStringVal();
-      auto ns_oid = exec_ctx_->GetAccessor()->GetDefaultNamespace();
-      auto index_oid = exec_ctx_->GetAccessor()->GetIndexOid(ns_oid, index_name.Data());
-      LocalVar tuple_slot = VisitExpressionForRValue(call->Arguments()[2]);
-      Emitter()->EmitDeleterIndexDelete(Bytecode::DeleterIndexDelete, deleter, !index_oid, tuple_slot);
+      LocalVar tuple_slot = VisitExpressionForRValue(call->Arguments()[1]);
+      Emitter()->Emit(Bytecode::DeleterIndexDelete, deleter, tuple_slot);
       break;
     }
     case ast::Builtin::DeleterFree: {
@@ -1872,8 +1851,7 @@ void BytecodeGenerator::VisitBuiltinUpdaterCall(ast::CallExpr *call, ast::Builti
       break;
     }
     case ast::Builtin::UpdaterGetTablePR: {
-      ast::Type *pr_type = ast::BuiltinType::Get(ctx, ast::BuiltinType::ProjectedRow);
-      LocalVar pr = ExecutionResult()->GetOrCreateDestination(pr_type);
+      LocalVar pr = ExecutionResult()->GetOrCreateDestination(call->GetType());
       Emitter()->Emit(Bytecode::UpdaterGetTablePR, pr, updater);
       break;
     }
@@ -1884,25 +1862,27 @@ void BytecodeGenerator::VisitBuiltinUpdaterCall(ast::CallExpr *call, ast::Builti
       break;
     }
     case ast::Builtin::UpdaterTableDelete: {
+      LocalVar cond = ExecutionResult()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Bool));
       LocalVar tuple_slot = VisitExpressionForRValue(call->Arguments()[1]);
-      Emitter()->Emit(Bytecode::UpdaterTableDelete, updater, tuple_slot);
+      Emitter()->Emit(Bytecode::UpdaterTableDelete, cond, updater, tuple_slot);
+      ExecutionResult()->SetDestination(cond.ValueOf());
       break;
     }
     case ast::Builtin::UpdaterTableUpdate: {
+      LocalVar cond = ExecutionResult()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Bool));
       LocalVar tuple_slot = VisitExpressionForRValue(call->Arguments()[1]);
-      Emitter()->Emit(Bytecode::UpdaterTableUpdate, updater, tuple_slot);
+      Emitter()->Emit(Bytecode::UpdaterTableUpdate, cond, updater, tuple_slot);
+      ExecutionResult()->SetDestination(cond.ValueOf());
       break;
     }
     case ast::Builtin::UpdaterGetIndexPR: {
-      ast::Type *pr_type = ast::BuiltinType::Get(ctx, ast::BuiltinType::ProjectedRow);
-      LocalVar pr = ExecutionResult()->GetOrCreateDestination(pr_type);
+      LocalVar pr = ExecutionResult()->GetOrCreateDestination(call->GetType());
       auto index_oid = static_cast<uint32_t>(call->Arguments()[1]->As<ast::LitExpr>()->Int64Val());
       Emitter()->EmitUpdaterGetIndexPR(Bytecode::UpdaterGetIndexPR, pr, updater, index_oid);
       break;
     }
     case ast::Builtin::UpdaterGetIndexPRBind: {
-      ast::Type *pr_type = ast::BuiltinType::Get(ctx, ast::BuiltinType::ProjectedRow);
-      LocalVar pr = ExecutionResult()->GetOrCreateDestination(pr_type);
+      LocalVar pr = ExecutionResult()->GetOrCreateDestination(call->GetType());
       ast::Identifier index_name = call->Arguments()[1]->As<ast::LitExpr>()->RawStringVal();
       auto ns_oid = exec_ctx_->GetAccessor()->GetDefaultNamespace();
       auto index_oid = exec_ctx_->GetAccessor()->GetIndexOid(ns_oid, index_name.Data());
@@ -1910,31 +1890,17 @@ void BytecodeGenerator::VisitBuiltinUpdaterCall(ast::CallExpr *call, ast::Builti
       break;
     }
     case ast::Builtin::UpdaterIndexInsert: {
-      auto index_oid = static_cast<uint32_t>(call->Arguments()[1]->As<ast::LitExpr>()->Int64Val());
-      Emitter()->EmitUpdaterIndexInsert(Bytecode::UpdaterIndexInsert, updater, index_oid);
-      break;
-    }
-    case ast::Builtin::UpdaterIndexInsertBind: {
-      ast::Identifier index_name = call->Arguments()[1]->As<ast::LitExpr>()->RawStringVal();
-      auto ns_oid = exec_ctx_->GetAccessor()->GetDefaultNamespace();
-      auto index_oid = exec_ctx_->GetAccessor()->GetIndexOid(ns_oid, index_name.Data());
-      Emitter()->EmitUpdaterIndexInsert(Bytecode::UpdaterIndexInsert, updater, !index_oid);
+      LocalVar cond = ExecutionResult()->GetOrCreateDestination(ast::BuiltinType::Get(ctx, ast::BuiltinType::Bool));
+      Emitter()->Emit(Bytecode::UpdaterIndexInsert, cond, updater);
+      ExecutionResult()->SetDestination(cond.ValueOf());
       break;
     }
     case ast::Builtin::UpdaterIndexDelete: {
-      auto index_oid = static_cast<uint32_t>(call->Arguments()[1]->As<ast::LitExpr>()->Int64Val());
-      LocalVar tuple_slot = VisitExpressionForRValue(call->Arguments()[2]);
-      Emitter()->EmitUpdaterIndexDelete(Bytecode::UpdaterIndexDelete, updater, index_oid, tuple_slot);
+      LocalVar tuple_slot = VisitExpressionForRValue(call->Arguments()[1]);
+      Emitter()->Emit(Bytecode::UpdaterIndexDelete, updater, tuple_slot);
       break;
     }
-    case ast::Builtin::UpdaterIndexDeleteBind: {
-      ast::Identifier index_name = call->Arguments()[1]->As<ast::LitExpr>()->RawStringVal();
-      auto ns_oid = exec_ctx_->GetAccessor()->GetDefaultNamespace();
-      auto index_oid = exec_ctx_->GetAccessor()->GetIndexOid(ns_oid, index_name.Data());
-      LocalVar tuple_slot = VisitExpressionForRValue(call->Arguments()[2]);
-      Emitter()->EmitUpdaterIndexDelete(Bytecode::UpdaterIndexDelete, updater, !index_oid, tuple_slot);
-      break;
-    }
+
     case ast::Builtin::UpdaterFree: {
       Emitter()->Emit(Bytecode::UpdaterFree, updater);
       break;
@@ -2176,7 +2142,6 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
     case ast::Builtin::InserterGetIndexPR:
     case ast::Builtin::InserterGetIndexPRBind:
     case ast::Builtin::InserterIndexInsert:
-    case ast::Builtin::InserterIndexInsertBind:
     case ast::Builtin::InserterFree: {
       VisitBuiltinInserterCall(call, builtin);
       break;
@@ -2187,7 +2152,6 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
     case ast::Builtin::DeleterGetIndexPR:
     case ast::Builtin::DeleterGetIndexPRBind:
     case ast::Builtin::DeleterIndexDelete:
-    case ast::Builtin::DeleterIndexDeleteBind:
     case ast::Builtin::DeleterFree: {
       VisitBuiltinDeleterCall(call, builtin);
       break;
@@ -2201,9 +2165,7 @@ void BytecodeGenerator::VisitBuiltinCallExpr(ast::CallExpr *call) {
     case ast::Builtin::UpdaterGetIndexPR:
     case ast::Builtin::UpdaterGetIndexPRBind:
     case ast::Builtin::UpdaterIndexInsert:
-    case ast::Builtin::UpdaterIndexInsertBind:
     case ast::Builtin::UpdaterIndexDelete:
-    case ast::Builtin::UpdaterIndexDeleteBind:
     case ast::Builtin::UpdaterFree: {
       VisitBuiltinUpdaterCall(call, builtin);
       break;

@@ -75,7 +75,11 @@ fun main(execCtx: *ExecutionContext) -> int64 {
   @prSetInt(index_pr, 0, @prGetInt(table_pr, 0))
 
   var index_count_before = index_count(execCtx, 15)
-  @inserterIndexInsertBind(&inserter, "index_1")
+  if (!@inserterIndexInsert(&inserter)) {
+    // Free Memory & Abort
+    @inserterFree(&inserter)
+    return 0
+  }
 
   @tableIterInitBind(&tvi, execCtx, "test_1", oids)
   var count2 : int64

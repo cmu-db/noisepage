@@ -10,20 +10,18 @@
 #include "execution/exec/execution_context.h"
 #include "execution/sql/aggregation_hash_table.h"
 #include "execution/sql/aggregators.h"
-#include "execution/sql/deleter.h"
 #include "execution/sql/filter_manager.h"
 #include "execution/sql/functions/arithmetic_functions.h"
 #include "execution/sql/functions/comparison_functions.h"
 #include "execution/sql/functions/is_null_predicate.h"
 #include "execution/sql/functions/string_functions.h"
 #include "execution/sql/index_iterator.h"
-#include "execution/sql/inserter.h"
 #include "execution/sql/join_hash_table.h"
 #include "execution/sql/projected_row_wrapper.h"
 #include "execution/sql/sorter.h"
+#include "execution/sql/storage_interface.h"
 #include "execution/sql/table_vector_iterator.h"
 #include "execution/sql/thread_state_container.h"
-#include "execution/sql/updater.h"
 #include "execution/util/hash.h"
 
 // All VM terrier::bytecode op handlers must use this macro
@@ -1506,7 +1504,7 @@ VM_OP void OpInserterTableInsert(terrier::storage::TupleSlot *tuple_slot, terrie
 VM_OP void OpInserterGetIndexPR(terrier::execution::sql::ProjectedRowWrapper *pr_result,
                                 terrier::execution::sql::Inserter *inserter, uint32_t index_oid);
 
-VM_OP void OpInserterIndexInsert(terrier::execution::sql::Inserter *inserter, uint32_t index_oid);
+VM_OP void OpInserterIndexInsert(bool *result, terrier::execution::sql::Inserter *inserter);
 
 VM_OP void OpInserterFree(terrier::execution::sql::Inserter *inserter);
 
@@ -1516,13 +1514,13 @@ VM_OP void OpInserterFree(terrier::execution::sql::Inserter *inserter);
 VM_OP void OpDeleterInit(terrier::execution::sql::Deleter *deleter,
                          terrier::execution::exec::ExecutionContext *exec_ctx, uint32_t table_oid);
 
-VM_OP void OpDeleterTableDelete(terrier::execution::sql::Deleter *deleter, terrier::storage::TupleSlot *tuple_slot);
+VM_OP void OpDeleterTableDelete(bool *result, terrier::execution::sql::Deleter *deleter,
+                                terrier::storage::TupleSlot *tuple_slot);
 
 VM_OP void OpDeleterGetIndexPR(terrier::execution::sql::ProjectedRowWrapper *pr_result,
                                terrier::execution::sql::Deleter *deleter, uint32_t index_oid);
 
-VM_OP void OpDeleterIndexDelete(terrier::execution::sql::Deleter *deleter, uint32_t index_oid,
-                                terrier::storage::TupleSlot *tuple_slot);
+VM_OP void OpDeleterIndexDelete(terrier::execution::sql::Deleter *deleter, terrier::storage::TupleSlot *tuple_slot);
 
 VM_OP void OpDeleterFree(terrier::execution::sql::Deleter *deleter);
 
@@ -1536,19 +1534,20 @@ VM_OP void OpUpdaterInit(terrier::execution::sql::Updater *updater,
 VM_OP void OpUpdaterGetTablePR(terrier::execution::sql::ProjectedRowWrapper *pr_result,
                                terrier::execution::sql::Updater *updater);
 
-VM_OP void OpUpdaterTableUpdate(terrier::execution::sql::Updater *updater, terrier::storage::TupleSlot *tuple_slot);
+VM_OP void OpUpdaterTableUpdate(bool *result, terrier::execution::sql::Updater *updater,
+                                terrier::storage::TupleSlot *tuple_slot);
 
-VM_OP void OpUpdaterTableDelete(terrier::execution::sql::Updater *updater, terrier::storage::TupleSlot *tuple_slot);
+VM_OP void OpUpdaterTableDelete(bool *result, terrier::execution::sql::Updater *updater,
+                                terrier::storage::TupleSlot *tuple_slot);
 
 VM_OP void OpUpdaterTableInsert(terrier::storage::TupleSlot *tuple_slot, terrier::execution::sql::Updater *updater);
 
 VM_OP void OpUpdaterGetIndexPR(terrier::execution::sql::ProjectedRowWrapper *pr_result,
                                terrier::execution::sql::Updater *updater, uint32_t index_oid);
 
-VM_OP void OpUpdaterIndexInsert(terrier::execution::sql::Updater *updater, uint32_t index_oid);
+VM_OP void OpUpdaterIndexInsert(bool *result, terrier::execution::sql::Updater *updater);
 
-VM_OP void OpUpdaterIndexDelete(terrier::execution::sql::Updater *updater, uint32_t index_oid,
-                                terrier::storage::TupleSlot *tuple_slot);
+VM_OP void OpUpdaterIndexDelete(terrier::execution::sql::Updater *updater, terrier::storage::TupleSlot *tuple_slot);
 
 VM_OP void OpUpdaterFree(terrier::execution::sql::Updater *updater);
 

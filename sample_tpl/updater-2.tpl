@@ -83,12 +83,9 @@ fun main(execCtx: *ExecutionContext) -> int64 {
 
   var inserter : Inserter
   var updater : Updater
-  var update_col_oids : [2]uint32
-  update_col_oids[0] = 2
-  update_col_oids[1] = 3
 
   @inserterInitBind(&inserter, execCtx, "test_2")
-  @updaterInitBind(&updater, execCtx, "test_2", update_col_oids, true)
+  @updaterInitBind(&updater, execCtx, "test_2", oids, true)
 
   var table_pr : *ProjectedRow = @inserterGetTablePR(&inserter)
   @prSetBigInt(table_pr, 0, @intToSql(value0))
@@ -105,7 +102,12 @@ fun main(execCtx: *ExecutionContext) -> int64 {
   // index scan counts before index inserts
   var index_count_before_insert = index_count_1(execCtx, value3)
   var index_count_2_before_insert = index_count_2(execCtx, value3, value1)
-  @inserterIndexInsertBind(&inserter, "index_2")
+  if(!@inserterIndexInsert(&inserter)) {
+    // Free memory and abort
+    @inserterFree(&inserter)
+    @updaterFree(&updater)
+    return 0
+  }
 
   var table_count_after_insert = table_count(execCtx, &oids)
   var table_count_before_update = table_count_after_insert
@@ -113,7 +115,12 @@ fun main(execCtx: *ExecutionContext) -> int64 {
   var index_2_pr : *ProjectedRow = @inserterGetIndexPRBind(&inserter, "index_2_multi")
   @prSetSmallInt(index_2_pr, 1, @prGetSmallInt(table_pr, 3))
   @prSetInt(index_2_pr, 0, @prGetInt(table_pr, 1))
-  @inserterIndexInsertBind(&inserter, "index_2_multi")
+  if(!@inserterIndexInsert(&inserter)) {
+    // Free memory and abort
+    @inserterFree(&inserter)
+    @updaterFree(&updater)
+    return 0
+  }
 
   var index_count_after_insert = index_count_1(execCtx, value3)
   var index_count_before_update = index_count_after_insert
@@ -123,18 +130,23 @@ fun main(execCtx: *ExecutionContext) -> int64 {
   
 
   // Delete from table
-  @updaterTableDelete(&updater, &ts)
+  if(!@updaterTableDelete(&updater, &ts)) {
+    // Free memory and abort
+    @inserterFree(&inserter)
+    @updaterFree(&updater)
+    return 0
+  }
   
   // Delete from index 1
   index_pr  = @updaterGetIndexPRBind(&updater, "index_2")
   @prSetSmallInt(index_pr, 0, @intToSql(value3))
-  @updaterIndexDeleteBind(&updater, "index_2", &ts)
-  
+  @updaterIndexDelete(&updater, &ts)
+
   // Delete from index 2
   index_2_pr  = @updaterGetIndexPRBind(&updater, "index_2_multi")
   @prSetSmallInt(index_2_pr, 1, @intToSql(value3))
   @prSetInt(index_2_pr, 0, @intToSql(value1))
-  @updaterIndexDeleteBind(&updater, "index_2_multi", &ts)
+  @updaterIndexDelete(&updater, &ts)
 
   // Create table update PR
   var update_pr : *ProjectedRow = @updaterGetTablePR(&updater)
@@ -149,13 +161,23 @@ fun main(execCtx: *ExecutionContext) -> int64 {
   // Insert into index 1
   index_pr  = @updaterGetIndexPRBind(&updater, "index_2")
   @prSetSmallInt(index_pr, 0, @intToSql(value3))
-  @updaterIndexInsertBind(&updater, "index_2")
+  if(!@updaterIndexInsert(&updater)) {
+    // Free memory and abort
+    @inserterFree(&inserter)
+    @updaterFree(&updater)
+    return 0
+  }
 
   // Insert into index 2
   index_2_pr  = @updaterGetIndexPRBind(&updater, "index_2_multi")
   @prSetSmallInt(index_2_pr, 1, @intToSql(value3))
   @prSetInt(index_2_pr, 0, @intToSql(value1_changed))
-  @updaterIndexInsertBind(&updater, "index_2_multi")
+  if(!@updaterIndexInsert(&updater)) {
+    // Free memory and abort
+    @inserterFree(&inserter)
+    @updaterFree(&updater)
+    return 0
+  }
 
   var table_count_after_update = table_count(execCtx, &oids)
   var index_count_after_update = index_count_1(execCtx, value3)

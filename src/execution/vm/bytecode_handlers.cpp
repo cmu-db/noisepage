@@ -201,8 +201,8 @@ void OpInserterGetIndexPR(terrier::execution::sql::ProjectedRowWrapper *pr_resul
       terrier::execution::sql::ProjectedRowWrapper(inserter->GetIndexPR(terrier::catalog::index_oid_t(index_oid)));
 }
 
-void OpInserterIndexInsert(terrier::execution::sql::Inserter *inserter, uint32_t index_oid) {
-  inserter->IndexInsert(terrier::catalog::index_oid_t(index_oid));
+void OpInserterIndexInsert(bool *result, terrier::execution::sql::Inserter *inserter) {
+  *result = inserter->IndexInsert();
 }
 
 void OpInserterFree(terrier::execution::sql::Inserter *inserter) { inserter->~Inserter(); }
@@ -216,8 +216,9 @@ void OpDeleterInit(terrier::execution::sql::Deleter *deleter, terrier::execution
   new (deleter) terrier::execution::sql::Deleter(exec_ctx, terrier::catalog::table_oid_t(table_oid));
 }
 
-void OpDeleterTableDelete(terrier::execution::sql::Deleter *deleter, terrier::storage::TupleSlot *tuple_slot) {
-  deleter->TableDelete(*tuple_slot);
+void OpDeleterTableDelete(bool *result, terrier::execution::sql::Deleter *deleter,
+                          terrier::storage::TupleSlot *tuple_slot) {
+  *result = deleter->TableDelete(*tuple_slot);
 }
 
 void OpDeleterGetIndexPR(terrier::execution::sql::ProjectedRowWrapper *pr_result,
@@ -226,9 +227,8 @@ void OpDeleterGetIndexPR(terrier::execution::sql::ProjectedRowWrapper *pr_result
       terrier::execution::sql::ProjectedRowWrapper(deleter->GetIndexPR(terrier::catalog::index_oid_t(index_oid)));
 }
 
-void OpDeleterIndexDelete(terrier::execution::sql::Deleter *deleter, uint32_t index_oid,
-                          terrier::storage::TupleSlot *tuple_slot) {
-  deleter->IndexDelete(terrier::catalog::index_oid_t(index_oid), *tuple_slot);
+void OpDeleterIndexDelete(terrier::execution::sql::Deleter *deleter, terrier::storage::TupleSlot *tuple_slot) {
+  deleter->IndexDelete(*tuple_slot);
 }
 
 void OpDeleterFree(terrier::execution::sql::Deleter *deleter) { deleter->~Deleter(); }
@@ -248,12 +248,14 @@ void OpUpdaterGetTablePR(terrier::execution::sql::ProjectedRowWrapper *pr_result
   *pr_result = terrier::execution::sql::ProjectedRowWrapper(updater->GetTablePR());
 }
 
-void OpUpdaterTableUpdate(terrier::execution::sql::Updater *updater, terrier::storage::TupleSlot *tuple_slot) {
-  updater->TableUpdate(*tuple_slot);
+void OpUpdaterTableUpdate(bool *result, terrier::execution::sql::Updater *updater,
+                          terrier::storage::TupleSlot *tuple_slot) {
+  *result = updater->TableUpdate(*tuple_slot);
 }
 
-void OpUpdaterTableDelete(terrier::execution::sql::Updater *updater, terrier::storage::TupleSlot *tuple_slot) {
-  updater->TableDelete(*tuple_slot);
+void OpUpdaterTableDelete(bool *result, terrier::execution::sql::Updater *updater,
+                          terrier::storage::TupleSlot *tuple_slot) {
+  *result = updater->TableDelete(*tuple_slot);
 }
 
 void OpUpdaterTableInsert(terrier::storage::TupleSlot *tuple_slot, terrier::execution::sql::Updater *updater) {
@@ -266,13 +268,10 @@ void OpUpdaterGetIndexPR(terrier::execution::sql::ProjectedRowWrapper *pr_result
       terrier::execution::sql::ProjectedRowWrapper(updater->GetIndexPR(terrier::catalog::index_oid_t(index_oid)));
 }
 
-void OpUpdaterIndexInsert(terrier::execution::sql::Updater *updater, uint32_t index_oid) {
-  updater->IndexInsert(terrier::catalog::index_oid_t(index_oid));
-}
+void OpUpdaterIndexInsert(bool *result, terrier::execution::sql::Updater *updater) { *result = updater->IndexInsert(); }
 
-void OpUpdaterIndexDelete(terrier::execution::sql::Updater *updater, uint32_t index_oid,
-                          terrier::storage::TupleSlot *tuple_slot) {
-  updater->IndexDelete(terrier::catalog::index_oid_t(index_oid), *tuple_slot);
+void OpUpdaterIndexDelete(terrier::execution::sql::Updater *updater, terrier::storage::TupleSlot *tuple_slot) {
+  updater->IndexDelete(*tuple_slot);
 }
 
 void OpUpdaterFree(terrier::execution::sql::Updater *updater) { updater->~Updater(); }

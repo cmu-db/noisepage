@@ -7,10 +7,8 @@
 
 #include "common/strong_typedef.h"
 #include "execution/ast/identifier.h"
-#include "execution/sql/deleter.h"
-#include "execution/sql/inserter.h"
 #include "execution/sql/projected_row_wrapper.h"
-#include "execution/sql/updater.h"
+#include "execution/sql/storage_interface.h"
 #include "execution/util/region.h"
 #include "execution/util/region_containers.h"
 

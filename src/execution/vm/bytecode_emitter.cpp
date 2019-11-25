@@ -318,23 +318,9 @@ void BytecodeEmitter::EmitOutputAlloc(Bytecode bytecode, LocalVar exec_ctx, Loca
 
 void BytecodeEmitter::EmitOutputCall(Bytecode bytecode, LocalVar exec_ctx) { EmitAll(bytecode, exec_ctx); }
 
-void BytecodeEmitter::EmitOutputSetNull(Bytecode bytecode, LocalVar exec_ctx, LocalVar idx) {
-  EmitAll(bytecode, exec_ctx, idx);
-}
-
 void BytecodeEmitter::EmitIndexIteratorInit(Bytecode bytecode, LocalVar iter, LocalVar exec_ctx, uint32_t table_oid,
                                             uint32_t index_oid, LocalVar col_oids, uint32_t num_oids) {
   EmitAll(bytecode, iter, exec_ctx, table_oid, index_oid, col_oids, num_oids);
-}
-
-void BytecodeEmitter::EmitIndexIteratorFree(Bytecode bytecode, LocalVar iter) { EmitAll(bytecode, iter); }
-
-void BytecodeEmitter::EmitIndexIteratorGet(Bytecode bytecode, LocalVar out, LocalVar iter, uint16_t col_idx) {
-  EmitAll(bytecode, out, iter, col_idx);
-}
-
-void BytecodeEmitter::EmitIndexIteratorSetKey(Bytecode bytecode, LocalVar iter, uint16_t col_idx, LocalVar val) {
-  EmitAll(bytecode, iter, col_idx, val);
 }
 
 void BytecodeEmitter::EmitInitString(Bytecode bytecode, LocalVar out, uint64_t length, uintptr_t data) {
@@ -357,21 +343,12 @@ void BytecodeEmitter::EmitInserterGetIndexPR(Bytecode bytecode, LocalVar pr, Loc
   EmitAll(bytecode, pr, inserter, index_oid);
 }
 
-void BytecodeEmitter::EmitInserterIndexInsert(Bytecode bytecode, LocalVar inserter, uint32_t index_oid) {
-  EmitAll(bytecode, inserter, index_oid);
-}
-
 void BytecodeEmitter::EmitDeleterInit(Bytecode bytecode, LocalVar deleter, LocalVar exec_ctx, uint32_t table_oid) {
   EmitAll(bytecode, deleter, exec_ctx, table_oid);
 }
 
 void BytecodeEmitter::EmitDeleterGetIndexPR(Bytecode bytecode, LocalVar pr, LocalVar deleter, uint32_t index_oid) {
   EmitAll(bytecode, pr, deleter, index_oid);
-}
-
-void BytecodeEmitter::EmitDeleterIndexDelete(Bytecode bytecode, LocalVar deleter, uint32_t index_oid,
-                                             LocalVar tuple_slot) {
-  EmitAll(bytecode, deleter, index_oid, tuple_slot);
 }
 
 void BytecodeEmitter::EmitUpdaterInit(Bytecode bytecode, LocalVar updater, LocalVar exec_ctx, uint32_t table_oid,
@@ -382,14 +359,4 @@ void BytecodeEmitter::EmitUpdaterInit(Bytecode bytecode, LocalVar updater, Local
 void BytecodeEmitter::EmitUpdaterGetIndexPR(Bytecode bytecode, LocalVar pr, LocalVar updater, uint32_t index_oid) {
   EmitAll(bytecode, pr, updater, index_oid);
 }
-
-void BytecodeEmitter::EmitUpdaterIndexInsert(Bytecode bytecode, LocalVar updater, uint32_t index_oid) {
-  EmitAll(bytecode, updater, index_oid);
-}
-
-void BytecodeEmitter::EmitUpdaterIndexDelete(Bytecode bytecode, LocalVar updater, uint32_t index_oid,
-                                             LocalVar tuple_slot) {
-  EmitAll(bytecode, updater, index_oid, tuple_slot);
-}
-
 }  // namespace terrier::execution::vm

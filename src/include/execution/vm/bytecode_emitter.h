@@ -403,15 +403,6 @@ class BytecodeEmitter {
    */
   void EmitOutputCall(Bytecode bytecode, LocalVar exec_ctx);
 
-  /**
-   * Emit code to set a column to null
-   * TODO(Amadou): Remove this if it's indeed unneeded.
-   * @param bytecode bytecode to set to null
-   * @param exec_ctx the execution_context
-   * @param idx index of the columns
-   */
-  void EmitOutputSetNull(Bytecode bytecode, LocalVar exec_ctx, LocalVar idx);
-
   // -------------------------------------------
   // Index Calls
   // -------------------------------------------
@@ -428,31 +419,6 @@ class BytecodeEmitter {
    */
   void EmitIndexIteratorInit(Bytecode bytecode, LocalVar iter, LocalVar exec_ctx, uint32_t table_oid,
                              uint32_t index_oid, LocalVar col_oids, uint32_t num_oids);
-
-  /**
-   * Emit code to free an index iterator
-   * @param bytecode bytecode used to free an index iterator
-   * @param iter index iterator to free
-   */
-  void EmitIndexIteratorFree(Bytecode bytecode, LocalVar iter);
-
-  /**
-   * Emit code to get columns of tuples with are iterator over
-   * @param bytecode bytecode corresponding to the column type
-   * @param out destination variable
-   * @param iter index iterator to use
-   * @param col_idx index of the column to access
-   */
-  void EmitIndexIteratorGet(Bytecode bytecode, LocalVar out, LocalVar iter, uint16_t col_idx);
-
-  /**
-   * Emit code to set the index's scan key
-   * @param bytecode bytecode corresponding to the column type
-   * @param iter index iterator to use
-   * @param col_idx index of the column to set
-   * @param val value to write
-   */
-  void EmitIndexIteratorSetKey(Bytecode bytecode, LocalVar iter, uint16_t col_idx, LocalVar val);
 
   /**
    * Initialize a StringVal from a char array
@@ -484,11 +450,6 @@ class BytecodeEmitter {
   void EmitInserterGetIndexPR(Bytecode bytecode, LocalVar pr, LocalVar inserter, uint32_t index_oid);
 
   /**
-   * Emit bytecode to insert into an index for the inserter.
-   */
-  void EmitInserterIndexInsert(Bytecode bytecode, LocalVar inserter, uint32_t index_oid);
-
-  /**
    * Emit bytecode to init a Deleter.
    */
   void EmitDeleterInit(Bytecode bytecode, LocalVar deleter, LocalVar exec_ctx, uint32_t table_oid);
@@ -497,11 +458,6 @@ class BytecodeEmitter {
    * Emit bytecode to get an index's PR for the deleter.
    */
   void EmitDeleterGetIndexPR(Bytecode bytecode, LocalVar pr, LocalVar deleter, uint32_t index_oid);
-
-  /**
-   * Emit bytecode to delete from an index.
-   */
-  void EmitDeleterIndexDelete(Bytecode bytecode, LocalVar deleter, uint32_t index_oid, LocalVar tuple_slot);
 
   /**
    * Emit bytecode to init an Updater
@@ -513,16 +469,6 @@ class BytecodeEmitter {
    * Emit bytecode to get an index PR for the updater.
    */
   void EmitUpdaterGetIndexPR(Bytecode bytecode, LocalVar pr, LocalVar updater, uint32_t index_oid);
-
-  /**
-   * Emit bytecode to insert into an index for the updater.
-   */
-  void EmitUpdaterIndexInsert(Bytecode bytecode, LocalVar updater, uint32_t index_oid);
-
-  /**
-   * Emit bytecode to delete from an index for the updater.
-   */
-  void EmitUpdaterIndexDelete(Bytecode bytecode, LocalVar updater, uint32_t index_oid, LocalVar tuple_slot);
 
   /**
    * Copy a scalar immediate value into the bytecode stream
