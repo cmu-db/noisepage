@@ -292,7 +292,7 @@ class OperatorVisitor {
    * Visit a LogicalCreateFunction operator
    * @param logical_create_function operator
    */
-  virtual void Visit(const LogicalCreateDatabase *logical_create_database) {}
+  virtual void Visit(const LogicalCreateFunction *logical_create_function) {}
 
   /**
    * Visit a LogicalCreateIndex operator

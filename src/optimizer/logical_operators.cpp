@@ -743,55 +743,88 @@ bool LogicalCreateDatabase::operator==(const BaseOperatorNode &r) {
 // LogicalCreateFunction
 //===--------------------------------------------------------------------===//
 
-Operator LogicalCreateFunction::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid) {
-  auto *op = new LogicalCreateFunction;
-  op->database_oid_ = database_oid;
+Operator LogicalCreateFunction::Make(catalog::namespace_oid_t namespace_oid, std::string function_name, parser::PLType language, std::vector<std::string> &&function_body,  std::vector<std::string> &&function_param_names, std::vector<parser::BaseFunctionParameter::DataType> &&function_param_types, parser::BaseFunctionParameter::DataType return_type, int param_count, bool replace) {
+  auto op = std::make_unique<LogicalCreateFunction>();
   op->namespace_oid_ = namespace_oid;
-  return Operator(op);
+  op->function_name_ = std::move(function_name);
+  op->function_body_ = std::move(function_body);
+  op->function_param_names_ = std::move(function_param_names);
+  op->function_param_types_ = std::move(function_param_types);
+  op->is_replace_ = replace;
+  op->param_count_ = param_count;
+  op->return_type_ = return_type;
+  op->language_ = language;
+  return Operator(std::move(op));
 }
 
 common::hash_t LogicalCreateFunction::Hash() const {
   common::hash_t hash = BaseOperatorNode::Hash();
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_oid_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(namespace_oid_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(function_name_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(param_count_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(is_replace_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(return_type_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(language_));
+  hash = common::HashUtil::CombineHashInRange(hash, function_body_.begin(), function_body_.end());
+  hash = common::HashUtil::CombineHashInRange(hash, function_param_names_.begin(), function_param_names_.end());
+  hash = common::HashUtil::CombineHashInRange(hash, function_param_types_.begin(), function_param_types_.end());
   return hash;
 }
 
 bool LogicalCreateFunction::operator==(const BaseOperatorNode &r) {
   if (r.GetType() != OpType::LOGICALDELETE) return false;
   const LogicalCreateFunction &node = *dynamic_cast<const LogicalCreateFunction *>(&r);
-  if (database_oid_ != node.database_oid_) return false;
   if (namespace_oid_ != node.namespace_oid_) return false;
-  return (true);
+  if (function_name_ != node.function_name_) return false;
+  if (function_body_ != node.function_body_) return false;
+  if (param_count_ != node.param_count_) return false;
+  if (return_type_ != node.return_type_) return false;
+  if (function_param_types_ != node.function_param_types_) return false;
+  if (function_param_names_ != node.function_param_names_) return false;
+  if (is_replace_ != node.is_replace_) return false;
+  return language_ == node.language_;
 }
 
 //===--------------------------------------------------------------------===//
 // LogicalCreateIndex
 //===--------------------------------------------------------------------===//
 
-Operator LogicalCreateIndex::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
-                             catalog::table_oid_t table_oid) {
-  auto *op = new LogicalCreateIndex;
-  op->database_oid_ = database_oid;
+Operator LogicalCreateIndex::Make(catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid, parser::IndexType index_type, bool unique, std::string index_name, std::vector<common::ManagedPointer<parser::AbstractExpression>> index_attrs) {
+  auto op = std::make_unique<LogicalCreateIndex>();
   op->namespace_oid_ = namespace_oid;
   op->table_oid_ = table_oid;
-  return Operator(op);
+  op->index_type_ = index_type;
+  op->unique_index_ = unique;
+  op->index_name_ = std::move(index_name);
+  op->index_attrs_ = std::move(index_attrs);
+  return Operator(std::move(op));
 }
 
 common::hash_t LogicalCreateIndex::Hash() const {
   common::hash_t hash = BaseOperatorNode::Hash();
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_oid_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(namespace_oid_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_oid_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(index_type_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(index_name_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(unique_index_));
+  for (const auto &attr : index_attrs_) {
+    hash = common::HashUtil::CombineHashes(hash, attr->Hash());
+  }
   return hash;
 }
 
 bool LogicalCreateIndex::operator==(const BaseOperatorNode &r) {
-  if (r.GetType() != OpType::LOGICALDELETE) return false;
+  if (r.GetType() != OpType::LOGICALCREATEINDEX) return false;
   const LogicalCreateIndex &node = *dynamic_cast<const LogicalCreateIndex *>(&r);
-  if (database_oid_ != node.database_oid_) return false;
   if (namespace_oid_ != node.namespace_oid_) return false;
   if (table_oid_ != node.table_oid_) return false;
+  if (index_type_ != node.index_type_) return false;
+  if (index_name_ != node.index_name_) return false;
+  if (unique_index_ != node.unique_index_) return false;
+  if (index_attrs_.size() != node.index_attrs_.size()) return false;
+  for (size_t i = 0; i < index_attrs_.size(); i++) {
+    if (*(index_attrs_[i]) != *(node.index_attrs_[i])) return false;
+  }
   return (true);
 }
 
@@ -942,6 +975,14 @@ template <>
 const char *OperatorNode<LogicalDistinct>::name = "LogicalDistinct";
 template <>
 const char *OperatorNode<LogicalExportExternalFile>::name = "LogicalExportExternalFile";
+template <>
+const char *OperatorNode<LogicalCreateDatabase>::name = "LogicalCreateDatabase";
+template <>
+const char *OperatorNode<LogicalCreateTable>::name = "LogicalCreateTable";
+template <>
+const char *OperatorNode<LogicalCreateIndex>::name = "LogicalCreateIndex";
+template <>
+const char *OperatorNode<LogicalCreateFunction>::name = "LogicalCreateFunction";
 
 //===--------------------------------------------------------------------===//
 template <>
@@ -986,6 +1027,14 @@ template <>
 OpType OperatorNode<LogicalLimit>::type = OpType::LOGICALLIMIT;
 template <>
 OpType OperatorNode<LogicalExportExternalFile>::type = OpType::LOGICALEXPORTEXTERNALFILE;
+template <>
+OpType OperatorNode<LogicalCreateDatabase>::type = OpType::LOGICALCREATEDATABASE;
+template <>
+OpType OperatorNode<LogicalCreateTable>::type = OpType::LOGICALCREATETABLE;
+template <>
+OpType OperatorNode<LogicalCreateIndex>::type = OpType::LOGICALCREATEINDEX;
+template <>
+OpType OperatorNode<LogicalCreateFunction>::type = OpType::LOGICALCREATEFUNCTION;
 
 template <typename T>
 bool OperatorNode<T>::IsLogical() const {

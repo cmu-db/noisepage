@@ -13,6 +13,7 @@
 #include "parser/expression_defs.h"
 #include "parser/parser_defs.h"
 #include "parser/update_statement.h"
+#include "parser/statements.h"
 #include "planner/plannodes/plan_node_defs.h"
 #include "type/transient_value.h"
 
@@ -994,6 +995,11 @@ class LogicalCreateDatabase : public OperatorNode<LogicalCreateDatabase> {
 
   bool operator==(const BaseOperatorNode &r) override;
   common::hash_t Hash() const override;
+
+  /**
+   * @return the name of the database we want to create
+   */
+  const std::string &GetDatabaseName() const { return database_name_; }
  private:
   /**
    * Name of the new database
@@ -1011,32 +1017,103 @@ class LogicalCreateFunction : public OperatorNode<LogicalCreateFunction> {
    * @param namespace_oid OID of the namespace
    * @return
    */
-  static Operator Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid);
+  static Operator Make(catalog::namespace_oid_t namespace_oid, std::string function_name, parser::PLType language, std::vector<std::string> &&function_body,  std::vector<std::string> &&function_param_names, std::vector<parser::BaseFunctionParameter::DataType> &&function_param_types, parser::BaseFunctionParameter::DataType return_type, int param_count, bool replace);
 
   bool operator==(const BaseOperatorNode &r) override;
   common::hash_t Hash() const override;
-
-  /**
-   * @return OID of the database
-   */
-  const catalog::db_oid_t &GetDatabaseOid() const { return database_oid_; }
 
   /**
    * @return OID of the namespace
    */
   const catalog::namespace_oid_t &GetNamespaceOid() const { return namespace_oid_; }
 
- private:
   /**
-   * OID of the database
+   * @return name of the user defined function
    */
-  catalog::db_oid_t database_oid_;
+  std::string GetFunctionName() const { return function_name_; }
 
+  /**
+   * @return language type of the user defined function
+   */
+  parser::PLType GetUDFLanguage() const { return language_; }
+
+  /**
+   * @return body of the user defined function
+   */
+  std::vector<std::string> GetFunctionBody() const { return function_body_; }
+
+  /**
+   * @return parameter names of the user defined function
+   */
+  std::vector<std::string> GetFunctionParameterNames() const { return function_param_names_; }
+
+  /**
+   * @return parameter types of the user defined function
+   */
+  std::vector<parser::BaseFunctionParameter::DataType> GetFunctionParameterTypes() const {
+    return function_param_types_;
+  }
+
+  /**
+   * @return return type of the user defined function
+   */
+  parser::BaseFunctionParameter::DataType GetReturnType() const { return return_type_; }
+
+  /**
+   * @return whether the definition of the user defined function needs to be replaced
+   */
+  bool IsReplace() const { return is_replace_; }
+
+  /**
+   * @return number of parameters of the user defined function
+   */
+  int GetParamCount() const { return param_count_; }
+
+ private:
   /**
    * OID of the namespace
    */
   catalog::namespace_oid_t namespace_oid_;
 
+  /**
+   * Indicates the UDF language type
+   */
+  parser::PLType language_;
+
+  /**
+   * Function parameters names passed to the UDF
+   */
+  std::vector<std::string> function_param_names_;
+
+  /**
+   * Function parameter types passed to the UDF
+   */
+  std::vector<parser::BaseFunctionParameter::DataType> function_param_types_;
+
+  /**
+   * Query string/ function body of the UDF
+   */
+  std::vector<std::string> function_body_;
+
+  /**
+   * Indicates if the function definition needs to be replaced
+   */
+  bool is_replace_;
+
+  /**
+   * Function name of the UDF
+   */
+  std::string function_name_;
+
+  /**
+   * Return type of the UDF
+   */
+  parser::BaseFunctionParameter::DataType return_type_;
+
+  /**
+   * Number of parameters
+   */
+  int param_count_ = 0;
 };
 
 /**
@@ -1050,16 +1127,10 @@ class LogicalCreateIndex : public OperatorNode<LogicalCreateIndex> {
    * @param table_oid OID of the table
    * @return
    */
-  static Operator Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
-                       catalog::table_oid_t table_oid);
+  static Operator Make(catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid, parser::IndexType index_type, bool unique, std::string index_name, std::vector<common::ManagedPointer<parser::AbstractExpression>> index_attrs);
 
   bool operator==(const BaseOperatorNode &r) override;
   common::hash_t Hash() const override;
-
-  /**
-   * @return OID of the database
-   */
-  const catalog::db_oid_t &GetDatabaseOid() const { return database_oid_; }
 
   /**
    * @return OID of the namespace
@@ -1071,12 +1142,27 @@ class LogicalCreateIndex : public OperatorNode<LogicalCreateIndex> {
    */
   const catalog::table_oid_t &GetTableOid() const { return table_oid_; }
 
- private:
   /**
-   * OID of the database
+   * @return Type of the index
    */
-  catalog::db_oid_t database_oid_;
+  const parser::IndexType &GetIndexType() const { return index_type_; }
 
+  /**
+   * @return Type of the index
+   */
+  const bool &IsUnique() const { return unique_index_; }
+
+  /**
+   * @return Name of the index
+   */
+  const std::string &GetIndexName() const { return index_name_; }
+
+  /**
+   * @return Type of the index
+   */
+  const std::vector<common::ManagedPointer<parser::AbstractExpression>> &GetIndexAttr() const { return index_attrs_; }
+
+ private:
   /**
    * OID of the namespace
    */
@@ -1086,6 +1172,26 @@ class LogicalCreateIndex : public OperatorNode<LogicalCreateIndex> {
    * OID of the table
    */
   catalog::table_oid_t table_oid_;
+
+  /**
+   * Index type
+   */
+  parser::IndexType index_type_;
+
+  /**
+   * True if the index is unique
+   */
+  bool unique_index_;
+
+  /**
+   * Name of the Index
+   */
+  std::string index_name_;
+
+  /**
+   * Index attributes
+   */
+  std::vector<common::ManagedPointer<parser::AbstractExpression>> index_attrs_;
 };
 
 /**
@@ -1103,16 +1209,22 @@ class LogicalCreateTable : public OperatorNode<LogicalCreateTable> {
   bool operator==(const BaseOperatorNode &r) override;
   common::hash_t Hash() const override;
 
-//  /**
-//   * @return OID of the database
-//   */
-//  const catalog::db_oid_t &GetDatabaseOid() const { return database_oid_; }
-
   /**
    * @return OID of the namespace
    */
   const catalog::namespace_oid_t &GetNamespaceOid() const { return namespace_oid_; }
-
+  /**
+   * @return the name of the database we want to create
+   */
+  const std::string &GetTableName() const { return table_name_; }
+  /**
+   * @return the name of the database we want to create
+   */
+  const std::vector<common::ManagedPointer<parser::ColumnDefinition>> &GetColumns() const { return columns_; }
+  /**
+   * @return the name of the database we want to create
+   */
+  const std::vector<common::ManagedPointer<parser::ColumnDefinition>> &GetForeignKeys() const { return foreign_keys_; }
  private:
   /**
    * OID of the namespace
@@ -1125,7 +1237,7 @@ class LogicalCreateTable : public OperatorNode<LogicalCreateTable> {
    std::string table_name_;
 
   /**
-   * Vector of column definations of the new table
+   * Vector of column definitions of the new table
    */
    std::vector<common::ManagedPointer<parser::ColumnDefinition>> columns_;
 

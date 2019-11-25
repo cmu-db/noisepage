@@ -257,6 +257,15 @@ void QueryToOperatorTransformer::Visit(UNUSED_ATTRIBUTE parser::LimitDescription
 void QueryToOperatorTransformer::Visit(UNUSED_ATTRIBUTE parser::CreateFunctionStatement *op,
                                        UNUSED_ATTRIBUTE parser::ParseResult *parse_result) {
   OPTIMIZER_LOG_DEBUG("Transforming CreateFunctionStatement to operators ...");
+  // TODO(Ling): Where should the as_type_ go?
+  std::vector<std::string> function_param_names;
+  std::vector<parser::BaseFunctionParameter::DataType> function_param_types;
+  for (const auto &col : op->GetFuncParameters()) {
+    function_param_names.push_back(col->GetParamName());
+    function_param_types.push_back(col->GetDataType());
+  }
+  auto create_expr = std::make_unique<OperatorExpression>(LogicalCreateFunction::Make(accessor_->GetDefaultNamespace(), op->GetFuncName(), op->GetPLType(), op->GetFuncBody(), std::move(function_param_names), std::move(function_param_types), op->GetFuncReturnType()->GetDataType(), op->GetFuncParameters().size(), op->ShouldReplace()), std::vector<std::unique_ptr<OperatorExpression>>{});
+  output_expr_ = std::move(create_expr);
 }
 
 void QueryToOperatorTransformer::Visit(parser::CreateStatement *op, parser::ParseResult *parse_result) {

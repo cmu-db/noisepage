@@ -926,4 +926,47 @@ TEST_F(OperatorTransformerTest, CreateIndexTest) {
   EXPECT_EQ(col_attr->GetDatabaseOid(), db_oid_);
 }
 
+
+// NOLINTNEXTLINE
+TEST_F(OperatorTransformerTest, CreateFunctionTest) {
+  std::string create_sql =
+      "CREATE OR REPLACE FUNCTION increment ("
+      " i DOUBLE"
+      " )"
+      " RETURNS DOUBLE AS $$ "
+      " BEGIN RETURN i + 1; END; $$ "
+      "LANGUAGE plpgsql;";
+
+  std::string ref ="{\"Op\":\"LogicalCreateFunction\",}";
+
+  auto parse_tree = parser_.BuildParseTree(create_sql);
+  auto statement = parse_tree.GetStatements()[0];
+  binder_->BindNameToNode(statement, &parse_tree);
+  accessor_ = binder_->GetCatalogAccessor();
+  auto ns_oid = accessor_->GetDefaultNamespace();
+  operator_transformer_ = std::make_unique<optimizer::QueryToOperatorTransformer>(std::move(accessor_));
+  operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, &parse_tree);
+  auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorExpression>(operator_tree_));
+
+  EXPECT_EQ(ref, info);
+
+  // Test logical create
+  auto logical_create = operator_tree_->GetOp().As<optimizer::LogicalCreateFunction>();
+  auto create_stmt = statement.CastManagedPointerTo<parser::CreateFunctionStatement>();
+  EXPECT_EQ(logical_create->GetNamespaceOid(), ns_oid);
+  EXPECT_EQ(logical_create->GetFunctionName(), create_stmt->GetFuncName());
+  EXPECT_EQ(logical_create->GetFunctionBody(), create_stmt->GetFuncBody());
+  EXPECT_EQ(logical_create->GetReturnType(), create_stmt->GetFuncReturnType()->GetDataType());
+  EXPECT_EQ(logical_create->GetUDFLanguage(), create_stmt->GetPLType());
+  EXPECT_EQ(logical_create->IsReplace(), create_stmt->ShouldReplace());
+  auto stmt_params = create_stmt->GetFuncParameters();
+  auto op_params_names = logical_create->GetFunctionParameterNames();
+  auto op_params_types = logical_create->GetFunctionParameterTypes();
+  EXPECT_EQ(logical_create->GetParamCount(), stmt_params.size());
+  for (size_t i = 0; i < create_stmt->GetFuncParameters().size(); i++) {
+    EXPECT_EQ(op_params_names[i], stmt_params[i]->GetParamName());
+    EXPECT_EQ(op_params_types[i], stmt_params[i]->GetDataType());
+  }
+}
+
 }  // namespace terrier
