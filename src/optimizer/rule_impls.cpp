@@ -839,7 +839,7 @@ PushExplicitFilterThroughJoin::PushExplicitFilterThroughJoin() {
   type_ = RuleType::PUSH_FILTER_THROUGH_JOIN;
 
   // Make join for pattern matching
-  Pattern *join_pattern = new Pattern(OpType::LOGICALINNERJOIN);
+  auto *join_pattern = new Pattern(OpType::LOGICALINNERJOIN);
   join_pattern->AddChild(new Pattern(OpType::LEAF));
   join_pattern->AddChild(new Pattern(OpType::LEAF));
 
