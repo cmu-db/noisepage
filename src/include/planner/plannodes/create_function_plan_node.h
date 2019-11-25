@@ -118,27 +118,6 @@ class CreateFunctionPlanNode : public AbstractPlanNode {
     }
 
     /**
-     * @param create_func_stmt the SQL CREATE FUNCTION statement
-     * @return builder object
-     */
-    Builder &SetFromCreateFuncStatement(parser::CreateFunctionStatement *create_func_stmt) {
-      language_ = create_func_stmt->GetPLType();
-      function_body_ = create_func_stmt->GetFuncBody();
-      is_replace_ = create_func_stmt->ShouldReplace();
-      function_name_ = create_func_stmt->GetFuncName();
-
-      for (const auto &col : create_func_stmt->GetFuncParameters()) {
-        function_param_names_.push_back(col->GetParamName());
-        param_count_++;
-        function_param_types_.push_back(col->GetDataType());
-      }
-
-      auto ret_type_obj = *(create_func_stmt->GetFuncReturnType());
-      return_type_ = ret_type_obj.GetDataType();
-      return *this;
-    }
-
-    /**
      * Build the create function plan node
      * @return plan node
      */
