@@ -33,7 +33,8 @@ RuleSet::RuleSet() {
   AddImplementationRule(new ImplementLimit());
   AddImplementationRule(new LogicalExportToPhysicalExport());
 
-  AddRewriteRule(RewriteRuleSetName::PREDICATE_PUSH_DOWN, new PushFilterThroughJoin());
+  AddRewriteRule(RewriteRuleSetName::PREDICATE_PUSH_DOWN, new PushImplicitFilterThroughJoin());
+  AddRewriteRule(RewriteRuleSetName::PREDICATE_PUSH_DOWN, new PushExplicitFilterThroughJoin());
   AddRewriteRule(RewriteRuleSetName::PREDICATE_PUSH_DOWN, new PushFilterThroughAggregation());
   AddRewriteRule(RewriteRuleSetName::PREDICATE_PUSH_DOWN, new CombineConsecutiveFilter());
   AddRewriteRule(RewriteRuleSetName::PREDICATE_PUSH_DOWN, new EmbedFilterIntoGet());

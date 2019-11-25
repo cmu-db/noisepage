@@ -744,7 +744,7 @@ void LogicalExportToPhysicalExport::Transform(common::ManagedPointer<OperatorExp
 ///////////////////////////////////////////////////////////////////////////////
 /// PushFilterThroughJoin
 ///////////////////////////////////////////////////////////////////////////////
-PushFilterThroughJoin::PushFilterThroughJoin() {
+PushImplicitFilterThroughJoin::PushImplicitFilterThroughJoin() {
   type_ = RuleType::PUSH_FILTER_THROUGH_JOIN;
 
   // Make join for pattern matching
@@ -753,19 +753,20 @@ PushFilterThroughJoin::PushFilterThroughJoin() {
   match_pattern_->AddChild(new Pattern(OpType::LEAF));
 }
 
-bool PushFilterThroughJoin::Check(common::ManagedPointer<OperatorExpression> plan, OptimizeContext *context) const {
+
+bool PushImplicitFilterThroughJoin::Check(common::ManagedPointer<OperatorExpression> plan, OptimizeContext *context) const {
   (void)plan;
   (void)context;
   return true;
 }
 
-void PushFilterThroughJoin::Transform(common::ManagedPointer<OperatorExpression> input,
-                                      std::vector<std::unique_ptr<OperatorExpression>> *transformed,
-                                      UNUSED_ATTRIBUTE OptimizeContext *context) const {
-  OPTIMIZER_LOG_TRACE("PushFilterThroughJoin::Transform");
+void PushImplicitFilterThroughJoin::Transform(common::ManagedPointer<OperatorExpression> input,
+                                    std::vector<std::unique_ptr<OperatorExpression>> *transformed,
+                                    UNUSED_ATTRIBUTE OptimizeContext *context) const {
+  OPTIMIZER_LOG_TRACE("PushImplicitFilterThroughJoin::Transform");
 
   auto &memo = context->GetMetadata()->GetMemo();
-  auto join_op_expr = input;
+  auto &join_op_expr = input;
   auto join_children = join_op_expr->GetChildren();
   auto left_group_id = join_children[0]->GetOp().As<LeafOperator>()->GetOriginGroup();
   auto right_group_id = join_children[1]->GetOp().As<LeafOperator>()->GetOriginGroup();
@@ -833,6 +834,108 @@ void PushFilterThroughJoin::Transform(common::ManagedPointer<OperatorExpression>
     transformed->emplace_back(std::move(output));
   }
 }
+
+
+///////////////////////////////////////////////////////////////////////////////
+/// PushExplicitFilterThroughJoin
+///////////////////////////////////////////////////////////////////////////////
+PushExplicitFilterThroughJoin::PushExplicitFilterThroughJoin() {
+  type_ = RuleType::PUSH_FILTER_THROUGH_JOIN;
+
+  // Make join for pattern matching
+  Pattern *join_pattern = new Pattern(OpType::LOGICALINNERJOIN);
+  join_pattern->AddChild(new Pattern(OpType::LEAF));
+  join_pattern->AddChild(new Pattern(OpType::LEAF));
+
+  match_pattern_ = new Pattern(OpType::LOGICALFILTER);
+  match_pattern_->AddChild(join_pattern);
+}
+
+bool PushExplicitFilterThroughJoin::Check(common::ManagedPointer<OperatorExpression> plan,
+                                          OptimizeContext *context) const {
+  (void)plan;
+  (void)context;
+  return true;
+}
+
+void PushExplicitFilterThroughJoin::Transform(common::ManagedPointer<OperatorExpression> input,
+                                              std::vector<std::unique_ptr<OperatorExpression>> *transformed,
+                                              UNUSED_ATTRIBUTE OptimizeContext *context) const {
+  OPTIMIZER_LOG_TRACE("PushExplicitFilterThroughJoin::Transform");
+
+  auto &memo = context->GetMetadata()->GetMemo();
+  auto &join_op_expr = input->GetChildren()[0];
+  auto join_children = join_op_expr->GetChildren();
+  auto left_group_id = join_children[0]->GetOp().As<LeafOperator>()->GetOriginGroup();
+  auto right_group_id = join_children[1]->GetOp().As<LeafOperator>()->GetOriginGroup();
+
+  const auto &left_group_aliases_set = memo.GetGroupByID(left_group_id)->GetTableAliases();
+  const auto &right_group_aliases_set = memo.GetGroupByID(right_group_id)->GetTableAliases();
+  auto &input_join_predicates = join_op_expr->GetOp().As<LogicalInnerJoin>()->GetJoinPredicates();
+  auto &filter_predicates = input->GetOp().As<LogicalFilter>()->GetPredicates();
+
+  std::vector<AnnotatedExpression> left_predicates;
+  std::vector<AnnotatedExpression> right_predicates;
+  std::vector<AnnotatedExpression> join_predicates;
+
+  // Loop over all predicates, check each of them if they can be pushed down to
+  // either the left child or the right child to be evaluated
+  // All predicates in this loop follow conjunction relationship because we
+  // already extract these predicates from the original.
+  // E.g. An expression (test.a = test1.b and test.a = 5) would become
+  // {test.a = test1.b, test.a = 5}
+  for (auto &predicate : input_join_predicates) {
+    if (Util::IsSubset(left_group_aliases_set, predicate.GetTableAliasSet())) {
+      left_predicates.emplace_back(predicate);
+    } else if (Util::IsSubset(right_group_aliases_set, predicate.GetTableAliasSet())) {
+      right_predicates.emplace_back(predicate);
+    } else {
+      join_predicates.emplace_back(predicate);
+    }
+  }
+  for (auto &predicate : filter_predicates) {
+    if (Util::IsSubset(left_group_aliases_set, predicate.GetTableAliasSet())) {
+      left_predicates.emplace_back(predicate);
+    } else if (Util::IsSubset(right_group_aliases_set, predicate.GetTableAliasSet())) {
+      right_predicates.emplace_back(predicate);
+    } else {
+      join_predicates.emplace_back(predicate);
+    }
+  }
+
+  std::unique_ptr<OperatorExpression> left_branch;
+  std::unique_ptr<OperatorExpression> right_branch;
+
+  // Construct left filter if any
+  if (!left_predicates.empty()) {
+    std::vector<std::unique_ptr<OperatorExpression>> c;
+    auto left_child = join_op_expr->GetChildren()[0]->Copy();
+    c.emplace_back(std::move(left_child));
+    left_branch = std::make_unique<OperatorExpression>(LogicalFilter::Make(std::move(left_predicates)), std::move(c));
+  } else {
+    left_branch = join_op_expr->GetChildren()[0]->Copy();
+  }
+
+  // Construct right filter if any
+  if (!right_predicates.empty()) {
+    std::vector<std::unique_ptr<OperatorExpression>> c;
+    auto right_child = join_op_expr->GetChildren()[1]->Copy();
+    c.emplace_back(std::move(right_child));
+    right_branch = std::make_unique<OperatorExpression>(LogicalFilter::Make(std::move(right_predicates)), std::move(c));
+  } else {
+    right_branch = join_op_expr->GetChildren()[1]->Copy();
+  }
+
+  auto pre_join_predicate = join_op_expr->GetOp().As<LogicalInnerJoin>()->GetJoinPredicates();
+  join_predicates.insert(join_predicates.end(), pre_join_predicate.begin(), pre_join_predicate.end());
+  std::vector<std::unique_ptr<OperatorExpression>> c;
+  c.emplace_back(std::move(left_branch));
+  c.emplace_back(std::move(right_branch));
+  auto output =
+          std::make_unique<OperatorExpression>(LogicalInnerJoin::Make(std::move(join_predicates)), std::move(c));
+  transformed->emplace_back(std::move(output));
+}
+
 
 ///////////////////////////////////////////////////////////////////////////////
 /// PushFilterThroughAggregation

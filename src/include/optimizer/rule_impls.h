@@ -520,12 +520,12 @@ class LogicalExportToPhysicalExport : public Rule {
  * we could push "test.a=5" through the join to evaluate at the table scan
  * level
  */
-class PushFilterThroughJoin : public Rule {
+class PushImplicitFilterThroughJoin : public Rule {
  public:
   /**
    * Constructor
    */
-  PushFilterThroughJoin();
+  PushImplicitFilterThroughJoin();
 
   /**
    * Checks whether the given rule can be applied
@@ -545,6 +545,40 @@ class PushFilterThroughJoin : public Rule {
                  std::vector<std::unique_ptr<OperatorExpression>> *transformed,
                  OptimizeContext *context) const override;
 };
+
+
+/**
+ * Rule performs predicate push-down to push a filter through join. For
+ * example, for query "SELECT test.a, test.b FROM test, test1 WHERE test.a = 5"
+ * we could push "test.a=5" through the join to evaluate at the table scan
+ * level
+ */
+class PushExplicitFilterThroughJoin : public Rule {
+ public:
+  /**
+   * Constructor
+   */
+  PushExplicitFilterThroughJoin();
+
+  /**
+   * Checks whether the given rule can be applied
+   * @param plan OperatorExpression to check
+   * @param context Current OptimizeContext executing under
+   * @returns Whether the input OperatorExpression passes the check
+   */
+  bool Check(common::ManagedPointer<OperatorExpression> plan, OptimizeContext *context) const override;
+
+  /**
+   * Transforms the input expression using the given rule
+   * @param input Input OperatorExpression to transform
+   * @param transformed Vector of transformed OperatorExpressions
+   * @param context Current OptimizeContext executing under
+   */
+  void Transform(common::ManagedPointer<OperatorExpression> input,
+                 std::vector<std::unique_ptr<OperatorExpression>> *transformed,
+                 OptimizeContext *context) const override;
+};
+
 
 /**
  * Rule transforms consecutive filters into a single filter
