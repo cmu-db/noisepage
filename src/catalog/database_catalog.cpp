@@ -350,12 +350,11 @@ bool DatabaseCatalog::DeleteNamespace(transaction::TransactionContext *const txn
   // Scan index
   std::vector<storage::TupleSlot> index_results;
   namespaces_oid_index_->ScanKey(*txn, *pr, &index_results);
-  if (index_results.empty()) {
-    // oid not found in the index, so namespace doesn't exist. Free the buffer and return false to indicate failure
-    delete[] buffer;
-    return false;
-  }
-  TERRIER_ASSERT(index_results.size() == 1, "Namespace OID not unique in index");
+  TERRIER_ASSERT(
+      index_results.size() == 1,
+      "Incorrect number of results from index scan. Expect 1 because it's a unique index. 0 implies that function was "
+      "called with an oid that doesn't exist in the Catalog, but binding somehow succeeded. That doesn't make sense. "
+      "Was a DROP plan node reused twice? IF EXISTS should be handled in the Binder, rather than pushing logic here.");
   const auto tuple_slot = index_results[0];
 
   // Step 2: Select from the table to get the name
@@ -529,12 +528,9 @@ std::vector<Column> DatabaseCatalog::GetColumns(transaction::TransactionContext 
   std::vector<storage::TupleSlot> index_results;
   columns_oid_index_->ScanAscending(*txn, *pr, *pr_high, &index_results);
 
-  if (index_results.empty()) {
-    // class not found in the index, so class doesn't exist. Free the buffer and return nullptr to indicate failure
-    delete[] buffer;
-    delete[] key_buffer;
-    return {};
-  }
+  TERRIER_ASSERT(!index_results.empty(),
+                 "Incorrect number of results from index scan. empty() implies that function was called with an oid "
+                 "that doesn't exist in the Catalog, but binding somehow succeeded. That doesn't make sense.");
 
   // Step 2: Scan the table to get the columns
   std::vector<Column> cols;
@@ -582,10 +578,9 @@ bool DatabaseCatalog::DeleteColumns(transaction::TransactionContext *const txn, 
   std::vector<storage::TupleSlot> index_results;
   columns_oid_index_->ScanAscending(*txn, *pr, *key_pr, &index_results);
 
-  if (index_results.empty()) {
-    delete[] buffer;
-    return false;
-  }
+  TERRIER_ASSERT(!index_results.empty(),
+                 "Incorrect number of results from index scan. empty() implies that function was called with an oid "
+                 "that doesn't exist in the Catalog, but binding somehow succeeded. That doesn't make sense.");
 
   // TODO(Matt): do we have any way to assert that we got the number of attributes we expect? From another attribute in
   // another catalog table maybe?
@@ -659,14 +654,11 @@ bool DatabaseCatalog::DeleteTable(transaction::TransactionContext *const txn, co
   *(reinterpret_cast<table_oid_t *>(key_pr->AccessForceNotNull(0))) = table;
   std::vector<storage::TupleSlot> index_results;
   classes_oid_index_->ScanKey(*txn, *key_pr, &index_results);
-  if (index_results.empty()) {
-    // TODO(Matt): we should verify what postgres does in this case
-    // Index scan didn't find anything. This seems weird since we were able to enter this function with a table_oid.
-    // That implies that it was visible to us. Maybe the table was dropped or renamed twice by the same txn?
-    delete[] buffer;
-    return false;
-  }
-  TERRIER_ASSERT(index_results.size() == 1, "You got more than one result from a unique index. How did you do that?");
+  TERRIER_ASSERT(
+      index_results.size() == 1,
+      "Incorrect number of results from index scan. Expect 1 because it's a unique index. 0 implies that function was "
+      "called with an oid that doesn't exist in the Catalog, but binding somehow succeeded. That doesn't make sense. "
+      "Was a DROP plan node reused twice? IF EXISTS should be handled in the Binder, rather than pushing logic here.");
 
   // Select the tuple out of the table before deletion. We need the attributes to do index deletions later
   auto *const table_pr = pg_class_all_cols_pri_.InitializeRow(buffer);
@@ -760,7 +752,7 @@ std::pair<uint32_t, postgres::ClassKind> DatabaseCatalog::GetClassOidKind(transa
   if (index_results.empty()) {
     delete[] buffer;
     // If the OID is invalid, we don't care the class kind and return a random one.
-    return std::make_pair(0, postgres::ClassKind::REGULAR_TABLE);
+    return std::make_pair(catalog::NULL_OID, postgres::ClassKind::REGULAR_TABLE);
   }
   TERRIER_ASSERT(index_results.size() == 1, "name not unique in classes_name_index_");
 
@@ -783,7 +775,7 @@ std::pair<uint32_t, postgres::ClassKind> DatabaseCatalog::GetClassOidKind(transa
 table_oid_t DatabaseCatalog::GetTableOid(transaction::TransactionContext *const txn, const namespace_oid_t ns,
                                          const std::string &name) {
   const auto oid_pair = GetClassOidKind(txn, ns, name);
-  if (oid_pair.second != postgres::ClassKind::REGULAR_TABLE) {
+  if (oid_pair.first == catalog::NULL_OID || oid_pair.second != postgres::ClassKind::REGULAR_TABLE) {
     // User called GetTableOid on an object that doesn't have type REGULAR_TABLE
     return INVALID_TABLE_OID;
   }
@@ -907,14 +899,11 @@ bool DatabaseCatalog::DeleteIndex(transaction::TransactionContext *txn, index_oi
   *(reinterpret_cast<index_oid_t *>(key_pr->AccessForceNotNull(0))) = index;
   std::vector<storage::TupleSlot> index_results;
   classes_oid_index_->ScanKey(*txn, *key_pr, &index_results);
-  if (index_results.empty()) {
-    // TODO(Matt): we should verify what postgres does in this case
-    // Index scan didn't find anything. This seems weird since we were able to enter this function with an index_oid.
-    // That implies that it was visible to us. Maybe the index was dropped or renamed twice by the same txn?
-    delete[] buffer;
-    return false;
-  }
-  TERRIER_ASSERT(index_results.size() == 1, "You got more than one result from a unique index. How did you do that?");
+  TERRIER_ASSERT(
+      index_results.size() == 1,
+      "Incorrect number of results from index scan. Expect 1 because it's a unique index. 0 implies that function was "
+      "called with an oid that doesn't exist in the Catalog, but binding somehow succeeded. That doesn't make sense. "
+      "Was a DROP plan node reused twice? IF EXISTS should be handled in the Binder, rather than pushing logic here.");
 
   // Select the tuple out of the table before deletion. We need the attributes to do index deletions later
   auto *table_pr = pg_class_all_cols_pri_.InitializeRow(buffer);
@@ -978,14 +967,10 @@ bool DatabaseCatalog::DeleteIndex(transaction::TransactionContext *txn, index_oi
   key_pr = index_oid_pr.InitializeRow(buffer);
   *(reinterpret_cast<index_oid_t *>(key_pr->AccessForceNotNull(0))) = index;
   indexes_oid_index_->ScanKey(*txn, *key_pr, &index_results);
-  if (index_results.empty()) {
-    // TODO(Matt): we should verify what postgres does in this case
-    // Index scan didn't find anything. This seems weird since we were able to enter this function with an index_oid.
-    // That implies that it was visible to us. Maybe the index was dropped or renamed twice by the same txn?
-    delete[] buffer;
-    return false;
-  }
-  TERRIER_ASSERT(index_results.size() == 1, "You got more than one result from a unique index. How did you do that?");
+  TERRIER_ASSERT(index_results.size() == 1,
+                 "Incorrect number of results from index scan. Expect 1 because it's a unique index. size() of 0 "
+                 "implies an error in Catalog state because scanning pg_class worked, but it doesn't exist in "
+                 "pg_index. Something broke.");
 
   // Select the tuple out of pg_index before deletion. We need the attributes to do index deletions later
   table_pr = delete_index_pri_.InitializeRow(buffer);
@@ -1063,14 +1048,11 @@ bool DatabaseCatalog::SetClassPointer(transaction::TransactionContext *const txn
   *(reinterpret_cast<ClassOid *>(key_pr->AccessForceNotNull(0))) = oid;
   std::vector<storage::TupleSlot> index_results;
   classes_oid_index_->ScanKey(*txn, *key_pr, &index_results);
-  if (index_results.empty()) {
-    // TODO(Matt): we should verify what postgres does in this case
-    // Index scan didn't find anything. This seems weird since we were able to enter this function with an oid.
-    // That implies that it was visible to us. Maybe the object was dropped or renamed twice by the same txn?
-    delete[] buffer;
-    return false;
-  }
-  TERRIER_ASSERT(index_results.size() == 1, "You got more than one result from a unique index. How did you do that?");
+  TERRIER_ASSERT(
+      index_results.size() == 1,
+      "Incorrect number of results from index scan. Expect 1 because it's a unique index. 0 implies that function was "
+      "called with an oid that doesn't exist in the Catalog, which implies a programmer error. There's no reasonable "
+      "code path for this to be called on an oid that isn't present.");
 
   auto &initializer =
       (class_col == catalog::postgres::REL_PTR_COL_OID) ? set_class_pointer_pri_ : set_class_schema_pri_;
@@ -1111,7 +1093,7 @@ common::ManagedPointer<storage::index::Index> DatabaseCatalog::GetIndex(transact
 index_oid_t DatabaseCatalog::GetIndexOid(transaction::TransactionContext *txn, namespace_oid_t ns,
                                          const std::string &name) {
   const auto oid_pair = GetClassOidKind(txn, ns, name);
-  if (oid_pair.second != postgres::ClassKind::INDEX) {
+  if (oid_pair.first == NULL_OID || oid_pair.second != postgres::ClassKind::INDEX) {
     // User called GetIndexOid on an object that doesn't have type INDEX
     return INVALID_INDEX_OID;
   }
@@ -1170,15 +1152,10 @@ std::vector<std::pair<common::ManagedPointer<storage::index::Index>, const Index
     // Find the entry using the index
     *(reinterpret_cast<uint32_t *>(class_key_pr->AccessForceNotNull(0))) = static_cast<uint32_t>(index_oid);
     classes_oid_index_->ScanKey(*txn, *class_key_pr, &index_scan_results);
-    if (index_scan_results.empty()) {
-      // TODO(Matt): we should verify what postgres does in this case
-      // Index scan didn't find anything. This seems weird since we were able to enter this function with an oid.
-      // That implies that it was visible to us. Maybe the object was dropped or renamed twice by the same txn?
-      delete[] buffer;
-      return {};
-    }
     TERRIER_ASSERT(index_scan_results.size() == 1,
-                   "You got more than one result from a unique index. How did you do that?");
+                   "Incorrect number of results from index scan. Expect 1 because it's a unique index. size() of 0 "
+                   "implies an error in Catalog state because scanning pg_index returned the index oid, but it doesn't "
+                   "exist in pg_class. Something broke.");
     class_tuple_slots.push_back(index_scan_results[0]);
     index_scan_results.clear();
   }
@@ -1700,14 +1677,10 @@ std::pair<void *, postgres::ClassKind> DatabaseCatalog::GetClassPtrKind(transact
   auto *key_pr = oid_pri.InitializeRow(buffer);
   *(reinterpret_cast<uint32_t *>(key_pr->AccessForceNotNull(0))) = oid;
   classes_oid_index_->ScanKey(*txn, *key_pr, &index_results);
-  if (index_results.empty()) {
-    // TODO(Matt): we should verify what postgres does in this case
-    // Index scan didn't find anything. This seems weird since we were able to enter this function with an oid.
-    // That implies that it was visible to us. Maybe the object was dropped or renamed twice by the same txn?
-    delete[] buffer;
-    return {nullptr, postgres::ClassKind::REGULAR_TABLE};
-  }
-  TERRIER_ASSERT(index_results.size() == 1, "You got more than one result from a unique index. How did you do that?");
+  TERRIER_ASSERT(
+      index_results.size() == 1,
+      "Incorrect number of results from index scan. Expect 1 because it's a unique index. 0 implies that function was "
+      "called with an oid that doesn't exist in the Catalog, but binding somehow succeeded. That doesn't make sense.");
 
   auto *select_pr = get_class_pointer_kind_pri_.InitializeRow(buffer);
   const auto result UNUSED_ATTRIBUTE = classes_->Select(txn, index_results[0], select_pr);
@@ -1743,14 +1716,10 @@ std::pair<void *, postgres::ClassKind> DatabaseCatalog::GetClassSchemaPtrKind(tr
   auto *key_pr = oid_pri.InitializeRow(buffer);
   *(reinterpret_cast<uint32_t *>(key_pr->AccessForceNotNull(0))) = oid;
   classes_oid_index_->ScanKey(*txn, *key_pr, &index_results);
-  if (index_results.empty()) {
-    // TODO(Matt): we should verify what postgres does in this case
-    // Index scan didn't find anything. This seems weird since we were able to enter this function with an oid.
-    // That implies that it was visible to us. Maybe the object was dropped or renamed twice by the same txn?
-    delete[] buffer;
-    return {nullptr, postgres::ClassKind::REGULAR_TABLE};
-  }
-  TERRIER_ASSERT(index_results.size() == 1, "You got more than one result from a unique index. How did you do that?");
+  TERRIER_ASSERT(
+      index_results.size() == 1,
+      "Incorrect number of results from index scan. Expect 1 because it's a unique index. 0 implies that function was "
+      "called with an oid that doesn't exist in the Catalog, but binding somehow succeeded. That doesn't make sense.");
 
   auto *select_pr = get_class_schema_pointer_kind_pri_.InitializeRow(buffer);
   const auto result UNUSED_ATTRIBUTE = classes_->Select(txn, index_results[0], select_pr);
