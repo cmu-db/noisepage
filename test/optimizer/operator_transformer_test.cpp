@@ -15,6 +15,7 @@
 #include "parser/expression/subquery_expression.h"
 #include "parser/postgresparser.h"
 #include "storage/garbage_collector.h"
+#include "storage/index/index_builder.h"
 #include "test_util/test_harness.h"
 #include "traffic_cop/statement.h"
 #include "transaction/deferred_action_manager.h"
@@ -39,6 +40,7 @@ class OperatorTransformerTest : public TerrierTest {
   catalog::db_oid_t db_oid_;
   catalog::table_oid_t table_a_oid_;
   catalog::table_oid_t table_b_oid_;
+  catalog::index_oid_t a_index_oid_;
   parser::PostgresParser parser_;
   transaction::TimestampManager *timestamp_manager_;
   transaction::DeferredActionManager *deferred_action_manager_;
@@ -102,6 +104,20 @@ class OperatorTransformerTest : public TerrierTest {
     table_b_oid_ = accessor_->CreateTable(accessor_->GetDefaultNamespace(), "b", schema_b);
     auto table_b = new storage::SqlTable(&block_store_, schema_b);
     EXPECT_TRUE(accessor_->SetTablePointer(table_b_oid_, table_b));
+    txn_manager_->Commit(txn_, TestCallbacks::EmptyCallback, nullptr);
+
+    // create index on a1
+    txn_ = txn_manager_->BeginTransaction();
+    accessor_ = catalog_->GetAccessor(txn_, db_oid_);
+
+    auto col = catalog::IndexSchema::Column("a1", type::TypeId::INTEGER, true, parser::ColumnValueExpression(db_oid_, table_a_oid_, accessor_->GetSchema(table_a_oid_).GetColumn("a1").Oid()));
+    auto idx_schema = catalog::IndexSchema({col}, storage::index::IndexType::BWTREE, true, true, false, true);
+    a_index_oid_ = accessor_->CreateIndex(accessor_->GetDefaultNamespace(), table_a_oid_, "a_index", idx_schema);
+    storage::index::IndexBuilder index_builder;
+    index_builder.SetKeySchema(accessor_->GetIndexSchema(a_index_oid_));
+    auto index = index_builder.Build();
+
+    EXPECT_TRUE(accessor_->SetIndexPointer(a_index_oid_, index));
     txn_manager_->Commit(txn_, TestCallbacks::EmptyCallback, nullptr);
     accessor_.reset(nullptr);
   }
@@ -1073,6 +1089,28 @@ TEST_F(OperatorTransformerTest, DropTableTest) {
   // Test logical drop table
   auto logical_create = operator_tree_->GetOp().As<optimizer::LogicalDropTable>();
   EXPECT_EQ(logical_create->GetTableOID(), table_a_oid_);
+}
+
+// NOLINTNEXTLINE
+TEST_F(OperatorTransformerTest, DropIndexTest) {
+  std::string drop_sql = "DROP index a_index ;";
+
+  std::cout<< drop_sql << std::endl;
+  std::string ref ="{\"Op\":\"LogicalDropIndex\",}";
+
+  auto parse_tree = parser_.BuildParseTree(drop_sql);
+  auto statement = parse_tree.GetStatements()[0];
+  binder_->BindNameToNode(statement, &parse_tree);
+  accessor_ = binder_->GetCatalogAccessor();
+  operator_transformer_ = std::make_unique<optimizer::QueryToOperatorTransformer>(std::move(accessor_));
+  operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, &parse_tree);
+  auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorExpression>(operator_tree_));
+
+  EXPECT_EQ(ref, info);
+
+  // Test logical drop table
+  auto logical_create = operator_tree_->GetOp().As<optimizer::LogicalDropIndex>();
+  EXPECT_EQ(logical_create->GetIndexOID(), a_index_oid_);
 }
 
 }  // namespace terrier

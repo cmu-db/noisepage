@@ -453,6 +453,8 @@ void QueryToOperatorTransformer::Visit(parser::DropStatement *op, parser::ParseR
       drop_expr = std::make_unique<OperatorExpression>(LogicalDropTable::Make(accessor_->GetTableOid(op->GetTableName())), std::vector<std::unique_ptr<OperatorExpression>>{});
       break;
     case parser::DropStatement::DropType::kIndex:
+      drop_expr = std::make_unique<OperatorExpression>(LogicalDropIndex::Make(accessor_->GetIndexOid(op->GetIndexName())), std::vector<std::unique_ptr<OperatorExpression>>{});
+      break;
     case parser::DropStatement::DropType::kTrigger:
     case parser::DropStatement::DropType::kSchema:
     case parser::DropStatement::DropType::kView:

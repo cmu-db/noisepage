@@ -1016,6 +1016,28 @@ bool LogicalDropTable::operator==(const BaseOperatorNode &r) {
 }
 
 //===--------------------------------------------------------------------===//
+// LogicalDropIndex
+//===--------------------------------------------------------------------===//
+
+Operator LogicalDropIndex::Make(catalog::index_oid_t index_oid) {
+  auto op = std::make_unique<LogicalDropIndex>();
+  op->index_oid_ = index_oid;
+  return Operator(std::move(op));
+}
+
+common::hash_t LogicalDropIndex::Hash() const {
+  common::hash_t hash = BaseOperatorNode::Hash();
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(index_oid_));
+  return hash;
+}
+
+bool LogicalDropIndex::operator==(const BaseOperatorNode &r) {
+  if (r.GetType() != OpType::LOGICALDROPINDEX) return false;
+  const LogicalDropIndex &node = *dynamic_cast<const LogicalDropIndex *>(&r);
+  return node.index_oid_ == index_oid_;
+}
+
+//===--------------------------------------------------------------------===//
 template <typename T>
 void OperatorNode<T>::Accept(common::ManagedPointer<OperatorVisitor> v) const {
   v->Visit(reinterpret_cast<const T *>(this));
@@ -1082,6 +1104,8 @@ template <>
 const char *OperatorNode<LogicalDropDatabase>::name = "LogicalDropDatabase";
 template <>
 const char *OperatorNode<LogicalDropTable>::name = "LogicalDropTable";
+template <>
+const char *OperatorNode<LogicalDropIndex>::name = "LogicalDropIndex";
 
 //===--------------------------------------------------------------------===//
 template <>
@@ -1144,6 +1168,8 @@ template <>
 OpType OperatorNode<LogicalDropDatabase>::type = OpType::LOGICALDROPDATABASE;
 template <>
 OpType OperatorNode<LogicalDropTable>::type = OpType::LOGICALDROPTABLE;
+template <>
+OpType OperatorNode<LogicalDropIndex>::type = OpType::LOGICALDROPINDEX;
 
 template <typename T>
 bool OperatorNode<T>::IsLogical() const {

@@ -325,16 +325,22 @@ class OperatorVisitor {
   virtual void Visit(const LogicalCreateView *logical_create_view) {}
 
   /**
- * Visit a LogicalDropDatabase operator
- * @param logical_drop_database operator
- */
+   * Visit a LogicalDropDatabase operator
+   * @param logical_drop_database operator
+   */
   virtual void Visit(const LogicalDropDatabase *logical_drop_database) {}
 
   /**
- * Visit a LogicalDropTable operator
- * @param logical_drop_table operator
- */
+   * Visit a LogicalDropTable operator
+   * @param logical_drop_table operator
+   */
   virtual void Visit(const LogicalDropTable *logical_drop_table) {}
+  
+  /**
+   * Visit a LogicalDropIndex operator
+   * @param logical_drop_index operator
+   */
+  virtual void Visit(const LogicalDropIndex *logical_drop_index) {}
 };
 
 }  // namespace terrier::optimizer

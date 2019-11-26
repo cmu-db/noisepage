@@ -297,9 +297,9 @@ void BindNodeVisitor::Visit(parser::DropStatement *node, UNUSED_ATTRIBUTE parser
     case parser::DropStatement::DropType::kDatabase:
       break;
     case parser::DropStatement::DropType::kTable:
+    case parser::DropStatement::DropType::kIndex:
       node->TryBindDatabaseName(default_database_name_);
       break;
-    case parser::DropStatement::DropType::kIndex:
     case parser::DropStatement::DropType::kTrigger:
     case parser::DropStatement::DropType::kSchema:
     case parser::DropStatement::DropType::kView:
