@@ -51,11 +51,7 @@ Database *Builder::Build(const storage::index::IndexType index_type) {
   TERRIER_ASSERT(order_table_oid != catalog::INVALID_TABLE_OID, "Failed to create table.");
   TERRIER_ASSERT(order_line_table_oid != catalog::INVALID_TABLE_OID, "Failed to create table.");
 
-  txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
-
   // get the schemas from the catalog
-  txn = txn_manager_->BeginTransaction();
-  accessor = catalog_->GetAccessor(txn, db_oid);
 
   item_schema = accessor->GetSchema(item_table_oid);
   warehouse_schema = accessor->GetSchema(warehouse_table_oid);
@@ -67,11 +63,7 @@ Database *Builder::Build(const storage::index::IndexType index_type) {
   order_schema = accessor->GetSchema(order_table_oid);
   order_line_schema = accessor->GetSchema(order_line_table_oid);
 
-  txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
-
   // instantiate and set the table pointers in the catalog
-  txn = txn_manager_->BeginTransaction();
-  accessor = catalog_->GetAccessor(txn, db_oid);
 
   auto result UNUSED_ATTRIBUTE = accessor->SetTablePointer(item_table_oid, new storage::SqlTable(store_, item_schema));
   TERRIER_ASSERT(result, "Failed to set table pointer.");
@@ -217,11 +209,7 @@ Database *Builder::Build(const storage::index::IndexType index_type) {
   TERRIER_ASSERT(item_primary_index_oid != catalog::INVALID_INDEX_OID, "Failed to create index.");
   TERRIER_ASSERT(stock_primary_index_oid != catalog::INVALID_INDEX_OID, "Failed to create index.");
 
-  txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
-
   // get the schemas from the catalog
-  txn = txn_manager_->BeginTransaction();
-  accessor = catalog_->GetAccessor(txn, db_oid);
 
   warehouse_primary_index_schema = accessor->GetIndexSchema(warehouse_primary_index_oid);
   district_primary_index_schema = accessor->GetIndexSchema(district_primary_index_oid);
@@ -234,11 +222,7 @@ Database *Builder::Build(const storage::index::IndexType index_type) {
   item_primary_index_schema = accessor->GetIndexSchema(item_primary_index_oid);
   stock_primary_index_schema = accessor->GetIndexSchema(stock_primary_index_oid);
 
-  txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
-
   // instantiate and set the index pointers in the catalog
-  txn = txn_manager_->BeginTransaction();
-  accessor = catalog_->GetAccessor(txn, db_oid);
 
   result = accessor->SetIndexPointer(warehouse_primary_index_oid, BuildIndex(warehouse_primary_index_schema));
   TERRIER_ASSERT(result, "Failed to set index pointer.");

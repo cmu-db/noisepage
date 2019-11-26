@@ -359,7 +359,6 @@ TEST_F(RecoveryTests, DropTableTest) {
 
   // Assert the table we deleted doesn't exist
   EXPECT_EQ(catalog::INVALID_TABLE_OID, db_catalog->GetTableOid(txn, namespace_oid, table_name));
-  EXPECT_FALSE(db_catalog->GetTable(txn, table_oid));
   recovery_txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 }
 
@@ -402,7 +401,6 @@ TEST_F(RecoveryTests, DropIndexTest) {
 
   // Assert the index we deleted doesn't exist
   EXPECT_EQ(0, db_catalog->GetIndexOids(txn, table_oid).size());
-  EXPECT_FALSE(db_catalog->GetIndex(txn, index_oid));
   recovery_txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 }
 
@@ -662,7 +660,6 @@ TEST_F(RecoveryTests, ConcurrentDDLChangesTest) {
 
   // Assert the table we deleted doesn't exist
   EXPECT_EQ(catalog::INVALID_TABLE_OID, db_catalog->GetTableOid(txn, namespace_oid, table_name));
-  EXPECT_FALSE(db_catalog->GetTable(txn, table_oid));
   recovery_txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
 }
 
