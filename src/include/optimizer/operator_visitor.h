@@ -307,8 +307,8 @@ class OperatorVisitor {
   virtual void Visit(const LogicalCreateTable *logical_create_table) {}
 
   /**
-   * Visit a LogicalCreateTable operator
-   * @param logical_create_table operator
+   * Visit a LogicalCreateNamespace operator
+   * @param logical_create_namespace operator
    */
   virtual void Visit(const LogicalCreateNamespace *logical_create_namespace) {}
 
@@ -329,6 +329,12 @@ class OperatorVisitor {
  * @param logical_drop_database operator
  */
   virtual void Visit(const LogicalDropDatabase *logical_drop_database) {}
+
+  /**
+ * Visit a LogicalDropTable operator
+ * @param logical_drop_table operator
+ */
+  virtual void Visit(const LogicalDropTable *logical_drop_table) {}
 };
 
 }  // namespace terrier::optimizer

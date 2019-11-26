@@ -1461,5 +1461,30 @@ class LogicalDropDatabase : public OperatorNode<LogicalDropDatabase> {
   catalog::db_oid_t db_oid_;
 };
 
+
+/**
+ * Logical operator for DropTable
+ */
+class LogicalDropTable : public OperatorNode<LogicalDropTable> {
+ public:
+  /**
+   * @return
+   */
+  static Operator Make(catalog::table_oid_t table_oid);
+
+  bool operator==(const BaseOperatorNode &r) override;
+  common::hash_t Hash() const override;
+
+  /**
+   * @return the OID of the database we want to drop
+   */
+  const catalog::table_oid_t &GetTableOID() const { return table_oid_; }
+ private:
+  /**
+   * OID of the table
+   */
+  catalog::table_oid_t table_oid_;
+};
+
 }  // namespace optimizer
 }  // namespace terrier

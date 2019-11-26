@@ -1049,9 +1049,30 @@ TEST_F(OperatorTransformerTest, DropDatabaseTest) {
 
   EXPECT_EQ(ref, info);
 
-  // Test logical create
+  // Test logical drop db
   auto logical_create = operator_tree_->GetOp().As<optimizer::LogicalDropDatabase>();
   EXPECT_EQ(logical_create->GetDatabaseOID(), db_oid_);
+}
+
+// NOLINTNEXTLINE
+TEST_F(OperatorTransformerTest, DropTableTest) {
+  std::string drop_sql = "DROP TABLE A;";
+
+  std::string ref ="{\"Op\":\"LogicalDropTable\",}";
+
+  auto parse_tree = parser_.BuildParseTree(drop_sql);
+  auto statement = parse_tree.GetStatements()[0];
+  binder_->BindNameToNode(statement, &parse_tree);
+  accessor_ = binder_->GetCatalogAccessor();
+  operator_transformer_ = std::make_unique<optimizer::QueryToOperatorTransformer>(std::move(accessor_));
+  operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, &parse_tree);
+  auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorExpression>(operator_tree_));
+
+  EXPECT_EQ(ref, info);
+
+  // Test logical drop table
+  auto logical_create = operator_tree_->GetOp().As<optimizer::LogicalDropTable>();
+  EXPECT_EQ(logical_create->GetTableOID(), table_a_oid_);
 }
 
 }  // namespace terrier
