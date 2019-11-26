@@ -785,10 +785,13 @@ table_oid_t DatabaseCatalog::GetTableOid(transaction::TransactionContext *const 
 
 bool DatabaseCatalog::SetTablePointer(transaction::TransactionContext *const txn, const table_oid_t table,
                                       const storage::SqlTable *const table_ptr) {
-  // We need to defer the deletion because their may be subsequent undo records into this table that need to be GCed
-  // before we can safely delete this.
+  // This needs to be a double defer because after this is registered, the unlink for this undo record is also 
+  // registered. As this needs to come after that unlink it must be a double deferral
+  // TODO(Yash): This may need to be triple deferral 
   txn->RegisterAbortAction([=](transaction::DeferredActionManager *deferred_action_manager) {
-    deferred_action_manager->RegisterDeferredAction([=]() { delete table_ptr; });
+    deferred_action_manager->RegisterDeferredAction([=]() { 
+      deferred_action_manager->RegisterDeferredAction([=]() { delete table_ptr; }); 
+    });
   });
   return SetClassPointer(txn, table, table_ptr, postgres::REL_PTR_COL_OID);
 }
