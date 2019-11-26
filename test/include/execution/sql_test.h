@@ -47,6 +47,7 @@ class SqlBasedTest : public TplTest {
     txn_manager_->Commit(test_txn_, transaction::TransactionUtil::EmptyCallback, nullptr);
     catalog_->TearDown();
     gc_->PerformGarbageCollection();
+    // Is this meant to be here twice?
     gc_->PerformGarbageCollection();
   }
 
