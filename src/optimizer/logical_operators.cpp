@@ -877,24 +877,24 @@ bool LogicalCreateTable::operator==(const BaseOperatorNode &r) {
 }
 
 //===--------------------------------------------------------------------===//
-// LogicalCreateNamespace
+// LogicalCreateSchema
 //===--------------------------------------------------------------------===//
 
-Operator LogicalCreateNamespace::Make(std::string namespace_name) {
-  auto op = std::make_unique<LogicalCreateNamespace>();
+Operator LogicalCreateSchema::Make(std::string namespace_name) {
+  auto op = std::make_unique<LogicalCreateSchema>();
   op->namespace_name_ = std::move(namespace_name);
   return Operator(std::move(op));
 }
 
-common::hash_t LogicalCreateNamespace::Hash() const {
+common::hash_t LogicalCreateSchema::Hash() const {
   common::hash_t hash = BaseOperatorNode::Hash();
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(namespace_name_));
   return hash;
 }
 
-bool LogicalCreateNamespace::operator==(const BaseOperatorNode &r) {
+bool LogicalCreateSchema::operator==(const BaseOperatorNode &r) {
   if (r.GetType() != OpType::LOGICALCREATENAMESPACE) return false;
-  const LogicalCreateNamespace &node = *dynamic_cast<const LogicalCreateNamespace *>(&r);
+  const LogicalCreateSchema &node = *dynamic_cast<const LogicalCreateSchema *>(&r);
   return node.namespace_name_ == namespace_name_;
 }
 
@@ -947,8 +947,7 @@ bool LogicalCreateTrigger::operator==(const BaseOperatorNode &r) {
   if (trigger_args_ != node.trigger_args_) return false;
   if (trigger_columns_ != node.trigger_columns_) return false;
   if (trigger_type_ != node.trigger_type_) return false;
-  if (trigger_when_ == nullptr)
-    return node.trigger_when_ == nullptr;
+  if (trigger_when_ == nullptr) return node.trigger_when_ == nullptr;
   return *trigger_when_ == *(node.trigger_when_);
 }
 
@@ -1109,7 +1108,7 @@ const char *OperatorNode<LogicalCreateIndex>::name = "LogicalCreateIndex";
 template <>
 const char *OperatorNode<LogicalCreateFunction>::name = "LogicalCreateFunction";
 template <>
-const char *OperatorNode<LogicalCreateNamespace>::name = "LogicalCreateNamespace";
+const char *OperatorNode<LogicalCreateSchema>::name = "LogicalCreateSchema";
 template <>
 const char *OperatorNode<LogicalCreateTrigger>::name = "LogicalCreateTrigger";
 template <>
@@ -1173,7 +1172,7 @@ OpType OperatorNode<LogicalCreateIndex>::type = OpType::LOGICALCREATEINDEX;
 template <>
 OpType OperatorNode<LogicalCreateFunction>::type = OpType::LOGICALCREATEFUNCTION;
 template <>
-OpType OperatorNode<LogicalCreateNamespace>::type = OpType::LOGICALCREATENAMESPACE;
+OpType OperatorNode<LogicalCreateSchema>::type = OpType::LOGICALCREATENAMESPACE;
 template <>
 OpType OperatorNode<LogicalCreateTrigger>::type = OpType::LOGICALCREATETRIGGER;
 template <>

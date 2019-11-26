@@ -1272,7 +1272,7 @@ class LogicalCreateTable : public OperatorNode<LogicalCreateTable> {
 /**
  * Logical operator for CreateSchema/Namespace
  */
-class LogicalCreateNamespace : public OperatorNode<LogicalCreateNamespace> {
+class LogicalCreateSchema : public OperatorNode<LogicalCreateSchema> {
  public:
   /**
    * @param namespace_name Name of the namespace to be created
