@@ -10,6 +10,7 @@
 #include "settings/settings_param.h"
 #include "storage/garbage_collector_thread.h"
 #include "traffic_cop/terrier_engine.h"
+#include "transaction/deferred_action_manager.h"
 #include "transaction/transaction_manager.h"
 #include "transaction/transaction_util.h"
 
@@ -51,14 +52,18 @@ DBMain::DBMain(std::unordered_map<settings::Param, settings::ParamInfo> &&param_
   // Create timestamp manager.
   timestamp_manager_ = new transaction::TimestampManager;
 
+  // Create deferred action manager.
+  deferred_action_manager_ = std::make_unique<transaction::DeferredActionManager>(timestamp_manager_);
+
   // Create transaction manager, depends on timestamp manager, buffer segment pool, log manager.
   // It _should_ eventually depend on deferred events manager, but we're not there yet.
-  txn_manager_ =
-      new transaction::TransactionManager(timestamp_manager_, DISABLED, buffer_segment_pool_, true, log_manager_);
+  txn_manager_ = new transaction::TransactionManager(timestamp_manager_, deferred_action_manager_.get(),
+                                                     buffer_segment_pool_, true, log_manager_);
 
   // Create garbage collector, depends on timestamp manager, transaction manager.
   // It _should_ eventually depend on deferred events manager, but we're not there yet.
-  garbage_collector_ = new storage::GarbageCollector(timestamp_manager_, DISABLED, txn_manager_, DISABLED);
+  garbage_collector_ =
+      new storage::GarbageCollector(timestamp_manager_, deferred_action_manager_.get(), txn_manager_, DISABLED);
   // Creates a dedicated garbage collector thread.
   gc_thread_ = new storage::GarbageCollectorThread(garbage_collector_,
                                                    std::chrono::milliseconds{type::TransientValuePeeker::PeekInteger(

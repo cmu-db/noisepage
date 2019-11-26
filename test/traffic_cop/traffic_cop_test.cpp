@@ -1,5 +1,6 @@
 #include <pqxx/pqxx> /* libpqxx is used to instantiate C++ client */
 
+#include <transaction/deferred_action_manager.h>
 #include <memory>
 #include <string>
 #include <unordered_map>
@@ -11,11 +12,14 @@
 #include "loggers/main_logger.h"
 #include "network/connection_handle_factory.h"
 #include "network/terrier_server.h"
+#include "storage/garbage_collector.h"
+#include "storage/garbage_collector_thread.h"
 #include "storage/write_ahead_log/log_manager.h"
 #include "test_util/manual_packet_util.h"
 #include "test_util/test_harness.h"
 #include "traffic_cop/terrier_engine.h"
 #include "traffic_cop/traffic_cop.h"
+#include "transaction/deferred_action_manager.h"
 #include "transaction/transaction_manager.h"
 
 namespace terrier::trafficcop {
@@ -29,7 +33,11 @@ class TrafficCopTests : public TerrierTest {
   storage::RecordBufferSegmentPool buffer_segment_pool_{100000, 1000};
   transaction::TimestampManager timestamp_manager_{};
   parser::PostgresParser parser_{};
-  transaction::TransactionManager txn_manager_{&timestamp_manager_, DISABLED, &buffer_segment_pool_, false, DISABLED};
+  transaction::DeferredActionManager deferred_action_manager_{&timestamp_manager_};
+  storage::GarbageCollector garbage_collector_{&timestamp_manager_, &deferred_action_manager_, &txn_manager_, DISABLED};
+  storage::GarbageCollectorThread gc_thread_{&garbage_collector_, std::chrono::milliseconds{10}};
+  transaction::TransactionManager txn_manager_{&timestamp_manager_, &deferred_action_manager_, &buffer_segment_pool_,
+                                               true, DISABLED};
   storage::BlockStore block_store_{10000, 10000};
   catalog::Catalog catalog_{&txn_manager_, &block_store_};
   trafficcop::TerrierEngine terrier_engine_{common::ManagedPointer(&parser_), common::ManagedPointer(&txn_manager_),
@@ -70,6 +78,7 @@ class TrafficCopTests : public TerrierTest {
   }
 
   void TearDown() override {
+    // TODO(WAN/MATT): catalog_.TearDown(); Clean up the tables -> use-after-free, don't clean it up -> leak.
     server_->StopServer();
     TEST_LOG_DEBUG("Terrier has shut down");
     TerrierTest::TearDown();

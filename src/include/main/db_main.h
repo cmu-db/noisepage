@@ -38,6 +38,10 @@ namespace trafficcop {
 class TerrierEngine;
 }  // namespace trafficcop
 
+namespace transaction {
+class DeferredActionManager;
+}  // namespace transaction
+
 /**
  * The DBMain Class holds all the singleton pointers. It has the full knowledge
  * of the whole database systems and serves as a global context of the system.
@@ -87,6 +91,7 @@ class DBMain {
   std::unordered_map<settings::Param, settings::ParamInfo> param_map_;
   transaction::TimestampManager *timestamp_manager_;
   transaction::TransactionManager *txn_manager_;
+  std::unique_ptr<transaction::DeferredActionManager> deferred_action_manager_;
   settings::SettingsManager *settings_manager_;
   storage::LogManager *log_manager_;
   storage::GarbageCollector *garbage_collector_;
