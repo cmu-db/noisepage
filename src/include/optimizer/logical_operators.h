@@ -989,6 +989,7 @@ class LogicalExportExternalFile : public OperatorNode<LogicalExportExternalFile>
 class LogicalCreateDatabase : public OperatorNode<LogicalCreateDatabase> {
  public:
   /**
+   * @param database_name Name of the database to be created
    * @return
    */
   static Operator Make(std::string database_name);
@@ -1014,8 +1015,15 @@ class LogicalCreateDatabase : public OperatorNode<LogicalCreateDatabase> {
 class LogicalCreateFunction : public OperatorNode<LogicalCreateFunction> {
  public:
   /**
-   * @param database_oid OID of the database
    * @param namespace_oid OID of the namespace
+   * @param function_name Name of the function
+   * @param language Language type of the user defined function
+   * @param function_body Body of the user defined function
+   * @param function_param_names Parameter names of the user defined function
+   * @param function_param_types Parameter types of the user defined function
+   * @param return_type Return type of the user defined function
+   * @param param_count Number of parameters of the user defined function
+   * @param replace If this function should replace existing definitions
    * @return
    */
   static Operator Make(catalog::namespace_oid_t namespace_oid, std::string function_name, parser::PLType language,
@@ -1126,9 +1134,12 @@ class LogicalCreateFunction : public OperatorNode<LogicalCreateFunction> {
 class LogicalCreateIndex : public OperatorNode<LogicalCreateIndex> {
  public:
   /**
-   * @param database_oid OID of the database
    * @param namespace_oid OID of the namespace
    * @param table_oid OID of the table
+   * @param index_type Type of the index
+   * @param unique If the index to be created should be unique
+   * @param index_name Name of the index
+   * @param index_attrs Attributes of the index
    * @return
    */
   static Operator Make(catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid,
@@ -1154,7 +1165,7 @@ class LogicalCreateIndex : public OperatorNode<LogicalCreateIndex> {
   const parser::IndexType &GetIndexType() const { return index_type_; }
 
   /**
-   * @return Type of the index
+   * @return If the index should be unique
    */
   const bool &IsUnique() const { return unique_index_; }
 
@@ -1206,8 +1217,10 @@ class LogicalCreateIndex : public OperatorNode<LogicalCreateIndex> {
 class LogicalCreateTable : public OperatorNode<LogicalCreateTable> {
  public:
   /**
-   * @param database_oid OID of the database
    * @param namespace_oid OID of the namespace
+   * @param table_name Name of the table to be created
+   * @param columns Vector of definitions of the columns in the new table
+   * @param foreign_keys Vector of definitions of foreign key columns in the new table
    * @return
    */
   static Operator Make(catalog::namespace_oid_t namespace_oid, std::string table_name,
@@ -1262,6 +1275,7 @@ class LogicalCreateTable : public OperatorNode<LogicalCreateTable> {
 class LogicalCreateNamespace : public OperatorNode<LogicalCreateNamespace> {
  public:
   /**
+   * @param namespace_name Name of the namespace to be created
    * @return
    */
   static Operator Make(std::string namespace_name);
@@ -1290,6 +1304,12 @@ class LogicalCreateTrigger : public OperatorNode<LogicalCreateTrigger> {
    * @param database_oid OID of the database
    * @param namespace_oid OID of the namespace
    * @param table_oid OID of the table
+   * @param trigger_name Name of the trigger
+   * @param trigger_funcnames Trigger function names
+   * @param trigger_args Trigger arguments
+   * @param trigger_columns OIDs of trigger columns
+   * @param trigger_when Trigger when clause
+   * @param trigger_type Type of the trigger
    * @return
    */
   static Operator Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
@@ -1403,6 +1423,8 @@ class LogicalCreateView : public OperatorNode<LogicalCreateView> {
   /**
    * @param database_oid OID of the database
    * @param namespace_oid OID of the namespace
+   * @param view_name Name of the view
+   * @param view_query Query statement of the view
    * @return
    */
   static Operator Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid, std::string view_name,
@@ -1458,6 +1480,7 @@ class LogicalCreateView : public OperatorNode<LogicalCreateView> {
 class LogicalDropDatabase : public OperatorNode<LogicalDropDatabase> {
  public:
   /**
+   * @param db_oid OID of the database to be dropped
    * @return
    */
   static Operator Make(catalog::db_oid_t db_oid);
@@ -1483,6 +1506,7 @@ class LogicalDropDatabase : public OperatorNode<LogicalDropDatabase> {
 class LogicalDropTable : public OperatorNode<LogicalDropTable> {
  public:
   /**
+   * @param table_oid OID of the table to be dropped
    * @return
    */
   static Operator Make(catalog::table_oid_t table_oid);
