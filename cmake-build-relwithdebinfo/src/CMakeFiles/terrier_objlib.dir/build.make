@@ -1916,9 +1916,74 @@ src/CMakeFiles/terrier_objlib.dir/storage/garbage_collector_thread.cpp.s: cmake_
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/terrier_objlib.dir/storage/garbage_collector_thread.cpp.s"
 	cd /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/dpatra/Research/terrier/src/storage/garbage_collector_thread.cpp -o CMakeFiles/terrier_objlib.dir/storage/garbage_collector_thread.cpp.s
 
+src/CMakeFiles/terrier_objlib.dir/storage/index/bwtree_index.cpp.o: src/CMakeFiles/terrier_objlib.dir/flags.make
+src/CMakeFiles/terrier_objlib.dir/storage/index/bwtree_index.cpp.o: ../src/storage/index/bwtree_index.cpp
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num=$(CMAKE_PROGRESS_144) "Building CXX object src/CMakeFiles/terrier_objlib.dir/storage/index/bwtree_index.cpp.o"
+	cd /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/terrier_objlib.dir/storage/index/bwtree_index.cpp.o -c /Users/dpatra/Research/terrier/src/storage/index/bwtree_index.cpp
+
+src/CMakeFiles/terrier_objlib.dir/storage/index/bwtree_index.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/terrier_objlib.dir/storage/index/bwtree_index.cpp.i"
+	cd /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /Users/dpatra/Research/terrier/src/storage/index/bwtree_index.cpp > CMakeFiles/terrier_objlib.dir/storage/index/bwtree_index.cpp.i
+
+src/CMakeFiles/terrier_objlib.dir/storage/index/bwtree_index.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/terrier_objlib.dir/storage/index/bwtree_index.cpp.s"
+	cd /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/dpatra/Research/terrier/src/storage/index/bwtree_index.cpp -o CMakeFiles/terrier_objlib.dir/storage/index/bwtree_index.cpp.s
+
+src/CMakeFiles/terrier_objlib.dir/storage/index/compact_ints_key.cpp.o: src/CMakeFiles/terrier_objlib.dir/flags.make
+src/CMakeFiles/terrier_objlib.dir/storage/index/compact_ints_key.cpp.o: ../src/storage/index/compact_ints_key.cpp
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num=$(CMAKE_PROGRESS_145) "Building CXX object src/CMakeFiles/terrier_objlib.dir/storage/index/compact_ints_key.cpp.o"
+	cd /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/terrier_objlib.dir/storage/index/compact_ints_key.cpp.o -c /Users/dpatra/Research/terrier/src/storage/index/compact_ints_key.cpp
+
+src/CMakeFiles/terrier_objlib.dir/storage/index/compact_ints_key.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/terrier_objlib.dir/storage/index/compact_ints_key.cpp.i"
+	cd /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /Users/dpatra/Research/terrier/src/storage/index/compact_ints_key.cpp > CMakeFiles/terrier_objlib.dir/storage/index/compact_ints_key.cpp.i
+
+src/CMakeFiles/terrier_objlib.dir/storage/index/compact_ints_key.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/terrier_objlib.dir/storage/index/compact_ints_key.cpp.s"
+	cd /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/dpatra/Research/terrier/src/storage/index/compact_ints_key.cpp -o CMakeFiles/terrier_objlib.dir/storage/index/compact_ints_key.cpp.s
+
+src/CMakeFiles/terrier_objlib.dir/storage/index/generic_key.cpp.o: src/CMakeFiles/terrier_objlib.dir/flags.make
+src/CMakeFiles/terrier_objlib.dir/storage/index/generic_key.cpp.o: ../src/storage/index/generic_key.cpp
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num=$(CMAKE_PROGRESS_146) "Building CXX object src/CMakeFiles/terrier_objlib.dir/storage/index/generic_key.cpp.o"
+	cd /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/terrier_objlib.dir/storage/index/generic_key.cpp.o -c /Users/dpatra/Research/terrier/src/storage/index/generic_key.cpp
+
+src/CMakeFiles/terrier_objlib.dir/storage/index/generic_key.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/terrier_objlib.dir/storage/index/generic_key.cpp.i"
+	cd /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /Users/dpatra/Research/terrier/src/storage/index/generic_key.cpp > CMakeFiles/terrier_objlib.dir/storage/index/generic_key.cpp.i
+
+src/CMakeFiles/terrier_objlib.dir/storage/index/generic_key.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/terrier_objlib.dir/storage/index/generic_key.cpp.s"
+	cd /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/dpatra/Research/terrier/src/storage/index/generic_key.cpp -o CMakeFiles/terrier_objlib.dir/storage/index/generic_key.cpp.s
+
+src/CMakeFiles/terrier_objlib.dir/storage/index/hash_index.cpp.o: src/CMakeFiles/terrier_objlib.dir/flags.make
+src/CMakeFiles/terrier_objlib.dir/storage/index/hash_index.cpp.o: ../src/storage/index/hash_index.cpp
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num=$(CMAKE_PROGRESS_147) "Building CXX object src/CMakeFiles/terrier_objlib.dir/storage/index/hash_index.cpp.o"
+	cd /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/terrier_objlib.dir/storage/index/hash_index.cpp.o -c /Users/dpatra/Research/terrier/src/storage/index/hash_index.cpp
+
+src/CMakeFiles/terrier_objlib.dir/storage/index/hash_index.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/terrier_objlib.dir/storage/index/hash_index.cpp.i"
+	cd /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /Users/dpatra/Research/terrier/src/storage/index/hash_index.cpp > CMakeFiles/terrier_objlib.dir/storage/index/hash_index.cpp.i
+
+src/CMakeFiles/terrier_objlib.dir/storage/index/hash_index.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/terrier_objlib.dir/storage/index/hash_index.cpp.s"
+	cd /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/dpatra/Research/terrier/src/storage/index/hash_index.cpp -o CMakeFiles/terrier_objlib.dir/storage/index/hash_index.cpp.s
+
+src/CMakeFiles/terrier_objlib.dir/storage/index/hash_key.cpp.o: src/CMakeFiles/terrier_objlib.dir/flags.make
+src/CMakeFiles/terrier_objlib.dir/storage/index/hash_key.cpp.o: ../src/storage/index/hash_key.cpp
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num=$(CMAKE_PROGRESS_148) "Building CXX object src/CMakeFiles/terrier_objlib.dir/storage/index/hash_key.cpp.o"
+	cd /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/terrier_objlib.dir/storage/index/hash_key.cpp.o -c /Users/dpatra/Research/terrier/src/storage/index/hash_key.cpp
+
+src/CMakeFiles/terrier_objlib.dir/storage/index/hash_key.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/terrier_objlib.dir/storage/index/hash_key.cpp.i"
+	cd /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /Users/dpatra/Research/terrier/src/storage/index/hash_key.cpp > CMakeFiles/terrier_objlib.dir/storage/index/hash_key.cpp.i
+
+src/CMakeFiles/terrier_objlib.dir/storage/index/hash_key.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/terrier_objlib.dir/storage/index/hash_key.cpp.s"
+	cd /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/dpatra/Research/terrier/src/storage/index/hash_key.cpp -o CMakeFiles/terrier_objlib.dir/storage/index/hash_key.cpp.s
+
 src/CMakeFiles/terrier_objlib.dir/storage/projected_columns.cpp.o: src/CMakeFiles/terrier_objlib.dir/flags.make
 src/CMakeFiles/terrier_objlib.dir/storage/projected_columns.cpp.o: ../src/storage/projected_columns.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num=$(CMAKE_PROGRESS_144) "Building CXX object src/CMakeFiles/terrier_objlib.dir/storage/projected_columns.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num=$(CMAKE_PROGRESS_149) "Building CXX object src/CMakeFiles/terrier_objlib.dir/storage/projected_columns.cpp.o"
 	cd /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/terrier_objlib.dir/storage/projected_columns.cpp.o -c /Users/dpatra/Research/terrier/src/storage/projected_columns.cpp
 
 src/CMakeFiles/terrier_objlib.dir/storage/projected_columns.cpp.i: cmake_force
@@ -1931,7 +1996,7 @@ src/CMakeFiles/terrier_objlib.dir/storage/projected_columns.cpp.s: cmake_force
 
 src/CMakeFiles/terrier_objlib.dir/storage/projected_row.cpp.o: src/CMakeFiles/terrier_objlib.dir/flags.make
 src/CMakeFiles/terrier_objlib.dir/storage/projected_row.cpp.o: ../src/storage/projected_row.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num=$(CMAKE_PROGRESS_145) "Building CXX object src/CMakeFiles/terrier_objlib.dir/storage/projected_row.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num=$(CMAKE_PROGRESS_150) "Building CXX object src/CMakeFiles/terrier_objlib.dir/storage/projected_row.cpp.o"
 	cd /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/terrier_objlib.dir/storage/projected_row.cpp.o -c /Users/dpatra/Research/terrier/src/storage/projected_row.cpp
 
 src/CMakeFiles/terrier_objlib.dir/storage/projected_row.cpp.i: cmake_force
@@ -1944,7 +2009,7 @@ src/CMakeFiles/terrier_objlib.dir/storage/projected_row.cpp.s: cmake_force
 
 src/CMakeFiles/terrier_objlib.dir/storage/record_buffer.cpp.o: src/CMakeFiles/terrier_objlib.dir/flags.make
 src/CMakeFiles/terrier_objlib.dir/storage/record_buffer.cpp.o: ../src/storage/record_buffer.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num=$(CMAKE_PROGRESS_146) "Building CXX object src/CMakeFiles/terrier_objlib.dir/storage/record_buffer.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num=$(CMAKE_PROGRESS_151) "Building CXX object src/CMakeFiles/terrier_objlib.dir/storage/record_buffer.cpp.o"
 	cd /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/terrier_objlib.dir/storage/record_buffer.cpp.o -c /Users/dpatra/Research/terrier/src/storage/record_buffer.cpp
 
 src/CMakeFiles/terrier_objlib.dir/storage/record_buffer.cpp.i: cmake_force
@@ -1957,7 +2022,7 @@ src/CMakeFiles/terrier_objlib.dir/storage/record_buffer.cpp.s: cmake_force
 
 src/CMakeFiles/terrier_objlib.dir/storage/recovery/abstract_log_provider.cpp.o: src/CMakeFiles/terrier_objlib.dir/flags.make
 src/CMakeFiles/terrier_objlib.dir/storage/recovery/abstract_log_provider.cpp.o: ../src/storage/recovery/abstract_log_provider.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num=$(CMAKE_PROGRESS_147) "Building CXX object src/CMakeFiles/terrier_objlib.dir/storage/recovery/abstract_log_provider.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num=$(CMAKE_PROGRESS_152) "Building CXX object src/CMakeFiles/terrier_objlib.dir/storage/recovery/abstract_log_provider.cpp.o"
 	cd /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/terrier_objlib.dir/storage/recovery/abstract_log_provider.cpp.o -c /Users/dpatra/Research/terrier/src/storage/recovery/abstract_log_provider.cpp
 
 src/CMakeFiles/terrier_objlib.dir/storage/recovery/abstract_log_provider.cpp.i: cmake_force
@@ -1970,7 +2035,7 @@ src/CMakeFiles/terrier_objlib.dir/storage/recovery/abstract_log_provider.cpp.s: 
 
 src/CMakeFiles/terrier_objlib.dir/storage/recovery/recovery_manager.cpp.o: src/CMakeFiles/terrier_objlib.dir/flags.make
 src/CMakeFiles/terrier_objlib.dir/storage/recovery/recovery_manager.cpp.o: ../src/storage/recovery/recovery_manager.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num=$(CMAKE_PROGRESS_148) "Building CXX object src/CMakeFiles/terrier_objlib.dir/storage/recovery/recovery_manager.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num=$(CMAKE_PROGRESS_153) "Building CXX object src/CMakeFiles/terrier_objlib.dir/storage/recovery/recovery_manager.cpp.o"
 	cd /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/terrier_objlib.dir/storage/recovery/recovery_manager.cpp.o -c /Users/dpatra/Research/terrier/src/storage/recovery/recovery_manager.cpp
 
 src/CMakeFiles/terrier_objlib.dir/storage/recovery/recovery_manager.cpp.i: cmake_force
@@ -1983,7 +2048,7 @@ src/CMakeFiles/terrier_objlib.dir/storage/recovery/recovery_manager.cpp.s: cmake
 
 src/CMakeFiles/terrier_objlib.dir/storage/sql_table.cpp.o: src/CMakeFiles/terrier_objlib.dir/flags.make
 src/CMakeFiles/terrier_objlib.dir/storage/sql_table.cpp.o: ../src/storage/sql_table.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num=$(CMAKE_PROGRESS_149) "Building CXX object src/CMakeFiles/terrier_objlib.dir/storage/sql_table.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num=$(CMAKE_PROGRESS_154) "Building CXX object src/CMakeFiles/terrier_objlib.dir/storage/sql_table.cpp.o"
 	cd /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/terrier_objlib.dir/storage/sql_table.cpp.o -c /Users/dpatra/Research/terrier/src/storage/sql_table.cpp
 
 src/CMakeFiles/terrier_objlib.dir/storage/sql_table.cpp.i: cmake_force
@@ -1996,7 +2061,7 @@ src/CMakeFiles/terrier_objlib.dir/storage/sql_table.cpp.s: cmake_force
 
 src/CMakeFiles/terrier_objlib.dir/storage/storage_util.cpp.o: src/CMakeFiles/terrier_objlib.dir/flags.make
 src/CMakeFiles/terrier_objlib.dir/storage/storage_util.cpp.o: ../src/storage/storage_util.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num=$(CMAKE_PROGRESS_150) "Building CXX object src/CMakeFiles/terrier_objlib.dir/storage/storage_util.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num=$(CMAKE_PROGRESS_155) "Building CXX object src/CMakeFiles/terrier_objlib.dir/storage/storage_util.cpp.o"
 	cd /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/terrier_objlib.dir/storage/storage_util.cpp.o -c /Users/dpatra/Research/terrier/src/storage/storage_util.cpp
 
 src/CMakeFiles/terrier_objlib.dir/storage/storage_util.cpp.i: cmake_force
@@ -2009,7 +2074,7 @@ src/CMakeFiles/terrier_objlib.dir/storage/storage_util.cpp.s: cmake_force
 
 src/CMakeFiles/terrier_objlib.dir/storage/tuple_access_strategy.cpp.o: src/CMakeFiles/terrier_objlib.dir/flags.make
 src/CMakeFiles/terrier_objlib.dir/storage/tuple_access_strategy.cpp.o: ../src/storage/tuple_access_strategy.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num=$(CMAKE_PROGRESS_151) "Building CXX object src/CMakeFiles/terrier_objlib.dir/storage/tuple_access_strategy.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num=$(CMAKE_PROGRESS_156) "Building CXX object src/CMakeFiles/terrier_objlib.dir/storage/tuple_access_strategy.cpp.o"
 	cd /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/terrier_objlib.dir/storage/tuple_access_strategy.cpp.o -c /Users/dpatra/Research/terrier/src/storage/tuple_access_strategy.cpp
 
 src/CMakeFiles/terrier_objlib.dir/storage/tuple_access_strategy.cpp.i: cmake_force
@@ -2022,7 +2087,7 @@ src/CMakeFiles/terrier_objlib.dir/storage/tuple_access_strategy.cpp.s: cmake_for
 
 src/CMakeFiles/terrier_objlib.dir/storage/write_ahead_log/disk_log_consumer_task.cpp.o: src/CMakeFiles/terrier_objlib.dir/flags.make
 src/CMakeFiles/terrier_objlib.dir/storage/write_ahead_log/disk_log_consumer_task.cpp.o: ../src/storage/write_ahead_log/disk_log_consumer_task.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num=$(CMAKE_PROGRESS_152) "Building CXX object src/CMakeFiles/terrier_objlib.dir/storage/write_ahead_log/disk_log_consumer_task.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num=$(CMAKE_PROGRESS_157) "Building CXX object src/CMakeFiles/terrier_objlib.dir/storage/write_ahead_log/disk_log_consumer_task.cpp.o"
 	cd /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/terrier_objlib.dir/storage/write_ahead_log/disk_log_consumer_task.cpp.o -c /Users/dpatra/Research/terrier/src/storage/write_ahead_log/disk_log_consumer_task.cpp
 
 src/CMakeFiles/terrier_objlib.dir/storage/write_ahead_log/disk_log_consumer_task.cpp.i: cmake_force
@@ -2035,7 +2100,7 @@ src/CMakeFiles/terrier_objlib.dir/storage/write_ahead_log/disk_log_consumer_task
 
 src/CMakeFiles/terrier_objlib.dir/storage/write_ahead_log/log_io.cpp.o: src/CMakeFiles/terrier_objlib.dir/flags.make
 src/CMakeFiles/terrier_objlib.dir/storage/write_ahead_log/log_io.cpp.o: ../src/storage/write_ahead_log/log_io.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num=$(CMAKE_PROGRESS_153) "Building CXX object src/CMakeFiles/terrier_objlib.dir/storage/write_ahead_log/log_io.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num=$(CMAKE_PROGRESS_158) "Building CXX object src/CMakeFiles/terrier_objlib.dir/storage/write_ahead_log/log_io.cpp.o"
 	cd /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/terrier_objlib.dir/storage/write_ahead_log/log_io.cpp.o -c /Users/dpatra/Research/terrier/src/storage/write_ahead_log/log_io.cpp
 
 src/CMakeFiles/terrier_objlib.dir/storage/write_ahead_log/log_io.cpp.i: cmake_force
@@ -2048,7 +2113,7 @@ src/CMakeFiles/terrier_objlib.dir/storage/write_ahead_log/log_io.cpp.s: cmake_fo
 
 src/CMakeFiles/terrier_objlib.dir/storage/write_ahead_log/log_manager.cpp.o: src/CMakeFiles/terrier_objlib.dir/flags.make
 src/CMakeFiles/terrier_objlib.dir/storage/write_ahead_log/log_manager.cpp.o: ../src/storage/write_ahead_log/log_manager.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num=$(CMAKE_PROGRESS_154) "Building CXX object src/CMakeFiles/terrier_objlib.dir/storage/write_ahead_log/log_manager.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num=$(CMAKE_PROGRESS_159) "Building CXX object src/CMakeFiles/terrier_objlib.dir/storage/write_ahead_log/log_manager.cpp.o"
 	cd /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/terrier_objlib.dir/storage/write_ahead_log/log_manager.cpp.o -c /Users/dpatra/Research/terrier/src/storage/write_ahead_log/log_manager.cpp
 
 src/CMakeFiles/terrier_objlib.dir/storage/write_ahead_log/log_manager.cpp.i: cmake_force
@@ -2061,7 +2126,7 @@ src/CMakeFiles/terrier_objlib.dir/storage/write_ahead_log/log_manager.cpp.s: cma
 
 src/CMakeFiles/terrier_objlib.dir/storage/write_ahead_log/log_serializer_task.cpp.o: src/CMakeFiles/terrier_objlib.dir/flags.make
 src/CMakeFiles/terrier_objlib.dir/storage/write_ahead_log/log_serializer_task.cpp.o: ../src/storage/write_ahead_log/log_serializer_task.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num=$(CMAKE_PROGRESS_155) "Building CXX object src/CMakeFiles/terrier_objlib.dir/storage/write_ahead_log/log_serializer_task.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num=$(CMAKE_PROGRESS_160) "Building CXX object src/CMakeFiles/terrier_objlib.dir/storage/write_ahead_log/log_serializer_task.cpp.o"
 	cd /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/terrier_objlib.dir/storage/write_ahead_log/log_serializer_task.cpp.o -c /Users/dpatra/Research/terrier/src/storage/write_ahead_log/log_serializer_task.cpp
 
 src/CMakeFiles/terrier_objlib.dir/storage/write_ahead_log/log_serializer_task.cpp.i: cmake_force
@@ -2074,7 +2139,7 @@ src/CMakeFiles/terrier_objlib.dir/storage/write_ahead_log/log_serializer_task.cp
 
 src/CMakeFiles/terrier_objlib.dir/traffic_cop/sqlite.cpp.o: src/CMakeFiles/terrier_objlib.dir/flags.make
 src/CMakeFiles/terrier_objlib.dir/traffic_cop/sqlite.cpp.o: ../src/traffic_cop/sqlite.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num=$(CMAKE_PROGRESS_156) "Building CXX object src/CMakeFiles/terrier_objlib.dir/traffic_cop/sqlite.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num=$(CMAKE_PROGRESS_161) "Building CXX object src/CMakeFiles/terrier_objlib.dir/traffic_cop/sqlite.cpp.o"
 	cd /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/terrier_objlib.dir/traffic_cop/sqlite.cpp.o -c /Users/dpatra/Research/terrier/src/traffic_cop/sqlite.cpp
 
 src/CMakeFiles/terrier_objlib.dir/traffic_cop/sqlite.cpp.i: cmake_force
@@ -2087,7 +2152,7 @@ src/CMakeFiles/terrier_objlib.dir/traffic_cop/sqlite.cpp.s: cmake_force
 
 src/CMakeFiles/terrier_objlib.dir/transaction/timestamp_manager.cpp.o: src/CMakeFiles/terrier_objlib.dir/flags.make
 src/CMakeFiles/terrier_objlib.dir/transaction/timestamp_manager.cpp.o: ../src/transaction/timestamp_manager.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num=$(CMAKE_PROGRESS_157) "Building CXX object src/CMakeFiles/terrier_objlib.dir/transaction/timestamp_manager.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num=$(CMAKE_PROGRESS_162) "Building CXX object src/CMakeFiles/terrier_objlib.dir/transaction/timestamp_manager.cpp.o"
 	cd /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/terrier_objlib.dir/transaction/timestamp_manager.cpp.o -c /Users/dpatra/Research/terrier/src/transaction/timestamp_manager.cpp
 
 src/CMakeFiles/terrier_objlib.dir/transaction/timestamp_manager.cpp.i: cmake_force
@@ -2100,7 +2165,7 @@ src/CMakeFiles/terrier_objlib.dir/transaction/timestamp_manager.cpp.s: cmake_for
 
 src/CMakeFiles/terrier_objlib.dir/transaction/transaction_manager.cpp.o: src/CMakeFiles/terrier_objlib.dir/flags.make
 src/CMakeFiles/terrier_objlib.dir/transaction/transaction_manager.cpp.o: ../src/transaction/transaction_manager.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num=$(CMAKE_PROGRESS_158) "Building CXX object src/CMakeFiles/terrier_objlib.dir/transaction/transaction_manager.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num=$(CMAKE_PROGRESS_163) "Building CXX object src/CMakeFiles/terrier_objlib.dir/transaction/transaction_manager.cpp.o"
 	cd /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/terrier_objlib.dir/transaction/transaction_manager.cpp.o -c /Users/dpatra/Research/terrier/src/transaction/transaction_manager.cpp
 
 src/CMakeFiles/terrier_objlib.dir/transaction/transaction_manager.cpp.i: cmake_force
@@ -2113,7 +2178,7 @@ src/CMakeFiles/terrier_objlib.dir/transaction/transaction_manager.cpp.s: cmake_f
 
 src/CMakeFiles/terrier_objlib.dir/__/third_party/bwtree/bwtree.cpp.o: src/CMakeFiles/terrier_objlib.dir/flags.make
 src/CMakeFiles/terrier_objlib.dir/__/third_party/bwtree/bwtree.cpp.o: ../third_party/bwtree/bwtree.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num=$(CMAKE_PROGRESS_159) "Building CXX object src/CMakeFiles/terrier_objlib.dir/__/third_party/bwtree/bwtree.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num=$(CMAKE_PROGRESS_164) "Building CXX object src/CMakeFiles/terrier_objlib.dir/__/third_party/bwtree/bwtree.cpp.o"
 	cd /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/terrier_objlib.dir/__/third_party/bwtree/bwtree.cpp.o -c /Users/dpatra/Research/terrier/third_party/bwtree/bwtree.cpp
 
 src/CMakeFiles/terrier_objlib.dir/__/third_party/bwtree/bwtree.cpp.i: cmake_force
@@ -2126,7 +2191,7 @@ src/CMakeFiles/terrier_objlib.dir/__/third_party/bwtree/bwtree.cpp.s: cmake_forc
 
 src/CMakeFiles/terrier_objlib.dir/__/third_party/madoka/file.cc.o: src/CMakeFiles/terrier_objlib.dir/flags.make
 src/CMakeFiles/terrier_objlib.dir/__/third_party/madoka/file.cc.o: ../third_party/madoka/file.cc
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num=$(CMAKE_PROGRESS_160) "Building CXX object src/CMakeFiles/terrier_objlib.dir/__/third_party/madoka/file.cc.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num=$(CMAKE_PROGRESS_165) "Building CXX object src/CMakeFiles/terrier_objlib.dir/__/third_party/madoka/file.cc.o"
 	cd /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/terrier_objlib.dir/__/third_party/madoka/file.cc.o -c /Users/dpatra/Research/terrier/third_party/madoka/file.cc
 
 src/CMakeFiles/terrier_objlib.dir/__/third_party/madoka/file.cc.i: cmake_force
@@ -2139,7 +2204,7 @@ src/CMakeFiles/terrier_objlib.dir/__/third_party/madoka/file.cc.s: cmake_force
 
 src/CMakeFiles/terrier_objlib.dir/__/third_party/madoka/sketch.cc.o: src/CMakeFiles/terrier_objlib.dir/flags.make
 src/CMakeFiles/terrier_objlib.dir/__/third_party/madoka/sketch.cc.o: ../third_party/madoka/sketch.cc
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num=$(CMAKE_PROGRESS_161) "Building CXX object src/CMakeFiles/terrier_objlib.dir/__/third_party/madoka/sketch.cc.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num=$(CMAKE_PROGRESS_166) "Building CXX object src/CMakeFiles/terrier_objlib.dir/__/third_party/madoka/sketch.cc.o"
 	cd /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/terrier_objlib.dir/__/third_party/madoka/sketch.cc.o -c /Users/dpatra/Research/terrier/third_party/madoka/sketch.cc
 
 src/CMakeFiles/terrier_objlib.dir/__/third_party/madoka/sketch.cc.i: cmake_force
@@ -2152,7 +2217,7 @@ src/CMakeFiles/terrier_objlib.dir/__/third_party/madoka/sketch.cc.s: cmake_force
 
 src/CMakeFiles/terrier_objlib.dir/__/third_party/libcount/c.cc.o: src/CMakeFiles/terrier_objlib.dir/flags.make
 src/CMakeFiles/terrier_objlib.dir/__/third_party/libcount/c.cc.o: ../third_party/libcount/c.cc
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num=$(CMAKE_PROGRESS_162) "Building CXX object src/CMakeFiles/terrier_objlib.dir/__/third_party/libcount/c.cc.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num=$(CMAKE_PROGRESS_167) "Building CXX object src/CMakeFiles/terrier_objlib.dir/__/third_party/libcount/c.cc.o"
 	cd /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/terrier_objlib.dir/__/third_party/libcount/c.cc.o -c /Users/dpatra/Research/terrier/third_party/libcount/c.cc
 
 src/CMakeFiles/terrier_objlib.dir/__/third_party/libcount/c.cc.i: cmake_force
@@ -2165,7 +2230,7 @@ src/CMakeFiles/terrier_objlib.dir/__/third_party/libcount/c.cc.s: cmake_force
 
 src/CMakeFiles/terrier_objlib.dir/__/third_party/libcount/empirical_data.cc.o: src/CMakeFiles/terrier_objlib.dir/flags.make
 src/CMakeFiles/terrier_objlib.dir/__/third_party/libcount/empirical_data.cc.o: ../third_party/libcount/empirical_data.cc
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num=$(CMAKE_PROGRESS_163) "Building CXX object src/CMakeFiles/terrier_objlib.dir/__/third_party/libcount/empirical_data.cc.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num=$(CMAKE_PROGRESS_168) "Building CXX object src/CMakeFiles/terrier_objlib.dir/__/third_party/libcount/empirical_data.cc.o"
 	cd /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/terrier_objlib.dir/__/third_party/libcount/empirical_data.cc.o -c /Users/dpatra/Research/terrier/third_party/libcount/empirical_data.cc
 
 src/CMakeFiles/terrier_objlib.dir/__/third_party/libcount/empirical_data.cc.i: cmake_force
@@ -2178,7 +2243,7 @@ src/CMakeFiles/terrier_objlib.dir/__/third_party/libcount/empirical_data.cc.s: c
 
 src/CMakeFiles/terrier_objlib.dir/__/third_party/libcount/hll.cc.o: src/CMakeFiles/terrier_objlib.dir/flags.make
 src/CMakeFiles/terrier_objlib.dir/__/third_party/libcount/hll.cc.o: ../third_party/libcount/hll.cc
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num=$(CMAKE_PROGRESS_164) "Building CXX object src/CMakeFiles/terrier_objlib.dir/__/third_party/libcount/hll.cc.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num=$(CMAKE_PROGRESS_169) "Building CXX object src/CMakeFiles/terrier_objlib.dir/__/third_party/libcount/hll.cc.o"
 	cd /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/terrier_objlib.dir/__/third_party/libcount/hll.cc.o -c /Users/dpatra/Research/terrier/third_party/libcount/hll.cc
 
 src/CMakeFiles/terrier_objlib.dir/__/third_party/libcount/hll.cc.i: cmake_force
@@ -2191,7 +2256,7 @@ src/CMakeFiles/terrier_objlib.dir/__/third_party/libcount/hll.cc.s: cmake_force
 
 src/CMakeFiles/terrier_objlib.dir/__/third_party/libcount/hll_data.cc.o: src/CMakeFiles/terrier_objlib.dir/flags.make
 src/CMakeFiles/terrier_objlib.dir/__/third_party/libcount/hll_data.cc.o: ../third_party/libcount/hll_data.cc
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num=$(CMAKE_PROGRESS_165) "Building CXX object src/CMakeFiles/terrier_objlib.dir/__/third_party/libcount/hll_data.cc.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num=$(CMAKE_PROGRESS_170) "Building CXX object src/CMakeFiles/terrier_objlib.dir/__/third_party/libcount/hll_data.cc.o"
 	cd /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/terrier_objlib.dir/__/third_party/libcount/hll_data.cc.o -c /Users/dpatra/Research/terrier/third_party/libcount/hll_data.cc
 
 src/CMakeFiles/terrier_objlib.dir/__/third_party/libcount/hll_data.cc.i: cmake_force
@@ -2204,7 +2269,7 @@ src/CMakeFiles/terrier_objlib.dir/__/third_party/libcount/hll_data.cc.s: cmake_f
 
 src/CMakeFiles/terrier_objlib.dir/__/third_party/libcount/utility.cc.o: src/CMakeFiles/terrier_objlib.dir/flags.make
 src/CMakeFiles/terrier_objlib.dir/__/third_party/libcount/utility.cc.o: ../third_party/libcount/utility.cc
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num=$(CMAKE_PROGRESS_166) "Building CXX object src/CMakeFiles/terrier_objlib.dir/__/third_party/libcount/utility.cc.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num=$(CMAKE_PROGRESS_171) "Building CXX object src/CMakeFiles/terrier_objlib.dir/__/third_party/libcount/utility.cc.o"
 	cd /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/src && /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/terrier_objlib.dir/__/third_party/libcount/utility.cc.o -c /Users/dpatra/Research/terrier/third_party/libcount/utility.cc
 
 src/CMakeFiles/terrier_objlib.dir/__/third_party/libcount/utility.cc.i: cmake_force
@@ -2358,6 +2423,11 @@ terrier_objlib: src/CMakeFiles/terrier_objlib.dir/storage/block_layout.cpp.o
 terrier_objlib: src/CMakeFiles/terrier_objlib.dir/storage/data_table.cpp.o
 terrier_objlib: src/CMakeFiles/terrier_objlib.dir/storage/garbage_collector.cpp.o
 terrier_objlib: src/CMakeFiles/terrier_objlib.dir/storage/garbage_collector_thread.cpp.o
+terrier_objlib: src/CMakeFiles/terrier_objlib.dir/storage/index/bwtree_index.cpp.o
+terrier_objlib: src/CMakeFiles/terrier_objlib.dir/storage/index/compact_ints_key.cpp.o
+terrier_objlib: src/CMakeFiles/terrier_objlib.dir/storage/index/generic_key.cpp.o
+terrier_objlib: src/CMakeFiles/terrier_objlib.dir/storage/index/hash_index.cpp.o
+terrier_objlib: src/CMakeFiles/terrier_objlib.dir/storage/index/hash_key.cpp.o
 terrier_objlib: src/CMakeFiles/terrier_objlib.dir/storage/projected_columns.cpp.o
 terrier_objlib: src/CMakeFiles/terrier_objlib.dir/storage/projected_row.cpp.o
 terrier_objlib: src/CMakeFiles/terrier_objlib.dir/storage/record_buffer.cpp.o
