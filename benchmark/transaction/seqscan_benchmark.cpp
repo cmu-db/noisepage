@@ -1,5 +1,8 @@
-#include <test_util/catalog_test_util.h>
+#include <array>
+#include <memory>
+#include <utility>
 #include <vector>
+
 #include "benchmark/benchmark.h"
 
 #include "execution/sql/table_vector_iterator.h"
@@ -17,19 +20,20 @@ namespace terrier {
 class SeqscanBenchmark : public benchmark::Fixture {
  public:
   // Function to create execution context for database
-  std::unique_ptr<exec::ExecutionContext> MakeExecCtx(exec::OutputCallback &&callback = nullptr,
-                                                      const planner::OutputSchema *schema = nullptr) {
+  std::unique_ptr<execution::exec::ExecutionContext> MakeExecCtx(execution::exec::OutputCallback &&callback = nullptr,
+                                                                 const planner::OutputSchema *schema = nullptr) {
     auto accessor = catalog_->GetAccessor(test_txn_, test_db_oid_);
-    return std::make_unique<exec::ExecutionContext>(test_db_oid_, test_txn_, callback, schema, std::move(accessor));
+    return std::make_unique<execution::exec::ExecutionContext>(test_db_oid_, test_txn_, callback, schema,
+                                                               std::move(accessor));
   }
 
   // Generate set of test tables
-  void GenerateTestTables(exec::ExecutionContext *exec_ctx) {
-    sql::TableGenerator table_generator{exec_ctx, block_store_.get(), test_ns_oid_};
+  void GenerateTestTables(execution::exec::ExecutionContext *exec_ctx) {
+    execution::sql::TableGenerator table_generator{exec_ctx, block_store_.get(), test_ns_oid_};
     table_generator.GenerateTestTables();
   }
 
-  // Get namespace oid
+  // Get namespace oids
   catalog::namespace_oid_t NSOid() { return test_ns_oid_; }
 
   void SetUp(const benchmark::State &state) override {
@@ -69,7 +73,7 @@ class SeqscanBenchmark : public benchmark::Fixture {
   }
 
  protected:
-  std::unique_ptr<exec::ExecutionContext> exec_ctx_;
+  std::unique_ptr<execution::exec::ExecutionContext> exec_ctx_;
 
  private:
   std::unique_ptr<storage::BlockStore> block_store_;
@@ -96,10 +100,11 @@ BENCHMARK_DEFINE_F(SeqscanBenchmark, SequentialScan)(benchmark::State &state) {
   std::array<uint32_t, 1> col_oids{1};
 
   // Declare iterator through table data
-  TableVectorIterator iter(exec_ctx_.get(), !table_oid, col_oids.data(), static_cast<uint32_t>(col_oids.size()));
+  execution::sql::TableVectorIterator iter(exec_ctx_.get(), !table_oid, col_oids.data(),
+                                           static_cast<uint32_t>(col_oids.size()));
   iter.Init();
   // Iterator over projection
-  ProjectedColumnsIterator *pci = iter.GetProjectedColumnsIterator();
+  execution::sql::ProjectedColumnsIterator *pci = iter.GetProjectedColumnsIterator();
 
   // count number of tuples read
   uint32_t num_tuples = 0;
@@ -117,7 +122,7 @@ BENCHMARK_DEFINE_F(SeqscanBenchmark, SequentialScan)(benchmark::State &state) {
   }
 
   // Expect number of tuples to match size
-  EXPECT_EQ(sql::TEST1_SIZE, num_tuples);
+  EXPECT_EQ(execution::sql::TEST1_SIZE, num_tuples);
 }
 
 BENCHMARK_REGISTER_F(SeqscanBenchmark, SequentialScan)->UseManualTime()->Unit(benchmark::kMillisecond);
