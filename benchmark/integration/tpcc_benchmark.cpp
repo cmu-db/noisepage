@@ -118,7 +118,7 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithoutLogging)(benchmark::State &
     Util::UnregisterIndexesForGC(&(gc_thread_->GetGarbageCollector()), tpcc_db);
     delete gc_thread_;
     catalog.TearDown();
-    StorageTestUtil::FullyPerformGC(gc_, DISABLED);
+    deferred_action_manager.FullyPerformGC(gc_, DISABLED);
     thread_pool_.Shutdown();
     delete gc_;
     delete tpcc_db;
@@ -204,7 +204,7 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithLogging)(benchmark::State &sta
     Util::UnregisterIndexesForGC(&(gc_thread_->GetGarbageCollector()), tpcc_db);
     delete gc_thread_;
     catalog.TearDown();
-    StorageTestUtil::FullyPerformGC(gc_, log_manager_);
+    deferred_action_manager.FullyPerformGC(gc_, log_manager_);
     thread_pool_.Shutdown();
     log_manager_->PersistAndStop();
     delete log_manager_;
@@ -298,7 +298,7 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithLoggingAndMetrics)(benchmark::
     Util::UnregisterIndexesForGC(&(gc_thread_->GetGarbageCollector()), tpcc_db);
     delete gc_thread_;
     catalog.TearDown();
-    StorageTestUtil::FullyPerformGC(gc_, log_manager_);
+    deferred_action_manager.FullyPerformGC(gc_, log_manager_);
     thread_pool_.Shutdown();
     log_manager_->PersistAndStop();
     delete log_manager_;
@@ -384,7 +384,7 @@ BENCHMARK_DEFINE_F(TPCCBenchmark, ScaleFactor4WithMetrics)(benchmark::State &sta
     Util::UnregisterIndexesForGC(&(gc_thread_->GetGarbageCollector()), tpcc_db);
     delete gc_thread_;
     catalog.TearDown();
-    StorageTestUtil::FullyPerformGC(gc_, log_manager_);
+    deferred_action_manager.FullyPerformGC(gc_, log_manager_);
     thread_pool_.Shutdown();
     delete gc_;
     delete metrics_thread;

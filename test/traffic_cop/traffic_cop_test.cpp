@@ -19,6 +19,11 @@
 #include "transaction/deferred_action_manager.h"
 #include "transaction/transaction_manager.h"
 
+#define __SETTING_GFLAGS_DEFINE__      // NOLINT
+#include "settings/settings_common.h"  // NOLINT
+#include "settings/settings_defs.h"    // NOLINT
+#undef __SETTING_GFLAGS_DEFINE__       // NOLINT
+
 namespace terrier::trafficcop {
 
 class TrafficCopTests : public TerrierTest {
@@ -41,9 +46,9 @@ class TrafficCopTests : public TerrierTest {
   std::unique_ptr<network::ConnectionHandleFactory> handle_factory_;
 
   void SetUp() override {
-    TerrierTest::SetUp();
     std::unordered_map<settings::Param, settings::ParamInfo> param_map;
     terrier::settings::SettingsManager::ConstructParamMap(param_map);
+
     db_main_ = new DBMain(std::move(param_map));
 
     t_cop_ = db_main_->t_cop_;
