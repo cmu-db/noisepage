@@ -170,7 +170,8 @@ TEST_F(CatalogTests, NamespaceTest) {
 
   txn = txn_manager_->BeginTransaction();
   accessor = catalog_->GetAccessor(txn, db_);
-  EXPECT_FALSE(accessor->DropNamespace(ns_oid));
+  ns_oid = accessor->GetNamespaceOid("test_namespace");
+  EXPECT_EQ(ns_oid, catalog::INVALID_NAMESPACE_OID);
   txn_manager_->Abort(txn);
 }
 
