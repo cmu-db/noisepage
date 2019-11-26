@@ -834,7 +834,9 @@ TEST_F(BinderCorrectnessTest, CreateDatabaseTest) {
 TEST_F(BinderCorrectnessTest, CreateTableTest) {
   BINDER_LOG_DEBUG("Checking create table. Note that CREATE AS from select is not supported.");
 
-  std::string create_sql = "CREATE TABLE C ( C1 int NOT NULL, C2 varchar(255) NOT NULL UNIQUE, C3 INT REFERENCES A(A1), C4 INT DEFAULT 14 CHECK (C4<100), PRIMARY KEY(C1));";
+  std::string create_sql =
+      "CREATE TABLE C ( C1 int NOT NULL, C2 varchar(255) NOT NULL UNIQUE, C3 INT REFERENCES A(A1), C4 INT DEFAULT 14 "
+      "CHECK (C4<100), PRIMARY KEY(C1));";
   auto parse_tree = parser_.BuildParseTree(create_sql);
   auto statement = parse_tree.GetStatements()[0];
   binder_->BindNameToNode(statement, &parse_tree);
@@ -852,8 +854,9 @@ TEST_F(BinderCorrectnessTest, CreateTableTest) {
 TEST_F(BinderCorrectnessTest, CreateTableSimpleForeignTest) {
   BINDER_LOG_DEBUG("Checking create table foreign key");
 
-  std::string
-      create_sql = "CREATE TABLE D ( D1 int NOT NULL, D2 varchar(255) NOT NULL UNIQUE, D3 INT UNIQUE, D4 VARCHAR(20) UNIQUE, PRIMARY KEY(D1, D2), FOREIGN KEY(D3, D4) REFERENCES A(A1, A2));";
+  std::string create_sql =
+      "CREATE TABLE D ( D1 int NOT NULL, D2 varchar(255) NOT NULL UNIQUE, D3 INT UNIQUE, D4 VARCHAR(20) UNIQUE, "
+      "PRIMARY KEY(D1, D2), FOREIGN KEY(D3, D4) REFERENCES A(A1, A2));";
   auto parse_tree = parser_.BuildParseTree(create_sql);
   auto statement = parse_tree.GetStatements()[0];
   EXPECT_NO_THROW(binder_->BindNameToNode(statement, &parse_tree));
@@ -863,8 +866,9 @@ TEST_F(BinderCorrectnessTest, CreateTableSimpleForeignTest) {
 TEST_F(BinderCorrectnessTest, CreateTableSimpleForeignViolateTest) {
   BINDER_LOG_DEBUG("Checking create table foreign key type unmatch");
 
-  std::string
-      create_sql = "CREATE TABLE D ( D1 int NOT NULL, D2 varchar(255) NOT NULL UNIQUE, D3 INT UNIQUE, D4 INT UNIQUE, PRIMARY KEY(D1, D2), FOREIGN KEY(D4, D3) REFERENCES A(A1, A2));";
+  std::string create_sql =
+      "CREATE TABLE D ( D1 int NOT NULL, D2 varchar(255) NOT NULL UNIQUE, D3 INT UNIQUE, D4 INT UNIQUE, PRIMARY "
+      "KEY(D1, D2), FOREIGN KEY(D4, D3) REFERENCES A(A1, A2));";
   auto parse_tree = parser_.BuildParseTree(create_sql);
   auto statement = parse_tree.GetStatements()[0];
   EXPECT_THROW(binder_->BindNameToNode(statement, &parse_tree), BinderException);
@@ -874,8 +878,7 @@ TEST_F(BinderCorrectnessTest, CreateTableSimpleForeignViolateTest) {
 TEST_F(BinderCorrectnessTest, CreateIndexTest) {
   BINDER_LOG_DEBUG("Checking create index");
 
-  std::string
-      create_sql = "CREATE UNIQUE INDEX idx_d ON A (lower(A2), A1);";
+  std::string create_sql = "CREATE UNIQUE INDEX idx_d ON A (lower(A2), A1);";
   auto parse_tree = parser_.BuildParseTree(create_sql);
   auto statement = parse_tree.GetStatements()[0];
   EXPECT_NO_THROW(binder_->BindNameToNode(statement, &parse_tree));
@@ -885,12 +888,12 @@ TEST_F(BinderCorrectnessTest, CreateIndexTest) {
 TEST_F(BinderCorrectnessTest, CreateTriggerTest) {
   BINDER_LOG_DEBUG("Checking create trigger");
 
-  std::string
-      create_sql = "CREATE TRIGGER check_update "
-                   "BEFORE UPDATE OF a1 ON a "
-                   "FOR EACH ROW "
-                   "WHEN (OLD.a1 <> NEW.a1) "
-                   "EXECUTE PROCEDURE check_account_update(update_date);";
+  std::string create_sql =
+      "CREATE TRIGGER check_update "
+      "BEFORE UPDATE OF a1 ON a "
+      "FOR EACH ROW "
+      "WHEN (OLD.a1 <> NEW.a1) "
+      "EXECUTE PROCEDURE check_account_update(update_date);";
   auto parse_tree = parser_.BuildParseTree(create_sql);
   auto statement = parse_tree.GetStatements()[0];
   auto create_stmt = statement.CastManagedPointerTo<parser::CreateStatement>();

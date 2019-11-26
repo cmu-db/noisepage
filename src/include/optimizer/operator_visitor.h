@@ -335,7 +335,7 @@ class OperatorVisitor {
    * @param logical_drop_table operator
    */
   virtual void Visit(const LogicalDropTable *logical_drop_table) {}
-  
+
   /**
    * Visit a LogicalDropIndex operator
    * @param logical_drop_index operator

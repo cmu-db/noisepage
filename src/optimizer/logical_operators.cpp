@@ -743,7 +743,12 @@ bool LogicalCreateDatabase::operator==(const BaseOperatorNode &r) {
 // LogicalCreateFunction
 //===--------------------------------------------------------------------===//
 
-Operator LogicalCreateFunction::Make(catalog::namespace_oid_t namespace_oid, std::string function_name, parser::PLType language, std::vector<std::string> &&function_body,  std::vector<std::string> &&function_param_names, std::vector<parser::BaseFunctionParameter::DataType> &&function_param_types, parser::BaseFunctionParameter::DataType return_type, int param_count, bool replace) {
+Operator LogicalCreateFunction::Make(catalog::namespace_oid_t namespace_oid, std::string function_name,
+                                     parser::PLType language, std::vector<std::string> &&function_body,
+                                     std::vector<std::string> &&function_param_names,
+                                     std::vector<parser::BaseFunctionParameter::DataType> &&function_param_types,
+                                     parser::BaseFunctionParameter::DataType return_type, int param_count,
+                                     bool replace) {
   auto op = std::make_unique<LogicalCreateFunction>();
   op->namespace_oid_ = namespace_oid;
   op->function_name_ = std::move(function_name);
@@ -789,7 +794,9 @@ bool LogicalCreateFunction::operator==(const BaseOperatorNode &r) {
 // LogicalCreateIndex
 //===--------------------------------------------------------------------===//
 
-Operator LogicalCreateIndex::Make(catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid, parser::IndexType index_type, bool unique, std::string index_name, std::vector<common::ManagedPointer<parser::AbstractExpression>> index_attrs) {
+Operator LogicalCreateIndex::Make(catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid,
+                                  parser::IndexType index_type, bool unique, std::string index_name,
+                                  std::vector<common::ManagedPointer<parser::AbstractExpression>> index_attrs) {
   auto op = std::make_unique<LogicalCreateIndex>();
   op->namespace_oid_ = namespace_oid;
   op->table_oid_ = table_oid;
@@ -832,7 +839,9 @@ bool LogicalCreateIndex::operator==(const BaseOperatorNode &r) {
 // LogicalCreateTable
 //===--------------------------------------------------------------------===//
 
-Operator LogicalCreateTable::Make(catalog::namespace_oid_t namespace_oid, std::string table_name, std::vector<common::ManagedPointer<parser::ColumnDefinition>> && columns, std::vector<common::ManagedPointer<parser::ColumnDefinition>> &&foreign_keys) {
+Operator LogicalCreateTable::Make(catalog::namespace_oid_t namespace_oid, std::string table_name,
+                                  std::vector<common::ManagedPointer<parser::ColumnDefinition>> &&columns,
+                                  std::vector<common::ManagedPointer<parser::ColumnDefinition>> &&foreign_keys) {
   auto op = std::make_unique<LogicalCreateTable>();
   op->namespace_oid_ = namespace_oid;
   op->table_name_ = std::move(table_name);
@@ -846,10 +855,8 @@ common::hash_t LogicalCreateTable::Hash() const {
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(namespace_oid_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_name_));
   hash = common::HashUtil::CombineHashInRange(hash, columns_.begin(), columns_.end());
-  for (const auto &col : columns_)
-    hash = common::HashUtil::CombineHashes(hash, col->Hash());
-  for (const auto &fk : foreign_keys_)
-    hash = common::HashUtil::CombineHashes(hash, fk->Hash());
+  for (const auto &col : columns_) hash = common::HashUtil::CombineHashes(hash, col->Hash());
+  for (const auto &fk : foreign_keys_) hash = common::HashUtil::CombineHashes(hash, fk->Hash());
   return hash;
 }
 
@@ -896,7 +903,12 @@ bool LogicalCreateNamespace::operator==(const BaseOperatorNode &r) {
 //===--------------------------------------------------------------------===//
 
 Operator LogicalCreateTrigger::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
-                                    catalog::table_oid_t table_oid, std::string trigger_name, std::vector<std::string> &&trigger_funcnames, std::vector<std::string> &&trigger_args, std::vector<catalog::col_oid_t> &&trigger_columns, common::ManagedPointer<parser::AbstractExpression> &&trigger_when, int16_t trigger_type) {
+                                    catalog::table_oid_t table_oid, std::string trigger_name,
+                                    std::vector<std::string> &&trigger_funcnames,
+                                    std::vector<std::string> &&trigger_args,
+                                    std::vector<catalog::col_oid_t> &&trigger_columns,
+                                    common::ManagedPointer<parser::AbstractExpression> &&trigger_when,
+                                    int16_t trigger_type) {
   auto op = std::make_unique<LogicalCreateTrigger>();
   op->database_oid_ = database_oid;
   op->namespace_oid_ = namespace_oid;
@@ -935,15 +947,17 @@ bool LogicalCreateTrigger::operator==(const BaseOperatorNode &r) {
   if (trigger_args_ != node.trigger_args_) return false;
   if (trigger_columns_ != node.trigger_columns_) return false;
   if (trigger_type_ != node.trigger_type_) return false;
-  if (trigger_when_ == nullptr) return node.trigger_when_ == nullptr;
-  else return *trigger_when_ == *(node.trigger_when_);
+  if (trigger_when_ == nullptr)
+    return node.trigger_when_ == nullptr;
+  return *trigger_when_ == *(node.trigger_when_);
 }
 
 //===--------------------------------------------------------------------===//
 // LogicalCreateView
 //===--------------------------------------------------------------------===//
 
-Operator LogicalCreateView::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid, std::string view_name, common::ManagedPointer<parser::SelectStatement> view_query) {
+Operator LogicalCreateView::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
+                                 std::string view_name, common::ManagedPointer<parser::SelectStatement> view_query) {
   auto op = std::make_unique<LogicalCreateView>();
   op->database_oid_ = database_oid;
   op->namespace_oid_ = namespace_oid;

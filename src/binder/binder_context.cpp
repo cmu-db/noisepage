@@ -37,7 +37,8 @@ void BinderContext::AddRegularTable(const std::unique_ptr<catalog::CatalogAccess
   regular_table_alias_map_[table_alias] = std::make_tuple(db_id, table_id, schema);
 }
 
-void BinderContext::AddNewTable(const std::string &new_table_name, const std::vector<common::ManagedPointer<parser::ColumnDefinition>> &new_columns) {
+void BinderContext::AddNewTable(const std::string &new_table_name,
+                                const std::vector<common::ManagedPointer<parser::ColumnDefinition>> &new_columns) {
   if (regular_table_alias_map_.find(new_table_name) != regular_table_alias_map_.end() ||
       nested_table_alias_map_.find(new_table_name) != nested_table_alias_map_.end()) {
     throw BINDER_EXCEPTION(("Duplicate alias " + new_table_name).c_str());

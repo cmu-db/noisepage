@@ -77,7 +77,8 @@ class BinderContext {
    * @param new_table_name Name of the new table
    * @param new_columns List of column definations of the new table
    */
-  void AddNewTable(const std::string &new_table_name, const std::vector<common::ManagedPointer<parser::ColumnDefinition>> &new_columns);
+  void AddNewTable(const std::string &new_table_name,
+                   const std::vector<common::ManagedPointer<parser::ColumnDefinition>> &new_columns);
 
   /**
    * Check if the current context has any table

@@ -271,8 +271,8 @@ struct ColumnDefinition {
   void SetPrimary(bool b) { is_primary_ = b; }
 
   /**
- * Hashes the current column Defination
- */
+   * Hashes the current column Defination
+   */
   common::hash_t Hash() const {
     common::hash_t hash = common::HashUtil::Hash(name_);
     hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_info_));
@@ -303,8 +303,8 @@ struct ColumnDefinition {
     if ((!table_info_ && rhs.table_info_) || (table_info_ && table_info_ != rhs.table_info_)) return false;
     if (is_primary_ != rhs.is_primary_) return false;
     if (is_not_null_ != rhs.is_not_null_) return false;
-    if (is_unique_!= rhs.is_unique_) return false;
-    if (varlen_!= rhs.varlen_) return false;
+    if (is_unique_ != rhs.is_unique_) return false;
+    if (varlen_ != rhs.varlen_) return false;
     if ((!default_expr_ && rhs.default_expr_) || (default_expr_ && default_expr_ != rhs.default_expr_)) return false;
     if ((!check_expr_ && rhs.check_expr_) || (check_expr_ && check_expr_ != rhs.check_expr_)) return false;
     if (fk_sources_.size() != rhs.fk_sources_.size()) return false;
@@ -318,13 +318,13 @@ struct ColumnDefinition {
     return fk_match_type_ == rhs.fk_match_type_;
   }
 
-
   /**
    * Logical inequality check.
    * @param rhs other
    * @return true if the two column definitions are logically not equal
    */
   bool operator!=(const ColumnDefinition &rhs) const { return !operator==(rhs); }
+
  private:
   const std::string name_;
   const std::unique_ptr<TableInfo> table_info_ = nullptr;
@@ -355,7 +355,7 @@ class IndexAttr {
   explicit IndexAttr(std::string name) : has_expr_(false), name_(std::move(name)), expr_(nullptr) {}
 
   /** Create an index attribute on an expression. */
-  explicit IndexAttr(common::ManagedPointer<AbstractExpression> expr) :has_expr_(true), name_(""), expr_(expr) {}
+  explicit IndexAttr(common::ManagedPointer<AbstractExpression> expr) : has_expr_(true), name_(""), expr_(expr) {}
 
   /** @return if the index attribute contains expression */
   bool HasExpr() const { return has_expr_; }

@@ -12,8 +12,8 @@
 #include "parser/expression/abstract_expression.h"
 #include "parser/expression_defs.h"
 #include "parser/parser_defs.h"
-#include "parser/update_statement.h"
 #include "parser/statements.h"
+#include "parser/update_statement.h"
 #include "planner/plannodes/plan_node_defs.h"
 #include "type/transient_value.h"
 
@@ -1000,6 +1000,7 @@ class LogicalCreateDatabase : public OperatorNode<LogicalCreateDatabase> {
    * @return the name of the database we want to create
    */
   const std::string &GetDatabaseName() const { return database_name_; }
+
  private:
   /**
    * Name of the new database
@@ -1017,7 +1018,10 @@ class LogicalCreateFunction : public OperatorNode<LogicalCreateFunction> {
    * @param namespace_oid OID of the namespace
    * @return
    */
-  static Operator Make(catalog::namespace_oid_t namespace_oid, std::string function_name, parser::PLType language, std::vector<std::string> &&function_body,  std::vector<std::string> &&function_param_names, std::vector<parser::BaseFunctionParameter::DataType> &&function_param_types, parser::BaseFunctionParameter::DataType return_type, int param_count, bool replace);
+  static Operator Make(catalog::namespace_oid_t namespace_oid, std::string function_name, parser::PLType language,
+                       std::vector<std::string> &&function_body, std::vector<std::string> &&function_param_names,
+                       std::vector<parser::BaseFunctionParameter::DataType> &&function_param_types,
+                       parser::BaseFunctionParameter::DataType return_type, int param_count, bool replace);
 
   bool operator==(const BaseOperatorNode &r) override;
   common::hash_t Hash() const override;
@@ -1127,7 +1131,9 @@ class LogicalCreateIndex : public OperatorNode<LogicalCreateIndex> {
    * @param table_oid OID of the table
    * @return
    */
-  static Operator Make(catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid, parser::IndexType index_type, bool unique, std::string index_name, std::vector<common::ManagedPointer<parser::AbstractExpression>> index_attrs);
+  static Operator Make(catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid,
+                       parser::IndexType index_type, bool unique, std::string index_name,
+                       std::vector<common::ManagedPointer<parser::AbstractExpression>> index_attrs);
 
   bool operator==(const BaseOperatorNode &r) override;
   common::hash_t Hash() const override;
@@ -1204,7 +1210,9 @@ class LogicalCreateTable : public OperatorNode<LogicalCreateTable> {
    * @param namespace_oid OID of the namespace
    * @return
    */
-  static Operator Make(catalog::namespace_oid_t namespace_oid, std::string table_name, std::vector<common::ManagedPointer<parser::ColumnDefinition>> && columns, std::vector<common::ManagedPointer<parser::ColumnDefinition>> &&foreign_keys);
+  static Operator Make(catalog::namespace_oid_t namespace_oid, std::string table_name,
+                       std::vector<common::ManagedPointer<parser::ColumnDefinition>> &&columns,
+                       std::vector<common::ManagedPointer<parser::ColumnDefinition>> &&foreign_keys);
 
   bool operator==(const BaseOperatorNode &r) override;
   common::hash_t Hash() const override;
@@ -1225,6 +1233,7 @@ class LogicalCreateTable : public OperatorNode<LogicalCreateTable> {
    * @return the name of the database we want to create
    */
   const std::vector<common::ManagedPointer<parser::ColumnDefinition>> &GetForeignKeys() const { return foreign_keys_; }
+
  private:
   /**
    * OID of the namespace
@@ -1234,17 +1243,17 @@ class LogicalCreateTable : public OperatorNode<LogicalCreateTable> {
   /**
    * Table Name
    */
-   std::string table_name_;
+  std::string table_name_;
 
   /**
    * Vector of column definitions of the new table
    */
-   std::vector<common::ManagedPointer<parser::ColumnDefinition>> columns_;
+  std::vector<common::ManagedPointer<parser::ColumnDefinition>> columns_;
 
   /**
    * Vector of foreign key references of the new table
    */
-   std::vector<common::ManagedPointer<parser::ColumnDefinition>> foreign_keys_;
+  std::vector<common::ManagedPointer<parser::ColumnDefinition>> foreign_keys_;
 };
 
 /**
@@ -1264,6 +1273,7 @@ class LogicalCreateNamespace : public OperatorNode<LogicalCreateNamespace> {
    * @return the name of the namespace we want to create
    */
   const std::string &GetNamespaceName() const { return namespace_name_; }
+
  private:
   /**
    * Name of the new namespace
@@ -1283,7 +1293,10 @@ class LogicalCreateTrigger : public OperatorNode<LogicalCreateTrigger> {
    * @return
    */
   static Operator Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
-                       catalog::table_oid_t table_oid, std::string trigger_name, std::vector<std::string> &&trigger_funcnames, std::vector<std::string> &&trigger_args, std::vector<catalog::col_oid_t> &&trigger_columns, common::ManagedPointer<parser::AbstractExpression> &&trigger_when, int16_t trigger_type);
+                       catalog::table_oid_t table_oid, std::string trigger_name,
+                       std::vector<std::string> &&trigger_funcnames, std::vector<std::string> &&trigger_args,
+                       std::vector<catalog::col_oid_t> &&trigger_columns,
+                       common::ManagedPointer<parser::AbstractExpression> &&trigger_when, int16_t trigger_type);
 
   bool operator==(const BaseOperatorNode &r) override;
   common::hash_t Hash() const override;
@@ -1304,8 +1317,8 @@ class LogicalCreateTrigger : public OperatorNode<LogicalCreateTrigger> {
   const catalog::table_oid_t &GetTableOid() const { return table_oid_; }
 
   /**
- * @return trigger name
- */
+   * @return trigger name
+   */
   std::string GetTriggerName() const { return trigger_name_; }
 
   /**
@@ -1334,6 +1347,7 @@ class LogicalCreateTrigger : public OperatorNode<LogicalCreateTrigger> {
    * @return trigger type, i.e. information about row, timing, events, access by pg_trigger
    */
   int16_t GetTriggerType() const { return trigger_type_; }
+
  private:
   /**
    * OID of the database
@@ -1391,7 +1405,8 @@ class LogicalCreateView : public OperatorNode<LogicalCreateView> {
    * @param namespace_oid OID of the namespace
    * @return
    */
-  static Operator Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid, std::string view_name, common::ManagedPointer<parser::SelectStatement> view_query);
+  static Operator Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid, std::string view_name,
+                       common::ManagedPointer<parser::SelectStatement> view_query);
 
   bool operator==(const BaseOperatorNode &r) override;
   common::hash_t Hash() const override;
@@ -1454,6 +1469,7 @@ class LogicalDropDatabase : public OperatorNode<LogicalDropDatabase> {
    * @return the OID of the database we want to drop
    */
   const catalog::db_oid_t &GetDatabaseOID() const { return db_oid_; }
+
  private:
   /**
    * OID of the database
@@ -1478,13 +1494,13 @@ class LogicalDropTable : public OperatorNode<LogicalDropTable> {
    * @return the OID of the database we want to drop
    */
   const catalog::table_oid_t &GetTableOID() const { return table_oid_; }
+
  private:
   /**
    * OID of the table
    */
   catalog::table_oid_t table_oid_;
 };
-
 
 /**
  * Logical operator for DropIndex
@@ -1503,6 +1519,7 @@ class LogicalDropIndex : public OperatorNode<LogicalDropIndex> {
    * @return the OID of the index we want to drop
    */
   const catalog::index_oid_t &GetIndexOID() const { return index_oid_; }
+
  private:
   /**
    * OID of the table

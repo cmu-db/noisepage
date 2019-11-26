@@ -110,7 +110,9 @@ class OperatorTransformerTest : public TerrierTest {
     txn_ = txn_manager_->BeginTransaction();
     accessor_ = catalog_->GetAccessor(txn_, db_oid_);
 
-    auto col = catalog::IndexSchema::Column("a1", type::TypeId::INTEGER, true, parser::ColumnValueExpression(db_oid_, table_a_oid_, accessor_->GetSchema(table_a_oid_).GetColumn("a1").Oid()));
+    auto col = catalog::IndexSchema::Column(
+        "a1", type::TypeId::INTEGER, true,
+        parser::ColumnValueExpression(db_oid_, table_a_oid_, accessor_->GetSchema(table_a_oid_).GetColumn("a1").Oid()));
     auto idx_schema = catalog::IndexSchema({col}, storage::index::IndexType::BWTREE, true, true, false, true);
     a_index_oid_ = accessor_->CreateIndex(accessor_->GetDefaultNamespace(), table_a_oid_, "a_index", idx_schema);
     storage::index::IndexBuilder index_builder;
@@ -855,7 +857,7 @@ TEST_F(OperatorTransformerTest, SubqueryComplexTest) {
 TEST_F(OperatorTransformerTest, CreateDatabaseTest) {
   std::string create_sql = "CREATE DATABASE C;";
 
-  std::string ref ="{\"Op\":\"LogicalCreateDatabase\",}";
+  std::string ref = R"({"Op":"LogicalCreateDatabase",})";
 
   auto parse_tree = parser_.BuildParseTree(create_sql);
   auto statement = parse_tree.GetStatements()[0];
@@ -874,9 +876,11 @@ TEST_F(OperatorTransformerTest, CreateDatabaseTest) {
 
 // NOLINTNEXTLINE
 TEST_F(OperatorTransformerTest, CreateTableTest) {
-  std::string create_sql = "CREATE TABLE C ( C1 int NOT NULL, C2 varchar(255) NOT NULL UNIQUE, C3 INT REFERENCES A(A1), C4 INT DEFAULT 14 CHECK (C4<100), PRIMARY KEY(C1));";
+  std::string create_sql =
+      "CREATE TABLE C ( C1 int NOT NULL, C2 varchar(255) NOT NULL UNIQUE, C3 INT REFERENCES A(A1), C4 INT DEFAULT 14 "
+      "CHECK (C4<100), PRIMARY KEY(C1));";
 
-  std::string ref ="{\"Op\":\"LogicalCreateTable\",}";
+  std::string ref = R"({"Op":"LogicalCreateTable",})";
 
   auto parse_tree = parser_.BuildParseTree(create_sql);
   auto statement = parse_tree.GetStatements()[0];
@@ -899,9 +903,8 @@ TEST_F(OperatorTransformerTest, CreateTableTest) {
 
 // NOLINTNEXTLINE
 TEST_F(OperatorTransformerTest, CreateIndexTest) {
-  std::string
-      create_sql = "CREATE UNIQUE INDEX idx_d ON A (lower(A2), A1);";
-  std::string ref ="{\"Op\":\"LogicalCreateIndex\",}";
+  std::string create_sql = "CREATE UNIQUE INDEX idx_d ON A (lower(A2), A1);";
+  std::string ref = R"({"Op":"LogicalCreateIndex",})";
 
   auto parse_tree = parser_.BuildParseTree(create_sql);
   auto statement = parse_tree.GetStatements()[0];
@@ -951,7 +954,7 @@ TEST_F(OperatorTransformerTest, CreateFunctionTest) {
       " BEGIN RETURN i + 1; END; $$ "
       "LANGUAGE plpgsql;";
 
-  std::string ref ="{\"Op\":\"LogicalCreateFunction\",}";
+  std::string ref = R"({"Op":"LogicalCreateFunction",})";
 
   auto parse_tree = parser_.BuildParseTree(create_sql);
   auto statement = parse_tree.GetStatements()[0];
@@ -987,7 +990,7 @@ TEST_F(OperatorTransformerTest, CreateFunctionTest) {
 TEST_F(OperatorTransformerTest, CreateNamespaceTest) {
   std::string create_sql = "CREATE SCHEMA e";
 
-  std::string ref ="{\"Op\":\"LogicalCreateNamespace\",}";
+  std::string ref = R"({"Op":"LogicalCreateNamespace",})";
 
   auto parse_tree = parser_.BuildParseTree(create_sql);
   auto statement = parse_tree.GetStatements()[0];
@@ -1004,16 +1007,15 @@ TEST_F(OperatorTransformerTest, CreateNamespaceTest) {
   EXPECT_EQ("e", logical_create->GetNamespaceName());
 }
 
-
 // NOLINTNEXTLINE
 TEST_F(OperatorTransformerTest, CreateTriggerTest) {
-  std::string
-      create_sql = "CREATE TRIGGER check_update "
-                   "BEFORE UPDATE OF a1 ON a "
-                   "FOR EACH ROW "
-                   "WHEN (OLD.a1 <> NEW.a1) "
-                   "EXECUTE PROCEDURE check_account_update(update_date);";
-  std::string ref ="{\"Op\":\"LogicalCreateTrigger\",}";
+  std::string create_sql =
+      "CREATE TRIGGER check_update "
+      "BEFORE UPDATE OF a1 ON a "
+      "FOR EACH ROW "
+      "WHEN (OLD.a1 <> NEW.a1) "
+      "EXECUTE PROCEDURE check_account_update(update_date);";
+  std::string ref = R"({"Op":"LogicalCreateTrigger",})";
 
   auto parse_tree = parser_.BuildParseTree(create_sql);
   auto statement = parse_tree.GetStatements()[0];
@@ -1053,7 +1055,7 @@ TEST_F(OperatorTransformerTest, CreateTriggerTest) {
 TEST_F(OperatorTransformerTest, DropDatabaseTest) {
   std::string drop_sql = "Drop DATABASE test_db;";
 
-  std::string ref ="{\"Op\":\"LogicalDropDatabase\",}";
+  std::string ref = R"({"Op":"LogicalDropDatabase",})";
 
   auto parse_tree = parser_.BuildParseTree(drop_sql);
   auto statement = parse_tree.GetStatements()[0];
@@ -1074,7 +1076,7 @@ TEST_F(OperatorTransformerTest, DropDatabaseTest) {
 TEST_F(OperatorTransformerTest, DropTableTest) {
   std::string drop_sql = "DROP TABLE A;";
 
-  std::string ref ="{\"Op\":\"LogicalDropTable\",}";
+  std::string ref = R"({"Op":"LogicalDropTable",})";
 
   auto parse_tree = parser_.BuildParseTree(drop_sql);
   auto statement = parse_tree.GetStatements()[0];
@@ -1094,9 +1096,7 @@ TEST_F(OperatorTransformerTest, DropTableTest) {
 // NOLINTNEXTLINE
 TEST_F(OperatorTransformerTest, DropIndexTest) {
   std::string drop_sql = "DROP index a_index ;";
-
-  std::cout<< drop_sql << std::endl;
-  std::string ref ="{\"Op\":\"LogicalDropIndex\",}";
+  std::string ref = R"({"Op":"LogicalDropIndex",})";
 
   auto parse_tree = parser_.BuildParseTree(drop_sql);
   auto statement = parse_tree.GetStatements()[0];

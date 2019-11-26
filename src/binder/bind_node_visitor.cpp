@@ -225,13 +225,13 @@ void BindNodeVisitor::Visit(parser::CreateStatement *node, parser::ParseResult *
 
               // check if their type matches
               if (ref_col.Type() != col->GetValueType())
-                throw BINDER_EXCEPTION(("Foreign key source column " + src[i] + "type does not match reference column type").c_str());
+                throw BINDER_EXCEPTION(
+                    ("Foreign key source column " + src[i] + "type does not match reference column type").c_str());
 
               break;
             }
           }
-          if (!find)
-            throw BINDER_EXCEPTION(("Cannot find column " + src[i] + " in foreign key source").c_str());
+          if (!find) throw BINDER_EXCEPTION(("Cannot find column " + src[i] + " in foreign key source").c_str());
         }
       }
       break;
@@ -251,7 +251,7 @@ void BindNodeVisitor::Visit(parser::CreateStatement *node, parser::ParseResult *
         } else {
           auto tb_oid = catalog_accessor_->GetTableOid(node->GetTableName());
           if (!BinderContext::ColumnInSchema(catalog_accessor_->GetSchema(tb_oid), attr.GetName()))
-            throw BINDER_EXCEPTION(("No such column specified by the index attribute "+ attr.GetName()).c_str());
+            throw BINDER_EXCEPTION(("No such column specified by the index attribute " + attr.GetName()).c_str());
         }
       }
       break;
