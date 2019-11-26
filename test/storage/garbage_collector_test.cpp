@@ -113,7 +113,6 @@ struct Components {
   }
 
 };
-
 // Run a single txn that performs an Insert. Confirm that it takes 2 GC cycles to process this tuple.
 // NOLINTNEXTLINE
 TEST_F(GarbageCollectorTests, SingleInsert) {

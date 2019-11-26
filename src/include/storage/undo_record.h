@@ -79,7 +79,7 @@ class UndoRecord {
   /**
    * Set the unlinked flag to indicate this undo record has been unlinked
    */
-  void SetUnlinked() { flags = flags | 0x10; }
+  void SetUnlinked() { flags |= 0x10; }
 
   /**
    * @return whether the undo record has been unlnked
@@ -119,6 +119,7 @@ class UndoRecord {
     result->timestamp_.store(timestamp);
     result->table_ = table;
     result->slot_ = slot;
+    result->flags = 0;
     return result;
   }
 
@@ -139,6 +140,7 @@ class UndoRecord {
     result->timestamp_.store(timestamp);
     result->table_ = table;
     result->slot_ = slot;
+    result->flags = 0;
     return result;
   }
 
@@ -161,6 +163,7 @@ class UndoRecord {
     result->timestamp_.store(timestamp);
     result->table_ = table;
     result->slot_ = slot;
+    result->flags = 0;
 
     initializer.InitializeRow(result->varlen_contents_);
 

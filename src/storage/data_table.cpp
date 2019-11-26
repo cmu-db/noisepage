@@ -105,6 +105,7 @@ bool DataTable::Update(transaction::TransactionContext *const txn, const TupleSl
       // Mark this UndoRecord as never installed by setting the table pointer to nullptr. This is inspected in the
       // TransactionManager's Rollback() and GC's Unlink logic
       undo->Table() = nullptr;
+      undo->SetUnlinked();
       return false;
     }
 

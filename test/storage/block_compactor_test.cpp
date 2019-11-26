@@ -86,9 +86,9 @@ TEST_F(BlockCompactorTest, CompactionTest) {
     // Enable GC to cleanup transactions started by the block compactor
     transaction::TimestampManager timestamp_manager;
     transaction::DeferredActionManager deferred_action_manager{&timestamp_manager};
-    transaction::TransactionManager txn_manager(&timestamp_manager, &deferred_action_manager, &buffer_pool_, true,
+    storage::GarbageCollector gc(&timestamp_manager, &deferred_action_manager, DISABLED);
+    transaction::TransactionManager txn_manager(&timestamp_manager, &gc, &deferred_action_manager, &buffer_pool_, true,
                                                 DISABLED);
-    storage::GarbageCollector gc(&timestamp_manager, &deferred_action_manager, &txn_manager, DISABLED);
 
     auto tuples = StorageTestUtil::PopulateBlockRandomly(&table, block, percent_empty_, &generator_);
     auto num_tuples = tuples.size();
@@ -141,8 +141,8 @@ TEST_F(BlockCompactorTest, CompactionTest) {
 
     for (auto &entry : tuples) delete[] reinterpret_cast<byte *>(entry.second);  // reclaim memory used for bookkeeping
 
-    gc.PerformGarbageCollection();
-    gc.PerformGarbageCollection();  // Second call to deallocate.
+    deferred_action_manager.Process();
+    deferred_action_manager.Process();
     // Deallocate all the leftover versions
     storage::StorageUtil::DeallocateVarlens(block, accessor);
     block_store_.Release(block);
@@ -166,9 +166,9 @@ TEST_F(BlockCompactorTest, GatherTest) {
     // Enable GC to cleanup transactions started by the block compactor
     transaction::TimestampManager timestamp_manager;
     transaction::DeferredActionManager deferred_action_manager{&timestamp_manager};
-    transaction::TransactionManager txn_manager(&timestamp_manager, &deferred_action_manager, &buffer_pool_, true,
+    storage::GarbageCollector gc(&timestamp_manager, &deferred_action_manager,DISABLED);
+    transaction::TransactionManager txn_manager(&timestamp_manager, &gc, &deferred_action_manager, &buffer_pool_, true,
                                                 DISABLED);
-    storage::GarbageCollector gc(&timestamp_manager, &deferred_action_manager, &txn_manager, DISABLED);
 
     auto tuples = StorageTestUtil::PopulateBlockRandomly(&table, block, percent_empty_, &generator_);
     auto num_tuples = tuples.size();
@@ -189,7 +189,7 @@ TEST_F(BlockCompactorTest, GatherTest) {
     compactor.ProcessCompactionQueue(&deferred_action_manager, &txn_manager);  // compaction pass
 
     // Need to prune the version chain in order to make sure that the second pass succeeds
-    gc.PerformGarbageCollection();
+    deferred_action_manager.Process();
     compactor.PutInQueue(block);
     compactor.ProcessCompactionQueue(&deferred_action_manager, &txn_manager);  // gathering pass
 
@@ -242,8 +242,8 @@ TEST_F(BlockCompactorTest, GatherTest) {
 
     for (auto &entry : tuples) delete[] reinterpret_cast<byte *>(entry.second);  // reclaim memory used for bookkeeping
 
-    gc.PerformGarbageCollection();
-    gc.PerformGarbageCollection();  // Second call to deallocate.
+    deferred_action_manager.Process();
+    deferred_action_manager.Process(); // Second call to deallocate
     // Deallocate all the leftover gathered varlens
     // No need to gather the ones still in the block because they are presumably all gathered
     for (storage::col_id_t col_id : layout.AllColumns())
@@ -269,9 +269,9 @@ TEST_F(BlockCompactorTest, DictionaryCompressionTest) {
     // Enable GC to cleanup transactions started by the block compactor
     transaction::TimestampManager timestamp_manager;
     transaction::DeferredActionManager deferred_action_manager{&timestamp_manager};
-    transaction::TransactionManager txn_manager(&timestamp_manager, &deferred_action_manager, &buffer_pool_, true,
+     storage::GarbageCollector gc(&timestamp_manager, &deferred_action_manager,DISABLED);
+    transaction::TransactionManager txn_manager(&timestamp_manager, &gc, &deferred_action_manager, &buffer_pool_, true,
                                                 DISABLED);
-    storage::GarbageCollector gc(&timestamp_manager, &deferred_action_manager, &txn_manager, DISABLED);
 
     auto tuples = StorageTestUtil::PopulateBlockRandomly(&table, block, percent_empty_, &generator_);
     auto num_tuples = tuples.size();
@@ -292,7 +292,7 @@ TEST_F(BlockCompactorTest, DictionaryCompressionTest) {
     compactor.ProcessCompactionQueue(&deferred_action_manager, &txn_manager);  // compaction pass
 
     // Need to prune the version chain in order to make sure that the second pass succeeds
-    gc.PerformGarbageCollection();
+    deferred_action_manager.Process();
     compactor.PutInQueue(block);
     compactor.ProcessCompactionQueue(&deferred_action_manager, &txn_manager);  // gathering pass
 
@@ -361,8 +361,8 @@ TEST_F(BlockCompactorTest, DictionaryCompressionTest) {
 
     for (auto &entry : tuples) delete[] reinterpret_cast<byte *>(entry.second);  // reclaim memory used for bookkeeping
 
-    gc.PerformGarbageCollection();
-    gc.PerformGarbageCollection();  // Second call to deallocate.
+    deferred_action_manager.Process();
+    deferred_action_manager.Process(); // Second call to deallocate
     // Deallocate all the leftover gathered varlens
     // No need to gather the ones still in the block because they are presumably all gathered
     for (storage::col_id_t col_id : layout.AllColumns())
