@@ -15,82 +15,93 @@ namespace terrier {
 // realistic transaction behavior.
 
 class SeqscanBenchmark : public benchmark::Fixture {
-  //TODO: Do I need a transaction/action/buffers manager, catalog, ?
  public:
-  // Attribute and table sizes
-  const std::vector<uint8_t> attr_sizes_ = {8, 8, 8, 8, 8, 8, 8, 8, 8, 8};
-  const uint32_t initial_table_size_ = 1000000;
-  const uint32_t num_txns_ = 100000;
-
-  // Test infrastructure
-  storage::BlockStore block_store_{1000, 1000};
-  storage::RecordBufferSegmentPool buffer_pool_{1000000, 1000000};
-  std::default_random_engine generator_;
-  const uint32_t num_concurrent_txns_ = 4;
-
-  // Garbage collector
-  storage::GarbageCollector *gc_;
-  storage::GarbageCollectorThread *gc_thread_ = nullptr;
-  const std::chrono::milliseconds gc_period_{10};
-
- protected:
-  // Execution context for test
-  std::unique_ptr<exec::ExecutionContext> exec_ctx_;
-
+  // Function to create execution context for database
   std::unique_ptr<exec::ExecutionContext> MakeExecCtx(exec::OutputCallback &&callback = nullptr,
                                                       const planner::OutputSchema *schema = nullptr) {
     auto accessor = catalog_->GetAccessor(test_txn_, test_db_oid_);
     return std::make_unique<exec::ExecutionContext>(test_db_oid_, test_txn_, callback, schema, std::move(accessor));
   }
 
+  // Generate set of test tables
+  void GenerateTestTables(exec::ExecutionContext *exec_ctx) {
+    sql::TableGenerator table_generator{exec_ctx, block_store_.get(), test_ns_oid_};
+    table_generator.GenerateTestTables();
+  }
+
+  // Get namespace oid
+  catalog::namespace_oid_t NSOid() { return test_ns_oid_; }
+
   void SetUp(const benchmark::State &state) override {
-    // single statement insert
-    const uint32_t txn_length = 1;
-    const std::vector<double> insert_update_select_ratio = {1, 0, 0};
+    // Initialize terrier objectts
+    block_store_ = std::make_unique<storage::BlockStore>(1000, 1000);
+    buffer_pool_ = std::make_unique<storage::RecordBufferSegmentPool>(100000, 100000);
+    tm_manager_ = std::make_unique<transaction::TimestampManager>();
+    da_manager_ = std::make_unique<transaction::DeferredActionManager>(tm_manager_.get());
+    txn_manager_ = std::make_unique<transaction::TransactionManager>(tm_manager_.get(), da_manager_.get(),
+                                                                     buffer_pool_.get(), true, nullptr);
 
+    // Garbage collecetor
+    gc_ =
+        std::make_unique<storage::GarbageCollector>(tm_manager_.get(), da_manager_.get(), txn_manager_.get(), nullptr);
 
-    // TODO: IS test_table accessible outside SetUp?
-    // create table object with parameters
-    LargeDataTableBenchmarkObject test_table(attr_sizes_, initial_table_size_, txn_length, insert_update_select_ratio,
-                                       &block_store_, &buffer_pool_, &generator_, true);
+    // Transaction context
+    test_txn_ = txn_manager_->BeginTransaction();
 
-    // execution context initialization
+    // Create catalog and test namespace
+    catalog_ = std::make_unique<catalog::Catalog>(txn_manager_.get(), block_store_.get());
+    test_db_oid_ = catalog_->CreateDatabase(test_txn_, "test_db", true);
+    ASSERT_NE(test_db_oid_, catalog::INVALID_DATABASE_OID) << "Default database does not exist";
+    auto accessor = catalog_->GetAccessor(test_txn_, test_db_oid_);
+    test_ns_oid_ = accessor->GetDefaultNamespace();
+
+    // Set up execution context
     exec_ctx_ = MakeExecCtx();
 
-    // gc initialization
-    gc_ = new storage::GarbageCollector(test_table.GetTimestampManager(), DISABLED, test_table.GetTxnManager(), DISABLED);
-    gc_thread_ = new storage::GarbageCollectorThread(gc_, gc_period_);
-
-    // ignore output of oltp
-    static_cast<void>(test_table.SimulateOltp(num_txns_, num_concurrent_txns_));
+    // Generate test tables
+    GenerateTestTables(exec_ctx_.get());
   }
-
-
 
   void TearDown(const benchmark::State &state) override {
-    // delete allocated garbage collectors
-    delete gc_thread_;
-    delete gc_;
+    txn_manager_->Commit(test_txn_, transaction::TransactionUtil::EmptyCallback, nullptr);
+    catalog_->TearDown();
+    gc_->PerformGarbageCollection();
   }
+
+ protected:
+  std::unique_ptr<exec::ExecutionContext> exec_ctx_;
+
+ private:
+  std::unique_ptr<storage::BlockStore> block_store_;
+  std::unique_ptr<storage::RecordBufferSegmentPool> buffer_pool_;
+  std::unique_ptr<transaction::TimestampManager> tm_manager_;
+  std::unique_ptr<transaction::DeferredActionManager> da_manager_;
+  std::unique_ptr<transaction::TransactionManager> txn_manager_;
+  std::unique_ptr<catalog::Catalog> catalog_;
+  std::unique_ptr<storage::GarbageCollector> gc_;
+  catalog::db_oid_t test_db_oid_{0};
+  catalog::namespace_oid_t test_ns_oid_;
+  transaction::TransactionContext *test_txn_;
 };
 
 /**
- * Run a sequential scan through the datatable
+ * Run a sequential scan through the sql table
  */
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(SeqscanBenchmark, SequentialScan)(benchmark::State &state) {
-  // TODO: get execution context, table oid, iterate over columns,
+  // Get execution context for namespace and test tablee
+  auto table_oid = exec_ctx_->GetAccessor()->GetTableOid(NSOid(), "test_1");
 
-  auto table_oid = CatalogTestUtil::TEST_TABLE_OID;
-  // Incorrect^?
-
+  // Get array of column object ids
   std::array<uint32_t, 1> col_oids{1};
+
+  // Declare iterator through table data
   TableVectorIterator iter(exec_ctx_.get(), !table_oid, col_oids.data(), static_cast<uint32_t>(col_oids.size()));
   iter.Init();
-
+  // Iterator over projection
   ProjectedColumnsIterator *pci = iter.GetProjectedColumnsIterator();
 
-
+  // count number of tuples read
   uint32_t num_tuples = 0;
   int32_t prev_val{0};
   while (iter.Advance()) {
@@ -105,9 +116,9 @@ BENCHMARK_DEFINE_F(SeqscanBenchmark, SequentialScan)(benchmark::State &state) {
     pci->Reset();
   }
 
-  // TODO: GET SIZE OF TABLE
-  EXPECT_EQ(, num_tuples);
+  // Expect number of tuples to match size
+  EXPECT_EQ(sql::TEST1_SIZE, num_tuples);
 }
 
 BENCHMARK_REGISTER_F(SeqscanBenchmark, SequentialScan)->UseManualTime()->Unit(benchmark::kMillisecond);
-}  // namespace terrier::execution
+}  // namespace terrier
