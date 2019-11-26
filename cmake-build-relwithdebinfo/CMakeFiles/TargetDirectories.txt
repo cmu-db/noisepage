@@ -62,10 +62,10 @@
 /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/test/common/CMakeFiles/install/local.dir
 /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/test/common/CMakeFiles/install.dir
 /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/test/common/CMakeFiles/rebuild_cache.dir
-/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/test/common/CMakeFiles/worker_pool_test.dir
 /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/test/common/CMakeFiles/edit_cache.dir
+/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/test/common/CMakeFiles/worker_pool_test.dir
 /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/test/common/CMakeFiles/install/strip.dir
-/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/test/common/CMakeFiles/thread_cpu_timer_test.dir
+/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/test/common/CMakeFiles/rusage_monitor_test.dir
 /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/test/common/CMakeFiles/performance_counter_test.dir
 /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/test/common/CMakeFiles/concurrent_bitmap_test.dir
 /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/test/common/CMakeFiles/object_pool_test.dir
@@ -75,6 +75,7 @@
 /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/test/common/CMakeFiles/list_install_components.dir
 /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/test/common/CMakeFiles/managed_pointer_test.dir
 /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/test/common/CMakeFiles/stat_registry_test.dir
+/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/test/common/CMakeFiles/perf_monitor_test.dir
 /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/test/execution/CMakeFiles/install/local.dir
 /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/test/execution/CMakeFiles/rebuild_cache.dir
 /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/test/execution/CMakeFiles/edit_cache.dir
