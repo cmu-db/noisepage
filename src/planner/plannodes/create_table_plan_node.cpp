@@ -3,15 +3,11 @@
 #include <string>
 #include <utility>
 #include <vector>
-#include "parser/parser_defs.h"
 
 namespace terrier::planner {
 
 common::hash_t CreateTablePlanNode::Hash() const {
   common::hash_t hash = AbstractPlanNode::Hash();
-
-  // Database OID
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_oid_));
 
   // Namespace OI
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(namespace_oid_));
@@ -52,9 +48,6 @@ bool CreateTablePlanNode::operator==(const AbstractPlanNode &rhs) const {
 
   auto &other = dynamic_cast<const CreateTablePlanNode &>(rhs);
 
-  // Database OID
-  if (database_oid_ != other.database_oid_) return false;
-
   // Namespace OID
   if (namespace_oid_ != other.namespace_oid_) return false;
 
@@ -83,7 +76,6 @@ bool CreateTablePlanNode::operator==(const AbstractPlanNode &rhs) const {
 
 nlohmann::json CreateTablePlanNode::ToJson() const {
   nlohmann::json j = AbstractPlanNode::ToJson();
-  j["database_oid"] = database_oid_;
   j["namespace_oid"] = namespace_oid_;
   j["table_name"] = table_name_;
   j["table_schema"] = table_schema_->ToJson();
@@ -103,7 +95,6 @@ std::vector<std::unique_ptr<parser::AbstractExpression>> CreateTablePlanNode::Fr
   std::vector<std::unique_ptr<parser::AbstractExpression>> exprs;
   auto e1 = AbstractPlanNode::FromJson(j);
   exprs.insert(exprs.end(), std::make_move_iterator(e1.begin()), std::make_move_iterator(e1.end()));
-  database_oid_ = j.at("database_oid").get<catalog::db_oid_t>();
   namespace_oid_ = j.at("namespace_oid").get<catalog::namespace_oid_t>();
   table_name_ = j.at("table_name").get<std::string>();
 
