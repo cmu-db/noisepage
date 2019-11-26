@@ -205,6 +205,11 @@ terrier_static_EXTERNAL_OBJECTS = \
 "/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/src/CMakeFiles/terrier_objlib.dir/storage/data_table.cpp.o" \
 "/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/src/CMakeFiles/terrier_objlib.dir/storage/garbage_collector.cpp.o" \
 "/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/src/CMakeFiles/terrier_objlib.dir/storage/garbage_collector_thread.cpp.o" \
+"/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/src/CMakeFiles/terrier_objlib.dir/storage/index/bwtree_index.cpp.o" \
+"/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/src/CMakeFiles/terrier_objlib.dir/storage/index/compact_ints_key.cpp.o" \
+"/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/src/CMakeFiles/terrier_objlib.dir/storage/index/generic_key.cpp.o" \
+"/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/src/CMakeFiles/terrier_objlib.dir/storage/index/hash_index.cpp.o" \
+"/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/src/CMakeFiles/terrier_objlib.dir/storage/index/hash_key.cpp.o" \
 "/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/src/CMakeFiles/terrier_objlib.dir/storage/projected_columns.cpp.o" \
 "/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/src/CMakeFiles/terrier_objlib.dir/storage/projected_row.cpp.o" \
 "/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/src/CMakeFiles/terrier_objlib.dir/storage/record_buffer.cpp.o" \
@@ -372,6 +377,11 @@ relwithdebinfo/libterrier.a: src/CMakeFiles/terrier_objlib.dir/storage/block_lay
 relwithdebinfo/libterrier.a: src/CMakeFiles/terrier_objlib.dir/storage/data_table.cpp.o
 relwithdebinfo/libterrier.a: src/CMakeFiles/terrier_objlib.dir/storage/garbage_collector.cpp.o
 relwithdebinfo/libterrier.a: src/CMakeFiles/terrier_objlib.dir/storage/garbage_collector_thread.cpp.o
+relwithdebinfo/libterrier.a: src/CMakeFiles/terrier_objlib.dir/storage/index/bwtree_index.cpp.o
+relwithdebinfo/libterrier.a: src/CMakeFiles/terrier_objlib.dir/storage/index/compact_ints_key.cpp.o
+relwithdebinfo/libterrier.a: src/CMakeFiles/terrier_objlib.dir/storage/index/generic_key.cpp.o
+relwithdebinfo/libterrier.a: src/CMakeFiles/terrier_objlib.dir/storage/index/hash_index.cpp.o
+relwithdebinfo/libterrier.a: src/CMakeFiles/terrier_objlib.dir/storage/index/hash_key.cpp.o
 relwithdebinfo/libterrier.a: src/CMakeFiles/terrier_objlib.dir/storage/projected_columns.cpp.o
 relwithdebinfo/libterrier.a: src/CMakeFiles/terrier_objlib.dir/storage/projected_row.cpp.o
 relwithdebinfo/libterrier.a: src/CMakeFiles/terrier_objlib.dir/storage/record_buffer.cpp.o
