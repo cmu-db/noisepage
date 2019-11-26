@@ -109,10 +109,10 @@ TEST_F(UpdaterTest, MultiIndexTest) {
   int32_t value1_changed = 720;
   int64_t value2_changed = 4250;
 
-  *reinterpret_cast<int16_t *>(table_pr->AccessForceNotNull(0)) = value0;
+  *reinterpret_cast<int16_t *>(table_pr->AccessForceNotNull(3)) = value0;
   *reinterpret_cast<int32_t *>(table_pr->AccessForceNotNull(1)) = value1;
-  *reinterpret_cast<int64_t *>(table_pr->AccessForceNotNull(2)) = value2;
-  *reinterpret_cast<int32_t *>(table_pr->AccessForceNotNull(3)) = value3;
+  *reinterpret_cast<int64_t *>(table_pr->AccessForceNotNull(0)) = value2;
+  *reinterpret_cast<int32_t *>(table_pr->AccessForceNotNull(2)) = value3;
 
   auto tuple_slot = inserter.TableInsert();
 
@@ -140,8 +140,8 @@ TEST_F(UpdaterTest, MultiIndexTest) {
   auto index_oid2 = exec_ctx_->GetAccessor()->GetIndexOid(NSOid(), "index_2_multi");
   auto index_pr2 = inserter.GetIndexPR(index_oid2);
   auto index2 = exec_ctx_->GetAccessor()->GetIndex(index_oid2);
-  *reinterpret_cast<int16_t *>(index_pr2->AccessForceNotNull(0)) = value0;
-  *reinterpret_cast<int32_t *>(index_pr2->AccessForceNotNull(1)) = value1;
+  *reinterpret_cast<int16_t *>(index_pr2->AccessForceNotNull(1)) = value0;
+  *reinterpret_cast<int32_t *>(index_pr2->AccessForceNotNull(0)) = value1;
   std::vector<storage::TupleSlot> results3;
   index2->ScanKey(*exec_ctx_->GetTxn(), *index_pr2, &results3);
   EXPECT_TRUE(inserter.IndexInsert());
@@ -162,8 +162,8 @@ TEST_F(UpdaterTest, MultiIndexTest) {
   // Create Multi Index Update PR
   {
     auto update_index_pr = updater.GetIndexPR(index_oid2);
-    *reinterpret_cast<int16_t *>(update_index_pr->AccessForceNotNull(0)) = value0;
-    *reinterpret_cast<int32_t *>(update_index_pr->AccessForceNotNull(1)) = value1;
+    *reinterpret_cast<int16_t *>(update_index_pr->AccessForceNotNull(1)) = value0;
+    *reinterpret_cast<int32_t *>(update_index_pr->AccessForceNotNull(0)) = value1;
     index2->ScanKey(*exec_ctx_->GetTxn(), *update_index_pr, &results_before_update_2);
   }
 
@@ -180,16 +180,16 @@ TEST_F(UpdaterTest, MultiIndexTest) {
   {
     // Test that multi index delete succeeds
     auto update_index_pr = updater.GetIndexPR(index_oid2);
-    *reinterpret_cast<int16_t *>(update_index_pr->AccessForceNotNull(0)) = value0;
-    *reinterpret_cast<int32_t *>(update_index_pr->AccessForceNotNull(1)) = value1;
+    *reinterpret_cast<int16_t *>(update_index_pr->AccessForceNotNull(1)) = value0;
+    *reinterpret_cast<int32_t *>(update_index_pr->AccessForceNotNull(0)) = value1;
     updater.IndexDelete(tuple_slot);
   }
 
   auto update_pr = updater.GetTablePR();
-  *reinterpret_cast<int16_t *>(update_pr->AccessForceNotNull(0)) = value0;
+  *reinterpret_cast<int16_t *>(update_pr->AccessForceNotNull(3)) = value0;
   *reinterpret_cast<int32_t *>(update_pr->AccessForceNotNull(1)) = value1_changed;
-  *reinterpret_cast<int64_t *>(update_pr->AccessForceNotNull(2)) = value2_changed;
-  *reinterpret_cast<int32_t *>(update_pr->AccessForceNotNull(3)) = value3;
+  *reinterpret_cast<int64_t *>(update_pr->AccessForceNotNull(0)) = value2_changed;
+  *reinterpret_cast<int32_t *>(update_pr->AccessForceNotNull(2)) = value3;
   updater.TableInsert();
 
   {
@@ -204,8 +204,8 @@ TEST_F(UpdaterTest, MultiIndexTest) {
   {
     // Update index2
     auto update_index_pr = updater.GetIndexPR(index_oid2);
-    *reinterpret_cast<int16_t *>(update_index_pr->AccessForceNotNull(0)) = value0;
-    *reinterpret_cast<int32_t *>(update_index_pr->AccessForceNotNull(1)) = value1_changed;
+    *reinterpret_cast<int16_t *>(update_index_pr->AccessForceNotNull(1)) = value0;
+    *reinterpret_cast<int32_t *>(update_index_pr->AccessForceNotNull(0)) = value1_changed;
     updater.IndexInsert();
 
     index2->ScanKey(*exec_ctx_->GetTxn(), *update_index_pr, &results_after_update_2);

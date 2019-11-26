@@ -87,10 +87,10 @@ TEST_F(DeleterTest, MultiIndexTest) {
   auto table_pr = inserter.GetTablePR();
   auto schema = exec_ctx_->GetAccessor()->GetSchema(table_oid);
 
-  *reinterpret_cast<int16_t *>(table_pr->AccessForceNotNull(0)) = 445;
+  *reinterpret_cast<int16_t *>(table_pr->AccessForceNotNull(3)) = 15;
   *reinterpret_cast<int32_t *>(table_pr->AccessForceNotNull(1)) = 721;
-  *reinterpret_cast<int64_t *>(table_pr->AccessForceNotNull(2)) = 4256;
-  *reinterpret_cast<int32_t *>(table_pr->AccessForceNotNull(3)) = 15;
+  *reinterpret_cast<int64_t *>(table_pr->AccessForceNotNull(0)) = 4256;
+  *reinterpret_cast<int32_t *>(table_pr->AccessForceNotNull(2)) = 15;
 
   auto tuple_slot = inserter.TableInsert();
 
@@ -118,8 +118,8 @@ TEST_F(DeleterTest, MultiIndexTest) {
   auto index_oid2 = exec_ctx_->GetAccessor()->GetIndexOid(NSOid(), "index_2_multi");
   auto index_pr2 = inserter.GetIndexPR(index_oid2);
   auto index2 = exec_ctx_->GetAccessor()->GetIndex(index_oid2);
-  *reinterpret_cast<int32_t *>(index_pr2->AccessForceNotNull(1)) = 15;
-  *reinterpret_cast<int16_t *>(index_pr2->AccessForceNotNull(0)) = 721;
+  *reinterpret_cast<int16_t *>(index_pr2->AccessForceNotNull(1)) = 15;
+  *reinterpret_cast<int32_t *>(index_pr2->AccessForceNotNull(0)) = 721;
   std::vector<storage::TupleSlot> results3;
   index2->ScanKey(*exec_ctx_->GetTxn(), *index_pr2, &results3);
   EXPECT_TRUE(inserter.IndexInsert());
@@ -133,15 +133,15 @@ TEST_F(DeleterTest, MultiIndexTest) {
   // Create Delete PR
   {
     auto delete_pr = deleter.GetIndexPR(index_oid);
-    *reinterpret_cast<int32_t *>(delete_pr->AccessForceNotNull(0)) = 15;
+    *reinterpret_cast<int16_t *>(delete_pr->AccessForceNotNull(0)) = 15;
     index->ScanKey(*exec_ctx_->GetTxn(), *delete_pr, &results_before_delete);
   }
 
   // Create Multi Index Delete PR
   {
     auto delete_pr = deleter.GetIndexPR(index_oid2);
-    *reinterpret_cast<int16_t *>(delete_pr->AccessForceNotNull(0)) = 721;
-    *reinterpret_cast<int32_t *>(delete_pr->AccessForceNotNull(1)) = 15;
+    *reinterpret_cast<int16_t *>(delete_pr->AccessForceNotNull(1)) = 15;
+    *reinterpret_cast<int32_t *>(delete_pr->AccessForceNotNull(0)) = 721;
     index2->ScanKey(*exec_ctx_->GetTxn(), *delete_pr, &results_before_delete_2);
   }
 
@@ -151,7 +151,7 @@ TEST_F(DeleterTest, MultiIndexTest) {
   // Test that index delete succeeds
   {
     auto delete_pr = deleter.GetIndexPR(index_oid);
-    *reinterpret_cast<int32_t *>(delete_pr->AccessForceNotNull(0)) = 15;
+    *reinterpret_cast<int16_t *>(delete_pr->AccessForceNotNull(0)) = 15;
     deleter.IndexDelete(tuple_slot);
     index->ScanKey(*exec_ctx_->GetTxn(), *delete_pr, &results_after_delete);
     EXPECT_EQ(results_before_delete.size() - 1, results_after_delete.size());
@@ -160,8 +160,8 @@ TEST_F(DeleterTest, MultiIndexTest) {
   // Test that multi index delete succeeds
   {
     auto delete_pr = deleter.GetIndexPR(index_oid2);
-    *reinterpret_cast<int16_t *>(delete_pr->AccessForceNotNull(0)) = 721;
-    *reinterpret_cast<int32_t *>(delete_pr->AccessForceNotNull(1)) = 15;
+    *reinterpret_cast<int16_t *>(delete_pr->AccessForceNotNull(1)) = 15;
+    *reinterpret_cast<int32_t *>(delete_pr->AccessForceNotNull(0)) = 721;
     deleter.IndexDelete(tuple_slot);
     index2->ScanKey(*exec_ctx_->GetTxn(), *delete_pr, &results_after_delete_2);
     EXPECT_EQ(results_before_delete_2.size() - 1, results_after_delete_2.size());
