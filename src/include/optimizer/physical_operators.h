@@ -1155,5 +1155,110 @@ class Distinct : public OperatorNode<Distinct> {
   common::hash_t Hash() const override;
 };
 
+
+/**
+ * Physical operator for CreateDatabase
+ */
+class CreateDatabase : public OperatorNode<CreateDatabase> {
+ public:
+  /**
+   * @param database_name Name of the database to be created
+   * @return
+   */
+  static Operator Make(std::string database_name);
+
+  bool operator==(const BaseOperatorNode &r) override;
+  common::hash_t Hash() const override;
+
+  /**
+   * @return the name of the database we want to create
+   */
+  const std::string &GetDatabaseName() const { return database_name_; }
+
+ private:
+  /**
+   * Name of the new database
+   */
+  std::string database_name_;
+};
+
+
+/**
+ * Physical operator for DropDatabase
+ */
+class DropDatabase : public OperatorNode<DropDatabase> {
+ public:
+  /**
+   * @param db_oid OID of the database to be dropped
+   * @return
+   */
+  static Operator Make(catalog::db_oid_t db_oid);
+
+  bool operator==(const BaseOperatorNode &r) override;
+  common::hash_t Hash() const override;
+
+  /**
+   * @return the OID of the database we want to drop
+   */
+  const catalog::db_oid_t &GetDatabaseOID() const { return db_oid_; }
+
+ private:
+  /**
+   * OID of the database
+   */
+  catalog::db_oid_t db_oid_;
+};
+
+/**
+ * Physical operator for DropTable
+ */
+class DropTable : public OperatorNode<DropTable> {
+ public:
+  /**
+   * @param table_oid OID of the table to be dropped
+   * @return
+   */
+  static Operator Make(catalog::table_oid_t table_oid);
+
+  bool operator==(const BaseOperatorNode &r) override;
+  common::hash_t Hash() const override;
+
+  /**
+   * @return the OID of the database we want to drop
+   */
+  const catalog::table_oid_t &GetTableOID() const { return table_oid_; }
+
+ private:
+  /**
+   * OID of the table
+   */
+  catalog::table_oid_t table_oid_;
+};
+
+/**
+ * Pysical operator for DropIndex
+ */
+class DropIndex : public OperatorNode<DropIndex> {
+ public:
+  /**
+   * @return
+   */
+  static Operator Make(catalog::index_oid_t index_oid);
+
+  bool operator==(const BaseOperatorNode &r) override;
+  common::hash_t Hash() const override;
+
+  /**
+   * @return the OID of the index we want to drop
+   */
+  const catalog::index_oid_t &GetIndexOID() const { return index_oid_; }
+
+ private:
+  /**
+   * OID of the table
+   */
+  catalog::index_oid_t index_oid_;
+};
+
 }  // namespace optimizer
 }  // namespace terrier

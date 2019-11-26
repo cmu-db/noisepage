@@ -740,6 +740,94 @@ common::hash_t Distinct::Hash() const {
 }
 
 //===--------------------------------------------------------------------===//
+// CreateDatabase
+//===--------------------------------------------------------------------===//
+
+Operator CreateDatabase::Make(std::string database_name) {
+  auto op = std::make_unique<CreateDatabase>();
+  op->database_name_ = std::move(database_name);
+  return Operator(std::move(op));
+}
+
+common::hash_t CreateDatabase::Hash() const {
+  common::hash_t hash = BaseOperatorNode::Hash();
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_name_));
+  return hash;
+}
+
+bool CreateDatabase::operator==(const BaseOperatorNode &r) {
+  if (r.GetType() != OpType::CREATEDATABASE) return false;
+  const CreateDatabase &node = *dynamic_cast<const CreateDatabase *>(&r);
+  return node.database_name_ == database_name_;
+}
+
+
+//===--------------------------------------------------------------------===//
+// DropDatabase
+//===--------------------------------------------------------------------===//
+
+Operator DropDatabase::Make(catalog::db_oid_t db_oid) {
+  auto op = std::make_unique<DropDatabase>();
+  op->db_oid_ = db_oid;
+  return Operator(std::move(op));
+}
+
+common::hash_t DropDatabase::Hash() const {
+  common::hash_t hash = BaseOperatorNode::Hash();
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(db_oid_));
+  return hash;
+}
+
+bool DropDatabase::operator==(const BaseOperatorNode &r) {
+  if (r.GetType() != OpType::DROPDATABASE) return false;
+  const DropDatabase &node = *dynamic_cast<const DropDatabase *>(&r);
+  return node.db_oid_ == db_oid_;
+}
+
+//===--------------------------------------------------------------------===//
+// DropTable
+//===--------------------------------------------------------------------===//
+
+Operator DropTable::Make(catalog::table_oid_t table_oid) {
+  auto op = std::make_unique<DropTable>();
+  op->table_oid_ = table_oid;
+  return Operator(std::move(op));
+}
+
+common::hash_t DropTable::Hash() const {
+  common::hash_t hash = BaseOperatorNode::Hash();
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_oid_));
+  return hash;
+}
+
+bool DropTable::operator==(const BaseOperatorNode &r) {
+  if (r.GetType() != OpType::DROPTABLE) return false;
+  const DropTable &node = *dynamic_cast<const DropTable *>(&r);
+  return node.table_oid_ == table_oid_;
+}
+
+//===--------------------------------------------------------------------===//
+// DropIndex
+//===--------------------------------------------------------------------===//
+
+Operator DropIndex::Make(catalog::index_oid_t index_oid) {
+  auto op = std::make_unique<DropIndex>();
+  op->index_oid_ = index_oid;
+  return Operator(std::move(op));
+}
+
+common::hash_t DropIndex::Hash() const {
+  common::hash_t hash = BaseOperatorNode::Hash();
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(index_oid_));
+  return hash;
+}
+
+bool DropIndex::operator==(const BaseOperatorNode &r) {
+  if (r.GetType() != OpType::DROPINDEX) return false;
+  const DropIndex &node = *dynamic_cast<const DropIndex *>(&r);
+  return node.index_oid_ == index_oid_;
+}
+//===--------------------------------------------------------------------===//
 template <typename T>
 void OperatorNode<T>::Accept(common::ManagedPointer<OperatorVisitor> v) const {
   v->Visit(reinterpret_cast<const T *>(this));
@@ -794,6 +882,14 @@ template <>
 const char *OperatorNode<Aggregate>::name = "Aggregate";
 template <>
 const char *OperatorNode<ExportExternalFile>::name = "ExportExternalFile";
+template <>
+const char *OperatorNode<CreateDatabase>::name = "CreateDatabase";
+template <>
+const char *OperatorNode<DropDatabase>::name = "DropDatabase";
+template <>
+const char *OperatorNode<DropTable>::name = "DropTable";
+template <>
+const char *OperatorNode<DropIndex>::name = "DropIndex";
 
 //===--------------------------------------------------------------------===//
 template <>
@@ -844,6 +940,14 @@ template <>
 OpType OperatorNode<Aggregate>::type = OpType::AGGREGATE;
 template <>
 OpType OperatorNode<ExportExternalFile>::type = OpType::EXPORTEXTERNALFILE;
+template <>
+OpType OperatorNode<CreateDatabase>::type = OpType::CREATEDATABASE;
+template <>
+OpType OperatorNode<DropDatabase>::type = OpType::DROPDATABASE;
+template <>
+OpType OperatorNode<DropTable>::type = OpType::DROPTABLE;
+template <>
+OpType OperatorNode<DropIndex>::type = OpType::DROPINDEX;
 
 template <typename T>
 bool OperatorNode<T>::IsLogical() const {

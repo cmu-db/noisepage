@@ -157,6 +157,30 @@ class OperatorVisitor {
   virtual void Visit(const ExportExternalFile *export_ext_file) {}
 
   /**
+   * Visit a CreateDatabase operator
+   * @param create_database operator
+   */
+  virtual void Visit(const CreateDatabase *create_database) {}
+
+  /**
+   * Visit a DropDatabase operator
+   * @param drop_database operator
+   */
+  virtual void Visit(const DropDatabase *drop_database) {}
+
+  /**
+   * Visit a DropTable operator
+   * @param drop_table operator
+   */
+  virtual void Visit(const DropTable *drop_table) {}
+
+  /**
+   * Visit a DropIndex operator
+   * @param drop_index operator
+   */
+  virtual void Visit(const DropIndex *drop_index) {}
+  
+  /**
    * Visit a LogicalGet operator
    * @param logical_get operator
    */
