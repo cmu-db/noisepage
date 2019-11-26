@@ -276,7 +276,7 @@ class DatabaseCatalog {
    * @return vector of OIDs for all of the tables on this namespace
    */
   std::vector<std::pair<uint32_t, postgres::ClassKind>> GetNamespaceObjectOids(transaction::TransactionContext *txn,
-                                                                            namespace_oid_t ns_oid);
+                                                                               namespace_oid_t ns_oid);
 
   /**
    * Delete entries from pg_attribute
