@@ -100,8 +100,14 @@ void DBMain::ForceShutdown() {
 }
 
 void DBMain::CleanUp() {
-  log_manager_->PersistAndStop();
+  catalog_->TearDown();
+  garbage_collector_->PerformGarbageCollection();
+  garbage_collector_->PerformGarbageCollection();
+  garbage_collector_->PerformGarbageCollection();
+  std::this_thread::sleep_for(std::chrono::milliseconds{100 * type::TransientValuePeeker::PeekInteger(
+      param_map_.find(settings::Param::gc_interval)->second.value_)});
   main_stat_reg_->Shutdown(false);
+  log_manager_->PersistAndStop();
   thread_pool_->Shutdown();
   LOG_INFO("Terrier has shut down.");
   LoggersUtil::ShutDown();
