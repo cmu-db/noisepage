@@ -1155,7 +1155,6 @@ class Distinct : public OperatorNode<Distinct> {
   common::hash_t Hash() const override;
 };
 
-
 /**
  * Physical operator for CreateDatabase
  */
@@ -1181,7 +1180,6 @@ class CreateDatabase : public OperatorNode<CreateDatabase> {
    */
   std::string database_name_;
 };
-
 
 /**
  * Physical operator for DropDatabase

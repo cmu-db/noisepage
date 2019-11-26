@@ -179,7 +179,7 @@ class OperatorVisitor {
    * @param drop_index operator
    */
   virtual void Visit(const DropIndex *drop_index) {}
-  
+
   /**
    * Visit a LogicalGet operator
    * @param logical_get operator

@@ -761,7 +761,6 @@ bool CreateDatabase::operator==(const BaseOperatorNode &r) {
   return node.database_name_ == database_name_;
 }
 
-
 //===--------------------------------------------------------------------===//
 // DropDatabase
 //===--------------------------------------------------------------------===//
