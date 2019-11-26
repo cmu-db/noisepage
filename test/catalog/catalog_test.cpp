@@ -170,7 +170,8 @@ TEST_F(CatalogTests, NamespaceTest) {
 
   txn = txn_manager_->BeginTransaction();
   accessor = catalog_->GetAccessor(txn, db_);
-  EXPECT_FALSE(accessor->DropNamespace(ns_oid));
+  ns_oid = accessor->GetNamespaceOid("test_namespace");
+  EXPECT_EQ(ns_oid, catalog::INVALID_NAMESPACE_OID);
   txn_manager_->Abort(txn);
 }
 
@@ -500,6 +501,74 @@ TEST_F(CatalogTests, GetIndexObjectsTest) {
   }
 
   txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+}
+
+/*
+ * Exercise a bunch of scenarios of the DDL lock semantics
+ */
+// NOLINTNEXTLINE
+TEST_F(CatalogTests, DDLLockTest) {
+  // txn0 is used to verify that older concurrent txns can't acquire lock
+  auto *txn0 = txn_manager_->BeginTransaction();
+  auto accessor0 = catalog_->GetAccessor(txn0, db_);
+  // txn1 is used to verify that older concurrent txns can't acquire the lock
+  auto *txn1 = txn_manager_->BeginTransaction();
+  auto accessor1 = catalog_->GetAccessor(txn1, db_);
+
+  // txn2 is used to verify that commit releases the lock
+  auto *txn2 = txn_manager_->BeginTransaction();
+  auto accessor2 = catalog_->GetAccessor(txn2, db_);
+  // txn3 is used to verify that newer txns (than holder)
+  auto *txn3 = txn_manager_->BeginTransaction();
+  auto accessor3 = catalog_->GetAccessor(txn3, db_);
+
+  auto ns_oid = accessor2->CreateNamespace("txn2_ns");  // succeeds, txn2 acquires lock
+  EXPECT_NE(ns_oid, catalog::INVALID_NAMESPACE_OID);
+
+  ns_oid = accessor2->CreateNamespace("txn2_ns2");  // succeeds, txn2 already holds lock
+  EXPECT_NE(ns_oid, catalog::INVALID_NAMESPACE_OID);
+
+  // txn4 is used to verify that newer concurrent transactions can't acquire lock
+  auto *txn4 = txn_manager_->BeginTransaction();
+  auto accessor4 = catalog_->GetAccessor(txn4, db_);
+  ns_oid = accessor4->CreateNamespace("txn4_ns");
+  EXPECT_EQ(ns_oid,
+            catalog::INVALID_NAMESPACE_OID);  // fails, txn2 holds lock (txn4 > txn2)
+  txn_manager_->Abort(txn4);
+
+  ns_oid = accessor0->CreateNamespace("txn0_ns");
+  EXPECT_EQ(ns_oid,
+            catalog::INVALID_NAMESPACE_OID);  // fails, txn2 holds lock (txn0 < txn2)
+  txn_manager_->Abort(txn0);
+
+  txn_manager_->Commit(txn2, transaction::TransactionUtil::EmptyCallback, nullptr);  // txn2 releases the lock
+
+  ns_oid = accessor1->CreateNamespace("txn1_ns");
+  EXPECT_EQ(ns_oid,
+            catalog::INVALID_NAMESPACE_OID);  // fails, txn2 committed changes (txn1 < txn2)
+  txn_manager_->Abort(txn1);
+
+  ns_oid = accessor3->CreateNamespace("txn3_ns");
+  EXPECT_EQ(ns_oid,
+            catalog::INVALID_NAMESPACE_OID);  // fails, txn2 committed changes (txn3 > txn2, but txn3 < txn2 commit)
+  txn_manager_->Abort(txn3);
+
+  // txn5 is used to verify that older concurrent transactions can acquire lock after abort
+  auto *txn5 = txn_manager_->BeginTransaction();
+  auto accessor5 = catalog_->GetAccessor(txn5, db_);
+
+  // txn6 is used to verify that abort releases the lock
+  auto *txn6 = txn_manager_->BeginTransaction();
+  auto accessor6 = catalog_->GetAccessor(txn6, db_);
+  ns_oid = accessor6->CreateNamespace("txn6_ns");
+  EXPECT_NE(ns_oid, catalog::INVALID_NAMESPACE_OID);  // succeeds, txn6 acquires lock
+  txn_manager_->Abort(txn6);                          // txn6 releases the lock
+
+  ns_oid = accessor5->GetNamespaceOid("txn2_ns");  // succeeds, txn5 acquires lock (txn5 < txn6)
+  EXPECT_TRUE(accessor5->DropNamespace(ns_oid));
+  ns_oid = accessor5->GetNamespaceOid("txn2_ns");
+  EXPECT_EQ(ns_oid, catalog::INVALID_NAMESPACE_OID);
+  txn_manager_->Commit(txn5, transaction::TransactionUtil::EmptyCallback, nullptr);  // txn5 releases the lock
 }
 
 }  // namespace terrier

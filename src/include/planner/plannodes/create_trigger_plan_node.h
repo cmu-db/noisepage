@@ -110,31 +110,6 @@ class CreateTriggerPlanNode : public AbstractPlanNode {
     }
 
     /**
-     * @param create_stmt the SQL CREATE statement
-     * @return builder object
-     */
-    Builder &SetFromCreateStatement(parser::CreateStatement *create_stmt) {
-      if (create_stmt->GetCreateType() == parser::CreateStatement::CreateType::kTrigger) {
-        trigger_name_ = std::string(create_stmt->GetTriggerName());
-
-        if (create_stmt->GetTriggerWhen()) {
-          trigger_when_ = create_stmt->GetTriggerWhen()->Copy();
-        } else {
-          trigger_when_ = nullptr;
-        }
-        trigger_type_ = create_stmt->GetTriggerType();
-
-        for (auto &s : create_stmt->GetTriggerFuncNames()) {
-          trigger_funcnames_.push_back(s);
-        }
-        for (auto &s : create_stmt->GetTriggerArgs()) {
-          trigger_args_.push_back(s);
-        }
-      }
-      return *this;
-    }
-
-    /**
      * Build the create trigger plan node
      * @return plan node
      */
