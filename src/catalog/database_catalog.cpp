@@ -371,6 +371,34 @@ bool DatabaseCatalog::DeleteNamespace(transaction::TransactionContext *const txn
     return false;
   }
 
+  // Get the objects in this namespace
+  auto ns_objects = GetNamespaceObjectOids(txn, ns_oid);
+  for (const auto object : ns_objects) {
+    // delete all of the tables. This should get most of the indexes
+    if (object.second == postgres::ClassKind::REGULAR_TABLE) {
+      result = DeleteTable(txn, static_cast<table_oid_t>(object.first));
+      if (!result) {
+        // Someone else has a write-lock. Free the buffer and return false to indicate failure
+        delete[] buffer;
+        return false;
+      }
+    }
+  }
+
+  // Get the objects in the namespace again
+  ns_objects = GetNamespaceObjectOids(txn, ns_oid);
+  for (const auto object : ns_objects) {
+    // delete all of the straggler indexes that may have been built on tables in other namespaces
+    if (object.second == postgres::ClassKind::INDEX) {
+      result = DeleteIndex(txn, static_cast<index_oid_t>(object.first));
+      if (!result) {
+        // Someone else has a write-lock. Free the buffer and return false to indicate failure
+        delete[] buffer;
+        return false;
+      }
+    }
+  }
+
   // Step 4: Delete from oid index
   pr = oid_pri.InitializeRow(buffer);
   // Write the attributes in the ProjectedRow
@@ -637,6 +665,21 @@ table_oid_t DatabaseCatalog::CreateTable(transaction::TransactionContext *const 
   return CreateTableEntry(txn, table_oid, ns, name, schema) ? table_oid : INVALID_TABLE_OID;
 }
 
+bool DatabaseCatalog::DeleteIndexes(transaction::TransactionContext *const txn, const table_oid_t table) {
+  if (!TryLock(txn)) return false;
+  // Get the indexes
+  const auto index_oids = GetIndexOids(txn, table);
+  // Delete all indexes
+  for (const auto index_oid : index_oids) {
+    auto result = DeleteIndex(txn, index_oid);
+    if (!result) {
+      // write-write conflict. Someone beat us to this operation.
+      return false;
+    }
+  }
+  return true;
+}
+
 bool DatabaseCatalog::DeleteTable(transaction::TransactionContext *const txn, const table_oid_t table) {
   if (!TryLock(txn)) return false;
   // We should respect foreign key relations and attempt to delete the table's columns first
@@ -673,6 +716,8 @@ bool DatabaseCatalog::DeleteTable(transaction::TransactionContext *const txn, co
     delete[] buffer;
     return false;
   }
+
+  DeleteIndexes(txn, table);
 
   // Get the attributes we need for indexes
   const table_oid_t table_oid = *(reinterpret_cast<const table_oid_t *const>(
@@ -861,6 +906,7 @@ std::vector<index_oid_t> DatabaseCatalog::GetIndexOids(transaction::TransactionC
   }
 
   std::vector<index_oid_t> index_oids;
+  index_oids.reserve(index_scan_results.size());
   auto *select_pr = get_indexes_pri_.InitializeRow(buffer);
   for (auto &slot : index_scan_results) {
     const auto result UNUSED_ATTRIBUTE = indexes_->Select(txn, slot, select_pr);
@@ -882,7 +928,7 @@ index_oid_t DatabaseCatalog::CreateIndex(transaction::TransactionContext *txn, n
 
 bool DatabaseCatalog::DeleteIndex(transaction::TransactionContext *txn, index_oid_t index) {
   if (!TryLock(txn)) return false;
-  // We should respect foreign key relations and attempt to delete the table's columns first
+  // We should respect foreign key relations and attempt to delete the index's columns first
   auto result = DeleteColumns<IndexSchema::Column, index_oid_t>(txn, index);
   if (!result) return false;
 
@@ -1444,9 +1490,9 @@ bool DatabaseCatalog::CreateIndexEntry(transaction::TransactionContext *const tx
 
 type_oid_t DatabaseCatalog::GetTypeOidForType(type::TypeId type) { return type_oid_t(static_cast<uint8_t>(type)); }
 
-void DatabaseCatalog::InsertType(transaction::TransactionContext *txn, type::TypeId internal_type,
-                                 const std::string &name, namespace_oid_t namespace_oid, int16_t len, bool by_val,
-                                 postgres::Type type_category) {
+void DatabaseCatalog::InsertType(transaction::TransactionContext *const txn, const type::TypeId internal_type,
+                                 const std::string &name, const namespace_oid_t namespace_oid, const int16_t len,
+                                 bool by_val, const postgres::Type type_category) {
   // Stage the write into the table
   auto redo_record = txn->StageWrite(db_oid_, postgres::TYPE_TABLE_OID, pg_type_all_cols_pri_);
   auto *delta = redo_record->Delta();
@@ -1659,6 +1705,40 @@ bool DatabaseCatalog::CreateTableEntry(transaction::TransactionContext *const tx
   TERRIER_ASSERT(res, "Updating an uncommitted insert should not fail");
 
   return true;
+}
+
+std::vector<std::pair<uint32_t, postgres::ClassKind>> DatabaseCatalog::GetNamespaceObjectOids(
+    transaction::TransactionContext *const txn, const namespace_oid_t ns_oid) {
+  std::vector<storage::TupleSlot> index_scan_results;
+
+  // Initialize both PR initializers, allocate buffer using size of largest one so we can reuse buffer
+  auto oid_pri = classes_namespace_index_->GetProjectedRowInitializer();
+  auto *const buffer = common::AllocationUtil::AllocateAligned(get_class_oid_kind_pri_.ProjectedRowSize());
+
+  // Find the entry using the index
+  auto *key_pr = oid_pri.InitializeRow(buffer);
+  *(reinterpret_cast<namespace_oid_t *>(key_pr->AccessForceNotNull(0))) = ns_oid;
+  classes_namespace_index_->ScanKey(*txn, *key_pr, &index_scan_results);
+
+  // If we found no objects, return an empty list
+  if (index_scan_results.empty()) {
+    delete[] buffer;
+    return {};
+  }
+
+  auto *select_pr = get_class_oid_kind_pri_.InitializeRow(buffer);
+  std::vector<std::pair<uint32_t, postgres::ClassKind>> ns_objects;
+  ns_objects.reserve(index_scan_results.size());
+  for (const auto scan_result : index_scan_results) {
+    const auto result UNUSED_ATTRIBUTE = classes_->Select(txn, scan_result, select_pr);
+    TERRIER_ASSERT(result, "Index already verified visibility. This shouldn't fail.");
+    ns_objects.emplace_back(*(reinterpret_cast<const uint32_t *const>(select_pr->AccessWithNullCheck(0))),
+                            *(reinterpret_cast<const postgres::ClassKind *const>(select_pr->AccessForceNotNull(1))));
+  }
+
+  // Finish
+  delete[] buffer;
+  return ns_objects;
 }
 
 std::pair<void *, postgres::ClassKind> DatabaseCatalog::GetClassPtrKind(transaction::TransactionContext *txn,

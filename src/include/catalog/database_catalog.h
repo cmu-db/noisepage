@@ -270,6 +270,15 @@ class DatabaseCatalog {
   std::vector<Column> GetColumns(transaction::TransactionContext *txn, ClassOid class_oid);
 
   /**
+   * A list of all tables on the given namespace
+   * @param txn for the operation
+   * @param ns being queried
+   * @return vector of OIDs for all of the tables on this namespace
+   */
+  std::vector<std::pair<uint32_t, postgres::ClassKind>> GetNamespaceObjectOids(transaction::TransactionContext *txn,
+                                                                            namespace_oid_t ns_oid);
+
+  /**
    * Delete entries from pg_attribute
    * @tparam Column type of columns
    * @param txn txn to use
@@ -385,6 +394,15 @@ class DatabaseCatalog {
    */
   bool CreateIndexEntry(transaction::TransactionContext *txn, namespace_oid_t ns_oid, table_oid_t table_oid,
                         index_oid_t index_oid, const std::string &name, const IndexSchema &schema);
+
+  /**
+   * Delete an index.  Any constraints that utilize this index must be deleted
+   * or transitioned to a different index prior to deleting an index.
+   * @param txn for the operation
+   * @param table to remove all indexes for
+   * @return true if the deletion succeeded, otherwise false.
+   */
+  bool DeleteIndexes(transaction::TransactionContext *txn, table_oid_t table);
 
   /**
    * Bootstraps the built-in types found in type::Type
