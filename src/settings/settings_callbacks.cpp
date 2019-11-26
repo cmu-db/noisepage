@@ -32,7 +32,7 @@ void Callbacks::BlockStoreSizeLimit(void *const old_value, void *const new_value
                                     common::ManagedPointer<common::ActionContext> action_context) {
   action_context->SetState(common::ActionState::IN_PROGRESS);
   int64_t new_size = *static_cast<int64_t *>(new_value);
-  bool success = db_main->buffer_segment_pool_->SetSizeLimit(new_size);
+  bool success = db_main->block_store_->SetSizeLimit(new_size);
   if (success)
     action_context->SetState(common::ActionState::SUCCESS);
   else
@@ -43,7 +43,7 @@ void Callbacks::BlockStoreReuseLimit(void *const old_value, void *const new_valu
                                      common::ManagedPointer<common::ActionContext> action_context) {
   action_context->SetState(common::ActionState::IN_PROGRESS);
   int64_t new_reuse = *static_cast<int64_t *>(new_value);
-  db_main->buffer_segment_pool_->SetReuseLimit(new_reuse);
+  db_main->block_store_->SetReuseLimit(new_reuse);
   action_context->SetState(common::ActionState::SUCCESS);
 }
 

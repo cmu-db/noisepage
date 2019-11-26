@@ -27,6 +27,10 @@ namespace metrics {
 class MetricsTests;
 }
 
+namespace trafficcop {
+class TrafficCopTests;
+}
+
 namespace storage {
 class WriteAheadLoggingTests;
 }
@@ -63,7 +67,6 @@ class DBMain {
     ForceShutdown();
     // TODO(Matt): might as well make these std::unique_ptr, but then will need to refactor other classes to take
     // ManagedPointers unless we want a bunch of .get()s, which sounds like a future PR
-    delete gc_thread_;
     delete metrics_manager_;
     delete garbage_collector_;
     delete settings_manager_;
@@ -71,6 +74,7 @@ class DBMain {
     delete timestamp_manager_;
     delete deferred_action_manager_;
     delete buffer_segment_pool_;
+    delete block_store_;
     delete thread_pool_;
     delete log_manager_;
     delete connection_handle_factory_;
@@ -100,6 +104,7 @@ class DBMain {
   friend class settings::SettingsTests;
   friend class settings::Callbacks;
   friend class metrics::MetricsTests;
+  friend class trafficcop::TrafficCopTests;
   std::unique_ptr<common::StatisticsRegistry> main_stat_reg_;
   std::unordered_map<settings::Param, settings::ParamInfo> param_map_;
   transaction::TimestampManager *timestamp_manager_;
@@ -119,10 +124,7 @@ class DBMain {
   metrics::MetricsManager *metrics_manager_;
   common::DedicatedThreadRegistry *thread_registry_;
   std::unique_ptr<catalog::Catalog> catalog_;
-  storage::BlockStore block_store_{static_cast<uint64_t>(type::TransientValuePeeker::PeekBigInt(
-                                       param_map_.find(settings::Param::block_store_size)->second.value_)),
-                                   static_cast<uint64_t>(type::TransientValuePeeker::PeekBigInt(
-                                       param_map_.find(settings::Param::block_store_size)->second.value_))};
+  storage::BlockStore *block_store_;
 
   bool running_ = false;
 

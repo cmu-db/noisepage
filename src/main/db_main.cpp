@@ -53,8 +53,13 @@ DBMain::DBMain(std::unordered_map<settings::Param, settings::ParamInfo> &&param_
                                         {});
   thread_pool_->Startup();
 
+  block_store_ = new storage::BlockStore(static_cast<uint64_t>(type::TransientValuePeeker::PeekBigInt(
+                                             param_map_.find(settings::Param::block_store_size)->second.value_)),
+                                         static_cast<uint64_t>(type::TransientValuePeeker::PeekBigInt(
+                                             param_map_.find(settings::Param::block_store_size)->second.value_)));
+
   // Initialize the catalog, depends on transaction manager, block store.
-  catalog_ = std::make_unique<catalog::Catalog>(txn_manager_, &block_store_);
+  catalog_ = std::make_unique<catalog::Catalog>(txn_manager_, block_store_);
 
   // Bootstrap the default database in the catalog.
   auto *bootstrap_txn = txn_manager_->BeginTransaction();
@@ -101,11 +106,8 @@ void DBMain::ForceShutdown() {
 
 void DBMain::CleanUp() {
   catalog_->TearDown();
-  garbage_collector_->PerformGarbageCollection();
-  garbage_collector_->PerformGarbageCollection();
-  garbage_collector_->PerformGarbageCollection();
-  std::this_thread::sleep_for(std::chrono::milliseconds{100 * type::TransientValuePeeker::PeekInteger(
-      param_map_.find(settings::Param::gc_interval)->second.value_)});
+  delete gc_thread_;
+  deferred_action_manager_->FullyPerformGC(garbage_collector_, log_manager_);
   main_stat_reg_->Shutdown(false);
   log_manager_->PersistAndStop();
   thread_pool_->Shutdown();

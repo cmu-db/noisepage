@@ -36,7 +36,6 @@ class StorageTestUtil {
 
 #define MAX_TEST_VARLEN_SIZE (5 * storage::VarlenEntry::InlineThreshold())
 
-#define MIN_GC_INVOCATIONS (3)
   /**
    * Check if memory address represented by val in [lower, upper)
    * @tparam A type of ptr
@@ -558,20 +557,6 @@ class StorageTestUtil {
     }
 
     return catalog::IndexSchema(key_cols, storage::index::IndexType::BWTREE, false, false, false, true);
-  }
-
-  /**
-   * Invokes GC and log manager enough times to fully GC any outstanding transactions and process deferred events.
-   * Currently, this must be done 3 times. The log manager must be called because transactions can only be GC'd once
-   * their logs are persisted.
-   * @param gc gc to use for garbage collection
-   * @param log_manager log manager to use for flushing logs
-   */
-  static void FullyPerformGC(storage::GarbageCollector *const gc, storage::LogManager *const log_manager) {
-    for (int i = 0; i < MIN_GC_INVOCATIONS; i++) {
-      if (log_manager != DISABLED) log_manager->ForceFlush();
-      gc->PerformGarbageCollection();
-    }
   }
 
  private:
