@@ -881,7 +881,6 @@ TEST_F(OperatorTransformerTest, CreateTableTest) {
   EXPECT_EQ(logical_create->GetForeignKeys(), create_stmt->GetForeignKeys());
 }
 
-
 // NOLINTNEXTLINE
 TEST_F(OperatorTransformerTest, CreateIndexTest) {
   std::string
@@ -926,7 +925,6 @@ TEST_F(OperatorTransformerTest, CreateIndexTest) {
   EXPECT_EQ(col_attr->GetDatabaseOid(), db_oid_);
 }
 
-
 // NOLINTNEXTLINE
 TEST_F(OperatorTransformerTest, CreateFunctionTest) {
   std::string create_sql =
@@ -967,6 +965,72 @@ TEST_F(OperatorTransformerTest, CreateFunctionTest) {
     EXPECT_EQ(op_params_names[i], stmt_params[i]->GetParamName());
     EXPECT_EQ(op_params_types[i], stmt_params[i]->GetDataType());
   }
+}
+
+// NOLINTNEXTLINE
+TEST_F(OperatorTransformerTest, CreateNamespaceTest) {
+  std::string create_sql = "CREATE SCHEMA e";
+
+  std::string ref ="{\"Op\":\"LogicalCreateNamespace\",}";
+
+  auto parse_tree = parser_.BuildParseTree(create_sql);
+  auto statement = parse_tree.GetStatements()[0];
+  binder_->BindNameToNode(statement, &parse_tree);
+  accessor_ = binder_->GetCatalogAccessor();
+  operator_transformer_ = std::make_unique<optimizer::QueryToOperatorTransformer>(std::move(accessor_));
+  operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, &parse_tree);
+  auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorExpression>(operator_tree_));
+
+  EXPECT_EQ(ref, info);
+
+  // Test logical create
+  auto logical_create = operator_tree_->GetOp().As<optimizer::LogicalCreateNamespace>();
+  EXPECT_EQ("e", logical_create->GetNamespaceName());
+}
+
+
+// NOLINTNEXTLINE
+TEST_F(OperatorTransformerTest, CreateTriggerTest) {
+  std::string
+      create_sql = "CREATE TRIGGER check_update "
+                   "BEFORE UPDATE OF a1 ON a "
+                   "FOR EACH ROW "
+                   "WHEN (OLD.a1 <> NEW.a1) "
+                   "EXECUTE PROCEDURE check_account_update(update_date);";
+  std::string ref ="{\"Op\":\"LogicalCreateTrigger\",}";
+
+  auto parse_tree = parser_.BuildParseTree(create_sql);
+  auto statement = parse_tree.GetStatements()[0];
+  binder_->BindNameToNode(statement, &parse_tree);
+  accessor_ = binder_->GetCatalogAccessor();
+  auto ns_oid = accessor_->GetDefaultNamespace();
+  auto col_a1_oid = accessor_->GetSchema(table_a_oid_).GetColumn("a1").Oid();
+  operator_transformer_ = std::make_unique<optimizer::QueryToOperatorTransformer>(std::move(accessor_));
+  operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, &parse_tree);
+  auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorExpression>(operator_tree_));
+
+  EXPECT_EQ(ref, info);
+
+  // Test logical create
+  auto logical_create = operator_tree_->GetOp().As<optimizer::LogicalCreateTrigger>();
+  auto create_stmt = statement.CastManagedPointerTo<parser::CreateStatement>();
+  EXPECT_EQ(logical_create->GetTriggerName(), "check_update");
+  EXPECT_EQ(logical_create->GetTriggerType(), create_stmt->GetTriggerType());
+  EXPECT_EQ(logical_create->GetTriggerColumns().size(), create_stmt->GetTriggerColumns().size());
+  EXPECT_EQ(logical_create->GetTriggerColumns().at(0), col_a1_oid);
+  EXPECT_EQ(logical_create->GetNamespaceOid(), ns_oid);
+  EXPECT_EQ(logical_create->GetTableOid(), table_a_oid_);
+  EXPECT_EQ(logical_create->GetTriggerFuncName(), create_stmt->GetTriggerFuncNames());
+  EXPECT_EQ(logical_create->GetTriggerArgs(), create_stmt->GetTriggerArgs());
+  EXPECT_EQ(logical_create->GetTriggerWhen()->GetChildrenSize(), 2);
+  auto col1 = logical_create->GetTriggerWhen()->GetChild(0).CastManagedPointerTo<parser::ColumnValueExpression>();
+  auto col2 = logical_create->GetTriggerWhen()->GetChild(1).CastManagedPointerTo<parser::ColumnValueExpression>();
+  EXPECT_EQ(col1->GetTableOid(), table_a_oid_);
+  EXPECT_EQ(col2->GetTableOid(), table_a_oid_);
+  EXPECT_EQ(col1->GetColumnOid(), col_a1_oid);
+  EXPECT_EQ(col2->GetColumnOid(), col_a1_oid);
+  EXPECT_EQ(col1->GetDatabaseOid(), db_oid_);
+  EXPECT_EQ(col2->GetDatabaseOid(), db_oid_);
 }
 
 }  // namespace terrier

@@ -256,6 +256,14 @@ void BindNodeVisitor::Visit(parser::CreateStatement *node, parser::ParseResult *
       }
       break;
     case parser::CreateStatement::CreateType::kTrigger:
+      node->TryBindDatabaseName(default_database_name_);
+      context_->AddRegularTable(catalog_accessor_, node->GetDatabaseName(), node->GetTableName(), node->GetTableName());
+      // TODO(Ling): I think there are rules on when the trigger can have OLD reference
+      //  and when it can have NEW reference, but I'm not sure how it actually works... need to add those check later
+      context_->AddRegularTable(catalog_accessor_, node->GetDatabaseName(), node->GetTableName(), "old");
+      context_->AddRegularTable(catalog_accessor_, node->GetDatabaseName(), node->GetTableName(), "new");
+      if (node->GetTriggerWhen() != nullptr) node->GetTriggerWhen()->Accept(this, parse_result);
+      break;
     case parser::CreateStatement::CreateType::kSchema:
     case parser::CreateStatement::CreateType::kView:
       break;

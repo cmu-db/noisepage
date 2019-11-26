@@ -282,7 +282,6 @@ void QueryToOperatorTransformer::Visit(parser::CreateStatement *op, parser::Pars
       //  Following part might be more adequate to be handled by optimizer when it it actually constructing the plan
       //  I don't think we should extract out the desired fields here.
       break;
-
     case parser::CreateStatement::CreateType::kIndex: {
       // create vector of expressions of the index entires
       std::vector<common::ManagedPointer<parser::AbstractExpression>> entries;
@@ -298,9 +297,30 @@ void QueryToOperatorTransformer::Visit(parser::CreateStatement *op, parser::Pars
         }
       }
       create_expr = std::make_unique<OperatorExpression>(LogicalCreateIndex::Make(accessor_->GetDefaultNamespace(), accessor_->GetTableOid(op->GetTableName()), op->GetIndexType(), op->IsUniqueIndex(), op->GetIndexName(), std::move(entries)), std::vector<std::unique_ptr<OperatorExpression>>{});
+      break;
     }
-    case parser::CreateStatement::CreateType::kTrigger:
+    case parser::CreateStatement::CreateType::kTrigger: {
+      std::vector<catalog::col_oid_t> trigger_columns;
+      auto tb_oid = accessor_->GetTableOid(op->GetTableName());
+      auto schema = accessor_->GetSchema(tb_oid);
+      for (const auto &col : op->GetTriggerColumns())
+        trigger_columns.emplace_back(schema.GetColumn(col).Oid());
+      create_expr =
+          std::make_unique<OperatorExpression>(LogicalCreateTrigger::Make(accessor_->GetDatabaseOid(op->GetDatabaseName()),
+                                                                          accessor_->GetDefaultNamespace(),
+                                                                          tb_oid,
+                                                                          op->GetTriggerName(),
+                                                                          op->GetTriggerFuncNames(),
+                                                                          op->GetTriggerArgs(),
+                                                                          std::move(trigger_columns),
+                                                                          op->GetTriggerWhen(),
+                                                                          op->GetTriggerType()),
+                                               std::vector<std::unique_ptr<OperatorExpression>>{});
+      break;
+    }
     case parser::CreateStatement::CreateType::kSchema:
+      create_expr = std::make_unique<OperatorExpression>(LogicalCreateNamespace::Make(op->GetSchemaName()), std::vector<std::unique_ptr<OperatorExpression>>{});
+      break;
     case parser::CreateStatement::CreateType::kView:
       break;
   }

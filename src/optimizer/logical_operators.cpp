@@ -870,16 +870,44 @@ bool LogicalCreateTable::operator==(const BaseOperatorNode &r) {
 }
 
 //===--------------------------------------------------------------------===//
+// LogicalCreateNamespace
+//===--------------------------------------------------------------------===//
+
+Operator LogicalCreateNamespace::Make(std::string namespace_name) {
+  auto op = std::make_unique<LogicalCreateNamespace>();
+  op->namespace_name_ = std::move(namespace_name);
+  return Operator(std::move(op));
+}
+
+common::hash_t LogicalCreateNamespace::Hash() const {
+  common::hash_t hash = BaseOperatorNode::Hash();
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(namespace_name_));
+  return hash;
+}
+
+bool LogicalCreateNamespace::operator==(const BaseOperatorNode &r) {
+  if (r.GetType() != OpType::LOGICALCREATENAMESPACE) return false;
+  const LogicalCreateNamespace &node = *dynamic_cast<const LogicalCreateNamespace *>(&r);
+  return node.namespace_name_ == namespace_name_;
+}
+
+//===--------------------------------------------------------------------===//
 // LogicalCreateTrigger
 //===--------------------------------------------------------------------===//
 
 Operator LogicalCreateTrigger::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
-                             catalog::table_oid_t table_oid) {
-  auto *op = new LogicalCreateTrigger;
+                                    catalog::table_oid_t table_oid, std::string trigger_name, std::vector<std::string> &&trigger_funcnames, std::vector<std::string> &&trigger_args, std::vector<catalog::col_oid_t> &&trigger_columns, common::ManagedPointer<parser::AbstractExpression> &&trigger_when, int16_t trigger_type) {
+  auto op = std::make_unique<LogicalCreateTrigger>();
   op->database_oid_ = database_oid;
   op->namespace_oid_ = namespace_oid;
   op->table_oid_ = table_oid;
-  return Operator(op);
+  op->trigger_name_ = std::move(trigger_name);
+  op->trigger_funcnames_ = std::move(trigger_funcnames);
+  op->trigger_args_ = std::move(trigger_args);
+  op->trigger_columns_ = std::move(trigger_columns);
+  op->trigger_when_ = trigger_when;
+  op->trigger_type_ = trigger_type;
+  return Operator(std::move(op));
 }
 
 common::hash_t LogicalCreateTrigger::Hash() const {
@@ -887,16 +915,28 @@ common::hash_t LogicalCreateTrigger::Hash() const {
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_oid_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(namespace_oid_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_oid_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(trigger_name_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(trigger_type_));
+  hash = common::HashUtil::CombineHashes(hash, trigger_when_->Hash());
+  hash = common::HashUtil::CombineHashInRange(hash, trigger_funcnames_.begin(), trigger_funcnames_.end());
+  hash = common::HashUtil::CombineHashInRange(hash, trigger_args_.begin(), trigger_args_.end());
+  hash = common::HashUtil::CombineHashInRange(hash, trigger_columns_.begin(), trigger_columns_.end());
   return hash;
 }
 
 bool LogicalCreateTrigger::operator==(const BaseOperatorNode &r) {
-  if (r.GetType() != OpType::LOGICALDELETE) return false;
+  if (r.GetType() != OpType::LOGICALCREATETRIGGER) return false;
   const LogicalCreateTrigger &node = *dynamic_cast<const LogicalCreateTrigger *>(&r);
   if (database_oid_ != node.database_oid_) return false;
   if (namespace_oid_ != node.namespace_oid_) return false;
   if (table_oid_ != node.table_oid_) return false;
-  return (true);
+  if (trigger_name_ != node.trigger_name_) return false;
+  if (trigger_funcnames_ != node.trigger_funcnames_) return false;
+  if (trigger_args_ != node.trigger_args_) return false;
+  if (trigger_columns_ != node.trigger_columns_) return false;
+  if (trigger_type_ != node.trigger_type_) return false;
+  if (trigger_when_ == nullptr) return node.trigger_when_ == nullptr;
+  else return *trigger_when_ == *(node.trigger_when_);
 }
 
 //===--------------------------------------------------------------------===//
@@ -983,6 +1023,10 @@ template <>
 const char *OperatorNode<LogicalCreateIndex>::name = "LogicalCreateIndex";
 template <>
 const char *OperatorNode<LogicalCreateFunction>::name = "LogicalCreateFunction";
+template <>
+const char *OperatorNode<LogicalCreateNamespace>::name = "LogicalCreateNamespace";
+template <>
+const char *OperatorNode<LogicalCreateTrigger>::name = "LogicalCreateTrigger";
 
 //===--------------------------------------------------------------------===//
 template <>
@@ -1035,6 +1079,10 @@ template <>
 OpType OperatorNode<LogicalCreateIndex>::type = OpType::LOGICALCREATEINDEX;
 template <>
 OpType OperatorNode<LogicalCreateFunction>::type = OpType::LOGICALCREATEFUNCTION;
+template <>
+OpType OperatorNode<LogicalCreateNamespace>::type = OpType::LOGICALCREATENAMESPACE;
+template <>
+OpType OperatorNode<LogicalCreateTrigger>::type = OpType::LOGICALCREATETRIGGER;
 
 template <typename T>
 bool OperatorNode<T>::IsLogical() const {

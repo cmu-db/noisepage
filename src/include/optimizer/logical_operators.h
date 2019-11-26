@@ -1248,6 +1248,30 @@ class LogicalCreateTable : public OperatorNode<LogicalCreateTable> {
 };
 
 /**
+ * Logical operator for CreateSchema/Namespace
+ */
+class LogicalCreateNamespace : public OperatorNode<LogicalCreateNamespace> {
+ public:
+  /**
+   * @return
+   */
+  static Operator Make(std::string namespace_name);
+
+  bool operator==(const BaseOperatorNode &r) override;
+  common::hash_t Hash() const override;
+
+  /**
+   * @return the name of the namespace we want to create
+   */
+  const std::string &GetNamespaceName() const { return namespace_name_; }
+ private:
+  /**
+   * Name of the new namespace
+   */
+  std::string namespace_name_;
+};
+
+/**
  * Logical operator for CreateTrigger
  */
 class LogicalCreateTrigger : public OperatorNode<LogicalCreateTrigger> {
@@ -1259,7 +1283,7 @@ class LogicalCreateTrigger : public OperatorNode<LogicalCreateTrigger> {
    * @return
    */
   static Operator Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
-                       catalog::table_oid_t table_oid);
+                       catalog::table_oid_t table_oid, std::string trigger_name, std::vector<std::string> &&trigger_funcnames, std::vector<std::string> &&trigger_args, std::vector<catalog::col_oid_t> &&trigger_columns, common::ManagedPointer<parser::AbstractExpression> &&trigger_when, int16_t trigger_type);
 
   bool operator==(const BaseOperatorNode &r) override;
   common::hash_t Hash() const override;
@@ -1279,6 +1303,37 @@ class LogicalCreateTrigger : public OperatorNode<LogicalCreateTrigger> {
    */
   const catalog::table_oid_t &GetTableOid() const { return table_oid_; }
 
+  /**
+ * @return trigger name
+ */
+  std::string GetTriggerName() const { return trigger_name_; }
+
+  /**
+   * @return trigger function names
+   */
+  std::vector<std::string> GetTriggerFuncName() const { return trigger_funcnames_; }
+
+  /**
+   * @return trigger args
+   */
+  std::vector<std::string> GetTriggerArgs() const { return trigger_args_; }
+
+  /**
+   * @return trigger columns
+   */
+  std::vector<catalog::col_oid_t> GetTriggerColumns() const { return trigger_columns_; }
+
+  /**
+   * @return trigger when clause
+   */
+  common::ManagedPointer<parser::AbstractExpression> GetTriggerWhen() const {
+    return common::ManagedPointer(trigger_when_);
+  }
+
+  /**
+   * @return trigger type, i.e. information about row, timing, events, access by pg_trigger
+   */
+  int16_t GetTriggerType() const { return trigger_type_; }
  private:
   /**
    * OID of the database
@@ -1294,6 +1349,36 @@ class LogicalCreateTrigger : public OperatorNode<LogicalCreateTrigger> {
    * OID of the table
    */
   catalog::table_oid_t table_oid_;
+
+  /**
+   * Name of the trigger
+   */
+  std::string trigger_name_;
+
+  /**
+   * Names of the trigger functions
+   */
+  std::vector<std::string> trigger_funcnames_;
+
+  /**
+   * Trigger arguments
+   */
+  std::vector<std::string> trigger_args_;
+
+  /**
+   * Trigger columns
+   */
+  std::vector<catalog::col_oid_t> trigger_columns_;
+
+  /**
+   * Trigger when clause
+   */
+  common::ManagedPointer<parser::AbstractExpression> trigger_when_;
+
+  /**
+   * Type of trigger
+   */
+  int16_t trigger_type_ = 0;
 };
 
 /**

@@ -881,4 +881,28 @@ TEST_F(BinderCorrectnessTest, CreateIndexTest) {
   EXPECT_NO_THROW(binder_->BindNameToNode(statement, &parse_tree));
 }
 
+// NOLINTNEXTLINE
+TEST_F(BinderCorrectnessTest, CreateTriggerTest) {
+  BINDER_LOG_DEBUG("Checking create trigger");
+
+  std::string
+      create_sql = "CREATE TRIGGER check_update "
+                   "BEFORE UPDATE OF a1 ON a "
+                   "FOR EACH ROW "
+                   "WHEN (OLD.a1 <> NEW.a1) "
+                   "EXECUTE PROCEDURE check_account_update(update_date);";
+  auto parse_tree = parser_.BuildParseTree(create_sql);
+  auto statement = parse_tree.GetStatements()[0];
+  auto create_stmt = statement.CastManagedPointerTo<parser::CreateStatement>();
+  EXPECT_NO_THROW(binder_->BindNameToNode(statement, &parse_tree));
+  auto col1 = create_stmt->GetTriggerWhen()->GetChild(0).CastManagedPointerTo<parser::ColumnValueExpression>();
+  auto col2 = create_stmt->GetTriggerWhen()->GetChild(1).CastManagedPointerTo<parser::ColumnValueExpression>();
+  EXPECT_EQ(col1->GetTableOid(), table_a_oid_);
+  EXPECT_EQ(col2->GetTableOid(), table_a_oid_);
+  EXPECT_EQ(col1->GetColumnOid(), catalog::col_oid_t(1));
+  EXPECT_EQ(col2->GetColumnOid(), catalog::col_oid_t(1));
+  EXPECT_EQ(col1->GetDatabaseOid(), db_oid_);
+  EXPECT_EQ(col2->GetDatabaseOid(), db_oid_);
+}
+
 }  // namespace terrier

@@ -307,6 +307,12 @@ class OperatorVisitor {
   virtual void Visit(const LogicalCreateTable *logical_create_table) {}
 
   /**
+   * Visit a LogicalCreateTable operator
+   * @param logical_create_table operator
+   */
+  virtual void Visit(const LogicalCreateNamespace *logical_create_namespace) {}
+
+  /**
    * Visit a LogicalCreateTrigger operator
    * @param logical_create_trigger operator
    */
