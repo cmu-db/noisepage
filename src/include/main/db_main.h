@@ -65,11 +65,9 @@ class DBMain {
     // ManagedPointers unless we want a bunch of .get()s, which sounds like a future PR
     delete gc_thread_;
     delete metrics_manager_;
-    delete block_store_;
     delete garbage_collector_;
     delete settings_manager_;
     delete txn_manager_;
-    delete catalog_;
     delete timestamp_manager_;
     delete deferred_action_manager_;
     delete buffer_segment_pool_;
@@ -107,12 +105,10 @@ class DBMain {
   transaction::TimestampManager *timestamp_manager_;
   transaction::DeferredActionManager *deferred_action_manager_;
   transaction::TransactionManager *txn_manager_;
-  catalog::Catalog *catalog_;
   settings::SettingsManager *settings_manager_;
   storage::LogManager *log_manager_;
   storage::GarbageCollector *garbage_collector_;
   storage::GarbageCollectorThread *gc_thread_;
-  storage::BlockStore *block_store_;
   network::TerrierServer *server_;
   storage::RecordBufferSegmentPool *buffer_segment_pool_;
   common::WorkerPool *thread_pool_;
@@ -122,6 +118,12 @@ class DBMain {
   network::ProtocolInterpreter::Provider *provider_;
   metrics::MetricsManager *metrics_manager_;
   common::DedicatedThreadRegistry *thread_registry_;
+  std::unique_ptr<catalog::Catalog> catalog_;
+  storage::BlockStore block_store_{static_cast<uint64_t>(type::TransientValuePeeker::PeekBigInt(
+                                       param_map_.find(settings::Param::block_store_size)->second.value_)),
+                                   static_cast<uint64_t>(type::TransientValuePeeker::PeekBigInt(
+                                       param_map_.find(settings::Param::block_store_size)->second.value_))};
+  ;
 
   bool running_ = false;
 

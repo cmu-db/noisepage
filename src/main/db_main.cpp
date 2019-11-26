@@ -53,12 +53,8 @@ DBMain::DBMain(std::unordered_map<settings::Param, settings::ParamInfo> &&param_
                                         {});
   thread_pool_->Startup();
 
-  block_store_ = new storage::BlockStore{static_cast<uint64_t>(type::TransientValuePeeker::PeekBigInt(
-                                             param_map_.find(settings::Param::block_store_size)->second.value_)),
-                                         static_cast<uint64_t>(type::TransientValuePeeker::PeekBigInt(
-                                             param_map_.find(settings::Param::block_store_size)->second.value_))};
-
-  catalog_ = new catalog::Catalog(txn_manager_, block_store_);
+  // Initialize the catalog, depends on transaction manager, block store.
+  catalog_ = std::make_unique<catalog::Catalog>(txn_manager_, &block_store_);
 
   // Bootstrap the default database in the catalog.
   auto *bootstrap_txn = txn_manager_->BeginTransaction();
@@ -68,7 +64,6 @@ DBMain::DBMain(std::unordered_map<settings::Param, settings::ParamInfo> &&param_
   // Run the GC to flush it down to a clean system
   garbage_collector_->PerformGarbageCollection();
   garbage_collector_->PerformGarbageCollection();
-
 
   t_cop_ = new trafficcop::TrafficCop(common::ManagedPointer(txn_manager_), common::ManagedPointer(catalog_));
   connection_handle_factory_ = new network::ConnectionHandleFactory(common::ManagedPointer(t_cop_));
@@ -100,17 +95,13 @@ void DBMain::Run() {
 void DBMain::ForceShutdown() {
   if (running_) {
     server_->StopServer();
-    catalog_->TearDown();
-    garbage_collector_->PerformGarbageCollection();
-    garbage_collector_->PerformGarbageCollection();
-    garbage_collector_->PerformGarbageCollection();
   }
   CleanUp();
 }
 
 void DBMain::CleanUp() {
-  main_stat_reg_->Shutdown(false);
   log_manager_->PersistAndStop();
+  main_stat_reg_->Shutdown(false);
   thread_pool_->Shutdown();
   LOG_INFO("Terrier has shut down.");
   LoggersUtil::ShutDown();
