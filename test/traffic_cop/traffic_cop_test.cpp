@@ -123,7 +123,7 @@ TEST_F(TrafficCopTests, RoundTripTest) {
 TEST_F(TrafficCopTests, TemporaryNamespaceTest) {
   try {
     pqxx::connection connection(fmt::format("host=127.0.0.1 port={0} user={1} sslmode=disable application_name=psql",
-                                              port_, catalog::DEFAULT_DATABASE));
+                                            port_, catalog::DEFAULT_DATABASE));
 
     pqxx::work txn1(connection);
 
@@ -132,11 +132,11 @@ TEST_F(TrafficCopTests, TemporaryNamespaceTest) {
 
     // Create a new namespace and make sure that its OID is higher than the default start OID,
     // which should have been assigned to the temporary namespace for this connection
-      auto new_namespace_oid = db_accessor->CreateNamespace(std::string(trafficcop::TEMP_NAMESPACE_PREFIX));
-      EXPECT_GT(static_cast<uint32_t>(new_namespace_oid), catalog::START_OID);
-      txn_manager_.Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
-      txn1.commit();
-      connection.disconnect();
+    auto new_namespace_oid = db_accessor->CreateNamespace(std::string(trafficcop::TEMP_NAMESPACE_PREFIX));
+    EXPECT_GT(static_cast<uint32_t>(new_namespace_oid), catalog::START_OID);
+    txn_manager_.Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+    txn1.commit();
+    connection.disconnect();
   } catch (const std::exception &e) {
     TEST_LOG_ERROR("Exception occurred: {0}", e.what());
     EXPECT_TRUE(false);
