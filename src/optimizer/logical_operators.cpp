@@ -943,26 +943,32 @@ bool LogicalCreateTrigger::operator==(const BaseOperatorNode &r) {
 // LogicalCreateView
 //===--------------------------------------------------------------------===//
 
-Operator LogicalCreateView::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid)
-  auto *op = new LogicalCreateView;
+Operator LogicalCreateView::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid, std::string view_name, common::ManagedPointer<parser::SelectStatement> view_query) {
+  auto op = std::make_unique<LogicalCreateView>();
   op->database_oid_ = database_oid;
   op->namespace_oid_ = namespace_oid;
-  return Operator(op);
+  op->view_name_ = std::move(view_name);
+  op->view_query_ = view_query;
+  return Operator(std::move(op));
 }
 
 common::hash_t LogicalCreateView::Hash() const {
   common::hash_t hash = BaseOperatorNode::Hash();
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_oid_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(namespace_oid_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(view_name_));
+  // TODO(Ling): how should we hash selectStatement? create a helper function in the selectStatement class?
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(view_query_));
   return hash;
 }
 
 bool LogicalCreateView::operator==(const BaseOperatorNode &r) {
-  if (r.GetType() != OpType::LOGICALDELETE) return false;
+  if (r.GetType() != OpType::LOGICALCREATEVIEW) return false;
   const LogicalCreateView &node = *dynamic_cast<const LogicalCreateView *>(&r);
   if (database_oid_ != node.database_oid_) return false;
   if (namespace_oid_ != node.namespace_oid_) return false;
-  return (true);
+  if (view_name_ != node.view_name_) return false;
+  return *view_query_ == *(node.view_query_);
 }
 
 
@@ -1027,6 +1033,8 @@ template <>
 const char *OperatorNode<LogicalCreateNamespace>::name = "LogicalCreateNamespace";
 template <>
 const char *OperatorNode<LogicalCreateTrigger>::name = "LogicalCreateTrigger";
+template <>
+const char *OperatorNode<LogicalCreateView>::name = "LogicalCreateView";
 
 //===--------------------------------------------------------------------===//
 template <>
@@ -1083,6 +1091,8 @@ template <>
 OpType OperatorNode<LogicalCreateNamespace>::type = OpType::LOGICALCREATENAMESPACE;
 template <>
 OpType OperatorNode<LogicalCreateTrigger>::type = OpType::LOGICALCREATETRIGGER;
+template <>
+OpType OperatorNode<LogicalCreateView>::type = OpType::LOGICALCREATEVIEW;
 
 template <typename T>
 bool OperatorNode<T>::IsLogical() const {

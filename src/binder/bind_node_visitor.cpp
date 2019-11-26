@@ -265,7 +265,9 @@ void BindNodeVisitor::Visit(parser::CreateStatement *node, parser::ParseResult *
       if (node->GetTriggerWhen() != nullptr) node->GetTriggerWhen()->Accept(this, parse_result);
       break;
     case parser::CreateStatement::CreateType::kSchema:
+      // nothing for binder to handler
     case parser::CreateStatement::CreateType::kView:
+      // TODO(Ling): Logic for CreateView has not been implemented from what I see.
       break;
   }
   auto curr_context = context_;

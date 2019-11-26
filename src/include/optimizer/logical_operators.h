@@ -1391,7 +1391,7 @@ class LogicalCreateView : public OperatorNode<LogicalCreateView> {
    * @param namespace_oid OID of the namespace
    * @return
    */
-  static Operator Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid);
+  static Operator Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid, std::string view_name, common::ManagedPointer<parser::SelectStatement> view_query);
 
   bool operator==(const BaseOperatorNode &r) override;
   common::hash_t Hash() const override;
@@ -1405,6 +1405,15 @@ class LogicalCreateView : public OperatorNode<LogicalCreateView> {
    * @return OID of the namespace
    */
   const catalog::namespace_oid_t &GetNamespaceOid() const { return namespace_oid_; }
+  /**
+   * @return view name
+   */
+  const std::string &GetViewName() const { return view_name_; }
+
+  /**
+   * @return view query
+   */
+  common::ManagedPointer<parser::SelectStatement> GetViewQuery() { return common::ManagedPointer(view_query_); }
 
  private:
   /**
@@ -1416,6 +1425,16 @@ class LogicalCreateView : public OperatorNode<LogicalCreateView> {
    * OID of the namespace
    */
   catalog::namespace_oid_t namespace_oid_;
+
+  /**
+   * Name of the view
+   */
+  std::string view_name_;
+
+  /**
+   * View query
+   */
+  common::ManagedPointer<parser::SelectStatement> view_query_;
 };
 
 
