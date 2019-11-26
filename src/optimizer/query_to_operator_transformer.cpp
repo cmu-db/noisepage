@@ -326,7 +326,7 @@ void QueryToOperatorTransformer::Visit(parser::CreateStatement *op, parser::Pars
       break;
     }
     case parser::CreateStatement::CreateType::kSchema:
-      create_expr = std::make_unique<OperatorExpression>(LogicalCreateNamespace::Make(op->GetSchemaName()),
+      create_expr = std::make_unique<OperatorExpression>(LogicalCreateSchema::Make(op->GetSchemaName()),
                                                          std::vector<std::unique_ptr<OperatorExpression>>{});
       break;
     case parser::CreateStatement::CreateType::kView:
