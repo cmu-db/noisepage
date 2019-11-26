@@ -123,7 +123,6 @@ class DBMain {
                                        param_map_.find(settings::Param::block_store_size)->second.value_)),
                                    static_cast<uint64_t>(type::TransientValuePeeker::PeekBigInt(
                                        param_map_.find(settings::Param::block_store_size)->second.value_))};
-  ;
 
   bool running_ = false;
 
