@@ -893,7 +893,7 @@ common::hash_t LogicalCreateSchema::Hash() const {
 }
 
 bool LogicalCreateSchema::operator==(const BaseOperatorNode &r) {
-  if (r.GetType() != OpType::LOGICALCREATENAMESPACE) return false;
+  if (r.GetType() != OpType::LOGICALCREATESCHEMA) return false;
   const LogicalCreateSchema &node = *dynamic_cast<const LogicalCreateSchema *>(&r);
   return node.namespace_name_ == namespace_name_;
 }
@@ -1172,7 +1172,7 @@ OpType OperatorNode<LogicalCreateIndex>::type = OpType::LOGICALCREATEINDEX;
 template <>
 OpType OperatorNode<LogicalCreateFunction>::type = OpType::LOGICALCREATEFUNCTION;
 template <>
-OpType OperatorNode<LogicalCreateSchema>::type = OpType::LOGICALCREATENAMESPACE;
+OpType OperatorNode<LogicalCreateSchema>::type = OpType::LOGICALCREATESCHEMA;
 template <>
 OpType OperatorNode<LogicalCreateTrigger>::type = OpType::LOGICALCREATETRIGGER;
 template <>

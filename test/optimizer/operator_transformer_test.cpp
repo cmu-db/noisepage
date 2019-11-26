@@ -990,7 +990,7 @@ TEST_F(OperatorTransformerTest, CreateFunctionTest) {
 TEST_F(OperatorTransformerTest, CreateNamespaceTest) {
   std::string create_sql = "CREATE SCHEMA e";
 
-  std::string ref = R"({"Op":"LogicalCreateNamespace",})";
+  std::string ref = R"({"Op":"LogicalCreateSchema",})";
 
   auto parse_tree = parser_.BuildParseTree(create_sql);
   auto statement = parse_tree.GetStatements()[0];
@@ -1003,7 +1003,7 @@ TEST_F(OperatorTransformerTest, CreateNamespaceTest) {
   EXPECT_EQ(ref, info);
 
   // Test logical create
-  auto logical_create = operator_tree_->GetOp().As<optimizer::LogicalCreateNamespace>();
+  auto logical_create = operator_tree_->GetOp().As<optimizer::LogicalCreateSchema>();
   EXPECT_EQ("e", logical_create->GetNamespaceName());
 }
 
