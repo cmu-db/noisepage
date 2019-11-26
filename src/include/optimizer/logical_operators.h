@@ -1437,6 +1437,29 @@ class LogicalCreateView : public OperatorNode<LogicalCreateView> {
   common::ManagedPointer<parser::SelectStatement> view_query_;
 };
 
+/**
+ * Logical operator for DropDatabase
+ */
+class LogicalDropDatabase : public OperatorNode<LogicalDropDatabase> {
+ public:
+  /**
+   * @return
+   */
+  static Operator Make(catalog::db_oid_t db_oid);
+
+  bool operator==(const BaseOperatorNode &r) override;
+  common::hash_t Hash() const override;
+
+  /**
+   * @return the OID of the database we want to drop
+   */
+  const catalog::db_oid_t &GetDatabaseOID() const { return db_oid_; }
+ private:
+  /**
+   * OID of the database
+   */
+  catalog::db_oid_t db_oid_;
+};
 
 }  // namespace optimizer
 }  // namespace terrier

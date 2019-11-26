@@ -441,8 +441,24 @@ void QueryToOperatorTransformer::Visit(parser::DeleteStatement *op, parser::Pars
   output_expr_ = std::move(delete_expr);
 }
 
-void QueryToOperatorTransformer::Visit(UNUSED_ATTRIBUTE parser::DropStatement *op, parser::ParseResult *parse_result) {
-  OPTIMIZER_LOG_DEBUG("Transforming DropStatement to operators ...");
+void QueryToOperatorTransformer::Visit(parser::DropStatement *op, parser::ParseResult *parse_result) {
+  OPTIMIZER_LOG_DEBUG("Transforming DropStatement to operators ...")
+  auto drop_type = op->GetDropType();
+  std::unique_ptr<OperatorExpression> drop_expr;
+  switch (drop_type) {
+    case parser::DropStatement::DropType::kDatabase:
+      drop_expr = std::make_unique<OperatorExpression>(LogicalDropDatabase::Make(accessor_->GetDatabaseOid(op->GetDatabaseName())), std::vector<std::unique_ptr<OperatorExpression>>{});
+      break;
+    case parser::DropStatement::DropType::kTable:
+    case parser::DropStatement::DropType::kIndex:
+    case parser::DropStatement::DropType::kTrigger:
+    case parser::DropStatement::DropType::kSchema:
+    case parser::DropStatement::DropType::kView:
+    case parser::DropStatement::DropType::kPreparedStatement:
+      break;
+  }
+
+  output_expr_ = std::move(drop_expr);
 }
 void QueryToOperatorTransformer::Visit(UNUSED_ATTRIBUTE parser::PrepareStatement *op,
                                        UNUSED_ATTRIBUTE parser::ParseResult *parse_result) {

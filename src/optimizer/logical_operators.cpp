@@ -971,6 +971,27 @@ bool LogicalCreateView::operator==(const BaseOperatorNode &r) {
   return *view_query_ == *(node.view_query_);
 }
 
+//===--------------------------------------------------------------------===//
+// LogicalDropDatabase
+//===--------------------------------------------------------------------===//
+
+Operator LogicalDropDatabase::Make(catalog::db_oid_t db_oid) {
+  auto op = std::make_unique<LogicalDropDatabase>();
+  op->db_oid_ = db_oid;
+  return Operator(std::move(op));
+}
+
+common::hash_t LogicalDropDatabase::Hash() const {
+  common::hash_t hash = BaseOperatorNode::Hash();
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(db_oid_));
+  return hash;
+}
+
+bool LogicalDropDatabase::operator==(const BaseOperatorNode &r) {
+  if (r.GetType() != OpType::LOGICALDROPDATABASE) return false;
+  const LogicalDropDatabase &node = *dynamic_cast<const LogicalDropDatabase *>(&r);
+  return node.db_oid_ == db_oid_;
+}
 
 //===--------------------------------------------------------------------===//
 template <typename T>
@@ -1035,6 +1056,8 @@ template <>
 const char *OperatorNode<LogicalCreateTrigger>::name = "LogicalCreateTrigger";
 template <>
 const char *OperatorNode<LogicalCreateView>::name = "LogicalCreateView";
+template <>
+const char *OperatorNode<LogicalDropDatabase>::name = "LogicalDropDatabase";
 
 //===--------------------------------------------------------------------===//
 template <>
@@ -1093,6 +1116,8 @@ template <>
 OpType OperatorNode<LogicalCreateTrigger>::type = OpType::LOGICALCREATETRIGGER;
 template <>
 OpType OperatorNode<LogicalCreateView>::type = OpType::LOGICALCREATEVIEW;
+template <>
+OpType OperatorNode<LogicalDropDatabase>::type = OpType::LOGICALDROPDATABASE;
 
 template <typename T>
 bool OperatorNode<T>::IsLogical() const {

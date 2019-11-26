@@ -290,7 +290,23 @@ void BindNodeVisitor::Visit(parser::InsertStatement *node, parser::ParseResult *
 
 void BindNodeVisitor::Visit(parser::DropStatement *node, UNUSED_ATTRIBUTE parser::ParseResult *parse_result) {
   BINDER_LOG_DEBUG("Visiting DropStatement ...");
-  node->TryBindDatabaseName(default_database_name_);
+  context_ = new BinderContext(context_);
+
+  auto drop_type = node->GetDropType();
+  switch (drop_type) {
+    case parser::DropStatement::DropType::kDatabase:
+      break;
+    case parser::DropStatement::DropType::kTable:
+    case parser::DropStatement::DropType::kIndex:
+    case parser::DropStatement::DropType::kTrigger:
+    case parser::DropStatement::DropType::kSchema:
+    case parser::DropStatement::DropType::kView:
+    case parser::DropStatement::DropType::kPreparedStatement:
+      break;
+  }
+  auto curr_context = context_;
+  context_ = context_->GetUpperContext();
+  delete curr_context;
 }
 void BindNodeVisitor::Visit(UNUSED_ATTRIBUTE parser::PrepareStatement *node,
                             UNUSED_ATTRIBUTE parser::ParseResult *parse_result) {
