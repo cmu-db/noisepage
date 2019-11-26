@@ -40,17 +40,6 @@ class CreateDatabasePlanNode : public AbstractPlanNode {
     }
 
     /**
-     * @param create_stmt the SQL CREATE statement
-     * @return builder object
-     */
-    Builder &SetFromCreateStatement(parser::CreateStatement *create_stmt) {
-      if (create_stmt->GetCreateType() == parser::CreateStatement::CreateType::kDatabase) {
-        database_name_ = std::string(create_stmt->GetDatabaseName());
-      }
-      return *this;
-    }
-
-    /**
      * Build the create database plan node
      * @return plan node
      */
