@@ -22,8 +22,8 @@ from pprint import pprint
 
 import xml.etree.ElementTree as ElementTree
 
-from types import (ListType, StringType)
-
+# from types import (ListType, StringType)
+import types
 ## =========================================================
 ## LOGGING
 ## =========================================================
@@ -46,25 +46,25 @@ JENKINS_URL = "http://jenkins.db.cs.cmu.edu:8080"
 # Add the name of your benchmark in the list below and
 # it will automatically get executed when this script runs.
 BENCHMARKS_TO_RUN = [
-    "catalog_benchmark",
-    "data_table_benchmark",
-    "garbage_collector_benchmark",
-    "large_transaction_benchmark",
-    "seqscan_benchmark",
-    "index_wrapper_benchmark",
-    "logging_benchmark",
-    "recovery_benchmark",
-    "large_transaction_metrics_benchmark",
-    "logging_metrics_benchmark",
-    "tuple_access_strategy_benchmark",
-    "tpcc_benchmark",
-    "bwtree_benchmark",
-    "cuckoomap_benchmark",
-    "parser_benchmark",
+    # "catalog_benchmark",
+    # "data_table_benchmark",
+    # "garbage_collector_benchmark",
+    # "large_transaction_benchmark",
+    "seqscan_benchmark"
+    # "index_wrapper_benchmark",
+    # "logging_benchmark",
+    # "recovery_benchmark",
+    # "large_transaction_metrics_benchmark",
+    # "logging_metrics_benchmark",
+    # "tuple_access_strategy_benchmark",
+    # "tpcc_benchmark",
+    # "bwtree_benchmark",
+    # "cuckoomap_benchmark",
+    # "parser_benchmark",
 ]
 
 # Where to find the benchmarks to execute
-BENCHMARK_PATH = "../../build/release/"
+BENCHMARK_PATH = "../../cmake-build-release/"
 
 ## =========================================================
 
