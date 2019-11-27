@@ -2889,198 +2889,6 @@
 					<DistClean command="/usr/bin/make -j12 -f &quot;/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/test/execution/Makefile&quot;  VERBOSE=1 clean"/>
 				</MakeCommands>
 			</Target>
-			<Target title="vector_util_test">
-				<Option output="/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/relwithdebinfo/vector_util_test" prefix_auto="0" extension_auto="0"/>
-				<Option working_dir="/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/relwithdebinfo/"/>
-				<Option object_output="./"/>
-				<Option type="1"/>
-				<Option compiler="gcc"/>
-				<Compiler>
-					<Add directory="/Users/dpatra/Research/terrier/src/include"/>
-					<Add directory="/Users/dpatra/Research/terrier/third_party"/>
-					<Add directory="/Users/dpatra/Research/terrier/test/include"/>
-					<Add directory="/Users/dpatra/Research/terrier/util/include"/>
-					<Add directory="/Users/dpatra/Research/terrier/benchmark/include"/>
-					<Add directory="/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo"/>
-					<Add directory="/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/googletest_ep-prefix/src/googletest_ep/include"/>
-					<Add directory="/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/gflags_ep-prefix/src/gflags_ep/include"/>
-					<Add directory="/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/gbenchmark_ep/src/gbenchmark_ep-install/include"/>
-					<Add directory="/usr/local/include"/>
-					<Add directory="/usr/local/Cellar/llvm@8/8.0.1_1/include"/>
-					<Add directory="/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.15.sdk/usr/include"/>
-					<Add directory="/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/../include/c++/v1"/>
-					<Add directory="/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/11.0.0/include"/>
-					<Add directory="/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include"/>
-					<Add directory="/System/Library/Frameworks"/>
-					<Add directory="/Library/Frameworks"/>
-				</Compiler>
-				<MakeCommands>
-					<Build command="/usr/bin/make -j12 -f &quot;/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/test/execution/Makefile&quot;  VERBOSE=1 vector_util_test"/>
-					<CompileFile command="/usr/bin/make -j12 -f &quot;/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/test/execution/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
-					<Clean command="/usr/bin/make -j12 -f &quot;/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/test/execution/Makefile&quot;  VERBOSE=1 clean"/>
-					<DistClean command="/usr/bin/make -j12 -f &quot;/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/test/execution/Makefile&quot;  VERBOSE=1 clean"/>
-				</MakeCommands>
-			</Target>
-			<Target title="vector_util_test/fast">
-				<Option output="/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/relwithdebinfo/vector_util_test" prefix_auto="0" extension_auto="0"/>
-				<Option working_dir="/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/relwithdebinfo/"/>
-				<Option object_output="./"/>
-				<Option type="1"/>
-				<Option compiler="gcc"/>
-				<Compiler>
-					<Add directory="/Users/dpatra/Research/terrier/src/include"/>
-					<Add directory="/Users/dpatra/Research/terrier/third_party"/>
-					<Add directory="/Users/dpatra/Research/terrier/test/include"/>
-					<Add directory="/Users/dpatra/Research/terrier/util/include"/>
-					<Add directory="/Users/dpatra/Research/terrier/benchmark/include"/>
-					<Add directory="/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo"/>
-					<Add directory="/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/googletest_ep-prefix/src/googletest_ep/include"/>
-					<Add directory="/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/gflags_ep-prefix/src/gflags_ep/include"/>
-					<Add directory="/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/gbenchmark_ep/src/gbenchmark_ep-install/include"/>
-					<Add directory="/usr/local/include"/>
-					<Add directory="/usr/local/Cellar/llvm@8/8.0.1_1/include"/>
-					<Add directory="/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.15.sdk/usr/include"/>
-					<Add directory="/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/../include/c++/v1"/>
-					<Add directory="/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/11.0.0/include"/>
-					<Add directory="/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include"/>
-					<Add directory="/System/Library/Frameworks"/>
-					<Add directory="/Library/Frameworks"/>
-				</Compiler>
-				<MakeCommands>
-					<Build command="/usr/bin/make -j12 -f &quot;/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/test/execution/Makefile&quot;  VERBOSE=1 vector_util_test/fast"/>
-					<CompileFile command="/usr/bin/make -j12 -f &quot;/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/test/execution/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
-					<Clean command="/usr/bin/make -j12 -f &quot;/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/test/execution/Makefile&quot;  VERBOSE=1 clean"/>
-					<DistClean command="/usr/bin/make -j12 -f &quot;/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/test/execution/Makefile&quot;  VERBOSE=1 clean"/>
-				</MakeCommands>
-			</Target>
-			<Target title="bytecode_trampoline_test">
-				<Option output="/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/relwithdebinfo/bytecode_trampoline_test" prefix_auto="0" extension_auto="0"/>
-				<Option working_dir="/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/relwithdebinfo/"/>
-				<Option object_output="./"/>
-				<Option type="1"/>
-				<Option compiler="gcc"/>
-				<Compiler>
-					<Add directory="/Users/dpatra/Research/terrier/src/include"/>
-					<Add directory="/Users/dpatra/Research/terrier/third_party"/>
-					<Add directory="/Users/dpatra/Research/terrier/test/include"/>
-					<Add directory="/Users/dpatra/Research/terrier/util/include"/>
-					<Add directory="/Users/dpatra/Research/terrier/benchmark/include"/>
-					<Add directory="/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo"/>
-					<Add directory="/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/googletest_ep-prefix/src/googletest_ep/include"/>
-					<Add directory="/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/gflags_ep-prefix/src/gflags_ep/include"/>
-					<Add directory="/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/gbenchmark_ep/src/gbenchmark_ep-install/include"/>
-					<Add directory="/usr/local/include"/>
-					<Add directory="/usr/local/Cellar/llvm@8/8.0.1_1/include"/>
-					<Add directory="/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.15.sdk/usr/include"/>
-					<Add directory="/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/../include/c++/v1"/>
-					<Add directory="/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/11.0.0/include"/>
-					<Add directory="/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include"/>
-					<Add directory="/System/Library/Frameworks"/>
-					<Add directory="/Library/Frameworks"/>
-				</Compiler>
-				<MakeCommands>
-					<Build command="/usr/bin/make -j12 -f &quot;/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/test/execution/Makefile&quot;  VERBOSE=1 bytecode_trampoline_test"/>
-					<CompileFile command="/usr/bin/make -j12 -f &quot;/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/test/execution/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
-					<Clean command="/usr/bin/make -j12 -f &quot;/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/test/execution/Makefile&quot;  VERBOSE=1 clean"/>
-					<DistClean command="/usr/bin/make -j12 -f &quot;/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/test/execution/Makefile&quot;  VERBOSE=1 clean"/>
-				</MakeCommands>
-			</Target>
-			<Target title="bytecode_trampoline_test/fast">
-				<Option output="/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/relwithdebinfo/bytecode_trampoline_test" prefix_auto="0" extension_auto="0"/>
-				<Option working_dir="/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/relwithdebinfo/"/>
-				<Option object_output="./"/>
-				<Option type="1"/>
-				<Option compiler="gcc"/>
-				<Compiler>
-					<Add directory="/Users/dpatra/Research/terrier/src/include"/>
-					<Add directory="/Users/dpatra/Research/terrier/third_party"/>
-					<Add directory="/Users/dpatra/Research/terrier/test/include"/>
-					<Add directory="/Users/dpatra/Research/terrier/util/include"/>
-					<Add directory="/Users/dpatra/Research/terrier/benchmark/include"/>
-					<Add directory="/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo"/>
-					<Add directory="/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/googletest_ep-prefix/src/googletest_ep/include"/>
-					<Add directory="/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/gflags_ep-prefix/src/gflags_ep/include"/>
-					<Add directory="/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/gbenchmark_ep/src/gbenchmark_ep-install/include"/>
-					<Add directory="/usr/local/include"/>
-					<Add directory="/usr/local/Cellar/llvm@8/8.0.1_1/include"/>
-					<Add directory="/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.15.sdk/usr/include"/>
-					<Add directory="/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/../include/c++/v1"/>
-					<Add directory="/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/11.0.0/include"/>
-					<Add directory="/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include"/>
-					<Add directory="/System/Library/Frameworks"/>
-					<Add directory="/Library/Frameworks"/>
-				</Compiler>
-				<MakeCommands>
-					<Build command="/usr/bin/make -j12 -f &quot;/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/test/execution/Makefile&quot;  VERBOSE=1 bytecode_trampoline_test/fast"/>
-					<CompileFile command="/usr/bin/make -j12 -f &quot;/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/test/execution/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
-					<Clean command="/usr/bin/make -j12 -f &quot;/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/test/execution/Makefile&quot;  VERBOSE=1 clean"/>
-					<DistClean command="/usr/bin/make -j12 -f &quot;/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/test/execution/Makefile&quot;  VERBOSE=1 clean"/>
-				</MakeCommands>
-			</Target>
-			<Target title="ddl_executors_test">
-				<Option output="/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/relwithdebinfo/ddl_executors_test" prefix_auto="0" extension_auto="0"/>
-				<Option working_dir="/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/relwithdebinfo/"/>
-				<Option object_output="./"/>
-				<Option type="1"/>
-				<Option compiler="gcc"/>
-				<Compiler>
-					<Add directory="/Users/dpatra/Research/terrier/src/include"/>
-					<Add directory="/Users/dpatra/Research/terrier/third_party"/>
-					<Add directory="/Users/dpatra/Research/terrier/test/include"/>
-					<Add directory="/Users/dpatra/Research/terrier/util/include"/>
-					<Add directory="/Users/dpatra/Research/terrier/benchmark/include"/>
-					<Add directory="/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo"/>
-					<Add directory="/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/googletest_ep-prefix/src/googletest_ep/include"/>
-					<Add directory="/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/gflags_ep-prefix/src/gflags_ep/include"/>
-					<Add directory="/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/gbenchmark_ep/src/gbenchmark_ep-install/include"/>
-					<Add directory="/usr/local/include"/>
-					<Add directory="/usr/local/Cellar/llvm@8/8.0.1_1/include"/>
-					<Add directory="/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.15.sdk/usr/include"/>
-					<Add directory="/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/../include/c++/v1"/>
-					<Add directory="/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/11.0.0/include"/>
-					<Add directory="/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include"/>
-					<Add directory="/System/Library/Frameworks"/>
-					<Add directory="/Library/Frameworks"/>
-				</Compiler>
-				<MakeCommands>
-					<Build command="/usr/bin/make -j12 -f &quot;/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/test/execution/Makefile&quot;  VERBOSE=1 ddl_executors_test"/>
-					<CompileFile command="/usr/bin/make -j12 -f &quot;/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/test/execution/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
-					<Clean command="/usr/bin/make -j12 -f &quot;/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/test/execution/Makefile&quot;  VERBOSE=1 clean"/>
-					<DistClean command="/usr/bin/make -j12 -f &quot;/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/test/execution/Makefile&quot;  VERBOSE=1 clean"/>
-				</MakeCommands>
-			</Target>
-			<Target title="ddl_executors_test/fast">
-				<Option output="/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/relwithdebinfo/ddl_executors_test" prefix_auto="0" extension_auto="0"/>
-				<Option working_dir="/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/relwithdebinfo/"/>
-				<Option object_output="./"/>
-				<Option type="1"/>
-				<Option compiler="gcc"/>
-				<Compiler>
-					<Add directory="/Users/dpatra/Research/terrier/src/include"/>
-					<Add directory="/Users/dpatra/Research/terrier/third_party"/>
-					<Add directory="/Users/dpatra/Research/terrier/test/include"/>
-					<Add directory="/Users/dpatra/Research/terrier/util/include"/>
-					<Add directory="/Users/dpatra/Research/terrier/benchmark/include"/>
-					<Add directory="/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo"/>
-					<Add directory="/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/googletest_ep-prefix/src/googletest_ep/include"/>
-					<Add directory="/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/gflags_ep-prefix/src/gflags_ep/include"/>
-					<Add directory="/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/gbenchmark_ep/src/gbenchmark_ep-install/include"/>
-					<Add directory="/usr/local/include"/>
-					<Add directory="/usr/local/Cellar/llvm@8/8.0.1_1/include"/>
-					<Add directory="/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.15.sdk/usr/include"/>
-					<Add directory="/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/../include/c++/v1"/>
-					<Add directory="/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/11.0.0/include"/>
-					<Add directory="/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include"/>
-					<Add directory="/System/Library/Frameworks"/>
-					<Add directory="/Library/Frameworks"/>
-				</Compiler>
-				<MakeCommands>
-					<Build command="/usr/bin/make -j12 -f &quot;/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/test/execution/Makefile&quot;  VERBOSE=1 ddl_executors_test/fast"/>
-					<CompileFile command="/usr/bin/make -j12 -f &quot;/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/test/execution/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
-					<Clean command="/usr/bin/make -j12 -f &quot;/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/test/execution/Makefile&quot;  VERBOSE=1 clean"/>
-					<DistClean command="/usr/bin/make -j12 -f &quot;/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/test/execution/Makefile&quot;  VERBOSE=1 clean"/>
-				</MakeCommands>
-			</Target>
 			<Target title="bandit_test">
 				<Option output="/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/relwithdebinfo/bandit_test" prefix_auto="0" extension_auto="0"/>
 				<Option working_dir="/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/relwithdebinfo/"/>
@@ -3460,6 +3268,134 @@
 				</Compiler>
 				<MakeCommands>
 					<Build command="/usr/bin/make -j12 -f &quot;/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/test/execution/Makefile&quot;  VERBOSE=1 date_functions_test/fast"/>
+					<CompileFile command="/usr/bin/make -j12 -f &quot;/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/test/execution/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j12 -f &quot;/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/test/execution/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j12 -f &quot;/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/test/execution/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="vector_util_test">
+				<Option output="/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/relwithdebinfo/vector_util_test" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/relwithdebinfo/"/>
+				<Option object_output="./"/>
+				<Option type="1"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add directory="/Users/dpatra/Research/terrier/src/include"/>
+					<Add directory="/Users/dpatra/Research/terrier/third_party"/>
+					<Add directory="/Users/dpatra/Research/terrier/test/include"/>
+					<Add directory="/Users/dpatra/Research/terrier/util/include"/>
+					<Add directory="/Users/dpatra/Research/terrier/benchmark/include"/>
+					<Add directory="/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo"/>
+					<Add directory="/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/googletest_ep-prefix/src/googletest_ep/include"/>
+					<Add directory="/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/gflags_ep-prefix/src/gflags_ep/include"/>
+					<Add directory="/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/gbenchmark_ep/src/gbenchmark_ep-install/include"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/usr/local/Cellar/llvm@8/8.0.1_1/include"/>
+					<Add directory="/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.15.sdk/usr/include"/>
+					<Add directory="/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/../include/c++/v1"/>
+					<Add directory="/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/11.0.0/include"/>
+					<Add directory="/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include"/>
+					<Add directory="/System/Library/Frameworks"/>
+					<Add directory="/Library/Frameworks"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j12 -f &quot;/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/test/execution/Makefile&quot;  VERBOSE=1 vector_util_test"/>
+					<CompileFile command="/usr/bin/make -j12 -f &quot;/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/test/execution/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j12 -f &quot;/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/test/execution/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j12 -f &quot;/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/test/execution/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="vector_util_test/fast">
+				<Option output="/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/relwithdebinfo/vector_util_test" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/relwithdebinfo/"/>
+				<Option object_output="./"/>
+				<Option type="1"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add directory="/Users/dpatra/Research/terrier/src/include"/>
+					<Add directory="/Users/dpatra/Research/terrier/third_party"/>
+					<Add directory="/Users/dpatra/Research/terrier/test/include"/>
+					<Add directory="/Users/dpatra/Research/terrier/util/include"/>
+					<Add directory="/Users/dpatra/Research/terrier/benchmark/include"/>
+					<Add directory="/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo"/>
+					<Add directory="/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/googletest_ep-prefix/src/googletest_ep/include"/>
+					<Add directory="/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/gflags_ep-prefix/src/gflags_ep/include"/>
+					<Add directory="/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/gbenchmark_ep/src/gbenchmark_ep-install/include"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/usr/local/Cellar/llvm@8/8.0.1_1/include"/>
+					<Add directory="/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.15.sdk/usr/include"/>
+					<Add directory="/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/../include/c++/v1"/>
+					<Add directory="/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/11.0.0/include"/>
+					<Add directory="/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include"/>
+					<Add directory="/System/Library/Frameworks"/>
+					<Add directory="/Library/Frameworks"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j12 -f &quot;/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/test/execution/Makefile&quot;  VERBOSE=1 vector_util_test/fast"/>
+					<CompileFile command="/usr/bin/make -j12 -f &quot;/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/test/execution/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j12 -f &quot;/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/test/execution/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j12 -f &quot;/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/test/execution/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="bytecode_trampoline_test">
+				<Option output="/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/relwithdebinfo/bytecode_trampoline_test" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/relwithdebinfo/"/>
+				<Option object_output="./"/>
+				<Option type="1"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add directory="/Users/dpatra/Research/terrier/src/include"/>
+					<Add directory="/Users/dpatra/Research/terrier/third_party"/>
+					<Add directory="/Users/dpatra/Research/terrier/test/include"/>
+					<Add directory="/Users/dpatra/Research/terrier/util/include"/>
+					<Add directory="/Users/dpatra/Research/terrier/benchmark/include"/>
+					<Add directory="/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo"/>
+					<Add directory="/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/googletest_ep-prefix/src/googletest_ep/include"/>
+					<Add directory="/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/gflags_ep-prefix/src/gflags_ep/include"/>
+					<Add directory="/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/gbenchmark_ep/src/gbenchmark_ep-install/include"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/usr/local/Cellar/llvm@8/8.0.1_1/include"/>
+					<Add directory="/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.15.sdk/usr/include"/>
+					<Add directory="/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/../include/c++/v1"/>
+					<Add directory="/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/11.0.0/include"/>
+					<Add directory="/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include"/>
+					<Add directory="/System/Library/Frameworks"/>
+					<Add directory="/Library/Frameworks"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j12 -f &quot;/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/test/execution/Makefile&quot;  VERBOSE=1 bytecode_trampoline_test"/>
+					<CompileFile command="/usr/bin/make -j12 -f &quot;/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/test/execution/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j12 -f &quot;/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/test/execution/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j12 -f &quot;/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/test/execution/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="bytecode_trampoline_test/fast">
+				<Option output="/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/relwithdebinfo/bytecode_trampoline_test" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/relwithdebinfo/"/>
+				<Option object_output="./"/>
+				<Option type="1"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add directory="/Users/dpatra/Research/terrier/src/include"/>
+					<Add directory="/Users/dpatra/Research/terrier/third_party"/>
+					<Add directory="/Users/dpatra/Research/terrier/test/include"/>
+					<Add directory="/Users/dpatra/Research/terrier/util/include"/>
+					<Add directory="/Users/dpatra/Research/terrier/benchmark/include"/>
+					<Add directory="/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo"/>
+					<Add directory="/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/googletest_ep-prefix/src/googletest_ep/include"/>
+					<Add directory="/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/gflags_ep-prefix/src/gflags_ep/include"/>
+					<Add directory="/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/gbenchmark_ep/src/gbenchmark_ep-install/include"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/usr/local/Cellar/llvm@8/8.0.1_1/include"/>
+					<Add directory="/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.15.sdk/usr/include"/>
+					<Add directory="/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/../include/c++/v1"/>
+					<Add directory="/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/11.0.0/include"/>
+					<Add directory="/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include"/>
+					<Add directory="/System/Library/Frameworks"/>
+					<Add directory="/Library/Frameworks"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j12 -f &quot;/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/test/execution/Makefile&quot;  VERBOSE=1 bytecode_trampoline_test/fast"/>
 					<CompileFile command="/usr/bin/make -j12 -f &quot;/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/test/execution/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
 					<Clean command="/usr/bin/make -j12 -f &quot;/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/test/execution/Makefile&quot;  VERBOSE=1 clean"/>
 					<DistClean command="/usr/bin/make -j12 -f &quot;/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/test/execution/Makefile&quot;  VERBOSE=1 clean"/>
@@ -8513,10 +8449,6 @@
 			<Option target="terrier_static"/>
 			<Option target="terrier_shared"/>
 		</Unit>
-		<Unit filename="/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/src/CMakeFiles/terrier_objlib.dir/execution/sql/ddl_executors.cpp.o">
-			<Option target="terrier_static"/>
-			<Option target="terrier_shared"/>
-		</Unit>
 		<Unit filename="/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/src/CMakeFiles/terrier_objlib.dir/execution/sql/filter_manager.cpp.o">
 			<Option target="terrier_static"/>
 			<Option target="terrier_shared"/>
@@ -9132,9 +9064,6 @@
 		<Unit filename="/Users/dpatra/Research/terrier/src/execution/sql/concise_hash_table.cpp">
 			<Option target="terrier_objlib"/>
 		</Unit>
-		<Unit filename="/Users/dpatra/Research/terrier/src/execution/sql/ddl_executors.cpp">
-			<Option target="terrier_objlib"/>
-		</Unit>
 		<Unit filename="/Users/dpatra/Research/terrier/src/execution/sql/filter_manager.cpp">
 			<Option target="terrier_objlib"/>
 		</Unit>
@@ -9442,9 +9371,6 @@
 			<Option target="terrier_objlib"/>
 		</Unit>
 		<Unit filename="/Users/dpatra/Research/terrier/src/include/execution/sql/concise_hash_table.h">
-			<Option target="terrier_objlib"/>
-		</Unit>
-		<Unit filename="/Users/dpatra/Research/terrier/src/include/execution/sql/ddl_executors.h">
 			<Option target="terrier_objlib"/>
 		</Unit>
 		<Unit filename="/Users/dpatra/Research/terrier/src/include/execution/sql/filter_manager.h">
@@ -10565,9 +10491,6 @@
 		</Unit>
 		<Unit filename="/Users/dpatra/Research/terrier/test/execution/date_functions_test.cpp">
 			<Option target="date_functions_test"/>
-		</Unit>
-		<Unit filename="/Users/dpatra/Research/terrier/test/execution/ddl_executors_test.cpp">
-			<Option target="ddl_executors_test"/>
 		</Unit>
 		<Unit filename="/Users/dpatra/Research/terrier/test/execution/filter_manager_test.cpp">
 			<Option target="filter_manager_test"/>

@@ -44,7 +44,6 @@ file(REMOVE_RECURSE
   "CMakeFiles/terrier_objlib.dir/execution/sql/aggregation_hash_table.cpp.o"
   "CMakeFiles/terrier_objlib.dir/execution/sql/bloom_filter.cpp.o"
   "CMakeFiles/terrier_objlib.dir/execution/sql/concise_hash_table.cpp.o"
-  "CMakeFiles/terrier_objlib.dir/execution/sql/ddl_executors.cpp.o"
   "CMakeFiles/terrier_objlib.dir/execution/sql/filter_manager.cpp.o"
   "CMakeFiles/terrier_objlib.dir/execution/sql/functions/string_functions.cpp.o"
   "CMakeFiles/terrier_objlib.dir/execution/sql/generic_hash_table.cpp.o"

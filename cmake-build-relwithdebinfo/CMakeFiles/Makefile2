@@ -178,12 +178,12 @@ CMakeFiles/check-lint.dir/clean:
 CMakeFiles/gbenchmark_ep.dir/all:
 	$(MAKE) -f CMakeFiles/gbenchmark_ep.dir/build.make CMakeFiles/gbenchmark_ep.dir/depend
 	$(MAKE) -f CMakeFiles/gbenchmark_ep.dir/build.make CMakeFiles/gbenchmark_ep.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num=19,20 "Built target gbenchmark_ep"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num=19 "Built target gbenchmark_ep"
 .PHONY : CMakeFiles/gbenchmark_ep.dir/all
 
 # Build rule for subdir invocation for target.
 CMakeFiles/gbenchmark_ep.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 2
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 1
 	$(MAKE) -f CMakeFiles/Makefile2 CMakeFiles/gbenchmark_ep.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 0
 .PHONY : CMakeFiles/gbenchmark_ep.dir/rule
@@ -212,7 +212,7 @@ CMakeFiles/check-clang-tidy.dir/all: CMakeFiles/googletest_ep.dir/all
 
 # Build rule for subdir invocation for target.
 CMakeFiles/check-clang-tidy.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 6
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 4
 	$(MAKE) -f CMakeFiles/Makefile2 CMakeFiles/check-clang-tidy.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 0
 .PHONY : CMakeFiles/check-clang-tidy.dir/rule
@@ -315,12 +315,12 @@ CMakeFiles/gflags_ep.dir/clean:
 CMakeFiles/googletest_ep.dir/all:
 	$(MAKE) -f CMakeFiles/googletest_ep.dir/build.make CMakeFiles/googletest_ep.dir/depend
 	$(MAKE) -f CMakeFiles/googletest_ep.dir/build.make CMakeFiles/googletest_ep.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num=23,24 "Built target googletest_ep"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num=23 "Built target googletest_ep"
 .PHONY : CMakeFiles/googletest_ep.dir/all
 
 # Build rule for subdir invocation for target.
 CMakeFiles/googletest_ep.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 2
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 1
 	$(MAKE) -f CMakeFiles/Makefile2 CMakeFiles/googletest_ep.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 0
 .PHONY : CMakeFiles/googletest_ep.dir/rule
@@ -343,6 +343,7 @@ CMakeFiles/runbenchmark.dir/all: benchmark/catalog/CMakeFiles/catalog_benchmark.
 CMakeFiles/runbenchmark.dir/all: benchmark/integration/CMakeFiles/tpcc_benchmark.dir/all
 CMakeFiles/runbenchmark.dir/all: benchmark/metrics/CMakeFiles/logging_metrics_benchmark.dir/all
 CMakeFiles/runbenchmark.dir/all: benchmark/metrics/CMakeFiles/large_transaction_metrics_benchmark.dir/all
+CMakeFiles/runbenchmark.dir/all: benchmark/parser/CMakeFiles/parser_benchmark.dir/all
 CMakeFiles/runbenchmark.dir/all: benchmark/storage/CMakeFiles/cuckoomap_benchmark.dir/all
 CMakeFiles/runbenchmark.dir/all: benchmark/storage/CMakeFiles/data_table_benchmark.dir/all
 CMakeFiles/runbenchmark.dir/all: benchmark/storage/CMakeFiles/tuple_access_strategy_benchmark.dir/all
@@ -354,7 +355,6 @@ CMakeFiles/runbenchmark.dir/all: benchmark/storage/CMakeFiles/bwtree_benchmark.d
 CMakeFiles/runbenchmark.dir/all: benchmark/storage/CMakeFiles/block_compactor_benchmark.dir/all
 CMakeFiles/runbenchmark.dir/all: benchmark/transaction/CMakeFiles/large_transaction_benchmark.dir/all
 CMakeFiles/runbenchmark.dir/all: benchmark/transaction/CMakeFiles/seqscan_benchmark.dir/all
-CMakeFiles/runbenchmark.dir/all: benchmark/parser/CMakeFiles/parser_benchmark.dir/all
 	$(MAKE) -f CMakeFiles/runbenchmark.dir/build.make CMakeFiles/runbenchmark.dir/depend
 	$(MAKE) -f CMakeFiles/runbenchmark.dir/build.make CMakeFiles/runbenchmark.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num= "Built target runbenchmark"
@@ -362,7 +362,7 @@ CMakeFiles/runbenchmark.dir/all: benchmark/parser/CMakeFiles/parser_benchmark.di
 
 # Build rule for subdir invocation for target.
 CMakeFiles/runbenchmark.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 59
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 57
 	$(MAKE) -f CMakeFiles/Makefile2 CMakeFiles/runbenchmark.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 0
 .PHONY : CMakeFiles/runbenchmark.dir/rule
@@ -381,53 +381,6 @@ CMakeFiles/runbenchmark.dir/clean:
 # Target rules for target CMakeFiles/unittest.dir
 
 # All Build rule for target.
-CMakeFiles/unittest.dir/all: test/binder/CMakeFiles/binder_test.dir/all
-CMakeFiles/unittest.dir/all: test/catalog/CMakeFiles/catalog_test.dir/all
-CMakeFiles/unittest.dir/all: test/common/CMakeFiles/worker_pool_test.dir/all
-CMakeFiles/unittest.dir/all: test/common/CMakeFiles/rusage_monitor_test.dir/all
-CMakeFiles/unittest.dir/all: test/common/CMakeFiles/performance_counter_test.dir/all
-CMakeFiles/unittest.dir/all: test/common/CMakeFiles/concurrent_bitmap_test.dir/all
-CMakeFiles/unittest.dir/all: test/common/CMakeFiles/object_pool_test.dir/all
-CMakeFiles/unittest.dir/all: test/common/CMakeFiles/bitmap_test.dir/all
-CMakeFiles/unittest.dir/all: test/common/CMakeFiles/hash_util_test.dir/all
-CMakeFiles/unittest.dir/all: test/common/CMakeFiles/managed_pointer_test.dir/all
-CMakeFiles/unittest.dir/all: test/common/CMakeFiles/stat_registry_test.dir/all
-CMakeFiles/unittest.dir/all: test/common/CMakeFiles/perf_monitor_test.dir/all
-CMakeFiles/unittest.dir/all: test/execution/CMakeFiles/type_test.dir/all
-CMakeFiles/unittest.dir/all: test/execution/CMakeFiles/thread_state_container_test.dir/all
-CMakeFiles/unittest.dir/all: test/execution/CMakeFiles/table_vector_iterator_test.dir/all
-CMakeFiles/unittest.dir/all: test/execution/CMakeFiles/string_functions_test.dir/all
-CMakeFiles/unittest.dir/all: test/execution/CMakeFiles/sema_builtin_test.dir/all
-CMakeFiles/unittest.dir/all: test/execution/CMakeFiles/projected_columns_iterator_test.dir/all
-CMakeFiles/unittest.dir/all: test/execution/CMakeFiles/parsing_test.dir/all
-CMakeFiles/unittest.dir/all: test/execution/CMakeFiles/math_util_test.dir/all
-CMakeFiles/unittest.dir/all: test/execution/CMakeFiles/join_hash_table_vector_probe_test.dir/all
-CMakeFiles/unittest.dir/all: test/execution/CMakeFiles/join_hash_table_test.dir/all
-CMakeFiles/unittest.dir/all: test/execution/CMakeFiles/is_null_predicate_test.dir/all
-CMakeFiles/unittest.dir/all: test/execution/CMakeFiles/hash_test.dir/all
-CMakeFiles/unittest.dir/all: test/execution/CMakeFiles/filter_manager_test.dir/all
-CMakeFiles/unittest.dir/all: test/execution/CMakeFiles/bytecode_generator_test.dir/all
-CMakeFiles/unittest.dir/all: test/execution/CMakeFiles/concise_hash_table_test.dir/all
-CMakeFiles/unittest.dir/all: test/execution/CMakeFiles/bytecodes_test.dir/all
-CMakeFiles/unittest.dir/all: test/execution/CMakeFiles/scanner_test.dir/all
-CMakeFiles/unittest.dir/all: test/execution/CMakeFiles/ast_traversal_visitor_test.dir/all
-CMakeFiles/unittest.dir/all: test/execution/CMakeFiles/bytecode_iterator_test.dir/all
-CMakeFiles/unittest.dir/all: test/execution/CMakeFiles/token_test.dir/all
-CMakeFiles/unittest.dir/all: test/execution/CMakeFiles/sorter_test.dir/all
-CMakeFiles/unittest.dir/all: test/execution/CMakeFiles/aggregation_hash_table_test.dir/all
-CMakeFiles/unittest.dir/all: test/execution/CMakeFiles/bloom_filter_test.dir/all
-CMakeFiles/unittest.dir/all: test/execution/CMakeFiles/bitfield_test.dir/all
-CMakeFiles/unittest.dir/all: test/execution/CMakeFiles/vector_util_test.dir/all
-CMakeFiles/unittest.dir/all: test/execution/CMakeFiles/bytecode_trampoline_test.dir/all
-CMakeFiles/unittest.dir/all: test/execution/CMakeFiles/ddl_executors_test.dir/all
-CMakeFiles/unittest.dir/all: test/execution/CMakeFiles/bandit_test.dir/all
-CMakeFiles/unittest.dir/all: test/execution/CMakeFiles/ast_test.dir/all
-CMakeFiles/unittest.dir/all: test/execution/CMakeFiles/ast_dump_test.dir/all
-CMakeFiles/unittest.dir/all: test/execution/CMakeFiles/chunked_vector_test.dir/all
-CMakeFiles/unittest.dir/all: test/execution/CMakeFiles/bit_util_test.dir/all
-CMakeFiles/unittest.dir/all: test/execution/CMakeFiles/date_functions_test.dir/all
-CMakeFiles/unittest.dir/all: test/execution/CMakeFiles/ast_context_test.dir/all
-CMakeFiles/unittest.dir/all: test/execution/CMakeFiles/arithmetic_functions_test.dir/all
 CMakeFiles/unittest.dir/all: test/execution/CMakeFiles/sema_expr_test.dir/all
 CMakeFiles/unittest.dir/all: test/execution/CMakeFiles/generic_hash_table_test.dir/all
 CMakeFiles/unittest.dir/all: test/execution/CMakeFiles/region_test.dir/all
@@ -436,6 +389,13 @@ CMakeFiles/unittest.dir/all: test/execution/CMakeFiles/index_iterator_test.dir/a
 CMakeFiles/unittest.dir/all: test/integration/CMakeFiles/tpcc_test.dir/all
 CMakeFiles/unittest.dir/all: test/metrics/CMakeFiles/metrics_test.dir/all
 CMakeFiles/unittest.dir/all: test/network/CMakeFiles/network_test.dir/all
+CMakeFiles/unittest.dir/all: test/optimizer/CMakeFiles/value_condition_test.dir/all
+CMakeFiles/unittest.dir/all: test/optimizer/CMakeFiles/top_k_elements_test.dir/all
+CMakeFiles/unittest.dir/all: test/optimizer/CMakeFiles/table_stats_test.dir/all
+CMakeFiles/unittest.dir/all: test/optimizer/CMakeFiles/physical_operator_test.dir/all
+CMakeFiles/unittest.dir/all: test/optimizer/CMakeFiles/operator_expression_test.dir/all
+CMakeFiles/unittest.dir/all: test/optimizer/CMakeFiles/logical_operator_test.dir/all
+CMakeFiles/unittest.dir/all: test/optimizer/CMakeFiles/column_stats_test.dir/all
 CMakeFiles/unittest.dir/all: test/optimizer/CMakeFiles/operator_transformer_test.dir/all
 CMakeFiles/unittest.dir/all: test/optimizer/CMakeFiles/histogram_test.dir/all
 CMakeFiles/unittest.dir/all: test/optimizer/CMakeFiles/stats_storage_test.dir/all
@@ -474,13 +434,52 @@ CMakeFiles/unittest.dir/all: test/transaction/CMakeFiles/large_transaction_test.
 CMakeFiles/unittest.dir/all: test/transaction/CMakeFiles/deferred_actions_test.dir/all
 CMakeFiles/unittest.dir/all: test/type/CMakeFiles/type_util_test.dir/all
 CMakeFiles/unittest.dir/all: test/type/CMakeFiles/transient_value_test.dir/all
-CMakeFiles/unittest.dir/all: test/optimizer/CMakeFiles/value_condition_test.dir/all
-CMakeFiles/unittest.dir/all: test/optimizer/CMakeFiles/top_k_elements_test.dir/all
-CMakeFiles/unittest.dir/all: test/optimizer/CMakeFiles/table_stats_test.dir/all
-CMakeFiles/unittest.dir/all: test/optimizer/CMakeFiles/physical_operator_test.dir/all
-CMakeFiles/unittest.dir/all: test/optimizer/CMakeFiles/operator_expression_test.dir/all
-CMakeFiles/unittest.dir/all: test/optimizer/CMakeFiles/logical_operator_test.dir/all
-CMakeFiles/unittest.dir/all: test/optimizer/CMakeFiles/column_stats_test.dir/all
+CMakeFiles/unittest.dir/all: test/binder/CMakeFiles/binder_test.dir/all
+CMakeFiles/unittest.dir/all: test/catalog/CMakeFiles/catalog_test.dir/all
+CMakeFiles/unittest.dir/all: test/common/CMakeFiles/worker_pool_test.dir/all
+CMakeFiles/unittest.dir/all: test/common/CMakeFiles/rusage_monitor_test.dir/all
+CMakeFiles/unittest.dir/all: test/common/CMakeFiles/performance_counter_test.dir/all
+CMakeFiles/unittest.dir/all: test/common/CMakeFiles/concurrent_bitmap_test.dir/all
+CMakeFiles/unittest.dir/all: test/common/CMakeFiles/object_pool_test.dir/all
+CMakeFiles/unittest.dir/all: test/common/CMakeFiles/bitmap_test.dir/all
+CMakeFiles/unittest.dir/all: test/common/CMakeFiles/hash_util_test.dir/all
+CMakeFiles/unittest.dir/all: test/common/CMakeFiles/managed_pointer_test.dir/all
+CMakeFiles/unittest.dir/all: test/common/CMakeFiles/stat_registry_test.dir/all
+CMakeFiles/unittest.dir/all: test/common/CMakeFiles/perf_monitor_test.dir/all
+CMakeFiles/unittest.dir/all: test/execution/CMakeFiles/type_test.dir/all
+CMakeFiles/unittest.dir/all: test/execution/CMakeFiles/thread_state_container_test.dir/all
+CMakeFiles/unittest.dir/all: test/execution/CMakeFiles/table_vector_iterator_test.dir/all
+CMakeFiles/unittest.dir/all: test/execution/CMakeFiles/string_functions_test.dir/all
+CMakeFiles/unittest.dir/all: test/execution/CMakeFiles/sema_builtin_test.dir/all
+CMakeFiles/unittest.dir/all: test/execution/CMakeFiles/projected_columns_iterator_test.dir/all
+CMakeFiles/unittest.dir/all: test/execution/CMakeFiles/parsing_test.dir/all
+CMakeFiles/unittest.dir/all: test/execution/CMakeFiles/math_util_test.dir/all
+CMakeFiles/unittest.dir/all: test/execution/CMakeFiles/join_hash_table_vector_probe_test.dir/all
+CMakeFiles/unittest.dir/all: test/execution/CMakeFiles/join_hash_table_test.dir/all
+CMakeFiles/unittest.dir/all: test/execution/CMakeFiles/is_null_predicate_test.dir/all
+CMakeFiles/unittest.dir/all: test/execution/CMakeFiles/hash_test.dir/all
+CMakeFiles/unittest.dir/all: test/execution/CMakeFiles/filter_manager_test.dir/all
+CMakeFiles/unittest.dir/all: test/execution/CMakeFiles/bytecode_generator_test.dir/all
+CMakeFiles/unittest.dir/all: test/execution/CMakeFiles/concise_hash_table_test.dir/all
+CMakeFiles/unittest.dir/all: test/execution/CMakeFiles/bytecodes_test.dir/all
+CMakeFiles/unittest.dir/all: test/execution/CMakeFiles/scanner_test.dir/all
+CMakeFiles/unittest.dir/all: test/execution/CMakeFiles/ast_traversal_visitor_test.dir/all
+CMakeFiles/unittest.dir/all: test/execution/CMakeFiles/bytecode_iterator_test.dir/all
+CMakeFiles/unittest.dir/all: test/execution/CMakeFiles/token_test.dir/all
+CMakeFiles/unittest.dir/all: test/execution/CMakeFiles/sorter_test.dir/all
+CMakeFiles/unittest.dir/all: test/execution/CMakeFiles/aggregation_hash_table_test.dir/all
+CMakeFiles/unittest.dir/all: test/execution/CMakeFiles/bloom_filter_test.dir/all
+CMakeFiles/unittest.dir/all: test/execution/CMakeFiles/bitfield_test.dir/all
+CMakeFiles/unittest.dir/all: test/execution/CMakeFiles/bandit_test.dir/all
+CMakeFiles/unittest.dir/all: test/execution/CMakeFiles/ast_test.dir/all
+CMakeFiles/unittest.dir/all: test/execution/CMakeFiles/ast_dump_test.dir/all
+CMakeFiles/unittest.dir/all: test/execution/CMakeFiles/chunked_vector_test.dir/all
+CMakeFiles/unittest.dir/all: test/execution/CMakeFiles/bit_util_test.dir/all
+CMakeFiles/unittest.dir/all: test/execution/CMakeFiles/date_functions_test.dir/all
+CMakeFiles/unittest.dir/all: test/execution/CMakeFiles/vector_util_test.dir/all
+CMakeFiles/unittest.dir/all: test/execution/CMakeFiles/bytecode_trampoline_test.dir/all
+CMakeFiles/unittest.dir/all: test/execution/CMakeFiles/ast_context_test.dir/all
+CMakeFiles/unittest.dir/all: test/execution/CMakeFiles/arithmetic_functions_test.dir/all
 	$(MAKE) -f CMakeFiles/unittest.dir/build.make CMakeFiles/unittest.dir/depend
 	$(MAKE) -f CMakeFiles/unittest.dir/build.make CMakeFiles/unittest.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num= "Built target unittest"
@@ -488,7 +487,7 @@ CMakeFiles/unittest.dir/all: test/optimizer/CMakeFiles/column_stats_test.dir/all
 
 # Build rule for subdir invocation for target.
 CMakeFiles/unittest.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 90
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 93
 	$(MAKE) -f CMakeFiles/Makefile2 CMakeFiles/unittest.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 0
 .PHONY : CMakeFiles/unittest.dir/rule
@@ -543,7 +542,7 @@ src/CMakeFiles/terrier.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 
 # Build rule for subdir invocation for target.
 src/CMakeFiles/terrier.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 46
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 47
 	$(MAKE) -f CMakeFiles/Makefile2 src/CMakeFiles/terrier.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 0
 .PHONY : src/CMakeFiles/terrier.dir/rule
@@ -565,12 +564,12 @@ src/CMakeFiles/terrier.dir/clean:
 src/CMakeFiles/terrier_static.dir/all: src/CMakeFiles/terrier_objlib.dir/all
 	$(MAKE) -f src/CMakeFiles/terrier_static.dir/build.make src/CMakeFiles/terrier_static.dir/depend
 	$(MAKE) -f src/CMakeFiles/terrier_static.dir/build.make src/CMakeFiles/terrier_static.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num= "Built target terrier_static"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num=91 "Built target terrier_static"
 .PHONY : src/CMakeFiles/terrier_static.dir/all
 
 # Build rule for subdir invocation for target.
 src/CMakeFiles/terrier_static.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 36
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 37
 	$(MAKE) -f CMakeFiles/Makefile2 src/CMakeFiles/terrier_static.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 0
 .PHONY : src/CMakeFiles/terrier_static.dir/rule
@@ -594,12 +593,12 @@ src/CMakeFiles/terrier_shared.dir/all: src/CMakeFiles/terrier_objlib.dir/all
 src/CMakeFiles/terrier_shared.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 	$(MAKE) -f src/CMakeFiles/terrier_shared.dir/build.make src/CMakeFiles/terrier_shared.dir/depend
 	$(MAKE) -f src/CMakeFiles/terrier_shared.dir/build.make src/CMakeFiles/terrier_shared.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num=91 "Built target terrier_shared"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num= "Built target terrier_shared"
 .PHONY : src/CMakeFiles/terrier_shared.dir/all
 
 # Build rule for subdir invocation for target.
 src/CMakeFiles/terrier_shared.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 47
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 46
 	$(MAKE) -f CMakeFiles/Makefile2 src/CMakeFiles/terrier_shared.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 0
 .PHONY : src/CMakeFiles/terrier_shared.dir/rule
@@ -764,7 +763,7 @@ test/CMakeFiles/test_util.dir/all: util/CMakeFiles/util_static.dir/all
 
 # Build rule for subdir invocation for target.
 test/CMakeFiles/test_util.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 50
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 51
 	$(MAKE) -f CMakeFiles/Makefile2 test/CMakeFiles/test_util.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 0
 .PHONY : test/CMakeFiles/test_util.dir/rule
@@ -814,7 +813,7 @@ test/binder/CMakeFiles/binder_test.dir/all: util/CMakeFiles/util_static.dir/all
 
 # Build rule for subdir invocation for target.
 test/binder/CMakeFiles/binder_test.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 50
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 51
 	$(MAKE) -f CMakeFiles/Makefile2 test/binder/CMakeFiles/binder_test.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 0
 .PHONY : test/binder/CMakeFiles/binder_test.dir/rule
@@ -859,12 +858,12 @@ test/catalog/CMakeFiles/catalog_test.dir/all: test/CMakeFiles/test_util.dir/all
 test/catalog/CMakeFiles/catalog_test.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f test/catalog/CMakeFiles/catalog_test.dir/build.make test/catalog/CMakeFiles/catalog_test.dir/depend
 	$(MAKE) -f test/catalog/CMakeFiles/catalog_test.dir/build.make test/catalog/CMakeFiles/catalog_test.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num= "Built target catalog_test"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num=11 "Built target catalog_test"
 .PHONY : test/catalog/CMakeFiles/catalog_test.dir/all
 
 # Build rule for subdir invocation for target.
 test/catalog/CMakeFiles/catalog_test.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 50
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 52
 	$(MAKE) -f CMakeFiles/Makefile2 test/catalog/CMakeFiles/catalog_test.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 0
 .PHONY : test/catalog/CMakeFiles/catalog_test.dir/rule
@@ -932,7 +931,7 @@ test/common/CMakeFiles/worker_pool_test.dir/all: util/CMakeFiles/util_static.dir
 
 # Build rule for subdir invocation for target.
 test/common/CMakeFiles/worker_pool_test.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 51
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 52
 	$(MAKE) -f CMakeFiles/Makefile2 test/common/CMakeFiles/worker_pool_test.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 0
 .PHONY : test/common/CMakeFiles/worker_pool_test.dir/rule
@@ -964,7 +963,7 @@ test/common/CMakeFiles/rusage_monitor_test.dir/all: util/CMakeFiles/util_static.
 
 # Build rule for subdir invocation for target.
 test/common/CMakeFiles/rusage_monitor_test.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 51
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 52
 	$(MAKE) -f CMakeFiles/Makefile2 test/common/CMakeFiles/rusage_monitor_test.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 0
 .PHONY : test/common/CMakeFiles/rusage_monitor_test.dir/rule
@@ -996,7 +995,7 @@ test/common/CMakeFiles/performance_counter_test.dir/all: util/CMakeFiles/util_st
 
 # Build rule for subdir invocation for target.
 test/common/CMakeFiles/performance_counter_test.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 51
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 52
 	$(MAKE) -f CMakeFiles/Makefile2 test/common/CMakeFiles/performance_counter_test.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 0
 .PHONY : test/common/CMakeFiles/performance_counter_test.dir/rule
@@ -1028,7 +1027,7 @@ test/common/CMakeFiles/concurrent_bitmap_test.dir/all: util/CMakeFiles/util_stat
 
 # Build rule for subdir invocation for target.
 test/common/CMakeFiles/concurrent_bitmap_test.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 50
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 51
 	$(MAKE) -f CMakeFiles/Makefile2 test/common/CMakeFiles/concurrent_bitmap_test.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 0
 .PHONY : test/common/CMakeFiles/concurrent_bitmap_test.dir/rule
@@ -1055,7 +1054,7 @@ test/common/CMakeFiles/object_pool_test.dir/all: test/CMakeFiles/test_util.dir/a
 test/common/CMakeFiles/object_pool_test.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f test/common/CMakeFiles/object_pool_test.dir/build.make test/common/CMakeFiles/object_pool_test.dir/depend
 	$(MAKE) -f test/common/CMakeFiles/object_pool_test.dir/build.make test/common/CMakeFiles/object_pool_test.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num=34 "Built target object_pool_test"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num= "Built target object_pool_test"
 .PHONY : test/common/CMakeFiles/object_pool_test.dir/all
 
 # Build rule for subdir invocation for target.
@@ -1092,7 +1091,7 @@ test/common/CMakeFiles/bitmap_test.dir/all: util/CMakeFiles/util_static.dir/all
 
 # Build rule for subdir invocation for target.
 test/common/CMakeFiles/bitmap_test.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 50
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 51
 	$(MAKE) -f CMakeFiles/Makefile2 test/common/CMakeFiles/bitmap_test.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 0
 .PHONY : test/common/CMakeFiles/bitmap_test.dir/rule
@@ -1124,7 +1123,7 @@ test/common/CMakeFiles/hash_util_test.dir/all: util/CMakeFiles/util_static.dir/a
 
 # Build rule for subdir invocation for target.
 test/common/CMakeFiles/hash_util_test.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 51
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 52
 	$(MAKE) -f CMakeFiles/Makefile2 test/common/CMakeFiles/hash_util_test.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 0
 .PHONY : test/common/CMakeFiles/hash_util_test.dir/rule
@@ -1151,7 +1150,7 @@ test/common/CMakeFiles/managed_pointer_test.dir/all: test/CMakeFiles/test_util.d
 test/common/CMakeFiles/managed_pointer_test.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f test/common/CMakeFiles/managed_pointer_test.dir/build.make test/common/CMakeFiles/managed_pointer_test.dir/depend
 	$(MAKE) -f test/common/CMakeFiles/managed_pointer_test.dir/build.make test/common/CMakeFiles/managed_pointer_test.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num=32 "Built target managed_pointer_test"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num= "Built target managed_pointer_test"
 .PHONY : test/common/CMakeFiles/managed_pointer_test.dir/all
 
 # Build rule for subdir invocation for target.
@@ -1188,7 +1187,7 @@ test/common/CMakeFiles/stat_registry_test.dir/all: util/CMakeFiles/util_static.d
 
 # Build rule for subdir invocation for target.
 test/common/CMakeFiles/stat_registry_test.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 51
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 52
 	$(MAKE) -f CMakeFiles/Makefile2 test/common/CMakeFiles/stat_registry_test.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 0
 .PHONY : test/common/CMakeFiles/stat_registry_test.dir/rule
@@ -1220,7 +1219,7 @@ test/common/CMakeFiles/perf_monitor_test.dir/all: util/CMakeFiles/util_static.di
 
 # Build rule for subdir invocation for target.
 test/common/CMakeFiles/perf_monitor_test.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 50
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 51
 	$(MAKE) -f CMakeFiles/Makefile2 test/common/CMakeFiles/perf_monitor_test.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 0
 .PHONY : test/common/CMakeFiles/perf_monitor_test.dir/rule
@@ -1263,15 +1262,14 @@ test/execution/all: test/execution/CMakeFiles/sorter_test.dir/all
 test/execution/all: test/execution/CMakeFiles/aggregation_hash_table_test.dir/all
 test/execution/all: test/execution/CMakeFiles/bloom_filter_test.dir/all
 test/execution/all: test/execution/CMakeFiles/bitfield_test.dir/all
-test/execution/all: test/execution/CMakeFiles/vector_util_test.dir/all
-test/execution/all: test/execution/CMakeFiles/bytecode_trampoline_test.dir/all
-test/execution/all: test/execution/CMakeFiles/ddl_executors_test.dir/all
 test/execution/all: test/execution/CMakeFiles/bandit_test.dir/all
 test/execution/all: test/execution/CMakeFiles/ast_test.dir/all
 test/execution/all: test/execution/CMakeFiles/ast_dump_test.dir/all
 test/execution/all: test/execution/CMakeFiles/chunked_vector_test.dir/all
 test/execution/all: test/execution/CMakeFiles/bit_util_test.dir/all
 test/execution/all: test/execution/CMakeFiles/date_functions_test.dir/all
+test/execution/all: test/execution/CMakeFiles/vector_util_test.dir/all
+test/execution/all: test/execution/CMakeFiles/bytecode_trampoline_test.dir/all
 test/execution/all: test/execution/CMakeFiles/ast_context_test.dir/all
 test/execution/all: test/execution/CMakeFiles/arithmetic_functions_test.dir/all
 test/execution/all: test/execution/CMakeFiles/sema_expr_test.dir/all
@@ -1307,15 +1305,14 @@ test/execution/clean: test/execution/CMakeFiles/sorter_test.dir/clean
 test/execution/clean: test/execution/CMakeFiles/aggregation_hash_table_test.dir/clean
 test/execution/clean: test/execution/CMakeFiles/bloom_filter_test.dir/clean
 test/execution/clean: test/execution/CMakeFiles/bitfield_test.dir/clean
-test/execution/clean: test/execution/CMakeFiles/vector_util_test.dir/clean
-test/execution/clean: test/execution/CMakeFiles/bytecode_trampoline_test.dir/clean
-test/execution/clean: test/execution/CMakeFiles/ddl_executors_test.dir/clean
 test/execution/clean: test/execution/CMakeFiles/bandit_test.dir/clean
 test/execution/clean: test/execution/CMakeFiles/ast_test.dir/clean
 test/execution/clean: test/execution/CMakeFiles/ast_dump_test.dir/clean
 test/execution/clean: test/execution/CMakeFiles/chunked_vector_test.dir/clean
 test/execution/clean: test/execution/CMakeFiles/bit_util_test.dir/clean
 test/execution/clean: test/execution/CMakeFiles/date_functions_test.dir/clean
+test/execution/clean: test/execution/CMakeFiles/vector_util_test.dir/clean
+test/execution/clean: test/execution/CMakeFiles/bytecode_trampoline_test.dir/clean
 test/execution/clean: test/execution/CMakeFiles/ast_context_test.dir/clean
 test/execution/clean: test/execution/CMakeFiles/arithmetic_functions_test.dir/clean
 test/execution/clean: test/execution/CMakeFiles/sema_expr_test.dir/clean
@@ -1348,7 +1345,7 @@ test/execution/CMakeFiles/type_test.dir/all: util/CMakeFiles/util_static.dir/all
 
 # Build rule for subdir invocation for target.
 test/execution/CMakeFiles/type_test.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 50
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 51
 	$(MAKE) -f CMakeFiles/Makefile2 test/execution/CMakeFiles/type_test.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 0
 .PHONY : test/execution/CMakeFiles/type_test.dir/rule
@@ -1380,7 +1377,7 @@ test/execution/CMakeFiles/thread_state_container_test.dir/all: util/CMakeFiles/u
 
 # Build rule for subdir invocation for target.
 test/execution/CMakeFiles/thread_state_container_test.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 50
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 51
 	$(MAKE) -f CMakeFiles/Makefile2 test/execution/CMakeFiles/thread_state_container_test.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 0
 .PHONY : test/execution/CMakeFiles/thread_state_container_test.dir/rule
@@ -1412,7 +1409,7 @@ test/execution/CMakeFiles/table_vector_iterator_test.dir/all: util/CMakeFiles/ut
 
 # Build rule for subdir invocation for target.
 test/execution/CMakeFiles/table_vector_iterator_test.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 51
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 52
 	$(MAKE) -f CMakeFiles/Makefile2 test/execution/CMakeFiles/table_vector_iterator_test.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 0
 .PHONY : test/execution/CMakeFiles/table_vector_iterator_test.dir/rule
@@ -1444,7 +1441,7 @@ test/execution/CMakeFiles/string_functions_test.dir/all: util/CMakeFiles/util_st
 
 # Build rule for subdir invocation for target.
 test/execution/CMakeFiles/string_functions_test.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 51
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 52
 	$(MAKE) -f CMakeFiles/Makefile2 test/execution/CMakeFiles/string_functions_test.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 0
 .PHONY : test/execution/CMakeFiles/string_functions_test.dir/rule
@@ -1476,7 +1473,7 @@ test/execution/CMakeFiles/sema_builtin_test.dir/all: util/CMakeFiles/util_static
 
 # Build rule for subdir invocation for target.
 test/execution/CMakeFiles/sema_builtin_test.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 51
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 52
 	$(MAKE) -f CMakeFiles/Makefile2 test/execution/CMakeFiles/sema_builtin_test.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 0
 .PHONY : test/execution/CMakeFiles/sema_builtin_test.dir/rule
@@ -1508,7 +1505,7 @@ test/execution/CMakeFiles/projected_columns_iterator_test.dir/all: util/CMakeFil
 
 # Build rule for subdir invocation for target.
 test/execution/CMakeFiles/projected_columns_iterator_test.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 51
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 52
 	$(MAKE) -f CMakeFiles/Makefile2 test/execution/CMakeFiles/projected_columns_iterator_test.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 0
 .PHONY : test/execution/CMakeFiles/projected_columns_iterator_test.dir/rule
@@ -1535,12 +1532,12 @@ test/execution/CMakeFiles/parsing_test.dir/all: test/CMakeFiles/test_util.dir/al
 test/execution/CMakeFiles/parsing_test.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f test/execution/CMakeFiles/parsing_test.dir/build.make test/execution/CMakeFiles/parsing_test.dir/depend
 	$(MAKE) -f test/execution/CMakeFiles/parsing_test.dir/build.make test/execution/CMakeFiles/parsing_test.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num= "Built target parsing_test"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num=36 "Built target parsing_test"
 .PHONY : test/execution/CMakeFiles/parsing_test.dir/all
 
 # Build rule for subdir invocation for target.
 test/execution/CMakeFiles/parsing_test.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 50
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 52
 	$(MAKE) -f CMakeFiles/Makefile2 test/execution/CMakeFiles/parsing_test.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 0
 .PHONY : test/execution/CMakeFiles/parsing_test.dir/rule
@@ -1567,12 +1564,12 @@ test/execution/CMakeFiles/math_util_test.dir/all: test/CMakeFiles/test_util.dir/
 test/execution/CMakeFiles/math_util_test.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f test/execution/CMakeFiles/math_util_test.dir/build.make test/execution/CMakeFiles/math_util_test.dir/depend
 	$(MAKE) -f test/execution/CMakeFiles/math_util_test.dir/build.make test/execution/CMakeFiles/math_util_test.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num= "Built target math_util_test"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num=32 "Built target math_util_test"
 .PHONY : test/execution/CMakeFiles/math_util_test.dir/all
 
 # Build rule for subdir invocation for target.
 test/execution/CMakeFiles/math_util_test.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 50
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 52
 	$(MAKE) -f CMakeFiles/Makefile2 test/execution/CMakeFiles/math_util_test.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 0
 .PHONY : test/execution/CMakeFiles/math_util_test.dir/rule
@@ -1599,12 +1596,12 @@ test/execution/CMakeFiles/join_hash_table_vector_probe_test.dir/all: test/CMakeF
 test/execution/CMakeFiles/join_hash_table_vector_probe_test.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f test/execution/CMakeFiles/join_hash_table_vector_probe_test.dir/build.make test/execution/CMakeFiles/join_hash_table_vector_probe_test.dir/depend
 	$(MAKE) -f test/execution/CMakeFiles/join_hash_table_vector_probe_test.dir/build.make test/execution/CMakeFiles/join_hash_table_vector_probe_test.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num= "Built target join_hash_table_vector_probe_test"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num=28 "Built target join_hash_table_vector_probe_test"
 .PHONY : test/execution/CMakeFiles/join_hash_table_vector_probe_test.dir/all
 
 # Build rule for subdir invocation for target.
 test/execution/CMakeFiles/join_hash_table_vector_probe_test.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 50
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 52
 	$(MAKE) -f CMakeFiles/Makefile2 test/execution/CMakeFiles/join_hash_table_vector_probe_test.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 0
 .PHONY : test/execution/CMakeFiles/join_hash_table_vector_probe_test.dir/rule
@@ -1631,7 +1628,7 @@ test/execution/CMakeFiles/join_hash_table_test.dir/all: test/CMakeFiles/test_uti
 test/execution/CMakeFiles/join_hash_table_test.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f test/execution/CMakeFiles/join_hash_table_test.dir/build.make test/execution/CMakeFiles/join_hash_table_test.dir/depend
 	$(MAKE) -f test/execution/CMakeFiles/join_hash_table_test.dir/build.make test/execution/CMakeFiles/join_hash_table_test.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num=28 "Built target join_hash_table_test"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num= "Built target join_hash_table_test"
 .PHONY : test/execution/CMakeFiles/join_hash_table_test.dir/all
 
 # Build rule for subdir invocation for target.
@@ -1668,7 +1665,7 @@ test/execution/CMakeFiles/is_null_predicate_test.dir/all: util/CMakeFiles/util_s
 
 # Build rule for subdir invocation for target.
 test/execution/CMakeFiles/is_null_predicate_test.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 50
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 51
 	$(MAKE) -f CMakeFiles/Makefile2 test/execution/CMakeFiles/is_null_predicate_test.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 0
 .PHONY : test/execution/CMakeFiles/is_null_predicate_test.dir/rule
@@ -1700,7 +1697,7 @@ test/execution/CMakeFiles/hash_test.dir/all: util/CMakeFiles/util_static.dir/all
 
 # Build rule for subdir invocation for target.
 test/execution/CMakeFiles/hash_test.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 50
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 51
 	$(MAKE) -f CMakeFiles/Makefile2 test/execution/CMakeFiles/hash_test.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 0
 .PHONY : test/execution/CMakeFiles/hash_test.dir/rule
@@ -1732,7 +1729,7 @@ test/execution/CMakeFiles/filter_manager_test.dir/all: util/CMakeFiles/util_stat
 
 # Build rule for subdir invocation for target.
 test/execution/CMakeFiles/filter_manager_test.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 50
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 51
 	$(MAKE) -f CMakeFiles/Makefile2 test/execution/CMakeFiles/filter_manager_test.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 0
 .PHONY : test/execution/CMakeFiles/filter_manager_test.dir/rule
@@ -1759,12 +1756,12 @@ test/execution/CMakeFiles/bytecode_generator_test.dir/all: test/CMakeFiles/test_
 test/execution/CMakeFiles/bytecode_generator_test.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f test/execution/CMakeFiles/bytecode_generator_test.dir/build.make test/execution/CMakeFiles/bytecode_generator_test.dir/depend
 	$(MAKE) -f test/execution/CMakeFiles/bytecode_generator_test.dir/build.make test/execution/CMakeFiles/bytecode_generator_test.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num= "Built target bytecode_generator_test"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num=9 "Built target bytecode_generator_test"
 .PHONY : test/execution/CMakeFiles/bytecode_generator_test.dir/all
 
 # Build rule for subdir invocation for target.
 test/execution/CMakeFiles/bytecode_generator_test.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 50
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 52
 	$(MAKE) -f CMakeFiles/Makefile2 test/execution/CMakeFiles/bytecode_generator_test.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 0
 .PHONY : test/execution/CMakeFiles/bytecode_generator_test.dir/rule
@@ -1796,7 +1793,7 @@ test/execution/CMakeFiles/concise_hash_table_test.dir/all: util/CMakeFiles/util_
 
 # Build rule for subdir invocation for target.
 test/execution/CMakeFiles/concise_hash_table_test.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 51
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 52
 	$(MAKE) -f CMakeFiles/Makefile2 test/execution/CMakeFiles/concise_hash_table_test.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 0
 .PHONY : test/execution/CMakeFiles/concise_hash_table_test.dir/rule
@@ -1828,7 +1825,7 @@ test/execution/CMakeFiles/bytecodes_test.dir/all: util/CMakeFiles/util_static.di
 
 # Build rule for subdir invocation for target.
 test/execution/CMakeFiles/bytecodes_test.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 51
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 52
 	$(MAKE) -f CMakeFiles/Makefile2 test/execution/CMakeFiles/bytecodes_test.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 0
 .PHONY : test/execution/CMakeFiles/bytecodes_test.dir/rule
@@ -1860,7 +1857,7 @@ test/execution/CMakeFiles/scanner_test.dir/all: util/CMakeFiles/util_static.dir/
 
 # Build rule for subdir invocation for target.
 test/execution/CMakeFiles/scanner_test.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 50
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 51
 	$(MAKE) -f CMakeFiles/Makefile2 test/execution/CMakeFiles/scanner_test.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 0
 .PHONY : test/execution/CMakeFiles/scanner_test.dir/rule
@@ -1892,7 +1889,7 @@ test/execution/CMakeFiles/ast_traversal_visitor_test.dir/all: util/CMakeFiles/ut
 
 # Build rule for subdir invocation for target.
 test/execution/CMakeFiles/ast_traversal_visitor_test.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 51
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 52
 	$(MAKE) -f CMakeFiles/Makefile2 test/execution/CMakeFiles/ast_traversal_visitor_test.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 0
 .PHONY : test/execution/CMakeFiles/ast_traversal_visitor_test.dir/rule
@@ -1919,7 +1916,7 @@ test/execution/CMakeFiles/bytecode_iterator_test.dir/all: test/CMakeFiles/test_u
 test/execution/CMakeFiles/bytecode_iterator_test.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f test/execution/CMakeFiles/bytecode_iterator_test.dir/build.make test/execution/CMakeFiles/bytecode_iterator_test.dir/depend
 	$(MAKE) -f test/execution/CMakeFiles/bytecode_iterator_test.dir/build.make test/execution/CMakeFiles/bytecode_iterator_test.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num=9 "Built target bytecode_iterator_test"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num= "Built target bytecode_iterator_test"
 .PHONY : test/execution/CMakeFiles/bytecode_iterator_test.dir/all
 
 # Build rule for subdir invocation for target.
@@ -1951,7 +1948,7 @@ test/execution/CMakeFiles/token_test.dir/all: test/CMakeFiles/test_util.dir/all
 test/execution/CMakeFiles/token_test.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f test/execution/CMakeFiles/token_test.dir/build.make test/execution/CMakeFiles/token_test.dir/depend
 	$(MAKE) -f test/execution/CMakeFiles/token_test.dir/build.make test/execution/CMakeFiles/token_test.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num=94 "Built target token_test"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num= "Built target token_test"
 .PHONY : test/execution/CMakeFiles/token_test.dir/all
 
 # Build rule for subdir invocation for target.
@@ -1988,7 +1985,7 @@ test/execution/CMakeFiles/sorter_test.dir/all: util/CMakeFiles/util_static.dir/a
 
 # Build rule for subdir invocation for target.
 test/execution/CMakeFiles/sorter_test.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 50
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 51
 	$(MAKE) -f CMakeFiles/Makefile2 test/execution/CMakeFiles/sorter_test.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 0
 .PHONY : test/execution/CMakeFiles/sorter_test.dir/rule
@@ -2020,7 +2017,7 @@ test/execution/CMakeFiles/aggregation_hash_table_test.dir/all: util/CMakeFiles/u
 
 # Build rule for subdir invocation for target.
 test/execution/CMakeFiles/aggregation_hash_table_test.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 50
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 51
 	$(MAKE) -f CMakeFiles/Makefile2 test/execution/CMakeFiles/aggregation_hash_table_test.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 0
 .PHONY : test/execution/CMakeFiles/aggregation_hash_table_test.dir/rule
@@ -2047,7 +2044,7 @@ test/execution/CMakeFiles/bloom_filter_test.dir/all: test/CMakeFiles/test_util.d
 test/execution/CMakeFiles/bloom_filter_test.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f test/execution/CMakeFiles/bloom_filter_test.dir/build.make test/execution/CMakeFiles/bloom_filter_test.dir/depend
 	$(MAKE) -f test/execution/CMakeFiles/bloom_filter_test.dir/build.make test/execution/CMakeFiles/bloom_filter_test.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num=7 "Built target bloom_filter_test"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num= "Built target bloom_filter_test"
 .PHONY : test/execution/CMakeFiles/bloom_filter_test.dir/all
 
 # Build rule for subdir invocation for target.
@@ -2079,7 +2076,7 @@ test/execution/CMakeFiles/bitfield_test.dir/all: test/CMakeFiles/test_util.dir/a
 test/execution/CMakeFiles/bitfield_test.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f test/execution/CMakeFiles/bitfield_test.dir/build.make test/execution/CMakeFiles/bitfield_test.dir/depend
 	$(MAKE) -f test/execution/CMakeFiles/bitfield_test.dir/build.make test/execution/CMakeFiles/bitfield_test.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num=5 "Built target bitfield_test"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num= "Built target bitfield_test"
 .PHONY : test/execution/CMakeFiles/bitfield_test.dir/all
 
 # Build rule for subdir invocation for target.
@@ -2100,102 +2097,6 @@ test/execution/CMakeFiles/bitfield_test.dir/clean:
 .PHONY : test/execution/CMakeFiles/bitfield_test.dir/clean
 
 #=============================================================================
-# Target rules for target test/execution/CMakeFiles/vector_util_test.dir
-
-# All Build rule for target.
-test/execution/CMakeFiles/vector_util_test.dir/all: CMakeFiles/gflags_ep.dir/all
-test/execution/CMakeFiles/vector_util_test.dir/all: CMakeFiles/googletest_ep.dir/all
-test/execution/CMakeFiles/vector_util_test.dir/all: src/CMakeFiles/terrier_static.dir/all
-test/execution/CMakeFiles/vector_util_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
-test/execution/CMakeFiles/vector_util_test.dir/all: test/CMakeFiles/test_util.dir/all
-test/execution/CMakeFiles/vector_util_test.dir/all: util/CMakeFiles/util_static.dir/all
-	$(MAKE) -f test/execution/CMakeFiles/vector_util_test.dir/build.make test/execution/CMakeFiles/vector_util_test.dir/depend
-	$(MAKE) -f test/execution/CMakeFiles/vector_util_test.dir/build.make test/execution/CMakeFiles/vector_util_test.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num= "Built target vector_util_test"
-.PHONY : test/execution/CMakeFiles/vector_util_test.dir/all
-
-# Build rule for subdir invocation for target.
-test/execution/CMakeFiles/vector_util_test.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 50
-	$(MAKE) -f CMakeFiles/Makefile2 test/execution/CMakeFiles/vector_util_test.dir/all
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 0
-.PHONY : test/execution/CMakeFiles/vector_util_test.dir/rule
-
-# Convenience name for target.
-vector_util_test: test/execution/CMakeFiles/vector_util_test.dir/rule
-
-.PHONY : vector_util_test
-
-# clean rule for target.
-test/execution/CMakeFiles/vector_util_test.dir/clean:
-	$(MAKE) -f test/execution/CMakeFiles/vector_util_test.dir/build.make test/execution/CMakeFiles/vector_util_test.dir/clean
-.PHONY : test/execution/CMakeFiles/vector_util_test.dir/clean
-
-#=============================================================================
-# Target rules for target test/execution/CMakeFiles/bytecode_trampoline_test.dir
-
-# All Build rule for target.
-test/execution/CMakeFiles/bytecode_trampoline_test.dir/all: CMakeFiles/gflags_ep.dir/all
-test/execution/CMakeFiles/bytecode_trampoline_test.dir/all: CMakeFiles/googletest_ep.dir/all
-test/execution/CMakeFiles/bytecode_trampoline_test.dir/all: src/CMakeFiles/terrier_static.dir/all
-test/execution/CMakeFiles/bytecode_trampoline_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
-test/execution/CMakeFiles/bytecode_trampoline_test.dir/all: test/CMakeFiles/test_util.dir/all
-test/execution/CMakeFiles/bytecode_trampoline_test.dir/all: util/CMakeFiles/util_static.dir/all
-	$(MAKE) -f test/execution/CMakeFiles/bytecode_trampoline_test.dir/build.make test/execution/CMakeFiles/bytecode_trampoline_test.dir/depend
-	$(MAKE) -f test/execution/CMakeFiles/bytecode_trampoline_test.dir/build.make test/execution/CMakeFiles/bytecode_trampoline_test.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num= "Built target bytecode_trampoline_test"
-.PHONY : test/execution/CMakeFiles/bytecode_trampoline_test.dir/all
-
-# Build rule for subdir invocation for target.
-test/execution/CMakeFiles/bytecode_trampoline_test.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 50
-	$(MAKE) -f CMakeFiles/Makefile2 test/execution/CMakeFiles/bytecode_trampoline_test.dir/all
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 0
-.PHONY : test/execution/CMakeFiles/bytecode_trampoline_test.dir/rule
-
-# Convenience name for target.
-bytecode_trampoline_test: test/execution/CMakeFiles/bytecode_trampoline_test.dir/rule
-
-.PHONY : bytecode_trampoline_test
-
-# clean rule for target.
-test/execution/CMakeFiles/bytecode_trampoline_test.dir/clean:
-	$(MAKE) -f test/execution/CMakeFiles/bytecode_trampoline_test.dir/build.make test/execution/CMakeFiles/bytecode_trampoline_test.dir/clean
-.PHONY : test/execution/CMakeFiles/bytecode_trampoline_test.dir/clean
-
-#=============================================================================
-# Target rules for target test/execution/CMakeFiles/ddl_executors_test.dir
-
-# All Build rule for target.
-test/execution/CMakeFiles/ddl_executors_test.dir/all: CMakeFiles/gflags_ep.dir/all
-test/execution/CMakeFiles/ddl_executors_test.dir/all: CMakeFiles/googletest_ep.dir/all
-test/execution/CMakeFiles/ddl_executors_test.dir/all: src/CMakeFiles/terrier_static.dir/all
-test/execution/CMakeFiles/ddl_executors_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
-test/execution/CMakeFiles/ddl_executors_test.dir/all: test/CMakeFiles/test_util.dir/all
-test/execution/CMakeFiles/ddl_executors_test.dir/all: util/CMakeFiles/util_static.dir/all
-	$(MAKE) -f test/execution/CMakeFiles/ddl_executors_test.dir/build.make test/execution/CMakeFiles/ddl_executors_test.dir/depend
-	$(MAKE) -f test/execution/CMakeFiles/ddl_executors_test.dir/build.make test/execution/CMakeFiles/ddl_executors_test.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num=15 "Built target ddl_executors_test"
-.PHONY : test/execution/CMakeFiles/ddl_executors_test.dir/all
-
-# Build rule for subdir invocation for target.
-test/execution/CMakeFiles/ddl_executors_test.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 51
-	$(MAKE) -f CMakeFiles/Makefile2 test/execution/CMakeFiles/ddl_executors_test.dir/all
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 0
-.PHONY : test/execution/CMakeFiles/ddl_executors_test.dir/rule
-
-# Convenience name for target.
-ddl_executors_test: test/execution/CMakeFiles/ddl_executors_test.dir/rule
-
-.PHONY : ddl_executors_test
-
-# clean rule for target.
-test/execution/CMakeFiles/ddl_executors_test.dir/clean:
-	$(MAKE) -f test/execution/CMakeFiles/ddl_executors_test.dir/build.make test/execution/CMakeFiles/ddl_executors_test.dir/clean
-.PHONY : test/execution/CMakeFiles/ddl_executors_test.dir/clean
-
-#=============================================================================
 # Target rules for target test/execution/CMakeFiles/bandit_test.dir
 
 # All Build rule for target.
@@ -2212,7 +2113,7 @@ test/execution/CMakeFiles/bandit_test.dir/all: util/CMakeFiles/util_static.dir/a
 
 # Build rule for subdir invocation for target.
 test/execution/CMakeFiles/bandit_test.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 50
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 51
 	$(MAKE) -f CMakeFiles/Makefile2 test/execution/CMakeFiles/bandit_test.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 0
 .PHONY : test/execution/CMakeFiles/bandit_test.dir/rule
@@ -2244,7 +2145,7 @@ test/execution/CMakeFiles/ast_test.dir/all: util/CMakeFiles/util_static.dir/all
 
 # Build rule for subdir invocation for target.
 test/execution/CMakeFiles/ast_test.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 50
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 51
 	$(MAKE) -f CMakeFiles/Makefile2 test/execution/CMakeFiles/ast_test.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 0
 .PHONY : test/execution/CMakeFiles/ast_test.dir/rule
@@ -2271,7 +2172,7 @@ test/execution/CMakeFiles/ast_dump_test.dir/all: test/CMakeFiles/test_util.dir/a
 test/execution/CMakeFiles/ast_dump_test.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f test/execution/CMakeFiles/ast_dump_test.dir/build.make test/execution/CMakeFiles/ast_dump_test.dir/depend
 	$(MAKE) -f test/execution/CMakeFiles/ast_dump_test.dir/build.make test/execution/CMakeFiles/ast_dump_test.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num=2 "Built target ast_dump_test"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num= "Built target ast_dump_test"
 .PHONY : test/execution/CMakeFiles/ast_dump_test.dir/all
 
 # Build rule for subdir invocation for target.
@@ -2303,7 +2204,7 @@ test/execution/CMakeFiles/chunked_vector_test.dir/all: test/CMakeFiles/test_util
 test/execution/CMakeFiles/chunked_vector_test.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f test/execution/CMakeFiles/chunked_vector_test.dir/build.make test/execution/CMakeFiles/chunked_vector_test.dir/depend
 	$(MAKE) -f test/execution/CMakeFiles/chunked_vector_test.dir/build.make test/execution/CMakeFiles/chunked_vector_test.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num=11 "Built target chunked_vector_test"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num= "Built target chunked_vector_test"
 .PHONY : test/execution/CMakeFiles/chunked_vector_test.dir/all
 
 # Build rule for subdir invocation for target.
@@ -2335,12 +2236,12 @@ test/execution/CMakeFiles/bit_util_test.dir/all: test/CMakeFiles/test_util.dir/a
 test/execution/CMakeFiles/bit_util_test.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f test/execution/CMakeFiles/bit_util_test.dir/build.make test/execution/CMakeFiles/bit_util_test.dir/depend
 	$(MAKE) -f test/execution/CMakeFiles/bit_util_test.dir/build.make test/execution/CMakeFiles/bit_util_test.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num= "Built target bit_util_test"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num=5 "Built target bit_util_test"
 .PHONY : test/execution/CMakeFiles/bit_util_test.dir/all
 
 # Build rule for subdir invocation for target.
 test/execution/CMakeFiles/bit_util_test.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 50
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 52
 	$(MAKE) -f CMakeFiles/Makefile2 test/execution/CMakeFiles/bit_util_test.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 0
 .PHONY : test/execution/CMakeFiles/bit_util_test.dir/rule
@@ -2367,12 +2268,12 @@ test/execution/CMakeFiles/date_functions_test.dir/all: test/CMakeFiles/test_util
 test/execution/CMakeFiles/date_functions_test.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f test/execution/CMakeFiles/date_functions_test.dir/build.make test/execution/CMakeFiles/date_functions_test.dir/depend
 	$(MAKE) -f test/execution/CMakeFiles/date_functions_test.dir/build.make test/execution/CMakeFiles/date_functions_test.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num= "Built target date_functions_test"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num=15 "Built target date_functions_test"
 .PHONY : test/execution/CMakeFiles/date_functions_test.dir/all
 
 # Build rule for subdir invocation for target.
 test/execution/CMakeFiles/date_functions_test.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 50
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 52
 	$(MAKE) -f CMakeFiles/Makefile2 test/execution/CMakeFiles/date_functions_test.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 0
 .PHONY : test/execution/CMakeFiles/date_functions_test.dir/rule
@@ -2388,6 +2289,70 @@ test/execution/CMakeFiles/date_functions_test.dir/clean:
 .PHONY : test/execution/CMakeFiles/date_functions_test.dir/clean
 
 #=============================================================================
+# Target rules for target test/execution/CMakeFiles/vector_util_test.dir
+
+# All Build rule for target.
+test/execution/CMakeFiles/vector_util_test.dir/all: CMakeFiles/gflags_ep.dir/all
+test/execution/CMakeFiles/vector_util_test.dir/all: CMakeFiles/googletest_ep.dir/all
+test/execution/CMakeFiles/vector_util_test.dir/all: src/CMakeFiles/terrier_static.dir/all
+test/execution/CMakeFiles/vector_util_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
+test/execution/CMakeFiles/vector_util_test.dir/all: test/CMakeFiles/test_util.dir/all
+test/execution/CMakeFiles/vector_util_test.dir/all: util/CMakeFiles/util_static.dir/all
+	$(MAKE) -f test/execution/CMakeFiles/vector_util_test.dir/build.make test/execution/CMakeFiles/vector_util_test.dir/depend
+	$(MAKE) -f test/execution/CMakeFiles/vector_util_test.dir/build.make test/execution/CMakeFiles/vector_util_test.dir/build
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num= "Built target vector_util_test"
+.PHONY : test/execution/CMakeFiles/vector_util_test.dir/all
+
+# Build rule for subdir invocation for target.
+test/execution/CMakeFiles/vector_util_test.dir/rule: cmake_check_build_system
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 51
+	$(MAKE) -f CMakeFiles/Makefile2 test/execution/CMakeFiles/vector_util_test.dir/all
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 0
+.PHONY : test/execution/CMakeFiles/vector_util_test.dir/rule
+
+# Convenience name for target.
+vector_util_test: test/execution/CMakeFiles/vector_util_test.dir/rule
+
+.PHONY : vector_util_test
+
+# clean rule for target.
+test/execution/CMakeFiles/vector_util_test.dir/clean:
+	$(MAKE) -f test/execution/CMakeFiles/vector_util_test.dir/build.make test/execution/CMakeFiles/vector_util_test.dir/clean
+.PHONY : test/execution/CMakeFiles/vector_util_test.dir/clean
+
+#=============================================================================
+# Target rules for target test/execution/CMakeFiles/bytecode_trampoline_test.dir
+
+# All Build rule for target.
+test/execution/CMakeFiles/bytecode_trampoline_test.dir/all: CMakeFiles/gflags_ep.dir/all
+test/execution/CMakeFiles/bytecode_trampoline_test.dir/all: CMakeFiles/googletest_ep.dir/all
+test/execution/CMakeFiles/bytecode_trampoline_test.dir/all: src/CMakeFiles/terrier_static.dir/all
+test/execution/CMakeFiles/bytecode_trampoline_test.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
+test/execution/CMakeFiles/bytecode_trampoline_test.dir/all: test/CMakeFiles/test_util.dir/all
+test/execution/CMakeFiles/bytecode_trampoline_test.dir/all: util/CMakeFiles/util_static.dir/all
+	$(MAKE) -f test/execution/CMakeFiles/bytecode_trampoline_test.dir/build.make test/execution/CMakeFiles/bytecode_trampoline_test.dir/depend
+	$(MAKE) -f test/execution/CMakeFiles/bytecode_trampoline_test.dir/build.make test/execution/CMakeFiles/bytecode_trampoline_test.dir/build
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num= "Built target bytecode_trampoline_test"
+.PHONY : test/execution/CMakeFiles/bytecode_trampoline_test.dir/all
+
+# Build rule for subdir invocation for target.
+test/execution/CMakeFiles/bytecode_trampoline_test.dir/rule: cmake_check_build_system
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 51
+	$(MAKE) -f CMakeFiles/Makefile2 test/execution/CMakeFiles/bytecode_trampoline_test.dir/all
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 0
+.PHONY : test/execution/CMakeFiles/bytecode_trampoline_test.dir/rule
+
+# Convenience name for target.
+bytecode_trampoline_test: test/execution/CMakeFiles/bytecode_trampoline_test.dir/rule
+
+.PHONY : bytecode_trampoline_test
+
+# clean rule for target.
+test/execution/CMakeFiles/bytecode_trampoline_test.dir/clean:
+	$(MAKE) -f test/execution/CMakeFiles/bytecode_trampoline_test.dir/build.make test/execution/CMakeFiles/bytecode_trampoline_test.dir/clean
+.PHONY : test/execution/CMakeFiles/bytecode_trampoline_test.dir/clean
+
+#=============================================================================
 # Target rules for target test/execution/CMakeFiles/ast_context_test.dir
 
 # All Build rule for target.
@@ -2399,12 +2364,12 @@ test/execution/CMakeFiles/ast_context_test.dir/all: test/CMakeFiles/test_util.di
 test/execution/CMakeFiles/ast_context_test.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f test/execution/CMakeFiles/ast_context_test.dir/build.make test/execution/CMakeFiles/ast_context_test.dir/depend
 	$(MAKE) -f test/execution/CMakeFiles/ast_context_test.dir/build.make test/execution/CMakeFiles/ast_context_test.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num= "Built target ast_context_test"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num=2 "Built target ast_context_test"
 .PHONY : test/execution/CMakeFiles/ast_context_test.dir/all
 
 # Build rule for subdir invocation for target.
 test/execution/CMakeFiles/ast_context_test.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 50
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 52
 	$(MAKE) -f CMakeFiles/Makefile2 test/execution/CMakeFiles/ast_context_test.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 0
 .PHONY : test/execution/CMakeFiles/ast_context_test.dir/rule
@@ -2436,7 +2401,7 @@ test/execution/CMakeFiles/arithmetic_functions_test.dir/all: util/CMakeFiles/uti
 
 # Build rule for subdir invocation for target.
 test/execution/CMakeFiles/arithmetic_functions_test.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 50
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 51
 	$(MAKE) -f CMakeFiles/Makefile2 test/execution/CMakeFiles/arithmetic_functions_test.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 0
 .PHONY : test/execution/CMakeFiles/arithmetic_functions_test.dir/rule
@@ -2468,7 +2433,7 @@ test/execution/CMakeFiles/sema_expr_test.dir/all: util/CMakeFiles/util_static.di
 
 # Build rule for subdir invocation for target.
 test/execution/CMakeFiles/sema_expr_test.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 50
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 51
 	$(MAKE) -f CMakeFiles/Makefile2 test/execution/CMakeFiles/sema_expr_test.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 0
 .PHONY : test/execution/CMakeFiles/sema_expr_test.dir/rule
@@ -2500,7 +2465,7 @@ test/execution/CMakeFiles/generic_hash_table_test.dir/all: util/CMakeFiles/util_
 
 # Build rule for subdir invocation for target.
 test/execution/CMakeFiles/generic_hash_table_test.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 50
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 51
 	$(MAKE) -f CMakeFiles/Makefile2 test/execution/CMakeFiles/generic_hash_table_test.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 0
 .PHONY : test/execution/CMakeFiles/generic_hash_table_test.dir/rule
@@ -2532,7 +2497,7 @@ test/execution/CMakeFiles/region_test.dir/all: util/CMakeFiles/util_static.dir/a
 
 # Build rule for subdir invocation for target.
 test/execution/CMakeFiles/region_test.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 50
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 51
 	$(MAKE) -f CMakeFiles/Makefile2 test/execution/CMakeFiles/region_test.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 0
 .PHONY : test/execution/CMakeFiles/region_test.dir/rule
@@ -2564,7 +2529,7 @@ test/execution/CMakeFiles/aggregators_test.dir/all: util/CMakeFiles/util_static.
 
 # Build rule for subdir invocation for target.
 test/execution/CMakeFiles/aggregators_test.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 51
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 52
 	$(MAKE) -f CMakeFiles/Makefile2 test/execution/CMakeFiles/aggregators_test.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 0
 .PHONY : test/execution/CMakeFiles/aggregators_test.dir/rule
@@ -2591,12 +2556,12 @@ test/execution/CMakeFiles/index_iterator_test.dir/all: test/CMakeFiles/test_util
 test/execution/CMakeFiles/index_iterator_test.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f test/execution/CMakeFiles/index_iterator_test.dir/build.make test/execution/CMakeFiles/index_iterator_test.dir/depend
 	$(MAKE) -f test/execution/CMakeFiles/index_iterator_test.dir/build.make test/execution/CMakeFiles/index_iterator_test.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num= "Built target index_iterator_test"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num=26 "Built target index_iterator_test"
 .PHONY : test/execution/CMakeFiles/index_iterator_test.dir/all
 
 # Build rule for subdir invocation for target.
 test/execution/CMakeFiles/index_iterator_test.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 50
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 52
 	$(MAKE) -f CMakeFiles/Makefile2 test/execution/CMakeFiles/index_iterator_test.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 0
 .PHONY : test/execution/CMakeFiles/index_iterator_test.dir/rule
@@ -2646,7 +2611,7 @@ test/integration/CMakeFiles/tpcc_test.dir/all: util/CMakeFiles/util_static.dir/a
 
 # Build rule for subdir invocation for target.
 test/integration/CMakeFiles/tpcc_test.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 51
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 52
 	$(MAKE) -f CMakeFiles/Makefile2 test/integration/CMakeFiles/tpcc_test.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 0
 .PHONY : test/integration/CMakeFiles/tpcc_test.dir/rule
@@ -2696,7 +2661,7 @@ test/metrics/CMakeFiles/metrics_test.dir/all: util/CMakeFiles/util_static.dir/al
 
 # Build rule for subdir invocation for target.
 test/metrics/CMakeFiles/metrics_test.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 50
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 51
 	$(MAKE) -f CMakeFiles/Makefile2 test/metrics/CMakeFiles/metrics_test.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 0
 .PHONY : test/metrics/CMakeFiles/metrics_test.dir/rule
@@ -2746,7 +2711,7 @@ test/network/CMakeFiles/network_test.dir/all: util/CMakeFiles/util_static.dir/al
 
 # Build rule for subdir invocation for target.
 test/network/CMakeFiles/network_test.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 50
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 51
 	$(MAKE) -f CMakeFiles/Makefile2 test/network/CMakeFiles/network_test.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 0
 .PHONY : test/network/CMakeFiles/network_test.dir/rule
@@ -2818,7 +2783,7 @@ test/optimizer/CMakeFiles/value_condition_test.dir/all: util/CMakeFiles/util_sta
 
 # Build rule for subdir invocation for target.
 test/optimizer/CMakeFiles/value_condition_test.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 50
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 51
 	$(MAKE) -f CMakeFiles/Makefile2 test/optimizer/CMakeFiles/value_condition_test.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 0
 .PHONY : test/optimizer/CMakeFiles/value_condition_test.dir/rule
@@ -2845,12 +2810,12 @@ test/optimizer/CMakeFiles/top_k_elements_test.dir/all: test/CMakeFiles/test_util
 test/optimizer/CMakeFiles/top_k_elements_test.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f test/optimizer/CMakeFiles/top_k_elements_test.dir/build.make test/optimizer/CMakeFiles/top_k_elements_test.dir/depend
 	$(MAKE) -f test/optimizer/CMakeFiles/top_k_elements_test.dir/build.make test/optimizer/CMakeFiles/top_k_elements_test.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num= "Built target top_k_elements_test"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num=94 "Built target top_k_elements_test"
 .PHONY : test/optimizer/CMakeFiles/top_k_elements_test.dir/all
 
 # Build rule for subdir invocation for target.
 test/optimizer/CMakeFiles/top_k_elements_test.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 50
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 52
 	$(MAKE) -f CMakeFiles/Makefile2 test/optimizer/CMakeFiles/top_k_elements_test.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 0
 .PHONY : test/optimizer/CMakeFiles/top_k_elements_test.dir/rule
@@ -2882,7 +2847,7 @@ test/optimizer/CMakeFiles/table_stats_test.dir/all: util/CMakeFiles/util_static.
 
 # Build rule for subdir invocation for target.
 test/optimizer/CMakeFiles/table_stats_test.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 50
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 51
 	$(MAKE) -f CMakeFiles/Makefile2 test/optimizer/CMakeFiles/table_stats_test.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 0
 .PHONY : test/optimizer/CMakeFiles/table_stats_test.dir/rule
@@ -2909,7 +2874,7 @@ test/optimizer/CMakeFiles/physical_operator_test.dir/all: test/CMakeFiles/test_u
 test/optimizer/CMakeFiles/physical_operator_test.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f test/optimizer/CMakeFiles/physical_operator_test.dir/build.make test/optimizer/CMakeFiles/physical_operator_test.dir/depend
 	$(MAKE) -f test/optimizer/CMakeFiles/physical_operator_test.dir/build.make test/optimizer/CMakeFiles/physical_operator_test.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num=48 "Built target physical_operator_test"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num= "Built target physical_operator_test"
 .PHONY : test/optimizer/CMakeFiles/physical_operator_test.dir/all
 
 # Build rule for subdir invocation for target.
@@ -2941,12 +2906,12 @@ test/optimizer/CMakeFiles/operator_expression_test.dir/all: test/CMakeFiles/test
 test/optimizer/CMakeFiles/operator_expression_test.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f test/optimizer/CMakeFiles/operator_expression_test.dir/build.make test/optimizer/CMakeFiles/operator_expression_test.dir/depend
 	$(MAKE) -f test/optimizer/CMakeFiles/operator_expression_test.dir/build.make test/optimizer/CMakeFiles/operator_expression_test.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num= "Built target operator_expression_test"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num=34 "Built target operator_expression_test"
 .PHONY : test/optimizer/CMakeFiles/operator_expression_test.dir/all
 
 # Build rule for subdir invocation for target.
 test/optimizer/CMakeFiles/operator_expression_test.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 50
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 52
 	$(MAKE) -f CMakeFiles/Makefile2 test/optimizer/CMakeFiles/operator_expression_test.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 0
 .PHONY : test/optimizer/CMakeFiles/operator_expression_test.dir/rule
@@ -2978,7 +2943,7 @@ test/optimizer/CMakeFiles/logical_operator_test.dir/all: util/CMakeFiles/util_st
 
 # Build rule for subdir invocation for target.
 test/optimizer/CMakeFiles/logical_operator_test.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 50
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 51
 	$(MAKE) -f CMakeFiles/Makefile2 test/optimizer/CMakeFiles/logical_operator_test.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 0
 .PHONY : test/optimizer/CMakeFiles/logical_operator_test.dir/rule
@@ -3010,7 +2975,7 @@ test/optimizer/CMakeFiles/column_stats_test.dir/all: util/CMakeFiles/util_static
 
 # Build rule for subdir invocation for target.
 test/optimizer/CMakeFiles/column_stats_test.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 50
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 51
 	$(MAKE) -f CMakeFiles/Makefile2 test/optimizer/CMakeFiles/column_stats_test.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 0
 .PHONY : test/optimizer/CMakeFiles/column_stats_test.dir/rule
@@ -3042,7 +3007,7 @@ test/optimizer/CMakeFiles/operator_transformer_test.dir/all: util/CMakeFiles/uti
 
 # Build rule for subdir invocation for target.
 test/optimizer/CMakeFiles/operator_transformer_test.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 50
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 51
 	$(MAKE) -f CMakeFiles/Makefile2 test/optimizer/CMakeFiles/operator_transformer_test.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 0
 .PHONY : test/optimizer/CMakeFiles/operator_transformer_test.dir/rule
@@ -3074,7 +3039,7 @@ test/optimizer/CMakeFiles/histogram_test.dir/all: util/CMakeFiles/util_static.di
 
 # Build rule for subdir invocation for target.
 test/optimizer/CMakeFiles/histogram_test.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 50
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 51
 	$(MAKE) -f CMakeFiles/Makefile2 test/optimizer/CMakeFiles/histogram_test.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 0
 .PHONY : test/optimizer/CMakeFiles/histogram_test.dir/rule
@@ -3106,7 +3071,7 @@ test/optimizer/CMakeFiles/stats_storage_test.dir/all: util/CMakeFiles/util_stati
 
 # Build rule for subdir invocation for target.
 test/optimizer/CMakeFiles/stats_storage_test.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 50
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 51
 	$(MAKE) -f CMakeFiles/Makefile2 test/optimizer/CMakeFiles/stats_storage_test.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 0
 .PHONY : test/optimizer/CMakeFiles/stats_storage_test.dir/rule
@@ -3133,7 +3098,7 @@ test/optimizer/CMakeFiles/hyperloglog_test.dir/all: test/CMakeFiles/test_util.di
 test/optimizer/CMakeFiles/hyperloglog_test.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f test/optimizer/CMakeFiles/hyperloglog_test.dir/build.make test/optimizer/CMakeFiles/hyperloglog_test.dir/depend
 	$(MAKE) -f test/optimizer/CMakeFiles/hyperloglog_test.dir/build.make test/optimizer/CMakeFiles/hyperloglog_test.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num=26 "Built target hyperloglog_test"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num= "Built target hyperloglog_test"
 .PHONY : test/optimizer/CMakeFiles/hyperloglog_test.dir/all
 
 # Build rule for subdir invocation for target.
@@ -3165,12 +3130,12 @@ test/optimizer/CMakeFiles/count_min_sketch_test.dir/all: test/CMakeFiles/test_ut
 test/optimizer/CMakeFiles/count_min_sketch_test.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f test/optimizer/CMakeFiles/count_min_sketch_test.dir/build.make test/optimizer/CMakeFiles/count_min_sketch_test.dir/depend
 	$(MAKE) -f test/optimizer/CMakeFiles/count_min_sketch_test.dir/build.make test/optimizer/CMakeFiles/count_min_sketch_test.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num= "Built target count_min_sketch_test"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num=13 "Built target count_min_sketch_test"
 .PHONY : test/optimizer/CMakeFiles/count_min_sketch_test.dir/all
 
 # Build rule for subdir invocation for target.
 test/optimizer/CMakeFiles/count_min_sketch_test.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 50
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 52
 	$(MAKE) -f CMakeFiles/Makefile2 test/optimizer/CMakeFiles/count_min_sketch_test.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 0
 .PHONY : test/optimizer/CMakeFiles/count_min_sketch_test.dir/rule
@@ -3228,7 +3193,7 @@ test/parser/CMakeFiles/expression_test.dir/all: util/CMakeFiles/util_static.dir/
 
 # Build rule for subdir invocation for target.
 test/parser/CMakeFiles/expression_test.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 50
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 51
 	$(MAKE) -f CMakeFiles/Makefile2 test/parser/CMakeFiles/expression_test.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 0
 .PHONY : test/parser/CMakeFiles/expression_test.dir/rule
@@ -3260,7 +3225,7 @@ test/parser/CMakeFiles/pg_parser_test.dir/all: util/CMakeFiles/util_static.dir/a
 
 # Build rule for subdir invocation for target.
 test/parser/CMakeFiles/pg_parser_test.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 50
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 51
 	$(MAKE) -f CMakeFiles/Makefile2 test/parser/CMakeFiles/pg_parser_test.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 0
 .PHONY : test/parser/CMakeFiles/pg_parser_test.dir/rule
@@ -3287,7 +3252,7 @@ test/parser/CMakeFiles/parser_test.dir/all: test/CMakeFiles/test_util.dir/all
 test/parser/CMakeFiles/parser_test.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f test/parser/CMakeFiles/parser_test.dir/build.make test/parser/CMakeFiles/parser_test.dir/depend
 	$(MAKE) -f test/parser/CMakeFiles/parser_test.dir/build.make test/parser/CMakeFiles/parser_test.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num=36 "Built target parser_test"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num= "Built target parser_test"
 .PHONY : test/parser/CMakeFiles/parser_test.dir/all
 
 # Build rule for subdir invocation for target.
@@ -3324,7 +3289,7 @@ test/parser/CMakeFiles/expression_util_test.dir/all: util/CMakeFiles/util_static
 
 # Build rule for subdir invocation for target.
 test/parser/CMakeFiles/expression_util_test.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 51
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 52
 	$(MAKE) -f CMakeFiles/Makefile2 test/parser/CMakeFiles/expression_util_test.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 0
 .PHONY : test/parser/CMakeFiles/expression_util_test.dir/rule
@@ -3351,12 +3316,12 @@ test/parser/CMakeFiles/expression_defs_test.dir/all: test/CMakeFiles/test_util.d
 test/parser/CMakeFiles/expression_defs_test.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f test/parser/CMakeFiles/expression_defs_test.dir/build.make test/parser/CMakeFiles/expression_defs_test.dir/depend
 	$(MAKE) -f test/parser/CMakeFiles/expression_defs_test.dir/build.make test/parser/CMakeFiles/expression_defs_test.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num= "Built target expression_defs_test"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num=16 "Built target expression_defs_test"
 .PHONY : test/parser/CMakeFiles/expression_defs_test.dir/all
 
 # Build rule for subdir invocation for target.
 test/parser/CMakeFiles/expression_defs_test.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 50
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 52
 	$(MAKE) -f CMakeFiles/Makefile2 test/parser/CMakeFiles/expression_defs_test.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 0
 .PHONY : test/parser/CMakeFiles/expression_defs_test.dir/rule
@@ -3410,7 +3375,7 @@ test/planner/CMakeFiles/plan_node_test.dir/all: util/CMakeFiles/util_static.dir/
 
 # Build rule for subdir invocation for target.
 test/planner/CMakeFiles/plan_node_test.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 50
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 51
 	$(MAKE) -f CMakeFiles/Makefile2 test/planner/CMakeFiles/plan_node_test.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 0
 .PHONY : test/planner/CMakeFiles/plan_node_test.dir/rule
@@ -3437,12 +3402,12 @@ test/planner/CMakeFiles/plan_node_json_test.dir/all: test/CMakeFiles/test_util.d
 test/planner/CMakeFiles/plan_node_json_test.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f test/planner/CMakeFiles/plan_node_json_test.dir/build.make test/planner/CMakeFiles/plan_node_json_test.dir/depend
 	$(MAKE) -f test/planner/CMakeFiles/plan_node_json_test.dir/build.make test/planner/CMakeFiles/plan_node_json_test.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num= "Built target plan_node_json_test"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num=48 "Built target plan_node_json_test"
 .PHONY : test/planner/CMakeFiles/plan_node_json_test.dir/all
 
 # Build rule for subdir invocation for target.
 test/planner/CMakeFiles/plan_node_json_test.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 50
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 52
 	$(MAKE) -f CMakeFiles/Makefile2 test/planner/CMakeFiles/plan_node_json_test.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 0
 .PHONY : test/planner/CMakeFiles/plan_node_json_test.dir/rule
@@ -3474,7 +3439,7 @@ test/planner/CMakeFiles/output_schema_test.dir/all: util/CMakeFiles/util_static.
 
 # Build rule for subdir invocation for target.
 test/planner/CMakeFiles/output_schema_test.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 51
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 52
 	$(MAKE) -f CMakeFiles/Makefile2 test/planner/CMakeFiles/output_schema_test.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 0
 .PHONY : test/planner/CMakeFiles/output_schema_test.dir/rule
@@ -3524,7 +3489,7 @@ test/settings/CMakeFiles/settings_test.dir/all: util/CMakeFiles/util_static.dir/
 
 # Build rule for subdir invocation for target.
 test/settings/CMakeFiles/settings_test.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 51
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 52
 	$(MAKE) -f CMakeFiles/Makefile2 test/settings/CMakeFiles/settings_test.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 0
 .PHONY : test/settings/CMakeFiles/settings_test.dir/rule
@@ -3603,12 +3568,12 @@ test/storage/CMakeFiles/garbage_collector_test.dir/all: test/CMakeFiles/test_uti
 test/storage/CMakeFiles/garbage_collector_test.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f test/storage/CMakeFiles/garbage_collector_test.dir/build.make test/storage/CMakeFiles/garbage_collector_test.dir/depend
 	$(MAKE) -f test/storage/CMakeFiles/garbage_collector_test.dir/build.make test/storage/CMakeFiles/garbage_collector_test.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num= "Built target garbage_collector_test"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num=18 "Built target garbage_collector_test"
 .PHONY : test/storage/CMakeFiles/garbage_collector_test.dir/all
 
 # Build rule for subdir invocation for target.
 test/storage/CMakeFiles/garbage_collector_test.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 50
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 52
 	$(MAKE) -f CMakeFiles/Makefile2 test/storage/CMakeFiles/garbage_collector_test.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 0
 .PHONY : test/storage/CMakeFiles/garbage_collector_test.dir/rule
@@ -3640,7 +3605,7 @@ test/storage/CMakeFiles/block_access_controller_test.dir/all: util/CMakeFiles/ut
 
 # Build rule for subdir invocation for target.
 test/storage/CMakeFiles/block_access_controller_test.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 51
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 52
 	$(MAKE) -f CMakeFiles/Makefile2 test/storage/CMakeFiles/block_access_controller_test.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 0
 .PHONY : test/storage/CMakeFiles/block_access_controller_test.dir/rule
@@ -3672,7 +3637,7 @@ test/storage/CMakeFiles/recovery_test.dir/all: util/CMakeFiles/util_static.dir/a
 
 # Build rule for subdir invocation for target.
 test/storage/CMakeFiles/recovery_test.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 50
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 51
 	$(MAKE) -f CMakeFiles/Makefile2 test/storage/CMakeFiles/recovery_test.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 0
 .PHONY : test/storage/CMakeFiles/recovery_test.dir/rule
@@ -3704,7 +3669,7 @@ test/storage/CMakeFiles/bwtree_index_test.dir/all: util/CMakeFiles/util_static.d
 
 # Build rule for subdir invocation for target.
 test/storage/CMakeFiles/bwtree_index_test.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 51
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 52
 	$(MAKE) -f CMakeFiles/Makefile2 test/storage/CMakeFiles/bwtree_index_test.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 0
 .PHONY : test/storage/CMakeFiles/bwtree_index_test.dir/rule
@@ -3736,7 +3701,7 @@ test/storage/CMakeFiles/projected_row_test.dir/all: util/CMakeFiles/util_static.
 
 # Build rule for subdir invocation for target.
 test/storage/CMakeFiles/projected_row_test.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 50
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 51
 	$(MAKE) -f CMakeFiles/Makefile2 test/storage/CMakeFiles/projected_row_test.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 0
 .PHONY : test/storage/CMakeFiles/projected_row_test.dir/rule
@@ -3768,7 +3733,7 @@ test/storage/CMakeFiles/index_key_test.dir/all: util/CMakeFiles/util_static.dir/
 
 # Build rule for subdir invocation for target.
 test/storage/CMakeFiles/index_key_test.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 50
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 51
 	$(MAKE) -f CMakeFiles/Makefile2 test/storage/CMakeFiles/index_key_test.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 0
 .PHONY : test/storage/CMakeFiles/index_key_test.dir/rule
@@ -3800,7 +3765,7 @@ test/storage/CMakeFiles/data_table_test.dir/all: util/CMakeFiles/util_static.dir
 
 # Build rule for subdir invocation for target.
 test/storage/CMakeFiles/data_table_test.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 50
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 51
 	$(MAKE) -f CMakeFiles/Makefile2 test/storage/CMakeFiles/data_table_test.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 0
 .PHONY : test/storage/CMakeFiles/data_table_test.dir/rule
@@ -3832,7 +3797,7 @@ test/storage/CMakeFiles/bwtree_test.dir/all: util/CMakeFiles/util_static.dir/all
 
 # Build rule for subdir invocation for target.
 test/storage/CMakeFiles/bwtree_test.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 50
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 51
 	$(MAKE) -f CMakeFiles/Makefile2 test/storage/CMakeFiles/bwtree_test.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 0
 .PHONY : test/storage/CMakeFiles/bwtree_test.dir/rule
@@ -3859,7 +3824,7 @@ test/storage/CMakeFiles/delta_record_test.dir/all: test/CMakeFiles/test_util.dir
 test/storage/CMakeFiles/delta_record_test.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f test/storage/CMakeFiles/delta_record_test.dir/build.make test/storage/CMakeFiles/delta_record_test.dir/depend
 	$(MAKE) -f test/storage/CMakeFiles/delta_record_test.dir/build.make test/storage/CMakeFiles/delta_record_test.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num=16 "Built target delta_record_test"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num= "Built target delta_record_test"
 .PHONY : test/storage/CMakeFiles/delta_record_test.dir/all
 
 # Build rule for subdir invocation for target.
@@ -3891,12 +3856,12 @@ test/storage/CMakeFiles/hash_index_test.dir/all: test/CMakeFiles/test_util.dir/a
 test/storage/CMakeFiles/hash_index_test.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f test/storage/CMakeFiles/hash_index_test.dir/build.make test/storage/CMakeFiles/hash_index_test.dir/depend
 	$(MAKE) -f test/storage/CMakeFiles/hash_index_test.dir/build.make test/storage/CMakeFiles/hash_index_test.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num= "Built target hash_index_test"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num=24 "Built target hash_index_test"
 .PHONY : test/storage/CMakeFiles/hash_index_test.dir/all
 
 # Build rule for subdir invocation for target.
 test/storage/CMakeFiles/hash_index_test.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 50
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 52
 	$(MAKE) -f CMakeFiles/Makefile2 test/storage/CMakeFiles/hash_index_test.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 0
 .PHONY : test/storage/CMakeFiles/hash_index_test.dir/rule
@@ -3928,7 +3893,7 @@ test/storage/CMakeFiles/tuple_access_strategy_test.dir/all: util/CMakeFiles/util
 
 # Build rule for subdir invocation for target.
 test/storage/CMakeFiles/tuple_access_strategy_test.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 51
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 52
 	$(MAKE) -f CMakeFiles/Makefile2 test/storage/CMakeFiles/tuple_access_strategy_test.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 0
 .PHONY : test/storage/CMakeFiles/tuple_access_strategy_test.dir/rule
@@ -3960,7 +3925,7 @@ test/storage/CMakeFiles/storage_util_test.dir/all: util/CMakeFiles/util_static.d
 
 # Build rule for subdir invocation for target.
 test/storage/CMakeFiles/storage_util_test.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 50
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 51
 	$(MAKE) -f CMakeFiles/Makefile2 test/storage/CMakeFiles/storage_util_test.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 0
 .PHONY : test/storage/CMakeFiles/storage_util_test.dir/rule
@@ -3992,7 +3957,7 @@ test/storage/CMakeFiles/large_garbage_collector_test.dir/all: util/CMakeFiles/ut
 
 # Build rule for subdir invocation for target.
 test/storage/CMakeFiles/large_garbage_collector_test.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 50
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 51
 	$(MAKE) -f CMakeFiles/Makefile2 test/storage/CMakeFiles/large_garbage_collector_test.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 0
 .PHONY : test/storage/CMakeFiles/large_garbage_collector_test.dir/rule
@@ -4024,7 +3989,7 @@ test/storage/CMakeFiles/data_table_concurrent_test.dir/all: util/CMakeFiles/util
 
 # Build rule for subdir invocation for target.
 test/storage/CMakeFiles/data_table_concurrent_test.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 51
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 52
 	$(MAKE) -f CMakeFiles/Makefile2 test/storage/CMakeFiles/data_table_concurrent_test.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 0
 .PHONY : test/storage/CMakeFiles/data_table_concurrent_test.dir/rule
@@ -4051,12 +4016,12 @@ test/storage/CMakeFiles/block_compactor_test.dir/all: test/CMakeFiles/test_util.
 test/storage/CMakeFiles/block_compactor_test.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f test/storage/CMakeFiles/block_compactor_test.dir/build.make test/storage/CMakeFiles/block_compactor_test.dir/depend
 	$(MAKE) -f test/storage/CMakeFiles/block_compactor_test.dir/build.make test/storage/CMakeFiles/block_compactor_test.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num= "Built target block_compactor_test"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num=7 "Built target block_compactor_test"
 .PHONY : test/storage/CMakeFiles/block_compactor_test.dir/all
 
 # Build rule for subdir invocation for target.
 test/storage/CMakeFiles/block_compactor_test.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 50
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 52
 	$(MAKE) -f CMakeFiles/Makefile2 test/storage/CMakeFiles/block_compactor_test.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 0
 .PHONY : test/storage/CMakeFiles/block_compactor_test.dir/rule
@@ -4088,7 +4053,7 @@ test/storage/CMakeFiles/varlen_entry_test.dir/all: util/CMakeFiles/util_static.d
 
 # Build rule for subdir invocation for target.
 test/storage/CMakeFiles/varlen_entry_test.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 51
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 52
 	$(MAKE) -f CMakeFiles/Makefile2 test/storage/CMakeFiles/varlen_entry_test.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 0
 .PHONY : test/storage/CMakeFiles/varlen_entry_test.dir/rule
@@ -4120,7 +4085,7 @@ test/storage/CMakeFiles/access_observer_test.dir/all: util/CMakeFiles/util_stati
 
 # Build rule for subdir invocation for target.
 test/storage/CMakeFiles/access_observer_test.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 50
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 51
 	$(MAKE) -f CMakeFiles/Makefile2 test/storage/CMakeFiles/access_observer_test.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 0
 .PHONY : test/storage/CMakeFiles/access_observer_test.dir/rule
@@ -4147,12 +4112,12 @@ test/storage/CMakeFiles/log_test.dir/all: test/CMakeFiles/test_util.dir/all
 test/storage/CMakeFiles/log_test.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f test/storage/CMakeFiles/log_test.dir/build.make test/storage/CMakeFiles/log_test.dir/depend
 	$(MAKE) -f test/storage/CMakeFiles/log_test.dir/build.make test/storage/CMakeFiles/log_test.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num= "Built target log_test"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num=30 "Built target log_test"
 .PHONY : test/storage/CMakeFiles/log_test.dir/all
 
 # Build rule for subdir invocation for target.
 test/storage/CMakeFiles/log_test.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 50
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 52
 	$(MAKE) -f CMakeFiles/Makefile2 test/storage/CMakeFiles/log_test.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 0
 .PHONY : test/storage/CMakeFiles/log_test.dir/rule
@@ -4197,7 +4162,7 @@ test/traffic_cop/CMakeFiles/traffic_cop_test.dir/all: test/CMakeFiles/test_util.
 test/traffic_cop/CMakeFiles/traffic_cop_test.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f test/traffic_cop/CMakeFiles/traffic_cop_test.dir/build.make test/traffic_cop/CMakeFiles/traffic_cop_test.dir/depend
 	$(MAKE) -f test/traffic_cop/CMakeFiles/traffic_cop_test.dir/build.make test/traffic_cop/CMakeFiles/traffic_cop_test.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num=96 "Built target traffic_cop_test"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num= "Built target traffic_cop_test"
 .PHONY : test/traffic_cop/CMakeFiles/traffic_cop_test.dir/all
 
 # Build rule for subdir invocation for target.
@@ -4256,7 +4221,7 @@ test/transaction/CMakeFiles/mvcc_test.dir/all: util/CMakeFiles/util_static.dir/a
 
 # Build rule for subdir invocation for target.
 test/transaction/CMakeFiles/mvcc_test.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 51
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 52
 	$(MAKE) -f CMakeFiles/Makefile2 test/transaction/CMakeFiles/mvcc_test.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 0
 .PHONY : test/transaction/CMakeFiles/mvcc_test.dir/rule
@@ -4283,7 +4248,7 @@ test/transaction/CMakeFiles/large_transaction_test.dir/all: test/CMakeFiles/test
 test/transaction/CMakeFiles/large_transaction_test.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f test/transaction/CMakeFiles/large_transaction_test.dir/build.make test/transaction/CMakeFiles/large_transaction_test.dir/depend
 	$(MAKE) -f test/transaction/CMakeFiles/large_transaction_test.dir/build.make test/transaction/CMakeFiles/large_transaction_test.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num=30 "Built target large_transaction_test"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num= "Built target large_transaction_test"
 .PHONY : test/transaction/CMakeFiles/large_transaction_test.dir/all
 
 # Build rule for subdir invocation for target.
@@ -4320,7 +4285,7 @@ test/transaction/CMakeFiles/deferred_actions_test.dir/all: util/CMakeFiles/util_
 
 # Build rule for subdir invocation for target.
 test/transaction/CMakeFiles/deferred_actions_test.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 50
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 51
 	$(MAKE) -f CMakeFiles/Makefile2 test/transaction/CMakeFiles/deferred_actions_test.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 0
 .PHONY : test/transaction/CMakeFiles/deferred_actions_test.dir/rule
@@ -4367,7 +4332,7 @@ test/type/CMakeFiles/type_util_test.dir/all: test/CMakeFiles/test_util.dir/all
 test/type/CMakeFiles/type_util_test.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f test/type/CMakeFiles/type_util_test.dir/build.make test/type/CMakeFiles/type_util_test.dir/depend
 	$(MAKE) -f test/type/CMakeFiles/type_util_test.dir/build.make test/type/CMakeFiles/type_util_test.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num=98 "Built target type_util_test"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num= "Built target type_util_test"
 .PHONY : test/type/CMakeFiles/type_util_test.dir/all
 
 # Build rule for subdir invocation for target.
@@ -4399,12 +4364,12 @@ test/type/CMakeFiles/transient_value_test.dir/all: test/CMakeFiles/test_util.dir
 test/type/CMakeFiles/transient_value_test.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f test/type/CMakeFiles/transient_value_test.dir/build.make test/type/CMakeFiles/transient_value_test.dir/depend
 	$(MAKE) -f test/type/CMakeFiles/transient_value_test.dir/build.make test/type/CMakeFiles/transient_value_test.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num= "Built target transient_value_test"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num=96 "Built target transient_value_test"
 .PHONY : test/type/CMakeFiles/transient_value_test.dir/all
 
 # Build rule for subdir invocation for target.
 test/type/CMakeFiles/transient_value_test.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 50
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 52
 	$(MAKE) -f CMakeFiles/Makefile2 test/type/CMakeFiles/transient_value_test.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 0
 .PHONY : test/type/CMakeFiles/transient_value_test.dir/rule
@@ -4508,13 +4473,13 @@ benchmark/catalog/preinstall:
 # Target rules for target benchmark/catalog/CMakeFiles/catalog_benchmark.dir
 
 # All Build rule for target.
+benchmark/catalog/CMakeFiles/catalog_benchmark.dir/all: benchmark/CMakeFiles/benchmark_util.dir/all
 benchmark/catalog/CMakeFiles/catalog_benchmark.dir/all: CMakeFiles/gbenchmark_ep.dir/all
 benchmark/catalog/CMakeFiles/catalog_benchmark.dir/all: CMakeFiles/gflags_ep.dir/all
 benchmark/catalog/CMakeFiles/catalog_benchmark.dir/all: CMakeFiles/googletest_ep.dir/all
 benchmark/catalog/CMakeFiles/catalog_benchmark.dir/all: src/CMakeFiles/terrier_static.dir/all
 benchmark/catalog/CMakeFiles/catalog_benchmark.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 benchmark/catalog/CMakeFiles/catalog_benchmark.dir/all: test/CMakeFiles/test_util.dir/all
-benchmark/catalog/CMakeFiles/catalog_benchmark.dir/all: benchmark/CMakeFiles/benchmark_util.dir/all
 benchmark/catalog/CMakeFiles/catalog_benchmark.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f benchmark/catalog/CMakeFiles/catalog_benchmark.dir/build.make benchmark/catalog/CMakeFiles/catalog_benchmark.dir/depend
 	$(MAKE) -f benchmark/catalog/CMakeFiles/catalog_benchmark.dir/build.make benchmark/catalog/CMakeFiles/catalog_benchmark.dir/build
@@ -4560,13 +4525,13 @@ benchmark/integration/preinstall:
 # Target rules for target benchmark/integration/CMakeFiles/tpcc_benchmark.dir
 
 # All Build rule for target.
+benchmark/integration/CMakeFiles/tpcc_benchmark.dir/all: benchmark/CMakeFiles/benchmark_util.dir/all
 benchmark/integration/CMakeFiles/tpcc_benchmark.dir/all: CMakeFiles/gbenchmark_ep.dir/all
 benchmark/integration/CMakeFiles/tpcc_benchmark.dir/all: CMakeFiles/gflags_ep.dir/all
 benchmark/integration/CMakeFiles/tpcc_benchmark.dir/all: CMakeFiles/googletest_ep.dir/all
 benchmark/integration/CMakeFiles/tpcc_benchmark.dir/all: src/CMakeFiles/terrier_static.dir/all
 benchmark/integration/CMakeFiles/tpcc_benchmark.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 benchmark/integration/CMakeFiles/tpcc_benchmark.dir/all: test/CMakeFiles/test_util.dir/all
-benchmark/integration/CMakeFiles/tpcc_benchmark.dir/all: benchmark/CMakeFiles/benchmark_util.dir/all
 benchmark/integration/CMakeFiles/tpcc_benchmark.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f benchmark/integration/CMakeFiles/tpcc_benchmark.dir/build.make benchmark/integration/CMakeFiles/tpcc_benchmark.dir/depend
 	$(MAKE) -f benchmark/integration/CMakeFiles/tpcc_benchmark.dir/build.make benchmark/integration/CMakeFiles/tpcc_benchmark.dir/build
@@ -4614,13 +4579,13 @@ benchmark/metrics/preinstall:
 # Target rules for target benchmark/metrics/CMakeFiles/logging_metrics_benchmark.dir
 
 # All Build rule for target.
+benchmark/metrics/CMakeFiles/logging_metrics_benchmark.dir/all: benchmark/CMakeFiles/benchmark_util.dir/all
 benchmark/metrics/CMakeFiles/logging_metrics_benchmark.dir/all: CMakeFiles/gbenchmark_ep.dir/all
 benchmark/metrics/CMakeFiles/logging_metrics_benchmark.dir/all: CMakeFiles/gflags_ep.dir/all
 benchmark/metrics/CMakeFiles/logging_metrics_benchmark.dir/all: CMakeFiles/googletest_ep.dir/all
 benchmark/metrics/CMakeFiles/logging_metrics_benchmark.dir/all: src/CMakeFiles/terrier_static.dir/all
 benchmark/metrics/CMakeFiles/logging_metrics_benchmark.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 benchmark/metrics/CMakeFiles/logging_metrics_benchmark.dir/all: test/CMakeFiles/test_util.dir/all
-benchmark/metrics/CMakeFiles/logging_metrics_benchmark.dir/all: benchmark/CMakeFiles/benchmark_util.dir/all
 benchmark/metrics/CMakeFiles/logging_metrics_benchmark.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f benchmark/metrics/CMakeFiles/logging_metrics_benchmark.dir/build.make benchmark/metrics/CMakeFiles/logging_metrics_benchmark.dir/depend
 	$(MAKE) -f benchmark/metrics/CMakeFiles/logging_metrics_benchmark.dir/build.make benchmark/metrics/CMakeFiles/logging_metrics_benchmark.dir/build
@@ -4648,13 +4613,13 @@ benchmark/metrics/CMakeFiles/logging_metrics_benchmark.dir/clean:
 # Target rules for target benchmark/metrics/CMakeFiles/large_transaction_metrics_benchmark.dir
 
 # All Build rule for target.
+benchmark/metrics/CMakeFiles/large_transaction_metrics_benchmark.dir/all: benchmark/CMakeFiles/benchmark_util.dir/all
 benchmark/metrics/CMakeFiles/large_transaction_metrics_benchmark.dir/all: CMakeFiles/gbenchmark_ep.dir/all
 benchmark/metrics/CMakeFiles/large_transaction_metrics_benchmark.dir/all: CMakeFiles/gflags_ep.dir/all
 benchmark/metrics/CMakeFiles/large_transaction_metrics_benchmark.dir/all: CMakeFiles/googletest_ep.dir/all
 benchmark/metrics/CMakeFiles/large_transaction_metrics_benchmark.dir/all: src/CMakeFiles/terrier_static.dir/all
 benchmark/metrics/CMakeFiles/large_transaction_metrics_benchmark.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 benchmark/metrics/CMakeFiles/large_transaction_metrics_benchmark.dir/all: test/CMakeFiles/test_util.dir/all
-benchmark/metrics/CMakeFiles/large_transaction_metrics_benchmark.dir/all: benchmark/CMakeFiles/benchmark_util.dir/all
 benchmark/metrics/CMakeFiles/large_transaction_metrics_benchmark.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f benchmark/metrics/CMakeFiles/large_transaction_metrics_benchmark.dir/build.make benchmark/metrics/CMakeFiles/large_transaction_metrics_benchmark.dir/depend
 	$(MAKE) -f benchmark/metrics/CMakeFiles/large_transaction_metrics_benchmark.dir/build.make benchmark/metrics/CMakeFiles/large_transaction_metrics_benchmark.dir/build
@@ -4700,13 +4665,13 @@ benchmark/parser/preinstall:
 # Target rules for target benchmark/parser/CMakeFiles/parser_benchmark.dir
 
 # All Build rule for target.
+benchmark/parser/CMakeFiles/parser_benchmark.dir/all: benchmark/CMakeFiles/benchmark_util.dir/all
 benchmark/parser/CMakeFiles/parser_benchmark.dir/all: CMakeFiles/gbenchmark_ep.dir/all
 benchmark/parser/CMakeFiles/parser_benchmark.dir/all: CMakeFiles/gflags_ep.dir/all
 benchmark/parser/CMakeFiles/parser_benchmark.dir/all: CMakeFiles/googletest_ep.dir/all
 benchmark/parser/CMakeFiles/parser_benchmark.dir/all: src/CMakeFiles/terrier_static.dir/all
 benchmark/parser/CMakeFiles/parser_benchmark.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 benchmark/parser/CMakeFiles/parser_benchmark.dir/all: test/CMakeFiles/test_util.dir/all
-benchmark/parser/CMakeFiles/parser_benchmark.dir/all: benchmark/CMakeFiles/benchmark_util.dir/all
 benchmark/parser/CMakeFiles/parser_benchmark.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f benchmark/parser/CMakeFiles/parser_benchmark.dir/build.make benchmark/parser/CMakeFiles/parser_benchmark.dir/depend
 	$(MAKE) -f benchmark/parser/CMakeFiles/parser_benchmark.dir/build.make benchmark/parser/CMakeFiles/parser_benchmark.dir/build
@@ -4768,22 +4733,22 @@ benchmark/storage/preinstall:
 # Target rules for target benchmark/storage/CMakeFiles/cuckoomap_benchmark.dir
 
 # All Build rule for target.
+benchmark/storage/CMakeFiles/cuckoomap_benchmark.dir/all: benchmark/CMakeFiles/benchmark_util.dir/all
 benchmark/storage/CMakeFiles/cuckoomap_benchmark.dir/all: CMakeFiles/gbenchmark_ep.dir/all
 benchmark/storage/CMakeFiles/cuckoomap_benchmark.dir/all: CMakeFiles/gflags_ep.dir/all
 benchmark/storage/CMakeFiles/cuckoomap_benchmark.dir/all: CMakeFiles/googletest_ep.dir/all
 benchmark/storage/CMakeFiles/cuckoomap_benchmark.dir/all: src/CMakeFiles/terrier_static.dir/all
 benchmark/storage/CMakeFiles/cuckoomap_benchmark.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 benchmark/storage/CMakeFiles/cuckoomap_benchmark.dir/all: test/CMakeFiles/test_util.dir/all
-benchmark/storage/CMakeFiles/cuckoomap_benchmark.dir/all: benchmark/CMakeFiles/benchmark_util.dir/all
 benchmark/storage/CMakeFiles/cuckoomap_benchmark.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f benchmark/storage/CMakeFiles/cuckoomap_benchmark.dir/build.make benchmark/storage/CMakeFiles/cuckoomap_benchmark.dir/depend
 	$(MAKE) -f benchmark/storage/CMakeFiles/cuckoomap_benchmark.dir/build.make benchmark/storage/CMakeFiles/cuckoomap_benchmark.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num=13 "Built target cuckoomap_benchmark"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num= "Built target cuckoomap_benchmark"
 .PHONY : benchmark/storage/CMakeFiles/cuckoomap_benchmark.dir/all
 
 # Build rule for subdir invocation for target.
 benchmark/storage/CMakeFiles/cuckoomap_benchmark.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 54
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 53
 	$(MAKE) -f CMakeFiles/Makefile2 benchmark/storage/CMakeFiles/cuckoomap_benchmark.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 0
 .PHONY : benchmark/storage/CMakeFiles/cuckoomap_benchmark.dir/rule
@@ -4802,13 +4767,13 @@ benchmark/storage/CMakeFiles/cuckoomap_benchmark.dir/clean:
 # Target rules for target benchmark/storage/CMakeFiles/data_table_benchmark.dir
 
 # All Build rule for target.
+benchmark/storage/CMakeFiles/data_table_benchmark.dir/all: benchmark/CMakeFiles/benchmark_util.dir/all
 benchmark/storage/CMakeFiles/data_table_benchmark.dir/all: CMakeFiles/gbenchmark_ep.dir/all
 benchmark/storage/CMakeFiles/data_table_benchmark.dir/all: CMakeFiles/gflags_ep.dir/all
 benchmark/storage/CMakeFiles/data_table_benchmark.dir/all: CMakeFiles/googletest_ep.dir/all
 benchmark/storage/CMakeFiles/data_table_benchmark.dir/all: src/CMakeFiles/terrier_static.dir/all
 benchmark/storage/CMakeFiles/data_table_benchmark.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 benchmark/storage/CMakeFiles/data_table_benchmark.dir/all: test/CMakeFiles/test_util.dir/all
-benchmark/storage/CMakeFiles/data_table_benchmark.dir/all: benchmark/CMakeFiles/benchmark_util.dir/all
 benchmark/storage/CMakeFiles/data_table_benchmark.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f benchmark/storage/CMakeFiles/data_table_benchmark.dir/build.make benchmark/storage/CMakeFiles/data_table_benchmark.dir/depend
 	$(MAKE) -f benchmark/storage/CMakeFiles/data_table_benchmark.dir/build.make benchmark/storage/CMakeFiles/data_table_benchmark.dir/build
@@ -4836,13 +4801,13 @@ benchmark/storage/CMakeFiles/data_table_benchmark.dir/clean:
 # Target rules for target benchmark/storage/CMakeFiles/tuple_access_strategy_benchmark.dir
 
 # All Build rule for target.
+benchmark/storage/CMakeFiles/tuple_access_strategy_benchmark.dir/all: benchmark/CMakeFiles/benchmark_util.dir/all
 benchmark/storage/CMakeFiles/tuple_access_strategy_benchmark.dir/all: CMakeFiles/gbenchmark_ep.dir/all
 benchmark/storage/CMakeFiles/tuple_access_strategy_benchmark.dir/all: CMakeFiles/gflags_ep.dir/all
 benchmark/storage/CMakeFiles/tuple_access_strategy_benchmark.dir/all: CMakeFiles/googletest_ep.dir/all
 benchmark/storage/CMakeFiles/tuple_access_strategy_benchmark.dir/all: src/CMakeFiles/terrier_static.dir/all
 benchmark/storage/CMakeFiles/tuple_access_strategy_benchmark.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 benchmark/storage/CMakeFiles/tuple_access_strategy_benchmark.dir/all: test/CMakeFiles/test_util.dir/all
-benchmark/storage/CMakeFiles/tuple_access_strategy_benchmark.dir/all: benchmark/CMakeFiles/benchmark_util.dir/all
 benchmark/storage/CMakeFiles/tuple_access_strategy_benchmark.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f benchmark/storage/CMakeFiles/tuple_access_strategy_benchmark.dir/build.make benchmark/storage/CMakeFiles/tuple_access_strategy_benchmark.dir/depend
 	$(MAKE) -f benchmark/storage/CMakeFiles/tuple_access_strategy_benchmark.dir/build.make benchmark/storage/CMakeFiles/tuple_access_strategy_benchmark.dir/build
@@ -4870,13 +4835,13 @@ benchmark/storage/CMakeFiles/tuple_access_strategy_benchmark.dir/clean:
 # Target rules for target benchmark/storage/CMakeFiles/recovery_benchmark.dir
 
 # All Build rule for target.
+benchmark/storage/CMakeFiles/recovery_benchmark.dir/all: benchmark/CMakeFiles/benchmark_util.dir/all
 benchmark/storage/CMakeFiles/recovery_benchmark.dir/all: CMakeFiles/gbenchmark_ep.dir/all
 benchmark/storage/CMakeFiles/recovery_benchmark.dir/all: CMakeFiles/gflags_ep.dir/all
 benchmark/storage/CMakeFiles/recovery_benchmark.dir/all: CMakeFiles/googletest_ep.dir/all
 benchmark/storage/CMakeFiles/recovery_benchmark.dir/all: src/CMakeFiles/terrier_static.dir/all
 benchmark/storage/CMakeFiles/recovery_benchmark.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 benchmark/storage/CMakeFiles/recovery_benchmark.dir/all: test/CMakeFiles/test_util.dir/all
-benchmark/storage/CMakeFiles/recovery_benchmark.dir/all: benchmark/CMakeFiles/benchmark_util.dir/all
 benchmark/storage/CMakeFiles/recovery_benchmark.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f benchmark/storage/CMakeFiles/recovery_benchmark.dir/build.make benchmark/storage/CMakeFiles/recovery_benchmark.dir/depend
 	$(MAKE) -f benchmark/storage/CMakeFiles/recovery_benchmark.dir/build.make benchmark/storage/CMakeFiles/recovery_benchmark.dir/build
@@ -4904,13 +4869,13 @@ benchmark/storage/CMakeFiles/recovery_benchmark.dir/clean:
 # Target rules for target benchmark/storage/CMakeFiles/logging_benchmark.dir
 
 # All Build rule for target.
+benchmark/storage/CMakeFiles/logging_benchmark.dir/all: benchmark/CMakeFiles/benchmark_util.dir/all
 benchmark/storage/CMakeFiles/logging_benchmark.dir/all: CMakeFiles/gbenchmark_ep.dir/all
 benchmark/storage/CMakeFiles/logging_benchmark.dir/all: CMakeFiles/gflags_ep.dir/all
 benchmark/storage/CMakeFiles/logging_benchmark.dir/all: CMakeFiles/googletest_ep.dir/all
 benchmark/storage/CMakeFiles/logging_benchmark.dir/all: src/CMakeFiles/terrier_static.dir/all
 benchmark/storage/CMakeFiles/logging_benchmark.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 benchmark/storage/CMakeFiles/logging_benchmark.dir/all: test/CMakeFiles/test_util.dir/all
-benchmark/storage/CMakeFiles/logging_benchmark.dir/all: benchmark/CMakeFiles/benchmark_util.dir/all
 benchmark/storage/CMakeFiles/logging_benchmark.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f benchmark/storage/CMakeFiles/logging_benchmark.dir/build.make benchmark/storage/CMakeFiles/logging_benchmark.dir/depend
 	$(MAKE) -f benchmark/storage/CMakeFiles/logging_benchmark.dir/build.make benchmark/storage/CMakeFiles/logging_benchmark.dir/build
@@ -4938,13 +4903,13 @@ benchmark/storage/CMakeFiles/logging_benchmark.dir/clean:
 # Target rules for target benchmark/storage/CMakeFiles/index_wrapper_benchmark.dir
 
 # All Build rule for target.
+benchmark/storage/CMakeFiles/index_wrapper_benchmark.dir/all: benchmark/CMakeFiles/benchmark_util.dir/all
 benchmark/storage/CMakeFiles/index_wrapper_benchmark.dir/all: CMakeFiles/gbenchmark_ep.dir/all
 benchmark/storage/CMakeFiles/index_wrapper_benchmark.dir/all: CMakeFiles/gflags_ep.dir/all
 benchmark/storage/CMakeFiles/index_wrapper_benchmark.dir/all: CMakeFiles/googletest_ep.dir/all
 benchmark/storage/CMakeFiles/index_wrapper_benchmark.dir/all: src/CMakeFiles/terrier_static.dir/all
 benchmark/storage/CMakeFiles/index_wrapper_benchmark.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 benchmark/storage/CMakeFiles/index_wrapper_benchmark.dir/all: test/CMakeFiles/test_util.dir/all
-benchmark/storage/CMakeFiles/index_wrapper_benchmark.dir/all: benchmark/CMakeFiles/benchmark_util.dir/all
 benchmark/storage/CMakeFiles/index_wrapper_benchmark.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f benchmark/storage/CMakeFiles/index_wrapper_benchmark.dir/build.make benchmark/storage/CMakeFiles/index_wrapper_benchmark.dir/depend
 	$(MAKE) -f benchmark/storage/CMakeFiles/index_wrapper_benchmark.dir/build.make benchmark/storage/CMakeFiles/index_wrapper_benchmark.dir/build
@@ -4972,22 +4937,22 @@ benchmark/storage/CMakeFiles/index_wrapper_benchmark.dir/clean:
 # Target rules for target benchmark/storage/CMakeFiles/garbage_collector_benchmark.dir
 
 # All Build rule for target.
+benchmark/storage/CMakeFiles/garbage_collector_benchmark.dir/all: benchmark/CMakeFiles/benchmark_util.dir/all
 benchmark/storage/CMakeFiles/garbage_collector_benchmark.dir/all: CMakeFiles/gbenchmark_ep.dir/all
 benchmark/storage/CMakeFiles/garbage_collector_benchmark.dir/all: CMakeFiles/gflags_ep.dir/all
 benchmark/storage/CMakeFiles/garbage_collector_benchmark.dir/all: CMakeFiles/googletest_ep.dir/all
 benchmark/storage/CMakeFiles/garbage_collector_benchmark.dir/all: src/CMakeFiles/terrier_static.dir/all
 benchmark/storage/CMakeFiles/garbage_collector_benchmark.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 benchmark/storage/CMakeFiles/garbage_collector_benchmark.dir/all: test/CMakeFiles/test_util.dir/all
-benchmark/storage/CMakeFiles/garbage_collector_benchmark.dir/all: benchmark/CMakeFiles/benchmark_util.dir/all
 benchmark/storage/CMakeFiles/garbage_collector_benchmark.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f benchmark/storage/CMakeFiles/garbage_collector_benchmark.dir/build.make benchmark/storage/CMakeFiles/garbage_collector_benchmark.dir/depend
 	$(MAKE) -f benchmark/storage/CMakeFiles/garbage_collector_benchmark.dir/build.make benchmark/storage/CMakeFiles/garbage_collector_benchmark.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num=18 "Built target garbage_collector_benchmark"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num= "Built target garbage_collector_benchmark"
 .PHONY : benchmark/storage/CMakeFiles/garbage_collector_benchmark.dir/all
 
 # Build rule for subdir invocation for target.
 benchmark/storage/CMakeFiles/garbage_collector_benchmark.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 54
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 53
 	$(MAKE) -f CMakeFiles/Makefile2 benchmark/storage/CMakeFiles/garbage_collector_benchmark.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 0
 .PHONY : benchmark/storage/CMakeFiles/garbage_collector_benchmark.dir/rule
@@ -5006,13 +4971,13 @@ benchmark/storage/CMakeFiles/garbage_collector_benchmark.dir/clean:
 # Target rules for target benchmark/storage/CMakeFiles/bwtree_benchmark.dir
 
 # All Build rule for target.
+benchmark/storage/CMakeFiles/bwtree_benchmark.dir/all: benchmark/CMakeFiles/benchmark_util.dir/all
 benchmark/storage/CMakeFiles/bwtree_benchmark.dir/all: CMakeFiles/gbenchmark_ep.dir/all
 benchmark/storage/CMakeFiles/bwtree_benchmark.dir/all: CMakeFiles/gflags_ep.dir/all
 benchmark/storage/CMakeFiles/bwtree_benchmark.dir/all: CMakeFiles/googletest_ep.dir/all
 benchmark/storage/CMakeFiles/bwtree_benchmark.dir/all: src/CMakeFiles/terrier_static.dir/all
 benchmark/storage/CMakeFiles/bwtree_benchmark.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 benchmark/storage/CMakeFiles/bwtree_benchmark.dir/all: test/CMakeFiles/test_util.dir/all
-benchmark/storage/CMakeFiles/bwtree_benchmark.dir/all: benchmark/CMakeFiles/benchmark_util.dir/all
 benchmark/storage/CMakeFiles/bwtree_benchmark.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f benchmark/storage/CMakeFiles/bwtree_benchmark.dir/build.make benchmark/storage/CMakeFiles/bwtree_benchmark.dir/depend
 	$(MAKE) -f benchmark/storage/CMakeFiles/bwtree_benchmark.dir/build.make benchmark/storage/CMakeFiles/bwtree_benchmark.dir/build
@@ -5040,13 +5005,13 @@ benchmark/storage/CMakeFiles/bwtree_benchmark.dir/clean:
 # Target rules for target benchmark/storage/CMakeFiles/block_compactor_benchmark.dir
 
 # All Build rule for target.
+benchmark/storage/CMakeFiles/block_compactor_benchmark.dir/all: benchmark/CMakeFiles/benchmark_util.dir/all
 benchmark/storage/CMakeFiles/block_compactor_benchmark.dir/all: CMakeFiles/gbenchmark_ep.dir/all
 benchmark/storage/CMakeFiles/block_compactor_benchmark.dir/all: CMakeFiles/gflags_ep.dir/all
 benchmark/storage/CMakeFiles/block_compactor_benchmark.dir/all: CMakeFiles/googletest_ep.dir/all
 benchmark/storage/CMakeFiles/block_compactor_benchmark.dir/all: src/CMakeFiles/terrier_static.dir/all
 benchmark/storage/CMakeFiles/block_compactor_benchmark.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 benchmark/storage/CMakeFiles/block_compactor_benchmark.dir/all: test/CMakeFiles/test_util.dir/all
-benchmark/storage/CMakeFiles/block_compactor_benchmark.dir/all: benchmark/CMakeFiles/benchmark_util.dir/all
 benchmark/storage/CMakeFiles/block_compactor_benchmark.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f benchmark/storage/CMakeFiles/block_compactor_benchmark.dir/build.make benchmark/storage/CMakeFiles/block_compactor_benchmark.dir/depend
 	$(MAKE) -f benchmark/storage/CMakeFiles/block_compactor_benchmark.dir/build.make benchmark/storage/CMakeFiles/block_compactor_benchmark.dir/build
@@ -5094,13 +5059,13 @@ benchmark/transaction/preinstall:
 # Target rules for target benchmark/transaction/CMakeFiles/large_transaction_benchmark.dir
 
 # All Build rule for target.
+benchmark/transaction/CMakeFiles/large_transaction_benchmark.dir/all: benchmark/CMakeFiles/benchmark_util.dir/all
 benchmark/transaction/CMakeFiles/large_transaction_benchmark.dir/all: CMakeFiles/gbenchmark_ep.dir/all
 benchmark/transaction/CMakeFiles/large_transaction_benchmark.dir/all: CMakeFiles/gflags_ep.dir/all
 benchmark/transaction/CMakeFiles/large_transaction_benchmark.dir/all: CMakeFiles/googletest_ep.dir/all
 benchmark/transaction/CMakeFiles/large_transaction_benchmark.dir/all: src/CMakeFiles/terrier_static.dir/all
 benchmark/transaction/CMakeFiles/large_transaction_benchmark.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 benchmark/transaction/CMakeFiles/large_transaction_benchmark.dir/all: test/CMakeFiles/test_util.dir/all
-benchmark/transaction/CMakeFiles/large_transaction_benchmark.dir/all: benchmark/CMakeFiles/benchmark_util.dir/all
 benchmark/transaction/CMakeFiles/large_transaction_benchmark.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f benchmark/transaction/CMakeFiles/large_transaction_benchmark.dir/build.make benchmark/transaction/CMakeFiles/large_transaction_benchmark.dir/depend
 	$(MAKE) -f benchmark/transaction/CMakeFiles/large_transaction_benchmark.dir/build.make benchmark/transaction/CMakeFiles/large_transaction_benchmark.dir/build
@@ -5128,13 +5093,13 @@ benchmark/transaction/CMakeFiles/large_transaction_benchmark.dir/clean:
 # Target rules for target benchmark/transaction/CMakeFiles/seqscan_benchmark.dir
 
 # All Build rule for target.
+benchmark/transaction/CMakeFiles/seqscan_benchmark.dir/all: benchmark/CMakeFiles/benchmark_util.dir/all
 benchmark/transaction/CMakeFiles/seqscan_benchmark.dir/all: CMakeFiles/gbenchmark_ep.dir/all
 benchmark/transaction/CMakeFiles/seqscan_benchmark.dir/all: CMakeFiles/gflags_ep.dir/all
 benchmark/transaction/CMakeFiles/seqscan_benchmark.dir/all: CMakeFiles/googletest_ep.dir/all
 benchmark/transaction/CMakeFiles/seqscan_benchmark.dir/all: src/CMakeFiles/terrier_static.dir/all
 benchmark/transaction/CMakeFiles/seqscan_benchmark.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 benchmark/transaction/CMakeFiles/seqscan_benchmark.dir/all: test/CMakeFiles/test_util.dir/all
-benchmark/transaction/CMakeFiles/seqscan_benchmark.dir/all: benchmark/CMakeFiles/benchmark_util.dir/all
 benchmark/transaction/CMakeFiles/seqscan_benchmark.dir/all: util/CMakeFiles/util_static.dir/all
 	$(MAKE) -f benchmark/transaction/CMakeFiles/seqscan_benchmark.dir/build.make benchmark/transaction/CMakeFiles/seqscan_benchmark.dir/depend
 	$(MAKE) -f benchmark/transaction/CMakeFiles/seqscan_benchmark.dir/build.make benchmark/transaction/CMakeFiles/seqscan_benchmark.dir/build
@@ -5193,7 +5158,7 @@ util/CMakeFiles/check-tpl.dir/all: util/CMakeFiles/tpl.dir/all
 
 # Build rule for subdir invocation for target.
 util/CMakeFiles/check-tpl.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 46
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 49
 	$(MAKE) -f CMakeFiles/Makefile2 util/CMakeFiles/check-tpl.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 0
 .PHONY : util/CMakeFiles/check-tpl.dir/rule
@@ -5217,12 +5182,12 @@ util/CMakeFiles/util_static.dir/all: src/CMakeFiles/terrier_static.dir/all
 util/CMakeFiles/util_static.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 	$(MAKE) -f util/CMakeFiles/util_static.dir/build.make util/CMakeFiles/util_static.dir/depend
 	$(MAKE) -f util/CMakeFiles/util_static.dir/build.make util/CMakeFiles/util_static.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num= "Built target util_static"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num=98 "Built target util_static"
 .PHONY : util/CMakeFiles/util_static.dir/all
 
 # Build rule for subdir invocation for target.
 util/CMakeFiles/util_static.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 46
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 48
 	$(MAKE) -f CMakeFiles/Makefile2 util/CMakeFiles/util_static.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 0
 .PHONY : util/CMakeFiles/util_static.dir/rule
@@ -5253,7 +5218,7 @@ util/CMakeFiles/tpl.dir/all: util/CMakeFiles/gen_opt_bc.dir/all
 
 # Build rule for subdir invocation for target.
 util/CMakeFiles/tpl.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 46
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 49
 	$(MAKE) -f CMakeFiles/Makefile2 util/CMakeFiles/tpl.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 0
 .PHONY : util/CMakeFiles/tpl.dir/rule
@@ -5276,12 +5241,12 @@ util/CMakeFiles/gen_opt_bc.dir/all: CMakeFiles/gflags_ep.dir/all
 util/CMakeFiles/gen_opt_bc.dir/all: src/libpg_query.a/CMakeFiles/pg_query.dir/all
 	$(MAKE) -f util/CMakeFiles/gen_opt_bc.dir/build.make util/CMakeFiles/gen_opt_bc.dir/depend
 	$(MAKE) -f util/CMakeFiles/gen_opt_bc.dir/build.make util/CMakeFiles/gen_opt_bc.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num= "Built target gen_opt_bc"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles --progress-num=20 "Built target gen_opt_bc"
 .PHONY : util/CMakeFiles/gen_opt_bc.dir/all
 
 # Build rule for subdir invocation for target.
 util/CMakeFiles/gen_opt_bc.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 12
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 13
 	$(MAKE) -f CMakeFiles/Makefile2 util/CMakeFiles/gen_opt_bc.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/CMakeFiles 0
 .PHONY : util/CMakeFiles/gen_opt_bc.dir/rule
