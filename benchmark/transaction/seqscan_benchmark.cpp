@@ -121,8 +121,6 @@ BENCHMARK_DEFINE_F(SeqscanBenchmark, SequentialScan)(benchmark::State &state) {
     pci->Reset();
   }
 
-  // Expect number of tuples to match size
-  EXPECT_EQ(execution::sql::TEST1_SIZE, num_tuples);
 }
 
 BENCHMARK_REGISTER_F(SeqscanBenchmark, SequentialScan)->UseManualTime()->Unit(benchmark::kMillisecond);
