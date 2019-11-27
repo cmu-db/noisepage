@@ -86,7 +86,8 @@ class CatalogAccessor {
 
   /**
    * Drop all entries in the catalog that belong to the namespace, including the namespace entry
-   * @param ns the OID of the namespace to drop
+   * @param ns the OID of the namespace to drop, this must be a valid oid from GetNamespaceOid. Invalid input will
+   * trigger an assert
    * @return true, unless there was no namespace entry with the given OID
    */
   bool DropNamespace(namespace_oid_t ns) const;
@@ -135,15 +136,15 @@ class CatalogAccessor {
 
   /**
    * Drop the table and all corresponding indices from the catalog.
-   * @param table the OID of the table to drop
-   * @return true, unless there was no table entry for the given OID or the entry
-   *         was write-locked by a different transaction
+   * @param table the OID of the table to drop, this must be a valid oid from GetTableOid. Invalid input will trigger an
+   * assert
+   * @return true, unless the entry was write-locked by a different transaction
    */
   bool DropTable(table_oid_t table) const;
 
   /**
    * Inform the catalog of where the underlying storage for a table is
-   * @param table OID in the catalog
+   * @param table OID in the catalog, this must be a valid oid from GetTableOid. Invalid input will trigger an assert
    * @param table_ptr to the memory where the storage is
    * @return whether the operation was successful
    * @warning The table pointer that is passed in must be on the heap as the
@@ -154,7 +155,8 @@ class CatalogAccessor {
 
   /**
    * Obtain the storage pointer for a SQL table
-   * @param table to which we want the storage object
+   * @param table to which we want the storage object, this must be a valid oid from GetTableOid. Invalid input will
+   * trigger an assert
    * @return the storage object corresponding to the passed OID
    */
   common::ManagedPointer<storage::SqlTable> GetTable(table_oid_t table) const;
@@ -166,24 +168,22 @@ class CatalogAccessor {
    * @param table OID of the modified table
    * @param new_schema object describing the table after modification
    * @return true if the operation succeeded, false otherwise
-   * @warning The catalog accessor assumes it takes ownership of the schema object
-   * that is passed.  As such, there is no guarantee that the pointer is still
-   * valid when this function returns.  If the caller needs to reference the
-   * schema object after this call, they should use the GetSchema function to
-   * obtain the authoritative schema for this table.
+   * @warning If the caller needs to reference the schema object after this call, they should use the GetSchema function
+   * to obtain the authoritative schema for this table.
    */
   bool UpdateSchema(table_oid_t table, Schema *new_schema) const;
 
   /**
    * Get the visible schema describing the table.
-   * @param table corresponding to the requested schema
+   * @param table corresponding to the requested schema, this must be a valid oid from GetTableOid. Invalid input will
+   * trigger an assert
    * @return the visible schema object for the identified table
    */
   const Schema &GetSchema(table_oid_t table) const;
 
   /**
    * A list of all constraints on this table
-   * @param table being queried
+   * @param table being queried, this must be a valid oid from GetTableOid. Invalid input will trigger an assert
    * @return vector of OIDs for all of the constraints that apply to this table
    */
   std::vector<constraint_oid_t> GetConstraints(table_oid_t table) const;
@@ -198,7 +198,8 @@ class CatalogAccessor {
   /**
    * Returns index pointers and schemas for every index on a table. Provides much better performance than individual
    * calls to GetIndex and GetIndexSchema
-   * @param table table to get index objects for
+   * @param table table to get index objects for, this must be a valid oid from GetTableOid. Invalid input will trigger
+   * an assert
    * @return vector of pairs of index pointers and their corresponding schemas
    */
   std::vector<std::pair<common::ManagedPointer<storage::index::Index>, const IndexSchema &>> GetIndexes(
@@ -231,21 +232,22 @@ class CatalogAccessor {
 
   /**
    * Gets the schema that was used to define the index
-   * @param index corresponding to the requested key schema
+   * @param index corresponding to the requested key schema, this must be a valid oid from GetIndexOid. Invalid input
+   * will trigger an assert
    * @return the key schema for this index
    */
   const IndexSchema &GetIndexSchema(index_oid_t index) const;
 
   /**
    * Drop the corresponding index from the catalog.
-   * @param index to be dropped
+   * @param index to be dropped, this must be a valid oid from GetIndexOid. Invalid input will trigger an assert
    * @return whether the operation succeeded
    */
   bool DropIndex(index_oid_t index) const;
 
   /**
    * Inform the catalog of where the underlying implementation of the index is
-   * @param index OID in the catalog
+   * @param index OID in the catalog, this must be a valid oid from GetIndexOid. Invalid input will trigger an assert
    * @param index_ptr to the memory where the index is
    * @return whether the operation was successful
    * @warning The index pointer that is passed in must be on the heap as the
@@ -256,7 +258,8 @@ class CatalogAccessor {
 
   /**
    * Obtain the pointer to the index
-   * @param index to which we want a pointer
+   * @param index to which we want a pointer, this must be a valid oid from GetIndexOid. Invalid input will trigger an
+   * assert
    * @return the pointer to the index
    */
   common::ManagedPointer<storage::index::Index> GetIndex(index_oid_t index) const;

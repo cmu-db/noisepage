@@ -4,7 +4,9 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include "catalog/index_schema.h"
 #include "parser/create_statement.h"
+#include "parser/expression/column_value_expression.h"
 #include "planner/plannodes/abstract_plan_node.h"
 
 namespace terrier::planner {
@@ -25,15 +27,6 @@ class CreateIndexPlanNode : public AbstractPlanNode {
      * Don't allow builder to be copied or moved
      */
     DISALLOW_COPY_AND_MOVE(Builder);
-
-    /**
-     * @param database_oid  OID of the database
-     * @return builder object
-     */
-    Builder &SetDatabaseOid(catalog::db_oid_t database_oid) {
-      database_oid_ = database_oid;
-      return *this;
-    }
 
     /**
      * @param namespace_oid OID of the namespace
@@ -63,54 +56,11 @@ class CreateIndexPlanNode : public AbstractPlanNode {
     }
 
     /**
-     * @param unique_index true if index should be unique
+     * @param schema table schema, node takes ownership
      * @return builder object
      */
-    Builder &SetUniqueIndex(bool unique_index) {
-      unique_index_ = unique_index;
-      return *this;
-    }
-
-    /**
-     * @param index_attrs index attributes
-     * @return builder object
-     */
-    Builder &SetIndexAttrs(std::vector<std::string> &&index_attrs) {
-      index_attrs_ = std::move(index_attrs);
-      return *this;
-    }
-
-    /**
-     * @param key_attrs key attributes
-     * @return builder object
-     */
-    Builder &SetKeyAttrs(std::vector<std::string> &&key_attrs) {
-      key_attrs_ = key_attrs;
-      return *this;
-    }
-
-    /**
-     * @param create_stmt the SQL CREATE statement
-     * @return builder object
-     */
-    Builder &SetFromCreateStatement(parser::CreateStatement *create_stmt) {
-      if (create_stmt->GetCreateType() == parser::CreateStatement::CreateType::kIndex) {
-        index_name_ = std::string(create_stmt->GetIndexName());
-
-        // This holds the attribute names.
-        std::vector<std::string> index_attrs_holder;
-
-        for (auto &attr : create_stmt->GetIndexAttributes()) {
-          // TODO(WAN/WEN): Wen, all yours. Note that it either has a name or an expression, not both.
-          index_attrs_holder.push_back(attr.GetName());
-        }
-
-        index_attrs_ = index_attrs_holder;
-
-        index_type_ = create_stmt->GetIndexType();
-
-        unique_index_ = create_stmt->IsUniqueIndex();
-      }
+    Builder &SetSchema(std::unique_ptr<catalog::IndexSchema> schema) {
+      schema_ = std::move(schema);
       return *this;
     }
 
@@ -119,17 +69,12 @@ class CreateIndexPlanNode : public AbstractPlanNode {
      * @return plan node
      */
     std::unique_ptr<CreateIndexPlanNode> Build() {
-      return std::unique_ptr<CreateIndexPlanNode>(new CreateIndexPlanNode(
-          std::move(children_), std::move(output_schema_), database_oid_, namespace_oid_, table_oid_, index_type_,
-          unique_index_, std::move(index_name_), std::move(index_attrs_), std::move(key_attrs_)));
+      return std::unique_ptr<CreateIndexPlanNode>(
+          new CreateIndexPlanNode(std::move(children_), std::move(output_schema_), namespace_oid_, table_oid_,
+                                  std::move(index_name_), std::move(schema_)));
     }
 
    protected:
-    /**
-     * OID of the database
-     */
-    catalog::db_oid_t database_oid_;
-
     /**
      * OID of namespace
      */
@@ -146,24 +91,9 @@ class CreateIndexPlanNode : public AbstractPlanNode {
     std::string index_name_;
 
     /**
-     * Index type
+     * table schema
      */
-    parser::IndexType index_type_ = parser::IndexType::INVALID;
-
-    /**
-     * True if the index is unique
-     */
-    bool unique_index_ = false;
-
-    /**
-     * Index attributes
-     */
-    std::vector<std::string> index_attrs_;
-
-    /**
-     * Attributes that are part of the index key
-     */
-    std::vector<std::string> key_attrs_;
+    std::unique_ptr<catalog::IndexSchema> schema_;
   };
 
  private:
@@ -177,23 +107,16 @@ class CreateIndexPlanNode : public AbstractPlanNode {
    * @param index_type type of index to create
    * @param unique_index true if index should be unique
    * @param index_name name of index to be created
-   * @param index_attrs index attributes
-   * @param key_attrs key attributes
    */
   CreateIndexPlanNode(std::vector<std::unique_ptr<AbstractPlanNode>> &&children,
-                      std::unique_ptr<OutputSchema> output_schema, catalog::db_oid_t database_oid,
-                      catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid,
-                      parser::IndexType index_type, bool unique_index, std::string index_name,
-                      std::vector<std::string> &&index_attrs, std::vector<std::string> &&key_attrs)
+                      std::unique_ptr<OutputSchema> output_schema, catalog::namespace_oid_t namespace_oid,
+                      catalog::table_oid_t table_oid, std::string index_name,
+                      std::unique_ptr<catalog::IndexSchema> schema)
       : AbstractPlanNode(std::move(children), std::move(output_schema)),
-        database_oid_(database_oid),
         namespace_oid_(namespace_oid),
         table_oid_(table_oid),
-        index_type_(index_type),
-        unique_index_(unique_index),
         index_name_(std::move(index_name)),
-        index_attrs_(std::move(index_attrs)),
-        key_attrs_(std::move(key_attrs)) {}
+        schema_(std::move(schema)) {}
 
  public:
   /**
@@ -207,11 +130,6 @@ class CreateIndexPlanNode : public AbstractPlanNode {
    * @return the type of this plan node
    */
   PlanNodeType GetPlanNodeType() const override { return PlanNodeType::CREATE_INDEX; }
-
-  /**
-   * @return OID of the database
-   */
-  catalog::db_oid_t GetDatabaseOid() const { return database_oid_; }
 
   /**
    * @return OID of the namespace
@@ -229,24 +147,9 @@ class CreateIndexPlanNode : public AbstractPlanNode {
   const std::string &GetIndexName() const { return index_name_; }
 
   /**
-   * @return true if index should be unique
+   * @return pointer to the schema
    */
-  bool IsUniqueIndex() const { return unique_index_; }
-
-  /**
-   * @return index type
-   */
-  parser::IndexType GetIndexType() const { return index_type_; }
-
-  /**
-   * @return index attributes
-   */
-  const std::vector<std::string> &GetIndexAttributes() const { return index_attrs_; }
-
-  /**
-   * @return name of key attributes
-   */
-  const std::vector<std::string> &GetKeyAttrs() const { return key_attrs_; }
+  common::ManagedPointer<catalog::IndexSchema> GetSchema() const { return common::ManagedPointer(schema_); }
 
   /**
    * @return the hashed value of this plan node
@@ -259,45 +162,10 @@ class CreateIndexPlanNode : public AbstractPlanNode {
   std::vector<std::unique_ptr<parser::AbstractExpression>> FromJson(const nlohmann::json &j) override;
 
  private:
-  /**
-   * OID of the database
-   */
-  catalog::db_oid_t database_oid_;
-
-  /**
-   * OID of namespace
-   */
   catalog::namespace_oid_t namespace_oid_;
-
-  /**
-   * OID of the table to create index on
-   */
   catalog::table_oid_t table_oid_;
-
-  /**
-   * Index type
-   */
-  parser::IndexType index_type_ = parser::IndexType::INVALID;
-
-  /**
-   * True if the index is unique
-   */
-  bool unique_index_ = false;
-
-  /**
-   * Name of the Index
-   */
   std::string index_name_;
-
-  /**
-   * Index attributes
-   */
-  std::vector<std::string> index_attrs_;
-
-  /**
-   * Attributes that are part of the index key
-   */
-  std::vector<std::string> key_attrs_;
+  std::unique_ptr<catalog::IndexSchema> schema_;
 };
 
 DEFINE_JSON_DECLARATIONS(CreateIndexPlanNode);
