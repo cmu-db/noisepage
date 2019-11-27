@@ -883,7 +883,8 @@ void Sketch::hash(const void *key_addr, std::size_t key_size,
 
 void Sketch::copy_(const Sketch &src, const char *path, int flags) {
   create_(src.width(), src.max_value(), path, flags, src.seed());
-  std::memcpy(random_, src.random_, sizeof(Random));
+  // We recast random_ as a workaround for -Wclass-memaccess
+  std::memcpy(static_cast<void *>(random_), src.random_, sizeof(Random));
   std::memcpy(table_, src.table_, static_cast<std::size_t>(table_size()));
 }
 
@@ -976,7 +977,8 @@ void Sketch::shrink_(const Sketch &src, UInt64 width,
   MADOKA_THROW_IF((src.width() % width) != 0);
 
   create_(width, max_value, path, flags, src.seed());
-  std::memcpy(random_, src.random_, sizeof(Random));
+  // We recast random_ as a workaround for -Wclass-memaccess
+  std::memcpy(static_cast<void *>(random_), src.random_, sizeof(Random));
 
   width = this->width();
   max_value = this->max_value();
