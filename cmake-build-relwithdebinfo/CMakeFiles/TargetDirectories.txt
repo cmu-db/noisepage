@@ -105,14 +105,15 @@
 /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/test/execution/CMakeFiles/bloom_filter_test.dir
 /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/test/execution/CMakeFiles/install/strip.dir
 /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/test/execution/CMakeFiles/bitfield_test.dir
+/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/test/execution/CMakeFiles/vector_util_test.dir
+/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/test/execution/CMakeFiles/bytecode_trampoline_test.dir
+/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/test/execution/CMakeFiles/ddl_executors_test.dir
 /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/test/execution/CMakeFiles/bandit_test.dir
 /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/test/execution/CMakeFiles/ast_test.dir
 /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/test/execution/CMakeFiles/ast_dump_test.dir
 /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/test/execution/CMakeFiles/chunked_vector_test.dir
 /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/test/execution/CMakeFiles/bit_util_test.dir
 /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/test/execution/CMakeFiles/date_functions_test.dir
-/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/test/execution/CMakeFiles/vector_util_test.dir
-/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/test/execution/CMakeFiles/bytecode_trampoline_test.dir
 /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/test/execution/CMakeFiles/install.dir
 /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/test/execution/CMakeFiles/ast_context_test.dir
 /Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/test/execution/CMakeFiles/arithmetic_functions_test.dir
