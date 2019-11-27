@@ -75,7 +75,7 @@ void BytecodeEmitter::Bind(BytecodeLabel *label) {
     auto &jump_locations = label->ReferrerOffsets();
 
     for (const auto &jump_location : jump_locations) {
-      TERRIER_ASSERT((curr_offset - jump_location) < std::numeric_limits<int32_t>::max(),
+      TERRIER_ASSERT((curr_offset - jump_location) < static_cast<size_t>(std::numeric_limits<int32_t>::max()),
                      "Jump delta exceeds 32-bit value for jump offsets!");
 
       auto delta = static_cast<int32_t>(curr_offset - jump_location);
@@ -101,7 +101,8 @@ void BytecodeEmitter::EmitJump(BytecodeLabel *label) {
     TERRIER_ASSERT(label->Offset() <= curr_offset,
                    "Label for backwards jump cannot be beyond current bytecode position");
     std::size_t delta = curr_offset - label->Offset();
-    TERRIER_ASSERT(delta < std::numeric_limits<int32_t>::max(), "Jump delta exceeds 32-bit value for jump offsets!");
+    TERRIER_ASSERT(delta < static_cast<size_t>(std::numeric_limits<int32_t>::max()),
+            "Jump delta exceeds 32-bit value for jump offsets!");
 
     // Immediately emit the delta
     EmitScalarValue(-static_cast<int32_t>(delta));
