@@ -371,10 +371,11 @@ bool DatabaseCatalog::DeleteNamespace(transaction::TransactionContext *const txn
     return false;
   }
 
+  // Step 4: Cascading deletes
   // Get the objects in this namespace
   auto ns_objects = GetNamespaceObjectOids(txn, ns_oid);
   for (const auto object : ns_objects) {
-    // delete all of the tables. This should get most of the indexes
+    // Delete all of the tables. This should get most of the indexes
     if (object.second == postgres::ClassKind::REGULAR_TABLE) {
       result = DeleteTable(txn, static_cast<table_oid_t>(object.first));
       if (!result) {
@@ -385,10 +386,14 @@ bool DatabaseCatalog::DeleteNamespace(transaction::TransactionContext *const txn
     }
   }
 
-  // Get the objects in the namespace again
+  // Get the objects in the namespace again, just in case there were any indexes that don't belong to a table in this
+  // namespace. We could do all of this cascading cleanup with a more complex single index scan, but we're taking
+  // advantage of existing PRIs and indexes and expecting that deleting a namespace isn't that common of an operation,
+  // so we can be slightly less efficient than optimal.
   ns_objects = GetNamespaceObjectOids(txn, ns_oid);
   for (const auto object : ns_objects) {
-    // delete all of the straggler indexes that may have been built on tables in other namespaces
+    // Delete all of the straggler indexes that may have been built on tables in other namespaces. We shouldn't get any
+    // double-deletions because indexes on tables will already be invisible to us (logically deleted already).
     if (object.second == postgres::ClassKind::INDEX) {
       result = DeleteIndex(txn, static_cast<index_oid_t>(object.first));
       if (!result) {
@@ -399,13 +404,13 @@ bool DatabaseCatalog::DeleteNamespace(transaction::TransactionContext *const txn
     }
   }
 
-  // Step 4: Delete from oid index
+  // Step 5: Delete from oid index
   pr = oid_pri.InitializeRow(buffer);
   // Write the attributes in the ProjectedRow
   *(reinterpret_cast<namespace_oid_t *>(pr->AccessForceNotNull(0))) = ns_oid;
   namespaces_oid_index_->Delete(txn, *pr, tuple_slot);
 
-  // Step 5: Delete from name index
+  // Step 6: Delete from name index
   const auto name_pri = namespaces_name_index_->GetProjectedRowInitializer();
   pr = name_pri.InitializeRow(buffer);
   // Write the attributes in the ProjectedRow
@@ -1732,6 +1737,7 @@ std::vector<std::pair<uint32_t, postgres::ClassKind>> DatabaseCatalog::GetNamesp
   for (const auto scan_result : index_scan_results) {
     const auto result UNUSED_ATTRIBUTE = classes_->Select(txn, scan_result, select_pr);
     TERRIER_ASSERT(result, "Index already verified visibility. This shouldn't fail.");
+    // oid_t is guaranteed to be larger in size than ClassKind, so we know the column offsets without the PR map
     ns_objects.emplace_back(*(reinterpret_cast<const uint32_t *const>(select_pr->AccessWithNullCheck(0))),
                             *(reinterpret_cast<const postgres::ClassKind *const>(select_pr->AccessForceNotNull(1))));
   }

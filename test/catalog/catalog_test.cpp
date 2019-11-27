@@ -400,6 +400,78 @@ TEST_F(CatalogTests, CascadingDropNamespaceTest) {
 }
 
 /*
+ * Create a user table in one namespace and an index on that table in another namespace. Verify that index gets dropped
+ * correctly in second namespace.
+ */
+// NOLINTNEXTLINE
+TEST_F(CatalogTests, CascadingDropNamespaceWithIndexOnOtherNamespaceTest) {
+  auto txn = txn_manager_->BeginTransaction();
+  auto accessor = catalog_->GetAccessor(txn, db_);
+  EXPECT_NE(accessor, nullptr);
+  auto ns_oid = accessor->CreateNamespace("test_namespace");
+  EXPECT_NE(ns_oid, catalog::INVALID_NAMESPACE_OID);
+  VerifyCatalogTables(*accessor);  // Check visibility to me
+  txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+
+  // Create the column definition (no OIDs)
+  std::vector<catalog::Schema::Column> cols;
+  cols.emplace_back("id", type::TypeId::INTEGER, false,
+                    parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
+  cols.emplace_back("user_col_1", type::TypeId::INTEGER, false,
+                    parser::ConstantValueExpression(type::TransientValueFactory::GetNull(type::TypeId::INTEGER)));
+  auto tmp_schema = catalog::Schema(cols);
+
+  txn = txn_manager_->BeginTransaction();
+  accessor = catalog_->GetAccessor(txn, db_);
+  EXPECT_NE(accessor, nullptr);
+  auto table_oid = accessor->CreateTable(accessor->GetDefaultNamespace(), "test_table", tmp_schema);
+  auto schema = accessor->GetSchema(table_oid);
+  auto table = new storage::SqlTable(&block_store_, schema);
+
+  EXPECT_TRUE(accessor->SetTablePointer(table_oid, table));
+  txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+
+  // Create the index
+  txn = txn_manager_->BeginTransaction();
+  accessor = catalog_->GetAccessor(txn, db_);
+  EXPECT_NE(accessor, nullptr);
+  std::vector<catalog::IndexSchema::Column> key_cols{catalog::IndexSchema::Column{
+      "id", type::TypeId::INTEGER, false, parser::ColumnValueExpression(db_, table_oid, schema.GetColumn("id").Oid())}};
+  auto index_schema = catalog::IndexSchema(key_cols, storage::index::IndexType::BWTREE, true, true, false, true);
+  auto idx_oid = accessor->CreateIndex(ns_oid, table_oid, "test_index", index_schema);
+  EXPECT_NE(idx_oid, catalog::INVALID_INDEX_OID);
+  auto true_schema = accessor->GetIndexSchema(idx_oid);
+
+  storage::index::IndexBuilder index_builder;
+  index_builder.SetKeySchema(true_schema);
+  auto index = index_builder.Build();
+
+  EXPECT_TRUE(accessor->SetIndexPointer(idx_oid, index));
+  EXPECT_EQ(common::ManagedPointer(index), accessor->GetIndex(idx_oid));
+  txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+
+  // Get an accessor into the database and validate the catalog tables exist
+  // then delete it and verify an invalid OID is now returned for the lookup
+  txn = txn_manager_->BeginTransaction();
+  accessor = catalog_->GetAccessor(txn, db_);
+  EXPECT_NE(accessor, nullptr);
+
+  VerifyTablePresent(*accessor, accessor->GetDefaultNamespace(), "test_table");
+  idx_oid = accessor->GetIndexOid(ns_oid, "test_index");
+  EXPECT_NE(idx_oid, catalog::INVALID_INDEX_OID);
+
+  VerifyTableAbsent(*accessor, ns_oid, "test_table");
+  idx_oid = accessor->GetIndexOid(accessor->GetDefaultNamespace(), "test_index");
+  EXPECT_EQ(idx_oid, catalog::INVALID_INDEX_OID);
+
+  EXPECT_TRUE(accessor->DropNamespace(ns_oid));
+  VerifyTablePresent(*accessor, accessor->GetDefaultNamespace(), "test_table");
+  idx_oid = accessor->GetIndexOid(ns_oid, "test_index");
+  EXPECT_EQ(idx_oid, catalog::INVALID_INDEX_OID);
+  txn_manager_->Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
+}
+
+/*
  * Check behavior of search path
  */
 // NOLINTNEXTLINE
