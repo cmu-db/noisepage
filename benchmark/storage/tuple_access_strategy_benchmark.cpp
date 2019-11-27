@@ -61,7 +61,8 @@ BENCHMARK_DEFINE_F(TupleAccessStrategyBenchmark, SimpleInsert)(benchmark::State 
       // Get a Block, zero it, and initialize
       storage::RawBlock *raw_block = block_store_.Get();
       raw_blocks_.emplace_back(raw_block);
-      std::memset(raw_block, 0, sizeof(storage::RawBlock));
+      // Recast raw_block as a -Wclass-memaccess workaround
+      std::memset(static_cast<void *>(raw_block), 0, sizeof(storage::RawBlock));
       tested.InitializeRawBlock(nullptr, raw_block, storage::layout_version_t(0));
       for (uint32_t j = 0; j < layout_.NumSlots(); j++) {
         storage::TupleSlot slot;
