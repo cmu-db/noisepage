@@ -163,6 +163,41 @@ class OperatorVisitor {
   virtual void Visit(const CreateDatabase *create_database) {}
 
   /**
+   * Visit a CreateFunction operator
+   * @param create_function operator
+   */
+  virtual void Visit(const CreateFunction *create_function) {}
+
+  /**
+   * Visit a CreateIndex operator
+   * @param create_index operator
+   */
+  virtual void Visit(const CreateIndex *create_index) {}
+
+  /**
+   * Visit a CreateTable operator
+   * @param create_table operator
+   */
+  virtual void Visit(const CreateTable *create_table) {}
+
+  /**
+   * Visit a CreateSchema operator
+   * @param create_namespace operator
+   */
+  virtual void Visit(const CreateSchema *create_namespace) {}
+
+  /**
+   * Visit a CreateTrigger operator
+   * @param create_trigger operator
+   */
+  virtual void Visit(const CreateTrigger *create_trigger) {}
+
+  /**
+   * Visit a CreateView operator
+   * @param create_view operator
+   */
+  virtual void Visit(const CreateView *create_view) {}
+  /**
    * Visit a DropDatabase operator
    * @param drop_database operator
    */
