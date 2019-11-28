@@ -155,6 +155,43 @@ class Schema {
     Column() = default;
 
     /**
+     * @return the hashed value of this column
+     */
+    common::hash_t Hash() const {
+      common::hash_t hash = common::HashUtil::Hash(name_);
+      hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(type_));
+      hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(attr_size_));
+      hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(max_varlen_size_));
+      hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(nullable_));
+      hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(oid_));
+      if (default_value_ != nullptr) hash = common::HashUtil::CombineHashes(hash, default_value_->Hash());
+      return hash;
+    }
+
+    /**
+     * Perform a comparison of column
+     * @param rhs other column to compare against
+     * @return true if the two columns are equal
+     */
+    bool operator==(const Column &rhs) const {
+      if (name_ != rhs.name_) return false;
+      if (type_ != rhs.type_) return false;
+      if (attr_size_ != rhs.attr_size_) return false;
+      if (max_varlen_size_ != rhs.max_varlen_size_) return false;
+      if (nullable_ != rhs.nullable_) return false;
+      if (oid_ != rhs.oid_) return false;
+      if (default_value_ == nullptr) return rhs.default_value_ == nullptr;
+      return *default_value_ == *rhs.default_value_;
+    }
+
+    /**
+     * Perform a comparison of column
+     * @param rhs other column to compare against
+     * @return true if the two columns are not equal
+     */
+    bool operator!=(const Column &rhs) const { return !operator==(rhs); }
+
+    /**
      * @return column serialized to json
      */
     nlohmann::json ToJson() const {
@@ -292,6 +329,38 @@ class Schema {
     auto columns = j.at("columns").get<std::vector<Schema::Column>>();
     return std::make_unique<Schema>(columns);
   }
+
+
+  /**
+   * @return the hashed value of this schema
+   */
+  common::hash_t Hash() const {
+    // TODO(Ling): Does column order matter for hash?
+    common::hash_t hash = common::HashUtil::Hash(col_oid_to_offset_.size());
+    for (const auto & col : columns_) hash = common::HashUtil::CombineHashes(hash, col.Hash());
+    return hash;
+  }
+
+  /**
+   * Perform a comparison of column
+   * @param rhs other column to compare against
+   * @return true if the two columns are equal
+   */
+  bool operator==(const Schema &rhs) const {
+    // TODO(Ling): Does column order matter for compare equal?
+    if (col_oid_to_offset_.size() != rhs.col_oid_to_offset_.size()) return false;
+    if (columns_.size() != rhs.columns_.size()) return false;
+    for (size_t i = 0; i < columns_.size(); i++) {
+      if (columns_[i] != rhs.columns_[i]) return false;
+    }
+  }
+
+  /**
+   * Perform a comparison of column
+   * @param rhs other column to compare against
+   * @return true if the two columns are not equal
+   */
+  bool operator!=(const Schema &rhs) const { return !operator==(rhs); }
 
  private:
   friend class DatabaseCatalog;
