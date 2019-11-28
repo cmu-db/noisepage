@@ -189,9 +189,15 @@ void BindNodeVisitor::Visit(parser::CreateStatement *node, parser::ParseResult *
   auto create_type = node->GetCreateType();
   switch (create_type) {
     case parser::CreateStatement::CreateType::kDatabase:
+      if (catalog_accessor_->GetDatabaseOid(node->GetDatabaseName()) != catalog::INVALID_DATABASE_OID) {
+        throw BINDER_EXCEPTION("Database name already exists");
+      }
       break;
     case parser::CreateStatement::CreateType::kTable:
       node->TryBindDatabaseName(default_database_name_);
+      if (catalog_accessor_->GetTableOid(node->GetTableName()) != catalog::INVALID_TABLE_OID) {
+        throw BINDER_EXCEPTION("Table name already exists");
+      }
       context_->AddNewTable(node->GetTableName(), node->GetColumns());
       for (const auto &col : node->GetColumns()) {
         if (col->GetDefaultExpression() != nullptr) col->GetDefaultExpression()->Accept(this, parse_result);
@@ -295,10 +301,21 @@ void BindNodeVisitor::Visit(parser::DropStatement *node, UNUSED_ATTRIBUTE parser
   auto drop_type = node->GetDropType();
   switch (drop_type) {
     case parser::DropStatement::DropType::kDatabase:
+      if (catalog_accessor_->GetDatabaseOid(node->GetDatabaseName()) == catalog::INVALID_DATABASE_OID) {
+        throw BINDER_EXCEPTION("Database does not exist");
+      }
       break;
     case parser::DropStatement::DropType::kTable:
+      node->TryBindDatabaseName(default_database_name_);
+      if (catalog_accessor_->GetTableOid(node->GetTableName()) == catalog::INVALID_TABLE_OID) {
+        throw BINDER_EXCEPTION("Table does not exist");
+      }
+      break;
     case parser::DropStatement::DropType::kIndex:
       node->TryBindDatabaseName(default_database_name_);
+      if (catalog_accessor_->GetIndexOid(node->GetIndexName()) == catalog::INVALID_INDEX_OID) {
+        throw BINDER_EXCEPTION("Index does not exist");
+      }
       break;
     case parser::DropStatement::DropType::kTrigger:
     case parser::DropStatement::DropType::kSchema:
