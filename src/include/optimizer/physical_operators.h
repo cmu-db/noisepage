@@ -5,6 +5,7 @@
 #include <unordered_map>
 #include <utility>
 #include <vector>
+#include "catalog/schema.h"
 #include "catalog/catalog_defs.h"
 #include "common/hash_util.h"
 #include "common/managed_pointer.h"
@@ -14,6 +15,7 @@
 #include "parser/parser_defs.h"
 #include "parser/update_statement.h"
 #include "planner/plannodes/plan_node_defs.h"
+#include "planner/plannodes/create_table_plan_node.h"
 #include "type/transient_value.h"
 
 namespace terrier {
@@ -1179,6 +1181,116 @@ class CreateDatabase : public OperatorNode<CreateDatabase> {
    * Name of the new database
    */
   std::string database_name_;
+};
+
+/**
+ * Physical operator for CreateTable
+ */
+class CreateTable : public OperatorNode<CreateTable> {
+ public:
+  /**
+   * @param database_name Name of the database to be created
+   * @return
+   */
+  static Operator Make(catalog::namespace_oid_t namespace_oid, std::string table_name, std::unique_ptr<catalog::Schema> table_schema,
+                       common::ManagedPointer<storage::BlockStore> block_store, bool has_primary_key,
+                       planner::PrimaryKeyInfo primary_key, std::vector<planner::ForeignKeyInfo> &&foreign_keys,
+                       std::vector<planner::UniqueInfo> &&con_uniques, std::vector<planner::CheckInfo> &&con_checks);
+
+  bool operator==(const BaseOperatorNode &r) override;
+  common::hash_t Hash() const override;
+
+  /**
+   * @return OID of the namespace to create index on
+   */
+  catalog::namespace_oid_t GetNamespaceOid() const { return namespace_oid_; }
+
+  /**
+   * @return name of the table
+   */
+  const std::string &GetTableName() const { return table_name_; }
+
+  /**
+   * @return block store to be used when constructing this table
+   */
+  common::ManagedPointer<storage::BlockStore> GetBlockStore() const { return block_store_; }
+
+  /**
+   * @return pointer to the schema
+   */
+  common::ManagedPointer<catalog::Schema> GetSchema() const { return common::ManagedPointer(table_schema_); }
+
+  /**
+   * @return true if index/table has primary key
+   */
+  bool HasPrimaryKey() const { return has_primary_key_; }
+
+  /**
+   * @return primary key meta-data
+   */
+  const planner::PrimaryKeyInfo &GetPrimaryKey() const { return primary_key_; }
+
+  /**
+   * @return foreign keys meta-data
+   */
+  const std::vector<planner::ForeignKeyInfo> &GetForeignKeys() const { return foreign_keys_; }
+
+  /**
+   * @return unique constraints
+   */
+  const std::vector<planner::UniqueInfo> &GetUniqueConstraints() const { return con_uniques_; }
+
+  /**
+   * @return check constraints
+   */
+  const std::vector<planner::CheckInfo> &GetCheckConstraints() const { return con_checks_; }
+
+ private:
+  /**
+    * OID of the schema/namespace
+    */
+  catalog::namespace_oid_t namespace_oid_;
+
+  /**
+   * Table Name
+   */
+  std::string table_name_;
+
+  /**
+   * Table Schema
+   */
+  std::unique_ptr<catalog::Schema> table_schema_;
+
+  /**
+   * block store to be used when constructing this table
+   */
+  common::ManagedPointer<storage::BlockStore> block_store_;
+
+  /**
+   * ColumnDefinition for multi-column constraints (including foreign key)
+   * Whether the table/index has primary key
+   */
+  bool has_primary_key_ = false;
+
+  /**
+   * Primary key information
+   */
+  planner::PrimaryKeyInfo primary_key_;
+
+  /**
+   * Foreign keys information
+   */
+  std::vector<planner::ForeignKeyInfo> foreign_keys_;
+
+  /**
+   * Unique constraints
+   */
+  std::vector<planner::UniqueInfo> con_uniques_;
+
+  /**
+   * Check constraints
+   */
+  std::vector<planner::CheckInfo> con_checks_;
 };
 
 /**
