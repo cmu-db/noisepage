@@ -181,7 +181,7 @@ class Schema {
       if (nullable_ != rhs.nullable_) return false;
       if (oid_ != rhs.oid_) return false;
       if (default_value_ == nullptr) return rhs.default_value_ == nullptr;
-      return *default_value_ == *rhs.default_value_;
+      return rhs.default_value_ != nullptr && *default_value_ == *rhs.default_value_;
     }
 
     /**

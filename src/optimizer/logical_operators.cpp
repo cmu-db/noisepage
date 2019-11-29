@@ -948,7 +948,7 @@ bool LogicalCreateTrigger::operator==(const BaseOperatorNode &r) {
   if (trigger_columns_ != node.trigger_columns_) return false;
   if (trigger_type_ != node.trigger_type_) return false;
   if (trigger_when_ == nullptr) return node.trigger_when_ == nullptr;
-  return *trigger_when_ == *(node.trigger_when_);
+  return node.trigger_when_ != nullptr && *trigger_when_ == *node.trigger_when_;
 }
 
 //===--------------------------------------------------------------------===//
@@ -981,7 +981,8 @@ bool LogicalCreateView::operator==(const BaseOperatorNode &r) {
   if (database_oid_ != node.database_oid_) return false;
   if (namespace_oid_ != node.namespace_oid_) return false;
   if (view_name_ != node.view_name_) return false;
-  return *view_query_ == *(node.view_query_);
+  if (view_query_ == nullptr) return node.view_query_ == nullptr;
+  return node.view_query_ != nullptr && *view_query_ == *node.view_query_;
 }
 
 //===--------------------------------------------------------------------===//

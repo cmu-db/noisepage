@@ -58,7 +58,10 @@ bool CreateTablePlanNode::operator==(const AbstractPlanNode &rhs) const {
   if (table_name_ != other.table_name_) return false;
 
   // Schema
-  if (table_schema_ != nullptr && *table_schema_ != *other.table_schema_) return false;
+  if (table_schema_ != nullptr) {
+    if (other.table_schema_ == nullptr) return false;
+    if (*table_schema_ != *other.table_schema_) return false;
+  }
   if (table_schema_ == nullptr && other.table_schema_ != nullptr) return false;
 
   // Has primary key

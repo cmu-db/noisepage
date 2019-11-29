@@ -168,7 +168,7 @@ class IndexSchema {
       if (Nullable() != rhs.Nullable()) return false;
       if (oid_ != rhs.oid_) return false;
       if (definition_ == nullptr) return rhs.definition_ == nullptr;
-      return *definition_ == *rhs.definition_;
+      return rhs.definition_ != nullptr && *definition_ == *rhs.definition_;
     }
 
     /**

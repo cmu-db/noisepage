@@ -18,8 +18,8 @@ common::hash_t CreateViewPlanNode::Hash() const {
   // Hash view_name
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(view_name_));
 
-  // TODO(Gus,Wen) missing Hash for select statement
-
+  // Hash view query
+  if (view_query_ != nullptr) hash = common::HashUtil::CombineHashes(hash, view_query_->Hash());
   return hash;
 }
 
@@ -34,11 +34,16 @@ bool CreateViewPlanNode::operator==(const AbstractPlanNode &rhs) const {
   // Namespace OID
   if (namespace_oid_ != other.namespace_oid_) return false;
 
-  // Hash view_name
+  // View name
   if (GetViewName() != other.GetViewName()) return false;
 
-  // TODO(Gus,Wen) missing == operator for select statement
-
+  // View query
+  if (view_query_ != nullptr) {
+    if (other.view_query_ == nullptr) return false;
+    if (*view_query_ != *other.view_query_) return false;
+  }
+  if (view_query_ == nullptr && other.view_query_ != nullptr) return false;
+  
   return true;
 }
 

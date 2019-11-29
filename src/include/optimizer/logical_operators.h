@@ -1497,7 +1497,7 @@ class LogicalDropDatabase : public OperatorNode<LogicalDropDatabase> {
   /**
    * OID of the database
    */
-  catalog::db_oid_t db_oid_;
+  catalog::db_oid_t db_oid_ = catalog::INVALID_DATABASE_OID;
 };
 
 /**
@@ -1523,7 +1523,7 @@ class LogicalDropTable : public OperatorNode<LogicalDropTable> {
   /**
    * OID of the table
    */
-  catalog::table_oid_t table_oid_;
+  catalog::table_oid_t table_oid_ = catalog::INVALID_TABLE_OID;
 };
 
 /**
@@ -1548,7 +1548,7 @@ class LogicalDropIndex : public OperatorNode<LogicalDropIndex> {
   /**
    * OID of the table
    */
-  catalog::index_oid_t index_oid_;
+  catalog::index_oid_t index_oid_ = catalog::INVALID_INDEX_OID;
 };
 
 }  // namespace optimizer

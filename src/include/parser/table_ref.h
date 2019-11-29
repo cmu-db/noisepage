@@ -15,6 +15,8 @@ namespace binder {
 class BindNodeVisitor;
 }
 namespace parser {
+class SelectStatement;
+class TableRef;
 
 /**
  * Represents a join table.
@@ -67,6 +69,25 @@ class JoinDefinition {
    * @return join condition
    */
   common::ManagedPointer<AbstractExpression> GetJoinCondition() { return condition_; }
+
+  /**
+   * @return the hashed value of this join definition
+   */
+  common::hash_t Hash() const;
+
+  /**
+   * Logical equality check.
+   * @param rhs other
+   * @return true if the two JoinDefinition are logically equal
+   */
+  bool operator==(const JoinDefinition &rhs) const;
+
+  /**
+   * Logical inequality check.
+   * @param rhs other
+   * @return true if the two JoinDefinition are logically unequal
+   */
+  bool operator!=(const JoinDefinition &rhs) const { return !(operator==(rhs)); }
 
   /**
    * @return JoinDefinition serialized to json
@@ -203,6 +224,25 @@ class TableRef {
 
   /** @return join */
   common::ManagedPointer<JoinDefinition> GetJoin() { return common::ManagedPointer(join_); }
+
+  /**
+   * @return the hashed value of this table ref object
+   */
+  common::hash_t Hash() const;
+
+  /**
+   * Logical equality check.
+   * @param rhs other
+   * @return true if the two TableRef are logically equal
+   */
+  bool operator==(const TableRef &rhs) const;
+
+  /**
+   * Logical inequality check.
+   * @param rhs other
+   * @return true if the two TabelRef are logically unequal
+   */
+  bool operator!=(const TableRef &rhs) const { return !(operator==(rhs)); }
 
   /** @return TableRef serialized to json */
   nlohmann::json ToJson() const;

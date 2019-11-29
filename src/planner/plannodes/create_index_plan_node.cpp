@@ -36,7 +36,10 @@ bool CreateIndexPlanNode::operator==(const AbstractPlanNode &rhs) const {
   if (table_oid_ != other.table_oid_) return false;
 
   // Index schema
-  if (schema_ != nullptr && *schema_ != *other.schema_) return false;
+  if (schema_ != nullptr) {
+    if (other.schema_ == nullptr) return false;
+    if (*schema_ != *other.schema_) return false;
+  }
   if (schema_ == nullptr && other.schema_ != nullptr) return false;
 
   // Index name
