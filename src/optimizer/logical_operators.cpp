@@ -743,13 +743,14 @@ bool LogicalCreateDatabase::operator==(const BaseOperatorNode &r) {
 // LogicalCreateFunction
 //===--------------------------------------------------------------------===//
 
-Operator LogicalCreateFunction::Make(catalog::namespace_oid_t namespace_oid, std::string function_name,
+Operator LogicalCreateFunction::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid, std::string function_name,
                                      parser::PLType language, std::vector<std::string> &&function_body,
                                      std::vector<std::string> &&function_param_names,
                                      std::vector<parser::BaseFunctionParameter::DataType> &&function_param_types,
                                      parser::BaseFunctionParameter::DataType return_type, int param_count,
                                      bool replace) {
   auto op = std::make_unique<LogicalCreateFunction>();
+  op->database_oid_ = database_oid;
   op->namespace_oid_ = namespace_oid;
   op->function_name_ = std::move(function_name);
   op->function_body_ = std::move(function_body);
@@ -764,6 +765,7 @@ Operator LogicalCreateFunction::Make(catalog::namespace_oid_t namespace_oid, std
 
 common::hash_t LogicalCreateFunction::Hash() const {
   common::hash_t hash = BaseOperatorNode::Hash();
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_oid_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(namespace_oid_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(function_name_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(param_count_));
@@ -777,8 +779,9 @@ common::hash_t LogicalCreateFunction::Hash() const {
 }
 
 bool LogicalCreateFunction::operator==(const BaseOperatorNode &r) {
-  if (r.GetType() != OpType::LOGICALDELETE) return false;
+  if (r.GetType() != OpType::LOGICALCREATEFUNCTION) return false;
   const LogicalCreateFunction &node = *dynamic_cast<const LogicalCreateFunction *>(&r);
+  if (database_oid_ != node.database_oid_) return false;
   if (namespace_oid_ != node.namespace_oid_) return false;
   if (function_name_ != node.function_name_) return false;
   if (function_body_ != node.function_body_) return false;

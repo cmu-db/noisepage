@@ -958,7 +958,62 @@ bool CreateView::operator==(const BaseOperatorNode &r) {
   if (namespace_oid_ != node.namespace_oid_) return false;
   if (view_name_ != node.view_name_) return false;
   if (view_query_ == nullptr) return node.view_query_ == nullptr;
-  return node.view_query_ != nullptr && *view_query_ == *node.view_query_;}
+  return node.view_query_ != nullptr && *view_query_ == *node.view_query_;
+}
+
+//===--------------------------------------------------------------------===//
+// CreateFunction
+//===--------------------------------------------------------------------===//
+
+Operator CreateFunction::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid, std::string function_name,
+                                     parser::PLType language, std::vector<std::string> &&function_body,
+                                     std::vector<std::string> &&function_param_names,
+                                     std::vector<parser::BaseFunctionParameter::DataType> &&function_param_types,
+                                     parser::BaseFunctionParameter::DataType return_type, int param_count,
+                                     bool replace) {
+  auto op = std::make_unique<CreateFunction>();
+  op->database_oid_ = database_oid;
+  op->namespace_oid_ = namespace_oid;
+  op->function_name_ = std::move(function_name);
+  op->function_body_ = std::move(function_body);
+  op->function_param_names_ = std::move(function_param_names);
+  op->function_param_types_ = std::move(function_param_types);
+  op->is_replace_ = replace;
+  op->param_count_ = param_count;
+  op->return_type_ = return_type;
+  op->language_ = language;
+  return Operator(std::move(op));
+}
+
+common::hash_t CreateFunction::Hash() const {
+  common::hash_t hash = BaseOperatorNode::Hash();
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_oid_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(namespace_oid_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(function_name_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(param_count_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(is_replace_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(return_type_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(language_));
+  hash = common::HashUtil::CombineHashInRange(hash, function_body_.begin(), function_body_.end());
+  hash = common::HashUtil::CombineHashInRange(hash, function_param_names_.begin(), function_param_names_.end());
+  hash = common::HashUtil::CombineHashInRange(hash, function_param_types_.begin(), function_param_types_.end());
+  return hash;
+}
+
+bool CreateFunction::operator==(const BaseOperatorNode &r) {
+  if (r.GetType() != OpType::DELETE) return false;
+  const CreateFunction &node = *dynamic_cast<const CreateFunction *>(&r);
+  if (database_oid_ != node.database_oid_) return false;
+  if (namespace_oid_ != node.namespace_oid_) return false;
+  if (function_name_ != node.function_name_) return false;
+  if (function_body_ != node.function_body_) return false;
+  if (param_count_ != node.param_count_) return false;
+  if (return_type_ != node.return_type_) return false;
+  if (function_param_types_ != node.function_param_types_) return false;
+  if (function_param_names_ != node.function_param_names_) return false;
+  if (is_replace_ != node.is_replace_) return false;
+  return language_ == node.language_;
+}
 
 //===--------------------------------------------------------------------===//
 // DropDatabase

@@ -1015,6 +1015,7 @@ class LogicalCreateDatabase : public OperatorNode<LogicalCreateDatabase> {
 class LogicalCreateFunction : public OperatorNode<LogicalCreateFunction> {
  public:
   /**
+   * @param database_oid OID of the database
    * @param namespace_oid OID of the namespace
    * @param function_name Name of the function
    * @param language Language type of the user defined function
@@ -1026,13 +1027,18 @@ class LogicalCreateFunction : public OperatorNode<LogicalCreateFunction> {
    * @param replace If this function should replace existing definitions
    * @return
    */
-  static Operator Make(catalog::namespace_oid_t namespace_oid, std::string function_name, parser::PLType language,
+  static Operator Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid, std::string function_name, parser::PLType language,
                        std::vector<std::string> &&function_body, std::vector<std::string> &&function_param_names,
                        std::vector<parser::BaseFunctionParameter::DataType> &&function_param_types,
                        parser::BaseFunctionParameter::DataType return_type, int param_count, bool replace);
 
   bool operator==(const BaseOperatorNode &r) override;
   common::hash_t Hash() const override;
+
+  /**
+   * @return OID of the database
+   */
+  catalog::db_oid_t GetDatabaseOid() const { return database_oid_; }
 
   /**
    * @return OID of the namespace
@@ -1082,6 +1088,11 @@ class LogicalCreateFunction : public OperatorNode<LogicalCreateFunction> {
   int GetParamCount() const { return param_count_; }
 
  private:
+  /**
+   * OID of the database
+   */
+  catalog::db_oid_t database_oid_;
+
   /**
    * OID of the namespace
    */

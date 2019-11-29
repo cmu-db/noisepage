@@ -14,6 +14,7 @@
 #include "parser/expression/abstract_expression.h"
 #include "parser/expression_defs.h"
 #include "parser/parser_defs.h"
+#include "parser/statements.h"
 #include "parser/update_statement.h"
 #include "planner/plannodes/plan_node_defs.h"
 #include "planner/plannodes/create_table_plan_node.h"
@@ -1592,6 +1593,137 @@ class DropDatabase : public OperatorNode<DropDatabase> {
    * OID of the database
    */
   catalog::db_oid_t db_oid_ = catalog::INVALID_DATABASE_OID;
+};
+
+
+/**
+ * Physical operator for CreateFunction
+ */
+class CreateFunction : public OperatorNode<CreateFunction> {
+ public:
+  /**
+   * @param database_oid OID of the database
+   * @param namespace_oid OID of the namespace
+   * @param function_name Name of the function
+   * @param language Language type of the user defined function
+   * @param function_body Body of the user defined function
+   * @param function_param_names Parameter names of the user defined function
+   * @param function_param_types Parameter types of the user defined function
+   * @param return_type Return type of the user defined function
+   * @param param_count Number of parameters of the user defined function
+   * @param replace If this function should replace existing definitions
+   * @return
+   */
+  static Operator Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid, std::string function_name, parser::PLType language,
+                       std::vector<std::string> &&function_body, std::vector<std::string> &&function_param_names,
+                       std::vector<parser::BaseFunctionParameter::DataType> &&function_param_types,
+                       parser::BaseFunctionParameter::DataType return_type, int param_count, bool replace);
+
+  bool operator==(const BaseOperatorNode &r) override;
+  common::hash_t Hash() const override;
+
+  /**
+   * @return OID of the database
+   */
+  catalog::db_oid_t GetDatabaseOid() const { return database_oid_; }
+
+  /**
+   * @return OID of the namespace
+   */
+  const catalog::namespace_oid_t &GetNamespaceOid() const { return namespace_oid_; }
+
+  /**
+   * @return name of the user defined function
+   */
+  std::string GetFunctionName() const { return function_name_; }
+
+  /**
+   * @return language type of the user defined function
+   */
+  parser::PLType GetUDFLanguage() const { return language_; }
+
+  /**
+   * @return body of the user defined function
+   */
+  std::vector<std::string> GetFunctionBody() const { return function_body_; }
+
+  /**
+   * @return parameter names of the user defined function
+   */
+  std::vector<std::string> GetFunctionParameterNames() const { return function_param_names_; }
+
+  /**
+   * @return parameter types of the user defined function
+   */
+  std::vector<parser::BaseFunctionParameter::DataType> GetFunctionParameterTypes() const {
+    return function_param_types_;
+  }
+
+  /**
+   * @return return type of the user defined function
+   */
+  parser::BaseFunctionParameter::DataType GetReturnType() const { return return_type_; }
+
+  /**
+   * @return whether the definition of the user defined function needs to be replaced
+   */
+  bool IsReplace() const { return is_replace_; }
+
+  /**
+   * @return number of parameters of the user defined function
+   */
+  int GetParamCount() const { return param_count_; }
+
+ private:
+  /**
+   * OID of the database
+   */
+  catalog::db_oid_t database_oid_;
+
+  /**
+   * OID of the namespace
+   */
+  catalog::namespace_oid_t namespace_oid_;
+
+  /**
+   * Indicates the UDF language type
+   */
+  parser::PLType language_;
+
+  /**
+   * Function parameters names passed to the UDF
+   */
+  std::vector<std::string> function_param_names_;
+
+  /**
+   * Function parameter types passed to the UDF
+   */
+  std::vector<parser::BaseFunctionParameter::DataType> function_param_types_;
+
+  /**
+   * Query string/ function body of the UDF
+   */
+  std::vector<std::string> function_body_;
+
+  /**
+   * Indicates if the function definition needs to be replaced
+   */
+  bool is_replace_;
+
+  /**
+   * Function name of the UDF
+   */
+  std::string function_name_;
+
+  /**
+   * Return type of the UDF
+   */
+  parser::BaseFunctionParameter::DataType return_type_;
+
+  /**
+   * Number of parameters
+   */
+  int param_count_ = 0;
 };
 
 /**
