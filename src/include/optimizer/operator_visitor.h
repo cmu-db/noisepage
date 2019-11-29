@@ -400,6 +400,24 @@ class OperatorVisitor {
    * @param logical_drop_index operator
    */
   virtual void Visit(const LogicalDropIndex *logical_drop_index) {}
+
+  /**
+   * Visit a LogicalDropSchema operator
+   * @param logical_drop_schema operator
+   */
+  virtual void Visit(const LogicalDropSchema *logical_drop_schema) {}
+
+  /**
+   * Visit a LogicalDropTrigger operator
+   * @param logical_drop_trigger operator
+   */
+  virtual void Visit(const LogicalDropTrigger *logical_drop_trigger) {}
+
+  /**
+   * Visit a LogicalDropView operator
+   * @param logical_drop_view operator
+   */
+  virtual void Visit(const LogicalDropView *logical_drop_view) {}
 };
 
 }  // namespace terrier::optimizer

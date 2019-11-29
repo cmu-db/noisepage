@@ -1054,6 +1054,90 @@ bool LogicalDropIndex::operator==(const BaseOperatorNode &r) {
 }
 
 //===--------------------------------------------------------------------===//
+// LogicalDropSchema
+//===--------------------------------------------------------------------===//
+
+Operator LogicalDropSchema::Make(catalog::namespace_oid_t namespace_oid) {
+  auto op = std::make_unique<LogicalDropSchema>();
+  op->namespace_oid_ = namespace_oid;
+  return Operator(std::move(op));
+}
+
+common::hash_t LogicalDropSchema::Hash() const {
+  common::hash_t hash = BaseOperatorNode::Hash();
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(namespace_oid_));
+  return hash;
+}
+
+bool LogicalDropSchema::operator==(const BaseOperatorNode &r) {
+  if (r.GetType() != OpType::LOGICALDROPNAMESPACE) return false;
+  const LogicalDropSchema &node = *dynamic_cast<const LogicalDropSchema *>(&r);
+  return node.namespace_oid_ == namespace_oid_;
+}
+
+//===--------------------------------------------------------------------===//
+// LogicalDropTrigger
+//===--------------------------------------------------------------------===//
+
+Operator LogicalDropTrigger::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid, catalog::trigger_oid_t trigger_oid, bool if_exists) {
+  auto op = std::make_unique<LogicalDropTrigger>();
+  op->database_oid_ = database_oid;
+  op->namespace_oid_ = namespace_oid;
+  op->trigger_oid_ = trigger_oid;
+  op->if_exists_ = if_exists;
+  return Operator(std::move(op));
+}
+
+common::hash_t LogicalDropTrigger::Hash() const {
+  common::hash_t hash = BaseOperatorNode::Hash();
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_oid_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(namespace_oid_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(trigger_oid_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(if_exists_));
+  return hash;
+}
+
+bool LogicalDropTrigger::operator==(const BaseOperatorNode &r) {
+  if (r.GetType() != OpType::LOGICALCREATETRIGGER) return false;
+  const LogicalDropTrigger &node = *dynamic_cast<const LogicalDropTrigger *>(&r);
+  if (database_oid_ != node.database_oid_) return false;
+  if (trigger_oid_ != node.trigger_oid_) return false;
+  if (if_exists_ != node.if_exists_) return false;
+  return node.namespace_oid_ == namespace_oid_;
+}
+
+//===--------------------------------------------------------------------===//
+// LogicalDropView
+//===--------------------------------------------------------------------===//
+
+Operator LogicalDropView::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid, catalog::view_oid_t view_oid, bool if_exists) {
+  auto op = std::make_unique<LogicalDropView>();
+  op->database_oid_ = database_oid;
+  op->namespace_oid_ = namespace_oid;
+  op->view_oid_ = view_oid;
+  op->if_exists_ = if_exists;
+  return Operator(std::move(op));
+}
+
+common::hash_t LogicalDropView::Hash() const {
+  common::hash_t hash = BaseOperatorNode::Hash();
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_oid_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(namespace_oid_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(view_oid_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(if_exists_));
+  return hash;
+}
+
+bool LogicalDropView::operator==(const BaseOperatorNode &r) {
+  if (r.GetType() != OpType::LOGICALCREATEVIEW) return false;
+  const LogicalDropView &node = *dynamic_cast<const LogicalDropView *>(&r);
+  if (database_oid_ != node.database_oid_) return false;
+  if (view_oid_ != node.view_oid_) return false;
+  if (if_exists_ != node.if_exists_) return false;
+  return node.namespace_oid_ == namespace_oid_;
+}
+
+//===--------------------------------------------------------------------===//
 template <typename T>
 void OperatorNode<T>::Accept(common::ManagedPointer<OperatorVisitor> v) const {
   v->Visit(reinterpret_cast<const T *>(this));
@@ -1122,6 +1206,10 @@ template <>
 const char *OperatorNode<LogicalDropTable>::name = "LogicalDropTable";
 template <>
 const char *OperatorNode<LogicalDropIndex>::name = "LogicalDropIndex";
+template <>
+const char *OperatorNode<LogicalDropTrigger>::name = "LogicalDropTrigger";
+template <>
+const char *OperatorNode<LogicalDropView>::name = "LogicalDropView";
 
 //===--------------------------------------------------------------------===//
 template <>
@@ -1186,6 +1274,10 @@ template <>
 OpType OperatorNode<LogicalDropTable>::type = OpType::LOGICALDROPTABLE;
 template <>
 OpType OperatorNode<LogicalDropIndex>::type = OpType::LOGICALDROPINDEX;
+template <>
+OpType OperatorNode<LogicalDropTrigger>::type = OpType::LOGICALDROPTRIGGER;
+template <>
+OpType OperatorNode<LogicalDropView>::type = OpType::LOGICALDROPVIEW;
 
 template <typename T>
 bool OperatorNode<T>::IsLogical() const {
