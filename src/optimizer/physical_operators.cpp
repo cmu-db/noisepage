@@ -925,8 +925,40 @@ bool CreateTrigger::operator==(const BaseOperatorNode &r) {
   if (trigger_columns_ != node.trigger_columns_) return false;
   if (trigger_type_ != node.trigger_type_) return false;
   if (trigger_when_ == nullptr) return node.trigger_when_ == nullptr;
-  return *trigger_when_ == *(node.trigger_when_);
+  return node.trigger_when_ != nullptr && *trigger_when_ == *node.trigger_when_;
 }
+
+//===--------------------------------------------------------------------===//
+// CreateView
+//===--------------------------------------------------------------------===//
+
+Operator CreateView::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
+                                 std::string view_name, common::ManagedPointer<parser::SelectStatement> view_query) {
+  auto op = std::make_unique<CreateView>();
+  op->database_oid_ = database_oid;
+  op->namespace_oid_ = namespace_oid;
+  op->view_name_ = std::move(view_name);
+  op->view_query_ = view_query;
+  return Operator(std::move(op));
+}
+
+common::hash_t CreateView::Hash() const {
+  common::hash_t hash = BaseOperatorNode::Hash();
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_oid_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(namespace_oid_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(view_name_));
+  hash = common::HashUtil::CombineHashes(hash, view_query_->Hash());
+  return hash;
+}
+
+bool CreateView::operator==(const BaseOperatorNode &r) {
+  if (r.GetType() != OpType::CREATEVIEW) return false;
+  const CreateView &node = *dynamic_cast<const CreateView *>(&r);
+  if (database_oid_ != node.database_oid_) return false;
+  if (namespace_oid_ != node.namespace_oid_) return false;
+  if (view_name_ != node.view_name_) return false;
+  if (view_query_ == nullptr) return node.view_query_ == nullptr;
+  return node.view_query_ != nullptr && *view_query_ == *node.view_query_;}
 
 //===--------------------------------------------------------------------===//
 // DropDatabase

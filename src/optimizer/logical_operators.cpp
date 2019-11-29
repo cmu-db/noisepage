@@ -970,8 +970,7 @@ common::hash_t LogicalCreateView::Hash() const {
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_oid_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(namespace_oid_));
   hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(view_name_));
-  // TODO(Ling): how should we hash selectStatement? create a helper function in the selectStatement class?
-  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(view_query_));
+  hash = common::HashUtil::CombineHashes(hash, view_query_->Hash());
   return hash;
 }
 

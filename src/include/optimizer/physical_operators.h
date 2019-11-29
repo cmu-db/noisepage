@@ -1388,6 +1388,66 @@ class CreateSchema : public OperatorNode<CreateSchema> {
   std::string namespace_name_;
 };
 
+
+/**
+ * Physical operator for CreateView
+ */
+class CreateView : public OperatorNode<CreateView> {
+ public:
+  /**
+   * @param database_oid OID of the database
+   * @param namespace_oid OID of the namespace
+   * @param view_name Name of the view
+   * @param view_query Query statement of the view
+   * @return
+   */
+  static Operator Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid, std::string view_name,
+                       common::ManagedPointer<parser::SelectStatement> view_query);
+
+  bool operator==(const BaseOperatorNode &r) override;
+  common::hash_t Hash() const override;
+
+  /**
+   * @return OID of the database
+   */
+  const catalog::db_oid_t &GetDatabaseOid() const { return database_oid_; }
+
+  /**
+   * @return OID of the namespace
+   */
+  const catalog::namespace_oid_t &GetNamespaceOid() const { return namespace_oid_; }
+  /**
+   * @return view name
+   */
+  const std::string &GetViewName() const { return view_name_; }
+
+  /**
+   * @return view query
+   */
+  common::ManagedPointer<parser::SelectStatement> GetViewQuery() { return common::ManagedPointer(view_query_); }
+
+ private:
+  /**
+   * OID of the database
+   */
+  catalog::db_oid_t database_oid_;
+
+  /**
+   * OID of the namespace
+   */
+  catalog::namespace_oid_t namespace_oid_;
+
+  /**
+   * Name of the view
+   */
+  std::string view_name_;
+
+  /**
+   * View query
+   */
+  common::ManagedPointer<parser::SelectStatement> view_query_;
+};
+
 /**
  * Physical operator for CreateTrigger
  */
@@ -1531,7 +1591,7 @@ class DropDatabase : public OperatorNode<DropDatabase> {
   /**
    * OID of the database
    */
-  catalog::db_oid_t db_oid_;
+  catalog::db_oid_t db_oid_ = catalog::INVALID_DATABASE_OID;
 };
 
 /**
@@ -1557,15 +1617,16 @@ class DropTable : public OperatorNode<DropTable> {
   /**
    * OID of the table
    */
-  catalog::table_oid_t table_oid_;
+  catalog::table_oid_t table_oid_ = catalog::INVALID_TABLE_OID;
 };
 
 /**
- * Pysical operator for DropIndex
+ * Physical operator for DropIndex
  */
 class DropIndex : public OperatorNode<DropIndex> {
  public:
   /**
+   * @param index_oid OID of the index to be dropped
    * @return
    */
   static Operator Make(catalog::index_oid_t index_oid);
@@ -1582,7 +1643,7 @@ class DropIndex : public OperatorNode<DropIndex> {
   /**
    * OID of the table
    */
-  catalog::index_oid_t index_oid_;
+  catalog::index_oid_t index_oid_ = catalog::INVALID_INDEX_OID;
 };
 
 }  // namespace optimizer
