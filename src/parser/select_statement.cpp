@@ -104,4 +104,52 @@ std::unique_ptr<SelectStatement> SelectStatement::Copy() {
   return select;
 }
 
+common::hash_t SelectStatement::Hash() const {
+  common::hash_t hash = common::HashUtil::Hash(GetType());
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(select_distinct_));
+  if (union_select_ != nullptr) hash = common::HashUtil::CombineHashes(hash, union_select_->Hash());
+  if (limit_ != nullptr) hash = common::HashUtil::CombineHashes(hash, limit_->Hash());
+  if (order_by_ != nullptr) hash = common::HashUtil::CombineHashes(hash, order_by_->Hash());
+  if (group_by_ != nullptr) hash = common::HashUtil::CombineHashes(hash, group_by_->Hash());
+  if (where_ != nullptr) hash = common::HashUtil::CombineHashes(hash, where_->Hash());
+  if (from_ != nullptr) hash = common::HashUtil::CombineHashes(hash, from_->Hash());
+  for (const auto &expr : select_) {
+    hash = common::HashUtil::CombineHashes(hash, expr->Hash());
+  }
+  return hash;
+}
+
+bool SelectStatement::operator==(const SelectStatement &rhs) const {
+  if (this->GetType() != rhs.GetType()) return false;
+  if (select_.size() != rhs.select_.size()) return false;
+  for (size_t i = 0; i < select_.size(); i++)
+    if (*(select_[i]) != *(rhs.select_[i])) return false;
+  if (select_distinct_ != rhs.select_distinct_) return false;
+
+  if (from_ != nullptr && rhs.from_ == nullptr) return false;
+  if (from_ == nullptr && rhs.from_ != nullptr) return false;
+  if (from_ != nullptr && rhs.from_ != nullptr && *(from_) != *(rhs.from_)) return false;
+
+  if (where_ != nullptr && rhs.where_ == nullptr) return false;
+  if (where_ == nullptr && rhs.where_ != nullptr) return false;
+  if (where_ != nullptr && rhs.where_ != nullptr && *(where_) != *(rhs.where_)) return false;
+
+  if (group_by_ != nullptr && rhs.group_by_ == nullptr) return false;
+  if (group_by_ == nullptr && rhs.group_by_ != nullptr) return false;
+  if (group_by_ != nullptr && rhs.group_by_ != nullptr && *(group_by_) != *(rhs.group_by_)) return false;
+
+  if (order_by_ != nullptr && rhs.order_by_ == nullptr) return false;
+  if (order_by_ == nullptr && rhs.order_by_ != nullptr) return false;
+  if (order_by_ != nullptr && rhs.order_by_ != nullptr && *(order_by_) != *(rhs.order_by_)) return false;
+
+  if (limit_ != nullptr && rhs.limit_ == nullptr) return false;
+  if (limit_ == nullptr && rhs.limit_ != nullptr) return false;
+  if (limit_ != nullptr && rhs.limit_ != nullptr && *(limit_) != *(rhs.limit_)) return false;
+
+  if (union_select_ != nullptr && rhs.union_select_ == nullptr) return false;
+  if (union_select_ == nullptr && rhs.union_select_ != nullptr) return false;
+  if (union_select_ == nullptr && rhs.union_select_ == nullptr) return true;
+  return *(union_select_) == *(rhs.union_select_);
+}
+
 }  // namespace terrier::parser

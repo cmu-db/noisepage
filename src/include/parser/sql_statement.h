@@ -6,6 +6,7 @@
 #include <vector>
 #include "catalog/catalog_defs.h"
 #include "common/exception.h"
+#include "common/hash_util.h"
 #include "common/json.h"
 #include "common/macros.h"
 #include "common/sql_node_visitor.h"

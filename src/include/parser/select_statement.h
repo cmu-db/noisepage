@@ -453,20 +453,7 @@ class SelectStatement : public SQLStatement {
   /**
    * @return the hashed value of this select statement
    */
-  common::hash_t Hash() const {
-    common::hash_t hash = common::HashUtil::Hash(GetType());
-    hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(select_distinct_));
-    if (union_select_ != nullptr) hash = common::HashUtil::CombineHashes(hash, union_select_->Hash());
-    if (limit_ != nullptr) hash = common::HashUtil::CombineHashes(hash, limit_->Hash());
-    if (order_by_ != nullptr) hash = common::HashUtil::CombineHashes(hash, order_by_->Hash());
-    if (group_by_ != nullptr) hash = common::HashUtil::CombineHashes(hash, group_by_->Hash());
-    if (where_ != nullptr) hash = common::HashUtil::CombineHashes(hash, where_->Hash());
-    if (from_ != nullptr) hash = common::HashUtil::CombineHashes(hash, from_->Hash());
-    for (const auto &expr : select_) {
-      hash = common::HashUtil::CombineHashes(hash, expr->Hash());
-    }
-    return hash;
-  }
+  common::hash_t Hash() const;
 
   /**
    * Logical equality check.
