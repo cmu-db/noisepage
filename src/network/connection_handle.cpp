@@ -170,8 +170,8 @@ Transition ConnectionHandle::TryCloseConnection() {
   NETWORK_LOG_TRACE("Attempt to close the connection {0}", io_wrapper_->GetSocketFd());
   NETWORK_LOG_INFO("Namespace OID: {0}", context_.temp_namespace_oid_);
   if (context_.temp_namespace_oid_ != catalog::INVALID_NAMESPACE_OID) {
-      TERRIER_ASSERT(traffic_cop_->DropTempNamespace(context_.temp_namespace_oid_, context_.db_oid_),
-                     "Per session temporary namespace has been deleted unintentionally!");
+    TERRIER_ASSERT(traffic_cop_->DropTempNamespace(context_.temp_namespace_oid_, context_.db_oid_),
+                   "Per session temporary namespace has been deleted unintentionally!");
   }
   Transition close = io_wrapper_->Close();
   if (close != Transition::PROCEED) return close;
