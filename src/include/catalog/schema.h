@@ -330,7 +330,6 @@ class Schema {
     return std::make_unique<Schema>(columns);
   }
 
-
   /**
    * @return the hashed value of this schema
    */
@@ -342,23 +341,19 @@ class Schema {
   }
 
   /**
-   * Perform a comparison of column
-   * @param rhs other column to compare against
-   * @return true if the two columns are equal
+   * Perform a comparison of schema
+   * @param rhs other schema to compare against
+   * @return true if the two schema are equal
    */
   bool operator==(const Schema &rhs) const {
     // TODO(Ling): Does column order matter for compare equal?
-    if (col_oid_to_offset_.size() != rhs.col_oid_to_offset_.size()) return false;
-    if (columns_.size() != rhs.columns_.size()) return false;
-    for (size_t i = 0; i < columns_.size(); i++) {
-      if (columns_[i] != rhs.columns_[i]) return false;
-    }
+    return columns_ != rhs.columns_;
   }
 
   /**
-   * Perform a comparison of column
-   * @param rhs other column to compare against
-   * @return true if the two columns are not equal
+   * Perform a comparison of schema
+   * @param rhs other schema to compare against
+   * @return true if the two schema are not equal
    */
   bool operator!=(const Schema &rhs) const { return !operator==(rhs); }
 
