@@ -876,6 +876,59 @@ bool CreateSchema::operator==(const BaseOperatorNode &r) {
 }
 
 //===--------------------------------------------------------------------===//
+// CreateTrigger
+//===--------------------------------------------------------------------===//
+
+Operator CreateTrigger::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
+                                    catalog::table_oid_t table_oid, std::string trigger_name,
+                                    std::vector<std::string> &&trigger_funcnames,
+                                    std::vector<std::string> &&trigger_args,
+                                    std::vector<catalog::col_oid_t> &&trigger_columns,
+                                    common::ManagedPointer<parser::AbstractExpression> &&trigger_when,
+                                    int16_t trigger_type) {
+  auto op = std::make_unique<CreateTrigger>();
+  op->database_oid_ = database_oid;
+  op->namespace_oid_ = namespace_oid;
+  op->table_oid_ = table_oid;
+  op->trigger_name_ = std::move(trigger_name);
+  op->trigger_funcnames_ = std::move(trigger_funcnames);
+  op->trigger_args_ = std::move(trigger_args);
+  op->trigger_columns_ = std::move(trigger_columns);
+  op->trigger_when_ = trigger_when;
+  op->trigger_type_ = trigger_type;
+  return Operator(std::move(op));
+}
+
+common::hash_t CreateTrigger::Hash() const {
+  common::hash_t hash = BaseOperatorNode::Hash();
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_oid_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(namespace_oid_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_oid_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(trigger_name_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(trigger_type_));
+  hash = common::HashUtil::CombineHashes(hash, trigger_when_->Hash());
+  hash = common::HashUtil::CombineHashInRange(hash, trigger_funcnames_.begin(), trigger_funcnames_.end());
+  hash = common::HashUtil::CombineHashInRange(hash, trigger_args_.begin(), trigger_args_.end());
+  hash = common::HashUtil::CombineHashInRange(hash, trigger_columns_.begin(), trigger_columns_.end());
+  return hash;
+}
+
+bool CreateTrigger::operator==(const BaseOperatorNode &r) {
+  if (r.GetType() != OpType::CREATETRIGGER) return false;
+  const CreateTrigger &node = *dynamic_cast<const CreateTrigger *>(&r);
+  if (database_oid_ != node.database_oid_) return false;
+  if (namespace_oid_ != node.namespace_oid_) return false;
+  if (table_oid_ != node.table_oid_) return false;
+  if (trigger_name_ != node.trigger_name_) return false;
+  if (trigger_funcnames_ != node.trigger_funcnames_) return false;
+  if (trigger_args_ != node.trigger_args_) return false;
+  if (trigger_columns_ != node.trigger_columns_) return false;
+  if (trigger_type_ != node.trigger_type_) return false;
+  if (trigger_when_ == nullptr) return node.trigger_when_ == nullptr;
+  return *trigger_when_ == *(node.trigger_when_);
+}
+
+//===--------------------------------------------------------------------===//
 // DropDatabase
 //===--------------------------------------------------------------------===//
 
