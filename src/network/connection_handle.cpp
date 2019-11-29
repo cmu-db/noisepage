@@ -119,7 +119,6 @@ DEF_TRANSITION_GRAPH
 
     DEFINE_STATE(PROCESS)
         ON(WAKEUP) SET_STATE_TO(PROCESS) AND_INVOKE(GetResult)
-        ON(STARTUP) SET_STATE_TO(PROCESS) AND_INVOKE(StartUp)
         ON(PROCEED) SET_STATE_TO(WRITE) AND_INVOKE(TryWrite)
         ON(NEED_READ) SET_STATE_TO(READ) AND_INVOKE(TryRead)
         ON(NEED_READ_TIMEOUT) SET_STATE_TO(READ) AND_WAIT_ON_READ_TIMEOUT
@@ -169,8 +168,11 @@ Transition ConnectionHandle::GetResult() {
 
 Transition ConnectionHandle::TryCloseConnection() {
   NETWORK_LOG_TRACE("Attempt to close the connection {0}", io_wrapper_->GetSocketFd());
-  TERRIER_ASSERT(traffic_cop_->DropTempNamespace(context_.temp_namespace_oid_, context_.db_oid_),
-                 "Per seesion temporary namespace has been deleted unintentionally!");
+  NETWORK_LOG_INFO("Namespace OID: {0}", context_.temp_namespace_oid_);
+  if (context_.temp_namespace_oid_ != catalog::INVALID_NAMESPACE_OID) {
+      TERRIER_ASSERT(traffic_cop_->DropTempNamespace(context_.temp_namespace_oid_, context_.db_oid_),
+                     "Per session temporary namespace has been deleted unintentionally!");
+  }
   Transition close = io_wrapper_->Close();
   if (close != Transition::PROCEED) return close;
   // Remove listening event

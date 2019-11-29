@@ -103,7 +103,9 @@ class ConnectionHandle {
   Transition StartUp() {
     std::string db_name = catalog::DEFAULT_DATABASE;
     if (context_.cmdline_args_.find("database") != context_.cmdline_args_.end()) {
-      db_name = context_.cmdline_args_["database"];
+        if (!context_.cmdline_args_["database"].empty()) {
+            db_name = context_.cmdline_args_["database"];
+        }
     }
     auto oids = traffic_cop_->CreateTempNamespace(io_wrapper_->GetSocketFd(), db_name);
     if (oids.first == catalog::INVALID_DATABASE_OID || oids.second == catalog::INVALID_NAMESPACE_OID) {
@@ -135,9 +137,19 @@ class ConnectionHandle {
    * @return The transition to trigger in the state machine after
    */
   Transition Process() {
-    return protocol_interpreter_->Process(io_wrapper_->GetReadBuffer(), io_wrapper_->GetWriteQueue(), traffic_cop_,
+    NETWORK_LOG_INFO("Processing packet.");
+    auto transition = protocol_interpreter_->Process(io_wrapper_->GetReadBuffer(), io_wrapper_->GetWriteQueue(), traffic_cop_,
                                           common::ManagedPointer(&context_),
                                           [=] { event_active(workpool_event_, EV_WRITE, 0); });
+
+    /**
+     * Additional processing for starting up a new connection. This is an intermediate state that does not wait for
+     * an event from libevent
+     */
+    if (transition == Transition::STARTUP) {
+        transition = StartUp();
+    }
+    return transition;
   }
 
   /**

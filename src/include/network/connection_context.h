@@ -21,12 +21,12 @@ struct ConnectionContext {
   /**
    * The OID of the database accessed by this connection
    */
-  catalog::db_oid_t db_oid_;
+  catalog::db_oid_t db_oid_ = catalog::INVALID_DATABASE_OID;
 
   /**
    * The OID of the temporary namespace for this connection
    */
-  catalog::namespace_oid_t temp_namespace_oid_;
+  catalog::namespace_oid_t temp_namespace_oid_ = catalog::INVALID_NAMESPACE_OID;
 
   /**
    * The statements in this connection
