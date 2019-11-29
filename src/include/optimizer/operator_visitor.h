@@ -216,6 +216,24 @@ class OperatorVisitor {
   virtual void Visit(const DropIndex *drop_index) {}
 
   /**
+   * Visit a DropSchema operator
+   * @param drop_schema operator
+   */
+  virtual void Visit(const DropSchema *drop_schema) {}
+
+  /**
+   * Visit a DropTrigger operator
+   * @param drop_trigger operator
+   */
+  virtual void Visit(const DropTrigger *drop_trigger) {}
+
+  /**
+   * Visit a DropView operator
+   * @param drop_view operator
+   */
+  virtual void Visit(const DropView *drop_view) {}
+
+  /**
    * Visit a LogicalGet operator
    * @param logical_get operator
    */

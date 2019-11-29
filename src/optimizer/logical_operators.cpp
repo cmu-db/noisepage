@@ -1098,7 +1098,7 @@ common::hash_t LogicalDropTrigger::Hash() const {
 }
 
 bool LogicalDropTrigger::operator==(const BaseOperatorNode &r) {
-  if (r.GetType() != OpType::LOGICALCREATETRIGGER) return false;
+  if (r.GetType() != OpType::LOGICALDROPTRIGGER) return false;
   const LogicalDropTrigger &node = *dynamic_cast<const LogicalDropTrigger *>(&r);
   if (database_oid_ != node.database_oid_) return false;
   if (trigger_oid_ != node.trigger_oid_) return false;
@@ -1129,7 +1129,7 @@ common::hash_t LogicalDropView::Hash() const {
 }
 
 bool LogicalDropView::operator==(const BaseOperatorNode &r) {
-  if (r.GetType() != OpType::LOGICALCREATEVIEW) return false;
+  if (r.GetType() != OpType::LOGICALDROPVIEW) return false;
   const LogicalDropView &node = *dynamic_cast<const LogicalDropView *>(&r);
   if (database_oid_ != node.database_oid_) return false;
   if (view_oid_ != node.view_oid_) return false;
@@ -1207,6 +1207,8 @@ const char *OperatorNode<LogicalDropTable>::name = "LogicalDropTable";
 template <>
 const char *OperatorNode<LogicalDropIndex>::name = "LogicalDropIndex";
 template <>
+const char *OperatorNode<LogicalDropSchema>::name = "LogicalDropSchema";
+template <>
 const char *OperatorNode<LogicalDropTrigger>::name = "LogicalDropTrigger";
 template <>
 const char *OperatorNode<LogicalDropView>::name = "LogicalDropView";
@@ -1274,6 +1276,8 @@ template <>
 OpType OperatorNode<LogicalDropTable>::type = OpType::LOGICALDROPTABLE;
 template <>
 OpType OperatorNode<LogicalDropIndex>::type = OpType::LOGICALDROPINDEX;
+template <>
+OpType OperatorNode<LogicalDropSchema>::type = OpType::LOGICALDROPNAMESPACE;
 template <>
 OpType OperatorNode<LogicalDropTrigger>::type = OpType::LOGICALDROPTRIGGER;
 template <>

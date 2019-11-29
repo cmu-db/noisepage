@@ -1778,5 +1778,141 @@ class DropIndex : public OperatorNode<DropIndex> {
   catalog::index_oid_t index_oid_ = catalog::INVALID_INDEX_OID;
 };
 
+/**
+ * Physical operator for DropSchema
+ */
+class DropSchema : public OperatorNode<DropSchema> {
+ public:
+  /**
+   * @return
+   */
+  static Operator Make(catalog::namespace_oid_t namespace_oid);
+
+  bool operator==(const BaseOperatorNode &r) override;
+  common::hash_t Hash() const override;
+
+  /**
+   * @return the OID of the namespace we want to drop
+   */
+  const catalog::namespace_oid_t &GetNamespaceOID() const { return namespace_oid_; }
+
+ private:
+  /**
+   * OID of the table
+   */
+  catalog::namespace_oid_t namespace_oid_ = catalog::INVALID_NAMESPACE_OID;
+};
+
+
+/**
+ * Physical operator for DropTrigger
+ */
+class DropTrigger : public OperatorNode<DropTrigger> {
+ public:
+  /**
+   * @return
+   */
+  static Operator Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid, catalog::trigger_oid_t trigger_oid, bool if_exists);
+
+  bool operator==(const BaseOperatorNode &r) override;
+  common::hash_t Hash() const override;
+
+  /**
+   * @return OID of the database
+   */
+  catalog::db_oid_t GetDatabaseOid() const { return database_oid_; }
+
+  /**
+   * @return OID of the namespace
+   */
+  catalog::namespace_oid_t GetNamespaceOid() const { return namespace_oid_; }
+
+  /**
+   * @return OID of the trigger to drop
+   */
+  catalog::trigger_oid_t GetTriggerOid() const { return trigger_oid_; }
+
+  /**
+   * @return true if "IF EXISTS" was used
+   */
+  bool IsIfExists() const { return if_exists_; }
+
+ private:
+  /**
+  * OID of the database
+  */
+  catalog::db_oid_t database_oid_;
+
+  /**
+   * OID of namespace
+   */
+  catalog::namespace_oid_t namespace_oid_;
+
+  /**
+   * OID of the trigger to drop
+   */
+  catalog::trigger_oid_t trigger_oid_;
+
+  /**
+   * Whether "IF EXISTS" was used
+   */
+  bool if_exists_;
+};
+
+/**
+ * Physical operator for DropView
+ */
+class DropView : public OperatorNode<DropView> {
+ public:
+  /**
+   * @return
+   */
+  static Operator Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid, catalog::view_oid_t view_oid, bool if_exists);
+
+  bool operator==(const BaseOperatorNode &r) override;
+  common::hash_t Hash() const override;
+
+  /**
+   * @return OID of the database
+   */
+  catalog::db_oid_t GetDatabaseOid() const { return database_oid_; }
+
+  /**
+   * @return OID of the namespace
+   */
+  catalog::namespace_oid_t GetNamespaceOid() const { return namespace_oid_; }
+
+  /**
+   * @return OID of the view to drop
+   */
+  catalog::view_oid_t GetViewOid() const { return view_oid_; }
+
+  /**
+   * @return true if "IF EXISTS" was used
+   */
+  bool IsIfExists() const { return if_exists_; }
+
+ private:
+  /**
+  * OID of the database
+  */
+  catalog::db_oid_t database_oid_;
+
+  /**
+   * OID of namespace
+   */
+  catalog::namespace_oid_t namespace_oid_;
+
+  /**
+   * OID of the view to drop
+   */
+  catalog::view_oid_t view_oid_;
+
+  /**
+   * Whether "IF EXISTS" was used
+   */
+  bool if_exists_;
+};
+
 }  // namespace optimizer
 }  // namespace terrier

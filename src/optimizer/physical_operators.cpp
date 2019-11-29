@@ -1078,6 +1078,91 @@ bool DropIndex::operator==(const BaseOperatorNode &r) {
   const DropIndex &node = *dynamic_cast<const DropIndex *>(&r);
   return node.index_oid_ == index_oid_;
 }
+
+//===--------------------------------------------------------------------===//
+// DropSchema
+//===--------------------------------------------------------------------===//
+
+Operator DropSchema::Make(catalog::namespace_oid_t namespace_oid) {
+  auto op = std::make_unique<DropSchema>();
+  op->namespace_oid_ = namespace_oid;
+  return Operator(std::move(op));
+}
+
+common::hash_t DropSchema::Hash() const {
+  common::hash_t hash = BaseOperatorNode::Hash();
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(namespace_oid_));
+  return hash;
+}
+
+bool DropSchema::operator==(const BaseOperatorNode &r) {
+  if (r.GetType() != OpType::DROPNAMESPACE) return false;
+  const DropSchema &node = *dynamic_cast<const DropSchema *>(&r);
+  return node.namespace_oid_ == namespace_oid_;
+}
+
+//===--------------------------------------------------------------------===//
+// DropTrigger
+//===--------------------------------------------------------------------===//
+
+Operator DropTrigger::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid, catalog::trigger_oid_t trigger_oid, bool if_exists) {
+  auto op = std::make_unique<DropTrigger>();
+  op->database_oid_ = database_oid;
+  op->namespace_oid_ = namespace_oid;
+  op->trigger_oid_ = trigger_oid;
+  op->if_exists_ = if_exists;
+  return Operator(std::move(op));
+}
+
+common::hash_t DropTrigger::Hash() const {
+  common::hash_t hash = BaseOperatorNode::Hash();
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_oid_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(namespace_oid_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(trigger_oid_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(if_exists_));
+  return hash;
+}
+
+bool DropTrigger::operator==(const BaseOperatorNode &r) {
+  if (r.GetType() != OpType::DROPTRIGGER) return false;
+  const DropTrigger &node = *dynamic_cast<const DropTrigger *>(&r);
+  if (database_oid_ != node.database_oid_) return false;
+  if (trigger_oid_ != node.trigger_oid_) return false;
+  if (if_exists_ != node.if_exists_) return false;
+  return node.namespace_oid_ == namespace_oid_;
+}
+
+//===--------------------------------------------------------------------===//
+// DropView
+//===--------------------------------------------------------------------===//
+
+Operator DropView::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid, catalog::view_oid_t view_oid, bool if_exists) {
+  auto op = std::make_unique<DropView>();
+  op->database_oid_ = database_oid;
+  op->namespace_oid_ = namespace_oid;
+  op->view_oid_ = view_oid;
+  op->if_exists_ = if_exists;
+  return Operator(std::move(op));
+}
+
+common::hash_t DropView::Hash() const {
+  common::hash_t hash = BaseOperatorNode::Hash();
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(database_oid_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(namespace_oid_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(view_oid_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(if_exists_));
+  return hash;
+}
+
+bool DropView::operator==(const BaseOperatorNode &r) {
+  if (r.GetType() != OpType::DROPVIEW) return false;
+  const DropView &node = *dynamic_cast<const DropView *>(&r);
+  if (database_oid_ != node.database_oid_) return false;
+  if (view_oid_ != node.view_oid_) return false;
+  if (if_exists_ != node.if_exists_) return false;
+  return node.namespace_oid_ == namespace_oid_;
+}
+
 //===--------------------------------------------------------------------===//
 template <typename T>
 void OperatorNode<T>::Accept(common::ManagedPointer<OperatorVisitor> v) const {
@@ -1153,6 +1238,12 @@ template <>
 const char *OperatorNode<DropTable>::name = "DropTable";
 template <>
 const char *OperatorNode<DropIndex>::name = "DropIndex";
+template <>
+const char *OperatorNode<DropSchema>::name = "DropSchema";
+template <>
+const char *OperatorNode<DropTrigger>::name = "DropTrigger";
+template <>
+const char *OperatorNode<DropView>::name = "DropView";
 
 //===--------------------------------------------------------------------===//
 template <>
@@ -1223,6 +1314,12 @@ template <>
 OpType OperatorNode<DropTable>::type = OpType::DROPTABLE;
 template <>
 OpType OperatorNode<DropIndex>::type = OpType::DROPINDEX;
+template <>
+OpType OperatorNode<DropSchema>::type = OpType::DROPNAMESPACE;
+template <>
+OpType OperatorNode<DropTrigger>::type = OpType::DROPTRIGGER;
+template <>
+OpType OperatorNode<DropView>::type = OpType::DROPVIEW;
 
 template <typename T>
 bool OperatorNode<T>::IsLogical() const {
