@@ -854,6 +854,28 @@ bool CreateIndex::operator==(const BaseOperatorNode &r) {
 }
 
 //===--------------------------------------------------------------------===//
+// CreateSchema
+//===--------------------------------------------------------------------===//
+
+Operator CreateSchema::Make(std::string namespace_name) {
+  auto op = std::make_unique<CreateSchema>();
+  op->namespace_name_ = std::move(namespace_name);
+  return Operator(std::move(op));
+}
+
+common::hash_t CreateSchema::Hash() const {
+  common::hash_t hash = BaseOperatorNode::Hash();
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(namespace_name_));
+  return hash;
+}
+
+bool CreateSchema::operator==(const BaseOperatorNode &r) {
+  if (r.GetType() != OpType::CREATESCHEMA) return false;
+  const CreateSchema &node = *dynamic_cast<const CreateSchema *>(&r);
+  return node.namespace_name_ == namespace_name_;
+}
+
+//===--------------------------------------------------------------------===//
 // DropDatabase
 //===--------------------------------------------------------------------===//
 

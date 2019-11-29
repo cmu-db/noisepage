@@ -1363,6 +1363,32 @@ class CreateIndex : public OperatorNode<CreateIndex> {
 };
 
 /**
+ * Physical operator for CreateSchema/Namespace
+ */
+class CreateSchema : public OperatorNode<CreateSchema> {
+ public:
+  /**
+   * @param namespace_name Name of the namespace to be created
+   * @return
+   */
+  static Operator Make(std::string namespace_name);
+
+  bool operator==(const BaseOperatorNode &r) override;
+  common::hash_t Hash() const override;
+
+  /**
+   * @return the name of the namespace we want to create
+   */
+  const std::string &GetNamespaceName() const { return namespace_name_; }
+
+ private:
+  /**
+   * Name of the new namespace
+   */
+  std::string namespace_name_;
+};
+
+/**
  * Physical operator for DropDatabase
  */
 class DropDatabase : public OperatorNode<DropDatabase> {
