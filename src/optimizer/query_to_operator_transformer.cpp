@@ -254,7 +254,7 @@ void QueryToOperatorTransformer::Visit(UNUSED_ATTRIBUTE parser::LimitDescription
                                        UNUSED_ATTRIBUTE parser::ParseResult *parse_result) {
   OPTIMIZER_LOG_DEBUG("Transforming LimitDescription to operators ...");
 }
-void QueryToOperatorTransformer::Visit(UNUSED_ATTRIBUTE parser::CreateFunctionStatement *op,
+void QueryToOperatorTransformer::Visit(parser::CreateFunctionStatement *op,
                                        UNUSED_ATTRIBUTE parser::ParseResult *parse_result) {
   OPTIMIZER_LOG_DEBUG("Transforming CreateFunctionStatement to operators ...");
   // TODO(Ling): Where should the as_type_ go?
@@ -264,11 +264,12 @@ void QueryToOperatorTransformer::Visit(UNUSED_ATTRIBUTE parser::CreateFunctionSt
     function_param_names.push_back(col->GetParamName());
     function_param_types.push_back(col->GetDataType());
   }
+  // TODO(Ling): database oid of create function?
   auto create_expr = std::make_unique<OperatorExpression>(
-      LogicalCreateFunction::Make(accessor_->GetDefaultNamespace(), op->GetFuncName(), op->GetPLType(),
-                                  op->GetFuncBody(), std::move(function_param_names), std::move(function_param_types),
-                                  op->GetFuncReturnType()->GetDataType(), op->GetFuncParameters().size(),
-                                  op->ShouldReplace()),
+      LogicalCreateFunction::Make(catalog::INVALID_DATABASE_OID, accessor_->GetDefaultNamespace(), op->GetFuncName(),
+                                  op->GetPLType(), op->GetFuncBody(), std::move(function_param_names),
+                                  std::move(function_param_types), op->GetFuncReturnType()->GetDataType(),
+                                  op->GetFuncParameters().size(), op->ShouldReplace()),
       std::vector<std::unique_ptr<OperatorExpression>>{});
   output_expr_ = std::move(create_expr);
 }

@@ -965,12 +965,10 @@ bool CreateView::operator==(const BaseOperatorNode &r) {
 // CreateFunction
 //===--------------------------------------------------------------------===//
 
-Operator CreateFunction::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid, std::string function_name,
-                                     parser::PLType language, std::vector<std::string> &&function_body,
-                                     std::vector<std::string> &&function_param_names,
-                                     std::vector<parser::BaseFunctionParameter::DataType> &&function_param_types,
-                                     parser::BaseFunctionParameter::DataType return_type, int param_count,
-                                     bool replace) {
+Operator CreateFunction::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid, std::string function_name, parser::PLType language,
+                              std::vector<std::string> &&function_body, std::vector<std::string> &&function_param_names,
+                              std::vector<parser::BaseFunctionParameter::DataType> &&function_param_types,
+                              parser::BaseFunctionParameter::DataType return_type, int param_count, bool replace) {
   auto op = std::make_unique<CreateFunction>();
   op->database_oid_ = database_oid;
   op->namespace_oid_ = namespace_oid;
