@@ -5,6 +5,7 @@
 #include <unordered_map>
 #include <utility>
 #include <vector>
+#include "catalog/index_schema.h"
 #include "catalog/schema.h"
 #include "catalog/catalog_defs.h"
 #include "common/hash_util.h"
@@ -1189,7 +1190,15 @@ class CreateDatabase : public OperatorNode<CreateDatabase> {
 class CreateTable : public OperatorNode<CreateTable> {
  public:
   /**
-   * @param database_name Name of the database to be created
+   * @param namespace_oid OID of the namespace
+   * @param table_name Name of the table to be created
+   * @param table_schema Schema of the table to be created
+   * @param block_store Block store for the new table
+   * @param has_primary_key If the table has a primary key
+   * @param primary_key Primary key information of the table
+   * @param foreign_keys List of foreign key reference in the table
+   * @param con_uniques Information of unique columns in the table
+   * @param con_checks Information of check constrations on columns in the table
    * @return
    */
   static Operator Make(catalog::namespace_oid_t namespace_oid, std::string table_name, std::unique_ptr<catalog::Schema> table_schema,
@@ -1291,6 +1300,66 @@ class CreateTable : public OperatorNode<CreateTable> {
    * Check constraints
    */
   std::vector<planner::CheckInfo> con_checks_;
+};
+
+/**
+ * Physical operator for CreateIndex
+ */
+class CreateIndex : public OperatorNode<CreateIndex> {
+ public:
+  /**
+   * @param namespace_oid OID of the namespace
+   * @param table_oid OID of the table
+   * @param index_name Name of the index
+   * @param
+   * @return
+   */
+  static Operator Make(catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid,
+                       std::string index_name, std::unique_ptr<catalog::IndexSchema> &&schema);
+
+  bool operator==(const BaseOperatorNode &r) override;
+  common::hash_t Hash() const override;
+
+  /**
+   * @return OID of the namespace
+   */
+  const catalog::namespace_oid_t &GetNamespaceOid() const { return namespace_oid_; }
+
+  /**
+   * @return OID of the table
+   */
+  const catalog::table_oid_t &GetTableOid() const { return table_oid_; }
+
+  /**
+   * @return Name of the index
+   */
+  const std::string &GetIndexName() const { return index_name_; }
+
+  /**
+   * @return pointer to the schema
+   */
+  common::ManagedPointer<catalog::IndexSchema> GetSchema() const { return common::ManagedPointer(schema_); }
+
+ private:
+  /**
+   * OID of the namespace
+   */
+  catalog::namespace_oid_t namespace_oid_;
+
+  /**
+   * OID of the table
+   */
+  catalog::table_oid_t table_oid_;
+
+  /**
+   * Name of the Index
+   */
+  std::string index_name_;
+
+  /**
+   * Index Schema
+   */
+  std::unique_ptr<catalog::IndexSchema> schema_;
 };
 
 /**

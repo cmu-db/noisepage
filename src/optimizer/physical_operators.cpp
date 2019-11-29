@@ -763,7 +763,7 @@ bool CreateDatabase::operator==(const BaseOperatorNode &r) {
 
 
 //===--------------------------------------------------------------------===//
-// CreateDatabase
+// CreateTable
 //===--------------------------------------------------------------------===//
 
 Operator CreateTable::Make(catalog::namespace_oid_t namespace_oid, std::string table_name, std::unique_ptr<catalog::Schema> table_schema,
@@ -816,6 +816,41 @@ bool CreateTable::operator==(const BaseOperatorNode &r) {
   if (foreign_keys_ != node.foreign_keys_) return false;
   if (con_uniques_ != node.con_uniques_) return false;
   return con_checks_ == node.con_checks_;
+}
+
+
+//===--------------------------------------------------------------------===//
+// CreateIndex
+//===--------------------------------------------------------------------===//
+
+Operator CreateIndex::Make(catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid,
+                           std::string index_name, std::unique_ptr<catalog::IndexSchema> &&schema) {
+  auto op = std::make_unique<CreateIndex>();
+  op->namespace_oid_ = namespace_oid;
+  op->table_oid_ = table_oid;
+  op->index_name_ = std::move(index_name);
+  op->schema_ = std::move(schema);
+  return Operator(std::move(op));
+}
+
+common::hash_t CreateIndex::Hash() const {
+  common::hash_t hash = BaseOperatorNode::Hash();
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(namespace_oid_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(table_oid_));
+  hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(index_name_));
+  if (schema_ != nullptr) hash = common::HashUtil::CombineHashes(hash, schema_->Hash());
+  return hash;
+}
+
+bool CreateIndex::operator==(const BaseOperatorNode &r) {
+  if (r.GetType() != OpType::CREATEINDEX) return false;
+  const CreateIndex &node = *dynamic_cast<const CreateIndex *>(&r);
+  if (namespace_oid_ != node.namespace_oid_) return false;
+  if (table_oid_ != node.table_oid_) return false;
+  if (index_name_ != node.index_name_) return false;
+  if (schema_ != nullptr && *schema_ != *node.schema_) return false;
+  if (schema_ == nullptr && node.schema_ != nullptr) return false;
+  return (true);
 }
 
 //===--------------------------------------------------------------------===//
