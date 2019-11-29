@@ -318,8 +318,10 @@ void BindNodeVisitor::Visit(parser::DropStatement *node, UNUSED_ATTRIBUTE parser
       }
       break;
     case parser::DropStatement::DropType::kTrigger:
+      // TODO(Ling): Get Trigger OID in catalog?
     case parser::DropStatement::DropType::kSchema:
     case parser::DropStatement::DropType::kView:
+      // TODO(Ling): Get View OID in catalog?
     case parser::DropStatement::DropType::kPreparedStatement:
       break;
   }

@@ -1543,6 +1543,7 @@ class LogicalDropTable : public OperatorNode<LogicalDropTable> {
 class LogicalDropIndex : public OperatorNode<LogicalDropIndex> {
  public:
   /**
+   * @param index_oid OID of index to be dropped
    * @return
    */
   static Operator Make(catalog::index_oid_t index_oid);
@@ -1568,6 +1569,7 @@ class LogicalDropIndex : public OperatorNode<LogicalDropIndex> {
 class LogicalDropSchema : public OperatorNode<LogicalDropSchema> {
  public:
   /**
+   * @param namespace_oid OID of the schema to be dropped
    * @return
    */
   static Operator Make(catalog::namespace_oid_t namespace_oid);
@@ -1587,13 +1589,16 @@ class LogicalDropSchema : public OperatorNode<LogicalDropSchema> {
   catalog::namespace_oid_t namespace_oid_ = catalog::INVALID_NAMESPACE_OID;
 };
 
-
 /**
  * Logical operator for DropTrigger
  */
 class LogicalDropTrigger : public OperatorNode<LogicalDropTrigger> {
  public:
   /**
+   * @param database_oid OID of the database
+   * @param namespace_oid OID of the namespace
+   * @param trigger_oid OID of the trigger to be dropped
+   * @param if_exists If "IF EXISTS" condition is used
    * @return
    */
   static Operator Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid, catalog::trigger_oid_t trigger_oid, bool if_exists);
@@ -1649,6 +1654,10 @@ class LogicalDropTrigger : public OperatorNode<LogicalDropTrigger> {
 class LogicalDropView : public OperatorNode<LogicalDropView> {
  public:
   /**
+   * @param database_oid OID of the database
+   * @param namespace_oid OID of the namespace
+   * @param view_oid OID of the view to be dropped
+   * @param if_exists If "IF EXISTS" condition is used
    * @return
    */
   static Operator Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid, catalog::view_oid_t view_oid, bool if_exists);

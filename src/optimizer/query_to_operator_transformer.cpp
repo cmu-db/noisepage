@@ -470,8 +470,12 @@ void QueryToOperatorTransformer::Visit(parser::DropStatement *op, parser::ParseR
           std::make_unique<OperatorExpression>(LogicalDropIndex::Make(accessor_->GetIndexOid(op->GetIndexName())),
                                                std::vector<std::unique_ptr<OperatorExpression>>{});
       break;
-    case parser::DropStatement::DropType::kTrigger:
     case parser::DropStatement::DropType::kSchema:
+      drop_expr =
+          std::make_unique<OperatorExpression>(LogicalDropSchema::Make(accessor_->GetNamespaceOid(op->GetSchemaName())),
+                                               std::vector<std::unique_ptr<OperatorExpression>>{});
+      break;
+    case parser::DropStatement::DropType::kTrigger:
     case parser::DropStatement::DropType::kView:
     case parser::DropStatement::DropType::kPreparedStatement:
       break;
