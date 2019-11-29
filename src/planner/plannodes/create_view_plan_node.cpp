@@ -43,7 +43,7 @@ bool CreateViewPlanNode::operator==(const AbstractPlanNode &rhs) const {
     if (*view_query_ != *other.view_query_) return false;
   }
   if (view_query_ == nullptr && other.view_query_ != nullptr) return false;
-  
+
   return true;
 }
 

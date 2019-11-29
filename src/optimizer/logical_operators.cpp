@@ -743,8 +743,9 @@ bool LogicalCreateDatabase::operator==(const BaseOperatorNode &r) {
 // LogicalCreateFunction
 //===--------------------------------------------------------------------===//
 
-Operator LogicalCreateFunction::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid, std::string function_name,
-                                     parser::PLType language, std::vector<std::string> &&function_body,
+Operator LogicalCreateFunction::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
+                                     std::string function_name, parser::PLType language,
+                                     std::vector<std::string> &&function_body,
                                      std::vector<std::string> &&function_param_names,
                                      std::vector<parser::BaseFunctionParameter::DataType> &&function_param_types,
                                      parser::BaseFunctionParameter::DataType return_type, int param_count,
@@ -1079,7 +1080,8 @@ bool LogicalDropSchema::operator==(const BaseOperatorNode &r) {
 // LogicalDropTrigger
 //===--------------------------------------------------------------------===//
 
-Operator LogicalDropTrigger::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid, catalog::trigger_oid_t trigger_oid, bool if_exists) {
+Operator LogicalDropTrigger::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
+                                  catalog::trigger_oid_t trigger_oid, bool if_exists) {
   auto op = std::make_unique<LogicalDropTrigger>();
   op->database_oid_ = database_oid;
   op->namespace_oid_ = namespace_oid;
@@ -1110,7 +1112,8 @@ bool LogicalDropTrigger::operator==(const BaseOperatorNode &r) {
 // LogicalDropView
 //===--------------------------------------------------------------------===//
 
-Operator LogicalDropView::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid, catalog::view_oid_t view_oid, bool if_exists) {
+Operator LogicalDropView::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
+                               catalog::view_oid_t view_oid, bool if_exists) {
   auto op = std::make_unique<LogicalDropView>();
   op->database_oid_ = database_oid;
   op->namespace_oid_ = namespace_oid;

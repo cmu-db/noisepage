@@ -336,7 +336,7 @@ class Schema {
   common::hash_t Hash() const {
     // TODO(Ling): Does column order matter for hash?
     common::hash_t hash = common::HashUtil::Hash(col_oid_to_offset_.size());
-    for (const auto & col : columns_) hash = common::HashUtil::CombineHashes(hash, col.Hash());
+    for (const auto &col : columns_) hash = common::HashUtil::CombineHashes(hash, col.Hash());
     return hash;
   }
 

@@ -761,15 +761,16 @@ bool CreateDatabase::operator==(const BaseOperatorNode &r) {
   return node.database_name_ == database_name_;
 }
 
-
 //===--------------------------------------------------------------------===//
 // CreateTable
 //===--------------------------------------------------------------------===//
 
-Operator CreateTable::Make(catalog::namespace_oid_t namespace_oid, std::string table_name, std::unique_ptr<catalog::Schema> table_schema,
+Operator CreateTable::Make(catalog::namespace_oid_t namespace_oid, std::string table_name,
+                           std::unique_ptr<catalog::Schema> table_schema,
                            common::ManagedPointer<storage::BlockStore> block_store, bool has_primary_key,
                            planner::PrimaryKeyInfo primary_key, std::vector<planner::ForeignKeyInfo> &&foreign_keys,
-                           std::vector<planner::UniqueInfo> &&con_uniques, std::vector<planner::CheckInfo> &&con_checks) {
+                           std::vector<planner::UniqueInfo> &&con_uniques,
+                           std::vector<planner::CheckInfo> &&con_checks) {
   auto op = std::make_unique<CreateTable>();
   op->namespace_oid_ = namespace_oid;
   op->table_name_ = std::move(table_name);
@@ -817,7 +818,6 @@ bool CreateTable::operator==(const BaseOperatorNode &r) {
   if (con_uniques_ != node.con_uniques_) return false;
   return con_checks_ == node.con_checks_;
 }
-
 
 //===--------------------------------------------------------------------===//
 // CreateIndex
@@ -880,12 +880,10 @@ bool CreateSchema::operator==(const BaseOperatorNode &r) {
 //===--------------------------------------------------------------------===//
 
 Operator CreateTrigger::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
-                                    catalog::table_oid_t table_oid, std::string trigger_name,
-                                    std::vector<std::string> &&trigger_funcnames,
-                                    std::vector<std::string> &&trigger_args,
-                                    std::vector<catalog::col_oid_t> &&trigger_columns,
-                                    common::ManagedPointer<parser::AbstractExpression> &&trigger_when,
-                                    int16_t trigger_type) {
+                             catalog::table_oid_t table_oid, std::string trigger_name,
+                             std::vector<std::string> &&trigger_funcnames, std::vector<std::string> &&trigger_args,
+                             std::vector<catalog::col_oid_t> &&trigger_columns,
+                             common::ManagedPointer<parser::AbstractExpression> &&trigger_when, int16_t trigger_type) {
   auto op = std::make_unique<CreateTrigger>();
   op->database_oid_ = database_oid;
   op->namespace_oid_ = namespace_oid;
@@ -932,8 +930,8 @@ bool CreateTrigger::operator==(const BaseOperatorNode &r) {
 // CreateView
 //===--------------------------------------------------------------------===//
 
-Operator CreateView::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
-                                 std::string view_name, common::ManagedPointer<parser::SelectStatement> view_query) {
+Operator CreateView::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid, std::string view_name,
+                          common::ManagedPointer<parser::SelectStatement> view_query) {
   auto op = std::make_unique<CreateView>();
   op->database_oid_ = database_oid;
   op->namespace_oid_ = namespace_oid;
@@ -965,7 +963,8 @@ bool CreateView::operator==(const BaseOperatorNode &r) {
 // CreateFunction
 //===--------------------------------------------------------------------===//
 
-Operator CreateFunction::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid, std::string function_name, parser::PLType language,
+Operator CreateFunction::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
+                              std::string function_name, parser::PLType language,
                               std::vector<std::string> &&function_body, std::vector<std::string> &&function_param_names,
                               std::vector<parser::BaseFunctionParameter::DataType> &&function_param_types,
                               parser::BaseFunctionParameter::DataType return_type, int param_count, bool replace) {
@@ -1105,7 +1104,8 @@ bool DropSchema::operator==(const BaseOperatorNode &r) {
 // DropTrigger
 //===--------------------------------------------------------------------===//
 
-Operator DropTrigger::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid, catalog::trigger_oid_t trigger_oid, bool if_exists) {
+Operator DropTrigger::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
+                           catalog::trigger_oid_t trigger_oid, bool if_exists) {
   auto op = std::make_unique<DropTrigger>();
   op->database_oid_ = database_oid;
   op->namespace_oid_ = namespace_oid;
@@ -1136,7 +1136,8 @@ bool DropTrigger::operator==(const BaseOperatorNode &r) {
 // DropView
 //===--------------------------------------------------------------------===//
 
-Operator DropView::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid, catalog::view_oid_t view_oid, bool if_exists) {
+Operator DropView::Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
+                        catalog::view_oid_t view_oid, bool if_exists) {
   auto op = std::make_unique<DropView>();
   op->database_oid_ = database_oid;
   op->namespace_oid_ = namespace_oid;

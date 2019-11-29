@@ -1027,8 +1027,9 @@ class LogicalCreateFunction : public OperatorNode<LogicalCreateFunction> {
    * @param replace If this function should replace existing definitions
    * @return
    */
-  static Operator Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid, std::string function_name, parser::PLType language,
-                       std::vector<std::string> &&function_body, std::vector<std::string> &&function_param_names,
+  static Operator Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
+                       std::string function_name, parser::PLType language, std::vector<std::string> &&function_body,
+                       std::vector<std::string> &&function_param_names,
                        std::vector<parser::BaseFunctionParameter::DataType> &&function_param_types,
                        parser::BaseFunctionParameter::DataType return_type, int param_count, bool replace);
 
@@ -1601,7 +1602,8 @@ class LogicalDropTrigger : public OperatorNode<LogicalDropTrigger> {
    * @param if_exists If "IF EXISTS" condition is used
    * @return
    */
-  static Operator Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid, catalog::trigger_oid_t trigger_oid, bool if_exists);
+  static Operator Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
+                       catalog::trigger_oid_t trigger_oid, bool if_exists);
 
   bool operator==(const BaseOperatorNode &r) override;
   common::hash_t Hash() const override;
@@ -1628,8 +1630,8 @@ class LogicalDropTrigger : public OperatorNode<LogicalDropTrigger> {
 
  private:
   /**
-  * OID of the database
-  */
+   * OID of the database
+   */
   catalog::db_oid_t database_oid_;
 
   /**
@@ -1660,7 +1662,8 @@ class LogicalDropView : public OperatorNode<LogicalDropView> {
    * @param if_exists If "IF EXISTS" condition is used
    * @return
    */
-  static Operator Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid, catalog::view_oid_t view_oid, bool if_exists);
+  static Operator Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
+                       catalog::view_oid_t view_oid, bool if_exists);
 
   bool operator==(const BaseOperatorNode &r) override;
   common::hash_t Hash() const override;
@@ -1687,8 +1690,8 @@ class LogicalDropView : public OperatorNode<LogicalDropView> {
 
  private:
   /**
-  * OID of the database
-  */
+   * OID of the database
+   */
   catalog::db_oid_t database_oid_;
 
   /**

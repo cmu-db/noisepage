@@ -5,9 +5,9 @@
 #include <unordered_map>
 #include <utility>
 #include <vector>
+#include "catalog/catalog_defs.h"
 #include "catalog/index_schema.h"
 #include "catalog/schema.h"
-#include "catalog/catalog_defs.h"
 #include "common/hash_util.h"
 #include "common/managed_pointer.h"
 #include "optimizer/operator_node.h"
@@ -16,8 +16,8 @@
 #include "parser/parser_defs.h"
 #include "parser/statements.h"
 #include "parser/update_statement.h"
-#include "planner/plannodes/plan_node_defs.h"
 #include "planner/plannodes/create_table_plan_node.h"
+#include "planner/plannodes/plan_node_defs.h"
 #include "type/transient_value.h"
 
 namespace terrier {
@@ -1202,7 +1202,8 @@ class CreateTable : public OperatorNode<CreateTable> {
    * @param con_checks Information of check constrations on columns in the table
    * @return
    */
-  static Operator Make(catalog::namespace_oid_t namespace_oid, std::string table_name, std::unique_ptr<catalog::Schema> table_schema,
+  static Operator Make(catalog::namespace_oid_t namespace_oid, std::string table_name,
+                       std::unique_ptr<catalog::Schema> table_schema,
                        common::ManagedPointer<storage::BlockStore> block_store, bool has_primary_key,
                        planner::PrimaryKeyInfo primary_key, std::vector<planner::ForeignKeyInfo> &&foreign_keys,
                        std::vector<planner::UniqueInfo> &&con_uniques, std::vector<planner::CheckInfo> &&con_checks);
@@ -1257,8 +1258,8 @@ class CreateTable : public OperatorNode<CreateTable> {
 
  private:
   /**
-    * OID of the schema/namespace
-    */
+   * OID of the schema/namespace
+   */
   catalog::namespace_oid_t namespace_oid_;
 
   /**
@@ -1315,8 +1316,8 @@ class CreateIndex : public OperatorNode<CreateIndex> {
    * @param schema Index schema of the new index
    * @return
    */
-  static Operator Make(catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid,
-                       std::string index_name, std::unique_ptr<catalog::IndexSchema> &&schema);
+  static Operator Make(catalog::namespace_oid_t namespace_oid, catalog::table_oid_t table_oid, std::string index_name,
+                       std::unique_ptr<catalog::IndexSchema> &&schema);
 
   bool operator==(const BaseOperatorNode &r) override;
   common::hash_t Hash() const override;
@@ -1388,7 +1389,6 @@ class CreateSchema : public OperatorNode<CreateSchema> {
    */
   std::string namespace_name_;
 };
-
 
 /**
  * Physical operator for CreateView
@@ -1595,7 +1595,6 @@ class DropDatabase : public OperatorNode<DropDatabase> {
   catalog::db_oid_t db_oid_ = catalog::INVALID_DATABASE_OID;
 };
 
-
 /**
  * Physical operator for CreateFunction
  */
@@ -1614,8 +1613,9 @@ class CreateFunction : public OperatorNode<CreateFunction> {
    * @param replace If this function should replace existing definitions
    * @return
    */
-  static Operator Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid, std::string function_name, parser::PLType language,
-                       std::vector<std::string> &&function_body, std::vector<std::string> &&function_param_names,
+  static Operator Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
+                       std::string function_name, parser::PLType language, std::vector<std::string> &&function_body,
+                       std::vector<std::string> &&function_param_names,
                        std::vector<parser::BaseFunctionParameter::DataType> &&function_param_types,
                        parser::BaseFunctionParameter::DataType return_type, int param_count, bool replace);
 
@@ -1803,7 +1803,6 @@ class DropSchema : public OperatorNode<DropSchema> {
   catalog::namespace_oid_t namespace_oid_ = catalog::INVALID_NAMESPACE_OID;
 };
 
-
 /**
  * Physical operator for DropTrigger
  */
@@ -1812,7 +1811,8 @@ class DropTrigger : public OperatorNode<DropTrigger> {
   /**
    * @return
    */
-  static Operator Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid, catalog::trigger_oid_t trigger_oid, bool if_exists);
+  static Operator Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
+                       catalog::trigger_oid_t trigger_oid, bool if_exists);
 
   bool operator==(const BaseOperatorNode &r) override;
   common::hash_t Hash() const override;
@@ -1839,8 +1839,8 @@ class DropTrigger : public OperatorNode<DropTrigger> {
 
  private:
   /**
-  * OID of the database
-  */
+   * OID of the database
+   */
   catalog::db_oid_t database_oid_;
 
   /**
@@ -1867,7 +1867,8 @@ class DropView : public OperatorNode<DropView> {
   /**
    * @return
    */
-  static Operator Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid, catalog::view_oid_t view_oid, bool if_exists);
+  static Operator Make(catalog::db_oid_t database_oid, catalog::namespace_oid_t namespace_oid,
+                       catalog::view_oid_t view_oid, bool if_exists);
 
   bool operator==(const BaseOperatorNode &r) override;
   common::hash_t Hash() const override;
@@ -1894,8 +1895,8 @@ class DropView : public OperatorNode<DropView> {
 
  private:
   /**
-  * OID of the database
-  */
+   * OID of the database
+   */
   catalog::db_oid_t database_oid_;
 
   /**

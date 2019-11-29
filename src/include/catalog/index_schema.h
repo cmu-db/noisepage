@@ -415,7 +415,7 @@ class IndexSchema {
   common::hash_t Hash() const {
     // TODO(Ling): Does column order matter for hash?
     common::hash_t hash = common::HashUtil::Hash(type_);
-    for (const auto & col : columns_) hash = common::HashUtil::CombineHashes(hash, col.Hash());
+    for (const auto &col : columns_) hash = common::HashUtil::CombineHashes(hash, col.Hash());
     hash = common::HashUtil::CombineHashInRange(hash, indexed_oids_.begin(), indexed_oids_.end());
     hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(is_unique_));
     hash = common::HashUtil::CombineHashes(hash, common::HashUtil::Hash(is_primary_));
