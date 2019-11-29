@@ -1008,6 +1008,30 @@ TEST_F(OperatorTransformerTest, CreateNamespaceTest) {
 }
 
 // NOLINTNEXTLINE
+TEST_F(OperatorTransformerTest, CreateViewTest) {
+  std::string create_sql = "CREATE VIEW a_view AS SELECT * FROM a WHERE a1 = 4;";
+
+  std::string ref = R"({"Op":"LogicalCreateView",})";
+
+  auto parse_tree = parser_.BuildParseTree(create_sql);
+  auto statement = parse_tree.GetStatements()[0];
+  binder_->BindNameToNode(statement, &parse_tree);
+  accessor_ = binder_->GetCatalogAccessor();
+  auto ns_oid = accessor_->GetDefaultNamespace();
+  operator_transformer_ = std::make_unique<optimizer::QueryToOperatorTransformer>(std::move(accessor_));
+  operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, &parse_tree);
+  auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorExpression>(operator_tree_));
+
+  EXPECT_EQ(ref, info);
+
+  // Test logical create
+  auto logical_create = operator_tree_->GetOp().As<optimizer::LogicalCreateView>();
+  EXPECT_EQ(logical_create->GetDatabaseOid(), db_oid_);
+  EXPECT_EQ(logical_create->GetNamespaceOid(), ns_oid);
+  EXPECT_EQ(logical_create->GetViewName(), "a_view");
+}
+
+// NOLINTNEXTLINE
 TEST_F(OperatorTransformerTest, CreateTriggerTest) {
   std::string create_sql =
       "CREATE TRIGGER check_update "
@@ -1111,6 +1135,26 @@ TEST_F(OperatorTransformerTest, DropIndexTest) {
   // Test logical drop table
   auto logical_create = operator_tree_->GetOp().As<optimizer::LogicalDropIndex>();
   EXPECT_EQ(logical_create->GetIndexOID(), a_index_oid_);
+}
+
+// NOLINTNEXTLINE
+TEST_F(OperatorTransformerTest, DropSchemaIfExistsTest) {
+  std::string drop_sql = "DROP SCHEMA IF EXISTS foo CASCADE;";
+  std::string ref = R"({"Op":"LogicalDropSchema",})";
+
+  auto parse_tree = parser_.BuildParseTree(drop_sql);
+  auto statement = parse_tree.GetStatements()[0];
+  binder_->BindNameToNode(statement, &parse_tree);
+  accessor_ = binder_->GetCatalogAccessor();
+  operator_transformer_ = std::make_unique<optimizer::QueryToOperatorTransformer>(std::move(accessor_));
+  operator_tree_ = operator_transformer_->ConvertToOpExpression(statement, &parse_tree);
+  auto info = GenerateOperatorAudit(common::ManagedPointer<optimizer::OperatorExpression>(operator_tree_));
+
+  EXPECT_EQ(ref, info);
+
+  // Test logical drop table
+  auto logical_create = operator_tree_->GetOp().As<optimizer::LogicalDropSchema>();
+  EXPECT_EQ(logical_create->GetNamespaceOID(), catalog::INVALID_NAMESPACE_OID);
 }
 
 }  // namespace terrier

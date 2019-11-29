@@ -272,8 +272,11 @@ void BindNodeVisitor::Visit(parser::CreateStatement *node, parser::ParseResult *
       break;
     case parser::CreateStatement::CreateType::kSchema:
       // nothing for binder to handler
+      break;
     case parser::CreateStatement::CreateType::kView:
-      // TODO(Ling): Logic for CreateView has not been implemented from what I see.
+      node->TryBindDatabaseName(default_database_name_);
+      TERRIER_ASSERT(node->GetViewQuery() != nullptr, "View requires a query");
+      node->GetViewQuery()->Accept(this, parse_result);
       break;
   }
   auto curr_context = context_;

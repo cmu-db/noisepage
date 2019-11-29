@@ -331,6 +331,10 @@ void QueryToOperatorTransformer::Visit(parser::CreateStatement *op, parser::Pars
                                                          std::vector<std::unique_ptr<OperatorExpression>>{});
       break;
     case parser::CreateStatement::CreateType::kView:
+      create_expr = std::make_unique<OperatorExpression>(
+          LogicalCreateView::Make(accessor_->GetDatabaseOid(op->GetDatabaseName()), accessor_->GetDefaultNamespace(),
+                                  op->GetViewName(), op->GetViewQuery()),
+          std::vector<std::unique_ptr<OperatorExpression>>{});
       break;
   }
 

@@ -908,4 +908,32 @@ TEST_F(BinderCorrectnessTest, CreateTriggerTest) {
   EXPECT_EQ(col2->GetDatabaseOid(), db_oid_);
 }
 
+// NOLINTNEXTLINE
+TEST_F(BinderCorrectnessTest, CreateViewTest) {
+  std::string create_sql = "CREATE VIEW a_view AS SELECT * FROM a WHERE a1 = 4;";
+
+  auto parse_tree = parser_.BuildParseTree(create_sql);
+  auto statement = parse_tree.GetStatements()[0];
+  binder_->BindNameToNode(statement, &parse_tree);
+  accessor_ = binder_->GetCatalogAccessor();
+
+  // Test logical create
+  auto create_stmt = statement.CastManagedPointerTo<parser::CreateStatement>();
+  EXPECT_EQ(create_stmt->GetDatabaseName(), "test_db");
+  auto view_query = create_stmt->GetViewQuery();
+  EXPECT_EQ(view_query->GetSelectTable()->GetDatabaseName(), "test_db");
+  EXPECT_EQ(view_query->GetSelectTable()->GetTableName(), "a");
+  auto cond_expr = view_query->GetSelectCondition().CastManagedPointerTo<parser::ComparisonExpression>();
+  EXPECT_EQ(cond_expr->GetChildrenSize(), 2);
+  EXPECT_EQ(cond_expr->GetReturnValueType(), type::TypeId::BOOLEAN);
+  EXPECT_EQ(cond_expr->GetExpressionType(), parser::ExpressionType::COMPARE_EQUAL);
+  EXPECT_EQ(cond_expr->GetChild(1)->GetExpressionType(), parser::ExpressionType::VALUE_CONSTANT);
+  auto const_expr = cond_expr->GetChild(1).CastManagedPointerTo<parser::ConstantValueExpression>();
+  EXPECT_EQ(const_expr->GetReturnValueType(), type::TypeId::INTEGER);
+  auto col_expr = cond_expr->GetChild(0).CastManagedPointerTo<parser::ColumnValueExpression>();
+  EXPECT_EQ(col_expr->GetReturnValueType(), type::TypeId::INTEGER);
+  EXPECT_EQ(col_expr->GetTableOid(), table_a_oid_);
+  EXPECT_EQ(col_expr->GetColumnOid(), catalog::col_oid_t(1));
+}
+
 }  // namespace terrier
