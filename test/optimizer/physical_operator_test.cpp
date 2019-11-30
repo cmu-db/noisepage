@@ -1123,4 +1123,24 @@ TEST(OperatorTests, DistinctTest) {
   EXPECT_EQ(op1.Hash(), op2.Hash());
 }
 
+// NOLINTNEXTLINE
+TEST(OperatorTests, CreateDatabaseTest) {
+  //===--------------------------------------------------------------------===//
+  // CreateDatabase
+  //===--------------------------------------------------------------------===//
+  Operator create_db_1 = CreateDatabase::Make("testdb");
+  Operator create_db_2 = CreateDatabase::Make("testdb");
+  Operator create_db_3 = CreateDatabase::Make("another_testdb");
+
+  EXPECT_EQ(create_db_1.GetType(), OpType::CREATEDATABASE);
+  EXPECT_EQ(create_db_3.GetType(), OpType::CREATEDATABASE);
+  EXPECT_EQ(create_db_1.GetName(), "CreateDatabase");
+  EXPECT_EQ(create_db_1.As<CreateDatabase>()->GetDatabaseName(), "testdb");
+  EXPECT_EQ(create_db_3.As<CreateDatabase>()->GetDatabaseName(), "another_testdb");
+  EXPECT_TRUE(create_db_1 == create_db_2);
+  EXPECT_FALSE(create_db_1 == create_db_3);
+  EXPECT_EQ(create_db_1.Hash(), create_db_2.Hash());
+  EXPECT_NE(create_db_1.Hash(), create_db_3.Hash());
+}
+
 }  // namespace terrier::optimizer

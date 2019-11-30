@@ -962,4 +962,44 @@ TEST(OperatorTests, LogicalAggregateAndGroupByTest) {
   delete expr_b_8;
 }
 
+// NOLINTNEXTLINE
+TEST(OperatorTests, LogicalCreateDatabaseTest) {
+  //===--------------------------------------------------------------------===//
+  // LogicalCreateDatabase
+  //===--------------------------------------------------------------------===//
+  Operator logical_create_db_1 = LogicalCreateDatabase::Make("testdb");
+  Operator logical_create_db_2 = LogicalCreateDatabase::Make("testdb");
+  Operator logical_create_db_3 = LogicalCreateDatabase::Make("another_testdb");
+
+  EXPECT_EQ(logical_create_db_1.GetType(), OpType::LOGICALCREATEDATABASE);
+  EXPECT_EQ(logical_create_db_3.GetType(), OpType::LOGICALCREATEDATABASE);
+  EXPECT_EQ(logical_create_db_1.GetName(), "LogicalCreateDatabase");
+  EXPECT_EQ(logical_create_db_1.As<LogicalCreateDatabase>()->GetDatabaseName(), "testdb");
+  EXPECT_EQ(logical_create_db_3.As<LogicalCreateDatabase>()->GetDatabaseName(), "another_testdb");
+  EXPECT_TRUE(logical_create_db_1 == logical_create_db_2);
+  EXPECT_FALSE(logical_create_db_1 == logical_create_db_3);
+  EXPECT_EQ(logical_create_db_1.Hash(), logical_create_db_2.Hash());
+  EXPECT_NE(logical_create_db_1.Hash(), logical_create_db_3.Hash());
+}
+
+// NOLINTNEXTLINE
+TEST(OperatorTests, LogicalCreateFunctionTest) {
+  //===--------------------------------------------------------------------===//
+  // LogicalCreateFunction
+  //===--------------------------------------------------------------------===//
+  Operator logical_create_db_1 = LogicalCreateFunction::Make("testdb");
+  Operator logical_create_db_2 = LogicalCreateFunction::Make("testdb");
+  Operator logical_create_db_3 = LogicalCreateFunction::Make("another_testdb");
+
+  EXPECT_EQ(logical_create_db_1.GetType(), OpType::LOGICALCREATEFUNCTION);
+  EXPECT_EQ(logical_create_db_3.GetType(), OpType::LOGICALCREATEFUNCTION);
+  EXPECT_EQ(logical_create_db_1.GetName(), "LogicalCreateFunction");
+  EXPECT_EQ(logical_create_db_1.As<LogicalCreateFunction>()->GetFunctionName(), "testdb");
+  EXPECT_EQ(logical_create_db_3.As<LogicalCreateFunction>()->GetFunctionName(), "another_testdb");
+  EXPECT_TRUE(logical_create_db_1 == logical_create_db_2);
+  EXPECT_FALSE(logical_create_db_1 == logical_create_db_3);
+  EXPECT_EQ(logical_create_db_1.Hash(), logical_create_db_2.Hash());
+  EXPECT_NE(logical_create_db_1.Hash(), logical_create_db_3.Hash());
+}
+
 }  // namespace terrier::optimizer
