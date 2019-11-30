@@ -1,7 +1,7 @@
 #include "type/type_util.h"
-#include "type/type_id.h"
 
 #include "gtest/gtest.h"
+#include "type/type_id.h"
 
 namespace terrier::type {
 
@@ -15,8 +15,8 @@ TEST(TypeUtilTests, GetTypeSizeTest) {
   EXPECT_EQ(TypeUtil::GetTypeSize(TypeId::BIGINT), 8);
   EXPECT_EQ(TypeUtil::GetTypeSize(TypeId::DECIMAL), 8);
   EXPECT_EQ(TypeUtil::GetTypeSize(TypeId::TIMESTAMP), 8);
-  EXPECT_EQ(TypeUtil::GetTypeSize(TypeId::VARCHAR), VARLEN_COLUMN);
-  EXPECT_EQ(TypeUtil::GetTypeSize(TypeId::VARBINARY), VARLEN_COLUMN);
+  EXPECT_EQ(TypeUtil::GetTypeSize(TypeId::VARCHAR), storage::VARLEN_COLUMN);
+  EXPECT_EQ(TypeUtil::GetTypeSize(TypeId::VARBINARY), storage::VARLEN_COLUMN);
 
   // check to make sure that we throw an exception if we give GetTypeSize
   // an invalid TypeId that it handles it correctly
