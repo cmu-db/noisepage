@@ -169,7 +169,8 @@ Transition ConnectionHandle::GetResult() {
 Transition ConnectionHandle::TryCloseConnection() {
   NETWORK_LOG_TRACE("Attempt to close the connection {0}", io_wrapper_->GetSocketFd());
   if (context_.temp_namespace_oid_ != catalog::INVALID_NAMESPACE_OID) {
-      while (!traffic_cop_->DropTempNamespace(context_.temp_namespace_oid_, context_.db_oid_));
+    while (!traffic_cop_->DropTempNamespace(context_.temp_namespace_oid_, context_.db_oid_)) {
+    }
   }
   Transition close = io_wrapper_->Close();
   if (close != Transition::PROCEED) return close;
