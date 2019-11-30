@@ -1,14 +1,14 @@
+#include <common/scoped_timer.h>
+
 #include <array>
 #include <memory>
 #include <utility>
 #include <vector>
 
 #include "benchmark/benchmark.h"
-
+#include "benchmark_util/data_table_benchmark_util.h"
 #include "execution/sql/table_vector_iterator.h"
 #include "execution/sql_test.h"
-
-#include "benchmark_util/data_table_benchmark_util.h"
 #include "storage/garbage_collector_thread.h"
 
 namespace terrier {
@@ -37,7 +37,7 @@ class SeqscanBenchmark : public benchmark::Fixture {
   catalog::namespace_oid_t NSOid() { return test_ns_oid_; }
 
   void SetUp(const benchmark::State &state) override {
-    // Initialize terrier objectts
+    // Initialize terrier objects
     block_store_ = std::make_unique<storage::BlockStore>(1000, 1000);
     buffer_pool_ = std::make_unique<storage::RecordBufferSegmentPool>(100000, 100000);
     tm_manager_ = std::make_unique<transaction::TimestampManager>();
@@ -45,7 +45,7 @@ class SeqscanBenchmark : public benchmark::Fixture {
     txn_manager_ = std::make_unique<transaction::TransactionManager>(tm_manager_.get(), da_manager_.get(),
                                                                      buffer_pool_.get(), true, nullptr);
 
-    // Garbage collecetor
+    // Garbage collector
     gc_ =
         std::make_unique<storage::GarbageCollector>(tm_manager_.get(), da_manager_.get(), txn_manager_.get(), nullptr);
 
@@ -68,7 +68,11 @@ class SeqscanBenchmark : public benchmark::Fixture {
 
   void TearDown(const benchmark::State &state) override {
     txn_manager_->Commit(test_txn_, transaction::TransactionUtil::EmptyCallback, nullptr);
+    // Note: execution context must be released to end lifecycle before tear down completes
+    exec_ctx_.release();
     catalog_->TearDown();
+    gc_->PerformGarbageCollection();
+    gc_->PerformGarbageCollection();
     gc_->PerformGarbageCollection();
   }
 
@@ -93,36 +97,51 @@ class SeqscanBenchmark : public benchmark::Fixture {
  */
 // NOLINTNEXTLINE
 BENCHMARK_DEFINE_F(SeqscanBenchmark, SequentialScan)(benchmark::State &state) {
-  // Get execution context for namespace and test tablee
-  auto table_oid = exec_ctx_->GetAccessor()->GetTableOid(NSOid(), "test_1");
+  // NOLINTNEXTLINE
+  for (auto _ : state) {
+    // Get execution context for namespace and test tables
+    auto table_oid = exec_ctx_->GetAccessor()->GetTableOid(NSOid(), "test_1");
 
-  // Get array of column object ids
-  std::array<uint32_t, 1> col_oids{1};
+    // Get array of column object ids
+    std::array<uint32_t, 1> col_oids{1};
 
-  // Declare iterator through table data
-  execution::sql::TableVectorIterator iter(exec_ctx_.get(), !table_oid, col_oids.data(),
-                                           static_cast<uint32_t>(col_oids.size()));
-  iter.Init();
-  // Iterator over projection
-  execution::sql::ProjectedColumnsIterator *pci = iter.GetProjectedColumnsIterator();
+    // Declare iterator through table data
+    execution::sql::TableVectorIterator iter(exec_ctx_.get(), !table_oid, col_oids.data(),
+                                             static_cast<uint32_t>(col_oids.size()));
+    iter.Init();
 
-  // count number of tuples read
-  uint32_t num_tuples = 0;
-  int32_t prev_val{0};
-  while (iter.Advance()) {
-    for (; pci->HasNext(); pci->Advance()) {
-      auto *val = pci->Get<int32_t, false>(0, nullptr);
-      if (num_tuples > 0) {
-        ASSERT_EQ(*val, prev_val + 1);
+    // Iterator over projection
+    execution::sql::ProjectedColumnsIterator *pci = iter.GetProjectedColumnsIterator();
+
+    // timer for iteration
+    uint64_t elapsed_ms;
+    common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
+
+    // count number of tuples read
+    uint32_t num_tuples = 0;
+    int32_t prev_val{0};
+
+    // Iterate through tuples in iterator
+    while (iter.Advance()) {
+      for (; pci->HasNext(); pci->Advance()) {
+        auto *val = pci->Get<int32_t, false>(0, nullptr);
+        if (num_tuples > 0) {
+          ASSERT_EQ(*val, prev_val + 1);
+        }
+        prev_val = *val;
+        num_tuples++;
       }
-      prev_val = *val;
-      num_tuples++;
+      pci->Reset();
     }
-    pci->Reset();
-  }
 
-  // Expect number of tuples to match size
-  EXPECT_EQ(execution::sql::TEST1_SIZE, num_tuples);
+    // Expect number of tuples to match size
+    EXPECT_EQ(execution::sql::TEST1_SIZE, num_tuples);
+
+    // Set iteration time
+    state.SetIterationTime(static_cast<double>(elapsed_ms) / 1000.0);
+  }
+  // Set number of iterations run
+  state.SetItemsProcessed(state.iterations());
 }
 
 BENCHMARK_REGISTER_F(SeqscanBenchmark, SequentialScan)->UseManualTime()->Unit(benchmark::kMillisecond);
