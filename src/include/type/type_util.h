@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+
 #include "common/exception.h"
 #include "common/strong_typedef.h"
 #include "storage/block_layout.h"
@@ -39,12 +40,11 @@ class TypeUtil {
         return 8;
       case TypeId::VARCHAR:
       case TypeId::VARBINARY:
-        return VARLEN_COLUMN;
+        return storage::VARLEN_COLUMN;
       default:
         throw std::runtime_error("Unknown TypeId in terrier::type::TypeUtil::GetTypeSize().");
     }
   }
-
 
   /**
    * This function stringify the Types for getting expression name for the constant value expression

@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cstring>
 #include <string>
+
 #include "common/hash_util.h"
 #include "common/json.h"
 #include "common/macros.h"
@@ -248,7 +249,7 @@ class TransientValue {
     data_ = 0;
     type_ = type;
     const auto num_bytes =
-        std::min(ATTR_SIZE_BYTES(TypeUtil::GetTypeSize(type)), static_cast<uint16_t>(sizeof(uintptr_t)));
+        std::min(storage::ATTR_SIZE_BYTES(TypeUtil::GetTypeSize(type)), static_cast<uint16_t>(sizeof(uintptr_t)));
     std::memcpy(&data_, &data, num_bytes);
   }
 

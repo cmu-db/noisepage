@@ -3,17 +3,19 @@
 #include <functional>
 #include <utility>
 #include <vector>
+
 #include "storage/storage_defs.h"
 
 namespace terrier::storage {
 // Internally we use the sign bit to represent if a column is varlen or not. Down to the implementation detail though,
 // we always allocate 16 bytes for a varlen entry, with the first 8 bytes being the pointer to the value and following
 // 4 bytes be the size of the varlen. There are 4 bytes of padding for alignment purposes.
-#define VARLEN_COLUMN static_cast<uint16_t>(0x8010)  // 16 with the first (most significant) bit set to 1
+constexpr uint16_t VARLEN_COLUMN = static_cast<uint16_t>(0x8010);  // 16 with the first (most significant) bit set to 1
 // Used to retrieve the number of bytes an attribute actually occupies in memory. The size value stored in
 // BlockLayout also has a bit denoting whether the attribute is variable-length and thus should be treated
 // differently by the rest of the system.
-#define ATTR_SIZE_BYTES(size) static_cast<uint16_t>((size)&INT16_MAX)
+constexpr uint16_t ATTR_SIZE_BYTES(const uint16_t size) { return static_cast<uint16_t>((size)&INT16_MAX); }
+
 /**
  * Stores metadata about the layout of a block.
  */
