@@ -1,2 +1,0 @@
-/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/ar qc ../relwithdebinfo/libutil_static.a  CMakeFiles/util_static.dir/execution/table_generator/table_generator.cpp.o
-/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/ranlib ../relwithdebinfo/libutil_static.a

@@ -1,3 +1,0 @@
-repository='external project URL'
-module='https://github.com/google/benchmark/archive/v1.4.1.tar.gz'
-tag=''
