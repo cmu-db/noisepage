@@ -6,6 +6,7 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
+
 #include "catalog/index_schema.h"
 #include "catalog/schema.h"
 #include "storage/garbage_collector.h"
@@ -57,7 +58,8 @@ struct Util {
   static void SetTupleAttribute(const catalog::Schema &schema, const uint32_t col_offset,
                                 const storage::ProjectionMap &projection_map, storage::ProjectedRow *const pr,
                                 T value) {
-    TERRIER_ASSERT(ATTR_SIZE_BYTES(schema.GetColumn(col_offset).AttrSize()) == sizeof(T), "Invalid attribute size.");
+    TERRIER_ASSERT(storage::AttrSizeBytes(schema.GetColumn(col_offset).AttrSize()) == sizeof(T),
+                   "Invalid attribute size.");
     const auto col_oid = schema.GetColumn(col_offset).Oid();
     const auto attr_offset = projection_map.at(col_oid);
     auto *const attr = pr->AccessForceNotNull(attr_offset);

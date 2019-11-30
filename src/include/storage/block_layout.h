@@ -14,7 +14,7 @@ constexpr uint16_t VARLEN_COLUMN = static_cast<uint16_t>(0x8010);  // 16 with th
 // Used to retrieve the number of bytes an attribute actually occupies in memory. The size value stored in
 // BlockLayout also has a bit denoting whether the attribute is variable-length and thus should be treated
 // differently by the rest of the system.
-constexpr uint16_t ATTR_SIZE_BYTES(const uint16_t size) { return static_cast<uint16_t>((size)&INT16_MAX); }
+constexpr uint16_t AttrSizeBytes(const uint16_t size) { return static_cast<uint16_t>((size)&INT16_MAX); }
 
 /**
  * Stores metadata about the layout of a block.
@@ -45,7 +45,7 @@ class BlockLayout {
    */
   uint16_t AttrSize(col_id_t col_id) const {
     // mask off the first bit as we use that to check for varlen
-    return ATTR_SIZE_BYTES(attr_sizes_.at(!col_id));
+    return AttrSizeBytes(attr_sizes_.at(!col_id));
   }
 
   /**

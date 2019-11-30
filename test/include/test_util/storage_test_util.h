@@ -7,6 +7,7 @@
 #include <unordered_map>
 #include <utility>
 #include <vector>
+
 #include "catalog/index_schema.h"
 #include "catalog/schema.h"
 #include "common/strong_typedef.h"
@@ -148,11 +149,11 @@ class StorageTestUtil {
   }
 
   static std::vector<storage::col_id_t> ProjectionListAllColumns(const storage::BlockLayout &layout) {
-    std::vector<storage::col_id_t> col_ids(layout.NumColumns() - NUM_RESERVED_COLUMNS);
+    std::vector<storage::col_id_t> col_ids(layout.NumColumns() - storage::NUM_RESERVED_COLUMNS);
     // Add all of the column ids from the layout to the projection list
     // 0 is version vector so we skip it
-    for (uint16_t col = NUM_RESERVED_COLUMNS; col < layout.NumColumns(); col++) {
-      col_ids[col - NUM_RESERVED_COLUMNS] = storage::col_id_t(col);
+    for (uint16_t col = storage::NUM_RESERVED_COLUMNS; col < layout.NumColumns(); col++) {
+      col_ids[col - storage::NUM_RESERVED_COLUMNS] = storage::col_id_t(col);
     }
     return col_ids;
   }
@@ -163,7 +164,7 @@ class StorageTestUtil {
     std::vector<storage::col_id_t> col_ids;
     // Add all of the column ids from the layout to the projection list
     // 0 is version vector so we skip it
-    for (uint16_t col = NUM_RESERVED_COLUMNS; col < layout.NumColumns(); col++) col_ids.emplace_back(col);
+    for (uint16_t col = storage::NUM_RESERVED_COLUMNS; col < layout.NumColumns(); col++) col_ids.emplace_back(col);
 
     return RandomNonEmptySubset(col_ids, generator);
   }
@@ -210,7 +211,7 @@ class StorageTestUtil {
       StorageTestUtil::PopulateRandomRow(redo, layout, null_ratio, generator);
       result[slot] = redo;
       // Copy without transactions to simulate a version-free block
-      accessor.SetNotNull(slot, VERSION_POINTER_COLUMN_ID);
+      accessor.SetNotNull(slot, storage::VERSION_POINTER_COLUMN_ID);
       for (uint16_t j = 0; j < redo->NumColumns(); j++)
         storage::StorageUtil::CopyAttrFromProjection(accessor, slot, *redo, j);
     }
@@ -248,7 +249,7 @@ class StorageTestUtil {
       result++;
       StorageTestUtil::PopulateRandomRow(redo, layout, null_ratio, generator);
       // Copy without transactions to simulate a version-free block
-      accessor.SetNotNull(slot, VERSION_POINTER_COLUMN_ID);
+      accessor.SetNotNull(slot, storage::VERSION_POINTER_COLUMN_ID);
       for (uint16_t j = 0; j < redo->NumColumns(); j++)
         storage::StorageUtil::CopyAttrFromProjection(accessor, slot, *redo, j);
     }
@@ -445,7 +446,7 @@ class StorageTestUtil {
                           const storage::BlockLayout &layout, const storage::TupleSlot slot) {
     // Skip the version vector for tuples
     for (uint16_t projection_list_index = 0; projection_list_index < tuple.NumColumns(); projection_list_index++) {
-      storage::col_id_t col_id(static_cast<uint16_t>(projection_list_index + NUM_RESERVED_COLUMNS));
+      storage::col_id_t col_id(static_cast<uint16_t>(projection_list_index + storage::NUM_RESERVED_COLUMNS));
       const byte *val_ptr = tuple.AccessWithNullCheck(projection_list_index);
       if (val_ptr == nullptr)
         tested.SetNull(slot, storage::col_id_t(projection_list_index));
@@ -458,9 +459,9 @@ class StorageTestUtil {
   // underlying values are the same
   static void CheckTupleEqualShallow(const storage::ProjectedRow &expected, const storage::TupleAccessStrategy &tested,
                                      const storage::BlockLayout &layout, const storage::TupleSlot slot) {
-    for (uint16_t col = NUM_RESERVED_COLUMNS; col < layout.NumColumns(); col++) {
+    for (uint16_t col = storage::NUM_RESERVED_COLUMNS; col < layout.NumColumns(); col++) {
       storage::col_id_t col_id(col);
-      const byte *val_ptr = expected.AccessWithNullCheck(static_cast<uint16_t>(col - NUM_RESERVED_COLUMNS));
+      const byte *val_ptr = expected.AccessWithNullCheck(static_cast<uint16_t>(col - storage::NUM_RESERVED_COLUMNS));
       byte *col_slot = tested.AccessWithNullCheck(slot, col_id);
       if (val_ptr == nullptr) {
         EXPECT_TRUE(col_slot == nullptr);
@@ -577,17 +578,18 @@ class StorageTestUtil {
  private:
   template <typename Random>
   static storage::BlockLayout RandomLayout(const uint16_t max_cols, Random *const generator, bool allow_varlen) {
-    TERRIER_ASSERT(max_cols > NUM_RESERVED_COLUMNS, "There should be at least 2 cols (reserved for version).");
+    TERRIER_ASSERT(max_cols > storage::NUM_RESERVED_COLUMNS, "There should be at least 2 cols (reserved for version).");
     // We probably won't allow tables with fewer than 2 columns
-    const uint16_t num_attrs = std::uniform_int_distribution<uint16_t>(NUM_RESERVED_COLUMNS + 1, max_cols)(*generator);
+    const uint16_t num_attrs =
+        std::uniform_int_distribution<uint16_t>(storage::NUM_RESERVED_COLUMNS + 1, max_cols)(*generator);
     std::vector<uint16_t> possible_attr_sizes{1, 2, 4, 8}, attr_sizes(num_attrs);
-    if (allow_varlen) possible_attr_sizes.push_back(VARLEN_COLUMN);
+    if (allow_varlen) possible_attr_sizes.push_back(storage::VARLEN_COLUMN);
 
-    for (uint16_t i = 0; i < NUM_RESERVED_COLUMNS; i++) {
+    for (uint16_t i = 0; i < storage::NUM_RESERVED_COLUMNS; i++) {
       attr_sizes[i] = 8;
     }
 
-    for (uint16_t i = NUM_RESERVED_COLUMNS; i < num_attrs; i++)
+    for (uint16_t i = storage::NUM_RESERVED_COLUMNS; i < num_attrs; i++)
       attr_sizes[i] = *RandomTestUtil::UniformRandomElement(&possible_attr_sizes, generator);
     return storage::BlockLayout(attr_sizes);
   }
