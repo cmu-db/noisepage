@@ -99,6 +99,7 @@ terrier_static_EXTERNAL_OBJECTS = \
 "/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/src/CMakeFiles/terrier_objlib.dir/execution/sql/aggregation_hash_table.cpp.o" \
 "/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/src/CMakeFiles/terrier_objlib.dir/execution/sql/bloom_filter.cpp.o" \
 "/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/src/CMakeFiles/terrier_objlib.dir/execution/sql/concise_hash_table.cpp.o" \
+"/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/src/CMakeFiles/terrier_objlib.dir/execution/sql/ddl_executors.cpp.o" \
 "/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/src/CMakeFiles/terrier_objlib.dir/execution/sql/filter_manager.cpp.o" \
 "/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/src/CMakeFiles/terrier_objlib.dir/execution/sql/functions/string_functions.cpp.o" \
 "/Users/dpatra/Research/terrier/cmake-build-relwithdebinfo/src/CMakeFiles/terrier_objlib.dir/execution/sql/generic_hash_table.cpp.o" \
@@ -271,6 +272,7 @@ relwithdebinfo/libterrier.a: src/CMakeFiles/terrier_objlib.dir/execution/sema/se
 relwithdebinfo/libterrier.a: src/CMakeFiles/terrier_objlib.dir/execution/sql/aggregation_hash_table.cpp.o
 relwithdebinfo/libterrier.a: src/CMakeFiles/terrier_objlib.dir/execution/sql/bloom_filter.cpp.o
 relwithdebinfo/libterrier.a: src/CMakeFiles/terrier_objlib.dir/execution/sql/concise_hash_table.cpp.o
+relwithdebinfo/libterrier.a: src/CMakeFiles/terrier_objlib.dir/execution/sql/ddl_executors.cpp.o
 relwithdebinfo/libterrier.a: src/CMakeFiles/terrier_objlib.dir/execution/sql/filter_manager.cpp.o
 relwithdebinfo/libterrier.a: src/CMakeFiles/terrier_objlib.dir/execution/sql/functions/string_functions.cpp.o
 relwithdebinfo/libterrier.a: src/CMakeFiles/terrier_objlib.dir/execution/sql/generic_hash_table.cpp.o
