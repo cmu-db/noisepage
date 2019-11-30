@@ -1236,4 +1236,72 @@ TEST(OperatorTests, CreateFunctionTest) {
       "Mismatched");
 #endif
 }
+
+// NOLINTNEXTLINE
+TEST(OperatorTests, CreateIndexTest) {
+  //===--------------------------------------------------------------------===//
+  // CreateIndex
+  //===--------------------------------------------------------------------===//
+  auto idx_schema = std::make_unique<catalog::IndexSchema>(
+      std::vector<catalog::IndexSchema::Column>{
+          catalog::IndexSchema::Column("col_1", type::TypeId::TINYINT, true,
+                                       parser::ConstantValueExpression(type::TransientValueFactory::GetTinyInt(1)))},
+      storage::index::IndexType::BWTREE, true, true, true, true);
+
+  Operator op1 =
+      CreateIndex::Make(catalog::namespace_oid_t(1), catalog::table_oid_t(1), "index_1", std::move(idx_schema));
+
+  EXPECT_EQ(op1.GetType(), OpType::CREATEINDEX);
+  EXPECT_EQ(op1.GetName(), "CreateIndex");
+  EXPECT_EQ(op1.As<CreateIndex>()->GetIndexName(), "index_1");
+  EXPECT_EQ(op1.As<CreateIndex>()->GetNamespaceOid(), catalog::namespace_oid_t(1));
+  EXPECT_EQ(op1.As<CreateIndex>()->GetTableOid(), catalog::table_oid_t(1));
+  auto idx_schema_dup = std::make_unique<catalog::IndexSchema>(
+      std::vector<catalog::IndexSchema::Column>{
+          catalog::IndexSchema::Column("col_1", type::TypeId::TINYINT, true,
+                                       parser::ConstantValueExpression(type::TransientValueFactory::GetTinyInt(1)))},
+      storage::index::IndexType::BWTREE, true, true, true, true);
+  EXPECT_EQ(*op1.As<CreateIndex>()->GetSchema(), *idx_schema_dup);
+
+  auto idx_schema_2 = std::make_unique<catalog::IndexSchema>(
+      std::vector<catalog::IndexSchema::Column>{
+          catalog::IndexSchema::Column("col_1", type::TypeId::TINYINT, true,
+                                       parser::ConstantValueExpression(type::TransientValueFactory::GetTinyInt(1)))},
+      storage::index::IndexType::BWTREE, true, true, true, true);
+  Operator op2 =
+      CreateIndex::Make(catalog::namespace_oid_t(1), catalog::table_oid_t(1), "index_1", std::move(idx_schema_2));
+  EXPECT_TRUE(op1 == op2);
+  EXPECT_EQ(op1.Hash(), op2.Hash());
+
+  auto idx_schema_3 = std::make_unique<catalog::IndexSchema>(
+      std::vector<catalog::IndexSchema::Column>{
+          catalog::IndexSchema::Column("col_1", type::TypeId::TINYINT, true,
+                                       parser::ConstantValueExpression(type::TransientValueFactory::GetTinyInt(1)))},
+      storage::index::IndexType::BWTREE, true, true, true, true);
+  Operator op3 =
+      CreateIndex::Make(catalog::namespace_oid_t(2), catalog::table_oid_t(1), "index_1", std::move(idx_schema_3));
+  EXPECT_FALSE(op3 == op1);
+  EXPECT_NE(op1.Hash(), op3.Hash());
+
+  auto idx_schema_4 = std::make_unique<catalog::IndexSchema>(
+      std::vector<catalog::IndexSchema::Column>{
+          catalog::IndexSchema::Column("col_1", type::TypeId::TINYINT, true,
+                                       parser::ConstantValueExpression(type::TransientValueFactory::GetTinyInt(1)))},
+      storage::index::IndexType::BWTREE, true, true, true, true);
+  Operator op4 =
+      CreateIndex::Make(catalog::namespace_oid_t(1), catalog::table_oid_t(1), "index_2", std::move(idx_schema_4));
+  EXPECT_FALSE(op1 == op4);
+  EXPECT_NE(op1.Hash(), op4.Hash());
+
+  auto idx_schema_5 = std::make_unique<catalog::IndexSchema>(
+      std::vector<catalog::IndexSchema::Column>{
+          catalog::IndexSchema::Column("col_1", type::TypeId::INTEGER, true,
+                                       parser::ConstantValueExpression(type::TransientValueFactory::GetInteger(1)))},
+      storage::index::IndexType::BWTREE, true, true, true, true);
+  Operator op5 =
+      CreateIndex::Make(catalog::namespace_oid_t(1), catalog::table_oid_t(1), "index_1", std::move(idx_schema_5));
+  EXPECT_FALSE(op1 == op5);
+  EXPECT_NE(op1.Hash(), op5.Hash());
+}
+
 }  // namespace terrier::optimizer
