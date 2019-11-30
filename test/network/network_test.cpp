@@ -142,6 +142,7 @@ class NetworkTests : public TerrierTest {
     EXPECT_TRUE(ManualPacketUtil::ReadUntilReadyOrClose(io_socket));
 
     ManualPacketUtil::TerminateConnection(io_socket->GetSocketFd());
+    io_socket->Close();
   }
 };
 

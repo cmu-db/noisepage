@@ -29,55 +29,27 @@ namespace terrier::trafficcop {
 
 class TrafficCopTests : public TerrierTest {
  protected:
-  std::unique_ptr<network::TerrierServer> server_;
   uint16_t port_ = common::Settings::SERVER_PORT;
-  std::thread server_thread_;
 
   DBMain *db_main_;
-  common::DedicatedThreadRegistry thread_registry_{DISABLED};
-  storage::RecordBufferSegmentPool buffer_segment_pool_{100000, 1000};
-  transaction::TimestampManager timestamp_manager_{};
-  transaction::DeferredActionManager deferred_action_manager_{&timestamp_manager_};
-  transaction::TransactionManager txn_manager_{&timestamp_manager_, &deferred_action_manager_, &buffer_segment_pool_,
-                                               true, DISABLED};
-  catalog::Catalog *catalog_;
-  trafficcop::TrafficCop *t_cop_;
-  network::PostgresCommandFactory command_factory_;
-  network::PostgresProtocolInterpreter::Provider interpreter_provider_{common::ManagedPointer(&command_factory_)};
-  std::unique_ptr<network::ConnectionHandleFactory> handle_factory_;
+  common::ManagedPointer<network::TerrierServer> server_;
+  common::ManagedPointer<transaction::TransactionManager> txn_manager_;
+  common::ManagedPointer<catalog::Catalog> catalog_;
 
   void SetUp() override {
     std::unordered_map<settings::Param, settings::ParamInfo> param_map;
     terrier::settings::SettingsManager::ConstructParamMap(param_map);
 
     db_main_ = new DBMain(std::move(param_map));
-
-    t_cop_ = db_main_->t_cop_;
-    catalog_ = db_main_->catalog_.get();
-
-    network::network_logger->set_level(spdlog::level::trace);
-    test_logger->set_level(spdlog::level::debug);
-    spdlog::flush_every(std::chrono::seconds(1));
-
-    try {
-      handle_factory_ = std::make_unique<network::ConnectionHandleFactory>(common::ManagedPointer(t_cop_));
-      server_ = std::make_unique<network::TerrierServer>(
-          common::ManagedPointer<network::ProtocolInterpreter::Provider>(&interpreter_provider_),
-          common::ManagedPointer(handle_factory_.get()),
-          common::ManagedPointer<common::DedicatedThreadRegistry>(&thread_registry_));
-      server_->SetPort(port_);
-      server_->RunServer();
-    } catch (NetworkProcessException &exception) {
-      TEST_LOG_ERROR("[LaunchServer] exception when launching server");
-      throw;
-    }
-    TEST_LOG_DEBUG("Server initialized");
+    txn_manager_ = common::ManagedPointer(db_main_->txn_manager_);
+    catalog_ = common::ManagedPointer(db_main_->catalog_);
+    server_ = common::ManagedPointer(db_main_->server_);
+    db_main_->running_ = true;
+    server_->SetPort(port_);
+    server_->RunServer();
   }
 
-  void TearDown() override {
-    server_->StopServer();
-    TerrierTest::TearDown();
-  }
+  void TearDown() override { delete db_main_; }
 
   // The port used to connect a Postgres backend. Useful for debugging.
   const int postgres_port_ = 5432;
@@ -95,19 +67,10 @@ TEST_F(TrafficCopTests, RoundTripTest) {
     txn1.exec("INSERT INTO TableA VALUES (1, 'abc');");
 
     pqxx::result r = txn1.exec("SELECT * FROM TableA");
-    for (const pqxx::row &row : r) {
-      std::string row_str;
-      for (const pqxx::field &col : row) {
-        row_str += col.c_str();
-        row_str += '\t';
-      }
-      TEST_LOG_INFO(row_str);
-    }
     EXPECT_EQ(r.size(), 1);
     txn1.commit();
     connection.disconnect();
   } catch (const std::exception &e) {
-    TEST_LOG_ERROR("Exception occurred: {0}", e.what());
     EXPECT_TRUE(false);
   }
 }
@@ -123,18 +86,22 @@ TEST_F(TrafficCopTests, TemporaryNamespaceTest) {
 
     pqxx::work txn1(connection);
 
-    auto txn = txn_manager_.BeginTransaction();
-    auto db_accessor = catalog_->GetAccessor(txn, catalog_->GetDatabaseOid(txn, catalog::DEFAULT_DATABASE));
-
     // Create a new namespace and make sure that its OID is higher than the default start OID,
     // which should have been assigned to the temporary namespace for this connection
-    auto new_namespace_oid = db_accessor->CreateNamespace(std::string(trafficcop::TEMP_NAMESPACE_PREFIX));
+    catalog::namespace_oid_t new_namespace_oid = catalog::INVALID_NAMESPACE_OID;
+    do {
+      auto txn = txn_manager_->BeginTransaction();
+      auto db_oid = catalog_->GetDatabaseOid(txn, catalog::DEFAULT_DATABASE);
+      EXPECT_NE(db_oid, catalog::INVALID_DATABASE_OID);
+      auto db_accessor = catalog_->GetAccessor(txn, db_oid);
+      EXPECT_NE(db_accessor, nullptr);
+      new_namespace_oid = db_accessor->CreateNamespace(std::string(trafficcop::TEMP_NAMESPACE_PREFIX));
+      txn_manager_->Abort(txn);
+    } while (new_namespace_oid == catalog::INVALID_NAMESPACE_OID);
     EXPECT_GT(static_cast<uint32_t>(new_namespace_oid), catalog::START_OID);
-    txn_manager_.Commit(txn, transaction::TransactionUtil::EmptyCallback, nullptr);
     txn1.commit();
     connection.disconnect();
   } catch (const std::exception &e) {
-    TEST_LOG_ERROR("Exception occurred: {0}", e.what());
     EXPECT_TRUE(false);
   }
 }
@@ -301,7 +268,6 @@ TEST_F(TrafficCopTests, ManualExtendedQueryTest) {
     network::ManualPacketUtil::TerminateConnection(io_socket->GetSocketFd());
     io_socket->Close();
   } catch (const std::exception &e) {
-    TEST_LOG_ERROR("Exception occurred: {0}", e.what());
     EXPECT_TRUE(false);
   }
 }
@@ -338,7 +304,6 @@ TEST_F(TrafficCopTests, ManualRoundTripTest) {
     network::ManualPacketUtil::TerminateConnection(io_socket->GetSocketFd());
     io_socket->Close();
   } catch (const std::exception &e) {
-    TEST_LOG_ERROR("Exception occurred: {0}", e.what());
     EXPECT_TRUE(false);
   }
 }

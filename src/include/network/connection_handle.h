@@ -137,7 +137,6 @@ class ConnectionHandle {
    * @return The transition to trigger in the state machine after
    */
   Transition Process() {
-    NETWORK_LOG_INFO("Processing packet.");
     auto transition = protocol_interpreter_->Process(io_wrapper_->GetReadBuffer(), io_wrapper_->GetWriteQueue(),
                                                      traffic_cop_, common::ManagedPointer(&context_),
                                                      [=] { event_active(workpool_event_, EV_WRITE, 0); });
