@@ -1617,7 +1617,7 @@ class CreateFunction : public OperatorNode<CreateFunction> {
                        std::string function_name, parser::PLType language, std::vector<std::string> &&function_body,
                        std::vector<std::string> &&function_param_names,
                        std::vector<parser::BaseFunctionParameter::DataType> &&function_param_types,
-                       parser::BaseFunctionParameter::DataType return_type, int param_count, bool replace);
+                       parser::BaseFunctionParameter::DataType return_type, size_t param_count, bool replace);
 
   bool operator==(const BaseOperatorNode &r) override;
   common::hash_t Hash() const override;
@@ -1672,7 +1672,7 @@ class CreateFunction : public OperatorNode<CreateFunction> {
   /**
    * @return number of parameters of the user defined function
    */
-  int GetParamCount() const { return param_count_; }
+  size_t GetParamCount() const { return param_count_; }
 
  private:
   /**
@@ -1723,7 +1723,7 @@ class CreateFunction : public OperatorNode<CreateFunction> {
   /**
    * Number of parameters
    */
-  int param_count_ = 0;
+  size_t param_count_ = 0;
 };
 
 /**

@@ -6,6 +6,7 @@
 #include <utility>
 #include <vector>
 #include "catalog/catalog_defs.h"
+#include "common/macros.h"
 #include "optimizer/operator_visitor.h"
 #include "parser/expression/abstract_expression.h"
 
@@ -748,9 +749,11 @@ Operator LogicalCreateFunction::Make(catalog::db_oid_t database_oid, catalog::na
                                      std::vector<std::string> &&function_body,
                                      std::vector<std::string> &&function_param_names,
                                      std::vector<parser::BaseFunctionParameter::DataType> &&function_param_types,
-                                     parser::BaseFunctionParameter::DataType return_type, int param_count,
+                                     parser::BaseFunctionParameter::DataType return_type, size_t param_count,
                                      bool replace) {
   auto op = std::make_unique<LogicalCreateFunction>();
+  TERRIER_ASSERT(function_param_names.size() == param_count && function_param_types.size() == param_count,
+                 "Mismatched number of items in vector and number of function parameters");
   op->database_oid_ = database_oid;
   op->namespace_oid_ = namespace_oid;
   op->function_name_ = std::move(function_name);

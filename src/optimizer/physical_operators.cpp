@@ -5,6 +5,7 @@
 #include <unordered_set>
 #include <utility>
 #include <vector>
+#include "common/macros.h"
 #include "optimizer/operator_visitor.h"
 #include "parser/expression/abstract_expression.h"
 
@@ -967,7 +968,9 @@ Operator CreateFunction::Make(catalog::db_oid_t database_oid, catalog::namespace
                               std::string function_name, parser::PLType language,
                               std::vector<std::string> &&function_body, std::vector<std::string> &&function_param_names,
                               std::vector<parser::BaseFunctionParameter::DataType> &&function_param_types,
-                              parser::BaseFunctionParameter::DataType return_type, int param_count, bool replace) {
+                              parser::BaseFunctionParameter::DataType return_type, size_t param_count, bool replace) {
+  TERRIER_ASSERT(function_param_names.size() == param_count && function_param_types.size() == param_count,
+                 "Mismatched number of items in vector and number of function parameters");
   auto op = std::make_unique<CreateFunction>();
   op->database_oid_ = database_oid;
   op->namespace_oid_ = namespace_oid;
@@ -998,7 +1001,7 @@ common::hash_t CreateFunction::Hash() const {
 }
 
 bool CreateFunction::operator==(const BaseOperatorNode &r) {
-  if (r.GetType() != OpType::DELETE) return false;
+  if (r.GetType() != OpType::CREATEFUNCTION) return false;
   const CreateFunction &node = *dynamic_cast<const CreateFunction *>(&r);
   if (database_oid_ != node.database_oid_) return false;
   if (namespace_oid_ != node.namespace_oid_) return false;

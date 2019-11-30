@@ -987,19 +987,93 @@ TEST(OperatorTests, LogicalCreateFunctionTest) {
   //===--------------------------------------------------------------------===//
   // LogicalCreateFunction
   //===--------------------------------------------------------------------===//
-  Operator logical_create_db_1 = LogicalCreateFunction::Make("testdb");
-  Operator logical_create_db_2 = LogicalCreateFunction::Make("testdb");
-  Operator logical_create_db_3 = LogicalCreateFunction::Make("another_testdb");
+  Operator op1 = LogicalCreateFunction::Make(
+      catalog::db_oid_t(1), catalog::namespace_oid_t(1), "function1", parser::PLType::PL_C, {}, {"param"},
+      {parser::BaseFunctionParameter::DataType::INTEGER}, parser::BaseFunctionParameter::DataType::BOOLEAN, 1, false);
 
-  EXPECT_EQ(logical_create_db_1.GetType(), OpType::LOGICALCREATEFUNCTION);
-  EXPECT_EQ(logical_create_db_3.GetType(), OpType::LOGICALCREATEFUNCTION);
-  EXPECT_EQ(logical_create_db_1.GetName(), "LogicalCreateFunction");
-  EXPECT_EQ(logical_create_db_1.As<LogicalCreateFunction>()->GetFunctionName(), "testdb");
-  EXPECT_EQ(logical_create_db_3.As<LogicalCreateFunction>()->GetFunctionName(), "another_testdb");
-  EXPECT_TRUE(logical_create_db_1 == logical_create_db_2);
-  EXPECT_FALSE(logical_create_db_1 == logical_create_db_3);
-  EXPECT_EQ(logical_create_db_1.Hash(), logical_create_db_2.Hash());
-  EXPECT_NE(logical_create_db_1.Hash(), logical_create_db_3.Hash());
+  EXPECT_EQ(op1.GetType(), OpType::LOGICALCREATEFUNCTION);
+  EXPECT_EQ(op1.GetName(), "LogicalCreateFunction");
+  EXPECT_EQ(op1.As<LogicalCreateFunction>()->GetDatabaseOid(), catalog::db_oid_t(1));
+  EXPECT_EQ(op1.As<LogicalCreateFunction>()->GetNamespaceOid(), catalog::namespace_oid_t(1));
+  EXPECT_EQ(op1.As<LogicalCreateFunction>()->GetFunctionName(), "function1");
+  EXPECT_EQ(op1.As<LogicalCreateFunction>()->GetUDFLanguage(), parser::PLType::PL_C);
+  EXPECT_EQ(op1.As<LogicalCreateFunction>()->GetFunctionBody(), std::vector<std::string>{});
+  EXPECT_EQ(op1.As<LogicalCreateFunction>()->GetFunctionParameterNames(), std::vector<std::string>{"param"});
+  EXPECT_EQ(op1.As<LogicalCreateFunction>()->GetFunctionParameterTypes(),
+            std::vector<parser::BaseFunctionParameter::DataType>{parser::BaseFunctionParameter::DataType::INTEGER});
+  EXPECT_EQ(op1.As<LogicalCreateFunction>()->GetReturnType(), parser::BaseFunctionParameter::DataType::BOOLEAN);
+  EXPECT_EQ(op1.As<LogicalCreateFunction>()->GetParamCount(), 1);
+  EXPECT_FALSE(op1.As<LogicalCreateFunction>()->IsReplace());
+
+  Operator op2 = LogicalCreateFunction::Make(
+      catalog::db_oid_t(1), catalog::namespace_oid_t(1), "function1", parser::PLType::PL_C, {}, {"param"},
+      {parser::BaseFunctionParameter::DataType::INTEGER}, parser::BaseFunctionParameter::DataType::BOOLEAN, 1, false);
+  EXPECT_TRUE(op1 == op2);
+  EXPECT_EQ(op1.Hash(), op2.Hash());
+
+  Operator op3 = LogicalCreateFunction::Make(
+      catalog::db_oid_t(1), catalog::namespace_oid_t(3), "function1", parser::PLType::PL_C, {}, {"param"},
+      {parser::BaseFunctionParameter::DataType::INTEGER}, parser::BaseFunctionParameter::DataType::BOOLEAN, 1, false);
+  EXPECT_TRUE(op1 != op3);
+  EXPECT_NE(op1.Hash(), op3.Hash());
+
+  Operator op4 = LogicalCreateFunction::Make(
+      catalog::db_oid_t(1), catalog::namespace_oid_t(1), "function4", parser::PLType::PL_C, {}, {"param"},
+      {parser::BaseFunctionParameter::DataType::INTEGER}, parser::BaseFunctionParameter::DataType::BOOLEAN, 1, false);
+  EXPECT_FALSE(op1 == op4);
+  EXPECT_NE(op1.Hash(), op4.Hash());
+
+  Operator op5 = LogicalCreateFunction::Make(
+      catalog::db_oid_t(1), catalog::namespace_oid_t(1), "function1", parser::PLType::PL_PGSQL, {}, {"param"},
+      {parser::BaseFunctionParameter::DataType::INTEGER}, parser::BaseFunctionParameter::DataType::BOOLEAN, 1, false);
+  EXPECT_FALSE(op1 == op5);
+  EXPECT_NE(op1.Hash(), op5.Hash());
+
+  Operator op6 =
+      LogicalCreateFunction::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), "function1", parser::PLType::PL_C,
+                                  {"body", "body2"}, {"param"}, {parser::BaseFunctionParameter::DataType::INTEGER},
+                                  parser::BaseFunctionParameter::DataType::BOOLEAN, 1, false);
+  EXPECT_FALSE(op1 == op6);
+  EXPECT_NE(op1.Hash(), op6.Hash());
+
+  Operator op7 = LogicalCreateFunction::Make(
+      catalog::db_oid_t(1), catalog::namespace_oid_t(1), "function1", parser::PLType::PL_C, {}, {"param1", "param2"},
+      {parser::BaseFunctionParameter::DataType::INTEGER, parser::BaseFunctionParameter::DataType::BOOLEAN},
+      parser::BaseFunctionParameter::DataType::BOOLEAN, 2, false);
+  EXPECT_FALSE(op1 == op7);
+  EXPECT_NE(op1.Hash(), op7.Hash());
+
+  Operator op8 =
+      LogicalCreateFunction::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), "function1", parser::PLType::PL_C,
+                                  {}, {}, {}, parser::BaseFunctionParameter::DataType::BOOLEAN, 0, false);
+  EXPECT_FALSE(op1 == op8);
+  EXPECT_NE(op1.Hash(), op8.Hash());
+
+  Operator op9 = LogicalCreateFunction::Make(
+      catalog::db_oid_t(1), catalog::namespace_oid_t(1), "function1", parser::PLType::PL_C, {}, {"param"},
+      {parser::BaseFunctionParameter::DataType::VARCHAR}, parser::BaseFunctionParameter::DataType::BOOLEAN, 1, false);
+  EXPECT_FALSE(op1 == op9);
+  EXPECT_NE(op1.Hash(), op9.Hash());
+
+  Operator op10 = LogicalCreateFunction::Make(
+      catalog::db_oid_t(1), catalog::namespace_oid_t(1), "function1", parser::PLType::PL_C, {}, {"param"},
+      {parser::BaseFunctionParameter::DataType::INTEGER}, parser::BaseFunctionParameter::DataType::INTEGER, 1, false);
+  EXPECT_FALSE(op1 == op10);
+  EXPECT_NE(op1.Hash(), op10.Hash());
+
+  Operator op11 = LogicalCreateFunction::Make(
+      catalog::db_oid_t(1), catalog::namespace_oid_t(1), "function1", parser::PLType::PL_C, {}, {"param"},
+      {parser::BaseFunctionParameter::DataType::INTEGER}, parser::BaseFunctionParameter::DataType::BOOLEAN, 1, true);
+  EXPECT_FALSE(op1 == op11);
+  EXPECT_NE(op1.Hash(), op11.Hash());
+
+#ifndef NDEBUG
+  EXPECT_DEATH(
+      LogicalCreateFunction::Make(catalog::db_oid_t(1), catalog::namespace_oid_t(1), "function1", parser::PLType::PL_C,
+                                  {}, {"param", "PARAM"}, {parser::BaseFunctionParameter::DataType::INTEGER},
+                                  parser::BaseFunctionParameter::DataType::BOOLEAN, 1, true),
+      "Mismatched");
+#endif
 }
 
 }  // namespace terrier::optimizer
