@@ -69,7 +69,7 @@ class SeqscanBenchmark : public benchmark::Fixture {
   void TearDown(const benchmark::State &state) override {
     txn_manager_->Commit(test_txn_, transaction::TransactionUtil::EmptyCallback, nullptr);
     // Note: execution context must be released to end lifecycle before tear down completes
-    exec_ctx_.release();
+    (void) exec_ctx_.release();
     catalog_->TearDown();
     gc_->PerformGarbageCollection();
     gc_->PerformGarbageCollection();
@@ -114,7 +114,7 @@ BENCHMARK_DEFINE_F(SeqscanBenchmark, SequentialScan)(benchmark::State &state) {
     execution::sql::ProjectedColumnsIterator *pci = iter.GetProjectedColumnsIterator();
 
     // timer for iteration
-    uint64_t elapsed_ms;
+    uint64_t elapsed_ms = 0;
     common::ScopedTimer<std::chrono::milliseconds> timer(&elapsed_ms);
 
     // count number of tuples read
